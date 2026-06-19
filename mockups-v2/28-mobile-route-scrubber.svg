@@ -1,0 +1,430 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 750 1624" font-family="ui-sans-serif, system-ui, -apple-system">
+  <defs>
+    <linearGradient id="bg28" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F5F1E8"/>
+      <stop offset="100%" stop-color="#EDE6D3"/>
+    </linearGradient>
+    <linearGradient id="mapMob28" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#E8DFC4"/>
+      <stop offset="100%" stop-color="#D4C8A3"/>
+    </linearGradient>
+    <linearGradient id="rainCloudMob" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#6B7A8F" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#6B7A8F" stop-opacity="0.1"/>
+    </linearGradient>
+    <linearGradient id="elevationMob" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#8B7355" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#8B7355" stop-opacity="0.1"/>
+    </linearGradient>
+    <linearGradient id="scrubberTrackMob" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#7A9466"/>
+      <stop offset="35%" stop-color="#7A9466"/>
+      <stop offset="48%" stop-color="#D4A373"/>
+      <stop offset="62%" stop-color="#A85E2E"/>
+      <stop offset="78%" stop-color="#D4A373"/>
+      <stop offset="100%" stop-color="#7A9466"/>
+    </linearGradient>
+    <pattern id="topo28" x="0" y="0" width="120" height="120" patternUnits="userSpaceOnUse">
+      <path d="M 0 60 Q 30 30 60 60 T 120 60" stroke="#C4B896" stroke-width="0.8" fill="none" opacity="0.4"/>
+    </pattern>
+    <radialGradient id="riskPulse28">
+      <stop offset="0%" stop-color="#A85E2E" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#A85E2E" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  
+  <rect width="750" height="1624" fill="url(#bg28)"/>
+  
+  <!-- ============ STATUS BAR ============ -->
+  <g transform="translate(0, 0)">
+    <rect width="750" height="60" fill="#F5F1E8"/>
+    <text x="60" y="38" font-size="16" fill="#2C2A26" font-weight="600">10:42</text>
+    
+    <g transform="translate(600, 22)">
+      <g fill="#2C2A26">
+        <rect x="0" y="14" width="4" height="6" rx="1"/>
+        <rect x="7" y="10" width="4" height="10" rx="1"/>
+        <rect x="14" y="6" width="4" height="14" rx="1"/>
+        <rect x="21" y="2" width="4" height="18" rx="1"/>
+      </g>
+      <text x="40" y="16" font-size="13" fill="#2C2A26" font-weight="500">5G</text>
+      <g transform="translate(74, 4)">
+        <rect width="32" height="14" rx="3" fill="none" stroke="#2C2A26" stroke-width="1.5"/>
+        <rect x="2" y="2" width="24" height="10" rx="1" fill="#2C2A26"/>
+        <rect x="34" y="4" width="2" height="6" rx="1" fill="#2C2A26"/>
+      </g>
+    </g>
+  </g>
+  
+  <!-- ============ TOP BAR WITH TOUR NAME ============ -->
+  <g transform="translate(0, 60)">
+    <rect width="750" height="100" fill="#FFFFFF"/>
+    
+    <g transform="translate(40, 28)">
+      <!-- Back -->
+      <g>
+        <g transform="translate(0, 12)" stroke="#2C2A26" stroke-width="2.5" fill="none" stroke-linecap="round">
+          <line x1="0" y1="8" x2="20" y2="8"/>
+          <polyline points="7,3 0,8 7,13"/>
+        </g>
+      </g>
+      
+      <!-- Tour name -->
+      <g transform="translate(48, 0)">
+        <text font-size="11" fill="#A89A7A" letter-spacing="2" font-weight="500">TOUR · STRAVA-IMPORT</text>
+        <text y="24" font-size="22" font-weight="500" fill="#2C2A26" letter-spacing="-0.4">Karwendel-Runde</text>
+      </g>
+      
+      <!-- More button -->
+      <g transform="translate(580, 12)">
+        <circle cx="3" cy="6" r="2.5" fill="#5C5447"/>
+        <circle cx="14" cy="6" r="2.5" fill="#5C5447"/>
+        <circle cx="25" cy="6" r="2.5" fill="#5C5447"/>
+      </g>
+    </g>
+  </g>
+  
+  <!-- ============ TOUR STATS STRIP ============ -->
+  <g transform="translate(0, 160)">
+    <rect width="750" height="60" fill="#2C2A26"/>
+    
+    <g transform="translate(40, 14)" font-size="11" fill="#A89A7A" letter-spacing="1.5" font-weight="500">
+      <g>
+        <text>52</text>
+        <tspan x="0" y="0"></tspan>
+        <text font-size="14" fill="#FFFFFF" font-weight="500" y="18">52 km</text>
+      </g>
+      <g transform="translate(140, 0)">
+        <text>+ 1 240 m</text>
+        <text font-size="14" fill="#FFFFFF" font-weight="500" y="18">1 240 m</text>
+      </g>
+      <g transform="translate(290, 0)">
+        <text>MTB · 18 km/h</text>
+        <text font-size="14" fill="#FFFFFF" font-weight="500" y="18">MTB · 18</text>
+      </g>
+      <g transform="translate(478, 0)">
+        <text>Sa, 08:00</text>
+        <text font-size="14" fill="#FFFFFF" font-weight="500" y="18">Sa, 08:00</text>
+      </g>
+    </g>
+    
+    <!-- Risk pill -->
+    <g transform="translate(580, 14)">
+      <rect width="120" height="34" rx="17" fill="#D4A373"/>
+      <text x="60" y="22" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="600" letter-spacing="0.4">RISIKO 56 %</text>
+    </g>
+  </g>
+  
+  <!-- ============ MAP (top half) ============ -->
+  <g transform="translate(0, 220)">
+    <defs>
+      <clipPath id="mapClipMob28">
+        <rect width="750" height="440"/>
+      </clipPath>
+    </defs>
+    
+    <g clip-path="url(#mapClipMob28)">
+      <rect width="750" height="440" fill="url(#mapMob28)"/>
+      <rect width="750" height="440" fill="url(#topo28)"/>
+      
+      <!-- Terrain -->
+      <g opacity="0.4">
+        <path d="M 0 220 Q 150 160 300 180 T 600 180 T 750 200 L 750 280 L 0 280 Z" fill="#B8A480"/>
+        <path d="M 0 280 Q 200 240 400 260 T 750 260 L 750 340 L 0 340 Z" fill="#A89472" opacity="0.6"/>
+      </g>
+      
+      <!-- City labels -->
+      <g font-size="11" fill="#5C5447" font-weight="500" opacity="0.7">
+        <text x="60" y="80">Bad Tölz</text>
+        <text x="320" y="120">Mittenwald</text>
+        <text x="510" y="180">Karwendel</text>
+        <text x="650" y="240">Schwaz</text>
+      </g>
+      
+      <!-- Rain cloud overlay -->
+      <g opacity="0.7">
+        <ellipse cx="430" cy="170" rx="120" ry="50" fill="url(#rainCloudMob)"/>
+        <g stroke="#6B7A8F" stroke-width="1.5" opacity="0.6">
+          <line x1="380" y1="200" x2="378" y2="216"/>
+          <line x1="420" y1="206" x2="418" y2="222"/>
+          <line x1="460" y1="202" x2="458" y2="218"/>
+          <line x1="500" y1="208" x2="498" y2="224"/>
+        </g>
+      </g>
+      
+      <!-- THE ROUTE -->
+      <g>
+        <path d="M 80 280 
+                 Q 180 240 260 250 
+                 T 380 220 
+                 Q 460 180 540 200 
+                 Q 620 220 680 250" 
+              stroke="#2C2A26" stroke-width="4" fill="none" stroke-linecap="round"/>
+        
+        <!-- Current scrubber position highlight -->
+        <path d="M 380 220 Q 460 180 540 200" 
+              stroke="#A85E2E" stroke-width="6" fill="none" stroke-linecap="round" opacity="0.85"/>
+      </g>
+      
+      <!-- Bearing arrows on route -->
+      <g>
+        <g transform="translate(140, 264)" stroke="#7A9466" fill="#7A9466">
+          <line x1="0" y1="0" x2="18" y2="-3" stroke-width="2.8" stroke-linecap="round"/>
+          <polygon points="18,-3 14,-8 14,2"/>
+        </g>
+        <g transform="translate(440, 200)" stroke="#A85E2E" fill="#A85E2E">
+          <line x1="0" y1="0" x2="-18" y2="4" stroke-width="3" stroke-linecap="round"/>
+          <polygon points="-18,4 -13,-1 -13,9"/>
+        </g>
+        <g transform="translate(620, 230)" stroke="#7A9466" fill="#7A9466">
+          <line x1="0" y1="0" x2="18" y2="3" stroke-width="2.8" stroke-linecap="round"/>
+          <polygon points="18,3 13,-1 13,8"/>
+        </g>
+      </g>
+      
+      <!-- Start marker -->
+      <g transform="translate(80, 280)">
+        <circle r="12" fill="#2C2A26"/>
+        <circle r="5" fill="#FFFFFF"/>
+        <g transform="translate(0, -28)">
+          <rect x="-40" width="80" height="22" rx="11" fill="#FFFFFF" stroke="#2C2A26" stroke-width="1"/>
+          <text y="15" font-size="11" fill="#2C2A26" text-anchor="middle" font-weight="700">START · 08:00</text>
+        </g>
+      </g>
+      
+      <!-- Risk marker km 24 -->
+      <g transform="translate(430, 200)">
+        <circle r="24" fill="url(#riskPulse28)"/>
+        <circle r="16" fill="#FFFFFF" stroke="#A85E2E" stroke-width="2.5"/>
+        <text y="6" font-size="16" fill="#A85E2E" text-anchor="middle" font-weight="700">!</text>
+      </g>
+      
+      <!-- Scrubber position pin -->
+      <g transform="translate(470, 190)">
+        <circle r="34" fill="url(#riskPulse28)"/>
+        <circle r="14" fill="#A85E2E"/>
+        <circle r="6" fill="#FFFFFF"/>
+      </g>
+      
+      <!-- End marker -->
+      <g transform="translate(680, 250)">
+        <circle r="12" fill="#2C2A26"/>
+        <g transform="translate(-5, -5)" stroke="#FFFFFF" stroke-width="2">
+          <line x1="0" y1="0" x2="10" y2="10"/>
+          <line x1="10" y1="0" x2="0" y2="10"/>
+        </g>
+      </g>
+    </g>
+    
+    <!-- Live chip top-left of map -->
+    <g transform="translate(20, 20)">
+      <rect width="180" height="34" rx="17" fill="#FFFFFF" opacity="0.95"/>
+      <circle cx="20" cy="17" r="5" fill="#7A9466"/>
+      <text x="36" y="22" font-size="11" fill="#5C5447">Wetter · 11:00 UTC</text>
+    </g>
+    
+    <!-- Bearing legend top-right -->
+    <g transform="translate(560, 20)">
+      <rect width="170" height="84" rx="14" fill="#FFFFFF" opacity="0.95"/>
+      <text x="14" y="20" font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">BEARING-WIND</text>
+      <g transform="translate(14, 32)">
+        <line x1="0" y1="6" x2="14" y2="6" stroke="#7A9466" stroke-width="2.5"/>
+        <polygon points="14,6 10,2 10,10" fill="#7A9466"/>
+        <text x="22" y="10" font-size="10" fill="#2C2A26">Rücken</text>
+      </g>
+      <g transform="translate(14, 52)">
+        <line x1="14" y1="6" x2="0" y2="6" stroke="#A85E2E" stroke-width="2.5"/>
+        <polygon points="0,6 4,2 4,10" fill="#A85E2E"/>
+        <text x="22" y="10" font-size="10" fill="#2C2A26">Gegen</text>
+      </g>
+    </g>
+  </g>
+  
+  <!-- ============ CROSS-SECTION (middle) ============ -->
+  <g transform="translate(0, 660)">
+    <rect width="750" height="320" fill="#FFFFFF"/>
+    
+    <g transform="translate(40, 24)">
+      <text font-size="11" fill="#A89A7A" letter-spacing="2.5" font-weight="500">HÖHENPROFIL · WETTER · LIVE</text>
+      <text x="660" font-size="10" fill="#A89A7A" text-anchor="end">↕ sync mit Scrubber</text>
+    </g>
+    
+    <!-- Chart -->
+    <g transform="translate(80, 80)">
+      <!-- Y-axis -->
+      <g font-size="11" fill="#A89A7A">
+        <text x="-12" y="4" text-anchor="end">2 000 m</text>
+        <text x="-12" y="60" text-anchor="end">1 000</text>
+        <text x="-12" y="116" text-anchor="end">500 m</text>
+      </g>
+      
+      <!-- Grid -->
+      <g stroke="#E0D6BE" stroke-width="0.8" stroke-dasharray="3 5" opacity="0.5">
+        <line x1="0" y1="0" x2="580" y2="0"/>
+        <line x1="0" y1="56" x2="580" y2="56"/>
+        <line x1="0" y1="112" x2="580" y2="112"/>
+      </g>
+      
+      <!-- Elevation filled -->
+      <path d="M 0 92 L 60 80 L 120 60 L 180 70 L 240 40 L 300 16 L 360 8 L 420 28 L 480 60 L 540 92 L 580 100 L 580 130 L 0 130 Z" 
+            fill="url(#elevationMob)"/>
+      <path d="M 0 92 L 60 80 L 120 60 L 180 70 L 240 40 L 300 16 L 360 8 L 420 28 L 480 60 L 540 92 L 580 100" 
+            stroke="#8B7355" stroke-width="2.5" fill="none"/>
+      
+      <!-- Rain overlay -->
+      <g opacity="0.6">
+        <rect x="270" y="0" width="8" height="124" fill="#6B7A8F"/>
+        <rect x="288" y="0" width="8" height="124" fill="#6B7A8F" opacity="0.7"/>
+        <rect x="306" y="0" width="8" height="124" fill="#6B7A8F"/>
+        <rect x="324" y="0" width="8" height="124" fill="#6B7A8F" opacity="0.5"/>
+        <rect x="342" y="0" width="8" height="124" fill="#6B7A8F" opacity="0.3"/>
+      </g>
+      
+      <!-- Current cursor at km 24 -->
+      <g>
+        <line x1="300" y1="-12" x2="300" y2="124" stroke="#A85E2E" stroke-width="2.5" stroke-dasharray="4 4"/>
+        <g transform="translate(300, -22)">
+          <rect x="-32" width="64" height="18" rx="9" fill="#A85E2E"/>
+          <text y="13" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="600">10:42</text>
+        </g>
+      </g>
+      
+      <!-- X-axis -->
+      <g font-size="11" fill="#A89A7A" transform="translate(0, 144)">
+        <text x="0" text-anchor="middle">0</text>
+        <text x="116" text-anchor="middle">10</text>
+        <text x="232" text-anchor="middle">20</text>
+        <text x="348" text-anchor="middle">30</text>
+        <text x="464" text-anchor="middle">40</text>
+        <text x="580" text-anchor="end">52 km</text>
+      </g>
+    </g>
+    
+    <!-- Legend bottom -->
+    <g transform="translate(40, 270)" font-size="11" fill="#5C5447">
+      <g>
+        <rect width="16" height="8" y="-4" rx="2" fill="url(#elevationMob)"/>
+        <text x="24" y="4">Höhe</text>
+      </g>
+      <g transform="translate(120, 0)">
+        <rect width="16" height="8" y="-4" rx="2" fill="#6B7A8F" opacity="0.6"/>
+        <text x="24" y="4">Regen</text>
+      </g>
+      <g transform="translate(220, 0)">
+        <text fill="#A85E2E">Markierter Bereich = Risiko-Zone</text>
+      </g>
+    </g>
+  </g>
+  
+  <!-- ============ STICKY BOTTOM SCRUBBER ============ -->
+  <g transform="translate(0, 980)">
+    <rect width="750" height="600" fill="#2C2A26"/>
+    
+    <!-- Header line -->
+    <g transform="translate(40, 32)">
+      <text font-size="11" fill="#A89A7A" letter-spacing="3" font-weight="500">ZEIT-SCRUBBER · KM 24</text>
+      <text x="660" font-size="20" fill="#FFFFFF" font-weight="500" text-anchor="end">10:42</text>
+    </g>
+    
+    <!-- Current position + risk -->
+    <g transform="translate(40, 78)">
+      <text font-size="68" font-weight="200" fill="#FFFFFF" letter-spacing="-2">km 24</text>
+      <text x="260" y="56" font-size="13" fill="#A89A7A">Achensee-Pass · 1 240 m</text>
+    </g>
+    
+    <!-- Risk banner -->
+    <g transform="translate(40, 200)">
+      <rect width="670" height="68" rx="20" fill="#A85E2E"/>
+      <g transform="translate(24, 18)">
+        <text font-size="11" fill="#FAE0D0" letter-spacing="2" font-weight="600">HOHES RISIKO · 68 %</text>
+        <text y="26" font-size="16" fill="#FFFFFF">Regen einsetzend · Sicht 8 km · Wind 32</text>
+      </g>
+    </g>
+    
+    <!-- 4 mini metrics -->
+    <g transform="translate(40, 290)">
+      <g>
+        <text font-size="11" fill="#A89A7A" letter-spacing="1.5" font-weight="500">TEMP</text>
+        <text y="32" font-size="28" font-weight="300" fill="#FFFFFF">12°</text>
+        <text x="52" y="32" font-size="11" fill="#A89A7A">± 0.6</text>
+      </g>
+      <g transform="translate(168, 0)">
+        <text font-size="11" fill="#A89A7A" letter-spacing="1.5" font-weight="500">WIND</text>
+        <text y="32" font-size="28" font-weight="300" fill="#FFFFFF">32</text>
+        <text x="40" y="32" font-size="11" fill="#A89A7A">km/h</text>
+      </g>
+      <g transform="translate(336, 0)">
+        <text font-size="11" fill="#A89A7A" letter-spacing="1.5" font-weight="500">REGEN</text>
+        <text y="32" font-size="28" font-weight="300" fill="#A85E2E">2.4</text>
+        <text x="50" y="32" font-size="11" fill="#A89A7A">mm/h</text>
+      </g>
+      <g transform="translate(504, 0)">
+        <text font-size="11" fill="#A89A7A" letter-spacing="1.5" font-weight="500">SICHT</text>
+        <text y="32" font-size="28" font-weight="300" fill="#FFFFFF">8</text>
+        <text x="30" y="32" font-size="11" fill="#A89A7A">km</text>
+      </g>
+    </g>
+    
+    <!-- Playback row -->
+    <g transform="translate(40, 388)">
+      <g>
+        <rect width="52" height="52" rx="26" fill="#3A3833"/>
+        <g transform="translate(18, 18)" fill="#FFFFFF">
+          <polygon points="0,8 8,0 8,16"/>
+          <polygon points="10,8 18,0 18,16"/>
+        </g>
+      </g>
+      <g transform="translate(64, 0)">
+        <rect width="80" height="52" rx="26" fill="#A85E2E"/>
+        <polygon points="105,15 122,26 105,37" fill="#FFFFFF" transform="translate(-72, -10)"/>
+      </g>
+      <g transform="translate(156, 0)">
+        <rect width="52" height="52" rx="26" fill="#3A3833"/>
+        <g transform="translate(18, 18)" fill="#FFFFFF">
+          <polygon points="0,0 0,16 8,8"/>
+          <polygon points="10,0 10,16 18,8"/>
+        </g>
+      </g>
+      
+      <!-- Speed selector -->
+      <g transform="translate(248, 8)">
+        <rect width="232" height="36" rx="18" fill="#3A3833"/>
+        <text x="34" y="22" font-size="13" fill="#A89A7A" text-anchor="middle">1x</text>
+        <rect x="58" y="3" width="50" height="30" rx="15" fill="#A85E2E"/>
+        <text x="83" y="22" font-size="13" fill="#FFFFFF" text-anchor="middle" font-weight="500">5x</text>
+        <text x="138" y="22" font-size="13" fill="#A89A7A" text-anchor="middle">10x</text>
+        <text x="198" y="22" font-size="13" fill="#A89A7A" text-anchor="middle">25x</text>
+      </g>
+    </g>
+    
+    <!-- Scrubber track -->
+    <g transform="translate(40, 472)">
+      <rect width="670" height="10" rx="5" fill="url(#scrubberTrackMob)"/>
+      
+      <!-- Time markers -->
+      <g font-size="11" fill="#A89A7A" transform="translate(0, 34)">
+        <text x="0">08:00</text>
+        <text x="167" text-anchor="middle">10:00</text>
+        <text x="335" text-anchor="middle">12:00</text>
+        <text x="502" text-anchor="middle">14:00</text>
+        <text x="670" text-anchor="end">15:00</text>
+      </g>
+      
+      <!-- Handle at 10:42 -->
+      <g transform="translate(224, 5)">
+        <circle r="18" fill="#FFFFFF"/>
+        <circle r="8" fill="#A85E2E"/>
+      </g>
+    </g>
+    
+    <!-- Bottom hint -->
+    <g transform="translate(40, 548)">
+      <text font-size="11" fill="#A89A7A">↑ Wische über die Karte um zu scrubben</text>
+    </g>
+  </g>
+  
+  <!-- LABEL -->
+  <g transform="translate(40, 1600)">
+    <text font-size="11" fill="#A89A7A" letter-spacing="3" font-weight="500">28 · MOBILE ROUTENPLANER · SCRUBBER · 375 px</text>
+  </g>
+</svg>

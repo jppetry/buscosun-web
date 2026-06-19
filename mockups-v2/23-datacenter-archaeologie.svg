@@ -1,0 +1,431 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1400" font-family="ui-sans-serif, system-ui, -apple-system">
+  <defs>
+    <linearGradient id="bg23" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F5F1E8"/>
+      <stop offset="100%" stop-color="#EDE6D3"/>
+    </linearGradient>
+    <linearGradient id="stormCard" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#3A3833"/>
+      <stop offset="100%" stop-color="#2C2A26"/>
+    </linearGradient>
+  </defs>
+  
+  <rect width="1440" height="1400" fill="url(#bg23)"/>
+  
+  <!-- TOP NAV -->
+  <g>
+    <g transform="translate(32, 24)">
+      <circle cx="14" cy="14" r="6" fill="#2C2A26"/>
+      <g stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round">
+        <line x1="14" y1="0" x2="14" y2="3"/>
+        <line x1="14" y1="25" x2="14" y2="28"/>
+        <line x1="0" y1="14" x2="3" y2="14"/>
+        <line x1="25" y1="14" x2="28" y2="14"/>
+      </g>
+      <text x="42" y="20" font-size="18" font-weight="500" fill="#2C2A26" letter-spacing="-0.5">buscosun</text>
+    </g>
+    
+    <g transform="translate(700, 18)">
+      <rect width="200" height="40" rx="20" fill="#2C2A26"/>
+      <text x="100" y="25" font-size="12" fill="#F5F1E8" text-anchor="middle" font-weight="500">Datacenter · v1.3</text>
+    </g>
+  </g>
+  
+  <!-- ============ DATACENTER TAB BAR ============ -->
+  <g transform="translate(80, 100)">
+    <text font-size="11" fill="#A89A7A" letter-spacing="3" font-weight="500">DATACENTER · HISTORISCHE WETTER-WERKZEUGE</text>
+    
+    <g transform="translate(0, 24)">
+      <g>
+        <rect width="316" height="56" rx="14" fill="#FFFFFF" stroke="#E0D6BE"/>
+        <g transform="translate(20, 14)">
+          <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">01</text>
+          <text y="22" font-size="15" fill="#5C5447" font-weight="500">Mein Tag in der Geschichte</text>
+        </g>
+      </g>
+      
+      <g transform="translate(324, 0)">
+        <rect width="316" height="56" rx="14" fill="#2C2A26"/>
+        <g transform="translate(20, 14)">
+          <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="600">02 · AKTIV</text>
+          <text y="22" font-size="15" fill="#FFFFFF" font-weight="500">Wetter-Archäologie</text>
+        </g>
+      </g>
+      
+      <g transform="translate(648, 0)">
+        <rect width="316" height="56" rx="14" fill="#FFFFFF" stroke="#E0D6BE"/>
+        <g transform="translate(20, 14)">
+          <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">03</text>
+          <text y="22" font-size="15" fill="#5C5447" font-weight="500">Klima-Heimat</text>
+        </g>
+      </g>
+      
+      <g transform="translate(972, 0)">
+        <rect width="308" height="56" rx="14" fill="#FFFFFF" stroke="#E0D6BE"/>
+        <g transform="translate(20, 14)">
+          <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">04</text>
+          <text y="22" font-size="15" fill="#5C5447" font-weight="500">Modell-Verifikation</text>
+        </g>
+      </g>
+    </g>
+  </g>
+  
+  <!-- ============ HEADER ============ -->
+  <g transform="translate(80, 220)">
+    <text y="48" font-size="56" font-weight="200" fill="#2C2A26" letter-spacing="-1.5">Welche Wetter-Katastrophen</text>
+    <text y="100" font-size="56" font-weight="200" fill="#2C2A26" letter-spacing="-1.5">prägten deine Region?</text>
+    <text y="144" font-size="16" fill="#5C5447">Durchstöbere Stürme, Hitzewellen und Rekorde seit 1881. Datenbasis: DWD Climate Data Center.</text>
+  </g>
+  
+  <!-- ============ FILTERS + REGION SELECTOR ============ -->
+  <g transform="translate(80, 420)">
+    <rect width="1280" height="100" rx="22" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    
+    <!-- Filter pills -->
+    <g transform="translate(28, 28)">
+      <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">EREIGNIS-TYP</text>
+      <g transform="translate(0, 18)">
+        <g>
+          <rect width="80" height="28" rx="14" fill="#2C2A26"/>
+          <text x="40" y="18" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="500">Alle</text>
+        </g>
+        <g transform="translate(88, 0)">
+          <rect width="84" height="28" rx="14" fill="transparent" stroke="#D9D0B8"/>
+          <text x="42" y="18" font-size="11" fill="#5C5447" text-anchor="middle">Stürme</text>
+        </g>
+        <g transform="translate(180, 0)">
+          <rect width="100" height="28" rx="14" fill="transparent" stroke="#D9D0B8"/>
+          <text x="50" y="18" font-size="11" fill="#5C5447" text-anchor="middle">Hitzewellen</text>
+        </g>
+        <g transform="translate(288, 0)">
+          <rect width="100" height="28" rx="14" fill="transparent" stroke="#D9D0B8"/>
+          <text x="50" y="18" font-size="11" fill="#5C5447" text-anchor="middle">Kältewellen</text>
+        </g>
+        <g transform="translate(396, 0)">
+          <rect width="120" height="28" rx="14" fill="transparent" stroke="#D9D0B8"/>
+          <text x="60" y="18" font-size="11" fill="#5C5447" text-anchor="middle">Hochwasser</text>
+        </g>
+        <g transform="translate(524, 0)">
+          <rect width="100" height="28" rx="14" fill="transparent" stroke="#D9D0B8"/>
+          <text x="50" y="18" font-size="11" fill="#5C5447" text-anchor="middle">Tornados</text>
+        </g>
+      </g>
+    </g>
+    
+    <!-- Region -->
+    <g transform="translate(820, 28)">
+      <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">REGION</text>
+      <g transform="translate(0, 18)">
+        <rect width="280" height="28" rx="14" fill="#F5F1E8"/>
+        <g transform="translate(14, 8)" stroke="#5C5447" stroke-width="1.5" fill="none">
+          <path d="M 6 0 C 3 0 0 3 0 6 C 0 10 6 14 6 14 C 6 14 12 10 12 6 C 12 3 9 0 6 0 Z"/>
+        </g>
+        <text x="34" y="18" font-size="11" fill="#2C2A26" font-weight="500">Bayern · 1881 – heute</text>
+      </g>
+    </g>
+    
+    <!-- Total count -->
+    <g transform="translate(1120, 28)">
+      <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">TREFFER</text>
+      <text y="38" font-size="20" fill="#2C2A26" font-weight="500">147 Ereignisse</text>
+    </g>
+  </g>
+  
+  <!-- ============ TIMELINE ============ -->
+  <g transform="translate(80, 560)">
+    <text font-size="11" fill="#A89A7A" letter-spacing="3" font-weight="500">ZEITLEISTE · 1881 – 2026</text>
+    
+    <g transform="translate(0, 24)">
+      <rect width="1280" height="160" rx="22" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+      
+      <!-- Timeline base -->
+      <g transform="translate(80, 80)">
+        <line x1="0" y1="0" x2="1120" y2="0" stroke="#D9D0B8" stroke-width="2"/>
+        
+        <!-- Decade markers -->
+        <g font-size="9" fill="#A89A7A">
+          <g transform="translate(0, 0)">
+            <line x1="0" y1="-6" x2="0" y2="6" stroke="#A89A7A" stroke-width="1"/>
+            <text y="22" text-anchor="middle">1881</text>
+          </g>
+          <g transform="translate(160, 0)">
+            <line x1="0" y1="-6" x2="0" y2="6" stroke="#A89A7A" stroke-width="1"/>
+            <text y="22" text-anchor="middle">1900</text>
+          </g>
+          <g transform="translate(320, 0)">
+            <line x1="0" y1="-6" x2="0" y2="6" stroke="#A89A7A" stroke-width="1"/>
+            <text y="22" text-anchor="middle">1920</text>
+          </g>
+          <g transform="translate(480, 0)">
+            <line x1="0" y1="-6" x2="0" y2="6" stroke="#A89A7A" stroke-width="1"/>
+            <text y="22" text-anchor="middle">1940</text>
+          </g>
+          <g transform="translate(640, 0)">
+            <line x1="0" y1="-6" x2="0" y2="6" stroke="#A89A7A" stroke-width="1"/>
+            <text y="22" text-anchor="middle">1960</text>
+          </g>
+          <g transform="translate(800, 0)">
+            <line x1="0" y1="-6" x2="0" y2="6" stroke="#A89A7A" stroke-width="1"/>
+            <text y="22" text-anchor="middle">1980</text>
+          </g>
+          <g transform="translate(960, 0)">
+            <line x1="0" y1="-6" x2="0" y2="6" stroke="#A89A7A" stroke-width="1"/>
+            <text y="22" text-anchor="middle">2000</text>
+          </g>
+          <g transform="translate(1120, 0)">
+            <line x1="0" y1="-6" x2="0" y2="6" stroke="#A89A7A" stroke-width="1"/>
+            <text y="22" text-anchor="middle">2020</text>
+          </g>
+        </g>
+        
+        <!-- Event markers -->
+        <g>
+          <!-- 1900: Cold wave -->
+          <g transform="translate(140, 0)">
+            <line x1="0" y1="-26" x2="0" y2="0" stroke="#3A6FA8" stroke-width="1.5"/>
+            <circle cy="-26" r="5" fill="#3A6FA8"/>
+            <text x="0" y="-34" font-size="9" fill="#3A6FA8" text-anchor="middle" font-weight="600">Winter 1900</text>
+          </g>
+          
+          <!-- 1929: Cold wave -->
+          <g transform="translate(384, 0)">
+            <line x1="0" y1="-26" x2="0" y2="0" stroke="#3A6FA8" stroke-width="1.5"/>
+            <circle cy="-26" r="6" fill="#3A6FA8"/>
+            <text x="0" y="-34" font-size="9" fill="#3A6FA8" text-anchor="middle" font-weight="600">Winter 1929</text>
+          </g>
+          
+          <!-- 1947: Hot summer -->
+          <g transform="translate(528, 0)">
+            <line x1="0" y1="26" x2="0" y2="0" stroke="#C97B47" stroke-width="1.5"/>
+            <circle cy="26" r="5" fill="#C97B47"/>
+            <text x="0" y="42" font-size="9" fill="#C97B47" text-anchor="middle" font-weight="600">Sommer 1947</text>
+          </g>
+          
+          <!-- 1962: Hamburg flood -->
+          <g transform="translate(648, 0)">
+            <line x1="0" y1="26" x2="0" y2="0" stroke="#5C5447" stroke-width="1.5"/>
+            <circle cy="26" r="4" fill="#5C5447"/>
+          </g>
+          
+          <!-- 1976: Drought -->
+          <g transform="translate(760, 0)">
+            <line x1="0" y1="-26" x2="0" y2="0" stroke="#C97B47" stroke-width="1.5"/>
+            <circle cy="-26" r="5" fill="#C97B47"/>
+            <text x="0" y="-34" font-size="9" fill="#C97B47" text-anchor="middle" font-weight="600">Dürre 1976</text>
+          </g>
+          
+          <!-- 1990: Kyrill predecessor -->
+          <g transform="translate(872, 0)">
+            <line x1="0" y1="26" x2="0" y2="0" stroke="#5C5447" stroke-width="1.5"/>
+            <circle cy="26" r="4" fill="#5C5447"/>
+          </g>
+          
+          <!-- 2003: Heatwave -->
+          <g transform="translate(984, 0)">
+            <line x1="0" y1="-30" x2="0" y2="0" stroke="#A85E2E" stroke-width="2"/>
+            <circle cy="-30" r="7" fill="#A85E2E"/>
+            <text x="0" y="-38" font-size="10" fill="#A85E2E" text-anchor="middle" font-weight="700">Hitze 2003</text>
+          </g>
+          
+          <!-- 2007: Kyrill -->
+          <g transform="translate(1016, 0)">
+            <line x1="0" y1="30" x2="0" y2="0" stroke="#2C2A26" stroke-width="2"/>
+            <circle cy="30" r="7" fill="#2C2A26"/>
+            <text x="0" y="50" font-size="10" fill="#2C2A26" text-anchor="middle" font-weight="700">Kyrill 2007</text>
+          </g>
+          
+          <!-- 2018: Heat -->
+          <g transform="translate(1104, 0)">
+            <line x1="0" y1="-26" x2="0" y2="0" stroke="#C97B47" stroke-width="1.5"/>
+            <circle cy="-26" r="5" fill="#C97B47"/>
+          </g>
+          
+          <!-- 2021: Flood -->
+          <g transform="translate(1112, 0)">
+            <line x1="0" y1="30" x2="0" y2="0" stroke="#3A6FA8" stroke-width="2"/>
+            <circle cy="30" r="6" fill="#3A6FA8"/>
+            <text x="0" y="50" font-size="10" fill="#3A6FA8" text-anchor="middle" font-weight="700">Ahrtal 2021</text>
+          </g>
+        </g>
+      </g>
+      
+      <!-- Legend bottom -->
+      <g transform="translate(80, 140)" font-size="10" fill="#5C5447">
+        <g>
+          <circle cy="0" r="4" fill="#A85E2E"/>
+          <text x="12" y="4">Hitze · Dürre</text>
+        </g>
+        <g transform="translate(120, 0)">
+          <circle cy="0" r="4" fill="#3A6FA8"/>
+          <text x="12" y="4">Kälte · Hochwasser</text>
+        </g>
+        <g transform="translate(280, 0)">
+          <circle cy="0" r="4" fill="#2C2A26"/>
+          <text x="12" y="4">Stürme</text>
+        </g>
+        <g transform="translate(400, 0)">
+          <circle cy="0" r="4" fill="#C97B47"/>
+          <text x="12" y="4">Wärme · überdurchschnittlich</text>
+        </g>
+        <g transform="translate(1000, 0)">
+          <text fill="#A89A7A">Klick auf Ereignis öffnet Detail-Karte</text>
+        </g>
+      </g>
+    </g>
+  </g>
+  
+  <!-- ============ EVENT DETAIL CARDS ============ -->
+  <g transform="translate(80, 780)">
+    <text font-size="11" fill="#A89A7A" letter-spacing="3" font-weight="500">DETAIL · 5 MARKANTE EREIGNISSE</text>
+    
+    <g transform="translate(0, 24)">
+      
+      <!-- Kyrill 2007 - dark feature card -->
+      <g>
+        <rect width="640" height="540" rx="22" fill="url(#stormCard)"/>
+        
+        <g transform="translate(36, 36)">
+          <text font-size="11" fill="#A85E2E" letter-spacing="3" font-weight="600">FEATURE-EREIGNIS · ORKAN</text>
+          <text y="56" font-size="56" fill="#FFFFFF" font-weight="200" letter-spacing="-1.5">Kyrill</text>
+          <text y="84" font-size="13" fill="#D9D0B8">18.–19. Januar 2007 · Mitteleuropa</text>
+        </g>
+        
+        <!-- Big peak number -->
+        <g transform="translate(36, 168)">
+          <text font-size="11" fill="#A89A7A" letter-spacing="2" font-weight="500">SPITZEN-BÖE</text>
+          <text y="48" font-size="80" fill="#FFFFFF" font-weight="200" letter-spacing="-3">202 km/h</text>
+          <text y="68" font-size="11" fill="#A89A7A">Wendelstein, Bayern · 18.01.2007 · 22:48</text>
+        </g>
+        
+        <!-- Stats grid -->
+        <g transform="translate(36, 320)">
+          <g>
+            <rect width="172" height="80" rx="14" fill="#3A3833"/>
+            <g transform="translate(16, 18)">
+              <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">SCHADEN</text>
+              <text y="22" font-size="20" fill="#FFFFFF" font-weight="500">~5 Mrd €</text>
+              <text y="40" font-size="10" fill="#D9D0B8">europaweit</text>
+            </g>
+          </g>
+          <g transform="translate(184, 0)">
+            <rect width="172" height="80" rx="14" fill="#3A3833"/>
+            <g transform="translate(16, 18)">
+              <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">DAUER</text>
+              <text y="22" font-size="20" fill="#FFFFFF" font-weight="500">36 h</text>
+              <text y="40" font-size="10" fill="#D9D0B8">Hochphase</text>
+            </g>
+          </g>
+        </g>
+        
+        <!-- Description -->
+        <g transform="translate(36, 432)">
+          <text font-size="13" fill="#D9D0B8" font-style="italic">"Einer der zerstörerischsten Stürme der letzten</text>
+          <text y="20" font-size="13" fill="#D9D0B8" font-style="italic">Jahrzehnte. Zog von Schottland bis Polen und</text>
+          <text y="40" font-size="13" fill="#D9D0B8" font-style="italic">brachte Sturmböen in tieferen Lagen über 100 km/h."</text>
+          <text y="68" font-size="10" fill="#A89A7A">Quelle: DWD Klimaerklärbär · Wikipedia · Munich Re</text>
+        </g>
+      </g>
+      
+      <!-- Right column: 4 smaller event cards -->
+      <g transform="translate(656, 0)">
+        <!-- Hot summer 2003 -->
+        <g>
+          <rect width="624" height="124" rx="20" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+          
+          <g transform="translate(28, 22)">
+            <text font-size="10" fill="#A85E2E" letter-spacing="2" font-weight="600">HITZEWELLE</text>
+            <text y="22" font-size="22" font-weight="500" fill="#2C2A26" letter-spacing="-0.3">Sommer 2003</text>
+            <text y="44" font-size="11" fill="#5C5447">Juni–August 2003 · Europa-weit</text>
+          </g>
+          
+          <g transform="translate(360, 22)">
+            <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">MAX</text>
+            <text y="22" font-size="26" font-weight="200" fill="#A85E2E" letter-spacing="-1">40.3°</text>
+            <text y="40" font-size="10" fill="#5C5447">Karlsruhe · 13.8.</text>
+          </g>
+          
+          <g transform="translate(500, 22)">
+            <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">OPFER</text>
+            <text y="22" font-size="26" font-weight="200" fill="#2C2A26" letter-spacing="-1">~70k</text>
+            <text y="40" font-size="10" fill="#5C5447">Europa-weit</text>
+          </g>
+        </g>
+        
+        <!-- Ahrtal 2021 -->
+        <g transform="translate(0, 136)">
+          <rect width="624" height="124" rx="20" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+          
+          <g transform="translate(28, 22)">
+            <text font-size="10" fill="#3A6FA8" letter-spacing="2" font-weight="600">HOCHWASSER</text>
+            <text y="22" font-size="22" font-weight="500" fill="#2C2A26" letter-spacing="-0.3">Ahrtal-Flut</text>
+            <text y="44" font-size="11" fill="#5C5447">14.–15. Juli 2021 · NRW &amp; RLP</text>
+          </g>
+          
+          <g transform="translate(360, 22)">
+            <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">REGEN 24H</text>
+            <text y="22" font-size="26" font-weight="200" fill="#3A6FA8" letter-spacing="-1">192mm</text>
+            <text y="40" font-size="10" fill="#5C5447">Reifferscheid</text>
+          </g>
+          
+          <g transform="translate(500, 22)">
+            <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">OPFER</text>
+            <text y="22" font-size="26" font-weight="200" fill="#2C2A26" letter-spacing="-1">184</text>
+            <text y="40" font-size="10" fill="#5C5447">DACH-Region</text>
+          </g>
+        </g>
+        
+        <!-- Drought 1976 -->
+        <g transform="translate(0, 272)">
+          <rect width="624" height="124" rx="20" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+          
+          <g transform="translate(28, 22)">
+            <text font-size="10" fill="#C97B47" letter-spacing="2" font-weight="600">DÜRRE</text>
+            <text y="22" font-size="22" font-weight="500" fill="#2C2A26" letter-spacing="-0.3">Trockenheit 1976</text>
+            <text y="44" font-size="11" fill="#5C5447">Mai–September 1976 · Europa</text>
+          </g>
+          
+          <g transform="translate(360, 22)">
+            <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">REGEN MAI–SEP</text>
+            <text y="22" font-size="26" font-weight="200" fill="#C97B47" letter-spacing="-1">−65%</text>
+            <text y="40" font-size="10" fill="#5C5447">vs. Klimamittel</text>
+          </g>
+          
+          <g transform="translate(500, 22)">
+            <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">ERNTE-VERLUST</text>
+            <text y="22" font-size="26" font-weight="200" fill="#2C2A26" letter-spacing="-1">30%</text>
+            <text y="40" font-size="10" fill="#5C5447">Getreide DE</text>
+          </g>
+        </g>
+        
+        <!-- Winter 1929 -->
+        <g transform="translate(0, 408)">
+          <rect width="624" height="124" rx="20" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+          
+          <g transform="translate(28, 22)">
+            <text font-size="10" fill="#3A6FA8" letter-spacing="2" font-weight="600">KÄLTEWELLE</text>
+            <text y="22" font-size="22" font-weight="500" fill="#2C2A26" letter-spacing="-0.3">Jahrhundert-Winter 1929</text>
+            <text y="44" font-size="11" fill="#5C5447">Februar 1929 · Bayern</text>
+          </g>
+          
+          <g transform="translate(360, 22)">
+            <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">MIN</text>
+            <text y="22" font-size="26" font-weight="200" fill="#3A6FA8" letter-spacing="-1">−37.8°</text>
+            <text y="40" font-size="10" fill="#5C5447">Hüll · 12.2.</text>
+          </g>
+          
+          <g transform="translate(500, 22)">
+            <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">DAUER</text>
+            <text y="22" font-size="26" font-weight="200" fill="#2C2A26" letter-spacing="-1">21 T</text>
+            <text y="40" font-size="10" fill="#5C5447">unter −20°</text>
+          </g>
+        </g>
+      </g>
+    </g>
+  </g>
+  
+  <!-- LABEL -->
+  <g transform="translate(80, 1360)">
+    <text font-size="10" fill="#A89A7A" letter-spacing="3" font-weight="500">23 · DATACENTER 02 · WETTER-ARCHÄOLOGIE · DESKTOP · v1.3</text>
+    <text x="1280" font-size="10" fill="#A89A7A" letter-spacing="2" text-anchor="end">Filter · 145-Jahre-Zeitleiste · Kyrill-Feature · 4 Detail-Cards</text>
+  </g>
+</svg>

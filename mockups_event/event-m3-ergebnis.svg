@@ -1,0 +1,340 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 1680" font-family="ui-sans-serif, system-ui, -apple-system">
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F5F1E8"/>
+      <stop offset="100%" stop-color="#EDE6D3"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="390" height="1680" fill="url(#bgGrad)"/>
+
+  <!-- ============================================================ -->
+  <!-- TOP BAR (y=0 to y=52) -->
+  <!-- ============================================================ -->
+  <rect x="0" y="0" width="390" height="52" fill="#FFFFFF"/>
+
+  <!-- Sun icon -->
+  <circle cx="16" cy="26" r="5" fill="#2C2A26"/>
+  <!-- Rays -->
+  <line x1="16" y1="17" x2="16" y2="15" stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="16" y1="35" x2="16" y2="37" stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="7" y1="26" x2="5" y2="26" stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="25" y1="26" x2="27" y2="26" stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="9.64" y1="19.64" x2="8.22" y2="18.22" stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="22.36" y1="32.36" x2="23.78" y2="33.78" stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="9.64" y1="32.36" x2="8.22" y2="33.78" stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="22.36" y1="19.64" x2="23.78" y2="18.22" stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round"/>
+
+  <!-- App name -->
+  <text x="32" y="30" font-size="15" font-weight="500" fill="#2C2A26">buscosun</text>
+
+  <!-- Live indicator -->
+  <circle cx="280" cy="26" r="3" fill="#7A9466"/>
+  <text x="286" y="30" font-size="10" fill="#7A9466">live</text>
+
+  <!-- Bell icon -->
+  <path d="M330,22 Q330,18 334,18 Q338,18 338,22 L338,28 Q340,29 340,30 L328,30 Q328,29 330,28 Z" fill="none" stroke="#2C2A26" stroke-width="1.3"/>
+  <path d="M332,30 Q332,33 334,33 Q336,33 336,30" fill="none" stroke="#2C2A26" stroke-width="1.3"/>
+
+  <!-- Avatar -->
+  <circle cx="363" cy="26" r="14" fill="#EDE6D3" stroke="#C4B896" stroke-width="1"/>
+  <text x="363" y="30" font-size="10" font-weight="600" fill="#2C2A26" text-anchor="middle">JS</text>
+
+  <!-- Top bar hairline -->
+  <rect x="0" y="52" width="390" height="0.5" fill="#E0D6BE"/>
+
+  <!-- ============================================================ -->
+  <!-- VORHABEN HEADER (y=52 to y=148) -->
+  <!-- ============================================================ -->
+  <rect x="0" y="52" width="390" height="96" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+
+  <!-- Ring icon -->
+  <circle cx="24" cy="100" r="10" fill="none" stroke="#A89A7A" stroke-width="1.5"/>
+  <circle cx="24" cy="100" r="6" fill="none" stroke="#A89A7A" stroke-width="1"/>
+
+  <!-- Eyebrow -->
+  <text x="44" y="84" font-size="9" font-weight="500" fill="#A89A7A" letter-spacing="1.8">DEIN VORHABEN</text>
+
+  <!-- Vorhaben title -->
+  <text x="44" y="104" font-size="14" font-weight="500" fill="#2C2A26">Hochzeit · DE Meersburg</text>
+
+  <!-- "angepasst" badge -->
+  <rect x="44" y="114" width="62" height="18" fill="#F0F4EA" rx="8"/>
+  <text x="75" y="127" font-size="9" fill="#7A9466" text-anchor="middle">angepasst</text>
+
+  <!-- Phase pills -->
+  <rect x="120" y="114" width="80" height="18" fill="#F5F1E8" rx="8"/>
+  <text x="160" y="127" font-size="8.5" fill="#5C5447" text-anchor="middle">Trauung 13–15</text>
+
+  <rect x="208" y="114" width="78" height="18" fill="#F5F1E8" rx="8"/>
+  <text x="247" y="127" font-size="8.5" fill="#5C5447" text-anchor="middle">Empfang 15–18</text>
+
+  <rect x="294" y="114" width="66" height="18" fill="#F5F1E8" rx="8"/>
+  <text x="327" y="127" font-size="8.5" fill="#5C5447" text-anchor="middle">Abend 18–23</text>
+
+  <!-- "Angaben ändern" link -->
+  <text x="374" y="84" font-size="10" fill="#C97B47" text-anchor="end">Angaben ändern</text>
+
+  <!-- Header hairline -->
+  <rect x="0" y="148" width="390" height="0.5" fill="#E0D6BE"/>
+
+  <!-- ============================================================ -->
+  <!-- HERO CARD (y=164 to y=604) -->
+  <!-- ============================================================ -->
+  <rect x="16" y="164" width="358" height="440" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5" rx="16"/>
+
+  <!-- DONUT CHART centered cx=195, cy=252 -->
+  <!-- Background circle -->
+  <circle cx="195" cy="252" r="52" fill="none" stroke="#F5F1E8" stroke-width="12"/>
+  <!-- Score arc: 82/100 → 267.9 of 326.7. Rotate so arc starts at 12 o'clock (top). -->
+  <circle cx="195" cy="252" r="52" fill="none" stroke="#C97B47" stroke-width="12" stroke-linecap="round"
+    stroke-dasharray="267.9 58.8"
+    stroke-dashoffset="81.7"
+    transform="rotate(-90 195 252)"/>
+
+  <!-- Score number -->
+  <text x="195" y="259" font-size="32" font-weight="200" fill="#C97B47" text-anchor="middle">82</text>
+  <!-- Score label -->
+  <text x="195" y="273" font-size="9" fill="#A89A7A" text-anchor="middle">Punkte</text>
+
+  <!-- Eyebrow -->
+  <text x="195" y="322" font-size="9" font-weight="500" fill="#A89A7A" letter-spacing="1.8" text-anchor="middle">BESTER TAG FÜR HOCHZEIT</text>
+
+  <!-- Konfidenz pill -->
+  <rect x="146" y="334" width="98" height="24" fill="#F0F4EA" rx="10"/>
+  <circle cx="160" cy="346" r="3" fill="#7A9466"/>
+  <text x="202" y="350" font-size="11" font-weight="500" fill="#5F7951" text-anchor="middle">Konfidenz 88%</text>
+
+  <!-- Date H3 -->
+  <text x="195" y="390" font-size="22" font-weight="300" fill="#2C2A26" text-anchor="middle">Sonntag, 14. Juni</text>
+
+  <!-- Reason text -->
+  <text x="195" y="412" font-size="12" fill="#5C5447" text-anchor="middle">Sonnig mit Quellwolken, kaum Wind,</text>
+  <text x="195" y="428" font-size="12" fill="#5C5447" text-anchor="middle">angenehme 22°C. Ideale Bedingungen.</text>
+
+  <!-- Factor chips row 1 -->
+  <!-- Chip 1: Trockenheit -->
+  <rect x="24" y="444" width="155" height="36" fill="#FAF6EA" stroke="#E0D6BE" stroke-width="0.5" rx="10"/>
+  <circle cx="38" cy="462" r="4" fill="#7A9466"/>
+  <text x="52" y="459" font-size="11" font-weight="500" fill="#2C2A26">Trockenheit</text>
+  <text x="52" y="473" font-size="9" fill="#A89A7A">0,2 mm · wichtigste</text>
+
+  <!-- Chip 2: Temperatur -->
+  <rect x="187" y="444" width="155" height="36" fill="#FAF6EA" stroke="#E0D6BE" stroke-width="0.5" rx="10"/>
+  <circle cx="201" cy="462" r="4" fill="#C97B47"/>
+  <text x="215" y="459" font-size="11" font-weight="500" fill="#2C2A26">Temperatur</text>
+  <text x="215" y="473" font-size="9" fill="#A89A7A">gefühlt 22°C</text>
+
+  <!-- Factor chips row 2 -->
+  <!-- Chip 3: Windruhe -->
+  <rect x="24" y="488" width="155" height="36" fill="#FAF6EA" stroke="#E0D6BE" stroke-width="0.5" rx="10"/>
+  <circle cx="38" cy="506" r="4" fill="#D4A373"/>
+  <text x="52" y="503" font-size="11" font-weight="500" fill="#2C2A26">Windruhe</text>
+  <text x="52" y="517" font-size="9" fill="#A89A7A">Böen bis 14 km/h</text>
+
+  <!-- Chip 4: Sonne -->
+  <rect x="187" y="488" width="155" height="36" fill="#FAF6EA" stroke="#E0D6BE" stroke-width="0.5" rx="10"/>
+  <circle cx="201" cy="506" r="4" fill="#D4A373"/>
+  <text x="215" y="503" font-size="11" font-weight="500" fill="#2C2A26">Sonne</text>
+  <text x="215" y="517" font-size="9" fill="#A89A7A">wechselnd bewölkt</text>
+
+  <!-- Legend line -->
+  <circle cx="24" cy="538" r="3" fill="#7A9466"/>
+  <text x="32" y="542" font-size="9" fill="#5C5447">ideal</text>
+  <circle cx="70" cy="538" r="3" fill="#D4A373"/>
+  <text x="78" y="542" font-size="9" fill="#5C5447">gut</text>
+  <circle cx="106" cy="538" r="3" fill="#C97B47"/>
+  <text x="114" y="542" font-size="9" fill="#5C5447">Hinweis</text>
+  <circle cx="162" cy="538" r="3" fill="#6B7A8F"/>
+  <text x="170" y="542" font-size="9" fill="#5C5447">Achtung</text>
+
+  <!-- Action button 1 -->
+  <rect x="24" y="556" width="310" height="40" fill="#2C2A26" rx="12"/>
+  <!-- Calendar icon -->
+  <rect x="38" y="568" width="10" height="10" fill="none" stroke="#FFFFFF" stroke-width="1.2" rx="1.5"/>
+  <line x1="40" y1="566" x2="40" y2="570" stroke="#FFFFFF" stroke-width="1.2" stroke-linecap="round"/>
+  <line x1="46" y1="566" x2="46" y2="570" stroke="#FFFFFF" stroke-width="1.2" stroke-linecap="round"/>
+  <line x1="38" y1="572" x2="48" y2="572" stroke="#FFFFFF" stroke-width="1"/>
+  <text x="185" y="581" font-size="13" fill="#FFFFFF" text-anchor="middle">In den Kalender (3 Phasen)</text>
+
+  <!-- Action button 2 -->
+  <rect x="24" y="602" width="310" height="34" fill="#FAF6EA" stroke="#E0D6BE" stroke-width="1" rx="12"/>
+  <!-- Share icon -->
+  <circle cx="40" cy="619" r="3" fill="none" stroke="#2C2A26" stroke-width="1.2"/>
+  <circle cx="50" cy="613" r="3" fill="none" stroke="#2C2A26" stroke-width="1.2"/>
+  <circle cx="50" cy="625" r="3" fill="none" stroke="#2C2A26" stroke-width="1.2"/>
+  <line x1="43" y1="617" x2="47" y2="615" stroke="#2C2A26" stroke-width="1.2"/>
+  <line x1="43" y1="621" x2="47" y2="623" stroke="#2C2A26" stroke-width="1.2"/>
+  <text x="185" y="624" font-size="13" fill="#2C2A26" text-anchor="middle">Link teilen</text>
+
+  <!-- Hint text below card -->
+  <text x="24" y="652" font-size="10" fill="#A89A7A">· Kalender-Eintrag enthält Phasenlängen und</text>
+  <text x="24" y="664" font-size="10" fill="#A89A7A">  Wetterdaten zum Download.</text>
+
+  <!-- ============================================================ -->
+  <!-- WINDOW-RISK BANNER (y=676 to y=728) -->
+  <!-- ============================================================ -->
+  <rect x="16" y="676" width="358" height="52" fill="#FAEEDA" stroke="#D4A373" stroke-width="0.8" rx="12"/>
+  <!-- Warning triangle -->
+  <path d="M34,700 L46,678 L58,700 Z" fill="none" stroke="#D4A373" stroke-width="1.5" stroke-linejoin="round"/>
+  <line x1="46" y1="686" x2="46" y2="693" stroke="#D4A373" stroke-width="1.5" stroke-linecap="round"/>
+  <circle cx="46" cy="696" r="1" fill="#D4A373"/>
+
+  <text x="68" y="694" font-size="11" font-weight="500" fill="#8B7355">Genau im Eventfenster:</text>
+  <text x="68" y="710" font-size="11" fill="#8B7355">Kurzer Schauer 15–16 Uhr · 1,2 mm</text>
+
+  <!-- ============================================================ -->
+  <!-- WARNING CARDS -->
+  <!-- ============================================================ -->
+
+  <!-- Card 1: REGENRISIKO (y=740) -->
+  <rect x="16" y="740" width="358" height="92" fill="#FFFFFF" stroke="#3A6FA8" stroke-width="0.8" rx="12"/>
+  <text x="28" y="760" font-size="9" font-weight="500" fill="#3A6FA8" letter-spacing="1.4">REGENRISIKO</text>
+  <text x="28" y="780" font-size="13" font-weight="500" fill="#2C2A26">Zur Trauung 13–15 Uhr</text>
+  <text x="28" y="798" font-size="11" fill="#5C5447">Gering · max. 0,4 mm/h</text>
+  <!-- Status badge -->
+  <rect x="280" y="774" width="72" height="24" fill="#F0F4EA" rx="8"/>
+  <text x="316" y="790" font-size="10" fill="#7A9466" text-anchor="middle">Gering</text>
+  <!-- Rain drop icon -->
+  <path d="M350,760 Q350,752 344,758 Q338,766 344,772 Q350,776 356,772 Q362,766 356,758 Q350,752 350,760 Z" fill="none" stroke="#3A6FA8" stroke-width="1.3"/>
+
+  <!-- Card 2: WIND-WARNUNG (y=840) -->
+  <rect x="16" y="840" width="358" height="104" fill="#FFFFFF" stroke="#D4A373" stroke-width="0.8" rx="12"/>
+  <text x="28" y="860" font-size="9" font-weight="500" fill="#D4A373" letter-spacing="1.4">WIND-WARNUNG</text>
+  <text x="28" y="880" font-size="13" font-weight="500" fill="#2C2A26">Abendfeier · bis 14 m/s</text>
+  <text x="28" y="898" font-size="11" fill="#5C5447">Deko / Pavillon / Frisur sichern</text>
+  <text x="28" y="914" font-size="10" fill="#A89A7A">Böen stärker nach 20 Uhr</text>
+  <!-- Badge -->
+  <rect x="280" y="872" width="72" height="24" fill="#FAEEDA" rx="8"/>
+  <text x="316" y="888" font-size="10" fill="#8B7355" text-anchor="middle">Mäßig</text>
+  <!-- Wind swirl icon -->
+  <path d="M356,858 Q364,858 364,864 Q364,870 356,870 Q348,870 348,864" fill="none" stroke="#D4A373" stroke-width="1.5" stroke-linecap="round"/>
+  <path d="M348,864 Q348,870 354,872 Q360,874 362,870" fill="none" stroke="#D4A373" stroke-width="1.5" stroke-linecap="round"/>
+  <path d="M348,868 Q342,868 342,862 Q342,856 348,856" fill="none" stroke="#D4A373" stroke-width="1.5" stroke-linecap="round"/>
+
+  <!-- Card 3: HITZE-HINWEIS (y=952) -->
+  <rect x="16" y="952" width="358" height="92" fill="#FFFFFF" stroke="#C97B47" stroke-width="0.8" rx="12"/>
+  <text x="28" y="972" font-size="9" font-weight="500" fill="#C97B47" letter-spacing="1.4">HITZE-HINWEIS</text>
+  <text x="28" y="992" font-size="13" font-weight="500" fill="#2C2A26">Empfang · gefühlt bis 27°C</text>
+  <text x="28" y="1010" font-size="11" fill="#5C5447">Schattenplätze und Getränke empfohlen</text>
+  <!-- Badge -->
+  <rect x="280" y="984" width="72" height="24" fill="#F7EBDD" rx="8"/>
+  <text x="316" y="1000" font-size="10" fill="#A85E2E" text-anchor="middle">Warm</text>
+  <!-- Sun/heat icon -->
+  <circle cx="350" cy="972" r="6" fill="none" stroke="#C97B47" stroke-width="1.5"/>
+  <line x1="350" y1="962" x2="350" y2="960" stroke="#C97B47" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="350" y1="982" x2="350" y2="984" stroke="#C97B47" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="340" y1="972" x2="338" y2="972" stroke="#C97B47" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="360" y1="972" x2="362" y2="972" stroke="#C97B47" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="342.93" y1="964.93" x2="341.51" y2="963.51" stroke="#C97B47" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="357.07" y1="979.07" x2="358.49" y2="980.49" stroke="#C97B47" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="357.07" y1="964.93" x2="358.49" y2="963.51" stroke="#C97B47" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="342.93" y1="979.07" x2="341.51" y2="980.49" stroke="#C97B47" stroke-width="1.5" stroke-linecap="round"/>
+
+  <!-- Card 4: ABEND-KÄLTE (y=1052) -->
+  <rect x="16" y="1052" width="358" height="92" fill="#FFFFFF" stroke="#6B7A8F" stroke-width="0.8" rx="12"/>
+  <text x="28" y="1072" font-size="9" font-weight="500" fill="#6B7A8F" letter-spacing="1.4">ABEND-KÄLTE</text>
+  <text x="28" y="1092" font-size="13" font-weight="500" fill="#2C2A26">Abendfeier · gefühlt bis 13°C</text>
+  <text x="28" y="1110" font-size="11" fill="#5C5447">Decken oder Heizpilze bereitstellen</text>
+  <!-- Badge -->
+  <rect x="280" y="1084" width="72" height="24" fill="#F5F1E8" rx="8"/>
+  <text x="316" y="1100" font-size="10" fill="#6B7A8F" text-anchor="middle">Kühl</text>
+  <!-- Snowflake icon -->
+  <line x1="350" y1="1062" x2="350" y2="1082" stroke="#6B7A8F" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="340" y1="1072" x2="360" y2="1072" stroke="#6B7A8F" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="343" y1="1065" x2="357" y2="1079" stroke="#6B7A8F" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="357" y1="1065" x2="343" y2="1079" stroke="#6B7A8F" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="344" y1="1062" x2="347" y2="1065" stroke="#6B7A8F" stroke-width="1.2" stroke-linecap="round"/>
+  <line x1="350" y1="1062" x2="353" y2="1065" stroke="#6B7A8F" stroke-width="1.2" stroke-linecap="round"/>
+  <line x1="344" y1="1082" x2="347" y2="1079" stroke="#6B7A8F" stroke-width="1.2" stroke-linecap="round"/>
+  <line x1="350" y1="1082" x2="353" y2="1079" stroke="#6B7A8F" stroke-width="1.2" stroke-linecap="round"/>
+  <line x1="340" y1="1068" x2="343" y2="1071" stroke="#6B7A8F" stroke-width="1.2" stroke-linecap="round"/>
+  <line x1="360" y1="1068" x2="357" y2="1071" stroke="#6B7A8F" stroke-width="1.2" stroke-linecap="round"/>
+  <line x1="340" y1="1076" x2="343" y2="1073" stroke="#6B7A8F" stroke-width="1.2" stroke-linecap="round"/>
+  <line x1="360" y1="1076" x2="357" y2="1073" stroke="#6B7A8F" stroke-width="1.2" stroke-linecap="round"/>
+
+  <!-- ============================================================ -->
+  <!-- NEXT STEPS SECTION (y=1160 to y=1240) -->
+  <!-- ============================================================ -->
+  <!-- Section eyebrow -->
+  <text x="16" y="1172" font-size="9" font-weight="500" fill="#A89A7A" letter-spacing="1.8">NÄCHSTE SCHRITTE</text>
+
+  <!-- Row 1: Stündlicher Verlauf -->
+  <text x="16" y="1200" font-size="13" fill="#2C2A26">Stündlicher Verlauf</text>
+  <!-- Arrow right -->
+  <path d="M336,1192 L344,1196 L336,1200" fill="none" stroke="#A89A7A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Hairline -->
+  <rect x="16" y="1210" width="358" height="0.5" fill="#E0D6BE"/>
+
+  <!-- Row 2: Rangliste aller Tage -->
+  <text x="16" y="1236" font-size="13" fill="#2C2A26">Rangliste aller Tage</text>
+  <!-- Arrow right -->
+  <path d="M336,1228 L344,1232 L336,1236" fill="none" stroke="#A89A7A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Hairline -->
+  <rect x="16" y="1246" width="358" height="0.5" fill="#E0D6BE"/>
+
+  <!-- ============================================================ -->
+  <!-- ADDITIONAL CONTENT FILLER (keeps proportions to 1680px) -->
+  <!-- ============================================================ -->
+
+  <!-- Feedback section -->
+  <rect x="16" y="1270" width="358" height="80" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5" rx="12"/>
+  <text x="28" y="1292" font-size="9" font-weight="500" fill="#A89A7A" letter-spacing="1.8">FEEDBACK</text>
+  <text x="28" y="1312" font-size="13" fill="#2C2A26">War diese Empfehlung hilfreich?</text>
+  <!-- Thumbs up button -->
+  <rect x="28" y="1324" width="76" height="18" fill="#F0F4EA" rx="8"/>
+  <text x="66" y="1337" font-size="10" fill="#7A9466" text-anchor="middle">👍 Ja</text>
+  <!-- Thumbs down button -->
+  <rect x="112" y="1324" width="76" height="18" fill="#F5F1E8" rx="8"/>
+  <text x="150" y="1337" font-size="10" fill="#5C5447" text-anchor="middle">👎 Nein</text>
+
+  <!-- Nearby alternatives teaser -->
+  <rect x="16" y="1366" width="358" height="112" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5" rx="12"/>
+  <text x="28" y="1388" font-size="9" font-weight="500" fill="#A89A7A" letter-spacing="1.8">ALTERNATIVEN IN DER NÄHE</text>
+  <!-- Alt row 1 -->
+  <text x="28" y="1412" font-size="13" font-weight="500" fill="#2C2A26">Sa, 13. Juni</text>
+  <circle cx="130" cy="1408" r="3" fill="#D4A373"/>
+  <text x="138" y="1412" font-size="11" fill="#5C5447">75 Pkt · leicht bewölkt</text>
+  <text x="344" y="1412" font-size="11" fill="#A89A7A" text-anchor="end">→</text>
+  <!-- Divider -->
+  <rect x="28" y="1422" width="330" height="0.5" fill="#E0D6BE"/>
+  <!-- Alt row 2 -->
+  <text x="28" y="1446" font-size="13" font-weight="500" fill="#2C2A26">Mo, 15. Juni</text>
+  <circle cx="130" cy="1442" r="3" fill="#D4A373"/>
+  <text x="138" y="1446" font-size="11" fill="#5C5447">71 Pkt · leichter Wind</text>
+  <text x="344" y="1446" font-size="11" fill="#A89A7A" text-anchor="end">→</text>
+  <!-- Divider -->
+  <rect x="28" y="1456" width="330" height="0.5" fill="#E0D6BE"/>
+  <!-- Alt row 3 -->
+  <text x="28" y="1470" font-size="13" font-weight="500" fill="#2C2A26">Di, 16. Juni</text>
+  <circle cx="130" cy="1466" r="3" fill="#6B7A8F"/>
+  <text x="138" y="1470" font-size="11" fill="#5C5447">58 Pkt · Regen möglich</text>
+  <text x="344" y="1470" font-size="11" fill="#A89A7A" text-anchor="end">→</text>
+
+  <!-- Disclaimer text -->
+  <text x="16" y="1502" font-size="9" fill="#A89A7A">Prognose basiert auf DWD ICON-D2 + BrightSky-Daten.</text>
+  <text x="16" y="1516" font-size="9" fill="#A89A7A">Aktualisierung alle 3h. Keine Gewähr.</text>
+
+  <!-- Data sources strip -->
+  <rect x="16" y="1534" width="358" height="56" fill="#FAF6EA" stroke="#E0D6BE" stroke-width="0.5" rx="12"/>
+  <text x="28" y="1554" font-size="9" font-weight="500" fill="#A89A7A" letter-spacing="1.4">DATENQUELLEN</text>
+  <text x="28" y="1572" font-size="10" fill="#5C5447">DWD ICON-D2 · BrightSky · MOSMIX · MeteoSwiss</text>
+  <text x="28" y="1584" font-size="9" fill="#A89A7A">Letztes Update: 13.06.2026 · 06:00 UTC</text>
+
+  <!-- PWA install hint -->
+  <rect x="16" y="1606" width="358" height="44" fill="#F0F4EA" stroke="#7A9466" stroke-width="0.5" rx="12"/>
+  <circle cx="30" cy="1628" r="6" fill="#7A9466"/>
+  <text x="30" y="1632" font-size="8" fill="#FFFFFF" text-anchor="middle">↓</text>
+  <text x="44" y="1624" font-size="11" font-weight="500" fill="#2C2A26">App installieren</text>
+  <text x="44" y="1638" font-size="9" fill="#5C5447">Benachrichtigungen + Offline-Modus</text>
+  <rect x="320" y="1618" width="46" height="20" fill="#7A9466" rx="8"/>
+  <text x="343" y="1632" font-size="10" fill="#FFFFFF" text-anchor="middle">Jetzt</text>
+
+  <!-- ============================================================ -->
+  <!-- FOOTER -->
+  <!-- ============================================================ -->
+  <rect x="0" y="1667" width="390" height="0.5" fill="#E0D6BE"/>
+  <text x="195" y="1676" font-size="8.5" font-weight="500" fill="#A89A7A" letter-spacing="1.5" text-anchor="middle">EV-M3 · BESTER TAG &amp; WARNUNGEN (MOBILE)</text>
+
+</svg>

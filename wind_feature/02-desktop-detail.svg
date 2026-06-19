@@ -1,0 +1,545 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1240" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">
+  <defs>
+    <linearGradient id="bgSand" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FAF6EA"/>
+      <stop offset="1" stop-color="#F5F1E8"/>
+    </linearGradient>
+    <filter id="cardShadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="6"/>
+      <feOffset dx="0" dy="4"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.10"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <pattern id="grain" width="120" height="120" patternUnits="userSpaceOnUse">
+      <rect width="120" height="120" fill="transparent"/>
+      <circle cx="20" cy="40" r="0.7" fill="#C4B896" opacity="0.18"/>
+      <circle cx="80" cy="20" r="0.5" fill="#C4B896" opacity="0.14"/>
+      <circle cx="55" cy="95" r="0.6" fill="#C4B896" opacity="0.16"/>
+      <circle cx="110" cy="70" r="0.4" fill="#C4B896" opacity="0.12"/>
+    </pattern>
+  </defs>
+
+  <rect width="1440" height="1240" fill="url(#bgSand)"/>
+  <rect width="1440" height="1240" fill="url(#grain)"/>
+
+  <!-- ====== TOP NAV ====== -->
+  <g>
+    <rect x="0" y="0" width="1440" height="72" fill="#FAF6EA" opacity="0.85"/>
+    <line x1="0" y1="72" x2="1440" y2="72" stroke="#E0D6BE" stroke-width="1"/>
+    <g transform="translate(64, 24)">
+      <circle cx="14" cy="14" r="12" fill="none" stroke="#C97B47" stroke-width="2"/>
+      <circle cx="14" cy="14" r="5" fill="#C97B47"/>
+      <text x="36" y="19" font-size="18" font-weight="600" fill="#2C2A26">buscosun</text>
+    </g>
+    <g font-size="14" fill="#5C5447">
+      <text x="240" y="44">Start</text>
+      <text x="298" y="44">Tourenplanung</text>
+      <text x="418" y="44">Vorhersage</text>
+      <text x="498" y="44" font-weight="600" fill="#2C2A26">Nowcast</text>
+      <rect x="495" y="56" width="74" height="2" fill="#3A6FA8" rx="1"/>
+    </g>
+    <g transform="translate(1240, 24)">
+      <circle cx="14" cy="14" r="4" fill="#7A9466"/>
+      <text x="28" y="19" font-size="12" fill="#5C5447">Radar 14:32 live</text>
+      <circle cx="186" cy="14" r="14" fill="#E0D6BE"/>
+      <text x="186" y="19" font-size="12" font-weight="600" fill="#5C5447" text-anchor="middle">JK</text>
+    </g>
+  </g>
+
+  <!-- ====== BACK + HEADER ====== -->
+  <g transform="translate(80, 104)">
+    <g transform="translate(0, 6)">
+      <path d="M 8 0 L 0 8 L 8 16" fill="none" stroke="#5C5447" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="18" y="14" font-size="13" fill="#5C5447">Nowcast</text>
+    </g>
+
+    <text y="40" font-size="11" letter-spacing="0.22em" font-weight="600" fill="#3A6FA8">DETAILS · DILLENBURG · 6 H</text>
+
+    <!-- toggle pro mode -->
+    <g transform="translate(1180, 6)">
+      <rect width="180" height="32" rx="16" fill="#FAF6EA" stroke="#E0D6BE"/>
+      <rect x="90" width="90" height="32" rx="16" fill="#3A6FA8"/>
+      <text x="44" y="20" font-size="12" font-weight="600" fill="#8B7355" text-anchor="middle">Standard</text>
+      <text x="135" y="20" font-size="12" font-weight="600" fill="#FAF6EA" text-anchor="middle">Detail-Modus</text>
+    </g>
+  </g>
+
+  <!-- ====== HAUPT-TIMELINE: KOMPLETT MIT ALLES (Phase, Confidence, Source, Charakter) ====== -->
+  <g transform="translate(80, 160)">
+    <text font-size="11" letter-spacing="0.22em" font-weight="600" fill="#8B7355">DETAIL-TIMELINE · 6 H</text>
+
+    <g transform="translate(0, 24)" filter="url(#cardShadow)">
+      <rect width="1280" height="380" rx="20" fill="#FAF6EA" stroke="#E0D6BE"/>
+
+      <!-- SOURCE STRIP (top): Radar / Blend / NWP -->
+      <g transform="translate(80, 32)">
+        <!-- Plot area: x=0..1160, w=1160 -->
+        <rect width="1160" height="14" rx="3" fill="#EDE6D3"/>
+        <rect width="80" height="14" rx="3" fill="#3A6FA8" opacity="0.8"/>
+        <rect x="80" width="280" height="14" fill="#3A6FA8" opacity="0.5"/>
+        <rect x="80" width="280" height="14" fill="#C97B47" opacity="0.4"/>
+        <rect x="360" width="800" height="14" rx="3" fill="#8B7355" opacity="0.4"/>
+
+        <!-- Labels inside -->
+        <text x="40" y="10" font-size="9" font-weight="700" fill="#FAF6EA" text-anchor="middle">RADAR</text>
+        <text x="220" y="10" font-size="9" font-weight="700" fill="#FAF6EA" text-anchor="middle">BLEND (RADAR → NWP)</text>
+        <text x="760" y="10" font-size="9" font-weight="700" fill="#FAF6EA" text-anchor="middle">ICON-D2 (NWP)</text>
+      </g>
+
+      <!-- PHASE STRIP -->
+      <g transform="translate(80, 56)">
+        <text x="-66" y="10" font-size="9" font-weight="600" letter-spacing="0.1em" fill="#8B7355">PHASE</text>
+        <rect width="1160" height="14" rx="3" fill="#EDE6D3"/>
+        <!-- Rain throughout (no transition for this scenario) -->
+        <rect width="1160" height="14" rx="3" fill="#3A6FA8" opacity="0.6"/>
+      </g>
+
+      <!-- CHARAKTER STRIP -->
+      <g transform="translate(80, 80)">
+        <text x="-66" y="10" font-size="9" font-weight="600" letter-spacing="0.1em" fill="#8B7355">CHARAKTER</text>
+        <rect width="1160" height="14" rx="3" fill="#EDE6D3"/>
+        <!-- Shauer (convective): segments. Dauerregen: continuous -->
+        <rect x="100" width="280" height="14" fill="#D4A373" opacity="0.7"/>
+        <text x="240" y="10" font-size="8" font-weight="700" fill="#FAF6EA" text-anchor="middle">SCHAUER</text>
+        <rect x="500" width="380" height="14" fill="#7A9466" opacity="0.6"/>
+        <text x="690" y="10" font-size="8" font-weight="700" fill="#FAF6EA" text-anchor="middle">SCHAUER · KONVEKTIV</text>
+        <rect x="940" width="220" height="14" fill="#7A9466" opacity="0.4" stroke-dasharray="3 3" stroke="#7A9466"/>
+        <text x="1050" y="10" font-size="8" font-weight="700" fill="#5C5447" text-anchor="middle">UNSICHER</text>
+      </g>
+
+      <!-- MAIN INTENSITY CHART ====================== -->
+      <g transform="translate(80, 116)">
+        <text x="-66" y="10" font-size="9" font-weight="600" letter-spacing="0.1em" fill="#8B7355">INTENSITÄT</text>
+        <text x="-66" y="22" font-size="9" font-weight="600" letter-spacing="0.1em" fill="#8B7355">MM/H</text>
+
+        <!-- Y axis -->
+        <g font-size="9" fill="#8B7355">
+          <text x="-8" y="14" text-anchor="end">10</text>
+          <text x="-8" y="54" text-anchor="end">5</text>
+          <text x="-8" y="94" text-anchor="end">2,5</text>
+          <text x="-8" y="134" text-anchor="end">1</text>
+          <text x="-8" y="174" text-anchor="end">0</text>
+        </g>
+
+        <!-- Horizontal guides -->
+        <g stroke="#E0D6BE" stroke-width="1" stroke-dasharray="2 4">
+          <line x1="0" y1="10" x2="1160" y2="10"/>
+          <line x1="0" y1="50" x2="1160" y2="50"/>
+          <line x1="0" y1="90" x2="1160" y2="90"/>
+          <line x1="0" y1="130" x2="1160" y2="130"/>
+          <line x1="0" y1="170" x2="1160" y2="170"/>
+        </g>
+
+        <!-- INTENSITY BAND THRESHOLDS (subtle background) -->
+        <rect x="0" y="0" width="1160" height="10" fill="#D7263D" opacity="0.04"/>
+        <rect x="0" y="10" width="1160" height="40" fill="#1F4878" opacity="0.04"/>
+        <rect x="0" y="50" width="1160" height="40" fill="#3A6FA8" opacity="0.04"/>
+        <rect x="0" y="90" width="1160" height="40" fill="#9AB8CF" opacity="0.06"/>
+
+        <!-- CONFIDENCE CONE (outer max band) -->
+        <path d="M 0 144
+                 L 60 136
+                 L 100 116
+                 L 140 70
+                 L 200 56
+                 L 260 80
+                 L 320 122
+                 L 380 158
+                 L 440 168
+                 L 500 130
+                 L 580 76
+                 L 640 50
+                 L 700 56
+                 L 760 100
+                 L 820 134
+                 L 880 130
+                 L 940 116
+                 L 1000 120
+                 L 1060 132
+                 L 1120 142
+                 L 1160 150
+                 L 1160 174
+                 L 1120 174
+                 L 1060 174
+                 L 1000 174
+                 L 940 174
+                 L 880 170
+                 L 820 168
+                 L 760 162
+                 L 700 160
+                 L 640 152
+                 L 580 156
+                 L 500 162
+                 L 440 174
+                 L 380 174
+                 L 320 162
+                 L 260 130
+                 L 200 102
+                 L 140 110
+                 L 100 138
+                 L 60 154
+                 L 0 160 Z"
+              fill="#3A6FA8" opacity="0.08"/>
+
+        <!-- Inner confidence band (likely) -->
+        <path d="M 0 148
+                 L 60 142
+                 L 100 124
+                 L 140 88
+                 L 200 70
+                 L 260 96
+                 L 320 134
+                 L 380 168
+                 L 440 174
+                 L 500 144
+                 L 580 92
+                 L 640 66
+                 L 700 70
+                 L 760 112
+                 L 820 142
+                 L 880 138
+                 L 940 130
+                 L 1000 132
+                 L 1060 142
+                 L 1120 148
+                 L 1160 154
+                 L 1160 170
+                 L 1120 170
+                 L 1060 168
+                 L 1000 168
+                 L 940 168
+                 L 880 168
+                 L 820 168
+                 L 760 154
+                 L 700 152
+                 L 640 142
+                 L 580 144
+                 L 500 152
+                 L 440 168
+                 L 380 174
+                 L 320 156
+                 L 260 124
+                 L 200 96
+                 L 140 102
+                 L 100 130
+                 L 60 148
+                 L 0 156 Z"
+              fill="#3A6FA8" opacity="0.18"/>
+
+        <!-- MOST LIKELY LINE (median) -->
+        <path d="M 0 154 L 60 148 L 100 130 L 140 96 L 200 80 L 260 110 L 320 144 L 380 170 L 440 170 L 500 150 L 580 108 L 640 82 L 700 84 L 760 124 L 820 152 L 880 148 L 940 142 L 1000 144 L 1060 152 L 1120 156 L 1160 160"
+              fill="none" stroke="#3A6FA8" stroke-width="2.4" stroke-linejoin="round"/>
+
+        <!-- DRY WINDOW HIGHLIGHTS -->
+        <!-- 16:00–16:47 = trockenfenster -->
+        <rect x="346" y="0" width="106" height="174" fill="#7A9466" opacity="0.08"/>
+        <g transform="translate(400, 8)" text-anchor="middle">
+          <rect x="-44" y="-2" width="88" height="14" rx="7" fill="#7A9466"/>
+          <text y="9" font-size="9" font-weight="700" fill="#FAF6EA">TROCKEN 47 min</text>
+        </g>
+
+        <!-- STARKREGEN-PEAK MARKER -->
+        <g transform="translate(640, 50)">
+          <line x1="0" y1="0" x2="0" y2="-12" stroke="#D7263D" stroke-width="1.4"/>
+          <rect x="-44" y="-30" width="88" height="18" rx="9" fill="#D7263D"/>
+          <text y="-18" font-size="9" font-weight="700" fill="#FAF6EA" text-anchor="middle">STARKREGEN</text>
+        </g>
+
+        <!-- THUNDERSTORM/HAIL MARKERS -->
+        <g transform="translate(600, 76)">
+          <circle r="9" fill="#D4A373"/>
+          <path d="M -2 -5 L 4 -5 L 0 1 L 4 1 L -4 9 L 0 3 L -4 3 Z" fill="#FAF6EA"/>
+        </g>
+        <g transform="translate(680, 70)">
+          <circle r="9" fill="#D4A373"/>
+          <path d="M -2 -5 L 4 -5 L 0 1 L 4 1 L -4 9 L 0 3 L -4 3 Z" fill="#FAF6EA"/>
+        </g>
+
+        <!-- NOW LINE -->
+        <line x1="0" y1="-20" x2="0" y2="174" stroke="#C97B47" stroke-width="2"/>
+        <g transform="translate(0, -16)">
+          <rect x="-22" y="-10" width="44" height="14" rx="7" fill="#C97B47"/>
+          <text y="0" font-size="9" font-weight="700" fill="#FAF6EA" text-anchor="middle">JETZT</text>
+        </g>
+
+        <!-- SKILL HORIZON -->
+        <line x1="380" y1="0" x2="380" y2="174" stroke="#8B7355" stroke-width="1" stroke-dasharray="3 3" opacity="0.6"/>
+        <g transform="translate(380, -8)">
+          <text font-size="9" fill="#8B7355" text-anchor="middle" font-style="italic">Skill-Horizont +2h</text>
+        </g>
+
+        <!-- X-AXIS LABELS (time + offset) -->
+        <g transform="translate(0, 194)" font-size="10" fill="#8B7355">
+          <text x="0" text-anchor="middle">14:32</text>
+          <text x="0" y="14" font-size="9" fill="#C97B47" text-anchor="middle">JETZT</text>
+
+          <text x="190" text-anchor="middle">15:30</text>
+          <text x="190" y="14" font-size="9">+58 min</text>
+
+          <text x="380" text-anchor="middle">16:30</text>
+          <text x="380" y="14" font-size="9">+2 h</text>
+
+          <text x="580" text-anchor="middle">17:30</text>
+          <text x="580" y="14" font-size="9">+3 h</text>
+
+          <text x="770" text-anchor="middle">18:30</text>
+          <text x="770" y="14" font-size="9">+4 h</text>
+
+          <text x="970" text-anchor="middle">19:30</text>
+          <text x="970" y="14" font-size="9">+5 h</text>
+
+          <text x="1160" text-anchor="middle">20:32</text>
+          <text x="1160" y="14" font-size="9">+6 h</text>
+        </g>
+      </g>
+
+      <!-- BOTTOM LEGEND -->
+      <g transform="translate(80, 352)" font-size="10" fill="#5C5447">
+        <line x1="0" y1="5" x2="20" y2="5" stroke="#3A6FA8" stroke-width="2.4"/>
+        <text x="26" y="9">Wahrscheinlichster Wert</text>
+
+        <rect x="184" width="14" height="10" fill="#3A6FA8" opacity="0.18"/>
+        <text x="204" y="9">Konfidenz 80%</text>
+
+        <rect x="304" width="14" height="10" fill="#3A6FA8" opacity="0.08"/>
+        <text x="324" y="9">Konfidenz 95%</text>
+
+        <rect x="424" width="14" height="10" fill="#7A9466" opacity="0.5"/>
+        <text x="444" y="9">Trockenfenster</text>
+
+        <rect x="552" width="14" height="10" fill="#D7263D"/>
+        <text x="572" y="9">Starkregen</text>
+
+        <g transform="translate(648, 5)">
+          <circle r="6" fill="#D4A373"/>
+          <path d="M -1 -3 L 3 -3 L 0 1 L 3 1 L -3 6 L 0 2 L -3 2 Z" fill="#FAF6EA"/>
+        </g>
+        <text x="660" y="9">Gewitter-Indikator</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- ====== ZWEISPALTIG: AKKUMULATION + EREIGNISSE ====== -->
+  <g transform="translate(80, 580)">
+
+    <!-- ===== AKKUMULATIONS-KURVE ===== -->
+    <g>
+      <text font-size="11" letter-spacing="0.22em" font-weight="600" fill="#8B7355">SUMME · KUMULIERT ÜBER 6 H</text>
+      <g transform="translate(0, 24)" filter="url(#cardShadow)">
+        <rect width="624" height="280" rx="16" fill="#FAF6EA" stroke="#E0D6BE"/>
+
+        <!-- Big number -->
+        <g transform="translate(28, 60)">
+          <text font-size="56" font-weight="700" fill="#2C2A26" letter-spacing="-0.02em">3,4 mm</text>
+          <text y="22" font-size="13" fill="#5C5447">wahrscheinlich · Band 2,1 – 5,2</text>
+        </g>
+
+        <!-- Probability/Range comparison -->
+        <g transform="translate(330, 36)" font-size="11">
+          <text font-weight="600" letter-spacing="0.12em" font-size="9" fill="#8B7355">SZENARIEN</text>
+          <g transform="translate(0, 16)">
+            <rect width="6" height="14" fill="#9AB8CF"/>
+            <text x="14" y="11" fill="#5C5447">min  </text>
+            <text x="120" y="11" font-weight="600" fill="#2C2A26" text-anchor="end">2,1 mm</text>
+          </g>
+          <g transform="translate(0, 38)">
+            <rect width="6" height="14" fill="#3A6FA8"/>
+            <text x="14" y="11" fill="#5C5447">wahrscheinlich</text>
+            <text x="120" y="11" font-weight="600" fill="#2C2A26" text-anchor="end">3,4 mm</text>
+          </g>
+          <g transform="translate(0, 60)">
+            <rect width="6" height="14" fill="#1F4878"/>
+            <text x="14" y="11" fill="#5C5447">max</text>
+            <text x="120" y="11" font-weight="600" fill="#2C2A26" text-anchor="end">5,2 mm</text>
+          </g>
+        </g>
+
+        <!-- Cumulative growth curve -->
+        <g transform="translate(28, 156)">
+          <!-- max band -->
+          <path d="M 0 96 L 40 92 L 80 78 L 120 64 L 160 60 L 200 56 L 240 36 L 280 22 L 320 18 L 360 18 L 400 18 L 440 18 L 480 16 L 520 16 L 560 14 L 568 14 L 568 96 Z"
+                fill="#3A6FA8" opacity="0.10"/>
+          <!-- median area -->
+          <path d="M 0 96 L 40 94 L 80 86 L 120 76 L 160 72 L 200 70 L 240 56 L 280 46 L 320 44 L 360 42 L 400 40 L 440 38 L 480 36 L 520 36 L 560 34 L 568 34 L 568 96 Z"
+                fill="#3A6FA8" opacity="0.22"/>
+          <!-- median line -->
+          <path d="M 0 96 L 40 94 L 80 86 L 120 76 L 160 72 L 200 70 L 240 56 L 280 46 L 320 44 L 360 42 L 400 40 L 440 38 L 480 36 L 520 36 L 560 34 L 568 34"
+                fill="none" stroke="#3A6FA8" stroke-width="2.2" stroke-linejoin="round"/>
+          <!-- min line dashed -->
+          <path d="M 0 96 L 40 96 L 80 92 L 120 86 L 160 84 L 200 82 L 240 76 L 280 68 L 320 66 L 360 64 L 400 62 L 440 60 L 480 60 L 520 58 L 560 58 L 568 58"
+                fill="none" stroke="#1F4878" stroke-width="1" stroke-dasharray="3 3"/>
+          <!-- Axis labels -->
+          <text x="0" y="110" font-size="9" fill="#8B7355">14:32</text>
+          <text x="568" y="110" font-size="9" fill="#8B7355" text-anchor="end">20:32</text>
+          <text x="-4" y="100" font-size="9" fill="#8B7355" text-anchor="end">0</text>
+          <text x="-4" y="14" font-size="9" fill="#8B7355" text-anchor="end">5 mm</text>
+        </g>
+      </g>
+    </g>
+
+    <!-- ===== EREIGNIS-LISTE ===== -->
+    <g transform="translate(656, 0)">
+      <text font-size="11" letter-spacing="0.22em" font-weight="600" fill="#8B7355">EREIGNISSE IN DEN NÄCHSTEN 6 H</text>
+      <g transform="translate(0, 24)" filter="url(#cardShadow)">
+        <rect width="624" height="280" rx="16" fill="#FAF6EA" stroke="#E0D6BE"/>
+
+        <!-- Event rows -->
+        <g transform="translate(20, 24)">
+          <!-- Event 1: Rain start -->
+          <g>
+            <circle cx="14" cy="14" r="12" fill="#3A6FA8"/>
+            <path d="M 14 10 Q 11 14 11 17 Q 11 19 14 19 Q 17 19 17 17 Q 17 14 14 10 Z" fill="#FAF6EA"/>
+            <text x="38" y="14" font-size="13" font-weight="700" fill="#2C2A26">Regenbeginn</text>
+            <text x="38" y="30" font-size="11" fill="#5C5447">leicht-mäßig · Schauer-Charakter</text>
+            <text x="584" y="14" font-size="14" font-weight="700" fill="#3A6FA8" text-anchor="end">14:55</text>
+            <text x="584" y="30" font-size="10" fill="#8B7355" text-anchor="end">in 23 min</text>
+          </g>
+          <line x1="0" y1="48" x2="584" y2="48" stroke="#E0D6BE"/>
+
+          <!-- Event 2: First shower end -->
+          <g transform="translate(0, 56)">
+            <circle cx="14" cy="14" r="12" fill="#7A9466"/>
+            <text x="14" y="18" font-size="14" font-weight="700" fill="#FAF6EA" text-anchor="middle">✓</text>
+            <text x="38" y="14" font-size="13" font-weight="700" fill="#2C2A26">Erstes Schauer-Ende</text>
+            <text x="38" y="30" font-size="11" fill="#5C5447">Beginn Trockenfenster · 47 min</text>
+            <text x="584" y="14" font-size="14" font-weight="700" fill="#7A9466" text-anchor="end">15:42</text>
+            <text x="584" y="30" font-size="10" fill="#8B7355" text-anchor="end">in 70 min</text>
+          </g>
+          <line x1="0" y1="104" x2="584" y2="104" stroke="#E0D6BE"/>
+
+          <!-- Event 3: New shower -->
+          <g transform="translate(0, 112)">
+            <circle cx="14" cy="14" r="12" fill="#3A6FA8"/>
+            <path d="M 14 10 Q 11 14 11 17 Q 11 19 14 19 Q 17 19 17 17 Q 17 14 14 10 Z" fill="#FAF6EA"/>
+            <text x="38" y="14" font-size="13" font-weight="700" fill="#2C2A26">Zweiter Schauer</text>
+            <text x="38" y="30" font-size="11" fill="#5C5447">mäßig · Schauer-Charakter</text>
+            <text x="584" y="14" font-size="14" font-weight="700" fill="#3A6FA8" text-anchor="end">16:29</text>
+            <text x="584" y="30" font-size="10" fill="#8B7355" text-anchor="end">in 1 h 57</text>
+          </g>
+          <line x1="0" y1="160" x2="584" y2="160" stroke="#E0D6BE"/>
+
+          <!-- Event 4: Starkregen Spike -->
+          <g transform="translate(0, 168)">
+            <circle cx="14" cy="14" r="12" fill="#D7263D"/>
+            <text x="14" y="19" font-size="14" font-weight="700" fill="#FAF6EA" text-anchor="middle">!</text>
+            <text x="38" y="14" font-size="13" font-weight="700" fill="#2C2A26">Starkregen-Spitze · Gewitterrisiko</text>
+            <text x="38" y="30" font-size="11" fill="#D7263D" font-weight="600">~9 mm/h · Hagel möglich</text>
+            <text x="584" y="14" font-size="14" font-weight="700" fill="#D7263D" text-anchor="end">17:24</text>
+            <text x="584" y="30" font-size="10" fill="#8B7355" text-anchor="end">in 2 h 52 · ↘ Konfidenz</text>
+          </g>
+          <line x1="0" y1="216" x2="584" y2="216" stroke="#E0D6BE"/>
+
+          <!-- Event 5: Forecast horizon note -->
+          <g transform="translate(0, 224)">
+            <circle cx="14" cy="14" r="12" fill="#EDE6D3" stroke="#8B7355" stroke-width="1.5"/>
+            <text x="14" y="19" font-size="13" fill="#8B7355" text-anchor="middle">?</text>
+            <text x="38" y="14" font-size="13" font-weight="700" fill="#2C2A26">Jenseits +4 h</text>
+            <text x="38" y="30" font-size="11" fill="#8B7355" font-style="italic">Modell-getrieben · keine minutengenauen Aussagen</text>
+          </g>
+        </g>
+      </g>
+    </g>
+  </g>
+
+  <!-- ====== BERG / TAL · ALPINE TRENNUNG ====== -->
+  <g transform="translate(80, 900)">
+    <text font-size="11" letter-spacing="0.22em" font-weight="600" fill="#8B7355">ALPINE TRENNUNG · TAL VS. GRAT (US-F1)</text>
+
+    <g transform="translate(0, 24)" filter="url(#cardShadow)">
+      <rect width="1280" height="290" rx="20" fill="#FAF6EA" stroke="#E0D6BE"/>
+
+      <!-- Cross section illustration left -->
+      <g transform="translate(40, 40)">
+        <text font-size="11" font-weight="600" fill="#5C5447">Beispiel: Berchtesgadener Alpen</text>
+
+        <!-- Sky -->
+        <rect x="0" y="20" width="500" height="180" rx="8" fill="#F8F2E2"/>
+
+        <!-- Snow line (horizontal) -->
+        <line x1="0" y1="86" x2="500" y2="86" stroke="#9AB8CF" stroke-width="1.5" stroke-dasharray="6 4"/>
+        <text x="490" y="80" font-size="10" font-weight="600" fill="#5C5447" text-anchor="end">Schneefallgrenze 1840 m</text>
+
+        <!-- Mountain silhouette -->
+        <path d="M 0 200 L 60 200 L 100 180 L 140 160 L 180 130 L 220 95 L 250 60 L 280 90 L 320 130 L 360 160 L 400 180 L 440 195 L 500 200 Z"
+              fill="#8B7355" opacity="0.45"/>
+
+        <!-- Cloud above with raindrops -->
+        <g transform="translate(150, 36)">
+          <path d="M 0 18 Q -4 18 -4 12 Q -4 6 4 6 Q 6 -4 18 -2 Q 26 -8 36 0 Q 46 0 46 8 Q 46 18 36 18 Z" fill="#EDE6D3" stroke="#6B7A8F" stroke-width="1.2"/>
+          <line x1="10" y1="20" x2="8" y2="28" stroke="#3A6FA8" stroke-width="1.2" stroke-linecap="round"/>
+          <line x1="20" y1="20" x2="18" y2="28" stroke="#3A6FA8" stroke-width="1.2" stroke-linecap="round"/>
+          <line x1="30" y1="20" x2="28" y2="28" stroke="#3A6FA8" stroke-width="1.2" stroke-linecap="round"/>
+        </g>
+
+        <!-- Valley pin -->
+        <g transform="translate(72, 188)">
+          <circle r="8" fill="#FAF6EA" stroke="#C97B47" stroke-width="2"/>
+          <circle r="3" fill="#C97B47"/>
+        </g>
+        <text x="84" y="194" font-size="9" font-weight="600" fill="#2C2A26">Tal 580 m</text>
+
+        <!-- Ridge pin -->
+        <g transform="translate(250, 64)">
+          <circle r="8" fill="#FAF6EA" stroke="#C97B47" stroke-width="2"/>
+          <circle r="3" fill="#C97B47"/>
+        </g>
+        <text x="262" y="62" font-size="9" font-weight="600" fill="#2C2A26">Gipfel 2400 m</text>
+
+        <!-- Snow flakes above ridge -->
+        <g fill="#FAF6EA" stroke="#6B7A8F" stroke-width="0.8">
+          <text x="180" y="60" font-size="14" stroke="none" fill="#6B7A8F">❄</text>
+          <text x="290" y="56" font-size="14" stroke="none" fill="#6B7A8F">❄</text>
+          <text x="220" y="46" font-size="11" stroke="none" fill="#6B7A8F">❄</text>
+        </g>
+      </g>
+
+      <!-- Right side: comparison values -->
+      <g transform="translate(580, 50)">
+        <!-- Valley -->
+        <g>
+          <text font-size="10" font-weight="600" letter-spacing="0.12em" fill="#8B7355">TAL · 580 M</text>
+          <g transform="translate(0, 14)">
+            <rect width="320" height="86" rx="14" fill="#FAF6EA" stroke="#3A6FA8" stroke-width="1.5"/>
+            <text x="16" y="32" font-size="30" font-weight="700" fill="#2C2A26">2,4 mm/h</text>
+            <text x="16" y="56" font-size="13" font-weight="600" fill="#3A6FA8">Regen</text>
+            <text x="16" y="74" font-size="10" fill="#5C5447">Schauer · 6h-Summe 4,1 mm</text>
+
+            <!-- mini drop -->
+            <g transform="translate(266, 38)">
+              <path d="M 14 0 Q 4 18 4 28 Q 4 38 14 38 Q 24 38 24 28 Q 24 18 14 0 Z" fill="#3A6FA8"/>
+            </g>
+          </g>
+        </g>
+
+        <!-- Ridge -->
+        <g transform="translate(0, 116)">
+          <text font-size="10" font-weight="600" letter-spacing="0.12em" fill="#8B7355">GIPFEL · 2400 M</text>
+          <g transform="translate(0, 14)">
+            <rect width="320" height="86" rx="14" fill="#FAF6EA" stroke="#6B7A8F" stroke-width="1.5"/>
+            <text x="16" y="32" font-size="30" font-weight="700" fill="#2C2A26">2,1 mm/h</text>
+            <text x="16" y="56" font-size="13" font-weight="600" fill="#6B7A8F">Schnee</text>
+            <text x="16" y="74" font-size="10" fill="#5C5447">~4 cm Neuschnee · 6h-Summe 4,8 mm</text>
+
+            <!-- snowflake -->
+            <text x="278" y="62" font-size="34" fill="#6B7A8F">❄</text>
+          </g>
+        </g>
+      </g>
+
+      <!-- Bottom note across -->
+      <g transform="translate(40, 250)">
+        <text font-size="11" fill="#5C5447">
+          <tspan font-weight="600" fill="#3A6FA8">560 m unter dem Gipfel:</tspan>
+          Schneefallgrenze. Tour-Punkte oberhalb fallen automatisch als Schnee.
+        </text>
+      </g>
+    </g>
+  </g>
+
+  <!-- Footer hint -->
+  <g transform="translate(720, 1220)" text-anchor="middle">
+    <text font-size="11" fill="#8B7355">
+      Quellen: <tspan font-weight="600" fill="#5C5447">DWD-Radar · ICON-D2 Lauf 08:00 UTC</tspan> · Konfidenz-Band ensemble-basiert
+    </text>
+  </g>
+</svg>

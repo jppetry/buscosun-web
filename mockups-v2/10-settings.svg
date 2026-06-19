@@ -1,0 +1,526 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 2400" font-family="ui-sans-serif, system-ui, -apple-system">
+  <defs>
+    <linearGradient id="bg10" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F5F1E8"/>
+      <stop offset="100%" stop-color="#EDE6D3"/>
+    </linearGradient>
+  </defs>
+  
+  <rect width="1440" height="2400" fill="url(#bg10)"/>
+  
+  <!-- ============ TOP NAVIGATION ============ -->
+  <g>
+    <g transform="translate(32, 24)">
+      <circle cx="14" cy="14" r="6" fill="#2C2A26"/>
+      <g stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round">
+        <line x1="14" y1="0" x2="14" y2="3"/>
+        <line x1="14" y1="25" x2="14" y2="28"/>
+        <line x1="0" y1="14" x2="3" y2="14"/>
+        <line x1="25" y1="14" x2="28" y2="14"/>
+        <line x1="4" y1="4" x2="6" y2="6"/>
+        <line x1="22" y1="22" x2="24" y2="24"/>
+        <line x1="4" y1="24" x2="6" y2="22"/>
+        <line x1="22" y1="6" x2="24" y2="4"/>
+      </g>
+      <text x="42" y="20" font-size="18" font-weight="500" fill="#2C2A26" letter-spacing="-0.5">buscosun</text>
+    </g>
+    
+    <g transform="translate(180, 30)">
+      <g stroke="#5C5447" stroke-width="1.5" fill="none" stroke-linecap="round">
+        <line x1="0" y1="10" x2="14" y2="10"/>
+        <line x1="0" y1="10" x2="6" y2="4"/>
+        <line x1="0" y1="10" x2="6" y2="16"/>
+      </g>
+      <text x="24" y="15" font-size="13" fill="#5C5447">Zurück zur Karte</text>
+    </g>
+    
+    <g transform="translate(1314, 18)">
+      <rect width="40" height="40" rx="20" fill="#FFFFFF" stroke="#D9D0B8" stroke-width="0.5"/>
+      <circle cx="20" cy="20" r="7" fill="#7A9466"/>
+      <text x="20" y="24" font-size="9" fill="#FFFFFF" text-anchor="middle" font-weight="500">JS</text>
+    </g>
+  </g>
+  
+  <!-- ============ PAGE HEADER ============ -->
+  <g transform="translate(80, 100)">
+    <text font-size="11" fill="#A89A7A" letter-spacing="3" font-weight="500">EINSTELLUNGEN · ANONYME SESSION</text>
+    <text y="56" font-size="56" font-weight="200" fill="#2C2A26" letter-spacing="-1.5">Präferenzen</text>
+    <text y="100" font-size="16" fill="#5C5447">Alle Einstellungen sind lokal in deinem Browser gespeichert (anonyme Session-ID).</text>
+  </g>
+  
+  <!-- ============ LAYOUT: LEFT NAV + RIGHT CONTENT ============ -->
+  
+  <!-- LEFT: Settings Navigation -->
+  <g transform="translate(80, 280)">
+    <rect width="260" height="700" rx="20" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    
+    <g transform="translate(20, 28)">
+      <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">KATEGORIEN</text>
+    </g>
+    
+    <g transform="translate(12, 60)" font-size="13">
+      <!-- General - active -->
+      <g>
+        <rect width="236" height="44" rx="12" fill="#F5F1E8"/>
+        <g transform="translate(18, 14)" stroke="#2C2A26" stroke-width="1.5" fill="none">
+          <circle cx="8" cy="8" r="6"/>
+          <circle cx="8" cy="8" r="2" fill="#2C2A26"/>
+        </g>
+        <text x="46" y="27" fill="#2C2A26" font-weight="500">Allgemein</text>
+      </g>
+      
+      <g transform="translate(0, 52)">
+        <rect width="236" height="44" rx="12" fill="transparent"/>
+        <g transform="translate(18, 14)" stroke="#8B7355" stroke-width="1.5" fill="none">
+          <circle cx="8" cy="8" r="6"/>
+          <line x1="8" y1="2" x2="8" y2="14"/>
+          <line x1="2" y1="8" x2="14" y2="8"/>
+        </g>
+        <text x="46" y="27" fill="#5C5447">Einheiten</text>
+      </g>
+      
+      <g transform="translate(0, 104)">
+        <rect width="236" height="44" rx="12" fill="transparent"/>
+        <g transform="translate(18, 14)" stroke="#8B7355" stroke-width="1.5" fill="none" stroke-linecap="round">
+          <path d="M 0 8 Q 4 0 8 8 Q 12 16 16 8"/>
+        </g>
+        <text x="46" y="27" fill="#5C5447">Benachrichtigungen</text>
+      </g>
+      
+      <g transform="translate(0, 156)">
+        <rect width="236" height="44" rx="12" fill="transparent"/>
+        <g transform="translate(18, 14)" stroke="#8B7355" stroke-width="1.5" fill="none">
+          <circle cx="8" cy="8" r="7"/>
+          <path d="M 4 8 L 7 11 L 12 6"/>
+        </g>
+        <text x="46" y="27" fill="#5C5447">Verbindungen</text>
+        <g transform="translate(168, 18)">
+          <rect width="40" height="18" rx="9" fill="#FF5722"/>
+          <text x="20" y="13" font-size="9" fill="#FFFFFF" text-anchor="middle" font-weight="600">2</text>
+        </g>
+      </g>
+      
+      <g transform="translate(0, 208)">
+        <rect width="236" height="44" rx="12" fill="transparent"/>
+        <g transform="translate(18, 14)" stroke="#8B7355" stroke-width="1.5" fill="none">
+          <path d="M 8 0 L 0 6 L 0 11 Q 0 16 8 16 Q 16 16 16 11 L 16 6 Z"/>
+        </g>
+        <text x="46" y="27" fill="#5C5447">Datenschutz</text>
+      </g>
+      
+      <g transform="translate(0, 260)">
+        <rect width="236" height="44" rx="12" fill="transparent"/>
+        <g transform="translate(18, 14)" stroke="#8B7355" stroke-width="1.5" fill="none">
+          <rect x="0" y="2" width="16" height="12" rx="2"/>
+          <line x1="4" y1="6" x2="12" y2="6"/>
+          <line x1="4" y1="10" x2="10" y2="10"/>
+        </g>
+        <text x="46" y="27" fill="#5C5447">Daten-Export</text>
+      </g>
+      
+      <g transform="translate(0, 312)">
+        <rect width="236" height="44" rx="12" fill="transparent"/>
+        <g transform="translate(18, 14)" stroke="#8B7355" stroke-width="1.5" fill="none">
+          <circle cx="8" cy="8" r="7"/>
+          <line x1="4" y1="4" x2="12" y2="12"/>
+          <line x1="12" y1="4" x2="4" y2="12"/>
+        </g>
+        <text x="46" y="27" fill="#5C5447">Session löschen</text>
+      </g>
+      
+      <!-- Divider -->
+      <line x1="20" y1="380" x2="216" y2="380" stroke="#E0D6BE"/>
+      
+      <!-- Beta features -->
+      <g transform="translate(0, 400)">
+        <rect width="236" height="44" rx="12" fill="transparent"/>
+        <g transform="translate(18, 14)" stroke="#8B7355" stroke-width="1.5" fill="none">
+          <path d="M 0 4 L 4 0 L 8 4 L 4 8 Z M 8 8 L 12 4 L 16 8 L 12 12 Z"/>
+        </g>
+        <text x="46" y="27" fill="#5C5447">Beta-Features</text>
+      </g>
+      
+      <g transform="translate(0, 452)">
+        <rect width="236" height="44" rx="12" fill="transparent"/>
+        <g transform="translate(18, 14)" stroke="#8B7355" stroke-width="1.5" fill="none">
+          <circle cx="8" cy="8" r="7"/>
+          <text x="8" y="11" font-size="10" stroke="none" fill="#8B7355" text-anchor="middle" font-weight="700">i</text>
+        </g>
+        <text x="46" y="27" fill="#5C5447">Über buscosun</text>
+      </g>
+    </g>
+    
+    <!-- Footer in left nav -->
+    <g transform="translate(20, 612)">
+      <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">VERSION</text>
+      <text y="18" font-size="13" fill="#2C2A26" font-weight="500">v0.9 Beta</text>
+      <text y="34" font-size="10" fill="#8B7355">Build 2026.05.14-1142</text>
+    </g>
+  </g>
+  
+  <!-- ============ RIGHT: SETTINGS CONTENT — "Allgemein" tab ============ -->
+  
+  <!-- Section A: Language -->
+  <g transform="translate(360, 280)">
+    <rect width="1000" height="220" rx="20" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    
+    <g transform="translate(32, 28)">
+      <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">SPRACHE</text>
+      <text y="26" font-size="22" font-weight="500" fill="#2C2A26" letter-spacing="-0.4">Anzeige-Sprache</text>
+      <text y="48" font-size="13" fill="#5C5447">Beeinflusst UI-Texte und Phänomen-Beschreibungen.</text>
+    </g>
+    
+    <!-- Language tiles -->
+    <g transform="translate(32, 116)">
+      <!-- Deutsch active -->
+      <g>
+        <rect width="220" height="76" rx="14" fill="#2C2A26"/>
+        <text x="22" y="28" font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">AKTIV</text>
+        <text x="22" y="54" font-size="20" fill="#FFFFFF" font-weight="500">Deutsch</text>
+        <text x="22" y="68" font-size="10" fill="#A89A7A">DE · de_DE</text>
+      </g>
+      
+      <!-- English -->
+      <g transform="translate(232, 0)">
+        <rect width="220" height="76" rx="14" fill="#F5F1E8" stroke="#D9D0B8"/>
+        <text x="22" y="28" font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">VERFÜGBAR</text>
+        <text x="22" y="54" font-size="20" fill="#2C2A26" font-weight="500">English</text>
+        <text x="22" y="68" font-size="10" fill="#8B7355">EN · en_US</text>
+      </g>
+      
+      <!-- Français -->
+      <g transform="translate(464, 0)">
+        <rect width="220" height="76" rx="14" fill="#FAEEDA" stroke="#D9D0B8"/>
+        <text x="22" y="28" font-size="10" fill="#C97B47" letter-spacing="2" font-weight="500">DEMNÄCHST</text>
+        <text x="22" y="54" font-size="20" fill="#8B7355" font-weight="500">Français</text>
+        <text x="22" y="68" font-size="10" fill="#A89A7A">v1.4 · in Arbeit</text>
+      </g>
+    </g>
+  </g>
+  
+  <!-- Section B: Units -->
+  <g transform="translate(360, 520)">
+    <rect width="1000" height="380" rx="20" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    
+    <g transform="translate(32, 28)">
+      <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">EINHEITEN</text>
+      <text y="26" font-size="22" font-weight="500" fill="#2C2A26" letter-spacing="-0.4">Maßeinheiten</text>
+      <text y="48" font-size="13" fill="#5C5447">Wirkt sich global aus auf alle Anzeigen.</text>
+    </g>
+    
+    <!-- Unit rows -->
+    <g transform="translate(32, 116)">
+      <!-- Temperature -->
+      <g>
+        <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">TEMPERATUR</text>
+        <text y="22" font-size="15" fill="#2C2A26">Celsius</text>
+        <text y="40" font-size="11" fill="#8B7355">Standard in DACH</text>
+      </g>
+      
+      <g transform="translate(660, 0)">
+        <rect width="280" height="40" rx="20" fill="#F5F1E8"/>
+        <rect x="4" y="4" width="134" height="32" rx="16" fill="#2C2A26"/>
+        <text x="71" y="25" font-size="12" fill="#FFFFFF" text-anchor="middle" font-weight="500">°C Celsius</text>
+        <text x="207" y="25" font-size="12" fill="#5C5447" text-anchor="middle">°F Fahrenheit</text>
+      </g>
+      
+      <!-- Wind speed -->
+      <g transform="translate(0, 64)">
+        <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">WIND-GESCHWINDIGKEIT</text>
+        <text y="22" font-size="15" fill="#2C2A26">Kilometer / Stunde</text>
+        <text y="40" font-size="11" fill="#8B7355">Alt.: m/s · Knoten (Marine) · Beaufort</text>
+      </g>
+      
+      <g transform="translate(660, 64)">
+        <rect width="280" height="40" rx="20" fill="#F5F1E8"/>
+        <rect x="4" y="4" width="68" height="32" rx="16" fill="#2C2A26"/>
+        <text x="38" y="25" font-size="12" fill="#FFFFFF" text-anchor="middle" font-weight="500">km/h</text>
+        <text x="104" y="25" font-size="12" fill="#5C5447" text-anchor="middle">m/s</text>
+        <text x="168" y="25" font-size="12" fill="#5C5447" text-anchor="middle">kn</text>
+        <text x="240" y="25" font-size="12" fill="#5C5447" text-anchor="middle">Bft</text>
+      </g>
+      
+      <!-- Precipitation -->
+      <g transform="translate(0, 128)">
+        <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">NIEDERSCHLAG</text>
+        <text y="22" font-size="15" fill="#2C2A26">Millimeter</text>
+        <text y="40" font-size="11" fill="#8B7355">Alt.: Liter/m² · Inch</text>
+      </g>
+      
+      <g transform="translate(660, 128)">
+        <rect width="280" height="40" rx="20" fill="#F5F1E8"/>
+        <rect x="4" y="4" width="86" height="32" rx="16" fill="#2C2A26"/>
+        <text x="47" y="25" font-size="12" fill="#FFFFFF" text-anchor="middle" font-weight="500">mm</text>
+        <text x="140" y="25" font-size="12" fill="#5C5447" text-anchor="middle">L/m²</text>
+        <text x="230" y="25" font-size="12" fill="#5C5447" text-anchor="middle">inch</text>
+      </g>
+      
+      <!-- Distance -->
+      <g transform="translate(0, 192)">
+        <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">DISTANZ</text>
+        <text y="22" font-size="15" fill="#2C2A26">Kilometer</text>
+        <text y="40" font-size="11" fill="#8B7355">Höhen in Meter</text>
+      </g>
+      
+      <g transform="translate(660, 192)">
+        <rect width="280" height="40" rx="20" fill="#F5F1E8"/>
+        <rect x="4" y="4" width="134" height="32" rx="16" fill="#2C2A26"/>
+        <text x="71" y="25" font-size="12" fill="#FFFFFF" text-anchor="middle" font-weight="500">km · m</text>
+        <text x="207" y="25" font-size="12" fill="#5C5447" text-anchor="middle">mi · ft</text>
+      </g>
+    </g>
+  </g>
+  
+  <!-- Section C: Theme -->
+  <g transform="translate(360, 920)">
+    <rect width="1000" height="280" rx="20" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    
+    <g transform="translate(32, 28)">
+      <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">DARSTELLUNG</text>
+      <text y="26" font-size="22" font-weight="500" fill="#2C2A26" letter-spacing="-0.4">Theme &amp; Animation</text>
+      <text y="48" font-size="13" fill="#5C5447">Sand-Theme ist Standard. Dark-Modus folgt System-Präferenz.</text>
+    </g>
+    
+    <!-- Theme tiles -->
+    <g transform="translate(32, 116)">
+      <!-- Sand (active) -->
+      <g>
+        <rect width="160" height="120" rx="14" fill="#F5F1E8" stroke="#2C2A26" stroke-width="2"/>
+        <g transform="translate(20, 20)">
+          <rect width="120" height="50" rx="8" fill="#FAF6EA"/>
+          <rect x="0" y="56" width="80" height="6" rx="3" fill="#A89A7A"/>
+          <rect x="0" y="68" width="120" height="6" rx="3" fill="#D9D0B8"/>
+        </g>
+        <text x="80" y="108" font-size="11" fill="#2C2A26" text-anchor="middle" font-weight="500">Sand · Standard</text>
+      </g>
+      
+      <!-- Dark -->
+      <g transform="translate(172, 0)">
+        <rect width="160" height="120" rx="14" fill="#2C2A26" stroke="#D9D0B8"/>
+        <g transform="translate(20, 20)">
+          <rect width="120" height="50" rx="8" fill="#3A3833"/>
+          <rect x="0" y="56" width="80" height="6" rx="3" fill="#A89A7A"/>
+          <rect x="0" y="68" width="120" height="6" rx="3" fill="#5C5447"/>
+        </g>
+        <text x="80" y="108" font-size="11" fill="#A89A7A" text-anchor="middle">Dark · v1.1</text>
+      </g>
+      
+      <!-- Auto -->
+      <g transform="translate(344, 0)">
+        <rect width="160" height="120" rx="14" fill="#FFFFFF" stroke="#D9D0B8"/>
+        <g transform="translate(20, 20)">
+          <rect width="60" height="50" rx="8" fill="#FAF6EA"/>
+          <rect x="60" y="0" width="60" height="50" rx="8" fill="#2C2A26"/>
+          <rect x="0" y="56" width="120" height="6" rx="3" fill="#A89A7A"/>
+        </g>
+        <text x="80" y="108" font-size="11" fill="#5C5447" text-anchor="middle">Auto · System</text>
+      </g>
+      
+      <!-- Animation toggle on the right -->
+      <g transform="translate(560, 16)">
+        <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">ANIMATION</text>
+        
+        <g transform="translate(0, 18)">
+          <text font-size="13" fill="#2C2A26" font-weight="500">Wind-Animationen aktiv</text>
+          <text y="20" font-size="11" fill="#5C5447">Streamlines &amp; Partikel auf der Karte</text>
+        </g>
+        
+        <g transform="translate(308, 14)">
+          <rect width="40" height="24" rx="12" fill="#2C2A26"/>
+          <circle cx="29" cy="12" r="9" fill="#FFFFFF"/>
+        </g>
+        
+        <g transform="translate(0, 60)">
+          <text font-size="13" fill="#2C2A26" font-weight="500">Reduzierte Bewegung</text>
+          <text y="20" font-size="11" fill="#5C5447">Folgt prefers-reduced-motion</text>
+        </g>
+        
+        <g transform="translate(308, 56)">
+          <rect width="40" height="24" rx="12" fill="#D9D0B8"/>
+          <circle cx="11" cy="12" r="9" fill="#FFFFFF"/>
+        </g>
+      </g>
+    </g>
+  </g>
+  
+  <!-- Section D: Notifications -->
+  <g transform="translate(360, 1220)">
+    <rect width="1000" height="380" rx="20" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    
+    <g transform="translate(32, 28)">
+      <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">BENACHRICHTIGUNGEN</text>
+      <text y="26" font-size="22" font-weight="500" fill="#2C2A26" letter-spacing="-0.4">Push-Alerts</text>
+      <text y="48" font-size="13" fill="#5C5447">Browser-Notifications für Events und Wetter-Warnungen. Anonym, ohne E-Mail.</text>
+    </g>
+    
+    <!-- Settings rows -->
+    <g transform="translate(32, 116)">
+      <!-- Master toggle -->
+      <g>
+        <rect width="936" height="60" rx="14" fill="#F5F1E8"/>
+        <g transform="translate(20, 14)">
+          <text font-size="13" fill="#2C2A26" font-weight="500">Push-Benachrichtigungen aktiviert</text>
+          <text y="20" font-size="11" fill="#5C5447">Browser-Erlaubnis erforderlich · derzeit erteilt</text>
+        </g>
+        <g transform="translate(880, 18)">
+          <rect width="40" height="24" rx="12" fill="#2C2A26"/>
+          <circle cx="29" cy="12" r="9" fill="#FFFFFF"/>
+        </g>
+      </g>
+      
+      <!-- Event reminders -->
+      <g transform="translate(0, 76)">
+        <text x="20" font-size="13" fill="#2C2A26" font-weight="500">Event-Erinnerungen</text>
+        <text x="20" y="20" font-size="11" fill="#5C5447">48 h · 24 h · 12 h · 3 h vor geplantem Event</text>
+        
+        <g transform="translate(900, -4)">
+          <rect width="40" height="24" rx="12" fill="#2C2A26"/>
+          <circle cx="29" cy="12" r="9" fill="#FFFFFF"/>
+        </g>
+      </g>
+      
+      <!-- Severe weather -->
+      <g transform="translate(0, 132)">
+        <text x="20" font-size="13" fill="#2C2A26" font-weight="500">Unwetter-Warnungen</text>
+        <text x="20" y="20" font-size="11" fill="#5C5447">DWD-Warnungen für gespeicherte Orte · nur kritische Stufen</text>
+        
+        <g transform="translate(900, -4)">
+          <rect width="40" height="24" rx="12" fill="#2C2A26"/>
+          <circle cx="29" cy="12" r="9" fill="#FFFFFF"/>
+        </g>
+      </g>
+      
+      <!-- Föhn alerts -->
+      <g transform="translate(0, 188)">
+        <text x="20" font-size="13" fill="#2C2A26" font-weight="500">DACH-Phänomen-Alerts</text>
+        <text x="20" y="20" font-size="11" fill="#5C5447">Föhn-Beginn · Inversion · Cold-Pool · Sommer-Gewitter</text>
+        
+        <g transform="translate(900, -4)">
+          <rect width="40" height="24" rx="12" fill="#D9D0B8"/>
+          <circle cx="11" cy="12" r="9" fill="#FFFFFF"/>
+        </g>
+      </g>
+      
+      <!-- Quiet hours -->
+      <g transform="translate(0, 244)">
+        <text x="20" font-size="13" fill="#2C2A26" font-weight="500">Ruhezeit</text>
+        <text x="20" y="20" font-size="11" fill="#5C5447">Keine Push zwischen 22:00 und 07:00</text>
+        
+        <g transform="translate(900, -4)">
+          <rect width="40" height="24" rx="12" fill="#2C2A26"/>
+          <circle cx="29" cy="12" r="9" fill="#FFFFFF"/>
+        </g>
+      </g>
+    </g>
+  </g>
+  
+  <!-- Section E: Connections -->
+  <g transform="translate(360, 1620)">
+    <rect width="1000" height="280" rx="20" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    
+    <g transform="translate(32, 28)">
+      <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">VERBINDUNGEN · OAUTH</text>
+      <text y="26" font-size="22" font-weight="500" fill="#2C2A26" letter-spacing="-0.4">Externe Dienste</text>
+      <text y="48" font-size="13" fill="#5C5447">Routen-Import. Tokens lokal verschlüsselt, keine Server-Speicherung.</text>
+    </g>
+    
+    <!-- Strava connected -->
+    <g transform="translate(32, 116)">
+      <rect width="468" height="120" rx="14" fill="#FFEDDC" stroke="#FF5722" stroke-width="0.5"/>
+      
+      <g transform="translate(24, 24)">
+        <g stroke="#FF5722" stroke-width="2" fill="#FF5722">
+          <path d="M 8 0 L 0 16 L 8 32 L 16 16 Z"/>
+        </g>
+        <g transform="translate(40, 0)">
+          <text font-size="9" fill="#7A9466" letter-spacing="2" font-weight="600">VERBUNDEN</text>
+          <text y="20" font-size="16" fill="#2C2A26" font-weight="500">Strava</text>
+          <text y="38" font-size="11" fill="#5C5447">Jan Schmidt · 14 Routen synced · seit 12. Mai 2026</text>
+        </g>
+      </g>
+      
+      <g transform="translate(340, 50)">
+        <rect width="100" height="32" rx="16" fill="transparent" stroke="#A85E2E" stroke-width="1"/>
+        <text x="50" y="20" font-size="11" fill="#A85E2E" text-anchor="middle" font-weight="500">Trennen</text>
+      </g>
+    </g>
+    
+    <!-- Komoot v1.1 -->
+    <g transform="translate(512, 116)">
+      <rect width="456" height="120" rx="14" fill="#F5F1E8"/>
+      
+      <g transform="translate(24, 24)">
+        <g fill="#7A9466">
+          <circle cx="8" cy="16" r="8"/>
+          <circle cx="8" cy="16" r="3" fill="#FFFFFF"/>
+        </g>
+        <g transform="translate(40, 0)">
+          <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="600">NICHT VERBUNDEN</text>
+          <text y="20" font-size="16" fill="#2C2A26" font-weight="500">Komoot</text>
+          <text y="38" font-size="11" fill="#A85E2E" font-style="italic">Verfügbar ab v1.1 · Partner-Anfrage läuft</text>
+        </g>
+      </g>
+      
+      <g transform="translate(322, 50)">
+        <rect width="110" height="32" rx="16" fill="#D9D0B8"/>
+        <text x="55" y="20" font-size="11" fill="#8B7355" text-anchor="middle">Bald verfügbar</text>
+      </g>
+    </g>
+  </g>
+  
+  <!-- Section F: Data privacy + session -->
+  <g transform="translate(360, 1920)">
+    <rect width="1000" height="320" rx="20" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    
+    <g transform="translate(32, 28)">
+      <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">DATEN · DSGVO</text>
+      <text y="26" font-size="22" font-weight="500" fill="#2C2A26" letter-spacing="-0.4">Anonyme Session</text>
+      <text y="48" font-size="13" fill="#5C5447">Wir speichern keine Daten auf unseren Servern. Alles ist in deinem Browser.</text>
+    </g>
+    
+    <!-- Session info -->
+    <g transform="translate(32, 116)">
+      <rect width="936" height="76" rx="14" fill="#F5F1E8"/>
+      
+      <g transform="translate(20, 18)">
+        <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">SESSION-ID</text>
+        <text y="20" font-size="13" fill="#2C2A26" font-family="ui-monospace, monospace">a7f4-8b21-c3d9-e5e2</text>
+        <text y="40" font-size="11" fill="#5C5447">Erstellt am 12. Mai 2026 · Daten: 3 Routen · 1 Event · 8 zuletzt gesuchte Orte</text>
+      </g>
+      
+      <g transform="translate(800, 22)">
+        <rect width="120" height="32" rx="16" fill="transparent" stroke="#2C2A26"/>
+        <text x="60" y="20" font-size="11" fill="#2C2A26" text-anchor="middle" font-weight="500">ID kopieren</text>
+      </g>
+    </g>
+    
+    <!-- Action row -->
+    <g transform="translate(32, 212)">
+      <g>
+        <rect width="220" height="48" rx="24" fill="#2C2A26"/>
+        <text x="110" y="30" font-size="12" fill="#F5F1E8" text-anchor="middle" font-weight="500">Daten exportieren (JSON)</text>
+      </g>
+      
+      <g transform="translate(232, 0)">
+        <rect width="220" height="48" rx="24" fill="transparent" stroke="#2C2A26"/>
+        <text x="110" y="30" font-size="12" fill="#2C2A26" text-anchor="middle">Auf Gerät übertragen</text>
+      </g>
+      
+      <g transform="translate(700, 0)">
+        <rect width="236" height="48" rx="24" fill="transparent" stroke="#A85E2E"/>
+        <text x="118" y="30" font-size="12" fill="#A85E2E" text-anchor="middle" font-weight="500">Session komplett löschen</text>
+      </g>
+    </g>
+  </g>
+  
+  <!-- ============ FOOTER NOTE ============ -->
+  <g transform="translate(80, 2280)">
+    <text font-size="13" fill="#5C5447">Alle Einstellungen werden automatisch gespeichert · keine Cloud-Synchronisation · kein Tracking</text>
+  </g>
+  
+  <!-- ============ LABEL ============ -->
+  <g transform="translate(80, 2360)">
+    <text font-size="10" fill="#A89A7A" letter-spacing="3" font-weight="500">10 · SETTINGS · DESKTOP · SESSION 1 / 3 — COMPLETE</text>
+    <text x="1280" font-size="10" fill="#A89A7A" letter-spacing="2" text-anchor="end">6 Sektionen · OAuth-Status · Session-Export · DSGVO-konform</text>
+  </g>
+</svg>

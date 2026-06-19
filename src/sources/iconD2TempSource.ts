@@ -1,0 +1,314 @@
+/**
+ * DWD ICON-D2 — 2-m-Temperatur (`t_2m`) als natives 2,2-km-Gitter für den
+ * Temperatur-Heatmap-Layer der Kartenansicht.
+ *
+ * Ersetzt die bisherige Fusion-Temperatur (Open-Meteo/IDW) durch das native
+ * DWD-ICON-D2-Gitter (reguläres lat-lon 0,02°, DE + Umfeld) direkt aus den
+ * GRIB2-Rohdaten — dieselbe Pipeline wie Wind/Wolken/Niederschlag.
+ *
+ * Höhenkorrektur (wie der Fusion-Layer): der `ScalarLayer` macht ein per-Pixel-
+ * Lapse-Refinement. Dazu trägt der GRÜN-Kanal des Werte-Bilds die Referenzhöhe
+ * (ICONs Modell-Orographie `hsurf`, normiert auf DEM_MAX) und ein hochaufgelöstes
+ * DEM-Bild (Terrarium, über DENSELBEN Bounds) liefert die echte Terrainhöhe pro
+ * Pixel. t_2m gilt physikalisch auf `hsurf` → der Shader rechnet von dort mit
+ * dem Lapse-Rate auf das tatsächliche Terrain (Täler wärmer, Gipfel kälter).
+ * CC BY 4.0, kein API-Key.
+ */
+
+import {
+  resolveLatestRun, fetchStepField, fetchInvariantField, gribCorners,
+  type GribField,
+} from './iconD2Precip';
+import { loadElevationLookup } from '../fusion/elevation';
+import type { ForecastBounds } from './openMeteoForecast';
+
+export const ICON_D2_TEMP_ATTRIBUTION =
+  'Temperatur: <a href="https://www.dwd.de/EN/ourservices/opendata/opendata.html" ' +
+  'target="_blank" rel="noopener">DWD ICON-D2</a> · CC BY 4.0';
+
+/** Horizont-Cap (h) — deckt den Slider ab. */
+const MAX_STEP = 24;
+/** Ziel-Breite nach Subsampling (1215er-Nativgitter ist für eine Heatmap Overkill). */
+const TARGET_WIDTH = 700;
+/** Parallele Fetches (bz2-Decompress läuft im Worker-Pool). */
+const CONCURRENCY = 6;
+/** Max-Höhe (m), die als 1.0 in Grün-Kanal & DEM kodiert wird (= ScalarLayer demMax). */
+const DEM_MAX = 4500;
+/** Terrarium-Zoom der DEM-Quelle (QA-Knopf D2). z7 ≈ 1,2 km — gute Balance
+ *  (~50 Tiles über die ICON-Domäne, einmalig pro Bounds gecacht). z8 (~0,6 km)
+ *  löst scharfe 3000er (Sonnblick/Zugspitze) besser auf, kostet aber ~4× Tiles/
+ *  Bandbreite beim Erststart → bewusst nicht Default. */
+const DEM_ZOOM = 7;
+const KELVIN = 273.15;
+/** Physikalischer Temperaturbereich der Normierung (muss zu MapView TEMP_RANGE passen). */
+export const TEMP_VMIN = -20;
+export const TEMP_VMAX = 40;
+
+export interface IconD2TempFrame {
+  validAt: Date;
+  stepHours: number;
+  /** RGBA-Canvas: R = norm. Temp, G = norm. hsurf-Referenzhöhe, A = Maske. */
+  image: HTMLCanvasElement;
+  width: number;
+  height: number;
+}
+
+export interface IconD2Temp {
+  runAt: Date;
+  frames: IconD2TempFrame[];
+  /** Equirect-UV-Bounds (x0,y0,x1,y1) der Gitterregion im globalen [0,1]². */
+  uvBounds: [number, number, number, number];
+  vMin: number;
+  vMax: number;
+  /** Hochaufgelöstes DEM-Bild (R = Höhe/DEM_MAX) über DENSELBEN uvBounds. */
+  demImage: HTMLCanvasElement;
+}
+
+function lngToEquiX(lng: number): number { return (lng + 180) / 360; }
+function latToEquiY(lat: number): number { return (90 - lat) / 180; }
+function clamp01(v: number): number { return v < 0 ? 0 : v > 1 ? 1 : v; }
+
+/** Modul-Cache: DEM (Terrain) ist statisch → pro Bounds nur einmal bauen. */
+const demCache = new Map<string, HTMLCanvasElement>();
+
+/**
+ * Baut ein hochaufgelöstes DEM-Bild (Terrarium) über die ICON-Bounds, north-up,
+ * R = Höhe/DEM_MAX. Sampling-Raster proportional zum Bounds-Seitenverhältnis.
+ */
+async function buildDemImage(bounds: ForecastBounds, signal?: AbortSignal): Promise<HTMLCanvasElement> {
+  const key = `${bounds.lngMin.toFixed(2)},${bounds.latMin.toFixed(2)},${bounds.lngMax.toFixed(2)},${bounds.latMax.toFixed(2)}`;
+  const cached = demCache.get(key);
+  if (cached) return cached;
+
+  // QA-Fix D2/D3: Bei z5 (~5 km) + Bilinear wurden Extremgipfel (Zugspitze,
+  // Monte Rosa) stark geglättet → DEM-Höhe zu niedrig → Lapse-Korrektur zu
+  // schwach → Gipfel zu warm bzw. Schneegrenze verfehlt. Feinere Quelle (z7
+  // ≈ 1,2 km) + peak-erhaltende MAX-Aggregation über ein 3×3-Subraster je Zelle
+  // heben die Gipfelhöhe an. DEM ist statisch + pro Bounds gecacht → Einmalkosten.
+  const lookup = await loadElevationLookup(bounds, DEM_ZOOM, signal);
+  const rows = 700;
+  const lonSpan = bounds.lngMax - bounds.lngMin;
+  const latSpan = Math.max(0.01, bounds.latMax - bounds.latMin);
+  const cols = Math.max(64, Math.round(rows * (lonSpan / latSpan)));
+  const dLat = latSpan / Math.max(1, rows - 1), dLng = lonSpan / Math.max(1, cols - 1);
+  const grid = new Float32Array(cols * rows); // j=0 = Süden (latMin)
+  // Max über ein 3×3-Subraster INNERHALB der Zelle (±0,3 Zellbreite). Bewusst
+  // kein Übergriff in Nachbarzellen (vorher ±0,4) — das hob Gipfel an, verzerrte
+  // aber rolliges Flachland nach oben (QA-Fix D3-Refinement). So bleibt die
+  // Gipfelhöhe erhalten, ohne entfernte Hügel einzufangen.
+  const subs = [-0.3, 0, 0.3];
+  for (let j = 0; j < rows; j++) {
+    const lat0 = bounds.latMin + j * dLat;
+    for (let i = 0; i < cols; i++) {
+      const lng0 = bounds.lngMin + i * dLng;
+      let peak = -Infinity;
+      for (const sj of subs) for (const si of subs) {
+        const e = lookup.sample(lng0 + si * dLng, lat0 + sj * dLat);
+        if (Number.isFinite(e) && e > peak) peak = e;
+      }
+      grid[j * cols + i] = peak > -Infinity ? peak : NaN;
+    }
+  }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = cols; canvas.height = rows;
+  const ctx = canvas.getContext('2d')!;
+  const img = ctx.createImageData(cols, rows);
+  for (let j = 0; j < rows; j++) {
+    const y = rows - 1 - j; // Süd→Nord flippen → Canvas-Zeile 0 = Norden
+    for (let i = 0; i < cols; i++) {
+      const e = grid[j * cols + i];
+      const idx = (y * cols + i) * 4;
+      img.data[idx] = Math.round(clamp01(e / DEM_MAX) * 255);
+      img.data[idx + 1] = 0;
+      img.data[idx + 2] = 0;
+      img.data[idx + 3] = 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  demCache.set(key, canvas);
+  return canvas;
+}
+
+/** Baut das RGBA-Werte-Bild eines Schritts: R = norm. °C, G = norm. hsurf, A = Maske. */
+function buildTempImage(t2m: GribField, hsurf: GribField | null, ss: number): Omit<IconD2TempFrame, 'validAt' | 'stepHours'> {
+  const { ni, nj } = t2m;
+  const w = Math.ceil(ni / ss);
+  const h = Math.ceil(nj / ss);
+  const sameGrid = !!hsurf && hsurf.ni === ni && hsurf.nj === nj;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d')!;
+  const img = ctx.createImageData(w, h);
+  const span = TEMP_VMAX - TEMP_VMIN;
+  for (let jj = 0; jj < h; jj++) {
+    const sj = Math.min(nj - 1, jj * ss);
+    const y = h - 1 - jj; // S→N → north-up (deckt sich mit dem DEM-Bild)
+    for (let ii = 0; ii < w; ii++) {
+      const si = Math.min(ni - 1, ii * ss);
+      const k = sj * ni + si;
+      const idx = (y * w + ii) * 4;
+      const kelvin = t2m.values[k];
+      if (!Number.isFinite(kelvin)) { img.data[idx + 3] = 0; continue; }
+      const celsius = kelvin - KELVIN;
+      img.data[idx] = Math.round(clamp01((celsius - TEMP_VMIN) / span) * 255);
+      const hs = sameGrid ? hsurf!.values[k] : 0;
+      img.data[idx + 1] = Number.isFinite(hs) ? Math.round(clamp01(hs / DEM_MAX) * 255) : 0;
+      img.data[idx + 2] = 0;
+      img.data[idx + 3] = 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  return { image: canvas, width: w, height: h };
+}
+
+/**
+ * Lädt das native ICON-D2-2-m-Temperaturgitter (+ hsurf + DEM) des jüngsten Laufs.
+ * Progressiv: `onProgress` feuert pro fertigem Frame (naher Horizont sofort nutzbar).
+ */
+export async function fetchIconD2Temp(
+  signal?: AbortSignal,
+  onProgress?: (partial: IconD2Temp) => void,
+): Promise<IconD2Temp> {
+  const { runStr, runAt, steps } = await resolveLatestRun('t_2m', signal);
+  const wanted = steps.filter((s) => s <= MAX_STEP);
+
+  // hsurf (Referenzhöhe) einmalig laden — fehlt sie, läuft es ohne Refinement.
+  const hsurf = await fetchInvariantField(runStr, 'hsurf', signal).catch(() => null);
+
+  // Ein Feld für Bounds/Grid brauchen wir sicher: hsurf hat dasselbe Gitter,
+  // sonst das erste t_2m-Feld holen.
+  const gridRef = hsurf ?? await fetchStepField(runStr, 't_2m', wanted[0], signal);
+  const c = gribCorners(gridRef); // [NW, NE, SE, SW] in [lon,lat]
+  const uvBounds: [number, number, number, number] = [
+    lngToEquiX(c[0][0]), latToEquiY(c[0][1]), lngToEquiX(c[1][0]), latToEquiY(c[2][1]),
+  ];
+  const bounds: ForecastBounds = {
+    lngMin: c[0][0], lngMax: c[1][0], latMin: c[2][1], latMax: c[0][1],
+  };
+  const demImage = await buildDemImage(bounds, signal);
+  const ss = Math.max(1, Math.ceil(gridRef.ni / TARGET_WIDTH));
+
+  const frames: IconD2TempFrame[] = [];
+
+  const loadStep = async (step: number): Promise<void> => {
+    try {
+      const t2m = await fetchStepField(runStr, 't_2m', step, signal);
+      const built = buildTempImage(t2m, hsurf, ss);
+      frames.push({ validAt: new Date(runAt.getTime() + step * 3_600_000), stepHours: step, ...built });
+      frames.sort((a, b) => a.stepHours - b.stepHours);
+      if (onProgress) onProgress({ runAt, frames: [...frames], uvBounds, vMin: TEMP_VMIN, vMax: TEMP_VMAX, demImage });
+    } catch {
+      // Einzelner Schritt fehlt → überspringen.
+    }
+  };
+
+  // Bounded-Concurrency-Pump über die Schritte.
+  let ptr = 0;
+  const workers = Array.from({ length: Math.min(CONCURRENCY, wanted.length) }, async () => {
+    while (ptr < wanted.length) {
+      if (signal?.aborted) return;
+      await loadStep(wanted[ptr++]);
+    }
+  });
+  await Promise.all(workers);
+
+  if (frames.length === 0) throw new Error('ICON-D2 Temp: keine Frames erzeugt');
+  return { runAt, frames, uvBounds, vMin: TEMP_VMIN, vMax: TEMP_VMAX, demImage };
+}
+
+// Hinweis: Frame-Wahl nach Vorlauf-Schritt (`tempFrameAtHour`) wurde entfernt.
+// Frames werden jetzt zentral nach Gültigkeitszeit gewählt — siehe
+// `frameAtValidTime` (sources/frameAtValidTime.ts), now-indexiert (QA-Fix D1).
+
+// ---------------------------------------------------------------------------
+// Zeitversetztes ICON-D2-Ensemble (Lauf-zu-Lauf-Spread) — echte Vorhersage-
+// Unsicherheit für den Temperatur-Schleier. Vergleicht den JÜNGSTEN Lauf mit dem
+// VORHERIGEN (3 h älter) bei GLEICHER Gültigkeitszeit (Schritt s vs s+3). Wo die
+// Läufe auseinanderlaufen, ist die Vorhersage unsicher (Lagged-Ensemble-Methode).
+// Der jüngste Lauf ist dank Decompressed-Cache i. d. R. ein Treffer → Mehrkosten
+// ≈ ein zusätzlicher Lauf, nur an wenigen Stützstellen (alle 6 h).
+// ---------------------------------------------------------------------------
+
+/** Maximaler Lauf-zu-Lauf-Unterschied (K), der als „1" (volle Unsicherheit) kodiert wird. */
+export const TEMP_SPREAD_MAX = 5;
+const SPREAD_TARGET_WIDTH = 300;
+function p2(n: number) { return String(n).padStart(2, '0'); }
+
+export interface IconD2TempSpreadFrame { validAt: Date; stepHours: number; image: HTMLCanvasElement; width: number; height: number }
+export interface IconD2TempSpread {
+  frames: IconD2TempSpreadFrame[];
+  uvBounds: [number, number, number, number];
+  spreadMax: number;
+  /** Kennung der verglichenen Läufe (für Status/Debug). */
+  runs: { latest: string; prev: string };
+}
+
+/** Baut das Spread-Bild eines Schritts: R = |ΔT| / spreadMax (norm.), A = Maske. */
+function buildSpreadImage(cur: GribField, prev: GribField, ss: number): Omit<IconD2TempSpreadFrame, 'validAt' | 'stepHours'> {
+  const { ni, nj } = cur;
+  const w = Math.ceil(ni / ss);
+  const h = Math.ceil(nj / ss);
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d')!;
+  const img = ctx.createImageData(w, h);
+  for (let jj = 0; jj < h; jj++) {
+    const sj = Math.min(nj - 1, jj * ss);
+    const y = h - 1 - jj; // S→N → north-up (deckt sich mit dem Temp-Bild)
+    for (let ii = 0; ii < w; ii++) {
+      const si = Math.min(ni - 1, ii * ss);
+      const k = sj * ni + si;
+      const a = cur.values[k], b = prev.values[k];
+      const idx = (y * w + ii) * 4;
+      if (!Number.isFinite(a) || !Number.isFinite(b)) { img.data[idx + 3] = 0; continue; }
+      const spread = Math.abs(a - b); // Kelvin-Differenz = °C-Differenz
+      img.data[idx] = Math.round(clamp01(spread / TEMP_SPREAD_MAX) * 255);
+      img.data[idx + 3] = 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  return { image: canvas, width: w, height: h };
+}
+
+/**
+ * Lädt das Lauf-zu-Lauf-Spread-Feld (jüngster vs. vorheriger ICON-D2-Lauf) an
+ * Stützstellen alle 6 h. Liefert null, wenn der vorherige Lauf nicht auflösbar
+ * ist → der Schleier nutzt dann weiter nur die Klimatologie-Anomalie.
+ */
+export async function fetchTempRunSpread(signal?: AbortSignal): Promise<IconD2TempSpread | null> {
+  const latest = await resolveLatestRun('t_2m', signal);
+  const prevAt = new Date(latest.runAt.getTime() - 3 * 3_600_000);
+  const prevStr =
+    `${prevAt.getUTCFullYear()}${p2(prevAt.getUTCMonth() + 1)}${p2(prevAt.getUTCDate())}${p2(prevAt.getUTCHours())}`;
+  const wantSteps = latest.steps.filter((s) => s <= MAX_STEP && s % 6 === 0);
+
+  const frames: IconD2TempSpreadFrame[] = [];
+  let uvBounds: [number, number, number, number] | null = null;
+  let ss = 1;
+  for (const s of wantSteps) {
+    let cur: GribField, prev: GribField;
+    try {
+      [cur, prev] = await Promise.all([
+        fetchStepField(latest.runStr, 't_2m', s, signal),       // i. d. R. Cache-Treffer
+        fetchStepField(prevStr, 't_2m', s + 3, signal),         // vorheriger Lauf, gleiche Gültigkeit
+      ]);
+    } catch { continue; } // Schritt im Vorlauf fehlt → überspringen
+    if (cur.ni !== prev.ni || cur.nj !== prev.nj) continue;
+    if (!uvBounds) {
+      const c = gribCorners(cur);
+      uvBounds = [lngToEquiX(c[0][0]), latToEquiY(c[0][1]), lngToEquiX(c[1][0]), latToEquiY(c[2][1])];
+      ss = Math.max(1, Math.ceil(cur.ni / SPREAD_TARGET_WIDTH));
+    }
+    frames.push({
+      validAt: new Date(latest.runAt.getTime() + s * 3_600_000),
+      stepHours: s, ...buildSpreadImage(cur, prev, ss),
+    });
+  }
+  if (!uvBounds || frames.length === 0) return null;
+  return { frames, uvBounds, spreadMax: TEMP_SPREAD_MAX, runs: { latest: latest.runStr, prev: prevStr } };
+}
+
+// Hinweis: `spreadFrameAtHour` entfernt — der Spread-Frame wird jetzt ebenfalls
+// zentral nach Gültigkeitszeit via `frameAtValidTime` gewählt (QA-Fix D1).

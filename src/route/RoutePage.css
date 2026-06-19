@@ -1,0 +1,255 @@
+/* Body der Route-Seite. Container + Topbar kommen aus featureHeader.css. */
+.route-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.75rem;
+  padding: clamp(1.5rem, 5vw, 3.5rem) 1.25rem 3rem;
+}
+
+.route-intro {
+  width: 100%;
+  max-width: 560px;
+  text-align: center;
+}
+.route-eyebrow {
+  font-size: 0.78rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--stone-500, #8a7d68);
+}
+.route-heading {
+  margin: 0.4rem 0 0.6rem;
+  font-size: clamp(1.5rem, 3.5vw, 2.25rem);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+.route-lead {
+  margin: 0;
+  font-size: 0.98rem;
+  line-height: 1.55;
+  color: var(--ink-800, #3a372f);
+}
+
+/* ---- Ergebnis (geparste Strecke) ---- */
+.route-result {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+.route-name {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+.route-status {
+  margin: 1rem 0;
+  text-align: center;
+  color: var(--stone-500, #8a7d68);
+}
+.route-status-error {
+  color: var(--terracotta-700, #a8431f);
+}
+
+/* Datei-Leiste */
+.route-filebar {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--sand-200, #e0d6be);
+  border-radius: 14px;
+  background: var(--cream-50, #FAF6EA);
+}
+.route-file-badge {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.55rem;
+  border-radius: 8px;
+  background: var(--sage-600, #7a9466);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.route-file-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.route-file-name {
+  font-size: 0.92rem;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.route-file-sub {
+  font-size: 0.78rem;
+  color: var(--stone-500, #8a7d68);
+}
+.route-file-replace {
+  flex: none;
+  border: 1px solid var(--sand-200, #e0d6be);
+  background: var(--sand-50, #f7f2e9);
+  color: var(--ink-900, #2c2a26);
+  border-radius: 999px;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.82rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.route-file-replace:hover {
+  border-color: var(--sage-600, #7a9466);
+}
+.route-filebar-error {
+  border-color: var(--terracotta-500, #c6633b);
+}
+
+/* ---- Track-Auswahl (mehrere Tracks in der Datei) ---- */
+.route-tracks {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+.route-tracks-label {
+  font-size: 0.82rem;
+  color: var(--stone-500, #8a7d68);
+}
+.route-tracks-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.route-track-chip {
+  border: 1px solid var(--sand-200, #e0d6be);
+  background: var(--sand-50, #f7f2e9);
+  color: var(--ink-800, #3a372f);
+  border-radius: 999px;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.82rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+.route-track-chip:hover {
+  border-color: var(--sage-600, #7a9466);
+}
+.route-track-chip.is-active {
+  background: var(--sage-600, #7a9466);
+  border-color: var(--sage-600, #7a9466);
+  color: #fff;
+}
+
+/* ---- Karte ---- */
+.route-map {
+  width: 100%;
+  height: clamp(320px, 52vh, 560px);
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--sand-200, #e0d6be);
+}
+
+/* ---- Kennzahlen ---- */
+.route-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+.route-stats {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 1px;
+  background: var(--sand-200, #e0d6be);
+  border: 1px solid var(--sand-200, #e0d6be);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.route-stat {
+  background: var(--cream-50, #FAF6EA);
+  padding: 0.9rem 1rem;
+}
+.route-stat dt {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--stone-500, #8a7d68);
+}
+.route-stat dd {
+  margin: 0.25rem 0 0;
+  font-size: 1.2rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Höhenprofil ---- */
+.route-profile {
+  margin: 0;
+}
+.route-profile figcaption {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--stone-500, #8a7d68);
+  margin-bottom: 0.4rem;
+}
+.route-profile-svg {
+  display: block;
+  width: 100%;
+  height: 120px;
+  border: 1px solid var(--sand-200, #e0d6be);
+  border-radius: 12px;
+  background: var(--cream-50, #FAF6EA);
+}
+.route-profile-axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.3rem;
+  font-size: 0.74rem;
+  color: var(--stone-500, #8a7d68);
+  font-variant-numeric: tabular-nums;
+}
+.route-time-range {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--stone-500, #8a7d68);
+}
+
+/* ---- Aufbereitungs-Hinweise ---- */
+.route-prep {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.route-chip-info {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  background: var(--sand-100, #efe6d2);
+  color: var(--ink-800, #3a372f);
+  font-size: 0.78rem;
+}
+
+/* ---- Hinweis auf den nächsten Schritt ---- */
+.route-next-hint {
+  width: 100%;
+  margin: 0;
+  padding: 0.85rem 1.1rem;
+  border: 1px solid var(--sage-600, #7a9466);
+  border-radius: 12px;
+  background: var(--sage-50, #f0f4ea);
+  color: var(--ink-800, #3a372f);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}

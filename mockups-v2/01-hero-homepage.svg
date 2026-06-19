@@ -1,0 +1,641 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 2400" font-family="ui-sans-serif, system-ui, -apple-system">
+  <defs>
+    <linearGradient id="heroBgFull" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F5F1E8"/>
+      <stop offset="30%" stop-color="#EDE6D3"/>
+      <stop offset="65%" stop-color="#E0D6BE"/>
+      <stop offset="100%" stop-color="#D9CEB0"/>
+    </linearGradient>
+    <linearGradient id="windFlowHero" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#8B7355" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#8B7355" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#8B7355" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="foehnHero" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#C97B47" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#C97B47" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#C97B47" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="liveDotPulse">
+      <stop offset="0%" stop-color="#7A9466" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#7A9466" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="elevationFill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#8B7355" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#8B7355" stop-opacity="0.05"/>
+    </linearGradient>
+  </defs>
+  
+  <rect width="1440" height="2400" fill="url(#heroBgFull)"/>
+  
+  <!-- ============ BACKGROUND ELEMENTS ============ -->
+  <!-- Topographic mountain layers -->
+  <g opacity="0.18">
+    <path d="M 0 700 Q 200 580 400 610 T 800 590 T 1200 600 T 1440 620 L 1440 900 L 0 900 Z" fill="#B8A480"/>
+    <path d="M 0 760 Q 240 660 480 690 T 960 670 T 1440 700 L 1440 900 L 0 900 Z" fill="#A89472"/>
+    <path d="M 0 820 Q 300 740 600 770 T 1200 750 T 1440 780 L 1440 900 L 0 900 Z" fill="#988168"/>
+  </g>
+  
+  <!-- Wind streamlines across the hero -->
+  <g opacity="0.4">
+    <path d="M -50 280 Q 360 270 720 290 T 1490 310" stroke="url(#windFlowHero)" stroke-width="2" fill="none"/>
+    <path d="M -50 340 Q 360 330 720 350 T 1490 370" stroke="url(#windFlowHero)" stroke-width="1.5" fill="none"/>
+    <path d="M -50 220 Q 360 210 720 230 T 1490 250" stroke="url(#windFlowHero)" stroke-width="1" fill="none"/>
+    <path d="M -50 400 Q 360 390 720 410 T 1490 430" stroke="url(#windFlowHero)" stroke-width="2" fill="none"/>
+    <path d="M -50 460 Q 360 450 720 470 T 1490 490" stroke="url(#windFlowHero)" stroke-width="1" fill="none"/>
+    <path d="M -50 520 Q 360 510 720 530 T 1490 550" stroke="url(#windFlowHero)" stroke-width="1.5" fill="none"/>
+    
+    <!-- Föhn diagonal -->
+    <path d="M 300 700 Q 500 540 700 400 T 1100 250" stroke="url(#foehnHero)" stroke-width="3.5" fill="none"/>
+    <path d="M 360 720 Q 560 560 760 420 T 1160 270" stroke="url(#foehnHero)" stroke-width="2.5" fill="none"/>
+    <path d="M 420 740 Q 620 580 820 440 T 1220 290" stroke="url(#foehnHero)" stroke-width="2" fill="none"/>
+  </g>
+  
+  <!-- ============ NAVIGATION ============ -->
+  <g transform="translate(80, 40)">
+    <!-- Logo group -->
+    <g>
+      <circle cx="16" cy="16" r="7" fill="#2C2A26"/>
+      <g stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round">
+        <line x1="16" y1="0" x2="16" y2="4"/>
+        <line x1="16" y1="28" x2="16" y2="32"/>
+        <line x1="0" y1="16" x2="4" y2="16"/>
+        <line x1="28" y1="16" x2="32" y2="16"/>
+        <line x1="4" y1="4" x2="7" y2="7"/>
+        <line x1="25" y1="25" x2="28" y2="28"/>
+        <line x1="4" y1="28" x2="7" y2="25"/>
+        <line x1="25" y1="7" x2="28" y2="4"/>
+      </g>
+      <text x="48" y="22" font-size="20" font-weight="500" fill="#2C2A26" letter-spacing="-0.5">buscosun</text>
+    </g>
+    
+    <!-- Nav links center -->
+    <g transform="translate(560, 12)" font-size="13" fill="#5C5447">
+      <text>Karte</text>
+      <text x="84">Route</text>
+      <text x="168">Event</text>
+      <text x="252">Tagesablauf</text>
+      <text x="368">Datacenter</text>
+      <g transform="translate(450, -10)">
+        <rect width="58" height="20" rx="10" fill="#FAEEDA"/>
+        <text x="29" y="14" font-size="9" fill="#A85E2E" text-anchor="middle" font-weight="600" letter-spacing="0.5">SOON</text>
+      </g>
+    </g>
+    
+    <!-- Right CTA group -->
+    <g transform="translate(1140, 0)">
+      <!-- Language -->
+      <g>
+        <text x="0" y="22" font-size="13" fill="#5C5447">DE</text>
+        <text x="22" y="22" font-size="13" fill="#A89A7A">·</text>
+        <text x="32" y="22" font-size="13" fill="#A89A7A">EN</text>
+      </g>
+      <!-- Open app -->
+      <g transform="translate(80, -8)">
+        <rect width="140" height="40" rx="20" fill="#2C2A26"/>
+        <text x="70" y="25" font-size="13" fill="#F5F1E8" text-anchor="middle" font-weight="500">App öffnen</text>
+        <g transform="translate(108, 14)" stroke="#F5F1E8" stroke-width="1.5" fill="none" stroke-linecap="round">
+          <line x1="0" y1="6" x2="10" y2="6"/>
+          <polyline points="6,2 10,6 6,10"/>
+        </g>
+      </g>
+    </g>
+  </g>
+  
+  <!-- ============ HERO SECTION ============ -->
+  <g transform="translate(80, 140)">
+    <!-- Eyebrow with line -->
+    <g>
+      <line x1="0" y1="8" x2="40" y2="8" stroke="#8B7355" stroke-width="1"/>
+      <text x="52" y="12" font-size="11" fill="#8B7355" letter-spacing="3" font-weight="500">DEUTSCHLAND · ÖSTERREICH · SCHWEIZ</text>
+    </g>
+    
+    <!-- Main headline -->
+    <g transform="translate(0, 56)">
+      <text font-size="96" font-weight="200" fill="#2C2A26" letter-spacing="-3">Wetter, das</text>
+      <text y="100" font-size="96" font-weight="200" fill="#2C2A26" letter-spacing="-3">seine Arbeit</text>
+      <text y="200" font-size="96" font-weight="200" fill="#2C2A26" letter-spacing="-3">zeigt.</text>
+      <!-- Subtle accent dot -->
+      <circle cx="290" cy="194" r="6" fill="#C97B47"/>
+    </g>
+    
+    <!-- Sub-headline -->
+    <text x="0" y="436" font-size="22" fill="#5C5447" font-weight="400" letter-spacing="-0.3">Modell-Transparenz, DACH-Physik und Route-Wetter</text>
+    <text x="0" y="466" font-size="22" fill="#5C5447" font-weight="400" letter-spacing="-0.3">für Wanderer, Radler, Bergsteiger und Drohnen-Piloten.</text>
+    
+    <!-- Trust signal -->
+    <g transform="translate(0, 506)">
+      <circle cx="6" cy="6" r="4" fill="#7A9466"/>
+      <circle cx="6" cy="6" r="8" fill="url(#liveDotPulse)"/>
+      <text x="20" y="10" font-size="12" fill="#5C5447">Live verbunden mit DWD MOSMIX · ICON-D2 · RADOLAN</text>
+    </g>
+    
+    <!-- Primary CTA group -->
+    <g transform="translate(0, 556)">
+      <g>
+        <rect width="240" height="60" rx="30" fill="#2C2A26"/>
+        <text x="120" y="36" font-size="15" fill="#F5F1E8" text-anchor="middle" font-weight="500">Standort eingeben</text>
+        <g transform="translate(196, 23)" stroke="#F5F1E8" stroke-width="1.5" fill="none" stroke-linecap="round">
+          <line x1="0" y1="7" x2="12" y2="7"/>
+          <polyline points="7,2 12,7 7,12"/>
+        </g>
+      </g>
+      <g transform="translate(252, 0)">
+        <rect width="240" height="60" rx="30" fill="transparent" stroke="#2C2A26" stroke-width="1.5"/>
+        <text x="120" y="36" font-size="15" fill="#2C2A26" text-anchor="middle">GPX-Route hochladen</text>
+      </g>
+    </g>
+    
+    <!-- Anchor links small -->
+    <g transform="translate(0, 656)" font-size="12" fill="#8B7355">
+      <text>Wie funktioniert das?</text>
+      <line x1="0" y1="6" x2="148" y2="6" stroke="#8B7355" stroke-width="0.5"/>
+      
+      <text x="180">Methodik & Quellen</text>
+      <line x1="180" y1="6" x2="316" y2="6" stroke="#8B7355" stroke-width="0.5"/>
+      
+      <text x="350">Beta-Status v0.9</text>
+      <line x1="350" y1="6" x2="464" y2="6" stroke="#8B7355" stroke-width="0.5"/>
+    </g>
+  </g>
+  
+  <!-- ============ LIVE FORECAST CARD (right) ============ -->
+  <g transform="translate(880, 200)">
+    <!-- Card label above -->
+    <g>
+      <text x="0" y="0" font-size="11" fill="#A89A7A" letter-spacing="3" font-weight="500">LIVE-DEMO · MARIENPLATZ</text>
+      <circle cx="190" cy="-4" r="3" fill="#7A9466"/>
+      <circle cx="190" cy="-4" r="6" fill="url(#liveDotPulse)"/>
+    </g>
+    
+    <!-- Main card -->
+    <g transform="translate(0, 22)">
+      <rect width="480" height="640" rx="24" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+      
+      <!-- Card header -->
+      <g transform="translate(28, 28)">
+        <text font-size="11" fill="#A89A7A" letter-spacing="2" font-weight="500">STANDORT</text>
+        <text y="28" font-size="22" font-weight="500" fill="#2C2A26" letter-spacing="-0.4">München, Marienplatz</text>
+        <text y="50" font-size="12" fill="#8B7355">48.137°N · 11.575°E · 519 m</text>
+      </g>
+      
+      <!-- Föhn badge prominent -->
+      <g transform="translate(28, 100)">
+        <rect width="148" height="32" rx="16" fill="#C97B47"/>
+        <g transform="translate(14, 10)">
+          <path d="M 0 7 L 5 0 L 10 7 Z" fill="#FFFFFF"/>
+          <path d="M 0 14 L 5 7 L 10 14 Z" fill="#FFFFFF" opacity="0.6"/>
+        </g>
+        <text x="34" y="21" font-size="11" fill="#FFFFFF" font-weight="600" letter-spacing="0.5">FÖHN-LAGE AKTIV</text>
+      </g>
+      
+      <!-- Big temperature with spread -->
+      <g transform="translate(28, 158)">
+        <text font-size="104" font-weight="200" fill="#2C2A26" letter-spacing="-4">22°</text>
+        
+        <!-- Spread block -->
+        <g transform="translate(180, 60)">
+          <text font-size="20" fill="#5C5447" font-weight="300">± 1.2°</text>
+          
+          <!-- Visual spread bracket -->
+          <g transform="translate(0, 14)">
+            <line x1="0" y1="0" x2="0" y2="8" stroke="#A89A7A" stroke-width="1"/>
+            <line x1="0" y1="4" x2="84" y2="4" stroke="#D9D0B8" stroke-width="1"/>
+            <line x1="84" y1="0" x2="84" y2="8" stroke="#A89A7A" stroke-width="1"/>
+            <circle cx="42" cy="4" r="3" fill="#2C2A26"/>
+          </g>
+          <g transform="translate(0, 30)" font-size="9" fill="#A89A7A">
+            <text>21.4°</text>
+            <text x="84" text-anchor="end">22.6°</text>
+          </g>
+        </g>
+        
+        <!-- Context -->
+        <text y="124" font-size="13" fill="#5C5447">Gefühlt 24° · Föhn-bedingt + 3°</text>
+      </g>
+      
+      <!-- Confidence row -->
+      <g transform="translate(28, 304)">
+        <rect width="424" height="68" rx="14" fill="#F5F1E8"/>
+        
+        <g transform="translate(20, 18)">
+          <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">KONFIDENZ</text>
+          <text y="22" font-size="18" fill="#2C2A26" font-weight="500">Hoch</text>
+        </g>
+        
+        <!-- 4 model dots -->
+        <g transform="translate(120, 36)">
+          <circle r="6" fill="#7A9466"/>
+          <circle cx="18" r="6" fill="#7A9466"/>
+          <circle cx="36" r="6" fill="#7A9466"/>
+          <circle cx="54" r="6" fill="#7A9466"/>
+          <text x="27" y="22" font-size="10" fill="#5C5447" text-anchor="middle">4 / 4 Modelle</text>
+        </g>
+        
+        <!-- Mini sparkline of spread over time -->
+        <g transform="translate(232, 22)">
+          <text font-size="9" fill="#A89A7A" letter-spacing="1.5" font-weight="500">SPREAD 48 h</text>
+          <g transform="translate(0, 12)">
+            <path d="M 0 14 L 18 14 L 36 12 L 54 16 L 72 14 L 90 13 L 108 18 L 126 22 L 144 20 L 162 24 L 180 26" 
+                  stroke="#7A9466" stroke-width="1.2" fill="none" opacity="0.7"/>
+            <path d="M 0 6 L 18 7 L 36 5 L 54 7 L 72 7 L 90 8 L 108 4 L 126 2 L 144 4 L 162 1 L 180 0" 
+                  stroke="#7A9466" stroke-width="1.2" fill="none" opacity="0.7"/>
+            <path d="M 0 14 L 18 14 L 36 12 L 54 16 L 72 14 L 90 13 L 108 18 L 126 22 L 144 20 L 162 24 L 180 26 L 180 0 L 162 1 L 144 4 L 126 2 L 108 4 L 90 8 L 72 7 L 54 7 L 36 5 L 18 7 L 0 6 Z" 
+                  fill="#7A9466" opacity="0.15"/>
+          </g>
+        </g>
+      </g>
+      
+      <!-- Model chips -->
+      <g transform="translate(28, 392)">
+        <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">AKTIVE MODELLE</text>
+        
+        <g transform="translate(0, 18)">
+          <g>
+            <rect width="100" height="44" rx="12" fill="#2C2A26"/>
+            <text x="14" y="18" font-size="9" fill="#A89A7A" letter-spacing="1.2">ICON-D2</text>
+            <text x="14" y="36" font-size="15" fill="#FFFFFF" font-weight="500">22.1°</text>
+          </g>
+          <g transform="translate(108, 0)">
+            <rect width="100" height="44" rx="12" fill="#2C2A26"/>
+            <text x="14" y="18" font-size="9" fill="#A89A7A" letter-spacing="1.2">MOSMIX</text>
+            <text x="14" y="36" font-size="15" fill="#FFFFFF" font-weight="500">22.4°</text>
+          </g>
+          <g transform="translate(216, 0)">
+            <rect width="100" height="44" rx="12" fill="#F5F1E8" stroke="#D9D0B8"/>
+            <text x="14" y="18" font-size="9" fill="#A89A7A" letter-spacing="1.2">ICON-EPS</text>
+            <text x="14" y="36" font-size="15" fill="#2C2A26" font-weight="500">21.8°</text>
+          </g>
+          <g transform="translate(324, 0)">
+            <rect width="100" height="44" rx="12" fill="#F5F1E8" stroke="#D9D0B8"/>
+            <text x="14" y="18" font-size="9" fill="#A89A7A" letter-spacing="1.2">+ Bias</text>
+            <text x="14" y="36" font-size="15" fill="#2C2A26" font-weight="500">−0.4°</text>
+          </g>
+        </g>
+      </g>
+      
+      <!-- Altitude wind preview -->
+      <g transform="translate(28, 480)">
+        <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">WIND · HÖHENPROFIL</text>
+        
+        <g transform="translate(0, 16)" font-size="10" fill="#5C5447">
+          <g>
+            <text x="0" y="8">3000m</text>
+            <rect x="50" y="0" width="320" height="8" rx="2" fill="#F5F1E8"/>
+            <rect x="50" y="0" width="300" height="8" rx="2" fill="#A85E2E"/>
+            <text x="380" y="8" font-weight="500" fill="#2C2A26">48</text>
+            <text x="410" y="8" fill="#A89A7A" font-size="9">km/h</text>
+          </g>
+          <g transform="translate(0, 18)">
+            <text x="0" y="8">1500m</text>
+            <rect x="50" y="0" width="320" height="8" rx="2" fill="#F5F1E8"/>
+            <rect x="50" y="0" width="210" height="8" rx="2" fill="#C97B47"/>
+            <text x="380" y="8" font-weight="500" fill="#2C2A26">32</text>
+          </g>
+          <g transform="translate(0, 36)">
+            <text x="0" y="8">500m</text>
+            <rect x="50" y="0" width="320" height="8" rx="2" fill="#F5F1E8"/>
+            <rect x="50" y="0" width="140" height="8" rx="2" fill="#D4A373"/>
+            <text x="380" y="8" font-weight="500" fill="#2C2A26">22</text>
+          </g>
+          <g transform="translate(0, 54)">
+            <text x="0" y="8">80m</text>
+            <rect x="50" y="0" width="320" height="8" rx="2" fill="#F5F1E8"/>
+            <rect x="50" y="0" width="90" height="8" rx="2" fill="#A8B89A"/>
+            <text x="380" y="8" font-weight="500" fill="#2C2A26">14</text>
+          </g>
+          <g transform="translate(0, 72)">
+            <text x="0" y="8">10m</text>
+            <rect x="50" y="0" width="320" height="8" rx="2" fill="#F5F1E8"/>
+            <rect x="50" y="0" width="70" height="8" rx="2" fill="#7A9466"/>
+            <text x="380" y="8" font-weight="500" fill="#2C2A26">12</text>
+          </g>
+        </g>
+      </g>
+      
+      <!-- Footer -->
+      <g transform="translate(28, 596)">
+        <line x1="0" y1="0" x2="424" y2="0" stroke="#E0D6BE"/>
+        <text y="18" font-size="10" fill="#A89A7A">Quelle: DWD via Open-Meteo · Lauf 06:00 UTC · Bias-corr. vor 4 Min</text>
+      </g>
+    </g>
+  </g>
+  
+  <!-- ============ DIVIDER ============ -->
+  <line x1="80" y1="940" x2="1360" y2="940" stroke="#D9CEB0" stroke-width="0.5"/>
+  
+  <!-- ============ DIFFERENTIATION SECTION ============ -->
+  <g transform="translate(80, 1000)">
+    <text font-size="11" fill="#A89A7A" letter-spacing="3" font-weight="500">UNSER ANSATZ · DREI PRINZIPIEN</text>
+    
+    <text y="48" font-size="48" font-weight="300" fill="#2C2A26" letter-spacing="-1.2">Was uns von Windy</text>
+    <text y="96" font-size="48" font-weight="300" fill="#2C2A26" letter-spacing="-1.2">und AccuWeather unterscheidet.</text>
+    
+    <text y="146" font-size="16" fill="#5C5447">Wir zeigen Daten ohne Marketing-Schicht. Sie sehen welches Modell sagt was — und wie stark sich</text>
+    <text y="170" font-size="16" fill="#5C5447">die Modelle einig sind. Wenn die Vorhersage unsicher ist, sehen Sie das. Das ist nicht selbstverständlich.</text>
+  </g>
+  
+  <!-- Three pillar cards -->
+  <g transform="translate(80, 1240)">
+    <!-- Pillar 01 -->
+    <g>
+      <rect width="416" height="380" rx="22" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+      
+      <g transform="translate(32, 32)">
+        <text font-size="60" font-weight="200" fill="#C4B896" letter-spacing="-2">01</text>
+        
+        <text y="64" font-size="11" fill="#A89A7A" letter-spacing="3" font-weight="500">SPREAD · KONFIDENZ</text>
+        <text y="96" font-size="22" font-weight="500" fill="#2C2A26" letter-spacing="-0.4">Vier Modelle, parallel.</text>
+        
+        <text y="138" font-size="14" fill="#5C5447">Wir blenden ICON-D2, MOSMIX, ICON-EPS und</text>
+        <text y="158" font-size="14" fill="#5C5447">unsere Live-Bias-Korrektur parallel. Sie sehen den</text>
+        <text y="178" font-size="14" fill="#5C5447">Spread direkt am Wert. Bei Unsicherheit sagen wir</text>
+        <text y="198" font-size="14" fill="#5C5447">es — statt zu glätten.</text>
+        
+        <!-- Visual demo -->
+        <g transform="translate(0, 232)">
+          <rect width="352" height="80" rx="14" fill="#F5F1E8"/>
+          
+          <g transform="translate(20, 20)">
+            <text font-size="32" font-weight="200" fill="#2C2A26">22°</text>
+            <text x="56" y="22" font-size="13" fill="#5C5447">± 1.2°</text>
+          </g>
+          
+          <g transform="translate(160, 24)">
+            <text font-size="9" fill="#A89A7A" letter-spacing="1.5">KONVERGENZ</text>
+            <g transform="translate(0, 12)">
+              <circle r="3" fill="#7A9466"/>
+              <circle cx="10" r="3" fill="#7A9466"/>
+              <circle cx="20" r="3" fill="#7A9466"/>
+              <circle cx="30" r="3" fill="#7A9466"/>
+              <text x="46" y="4" font-size="11" fill="#7A9466" font-weight="500">4 / 4</text>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+    
+    <!-- Pillar 02 -->
+    <g transform="translate(432, 0)">
+      <rect width="416" height="380" rx="22" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+      
+      <g transform="translate(32, 32)">
+        <text font-size="60" font-weight="200" fill="#C4B896" letter-spacing="-2">02</text>
+        
+        <text y="64" font-size="11" fill="#A89A7A" letter-spacing="3" font-weight="500">DACH-PHYSIK · BENANNT</text>
+        <text y="96" font-size="22" font-weight="500" fill="#2C2A26" letter-spacing="-0.4">Föhn ist mehr als Temperatur.</text>
+        
+        <text y="138" font-size="14" fill="#5C5447">Wir erkennen Föhn, Inversion und Cold-Pool —</text>
+        <text y="158" font-size="14" fill="#5C5447">und nennen sie beim Namen. Die Korrektur ist</text>
+        <text y="178" font-size="14" fill="#5C5447">nicht versteckt, sondern sichtbar als Badge.</text>
+        <text y="198" font-size="14" fill="#5C5447">Aspekt-Korrektur via DEM-Slope inklusive.</text>
+        
+        <!-- Visual demo -->
+        <g transform="translate(0, 232)">
+          <rect width="352" height="80" rx="14" fill="#F5F1E8"/>
+          
+          <g transform="translate(20, 18)">
+            <rect width="140" height="28" rx="14" fill="#C97B47"/>
+            <g transform="translate(12, 9)">
+              <path d="M 0 6 L 4 0 L 8 6 Z" fill="#FFFFFF"/>
+            </g>
+            <text x="28" y="19" font-size="10" fill="#FFFFFF" font-weight="600" letter-spacing="0.5">FÖHN-LAGE AKTIV</text>
+          </g>
+          
+          <g transform="translate(170, 18)">
+            <rect width="140" height="28" rx="14" fill="#F5F1E8" stroke="#3A6FA8" stroke-width="1"/>
+            <g transform="translate(14, 14)">
+              <line x1="0" y1="0" x2="6" y2="0" stroke="#3A6FA8" stroke-width="1.5"/>
+              <line x1="0" y1="4" x2="6" y2="4" stroke="#3A6FA8" stroke-width="1.5"/>
+            </g>
+            <text x="28" y="19" font-size="10" fill="#3A6FA8" font-weight="500">Inversion · Tal kalt</text>
+          </g>
+          
+          <text x="20" y="60" font-size="11" fill="#5C5447">+ 3.2° · trockenadiabatisch korrigiert</text>
+        </g>
+      </g>
+    </g>
+    
+    <!-- Pillar 03 -->
+    <g transform="translate(864, 0)">
+      <rect width="416" height="380" rx="22" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+      
+      <g transform="translate(32, 32)">
+        <text font-size="60" font-weight="200" fill="#C4B896" letter-spacing="-2">03</text>
+        
+        <text y="64" font-size="11" fill="#A89A7A" letter-spacing="3" font-weight="500">ROUTE · WETTER · ZEIT</text>
+        <text y="96" font-size="22" font-weight="500" fill="#2C2A26" letter-spacing="-0.4">Wetter wo Sie sein werden.</text>
+        
+        <text y="138" font-size="14" fill="#5C5447">GPX rein, oder direkt aus Strava. Der 2D-Scrubber</text>
+        <text y="158" font-size="14" fill="#5C5447">animiert das Wetter entlang Ihrer Route. Pfeile</text>
+        <text y="178" font-size="14" fill="#5C5447">zeigen Rückenwind, Gegenwind, Seitenwind —</text>
+        <text y="198" font-size="14" fill="#5C5447">relativ zur Fahrtrichtung.</text>
+        
+        <!-- Visual demo -->
+        <g transform="translate(0, 232)">
+          <rect width="352" height="80" rx="14" fill="#F5F1E8"/>
+          
+          <!-- Mini route with wind arrows -->
+          <g transform="translate(20, 28)">
+            <path d="M 0 20 Q 50 10 100 16 T 200 14 T 312 20" stroke="#2C2A26" stroke-width="2" fill="none" stroke-linecap="round"/>
+            
+            <!-- Tailwind -->
+            <g transform="translate(40, 10)" stroke="#7A9466" fill="#7A9466">
+              <line x1="0" y1="0" x2="12" y2="-2" stroke-width="2"/>
+              <polygon points="12,-2 9,-5 9,1"/>
+            </g>
+            <!-- Cross -->
+            <g transform="translate(120, 8)" stroke="#C97B47" fill="#C97B47">
+              <line x1="0" y1="0" x2="0" y2="-14" stroke-width="2"/>
+              <polygon points="0,-14 -3,-10 3,-10"/>
+            </g>
+            <!-- Headwind -->
+            <g transform="translate(200, 8)" stroke="#A85E2E" fill="#A85E2E">
+              <line x1="0" y1="0" x2="-12" y2="2" stroke-width="2"/>
+              <polygon points="-12,2 -9,-1 -9,5"/>
+            </g>
+            <!-- Tailwind end -->
+            <g transform="translate(280, 12)" stroke="#7A9466" fill="#7A9466">
+              <line x1="0" y1="0" x2="12" y2="2" stroke-width="2"/>
+              <polygon points="12,2 9,-1 9,5"/>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+  </g>
+  
+  <!-- ============ SECOND DIVIDER ============ -->
+  <line x1="80" y1="1700" x2="1360" y2="1700" stroke="#D9CEB0" stroke-width="0.5"/>
+  
+  <!-- ============ DATA SOURCES SECTION ============ -->
+  <g transform="translate(80, 1760)">
+    <text font-size="11" fill="#A89A7A" letter-spacing="3" font-weight="500">DATEN-QUELLEN · TRANSPARENT</text>
+    
+    <text y="48" font-size="32" font-weight="400" fill="#2C2A26" letter-spacing="-0.8">Offizielle DWD-Daten, kommerziell nutzbar.</text>
+    
+    <!-- Sources grid -->
+    <g transform="translate(0, 96)">
+      <!-- MOSMIX -->
+      <g>
+        <rect width="200" height="160" rx="14" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+        <g transform="translate(20, 20)">
+          <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">QUELLE 01</text>
+          <text y="26" font-size="18" font-weight="500" fill="#2C2A26">MOSMIX</text>
+          <text y="48" font-size="11" fill="#5C5447">DWD · stündlich</text>
+          <text y="64" font-size="11" fill="#5C5447">5 400 Stationen</text>
+          
+          <g transform="translate(0, 96)">
+            <line x1="0" y1="0" x2="40" y2="0" stroke="#7A9466" stroke-width="2"/>
+            <text y="14" font-size="9" fill="#7A9466" font-weight="600" letter-spacing="1">GeoNutzV</text>
+          </g>
+        </g>
+      </g>
+      
+      <!-- ICON-D2 -->
+      <g transform="translate(216, 0)">
+        <rect width="200" height="160" rx="14" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+        <g transform="translate(20, 20)">
+          <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">QUELLE 02</text>
+          <text y="26" font-size="18" font-weight="500" fill="#2C2A26">ICON-D2</text>
+          <text y="48" font-size="11" fill="#5C5447">DWD via Open-Meteo</text>
+          <text y="64" font-size="11" fill="#5C5447">2.2 km · alle 3h</text>
+          
+          <g transform="translate(0, 96)">
+            <line x1="0" y1="0" x2="40" y2="0" stroke="#7A9466" stroke-width="2"/>
+            <text y="14" font-size="9" fill="#7A9466" font-weight="600" letter-spacing="1">CC-BY 4.0</text>
+          </g>
+        </g>
+      </g>
+      
+      <!-- RADOLAN -->
+      <g transform="translate(432, 0)">
+        <rect width="200" height="160" rx="14" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+        <g transform="translate(20, 20)">
+          <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">QUELLE 03</text>
+          <text y="26" font-size="18" font-weight="500" fill="#2C2A26">RADOLAN-RY</text>
+          <text y="48" font-size="11" fill="#5C5447">DWD · alle 5 Min</text>
+          <text y="64" font-size="11" fill="#5C5447">1 km Niederschlag</text>
+          
+          <g transform="translate(0, 96)">
+            <line x1="0" y1="0" x2="40" y2="0" stroke="#7A9466" stroke-width="2"/>
+            <text y="14" font-size="9" fill="#7A9466" font-weight="600" letter-spacing="1">GeoNutzV</text>
+          </g>
+        </g>
+      </g>
+      
+      <!-- WarnWetter -->
+      <g transform="translate(648, 0)">
+        <rect width="200" height="160" rx="14" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+        <g transform="translate(20, 20)">
+          <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">QUELLE 04</text>
+          <text y="26" font-size="18" font-weight="500" fill="#2C2A26">WarnWetter</text>
+          <text y="48" font-size="11" fill="#5C5447">DWD · alle 10 Min</text>
+          <text y="64" font-size="11" fill="#5C5447">Live-Bias-Anker</text>
+          
+          <g transform="translate(0, 96)">
+            <line x1="0" y1="0" x2="40" y2="0" stroke="#7A9466" stroke-width="2"/>
+            <text y="14" font-size="9" fill="#7A9466" font-weight="600" letter-spacing="1">GeoNutzV</text>
+          </g>
+        </g>
+      </g>
+      
+      <!-- Terrarium -->
+      <g transform="translate(864, 0)">
+        <rect width="200" height="160" rx="14" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+        <g transform="translate(20, 20)">
+          <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">QUELLE 05</text>
+          <text y="26" font-size="18" font-weight="500" fill="#2C2A26">Terrarium</text>
+          <text y="48" font-size="11" fill="#5C5447">AWS Open Data</text>
+          <text y="64" font-size="11" fill="#5C5447">30 m Höhenmodell</text>
+          
+          <g transform="translate(0, 96)">
+            <line x1="0" y1="0" x2="40" y2="0" stroke="#7A9466" stroke-width="2"/>
+            <text y="14" font-size="9" fill="#7A9466" font-weight="600" letter-spacing="1">Public Domain</text>
+          </g>
+        </g>
+      </g>
+      
+      <!-- OpenFreeMap -->
+      <g transform="translate(1080, 0)">
+        <rect width="200" height="160" rx="14" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+        <g transform="translate(20, 20)">
+          <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">QUELLE 06</text>
+          <text y="26" font-size="18" font-weight="500" fill="#2C2A26">OpenFreeMap</text>
+          <text y="48" font-size="11" fill="#5C5447">OSM-Basis</text>
+          <text y="64" font-size="11" fill="#5C5447">Vector-Tiles</text>
+          
+          <g transform="translate(0, 96)">
+            <line x1="0" y1="0" x2="40" y2="0" stroke="#7A9466" stroke-width="2"/>
+            <text y="14" font-size="9" fill="#7A9466" font-weight="600" letter-spacing="1">MIT · ODbL</text>
+          </g>
+        </g>
+      </g>
+    </g>
+    
+    <text y="316" font-size="13" fill="#8B7355">Keine kommerziellen Wetter-APIs. Keine versteckten Datenquellen. Vollständige Quellenliste im Impressum.</text>
+  </g>
+  
+  <!-- ============ FOOTER ============ -->
+  <g transform="translate(80, 2160)">
+    <line x1="0" y1="0" x2="1280" y2="0" stroke="#D9CEB0" stroke-width="0.5"/>
+    
+    <g transform="translate(0, 40)">
+      <!-- Logo + name -->
+      <g>
+        <circle cx="12" cy="12" r="5" fill="#2C2A26"/>
+        <g stroke="#2C2A26" stroke-width="1.2" stroke-linecap="round">
+          <line x1="12" y1="0" x2="12" y2="2"/>
+          <line x1="12" y1="22" x2="12" y2="24"/>
+          <line x1="0" y1="12" x2="2" y2="12"/>
+          <line x1="22" y1="12" x2="24" y2="12"/>
+        </g>
+        <text x="36" y="16" font-size="13" fill="#2C2A26" font-weight="500">buscosun</text>
+        <text x="106" y="16" font-size="11" fill="#A89A7A">v0.9 Beta · Stuttgart, DE</text>
+      </g>
+      
+      <!-- Three columns of links -->
+      <g transform="translate(400, 0)" font-size="12" fill="#5C5447">
+        <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">PRODUKT</text>
+        <text y="24">Karte</text>
+        <text y="44">Routenplaner</text>
+        <text y="64">Event-Planner</text>
+        <text y="84">Tagesablauf</text>
+      </g>
+      
+      <g transform="translate(620, 0)" font-size="12" fill="#5C5447">
+        <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">METHODIK</text>
+        <text y="24">Datenquellen</text>
+        <text y="44">Modell-Verifikation</text>
+        <text y="64">Bias-Correction</text>
+        <text y="84">DACH-Physik</text>
+      </g>
+      
+      <g transform="translate(840, 0)" font-size="12" fill="#5C5447">
+        <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">RECHTLICH</text>
+        <text y="24">Impressum</text>
+        <text y="44">Datenschutz</text>
+        <text y="64">DSGVO-Status</text>
+        <text y="84">Lizenzen</text>
+      </g>
+      
+      <g transform="translate(1060, 0)" font-size="12" fill="#5C5447">
+        <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">VERSION</text>
+        <text y="24">Roadmap</text>
+        <text y="44">Changelog</text>
+        <text y="64">v1.1 · Meteorologe</text>
+        <text y="84">v1.3 · Datacenter</text>
+      </g>
+    </g>
+    
+    <g transform="translate(0, 180)" font-size="11" fill="#A89A7A">
+      <text>© 2026 buscosun · Anonyme Session-IDs · keine Tracker · keine Werbung</text>
+    </g>
+  </g>
+  
+  <!-- Mockup label -->
+  <g transform="translate(80, 2360)">
+    <text font-size="10" fill="#A89A7A" letter-spacing="3" font-weight="500">01 · HERO-STARTSEITE · DESKTOP 1440 · SESSION 1/3</text>
+    <text x="1280" font-size="10" fill="#A89A7A" letter-spacing="2" text-anchor="end">v1.8 Spec · Section 9.1</text>
+  </g>
+</svg>

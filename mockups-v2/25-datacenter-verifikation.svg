@@ -1,0 +1,362 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1600" font-family="ui-sans-serif, system-ui, -apple-system">
+  <defs>
+    <linearGradient id="bg25" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F5F1E8"/>
+      <stop offset="100%" stop-color="#EDE6D3"/>
+    </linearGradient>
+  </defs>
+  
+  <rect width="1440" height="1600" fill="url(#bg25)"/>
+  
+  <!-- TOP NAV -->
+  <g>
+    <g transform="translate(32, 24)">
+      <circle cx="14" cy="14" r="6" fill="#2C2A26"/>
+      <g stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round">
+        <line x1="14" y1="0" x2="14" y2="3"/>
+        <line x1="14" y1="25" x2="14" y2="28"/>
+        <line x1="0" y1="14" x2="3" y2="14"/>
+        <line x1="25" y1="14" x2="28" y2="14"/>
+      </g>
+      <text x="42" y="20" font-size="18" font-weight="500" fill="#2C2A26" letter-spacing="-0.5">buscosun</text>
+    </g>
+    
+    <g transform="translate(700, 18)">
+      <rect width="200" height="40" rx="20" fill="#2C2A26"/>
+      <text x="100" y="25" font-size="12" fill="#F5F1E8" text-anchor="middle" font-weight="500">Datacenter · v1.3</text>
+    </g>
+  </g>
+  
+  <!-- TAB BAR -->
+  <g transform="translate(80, 100)">
+    <text font-size="11" fill="#A89A7A" letter-spacing="3" font-weight="500">DATACENTER · HISTORISCHE WETTER-WERKZEUGE</text>
+    
+    <g transform="translate(0, 24)">
+      <g>
+        <rect width="316" height="56" rx="14" fill="#FFFFFF" stroke="#E0D6BE"/>
+        <g transform="translate(20, 14)">
+          <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">01</text>
+          <text y="22" font-size="15" fill="#5C5447" font-weight="500">Mein Tag in der Geschichte</text>
+        </g>
+      </g>
+      
+      <g transform="translate(324, 0)">
+        <rect width="316" height="56" rx="14" fill="#FFFFFF" stroke="#E0D6BE"/>
+        <g transform="translate(20, 14)">
+          <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">02</text>
+          <text y="22" font-size="15" fill="#5C5447" font-weight="500">Wetter-Archäologie</text>
+        </g>
+      </g>
+      
+      <g transform="translate(648, 0)">
+        <rect width="316" height="56" rx="14" fill="#FFFFFF" stroke="#E0D6BE"/>
+        <g transform="translate(20, 14)">
+          <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">03</text>
+          <text y="22" font-size="15" fill="#5C5447" font-weight="500">Klima-Heimat</text>
+        </g>
+      </g>
+      
+      <g transform="translate(972, 0)">
+        <rect width="308" height="56" rx="14" fill="#2C2A26"/>
+        <g transform="translate(20, 14)">
+          <text font-size="9" fill="#A85E2E" letter-spacing="2" font-weight="600">04 · AKTIV</text>
+          <text y="22" font-size="15" fill="#FFFFFF" font-weight="500">Modell-Verifikation</text>
+        </g>
+      </g>
+    </g>
+  </g>
+  
+  <!-- HEADER -->
+  <g transform="translate(80, 220)">
+    <!-- Brand-defining tag -->
+    <g>
+      <rect width="220" height="32" rx="16" fill="#FAEEDA" stroke="#C97B47" stroke-width="0.5"/>
+      <circle cx="16" cy="16" r="4" fill="#C97B47"/>
+      <text x="28" y="20" font-size="11" fill="#A85E2E" font-weight="600" letter-spacing="0.5">MARKENKERN · TRANSPARENZ</text>
+    </g>
+    
+    <text y="80" font-size="56" font-weight="200" fill="#2C2A26" letter-spacing="-1.5">Wir messen uns selbst.</text>
+    <text y="124" font-size="16" fill="#5C5447">Welches Modell stimmt wann? Wir vergleichen täglich Forecasts mit echten Beobachtungen.</text>
+  </g>
+  
+  <!-- ============ FILTER ROW ============ -->
+  <g transform="translate(80, 420)">
+    <rect width="1280" height="100" rx="22" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    
+    <g transform="translate(28, 28)">
+      <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">STATION</text>
+      <g transform="translate(0, 14)">
+        <rect width="280" height="44" rx="14" fill="#F5F1E8"/>
+        <text x="20" y="28" font-size="14" fill="#2C2A26" font-weight="500">München-Flughafen</text>
+        <text x="20" y="42" font-size="9" fill="#A89A7A">DWD 10870 · 446 m</text>
+      </g>
+    </g>
+    
+    <g transform="translate(336, 28)">
+      <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">VARIABLE</text>
+      <g transform="translate(0, 14)">
+        <rect width="180" height="44" rx="14" fill="#F5F1E8"/>
+        <text x="20" y="28" font-size="14" fill="#2C2A26" font-weight="500">Temperatur 2m</text>
+      </g>
+    </g>
+    
+    <g transform="translate(536, 28)">
+      <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">ZEITRAUM</text>
+      <g transform="translate(0, 14)">
+        <rect width="380" height="44" rx="14" fill="#F5F1E8"/>
+        <g>
+          <rect width="80" height="44" rx="14" fill="#2C2A26"/>
+          <text x="40" y="28" font-size="12" fill="#FFFFFF" text-anchor="middle" font-weight="500">30 Tage</text>
+        </g>
+        <text x="124" y="28" font-size="12" fill="#5C5447" text-anchor="middle">90 Tage</text>
+        <text x="208" y="28" font-size="12" fill="#5C5447" text-anchor="middle">12 Monate</text>
+        <text x="316" y="28" font-size="12" fill="#5C5447" text-anchor="middle">5 Jahre</text>
+      </g>
+    </g>
+    
+    <g transform="translate(936, 28)">
+      <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">LEAD-TIME</text>
+      <g transform="translate(0, 14)">
+        <rect width="316" height="44" rx="14" fill="#F5F1E8"/>
+        <rect width="76" height="44" rx="14" fill="#2C2A26"/>
+        <text x="38" y="28" font-size="12" fill="#FFFFFF" text-anchor="middle" font-weight="500">+24h</text>
+        <text x="114" y="28" font-size="12" fill="#5C5447" text-anchor="middle">+48h</text>
+        <text x="190" y="28" font-size="12" fill="#5C5447" text-anchor="middle">+72h</text>
+        <text x="266" y="28" font-size="12" fill="#5C5447" text-anchor="middle">+96h</text>
+      </g>
+    </g>
+  </g>
+  
+  <!-- ============ HEADLINE INSIGHT ============ -->
+  <g transform="translate(80, 560)">
+    <rect width="1280" height="120" rx="22" fill="#2C2A26"/>
+    
+    <g transform="translate(36, 30)">
+      <text font-size="10" fill="#A89A7A" letter-spacing="3" font-weight="600">HEADLINE-INSIGHT · MÜNCHEN-FLUGHAFEN · LETZTE 30 TAGE</text>
+      <text y="44" font-size="28" fill="#FFFFFF" font-weight="500" letter-spacing="-0.5">ICON-D2 läuft an dieser Station 1.4°C zu kalt.</text>
+      <text y="74" font-size="13" fill="#D9D0B8">Systematischer Bias festgestellt. Unsere Bias-Correction reduziert RMSE um 38% auf 0.9°C.</text>
+    </g>
+  </g>
+  
+  <!-- ============ MODEL RANKING TABLE ============ -->
+  <g transform="translate(80, 720)">
+    <text font-size="11" fill="#A89A7A" letter-spacing="3" font-weight="500">MODELL-RANKING · TEMPERATUR 2m · 30 TAGE · +24h LEAD</text>
+    
+    <g transform="translate(0, 24)">
+      <rect width="1280" height="380" rx="22" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+      
+      <!-- Table header -->
+      <g transform="translate(32, 28)">
+        <g font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">
+          <text x="0">RANG</text>
+          <text x="80">MODELL</text>
+          <text x="380">RMSE</text>
+          <text x="500">MAE</text>
+          <text x="600">BIAS</text>
+          <text x="720">TREFFER ±2°</text>
+          <text x="860">BESTE LEAD</text>
+          <text x="1020">BIAS-VERLAUF · 30 TAGE</text>
+        </g>
+      </g>
+      
+      <line x1="32" y1="60" x2="1248" y2="60" stroke="#E0D6BE"/>
+      
+      <!-- Row 1: buscosun_core blended (winner) -->
+      <g transform="translate(32, 76)">
+        <rect x="-16" width="1232" height="56" rx="12" fill="#F0F4EA"/>
+        <text x="0" y="22" font-size="22" fill="#7A9466" font-weight="500">1</text>
+        
+        <g transform="translate(80, 8)">
+          <text font-size="14" fill="#2C2A26" font-weight="600">buscosun blended</text>
+          <text y="18" font-size="10" fill="#5C5447">ICON-D2 + MOSMIX + Bias-Correction</text>
+          
+          <g transform="translate(160, -2)">
+            <rect width="68" height="20" rx="10" fill="#7A9466"/>
+            <text x="34" y="14" font-size="9" fill="#FFFFFF" text-anchor="middle" font-weight="600" letter-spacing="0.5">SIEGER</text>
+          </g>
+        </g>
+        
+        <text x="380" y="22" font-size="18" fill="#2C2A26" font-weight="500">0.9°</text>
+        <text x="500" y="22" font-size="18" fill="#2C2A26" font-weight="500">0.6°</text>
+        <text x="600" y="22" font-size="18" fill="#7A9466" font-weight="500">−0.1°</text>
+        <text x="720" y="22" font-size="18" fill="#2C2A26" font-weight="500">94%</text>
+        <text x="860" y="22" font-size="14" fill="#5C5447">+24h bis +96h</text>
+        
+        <!-- Bias sparkline -->
+        <g transform="translate(1020, 22)">
+          <line x1="0" y1="0" x2="200" y2="0" stroke="#D9D0B8" stroke-width="0.5" stroke-dasharray="2 2"/>
+          <path d="M 0 2 L 20 0 L 40 −2 L 60 1 L 80 0 L 100 −1 L 120 0 L 140 1 L 160 0 L 180 −2 L 200 0" 
+                stroke="#7A9466" stroke-width="1.5" fill="none"/>
+        </g>
+      </g>
+      
+      <line x1="32" y1="148" x2="1248" y2="148" stroke="#E0D6BE"/>
+      
+      <!-- Row 2: MOSMIX -->
+      <g transform="translate(32, 164)">
+        <text x="0" y="22" font-size="22" fill="#A89A7A" font-weight="500">2</text>
+        
+        <g transform="translate(80, 8)">
+          <text font-size="14" fill="#2C2A26" font-weight="500">MOSMIX</text>
+          <text y="18" font-size="10" fill="#5C5447">DWD-Stations-Postprocessing</text>
+        </g>
+        
+        <text x="380" y="22" font-size="18" fill="#2C2A26">1.2°</text>
+        <text x="500" y="22" font-size="18" fill="#2C2A26">0.8°</text>
+        <text x="600" y="22" font-size="18" fill="#5C5447">+0.3°</text>
+        <text x="720" y="22" font-size="18" fill="#2C2A26">89%</text>
+        <text x="860" y="22" font-size="14" fill="#5C5447">+24h bis +48h</text>
+        
+        <g transform="translate(1020, 22)">
+          <line x1="0" y1="0" x2="200" y2="0" stroke="#D9D0B8" stroke-width="0.5" stroke-dasharray="2 2"/>
+          <path d="M 0 -4 L 20 -2 L 40 1 L 60 -2 L 80 2 L 100 4 L 120 1 L 140 -3 L 160 2 L 180 5 L 200 3" 
+                stroke="#A8B89A" stroke-width="1.5" fill="none"/>
+        </g>
+      </g>
+      
+      <line x1="32" y1="220" x2="1248" y2="220" stroke="#E0D6BE"/>
+      
+      <!-- Row 3: ICON-D2 -->
+      <g transform="translate(32, 236)">
+        <text x="0" y="22" font-size="22" fill="#A89A7A" font-weight="500">3</text>
+        
+        <g transform="translate(80, 8)">
+          <text font-size="14" fill="#2C2A26" font-weight="500">ICON-D2</text>
+          <text y="18" font-size="10" fill="#5C5447">DWD direkt · via Open-Meteo</text>
+        </g>
+        
+        <text x="380" y="22" font-size="18" fill="#2C2A26">1.5°</text>
+        <text x="500" y="22" font-size="18" fill="#2C2A26">1.1°</text>
+        <text x="600" y="22" font-size="18" fill="#3A6FA8" font-weight="500">−1.4°</text>
+        <text x="720" y="22" font-size="18" fill="#2C2A26">82%</text>
+        <text x="860" y="22" font-size="14" fill="#5C5447">+24h</text>
+        
+        <g transform="translate(1020, 22)">
+          <line x1="0" y1="0" x2="200" y2="0" stroke="#D9D0B8" stroke-width="0.5" stroke-dasharray="2 2"/>
+          <path d="M 0 10 L 20 12 L 40 8 L 60 14 L 80 12 L 100 15 L 120 11 L 140 13 L 160 10 L 180 14 L 200 12" 
+                stroke="#3A6FA8" stroke-width="1.5" fill="none"/>
+        </g>
+      </g>
+      
+      <line x1="32" y1="292" x2="1248" y2="292" stroke="#E0D6BE"/>
+      
+      <!-- Row 4: ICON-EU (worse) -->
+      <g transform="translate(32, 308)">
+        <text x="0" y="22" font-size="22" fill="#A89A7A" font-weight="500">4</text>
+        
+        <g transform="translate(80, 8)">
+          <text font-size="14" fill="#2C2A26" font-weight="500">ICON-EU</text>
+          <text y="18" font-size="10" fill="#5C5447">DWD global · 6.5km</text>
+        </g>
+        
+        <text x="380" y="22" font-size="18" fill="#2C2A26">1.8°</text>
+        <text x="500" y="22" font-size="18" fill="#2C2A26">1.3°</text>
+        <text x="600" y="22" font-size="18" fill="#C97B47">+0.8°</text>
+        <text x="720" y="22" font-size="18" fill="#2C2A26">76%</text>
+        <text x="860" y="22" font-size="14" fill="#5C5447">+72h+</text>
+        
+        <g transform="translate(1020, 22)">
+          <line x1="0" y1="0" x2="200" y2="0" stroke="#D9D0B8" stroke-width="0.5" stroke-dasharray="2 2"/>
+          <path d="M 0 -6 L 20 -8 L 40 -5 L 60 -10 L 80 -7 L 100 -4 L 120 -8 L 140 -6 L 160 -9 L 180 -7 L 200 -5" 
+                stroke="#C97B47" stroke-width="1.5" fill="none"/>
+        </g>
+      </g>
+    </g>
+  </g>
+  
+  <!-- ============ LEAD-TIME DECAY CHART ============ -->
+  <g transform="translate(80, 1140)">
+    <text font-size="11" fill="#A89A7A" letter-spacing="3" font-weight="500">GENAUIGKEITS-VERFALL ÜBER LEAD-TIME</text>
+    
+    <g transform="translate(0, 24)">
+      <rect width="1280" height="320" rx="22" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+      
+      <g transform="translate(80, 56)">
+        <!-- Y-axis -->
+        <g font-size="10" fill="#A89A7A">
+          <text x="-12" y="4" text-anchor="end">3.0°</text>
+          <text x="-12" y="50" text-anchor="end">2.5°</text>
+          <text x="-12" y="96" text-anchor="end">2.0°</text>
+          <text x="-12" y="142" text-anchor="end">1.5°</text>
+          <text x="-12" y="188" text-anchor="end">1.0°</text>
+          <text x="-12" y="222" text-anchor="end">0.5°</text>
+        </g>
+        
+        <text x="-44" y="120" font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="600" transform="rotate(-90 -44 120)">RMSE</text>
+        
+        <!-- Grid -->
+        <g stroke="#E0D6BE" stroke-width="0.5" stroke-dasharray="2 4" opacity="0.6">
+          <line x1="0" y1="0" x2="1100" y2="0"/>
+          <line x1="0" y1="46" x2="1100" y2="46"/>
+          <line x1="0" y1="92" x2="1100" y2="92"/>
+          <line x1="0" y1="138" x2="1100" y2="138"/>
+          <line x1="0" y1="184" x2="1100" y2="184"/>
+          <line x1="0" y1="220" x2="1100" y2="220"/>
+        </g>
+        
+        <!-- buscosun blended curve - flattest growth -->
+        <path d="M 0 196 L 220 184 L 440 168 L 660 146 L 880 120 L 1100 96" 
+              stroke="#7A9466" stroke-width="3" fill="none" stroke-linecap="round"/>
+        <g font-size="10" fill="#7A9466" font-weight="600">
+          <circle cx="0" cy="196" r="5" fill="#7A9466"/>
+          <circle cx="220" cy="184" r="4" fill="#7A9466"/>
+          <circle cx="440" cy="168" r="4" fill="#7A9466"/>
+          <circle cx="660" cy="146" r="4" fill="#7A9466"/>
+          <circle cx="880" cy="120" r="4" fill="#7A9466"/>
+          <circle cx="1100" cy="96" r="5" fill="#7A9466"/>
+        </g>
+        
+        <!-- MOSMIX curve -->
+        <path d="M 0 168 L 220 150 L 440 124 L 660 92 L 880 56 L 1100 24" 
+              stroke="#A8B89A" stroke-width="2" fill="none" stroke-linecap="round" stroke-dasharray="4 2"/>
+        
+        <!-- ICON-D2 curve -->
+        <path d="M 0 138 L 220 120 L 440 92 L 660 58 L 880 24 L 1100 4" 
+              stroke="#3A6FA8" stroke-width="2" fill="none" stroke-linecap="round" stroke-dasharray="4 2"/>
+        
+        <!-- ICON-EU curve - worst -->
+        <path d="M 0 92 L 220 70 L 440 42 L 660 14 L 880 4 L 1100 0" 
+              stroke="#C97B47" stroke-width="2" fill="none" stroke-linecap="round" stroke-dasharray="4 2"/>
+        
+        <!-- X-axis -->
+        <g font-size="10" fill="#A89A7A" transform="translate(0, 244)">
+          <text x="0" text-anchor="middle">+24h</text>
+          <text x="220" text-anchor="middle">+48h</text>
+          <text x="440" text-anchor="middle">+72h</text>
+          <text x="660" text-anchor="middle">+96h</text>
+          <text x="880" text-anchor="middle">+120h</text>
+          <text x="1100" text-anchor="middle">+144h</text>
+        </g>
+      </g>
+      
+      <!-- Legend -->
+      <g transform="translate(80, 280)" font-size="11" fill="#5C5447">
+        <g>
+          <line x1="0" y1="4" x2="16" y2="4" stroke="#7A9466" stroke-width="3"/>
+          <text x="24" y="8" font-weight="600">buscosun blended</text>
+        </g>
+        <g transform="translate(200, 0)">
+          <line x1="0" y1="4" x2="16" y2="4" stroke="#A8B89A" stroke-width="2" stroke-dasharray="4 2"/>
+          <text x="24" y="8">MOSMIX</text>
+        </g>
+        <g transform="translate(360, 0)">
+          <line x1="0" y1="4" x2="16" y2="4" stroke="#3A6FA8" stroke-width="2" stroke-dasharray="4 2"/>
+          <text x="24" y="8">ICON-D2</text>
+        </g>
+        <g transform="translate(500, 0)">
+          <line x1="0" y1="4" x2="16" y2="4" stroke="#C97B47" stroke-width="2" stroke-dasharray="4 2"/>
+          <text x="24" y="8">ICON-EU</text>
+        </g>
+        <g transform="translate(900, 0)">
+          <text fill="#A89A7A">Niedriger RMSE = besser. Alle Modelle verlieren mit Lead-Time.</text>
+        </g>
+      </g>
+    </g>
+  </g>
+  
+  <!-- LABEL -->
+  <g transform="translate(80, 1500)">
+    <text font-size="10" fill="#A89A7A" letter-spacing="3" font-weight="500">25 · DATACENTER 04 · MODELL-VERIFIKATION · DESKTOP · v1.3 · MARKENKERN</text>
+    <text x="1280" font-size="10" fill="#A89A7A" letter-spacing="2" text-anchor="end">Headline-Insight · 4-Modell-Ranking · Bias-Sparklines · Lead-Time-Decay</text>
+  </g>
+</svg>

@@ -1,0 +1,405 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1400" font-family="ui-sans-serif, system-ui, -apple-system">
+  <defs>
+    <linearGradient id="bg22" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F5F1E8"/>
+      <stop offset="100%" stop-color="#EDE6D3"/>
+    </linearGradient>
+    <linearGradient id="historyGradient" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#C97B47" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#C97B47" stop-opacity="0.05"/>
+    </linearGradient>
+  </defs>
+  
+  <rect width="1440" height="1400" fill="url(#bg22)"/>
+  
+  <!-- TOP NAV -->
+  <g>
+    <g transform="translate(32, 24)">
+      <circle cx="14" cy="14" r="6" fill="#2C2A26"/>
+      <g stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round">
+        <line x1="14" y1="0" x2="14" y2="3"/>
+        <line x1="14" y1="25" x2="14" y2="28"/>
+        <line x1="0" y1="14" x2="3" y2="14"/>
+        <line x1="25" y1="14" x2="28" y2="14"/>
+      </g>
+      <text x="42" y="20" font-size="18" font-weight="500" fill="#2C2A26" letter-spacing="-0.5">buscosun</text>
+    </g>
+    
+    <!-- Datacenter pill -->
+    <g transform="translate(700, 18)">
+      <rect width="200" height="40" rx="20" fill="#2C2A26"/>
+      <text x="100" y="25" font-size="12" fill="#F5F1E8" text-anchor="middle" font-weight="500">Datacenter · v1.3</text>
+    </g>
+  </g>
+  
+  <!-- ============ DATACENTER TAB BAR ============ -->
+  <g transform="translate(80, 100)">
+    <text font-size="11" fill="#A89A7A" letter-spacing="3" font-weight="500">DATACENTER · HISTORISCHE WETTER-WERKZEUGE</text>
+    
+    <g transform="translate(0, 24)">
+      <!-- Tab 1 ACTIVE -->
+      <g>
+        <rect width="316" height="56" rx="14" fill="#2C2A26"/>
+        <g transform="translate(20, 14)">
+          <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="600">01 · AKTIV</text>
+          <text y="22" font-size="15" fill="#FFFFFF" font-weight="500">Mein Tag in der Geschichte</text>
+        </g>
+      </g>
+      
+      <!-- Tab 2 -->
+      <g transform="translate(324, 0)">
+        <rect width="316" height="56" rx="14" fill="#FFFFFF" stroke="#E0D6BE"/>
+        <g transform="translate(20, 14)">
+          <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">02</text>
+          <text y="22" font-size="15" fill="#5C5447" font-weight="500">Wetter-Archäologie</text>
+        </g>
+      </g>
+      
+      <!-- Tab 3 -->
+      <g transform="translate(648, 0)">
+        <rect width="316" height="56" rx="14" fill="#FFFFFF" stroke="#E0D6BE"/>
+        <g transform="translate(20, 14)">
+          <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">03</text>
+          <text y="22" font-size="15" fill="#5C5447" font-weight="500">Klima-Heimat</text>
+        </g>
+      </g>
+      
+      <!-- Tab 4 -->
+      <g transform="translate(972, 0)">
+        <rect width="308" height="56" rx="14" fill="#FFFFFF" stroke="#E0D6BE"/>
+        <g transform="translate(20, 14)">
+          <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">04</text>
+          <text y="22" font-size="15" fill="#5C5447" font-weight="500">Modell-Verifikation</text>
+        </g>
+      </g>
+    </g>
+  </g>
+  
+  <!-- ============ HEADER ============ -->
+  <g transform="translate(80, 220)">
+    <text y="48" font-size="56" font-weight="200" fill="#2C2A26" letter-spacing="-1.5">Wie war das Wetter,</text>
+    <text y="100" font-size="56" font-weight="200" fill="#2C2A26" letter-spacing="-1.5">als du geboren wurdest?</text>
+    <text y="144" font-size="16" fill="#5C5447">Vergleich des gleichen Tags über mehrere Jahrzehnte. Daten: DWD Climate Data Center 1881–heute.</text>
+  </g>
+  
+  <!-- ============ DATE PICKER + LOCATION ============ -->
+  <g transform="translate(80, 420)">
+    <rect width="1280" height="120" rx="22" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    
+    <!-- Date input -->
+    <g transform="translate(32, 28)">
+      <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">DEIN DATUM · TAG &amp; MONAT</text>
+      <g transform="translate(0, 18)">
+        <rect width="280" height="48" rx="14" fill="#F5F1E8"/>
+        <g transform="translate(16, 16)" stroke="#5C5447" stroke-width="1.5" fill="none">
+          <rect x="0" y="2" width="16" height="14" rx="2"/>
+          <line x1="0" y1="6" x2="16" y2="6"/>
+          <line x1="4" y1="0" x2="4" y2="4"/>
+          <line x1="12" y1="0" x2="12" y2="4"/>
+        </g>
+        <text x="44" y="32" font-size="16" fill="#2C2A26" font-weight="500">14. Mai</text>
+      </g>
+    </g>
+    
+    <!-- Location input -->
+    <g transform="translate(360, 28)">
+      <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">ORT</text>
+      <g transform="translate(0, 18)">
+        <rect width="320" height="48" rx="14" fill="#F5F1E8"/>
+        <g transform="translate(16, 16)" stroke="#5C5447" stroke-width="1.5" fill="none">
+          <path d="M 8 0 C 3 0 0 3 0 8 C 0 14 8 20 8 20 C 8 20 16 14 16 8 C 16 3 13 0 8 0 Z"/>
+          <circle cx="8" cy="8" r="3" fill="#5C5447"/>
+        </g>
+        <text x="44" y="32" font-size="16" fill="#2C2A26" font-weight="500">München · Bayern</text>
+      </g>
+    </g>
+    
+    <!-- Years to compare -->
+    <g transform="translate(720, 28)">
+      <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">JAHRE · AUSWAHL</text>
+      <g transform="translate(0, 18)">
+        <!-- Year chips -->
+        <g>
+          <rect width="80" height="48" rx="14" fill="#2C2A26"/>
+          <text x="40" y="32" font-size="14" fill="#FFFFFF" text-anchor="middle" font-weight="500">1985</text>
+        </g>
+        <g transform="translate(88, 0)">
+          <rect width="80" height="48" rx="14" fill="#2C2A26"/>
+          <text x="40" y="32" font-size="14" fill="#FFFFFF" text-anchor="middle" font-weight="500">1995</text>
+        </g>
+        <g transform="translate(176, 0)">
+          <rect width="80" height="48" rx="14" fill="#2C2A26"/>
+          <text x="40" y="32" font-size="14" fill="#FFFFFF" text-anchor="middle" font-weight="500">2005</text>
+        </g>
+        <g transform="translate(264, 0)">
+          <rect width="80" height="48" rx="14" fill="#A85E2E"/>
+          <text x="40" y="32" font-size="14" fill="#FFFFFF" text-anchor="middle" font-weight="600">2026</text>
+        </g>
+        <g transform="translate(360, 0)">
+          <rect width="48" height="48" rx="14" fill="#F5F1E8" stroke="#D9D0B8"/>
+          <text x="24" y="32" font-size="14" fill="#5C5447" text-anchor="middle">+</text>
+        </g>
+      </g>
+    </g>
+  </g>
+  
+  <!-- ============ COMPARISON CARDS (4 years side by side) ============ -->
+  <g transform="translate(80, 580)">
+    
+    <!-- 1985 -->
+    <g>
+      <rect width="304" height="280" rx="22" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+      
+      <g transform="translate(28, 28)">
+        <text font-size="11" fill="#A89A7A" letter-spacing="3" font-weight="500">14. MAI 1985</text>
+        <text y="20" font-size="11" fill="#5C5447">vor 41 Jahren · Donnerstag</text>
+      </g>
+      
+      <g transform="translate(28, 88)">
+        <text font-size="64" font-weight="200" fill="#2C2A26" letter-spacing="-2.5">14°</text>
+        <text x="148" y="36" font-size="11" fill="#5C5447">Tagesmittel</text>
+        <text x="148" y="50" font-size="9" fill="#A89A7A">Min 8° · Max 19°</text>
+      </g>
+      
+      <g transform="translate(28, 184)" font-size="11" fill="#5C5447">
+        <g>
+          <text font-size="9" fill="#A89A7A" letter-spacing="1.5">REGEN</text>
+          <text y="18" font-size="14" font-weight="500" fill="#2C2A26">2.4 mm</text>
+        </g>
+        <g transform="translate(120, 0)">
+          <text font-size="9" fill="#A89A7A" letter-spacing="1.5">WIND</text>
+          <text y="18" font-size="14" font-weight="500" fill="#2C2A26">12 km/h</text>
+        </g>
+      </g>
+      
+      <g transform="translate(28, 246)">
+        <rect width="248" height="22" rx="11" fill="#F5F1E8"/>
+        <text x="124" y="15" font-size="10" fill="#5C5447" text-anchor="middle">Normal für Mitte Mai</text>
+      </g>
+    </g>
+    
+    <!-- 1995 -->
+    <g transform="translate(320, 0)">
+      <rect width="304" height="280" rx="22" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+      
+      <g transform="translate(28, 28)">
+        <text font-size="11" fill="#A89A7A" letter-spacing="3" font-weight="500">14. MAI 1995</text>
+        <text y="20" font-size="11" fill="#5C5447">vor 31 Jahren · Sonntag</text>
+      </g>
+      
+      <g transform="translate(28, 88)">
+        <text font-size="64" font-weight="200" fill="#2C2A26" letter-spacing="-2.5">11°</text>
+        <text x="148" y="36" font-size="11" fill="#5C5447">Tagesmittel</text>
+        <text x="148" y="50" font-size="9" fill="#A89A7A">Min 5° · Max 16°</text>
+      </g>
+      
+      <g transform="translate(28, 184)" font-size="11" fill="#5C5447">
+        <g>
+          <text font-size="9" fill="#A89A7A" letter-spacing="1.5">REGEN</text>
+          <text y="18" font-size="14" font-weight="500" fill="#2C2A26">8.4 mm</text>
+        </g>
+        <g transform="translate(120, 0)">
+          <text font-size="9" fill="#A89A7A" letter-spacing="1.5">WIND</text>
+          <text y="18" font-size="14" font-weight="500" fill="#2C2A26">18 km/h</text>
+        </g>
+      </g>
+      
+      <g transform="translate(28, 246)">
+        <rect width="248" height="22" rx="11" fill="#E8F0FA"/>
+        <text x="124" y="15" font-size="10" fill="#3A6FA8" text-anchor="middle" font-weight="500">Kühler &amp; nasser als üblich</text>
+      </g>
+    </g>
+    
+    <!-- 2005 -->
+    <g transform="translate(640, 0)">
+      <rect width="304" height="280" rx="22" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+      
+      <g transform="translate(28, 28)">
+        <text font-size="11" fill="#A89A7A" letter-spacing="3" font-weight="500">14. MAI 2005</text>
+        <text y="20" font-size="11" fill="#5C5447">vor 21 Jahren · Samstag</text>
+      </g>
+      
+      <g transform="translate(28, 88)">
+        <text font-size="64" font-weight="200" fill="#2C2A26" letter-spacing="-2.5">17°</text>
+        <text x="148" y="36" font-size="11" fill="#5C5447">Tagesmittel</text>
+        <text x="148" y="50" font-size="9" fill="#A89A7A">Min 11° · Max 23°</text>
+      </g>
+      
+      <g transform="translate(28, 184)" font-size="11" fill="#5C5447">
+        <g>
+          <text font-size="9" fill="#A89A7A" letter-spacing="1.5">REGEN</text>
+          <text y="18" font-size="14" font-weight="500" fill="#2C2A26">0 mm</text>
+        </g>
+        <g transform="translate(120, 0)">
+          <text font-size="9" fill="#A89A7A" letter-spacing="1.5">WIND</text>
+          <text y="18" font-size="14" font-weight="500" fill="#2C2A26">10 km/h</text>
+        </g>
+      </g>
+      
+      <g transform="translate(28, 246)">
+        <rect width="248" height="22" rx="11" fill="#F5F1E8"/>
+        <text x="124" y="15" font-size="10" fill="#5C5447" text-anchor="middle">Sonnig, leicht überdurchschnittlich</text>
+      </g>
+    </g>
+    
+    <!-- 2026 - HIGHLIGHT -->
+    <g transform="translate(960, 0)">
+      <rect width="320" height="280" rx="22" fill="#2C2A26"/>
+      
+      <g transform="translate(28, 28)">
+        <text font-size="11" fill="#A85E2E" letter-spacing="3" font-weight="600">HEUTE · 14. MAI 2026</text>
+        <text y="20" font-size="11" fill="#D9D0B8">Donnerstag · Live-Wert</text>
+      </g>
+      
+      <g transform="translate(28, 88)">
+        <text font-size="64" font-weight="200" fill="#FFFFFF" letter-spacing="-2.5">22°</text>
+        <text x="148" y="36" font-size="11" fill="#D9D0B8">Tagesmittel</text>
+        <text x="148" y="50" font-size="9" fill="#A89A7A">Min 14° · Max 25°</text>
+      </g>
+      
+      <g transform="translate(28, 184)" font-size="11" fill="#D9D0B8">
+        <g>
+          <text font-size="9" fill="#A89A7A" letter-spacing="1.5">REGEN</text>
+          <text y="18" font-size="14" font-weight="500" fill="#FFFFFF">0 mm</text>
+        </g>
+        <g transform="translate(120, 0)">
+          <text font-size="9" fill="#A89A7A" letter-spacing="1.5">WIND</text>
+          <text y="18" font-size="14" font-weight="500" fill="#FFFFFF">12 km/h SW</text>
+        </g>
+      </g>
+      
+      <g transform="translate(28, 246)">
+        <rect width="264" height="22" rx="11" fill="#A85E2E"/>
+        <text x="132" y="15" font-size="10" fill="#FFFFFF" text-anchor="middle" font-weight="600" letter-spacing="0.5">+5° ÜBER 1985 · FÖHN-LAGE</text>
+      </g>
+    </g>
+  </g>
+  
+  <!-- ============ TIMELINE CHART ============ -->
+  <g transform="translate(80, 900)">
+    <text font-size="11" fill="#A89A7A" letter-spacing="3" font-weight="500">VERLAUF · 14. MAI ÜBER DIE JAHRE</text>
+    
+    <g transform="translate(0, 24)">
+      <rect width="1280" height="320" rx="22" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+      
+      <!-- Chart -->
+      <g transform="translate(80, 60)">
+        <!-- Y axis labels -->
+        <g font-size="10" fill="#A89A7A">
+          <text x="-12" y="4" text-anchor="end">26°</text>
+          <text x="-12" y="44" text-anchor="end">22°</text>
+          <text x="-12" y="84" text-anchor="end">18°</text>
+          <text x="-12" y="124" text-anchor="end">14°</text>
+          <text x="-12" y="164" text-anchor="end">10°</text>
+          <text x="-12" y="204" text-anchor="end">6°</text>
+        </g>
+        
+        <!-- Grid -->
+        <g stroke="#E0D6BE" stroke-width="0.5" stroke-dasharray="2 4" opacity="0.6">
+          <line x1="0" y1="0" x2="1120" y2="0"/>
+          <line x1="0" y1="40" x2="1120" y2="40"/>
+          <line x1="0" y1="80" x2="1120" y2="80"/>
+          <line x1="0" y1="120" x2="1120" y2="120"/>
+          <line x1="0" y1="160" x2="1120" y2="160"/>
+          <line x1="0" y1="200" x2="1120" y2="200"/>
+        </g>
+        
+        <!-- Long-term mean line -->
+        <line x1="0" y1="120" x2="1120" y2="120" stroke="#7A9466" stroke-width="1.5" stroke-dasharray="4 3" opacity="0.7"/>
+        <g transform="translate(1124, 116)">
+          <text font-size="9" fill="#7A9466" font-weight="600" letter-spacing="1">14° LANGZEIT-MITTEL</text>
+        </g>
+        
+        <!-- Trend line (climate warming) -->
+        <path d="M 0 144 L 1120 80" stroke="#C97B47" stroke-width="2" stroke-dasharray="6 4" opacity="0.6"/>
+        
+        <!-- Data points: temperature each year -->
+        <g>
+          <!-- 1881 -->
+          <circle cx="0" cy="180" r="3" fill="#5C5447"/>
+          <!-- 1900 -->
+          <circle cx="135" cy="160" r="3" fill="#5C5447"/>
+          <!-- 1920 -->
+          <circle cx="278" cy="150" r="3" fill="#5C5447"/>
+          <!-- 1940 -->
+          <circle cx="420" cy="140" r="3" fill="#5C5447"/>
+          <!-- 1960 -->
+          <circle cx="562" cy="130" r="3" fill="#5C5447"/>
+          <!-- 1985 - highlighted -->
+          <circle cx="740" cy="120" r="6" fill="#FFFFFF" stroke="#2C2A26" stroke-width="2"/>
+          <g transform="translate(740, 102)">
+            <rect x="-22" width="44" height="14" rx="7" fill="#2C2A26"/>
+            <text y="10" font-size="9" fill="#FFFFFF" text-anchor="middle" font-weight="600">1985 · 14°</text>
+          </g>
+          <!-- 1995 -->
+          <circle cx="811" cy="150" r="6" fill="#FFFFFF" stroke="#2C2A26" stroke-width="2"/>
+          <g transform="translate(811, 168)">
+            <rect x="-22" width="44" height="14" rx="7" fill="#2C2A26"/>
+            <text y="10" font-size="9" fill="#FFFFFF" text-anchor="middle" font-weight="600">1995 · 11°</text>
+          </g>
+          <!-- 2005 -->
+          <circle cx="882" cy="90" r="6" fill="#FFFFFF" stroke="#2C2A26" stroke-width="2"/>
+          <g transform="translate(882, 72)">
+            <rect x="-22" width="44" height="14" rx="7" fill="#2C2A26"/>
+            <text y="10" font-size="9" fill="#FFFFFF" text-anchor="middle" font-weight="600">2005 · 17°</text>
+          </g>
+          <!-- Other years scattered -->
+          <circle cx="160" cy="170" r="2" fill="#A89A7A"/>
+          <circle cx="220" cy="155" r="2" fill="#A89A7A"/>
+          <circle cx="340" cy="142" r="2" fill="#A89A7A"/>
+          <circle cx="380" cy="130" r="2" fill="#A89A7A"/>
+          <circle cx="460" cy="148" r="2" fill="#A89A7A"/>
+          <circle cx="520" cy="118" r="2" fill="#A89A7A"/>
+          <circle cx="580" cy="130" r="2" fill="#A89A7A"/>
+          <circle cx="620" cy="108" r="2" fill="#A89A7A"/>
+          <circle cx="680" cy="130" r="2" fill="#A89A7A"/>
+          <circle cx="700" cy="110" r="2" fill="#A89A7A"/>
+          <circle cx="770" cy="118" r="2" fill="#A89A7A"/>
+          <circle cx="840" cy="100" r="2" fill="#A89A7A"/>
+          <circle cx="900" cy="118" r="2" fill="#A89A7A"/>
+          <circle cx="940" cy="95" r="2" fill="#A89A7A"/>
+          <circle cx="980" cy="105" r="2" fill="#A89A7A"/>
+          <circle cx="1020" cy="80" r="2" fill="#A89A7A"/>
+          
+          <!-- 2026 - hot peak -->
+          <circle cx="1024" cy="40" r="8" fill="#A85E2E"/>
+          <circle cx="1024" cy="40" r="4" fill="#FFFFFF"/>
+          <g transform="translate(1024, 16)">
+            <rect x="-30" width="60" height="18" rx="9" fill="#A85E2E"/>
+            <text y="13" font-size="10" fill="#FFFFFF" text-anchor="middle" font-weight="700" letter-spacing="0.5">HEUTE · 22°</text>
+          </g>
+        </g>
+        
+        <!-- X axis -->
+        <g font-size="9" fill="#A89A7A" transform="translate(0, 222)">
+          <text x="0">1881</text>
+          <text x="142" text-anchor="middle">1900</text>
+          <text x="284" text-anchor="middle">1920</text>
+          <text x="426" text-anchor="middle">1940</text>
+          <text x="568" text-anchor="middle">1960</text>
+          <text x="710" text-anchor="middle">1980</text>
+          <text x="852" text-anchor="middle">2000</text>
+          <text x="994" text-anchor="middle">2020</text>
+          <text x="1120" text-anchor="end">2026</text>
+        </g>
+      </g>
+    </g>
+  </g>
+  
+  <!-- ============ FINAL INSIGHT ============ -->
+  <g transform="translate(80, 1260)">
+    <rect width="1280" height="100" rx="20" fill="#2C2A26"/>
+    
+    <g transform="translate(28, 24)">
+      <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">EINORDNUNG</text>
+      <text y="26" font-size="18" fill="#FFFFFF" font-weight="500">Heute ist der 14. Mai 8° wärmer als im Durchschnitt der 1980er Jahre.</text>
+      <text y="50" font-size="12" fill="#D9D0B8">Damit liegt 2026 auf Platz 3 der wärmsten 14.-Mai-Tage seit 1881. Trend: + 0.3°C pro Dekade in München.</text>
+    </g>
+  </g>
+  
+  <!-- LABEL -->
+  <g transform="translate(80, 1360)">
+    <text font-size="10" fill="#A89A7A" letter-spacing="3" font-weight="500">22 · DATACENTER 01 · MEIN TAG IN DER GESCHICHTE · DESKTOP · v1.3</text>
+    <text x="1280" font-size="10" fill="#A89A7A" letter-spacing="2" text-anchor="end">Year-Picker · 4 Vergleichs-Karten · 145 Jahre Zeitleiste · Trend-Linie</text>
+  </g>
+</svg>

@@ -1,0 +1,120 @@
+.route-upload {
+  width: 100%;
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* ---- Dropzone ---- */
+.route-drop {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 2.6rem 1.5rem;
+  border: 1.5px dashed var(--border-medium, #c9bca3);
+  border-radius: 16px;
+  background: var(--cream-50, #FAF6EA);
+  color: var(--ink-900, #2c2a26);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+.route-drop:hover {
+  border-color: var(--sage-600, #6f7d4e);
+}
+.route-drop:focus-within {
+  outline: 2px solid var(--sage-600, #6f7d4e);
+  outline-offset: 2px;
+}
+.route-drop.is-dragging {
+  border-color: var(--sage-600, #6f7d4e);
+  background: var(--sage-50, #eef1e4);
+  box-shadow: 0 10px 30px rgba(44, 42, 38, 0.08);
+}
+.route-drop.has-error {
+  border-color: var(--terracotta-500, #c6633b);
+}
+.route-drop-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+.route-drop-icon {
+  color: var(--stone-500, #8a7d68);
+  margin-bottom: 0.2rem;
+}
+.route-drop.is-dragging .route-drop-icon {
+  color: var(--sage-600, #6f7d4e);
+}
+.route-drop-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 500;
+}
+.route-drop-or {
+  color: var(--stone-500, #8a7d68);
+  font-weight: 400;
+}
+.route-drop-sub {
+  margin: 0;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  color: var(--stone-500, #8a7d68);
+}
+.route-drop-error {
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+  color: var(--terracotta-700, #a8431f);
+}
+
+/* ---- Format-Liste ---- */
+.route-formats {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+.route-format {
+  display: grid;
+  grid-template-columns: 3.2rem auto 1fr;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.4rem 0.2rem;
+  border-bottom: 1px solid var(--sand-200, #e0d6be);
+  font-size: 0.84rem;
+}
+.route-format:last-child {
+  border-bottom: none;
+}
+.route-format-name {
+  font-weight: 600;
+}
+.route-format-tier {
+  justify-self: start;
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  padding: 0.1rem 0.4rem;
+  border-radius: 6px;
+}
+.route-format-tier.tier-1 {
+  background: var(--sage-50, #f0f4ea);
+  color: var(--sage-600, #7a9466);
+}
+.route-format-tier.tier-2 {
+  background: var(--sand-100, #efe6d2);
+  color: var(--stone-500, #8a7d68);
+}
+.route-format-hint {
+  color: var(--stone-500, #8a7d68);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

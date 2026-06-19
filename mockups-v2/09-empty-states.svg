@@ -1,0 +1,354 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1600" font-family="ui-sans-serif, system-ui, -apple-system">
+  <defs>
+    <linearGradient id="bg09" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F5F1E8"/>
+      <stop offset="100%" stop-color="#EDE6D3"/>
+    </linearGradient>
+    <radialGradient id="skeletonShimmer">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  
+  <rect width="1440" height="1600" fill="url(#bg09)"/>
+  
+  <!-- ============ HEADER ============ -->
+  <g transform="translate(80, 60)">
+    <text font-size="11" fill="#A89A7A" letter-spacing="3" font-weight="500">EDGE-STATES · INTERNAL DESIGN REFERENCE</text>
+    <text y="56" font-size="56" font-weight="200" fill="#2C2A26" letter-spacing="-1.5">Empty · Loading · Error · Offline</text>
+    <text y="100" font-size="16" fill="#5C5447">Wie buscosun reagiert, wenn etwas fehlt, lädt oder fehlschlägt. Konsistenz über alle Module.</text>
+  </g>
+  
+  <!-- ============ SECTION A: EMPTY STATES ============ -->
+  <g transform="translate(80, 200)">
+    <text font-size="11" fill="#A89A7A" letter-spacing="3" font-weight="500">A · EMPTY STATES — KONTEXT FEHLT</text>
+  </g>
+  
+  <!-- 01: No location selected -->
+  <g transform="translate(80, 240)">
+    <rect width="416" height="380" rx="20" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    
+    <g transform="translate(32, 28)">
+      <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="600">01 · KEIN STANDORT GEWÄHLT</text>
+    </g>
+    
+    <!-- Illustration: dashed map pin -->
+    <g transform="translate(208, 130)">
+      <circle r="48" fill="#F5F1E8"/>
+      <g transform="translate(-16, -22)" stroke="#A89A7A" stroke-width="2" fill="none">
+        <path d="M 16 0 C 7 0 0 7 0 16 C 0 28 16 44 16 44 C 16 44 32 28 32 16 C 32 7 25 0 16 0 Z" stroke-dasharray="4 4"/>
+        <circle cx="16" cy="16" r="6" stroke-dasharray="2 3"/>
+      </g>
+    </g>
+    
+    <g transform="translate(32, 226)">
+      <text font-size="20" fill="#2C2A26" font-weight="500" letter-spacing="-0.4">Wo soll's hingehen?</text>
+      <text y="26" font-size="13" fill="#5C5447">Gib einen Ort ein oder klicke auf die Karte —</text>
+      <text y="46" font-size="13" fill="#5C5447">die Live-Vorhersage erscheint in unter 3 Sekunden.</text>
+    </g>
+    
+    <g transform="translate(32, 316)">
+      <rect width="180" height="40" rx="20" fill="#2C2A26"/>
+      <text x="90" y="25" font-size="12" fill="#F5F1E8" text-anchor="middle" font-weight="500">Standort eingeben</text>
+      
+      <g transform="translate(196, 0)">
+        <rect width="140" height="40" rx="20" fill="transparent" stroke="#2C2A26" stroke-width="1"/>
+        <text x="70" y="25" font-size="12" fill="#2C2A26" text-anchor="middle">Karte öffnen</text>
+      </g>
+    </g>
+  </g>
+  
+  <!-- 02: No routes saved -->
+  <g transform="translate(512, 240)">
+    <rect width="416" height="380" rx="20" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    
+    <g transform="translate(32, 28)">
+      <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="600">02 · KEINE ROUTEN VORHANDEN</text>
+    </g>
+    
+    <!-- Illustration: dotted route with two endpoints -->
+    <g transform="translate(104, 130)" stroke="#A89A7A" stroke-width="2" fill="none">
+      <path d="M 0 40 Q 50 10 100 40 T 200 40" stroke-dasharray="4 6"/>
+      <circle cx="0" cy="40" r="8" fill="#A89A7A"/>
+      <circle cx="200" cy="40" r="8" fill="#FFFFFF"/>
+      <circle cx="200" cy="40" r="4" fill="#A89A7A"/>
+    </g>
+    
+    <g transform="translate(32, 226)">
+      <text font-size="20" fill="#2C2A26" font-weight="500" letter-spacing="-0.4">Noch keine Tour geplant.</text>
+      <text y="26" font-size="13" fill="#5C5447">Lade eine GPX-Datei hoch, verbinde mit Strava</text>
+      <text y="46" font-size="13" fill="#5C5447">oder zeichne eine Route direkt auf der Karte.</text>
+    </g>
+    
+    <g transform="translate(32, 316)">
+      <rect width="130" height="40" rx="20" fill="#2C2A26"/>
+      <text x="65" y="25" font-size="12" fill="#F5F1E8" text-anchor="middle" font-weight="500">GPX laden</text>
+      
+      <g transform="translate(140, 0)">
+        <rect width="120" height="40" rx="20" fill="#FF5722"/>
+        <text x="60" y="25" font-size="12" fill="#FFFFFF" text-anchor="middle" font-weight="500">Strava</text>
+      </g>
+      
+      <g transform="translate(268, 0)">
+        <rect width="84" height="40" rx="20" fill="transparent" stroke="#2C2A26" stroke-width="1"/>
+        <text x="42" y="25" font-size="12" fill="#2C2A26" text-anchor="middle">Zeichnen</text>
+      </g>
+    </g>
+  </g>
+  
+  <!-- 03: No events -->
+  <g transform="translate(944, 240)">
+    <rect width="416" height="380" rx="20" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    
+    <g transform="translate(32, 28)">
+      <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="600">03 · KEINE EVENTS GESPEICHERT</text>
+    </g>
+    
+    <!-- Illustration: empty calendar -->
+    <g transform="translate(168, 110)" stroke="#A89A7A" stroke-width="1.5" fill="none">
+      <rect x="0" y="8" width="80" height="68" rx="8"/>
+      <line x1="0" y1="24" x2="80" y2="24"/>
+      <line x1="20" y1="0" x2="20" y2="16"/>
+      <line x1="60" y1="0" x2="60" y2="16"/>
+      <g stroke-dasharray="2 3">
+        <line x1="14" y1="38" x2="66" y2="38"/>
+        <line x1="14" y1="50" x2="66" y2="50"/>
+        <line x1="14" y1="62" x2="66" y2="62"/>
+      </g>
+    </g>
+    
+    <g transform="translate(32, 226)">
+      <text font-size="20" fill="#2C2A26" font-weight="500" letter-spacing="-0.4">Keine Events geplant.</text>
+      <text y="26" font-size="13" fill="#5C5447">Plane einen Grillabend, Tour oder eine Hochzeit —</text>
+      <text y="46" font-size="13" fill="#5C5447">wir alarmieren bei kritischen Wetter-Änderungen.</text>
+    </g>
+    
+    <g transform="translate(32, 316)">
+      <rect width="180" height="40" rx="20" fill="#2C2A26"/>
+      <text x="90" y="25" font-size="12" fill="#F5F1E8" text-anchor="middle" font-weight="500">Event erstellen</text>
+    </g>
+  </g>
+  
+  <!-- ============ ROW 2: SEARCH RESULTS + STRAVA EMPTY + FORECAST OUTDATED ============ -->
+  
+  <!-- 04: No search results -->
+  <g transform="translate(80, 660)">
+    <rect width="416" height="380" rx="20" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    
+    <g transform="translate(32, 28)">
+      <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="600">04 · SUCHE OHNE TREFFER</text>
+    </g>
+    
+    <!-- Illustration: magnifier with question mark -->
+    <g transform="translate(180, 110)">
+      <circle r="48" fill="#F5F1E8"/>
+      <g transform="translate(-14, -14)" stroke="#A89A7A" stroke-width="2" fill="none">
+        <circle cx="11" cy="11" r="11"/>
+        <line x1="19" y1="19" x2="28" y2="28" stroke-linecap="round"/>
+      </g>
+      <text x="-2" y="0" font-size="14" fill="#A85E2E" font-weight="700">?</text>
+    </g>
+    
+    <g transform="translate(32, 226)">
+      <text font-size="20" fill="#2C2A26" font-weight="500" letter-spacing="-0.4">Keine Treffer für "Karwendelxyz".</text>
+      <text y="26" font-size="13" fill="#5C5447">Versuche es mit weniger Buchstaben oder dem</text>
+      <text y="46" font-size="13" fill="#5C5447">nächsten bekannten Ort. Wir suchen in DACH.</text>
+    </g>
+    
+    <g transform="translate(32, 316)">
+      <rect width="156" height="40" rx="20" fill="transparent" stroke="#2C2A26" stroke-width="1"/>
+      <text x="78" y="25" font-size="12" fill="#2C2A26" text-anchor="middle">Suche zurücksetzen</text>
+    </g>
+  </g>
+  
+  <!-- 05: Strava connected, no routes there -->
+  <g transform="translate(512, 660)">
+    <rect width="416" height="380" rx="20" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    
+    <g transform="translate(32, 28)">
+      <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="600">05 · STRAVA VERBUNDEN · LEER</text>
+    </g>
+    
+    <!-- Strava-themed illustration -->
+    <g transform="translate(184, 100)">
+      <circle r="48" fill="#FFEDDC"/>
+      <g transform="translate(-10, -16)" stroke="#FF5722" stroke-width="2" fill="none" stroke-linejoin="round">
+        <path d="M 4 0 L 0 8 L 4 16 L 8 8 Z"/>
+        <path d="M 8 8 L 6 12 L 10 12 Z" fill="#FF5722"/>
+      </g>
+      <circle cx="30" cy="-22" r="12" fill="#7A9466"/>
+      <text x="30" y="-18" font-size="13" fill="#FFFFFF" text-anchor="middle" font-weight="700">✓</text>
+    </g>
+    
+    <g transform="translate(32, 226)">
+      <text font-size="20" fill="#2C2A26" font-weight="500" letter-spacing="-0.4">Strava ist verbunden,</text>
+      <text y="24" font-size="20" fill="#2C2A26" font-weight="500" letter-spacing="-0.4">aber keine Routen gefunden.</text>
+      <text y="56" font-size="13" fill="#5C5447">Speichere eine Route in Strava — sie erscheint hier</text>
+      <text y="76" font-size="13" fill="#5C5447">automatisch beim nächsten Sync.</text>
+    </g>
+    
+    <g transform="translate(32, 326)">
+      <rect width="140" height="40" rx="20" fill="#2C2A26"/>
+      <text x="70" y="25" font-size="12" fill="#F5F1E8" text-anchor="middle" font-weight="500">Erneut syncen</text>
+    </g>
+  </g>
+  
+  <!-- 06: Forecast outdated -->
+  <g transform="translate(944, 660)">
+    <rect width="416" height="380" rx="20" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    
+    <g transform="translate(32, 28)">
+      <text font-size="9" fill="#C97B47" letter-spacing="2" font-weight="600">06 · FORECAST VERALTET</text>
+    </g>
+    
+    <!-- Illustration: clock with warning -->
+    <g transform="translate(184, 110)">
+      <circle r="48" fill="#FAEEDA"/>
+      <g transform="translate(-16, -16)" stroke="#C97B47" stroke-width="2" fill="none">
+        <circle cx="16" cy="16" r="14"/>
+        <polyline points="16,8 16,16 22,18" stroke-linecap="round"/>
+      </g>
+    </g>
+    
+    <g transform="translate(32, 226)">
+      <text font-size="20" fill="#2C2A26" font-weight="500" letter-spacing="-0.4">Daten von vor 47 Minuten.</text>
+      <text y="26" font-size="13" fill="#5C5447">DWD-Verbindung war kurz unterbrochen. Diese</text>
+      <text y="46" font-size="13" fill="#5C5447">Werte sind nicht aktuell — Vorsicht bei Entscheidungen.</text>
+    </g>
+    
+    <g transform="translate(32, 316)">
+      <rect width="180" height="40" rx="20" fill="#C97B47"/>
+      <text x="90" y="25" font-size="12" fill="#FFFFFF" text-anchor="middle" font-weight="500">Jetzt aktualisieren</text>
+    </g>
+  </g>
+  
+  <!-- ============ ROW 3: LOADING + NETWORK ERROR + OFFLINE ============ -->
+  
+  <!-- 07: Loading skeleton with fetch status -->
+  <g transform="translate(80, 1080)">
+    <rect width="416" height="380" rx="20" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    
+    <g transform="translate(32, 28)">
+      <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="600">07 · LOADING · 2.4s VERSTRICHEN</text>
+    </g>
+    
+    <!-- Skeleton bones -->
+    <g transform="translate(32, 70)" opacity="0.6">
+      <rect width="80" height="14" rx="4" fill="#F5F1E8"/>
+      <rect y="22" width="200" height="48" rx="8" fill="#F5F1E8"/>
+      <rect y="78" width="160" height="14" rx="4" fill="#F5F1E8"/>
+      <rect y="100" width="120" height="10" rx="3" fill="#F5F1E8"/>
+    </g>
+    
+    <!-- Fetch status list -->
+    <g transform="translate(32, 200)">
+      <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">FETCH-PIPELINE</text>
+      
+      <g transform="translate(0, 16)" font-size="11" fill="#5C5447">
+        <g>
+          <circle cx="4" cy="4" r="3" fill="#7A9466"/>
+          <text x="14" y="7">MOSMIX-Stationen · 142 ms</text>
+          <text x="328" y="7" fill="#7A9466" text-anchor="end" font-size="10" font-weight="500">✓</text>
+        </g>
+        <g transform="translate(0, 22)">
+          <circle cx="4" cy="4" r="3" fill="#7A9466"/>
+          <text x="14" y="7">ICON-D2 via Open-Meteo · 380 ms</text>
+          <text x="328" y="7" fill="#7A9466" text-anchor="end" font-size="10" font-weight="500">✓</text>
+        </g>
+        <g transform="translate(0, 44)">
+          <circle cx="4" cy="4" r="3" fill="#D4A373"/>
+          <text x="14" y="7">RADOLAN Nowcast</text>
+          <text x="328" y="7" fill="#D4A373" text-anchor="end" font-size="10" font-weight="500">läuft …</text>
+        </g>
+        <g transform="translate(0, 66)">
+          <circle cx="4" cy="4" r="3" fill="#D9D0B8"/>
+          <text x="14" y="7" fill="#A89A7A">Bias-Correction</text>
+          <text x="328" y="7" fill="#A89A7A" text-anchor="end" font-size="10">wartet</text>
+        </g>
+        <g transform="translate(0, 88)">
+          <circle cx="4" cy="4" r="3" fill="#D9D0B8"/>
+          <text x="14" y="7" fill="#A89A7A">DACH-Physik</text>
+          <text x="328" y="7" fill="#A89A7A" text-anchor="end" font-size="10">wartet</text>
+        </g>
+      </g>
+    </g>
+    
+    <g transform="translate(32, 340)">
+      <text font-size="11" fill="#A89A7A">Normalerweise ≤ 3 s · Aktueller Run: 2.4 s</text>
+    </g>
+  </g>
+  
+  <!-- 08: Network error -->
+  <g transform="translate(512, 1080)">
+    <rect width="416" height="380" rx="20" fill="#FFFFFF" stroke="#A85E2E" stroke-width="1"/>
+    
+    <g transform="translate(32, 28)">
+      <text font-size="9" fill="#A85E2E" letter-spacing="2" font-weight="600">08 · NETZWERK-FEHLER</text>
+    </g>
+    
+    <!-- Illustration: broken connection -->
+    <g transform="translate(184, 110)">
+      <circle r="48" fill="#FAE0D0"/>
+      <g transform="translate(-16, -8)" stroke="#A85E2E" stroke-width="2.5" fill="none" stroke-linecap="round">
+        <path d="M 4 14 Q 12 6 20 14"/>
+        <path d="M 10 18 Q 14 14 18 18"/>
+        <circle cx="14" cy="22" r="1.5" fill="#A85E2E"/>
+        <line x1="0" y1="0" x2="28" y2="28" stroke="#A85E2E" stroke-width="2.5"/>
+      </g>
+    </g>
+    
+    <g transform="translate(32, 226)">
+      <text font-size="20" fill="#2C2A26" font-weight="500" letter-spacing="-0.4">Verbindung zu DWD verloren.</text>
+      <text y="26" font-size="13" fill="#5C5447">Wir versuchen es automatisch in 8 Sekunden.</text>
+      <text y="46" font-size="13" fill="#A89A7A">Letzte erfolgreiche Anfrage: vor 12 Minuten.</text>
+    </g>
+    
+    <g transform="translate(32, 316)">
+      <rect width="160" height="40" rx="20" fill="#2C2A26"/>
+      <text x="80" y="25" font-size="12" fill="#F5F1E8" text-anchor="middle" font-weight="500">Jetzt erneut versuchen</text>
+      
+      <g transform="translate(170, 12)">
+        <text font-size="11" fill="#A89A7A">8 s Auto-Retry</text>
+      </g>
+    </g>
+  </g>
+  
+  <!-- 09: Offline mode with cache -->
+  <g transform="translate(944, 1080)">
+    <rect width="416" height="380" rx="20" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    
+    <g transform="translate(32, 28)">
+      <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="600">09 · OFFLINE-MODUS · CACHE AKTIV</text>
+    </g>
+    
+    <!-- Illustration: cloud with line through, cached badge -->
+    <g transform="translate(180, 100)">
+      <circle r="48" fill="#F5F1E8"/>
+      <g transform="translate(-16, -8)" stroke="#8B7355" stroke-width="2" fill="none" stroke-linecap="round">
+        <path d="M 8 16 Q 0 16 0 10 Q 0 4 6 4 Q 6 0 12 0 Q 18 0 20 6 Q 28 6 28 12 Q 28 16 24 16 Z"/>
+      </g>
+      <g transform="translate(20, -22)">
+        <rect width="40" height="16" rx="8" fill="#2C2A26"/>
+        <text x="20" y="12" font-size="9" fill="#F5F1E8" text-anchor="middle" font-weight="600" letter-spacing="1">CACHE</text>
+      </g>
+    </g>
+    
+    <g transform="translate(32, 226)">
+      <text font-size="20" fill="#2C2A26" font-weight="500" letter-spacing="-0.4">Du bist offline.</text>
+      <text y="26" font-size="13" fill="#5C5447">Wir zeigen Werte aus dem letzten Cache von vor</text>
+      <text y="46" font-size="13" fill="#5C5447">1 Stunde 23 Minuten. Aktualisierung sobald online.</text>
+    </g>
+    
+    <g transform="translate(32, 316)">
+      <rect width="200" height="40" rx="20" fill="#F5F1E8" stroke="#D9D0B8"/>
+      <circle cx="20" cy="20" r="4" fill="#D4A373"/>
+      <text x="34" y="25" font-size="12" fill="#5C5447">Letzte Aktualisierung: 11:42</text>
+    </g>
+  </g>
+  
+  <!-- ============ FOOTER LABEL ============ -->
+  <g transform="translate(80, 1560)">
+    <text font-size="10" fill="#A89A7A" letter-spacing="3" font-weight="500">09 · EDGE-STATES · DESKTOP · SESSION 1 / 3</text>
+    <text x="1280" font-size="10" fill="#A89A7A" letter-spacing="2" text-anchor="end">Empty · Loading · Error · Offline · 9 Varianten</text>
+  </g>
+</svg>

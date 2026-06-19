@@ -1,0 +1,388 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1100" font-family="ui-sans-serif, system-ui, -apple-system">
+  <defs>
+    <linearGradient id="bg20" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F5F1E8"/>
+      <stop offset="100%" stop-color="#EDE6D3"/>
+    </linearGradient>
+    <linearGradient id="capeFill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#C97B47" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#C97B47" stop-opacity="0.08"/>
+    </linearGradient>
+  </defs>
+  
+  <rect width="1440" height="1100" fill="url(#bg20)"/>
+  
+  <!-- TOP NAV -->
+  <g>
+    <g transform="translate(32, 24)">
+      <circle cx="14" cy="14" r="6" fill="#2C2A26"/>
+      <g stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round">
+        <line x1="14" y1="0" x2="14" y2="3"/>
+        <line x1="14" y1="25" x2="14" y2="28"/>
+        <line x1="0" y1="14" x2="3" y2="14"/>
+        <line x1="25" y1="14" x2="28" y2="14"/>
+      </g>
+      <text x="42" y="20" font-size="18" font-weight="500" fill="#2C2A26" letter-spacing="-0.5">buscosun</text>
+    </g>
+    
+    <g transform="translate(200, 30)">
+      <g stroke="#5C5447" stroke-width="1.5" fill="none" stroke-linecap="round">
+        <line x1="0" y1="10" x2="14" y2="10"/>
+        <line x1="0" y1="10" x2="6" y2="4"/>
+        <line x1="0" y1="10" x2="6" y2="16"/>
+      </g>
+      <text x="24" y="15" font-size="13" fill="#5C5447">Zurück zur Karte</text>
+    </g>
+    
+    <!-- Power-User Pill -->
+    <g transform="translate(1180, 22)">
+      <rect width="180" height="32" rx="16" fill="#FAEEDA" stroke="#C97B47" stroke-width="0.5"/>
+      <circle cx="16" cy="16" r="4" fill="#C97B47"/>
+      <text x="26" y="20" font-size="11" fill="#A85E2E" font-weight="600" letter-spacing="0.5">POWER-USER · V1.1</text>
+    </g>
+  </g>
+  
+  <!-- ============ HEADER ============ -->
+  <g transform="translate(80, 100)">
+    <text font-size="11" fill="#A89A7A" letter-spacing="3" font-weight="500">SKEW-T-LOG-P · ATMOSPHÄREN-SONDIERUNG</text>
+    <text y="48" font-size="40" font-weight="300" fill="#2C2A26" letter-spacing="-1">München · Oberschleißheim Sondierung</text>
+    <text y="78" font-size="13" fill="#5C5447">Radiosonde 12:00 UTC · Modell-Sondierung ICON-D2 · für Drohnen-Piloten, Segelflieger, Meteorologe-Fans</text>
+  </g>
+  
+  <!-- ============ MAIN: SKEW-T DIAGRAM (LARGE LEFT) ============ -->
+  <g transform="translate(80, 220)">
+    <rect width="860" height="800" rx="22" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    
+    <!-- Header strip -->
+    <g transform="translate(28, 24)">
+      <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">DIAGRAMM · STÜVE-SKEW-T</text>
+      <text x="700" font-size="9" fill="#A89A7A" text-anchor="end">Druckachse logarithmisch · Temperaturachse 45° geneigt</text>
+    </g>
+    
+    <!-- ============ DIAGRAM AREA ============ -->
+    <g transform="translate(80, 80)">
+      <!-- Background plot area -->
+      <rect width="700" height="640" fill="#FAF6EA" stroke="#E0D6BE" stroke-width="0.5"/>
+      
+      <!-- Y-AXIS: Pressure (log scale) -->
+      <g font-size="10" fill="#A89A7A">
+        <text x="-12" y="14" text-anchor="end" font-weight="500">100 hPa</text>
+        <text x="-12" y="80" text-anchor="end">200</text>
+        <text x="-12" y="170" text-anchor="end">300</text>
+        <text x="-12" y="280" text-anchor="end" font-weight="500">500 hPa</text>
+        <text x="-12" y="400" text-anchor="end">700</text>
+        <text x="-12" y="500" text-anchor="end">850</text>
+        <text x="-12" y="600" text-anchor="end" font-weight="500">1000 hPa</text>
+      </g>
+      
+      <!-- Right side: Altitude labels -->
+      <g font-size="10" fill="#A89A7A" transform="translate(708, 0)">
+        <text x="0" y="14">16 km</text>
+        <text x="0" y="80">12</text>
+        <text x="0" y="170">9.2</text>
+        <text x="0" y="280">5.6</text>
+        <text x="0" y="400">3.0</text>
+        <text x="0" y="500">1.5</text>
+        <text x="0" y="600">100 m</text>
+      </g>
+      
+      <!-- Horizontal pressure lines (subtle) -->
+      <g stroke="#E0D6BE" stroke-width="0.5" stroke-dasharray="2 4">
+        <line x1="0" y1="14" x2="700" y2="14"/>
+        <line x1="0" y1="80" x2="700" y2="80"/>
+        <line x1="0" y1="170" x2="700" y2="170"/>
+        <line x1="0" y1="280" x2="700" y2="280"/>
+        <line x1="0" y1="400" x2="700" y2="400"/>
+        <line x1="0" y1="500" x2="700" y2="500"/>
+        <line x1="0" y1="600" x2="700" y2="600"/>
+      </g>
+      
+      <!-- ===== ISOTHERMS (skewed 45°) ===== -->
+      <g stroke="#D9D0B8" stroke-width="0.5" opacity="0.7">
+        <line x1="-200" y1="640" x2="440" y2="0"/>
+        <line x1="-100" y1="640" x2="540" y2="0"/>
+        <line x1="0" y1="640" x2="640" y2="0"/>
+        <line x1="100" y1="640" x2="740" y2="0"/>
+        <line x1="200" y1="640" x2="840" y2="0"/>
+        <line x1="300" y1="640" x2="940" y2="0"/>
+        <line x1="400" y1="640" x2="1040" y2="0"/>
+        <line x1="500" y1="640" x2="1140" y2="0"/>
+        <line x1="600" y1="640" x2="1240" y2="0"/>
+        <line x1="700" y1="640" x2="1340" y2="0"/>
+      </g>
+      
+      <!-- Isotherm labels at bottom -->
+      <g font-size="9" fill="#A89A7A" transform="translate(0, 656)">
+        <text x="50" text-anchor="middle">−30°</text>
+        <text x="150" text-anchor="middle">−20°</text>
+        <text x="250" text-anchor="middle">−10°</text>
+        <text x="350" text-anchor="middle">0°</text>
+        <text x="450" text-anchor="middle">10°</text>
+        <text x="550" text-anchor="middle">20°</text>
+        <text x="650" text-anchor="middle">30°</text>
+      </g>
+      
+      <!-- ===== DRY ADIABATS (concave curves) ===== -->
+      <g stroke="#D4A373" stroke-width="0.6" fill="none" opacity="0.5">
+        <path d="M -100 640 Q 100 400 300 200 Q 400 100 480 0"/>
+        <path d="M 0 640 Q 200 400 400 200 Q 500 100 580 0"/>
+        <path d="M 100 640 Q 300 400 500 200 Q 600 100 680 0"/>
+        <path d="M 200 640 Q 400 400 600 200 Q 700 100 780 0"/>
+      </g>
+      
+      <!-- ===== MOIST ADIABATS ===== -->
+      <g stroke="#7A9466" stroke-width="0.6" fill="none" opacity="0.4" stroke-dasharray="3 2">
+        <path d="M 200 640 Q 320 400 400 200 Q 460 100 500 0"/>
+        <path d="M 300 640 Q 420 400 500 200 Q 560 100 600 0"/>
+        <path d="M 400 640 Q 520 400 600 200 Q 660 100 700 0"/>
+      </g>
+      
+      <!-- ===== MIXING RATIO LINES ===== -->
+      <g stroke="#3A6FA8" stroke-width="0.5" fill="none" opacity="0.4" stroke-dasharray="1 3">
+        <line x1="280" y1="640" x2="380" y2="280"/>
+        <line x1="380" y1="640" x2="480" y2="280"/>
+        <line x1="480" y1="640" x2="580" y2="280"/>
+      </g>
+      
+      <!-- ===== CAPE ZONE (filled) ===== -->
+      <path d="M 380 460 Q 410 380 430 320 Q 450 240 460 180 L 480 180 Q 470 240 450 320 Q 430 380 400 460 Z" fill="url(#capeFill)"/>
+      
+      <!-- ===== TEMPERATURE CURVE (red, prominent) ===== -->
+      <path d="M 380 600 L 388 540 L 400 500 L 412 460 L 420 400 L 432 340 L 440 280 L 446 220 L 452 180 L 450 140 L 440 100 L 430 60 L 420 14" 
+            stroke="#A85E2E" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      
+      <!-- ===== DEWPOINT CURVE (blue, prominent) ===== -->
+      <path d="M 320 600 L 340 540 L 348 500 L 354 460 L 350 400 L 340 340 L 330 280 L 320 220 L 310 180 L 290 140 L 270 100 L 240 60 L 210 14" 
+            stroke="#3A6FA8" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      
+      <!-- ===== KEY LEVELS ===== -->
+      <!-- LCL -->
+      <g transform="translate(0, 460)">
+        <line x1="0" y1="0" x2="700" y2="0" stroke="#5C5447" stroke-width="0.5" stroke-dasharray="6 4"/>
+        <circle cx="412" cy="0" r="4" fill="#FFFFFF" stroke="#2C2A26" stroke-width="2"/>
+        <g transform="translate(710, -7)">
+          <rect width="50" height="14" rx="3" fill="#FFFFFF" stroke="#5C5447" stroke-width="0.5"/>
+          <text x="25" y="10" font-size="9" fill="#2C2A26" text-anchor="middle" font-weight="700" letter-spacing="0.5">LCL</text>
+        </g>
+      </g>
+      
+      <!-- LFC -->
+      <g transform="translate(0, 380)">
+        <line x1="0" y1="0" x2="700" y2="0" stroke="#5C5447" stroke-width="0.5" stroke-dasharray="6 4"/>
+        <circle cx="424" cy="0" r="4" fill="#FFFFFF" stroke="#2C2A26" stroke-width="2"/>
+        <g transform="translate(710, -7)">
+          <rect width="50" height="14" rx="3" fill="#FFFFFF" stroke="#5C5447" stroke-width="0.5"/>
+          <text x="25" y="10" font-size="9" fill="#2C2A26" text-anchor="middle" font-weight="700" letter-spacing="0.5">LFC</text>
+        </g>
+      </g>
+      
+      <!-- Equilibrium Level -->
+      <g transform="translate(0, 180)">
+        <line x1="0" y1="0" x2="700" y2="0" stroke="#5C5447" stroke-width="0.5" stroke-dasharray="6 4"/>
+        <circle cx="452" cy="0" r="4" fill="#FFFFFF" stroke="#2C2A26" stroke-width="2"/>
+        <g transform="translate(710, -7)">
+          <rect width="50" height="14" rx="3" fill="#FFFFFF" stroke="#5C5447" stroke-width="0.5"/>
+          <text x="25" y="10" font-size="9" fill="#2C2A26" text-anchor="middle" font-weight="700" letter-spacing="0.5">EL</text>
+        </g>
+      </g>
+      
+      <!-- 0°C line -->
+      <g transform="translate(0, 480)">
+        <line x1="0" y1="0" x2="700" y2="0" stroke="#3A6FA8" stroke-width="1" stroke-dasharray="2 2" opacity="0.5"/>
+        <g transform="translate(680, 12)">
+          <text font-size="9" fill="#3A6FA8" letter-spacing="1" font-weight="600">0 °C</text>
+        </g>
+      </g>
+      
+      <!-- ===== WIND BARBS (right edge) ===== -->
+      <g stroke="#5C5447" stroke-width="1.5" fill="#5C5447">
+        <!-- 100 hPa -->
+        <g transform="translate(670, 14)">
+          <line x1="0" y1="0" x2="0" y2="-14"/>
+          <line x1="0" y1="-14" x2="6" y2="-12"/>
+          <line x1="0" y1="-10" x2="4" y2="-9"/>
+        </g>
+        <!-- 200 -->
+        <g transform="translate(670, 80)">
+          <line x1="0" y1="0" x2="0" y2="-14"/>
+          <line x1="0" y1="-14" x2="8" y2="-12"/>
+          <line x1="0" y1="-10" x2="6" y2="-9"/>
+        </g>
+        <!-- 300 -->
+        <g transform="translate(670, 170)">
+          <line x1="0" y1="0" x2="0" y2="-14"/>
+          <line x1="0" y1="-14" x2="8" y2="-12"/>
+        </g>
+        <!-- 500 -->
+        <g transform="translate(670, 280)">
+          <line x1="0" y1="0" x2="0" y2="-14"/>
+          <line x1="0" y1="-14" x2="6" y2="-12"/>
+          <line x1="0" y1="-10" x2="4" y2="-9"/>
+        </g>
+        <!-- 700 -->
+        <g transform="translate(670, 400)">
+          <line x1="0" y1="0" x2="0" y2="-14"/>
+          <line x1="0" y1="-14" x2="6" y2="-12"/>
+        </g>
+        <!-- 850 -->
+        <g transform="translate(670, 500)">
+          <line x1="0" y1="0" x2="0" y2="-14"/>
+          <line x1="0" y1="-10" x2="4" y2="-9"/>
+        </g>
+        <!-- 1000 (surface) -->
+        <g transform="translate(670, 600)">
+          <line x1="0" y1="0" x2="0" y2="-10"/>
+          <line x1="0" y1="-8" x2="3" y2="-7"/>
+        </g>
+      </g>
+      
+      <!-- Legend curves -->
+      <g transform="translate(20, 20)">
+        <rect width="180" height="60" rx="8" fill="#FFFFFF" opacity="0.95" stroke="#E0D6BE" stroke-width="0.5"/>
+        <g transform="translate(12, 14)" font-size="10" fill="#5C5447">
+          <g>
+            <line x1="0" y1="4" x2="14" y2="4" stroke="#A85E2E" stroke-width="2.5"/>
+            <text x="22" y="8">Temperatur</text>
+          </g>
+          <g transform="translate(0, 18)">
+            <line x1="0" y1="4" x2="14" y2="4" stroke="#3A6FA8" stroke-width="2.5"/>
+            <text x="22" y="8">Taupunkt</text>
+          </g>
+          <g transform="translate(0, 36)">
+            <rect width="14" height="6" y="-1" fill="url(#capeFill)"/>
+            <text x="22" y="8">CAPE-Zone</text>
+          </g>
+        </g>
+      </g>
+    </g>
+    
+    <!-- Bottom info -->
+    <g transform="translate(28, 752)">
+      <text font-size="10" fill="#A89A7A">Quelle: DWD Radiosonden-Station Oberschleißheim (10868) · 50 hPa-Levels interpoliert</text>
+      
+      <g transform="translate(620, -12)">
+        <rect width="180" height="32" rx="16" fill="#F5F1E8" stroke="#D9D0B8"/>
+        <text x="90" y="20" font-size="11" fill="#5C5447" text-anchor="middle">Hodograph anzeigen →</text>
+      </g>
+    </g>
+  </g>
+  
+  <!-- ============ RIGHT PANEL: COMPUTED INDICES ============ -->
+  <g transform="translate(968, 220)">
+    <text font-size="11" fill="#A89A7A" letter-spacing="3" font-weight="500">ABGELEITETE KENNZAHLEN</text>
+    
+    <!-- 6 metric cards in 2x3 grid -->
+    <g transform="translate(0, 24)">
+      
+      <!-- CAPE -->
+      <g>
+        <rect width="190" height="140" rx="20" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+        <g transform="translate(20, 22)">
+          <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="600">CAPE</text>
+          <text y="18" font-size="9" fill="#5C5447">Convective Available</text>
+          <text y="32" font-size="9" fill="#5C5447">Potential Energy</text>
+        </g>
+        <text x="20" y="100" font-size="36" font-weight="200" fill="#2C2A26" letter-spacing="-1.5">820</text>
+        <text x="100" y="100" font-size="11" fill="#5C5447">J/kg</text>
+        <text x="20" y="124" font-size="10" fill="#C97B47" font-weight="500">moderate Instabilität</text>
+      </g>
+      
+      <!-- CIN -->
+      <g transform="translate(202, 0)">
+        <rect width="190" height="140" rx="20" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+        <g transform="translate(20, 22)">
+          <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="600">CIN</text>
+          <text y="18" font-size="9" fill="#5C5447">Convective</text>
+          <text y="32" font-size="9" fill="#5C5447">Inhibition</text>
+        </g>
+        <text x="20" y="100" font-size="36" font-weight="200" fill="#2C2A26" letter-spacing="-1.5">−42</text>
+        <text x="92" y="100" font-size="11" fill="#5C5447">J/kg</text>
+        <text x="20" y="124" font-size="10" fill="#5C5447">leichte Sperrschicht</text>
+      </g>
+      
+      <!-- LCL -->
+      <g transform="translate(0, 152)">
+        <rect width="190" height="140" rx="20" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+        <g transform="translate(20, 22)">
+          <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="600">LCL</text>
+          <text y="18" font-size="9" fill="#5C5447">Lifting</text>
+          <text y="32" font-size="9" fill="#5C5447">Condensation Level</text>
+        </g>
+        <text x="20" y="100" font-size="36" font-weight="200" fill="#2C2A26" letter-spacing="-1.5">1 240</text>
+        <text x="116" y="100" font-size="11" fill="#5C5447">m</text>
+        <text x="20" y="124" font-size="10" fill="#5C5447">Wolkenbasis</text>
+      </g>
+      
+      <!-- 0°C -->
+      <g transform="translate(202, 152)">
+        <rect width="190" height="140" rx="20" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+        <g transform="translate(20, 22)">
+          <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="600">NULLGRADGRENZE</text>
+          <text y="18" font-size="9" fill="#5C5447">Freezing Level</text>
+        </g>
+        <text x="20" y="100" font-size="36" font-weight="200" fill="#2C2A26" letter-spacing="-1.5">2 840</text>
+        <text x="116" y="100" font-size="11" fill="#5C5447">m</text>
+        <text x="20" y="124" font-size="10" fill="#5C5447">über Normalnull</text>
+      </g>
+      
+      <!-- LFC -->
+      <g transform="translate(0, 304)">
+        <rect width="190" height="140" rx="20" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+        <g transform="translate(20, 22)">
+          <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="600">LFC</text>
+          <text y="18" font-size="9" fill="#5C5447">Level of Free</text>
+          <text y="32" font-size="9" fill="#5C5447">Convection</text>
+        </g>
+        <text x="20" y="100" font-size="36" font-weight="200" fill="#2C2A26" letter-spacing="-1.5">2 100</text>
+        <text x="116" y="100" font-size="11" fill="#5C5447">m</text>
+        <text x="20" y="124" font-size="10" fill="#5C5447">Auslösung möglich</text>
+      </g>
+      
+      <!-- Lifted Index -->
+      <g transform="translate(202, 304)">
+        <rect width="190" height="140" rx="20" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+        <g transform="translate(20, 22)">
+          <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="600">LIFTED INDEX</text>
+          <text y="18" font-size="9" fill="#5C5447">LI 500 hPa</text>
+        </g>
+        <text x="20" y="100" font-size="36" font-weight="200" fill="#2C2A26" letter-spacing="-1.5">−2.4</text>
+        <text x="20" y="124" font-size="10" fill="#C97B47" font-weight="500">leicht instabil</text>
+      </g>
+    </g>
+    
+    <!-- Meteorologe interpretation -->
+    <g transform="translate(0, 468)">
+      <rect width="392" height="160" rx="20" fill="#2C2A26"/>
+      
+      <g transform="translate(20, 20)">
+        <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">METEOROLOGE · INTERPRETATION</text>
+        <text y="28" font-size="14" fill="#FFFFFF" font-weight="500">Gewitter-Potenzial nachmittags moderat.</text>
+        
+        <g transform="translate(0, 50)" font-size="11" fill="#D9D0B8">
+          <text>CAPE 820 J/kg + LI −2.4 + dünne CIN-Sperre</text>
+          <text y="16">deuten auf Einzelzellen-Gewitter ab ca. 14 Uhr,</text>
+          <text y="32">wenn die Bodenerwärmung den LFC durchbricht.</text>
+          <text y="56" font-size="10" fill="#A89A7A">Vorsicht für Bergsteiger oberhalb 2 100 m.</text>
+        </g>
+      </g>
+    </g>
+    
+    <!-- Quick actions -->
+    <g transform="translate(0, 656)">
+      <g>
+        <rect width="190" height="44" rx="22" fill="transparent" stroke="#2C2A26"/>
+        <text x="95" y="28" font-size="12" fill="#2C2A26" text-anchor="middle">Sondierung-Verlauf</text>
+      </g>
+      <g transform="translate(202, 0)">
+        <rect width="190" height="44" rx="22" fill="#2C2A26"/>
+        <text x="95" y="28" font-size="12" fill="#F5F1E8" text-anchor="middle" font-weight="500">PDF export</text>
+      </g>
+    </g>
+  </g>
+  
+  <!-- ============ LABEL ============ -->
+  <g transform="translate(80, 1060)">
+    <text font-size="10" fill="#A89A7A" letter-spacing="3" font-weight="500">20 · SKEW-T DIAGRAMM · DESKTOP · SESSION 3/3 · v1.1 FEATURE</text>
+    <text x="1280" font-size="10" fill="#A89A7A" letter-spacing="2" text-anchor="end">Isothermen · Adiabaten · Wind-Barbs · 6 Kennzahlen · Meteorologe-Block</text>
+  </g>
+</svg>

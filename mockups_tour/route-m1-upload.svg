@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 750 1500" font-family="ui-sans-serif, system-ui, -apple-system">
+  <defs>
+    <linearGradient id="bgM1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#F5F1E8"/><stop offset="100%" stop-color="#EDE6D3"/></linearGradient>
+    <linearGradient id="dropM1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FFFDF6"/><stop offset="100%" stop-color="#F8F2E2"/></linearGradient>
+    <linearGradient id="elevM1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#7A9466" stop-opacity="0.5"/><stop offset="100%" stop-color="#7A9466" stop-opacity="0.08"/></linearGradient>
+  </defs>
+  <rect width="750" height="1500" fill="url(#bgM1)"/>
+
+  <!-- status bar -->
+  <g><rect width="750" height="60" fill="#F5F1E8"/>
+    <text x="48" y="38" font-size="16" fill="#2C2A26" font-weight="600">9:41</text>
+    <g transform="translate(600, 22)"><g fill="#2C2A26"><rect x="0" y="14" width="4" height="6" rx="1"/><rect x="7" y="10" width="4" height="10" rx="1"/><rect x="14" y="6" width="4" height="14" rx="1"/><rect x="21" y="2" width="4" height="18" rx="1"/></g><text x="40" y="16" font-size="13" fill="#2C2A26" font-weight="500">5G</text><g transform="translate(74, 4)"><rect width="32" height="14" rx="3" fill="none" stroke="#2C2A26" stroke-width="1.5"/><rect x="2" y="2" width="24" height="10" rx="1" fill="#2C2A26"/><rect x="34" y="4" width="2" height="6" rx="1" fill="#2C2A26"/></g></g>
+  </g>
+  <!-- top bar -->
+  <g transform="translate(0, 60)"><rect width="750" height="92" fill="#FFFFFF"/>
+    <g transform="translate(40, 30)">
+      <g transform="translate(0, 10)" stroke="#2C2A26" stroke-width="2.5" fill="none" stroke-linecap="round"><line x1="0" y1="8" x2="20" y2="8"/><polyline points="7,3 0,8 7,13"/></g>
+      <g transform="translate(48, 0)"><text font-size="11" fill="#A89A7A" letter-spacing="2" font-weight="500">TOURENPLANUNG · SCHRITT 1</text><text y="24" font-size="22" font-weight="500" fill="#2C2A26" letter-spacing="-0.4">Route hochladen</text></g>
+    </g>
+  </g>
+
+  <!-- intro -->
+  <g transform="translate(40, 196)">
+    <text font-size="34" font-weight="300" fill="#2C2A26" letter-spacing="-1">Wetter entlang</text>
+    <text y="40" font-size="34" font-weight="300" fill="#2C2A26" letter-spacing="-1">deiner Route</text>
+    <text y="76" font-size="14.5" fill="#5C5447">Lade deine geplante Tour hoch — Wind, Regen und</text>
+    <text y="98" font-size="14.5" fill="#5C5447">Temperatur an jedem Kilometer, zur Ankunftszeit.</text>
+  </g>
+
+  <!-- dropzone -->
+  <g transform="translate(40, 330)">
+    <rect width="670" height="300" rx="20" fill="url(#dropM1)" stroke="#E0D6BE"/>
+    <rect x="16" y="16" width="638" height="268" rx="14" fill="none" stroke="#C4B896" stroke-width="2" stroke-dasharray="7 7"/>
+    <g transform="translate(287, 54)">
+      <path d="M 22 48 Q 7 48 7 33 Q 7 18 22 18 Q 24 -2 47 -2 Q 67 -6 77 10 Q 90 4 102 16 Q 122 18 122 34 Q 122 48 107 48 Z" transform="translate(-4 4) scale(0.82)" fill="#EDE6D3" stroke="#C4B896" stroke-width="2" stroke-linejoin="round"/>
+      <line x1="42" y1="38" x2="42" y2="68" stroke="#C97B47" stroke-width="2.8" stroke-linecap="round"/>
+      <path d="M 33 46 L 42 37 L 51 46" fill="none" stroke="#C97B47" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="6" cy="60" r="2.6" fill="#7A9466"/><circle cx="78" cy="64" r="2.6" fill="#7A9466"/><path d="M 6 60 Q 28 72 78 64" fill="none" stroke="#7A9466" stroke-width="1.6" stroke-linecap="round" opacity="0.6"/>
+    </g>
+    <text x="335" y="186" font-size="21" font-weight="600" fill="#2C2A26" text-anchor="middle">Strecke antippen</text>
+    <g transform="translate(245, 206)"><rect width="180" height="44" rx="22" fill="#C97B47"/><text x="90" y="29" font-size="15" font-weight="600" fill="#FFFFFF" text-anchor="middle">Datei auswählen</text></g>
+    <text x="335" y="278" font-size="12.5" fill="#8B7355" letter-spacing="0.4" text-anchor="middle">GPX · TCX · FIT · KML · KMZ · max. 25 MB</text>
+  </g>
+
+  <!-- formats -->
+  <g transform="translate(40, 660)">
+    <rect width="670" height="320" rx="20" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    <g transform="translate(32, 34)">
+      <text font-size="11" fill="#A89A7A" letter-spacing="2" font-weight="500">UNTERSTÜTZTE FORMATE</text>
+      <g transform="translate(0, 26)" font-size="14" fill="#2C2A26">
+        <g><rect width="52" height="26" rx="7" fill="#F0F4EA"/><text x="26" y="18" font-size="11" fill="#7A9466" text-anchor="middle" font-weight="600">GPX</text><text x="68" y="18">Komoot, Strava, Garmin, Wikiloc</text></g>
+        <g transform="translate(0, 46)"><rect width="52" height="26" rx="7" fill="#F0F4EA"/><text x="26" y="18" font-size="11" fill="#7A9466" text-anchor="middle" font-weight="600">TCX</text><text x="68" y="18">Garmin Training Center</text></g>
+        <g transform="translate(0, 92)"><rect width="52" height="26" rx="7" fill="#F0F4EA"/><text x="26" y="18" font-size="11" fill="#7A9466" text-anchor="middle" font-weight="600">FIT</text><text x="68" y="18">Garmin- &amp; Wahoo-Geräte (binär)</text></g>
+        <g transform="translate(0, 138)"><rect width="52" height="26" rx="7" fill="#EFE6D2"/><text x="26" y="18" font-size="11" fill="#8B7355" text-anchor="middle" font-weight="600">KML</text><text x="68" y="18">Google Earth</text></g>
+        <g transform="translate(0, 184)"><rect width="52" height="26" rx="7" fill="#EFE6D2"/><text x="26" y="18" font-size="11" fill="#8B7355" text-anchor="middle" font-weight="600">KMZ</text><text x="68" y="18">Google Earth (gezippt)</text></g>
+      </g>
+      <line x1="0" y1="244" x2="606" y2="244" stroke="#E0D6BE" stroke-width="0.5"/>
+      <text y="268" font-size="12.5" fill="#8B7355">Max. 25 MB · DE · AT · CH · keine Tracker</text>
+    </g>
+  </g>
+
+  <!-- parsed preview -->
+  <g transform="translate(40, 1010)">
+    <rect width="670" height="380" rx="20" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    <g transform="translate(28, 28)">
+      <rect width="54" height="30" rx="8" fill="#C97B47"/><text x="27" y="20" font-size="12" fill="#FFFFFF" text-anchor="middle" font-weight="700">GPX</text>
+      <text x="68" y="14" font-size="15" fill="#2C2A26" font-weight="500">de-hilly-schauinsland.gpx</text>
+      <text x="68" y="33" font-size="11.5" fill="#8B7355">11 kB · Tier 1 · 161 Trackpunkte</text>
+    </g>
+    <line x1="28" y1="80" x2="642" y2="80" stroke="#E0D6BE" stroke-width="0.5"/>
+    <g transform="translate(28, 104)">
+      <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">FREIBURG–SCHAUINSLAND</text>
+      <g transform="translate(0, 22)">
+        <g><text font-size="9.5" fill="#A89A7A" letter-spacing="1">DISTANZ</text><text y="26" font-size="24" fill="#2C2A26" font-weight="500">9,7</text><text x="48" y="26" font-size="13" fill="#5C5447">km</text></g>
+        <g transform="translate(210,0)"><text font-size="9.5" fill="#A89A7A" letter-spacing="1">AUFSTIEG</text><text y="26" font-size="24" fill="#2C2A26" font-weight="500">996</text><text x="62" y="26" font-size="13" fill="#5C5447">hm</text></g>
+        <g transform="translate(420,0)"><text font-size="9.5" fill="#A89A7A" letter-spacing="1">W-PUNKTE</text><text y="26" font-size="24" fill="#2C2A26" font-weight="500">23</text></g>
+        <g transform="translate(0,66)"><text font-size="9.5" fill="#A89A7A" letter-spacing="1">HÖCHSTER</text><text y="26" font-size="24" fill="#2C2A26" font-weight="500">1279</text><text x="74" y="26" font-size="13" fill="#5C5447">m</text></g>
+        <g transform="translate(210,66)"><text font-size="9.5" fill="#A89A7A" letter-spacing="1">TIEFSTER</text><text y="26" font-size="24" fill="#2C2A26" font-weight="500">283</text><text x="52" y="26" font-size="13" fill="#5C5447">m</text></g>
+        <g transform="translate(420,66)"><text font-size="9.5" fill="#A89A7A" letter-spacing="1">GELÄNDE</text><text y="26" font-size="17" fill="#2C2A26" font-weight="500">alpin</text></g>
+      </g>
+      <!-- elevation -->
+      <g transform="translate(0, 184)">
+        <text font-size="9.5" fill="#A89A7A" letter-spacing="1.5">HÖHENPROFIL</text>
+        <g transform="translate(0, 12)"><rect width="614" height="90" rx="12" fill="#FAF6EA" stroke="#E0D6BE"/>
+          <g transform="translate(14, 10)">
+            <path d="M 0 66 L 80 62 L 160 54 L 240 46 L 320 38 L 400 28 L 480 18 L 560 10 L 586 6 L 586 70 L 0 70 Z" fill="url(#elevM1)"/>
+            <path d="M 0 66 L 80 62 L 160 54 L 240 46 L 320 38 L 400 28 L 480 18 L 560 10 L 586 6" fill="none" stroke="#7A9466" stroke-width="2"/>
+            <circle cx="0" cy="66" r="4" fill="#2C2A26"/><circle cx="586" cy="6" r="4" fill="#C97B47"/>
+          </g>
+          <g font-size="9" fill="#A89A7A" transform="translate(14, 86)"><text x="0">0 km</text><text x="586" text-anchor="end">9,7 km</text></g>
+        </g>
+      </g>
+    </g>
+  </g>
+
+  <g transform="translate(40, 1456)"><text font-size="11" fill="#A89A7A" letter-spacing="3" font-weight="500">RP-M1 · MOBILE UPLOAD · 375 px</text></g>
+</svg>

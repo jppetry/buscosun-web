@@ -1,0 +1,245 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 940" font-family="ui-sans-serif, system-ui, -apple-system">
+  <defs>
+    <linearGradient id="bgR3" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F5F1E8"/><stop offset="100%" stop-color="#EDE6D3"/>
+    </linearGradient>
+    <linearGradient id="mapR3" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#E8DFC4"/><stop offset="100%" stop-color="#D4C8A3"/>
+    </linearGradient>
+    <linearGradient id="windFlowR3" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#8B7355" stop-opacity="0"/><stop offset="50%" stop-color="#8B7355" stop-opacity="0.6"/><stop offset="100%" stop-color="#8B7355" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="pulseR3"><stop offset="0%" stop-color="#C97B47" stop-opacity="0.35"/><stop offset="100%" stop-color="#C97B47" stop-opacity="0"/></radialGradient>
+    <radialGradient id="riskR3"><stop offset="0%" stop-color="#A85E2E" stop-opacity="0.4"/><stop offset="100%" stop-color="#A85E2E" stop-opacity="0"/></radialGradient>
+    <pattern id="topoR3" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse">
+      <path d="M 0 50 Q 25 25 50 50 T 100 50" stroke="#C4B896" stroke-width="0.5" fill="none" opacity="0.4"/>
+      <path d="M 0 72 Q 25 52 50 72 T 100 72" stroke="#C4B896" stroke-width="0.4" fill="none" opacity="0.3"/>
+    </pattern>
+    <clipPath id="mapClipR3"><rect width="860" height="800" rx="20"/></clipPath>
+  </defs>
+
+  <rect width="1440" height="940" fill="url(#bgR3)"/>
+
+  <!-- ============ TOP NAV ============ -->
+  <g>
+    <g transform="translate(32, 24)">
+      <circle cx="14" cy="14" r="6" fill="#2C2A26"/>
+      <g stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round">
+        <line x1="14" y1="0" x2="14" y2="3"/><line x1="14" y1="25" x2="14" y2="28"/><line x1="0" y1="14" x2="3" y2="14"/><line x1="25" y1="14" x2="28" y2="14"/>
+        <line x1="4" y1="4" x2="6" y2="6"/><line x1="22" y1="22" x2="24" y2="24"/><line x1="4" y1="24" x2="6" y2="22"/><line x1="22" y1="6" x2="24" y2="4"/>
+      </g>
+      <text x="42" y="20" font-size="18" font-weight="500" fill="#2C2A26" letter-spacing="-0.5">buscosun</text>
+    </g>
+    <g transform="translate(200, 30)" font-size="13" fill="#5C5447">
+      <text>Tourenplanung</text><text x="110" fill="#A89A7A">·</text><text x="124" fill="#2C2A26" font-weight="500">Freiburg–Schauinsland</text>
+    </g>
+    <g transform="translate(740, 18)" font-size="12">
+      <g><text x="30" y="25" fill="#5C5447" text-anchor="middle">Karte</text></g>
+      <g transform="translate(64, 0)"><rect width="60" height="40" rx="20" fill="#2C2A26"/><text x="30" y="25" fill="#F5F1E8" text-anchor="middle" font-weight="500">Route</text></g>
+      <g transform="translate(128, 0)"><text x="28" y="25" fill="#5C5447" text-anchor="middle">Event</text></g>
+      <g transform="translate(188, 0)"><text x="42" y="25" fill="#5C5447" text-anchor="middle">Tagesablauf</text></g>
+    </g>
+    <g transform="translate(1314, 18)"><rect width="40" height="40" rx="20" fill="#FFFFFF" stroke="#D9D0B8" stroke-width="0.5"/><circle cx="20" cy="20" r="7" fill="#7A9466"/><text x="20" y="24" font-size="9" fill="#FFFFFF" text-anchor="middle" font-weight="500">JS</text></g>
+  </g>
+
+  <!-- ============ MAP (LEFT 2/3) ============ -->
+  <g transform="translate(32, 76)">
+    <g clip-path="url(#mapClipR3)">
+      <rect width="860" height="800" fill="url(#mapR3)"/>
+      <rect width="860" height="800" fill="url(#topoR3)"/>
+      <!-- terrain ridges (Schwarzwald) -->
+      <g opacity="0.45">
+        <path d="M 0 520 Q 120 430 280 470 T 560 450 T 860 500 L 860 560 L 0 560 Z" fill="#B8A480" opacity="0.5"/>
+        <path d="M 0 600 Q 140 510 320 550 T 640 540 T 860 580 L 860 660 L 0 660 Z" fill="#A89472" opacity="0.6"/>
+      </g>
+      <!-- river Dreisam -->
+      <g opacity="0.4" stroke="#7A9CB8" stroke-width="2.5" fill="none" stroke-linecap="round"><path d="M 60 150 Q 220 165 400 150 T 760 140"/></g>
+      <!-- city labels -->
+      <g font-size="10.5" fill="#5C5447" font-weight="500">
+        <text x="150" y="120">Freiburg im Breisgau</text><text x="360" y="300">Günterstal</text><text x="250" y="430">Horben</text><text x="560" y="540">Bohrer</text><text x="600" y="700">St. Ulrich</text><text x="470" y="660">Schauinsland</text>
+      </g>
+      <!-- wind streamlines -->
+      <g opacity="0.7">
+        <path d="M 30 90 Q 220 80 430 100 T 830 110" stroke="url(#windFlowR3)" stroke-width="2" fill="none"/>
+        <path d="M 10 200 Q 220 190 430 210 T 830 220" stroke="url(#windFlowR3)" stroke-width="1.5" fill="none"/>
+        <path d="M 40 320 Q 240 310 440 330 T 840 340" stroke="url(#windFlowR3)" stroke-width="1.2" fill="none"/>
+      </g>
+
+      <!-- THE ROUTE -->
+      <path d="M 200 150 Q 280 230 340 300 Q 400 370 420 440 Q 440 520 500 580 Q 540 620 560 670"
+            stroke="#FFFFFF" stroke-width="8" fill="none" stroke-linecap="round"/>
+      <path d="M 200 150 Q 280 230 340 300 Q 400 370 420 440 Q 440 520 500 580 Q 540 620 560 670"
+            stroke="#C97B47" stroke-width="4" fill="none" stroke-linecap="round"/>
+
+      <!-- bearing wind arrows -->
+      <g>
+        <g transform="translate(255, 215)" stroke="#7A9466" fill="#7A9466"><line x1="0" y1="0" x2="14" y2="-3" stroke-width="2.4" stroke-linecap="round"/><polygon points="14,-3 10,-7 10,1"/></g>
+        <g transform="translate(380, 350)" stroke="#7A9466" fill="#7A9466"><line x1="0" y1="0" x2="14" y2="-2" stroke-width="2.4" stroke-linecap="round"/><polygon points="14,-2 10,-6 10,2"/></g>
+        <g transform="translate(440, 470)" stroke="#C97B47" fill="#C97B47"><line x1="0" y1="0" x2="0" y2="-16" stroke-width="2.4" stroke-linecap="round"/><polygon points="0,-16 -4,-11 4,-11"/></g>
+        <g transform="translate(515, 600)" stroke="#A85E2E" fill="#A85E2E"><line x1="0" y1="0" x2="-15" y2="-4" stroke-width="2.8" stroke-linecap="round"/><polygon points="-15,-4 -11,-8 -11,0"/></g>
+      </g>
+
+      <!-- weather markers along route (white pills with cloud glyph) -->
+      <g>
+        <g transform="translate(300, 262)"><circle r="13" fill="#FFFFFF" stroke="#E0D6BE"/><g transform="translate(-7,-5)" stroke="#6B7A8F" stroke-width="1.3" fill="none"><path d="M 3 8 a3.4 3.4 0 0 1 .3 -6.7 4.2 4.2 0 0 1 8 1.2 3 3 0 0 1 -1 5.5 Z"/></g></g>
+        <g transform="translate(415, 415)"><circle r="13" fill="#FFFFFF" stroke="#E0D6BE"/><g transform="translate(0,0)" stroke="#D4A373" stroke-width="1.3" fill="none"><circle r="4"/><path d="M0 -7 v2 M0 5 v2 M-7 0 h2 M5 0 h2" stroke-linecap="round"/></g></g>
+        <g transform="translate(500, 560)"><circle r="13" fill="#FFFFFF" stroke="#E0D6BE"/><g transform="translate(-7,-5)" stroke="#6B7A8F" stroke-width="1.3" fill="none"><path d="M 3 8 a3.4 3.4 0 0 1 .3 -6.7 4.2 4.2 0 0 1 8 1.2 3 3 0 0 1 -1 5.5 Z"/></g></g>
+      </g>
+
+      <!-- break marker (hut) -->
+      <g transform="translate(500, 580)">
+        <rect x="-3" y="-3" width="7" height="7" rx="1.5" fill="#C6633B"/>
+        <g transform="translate(0, -22)"><rect x="-58" width="116" height="20" rx="10" fill="#FFFFFF" stroke="#C6633B" stroke-width="1"/><text y="14" font-size="10" fill="#A85E2E" text-anchor="middle" font-weight="600">PAUSE · GIPFELHÜTTE</text></g>
+      </g>
+
+      <!-- START pin -->
+      <g transform="translate(200, 150)">
+        <circle r="10" fill="#2C2A26"/><circle r="4" fill="#FFFFFF"/>
+        <g transform="translate(0, -22)"><rect x="-34" width="68" height="20" rx="10" fill="#FFFFFF" stroke="#2C2A26" stroke-width="1"/><text y="14" font-size="10" fill="#2C2A26" text-anchor="middle" font-weight="600">START · 08:00</text></g>
+      </g>
+
+      <!-- WINDBÖEN risk near summit -->
+      <g transform="translate(560, 670)">
+        <circle r="20" fill="url(#riskR3)"/>
+        <circle r="13" fill="#FFFFFF" stroke="#A85E2E" stroke-width="2"/>
+        <path d="M -4 -4 L 4 4 M 4 -4 L -4 4" stroke="#A85E2E" stroke-width="1.6" stroke-linecap="round"/>
+        <g transform="translate(0, -32)"><rect x="-86" width="172" height="22" rx="11" fill="#A85E2E"/><text y="15" font-size="10" fill="#FFFFFF" text-anchor="middle" font-weight="600" letter-spacing="0.4">WINDBÖEN 57 km/h · KM 9,7</text></g>
+      </g>
+
+      <!-- SCRUBBER pin -->
+      <g transform="translate(440, 470)">
+        <circle r="26" fill="url(#pulseR3)"/><circle r="11" fill="#C97B47"/><circle r="4.5" fill="#FFFFFF"/>
+        <g transform="translate(0, -26)"><rect x="-30" width="60" height="20" rx="10" fill="#C97B47"/><text y="14" font-size="10" fill="#FFFFFF" text-anchor="middle" font-weight="600">16:03</text></g>
+      </g>
+    </g>
+
+    <!-- floating: live indicator -->
+    <g transform="translate(16, 16)"><rect width="170" height="34" rx="17" fill="#FFFFFF" opacity="0.95"/><circle cx="20" cy="17" r="4" fill="#7A9466"/><circle cx="20" cy="17" r="7" fill="#7A9466" opacity="0.3"/><text x="34" y="21" font-size="11" fill="#2C2A26" font-weight="500">Live · Lauf 11:00 UTC</text></g>
+    <!-- sources -->
+    <g transform="translate(16, 58)"><rect width="320" height="30" rx="15" fill="#FFFFFF" opacity="0.92"/><text x="14" y="19" font-size="10" fill="#5C5447">DE — live · höhenkorrigiert · 11 Punkte Radar-Nowcast</text></g>
+    <!-- layer rail -->
+    <g transform="translate(780, 16)">
+      <rect width="64" height="206" rx="14" fill="#FFFFFF" opacity="0.95"/>
+      <text x="32" y="18" font-size="8" fill="#A89A7A" text-anchor="middle" letter-spacing="1.5" font-weight="600">LAYER</text>
+      <g transform="translate(8, 26)"><rect width="48" height="44" rx="11" fill="#2C2A26"/><g transform="translate(10,16)" stroke="#F5F1E8" stroke-width="1.4" fill="none" stroke-linecap="round"><path d="M 0 0 Q 14 -5 28 0"/><path d="M 0 6 Q 14 1 28 6"/><path d="M 0 12 Q 14 7 28 12"/></g><text x="24" y="40" font-size="7.5" fill="#FFFFFF" text-anchor="middle" font-weight="600">Wind</text></g>
+      <g transform="translate(8, 78)"><rect width="48" height="44" rx="11" fill="#F5F1E8"/><g transform="translate(14,12)" stroke="#5C5447" stroke-width="1.4" stroke-linecap="round"><line x1="2" y1="2" x2="2" y2="10"/><line x1="10" y1="4" x2="10" y2="14"/><line x1="18" y1="2" x2="18" y2="10"/></g><text x="24" y="40" font-size="7.5" fill="#5C5447" text-anchor="middle">Regen</text></g>
+      <g transform="translate(8, 130)"><rect width="48" height="44" rx="11" fill="#FAEEDA" stroke="#C97B47"/><text x="24" y="26" font-size="15" fill="#C97B47" text-anchor="middle" font-weight="700">▲</text><text x="24" y="40" font-size="7.5" fill="#A85E2E" text-anchor="middle" font-weight="600">Föhn</text></g>
+    </g>
+    <!-- scale + compass -->
+    <g transform="translate(16, 730)"><rect width="190" height="54" rx="14" fill="#FFFFFF" opacity="0.9"/>
+      <g transform="translate(28, 27)"><circle r="17" fill="none" stroke="#D9D0B8"/><line x1="0" y1="-12" x2="0" y2="-3" stroke="#2C2A26" stroke-width="2" stroke-linecap="round"/><line x1="0" y1="12" x2="0" y2="3" stroke="#8B7355" stroke-width="1.5"/><text y="-12" font-size="7.5" fill="#2C2A26" text-anchor="middle" font-weight="700">N</text></g>
+      <g transform="translate(70, 22)"><line x1="0" y1="12" x2="90" y2="12" stroke="#2C2A26" stroke-width="1.5"/><line x1="0" y1="8" x2="0" y2="16" stroke="#2C2A26" stroke-width="1.5"/><line x1="90" y1="8" x2="90" y2="16" stroke="#2C2A26" stroke-width="1.5"/><text x="0" y="30" font-size="8.5" fill="#5C5447">0</text><text x="90" y="30" font-size="8.5" fill="#5C5447" text-anchor="end">5 km</text></g>
+    </g>
+    <!-- zoom -->
+    <g transform="translate(780, 716)"><rect width="64" height="68" rx="14" fill="#FFFFFF" opacity="0.95"/><line x1="22" y1="24" x2="42" y2="24" stroke="#2C2A26" stroke-width="2" stroke-linecap="round"/><line x1="32" y1="14" x2="32" y2="34" stroke="#2C2A26" stroke-width="2" stroke-linecap="round"/><line x1="20" y1="44" x2="44" y2="44" stroke="#E0D6BE"/><line x1="22" y1="56" x2="42" y2="56" stroke="#2C2A26" stroke-width="2" stroke-linecap="round"/></g>
+  </g>
+
+  <!-- ============ FORECAST PANEL (RIGHT 1/3) ============ -->
+  <g transform="translate(908, 76)">
+    <rect width="500" height="800" rx="20" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+
+    <!-- tour head -->
+    <g transform="translate(24, 24)">
+      <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">TOUR · BERGWANDERN</text>
+      <text y="26" font-size="20" font-weight="500" fill="#2C2A26" letter-spacing="-0.4">Freiburg–Schauinsland</text>
+      <text y="46" font-size="11" fill="#8B7355">Sa 14.06. · 08:00 → 19:51 · 6 h 08 min · 9,7 km</text>
+      <g transform="translate(386, 6)">
+        <g><circle r="14" fill="#F5F1E8"/><g transform="translate(-5,-6)" stroke="#5C5447" stroke-width="1.5" fill="none"><path d="M 0 0 L 0 12 L 5 8 L 10 12 L 10 0 Z"/></g></g>
+        <g transform="translate(34, 0)"><circle r="14" fill="#F5F1E8"/><g transform="translate(-5,-6)" stroke="#5C5447" stroke-width="1.5" fill="none" stroke-linecap="round"><circle cx="2" cy="2" r="2"/><circle cx="8" cy="6" r="2"/><circle cx="2" cy="10" r="2"/><line x1="4" y1="3" x2="6" y2="5"/><line x1="4" y1="9" x2="6" y2="7"/></g></g>
+        <g transform="translate(68, 0)"><circle r="14" fill="#F5F1E8"/><g transform="translate(-6,-6)" stroke="#5C5447" stroke-width="1.5" fill="none" stroke-linecap="round"><path d="M 10 2 A 5 5 0 1 1 5 2"/><polyline points="10,0 10,3 7,3"/></g></g>
+      </g>
+    </g>
+
+    <!-- confidence strip -->
+    <g transform="translate(24, 92)">
+      <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">WETTER ENTLANG · VERLÄSSLICHKEIT</text>
+      <g transform="translate(0, 14)">
+        <!-- card template -->
+        <g transform="translate(0, 0)">
+          <rect width="106" height="138" rx="14" fill="#FAF6EA" stroke="#E0D6BE"/>
+          <text x="10" y="20" font-size="11" fill="#2C2A26" font-weight="700">0,0 km</text><text x="96" y="20" font-size="9" fill="#8B7355" text-anchor="end">08:00</text>
+          <g transform="translate(53, 44)" stroke="#D4A373" stroke-width="1.5" fill="none"><circle r="7"/><path d="M0 -11 v2.5 M0 9 v2.5 M-11 0 h2.5 M9 0 h2.5" stroke-linecap="round"/></g>
+          <text x="10" y="84" font-size="20" fill="#2C2A26" font-weight="700">17°</text><text x="58" y="84" font-size="12" fill="#8B7355">17°</text>
+          <g transform="translate(18, 100)"><circle r="11" fill="none" stroke="#7A9466" stroke-width="3.5" opacity="0.2"/><circle r="11" fill="none" stroke="#7A9466" stroke-width="3.5" stroke-dasharray="55 100" transform="rotate(-90)" stroke-linecap="round"/><path d="M-4 0 L-1 3 L4.5 -4" stroke="#7A9466" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></g>
+          <text x="36" y="104" font-size="11" fill="#3F5E2F" font-weight="700">79 %</text>
+          <g transform="translate(10, 116)"><rect width="86" height="16" rx="8" fill="#EDE6D3"/><text x="43" y="11.5" font-size="8.5" fill="#5C5447" text-anchor="middle" font-weight="600">leicht bewölkt</text></g>
+        </g>
+        <g transform="translate(115, 0)">
+          <rect width="106" height="138" rx="14" fill="#FAF6EA" stroke="#E0D6BE"/>
+          <text x="10" y="20" font-size="11" fill="#2C2A26" font-weight="700">3,5 km</text><text x="96" y="20" font-size="9" fill="#8B7355" text-anchor="end">15:10</text>
+          <g transform="translate(46, 36)" stroke="#6B7A8F" stroke-width="1.5" fill="none"><path d="M 3 8 a3.4 3.4 0 0 1 .3 -6.7 4.6 4.6 0 0 1 8.7 1.3 3.2 3.2 0 0 1 -1 6 Z"/></g>
+          <text x="10" y="84" font-size="20" fill="#2C2A26" font-weight="700">24°</text><text x="58" y="84" font-size="12" fill="#8B7355">24°</text>
+          <g transform="translate(18, 100)"><circle r="11" fill="none" stroke="#D4A373" stroke-width="3.5" opacity="0.2"/><circle r="11" fill="none" stroke="#D4A373" stroke-width="3.5" stroke-dasharray="40 100" transform="rotate(-90)" stroke-linecap="round"/><path d="M-4.5 -1 q2.2 -2.6 4.5 0 t4.5 0 M-4.5 2.5 q2.2 -2.6 4.5 0 t4.5 0" stroke="#D4A373" stroke-width="1.6" fill="none" stroke-linecap="round"/></g>
+          <text x="36" y="104" font-size="11" fill="#A85E2E" font-weight="700">57 %</text>
+          <g transform="translate(10, 116)"><rect width="86" height="16" rx="8" fill="#EDE6D3"/><text x="43" y="11.5" font-size="8.5" fill="#5C5447" text-anchor="middle" font-weight="600">wechselnd</text></g>
+        </g>
+        <g transform="translate(230, 0)">
+          <rect width="106" height="138" rx="14" fill="#FAF6EA" stroke="#E0D6BE"/>
+          <text x="10" y="20" font-size="11" fill="#2C2A26" font-weight="700">6,6 km</text><text x="96" y="20" font-size="9" fill="#8B7355" text-anchor="end">17:03</text>
+          <g transform="translate(46, 36)" stroke="#6B7A8F" stroke-width="1.5" fill="none"><path d="M 3 8 a3.4 3.4 0 0 1 .3 -6.7 4.6 4.6 0 0 1 8.7 1.3 3.2 3.2 0 0 1 -1 6 Z"/></g>
+          <text x="10" y="84" font-size="20" fill="#2C2A26" font-weight="700">23°</text><text x="58" y="84" font-size="12" fill="#8B7355">22°</text>
+          <g transform="translate(18, 100)"><circle r="11" fill="none" stroke="#D4A373" stroke-width="3.5" opacity="0.2"/><circle r="11" fill="none" stroke="#D4A373" stroke-width="3.5" stroke-dasharray="41 100" transform="rotate(-90)" stroke-linecap="round"/><path d="M-4.5 -1 q2.2 -2.6 4.5 0 t4.5 0 M-4.5 2.5 q2.2 -2.6 4.5 0 t4.5 0" stroke="#D4A373" stroke-width="1.6" fill="none" stroke-linecap="round"/></g>
+          <text x="36" y="104" font-size="11" fill="#A85E2E" font-weight="700">58 %</text>
+          <g transform="translate(10, 116)"><rect width="86" height="16" rx="8" fill="#EDE6D3"/><text x="43" y="11.5" font-size="8.5" fill="#5C5447" text-anchor="middle" font-weight="600">wechselnd</text></g>
+        </g>
+        <g transform="translate(345, 0)">
+          <rect width="106" height="138" rx="14" fill="#FFFFFF" stroke="#C97B47" stroke-width="1.5"/>
+          <text x="10" y="20" font-size="11" fill="#2C2A26" font-weight="700">9,7 km</text><text x="96" y="20" font-size="9" fill="#8B7355" text-anchor="end">19:51</text>
+          <g transform="translate(46, 36)" stroke="#6B7A8F" stroke-width="1.5" fill="none"><path d="M 3 8 a3.4 3.4 0 0 1 .3 -6.7 4.6 4.6 0 0 1 8.7 1.3 3.2 3.2 0 0 1 -1 6 Z"/></g>
+          <text x="10" y="84" font-size="20" fill="#2C2A26" font-weight="700">17°</text><text x="58" y="84" font-size="12" fill="#8B7355">15°</text>
+          <g transform="translate(18, 100)"><circle r="11" fill="none" stroke="#C97B47" stroke-width="3.5" opacity="0.2"/><circle r="11" fill="none" stroke="#C97B47" stroke-width="3.5" stroke-dasharray="26 100" transform="rotate(-90)" stroke-linecap="round"/><path d="M0 -4 v3.5 M0 3.4 v.01" stroke="#C97B47" stroke-width="2" fill="none" stroke-linecap="round"/></g>
+          <text x="36" y="104" font-size="11" fill="#A85E2E" font-weight="700">40 %</text>
+          <g transform="translate(10, 116)"><rect width="86" height="16" rx="8" fill="#d7263d"/><text x="43" y="11.5" font-size="8.5" fill="#FFFFFF" text-anchor="middle" font-weight="600">WINDBÖEN</text></g>
+        </g>
+      </g>
+      <text y="158" font-size="9.5" fill="#8B7355">Ring = Verlässlichkeit · gefühlte Temperatur klein · Pill = Lage / Regen / Warnung</text>
+    </g>
+
+    <!-- stat grid -->
+    <g transform="translate(24, 286)">
+      <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">WETTER · GESAMTE TOUR</text>
+      <g transform="translate(0, 16)">
+        <!-- 2 cols x 4 rows -->
+        <g transform="translate(0,0)"><rect width="222" height="58" rx="14" fill="#FAF6EA" stroke="#E0D6BE"/><text x="14" y="20" font-size="9" fill="#8B7355" letter-spacing="1">TEMPERATUR</text><text x="14" y="40" font-size="17" fill="#2C2A26" font-weight="500">17 – 25,8 °C</text><text x="14" y="52" font-size="9.5" fill="#A89A7A">Ø 22,8 · höhenkorrigiert</text></g>
+        <g transform="translate(232,0)"><rect width="222" height="58" rx="14" fill="#FAF6EA" stroke="#E0D6BE"/><text x="14" y="20" font-size="9" fill="#8B7355" letter-spacing="1">GEFÜHLT</text><text x="14" y="40" font-size="17" fill="#2C2A26" font-weight="500">17 – 25,8 °C</text><text x="14" y="52" font-size="9.5" fill="#A89A7A">Wind-Chill / Hitze-Index</text></g>
+        <g transform="translate(0,66)"><rect width="222" height="58" rx="14" fill="#FAF6EA" stroke="#E0D6BE"/><text x="14" y="20" font-size="9" fill="#8B7355" letter-spacing="1">WIND</text><text x="14" y="40" font-size="17" fill="#2C2A26" font-weight="500">Ø 9,2 m/s</text><text x="14" y="52" font-size="9.5" fill="#A89A7A">max 12,9 m/s · SW</text></g>
+        <g transform="translate(232,66)"><rect width="222" height="58" rx="14" fill="#FFFFFF" stroke="#E6A6A0" stroke-width="1.2"/><text x="14" y="20" font-size="9" fill="#8B7355" letter-spacing="1">MAX BÖEN</text><text x="14" y="40" font-size="17" fill="#2C2A26" font-weight="500">15,7 m/s</text><text x="14" y="52" font-size="9.5" fill="#A85E2E">56,6 km/h · Gipfel</text></g>
+        <g transform="translate(0,132)"><rect width="222" height="58" rx="14" fill="#FAF6EA" stroke="#E0D6BE"/><text x="14" y="20" font-size="9" fill="#8B7355" letter-spacing="1">NIEDERSCHLAG</text><text x="14" y="40" font-size="17" fill="#2C2A26" font-weight="500">0 mm</text><text x="14" y="52" font-size="9.5" fill="#A89A7A">trocken</text></g>
+        <g transform="translate(232,132)"><rect width="222" height="58" rx="14" fill="#FAF6EA" stroke="#E0D6BE"/><text x="14" y="20" font-size="9" fill="#8B7355" letter-spacing="1">BEWÖLKUNG</text><text x="14" y="40" font-size="17" fill="#2C2A26" font-weight="500">57 %</text><text x="14" y="52" font-size="9.5" fill="#A89A7A">wechselnd bewölkt</text></g>
+        <g transform="translate(0,198)"><rect width="222" height="58" rx="14" fill="#FAF6EA" stroke="#E0D6BE"/><text x="14" y="20" font-size="9" fill="#8B7355" letter-spacing="1">UV-INDEX (MAX)</text><text x="14" y="40" font-size="17" fill="#2C2A26" font-weight="500">6</text><g transform="translate(40,28)"><rect width="44" height="16" rx="8" fill="#f46036"/><text x="22" y="11.5" font-size="9" fill="#FFFFFF" text-anchor="middle" font-weight="600">hoch</text></g></g>
+        <g transform="translate(232,198)"><rect width="222" height="58" rx="14" fill="#FAF6EA" stroke="#E0D6BE"/><text x="14" y="20" font-size="9" fill="#8B7355" letter-spacing="1">LUFTFEUCHTE</text><text x="14" y="40" font-size="17" fill="#2C2A26" font-weight="500">46 %</text><text x="14" y="52" font-size="9.5" fill="#A89A7A">Ø über Tour</text></g>
+      </g>
+    </g>
+
+    <!-- warn banner -->
+    <g transform="translate(24, 596)">
+      <rect width="454" height="62" rx="14" fill="#FFEFD4" stroke="#f46036" stroke-width="1"/>
+      <g transform="translate(16, 12)"><rect width="52" height="20" rx="10" fill="#9ec5e5"/><text x="26" y="14" font-size="10" fill="#2C2A26" text-anchor="middle" font-weight="600">MINOR 1</text></g>
+      <text x="16" y="44" font-size="14" fill="#2C2A26" font-weight="500">Windböen</text>
+      <text x="92" y="44" font-size="11" fill="#5C5447">· Amtliche DWD-Warnung · km 0,0 – 9,7 · 10:00 – 20:00</text>
+      <g transform="translate(408, 14)"><rect width="34" height="34" rx="10" fill="rgba(215,38,61,0.1)"/><g transform="translate(7,8)" stroke="#d7263d" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M10 1 L19 17 H1 Z"/><path d="M10 7 v4.5"/><circle cx="10" cy="14.2" r="0.5" fill="#d7263d" stroke="none"/></g></g>
+    </g>
+
+    <!-- föhn banner -->
+    <g transform="translate(24, 668)">
+      <rect width="454" height="62" rx="14" fill="#FAF6EA" stroke="#D4A373" stroke-width="1"/>
+      <g transform="translate(16, 12)"><rect width="64" height="20" rx="10" fill="#D4A373"/><text x="32" y="14" font-size="10" fill="#2C2A26" text-anchor="middle" font-weight="600">FÖHN · 2,4</text></g>
+      <text x="16" y="44" font-size="14" fill="#2C2A26" font-weight="500">Föhn-Lage möglich</text>
+      <text x="142" y="44" font-size="11" fill="#5C5447">· km 7,2 – 9,7 · wärmer &amp; trockener (heuristisch)</text>
+      <g transform="translate(408, 14)"><rect width="34" height="34" rx="10" fill="rgba(201,123,71,0.14)"/><g transform="translate(7,9)" stroke="#A85E2E" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4 h13 a2.2 2.2 0 1 0 -2.2 -2.2"/><path d="M1 9 h16 a2.2 2.2 0 1 1 -2.2 2.2"/><path d="M1 14 h9"/></g></g>
+    </g>
+
+    <!-- action buttons -->
+    <g transform="translate(24, 744)">
+      <g><rect width="150" height="42" rx="21" fill="#2C2A26"/><text x="75" y="27" font-size="13" fill="#F5F1E8" text-anchor="middle" font-weight="500">Als Event</text></g>
+      <g transform="translate(162, 0)"><rect width="140" height="42" rx="21" fill="#F5F1E8" stroke="#D9D0B8"/><text x="70" y="27" font-size="13" fill="#2C2A26" text-anchor="middle">Tagesablauf</text></g>
+      <g transform="translate(314, 0)"><rect width="140" height="42" rx="21" fill="#F5F1E8" stroke="#D9D0B8"/><text x="70" y="27" font-size="13" fill="#2C2A26" text-anchor="middle">Speichern</text></g>
+    </g>
+  </g>
+
+  <!-- ============ LABEL ============ -->
+  <g transform="translate(32, 902)">
+    <text font-size="10" fill="#A89A7A" letter-spacing="3" font-weight="500">RP-03 · ERGEBNIS · KARTE + VORHERSAGE-PANEL · DESKTOP · v1.8</text>
+    <text x="1376" font-size="10" fill="#A89A7A" letter-spacing="2" text-anchor="end">Bearing-Wind · Confidence-Strip · 8 Kennzahlen · Warn-/Föhn-Banner</text>
+  </g>
+</svg>

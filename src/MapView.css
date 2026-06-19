@@ -1,0 +1,1955 @@
+/*
+ * MapView styles — sand-ink design language v1.8
+ * Tokens loaded from src/designTokens.css.
+ *
+ * Layout overview (Desktop)
+ *   Top-left  : back-btn  +  location-label (search bar)
+ *   Top-right : layer-switch row  +  model-switch row  +  sat-product-switch (when sat active)
+ *   Bottom-c. : forecast-slider (24 h scrubber, pill style)
+ *   Bottom-r. : data-badge (sources / model attribution)
+ *   Right side: pfc-panel (point-forecast with Übersicht / Diagramme / Tabelle tabs)
+ *
+ * Mobile (<= 640 px)
+ *   Top bar    : back + location collapse to one row, smaller padding
+ *   Layer/Model: scroll horizontally if needed
+ *   Slider     : narrower width, attached to bottom
+ *   pfc-panel  : becomes a bottom-sheet (slides up from the bottom)
+ */
+
+.map-view {
+  position: relative;
+  height: 100vh;
+  width: 100%;
+  font-family: var(--font-base);
+  color: var(--ink-900);
+}
+
+/* Eingebetteter Modus (Event-Ergebnisseite): füllt den umgebenden Rahmen statt
+   Vollbild; die absolut positionierte Chrome bleibt innerhalb des Rahmens. */
+.map-view-embedded {
+  height: 100%;
+}
+
+.map-container {
+  position: absolute;
+  inset: 0;
+}
+
+/* ============ TOP BAR ============ */
+.map-topbar {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  right: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.back-btn {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  background: var(--surface-glass);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid var(--border-default);
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 0.84rem;
+  font-weight: 500;
+  color: var(--ink-900);
+  cursor: pointer;
+  box-shadow: var(--shadow-card);
+  transition: background 0.15s, border-color 0.15s, transform 0.05s;
+}
+.back-btn:hover {
+  background: var(--cream-50);
+  border-color: var(--border-medium);
+}
+.back-btn:active { transform: translateY(1px); }
+
+/* Permalink-Teilen — gleiche Pillen-Optik wie der Zurück-Button */
+.map-share-btn {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  background: var(--surface-glass);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid var(--border-default);
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 0.84rem;
+  font-weight: 500;
+  color: var(--ink-900);
+  cursor: pointer;
+  box-shadow: var(--shadow-card);
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.05s;
+}
+.map-share-btn:hover { background: var(--cream-50); border-color: var(--terracotta-500); color: var(--terracotta-700, #A85E2E); }
+.map-share-btn:active { transform: translateY(1px); }
+.map-share-btn svg { flex-shrink: 0; }
+
+/* Ort merken (Favorit) — gleiche Pillen-Optik */
+.map-fav-btn {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  background: var(--surface-glass);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid var(--border-default);
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 0.84rem;
+  font-weight: 500;
+  color: var(--ink-900);
+  cursor: pointer;
+  box-shadow: var(--shadow-card);
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.05s;
+}
+.map-fav-btn:hover { background: var(--cream-50); border-color: var(--terracotta-500); }
+.map-fav-btn:active { transform: translateY(1px); }
+.map-fav-btn.is-fav { color: var(--terracotta-500, #C97B47); border-color: var(--terracotta-500, #C97B47); }
+.map-fav-btn svg { flex-shrink: 0; }
+
+.location-label {
+  pointer-events: auto;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  background: var(--surface-glass);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid var(--border-default);
+  border-radius: 999px;
+  padding: 0.6rem 1.1rem 0.6rem 0.95rem;
+  font-size: 0.84rem;
+  font-weight: 500;
+  color: var(--ink-900);
+  box-shadow: var(--shadow-card);
+  min-width: 0;
+}
+.location-label svg { flex-shrink: 0; }
+.location-label-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+/* ============ LAYER RAIL · LINKE SEITE · VERTIKALE ICON-PILLS ============ */
+/* Linke Leisten-Spalte: Layer / Modell / Satellit stapeln sich per Flexbox →
+   selbst-anpassend, KEIN hartkodierter top-Offset mehr (neue Layer brechen nichts). */
+.left-rails {
+  position: absolute;
+  top: 5.7rem;
+  left: 1rem;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  pointer-events: none; /* Lücken zwischen den Leisten blockieren die Karte nicht */
+}
+.left-rails > * { pointer-events: auto; }
+
+.layer-switch {
+  width: 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--surface-glass);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid var(--border-default);
+  border-radius: 28px;
+  padding: 0.55rem 0.5rem 0.7rem;
+  box-shadow: var(--shadow-card);
+  pointer-events: auto;
+}
+/* "LAYER" Eyebrow als ::before des Containers */
+.layer-switch::before {
+  content: 'LAYER';
+  font-size: 0.53rem;
+  letter-spacing: 0.18em;
+  font-weight: 500;
+  color: var(--stone-400);
+  text-align: center;
+  width: 100%;
+  margin-bottom: 0.1rem;
+}
+
+.layer-switch button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: transparent;
+  border: 1px solid var(--border-default);
+  border-radius: 50%;
+  padding: 0;
+  font-family: inherit;
+  color: var(--stone-600);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+.layer-switch button svg {
+  width: 18px;
+  height: 18px;
+}
+.layer-switch button > span {
+  /* Label-Text wird in der vertikalen Rail nicht sichtbar — bleibt für
+     Screenreader und Tooltip-Hover (siehe ::after). */
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+.layer-switch button:hover {
+  background: var(--sand-50);
+  border-color: var(--border-medium);
+  color: var(--ink-900);
+}
+.layer-switch button.active {
+  background: var(--ink-900);
+  border-color: var(--ink-900);
+  color: #fff;
+}
+.layer-switch button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+/* Hover-Erklärung: das frühere Ink-Pillen-Tooltip ist durch das reichere
+   .layer-info-Panel (rechts neben der Rail, mit Legende) ersetzt. */
+.layer-switch-divider { display: none; }
+
+/* ============ LAYER-INFO-PANEL (Hover rechts neben der Rail) ============ */
+.layer-info {
+  position: fixed;
+  z-index: 15;
+  width: 300px;
+  background: var(--cream-50, #FAF6EA);
+  border: 1px solid var(--border-default, #E0D6BE);
+  border-radius: 18px;
+  box-shadow: var(--shadow-float, 0 8px 32px rgba(44, 42, 38, 0.12));
+  padding: 1.05rem 1.15rem 1.1rem;
+  pointer-events: none;
+  animation: layer-info-in 0.12s ease-out;
+}
+@keyframes layer-info-in {
+  from { opacity: 0; transform: translateX(-6px); }
+  to { opacity: 1; transform: none; }
+}
+.layer-info-eyebrow {
+  font-size: 0.64rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--li-accent, var(--stone-500));
+}
+.layer-info-title {
+  margin: 0.2rem 0 0;
+  font-size: 1.18rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--ink-900);
+}
+.layer-info-desc {
+  margin: 0.5rem 0 0;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--stone-600);
+}
+.layer-info-legend { margin-top: 0.85rem; }
+.layer-info .li-bar {
+  height: 13px;
+  border-radius: 6px;
+  border: 1px solid rgba(44, 42, 38, 0.08);
+}
+.layer-info .li-hatch {
+  background-color: var(--sand-50, #F5F1E8);
+  background-image:
+    repeating-linear-gradient(45deg, rgba(44, 42, 38, 0.16) 0 1px, transparent 1px 4px),
+    linear-gradient(90deg, transparent 33%, rgba(44, 42, 38, 0.10) 66%);
+}
+.layer-info .li-scale {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.35rem;
+  font-size: 0.72rem;
+  color: var(--stone-500);
+}
+.layer-info .li-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.82rem;
+  color: var(--stone-600);
+}
+.layer-info .li-snowline {
+  width: 22px; height: 3px; flex: none;
+  border-radius: 2px;
+  background: #1f4fd0;
+  box-shadow: 0 0 0 1.5px #fff;
+}
+.layer-info .li-bolt {
+  width: 12px; height: 12px; flex: none;
+  background: var(--amber-500, #D4A373);
+  clip-path: polygon(58% 0, 8% 58%, 44% 58%, 32% 100%, 92% 38%, 54% 38%);
+}
+.layer-info .li-pin {
+  width: 11px; height: 11px; flex: none;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  background: var(--sage-600, #7A9466);
+}
+.layer-info-src {
+  display: block;
+  margin-top: 0.75rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid var(--sand-100, #EDE6D3);
+  font-size: 0.66rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--stone-400);
+}
+.layer-info-trust {
+  display: block;
+  margin-top: 0.4rem;
+  font-size: 0.66rem;
+  line-height: 1.35;
+  letter-spacing: 0.01em;
+  font-weight: 600;
+  color: var(--sage-600, #5e7a4f);
+}
+@media (max-width: 767px) { .layer-info { display: none; } }
+
+/* ============ MODELL RAIL · UNTER LAYER-RAIL ============ */
+/*
+ * Country-Chip-Rail: drei Flag-Chips (DE/AT/CH) statt direkter Modell-Buttons.
+ * Klick auf einen Chip öffnet ein Popover mit den verfügbaren Modellen für
+ * dieses Land plus Kurzbeschreibung. Sand-Ink-Designsprache:
+ *   – Rail: kreamfarbene Glas-Oberfläche mit Eyebrow „MODELL"
+ *   – Home-Chip (=location.country): subtiler sand-100 Hintergrund + Punkt
+ *   – Aktiver / offener Chip: ink-900 gefüllt
+ *   – Popover: cream-white Karte, links angeflanscht ans Rail
+ */
+.model-rail {
+  /* In-flow im .left-rails-Flexstack → automatisch unter dem Layer-Rail. */
+  width: 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--surface-glass);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid var(--border-default);
+  border-radius: 28px;
+  padding: 0.55rem 0.5rem 0.7rem;
+  box-shadow: var(--shadow-card);
+  pointer-events: auto;
+}
+.model-rail::before {
+  content: 'MODELL';
+  font-size: 0.53rem;
+  letter-spacing: 0.18em;
+  font-weight: 500;
+  color: var(--stone-400);
+  text-align: center;
+  width: 100%;
+  margin-bottom: 0.1rem;
+}
+.model-rail-chip {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  background: transparent;
+  border: 1px solid var(--border-default);
+  border-radius: 14px;
+  padding: 0;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.15s;
+  line-height: 1;
+}
+.model-rail-chip:hover {
+  background: var(--sand-50);
+  border-color: var(--border-medium);
+  transform: translateY(-1px);
+}
+.model-rail-chip .flag {
+  font-size: 1.05rem;
+  margin-bottom: 1px;
+  /* Emoji-Flag-Glyphs sind farbig — bei .open invertieren wir gar nicht,
+     da sie auch auf dunklem Hintergrund noch klar lesbar bleiben. */
+}
+.model-rail-chip .code {
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--stone-600);
+}
+/* Home-Chip: subtiler sand-Backing + kleiner Akzent-Punkt */
+.model-rail-chip.home {
+  background: var(--sand-50);
+  border-color: var(--sand-200);
+}
+.model-rail-chip.home .code { color: var(--ink-800); }
+.model-rail-chip .home-dot {
+  position: absolute;
+  top: 5px;
+  right: 6px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--terracotta-500);
+}
+/* Offener Chip: ink-900 gefüllt — analog zur Active-Logik im Layer-Rail */
+.model-rail-chip.open {
+  background: var(--ink-900);
+  border-color: var(--ink-900);
+}
+.model-rail-chip.open .code { color: #fff; }
+.model-rail-chip.open .home-dot { background: var(--terracotta-300); }
+
+/* -------- POPOVER: erscheint rechts neben dem Country-Rail -------- */
+.model-popover-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 11;
+  background: transparent;
+}
+.model-popover {
+  position: absolute;
+  top: calc(5.7rem + 414px + 0.5rem);
+  left: calc(1rem + 56px + 0.5rem);
+  z-index: 12;
+  width: 280px;
+  max-width: calc(100vw - 2.2rem - 56px);
+  background: var(--cream-50);
+  border: 1px solid var(--border-default);
+  border-radius: 20px;
+  box-shadow: var(--shadow-card-strong, 0 14px 40px rgba(20, 18, 12, 0.18));
+  pointer-events: auto;
+  overflow: hidden;
+  /* Sand-tinted left edge so the popover visually „grows" out of the rail */
+  animation: model-popover-pop 0.16s ease-out;
+}
+@keyframes model-popover-pop {
+  from { opacity: 0; transform: translateX(-6px) scale(0.985); }
+  to   { opacity: 1; transform: translateX(0)   scale(1); }
+}
+.model-popover-header {
+  display: grid;
+  grid-template-columns: 32px 1fr auto;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.85rem 0.9rem 0.65rem;
+  border-bottom: 1px solid var(--sand-100);
+  background: var(--sand-50);
+}
+.model-popover-header .flag {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+.model-popover-header .title-block {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.model-popover-header .eyebrow {
+  font-size: 0.53rem;
+  letter-spacing: 0.18em;
+  font-weight: 500;
+  color: var(--stone-500);
+  text-transform: uppercase;
+}
+.model-popover-header .country-name {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--ink-900);
+  line-height: 1.2;
+  margin-top: 1px;
+}
+.model-popover-header .close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  background: transparent;
+  border: 1px solid var(--border-default);
+  border-radius: 50%;
+  color: var(--stone-600);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  padding: 0;
+}
+.model-popover-header .close:hover {
+  background: var(--sand-100);
+  color: var(--ink-900);
+  border-color: var(--border-medium);
+}
+.model-popover-list {
+  list-style: none;
+  margin: 0;
+  padding: 0.35rem 0.4rem;
+}
+.model-popover-item {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  align-items: flex-start;
+  gap: 0.6rem;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  padding: 0.55rem 0.6rem;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s, border-color 0.15s;
+}
+.model-popover-item:hover {
+  background: var(--sand-50);
+}
+.model-popover-item.active {
+  background: var(--sand-50);
+  border-color: var(--sand-200);
+}
+.model-popover-item .indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: 1.4px solid var(--border-medium);
+  border-radius: 50%;
+  margin-top: 2px;
+  flex-shrink: 0;
+  transition: border-color 0.15s;
+}
+.model-popover-item.active .indicator {
+  border-color: var(--ink-900);
+}
+.model-popover-item .indicator .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ink-900);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.model-popover-item.active .indicator .dot { opacity: 1; }
+.model-popover-item .body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.model-popover-item .model-name {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--ink-900);
+  letter-spacing: -0.005em;
+}
+.model-popover-item .model-desc {
+  font-size: 0.74rem;
+  line-height: 1.35;
+  color: var(--stone-600);
+}
+.model-popover-item.active .model-desc { color: var(--stone-700); }
+
+/* ============ SAT PRODUCT SWITCH · im .left-rails-Stack unter der Modell-Rail ============ */
+.sat-product-switch {
+  /* In-flow im .left-rails-Flexstack → automatisch unter der Modell-Rail. */
+  width: 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.35rem;
+  background: var(--surface-glass);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid var(--border-default);
+  border-radius: 18px;
+  padding: 0.45rem 0.4rem;
+  box-shadow: var(--shadow-card);
+  pointer-events: auto;
+}
+.sat-product-switch::before {
+  content: 'SAT';
+  font-size: 0.5rem;
+  letter-spacing: 0.18em;
+  font-weight: 500;
+  color: var(--stone-400);
+  text-align: center;
+}
+.sat-product-switch button {
+  background: transparent;
+  border: 1px solid var(--border-default);
+  border-radius: 999px;
+  padding: 0.32rem 0.4rem;
+  font-family: inherit;
+  font-size: 0.62rem;
+  font-weight: 500;
+  color: var(--stone-600);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.sat-product-switch button:hover {
+  background: var(--sand-50);
+  border-color: var(--border-medium);
+  color: var(--ink-900);
+}
+.sat-product-switch button.active {
+  background: var(--ink-900);
+  border-color: var(--ink-900);
+  color: #fff;
+}
+
+/* ============ WIND PARTICLE SWITCH (bottom-center, über dem Slider) ============ */
+.wind-particle-switch {
+  position: absolute;
+  left: 50%;
+  bottom: 4.6rem;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: var(--surface-glass);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid var(--border-default);
+  border-radius: 999px;
+  padding: 0.35rem 0.5rem;
+  box-shadow: var(--shadow-card);
+  pointer-events: auto;
+}
+.wind-particle-switch .wpc-modes {
+  display: flex;
+  gap: 0.25rem;
+}
+.wind-particle-switch button {
+  background: transparent;
+  border: 1px solid var(--border-default);
+  border-radius: 999px;
+  padding: 0.3rem 0.7rem;
+  font-family: inherit;
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: var(--stone-600);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.wind-particle-switch button:hover {
+  background: var(--sand-50);
+  border-color: var(--border-medium);
+  color: var(--ink-900);
+}
+.wind-particle-switch button.active {
+  background: var(--ink-900);
+  border-color: var(--ink-900);
+  color: #fff;
+}
+.wind-particle-switch .wpc-density {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding-left: 0.55rem;
+  border-left: 1px solid var(--border-default);
+}
+.wind-particle-switch .wpc-density > span,
+.wind-particle-switch .wpc-levels > span {
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--stone-400);
+}
+.wind-particle-switch .wpc-levels {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding-left: 0.55rem;
+  border-left: 1px solid var(--border-default);
+}
+.wind-particle-switch .wpc-levels > span {
+  margin-right: 0.1rem;
+}
+.wind-particle-switch .wpc-levels button {
+  padding: 0.3rem 0.55rem;
+}
+.wind-particle-switch input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 92px;
+  height: 5px;
+  background: var(--sand-100);
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+}
+.wind-particle-switch input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: var(--ink-900);
+  cursor: pointer;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 5px rgba(44, 42, 38, 0.25);
+}
+.wind-particle-switch input[type="range"]::-moz-range-thumb {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: var(--ink-900);
+  cursor: pointer;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 5px rgba(44, 42, 38, 0.25);
+}
+
+/* ============ FORECAST SLIDER (bottom-center pill) ============ */
+.forecast-slider {
+  position: absolute;
+  left: 50%;
+  bottom: 1.25rem;
+  transform: translateX(-50%);
+  z-index: 10;
+  background: var(--surface-glass-strong);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid var(--border-default);
+  border-radius: 999px;
+  padding: 0.55rem 0.85rem;
+  box-shadow: var(--shadow-float);
+  pointer-events: auto;
+  width: min(620px, calc(100% - 7rem));
+}
+
+.forecast-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.forecast-slider input[type="range"] {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  background: var(--sand-100);
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+}
+.forecast-slider input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--ink-900);
+  cursor: pointer;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 6px rgba(44, 42, 38, 0.25);
+}
+.forecast-slider input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--ink-900);
+  cursor: pointer;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 6px rgba(44, 42, 38, 0.25);
+}
+
+.forecast-now {
+  background: transparent;
+  border: 1px solid var(--border-medium);
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 500;
+  padding: 0.32rem 0.7rem;
+  cursor: pointer;
+  color: var(--stone-600);
+  transition: background 0.15s, color 0.15s;
+}
+.forecast-now:hover:not(:disabled) {
+  background: var(--ink-900);
+  color: #fff;
+  border-color: var(--ink-900);
+}
+.forecast-now:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.forecast-label {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--ink-900);
+  min-width: 130px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.005em;
+}
+
+/* ============ DATA BADGE (bottom-right info pill) ============ */
+.data-badge {
+  position: absolute;
+  bottom: 1.25rem;
+  right: 1.25rem;
+  z-index: 10;
+  background: var(--surface-glass);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid var(--border-default);
+  border-radius: 14px;
+  padding: 0.65rem 0.9rem;
+  font-size: 0.7rem;
+  color: var(--stone-600);
+  box-shadow: var(--shadow-card);
+  pointer-events: auto;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.32rem;
+  line-height: 1.4;
+}
+.data-badge span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.data-badge span::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--sage-600);
+  flex-shrink: 0;
+}
+.data-badge span.err::before {
+  background: var(--terracotta-700);
+}
+
+/* ============ POINT-FORECAST PANEL (right side) ============ */
+.pfc-panel {
+  position: absolute;
+  top: 4.2rem;
+  right: 1rem;
+  z-index: 10;
+  display: flex;
+  align-items: flex-start;
+  pointer-events: auto;
+  font-family: var(--font-base);
+  font-size: 0.78rem;
+  color: var(--ink-900);
+}
+.pfc-toggle {
+  background: var(--surface-glass-strong);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid var(--border-default);
+  border-radius: 12px 0 0 12px;
+  border-right: none;
+  padding: 0.55rem 0.5rem;
+  cursor: pointer;
+  box-shadow: var(--shadow-card);
+  font-family: inherit;
+  font-size: 0.74rem;
+  font-weight: 500;
+  color: var(--stone-600);
+  writing-mode: vertical-rl;
+  letter-spacing: 0.04em;
+  transition: background 0.15s, color 0.15s;
+}
+.pfc-toggle:hover { background: var(--cream-50); color: var(--ink-900); }
+.pfc-closed .pfc-toggle {
+  border-radius: 12px;
+  border-right: 1px solid var(--border-default);
+}
+.pfc-body {
+  background: var(--surface-glass-strong);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--border-default);
+  border-radius: 0 14px 14px 14px;
+  box-shadow: var(--shadow-float);
+  width: 370px;
+  max-height: calc(100vh - 9rem);
+  overflow-x: hidden;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+.pfc-head {
+  padding: 0.85rem 1.1rem;
+  border-bottom: 1px solid var(--border-default);
+}
+.pfc-title {
+  font-size: 0.62rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--stone-400);
+  margin-bottom: 0.2rem;
+}
+.pfc-loc {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--ink-900);
+  letter-spacing: -0.015em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pfc-meta {
+  color: var(--stone-400);
+  font-size: 0.68rem;
+  margin-top: 0.32rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+  font-variant-numeric: tabular-nums;
+}
+.pfc-meta-dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--stone-400);
+}
+.pfc-status {
+  padding: 1rem 1.1rem;
+  color: var(--stone-500);
+  font-size: 0.82rem;
+}
+.pfc-err { color: var(--terracotta-700); }
+
+/* View tabs */
+.pfc-tabs {
+  display: flex;
+  gap: 0.2rem;
+  background: var(--sand-50);
+  border-radius: 999px;
+  padding: 0.25rem;
+  margin: 0.7rem 1.1rem 0.5rem;
+}
+.pfc-tabs button {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-radius: 999px;
+  padding: 0.4rem 0.55rem;
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--stone-500);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.pfc-tabs button:hover { color: var(--ink-900); }
+.pfc-tabs button.active {
+  background: var(--ink-900);
+  color: #fff;
+}
+
+/* Alerts */
+.pfc-alerts {
+  margin: 0.5rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.pfc-alert {
+  color: #fff;
+  border-radius: 12px;
+  padding: 0.55rem 0.7rem;
+  font-size: 0.74rem;
+  line-height: 1.3;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.4);
+}
+.pfc-alert-headline { font-weight: 600; }
+.pfc-alert-instruction {
+  margin-top: 0.18rem;
+  opacity: 0.92;
+  font-size: 0.7rem;
+}
+
+/* Pollen */
+.pfc-pollen {
+  margin: 0.5rem 1.1rem 0.65rem;
+  padding: 0.75rem 0.9rem;
+  background: var(--sand-50);
+  border-radius: 12px;
+}
+/* AT/CH-Pollen Opt-in (Open-Meteo/CAMS) */
+.pfc-optin {
+  margin: 0.5rem 1.1rem 0.65rem;
+  padding: 0.75rem 0.9rem;
+  background: var(--cream-50, #FAF6EA);
+  border: 1px dashed var(--border-medium, #D9D0B8);
+  border-radius: 12px;
+}
+.pfc-optin p { margin: 0.35rem 0 0.6rem; font-size: 0.78rem; line-height: 1.45; color: var(--stone-600, #5C5447); }
+.pfc-optin-btn {
+  font-family: inherit; font-size: 0.8rem; font-weight: 600; cursor: pointer;
+  color: #fff; background: var(--terracotta-500, #C97B47); border: none; border-radius: 999px; padding: 0.45rem 0.9rem;
+}
+.pfc-optin-btn:hover { background: var(--terracotta-700, #A85E2E); }
+.pfc-optin-off {
+  margin-top: 0.6rem; font-family: inherit; font-size: 0.68rem; cursor: pointer;
+  color: var(--stone-500, #8B7355); background: none; border: none; padding: 0; text-decoration: underline;
+}
+.pfc-optin-off:hover { color: var(--terracotta-700, #A85E2E); }
+/* Lawinenlagebericht-Deeplink (alpin) */
+.pfc-avalanche {
+  margin: 0.5rem 1.1rem 0.65rem;
+  padding: 0.75rem 0.9rem;
+  background: var(--sand-50, #F5EFE0);
+  border-left: 3px solid var(--terracotta-500, #C97B47);
+  border-radius: 12px;
+}
+.pfc-av-links { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.5rem 0 0.55rem; }
+.pfc-av-link {
+  font-size: 0.8rem; font-weight: 600; text-decoration: none; white-space: nowrap;
+  color: #fff; background: var(--ink-900, #2C2A26); border-radius: 999px; padding: 0.4rem 0.8rem;
+}
+.pfc-av-link:hover { background: var(--terracotta-500, #C97B47); }
+.pfc-av-link-sec { color: var(--ink-900, #2C2A26); background: var(--cream-50); border: 1px solid var(--border-default, #E0D6BE); }
+.pfc-av-link-sec:hover { background: var(--cream-50); border-color: var(--terracotta-500, #C97B47); color: var(--terracotta-700, #A85E2E); }
+.pfc-av-note { margin: 0; font-size: 0.72rem; line-height: 1.45; color: var(--stone-600, #5C5447); }
+.pfc-pollen-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-bottom: 0.6rem;
+}
+.pfc-pollen-sub {
+  font-size: 0.7rem;
+  color: var(--stone-500);
+}
+.pfc-pollen-region {
+  /* legacy — fallback color when nested in eyebrow text */
+  color: var(--stone-500);
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.pfc-pollen-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.42rem;
+}
+.pfc-pollen-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 0.85rem;
+  font-size: 0.78rem;
+}
+.pfc-pollen-name {
+  color: var(--ink-900);
+  font-weight: 400;
+}
+.pfc-pollen-boxes {
+  display: inline-flex;
+  gap: 0.4rem;
+}
+.pfc-pollen-box {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+}
+.pfc-pollen-severity {
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  min-width: 3rem;
+  text-align: right;
+}
+
+/* Pollen unprominent: unter Übersicht/Diagramme geschoben + standardmäßig
+   eingeklappt auf eine ruhige Einzeiler-Zusammenfassung (v1.8). */
+.pfc-pollen, .pfc-optin { order: 2; }
+.pfc-pollen-collapse {
+  background: transparent;
+  border-top: 1px solid var(--border-default);
+  border-radius: 0;
+  margin: 0;
+  padding: 0.55rem 1.1rem 0.65rem;
+}
+.pfc-pollen-summary {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  cursor: pointer;
+  list-style: none;
+}
+.pfc-pollen-summary::-webkit-details-marker { display: none; }
+.pfc-pollen-summary::after {
+  content: '▾';
+  margin-left: auto;
+  align-self: center;
+  color: var(--stone-400);
+  font-size: 0.7rem;
+  transition: transform 0.15s ease;
+}
+.pfc-pollen-collapse[open] .pfc-pollen-summary::after { transform: rotate(180deg); }
+.pfc-pollen-now {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--stone-500);
+}
+.pfc-pollen-collapse .pfc-pollen-head { margin: 0.55rem 0 0.5rem; }
+
+/* === Overview View (labware-aesthetic per design system) === */
+.pfc-table-wrap {
+  overflow-y: auto;
+  flex: 1;
+  padding: 0.4rem 1.1rem 0.9rem;
+}
+.pfc-ov {
+  display: flex;
+  flex-direction: column;
+  /* zero gap — each .pfc-ov-section provides its own padding, separated by
+     a 1 px hairline. Mirrors the homepage demo-card so the visual language
+     is consistent across surfaces. */
+}
+.pfc-ov-section {
+  padding: 0.85rem 1.1rem;
+  border-bottom: 1px solid var(--border-default);
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+.pfc-ov-section:last-of-type { border-bottom: none; }
+
+/* --- Now block (Display 200 · −2.5 letter-spacing per spec) --- */
+.pfc-ov-temp-row {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+}
+.pfc-ov-temp {
+  font-size: 3.4rem;
+  font-weight: 200;
+  letter-spacing: -0.05em;
+  line-height: 0.85;
+  color: var(--ink-900);
+  font-variant-numeric: tabular-nums;
+}
+.pfc-ov-temp-side {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex: 1;
+  min-width: 0;
+}
+.pfc-ov-cond-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+  min-width: 0;
+}
+.pfc-ov-cond {
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: var(--ink-900);
+  letter-spacing: -0.005em;
+  line-height: 1.1;
+}
+.pfc-ov-minmax {
+  font-size: 0.7rem;
+  color: var(--stone-500);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Vitals row with vertical hairlines --- */
+.pfc-ov-vitals {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0;
+  margin: 0;
+}
+.pfc-ov-vital {
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+  padding: 0;
+  min-width: 0;
+}
+.pfc-ov-vital + .pfc-ov-vital {
+  padding-left: 0.7rem;
+  border-left: 1px solid var(--border-default);
+}
+.pfc-ov-vital dt {
+  font-size: 0.58rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--stone-400);
+  font-weight: 500;
+  margin: 0;
+}
+.pfc-ov-vital dd {
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: var(--ink-900);
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pfc-ov-vital-sub {
+  font-size: 0.62rem;
+  color: var(--stone-500);
+  letter-spacing: 0.01em;
+  margin-top: 0.1rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* --- Confidence --- */
+.pfc-ov-conf-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.pfc-ov-conf-pct {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--ink-900);
+  font-variant-numeric: tabular-nums;
+}
+.pfc-ov-conf-rule {
+  height: 4px;
+  background: var(--sand-100);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.pfc-ov-conf-rule-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.45s ease-out;
+}
+.pfc-ov-conf-meta {
+  font-size: 0.7rem;
+  color: var(--stone-500);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  font-variant-numeric: tabular-nums;
+}
+.pfc-ov-dot-sep {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--stone-400);
+  display: inline-block;
+}
+
+/* --- 6 h sparkline --- */
+.pfc-ov-trend {
+  gap: 0.3rem;
+}
+.pfc-ov-trend-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.pfc-ov-trend-now {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--ink-900);
+  font-variant-numeric: tabular-nums;
+}
+.pfc-ov-trend-svg {
+  display: block;
+  width: 100%;
+  height: 98px;
+  overflow: visible;
+}
+
+/* --- Foot · Quellen mit Run-Stamp --- */
+.pfc-ov-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 0.42rem;
+  padding: 0.95rem 1.1rem 1.1rem;
+  border-top: 1px solid var(--border-default);
+  font-size: 0.72rem;
+  color: var(--stone-600);
+  line-height: 1.45;
+}
+.pfc-ov-foot-line {
+  color: var(--stone-600);
+}
+.pfc-ov-foot-run {
+  margin-top: 0.18rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  color: var(--stone-400);
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+/* === Charts View === */
+.pfc-ch {
+  padding: 0.4rem 1.1rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+.pfc-ch-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+}
+.pfc-ch-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 0.62rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--stone-400);
+}
+.pfc-ch-now {
+  letter-spacing: 0;
+  text-transform: none;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--ink-900);
+  font-variant-numeric: tabular-nums;
+}
+.pfc-ch-svg {
+  display: block;
+  width: 100%;
+  height: 64px;
+  overflow: visible;
+}
+.pfc-ch-axis {
+  font-size: 8px;
+  fill: var(--stone-400);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Charts-Legend (LESEHILFE) */
+.pfc-ch-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 0.32rem;
+  padding-top: 0.6rem;
+  margin-top: 0.4rem;
+  border-top: 1px solid var(--border-default);
+}
+.pfc-ch-legend > .eyebrow {
+  margin-bottom: 0.18rem;
+}
+.pfc-ch-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.74rem;
+  color: var(--stone-600);
+  line-height: 1.3;
+}
+.pfc-ch-legend-swatch {
+  display: inline-block;
+  width: 18px;
+  height: 3px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+/* === Table View === */
+.pfc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+.pfc-table th, .pfc-table td {
+  padding: 0.32rem 0.4rem;
+  text-align: right;
+  border-bottom: 1px solid var(--sand-100);
+  white-space: nowrap;
+  font-size: 0.78rem;
+}
+.pfc-table th {
+  font-size: 0.6rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--stone-400);
+  font-weight: 500;
+  border-bottom: 1px solid var(--border-default);
+  position: sticky;
+  top: 0;
+  background: var(--surface-glass-strong);
+}
+.pfc-table .pfc-t {
+  text-align: left;
+  color: var(--stone-600);
+}
+.pfc-table .pfc-src {
+  text-align: left;
+  color: var(--stone-400);
+  font-size: 0.66rem;
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pfc-nowcast td.pfc-t::before {
+  content: '● ';
+  color: var(--sage-600);
+}
+.pfc-conf {
+  display: inline-block;
+  height: 3px;
+  border-radius: 2px;
+  margin-left: 0.35rem;
+  vertical-align: middle;
+}
+
+/* Tabelle-LESEHILFE (footer) */
+.pfc-tbl-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 0.32rem;
+  padding-top: 0.85rem;
+  margin-top: 0.6rem;
+  border-top: 1px solid var(--border-default);
+}
+.pfc-tbl-legend > .eyebrow {
+  margin-bottom: 0.18rem;
+}
+.pfc-tbl-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.72rem;
+  color: var(--stone-600);
+  line-height: 1.3;
+}
+.pfc-tbl-legend-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--sage-600);
+  flex-shrink: 0;
+}
+.pfc-tbl-legend-bar {
+  display: inline-block;
+  height: 3px;
+  border-radius: 2px;
+  min-width: 8px;
+  flex-shrink: 0;
+}
+.pfc-arrow {
+  display: inline-block;
+  margin-left: 0.25rem;
+  color: var(--stone-500);
+  font-size: 0.75rem;
+}
+
+/* MapLibre-Attribution & Steuerelemente in cream statt Standardweiß (v1.8). */
+.maplibregl-ctrl-attrib {
+  background: var(--surface-glass) !important;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border-top-left-radius: 8px;
+}
+.maplibregl-ctrl-attrib a { color: var(--stone-600); }
+.maplibregl-ctrl-attrib-button { background-color: var(--surface-glass-strong); }
+.maplibregl-ctrl-group {
+  background: var(--surface-glass-strong);
+  border: 1px solid var(--border-default);
+}
+
+/* ============ STATION POPUP ============ */
+.maplibregl-popup-content:has(.sp) {
+  padding: 0.65rem 0.85rem;
+  border-radius: 12px;
+  font-family: var(--font-base);
+  font-size: 0.78rem;
+  border: 1px solid var(--border-default);
+  /* cream-Glas statt maplibre-Standardweiß (v1.8) */
+  background: var(--surface-glass-strong);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  box-shadow: var(--shadow-float);
+}
+/* Popup-Spitze in derselben cream-Fläche (sonst bleibt sie weiß) */
+.maplibregl-popup-anchor-top:has(.sp) .maplibregl-popup-tip,
+.maplibregl-popup-anchor-top-left:has(.sp) .maplibregl-popup-tip,
+.maplibregl-popup-anchor-top-right:has(.sp) .maplibregl-popup-tip { border-bottom-color: var(--surface-glass-strong); }
+.maplibregl-popup-anchor-bottom:has(.sp) .maplibregl-popup-tip,
+.maplibregl-popup-anchor-bottom-left:has(.sp) .maplibregl-popup-tip,
+.maplibregl-popup-anchor-bottom-right:has(.sp) .maplibregl-popup-tip { border-top-color: var(--surface-glass-strong); }
+.maplibregl-popup-anchor-left:has(.sp) .maplibregl-popup-tip { border-right-color: var(--surface-glass-strong); }
+.maplibregl-popup-anchor-right:has(.sp) .maplibregl-popup-tip { border-left-color: var(--surface-glass-strong); }
+.sp-name {
+  font-weight: 500;
+  font-size: 0.88rem;
+  color: var(--ink-900);
+  letter-spacing: -0.01em;
+  margin-bottom: 0.12rem;
+}
+.sp-meta {
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--stone-400);
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid var(--border-default);
+}
+.sp-row {
+  display: flex;
+  justify-content: space-between;
+  margin: 0.18rem 0;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.78rem;
+}
+.sp-l { color: var(--stone-500); }
+.sp-v { color: var(--ink-900); font-weight: 500; }
+.sp-loading {
+  color: var(--stone-400);
+  font-style: italic;
+  font-size: 0.72rem;
+}
+.sp-err {
+  color: var(--terracotta-700);
+  font-size: 0.72rem;
+}
+.sp-stamp {
+  margin-top: 0.55rem;
+  padding-top: 0.4rem;
+  border-top: 1px solid var(--sand-100);
+  font-size: 0.58rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--stone-400);
+}
+
+/* ============ CITY TEMPERATURE LABELS ============ */
+.temp-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+  padding: 0.2rem 0.55rem;
+  background: rgba(44, 42, 38, 0.82);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  color: #fff;
+  border-radius: 999px;
+  font-family: var(--font-base);
+  font-size: 0.7rem;
+  font-weight: 500;
+  line-height: 1.1;
+  white-space: nowrap;
+  pointer-events: none;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  letter-spacing: 0.005em;
+  transform: translateY(-2px);
+}
+.temp-label-name {
+  opacity: 0.82;
+}
+.temp-label-val {
+  font-weight: 700;
+  color: #fff;
+}
+.temp-label-rank-3 {
+  font-size: 0.64rem;
+  padding: 0.16rem 0.45rem;
+  background: rgba(44, 42, 38, 0.72);
+}
+.temp-label-rank-4 {
+  font-size: 0.58rem;
+  padding: 0.13rem 0.38rem;
+  background: rgba(44, 42, 38, 0.64);
+  gap: 0.22rem;
+}
+.temp-label-rank-4 .temp-label-name { opacity: 0.7; }
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 1024px) and (min-width: 768px) {
+  /* Tablet: PFC dockt unten quer als breite Sheet — Layer-Rail bleibt links */
+  .pfc-panel { top: auto; bottom: 1rem; right: 1rem; left: calc(56px + 2rem); }
+  .pfc-toggle { writing-mode: horizontal-tb; border-radius: 12px 12px 0 0; padding: 0.4rem 0.85rem; }
+  .pfc-closed .pfc-toggle { border-radius: 12px; }
+  .pfc-body { width: 100%; border-radius: 14px 0 14px 14px; max-height: 55vh; }
+}
+
+@media (max-width: 767px) {
+  /* Topbar kompakter: nur 36-px Icon-Back + Location-Pill */
+  .map-topbar { top: 0.55rem; left: 0.55rem; right: 0.55rem; gap: 0.4rem; }
+  .back-btn { padding: 0; width: 36px; height: 36px; justify-content: center; font-size: 0; }
+  .back-btn span { display: none; }
+  .back-btn svg { width: 16px; height: 16px; }
+  .location-label { padding: 0.5rem 0.85rem; font-size: 0.78rem; height: 36px; }
+  .location-label svg { width: 12px; height: 14px; }
+
+  /* Leisten-Stack höher + näher an den Rand; schmalere Leisten (48 statt 56) */
+  .left-rails {
+    top: 3.6rem;
+    left: 0.55rem;
+    gap: 0.4rem;
+  }
+  .layer-switch {
+    width: 48px;
+    padding: 0.45rem 0.4rem 0.55rem;
+    gap: 0.4rem;
+    border-radius: 24px;
+  }
+  .layer-switch::before { font-size: 0.5rem; }
+  .layer-switch button { width: 36px; height: 36px; }
+  .layer-switch button svg { width: 16px; height: 16px; }
+  /* Auf Touch-Devices: kein Hover-Tooltip (würde nicht ausgelöst) */
+  .layer-switch button:hover::after,
+  .layer-switch button:hover::before { display: none; }
+
+  /* Modell-Rail (Country-Chips) — Stapelung übernimmt .left-rails, hier nur Größe */
+  .model-rail {
+    width: 48px;
+    padding: 0.45rem 0.35rem 0.55rem;
+    gap: 0.35rem;
+    border-radius: 24px;
+  }
+  .model-rail::before { font-size: 0.5rem; }
+  .model-rail-chip { width: 38px; height: 38px; border-radius: 12px; }
+  .model-rail-chip .flag { font-size: 0.95rem; }
+  .model-rail-chip .code { font-size: 0.52rem; }
+  .model-rail-chip .home-dot { top: 4px; right: 5px; width: 4px; height: 4px; }
+
+  /* Auf Mobile rutscht das Popover als Bottom-Sheet ein */
+  .model-popover {
+    position: fixed;
+    top: auto;
+    left: 0.55rem;
+    right: 0.55rem;
+    bottom: 0.7rem;
+    width: auto;
+    max-width: none;
+    border-radius: 18px 18px 16px 16px;
+    box-shadow: 0 -8px 30px rgba(20, 18, 12, 0.18);
+    animation: model-popover-sheet 0.2s ease-out;
+  }
+  @keyframes model-popover-sheet {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .model-popover-scrim { background: rgba(20, 18, 12, 0.18); }
+  .model-popover-header { padding: 0.7rem 0.85rem 0.55rem; }
+  .model-popover-list { padding: 0.3rem 0.35rem 0.55rem; max-height: 60vh; overflow-y: auto; }
+
+  /* Sat-Switch (wenn sichtbar) — Stapelung übernimmt .left-rails, hier nur Größe */
+  .sat-product-switch {
+    width: 48px;
+    padding: 0.4rem 0.35rem;
+  }
+  .sat-product-switch::before { font-size: 0.48rem; }
+  .sat-product-switch button { font-size: 0.56rem; padding: 0.28rem 0.3rem; }
+
+  /* PFC wird zu FAB rechts unten + Bottom-Sheet wenn offen */
+  .pfc-panel {
+    top: auto;
+    bottom: 4.2rem;
+    right: 0.55rem;
+    left: auto;
+  }
+  .pfc-closed .pfc-toggle {
+    /* Vom Pull-Tab zum FAB-Style */
+    writing-mode: horizontal-tb;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0;
+    background: var(--ink-900);
+    color: #fff;
+    border-color: var(--ink-900);
+  }
+  .pfc-closed .pfc-toggle::before {
+    /* SVG-Icon via Mask — Chart-Line */
+    content: '';
+    width: 18px;
+    height: 18px;
+    background: var(--cream-50);
+    -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><polyline points='2,12 6,7 9,9 13,3'/><circle cx='2' cy='12' r='1.2' fill='black' stroke='none'/><circle cx='13' cy='3' r='1.2' fill='black' stroke='none'/></svg>") center/contain no-repeat;
+    mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><polyline points='2,12 6,7 9,9 13,3'/><circle cx='2' cy='12' r='1.2' fill='black' stroke='none'/><circle cx='13' cy='3' r='1.2' fill='black' stroke='none'/></svg>") center/contain no-repeat;
+  }
+  .pfc-panel:not(.pfc-closed) {
+    /* Wenn offen: Bottom-Sheet full-width */
+    bottom: 0;
+    left: 0;
+    right: 0;
+  }
+  .pfc-panel:not(.pfc-closed) .pfc-toggle {
+    display: none;
+  }
+  .pfc-body {
+    width: 100%;
+    max-height: 70vh;
+    border-radius: 20px 20px 0 0;
+    border-bottom: none;
+  }
+
+  /* Forecast-Slider unten – über dem FAB */
+  .forecast-slider {
+    bottom: 0.7rem;
+    width: calc(100% - 1.5rem - 56px);   /* Raum für FAB rechts */
+    left: 0.55rem;
+    transform: none;
+    padding: 0.5rem 0.7rem;
+  }
+  .forecast-label {
+    min-width: 80px;
+    font-size: 0.7rem;
+  }
+
+  .data-badge { display: none; }
+}
+
+/* Karten-Legenden-Stapel unten rechts (Schleier + Schneegrenze) */
+.map-legends {
+  position: absolute;
+  right: 1rem;
+  bottom: 4.6rem;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: flex-end;
+}
+
+/* Vertrauens-Schleier (ML #1) / Schneegrenze (ML #2) — Legendenbox */
+.confidence-legend {
+  width: 184px;
+  background: var(--surface-glass);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid var(--border-default);
+  border-radius: 14px;
+  padding: 0.55rem 0.65rem;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+}
+.confidence-legend .cl-title {
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--ink-900);
+  margin-bottom: 0.4rem;
+}
+.confidence-legend .cl-scale {
+  display: flex;
+  height: 12px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.confidence-legend .cl-swatch { flex: 1; }
+/* Schraffur-Vorschau: dichter werdendes Kreuzmuster */
+.confidence-legend .cl-sure {
+  background: var(--sand-50, #f5f3ee);
+}
+.confidence-legend .cl-mid {
+  background-color: var(--sand-50, #f5f3ee);
+  background-image:
+    repeating-linear-gradient(45deg, rgba(46, 51, 69, 0.5) 0 1px, transparent 1px 6px),
+    repeating-linear-gradient(-45deg, rgba(46, 51, 69, 0.5) 0 1px, transparent 1px 6px);
+}
+.confidence-legend .cl-unsure {
+  background-color: var(--sand-50, #f5f3ee);
+  background-image:
+    repeating-linear-gradient(45deg, rgba(46, 51, 69, 0.7) 0 1.5px, transparent 1.5px 3.5px),
+    repeating-linear-gradient(-45deg, rgba(46, 51, 69, 0.7) 0 1.5px, transparent 1.5px 3.5px);
+}
+.confidence-legend .cl-ends {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.52rem;
+  color: var(--stone-500, #78716c);
+  margin-top: 0.2rem;
+}
+.confidence-legend .cl-note {
+  font-size: 0.54rem;
+  line-height: 1.35;
+  color: var(--stone-600, #57534e);
+  margin-top: 0.4rem;
+}
+/* Schneegrenze-Linien-Swatch: blaue Linie mit weißem Casing */
+.confidence-legend .sl-swatch {
+  height: 3px;
+  border-radius: 2px;
+  background: #1f4fd0;
+  box-shadow: 0 0 0 1.5px #ffffff;
+  margin: 0.15rem 0 0.1rem;
+}
+/* Regenwahrscheinlichkeit-Farbskala (popRamp 0..100 %) */
+.confidence-legend .pop-scale {
+  height: 10px;
+  border-radius: 4px;
+  background: linear-gradient(90deg,
+    rgb(190,214,255) 0%, rgb(122,170,250) 25%, rgb(74,120,228) 50%,
+    rgb(112,70,198) 75%, rgb(86,28,138) 100%);
+}
+
+/* ============================================================================
+   MOBILE (<768px) — Karte vollflächig; Rail/Wind/Legenden/Badge → „Layer &
+   Daten"-Bottom-Sheet. Dock = Layer-FAB (links) + PFC-FAB (rechts) über dem
+   immer sichtbaren Zeit-Slider. Desktop/Tablet: Dock/Sheet ausgeblendet.
+   ============================================================================ */
+.map-layer-fab, .map-sheet, .map-sheet-scrim { display: none; }
+
+@media (max-width: 767px) {
+  /* In das Sheet umgeschichtet → von der Karte nehmen (kein Verlust). */
+  .left-rails, .map-legends, .wind-particle-switch, .sat-product-switch { display: none !important; }
+  /* Zoom-Control aus (Pinch/Doppeltipp); macht oben rechts Platz für die Topbar. */
+  .maplibregl-ctrl-top-right { display: none; }
+
+  /* Layer-FAB links unten, PFC-FAB rechts unten, Slider voll darüber-/darunter. */
+  .map-layer-fab {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    position: absolute; left: 0.6rem; bottom: 3.5rem; z-index: 12;
+    height: 44px; padding: 0 0.95rem; border-radius: 999px;
+    background: var(--ink-900); color: var(--cream-50); border: none;
+    font: inherit; font-size: 0.82rem; font-weight: 600; cursor: pointer;
+    box-shadow: var(--shadow-float);
+  }
+  .map-layer-fab svg { flex: none; }
+  .pfc-panel { bottom: 3.5rem; right: 0.6rem; left: auto; }
+  .forecast-slider { bottom: 0.6rem; left: 0.6rem; right: 0.6rem; width: auto; transform: none; }
+
+  /* Bottom-Sheet */
+  .map-sheet-scrim {
+    display: block; position: fixed; inset: 0; z-index: 40;
+    background: rgba(20, 18, 12, 0.28); animation: map-scrim-in 0.18s ease-out;
+  }
+  .map-sheet {
+    display: flex; flex-direction: column;
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 41; max-height: 86vh;
+    background: var(--surface-glass-strong);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--border-default); border-bottom: none;
+    border-radius: 20px 20px 0 0; box-shadow: 0 -10px 40px rgba(20, 18, 12, 0.22);
+    animation: map-sheet-in 0.22s ease-out;
+  }
+  @keyframes map-scrim-in { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes map-sheet-in { from { transform: translateY(18px); opacity: 0; } to { transform: none; opacity: 1; } }
+  .map-sheet-grab { flex: none; width: 38px; height: 4px; border-radius: 2px; background: var(--sand-300); margin: 0.5rem auto 0.15rem; }
+  .map-sheet-head { flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0.3rem 1rem 0.5rem; }
+  .map-sheet-head .eyebrow { color: var(--stone-500); }
+  .map-sheet-close {
+    width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center;
+    border: 1px solid var(--border-default); background: var(--cream-50); border-radius: 50%;
+    color: var(--stone-600); cursor: pointer;
+  }
+
+  .map-sheet-model {
+    flex: none; display: flex; align-items: center; gap: 0.55rem; margin: 0 0.85rem 0.55rem;
+    padding: 0.6rem 0.9rem; min-height: 44px; border: 1px solid var(--border-default);
+    background: var(--cream-50); border-radius: 14px; font: inherit; text-align: left;
+    cursor: pointer; color: var(--ink-900);
+  }
+  .map-sheet-model-label { font-size: 0.6rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--stone-400); }
+  .map-sheet-model-val { font-size: 0.9rem; font-weight: 500; }
+  .map-sheet-model-arr { margin-left: auto; color: var(--stone-400); flex: none; }
+
+  .map-sheet-list { overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 0 0.6rem; }
+  .map-sheet-row { border-bottom: 1px solid var(--sand-100); }
+  .map-sheet-row:last-child { border-bottom: none; }
+  .map-sheet-rowmain { display: flex; align-items: center; gap: 0.55rem; padding: 0.28rem 0.2rem; }
+  .map-sheet-toggle {
+    flex: none; width: 44px; height: 44px; border-radius: 12px;
+    border: 1px solid var(--border-default); background: var(--cream-50); color: var(--stone-600);
+    display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+  .map-sheet-toggle svg { width: 20px; height: 20px; }
+  .map-sheet-toggle.is-on { background: var(--ink-900); border-color: var(--ink-900); color: #fff; }
+  .map-sheet-rowtx {
+    flex: 1; min-width: 0; min-height: 44px; display: flex; flex-direction: column;
+    gap: 0.05rem; align-items: flex-start; justify-content: center;
+    background: none; border: none; font: inherit; text-align: left; cursor: pointer; padding: 0;
+  }
+  .map-sheet-name { font-size: 0.95rem; font-weight: 500; color: var(--ink-900); }
+  .map-sheet-stamp { font-size: 0.64rem; letter-spacing: 0.04em; text-transform: uppercase; color: var(--stone-400); font-weight: 500; }
+  .map-sheet-chev {
+    flex: none; width: 40px; height: 44px; display: inline-flex; align-items: center; justify-content: center;
+    background: none; border: none; color: var(--stone-400); cursor: pointer; transition: transform 0.15s;
+  }
+  .map-sheet-chev.is-open { transform: rotate(180deg); }
+  .map-sheet-info { padding: 0.1rem 0.25rem 0.7rem; }
+
+  /* LayerInfoPanel im Sheet: aus position:fixed → in den Fluss. */
+  .map-sheet .layer-info {
+    display: block; position: static; width: auto; background: transparent;
+    border: none; box-shadow: none; padding: 0.1rem 0.1rem 0; animation: none; pointer-events: auto;
+  }
+  .map-sheet .layer-info-title { font-size: 1rem; }
+
+  /* Wind-/Sat-Feinsteuerung im Sheet (Container neutralisiert, Button-Styles erben). */
+  .map-sheet .wind-particle-switch,
+  .map-sheet .sat-product-switch {
+    position: static; transform: none; left: auto; bottom: auto; width: auto;
+    background: none; border: none; box-shadow: none; padding: 0;
+    backdrop-filter: none; -webkit-backdrop-filter: none;
+  }
+  .map-sheet .wind-particle-switch { margin-top: 0.6rem; flex-wrap: wrap; gap: 0.5rem 0.6rem; }
+  .map-sheet .sat-product-switch { margin-top: 0.6rem; flex-direction: row; gap: 0.4rem; align-items: center; }
+  .map-sheet .sat-product-switch::before { display: none; }
+  .map-sheet .wind-particle-switch button,
+  .map-sheet .sat-product-switch button { min-height: 36px; }
+
+  .map-sheet-sources {
+    flex: none; padding: 0.6rem 1rem calc(0.7rem + env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid var(--sand-100); font-size: 0.7rem; color: var(--stone-500);
+  }
+}

@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 980" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">
+<defs>
+  <linearGradient id="bgSand" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FAF6EA"/><stop offset="1" stop-color="#F5F1E8"/></linearGradient>
+  <linearGradient id="heroGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FBFAF3"/><stop offset="1" stop-color="#F2EEDE"/></linearGradient>
+  <filter id="cardShadow" x="-10%" y="-10%" width="120%" height="130%"><feGaussianBlur in="SourceAlpha" stdDeviation="6"/><feOffset dx="0" dy="3"/><feComponentTransfer><feFuncA type="linear" slope="0.10"/></feComponentTransfer><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  <filter id="strongShadow" x="-20%" y="-20%" width="140%" height="160%"><feGaussianBlur in="SourceAlpha" stdDeviation="10"/><feOffset dx="0" dy="6"/><feComponentTransfer><feFuncA type="linear" slope="0.18"/></feComponentTransfer><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  <pattern id="grain" width="120" height="120" patternUnits="userSpaceOnUse"><rect width="120" height="120" fill="transparent"/><circle cx="20" cy="40" r="0.7" fill="#C4B896" opacity="0.18"/><circle cx="80" cy="20" r="0.5" fill="#C4B896" opacity="0.14"/><circle cx="55" cy="95" r="0.6" fill="#C4B896" opacity="0.16"/></pattern>
+  <pattern id="tendHatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="7" stroke="#8B7355" stroke-width="1.2" opacity="0.4"/></pattern>
+</defs>
+<rect width="1440" height="980" fill="url(#bgSand)"/><rect width="1440" height="980" fill="url(#grain)"/>
+<g><rect x="0" y="0" width="1440" height="72" fill="#FAF6EA" opacity="0.85"/><line x1="0" y1="72" x2="1440" y2="72" stroke="#E0D6BE"/><g transform="translate(64,24)"><circle cx="14" cy="14" r="12" fill="none" stroke="#C97B47" stroke-width="2"/><circle cx="14" cy="14" r="5" fill="#C97B47"/><text x="36" y="19" font-size="18" font-weight="600" fill="#2C2A26">buscosun</text></g><g font-size="14" fill="#5C5447"><text x="240" y="44">Start</text><text x="298" y="44">Tourenplanung</text><text x="418" y="44">Nowcast</text><text x="500" y="44">3D-Wetter</text><text x="600" y="44" font-weight="600" fill="#2C2A26">Vorhersage</text><rect x="597" y="56" width="86" height="2" rx="1" fill="#7A9466"/><text x="700" y="44">Event-Planung</text></g><g transform="translate(1230,24)"><circle cx="14" cy="14" r="4" fill="#7A9466"/><text x="28" y="19" font-size="12" fill="#5C5447">5 Quellen aktiv</text><circle cx="170" cy="14" r="14" fill="#E0D6BE"/><text x="170" y="19" font-size="12" font-weight="600" fill="#5C5447" text-anchor="middle">JK</text></g></g>
+<g transform="translate(64,104)"><text x="0" y="0" font-size="11" letter-spacing="0.22em" font-weight="600" fill="#C97B47">TREFFSICHERHEIT · RÜCKBLICK · STUTTGART</text><text y="28" font-size="26" font-weight="700" fill="#2C2A26">Wie nah lagen die Vorhersagen am echten Wetter?</text></g>
+<g transform="translate(1130,108)"><rect width="246" height="36" rx="18" fill="#FAF6EA" stroke="#E0D6BE"/><rect x="82" width="82" height="36" rx="18" fill="#3A6FA8"/><text x="41" y="23" font-size="13" font-weight="600" fill="#8B7355" text-anchor="middle">7 Tage</text><text x="123" y="23" font-size="13" font-weight="700" fill="#FAF6EA" text-anchor="middle">14 Tage</text><text x="205" y="23" font-size="13" font-weight="600" fill="#8B7355" text-anchor="middle">30 Tage</text></g>
+<g transform="translate(64,168)"><rect width="1312" height="48" rx="14" fill="#F1F0E4"/><g transform="translate(24,24)"><circle r="11" fill="#C97B47"/><text y="4" font-size="13" font-weight="700" fill="#FAF6EA" text-anchor="middle">!</text></g><text x="48" y="28" font-size="12" fill="#5C5447"><tspan font-weight="700" fill="#2C2A26">Treffsicherheit</tspan> vergleicht vergangene Vorhersagen mit dem <tspan font-weight="700">tatsächlich gemessenen</tspan> Wetter — eine Prognose kann stabil und trotzdem falsch sein.</text></g>
+<g transform="translate(64,244)"><text x="0" y="0" font-size="11" letter-spacing="0.22em" font-weight="600" fill="#7A9466">QUELLEN NACH TREFFSICHERHEIT · TEMPERATUR · 14 TAGE</text></g>
+<g transform="translate(64,264)" filter="url(#cardShadow)"><rect width="640" height="420" rx="20" fill="#FAF6EA" stroke="#E0D6BE"/></g>
+<text x="92" y="320" font-size="20" font-weight="700" fill="#8B7355">1</text>
+<text x="128" y="312" font-size="16" font-weight="700" fill="#2C2A26">ICON-EU</text>
+<g transform="translate(210,300)"><rect width="116" height="18" rx="9" fill="#ECF1E6"/><text x="58" y="13" font-size="10" font-weight="700" fill="#5C7A4A" text-anchor="middle">zuletzt am besten</text></g>
+<rect x="128" y="322" width="420" height="12" rx="6" fill="#E0D6BE"/>
+<rect x="128" y="322" width="178" height="12" rx="6" fill="#7A9466"/>
+<text x="624" y="320" font-size="16" font-weight="700" fill="#7A9466" text-anchor="end">±1,1 °C</text>
+<line x1="92" y1="356" x2="616" y2="356" stroke="#E0D6BE"/>
+<text x="92" y="392" font-size="20" font-weight="700" fill="#8B7355">2</text>
+<text x="128" y="384" font-size="16" font-weight="700" fill="#2C2A26">Konsens</text>
+<rect x="128" y="394" width="420" height="12" rx="6" fill="#E0D6BE"/>
+<rect x="128" y="394" width="194" height="12" rx="6" fill="#2C2A26"/>
+<text x="624" y="392" font-size="16" font-weight="700" fill="#2C2A26" text-anchor="end">±1,2 °C</text>
+<line x1="92" y1="428" x2="616" y2="428" stroke="#E0D6BE"/>
+<text x="92" y="464" font-size="20" font-weight="700" fill="#8B7355">3</text>
+<text x="128" y="456" font-size="16" font-weight="700" fill="#2C2A26">ECMWF</text>
+<rect x="128" y="466" width="420" height="12" rx="6" fill="#E0D6BE"/>
+<rect x="128" y="466" width="210" height="12" rx="6" fill="#C99A4E"/>
+<text x="624" y="464" font-size="16" font-weight="700" fill="#C99A4E" text-anchor="end">±1,3 °C</text>
+<line x1="92" y1="500" x2="616" y2="500" stroke="#E0D6BE"/>
+<text x="92" y="536" font-size="20" font-weight="700" fill="#8B7355">4</text>
+<text x="128" y="528" font-size="16" font-weight="700" fill="#2C2A26">ICON-D2</text>
+<rect x="128" y="538" width="420" height="12" rx="6" fill="#E0D6BE"/>
+<rect x="128" y="538" width="258" height="12" rx="6" fill="#3A6FA8"/>
+<text x="624" y="536" font-size="16" font-weight="700" fill="#3A6FA8" text-anchor="end">±1,6 °C</text>
+<line x1="92" y1="572" x2="616" y2="572" stroke="#E0D6BE"/>
+<text x="92" y="608" font-size="20" font-weight="700" fill="#8B7355">5</text>
+<text x="128" y="600" font-size="16" font-weight="700" fill="#2C2A26">GFS</text>
+<rect x="128" y="610" width="420" height="12" rx="6" fill="#E0D6BE"/>
+<rect x="128" y="610" width="388" height="12" rx="6" fill="#C97B47"/>
+<text x="624" y="608" font-size="16" font-weight="700" fill="#C97B47" text-anchor="end">±2,4 °C</text>
+<g transform="translate(92,648)" font-size="12"><text fill="#8B7355">Variable:</text><g transform="translate(70,-14)"><rect width="80" height="22" rx="11" fill="#3A6FA8"/><text x="40" y="15" font-weight="600" fill="#FAF6EA" text-anchor="middle">Temperatur</text></g><g transform="translate(158,-14)"><rect width="84" height="22" rx="11" fill="#FAF6EA" stroke="#E0D6BE"/><text x="42" y="15" fill="#5C5447" text-anchor="middle">Niederschlag</text></g><g transform="translate(250,-14)"><rect width="56" height="22" rx="11" fill="#FAF6EA" stroke="#E0D6BE"/><text x="28" y="15" fill="#5C5447" text-anchor="middle">Wind</text></g></g>
+<g transform="translate(736,244)"><text x="0" y="0" font-size="11" letter-spacing="0.22em" font-weight="600" fill="#7A9466">VORHERSAGE VS. TATSÄCHLICH · LETZTE WOCHE</text></g>
+<g transform="translate(736,264)" filter="url(#cardShadow)"><rect width="640" height="420" rx="20" fill="#FAF6EA" stroke="#E0D6BE"/></g>
+<line x1="820" y1="600" x2="1340" y2="600" stroke="#E0D6BE" stroke-dasharray="2 4"/><text x="810" y="603" font-size="10" fill="#8B7355" text-anchor="end">10°</text>
+<line x1="820" y1="530" x2="1340" y2="530" stroke="#E0D6BE" stroke-dasharray="2 4"/><text x="810" y="533" font-size="10" fill="#8B7355" text-anchor="end">15°</text>
+<line x1="820" y1="460" x2="1340" y2="460" stroke="#E0D6BE" stroke-dasharray="2 4"/><text x="810" y="463" font-size="10" fill="#8B7355" text-anchor="end">20°</text>
+<line x1="820" y1="390" x2="1340" y2="390" stroke="#E0D6BE" stroke-dasharray="2 4"/><text x="810" y="393" font-size="10" fill="#8B7355" text-anchor="end">25°</text>
+<line x1="820" y1="320" x2="1340" y2="320" stroke="#E0D6BE" stroke-dasharray="2 4"/><text x="810" y="323" font-size="10" fill="#8B7355" text-anchor="end">30°</text>
+<text x="820" y="620" font-size="10" fill="#8B7355" text-anchor="middle">Mo</text>
+<text x="907" y="620" font-size="10" fill="#8B7355" text-anchor="middle">Di</text>
+<text x="993" y="620" font-size="10" fill="#8B7355" text-anchor="middle">Mi</text>
+<text x="1080" y="620" font-size="10" fill="#8B7355" text-anchor="middle">Do</text>
+<text x="1167" y="620" font-size="10" fill="#8B7355" text-anchor="middle">Fr</text>
+<text x="1253" y="620" font-size="10" fill="#8B7355" text-anchor="middle">Sa</text>
+<text x="1340" y="620" font-size="10" fill="#8B7355" text-anchor="middle">So</text>
+<line x1="820" y1="432" x2="820" y2="446" stroke="#C97B47" stroke-width="2" opacity="0.4"/>
+<line x1="907" y1="404" x2="907" y2="418" stroke="#C97B47" stroke-width="2" opacity="0.4"/>
+<line x1="993" y1="446" x2="993" y2="418" stroke="#C97B47" stroke-width="2" opacity="0.4"/>
+<line x1="1080" y1="474" x2="1080" y2="488" stroke="#C97B47" stroke-width="2" opacity="0.4"/>
+<line x1="1167" y1="418" x2="1167" y2="432" stroke="#C97B47" stroke-width="2" opacity="0.4"/>
+<line x1="1253" y1="376" x2="1253" y2="404" stroke="#C97B47" stroke-width="2" opacity="0.4"/>
+<line x1="1340" y1="460" x2="1340" y2="432" stroke="#C97B47" stroke-width="2" opacity="0.4"/>
+<path d="M 820 432 L 907 404 L 993 446 L 1080 474 L 1167 418 L 1253 376 L 1340 460" fill="none" stroke="#6B7A8F" stroke-width="2.2" stroke-dasharray="6 4"/>
+<path d="M 820 446 L 907 418 L 993 418 L 1080 488 L 1167 432 L 1253 404 L 1340 432" fill="none" stroke="#2C2A26" stroke-width="2.8"/>
+<circle cx="820" cy="446" r="3.5" fill="#2C2A26"/>
+<circle cx="907" cy="418" r="3.5" fill="#2C2A26"/>
+<circle cx="993" cy="418" r="3.5" fill="#2C2A26"/>
+<circle cx="1080" cy="488" r="3.5" fill="#2C2A26"/>
+<circle cx="1167" cy="432" r="3.5" fill="#2C2A26"/>
+<circle cx="1253" cy="404" r="3.5" fill="#2C2A26"/>
+<circle cx="1340" cy="432" r="3.5" fill="#2C2A26"/>
+<g transform="translate(993,418)"><circle r="14" fill="none" stroke="#C97B47" stroke-width="2"/><text x="18" y="-8" font-size="10" font-weight="700" fill="#C97B47">+2° daneben</text></g>
+<g transform="translate(820,648)" font-size="11" fill="#5C5447"><line x1="0" y1="5" x2="20" y2="5" stroke="#2C2A26" stroke-width="2.8"/><text x="26" y="9">tatsächlich</text><line x1="110" y1="5" x2="130" y2="5" stroke="#6B7A8F" stroke-width="2.2" stroke-dasharray="6 4"/><text x="136" y="9">Vorhersage 3 T vorher</text></g>
+<g transform="translate(64,712)" filter="url(#cardShadow)"><rect width="640" height="88" rx="18" fill="#F1F4EC" stroke="#7A9466" stroke-width="1.5"/><g transform="translate(28,44)"><circle cx="0" cy="0" r="16" fill="none" stroke="#5C7A4A" stroke-width="8.0" opacity="0.25"/><circle cx="0" cy="0" r="16" fill="none" stroke="#5C7A4A" stroke-width="8.0"/></g><text x="64" y="40" font-size="17" font-weight="700" fill="#2C2A26">Zuletzt meist zutreffend</text><text x="64" y="64" font-size="12" fill="#5C5447">Einfaches Label für den schnellen Blick — Zahlen nur auf Abruf.</text></g>
+<g transform="translate(736,712)" filter="url(#cardShadow)"><rect width="640" height="88" rx="18" fill="#F8F2E2" stroke="#E0D6BE"/><g transform="translate(28,44)"><circle r="14" fill="#8B7355"/><text y="5" font-size="16" font-weight="700" fill="#FAF6EA" text-anchor="middle">i</text></g><text x="60" y="40" font-size="14" font-weight="700" fill="#2C2A26">Reihung erst ab genug Daten belastbar</text><text x="60" y="64" font-size="12" fill="#5C5447">Bei wenigen Tagen wird die Rangfolge als noch unsicher gekennzeichnet.</text></g>
+<g transform="translate(64,828)"><text font-size="11" fill="#8B7355">Niederschlag wird als Ja/Nein-Treffer bewertet (nicht als ±-Differenz wie Temperatur). Die jüngste Trefferquote fließt zusätzlich in den Sicherheits-Score ein.</text></g>
+</svg>

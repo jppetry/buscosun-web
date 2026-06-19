@@ -1,0 +1,53 @@
+/* Vollflächiger Seiten-Container + gemeinsame Topbar für Feature-Seiten. */
+.feature-page {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--sand-50, #f7f2e9);
+  color: var(--ink-900, #2c2a26);
+  font-family: inherit;
+}
+
+.feature-page-topbar {
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+  padding: 0.9rem 1.25rem;
+  border-bottom: 1px solid var(--sand-200, #e0d6be);
+  background: var(--sand-50, #f7f2e9);
+}
+.feature-page-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  color: var(--ink-900, #2c2a26);
+}
+.feature-page-logo-name {
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.feature-page-home {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border: 1px solid var(--sand-200, #e0d6be);
+  background: #fff;
+  color: var(--ink-900, #2c2a26);
+  border-radius: 999px;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.85rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.feature-page-home:hover {
+  border-color: var(--sage-600, #6f7d4e);
+  box-shadow: 0 4px 14px rgba(44, 42, 38, 0.06);
+}
+.feature-page-home:focus-visible {
+  outline: 2px solid var(--sage-600, #6f7d4e);
+  outline-offset: 2px;
+}

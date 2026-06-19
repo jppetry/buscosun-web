@@ -1,0 +1,291 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1400" font-family="ui-sans-serif, system-ui, -apple-system">
+  <defs>
+    <linearGradient id="bg21" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F5F1E8"/>
+      <stop offset="100%" stop-color="#EDE6D3"/>
+    </linearGradient>
+    <linearGradient id="brainGradient" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#3A3833"/>
+      <stop offset="100%" stop-color="#2C2A26"/>
+    </linearGradient>
+    <radialGradient id="brainGlow">
+      <stop offset="0%" stop-color="#D4A373" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#D4A373" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="downloadProgress" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#7A9466"/>
+      <stop offset="100%" stop-color="#5F7951"/>
+    </linearGradient>
+  </defs>
+  
+  <rect width="1440" height="1400" fill="url(#bg21)"/>
+  
+  <!-- TOP NAV -->
+  <g>
+    <g transform="translate(32, 24)">
+      <circle cx="14" cy="14" r="6" fill="#2C2A26"/>
+      <g stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round">
+        <line x1="14" y1="0" x2="14" y2="3"/>
+        <line x1="14" y1="25" x2="14" y2="28"/>
+        <line x1="0" y1="14" x2="3" y2="14"/>
+        <line x1="25" y1="14" x2="28" y2="14"/>
+      </g>
+      <text x="42" y="20" font-size="18" font-weight="500" fill="#2C2A26" letter-spacing="-0.5">buscosun</text>
+    </g>
+    
+    <!-- Beta pill -->
+    <g transform="translate(180, 22)">
+      <rect width="120" height="32" rx="16" fill="#FAEEDA" stroke="#C97B47" stroke-width="0.5"/>
+      <circle cx="16" cy="16" r="4" fill="#C97B47"/>
+      <text x="26" y="20" font-size="11" fill="#A85E2E" font-weight="600" letter-spacing="0.5">BETA · V1.1</text>
+    </g>
+  </g>
+  
+  <!-- ============ HEADER ============ -->
+  <g transform="translate(80, 120)">
+    <text font-size="11" fill="#A89A7A" letter-spacing="3" font-weight="500">METEOROLOGE-ASSISTENT · LOKALES LLM</text>
+    <text y="64" font-size="64" font-weight="200" fill="#2C2A26" letter-spacing="-2">Frag den Meteorologen.</text>
+    <text y="100" font-size="64" font-weight="200" fill="#2C2A26" letter-spacing="-2">Direkt im Browser.</text>
+    
+    <text y="156" font-size="16" fill="#5C5447" letter-spacing="-0.1">Ein 1.49 GB Sprachmodell — einmal downloaden, dann läuft es offline auf deinem Gerät.</text>
+    <text y="180" font-size="16" fill="#5C5447" letter-spacing="-0.1">Keine Daten verlassen deinen Browser. Keine OpenAI, keine Cloud, keine Tracker.</text>
+  </g>
+  
+  <!-- ============ MAIN: ACTIVATION CARD ============ -->
+  <g transform="translate(80, 380)">
+    <rect width="1280" height="500" rx="22" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    
+    <!-- Left: Brain illustration + status -->
+    <g transform="translate(80, 80)">
+      <!-- Glow -->
+      <circle cx="120" cy="120" r="140" fill="url(#brainGlow)"/>
+      
+      <!-- Brain orb -->
+      <circle cx="120" cy="120" r="80" fill="url(#brainGradient)"/>
+      
+      <!-- Connection nodes inside (neural-network look) -->
+      <g fill="#D4A373" opacity="0.85">
+        <circle cx="100" cy="100" r="3"/>
+        <circle cx="140" cy="98" r="3"/>
+        <circle cx="92" cy="124" r="3"/>
+        <circle cx="120" cy="116" r="4"/>
+        <circle cx="148" cy="122" r="3"/>
+        <circle cx="106" cy="146" r="3"/>
+        <circle cx="134" cy="148" r="3"/>
+      </g>
+      <g stroke="#D4A373" stroke-width="0.5" opacity="0.5">
+        <line x1="100" y1="100" x2="140" y2="98"/>
+        <line x1="100" y1="100" x2="120" y2="116"/>
+        <line x1="140" y1="98" x2="120" y2="116"/>
+        <line x1="92" y1="124" x2="120" y2="116"/>
+        <line x1="120" y1="116" x2="148" y2="122"/>
+        <line x1="120" y1="116" x2="106" y2="146"/>
+        <line x1="120" y1="116" x2="134" y2="148"/>
+        <line x1="106" y1="146" x2="134" y2="148"/>
+      </g>
+      
+      <!-- Pulse ring -->
+      <circle cx="120" cy="120" r="92" fill="none" stroke="#D4A373" stroke-width="1" opacity="0.4"/>
+      
+      <!-- Status badge below -->
+      <g transform="translate(40, 244)">
+        <rect width="160" height="32" rx="16" fill="#F5F1E8" stroke="#D9D0B8"/>
+        <circle cx="16" cy="16" r="4" fill="#D4A373"/>
+        <text x="28" y="20" font-size="11" fill="#5C5447" font-weight="500">Nicht aktiviert</text>
+      </g>
+    </g>
+    
+    <!-- Right: Details + activation -->
+    <g transform="translate(440, 60)">
+      <text font-size="11" fill="#A89A7A" letter-spacing="3" font-weight="500">MODELL-DETAILS</text>
+      
+      <!-- Model info -->
+      <g transform="translate(0, 24)">
+        <text font-size="28" font-weight="500" fill="#2C2A26" letter-spacing="-0.6">Qwen 2.5 Instruct · 1.5B</text>
+        <text y="28" font-size="13" fill="#5C5447">Quantisiert auf 4 bit · WebLLM Runtime · GPU-beschleunigt via WebGPU</text>
+      </g>
+      
+      <!-- Spec cards -->
+      <g transform="translate(0, 100)">
+        <g>
+          <rect width="180" height="80" rx="14" fill="#F5F1E8"/>
+          <g transform="translate(18, 18)">
+            <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">DOWNLOAD-GRÖSSE</text>
+            <text y="26" font-size="20" fill="#2C2A26" font-weight="500">1.49 GB</text>
+            <text y="46" font-size="10" fill="#A89A7A">einmalig</text>
+          </g>
+        </g>
+        
+        <g transform="translate(192, 0)">
+          <rect width="180" height="80" rx="14" fill="#F5F1E8"/>
+          <g transform="translate(18, 18)">
+            <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">RAM-BEDARF</text>
+            <text y="26" font-size="20" fill="#2C2A26" font-weight="500">2.1 GB</text>
+            <text y="46" font-size="10" fill="#A89A7A">während Nutzung</text>
+          </g>
+        </g>
+        
+        <g transform="translate(384, 0)">
+          <rect width="180" height="80" rx="14" fill="#F5F1E8"/>
+          <g transform="translate(18, 18)">
+            <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">ERST-DOWNLOAD</text>
+            <text y="26" font-size="20" fill="#2C2A26" font-weight="500">~ 3 min</text>
+            <text y="46" font-size="10" fill="#A89A7A">100 Mbit/s</text>
+          </g>
+        </g>
+        
+        <g transform="translate(576, 0)">
+          <rect width="180" height="80" rx="14" fill="#F5F1E8"/>
+          <g transform="translate(18, 18)">
+            <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">RESPONSE-ZEIT</text>
+            <text y="26" font-size="20" fill="#2C2A26" font-weight="500">~ 2 s</text>
+            <text y="46" font-size="10" fill="#A89A7A">erste Antwort</text>
+          </g>
+        </g>
+      </g>
+      
+      <!-- Compatibility check -->
+      <g transform="translate(0, 220)">
+        <text font-size="11" fill="#A89A7A" letter-spacing="2" font-weight="500">SYSTEM-KOMPATIBILITÄT</text>
+        
+        <g transform="translate(0, 18)" font-size="12" fill="#5C5447">
+          <g>
+            <circle cx="6" cy="6" r="4" fill="#7A9466"/>
+            <text x="18" y="10">WebGPU verfügbar · Chrome 134</text>
+          </g>
+          <g transform="translate(380, 0)">
+            <circle cx="6" cy="6" r="4" fill="#7A9466"/>
+            <text x="18" y="10">RAM ausreichend · 16 GB total</text>
+          </g>
+          <g transform="translate(0, 22)">
+            <circle cx="6" cy="6" r="4" fill="#7A9466"/>
+            <text x="18" y="10">IndexedDB-Storage frei · 4.2 GB</text>
+          </g>
+          <g transform="translate(380, 22)">
+            <circle cx="6" cy="6" r="4" fill="#7A9466"/>
+            <text x="18" y="10">GPU-Beschleunigung aktiv</text>
+          </g>
+        </g>
+      </g>
+      
+      <!-- Activate CTA -->
+      <g transform="translate(0, 304)">
+        <rect width="600" height="64" rx="32" fill="#2C2A26"/>
+        <g transform="translate(28, 22)" stroke="#F5F1E8" stroke-width="1.5" fill="none" stroke-linecap="round">
+          <line x1="10" y1="0" x2="10" y2="14"/>
+          <polyline points="4,8 10,14 16,8"/>
+          <line x1="0" y1="18" x2="20" y2="18"/>
+        </g>
+        <text x="300" y="40" font-size="14" fill="#F5F1E8" text-anchor="middle" font-weight="500">Modell jetzt downloaden · 1.49 GB</text>
+        
+        <text x="600" y="84" font-size="11" fill="#A89A7A" text-anchor="end">Du kannst die App ohne den Meteorologen normal nutzen</text>
+      </g>
+    </g>
+  </g>
+  
+  <!-- ============ PRIVACY PROMISE SECTION ============ -->
+  <g transform="translate(80, 920)">
+    <text font-size="11" fill="#A89A7A" letter-spacing="3" font-weight="500">PRIVACY-VERSPRECHEN · ANDERS ALS CHATGPT</text>
+    
+    <g transform="translate(0, 24)">
+      <!-- Comparison 1: No external API -->
+      <g>
+        <rect width="416" height="200" rx="20" fill="#F0F4EA" stroke="#7A9466" stroke-width="0.5"/>
+        
+        <g transform="translate(28, 28)">
+          <g stroke="#7A9466" stroke-width="2" fill="none">
+            <circle cx="10" cy="10" r="9"/>
+            <polyline points="6,10 9,13 14,7" stroke-linecap="round"/>
+          </g>
+          <text font-size="11" fill="#7A9466" x="32" y="14" letter-spacing="2" font-weight="600">VERSPRECHEN 01</text>
+        </g>
+        
+        <g transform="translate(28, 76)">
+          <text font-size="20" font-weight="500" fill="#2C2A26" letter-spacing="-0.4">Kein externer API-Call.</text>
+          <text y="32" font-size="13" fill="#5C5447">Das Modell läuft via WebLLM lokal in deinem Browser-</text>
+          <text y="50" font-size="13" fill="#5C5447">tab. Keine Anfrage geht raus an OpenAI, Anthropic</text>
+          <text y="68" font-size="13" fill="#5C5447">oder uns. Du kannst das DevTools-Network-Panel öffnen</text>
+          <text y="86" font-size="13" fill="#5C5447">und nach Aktivierung verifizieren.</text>
+        </g>
+      </g>
+      
+      <!-- Comparison 2: Offline capable -->
+      <g transform="translate(432, 0)">
+        <rect width="416" height="200" rx="20" fill="#F0F4EA" stroke="#7A9466" stroke-width="0.5"/>
+        
+        <g transform="translate(28, 28)">
+          <g stroke="#7A9466" stroke-width="2" fill="none">
+            <circle cx="10" cy="10" r="9"/>
+            <polyline points="6,10 9,13 14,7" stroke-linecap="round"/>
+          </g>
+          <text font-size="11" fill="#7A9466" x="32" y="14" letter-spacing="2" font-weight="600">VERSPRECHEN 02</text>
+        </g>
+        
+        <g transform="translate(28, 76)">
+          <text font-size="20" font-weight="500" fill="#2C2A26" letter-spacing="-0.4">Funktioniert offline.</text>
+          <text y="32" font-size="13" fill="#5C5447">Nach dem Download liegt das Modell in deiner</text>
+          <text y="50" font-size="13" fill="#5C5447">IndexedDB. Du kannst den Meteorologen auf der Berghütte</text>
+          <text y="68" font-size="13" fill="#5C5447">ohne LTE nutzen — Wetterdaten sind sowieso</text>
+          <text y="86" font-size="13" fill="#5C5447">in deinem letzten Cache.</text>
+        </g>
+      </g>
+      
+      <!-- Comparison 3: Open source -->
+      <g transform="translate(864, 0)">
+        <rect width="416" height="200" rx="20" fill="#F0F4EA" stroke="#7A9466" stroke-width="0.5"/>
+        
+        <g transform="translate(28, 28)">
+          <g stroke="#7A9466" stroke-width="2" fill="none">
+            <circle cx="10" cy="10" r="9"/>
+            <polyline points="6,10 9,13 14,7" stroke-linecap="round"/>
+          </g>
+          <text font-size="11" fill="#7A9466" x="32" y="14" letter-spacing="2" font-weight="600">VERSPRECHEN 03</text>
+        </g>
+        
+        <g transform="translate(28, 76)">
+          <text font-size="20" font-weight="500" fill="#2C2A26" letter-spacing="-0.4">Open-Source-Modell.</text>
+          <text y="32" font-size="13" fill="#5C5447">Qwen 2.5 1.5B ist unter Apache 2.0 lizenziert,</text>
+          <text y="50" font-size="13" fill="#5C5447">vollständig nachvollziehbar. Wir fine-tunen es</text>
+          <text y="68" font-size="13" fill="#5C5447">für deutsche Meteorologie-Sprache — der Fine-tune</text>
+          <text y="86" font-size="13" fill="#5C5447">ist ebenfalls Open-Source auf Hugging Face.</text>
+        </g>
+      </g>
+    </g>
+  </g>
+  
+  <!-- ============ EXAMPLE QUESTIONS PREVIEW ============ -->
+  <g transform="translate(80, 1180)">
+    <text font-size="11" fill="#A89A7A" letter-spacing="3" font-weight="500">BEISPIEL-FRAGEN · NACH AKTIVIERUNG</text>
+    
+    <g transform="translate(0, 24)">
+      <rect width="1280" height="140" rx="20" fill="#2C2A26"/>
+      
+      <g transform="translate(28, 28)">
+        <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">DEINE FRAGE</text>
+        <text y="22" font-size="16" fill="#FFFFFF" font-weight="500">"Warum ist der Modell-Spread heute höher als gestern?"</text>
+      </g>
+      
+      <g transform="translate(28, 84)">
+        <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">METEOROLOGE</text>
+        <text y="22" font-size="14" fill="#D9D0B8">"Eine Höhentrog-Achse zieht über Mitteleuropa — die Modelle bekommen die exakte Position</text>
+        <text y="42" font-size="14" fill="#D9D0B8">unterschiedlich zu fassen. Das ist klassisch bei Übergangswetterlagen."</text>
+      </g>
+      
+      <g transform="translate(1100, 26)">
+        <rect width="148" height="36" rx="18" fill="transparent" stroke="#A89A7A"/>
+        <g transform="translate(16, 12)" stroke="#A89A7A" stroke-width="1.5" fill="none">
+          <path d="M 0 4 Q 2 0 6 0 L 14 0"/>
+          <polyline points="10,-3 14,0 10,3" stroke-linecap="round"/>
+          <line x1="0" y1="8" x2="14" y2="8" stroke-dasharray="2 1"/>
+        </g>
+        <text x="80" y="22" font-size="11" fill="#A89A7A" text-anchor="middle">Vorlesen lassen</text>
+      </g>
+    </g>
+  </g>
+  
+  <!-- LABEL -->
+  <g transform="translate(80, 1360)">
+    <text font-size="10" fill="#A89A7A" letter-spacing="3" font-weight="500">21 · METEOROLOGE-AKTIVIERUNG · DESKTOP · SESSION 3/3</text>
+    <text x="1280" font-size="10" fill="#A89A7A" letter-spacing="2" text-anchor="end">1.49 GB Modell · System-Check · 3 Privacy-Versprechen · Beispiel-Q&amp;A</text>
+  </g>
+</svg>

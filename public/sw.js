@@ -1,0 +1,96 @@
+/*
+ * buscosun · Service Worker — Offline-Shell + Runtime-Cache (backend-frei).
+ *
+ * Strategie:
+ *  - Navigationen: network-first → bei Offline gecachte index.html (App lädt
+ *    auch ohne Empfang, z. B. am Berg, sofern einmal online geladen).
+ *  - Same-Origin gehashte Assets (js/css/wasm/…): cache-first /
+ *    stale-while-revalidate (Vite-Hashes sind immutable).
+ *  - Übriges GET (Wetter-APIs, Kartenkacheln): network-first → Cache-Fallback,
+ *    Cache gedeckelt (FIFO), damit zuletzt geladene Daten offline verfügbar sind.
+ *
+ * Kein Precache der Build-Assets (Hashes zur Build-Zeit unbekannt ohne Plugin):
+ * Es wird gecacht, was beim ersten Online-Besuch tatsächlich geladen wurde.
+ */
+
+const VERSION = 'v1';
+const SHELL = `bsc-shell-${VERSION}`;
+const ASSETS = `bsc-assets-${VERSION}`;
+const DATA = `bsc-data-${VERSION}`;
+const DATA_MAX = 350; // max. Einträge im Daten-/Kachel-Cache
+
+self.addEventListener('install', (event) => {
+  self.skipWaiting();
+  event.waitUntil(
+    caches.open(SHELL).then((c) => c.addAll(['/', '/index.html']).catch(() => {})),
+  );
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.filter((k) => ![SHELL, ASSETS, DATA].includes(k)).map((k) => caches.delete(k)));
+    await self.clients.claim();
+  })());
+});
+
+const ASSET_RE = /\.(?:js|mjs|css|woff2?|ttf|otf|wasm|png|svg|jpe?g|webp|gif|json|geojson)$/i;
+function isHashedAsset(url) {
+  return url.origin === self.location.origin && ASSET_RE.test(url.pathname);
+}
+
+async function trim(cacheName, max) {
+  const cache = await caches.open(cacheName);
+  const keys = await cache.keys();
+  for (let i = 0; i < keys.length - max; i++) await cache.delete(keys[i]);
+}
+
+self.addEventListener('fetch', (event) => {
+  const req = event.request;
+  if (req.method !== 'GET') return;
+  let url;
+  try { url = new URL(req.url); } catch { return; }
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') return;
+
+  // App-Navigation → network-first, Offline-Fallback auf gecachte Shell.
+  if (req.mode === 'navigate') {
+    event.respondWith((async () => {
+      try {
+        const net = await fetch(req);
+        const cache = await caches.open(SHELL);
+        cache.put('/index.html', net.clone()).catch(() => {});
+        return net;
+      } catch {
+        const cache = await caches.open(SHELL);
+        return (await cache.match('/index.html')) || (await cache.match('/')) || Response.error();
+      }
+    })());
+    return;
+  }
+
+  // Gehashte Assets → stale-while-revalidate.
+  if (isHashedAsset(url)) {
+    event.respondWith((async () => {
+      const cache = await caches.open(ASSETS);
+      const hit = await cache.match(req);
+      const net = fetch(req).then((res) => { if (res && res.ok) cache.put(req, res.clone()); return res; }).catch(() => null);
+      return hit || (await net) || Response.error();
+    })());
+    return;
+  }
+
+  // Wetterdaten / Kacheln → network-first, Cache-Fallback.
+  event.respondWith((async () => {
+    const cache = await caches.open(DATA);
+    try {
+      const net = await fetch(req);
+      if (net && (net.ok || net.type === 'opaque')) {
+        cache.put(req, net.clone()).then(() => trim(DATA, DATA_MAX)).catch(() => {});
+      }
+      return net;
+    } catch {
+      const hit = await cache.match(req);
+      return hit || Response.error();
+    }
+  })());
+});

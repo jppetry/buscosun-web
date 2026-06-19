@@ -1,0 +1,888 @@
+import type { CustomLayerInterface, CustomRenderMethodInput, Map as MapLibreMap } from 'maplibre-gl';
+import {
+  bindAttribute,
+  bindFramebuffer,
+  bindTexture,
+  createBuffer,
+  createDataTexture,
+  createProgram,
+  createTexture,
+  getColorRamp,
+  type ProgramWrapper,
+} from './glUtil';
+import { drawFrag, drawVert, drawVertProjected, heatmapFrag, heatmapVert, heatmapVertProjected, quadVert, screenFrag, updateFrag } from './shaders';
+
+/** MapLibre v5 projection data passed to custom layers (subset we use). */
+interface ProjectionUniforms {
+  mainMatrix: Float32List;
+  tileMercatorCoords: [number, number, number, number];
+  clippingPlane: [number, number, number, number];
+  projectionTransition: number;
+  fallbackMatrix: Float32List;
+}
+
+export interface WindMeta {
+  width: number;
+  height: number;
+  uMin: number;
+  uMax: number;
+  vMin: number;
+  vMax: number;
+  /** Equirectangular UV bounds (x0,y0,x1,y1) of the wind data within global [0,1]². Default: full world. */
+  uvBounds?: [number, number, number, number];
+}
+
+interface WindData extends WindMeta {
+  image: HTMLImageElement | HTMLCanvasElement;
+  uvBounds: [number, number, number, number];
+}
+
+const MERC_MAX_LAT = 85.05112878;
+const PI = Math.PI;
+
+function lngToMercX(lng: number): number {
+  return (lng + 180) / 360;
+}
+function latToMercY(lat: number): number {
+  const clamped = Math.max(-MERC_MAX_LAT, Math.min(MERC_MAX_LAT, lat));
+  return 0.5 - Math.log(Math.tan(PI / 4 + (clamped * PI) / 360)) / (2 * PI);
+}
+function lngToEquiX(lng: number): number {
+  return (lng + 180) / 360;
+}
+function latToEquiY(lat: number): number {
+  return (90 - lat) / 180;
+}
+
+export interface WindLayerOptions {
+  id?: string;
+  /** Feste Partikelzahl. Wenn gesetzt, wird die viewport-Skalierung DEAKTIVIERT
+   *  (Override für Tests/Sonderfälle). Default: nicht gesetzt → Auto-Skalierung. */
+  numParticles?: number;
+  /** Partikel pro 1 Mio. CSS-Pixel bei densityMultiplier = 1 (Auto-Skalierung).
+   *  Default 3600 → ~4–5k auf einem Laptop, ~9k auf 4K. */
+  baseDensity?: number;
+  /** Dichte-Regler (UI): multipliziert die viewport-skalierte Partikelzahl.
+   *  Default 1. „Intensiv" ≈ 2.x. */
+  densityMultiplier?: number;
+  /** Untere/obere Klammer der Auto-Partikelzahl. Default 1800 / 22000. */
+  minParticles?: number;
+  maxParticles?: number;
+  fadeOpacity?: number;
+  speedFactor?: number;
+  /** Referenz-Zoom, bei dem speedFactor exakt gilt (Übersicht). Default 5.5. */
+  speedRefZoom?: number;
+  /** Zoom-Dämpfung k: 0 = roh (beschleunigt beim Reinzoomen), 1 = konstantes
+   *  Bildschirmtempo, >1 = wird beim Reinzoomen langsamer (windy-artig). Default 1.15. */
+  speedZoomDamping?: number;
+  /** Anzeige-Kennlinie γ (<1 hebt schwache Winde an, damit sie nicht einfrieren). Default 0.5. */
+  speedGamma?: number;
+  /** Anker-Windgeschwindigkeit (m/s), bei der γ nichts ändert. Default 5. */
+  speedRef?: number;
+  /** Mindest-Anzeigetempo (m/s) für JEDEN vorhandenen Wind → nie Stillstand. Default 2. */
+  speedMin?: number;
+  dropRate?: number;
+  dropRateBump?: number;
+  pointSize?: number;
+  windPngUrl?: string;
+  windJsonUrl?: string;
+  colorRamp?: Record<number, string>;
+  showHeatmap?: boolean;
+  heatmapOpacity?: number;
+  particleColor?: [number, number, number, number];
+  /** Anteil der geschwindigkeitsabhängigen Farbe (Color-Ramp), die in die
+   *  Partikelfarbe gemischt wird. 0 = reine particleColor, 1 = reine Ramp.
+   *  Gibt den Strömungsfäden den nullschool-artigen Farbverlauf. Default 0. */
+  speedTint?: number;
+  /** Advektions-Sub-Schritte pro Frame: höher = glattere, gekrümmte Pfade bei
+   *  hohem speedFactor (gegen „gestrichelte" Trails). 1..4 sinnvoll. Default 1. */
+  subSteps?: number;
+  /** CPU-Upsampling-Faktor des Windfelds vor dem Half-Float-Upload. Das grobe
+   *  1°-Quellgitter (360×180) wird so kontinuierlicher → weichere Strömung.
+   *  1 = aus. Default 2. */
+  upsample?: number;
+}
+
+// Saubere, perzeptuell gleichmäßige Wind-Rampe im nullschool-Charakter:
+// dunkles Navy → Teal → Grün → klares Amber → Orange → Rot → Violett → Weiß.
+// Bewusst OHNE die matschigen Oliv-/Brauntöne der alten windy-Rampe, die das
+// Bild „dreckig" wirken ließen.
+const defaultColorRamp: Record<number, string> = {
+  0.0:  'rgb(20, 30, 55)',
+  0.15: 'rgb(30, 90, 140)',
+  0.3:  'rgb(40, 150, 160)',
+  0.45: 'rgb(70, 180, 120)',
+  0.6:  'rgb(200, 200, 90)',
+  0.75: 'rgb(230, 140, 60)',
+  0.85: 'rgb(220, 70, 70)',
+  0.95: 'rgb(180, 70, 160)',
+  1.0:  'rgb(240, 220, 245)',
+};
+
+export class WindLayer implements CustomLayerInterface {
+  readonly id: string;
+  readonly type = 'custom' as const;
+  readonly renderingMode = '2d' as const;
+
+  fadeOpacity: number;
+  speedFactor: number;
+  speedRefZoom: number;
+  speedZoomDamping: number;
+  speedGamma: number;
+  speedRef: number;
+  speedMin: number;
+  dropRate: number;
+  dropRateBump: number;
+  pointSize: number;
+  showHeatmap: boolean;
+  heatmapOpacity: number;
+  particleColor: [number, number, number, number];
+  speedTint: number;
+  subSteps: number;
+  private upsample: number;
+
+  /** Partikel-Animation an/aus (Heatmap bleibt). UI „Aus". */
+  showParticles = true;
+  /** Globus-Modus: keine Zoom-Ausdünnung, stabiles Tempo (ganze Erde sichtbar). */
+  private globeMode = false;
+  /** Aktive MapLibre-Projektionsvariante (Mercator/Globe) — steuert Shader-Neubau. */
+  private projVariant: string | null = null;
+  /** Projektions-Uniforms des aktuellen Frames (null = alte rohe-Matrix-API). */
+  private projData: ProjectionUniforms | null = null;
+  /** Viewport-Auto-Skalierung der Partikelzahl (aus, wenn numParticles fix gesetzt). */
+  private autoScale: boolean;
+  private baseDensity: number;
+  private densityMultiplier: number;
+  private minParticles: number;
+  private maxParticles: number;
+
+  private windPngUrl: string;
+  private windJsonUrl: string;
+  private colorRampStops: Record<number, string>;
+
+  private map: MapLibreMap | null = null;
+  private gl: WebGLRenderingContext | null = null;
+  private windData: WindData | null = null;
+
+  private _numParticles: number;
+  private particleStateResolution = 0;
+
+  private drawProgram!: ProgramWrapper;
+  private screenProgram!: ProgramWrapper;
+  private updateProgram!: ProgramWrapper;
+  private heatmapProgram!: ProgramWrapper;
+
+  private quadBuffer!: WebGLBuffer;
+  private framebuffer!: WebGLFramebuffer;
+  private particleIndexBuffer!: WebGLBuffer;
+  private heatmapBuffer!: WebGLBuffer;
+  private heatmapVertexCount = 0;
+
+  private particleStateTexture0!: WebGLTexture;
+  private particleStateTexture1!: WebGLTexture;
+  private windTexture: WebGLTexture | null = null;
+  private colorRampTexture!: WebGLTexture;
+  private backgroundTexture!: WebGLTexture;
+  private screenTexture!: WebGLTexture;
+
+  private screenWidth = 0;
+  private screenHeight = 0;
+  // Zeitstempel des letzten Update-Schritts für die delta-time-Normierung der
+  // Advektion (entkoppelt die Partikelgeschwindigkeit von der Bildwiederholrate).
+  private lastFrameTime = 0;
+
+  private clearOnNextFrame = true;
+  private onMove = () => {
+    this.clearOnNextFrame = true;
+  };
+  // Resize: Trails verwerfen UND Partikelzahl an die neue Viewport-Größe anpassen
+  // (windy-artig — mehr Bildschirmfläche ⇒ mehr Partikel, gleichbleibende Dichte).
+  private onResize = () => {
+    this.clearOnNextFrame = true;
+    this.applyTargetParticleCount();
+  };
+
+  /**
+   * Ziel-Partikelzahl. Bei Auto-Skalierung proportional zur sichtbaren CSS-Fläche
+   * (× Dichte-Regler), geklemmt auf [min, max] — so bleibt die *Dichte* über
+   * Laptop bis 4K konstant, statt einer festen Zahl, die auf großen Schirmen
+   * dünn und auf kleinen überladen wirkt. Bei fixem numParticles unverändert.
+   */
+  private targetParticleCount(): number {
+    if (!this.autoScale) return this._numParticles;
+    const canvas = this.map?.getCanvas();
+    // clientWidth/Height = CSS-Pixel (DPR-unabhängig → kein Explodieren auf Retina).
+    const cssW = canvas?.clientWidth || 1280;
+    const cssH = canvas?.clientHeight || 720;
+    const megapixels = (cssW * cssH) / 1_000_000;
+    const raw = this.baseDensity * megapixels * this.densityMultiplier;
+    return Math.round(Math.max(this.minParticles, Math.min(this.maxParticles, raw)));
+  }
+
+  /** Re-init nur, wenn sich die Partikel-Textur-Auflösung tatsächlich ändert
+   *  (Resize/Density feuern oft; Texturen neu zu allozieren ist nicht gratis). */
+  private applyTargetParticleCount(): void {
+    if (!this.gl) return;
+    const target = this.targetParticleCount();
+    const targetRes = Math.ceil(Math.sqrt(Math.max(1, target)));
+    if (targetRes === this.particleStateResolution) return;
+    this.reinitParticles(target);
+  }
+
+  /** Dichte-Regler (UI). Multipliziert die viewport-skalierte Partikelzahl. */
+  setDensityMultiplier(multiplier: number): void {
+    this.densityMultiplier = Math.max(0.05, multiplier);
+    // Dichte greift nur im Auto-Modus; sonst ist die feste Zahl gewollt.
+    this.autoScale = true;
+    this.applyTargetParticleCount();
+    this.map?.triggerRepaint();
+  }
+
+  /** Partikel-Animation an/aus (Heatmap bleibt sichtbar). UI „Aus". */
+  setShowParticles(on: boolean): void {
+    if (this.showParticles === on) return;
+    this.showParticles = on;
+    this.clearOnNextFrame = true;
+    this.map?.triggerRepaint();
+  }
+
+  /** Globus-Modus aktivieren: volle Partikeldichte unabhängig vom (niedrigen)
+   *  Globus-Zoom und gleichmäßiges Bildschirmtempo. */
+  setGlobeMode(on: boolean): void {
+    this.globeMode = on;
+    this.map?.triggerRepaint();
+  }
+
+  /** Setzt die Positions-Uniforms eines Programms — Projektions-Prelude (Mercator
+   *  & Globus) wenn vorhanden, sonst der alte rohe-Matrix-Pfad (u_matrix). */
+  private setPositionUniforms(p: ProgramWrapper, matrix: Float32List): void {
+    const gl = this.gl!;
+    const pd = this.projData;
+    if (pd) {
+      const setM = (loc: unknown, m: Float32List) => { if (loc) gl.uniformMatrix4fv(loc as WebGLUniformLocation, false, m); };
+      const set4 = (loc: unknown, v: [number, number, number, number]) => { if (loc) gl.uniform4f(loc as WebGLUniformLocation, v[0], v[1], v[2], v[3]); };
+      const set1 = (loc: unknown, x: number) => { if (loc) gl.uniform1f(loc as WebGLUniformLocation, x); };
+      setM(p.u_projection_matrix, pd.mainMatrix);
+      set4(p.u_projection_tile_mercator_coords, pd.tileMercatorCoords);
+      set4(p.u_projection_clipping_plane, pd.clippingPlane);
+      set1(p.u_projection_transition, pd.projectionTransition);
+      setM(p.u_projection_fallback_matrix, pd.fallbackMatrix);
+    } else if (p.u_matrix) {
+      gl.uniformMatrix4fv(p.u_matrix as WebGLUniformLocation, false, matrix);
+    }
+  }
+
+  /** Partikel-Punktgröße (UI „Intensiv" verbreitert leicht). */
+  setPointSize(px: number): void {
+    this.pointSize = Math.max(0.5, px);
+    this.map?.triggerRepaint();
+  }
+
+  /** Schweif-Länge: höher = längere Trails (UI „Intensiv"). 0.90–0.99 sinnvoll. */
+  setFadeOpacity(v: number): void {
+    this.fadeOpacity = Math.max(0.5, Math.min(0.995, v));
+    this.map?.triggerRepaint();
+  }
+
+  constructor(options: WindLayerOptions = {}) {
+    this.id = options.id ?? 'wind';
+    // Auto-Skalierung nach Viewport, außer numParticles ist explizit fix gesetzt.
+    this.autoScale = options.numParticles == null;
+    this.baseDensity = options.baseDensity ?? 3600;
+    this.densityMultiplier = options.densityMultiplier ?? 1;
+    this.minParticles = options.minParticles ?? 1800;
+    this.maxParticles = options.maxParticles ?? 22000;
+    // Startwert; bei autoScale in onAdd aus der echten Canvas-Größe ersetzt.
+    this._numParticles = options.numParticles ?? 4500;
+    this.fadeOpacity = options.fadeOpacity ?? 0.955;
+    this.speedFactor = options.speedFactor ?? 0.12;
+    this.speedRefZoom = options.speedRefZoom ?? 5.5;
+    this.speedZoomDamping = options.speedZoomDamping ?? 1.15;
+    this.speedGamma = options.speedGamma ?? 0.5;
+    this.speedRef = options.speedRef ?? 5;
+    this.speedMin = options.speedMin ?? 2;
+    this.dropRate = options.dropRate ?? 0.003;
+    this.dropRateBump = options.dropRateBump ?? 0.01;
+    this.pointSize = options.pointSize ?? 1.5;
+    this.showHeatmap = options.showHeatmap ?? true;
+    this.heatmapOpacity = options.heatmapOpacity ?? 0.85;
+    this.particleColor = options.particleColor ?? [1.0, 1.0, 1.0, 0.85];
+    this.speedTint = options.speedTint ?? 0;
+    this.subSteps = Math.max(1, Math.min(4, Math.round(options.subSteps ?? 1)));
+    this.upsample = Math.max(1, Math.min(4, Math.round(options.upsample ?? 2)));
+    this.windPngUrl = options.windPngUrl ?? '/wind/wind.png';
+    this.windJsonUrl = options.windJsonUrl ?? '/wind/wind.json';
+    this.colorRampStops = options.colorRamp ?? defaultColorRamp;
+  }
+
+  onAdd(map: MapLibreMap, gl: WebGLRenderingContext) {
+    this.map = map;
+    this.gl = gl;
+
+    this.drawProgram = createProgram(gl, drawVert, drawFrag);
+    this.screenProgram = createProgram(gl, quadVert, screenFrag);
+    this.updateProgram = createProgram(gl, quadVert, updateFrag);
+    this.heatmapProgram = createProgram(gl, heatmapVert, heatmapFrag);
+
+    this.quadBuffer = createBuffer(
+      gl,
+      new Float32Array([0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1]),
+    );
+    this.framebuffer = gl.createFramebuffer()!;
+
+    this.buildHeatmapMesh();
+
+    this.colorRampTexture = createTexture(gl, gl.LINEAR, getColorRamp(this.colorRampStops), 16, 16);
+
+    this.initParticles(this.targetParticleCount());
+    this.allocScreenTextures();
+
+    map.on('move', this.onMove);
+    map.on('zoom', this.onMove);
+    map.on('rotate', this.onMove);
+    map.on('pitch', this.onMove);
+    map.on('resize', this.onResize);
+
+    if (this._pendingWindData) {
+      const { image, meta } = this._pendingWindData;
+      this._pendingWindData = null;
+      this.setWindData(image, meta);
+    } else if (this.windPngUrl) {
+      void this.loadWindData();
+    }
+  }
+
+  onRemove(map: MapLibreMap, gl: WebGLRenderingContext) {
+    map.off('move', this.onMove);
+    map.off('zoom', this.onMove);
+    map.off('rotate', this.onMove);
+    map.off('pitch', this.onMove);
+    map.off('resize', this.onResize);
+
+    gl.deleteProgram(this.drawProgram.program);
+    gl.deleteProgram(this.screenProgram.program);
+    gl.deleteProgram(this.updateProgram.program);
+    gl.deleteProgram(this.heatmapProgram.program);
+    gl.deleteBuffer(this.quadBuffer);
+    gl.deleteBuffer(this.particleIndexBuffer);
+    gl.deleteBuffer(this.heatmapBuffer);
+    gl.deleteFramebuffer(this.framebuffer);
+    gl.deleteTexture(this.particleStateTexture0);
+    gl.deleteTexture(this.particleStateTexture1);
+    if (this.windTexture) gl.deleteTexture(this.windTexture);
+    gl.deleteTexture(this.colorRampTexture);
+    gl.deleteTexture(this.backgroundTexture);
+    gl.deleteTexture(this.screenTexture);
+  }
+
+  private async loadWindData() {
+    try {
+      const res = await fetch(this.windJsonUrl);
+      if (!res.ok) throw new Error(`wind.json: ${res.status}`);
+      const meta = (await res.json()) as WindMeta;
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = () => reject(new Error('wind.png load failed'));
+        img.src = this.windPngUrl;
+      });
+      this.setWindData(img, meta);
+    } catch (err) {
+      console.error('[WindLayer] failed to load wind data:', err);
+    }
+  }
+
+  setWindData(image: HTMLImageElement | HTMLCanvasElement, meta: WindMeta) {
+    const gl = this.gl;
+    if (!gl) {
+      // queue until onAdd has set up gl context
+      this._pendingWindData = { image, meta };
+      return;
+    }
+    if (this.windTexture) gl.deleteTexture(this.windTexture);
+
+    // Quelle ist ein grobes, 8-bit-quantisiertes Gitter (z. B. 360×180). Wir
+    // dekodieren es zu kontinuierlichen Floats, glätten + upsamplen das Feld auf
+    // CPU und laden es als HALF_FLOAT hoch — das entfernt die blockigen
+    // 1°-Stufen und gibt der Strömung den weichen nullschool-Charakter. Fällt bei
+    // fehlender Float-Extension automatisch auf 8-bit zurück.
+    const { rgba, width, height } = this.decodeAndRefine(image, meta);
+    this.windTexture = createDataTexture(gl, gl.LINEAR, rgba, width, height);
+
+    this.windData = {
+      ...meta,
+      width,
+      height,
+      image,
+      uvBounds: meta.uvBounds ?? [0, 0, 1, 1],
+    };
+    this.clearOnNextFrame = true;
+    this.map?.triggerRepaint();
+  }
+
+  /**
+   * Dekodiert das Wind-Bild zu normierten u/v-Floats (R/G in [0,1]), upsampelt
+   * bilinear um `this.upsample` und glättet anschließend leicht (3×3) — so wird
+   * aus dem groben Quellgitter ein kontinuierliches Feld. Liefert RGBA-Floats
+   * (R=u, G=v, B=0, A=1) für den Half-Float-Upload.
+   */
+  private decodeAndRefine(
+    image: HTMLImageElement | HTMLCanvasElement,
+    meta: WindMeta,
+  ): { rgba: Float32Array; width: number; height: number } {
+    const sw = meta.width;
+    const sh = meta.height;
+    const cv = document.createElement('canvas');
+    cv.width = sw;
+    cv.height = sh;
+    const ctx = cv.getContext('2d', { willReadFrequently: true })!;
+    ctx.drawImage(image, 0, 0, sw, sh);
+    const px = ctx.getImageData(0, 0, sw, sh).data;
+
+    // Quell-u/v normiert (0..1).
+    const su = new Float32Array(sw * sh);
+    const sv = new Float32Array(sw * sh);
+    for (let i = 0; i < sw * sh; i++) {
+      su[i] = px[i * 4] / 255;
+      sv[i] = px[i * 4 + 1] / 255;
+    }
+
+    const f = this.upsample;
+    const dw = sw * f;
+    const dh = sh * f;
+
+    // Bilineares Upsampling. Längengrad wrappt (zyklisch), Breitengrad geklemmt.
+    const sampleSrc = (arr: Float32Array, fx: number, fy: number): number => {
+      const gx = fx * sw - 0.5;
+      const gy = fy * sh - 0.5;
+      const x0 = Math.floor(gx);
+      const y0 = Math.floor(gy);
+      const tx = gx - x0;
+      const ty = gy - y0;
+      const wrapX = (x: number) => ((x % sw) + sw) % sw;
+      const clampY = (y: number) => Math.max(0, Math.min(sh - 1, y));
+      const x1 = wrapX(x0 + 1);
+      const x0w = wrapX(x0);
+      const y0c = clampY(y0);
+      const y1c = clampY(y0 + 1);
+      const a = arr[y0c * sw + x0w];
+      const b = arr[y0c * sw + x1];
+      const c = arr[y1c * sw + x0w];
+      const d = arr[y1c * sw + x1];
+      return (a * (1 - tx) + b * tx) * (1 - ty) + (c * (1 - tx) + d * tx) * ty;
+    };
+
+    const uu = new Float32Array(dw * dh);
+    const vv = new Float32Array(dw * dh);
+    for (let y = 0; y < dh; y++) {
+      const fy = (y + 0.5) / dh;
+      for (let x = 0; x < dw; x++) {
+        const fx = (x + 0.5) / dw;
+        const di = y * dw + x;
+        uu[di] = sampleSrc(su, fx, fy);
+        vv[di] = sampleSrc(sv, fx, fy);
+      }
+    }
+
+    // Leichte 3×3-Glättung (zyklisch in X), um Interpolations-Kanten zu brechen.
+    const smooth = (arr: Float32Array): Float32Array => {
+      const out = new Float32Array(arr.length);
+      for (let y = 0; y < dh; y++) {
+        for (let x = 0; x < dw; x++) {
+          let sum = 0;
+          let wsum = 0;
+          for (let dy = -1; dy <= 1; dy++) {
+            const yy = Math.max(0, Math.min(dh - 1, y + dy));
+            for (let dx = -1; dx <= 1; dx++) {
+              const xx = ((x + dx) % dw + dw) % dw;
+              const w = dx === 0 && dy === 0 ? 4 : (dx === 0 || dy === 0 ? 2 : 1);
+              sum += arr[yy * dw + xx] * w;
+              wsum += w;
+            }
+          }
+          out[y * dw + x] = sum / wsum;
+        }
+      }
+      return out;
+    };
+    const us = this.upsample > 1 ? smooth(uu) : uu;
+    const vs = this.upsample > 1 ? smooth(vv) : vv;
+
+    const rgba = new Float32Array(dw * dh * 4);
+    for (let i = 0; i < dw * dh; i++) {
+      rgba[i * 4] = us[i];
+      rgba[i * 4 + 1] = vs[i];
+      rgba[i * 4 + 2] = 0;
+      rgba[i * 4 + 3] = 1;
+    }
+    return { rgba, width: dw, height: dh };
+  }
+
+  private _pendingWindData: { image: HTMLImageElement | HTMLCanvasElement; meta: WindMeta } | null = null;
+
+  private buildHeatmapMesh() {
+    const gl = this.gl!;
+    const cols = 128;
+    const rows = 64;
+    const verts: number[] = [];
+    const lngStep = 360 / cols;
+    const latRange = 2 * MERC_MAX_LAT;
+    const latStep = latRange / rows;
+    for (let j = 0; j < rows; j++) {
+      for (let i = 0; i < cols; i++) {
+        const lng0 = -180 + i * lngStep;
+        const lng1 = -180 + (i + 1) * lngStep;
+        const lat0 = -MERC_MAX_LAT + j * latStep;
+        const lat1 = -MERC_MAX_LAT + (j + 1) * latStep;
+        verts.push(
+          lng0, lat0, lng1, lat0, lng0, lat1,
+          lng0, lat1, lng1, lat0, lng1, lat1,
+        );
+      }
+    }
+    this.heatmapBuffer = createBuffer(gl, new Float32Array(verts));
+    this.heatmapVertexCount = verts.length / 2;
+  }
+
+  private initParticles(n: number) {
+    const gl = this.gl!;
+    const res = Math.ceil(Math.sqrt(n));
+    this.particleStateResolution = res;
+    this._numParticles = res * res;
+
+    const state = new Uint8Array(this._numParticles * 4);
+    for (let i = 0; i < state.length; i++) state[i] = Math.floor(Math.random() * 256);
+
+    this.particleStateTexture0 = createTexture(gl, gl.NEAREST, state, res, res);
+    this.particleStateTexture1 = createTexture(gl, gl.NEAREST, state, res, res);
+
+    const indices = new Float32Array(this._numParticles);
+    for (let i = 0; i < this._numParticles; i++) indices[i] = i;
+    this.particleIndexBuffer = createBuffer(gl, indices);
+  }
+
+  /** Partikelzahl zur Laufzeit ändern (Resize/Dichte): alte Textur/Buffer
+   *  freigeben, neu mit n Partikeln initialisieren, Trails verwerfen. */
+  private reinitParticles(n: number): void {
+    const gl = this.gl;
+    if (!gl) return;
+    if (this.particleStateTexture0) gl.deleteTexture(this.particleStateTexture0);
+    if (this.particleStateTexture1) gl.deleteTexture(this.particleStateTexture1);
+    if (this.particleIndexBuffer) gl.deleteBuffer(this.particleIndexBuffer);
+    this.initParticles(n);
+    this.clearOnNextFrame = true;
+  }
+
+  private allocScreenTextures() {
+    const gl = this.gl!;
+    const w = gl.drawingBufferWidth;
+    const h = gl.drawingBufferHeight;
+    if (w === this.screenWidth && h === this.screenHeight && this.backgroundTexture) return;
+    this.screenWidth = w;
+    this.screenHeight = h;
+    const empty = new Uint8Array(w * h * 4);
+    if (this.backgroundTexture) gl.deleteTexture(this.backgroundTexture);
+    if (this.screenTexture) gl.deleteTexture(this.screenTexture);
+    this.backgroundTexture = createTexture(gl, gl.NEAREST, empty, w, h);
+    this.screenTexture = createTexture(gl, gl.NEAREST, empty, w, h);
+    this.clearOnNextFrame = true;
+  }
+
+  private clearScreen() {
+    const gl = this.gl!;
+    const prevFB = gl.getParameter(gl.FRAMEBUFFER_BINDING);
+    bindFramebuffer(gl, this.framebuffer, this.backgroundTexture);
+    gl.viewport(0, 0, this.screenWidth, this.screenHeight);
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    bindFramebuffer(gl, this.framebuffer, this.screenTexture);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, prevFB);
+  }
+
+  private getEquirectangularBounds(): [number, number, number, number] {
+    // Globus: über die ganze Welt streuen (die Rückseite wird ohnehin geclippt),
+    // damit beim Drehen überall Partikel sind. Auf die Daten-UV-Bounds begrenzt.
+    if (this.globeMode) {
+      return this.windData ? this.windData.uvBounds : [0, 0, 1, 1];
+    }
+    const map = this.map!;
+    const b = map.getBounds();
+    const west = b.getWest();
+    const east = b.getEast();
+    const south = b.getSouth();
+    const north = b.getNorth();
+    let xMin = lngToEquiX(west);
+    let xMax = lngToEquiX(east);
+    let yMin = latToEquiY(north);
+    let yMax = latToEquiY(south);
+    const padX = Math.max((xMax - xMin) * 0.1, 0.02);
+    const padY = Math.max((yMax - yMin) * 0.1, 0.02);
+    xMin = Math.max(0, xMin - padX);
+    xMax = Math.min(1, xMax + padX);
+    yMin = Math.max(0, yMin - padY);
+    yMax = Math.min(1, yMax + padY);
+    // Intersect with the wind-data uv bounds so particles never spawn in
+    // areas where we don't have any wind data (they'd be invisible anyway).
+    if (this.windData) {
+      const [dx0, dy0, dx1, dy1] = this.windData.uvBounds;
+      xMin = Math.max(xMin, dx0);
+      yMin = Math.max(yMin, dy0);
+      xMax = Math.min(xMax, dx1);
+      yMax = Math.min(yMax, dy1);
+      if (xMax <= xMin) {
+        xMin = dx0; xMax = dx1;
+      }
+      if (yMax <= yMin) {
+        yMin = dy0; yMax = dy1;
+      }
+    }
+    return [xMin, yMin, xMax, yMax];
+  }
+
+  private getEffectiveParticleCount(): number {
+    const zoom = this.map?.getZoom() ?? 5;
+    // Globus zeigt die ganze Erde bei niedrigem Zoom — dort volle Dichte (die
+    // Mercator-Ausdünnung würde den Globus fast leer machen).
+    if (this.globeMode) return this._numParticles;
+    // Heavily thin out particles when zoomed out so the map stays readable;
+    // ramps from ~5 % at world-view to full count at zoom 6.
+    let frac = 1.0;
+    if (zoom < 6) {
+      frac = Math.max(0.05, Math.min(1.0, 0.05 + Math.max(0, zoom - 1) * 0.19));
+    }
+    return Math.min(this._numParticles, Math.floor(this._numParticles * frac));
+  }
+
+  render(gl: WebGLRenderingContext, args: CustomRenderMethodInput | number[] | Float32Array) {
+    if (!this.windData || !this.windTexture) {
+      this.map?.triggerRepaint();
+      return;
+    }
+
+    // MapLibre v5: args is CustomRenderMethodInput with defaultProjectionData +
+    // shaderData (projection prelude → works on Mercator AND Globe). Older API /
+    // tests: args is a raw 16-number matrix → fall back to the self-contained
+    // u_matrix shaders compiled in onAdd.
+    let matrix: Float32List;
+    if (Array.isArray(args) || args instanceof Float32Array) {
+      matrix = args as Float32List;
+      this.projData = null;
+    } else {
+      const pd = args.defaultProjectionData;
+      matrix = pd.mainMatrix as unknown as Float32List;
+      this.projData = {
+        mainMatrix: pd.mainMatrix as unknown as Float32List,
+        tileMercatorCoords: pd.tileMercatorCoords as [number, number, number, number],
+        clippingPlane: pd.clippingPlane as [number, number, number, number],
+        projectionTransition: pd.projectionTransition,
+        fallbackMatrix: pd.fallbackMatrix as unknown as Float32List,
+      };
+      // Geo-projizierende Programme pro Projektionsvariante (Mercator/Globe) neu
+      // bauen: MapLibre-Prelude voranstellen, projectTile() im Body.
+      const sd = args.shaderData;
+      if (sd && this.projVariant !== sd.variantName) {
+        const prelude = `${sd.define}\n${sd.vertexShaderPrelude}\n`;
+        gl.deleteProgram(this.drawProgram.program);
+        gl.deleteProgram(this.heatmapProgram.program);
+        this.drawProgram = createProgram(gl, prelude + drawVertProjected, drawFrag);
+        this.heatmapProgram = createProgram(gl, prelude + heatmapVertProjected, heatmapFrag);
+        this.projVariant = sd.variantName;
+      }
+    }
+
+    this.allocScreenTextures();
+
+    if (this.clearOnNextFrame) {
+      this.clearScreen();
+      this.clearOnNextFrame = false;
+    }
+
+    const prevFB = gl.getParameter(gl.FRAMEBUFFER_BINDING);
+    const prevViewport = gl.getParameter(gl.VIEWPORT) as Int32Array;
+    const prevBlend = gl.getParameter(gl.BLEND) as boolean;
+    const prevDepth = gl.getParameter(gl.DEPTH_TEST) as boolean;
+    const prevStencil = gl.getParameter(gl.STENCIL_TEST) as boolean;
+
+    gl.disable(gl.DEPTH_TEST);
+    gl.disable(gl.STENCIL_TEST);
+    gl.disable(gl.BLEND);
+
+    bindTexture(gl, this.windTexture, 0);
+    bindTexture(gl, this.particleStateTexture0, 1);
+
+    if (this.showHeatmap) {
+      this.drawHeatmap(matrix, prevFB, prevViewport);
+    }
+    if (this.showParticles) {
+      this.drawScreen(matrix, prevFB, prevViewport);
+      this.updateParticles();
+    }
+
+    // restore state for MapLibre
+    gl.bindFramebuffer(gl.FRAMEBUFFER, prevFB);
+    gl.viewport(prevViewport[0], prevViewport[1], prevViewport[2], prevViewport[3]);
+    if (prevBlend) gl.enable(gl.BLEND);
+    else gl.disable(gl.BLEND);
+    if (prevDepth) gl.enable(gl.DEPTH_TEST);
+    if (prevStencil) gl.enable(gl.STENCIL_TEST);
+
+    // Nur weiter animieren, solange Partikel sichtbar sind. Bei reiner Heatmap
+    // („Aus") rendert MapLibre ohnehin bei jeder Karten-/Slider-Bewegung neu —
+    // ein Dauer-Repaint wäre reine Akku-Verschwendung.
+    if (this.showParticles) this.map?.triggerRepaint();
+  }
+
+  private drawHeatmap(matrix: Float32List, mapFB: WebGLFramebuffer | null, mapViewport: Int32Array) {
+    const gl = this.gl!;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, mapFB);
+    gl.viewport(mapViewport[0], mapViewport[1], mapViewport[2], mapViewport[3]);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+    const p = this.heatmapProgram;
+    gl.useProgram(p.program);
+    bindAttribute(gl, this.heatmapBuffer, p.a_lnglat as number, 2);
+    bindTexture(gl, this.windTexture!, 0);
+    bindTexture(gl, this.colorRampTexture, 2);
+    gl.uniform1i(p.u_wind as WebGLUniformLocation, 0);
+    gl.uniform1i(p.u_color_ramp as WebGLUniformLocation, 2);
+    gl.uniform2f(p.u_wind_min as WebGLUniformLocation, this.windData!.uMin, this.windData!.vMin);
+    gl.uniform2f(p.u_wind_max as WebGLUniformLocation, this.windData!.uMax, this.windData!.vMax);
+    // attenuate heatmap when zoomed in close so the underlying map stays readable
+    const zoom = this.map?.getZoom() ?? 5;
+    const opacityFactor = Math.max(0.35, Math.min(1.0, 1.0 - Math.max(0, zoom - 9) * 0.12));
+    gl.uniform1f(p.u_opacity as WebGLUniformLocation, this.heatmapOpacity * opacityFactor);
+    const [dx0, dy0, dx1, dy1] = this.windData!.uvBounds;
+    gl.uniform4f(p.u_data_uv_bounds as WebGLUniformLocation, dx0, dy0, dx1, dy1);
+    this.setPositionUniforms(p, matrix);
+    gl.drawArrays(gl.TRIANGLES, 0, this.heatmapVertexCount);
+
+    gl.disable(gl.BLEND);
+  }
+
+  private drawScreen(matrix: Float32List, mapFB: WebGLFramebuffer | null, mapViewport: Int32Array) {
+    const gl = this.gl!;
+
+    bindFramebuffer(gl, this.framebuffer, this.screenTexture);
+    gl.viewport(0, 0, this.screenWidth, this.screenHeight);
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    // fade-redraw previous frame
+    this.drawTexture(this.backgroundTexture, this.fadeOpacity);
+
+    // draw new particle positions on top
+    this.drawParticles(matrix);
+
+    // composite into MapLibre framebuffer
+    gl.bindFramebuffer(gl.FRAMEBUFFER, mapFB);
+    gl.viewport(mapViewport[0], mapViewport[1], mapViewport[2], mapViewport[3]);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    this.drawTexture(this.screenTexture, 1.0);
+    gl.disable(gl.BLEND);
+
+    // swap buffers
+    const temp = this.backgroundTexture;
+    this.backgroundTexture = this.screenTexture;
+    this.screenTexture = temp;
+  }
+
+  private drawTexture(texture: WebGLTexture, opacity: number) {
+    const gl = this.gl!;
+    const p = this.screenProgram;
+    gl.useProgram(p.program);
+    bindAttribute(gl, this.quadBuffer, p.a_pos as number, 2);
+    bindTexture(gl, texture, 2);
+    gl.uniform1i(p.u_screen as WebGLUniformLocation, 2);
+    gl.uniform1f(p.u_opacity as WebGLUniformLocation, opacity);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+  }
+
+  private drawParticles(matrix: Float32List) {
+    const gl = this.gl!;
+    const p = this.drawProgram;
+    gl.useProgram(p.program);
+
+    bindAttribute(gl, this.particleIndexBuffer, p.a_index as number, 1);
+
+    bindTexture(gl, this.colorRampTexture, 2);
+    gl.uniform1i(p.u_wind as WebGLUniformLocation, 0);
+    gl.uniform1i(p.u_particles as WebGLUniformLocation, 1);
+    gl.uniform1i(p.u_color_ramp as WebGLUniformLocation, 2);
+    gl.uniform1f(p.u_speed_tint as WebGLUniformLocation, this.speedTint);
+
+    gl.uniform1f(p.u_particles_res as WebGLUniformLocation, this.particleStateResolution);
+    gl.uniform2f(p.u_wind_min as WebGLUniformLocation, this.windData!.uMin, this.windData!.vMin);
+    gl.uniform2f(p.u_wind_max as WebGLUniformLocation, this.windData!.uMax, this.windData!.vMax);
+    // scale point size with zoom so particles stay readable when zoomed in
+    const zoom = this.map?.getZoom() ?? 5;
+    const zoomFactor = Math.max(0.85, Math.min(3.4, 1.0 + (zoom - 5) * 0.3));
+    gl.uniform1f(p.u_point_size as WebGLUniformLocation, this.pointSize * zoomFactor);
+    const c = this.particleColor;
+    gl.uniform4f(p.u_particle_color as WebGLUniformLocation, c[0], c[1], c[2], c[3]);
+    const [dx0, dy0, dx1, dy1] = this.windData!.uvBounds;
+    gl.uniform4f(p.u_data_uv_bounds as WebGLUniformLocation, dx0, dy0, dx1, dy1);
+    this.setPositionUniforms(p, matrix);
+
+    gl.drawArrays(gl.POINTS, 0, this.getEffectiveParticleCount());
+  }
+
+  private updateParticles() {
+    const gl = this.gl!;
+    bindFramebuffer(gl, this.framebuffer, this.particleStateTexture1);
+    gl.viewport(0, 0, this.particleStateResolution, this.particleStateResolution);
+
+    const p = this.updateProgram;
+    gl.useProgram(p.program);
+    bindAttribute(gl, this.quadBuffer, p.a_pos as number, 2);
+
+    gl.uniform1i(p.u_wind as WebGLUniformLocation, 0);
+    gl.uniform1i(p.u_particles as WebGLUniformLocation, 1);
+    gl.uniform1f(p.u_rand_seed as WebGLUniformLocation, Math.random());
+    gl.uniform2f(p.u_wind_res as WebGLUniformLocation, this.windData!.width, this.windData!.height);
+    gl.uniform2f(p.u_wind_min as WebGLUniformLocation, this.windData!.uMin, this.windData!.vMin);
+    gl.uniform2f(p.u_wind_max as WebGLUniformLocation, this.windData!.uMax, this.windData!.vMax);
+    gl.uniform1f(p.u_speed_factor as WebGLUniformLocation, this.speedFactor);
+    // delta-time seit dem letzten Schritt, referenziert auf 60 fps. Geklemmt auf
+    // 1–66 ms, damit ein Tab-Wechsel / erster Frame keinen Riesensprung erzeugt.
+    const now = performance.now();
+    let dtMs = this.lastFrameTime ? now - this.lastFrameTime : 16.667;
+    this.lastFrameTime = now;
+    dtMs = Math.min(Math.max(dtMs, 1), 66);
+    gl.uniform1f(p.u_dt_scale as WebGLUniformLocation, dtMs / 16.667);
+    // Zoom-Dämpfung: 2^(-(zoom - Z0)·k). Beim Reinzoomen wird der geografische
+    // Schritt kleiner, damit die Bildschirmgeschwindigkeit nicht mit 2^zoom
+    // hochschießt. Geklemmt, damit Extrem-Zoomstufen nicht ausreißen.
+    // Globus: gleichmäßiges Bildschirmtempo (kein 2^zoom-Ausreißen beim
+    // niedrigen Globus-Zoom) — referenziert auf einen mittleren Zoom.
+    const z = this.globeMode ? this.speedRefZoom : (this.map?.getZoom() ?? this.speedRefZoom);
+    let zoomSpeed = Math.pow(2, -(z - this.speedRefZoom) * this.speedZoomDamping);
+    // Floor nur sehr tief gegen komplettes Einfrieren bei Extrem-Zoom — höher
+    // gesetzt würde er die gewünschte Verlangsamung beim Reinzoomen aufheben.
+    zoomSpeed = Math.min(4, Math.max(0.002, zoomSpeed));
+    gl.uniform1f(p.u_zoom_speed as WebGLUniformLocation, zoomSpeed);
+    gl.uniform1f(p.u_speed_gamma as WebGLUniformLocation, this.speedGamma);
+    gl.uniform1f(p.u_speed_ref as WebGLUniformLocation, this.speedRef);
+    gl.uniform1f(p.u_speed_min as WebGLUniformLocation, this.speedMin);
+    gl.uniform1f(p.u_drop_rate as WebGLUniformLocation, this.dropRate);
+    gl.uniform1f(p.u_drop_rate_bump as WebGLUniformLocation, this.dropRateBump);
+    gl.uniform1f(p.u_sub_steps as WebGLUniformLocation, this.subSteps);
+
+    const bounds = this.getEquirectangularBounds();
+    gl.uniform4f(p.u_bounds as WebGLUniformLocation, bounds[0], bounds[1], bounds[2], bounds[3]);
+    const [dx0, dy0, dx1, dy1] = this.windData!.uvBounds;
+    gl.uniform4f(p.u_data_uv_bounds as WebGLUniformLocation, dx0, dy0, dx1, dy1);
+
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+    const tmp = this.particleStateTexture0;
+    this.particleStateTexture0 = this.particleStateTexture1;
+    this.particleStateTexture1 = tmp;
+  }
+}
+
+// helpers used inside layer; exported only for testing if needed
+export const _internals = { lngToMercX, latToMercY, lngToEquiX, latToEquiY };

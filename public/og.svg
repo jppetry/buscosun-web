@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-label="buscosun — Wetter DE AT CH">
+  <rect width="1200" height="630" fill="#FAF6EA"/>
+  <!-- weiche Sonne -->
+  <circle cx="965" cy="200" r="120" fill="#C97B47" opacity="0.92"/>
+  <g stroke="#C4B896" stroke-width="6" fill="none" stroke-linecap="round" opacity="0.6">
+    <path d="M80 470 Q 360 420 640 460 T 1140 440"/>
+    <path d="M80 510 Q 360 462 640 502 T 1140 482"/>
+  </g>
+  <!-- Bergsilhouette -->
+  <path d="M0 630 L240 410 L420 520 L640 360 L860 500 L1040 380 L1200 520 L1200 630 Z" fill="#2C2A26"/>
+  <!-- Wortmarke -->
+  <g fill="#2C2A26" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif">
+    <text x="80" y="210" font-size="104" font-weight="700">buscosun</text>
+    <text x="84" y="280" font-size="40" font-weight="500" fill="#5C5447">Wetter für Deutschland · Österreich · Schweiz</text>
+    <text x="84" y="332" font-size="28" fill="#8B7355">DWD · GeoSphere · MeteoSwiss — höhenkorrigiert, ohne Tracker</text>
+  </g>
+</svg>

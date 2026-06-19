@@ -1,0 +1,302 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 1720" width="390" height="1720" font-family="ui-sans-serif, system-ui, -apple-system">
+
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F5F1E8"/>
+      <stop offset="100%" stop-color="#EDE6D3"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="390" height="1720" fill="url(#bgGrad)"/>
+
+  <!-- ═══════════════════════════════════════════
+       TOP BAR (y=0 to y=52)
+  ═══════════════════════════════════════════ -->
+  <rect x="0" y="0" width="390" height="52" fill="#FFFFFF"/>
+
+  <!-- Sun icon at x=16,y=26 -->
+  <circle cx="16" cy="26" r="5" fill="#2C2A26"/>
+  <!-- 8 rays -->
+  <line x1="16" y1="18" x2="16" y2="15" stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="16" y1="34" x2="16" y2="37" stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="8"  y1="26" x2="5"  y2="26" stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="24" y1="26" x2="27" y2="26" stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="10.34" y1="20.34" x2="8.22" y2="18.22" stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="21.66" y1="31.66" x2="23.78" y2="33.78" stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="21.66" y1="20.34" x2="23.78" y2="18.22" stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="10.34" y1="31.66" x2="8.22"  y2="33.78" stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round"/>
+
+  <!-- buscosun text -->
+  <text x="32" y="30" font-size="15" font-weight="500" fill="#2C2A26">buscosun</text>
+
+  <!-- Live indicator -->
+  <circle cx="280" cy="26" r="3" fill="#7A9466"/>
+  <text x="286" y="30" font-size="10" fill="#7A9466">live</text>
+
+  <!-- Bell icon at x=330,y=26 -->
+  <path d="M330,20 Q330,15 336,15 Q342,15 342,20 L342,28 Q344,30 344,32 L316,32 Q316,30 318,28 Z" fill="none" stroke="#2C2A26" stroke-width="1.2" stroke-linejoin="round"/>
+  <path d="M327,32 Q327,34.5 330,34.5 Q333,34.5 333,32" fill="none" stroke="#2C2A26" stroke-width="1.2"/>
+  <!-- Simplified bell -->
+  <path d="M330,19 C330,15.5 333.5,13 336,13 C338.5,13 342,15.5 342,19 L342,28 L344,30 L344,32 L328,32 L328,30 L330,28 Z" fill="none" stroke="#2C2A26" stroke-width="1.2" stroke-linejoin="round"/>
+  <path d="M333,32 Q333,34 336,34 Q339,34 339,32" fill="none" stroke="#2C2A26" stroke-width="1.2"/>
+
+  <!-- Avatar circle -->
+  <circle cx="363" cy="26" r="14" fill="#EDE6D3" stroke="#C4B896" stroke-width="0.5"/>
+  <text x="363" y="30" font-size="10" fill="#2C2A26" text-anchor="middle">JS</text>
+
+  <!-- Top bar hairline -->
+  <rect x="0" y="52" width="390" height="0.5" fill="#E0D6BE"/>
+
+  <!-- ═══════════════════════════════════════════
+       SECTION 1 · ANLASS (y=64..96 implied start)
+       We render section 2 starting at y=64
+  ═══════════════════════════════════════════ -->
+
+  <!-- ═══════════════════════════════════════════
+       SECTION "2 · ORT" (y=64 to y=240)
+  ═══════════════════════════════════════════ -->
+  <text x="16" y="84" font-size="9" font-weight="500" fill="#A89A7A" letter-spacing="1.8">2 · ORT</text>
+
+  <!-- Search bar card -->
+  <rect x="16" y="96" width="358" height="48" rx="12" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+  <!-- Magnifier icon -->
+  <circle cx="34" cy="120" r="6" fill="none" stroke="#A89A7A" stroke-width="1.5"/>
+  <line x1="38.5" y1="124.5" x2="43" y2="129" stroke="#A89A7A" stroke-width="1.5" stroke-linecap="round"/>
+  <!-- Placeholder text -->
+  <text x="50" y="124" font-size="12" fill="#C4B896">Stadt, Adresse, PLZ…</text>
+  <!-- Suchen button -->
+  <rect x="298" y="106" width="64" height="28" rx="10" fill="#C97B47"/>
+  <text x="330" y="125" font-size="11" fill="#FFFFFF" text-anchor="middle">Suchen</text>
+
+  <!-- Selected location chip card -->
+  <rect x="16" y="156" width="358" height="56" rx="12" fill="#FAF6EA" stroke="#E0D6BE" stroke-width="0.5"/>
+  <!-- Pin icon at x=32,y=184 -->
+  <circle cx="32" cy="180" r="4" fill="#C97B47"/>
+  <path d="M32,184 L29,191 L32,196 L35,191 Z" fill="#C97B47"/>
+  <!-- Location text -->
+  <text x="50" y="182" font-size="13" font-weight="500" fill="#2C2A26">DE  Meersburg am Bodensee</text>
+  <text x="50" y="198" font-size="10" fill="#A89A7A">Deutschland · Baden-Württemberg</text>
+  <!-- Ändern link -->
+  <text x="330" y="184" font-size="11" fill="#C97B47" text-anchor="end">Ändern</text>
+
+  <!-- ═══════════════════════════════════════════
+       SECTION "3 · ZEITFENSTER" (y=228 to y=430)
+  ═══════════════════════════════════════════ -->
+  <text x="16" y="248" font-size="9" font-weight="500" fill="#A89A7A" letter-spacing="1.8">3 · ZEITFENSTER</text>
+
+  <!-- Segmented control -->
+  <rect x="16" y="260" width="358" height="40" rx="12" fill="#F5F1E8"/>
+  <!-- Active pill -->
+  <rect x="20" y="264" width="168" height="32" rx="10" fill="#2C2A26"/>
+  <text x="104" y="284" font-size="12" fill="#FFFFFF" text-anchor="middle">Zeitraum</text>
+  <text x="285" y="284" font-size="12" fill="#A89A7A" text-anchor="middle">Einzeltermine</text>
+
+  <!-- Date fields row -->
+  <!-- Von field -->
+  <rect x="16" y="316" width="170" height="56" rx="10" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+  <text x="28" y="334" font-size="8" font-weight="500" fill="#A89A7A" letter-spacing="1.8">VON</text>
+  <!-- Calendar icon -->
+  <rect x="26" y="346" width="14" height="13" rx="1.5" fill="none" stroke="#A89A7A" stroke-width="1.2"/>
+  <line x1="29" y1="344" x2="29" y2="348" stroke="#A89A7A" stroke-width="1.2" stroke-linecap="round"/>
+  <line x1="37" y1="344" x2="37" y2="348" stroke="#A89A7A" stroke-width="1.2" stroke-linecap="round"/>
+  <line x1="26" y1="351" x2="40" y2="351" stroke="#A89A7A" stroke-width="0.8"/>
+  <text x="48" y="358" font-size="14" font-weight="500" fill="#2C2A26">Sa, 13. Juni</text>
+
+  <!-- Bis field -->
+  <rect x="204" y="316" width="170" height="56" rx="10" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+  <text x="216" y="334" font-size="8" font-weight="500" fill="#A89A7A" letter-spacing="1.8">BIS</text>
+  <!-- Calendar icon -->
+  <rect x="214" y="346" width="14" height="13" rx="1.5" fill="none" stroke="#A89A7A" stroke-width="1.2"/>
+  <line x1="217" y1="344" x2="217" y2="348" stroke="#A89A7A" stroke-width="1.2" stroke-linecap="round"/>
+  <line x1="225" y1="344" x2="225" y2="348" stroke="#A89A7A" stroke-width="1.2" stroke-linecap="round"/>
+  <line x1="214" y1="351" x2="228" y2="351" stroke="#A89A7A" stroke-width="0.8"/>
+  <text x="236" y="358" font-size="14" font-weight="500" fill="#2C2A26">Sa, 20. Juni</text>
+
+  <!-- 7-day span note -->
+  <text x="16" y="392" font-size="11" fill="#A89A7A">7 Tage · Sa 13. bis Sa 20. Juni 2026</text>
+
+  <!-- Einzeltermine chips (dimmed) -->
+  <rect x="16" y="406" width="100" height="24" rx="10" fill="#F5F1E8"/>
+  <text x="66" y="422" font-size="10" fill="#C4B896" text-anchor="middle">So, 14. Juni ×</text>
+
+  <rect x="124" y="406" width="104" height="24" rx="10" fill="#F5F1E8"/>
+  <text x="176" y="422" font-size="10" fill="#C4B896" text-anchor="middle">Mo, 15. Juni ×</text>
+
+  <rect x="236" y="406" width="60" height="24" rx="10" fill="#F5F1E8"/>
+  <text x="266" y="422" font-size="10" fill="#C4B896" text-anchor="middle">+ Datum</text>
+
+  <!-- ═══════════════════════════════════════════
+       SECTION "4 · PHASEN" (y=444 to y=730)
+  ═══════════════════════════════════════════ -->
+  <text x="16" y="464" font-size="9" font-weight="500" fill="#A89A7A" letter-spacing="1.8">4 · PHASEN</text>
+
+  <!-- Lead text -->
+  <text x="16" y="480" font-size="12" fill="#5C5447">Definiere die wichtigsten Zeitfenster</text>
+  <text x="16" y="496" font-size="12" fill="#5C5447">deines Events für präzisere Bewertungen.</text>
+
+  <!-- Template pills row 1 -->
+  <rect x="16"  y="512" width="76" height="28" rx="12" fill="#FAF6EA" stroke="#E0D6BE" stroke-width="0.5"/>
+  <text x="54"  y="530" font-size="10" fill="#5C5447" text-anchor="middle">Ganzer Tag</text>
+
+  <rect x="100" y="512" width="68" height="28" rx="12" fill="#FAF6EA" stroke="#E0D6BE" stroke-width="0.5"/>
+  <text x="134" y="530" font-size="10" fill="#5C5447" text-anchor="middle">Vormittag</text>
+
+  <rect x="176" y="512" width="78" height="28" rx="12" fill="#FAF6EA" stroke="#E0D6BE" stroke-width="0.5"/>
+  <text x="215" y="530" font-size="10" fill="#5C5447" text-anchor="middle">Nachmittag</text>
+
+  <rect x="262" y="512" width="52" height="28" rx="12" fill="#FAF6EA" stroke="#E0D6BE" stroke-width="0.5"/>
+  <text x="288" y="530" font-size="10" fill="#5C5447" text-anchor="middle">Abend</text>
+
+  <!-- Template pill row 2 -->
+  <rect x="16" y="548" width="140" height="28" rx="12" fill="#2C2A26"/>
+  <text x="86" y="566" font-size="10" fill="#FFFFFF" text-anchor="middle">Hochzeit (3 Phasen)</text>
+
+  <!-- Phase card container -->
+  <rect x="16" y="584" width="358" height="130" rx="12" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+
+  <!-- Phase row 1: Trauung -->
+  <circle cx="32" cy="608" r="5" fill="#7A9466"/>
+  <text x="46" y="612" font-size="13" font-weight="500" fill="#2C2A26">Trauung</text>
+  <text x="46" y="628" font-size="11" fill="#A89A7A">13–15 Uhr</text>
+  <!-- Time inputs -->
+  <rect x="240" y="600" width="44" height="24" rx="6" fill="#F5F1E8"/>
+  <text x="262" y="616" font-size="10" fill="#2C2A26" text-anchor="middle">13:00</text>
+  <text x="292" y="614" font-size="12" fill="#A89A7A" text-anchor="middle">–</text>
+  <rect x="300" y="600" width="44" height="24" rx="6" fill="#F5F1E8"/>
+  <text x="322" y="616" font-size="10" fill="#2C2A26" text-anchor="middle">15:00</text>
+  <text x="356" y="614" font-size="14" fill="#A89A7A">×</text>
+
+  <!-- Divider -->
+  <rect x="28" y="636" width="326" height="0.5" fill="#E0D6BE"/>
+
+  <!-- Phase row 2: Empfang -->
+  <circle cx="32" cy="660" r="5" fill="#D4A373"/>
+  <text x="46" y="664" font-size="13" font-weight="500" fill="#2C2A26">Empfang</text>
+  <text x="46" y="680" font-size="11" fill="#A89A7A">15–18 Uhr</text>
+  <rect x="240" y="652" width="44" height="24" rx="6" fill="#F5F1E8"/>
+  <text x="262" y="668" font-size="10" fill="#2C2A26" text-anchor="middle">15:00</text>
+  <text x="292" y="666" font-size="12" fill="#A89A7A" text-anchor="middle">–</text>
+  <rect x="300" y="652" width="44" height="24" rx="6" fill="#F5F1E8"/>
+  <text x="322" y="668" font-size="10" fill="#2C2A26" text-anchor="middle">18:00</text>
+  <text x="356" y="666" font-size="14" fill="#A89A7A">×</text>
+
+  <!-- Divider -->
+  <rect x="28" y="690" width="326" height="0.5" fill="#E0D6BE"/>
+
+  <!-- Phase row 3: Abendfeier -->
+  <circle cx="32" cy="714" r="5" fill="#6B7A8F"/>
+  <text x="46" y="718" font-size="13" font-weight="500" fill="#2C2A26">Abendfeier</text>
+  <text x="46" y="734" font-size="11" fill="#A89A7A">18–23 Uhr</text>
+  <rect x="240" y="706" width="44" height="24" rx="6" fill="#F5F1E8"/>
+  <text x="262" y="722" font-size="10" fill="#2C2A26" text-anchor="middle">18:00</text>
+  <text x="292" y="720" font-size="12" fill="#A89A7A" text-anchor="middle">–</text>
+  <rect x="300" y="706" width="44" height="24" rx="6" fill="#F5F1E8"/>
+  <text x="322" y="722" font-size="10" fill="#2C2A26" text-anchor="middle">23:00</text>
+  <text x="356" y="720" font-size="14" fill="#A89A7A">×</text>
+
+  <!-- + Phase hinzufügen -->
+  <rect x="16" y="726" width="358" height="36" rx="10" fill="#FAF6EA" stroke="#E0D6BE" stroke-width="0.5" stroke-dasharray="3 2"/>
+  <text x="28" y="749" font-size="14" fill="#A89A7A">+</text>
+  <text x="44" y="749" font-size="12" fill="#A89A7A">Phase hinzufügen</text>
+
+  <!-- ═══════════════════════════════════════════
+       SECTION "5 · PLAN B" (y=778 to y=1060)
+  ═══════════════════════════════════════════ -->
+  <!-- Eyebrow with OPTIONAL pill -->
+  <text x="16" y="798" font-size="9" font-weight="500" fill="#A89A7A" letter-spacing="1.8">5 · PLAN B</text>
+  <rect x="106" y="788" width="54" height="14" rx="4" fill="#F5F1E8" stroke="#E0D6BE" stroke-width="0.5"/>
+  <text x="133" y="799" font-size="7.5" fill="#A89A7A" text-anchor="middle" letter-spacing="0.8">OPTIONAL</text>
+
+  <!-- Checkbox row -->
+  <rect x="16" y="814" width="20" height="20" rx="4" fill="#2C2A26"/>
+  <!-- Checkmark -->
+  <path d="M20,824 L24,828 L32,819" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="44" y="829" font-size="13" font-weight="500" fill="#2C2A26">Plan B aktivieren</text>
+  <!-- Toggle (active/on) -->
+  <rect x="300" y="814" width="44" height="24" rx="10" fill="#7A9466"/>
+  <circle cx="332" cy="826" r="10" fill="#FFFFFF"/>
+
+  <!-- Trigger row -->
+  <text x="16" y="862" font-size="12" fill="#5C5447">Auslöser: Regenmenge im Fenster</text>
+  <text x="330" y="862" font-size="12" font-weight="500" fill="#C97B47" text-anchor="end">3 mm</text>
+
+  <!-- Threshold slider -->
+  <text x="16" y="884" font-size="10" fill="#A89A7A">Schwellwert</text>
+  <!-- Track -->
+  <rect x="16" y="890" width="330" height="4" rx="3" fill="#F5F1E8"/>
+  <!-- Fill -->
+  <rect x="16" y="890" width="120" height="4" rx="3" fill="#3A6FA8"/>
+  <!-- Thumb -->
+  <circle cx="136" cy="892" r="6" fill="#FFFFFF" stroke="#3A6FA8" stroke-width="1.5"/>
+  <!-- Scale labels -->
+  <text x="16"  y="906" font-size="8" fill="#A89A7A">0</text>
+  <text x="170" y="906" font-size="8" fill="#A89A7A" text-anchor="middle">5 mm</text>
+  <text x="346" y="906" font-size="8" fill="#A89A7A" text-anchor="end">10 mm</text>
+
+  <!-- Ausweich-Option eyebrow -->
+  <text x="16" y="922" font-size="9" font-weight="500" fill="#A89A7A" letter-spacing="1.8">AUSWEICH-OPTION</text>
+
+  <!-- Venue tiles Row 1 -->
+  <!-- Tile: Zelt / Pavillon (SELECTED) -->
+  <rect x="16" y="932" width="170" height="72" rx="10" fill="#2C2A26"/>
+  <!-- Tent icon -->
+  <path d="M32,962 L44,944 L56,962 Z" fill="none" stroke="#FFFFFF" stroke-width="1.5" stroke-linejoin="round"/>
+  <line x1="28" y1="962" x2="60" y2="962" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round"/>
+  <text x="64" y="954" font-size="12" font-weight="500" fill="#FFFFFF">Zelt / Pavillon</text>
+  <text x="64" y="970" font-size="9" fill="#A89A7A">Empfohlen</text>
+  <!-- Sage checkmark circle -->
+  <circle cx="174" cy="940" r="8" fill="#7A9466"/>
+  <path d="M170,940 L173,943 L179,937" fill="none" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Tile: Innenraum -->
+  <rect x="204" y="932" width="170" height="72" rx="10" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+  <!-- House icon -->
+  <path d="M222,958 L230,948 L238,958 L238,968 L222,968 Z" fill="none" stroke="#A89A7A" stroke-width="1.2" stroke-linejoin="round"/>
+  <rect x="227" y="960" width="6" height="8" fill="#A89A7A" rx="1"/>
+  <text x="244" y="954" font-size="12" fill="#2C2A26">Innenraum</text>
+  <text x="244" y="970" font-size="9" fill="#A89A7A">Vollständig geschützt</text>
+
+  <!-- Venue tiles Row 2 -->
+  <!-- Tile: Unterstand -->
+  <rect x="16" y="1012" width="170" height="72" rx="10" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+  <!-- Shelter icon -->
+  <path d="M28,1048 L28,1040 L56,1040 L56,1048" fill="none" stroke="#A89A7A" stroke-width="1.2" stroke-linejoin="round"/>
+  <path d="M24,1040 L42,1026 L60,1040" fill="none" stroke="#A89A7A" stroke-width="1.2" stroke-linejoin="round"/>
+  <text x="40" y="1062" font-size="12" fill="#2C2A26">Unterstand</text>
+
+  <!-- Tile: Nur warnen -->
+  <rect x="204" y="1012" width="170" height="72" rx="10" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+  <!-- Warning triangle icon -->
+  <path d="M222,1050 L230,1032 L238,1050 Z" fill="none" stroke="#C97B47" stroke-width="1.5" stroke-linejoin="round"/>
+  <line x1="230" y1="1038" x2="230" y2="1044" stroke="#C97B47" stroke-width="1.5" stroke-linecap="round"/>
+  <circle cx="230" cy="1047" r="1" fill="#C97B47"/>
+  <text x="244" y="1046" font-size="12" fill="#2C2A26">Nur warnen</text>
+
+  <!-- Wunschtag row -->
+  <text x="16" y="1098" font-size="12" fill="#5C5447">Wunschtag (optional):</text>
+  <rect x="200" y="1086" width="110" height="28" rx="10" fill="#FAF6EA" stroke="#E0D6BE" stroke-width="0.5"/>
+  <text x="255" y="1104" font-size="11" fill="#2C2A26" text-anchor="middle">Sa, 20. Juni</text>
+
+  <!-- ═══════════════════════════════════════════
+       CTA (y=1112 to y=1162)
+  ═══════════════════════════════════════════ -->
+  <rect x="16" y="1112" width="358" height="48" rx="16" fill="#C97B47"/>
+  <text x="190" y="1141" font-size="15" font-weight="500" fill="#FFFFFF" text-anchor="middle">Beste Tage finden</text>
+  <!-- Arrow-right icon -->
+  <line x1="333" y1="1136" x2="343" y2="1136" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M338,1131 L344,1136 L338,1141" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- ═══════════════════════════════════════════
+       TRUST LINE (y=1174)
+  ═══════════════════════════════════════════ -->
+  <circle cx="16" cy="1174" r="3" fill="#7A9466"/>
+  <text x="26" y="1178" font-size="10" fill="#A89A7A">DWD · GeoSphere · MeteoSwiss · keine Tracker</text>
+
+  <!-- ═══════════════════════════════════════════
+       FOOTER (y=1706)
+  ═══════════════════════════════════════════ -->
+  <rect x="0" y="1705" width="390" height="0.5" fill="#E0D6BE"/>
+  <text x="195" y="1716" font-size="8.5" font-weight="500" fill="#A89A7A" text-anchor="middle" letter-spacing="1.5">EV-M2 · ORT · ZEIT · PHASEN · PLAN B (MOBILE)</text>
+
+</svg>

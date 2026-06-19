@@ -1,0 +1,157 @@
+.val-body {
+  max-width: 880px;
+  margin: 0 auto;
+  padding-bottom: 4rem;
+}
+
+.val-intro {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--stone-700, #4a4338);
+  max-width: 60ch;
+  margin: 0.6rem 0 1.8rem;
+}
+.val-intro strong { color: var(--ink-900, #2c2a26); font-weight: 600; }
+
+/* ----- Ladezustand ----- */
+.val-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  font-size: 0.9rem;
+  color: var(--stone-600, #57534e);
+  padding: 1.4rem 0;
+}
+.val-spinner {
+  width: 18px; height: 18px;
+  border: 2px solid var(--sand-200, #e6ddc8);
+  border-top-color: var(--ink-800, #3a352c);
+  border-radius: 50%;
+  animation: val-spin 0.8s linear infinite;
+  flex: none;
+}
+@keyframes val-spin { to { transform: rotate(360deg); } }
+
+.val-error {
+  font-size: 0.9rem;
+  color: var(--terracotta-700, #9a4422);
+  background: var(--terracotta-50, #f8ede5);
+  border: 1px solid var(--terracotta-200, #e8b59c);
+  border-radius: 12px;
+  padding: 0.8rem 1rem;
+  max-width: 60ch;
+}
+
+/* ----- Ergebnisse ----- */
+.val-window {
+  font-size: 0.8rem;
+  color: var(--stone-600, #57534e);
+  margin-bottom: 1rem;
+}
+.val-window strong { color: var(--ink-900, #2c2a26); font-variant-numeric: tabular-nums; }
+
+.val-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.8rem;
+  margin-bottom: 2rem;
+}
+.val-card {
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid var(--border-default, #d4c8b3);
+  border-left-width: 3px;
+  border-radius: 14px;
+  padding: 0.85rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.val-card.val-good { border-left-color: var(--sage-600, #5b8a5e); }
+.val-card.val-mid  { border-left-color: var(--terracotta-400, #d4955f); }
+.val-card.val-bad  { border-left-color: var(--terracotta-600, #b5483d); }
+.val-card-eyebrow {
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--stone-500, #78716c);
+  font-weight: 600;
+}
+.val-card-value {
+  font-size: 1.9rem;
+  font-weight: 500;
+  color: var(--ink-900, #2c2a26);
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.val-card-sub { font-size: 0.72rem; color: var(--stone-600, #57534e); line-height: 1.35; }
+
+.val-twocol {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+
+.val-h2 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--ink-900, #2c2a26);
+  margin: 0 0 0.7rem;
+}
+
+.val-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+.val-table th {
+  text-align: left;
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--stone-500, #78716c);
+  font-weight: 600;
+  padding: 0.3rem 0.6rem 0.3rem 0;
+  border-bottom: 1px solid var(--sand-200, #e6ddc8);
+}
+.val-table td {
+  padding: 0.4rem 0.6rem 0.4rem 0;
+  border-bottom: 1px solid var(--sand-100, #f0e9d8);
+  color: var(--ink-800, #3a352c);
+}
+.val-table td.num { font-variant-numeric: tabular-nums; text-align: right; }
+.val-foot { font-size: 0.72rem; color: var(--stone-500, #78716c); line-height: 1.4; margin-top: 0.6rem; }
+
+.val-reliability { width: 100%; max-width: 260px; display: block; }
+.val-axis { font-size: 8px; fill: var(--stone-500, #78716c); letter-spacing: 0.03em; }
+
+/* ----- Methodik ----- */
+.val-method { margin-top: 2.5rem; border-top: 1px solid var(--sand-200, #e6ddc8); padding-top: 1.5rem; }
+.val-steps {
+  margin: 0 0 1.2rem;
+  padding-left: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--stone-700, #4a4338);
+  max-width: 64ch;
+}
+.val-steps strong { color: var(--ink-900, #2c2a26); font-weight: 600; }
+.val-caveat {
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: var(--stone-600, #57534e);
+  background: var(--sand-50, #f5f1e8);
+  border-radius: 12px;
+  padding: 0.9rem 1.1rem;
+  max-width: 64ch;
+}
+.val-caveat strong { color: var(--ink-900, #2c2a26); }
+
+@media (max-width: 720px) {
+  .val-cards { grid-template-columns: 1fr; }
+  .val-twocol { grid-template-columns: 1fr; gap: 1.6rem; }
+  .val-reliability { max-width: 320px; margin: 0 auto; }
+}

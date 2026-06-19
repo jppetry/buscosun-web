@@ -1,0 +1,271 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" font-family="ui-sans-serif, system-ui, -apple-system">
+  <defs>
+    <linearGradient id="searchBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F5F1E8"/>
+      <stop offset="100%" stop-color="#EDE6D3"/>
+    </linearGradient>
+    <radialGradient id="dotPulse">
+      <stop offset="0%" stop-color="#7A9466" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#7A9466" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  
+  <!-- Dimmed background (search is overlay) -->
+  <rect width="1440" height="900" fill="url(#searchBg)"/>
+  
+  <!-- Dimmed page hint behind overlay -->
+  <g opacity="0.3">
+    <rect x="80" y="40" width="1280" height="120" rx="14" fill="#FFFFFF"/>
+    <rect x="80" y="180" width="800" height="600" rx="20" fill="#D4C8A3"/>
+    <rect x="900" y="180" width="460" height="600" rx="20" fill="#FFFFFF"/>
+  </g>
+  
+  <!-- ============ TOP NAV (unchanged) ============ -->
+  <g transform="translate(80, 40)" opacity="0.5">
+    <circle cx="14" cy="14" r="6" fill="#2C2A26"/>
+    <g stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round">
+      <line x1="14" y1="0" x2="14" y2="3"/>
+      <line x1="14" y1="25" x2="14" y2="28"/>
+      <line x1="0" y1="14" x2="3" y2="14"/>
+      <line x1="25" y1="14" x2="28" y2="14"/>
+    </g>
+    <text x="42" y="20" font-size="18" font-weight="500" fill="#2C2A26" letter-spacing="-0.5">buscosun</text>
+  </g>
+  
+  <!-- ============ SEARCH OVERLAY ============ -->
+  <!-- Backdrop -->
+  <rect width="1440" height="900" fill="#2C2A26" opacity="0.4"/>
+  
+  <!-- Search container -->
+  <g transform="translate(320, 80)">
+    <!-- Search input ACTIVE state -->
+    <g>
+      <rect width="800" height="64" rx="32" fill="#FFFFFF" stroke="#2C2A26" stroke-width="2"/>
+      
+      <!-- Search icon -->
+      <circle cx="34" cy="32" r="9" stroke="#2C2A26" stroke-width="2" fill="none"/>
+      <line x1="41" y1="39" x2="48" y2="46" stroke="#2C2A26" stroke-width="2" stroke-linecap="round"/>
+      
+      <!-- Query text -->
+      <text x="64" y="38" font-size="20" fill="#2C2A26" font-weight="400">Karwen</text>
+      
+      <!-- Cursor -->
+      <line x1="148" y1="22" x2="148" y2="42" stroke="#C97B47" stroke-width="2"/>
+      
+      <!-- Right side: keyboard hint + close -->
+      <g transform="translate(660, 18)">
+        <rect width="60" height="28" rx="6" fill="#F5F1E8" stroke="#D9D0B8" stroke-width="0.5"/>
+        <text x="30" y="19" font-size="11" fill="#5C5447" text-anchor="middle">ESC</text>
+      </g>
+      <g transform="translate(736, 18)">
+        <rect width="44" height="28" rx="14" fill="#F5F1E8"/>
+        <line x1="754" y1="26" x2="762" y2="34" stroke="#5C5447" stroke-width="1.5" stroke-linecap="round" transform="translate(-754, -26) translate(15, 14)"/>
+        <line x1="754" y1="34" x2="762" y2="26" stroke="#5C5447" stroke-width="1.5" stroke-linecap="round" transform="translate(-754, -26) translate(15, 14)"/>
+      </g>
+    </g>
+    
+    <!-- Suggestion sheet -->
+    <g transform="translate(0, 80)">
+      <rect width="800" height="660" rx="22" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+      
+      <!-- ===== AUTOCOMPLETE MATCHES ===== -->
+      <g transform="translate(32, 28)">
+        <text font-size="10" fill="#A89A7A" letter-spacing="3" font-weight="500">ORTE · 3 TREFFER</text>
+      </g>
+      
+      <!-- Result 1: Karwendel (highlighted) -->
+      <g transform="translate(20, 56)">
+        <rect width="760" height="68" rx="14" fill="#F5F1E8"/>
+        
+        <!-- Location icon -->
+        <g transform="translate(20, 22)" stroke="#2C2A26" stroke-width="1.5" fill="none">
+          <path d="M 12 0 C 5 0 0 5 0 12 C 0 22 12 32 12 32 C 12 32 24 22 24 12 C 24 5 19 0 12 0 Z"/>
+          <circle cx="12" cy="12" r="4" fill="#2C2A26"/>
+        </g>
+        
+        <!-- Name + region -->
+        <g transform="translate(64, 22)">
+          <text font-size="16" fill="#2C2A26" font-weight="500">
+            <tspan font-weight="600">Karwen</tspan>delgebirge
+          </text>
+          <text y="20" font-size="12" fill="#5C5447">Tirol · Österreich · Gebirge</text>
+        </g>
+        
+        <!-- Quick stats -->
+        <g transform="translate(440, 22)">
+          <text font-size="11" fill="#A89A7A" letter-spacing="2" font-weight="500">LIVE</text>
+          <text y="18" font-size="14" fill="#2C2A26" font-weight="500">12° · ± 0.8</text>
+          <text x="90" y="18" font-size="11" fill="#7A9466" font-weight="500">↑ 1 240 m</text>
+        </g>
+        
+        <!-- Föhn badge -->
+        <g transform="translate(600, 20)">
+          <rect width="100" height="28" rx="14" fill="#C97B47"/>
+          <text x="50" y="19" font-size="10" fill="#FFFFFF" text-anchor="middle" font-weight="600" letter-spacing="0.5">FÖHN-LAGE</text>
+        </g>
+        
+        <!-- Keyboard shortcut -->
+        <g transform="translate(720, 22)">
+          <rect width="24" height="28" rx="6" fill="#FFFFFF" stroke="#D9D0B8"/>
+          <text x="12" y="19" font-size="11" fill="#5C5447" text-anchor="middle">↵</text>
+        </g>
+      </g>
+      
+      <!-- Result 2: Karwendelhaus -->
+      <g transform="translate(20, 134)">
+        <rect width="760" height="68" rx="14" fill="transparent"/>
+        
+        <g transform="translate(20, 22)" stroke="#5C5447" stroke-width="1.5" fill="none">
+          <path d="M 12 0 C 5 0 0 5 0 12 C 0 22 12 32 12 32 C 12 32 24 22 24 12 C 24 5 19 0 12 0 Z"/>
+          <circle cx="12" cy="12" r="3"/>
+        </g>
+        
+        <g transform="translate(64, 22)">
+          <text font-size="16" fill="#2C2A26" font-weight="400">
+            <tspan font-weight="600">Karwen</tspan>delhaus
+          </text>
+          <text y="20" font-size="12" fill="#5C5447">Berghütte · 1 765 m · DAV München-Oberland</text>
+        </g>
+        
+        <g transform="translate(440, 22)">
+          <text font-size="11" fill="#A89A7A" letter-spacing="2" font-weight="500">LIVE</text>
+          <text y="18" font-size="14" fill="#2C2A26" font-weight="500">9° · ± 1.1</text>
+        </g>
+      </g>
+      
+      <!-- Result 3: Karwendelbahn -->
+      <g transform="translate(20, 212)">
+        <rect width="760" height="68" rx="14" fill="transparent"/>
+        
+        <g transform="translate(20, 22)" stroke="#5C5447" stroke-width="1.5" fill="none">
+          <path d="M 12 0 C 5 0 0 5 0 12 C 0 22 12 32 12 32 C 12 32 24 22 24 12 C 24 5 19 0 12 0 Z"/>
+          <circle cx="12" cy="12" r="3"/>
+        </g>
+        
+        <g transform="translate(64, 22)">
+          <text font-size="16" fill="#2C2A26" font-weight="400">
+            <tspan font-weight="600">Karwen</tspan>delbahn Bergstation
+          </text>
+          <text y="20" font-size="12" fill="#5C5447">Mittenwald · Bayern · 2 244 m</text>
+        </g>
+        
+        <g transform="translate(440, 22)">
+          <text font-size="11" fill="#A89A7A" letter-spacing="2" font-weight="500">LIVE</text>
+          <text y="18" font-size="14" fill="#2C2A26" font-weight="500">6° · ± 1.4</text>
+        </g>
+      </g>
+      
+      <!-- Divider -->
+      <line x1="32" y1="304" x2="768" y2="304" stroke="#E0D6BE" stroke-width="0.5"/>
+      
+      <!-- ===== RECENT SEARCHES ===== -->
+      <g transform="translate(32, 328)">
+        <text font-size="10" fill="#A89A7A" letter-spacing="3" font-weight="500">ZULETZT GESUCHT</text>
+        <text x="700" font-size="11" fill="#8B7355" text-anchor="end">Alle löschen</text>
+      </g>
+      
+      <!-- Recent 1 -->
+      <g transform="translate(20, 356)">
+        <rect width="760" height="52" rx="14" fill="transparent"/>
+        
+        <g transform="translate(20, 16)" stroke="#A89A7A" stroke-width="1.5" fill="none">
+          <circle cx="10" cy="10" r="8"/>
+          <polyline points="10,5 10,10 14,12" stroke-linecap="round"/>
+        </g>
+        
+        <g transform="translate(60, 14)">
+          <text font-size="14" fill="#2C2A26">München, Marienplatz</text>
+          <text y="18" font-size="11" fill="#A89A7A">vor 2 Stunden</text>
+        </g>
+        
+        <g transform="translate(620, 14)">
+          <text x="60" font-size="11" fill="#7A9466" text-anchor="end" font-weight="500">22° · ± 1.2</text>
+          <text x="60" y="18" font-size="10" fill="#A89A7A" text-anchor="end">Föhn aktiv</text>
+        </g>
+        
+        <!-- Pin icon (favorite) -->
+        <g transform="translate(720, 16)" stroke="#A89A7A" stroke-width="1.5" fill="none">
+          <path d="M 6 0 L 12 6 L 6 12 L 0 6 Z" transform="rotate(45 6 6)"/>
+        </g>
+      </g>
+      
+      <!-- Recent 2 -->
+      <g transform="translate(20, 416)">
+        <rect width="760" height="52" rx="14" fill="transparent"/>
+        
+        <g transform="translate(20, 16)" stroke="#A89A7A" stroke-width="1.5" fill="none">
+          <circle cx="10" cy="10" r="8"/>
+          <polyline points="10,5 10,10 14,12" stroke-linecap="round"/>
+        </g>
+        
+        <g transform="translate(60, 14)">
+          <text font-size="14" fill="#2C2A26">Zugspitze Gipfel</text>
+          <text y="18" font-size="11" fill="#A89A7A">gestern, 18:24</text>
+        </g>
+        
+        <g transform="translate(620, 14)">
+          <text x="60" font-size="11" fill="#2C2A26" text-anchor="end" font-weight="500">−4° · ± 0.6</text>
+          <text x="60" y="18" font-size="10" fill="#A89A7A" text-anchor="end">2 962 m</text>
+        </g>
+      </g>
+      
+      <!-- Recent 3 -->
+      <g transform="translate(20, 476)">
+        <rect width="760" height="52" rx="14" fill="transparent"/>
+        
+        <g transform="translate(20, 16)" stroke="#A89A7A" stroke-width="1.5" fill="none">
+          <circle cx="10" cy="10" r="8"/>
+          <polyline points="10,5 10,10 14,12" stroke-linecap="round"/>
+        </g>
+        
+        <g transform="translate(60, 14)">
+          <text font-size="14" fill="#2C2A26">Bodensee, Lindau</text>
+          <text y="18" font-size="11" fill="#A89A7A">vor 3 Tagen</text>
+        </g>
+        
+        <g transform="translate(620, 14)">
+          <text x="60" font-size="11" fill="#2C2A26" text-anchor="end" font-weight="500">17° · ± 0.9</text>
+          <text x="60" y="18" font-size="10" fill="#A89A7A" text-anchor="end">Bise</text>
+        </g>
+      </g>
+      
+      <!-- Divider -->
+      <line x1="32" y1="552" x2="768" y2="552" stroke="#E0D6BE" stroke-width="0.5"/>
+      
+      <!-- ===== KEYBOARD SHORTCUTS ===== -->
+      <g transform="translate(32, 576)">
+        <g font-size="11" fill="#A89A7A">
+          <!-- Arrow keys -->
+          <g>
+            <rect x="0" y="0" width="22" height="22" rx="5" fill="#F5F1E8" stroke="#D9D0B8"/>
+            <text x="11" y="15" text-anchor="middle">↑</text>
+            <rect x="26" y="0" width="22" height="22" rx="5" fill="#F5F1E8" stroke="#D9D0B8"/>
+            <text x="37" y="15" text-anchor="middle">↓</text>
+            <text x="58" y="15">navigieren</text>
+          </g>
+          <g transform="translate(176, 0)">
+            <rect x="0" y="0" width="22" height="22" rx="5" fill="#F5F1E8" stroke="#D9D0B8"/>
+            <text x="11" y="15" text-anchor="middle">↵</text>
+            <text x="32" y="15">auswählen</text>
+          </g>
+          <g transform="translate(296, 0)">
+            <rect x="0" y="0" width="32" height="22" rx="5" fill="#F5F1E8" stroke="#D9D0B8"/>
+            <text x="16" y="15" text-anchor="middle">⌘K</text>
+            <text x="42" y="15">Suche öffnen / schließen</text>
+          </g>
+          <g transform="translate(530, 0)">
+            <rect x="0" y="0" width="34" height="22" rx="5" fill="#F5F1E8" stroke="#D9D0B8"/>
+            <text x="17" y="15" text-anchor="middle">ESC</text>
+            <text x="42" y="15">abbrechen</text>
+          </g>
+        </g>
+      </g>
+    </g>
+  </g>
+  
+  <!-- ============ LABEL ============ -->
+  <g transform="translate(80, 860)">
+    <text font-size="10" fill="#FFFFFF" letter-spacing="3" font-weight="500" opacity="0.6">02 · SUCHE AKTIV · DESKTOP · OVERLAY-PATTERN</text>
+    <text x="1280" font-size="10" fill="#FFFFFF" letter-spacing="2" text-anchor="end" opacity="0.6">Live-Wetter pro Treffer · Föhn-Vorschau · Keyboard-first</text>
+  </g>
+</svg>

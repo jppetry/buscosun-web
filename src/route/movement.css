@@ -1,0 +1,718 @@
+.mv-section {
+  width: 100%;
+  border-top: 1px solid var(--sand-200, #e0d6be);
+  padding-top: 1.5rem;
+}
+
+/* ---- Kachel-Auswahl ---- */
+.mv-picker-title,
+.mv-config-label {
+  font-size: 1.05rem;
+  font-weight: 500;
+}
+.mv-picker-title {
+  margin: 0 0 0.9rem;
+}
+.mv-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.6rem;
+  background: var(--cream-50, #FAF6EA);
+  border: 1px solid var(--border-default, #E0D6BE);
+  border-radius: 20px;
+  padding: 1rem;
+  box-shadow: var(--shadow-card, 0 4px 16px rgba(44,42,38,0.06));
+}
+.mv-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 1rem 0.6rem;
+  border: 1px solid var(--border-default, #E0D6BE);
+  border-radius: 14px;
+  background: var(--sand-50, #F5F1E8);
+  color: var(--ink-900, #2c2a26);
+  font-family: inherit;
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+.mv-tile:hover:not(.is-active) {
+  background: var(--cream-50, #FAF6EA);
+  border-color: var(--border-medium, #D9D0B8);
+  box-shadow: var(--shadow-card, 0 4px 16px rgba(44,42,38,0.06));
+}
+.mv-tile:focus-visible {
+  outline: 2px solid var(--ink-900, #2C2A26);
+  outline-offset: 2px;
+}
+.mv-tile.is-active {
+  background: var(--ink-900, #2C2A26);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 6px 22px rgba(44,42,38,0.22);
+}
+.mv-tile-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 10px;
+  background: var(--sand-50, #F5F1E8);
+  color: var(--stone-500, #8a7d68);
+  transition: background 0.15s, color 0.15s;
+}
+.mv-tile:hover:not(.is-active) .mv-tile-icon {
+  background: var(--sand-100, #EDE6D3);
+  color: var(--ink-900, #2C2A26);
+}
+.mv-tile.is-active .mv-tile-icon {
+  background: rgba(255,255,255,0.08);
+  color: #F5F1E8;
+}
+.mv-tile.is-active .mv-tile-blurb {
+  color: rgba(168,154,122,0.55);
+}
+.mv-icon {
+  width: 40px;
+  height: 40px;
+}
+.mv-tile-label {
+  font-size: 0.92rem;
+  font-weight: 500;
+}
+.mv-tile-blurb {
+  font-size: 0.74rem;
+  color: var(--stone-500, #8a7d68);
+}
+
+/* ---- Profil-Konfiguration ---- */
+.mv-config {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+.mv-config-head {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+.mv-config-icon {
+  color: var(--stone-500, #8a7d68);
+  flex: none;
+}
+.mv-config-title {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.mv-config-blurb {
+  font-size: 0.78rem;
+  color: var(--stone-500, #8a7d68);
+}
+.mv-change {
+  flex: none;
+  border: 1px solid var(--sand-200, #e0d6be);
+  background: var(--sand-50, #f7f2e9);
+  color: var(--ink-900, #2c2a26);
+  border-radius: 999px;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.82rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.mv-change:hover { border-color: var(--border-medium, #D9D0B8); background: var(--sand-100, #EDE6D3); }
+
+.mv-presets {
+  display: flex;
+  gap: 0.5rem;
+}
+.mv-preset {
+  border: 1px solid var(--border-default, #E0D6BE);
+  background: var(--sand-50, #F5F1E8);
+  color: var(--ink-800, #3a372f);
+  border-radius: 999px;
+  padding: 0.35rem 0.9rem;
+  font-size: 0.82rem;
+  font-family: inherit;
+  text-transform: capitalize;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.mv-preset:hover {
+  border-color: var(--border-medium, #D9D0B8);
+  background: var(--sand-100, #EDE6D3);
+}
+
+.mv-sliders {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.9rem 1.4rem;
+}
+.mv-slider {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.mv-slider-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 0.85rem;
+}
+.mv-slider-label { color: var(--ink-800, #3a372f); }
+.mv-slider-value {
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.mv-slider input[type='range'] {
+  width: 100%;
+  accent-color: var(--ink-900, #2C2A26);
+  cursor: pointer;
+}
+
+.mv-estimate {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 1px;
+  background: var(--sand-200, #e0d6be);
+  border: 1px solid var(--sand-200, #e0d6be);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.mv-estimate > div {
+  background: var(--sand-50, #F5F1E8);
+  padding: 0.8rem 1rem;
+}
+.mv-estimate dt {
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--stone-500, #8a7d68);
+}
+.mv-estimate dd {
+  margin: 0.25rem 0 0;
+  font-size: 1.15rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-900, #2c2a26);
+}
+
+/* ---- Tour-Planung (Richtung, Start, Pausen, Zusammenfassung) ---- */
+.tp {
+  display: flex;
+  flex-direction: column;
+  gap: 1.4rem;
+}
+.tp-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.tp-block-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.tp-block-title {
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+.tp-tz {
+  font-size: 0.76rem;
+  color: var(--stone-500, #8a7d68);
+}
+
+.tp-quick, .tp-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+.tp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid var(--sand-200, #e0d6be);
+  background: var(--sand-50, #F5F1E8);
+  color: var(--ink-800, #3a372f);
+  border-radius: 999px;
+  padding: 0.35rem 0.8rem;
+  font-size: 0.8rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.tp-chip svg { flex: none; color: var(--stone-500, #8a7d68); }
+.tp-chip-meal svg { color: var(--terracotta-500, #c6633b); }
+.tp-chip-rest svg { color: #4f627e; }
+.tp-chip:hover {
+  border-color: var(--border-medium, #D9D0B8);
+  background: var(--sand-100, #EDE6D3);
+}
+.tp-chip-meal {
+  border-color: var(--terracotta-500, #c6633b);
+  background: rgba(198, 99, 59, 0.06);
+}
+.tp-chip-meal:hover {
+  border-color: var(--terracotta-700, #a8431f);
+  background: rgba(198, 99, 59, 0.12);
+}
+.tp-chip-rest {
+  border-color: #4f627e;
+  background: rgba(79, 98, 126, 0.06);
+}
+.tp-chip-rest:hover {
+  border-color: #38465a;
+  background: rgba(79, 98, 126, 0.12);
+}
+.tp-datetime {
+  align-self: flex-start;
+  border: 1px solid var(--border-default, #E0D6BE);
+  background: var(--sand-50, #F5F1E8);
+  color: var(--ink-900, #2c2a26);
+  border-radius: 10px;
+  padding: 0.5rem 0.7rem;
+  font-size: 0.9rem;
+  font-family: inherit;
+}
+.tp-note {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--stone-500, #8a7d68);
+}
+.tp-note svg { vertical-align: -2px; margin-right: 0.2rem; flex: none; }
+.tp-note-warn {
+  color: var(--terracotta-700, #a8431f);
+}
+.tp-note-muted {
+  margin-top: 0.15rem;
+  font-size: 0.76rem;
+  opacity: 0.8;
+}
+
+/* Segmented (Richtung) */
+.tp-seg {
+  display: inline-flex;
+  border: 1px solid var(--sand-200, #e0d6be);
+  border-radius: 999px;
+  overflow: hidden;
+  align-self: flex-start;
+}
+.tp-seg-btn {
+  border: none;
+  background: var(--sand-50, #F5F1E8);
+  color: var(--ink-800, #3a372f);
+  padding: 0.4rem 1rem;
+  font-size: 0.84rem;
+  font-family: inherit;
+  cursor: pointer;
+}
+.tp-seg-btn.is-active {
+  background: var(--ink-900, #2C2A26);
+  color: #fff;
+}
+.tp-loop-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  align-self: flex-start;
+  background: var(--sand-100, #EDE6D3);
+  color: var(--stone-600, #5C5447);
+  border: 1px solid var(--border-default, #E0D6BE);
+  border-radius: 999px;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.84rem;
+}
+.tp-loop-badge svg { flex: none; color: var(--stone-500, #8a7d68); }
+
+/* Toggles + Slider-Gruppen */
+.tp-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+.tp-toggle input { accent-color: var(--ink-900, #2C2A26); width: 16px; height: 16px; }
+.tp-sliders {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.8rem 1.4rem;
+  padding-left: 1.6rem;
+}
+
+/* Wegpunkt-Vorschläge */
+.tp-suggest { display: flex; flex-direction: column; gap: 0.4rem; }
+.tp-suggest-label { font-size: 0.82rem; color: var(--stone-500, #8a7d68); }
+
+/* Custom-Pausen-Liste */
+.tp-custom-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.tp-custom {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--border-default, #E0D6BE);
+  border-radius: 10px;
+  background: var(--sand-50, #F5F1E8);
+  font-size: 0.85rem;
+}
+.tp-custom-label { flex: 1; min-width: 0; }
+.tp-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+.tp-dot-rest { background: #4f627e; }
+.tp-dot-meal { background: var(--terracotta-500, #c6633b); }
+.tp-custom-dur {
+  border: 1px solid var(--sand-200, #e0d6be);
+  border-radius: 8px;
+  padding: 0.25rem 0.4rem;
+  font-family: inherit;
+  font-size: 0.8rem;
+  background: var(--sand-50, #f7f2e9);
+}
+.tp-remove {
+  border: none;
+  background: none;
+  color: var(--stone-500, #8a7d68);
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 0.2rem 0.4rem;
+}
+.tp-remove:hover { color: var(--terracotta-700, #a8431f); }
+.tp-hint { margin: 0; font-size: 0.78rem; color: var(--stone-500, #8a7d68); }
+
+/* Plan-Zusammenfassung */
+.tp-summary {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 1px;
+  background: var(--sand-200, #e0d6be);
+  border: 1px solid var(--sand-200, #e0d6be);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.tp-summary > div { background: var(--sand-50, #F5F1E8); padding: 0.8rem 1rem; }
+.tp-summary dt {
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--stone-500, #8a7d68);
+}
+.tp-summary dd {
+  margin: 0.25rem 0 0;
+  font-size: 1rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Zeitplan / Etappen */
+.tt-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: relative;
+}
+.tt-timeline::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 0.6rem;
+  bottom: 0.6rem;
+  width: 2px;
+  background: var(--sand-200, #e0d6be);
+}
+.tt-leg {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  padding: 0.35rem 0 0.35rem 1.4rem;
+  font-size: 0.86rem;
+}
+.tt-dot {
+  position: absolute;
+  left: 0;
+  top: 0.5rem;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #4f627e;
+  border: 2px solid var(--sand-50, #f7f2e9);
+  box-shadow: 0 0 0 1px var(--sand-200, #e0d6be);
+}
+.tt-leg-start .tt-dot { background: var(--ink-900, #2C2A26); }
+.tt-leg-end .tt-dot { background: var(--terracotta-500, #c6633b); }
+.tt-leg-meal .tt-dot { background: var(--terracotta-500, #c6633b); }
+.tt-leg-custom .tt-dot { background: #8a6d3b; }
+.tt-time {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  min-width: 3.2rem;
+}
+.tt-label { color: var(--ink-900, #2c2a26); }
+.tt-km { color: var(--stone-500, #8a7d68); }
+.tt-pause {
+  margin-left: auto;
+  color: var(--stone-500, #8a7d68);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- E-Bike-Akku ---- */
+.eb-pct {
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-900, #2C2A26);
+}
+.eb-sliders {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.9rem 1.4rem;
+}
+.eb-assist {
+  display: inline-flex;
+  border: 1px solid var(--sand-200, #e0d6be);
+  border-radius: 12px;
+  overflow: hidden;
+  align-self: flex-start;
+}
+.eb-assist-btn {
+  border: none;
+  background: var(--sand-50, #F5F1E8);
+  color: var(--ink-800, #3a372f);
+  padding: 0.5rem 0.85rem;
+  font-family: inherit;
+  font-size: 0.86rem;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  border-right: 1px solid var(--border-default, #E0D6BE);
+}
+.eb-assist-btn:last-child { border-right: none; }
+.eb-assist-btn.is-active {
+  background: var(--ink-900, #2C2A26);
+  color: #fff;
+}
+.eb-assist-cap {
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  opacity: 0.8;
+}
+.eb-profile {
+  margin: 0;
+}
+.eb-profile figcaption {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--stone-500, #8a7d68);
+  margin-bottom: 0.4rem;
+}
+.eb-profile-svg {
+  display: block;
+  width: 100%;
+  height: 80px;
+  border: 1px solid var(--sand-200, #e0d6be);
+  border-radius: 10px;
+  background: var(--cream-50, #FAF6EA);
+}
+.eb-summary { margin: 0; }
+.eb-low { color: var(--terracotta-700, #a8431f); }
+
+/* ---- Wetter-Zusammenfassung (Stat-Grid + Warnungs-Banner) ---- */
+.ws-grid {
+  /* Übernimmt tp-summary; engere Spalten weil mehr Items */
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+.ws-sub {
+  color: var(--stone-500, #8a7d68);
+  font-weight: 400;
+  font-size: 0.85rem;
+}
+.ws-warn {
+  display: flex;
+  gap: 0.8rem;
+  align-items: flex-start;
+  padding: 0.75rem 0.95rem;
+  border-radius: 12px;
+  border: 1px solid var(--sand-200, #e0d6be);
+  background: var(--sand-50, #f7f2e9);
+  margin-bottom: 0.4rem;
+}
+/* Severity-Akzent (linker Rand) — DWD-Skala 1..5 */
+.ws-warn-l1 { border-left: 4px solid #9ec5e5; }
+.ws-warn-l2 { border-left: 4px solid #ffcc00; }
+.ws-warn-l3 { border-left: 4px solid #ff7f00; }
+.ws-warn-l4 { border-left: 4px solid #cc0000; }
+.ws-warn-l5 { border-left: 4px solid #7e0028; }
+.ws-warn-icon {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+.ws-warn-list {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.88rem;
+}
+.ws-warn-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+.ws-foehn {
+  display: flex;
+  gap: 0.7rem;
+  align-items: center;
+  padding: 0.6rem 0.95rem;
+  border-radius: 12px;
+  border: 1px solid #e6b89c;
+  border-left: 4px solid #d77a3b;
+  background: linear-gradient(90deg, #fbeee2, var(--cream-50, #FAF6EA));
+  margin-bottom: 0.4rem;
+  font-size: 0.9rem;
+}
+.ws-foehn-icon { font-size: 1.15rem; line-height: 1; }
+.ws-foehn-text { display: flex; flex-direction: column; }
+.ws-warn-tag {
+  display: inline-block;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+  color: #fff;
+}
+.ws-warn-tag-l1 { background: #9ec5e5; color: var(--ink-900, #2c2a26); }
+.ws-warn-tag-l2 { background: #ffcc00; color: var(--ink-900, #2c2a26); }
+.ws-warn-tag-l3 { background: #ff7f00; }
+.ws-warn-tag-l4 { background: #cc0000; }
+.ws-warn-tag-l5 { background: #7e0028; }
+.ws-warn-event { font-weight: 500; }
+.ws-warn-range {
+  color: var(--stone-500, #8a7d68);
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Wetter-Profil (Sparkline-Streifen) ---- */
+.wp-figure {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.wp-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
+.wp-figure figcaption {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--stone-500, #8a7d68);
+}
+.wp-export { display: inline-flex; align-items: center; gap: 0.38rem; font-family: inherit; font-size: 0.74rem; font-weight: 500;
+  color: var(--stone-600, #5c5447); background: var(--cream-50, #FAF6EA); border: 1px solid var(--border-default, #e0d6be); border-radius: 999px;
+  padding: 0.35rem 0.75rem; cursor: pointer; transition: border-color 0.15s, color 0.15s; }
+.wp-export:hover { border-color: var(--terracotta-500, #c6633b); color: var(--terracotta-700, #a8431f); }
+.wp-export svg { flex: none; }
+.wp-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.wp-axis-label {
+  font-size: 9px;
+  fill: var(--stone-500, #8a7d68);
+  font-family: inherit;
+}
+.wp-axis-x {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.76rem;
+  color: var(--stone-500, #8a7d68);
+  font-variant-numeric: tabular-nums;
+}
+.wp-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  font-size: 0.78rem;
+  color: var(--ink-800, #3a372f);
+}
+.wp-sw {
+  display: inline-block;
+  width: 10px; height: 10px;
+  border-radius: 2px;
+  margin-right: 0.3rem;
+  vertical-align: middle;
+}
+.wp-sw-temp { background: var(--terracotta-500, #c6633b); }
+.wp-sw-apparent { background: var(--terracotta-700, #a8431f); opacity: 0.7; }
+.wp-sw-rain { background: #4f627e; }
+.wp-sw-sleet { background: #a994d1; }
+.wp-sw-snow { background: #b6c8d6; border: 1px solid #8aa0b0; }
+.wp-sw-radar-mark {
+  background: #4f627e;
+  border-left: 3px solid #fff;
+  border-right: 3px solid transparent;
+  filter: brightness(1.15);
+}
+.wp-sw-wind { background: #4f627e; }
+.wp-sw-gust { background: var(--terracotta-500, #c6633b); opacity: 0.7; }
+
+/* ---- Sample-Tabelle (5.6) ---- */
+.st-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+.st-table th, .st-table td {
+  text-align: right;
+  padding: 0.35rem 0.6rem;
+  border-bottom: 1px solid var(--sand-200, #e0d6be);
+}
+.st-table th:first-child, .st-table td:first-child { text-align: left; }
+.st-table th {
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--stone-500, #8a7d68);
+  font-weight: 500;
+}
+
+/* ============================================================================
+   PHONE-HARDENING (<560px) — schließt die Lücken, die die auto-fit-/clamp-Grids
+   des Route-Features nicht abdecken: überlaufende Segmented-Controls, breite
+   Stützpunkt-Tabelle und zu kleine Touch-Targets. Tablet/Desktop unberührt.
+   ============================================================================ */
+@media (max-width: 560px) {
+  /* E-Bike-Unterstützungsstufen: umbrechen statt horizontal überlaufen. */
+  .eb-assist { flex-wrap: wrap; align-self: stretch; }
+  .eb-assist-btn { flex: 1 1 auto; }
+
+  /* Richtungs-Segmented bei Bedarf über volle Breite. */
+  .tp-seg { align-self: stretch; }
+  .tp-seg-btn { flex: 1 1 0; }
+
+  /* Breite Stützpunkt-/Sample-Tabelle horizontal scrollbar (statt Seiten-Overflow). */
+  .st-table { display: block; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
+
+  /* Touch-Ergonomie: kleine Chips/Segmente auf ~Fingergröße anheben. */
+  .tp-chip, .mv-preset, .tp-seg-btn, .eb-assist-btn, .mv-change, .route-track-chip { min-height: 38px; }
+}

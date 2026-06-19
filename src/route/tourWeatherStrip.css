@@ -1,0 +1,74 @@
+/* Horizontaler Wetter-Streifen (Komoot-Stil) über der Karte. */
+.tws {
+  margin: 0 0 0.5rem;
+  border: 1px solid var(--sand-200, #e0d6be);
+  border-radius: 12px;
+  background: var(--cream-50, #fdfaf3);
+  overflow: hidden;
+}
+.tws-track {
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+  padding: 0.4rem 0.2rem;
+}
+.tws-track::-webkit-scrollbar { height: 6px; }
+.tws-track::-webkit-scrollbar-thumb { background: var(--sand-200, #e0d6be); border-radius: 3px; }
+
+.tws-cell {
+  flex: 0 0 auto;
+  width: 62px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  padding: 0.25rem 0.15rem;
+  border-right: 1px dashed var(--sand-200, #e8dfca);
+  scroll-snap-align: start;
+  position: relative;
+}
+.tws-cell:last-child { border-right: none; }
+
+.tws-cell-foehn { background: linear-gradient(180deg, rgba(215,122,59,0.10), transparent); }
+.tws-cell-warn { background: linear-gradient(180deg, rgba(204,0,0,0.10), transparent); }
+
+.tws-km {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--stone-600, #6f6450);
+  white-space: nowrap;
+}
+.tws-temp {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--terracotta-700, #a8431f);
+  line-height: 1.1;
+}
+.tws-time {
+  font-size: 0.62rem;
+  color: var(--stone-500, #8a7d68);
+}
+.tws-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2px;
+  min-height: 14px;
+}
+.tws-badge {
+  font-size: 0.6rem;
+  line-height: 1.3;
+  padding: 0 3px;
+  border-radius: 5px;
+  white-space: nowrap;
+}
+.tws-badge-precip { background: #dceaf3; color: #2a5d8f; }
+.tws-badge-uv { color: #fff; font-weight: 700; }
+.tws-badge-warn { font-size: 0.7rem; }
+.tws-badge-foehn { font-size: 0.62rem; }
+
+/* Karten-Popup (RouteMap Wetter-Marker). */
+.wx-popup { font-size: 0.82rem; line-height: 1.5; min-width: 130px; }
+.wx-popup-head { font-weight: 600; margin-bottom: 0.2rem; color: var(--ink-800, #3a342b); }

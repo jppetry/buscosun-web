@@ -1,0 +1,49 @@
+# Netlify build + redirect config for buscosun.
+#
+# Build
+# -----
+# Vite produces a pure-static bundle in `dist/`. Netlify auto-detects this
+# but pinning it explicitly avoids surprises if the default ever changes.
+#
+# Proxy
+# -----
+# Mirrors the Vite dev-server proxy (`/_dwd_opendata` → opendata.dwd.de) so
+# the production deployment can keep using the same client-side URLs. The
+# upstream is CORS-free for binary downloads when accessed server-to-server,
+# and Netlify's edge proxy fronts the request as same-origin to the browser.
+#
+# `status = 200` makes this a *rewrite* (no client-side redirect), so the
+# user's address bar stays on the buscosun domain and the browser treats the
+# response as same-origin — bypassing the CORS block that prevents a direct
+# `fetch('https://opendata.dwd.de/…')` from the page.
+
+[build]
+  command   = "npm run build"
+  publish   = "dist"
+
+# DWD OpenData proxy — used by `src/sources/radolan.ts` to fetch RADOLAN-RY
+# live frames and RADVOR-RE nowcast forecasts as BZ2/GZIP binary streams.
+# Muss VOR dem SPA-Fallback stehen (Regeln werden von oben nach unten geprüft).
+[[redirects]]
+  from   = "/_dwd_opendata/*"
+  to     = "https://opendata.dwd.de/:splat"
+  status = 200
+  force  = true
+
+# NOAA GFS (AWS Open Data, S3) — 3D-Globus (`src/globe/gfs.ts`). S3 unterstützt
+# HTTP-Range; Netlifys Edge-Proxy reicht Range/Query weiter und liefert die
+# Antwort same-origin (kein Browser-CORS). Public Domain, kein Key/Limit.
+[[redirects]]
+  from   = "/_gfs/*"
+  to     = "https://noaa-gfs-bdp-pds.s3.amazonaws.com/:splat"
+  status = 200
+  force  = true
+
+# SPA-Fallback: unbekannte Pfade laden die App. NICHT erzwungen (kein `!`) →
+# existierende statische Dateien (Geo-Seiten /wetter/<ort>/index.html,
+# sitemap.xml, robots.txt, llms.txt, /assets/*) werden weiterhin direkt
+# ausgeliefert; nur Pfade ohne Datei fallen auf index.html (Hash-Permalinks).
+[[redirects]]
+  from   = "/*"
+  to     = "/index.html"
+  status = 200

@@ -1,0 +1,355 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" font-family="ui-sans-serif, system-ui, -apple-system">
+  <defs>
+    <linearGradient id="bg07" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F5F1E8"/>
+      <stop offset="100%" stop-color="#EDE6D3"/>
+    </linearGradient>
+    <linearGradient id="skyDiagram" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#D9E0DB"/>
+      <stop offset="100%" stop-color="#F0E8D0"/>
+    </linearGradient>
+    <linearGradient id="mountainLuv" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#9F8868"/>
+      <stop offset="100%" stop-color="#7D6A4D"/>
+    </linearGradient>
+    <linearGradient id="mountainLee" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#A89472"/>
+      <stop offset="100%" stop-color="#8B7355"/>
+    </linearGradient>
+    <linearGradient id="foehnAir" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#C97B47" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#C97B47" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#A85E2E" stop-opacity="0.5"/>
+    </linearGradient>
+    <linearGradient id="moistAir" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#6B7A8F" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#6B7A8F" stop-opacity="0.2"/>
+    </linearGradient>
+    <radialGradient id="cloudRain">
+      <stop offset="0%" stop-color="#6B7A8F" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#6B7A8F" stop-opacity="0.1"/>
+    </radialGradient>
+  </defs>
+  
+  <rect width="1440" height="900" fill="url(#bg07)"/>
+  
+  <!-- TOP NAV -->
+  <g>
+    <g transform="translate(32, 24)">
+      <circle cx="14" cy="14" r="6" fill="#2C2A26"/>
+      <g stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round">
+        <line x1="14" y1="0" x2="14" y2="3"/>
+        <line x1="14" y1="25" x2="14" y2="28"/>
+        <line x1="0" y1="14" x2="3" y2="14"/>
+        <line x1="25" y1="14" x2="28" y2="14"/>
+      </g>
+      <text x="42" y="20" font-size="18" font-weight="500" fill="#2C2A26" letter-spacing="-0.5">buscosun</text>
+    </g>
+    
+    <g transform="translate(180, 30)">
+      <g stroke="#5C5447" stroke-width="1.5" fill="none" stroke-linecap="round">
+        <line x1="0" y1="10" x2="14" y2="10"/>
+        <line x1="0" y1="10" x2="6" y2="4"/>
+        <line x1="0" y1="10" x2="6" y2="16"/>
+      </g>
+      <text x="24" y="15" font-size="13" fill="#5C5447">Zurück zur Karte</text>
+    </g>
+  </g>
+  
+  <!-- ============ HEADER ============ -->
+  <g transform="translate(80, 90)">
+    <!-- Föhn badge prominent -->
+    <g>
+      <rect width="146" height="32" rx="16" fill="#C97B47"/>
+      <g transform="translate(13, 10)">
+        <path d="M 0 7 L 5 0 L 10 7 Z" fill="#FFFFFF"/>
+        <path d="M 0 14 L 5 7 L 10 14 Z" fill="#FFFFFF" opacity="0.6"/>
+      </g>
+      <text x="34" y="21" font-size="11" fill="#FFFFFF" font-weight="600" letter-spacing="0.5">FÖHN-LAGE AKTIV</text>
+    </g>
+    
+    <text y="84" font-size="48" font-weight="300" fill="#2C2A26" letter-spacing="-1.2">Süd-Föhn am Alpenrand</text>
+    <text y="120" font-size="14" fill="#5C5447">Heute, 14. Mai 2026 · 11:42 · Detected via DWD ICON-D2 + DEM-Slope + Druckgradient</text>
+  </g>
+  
+  <!-- ============ LEFT: CROSS-SECTION DIAGRAM (the killer visual) ============ -->
+  <g transform="translate(80, 240)">
+    <rect width="900" height="440" rx="22" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    
+    <!-- Header -->
+    <g transform="translate(28, 28)">
+      <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">QUERSCHNITT · SCHEMA</text>
+      <text y="24" font-size="18" font-weight="500" fill="#2C2A26">Wie Föhn entsteht</text>
+    </g>
+    
+    <!-- Cross-section illustration -->
+    <g transform="translate(28, 90)">
+      <!-- Sky background -->
+      <rect width="844" height="280" rx="14" fill="url(#skyDiagram)"/>
+      
+      <!-- South label (left side) -->
+      <g transform="translate(20, 26)">
+        <rect width="40" height="24" rx="12" fill="#FFFFFF"/>
+        <text x="20" y="16" font-size="11" fill="#2C2A26" text-anchor="middle" font-weight="600">SÜD</text>
+      </g>
+      
+      <!-- North label (right side) -->
+      <g transform="translate(784, 26)">
+        <rect width="40" height="24" rx="12" fill="#FFFFFF"/>
+        <text x="20" y="16" font-size="11" fill="#2C2A26" text-anchor="middle" font-weight="600">NORD</text>
+      </g>
+      
+      <!-- Moist air mass (Luv-side, southern) -->
+      <g>
+        <!-- Rain clouds -->
+        <ellipse cx="160" cy="80" rx="80" ry="28" fill="url(#cloudRain)"/>
+        <ellipse cx="220" cy="100" rx="60" ry="20" fill="url(#cloudRain)"/>
+        
+        <!-- Rain drops -->
+        <g stroke="#6B7A8F" stroke-width="1" opacity="0.6">
+          <line x1="100" y1="110" x2="98" y2="120"/>
+          <line x1="130" y1="115" x2="128" y2="125"/>
+          <line x1="160" y1="112" x2="158" y2="122"/>
+          <line x1="190" y1="116" x2="188" y2="126"/>
+          <line x1="220" y1="114" x2="218" y2="124"/>
+          <line x1="250" y1="118" x2="248" y2="128"/>
+        </g>
+        
+        <!-- Moist air arrows going up -->
+        <g stroke="#3A6FA8" stroke-width="2" fill="#3A6FA8" opacity="0.7" stroke-linecap="round">
+          <g transform="translate(80, 200)">
+            <line x1="0" y1="0" x2="4" y2="-30"/>
+            <polygon points="4,-30 1,-26 7,-26"/>
+          </g>
+          <g transform="translate(140, 220)">
+            <line x1="0" y1="0" x2="6" y2="-40"/>
+            <polygon points="6,-40 3,-36 9,-36"/>
+          </g>
+          <g transform="translate(200, 240)">
+            <line x1="0" y1="0" x2="8" y2="-50"/>
+            <polygon points="8,-50 5,-46 11,-46"/>
+          </g>
+        </g>
+      </g>
+      
+      <!-- Mountain ridge -->
+      <g>
+        <!-- Luv side (south facing) - dark -->
+        <path d="M 240 250 L 350 130 L 430 100 L 510 130 L 600 250 Z" fill="url(#mountainLuv)"/>
+        <!-- Snow cap -->
+        <path d="M 380 110 L 430 100 L 480 110 L 460 120 L 400 120 Z" fill="#FFFFFF" opacity="0.85"/>
+        
+        <!-- Lee side (north facing) - lighter -->
+        <path d="M 510 130 L 600 250 L 720 250 L 720 280 L 510 280 Z" fill="url(#mountainLee)"/>
+      </g>
+      
+      <!-- Föhn descending air on lee side -->
+      <g>
+        <!-- Föhn flow lines -->
+        <path d="M 470 100 Q 540 130 600 180 T 750 230" stroke="url(#foehnAir)" stroke-width="4" fill="none"/>
+        <path d="M 470 120 Q 540 150 600 200 T 750 250" stroke="url(#foehnAir)" stroke-width="3" fill="none"/>
+        <path d="M 470 140 Q 540 170 600 220 T 750 260" stroke="url(#foehnAir)" stroke-width="2.5" fill="none"/>
+        
+        <!-- Föhn arrows -->
+        <g stroke="#A85E2E" stroke-width="2.5" fill="#A85E2E" stroke-linecap="round">
+          <g transform="translate(620, 180)">
+            <line x1="0" y1="0" x2="20" y2="14"/>
+            <polygon points="20,14 14,12 18,8"/>
+          </g>
+          <g transform="translate(670, 200)">
+            <line x1="0" y1="0" x2="22" y2="14"/>
+            <polygon points="22,14 16,12 20,8"/>
+          </g>
+          <g transform="translate(720, 220)">
+            <line x1="0" y1="0" x2="22" y2="14"/>
+            <polygon points="22,14 16,12 20,8"/>
+          </g>
+        </g>
+      </g>
+      
+      <!-- Temperature labels -->
+      <g font-size="11" fill="#2C2A26" font-weight="500">
+        <!-- South side -->
+        <g transform="translate(60, 200)">
+          <rect width="76" height="44" rx="10" fill="#FFFFFF" stroke="#3A6FA8" stroke-width="1"/>
+          <text x="38" y="16" font-size="9" fill="#3A6FA8" text-anchor="middle" letter-spacing="1" font-weight="600">SÜD-SEITE</text>
+          <text x="38" y="32" text-anchor="middle">14° · feucht</text>
+        </g>
+        
+        <!-- Peak -->
+        <g transform="translate(390, 60)">
+          <rect width="76" height="32" rx="10" fill="#FFFFFF" stroke="#A89A7A"/>
+          <text x="38" y="12" font-size="9" fill="#A89A7A" text-anchor="middle" letter-spacing="1" font-weight="600">GIPFEL</text>
+          <text x="38" y="26" text-anchor="middle">−4° · 2 962 m</text>
+        </g>
+        
+        <!-- Lee/North side -->
+        <g transform="translate(700, 200)">
+          <rect width="88" height="44" rx="10" fill="#FFFFFF" stroke="#C97B47" stroke-width="1.5"/>
+          <text x="44" y="16" font-size="9" fill="#A85E2E" text-anchor="middle" letter-spacing="1" font-weight="600">NORD · FÖHN</text>
+          <text x="44" y="32" text-anchor="middle" font-weight="500">22° · trocken</text>
+        </g>
+      </g>
+      
+      <!-- Process labels -->
+      <g font-size="9" fill="#5C5447" letter-spacing="0.5">
+        <text x="100" y="260" font-style="italic">Feuchte Luft steigt auf</text>
+        <text x="340" y="260" font-style="italic">Niederschlag</text>
+        <text x="540" y="260" font-style="italic">Trockenadiabatisch absteigend</text>
+        <text x="720" y="260" font-style="italic">+3.2° Erwärmung</text>
+      </g>
+    </g>
+  </g>
+  
+  <!-- ============ RIGHT: KEY METRICS + EXPLANATION ============ -->
+  <g transform="translate(1000, 240)">
+    <rect width="360" height="440" rx="22" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    
+    <g transform="translate(24, 28)">
+      <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">DETECTION-KENNZAHLEN</text>
+    </g>
+    
+    <!-- Metrics grid -->
+    <g transform="translate(24, 60)">
+      <g>
+        <rect width="156" height="80" rx="12" fill="#F5F1E8"/>
+        <text x="14" y="18" font-size="9" fill="#A89A7A" letter-spacing="1.5" font-weight="500">SÜD-WIND</text>
+        <text x="14" y="48" font-size="24" font-weight="200" fill="#2C2A26">14</text>
+        <text x="42" y="48" font-size="11" fill="#5C5447">m/s</text>
+        <text x="14" y="68" font-size="10" fill="#A85E2E" font-weight="500">über Schwelle 8</text>
+      </g>
+      
+      <g transform="translate(164, 0)">
+        <rect width="156" height="80" rx="12" fill="#F5F1E8"/>
+        <text x="14" y="18" font-size="9" fill="#A89A7A" letter-spacing="1.5" font-weight="500">DRUCKGRADIENT</text>
+        <text x="14" y="48" font-size="24" font-weight="200" fill="#2C2A26">+6.8</text>
+        <text x="62" y="48" font-size="11" fill="#5C5447">hPa</text>
+        <text x="14" y="68" font-size="10" fill="#A85E2E" font-weight="500">N → S</text>
+      </g>
+      
+      <g transform="translate(0, 92)">
+        <rect width="156" height="80" rx="12" fill="#F5F1E8"/>
+        <text x="14" y="18" font-size="9" fill="#A89A7A" letter-spacing="1.5" font-weight="500">FEUCHTE</text>
+        <text x="14" y="48" font-size="24" font-weight="200" fill="#2C2A26">34</text>
+        <text x="42" y="48" font-size="11" fill="#5C5447">%</text>
+        <text x="14" y="68" font-size="10" fill="#A85E2E" font-weight="500">extrem niedrig</text>
+      </g>
+      
+      <g transform="translate(164, 92)">
+        <rect width="156" height="80" rx="12" fill="#F5F1E8"/>
+        <text x="14" y="18" font-size="9" fill="#A89A7A" letter-spacing="1.5" font-weight="500">SICHTWEITE</text>
+        <text x="14" y="48" font-size="24" font-weight="200" fill="#2C2A26">50+</text>
+        <text x="62" y="48" font-size="11" fill="#5C5447">km</text>
+        <text x="14" y="68" font-size="10" fill="#7A9466" font-weight="500">glasklar</text>
+      </g>
+    </g>
+    
+    <!-- Confidence -->
+    <g transform="translate(24, 252)">
+      <rect width="320" height="56" rx="12" fill="#FAEEDA"/>
+      <g transform="translate(20, 18)">
+        <text font-size="9" fill="#A85E2E" letter-spacing="2" font-weight="600">DETECTION-KONFIDENZ</text>
+        <text y="20" font-size="13" fill="#2C2A26" font-weight="500">Hoch · alle 4 Bedingungen erfüllt</text>
+      </g>
+    </g>
+    
+    <!-- Temperature correction applied -->
+    <g transform="translate(24, 324)">
+      <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">ANGEWENDETE KORREKTUR</text>
+      
+      <g transform="translate(0, 18)">
+        <rect width="320" height="68" rx="12" fill="#2C2A26"/>
+        
+        <g transform="translate(20, 18)">
+          <text font-size="11" fill="#A89A7A">Trockenadiabatische Lapse-Rate</text>
+          <text y="20" font-size="16" fill="#FFFFFF" font-weight="500">+3.2°C zur Basis-Vorhersage</text>
+          <text y="38" font-size="10" fill="#D9D0B8">−0.98°C / 100 m für Lee-Seite</text>
+        </g>
+      </g>
+    </g>
+  </g>
+  
+  <!-- ============ BOTTOM SECTION: AFFECTED AREAS + RISKS ============ -->
+  <g transform="translate(80, 700)">
+    <rect width="1280" height="160" rx="22" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    
+    <!-- Header -->
+    <g transform="translate(28, 24)">
+      <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">BETROFFENE GEBIETE · HEUTE</text>
+    </g>
+    
+    <!-- Affected regions -->
+    <g transform="translate(28, 56)">
+      <g>
+        <rect width="200" height="80" rx="14" fill="#F5F1E8"/>
+        <g transform="translate(16, 14)">
+          <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">BAYERN</text>
+          <text y="20" font-size="14" fill="#2C2A26" font-weight="500">Alpenvorland</text>
+          <text y="40" font-size="11" fill="#5C5447">München bis Salzburg</text>
+          <text y="56" font-size="10" fill="#C97B47" font-weight="500">+3.2°C über Normal</text>
+        </g>
+      </g>
+      
+      <g transform="translate(212, 0)">
+        <rect width="200" height="80" rx="14" fill="#F5F1E8"/>
+        <g transform="translate(16, 14)">
+          <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">TIROL · NORD</text>
+          <text y="20" font-size="14" fill="#2C2A26" font-weight="500">Inntal</text>
+          <text y="40" font-size="11" fill="#5C5447">Innsbruck-Region</text>
+          <text y="56" font-size="10" fill="#A85E2E" font-weight="500">+5.4°C · klassischer Föhn</text>
+        </g>
+      </g>
+      
+      <g transform="translate(424, 0)">
+        <rect width="200" height="80" rx="14" fill="#F5F1E8"/>
+        <g transform="translate(16, 14)">
+          <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">VORARLBERG</text>
+          <text y="20" font-size="14" fill="#2C2A26" font-weight="500">Rheintal</text>
+          <text y="40" font-size="11" fill="#5C5447">Bregenz bis Feldkirch</text>
+          <text y="56" font-size="10" fill="#C97B47" font-weight="500">+3.8°C · trocken</text>
+        </g>
+      </g>
+      
+      <!-- Right side: risk badges -->
+      <g transform="translate(680, 0)">
+        <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">HINWEISE</text>
+        
+        <g transform="translate(0, 14)" font-size="11">
+          <g>
+            <rect width="180" height="22" rx="11" fill="#FAEEDA"/>
+            <circle cx="11" cy="11" r="3" fill="#C97B47"/>
+            <text x="22" y="15" fill="#A85E2E" font-weight="500">Erhöhte Waldbrand-Gefahr</text>
+          </g>
+          <g transform="translate(0, 28)">
+            <rect width="180" height="22" rx="11" fill="#FAEEDA"/>
+            <circle cx="11" cy="11" r="3" fill="#C97B47"/>
+            <text x="22" y="15" fill="#A85E2E" font-weight="500">Flugverkehr: Turbulenz</text>
+          </g>
+        </g>
+      </g>
+      
+      <g transform="translate(880, 0)">
+        <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">DAUER</text>
+        <text y="20" font-size="20" fill="#2C2A26" font-weight="500">~ 18 h</text>
+        <text y="40" font-size="11" fill="#5C5447">heute bis morgen früh</text>
+        <text y="56" font-size="10" fill="#A89A7A">Auflösung nach 06:00 UTC</text>
+      </g>
+      
+      <!-- CTA: Explainer -->
+      <g transform="translate(1056, 16)">
+        <rect width="172" height="48" rx="24" fill="#2C2A26"/>
+        <g transform="translate(20, 18)">
+          <circle cx="6" cy="6" r="6" fill="none" stroke="#A89A7A" stroke-width="1"/>
+          <circle cx="6" cy="6" r="2" fill="#A89A7A"/>
+        </g>
+        <text x="46" y="29" font-size="12" fill="#F5F1E8" font-weight="500">Meteorologe fragen</text>
+      </g>
+    </g>
+  </g>
+  
+  <!-- LABEL -->
+  <g transform="translate(80, 880)">
+    <text font-size="10" fill="#A89A7A" letter-spacing="3" font-weight="500">07 · DACH-PHÄNOMEN-DETAIL · FÖHN · DESKTOP</text>
+    <text x="1280" font-size="10" fill="#A89A7A" letter-spacing="2" text-anchor="end">Querschnitt · Detection-Kennzahlen · Betroffene Gebiete</text>
+  </g>
+</svg>

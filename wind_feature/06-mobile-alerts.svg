@@ -1,0 +1,356 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 1620" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">
+  <defs>
+    <linearGradient id="bgSand" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FAF6EA"/>
+      <stop offset="1" stop-color="#F5F1E8"/>
+    </linearGradient>
+    <filter id="cardShadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="4"/>
+      <feOffset dx="0" dy="2"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.10"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="strongShadow" x="-20%" y="-20%" width="140%" height="160%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="8"/>
+      <feOffset dx="0" dy="4"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.18"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <pattern id="grain" width="120" height="120" patternUnits="userSpaceOnUse">
+      <rect width="120" height="120" fill="transparent"/>
+      <circle cx="20" cy="40" r="0.7" fill="#C4B896" opacity="0.18"/>
+      <circle cx="80" cy="20" r="0.5" fill="#C4B896" opacity="0.14"/>
+      <circle cx="55" cy="95" r="0.6" fill="#C4B896" opacity="0.16"/>
+    </pattern>
+  </defs>
+
+  <rect width="390" height="1620" fill="url(#bgSand)"/>
+  <rect width="390" height="1620" fill="url(#grain)"/>
+
+  <!-- ====== STATUS BAR ====== -->
+  <g>
+    <rect width="390" height="44" fill="#FAF6EA"/>
+    <text x="22" y="28" font-size="14" font-weight="700" fill="#2C2A26">9:41</text>
+    <g transform="translate(330, 14)" fill="#2C2A26">
+      <rect x="0" y="2" width="3" height="8" rx="1"/>
+      <rect x="5" y="0" width="3" height="10" rx="1"/>
+      <rect x="10" y="-2" width="3" height="12" rx="1"/>
+      <rect x="22" y="0" width="20" height="10" rx="2" fill="none" stroke="#2C2A26" stroke-width="1"/>
+      <rect x="24" y="2" width="14" height="6" rx="1" fill="#7A9466"/>
+    </g>
+  </g>
+
+  <!-- ====== TOP NAV ====== -->
+  <g transform="translate(0, 44)">
+    <rect width="390" height="56" fill="#FAF6EA"/>
+    <line x1="0" y1="56" x2="390" y2="56" stroke="#E0D6BE"/>
+    <g transform="translate(16, 18)">
+      <path d="M 8 0 L 0 10 L 8 20" fill="none" stroke="#2C2A26" stroke-width="2" stroke-linecap="round"/>
+    </g>
+    <text x="195" y="32" font-size="14" font-weight="600" fill="#2C2A26" text-anchor="middle">Regen-Alarme</text>
+    <text x="195" y="46" font-size="10" fill="#8B7355" text-anchor="middle">Push vor Regenbeginn</text>
+    <text x="374" y="36" font-size="13" font-weight="600" fill="#3A6FA8" text-anchor="end">Speichern</text>
+  </g>
+
+  <!-- ====== EYEBROW ====== -->
+  <g transform="translate(16, 120)">
+    <text font-size="10" letter-spacing="0.22em" font-weight="600" fill="#3A6FA8">DEINE STANDORTE</text>
+  </g>
+
+  <!-- ====== STANDORTE-LISTE ====== -->
+  <g transform="translate(16, 142)">
+    <!-- Standort 1: Dillenburg (aktiv) -->
+    <g filter="url(#cardShadow)">
+      <rect width="358" height="78" rx="14" fill="#FAF6EA" stroke="#3A6FA8" stroke-width="2"/>
+      <g transform="translate(16, 20)">
+        <circle cx="14" cy="14" r="14" fill="#EDE6D3"/>
+        <g transform="translate(14, 14)">
+          <circle r="6" fill="none" stroke="#C97B47" stroke-width="1.6"/>
+          <circle r="2" fill="#C97B47"/>
+        </g>
+      </g>
+      <text x="56" y="36" font-size="14" font-weight="700" fill="#2C2A26">Dillenburg</text>
+      <text x="56" y="54" font-size="11" fill="#5C5447">aktueller Standort · Alarm aktiv</text>
+      <!-- Toggle ON -->
+      <g transform="translate(308, 28)">
+        <rect width="42" height="24" rx="12" fill="#3A6FA8"/>
+        <circle cx="30" cy="12" r="9" fill="#FAF6EA"/>
+      </g>
+      <!-- Live pulse -->
+      <g transform="translate(56, 64)">
+        <circle r="3" fill="#7A9466"/>
+        <text x="8" y="3" font-size="9" font-weight="600" fill="#7A9466">Push gesendet · vor 4 Tagen</text>
+      </g>
+    </g>
+
+    <!-- Standort 2: Büro Stuttgart -->
+    <g transform="translate(0, 90)">
+      <rect width="358" height="64" rx="14" fill="#FAF6EA" stroke="#E0D6BE"/>
+      <g transform="translate(16, 20)">
+        <circle cx="14" cy="14" r="14" fill="#EDE6D3"/>
+        <g transform="translate(8, 7)">
+          <rect width="12" height="12" rx="1" fill="none" stroke="#5C5447" stroke-width="1.4"/>
+          <line x1="2" y1="6" x2="10" y2="6" stroke="#5C5447" stroke-width="1"/>
+        </g>
+      </g>
+      <text x="56" y="28" font-size="14" font-weight="700" fill="#2C2A26">Büro Stuttgart</text>
+      <text x="56" y="46" font-size="11" fill="#5C5447">Mo–Fr · 9:00 – 17:30</text>
+      <g transform="translate(308, 21)">
+        <rect width="42" height="24" rx="12" fill="#3A6FA8"/>
+        <circle cx="30" cy="12" r="9" fill="#FAF6EA"/>
+      </g>
+    </g>
+
+    <!-- Standort 3: Wandertour-Pin -->
+    <g transform="translate(0, 164)">
+      <rect width="358" height="64" rx="14" fill="#FAF6EA" stroke="#E0D6BE"/>
+      <g transform="translate(16, 20)">
+        <circle cx="14" cy="14" r="14" fill="#EDE6D3"/>
+        <g transform="translate(8, 6)" stroke="#5C5447" stroke-width="1.4" fill="none" stroke-linecap="round">
+          <path d="M 0 14 L 4 8 L 8 12 L 14 4"/>
+        </g>
+      </g>
+      <text x="56" y="28" font-size="14" font-weight="700" fill="#2C2A26">Berchtesgaden · Watzmann</text>
+      <text x="56" y="46" font-size="11" fill="#5C5447">geplante Tour · Sa 15.06.</text>
+      <g transform="translate(308, 21)">
+        <rect width="42" height="24" rx="12" fill="#E0D6BE"/>
+        <circle cx="12" cy="12" r="9" fill="#FAF6EA"/>
+      </g>
+    </g>
+
+    <!-- + Standort hinzufügen -->
+    <g transform="translate(0, 238)">
+      <rect width="358" height="48" rx="14" fill="none" stroke="#C4B896" stroke-width="1.5" stroke-dasharray="4 3"/>
+      <g transform="translate(16, 16)">
+        <circle cx="8" cy="8" r="8" fill="#3A6FA8"/>
+        <line x1="4" y1="8" x2="12" y2="8" stroke="#FAF6EA" stroke-width="2" stroke-linecap="round"/>
+        <line x1="8" y1="4" x2="8" y2="12" stroke="#FAF6EA" stroke-width="2" stroke-linecap="round"/>
+      </g>
+      <text x="44" y="30" font-size="13" font-weight="600" fill="#3A6FA8">Standort hinzufügen</text>
+    </g>
+  </g>
+
+  <!-- ====== INTENSITÄTS-SCHWELLE ====== -->
+  <g transform="translate(16, 458)">
+    <text font-size="10" letter-spacing="0.22em" font-weight="600" fill="#8B7355">AB WELCHER INTENSITÄT?</text>
+
+    <g transform="translate(0, 18)" filter="url(#cardShadow)">
+      <rect width="358" height="138" rx="14" fill="#FAF6EA" stroke="#E0D6BE"/>
+
+      <text x="20" y="28" font-size="13" font-weight="700" fill="#2C2A26">Mäßig oder stärker</text>
+      <text x="20" y="46" font-size="11" fill="#8B7355">ab 1 mm/h · keine Nieselregen-Alerts</text>
+
+      <!-- Segmented control with 4 levels -->
+      <g transform="translate(20, 64)">
+        <rect width="318" height="42" rx="10" fill="#EDE6D3"/>
+
+        <!-- Active: 2nd segment "mäßig" -->
+        <rect x="80" y="3" width="76" height="36" rx="8" fill="#3A6FA8" filter="url(#cardShadow)"/>
+
+        <!-- Level: leicht -->
+        <g transform="translate(40, 21)">
+          <text font-size="11" font-weight="600" fill="#5C5447" text-anchor="middle">leicht</text>
+          <text y="14" font-size="9" fill="#8B7355" text-anchor="middle">0,1+</text>
+        </g>
+        <!-- Level: mäßig (selected) -->
+        <g transform="translate(118, 21)">
+          <text font-size="11" font-weight="700" fill="#FAF6EA" text-anchor="middle">mäßig</text>
+          <text y="14" font-size="9" fill="#FAF6EA" opacity="0.8" text-anchor="middle">1+ mm/h</text>
+        </g>
+        <!-- Level: stark -->
+        <g transform="translate(198, 21)">
+          <text font-size="11" font-weight="600" fill="#5C5447" text-anchor="middle">stark</text>
+          <text y="14" font-size="9" fill="#8B7355" text-anchor="middle">2,5+</text>
+        </g>
+        <!-- Level: sehr stark -->
+        <g transform="translate(278, 21)">
+          <text font-size="11" font-weight="600" fill="#5C5447" text-anchor="middle">sehr</text>
+          <text y="14" font-size="9" fill="#8B7355" text-anchor="middle">10+</text>
+        </g>
+      </g>
+
+      <!-- Empty preview text -->
+      <text x="20" y="124" font-size="10" fill="#7A9466" font-weight="600">○ Erwartete Alerts: ~3 pro Woche</text>
+    </g>
+  </g>
+
+  <!-- ====== VORLAUFZEIT-SLIDER ====== -->
+  <g transform="translate(16, 632)">
+    <text font-size="10" letter-spacing="0.22em" font-weight="600" fill="#8B7355">WIE FRÜH WARNEN?</text>
+
+    <g transform="translate(0, 18)" filter="url(#cardShadow)">
+      <rect width="358" height="118" rx="14" fill="#FAF6EA" stroke="#E0D6BE"/>
+
+      <text x="20" y="28" font-size="13" font-weight="700" fill="#2C2A26">30 Minuten Vorlauf</text>
+      <text x="20" y="46" font-size="11" fill="#8B7355">genug Zeit, um die Wäsche abzunehmen</text>
+
+      <!-- Slider -->
+      <g transform="translate(20, 70)">
+        <!-- Track -->
+        <rect width="318" height="6" rx="3" fill="#E0D6BE"/>
+        <!-- Filled portion (30 min of 90 → 1/3) -->
+        <rect width="106" height="6" rx="3" fill="#3A6FA8"/>
+        <!-- Handle -->
+        <g transform="translate(106, 3)" filter="url(#strongShadow)">
+          <circle r="14" fill="#FAF6EA" stroke="#3A6FA8" stroke-width="2.5"/>
+          <circle r="5" fill="#3A6FA8"/>
+        </g>
+        <!-- Tick marks -->
+        <g font-size="9" fill="#8B7355">
+          <text x="0" y="24">10 min</text>
+          <text x="106" y="24" font-weight="700" fill="#3A6FA8" text-anchor="middle">30 min</text>
+          <text x="212" y="24" text-anchor="middle">60 min</text>
+          <text x="318" y="24" text-anchor="end">90 min</text>
+        </g>
+      </g>
+    </g>
+  </g>
+
+  <!-- ====== PHASE-SPEZIFISCHE ALERTS ====== -->
+  <g transform="translate(16, 790)">
+    <text font-size="10" letter-spacing="0.22em" font-weight="600" fill="#8B7355">SEPARATE WARNUNGEN</text>
+
+    <g transform="translate(0, 18)" filter="url(#cardShadow)">
+      <rect width="358" height="232" rx="14" fill="#FAF6EA" stroke="#E0D6BE"/>
+
+      <!-- Gewitter -->
+      <g transform="translate(20, 20)">
+        <g>
+          <rect width="36" height="36" rx="10" fill="#FCEDD8"/>
+          <g transform="translate(18, 18)">
+            <path d="M -3 -8 L 4 -8 L -1 0 L 5 0 L -4 10 L 0 2 L -5 2 Z" fill="#D4A373"/>
+          </g>
+        </g>
+        <text x="48" y="18" font-size="13" font-weight="700" fill="#2C2A26">Gewitter</text>
+        <text x="48" y="34" font-size="11" fill="#8B7355">ab 50% Wahrscheinlichkeit · Hagel inkl.</text>
+        <g transform="translate(272, 6)">
+          <rect width="42" height="24" rx="12" fill="#D4A373"/>
+          <circle cx="30" cy="12" r="9" fill="#FAF6EA"/>
+        </g>
+      </g>
+
+      <line x1="20" y1="74" x2="338" y2="74" stroke="#E0D6BE"/>
+
+      <!-- Glätte/gefrierender Regen -->
+      <g transform="translate(20, 90)">
+        <g>
+          <rect width="36" height="36" rx="10" fill="#FBE4E7"/>
+          <g transform="translate(12, 9)">
+            <rect width="12" height="18" rx="2" fill="none" stroke="#D7263D" stroke-width="1.6"/>
+            <line x1="2" y1="6" x2="10" y2="6" stroke="#D7263D" stroke-width="1"/>
+          </g>
+        </g>
+        <text x="48" y="18" font-size="13" font-weight="700" fill="#2C2A26">Glätte · gefrier. Regen</text>
+        <text x="48" y="34" font-size="11" fill="#8B7355">eigenes Signal · empfohlen aktiv</text>
+        <g transform="translate(272, 6)">
+          <rect width="42" height="24" rx="12" fill="#D7263D"/>
+          <circle cx="30" cy="12" r="9" fill="#FAF6EA"/>
+        </g>
+      </g>
+
+      <line x1="20" y1="144" x2="338" y2="144" stroke="#E0D6BE"/>
+
+      <!-- Starkregen -->
+      <g transform="translate(20, 160)">
+        <g>
+          <rect width="36" height="36" rx="10" fill="#DCE6F0"/>
+          <g transform="translate(13, 8)">
+            <path d="M 5 0 Q 0 10 0 16 Q 0 20 5 20 Q 10 20 10 16 Q 10 10 5 0 Z" fill="#1F4878"/>
+          </g>
+        </g>
+        <text x="48" y="18" font-size="13" font-weight="700" fill="#2C2A26">Starkregen</text>
+        <text x="48" y="34" font-size="11" fill="#8B7355">DWD-Schwelle · Überflutungs-Risiko</text>
+        <g transform="translate(272, 6)">
+          <rect width="42" height="24" rx="12" fill="#1F4878"/>
+          <circle cx="30" cy="12" r="9" fill="#FAF6EA"/>
+        </g>
+      </g>
+    </g>
+  </g>
+
+  <!-- ====== RUHEZEITEN ====== -->
+  <g transform="translate(16, 1054)">
+    <text font-size="10" letter-spacing="0.22em" font-weight="600" fill="#8B7355">RUHEZEITEN</text>
+
+    <g transform="translate(0, 18)" filter="url(#cardShadow)">
+      <rect width="358" height="84" rx="14" fill="#FAF6EA" stroke="#E0D6BE"/>
+
+      <g transform="translate(20, 22)">
+        <rect width="36" height="36" rx="10" fill="#EDE6D3"/>
+        <g transform="translate(18, 18)" fill="none" stroke="#5C5447" stroke-width="1.6" stroke-linecap="round">
+          <circle r="8"/>
+          <line x1="0" y1="0" x2="0" y2="-5"/>
+          <line x1="0" y1="0" x2="4" y2="0"/>
+        </g>
+      </g>
+      <text x="72" y="38" font-size="13" font-weight="700" fill="#2C2A26">22:00 – 07:00</text>
+      <text x="72" y="56" font-size="11" fill="#8B7355">nur kritische Alerts · Gewitter/Glätte</text>
+
+      <g transform="translate(308, 30)">
+        <rect width="42" height="24" rx="12" fill="#3A6FA8"/>
+        <circle cx="30" cy="12" r="9" fill="#FAF6EA"/>
+      </g>
+    </g>
+  </g>
+
+  <!-- ====== PREVIEW: SO SIEHT EIN ALERT AUS ====== -->
+  <g transform="translate(16, 1186)">
+    <text font-size="10" letter-spacing="0.22em" font-weight="600" fill="#8B7355">SO SIEHT DEIN ALERT AUS</text>
+
+    <g transform="translate(0, 18)" filter="url(#strongShadow)">
+      <!-- Faux iOS notification -->
+      <rect width="358" height="92" rx="18" fill="#FAF6EA" opacity="0.98" stroke="#E0D6BE"/>
+
+      <!-- App icon -->
+      <g transform="translate(16, 16)">
+        <rect width="34" height="34" rx="9" fill="#C97B47"/>
+        <circle cx="17" cy="17" r="9" fill="none" stroke="#FAF6EA" stroke-width="1.6"/>
+        <circle cx="17" cy="17" r="3" fill="#FAF6EA"/>
+      </g>
+
+      <!-- Header -->
+      <text x="58" y="28" font-size="11" font-weight="700" fill="#2C2A26">BUSCOSUN NOWCAST</text>
+      <text x="343" y="28" font-size="10" fill="#8B7355" text-anchor="end">vor 1 Min</text>
+
+      <!-- Title -->
+      <text x="58" y="48" font-size="13" font-weight="700" fill="#2C2A26">Regen in 30 Minuten · Dillenburg</text>
+      <text x="16" y="68" font-size="11" fill="#5C5447">Beginn ca. 14:55 · mäßig (1,8 mm/h) ·</text>
+      <text x="16" y="82" font-size="11" fill="#5C5447">Regen · 47 min Trockenfenster ab 15:42</text>
+    </g>
+  </g>
+
+  <!-- ====== DEDUP HINWEIS ====== -->
+  <g transform="translate(16, 1320)">
+    <rect width="358" height="76" rx="14" fill="#F8F2E2" stroke="#E0D6BE"/>
+    <g transform="translate(20, 22)">
+      <circle r="12" fill="#7A9466"/>
+      <text y="5" font-size="14" font-weight="700" fill="#FAF6EA" text-anchor="middle">✓</text>
+    </g>
+    <text x="48" y="32" font-size="12" font-weight="700" fill="#2C2A26">Keine doppelten Alerts</text>
+    <text x="48" y="50" font-size="10" fill="#5C5447">Pro Ereignis nur eine Benachrichtigung —</text>
+    <text x="48" y="64" font-size="10" fill="#5C5447">kein Spam bei Modell-Updates.</text>
+  </g>
+
+  <!-- ====== GUARDRAIL HINWEIS ====== -->
+  <g transform="translate(16, 1412)">
+    <rect width="358" height="76" rx="14" fill="#FAF6EA" stroke="#E0D6BE"/>
+    <g transform="translate(20, 22)">
+      <circle r="12" fill="#3A6FA8"/>
+      <text y="5" font-size="14" font-weight="700" fill="#FAF6EA" text-anchor="middle">i</text>
+    </g>
+    <text x="48" y="32" font-size="12" font-weight="700" fill="#2C2A26">Vorlauf ≤ Skill-Horizont</text>
+    <text x="48" y="50" font-size="10" fill="#5C5447">Über 2 h Vorlauf sind keine minutengenauen</text>
+    <text x="48" y="64" font-size="10" fill="#5C5447">Alerts möglich — wir warnen dann gröber.</text>
+  </g>
+
+  <!-- ====== TEST-ALARM-BUTTON ====== -->
+  <g transform="translate(16, 1504)">
+    <rect width="358" height="48" rx="14" fill="none" stroke="#3A6FA8" stroke-width="1.5"/>
+    <text x="195" y="30" font-size="13" font-weight="600" fill="#3A6FA8" text-anchor="middle">Test-Benachrichtigung senden</text>
+  </g>
+
+  <!-- Home indicator -->
+  <g transform="translate(150, 1600)">
+    <rect width="90" height="4" rx="2" fill="#2C2A26" opacity="0.4"/>
+  </g>
+</svg>

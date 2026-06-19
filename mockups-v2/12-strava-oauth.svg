@@ -1,0 +1,404 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1800" font-family="ui-sans-serif, system-ui, -apple-system">
+  <defs>
+    <linearGradient id="bg12" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F5F1E8"/>
+      <stop offset="100%" stop-color="#EDE6D3"/>
+    </linearGradient>
+    <linearGradient id="stravaOrange" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FC4C02"/>
+      <stop offset="100%" stop-color="#FF5722"/>
+    </linearGradient>
+  </defs>
+  
+  <rect width="1440" height="1800" fill="url(#bg12)"/>
+  
+  <!-- ============ HEADER ============ -->
+  <g transform="translate(80, 60)">
+    <text font-size="11" fill="#A89A7A" letter-spacing="3" font-weight="500">STRAVA-INTEGRATION · OAUTH-FLOW · 5 SCHRITTE</text>
+    <text y="56" font-size="56" font-weight="200" fill="#2C2A26" letter-spacing="-1.5">Strava-Routen importieren</text>
+    <text y="100" font-size="16" fill="#5C5447">Read-only Zugriff auf deine gespeicherten Routen. Keine Aktivitäten, keine Schreibrechte.</text>
+  </g>
+  
+  <!-- Step indicator at top -->
+  <g transform="translate(80, 200)">
+    <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">FORTSCHRITT</text>
+    
+    <g transform="translate(0, 24)">
+      <!-- Step dots -->
+      <line x1="20" y1="20" x2="1260" y2="20" stroke="#D9D0B8" stroke-width="2"/>
+      
+      <g transform="translate(20, 20)">
+        <circle r="14" fill="#2C2A26"/>
+        <text y="4" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="600">1</text>
+      </g>
+      <g transform="translate(335, 20)">
+        <circle r="14" fill="#2C2A26"/>
+        <text y="4" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="600">2</text>
+      </g>
+      <g transform="translate(650, 20)">
+        <circle r="14" fill="#FFFFFF" stroke="#2C2A26" stroke-width="2"/>
+        <text y="4" font-size="11" fill="#2C2A26" text-anchor="middle" font-weight="600">3</text>
+      </g>
+      <g transform="translate(965, 20)">
+        <circle r="14" fill="#F5F1E8" stroke="#D9D0B8" stroke-width="2"/>
+        <text y="4" font-size="11" fill="#A89A7A" text-anchor="middle" font-weight="600">4</text>
+      </g>
+      <g transform="translate(1260, 20)">
+        <circle r="14" fill="#F5F1E8" stroke="#D9D0B8" stroke-width="2"/>
+        <text y="4" font-size="11" fill="#A89A7A" text-anchor="middle" font-weight="600">5</text>
+      </g>
+      
+      <!-- Step labels -->
+      <g font-size="11" fill="#5C5447" transform="translate(0, 56)">
+        <text x="20" text-anchor="middle">Erklärung</text>
+        <text x="335" text-anchor="middle">Strava-Login</text>
+        <text x="650" font-weight="600" fill="#2C2A26" text-anchor="middle">Berechtigungen</text>
+        <text x="965" text-anchor="middle" fill="#A89A7A">Routen-Auswahl</text>
+        <text x="1260" text-anchor="middle" fill="#A89A7A">Verbunden</text>
+      </g>
+    </g>
+  </g>
+  
+  <!-- ============ STEP 1 — Explanation ============ -->
+  <g transform="translate(80, 340)">
+    <text font-size="11" fill="#A89A7A" letter-spacing="3" font-weight="500">SCHRITT 1 · ERKLÄRUNG WAS GETEILT WIRD</text>
+    
+    <g transform="translate(0, 24)">
+      <rect width="1280" height="280" rx="22" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+      
+      <!-- Left: Strava logo + explainer -->
+      <g transform="translate(40, 36)">
+        <!-- Strava brand box -->
+        <g>
+          <rect width="80" height="80" rx="18" fill="url(#stravaOrange)"/>
+          <g transform="translate(30, 22)" fill="#FFFFFF">
+            <path d="M 10 0 L 0 20 L 10 40 L 20 20 Z"/>
+            <path d="M 20 20 L 15 30 L 25 30 Z"/>
+          </g>
+        </g>
+        
+        <g transform="translate(108, 14)">
+          <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="600">PARTNER-INTEGRATION</text>
+          <text y="24" font-size="24" font-weight="500" fill="#2C2A26" letter-spacing="-0.5">Strava verbinden</text>
+          <text y="48" font-size="13" fill="#5C5447">Wir bekommen nur Read-Zugriff auf deine gespeicherten Routen.</text>
+          <text y="66" font-size="13" fill="#5C5447">Keine Aktivitäten, keine persönlichen Daten, keine Schreibrechte.</text>
+        </g>
+      </g>
+      
+      <!-- Permissions list -->
+      <g transform="translate(40, 156)">
+        <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">WAS WIR BEKOMMEN</text>
+        
+        <g transform="translate(0, 24)" font-size="13" fill="#5C5447">
+          <g>
+            <circle cx="6" cy="6" r="4" fill="#7A9466"/>
+            <text x="20" y="10">Deine gespeicherten Routen (read-only)</text>
+          </g>
+          <g transform="translate(0, 24)">
+            <circle cx="6" cy="6" r="4" fill="#7A9466"/>
+            <text x="20" y="10">Routen-Namen und GPX-Koordinaten</text>
+          </g>
+          <g transform="translate(0, 48)">
+            <circle cx="6" cy="6" r="4" fill="#7A9466"/>
+            <text x="20" y="10">Profil-Typ (Cycling, Hiking, Trail-Run)</text>
+          </g>
+        </g>
+      </g>
+      
+      <!-- What we don't get -->
+      <g transform="translate(480, 156)">
+        <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">WAS WIR NICHT BEKOMMEN</text>
+        
+        <g transform="translate(0, 24)" font-size="13" fill="#5C5447">
+          <g>
+            <line x1="2" y1="2" x2="10" y2="10" stroke="#A85E2E" stroke-width="2" stroke-linecap="round"/>
+            <line x1="10" y1="2" x2="2" y2="10" stroke="#A85E2E" stroke-width="2" stroke-linecap="round"/>
+            <text x="20" y="10">Aktivitäten (Workouts, Zeiten)</text>
+          </g>
+          <g transform="translate(0, 24)">
+            <line x1="2" y1="2" x2="10" y2="10" stroke="#A85E2E" stroke-width="2" stroke-linecap="round"/>
+            <line x1="10" y1="2" x2="2" y2="10" stroke="#A85E2E" stroke-width="2" stroke-linecap="round"/>
+            <text x="20" y="10">Profil-Foto, Bio, Follower</text>
+          </g>
+          <g transform="translate(0, 48)">
+            <line x1="2" y1="2" x2="10" y2="10" stroke="#A85E2E" stroke-width="2" stroke-linecap="round"/>
+            <line x1="10" y1="2" x2="2" y2="10" stroke="#A85E2E" stroke-width="2" stroke-linecap="round"/>
+            <text x="20" y="10">Schreibrechte (wir posten nichts)</text>
+          </g>
+        </g>
+      </g>
+      
+      <!-- CTA -->
+      <g transform="translate(980, 174)">
+        <g>
+          <rect width="260" height="48" rx="24" fill="url(#stravaOrange)"/>
+          <g transform="translate(28, 14)" fill="#FFFFFF">
+            <path d="M 8 0 L 0 16 L 8 32 L 16 16 Z" transform="scale(0.6)"/>
+          </g>
+          <text x="146" y="30" font-size="13" fill="#FFFFFF" text-anchor="middle" font-weight="500">Mit Strava verbinden</text>
+        </g>
+        <text x="130" y="74" font-size="10" fill="#A89A7A" text-anchor="middle">Du wirst zu strava.com weitergeleitet</text>
+      </g>
+    </g>
+  </g>
+  
+  <!-- ============ STEP 2 — Strava login redirect ============ -->
+  <g transform="translate(80, 660)">
+    <text font-size="11" fill="#A89A7A" letter-spacing="3" font-weight="500">SCHRITT 2 · STRAVA-LOGIN (EXTERN AUF STRAVA.COM)</text>
+    
+    <g transform="translate(0, 24)">
+      <rect width="1280" height="280" rx="22" fill="#FAEEDA" stroke="#E0D6BE" stroke-width="0.5"/>
+      
+      <!-- Browser frame mockup -->
+      <g transform="translate(120, 36)">
+        <rect width="1040" height="208" rx="14" fill="#FFFFFF" stroke="#D9D0B8" stroke-width="0.5"/>
+        
+        <!-- Browser bar -->
+        <g transform="translate(0, 0)">
+          <rect width="1040" height="36" rx="14" fill="#F5F1E8"/>
+          <rect y="20" width="1040" height="16" fill="#F5F1E8"/>
+          <circle cx="20" cy="18" r="5" fill="#FF6B5B"/>
+          <circle cx="40" cy="18" r="5" fill="#F5C543"/>
+          <circle cx="60" cy="18" r="5" fill="#7A9466"/>
+          
+          <rect x="90" y="10" width="400" height="16" rx="8" fill="#FFFFFF" stroke="#D9D0B8" stroke-width="0.5"/>
+          <g transform="translate(102, 14)" stroke="#7A9466" stroke-width="1" fill="none">
+            <path d="M 0 6 L 4 0 L 8 0 L 8 8 L 0 8 L 0 6 M 4 4 L 4 0"/>
+          </g>
+          <text x="118" y="22" font-size="9" fill="#5C5447" font-family="ui-monospace, monospace">strava.com/oauth/authorize?...</text>
+        </g>
+        
+        <!-- Strava login content -->
+        <g transform="translate(0, 60)">
+          <!-- Strava logo top -->
+          <g transform="translate(40, 16)">
+            <rect width="50" height="50" rx="10" fill="url(#stravaOrange)"/>
+            <g transform="translate(18, 14)" fill="#FFFFFF">
+              <path d="M 8 0 L 0 16 L 8 32 L 16 16 Z" transform="scale(0.5)"/>
+            </g>
+          </g>
+          
+          <g transform="translate(108, 22)">
+            <text font-size="18" font-weight="600" fill="#FC4C02">STRAVA</text>
+            <text y="20" font-size="11" fill="#5C5447">Authorize buscosun to access your Strava account</text>
+          </g>
+          
+          <!-- App permission box -->
+          <g transform="translate(40, 92)">
+            <rect width="960" height="44" rx="12" fill="#F5F1E8"/>
+            <g transform="translate(16, 14)">
+              <text font-size="11" fill="#5C5447">buscosun_core</text>
+              <text x="120" font-size="10" fill="#A89A7A">requesting access to:</text>
+              <text x="220" font-size="11" fill="#2C2A26" font-weight="500">View your routes (read-only)</text>
+            </g>
+            <g transform="translate(820, 12)">
+              <rect width="120" height="20" rx="10" fill="#FFEDDC"/>
+              <text x="60" y="14" font-size="10" fill="#FC4C02" text-anchor="middle" font-weight="600">SCOPE: routes:read</text>
+            </g>
+          </g>
+        </g>
+      </g>
+      
+      <!-- External note -->
+      <g transform="translate(120, 252)">
+        <text font-size="10" fill="#A89A7A">↗ Diese Seite ist auf strava.com · wir sehen deine Login-Daten nicht</text>
+      </g>
+    </g>
+  </g>
+  
+  <!-- ============ STEP 3 — Permissions confirmation (BIG, current state) ============ -->
+  <g transform="translate(80, 980)">
+    <text font-size="11" fill="#A89A7A" letter-spacing="3" font-weight="500">SCHRITT 3 · BERECHTIGUNGEN BESTÄTIGEN · AKTIV</text>
+    
+    <g transform="translate(0, 24)">
+      <rect width="1280" height="360" rx="22" fill="#FFFFFF" stroke="#2C2A26" stroke-width="2"/>
+      
+      <!-- Left side: permissions detail -->
+      <g transform="translate(48, 40)">
+        <g>
+          <rect width="64" height="64" rx="14" fill="url(#stravaOrange)"/>
+          <g transform="translate(22, 16)" fill="#FFFFFF">
+            <path d="M 8 0 L 0 16 L 8 32 L 16 16 Z" transform="scale(0.625)"/>
+          </g>
+        </g>
+        
+        <g transform="translate(80, 8)">
+          <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">STRAVA · JAN SCHMIDT</text>
+          <text y="22" font-size="22" font-weight="500" fill="#2C2A26" letter-spacing="-0.4">Zugriff bestätigen</text>
+          <text y="44" font-size="12" fill="#5C5447">jan.schmidt@example.com · Mitglied seit 2019</text>
+        </g>
+        
+        <!-- Permission list with toggles -->
+        <g transform="translate(0, 110)">
+          <rect width="540" height="200" rx="14" fill="#F5F1E8"/>
+          
+          <g transform="translate(20, 22)" font-size="13" fill="#2C2A26">
+            <!-- Required scope -->
+            <g>
+              <circle cx="6" cy="6" r="5" fill="#7A9466"/>
+              <text x="20" y="10" font-weight="500">Routen lesen</text>
+              <text x="20" y="28" font-size="10" fill="#5C5447">routes:read · pflicht für Import</text>
+              <g transform="translate(460, -4)">
+                <rect width="40" height="20" rx="10" fill="#7A9466"/>
+                <circle cx="29" cy="10" r="7" fill="#FFFFFF"/>
+              </g>
+            </g>
+            
+            <line x1="0" y1="50" x2="500" y2="50" stroke="#E0D6BE"/>
+            
+            <!-- Optional -->
+            <g transform="translate(0, 62)">
+              <circle cx="6" cy="6" r="5" fill="#D9D0B8"/>
+              <text x="20" y="10" fill="#A89A7A">Profil-Daten (optional)</text>
+              <text x="20" y="28" font-size="10" fill="#A89A7A">profile:read · nicht notwendig</text>
+              <g transform="translate(460, -4)">
+                <rect width="40" height="20" rx="10" fill="#D9D0B8"/>
+                <circle cx="11" cy="10" r="7" fill="#FFFFFF"/>
+              </g>
+            </g>
+            
+            <line x1="0" y1="112" x2="500" y2="112" stroke="#E0D6BE"/>
+            
+            <!-- Activity scope - explicitly denied -->
+            <g transform="translate(0, 124)">
+              <g transform="translate(2, 2)" stroke="#A85E2E" stroke-width="1.5">
+                <line x1="0" y1="0" x2="8" y2="8" stroke-linecap="round"/>
+                <line x1="8" y1="0" x2="0" y2="8" stroke-linecap="round"/>
+              </g>
+              <text x="20" y="10" fill="#A89A7A">Aktivitäten (verweigert)</text>
+              <text x="20" y="28" font-size="10" fill="#A89A7A">activity:read — nicht angefragt</text>
+              <g transform="translate(460, -4)">
+                <rect width="40" height="20" rx="10" fill="#D9D0B8" opacity="0.5"/>
+                <circle cx="11" cy="10" r="7" fill="#FFFFFF" opacity="0.5"/>
+              </g>
+            </g>
+          </g>
+        </g>
+      </g>
+      
+      <!-- Right side: token info + CTA -->
+      <g transform="translate(640, 56)">
+        <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">TOKEN-SPEICHERUNG</text>
+        
+        <g transform="translate(0, 22)">
+          <rect width="560" height="180" rx="14" fill="#2C2A26"/>
+          
+          <g transform="translate(20, 22)">
+            <text font-size="13" fill="#FFFFFF" font-weight="500">Token bleibt lokal in deinem Browser.</text>
+            <text y="22" font-size="11" fill="#D9D0B8">AES-256-verschlüsselt in IndexedDB.</text>
+            <text y="42" font-size="11" fill="#D9D0B8">Keine Server-Speicherung auf unserer Seite.</text>
+            
+            <g transform="translate(0, 70)">
+              <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">GÜLTIGKEIT</text>
+              <text y="20" font-size="13" fill="#FFFFFF">6 Stunden · Auto-Refresh</text>
+            </g>
+            
+            <g transform="translate(280, 70)">
+              <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">JEDERZEIT WIDERRUFBAR</text>
+              <text y="20" font-size="13" fill="#FFFFFF">Settings → Verbindungen</text>
+            </g>
+          </g>
+        </g>
+        
+        <!-- Action buttons -->
+        <g transform="translate(0, 224)">
+          <g>
+            <rect width="180" height="48" rx="24" fill="transparent" stroke="#2C2A26"/>
+            <text x="90" y="30" font-size="13" fill="#2C2A26" text-anchor="middle">Abbrechen</text>
+          </g>
+          <g transform="translate(192, 0)">
+            <rect width="368" height="48" rx="24" fill="#2C2A26"/>
+            <text x="184" y="30" font-size="13" fill="#F5F1E8" text-anchor="middle" font-weight="500">Zugriff erteilen &amp; weitermachen</text>
+          </g>
+        </g>
+      </g>
+    </g>
+  </g>
+  
+  <!-- ============ STEP 4 — Route selection (preview state) ============ -->
+  <g transform="translate(80, 1380)">
+    <text font-size="11" fill="#A89A7A" letter-spacing="3" font-weight="500">SCHRITT 4 · ROUTEN-AUSWAHL (NACH AUTORISIERUNG)</text>
+    
+    <g transform="translate(0, 24)">
+      <rect width="624" height="320" rx="22" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5" opacity="0.7"/>
+      
+      <g transform="translate(28, 24)">
+        <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">DEINE STRAVA-ROUTEN · 14 GEFUNDEN</text>
+        <text y="22" font-size="16" fill="#2C2A26" font-weight="500">Was möchtest du importieren?</text>
+      </g>
+      
+      <!-- Route list preview -->
+      <g transform="translate(28, 78)">
+        <g>
+          <rect width="568" height="50" rx="10" fill="#F0F4EA" stroke="#7A9466"/>
+          <g transform="translate(16, 16)">
+            <rect width="18" height="18" rx="4" fill="#7A9466"/>
+            <text x="9" y="13" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="700">✓</text>
+          </g>
+          <g transform="translate(46, 12)">
+            <text font-size="13" fill="#2C2A26" font-weight="500">Karwendel-Runde</text>
+            <text y="18" font-size="10" fill="#5C5447">52 km · 1 240 m · MTB · gespeichert 12.5.</text>
+          </g>
+        </g>
+        
+        <g transform="translate(0, 58)">
+          <rect width="568" height="50" rx="10" fill="transparent" stroke="#D9D0B8"/>
+          <g transform="translate(16, 16)">
+            <rect width="18" height="18" rx="4" fill="transparent" stroke="#A89A7A"/>
+          </g>
+          <g transform="translate(46, 12)">
+            <text font-size="13" fill="#2C2A26">Isar-Tour</text>
+            <text y="18" font-size="10" fill="#5C5447">38 km · 240 m · Cycling · gespeichert 8.5.</text>
+          </g>
+        </g>
+        
+        <g transform="translate(0, 116)">
+          <rect width="568" height="50" rx="10" fill="transparent" stroke="#D9D0B8"/>
+          <g transform="translate(16, 16)">
+            <rect width="18" height="18" rx="4" fill="transparent" stroke="#A89A7A"/>
+          </g>
+          <g transform="translate(46, 12)">
+            <text font-size="13" fill="#2C2A26">Zugspitze-Anfahrt</text>
+            <text y="18" font-size="10" fill="#5C5447">28 km · 1 820 m · Hike · gespeichert 1.5.</text>
+          </g>
+        </g>
+        
+        <text y="190" font-size="11" fill="#A89A7A">+ 11 weitere Routen verfügbar</text>
+      </g>
+    </g>
+  </g>
+  
+  <!-- ============ STEP 5 — Success confirmation ============ -->
+  <g transform="translate(736, 1404)">
+    <rect width="624" height="320" rx="22" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5" opacity="0.7"/>
+    
+    <g transform="translate(28, 24)">
+      <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">SCHRITT 5 · VERBUNDEN</text>
+    </g>
+    
+    <!-- Success illustration -->
+    <g transform="translate(280, 80)">
+      <circle r="36" fill="#F0F4EA"/>
+      <g transform="translate(-12, -6)" stroke="#7A9466" stroke-width="2.5" fill="none" stroke-linecap="round">
+        <polyline points="0,6 8,14 24,-2"/>
+      </g>
+    </g>
+    
+    <g transform="translate(28, 168)">
+      <text font-size="20" fill="#2C2A26" font-weight="500" letter-spacing="-0.4" text-anchor="middle" x="284">Strava ist verbunden!</text>
+      <text y="26" font-size="13" fill="#5C5447" text-anchor="middle" x="284">14 Routen synchronisiert · Token läuft ab in 6h</text>
+      <text y="46" font-size="13" fill="#5C5447" text-anchor="middle" x="284">Auto-Refresh aktiviert.</text>
+    </g>
+    
+    <g transform="translate(232, 250)">
+      <rect width="160" height="44" rx="22" fill="#2C2A26"/>
+      <text x="80" y="28" font-size="13" fill="#F5F1E8" text-anchor="middle" font-weight="500">Erste Tour planen</text>
+    </g>
+  </g>
+  
+  <!-- ============ LABEL ============ -->
+  <g transform="translate(80, 1760)">
+    <text font-size="10" fill="#A89A7A" letter-spacing="3" font-weight="500">12 · STRAVA-OAUTH-FLOW · DESKTOP · SESSION 2/3</text>
+    <text x="1280" font-size="10" fill="#A89A7A" letter-spacing="2" text-anchor="end">5 Schritte · Token-Storage · 14 Routen · Auto-Refresh</text>
+  </g>
+</svg>

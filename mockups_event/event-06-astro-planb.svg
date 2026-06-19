@@ -1,0 +1,314 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1680" font-family="ui-sans-serif, system-ui, -apple-system">
+  <defs>
+    <linearGradient id="bgGrad06" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F5F1E8"/>
+      <stop offset="1" stop-color="#EDE6D3"/>
+    </linearGradient>
+    <linearGradient id="nightTint06" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6B7A8F" stop-opacity="0.10"/>
+      <stop offset="1" stop-color="#6B7A8F" stop-opacity="0.03"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="1440" height="1680" fill="url(#bgGrad06)"/>
+
+  <!-- ================= TOP-NAV ================= -->
+  <g transform="translate(32,24)">
+    <g transform="translate(0,18)">
+      <circle cx="10" cy="0" r="6" fill="#2C2A26"/>
+      <g stroke="#2C2A26" stroke-width="1.7" stroke-linecap="round">
+        <line x1="10" y1="-11" x2="10" y2="-8.5"/>
+        <line x1="10" y1="11" x2="10" y2="8.5"/>
+        <line x1="-1" y1="0" x2="1.5" y2="0"/>
+        <line x1="18.5" y1="0" x2="21" y2="0"/>
+        <line x1="2.2" y1="-7.8" x2="4" y2="-6"/>
+        <line x1="16" y1="6" x2="17.8" y2="7.8"/>
+        <line x1="17.8" y1="-7.8" x2="16" y2="-6"/>
+        <line x1="4" y1="6" x2="2.2" y2="7.8"/>
+      </g>
+      <text x="30" y="5" font-size="18" font-weight="500" letter-spacing="-0.5" fill="#2C2A26">buscosun</text>
+    </g>
+    <g transform="translate(560,8)" font-size="13">
+      <text x="0" y="14" fill="#5C5447">Karte</text>
+      <text x="62" y="14" fill="#5C5447">Route</text>
+      <rect x="118" y="-2" width="74" height="28" rx="14" fill="#2C2A26"/>
+      <text x="155" y="16" fill="#FFFFFF" text-anchor="middle" font-weight="500">Event</text>
+      <text x="208" y="14" fill="#5C5447">Tagesablauf</text>
+    </g>
+    <g transform="translate(1130,8)">
+      <circle cx="6" cy="9" r="4" fill="#7A9466"/>
+      <text x="18" y="13" font-size="12" fill="#5C5447">Daten live</text>
+      <g transform="translate(120,0)" stroke="#5C5447" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M0 12 a7 7 0 0 1 14 0 v3 l2 3 h-18 l2 -3 z"/>
+        <path d="M5 18 a2 2 0 0 0 4 0"/>
+      </g>
+      <g transform="translate(178,-10)">
+        <circle cx="20" cy="19" r="20" fill="#FFFFFF"/>
+        <circle cx="20" cy="13" r="7" fill="#7A9466"/>
+        <text x="20" y="32" font-size="11" font-weight="600" fill="#5C5447" text-anchor="middle">JS</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- =================================================================== -->
+  <!-- ================= BAND A — PLAN B / AUSWEICH-LOGIK ================= -->
+  <!-- =================================================================== -->
+
+  <!-- Band-Kopf -->
+  <g transform="translate(80,104)">
+    <rect x="0" y="0" width="344" height="28" rx="14" fill="#FAF6EA" stroke="#E0D6BE" stroke-width="0.5"/>
+    <text x="20" y="18" font-size="10" font-weight="500" letter-spacing="2" fill="#8B7355">ANLASS: HOCHZEIT · DE MEERSBURG</text>
+  </g>
+  <g transform="translate(80,148)">
+    <text x="0" y="12" font-size="10" font-weight="500" letter-spacing="2.5" fill="#A89A7A">PLAN B</text>
+    <text x="0" y="34" font-size="12" fill="#8B7355">Schwelle: Regenmenge ab 3 mm · Wunschtag Sa, 20. Juni</text>
+  </g>
+
+  <!-- Plan-B-Status-Karte (AUSGELÖST) -->
+  <g transform="translate(80,196)">
+    <rect x="0" y="0" width="1280" height="172" rx="18" fill="#FFFFFF" stroke="#C97B47" stroke-width="1.2"/>
+    <!-- Warnungs-Icon -->
+    <g transform="translate(36,30)" stroke="#A85E2E" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M16 2 L31 28 H1 Z"/>
+      <line x1="16" y1="11" x2="16" y2="19"/>
+      <circle cx="16" cy="23.5" r="0.6" fill="#A85E2E" stroke="none"/>
+    </g>
+    <text x="88" y="34" font-size="10" font-weight="500" letter-spacing="2.5" fill="#A89A7A">WUNSCHTAG · SAMSTAG, 20. JUNI</text>
+    <text x="88" y="62" font-size="20" font-weight="400" fill="#2C2A26">Regenmenge: <tspan font-weight="600" fill="#A85E2E">6,4 mm</tspan> — ab 3 mm ⇒ Plan B</text>
+    <!-- Empfehlung Zelt -->
+    <g transform="translate(88,82)">
+      <g transform="translate(0,0)" stroke="#8B7355" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M10 1 L20 20 H0 Z"/>
+        <line x1="10" y1="1" x2="10" y2="20"/>
+      </g>
+      <text x="36" y="15" font-size="13" fill="#5C5447">Zelt/Pavillon rechtzeitig aufbauen — wetterfeste Überdachung für Trauung &amp; Empfang.</text>
+    </g>
+    <!-- Entscheidung Uhr -->
+    <g transform="translate(88,116)">
+      <g transform="translate(0,0)" stroke="#8B7355" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="10" cy="11" r="10"/>
+        <line x1="10" y1="11" x2="10" y2="5"/>
+        <line x1="10" y1="11" x2="15" y2="13"/>
+      </g>
+      <text x="36" y="16" font-size="13" fill="#5C5447">Endgültig entscheiden bis <tspan font-weight="600" fill="#2C2A26">Donnerstag</tspan> — dann ist die Prognose belastbar.</text>
+    </g>
+  </g>
+
+  <!-- Ausweichtag-Karte -->
+  <g transform="translate(80,388)">
+    <rect x="0" y="0" width="1280" height="108" rx="16" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    <!-- Pfeil-hoch-rechts-Icon -->
+    <g transform="translate(36,38)" stroke="#C97B47" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M2 22 L22 2"/>
+      <path d="M9 2 H22 V15"/>
+    </g>
+    <text x="88" y="38" font-size="10" font-weight="500" letter-spacing="2.5" fill="#A89A7A">AUSWEICHTAG-VORSCHLAG</text>
+    <text x="88" y="64" font-size="18" font-weight="500" fill="#2C2A26">Sonntag, 14. Juni ist besser — Score 82 statt 48</text>
+    <text x="88" y="88" font-size="13" fill="#5C5447">Trocken und mild über alle Phasen · 88 % sicher.</text>
+    <!-- Score rechts -->
+    <text x="1244" y="50" font-size="46" font-weight="200" letter-spacing="-1.5" fill="#C97B47" text-anchor="end">82</text>
+    <text x="1244" y="74" font-size="11" fill="#8B7355" text-anchor="end">statt 48</text>
+  </g>
+
+  <!-- Ausweichort-Karte -->
+  <g transform="translate(80,516)">
+    <rect x="0" y="0" width="1280" height="120" rx="16" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    <text x="36" y="38" font-size="10" font-weight="500" letter-spacing="2.5" fill="#A89A7A">AUSWEICHORT — TERMIN RETTEN</text>
+    <!-- Button (Geist, Rand) -->
+    <g transform="translate(960,22)">
+      <rect x="0" y="0" width="284" height="40" rx="20" fill="none" stroke="#D9D0B8" stroke-width="1"/>
+      <text x="142" y="25" font-size="13" fill="#5C5447" text-anchor="middle">Besseren Ort im Umkreis (40 km) suchen</text>
+    </g>
+    <!-- Ergebnis-Zeile mit Pin -->
+    <g transform="translate(36,74)">
+      <g transform="translate(0,0)" stroke="#7A9466" stroke-width="1.7" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 23 C2 14, 2 8, 9 2 C16 8, 16 14, 9 23 Z"/>
+        <circle cx="9" cy="9" r="3"/>
+      </g>
+      <text x="34" y="17" font-size="14" fill="#5C5447"><tspan font-weight="600" fill="#2C2A26">Überlingen (12 km NW)</tspan> — Score 71 statt 48 (+23). Dorthin ausweichen könnte den Termin retten.</text>
+    </g>
+  </g>
+
+  <!-- Band-Trennlinie -->
+  <line x1="80" y1="688" x2="1360" y2="688" stroke="#D9D0B8" stroke-width="1"/>
+
+  <!-- =================================================================== -->
+  <!-- ================= BAND B — ASTRO-NÄCHTE ========================== -->
+  <!-- =================================================================== -->
+
+  <!-- Band-Kopf -->
+  <g transform="translate(80,720)">
+    <rect x="0" y="0" width="368" height="28" rx="14" fill="#FAF6EA" stroke="#E0D6BE" stroke-width="0.5"/>
+    <text x="20" y="18" font-size="10" font-weight="500" letter-spacing="2" fill="#8B7355">ANLASS: STERNE SCHAUEN · DE SCHWARZWALD</text>
+  </g>
+  <g transform="translate(80,764)">
+    <text x="0" y="12" font-size="10" font-weight="500" letter-spacing="2.5" fill="#A89A7A">ASTRO-NÄCHTE</text>
+    <text x="0" y="34" font-size="12" fill="#8B7355">beste Nacht · Mond · Wolkenschichten · Dunkelheit</text>
+  </g>
+
+  <!-- Lichtverschmutzungs-Karte -->
+  <g transform="translate(80,812)">
+    <rect x="0" y="0" width="1280" height="96" rx="16" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    <rect x="0" y="0" width="1280" height="96" rx="16" fill="url(#nightTint06)"/>
+    <!-- Sterne-Icon (4-Punkt-Funkeln) -->
+    <g transform="translate(36,28)" stroke="#6B7A8F" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M16 2 C17 9, 23 15, 30 16 C23 17, 17 23, 16 30 C15 23, 9 17, 2 16 C9 15, 15 9, 16 2 Z"/>
+    </g>
+    <text x="88" y="34" font-size="10" font-weight="500" letter-spacing="2.5" fill="#A89A7A">HIMMELSAUFHELLUNG · DE SCHWARZWALD-HOCHFLÄCHE</text>
+    <text x="88" y="60" font-size="18" font-weight="500" fill="#2C2A26">Bortle ~4 · Ländlich</text>
+    <text x="88" y="82" font-size="12" fill="#8B7355">Milchstraße bei guter Sicht erkennbar. Nächste Großstadt: Freiburg (~28 km). Schätzung aus Stadtnähe, kein Messwert.</text>
+  </g>
+
+  <!-- Beste-Nacht-Karte -->
+  <g transform="translate(80,928)">
+    <rect x="0" y="0" width="1280" height="356" rx="18" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    <!-- Kopf Teleskop-Icon -->
+    <g transform="translate(36,30)">
+      <g stroke="#C97B47" stroke-width="1.7" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2 14 l18 -8 l3 6 l-18 8 z"/>
+        <line x1="11" y1="14" x2="14" y2="28"/>
+        <line x1="14" y1="28" x2="9" y2="32"/>
+        <line x1="14" y1="28" x2="19" y2="32"/>
+        <line x1="20" y1="6" x2="22" y2="3"/>
+      </g>
+      <text x="48" y="6" font-size="10" font-weight="500" letter-spacing="2.5" fill="#A89A7A">BESTE NACHT</text>
+      <text x="48" y="32" font-size="26" font-weight="400" letter-spacing="-0.6" fill="#2C2A26">Nacht Sa, 14. Juni → So</text>
+    </g>
+    <!-- Score rechts -->
+    <text x="1244" y="50" font-size="48" font-weight="200" letter-spacing="-1.5" fill="#C97B47" text-anchor="end">79</text>
+
+    <!-- Daten-Zeilen -->
+    <!-- Volle Dunkelheit -->
+    <g transform="translate(36,90)">
+      <rect x="0" y="0" width="1208" height="40" rx="10" fill="#FAF6EA"/>
+      <g transform="translate(16,12)" stroke="#6B7A8F" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M8 1 C8.6 5, 11.5 7.5, 15 8 C11.5 8.5, 8.6 11, 8 15 C7.4 11, 4.5 8.5, 1 8 C4.5 7.5, 7.4 5, 8 1 Z"/>
+      </g>
+      <text x="44" y="25" font-size="14" fill="#5C5447">Volle Dunkelheit</text>
+      <text x="1192" y="25" font-size="14" font-weight="600" fill="#2C2A26" text-anchor="end">23:42–03:18 · 3,6 h</text>
+    </g>
+    <!-- Mond -->
+    <g transform="translate(36,138)">
+      <rect x="0" y="0" width="1208" height="40" rx="10" fill="#FAF6EA"/>
+      <g transform="translate(16,11)" stroke="#6B7A8F" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 9 a8 8 0 1 1 -8 -8 a6 6 0 0 0 8 8 z"/>
+      </g>
+      <text x="44" y="25" font-size="14" fill="#5C5447">Mond</text>
+      <text x="1192" y="25" font-size="14" font-weight="600" fill="#2C2A26" text-anchor="end">abnehmender Halbmond · 38 % beleuchtet · unter Horizont, stört kaum</text>
+    </g>
+    <!-- Taurisiko -->
+    <g transform="translate(36,186)">
+      <rect x="0" y="0" width="1208" height="40" rx="10" fill="#FAF6EA"/>
+      <g transform="translate(18,10)" stroke="#3A6FA8" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M7 1 C7 1, 1 9, 1 14 a6 6 0 0 0 12 0 C13 9, 7 1, 7 1 Z"/>
+      </g>
+      <text x="44" y="25" font-size="14" fill="#5C5447">Taurisiko</text>
+      <text x="1192" y="25" font-size="14" font-weight="600" fill="#2C2A26" text-anchor="end">erhöht · Spanne T−Taupunkt 2 °C — Taukappe/Heizung einplanen</text>
+    </g>
+
+    <!-- Wolkenschichten-Block -->
+    <g transform="translate(36,242)">
+      <text x="0" y="12" font-size="13" font-weight="500" fill="#2C2A26">Bewölkung nach Schichten · gesamt 22 %</text>
+      <!-- Bar-Geometrie: Label x0..160, Track x180..1100 (920px), Wert rechts @1208 -->
+      <!-- Hoch 18 % -->
+      <g transform="translate(0,28)">
+        <text x="0" y="11" font-size="12" fill="#5C5447">Hoch</text>
+        <rect x="120" y="3" width="920" height="10" rx="5" fill="#EEF0F2"/>
+        <rect x="120" y="3" width="165.6" height="10" rx="5" fill="#6B7A8F"/>
+        <text x="1060" y="12" font-size="12" font-weight="600" fill="#2C2A26">18 %</text>
+        <text x="120" y="28" font-size="10.5" fill="#8B7355">dünne Schleier stören schon</text>
+      </g>
+      <!-- Mittel 8 % -->
+      <g transform="translate(0,72)">
+        <text x="0" y="11" font-size="12" fill="#5C5447">Mittel</text>
+        <rect x="120" y="3" width="920" height="10" rx="5" fill="#EEF0F2"/>
+        <rect x="120" y="3" width="73.6" height="10" rx="5" fill="#6B7A8F"/>
+        <text x="1060" y="12" font-size="12" font-weight="600" fill="#2C2A26">8 %</text>
+      </g>
+      <!-- Tief 4 % -->
+      <g transform="translate(0,104)">
+        <text x="0" y="11" font-size="12" fill="#5C5447">Tief</text>
+        <rect x="120" y="3" width="920" height="10" rx="5" fill="#EEF0F2"/>
+        <rect x="120" y="3" width="36.8" height="10" rx="5" fill="#6B7A8F"/>
+        <text x="1060" y="12" font-size="12" font-weight="600" fill="#2C2A26">4 %</text>
+      </g>
+    </g>
+
+    <!-- Konfidenz-Zeile -->
+    <g transform="translate(36,326)">
+      <g transform="translate(0,-9)">
+        <rect x="0" y="6" width="4" height="6" rx="1" fill="#7A9466"/>
+        <rect x="7" y="3" width="4" height="9" rx="1" fill="#7A9466"/>
+        <rect x="14" y="0" width="4" height="12" rx="1" fill="#7A9466"/>
+      </g>
+      <text x="32" y="2" font-size="11" fill="#8B7355">Bewölkungsprognose mit dieser Sicherheit · keine Garantie für klare Sicht.</text>
+    </g>
+  </g>
+
+  <!-- Nächte-Liste -->
+  <g transform="translate(80,1316)">
+    <text x="0" y="12" font-size="10" font-weight="500" letter-spacing="2.5" fill="#A89A7A">NÄCHTE IM VERGLEICH</text>
+    <text x="0" y="34" font-size="12" fill="#8B7355">3 Nächte bewertet</text>
+  </g>
+
+  <!-- Helfer: Name @24 · Mond% · Dunkelheit · Konfidenz @960 · Score rechts -->
+  <!-- Row 1: Sa 14.→So Score 79 BESTE -->
+  <g transform="translate(80,1362)">
+    <rect x="0" y="0" width="1280" height="48" rx="12" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    <text x="24" y="30" font-size="14" font-weight="500" fill="#2C2A26">Nacht Sa 14.→So</text>
+    <g transform="translate(180,14)">
+      <rect x="0" y="0" width="92" height="20" rx="10" fill="#F0F4EA" stroke="#7A9466" stroke-width="0.5"/>
+      <text x="46" y="14" font-size="10" font-weight="600" letter-spacing="0.6" fill="#5F7951" text-anchor="middle">BESTE NACHT</text>
+    </g>
+    <text x="296" y="30" font-size="13" fill="#5C5447">Mond 38 %</text>
+    <text x="408" y="30" font-size="13" fill="#5C5447">Dunkelheit 23:42–03:18</text>
+    <g transform="translate(940,16)">
+      <rect x="0" y="6" width="4" height="6" rx="1" fill="#7A9466"/>
+      <rect x="7" y="3" width="4" height="9" rx="1" fill="#7A9466"/>
+      <rect x="14" y="0" width="4" height="12" rx="1" fill="#7A9466"/>
+    </g>
+    <rect x="1010" y="20" width="180" height="8" rx="4" fill="#F0E8D4"/>
+    <rect x="1010" y="20" width="142.2" height="8" rx="4" fill="#C97B47"/>
+    <text x="1256" y="31" font-size="16" font-weight="600" fill="#C97B47" text-anchor="end">79</text>
+  </g>
+  <!-- Row 2: So 15.→Mo Score 64 -->
+  <g transform="translate(80,1418)">
+    <rect x="0" y="0" width="1280" height="48" rx="12" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    <text x="24" y="30" font-size="14" font-weight="500" fill="#2C2A26">Nacht So 15.→Mo</text>
+    <text x="296" y="30" font-size="13" fill="#5C5447">Mond 29 %</text>
+    <text x="408" y="30" font-size="13" fill="#5C5447">Dunkelheit 23:44–03:19</text>
+    <g transform="translate(940,16)">
+      <rect x="0" y="6" width="4" height="6" rx="1" fill="#7A9466"/>
+      <rect x="7" y="3" width="4" height="9" rx="1" fill="#7A9466"/>
+      <rect x="14" y="0" width="4" height="12" rx="1" fill="#D9D0B8"/>
+    </g>
+    <rect x="1010" y="20" width="180" height="8" rx="4" fill="#F0E8D4"/>
+    <rect x="1010" y="20" width="115.2" height="8" rx="4" fill="#D4A373"/>
+    <text x="1256" y="31" font-size="16" font-weight="600" fill="#D4A373" text-anchor="end">64</text>
+  </g>
+  <!-- Row 3: Fr 13.→Sa Score 51 -->
+  <g transform="translate(80,1474)">
+    <rect x="0" y="0" width="1280" height="48" rx="12" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    <text x="24" y="30" font-size="14" font-weight="500" fill="#2C2A26">Nacht Fr 13.→Sa</text>
+    <text x="296" y="30" font-size="13" fill="#5C5447">Mond 47 %</text>
+    <text x="408" y="30" font-size="13" fill="#5C5447">Dunkelheit 23:40–03:17</text>
+    <g transform="translate(940,16)">
+      <rect x="0" y="6" width="4" height="6" rx="1" fill="#7A9466"/>
+      <rect x="7" y="3" width="4" height="9" rx="1" fill="#D9D0B8"/>
+      <rect x="14" y="0" width="4" height="12" rx="1" fill="#D9D0B8"/>
+    </g>
+    <rect x="1010" y="20" width="180" height="8" rx="4" fill="#F0E8D4"/>
+    <rect x="1010" y="20" width="91.8" height="8" rx="4" fill="#6B7A8F"/>
+    <text x="1256" y="31" font-size="16" font-weight="600" fill="#6B7A8F" text-anchor="end">51</text>
+  </g>
+
+  <!-- Hinweis -->
+  <text x="80" y="1566" font-size="11" fill="#8B7355">Dunkelheits- und Mondzeiten exakt berechnet. Bewölkung, Seeing &amp; Tau sind Prognosen — jede Nacht trägt eine erkennbare Konfidenz, keine Garantie.</text>
+
+  <!-- ================= FOOTER ================= -->
+  <g transform="translate(80,1620)">
+    <line x1="0" y1="-20" x2="1280" y2="-20" stroke="#E0D6BE" stroke-width="1"/>
+    <text x="0" y="6" font-size="10" font-weight="500" letter-spacing="2" fill="#A89A7A">EV-06 · SPEZIAL — PLAN B &amp; ASTRO-NÄCHTE</text>
+    <text x="1280" y="6" font-size="10" font-weight="500" letter-spacing="2" fill="#A89A7A" text-anchor="end">Schwelle/Ausweichtag/-ort · Bortle · beste Nacht · Mond · Wolkenschichten · Tau</text>
+  </g>
+</svg>

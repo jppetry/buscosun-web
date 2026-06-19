@@ -1,0 +1,136 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 1480" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">
+<defs>
+  <linearGradient id="bgSand" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FAF6EA"/><stop offset="1" stop-color="#F5F1E8"/></linearGradient>
+  <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#EEF1F4"/><stop offset="1" stop-color="#F6F2E8"/></linearGradient>
+  <linearGradient id="terrainFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9A8C72"/><stop offset="1" stop-color="#6E6450"/></linearGradient>
+  <filter id="cardShadow" x="-10%" y="-10%" width="120%" height="130%"><feGaussianBlur in="SourceAlpha" stdDeviation="4"/><feOffset dx="0" dy="2"/><feComponentTransfer><feFuncA type="linear" slope="0.10"/></feComponentTransfer><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  <filter id="strongShadow" x="-20%" y="-20%" width="140%" height="160%"><feGaussianBlur in="SourceAlpha" stdDeviation="8"/><feOffset dx="0" dy="4"/><feComponentTransfer><feFuncA type="linear" slope="0.18"/></feComponentTransfer><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  <pattern id="grain" width="120" height="120" patternUnits="userSpaceOnUse"><rect width="120" height="120" fill="transparent"/><circle cx="20" cy="40" r="0.7" fill="#C4B896" opacity="0.18"/><circle cx="80" cy="20" r="0.5" fill="#C4B896" opacity="0.14"/></pattern>
+  <pattern id="mapTex" width="40" height="40" patternUnits="userSpaceOnUse"><rect width="40" height="40" fill="#EDE6D3"/><path d="M 0 20 Q 10 18 20 20 Q 30 22 40 20" fill="none" stroke="#C4B896" stroke-width="0.5" opacity="0.5"/></pattern>
+  <pattern id="shearHatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="7" stroke="#C97B47" stroke-width="1.3" opacity="0.5"/></pattern>
+  <marker id="arr" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M 0 1 L 9 5 L 0 9 z" fill="#2C2A26"/></marker>
+</defs>
+<rect width="390" height="1480" fill="url(#bgSand)"/><rect width="390" height="1480" fill="url(#grain)"/>
+<g><rect width="390" height="44" fill="#FAF6EA"/><text x="22" y="28" font-size="14" font-weight="700" fill="#2C2A26">9:41</text>
+  <g transform="translate(330,14)" fill="#2C2A26"><rect x="0" y="2" width="3" height="8" rx="1"/><rect x="5" y="0" width="3" height="10" rx="1"/><rect x="10" y="-2" width="3" height="12" rx="1"/><rect x="22" y="0" width="20" height="10" rx="2" fill="none" stroke="#2C2A26"/><rect x="24" y="2" width="14" height="6" rx="1" fill="#7A9466"/></g></g>
+<g transform="translate(0,44)"><rect width="390" height="56" fill="#FAF6EA"/><line x1="0" y1="56" x2="390" y2="56" stroke="#E0D6BE"/>
+  <g transform="translate(16,18)"><path d="M 8 0 L 0 10 L 8 20" fill="none" stroke="#2C2A26" stroke-width="2" stroke-linecap="round"/></g>
+  <text x="195" y="32" font-size="14" font-weight="600" fill="#2C2A26" text-anchor="middle">Geländeschnitt</text>
+  <text x="195" y="46" font-size="10" fill="#8B7355" text-anchor="middle">Zugspitze → Eibsee</text></g>
+<g transform="translate(16,112)"><rect width="116" height="32" rx="16" fill="#FAF6EA" stroke="#E0D6BE"/><rect x="58" width="58" height="32" rx="16" fill="#3A6FA8"/><text x="29" y="21" font-size="12" font-weight="600" fill="#8B7355" text-anchor="middle">2D</text><text x="87" y="21" font-size="12" font-weight="700" fill="#FAF6EA" text-anchor="middle">3D</text></g>
+<g transform="translate(140,112)" font-size="11"><g><rect width="74" height="32" rx="16" fill="#3A6FA8"/><text x="37" y="21" font-weight="600" fill="#FAF6EA" text-anchor="middle">Wind</text></g><g transform="translate(82,0)"><rect width="62" height="32" rx="16" fill="#3A6FA8"/><text x="31" y="21" font-weight="600" fill="#FAF6EA" text-anchor="middle">Böen</text></g><g transform="translate(152,0)"><rect width="72" height="32" rx="16" fill="#FAF6EA" stroke="#E0D6BE"/><text x="36" y="21" fill="#8B7355" text-anchor="middle">Shear</text></g></g>
+<text x="16" y="172" font-size="10" letter-spacing="0.22em" font-weight="600" fill="#3A6FA8">VERTIKALSCHNITT</text>
+<g transform="translate(16,182)" filter="url(#cardShadow)"><rect width="358" height="392" rx="16" fill="url(#skyGrad)"/></g>
+<g>
+<rect x="56.0" y="250.0" width="30.4" height="36.2" fill="#D4A373" opacity="0.5"/>
+<rect x="56.0" y="286.2" width="30.4" height="36.2" fill="#D4A373" opacity="0.5"/>
+<rect x="56.0" y="322.5" width="30.4" height="36.2" fill="#D4A373" opacity="0.5"/>
+<rect x="56.0" y="358.8" width="30.4" height="36.2" fill="#7A9466" opacity="0.5"/>
+<rect x="56.0" y="395.0" width="30.4" height="36.2" fill="#7A9466" opacity="0.5"/>
+<rect x="56.0" y="431.2" width="30.4" height="36.2" fill="#7A9466" opacity="0.5"/>
+<rect x="56.0" y="467.5" width="30.4" height="36.2" fill="#B6C8D6" opacity="0.5"/>
+<rect x="86.4" y="250.0" width="30.4" height="36.2" fill="#D4A373" opacity="0.5"/>
+<rect x="86.4" y="286.2" width="30.4" height="36.2" fill="#D4A373" opacity="0.5"/>
+<rect x="86.4" y="322.5" width="30.4" height="36.2" fill="#D4A373" opacity="0.5"/>
+<rect x="86.4" y="358.8" width="30.4" height="36.2" fill="#7A9466" opacity="0.5"/>
+<rect x="86.4" y="395.0" width="30.4" height="36.2" fill="#7A9466" opacity="0.5"/>
+<rect x="86.4" y="431.2" width="30.4" height="36.2" fill="#7A9466" opacity="0.5"/>
+<rect x="116.8" y="250.0" width="30.4" height="36.2" fill="#D4A373" opacity="0.5"/>
+<rect x="116.8" y="286.2" width="30.4" height="36.2" fill="#D4A373" opacity="0.5"/>
+<rect x="116.8" y="322.5" width="30.4" height="36.2" fill="#D4A373" opacity="0.5"/>
+<rect x="116.8" y="358.8" width="30.4" height="36.2" fill="#7A9466" opacity="0.5"/>
+<rect x="116.8" y="395.0" width="30.4" height="36.2" fill="#7A9466" opacity="0.5"/>
+<rect x="147.2" y="250.0" width="30.4" height="36.2" fill="#D4A373" opacity="0.5"/>
+<rect x="147.2" y="286.2" width="30.4" height="36.2" fill="#D4A373" opacity="0.5"/>
+<rect x="147.2" y="322.5" width="30.4" height="36.2" fill="#D4A373" opacity="0.5"/>
+<rect x="147.2" y="358.8" width="30.4" height="36.2" fill="#D4A373" opacity="0.5"/>
+<rect x="177.6" y="250.0" width="30.4" height="36.2" fill="#C97B47" opacity="0.5"/>
+<rect x="177.6" y="286.2" width="30.4" height="36.2" fill="#C97B47" opacity="0.5"/>
+<rect x="208.0" y="250.0" width="30.4" height="36.2" fill="#C97B47" opacity="0.5"/>
+<rect x="208.0" y="286.2" width="30.4" height="36.2" fill="#D7263D" opacity="0.5"/>
+<rect x="238.4" y="250.0" width="30.4" height="36.2" fill="#D4A373" opacity="0.5"/>
+<rect x="238.4" y="286.2" width="30.4" height="36.2" fill="#D4A373" opacity="0.5"/>
+<rect x="238.4" y="322.5" width="30.4" height="36.2" fill="#D4A373" opacity="0.5"/>
+<rect x="238.4" y="358.8" width="30.4" height="36.2" fill="#D4A373" opacity="0.5"/>
+<rect x="268.8" y="250.0" width="30.4" height="36.2" fill="#D4A373" opacity="0.5"/>
+<rect x="268.8" y="286.2" width="30.4" height="36.2" fill="#D4A373" opacity="0.5"/>
+<rect x="268.8" y="322.5" width="30.4" height="36.2" fill="#D4A373" opacity="0.5"/>
+<rect x="268.8" y="358.8" width="30.4" height="36.2" fill="#7A9466" opacity="0.5"/>
+<rect x="268.8" y="395.0" width="30.4" height="36.2" fill="#7A9466" opacity="0.5"/>
+<rect x="299.2" y="250.0" width="30.4" height="36.2" fill="#D4A373" opacity="0.5"/>
+<rect x="299.2" y="286.2" width="30.4" height="36.2" fill="#D4A373" opacity="0.5"/>
+<rect x="299.2" y="322.5" width="30.4" height="36.2" fill="#D4A373" opacity="0.5"/>
+<rect x="299.2" y="358.8" width="30.4" height="36.2" fill="#7A9466" opacity="0.5"/>
+<rect x="299.2" y="395.0" width="30.4" height="36.2" fill="#7A9466" opacity="0.5"/>
+<rect x="299.2" y="431.2" width="30.4" height="36.2" fill="#7A9466" opacity="0.5"/>
+<rect x="329.6" y="250.0" width="30.4" height="36.2" fill="#D4A373" opacity="0.5"/>
+<rect x="329.6" y="286.2" width="30.4" height="36.2" fill="#D4A373" opacity="0.5"/>
+<rect x="329.6" y="322.5" width="30.4" height="36.2" fill="#D4A373" opacity="0.5"/>
+<rect x="329.6" y="358.8" width="30.4" height="36.2" fill="#7A9466" opacity="0.5"/>
+<rect x="329.6" y="395.0" width="30.4" height="36.2" fill="#7A9466" opacity="0.5"/>
+<rect x="329.6" y="431.2" width="30.4" height="36.2" fill="#7A9466" opacity="0.5"/>
+<rect x="132.0" y="312.8" width="88.7" height="58.0" fill="url(#shearHatch)" stroke="#C97B47" stroke-width="1" stroke-dasharray="3 2"/>
+<path d="M 56.0 456.9 L 94.0 447.2 L 132.0 409.5 L 157.3 377.6 L 182.7 324.4 L 208.0 288.7 L 220.7 292.5 L 233.3 324.4 L 258.7 366.0 L 284.0 399.8 L 322.0 430.8 L 360.0 443.3" fill="none" stroke="#2C2A26" stroke-width="1.8" opacity="0.55" marker-end="url(#arr)" />
+<path d="M 56.0 408.5 L 94.0 398.9 L 132.0 361.2 L 157.3 348.6 L 182.7 295.4 L 208.0 259.7 L 220.7 263.5 L 233.3 295.4 L 258.7 317.7 L 284.0 351.5 L 322.0 382.4 L 360.0 395.0" fill="none" stroke="#2C2A26" stroke-width="1.8" opacity="0.55" marker-end="url(#arr)" />
+<path d="M 56.0 350.5 L 94.0 340.9 L 132.0 303.2 L 157.3 313.8 L 182.7 260.6 L 208.0 253.9 L 220.7 253.9 L 233.3 260.6 L 258.7 259.7 L 284.0 293.5 L 322.0 324.4 L 360.0 337.0" fill="none" stroke="#2C2A26" stroke-width="1.8" opacity="0.55" marker-end="url(#arr)" />
+<path d="M 56.0 431.7 L 94.0 422.1 L 132.0 384.4 L 157.3 362.5 L 182.7 309.4 L 208.0 273.6 L 220.7 277.5 L 233.3 309.4 L 258.7 340.9 L 284.0 374.7 L 322.0 405.6 L 360.0 418.2" fill="none" stroke="#D7263D" stroke-width="1.8" opacity="0.55" marker-end="url(#arr)" stroke-dasharray="5 4"/>
+<path d="M 56.0 540 L 56.0 485.9 L 62.3 484.9 L 68.7 483.9 L 75.0 483.0 L 81.3 482.0 L 87.7 479.1 L 94.0 476.2 L 100.3 473.3 L 106.7 470.4 L 113.0 462.4 L 119.3 454.4 L 125.7 446.5 L 132.0 438.5 L 138.3 427.6 L 144.7 416.8 L 151.0 405.9 L 157.3 395.0 L 163.7 381.7 L 170.0 368.4 L 176.3 355.1 L 182.7 341.8 L 189.0 332.9 L 195.3 323.9 L 201.7 315.0 L 208.0 306.1 L 214.3 308.0 L 220.7 309.9 L 227.0 325.9 L 233.3 341.8 L 239.7 355.1 L 246.0 368.4 L 252.3 381.7 L 258.7 395.0 L 265.0 403.5 L 271.3 411.9 L 277.7 420.4 L 284.0 428.8 L 290.3 434.9 L 296.7 440.9 L 303.0 447.0 L 309.3 453.0 L 315.7 456.4 L 322.0 459.8 L 328.3 463.1 L 334.7 466.5 L 341.0 468.0 L 347.3 469.4 L 353.7 470.9 L 360.0 472.3 L 360.0 540 Z" fill="url(#terrainFill)"/>
+<path d="M 56.0 485.9 L 62.3 484.9 L 68.7 483.9 L 75.0 483.0 L 81.3 482.0 L 87.7 479.1 L 94.0 476.2 L 100.3 473.3 L 106.7 470.4 L 113.0 462.4 L 119.3 454.4 L 125.7 446.5 L 132.0 438.5 L 138.3 427.6 L 144.7 416.8 L 151.0 405.9 L 157.3 395.0 L 163.7 381.7 L 170.0 368.4 L 176.3 355.1 L 182.7 341.8 L 189.0 332.9 L 195.3 323.9 L 201.7 315.0 L 208.0 306.1 L 214.3 308.0 L 220.7 309.9 L 227.0 325.9 L 233.3 341.8 L 239.7 355.1 L 246.0 368.4 L 252.3 381.7 L 258.7 395.0 L 265.0 403.5 L 271.3 411.9 L 277.7 420.4 L 284.0 428.8 L 290.3 434.9 L 296.7 440.9 L 303.0 447.0 L 309.3 453.0 L 315.7 456.4 L 322.0 459.8 L 328.3 463.1 L 334.7 466.5 L 341.0 468.0 L 347.3 469.4 L 353.7 470.9 L 360.0 472.3" fill="none" stroke="#4A4233" stroke-width="1.2"/>
+<path d="M 56.0 474.3 L 62.3 473.3 L 68.7 472.3 L 75.0 471.4 L 81.3 470.4 L 87.7 467.5 L 94.0 464.6 L 100.3 461.7 L 106.7 458.8 L 113.0 450.8 L 119.3 442.9 L 125.7 434.9 L 132.0 426.9 L 138.3 416.0 L 144.7 405.1 L 151.0 394.3 L 157.3 383.4 L 163.7 370.1 L 170.0 356.8 L 176.3 343.5 L 182.7 330.2 L 189.0 321.3 L 195.3 312.4 L 201.7 303.4 L 208.0 294.5 L 214.3 296.4 L 220.7 298.3 L 227.0 314.3 L 233.3 330.2 L 239.7 343.5 L 246.0 356.8 L 252.3 370.1 L 258.7 383.4 L 265.0 391.9 L 271.3 400.3 L 277.7 408.8 L 284.0 417.2 L 290.3 423.3 L 296.7 429.3 L 303.0 435.4 L 309.3 441.4 L 315.7 444.8 L 322.0 448.2 L 328.3 451.6 L 334.7 454.9 L 341.0 456.4 L 347.3 457.8 L 353.7 459.3 L 360.0 460.7" fill="none" stroke="#7A9466" stroke-width="2" stroke-dasharray="2 3"/>
+<g transform="translate(175.1,346.7)"><circle r="12" fill="#C97B47" opacity="0.14"/><circle r="6" fill="#FAF6EA" stroke="#C97B47" stroke-width="2"/><circle r="2" fill="#C97B47"/></g>
+<line x1="56" y1="250" x2="56" y2="540" stroke="#8B7355"/>
+<text x="52.0" y="543.0" font-size="8" fill="#8B7355" text-anchor="end">0</text>
+<text x="52.0" y="446.3" font-size="8" fill="#8B7355" text-anchor="end">1000</text>
+<text x="52.0" y="349.7" font-size="8" fill="#8B7355" text-anchor="end">2000</text>
+<text x="52.0" y="253.0" font-size="8" fill="#8B7355" text-anchor="end">3000</text>
+<line x1="56" y1="540" x2="360" y2="540" stroke="#8B7355"/>
+<text x="56.0" y="554.0" font-size="8" fill="#8B7355" text-anchor="middle">0km</text>
+<text x="157.3" y="554.0" font-size="8" fill="#8B7355" text-anchor="middle">8km</text>
+<text x="258.7" y="554.0" font-size="8" fill="#8B7355" text-anchor="middle">16km</text>
+<text x="360.0" y="554.0" font-size="8" fill="#8B7355" text-anchor="middle">24km</text>
+</g>
+<g transform="translate(171,289)" filter="url(#cardShadow)"><rect width="150" height="50" rx="10" fill="#FAF6EA" stroke="#E0D6BE" stroke-width="1.5"/>
+  <text x="12" y="18" font-size="8" font-weight="600" letter-spacing="0.08em" fill="#8B7355">2000 M · 540 M AGL</text>
+  <text x="12" y="36" font-size="15" font-weight="700" fill="#C97B47">48</text><text x="34" y="36" font-size="10" fill="#5C5447">km/h · Böe 71</text>
+  <text x="12" y="46" font-size="9" fill="#5C5447"> </text></g>
+<g transform="translate(16,584)"><rect width="358" height="44" rx="12" fill="#FAF6EA" stroke="#E0D6BE"/>
+  <text x="14" y="16" font-size="8" font-weight="600" letter-spacing="0.1em" fill="#8B7355">WIND km/h · HÖHE m ü. NN</text>
+  <g transform="translate(14,24)" font-size="8" fill="#5C5447">
+   <rect width="22" height="9" fill="#B6C8D6"/><text x="25" y="8">&lt;15</text>
+   <rect x="52" width="22" height="9" fill="#7A9466"/><text x="77" y="8">15-30</text>
+   <rect x="112" width="22" height="9" fill="#D4A373"/><text x="137" y="8">30-45</text>
+   <rect x="172" width="22" height="9" fill="#C97B47"/><text x="197" y="8">45-60</text>
+   <rect x="232" width="22" height="9" fill="#D7263D"/><text x="257" y="8">&gt;60</text>
+   <line x1="296" y1="4" x2="312" y2="4" stroke="#7A9466" stroke-width="2" stroke-dasharray="2 2"/><text x="316" y="8">AGL</text>
+  </g></g>
+<g transform="translate(16,644)" filter="url(#cardShadow)"><rect width="358" height="92" rx="16" fill="#FAF6EA" stroke="#E0D6BE"/>
+  <text x="20" y="28" font-size="10" letter-spacing="0.12em" font-weight="600" fill="#8B7355">HÖHE ÜBER GRUND</text>
+  <text x="338" y="28" font-size="16" font-weight="700" fill="#7A9466" text-anchor="end">120 m AGL</text>
+  <g transform="translate(20,52)"><rect width="318" height="6" rx="3" fill="#E0D6BE"/><rect width="70" height="6" rx="3" fill="#7A9466"/>
+   <g transform="translate(70,3)" filter="url(#strongShadow)"><circle r="15" fill="#FAF6EA" stroke="#7A9466" stroke-width="3"/><circle r="5" fill="#7A9466"/></g>
+   <g font-size="9" fill="#8B7355"><text x="0" y="24">Boden</text><text x="318" y="24" text-anchor="end">3000 m</text></g></g></g>
+<g transform="translate(16,752)" filter="url(#cardShadow)"><rect width="358" height="104" rx="16" fill="#FAF6EA" stroke="#E0D6BE"/>
+  <text x="20" y="28" font-size="10" letter-spacing="0.12em" font-weight="600" fill="#3A6FA8">ZEIT · 15-MIN-RASTER</text>
+  <text x="338" y="28" font-size="13" font-weight="700" fill="#2C2A26" text-anchor="end">Sa 11:15</text>
+  <g transform="translate(20,52)"><circle cx="14" cy="8" r="16" fill="#3A6FA8"/><path d="M 9 2 L 9 14 L 20 8 Z" fill="#FAF6EA"/></g>
+  <g transform="translate(52,52)"><rect width="306" height="6" rx="3" fill="#E0D6BE"/><rect x="40" width="200" height="6" rx="3" fill="#D4A373" opacity="0.5"/>
+   <g transform="translate(96,3)" filter="url(#strongShadow)"><circle r="15" fill="#FAF6EA" stroke="#C97B47" stroke-width="3"/><circle r="5" fill="#C97B47"/></g>
+   <g font-size="9" fill="#8B7355"><text x="0" y="26">06:00</text><text x="96" y="26" font-weight="700" fill="#C97B47" text-anchor="middle">11:15</text><text x="306" y="26" text-anchor="end">+48h</text></g></g></g>
+<g transform="translate(16,872)" filter="url(#cardShadow)"><rect width="358" height="150" rx="16" fill="url(#mapTex)"/>
+  <g opacity="0.4" fill="none" stroke="#8B7355" stroke-width="0.8"><path d="M 30 110 Q 120 90 200 95 Q 280 100 330 88"/><path d="M 40 80 Q 130 55 210 62 Q 290 68 330 56"/></g>
+  <ellipse cx="280" cy="115" rx="34" ry="16" fill="#3A6FA8" opacity="0.35"/>
+  <line x1="70" y1="120" x2="170" y2="50" stroke="#C97B47" stroke-width="3"/><line x1="170" y1="50" x2="290" y2="110" stroke="#C97B47" stroke-width="3"/>
+  <circle cx="70" cy="120" r="7" fill="#FAF6EA" stroke="#C97B47" stroke-width="3"/><circle cx="170" cy="50" r="6" fill="#C97B47"/><circle cx="290" cy="110" r="7" fill="#FAF6EA" stroke="#C97B47" stroke-width="3"/>
+  <g transform="translate(12,12)"><rect width="150" height="26" rx="13" fill="#FAF6EA" opacity="0.95" stroke="#E0D6BE"/><circle cx="16" cy="13" r="7" fill="#3A6FA8"/><path d="M 13 13 L 19 13 M 16 10 L 16 16" stroke="#FAF6EA" stroke-width="1.4" stroke-linecap="round"/><text x="30" y="17" font-size="10" font-weight="600" fill="#2C2A26">Schnitt-Modus</text></g></g>
+<g transform="translate(16,1038)"><rect width="358" height="64" rx="14" fill="#F8F2E2" stroke="#E0D6BE"/>
+  <g transform="translate(20,22)"><circle r="11" fill="#8B7355"/><text y="4" font-size="13" font-weight="700" fill="#FAF6EA" text-anchor="middle">i</text></g>
+  <text x="40" y="24" font-size="11" font-weight="700" fill="#2C2A26">Keine Scheingenauigkeit</text>
+  <text x="40" y="40" font-size="10" fill="#5C5447">Gitterzellen ≈ 2 km · Wind aus Druckflächen</text>
+  <text x="40" y="54" font-size="10" fill="#5C5447">+ DEM auf AGL interpoliert.</text></g>
+<g transform="translate(16,1118)"><rect width="358" height="48" rx="14" fill="none" stroke="#3A6FA8" stroke-width="1.5"/>
+  <text x="179" y="30" font-size="13" font-weight="600" fill="#3A6FA8" text-anchor="middle">Auf Schnitt tippen für Exaktwerte</text></g>
+<g transform="translate(16,1182)"><rect width="358" height="58" rx="12" fill="#FAF6EA" stroke="#E0D6BE"/>
+  <circle cx="22" cy="22" r="4" fill="#7A9466"/><text x="36" y="26" font-size="11" font-weight="600" fill="#5C5447">ICON-D2 · 08:00 UTC · DEM 25 m</text>
+  <text x="14" y="46" font-size="10" fill="#8B7355">Bei schwachem Gerät: automatischer 2D-Fallback</text></g>
+<g transform="translate(150,1456)"><rect width="90" height="4" rx="2" fill="#2C2A26" opacity="0.4"/></g>
+</svg>

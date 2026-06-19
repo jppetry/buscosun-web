@@ -1,0 +1,539 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 2160" font-family="ui-sans-serif, system-ui, -apple-system">
+  <defs>
+    <linearGradient id="bgGrad04" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F5F1E8"/>
+      <stop offset="1" stop-color="#EDE6D3"/>
+    </linearGradient>
+    <linearGradient id="tempArea" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#C97B47" stop-opacity="0.12"/>
+      <stop offset="1" stop-color="#C97B47" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="mapTemp" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#D4A373" stop-opacity="0.30"/>
+      <stop offset="1" stop-color="#C97B47" stop-opacity="0.34"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="1440" height="2160" fill="url(#bgGrad04)"/>
+
+  <!-- ================= TOP-NAV (kompakt) ================= -->
+  <g transform="translate(32,22)">
+    <g transform="translate(0,14)">
+      <circle cx="10" cy="0" r="6" fill="#2C2A26"/>
+      <g stroke="#2C2A26" stroke-width="1.7" stroke-linecap="round">
+        <line x1="10" y1="-11" x2="10" y2="-8.5"/>
+        <line x1="10" y1="11" x2="10" y2="8.5"/>
+        <line x1="-1" y1="0" x2="1.5" y2="0"/>
+        <line x1="18.5" y1="0" x2="21" y2="0"/>
+        <line x1="2.2" y1="-7.8" x2="4" y2="-6"/>
+        <line x1="16" y1="6" x2="17.8" y2="7.8"/>
+        <line x1="17.8" y1="-7.8" x2="16" y2="-6"/>
+        <line x1="4" y1="6" x2="2.2" y2="7.8"/>
+      </g>
+      <text x="30" y="5" font-size="18" font-weight="500" letter-spacing="-0.5" fill="#2C2A26">buscosun</text>
+    </g>
+    <g transform="translate(560,4)" font-size="13">
+      <text x="0" y="14" fill="#5C5447">Karte</text>
+      <text x="62" y="14" fill="#5C5447">Route</text>
+      <rect x="118" y="-2" width="74" height="28" rx="14" fill="#2C2A26"/>
+      <text x="155" y="16" fill="#FFFFFF" text-anchor="middle" font-weight="500">Event</text>
+      <text x="208" y="14" fill="#5C5447">Tagesablauf</text>
+    </g>
+    <g transform="translate(1130,4)">
+      <circle cx="6" cy="9" r="4" fill="#7A9466"/>
+      <text x="18" y="13" font-size="12" fill="#5C5447">Daten live</text>
+      <g transform="translate(120,0)" stroke="#5C5447" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M0 12 a7 7 0 0 1 14 0 v3 l2 3 h-18 l2 -3 z"/>
+        <path d="M5 18 a2 2 0 0 0 4 0"/>
+      </g>
+      <g transform="translate(178,-12)">
+        <circle cx="20" cy="19" r="20" fill="#FFFFFF"/>
+        <circle cx="20" cy="13" r="7" fill="#7A9466"/>
+        <text x="20" y="32" font-size="11" font-weight="600" fill="#5C5447" text-anchor="middle">JS</text>
+      </g>
+    </g>
+  </g>
+  <!-- Breadcrumb -->
+  <text x="80" y="92" font-size="10" font-weight="500" letter-spacing="2.5" fill="#A89A7A">ERGEBNIS · VERLAUF &amp; VERGLEICH</text>
+
+  <!-- ================= 2) ABLAUF AM BESTEN TAG ================= -->
+  <g transform="translate(80,120)">
+    <text x="0" y="12" font-size="10" font-weight="500" letter-spacing="2.5" fill="#A89A7A">ABLAUF AM BESTEN TAG</text>
+    <text x="0" y="34" font-size="12" fill="#8B7355">Sonntag, 14. Juni · Stunde für Stunde über dein Fenster</text>
+  </g>
+
+  <g transform="translate(80,166)">
+    <rect x="0" y="0" width="1280" height="392" rx="18" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    <!-- Kopf-Tabs -->
+    <g transform="translate(28,24)">
+      <rect x="0" y="0" width="300" height="34" rx="17" fill="#F5F1E8"/>
+      <rect x="3" y="3" width="98" height="28" rx="14" fill="#2C2A26"/>
+      <text x="52" y="21" font-size="12.5" font-weight="500" fill="#FFFFFF" text-anchor="middle">Temperatur</text>
+      <text x="148" y="21" font-size="12.5" fill="#5C5447" text-anchor="middle">Niederschlag</text>
+      <text x="252" y="21" font-size="12.5" fill="#5C5447" text-anchor="middle">Wind</text>
+    </g>
+    <!-- Als Bild Button -->
+    <g transform="translate(1108,24)">
+      <rect x="0" y="0" width="144" height="34" rx="17" fill="#FFFFFF" stroke="#D9D0B8" stroke-width="1"/>
+      <g transform="translate(18,9)" stroke="#5C5447" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2 11 v3 a1 1 0 0 0 1 1 h12 a1 1 0 0 0 1 -1 v-3"/>
+        <line x1="9" y1="0" x2="9" y2="10"/>
+        <path d="M5 6 l4 4 l4 -4"/>
+      </g>
+      <text x="48" y="22" font-size="12.5" font-weight="500" fill="#2C2A26">Als Bild</text>
+    </g>
+
+    <!-- PLOT-Bereich: x von 64..1216 (Breite 1152), Phasen-Ribbon, Plotfläche -->
+    <!-- Phasen-Ribbon (3 Bänder); X-Domain 13..23 Uhr über 1152px -> 115.2 px/h -->
+    <!-- Trauung 13-15 (gut), Empfang 15-18 (okay), Abendfeier 18-23 (gut) -->
+    <g transform="translate(64,80)">
+      <!-- Trauung: 0..230.4 -->
+      <rect x="0" y="0" width="226" height="22" rx="6" fill="#F0F4EA" stroke="#7A9466" stroke-width="0.5"/>
+      <text x="113" y="15" font-size="11" font-weight="500" fill="#5F7951" text-anchor="middle">Trauung</text>
+      <!-- Empfang: 230.4..576 -->
+      <rect x="234" y="0" width="338" height="22" rx="6" fill="#FAEEDA" stroke="#D4A373" stroke-width="0.5"/>
+      <text x="403" y="15" font-size="11" font-weight="500" fill="#A85E2E" text-anchor="middle">Empfang</text>
+      <!-- Abendfeier: 576..1152 -->
+      <rect x="580" y="0" width="572" height="22" rx="6" fill="#F0F4EA" stroke="#7A9466" stroke-width="0.5"/>
+      <text x="866" y="15" font-size="11" font-weight="500" fill="#5F7951" text-anchor="middle">Abendfeier</text>
+    </g>
+
+    <!-- Plotfläche: top=114 height=200 (y 114..314), x inner 64..1216 -->
+    <g transform="translate(64,114)">
+      <rect x="0" y="0" width="1152" height="200" rx="10" fill="#FAF6EA"/>
+      <!-- Y labels & gridlines: 27 (top y=20), 19 (mid y=110), 12 (bottom y=190) -->
+      <g stroke="#E0D6BE" stroke-width="1">
+        <line x1="0" y1="20" x2="1152" y2="20"/>
+        <line x1="0" y1="110" x2="1152" y2="110"/>
+        <line x1="0" y1="190" x2="1152" y2="190"/>
+      </g>
+      <g font-size="10" fill="#A89A7A">
+        <text x="-12" y="24" text-anchor="end">27</text>
+        <text x="-12" y="114" text-anchor="end">19</text>
+        <text x="-12" y="194" text-anchor="end">12</text>
+      </g>
+      <!-- gestrichelte Phasengrenzen (15 Uhr -> x=230.4 ; 18 Uhr -> x=576) -->
+      <g stroke="#C4B896" stroke-width="1" stroke-dasharray="4 4">
+        <line x1="230" y1="0" x2="230" y2="200"/>
+        <line x1="576" y1="0" x2="576" y2="200"/>
+      </g>
+
+      <!-- Temperatur-Linie (gefühlt erst, dann echt). Stunden 13..23 -> x = (h-13)*115.2
+           Werte (°C) gemappt: y = 190 - (val-12)*(170/15)  (12->190, 27->20)
+           13:18 14:20 15:23 16:25 17:27(peak) 18:25 19:22 20:19 21:16 22:14 23:13 -->
+      <!-- Füllfläche unter echter Linie -->
+      <path d="M0 122
+               L115.2 99.4 L230.4 64.7 L345.6 42 L460.8 19.3 L576 42 L691.2 76.7 L806.4 110.7
+               L921.6 144.7 L1036.8 167.3 L1152 178.7 L1152 200 L0 200 Z" fill="url(#tempArea)"/>
+      <!-- gefühlt-Linie (gestrichelt, ~1-2° unter) -->
+      <polyline fill="none" stroke="#A89A7A" stroke-width="1.6" stroke-dasharray="5 4" stroke-linejoin="round"
+                points="0,133 115.2,110.7 230.4,76.7 345.6,53.3 460.8,30.7 576,53.3 691.2,88 806.4,122 921.6,156 1036.8,178.7 1152,190"/>
+      <!-- echte Temperatur-Linie -->
+      <polyline fill="none" stroke="#C97B47" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"
+                points="0,122 115.2,99.4 230.4,64.7 345.6,42 460.8,19.3 576,42 691.2,76.7 806.4,110.7 921.6,144.7 1036.8,167.3 1152,178.7"/>
+      <!-- Punkte -->
+      <g fill="#C97B47">
+        <circle cx="0" cy="122" r="3"/>
+        <circle cx="115.2" cy="99.4" r="3"/>
+        <circle cx="230.4" cy="64.7" r="3"/>
+        <circle cx="345.6" cy="42" r="3"/>
+        <circle cx="576" cy="42" r="3"/>
+        <circle cx="691.2" cy="76.7" r="3"/>
+        <circle cx="806.4" cy="110.7" r="3"/>
+        <circle cx="921.6" cy="144.7" r="3"/>
+        <circle cx="1036.8" cy="167.3" r="3"/>
+        <circle cx="1152" cy="178.7" r="3"/>
+      </g>
+      <!-- Wärmepunkt-Highlight (17 Uhr, x=460.8 y=19.3) -->
+      <circle cx="460.8" cy="19.3" r="7" fill="#FFFFFF" stroke="#C97B47" stroke-width="3"/>
+      <g transform="translate(434,-22)">
+        <rect x="0" y="0" width="54" height="24" rx="12" fill="#2C2A26"/>
+        <text x="27" y="16" font-size="12" font-weight="500" fill="#FFFFFF" text-anchor="middle">27°</text>
+      </g>
+
+      <!-- X-Achse Stunden 13..23 -->
+      <g font-size="10" fill="#A89A7A">
+        <text x="0" y="216" text-anchor="middle">13</text>
+        <text x="115.2" y="216" text-anchor="middle">14</text>
+        <text x="230.4" y="216" text-anchor="middle">15</text>
+        <text x="345.6" y="216" text-anchor="middle">16</text>
+        <text x="460.8" y="216" text-anchor="middle">17</text>
+        <text x="576" y="216" text-anchor="middle">18</text>
+        <text x="691.2" y="216" text-anchor="middle">19</text>
+        <text x="806.4" y="216" text-anchor="middle">20</text>
+        <text x="921.6" y="216" text-anchor="middle">21</text>
+        <text x="1036.8" y="216" text-anchor="middle">22</text>
+        <text x="1152" y="216" text-anchor="middle">23 Uhr</text>
+      </g>
+    </g>
+    <!-- Caption -->
+    <text x="64" y="372" font-size="11" fill="#8B7355">Linie = Temperatur · gestrichelt = gefühlt · Sonntag, 14. Juni</text>
+  </g>
+
+  <!-- ================= 3) DEIN EVENT AUF DER KARTE ================= -->
+  <g transform="translate(80,594)">
+    <text x="0" y="12" font-size="10" font-weight="500" letter-spacing="2.5" fill="#A89A7A">DEIN EVENT AUF DER KARTE</text>
+    <text x="0" y="34" font-size="12" fill="#8B7355">Ort &amp; Wetterlage am besten Tag</text>
+  </g>
+
+  <g transform="translate(80,640)">
+    <!-- Ebenen-Tabs -->
+    <g transform="translate(0,0)">
+      <rect x="0" y="0" width="300" height="32" rx="16" fill="#F5F1E8"/>
+      <rect x="3" y="3" width="98" height="26" rx="13" fill="#2C2A26"/>
+      <text x="52" y="20" font-size="12" font-weight="500" fill="#FFFFFF" text-anchor="middle">Temperatur</text>
+      <text x="148" y="20" font-size="12" fill="#5C5447" text-anchor="middle">Niederschlag</text>
+      <text x="252" y="20" font-size="12" fill="#5C5447" text-anchor="middle">Wind</text>
+    </g>
+
+    <!-- Karten-Frame -->
+    <g transform="translate(0,44)">
+      <clipPath id="mapClip"><rect x="0" y="0" width="1280" height="360" rx="18"/></clipPath>
+      <rect x="0" y="0" width="1280" height="360" rx="18" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+      <g clip-path="url(#mapClip)">
+        <!-- Land Sand-Basis -->
+        <rect x="0" y="0" width="1280" height="360" fill="#EDE6D3"/>
+        <!-- Temp-Gradient-Überlagerung -->
+        <rect x="0" y="0" width="1280" height="360" fill="url(#mapTemp)"/>
+        <!-- Bodensee Wasserfläche -->
+        <path d="M120 250 C 260 200, 460 196, 640 218 C 820 240, 980 232, 1120 270
+                 C 1180 290, 1180 360, 1120 360 L 160 360 C 90 340, 70 280, 120 250 Z"
+              fill="#3A6FA8" opacity="0.25"/>
+        <!-- Höhenlinien (dezent) -->
+        <g fill="none" stroke="#C4B896" stroke-width="1" opacity="0.55">
+          <path d="M180 120 C 360 90, 560 110, 760 96 C 940 84, 1080 110, 1200 92"/>
+          <path d="M160 160 C 360 134, 580 152, 780 138 C 960 126, 1100 150, 1230 132"/>
+          <path d="M260 70 C 440 50, 620 66, 800 54"/>
+        </g>
+        <!-- Stadt-Punkte -->
+        <g fill="#8B7355">
+          <circle cx="340" cy="120" r="3"/>
+          <circle cx="900" cy="100" r="3"/>
+          <circle cx="1080" cy="180" r="3"/>
+          <circle cx="520" cy="320" r="3"/>
+        </g>
+        <g font-size="10" fill="#5C5447">
+          <text x="350" y="116">Konstanz</text>
+          <text x="910" y="96">Friedrichshafen</text>
+          <text x="1090" y="176">Lindau</text>
+        </g>
+        <!-- Ort-Pin Meersburg -->
+        <g transform="translate(640,196)">
+          <path d="M0 0 C 12 0, 16 10, 8 22 L 0 34 L -8 22 C -16 10, -12 0, 0 0 Z" fill="#2C2A26"/>
+          <circle cx="0" cy="11" r="5" fill="#FFFFFF"/>
+          <rect x="14" y="2" width="86" height="22" rx="11" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+          <text x="57" y="17" font-size="12" font-weight="500" fill="#2C2A26" text-anchor="middle">Meersburg</text>
+        </g>
+        <!-- Zeit-Slider -->
+        <g transform="translate(64,320)">
+          <line x1="0" y1="0" x2="1152" y2="0" stroke="#C4B896" stroke-width="3" stroke-linecap="round"/>
+          <line x1="0" y1="0" x2="380" y2="0" stroke="#C97B47" stroke-width="3" stroke-linecap="round"/>
+          <g stroke="#A89A7A" stroke-width="1">
+            <line x1="0" y1="-5" x2="0" y2="5"/>
+            <line x1="288" y1="-4" x2="288" y2="4"/>
+            <line x1="576" y1="-5" x2="576" y2="5"/>
+            <line x1="864" y1="-4" x2="864" y2="4"/>
+            <line x1="1152" y1="-5" x2="1152" y2="5"/>
+          </g>
+          <g font-size="9" fill="#A89A7A">
+            <text x="0" y="20" text-anchor="middle">13</text>
+            <text x="576" y="20" text-anchor="middle">18</text>
+            <text x="1152" y="20" text-anchor="middle">23 Uhr</text>
+          </g>
+          <circle cx="380" cy="0" r="9" fill="#FFFFFF" stroke="#C97B47" stroke-width="3"/>
+        </g>
+      </g>
+    </g>
+    <!-- Caption -->
+    <g transform="translate(0,418)">
+      <g transform="translate(0,-9)" stroke="#8B7355" stroke-width="1.5" fill="none" stroke-linecap="round">
+        <circle cx="6" cy="6" r="6"/>
+        <line x1="6" y1="6" x2="6" y2="3"/>
+        <line x1="6" y1="6" x2="9" y2="8"/>
+      </g>
+      <text x="20" y="0" font-size="11" fill="#8B7355">Simuliertes Wetter für Sonntag, 14. Juni — Ebene wählen, Slider verschiebt die Zeit über deinen Zeitraum.</text>
+    </g>
+  </g>
+
+  <!-- ================= 4) PHASEN AM BESTEN TAG ================= -->
+  <g transform="translate(80,1108)">
+    <text x="0" y="12" font-size="10" font-weight="500" letter-spacing="2.5" fill="#A89A7A">PHASEN AM BESTEN TAG</text>
+    <text x="0" y="34" font-size="12" fill="#8B7355">jede einzeln · der Tag zählt die schwächste</text>
+  </g>
+
+  <!-- Phasen-Zeile Trauung -->
+  <g transform="translate(80,1154)">
+    <rect x="0" y="0" width="1280" height="64" rx="14" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    <text x="28" y="30" font-size="16" font-weight="500" fill="#2C2A26">Trauung</text>
+    <text x="28" y="50" font-size="12" fill="#8B7355">13–15 Uhr</text>
+    <text x="200" y="38" font-size="13" fill="#5C5447">Trocken, mild und sonnig — beste Bedingungen für die Zeremonie.</text>
+    <!-- Konfidenz 3-Balken -->
+    <g transform="translate(1110,26)">
+      <rect x="0" y="6" width="4" height="6" rx="1" fill="#7A9466"/>
+      <rect x="7" y="3" width="4" height="9" rx="1" fill="#7A9466"/>
+      <rect x="14" y="0" width="4" height="12" rx="1" fill="#7A9466"/>
+    </g>
+    <text x="1252" y="40" font-size="22" font-weight="600" fill="#C97B47" text-anchor="end">84</text>
+  </g>
+
+  <!-- Phasen-Zeile Empfang (Engpass) -->
+  <g transform="translate(80,1230)">
+    <rect x="0" y="0" width="1280" height="64" rx="14" fill="#FFFFFF" stroke="#D4A373" stroke-width="1"/>
+    <text x="28" y="30" font-size="16" font-weight="500" fill="#2C2A26">Empfang</text>
+    <text x="28" y="50" font-size="12" fill="#8B7355">15–18 Uhr</text>
+    <g transform="translate(122,16)">
+      <rect x="0" y="0" width="68" height="20" rx="10" fill="#FAEEDA"/>
+      <text x="34" y="14" font-size="10" font-weight="500" fill="#A85E2E" text-anchor="middle">Engpass</text>
+    </g>
+    <text x="210" y="38" font-size="13" fill="#5C5447">Heißeste Phase &amp; kurzer Schauer im Fenster — schwächste Phase, zählt für den Tag.</text>
+    <g transform="translate(1110,26)">
+      <rect x="0" y="6" width="4" height="6" rx="1" fill="#7A9466"/>
+      <rect x="7" y="3" width="4" height="9" rx="1" fill="#7A9466"/>
+      <rect x="14" y="0" width="4" height="12" rx="1" fill="#D9D0B8"/>
+    </g>
+    <text x="1252" y="40" font-size="22" font-weight="600" fill="#D4A373" text-anchor="end">68</text>
+  </g>
+
+  <!-- Phasen-Zeile Abendfeier -->
+  <g transform="translate(80,1306)">
+    <rect x="0" y="0" width="1280" height="64" rx="14" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    <text x="28" y="30" font-size="16" font-weight="500" fill="#2C2A26">Abendfeier</text>
+    <text x="28" y="50" font-size="12" fill="#8B7355">18–23 Uhr</text>
+    <text x="200" y="38" font-size="13" fill="#5C5447">Trocken, abends frisch und leicht böig — Decken bereithalten, sonst gut.</text>
+    <g transform="translate(1110,26)">
+      <rect x="0" y="6" width="4" height="6" rx="1" fill="#7A9466"/>
+      <rect x="7" y="3" width="4" height="9" rx="1" fill="#7A9466"/>
+      <rect x="14" y="0" width="4" height="12" rx="1" fill="#7A9466"/>
+    </g>
+    <text x="1252" y="40" font-size="22" font-weight="600" fill="#C97B47" text-anchor="end">79</text>
+  </g>
+
+  <!-- ================= 5) SICHERHEIT ÜBER DIE ZEIT ================= -->
+  <g transform="translate(80,1400)">
+    <text x="0" y="12" font-size="10" font-weight="500" letter-spacing="2.5" fill="#A89A7A">SICHERHEIT ÜBER DIE ZEIT</text>
+    <text x="0" y="34" font-size="12" fill="#8B7355">spätere Tage sind unsicherer</text>
+  </g>
+
+  <g transform="translate(80,1446)">
+    <rect x="0" y="0" width="628" height="232" rx="16" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    <!-- Konfidenz-Timeline-SVG ~544 breit, plot inner x 70..614, y 26..166 -->
+    <g transform="translate(56,26)">
+      <!-- Hintergrundbänder: Hoch / Mittel / Gering -->
+      <rect x="0" y="0" width="516" height="40" rx="4" fill="#F0F4EA"/>
+      <rect x="0" y="44" width="516" height="40" rx="4" fill="#FAEEDA"/>
+      <rect x="0" y="88" width="516" height="40" rx="4" fill="#EEF0F2"/>
+      <g font-size="9" font-weight="500" letter-spacing="1" fill="#A89A7A">
+        <text x="-8" y="24" text-anchor="end">HOCH</text>
+        <text x="-8" y="68" text-anchor="end">MITTEL</text>
+        <text x="-8" y="112" text-anchor="end">GERING</text>
+      </g>
+      <!-- 8 Tage Sa..Sa, x = i*73.7 (i=0..7); fallende Linie
+           Werte konf% -> y: 88%->14 ... gering. -->
+      <!-- Tendenz-Trennlinie nach Tag 5 (Index 4 -> x=294.8, zwischen 4 und 5 -> 331) -->
+      <line x1="331" y1="-4" x2="331" y2="132" stroke="#C4B896" stroke-width="1" stroke-dasharray="4 4"/>
+      <text x="338" y="6" font-size="9" fill="#A89A7A">Tendenz →</text>
+      <!-- Linie: Sa72 So88(best) Mo80 Di70 Mi58 Do46 Fr40 Sa34 -->
+      <polyline fill="none" stroke="#8B7355" stroke-width="2" stroke-linejoin="round"
+                points="0,20 73.7,14 147.4,24 221.1,38 294.8,56 368.5,76 442.2,86 515.9,98"/>
+      <g fill="#8B7355">
+        <circle cx="0" cy="20" r="3"/>
+        <circle cx="147.4" cy="24" r="3"/>
+        <circle cx="221.1" cy="38" r="3"/>
+        <circle cx="294.8" cy="56" r="3"/>
+        <circle cx="368.5" cy="76" r="3"/>
+        <circle cx="442.2" cy="86" r="3"/>
+        <circle cx="515.9" cy="98" r="3"/>
+      </g>
+      <!-- bester Tag größerer Punkt -->
+      <circle cx="73.7" cy="14" r="6" fill="#FFFFFF" stroke="#7A9466" stroke-width="3"/>
+      <!-- X-Labels Wochentage -->
+      <g font-size="9.5" fill="#A89A7A">
+        <text x="0" y="148" text-anchor="middle">Sa</text>
+        <text x="73.7" y="148" text-anchor="middle" fill="#5F7951" font-weight="600">So</text>
+        <text x="147.4" y="148" text-anchor="middle">Mo</text>
+        <text x="221.1" y="148" text-anchor="middle">Di</text>
+        <text x="294.8" y="148" text-anchor="middle">Mi</text>
+        <text x="368.5" y="148" text-anchor="middle">Do</text>
+        <text x="442.2" y="148" text-anchor="middle">Fr</text>
+        <text x="515.9" y="148" text-anchor="middle">Sa</text>
+      </g>
+    </g>
+    <text x="28" y="212" font-size="11" fill="#8B7355">Je weiter ein Tag entfernt liegt, desto unsicherer die Vorhersage — späte Tage</text>
+    <text x="28" y="226" font-size="11" fill="#8B7355">sind eher grobe Tendenz als Festlegung.</text>
+  </g>
+
+  <!-- ================= 6) RANGLISTE ================= -->
+  <g transform="translate(80,1710)">
+    <text x="0" y="12" font-size="10" font-weight="500" letter-spacing="2.5" fill="#A89A7A">RANGLISTE</text>
+    <text x="0" y="34" font-size="12" fill="#8B7355">5 von 8 Tagen bewertet</text>
+  </g>
+
+  <!-- Tagesscore-Balkendiagramm-Karte (volle Breite) -->
+  <g transform="translate(80,1756)">
+    <rect x="0" y="0" width="1280" height="252" rx="16" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+
+    <!-- 8 Balken; inner x 56..1224 (Breite 1168), Slot 146; bar width 56. baseline y=190 -->
+    <!-- Score->Höhe: h = score*1.7 (max 82 -> ~139). top y = 190-h -->
+    <g transform="translate(56,24)">
+      <line x1="-12" y1="190" x2="1180" y2="190" stroke="#E0D6BE" stroke-width="1"/>
+      <!-- Tendenz-Trennlinie nach Tag 6 (zwischen Index 5 und 6) x = 5.5*146 = 803 -->
+      <line x1="803" y1="-8" x2="803" y2="208" stroke="#C4B896" stroke-width="1" stroke-dasharray="4 4"/>
+      <text x="812" y="2" font-size="9" fill="#A89A7A">Tendenz →</text>
+
+      <!-- Bar 0: Sa 13 -> 58 (slate) h=98.6 top=91.4 -->
+      <g transform="translate(0,0)">
+        <rect x="0" y="91.4" width="56" height="98.6" rx="5" fill="#6B7A8F"/>
+        <text x="28" y="82" font-size="12" font-weight="600" fill="#6B7A8F" text-anchor="middle">58</text>
+      </g>
+      <!-- Bar 1: So 14 -> BESTER 82 ink + sage Ring; h=139.4 top=50.6 -->
+      <g transform="translate(146,0)">
+        <rect x="-4" y="46.6" width="64" height="147.4" rx="8" fill="none" stroke="#7A9466" stroke-width="2.5"/>
+        <rect x="0" y="50.6" width="56" height="139.4" rx="5" fill="#2C2A26"/>
+        <text x="28" y="42" font-size="12" font-weight="700" fill="#2C2A26" text-anchor="middle">82</text>
+        <g transform="translate(0,18)">
+          <rect x="2" y="0" width="52" height="18" rx="9" fill="#2C2A26"/>
+          <text x="28" y="13" font-size="9" font-weight="600" letter-spacing="0.8" fill="#FFFFFF" text-anchor="middle">BESTER</text>
+        </g>
+      </g>
+      <!-- Bar 2: Mo 15 -> 61 (amber) h=103.7 top=86.3 -->
+      <g transform="translate(292,0)">
+        <rect x="0" y="86.3" width="56" height="103.7" rx="5" fill="#D4A373"/>
+        <text x="28" y="77" font-size="12" font-weight="600" fill="#D4A373" text-anchor="middle">61</text>
+      </g>
+      <!-- Bar 3: Di 16 -> 47 (amber) h=79.9 top=110.1 -->
+      <g transform="translate(438,0)">
+        <rect x="0" y="110.1" width="56" height="79.9" rx="5" fill="#D4A373"/>
+        <text x="28" y="101" font-size="12" font-weight="600" fill="#D4A373" text-anchor="middle">47</text>
+      </g>
+      <!-- Bar 4: Mi 17 -> keine Vorhersage Stummel -->
+      <g transform="translate(584,0)">
+        <rect x="0" y="176" width="56" height="14" rx="5" fill="#D9D0B8"/>
+        <text x="28" y="167" font-size="12" fill="#A89A7A" text-anchor="middle">–</text>
+      </g>
+      <!-- Bar 5: Do 18 -> 53 (slate) h=90.1 top=99.9 -->
+      <g transform="translate(730,0)">
+        <rect x="0" y="99.9" width="56" height="90.1" rx="5" fill="#6B7A8F"/>
+        <text x="28" y="91" font-size="12" font-weight="600" fill="#6B7A8F" text-anchor="middle">53</text>
+      </g>
+      <!-- Bar 6: Fr 19 -> 74 (terracotta, gedimmt) h=125.8 top=64.2 -->
+      <g transform="translate(876,0)" opacity="0.5">
+        <rect x="0" y="64.2" width="56" height="125.8" rx="5" fill="#C97B47"/>
+        <text x="28" y="55" font-size="12" font-weight="600" fill="#C97B47" text-anchor="middle">74</text>
+      </g>
+      <!-- Bar 7: Sa 20 -> keine Vorhersage Stummel, gedimmt -->
+      <g transform="translate(1022,0)" opacity="0.5">
+        <rect x="0" y="176" width="56" height="14" rx="5" fill="#D9D0B8"/>
+        <text x="28" y="167" font-size="12" fill="#A89A7A" text-anchor="middle">–</text>
+      </g>
+
+      <!-- X-Labels Wochentag + Tageszahl -->
+      <g font-size="10" fill="#A89A7A">
+        <text x="28" y="210" text-anchor="middle">Sa 13</text>
+        <text x="174" y="210" text-anchor="middle" fill="#2C2A26" font-weight="600">So 14</text>
+        <text x="320" y="210" text-anchor="middle">Mo 15</text>
+        <text x="466" y="210" text-anchor="middle">Di 16</text>
+        <text x="612" y="210" text-anchor="middle">Mi 17</text>
+        <text x="758" y="210" text-anchor="middle">Do 18</text>
+        <text x="904" y="210" text-anchor="middle">Fr 19</text>
+        <text x="1050" y="210" text-anchor="middle">Sa 20</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- Rang-Liste (Zeilen) -->
+  <g transform="translate(80,2032)">
+    <!-- helper layout: row height 44, gap 8; Score-Balken rechts -->
+    <!-- Rang 1: So 14. Juni — Score 82 -->
+    <g transform="translate(0,0)">
+      <rect x="0" y="0" width="1280" height="44" rx="12" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+      <text x="24" y="28" font-size="15" font-weight="600" fill="#2C2A26">1</text>
+      <text x="56" y="28" font-size="14" font-weight="500" fill="#2C2A26">So 14. Juni</text>
+      <g transform="translate(176,12)">
+        <rect x="0" y="0" width="92" height="20" rx="10" fill="#2C2A26"/>
+        <text x="46" y="14" font-size="10" font-weight="600" letter-spacing="0.6" fill="#FFFFFF" text-anchor="middle">BESTER TAG</text>
+      </g>
+      <text x="290" y="28" font-size="13" fill="#5C5447">Trocken &amp; mild über alle Phasen — der ausgewogenste Tag.</text>
+      <!-- Konfidenz-Balken -->
+      <g transform="translate(960,16)">
+        <rect x="0" y="6" width="4" height="6" rx="1" fill="#7A9466"/>
+        <rect x="7" y="3" width="4" height="9" rx="1" fill="#7A9466"/>
+        <rect x="14" y="0" width="4" height="12" rx="1" fill="#7A9466"/>
+      </g>
+      <!-- Score-Balken + Zahl -->
+      <rect x="1010" y="18" width="180" height="8" rx="4" fill="#F0E8D4"/>
+      <rect x="1010" y="18" width="147.6" height="8" rx="4" fill="#C97B47"/>
+      <text x="1256" y="28" font-size="16" font-weight="600" fill="#C97B47" text-anchor="end">82</text>
+    </g>
+    <!-- Rang 2: Fr 19. Juni — Score 74 -->
+    <g transform="translate(0,52)">
+      <rect x="0" y="0" width="1280" height="44" rx="12" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+      <text x="24" y="28" font-size="15" font-weight="600" fill="#5C5447">2</text>
+      <text x="56" y="28" font-size="14" font-weight="500" fill="#2C2A26">Fr 19. Juni</text>
+      <text x="290" y="28" font-size="13" fill="#5C5447">Freundlich und trocken — etwas unsicherer, da weiter entfernt.</text>
+      <g transform="translate(960,16)">
+        <rect x="0" y="6" width="4" height="6" rx="1" fill="#7A9466"/>
+        <rect x="7" y="3" width="4" height="9" rx="1" fill="#7A9466"/>
+        <rect x="14" y="0" width="4" height="12" rx="1" fill="#D9D0B8"/>
+      </g>
+      <rect x="1010" y="18" width="180" height="8" rx="4" fill="#F0E8D4"/>
+      <rect x="1010" y="18" width="133.2" height="8" rx="4" fill="#C97B47"/>
+      <text x="1256" y="28" font-size="16" font-weight="600" fill="#C97B47" text-anchor="end">74</text>
+    </g>
+    <!-- Rang 3: Mo 15. Juni — Score 61, Negativfaktor -->
+    <g transform="translate(0,104)">
+      <rect x="0" y="0" width="1280" height="44" rx="12" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+      <text x="24" y="28" font-size="15" font-weight="600" fill="#5C5447">3</text>
+      <text x="56" y="28" font-size="14" font-weight="500" fill="#2C2A26">Mo 15. Juni</text>
+      <text x="290" y="28" font-size="13" fill="#5C5447">Insgesamt brauchbar, aber unruhiger Wind am Nachmittag.</text>
+      <!-- Negativfaktor-Chip -->
+      <g transform="translate(700,12)">
+        <rect x="0" y="0" width="138" height="20" rx="10" fill="#EEF0F2"/>
+        <text x="69" y="14" font-size="11" fill="#6B7A8F" text-anchor="middle">↓ zeitweise böig</text>
+      </g>
+      <g transform="translate(960,16)">
+        <rect x="0" y="6" width="4" height="6" rx="1" fill="#7A9466"/>
+        <rect x="7" y="3" width="4" height="9" rx="1" fill="#7A9466"/>
+        <rect x="14" y="0" width="4" height="12" rx="1" fill="#D9D0B8"/>
+      </g>
+      <rect x="1010" y="18" width="180" height="8" rx="4" fill="#F0E8D4"/>
+      <rect x="1010" y="18" width="109.8" height="8" rx="4" fill="#D4A373"/>
+      <text x="1256" y="28" font-size="16" font-weight="600" fill="#D4A373" text-anchor="end">61</text>
+    </g>
+    <!-- Rang 4: Di 16. Juni — Score 47, Negativfaktor -->
+    <g transform="translate(0,156)">
+      <rect x="0" y="0" width="1280" height="44" rx="12" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+      <text x="24" y="28" font-size="15" font-weight="600" fill="#5C5447">4</text>
+      <text x="56" y="28" font-size="14" font-weight="500" fill="#2C2A26">Di 16. Juni</text>
+      <text x="290" y="28" font-size="13" fill="#5C5447">Wechselhaft mit längeren Regenphasen — eher ungünstig.</text>
+      <g transform="translate(700,12)">
+        <rect x="0" y="0" width="120" height="20" rx="10" fill="#EEF0F2"/>
+        <text x="60" y="14" font-size="11" fill="#6B7A8F" text-anchor="middle">↓ 4 mm Regen</text>
+      </g>
+      <g transform="translate(960,16)">
+        <rect x="0" y="6" width="4" height="6" rx="1" fill="#7A9466"/>
+        <rect x="7" y="3" width="4" height="9" rx="1" fill="#D9D0B8"/>
+        <rect x="14" y="0" width="4" height="12" rx="1" fill="#D9D0B8"/>
+      </g>
+      <rect x="1010" y="18" width="180" height="8" rx="4" fill="#F0E8D4"/>
+      <rect x="1010" y="18" width="84.6" height="8" rx="4" fill="#D4A373"/>
+      <text x="1256" y="28" font-size="16" font-weight="600" fill="#D4A373" text-anchor="end">47</text>
+    </g>
+    <!-- Zeile: Mi 17. Juni — keine Vorhersage (gedimmt) -->
+    <g transform="translate(0,208)" opacity="0.55">
+      <rect x="0" y="0" width="1280" height="44" rx="12" fill="#FAF6EA" stroke="#E0D6BE" stroke-width="0.5"/>
+      <text x="24" y="28" font-size="15" font-weight="600" fill="#A89A7A">–</text>
+      <text x="56" y="28" font-size="14" font-weight="500" fill="#8B7355">Mi 17. Juni</text>
+      <text x="290" y="28" font-size="13" fill="#8B7355">keine Vorhersage — außerhalb des verlässlichen Horizonts.</text>
+      <text x="1256" y="28" font-size="16" font-weight="600" fill="#A89A7A" text-anchor="end">–</text>
+    </g>
+    <!-- Hinweis -->
+    <text x="0" y="288" font-size="11" fill="#8B7355">Quellen: DWD · GeoSphere · MeteoSwiss, höhenkorrigiert.</text>
+  </g>
+
+  <!-- ================= FOOTER ================= -->
+  <g transform="translate(80,2106)">
+    <line x1="0" y1="-20" x2="1280" y2="-20" stroke="#E0D6BE" stroke-width="1"/>
+    <text x="0" y="6" font-size="10" font-weight="500" letter-spacing="2" fill="#A89A7A">EV-04 · ERGEBNIS — ABLAUF · KARTE · PHASEN · KONFIDENZ · RANGLISTE</text>
+    <text x="1280" y="6" font-size="10" font-weight="500" letter-spacing="2" fill="#A89A7A" text-anchor="end">STUNDENVERLAUF · LIVE-KARTE · ENGPASS-PHASE · TENDENZ-HORIZONT · TAGESSCORES</text>
+  </g>
+</svg>

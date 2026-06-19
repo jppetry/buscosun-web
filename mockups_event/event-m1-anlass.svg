@@ -1,0 +1,307 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 1640" width="390" height="1640" font-family="ui-sans-serif, system-ui, -apple-system">
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F5F1E8"/>
+      <stop offset="100%" stop-color="#EDE6D3"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="390" height="1640" fill="url(#bgGrad)"/>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- TOP BAR -->
+  <!-- ═══════════════════════════════════════ -->
+  <rect x="0" y="0" width="390" height="52" fill="#FFFFFF"/>
+
+  <!-- Sun brand icon: circle + 8 rays -->
+  <circle cx="20" cy="26" r="5" fill="#2C2A26"/>
+  <!-- Rays at 45° angles: gap=3, length=4 from edge of r=5 -->
+  <line x1="20" y1="26" x2="20" y2="14" stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round" transform="rotate(0,20,26)"/>
+  <line x1="20" y1="26" x2="20" y2="14" stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round" transform="rotate(45,20,26)"/>
+  <line x1="20" y1="26" x2="20" y2="14" stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round" transform="rotate(90,20,26)"/>
+  <line x1="20" y1="26" x2="20" y2="14" stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round" transform="rotate(135,20,26)"/>
+  <line x1="20" y1="26" x2="20" y2="14" stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round" transform="rotate(180,20,26)"/>
+  <line x1="20" y1="26" x2="20" y2="14" stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round" transform="rotate(225,20,26)"/>
+  <line x1="20" y1="26" x2="20" y2="14" stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round" transform="rotate(270,20,26)"/>
+  <line x1="20" y1="26" x2="20" y2="14" stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round" transform="rotate(315,20,26)"/>
+
+  <!-- Mask center for rays (white circle over center to create gap) -->
+  <circle cx="20" cy="26" r="6" fill="#FFFFFF"/>
+  <circle cx="20" cy="26" r="5" fill="#2C2A26"/>
+
+  <!-- Brand text -->
+  <text x="32" y="30" font-size="15" font-weight="500" fill="#2C2A26">buscosun</text>
+
+  <!-- Live indicator -->
+  <circle cx="280" cy="26" r="3" fill="#7A9466"/>
+  <text x="287" y="30" font-size="10" fill="#7A9466">live</text>
+
+  <!-- Bell icon -->
+  <path d="M330,19 C330,19 326,21 326,26 L326,29 L334,29 L334,26 C334,21 330,19 330,19 Z" fill="none" stroke="#2C2A26" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M328,29 L328,31 C328,32.1 329,33 330,33 C331,33 332,32.1 332,31 L332,29" fill="none" stroke="#2C2A26" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Avatar -->
+  <circle cx="363" cy="26" r="14" fill="#EDE6D3" stroke="#C4B896" stroke-width="0.5"/>
+  <text x="363" y="30" font-size="10" fill="#2C2A26" text-anchor="middle" font-weight="500">JS</text>
+
+  <!-- Top bar hairline -->
+  <rect x="0" y="52" width="390" height="0.5" fill="#E0D6BE"/>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- INTRO SECTION -->
+  <!-- ═══════════════════════════════════════ -->
+  <text x="16" y="78" font-size="9" font-weight="500" fill="#A89A7A" letter-spacing="1.8">EVENT-PLANUNG</text>
+  <text x="16" y="104" font-size="24" font-weight="300" fill="#2C2A26" letter-spacing="-0.6">Welcher Tag passt am besten?</text>
+  <text x="16" y="124" font-size="12" fill="#5C5447">Wähle Anlass, Ort und Zeitraum –</text>
+  <text x="16" y="140" font-size="12" fill="#5C5447">wir finden deinen besten Wetter-Tag.</text>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- SUMMARY TILES 2×2 -->
+  <!-- ═══════════════════════════════════════ -->
+
+  <!-- Tile 1: ANLASS (selected, dark) -->
+  <rect x="16" y="156" width="179" height="88" rx="12" fill="#2C2A26"/>
+  <text x="28" y="174" font-size="9" font-weight="500" fill="#A89A7A" letter-spacing="1.8">ANLASS</text>
+  <text x="28" y="200" font-size="15" font-weight="500" fill="#FFFFFF">Hochzeit</text>
+  <text x="28" y="218" font-size="10" fill="#A89A7A">Ausgewählt</text>
+  <!-- Checkmark circle -->
+  <circle cx="164" cy="184" r="8" fill="#7A9466"/>
+  <polyline points="160,184 163,187 169,181" fill="none" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Tile 2: ORT (empty) -->
+  <rect x="203" y="156" width="179" height="88" rx="12" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+  <text x="215" y="174" font-size="9" font-weight="500" fill="#A89A7A" letter-spacing="1.8">ORT</text>
+  <text x="215" y="204" font-size="22" fill="#C4B896">–</text>
+  <text x="215" y="222" font-size="10" fill="#A89A7A">Noch auswählen</text>
+
+  <!-- Tile 3: ZEITFENSTER (empty) -->
+  <rect x="16" y="252" width="179" height="88" rx="12" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+  <text x="28" y="270" font-size="9" font-weight="500" fill="#A89A7A" letter-spacing="1.8">ZEITFENSTER</text>
+  <text x="28" y="300" font-size="22" fill="#C4B896">–</text>
+  <text x="28" y="318" font-size="10" fill="#A89A7A">Noch festlegen</text>
+
+  <!-- Tile 4: STATUS -->
+  <rect x="203" y="252" width="179" height="88" rx="12" fill="#FAF6EA" stroke="#E0D6BE" stroke-width="0.5"/>
+  <text x="215" y="270" font-size="9" font-weight="500" fill="#A89A7A" letter-spacing="1.8">STATUS</text>
+  <text x="215" y="300" font-size="15" font-weight="500" fill="#D4A373">Offen</text>
+  <text x="215" y="318" font-size="10" fill="#C97B47">Ort fehlt</text>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- SECTION LABEL -->
+  <!-- ═══════════════════════════════════════ -->
+  <text x="16" y="362" font-size="9" font-weight="500" fill="#A89A7A" letter-spacing="1.8">1 · ANLASS</text>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- ANLASS GRID -->
+  <!-- ═══════════════════════════════════════ -->
+
+  <!-- Row 1 y=378 -->
+
+  <!-- Tile: Hochzeit (SELECTED) -->
+  <rect x="16" y="378" width="175" height="76" rx="12" fill="#2C2A26"/>
+  <!-- Ring icon: two overlapping circles -->
+  <circle cx="35" cy="418" r="7" fill="none" stroke="#A89A7A" stroke-width="1.6"/>
+  <circle cx="46" cy="418" r="7" fill="none" stroke="#A89A7A" stroke-width="1.6"/>
+  <text x="60" y="414" font-size="13" font-weight="500" fill="#FFFFFF">Hochzeit</text>
+  <text x="60" y="428" font-size="9" fill="#A89A7A">Trockenheit · Wärme</text>
+  <!-- Selected indicator -->
+  <circle cx="178" cy="388" r="7" fill="#7A9466"/>
+  <polyline points="174.5,388 177.5,391 181.5,385" fill="none" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Tile: Wandern -->
+  <rect x="199" y="378" width="175" height="76" rx="12" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+  <!-- Mountain icon -->
+  <polyline points="215,450 228,428 241,450" fill="none" stroke="#6B7A8F" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="222,440 232,428 246,450" fill="none" stroke="#6B7A8F" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="254" y="414" font-size="13" font-weight="400" fill="#2C2A26">Wandern</text>
+  <text x="254" y="428" font-size="9" fill="#A89A7A">Regen · Sturm</text>
+
+  <!-- Row 2 y=462 -->
+
+  <!-- Tile: Radtour -->
+  <rect x="16" y="462" width="175" height="76" rx="12" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+  <!-- Bicycle icon: 2 wheels + frame -->
+  <circle cx="30" cy="505" r="7" fill="none" stroke="#6B7A8F" stroke-width="1.6"/>
+  <circle cx="51" cy="505" r="7" fill="none" stroke="#6B7A8F" stroke-width="1.6"/>
+  <polyline points="30,505 38,492 44,498 51,505" fill="none" stroke="#6B7A8F" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="38" y1="492" x2="51" y2="498" stroke="#6B7A8F" stroke-width="1.6" stroke-linecap="round"/>
+  <text x="65" y="498" font-size="13" font-weight="400" fill="#2C2A26">Radtour</text>
+  <text x="65" y="512" font-size="9" fill="#A89A7A">Wind · Regen</text>
+
+  <!-- Tile: Grillen -->
+  <rect x="199" y="462" width="175" height="76" rx="12" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+  <!-- Flame icon -->
+  <path d="M221,510 C218,504 222,498 220,493 C222,496 226,494 225,490 C228,494 229,500 227,505 C230,502 230,498 229,495 C233,500 233,508 229,512 C228,514 222,514 221,510 Z" fill="none" stroke="#C97B47" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="242" y="498" font-size="13" font-weight="400" fill="#2C2A26">Grillen</text>
+  <text x="242" y="512" font-size="9" fill="#A89A7A">Regen · Kälte</text>
+
+  <!-- Row 3 y=546 -->
+
+  <!-- Tile: Fotografieren -->
+  <rect x="16" y="546" width="175" height="76" rx="12" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+  <!-- Camera icon -->
+  <rect x="22" y="572" width="26" height="20" rx="3" fill="none" stroke="#6B7A8F" stroke-width="1.6"/>
+  <circle cx="35" cy="582" r="5" fill="none" stroke="#6B7A8F" stroke-width="1.6"/>
+  <path d="M29,572 L31,568 L39,568 L41,572" fill="none" stroke="#6B7A8F" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="44" cy="574" r="1.5" fill="#6B7A8F"/>
+  <text x="55" y="582" font-size="13" font-weight="400" fill="#2C2A26">Fotografieren</text>
+  <text x="55" y="596" font-size="9" fill="#A89A7A">Licht · Wolken</text>
+
+  <!-- Tile: Picknick -->
+  <rect x="199" y="546" width="175" height="76" rx="12" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+  <!-- Sun icon -->
+  <circle cx="222" cy="582" r="6" fill="none" stroke="#D4A373" stroke-width="1.6"/>
+  <line x1="222" y1="570" x2="222" y2="567" stroke="#D4A373" stroke-width="1.6" stroke-linecap="round"/>
+  <line x1="222" y1="594" x2="222" y2="597" stroke="#D4A373" stroke-width="1.6" stroke-linecap="round"/>
+  <line x1="210" y1="582" x2="207" y2="582" stroke="#D4A373" stroke-width="1.6" stroke-linecap="round"/>
+  <line x1="234" y1="582" x2="237" y2="582" stroke="#D4A373" stroke-width="1.6" stroke-linecap="round"/>
+  <line x1="213.5" y1="573.5" x2="211.4" y2="571.4" stroke="#D4A373" stroke-width="1.6" stroke-linecap="round"/>
+  <line x1="230.5" y1="590.5" x2="232.6" y2="592.6" stroke="#D4A373" stroke-width="1.6" stroke-linecap="round"/>
+  <line x1="230.5" y1="573.5" x2="232.6" y2="571.4" stroke="#D4A373" stroke-width="1.6" stroke-linecap="round"/>
+  <line x1="213.5" y1="590.5" x2="211.4" y2="592.6" stroke="#D4A373" stroke-width="1.6" stroke-linecap="round"/>
+  <text x="244" y="582" font-size="13" font-weight="400" fill="#2C2A26">Picknick</text>
+  <text x="244" y="596" font-size="9" fill="#A89A7A">Regen · Wind</text>
+
+  <!-- Row 4 y=630 -->
+
+  <!-- Tile: Laufen -->
+  <rect x="16" y="630" width="175" height="76" rx="12" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+  <!-- Running figure (simplified) -->
+  <circle cx="30" cy="643" r="4" fill="none" stroke="#6B7A8F" stroke-width="1.6"/>
+  <path d="M30,647 L28,656 L24,664" fill="none" stroke="#6B7A8F" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M30,647 L33,654 L38,660" fill="none" stroke="#6B7A8F" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M28,651 L22,649" fill="none" stroke="#6B7A8F" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M29,652 L35,648" fill="none" stroke="#6B7A8F" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="52" y="666" font-size="13" font-weight="400" fill="#2C2A26">Laufen</text>
+  <text x="52" y="680" font-size="9" fill="#A89A7A">Hitze · Regen</text>
+
+  <!-- Tile: Baden -->
+  <rect x="199" y="630" width="175" height="76" rx="12" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+  <!-- Wave icon -->
+  <path d="M210,668 C214,664 218,672 222,668 C226,664 230,672 234,668 C238,664 242,672 246,668" fill="none" stroke="#3A6FA8" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M210,676 C214,672 218,680 222,676 C226,672 230,680 234,676 C238,672 242,680 246,676" fill="none" stroke="#3A6FA8" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="254" y="666" font-size="13" font-weight="400" fill="#2C2A26">Baden</text>
+  <text x="254" y="680" font-size="9" fill="#A89A7A">Kälte · Sturm</text>
+
+  <!-- Row 5 y=714 -->
+
+  <!-- Tile: Sterne schauen -->
+  <rect x="16" y="714" width="175" height="76" rx="12" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+  <!-- Star icon (4-pointed) -->
+  <path d="M30,754 L32,747 L34,754 L41,756 L34,758 L32,765 L30,758 L23,756 Z" fill="none" stroke="#6B7A8F" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="43" cy="746" r="2" fill="#6B7A8F"/>
+  <circle cx="22" cy="748" r="1.5" fill="#6B7A8F"/>
+  <text x="50" y="750" font-size="12" font-weight="400" fill="#2C2A26">Sterne</text>
+  <text x="50" y="764" font-size="12" font-weight="400" fill="#2C2A26">schauen</text>
+  <text x="50" y="778" font-size="9" fill="#A89A7A">Wolken · Mond</text>
+
+  <!-- Tile: Eigener Anlass (dashed) -->
+  <rect x="199" y="714" width="175" height="76" rx="12" fill="none" stroke="#C4B896" stroke-width="1" stroke-dasharray="4 3"/>
+  <!-- Plus icon -->
+  <line x1="222" y1="756" x2="238" y2="756" stroke="#C4B896" stroke-width="1.6" stroke-linecap="round"/>
+  <line x1="230" y1="748" x2="230" y2="764" stroke="#C4B896" stroke-width="1.6" stroke-linecap="round"/>
+  <text x="248" y="750" font-size="13" font-weight="400" fill="#2C2A26">Eigener</text>
+  <text x="248" y="764" font-size="13" font-weight="400" fill="#2C2A26">Anlass</text>
+  <text x="248" y="778" font-size="9" fill="#A89A7A">Selbst definieren</text>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- PRESET-FAKTOR BAND -->
+  <!-- ═══════════════════════════════════════ -->
+  <rect x="16" y="806" width="358" height="72" rx="12" fill="#F0F4EA"/>
+  <text x="28" y="828" font-size="11" font-weight="500" fill="#5F7951">Für Hochzeit automatisch bewertet:</text>
+
+  <!-- Chips row 1 -->
+  <rect x="28" y="838" width="118" height="20" rx="10" fill="#7A9466"/>
+  <text x="87" y="852" font-size="9" fill="#FFFFFF" text-anchor="middle">Trockenheit ·  wichtig</text>
+
+  <rect x="152" y="838" width="70" height="20" rx="10" fill="#7A9466"/>
+  <text x="187" y="852" font-size="9" fill="#FFFFFF" text-anchor="middle">Temperatur</text>
+
+  <rect x="228" y="838" width="60" height="20" rx="10" fill="#7A9466"/>
+  <text x="258" y="852" font-size="9" fill="#FFFFFF" text-anchor="middle">Windruhe</text>
+
+  <!-- Chip row 2 -->
+  <rect x="28" y="862" width="72" height="18" rx="9" fill="#5F7951"/>
+  <text x="64" y="875" font-size="9" fill="#FFFFFF" text-anchor="middle">Sonne · Sicht</text>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- FEINJUSTIERUNG CARD -->
+  <!-- ═══════════════════════════════════════ -->
+  <rect x="16" y="892" width="358" height="258" rx="14" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+
+  <!-- Card header -->
+  <text x="28" y="916" font-size="9" font-weight="500" fill="#A89A7A" letter-spacing="1.8">FEINJUSTIERUNG</text>
+  <!-- Badge "angepasst" -->
+  <rect x="210" y="905" width="72" height="16" rx="8" fill="#F0F4EA"/>
+  <text x="246" y="917" font-size="9" fill="#7A9466" text-anchor="middle">angepasst</text>
+
+  <!-- Slider 0: Wohlfühl-Temperatur -->
+  <!-- Thermometer icon -->
+  <rect x="28" y="930" width="5" height="14" rx="2.5" fill="none" stroke="#C97B47" stroke-width="1.4"/>
+  <circle cx="30.5" cy="946" r="4" fill="none" stroke="#C97B47" stroke-width="1.4"/>
+  <rect x="29.5" y="935" width="2" height="9" rx="1" fill="#C97B47"/>
+  <circle cx="30.5" cy="946" r="2.5" fill="#C97B47"/>
+
+  <text x="42" y="942" font-size="12" fill="#2C2A26">Wohlfühl-Temperatur</text>
+  <text x="320" y="942" font-size="12" font-weight="500" fill="#C97B47" text-anchor="end">18–26°C</text>
+
+  <!-- Temp slider track -->
+  <rect x="28" y="950" width="330" height="4" rx="2" fill="#F5F1E8"/>
+  <rect x="128" y="950" width="130" height="4" rx="2" fill="#C97B47"/>
+  <circle cx="128" cy="952" r="6" fill="#FFFFFF" stroke="#C97B47" stroke-width="1.5"/>
+  <circle cx="258" cy="952" r="6" fill="#FFFFFF" stroke="#C97B47" stroke-width="1.5"/>
+
+  <!-- Slider 1: Trockenheit -->
+  <text x="28" y="982" font-size="12" fill="#2C2A26">Trockenheit</text>
+  <!-- Badge "entscheidend" -->
+  <rect x="156" y="971" width="80" height="16" rx="8" fill="#FAF6EA"/>
+  <text x="196" y="983" font-size="9" fill="#C97B47" text-anchor="middle">entscheidend</text>
+
+  <rect x="28" y="990" width="330" height="4" rx="2" fill="#F5F1E8"/>
+  <rect x="28" y="990" width="325" height="4" rx="2" fill="#C97B47"/>
+  <circle cx="353" cy="992" r="6" fill="#FFFFFF" stroke="#C97B47" stroke-width="1.5"/>
+
+  <!-- Slider 2: Temperatur -->
+  <text x="28" y="1030" font-size="12" fill="#2C2A26">Temperatur</text>
+  <!-- Badge "wichtig" -->
+  <rect x="156" y="1019" width="50" height="16" rx="8" fill="#FAEEDA"/>
+  <text x="181" y="1031" font-size="9" fill="#D4A373" text-anchor="middle">wichtig</text>
+
+  <rect x="28" y="1038" width="330" height="4" rx="2" fill="#F5F1E8"/>
+  <rect x="28" y="1038" width="242" height="4" rx="2" fill="#D4A373"/>
+  <circle cx="270" cy="1040" r="6" fill="#FFFFFF" stroke="#D4A373" stroke-width="1.5"/>
+
+  <!-- Slider 3: Windruhe -->
+  <text x="28" y="1078" font-size="12" fill="#2C2A26">Windruhe</text>
+  <!-- Badge "wichtig" -->
+  <rect x="156" y="1067" width="50" height="16" rx="8" fill="#FAEEDA"/>
+  <text x="181" y="1079" font-size="9" fill="#D4A373" text-anchor="middle">wichtig</text>
+
+  <rect x="28" y="1086" width="330" height="4" rx="2" fill="#F5F1E8"/>
+  <rect x="28" y="1086" width="232" height="4" rx="2" fill="#D4A373"/>
+  <circle cx="260" cy="1088" r="6" fill="#FFFFFF" stroke="#D4A373" stroke-width="1.5"/>
+
+  <!-- Slider 4: Sonne -->
+  <text x="28" y="1126" font-size="12" fill="#2C2A26">Sonne</text>
+  <!-- Badge "wenig" -->
+  <rect x="156" y="1115" width="42" height="16" rx="8" fill="#F5F1E8"/>
+  <text x="177" y="1127" font-size="9" fill="#6B7A8F" text-anchor="middle">wenig</text>
+
+  <rect x="28" y="1134" width="330" height="4" rx="2" fill="#F5F1E8"/>
+  <rect x="28" y="1134" width="92" height="4" rx="2" fill="#6B7A8F"/>
+  <circle cx="120" cy="1136" r="6" fill="#FFFFFF" stroke="#6B7A8F" stroke-width="1.5"/>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- CTA BUTTON -->
+  <!-- ═══════════════════════════════════════ -->
+  <rect x="16" y="1168" width="358" height="48" rx="16" fill="#C97B47"/>
+  <text x="195" y="1197" font-size="15" font-weight="500" fill="#FFFFFF" text-anchor="middle">Weiter: Ort wählen →</text>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- FOOTER -->
+  <!-- ═══════════════════════════════════════ -->
+  <rect x="0" y="1605" width="390" height="0.5" fill="#E0D6BE"/>
+  <text x="195" y="1628" font-size="8.5" font-weight="500" fill="#A89A7A" text-anchor="middle" letter-spacing="1.5">EV-M1 · ANLASS &amp; FEINJUSTIERUNG (MOBILE)</text>
+
+</svg>

@@ -1,0 +1,382 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 834 1500" font-family="ui-sans-serif, system-ui, -apple-system">
+  <defs>
+    <linearGradient id="bg-t1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F5F1E8"/>
+      <stop offset="100%" stop-color="#EDE6D3"/>
+    </linearGradient>
+  </defs>
+
+  <!-- ============================================================ -->
+  <!-- 1. BACKGROUND                                                -->
+  <!-- ============================================================ -->
+  <rect x="0" y="0" width="834" height="1500" fill="url(#bg-t1)"/>
+
+  <!-- ============================================================ -->
+  <!-- 2. TOP-NAV  centred at y=44                                 -->
+  <!-- ============================================================ -->
+  <g transform="translate(28,44)">
+    <circle cx="0" cy="0" r="6" fill="#2C2A26"/>
+    <line x1="0"   y1="-10" x2="0"   y2="-14" stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="0"   y1="10"  x2="0"   y2="14"  stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="10"  y1="0"   x2="14"  y2="0"   stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="-10" y1="0"   x2="-14" y2="0"   stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="7"   y1="-7"  x2="10"  y2="-10" stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="-7"  y1="-7"  x2="-10" y2="-10" stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="7"   y1="7"   x2="10"  y2="10"  stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="-7"  y1="7"   x2="-10" y2="10"  stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round"/>
+    <text x="22" y="5" font-size="17" font-weight="500" fill="#2C2A26">buscosun</text>
+    <circle cx="620" cy="0" r="4" fill="#7A9466"/>
+    <text x="630" y="5" font-size="12" fill="#7A9466">Daten live</text>
+    <g transform="translate(718,0)" fill="none" stroke="#2C2A26" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M-6,6 C-6,-2 -4,-8 0,-8 C4,-8 6,-2 6,6 L8,8 L-8,8 Z"/>
+      <path d="M-2,8 C-2,10 2,10 2,8"/>
+    </g>
+    <circle cx="764" cy="0" r="16" fill="#2C2A26"/>
+    <text x="764" y="5" font-size="11" fill="white" text-anchor="middle" font-weight="500">JS</text>
+  </g>
+
+  <!-- 3. Nav separator -->
+  <line x1="0" y1="64" x2="834" y2="64" stroke="#E0D6BE" stroke-width="0.5"/>
+
+  <!-- ============================================================ -->
+  <!-- 4. INTRO  y=80                                              -->
+  <!-- ============================================================ -->
+  <text x="40" y="100" font-size="10" font-weight="500" fill="#A89A7A" letter-spacing="3">EVENT-PLANUNG</text>
+  <text x="40" y="132" font-size="28" font-weight="300" fill="#2C2A26">Welcher Tag passt am besten?</text>
+  <text x="40" y="154" font-size="13" fill="#5C5447">Anlass, Ort und Zeitfenster angeben — buscosun analysiert das ideale Wetterfenster.</text>
+
+  <!-- ============================================================ -->
+  <!-- 5. SUMMARY TILES 2×2  y=170                                 -->
+  <!-- ============================================================ -->
+  <rect x="40"  y="170" width="360" height="50" rx="12" fill="#FAF6EA" stroke="#D9D0B8" stroke-width="0.5"/>
+  <text x="56"  y="186" font-size="9"  font-weight="500" fill="#A89A7A" letter-spacing="2">ANLASS</text>
+  <text x="56"  y="207" font-size="14" font-weight="500" fill="#2C2A26">Hochzeit</text>
+
+  <rect x="414" y="170" width="360" height="50" rx="12" fill="#FAF6EA" stroke="#D9D0B8" stroke-width="0.5"/>
+  <text x="430" y="186" font-size="9"  font-weight="500" fill="#A89A7A" letter-spacing="2">ORT</text>
+  <text x="430" y="207" font-size="14" font-weight="500" fill="#A89A7A">–</text>
+
+  <rect x="40"  y="228" width="360" height="50" rx="12" fill="#FAF6EA" stroke="#D9D0B8" stroke-width="0.5"/>
+  <text x="56"  y="244" font-size="9"  font-weight="500" fill="#A89A7A" letter-spacing="2">ZEITFENSTER</text>
+  <text x="56"  y="265" font-size="14" font-weight="500" fill="#A89A7A">–</text>
+
+  <rect x="414" y="228" width="360" height="50" rx="12" fill="#FAF6EA" stroke="#D9D0B8" stroke-width="0.5"/>
+  <text x="430" y="244" font-size="9"  font-weight="500" fill="#A89A7A" letter-spacing="2">STATUS</text>
+  <text x="430" y="265" font-size="14" font-weight="500" fill="#A89A7A">–</text>
+
+  <!-- ============================================================ -->
+  <!-- 6. SECTION "1 · ANLASS"  y=294                              -->
+  <!-- ============================================================ -->
+  <rect x="40" y="294" width="104" height="26" rx="8" fill="#2C2A26"/>
+  <text x="56" y="311" font-size="11" font-weight="500" fill="white">1 · ANLASS</text>
+
+  <!-- Anlass grid: 3 cols × 4 rows. col w=228, gap=8
+       col1=40, col2=276, col3=512  row h=62, gap=6
+       Row1=328, Row2=396, Row3=464, Row4=532 (full-width) -->
+
+  <!-- Row 1, y=328 -->
+  <!-- Hochzeit SELECTED -->
+  <rect x="40"  y="328" width="228" height="62" rx="12" fill="#2C2A26"/>
+  <g transform="translate(62,359)" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="-5" cy="0" r="7"/>
+    <circle cx="5"  cy="0" r="7"/>
+    <path d="M0,-13 L0,-9"/>
+    <circle cx="0" cy="-15" r="2.5" fill="rgba(255,255,255,0.85)" stroke="none"/>
+  </g>
+  <text x="84" y="352" font-size="13" font-weight="500" fill="white">Hochzeit</text>
+  <text x="84" y="366" font-size="10" fill="rgba(255,255,255,0.60)">Trocken · Warm · Sonnig</text>
+
+  <!-- Wandern -->
+  <rect x="276" y="328" width="228" height="62" rx="12" fill="#FAF6EA" stroke="#D9D0B8" stroke-width="0.5"/>
+  <g transform="translate(296,359)" fill="none" stroke="#5C5447" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="-10,10 0,-8 10,10"/>
+    <polyline points="0,4 8,-5 16,10"/>
+    <line x1="-12" y1="10" x2="18" y2="10"/>
+  </g>
+  <text x="320" y="352" font-size="13" font-weight="500" fill="#2C2A26">Wandern</text>
+  <text x="320" y="366" font-size="10" fill="#A89A7A">Trocken · Kühl · Klar</text>
+
+  <!-- Radtour -->
+  <rect x="512" y="328" width="228" height="62" rx="12" fill="#FAF6EA" stroke="#D9D0B8" stroke-width="0.5"/>
+  <g transform="translate(532,359)" fill="none" stroke="#5C5447" stroke-width="1.7" stroke-linecap="round">
+    <circle cx="0" cy="0" r="10"/>
+    <circle cx="0" cy="0" r="3"/>
+    <line x1="0" y1="-3"  x2="0"   y2="-10"/>
+    <line x1="2.6" y1="1.5" x2="8.7" y2="5"/>
+    <line x1="-2.6" y1="1.5" x2="-8.7" y2="5"/>
+  </g>
+  <text x="556" y="352" font-size="13" font-weight="500" fill="#2C2A26">Radtour</text>
+  <text x="556" y="366" font-size="10" fill="#A89A7A">Trocken · Mäßig Wind</text>
+
+  <!-- Row 2, y=396 -->
+  <!-- Grillen -->
+  <rect x="40"  y="396" width="228" height="62" rx="12" fill="#FAF6EA" stroke="#D9D0B8" stroke-width="0.5"/>
+  <g transform="translate(60,427)" fill="none" stroke="#C97B47" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M2,10 C-6,4 -3,-5 2,-10 C4,-3 8,-1 6,5 C10,1 10,-5 8,-10 C14,-3 16,5 12,10 C10,15 4,15 2,10 Z"/>
+  </g>
+  <text x="84" y="420" font-size="13" font-weight="500" fill="#2C2A26">Grillen</text>
+  <text x="84" y="434" font-size="10" fill="#A89A7A">Kein Regen · Windstill</text>
+
+  <!-- Fotografieren -->
+  <rect x="276" y="396" width="228" height="62" rx="12" fill="#FAF6EA" stroke="#D9D0B8" stroke-width="0.5"/>
+  <g transform="translate(296,427)" fill="none" stroke="#5C5447" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="-10" y="-6" width="20" height="14" rx="2"/>
+    <circle cx="0" cy="1" r="4"/>
+    <path d="M-5,-6 L-3,-9 L3,-9 L5,-6"/>
+    <circle cx="8" cy="-3" r="1.2" fill="#5C5447"/>
+  </g>
+  <text x="320" y="420" font-size="13" font-weight="500" fill="#2C2A26">Fotografieren</text>
+  <text x="320" y="434" font-size="10" fill="#A89A7A">Diffus · Golden Hour</text>
+
+  <!-- Picknick -->
+  <rect x="512" y="396" width="228" height="62" rx="12" fill="#FAF6EA" stroke="#D9D0B8" stroke-width="0.5"/>
+  <g transform="translate(532,427)" fill="none" stroke="#7A9466" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M0,10 C-10,-2 -6,-12 4,-10 C12,-8 12,2 4,8 C2,10 0,10 0,10 Z"/>
+    <line x1="0" y1="10" x2="-2" y2="14"/>
+    <line x1="0" y1="2"  x2="6"  y2="-4"/>
+  </g>
+  <text x="556" y="420" font-size="13" font-weight="500" fill="#2C2A26">Picknick</text>
+  <text x="556" y="434" font-size="10" fill="#A89A7A">Trocken · Sonnig</text>
+
+  <!-- Row 3, y=464 -->
+  <!-- Laufen -->
+  <rect x="40"  y="464" width="228" height="62" rx="12" fill="#FAF6EA" stroke="#D9D0B8" stroke-width="0.5"/>
+  <g transform="translate(60,495)" fill="none" stroke="#5C5447" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="2" cy="-14" r="4"/>
+    <path d="M2,-10 L4,-2 L-2,8"/>
+    <path d="M4,-2 L10,4"/>
+    <path d="M-2,8 L-4,16"/>
+    <path d="M-2,8 L4,16"/>
+    <path d="M0,-6 L-7,-2"/>
+  </g>
+  <text x="84" y="488" font-size="13" font-weight="500" fill="#2C2A26">Laufen</text>
+  <text x="84" y="502" font-size="10" fill="#A89A7A">Kühl · Kein Regen</text>
+
+  <!-- Baden -->
+  <rect x="276" y="464" width="228" height="62" rx="12" fill="#FAF6EA" stroke="#D9D0B8" stroke-width="0.5"/>
+  <g transform="translate(296,495)" fill="none" stroke="#3A6FA8" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M-10,0 C-6,-6 -2,-6 2,0 C6,6 10,6 14,0"/>
+    <path d="M-10,8 C-6,2  -2,2  2,8 C6,14 10,14 14,8"/>
+  </g>
+  <text x="320" y="488" font-size="13" font-weight="500" fill="#2C2A26">Baden</text>
+  <text x="320" y="502" font-size="10" fill="#A89A7A">Warm · Sonnig · Kein Wind</text>
+
+  <!-- Sterne schauen -->
+  <rect x="512" y="464" width="228" height="62" rx="12" fill="#FAF6EA" stroke="#D9D0B8" stroke-width="0.5"/>
+  <g transform="translate(532,495)" fill="none" stroke="#6B7A8F" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <polygon points="0,-10 2.9,-4 9.5,-3.1 4.8,1.5 5.9,8.1 0,5 -5.9,8.1 -4.8,1.5 -9.5,-3.1 -2.9,-4"/>
+  </g>
+  <text x="556" y="488" font-size="13" font-weight="500" fill="#2C2A26">Sterne schauen</text>
+  <text x="556" y="502" font-size="10" fill="#A89A7A">Klar · Trocken</text>
+
+  <!-- Row 4: Eigener Anlass, y=532 -->
+  <rect x="40" y="532" width="700" height="62" rx="12" fill="#FAF6EA" stroke="#C4B896" stroke-width="1" stroke-dasharray="6,4"/>
+  <g transform="translate(72,563)" fill="none" stroke="#A89A7A" stroke-width="1.7" stroke-linecap="round">
+    <line x1="-8" y1="0" x2="8" y2="0"/>
+    <line x1="0" y1="-8" x2="0" y2="8"/>
+  </g>
+  <text x="96" y="558" font-size="13" font-weight="500" fill="#5C5447">Eigener Anlass</text>
+  <text x="96" y="574" font-size="10" fill="#A89A7A">Freitext eingeben …</text>
+
+  <!-- ============================================================ -->
+  <!-- 7. PRESET-FAKTOREN BAND  y=610                              -->
+  <!-- ============================================================ -->
+  <rect x="40" y="610" width="754" height="50" rx="12" fill="#F0F4EA" stroke="#7A9466" stroke-width="0.5"/>
+  <text x="60" y="632" font-size="12" font-weight="500" fill="#5F7951">Für Hochzeit automatisch bewertet:</text>
+  <rect x="276" y="620" width="90"  height="24" rx="12" fill="#7A9466"/>
+  <text x="321" y="637" font-size="11" fill="white"    text-anchor="middle" font-weight="500">Trockenheit</text>
+  <rect x="374" y="620" width="86"  height="24" rx="12" fill="#C4B896"/>
+  <text x="417" y="637" font-size="11" fill="#2C2A26"  text-anchor="middle" font-weight="500">Temperatur</text>
+  <rect x="468" y="620" width="74"  height="24" rx="12" fill="#C4B896"/>
+  <text x="505" y="637" font-size="11" fill="#2C2A26"  text-anchor="middle" font-weight="500">Windruhe</text>
+  <rect x="550" y="620" width="96"  height="24" rx="12" fill="#C4B896"/>
+  <text x="598" y="637" font-size="11" fill="#2C2A26"  text-anchor="middle" font-weight="500">Sonne · Sicht</text>
+
+  <!-- ============================================================ -->
+  <!-- 8. FINE-TUNING CARD  y=676                                  -->
+  <!-- ============================================================ -->
+  <rect x="40" y="676" width="754" height="186" rx="16" fill="white" stroke="#E0D6BE" stroke-width="0.5"/>
+  <text x="60" y="697" font-size="9" font-weight="500" fill="#A89A7A" letter-spacing="2">FEIN-JUSTIERUNG</text>
+  <text x="60" y="718" font-size="13" font-weight="500" fill="#2C2A26">Wohlfühl-Temperatur</text>
+  <text x="204" y="718" font-size="13" fill="#5C5447">18 – 26 °C</text>
+
+  <!-- track x=60 width=564, importance right at x=700 -->
+  <!-- Slider 1: Trockenheit 85% -->
+  <text x="60"  y="742" font-size="12" fill="#2C2A26">Trockenheit</text>
+  <text x="700" y="742" font-size="11" fill="#7A9466" text-anchor="end" font-weight="500">entscheidend</text>
+  <rect x="60"  y="748" width="564" height="4" rx="2" fill="#D9D0B8"/>
+  <rect x="60"  y="748" width="479" height="4" rx="2" fill="#C97B47"/>
+  <circle cx="539" cy="750" r="7" fill="white" stroke="#C97B47" stroke-width="1.8"/>
+
+  <!-- Slider 2: Temperatur 65% -->
+  <text x="60"  y="774" font-size="12" fill="#2C2A26">Temperatur</text>
+  <text x="700" y="774" font-size="11" fill="#A89A7A" text-anchor="end" font-weight="500">wichtig</text>
+  <rect x="60"  y="780" width="564" height="4" rx="2" fill="#D9D0B8"/>
+  <rect x="60"  y="780" width="367" height="4" rx="2" fill="#C97B47"/>
+  <circle cx="427" cy="782" r="7" fill="white" stroke="#C97B47" stroke-width="1.8"/>
+
+  <!-- Slider 3: Windruhe 60% -->
+  <text x="60"  y="806" font-size="12" fill="#2C2A26">Windruhe</text>
+  <text x="700" y="806" font-size="11" fill="#A89A7A" text-anchor="end" font-weight="500">wichtig</text>
+  <rect x="60"  y="812" width="564" height="4" rx="2" fill="#D9D0B8"/>
+  <rect x="60"  y="812" width="338" height="4" rx="2" fill="#C97B47"/>
+  <circle cx="398" cy="814" r="7" fill="white" stroke="#C97B47" stroke-width="1.8"/>
+
+  <!-- Slider 4: Sonne 28% -->
+  <text x="60"  y="838" font-size="12" fill="#2C2A26">Sonne</text>
+  <text x="700" y="838" font-size="11" fill="#C4B896" text-anchor="end" font-weight="500">wenig</text>
+  <rect x="60"  y="844" width="564" height="4" rx="2" fill="#D9D0B8"/>
+  <rect x="60"  y="844" width="158" height="4" rx="2" fill="#C97B47"/>
+  <circle cx="218" cy="846" r="7" fill="white" stroke="#C97B47" stroke-width="1.8"/>
+
+  <!-- ============================================================ -->
+  <!-- 9. SECTION "2 · ORT"  y=878                                 -->
+  <!-- ============================================================ -->
+  <rect x="40" y="878" width="90" height="26" rx="8" fill="#2C2A26"/>
+  <text x="56" y="895" font-size="11" font-weight="500" fill="white">2 · ORT</text>
+
+  <rect x="40" y="914" width="340" height="36" rx="20" fill="#2C2A26"/>
+  <rect x="58" y="927" width="22"  height="12" rx="2" fill="#3A6FA8"/>
+  <text x="69"  y="937" font-size="8" fill="white" text-anchor="middle" font-weight="600">DE</text>
+  <text x="90"  y="939" font-size="13" fill="white" font-weight="500">Meersburg am Bodensee</text>
+  <text x="396" y="939" font-size="13" fill="#C97B47" font-weight="500">Ändern</text>
+
+  <!-- ============================================================ -->
+  <!-- 10. SECTION "3 · ZEITFENSTER"  y=966                        -->
+  <!-- ============================================================ -->
+  <rect x="40" y="966" width="152" height="26" rx="8" fill="#2C2A26"/>
+  <text x="56" y="983" font-size="11" font-weight="500" fill="white">3 · ZEITFENSTER</text>
+
+  <!-- Segmented control -->
+  <rect x="40" y="1002" width="324" height="38" rx="20" fill="#FAF6EA" stroke="#D9D0B8" stroke-width="0.5"/>
+  <rect x="44" y="1006" width="154" height="30" rx="16" fill="#2C2A26"/>
+  <text x="121" y="1026" font-size="13" fill="white"    text-anchor="middle" font-weight="500">Zeitraum</text>
+  <text x="281" y="1026" font-size="13" fill="#5C5447"  text-anchor="middle">Einzeltermine</text>
+
+  <!-- Von / Bis -->
+  <rect x="40"  y="1050" width="354" height="46" rx="12" fill="#FAF6EA" stroke="#D9D0B8" stroke-width="0.5"/>
+  <text x="58"  y="1068" font-size="9"  font-weight="500" fill="#A89A7A" letter-spacing="2">VON</text>
+  <text x="58"  y="1086" font-size="13" font-weight="500" fill="#2C2A26">Sa 13. Juni 2026</text>
+  <g transform="translate(372,1073)" fill="none" stroke="#A89A7A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="-9" y="-9" width="18" height="16" rx="2"/>
+    <line x1="-9" y1="-3" x2="9" y2="-3"/>
+    <line x1="-3" y1="-12" x2="-3" y2="-6"/>
+    <line x1="3"  y1="-12" x2="3"  y2="-6"/>
+  </g>
+
+  <rect x="406" y="1050" width="354" height="46" rx="12" fill="#FAF6EA" stroke="#D9D0B8" stroke-width="0.5"/>
+  <text x="424" y="1068" font-size="9"  font-weight="500" fill="#A89A7A" letter-spacing="2">BIS</text>
+  <text x="424" y="1086" font-size="13" font-weight="500" fill="#2C2A26">Sa 20. Juni 2026</text>
+  <g transform="translate(738,1073)" fill="none" stroke="#A89A7A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="-9" y="-9" width="18" height="16" rx="2"/>
+    <line x1="-9" y1="-3" x2="9" y2="-3"/>
+    <line x1="-3" y1="-12" x2="-3" y2="-6"/>
+    <line x1="3"  y1="-12" x2="3"  y2="-6"/>
+  </g>
+
+  <!-- ============================================================ -->
+  <!-- 11. SECTION "4 · PHASEN"  y=1112                            -->
+  <!-- ============================================================ -->
+  <rect x="40" y="1112" width="120" height="26" rx="8" fill="#2C2A26"/>
+  <text x="56" y="1129" font-size="11" font-weight="500" fill="white">4 · PHASEN</text>
+
+  <!-- Template pills -->
+  <rect x="40"  y="1148" width="88" height="28" rx="16" fill="#2C2A26"/>
+  <text x="84"  y="1166" font-size="12" fill="white"    text-anchor="middle" font-weight="500">Hochzeit</text>
+  <rect x="136" y="1148" width="94" height="28" rx="16" fill="#FAF6EA" stroke="#D9D0B8" stroke-width="0.5"/>
+  <text x="183" y="1166" font-size="12" fill="#5C5447"  text-anchor="middle">Firmenfeier</text>
+  <rect x="238" y="1148" width="94" height="28" rx="16" fill="#FAF6EA" stroke="#D9D0B8" stroke-width="0.5"/>
+  <text x="285" y="1166" font-size="12" fill="#5C5447"  text-anchor="middle">Geburtstag</text>
+  <rect x="340" y="1148" width="82" height="28" rx="16" fill="#FAF6EA" stroke="#C4B896" stroke-width="0.5" stroke-dasharray="4,3"/>
+  <text x="381" y="1166" font-size="12" fill="#A89A7A"  text-anchor="middle">+ Eigene</text>
+
+  <!-- Phase 1: Trauung  y=1186 -->
+  <rect x="40" y="1186" width="754" height="44" rx="12" fill="#FAF6EA" stroke="#D9D0B8" stroke-width="0.5"/>
+  <rect x="40" y="1186" width="4"   height="44" rx="2"  fill="#D4A373"/>
+  <g transform="translate(66,1208)" fill="none" stroke="#6B7A8F" stroke-width="1.5" stroke-linecap="round">
+    <circle cx="0" cy="0" r="9"/>
+    <line x1="0" y1="-6" x2="0" y2="0"/>
+    <line x1="0" y1="0" x2="5" y2="3"/>
+  </g>
+  <text x="88"  y="1206" font-size="13" font-weight="500" fill="#2C2A26">Trauung</text>
+  <text x="88"  y="1221" font-size="11" fill="#5C5447">13:00 – 15:00</text>
+  <text x="754" y="1210" font-size="11" fill="#A89A7A" text-anchor="end">Garten / Kapelle</text>
+
+  <!-- Phase 2: Empfang  y=1238 -->
+  <rect x="40" y="1238" width="754" height="44" rx="12" fill="#FAF6EA" stroke="#D9D0B8" stroke-width="0.5"/>
+  <rect x="40" y="1238" width="4"   height="44" rx="2"  fill="#7A9466"/>
+  <g transform="translate(66,1260)" fill="none" stroke="#6B7A8F" stroke-width="1.5" stroke-linecap="round">
+    <circle cx="0" cy="0" r="9"/>
+    <line x1="0" y1="-6" x2="0" y2="0"/>
+    <line x1="0" y1="0" x2="5" y2="3"/>
+  </g>
+  <text x="88"  y="1258" font-size="13" font-weight="500" fill="#2C2A26">Empfang</text>
+  <text x="88"  y="1273" font-size="11" fill="#5C5447">15:00 – 18:00</text>
+  <text x="754" y="1262" font-size="11" fill="#A89A7A" text-anchor="end">Terrasse / Park</text>
+
+  <!-- Phase 3: Abendfeier  y=1290 -->
+  <rect x="40" y="1290" width="754" height="44" rx="12" fill="#FAF6EA" stroke="#D9D0B8" stroke-width="0.5"/>
+  <rect x="40" y="1290" width="4"   height="44" rx="2"  fill="#6B7A8F"/>
+  <g transform="translate(66,1312)" fill="none" stroke="#6B7A8F" stroke-width="1.5" stroke-linecap="round">
+    <circle cx="0" cy="0" r="9"/>
+    <line x1="0" y1="-6" x2="0" y2="0"/>
+    <line x1="0" y1="0" x2="5" y2="3"/>
+  </g>
+  <text x="88"  y="1310" font-size="13" font-weight="500" fill="#2C2A26">Abendfeier</text>
+  <text x="88"  y="1325" font-size="11" fill="#5C5447">18:00 – 23:00</text>
+  <text x="754" y="1314" font-size="11" fill="#A89A7A" text-anchor="end">Festsaal</text>
+
+  <!-- + Phase hinzufügen  y=1342 -->
+  <rect x="40" y="1342" width="754" height="36" rx="12" fill="none" stroke="#C4B896" stroke-width="1" stroke-dasharray="5,4"/>
+  <text x="417" y="1365" font-size="13" fill="#A89A7A" text-anchor="middle">+ Phase hinzufügen</text>
+
+  <!-- ============================================================ -->
+  <!-- 12. SECTION "5 · PLAN B (OPTIONAL)"  y=1392                 -->
+  <!-- ============================================================ -->
+  <rect x="40" y="1392" width="200" height="26" rx="8" fill="#2C2A26"/>
+  <text x="56" y="1409" font-size="11" font-weight="500" fill="white">5 · PLAN B (OPTIONAL)</text>
+
+  <!-- Plan B card -->
+  <rect x="40" y="1428" width="754" height="106" rx="16" fill="white" stroke="#E0D6BE" stroke-width="0.5"/>
+
+  <!-- Row 1: Checkbox + label -->
+  <!-- Checked checkbox -->
+  <rect x="60" y="1444" width="16" height="16" rx="3" fill="#2C2A26"/>
+  <path d="M63,1452 L67,1456 L74,1447" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="84" y="1456" font-size="13" font-weight="500" fill="#2C2A26">Plan B aktivieren</text>
+
+  <!-- Row 2: Auslöser -->
+  <text x="60" y="1482" font-size="12" fill="#5C5447">Auslöser:</text>
+  <rect x="126" y="1469" width="114" height="26" rx="12" fill="#FAF6EA" stroke="#D9D0B8" stroke-width="0.5"/>
+  <text x="183"  y="1486" font-size="11" fill="#2C2A26" text-anchor="middle">Regenmenge ▾</text>
+  <!-- Slider: > 3 mm -->
+  <text x="252" y="1482" font-size="12" fill="#5C5447">&gt; 3 mm</text>
+  <rect x="296" y="1477" width="180" height="4" rx="2" fill="#D9D0B8"/>
+  <rect x="296" y="1477" width="54"  height="4" rx="2" fill="#3A6FA8"/>
+  <circle cx="350" cy="1479" r="6" fill="white" stroke="#3A6FA8" stroke-width="1.8"/>
+
+  <!-- Row 3: Venue tiles -->
+  <rect x="60"  y="1502" width="110" height="26" rx="12" fill="#2C2A26"/>
+  <text x="115" y="1519" font-size="11" fill="white"    text-anchor="middle" font-weight="500">Zelt / Pavillon</text>
+  <rect x="178" y="1502" width="86"  height="26" rx="12" fill="#FAF6EA" stroke="#D9D0B8" stroke-width="0.5"/>
+  <text x="221" y="1519" font-size="11" fill="#5C5447"  text-anchor="middle">Innenraum</text>
+  <rect x="272" y="1502" width="98"  height="26" rx="12" fill="#FAF6EA" stroke="#D9D0B8" stroke-width="0.5"/>
+  <text x="321" y="1519" font-size="11" fill="#5C5447"  text-anchor="middle">Weitersuchen</text>
+  <!-- Wunschtag -->
+  <text x="384" y="1519" font-size="12" fill="#5C5447">Wunschtag:</text>
+  <rect x="458" y="1502" width="160" height="26" rx="12" fill="#FAF6EA" stroke="#D9D0B8" stroke-width="0.5"/>
+  <text x="538" y="1519" font-size="11" fill="#2C2A26" text-anchor="middle" font-weight="500">So 14. Juni 2026</text>
+
+  <!-- ============================================================ -->
+  <!-- 13. CTA BUTTON  y=1548                                      -->
+  <!-- ============================================================ -->
+  <rect x="40" y="1548" width="754" height="52" rx="16" fill="#C97B47"/>
+  <text x="417" y="1579" text-anchor="middle" font-size="15" font-weight="500" fill="white">Beste Tage finden →</text>
+
+  <!-- ============================================================ -->
+  <!-- 14. FOOTER  y=1490 area — placed after CTA                  -->
+  <!-- ============================================================ -->
+  <text x="40"  y="1616" font-size="9" font-weight="500" fill="#A89A7A" letter-spacing="2">EV-T1 · EINGABE (TABLET)</text>
+  <text x="794" y="1616" font-size="9" font-weight="500" fill="#A89A7A" text-anchor="end" letter-spacing="2">EVENT-PLANUNG · BUSCOSUN</text>
+
+</svg>

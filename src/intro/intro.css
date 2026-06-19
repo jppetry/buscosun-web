@@ -1,0 +1,142 @@
+/* Intro tour — trigger pill + step overlay. Design-system tokens only (v1.8).
+ * Motion is transform/opacity (60fps) and disabled under reduced-motion. */
+
+/* ===== Trigger (homepage, under the hero) ===== */
+.intro-trigger {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  font: inherit; font-size: 0.8rem; color: var(--stone-600);
+  background: var(--cream-50); border: 1px solid var(--border-default);
+  border-radius: 999px; padding: 0.4rem 0.9rem; cursor: pointer;
+  box-shadow: var(--shadow-card);
+  transition: border-color 0.18s ease, color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+}
+.intro-trigger:hover { border-color: var(--terracotta-500); color: var(--ink-900); transform: translateY(-1px); box-shadow: var(--shadow-float); }
+.intro-trigger:focus-visible { outline: 2px solid var(--ink-900); outline-offset: 2px; }
+.intro-trigger-spark { color: var(--terracotta-500); display: inline-flex; }
+/* First-visit attention: a one-shot soft pulse ring (reuses the live-dot idea). */
+.intro-trigger.is-pulse { position: relative; }
+.intro-trigger.is-pulse::after {
+  content: ''; position: absolute; inset: -1px; border-radius: 999px;
+  border: 1px solid var(--terracotta-500); opacity: 0;
+  animation: intro-trigger-pulse 2.6s ease-out 3; pointer-events: none;
+}
+@keyframes intro-trigger-pulse {
+  0% { transform: scale(1); opacity: 0.5; }
+  70% { transform: scale(1.18); opacity: 0; }
+  100% { opacity: 0; }
+}
+
+/* ===== Overlay ===== */
+.intro-overlay {
+  position: fixed; inset: 0; z-index: 2000;
+  display: grid; place-items: center; padding: 1.25rem;
+  background: rgba(44, 42, 38, 0.5); backdrop-filter: blur(6px);
+  animation: intro-overlay-in 0.22s ease both;
+}
+@keyframes intro-overlay-in { from { opacity: 0; } to { opacity: 1; } }
+
+.intro-dialog {
+  position: relative;
+  width: min(880px, 100%); max-height: 92vh; overflow: auto;
+  background: var(--cream-50); border: 1px solid var(--border-default);
+  border-radius: 24px; box-shadow: var(--shadow-float);
+  padding: 1.6rem 1.8rem 1.3rem;
+  display: flex; flex-direction: column; gap: 1.2rem;
+  animation: intro-dialog-in 0.26s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+@keyframes intro-dialog-in { from { opacity: 0; transform: translateY(12px) scale(0.985); } to { opacity: 1; transform: none; } }
+
+.intro-close {
+  position: absolute; top: 0.9rem; right: 0.9rem; z-index: 2;
+  display: inline-flex; padding: 0.45rem; border-radius: 50%;
+  background: none; border: none; color: var(--stone-500); cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.intro-close:hover { background: var(--sand-100); color: var(--ink-900); }
+.intro-close:focus-visible { outline: 2px solid var(--ink-900); outline-offset: 2px; }
+
+/* ===== Step stage ===== */
+.intro-stage {
+  display: grid; grid-template-columns: 1fr; gap: 1.4rem; align-items: center;
+  animation: intro-in-fwd 0.32s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+.intro-stage[data-dir='back'] { animation-name: intro-in-back; }
+@keyframes intro-in-fwd { from { opacity: 0; transform: translateX(26px); } to { opacity: 1; transform: none; } }
+@keyframes intro-in-back { from { opacity: 0; transform: translateX(-26px); } to { opacity: 1; transform: none; } }
+
+.intro-art {
+  background: var(--sand-50); border: 1px solid var(--border-default);
+  border-radius: 18px; padding: 0.6rem 0.8rem; color: var(--intro-accent, var(--ink-900));
+  align-self: start; display: flex; flex-direction: column; gap: 0.5rem;
+}
+.intro-art-svg { display: block; width: 100%; height: auto; }
+.intro-art-svg text { font-family: var(--font-base); }
+.intro-art-detail { border-top: 1px solid var(--border-default); padding-top: 0.55rem; }
+
+.intro-copy { display: flex; flex-direction: column; gap: 0.5rem; }
+.intro-eyebrow { font-size: 0.69rem; letter-spacing: 0.22em; font-weight: 600; text-transform: uppercase; color: var(--intro-accent, var(--stone-500)); }
+.intro-title { margin: 0; font-size: clamp(1.4rem, 3.2vw, 1.9rem); font-weight: 300; letter-spacing: -0.02em; line-height: 1.12; color: var(--ink-900); }
+.intro-body { margin: 0; font-size: 0.98rem; line-height: 1.55; color: var(--stone-600); max-width: 48ch; }
+
+/* capabilities ("Das bietet dir das Feature") */
+.intro-caps { list-style: none; margin: 0.3rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.45rem; }
+.intro-caps li { display: flex; align-items: flex-start; gap: 0.55rem; font-size: 0.9rem; line-height: 1.4; color: var(--stone-600); }
+.intro-caps-mark {
+  flex: none; margin-top: 1px; display: inline-flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: color-mix(in srgb, var(--intro-accent) 16%, transparent); color: var(--intro-accent);
+}
+/* "So geht's" usage hint */
+.intro-howto {
+  display: flex; align-items: flex-start; gap: 0.55rem; margin: 0.55rem 0 0;
+  padding: 0.55rem 0.7rem; background: var(--sand-50); border: 1px solid var(--border-default);
+  border-radius: 12px; font-size: 0.85rem; line-height: 1.45; color: var(--stone-600);
+}
+.intro-howto-ic { flex: none; margin-top: 1px; color: var(--intro-accent); display: inline-flex; }
+.intro-howto strong { color: var(--ink-900); font-weight: 600; }
+
+@media (min-width: 721px) {
+  .intro-stage { grid-template-columns: 1.05fr 1fr; gap: 2rem; }
+  .intro-copy { text-align: left; }
+}
+@media (max-width: 720px) {
+  .intro-dialog { padding: 1.5rem 1.2rem 1.1rem; gap: 1rem; }
+  .intro-copy { text-align: center; align-items: center; }
+  .intro-body { max-width: 38ch; }
+}
+
+/* ===== Footer / navigation ===== */
+.intro-footer { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; padding-top: 0.4rem; }
+.intro-nav-btn {
+  display: inline-flex; align-items: center; gap: 0.35rem; font: inherit; font-size: 0.86rem; font-weight: 500;
+  background: #fff; border: 1px solid var(--border-default); color: var(--ink-900);
+  border-radius: 999px; padding: 0.5rem 0.95rem; cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, opacity 0.15s ease;
+}
+.intro-nav-btn:hover { border-color: var(--stone-400); }
+.intro-nav-btn:disabled { opacity: 0.4; cursor: default; }
+.intro-next { background: var(--ink-900); border-color: var(--ink-900); color: var(--cream-50); }
+.intro-next:hover { background: var(--ink-800); border-color: var(--ink-800); }
+.intro-cta {
+  display: inline-flex; align-items: center; gap: 0.4rem; font: inherit; font-size: 0.9rem; font-weight: 600;
+  background: var(--sage-600); border: 1px solid var(--sage-600); color: var(--cream-50);
+  border-radius: 999px; padding: 0.55rem 1.2rem; cursor: pointer; transition: filter 0.15s ease;
+}
+.intro-cta:hover { filter: brightness(0.95); }
+.intro-nav-btn:focus-visible, .intro-cta:focus-visible, .intro-dot:focus-visible { outline: 2px solid var(--ink-900); outline-offset: 2px; }
+
+/* segmented progress */
+.intro-dots { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; justify-content: center; }
+.intro-dot {
+  width: 8px; height: 8px; padding: 0; border: none; border-radius: 999px;
+  background: var(--sand-300); cursor: pointer; transition: width 0.2s ease, background 0.2s ease;
+}
+.intro-dot.is-active { width: 22px; background: var(--intro-accent, var(--ink-900)); }
+@media (max-width: 480px) { .intro-dot { width: 7px; height: 7px; } .intro-dot.is-active { width: 18px; } }
+
+/* ===== Reduced motion: keep everything, drop the movement ===== */
+@media (prefers-reduced-motion: reduce) {
+  .intro-overlay, .intro-dialog, .intro-stage { animation: none !important; }
+  .intro-trigger.is-pulse::after { animation: none; }
+  .intro-trigger, .intro-nav-btn, .intro-cta, .intro-dot, .intro-close { transition: none; }
+}

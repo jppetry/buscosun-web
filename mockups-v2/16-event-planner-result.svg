@@ -1,0 +1,441 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1600" font-family="ui-sans-serif, system-ui, -apple-system">
+  <defs>
+    <linearGradient id="bg16" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F5F1E8"/>
+      <stop offset="100%" stop-color="#EDE6D3"/>
+    </linearGradient>
+    <linearGradient id="riskGood" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7A9466"/>
+      <stop offset="100%" stop-color="#5F7951"/>
+    </linearGradient>
+    <radialGradient id="scoreDot">
+      <stop offset="0%" stop-color="#7A9466" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#7A9466" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  
+  <rect width="1440" height="1600" fill="url(#bg16)"/>
+  
+  <!-- TOP NAV -->
+  <g>
+    <g transform="translate(32, 24)">
+      <circle cx="14" cy="14" r="6" fill="#2C2A26"/>
+      <g stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round">
+        <line x1="14" y1="0" x2="14" y2="3"/>
+        <line x1="14" y1="25" x2="14" y2="28"/>
+        <line x1="0" y1="14" x2="3" y2="14"/>
+        <line x1="25" y1="14" x2="28" y2="14"/>
+      </g>
+      <text x="42" y="20" font-size="18" font-weight="500" fill="#2C2A26" letter-spacing="-0.5">buscosun</text>
+    </g>
+    
+    <g transform="translate(200, 30)">
+      <g stroke="#5C5447" stroke-width="1.5" fill="none" stroke-linecap="round">
+        <line x1="0" y1="10" x2="14" y2="10"/>
+        <line x1="0" y1="10" x2="6" y2="4"/>
+        <line x1="0" y1="10" x2="6" y2="16"/>
+      </g>
+      <text x="24" y="15" font-size="13" fill="#5C5447">Konfiguration bearbeiten</text>
+    </g>
+    
+    <g transform="translate(1314, 18)">
+      <rect width="40" height="40" rx="20" fill="#FFFFFF" stroke="#D9D0B8" stroke-width="0.5"/>
+      <circle cx="20" cy="20" r="7" fill="#7A9466"/>
+      <text x="20" y="24" font-size="9" fill="#FFFFFF" text-anchor="middle" font-weight="500">JS</text>
+    </g>
+  </g>
+  
+  <!-- ============ EVENT HEADER ============ -->
+  <g transform="translate(80, 100)">
+    <text font-size="11" fill="#A89A7A" letter-spacing="3" font-weight="500">RISK-ANALYSE · GEBURTSTAGS-WANDERUNG KARWENDEL</text>
+    <text y="56" font-size="56" font-weight="200" fill="#2C2A26" letter-spacing="-1.5">Es wird gut.</text>
+    <text y="100" font-size="16" fill="#5C5447">Sa, 18. Mai 2026 · 09:00–17:00 · Mittenwald, Bayern · Wandern · 4 Tage entfernt</text>
+  </g>
+  
+  <!-- ============ MAIN RESULT: BIG SCORE DONUT + STATS ============ -->
+  <g transform="translate(80, 260)">
+    <rect width="1280" height="380" rx="22" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    
+    <!-- LEFT: Donut score -->
+    <g transform="translate(80, 60)">
+      <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">EVENT-RISIKO</text>
+      
+      <g transform="translate(140, 142)">
+        <!-- Pulse -->
+        <circle r="148" fill="url(#scoreDot)"/>
+        
+        <!-- Background ring -->
+        <circle r="100" stroke="#F5F1E8" stroke-width="22" fill="none"/>
+        
+        <!-- Score arc: 23% — small arc -->
+        <circle r="100" stroke="url(#riskGood)" stroke-width="22" fill="none"
+                stroke-dasharray="144 628" stroke-dashoffset="-157"
+                stroke-linecap="round" transform="rotate(-90)"/>
+        
+        <!-- Center text -->
+        <text y="-12" font-size="64" font-weight="200" fill="#2C2A26" text-anchor="middle" letter-spacing="-3">23%</text>
+        <text y="22" font-size="11" fill="#A89A7A" letter-spacing="2" font-weight="600" text-anchor="middle">RISIKO</text>
+        <text y="44" font-size="13" fill="#7A9466" text-anchor="middle" font-weight="500">GERINGES RISIKO</text>
+      </g>
+    </g>
+    
+    <!-- RIGHT: Risk breakdown -->
+    <g transform="translate(560, 60)">
+      <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">AUFSCHLÜSSELUNG · WANDERN-GEWICHTUNG</text>
+      
+      <g transform="translate(0, 28)">
+        <!-- Temperature -->
+        <g>
+          <text font-size="10" fill="#A89A7A" letter-spacing="1.5" font-weight="500">TEMPERATUR · 25 %</text>
+          <text x="640" y="0" font-size="14" fill="#7A9466" font-weight="500" text-anchor="end">OK</text>
+          <g transform="translate(0, 12)">
+            <rect width="640" height="6" rx="3" fill="#F5F1E8"/>
+            <rect width="64" height="6" rx="3" fill="#7A9466"/>
+          </g>
+          <text y="32" font-size="11" fill="#5C5447">Tag-Ø 18° · innerhalb Komfort-Band 12–22°</text>
+        </g>
+        
+        <!-- Rain -->
+        <g transform="translate(0, 56)">
+          <text font-size="10" fill="#A89A7A" letter-spacing="1.5" font-weight="500">NIEDERSCHLAG · 35 %</text>
+          <text x="640" y="0" font-size="14" fill="#7A9466" font-weight="500" text-anchor="end">OK</text>
+          <g transform="translate(0, 12)">
+            <rect width="640" height="6" rx="3" fill="#F5F1E8"/>
+            <rect width="96" height="6" rx="3" fill="#7A9466"/>
+          </g>
+          <text y="32" font-size="11" fill="#5C5447">12 % Regen-Wahrscheinlichkeit · unter 15 %-Schwelle</text>
+        </g>
+        
+        <!-- Wind -->
+        <g transform="translate(0, 112)">
+          <text font-size="10" fill="#A89A7A" letter-spacing="1.5" font-weight="500">WIND · 20 %</text>
+          <text x="640" y="0" font-size="14" fill="#D4A373" font-weight="500" text-anchor="end">MODERAT</text>
+          <g transform="translate(0, 12)">
+            <rect width="640" height="6" rx="3" fill="#F5F1E8"/>
+            <rect width="192" height="6" rx="3" fill="#D4A373"/>
+          </g>
+          <text y="32" font-size="11" fill="#5C5447">Max 18 km/h · knapp unter 20 km/h-Schwelle</text>
+        </g>
+        
+        <!-- UV -->
+        <g transform="translate(0, 168)">
+          <text font-size="10" fill="#A89A7A" letter-spacing="1.5" font-weight="500">UV-INDEX · 15 %</text>
+          <text x="640" y="0" font-size="14" fill="#7A9466" font-weight="500" text-anchor="end">OK</text>
+          <g transform="translate(0, 12)">
+            <rect width="640" height="6" rx="3" fill="#F5F1E8"/>
+            <rect width="48" height="6" rx="3" fill="#7A9466"/>
+          </g>
+          <text y="32" font-size="11" fill="#5C5447">UV 4 · moderat · unter Schwelle 5</text>
+        </g>
+        
+        <!-- Konfidenz -->
+        <g transform="translate(0, 224)">
+          <text font-size="10" fill="#A89A7A" letter-spacing="1.5" font-weight="500">KONFIDENZ · 5 %</text>
+          <text x="640" y="0" font-size="14" fill="#7A9466" font-weight="500" text-anchor="end">HOCH</text>
+          <g transform="translate(0, 12)">
+            <rect width="640" height="6" rx="3" fill="#F5F1E8"/>
+            <rect width="32" height="6" rx="3" fill="#7A9466"/>
+          </g>
+          <text y="32" font-size="11" fill="#5C5447">4 / 4 Modelle stimmen überein · Spread ± 0.8°</text>
+        </g>
+      </g>
+    </g>
+  </g>
+  
+  <!-- ============ HOURLY FORECAST STRIP ============ -->
+  <g transform="translate(80, 680)">
+    <text font-size="11" fill="#A89A7A" letter-spacing="3" font-weight="500">STÜNDLICHER FORECAST · 09:00 BIS 17:00</text>
+    
+    <g transform="translate(0, 24)">
+      <rect width="1280" height="260" rx="22" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+      
+      <!-- Hourly cells -->
+      <g transform="translate(28, 28)">
+        <!-- 09h -->
+        <g>
+          <rect width="138" height="200" rx="14" fill="#F0F4EA" stroke="#7A9466" stroke-width="0.5"/>
+          <text x="14" y="20" font-size="11" fill="#7A9466" letter-spacing="2" font-weight="600">START</text>
+          <text x="14" y="42" font-size="13" fill="#5C5447">09:00</text>
+          <text x="14" y="84" font-size="36" fill="#2C2A26" font-weight="200" letter-spacing="-1">14°</text>
+          <text x="76" y="84" font-size="10" fill="#5C5447">±0.6</text>
+          <text x="14" y="114" font-size="11" fill="#5C5447">Wind 8 km/h SW</text>
+          <text x="14" y="132" font-size="11" fill="#5C5447">Regen 0 mm</text>
+          <line x1="14" y1="150" x2="124" y2="150" stroke="#7A9466" stroke-width="2" stroke-linecap="round"/>
+          <text x="14" y="172" font-size="9" fill="#7A9466" letter-spacing="1" font-weight="600">RISIKO 8 %</text>
+          <text x="124" y="172" font-size="9" fill="#A89A7A" text-anchor="end">↑</text>
+        </g>
+        
+        <!-- 11h -->
+        <g transform="translate(154, 0)">
+          <rect width="138" height="200" rx="14" fill="#F0F4EA"/>
+          <text x="14" y="20" font-size="11" fill="#A89A7A" letter-spacing="2" font-weight="500">11:00</text>
+          <text x="14" y="84" font-size="36" fill="#2C2A26" font-weight="200" letter-spacing="-1">17°</text>
+          <text x="76" y="84" font-size="10" fill="#5C5447">±0.8</text>
+          <text x="14" y="114" font-size="11" fill="#5C5447">Wind 12 km/h SW</text>
+          <text x="14" y="132" font-size="11" fill="#5C5447">Regen 0 mm</text>
+          <line x1="14" y1="150" x2="124" y2="150" stroke="#7A9466" stroke-width="2" stroke-linecap="round"/>
+          <text x="14" y="172" font-size="9" fill="#7A9466" letter-spacing="1" font-weight="600">RISIKO 12 %</text>
+        </g>
+        
+        <!-- 13h -->
+        <g transform="translate(308, 0)">
+          <rect width="138" height="200" rx="14" fill="#F0F4EA"/>
+          <text x="14" y="20" font-size="11" fill="#A89A7A" letter-spacing="2" font-weight="500">13:00</text>
+          <text x="14" y="84" font-size="36" fill="#2C2A26" font-weight="200" letter-spacing="-1">19°</text>
+          <text x="76" y="84" font-size="10" fill="#5C5447">±0.9</text>
+          <text x="14" y="114" font-size="11" fill="#5C5447">Wind 16 km/h SW</text>
+          <text x="14" y="132" font-size="11" fill="#5C5447">Regen 0 mm</text>
+          <line x1="14" y1="150" x2="124" y2="150" stroke="#7A9466" stroke-width="2" stroke-linecap="round"/>
+          <text x="14" y="172" font-size="9" fill="#7A9466" letter-spacing="1" font-weight="600">RISIKO 18 %</text>
+        </g>
+        
+        <!-- 14h - worst hour -->
+        <g transform="translate(462, 0)">
+          <rect width="138" height="200" rx="14" fill="#FAEEDA" stroke="#D4A373" stroke-width="1"/>
+          <text x="14" y="20" font-size="11" fill="#A85E2E" letter-spacing="2" font-weight="600">PEAK</text>
+          <text x="14" y="42" font-size="13" fill="#5C5447">14:00</text>
+          <text x="14" y="84" font-size="36" fill="#2C2A26" font-weight="200" letter-spacing="-1">21°</text>
+          <text x="76" y="84" font-size="10" fill="#5C5447">±1.0</text>
+          <text x="14" y="114" font-size="11" fill="#5C5447">Wind 18 km/h SW</text>
+          <text x="14" y="132" font-size="11" fill="#A85E2E" font-weight="500">Böen 28</text>
+          <line x1="14" y1="150" x2="124" y2="150" stroke="#D4A373" stroke-width="2" stroke-linecap="round"/>
+          <text x="14" y="172" font-size="9" fill="#A85E2E" letter-spacing="1" font-weight="600">RISIKO 38 %</text>
+        </g>
+        
+        <!-- 15h -->
+        <g transform="translate(616, 0)">
+          <rect width="138" height="200" rx="14" fill="#F0F4EA"/>
+          <text x="14" y="20" font-size="11" fill="#A89A7A" letter-spacing="2" font-weight="500">15:00</text>
+          <text x="14" y="84" font-size="36" fill="#2C2A26" font-weight="200" letter-spacing="-1">20°</text>
+          <text x="76" y="84" font-size="10" fill="#5C5447">±1.0</text>
+          <text x="14" y="114" font-size="11" fill="#5C5447">Wind 14 km/h SW</text>
+          <text x="14" y="132" font-size="11" fill="#5C5447">Regen 0 mm</text>
+          <line x1="14" y1="150" x2="124" y2="150" stroke="#7A9466" stroke-width="2" stroke-linecap="round"/>
+          <text x="14" y="172" font-size="9" fill="#7A9466" letter-spacing="1" font-weight="600">RISIKO 22 %</text>
+        </g>
+        
+        <!-- 16h -->
+        <g transform="translate(770, 0)">
+          <rect width="138" height="200" rx="14" fill="#F0F4EA"/>
+          <text x="14" y="20" font-size="11" fill="#A89A7A" letter-spacing="2" font-weight="500">16:00</text>
+          <text x="14" y="84" font-size="36" fill="#2C2A26" font-weight="200" letter-spacing="-1">18°</text>
+          <text x="76" y="84" font-size="10" fill="#5C5447">±0.9</text>
+          <text x="14" y="114" font-size="11" fill="#5C5447">Wind 12 km/h SW</text>
+          <text x="14" y="132" font-size="11" fill="#5C5447">Regen 0 mm</text>
+          <line x1="14" y1="150" x2="124" y2="150" stroke="#7A9466" stroke-width="2" stroke-linecap="round"/>
+          <text x="14" y="172" font-size="9" fill="#7A9466" letter-spacing="1" font-weight="600">RISIKO 14 %</text>
+        </g>
+        
+        <!-- 17h end -->
+        <g transform="translate(924, 0)">
+          <rect width="138" height="200" rx="14" fill="#F0F4EA" stroke="#7A9466" stroke-width="0.5"/>
+          <text x="14" y="20" font-size="11" fill="#7A9466" letter-spacing="2" font-weight="600">ENDE</text>
+          <text x="14" y="42" font-size="13" fill="#5C5447">17:00</text>
+          <text x="14" y="84" font-size="36" fill="#2C2A26" font-weight="200" letter-spacing="-1">16°</text>
+          <text x="76" y="84" font-size="10" fill="#5C5447">±0.8</text>
+          <text x="14" y="114" font-size="11" fill="#5C5447">Wind 10 km/h SW</text>
+          <text x="14" y="132" font-size="11" fill="#5C5447">Regen 0 mm</text>
+          <line x1="14" y1="150" x2="124" y2="150" stroke="#7A9466" stroke-width="2" stroke-linecap="round"/>
+          <text x="14" y="172" font-size="9" fill="#7A9466" letter-spacing="1" font-weight="600">RISIKO 8 %</text>
+          <text x="124" y="172" font-size="9" fill="#A89A7A" text-anchor="end">↓</text>
+        </g>
+        
+        <!-- Summary card -->
+        <g transform="translate(1078, 0)">
+          <rect width="138" height="200" rx="14" fill="#2C2A26"/>
+          <text x="14" y="20" font-size="11" fill="#A89A7A" letter-spacing="2" font-weight="500">ZUSAMMEN</text>
+          <text x="14" y="62" font-size="32" fill="#FFFFFF" font-weight="200" letter-spacing="-1">18°</text>
+          <text x="14" y="82" font-size="11" fill="#A89A7A">Tag-Ø</text>
+          <line x1="14" y1="100" x2="124" y2="100" stroke="#3A3833"/>
+          <text x="14" y="124" font-size="11" fill="#D9D0B8">Wind max 18</text>
+          <text x="14" y="142" font-size="11" fill="#D9D0B8">Regen 0 mm</text>
+          <text x="14" y="160" font-size="11" fill="#D9D0B8">UV-peak 4</text>
+          <text x="14" y="180" font-size="9" fill="#A89A7A" letter-spacing="1" font-weight="600">8 H FENSTER</text>
+        </g>
+      </g>
+    </g>
+  </g>
+  
+  <!-- ============ ALTERNATIVE DAYS ============ -->
+  <g transform="translate(80, 980)">
+    <text font-size="11" fill="#A89A7A" letter-spacing="3" font-weight="500">ALTERNATIVE TAGE · 7 TAGE FORECAST</text>
+    <text x="1280" y="0" font-size="11" fill="#8B7355" text-anchor="end">Risiko-Score pro Tag · sortiert nach Datum</text>
+    
+    <g transform="translate(0, 24)">
+      <!-- Today -->
+      <g>
+        <rect width="172" height="180" rx="20" fill="#F5F1E8"/>
+        <g transform="translate(20, 20)">
+          <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">HEUTE · DI</text>
+          <text y="18" font-size="14" fill="#5C5447">14.5.</text>
+        </g>
+        <g transform="translate(20, 70)">
+          <text font-size="40" font-weight="200" fill="#2C2A26" letter-spacing="-1.5">22°</text>
+        </g>
+        <g transform="translate(20, 132)">
+          <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">RISIKO</text>
+          <text y="22" font-size="20" font-weight="500" fill="#C97B47">68%</text>
+        </g>
+      </g>
+      
+      <!-- Mi -->
+      <g transform="translate(180, 0)">
+        <rect width="172" height="180" rx="20" fill="#F5F1E8"/>
+        <g transform="translate(20, 20)">
+          <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">MI</text>
+          <text y="18" font-size="14" fill="#5C5447">15.5.</text>
+        </g>
+        <g transform="translate(20, 70)">
+          <text font-size="40" font-weight="200" fill="#2C2A26" letter-spacing="-1.5">19°</text>
+        </g>
+        <g transform="translate(20, 132)">
+          <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">RISIKO</text>
+          <text y="22" font-size="20" font-weight="500" fill="#D4A373">42%</text>
+        </g>
+      </g>
+      
+      <!-- Do -->
+      <g transform="translate(360, 0)">
+        <rect width="172" height="180" rx="20" fill="#F5F1E8"/>
+        <g transform="translate(20, 20)">
+          <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">DO</text>
+          <text y="18" font-size="14" fill="#5C5447">16.5.</text>
+        </g>
+        <g transform="translate(20, 70)">
+          <text font-size="40" font-weight="200" fill="#2C2A26" letter-spacing="-1.5">17°</text>
+        </g>
+        <g transform="translate(20, 132)">
+          <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">RISIKO</text>
+          <text y="22" font-size="20" font-weight="500" fill="#7A9466">28%</text>
+        </g>
+      </g>
+      
+      <!-- Fr -->
+      <g transform="translate(540, 0)">
+        <rect width="172" height="180" rx="20" fill="#F5F1E8"/>
+        <g transform="translate(20, 20)">
+          <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">FR</text>
+          <text y="18" font-size="14" fill="#5C5447">17.5.</text>
+        </g>
+        <g transform="translate(20, 70)">
+          <text font-size="40" font-weight="200" fill="#2C2A26" letter-spacing="-1.5">18°</text>
+        </g>
+        <g transform="translate(20, 132)">
+          <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">RISIKO</text>
+          <text y="22" font-size="20" font-weight="500" fill="#7A9466">24%</text>
+        </g>
+      </g>
+      
+      <!-- Sa - SELECTED -->
+      <g transform="translate(720, 0)">
+        <rect width="172" height="180" rx="20" fill="#2C2A26"/>
+        <g transform="translate(20, 16)">
+          <rect width="80" height="20" rx="10" fill="#A85E2E"/>
+          <text x="40" y="14" font-size="9" fill="#FFFFFF" text-anchor="middle" font-weight="600" letter-spacing="0.5">GEPLANT</text>
+        </g>
+        <g transform="translate(20, 44)">
+          <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">SA</text>
+          <text y="18" font-size="14" fill="#D9D0B8">18.5.</text>
+        </g>
+        <g transform="translate(20, 88)">
+          <text font-size="40" font-weight="200" fill="#FFFFFF" letter-spacing="-1.5">18°</text>
+        </g>
+        <g transform="translate(20, 132)">
+          <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">RISIKO</text>
+          <text y="22" font-size="20" font-weight="500" fill="#7A9466">23%</text>
+        </g>
+      </g>
+      
+      <!-- So - BEST -->
+      <g transform="translate(900, 0)">
+        <rect width="172" height="180" rx="20" fill="#F0F4EA" stroke="#7A9466" stroke-width="1.5"/>
+        <g transform="translate(20, 16)">
+          <rect width="100" height="20" rx="10" fill="#7A9466"/>
+          <text x="50" y="14" font-size="9" fill="#FFFFFF" text-anchor="middle" font-weight="600" letter-spacing="0.5">BESTER TAG</text>
+        </g>
+        <g transform="translate(20, 44)">
+          <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">SO</text>
+          <text y="18" font-size="14" fill="#5C5447">19.5.</text>
+        </g>
+        <g transform="translate(20, 88)">
+          <text font-size="40" font-weight="200" fill="#2C2A26" letter-spacing="-1.5">20°</text>
+        </g>
+        <g transform="translate(20, 132)">
+          <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">RISIKO</text>
+          <text y="22" font-size="20" font-weight="500" fill="#7A9466">8%</text>
+        </g>
+      </g>
+      
+      <!-- Mo -->
+      <g transform="translate(1080, 0)">
+        <rect width="172" height="180" rx="20" fill="#F5F1E8"/>
+        <g transform="translate(20, 20)">
+          <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">MO</text>
+          <text y="18" font-size="14" fill="#5C5447">20.5.</text>
+        </g>
+        <g transform="translate(20, 70)">
+          <text font-size="40" font-weight="200" fill="#2C2A26" letter-spacing="-1.5">21°</text>
+        </g>
+        <g transform="translate(20, 132)">
+          <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">RISIKO</text>
+          <text y="22" font-size="20" font-weight="500" fill="#D4A373">34%</text>
+        </g>
+      </g>
+    </g>
+  </g>
+  
+  <!-- ============ AI RECOMMENDATION BLOCK ============ -->
+  <g transform="translate(80, 1240)">
+    <rect width="1280" height="160" rx="22" fill="#2C2A26"/>
+    
+    <g transform="translate(40, 36)">
+      <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">EMPFEHLUNG</text>
+      <text y="32" font-size="24" fill="#FFFFFF" font-weight="500" letter-spacing="-0.4">Sa, 18.5. ist gut. Sonntag wäre noch besser.</text>
+      <text y="62" font-size="13" fill="#D9D0B8">Beide Tage haben minimales Risiko, aber Sonntag liegt bei 8% (gegenüber 23% Samstag).</text>
+      <text y="82" font-size="13" fill="#D9D0B8">Falls flexibel: Verschiebe auf 19. Mai für nahezu perfekte Bedingungen.</text>
+    </g>
+    
+    <!-- CTA -->
+    <g transform="translate(960, 56)">
+      <g>
+        <rect width="160" height="40" rx="20" fill="transparent" stroke="#F5F1E8"/>
+        <text x="80" y="25" font-size="12" fill="#F5F1E8" text-anchor="middle">Auf 19.5. verschieben</text>
+      </g>
+      <g transform="translate(168, 0)">
+        <rect width="140" height="40" rx="20" fill="#F5F1E8"/>
+        <text x="70" y="25" font-size="12" fill="#2C2A26" text-anchor="middle" font-weight="500">Beibehalten</text>
+      </g>
+    </g>
+  </g>
+  
+  <!-- ============ ACTION BAR ============ -->
+  <g transform="translate(80, 1440)">
+    <rect width="1280" height="80" rx="20" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    
+    <g transform="translate(28, 24)">
+      <text font-size="11" fill="#A89A7A" letter-spacing="2" font-weight="500">EVENT-AKTIONEN</text>
+      <text y="22" font-size="14" fill="#5C5447">Speichern für Push-Alerts oder Konfiguration anpassen.</text>
+    </g>
+    
+    <g transform="translate(820, 22)">
+      <g>
+        <rect width="148" height="40" rx="20" fill="transparent" stroke="#2C2A26"/>
+        <text x="74" y="25" font-size="12" fill="#2C2A26" text-anchor="middle">Konfig ändern</text>
+      </g>
+      <g transform="translate(156, 0)">
+        <rect width="120" height="40" rx="20" fill="transparent" stroke="#2C2A26"/>
+        <text x="60" y="25" font-size="12" fill="#2C2A26" text-anchor="middle">Teilen</text>
+      </g>
+      <g transform="translate(284, 0)">
+        <rect width="148" height="40" rx="20" fill="#2C2A26"/>
+        <text x="74" y="25" font-size="12" fill="#F5F1E8" text-anchor="middle" font-weight="500">Event speichern</text>
+      </g>
+    </g>
+  </g>
+  
+  <!-- ============ LABEL ============ -->
+  <g transform="translate(80, 1560)">
+    <text font-size="10" fill="#A89A7A" letter-spacing="3" font-weight="500">16 · EVENT-PLANNER RISK-RESULT · DESKTOP · SESSION 2/3</text>
+    <text x="1280" font-size="10" fill="#A89A7A" letter-spacing="2" text-anchor="end">23% Score-Donut · Hourly-Strip · Best-Day-Highlight · AI-Hinweis</text>
+  </g>
+</svg>

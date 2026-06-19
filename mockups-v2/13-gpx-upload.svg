@@ -1,0 +1,336 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1200" font-family="ui-sans-serif, system-ui, -apple-system">
+  <defs>
+    <linearGradient id="bg13" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F5F1E8"/>
+      <stop offset="100%" stop-color="#EDE6D3"/>
+    </linearGradient>
+    <linearGradient id="dropZone" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FAF6EA"/>
+      <stop offset="100%" stop-color="#F5F1E8"/>
+    </linearGradient>
+    <linearGradient id="elevationPreview" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#8B7355" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#8B7355" stop-opacity="0.1"/>
+    </linearGradient>
+  </defs>
+  
+  <rect width="1440" height="1200" fill="url(#bg13)"/>
+  
+  <!-- ============ TOP NAVIGATION ============ -->
+  <g>
+    <g transform="translate(32, 24)">
+      <circle cx="14" cy="14" r="6" fill="#2C2A26"/>
+      <g stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round">
+        <line x1="14" y1="0" x2="14" y2="3"/>
+        <line x1="14" y1="25" x2="14" y2="28"/>
+        <line x1="0" y1="14" x2="3" y2="14"/>
+        <line x1="25" y1="14" x2="28" y2="14"/>
+      </g>
+      <text x="42" y="20" font-size="18" font-weight="500" fill="#2C2A26" letter-spacing="-0.5">buscosun</text>
+    </g>
+    
+    <g transform="translate(200, 30)">
+      <g stroke="#5C5447" stroke-width="1.5" fill="none" stroke-linecap="round">
+        <line x1="0" y1="10" x2="14" y2="10"/>
+        <line x1="0" y1="10" x2="6" y2="4"/>
+        <line x1="0" y1="10" x2="6" y2="16"/>
+      </g>
+      <text x="24" y="15" font-size="13" fill="#5C5447">Zurück zum Routenplaner</text>
+    </g>
+  </g>
+  
+  <!-- ============ HEADER ============ -->
+  <g transform="translate(80, 100)">
+    <text font-size="11" fill="#A89A7A" letter-spacing="3" font-weight="500">GPX-IMPORT · LOKAL · KEIN UPLOAD AUF SERVER</text>
+    <text y="56" font-size="56" font-weight="200" fill="#2C2A26" letter-spacing="-1.5">Tour-Datei hochladen</text>
+    <text y="100" font-size="16" fill="#5C5447">GPX, KML oder TCX. Die Datei wird im Browser verarbeitet — keine Server-Übertragung.</text>
+  </g>
+  
+  <!-- ============ TWO-COLUMN LAYOUT ============ -->
+  
+  <!-- LEFT: Drop zone + parser status -->
+  <g transform="translate(80, 260)">
+    <rect width="600" height="700" rx="22" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    
+    <!-- Drop zone (filled with parsed file) -->
+    <g transform="translate(32, 32)">
+      <rect width="536" height="220" rx="18" fill="url(#dropZone)" stroke="#7A9466" stroke-width="2" stroke-dasharray="6 4"/>
+      
+      <!-- Success state -->
+      <g transform="translate(248, 50)">
+        <circle r="32" fill="#F0F4EA"/>
+        <g transform="translate(-10, -4)" stroke="#7A9466" stroke-width="2.5" fill="none" stroke-linecap="round">
+          <polyline points="0,4 6,10 18,-2"/>
+        </g>
+      </g>
+      
+      <g transform="translate(32, 116)">
+        <text font-size="9" fill="#7A9466" letter-spacing="2" font-weight="600">DATEI ERKANNT</text>
+        <text y="22" font-size="20" fill="#2C2A26" font-weight="500" letter-spacing="-0.3">karwendel-runde.gpx</text>
+        <text y="44" font-size="11" fill="#5C5447">142 KB · 2 380 Wegpunkte · Format: GPX 1.1</text>
+      </g>
+      
+      <!-- Actions -->
+      <g transform="translate(360, 174)">
+        <rect width="140" height="32" rx="16" fill="transparent" stroke="#2C2A26"/>
+        <text x="70" y="20" font-size="11" fill="#2C2A26" text-anchor="middle">Andere wählen</text>
+      </g>
+    </g>
+    
+    <!-- File info & parser status -->
+    <g transform="translate(32, 280)">
+      <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">PARSER-STATUS</text>
+      
+      <g transform="translate(0, 24)" font-size="12" fill="#5C5447">
+        <g>
+          <circle cx="6" cy="6" r="4" fill="#7A9466"/>
+          <text x="20" y="10">XML-Struktur validiert</text>
+          <text x="500" y="10" font-size="10" fill="#7A9466" text-anchor="end" font-weight="500">142 ms</text>
+        </g>
+        <g transform="translate(0, 22)">
+          <circle cx="6" cy="6" r="4" fill="#7A9466"/>
+          <text x="20" y="10">2 380 Trackpoints extrahiert</text>
+          <text x="500" y="10" font-size="10" fill="#7A9466" text-anchor="end" font-weight="500">238 ms</text>
+        </g>
+        <g transform="translate(0, 44)">
+          <circle cx="6" cy="6" r="4" fill="#7A9466"/>
+          <text x="20" y="10">Höhenprofil berechnet</text>
+          <text x="500" y="10" font-size="10" fill="#7A9466" text-anchor="end" font-weight="500">62 ms</text>
+        </g>
+        <g transform="translate(0, 66)">
+          <circle cx="6" cy="6" r="4" fill="#7A9466"/>
+          <text x="20" y="10">Distanz &amp; ETA-Vorberechnung</text>
+          <text x="500" y="10" font-size="10" fill="#7A9466" text-anchor="end" font-weight="500">28 ms</text>
+        </g>
+        <g transform="translate(0, 88)">
+          <circle cx="6" cy="6" r="4" fill="#D4A373"/>
+          <text x="20" y="10">Profil-Auto-Detection</text>
+          <text x="500" y="10" font-size="10" fill="#D4A373" text-anchor="end" font-weight="500">unsicher</text>
+        </g>
+      </g>
+    </g>
+    
+    <!-- Parsed stats summary -->
+    <g transform="translate(32, 432)">
+      <rect width="536" height="120" rx="14" fill="#F5F1E8"/>
+      
+      <g transform="translate(20, 18)">
+        <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">ERKANNTE EIGENSCHAFTEN</text>
+      </g>
+      
+      <g transform="translate(20, 46)" font-size="11" fill="#5C5447">
+        <g>
+          <text font-size="9" fill="#A89A7A" letter-spacing="1.5">DISTANZ</text>
+          <text y="20" font-size="18" fill="#2C2A26" font-weight="500">52.4 km</text>
+        </g>
+        <g transform="translate(124, 0)">
+          <text font-size="9" fill="#A89A7A" letter-spacing="1.5">AUFSTIEG</text>
+          <text y="20" font-size="18" fill="#2C2A26" font-weight="500">1 240 m</text>
+        </g>
+        <g transform="translate(244, 0)">
+          <text font-size="9" fill="#A89A7A" letter-spacing="1.5">MAX HÖHE</text>
+          <text y="20" font-size="18" fill="#2C2A26" font-weight="500">1 820 m</text>
+        </g>
+        <g transform="translate(364, 0)">
+          <text font-size="9" fill="#A89A7A" letter-spacing="1.5">WEGPUNKTE</text>
+          <text y="20" font-size="18" fill="#2C2A26" font-weight="500">2 380</text>
+        </g>
+      </g>
+    </g>
+    
+    <!-- Profile conflict resolution -->
+    <g transform="translate(32, 580)">
+      <rect width="536" height="92" rx="14" fill="#FAEEDA" stroke="#D4A373" stroke-width="1"/>
+      
+      <g transform="translate(20, 18)">
+        <text font-size="9" fill="#A85E2E" letter-spacing="2" font-weight="600">PROFIL UNKLAR</text>
+        <text y="20" font-size="13" fill="#2C2A26" font-weight="500">Wir vermuten MTB — aber 52 km mit 1 240 m Aufstieg könnte auch Gravel sein.</text>
+        <text y="40" font-size="11" fill="#5C5447">Wähle das passende Profil für die ETA-Berechnung:</text>
+      </g>
+      
+      <g transform="translate(20, 64)">
+        <g>
+          <rect width="80" height="22" rx="11" fill="#2C2A26"/>
+          <text x="40" y="15" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="500">MTB</text>
+        </g>
+        <g transform="translate(88, 0)">
+          <rect width="80" height="22" rx="11" fill="transparent" stroke="#5C5447"/>
+          <text x="40" y="15" font-size="11" fill="#5C5447" text-anchor="middle">Gravel</text>
+        </g>
+        <g transform="translate(176, 0)">
+          <rect width="80" height="22" rx="11" fill="transparent" stroke="#5C5447"/>
+          <text x="40" y="15" font-size="11" fill="#5C5447" text-anchor="middle">Rennrad</text>
+        </g>
+        <g transform="translate(264, 0)">
+          <rect width="80" height="22" rx="11" fill="transparent" stroke="#5C5447"/>
+          <text x="40" y="15" font-size="11" fill="#5C5447" text-anchor="middle">Wandern</text>
+        </g>
+      </g>
+    </g>
+  </g>
+  
+  <!-- RIGHT: Preview map + elevation -->
+  <g transform="translate(712, 260)">
+    <rect width="648" height="700" rx="22" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    
+    <!-- Header -->
+    <g transform="translate(28, 28)">
+      <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">VORSCHAU</text>
+      <text y="22" font-size="18" font-weight="500" fill="#2C2A26" letter-spacing="-0.3">Karwendel-Runde</text>
+    </g>
+    
+    <!-- Mini map -->
+    <g transform="translate(28, 80)">
+      <defs>
+        <clipPath id="miniMap">
+          <rect width="592" height="320" rx="14"/>
+        </clipPath>
+      </defs>
+      
+      <g clip-path="url(#miniMap)">
+        <rect width="592" height="320" fill="#E8DFC4"/>
+        
+        <!-- Terrain hints -->
+        <g opacity="0.5">
+          <path d="M 0 200 Q 100 140 200 160 T 400 150 T 592 180 L 592 240 L 0 240 Z" fill="#B8A480"/>
+          <path d="M 0 220 Q 150 180 300 200 T 592 200 L 592 260 L 0 260 Z" fill="#A89472"/>
+        </g>
+        
+        <!-- City labels -->
+        <g font-size="9" fill="#5C5447" opacity="0.7" font-weight="500">
+          <text x="80" y="90">München</text>
+          <text x="280" y="120">Mittenwald</text>
+          <text x="460" y="200">Achensee</text>
+        </g>
+        
+        <!-- The route -->
+        <g>
+          <path d="M 50 220 
+                   Q 130 180 200 200 
+                   T 320 160 
+                   Q 400 130 480 150 
+                   Q 520 160 540 180" 
+                stroke="#2C2A26" stroke-width="3" fill="none" stroke-linecap="round"/>
+          
+          <!-- Start -->
+          <circle cx="50" cy="220" r="7" fill="#2C2A26"/>
+          <circle cx="50" cy="220" r="3" fill="#FFFFFF"/>
+          
+          <!-- End -->
+          <circle cx="540" cy="180" r="7" fill="#2C2A26"/>
+          
+          <!-- KM markers -->
+          <g fill="#FFFFFF" stroke="#2C2A26" stroke-width="1.5">
+            <circle cx="170" cy="195" r="3"/>
+            <circle cx="320" cy="160" r="3"/>
+            <circle cx="450" cy="148" r="3"/>
+          </g>
+        </g>
+      </g>
+    </g>
+    
+    <!-- Elevation profile preview -->
+    <g transform="translate(28, 420)">
+      <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">HÖHENPROFIL</text>
+      
+      <g transform="translate(40, 24)">
+        <!-- Y-axis -->
+        <g font-size="9" fill="#A89A7A">
+          <text x="-8" y="4" text-anchor="end">2000m</text>
+          <text x="-8" y="56" text-anchor="end">1000m</text>
+          <text x="-8" y="108" text-anchor="end">500m</text>
+        </g>
+        
+        <!-- Subtle grid -->
+        <g stroke="#E0D6BE" stroke-width="0.5" stroke-dasharray="2 4" opacity="0.6">
+          <line x1="0" y1="0" x2="540" y2="0"/>
+          <line x1="0" y1="52" x2="540" y2="52"/>
+          <line x1="0" y1="104" x2="540" y2="104"/>
+        </g>
+        
+        <!-- Filled elevation -->
+        <path d="M 0 90 L 36 80 L 72 60 L 108 70 L 144 40 L 180 20 L 216 8 L 252 0 L 288 20 L 324 45 L 360 35 L 396 60 L 432 78 L 468 88 L 504 82 L 540 78 L 540 110 L 0 110 Z" fill="url(#elevationPreview)"/>
+        <path d="M 0 90 L 36 80 L 72 60 L 108 70 L 144 40 L 180 20 L 216 8 L 252 0 L 288 20 L 324 45 L 360 35 L 396 60 L 432 78 L 468 88 L 504 82 L 540 78" stroke="#8B7355" stroke-width="2" fill="none"/>
+        
+        <!-- X-axis -->
+        <g font-size="9" fill="#A89A7A" transform="translate(0, 126)">
+          <text x="0">0 km</text>
+          <text x="135" text-anchor="middle">15</text>
+          <text x="270" text-anchor="middle">30</text>
+          <text x="405" text-anchor="middle">45</text>
+          <text x="540" text-anchor="end">52 km</text>
+        </g>
+      </g>
+    </g>
+    
+    <!-- Bottom CTA -->
+    <g transform="translate(28, 612)">
+      <rect width="592" height="60" rx="14" fill="#2C2A26"/>
+      <text x="20" y="26" font-size="11" fill="#A89A7A" letter-spacing="2" font-weight="500">BEREIT FÜR PLANUNG</text>
+      <text x="20" y="48" font-size="14" fill="#FFFFFF" font-weight="500">Datum und Start-Zeit wählen →</text>
+      
+      <g transform="translate(424, 14)">
+        <rect width="148" height="32" rx="16" fill="#FFFFFF"/>
+        <text x="74" y="20" font-size="12" fill="#2C2A26" text-anchor="middle" font-weight="500">Weiter zu Planung</text>
+      </g>
+    </g>
+  </g>
+  
+  <!-- ============ BOTTOM INFO BAR ============ -->
+  <g transform="translate(80, 990)">
+    <rect width="1280" height="140" rx="14" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    
+    <g transform="translate(28, 24)">
+      <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">UNTERSTÜTZTE FORMATE</text>
+    </g>
+    
+    <g transform="translate(28, 56)">
+      <g>
+        <rect width="120" height="60" rx="12" fill="#F0F4EA" stroke="#7A9466"/>
+        <text x="60" y="22" font-size="14" fill="#2C2A26" text-anchor="middle" font-weight="600">GPX</text>
+        <text x="60" y="40" font-size="9" fill="#7A9466" text-anchor="middle">VOLL UNTERSTÜTZT</text>
+        <text x="60" y="54" font-size="9" fill="#5C5447" text-anchor="middle">Garmin, Komoot, Strava</text>
+      </g>
+      
+      <g transform="translate(132, 0)">
+        <rect width="120" height="60" rx="12" fill="#F0F4EA" stroke="#7A9466"/>
+        <text x="60" y="22" font-size="14" fill="#2C2A26" text-anchor="middle" font-weight="600">KML</text>
+        <text x="60" y="40" font-size="9" fill="#7A9466" text-anchor="middle">UNTERSTÜTZT</text>
+        <text x="60" y="54" font-size="9" fill="#5C5447" text-anchor="middle">Google Earth</text>
+      </g>
+      
+      <g transform="translate(264, 0)">
+        <rect width="120" height="60" rx="12" fill="#F0F4EA" stroke="#7A9466"/>
+        <text x="60" y="22" font-size="14" fill="#2C2A26" text-anchor="middle" font-weight="600">TCX</text>
+        <text x="60" y="40" font-size="9" fill="#7A9466" text-anchor="middle">UNTERSTÜTZT</text>
+        <text x="60" y="54" font-size="9" fill="#5C5447" text-anchor="middle">Garmin Training</text>
+      </g>
+      
+      <g transform="translate(396, 0)">
+        <rect width="120" height="60" rx="12" fill="#F5F1E8"/>
+        <text x="60" y="22" font-size="14" fill="#8B7355" text-anchor="middle" font-weight="600">FIT</text>
+        <text x="60" y="40" font-size="9" fill="#A89A7A" text-anchor="middle">DEMNÄCHST</text>
+        <text x="60" y="54" font-size="9" fill="#A89A7A" text-anchor="middle">v1.2</text>
+      </g>
+      
+      <!-- Privacy reminder -->
+      <g transform="translate(640, 6)">
+        <rect width="612" height="48" rx="14" fill="#F5F1E8"/>
+        <g transform="translate(20, 16)" stroke="#7A9466" stroke-width="1.5" fill="none">
+          <path d="M 8 0 L 0 6 L 0 11 Q 0 16 8 16 Q 16 16 16 11 L 16 6 Z"/>
+          <polyline points="5,8 7,10 11,6" stroke-linecap="round"/>
+        </g>
+        <g transform="translate(46, 8)">
+          <text font-size="11" fill="#2C2A26" font-weight="500">100 % lokal · keine Server-Übertragung</text>
+          <text y="18" font-size="10" fill="#5C5447">Die Datei wird mit FileReader API im Browser geparst und in IndexedDB gespeichert.</text>
+        </g>
+      </g>
+    </g>
+  </g>
+  
+  <!-- ============ LABEL ============ -->
+  <g transform="translate(80, 1160)">
+    <text font-size="10" fill="#A89A7A" letter-spacing="3" font-weight="500">13 · GPX-UPLOAD · DESKTOP · SESSION 2/3</text>
+    <text x="1280" font-size="10" fill="#A89A7A" letter-spacing="2" text-anchor="end">Parser-Status · Profil-Konflikt · Vorschau · Privacy-Promise</text>
+  </g>
+</svg>

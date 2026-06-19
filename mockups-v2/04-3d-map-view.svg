@@ -1,0 +1,505 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" font-family="ui-sans-serif, system-ui, -apple-system">
+  <defs>
+    <linearGradient id="bg04" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F5F1E8"/>
+      <stop offset="100%" stop-color="#EDE6D3"/>
+    </linearGradient>
+    
+    <!-- 3D Sky gradient -->
+    <linearGradient id="sky3d" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#D9E0DB"/>
+      <stop offset="50%" stop-color="#E8DFC4"/>
+      <stop offset="100%" stop-color="#D4C8A3"/>
+    </linearGradient>
+    
+    <!-- Terrain gradients - depth -->
+    <linearGradient id="terrainFar" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#C8B89A" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#A89472" stop-opacity="0.7"/>
+    </linearGradient>
+    <linearGradient id="terrainMid" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#B8A480"/>
+      <stop offset="100%" stop-color="#988168"/>
+    </linearGradient>
+    <linearGradient id="terrainNear" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#9F8868"/>
+      <stop offset="100%" stop-color="#7D6A4D"/>
+    </linearGradient>
+    
+    <!-- Wind streams in 3D perspective -->
+    <linearGradient id="wind3d" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#FAF6EA" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#FAF6EA" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#FAF6EA" stop-opacity="0"/>
+    </linearGradient>
+    
+    <!-- Föhn flow -->
+    <linearGradient id="foehn3d" x1="0" y1="0" x2="1" y2="0.5">
+      <stop offset="0%" stop-color="#C97B47" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#C97B47" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#C97B47" stop-opacity="0"/>
+    </linearGradient>
+    
+    <!-- Snow on peaks -->
+    <linearGradient id="snowCap" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  
+  <rect width="1440" height="900" fill="url(#bg04)"/>
+  
+  <!-- ============ TOP NAVIGATION ============ -->
+  <g>
+    <g transform="translate(32, 24)">
+      <circle cx="14" cy="14" r="6" fill="#2C2A26"/>
+      <g stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round">
+        <line x1="14" y1="0" x2="14" y2="3"/>
+        <line x1="14" y1="25" x2="14" y2="28"/>
+        <line x1="0" y1="14" x2="3" y2="14"/>
+        <line x1="25" y1="14" x2="28" y2="14"/>
+      </g>
+      <text x="42" y="20" font-size="18" font-weight="500" fill="#2C2A26" letter-spacing="-0.5">buscosun</text>
+    </g>
+    
+    <g transform="translate(280, 18)">
+      <rect width="500" height="40" rx="20" fill="#FFFFFF" stroke="#D9D0B8" stroke-width="0.5"/>
+      <circle cx="22" cy="20" r="7" stroke="#8B7355" stroke-width="1.5" fill="none"/>
+      <line x1="27" y1="25" x2="32" y2="30" stroke="#8B7355" stroke-width="1.5" stroke-linecap="round"/>
+      <text x="44" y="25" font-size="13" fill="#5C5447">Zugspitze Gipfel</text>
+    </g>
+    
+    <!-- Module switcher -->
+    <g transform="translate(800, 18)" font-size="12">
+      <g>
+        <rect width="60" height="40" rx="20" fill="#2C2A26"/>
+        <text x="30" y="25" fill="#F5F1E8" text-anchor="middle" font-weight="500">Karte</text>
+      </g>
+      <g transform="translate(64, 0)"><text x="30" y="25" fill="#5C5447" text-anchor="middle">Route</text></g>
+      <g transform="translate(128, 0)"><text x="28" y="25" fill="#5C5447" text-anchor="middle">Event</text></g>
+      <g transform="translate(188, 0)"><text x="42" y="25" fill="#5C5447" text-anchor="middle">Tagesablauf</text></g>
+    </g>
+    
+    <!-- 2D/3D toggle - 3D active -->
+    <g transform="translate(1130, 18)">
+      <rect width="120" height="40" rx="20" fill="#FFFFFF" stroke="#D9D0B8" stroke-width="0.5"/>
+      <text x="30" y="25" font-size="12" fill="#5C5447" text-anchor="middle">2D</text>
+      <rect x="64" y="4" width="52" height="32" rx="16" fill="#2C2A26"/>
+      <text x="90" y="25" font-size="12" font-weight="500" fill="#F5F1E8" text-anchor="middle">3D</text>
+    </g>
+    
+    <g transform="translate(1262, 18)">
+      <rect width="40" height="40" rx="20" fill="#FFFFFF" stroke="#D9D0B8" stroke-width="0.5"/>
+      <g transform="translate(13, 14)" stroke="#5C5447" stroke-width="1.5" stroke-linecap="round" fill="none">
+        <line x1="0" y1="0" x2="14" y2="0"/>
+        <line x1="0" y1="6" x2="14" y2="6"/>
+        <line x1="0" y1="12" x2="14" y2="12"/>
+      </g>
+    </g>
+    
+    <g transform="translate(1314, 18)">
+      <rect width="40" height="40" rx="20" fill="#FFFFFF" stroke="#D9D0B8" stroke-width="0.5"/>
+      <circle cx="20" cy="20" r="7" fill="#7A9466"/>
+      <text x="20" y="24" font-size="9" fill="#FFFFFF" text-anchor="middle" font-weight="500">JS</text>
+    </g>
+  </g>
+  
+  <!-- ============ 3D MAP CANVAS ============ -->
+  <g transform="translate(32, 76)">
+    <!-- Clip mask -->
+    <defs>
+      <clipPath id="mapClip04">
+        <rect width="860" height="800" rx="20"/>
+      </clipPath>
+    </defs>
+    
+    <g clip-path="url(#mapClip04)">
+      <!-- Sky -->
+      <rect width="860" height="450" fill="url(#sky3d)"/>
+      
+      <!-- Sun position indicator -->
+      <g transform="translate(680, 80)">
+        <circle r="22" fill="#FAEEDA" opacity="0.6"/>
+        <circle r="14" fill="#FAEEDA"/>
+      </g>
+      
+      <!-- Wind streams in upper sky -->
+      <g opacity="0.5">
+        <path d="M -50 100 Q 200 90 430 110 T 900 130" stroke="url(#wind3d)" stroke-width="2" fill="none"/>
+        <path d="M -50 140 Q 200 130 430 150 T 900 170" stroke="url(#wind3d)" stroke-width="1.5" fill="none"/>
+        <path d="M -50 60 Q 200 50 430 70 T 900 90" stroke="url(#wind3d)" stroke-width="1" fill="none"/>
+        <path d="M -50 180 Q 200 170 430 190 T 900 210" stroke="url(#wind3d)" stroke-width="1.5" fill="none"/>
+      </g>
+      
+      <!-- FAR TERRAIN - distant alps with snow -->
+      <g>
+        <!-- Snow caps -->
+        <path d="M 0 340 L 50 310 L 80 315 L 110 290 L 130 285 L 160 305 L 190 295 L 230 280 L 270 290 L 310 310 L 350 295 L 380 285 L 420 275 L 450 290 L 500 280 L 540 295 L 580 285 L 620 290 L 660 270 L 700 275 L 740 290 L 780 280 L 820 295 L 860 285 L 860 340 Z" 
+              fill="#FFFFFF" opacity="0.85"/>
+        
+        <!-- Far mountains -->
+        <path d="M 0 340 L 50 310 L 80 315 L 110 290 L 130 285 L 160 305 L 190 295 L 230 280 L 270 290 L 310 310 L 350 295 L 380 285 L 420 275 L 450 290 L 500 280 L 540 295 L 580 285 L 620 290 L 660 270 L 700 275 L 740 290 L 780 280 L 820 295 L 860 285 L 860 460 L 0 460 Z" 
+              fill="url(#terrainFar)"/>
+      </g>
+      
+      <!-- MID TERRAIN -->
+      <g>
+        <path d="M 0 400 L 40 380 L 90 395 L 140 370 L 200 380 L 250 360 L 300 375 L 360 365 L 420 380 L 470 350 L 530 380 L 580 360 L 640 375 L 700 365 L 750 380 L 800 360 L 860 375 L 860 540 L 0 540 Z" 
+              fill="url(#terrainMid)"/>
+        
+        <!-- Snow on mid peaks -->
+        <path d="M 470 350 L 480 348 L 490 352 L 470 350" stroke="#FFFFFF" stroke-width="2" opacity="0.7"/>
+        <path d="M 250 360 L 260 358 L 280 365 L 250 360" stroke="#FFFFFF" stroke-width="2" opacity="0.7"/>
+      </g>
+      
+      <!-- NEAR TERRAIN - foreground hills -->
+      <g>
+        <path d="M 0 480 L 60 460 L 130 480 L 210 450 L 290 470 L 370 440 L 460 470 L 540 450 L 620 475 L 700 440 L 780 465 L 860 450 L 860 800 L 0 800 Z" 
+              fill="url(#terrainNear)"/>
+        
+        <!-- Forest texture -->
+        <g opacity="0.3" fill="#5D5238">
+          <circle cx="120" cy="550" r="4"/>
+          <circle cx="160" cy="570" r="3"/>
+          <circle cx="200" cy="555" r="5"/>
+          <circle cx="240" cy="580" r="3"/>
+          <circle cx="320" cy="560" r="4"/>
+          <circle cx="380" cy="585" r="3"/>
+          <circle cx="450" cy="565" r="4"/>
+          <circle cx="510" cy="590" r="3"/>
+          <circle cx="580" cy="570" r="4"/>
+          <circle cx="650" cy="585" r="3"/>
+          <circle cx="720" cy="565" r="4"/>
+          <circle cx="780" cy="590" r="3"/>
+          <circle cx="100" cy="640" r="5"/>
+          <circle cx="180" cy="660" r="4"/>
+          <circle cx="280" cy="650" r="5"/>
+          <circle cx="380" cy="670" r="4"/>
+          <circle cx="500" cy="660" r="5"/>
+          <circle cx="600" cy="680" r="4"/>
+          <circle cx="700" cy="650" r="5"/>
+        </g>
+      </g>
+      
+      <!-- Föhn breakthrough in 3D -->
+      <g opacity="0.6">
+        <path d="M 100 700 Q 300 500 500 380 T 800 280" stroke="url(#foehn3d)" stroke-width="4" fill="none"/>
+        <path d="M 150 720 Q 350 520 550 400 T 830 300" stroke="url(#foehn3d)" stroke-width="3" fill="none"/>
+        <path d="M 200 740 Q 400 540 600 420 T 860 320" stroke="url(#foehn3d)" stroke-width="2" fill="none"/>
+      </g>
+      
+      <!-- Wind streams mid-atmosphere -->
+      <g opacity="0.55">
+        <path d="M 0 380 Q 200 370 400 390 T 860 400" stroke="url(#wind3d)" stroke-width="1.5" fill="none"/>
+        <path d="M 0 420 Q 200 410 400 430 T 860 440" stroke="url(#wind3d)" stroke-width="1" fill="none"/>
+      </g>
+      
+      <!-- LOCATION PIN in 3D -->
+      <g transform="translate(450, 410)">
+        <!-- Pin shadow on terrain -->
+        <ellipse cx="0" cy="62" rx="20" ry="6" fill="#2C2A26" opacity="0.3"/>
+        
+        <!-- Pin staff -->
+        <line x1="0" y1="0" x2="0" y2="60" stroke="#2C2A26" stroke-width="2" stroke-linecap="round"/>
+        
+        <!-- Pin head -->
+        <g transform="translate(0, -8)">
+          <circle r="16" fill="#FFFFFF" stroke="#2C2A26" stroke-width="2"/>
+          <circle r="8" fill="#2C2A26"/>
+        </g>
+        
+        <!-- Floating label -->
+        <g transform="translate(20, -14)">
+          <rect width="200" height="68" rx="14" fill="#FFFFFF" stroke="#E0D6BE"/>
+          <g transform="translate(14, 12)">
+            <text font-size="9" fill="#A89A7A" letter-spacing="1.5" font-weight="500">2 962 m</text>
+            <text y="20" font-size="14" fill="#2C2A26" font-weight="500">Zugspitze</text>
+            <text y="38" font-size="11" fill="#5C5447">−4° · Wind 48 km/h</text>
+            <text y="52" font-size="9" fill="#7A9466">Konfidenz hoch</text>
+          </g>
+        </g>
+      </g>
+      
+      <!-- Other peak labels -->
+      <g font-size="10" fill="#FFFFFF" font-weight="600" opacity="0.85">
+        <g transform="translate(280, 290)">
+          <circle r="3" fill="#FFFFFF"/>
+          <text x="8" y="4">Watzmann · 2 713 m</text>
+        </g>
+        <g transform="translate(680, 270)">
+          <circle r="3" fill="#FFFFFF"/>
+          <text x="8" y="4">Großglockner · 3 798 m</text>
+        </g>
+        <g transform="translate(580, 290)">
+          <circle r="3" fill="#FFFFFF"/>
+          <text x="8" y="4">Hochkönig · 2 941 m</text>
+        </g>
+      </g>
+      
+      <!-- Town label below -->
+      <g font-size="11" fill="#2C2A26" opacity="0.7" font-weight="500">
+        <text x="380" y="490">Garmisch-Partenkirchen</text>
+      </g>
+    </g>
+    
+    <!-- 3D CAMERA CONTROLS - bottom-left -->
+    <g transform="translate(20, 700)">
+      <rect width="220" height="80" rx="14" fill="#FFFFFF" opacity="0.95"/>
+      
+      <!-- Pitch / Tilt -->
+      <g transform="translate(20, 14)">
+        <text font-size="8" fill="#A89A7A" letter-spacing="1.5" font-weight="500">PITCH</text>
+        <g transform="translate(0, 10)">
+          <rect width="60" height="32" rx="8" fill="#F5F1E8"/>
+          <text x="30" y="22" font-size="13" fill="#2C2A26" text-anchor="middle" font-weight="500">62°</text>
+        </g>
+      </g>
+      
+      <!-- Bearing -->
+      <g transform="translate(86, 14)">
+        <text font-size="8" fill="#A89A7A" letter-spacing="1.5" font-weight="500">BEARING</text>
+        <g transform="translate(0, 10)">
+          <rect width="60" height="32" rx="8" fill="#F5F1E8"/>
+          <text x="30" y="22" font-size="13" fill="#2C2A26" text-anchor="middle" font-weight="500">S 180°</text>
+        </g>
+      </g>
+      
+      <!-- Reset -->
+      <g transform="translate(154, 26)">
+        <rect width="48" height="32" rx="8" fill="#2C2A26"/>
+        <text x="24" y="20" font-size="10" fill="#F5F1E8" text-anchor="middle" font-weight="500">Reset</text>
+      </g>
+      
+      <text x="20" y="68" font-size="9" fill="#A89A7A">Maus drag = rotieren · Shift = neigen</text>
+    </g>
+    
+    <!-- LAYER CONTROLS - same as 2D -->
+    <g transform="translate(780, 20)">
+      <rect width="64" height="328" rx="14" fill="#FFFFFF" opacity="0.95"/>
+      <text x="32" y="18" font-size="8" fill="#A89A7A" text-anchor="middle" letter-spacing="1.5" font-weight="600">LAYER</text>
+      
+      <g transform="translate(8, 28)">
+        <rect width="48" height="48" rx="12" fill="#2C2A26"/>
+        <g stroke="#F5F1E8" stroke-width="1.5" fill="none" stroke-linecap="round">
+          <path d="M 12 20 Q 24 14 36 20"/>
+          <path d="M 12 26 Q 24 20 36 26"/>
+          <path d="M 12 32 Q 24 26 36 32"/>
+        </g>
+        <text x="24" y="62" font-size="8.5" fill="#2C2A26" text-anchor="middle" font-weight="600">Wind</text>
+      </g>
+      
+      <g transform="translate(8, 88)">
+        <rect width="48" height="48" rx="12" fill="#F5F1E8"/>
+        <g stroke="#5C5447" stroke-width="1.5" stroke-linecap="round">
+          <line x1="16" y1="14" x2="16" y2="24"/>
+          <line x1="24" y1="16" x2="24" y2="28"/>
+          <line x1="32" y1="14" x2="32" y2="24"/>
+        </g>
+        <text x="24" y="62" font-size="8.5" fill="#5C5447" text-anchor="middle">Regen</text>
+      </g>
+      
+      <g transform="translate(8, 148)">
+        <rect width="48" height="48" rx="12" fill="#F5F1E8"/>
+        <circle cx="24" cy="32" r="5" fill="#C97B47"/>
+        <rect x="22" y="14" width="4" height="16" rx="2" fill="#C97B47"/>
+        <text x="24" y="62" font-size="8.5" fill="#5C5447" text-anchor="middle">Temp</text>
+      </g>
+      
+      <g transform="translate(8, 208)">
+        <rect width="48" height="48" rx="12" fill="#FAEEDA" stroke="#C97B47" stroke-width="1.5"/>
+        <text x="24" y="34" font-size="18" fill="#C97B47" text-anchor="middle" font-weight="700">▲</text>
+        <text x="24" y="62" font-size="8.5" fill="#A85E2E" text-anchor="middle" font-weight="600">DACH</text>
+      </g>
+      
+      <g transform="translate(8, 268)">
+        <rect width="48" height="48" rx="12" fill="#F5F1E8"/>
+        <path d="M 24 14 L 18 28 L 22 28 L 20 38 L 30 22 L 26 22 L 28 14 Z" fill="#5C5447"/>
+        <text x="24" y="62" font-size="8.5" fill="#5C5447" text-anchor="middle">Blitz</text>
+      </g>
+    </g>
+    
+    <!-- Top-left: Live indicator -->
+    <g transform="translate(20, 20)">
+      <rect width="160" height="36" rx="18" fill="#FFFFFF" opacity="0.95"/>
+      <circle cx="20" cy="18" r="4" fill="#7A9466"/>
+      <text x="34" y="23" font-size="11" fill="#2C2A26" font-weight="500">Live · MOSMIX 11:00</text>
+    </g>
+    
+    <!-- Performance indicator (3D-specific) -->
+    <g transform="translate(20, 64)">
+      <rect width="120" height="32" rx="16" fill="#FFFFFF" opacity="0.9"/>
+      <circle cx="16" cy="16" r="3" fill="#7A9466"/>
+      <text x="28" y="20" font-size="10" fill="#5C5447">60 FPS · HD-Terrain</text>
+    </g>
+    
+    <!-- Quality settings -->
+    <g transform="translate(20, 104)">
+      <rect width="200" height="36" rx="18" fill="#FFFFFF" opacity="0.9"/>
+      <text x="14" y="20" font-size="9" fill="#A89A7A" letter-spacing="1.5" font-weight="500">QUALITÄT</text>
+      <g transform="translate(70, 8)">
+        <rect width="40" height="20" rx="10" fill="transparent"/>
+        <text x="20" y="14" font-size="10" fill="#A89A7A" text-anchor="middle">Niedrig</text>
+      </g>
+      <g transform="translate(112, 8)">
+        <rect width="38" height="20" rx="10" fill="#2C2A26"/>
+        <text x="19" y="14" font-size="10" fill="#FFFFFF" text-anchor="middle" font-weight="500">Mittel</text>
+      </g>
+      <g transform="translate(154, 8)">
+        <rect width="38" height="20" rx="10" fill="transparent"/>
+        <text x="19" y="14" font-size="10" fill="#A89A7A" text-anchor="middle">Hoch</text>
+      </g>
+    </g>
+  </g>
+  
+  <!-- ============ RIGHT PANEL (compressed for 3D view, similar to 2D) ============ -->
+  <g transform="translate(908, 76)">
+    <rect width="500" height="800" rx="20" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    
+    <!-- Header -->
+    <g transform="translate(24, 24)">
+      <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">STANDORT · 3D-FOKUS</text>
+      <text y="26" font-size="20" font-weight="500" fill="#2C2A26" letter-spacing="-0.4">Zugspitze Gipfel</text>
+      <text y="46" font-size="11" fill="#8B7355">47.421°N · 10.985°E · 2 962 m</text>
+    </g>
+    
+    <!-- ALTITUDE INDICATOR - unique to 3D -->
+    <g transform="translate(24, 90)">
+      <rect width="452" height="42" rx="14" fill="#F5F1E8"/>
+      <g transform="translate(16, 14)">
+        <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">HÖHENLAGE</text>
+        <text x="92" y="0" font-size="13" fill="#2C2A26" font-weight="500">Alpiner Gipfel · ganzjährig Schnee möglich</text>
+      </g>
+    </g>
+    
+    <!-- TEMPERATURE -->
+    <g transform="translate(24, 146)">
+      <text font-size="96" font-weight="200" fill="#2C2A26" letter-spacing="-3.5">−4°</text>
+      
+      <g transform="translate(160, 56)">
+        <text font-size="16" fill="#5C5447" font-weight="400">± 0.6°</text>
+        <g transform="translate(0, 18)">
+          <line x1="0" y1="0" x2="0" y2="8" stroke="#A89A7A" stroke-width="1"/>
+          <line x1="0" y1="4" x2="60" y2="4" stroke="#D9D0B8" stroke-width="1"/>
+          <line x1="60" y1="0" x2="60" y2="8" stroke="#A89A7A" stroke-width="1"/>
+          <circle cx="30" cy="4" r="3" fill="#2C2A26"/>
+        </g>
+        <g transform="translate(0, 30)" font-size="9" fill="#A89A7A">
+          <text>−4.6°</text>
+          <text x="60" text-anchor="end">−3.4°</text>
+        </g>
+      </g>
+      
+      <text y="118" font-size="13" fill="#5C5447">Gefühlt −12° · Wind-Chill</text>
+    </g>
+    
+    <!-- Critical alpine info -->
+    <g transform="translate(24, 290)">
+      <rect width="452" height="80" rx="14" fill="#FAEEDA"/>
+      
+      <g transform="translate(20, 16)">
+        <text font-size="9" fill="#A85E2E" letter-spacing="2" font-weight="500">ALPINE BEDINGUNGEN</text>
+      </g>
+      
+      <g transform="translate(20, 40)">
+        <text font-size="8.5" fill="#A89A7A" letter-spacing="1">NULLGRADGRENZE</text>
+        <text y="20" font-size="15" fill="#2C2A26" font-weight="500">1 820 m</text>
+      </g>
+      
+      <g transform="translate(170, 40)">
+        <text font-size="8.5" fill="#A89A7A" letter-spacing="1">SCHNEEFALLGRENZE</text>
+        <text y="20" font-size="15" fill="#2C2A26" font-weight="500">1 600 m</text>
+      </g>
+      
+      <g transform="translate(330, 40)">
+        <text font-size="8.5" fill="#A89A7A" letter-spacing="1">WIND · GRAT</text>
+        <text y="20" font-size="15" fill="#A85E2E" font-weight="500">68 km/h</text>
+      </g>
+    </g>
+    
+    <!-- Wind altitude profile (essential for alpine) -->
+    <g transform="translate(24, 392)">
+      <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">WIND · HÖHENPROFIL · GIPFEL-FOKUS</text>
+      
+      <g transform="translate(0, 18)" font-size="10" fill="#5C5447">
+        <g>
+          <text x="0" y="8">3000m</text>
+          <rect x="56" y="0" width="320" height="10" rx="2" fill="#F5F1E8"/>
+          <rect x="56" y="0" width="280" height="10" rx="2" fill="#A85E2E"/>
+          <text x="384" y="9" font-weight="500" fill="#2C2A26" font-size="11">68 km/h</text>
+          <text x="384" y="22" font-size="9" fill="#A89A7A">Gipfel · Böen 92</text>
+        </g>
+        <g transform="translate(0, 32)">
+          <text x="0" y="8">2500m</text>
+          <rect x="56" y="0" width="320" height="10" rx="2" fill="#F5F1E8"/>
+          <rect x="56" y="0" width="220" height="10" rx="2" fill="#C97B47"/>
+          <text x="384" y="9" font-weight="500" fill="#2C2A26" font-size="11">52 km/h</text>
+        </g>
+        <g transform="translate(0, 56)">
+          <text x="0" y="8">1500m</text>
+          <rect x="56" y="0" width="320" height="10" rx="2" fill="#F5F1E8"/>
+          <rect x="56" y="0" width="140" height="10" rx="2" fill="#D4A373"/>
+          <text x="384" y="9" font-weight="500" fill="#2C2A26" font-size="11">32 km/h</text>
+        </g>
+        <g transform="translate(0, 80)">
+          <text x="0" y="8">700m</text>
+          <rect x="56" y="0" width="320" height="10" rx="2" fill="#F5F1E8"/>
+          <rect x="56" y="0" width="60" height="10" rx="2" fill="#7A9466"/>
+          <text x="384" y="9" font-weight="500" fill="#2C2A26" font-size="11">14 km/h</text>
+          <text x="384" y="22" font-size="9" fill="#A89A7A">Tal · ruhig</text>
+        </g>
+      </g>
+    </g>
+    
+    <!-- Visibility / cloud base -->
+    <g transform="translate(24, 540)">
+      <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">SICHT · WOLKEN</text>
+      
+      <g transform="translate(0, 18)">
+        <g>
+          <text font-size="8.5" fill="#A89A7A" letter-spacing="1.2">WOLKENBASIS</text>
+          <text y="20" font-size="16" fill="#2C2A26" font-weight="500">2 400 m</text>
+          <text y="36" font-size="10" fill="#A85E2E">Gipfel im Nebel</text>
+        </g>
+        <g transform="translate(150, 0)">
+          <text font-size="8.5" fill="#A89A7A" letter-spacing="1.2">SICHTWEITE</text>
+          <text y="20" font-size="16" fill="#2C2A26" font-weight="500">1.2 km</text>
+          <text y="36" font-size="10" fill="#A85E2E">eingeschränkt</text>
+        </g>
+        <g transform="translate(300, 0)">
+          <text font-size="8.5" fill="#A89A7A" letter-spacing="1.2">UV-INDEX</text>
+          <text y="20" font-size="16" fill="#2C2A26" font-weight="500">7</text>
+          <text y="36" font-size="10" fill="#C97B47">hoch · Reflexion</text>
+        </g>
+      </g>
+    </g>
+    
+    <!-- Activity warnings card -->
+    <g transform="translate(24, 660)">
+      <rect width="452" height="100" rx="14" fill="#2C2A26"/>
+      
+      <g transform="translate(20, 18)">
+        <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">EMPFEHLUNG · BERGWETTER</text>
+      </g>
+      
+      <g transform="translate(20, 42)">
+        <text font-size="13" fill="#FFFFFF">Gipfel-Aktivitäten heute nicht empfohlen.</text>
+        <text y="20" font-size="11" fill="#D9D0B8">Hohe Windgeschwindigkeiten am Grat (68+ km/h),</text>
+        <text y="36" font-size="11" fill="#D9D0B8">Sichtweite eingeschränkt durch tiefe Wolkenbasis.</text>
+      </g>
+    </g>
+    
+    <!-- Bottom actions -->
+    <g transform="translate(24, 776)">
+      <g>
+        <rect width="220" height="0" rx="0" fill="transparent"/>
+        <text font-size="11" fill="#8B7355">↗ Tagesablauf zeigt bessere Zeitfenster</text>
+      </g>
+    </g>
+  </g>
+  
+  <!-- LABEL -->
+  <g transform="translate(32, 880)">
+    <text font-size="10" fill="#A89A7A" letter-spacing="3" font-weight="500">04 · 3D-HAUPTANSICHT · DESKTOP · v1.8 SECTION 9.3</text>
+    <text x="1376" font-size="10" fill="#A89A7A" letter-spacing="2" text-anchor="end">3D-Terrain · Föhn-Streamlines · Alpine-Modus · Höhenband-Wind</text>
+  </g>
+</svg>

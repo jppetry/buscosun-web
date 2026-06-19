@@ -1,0 +1,476 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1400" font-family="ui-sans-serif, system-ui, -apple-system">
+  <defs>
+    <linearGradient id="bg19" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F5F1E8"/>
+      <stop offset="100%" stop-color="#EDE6D3"/>
+    </linearGradient>
+    <linearGradient id="sunArc" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0%" stop-color="#2C2A26"/>
+      <stop offset="30%" stop-color="#D4A373"/>
+      <stop offset="50%" stop-color="#FAEEDA"/>
+      <stop offset="70%" stop-color="#D4A373"/>
+      <stop offset="100%" stop-color="#2C2A26"/>
+    </linearGradient>
+    <radialGradient id="sunBall">
+      <stop offset="0%" stop-color="#FAEEDA"/>
+      <stop offset="100%" stop-color="#D4A373"/>
+    </radialGradient>
+  </defs>
+  
+  <rect width="1440" height="1400" fill="url(#bg19)"/>
+  
+  <!-- TOP NAV -->
+  <g>
+    <g transform="translate(32, 24)">
+      <circle cx="14" cy="14" r="6" fill="#2C2A26"/>
+      <g stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round">
+        <line x1="14" y1="0" x2="14" y2="3"/>
+        <line x1="14" y1="25" x2="14" y2="28"/>
+        <line x1="0" y1="14" x2="3" y2="14"/>
+        <line x1="25" y1="14" x2="28" y2="14"/>
+      </g>
+      <text x="42" y="20" font-size="18" font-weight="500" fill="#2C2A26" letter-spacing="-0.5">buscosun</text>
+    </g>
+    
+    <g transform="translate(200, 30)">
+      <g stroke="#5C5447" stroke-width="1.5" fill="none" stroke-linecap="round">
+        <line x1="0" y1="10" x2="14" y2="10"/>
+        <line x1="0" y1="10" x2="6" y2="4"/>
+        <line x1="0" y1="10" x2="6" y2="16"/>
+      </g>
+      <text x="24" y="15" font-size="13" fill="#5C5447">Zurück zum Tagesablauf</text>
+    </g>
+  </g>
+  
+  <!-- ============ HEADER ============ -->
+  <g transform="translate(80, 100)">
+    <text font-size="11" fill="#A89A7A" letter-spacing="3" font-weight="500">AKTIVITÄTS-EMPFEHLUNGEN · DETAILLIERT</text>
+    <text y="56" font-size="56" font-weight="200" fill="#2C2A26" letter-spacing="-1.5">Was machen heute?</text>
+    <text y="100" font-size="16" fill="#5C5447">München, Marienplatz · 14. Mai 2026 · alle Aktivitäten mit detailliertem Zeitfenster-Vergleich.</text>
+  </g>
+  
+  <!-- ============ SUN POSITION ARC (top wide visualization) ============ -->
+  <g transform="translate(80, 260)">
+    <rect width="1280" height="200" rx="22" fill="#2C2A26"/>
+    
+    <text x="28" y="32" font-size="11" fill="#A89A7A" letter-spacing="3" font-weight="500">SONNENSTAND · TAGESVERLAUF</text>
+    
+    <!-- Sun arc curve -->
+    <g transform="translate(120, 50)">
+      <path d="M 0 130 Q 520 -80 1040 130" stroke="url(#sunArc)" stroke-width="3" fill="none" opacity="0.7"/>
+      
+      <!-- Time markers along arc -->
+      <g font-size="9" fill="#A89A7A" letter-spacing="1" font-weight="500">
+        <!-- Sunrise -->
+        <g transform="translate(60, 110)">
+          <circle r="6" fill="#D4A373"/>
+          <text x="0" y="36" text-anchor="middle">05:42</text>
+          <text x="0" y="52" font-size="8" text-anchor="middle" fill="#5C5447">SONNENAUFGANG</text>
+        </g>
+        
+        <!-- Morning -->
+        <g transform="translate(260, 14)">
+          <circle r="6" fill="#D4A373"/>
+          <text x="0" y="-12" text-anchor="middle">09:00</text>
+          <text x="0" y="-26" font-size="8" text-anchor="middle" fill="#5C5447">MORGEN</text>
+        </g>
+        
+        <!-- Solar noon -->
+        <g transform="translate(520, -52)">
+          <circle r="12" fill="url(#sunBall)"/>
+          <circle r="20" fill="#FAEEDA" opacity="0.3"/>
+          <text x="0" y="-32" text-anchor="middle" fill="#FAEEDA" font-weight="600">13:08</text>
+          <text x="0" y="-46" font-size="8" text-anchor="middle" fill="#FAEEDA">HÖCHSTSTAND · 60°</text>
+        </g>
+        
+        <!-- Afternoon -->
+        <g transform="translate(780, 14)">
+          <circle r="6" fill="#D4A373"/>
+          <text x="0" y="-12" text-anchor="middle">17:00</text>
+          <text x="0" y="-26" font-size="8" text-anchor="middle" fill="#5C5447">NACHMITTAG</text>
+        </g>
+        
+        <!-- Sunset -->
+        <g transform="translate(980, 110)">
+          <circle r="6" fill="#D4A373"/>
+          <text x="0" y="36" text-anchor="middle">20:34</text>
+          <text x="0" y="52" font-size="8" text-anchor="middle" fill="#5C5447">SONNENUNTERGANG</text>
+        </g>
+      </g>
+      
+      <!-- Tageslicht-Dauer -->
+      <g transform="translate(1080, 130)">
+        <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">TAGESLICHT</text>
+        <text y="18" font-size="20" fill="#FFFFFF" font-weight="200">14h 52</text>
+      </g>
+    </g>
+  </g>
+  
+  <!-- ============ DETAILED ACTIVITY STRIPS ============ -->
+  <g transform="translate(80, 500)">
+    <text font-size="11" fill="#A89A7A" letter-spacing="3" font-weight="500">PRO AKTIVITÄT · 24H KOMFORT-STREIFEN</text>
+    
+    <g transform="translate(0, 24)">
+      <rect width="1280" height="780" rx="22" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+      
+      <!-- Activity rows -->
+      <g transform="translate(28, 40)">
+        
+        <!-- ROW: Joggen -->
+        <g>
+          <!-- Icon + label column -->
+          <g>
+            <g transform="translate(0, 16)">
+              <rect width="44" height="44" rx="10" fill="#F0F4EA"/>
+              <g transform="translate(14, 12)" stroke="#7A9466" stroke-width="2" fill="none" stroke-linecap="round">
+                <circle cx="6" cy="2" r="3"/>
+                <path d="M 6 5 L 4 14 L 8 18 L 12 24"/>
+                <path d="M 4 14 L 0 18"/>
+              </g>
+            </g>
+            <text x="56" y="38" font-size="15" fill="#2C2A26" font-weight="500">Joggen</text>
+            <text x="56" y="56" font-size="10" fill="#A89A7A">Tempo &lt; 12 km/h</text>
+          </g>
+          
+          <!-- 24h strip -->
+          <g transform="translate(200, 16)">
+            <g>
+              <rect width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="44" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="88" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="132" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="176" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="220" width="42" height="44" rx="6" fill="#7A9466"/>
+              <rect x="264" width="42" height="44" rx="6" fill="#7A9466"/>
+              <rect x="308" width="42" height="44" rx="6" fill="#7A9466"/>
+              <rect x="352" width="42" height="44" rx="6" fill="#D4A373"/>
+              <rect x="396" width="42" height="44" rx="6" fill="#D4A373"/>
+              <rect x="440" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="484" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="528" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="572" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="616" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="660" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="704" width="42" height="44" rx="6" fill="#D4A373"/>
+              <rect x="748" width="42" height="44" rx="6" fill="#7A9466"/>
+              <rect x="792" width="42" height="44" rx="6" fill="#7A9466"/>
+              <rect x="836" width="42" height="44" rx="6" fill="#D4A373"/>
+              <rect x="880" width="42" height="44" rx="6" fill="#A85E2E"/>
+            </g>
+            <!-- Best window indicator -->
+            <g transform="translate(220, -8)">
+              <rect width="138" height="8" rx="4" fill="#7A9466"/>
+            </g>
+          </g>
+          
+          <!-- Recommendation pill -->
+          <g transform="translate(1184, 30)">
+            <rect width="64" height="20" rx="10" fill="#7A9466"/>
+            <text x="32" y="14" font-size="10" fill="#FFFFFF" text-anchor="middle" font-weight="600">06–08h</text>
+          </g>
+        </g>
+        
+        <line x1="0" y1="92" x2="1224" y2="92" stroke="#E0D6BE"/>
+        
+        <!-- ROW: Spaziergang -->
+        <g transform="translate(0, 108)">
+          <g>
+            <g transform="translate(0, 16)">
+              <rect width="44" height="44" rx="10" fill="#F0F4EA"/>
+              <g transform="translate(14, 12)" stroke="#7A9466" stroke-width="2" fill="none" stroke-linecap="round">
+                <circle cx="6" cy="2" r="3"/>
+                <path d="M 6 5 L 5 14 L 9 18"/>
+                <path d="M 5 14 L 2 18"/>
+              </g>
+            </g>
+            <text x="56" y="38" font-size="15" fill="#2C2A26" font-weight="500">Spaziergang</text>
+            <text x="56" y="56" font-size="10" fill="#A89A7A">Leichte Bewegung</text>
+          </g>
+          
+          <g transform="translate(200, 16)">
+            <g>
+              <rect width="42" height="44" rx="6" fill="#D4A373"/>
+              <rect x="44" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="88" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="132" width="42" height="44" rx="6" fill="#D4A373"/>
+              <rect x="176" width="42" height="44" rx="6" fill="#7A9466"/>
+              <rect x="220" width="42" height="44" rx="6" fill="#7A9466"/>
+              <rect x="264" width="42" height="44" rx="6" fill="#7A9466"/>
+              <rect x="308" width="42" height="44" rx="6" fill="#7A9466"/>
+              <rect x="352" width="42" height="44" rx="6" fill="#7A9466"/>
+              <rect x="396" width="42" height="44" rx="6" fill="#7A9466"/>
+              <rect x="440" width="42" height="44" rx="6" fill="#D4A373"/>
+              <rect x="484" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="528" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="572" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="616" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="660" width="42" height="44" rx="6" fill="#D4A373"/>
+              <rect x="704" width="42" height="44" rx="6" fill="#7A9466"/>
+              <rect x="748" width="42" height="44" rx="6" fill="#7A9466"/>
+              <rect x="792" width="42" height="44" rx="6" fill="#D4A373"/>
+              <rect x="836" width="42" height="44" rx="6" fill="#D4A373"/>
+              <rect x="880" width="42" height="44" rx="6" fill="#A85E2E"/>
+            </g>
+            <g transform="translate(176, -8)">
+              <rect width="270" height="8" rx="4" fill="#7A9466"/>
+            </g>
+          </g>
+          
+          <g transform="translate(1184, 30)">
+            <rect width="64" height="20" rx="10" fill="#7A9466"/>
+            <text x="32" y="14" font-size="10" fill="#FFFFFF" text-anchor="middle" font-weight="600">09–13h</text>
+          </g>
+        </g>
+        
+        <line x1="0" y1="200" x2="1224" y2="200" stroke="#E0D6BE"/>
+        
+        <!-- ROW: Radfahren -->
+        <g transform="translate(0, 216)">
+          <g>
+            <g transform="translate(0, 16)">
+              <rect width="44" height="44" rx="10" fill="#F0F4EA"/>
+              <g transform="translate(8, 14)" stroke="#7A9466" stroke-width="1.5" fill="none" stroke-linecap="round">
+                <circle cx="6" cy="10" r="6"/>
+                <circle cx="22" cy="10" r="6"/>
+                <line x1="6" y1="10" x2="14" y2="2"/>
+                <line x1="14" y1="2" x2="22" y2="10"/>
+              </g>
+            </g>
+            <text x="56" y="38" font-size="15" fill="#2C2A26" font-weight="500">Radfahren</text>
+            <text x="56" y="56" font-size="10" fill="#A89A7A">Sport · Stadt &amp; Land</text>
+          </g>
+          
+          <g transform="translate(200, 16)">
+            <g>
+              <rect width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="44" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="88" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="132" width="42" height="44" rx="6" fill="#D4A373"/>
+              <rect x="176" width="42" height="44" rx="6" fill="#7A9466"/>
+              <rect x="220" width="42" height="44" rx="6" fill="#7A9466"/>
+              <rect x="264" width="42" height="44" rx="6" fill="#7A9466"/>
+              <rect x="308" width="42" height="44" rx="6" fill="#7A9466"/>
+              <rect x="352" width="42" height="44" rx="6" fill="#D4A373"/>
+              <rect x="396" width="42" height="44" rx="6" fill="#D4A373"/>
+              <rect x="440" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="484" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="528" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="572" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="616" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="660" width="42" height="44" rx="6" fill="#D4A373"/>
+              <rect x="704" width="42" height="44" rx="6" fill="#7A9466"/>
+              <rect x="748" width="42" height="44" rx="6" fill="#7A9466"/>
+              <rect x="792" width="42" height="44" rx="6" fill="#D4A373"/>
+              <rect x="836" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="880" width="42" height="44" rx="6" fill="#A85E2E"/>
+            </g>
+            <g transform="translate(176, -8)">
+              <rect width="182" height="8" rx="4" fill="#7A9466"/>
+            </g>
+          </g>
+          
+          <g transform="translate(1184, 30)">
+            <rect width="64" height="20" rx="10" fill="#7A9466"/>
+            <text x="32" y="14" font-size="10" fill="#FFFFFF" text-anchor="middle" font-weight="600">09–12h</text>
+          </g>
+        </g>
+        
+        <line x1="0" y1="308" x2="1224" y2="308" stroke="#E0D6BE"/>
+        
+        <!-- ROW: Wandern -->
+        <g transform="translate(0, 324)">
+          <g>
+            <g transform="translate(0, 16)">
+              <rect width="44" height="44" rx="10" fill="#FAEEDA"/>
+              <g transform="translate(12, 12)" stroke="#A85E2E" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M 10 4 L 8 12 L 12 14 L 14 22"/>
+                <circle cx="8" cy="0" r="2.5"/>
+              </g>
+            </g>
+            <text x="56" y="38" font-size="15" fill="#2C2A26" font-weight="500">Wandern</text>
+            <text x="56" y="56" font-size="10" fill="#A89A7A">Tagestour · 6+ Stunden</text>
+          </g>
+          
+          <g transform="translate(200, 16)">
+            <g>
+              <rect width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="44" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="88" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="132" width="42" height="44" rx="6" fill="#D4A373"/>
+              <rect x="176" width="42" height="44" rx="6" fill="#7A9466"/>
+              <rect x="220" width="42" height="44" rx="6" fill="#7A9466"/>
+              <rect x="264" width="42" height="44" rx="6" fill="#7A9466"/>
+              <rect x="308" width="42" height="44" rx="6" fill="#D4A373"/>
+              <rect x="352" width="42" height="44" rx="6" fill="#D4A373"/>
+              <rect x="396" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="440" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="484" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="528" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="572" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="616" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="660" width="42" height="44" rx="6" fill="#D4A373"/>
+              <rect x="704" width="42" height="44" rx="6" fill="#D4A373"/>
+              <rect x="748" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="792" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="836" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="880" width="42" height="44" rx="6" fill="#A85E2E"/>
+            </g>
+            <g transform="translate(176, -8)">
+              <rect width="138" height="8" rx="4" fill="#7A9466"/>
+            </g>
+          </g>
+          
+          <g transform="translate(1180, 30)">
+            <rect width="72" height="20" rx="10" fill="#A85E2E"/>
+            <text x="36" y="14" font-size="10" fill="#FFFFFF" text-anchor="middle" font-weight="600">Morgen besser</text>
+          </g>
+        </g>
+        
+        <line x1="0" y1="416" x2="1224" y2="416" stroke="#E0D6BE"/>
+        
+        <!-- ROW: Photographie -->
+        <g transform="translate(0, 432)">
+          <g>
+            <g transform="translate(0, 16)">
+              <rect width="44" height="44" rx="10" fill="#FAEEDA"/>
+              <g transform="translate(8, 12)" stroke="#A85E2E" stroke-width="2" fill="none">
+                <rect x="0" y="6" width="28" height="16" rx="3"/>
+                <circle cx="14" cy="14" r="5"/>
+              </g>
+            </g>
+            <text x="56" y="38" font-size="15" fill="#2C2A26" font-weight="500">Photographie</text>
+            <text x="56" y="56" font-size="10" fill="#A89A7A">Goldene Stunde priorisiert</text>
+          </g>
+          
+          <g transform="translate(200, 16)">
+            <g>
+              <rect width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="44" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="88" width="42" height="44" rx="6" fill="#D4A373"/>
+              <rect x="132" width="42" height="44" rx="6" fill="#7A9466"/>
+              <rect x="176" width="42" height="44" rx="6" fill="#D4A373"/>
+              <rect x="220" width="42" height="44" rx="6" fill="#D4A373"/>
+              <rect x="264" width="42" height="44" rx="6" fill="#D4A373"/>
+              <rect x="308" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="352" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="396" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="440" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="484" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="528" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="572" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="616" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="660" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="704" width="42" height="44" rx="6" fill="#D4A373"/>
+              <rect x="748" width="42" height="44" rx="6" fill="#D4A373"/>
+              <rect x="792" width="42" height="44" rx="6" fill="#7A9466"/>
+              <rect x="836" width="42" height="44" rx="6" fill="#7A9466"/>
+              <rect x="880" width="42" height="44" rx="6" fill="#A85E2E"/>
+            </g>
+            <g transform="translate(792, -8)">
+              <rect width="94" height="8" rx="4" fill="#D4A373"/>
+            </g>
+          </g>
+          
+          <g transform="translate(1180, 30)">
+            <rect width="72" height="20" rx="10" fill="#D4A373"/>
+            <text x="36" y="14" font-size="10" fill="#FFFFFF" text-anchor="middle" font-weight="600">Golden 19:30+</text>
+          </g>
+        </g>
+        
+        <line x1="0" y1="524" x2="1224" y2="524" stroke="#E0D6BE"/>
+        
+        <!-- ROW: Garten -->
+        <g transform="translate(0, 540)">
+          <g>
+            <g transform="translate(0, 16)">
+              <rect width="44" height="44" rx="10" fill="#F5F1E8"/>
+              <g transform="translate(14, 8)" stroke="#5C5447" stroke-width="2" fill="none" stroke-linecap="round">
+                <line x1="8" y1="28" x2="8" y2="12"/>
+                <path d="M 8 12 Q 2 6 2 0"/>
+                <path d="M 8 12 Q 14 6 14 0"/>
+              </g>
+            </g>
+            <text x="56" y="38" font-size="15" fill="#2C2A26" font-weight="500">Garten-Arbeit</text>
+            <text x="56" y="56" font-size="10" fill="#A89A7A">Hobbygärtnerei</text>
+          </g>
+          
+          <g transform="translate(200, 16)">
+            <g>
+              <rect width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="44" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="88" width="42" height="44" rx="6" fill="#D4A373"/>
+              <rect x="132" width="42" height="44" rx="6" fill="#7A9466"/>
+              <rect x="176" width="42" height="44" rx="6" fill="#7A9466"/>
+              <rect x="220" width="42" height="44" rx="6" fill="#D4A373"/>
+              <rect x="264" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="308" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="352" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="396" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="440" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="484" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="528" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="572" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="616" width="42" height="44" rx="6" fill="#A85E2E"/>
+              <rect x="660" width="42" height="44" rx="6" fill="#D4A373"/>
+              <rect x="704" width="42" height="44" rx="6" fill="#7A9466"/>
+              <rect x="748" width="42" height="44" rx="6" fill="#7A9466"/>
+              <rect x="792" width="42" height="44" rx="6" fill="#7A9466"/>
+              <rect x="836" width="42" height="44" rx="6" fill="#D4A373"/>
+              <rect x="880" width="42" height="44" rx="6" fill="#A85E2E"/>
+            </g>
+            <g transform="translate(132, -8)">
+              <rect width="94" height="8" rx="4" fill="#7A9466"/>
+            </g>
+            <g transform="translate(704, -8)">
+              <rect width="138" height="8" rx="4" fill="#7A9466"/>
+            </g>
+          </g>
+          
+          <g transform="translate(1180, 30)">
+            <rect width="72" height="20" rx="10" fill="#7A9466"/>
+            <text x="36" y="14" font-size="10" fill="#FFFFFF" text-anchor="middle" font-weight="600">07–10h / 18h</text>
+          </g>
+        </g>
+        
+        <!-- X-axis hours -->
+        <g transform="translate(200, 660)" font-size="9" fill="#A89A7A" font-weight="500">
+          <text x="0" text-anchor="middle">00</text>
+          <text x="180" text-anchor="middle">04</text>
+          <text x="360" text-anchor="middle">08</text>
+          <text x="540" text-anchor="middle">12</text>
+          <text x="720" text-anchor="middle">16</text>
+          <text x="900" text-anchor="middle">20</text>
+        </g>
+      </g>
+      
+      <!-- Legend -->
+      <g transform="translate(28, 716)">
+        <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">FARB-LEGENDE</text>
+        
+        <g transform="translate(0, 14)" font-size="10" fill="#5C5447">
+          <g>
+            <rect width="14" height="14" rx="2" fill="#7A9466"/>
+            <text x="22" y="11">Optimal — alle Bedingungen erfüllt</text>
+          </g>
+          <g transform="translate(240, 0)">
+            <rect width="14" height="14" rx="2" fill="#D4A373"/>
+            <text x="22" y="11">Akzeptabel — Vorsicht ratsam</text>
+          </g>
+          <g transform="translate(500, 0)">
+            <rect width="14" height="14" rx="2" fill="#A85E2E"/>
+            <text x="22" y="11">Ungünstig — eher meiden</text>
+          </g>
+          <g transform="translate(750, 0)">
+            <text>Hover-Markierung über Streifen = empfohlenes Zeit-Fenster</text>
+          </g>
+        </g>
+      </g>
+    </g>
+  </g>
+  
+  <!-- ============ LABEL ============ -->
+  <g transform="translate(80, 1360)">
+    <text font-size="10" fill="#A89A7A" letter-spacing="3" font-weight="500">19 · ACTIVITY-SUGGESTIONS DETAIL · DESKTOP · SESSION 2/3 — COMPLETE</text>
+    <text x="1280" font-size="10" fill="#A89A7A" letter-spacing="2" text-anchor="end">Sonnenstand-Bogen · 6 Aktivitäts-Streifen · Empfehlungs-Pills</text>
+  </g>
+</svg>

@@ -1,0 +1,114 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1500" font-family="ui-sans-serif, system-ui, -apple-system">
+  <defs>
+    <linearGradient id="bgT2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#F5F1E8"/><stop offset="100%" stop-color="#EDE6D3"/></linearGradient>
+    <linearGradient id="socT2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#7A9466" stop-opacity="0.4"/><stop offset="100%" stop-color="#7A9466" stop-opacity="0.05"/></linearGradient>
+  </defs>
+  <rect width="1024" height="1500" fill="url(#bgT2)"/>
+
+  <!-- status + top bar -->
+  <g><rect width="1024" height="40" fill="#F5F1E8"/><text x="40" y="26" font-size="14" fill="#2C2A26" font-weight="600">9:41</text><g transform="translate(940, 13)"><rect width="30" height="13" rx="3" fill="none" stroke="#2C2A26" stroke-width="1.4"/><rect x="2" y="2" width="22" height="9" rx="1" fill="#2C2A26"/><rect x="32" y="4" width="2" height="5" rx="1" fill="#2C2A26"/></g></g>
+  <g transform="translate(0,40)"><rect width="1024" height="72" fill="#FFFFFF"/>
+    <g transform="translate(40, 28)" stroke="#2C2A26" stroke-width="2.5" fill="none" stroke-linecap="round"><line x1="0" y1="10" x2="20" y2="10"/><polyline points="7,5 0,10 7,15"/></g>
+    <g transform="translate(76, 22)"><text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">FREIBURG–SCHAUINSLAND</text><text y="22" font-size="18" fill="#2C2A26" font-weight="500" letter-spacing="-0.3">Tour konfigurieren</text></g>
+    <g transform="translate(420, 16)" font-size="12"><g><text x="30" y="25" fill="#5C5447" text-anchor="middle">Karte</text></g><g transform="translate(64,0)"><rect width="60" height="40" rx="20" fill="#2C2A26"/><text x="30" y="25" fill="#F5F1E8" text-anchor="middle" font-weight="500">Route</text></g><g transform="translate(128,0)"><text x="28" y="25" fill="#5C5447" text-anchor="middle">Event</text></g><g transform="translate(188,0)"><text x="42" y="25" fill="#5C5447" text-anchor="middle">Tagesablauf</text></g></g>
+    <g transform="translate(960, 16)"><rect width="40" height="40" rx="20" fill="#FFFFFF" stroke="#D9D0B8"/><circle cx="20" cy="20" r="7" fill="#7A9466"/><text x="20" y="24" font-size="9" fill="#FFFFFF" text-anchor="middle" font-weight="500">JS</text></g>
+  </g>
+
+  <!-- step 1 -->
+  <g transform="translate(40, 140)"><text font-size="10" fill="#A89A7A" letter-spacing="3" font-weight="500">SCHRITT 1 VON 2 · BEWEGUNGSART</text><text y="32" font-size="26" font-weight="400" fill="#2C2A26" letter-spacing="-0.6">Wie bist du unterwegs?</text></g>
+
+  <!-- movement grid 4×2 -->
+  <g transform="translate(40, 200)">
+    <rect width="944" height="276" rx="20" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    <!-- helper tiles -->
+    <g transform="translate(16,16)"><rect width="219" height="116" rx="16" fill="#FAF6EA" stroke="#E0D6BE"/><g transform="translate(14,14)"><rect width="40" height="40" rx="10" fill="#F5F1E8"/><g transform="translate(7,7)" stroke="#8B7355" stroke-width="1.7" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="5" r="2"/><path d="M11 7 L11 15 L9 21 M11 15 L14 19"/></g></g><text x="62" y="32" font-size="14" fill="#2C2A26" font-weight="500">Wandern</text><text x="14" y="90" font-size="10.5" fill="#8B7355">4,5 km/h · 350 Hm/h</text></g>
+    <g transform="translate(247,16)"><rect width="219" height="116" rx="16" fill="#2C2A26"/><g transform="translate(14,14)"><rect width="40" height="40" rx="10" fill="#3A3833"/><g transform="translate(7,7)" stroke="#F5F1E8" stroke-width="1.7" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M2 21 L9 10 L13 15 L18 8 L24 21 Z"/></g></g><text x="62" y="32" font-size="14" fill="#FFFFFF" font-weight="500">Bergwandern</text><text x="14" y="90" font-size="10.5" fill="#C9BEA6">3,5 km/h · 300 Hm/h</text><g transform="translate(195, 12)"><circle r="8" fill="rgba(255,255,255,0.15)"/><path d="M -3.5 0 L -1 2.5 L 3.5 -2.5" stroke="#FFFFFF" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></g></g>
+    <g transform="translate(478,16)"><rect width="219" height="116" rx="16" fill="#FAF6EA" stroke="#E0D6BE"/><g transform="translate(14,14)"><rect width="40" height="40" rx="10" fill="#F5F1E8"/><g transform="translate(7,7)" stroke="#8B7355" stroke-width="1.7" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="13" cy="5" r="2"/><path d="M13 7 L10 12 L7 15 M10 12 L15 16 L14 21 M11 9 L16 10"/></g></g><text x="62" y="32" font-size="14" fill="#2C2A26" font-weight="500">Jogging</text><text x="14" y="90" font-size="10.5" fill="#8B7355">9 km/h · 600 Hm/h</text></g>
+    <g transform="translate(709,16)"><rect width="219" height="116" rx="16" fill="#FAF6EA" stroke="#E0D6BE"/><g transform="translate(14,14)"><rect width="40" height="40" rx="10" fill="#F5F1E8"/><g transform="translate(7,7)" stroke="#8B7355" stroke-width="1.7" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="13" cy="4" r="2"/><path d="M13 6 L10 11 L7 14 M10 11 L15 15 L14 19"/><path d="M3 23 q2.5 -1.5 5 0 t5 0 t5 0"/></g></g><text x="62" y="32" font-size="14" fill="#2C2A26" font-weight="500">Trail-Running</text><text x="14" y="90" font-size="10.5" fill="#8B7355">8 km/h · 500 Hm/h</text></g>
+    <g transform="translate(16,144)"><rect width="219" height="116" rx="16" fill="#FAF6EA" stroke="#E0D6BE"/><g transform="translate(14,14)"><rect width="40" height="40" rx="10" fill="#F5F1E8"/><g transform="translate(5,6)" stroke="#8B7355" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="20" r="4.4"/><circle cx="21" cy="20" r="4.4"/><path d="M7 20 L12 11 L19 11 M12 11 L21 20 M16 11 L18 7 L21 7"/></g></g><text x="62" y="32" font-size="14" fill="#2C2A26" font-weight="500">Rennrad</text><text x="14" y="90" font-size="10.5" fill="#8B7355">26 km/h flach</text></g>
+    <g transform="translate(247,144)"><rect width="219" height="116" rx="16" fill="#FAF6EA" stroke="#E0D6BE"/><g transform="translate(14,14)"><rect width="40" height="40" rx="10" fill="#F5F1E8"/><g transform="translate(5,6)" stroke="#8B7355" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="20" r="4.4"/><circle cx="21" cy="20" r="4.4"/><path d="M7 20 L12 11 L19 11 M12 11 L21 20 M16 7 L20 7 M4 11 L8 11"/></g></g><text x="62" y="32" font-size="14" fill="#2C2A26" font-weight="500">Gravel</text><text x="14" y="90" font-size="10.5" fill="#8B7355">20 km/h flach</text></g>
+    <g transform="translate(478,144)"><rect width="219" height="116" rx="16" fill="#FAF6EA" stroke="#E0D6BE"/><g transform="translate(14,14)"><rect width="40" height="40" rx="10" fill="#F5F1E8"/><g transform="translate(5,6)" stroke="#8B7355" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="21" r="4.4"/><circle cx="21" cy="21" r="4.4"/><path d="M7 21 L12 11 L19 11 M12 11 L21 21 M16 11 L18 7"/></g></g><text x="62" y="32" font-size="14" fill="#2C2A26" font-weight="500">MTB Cross-C.</text><text x="14" y="90" font-size="10.5" fill="#8B7355">15 km/h flach</text></g>
+    <g transform="translate(709,144)"><rect width="219" height="116" rx="16" fill="#FAF6EA" stroke="#E0D6BE"/><g transform="translate(14,14)"><rect width="40" height="40" rx="10" fill="#F5F1E8"/><g transform="translate(5,6)" stroke="#8B7355" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="21" r="4.4"/><circle cx="21" cy="21" r="4.4"/><path d="M7 21 L12 11 L19 11 M12 11 L21 21"/></g></g><text x="62" y="32" font-size="14" fill="#2C2A26" font-weight="500">E-Bike Trekking</text><text x="14" y="90" font-size="10.5" fill="#8B7355">23 km/h flach</text><g transform="translate(195, 12)"><circle r="8" fill="#7A9466"/><text y="3" font-size="9" fill="#FFFFFF" text-anchor="middle" font-weight="700">E</text></g></g>
+  </g>
+
+  <!-- step 2 -->
+  <text transform="translate(40, 516)" font-size="10" fill="#A89A7A" letter-spacing="3" font-weight="500">SCHRITT 2 VON 2 · KONFIGURATION</text>
+  <g transform="translate(40, 532)">
+    <rect width="944" height="452" rx="20" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    <g transform="translate(28, 24)"><circle cx="5" cy="5" r="5" fill="#C97B47"/><text x="20" y="10" font-size="15" fill="#2C2A26" font-weight="500">Bergwandern</text><text x="135" y="10" font-size="12" fill="#8B7355" text-decoration="underline">andere Art wählen</text></g>
+    <line x1="28" y1="48" x2="916" y2="48" stroke="#E0D6BE" stroke-width="0.5"/>
+    <line x1="472" y1="72" x2="472" y2="430" stroke="#E0D6BE" stroke-width="0.5"/>
+
+    <!-- left -->
+    <g transform="translate(28, 72)">
+      <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">TEMPO-PROFIL</text>
+      <g transform="translate(0, 16)" font-size="12"><g><rect width="88" height="28" rx="14" fill="#FAF6EA" stroke="#E0D6BE"/><text x="44" y="19" fill="#3A372F" text-anchor="middle">Gemütlich</text></g><g transform="translate(96,0)"><rect width="74" height="28" rx="14" fill="#FAF6EA" stroke="#E0D6BE"/><text x="37" y="19" fill="#3A372F" text-anchor="middle">Normal</text></g><g transform="translate(178,0)"><rect width="80" height="28" rx="14" fill="#FAF6EA" stroke="#E0D6BE"/><text x="40" y="19" fill="#3A372F" text-anchor="middle">Sportlich</text></g></g>
+      <g transform="translate(0, 60)">
+        <g><text font-size="12" fill="#3A372F">Flachtempo</text><text x="200" font-size="12" fill="#2C2A26" font-weight="500" text-anchor="end">3,5</text><rect y="14" width="200" height="6" rx="3" fill="#EDE6D3"/><rect y="14" width="66" height="6" rx="3" fill="#2C2A26"/><circle cx="66" cy="17" r="8" fill="#2C2A26"/></g>
+        <g transform="translate(222,0)"><text font-size="12" fill="#3A372F">Steigl.</text><text x="200" font-size="12" fill="#2C2A26" font-weight="500" text-anchor="end">300</text><rect y="14" width="200" height="6" rx="3" fill="#EDE6D3"/><rect y="14" width="105" height="6" rx="3" fill="#2C2A26"/><circle cx="105" cy="17" r="8" fill="#2C2A26"/></g>
+        <g transform="translate(0,46)"><text font-size="12" fill="#3A372F">Abstiegsl.</text><text x="200" font-size="12" fill="#2C2A26" font-weight="500" text-anchor="end">400</text><rect y="14" width="200" height="6" rx="3" fill="#EDE6D3"/><rect y="14" width="130" height="6" rx="3" fill="#2C2A26"/><circle cx="130" cy="17" r="8" fill="#2C2A26"/></g>
+        <g transform="translate(222,46)"><text font-size="12" fill="#3A372F">Anpassung</text><text x="200" font-size="12" fill="#2C2A26" font-weight="500" text-anchor="end">100%</text><rect y="14" width="200" height="6" rx="3" fill="#EDE6D3"/><rect y="14" width="100" height="6" rx="3" fill="#2C2A26"/><circle cx="100" cy="17" r="8" fill="#2C2A26"/></g>
+      </g>
+      <g transform="translate(0, 160)"><rect width="422" height="54" rx="14" fill="#FAF6EA" stroke="#E0D6BE"/>
+        <g transform="translate(16, 16)"><text font-size="9" fill="#8B7355">REINE GEHZEIT</text><text y="24" font-size="17" fill="#2C2A26" font-weight="500">4 h 49</text></g>
+        <line x1="150" y1="10" x2="150" y2="44" stroke="#E0D6BE"/><g transform="translate(166, 16)"><text font-size="9" fill="#8B7355">Ø TEMPO</text><text y="24" font-size="17" fill="#2C2A26" font-weight="500">2,0 km/h</text></g>
+        <line x1="300" y1="10" x2="300" y2="44" stroke="#E0D6BE"/><g transform="translate(316, 16)"><text font-size="9" fill="#8B7355">SPANNE</text><text y="24" font-size="17" fill="#2C2A26" font-weight="500">1,5–3,5</text></g></g>
+      <g transform="translate(0, 230)"><text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">RICHTUNG</text>
+        <g transform="translate(0, 12)"><rect width="220" height="32" rx="16" fill="#FAF6EA" stroke="#E0D6BE"/><rect x="2" y="2" width="108" height="28" rx="14" fill="#2C2A26"/><text x="56" y="21" font-size="12" fill="#FFFFFF" text-anchor="middle" font-weight="500">Hinweg</text><text x="165" y="21" font-size="12" fill="#5C5447" text-anchor="middle">Rückwärts</text></g></g>
+      <g transform="translate(0, 296)"><text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">START</text>
+        <g transform="translate(0, 12)" font-size="11"><g><rect width="58" height="28" rx="14" fill="#FFFFFF" stroke="#E0D6BE"/><text x="29" y="18" fill="#3A372F" text-anchor="middle">Jetzt</text></g><g transform="translate(66,0)"><rect width="92" height="28" rx="14" fill="#FFFFFF" stroke="#E0D6BE"/><text x="46" y="18" fill="#3A372F" text-anchor="middle">Morgen früh</text></g><g transform="translate(166,0)"><rect width="100" height="28" rx="14" fill="#FFFFFF" stroke="#E0D6BE"/><text x="50" y="18" fill="#3A372F" text-anchor="middle">Wochenende</text></g></g>
+        <g transform="translate(0, 50)"><rect width="220" height="32" rx="10" fill="#FAF6EA" stroke="#E0D6BE"/><text x="12" y="21" font-size="12" fill="#2C2A26">14.06.2026  08:00</text></g>
+      </g>
+    </g>
+
+    <!-- right -->
+    <g transform="translate(500, 72)">
+      <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">PAUSEN</text>
+      <g transform="translate(0, 18)"><rect width="16" height="16" rx="4" fill="#2C2A26"/><path d="M3.5 8 L7 11.5 L13 4.5" stroke="#FFFFFF" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/><text x="26" y="13" font-size="13" fill="#2C2A26">Automatische Pausen — alle 120 min, 20 min</text></g>
+      <g transform="translate(26, 44)"><g><text font-size="12" fill="#3A372F">Intervall</text><text x="180" font-size="12" fill="#2C2A26" font-weight="500" text-anchor="end">120 min</text><rect y="14" width="180" height="6" rx="3" fill="#EDE6D3"/><rect y="14" width="95" height="6" rx="3" fill="#2C2A26"/><circle cx="95" cy="17" r="8" fill="#2C2A26"/></g>
+        <g transform="translate(206,0)"><text font-size="12" fill="#3A372F">Dauer</text><text x="180" font-size="12" fill="#2C2A26" font-weight="500" text-anchor="end">20 min</text><rect y="14" width="180" height="6" rx="3" fill="#EDE6D3"/><rect y="14" width="65" height="6" rx="3" fill="#2C2A26"/><circle cx="65" cy="17" r="8" fill="#2C2A26"/></g></g>
+      <g transform="translate(0, 110)"><rect width="16" height="16" rx="4" fill="#2C2A26"/><path d="M3.5 8 L7 11.5 L13 4.5" stroke="#FFFFFF" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/><text x="26" y="13" font-size="13" fill="#2C2A26">Mittagspause — nach 3 h, 45 min</text></g>
+      <g transform="translate(0, 146)"><text font-size="12" fill="#8B7355">Erkannt aus Wegpunkten:</text>
+        <g transform="translate(0, 14)" font-size="11.5">
+          <g><rect width="416" height="30" rx="15" fill="rgba(198,99,59,0.06)" stroke="#C6633B"/><g transform="translate(14, 9)" stroke="#C6633B" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M0 0 L0 5 a1.6 1.6 0 0 0 3.2 0 L3.2 0 M1.6 0 L1.6 13"/><path d="M9 0 c-1 0-1.6 1.1-1.6 3 S8.4 6 9 6 L9 13"/></g><text x="34" y="19" fill="#3A372F">Schauinsland-Gipfelhütte · 45 min · km 6,6</text></g>
+          <g transform="translate(0, 38)"><rect width="416" height="30" rx="15" fill="rgba(79,98,126,0.06)" stroke="#4F627E"/><g transform="translate(14, 9)" stroke="#4F627E" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M1 5 L11 5 L11 8 a3.5 3.5 0 0 1-3.5 3.5 L4.5 11.5 a3.5 3.5 0 0 1-3.5-3.5 Z M11 6 h2 a1.8 1.8 0 0 1 0 3.6 h-2"/></g><text x="34" y="19" fill="#3A372F">Aussichtspunkt Bohrer · 15 min · km 8,6</text></g>
+        </g>
+      </g>
+      <g transform="translate(0, 246)"><text font-size="12" fill="#8B7355">Gesetzte Pausen (1):</text>
+        <g transform="translate(0, 12)"><rect width="416" height="36" rx="10" fill="#FAF6EA" stroke="#E0D6BE"/><circle cx="18" cy="18" r="4.5" fill="#C6633B"/><text x="34" y="22" font-size="12" fill="#2C2A26">Schauinsland-Gipfelhütte · km 6,6</text><g transform="translate(330, 8)"><rect width="50" height="20" rx="8" fill="#F5F1E8" stroke="#E0D6BE"/><text x="25" y="14" font-size="10.5" fill="#5C5447" text-anchor="middle">45 min</text></g><text x="398" y="22" font-size="14" fill="#8B7355" text-anchor="middle">×</text></g></g>
+    </g>
+  </g>
+
+  <!-- ebike -->
+  <text transform="translate(40, 1020)" font-size="10" fill="#A89A7A" letter-spacing="3" font-weight="500">E-BIKE-AKKU · NUR BEI E-BIKE-AUSWAHL</text>
+  <g transform="translate(40, 1036)">
+    <rect width="944" height="184" rx="20" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    <g transform="translate(28, 22)"><text font-size="15" fill="#2C2A26" font-weight="500">E-Bike-Akku</text><text x="888" font-size="13" fill="#7A9466" font-weight="600" text-anchor="end">62 % am Ziel</text></g>
+    <line x1="28" y1="44" x2="916" y2="44" stroke="#E0D6BE" stroke-width="0.5"/>
+    <g transform="translate(28, 66)">
+      <g><text font-size="12" fill="#3A372F">Akkukapazität</text><text x="190" font-size="12" fill="#2C2A26" font-weight="500" text-anchor="end">625 Wh</text><rect y="14" width="190" height="6" rx="3" fill="#EDE6D3"/><rect y="14" width="115" height="6" rx="3" fill="#2C2A26"/><circle cx="115" cy="17" r="8" fill="#2C2A26"/></g>
+      <g transform="translate(220,0)"><text font-size="12" fill="#3A372F">System-Masse</text><text x="190" font-size="12" fill="#2C2A26" font-weight="500" text-anchor="end">95 kg</text><rect y="14" width="190" height="6" rx="3" fill="#EDE6D3"/><rect y="14" width="95" height="6" rx="3" fill="#2C2A26"/><circle cx="95" cy="17" r="8" fill="#2C2A26"/></g>
+      <g transform="translate(0, 50)"><rect width="410" height="34" rx="12" fill="#FAF6EA" stroke="#E0D6BE"/><rect x="103" y="2" width="102" height="30" rx="10" fill="#2C2A26"/>
+        <text x="51" y="16" font-size="11" fill="#5C5447" text-anchor="middle">Eco</text><text x="51" y="28" font-size="8" fill="#A89A7A" text-anchor="middle">250 W</text>
+        <text x="154" y="16" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="500">Tour</text><text x="154" y="28" font-size="8" fill="#C9BEA6" text-anchor="middle">400 W</text>
+        <text x="256" y="16" font-size="11" fill="#5C5447" text-anchor="middle">Sport</text><text x="256" y="28" font-size="8" fill="#A89A7A" text-anchor="middle">600 W</text>
+        <text x="358" y="16" font-size="11" fill="#5C5447" text-anchor="middle">Turbo</text><text x="358" y="28" font-size="8" fill="#A89A7A" text-anchor="middle">750 W</text></g>
+    </g>
+    <g transform="translate(478, 66)">
+      <text font-size="9" fill="#A89A7A" letter-spacing="1.5" font-weight="500">LADUNGS-VERLAUF</text>
+      <g transform="translate(0, 12)"><rect width="410" height="84" rx="12" fill="#FAF6EA" stroke="#E0D6BE"/>
+        <g transform="translate(14, 10)">
+          <rect x="0" y="50" width="382" height="10" fill="#C6633B" opacity="0.1"/><text x="2" y="58" font-size="8" fill="#A85E2E">Reserve 15 %</text>
+          <path d="M 0 2 L 55 8 L 110 18 L 165 26 L 220 32 L 275 38 L 330 30 L 382 26 L 382 60 L 0 60 Z" fill="url(#socT2)"/>
+          <path d="M 0 2 L 55 8 L 110 18 L 165 26 L 220 32 L 275 38 L 330 30 L 382 26" fill="none" stroke="#7A9466" stroke-width="2"/><circle cx="382" cy="26" r="3.5" fill="#7A9466"/>
+        </g>
+        <g font-size="8" fill="#A89A7A" transform="translate(14, 80)"><text x="0">Start 100 %</text><text x="190" text-anchor="middle">Gipfel 48 %</text><text x="382" text-anchor="end">Ziel 62 %</text></g>
+      </g>
+    </g>
+  </g>
+
+  <!-- CTA -->
+  <g transform="translate(40, 1248)"><rect width="220" height="44" rx="22" fill="#C97B47"/><text x="100" y="28" font-size="14" fill="#FFFFFF" text-anchor="middle" font-weight="600">Wetter berechnen  →</text></g>
+
+  <g transform="translate(40, 1460)"><text font-size="10" fill="#A89A7A" letter-spacing="3" font-weight="500">RP-T2 · TABLET KONFIGURATION · 1024 px</text></g>
+</svg>

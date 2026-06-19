@@ -1,0 +1,390 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 834 1480" width="834" height="1480" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+
+  <!-- ═══════════════════════════════════════════════
+       DEFS
+  ════════════════════════════════════════════════ -->
+  <defs>
+    <linearGradient id="bg-t4" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F5F1E8"/>
+      <stop offset="100%" stop-color="#EDE6D3"/>
+    </linearGradient>
+    <clipPath id="clip-bar-am">
+      <rect x="70" y="300" width="244" height="28"/>
+    </clipPath>
+    <clipPath id="clip-bar-pm">
+      <rect x="450" y="300" width="244" height="28"/>
+    </clipPath>
+  </defs>
+
+  <!-- ═══════════════════════════════════════════════
+       BACKGROUND
+  ════════════════════════════════════════════════ -->
+  <rect x="0" y="0" width="834" height="1480" fill="url(#bg-t4)"/>
+
+  <!-- ═══════════════════════════════════════════════
+       TOP NAV  (translate 28,22)
+  ════════════════════════════════════════════════ -->
+  <g transform="translate(28,22)">
+    <!-- Sun logo -->
+    <circle cx="0" cy="0" r="6" fill="#2C2A26"/>
+    <!-- 8 rays -->
+    <line x1="0" y1="-10" x2="0" y2="-14" stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="0" y1="10"  x2="0" y2="14"  stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="-10" y1="0" x2="-14" y2="0" stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="10"  y1="0" x2="14"  y2="0" stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="-7.07" y1="-7.07" x2="-9.9" y2="-9.9" stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="7.07"  y1="-7.07" x2="9.9"  y2="-9.9" stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="-7.07" y1="7.07"  x2="-9.9" y2="9.9"  stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="7.07"  y1="7.07"  x2="9.9"  y2="9.9"  stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round"/>
+    <!-- Brand name -->
+    <text x="18" y="5" font-size="17" font-weight="500" fill="#2C2A26">buscosun</text>
+
+    <!-- Right side elements: live dot, label, bell, avatar -->
+    <!-- live dot -->
+    <circle cx="618" cy="-3" r="4" fill="#7A9466"/>
+    <text x="626" y="1" font-size="12" fill="#7A9466">Daten live</text>
+    <!-- Bell icon -->
+    <g transform="translate(716,-8)">
+      <path d="M8 0 C8 0 14 2 14 9 L14 13 L16 15 L0 15 L2 13 L2 9 C2 2 8 0 8 0 Z" fill="none" stroke="#5C5447" stroke-width="1.4" stroke-linejoin="round"/>
+      <path d="M6 15 C6 17 10 17 10 15" fill="none" stroke="#5C5447" stroke-width="1.4" stroke-linecap="round"/>
+    </g>
+    <!-- Avatar circle -->
+    <circle cx="762" cy="0" r="16" fill="#2C2A26"/>
+    <text x="762" y="4" font-size="11" fill="white" text-anchor="middle">JS</text>
+  </g>
+
+  <!-- Nav separator line -->
+  <line x1="0" y1="64" x2="834" y2="64" stroke="#E0D6BE" stroke-width="0.5"/>
+
+  <!-- ═══════════════════════════════════════════════
+       BAND 1: FOTO — FOTOGRAFIEREN · BASTEI
+  ════════════════════════════════════════════════ -->
+
+  <!-- 5a. Band header chip -->
+  <rect x="40" y="78" width="372" height="32" rx="16" fill="#2C2A26"/>
+  <!-- Camera icon inside pill -->
+  <g transform="translate(58,86)">
+    <!-- camera body -->
+    <rect x="0" y="3" width="16" height="11" rx="2" fill="none" stroke="white" stroke-width="1.3"/>
+    <!-- lens -->
+    <circle cx="8" cy="8.5" r="3.5" fill="none" stroke="white" stroke-width="1.3"/>
+    <!-- viewfinder bump -->
+    <rect x="4" y="1" width="5" height="3" rx="1" fill="white"/>
+  </g>
+  <text x="82" y="99" font-size="11" font-weight="500" fill="white">ANLASS: FOTOGRAFIEREN · DE BASTEI</text>
+
+  <!-- 5b. FOTO-LICHT HERO CARD -->
+  <rect x="40" y="122" width="754" height="114" rx="16" fill="white" stroke="#E0D6BE" stroke-width="1"/>
+  <!-- Eyebrow -->
+  <text x="60" y="144" font-size="9" fill="#A89A7A" letter-spacing="3" font-weight="500">BESTER FOTO-TAG</text>
+  <!-- Main date -->
+  <text x="60" y="178" font-size="28" font-weight="300" fill="#2C2A26">Freitag, 19. Juni</text>
+  <!-- Sub location -->
+  <text x="60" y="200" font-size="12" fill="#5C5447">Bastei · Saechsische Schweiz · 19. Juni 2026</text>
+  <!-- Badge "~74 % gutes Licht" -->
+  <rect x="568" y="152" width="150" height="28" rx="12" fill="#F7EBDD" stroke="#C97B47" stroke-width="1"/>
+  <!-- small camera icon for badge -->
+  <g transform="translate(578,159)">
+    <rect x="0" y="2" width="11" height="8" rx="1.5" fill="none" stroke="#A85E2E" stroke-width="1.2"/>
+    <circle cx="5.5" cy="6" r="2.5" fill="none" stroke="#A85E2E" stroke-width="1.2"/>
+    <rect x="3" y="0" width="3.5" height="2" rx="0.8" fill="#A85E2E"/>
+  </g>
+  <text x="595" y="171" font-size="11" fill="#A85E2E" font-weight="500">~74 % gutes Licht</text>
+
+  <!-- 5c. LIGHT WINDOWS CARD -->
+  <rect x="40" y="248" width="754" height="200" rx="16" fill="white" stroke="#E0D6BE" stroke-width="1"/>
+  <!-- Eyebrow -->
+  <text x="60" y="268" font-size="9" fill="#A89A7A" letter-spacing="3" font-weight="500">LICHT-FENSTER</text>
+
+  <!-- Vertical divider between morning and evening -->
+  <line x1="417" y1="276" x2="417" y2="428" stroke="#E0D6BE" stroke-width="0.8"/>
+
+  <!-- LEFT — Morgens -->
+  <!-- Header + sunrise icon -->
+  <g transform="translate(60,280)">
+    <!-- Sunrise: horizon line + arc + rays -->
+    <line x1="0" y1="13" x2="20" y2="13" stroke="#D4A373" stroke-width="1.4" stroke-linecap="round"/>
+    <path d="M2 13 A8 8 0 0 1 18 13" fill="none" stroke="#D4A373" stroke-width="1.4" stroke-linecap="round"/>
+    <!-- rays up and sides -->
+    <line x1="10" y1="0"  x2="10" y2="-4"  stroke="#D4A373" stroke-width="1.2" stroke-linecap="round"/>
+    <line x1="17" y1="6"  x2="20" y2="4"   stroke="#D4A373" stroke-width="1.2" stroke-linecap="round"/>
+    <line x1="3"  y1="6"  x2="0"  y2="4"   stroke="#D4A373" stroke-width="1.2" stroke-linecap="round"/>
+  </g>
+  <text x="88" y="292" font-size="13" font-weight="500" fill="#2C2A26">Morgens</text>
+
+  <!-- Morning timeline bars -->
+  <!-- Blaue Stunde 04:31–05:08 -->
+  <rect x="70" y="304" width="78" height="20" rx="4" fill="#3A6FA8" opacity="0.55"/>
+  <!-- Goldene Stunde 05:08–05:54 -->
+  <rect x="148" y="304" width="96" height="20" rx="4" fill="#D4A373" opacity="0.75"/>
+  <!-- Time labels -->
+  <text x="70"  y="334" font-size="9" fill="#A89A7A">04:31</text>
+  <text x="142" y="334" font-size="9" fill="#A89A7A">05:08</text>
+  <text x="230" y="334" font-size="9" fill="#A89A7A">05:54</text>
+
+  <!-- Morning details -->
+  <text x="70" y="352" font-size="12" fill="#2C2A26">Sonnenaufgang 05:08 Uhr</text>
+  <text x="70" y="369" font-size="11" fill="#5C5447">Blaue Stunde   04:31 – 05:08</text>
+  <text x="70" y="385" font-size="11" fill="#5C5447">Goldene Stunde 05:08 – 05:54</text>
+
+  <!-- RIGHT — Abends -->
+  <!-- Header + sunset icon -->
+  <g transform="translate(450,280)">
+    <!-- Sunset: horizon + arc -->
+    <line x1="0" y1="13" x2="20" y2="13" stroke="#D4A373" stroke-width="1.4" stroke-linecap="round"/>
+    <path d="M2 13 A8 8 0 0 1 18 13" fill="none" stroke="#D4A373" stroke-width="1.4" stroke-linecap="round"/>
+    <!-- rays angled outward (lower) -->
+    <line x1="10" y1="0"  x2="10" y2="-4"  stroke="#D4A373" stroke-width="1.2" stroke-linecap="round"/>
+    <line x1="16" y1="5"  x2="19" y2="2"   stroke="#D4A373" stroke-width="1.2" stroke-linecap="round"/>
+    <line x1="4"  y1="5"  x2="1"  y2="2"   stroke="#D4A373" stroke-width="1.2" stroke-linecap="round"/>
+  </g>
+  <text x="478" y="292" font-size="13" font-weight="500" fill="#2C2A26">Abends</text>
+
+  <!-- Evening timeline bars -->
+  <!-- Goldene Stunde 20:32–21:18 -->
+  <rect x="450" y="304" width="100" height="20" rx="4" fill="#D4A373" opacity="0.75"/>
+  <!-- Blaue Stunde 21:18–21:55 -->
+  <rect x="550" y="304" width="60" height="20" rx="4" fill="#3A6FA8" opacity="0.55"/>
+  <!-- Time labels -->
+  <text x="448" y="334" font-size="9" fill="#A89A7A">20:32</text>
+  <text x="544" y="334" font-size="9" fill="#A89A7A">21:18</text>
+  <text x="608" y="334" font-size="9" fill="#A89A7A">21:55</text>
+
+  <!-- Evening details -->
+  <text x="450" y="352" font-size="12" fill="#2C2A26">Sonnenuntergang 21:18 Uhr</text>
+  <text x="450" y="369" font-size="11" fill="#5C5447">Goldene Stunde 20:32 – 21:18</text>
+  <text x="450" y="385" font-size="11" fill="#5C5447">Blaue Stunde    21:18 – 21:55</text>
+
+  <!-- Chance pills row -->
+  <!-- Nebel pill -->
+  <rect x="70" y="403" width="98" height="26" rx="10" fill="#FAF6EA" stroke="#D9D0B8" stroke-width="1"/>
+  <text x="119" y="420" font-size="11" fill="#5C5447" text-anchor="middle">Nebel ~35 %</text>
+  <!-- Abendrot pill -->
+  <rect x="178" y="403" width="112" height="26" rx="10" fill="#FAEEDA" stroke="#D4A373" stroke-width="1"/>
+  <text x="234" y="420" font-size="11" fill="#8B7355" text-anchor="middle">Abendrot ~55 %</text>
+
+  <!-- 5d. FOTO DAY LIST -->
+  <text x="40" y="472" font-size="9" fill="#A89A7A" letter-spacing="3" font-weight="500">TAGE IM VERGLEICH</text>
+
+  <!-- Row 1 — Fr 19. Juni (BEST) -->
+  <rect x="40" y="482" width="754" height="52" rx="12" fill="white" stroke="#C97B47" stroke-width="1.5"/>
+  <!-- Day label -->
+  <text x="60" y="503" font-size="13" font-weight="500" fill="#2C2A26">Fr 19. Juni</text>
+  <!-- BEST tag -->
+  <rect x="155" y="490" width="44" height="18" rx="6" fill="#C97B47"/>
+  <text x="177" y="502" font-size="9" fill="white" text-anchor="middle" font-weight="600">BEST</text>
+  <!-- Score badge -->
+  <rect x="574" y="490" width="100" height="24" rx="10" fill="#F7EBDD" stroke="#C97B47" stroke-width="1"/>
+  <text x="624" y="506" font-size="11" fill="#A85E2E" text-anchor="middle" font-weight="500">~74 % Licht</text>
+  <!-- Light bar track -->
+  <rect x="60" y="516" width="200" height="8" rx="4" fill="#F5F1E8"/>
+  <rect x="60" y="516" width="148" height="8" rx="4" fill="#D4A373"/>
+  <!-- Detail text -->
+  <text x="272" y="524" font-size="11" fill="#5C5447">Bewoelkung 22 % · Nebel: gering</text>
+
+  <!-- Row 2 — Sa 20. Juni -->
+  <rect x="40" y="542" width="754" height="52" rx="12" fill="white" stroke="#E0D6BE" stroke-width="1"/>
+  <text x="60" y="563" font-size="13" font-weight="500" fill="#2C2A26">Sa 20. Juni</text>
+  <rect x="574" y="550" width="100" height="24" rx="10" fill="#FAEEDA" stroke="#D4A373" stroke-width="1"/>
+  <text x="624" y="566" font-size="11" fill="#8B7355" text-anchor="middle" font-weight="500">~61 % Licht</text>
+  <rect x="60" y="576" width="200" height="8" rx="4" fill="#F5F1E8"/>
+  <rect x="60" y="576" width="122" height="8" rx="4" fill="#D4A373"/>
+  <text x="272" y="584" font-size="11" fill="#5C5447">Bewoelkung 38 % · Wind: leicht</text>
+
+  <!-- Row 3 — Do 18. Juni -->
+  <rect x="40" y="602" width="754" height="52" rx="12" fill="white" stroke="#E0D6BE" stroke-width="1"/>
+  <text x="60" y="623" font-size="13" font-weight="500" fill="#2C2A26">Do 18. Juni</text>
+  <rect x="574" y="610" width="100" height="24" rx="10" fill="#F0F1F4" stroke="#6B7A8F" stroke-width="1"/>
+  <text x="624" y="626" font-size="11" fill="#6B7A8F" text-anchor="middle" font-weight="500">~48 % Licht</text>
+  <rect x="60" y="636" width="200" height="8" rx="4" fill="#F5F1E8"/>
+  <rect x="60" y="636" width="96" height="8" rx="4" fill="#6B7A8F"/>
+  <text x="272" y="644" font-size="11" fill="#5C5447">Bewoelkung 55 % · diffuses Licht</text>
+
+  <!-- ═══════════════════════════════════════════════
+       BAND DIVIDER
+  ════════════════════════════════════════════════ -->
+  <rect x="40" y="670" width="754" height="1" fill="#D9D0B8"/>
+
+  <!-- ═══════════════════════════════════════════════
+       BAND 2: ASTRO — STERNE SCHAUEN · SCHWARZWALD
+  ════════════════════════════════════════════════ -->
+
+  <!-- 7a. Band header chip -->
+  <rect x="40" y="684" width="410" height="32" rx="16" fill="#2C2A26"/>
+  <!-- Telescope icon -->
+  <g transform="translate(57,692)">
+    <!-- diagonal tube -->
+    <rect x="0" y="4" width="18" height="6" rx="2" transform="rotate(-30,9,7)" fill="none" stroke="white" stroke-width="1.4"/>
+    <!-- eyepiece -->
+    <line x1="14" y1="13" x2="16" y2="16" stroke="white" stroke-width="1.4" stroke-linecap="round"/>
+    <!-- tripod legs -->
+    <line x1="9" y1="13" x2="6"  y2="18" stroke="white" stroke-width="1.2" stroke-linecap="round"/>
+    <line x1="9" y1="13" x2="12" y2="18" stroke="white" stroke-width="1.2" stroke-linecap="round"/>
+  </g>
+  <text x="84" y="705" font-size="11" font-weight="500" fill="white">ANLASS: STERNE SCHAUEN · DE SCHWARZWALD</text>
+
+  <!-- 7b. BORTLE CARD (x=40 w=340 h=186) -->
+  <rect x="40" y="728" width="340" height="186" rx="16" fill="white" stroke="#E0D6BE" stroke-width="1"/>
+  <text x="60" y="750" font-size="9" fill="#A89A7A" letter-spacing="3" font-weight="500">DUNKELHEIT</text>
+  <text x="60" y="786" font-size="26" font-weight="200" fill="#2C2A26">Bortle ~4</text>
+  <text x="60" y="806" font-size="12" fill="#5C5447">Laendlich</text>
+  <!-- Bortle dots row (9 dots) -->
+  <!-- Filled (1-4) -->
+  <circle cx="60"  cy="822" r="5" fill="#2C2A26"/>
+  <circle cx="76"  cy="822" r="5" fill="#2C2A26"/>
+  <circle cx="92"  cy="822" r="5" fill="#2C2A26"/>
+  <circle cx="108" cy="822" r="5" fill="#2C2A26"/>
+  <!-- Unfilled (5-9) -->
+  <circle cx="124" cy="822" r="5" fill="#E0D6BE"/>
+  <circle cx="140" cy="822" r="5" fill="#E0D6BE"/>
+  <circle cx="156" cy="822" r="5" fill="#E0D6BE"/>
+  <circle cx="172" cy="822" r="5" fill="#E0D6BE"/>
+  <circle cx="188" cy="822" r="5" fill="#E0D6BE"/>
+  <text x="60" y="844" font-size="9" fill="#A89A7A">1=perfekt · 9=Stadt</text>
+
+  <!-- Bortle card: Bortle scale label row with numbers -->
+  <text x="57"  cy="835" font-size="7" fill="#A89A7A" text-anchor="middle">1</text>
+  <text x="73"  cy="835" font-size="7" fill="#A89A7A" text-anchor="middle">2</text>
+  <text x="89"  cy="835" font-size="7" fill="#A89A7A" text-anchor="middle">3</text>
+  <text x="105" cy="835" font-size="7" fill="#A89A7A" text-anchor="middle">4</text>
+  <text x="121" cy="835" font-size="7" fill="#A89A7A" text-anchor="middle">5</text>
+  <text x="137" cy="835" font-size="7" fill="#A89A7A" text-anchor="middle">6</text>
+  <text x="153" cy="835" font-size="7" fill="#A89A7A" text-anchor="middle">7</text>
+  <text x="169" cy="835" font-size="7" fill="#A89A7A" text-anchor="middle">8</text>
+  <text x="185" cy="835" font-size="7" fill="#A89A7A" text-anchor="middle">9</text>
+
+  <!-- 7c. BEST NIGHT CARD (x=414 w=380 h=232) -->
+  <rect x="414" y="728" width="380" height="232" rx="16" fill="white" stroke="#E0D6BE" stroke-width="1"/>
+  <text x="434" y="750" font-size="9" fill="#A89A7A" letter-spacing="3" font-weight="500">BESTE NACHT</text>
+  <!-- Score circle -->
+  <circle cx="768" cy="778" r="28" fill="#F7EBDD" stroke="#C97B47" stroke-width="2"/>
+  <text x="768" y="784" font-size="18" font-weight="500" fill="#C97B47" text-anchor="middle">79</text>
+  <!-- Night label -->
+  <text x="434" y="772" font-size="14" font-weight="500" fill="#2C2A26">Nacht Sa 14. &#8594; So 15. Juni</text>
+  <!-- Detail rows -->
+  <!-- Moon icon + Dunkelheit -->
+  <g transform="translate(434,800)">
+    <path d="M0 6 C0 2.7 2 0 5 0 C3 2 3 10 5 12 C2 12 0 9.3 0 6 Z" fill="none" stroke="#6B7A8F" stroke-width="1.3"/>
+  </g>
+  <text x="450" y="812" font-size="12" fill="#5C5447">Dunkelheit  23:42 – 03:18</text>
+  <!-- Circle icon + Mondanteil -->
+  <circle cx="438" cy="832" r="5" fill="none" stroke="#A89A7A" stroke-width="1.3"/>
+  <text x="450" y="836" font-size="12" fill="#5C5447">Mondanteil  38 %</text>
+  <!-- Warning triangle + Tau -->
+  <g transform="translate(432,848)">
+    <path d="M6 0 L12 10 L0 10 Z" fill="none" stroke="#D4A373" stroke-width="1.3" stroke-linejoin="round"/>
+    <line x1="6" y1="4" x2="6" y2="7" stroke="#D4A373" stroke-width="1.2" stroke-linecap="round"/>
+    <circle cx="6" cy="8.5" r="0.8" fill="#D4A373"/>
+  </g>
+  <text x="450" y="860" font-size="12" fill="#5C5447">Tau erhoet · Optik schuetzen</text>
+
+  <!-- Cloud layer bars section -->
+  <text x="434" y="880" font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">WOLKENSCHICHTEN</text>
+  <!-- Hoch row -->
+  <text x="434" y="900" font-size="10" fill="#A89A7A">Hoch</text>
+  <rect x="480" y="890" width="200" height="10" rx="3" fill="#E0D6BE"/>
+  <rect x="480" y="890" width="36"  height="10" rx="3" fill="#6B7A8F"/>
+  <text x="686" y="900" font-size="10" fill="#5C5447">18 %</text>
+  <!-- Mittel row -->
+  <text x="434" y="922" font-size="10" fill="#A89A7A">Mittel</text>
+  <rect x="480" y="912" width="200" height="10" rx="3" fill="#E0D6BE"/>
+  <rect x="480" y="912" width="16"  height="10" rx="3" fill="#6B7A8F"/>
+  <text x="686" y="922" font-size="10" fill="#5C5447">8 %</text>
+  <!-- Tief row -->
+  <text x="434" y="944" font-size="10" fill="#A89A7A">Tief</text>
+  <rect x="480" y="934" width="200" height="10" rx="3" fill="#E0D6BE"/>
+  <rect x="480" y="934" width="8"   height="10" rx="3" fill="#6B7A8F"/>
+  <text x="686" y="944" font-size="10" fill="#5C5447">4 %</text>
+
+  <!-- 7d. SKY QUALITY CHART (dark card) x=40 w=340 h=100, below bortle at y=926 -->
+  <rect x="40" y="926" width="340" height="100" rx="16" fill="#2C2A26"/>
+  <text x="60" y="946" font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">HIMMELSQUALITAET</text>
+  <!-- Star field: 16 small stars -->
+  <circle cx="75"  cy="958" r="1"   fill="white" opacity="0.85"/>
+  <circle cx="102" cy="965" r="1.2" fill="white" opacity="0.7"/>
+  <circle cx="130" cy="952" r="1"   fill="white" opacity="0.9"/>
+  <circle cx="155" cy="972" r="0.9" fill="white" opacity="0.6"/>
+  <circle cx="178" cy="956" r="1.3" fill="white" opacity="0.8"/>
+  <circle cx="200" cy="968" r="1"   fill="white" opacity="0.75"/>
+  <circle cx="222" cy="950" r="1.1" fill="white" opacity="0.85"/>
+  <circle cx="248" cy="963" r="0.8" fill="white" opacity="0.65"/>
+  <circle cx="270" cy="953" r="1.2" fill="white" opacity="0.9"/>
+  <circle cx="295" cy="970" r="1"   fill="white" opacity="0.7"/>
+  <circle cx="315" cy="955" r="0.9" fill="white" opacity="0.8"/>
+  <circle cx="340" cy="960" r="1.1" fill="white" opacity="0.6"/>
+  <circle cx="88"  cy="978" r="0.8" fill="white" opacity="0.5"/>
+  <circle cx="118" cy="981" r="1"   fill="white" opacity="0.7"/>
+  <circle cx="260" cy="979" r="0.9" fill="white" opacity="0.55"/>
+  <circle cx="305" cy="975" r="1.2" fill="white" opacity="0.8"/>
+  <!-- Labels -->
+  <text x="60" y="1000" font-size="12" fill="white">Milchstrasse sichtbar</text>
+  <text x="60" y="1016" font-size="10" fill="#A89A7A">Bortle 4 – gute Bedingungen</text>
+
+  <!-- ═══════════════════════════════════════════════
+       PLAN B COMPACT CARD
+  ════════════════════════════════════════════════ -->
+  <text x="40" y="1052" font-size="9" fill="#A89A7A" letter-spacing="3" font-weight="500">PLAN B</text>
+
+  <!-- Main Plan B card -->
+  <rect x="40" y="1062" width="754" height="176" rx="16" fill="white" stroke="#E0D6BE" stroke-width="1"/>
+
+  <!-- ANLASS chip -->
+  <rect x="60" y="1080" width="136" height="24" rx="10" fill="#FAF6EA" stroke="#D9D0B8" stroke-width="1"/>
+  <text x="128" y="1096" font-size="11" fill="#5C5447" text-anchor="middle">ANLASS: HOCHZEIT</text>
+
+  <!-- AUSGELOEST banner -->
+  <rect x="60" y="1110" width="714" height="40" rx="10" fill="#FAEEDA" stroke="#D4A373" stroke-width="1"/>
+  <!-- Warning triangle icon -->
+  <g transform="translate(74,1120)">
+    <path d="M7 0 L14 12 L0 12 Z" fill="none" stroke="#D4A373" stroke-width="1.5" stroke-linejoin="round"/>
+    <line x1="7" y1="4" x2="7" y2="8"  stroke="#D4A373" stroke-width="1.4" stroke-linecap="round"/>
+    <circle cx="7" cy="10" r="1" fill="#D4A373"/>
+  </g>
+  <text x="97" y="1126" font-size="9" fill="#8B7355" font-weight="600" letter-spacing="1">AUSGELOEST</text>
+  <text x="97" y="1140" font-size="13" font-weight="500" fill="#2C2A26">Regenmenge 6,4 mm &#8658; Plan B aktiv · Zelt / Pavillon</text>
+
+  <!-- Ausweichtag row -->
+  <text x="60" y="1174" font-size="12" fill="#A89A7A">Ausweichtag:</text>
+  <!-- Score circle for good day -->
+  <circle cx="178" cy="1170" r="18" fill="#F7EBDD" stroke="#C97B47" stroke-width="1.5"/>
+  <text x="178" y="1175" font-size="12" font-weight="500" fill="#C97B47" text-anchor="middle">82</text>
+  <text x="202" y="1175" font-size="13" font-weight="500" fill="#2C2A26">So 14. Juni 2026</text>
+  <text x="352" y="1175" font-size="12" fill="#A89A7A">statt</text>
+  <!-- Score circle for original (bad) day -->
+  <circle cx="400" cy="1170" r="18" fill="#F0F1F4" stroke="#6B7A8F" stroke-width="1.5"/>
+  <text x="400" y="1175" font-size="12" font-weight="500" fill="#6B7A8F" text-anchor="middle">48</text>
+  <text x="424" y="1175" font-size="12" fill="#5C5447">Sa 15. Juni (urspr.)</text>
+
+  <!-- Action buttons row -->
+  <!-- Button 1: Dienstleister informieren -->
+  <rect x="60" y="1190" width="228" height="38" rx="12" fill="#C97B47"/>
+  <text x="174" y="1213" font-size="12" fill="white" text-anchor="middle" font-weight="500">Dienstleister informieren</text>
+  <!-- Button 2: Details ansehen -->
+  <rect x="300" y="1190" width="148" height="38" rx="12" fill="#FAF6EA" stroke="#D9D0B8" stroke-width="1"/>
+  <text x="374" y="1213" font-size="12" fill="#2C2A26" text-anchor="middle">Details ansehen</text>
+
+  <!-- ═══════════════════════════════════════════════
+       INFO SECTION
+  ════════════════════════════════════════════════ -->
+  <rect x="40" y="1248" width="754" height="108" rx="16" fill="#FAF6EA" stroke="#D9D0B8" stroke-width="1"/>
+  <text x="60" y="1270" font-size="9" fill="#A89A7A" letter-spacing="3" font-weight="500">HINWEIS ZUR GENAUIGKEIT</text>
+  <text x="60" y="1292" font-size="12" fill="#5C5447">Vorhersagen ueber 7 Tage haben eine reduzierte Genauigkeit. buscosun</text>
+  <text x="60" y="1310" font-size="12" fill="#5C5447">verwendet Ensemble-Modelle (ICON-D2, MOSMIX, ECMWF) fuer maximale</text>
+  <text x="60" y="1328" font-size="12" fill="#5C5447">Verlaesslichkeit. Konfidenz-Anzeige zeigt Modellstreuung.</text>
+
+  <!-- ═══════════════════════════════════════════════
+       ADDITIONAL DETAIL: Confidence / sage indicators
+  ════════════════════════════════════════════════ -->
+  <!-- Sage checkmark dot beside "Daten live" already done in nav -->
+  <!-- Info icon in info card -->
+  <circle cx="744" cy="1290" r="10" fill="none" stroke="#A89A7A" stroke-width="1"/>
+  <text x="744" y="1294" font-size="11" fill="#A89A7A" text-anchor="middle">i</text>
+
+  <!-- ═══════════════════════════════════════════════
+       FOOTER
+  ════════════════════════════════════════════════ -->
+  <line x1="40" y1="1448" x2="794" y2="1448" stroke="#E0D6BE" stroke-width="0.5"/>
+  <text x="40" y="1466" font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="400">EV-T4 · SPEZIAL — FOTO · ASTRO · PLAN B (TABLET)</text>
+  <text x="794" y="1466" font-size="9" fill="#A89A7A" text-anchor="end" letter-spacing="1">EVENT-PLANUNG · BUSCOSUN</text>
+
+</svg>

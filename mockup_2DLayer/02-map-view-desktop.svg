@@ -1,0 +1,674 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1000" font-family="ui-sans-serif, system-ui, -apple-system">
+  <defs>
+    <!-- Map basemap gradient -->
+    <linearGradient id="mapBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#EDE6D3"/>
+      <stop offset="50%" stop-color="#E0D6BE"/>
+      <stop offset="100%" stop-color="#D9CEB0"/>
+    </linearGradient>
+    
+    <!-- Country mask outside DACH (subtle dim) -->
+    <linearGradient id="maskGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2C2A26" stop-opacity="0.04"/>
+      <stop offset="100%" stop-color="#2C2A26" stop-opacity="0.10"/>
+    </linearGradient>
+    
+    <!-- Wind streamlines (active layer) -->
+    <linearGradient id="windStream" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#5C5447" stop-opacity="0"/>
+      <stop offset="35%" stop-color="#5C5447" stop-opacity="0.55"/>
+      <stop offset="65%" stop-color="#5C5447" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#5C5447" stop-opacity="0"/>
+    </linearGradient>
+    
+    <linearGradient id="windStreamStrong" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#3A3833" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#3A3833" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#3A3833" stop-opacity="0"/>
+    </linearGradient>
+    
+    <!-- Föhn diagonal (terracotta) -->
+    <linearGradient id="foehnLine" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#C97B47" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#C97B47" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#C97B47" stop-opacity="0"/>
+    </linearGradient>
+    
+    <radialGradient id="liveDotPulse">
+      <stop offset="0%" stop-color="#7A9466" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#7A9466" stop-opacity="0"/>
+    </radialGradient>
+    
+    <!-- Search pin shadow -->
+    <radialGradient id="pinShadow">
+      <stop offset="0%" stop-color="#2C2A26" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#2C2A26" stop-opacity="0"/>
+    </radialGradient>
+    
+    <!-- PFC sparkline gradients -->
+    <linearGradient id="trendArea" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#C97B47" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#C97B47" stop-opacity="0.02"/>
+    </linearGradient>
+    
+    <!-- Card shadow filter (mimicked via translate offset) -->
+    <filter id="cardShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
+      <feOffset dx="0" dy="2" result="offsetblur"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.10"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    
+    <filter id="floatShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="6"/>
+      <feOffset dx="0" dy="4" result="offsetblur"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.14"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  
+  <!-- ============ MAP CANVAS BACKGROUND ============ -->
+  <rect width="1440" height="1000" fill="url(#mapBg)"/>
+  
+  <!-- Topographic terrain layers (alps in south) -->
+  <g opacity="0.22">
+    <path d="M 0 720 Q 220 670 460 690 T 920 670 T 1440 680 L 1440 1000 L 0 1000 Z" fill="#B8A480"/>
+    <path d="M 0 790 Q 280 740 580 760 T 1100 740 T 1440 760 L 1440 1000 L 0 1000 Z" fill="#A89472"/>
+    <path d="M 0 860 Q 320 820 640 830 T 1240 815 T 1440 840 L 1440 1000 L 0 1000 Z" fill="#988168"/>
+  </g>
+  
+  <!-- Country borders (DE outline simplified, AT/CH south) -->
+  <g opacity="0.35" fill="none" stroke="#8B7355" stroke-width="0.8" stroke-dasharray="3 2">
+    <!-- DE outer roughly -->
+    <path d="M 280 180 L 340 160 L 420 175 L 500 195 L 580 180 L 640 200 L 700 215 L 760 230 L 820 220 L 880 240 L 940 230 L 1020 250 L 1080 280 L 1100 340 L 1080 420 L 1100 500 L 1060 580 L 1000 650 L 920 690 L 820 720 L 720 740 L 620 730 L 540 720 L 460 700 L 400 680 L 340 640 L 300 580 L 280 500 L 270 420 L 280 340 L 290 260 Z"/>
+  </g>
+  
+  <!-- Wind streamlines - the active layer visualization -->
+  <g opacity="0.5">
+    <!-- Westwind dominant pattern -->
+    <path d="M -50 220 Q 360 215 720 235 T 1490 250" stroke="url(#windStream)" stroke-width="1.4" fill="none"/>
+    <path d="M -50 280 Q 360 275 720 290 T 1490 305" stroke="url(#windStream)" stroke-width="1.8" fill="none"/>
+    <path d="M -50 340 Q 360 330 720 350 T 1490 365" stroke="url(#windStreamStrong)" stroke-width="2.2" fill="none"/>
+    <path d="M -50 400 Q 360 395 720 415 T 1490 430" stroke="url(#windStream)" stroke-width="1.6" fill="none"/>
+    <path d="M -50 460 Q 360 450 720 470 T 1490 490" stroke="url(#windStream)" stroke-width="1.2" fill="none"/>
+    <path d="M -50 520 Q 360 510 720 530 T 1490 550" stroke="url(#windStream)" stroke-width="1.5" fill="none"/>
+    <path d="M -50 580 Q 360 570 720 595 T 1490 610" stroke="url(#windStreamStrong)" stroke-width="2" fill="none"/>
+    <path d="M -50 640 Q 360 635 720 655 T 1490 670" stroke="url(#windStream)" stroke-width="1.3" fill="none"/>
+    
+    <!-- Föhn diagonal northwards over Alps -->
+    <path d="M 540 880 Q 700 740 820 600 T 1080 380" stroke="url(#foehnLine)" stroke-width="2.4" fill="none"/>
+    <path d="M 600 900 Q 760 760 880 620 T 1140 400" stroke="url(#foehnLine)" stroke-width="1.8" fill="none"/>
+  </g>
+  
+  <!-- Wind arrows (particle motion indicators) -->
+  <g fill="#3A3833" opacity="0.45">
+    <g transform="translate(180, 280) rotate(8)"><path d="M 0 0 L 14 0 L 11 -3 M 14 0 L 11 3" stroke="#3A3833" stroke-width="1" stroke-linecap="round" fill="none"/></g>
+    <g transform="translate(380, 340) rotate(12)"><path d="M 0 0 L 18 0 L 14 -4 M 18 0 L 14 4" stroke="#3A3833" stroke-width="1.2" stroke-linecap="round" fill="none"/></g>
+    <g transform="translate(620, 410) rotate(15)"><path d="M 0 0 L 22 0 L 18 -5 M 22 0 L 18 5" stroke="#3A3833" stroke-width="1.4" stroke-linecap="round" fill="none"/></g>
+    <g transform="translate(880, 470) rotate(10)"><path d="M 0 0 L 18 0 L 14 -4 M 18 0 L 14 4" stroke="#3A3833" stroke-width="1.2" stroke-linecap="round" fill="none"/></g>
+    <g transform="translate(260, 520) rotate(6)"><path d="M 0 0 L 14 0 L 11 -3 M 14 0 L 11 3" stroke="#3A3833" stroke-width="1" stroke-linecap="round" fill="none"/></g>
+    <g transform="translate(480, 580) rotate(20)"><path d="M 0 0 L 20 0 L 16 -4 M 20 0 L 16 4" stroke="#3A3833" stroke-width="1.3" stroke-linecap="round" fill="none"/></g>
+    <g transform="translate(740, 240) rotate(5)"><path d="M 0 0 L 12 0 L 9 -3 M 12 0 L 9 3" stroke="#3A3833" stroke-width="0.9" stroke-linecap="round" fill="none"/></g>
+  </g>
+  
+  <!-- Stations markers scattered (DWD blue, TAWES orange, SMN red) -->
+  <g>
+    <!-- DWD stations -->
+    <circle cx="320" cy="290" r="5" fill="#1d4ed8" stroke="#fff" stroke-width="1"/>
+    <circle cx="480" cy="370" r="5" fill="#1d4ed8" stroke="#fff" stroke-width="1"/>
+    <circle cx="540" cy="450" r="5" fill="#1d4ed8" stroke="#fff" stroke-width="1"/>
+    <circle cx="700" cy="510" r="5" fill="#1d4ed8" stroke="#fff" stroke-width="1"/>
+    <circle cx="430" cy="540" r="5" fill="#1d4ed8" stroke="#fff" stroke-width="1"/>
+    <circle cx="620" cy="380" r="5" fill="#1d4ed8" stroke="#fff" stroke-width="1"/>
+    <circle cx="380" cy="430" r="5" fill="#1d4ed8" stroke="#fff" stroke-width="1"/>
+    <circle cx="780" cy="430" r="5" fill="#1d4ed8" stroke="#fff" stroke-width="1"/>
+    <!-- TAWES (AT) -->
+    <circle cx="720" cy="700" r="5" fill="#ea580c" stroke="#fff" stroke-width="1"/>
+    <circle cx="820" cy="730" r="5" fill="#ea580c" stroke="#fff" stroke-width="1"/>
+    <circle cx="900" cy="700" r="5" fill="#ea580c" stroke="#fff" stroke-width="1"/>
+    <!-- SMN (CH) -->
+    <circle cx="430" cy="730" r="5" fill="#dc2626" stroke="#fff" stroke-width="1"/>
+    <circle cx="520" cy="760" r="5" fill="#dc2626" stroke="#fff" stroke-width="1"/>
+  </g>
+  
+  <!-- ============ CITY TEMPERATURE LABELS (DOM markers) ============ -->
+  <!-- Rank 1 (largest, always visible) - showing 27° München focused -->
+  <g font-family="ui-sans-serif, system-ui" font-variant-numeric="tabular-nums">
+    <!-- München (search location - emphasized) -->
+    <g transform="translate(600, 580)" filter="url(#cardShadow)">
+      <rect x="-44" y="-12" width="92" height="24" rx="12" fill="#2C2A26" fill-opacity="0.82"/>
+      <text x="0" y="4" font-size="11" font-weight="500" fill="#fff" text-anchor="middle">München 27°</text>
+    </g>
+    
+    <!-- Berlin -->
+    <g transform="translate(810, 230)">
+      <rect x="-36" y="-11" width="74" height="22" rx="11" fill="#2C2A26" fill-opacity="0.82"/>
+      <text x="0" y="4" font-size="11" font-weight="500" fill="#fff" text-anchor="middle">Berlin 24°</text>
+    </g>
+    
+    <!-- Hamburg -->
+    <g transform="translate(580, 175)">
+      <rect x="-40" y="-11" width="82" height="22" rx="11" fill="#2C2A26" fill-opacity="0.82"/>
+      <text x="0" y="4" font-size="11" font-weight="500" fill="#fff" text-anchor="middle">Hamburg 22°</text>
+    </g>
+    
+    <!-- Köln -->
+    <g transform="translate(340, 360)">
+      <rect x="-32" y="-11" width="66" height="22" rx="11" fill="#2C2A26" fill-opacity="0.82"/>
+      <text x="0" y="4" font-size="11" font-weight="500" fill="#fff" text-anchor="middle">Köln 25°</text>
+    </g>
+    
+    <!-- Frankfurt -->
+    <g transform="translate(440, 440)">
+      <rect x="-42" y="-11" width="86" height="22" rx="11" fill="#2C2A26" fill-opacity="0.82"/>
+      <text x="0" y="4" font-size="11" font-weight="500" fill="#fff" text-anchor="middle">Frankfurt 26°</text>
+    </g>
+    
+    <!-- Stuttgart -->
+    <g transform="translate(490, 540)">
+      <rect x="-40" y="-11" width="82" height="22" rx="11" fill="#2C2A26" fill-opacity="0.82"/>
+      <text x="0" y="4" font-size="11" font-weight="500" fill="#fff" text-anchor="middle">Stuttgart 25°</text>
+    </g>
+    
+    <!-- Leipzig -->
+    <g transform="translate(750, 340)">
+      <rect x="-36" y="-11" width="74" height="22" rx="11" fill="#2C2A26" fill-opacity="0.82"/>
+      <text x="0" y="4" font-size="11" font-weight="500" fill="#fff" text-anchor="middle">Leipzig 23°</text>
+    </g>
+    
+    <!-- Wien (AT) -->
+    <g transform="translate(890, 640)">
+      <rect x="-32" y="-11" width="66" height="22" rx="11" fill="#2C2A26" fill-opacity="0.82"/>
+      <text x="0" y="4" font-size="11" font-weight="500" fill="#fff" text-anchor="middle">Wien 26°</text>
+    </g>
+    
+    <!-- Zürich (CH) -->
+    <g transform="translate(450, 700)">
+      <rect x="-36" y="-11" width="74" height="22" rx="11" fill="#2C2A26" fill-opacity="0.82"/>
+      <text x="0" y="4" font-size="11" font-weight="500" fill="#fff" text-anchor="middle">Zürich 23°</text>
+    </g>
+    
+    <!-- Rank 3 smaller -->
+    <g transform="translate(660, 290)" font-size="10" font-weight="500">
+      <rect x="-30" y="-10" width="62" height="20" rx="10" fill="#2C2A26" fill-opacity="0.72"/>
+      <text x="0" y="4" fill="#fff" text-anchor="middle">Bremen 22°</text>
+    </g>
+    
+    <g transform="translate(370, 270)" font-size="10" font-weight="500">
+      <rect x="-32" y="-10" width="66" height="20" rx="10" fill="#2C2A26" fill-opacity="0.72"/>
+      <text x="0" y="4" fill="#fff" text-anchor="middle">Münster 24°</text>
+    </g>
+    
+    <g transform="translate(900, 460)" font-size="10" font-weight="500">
+      <rect x="-32" y="-10" width="66" height="20" rx="10" fill="#2C2A26" fill-opacity="0.72"/>
+      <text x="0" y="4" fill="#fff" text-anchor="middle">Dresden 24°</text>
+    </g>
+    
+    <g transform="translate(540, 300)" font-size="10" font-weight="500">
+      <rect x="-32" y="-10" width="66" height="20" rx="10" fill="#2C2A26" fill-opacity="0.72"/>
+      <text x="0" y="4" fill="#fff" text-anchor="middle">Hannover 23°</text>
+    </g>
+    
+    <g transform="translate(380, 480)" font-size="10" font-weight="500">
+      <rect x="-36" y="-10" width="74" height="20" rx="10" fill="#2C2A26" fill-opacity="0.72"/>
+      <text x="0" y="4" fill="#fff" text-anchor="middle">Karlsruhe 26°</text>
+    </g>
+    
+    <g transform="translate(680, 600)" font-size="10" font-weight="500">
+      <rect x="-36" y="-10" width="74" height="20" rx="10" fill="#2C2A26" fill-opacity="0.72"/>
+      <text x="0" y="4" fill="#fff" text-anchor="middle">Salzburg 24°</text>
+    </g>
+  </g>
+  
+  <!-- ============ SEARCH LOCATION PIN (München focus) ============ -->
+  <g transform="translate(600, 560)">
+    <ellipse cx="0" cy="22" rx="14" ry="4" fill="url(#pinShadow)"/>
+    <path d="M 0 -16 C -8 -16 -14 -10 -14 -2 C -14 6 0 18 0 18 C 0 18 14 6 14 -2 C 14 -10 8 -16 0 -16 Z" 
+          fill="#C97B47" stroke="#fff" stroke-width="1.5"/>
+    <circle cx="0" cy="-2" r="4" fill="#fff"/>
+  </g>
+  
+  <!-- ============ TOPBAR (top-left) ============ -->
+  <!-- Back Button -->
+  <g transform="translate(16, 16)" filter="url(#cardShadow)">
+    <rect width="106" height="44" rx="22" fill="#fff" fill-opacity="0.95" stroke="#E0D6BE"/>
+    <g transform="translate(16, 22)" stroke="#2C2A26" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="6,-4 0,0 6,4"/>
+      <line x1="0" y1="0" x2="12" y2="0"/>
+    </g>
+    <text x="38" y="27" font-size="13.5" fill="#2C2A26" font-weight="500">Zurück</text>
+  </g>
+  
+  <!-- Location Label -->
+  <g transform="translate(132, 16)" filter="url(#cardShadow)">
+    <rect width="420" height="44" rx="22" fill="#fff" fill-opacity="0.95" stroke="#E0D6BE"/>
+    <g transform="translate(19, 22)" stroke="#C97B47" stroke-width="1.5" fill="none">
+      <path d="M 0 -6 C -4 -6 -6 -3 -6 1 C -6 5 0 9 0 9 C 0 9 6 5 6 1 C 6 -3 4 -6 0 -6 Z"/>
+      <circle cx="0" cy="0" r="1.6" fill="#C97B47"/>
+    </g>
+    <text x="40" y="27" font-size="13.5" fill="#2C2A26" font-weight="500">München, Bayern, Deutschland</text>
+  </g>
+  
+  <!-- ============ LAYER PILL ROW (top-right) ============ -->
+  <g transform="translate(566, 16)" filter="url(#cardShadow)">
+    <rect width="858" height="44" rx="22" fill="#fff" fill-opacity="0.95" stroke="#E0D6BE"/>
+    
+    <!-- Wind (ACTIVE) -->
+    <g transform="translate(8, 6)">
+      <rect width="98" height="32" rx="16" fill="#2C2A26"/>
+      <g transform="translate(14, 16)" stroke="#fff" stroke-width="1.4" fill="none" stroke-linecap="round">
+        <path d="M -5 -3 Q -2 -5 1 -3 T 7 -3"/>
+        <path d="M -5 0 Q -2 -2 1 0 T 7 0"/>
+        <path d="M -5 3 Q -2 1 1 3 T 7 3"/>
+      </g>
+      <text x="34" y="20" font-size="12.5" fill="#fff" font-weight="500">Wind</text>
+    </g>
+    
+    <!-- Regen -->
+    <g transform="translate(114, 6)">
+      <rect width="100" height="32" rx="16" fill="transparent"/>
+      <g transform="translate(14, 16)" stroke="#5C5447" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M -5 -1 C -5 -4 -2 -5 0 -5 C 2 -5 4 -4 4 -1 C 6 -1 7 0 7 2 C 7 4 5 4 4 4 L -4 4 C -5 4 -6 3 -6 2 C -6 1 -5 -1 -5 -1 Z"/>
+        <line x1="-2" y1="6" x2="-3" y2="8"/>
+        <line x1="1" y1="6" x2="0" y2="8"/>
+        <line x1="4" y1="6" x2="3" y2="8"/>
+      </g>
+      <text x="34" y="20" font-size="12.5" fill="#5C5447" font-weight="500">Regen</text>
+    </g>
+    
+    <!-- Radar -->
+    <g transform="translate(222, 6)">
+      <rect width="96" height="32" rx="16" fill="transparent"/>
+      <g transform="translate(14, 16)" stroke="#5C5447" stroke-width="1.4" fill="none" stroke-linecap="round">
+        <path d="M -6 0 A 6 6 0 0 1 6 0"/>
+        <path d="M -4 0 A 4 4 0 0 1 4 0"/>
+        <circle cx="0" cy="0" r="1.5" fill="#5C5447"/>
+      </g>
+      <text x="34" y="20" font-size="12.5" fill="#5C5447" font-weight="500">Radar</text>
+    </g>
+    
+    <!-- Temperatur -->
+    <g transform="translate(326, 6)">
+      <rect width="118" height="32" rx="16" fill="transparent"/>
+      <g transform="translate(14, 16)" stroke="#5C5447" stroke-width="1.4" fill="none" stroke-linecap="round">
+        <path d="M -2 -6 L -2 4 A 3 3 0 1 0 2 4 L 2 -6 A 2 2 0 1 0 -2 -6"/>
+        <line x1="-4" y1="-3" x2="-3" y2="-3"/>
+        <line x1="-4" y1="0" x2="-3" y2="0"/>
+        <line x1="-4" y1="3" x2="-3" y2="3"/>
+      </g>
+      <text x="34" y="20" font-size="12.5" fill="#5C5447" font-weight="500">Temperatur</text>
+    </g>
+    
+    <!-- Wolken -->
+    <g transform="translate(452, 6)">
+      <rect width="100" height="32" rx="16" fill="transparent"/>
+      <g transform="translate(14, 16)" stroke="#5C5447" stroke-width="1.4" fill="none" stroke-linejoin="round">
+        <path d="M -6 0 C -6 -2 -4 -3 -2 -3 C -1 -5 1 -5 3 -4 C 5 -4 6 -2 6 0 C 7 0 7 1 7 1 L -7 1 C -7 1 -7 0 -6 0 Z"/>
+        <path d="M -4 3 C -4 2 -3 1 -1 1 C 0 0 2 0 3 1 C 4 1 5 2 5 3 C 6 3 6 4 6 4 L -5 4 C -5 4 -5 3 -4 3 Z"/>
+      </g>
+      <text x="34" y="20" font-size="12.5" fill="#5C5447" font-weight="500">Wolken</text>
+    </g>
+    
+    <!-- Satellit -->
+    <g transform="translate(560, 6)">
+      <rect width="98" height="32" rx="16" fill="transparent"/>
+      <g transform="translate(14, 16)" stroke="#5C5447" stroke-width="1.4" fill="none" stroke-linecap="round">
+        <path d="M -7 4 A 7 5 0 0 1 7 4"/>
+        <path d="M -3 1 L 3 1 L 4 4 L -4 4 Z"/>
+        <line x1="0" y1="1" x2="0" y2="-2"/>
+        <circle cx="0" cy="-3" r="1.2" fill="#5C5447"/>
+      </g>
+      <text x="34" y="20" font-size="12.5" fill="#5C5447" font-weight="500">Satellit</text>
+    </g>
+    
+    <!-- Blitze -->
+    <g transform="translate(666, 6)">
+      <rect width="92" height="32" rx="16" fill="transparent"/>
+      <g transform="translate(14, 16)" fill="#5C5447" stroke="none">
+        <path d="M -1 -6 L -4 1 L 0 1 L -2 6 L 4 -1 L 0 -1 L 2 -6 Z"/>
+      </g>
+      <text x="34" y="20" font-size="12.5" fill="#5C5447" font-weight="500">Blitze</text>
+    </g>
+    
+    <!-- Stationen -->
+    <g transform="translate(766, 6)">
+      <rect width="84" height="32" rx="16" fill="transparent"/>
+      <g transform="translate(14, 16)" stroke="#5C5447" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M 0 -6 C -3 -6 -5 -4 -5 -1 C -5 3 0 7 0 7 C 0 7 5 3 5 -1 C 5 -4 3 -6 0 -6 Z"/>
+        <circle cx="0" cy="-1" r="1.6" fill="#5C5447"/>
+      </g>
+      <text x="34" y="20" font-size="12.5" fill="#5C5447" font-weight="500">Stationen</text>
+    </g>
+  </g>
+  
+  <!-- ============ MODELL ROW (top-right, under layer-switch) ============ -->
+  <g transform="translate(960, 70)" filter="url(#cardShadow)">
+    <rect width="316" height="36" rx="18" fill="#fff" fill-opacity="0.95" stroke="#E0D6BE"/>
+    
+    <!-- Eyebrow Label -->
+    <text x="18" y="22" font-size="10" font-weight="500" fill="#A89A7A" letter-spacing="2">MODELL:</text>
+    
+    <!-- Fusion (active) -->
+    <g transform="translate(82, 4)">
+      <rect width="76" height="28" rx="14" fill="#2C2A26"/>
+      <text x="38" y="18" font-size="11.5" font-weight="500" fill="#fff" text-anchor="middle">Fusion</text>
+    </g>
+    
+    <!-- MOSMIX -->
+    <g transform="translate(164, 4)">
+      <rect width="80" height="28" rx="14" fill="transparent"/>
+      <text x="40" y="18" font-size="11.5" font-weight="500" fill="#5C5447" text-anchor="middle">MOSMIX</text>
+    </g>
+    
+    <!-- Obs -->
+    <g transform="translate(250, 4)">
+      <rect width="60" height="28" rx="14" fill="transparent"/>
+      <text x="30" y="18" font-size="11.5" font-weight="500" fill="#5C5447" text-anchor="middle">Obs</text>
+    </g>
+  </g>
+  
+  <!-- ============ PFC PANEL (right side, open) ============ -->
+  <!-- Toggle Tab (collapsed indicator) -->
+  <g transform="translate(1014, 122)" filter="url(#cardShadow)">
+    <rect width="28" height="100" rx="12" fill="#fff" fill-opacity="0.96" stroke="#E0D6BE"/>
+    <text x="14" y="56" font-size="11.5" fill="#5C5447" font-weight="500" 
+          transform="rotate(-90 14 56)" text-anchor="middle">‹ Forecast</text>
+  </g>
+  
+  <!-- PFC Body -->
+  <g transform="translate(1046, 122)" filter="url(#floatShadow)">
+    <rect width="378" height="850" rx="14" fill="#fff" fill-opacity="0.97" stroke="#E0D6BE"/>
+    
+    <!-- PFC Head -->
+    <g transform="translate(18, 18)">
+      <text font-size="10" font-weight="500" fill="#A89A7A" letter-spacing="2">PUNKTFORECAST</text>
+      <text y="28" font-size="16" font-weight="500" fill="#2C2A26" letter-spacing="-0.24">München, Bayern, Deutschland</text>
+      
+      <!-- Meta-Line with dot separators -->
+      <g transform="translate(0, 48)" font-size="11" fill="#A89A7A">
+        <text>519 m</text>
+        <circle cx="42" cy="-3" r="1.5" fill="#A89A7A"/>
+        <text x="50">4.7 K/km</text>
+        <circle cx="108" cy="-3" r="1.5" fill="#A89A7A"/>
+        <text x="116">6 Stationen</text>
+        <circle cx="186" cy="-3" r="1.5" fill="#A89A7A"/>
+        <text x="194">2 Modelle</text>
+      </g>
+    </g>
+    <line x1="0" y1="84" x2="378" y2="84" stroke="#E0D6BE" stroke-width="1"/>
+    
+    <!-- Tabs -->
+    <g transform="translate(18, 95)">
+      <rect width="342" height="36" rx="18" fill="#F5F1E8"/>
+      <g transform="translate(4, 4)">
+        <rect width="110" height="28" rx="14" fill="#2C2A26"/>
+        <text x="55" y="18" font-size="12" font-weight="500" fill="#fff" text-anchor="middle">Übersicht</text>
+      </g>
+      <text x="170" y="22" font-size="12" font-weight="500" fill="#8B7355" text-anchor="middle">Diagramme</text>
+      <text x="280" y="22" font-size="12" font-weight="500" fill="#8B7355" text-anchor="middle">Tabelle</text>
+    </g>
+    
+    <!-- Now-Block (big temperature) -->
+    <g transform="translate(18, 156)">
+      <text font-size="51" font-weight="200" fill="#2C2A26" letter-spacing="-2.5" font-variant-numeric="tabular-nums">27°</text>
+      
+      <!-- Side block -->
+      <g transform="translate(118, -12)">
+        <!-- Sun-icon -->
+        <g transform="translate(13, 13)" stroke="#C97B47" stroke-width="1.4" fill="none" stroke-linecap="round">
+          <circle cx="0" cy="0" r="5" fill="#FAEEDA"/>
+          <line x1="0" y1="-10" x2="0" y2="-7"/>
+          <line x1="0" y1="7" x2="0" y2="10"/>
+          <line x1="-10" y1="0" x2="-7" y2="0"/>
+          <line x1="7" y1="0" x2="10" y2="0"/>
+          <line x1="-7" y1="-7" x2="-5" y2="-5"/>
+          <line x1="5" y1="5" x2="7" y2="7"/>
+          <line x1="-7" y1="7" x2="-5" y2="5"/>
+          <line x1="5" y1="-5" x2="7" y2="-7"/>
+        </g>
+        <text x="34" y="14" font-size="14" fill="#2C2A26" font-weight="400">Sonnig</text>
+        <text x="34" y="34" font-size="11" fill="#8B7355">19° / 28° heute</text>
+      </g>
+    </g>
+    <line x1="18" y1="230" x2="360" y2="230" stroke="#E0D6BE" stroke-width="0.5"/>
+    
+    <!-- Aktuell Vitals -->
+    <g transform="translate(18, 248)">
+      <text font-size="10" font-weight="500" fill="#A89A7A" letter-spacing="2">AKTUELL</text>
+      
+      <g transform="translate(0, 18)">
+        <!-- Wind -->
+        <g>
+          <text font-size="9" font-weight="500" fill="#A89A7A" letter-spacing="1.5">WIND</text>
+          <text y="20" font-size="14.5" font-weight="500" fill="#2C2A26" font-variant-numeric="tabular-nums">1.7 m/s</text>
+          <text y="36" font-size="10" fill="#8B7355">SW · Bft 1</text>
+        </g>
+        <!-- Hairline -->
+        <line x1="108" y1="-2" x2="108" y2="42" stroke="#E0D6BE"/>
+        <!-- Wolken -->
+        <g transform="translate(120, 0)">
+          <text font-size="9" font-weight="500" fill="#A89A7A" letter-spacing="1.5">WOLKEN</text>
+          <text y="20" font-size="14.5" font-weight="500" fill="#2C2A26" font-variant-numeric="tabular-nums">8 %</text>
+          <text y="36" font-size="10" fill="#8B7355">klar</text>
+        </g>
+        <line x1="228" y1="-2" x2="228" y2="42" stroke="#E0D6BE"/>
+        <!-- Niederschlag -->
+        <g transform="translate(240, 0)">
+          <text font-size="9" font-weight="500" fill="#A89A7A" letter-spacing="1.5">NIEDERSCHLAG</text>
+          <text y="20" font-size="14.5" font-weight="500" fill="#2C2A26" font-variant-numeric="tabular-nums">0.0 mm</text>
+          <text y="36" font-size="10" fill="#8B7355">trocken</text>
+        </g>
+      </g>
+    </g>
+    <line x1="18" y1="318" x2="360" y2="318" stroke="#E0D6BE" stroke-width="0.5"/>
+    
+    <!-- Konfidenz -->
+    <g transform="translate(18, 336)">
+      <g>
+        <text font-size="10" font-weight="500" fill="#A89A7A" letter-spacing="2">KONFIDENZ · TEMPERATUR</text>
+        <text x="342" y="0" font-size="12.5" font-weight="500" fill="#2C2A26" text-anchor="end">Hoch · 88 %</text>
+      </g>
+      
+      <!-- Confidence bar -->
+      <g transform="translate(0, 12)">
+        <rect width="342" height="4" rx="2" fill="#EDE6D3"/>
+        <rect width="301" height="4" rx="2" fill="#7A9466"/>
+      </g>
+      
+      <!-- Meta -->
+      <g transform="translate(0, 30)" font-size="10" fill="#8B7355">
+        <text>2 Quellen</text>
+        <circle cx="60" cy="-3" r="1.4" fill="#A89A7A"/>
+        <text x="68">6 Stationen im Mix</text>
+        <circle cx="178" cy="-3" r="1.4" fill="#A89A7A"/>
+        <text x="186">Lapse 4.7 K/km</text>
+      </g>
+    </g>
+    <line x1="18" y1="394" x2="360" y2="394" stroke="#E0D6BE" stroke-width="0.5"/>
+    
+    <!-- Trend Sparkline -->
+    <g transform="translate(18, 412)">
+      <g>
+        <text font-size="10" font-weight="500" fill="#A89A7A" letter-spacing="2">NÄCHSTE 6 H · TEMPERATUR</text>
+        <text x="342" y="0" font-size="10.5" font-weight="500" fill="#2C2A26" text-anchor="end" font-variant-numeric="tabular-nums">28°</text>
+      </g>
+      
+      <!-- SVG chart 342 × 84 -->
+      <g transform="translate(0, 14)">
+        <!-- Area fill -->
+        <path d="M 0 58 Q 57 50 114 44 T 228 36 T 342 30 L 342 84 L 0 84 Z" fill="url(#trendArea)"/>
+        <!-- Line -->
+        <path d="M 0 58 Q 57 50 114 44 T 228 36 T 342 30" fill="none" stroke="#C97B47" stroke-width="1.4"/>
+        <!-- Point markers (hourly) -->
+        <circle cx="0" cy="58" r="3" fill="#fff" stroke="#C97B47" stroke-width="1.4"/>
+        <circle cx="57" cy="52" r="3" fill="#fff" stroke="#C97B47" stroke-width="1.4"/>
+        <circle cx="114" cy="44" r="3" fill="#fff" stroke="#C97B47" stroke-width="1.4"/>
+        <circle cx="171" cy="40" r="3" fill="#fff" stroke="#C97B47" stroke-width="1.4"/>
+        <circle cx="228" cy="36" r="3" fill="#fff" stroke="#C97B47" stroke-width="1.4"/>
+        <circle cx="285" cy="33" r="3" fill="#fff" stroke="#C97B47" stroke-width="1.4"/>
+        <circle cx="342" cy="30" r="3" fill="#fff" stroke="#C97B47" stroke-width="1.4"/>
+        
+        <!-- Time labels -->
+        <g font-size="9" fill="#A89A7A" text-anchor="middle">
+          <text x="0" y="80">jetzt</text>
+          <text x="57" y="80">+1h</text>
+          <text x="114" y="80">+2h</text>
+          <text x="171" y="80">+3h</text>
+          <text x="228" y="80">+4h</text>
+          <text x="285" y="80">+5h</text>
+          <text x="342" y="80">+6h</text>
+        </g>
+      </g>
+    </g>
+    <line x1="18" y1="528" x2="360" y2="528" stroke="#E0D6BE" stroke-width="0.5"/>
+    
+    <!-- Pollen Section -->
+    <g transform="translate(18, 546)">
+      <rect width="342" height="120" rx="12" fill="#F5F1E8"/>
+      <g transform="translate(14, 14)">
+        <text font-size="10" font-weight="500" fill="#A89A7A" letter-spacing="2">POLLEN · BAYERN</text>
+        <text y="14" font-size="11" fill="#8B7355">Belastung heute · morgen · übermorgen</text>
+        
+        <!-- Pollen rows -->
+        <g transform="translate(0, 36)" font-size="12" fill="#2C2A26">
+          <!-- Gräser -->
+          <text y="6">Gräser</text>
+          <g transform="translate(180, 0)">
+            <rect width="14" height="14" rx="3" fill="#A85E2E"/>
+            <rect x="22" width="14" height="14" rx="3" fill="#C97B47"/>
+            <rect x="44" width="14" height="14" rx="3" fill="#D4A373"/>
+          </g>
+          
+          <!-- Birke -->
+          <text y="30">Birke</text>
+          <g transform="translate(180, 24)">
+            <rect width="14" height="14" rx="3" fill="#D4A373"/>
+            <rect x="22" width="14" height="14" rx="3" fill="#D4A373"/>
+            <rect x="44" width="14" height="14" rx="3" fill="#7A9466"/>
+          </g>
+          
+          <!-- Ambrosia -->
+          <text y="54">Ambrosia</text>
+          <g transform="translate(180, 48)">
+            <rect width="14" height="14" rx="3" fill="#7A9466"/>
+            <rect x="22" width="14" height="14" rx="3" fill="#7A9466"/>
+            <rect x="44" width="14" height="14" rx="3" fill="#7A9466"/>
+          </g>
+        </g>
+      </g>
+    </g>
+    
+    <!-- Quellen Footer -->
+    <g transform="translate(18, 696)">
+      <text font-size="10" font-weight="500" fill="#A89A7A" letter-spacing="2">QUELLEN</text>
+      <text y="20" font-size="11" fill="#5C5447">DWD MOSMIX · DWD ICON-D2</text>
+      <text y="36" font-size="11" fill="#5C5447">DWD Stations-Observation (6 Stationen im Mix)</text>
+      <text y="52" font-size="11" fill="#5C5447">RADOLAN-RV · TAWES alpin</text>
+      
+      <text y="80" font-size="9" fill="#A89A7A" letter-spacing="0.5">Letzter Modell-Run: 25.05. 12:00 UTC · in 2 h 47 m aktualisiert</text>
+    </g>
+  </g>
+  
+  <!-- ============ FORECAST SLIDER (bottom-center) ============ -->
+  <g transform="translate(248, 928)" filter="url(#floatShadow)">
+    <rect width="620" height="52" rx="26" fill="#fff" fill-opacity="0.96" stroke="#E0D6BE"/>
+    
+    <!-- [jetzt] pill -->
+    <g transform="translate(14, 12)">
+      <rect width="62" height="28" rx="14" fill="transparent" stroke="#D9D0B8"/>
+      <text x="31" y="19" font-size="11.5" font-weight="500" fill="#5C5447" text-anchor="middle">jetzt</text>
+    </g>
+    
+    <!-- Slider track -->
+    <g transform="translate(94, 23)">
+      <rect width="372" height="6" rx="3" fill="#EDE6D3"/>
+      <!-- Progress (12h = ca 50% von 24h) -->
+      <rect width="186" height="6" rx="3" fill="#2C2A26" opacity="0.15"/>
+      <!-- Hour ticks (subtle) -->
+      <g fill="#A89A7A">
+        <circle cx="0" cy="3" r="1"/>
+        <circle cx="62" cy="3" r="1"/>
+        <circle cx="124" cy="3" r="1"/>
+        <circle cx="186" cy="3" r="1"/>
+        <circle cx="248" cy="3" r="1"/>
+        <circle cx="310" cy="3" r="1"/>
+        <circle cx="372" cy="3" r="1"/>
+      </g>
+      <!-- Thumb at +12h -->
+      <circle cx="186" cy="3" r="9" fill="#2C2A26" stroke="#fff" stroke-width="2"/>
+    </g>
+    
+    <!-- Label right -->
+    <g transform="translate(484, 19)">
+      <text font-size="12.5" font-weight="500" fill="#2C2A26" font-variant-numeric="tabular-nums">+12 h · Di, 01:00</text>
+    </g>
+  </g>
+  
+  <!-- ============ DATA BADGE (bottom-right) ============ -->
+  <g transform="translate(1064, 920)" filter="url(#cardShadow)">
+    <rect width="346" height="68" rx="14" fill="#fff" fill-opacity="0.95" stroke="#E0D6BE"/>
+    
+    <g transform="translate(14, 14)" font-size="11" fill="#5C5447">
+      <!-- Row 1: country/model -->
+      <g>
+        <circle cx="3" cy="-1" r="3" fill="#7A9466"/>
+        <circle cx="3" cy="-1" r="6" fill="url(#liveDotPulse)"/>
+        <text x="14" font-weight="500" fill="#2C2A26">🇩🇪 DWD · Fusion (MOSMIX + ICON-D2 + RADOLAN-RV)</text>
+      </g>
+      <!-- Row 2: layer -->
+      <g transform="translate(0, 18)">
+        <circle cx="3" cy="-1" r="3" fill="#7A9466"/>
+        <text x="14">Wind · ICON-D2 · 14:00 UTC</text>
+      </g>
+      <!-- Row 3: stations -->
+      <g transform="translate(0, 36)">
+        <circle cx="3" cy="-1" r="3" fill="#7A9466"/>
+        <text x="14">Stationen · 543 aktiv · 14:25 UTC</text>
+      </g>
+    </g>
+  </g>
+  
+  <!-- ============ STATIONS POPUP example (floating, demonstrates state) ============ -->
+  <g transform="translate(680, 380)" filter="url(#floatShadow)">
+    <!-- Connector line to station -->
+    <line x1="20" y1="160" x2="20" y2="130" stroke="#A89A7A" stroke-width="0.5" stroke-dasharray="2 2"/>
+    
+    <rect width="218" height="160" rx="12" fill="#fff" stroke="#E0D6BE"/>
+    
+    <g transform="translate(14, 14)">
+      <text font-size="14" font-weight="500" fill="#2C2A26" letter-spacing="-0.14">Augsburg-Mühlhausen</text>
+      
+      <!-- Meta -->
+      <g transform="translate(0, 14)">
+        <text font-size="10" font-weight="500" fill="#A89A7A" letter-spacing="1.5">DWD · STATION 00232 · 461 M</text>
+      </g>
+      <line x1="0" y1="28" x2="190" y2="28" stroke="#E0D6BE" stroke-width="0.5"/>
+      
+      <!-- Values -->
+      <g transform="translate(0, 44)" font-size="11.5">
+        <text fill="#8B7355">Temperatur</text>
+        <text x="190" fill="#2C2A26" font-weight="500" text-anchor="end" font-variant-numeric="tabular-nums">26.4 °C</text>
+      </g>
+      <g transform="translate(0, 64)" font-size="11.5">
+        <text fill="#8B7355">Wind</text>
+        <text x="190" fill="#2C2A26" font-weight="500" text-anchor="end" font-variant-numeric="tabular-nums">1.9 m/s SW</text>
+      </g>
+      <g transform="translate(0, 84)" font-size="11.5">
+        <text fill="#8B7355">Luftdruck</text>
+        <text x="190" fill="#2C2A26" font-weight="500" text-anchor="end" font-variant-numeric="tabular-nums">1014.2 hPa</text>
+      </g>
+      <g transform="translate(0, 104)" font-size="11.5">
+        <text fill="#8B7355">Feuchte</text>
+        <text x="190" fill="#2C2A26" font-weight="500" text-anchor="end" font-variant-numeric="tabular-nums">52 %</text>
+      </g>
+      
+      <text y="128" font-size="9" font-weight="500" fill="#A89A7A" letter-spacing="0.5">AKTUALISIERT 14:20 UTC · 8 MIN ZURÜCK</text>
+    </g>
+  </g>
+  
+  <!-- Frame label bottom -->
+  <g transform="translate(20, 982)" font-size="9" fill="#A89A7A" font-weight="500" letter-spacing="2">
+    <text>02 · 2D KARTEN-SEITE · DESKTOP 1440 · WIND-LAYER AKTIV · MÜNCHEN-FOKUS · SOMMER-SZENARIO</text>
+    <text x="1400" text-anchor="end">v1.8 Spec · Section 1–3</text>
+  </g>
+</svg>

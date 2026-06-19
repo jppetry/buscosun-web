@@ -1,0 +1,619 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" font-family="ui-sans-serif, system-ui, -apple-system">
+  <defs>
+    <linearGradient id="bg03" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F5F1E8"/>
+      <stop offset="100%" stop-color="#EDE6D3"/>
+    </linearGradient>
+    <linearGradient id="mapBase03" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#E8DFC4"/>
+      <stop offset="100%" stop-color="#D4C8A3"/>
+    </linearGradient>
+    <linearGradient id="windFlow03" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#8B7355" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#8B7355" stop-opacity="0.65"/>
+      <stop offset="100%" stop-color="#8B7355" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="foehnFlow03" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#C97B47" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#C97B47" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#C97B47" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="confGlow03">
+      <stop offset="0%" stop-color="#7A9466" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#7A9466" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="pinPulse">
+      <stop offset="0%" stop-color="#2C2A26" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#2C2A26" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="topo03" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse">
+      <path d="M 0 50 Q 25 25 50 50 T 100 50" stroke="#C4B896" stroke-width="0.5" fill="none" opacity="0.4"/>
+      <path d="M 0 70 Q 25 50 50 70 T 100 70" stroke="#C4B896" stroke-width="0.4" fill="none" opacity="0.3"/>
+      <path d="M 0 30 Q 25 10 50 30 T 100 30" stroke="#C4B896" stroke-width="0.3" fill="none" opacity="0.25"/>
+    </pattern>
+    <linearGradient id="foehnZone" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#C97B47" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#C97B47" stop-opacity="0.08"/>
+    </linearGradient>
+  </defs>
+  
+  <rect width="1440" height="900" fill="url(#bg03)"/>
+  
+  <!-- ============ TOP NAVIGATION ============ -->
+  <g>
+    <!-- Logo -->
+    <g transform="translate(32, 24)">
+      <circle cx="14" cy="14" r="6" fill="#2C2A26"/>
+      <g stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round">
+        <line x1="14" y1="0" x2="14" y2="3"/>
+        <line x1="14" y1="25" x2="14" y2="28"/>
+        <line x1="0" y1="14" x2="3" y2="14"/>
+        <line x1="25" y1="14" x2="28" y2="14"/>
+        <line x1="4" y1="4" x2="6" y2="6"/>
+        <line x1="22" y1="22" x2="24" y2="24"/>
+        <line x1="4" y1="24" x2="6" y2="22"/>
+        <line x1="22" y1="6" x2="24" y2="4"/>
+      </g>
+      <text x="42" y="20" font-size="18" font-weight="500" fill="#2C2A26" letter-spacing="-0.5">buscosun</text>
+    </g>
+    
+    <!-- Search bar -->
+    <g transform="translate(280, 18)">
+      <rect width="500" height="40" rx="20" fill="#FFFFFF" stroke="#D9D0B8" stroke-width="0.5"/>
+      <circle cx="22" cy="20" r="7" stroke="#8B7355" stroke-width="1.5" fill="none"/>
+      <line x1="27" y1="25" x2="32" y2="30" stroke="#8B7355" stroke-width="1.5" stroke-linecap="round"/>
+      <text x="44" y="25" font-size="13" fill="#5C5447">München, Marienplatz</text>
+      <g transform="translate(454, 12)">
+        <rect width="32" height="18" rx="4" fill="#F5F1E8" stroke="#D9D0B8" stroke-width="0.5"/>
+        <text x="16" y="12" font-size="10" fill="#A89A7A" text-anchor="middle" letter-spacing="0.5">⌘K</text>
+      </g>
+    </g>
+    
+    <!-- Module switcher -->
+    <g transform="translate(800, 18)" font-size="12">
+      <g>
+        <rect width="60" height="40" rx="20" fill="#2C2A26"/>
+        <text x="30" y="25" fill="#F5F1E8" text-anchor="middle" font-weight="500">Karte</text>
+      </g>
+      <g transform="translate(64, 0)">
+        <rect width="60" height="40" rx="20" fill="transparent"/>
+        <text x="30" y="25" fill="#5C5447" text-anchor="middle">Route</text>
+      </g>
+      <g transform="translate(128, 0)">
+        <rect width="56" height="40" rx="20" fill="transparent"/>
+        <text x="28" y="25" fill="#5C5447" text-anchor="middle">Event</text>
+      </g>
+      <g transform="translate(188, 0)">
+        <rect width="84" height="40" rx="20" fill="transparent"/>
+        <text x="42" y="25" fill="#5C5447" text-anchor="middle">Tagesablauf</text>
+      </g>
+    </g>
+    
+    <!-- 2D/3D toggle + Layer -->
+    <g transform="translate(1130, 18)">
+      <rect width="120" height="40" rx="20" fill="#FFFFFF" stroke="#D9D0B8" stroke-width="0.5"/>
+      <rect x="4" y="4" width="52" height="32" rx="16" fill="#2C2A26"/>
+      <text x="30" y="25" font-size="12" font-weight="500" fill="#F5F1E8" text-anchor="middle">2D</text>
+      <text x="86" y="25" font-size="12" fill="#5C5447" text-anchor="middle">3D</text>
+    </g>
+    
+    <g transform="translate(1262, 18)">
+      <rect width="40" height="40" rx="20" fill="#FFFFFF" stroke="#D9D0B8" stroke-width="0.5"/>
+      <g transform="translate(13, 14)" stroke="#5C5447" stroke-width="1.5" stroke-linecap="round" fill="none">
+        <line x1="0" y1="0" x2="14" y2="0"/>
+        <line x1="0" y1="6" x2="14" y2="6"/>
+        <line x1="0" y1="12" x2="14" y2="12"/>
+      </g>
+    </g>
+    
+    <g transform="translate(1314, 18)">
+      <rect width="40" height="40" rx="20" fill="#FFFFFF" stroke="#D9D0B8" stroke-width="0.5"/>
+      <circle cx="20" cy="20" r="7" fill="#7A9466"/>
+      <text x="20" y="24" font-size="9" fill="#FFFFFF" text-anchor="middle" font-weight="500">JS</text>
+    </g>
+  </g>
+  
+  <!-- ============ MAP CANVAS (LEFT 2/3) ============ -->
+  <g transform="translate(32, 76)">
+    <rect width="860" height="800" rx="20" fill="url(#mapBase03)"/>
+    <rect width="860" height="800" rx="20" fill="url(#topo03)"/>
+    
+    <!-- Terrain shadows -->
+    <g opacity="0.45">
+      <path d="M 0 480 Q 100 400 220 440 T 460 420 T 700 460 T 860 480 L 860 540 L 0 540 Z" fill="#B8A480" opacity="0.5"/>
+      <path d="M 0 520 Q 120 440 260 480 T 540 470 T 760 500 T 860 520 L 860 580 L 0 580 Z" fill="#A89472" opacity="0.6"/>
+    </g>
+    
+    <!-- River/Donau hint -->
+    <g opacity="0.4" stroke="#7A9CB8" stroke-width="2.5" fill="none" stroke-linecap="round">
+      <path d="M 0 280 Q 200 290 400 270 T 800 250 T 860 240"/>
+    </g>
+    
+    <!-- City labels -->
+    <g font-size="10.5" fill="#5C5447" font-weight="500">
+      <text x="180" y="200">Stuttgart</text>
+      <text x="380" y="170">Nürnberg</text>
+      <text x="540" y="240">Regensburg</text>
+      <text x="680" y="320">Passau</text>
+      <text x="240" y="380">Augsburg</text>
+      <text x="380" y="430">München</text>
+      <text x="540" y="450">Salzburg</text>
+      <text x="120" y="550">Bregenz</text>
+      <text x="280" y="600">Innsbruck</text>
+      <text x="640" y="580">Villach</text>
+    </g>
+    
+    <!-- Country labels (faint) -->
+    <g font-size="14" fill="#8B7355" letter-spacing="4" font-weight="500" opacity="0.4">
+      <text x="200" y="100">DEUTSCHLAND</text>
+      <text x="320" y="620">ÖSTERREICH</text>
+      <text x="40" y="700">SCHWEIZ</text>
+    </g>
+    
+    <!-- Wind streamlines -->
+    <g opacity="0.75">
+      <path d="M 30 120 Q 200 110 400 130 T 700 140 T 860 150" stroke="url(#windFlow03)" stroke-width="2" fill="none"/>
+      <path d="M 10 170 Q 200 160 400 180 T 700 190 T 860 200" stroke="url(#windFlow03)" stroke-width="1.5" fill="none"/>
+      <path d="M 50 70 Q 220 60 400 80 T 700 90 T 860 100" stroke="url(#windFlow03)" stroke-width="1" fill="none"/>
+      <path d="M 90 230 Q 270 220 440 240 T 740 250" stroke="url(#windFlow03)" stroke-width="2" fill="none"/>
+      <path d="M 20 290 Q 200 280 380 300 T 680 310 T 860 320" stroke="url(#windFlow03)" stroke-width="1.5" fill="none"/>
+      <path d="M 30 350 Q 200 340 380 360 T 680 370 T 860 380" stroke="url(#windFlow03)" stroke-width="1.2" fill="none"/>
+      
+      <!-- Föhn breakthrough -->
+      <path d="M 260 700 Q 360 600 460 500 T 580 380" stroke="url(#foehnFlow03)" stroke-width="3.5" fill="none"/>
+      <path d="M 300 720 Q 400 620 500 520 T 620 400" stroke="url(#foehnFlow03)" stroke-width="3" fill="none"/>
+      <path d="M 340 740 Q 440 640 540 540 T 660 420" stroke="url(#foehnFlow03)" stroke-width="2.5" fill="none"/>
+      <path d="M 380 760 Q 480 660 580 560 T 700 440" stroke="url(#foehnFlow03)" stroke-width="2" fill="none"/>
+    </g>
+    
+    <!-- Föhn zone overlay -->
+    <g>
+      <path d="M 280 460 Q 350 420 430 440 Q 510 470 580 450 Q 620 440 640 460 L 620 540 Q 540 560 460 540 Q 380 530 320 540 Z" 
+            fill="url(#foehnZone)" stroke="#C97B47" stroke-width="1" stroke-dasharray="4 4"/>
+      <g transform="translate(430, 502)">
+        <rect x="-50" y="-12" width="100" height="22" rx="11" fill="#A85E2E"/>
+        <text font-size="10" fill="#FFFFFF" text-anchor="middle" y="4" font-weight="600" letter-spacing="1">FÖHN-ZONE</text>
+      </g>
+    </g>
+    
+    <!-- Wind particles (small dots scattered) -->
+    <g fill="#8B7355" opacity="0.5">
+      <circle cx="120" cy="140" r="1"/>
+      <circle cx="280" cy="180" r="1"/>
+      <circle cx="380" cy="120" r="1"/>
+      <circle cx="500" cy="250" r="1"/>
+      <circle cx="620" cy="180" r="1"/>
+      <circle cx="700" cy="310" r="1"/>
+      <circle cx="180" cy="280" r="1"/>
+      <circle cx="320" cy="340" r="1"/>
+      <circle cx="450" cy="380" r="1"/>
+    </g>
+    
+    <!-- SELECTED LOCATION PIN -->
+    <g transform="translate(380, 430)">
+      <!-- Pulse -->
+      <circle r="42" fill="url(#pinPulse)"/>
+      <!-- Confidence glow -->
+      <circle r="32" fill="url(#confGlow03)"/>
+      <!-- Pin -->
+      <g>
+        <circle r="14" fill="#FFFFFF" stroke="#2C2A26" stroke-width="2"/>
+        <circle r="6" fill="#2C2A26"/>
+      </g>
+      <!-- 4 confidence dots -->
+      <circle cx="0" cy="-22" r="2.5" fill="#7A9466"/>
+      <circle cx="19" cy="-11" r="2.5" fill="#7A9466"/>
+      <circle cx="19" cy="11" r="2.5" fill="#7A9466"/>
+      <circle cx="0" cy="22" r="2.5" fill="#7A9466"/>
+    </g>
+    
+    <!-- ============ FLOATING UI ON MAP ============ -->
+    
+    <!-- Top-left: Live indicator -->
+    <g transform="translate(20, 20)">
+      <rect width="160" height="36" rx="18" fill="#FFFFFF" opacity="0.95"/>
+      <circle cx="20" cy="18" r="4" fill="#7A9466"/>
+      <circle cx="20" cy="18" r="7" fill="#7A9466" opacity="0.3"/>
+      <text x="34" y="23" font-size="11" fill="#2C2A26" font-weight="500">Live · MOSMIX 11:00</text>
+    </g>
+    
+    <!-- Top-left: Data sources pill -->
+    <g transform="translate(20, 64)">
+      <rect width="280" height="32" rx="16" fill="#FFFFFF" opacity="0.9"/>
+      <text x="16" y="20" font-size="10" fill="#5C5447">MOSMIX · ICON-D2 · RADOLAN · WarnWetter</text>
+    </g>
+    
+    <!-- LAYER CONTROLS - right side of map -->
+    <g transform="translate(780, 20)">
+      <rect width="64" height="328" rx="14" fill="#FFFFFF" opacity="0.95"/>
+      
+      <!-- Title -->
+      <text x="32" y="18" font-size="8" fill="#A89A7A" text-anchor="middle" letter-spacing="1.5" font-weight="600">LAYER</text>
+      
+      <!-- Wind - active -->
+      <g transform="translate(8, 28)">
+        <rect width="48" height="48" rx="12" fill="#2C2A26"/>
+        <g stroke="#F5F1E8" stroke-width="1.5" fill="none" stroke-linecap="round">
+          <path d="M 12 20 Q 24 14 36 20"/>
+          <path d="M 12 26 Q 24 20 36 26"/>
+          <path d="M 12 32 Q 24 26 36 32"/>
+        </g>
+        <text x="24" y="62" font-size="8.5" fill="#2C2A26" text-anchor="middle" font-weight="600">Wind</text>
+      </g>
+      
+      <!-- Rain -->
+      <g transform="translate(8, 88)">
+        <rect width="48" height="48" rx="12" fill="#F5F1E8"/>
+        <g stroke="#5C5447" stroke-width="1.5" stroke-linecap="round">
+          <line x1="16" y1="14" x2="16" y2="24"/>
+          <line x1="24" y1="16" x2="24" y2="28"/>
+          <line x1="32" y1="14" x2="32" y2="24"/>
+          <line x1="20" y1="28" x2="20" y2="36"/>
+          <line x1="28" y1="28" x2="28" y2="36"/>
+        </g>
+        <text x="24" y="62" font-size="8.5" fill="#5C5447" text-anchor="middle">Regen</text>
+      </g>
+      
+      <!-- Temp -->
+      <g transform="translate(8, 148)">
+        <rect width="48" height="48" rx="12" fill="#F5F1E8"/>
+        <circle cx="24" cy="32" r="5" fill="#C97B47"/>
+        <rect x="22" y="14" width="4" height="16" rx="2" fill="#C97B47"/>
+        <text x="24" y="62" font-size="8.5" fill="#5C5447" text-anchor="middle">Temp</text>
+      </g>
+      
+      <!-- DACH phenomena - prominent -->
+      <g transform="translate(8, 208)">
+        <rect width="48" height="48" rx="12" fill="#FAEEDA" stroke="#C97B47" stroke-width="1.5"/>
+        <text x="24" y="34" font-size="18" fill="#C97B47" text-anchor="middle" font-weight="700">▲</text>
+        <text x="24" y="62" font-size="8.5" fill="#A85E2E" text-anchor="middle" font-weight="600">DACH</text>
+      </g>
+      
+      <!-- Lightning -->
+      <g transform="translate(8, 268)">
+        <rect width="48" height="48" rx="12" fill="#F5F1E8"/>
+        <path d="M 24 14 L 18 28 L 22 28 L 20 38 L 30 22 L 26 22 L 28 14 Z" fill="#5C5447"/>
+        <text x="24" y="62" font-size="8.5" fill="#5C5447" text-anchor="middle">Blitz</text>
+      </g>
+    </g>
+    
+    <!-- ZOOM CONTROLS -->
+    <g transform="translate(780, 660)">
+      <rect width="64" height="120" rx="14" fill="#FFFFFF" opacity="0.95"/>
+      
+      <g transform="translate(8, 8)">
+        <rect width="48" height="48" rx="10" fill="transparent"/>
+        <line x1="14" y1="24" x2="34" y2="24" stroke="#2C2A26" stroke-width="2" stroke-linecap="round"/>
+        <line x1="24" y1="14" x2="24" y2="34" stroke="#2C2A26" stroke-width="2" stroke-linecap="round"/>
+      </g>
+      <line x1="16" y1="60" x2="48" y2="60" stroke="#E0D6BE"/>
+      <g transform="translate(8, 64)">
+        <rect width="48" height="48" rx="10" fill="transparent"/>
+        <line x1="14" y1="24" x2="34" y2="24" stroke="#2C2A26" stroke-width="2" stroke-linecap="round"/>
+      </g>
+    </g>
+    
+    <!-- COMPASS / SCALE -->
+    <g transform="translate(20, 720)">
+      <rect width="200" height="60" rx="14" fill="#FFFFFF" opacity="0.9"/>
+      
+      <!-- Compass -->
+      <g transform="translate(30, 30)">
+        <circle r="20" fill="none" stroke="#D9D0B8" stroke-width="1"/>
+        <line x1="0" y1="-14" x2="0" y2="-4" stroke="#2C2A26" stroke-width="2" stroke-linecap="round"/>
+        <line x1="0" y1="14" x2="0" y2="4" stroke="#8B7355" stroke-width="1.5" stroke-linecap="round"/>
+        <text x="0" y="-14" font-size="8" fill="#2C2A26" text-anchor="middle" font-weight="700">N</text>
+      </g>
+      
+      <!-- Scale -->
+      <g transform="translate(80, 22)">
+        <line x1="0" y1="14" x2="100" y2="14" stroke="#2C2A26" stroke-width="1.5"/>
+        <line x1="0" y1="10" x2="0" y2="18" stroke="#2C2A26" stroke-width="1.5"/>
+        <line x1="50" y1="12" x2="50" y2="16" stroke="#2C2A26" stroke-width="1"/>
+        <line x1="100" y1="10" x2="100" y2="18" stroke="#2C2A26" stroke-width="1.5"/>
+        <text x="0" y="32" font-size="9" fill="#5C5447">0</text>
+        <text x="50" y="32" font-size="9" fill="#5C5447" text-anchor="middle">50</text>
+        <text x="100" y="32" font-size="9" fill="#5C5447" text-anchor="end">100 km</text>
+      </g>
+    </g>
+    
+    <!-- ATTRIBUTION -->
+    <g transform="translate(580, 776)">
+      <text font-size="9" fill="#5C5447" opacity="0.7">© OpenFreeMap · © OpenStreetMap-Mitwirkende</text>
+    </g>
+  </g>
+  
+  <!-- ============ RIGHT PANEL: FORECAST ============ -->
+  <g transform="translate(908, 76)">
+    <rect width="500" height="800" rx="20" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    
+    <!-- Header -->
+    <g transform="translate(24, 24)">
+      <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">STANDORT</text>
+      <text y="26" font-size="20" font-weight="500" fill="#2C2A26" letter-spacing="-0.4">Marienplatz, München</text>
+      <text y="46" font-size="11" fill="#8B7355">48.137°N · 11.575°E · 519 m</text>
+      
+      <!-- Save / Share / Refresh icons -->
+      <g transform="translate(382, 8)">
+        <g transform="translate(0, 0)">
+          <circle r="14" fill="#F5F1E8"/>
+          <g transform="translate(-5, -6)" stroke="#5C5447" stroke-width="1.5" fill="none">
+            <path d="M 0 0 L 0 12 L 5 8 L 10 12 L 10 0 Z"/>
+          </g>
+        </g>
+        <g transform="translate(34, 0)">
+          <circle r="14" fill="#F5F1E8"/>
+          <g transform="translate(-5, -6)" stroke="#5C5447" stroke-width="1.5" fill="none" stroke-linecap="round">
+            <circle cx="2" cy="2" r="2"/>
+            <circle cx="8" cy="6" r="2"/>
+            <circle cx="2" cy="10" r="2"/>
+            <line x1="4" y1="3" x2="6" y2="5"/>
+            <line x1="4" y1="9" x2="6" y2="7"/>
+          </g>
+        </g>
+        <g transform="translate(68, 0)">
+          <circle r="14" fill="#F5F1E8"/>
+          <g transform="translate(-6, -6)" stroke="#5C5447" stroke-width="1.5" fill="none" stroke-linecap="round">
+            <path d="M 10 2 A 5 5 0 1 1 5 2"/>
+            <polyline points="10,0 10,3 7,3"/>
+          </g>
+        </g>
+      </g>
+    </g>
+    
+    <!-- Phenomenon badges row -->
+    <g transform="translate(24, 92)">
+      <rect width="146" height="30" rx="15" fill="#C97B47"/>
+      <g transform="translate(13, 9)">
+        <path d="M 0 6 L 4 0 L 8 6 Z" fill="#FFFFFF"/>
+      </g>
+      <text x="30" y="20" font-size="11" fill="#FFFFFF" font-weight="600" letter-spacing="0.5">FÖHN-LAGE AKTIV</text>
+      
+      <!-- Tooltip indicator -->
+      <g transform="translate(180, 9)" stroke="#A89A7A" stroke-width="1" fill="none">
+        <circle cx="6" cy="6" r="6"/>
+        <text x="6" y="9" font-size="9" text-anchor="middle" stroke="none" fill="#A89A7A" font-weight="600">?</text>
+      </g>
+      
+      <text x="202" y="20" font-size="11" fill="#8B7355">Detail erklären</text>
+    </g>
+    
+    <!-- TEMPERATURE BLOCK -->
+    <g transform="translate(24, 146)">
+      <text font-size="96" font-weight="200" fill="#2C2A26" letter-spacing="-3.5">22°</text>
+      
+      <!-- Spread block -->
+      <g transform="translate(168, 56)">
+        <text font-size="16" fill="#5C5447" font-weight="400">± 1.2°</text>
+        
+        <g transform="translate(0, 18)">
+          <line x1="0" y1="0" x2="0" y2="8" stroke="#A89A7A" stroke-width="1"/>
+          <line x1="0" y1="4" x2="72" y2="4" stroke="#D9D0B8" stroke-width="1"/>
+          <line x1="72" y1="0" x2="72" y2="8" stroke="#A89A7A" stroke-width="1"/>
+          <circle cx="36" cy="4" r="3" fill="#2C2A26"/>
+        </g>
+        <g transform="translate(0, 30)" font-size="9" fill="#A89A7A">
+          <text>21.4°</text>
+          <text x="72" text-anchor="end">22.6°</text>
+        </g>
+      </g>
+      
+      <text y="118" font-size="13" fill="#5C5447">Gefühlt 24° · Föhn-bedingt + 3.2°</text>
+    </g>
+    
+    <!-- CONFIDENCE ROW -->
+    <g transform="translate(24, 290)">
+      <rect width="452" height="64" rx="14" fill="#F5F1E8"/>
+      
+      <g transform="translate(20, 18)">
+        <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">KONFIDENZ</text>
+        <text y="22" font-size="16" fill="#2C2A26" font-weight="500">Hoch</text>
+      </g>
+      
+      <g transform="translate(108, 30)">
+        <circle r="5" fill="#7A9466"/>
+        <circle cx="14" r="5" fill="#7A9466"/>
+        <circle cx="28" r="5" fill="#7A9466"/>
+        <circle cx="42" r="5" fill="#7A9466"/>
+        <text x="21" y="20" font-size="9" fill="#5C5447" text-anchor="middle">4/4 ≤ 1°C</text>
+      </g>
+      
+      <g transform="translate(220, 22)">
+        <text font-size="9" fill="#A89A7A" letter-spacing="1.5" font-weight="500">48 h SPREAD</text>
+        <g transform="translate(0, 8)">
+          <path d="M 0 12 L 18 12 L 36 10 L 54 14 L 72 12 L 90 11 L 108 16 L 126 20 L 144 18 L 162 22 L 180 24" 
+                stroke="#7A9466" stroke-width="1.2" fill="none" opacity="0.7"/>
+          <path d="M 0 4 L 18 5 L 36 3 L 54 5 L 72 5 L 90 6 L 108 2 L 126 0 L 144 2 L 162 -1 L 180 -2" 
+                stroke="#7A9466" stroke-width="1.2" fill="none" opacity="0.7"/>
+          <path d="M 0 12 L 18 12 L 36 10 L 54 14 L 72 12 L 90 11 L 108 16 L 126 20 L 144 18 L 162 22 L 180 24 L 180 -2 L 162 -1 L 144 2 L 126 0 L 108 2 L 90 6 L 72 5 L 54 5 L 36 3 L 18 5 L 0 4 Z" 
+                fill="#7A9466" opacity="0.15"/>
+        </g>
+      </g>
+      
+      <!-- Detail arrow -->
+      <g transform="translate(420, 24)" stroke="#5C5447" stroke-width="1.5" fill="none" stroke-linecap="round">
+        <line x1="0" y1="8" x2="12" y2="8"/>
+        <polyline points="8,4 12,8 8,12"/>
+      </g>
+    </g>
+    
+    <!-- MODEL CHIPS -->
+    <g transform="translate(24, 372)">
+      <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">AKTIVE MODELLE</text>
+      
+      <g transform="translate(0, 14)">
+        <g>
+          <rect width="108" height="40" rx="11" fill="#2C2A26"/>
+          <text x="14" y="16" font-size="9" fill="#A89A7A" letter-spacing="1">ICON-D2</text>
+          <text x="14" y="32" font-size="14" fill="#FFFFFF" font-weight="500">22.1°</text>
+        </g>
+        <g transform="translate(115, 0)">
+          <rect width="108" height="40" rx="11" fill="#2C2A26"/>
+          <text x="14" y="16" font-size="9" fill="#A89A7A" letter-spacing="1">MOSMIX</text>
+          <text x="14" y="32" font-size="14" fill="#FFFFFF" font-weight="500">22.4°</text>
+        </g>
+        <g transform="translate(230, 0)">
+          <rect width="108" height="40" rx="11" fill="#F5F1E8" stroke="#D9D0B8"/>
+          <text x="14" y="16" font-size="9" fill="#A89A7A" letter-spacing="1">ICON-EPS</text>
+          <text x="14" y="32" font-size="14" fill="#2C2A26" font-weight="500">21.8°</text>
+        </g>
+        <g transform="translate(345, 0)">
+          <rect width="108" height="40" rx="11" fill="#F5F1E8" stroke="#D9D0B8"/>
+          <text x="14" y="16" font-size="9" fill="#A89A7A" letter-spacing="1">+ Bias</text>
+          <text x="14" y="32" font-size="14" fill="#2C2A26" font-weight="500">−0.4°</text>
+        </g>
+      </g>
+    </g>
+    
+    <!-- ATMOSPHERE GRID -->
+    <g transform="translate(24, 458)">
+      <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">ATMOSPHÄRE · JETZT</text>
+      
+      <g transform="translate(0, 14)" font-size="11" fill="#5C5447">
+        <g>
+          <text font-size="8.5" fill="#A89A7A" letter-spacing="1.2">WIND · 10m</text>
+          <text y="20" font-size="16" fill="#2C2A26" font-weight="500">12 km/h</text>
+          <g transform="translate(56, 14)">
+            <line x1="0" y1="0" x2="10" y2="-3" stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round"/>
+            <polygon points="10,-3 7,-6 7,0" fill="#2C2A26"/>
+          </g>
+          <text y="36" font-size="10">SW · Böen 28</text>
+        </g>
+        <g transform="translate(112, 0)">
+          <text font-size="8.5" fill="#A89A7A" letter-spacing="1.2">NIEDERSCHLAG</text>
+          <text y="20" font-size="16" fill="#2C2A26" font-weight="500">0 mm</text>
+          <text y="36" font-size="10">trocken bis 18 Uhr</text>
+        </g>
+        <g transform="translate(232, 0)">
+          <text font-size="8.5" fill="#A89A7A" letter-spacing="1.2">BEWÖLKUNG</text>
+          <text y="20" font-size="16" fill="#2C2A26" font-weight="500">25%</text>
+          <text y="36" font-size="10">Cirrus · hoch</text>
+        </g>
+        <g transform="translate(352, 0)">
+          <text font-size="8.5" fill="#A89A7A" letter-spacing="1.2">SICHT</text>
+          <text y="20" font-size="16" fill="#2C2A26" font-weight="500">50+ km</text>
+          <text y="36" font-size="10">klar</text>
+        </g>
+      </g>
+      
+      <g transform="translate(0, 76)" font-size="11" fill="#5C5447">
+        <g>
+          <text font-size="8.5" fill="#A89A7A" letter-spacing="1.2">FEUCHTE</text>
+          <text y="20" font-size="16" fill="#2C2A26" font-weight="500">34%</text>
+          <text y="36" font-size="10">Taupunkt 5°</text>
+        </g>
+        <g transform="translate(112, 0)">
+          <text font-size="8.5" fill="#A89A7A" letter-spacing="1.2">DRUCK</text>
+          <text y="20" font-size="16" fill="#2C2A26" font-weight="500">1018</text>
+          <text y="36" font-size="10">stabil ↗</text>
+        </g>
+        <g transform="translate(232, 0)">
+          <text font-size="8.5" fill="#A89A7A" letter-spacing="1.2">CAPE</text>
+          <text y="20" font-size="16" fill="#2C2A26" font-weight="500">120</text>
+          <text y="36" font-size="10">kein Gewitter</text>
+        </g>
+        <g transform="translate(352, 0)">
+          <text font-size="8.5" fill="#A89A7A" letter-spacing="1.2">UV-INDEX</text>
+          <text y="20" font-size="16" fill="#2C2A26" font-weight="500">4</text>
+          <text y="36" font-size="10">moderat</text>
+        </g>
+      </g>
+    </g>
+    
+    <!-- 24h FORECAST STRIP -->
+    <g transform="translate(24, 608)">
+      <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">NÄCHSTE 24 STUNDEN</text>
+      
+      <g transform="translate(0, 18)">
+        <!-- Hour cells -->
+        <g font-size="10" fill="#5C5447">
+          <!-- 11h current -->
+          <g>
+            <rect width="52" height="92" rx="10" fill="#2C2A26"/>
+            <text x="26" y="16" fill="#A89A7A" text-anchor="middle" font-size="9" letter-spacing="1">JETZT</text>
+            <text x="26" y="48" font-size="16" fill="#FFFFFF" text-anchor="middle" font-weight="500">22°</text>
+            <line x1="14" y1="62" x2="38" y2="62" stroke="#7A9466" stroke-width="2" stroke-linecap="round"/>
+            <text x="26" y="80" fill="#A89A7A" text-anchor="middle" font-size="9">0mm</text>
+          </g>
+          <!-- 14h -->
+          <g transform="translate(58, 0)">
+            <rect width="52" height="92" rx="10" fill="#F5F1E8"/>
+            <text x="26" y="16" fill="#A89A7A" text-anchor="middle" font-size="9">14h</text>
+            <text x="26" y="48" font-size="16" fill="#2C2A26" text-anchor="middle" font-weight="500">25°</text>
+            <line x1="14" y1="62" x2="38" y2="62" stroke="#7A9466" stroke-width="2" stroke-linecap="round"/>
+            <text x="26" y="80" fill="#A89A7A" text-anchor="middle" font-size="9">0mm</text>
+          </g>
+          <!-- 17h -->
+          <g transform="translate(116, 0)">
+            <rect width="52" height="92" rx="10" fill="#F5F1E8"/>
+            <text x="26" y="16" fill="#A89A7A" text-anchor="middle" font-size="9">17h</text>
+            <text x="26" y="48" font-size="16" fill="#2C2A26" text-anchor="middle" font-weight="500">26°</text>
+            <line x1="14" y1="62" x2="38" y2="62" stroke="#D4A373" stroke-width="2" stroke-linecap="round"/>
+            <text x="26" y="80" fill="#A89A7A" text-anchor="middle" font-size="9">0.2mm</text>
+          </g>
+          <!-- 20h -->
+          <g transform="translate(174, 0)">
+            <rect width="52" height="92" rx="10" fill="#FAEEDA"/>
+            <text x="26" y="16" fill="#A89A7A" text-anchor="middle" font-size="9">20h</text>
+            <text x="26" y="48" font-size="16" fill="#2C2A26" text-anchor="middle" font-weight="500">19°</text>
+            <line x1="14" y1="62" x2="38" y2="62" stroke="#C97B47" stroke-width="2" stroke-linecap="round"/>
+            <text x="26" y="80" fill="#A89A7A" text-anchor="middle" font-size="9">1.4mm</text>
+          </g>
+          <!-- 23h -->
+          <g transform="translate(232, 0)">
+            <rect width="52" height="92" rx="10" fill="#F5F1E8"/>
+            <text x="26" y="16" fill="#A89A7A" text-anchor="middle" font-size="9">23h</text>
+            <text x="26" y="48" font-size="16" fill="#2C2A26" text-anchor="middle" font-weight="500">15°</text>
+            <line x1="14" y1="62" x2="38" y2="62" stroke="#7A9466" stroke-width="2" stroke-linecap="round"/>
+            <text x="26" y="80" fill="#A89A7A" text-anchor="middle" font-size="9">0mm</text>
+          </g>
+          <!-- 02h -->
+          <g transform="translate(290, 0)">
+            <rect width="52" height="92" rx="10" fill="#F5F1E8"/>
+            <text x="26" y="16" fill="#A89A7A" text-anchor="middle" font-size="9">02h</text>
+            <text x="26" y="48" font-size="16" fill="#2C2A26" text-anchor="middle" font-weight="500">11°</text>
+            <line x1="14" y1="62" x2="38" y2="62" stroke="#7A9466" stroke-width="2" stroke-linecap="round"/>
+            <text x="26" y="80" fill="#A89A7A" text-anchor="middle" font-size="9">0mm</text>
+          </g>
+          <!-- 05h -->
+          <g transform="translate(348, 0)">
+            <rect width="52" height="92" rx="10" fill="#F5F1E8"/>
+            <text x="26" y="16" fill="#A89A7A" text-anchor="middle" font-size="9">05h</text>
+            <text x="26" y="48" font-size="16" fill="#2C2A26" text-anchor="middle" font-weight="500">9°</text>
+            <line x1="14" y1="62" x2="38" y2="62" stroke="#7A9466" stroke-width="2" stroke-linecap="round"/>
+            <text x="26" y="80" fill="#A89A7A" text-anchor="middle" font-size="9">0mm</text>
+          </g>
+          <!-- 08h -->
+          <g transform="translate(406, 0)">
+            <rect width="46" height="92" rx="10" fill="#F5F1E8"/>
+            <text x="23" y="16" fill="#A89A7A" text-anchor="middle" font-size="9">08h</text>
+            <text x="23" y="48" font-size="16" fill="#2C2A26" text-anchor="middle" font-weight="500">14°</text>
+            <line x1="14" y1="62" x2="32" y2="62" stroke="#7A9466" stroke-width="2" stroke-linecap="round"/>
+          </g>
+        </g>
+      </g>
+    </g>
+    
+    <!-- ACTION BUTTONS -->
+    <g transform="translate(24, 738)">
+      <g>
+        <rect width="140" height="42" rx="21" fill="#2C2A26"/>
+        <text x="70" y="26" font-size="12" fill="#F5F1E8" text-anchor="middle" font-weight="500">Route planen</text>
+      </g>
+      <g transform="translate(152, 0)">
+        <rect width="140" height="42" rx="21" fill="#F5F1E8" stroke="#D9D0B8"/>
+        <text x="70" y="26" font-size="12" fill="#2C2A26" text-anchor="middle">Event</text>
+      </g>
+      <g transform="translate(304, 0)">
+        <rect width="148" height="42" rx="21" fill="#F5F1E8" stroke="#D9D0B8"/>
+        <text x="74" y="26" font-size="12" fill="#2C2A26" text-anchor="middle">Tagesablauf</text>
+      </g>
+    </g>
+  </g>
+  
+  <!-- LABEL -->
+  <g transform="translate(32, 880)">
+    <text font-size="10" fill="#A89A7A" letter-spacing="3" font-weight="500">03 · 2D-HAUPTANSICHT · DESKTOP · v1.8 SECTION 9.2</text>
+    <text x="1376" font-size="10" fill="#A89A7A" letter-spacing="2" text-anchor="end">Föhn-Zone · 4-Modell-Spread · 24h-Strip · Layer-Stack</text>
+  </g>
+</svg>

@@ -1,0 +1,1024 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1500" font-family="ui-sans-serif, system-ui, -apple-system">
+  <defs>
+    <linearGradient id="bgM" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F5F1E8"/>
+      <stop offset="100%" stop-color="#EDE6D3"/>
+    </linearGradient>
+    
+    <linearGradient id="mapBgM" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#EDE6D3"/>
+      <stop offset="60%" stop-color="#E0D6BE"/>
+      <stop offset="100%" stop-color="#D9CEB0"/>
+    </linearGradient>
+    
+    <linearGradient id="windStrM" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#5C5447" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#5C5447" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#5C5447" stop-opacity="0"/>
+    </linearGradient>
+    
+    <linearGradient id="windStrMStrong" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#3A3833" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#3A3833" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#3A3833" stop-opacity="0"/>
+    </linearGradient>
+    
+    <linearGradient id="foehnLineM" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#C97B47" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#C97B47" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#C97B47" stop-opacity="0"/>
+    </linearGradient>
+    
+    <linearGradient id="trendAreaM" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#C97B47" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#C97B47" stop-opacity="0.02"/>
+    </linearGradient>
+    
+    <radialGradient id="pinShadowM">
+      <stop offset="0%" stop-color="#2C2A26" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#2C2A26" stop-opacity="0"/>
+    </radialGradient>
+    
+    <filter id="cardShM" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
+      <feOffset dx="0" dy="2"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.10"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    
+    <filter id="floatShM" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="6"/>
+      <feOffset dx="0" dy="4"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.14"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    
+    <!-- Phone frame outline shadow -->
+    <filter id="phoneShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="12"/>
+      <feOffset dx="0" dy="8"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.18"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  
+  <rect width="1440" height="1500" fill="url(#bgM)"/>
+  
+  <!-- ============ HEADER ============ -->
+  <g transform="translate(60, 50)">
+    <g>
+      <line x1="0" y1="6" x2="40" y2="6" stroke="#8B7355" stroke-width="1"/>
+      <text x="52" y="10" font-size="11" fill="#8B7355" letter-spacing="3" font-weight="500">VARIANTE A · MOBILE · 390 × 844 (iPhone-Klasse)</text>
+    </g>
+    <text y="60" font-size="42" font-weight="200" fill="#2C2A26" letter-spacing="-1.5">Mobile · Icon-Rail links</text>
+    <text y="92" font-size="14" fill="#5C5447">Drei States: Standard · PFC halb offen · PFC voll offen · plus Sat-Sub-Switch</text>
+  </g>
+  
+  <!-- ============ STATE 1: DEFAULT (PFC geschlossen) ============ -->
+  <g transform="translate(80, 200)">
+    <g transform="translate(0, -28)">
+      <rect width="100" height="22" rx="11" fill="#2C2A26"/>
+      <text x="50" y="15" font-size="10" font-weight="500" fill="#fff" text-anchor="middle" letter-spacing="1">STATE 1</text>
+      <text x="110" y="15" font-size="12" font-weight="500" fill="#5C5447">Standard · PFC eingeklappt</text>
+    </g>
+    
+    <!-- Phone outer -->
+    <g filter="url(#phoneShadow)">
+      <rect width="390" height="844" rx="44" fill="#1a1a1a"/>
+      <rect x="6" y="6" width="378" height="832" rx="38" fill="#000"/>
+      
+      <!-- Screen -->
+      <g transform="translate(10, 10)">
+        <rect width="370" height="824" rx="34" fill="url(#mapBgM)"/>
+        
+        <clipPath id="screen1">
+          <rect width="370" height="824" rx="34"/>
+        </clipPath>
+        
+        <g clip-path="url(#screen1)">
+          <!-- Status bar (iOS-style) -->
+          <g transform="translate(0, 0)">
+            <text x="32" y="22" font-size="11" font-weight="600" fill="#2C2A26">15:34</text>
+            <!-- Right cluster -->
+            <g transform="translate(298, 14)" fill="#2C2A26">
+              <!-- Signal -->
+              <rect x="0" y="3" width="2" height="3" rx="0.5"/>
+              <rect x="3" y="2" width="2" height="4" rx="0.5"/>
+              <rect x="6" y="1" width="2" height="5" rx="0.5"/>
+              <rect x="9" y="0" width="2" height="6" rx="0.5"/>
+              <!-- Wifi (simplified) -->
+              <path d="M 17 6 Q 22 0 27 6" fill="none" stroke="#2C2A26" stroke-width="1.2" stroke-linecap="round"/>
+              <circle cx="22" cy="6" r="0.8"/>
+              <!-- Battery -->
+              <rect x="34" y="1" width="20" height="9" rx="2" fill="none" stroke="#2C2A26" stroke-width="0.8"/>
+              <rect x="36" y="3" width="14" height="5" rx="0.5"/>
+              <rect x="55" y="3.5" width="1.2" height="4" rx="0.5"/>
+            </g>
+            <!-- Notch -->
+            <rect x="139" y="6" width="92" height="22" rx="11" fill="#000"/>
+          </g>
+          
+          <!-- Topography & wind layer -->
+          <g opacity="0.22">
+            <path d="M 0 680 Q 90 650 180 660 T 380 670 L 380 844 L 0 844 Z" fill="#B8A480"/>
+            <path d="M 0 720 Q 90 700 180 710 T 380 710 L 380 844 L 0 844 Z" fill="#A89472"/>
+          </g>
+          
+          <g opacity="0.5">
+            <path d="M -20 200 Q 100 195 200 210 T 400 220" stroke="url(#windStrM)" stroke-width="1.2" fill="none"/>
+            <path d="M -20 250 Q 100 245 200 260 T 400 270" stroke="url(#windStrM)" stroke-width="1.6" fill="none"/>
+            <path d="M -20 300 Q 100 290 200 310 T 400 320" stroke="url(#windStrMStrong)" stroke-width="2" fill="none"/>
+            <path d="M -20 350 Q 100 345 200 365 T 400 380" stroke="url(#windStrM)" stroke-width="1.4" fill="none"/>
+            <path d="M -20 400 Q 100 395 200 415 T 400 425" stroke="url(#windStrM)" stroke-width="1.2" fill="none"/>
+            <path d="M -20 450 Q 100 440 200 460 T 400 475" stroke="url(#windStrM)" stroke-width="1.4" fill="none"/>
+            <path d="M -20 500 Q 100 495 200 515 T 400 530" stroke="url(#windStrMStrong)" stroke-width="1.8" fill="none"/>
+            <path d="M -20 550 Q 100 545 200 565 T 400 580" stroke="url(#windStrM)" stroke-width="1.2" fill="none"/>
+            <path d="M -20 600 Q 100 595 200 615 T 400 630" stroke="url(#windStrM)" stroke-width="1.4" fill="none"/>
+            
+            <!-- Föhn -->
+            <path d="M 80 720 Q 160 600 230 480 T 360 280" stroke="url(#foehnLineM)" stroke-width="2" fill="none"/>
+          </g>
+          
+          <!-- Country outline DE -->
+          <g opacity="0.32" fill="none" stroke="#8B7355" stroke-width="0.8" stroke-dasharray="3 2">
+            <path d="M 130 130 L 170 122 L 215 130 L 255 142 L 290 135 L 320 150 L 345 160 L 320 240 L 335 320 L 315 390 L 280 440 L 220 470 L 170 480 L 130 470 L 110 430 L 100 360 L 95 280 L 105 200 L 115 160 Z"/>
+          </g>
+          
+          <!-- Stations -->
+          <g>
+            <circle cx="200" cy="240" r="4" fill="#1d4ed8" stroke="#fff" stroke-width="0.8"/>
+            <circle cx="240" cy="290" r="4" fill="#1d4ed8" stroke="#fff" stroke-width="0.8"/>
+            <circle cx="180" cy="320" r="4" fill="#1d4ed8" stroke="#fff" stroke-width="0.8"/>
+            <circle cx="220" cy="360" r="4" fill="#1d4ed8" stroke="#fff" stroke-width="0.8"/>
+            <circle cx="260" cy="380" r="4" fill="#1d4ed8" stroke="#fff" stroke-width="0.8"/>
+            <circle cx="280" cy="420" r="4" fill="#1d4ed8" stroke="#fff" stroke-width="0.8"/>
+            <circle cx="160" cy="400" r="4" fill="#1d4ed8" stroke="#fff" stroke-width="0.8"/>
+          </g>
+          
+          <!-- City labels (smaller for mobile) -->
+          <g font-variant-numeric="tabular-nums">
+            <g transform="translate(230, 270)">
+              <rect x="-32" y="-9" width="66" height="18" rx="9" fill="#2C2A26" fill-opacity="0.82"/>
+              <text x="0" y="3" font-size="9" font-weight="500" fill="#fff" text-anchor="middle">Frankfurt 26°</text>
+            </g>
+            <g transform="translate(285, 175)">
+              <rect x="-26" y="-9" width="54" height="18" rx="9" fill="#2C2A26" fill-opacity="0.82"/>
+              <text x="0" y="3" font-size="9" font-weight="500" fill="#fff" text-anchor="middle">Berlin 24°</text>
+            </g>
+            <g transform="translate(280, 460)">
+              <rect x="-32" y="-9" width="66" height="18" rx="9" fill="#2C2A26" fill-opacity="0.82"/>
+              <text x="0" y="3" font-size="9" font-weight="500" fill="#fff" text-anchor="middle">München 27°</text>
+            </g>
+            <g transform="translate(180, 410)">
+              <rect x="-30" y="-9" width="60" height="18" rx="9" fill="#2C2A26" fill-opacity="0.82"/>
+              <text x="0" y="3" font-size="9" font-weight="500" fill="#fff" text-anchor="middle">Stuttgart 25°</text>
+            </g>
+            <g transform="translate(150, 290)">
+              <rect x="-22" y="-9" width="46" height="18" rx="9" fill="#2C2A26" fill-opacity="0.82"/>
+              <text x="0" y="3" font-size="9" font-weight="500" fill="#fff" text-anchor="middle">Köln 25°</text>
+            </g>
+          </g>
+          
+          <!-- Search pin Herborn -->
+          <g transform="translate(180, 295)">
+            <ellipse cx="0" cy="18" rx="10" ry="3" fill="url(#pinShadowM)"/>
+            <path d="M 0 -12 C -6 -12 -11 -8 -11 -1 C -11 5 0 14 0 14 C 0 14 11 5 11 -1 C 11 -8 6 -12 0 -12 Z" 
+                  fill="#C97B47" stroke="#fff" stroke-width="1.2"/>
+            <circle cx="0" cy="-1" r="3" fill="#fff"/>
+          </g>
+          
+          <!-- Scale bar -->
+          <g transform="translate(16, 720)">
+            <line x1="0" y1="0" x2="40" y2="0" stroke="#2C2A26" stroke-width="2"/>
+            <line x1="0" y1="-3" x2="0" y2="3" stroke="#2C2A26" stroke-width="1"/>
+            <line x1="40" y1="-3" x2="40" y2="3" stroke="#2C2A26" stroke-width="1"/>
+            <text x="46" y="3" font-size="9" fill="#2C2A26" font-weight="500">100 km</text>
+          </g>
+        </g>
+        
+        <!-- ============ TOPBAR (compact) ============ -->
+        <g transform="translate(10, 50)" filter="url(#cardShM)">
+          <rect width="36" height="36" rx="18" fill="#fff" fill-opacity="0.95" stroke="#E0D6BE"/>
+          <g transform="translate(18, 18)" stroke="#2C2A26" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3,-4 -3,0 3,4"/>
+          </g>
+        </g>
+        
+        <g transform="translate(54, 50)" filter="url(#cardShM)">
+          <rect width="306" height="36" rx="18" fill="#fff" fill-opacity="0.95" stroke="#E0D6BE"/>
+          <g transform="translate(14, 18)" stroke="#C97B47" stroke-width="1.4" fill="none">
+            <path d="M 0 -5 C -3.5 -5 -5 -2.5 -5 0.5 C -5 4 0 8 0 8 C 0 8 5 4 5 0.5 C 5 -2.5 3.5 -5 0 -5 Z"/>
+            <circle cx="0" cy="0.5" r="1.3" fill="#C97B47"/>
+          </g>
+          <text x="30" y="22" font-size="12" fill="#2C2A26" font-weight="500">Herborn, Lahn-Dill-Kreis</text>
+        </g>
+        
+        <!-- ============ LEFT RAIL: LAYERS ============ -->
+        <g transform="translate(10, 100)" filter="url(#cardShM)">
+          <rect width="48" height="408" rx="24" fill="#fff" fill-opacity="0.95" stroke="#E0D6BE"/>
+          
+          <text x="24" y="20" font-size="8" font-weight="500" fill="#A89A7A" letter-spacing="1.5" text-anchor="middle">LAYER</text>
+          
+          <!-- Wind ACTIVE -->
+          <g transform="translate(6, 28)">
+            <circle cx="18" cy="18" r="18" fill="#2C2A26"/>
+            <g transform="translate(18, 18)" stroke="#fff" stroke-width="1.4" fill="none" stroke-linecap="round">
+              <path d="M -6 -3 Q -2 -5 1 -3 T 7 -3"/>
+              <path d="M -6 0 Q -2 -2 1 0 T 7 0"/>
+              <path d="M -6 3 Q -2 1 1 3 T 7 3"/>
+            </g>
+          </g>
+          
+          <!-- Regen -->
+          <g transform="translate(6, 70)">
+            <circle cx="18" cy="18" r="18" fill="transparent" stroke="#E0D6BE" stroke-width="0.5"/>
+            <g transform="translate(18, 18)" stroke="#5C5447" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M -5 -2 C -5 -4 -3 -5 0 -5 C 3 -5 4 -4 4 -2 C 6 -2 7 0 7 1 C 7 3 5 3 4 3 L -4 3 C -5 3 -6 2 -6 1 C -6 0 -5 -2 -5 -2 Z"/>
+              <line x1="-2" y1="5" x2="-3" y2="7"/>
+              <line x1="0" y1="5" x2="-1" y2="7"/>
+              <line x1="2" y1="5" x2="1" y2="7"/>
+            </g>
+          </g>
+          
+          <!-- Radar -->
+          <g transform="translate(6, 112)">
+            <circle cx="18" cy="18" r="18" fill="transparent" stroke="#E0D6BE" stroke-width="0.5"/>
+            <g transform="translate(18, 18)" stroke="#5C5447" stroke-width="1.4" fill="none" stroke-linecap="round">
+              <path d="M -7 0 A 7 7 0 0 1 7 0"/>
+              <path d="M -4 0 A 4 4 0 0 1 4 0"/>
+              <circle cx="0" cy="0" r="1.5" fill="#5C5447"/>
+            </g>
+          </g>
+          
+          <!-- Temperatur -->
+          <g transform="translate(6, 154)">
+            <circle cx="18" cy="18" r="18" fill="transparent" stroke="#E0D6BE" stroke-width="0.5"/>
+            <g transform="translate(18, 18)" stroke="#5C5447" stroke-width="1.4" fill="none" stroke-linecap="round">
+              <path d="M -2 -6 L -2 4 A 3 3 0 1 0 2 4 L 2 -6 A 2 2 0 1 0 -2 -6"/>
+              <line x1="-4" y1="-3" x2="-3" y2="-3"/>
+              <line x1="-4" y1="0" x2="-3" y2="0"/>
+              <line x1="-4" y1="3" x2="-3" y2="3"/>
+            </g>
+          </g>
+          
+          <!-- Wolken -->
+          <g transform="translate(6, 196)">
+            <circle cx="18" cy="18" r="18" fill="transparent" stroke="#E0D6BE" stroke-width="0.5"/>
+            <g transform="translate(18, 18)" stroke="#5C5447" stroke-width="1.4" fill="none" stroke-linejoin="round">
+              <path d="M -6 -1 C -6 -3 -4 -3 -2 -3 C -1 -5 1 -5 3 -4 C 5 -4 6 -2 6 -1 C 7 -1 7 0 7 0 L -7 0 C -7 0 -7 -1 -6 -1 Z"/>
+              <path d="M -4 3 C -4 2 -3 1 -1 1 C 0 0 2 0 3 1 C 4 1 5 2 5 3 C 6 3 6 4 6 4 L -5 4 C -5 4 -5 3 -4 3 Z"/>
+            </g>
+          </g>
+          
+          <!-- Satellit -->
+          <g transform="translate(6, 238)">
+            <circle cx="18" cy="18" r="18" fill="transparent" stroke="#E0D6BE" stroke-width="0.5"/>
+            <g transform="translate(18, 18)" stroke="#5C5447" stroke-width="1.4" fill="none" stroke-linecap="round">
+              <path d="M -7 4 A 7 5 0 0 1 7 4"/>
+              <path d="M -3 1 L 3 1 L 4 4 L -4 4 Z"/>
+              <line x1="0" y1="1" x2="0" y2="-3"/>
+              <circle cx="0" cy="-4" r="1.2" fill="#5C5447"/>
+            </g>
+          </g>
+          
+          <!-- Blitze -->
+          <g transform="translate(6, 280)">
+            <circle cx="18" cy="18" r="18" fill="transparent" stroke="#E0D6BE" stroke-width="0.5"/>
+            <g transform="translate(18, 18)" fill="#5C5447">
+              <path d="M -1 -6 L -4 1 L 0 1 L -2 6 L 4 -1 L 0 -1 L 2 -6 Z"/>
+            </g>
+          </g>
+          
+          <!-- Stationen -->
+          <g transform="translate(6, 322)">
+            <circle cx="18" cy="18" r="18" fill="transparent" stroke="#E0D6BE" stroke-width="0.5"/>
+            <g transform="translate(18, 18)" stroke="#5C5447" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M 0 -6 C -3 -6 -5 -4 -5 -1 C -5 3 0 7 0 7 C 0 7 5 3 5 -1 C 5 -4 3 -6 0 -6 Z"/>
+              <circle cx="0" cy="-1" r="1.6" fill="#5C5447"/>
+            </g>
+          </g>
+          
+          <!-- Section divider -->
+          <line x1="12" y1="370" x2="36" y2="370" stroke="#E0D6BE"/>
+          
+          <!-- Modell mini-eyebrow -->
+          <text x="24" y="386" font-size="7" font-weight="500" fill="#A89A7A" letter-spacing="1.5" text-anchor="middle">MOD</text>
+        </g>
+        
+        <!-- Modell-Rail (continuation below) -->
+        <g transform="translate(10, 518)" filter="url(#cardShM)">
+          <rect width="48" height="156" rx="24" fill="#fff" fill-opacity="0.95" stroke="#E0D6BE"/>
+          
+          <text x="24" y="20" font-size="8" font-weight="500" fill="#A89A7A" letter-spacing="1.5" text-anchor="middle">MODELL</text>
+          
+          <!-- Fusion ACTIVE -->
+          <g transform="translate(6, 28)">
+            <circle cx="18" cy="18" r="18" fill="#2C2A26"/>
+            <g transform="translate(18, 18)" stroke="#fff" stroke-width="1.4" fill="none" stroke-linecap="round">
+              <circle cx="-4" cy="-2" r="1.8" fill="#fff"/>
+              <circle cx="4" cy="-2" r="1.8" fill="#fff"/>
+              <circle cx="0" cy="4" r="2.2" fill="#fff"/>
+              <line x1="-4" y1="-2" x2="0" y2="4"/>
+              <line x1="4" y1="-2" x2="0" y2="4"/>
+            </g>
+          </g>
+          
+          <!-- MOS -->
+          <g transform="translate(6, 70)">
+            <circle cx="18" cy="18" r="18" fill="transparent" stroke="#E0D6BE" stroke-width="0.5"/>
+            <text x="18" y="22" font-size="9" font-weight="600" fill="#5C5447" text-anchor="middle">MOS</text>
+          </g>
+          
+          <!-- OBS -->
+          <g transform="translate(6, 112)">
+            <circle cx="18" cy="18" r="18" fill="transparent" stroke="#E0D6BE" stroke-width="0.5"/>
+            <text x="18" y="22" font-size="9" font-weight="600" fill="#5C5447" text-anchor="middle">OBS</text>
+          </g>
+        </g>
+        
+        <!-- ============ PFC TOGGLE (collapsed, bottom-right side) ============ -->
+        <g transform="translate(324, 480)" filter="url(#cardShM)">
+          <rect width="36" height="36" rx="18" fill="#fff" fill-opacity="0.96" stroke="#E0D6BE"/>
+          <g transform="translate(18, 18)" stroke="#5C5447" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <!-- Forecast icon: chart line -->
+            <polyline points="-6,3 -3,-1 0,1 3,-3 6,-5"/>
+            <circle cx="-6" cy="3" r="1.2" fill="#5C5447"/>
+            <circle cx="6" cy="-5" r="1.2" fill="#5C5447"/>
+          </g>
+        </g>
+        
+        <!-- ============ SLIDER (bottom) ============ -->
+        <g transform="translate(10, 750)" filter="url(#floatShM)">
+          <rect width="350" height="44" rx="22" fill="#fff" fill-opacity="0.96" stroke="#E0D6BE"/>
+          
+          <g transform="translate(10, 9)">
+            <rect width="52" height="26" rx="13" fill="transparent" stroke="#D9D0B8"/>
+            <text x="26" y="17" font-size="10.5" font-weight="500" fill="#5C5447" text-anchor="middle">jetzt</text>
+          </g>
+          
+          <g transform="translate(74, 21)">
+            <rect width="184" height="6" rx="3" fill="#EDE6D3"/>
+            <circle cx="0" cy="3" r="8" fill="#2C2A26" stroke="#fff" stroke-width="2"/>
+          </g>
+          
+          <g transform="translate(270, 18)">
+            <text font-size="11" font-weight="500" fill="#2C2A26" font-variant-numeric="tabular-nums">jetzt · 15:34</text>
+          </g>
+        </g>
+      </g>
+    </g>
+    
+    <!-- Annotation -->
+    <g transform="translate(0, 880)">
+      <text font-size="10" font-weight="500" fill="#A89A7A" letter-spacing="2">DETAILS · STATE 1</text>
+      <g transform="translate(0, 18)" font-size="10.5" fill="#5C5447">
+        <text>· Topbar 36 px hoch · Back-Icon nur</text>
+        <text y="16">· Layer-Rail 48 × 408 px · 36 × 36 Icons</text>
+        <text y="32">· Modell-Rail darunter 48 × 156 px</text>
+        <text y="48">· PFC-FAB rechts unten · 36 × 36 Chart-Icon</text>
+        <text y="64">· Slider 350 × 44 px · 8 px Thumb</text>
+        <text y="80">· Data-Badge ausgeblendet (Info in PFC)</text>
+      </g>
+    </g>
+  </g>
+  
+  <!-- ============ STATE 2: PFC HALF SHEET ============ -->
+  <g transform="translate(525, 200)">
+    <g transform="translate(0, -28)">
+      <rect width="100" height="22" rx="11" fill="#2C2A26"/>
+      <text x="50" y="15" font-size="10" font-weight="500" fill="#fff" text-anchor="middle" letter-spacing="1">STATE 2</text>
+      <text x="110" y="15" font-size="12" font-weight="500" fill="#5C5447">PFC als Bottom-Sheet · 50 vh</text>
+    </g>
+    
+    <g filter="url(#phoneShadow)">
+      <rect width="390" height="844" rx="44" fill="#1a1a1a"/>
+      <rect x="6" y="6" width="378" height="832" rx="38" fill="#000"/>
+      
+      <g transform="translate(10, 10)">
+        <rect width="370" height="824" rx="34" fill="url(#mapBgM)"/>
+        
+        <clipPath id="screen2">
+          <rect width="370" height="824" rx="34"/>
+        </clipPath>
+        
+        <g clip-path="url(#screen2)">
+          <!-- Status bar -->
+          <g transform="translate(0, 0)">
+            <text x="32" y="22" font-size="11" font-weight="600" fill="#2C2A26">15:34</text>
+            <g transform="translate(298, 14)" fill="#2C2A26">
+              <rect x="0" y="3" width="2" height="3" rx="0.5"/>
+              <rect x="3" y="2" width="2" height="4" rx="0.5"/>
+              <rect x="6" y="1" width="2" height="5" rx="0.5"/>
+              <rect x="9" y="0" width="2" height="6" rx="0.5"/>
+              <path d="M 17 6 Q 22 0 27 6" fill="none" stroke="#2C2A26" stroke-width="1.2" stroke-linecap="round"/>
+              <circle cx="22" cy="6" r="0.8"/>
+              <rect x="34" y="1" width="20" height="9" rx="2" fill="none" stroke="#2C2A26" stroke-width="0.8"/>
+              <rect x="36" y="3" width="14" height="5" rx="0.5"/>
+              <rect x="55" y="3.5" width="1.2" height="4" rx="0.5"/>
+            </g>
+            <rect x="139" y="6" width="92" height="22" rx="11" fill="#000"/>
+          </g>
+          
+          <!-- Map content (compressed since sheet covers half) -->
+          <g opacity="0.5">
+            <path d="M -20 200 Q 100 195 200 210 T 400 220" stroke="url(#windStrM)" stroke-width="1.2" fill="none"/>
+            <path d="M -20 250 Q 100 245 200 260 T 400 270" stroke="url(#windStrM)" stroke-width="1.6" fill="none"/>
+            <path d="M -20 300 Q 100 290 200 310 T 400 320" stroke="url(#windStrMStrong)" stroke-width="2" fill="none"/>
+            <path d="M -20 350 Q 100 345 200 365 T 400 380" stroke="url(#windStrM)" stroke-width="1.4" fill="none"/>
+          </g>
+          
+          <g opacity="0.32" fill="none" stroke="#8B7355" stroke-width="0.8" stroke-dasharray="3 2">
+            <path d="M 130 130 L 170 122 L 215 130 L 255 142 L 290 135 L 320 150 L 345 160 L 320 240 L 335 320 L 315 390 L 280 440 L 220 470 L 170 480 L 130 470 L 110 430 L 100 360 L 95 280 L 105 200 L 115 160 Z"/>
+          </g>
+          
+          <g>
+            <circle cx="200" cy="240" r="4" fill="#1d4ed8" stroke="#fff" stroke-width="0.8"/>
+            <circle cx="240" cy="290" r="4" fill="#1d4ed8" stroke="#fff" stroke-width="0.8"/>
+            <circle cx="180" cy="320" r="4" fill="#1d4ed8" stroke="#fff" stroke-width="0.8"/>
+          </g>
+          
+          <g transform="translate(180, 295)">
+            <ellipse cx="0" cy="18" rx="10" ry="3" fill="url(#pinShadowM)"/>
+            <path d="M 0 -12 C -6 -12 -11 -8 -11 -1 C -11 5 0 14 0 14 C 0 14 11 5 11 -1 C 11 -8 6 -12 0 -12 Z" 
+                  fill="#C97B47" stroke="#fff" stroke-width="1.2"/>
+            <circle cx="0" cy="-1" r="3" fill="#fff"/>
+          </g>
+          
+          <g transform="translate(230, 270)" font-variant-numeric="tabular-nums">
+            <rect x="-32" y="-9" width="66" height="18" rx="9" fill="#2C2A26" fill-opacity="0.82"/>
+            <text x="0" y="3" font-size="9" font-weight="500" fill="#fff" text-anchor="middle">Frankfurt 26°</text>
+          </g>
+          <g transform="translate(285, 175)" font-variant-numeric="tabular-nums">
+            <rect x="-26" y="-9" width="54" height="18" rx="9" fill="#2C2A26" fill-opacity="0.82"/>
+            <text x="0" y="3" font-size="9" font-weight="500" fill="#fff" text-anchor="middle">Berlin 24°</text>
+          </g>
+          
+          <!-- ============ BOTTOM SHEET 50vh ============ -->
+          <g transform="translate(0, 410)" filter="url(#floatShM)">
+            <!-- Sheet background with rounded top -->
+            <path d="M 0 30 Q 0 0 30 0 L 340 0 Q 370 0 370 30 L 370 414 L 0 414 Z" 
+                  fill="#fff" fill-opacity="0.98" stroke="#E0D6BE" stroke-width="0.5"/>
+            
+            <!-- Grabber handle -->
+            <rect x="167" y="8" width="36" height="4" rx="2" fill="#D9CEB0"/>
+            
+            <!-- Head -->
+            <g transform="translate(18, 28)">
+              <text font-size="9" font-weight="500" fill="#A89A7A" letter-spacing="2">PUNKTFORECAST</text>
+              <text y="22" font-size="14.5" font-weight="500" fill="#2C2A26" letter-spacing="-0.24">Herborn, Lahn-Dill-Kreis</text>
+              
+              <g transform="translate(0, 40)" font-size="10" fill="#A89A7A">
+                <text>304 m</text>
+                <circle cx="36" cy="-3" r="1.3"/>
+                <text x="42">6.5 K/km</text>
+                <circle cx="98" cy="-3" r="1.3"/>
+                <text x="104">6 Stationen</text>
+              </g>
+              
+              <!-- Close X -->
+              <g transform="translate(310, 12)">
+                <circle cx="0" cy="0" r="12" fill="#F5F1E8"/>
+                <g stroke="#5C5447" stroke-width="1.4" stroke-linecap="round">
+                  <line x1="-4" y1="-4" x2="4" y2="4"/>
+                  <line x1="4" y1="-4" x2="-4" y2="4"/>
+                </g>
+              </g>
+            </g>
+            <line x1="0" y1="84" x2="370" y2="84" stroke="#E0D6BE"/>
+            
+            <!-- Tabs -->
+            <g transform="translate(18, 96)">
+              <rect width="334" height="32" rx="16" fill="#F5F1E8"/>
+              <g transform="translate(4, 4)">
+                <rect width="108" height="24" rx="12" fill="#2C2A26"/>
+                <text x="54" y="16" font-size="11" font-weight="500" fill="#fff" text-anchor="middle">Übersicht</text>
+              </g>
+              <text x="170" y="20" font-size="11" font-weight="500" fill="#8B7355" text-anchor="middle">Diagramme</text>
+              <text x="280" y="20" font-size="11" font-weight="500" fill="#8B7355" text-anchor="middle">Tabelle</text>
+            </g>
+            
+            <!-- Now block -->
+            <g transform="translate(18, 152)">
+              <text font-size="44" font-weight="200" fill="#2C2A26" letter-spacing="-2" font-variant-numeric="tabular-nums">27°</text>
+              <g transform="translate(102, -10)">
+                <g transform="translate(11, 11)" stroke="#C97B47" stroke-width="1.3" fill="none" stroke-linecap="round">
+                  <circle cx="0" cy="0" r="4" fill="#FAEEDA"/>
+                  <line x1="0" y1="-8" x2="0" y2="-6"/>
+                  <line x1="0" y1="6" x2="0" y2="8"/>
+                  <line x1="-8" y1="0" x2="-6" y2="0"/>
+                  <line x1="6" y1="0" x2="8" y2="0"/>
+                </g>
+                <text x="30" y="12" font-size="13" fill="#2C2A26">Klar</text>
+                <text x="30" y="28" font-size="10" fill="#8B7355">11° / 29° heute</text>
+              </g>
+              
+              <!-- Right side - confidence quick -->
+              <g transform="translate(220, -6)">
+                <rect width="118" height="44" rx="10" fill="#F0F4EA" stroke="#7A9466" stroke-width="0.5"/>
+                <text x="12" y="16" font-size="9" font-weight="500" fill="#7A9466" letter-spacing="1">KONFIDENZ</text>
+                <text x="12" y="34" font-size="13" font-weight="500" fill="#3F5E2F">Hoch · 100 %</text>
+              </g>
+            </g>
+            <line x1="18" y1="220" x2="352" y2="220" stroke="#E0D6BE" stroke-width="0.5"/>
+            
+            <!-- Vitals -->
+            <g transform="translate(18, 238)">
+              <text font-size="9" font-weight="500" fill="#A89A7A" letter-spacing="2">AKTUELL</text>
+              <g transform="translate(0, 16)">
+                <g>
+                  <text font-size="8" font-weight="500" fill="#A89A7A" letter-spacing="1.2">WIND</text>
+                  <text y="18" font-size="13" font-weight="500" fill="#2C2A26" font-variant-numeric="tabular-nums">2.1 m/s</text>
+                  <text y="32" font-size="9" fill="#8B7355">NO · Bft 2</text>
+                </g>
+                <line x1="106" y1="-2" x2="106" y2="38" stroke="#E0D6BE"/>
+                <g transform="translate(118, 0)">
+                  <text font-size="8" font-weight="500" fill="#A89A7A" letter-spacing="1.2">WOLKEN</text>
+                  <text y="18" font-size="13" font-weight="500" fill="#2C2A26" font-variant-numeric="tabular-nums">0 %</text>
+                  <text y="32" font-size="9" fill="#8B7355">klar</text>
+                </g>
+                <line x1="220" y1="-2" x2="220" y2="38" stroke="#E0D6BE"/>
+                <g transform="translate(232, 0)">
+                  <text font-size="8" font-weight="500" fill="#A89A7A" letter-spacing="1.2">NIEDERSCHL.</text>
+                  <text y="18" font-size="13" font-weight="500" fill="#2C2A26" font-variant-numeric="tabular-nums">0.0 mm</text>
+                  <text y="32" font-size="9" fill="#8B7355">trocken</text>
+                </g>
+              </g>
+            </g>
+            
+            <!-- Fade indicator (more below) -->
+            <g transform="translate(0, 380)">
+              <rect width="370" height="34" fill="url(#fadeGrad)"/>
+              <g transform="translate(185, 22)" stroke="#A89A7A" stroke-width="1.3" fill="none" stroke-linecap="round">
+                <polyline points="-6,-3 0,3 6,-3"/>
+              </g>
+            </g>
+            
+            <defs>
+              <linearGradient id="fadeGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#fff" stop-opacity="0"/>
+                <stop offset="100%" stop-color="#fff" stop-opacity="0.9"/>
+              </linearGradient>
+            </defs>
+          </g>
+          
+          <!-- Status bar visible above sheet -->
+        </g>
+        
+        <!-- Topbar (still visible at top) -->
+        <g transform="translate(10, 50)" filter="url(#cardShM)">
+          <rect width="36" height="36" rx="18" fill="#fff" fill-opacity="0.95" stroke="#E0D6BE"/>
+          <g transform="translate(18, 18)" stroke="#2C2A26" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3,-4 -3,0 3,4"/>
+          </g>
+        </g>
+        
+        <g transform="translate(54, 50)" filter="url(#cardShM)">
+          <rect width="306" height="36" rx="18" fill="#fff" fill-opacity="0.95" stroke="#E0D6BE"/>
+          <g transform="translate(14, 18)" stroke="#C97B47" stroke-width="1.4" fill="none">
+            <path d="M 0 -5 C -3.5 -5 -5 -2.5 -5 0.5 C -5 4 0 8 0 8 C 0 8 5 4 5 0.5 C 5 -2.5 3.5 -5 0 -5 Z"/>
+            <circle cx="0" cy="0.5" r="1.3" fill="#C97B47"/>
+          </g>
+          <text x="30" y="22" font-size="12" fill="#2C2A26" font-weight="500">Herborn, Lahn-Dill-Kreis</text>
+        </g>
+        
+        <!-- Layer rail still visible -->
+        <g transform="translate(10, 100)" filter="url(#cardShM)">
+          <rect width="48" height="300" rx="24" fill="#fff" fill-opacity="0.95" stroke="#E0D6BE"/>
+          <text x="24" y="20" font-size="8" font-weight="500" fill="#A89A7A" letter-spacing="1.5" text-anchor="middle">LAYER</text>
+          
+          <g transform="translate(6, 28)">
+            <circle cx="18" cy="18" r="18" fill="#2C2A26"/>
+            <g transform="translate(18, 18)" stroke="#fff" stroke-width="1.4" fill="none" stroke-linecap="round">
+              <path d="M -6 -3 Q -2 -5 1 -3 T 7 -3"/>
+              <path d="M -6 0 Q -2 -2 1 0 T 7 0"/>
+              <path d="M -6 3 Q -2 1 1 3 T 7 3"/>
+            </g>
+          </g>
+          
+          <g transform="translate(6, 70)">
+            <circle cx="18" cy="18" r="18" fill="transparent" stroke="#E0D6BE" stroke-width="0.5"/>
+            <g transform="translate(18, 18)" stroke="#5C5447" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M -5 -2 C -5 -4 -3 -5 0 -5 C 3 -5 4 -4 4 -2 C 6 -2 7 0 7 1 C 7 3 5 3 4 3 L -4 3 C -5 3 -6 2 -6 1 C -6 0 -5 -2 -5 -2 Z"/>
+              <line x1="-2" y1="5" x2="-3" y2="7"/>
+              <line x1="0" y1="5" x2="-1" y2="7"/>
+              <line x1="2" y1="5" x2="1" y2="7"/>
+            </g>
+          </g>
+          
+          <g transform="translate(6, 112)">
+            <circle cx="18" cy="18" r="18" fill="transparent" stroke="#E0D6BE" stroke-width="0.5"/>
+            <g transform="translate(18, 18)" stroke="#5C5447" stroke-width="1.4" fill="none" stroke-linecap="round">
+              <path d="M -7 0 A 7 7 0 0 1 7 0"/>
+              <path d="M -4 0 A 4 4 0 0 1 4 0"/>
+              <circle cx="0" cy="0" r="1.5" fill="#5C5447"/>
+            </g>
+          </g>
+          
+          <g transform="translate(6, 154)">
+            <circle cx="18" cy="18" r="18" fill="transparent" stroke="#E0D6BE" stroke-width="0.5"/>
+            <g transform="translate(18, 18)" stroke="#5C5447" stroke-width="1.4" fill="none" stroke-linecap="round">
+              <path d="M -2 -6 L -2 4 A 3 3 0 1 0 2 4 L 2 -6 A 2 2 0 1 0 -2 -6"/>
+            </g>
+          </g>
+          
+          <g transform="translate(6, 196)">
+            <circle cx="18" cy="18" r="18" fill="transparent" stroke="#E0D6BE" stroke-width="0.5"/>
+            <g transform="translate(18, 18)" stroke="#5C5447" stroke-width="1.4" fill="none" stroke-linejoin="round">
+              <path d="M -6 -1 C -6 -3 -4 -3 -2 -3 C -1 -5 1 -5 3 -4 C 5 -4 6 -2 6 -1 C 7 -1 7 0 7 0 L -7 0 C -7 0 -7 -1 -6 -1 Z"/>
+              <path d="M -4 3 C -4 2 -3 1 -1 1 C 0 0 2 0 3 1 C 4 1 5 2 5 3 C 6 3 6 4 6 4 L -5 4 C -5 4 -5 3 -4 3 Z"/>
+            </g>
+          </g>
+          
+          <g transform="translate(6, 238)">
+            <circle cx="18" cy="18" r="18" fill="transparent" stroke="#E0D6BE" stroke-width="0.5"/>
+            <g transform="translate(18, 18)" stroke="#5C5447" stroke-width="1.4" fill="none" stroke-linecap="round">
+              <path d="M -7 4 A 7 5 0 0 1 7 4"/>
+              <path d="M -3 1 L 3 1 L 4 4 L -4 4 Z"/>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+    
+    <!-- Annotation -->
+    <g transform="translate(0, 880)">
+      <text font-size="10" font-weight="500" fill="#A89A7A" letter-spacing="2">DETAILS · STATE 2</text>
+      <g transform="translate(0, 18)" font-size="10.5" fill="#5C5447">
+        <text>· Sheet 50 vh (414 px von 824)</text>
+        <text y="16">· Grabber 36 × 4 px zentriert</text>
+        <text y="32">· Konfidenz als kompakter Quick-View rechts</text>
+        <text y="48">· Slider verdeckt · taucht bei Drag auf</text>
+        <text y="64">· Modell-Rail bei Sheet ausgeblendet</text>
+        <text y="80">· Drag-Geste: hoch = expand · runter = close</text>
+      </g>
+    </g>
+  </g>
+  
+  <!-- ============ STATE 3: PFC FULL EXPANDED ============ -->
+  <g transform="translate(970, 200)">
+    <g transform="translate(0, -28)">
+      <rect width="100" height="22" rx="11" fill="#2C2A26"/>
+      <text x="50" y="15" font-size="10" font-weight="500" fill="#fff" text-anchor="middle" letter-spacing="1">STATE 3</text>
+      <text x="110" y="15" font-size="12" font-weight="500" fill="#5C5447">PFC voll · Sat-Layer aktiv · Sub-Switch</text>
+    </g>
+    
+    <g filter="url(#phoneShadow)">
+      <rect width="390" height="844" rx="44" fill="#1a1a1a"/>
+      <rect x="6" y="6" width="378" height="832" rx="38" fill="#000"/>
+      
+      <g transform="translate(10, 10)">
+        <rect width="370" height="824" rx="34" fill="url(#mapBgM)"/>
+        
+        <clipPath id="screen3">
+          <rect width="370" height="824" rx="34"/>
+        </clipPath>
+        
+        <g clip-path="url(#screen3)">
+          <!-- Status -->
+          <g transform="translate(0, 0)">
+            <text x="32" y="22" font-size="11" font-weight="600" fill="#2C2A26">15:34</text>
+            <g transform="translate(298, 14)" fill="#2C2A26">
+              <rect x="0" y="3" width="2" height="3" rx="0.5"/>
+              <rect x="3" y="2" width="2" height="4" rx="0.5"/>
+              <rect x="6" y="1" width="2" height="5" rx="0.5"/>
+              <rect x="9" y="0" width="2" height="6" rx="0.5"/>
+              <path d="M 17 6 Q 22 0 27 6" fill="none" stroke="#2C2A26" stroke-width="1.2" stroke-linecap="round"/>
+              <circle cx="22" cy="6" r="0.8"/>
+              <rect x="34" y="1" width="20" height="9" rx="2" fill="none" stroke="#2C2A26" stroke-width="0.8"/>
+              <rect x="36" y="3" width="14" height="5" rx="0.5"/>
+              <rect x="55" y="3.5" width="1.2" height="4" rx="0.5"/>
+            </g>
+            <rect x="139" y="6" width="92" height="22" rx="11" fill="#000"/>
+          </g>
+          
+          <!-- Background dim because PFC almost full -->
+          <rect y="44" width="370" height="100" fill="url(#mapBgM)" opacity="1"/>
+          
+          <!-- ============ PFC EXPANDED ============ -->
+          <g transform="translate(0, 120)" filter="url(#floatShM)">
+            <path d="M 0 30 Q 0 0 30 0 L 340 0 Q 370 0 370 30 L 370 704 L 0 704 Z" 
+                  fill="#fff" fill-opacity="0.98" stroke="#E0D6BE" stroke-width="0.5"/>
+            
+            <rect x="167" y="8" width="36" height="4" rx="2" fill="#D9CEB0"/>
+            
+            <!-- Head -->
+            <g transform="translate(18, 28)">
+              <text font-size="9" font-weight="500" fill="#A89A7A" letter-spacing="2">PUNKTFORECAST</text>
+              <text y="22" font-size="14.5" font-weight="500" fill="#2C2A26" letter-spacing="-0.24">Herborn, Lahn-Dill-Kreis</text>
+              <g transform="translate(0, 40)" font-size="10" fill="#A89A7A">
+                <text>304 m</text>
+                <circle cx="36" cy="-3" r="1.3"/>
+                <text x="42">6.5 K/km</text>
+                <circle cx="98" cy="-3" r="1.3"/>
+                <text x="104">6 Stationen</text>
+              </g>
+              
+              <g transform="translate(310, 12)">
+                <circle cx="0" cy="0" r="12" fill="#F5F1E8"/>
+                <g stroke="#5C5447" stroke-width="1.4" stroke-linecap="round">
+                  <line x1="-4" y1="-4" x2="4" y2="4"/>
+                  <line x1="4" y1="-4" x2="-4" y2="4"/>
+                </g>
+              </g>
+            </g>
+            <line x1="0" y1="84" x2="370" y2="84" stroke="#E0D6BE"/>
+            
+            <!-- Tabs -->
+            <g transform="translate(18, 96)">
+              <rect width="334" height="32" rx="16" fill="#F5F1E8"/>
+              <g transform="translate(4, 4)">
+                <rect width="108" height="24" rx="12" fill="#2C2A26"/>
+                <text x="54" y="16" font-size="11" font-weight="500" fill="#fff" text-anchor="middle">Übersicht</text>
+              </g>
+              <text x="170" y="20" font-size="11" font-weight="500" fill="#8B7355" text-anchor="middle">Diagramme</text>
+              <text x="280" y="20" font-size="11" font-weight="500" fill="#8B7355" text-anchor="middle">Tabelle</text>
+            </g>
+            
+            <!-- Now -->
+            <g transform="translate(18, 148)">
+              <text font-size="44" font-weight="200" fill="#2C2A26" letter-spacing="-2" font-variant-numeric="tabular-nums">27°</text>
+              <g transform="translate(102, -10)">
+                <g transform="translate(11, 11)" stroke="#C97B47" stroke-width="1.3" fill="none" stroke-linecap="round">
+                  <circle cx="0" cy="0" r="4" fill="#FAEEDA"/>
+                  <line x1="0" y1="-8" x2="0" y2="-6"/>
+                  <line x1="0" y1="6" x2="0" y2="8"/>
+                  <line x1="-8" y1="0" x2="-6" y2="0"/>
+                  <line x1="6" y1="0" x2="8" y2="0"/>
+                </g>
+                <text x="30" y="12" font-size="13" fill="#2C2A26">Klar</text>
+                <text x="30" y="28" font-size="10" fill="#8B7355">11° / 29° heute</text>
+              </g>
+            </g>
+            <line x1="18" y1="208" x2="352" y2="208" stroke="#E0D6BE" stroke-width="0.5"/>
+            
+            <!-- Vitals -->
+            <g transform="translate(18, 224)">
+              <text font-size="9" font-weight="500" fill="#A89A7A" letter-spacing="2">AKTUELL</text>
+              <g transform="translate(0, 16)">
+                <g>
+                  <text font-size="8" font-weight="500" fill="#A89A7A" letter-spacing="1.2">WIND</text>
+                  <text y="18" font-size="13" font-weight="500" fill="#2C2A26" font-variant-numeric="tabular-nums">2.1 m/s</text>
+                  <text y="32" font-size="9" fill="#8B7355">NO · Bft 2</text>
+                </g>
+                <line x1="106" y1="-2" x2="106" y2="38" stroke="#E0D6BE"/>
+                <g transform="translate(118, 0)">
+                  <text font-size="8" font-weight="500" fill="#A89A7A" letter-spacing="1.2">WOLKEN</text>
+                  <text y="18" font-size="13" font-weight="500" fill="#2C2A26" font-variant-numeric="tabular-nums">0 %</text>
+                  <text y="32" font-size="9" fill="#8B7355">klar</text>
+                </g>
+                <line x1="220" y1="-2" x2="220" y2="38" stroke="#E0D6BE"/>
+                <g transform="translate(232, 0)">
+                  <text font-size="8" font-weight="500" fill="#A89A7A" letter-spacing="1.2">NIEDERSCHL.</text>
+                  <text y="18" font-size="13" font-weight="500" fill="#2C2A26" font-variant-numeric="tabular-nums">0.0 mm</text>
+                  <text y="32" font-size="9" fill="#8B7355">trocken</text>
+                </g>
+              </g>
+            </g>
+            <line x1="18" y1="290" x2="352" y2="290" stroke="#E0D6BE" stroke-width="0.5"/>
+            
+            <!-- Konfidenz -->
+            <g transform="translate(18, 306)">
+              <text font-size="9" font-weight="500" fill="#A89A7A" letter-spacing="2">KONFIDENZ · TEMPERATUR</text>
+              <text x="334" font-size="11.5" font-weight="500" fill="#2C2A26" text-anchor="end">Hoch · 100 %</text>
+              <g transform="translate(0, 10)">
+                <rect width="334" height="4" rx="2" fill="#EDE6D3"/>
+                <rect width="334" height="4" rx="2" fill="#7A9466"/>
+              </g>
+              <g transform="translate(0, 26)" font-size="9.5" fill="#8B7355">
+                <text>2 Quellen</text>
+                <circle cx="56" cy="-3" r="1.3" fill="#A89A7A"/>
+                <text x="62">6 Stationen</text>
+                <circle cx="128" cy="-3" r="1.3" fill="#A89A7A"/>
+                <text x="134">Lapse 6.5 K/km</text>
+              </g>
+            </g>
+            <line x1="18" y1="362" x2="352" y2="362" stroke="#E0D6BE" stroke-width="0.5"/>
+            
+            <!-- Sparkline -->
+            <g transform="translate(18, 378)">
+              <text font-size="9" font-weight="500" fill="#A89A7A" letter-spacing="2">NÄCHSTE 6 H</text>
+              <text x="334" font-size="10" font-weight="500" fill="#2C2A26" text-anchor="end" font-variant-numeric="tabular-nums">23°</text>
+              <g transform="translate(0, 14)">
+                <path d="M 0 30 Q 56 32 112 36 T 222 46 T 334 58 L 334 84 L 0 84 Z" fill="url(#trendAreaM)"/>
+                <path d="M 0 30 Q 56 32 112 36 T 222 46 T 334 58" fill="none" stroke="#C97B47" stroke-width="1.3"/>
+                <circle cx="0" cy="30" r="2.5" fill="#fff" stroke="#C97B47" stroke-width="1.3"/>
+                <circle cx="56" cy="33" r="2.5" fill="#fff" stroke="#C97B47" stroke-width="1.3"/>
+                <circle cx="112" cy="36" r="2.5" fill="#fff" stroke="#C97B47" stroke-width="1.3"/>
+                <circle cx="167" cy="40" r="2.5" fill="#fff" stroke="#C97B47" stroke-width="1.3"/>
+                <circle cx="222" cy="46" r="2.5" fill="#fff" stroke="#C97B47" stroke-width="1.3"/>
+                <circle cx="278" cy="51" r="2.5" fill="#fff" stroke="#C97B47" stroke-width="1.3"/>
+                <circle cx="334" cy="58" r="2.5" fill="#fff" stroke="#C97B47" stroke-width="1.3"/>
+                <g font-size="8" fill="#A89A7A" text-anchor="middle">
+                  <text x="0" y="78">jetzt</text>
+                  <text x="56" y="78">+1h</text>
+                  <text x="112" y="78">+2h</text>
+                  <text x="167" y="78">+3h</text>
+                  <text x="222" y="78">+4h</text>
+                  <text x="278" y="78">+5h</text>
+                  <text x="334" y="78">+6h</text>
+                </g>
+              </g>
+            </g>
+            <line x1="18" y1="486" x2="352" y2="486" stroke="#E0D6BE" stroke-width="0.5"/>
+            
+            <!-- Pollen mini -->
+            <g transform="translate(18, 502)">
+              <rect width="334" height="100" rx="10" fill="#F5F1E8"/>
+              <g transform="translate(12, 14)">
+                <text font-size="9" font-weight="500" fill="#A89A7A" letter-spacing="2">POLLEN · HESSEN</text>
+                <g transform="translate(0, 26)" font-size="11" fill="#2C2A26">
+                  <text y="7">Gräser</text>
+                  <g transform="translate(160, 0)">
+                    <rect width="12" height="12" rx="2" fill="#A85E2E"/>
+                    <rect x="18" width="12" height="12" rx="2" fill="#C97B47"/>
+                    <rect x="36" width="12" height="12" rx="2" fill="#D4A373"/>
+                    <text x="64" y="9" font-size="8" font-weight="500" fill="#A85E2E">HOCH</text>
+                  </g>
+                  
+                  <text y="28">Roggen</text>
+                  <g transform="translate(160, 22)">
+                    <rect width="12" height="12" rx="2" fill="#D4A373"/>
+                    <rect x="18" width="12" height="12" rx="2" fill="#D4A373"/>
+                    <rect x="36" width="12" height="12" rx="2" fill="#7A9466"/>
+                    <text x="64" y="9" font-size="8" font-weight="500" fill="#D4A373">GERING</text>
+                  </g>
+                  
+                  <text y="50">Birke</text>
+                  <g transform="translate(160, 44)">
+                    <rect width="12" height="12" rx="2" fill="#7A9466"/>
+                    <rect x="18" width="12" height="12" rx="2" fill="#7A9466"/>
+                    <rect x="36" width="12" height="12" rx="2" fill="#7A9466"/>
+                    <text x="64" y="9" font-size="8" font-weight="500" fill="#7A9466">KEIN</text>
+                  </g>
+                </g>
+              </g>
+            </g>
+            
+            <!-- Quellen -->
+            <g transform="translate(18, 620)">
+              <text font-size="9" font-weight="500" fill="#A89A7A" letter-spacing="2">QUELLEN</text>
+              <text y="16" font-size="10" fill="#5C5447">DWD ICON-D2 · MOSMIX · RADOLAN-RV</text>
+              <text y="32" font-size="10" fill="#5C5447">6 Stationen im Mix</text>
+              <text y="54" font-size="8" font-weight="500" fill="#A89A7A" letter-spacing="0.5">RUN 25.05. 12 UTC</text>
+            </g>
+          </g>
+          
+          <!-- Layer rail still visible behind dimmed sheet (peek) -->
+          <g opacity="0.35">
+            <rect x="10" y="100" width="48" height="20" rx="24" fill="#fff" fill-opacity="0.6"/>
+          </g>
+        </g>
+        
+        <!-- Topbar -->
+        <g transform="translate(10, 50)" filter="url(#cardShM)">
+          <rect width="36" height="36" rx="18" fill="#fff" fill-opacity="0.95" stroke="#E0D6BE"/>
+          <g transform="translate(18, 18)" stroke="#2C2A26" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3,-4 -3,0 3,4"/>
+          </g>
+        </g>
+        
+        <g transform="translate(54, 50)" filter="url(#cardShM)">
+          <rect width="306" height="36" rx="18" fill="#fff" fill-opacity="0.95" stroke="#E0D6BE"/>
+          <g transform="translate(14, 18)" stroke="#C97B47" stroke-width="1.4" fill="none">
+            <path d="M 0 -5 C -3.5 -5 -5 -2.5 -5 0.5 C -5 4 0 8 0 8 C 0 8 5 4 5 0.5 C 5 -2.5 3.5 -5 0 -5 Z"/>
+            <circle cx="0" cy="0.5" r="1.3" fill="#C97B47"/>
+          </g>
+          <text x="30" y="22" font-size="12" fill="#2C2A26" font-weight="500">Herborn, Lahn-Dill-Kreis</text>
+        </g>
+      </g>
+    </g>
+    
+    <g transform="translate(0, 880)">
+      <text font-size="10" font-weight="500" fill="#A89A7A" letter-spacing="2">DETAILS · STATE 3</text>
+      <g transform="translate(0, 18)" font-size="10.5" fill="#5C5447">
+        <text>· Sheet ~85 vh expanded</text>
+        <text y="16">· Map dahinter sichtbar 80 px oben (Topbar)</text>
+        <text y="32">· Scrollbar Inhalt (Konfidenz, Trend, Pollen)</text>
+        <text y="48">· Close-Button kreisförmig oben rechts</text>
+        <text y="64">· Pollen kompakt 100 px hoch, 3 Spezies</text>
+        <text y="80">· Tap außerhalb · Drag runter · X → schließt</text>
+      </g>
+    </g>
+  </g>
+  
+  <!-- ============ NOTES SECTION BOTTOM ============ -->
+  <g transform="translate(60, 1130)">
+    <text font-size="10" font-weight="500" fill="#A89A7A" letter-spacing="3">MOBILE-SPEZIFIKA · RESPONSIVE-DETAILS</text>
+    
+    <!-- 3-column notes -->
+    <g transform="translate(0, 30)">
+      <!-- Column 1: Topbar -->
+      <g>
+        <text font-size="14" font-weight="500" fill="#2C2A26">Topbar</text>
+        <g transform="translate(0, 22)" font-size="11.5" fill="#5C5447">
+          <text>Back-Btn auf 36 × 36 reduziert · nur Icon</text>
+          <text y="18">Location-Label 306 × 36 px · 12 px Schrift</text>
+          <text y="36">Pin-Icon 16 px statt 24 px</text>
+          <text y="54">Truncated bei Ellipsis ab 30 Zeichen</text>
+        </g>
+      </g>
+      
+      <!-- Column 2: Layer & Modell -->
+      <g transform="translate(340, 0)">
+        <text font-size="14" font-weight="500" fill="#2C2A26">Layer-Rail</text>
+        <g transform="translate(0, 22)" font-size="11.5" fill="#5C5447">
+          <text>Container 48 px statt 56 px · -8 px</text>
+          <text y="18">Icon-Button 36 × 36 statt 40 × 40</text>
+          <text y="36">Tap-Target effektiv 44 px (Padding)</text>
+          <text y="54">Lang-Tap zeigt Label-Tooltip statt Hover</text>
+        </g>
+      </g>
+      
+      <!-- Column 3: PFC -->
+      <g transform="translate(680, 0)">
+        <text font-size="14" font-weight="500" fill="#2C2A26">PFC Bottom-Sheet</text>
+        <g transform="translate(0, 22)" font-size="11.5" fill="#5C5447">
+          <text>3 Snap-Punkte: closed (FAB) · half (50 vh) · full (85 vh)</text>
+          <text y="18">Grabber 36 × 4 px sand-300</text>
+          <text y="36">Drag-Geste: vertikales Pannen</text>
+          <text y="54">Tab-Switch beim Half-State: scrollt Sheet auf Full</text>
+        </g>
+      </g>
+      
+      <!-- Column 4: Slider -->
+      <g transform="translate(1020, 0)">
+        <text font-size="14" font-weight="500" fill="#2C2A26">Slider</text>
+        <g transform="translate(0, 22)" font-size="11.5" fill="#5C5447">
+          <text>Voll-Breite minus 24 px Padding</text>
+          <text y="18">Höhe 44 px · Thumb 16 px statt 18</text>
+          <text y="36">Label-min 80 px (statt 130)</text>
+          <text y="54">Versteckt wenn PFC Half/Full offen</text>
+        </g>
+      </g>
+    </g>
+    
+    <!-- Bottom: snap-states diagram -->
+    <g transform="translate(0, 160)">
+      <text font-size="14" font-weight="500" fill="#2C2A26">Bottom-Sheet · drei Snap-Points</text>
+      
+      <g transform="translate(0, 24)">
+        <!-- Snap 1: closed (FAB only) -->
+        <g>
+          <rect width="86" height="172" rx="10" fill="#FAF6EA" stroke="#E0D6BE"/>
+          <text x="43" y="20" font-size="10" font-weight="500" fill="#5C5447" text-anchor="middle">closed</text>
+          <text x="43" y="34" font-size="9" fill="#A89A7A" text-anchor="middle">FAB sichtbar</text>
+          <!-- Mini phone -->
+          <g transform="translate(28, 44)">
+            <rect width="30" height="118" rx="4" fill="#fff" stroke="#D9D0B8"/>
+            <rect x="2" y="2" width="26" height="114" rx="3" fill="#EDE6D3"/>
+            <!-- FAB -->
+            <circle cx="22" cy="104" r="3" fill="#2C2A26"/>
+          </g>
+        </g>
+        
+        <!-- Snap 2: half (50vh) -->
+        <g transform="translate(110, 0)">
+          <rect width="86" height="172" rx="10" fill="#FAF6EA" stroke="#E0D6BE"/>
+          <text x="43" y="20" font-size="10" font-weight="500" fill="#5C5447" text-anchor="middle">half</text>
+          <text x="43" y="34" font-size="9" fill="#A89A7A" text-anchor="middle">50 vh</text>
+          <g transform="translate(28, 44)">
+            <rect width="30" height="118" rx="4" fill="#fff" stroke="#D9D0B8"/>
+            <rect x="2" y="2" width="26" height="114" rx="3" fill="#EDE6D3"/>
+            <!-- Sheet half -->
+            <rect x="2" y="60" width="26" height="56" rx="2" fill="#fff" stroke="#D9D0B8" stroke-width="0.5"/>
+            <rect x="12" y="63" width="6" height="1.5" rx="0.75" fill="#D9CEB0"/>
+          </g>
+        </g>
+        
+        <!-- Snap 3: full (85vh) -->
+        <g transform="translate(220, 0)">
+          <rect width="86" height="172" rx="10" fill="#FAF6EA" stroke="#E0D6BE"/>
+          <text x="43" y="20" font-size="10" font-weight="500" fill="#5C5447" text-anchor="middle">full</text>
+          <text x="43" y="34" font-size="9" fill="#A89A7A" text-anchor="middle">85 vh</text>
+          <g transform="translate(28, 44)">
+            <rect width="30" height="118" rx="4" fill="#fff" stroke="#D9D0B8"/>
+            <rect x="2" y="2" width="26" height="114" rx="3" fill="#EDE6D3"/>
+            <!-- Status bar tip remains -->
+            <rect x="2" y="2" width="26" height="6" rx="2" fill="#EDE6D3"/>
+            <!-- Sheet full -->
+            <rect x="2" y="22" width="26" height="94" rx="2" fill="#fff" stroke="#D9D0B8" stroke-width="0.5"/>
+            <rect x="12" y="25" width="6" height="1.5" rx="0.75" fill="#D9CEB0"/>
+          </g>
+        </g>
+        
+        <!-- Arrows between -->
+        <g transform="translate(330, 86)" stroke="#A89A7A" stroke-width="1" fill="none" stroke-linecap="round">
+          <text font-size="11" font-weight="500" fill="#5C5447" x="0" y="-6">Geste / Tap-Aktionen</text>
+          <g transform="translate(0, 8)" font-size="10" fill="#5C5447">
+            <text>· Tap FAB · drag-up 100 px → half</text>
+            <text y="16">· Tap Grabber · drag-up 200 px → full</text>
+            <text y="32">· Drag-down 200 px · X-Button → closed</text>
+            <text y="48">· Tap außerhalb Sheet → closed</text>
+            <text y="64">· Tab-Wechsel im half → scrollt automatisch full</text>
+          </g>
+        </g>
+      </g>
+    </g>
+  </g>
+  
+  <!-- Footer -->
+  <g transform="translate(60, 1470)" font-size="9" fill="#A89A7A" font-weight="500" letter-spacing="2">
+    <text>05 · MOBILE A · ICON-RAIL + BOTTOM-SHEET · IPHONE 390 × 844</text>
+    <text x="1320" text-anchor="end">v1.8 Spec · Section 4 Responsive</text>
+  </g>
+</svg>

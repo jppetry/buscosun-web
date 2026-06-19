@@ -1,0 +1,260 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1300" font-family="ui-sans-serif, system-ui, -apple-system">
+  <defs>
+    <linearGradient id="sandBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F5F1E8"/>
+      <stop offset="100%" stop-color="#EDE6D3"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1440" height="1300" fill="url(#sandBg)"/>
+
+  <!-- ============ HEADER ============ -->
+  <g transform="translate(80, 60)">
+    <text font-size="11" fill="#A89A7A" letter-spacing="3" font-weight="500">PLATTFORM-ONEPAGER · FUNKTIONSÜBERSICHT</text>
+    <text y="50" font-size="56" font-weight="200" fill="#2C2A26" letter-spacing="-1.8">buscosun</text>
+    <text y="84" font-size="16" fill="#5C5447" font-weight="400">DACH-Wetter in Tiefe — interaktive Karte, Radar, Profimodelle &amp; KI · transparenz-first · 100&#160;% backend-frei</text>
+  </g>
+
+  <!-- ============ DATENFUNDAMENT BAND ============ -->
+  <g transform="translate(80, 168)">
+    <rect width="1280" height="96" rx="18" fill="#2C2A26"/>
+    <text x="28" y="30" font-size="10" fill="#A89A7A" letter-spacing="3" font-weight="500">DATENFUNDAMENT</text>
+    <text x="28" y="58" font-size="17" fill="#F5F1E8" font-weight="300" letter-spacing="-0.3">Eigene GRIB-Pipeline · höhenkorrigiert auf echte Geländehöhe (DEM) · DACH-weit DE/AT/CH</text>
+    <text x="28" y="80" font-size="11" fill="#A89A7A" letter-spacing="0.4">DWD ICON-D2  ·  GeoSphere INCA  ·  MeteoSwiss  ·  BrightSky / MOSMIX  ·  ICON-EU Sounding  ·  ERA5-Archiv (ab 1940)  ·  RADOLAN</text>
+    <g transform="translate(1130, 30)">
+      <rect width="120" height="36" rx="18" fill="#3A3833"/>
+      <circle cx="22" cy="18" r="4" fill="#7A9466"/>
+      <text x="38" y="23" font-size="12" fill="#F5F1E8" font-weight="500">Live · nativ</text>
+    </g>
+  </g>
+
+  <!-- ============ SECTION 01 · KERN-FUNKTIONEN ============ -->
+  <text x="80" y="312" font-size="10" fill="#A89A7A" letter-spacing="3" font-weight="500">01 · KERN-FUNKTIONEN</text>
+  <text x="1360" y="312" font-size="11" fill="#8B7355" letter-spacing="1" text-anchor="end">Der Einstieg — Ort suchen, Karte öffnen, loslegen</text>
+
+  <!-- Card 1 · Wetterkarte (steel) -->
+  <g transform="translate(80, 332)">
+    <rect width="410" height="172" rx="18" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="1"/>
+    <rect x="24" y="22" width="40" height="40" rx="10" fill="#3A6FA8"/>
+    <g stroke="#FFFFFF" stroke-width="1.7" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M44 33 L57 40 L44 47 L31 40 Z"/>
+      <path d="M31 44 L44 51 L57 44"/>
+    </g>
+    <text x="80" y="40" font-size="9.5" fill="#3A6FA8" letter-spacing="2" font-weight="600">WETTERKARTE</text>
+    <text x="80" y="62" font-size="17" fill="#2C2A26" font-weight="500" letter-spacing="-0.3">Die ganze DACH-Wetterkarte</text>
+    <text x="24" y="96" font-size="12.5" fill="#5C5447">Alle Wetterlagen als Layer auf einer interaktiven</text>
+    <text x="24" y="114" font-size="12.5" fill="#5C5447">Karte – mit Zeit-Slider durch den Tagesverlauf.</text>
+    <line x1="24" y1="132" x2="386" y2="132" stroke="#E0D6BE" stroke-width="0.5"/>
+    <text x="24" y="152" font-size="10.5" fill="#8B7355">Wind · Niederschlag · Temperatur · Wolken · Satellit · Blitze</text>
+  </g>
+
+  <!-- Card 2 · Regenradar (slate) -->
+  <g transform="translate(515, 332)">
+    <rect width="410" height="172" rx="18" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="1"/>
+    <rect x="24" y="22" width="40" height="40" rx="10" fill="#6B7A8F"/>
+    <g stroke="#FFFFFF" stroke-width="1.7" fill="none" stroke-linecap="round">
+      <circle cx="44" cy="42" r="2.2" fill="#FFFFFF" stroke="none"/>
+      <path d="M44 35 a7 7 0 0 1 7 7"/>
+      <path d="M44 30 a12 12 0 0 1 12 12"/>
+    </g>
+    <text x="80" y="40" font-size="9.5" fill="#6B7A8F" letter-spacing="2" font-weight="600">REGENRADAR</text>
+    <text x="80" y="62" font-size="17" fill="#2C2A26" font-weight="500" letter-spacing="-0.3">Regnet es gleich?</text>
+    <text x="24" y="96" font-size="12.5" fill="#5C5447">Minutengenaues Radar mit ehrlichem Übergang</text>
+    <text x="24" y="114" font-size="12.5" fill="#5C5447">von der Messung zur Modell-Vorhersage.</text>
+    <line x1="24" y1="132" x2="386" y2="132" stroke="#E0D6BE" stroke-width="0.5"/>
+    <text x="24" y="152" font-size="10.5" fill="#8B7355">Regen in X Min · Sturmzellen-Zugbahn · Schneefallgrenze</text>
+  </g>
+
+  <!-- Card 3 · Tourenplanung (sage) -->
+  <g transform="translate(950, 332)">
+    <rect width="410" height="172" rx="18" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="1"/>
+    <rect x="24" y="22" width="40" height="40" rx="10" fill="#7A9466"/>
+    <g stroke="#FFFFFF" stroke-width="1.7" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M32 50 q4 -14 12 -8 q8 6 16 -8"/>
+      <circle cx="60" cy="34" r="2.6" fill="#FFFFFF" stroke="none"/>
+    </g>
+    <text x="80" y="40" font-size="9.5" fill="#7A9466" letter-spacing="2" font-weight="600">TOURENPLANUNG</text>
+    <text x="80" y="62" font-size="17" fill="#2C2A26" font-weight="500" letter-spacing="-0.3">Wetter entlang der Route</text>
+    <text x="24" y="96" font-size="12.5" fill="#5C5447">Wind, Regen und Temperatur an jedem Kilometer</text>
+    <text x="24" y="114" font-size="12.5" fill="#5C5447">deiner Strecke – nicht nur am Ziel.</text>
+    <line x1="24" y1="132" x2="386" y2="132" stroke="#E0D6BE" stroke-width="0.5"/>
+    <text x="24" y="152" font-size="10.5" fill="#8B7355">GPX laden · Wetter je km · Startzeit-Scrubber</text>
+  </g>
+
+  <!-- Card 4 · Event-Planung (amber) -->
+  <g transform="translate(80, 526)">
+    <rect width="410" height="172" rx="18" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="1"/>
+    <rect x="24" y="22" width="40" height="40" rx="10" fill="#D4A373"/>
+    <g stroke="#2C2A26" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="33" y="33" width="22" height="19" rx="3"/>
+      <line x1="33" y1="39" x2="55" y2="39"/>
+      <line x1="39" y1="30" x2="39" y2="35"/>
+      <line x1="49" y1="30" x2="49" y2="35"/>
+      <circle cx="44" cy="46" r="1.8" fill="#2C2A26" stroke="none"/>
+    </g>
+    <text x="80" y="40" font-size="9.5" fill="#B07F45" letter-spacing="2" font-weight="600">EVENT-PLANUNG</text>
+    <text x="80" y="62" font-size="17" fill="#2C2A26" font-weight="500" letter-spacing="-0.3">Welcher Tag passt am besten?</text>
+    <text x="24" y="96" font-size="12.5" fill="#5C5447">Sag uns Anlass, Ort und Zeitfenster – wir nennen</text>
+    <text x="24" y="114" font-size="12.5" fill="#5C5447">dir den besten Tag, inklusive Plan B.</text>
+    <line x1="24" y1="132" x2="386" y2="132" stroke="#E0D6BE" stroke-width="0.5"/>
+    <text x="24" y="152" font-size="10.5" fill="#8B7355">Phasen-Bewertung · Plan-B-Ort · ICS-Export</text>
+  </g>
+
+  <!-- Card 5 · Vorhersage (steel) -->
+  <g transform="translate(515, 526)">
+    <rect width="410" height="172" rx="18" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="1"/>
+    <rect x="24" y="22" width="40" height="40" rx="10" fill="#3A6FA8"/>
+    <g stroke="#FFFFFF" stroke-width="2.2" fill="none" stroke-linecap="round">
+      <line x1="35" y1="50" x2="35" y2="44"/>
+      <line x1="41" y1="50" x2="41" y2="38"/>
+      <line x1="47" y1="50" x2="47" y2="41"/>
+      <line x1="53" y1="50" x2="53" y2="34"/>
+    </g>
+    <text x="80" y="40" font-size="9.5" fill="#3A6FA8" letter-spacing="2" font-weight="600">VORHERSAGE</text>
+    <text x="80" y="62" font-size="17" fill="#2C2A26" font-weight="500" letter-spacing="-0.3">Mehrere Modelle, ehrlicher Spread</text>
+    <text x="24" y="96" font-size="12.5" fill="#5C5447">Modelle nebeneinander statt einer Zahl – mit</text>
+    <text x="24" y="114" font-size="12.5" fill="#5C5447">Unsicherheitsband statt Scheingenauigkeit.</text>
+    <line x1="24" y1="132" x2="386" y2="132" stroke="#E0D6BE" stroke-width="0.5"/>
+    <text x="24" y="152" font-size="10.5" fill="#8B7355">5 Modelle · Konfidenz-Stufe · Validierungspunkte</text>
+  </g>
+
+  <!-- Card 6 · 3D-Globus (slate) -->
+  <g transform="translate(950, 526)">
+    <rect width="410" height="172" rx="18" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="1"/>
+    <rect x="24" y="22" width="40" height="40" rx="10" fill="#6B7A8F"/>
+    <g stroke="#FFFFFF" stroke-width="1.6" fill="none" stroke-linecap="round">
+      <circle cx="44" cy="42" r="11"/>
+      <ellipse cx="44" cy="42" rx="4.5" ry="11"/>
+      <line x1="33" y1="42" x2="55" y2="42"/>
+    </g>
+    <text x="80" y="40" font-size="9.5" fill="#6B7A8F" letter-spacing="2" font-weight="600">3D-GLOBUS</text>
+    <text x="80" y="62" font-size="17" fill="#2C2A26" font-weight="500" letter-spacing="-0.3">Das Wetter der ganzen Erde</text>
+    <text x="24" y="96" font-size="12.5" fill="#5C5447">Eine frei drehbare 3D-Erdkugel mit globalem</text>
+    <text x="24" y="114" font-size="12.5" fill="#5C5447">Wind, Jetstream und Temperatur.</text>
+    <line x1="24" y1="132" x2="386" y2="132" stroke="#E0D6BE" stroke-width="0.5"/>
+    <text x="24" y="152" font-size="10.5" fill="#8B7355">Wind-Partikel · Jetstream · Temp-Raster (MERRA-2)</text>
+  </g>
+
+  <!-- ============ SECTION 02 · PROFI & TIEFE ============ -->
+  <text x="80" y="744" font-size="10" fill="#A89A7A" letter-spacing="3" font-weight="500">02 · PROFI-WERKZEUGE &amp; KI</text>
+  <text x="1360" y="744" font-size="11" fill="#8B7355" letter-spacing="1" text-anchor="end">Tiefe für alle, die mehr wollen — ehrlich statt Scheingenauigkeit</text>
+
+  <!-- Card 7 · Historie (stone) -->
+  <g transform="translate(80, 764)">
+    <rect width="410" height="150" rx="18" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="1"/>
+    <rect x="24" y="20" width="36" height="36" rx="10" fill="#8B7355"/>
+    <g stroke="#FFFFFF" stroke-width="2.4" fill="none" stroke-linecap="round">
+      <line x1="35" y1="46" x2="35" y2="32"/>
+      <line x1="40" y1="46" x2="40" y2="28"/>
+      <line x1="45" y1="46" x2="45" y2="36"/>
+      <line x1="50" y1="46" x2="50" y2="30"/>
+    </g>
+    <text x="72" y="37" font-size="9.5" fill="#8B7355" letter-spacing="2" font-weight="600">HISTORIE</text>
+    <text x="72" y="57" font-size="16" fill="#2C2A26" font-weight="500" letter-spacing="-0.3">Klima-Rückblick</text>
+    <text x="24" y="88" font-size="12.5" fill="#5C5447">Klimastreifen, Kenntage, Rekorde und Profi-</text>
+    <text x="24" y="106" font-size="12.5" fill="#5C5447">Indizes aus dem ERA5-Archiv – bis 1940 zurück.</text>
+    <text x="24" y="132" font-size="10" fill="#A89A7A" letter-spacing="0.5">ERA5-Archiv · Klimastreifen · Rekorde</text>
+  </g>
+
+  <!-- Card 8 · 3D-Wetter & Sounding (steel) -->
+  <g transform="translate(515, 764)">
+    <rect width="410" height="150" rx="18" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="1"/>
+    <rect x="24" y="20" width="36" height="36" rx="10" fill="#3A6FA8"/>
+    <g stroke="#FFFFFF" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="33" y="29" width="18" height="18" rx="2"/>
+      <path d="M35 45 L49 31"/>
+      <path d="M37 45 q3 -7 5 -9"/>
+    </g>
+    <text x="72" y="37" font-size="9.5" fill="#3A6FA8" letter-spacing="2" font-weight="600">PROFI · 3D</text>
+    <text x="72" y="57" font-size="16" fill="#2C2A26" font-weight="500" letter-spacing="-0.3">3D-Wetter &amp; Sounding</text>
+    <text x="24" y="88" font-size="12.5" fill="#5C5447">Vertikalschnitt und Skew-T auf echtem 3D-Gelände,</text>
+    <text x="24" y="106" font-size="12.5" fill="#5C5447">mit echter CAPE/CIN/LCL-Mathematik.</text>
+    <text x="24" y="132" font-size="10" fill="#A89A7A" letter-spacing="0.5">ICON-EU 7&#160;km · Atmosphären-Vorhang</text>
+  </g>
+
+  <!-- Card 9 · KI-Meteorologe (terracotta) -->
+  <g transform="translate(950, 764)">
+    <rect width="410" height="150" rx="18" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="1"/>
+    <rect x="24" y="20" width="36" height="36" rx="10" fill="#C97B47"/>
+    <g stroke="#FFFFFF" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M32 31 h20 a2 2 0 0 1 2 2 v8 a2 2 0 0 1 -2 2 h-12 l-5 4 v-4 h-3 a2 2 0 0 1 -2 -2 v-8 a2 2 0 0 1 2 -2 z"/>
+      <circle cx="38" cy="38" r="1.2" fill="#FFFFFF" stroke="none"/>
+      <circle cx="42" cy="38" r="1.2" fill="#FFFFFF" stroke="none"/>
+      <circle cx="46" cy="38" r="1.2" fill="#FFFFFF" stroke="none"/>
+    </g>
+    <text x="72" y="37" font-size="9.5" fill="#C97B47" letter-spacing="2" font-weight="600">ASSISTENT</text>
+    <text x="72" y="57" font-size="16" fill="#2C2A26" font-weight="500" letter-spacing="-0.3">KI-Meteorologe</text>
+    <text x="24" y="88" font-size="12.5" fill="#5C5447">Ein lokales LLM erklärt die Wetterlage – geerdet</text>
+    <text x="24" y="106" font-size="12.5" fill="#5C5447">aus den echten Pipelines, läuft im Browser.</text>
+    <text x="24" y="132" font-size="10" fill="#A89A7A" letter-spacing="0.5">Qwen2.5-7B · WebGPU · lokal</text>
+  </g>
+
+  <!-- Card 10 · ML (terracotta-700) -->
+  <g transform="translate(80, 936)">
+    <rect width="410" height="150" rx="18" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="1"/>
+    <rect x="24" y="20" width="36" height="36" rx="10" fill="#A85E2E"/>
+    <g stroke="#FFFFFF" stroke-width="1.5" fill="none" stroke-linecap="round">
+      <line x1="34" y1="32" x2="50" y2="38"/>
+      <line x1="34" y1="44" x2="50" y2="38"/>
+      <line x1="42" y1="30" x2="50" y2="38"/>
+      <circle cx="34" cy="32" r="2.2" fill="#FFFFFF" stroke="none"/>
+      <circle cx="34" cy="44" r="2.2" fill="#FFFFFF" stroke="none"/>
+      <circle cx="42" cy="30" r="2.2" fill="#FFFFFF" stroke="none"/>
+      <circle cx="50" cy="38" r="2.6" fill="#FFFFFF" stroke="none"/>
+    </g>
+    <text x="72" y="37" font-size="9.5" fill="#A85E2E" letter-spacing="2" font-weight="600">MACHINE LEARNING</text>
+    <text x="72" y="57" font-size="16" fill="#2C2A26" font-weight="500" letter-spacing="-0.3">KI-Nowcast &amp; Kalibrierung</text>
+    <text x="24" y="88" font-size="12.5" fill="#5C5447">Klima-MOS, Schnee/Regen-Grenze, Analog-Ensemble</text>
+    <text x="24" y="106" font-size="12.5" fill="#5C5447">und ein Radar-CNN – out-of-sample geprüft.</text>
+    <text x="24" y="132" font-size="10" fill="#A89A7A" letter-spacing="0.5">Brier · ECE · CRPS · CSI · eigene Quellen</text>
+  </g>
+
+  <!-- Card 11 · Gewittergefahr (terracotta-700) -->
+  <g transform="translate(515, 936)">
+    <rect width="410" height="150" rx="18" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="1"/>
+    <rect x="24" y="20" width="36" height="36" rx="10" fill="#A85E2E"/>
+    <path d="M44 28 L37 40 L43 40 L39 48 L51 35 L44 35 Z" fill="#FFFFFF"/>
+    <text x="72" y="37" font-size="9.5" fill="#A85E2E" letter-spacing="2" font-weight="600">WARNUNG</text>
+    <text x="72" y="57" font-size="16" fill="#2C2A26" font-weight="500" letter-spacing="-0.3">Gewittergefahr-Index</text>
+    <text x="24" y="88" font-size="12.5" fill="#5C5447">CAPE, Zellverlauf und DWD-Warnung zu einer</text>
+    <text x="24" y="106" font-size="12.5" fill="#5C5447">einzigen, ehrlichen Stufe verdichtet.</text>
+    <text x="24" y="132" font-size="10" fill="#A89A7A" letter-spacing="0.5">DE · naher CAPE-Horizont · geteilt</text>
+  </g>
+
+  <!-- Card 12 · Push (sage) -->
+  <g transform="translate(950, 936)">
+    <rect width="410" height="150" rx="18" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="1"/>
+    <rect x="24" y="20" width="36" height="36" rx="10" fill="#7A9466"/>
+    <g stroke="#FFFFFF" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M42 29 a7 7 0 0 1 7 7 v4 l2 3 h-18 l2 -3 v-4 a7 7 0 0 1 7 -7 z"/>
+      <path d="M39 46 a3 3 0 0 0 6 0"/>
+    </g>
+    <text x="72" y="37" font-size="9.5" fill="#7A9466" letter-spacing="2" font-weight="600">BENACHRICHTIGUNG</text>
+    <text x="72" y="57" font-size="16" fill="#2C2A26" font-weight="500" letter-spacing="-0.3">Push-Alarme</text>
+    <text x="24" y="88" font-size="12.5" fill="#5C5447">Alarm bei Tageswechsel und klaren Nächten –</text>
+    <text x="24" y="106" font-size="12.5" fill="#5C5447">mit Dedup, Pause und Limit.</text>
+    <text x="24" y="132" font-size="10" fill="#A89A7A" letter-spacing="0.5">Trigger-Engine · dockt an Event an</text>
+  </g>
+
+  <!-- ============ SECTION 03 · KOMFORT ============ -->
+  <text x="80" y="1126" font-size="10" fill="#A89A7A" letter-spacing="3" font-weight="500">03 · KOMFORT &amp; ALLTAG</text>
+
+  <g transform="translate(80, 1142)" font-size="12" font-weight="500">
+    <g><rect width="90" height="28" rx="14" fill="#F5F1E8" stroke="#D9D0B8"/><text x="45" y="19" fill="#5C5447" text-anchor="middle">Favoriten</text></g>
+    <g transform="translate(102,0)"><rect width="122" height="28" rx="14" fill="#F5F1E8" stroke="#D9D0B8"/><text x="61" y="19" fill="#5C5447" text-anchor="middle">Go/No-Go-Ampel</text></g>
+    <g transform="translate(236,0)"><rect width="112" height="28" rx="14" fill="#F5F1E8" stroke="#D9D0B8"/><text x="56" y="19" fill="#5C5447" text-anchor="middle">PWA · Offline</text></g>
+    <g transform="translate(360,0)"><rect width="116" height="28" rx="14" fill="#F5F1E8" stroke="#D9D0B8"/><text x="58" y="19" fill="#5C5447" text-anchor="middle">Pollen AT · CH</text></g>
+    <g transform="translate(488,0)"><rect width="152" height="28" rx="14" fill="#F5F1E8" stroke="#D9D0B8"/><text x="76" y="19" fill="#5C5447" text-anchor="middle">Lawinen-Lagebericht</text></g>
+    <g transform="translate(652,0)"><rect width="104" height="28" rx="14" fill="#F5F1E8" stroke="#D9D0B8"/><text x="52" y="19" fill="#5C5447" text-anchor="middle">Bild-Export</text></g>
+    <g transform="translate(768,0)"><rect width="110" height="28" rx="14" fill="#F5F1E8" stroke="#D9D0B8"/><text x="55" y="19" fill="#5C5447" text-anchor="middle">Foto-Overlay</text></g>
+    <g transform="translate(890,0)"><rect width="122" height="28" rx="14" fill="#F5F1E8" stroke="#D9D0B8"/><text x="61" y="19" fill="#5C5447" text-anchor="middle">138 Geo-Seiten</text></g>
+    <g transform="translate(1024,0)"><rect width="120" height="28" rx="14" fill="#F5F1E8" stroke="#D9D0B8"/><text x="60" y="19" fill="#5C5447" text-anchor="middle">Teilen per Link</text></g>
+  </g>
+
+  <!-- ============ FOOTER ============ -->
+  <g transform="translate(80, 1224)">
+    <line x1="0" y1="0" x2="1280" y2="0" stroke="#E0D6BE" stroke-width="0.5"/>
+    <text y="26" font-size="11" fill="#A89A7A" letter-spacing="2" font-weight="500">buscosun · FUNKTIONS-ONEPAGER · DACH-WETTER, TRANSPARENZ-FIRST</text>
+    <text x="1280" y="26" font-size="11" fill="#A89A7A" letter-spacing="2" text-anchor="end">Sand-and-ink · Design-System v1.8</text>
+  </g>
+</svg>

@@ -1,0 +1,523 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1100" font-family="ui-sans-serif, system-ui, -apple-system">
+  <defs>
+    <linearGradient id="bgSheet" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F5F1E8"/>
+      <stop offset="100%" stop-color="#EDE6D3"/>
+    </linearGradient>
+    
+    <linearGradient id="trendAreaB" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#C97B47" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#C97B47" stop-opacity="0.02"/>
+    </linearGradient>
+    <linearGradient id="windAreaB" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#3A6FA8" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#3A6FA8" stop-opacity="0.02"/>
+    </linearGradient>
+    <linearGradient id="cloudAreaB" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#6B7A8F" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#6B7A8F" stop-opacity="0.02"/>
+    </linearGradient>
+    
+    <filter id="shadowB" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="6"/>
+      <feOffset dx="0" dy="4" result="offsetblur"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.14"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  
+  <rect width="1440" height="1100" fill="url(#bgSheet)"/>
+  
+  <!-- ============ HEADER ============ -->
+  <g transform="translate(60, 50)">
+    <g>
+      <line x1="0" y1="6" x2="40" y2="6" stroke="#8B7355" stroke-width="1"/>
+      <text x="52" y="10" font-size="11" fill="#8B7355" letter-spacing="3" font-weight="500">PFC-PANEL · DREI TABS · DETAILSPEZIFIKATION</text>
+    </g>
+    <text y="60" font-size="48" font-weight="200" fill="#2C2A26" letter-spacing="-1.5">Punktforecast · alle Zustände</text>
+    <text y="92" font-size="15" fill="#5C5447">Übersicht · Diagramme · Tabelle — gemeinsamer Head, identische Quellen, drei Sichten auf 24 h</text>
+  </g>
+  
+  <!-- ============ TAB A: ÜBERSICHT (left) ============ -->
+  <g transform="translate(60, 180)" filter="url(#shadowB)">
+    <rect width="400" height="876" rx="14" fill="#fff" stroke="#E0D6BE"/>
+    
+    <!-- Head -->
+    <g transform="translate(18, 18)">
+      <text font-size="10" font-weight="500" fill="#A89A7A" letter-spacing="2">PUNKTFORECAST</text>
+      <text y="28" font-size="16" font-weight="500" fill="#2C2A26" letter-spacing="-0.24">München, Bayern, Deutschland</text>
+      <g transform="translate(0, 48)" font-size="11" fill="#A89A7A">
+        <text>519 m</text>
+        <circle cx="42" cy="-3" r="1.5"/>
+        <text x="50">4.7 K/km</text>
+        <circle cx="108" cy="-3" r="1.5"/>
+        <text x="116">6 Stationen</text>
+        <circle cx="186" cy="-3" r="1.5"/>
+        <text x="194">2 Modelle</text>
+      </g>
+    </g>
+    <line x1="0" y1="84" x2="400" y2="84" stroke="#E0D6BE"/>
+    
+    <!-- Tabs -->
+    <g transform="translate(18, 95)">
+      <rect width="364" height="36" rx="18" fill="#F5F1E8"/>
+      <g transform="translate(4, 4)">
+        <rect width="118" height="28" rx="14" fill="#2C2A26"/>
+        <text x="59" y="18" font-size="12" font-weight="500" fill="#fff" text-anchor="middle">Übersicht</text>
+      </g>
+      <text x="181" y="22" font-size="12" font-weight="500" fill="#8B7355" text-anchor="middle">Diagramme</text>
+      <text x="303" y="22" font-size="12" font-weight="500" fill="#8B7355" text-anchor="middle">Tabelle</text>
+    </g>
+    
+    <!-- Now-Block -->
+    <g transform="translate(18, 156)">
+      <text font-size="51" font-weight="200" fill="#2C2A26" letter-spacing="-2.5" font-variant-numeric="tabular-nums">27°</text>
+      <g transform="translate(122, -12)">
+        <g transform="translate(13, 13)" stroke="#C97B47" stroke-width="1.4" fill="none" stroke-linecap="round">
+          <circle cx="0" cy="0" r="5" fill="#FAEEDA"/>
+          <line x1="0" y1="-10" x2="0" y2="-7"/>
+          <line x1="0" y1="7" x2="0" y2="10"/>
+          <line x1="-10" y1="0" x2="-7" y2="0"/>
+          <line x1="7" y1="0" x2="10" y2="0"/>
+          <line x1="-7" y1="-7" x2="-5" y2="-5"/>
+          <line x1="5" y1="5" x2="7" y2="7"/>
+          <line x1="-7" y1="7" x2="-5" y2="5"/>
+          <line x1="5" y1="-5" x2="7" y2="-7"/>
+        </g>
+        <text x="34" y="14" font-size="14" fill="#2C2A26">Sonnig</text>
+        <text x="34" y="34" font-size="11" fill="#8B7355">19° / 28° heute</text>
+      </g>
+    </g>
+    <line x1="18" y1="230" x2="382" y2="230" stroke="#E0D6BE" stroke-width="0.5"/>
+    
+    <!-- Aktuell Vitals -->
+    <g transform="translate(18, 248)">
+      <text font-size="10" font-weight="500" fill="#A89A7A" letter-spacing="2">AKTUELL</text>
+      <g transform="translate(0, 18)">
+        <g>
+          <text font-size="9" font-weight="500" fill="#A89A7A" letter-spacing="1.5">WIND</text>
+          <text y="20" font-size="14.5" font-weight="500" fill="#2C2A26" font-variant-numeric="tabular-nums">1.7 m/s</text>
+          <text y="36" font-size="10" fill="#8B7355">SW · Bft 1</text>
+        </g>
+        <line x1="118" y1="-2" x2="118" y2="42" stroke="#E0D6BE"/>
+        <g transform="translate(130, 0)">
+          <text font-size="9" font-weight="500" fill="#A89A7A" letter-spacing="1.5">WOLKEN</text>
+          <text y="20" font-size="14.5" font-weight="500" fill="#2C2A26" font-variant-numeric="tabular-nums">8 %</text>
+          <text y="36" font-size="10" fill="#8B7355">klar</text>
+        </g>
+        <line x1="246" y1="-2" x2="246" y2="42" stroke="#E0D6BE"/>
+        <g transform="translate(258, 0)">
+          <text font-size="9" font-weight="500" fill="#A89A7A" letter-spacing="1.5">NIEDERSCHLAG</text>
+          <text y="20" font-size="14.5" font-weight="500" fill="#2C2A26" font-variant-numeric="tabular-nums">0.0 mm</text>
+          <text y="36" font-size="10" fill="#8B7355">trocken</text>
+        </g>
+      </g>
+    </g>
+    <line x1="18" y1="318" x2="382" y2="318" stroke="#E0D6BE" stroke-width="0.5"/>
+    
+    <!-- Konfidenz -->
+    <g transform="translate(18, 336)">
+      <text font-size="10" font-weight="500" fill="#A89A7A" letter-spacing="2">KONFIDENZ · TEMPERATUR</text>
+      <text x="364" font-size="12.5" font-weight="500" fill="#2C2A26" text-anchor="end">Hoch · 88 %</text>
+      <g transform="translate(0, 12)">
+        <rect width="364" height="4" rx="2" fill="#EDE6D3"/>
+        <rect width="320" height="4" rx="2" fill="#7A9466"/>
+      </g>
+      <g transform="translate(0, 30)" font-size="10" fill="#8B7355">
+        <text>2 Quellen</text>
+        <circle cx="60" cy="-3" r="1.4" fill="#A89A7A"/>
+        <text x="68">6 Stationen im Mix</text>
+        <circle cx="178" cy="-3" r="1.4" fill="#A89A7A"/>
+        <text x="186">Lapse 4.7 K/km</text>
+      </g>
+    </g>
+    <line x1="18" y1="394" x2="382" y2="394" stroke="#E0D6BE" stroke-width="0.5"/>
+    
+    <!-- Trend -->
+    <g transform="translate(18, 412)">
+      <text font-size="10" font-weight="500" fill="#A89A7A" letter-spacing="2">NÄCHSTE 6 H · TEMPERATUR</text>
+      <text x="364" font-size="10.5" font-weight="500" fill="#2C2A26" text-anchor="end" font-variant-numeric="tabular-nums">28°</text>
+      
+      <g transform="translate(0, 14)">
+        <path d="M 0 58 Q 60 50 120 44 T 240 36 T 364 30 L 364 84 L 0 84 Z" fill="url(#trendAreaB)"/>
+        <path d="M 0 58 Q 60 50 120 44 T 240 36 T 364 30" fill="none" stroke="#C97B47" stroke-width="1.4"/>
+        <circle cx="0" cy="58" r="3" fill="#fff" stroke="#C97B47" stroke-width="1.4"/>
+        <circle cx="60" cy="52" r="3" fill="#fff" stroke="#C97B47" stroke-width="1.4"/>
+        <circle cx="121" cy="44" r="3" fill="#fff" stroke="#C97B47" stroke-width="1.4"/>
+        <circle cx="182" cy="40" r="3" fill="#fff" stroke="#C97B47" stroke-width="1.4"/>
+        <circle cx="243" cy="36" r="3" fill="#fff" stroke="#C97B47" stroke-width="1.4"/>
+        <circle cx="303" cy="33" r="3" fill="#fff" stroke="#C97B47" stroke-width="1.4"/>
+        <circle cx="364" cy="30" r="3" fill="#fff" stroke="#C97B47" stroke-width="1.4"/>
+        <g font-size="9" fill="#A89A7A" text-anchor="middle">
+          <text x="0" y="80">jetzt</text>
+          <text x="60" y="80">+1h</text>
+          <text x="121" y="80">+2h</text>
+          <text x="182" y="80">+3h</text>
+          <text x="243" y="80">+4h</text>
+          <text x="303" y="80">+5h</text>
+          <text x="364" y="80">+6h</text>
+        </g>
+      </g>
+    </g>
+    <line x1="18" y1="530" x2="382" y2="530" stroke="#E0D6BE" stroke-width="0.5"/>
+    
+    <!-- Pollen -->
+    <g transform="translate(18, 548)">
+      <rect width="364" height="148" rx="12" fill="#F5F1E8"/>
+      <g transform="translate(14, 14)">
+        <text font-size="10" font-weight="500" fill="#A89A7A" letter-spacing="2">POLLEN · BAYERN</text>
+        <text y="14" font-size="11" fill="#8B7355">heute · morgen · übermorgen</text>
+        
+        <g transform="translate(0, 38)" font-size="12" fill="#2C2A26">
+          <text y="8">Gräser</text>
+          <g transform="translate(180, 0)">
+            <rect width="14" height="14" rx="3" fill="#A85E2E"/>
+            <rect x="22" width="14" height="14" rx="3" fill="#C97B47"/>
+            <rect x="44" width="14" height="14" rx="3" fill="#D4A373"/>
+            <text x="78" y="11" font-size="9" font-weight="500" fill="#A85E2E" letter-spacing="0.5">HOCH</text>
+          </g>
+          
+          <text y="34">Birke</text>
+          <g transform="translate(180, 26)">
+            <rect width="14" height="14" rx="3" fill="#D4A373"/>
+            <rect x="22" width="14" height="14" rx="3" fill="#D4A373"/>
+            <rect x="44" width="14" height="14" rx="3" fill="#7A9466"/>
+            <text x="78" y="11" font-size="9" font-weight="500" fill="#D4A373" letter-spacing="0.5">MITTEL</text>
+          </g>
+          
+          <text y="60">Ambrosia</text>
+          <g transform="translate(180, 52)">
+            <rect width="14" height="14" rx="3" fill="#7A9466"/>
+            <rect x="22" width="14" height="14" rx="3" fill="#7A9466"/>
+            <rect x="44" width="14" height="14" rx="3" fill="#7A9466"/>
+            <text x="78" y="11" font-size="9" font-weight="500" fill="#7A9466" letter-spacing="0.5">GERING</text>
+          </g>
+        </g>
+      </g>
+    </g>
+    
+    <!-- Quellen -->
+    <g transform="translate(18, 716)">
+      <text font-size="10" font-weight="500" fill="#A89A7A" letter-spacing="2">QUELLEN</text>
+      <text y="22" font-size="11" fill="#5C5447">DWD MOSMIX · DWD ICON-D2</text>
+      <text y="40" font-size="11" fill="#5C5447">DWD Stations-Observation (6 Stationen im Mix)</text>
+      <text y="58" font-size="11" fill="#5C5447">RADOLAN-RV · TAWES alpin</text>
+      <text y="84" font-size="9" font-weight="500" fill="#A89A7A" letter-spacing="0.5">RUN 25.05. 12:00 UTC · NÄCHSTE AKTUALISIERUNG 14:50 UTC</text>
+    </g>
+    
+    <!-- Tab label -->
+    <g transform="translate(18, 836)">
+      <line x1="0" y1="0" x2="20" y2="0" stroke="#8B7355"/>
+      <text x="28" y="4" font-size="9" font-weight="500" fill="#8B7355" letter-spacing="2">TAB A · ÜBERSICHT · STANDARDANSICHT</text>
+    </g>
+  </g>
+  
+  <!-- ============ TAB B: DIAGRAMME (center) ============ -->
+  <g transform="translate(480, 180)" filter="url(#shadowB)">
+    <rect width="400" height="876" rx="14" fill="#fff" stroke="#E0D6BE"/>
+    
+    <!-- Head (identical) -->
+    <g transform="translate(18, 18)">
+      <text font-size="10" font-weight="500" fill="#A89A7A" letter-spacing="2">PUNKTFORECAST</text>
+      <text y="28" font-size="16" font-weight="500" fill="#2C2A26" letter-spacing="-0.24">München, Bayern, Deutschland</text>
+      <g transform="translate(0, 48)" font-size="11" fill="#A89A7A">
+        <text>519 m</text>
+        <circle cx="42" cy="-3" r="1.5"/>
+        <text x="50">4.7 K/km</text>
+        <circle cx="108" cy="-3" r="1.5"/>
+        <text x="116">6 Stationen</text>
+        <circle cx="186" cy="-3" r="1.5"/>
+        <text x="194">2 Modelle</text>
+      </g>
+    </g>
+    <line x1="0" y1="84" x2="400" y2="84" stroke="#E0D6BE"/>
+    
+    <!-- Tabs (Diagramme active) -->
+    <g transform="translate(18, 95)">
+      <rect width="364" height="36" rx="18" fill="#F5F1E8"/>
+      <text x="61" y="22" font-size="12" font-weight="500" fill="#8B7355" text-anchor="middle">Übersicht</text>
+      <g transform="translate(122, 4)">
+        <rect width="118" height="28" rx="14" fill="#2C2A26"/>
+        <text x="59" y="18" font-size="12" font-weight="500" fill="#fff" text-anchor="middle">Diagramme</text>
+      </g>
+      <text x="303" y="22" font-size="12" font-weight="500" fill="#8B7355" text-anchor="middle">Tabelle</text>
+    </g>
+    
+    <!-- Chart 1: Temperatur -->
+    <g transform="translate(18, 150)">
+      <g>
+        <text font-size="10" font-weight="500" fill="#A89A7A" letter-spacing="2">TEMPERATUR · 24 H</text>
+        <text x="364" font-size="11.5" font-weight="500" fill="#2C2A26" text-anchor="end" font-variant-numeric="tabular-nums">27 °C</text>
+      </g>
+      <g transform="translate(0, 14)">
+        <!-- Y-axis hints -->
+        <text font-size="8" fill="#A89A7A">28°</text>
+        <text y="62" font-size="8" fill="#A89A7A">19°</text>
+        <!-- Curve -->
+        <path d="M 28 50 Q 78 35 128 22 T 228 5 T 328 25 T 364 38 L 364 64 L 28 64 Z" fill="url(#trendAreaB)"/>
+        <path d="M 28 50 Q 78 35 128 22 T 228 5 T 328 25 T 364 38" fill="none" stroke="#C97B47" stroke-width="1.4"/>
+        <!-- X-ticks -->
+        <g font-size="8" fill="#A89A7A" text-anchor="middle">
+          <text x="28" y="78">jetzt</text>
+          <text x="112" y="78">+6h</text>
+          <text x="196" y="78">+12h</text>
+          <text x="280" y="78">+18h</text>
+          <text x="364" y="78">+24h</text>
+        </g>
+      </g>
+    </g>
+    
+    <line x1="18" y1="252" x2="382" y2="252" stroke="#E0D6BE" stroke-width="0.5"/>
+    
+    <!-- Chart 2: Wind -->
+    <g transform="translate(18, 270)">
+      <g>
+        <text font-size="10" font-weight="500" fill="#A89A7A" letter-spacing="2">WIND · 24 H</text>
+        <text x="364" font-size="11.5" font-weight="500" fill="#2C2A26" text-anchor="end" font-variant-numeric="tabular-nums">1.7 m/s</text>
+      </g>
+      <g transform="translate(0, 14)">
+        <text font-size="8" fill="#A89A7A">6.0</text>
+        <text y="62" font-size="8" fill="#A89A7A">0.5</text>
+        <path d="M 28 56 Q 78 50 128 44 T 228 22 T 328 14 T 364 18 L 364 64 L 28 64 Z" fill="url(#windAreaB)"/>
+        <path d="M 28 56 Q 78 50 128 44 T 228 22 T 328 14 T 364 18" fill="none" stroke="#3A6FA8" stroke-width="1.4"/>
+        <g font-size="8" fill="#A89A7A" text-anchor="middle">
+          <text x="28" y="78">jetzt</text>
+          <text x="112" y="78">+6h</text>
+          <text x="196" y="78">+12h</text>
+          <text x="280" y="78">+18h</text>
+          <text x="364" y="78">+24h</text>
+        </g>
+      </g>
+    </g>
+    
+    <line x1="18" y1="372" x2="382" y2="372" stroke="#E0D6BE" stroke-width="0.5"/>
+    
+    <!-- Chart 3: Niederschlag (bars) -->
+    <g transform="translate(18, 390)">
+      <g>
+        <text font-size="10" font-weight="500" fill="#A89A7A" letter-spacing="2">NIEDERSCHLAG · 24 H</text>
+        <text x="364" font-size="11.5" font-weight="500" fill="#2C2A26" text-anchor="end" font-variant-numeric="tabular-nums">0.0 mm</text>
+      </g>
+      <g transform="translate(0, 14)">
+        <text font-size="8" fill="#A89A7A">3 mm</text>
+        <text y="62" font-size="8" fill="#A89A7A">0</text>
+        <!-- Bars (mostly empty except spike around hour 18) -->
+        <g fill="#3A6FA8">
+          <rect x="40" y="64" width="8" height="0"/>
+          <rect x="56" y="64" width="8" height="0"/>
+          <rect x="72" y="64" width="8" height="0"/>
+          <rect x="88" y="64" width="8" height="0"/>
+          <rect x="104" y="62" width="8" height="2"/>
+          <rect x="120" y="60" width="8" height="4"/>
+          <rect x="136" y="58" width="8" height="6"/>
+          <rect x="152" y="50" width="8" height="14"/>
+          <rect x="168" y="42" width="8" height="22"/>
+          <rect x="184" y="30" width="8" height="34"/>
+          <rect x="200" y="24" width="8" height="40"/>
+          <rect x="216" y="20" width="8" height="44"/>
+          <rect x="232" y="18" width="8" height="46"/>
+          <rect x="248" y="24" width="8" height="40"/>
+          <rect x="264" y="34" width="8" height="30"/>
+          <rect x="280" y="48" width="8" height="16"/>
+          <rect x="296" y="56" width="8" height="8"/>
+          <rect x="312" y="60" width="8" height="4"/>
+          <rect x="328" y="62" width="8" height="2"/>
+          <rect x="344" y="64" width="8" height="0"/>
+          <rect x="360" y="64" width="8" height="0"/>
+        </g>
+        <g font-size="8" fill="#A89A7A" text-anchor="middle">
+          <text x="28" y="78">jetzt</text>
+          <text x="112" y="78">+6h</text>
+          <text x="196" y="78">+12h</text>
+          <text x="280" y="78">+18h</text>
+          <text x="364" y="78">+24h</text>
+        </g>
+      </g>
+    </g>
+    
+    <line x1="18" y1="492" x2="382" y2="492" stroke="#E0D6BE" stroke-width="0.5"/>
+    
+    <!-- Chart 4: Bewölkung -->
+    <g transform="translate(18, 510)">
+      <g>
+        <text font-size="10" font-weight="500" fill="#A89A7A" letter-spacing="2">BEWÖLKUNG · 24 H</text>
+        <text x="364" font-size="11.5" font-weight="500" fill="#2C2A26" text-anchor="end" font-variant-numeric="tabular-nums">8 %</text>
+      </g>
+      <g transform="translate(0, 14)">
+        <text font-size="8" fill="#A89A7A">100 %</text>
+        <text y="62" font-size="8" fill="#A89A7A">0 %</text>
+        <path d="M 28 58 Q 78 56 128 48 T 228 12 T 328 8 T 364 18 L 364 64 L 28 64 Z" fill="url(#cloudAreaB)"/>
+        <path d="M 28 58 Q 78 56 128 48 T 228 12 T 328 8 T 364 18" fill="none" stroke="#6B7A8F" stroke-width="1.4"/>
+        <g font-size="8" fill="#A89A7A" text-anchor="middle">
+          <text x="28" y="78">jetzt</text>
+          <text x="112" y="78">+6h</text>
+          <text x="196" y="78">+12h</text>
+          <text x="280" y="78">+18h</text>
+          <text x="364" y="78">+24h</text>
+        </g>
+      </g>
+    </g>
+    
+    <line x1="18" y1="612" x2="382" y2="612" stroke="#E0D6BE" stroke-width="0.5"/>
+    
+    <!-- Read-key legend -->
+    <g transform="translate(18, 632)">
+      <text font-size="10" font-weight="500" fill="#A89A7A" letter-spacing="2">LESEHILFE</text>
+      <g transform="translate(0, 18)" font-size="11" fill="#5C5447">
+        <line x1="0" y1="0" x2="20" y2="0" stroke="#C97B47" stroke-width="1.4"/>
+        <text x="28" y="4">Temperatur · MOSMIX gewichtet</text>
+      </g>
+      <g transform="translate(0, 36)" font-size="11" fill="#5C5447">
+        <line x1="0" y1="0" x2="20" y2="0" stroke="#3A6FA8" stroke-width="1.4"/>
+        <text x="28" y="4">Wind/Niederschlag · ICON-D2 + RV</text>
+      </g>
+      <g transform="translate(0, 54)" font-size="11" fill="#5C5447">
+        <line x1="0" y1="0" x2="20" y2="0" stroke="#6B7A8F" stroke-width="1.4"/>
+        <text x="28" y="4">Bewölkung · ICON-D2 effektiv</text>
+      </g>
+    </g>
+    
+    <!-- Quellen -->
+    <g transform="translate(18, 736)">
+      <text font-size="10" font-weight="500" fill="#A89A7A" letter-spacing="2">QUELLEN</text>
+      <text y="20" font-size="11" fill="#5C5447">DWD MOSMIX · DWD ICON-D2 · RADOLAN-RV</text>
+      <text y="46" font-size="9" font-weight="500" fill="#A89A7A" letter-spacing="0.5">RUN 25.05. 12:00 UTC · 24 H STÜNDLICH</text>
+    </g>
+    
+    <g transform="translate(18, 836)">
+      <line x1="0" y1="0" x2="20" y2="0" stroke="#8B7355"/>
+      <text x="28" y="4" font-size="9" font-weight="500" fill="#8B7355" letter-spacing="2">TAB B · DIAGRAMME · 4 GESTAPELTE CHARTS</text>
+    </g>
+  </g>
+  
+  <!-- ============ TAB C: TABELLE (right) ============ -->
+  <g transform="translate(900, 180)" filter="url(#shadowB)">
+    <rect width="480" height="876" rx="14" fill="#fff" stroke="#E0D6BE"/>
+    
+    <!-- Head -->
+    <g transform="translate(18, 18)">
+      <text font-size="10" font-weight="500" fill="#A89A7A" letter-spacing="2">PUNKTFORECAST</text>
+      <text y="28" font-size="16" font-weight="500" fill="#2C2A26" letter-spacing="-0.24">München, Bayern, Deutschland</text>
+      <g transform="translate(0, 48)" font-size="11" fill="#A89A7A">
+        <text>519 m</text>
+        <circle cx="42" cy="-3" r="1.5"/>
+        <text x="50">4.7 K/km</text>
+        <circle cx="108" cy="-3" r="1.5"/>
+        <text x="116">6 Stationen</text>
+        <circle cx="186" cy="-3" r="1.5"/>
+        <text x="194">2 Modelle</text>
+      </g>
+    </g>
+    <line x1="0" y1="84" x2="480" y2="84" stroke="#E0D6BE"/>
+    
+    <!-- Tabs (Tabelle active) -->
+    <g transform="translate(18, 95)">
+      <rect width="444" height="36" rx="18" fill="#F5F1E8"/>
+      <text x="74" y="22" font-size="12" font-weight="500" fill="#8B7355" text-anchor="middle">Übersicht</text>
+      <text x="222" y="22" font-size="12" font-weight="500" fill="#8B7355" text-anchor="middle">Diagramme</text>
+      <g transform="translate(296, 4)">
+        <rect width="144" height="28" rx="14" fill="#2C2A26"/>
+        <text x="72" y="18" font-size="12" font-weight="500" fill="#fff" text-anchor="middle">Tabelle</text>
+      </g>
+    </g>
+    
+    <!-- Table Header (sticky) -->
+    <g transform="translate(18, 150)">
+      <rect width="444" height="28" rx="6" fill="#F5F1E8"/>
+      <g font-size="9" font-weight="500" fill="#A89A7A" letter-spacing="1.5">
+        <text x="14" y="18">ZEIT</text>
+        <text x="92" y="18" text-anchor="end">TEMP</text>
+        <text x="172" y="18" text-anchor="end">WIND</text>
+        <text x="252" y="18" text-anchor="end">NIED</text>
+        <text x="332" y="18" text-anchor="end">WOLKEN</text>
+        <text x="430" y="18" text-anchor="end">KONF</text>
+      </g>
+    </g>
+    
+    <!-- Table Rows (24h) -->
+    <g transform="translate(18, 184)" font-size="11.5" fill="#2C2A26" font-variant-numeric="tabular-nums">
+      <!-- Row data: [time, temp, wind, prec, cloud, conf-width 0-32] -->
+      <!-- Rows 1-3: Nowcast (sage dot) -->
+      <g>
+        <circle cx="6" cy="10" r="2.5" fill="#7A9466"/>
+        <text x="14" y="14" font-weight="500">14:00</text>
+        <text x="92" y="14" text-anchor="end">27.0°</text>
+        <text x="172" y="14" text-anchor="end">1.7</text>
+        <text x="252" y="14" text-anchor="end">0.0</text>
+        <text x="332" y="14" text-anchor="end">8 %</text>
+        <rect x="408" y="8" width="28" height="4" rx="2" fill="#7A9466"/>
+        <line x1="0" y1="22" x2="444" y2="22" stroke="#EDE6D3"/>
+      </g>
+      <g transform="translate(0, 24)">
+        <circle cx="6" cy="10" r="2.5" fill="#7A9466"/>
+        <text x="14" y="14" font-weight="500">15:00</text>
+        <text x="92" y="14" text-anchor="end">27.4°</text>
+        <text x="172" y="14" text-anchor="end">1.9</text>
+        <text x="252" y="14" text-anchor="end">0.0</text>
+        <text x="332" y="14" text-anchor="end">10 %</text>
+        <rect x="408" y="8" width="28" height="4" rx="2" fill="#7A9466"/>
+        <line x1="0" y1="22" x2="444" y2="22" stroke="#EDE6D3"/>
+      </g>
+      <g transform="translate(0, 48)">
+        <circle cx="6" cy="10" r="2.5" fill="#7A9466"/>
+        <text x="14" y="14" font-weight="500">16:00</text>
+        <text x="92" y="14" text-anchor="end">27.8°</text>
+        <text x="172" y="14" text-anchor="end">2.0</text>
+        <text x="252" y="14" text-anchor="end">0.0</text>
+        <text x="332" y="14" text-anchor="end">15 %</text>
+        <rect x="408" y="8" width="26" height="4" rx="2" fill="#7A9466"/>
+        <line x1="0" y1="22" x2="444" y2="22" stroke="#EDE6D3"/>
+      </g>
+      <!-- Rows 4-24 normal -->
+      <g transform="translate(0, 72)"><text x="14" y="14">17:00</text><text x="92" y="14" text-anchor="end">28.1°</text><text x="172" y="14" text-anchor="end">2.1</text><text x="252" y="14" text-anchor="end">0.0</text><text x="332" y="14" text-anchor="end">25 %</text><rect x="408" y="8" width="26" height="4" rx="2" fill="#7A9466"/><line x1="0" y1="22" x2="444" y2="22" stroke="#EDE6D3"/></g>
+      <g transform="translate(0, 96)"><text x="14" y="14">18:00</text><text x="92" y="14" text-anchor="end">27.6°</text><text x="172" y="14" text-anchor="end">2.4</text><text x="252" y="14" text-anchor="end">0.1</text><text x="332" y="14" text-anchor="end">42 %</text><rect x="408" y="8" width="24" height="4" rx="2" fill="#7A9466"/><line x1="0" y1="22" x2="444" y2="22" stroke="#EDE6D3"/></g>
+      <g transform="translate(0, 120)"><text x="14" y="14">19:00</text><text x="92" y="14" text-anchor="end">26.2°</text><text x="172" y="14" text-anchor="end">2.8</text><text x="252" y="14" text-anchor="end">0.3</text><text x="332" y="14" text-anchor="end">68 %</text><rect x="408" y="8" width="22" height="4" rx="2" fill="#D4A373"/><line x1="0" y1="22" x2="444" y2="22" stroke="#EDE6D3"/></g>
+      <g transform="translate(0, 144)"><text x="14" y="14">20:00</text><text x="92" y="14" text-anchor="end">24.4°</text><text x="172" y="14" text-anchor="end">3.1</text><text x="252" y="14" text-anchor="end">1.2</text><text x="332" y="14" text-anchor="end">85 %</text><rect x="408" y="8" width="20" height="4" rx="2" fill="#D4A373"/><line x1="0" y1="22" x2="444" y2="22" stroke="#EDE6D3"/></g>
+      <g transform="translate(0, 168)"><text x="14" y="14">21:00</text><text x="92" y="14" text-anchor="end">22.8°</text><text x="172" y="14" text-anchor="end">3.4</text><text x="252" y="14" text-anchor="end">2.4</text><text x="332" y="14" text-anchor="end">95 %</text><rect x="408" y="8" width="18" height="4" rx="2" fill="#D4A373"/><line x1="0" y1="22" x2="444" y2="22" stroke="#EDE6D3"/></g>
+      <g transform="translate(0, 192)"><text x="14" y="14">22:00</text><text x="92" y="14" text-anchor="end">21.5°</text><text x="172" y="14" text-anchor="end">3.0</text><text x="252" y="14" text-anchor="end">1.8</text><text x="332" y="14" text-anchor="end">90 %</text><rect x="408" y="8" width="20" height="4" rx="2" fill="#D4A373"/><line x1="0" y1="22" x2="444" y2="22" stroke="#EDE6D3"/></g>
+      <g transform="translate(0, 216)"><text x="14" y="14">23:00</text><text x="92" y="14" text-anchor="end">20.7°</text><text x="172" y="14" text-anchor="end">2.5</text><text x="252" y="14" text-anchor="end">0.4</text><text x="332" y="14" text-anchor="end">82 %</text><rect x="408" y="8" width="22" height="4" rx="2" fill="#7A9466"/><line x1="0" y1="22" x2="444" y2="22" stroke="#EDE6D3"/></g>
+      <g transform="translate(0, 240)"><text x="14" y="14">00:00</text><text x="92" y="14" text-anchor="end">19.8°</text><text x="172" y="14" text-anchor="end">1.9</text><text x="252" y="14" text-anchor="end">0.0</text><text x="332" y="14" text-anchor="end">68 %</text><rect x="408" y="8" width="24" height="4" rx="2" fill="#7A9466"/><line x1="0" y1="22" x2="444" y2="22" stroke="#EDE6D3"/></g>
+      <g transform="translate(0, 264)"><text x="14" y="14">01:00</text><text x="92" y="14" text-anchor="end">19.0°</text><text x="172" y="14" text-anchor="end">1.5</text><text x="252" y="14" text-anchor="end">0.0</text><text x="332" y="14" text-anchor="end">52 %</text><rect x="408" y="8" width="24" height="4" rx="2" fill="#7A9466"/><line x1="0" y1="22" x2="444" y2="22" stroke="#EDE6D3"/></g>
+      <g transform="translate(0, 288)"><text x="14" y="14">02:00</text><text x="92" y="14" text-anchor="end">18.4°</text><text x="172" y="14" text-anchor="end">1.3</text><text x="252" y="14" text-anchor="end">0.0</text><text x="332" y="14" text-anchor="end">38 %</text><rect x="408" y="8" width="22" height="4" rx="2" fill="#7A9466"/><line x1="0" y1="22" x2="444" y2="22" stroke="#EDE6D3"/></g>
+      <g transform="translate(0, 312)"><text x="14" y="14">03:00</text><text x="92" y="14" text-anchor="end">17.9°</text><text x="172" y="14" text-anchor="end">1.1</text><text x="252" y="14" text-anchor="end">0.0</text><text x="332" y="14" text-anchor="end">22 %</text><rect x="408" y="8" width="22" height="4" rx="2" fill="#7A9466"/><line x1="0" y1="22" x2="444" y2="22" stroke="#EDE6D3"/></g>
+      <g transform="translate(0, 336)"><text x="14" y="14">04:00</text><text x="92" y="14" text-anchor="end">17.4°</text><text x="172" y="14" text-anchor="end">0.9</text><text x="252" y="14" text-anchor="end">0.0</text><text x="332" y="14" text-anchor="end">14 %</text><rect x="408" y="8" width="20" height="4" rx="2" fill="#7A9466"/><line x1="0" y1="22" x2="444" y2="22" stroke="#EDE6D3"/></g>
+      <g transform="translate(0, 360)"><text x="14" y="14">05:00</text><text x="92" y="14" text-anchor="end">17.0°</text><text x="172" y="14" text-anchor="end">0.7</text><text x="252" y="14" text-anchor="end">0.0</text><text x="332" y="14" text-anchor="end">10 %</text><rect x="408" y="8" width="20" height="4" rx="2" fill="#7A9466"/><line x1="0" y1="22" x2="444" y2="22" stroke="#EDE6D3"/></g>
+      <g transform="translate(0, 384)"><text x="14" y="14">06:00</text><text x="92" y="14" text-anchor="end">17.2°</text><text x="172" y="14" text-anchor="end">0.6</text><text x="252" y="14" text-anchor="end">0.0</text><text x="332" y="14" text-anchor="end">8 %</text><rect x="408" y="8" width="18" height="4" rx="2" fill="#7A9466"/><line x1="0" y1="22" x2="444" y2="22" stroke="#EDE6D3"/></g>
+      <g transform="translate(0, 408)"><text x="14" y="14">07:00</text><text x="92" y="14" text-anchor="end">18.5°</text><text x="172" y="14" text-anchor="end">0.8</text><text x="252" y="14" text-anchor="end">0.0</text><text x="332" y="14" text-anchor="end">6 %</text><rect x="408" y="8" width="18" height="4" rx="2" fill="#7A9466"/><line x1="0" y1="22" x2="444" y2="22" stroke="#EDE6D3"/></g>
+      <g transform="translate(0, 432)"><text x="14" y="14">08:00</text><text x="92" y="14" text-anchor="end">20.2°</text><text x="172" y="14" text-anchor="end">1.1</text><text x="252" y="14" text-anchor="end">0.0</text><text x="332" y="14" text-anchor="end">5 %</text><rect x="408" y="8" width="18" height="4" rx="2" fill="#7A9466"/><line x1="0" y1="22" x2="444" y2="22" stroke="#EDE6D3"/></g>
+      <g transform="translate(0, 456)"><text x="14" y="14">09:00</text><text x="92" y="14" text-anchor="end">22.4°</text><text x="172" y="14" text-anchor="end">1.4</text><text x="252" y="14" text-anchor="end">0.0</text><text x="332" y="14" text-anchor="end">4 %</text><rect x="408" y="8" width="16" height="4" rx="2" fill="#7A9466"/><line x1="0" y1="22" x2="444" y2="22" stroke="#EDE6D3"/></g>
+      <g transform="translate(0, 480)"><text x="14" y="14">10:00</text><text x="92" y="14" text-anchor="end">24.6°</text><text x="172" y="14" text-anchor="end">1.6</text><text x="252" y="14" text-anchor="end">0.0</text><text x="332" y="14" text-anchor="end">8 %</text><rect x="408" y="8" width="16" height="4" rx="2" fill="#7A9466"/><line x1="0" y1="22" x2="444" y2="22" stroke="#EDE6D3"/></g>
+      <g transform="translate(0, 504)"><text x="14" y="14">11:00</text><text x="92" y="14" text-anchor="end">26.0°</text><text x="172" y="14" text-anchor="end">1.8</text><text x="252" y="14" text-anchor="end">0.0</text><text x="332" y="14" text-anchor="end">12 %</text><rect x="408" y="8" width="16" height="4" rx="2" fill="#D4A373"/><line x1="0" y1="22" x2="444" y2="22" stroke="#EDE6D3"/></g>
+      <g transform="translate(0, 528)"><text x="14" y="14">12:00</text><text x="92" y="14" text-anchor="end">26.8°</text><text x="172" y="14" text-anchor="end">2.0</text><text x="252" y="14" text-anchor="end">0.0</text><text x="332" y="14" text-anchor="end">16 %</text><rect x="408" y="8" width="14" height="4" rx="2" fill="#D4A373"/><line x1="0" y1="22" x2="444" y2="22" stroke="#EDE6D3"/></g>
+      <g transform="translate(0, 552)"><text x="14" y="14">13:00</text><text x="92" y="14" text-anchor="end">27.2°</text><text x="172" y="14" text-anchor="end">2.0</text><text x="252" y="14" text-anchor="end">0.0</text><text x="332" y="14" text-anchor="end">20 %</text><rect x="408" y="8" width="14" height="4" rx="2" fill="#D4A373"/></g>
+    </g>
+    
+    <!-- Footer legend -->
+    <g transform="translate(18, 770)">
+      <text font-size="10" font-weight="500" fill="#A89A7A" letter-spacing="2">LESEHILFE</text>
+      <g transform="translate(0, 16)" font-size="10" fill="#8B7355">
+        <circle cx="3" cy="-2" r="2.5" fill="#7A9466"/>
+        <text x="12">Nowcast (erste 3 h, Stationen-anker)</text>
+      </g>
+      <g transform="translate(0, 32)" font-size="10" fill="#8B7355">
+        <rect width="22" height="3" rx="1.5" y="-3" fill="#7A9466"/>
+        <text x="30">Konfidenz Hoch · 80 - 100 %</text>
+      </g>
+      <g transform="translate(0, 48)" font-size="10" fill="#8B7355">
+        <rect width="14" height="3" rx="1.5" y="-3" fill="#D4A373"/>
+        <text x="30">Konfidenz Moderat · 50 - 79 %</text>
+      </g>
+    </g>
+    
+    <g transform="translate(18, 836)">
+      <line x1="0" y1="0" x2="20" y2="0" stroke="#8B7355"/>
+      <text x="28" y="4" font-size="9" font-weight="500" fill="#8B7355" letter-spacing="2">TAB C · TABELLE · 24 H × 6 SPALTEN · STICKY HEADER</text>
+    </g>
+  </g>
+  
+  <!-- Footer -->
+  <g transform="translate(60, 1080)" font-size="9" fill="#A89A7A" font-weight="500" letter-spacing="2">
+    <text>03 · PFC-PANEL · ALLE TABS · SESSION 2/4</text>
+    <text x="1320" text-anchor="end">v1.8 Spec · Section 3.7</text>
+  </g>
+</svg>

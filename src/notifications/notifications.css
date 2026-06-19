@@ -1,0 +1,118 @@
+/* Epic PUSH — Benachrichtigungen. buscosun-Designsprache (weiße Flächen,
+   border-default, Pill-Buttons, Ink-Primary). Nur im Event-Feature genutzt. */
+
+/* --- gemeinsame Buttons (Pill) --- */
+.nf-btn {
+  border: 1px solid var(--border-default, #E0D6BE); background: #fff;
+  color: var(--ink-800, #3A3833); border-radius: 999px; padding: 0.5rem 1.1rem;
+  font-family: inherit; font-size: 0.84rem; font-weight: 500; cursor: pointer;
+  transition: background 0.14s, border-color 0.14s, opacity 0.14s;
+}
+.nf-btn:hover { border-color: var(--border-medium, #D9D0B8); }
+.nf-btn:disabled { opacity: 0.45; cursor: default; }
+.nf-btn-primary { background: var(--ink-900, #2C2A26); border-color: var(--ink-900, #2C2A26); color: #fff; }
+.nf-btn-primary:hover { background: #000; border-color: #000; }
+.nf-btn-ghost { background: none; }
+.nf-btn-ghost:hover { background: var(--sand-50, #F5F1E8); }
+
+/* === PUSH-US1 · Toggle-Karte ============================================== */
+.nf-toggle { display: flex; flex-direction: column; gap: 0.95rem; margin-top: 1.1rem; padding: 1.2rem 1.3rem; }
+.nf-toggle-on { border-left: 4px solid var(--sage-600, #7A9466); }
+.nf-toggle-head { display: flex; align-items: center; gap: 0.75rem; }
+.nf-toggle-icon { font-size: 1.5rem; line-height: 1; flex: 0 0 auto; }
+.nf-toggle-eyebrow { display: block; }
+.nf-toggle-title { display: block; font-size: 1.02rem; font-weight: 500; color: var(--ink-900, #2C2A26); }
+.nf-toggle-off-btn { margin-left: auto; flex: 0 0 auto; padding: 0.35rem 0.9rem; border-radius: 999px; font-size: 0.78rem; }
+.nf-toggle-lead { font-size: 0.9rem; color: var(--stone-600, #5C5447); line-height: 1.5; margin: 0; }
+.nf-note { font-size: 0.76rem; color: var(--stone-500, #8B7355); line-height: 1.5; margin: 0; }
+.nf-toggle-foot { display: flex; align-items: center; gap: 0.9rem; flex-wrap: wrap; padding-top: 0.4rem; border-top: 1px solid var(--border-default, #E0D6BE); }
+
+/* Arten als Schalterliste */
+.nf-kinds { display: flex; flex-direction: column; gap: 0.6rem; }
+.nf-kind { display: flex; align-items: flex-start; gap: 0.7rem; padding: 0.7rem 0.85rem; border-radius: 14px;
+  border: 1px solid var(--border-default, #E0D6BE); background: var(--cream-50, #FAF6EA); cursor: pointer; }
+.nf-kind.is-on { border-color: #cdddbf; background: var(--sage-50, #F0F4EA); }
+.nf-kind-text { display: flex; flex-direction: column; gap: 0.12rem; }
+.nf-kind-label { font-size: 0.9rem; font-weight: 500; color: var(--ink-900, #2C2A26); display: flex; align-items: center; gap: 0.4rem; }
+.nf-kind-badge { font-size: 0.6rem; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 700;
+  color: var(--sage-600, #5E7A4C); background: var(--sage-50, #F0F4EA); border: 1px solid #cdddbf; padding: 0.1rem 0.45rem; border-radius: 999px; }
+.nf-kind-desc { font-size: 0.76rem; color: var(--stone-500, #8B7355); line-height: 1.45; }
+
+/* Switch */
+.nf-switch { flex: 0 0 auto; width: 38px; height: 22px; border-radius: 999px; border: none; cursor: pointer;
+  background: var(--sand-300, #D9CEB0); padding: 0; position: relative; transition: background 0.15s; margin-top: 0.1rem; }
+.nf-switch.is-on { background: var(--sage-600, #7A9466); }
+.nf-switch-knob { position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%;
+  background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.2); transition: transform 0.15s; }
+.nf-switch.is-on .nf-switch-knob { transform: translateX(16px); }
+
+/* Berechtigungs-Hinweis */
+.nf-perm { font-size: 0.76rem; color: var(--stone-500, #8B7355); margin-left: auto; }
+.nf-perm-ok { color: var(--sage-600, #5E7A4C); }
+.nf-perm-warn { color: var(--terracotta-700, #A85E2E); }
+.nf-perm-link { background: none; border: none; cursor: pointer; text-decoration: underline; color: var(--terracotta-700, #A85E2E); padding: 0; font-family: inherit; }
+
+/* === Glocke + Drawer ====================================================== */
+.nf-bell { position: relative; border: 1px solid var(--border-default, #E0D6BE); background: #fff;
+  width: 36px; height: 36px; border-radius: 50%; cursor: pointer; font-size: 1.02rem; line-height: 1; transition: border-color 0.14s; }
+.nf-bell:hover { border-color: var(--border-medium, #D9D0B8); }
+.nf-bell-badge { position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; padding: 0 4px; box-sizing: border-box;
+  background: var(--terracotta-500, #C97B47); color: #fff; border-radius: 999px; font-size: 0.66rem; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; }
+
+.nf-scrim { position: fixed; inset: 0; background: rgba(44,42,38,0.28); z-index: 60; }
+.nf-drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(420px, 92vw); z-index: 61;
+  background: var(--sand-50, #F5F1E8); box-shadow: -12px 0 40px rgba(44,42,38,0.16); display: flex; flex-direction: column;
+  animation: nf-slide-in 0.18s ease-out; }
+@keyframes nf-slide-in { from { transform: translateX(20px); opacity: 0.4; } to { transform: translateX(0); opacity: 1; } }
+.nf-drawer-head { display: flex; align-items: center; justify-content: space-between; padding: 1.1rem 1.3rem;
+  border-bottom: 1px solid var(--border-default, #E0D6BE); font-size: 1.05rem; font-weight: 500; color: var(--ink-900, #2C2A26); }
+.nf-drawer-close { border: none; background: none; font-size: 1.5rem; line-height: 1; color: var(--stone-500, #8B7355); cursor: pointer; }
+.nf-drawer-body { overflow-y: auto; padding: 1.1rem 1.3rem 2rem; display: flex; flex-direction: column; gap: 1.5rem; }
+
+.nf-section { display: flex; flex-direction: column; gap: 0.7rem; }
+.nf-section-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.nf-empty { font-size: 0.84rem; color: var(--stone-500, #8B7355); line-height: 1.5; margin: 0; }
+.nf-check { font-size: 0.78rem; padding: 0.4rem 0.85rem; }
+
+/* PUSH-US4 · globale Steuerung */
+.nf-pauseall { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; flex-wrap: wrap;
+  padding: 0.75rem 0.9rem; border-radius: 14px; background: #fff; border: 1px solid var(--border-default, #E0D6BE); font-size: 0.85rem; color: var(--ink-800, #3A3833); }
+.nf-pauseall.is-paused { background: var(--terracotta-50, #FAEEDA); border-color: #f0d6b8; }
+.nf-pause-actions { display: flex; gap: 0.4rem; }
+.nf-limits { display: flex; gap: 0.7rem; flex-wrap: wrap; }
+.nf-limit { display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.76rem; color: var(--stone-600, #5C5447); flex: 1; min-width: 130px; }
+.nf-limit select { padding: 0.45rem 0.6rem; border-radius: 10px; border: 1px solid var(--border-default, #E0D6BE);
+  background: #fff; font-family: inherit; font-size: 0.85rem; color: var(--ink-900, #2C2A26); }
+
+/* PUSH-US1 · Subscription-Liste */
+.nf-sub-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+.nf-sub { display: flex; align-items: center; gap: 0.6rem; padding: 0.7rem 0.8rem; border-radius: 14px;
+  border: 1px solid var(--border-default, #E0D6BE); background: #fff; }
+.nf-sub.is-paused { opacity: 0.6; }
+.nf-sub-main { display: flex; flex-direction: column; gap: 0.12rem; min-width: 0; flex: 1; }
+.nf-sub-title { font-size: 0.88rem; font-weight: 500; color: var(--ink-900, #2C2A26); }
+.nf-sub-sub { font-size: 0.74rem; color: var(--stone-500, #8B7355); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nf-sub-actions { display: flex; gap: 0.3rem; flex: 0 0 auto; }
+.nf-icon-btn { border: 1px solid var(--border-default, #E0D6BE); background: #fff; border-radius: 999px;
+  width: 30px; height: 30px; cursor: pointer; font-size: 0.85rem; line-height: 1; }
+.nf-icon-btn:hover { border-color: var(--border-medium, #D9D0B8); }
+.nf-icon-danger:hover { background: var(--terracotta-50, #FAEEDA); border-color: #f0d6b8; }
+
+/* Inbox */
+.nf-inbox-actions { display: flex; gap: 0.7rem; }
+.nf-link { border: none; background: none; cursor: pointer; font-family: inherit; font-size: 0.76rem; color: var(--stone-600, #5C5447); text-decoration: underline; padding: 0; }
+.nf-inbox { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+.nf-inbox-item { display: flex; gap: 0.6rem; padding: 0.75rem 0.8rem; border-radius: 14px; cursor: pointer;
+  border: 1px solid var(--border-default, #E0D6BE); background: #fff; align-items: flex-start; position: relative; }
+.nf-inbox-item.is-unread { border-color: #cdddbf; background: var(--sage-50, #F0F4EA); }
+.nf-inbox-icon { font-size: 1.15rem; line-height: 1.2; flex: 0 0 auto; }
+.nf-inbox-text { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
+.nf-inbox-title { font-size: 0.86rem; font-weight: 500; color: var(--ink-900, #2C2A26); }
+.nf-inbox-body { font-size: 0.8rem; color: var(--stone-600, #5C5447); line-height: 1.45; }
+.nf-inbox-time { font-size: 0.7rem; color: var(--stone-400, #A89A7A); }
+.nf-inbox-dot { position: absolute; top: 0.75rem; right: 0.75rem; width: 8px; height: 8px; border-radius: 50%; background: var(--sage-600, #7A9466); flex: 0 0 auto; }
+
+/* Glocken-Icons (SVG) */
+.nf-toggle-icon { display: inline-flex; align-items: center; color: var(--terracotta-500, #C97B47); }
+.nf-bell { color: var(--stone-600, #5C5447); display: inline-flex; align-items: center; justify-content: center; }

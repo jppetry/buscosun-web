@@ -1,0 +1,333 @@
+/* Regenradar — eingebetteter High-End-Radar-Block in der „Regenradar"-Seite.
+ *
+ * Designsprache nach buscosun Design-System v1.8:
+ *   · Auswahl/aktiver Modus  → ink-900 (dunkles Pill, wie nc-mode-/nc-seg-Toggle)
+ *   · Daten-„An" / Live / Play → steel-600 (#3A6FA8, Niederschlag-Semantik)
+ *   · Flächen Sand/Cream, Borders #E0D6BE, Eyebrows uppercase ls
+ *   · Icons: feine Line-SVGs (radarIcons.tsx), currentColor, runde Enden
+ */
+
+.nc-radar {
+  --rdr-blue: #3A6FA8;
+  --rdr-blue-dark: #28507A;
+  padding: 1rem 1.1rem 0.95rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+.nc-radar svg { flex: none; }
+
+/* ===== Steuerleiste (Ebenen + Einstellungen) ===== */
+.nc-rchip {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  border: 1px solid var(--sand-200, #E0D6BE);
+  background: var(--cream-50, #FAF6EA);
+  border-radius: 999px;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  color: var(--ink-800, #3A3833);
+  font-family: inherit;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.nc-rchip svg { color: var(--stone-500, #8B7355); transition: color 0.15s; }
+.nc-rchip:hover { border-color: var(--rdr-blue); background: var(--steel-50, #E8F0FA); }
+.nc-rchip:hover svg { color: var(--rdr-blue); }
+.nc-rchip.is-active { background: var(--ink-900, #2C2A26); color: var(--cream-50, #FAF6EA); border-color: var(--ink-900, #2C2A26); }
+.nc-rchip.is-active svg { color: var(--cream-50, #FAF6EA); }
+.nc-rchip-layers { margin-left: auto; }
+.nc-rchip-caret { transition: transform 0.18s ease; }
+.nc-rchip-caret.is-open { transform: rotate(180deg); }
+
+/* ===== Layer-/Darstellungs-Panel (ausklappbar) ===== */
+.nc-radar-panel {
+  background: var(--cream-50, #FAF6EA);
+  border: 1px solid var(--sand-200, #E0D6BE);
+  border-radius: 14px;
+  padding: 0.9rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.nc-radar-group { display: flex; flex-direction: column; gap: 0.5rem; }
+.nc-radar-eyebrow {
+  font-size: 0.62rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--stone-500, #8B7355);
+}
+/* Ebenen-Zeile direkt unter den Presets — immer sichtbar */
+.nc-radar-layersbar { display: flex; align-items: center; flex-wrap: wrap; gap: 0.45rem 0.6rem; }
+.nc-radar-layersbar .nc-radar-eyebrow { margin-right: 0.1rem; }
+.nc-radar-toggles { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.nc-rtoggle {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  border: 1px solid var(--sand-200, #E0D6BE);
+  background: #fff;
+  border-radius: 999px;
+  padding: 0.36rem 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--ink-800, #3A3833);
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.nc-rtoggle svg { color: var(--stone-500, #8B7355); transition: color 0.15s; }
+.nc-rtoggle:hover { border-color: var(--rdr-blue); }
+.nc-rtoggle:hover svg { color: var(--rdr-blue); }
+.nc-rtoggle.is-on { background: var(--rdr-blue); color: #fff; border-color: var(--rdr-blue); }
+.nc-rtoggle.is-on svg { color: #fff; }
+
+.nc-radar-seg-row { display: flex; align-items: center; gap: 0.7rem; font-size: 0.78rem; }
+.nc-radar-seg-label {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  min-width: 8.5rem; font-weight: 500; color: var(--ink-800, #3A3833);
+}
+.nc-radar-seg-label svg { color: var(--stone-500, #8B7355); }
+.nc-radar-seg-val { font-style: normal; color: var(--stone-500, #8B7355); font-variant-numeric: tabular-nums; }
+.nc-radar-seg-row input[type=range] { flex: 1; accent-color: var(--rdr-blue); }
+.nc-radar-seg { display: flex; gap: 3px; background: var(--sand-100, #EDE6D3); border-radius: 10px; padding: 3px; }
+.nc-radar-seg button {
+  border: 0;
+  background: transparent;
+  border-radius: 7px;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.74rem;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--stone-600, #5C5447);
+  transition: background 0.15s, color 0.15s;
+}
+.nc-radar-seg button:hover { color: var(--ink-900, #2C2A26); }
+.nc-radar-seg button.is-active {
+  background: var(--ink-900, #2C2A26);
+  color: var(--cream-50, #FAF6EA);
+}
+.nc-radar-check {
+  display: flex; align-items: center; gap: 0.5rem; font-size: 0.78rem;
+  color: var(--stone-600, #5C5447); cursor: pointer; margin-top: 0.1rem;
+}
+.nc-radar-check input { accent-color: var(--rdr-blue); width: 0.95rem; height: 0.95rem; }
+
+/* ===== Kartenbühne ===== */
+.nc-radar-stage {
+  position: relative;
+  height: 520px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #dfe6ee;
+  box-shadow: inset 0 0 0 1px var(--sand-200, #E0D6BE);
+}
+.rdr-map { position: absolute; inset: 0; }
+.rdr-map canvas { outline: none; }
+.nc-radar-loading {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+  color: var(--stone-600, #5C5447); font-size: 0.9rem; text-align: center; padding: 1rem;
+}
+.nc-radar-source {
+  position: absolute; top: 0.65rem; left: 0.65rem; z-index: 3;
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  background: rgba(250,246,234,0.94); border: 1px solid rgba(224,214,190,0.7);
+  border-radius: 8px; padding: 0.32rem 0.6rem; font-size: 0.7rem; font-weight: 500;
+  color: var(--stone-600, #5C5447); box-shadow: 0 2px 8px rgba(20,30,50,0.1);
+  backdrop-filter: blur(4px);
+}
+.nc-radar-source svg { color: var(--rdr-blue); }
+.nc-radar-eta {
+  position: absolute; top: 0.65rem; left: 50%; transform: translateX(-50%); z-index: 4; max-width: 92%;
+  display: inline-flex; align-items: center; gap: 0.45rem;
+  background: #7e0028; color: #fff; padding: 0.5rem 0.9rem; border-radius: 10px; font-size: 0.82rem;
+  box-shadow: 0 4px 16px rgba(20,30,50,0.22); text-align: left;
+}
+.nc-radar-eta svg { color: #fff; }
+.nc-radar-hover {
+  position: absolute; bottom: 0.65rem; right: 0.65rem; z-index: 4;
+  background: rgba(44,42,38,0.82); color: #fff; padding: 0.3rem 0.6rem; border-radius: 8px; font-size: 0.82rem;
+  font-variant-numeric: tabular-nums; backdrop-filter: blur(4px);
+}
+.nc-radar-legend {
+  position: absolute; bottom: 0.65rem; left: 0.65rem; z-index: 3; display: flex; flex-wrap: wrap; gap: 0.5rem;
+  background: rgba(250,246,234,0.94); border: 1px solid rgba(224,214,190,0.7);
+  border-radius: 8px; padding: 0.4rem 0.6rem; box-shadow: 0 2px 8px rgba(20,30,50,0.1);
+  backdrop-filter: blur(4px);
+}
+.nc-radar-leg-item { display: flex; align-items: center; gap: 0.3rem; font-size: 0.7rem; color: var(--ink-800, #3A3833); }
+.nc-radar-leg-item i { width: 0.9rem; height: 0.5rem; border-radius: 3px; }
+
+/* Niederschlagsart-Hinweis (Schneefallgrenze) */
+.nc-radar-snownote {
+  position: absolute; top: 2.85rem; left: 0.65rem; z-index: 3; max-width: 60%;
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  background: rgba(250,246,234,0.94); border: 1px solid rgba(224,214,190,0.7);
+  border-radius: 8px; padding: 0.32rem 0.6rem; font-size: 0.7rem; line-height: 1.3;
+  color: var(--stone-600, #5C5447); box-shadow: 0 2px 8px rgba(20,30,50,0.1); backdrop-filter: blur(4px);
+}
+.nc-radar-snownote strong { color: var(--rdr-blue, #2E6CC4); font-variant-numeric: tabular-nums; }
+.nc-radar-snownote-heur { color: var(--stone-500, #8B7355); font-style: italic; }
+@media (max-width: 640px) { .nc-radar-snownote { max-width: calc(100% - 1.3rem); font-size: 0.66rem; } }
+
+/* ===== Datenqualität — gestylt wie nc-help ===== */
+.nc-radar-quality { border: 1px solid var(--sand-200, #E0D6BE); border-radius: 12px; background: var(--cream-50, #FAF6EA); padding: 0.1rem 0.9rem; }
+.nc-radar-quality summary {
+  display: flex; align-items: center; gap: 0.45rem;
+  cursor: pointer; font-size: 0.82rem; font-weight: 600; color: var(--ink-800, #3A372F);
+  padding: 0.6rem 0; list-style: revert;
+}
+.nc-radar-quality summary svg { color: var(--rdr-blue); }
+.nc-radar-quality summary:hover { color: var(--rdr-blue); }
+.nc-radar-quality ul { margin: 0.2rem 0 0.7rem; padding-left: 1.1rem; display: flex; flex-direction: column; gap: 0.3rem; }
+.nc-radar-quality li { font-size: 0.78rem; color: var(--stone-600, #6F5E45); }
+.nc-radar-quality strong { color: var(--ink-800, #3A3833); }
+
+/* ============ Zeitachse (RadarTimeline) ============ */
+.rdr-timeline { background: var(--cream-50, #FAF6EA); border: 1px solid var(--sand-200, #E0D6BE); border-radius: 14px; padding: 0.8rem 1rem 0.85rem; }
+.rdr-tl-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.8rem; margin-bottom: 0.5rem; }
+.rdr-tl-stamp { display: flex; flex-direction: column; align-items: flex-start; gap: 0.3rem; line-height: 1.05; }
+.rdr-tl-stamp strong { font-size: 1.45rem; font-weight: 600; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+.rdr-tl-status {
+  display: inline-flex; align-items: center;
+  font-size: 0.7rem; font-weight: 600; padding: 0.16rem 0.55rem; border-radius: 999px;
+  white-space: nowrap;
+}
+.rdr-tl-status.is-meas { background: #e4f0e2; color: #3c7a2f; }
+.rdr-tl-status.is-fc { background: var(--steel-50, #E8F0FA); color: var(--rdr-blue); }
+.rdr-tl-legend2 { display: flex; gap: 0.7rem; font-size: 0.68rem; color: var(--stone-500, #8B7355); padding-top: 0.3rem; }
+.rdr-tl-key { display: flex; align-items: center; gap: 0.3rem; }
+.rdr-tl-key i { width: 1rem; height: 0.35rem; border-radius: 2px; }
+.rdr-k-meas { background: #3c7a2f; }
+.rdr-k-fc { background-image: repeating-linear-gradient(90deg, var(--rdr-blue) 0 3px, transparent 3px 6px); }
+
+.rdr-tl-track {
+  position: relative; height: 54px; cursor: pointer; touch-action: none; margin: 0.2rem 0 0.1rem;
+  /* dezente „Regenkammer" hinter dem Profil */
+  background: linear-gradient(180deg, rgba(58,111,168,0.05), rgba(58,111,168,0) 62%);
+  border-radius: 8px;
+}
+.rdr-tl-track:focus { outline: 2px solid var(--rdr-blue); outline-offset: 2px; border-radius: 6px; }
+.rdr-tl-track:focus-visible { outline: 2px solid var(--rdr-blue); outline-offset: 2px; border-radius: 6px; }
+/* Regenintensitäts-Profil füllt den oberen Bereich, ohne Scrub-Klicks zu blocken */
+.rdr-tl-profile { position: absolute; top: 0; left: 0; width: 100%; height: 44px; pointer-events: none; overflow: visible; }
+/* Mess-/Vorhersage-Grundlinie unten */
+.rdr-tl-fill-meas { position: absolute; top: 46px; height: 6px; left: 0; background: rgba(60,122,47,0.22); border-radius: 3px 0 0 3px; }
+.rdr-tl-fill-fc { position: absolute; top: 46px; height: 6px; background: repeating-linear-gradient(90deg, rgba(58,111,168,0.22) 0 5px, transparent 5px 10px); border-radius: 0 3px 3px 0; }
+.rdr-tl-tick { display: none; }
+.rdr-tl-break { position: absolute; top: 2px; bottom: 2px; width: 2px; margin-left: -1px; background: var(--ink-900, #2C2A26); border-radius: 1px; opacity: 0.7; }
+/* Thumb als vertikale Scrub-Linie mit Griff oben — passt zum hohen Profil */
+.rdr-tl-thumb { position: absolute; top: 0; bottom: 8px; width: 2px; margin-left: -1px; background: var(--rdr-blue); border-radius: 1px; }
+.rdr-tl-thumb::after {
+  content: ''; position: absolute; top: -3px; left: 50%; transform: translateX(-50%);
+  width: 15px; height: 15px; border-radius: 50%; background: #fff; border: 2.5px solid var(--rdr-blue); box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+/* Spitzen-Chip in der Kopfzeile der Leiste */
+.rdr-tl-peak { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.68rem; font-weight: 600; color: var(--rdr-blue, #3A6FA8); }
+.rdr-tl-peak-drop { width: 8px; height: 8px; border-radius: 50% 50% 50% 0; transform: rotate(45deg); background: var(--rdr-blue, #3A6FA8); }
+
+/* „jetzt"-Marker — eigene Spur unter der Achse, zeigt auf die Mess-/Vorhersage-Grenze */
+.rdr-tl-nowlane { position: relative; height: 15px; margin: 0 0 0.5rem; }
+.rdr-tl-nowmark { position: absolute; top: 0; transform: translateX(-50%); display: inline-flex; flex-direction: column; align-items: center; gap: 1px; }
+.rdr-tl-nowmark-tip { width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-bottom: 5px solid var(--ink-900, #2C2A26); }
+.rdr-tl-nowmark-txt { font-size: 0.6rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--stone-600, #5C5447); }
+
+.rdr-tl-controls { display: flex; align-items: center; gap: 0.4rem; }
+.rdr-tl-btn {
+  display: grid; place-items: center;
+  border: 1px solid var(--sand-200, #E0D6BE);
+  background: #fff;
+  border-radius: 50%;
+  width: 2.1rem; height: 2.1rem;
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--ink-800, #3A3833);
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.rdr-tl-btn:hover { border-color: var(--rdr-blue); color: var(--rdr-blue); }
+.rdr-tl-play {
+  width: 2.4rem; height: 2.4rem;
+  background: var(--rdr-blue); color: #fff;
+  border-color: var(--rdr-blue);
+  box-shadow: var(--shadow-card, 0 4px 16px rgba(44,42,38,0.06));
+}
+.rdr-tl-play:hover { background: var(--rdr-blue-dark); border-color: var(--rdr-blue-dark); color: #fff; }
+.rdr-tl-now {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  width: auto; height: 2.1rem; padding: 0 0.8rem; border-radius: 999px;
+  font-size: 0.76rem; font-weight: 500;
+}
+.rdr-tl-speeds { display: flex; gap: 3px; margin-left: 0.4rem; background: var(--sand-100, #EDE6D3); border-radius: 9px; padding: 3px; }
+.rdr-tl-speed {
+  border: 0; background: transparent; border-radius: 6px;
+  padding: 0.28rem 0.55rem; font-size: 0.72rem; font-weight: 500; cursor: pointer;
+  font-family: inherit; color: var(--stone-600, #5C5447);
+  transition: background 0.15s, color 0.15s;
+}
+.rdr-tl-speed:hover { color: var(--ink-900, #2C2A26); }
+.rdr-tl-speed.is-active { background: var(--ink-900, #2C2A26); color: var(--cream-50, #FAF6EA); }
+.rdr-tl-loop { margin-left: auto; }
+.rdr-tl-loop.is-active { background: var(--rdr-blue); color: #fff; border-color: var(--rdr-blue); }
+.rdr-tl-loop.is-active:hover { background: var(--rdr-blue-dark); border-color: var(--rdr-blue-dark); color: #fff; }
+
+/* ============ Punkt-Streifen (PointStrip) ============ */
+.rdr-strip {
+  background: var(--cream-50, #FAF6EA);
+  border: 1px solid var(--sand-200, #E0D6BE);
+  border-radius: 16px;
+  padding: 0.9rem 1rem;
+  box-shadow: var(--shadow-card, 0 4px 16px rgba(44,42,38,0.06));
+}
+.rdr-strip-compare { border-left: 4px solid var(--terracotta-500, #C97B47); }
+.rdr-strip-head { display: flex; align-items: center; gap: 0.5rem; }
+.rdr-strip-name { font-weight: 600; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 0.35rem; }
+.rdr-strip-elev { color: var(--stone-500, #8B7355); font-style: normal; font-weight: 400; font-size: 0.78rem; }
+.rdr-strip-x {
+  border: none; background: none; font-size: 1rem; cursor: pointer; color: var(--stone-500, #8B7355);
+  width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center;
+  transition: background 0.15s;
+}
+.rdr-strip-x:hover { background: var(--sand-100, #EDE6D3); }
+.rdr-verdict {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  margin-left: auto; font-size: 0.7rem; font-weight: 600; padding: 0.24rem 0.6rem 0.24rem 0.5rem; border-radius: 999px;
+}
+.rdr-verdict-go { background: #e4f0e2; color: #3c7a2f; }
+.rdr-verdict-caution { background: #fcf3da; color: #9a7b1e; }
+.rdr-verdict-wait { background: #fbe3df; color: #a8431f; }
+.rdr-strip-headline { font-size: 0.95rem; font-weight: 600; margin: 0.6rem 0 0.2rem; color: var(--ink-900, #2C2A26); }
+.rdr-strip-detail { font-size: 0.78rem; color: var(--stone-600, #5C5447); margin: 0 0 0.6rem; }
+.rdr-strip-bars { display: flex; align-items: flex-end; gap: 1px; height: 68px; background: linear-gradient(to top, #f0ead8 0%, #faf6ee 100%); border-radius: 8px; padding: 0 3px; }
+.rdr-bar { flex: 1; border-radius: 2px 2px 0 0; min-height: 2px; }
+.rdr-bar.is-fc { opacity: 0.78; }
+.rdr-strip-axis { display: flex; justify-content: space-between; font-size: 0.62rem; color: var(--stone-500, #8B7355); margin-top: 0.25rem; padding: 0 3px; font-variant-numeric: tabular-nums; }
+.rdr-strip-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.6rem; }
+.rdr-chip {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  font-size: 0.68rem; font-weight: 500; color: var(--ink-800, #3A3833);
+  background: var(--sand-100, #EDE6D3); border-radius: 999px; padding: 0.24rem 0.6rem;
+}
+.rdr-chip svg { color: var(--stone-500, #8B7355); }
+.rdr-chip-snow { background: #e8f0fb; color: #2c5a86; }
+.rdr-chip-snow svg { color: var(--rdr-blue); }
+.rdr-chip-warn { background: #fbe3df; color: #a8431f; }
+.rdr-chip-warn svg { color: #a8431f; }
+.rdr-chip-muted { color: var(--stone-500, #8B7355); background: transparent; border: 1px solid var(--sand-200, #E0D6BE); }
+.rdr-chip-pop { background: #e8f0fb; color: #28507A; font-weight: 600; }
+.rdr-chip-pop svg { color: var(--rdr-blue); }
+.rdr-chip-storm { background: #fbf0db; color: #8a5a12; font-weight: 600; }
+.rdr-chip-storm svg { color: #b8791a; }
+
+.ev-spinner { width: 1rem; height: 1rem; border: 2px solid var(--sand-200, #E0D6BE); border-top-color: var(--rdr-blue); border-radius: 999px; display: inline-block; animation: rdr-spin 0.8s linear infinite; }
+@keyframes rdr-spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 720px) {
+  .nc-radar { padding: 0.85rem 0.85rem 0.75rem; }
+  .nc-radar-stage { height: 60vh; }
+  .rdr-tl-stamp strong { font-size: 1.15rem; }
+  .nc-radar-seg-row { flex-wrap: wrap; }
+  .nc-radar-seg-label { min-width: 0; }
+  /* Zeit-Steuerung darf umbrechen statt seitlich überzulaufen */
+  .rdr-tl-controls { flex-wrap: wrap; row-gap: 0.45rem; justify-content: center; }
+  .rdr-tl-loop { margin-left: 0; }
+  .rdr-tl-speeds { margin-left: auto; }
+}
+@media (prefers-reduced-motion: reduce) { .ev-spinner { animation: none; } .nc-rchip-caret { transition: none; } }

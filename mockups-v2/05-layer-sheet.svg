@@ -1,0 +1,340 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" font-family="ui-sans-serif, system-ui, -apple-system">
+  <defs>
+    <linearGradient id="bg05" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F5F1E8"/>
+      <stop offset="100%" stop-color="#EDE6D3"/>
+    </linearGradient>
+    <linearGradient id="mapBase05" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#E8DFC4"/>
+      <stop offset="100%" stop-color="#D4C8A3"/>
+    </linearGradient>
+    <linearGradient id="windRamp" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#7A9466"/>
+      <stop offset="25%" stop-color="#A8B89A"/>
+      <stop offset="50%" stop-color="#D4A373"/>
+      <stop offset="75%" stop-color="#C97B47"/>
+      <stop offset="100%" stop-color="#A85E2E"/>
+    </linearGradient>
+    <linearGradient id="rainRamp" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#E8DFC4"/>
+      <stop offset="40%" stop-color="#9CB0C8"/>
+      <stop offset="100%" stop-color="#3A6FA8"/>
+    </linearGradient>
+    <linearGradient id="tempRamp" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#3A6FA8"/>
+      <stop offset="40%" stop-color="#F5F1E8"/>
+      <stop offset="70%" stop-color="#D4A373"/>
+      <stop offset="100%" stop-color="#A85E2E"/>
+    </linearGradient>
+  </defs>
+  
+  <rect width="1440" height="900" fill="url(#bg05)"/>
+  
+  <!-- TOP NAV -->
+  <g>
+    <g transform="translate(32, 24)">
+      <circle cx="14" cy="14" r="6" fill="#2C2A26"/>
+      <g stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round">
+        <line x1="14" y1="0" x2="14" y2="3"/>
+        <line x1="14" y1="25" x2="14" y2="28"/>
+        <line x1="0" y1="14" x2="3" y2="14"/>
+        <line x1="25" y1="14" x2="28" y2="14"/>
+      </g>
+      <text x="42" y="20" font-size="18" font-weight="500" fill="#2C2A26" letter-spacing="-0.5">buscosun</text>
+    </g>
+    
+    <g transform="translate(280, 18)">
+      <rect width="500" height="40" rx="20" fill="#FFFFFF" stroke="#D9D0B8" stroke-width="0.5"/>
+      <circle cx="22" cy="20" r="7" stroke="#8B7355" stroke-width="1.5" fill="none"/>
+      <text x="44" y="25" font-size="13" fill="#5C5447">München, Marienplatz</text>
+    </g>
+    
+    <g transform="translate(1130, 18)">
+      <rect width="120" height="40" rx="20" fill="#FFFFFF" stroke="#D9D0B8" stroke-width="0.5"/>
+      <rect x="4" y="4" width="52" height="32" rx="16" fill="#2C2A26"/>
+      <text x="30" y="25" font-size="12" font-weight="500" fill="#F5F1E8" text-anchor="middle">2D</text>
+      <text x="86" y="25" font-size="12" fill="#5C5447" text-anchor="middle">3D</text>
+    </g>
+    
+    <!-- Layer button - active state -->
+    <g transform="translate(1262, 18)">
+      <rect width="40" height="40" rx="20" fill="#2C2A26"/>
+      <g transform="translate(13, 14)" stroke="#F5F1E8" stroke-width="1.5" stroke-linecap="round" fill="none">
+        <line x1="0" y1="0" x2="14" y2="0"/>
+        <line x1="0" y1="6" x2="14" y2="6"/>
+        <line x1="0" y1="12" x2="14" y2="12"/>
+      </g>
+    </g>
+    
+    <g transform="translate(1314, 18)">
+      <rect width="40" height="40" rx="20" fill="#FFFFFF" stroke="#D9D0B8" stroke-width="0.5"/>
+      <circle cx="20" cy="20" r="7" fill="#7A9466"/>
+      <text x="20" y="24" font-size="9" fill="#FFFFFF" text-anchor="middle" font-weight="500">JS</text>
+    </g>
+  </g>
+  
+  <!-- ============ DIMMED MAP CANVAS ============ -->
+  <g transform="translate(32, 76)" opacity="0.4">
+    <rect width="860" height="800" rx="20" fill="url(#mapBase05)"/>
+  </g>
+  
+  <!-- ============ RIGHT FORECAST PANEL (dimmed) ============ -->
+  <g transform="translate(908, 76)" opacity="0.3">
+    <rect width="500" height="800" rx="20" fill="#FFFFFF"/>
+  </g>
+  
+  <!-- ============ LAYER PANEL EXPANDED (overlay) ============ -->
+  <g transform="translate(440, 116)">
+    <rect width="640" height="720" rx="22" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    
+    <!-- Header -->
+    <g transform="translate(28, 26)">
+      <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">VISUALISIERUNG</text>
+      <text y="28" font-size="24" font-weight="500" fill="#2C2A26" letter-spacing="-0.5">Layer-Stack</text>
+      <text y="50" font-size="12" fill="#5C5447">Wähle bis zu 3 Layer gleichzeitig · Reihenfolge bestimmt Sichtbarkeit</text>
+      
+      <!-- Close X -->
+      <g transform="translate(560, 8)">
+        <circle r="16" fill="#F5F1E8"/>
+        <line x1="-5" y1="-5" x2="5" y2="5" stroke="#5C5447" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="-5" y1="5" x2="5" y2="-5" stroke="#5C5447" stroke-width="1.5" stroke-linecap="round"/>
+      </g>
+    </g>
+    
+    <!-- Layer rows -->
+    
+    <!-- ===== WIND LAYER (active) ===== -->
+    <g transform="translate(28, 110)">
+      <rect width="584" height="92" rx="14" fill="#F5F1E8" stroke="#2C2A26" stroke-width="1.5"/>
+      
+      <!-- Reorder handle -->
+      <g transform="translate(14, 38)" stroke="#A89A7A" stroke-width="1.5" stroke-linecap="round">
+        <line x1="0" y1="0" x2="8" y2="0"/>
+        <line x1="0" y1="6" x2="8" y2="6"/>
+        <line x1="0" y1="12" x2="8" y2="12"/>
+      </g>
+      
+      <!-- Icon -->
+      <g transform="translate(40, 22)">
+        <rect width="48" height="48" rx="12" fill="#2C2A26"/>
+        <g stroke="#F5F1E8" stroke-width="1.5" fill="none" stroke-linecap="round">
+          <path d="M 12 20 Q 24 14 36 20"/>
+          <path d="M 12 26 Q 24 20 36 26"/>
+          <path d="M 12 32 Q 24 26 36 32"/>
+        </g>
+      </g>
+      
+      <!-- Title + description -->
+      <g transform="translate(104, 22)">
+        <text font-size="9" fill="#A85E2E" letter-spacing="2" font-weight="600">AKTIV · LAYER 1</text>
+        <text y="20" font-size="16" fill="#2C2A26" font-weight="500">Wind-Strömung</text>
+        <text y="40" font-size="11" fill="#5C5447">Animierte Streamlines + Geschwindigkeits-Farbcode</text>
+      </g>
+      
+      <!-- Color ramp -->
+      <g transform="translate(380, 28)">
+        <text font-size="9" fill="#A89A7A" letter-spacing="1" font-weight="500">SKALA · km/h</text>
+        <rect y="12" width="160" height="8" rx="4" fill="url(#windRamp)"/>
+        <g transform="translate(0, 30)" font-size="9" fill="#5C5447">
+          <text x="0">0</text>
+          <text x="40">20</text>
+          <text x="80" text-anchor="middle">40</text>
+          <text x="120">60</text>
+          <text x="160" text-anchor="end">80+</text>
+        </g>
+      </g>
+      
+      <!-- Toggle -->
+      <g transform="translate(560, 38)">
+        <rect width="40" height="22" rx="11" fill="#2C2A26"/>
+        <circle cx="29" cy="11" r="8" fill="#FFFFFF"/>
+      </g>
+    </g>
+    
+    <!-- ===== TEMPERATURE LAYER (active) ===== -->
+    <g transform="translate(28, 214)">
+      <rect width="584" height="92" rx="14" fill="#F5F1E8" stroke="#2C2A26" stroke-width="1.5"/>
+      
+      <g transform="translate(14, 38)" stroke="#A89A7A" stroke-width="1.5" stroke-linecap="round">
+        <line x1="0" y1="0" x2="8" y2="0"/>
+        <line x1="0" y1="6" x2="8" y2="6"/>
+        <line x1="0" y1="12" x2="8" y2="12"/>
+      </g>
+      
+      <g transform="translate(40, 22)">
+        <rect width="48" height="48" rx="12" fill="#FFFFFF" stroke="#D9D0B8"/>
+        <circle cx="24" cy="32" r="5" fill="#C97B47"/>
+        <rect x="22" y="14" width="4" height="16" rx="2" fill="#C97B47"/>
+      </g>
+      
+      <g transform="translate(104, 22)">
+        <text font-size="9" fill="#7A9466" letter-spacing="2" font-weight="600">AKTIV · LAYER 2</text>
+        <text y="20" font-size="16" fill="#2C2A26" font-weight="500">Temperatur</text>
+        <text y="40" font-size="11" fill="#5C5447">2 m AGL · Heatmap mit Höhen-Korrektur</text>
+      </g>
+      
+      <g transform="translate(380, 28)">
+        <text font-size="9" fill="#A89A7A" letter-spacing="1" font-weight="500">SKALA · °C</text>
+        <rect y="12" width="160" height="8" rx="4" fill="url(#tempRamp)"/>
+        <g transform="translate(0, 30)" font-size="9" fill="#5C5447">
+          <text x="0">−20</text>
+          <text x="40">−5</text>
+          <text x="80" text-anchor="middle">10</text>
+          <text x="120">25</text>
+          <text x="160" text-anchor="end">40°</text>
+        </g>
+      </g>
+      
+      <g transform="translate(560, 38)">
+        <rect width="40" height="22" rx="11" fill="#2C2A26"/>
+        <circle cx="29" cy="11" r="8" fill="#FFFFFF"/>
+      </g>
+    </g>
+    
+    <!-- ===== RAIN LAYER (inactive) ===== -->
+    <g transform="translate(28, 318)">
+      <rect width="584" height="92" rx="14" fill="transparent" stroke="#E0D6BE" stroke-width="1"/>
+      
+      <g transform="translate(14, 38)" stroke="#A89A7A" stroke-width="1.5" stroke-linecap="round" opacity="0.5">
+        <line x1="0" y1="0" x2="8" y2="0"/>
+        <line x1="0" y1="6" x2="8" y2="6"/>
+        <line x1="0" y1="12" x2="8" y2="12"/>
+      </g>
+      
+      <g transform="translate(40, 22)">
+        <rect width="48" height="48" rx="12" fill="#F5F1E8"/>
+        <g stroke="#5C5447" stroke-width="1.5" stroke-linecap="round">
+          <line x1="16" y1="14" x2="16" y2="24"/>
+          <line x1="24" y1="16" x2="24" y2="28"/>
+          <line x1="32" y1="14" x2="32" y2="24"/>
+          <line x1="20" y1="28" x2="20" y2="36"/>
+          <line x1="28" y1="28" x2="28" y2="36"/>
+        </g>
+      </g>
+      
+      <g transform="translate(104, 22)">
+        <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">INAKTIV</text>
+        <text y="20" font-size="16" fill="#2C2A26" font-weight="500">Niederschlag · RADOLAN</text>
+        <text y="40" font-size="11" fill="#5C5447">5-Minuten-Update · 0–90 min Nowcast</text>
+      </g>
+      
+      <g transform="translate(380, 28)">
+        <text font-size="9" fill="#A89A7A" letter-spacing="1" font-weight="500">SKALA · mm/h</text>
+        <rect y="12" width="160" height="8" rx="4" fill="url(#rainRamp)" opacity="0.4"/>
+        <g transform="translate(0, 30)" font-size="9" fill="#A89A7A">
+          <text x="0">0</text>
+          <text x="80" text-anchor="middle">5</text>
+          <text x="160" text-anchor="end">20+</text>
+        </g>
+      </g>
+      
+      <g transform="translate(560, 38)">
+        <rect width="40" height="22" rx="11" fill="#D9D0B8"/>
+        <circle cx="11" cy="11" r="8" fill="#FFFFFF"/>
+      </g>
+    </g>
+    
+    <!-- ===== DACH PHENOMENA LAYER (active, special) ===== -->
+    <g transform="translate(28, 422)">
+      <rect width="584" height="92" rx="14" fill="#FAEEDA" stroke="#C97B47" stroke-width="1.5"/>
+      
+      <g transform="translate(14, 38)" stroke="#A89A7A" stroke-width="1.5" stroke-linecap="round">
+        <line x1="0" y1="0" x2="8" y2="0"/>
+        <line x1="0" y1="6" x2="8" y2="6"/>
+        <line x1="0" y1="12" x2="8" y2="12"/>
+      </g>
+      
+      <g transform="translate(40, 22)">
+        <rect width="48" height="48" rx="12" fill="#C97B47"/>
+        <text x="24" y="34" font-size="22" fill="#FFFFFF" text-anchor="middle" font-weight="700">▲</text>
+      </g>
+      
+      <g transform="translate(104, 22)">
+        <text font-size="9" fill="#A85E2E" letter-spacing="2" font-weight="600">AKTIV · LAYER 3</text>
+        <text y="20" font-size="16" fill="#2C2A26" font-weight="500">DACH-Phänomene</text>
+        <text y="40" font-size="11" fill="#5C5447">Föhn · Inversion · Cold-Pool · benannt im UI</text>
+      </g>
+      
+      <!-- Sub-toggles -->
+      <g transform="translate(380, 30)">
+        <text font-size="9" fill="#A89A7A" letter-spacing="1" font-weight="500">SUB-ELEMENTE</text>
+        <g transform="translate(0, 14)">
+          <rect width="50" height="22" rx="11" fill="#C97B47"/>
+          <text x="25" y="14" font-size="10" fill="#FFFFFF" text-anchor="middle" font-weight="500">Föhn</text>
+        </g>
+        <g transform="translate(58, 14)">
+          <rect width="64" height="22" rx="11" fill="#FFFFFF" stroke="#C97B47"/>
+          <text x="32" y="14" font-size="10" fill="#A85E2E" text-anchor="middle" font-weight="500">Inversion</text>
+        </g>
+        <g transform="translate(130, 14)">
+          <rect width="44" height="22" rx="11" fill="#FFFFFF" stroke="#C97B47"/>
+          <text x="22" y="14" font-size="10" fill="#A85E2E" text-anchor="middle" font-weight="500">Pool</text>
+        </g>
+      </g>
+      
+      <g transform="translate(560, 38)">
+        <rect width="40" height="22" rx="11" fill="#2C2A26"/>
+        <circle cx="29" cy="11" r="8" fill="#FFFFFF"/>
+      </g>
+    </g>
+    
+    <!-- ===== LIGHTNING LAYER (inactive) ===== -->
+    <g transform="translate(28, 526)">
+      <rect width="584" height="92" rx="14" fill="transparent" stroke="#E0D6BE" stroke-width="1"/>
+      
+      <g transform="translate(14, 38)" stroke="#A89A7A" stroke-width="1.5" stroke-linecap="round" opacity="0.5">
+        <line x1="0" y1="0" x2="8" y2="0"/>
+        <line x1="0" y1="6" x2="8" y2="6"/>
+        <line x1="0" y1="12" x2="8" y2="12"/>
+      </g>
+      
+      <g transform="translate(40, 22)">
+        <rect width="48" height="48" rx="12" fill="#F5F1E8"/>
+        <path d="M 24 14 L 18 28 L 22 28 L 20 38 L 30 22 L 26 22 L 28 14 Z" fill="#5C5447"/>
+      </g>
+      
+      <g transform="translate(104, 22)">
+        <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">INAKTIV</text>
+        <text y="20" font-size="16" fill="#2C2A26" font-weight="500">Blitz-Aktivität · DWD-Live</text>
+        <text y="40" font-size="11" fill="#5C5447">Live-Daten + 30 Min Spur · Lightning-Risk-Modell</text>
+      </g>
+      
+      <g transform="translate(380, 28)">
+        <text font-size="9" fill="#A89A7A" letter-spacing="1" font-weight="500">AKTUELL</text>
+        <text y="22" font-size="13" fill="#5C5447" font-weight="500">0 Entladungen</text>
+        <text y="38" font-size="10" fill="#A89A7A">letzte 30 Min · 50 km Radius</text>
+      </g>
+      
+      <g transform="translate(560, 38)">
+        <rect width="40" height="22" rx="11" fill="#D9D0B8"/>
+        <circle cx="11" cy="11" r="8" fill="#FFFFFF"/>
+      </g>
+    </g>
+    
+    <!-- Bottom action bar -->
+    <g transform="translate(28, 644)">
+      <line x1="0" y1="0" x2="584" y2="0" stroke="#E0D6BE"/>
+      
+      <g transform="translate(0, 20)">
+        <text font-size="11" fill="#A89A7A">2 / 3 Layer aktiv · maximale Lesbarkeit</text>
+      </g>
+      
+      <g transform="translate(400, 12)">
+        <g>
+          <rect width="80" height="36" rx="18" fill="transparent" stroke="#2C2A26" stroke-width="1"/>
+          <text x="40" y="22" font-size="12" fill="#2C2A26" text-anchor="middle">Reset</text>
+        </g>
+        <g transform="translate(92, 0)">
+          <rect width="92" height="36" rx="18" fill="#2C2A26"/>
+          <text x="46" y="22" font-size="12" fill="#F5F1E8" text-anchor="middle" font-weight="500">Anwenden</text>
+        </g>
+      </g>
+    </g>
+  </g>
+  
+  <!-- LABEL -->
+  <g transform="translate(32, 880)">
+    <text font-size="10" fill="#A89A7A" letter-spacing="3" font-weight="500">05 · LAYER-SHEET AUFGEKLAPPT · DESKTOP</text>
+    <text x="1376" font-size="10" fill="#A89A7A" letter-spacing="2" text-anchor="end">Layer-Reorder · Sub-Toggles · Live-Skalen</text>
+  </g>
+</svg>

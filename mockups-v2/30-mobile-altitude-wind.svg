@@ -1,0 +1,353 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 750 2200" font-family="ui-sans-serif, system-ui, -apple-system">
+  <defs>
+    <linearGradient id="bg30" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F5F1E8"/>
+      <stop offset="100%" stop-color="#EDE6D3"/>
+    </linearGradient>
+    <linearGradient id="altGradient" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2C2A26"/>
+      <stop offset="25%" stop-color="#3A3833"/>
+      <stop offset="50%" stop-color="#5C5447"/>
+      <stop offset="75%" stop-color="#8B7355"/>
+      <stop offset="100%" stop-color="#C4B896"/>
+    </linearGradient>
+  </defs>
+  
+  <rect width="750" height="2200" fill="url(#bg30)"/>
+  
+  <!-- STATUS BAR -->
+  <g transform="translate(0, 0)">
+    <rect width="750" height="60" fill="#F5F1E8"/>
+    <text x="60" y="38" font-size="16" fill="#2C2A26" font-weight="600">10:42</text>
+    
+    <g transform="translate(600, 22)">
+      <g fill="#2C2A26">
+        <rect x="0" y="14" width="4" height="6" rx="1"/>
+        <rect x="7" y="10" width="4" height="10" rx="1"/>
+        <rect x="14" y="6" width="4" height="14" rx="1"/>
+        <rect x="21" y="2" width="4" height="18" rx="1"/>
+      </g>
+      <text x="40" y="16" font-size="13" fill="#2C2A26" font-weight="500">5G</text>
+      <g transform="translate(74, 4)">
+        <rect width="32" height="14" rx="3" fill="none" stroke="#2C2A26" stroke-width="1.5"/>
+        <rect x="2" y="2" width="24" height="10" rx="1" fill="#2C2A26"/>
+        <rect x="34" y="4" width="2" height="6" rx="1" fill="#2C2A26"/>
+      </g>
+    </g>
+  </g>
+  
+  <!-- TOP BAR -->
+  <g transform="translate(0, 60)">
+    <rect width="750" height="80" fill="#FFFFFF"/>
+    
+    <g transform="translate(40, 28)">
+      <g transform="translate(0, 12)" stroke="#2C2A26" stroke-width="2.5" fill="none" stroke-linecap="round">
+        <line x1="0" y1="8" x2="20" y2="8"/>
+        <polyline points="7,3 0,8 7,13"/>
+      </g>
+      
+      <g transform="translate(48, 0)">
+        <text font-size="11" fill="#A89A7A" letter-spacing="2" font-weight="500">ZUGSPITZE · ALTITUDE</text>
+        <text y="24" font-size="20" font-weight="500" fill="#2C2A26" letter-spacing="-0.3">Wind nach Höhe</text>
+      </g>
+    </g>
+  </g>
+  
+  <!-- ============ HEADER ============ -->
+  <g transform="translate(40, 180)">
+    <text font-size="13" fill="#A89A7A" letter-spacing="3" font-weight="500">5 ALTITUDE-BÄNDER · JETZT</text>
+    <text y="56" font-size="46" font-weight="200" fill="#2C2A26" letter-spacing="-1.4">In welcher Höhe</text>
+    <text y="100" font-size="46" font-weight="200" fill="#2C2A26" letter-spacing="-1.4">weht der Wind wie?</text>
+    
+    <g transform="translate(0, 130)">
+      <rect width="180" height="32" rx="16" fill="#C97B47"/>
+      <g transform="translate(12, 9)">
+        <path d="M 0 8 L 6 0 L 12 8 Z" fill="#FFFFFF"/>
+        <path d="M 0 16 L 6 8 L 12 16 Z" fill="#FFFFFF" opacity="0.6"/>
+      </g>
+      <text x="36" y="21" font-size="12" fill="#FFFFFF" font-weight="600" letter-spacing="0.4">FÖHN AB 2 000 m</text>
+    </g>
+  </g>
+  
+  <!-- ============ VERTICAL PROFILE ============ -->
+  <g transform="translate(40, 420)">
+    <rect width="670" height="900" rx="22" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    
+    <!-- Title -->
+    <g transform="translate(28, 32)">
+      <text font-size="11" fill="#A89A7A" letter-spacing="2" font-weight="500">VERTIKALES PROFIL · LIVE</text>
+    </g>
+    
+    <!-- Vertical altitude bar with bands -->
+    <g transform="translate(60, 80)">
+      <!-- Y-axis -->
+      <rect width="40" height="780" rx="20" fill="url(#altGradient)"/>
+      
+      <!-- Altitude labels -->
+      <g font-size="11" fill="#A89A7A" font-weight="500">
+        <text x="50" y="14">3 000 m</text>
+        <text x="50" y="170">2 500 m</text>
+        <text x="50" y="326">2 000 m</text>
+        <text x="50" y="482">1 500 m</text>
+        <text x="50" y="638">1 000 m</text>
+        <text x="50" y="780">Boden 0 m</text>
+      </g>
+      
+      <!-- Band 5: 3000+ m -->
+      <g transform="translate(180, 0)">
+        <rect width="360" height="148" rx="20" fill="#FAEEDA" stroke="#C97B47"/>
+        <g transform="translate(20, 16)">
+          <text font-size="10" fill="#A85E2E" letter-spacing="2" font-weight="600">BAND 5 · GIPFEL-NIVEAU</text>
+        </g>
+        <g transform="translate(20, 44)">
+          <text font-size="44" font-weight="200" fill="#2C2A26" letter-spacing="-1">68</text>
+          <text x="84" y="0" font-size="14" fill="#5C5447">km/h</text>
+          <text x="84" y="20" font-size="11" fill="#A85E2E" font-weight="500">Böen 96</text>
+        </g>
+        <g transform="translate(280, 60)">
+          <g stroke="#A85E2E" stroke-width="2.5" fill="#A85E2E">
+            <line x1="0" y1="0" x2="32" y2="−12" stroke-linecap="round"/>
+            <polygon points="32,-12 24,-18 24,-6"/>
+          </g>
+          <text x="16" y="20" font-size="10" fill="#A85E2E" text-anchor="middle" font-weight="600">SW</text>
+        </g>
+        <g transform="translate(20, 116)">
+          <text font-size="11" fill="#5C5447">3 000 m – 4 000 m</text>
+        </g>
+      </g>
+      
+      <!-- Band 4: 2000-3000m -->
+      <g transform="translate(180, 156)">
+        <rect width="360" height="148" rx="20" fill="#FAEEDA" stroke="#D4A373"/>
+        <g transform="translate(20, 16)">
+          <text font-size="10" fill="#A85E2E" letter-spacing="2" font-weight="600">BAND 4 · HOCHGEBIRGE</text>
+        </g>
+        <g transform="translate(20, 44)">
+          <text font-size="44" font-weight="200" fill="#2C2A26" letter-spacing="-1">48</text>
+          <text x="84" y="0" font-size="14" fill="#5C5447">km/h</text>
+          <text x="84" y="20" font-size="11" fill="#D4A373" font-weight="500">Böen 72</text>
+        </g>
+        <g transform="translate(280, 60)">
+          <g stroke="#D4A373" stroke-width="2.5" fill="#D4A373">
+            <line x1="0" y1="0" x2="28" y2="−10" stroke-linecap="round"/>
+            <polygon points="28,-10 21,-15 21,-5"/>
+          </g>
+          <text x="14" y="20" font-size="10" fill="#D4A373" text-anchor="middle" font-weight="600">SW</text>
+        </g>
+        <g transform="translate(20, 116)">
+          <text font-size="11" fill="#5C5447">2 000 m – 3 000 m · Föhn-Zone</text>
+        </g>
+      </g>
+      
+      <!-- Band 3: 1500-2000m -->
+      <g transform="translate(180, 312)">
+        <rect width="360" height="148" rx="20" fill="#FAEEDA" stroke="#D4A373"/>
+        <g transform="translate(20, 16)">
+          <text font-size="10" fill="#A85E2E" letter-spacing="2" font-weight="600">BAND 3 · MITTELGEBIRGE</text>
+        </g>
+        <g transform="translate(20, 44)">
+          <text font-size="44" font-weight="200" fill="#2C2A26" letter-spacing="-1">32</text>
+          <text x="84" y="0" font-size="14" fill="#5C5447">km/h</text>
+          <text x="84" y="20" font-size="11" fill="#D4A373" font-weight="500">Böen 48</text>
+        </g>
+        <g transform="translate(280, 60)">
+          <g stroke="#D4A373" stroke-width="2" fill="#D4A373">
+            <line x1="0" y1="0" x2="24" y2="-6" stroke-linecap="round"/>
+            <polygon points="24,-6 18,-11 18,-1"/>
+          </g>
+          <text x="12" y="20" font-size="10" fill="#D4A373" text-anchor="middle" font-weight="600">SW</text>
+        </g>
+        <g transform="translate(20, 116)">
+          <text font-size="11" fill="#5C5447">1 500 m – 2 000 m · Alm-Niveau</text>
+        </g>
+      </g>
+      
+      <!-- Band 2: 1000-1500m -->
+      <g transform="translate(180, 468)">
+        <rect width="360" height="148" rx="20" fill="#F0F4EA" stroke="#7A9466"/>
+        <g transform="translate(20, 16)">
+          <text font-size="10" fill="#7A9466" letter-spacing="2" font-weight="600">BAND 2 · WALD-GRENZE</text>
+        </g>
+        <g transform="translate(20, 44)">
+          <text font-size="44" font-weight="200" fill="#2C2A26" letter-spacing="-1">18</text>
+          <text x="84" y="0" font-size="14" fill="#5C5447">km/h</text>
+          <text x="84" y="20" font-size="11" fill="#7A9466" font-weight="500">Böen 28</text>
+        </g>
+        <g transform="translate(280, 60)">
+          <g stroke="#7A9466" stroke-width="2" fill="#7A9466">
+            <line x1="0" y1="0" x2="20" y2="-4" stroke-linecap="round"/>
+            <polygon points="20,-4 15,-8 15,0"/>
+          </g>
+          <text x="10" y="20" font-size="10" fill="#7A9466" text-anchor="middle" font-weight="600">SW</text>
+        </g>
+        <g transform="translate(20, 116)">
+          <text font-size="11" fill="#5C5447">1 000 m – 1 500 m</text>
+        </g>
+      </g>
+      
+      <!-- Band 1: Boden -->
+      <g transform="translate(180, 624)">
+        <rect width="360" height="148" rx="20" fill="#F0F4EA" stroke="#7A9466"/>
+        <g transform="translate(20, 16)">
+          <text font-size="10" fill="#7A9466" letter-spacing="2" font-weight="600">BAND 1 · BODEN-NAH</text>
+        </g>
+        <g transform="translate(20, 44)">
+          <text font-size="44" font-weight="200" fill="#2C2A26" letter-spacing="-1">12</text>
+          <text x="84" y="0" font-size="14" fill="#5C5447">km/h</text>
+          <text x="84" y="20" font-size="11" fill="#7A9466" font-weight="500">Böen 18</text>
+        </g>
+        <g transform="translate(280, 60)">
+          <g stroke="#7A9466" stroke-width="2" fill="#7A9466">
+            <line x1="0" y1="0" x2="16" y2="-2" stroke-linecap="round"/>
+            <polygon points="16,-2 12,-6 12,2"/>
+          </g>
+          <text x="8" y="20" font-size="10" fill="#7A9466" text-anchor="middle" font-weight="600">SW</text>
+        </g>
+        <g transform="translate(20, 116)">
+          <text font-size="11" fill="#5C5447">0 m – 1 000 m · Tal</text>
+        </g>
+      </g>
+    </g>
+  </g>
+  
+  <!-- ============ ACTIVITY GUIDE ============ -->
+  <g transform="translate(40, 1360)">
+    <text font-size="13" fill="#A89A7A" letter-spacing="3" font-weight="500">AKTIVITÄTS-LEITFADEN · NACH HÖHE</text>
+    
+    <g transform="translate(0, 32)">
+      <!-- Paragliding -->
+      <g>
+        <rect width="670" height="120" rx="20" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+        
+        <g transform="translate(24, 28)">
+          <rect width="44" height="44" rx="10" fill="#FAEEDA"/>
+          <g transform="translate(12, 14)" stroke="#A85E2E" stroke-width="2" fill="none" stroke-linecap="round">
+            <path d="M 0 0 Q 10 6 20 0"/>
+            <line x1="10" y1="3" x2="10" y2="14"/>
+            <circle cx="10" cy="14" r="2"/>
+          </g>
+        </g>
+        
+        <g transform="translate(80, 30)">
+          <text font-size="16" font-weight="500" fill="#2C2A26">Paragliding</text>
+          <text y="20" font-size="12" fill="#5C5447">Optimal-Höhe 1 000 – 1 500 m</text>
+        </g>
+        
+        <g transform="translate(420, 30)">
+          <rect width="220" height="60" rx="14" fill="#FAEEDA"/>
+          <g transform="translate(16, 12)">
+            <text font-size="11" fill="#A85E2E" letter-spacing="2" font-weight="600">VORSICHT</text>
+            <text y="22" font-size="13" fill="#2C2A26" font-weight="500">Böen über Schwelle</text>
+            <text y="38" font-size="10" fill="#5C5447">Föhn macht Aufwinde unberechenbar</text>
+          </g>
+        </g>
+      </g>
+      
+      <!-- Hiking -->
+      <g transform="translate(0, 136)">
+        <rect width="670" height="120" rx="20" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+        
+        <g transform="translate(24, 28)">
+          <rect width="44" height="44" rx="10" fill="#F0F4EA"/>
+          <g transform="translate(14, 12)" stroke="#7A9466" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M 10 4 L 8 12 L 12 14 L 14 22"/>
+            <circle cx="8" cy="0" r="2.5"/>
+          </g>
+        </g>
+        
+        <g transform="translate(80, 30)">
+          <text font-size="16" font-weight="500" fill="#2C2A26">Wandern</text>
+          <text y="20" font-size="12" fill="#5C5447">Tal &amp; Alm bis 2 000 m</text>
+        </g>
+        
+        <g transform="translate(420, 30)">
+          <rect width="220" height="60" rx="14" fill="#F0F4EA"/>
+          <g transform="translate(16, 12)">
+            <text font-size="11" fill="#7A9466" letter-spacing="2" font-weight="600">OK</text>
+            <text y="22" font-size="13" fill="#2C2A26" font-weight="500">Sicher bis Almstufe</text>
+            <text y="38" font-size="10" fill="#5C5447">Gipfel-Touren wegen Sturm vermeiden</text>
+          </g>
+        </g>
+      </g>
+      
+      <!-- Climbing -->
+      <g transform="translate(0, 272)">
+        <rect width="670" height="120" rx="20" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+        
+        <g transform="translate(24, 28)">
+          <rect width="44" height="44" rx="10" fill="#FAEEDA"/>
+          <g transform="translate(12, 10)" stroke="#A85E2E" stroke-width="2" fill="none" stroke-linecap="round">
+            <path d="M 0 24 L 6 14 L 4 6 L 12 0 L 18 8"/>
+            <circle cx="10" cy="2" r="2"/>
+          </g>
+        </g>
+        
+        <g transform="translate(80, 30)">
+          <text font-size="16" font-weight="500" fill="#2C2A26">Klettern · Hochtour</text>
+          <text y="20" font-size="12" fill="#5C5447">Hochgebirge ab 2 000 m</text>
+        </g>
+        
+        <g transform="translate(420, 30)">
+          <rect width="220" height="60" rx="14" fill="#FAEEDA" stroke="#A85E2E" stroke-width="0.5"/>
+          <g transform="translate(16, 12)">
+            <text font-size="11" fill="#A85E2E" letter-spacing="2" font-weight="700">ABRATEN</text>
+            <text y="22" font-size="13" fill="#2C2A26" font-weight="500">Sturm-Niveau am Gipfel</text>
+            <text y="38" font-size="10" fill="#A85E2E">68 km/h · Böen 96 · zu gefährlich</text>
+          </g>
+        </g>
+      </g>
+      
+      <!-- Drohne -->
+      <g transform="translate(0, 408)">
+        <rect width="670" height="120" rx="20" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+        
+        <g transform="translate(24, 28)">
+          <rect width="44" height="44" rx="10" fill="#FAEEDA"/>
+          <g transform="translate(11, 14)" stroke="#A85E2E" stroke-width="2" fill="none" stroke-linecap="round">
+            <rect x="6" y="6" width="10" height="4" rx="1"/>
+            <circle cx="3" cy="3" r="3"/>
+            <circle cx="19" cy="3" r="3"/>
+            <circle cx="3" cy="13" r="3"/>
+            <circle cx="19" cy="13" r="3"/>
+          </g>
+        </g>
+        
+        <g transform="translate(80, 30)">
+          <text font-size="16" font-weight="500" fill="#2C2A26">Drohne</text>
+          <text y="20" font-size="12" fill="#5C5447">EASA A1 / A3 · max 120 m AGL</text>
+        </g>
+        
+        <g transform="translate(420, 30)">
+          <rect width="220" height="60" rx="14" fill="#FAEEDA"/>
+          <g transform="translate(16, 12)">
+            <text font-size="11" fill="#A85E2E" letter-spacing="2" font-weight="600">VORSICHT</text>
+            <text y="22" font-size="13" fill="#2C2A26" font-weight="500">Böen über Drohnen-Limit</text>
+            <text y="38" font-size="10" fill="#5C5447">DJI Mavic max 38 km/h</text>
+          </g>
+        </g>
+      </g>
+    </g>
+  </g>
+  
+  <!-- ============ SOURCE / FOOTER ============ -->
+  <g transform="translate(40, 1960)">
+    <line x1="0" y1="0" x2="670" y2="0" stroke="#D9CEB0" stroke-width="0.5"/>
+    
+    <g transform="translate(0, 24)">
+      <text font-size="12" fill="#A89A7A" letter-spacing="2" font-weight="500">QUELLE</text>
+      <text y="22" font-size="14" fill="#5C5447">ICON-D2 Modell-Levels · 50 hPa-Schritte</text>
+      <text y="42" font-size="12" fill="#A89A7A">interpoliert auf 5 Altitude-Bänder · Lauf 11:00 UTC</text>
+    </g>
+  </g>
+  
+  <!-- ============ BOTTOM SHARE ============ -->
+  <g transform="translate(40, 2080)">
+    <rect width="670" height="56" rx="28" fill="#2C2A26"/>
+    <text x="335" y="36" font-size="14" fill="#F5F1E8" text-anchor="middle" font-weight="500">Skew-T-Diagramm anzeigen →</text>
+  </g>
+  
+  <!-- LABEL -->
+  <g transform="translate(40, 2180)">
+    <text font-size="11" fill="#A89A7A" letter-spacing="3" font-weight="500">30 · MOBILE ALTITUDE-BAND-WIND · 375 px · SESSION 3/3 — COMPLETE</text>
+  </g>
+</svg>

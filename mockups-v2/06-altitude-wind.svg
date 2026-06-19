@@ -1,0 +1,314 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" font-family="ui-sans-serif, system-ui, -apple-system">
+  <defs>
+    <linearGradient id="bg06" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F5F1E8"/>
+      <stop offset="100%" stop-color="#EDE6D3"/>
+    </linearGradient>
+    <linearGradient id="atmosphereGradient" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#D9E0DB" stop-opacity="0.3"/>
+      <stop offset="50%" stop-color="#E8DFC4" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#D4C8A3" stop-opacity="0.4"/>
+    </linearGradient>
+  </defs>
+  
+  <rect width="1440" height="900" fill="url(#bg06)"/>
+  
+  <!-- TOP NAV -->
+  <g>
+    <g transform="translate(32, 24)">
+      <circle cx="14" cy="14" r="6" fill="#2C2A26"/>
+      <g stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round">
+        <line x1="14" y1="0" x2="14" y2="3"/>
+        <line x1="14" y1="25" x2="14" y2="28"/>
+        <line x1="0" y1="14" x2="3" y2="14"/>
+        <line x1="25" y1="14" x2="28" y2="14"/>
+      </g>
+      <text x="42" y="20" font-size="18" font-weight="500" fill="#2C2A26" letter-spacing="-0.5">buscosun</text>
+    </g>
+    
+    <!-- Back button -->
+    <g transform="translate(180, 30)">
+      <g stroke="#5C5447" stroke-width="1.5" fill="none" stroke-linecap="round">
+        <line x1="0" y1="10" x2="14" y2="10"/>
+        <line x1="0" y1="10" x2="6" y2="4"/>
+        <line x1="0" y1="10" x2="6" y2="16"/>
+      </g>
+      <text x="24" y="15" font-size="13" fill="#5C5447">Zurück zur Karte</text>
+    </g>
+    
+    <g transform="translate(560, 18)">
+      <rect width="320" height="40" rx="20" fill="#FFFFFF" stroke="#D9D0B8" stroke-width="0.5"/>
+      <circle cx="22" cy="20" r="6" stroke="#8B7355" stroke-width="1.5" fill="none"/>
+      <text x="40" y="25" font-size="13" fill="#5C5447">Marienplatz, München</text>
+    </g>
+  </g>
+  
+  <!-- ============ MAIN CONTENT ============ -->
+  <g transform="translate(80, 90)">
+    <text font-size="11" fill="#A89A7A" letter-spacing="3" font-weight="500">HÖHENBAND-WIND · 5 NIVEAUS</text>
+    <text y="48" font-size="40" font-weight="300" fill="#2C2A26" letter-spacing="-1">Wind in der Vertikalen</text>
+    <text y="78" font-size="14" fill="#5C5447">ICON-D2 · 5 AGL-Niveaus · für Drohnen, Paragliding, Alpinismus und Cycling</text>
+  </g>
+  
+  <!-- ============ LEFT: VERTICAL WIND PROFILE (large) ============ -->
+  <g transform="translate(80, 220)">
+    <rect width="780" height="640" rx="22" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    
+    <!-- Atmospheric background gradient -->
+    <rect x="60" y="40" width="660" height="540" rx="14" fill="url(#atmosphereGradient)"/>
+    
+    <!-- Header -->
+    <g transform="translate(28, 28)">
+      <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">VERTIKAL-PROFIL · LIVE</text>
+      <text x="582" font-size="9" fill="#A89A7A" text-anchor="end">⌃ ICON-D2 Lauf 11:00 UTC</text>
+    </g>
+    
+    <!-- ============ Y-axis: altitude scale ============ -->
+    <g transform="translate(100, 80)" font-size="11" fill="#5C5447">
+      <!-- 3000m -->
+      <g transform="translate(0, 0)">
+        <text x="-12" y="4" text-anchor="end" font-weight="500">3 000 m</text>
+        <text x="-12" y="18" text-anchor="end" font-size="9" fill="#A89A7A">High-Mountain</text>
+      </g>
+      <!-- 1500m -->
+      <g transform="translate(0, 120)">
+        <text x="-12" y="4" text-anchor="end" font-weight="500">1 500 m</text>
+        <text x="-12" y="18" text-anchor="end" font-size="9" fill="#A89A7A">Mid-Mountain</text>
+      </g>
+      <!-- 500m -->
+      <g transform="translate(0, 240)">
+        <text x="-12" y="4" text-anchor="end" font-weight="500">500 m</text>
+        <text x="-12" y="18" text-anchor="end" font-size="9" fill="#A89A7A">Paragliding</text>
+      </g>
+      <!-- 80m -->
+      <g transform="translate(0, 360)">
+        <text x="-12" y="4" text-anchor="end" font-weight="500">80 m</text>
+        <text x="-12" y="18" text-anchor="end" font-size="9" fill="#A89A7A">Drohnen EU-Decke</text>
+      </g>
+      <!-- 10m -->
+      <g transform="translate(0, 480)">
+        <text x="-12" y="4" text-anchor="end" font-weight="500">10 m</text>
+        <text x="-12" y="18" text-anchor="end" font-size="9" fill="#A89A7A">Boden · Cycling</text>
+      </g>
+    </g>
+    
+    <!-- Subtle horizontal grid lines -->
+    <g stroke="#E0D6BE" stroke-width="0.5" stroke-dasharray="2 4" opacity="0.6">
+      <line x1="100" y1="80" x2="720" y2="80"/>
+      <line x1="100" y1="200" x2="720" y2="200"/>
+      <line x1="100" y1="320" x2="720" y2="320"/>
+      <line x1="100" y1="440" x2="720" y2="440"/>
+      <line x1="100" y1="560" x2="720" y2="560"/>
+    </g>
+    
+    <!-- ============ X-AXIS: wind speed scale at bottom ============ -->
+    <g transform="translate(100, 596)" font-size="9" fill="#A89A7A">
+      <text x="0">0</text>
+      <text x="124" text-anchor="middle">20</text>
+      <text x="248" text-anchor="middle">40</text>
+      <text x="372" text-anchor="middle">60</text>
+      <text x="496" text-anchor="middle">80</text>
+      <text x="620" text-anchor="middle">100 km/h</text>
+    </g>
+    
+    <!-- ============ WIND DATA - vertical bars + arrows + values ============ -->
+    
+    <!-- 3000m -->
+    <g transform="translate(100, 80)">
+      <!-- Bar -->
+      <rect width="620" height="14" rx="3" fill="#F5F1E8" y="-7"/>
+      <rect width="297" height="14" rx="3" fill="#A85E2E" y="-7"/>
+      <!-- Wind speed value -->
+      <text x="320" y="4" font-size="14" fill="#2C2A26" font-weight="500">48</text>
+      <text x="350" y="4" font-size="10" fill="#A89A7A">km/h</text>
+      <!-- Direction + arrow -->
+      <g transform="translate(440, 0)">
+        <text font-size="11" fill="#5C5447">SW · 230°</text>
+        <g transform="translate(70, -3)">
+          <line x1="0" y1="0" x2="20" y2="0" stroke="#2C2A26" stroke-width="2"/>
+          <polygon points="20,0 16,-4 16,4" fill="#2C2A26"/>
+        </g>
+      </g>
+      <!-- Gust badge -->
+      <g transform="translate(560, -10)">
+        <rect width="60" height="20" rx="10" fill="#A85E2E"/>
+        <text x="30" y="14" font-size="10" fill="#FFFFFF" text-anchor="middle" font-weight="600">+72 Böen</text>
+      </g>
+    </g>
+    
+    <!-- 1500m -->
+    <g transform="translate(100, 200)">
+      <rect width="620" height="14" rx="3" fill="#F5F1E8" y="-7"/>
+      <rect width="198" height="14" rx="3" fill="#C97B47" y="-7"/>
+      <text x="220" y="4" font-size="14" fill="#2C2A26" font-weight="500">32</text>
+      <text x="250" y="4" font-size="10" fill="#A89A7A">km/h</text>
+      <g transform="translate(440, 0)">
+        <text font-size="11" fill="#5C5447">SW · 220°</text>
+        <g transform="translate(70, -3)">
+          <line x1="0" y1="0" x2="20" y2="0" stroke="#2C2A26" stroke-width="2"/>
+          <polygon points="20,0 16,-4 16,4" fill="#2C2A26"/>
+        </g>
+      </g>
+      <g transform="translate(560, -10)">
+        <rect width="60" height="20" rx="10" fill="#C97B47"/>
+        <text x="30" y="14" font-size="10" fill="#FFFFFF" text-anchor="middle" font-weight="600">+48 Böen</text>
+      </g>
+    </g>
+    
+    <!-- 500m -->
+    <g transform="translate(100, 320)">
+      <rect width="620" height="14" rx="3" fill="#F5F1E8" y="-7"/>
+      <rect width="136" height="14" rx="3" fill="#D4A373" y="-7"/>
+      <text x="158" y="4" font-size="14" fill="#2C2A26" font-weight="500">22</text>
+      <text x="188" y="4" font-size="10" fill="#A89A7A">km/h</text>
+      <g transform="translate(440, 0)">
+        <text font-size="11" fill="#5C5447">SW · 215°</text>
+        <g transform="translate(70, -3)">
+          <line x1="0" y1="0" x2="20" y2="0" stroke="#2C2A26" stroke-width="2"/>
+          <polygon points="20,0 16,-4 16,4" fill="#2C2A26"/>
+        </g>
+      </g>
+      <g transform="translate(560, -10)">
+        <rect width="60" height="20" rx="10" fill="#D4A373"/>
+        <text x="30" y="14" font-size="10" fill="#FFFFFF" text-anchor="middle" font-weight="600">+32 Böen</text>
+      </g>
+    </g>
+    
+    <!-- 80m -->
+    <g transform="translate(100, 440)">
+      <rect width="620" height="14" rx="3" fill="#F5F1E8" y="-7"/>
+      <rect width="87" height="14" rx="3" fill="#A8B89A" y="-7"/>
+      <text x="110" y="4" font-size="14" fill="#2C2A26" font-weight="500">14</text>
+      <text x="140" y="4" font-size="10" fill="#A89A7A">km/h</text>
+      <g transform="translate(440, 0)">
+        <text font-size="11" fill="#5C5447">SW · 210°</text>
+        <g transform="translate(70, -3)">
+          <line x1="0" y1="0" x2="20" y2="0" stroke="#2C2A26" stroke-width="2"/>
+          <polygon points="20,0 16,-4 16,4" fill="#2C2A26"/>
+        </g>
+      </g>
+      <g transform="translate(560, -10)">
+        <rect width="60" height="20" rx="10" fill="#A8B89A"/>
+        <text x="30" y="14" font-size="10" fill="#FFFFFF" text-anchor="middle" font-weight="600">+22 Böen</text>
+      </g>
+    </g>
+    
+    <!-- 10m -->
+    <g transform="translate(100, 560)">
+      <rect width="620" height="14" rx="3" fill="#F5F1E8" y="-7"/>
+      <rect width="74" height="14" rx="3" fill="#7A9466" y="-7"/>
+      <text x="96" y="4" font-size="14" fill="#2C2A26" font-weight="500">12</text>
+      <text x="124" y="4" font-size="10" fill="#A89A7A">km/h</text>
+      <g transform="translate(440, 0)">
+        <text font-size="11" fill="#5C5447">SW · 200°</text>
+        <g transform="translate(70, -3)">
+          <line x1="0" y1="0" x2="20" y2="0" stroke="#2C2A26" stroke-width="2"/>
+          <polygon points="20,0 16,-4 16,4" fill="#2C2A26"/>
+        </g>
+      </g>
+      <g transform="translate(560, -10)">
+        <rect width="60" height="20" rx="10" fill="#7A9466"/>
+        <text x="30" y="14" font-size="10" fill="#FFFFFF" text-anchor="middle" font-weight="600">+28 Böen</text>
+      </g>
+    </g>
+  </g>
+  
+  <!-- ============ RIGHT PANEL: ACTIVITY GUIDE ============ -->
+  <g transform="translate(880, 220)">
+    <rect width="480" height="640" rx="22" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    
+    <!-- Header -->
+    <g transform="translate(28, 28)">
+      <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">RELEVANZ NACH AKTIVITÄT</text>
+      <text y="26" font-size="20" font-weight="500" fill="#2C2A26" letter-spacing="-0.3">Wer braucht welche Höhe?</text>
+    </g>
+    
+    <!-- Activity cards -->
+    <g transform="translate(28, 88)">
+      
+      <!-- Cycling -->
+      <g>
+        <rect width="424" height="76" rx="14" fill="#F0F4EA" stroke="#7A9466"/>
+        <g transform="translate(20, 18)">
+          <text font-size="9" fill="#7A9466" letter-spacing="2" font-weight="600">RADFAHREN</text>
+          <text y="20" font-size="14" fill="#2C2A26" font-weight="500">10 m Boden-Wind relevant</text>
+          <text y="40" font-size="11" fill="#5C5447">Rückenwind 12 km/h SW · gut fahrbar · keine Böen-Gefahr</text>
+        </g>
+        <g transform="translate(390, 30)">
+          <circle r="14" fill="#7A9466"/>
+          <text y="4" font-size="14" fill="#FFFFFF" text-anchor="middle" font-weight="500">✓</text>
+        </g>
+      </g>
+      
+      <!-- Drone -->
+      <g transform="translate(0, 88)">
+        <rect width="424" height="76" rx="14" fill="#FAEEDA" stroke="#D4A373"/>
+        <g transform="translate(20, 18)">
+          <text font-size="9" fill="#A85E2E" letter-spacing="2" font-weight="600">DROHNEN-FLUG</text>
+          <text y="20" font-size="14" fill="#2C2A26" font-weight="500">80 m EU-Decke moderater Wind</text>
+          <text y="40" font-size="11" fill="#5C5447">14 km/h · innerhalb Limit für DJI Mavic · Vorsicht bei Böen 22</text>
+        </g>
+        <g transform="translate(390, 30)">
+          <circle r="14" fill="#D4A373"/>
+          <text y="4" font-size="14" fill="#FFFFFF" text-anchor="middle" font-weight="600">!</text>
+        </g>
+      </g>
+      
+      <!-- Paragliding -->
+      <g transform="translate(0, 176)">
+        <rect width="424" height="76" rx="14" fill="#FAE8D6" stroke="#C97B47"/>
+        <g transform="translate(20, 18)">
+          <text font-size="9" fill="#A85E2E" letter-spacing="2" font-weight="600">PARAGLIDING · 500 m</text>
+          <text y="20" font-size="14" fill="#2C2A26" font-weight="500">22 km/h Thermik-Höhe — Limit</text>
+          <text y="40" font-size="11" fill="#5C5447">Anfänger sollten warten · Fortgeschrittene bei stabiler Böen-Lage</text>
+        </g>
+        <g transform="translate(390, 30)">
+          <circle r="14" fill="#C97B47"/>
+          <text y="4" font-size="14" fill="#FFFFFF" text-anchor="middle" font-weight="600">!</text>
+        </g>
+      </g>
+      
+      <!-- Alpinism -->
+      <g transform="translate(0, 264)">
+        <rect width="424" height="76" rx="14" fill="#FAE0D0" stroke="#A85E2E"/>
+        <g transform="translate(20, 18)">
+          <text font-size="9" fill="#A85E2E" letter-spacing="2" font-weight="600">ALPINISMUS · GRAT 1500-3000 m</text>
+          <text y="20" font-size="14" fill="#2C2A26" font-weight="500">48 km/h Gipfel — kritisch</text>
+          <text y="40" font-size="11" fill="#5C5447">Gipfel-Aktivitäten heute nicht empfohlen · Böen 72 km/h möglich</text>
+        </g>
+        <g transform="translate(390, 30)">
+          <circle r="14" fill="#A85E2E"/>
+          <line x1="-5" y1="-5" x2="5" y2="5" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/>
+          <line x1="-5" y1="5" x2="5" y2="-5" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/>
+        </g>
+      </g>
+    </g>
+    
+    <!-- DACH context box -->
+    <g transform="translate(28, 460)">
+      <rect width="424" height="120" rx="14" fill="#2C2A26"/>
+      
+      <g transform="translate(20, 18)">
+        <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">DACH-KONTEXT · WARUM ZUNAHME?</text>
+      </g>
+      
+      <g transform="translate(20, 44)">
+        <text font-size="13" fill="#FFFFFF" font-weight="500">Föhn-bedingte Wind-Verstärkung mit Höhe.</text>
+        <text y="20" font-size="11" fill="#D9D0B8">Trockenadiabatisch absteigende Luftmasse im Lee</text>
+        <text y="36" font-size="11" fill="#D9D0B8">der Alpen beschleunigt mit der Höhe — typisch bei</text>
+        <text y="52" font-size="11" fill="#D9D0B8">Süd-Nord-Druckgradient.</text>
+      </g>
+    </g>
+    
+    <!-- Source -->
+    <g transform="translate(28, 600)">
+      <text font-size="9" fill="#A89A7A">Quelle: DWD ICON-D2 Pressure-Levels · 11:00 UTC Lauf</text>
+    </g>
+  </g>
+  
+  <!-- LABEL -->
+  <g transform="translate(80, 880)">
+    <text font-size="10" fill="#A89A7A" letter-spacing="3" font-weight="500">06 · ALTITUDE-BAND-WIND-VIEW · DESKTOP · v1.8 SECTION 7.1b</text>
+    <text x="1280" font-size="10" fill="#A89A7A" letter-spacing="2" text-anchor="end">5 Niveaus · Aktivitäts-Guide · DACH-Kontext</text>
+  </g>
+</svg>

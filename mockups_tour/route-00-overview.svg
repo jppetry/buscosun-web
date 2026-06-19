@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1620 1440" font-family="ui-sans-serif, system-ui, -apple-system">
+  <defs>
+    <linearGradient id="bgOv" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#F5F1E8"/><stop offset="100%" stop-color="#EDE6D3"/></linearGradient>
+    <clipPath id="frD" clipPathUnits="userSpaceOnUse"><rect width="340" height="220" rx="12"/></clipPath>
+    <clipPath id="frT" clipPathUnits="userSpaceOnUse"><rect width="250" height="330" rx="14"/></clipPath>
+    <clipPath id="frM" clipPathUnits="userSpaceOnUse"><rect width="250" height="440" rx="18"/></clipPath>
+  </defs>
+  <rect width="1620" height="1440" fill="url(#bgOv)"/>
+
+  <!-- title -->
+  <g transform="translate(80, 64)">
+    <circle cx="12" cy="10" r="6" fill="#2C2A26"/>
+    <g stroke="#2C2A26" stroke-width="1.4" stroke-linecap="round"><line x1="12" y1="-3" x2="12" y2="0"/><line x1="12" y1="20" x2="12" y2="23"/><line x1="-1" y1="10" x2="2" y2="10"/><line x1="22" y1="10" x2="25" y2="10"/></g>
+    <text x="36" y="16" font-size="17" font-weight="500" fill="#2C2A26" letter-spacing="-0.4">buscosun</text>
+    <text y="56" font-size="40" font-weight="300" fill="#2C2A26" letter-spacing="-1.1">Routenplaner · Mockup-Übersicht</text>
+    <text y="86" font-size="14" fill="#5C5447">12 Ansichten · Desktop / Tablet / Mobile · Design-System v1.8 · „Wetter entlang deiner Route"</text>
+  </g>
+  <line x1="80" y1="178" x2="1540" y2="178" stroke="#E0D6BE" stroke-width="0.5"/>
+
+  <!-- DESKTOP ROW -->
+  <g transform="translate(80, 206)">
+    <text font-size="10" fill="#A89A7A" letter-spacing="3" font-weight="500">DESKTOP · 1440 px</text>
+    <g transform="translate(0, 16)">
+      <g transform="translate(0,0)"><rect width="340" height="220" rx="12" fill="#FFFFFF" stroke="#E0D6BE"/><image href="route-01-upload.svg" width="340" height="220" preserveAspectRatio="xMidYMid meet" clip-path="url(#frD)"/><text y="240" font-size="12" fill="#5C5447" font-weight="500">01 · Upload &amp; Parse</text></g>
+      <g transform="translate(373,0)"><rect width="340" height="220" rx="12" fill="#FFFFFF" stroke="#E0D6BE"/><image href="route-02-config.svg" width="340" height="220" preserveAspectRatio="xMidYMid meet" clip-path="url(#frD)"/><text y="240" font-size="12" fill="#5C5447" font-weight="500">02 · Konfiguration</text></g>
+      <g transform="translate(746,0)"><rect width="340" height="220" rx="12" fill="#FFFFFF" stroke="#E0D6BE"/><image href="route-03-results.svg" width="340" height="220" preserveAspectRatio="xMidYMid meet" clip-path="url(#frD)"/><text y="240" font-size="12" fill="#5C5447" font-weight="500">03 · Ergebnis · Karte+Panel</text></g>
+      <g transform="translate(1119,0)"><rect width="340" height="220" rx="12" fill="#FFFFFF" stroke="#E0D6BE"/><image href="route-04-scrubber.svg" width="340" height="220" preserveAspectRatio="xMidYMid meet" clip-path="url(#frD)"/><text y="240" font-size="12" fill="#5C5447" font-weight="500">04 · Scrubber &amp; Zeitplan</text></g>
+    </g>
+  </g>
+
+  <!-- TABLET ROW -->
+  <g transform="translate(80, 532)">
+    <text font-size="10" fill="#A89A7A" letter-spacing="3" font-weight="500">TABLET · 1024 px</text>
+    <g transform="translate(0, 16)">
+      <g transform="translate(0,0)"><rect width="250" height="330" rx="14" fill="#FFFFFF" stroke="#E0D6BE"/><image href="route-t1-upload.svg" width="250" height="330" preserveAspectRatio="xMidYMid meet" clip-path="url(#frT)"/><text y="350" font-size="12" fill="#5C5447" font-weight="500">T1 · Upload</text></g>
+      <g transform="translate(403,0)"><rect width="250" height="330" rx="14" fill="#FFFFFF" stroke="#E0D6BE"/><image href="route-t2-config.svg" width="250" height="330" preserveAspectRatio="xMidYMid meet" clip-path="url(#frT)"/><text y="350" font-size="12" fill="#5C5447" font-weight="500">T2 · Konfiguration</text></g>
+      <g transform="translate(806,0)"><rect width="250" height="330" rx="14" fill="#FFFFFF" stroke="#E0D6BE"/><image href="route-t3-results.svg" width="250" height="330" preserveAspectRatio="xMidYMid meet" clip-path="url(#frT)"/><text y="350" font-size="12" fill="#5C5447" font-weight="500">T3 · Ergebnis</text></g>
+      <g transform="translate(1209,0)"><rect width="250" height="330" rx="14" fill="#FFFFFF" stroke="#E0D6BE"/><image href="route-t4-scrubber.svg" width="250" height="330" preserveAspectRatio="xMidYMid meet" clip-path="url(#frT)"/><text y="350" font-size="12" fill="#5C5447" font-weight="500">T4 · Scrubber</text></g>
+    </g>
+  </g>
+
+  <!-- MOBILE ROW -->
+  <g transform="translate(80, 928)">
+    <text font-size="10" fill="#A89A7A" letter-spacing="3" font-weight="500">MOBILE · 375 px</text>
+    <g transform="translate(0, 16)">
+      <g transform="translate(0,0)"><rect width="250" height="440" rx="18" fill="#FFFFFF" stroke="#E0D6BE"/><image href="route-m1-upload.svg" width="250" height="440" preserveAspectRatio="xMidYMid meet" clip-path="url(#frM)"/><text y="460" font-size="12" fill="#5C5447" font-weight="500">M1 · Upload</text></g>
+      <g transform="translate(403,0)"><rect width="250" height="440" rx="18" fill="#FFFFFF" stroke="#E0D6BE"/><image href="route-m2-config.svg" width="250" height="440" preserveAspectRatio="xMidYMin meet" clip-path="url(#frM)"/><text y="460" font-size="12" fill="#5C5447" font-weight="500">M2 · Konfiguration</text></g>
+      <g transform="translate(806,0)"><rect width="250" height="440" rx="18" fill="#FFFFFF" stroke="#E0D6BE"/><image href="route-m3-results.svg" width="250" height="440" preserveAspectRatio="xMidYMid meet" clip-path="url(#frM)"/><text y="460" font-size="12" fill="#5C5447" font-weight="500">M3 · Ergebnis</text></g>
+      <g transform="translate(1209,0)"><rect width="250" height="440" rx="18" fill="#FFFFFF" stroke="#E0D6BE"/><image href="route-m4-scrubber.svg" width="250" height="440" preserveAspectRatio="xMidYMid meet" clip-path="url(#frM)"/><text y="460" font-size="12" fill="#5C5447" font-weight="500">M4 · Scrubber</text></g>
+    </g>
+  </g>
+
+  <!-- footer -->
+  <line x1="80" y1="1400" x2="1540" y2="1400" stroke="#E0D6BE" stroke-width="0.5"/>
+  <g transform="translate(80, 1424)">
+    <text font-size="10" fill="#A89A7A" letter-spacing="3" font-weight="500">RP-00 · CONTACT SHEET · 4 ANSICHTEN × 3 GERÄTE</text>
+    <text x="1460" font-size="10" fill="#A89A7A" letter-spacing="2" text-anchor="end">Upload · Bewegungsart/Tempo/Pausen/E-Bike · Karte+Wetter · Scrubber/Zeitplan/Qualität</text>
+  </g>
+</svg>

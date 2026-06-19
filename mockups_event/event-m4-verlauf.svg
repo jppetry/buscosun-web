@@ -1,0 +1,430 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 1900" width="390" height="1900" font-family="ui-sans-serif, system-ui, -apple-system">
+
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F5F1E8"/>
+      <stop offset="100%" stop-color="#EDE6D3"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="390" height="1900" fill="url(#bgGrad)"/>
+
+  <!-- ============================================================ -->
+  <!-- TOP BAR (y=0 to y=52) -->
+  <!-- ============================================================ -->
+  <rect x="0" y="0" width="390" height="52" fill="#FFFFFF"/>
+
+  <!-- Sun brand icon at x=16,y=26 -->
+  <!-- Center circle -->
+  <circle cx="16" cy="26" r="5" fill="#2C2A26"/>
+  <!-- 8 rays: gap=3 from center edge (r=5), length=4, so ray from r+gap=8 to r+gap+len=12 -->
+  <line x1="16" y1="13" x2="16" y2="9"   stroke="#2C2A26" stroke-width="1.6" stroke-linecap="round"/>
+  <line x1="16" y1="39" x2="16" y2="43"  stroke="#2C2A26" stroke-width="1.6" stroke-linecap="round"/>
+  <line x1="3"  y1="26" x2="-1" y2="26"  stroke="#2C2A26" stroke-width="1.6" stroke-linecap="round"/>
+  <line x1="29" y1="26" x2="33" y2="26"  stroke="#2C2A26" stroke-width="1.6" stroke-linecap="round"/>
+  <!-- Diagonals at 45deg offset: sin(45)*8=5.66, sin(45)*12=8.49 -->
+  <line x1="21.66" y1="20.34" x2="24.49" y2="17.51" stroke="#2C2A26" stroke-width="1.6" stroke-linecap="round"/>
+  <line x1="10.34" y1="31.66" x2="7.51"  y2="34.49" stroke="#2C2A26" stroke-width="1.6" stroke-linecap="round"/>
+  <line x1="21.66" y1="31.66" x2="24.49" y2="34.49" stroke="#2C2A26" stroke-width="1.6" stroke-linecap="round"/>
+  <line x1="10.34" y1="20.34" x2="7.51"  y2="17.51" stroke="#2C2A26" stroke-width="1.6" stroke-linecap="round"/>
+
+  <!-- "buscosun" brand text -->
+  <text x="32" y="30" font-size="15" font-weight="500" fill="#2C2A26">buscosun</text>
+
+  <!-- Live indicator -->
+  <circle cx="280" cy="26" r="3" fill="#7A9466"/>
+  <text x="286" y="30" font-size="10" fill="#7A9466">live</text>
+
+  <!-- Bell icon (simple outline) at x=330,y=26 -->
+  <path d="M330,20 C330,20 324,21 324,27 L324,30 L322,32 L338,32 L336,30 L336,27 C336,21 330,20 330,20 Z" fill="none" stroke="#2C2A26" stroke-width="1.2"/>
+  <path d="M327.5,32 Q330,35 332.5,32" fill="none" stroke="#2C2A26" stroke-width="1.2"/>
+
+  <!-- Avatar circle -->
+  <circle cx="363" cy="26" r="14" fill="#EDE6D3" stroke="#C4B896" stroke-width="0.5"/>
+  <text x="363" y="30" font-size="10" fill="#2C2A26" text-anchor="middle">JS</text>
+
+  <!-- Hairline -->
+  <rect x="0" y="52" width="390" height="0.5" fill="#E0D6BE"/>
+
+  <!-- ============================================================ -->
+  <!-- BREADCRUMB (y=64) -->
+  <!-- ============================================================ -->
+  <!-- Left arrow -->
+  <line x1="14" y1="76" x2="20" y2="72" stroke="#A89A7A" stroke-width="1.2" stroke-linecap="round"/>
+  <line x1="14" y1="76" x2="20" y2="80" stroke="#A89A7A" stroke-width="1.2" stroke-linecap="round"/>
+  <text x="24" y="80" font-size="11" fill="#A89A7A">Ergebnis</text>
+  <text x="100" y="80" font-size="11" fill="#2C2A26" font-weight="500">Ablauf am besten Tag</text>
+
+  <!-- ============================================================ -->
+  <!-- SECTION "ABLAUF AM BESTEN TAG" (y=88 to y=450) -->
+  <!-- ============================================================ -->
+
+  <!-- Eyebrow -->
+  <text x="16" y="108" font-size="9" font-weight="500" fill="#A89A7A" letter-spacing="1.8" text-transform="uppercase">ABLAUF AM BESTEN TAG</text>
+
+  <!-- Chart card -->
+  <rect x="16" y="120" width="358" height="330" rx="14" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+
+  <!-- "Als Bild" link -->
+  <text x="362" y="148" font-size="10" fill="#A89A7A" text-anchor="end">Als Bild</text>
+
+  <!-- Tab row background -->
+  <rect x="24" y="132" width="220" height="28" rx="10" fill="#F5F1E8"/>
+  <!-- Active tab: Temperatur -->
+  <rect x="28" y="136" width="86" height="20" rx="8" fill="#2C2A26"/>
+  <text x="71" y="150" font-size="10" fill="#FFFFFF" text-anchor="middle">Temperatur</text>
+  <!-- Inactive tabs -->
+  <text x="165" y="150" font-size="10" fill="#A89A7A" text-anchor="middle">Niederschlag</text>
+  <text x="230" y="150" font-size="10" fill="#A89A7A" text-anchor="middle">Wind</text>
+
+  <!-- Phase ribbon at y=168 height=10 -->
+  <rect x="50" y="168" width="75" height="10" rx="4" fill="#F0F4EA"/>
+  <text x="57" y="177" font-size="7" fill="#5F7951">Trauung</text>
+  <rect x="125" y="168" width="75" height="10" rx="4" fill="#FAEEDA"/>
+  <text x="132" y="177" font-size="7" fill="#8B7355">Empfang</text>
+  <rect x="200" y="168" width="150" height="10" rx="4" fill="#F5F1E8"/>
+  <text x="207" y="177" font-size="7" fill="#5C5447">Abendfeier</text>
+
+  <!-- Vertical gridlines -->
+  <line x1="50"  y1="180" x2="50"  y2="370" stroke="#F5F1E8" stroke-width="0.5"/>
+  <line x1="125" y1="180" x2="125" y2="370" stroke="#F5F1E8" stroke-width="0.5"/>
+  <line x1="200" y1="180" x2="200" y2="370" stroke="#F5F1E8" stroke-width="0.5"/>
+  <line x1="275" y1="180" x2="275" y2="370" stroke="#F5F1E8" stroke-width="0.5"/>
+  <line x1="350" y1="180" x2="350" y2="370" stroke="#F5F1E8" stroke-width="0.5"/>
+
+  <!-- Horizontal gridlines -->
+  <line x1="50" y1="200" x2="350" y2="200" stroke="#F5F1E8" stroke-width="0.5"/>
+  <line x1="50" y1="240" x2="350" y2="240" stroke="#F5F1E8" stroke-width="0.5"/>
+  <line x1="50" y1="280" x2="350" y2="280" stroke="#F5F1E8" stroke-width="0.5"/>
+  <line x1="50" y1="320" x2="350" y2="320" stroke="#F5F1E8" stroke-width="0.5"/>
+  <line x1="50" y1="360" x2="350" y2="360" stroke="#F5F1E8" stroke-width="0.5"/>
+
+  <!-- Y-axis labels -->
+  <text x="36" y="204" font-size="8" fill="#A89A7A">30°</text>
+  <text x="36" y="244" font-size="8" fill="#A89A7A">25°</text>
+  <text x="36" y="284" font-size="8" fill="#A89A7A">20°</text>
+  <text x="36" y="324" font-size="8" fill="#A89A7A">15°</text>
+  <text x="36" y="364" font-size="8" fill="#A89A7A">10°</text>
+
+  <!-- Temperature area fill (light terracotta) -->
+  <polygon points="50,340 75,320 100,300 125,260 150,220 175,200 200,210 225,230 250,240 275,260 300,290 325,310 350,330 350,370 50,370" fill="#C97B47" opacity="0.07"/>
+
+  <!-- Dashed "gefühlt" line -->
+  <polyline points="50,330 75,310 100,285 125,245 150,208 175,192 200,200 225,222 250,232 275,250 300,285 325,305 350,325" fill="none" stroke="#C97B47" stroke-width="1.5" stroke-dasharray="4 3" stroke-linecap="round"/>
+
+  <!-- Temperature line (solid) -->
+  <polyline points="50,340 75,320 100,300 125,260 150,220 175,200 200,210 225,230 250,240 275,260 300,290 325,310 350,330" fill="none" stroke="#C97B47" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Warm-peak pill at (~x=175,y=192) -->
+  <rect x="168" y="176" width="28" height="18" rx="8" fill="#F7EBDD"/>
+  <text x="182" y="189" font-size="9" fill="#C97B47" text-anchor="middle">27°</text>
+
+  <!-- X-axis hour labels at y=400 -->
+  <text x="50"  y="400" font-size="8" fill="#A89A7A" text-anchor="middle">13</text>
+  <text x="75"  y="400" font-size="8" fill="#A89A7A" text-anchor="middle">14</text>
+  <text x="100" y="400" font-size="8" fill="#A89A7A" text-anchor="middle">15</text>
+  <text x="125" y="400" font-size="8" fill="#A89A7A" text-anchor="middle">16</text>
+  <text x="150" y="400" font-size="8" fill="#A89A7A" text-anchor="middle">17</text>
+  <text x="175" y="400" font-size="8" fill="#A89A7A" text-anchor="middle">18</text>
+  <text x="200" y="400" font-size="8" fill="#A89A7A" text-anchor="middle">19</text>
+  <text x="225" y="400" font-size="8" fill="#A89A7A" text-anchor="middle">20</text>
+  <text x="250" y="400" font-size="8" fill="#A89A7A" text-anchor="middle">21</text>
+  <text x="275" y="400" font-size="8" fill="#A89A7A" text-anchor="middle">22</text>
+  <text x="300" y="400" font-size="8" fill="#A89A7A" text-anchor="middle">23</text>
+
+  <!-- Legend at y=418 -->
+  <line x1="24" y1="422" x2="44" y2="422" stroke="#C97B47" stroke-width="2" stroke-linecap="round"/>
+  <text x="48" y="425" font-size="9" fill="#A89A7A">Temperatur</text>
+  <line x1="120" y1="422" x2="140" y2="422" stroke="#C97B47" stroke-width="1.5" stroke-dasharray="4 3" stroke-linecap="round"/>
+  <text x="144" y="425" font-size="9" fill="#A89A7A">gefühlt</text>
+
+  <!-- ============================================================ -->
+  <!-- SECTION "AUF DER KARTE" (y=462 to y=680) -->
+  <!-- ============================================================ -->
+
+  <!-- Eyebrow -->
+  <text x="16" y="482" font-size="9" font-weight="500" fill="#A89A7A" letter-spacing="1.8">AUF DER KARTE</text>
+
+  <!-- Map card (dark background) -->
+  <rect x="16" y="494" width="358" height="148" rx="14" fill="#2C2A26"/>
+
+  <!-- Stylized Bodensee water body -->
+  <path d="M60,580 C80,560 120,550 180,555 C240,560 290,555 330,570 C350,580 340,600 300,610 C240,620 120,620 80,610 C50,602 50,592 60,580 Z" fill="#3A6FA8" opacity="0.6"/>
+  <!-- Coastline -->
+  <path d="M60,580 C80,560 120,550 180,555 C240,560 290,555 330,570 C350,580 340,600 300,610 C240,620 120,620 80,610 C50,602 50,592 60,580 Z" fill="none" stroke="#FFFFFF" stroke-width="0.5" opacity="0.3"/>
+
+  <!-- Temperature label card above pin -->
+  <rect x="155" y="538" width="40" height="18" rx="8" fill="#FFFFFF"/>
+  <text x="175" y="551" font-size="10" fill="#C97B47" text-anchor="middle">22°</text>
+
+  <!-- Location pin at x=175,y=558 -->
+  <circle cx="175" cy="558" r="4" fill="#C97B47"/>
+  <!-- Pin stem -->
+  <line x1="175" y1="562" x2="175" y2="570" stroke="#C97B47" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- "Meersburg" label -->
+  <text x="175" y="582" font-size="9" fill="#FFFFFF" text-anchor="middle" opacity="0.9">Meersburg</text>
+
+  <!-- Map terrain detail lines (subtle) -->
+  <path d="M30,510 L80,505 L130,508 L160,504 L190,506" fill="none" stroke="#3B3A38" stroke-width="0.5" opacity="0.5"/>
+  <path d="M220,506 L270,504 L310,508 L350,512 L370,515" fill="none" stroke="#3B3A38" stroke-width="0.5" opacity="0.5"/>
+
+  <!-- Layer tabs at bottom of map -->
+  <rect x="24" y="628" width="316" height="24" rx="8" fill="#3B3A38"/>
+  <!-- Active "Temp" tab -->
+  <rect x="28" y="630" width="44" height="20" rx="6" fill="#FFFFFF"/>
+  <text x="50" y="644" font-size="9" fill="#2C2A26" text-anchor="middle">Temp</text>
+  <!-- Other tabs -->
+  <text x="108" y="644" font-size="9" fill="#FFFFFF" text-anchor="middle">Regen</text>
+  <text x="158" y="644" font-size="9" fill="#FFFFFF" text-anchor="middle">Wind</text>
+  <text x="210" y="644" font-size="9" fill="#FFFFFF" text-anchor="middle">Wolken</text>
+  <text x="260" y="644" font-size="9" fill="#FFFFFF" text-anchor="middle">UV</text>
+
+  <!-- Time slider -->
+  <rect x="24" y="660" width="316" height="4" rx="3" fill="#F5F1E8"/>
+  <!-- Filled portion -->
+  <rect x="24" y="660" width="106" height="4" rx="3" fill="#C97B47" opacity="0.4"/>
+  <!-- Thumb -->
+  <circle cx="130" cy="662" r="6" fill="#FFFFFF" stroke="#C97B47" stroke-width="1.5"/>
+  <!-- Time label -->
+  <text x="24" y="678" font-size="9" fill="#A89A7A">15:00 Uhr</text>
+
+  <!-- ============================================================ -->
+  <!-- SECTION "PHASEN" (y=692 to y=900) -->
+  <!-- ============================================================ -->
+
+  <!-- Eyebrow -->
+  <text x="16" y="712" font-size="9" font-weight="500" fill="#A89A7A" letter-spacing="1.8">PHASEN</text>
+
+  <!-- Phases card -->
+  <rect x="16" y="724" width="358" height="168" rx="14" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+
+  <!-- Phase 1 - Trauung -->
+  <circle cx="32" cy="752" r="5" fill="#7A9466"/>
+  <text x="48" y="756" font-size="13" font-weight="500" fill="#2C2A26">Trauung</text>
+  <text x="48" y="770" font-size="10" fill="#A89A7A">13–15 Uhr · 2h</text>
+  <!-- Confidence bar background -->
+  <rect x="170" y="748" width="100" height="6" rx="3" fill="#F5F1E8"/>
+  <!-- Confidence bar fill (84%) -->
+  <rect x="170" y="748" width="84" height="6" rx="3" fill="#7A9466"/>
+  <!-- Score -->
+  <text x="358" y="756" font-size="14" font-weight="500" fill="#C97B47" text-anchor="end">84</text>
+
+  <!-- Hairline between phases 1 and 2 -->
+  <rect x="28" y="788" width="316" height="0.5" fill="#E0D6BE"/>
+
+  <!-- Phase 2 - Empfang -->
+  <circle cx="32" cy="812" r="5" fill="#D4A373"/>
+  <text x="48" y="816" font-size="13" font-weight="500" fill="#2C2A26">Empfang</text>
+  <text x="48" y="830" font-size="10" fill="#A89A7A">15–18 Uhr · 3h</text>
+  <!-- Engpass badge -->
+  <rect x="48" y="838" width="50" height="18" rx="6" fill="#FAEEDA"/>
+  <text x="73" y="851" font-size="8" fill="#D4A373" text-anchor="middle">Engpass</text>
+  <!-- Confidence bar background -->
+  <rect x="170" y="808" width="100" height="6" rx="3" fill="#F5F1E8"/>
+  <!-- Confidence bar fill (68%) -->
+  <rect x="170" y="808" width="68" height="6" rx="3" fill="#D4A373"/>
+  <!-- Score -->
+  <text x="358" y="816" font-size="14" font-weight="500" fill="#D4A373" text-anchor="end">68</text>
+
+  <!-- Hairline between phases 2 and 3 -->
+  <rect x="28" y="858" width="316" height="0.5" fill="#E0D6BE"/>
+
+  <!-- Phase 3 - Abendfeier -->
+  <circle cx="32" cy="882" r="5" fill="#6B7A8F"/>
+  <text x="48" y="886" font-size="13" font-weight="500" fill="#2C2A26">Abendfeier</text>
+  <text x="48" y="900" font-size="10" fill="#A89A7A">18–23 Uhr · 5h</text>
+  <!-- Confidence bar background -->
+  <rect x="170" y="878" width="100" height="6" rx="3" fill="#F5F1E8"/>
+  <!-- Confidence bar fill (79%) -->
+  <rect x="170" y="878" width="79" height="6" rx="3" fill="#6B7A8F"/>
+  <!-- Score -->
+  <text x="358" y="886" font-size="14" font-weight="500" fill="#C97B47" text-anchor="end">79</text>
+
+  <!-- ============================================================ -->
+  <!-- SECTION "VORHERSAGE-SICHERHEIT" (y=908 to y=1060) -->
+  <!-- ============================================================ -->
+
+  <!-- Eyebrow -->
+  <text x="16" y="928" font-size="9" font-weight="500" fill="#A89A7A" letter-spacing="1.8">VORHERSAGE-SICHERHEIT</text>
+
+  <!-- Card -->
+  <rect x="16" y="940" width="358" height="120" rx="14" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+
+  <!-- Confidence bands -->
+  <rect x="40" y="956" width="220" height="16" rx="3" fill="#F0F4EA"/>
+  <text x="40" y="968" font-size="8" fill="#7A9466">Hoch (&gt;80%)</text>
+
+  <rect x="40" y="976" width="220" height="16" rx="3" fill="#FAEEDA"/>
+  <text x="40" y="988" font-size="8" fill="#D4A373">Mittel (60–80%)</text>
+
+  <rect x="40" y="996" width="220" height="16" rx="3" fill="#F5F1E8"/>
+  <text x="40" y="1008" font-size="8" fill="#6B7A8F">Niedrig (&lt;60%)</text>
+
+  <!-- Confidence descending line -->
+  <polyline points="268,956 284,968 300,978 316,992 332,1012 348,1030" fill="none" stroke="#A89A7A" stroke-width="1.5" stroke-dasharray="4 3"/>
+
+  <!-- X-axis day markers -->
+  <text x="268" y="1048" font-size="8" fill="#A89A7A" text-anchor="middle">Heute</text>
+  <text x="308" y="1048" font-size="8" fill="#A89A7A" text-anchor="middle">+3d</text>
+  <text x="348" y="1048" font-size="8" fill="#A89A7A" text-anchor="middle">+7d</text>
+  <text x="316" y="1056" font-size="9" fill="#A89A7A">Tendenz →</text>
+
+  <!-- ============================================================ -->
+  <!-- SECTION "RANGLISTE" (y=1068 to y=1530) -->
+  <!-- ============================================================ -->
+
+  <!-- Eyebrow -->
+  <text x="16" y="1088" font-size="9" font-weight="500" fill="#A89A7A" letter-spacing="1.8">RANGLISTE ALLER TAGE</text>
+
+  <!-- Bar chart card -->
+  <rect x="16" y="1100" width="358" height="220" rx="14" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+
+  <!-- Bars: bar bottom y=1280, max height=160 -->
+  <!-- Sa 13: score=55, h=107, y=1173 -->
+  <rect x="30"  y="1173" width="28" height="107" rx="4" fill="#D4A373"/>
+  <!-- So 14: score=82, h=160, y=1120 — BEST (dark) -->
+  <rect x="70"  y="1120" width="28" height="160" rx="4" fill="#2C2A26"/>
+  <!-- Mo 15: score=61, h=119, y=1161 -->
+  <rect x="110" y="1161" width="28" height="119" rx="4" fill="#D4A373"/>
+  <!-- Di 16: score=48, h=94, y=1186 -->
+  <rect x="150" y="1186" width="28" height="94"  rx="4" fill="#6B7A8F"/>
+  <!-- Mi 17: score=52, h=101, y=1179 -->
+  <rect x="190" y="1179" width="28" height="101" rx="4" fill="#6B7A8F"/>
+  <!-- Do 18: score=58, h=113, y=1167 -->
+  <rect x="230" y="1167" width="28" height="113" rx="4" fill="#D4A373"/>
+  <!-- Fr 19: score=74, h=144, y=1136 -->
+  <rect x="270" y="1136" width="28" height="144" rx="4" fill="#D4A373"/>
+  <!-- Sa 20: score=44, h=86, y=1194 -->
+  <rect x="310" y="1194" width="28" height="86"  rx="4" fill="#6B7A8F" opacity="0.6"/>
+
+  <!-- BESTER label for So14 -->
+  <rect x="58" y="1106" width="52" height="14" rx="3" fill="#F0F4EA"/>
+  <text x="84" y="1117" font-size="7" fill="#7A9466" text-anchor="middle">BESTER</text>
+  <!-- Score inside So14 bar -->
+  <text x="84" y="1145" font-size="8" fill="#FFFFFF" text-anchor="middle">82</text>
+
+  <!-- Baseline -->
+  <rect x="24" y="1280" width="336" height="0.5" fill="#E0D6BE"/>
+
+  <!-- Day labels at y=1292 -->
+  <text x="44"  y="1295" font-size="8" fill="#A89A7A" text-anchor="middle">Sa</text>
+  <text x="44"  y="1305" font-size="8" fill="#A89A7A" text-anchor="middle">13</text>
+
+  <text x="84"  y="1295" font-size="8" fill="#2C2A26" font-weight="500" text-anchor="middle">So</text>
+  <text x="84"  y="1305" font-size="8" fill="#2C2A26" font-weight="500" text-anchor="middle">14</text>
+
+  <text x="124" y="1295" font-size="8" fill="#A89A7A" text-anchor="middle">Mo</text>
+  <text x="124" y="1305" font-size="8" fill="#A89A7A" text-anchor="middle">15</text>
+
+  <text x="164" y="1295" font-size="8" fill="#A89A7A" text-anchor="middle">Di</text>
+  <text x="164" y="1305" font-size="8" fill="#A89A7A" text-anchor="middle">16</text>
+
+  <text x="204" y="1295" font-size="8" fill="#A89A7A" text-anchor="middle">Mi</text>
+  <text x="204" y="1305" font-size="8" fill="#A89A7A" text-anchor="middle">17</text>
+
+  <text x="244" y="1295" font-size="8" fill="#A89A7A" text-anchor="middle">Do</text>
+  <text x="244" y="1305" font-size="8" fill="#A89A7A" text-anchor="middle">18</text>
+
+  <text x="284" y="1295" font-size="8" fill="#A89A7A" text-anchor="middle">Fr</text>
+  <text x="284" y="1305" font-size="8" fill="#A89A7A" text-anchor="middle">19</text>
+
+  <text x="324" y="1295" font-size="8" fill="#A89A7A" text-anchor="middle" opacity="0.6">Sa</text>
+  <text x="324" y="1305" font-size="8" fill="#A89A7A" text-anchor="middle" opacity="0.6">20</text>
+
+  <!-- ===== RANK ROWS ===== -->
+
+  <!-- Rank 1 -->
+  <rect x="16" y="1320" width="358" height="54" rx="12" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+  <text x="28" y="1352" font-size="11" font-weight="500" fill="#2C2A26">1.</text>
+  <circle cx="50" cy="1348" r="7" fill="none" stroke="#7A9466" stroke-width="1.5"/>
+  <circle cx="50" cy="1348" r="3" fill="#7A9466"/>
+  <text x="68" y="1352" font-size="13" fill="#2C2A26">So, 14. Juni</text>
+  <!-- Score badge -->
+  <rect x="302" y="1336" width="40" height="24" rx="8" fill="#2C2A26"/>
+  <text x="322" y="1353" font-size="12" fill="#FFFFFF" text-anchor="middle">82</text>
+  <!-- Sub info -->
+  <circle cx="70" cy="1368" r="3" fill="#7A9466"/>
+  <text x="78" y="1372" font-size="9" fill="#7A9466">Konfidenz 88%</text>
+
+  <!-- Rank 2 -->
+  <rect x="16" y="1382" width="358" height="54" rx="12" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+  <text x="28" y="1412" font-size="11" font-weight="500" fill="#2C2A26">2.</text>
+  <circle cx="50" cy="1408" r="7" fill="none" stroke="#D4A373" stroke-width="1.5"/>
+  <circle cx="50" cy="1408" r="3" fill="#D4A373"/>
+  <text x="68" y="1412" font-size="13" fill="#2C2A26">Fr, 19. Juni</text>
+  <!-- Score badge -->
+  <rect x="302" y="1396" width="40" height="24" rx="8" fill="#D4A373"/>
+  <text x="322" y="1413" font-size="12" fill="#FFFFFF" text-anchor="middle">74</text>
+  <!-- Sub info -->
+  <text x="68" y="1428" font-size="9" fill="#A89A7A">Meist sonnig · leicht windig</text>
+
+  <!-- Rank 3 -->
+  <rect x="16" y="1444" width="358" height="54" rx="12" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+  <text x="28" y="1474" font-size="11" font-weight="500" fill="#2C2A26">3.</text>
+  <circle cx="50" cy="1470" r="7" fill="none" stroke="#D4A373" stroke-width="1.5"/>
+  <circle cx="50" cy="1470" r="3" fill="#D4A373"/>
+  <text x="68" y="1474" font-size="13" fill="#2C2A26">Mo, 15. Juni</text>
+  <!-- Score badge -->
+  <rect x="302" y="1458" width="40" height="24" rx="8" fill="#D4A373" opacity="0.7"/>
+  <text x="322" y="1475" font-size="12" fill="#FFFFFF" text-anchor="middle">61</text>
+  <!-- Sub info with amber down arrow -->
+  <text x="68" y="1490" font-size="9" fill="#A89A7A">↓ zeitweise böig ab 16 Uhr</text>
+
+  <!-- Dimmed note -->
+  <text x="16" y="1514" font-size="9" fill="#C4B896">Tage 6–7 (ab Fr, 19. Juni): Vorhersage unsicher</text>
+
+  <!-- ============================================================ -->
+  <!-- SPACER / ADDITIONAL CONTENT AREA (y=1530 to y=1880) -->
+  <!-- ============================================================ -->
+
+  <!-- "WEITERE INFOS" section to fill space gracefully -->
+  <text x="16" y="1548" font-size="9" font-weight="500" fill="#A89A7A" letter-spacing="1.8">WEITERE HINWEISE</text>
+
+  <!-- Info card 1: Backup-Tipp -->
+  <rect x="16" y="1560" width="358" height="80" rx="14" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+  <rect x="16" y="1560" width="5" height="80" rx="3" fill="#7A9466"/>
+  <text x="32" y="1584" font-size="11" font-weight="500" fill="#2C2A26">Backup-Empfehlung</text>
+  <text x="32" y="1600" font-size="10" fill="#5C5447">Zelt oder Pavillon ab 17 Uhr empfohlen –</text>
+  <text x="32" y="1614" font-size="10" fill="#5C5447">Abkühlung auf 18° möglich nach Sonnenuntergang.</text>
+  <text x="32" y="1630" font-size="9" fill="#A89A7A">Basierend auf ICON-D2 · Stand 13. Juni, 06 UTC</text>
+
+  <!-- Info card 2: Pollenbelastung -->
+  <rect x="16" y="1652" width="170" height="80" rx="14" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+  <text x="28" y="1676" font-size="9" font-weight="500" fill="#A89A7A" letter-spacing="1.5">POLLEN</text>
+  <text x="28" y="1696" font-size="13" font-weight="500" fill="#D4A373">Mittel</text>
+  <text x="28" y="1712" font-size="9" fill="#5C5447">Gräser: erhöht</text>
+  <text x="28" y="1724" font-size="9" fill="#A89A7A">BW-Bodensee Region</text>
+
+  <!-- Info card 3: UV-Index -->
+  <rect x="202" y="1652" width="172" height="80" rx="14" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+  <text x="214" y="1676" font-size="9" font-weight="500" fill="#A89A7A" letter-spacing="1.5">UV-INDEX</text>
+  <text x="214" y="1696" font-size="13" font-weight="500" fill="#C97B47">7 – Hoch</text>
+  <text x="214" y="1712" font-size="9" fill="#5C5447">Peak: 13–14 Uhr</text>
+  <text x="214" y="1724" font-size="9" fill="#A89A7A">Sonnenschutz empfohlen</text>
+
+  <!-- Info card 4: Wind detail -->
+  <rect x="16" y="1748" width="358" height="80" rx="14" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+  <rect x="16" y="1748" width="5" height="80" rx="3" fill="#6B7A8F"/>
+  <text x="32" y="1772" font-size="11" font-weight="500" fill="#2C2A26">Windprofil 14. Juni</text>
+  <!-- Mini wind bars -->
+  <rect x="32" y="1785" width="12" height="20" rx="2" fill="#6B7A8F" opacity="0.3"/>
+  <rect x="32" y="1793" width="12" height="12" rx="2" fill="#6B7A8F"/>
+  <text x="48" y="1800" font-size="9" fill="#A89A7A">13 Uhr: 8 km/h SW</text>
+  <rect x="130" y="1785" width="12" height="20" rx="2" fill="#6B7A8F" opacity="0.3"/>
+  <rect x="130" y="1789" width="12" height="16" rx="2" fill="#6B7A8F"/>
+  <text x="146" y="1800" font-size="9" fill="#A89A7A">18 Uhr: 12 km/h W</text>
+  <rect x="232" y="1785" width="12" height="20" rx="2" fill="#6B7A8F" opacity="0.3"/>
+  <rect x="232" y="1785" width="12" height="20" rx="2" fill="#6B7A8F"/>
+  <text x="248" y="1800" font-size="9" fill="#A89A7A">22 Uhr: 18 km/h NW</text>
+  <text x="32" y="1820" font-size="9" fill="#A89A7A">Böen bis 28 km/h ab 20 Uhr möglich</text>
+
+  <!-- ============================================================ -->
+  <!-- FOOTER (y=1887) -->
+  <!-- ============================================================ -->
+  <rect x="0" y="1887" width="390" height="0.5" fill="#E0D6BE"/>
+  <text x="195" y="1896" font-size="8.5" font-weight="500" fill="#A89A7A" text-anchor="middle" letter-spacing="1.5">EV-M4 · VERLAUF &amp; VERGLEICH (MOBILE)</text>
+
+</svg>

@@ -1,0 +1,348 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1100" font-family="ui-sans-serif, system-ui, -apple-system">
+  <defs>
+    <linearGradient id="bg17" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F5F1E8"/>
+      <stop offset="100%" stop-color="#EDE6D3"/>
+    </linearGradient>
+    <linearGradient id="elevationMini" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#8B7355" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#8B7355" stop-opacity="0.1"/>
+    </linearGradient>
+  </defs>
+  
+  <rect width="1440" height="1100" fill="url(#bg17)"/>
+  
+  <!-- TOP NAV -->
+  <g>
+    <g transform="translate(32, 24)">
+      <circle cx="14" cy="14" r="6" fill="#2C2A26"/>
+      <g stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round">
+        <line x1="14" y1="0" x2="14" y2="3"/>
+        <line x1="14" y1="25" x2="14" y2="28"/>
+        <line x1="0" y1="14" x2="3" y2="14"/>
+        <line x1="25" y1="14" x2="28" y2="14"/>
+      </g>
+      <text x="42" y="20" font-size="18" font-weight="500" fill="#2C2A26" letter-spacing="-0.5">buscosun</text>
+    </g>
+    
+    <!-- Module nav with Event -->
+    <g transform="translate(700, 18)" font-size="12">
+      <g><text x="30" y="25" fill="#5C5447" text-anchor="middle">Karte</text></g>
+      <g transform="translate(64, 0)"><text x="30" y="25" fill="#5C5447" text-anchor="middle">Route</text></g>
+      <g transform="translate(128, 0)">
+        <rect width="56" height="40" rx="20" fill="#2C2A26"/>
+        <text x="28" y="25" fill="#F5F1E8" text-anchor="middle" font-weight="500">Event</text>
+      </g>
+      <g transform="translate(188, 0)"><text x="42" y="25" fill="#5C5447" text-anchor="middle">Tagesablauf</text></g>
+    </g>
+  </g>
+  
+  <!-- ============ HEADER ============ -->
+  <g transform="translate(80, 100)">
+    <text font-size="11" fill="#A89A7A" letter-spacing="3" font-weight="500">EVENT AUS GESPEICHERTER ROUTE · QUELLE-MODUS AKTIV</text>
+    <text y="56" font-size="56" font-weight="200" fill="#2C2A26" letter-spacing="-1.5">Welche Route?</text>
+    <text y="100" font-size="16" fill="#5C5447">Wir übernehmen Start-Zeit, Distanz und Profil automatisch — und prüfen das Wetter auf der ganzen Strecke.</text>
+    
+    <!-- Source toggle -->
+    <g transform="translate(800, 50)">
+      <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">QUELLE</text>
+      <g transform="translate(0, 14)">
+        <rect width="480" height="40" rx="20" fill="#FFFFFF" stroke="#D9D0B8" stroke-width="0.5"/>
+        <text x="120" y="25" font-size="12" fill="#5C5447" text-anchor="middle">Standalone-Event</text>
+        <rect x="240" y="4" width="236" height="32" rx="16" fill="#2C2A26"/>
+        <text x="358" y="25" font-size="12" fill="#FFFFFF" text-anchor="middle" font-weight="500">Aus gespeicherter Route</text>
+      </g>
+    </g>
+  </g>
+  
+  <!-- ============ ROUTE LIST (left) + PREVIEW (right) ============ -->
+  
+  <!-- LEFT: Route list -->
+  <g transform="translate(80, 260)">
+    <rect width="600" height="720" rx="22" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    
+    <g transform="translate(28, 28)">
+      <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">DEINE ROUTEN · 14 GESPEICHERT</text>
+      
+      <!-- Filter pills -->
+      <g transform="translate(0, 22)">
+        <g>
+          <rect width="60" height="28" rx="14" fill="#2C2A26"/>
+          <text x="30" y="18" font-size="11" fill="#F5F1E8" text-anchor="middle" font-weight="500">Alle</text>
+        </g>
+        <g transform="translate(68, 0)">
+          <rect width="84" height="28" rx="14" fill="transparent" stroke="#D9D0B8"/>
+          <rect x="10" y="8" width="14" height="14" rx="3" fill="#FF5722"/>
+          <text x="50" y="18" font-size="11" fill="#5C5447">Strava (3)</text>
+        </g>
+        <g transform="translate(160, 0)">
+          <rect width="72" height="28" rx="14" fill="transparent" stroke="#D9D0B8"/>
+          <text x="36" y="18" font-size="11" fill="#5C5447" text-anchor="middle">GPX (8)</text>
+        </g>
+        <g transform="translate(240, 0)">
+          <rect width="84" height="28" rx="14" fill="transparent" stroke="#D9D0B8"/>
+          <text x="42" y="18" font-size="11" fill="#5C5447" text-anchor="middle">Eigene (3)</text>
+        </g>
+        
+        <!-- Search -->
+        <g transform="translate(380, 0)">
+          <rect width="164" height="28" rx="14" fill="#F5F1E8"/>
+          <circle cx="14" cy="14" r="5" stroke="#8B7355" stroke-width="1.5" fill="none"/>
+          <line x1="18" y1="18" x2="22" y2="22" stroke="#8B7355" stroke-width="1.5" stroke-linecap="round"/>
+          <text x="30" y="18" font-size="11" fill="#A89A7A">Routen durchsuchen</text>
+        </g>
+      </g>
+    </g>
+    
+    <!-- Route list items -->
+    <g transform="translate(20, 116)">
+      
+      <!-- Karwendel-Runde (SELECTED) -->
+      <g>
+        <rect width="560" height="100" rx="14" fill="#2C2A26"/>
+        
+        <!-- Source badge -->
+        <g transform="translate(20, 18)">
+          <rect width="22" height="22" rx="4" fill="#FF5722"/>
+          <g transform="translate(7, 4)" fill="#FFFFFF">
+            <path d="M 4 0 L 0 8 L 4 14 L 8 8 Z"/>
+          </g>
+        </g>
+        
+        <!-- Info -->
+        <g transform="translate(56, 18)">
+          <text font-size="9" fill="#A85E2E" letter-spacing="2" font-weight="600">AUSGEWÄHLT</text>
+          <text y="20" font-size="16" fill="#FFFFFF" font-weight="500">Karwendel-Runde</text>
+          <text y="40" font-size="11" fill="#D9D0B8">52 km · 1 240 m · MTB · Strava-Import vom 12.5.</text>
+          <text y="58" font-size="10" fill="#A89A7A">Mittenwald → Karwendel → Achensee → Schwaz</text>
+        </g>
+        
+        <!-- Risk preview -->
+        <g transform="translate(440, 24)">
+          <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">RISIKO HEUTE</text>
+          <text y="22" font-size="22" fill="#FFFFFF" font-weight="300">56%</text>
+          <text y="38" font-size="10" fill="#D4A373">moderat</text>
+        </g>
+      </g>
+      
+      <!-- Isar-Tour -->
+      <g transform="translate(0, 108)">
+        <rect width="560" height="80" rx="14" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+        
+        <g transform="translate(20, 18)">
+          <rect width="22" height="22" rx="4" fill="#FF5722"/>
+          <g transform="translate(7, 4)" fill="#FFFFFF">
+            <path d="M 4 0 L 0 8 L 4 14 L 8 8 Z"/>
+          </g>
+        </g>
+        
+        <g transform="translate(56, 18)">
+          <text font-size="14" fill="#2C2A26" font-weight="500">Isar-Tour</text>
+          <text y="20" font-size="11" fill="#5C5447">38 km · 240 m · Cycling · Strava-Import vom 8.5.</text>
+          <text y="38" font-size="10" fill="#A89A7A">München → Pullach → Schäftlarn</text>
+        </g>
+        
+        <g transform="translate(440, 22)">
+          <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">RISIKO HEUTE</text>
+          <text y="22" font-size="22" fill="#7A9466" font-weight="300">12%</text>
+        </g>
+      </g>
+      
+      <!-- Zugspitze-Anfahrt -->
+      <g transform="translate(0, 196)">
+        <rect width="560" height="80" rx="14" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+        
+        <g transform="translate(20, 18)">
+          <rect width="22" height="22" rx="4" fill="#FF5722"/>
+          <g transform="translate(7, 4)" fill="#FFFFFF">
+            <path d="M 4 0 L 0 8 L 4 14 L 8 8 Z"/>
+          </g>
+        </g>
+        
+        <g transform="translate(56, 18)">
+          <text font-size="14" fill="#2C2A26" font-weight="500">Zugspitze-Anfahrt</text>
+          <text y="20" font-size="11" fill="#5C5447">28 km · 1 820 m · Hike · Strava-Import vom 1.5.</text>
+          <text y="38" font-size="10" fill="#A89A7A">Garmisch → Höllental → Zugspitze</text>
+        </g>
+        
+        <g transform="translate(440, 22)">
+          <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">RISIKO HEUTE</text>
+          <text y="22" font-size="22" fill="#A85E2E" font-weight="300">82%</text>
+        </g>
+      </g>
+      
+      <!-- Achensee-Runde GPX -->
+      <g transform="translate(0, 284)">
+        <rect width="560" height="80" rx="14" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+        
+        <g transform="translate(20, 18)">
+          <rect width="22" height="22" rx="4" fill="#F5F1E8" stroke="#D9D0B8"/>
+          <text x="11" y="16" font-size="10" fill="#5C5447" text-anchor="middle" font-weight="700">G</text>
+        </g>
+        
+        <g transform="translate(56, 18)">
+          <text font-size="14" fill="#2C2A26" font-weight="500">Achensee-Runde</text>
+          <text y="20" font-size="11" fill="#5C5447">22 km · 320 m · Gravel · GPX-Upload vom 3.5.</text>
+          <text y="38" font-size="10" fill="#A89A7A">Pertisau → Maurach → Achenkirch</text>
+        </g>
+        
+        <g transform="translate(440, 22)">
+          <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">RISIKO HEUTE</text>
+          <text y="22" font-size="22" fill="#7A9466" font-weight="300">22%</text>
+        </g>
+      </g>
+      
+      <!-- Eigene-Zeichnung -->
+      <g transform="translate(0, 372)">
+        <rect width="560" height="80" rx="14" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+        
+        <g transform="translate(20, 18)">
+          <rect width="22" height="22" rx="4" fill="#F5F1E8" stroke="#D9D0B8"/>
+          <g transform="translate(6, 7)" stroke="#5C5447" stroke-width="1.5" fill="none" stroke-linecap="round">
+            <path d="M 0 4 L 4 0 L 8 4"/>
+            <line x1="4" y1="0" x2="4" y2="8"/>
+          </g>
+        </g>
+        
+        <g transform="translate(56, 18)">
+          <text font-size="14" fill="#2C2A26" font-weight="500">Test-Strecke Wochenende</text>
+          <text y="20" font-size="11" fill="#5C5447">12 km · 80 m · Walking · Selbst gezeichnet, 28.4.</text>
+          <text y="38" font-size="10" fill="#A89A7A">Stuttgart-Süd → Schlossplatz → Killesberg</text>
+        </g>
+        
+        <g transform="translate(440, 22)">
+          <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">RISIKO HEUTE</text>
+          <text y="22" font-size="22" fill="#7A9466" font-weight="300">8%</text>
+        </g>
+      </g>
+      
+      <!-- Show more -->
+      <g transform="translate(0, 470)">
+        <rect width="560" height="48" rx="14" fill="transparent" stroke="#D9D0B8" stroke-dasharray="4 4"/>
+        <text x="280" y="30" font-size="12" fill="#8B7355" text-anchor="middle">+ 9 weitere Routen anzeigen</text>
+      </g>
+    </g>
+  </g>
+  
+  <!-- RIGHT: Selected route preview -->
+  <g transform="translate(704, 260)">
+    <rect width="656" height="720" rx="22" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    
+    <!-- Header -->
+    <g transform="translate(28, 28)">
+      <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">VORSCHAU · KARWENDEL-RUNDE</text>
+      <text y="22" font-size="20" fill="#2C2A26" font-weight="500" letter-spacing="-0.3">Wetter entlang der ganzen Strecke</text>
+    </g>
+    
+    <!-- Mini map preview -->
+    <g transform="translate(28, 80)">
+      <defs>
+        <clipPath id="miniMap17">
+          <rect width="600" height="220" rx="14"/>
+        </clipPath>
+      </defs>
+      
+      <g clip-path="url(#miniMap17)">
+        <rect width="600" height="220" fill="#E8DFC4"/>
+        
+        <g opacity="0.5">
+          <path d="M 0 140 Q 100 90 200 110 T 400 100 T 600 130 L 600 180 L 0 180 Z" fill="#B8A480"/>
+        </g>
+        
+        <!-- Route -->
+        <path d="M 50 160 Q 130 130 200 140 T 320 110 Q 400 90 480 100 Q 540 110 560 140" 
+              stroke="#2C2A26" stroke-width="3" fill="none" stroke-linecap="round"/>
+        
+        <!-- Risk markers (km 24 problem) -->
+        <g transform="translate(280, 124)">
+          <circle r="9" fill="#A85E2E"/>
+          <text y="3" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="700">!</text>
+        </g>
+        
+        <!-- Start / end -->
+        <circle cx="50" cy="160" r="6" fill="#2C2A26"/>
+        <circle cx="50" cy="160" r="2.5" fill="#FFFFFF"/>
+        <circle cx="560" cy="140" r="6" fill="#2C2A26"/>
+        
+        <!-- Worst hour callout -->
+        <g transform="translate(180, 70)">
+          <rect width="200" height="22" rx="11" fill="#A85E2E"/>
+          <text x="100" y="15" font-size="10" fill="#FFFFFF" text-anchor="middle" font-weight="600" letter-spacing="0.5">REGEN AB KM 24 · 14:00</text>
+        </g>
+      </g>
+    </g>
+    
+    <!-- Auto-imported stats -->
+    <g transform="translate(28, 328)">
+      <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">AUTOMATISCH ÜBERNOMMEN</text>
+      
+      <g transform="translate(0, 22)">
+        <rect width="600" height="60" rx="14" fill="#F5F1E8"/>
+        
+        <g transform="translate(20, 14)" font-size="11" fill="#5C5447">
+          <g>
+            <text font-size="9" fill="#A89A7A" letter-spacing="1.5">DISTANZ</text>
+            <text y="20" font-size="14" fill="#2C2A26" font-weight="500">52 km</text>
+          </g>
+          <g transform="translate(110, 0)">
+            <text font-size="9" fill="#A89A7A" letter-spacing="1.5">AUFSTIEG</text>
+            <text y="20" font-size="14" fill="#2C2A26" font-weight="500">1 240 m</text>
+          </g>
+          <g transform="translate(220, 0)">
+            <text font-size="9" fill="#A89A7A" letter-spacing="1.5">PROFIL</text>
+            <text y="20" font-size="14" fill="#2C2A26" font-weight="500">MTB · 18 km/h</text>
+          </g>
+          <g transform="translate(390, 0)">
+            <text font-size="9" fill="#A89A7A" letter-spacing="1.5">START</text>
+            <text y="20" font-size="14" fill="#2C2A26" font-weight="500">Sa, 18.5. · 08:00</text>
+          </g>
+        </g>
+      </g>
+    </g>
+    
+    <!-- Critical km markers (the killer feature) -->
+    <g transform="translate(28, 432)">
+      <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">KRITISCHE PUNKTE ENTLANG ROUTE</text>
+      
+      <g transform="translate(0, 22)">
+        <!-- KM 24 -->
+        <g>
+          <rect width="600" height="60" rx="14" fill="#FAEEDA" stroke="#D4A373" stroke-width="1"/>
+          <g transform="translate(20, 16)">
+            <text font-size="9" fill="#A85E2E" letter-spacing="2" font-weight="600">KM 24 · 14:00 · ACHENSEE-PASS</text>
+            <text y="22" font-size="13" fill="#2C2A26" font-weight="500">Regen 2.4 mm/h · Sicht 8 km · Wind 32 km/h</text>
+          </g>
+          <g transform="translate(520, 28)">
+            <text font-size="18" font-weight="500" fill="#A85E2E">!</text>
+          </g>
+        </g>
+        
+        <!-- KM 38 -->
+        <g transform="translate(0, 68)">
+          <rect width="600" height="60" rx="14" fill="#F0F4EA" stroke="#7A9466" stroke-width="0.5"/>
+          <g transform="translate(20, 16)">
+            <text font-size="9" fill="#7A9466" letter-spacing="2" font-weight="600">KM 38 · 15:30 · ALPHÜTTE PRINOTH</text>
+            <text y="22" font-size="13" fill="#2C2A26" font-weight="500">Wetter klart auf · gute Einkehr-Gelegenheit</text>
+          </g>
+          <g transform="translate(528, 28)">
+            <text font-size="18" font-weight="500" fill="#7A9466">✓</text>
+          </g>
+        </g>
+      </g>
+    </g>
+    
+    <!-- CTA -->
+    <g transform="translate(28, 624)">
+      <g>
+        <rect width="600" height="60" rx="20" fill="#2C2A26"/>
+        <text x="300" y="38" font-size="14" fill="#F5F1E8" text-anchor="middle" font-weight="500">Mit dieser Route weiter zur Risk-Analyse →</text>
+      </g>
+    </g>
+  </g>
+  
+  <!-- ============ LABEL ============ -->
+  <g transform="translate(80, 1060)">
+    <text font-size="10" fill="#A89A7A" letter-spacing="3" font-weight="500">17 · EVENT-FROM-ROUTE-FLOW · DESKTOP · SESSION 2/3</text>
+    <text x="1280" font-size="10" fill="#A89A7A" letter-spacing="2" text-anchor="end">14 Routen · Filter-Pills · Mini-Map · Auto-Import · Km-Marker</text>
+  </g>
+</svg>

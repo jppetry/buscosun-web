@@ -1,0 +1,347 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 1650" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">
+  <defs>
+    <linearGradient id="bgSand" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FAF6EA"/>
+      <stop offset="1" stop-color="#F5F1E8"/>
+    </linearGradient>
+    <filter id="cardShadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="4"/>
+      <feOffset dx="0" dy="2"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.10"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <pattern id="grain" width="120" height="120" patternUnits="userSpaceOnUse">
+      <rect width="120" height="120" fill="transparent"/>
+      <circle cx="20" cy="40" r="0.7" fill="#C4B896" opacity="0.18"/>
+      <circle cx="80" cy="20" r="0.5" fill="#C4B896" opacity="0.14"/>
+      <circle cx="55" cy="95" r="0.6" fill="#C4B896" opacity="0.16"/>
+    </pattern>
+  </defs>
+
+  <rect width="390" height="1650" fill="url(#bgSand)"/>
+  <rect width="390" height="1650" fill="url(#grain)"/>
+
+  <!-- ====== STATUS BAR ====== -->
+  <g>
+    <rect width="390" height="44" fill="#FAF6EA"/>
+    <text x="22" y="28" font-size="14" font-weight="700" fill="#2C2A26">9:41</text>
+    <g transform="translate(330, 14)" fill="#2C2A26">
+      <rect x="0" y="2" width="3" height="8" rx="1"/>
+      <rect x="5" y="0" width="3" height="10" rx="1"/>
+      <rect x="10" y="-2" width="3" height="12" rx="1"/>
+      <rect x="22" y="0" width="20" height="10" rx="2" fill="none" stroke="#2C2A26" stroke-width="1"/>
+      <rect x="24" y="2" width="14" height="6" rx="1" fill="#7A9466"/>
+    </g>
+  </g>
+
+  <!-- ====== TOP NAV ====== -->
+  <g transform="translate(0, 44)">
+    <rect width="390" height="56" fill="#FAF6EA"/>
+    <line x1="0" y1="56" x2="390" y2="56" stroke="#E0D6BE"/>
+    <g transform="translate(16, 18)">
+      <path d="M 8 0 L 0 10 L 8 20" fill="none" stroke="#2C2A26" stroke-width="2" stroke-linecap="round"/>
+    </g>
+    <text x="195" y="32" font-size="14" font-weight="600" fill="#2C2A26" text-anchor="middle">Phase &amp; Verlauf</text>
+    <text x="195" y="46" font-size="10" fill="#8B7355" text-anchor="middle">Berchtesgaden · alpin</text>
+    <g transform="translate(354, 26)">
+      <circle r="4" fill="#7A9466"/>
+    </g>
+  </g>
+
+  <!-- ====== LOCATION & TIME ====== -->
+  <g transform="translate(16, 120)">
+    <text font-size="10" letter-spacing="0.22em" font-weight="600" fill="#3A6FA8">JETZT 14:32 · 580 M Ü. NN</text>
+  </g>
+
+  <!-- ====== PHASEN-TIMELINE (ZENTRALE VISUALISIERUNG) ====== -->
+  <g transform="translate(16, 148)">
+    <text font-size="11" letter-spacing="0.22em" font-weight="600" fill="#8B7355">PHASE ÜBER 6 H</text>
+
+    <g transform="translate(0, 18)" filter="url(#cardShadow)">
+      <rect width="358" height="180" rx="14" fill="#FAF6EA" stroke="#E0D6BE"/>
+
+      <!-- ===== TWO PHASE BARS: Tal vs Grat ===== -->
+      <!-- Y axis labels on left -->
+      <g font-size="9" font-weight="600" fill="#5C5447">
+        <text x="14" y="46">TAL</text>
+        <text x="14" y="56" font-size="8" font-weight="400" fill="#8B7355">580 m</text>
+        <text x="14" y="106">GRAT</text>
+        <text x="14" y="116" font-size="8" font-weight="400" fill="#8B7355">2400 m</text>
+      </g>
+
+      <!-- Plot area: x=60..346, width=286 -->
+      <!-- TAL phase bar -->
+      <g transform="translate(60, 40)">
+        <rect width="286" height="22" rx="4" fill="#EDE6D3"/>
+        <!-- Rain whole length -->
+        <rect width="286" height="22" rx="4" fill="#3A6FA8" opacity="0.7"/>
+        <!-- Then changes to sleet at hour 4 -->
+        <rect x="190" width="96" height="22" fill="#A994D1" opacity="0.85"/>
+        <!-- Phase transition marker -->
+        <line x1="190" y1="-4" x2="190" y2="26" stroke="#A994D1" stroke-width="2"/>
+        <text x="190" y="-8" font-size="8" font-weight="700" fill="#A994D1" text-anchor="middle">18:30 → Schneeregen</text>
+      </g>
+
+      <!-- GRAT phase bar -->
+      <g transform="translate(60, 90)">
+        <rect width="286" height="22" rx="4" fill="#EDE6D3"/>
+        <!-- Snow from start -->
+        <rect width="100" height="22" rx="4" fill="#B6C8D6" opacity="0.85"/>
+        <!-- Then sleet -->
+        <rect x="100" width="90" height="22" fill="#A994D1" opacity="0.8"/>
+        <!-- Then heavy snow -->
+        <rect x="190" width="96" height="22" fill="#B6C8D6" opacity="0.95"/>
+        <line x1="100" y1="-4" x2="100" y2="26" stroke="#A994D1" stroke-width="2"/>
+        <line x1="190" y1="-4" x2="190" y2="26" stroke="#B6C8D6" stroke-width="2"/>
+      </g>
+
+      <!-- X axis labels -->
+      <g transform="translate(60, 128)" font-size="9" fill="#8B7355">
+        <text x="0" text-anchor="middle">14:32</text>
+        <text x="72" text-anchor="middle">16:00</text>
+        <text x="144" text-anchor="middle">17:30</text>
+        <text x="220" text-anchor="middle">19:00</text>
+        <text x="286" text-anchor="middle">20:32</text>
+      </g>
+
+      <!-- Snow line indicator bar -->
+      <g transform="translate(60, 146)">
+        <text x="-46" y="10" font-size="8" font-weight="600" letter-spacing="0.1em" fill="#8B7355">SCHNEE</text>
+        <text x="-46" y="20" font-size="8" font-weight="600" letter-spacing="0.1em" fill="#8B7355">GRENZE</text>
+        <!-- mini line chart of snow line -->
+        <path d="M 0 14 L 72 14 L 72 16 L 144 16 L 144 12 L 220 12 L 220 6 L 286 6"
+              fill="none" stroke="#6B7A8F" stroke-width="1.6" stroke-dasharray="3 2"/>
+        <text x="0" y="-2" font-size="8" fill="#5C5447">1840m</text>
+        <text x="286" y="-2" font-size="8" fill="#5C5447" text-anchor="end">1240m ↓</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- ====== ALPINE TAL/GRAT SCHNITT ====== -->
+  <g transform="translate(16, 358)">
+    <text font-size="11" letter-spacing="0.22em" font-weight="600" fill="#8B7355">TAL VS. GIPFEL · JETZT</text>
+
+    <g transform="translate(0, 18)" filter="url(#cardShadow)">
+      <rect width="358" height="216" rx="14" fill="#FAF6EA" stroke="#E0D6BE"/>
+
+      <!-- Cross-section illustration -->
+      <g transform="translate(20, 24)">
+        <rect width="318" height="140" rx="8" fill="#F8F2E2"/>
+
+        <!-- Snow line horizontal -->
+        <line x1="0" y1="56" x2="318" y2="56" stroke="#9AB8CF" stroke-width="1.5" stroke-dasharray="4 3"/>
+        <text x="316" y="50" font-size="9" font-weight="600" fill="#5C5447" text-anchor="end">1840 m</text>
+
+        <!-- Mountain silhouette -->
+        <path d="M 0 140 L 50 140 L 90 124 L 130 108 L 170 86 L 200 56 L 220 30 L 240 50 L 280 96 L 310 124 L 318 140 Z"
+              fill="#8B7355" opacity="0.45"/>
+
+        <!-- Snowflakes above ridge -->
+        <g fill="#6B7A8F">
+          <text x="200" y="44" font-size="12">❄</text>
+          <text x="225" y="36" font-size="14">❄</text>
+          <text x="245" y="42" font-size="11">❄</text>
+        </g>
+
+        <!-- Raindrops in valley -->
+        <g stroke="#3A6FA8" stroke-width="1.4" stroke-linecap="round">
+          <line x1="40" y1="86" x2="38" y2="96"/>
+          <line x1="60" y1="88" x2="58" y2="98"/>
+          <line x1="80" y1="84" x2="78" y2="94"/>
+        </g>
+
+        <!-- Valley pin -->
+        <g transform="translate(46, 130)">
+          <circle r="10" fill="#FAF6EA" stroke="#C97B47" stroke-width="2"/>
+          <circle r="4" fill="#C97B47"/>
+        </g>
+        <g transform="translate(46, 152)">
+          <rect x="-30" y="-6" width="60" height="14" rx="7" fill="#3A6FA8"/>
+          <text y="4" font-size="9" font-weight="700" fill="#FAF6EA" text-anchor="middle">Regen</text>
+        </g>
+
+        <!-- Ridge pin -->
+        <g transform="translate(220, 14)">
+          <circle r="10" fill="#FAF6EA" stroke="#C97B47" stroke-width="2"/>
+          <circle r="4" fill="#C97B47"/>
+        </g>
+        <g transform="translate(220, -4)">
+          <rect x="-30" y="-6" width="60" height="14" rx="7" fill="#B6C8D6" stroke="#6B7A8F" stroke-width="1"/>
+          <text y="4" font-size="9" font-weight="700" fill="#5C5447" text-anchor="middle">Schnee</text>
+        </g>
+      </g>
+
+      <!-- Stats row below -->
+      <g transform="translate(20, 180)" font-size="11">
+        <g>
+          <text font-size="9" font-weight="600" letter-spacing="0.1em" fill="#8B7355">TAL 580 m</text>
+          <text y="16" font-size="14" font-weight="700" fill="#2C2A26">2,4 mm/h</text>
+          <text x="86" y="16" font-size="11" fill="#5C5447">· 4,1 mm 6h</text>
+        </g>
+        <g transform="translate(190, 0)">
+          <text font-size="9" font-weight="600" letter-spacing="0.1em" fill="#8B7355">GIPFEL 2400 m</text>
+          <text y="16" font-size="14" font-weight="700" fill="#2C2A26">~4 cm</text>
+          <text x="60" y="16" font-size="11" fill="#5C5447">Neuschnee</text>
+        </g>
+      </g>
+    </g>
+  </g>
+
+  <!-- ====== EREIGNIS-LISTE ====== -->
+  <g transform="translate(16, 610)">
+    <text font-size="11" letter-spacing="0.22em" font-weight="600" fill="#8B7355">EREIGNISSE · NÄCHSTE 6 H</text>
+
+    <g transform="translate(0, 18)" filter="url(#cardShadow)">
+      <rect width="358" height="384" rx="14" fill="#FAF6EA" stroke="#E0D6BE"/>
+
+      <!-- Vertical timeline line -->
+      <line x1="36" y1="32" x2="36" y2="360" stroke="#E0D6BE" stroke-width="2"/>
+
+      <!-- Event 1: Now -->
+      <g transform="translate(36, 32)">
+        <circle r="10" fill="#C97B47"/>
+        <circle r="3" fill="#FAF6EA"/>
+        <text x="22" y="-2" font-size="9" font-weight="600" letter-spacing="0.1em" fill="#8B7355">JETZT · 14:32</text>
+        <text x="22" y="18" font-size="13" font-weight="700" fill="#2C2A26">Tal trocken · Gipfel Schnee</text>
+        <text x="22" y="36" font-size="11" fill="#5C5447">Schneefallgrenze 1840 m</text>
+      </g>
+
+      <!-- Event 2 -->
+      <g transform="translate(36, 100)">
+        <circle r="10" fill="#3A6FA8"/>
+        <path d="M 0 -4 Q -3 0 -3 3 Q -3 5 0 5 Q 3 5 3 3 Q 3 0 0 -4 Z" fill="#FAF6EA"/>
+        <text x="22" y="-2" font-size="9" font-weight="600" letter-spacing="0.1em" fill="#8B7355">+23 MIN · 14:55</text>
+        <text x="22" y="18" font-size="13" font-weight="700" fill="#2C2A26">Regenbeginn im Tal</text>
+        <text x="22" y="36" font-size="11" fill="#5C5447">leicht-mäßig · Schauer</text>
+      </g>
+
+      <!-- Event 3 -->
+      <g transform="translate(36, 168)">
+        <circle r="10" fill="#7A9466"/>
+        <text y="4" font-size="11" font-weight="700" fill="#FAF6EA" text-anchor="middle">✓</text>
+        <text x="22" y="-2" font-size="9" font-weight="600" letter-spacing="0.1em" fill="#8B7355">+1 H 10 · 15:42</text>
+        <text x="22" y="18" font-size="13" font-weight="700" fill="#2C2A26">Trockenfenster beginnt</text>
+        <text x="22" y="36" font-size="11" fill="#5C5447">47 min · gute Zeit für draußen</text>
+      </g>
+
+      <!-- Event 4 -->
+      <g transform="translate(36, 236)">
+        <circle r="10" fill="#A994D1"/>
+        <text y="4" font-size="9" font-weight="700" fill="#FAF6EA" text-anchor="middle">❄</text>
+        <text x="22" y="-2" font-size="9" font-weight="600" letter-spacing="0.1em" fill="#8B7355">+4 H · 18:30</text>
+        <text x="22" y="18" font-size="13" font-weight="700" fill="#2C2A26">Phasenwechsel im Tal</text>
+        <text x="22" y="36" font-size="11" fill="#A994D1" font-weight="600">Regen → Schneeregen</text>
+      </g>
+
+      <!-- Event 5 — heavy/uncertain -->
+      <g transform="translate(36, 304)">
+        <circle r="10" fill="#D7263D"/>
+        <text y="4" font-size="11" font-weight="700" fill="#FAF6EA" text-anchor="middle">!</text>
+        <text x="22" y="-2" font-size="9" font-weight="600" letter-spacing="0.1em" fill="#8B7355">+5 H · 19:30 · UNSICHER</text>
+        <text x="22" y="18" font-size="13" font-weight="700" fill="#2C2A26">Gewitter-Möglichkeit Tal</text>
+        <text x="22" y="36" font-size="11" fill="#D7263D" font-weight="600">~9 mm/h · Hagel möglich</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- ====== LEGENDE / FARBSKALE PHASE ====== -->
+  <g transform="translate(16, 1024)">
+    <text font-size="10" letter-spacing="0.22em" font-weight="600" fill="#8B7355">PHASE · LEGENDE</text>
+
+    <g transform="translate(0, 16)">
+      <rect width="358" height="124" rx="14" fill="#FAF6EA" stroke="#E0D6BE"/>
+
+      <g transform="translate(20, 20)" font-size="12">
+        <!-- Rain -->
+        <g>
+          <rect width="44" height="20" rx="4" fill="#3A6FA8" opacity="0.7"/>
+          <text x="56" y="14" font-weight="600" fill="#2C2A26">Regen</text>
+          <text x="56" y="30" font-size="10" fill="#5C5447">über Gefrierpunkt</text>
+        </g>
+        <g transform="translate(170, 0)">
+          <rect width="44" height="20" rx="4" fill="#A994D1" opacity="0.85"/>
+          <text x="56" y="14" font-weight="600" fill="#2C2A26">Schnee-</text>
+          <text x="56" y="30" font-size="10" fill="#5C5447">regen · 0–2°</text>
+        </g>
+
+        <g transform="translate(0, 46)">
+          <rect width="44" height="20" rx="4" fill="#B6C8D6" stroke="#6B7A8F"/>
+          <text x="56" y="14" font-weight="600" fill="#2C2A26">Schnee</text>
+          <text x="56" y="30" font-size="10" fill="#5C5447">unter Gefrierpunkt</text>
+        </g>
+        <g transform="translate(170, 46)">
+          <rect width="44" height="20" rx="4" fill="#FAF6EA" stroke="#D7263D" stroke-width="2"/>
+          <text x="56" y="14" font-weight="600" fill="#D7263D">Glättegefahr</text>
+          <text x="56" y="30" font-size="10" fill="#5C5447">gefrier. Regen</text>
+        </g>
+      </g>
+    </g>
+  </g>
+
+  <!-- ====== INFO-BOX ====== -->
+  <g transform="translate(16, 1180)">
+    <rect width="358" height="80" rx="14" fill="#F8F2E2" stroke="#E0D6BE"/>
+    <g transform="translate(16, 18)">
+      <circle r="12" fill="#3A6FA8"/>
+      <text y="5" font-size="14" font-weight="700" fill="#FAF6EA" text-anchor="middle">i</text>
+    </g>
+    <text x="40" y="28" font-size="12" font-weight="700" fill="#2C2A26">Phasen-Logik</text>
+    <text x="40" y="48" font-size="10" fill="#5C5447">Die App nutzt die Boden-Temperatur, nicht nur die</text>
+    <text x="40" y="62" font-size="10" fill="#5C5447">Luft-Temperatur — Schneeregen bei knapp positiv,</text>
+    <text x="40" y="76" font-size="10" fill="#5C5447">gefrierender Regen bei kaltem Boden + Regen oben.</text>
+  </g>
+
+  <!-- ====== AKTIONEN ====== -->
+  <g transform="translate(16, 1284)">
+    <text font-size="10" letter-spacing="0.22em" font-weight="600" fill="#8B7355">MEHR</text>
+
+    <g transform="translate(0, 16)">
+      <g>
+        <rect width="358" height="58" rx="14" fill="#FAF6EA" stroke="#E0D6BE"/>
+        <g transform="translate(16, 17)">
+          <rect width="24" height="24" rx="6" fill="#EDE6D3"/>
+          <path d="M 6 8 L 18 8 L 18 16 L 6 16 Z M 6 12 L 18 12" fill="none" stroke="#3A6FA8" stroke-width="1.4"/>
+        </g>
+        <text x="52" y="26" font-size="13" font-weight="700" fill="#2C2A26">Andere Höhe</text>
+        <text x="52" y="44" font-size="11" fill="#8B7355">Punkt auf Karte tippen</text>
+        <text x="338" y="36" font-size="18" fill="#8B7355" text-anchor="end">›</text>
+      </g>
+
+      <g transform="translate(0, 68)">
+        <rect width="358" height="58" rx="14" fill="#FAF6EA" stroke="#E0D6BE"/>
+        <g transform="translate(16, 17)">
+          <rect width="24" height="24" rx="6" fill="#EDE6D3"/>
+          <path d="M 6 18 L 6 12 Q 6 6 12 6 Q 18 6 18 12 L 18 18 Z" fill="none" stroke="#3A6FA8" stroke-width="1.4"/>
+          <line x1="8" y1="20" x2="16" y2="20" stroke="#3A6FA8" stroke-width="1.4"/>
+        </g>
+        <text x="52" y="26" font-size="13" font-weight="700" fill="#2C2A26">Glätte-Alert aktivieren</text>
+        <text x="52" y="44" font-size="11" fill="#8B7355">Push bei gefr. Regen oder &lt; 1°C</text>
+        <text x="338" y="36" font-size="18" fill="#8B7355" text-anchor="end">›</text>
+      </g>
+
+      <g transform="translate(0, 136)">
+        <rect width="358" height="58" rx="14" fill="#FAF6EA" stroke="#E0D6BE"/>
+        <g transform="translate(16, 17)">
+          <rect width="24" height="24" rx="6" fill="#EDE6D3"/>
+          <path d="M 6 12 L 12 6 L 18 12 L 14 12 L 14 18 L 10 18 L 10 12 Z" fill="#3A6FA8"/>
+        </g>
+        <text x="52" y="26" font-size="13" font-weight="700" fill="#2C2A26">Karte zur Position</text>
+        <text x="52" y="44" font-size="11" fill="#8B7355">Animiertes Niederschlagsfeld</text>
+        <text x="338" y="36" font-size="18" fill="#8B7355" text-anchor="end">›</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- ====== FOOTER ====== -->
+  <g transform="translate(16, 1516)">
+    <rect width="358" height="64" rx="12" fill="#F8F2E2" stroke="#E0D6BE"/>
+    <circle cx="22" cy="22" r="4" fill="#7A9466"/>
+    <text x="36" y="26" font-size="11" font-weight="600" fill="#5C5447">DWD-Radar · ICON-D2 · GeoSphere INCA</text>
+    <text x="14" y="46" font-size="10" fill="#8B7355">Alpiner Modus: Phase aus Bodentemperatur abgeleitet</text>
+    <text x="14" y="58" font-size="10" fill="#8B7355" font-style="italic">Schneefallgrenze aus AROME-Höhenfeld</text>
+  </g>
+
+  <g transform="translate(150, 1630)">
+    <rect width="90" height="4" rx="2" fill="#2C2A26" opacity="0.4"/>
+  </g>
+</svg>

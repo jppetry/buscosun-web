@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 1500" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">
+<defs>
+  <linearGradient id="bgSand" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FAF6EA"/><stop offset="1" stop-color="#F5F1E8"/></linearGradient>
+  <linearGradient id="skyWarm" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F6E9CE"/><stop offset="0.6" stop-color="#EFEAD8"/><stop offset="1" stop-color="#E6E3D2"/></linearGradient>
+  <linearGradient id="coldAir" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9BB0C4" stop-opacity="0.8"/><stop offset="1" stop-color="#6B8198" stop-opacity="0.9"/></linearGradient>
+  <linearGradient id="terrTop" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#A99B7C"/><stop offset="1" stop-color="#7A6E52"/></linearGradient>
+  <radialGradient id="sun" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#F4C969"/><stop offset="0.6" stop-color="#F0B94E" stop-opacity="0.5"/><stop offset="1" stop-color="#F0B94E" stop-opacity="0"/></radialGradient>
+  <filter id="cardShadow" x="-10%" y="-10%" width="120%" height="130%"><feGaussianBlur in="SourceAlpha" stdDeviation="4"/><feOffset dx="0" dy="2"/><feComponentTransfer><feFuncA type="linear" slope="0.10"/></feComponentTransfer><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  <pattern id="grain" width="120" height="120" patternUnits="userSpaceOnUse"><rect width="120" height="120" fill="transparent"/><circle cx="20" cy="40" r="0.7" fill="#C4B896" opacity="0.18"/><circle cx="80" cy="20" r="0.5" fill="#C4B896" opacity="0.14"/></pattern>
+  <pattern id="fogTex" width="50" height="14" patternUnits="userSpaceOnUse"><ellipse cx="12" cy="7" rx="11" ry="3.5" fill="#FAF6EA" opacity="0.16"/><ellipse cx="36" cy="9" rx="9" ry="2.5" fill="#FAF6EA" opacity="0.12"/></pattern>
+</defs>
+<rect width="390" height="1500" fill="url(#bgSand)"/><rect width="390" height="1500" fill="url(#grain)"/>
+<g><rect width="390" height="44" fill="#FAF6EA"/><text x="22" y="28" font-size="14" font-weight="700" fill="#2C2A26">9:41</text>
+  <g transform="translate(330,14)" fill="#2C2A26"><rect x="0" y="2" width="3" height="8" rx="1"/><rect x="5" y="0" width="3" height="10" rx="1"/><rect x="10" y="-2" width="3" height="12" rx="1"/><rect x="22" y="0" width="20" height="10" rx="2" fill="none" stroke="#2C2A26"/><rect x="24" y="2" width="14" height="6" rx="1" fill="#7A9466"/></g></g>
+<g transform="translate(0,44)"><rect width="390" height="56" fill="#FAF6EA"/><line x1="0" y1="56" x2="390" y2="56" stroke="#E0D6BE"/>
+  <g transform="translate(16,18)"><path d="M 8 0 L 0 10 L 8 20" fill="none" stroke="#2C2A26" stroke-width="2" stroke-linecap="round"/></g>
+  <text x="195" y="32" font-size="14" font-weight="600" fill="#2C2A26" text-anchor="middle">Inversion</text>
+  <text x="195" y="46" font-size="10" fill="#8B7355" text-anchor="middle">Inntal · Kaltluftsee</text></g>
+<g transform="translate(16,112)" font-size="11"><g><rect width="92" height="32" rx="16" fill="#3A6FA8"/><text x="46" y="21" font-weight="700" fill="#FAF6EA" text-anchor="middle">Inversion</text></g>
+  <g transform="translate(100,0)"><rect width="106" height="32" rx="16" fill="#FAF6EA" stroke="#E0D6BE"/><text x="53" y="21" fill="#8B7355" text-anchor="middle">Wolkenbasis</text></g>
+  <g transform="translate(214,0)"><rect width="58" height="32" rx="16" fill="#FAF6EA" stroke="#E0D6BE"/><text x="29" y="21" fill="#8B7355" text-anchor="middle">Föhn</text></g></g>
+<text x="16" y="172" font-size="10" letter-spacing="0.22em" font-weight="600" fill="#3A6FA8">3D-SZENE</text>
+<g transform="translate(16,182)" filter="url(#cardShadow)"><rect width="358" height="320" rx="16" fill="url(#skyWarm)"/>
+<clipPath id="sc"><rect width="358" height="320" rx="16"/></clipPath><g clip-path="url(#sc)">
+<circle cx="290" cy="60" r="54" fill="url(#sun)"/><circle cx="290" cy="60" r="18" fill="#F4C969"/>
+<path d="M 0 320 L 0 229.9 L 6 219.0 L 12 208.3 L 18 198.3 L 24 189.3 L 30 181.8 L 36 175.9 L 42 171.9 L 48 170.1 L 54 170.5 L 60 173.0 L 66 177.6 L 72 184.1 L 78 192.2 L 84 201.5 L 90 211.8 L 96 222.6 L 102 233.6 L 108 244.5 L 114 255.0 L 120 264.8 L 126 273.9 L 132 276.9 L 138 276.5 L 144 276.2 L 150 275.9 L 156 275.6 L 162 275.2 L 168 274.9 L 174 274.6 L 180 274.3 L 186 274.1 L 192 274.4 L 198 274.7 L 204 275.0 L 210 275.4 L 216 275.7 L 222 276.0 L 228 276.3 L 234 275.9 L 240 268.5 L 246 260.5 L 252 252.0 L 258 243.2 L 264 234.2 L 270 225.3 L 276 216.5 L 282 208.3 L 288 200.7 L 294 194.0 L 300 188.5 L 306 184.2 L 312 181.4 L 318 180.1 L 324 180.3 L 330 182.2 L 336 185.5 L 342 190.2 L 348 196.1 L 354 203.1 L 358 320 Z" fill="url(#terrTop)"/>
+<rect x="0" y="224.0" width="270" height="96.0" fill="url(#coldAir)" opacity="0.62"/>
+<path d="M 0 320 L 0 229.9 L 6 219.0 L 12 208.3 L 18 198.3 L 24 189.3 L 30 181.8 L 36 175.9 L 42 171.9 L 48 170.1 L 54 170.5 L 60 173.0 L 66 177.6 L 72 184.1 L 78 192.2 L 84 201.5 L 90 211.8 L 96 222.6 L 102 233.6 L 108 244.5 L 114 255.0 L 120 264.8 L 126 273.9 L 132 276.9 L 138 276.5 L 144 276.2 L 150 275.9 L 156 275.6 L 162 275.2 L 168 274.9 L 174 274.6 L 180 274.3 L 186 274.1 L 192 274.4 L 198 274.7 L 204 275.0 L 210 275.4 L 216 275.7 L 222 276.0 L 228 276.3 L 234 275.9 L 240 268.5 L 246 260.5 L 252 252.0 L 258 243.2 L 264 234.2 L 270 225.3 L 276 216.5 L 282 208.3 L 288 200.7 L 294 194.0 L 300 188.5 L 306 184.2 L 312 181.4 L 318 180.1 L 324 180.3 L 330 182.2 L 336 185.5 L 342 190.2 L 348 196.1 L 354 203.1 L 358 320 Z" fill="url(#terrTop)"/>
+<rect x="0" y="224.0" width="270" height="20" fill="url(#fogTex)"/>
+<line x1="0" y1="224.0" x2="270" y2="224.0" stroke="#FAF6EA" stroke-width="2" opacity="0.8"/>
+<path d="M 0 224.0 L 0 224.0 L 4 224.0 L 8 224.0 L 12 224.0 L 16 224.0 L 20 224.0 L 24 224.0 L 28 224.0 L 32 224.0 L 36 224.0 L 40 224.0 L 44 224.0 L 48 224.0 L 52 224.0 L 56 224.0 L 60 224.0 L 64 224.0 L 68 224.0 L 72 224.0 L 76 224.0 L 80 224.0 L 84 224.0 L 88 224.0 L 92 224.0 L 96 224.0 L 100 224.0 L 104 224.0 L 108 224.0 L 112 224.0 L 116 224.0 L 120 224.0 L 124 224.0 L 128 224.0 L 132 224.0 L 136 224.0 L 140 224.0 L 144 224.0 L 148 224.0 L 152 224.0 L 156 224.0 L 160 224.0 L 164 224.0 L 168 224.0 L 172 224.0 L 176 224.0 L 180 224.0 L 184 224.0 L 188 224.0 L 192 224.0 L 196 224.0 L 200 224.0 L 204 224.0 L 208 224.0 L 212 224.0 L 216 224.0 L 220 224.0 L 224 224.0 L 228 224.0 L 232 224.0 L 236 224.0 L 240 224.0 L 244 224.0 L 248 224.0 L 252 224.0 L 256 224.0 L 260 224.0 L 264 224.0 L 268 224.0 L 270 225.3 L 266 231.2 L 262 237.2 L 258 243.2 L 254 249.1 L 250 254.9 L 246 260.5 L 242 265.9 L 238 271.0 L 234 275.9 L 230 276.4 L 226 276.2 L 222 276.0 L 218 275.8 L 214 275.6 L 210 275.4 L 206 275.1 L 202 274.9 L 198 274.7 L 194 274.5 L 190 274.3 L 186 274.1 L 182 274.2 L 178 274.4 L 174 274.6 L 170 274.8 L 166 275.0 L 162 275.2 L 158 275.5 L 154 275.7 L 150 275.9 L 146 276.1 L 142 276.3 L 138 276.5 L 134 276.8 L 130 277.0 L 126 273.9 L 122 267.9 L 118 261.6 L 114 255.0 L 110 248.1 L 106 240.9 L 102 233.6 L 98 226.3 L 94 219.0 L 90 211.8 L 86 204.9 L 82 198.3 L 78 192.2 L 74 186.6 L 70 181.8 L 66 177.6 L 62 174.3 L 58 171.9 L 54 170.5 L 50 170.0 L 46 170.5 L 42 171.9 L 38 174.3 L 34 177.6 L 30 181.8 L 26 186.6 L 22 192.2 L 18 198.3 L 14 204.9 L 10 211.8 L 6 219.0 L 2 226.3 Z" fill="url(#coldAir)" opacity="0.5"/>
+<g transform="translate(135,222)"><rect x="-72" y="-18" width="144" height="18" rx="9" fill="#3A6FA8"/><text y="-4" font-size="10" font-weight="700" fill="#FAF6EA" text-anchor="middle">Inversion 1.150 m</text></g>
+<g opacity="0.9"><ellipse cx="60" cy="170" rx="46" ry="14" fill="#C9CFD6"/><ellipse cx="110" cy="164" rx="40" ry="12" fill="#C9CFD6"/><ellipse cx="300" cy="174" rx="44" ry="13" fill="#C9CFD6"/></g>
+<line x1="0" y1="170" x2="358" y2="170" stroke="#6B7A8F" stroke-width="1.4" stroke-dasharray="5 4" opacity="0.6"/>
+<g transform="translate(70,166)"><rect x="-58" y="-16" width="116" height="16" rx="8" fill="#6B7A8F"/><text y="-4" font-size="9" font-weight="700" fill="#FAF6EA" text-anchor="middle">Wolkenbasis 1.900 m</text></g>
+<g transform="translate(50,170)"><circle r="11" fill="#D4A373"/><circle r="5" fill="#FAF6EA"/></g>
+<g transform="translate(50,142)"><rect x="-50" y="-13" width="100" height="17" rx="8" fill="#D4A373"/><text y="-1" font-size="9" font-weight="700" fill="#FAF6EA" text-anchor="middle">☀ über Inversion</text></g>
+<g transform="translate(185,276)"><circle r="10" fill="#6B8198"/><path d="M -5 2 L -5 -3 L 0 -7 L 5 -3 L 5 2 Z" fill="#FAF6EA"/></g>
+<g transform="translate(185,248)"><rect x="-52" y="-13" width="104" height="17" rx="8" fill="#6B8198"/><text y="-1" font-size="9" font-weight="700" fill="#FAF6EA" text-anchor="middle">im Nebel · Tal</text></g>
+</g>
+<g transform="translate(310,276)"><circle cx="18" cy="18" r="16" fill="#FAF6EA" opacity="0.95" stroke="#E0D6BE"/><path d="M 8 18 A 10 10 0 1 1 11 25" fill="none" stroke="#5C5447" stroke-width="1.4"/><path d="M 11 22 L 11 27 L 6 26 Z" fill="#5C5447"/></g>
+</g>
+<g transform="translate(16,520)" filter="url(#cardShadow)"><rect width="358" height="118" rx="16" fill="#FAF6EA" stroke="#E0D6BE"/>
+  <text x="20" y="28" font-size="10" letter-spacing="0.12em" font-weight="600" fill="#8B7355">AUFSTIEG LOHNT SICH</text>
+  <g transform="translate(20,40)">
+    <text y="18" font-size="12" fill="#5C5447">oberhalb 1.674 m</text><text x="200" y="20" font-size="18" font-weight="700" fill="#D4A373" text-anchor="end">+11 °C</text>
+    <text y="44" font-size="12" fill="#5C5447">im Tal 447 m</text><text x="200" y="46" font-size="18" font-weight="700" fill="#6B8198" text-anchor="end">-2 °C</text>
+  </g>
+  <g transform="translate(238,44)"><text font-size="10" font-weight="600" fill="#8B7355">DIFFERENZ</text><text y="36" font-size="34" font-weight="700" fill="#C97B47">+13 K</text></g></g>
+<g transform="translate(16,656)" filter="url(#cardShadow)"><rect width="358" height="160" rx="16" fill="#FAF6EA" stroke="#E0D6BE"/>
+  <text x="20" y="28" font-size="10" letter-spacing="0.12em" font-weight="600" fill="#8B7355">GIPFEL ÜBER / UNTER GRENZE</text>
+  <g transform="translate(20,40)">
+   <g><circle cx="11" cy="11" r="11" fill="#D4A373"/><text x="11" y="15" font-size="11" fill="#FAF6EA" text-anchor="middle">☀</text><text x="32" y="10" font-size="13" font-weight="700" fill="#2C2A26">Hochfelln</text><text x="32" y="24" font-size="10" fill="#5C5447">1.674 m · über Inversion · sonnig</text><text x="338" y="16" font-size="11" font-weight="700" fill="#D4A373" text-anchor="end">+524 m</text></g>
+   <line x1="0" y1="36" x2="338" y2="36" stroke="#E0D6BE"/>
+   <g transform="translate(0,46)"><circle cx="11" cy="11" r="11" fill="#D4A373"/><text x="11" y="15" font-size="11" fill="#FAF6EA" text-anchor="middle">☀</text><text x="32" y="10" font-size="13" font-weight="700" fill="#2C2A26">Kampenwand</text><text x="32" y="24" font-size="10" fill="#5C5447">1.669 m · über Inversion · sonnig</text><text x="338" y="16" font-size="11" font-weight="700" fill="#D4A373" text-anchor="end">+519 m</text></g>
+   <line x1="0" y1="82" x2="338" y2="82" stroke="#E0D6BE"/>
+   <g transform="translate(0,92)"><circle cx="11" cy="11" r="11" fill="#6B8198"/><path d="M 6 14 L 6 9 L 11 5 L 16 9 L 16 14 Z" fill="#FAF6EA"/><text x="32" y="10" font-size="13" font-weight="700" fill="#2C2A26">Rosenheim</text><text x="32" y="24" font-size="10" fill="#5C5447">447 m · im Kaltluftsee · Nebel</text><text x="338" y="16" font-size="11" font-weight="700" fill="#6B8198" text-anchor="end">-703 m</text></g>
+  </g></g>
+<g transform="translate(16,832)" filter="url(#cardShadow)"><rect width="358" height="108" rx="16" fill="#FAF6EA" stroke="#E0D6BE"/>
+  <text x="20" y="28" font-size="10" letter-spacing="0.12em" font-weight="600" fill="#3A6FA8">INVERSIONSHÖHE ÜBER DEN TAG</text>
+  <text x="338" y="28" font-size="12" font-weight="700" fill="#2C2A26" text-anchor="end">09:00</text>
+  <g transform="translate(20,40)"><path d="M 0 30 L 60 26 L 120 16 L 180 8 L 240 18 L 300 30 L 318 32 L 318 40 L 0 40 Z" fill="#9BB0C4" opacity="0.4"/>
+   <path d="M 0 30 L 60 26 L 120 16 L 180 8 L 240 18 L 300 30 L 318 32" fill="none" stroke="#3A6FA8" stroke-width="2"/>
+   <text x="180" y="2" font-size="8" font-weight="600" fill="#7A9466" text-anchor="middle">Auflösung ~13:00</text>
+   <g transform="translate(40,28)"><circle r="9" fill="#C97B47"/><circle r="3" fill="#FAF6EA"/></g></g>
+  <g transform="translate(20,96)" font-size="9" fill="#8B7355"><text x="0">06:00</text><text x="40" font-weight="700" fill="#C97B47" text-anchor="middle">09:00</text><text x="318" text-anchor="end">22:00</text></g></g>
+<g transform="translate(16,956)"><rect width="358" height="78" rx="14" fill="#F8F2E2" stroke="#E0D6BE"/>
+  <g transform="translate(20,22)"><circle r="11" fill="#8B7355"/><text y="4" font-size="13" font-weight="700" fill="#FAF6EA" text-anchor="middle">!</text></g>
+  <text x="40" y="24" font-size="12" font-weight="700" fill="#2C2A26">Stabile Inversion · Luftqualität</text>
+  <text x="40" y="42" font-size="10" fill="#5C5447">Feinstaub reichert sich im Tal an, Frost bis ~09:00.</text>
+  <text x="40" y="58" font-size="9" font-style="italic" fill="#8B7355">Hinweis nicht verbindlich · ICON-D2 + Beobachtung</text></g>
+<g transform="translate(16,1050)"><rect width="358" height="64" rx="14" fill="#FAF6EA" stroke="#E0D6BE"/>
+  <g transform="translate(20,22)"><circle r="11" fill="#3A6FA8"/><text y="4" font-size="13" font-weight="700" fill="#FAF6EA" text-anchor="middle">i</text></g>
+  <text x="40" y="24" font-size="11" font-weight="700" fill="#2C2A26">Ohne Inversion?</text>
+  <text x="40" y="42" font-size="10" fill="#5C5447">Dann zeigt der Layer klar „keine Inversion" —</text>
+  <text x="40" y="56" font-size="10" fill="#5C5447">keine leere Szene, die Verwirrung stiftet.</text></g>
+<g transform="translate(16,1130)"><rect width="358" height="58" rx="12" fill="#FAF6EA" stroke="#E0D6BE"/>
+  <circle cx="22" cy="22" r="4" fill="#7A9466"/><text x="36" y="26" font-size="11" font-weight="600" fill="#5C5447">ICON-D2 · 08:00 UTC · DEM 25 m</text>
+  <text x="14" y="46" font-size="10" fill="#8B7355">Symbol + Text statt reiner Farbe (barrierearm)</text></g>
+<g transform="translate(150,1476)"><rect width="90" height="4" rx="2" fill="#2C2A26" opacity="0.4"/></g>
+</svg>

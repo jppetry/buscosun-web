@@ -1,0 +1,99 @@
+/*
+ * Buscosun Design System v1.8 — shared tokens.
+ * Loaded by App.tsx so every page/component can read --token vars.
+ */
+
+:root {
+  /* === Surfaces === */
+  --sand-50:  #F5F1E8;
+  --sand-100: #EDE6D3;
+  --sand-200: #E0D6BE;
+  --sand-300: #D9CEB0;
+  --cream-50: #FAF6EA;
+
+  /* Schwebende Glas-Flächen über der Karte (cream statt stark-weiß, v1.8). */
+  --surface-glass: rgba(250, 246, 234, 0.92);
+  --surface-glass-strong: rgba(250, 246, 234, 0.97);
+
+  /* === Inks === */
+  --ink-900: #2C2A26;
+  --ink-800: #3A3833;
+
+  /* === Text === */
+  --stone-600: #5C5447;
+  --stone-500: #8B7355;
+  --stone-400: #A89A7A;
+
+  /* === Semantik === */
+  --sage-600: #7A9466;
+  --sage-50:  #F0F4EA;
+  --terracotta-500: #C97B47;
+  --terracotta-700: #A85E2E;
+  --terracotta-50:  #FAEEDA;
+  --amber-500: #D4A373;
+  --steel-600: #3A6FA8;
+  --steel-50:  #E8F0FA;
+  --slate-500: #6B7A8F;
+
+  /* === Borders === */
+  --border-default: #E0D6BE;
+  --border-medium:  #D9D0B8;
+  --border-strong:  #C4B896;
+
+  /* === Shadows === */
+  --shadow-card:   0 4px 16px rgba(44, 42, 38, 0.06);
+  --shadow-float:  0 8px 32px rgba(44, 42, 38, 0.10);
+  --shadow-hover:  0 12px 40px rgba(44, 42, 38, 0.14);
+
+  /* === Type === */
+  --font-base: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  /* === Layout === */
+  --hero-pad-x-desktop: 5rem;
+  --hero-pad-x-tablet: 2.5rem;
+  --hero-pad-x-mobile: 1.5rem;
+}
+
+/* Eyebrow primitive — re-used everywhere */
+.eyebrow {
+  font-size: 0.69rem;
+  letter-spacing: 0.22em;
+  font-weight: 500;
+  color: var(--stone-500);
+  text-transform: uppercase;
+}
+.eyebrow-rule {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.eyebrow-rule::before {
+  content: '';
+  width: 2.5rem;
+  height: 1px;
+  background: var(--stone-500);
+}
+
+/* Pulsing live dot — sage with halo animation */
+.live-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--sage-600);
+  position: relative;
+  flex-shrink: 0;
+}
+.live-dot::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: var(--sage-600);
+  opacity: 0.3;
+  animation: pulse-dot 2.4s ease-out infinite;
+}
+@keyframes pulse-dot {
+  0% { transform: scale(0.6); opacity: 0.6; }
+  100% { transform: scale(2.2); opacity: 0; }
+}

@@ -1,0 +1,299 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 750 1624" font-family="ui-sans-serif, system-ui, -apple-system">
+  <defs>
+    <linearGradient id="mapBaseMob" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#E8DFC4"/>
+      <stop offset="100%" stop-color="#D4C8A3"/>
+    </linearGradient>
+    <linearGradient id="sheetBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#FAF6EA"/>
+    </linearGradient>
+    <pattern id="topoMob" x="0" y="0" width="120" height="120" patternUnits="userSpaceOnUse">
+      <path d="M 0 60 Q 30 30 60 60 T 120 60" stroke="#C4B896" stroke-width="0.8" fill="none" opacity="0.5"/>
+      <path d="M 0 90 Q 30 60 60 90 T 120 90" stroke="#C4B896" stroke-width="0.8" fill="none" opacity="0.3"/>
+    </pattern>
+    <radialGradient id="pinPulse27">
+      <stop offset="0%" stop-color="#C97B47" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#C97B47" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="foehnFlow" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#C97B47" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#C97B47" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#C97B47" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- ============ FULL-SCREEN MAP BACKGROUND ============ -->
+  <rect width="750" height="1624" fill="url(#mapBaseMob)"/>
+  <rect width="750" height="1624" fill="url(#topoMob)"/>
+  
+  <!-- Terrain features -->
+  <g opacity="0.5">
+    <path d="M 0 320 Q 150 240 300 280 T 600 260 T 750 290 L 750 380 L 0 380 Z" fill="#B8A480"/>
+    <path d="M 0 380 Q 200 340 400 360 T 750 350 L 750 460 L 0 460 Z" fill="#A89472" opacity="0.7"/>
+    <path d="M 0 480 Q 200 450 400 470 T 750 460 L 750 560 L 0 560 Z" fill="#B8A480" opacity="0.4"/>
+  </g>
+  
+  <!-- City labels -->
+  <g font-size="14" fill="#5C5447" font-weight="500" opacity="0.7">
+    <text x="80" y="220">Augsburg</text>
+    <text x="300" y="280">München</text>
+    <text x="520" y="330">Rosenheim</text>
+    <text x="200" y="440">Garmisch</text>
+    <text x="480" y="500">Innsbruck</text>
+  </g>
+  
+  <!-- Föhn streamlines -->
+  <g opacity="0.7">
+    <path d="M 100 480 Q 250 360 400 280 T 700 200" stroke="url(#foehnFlow)" stroke-width="5" fill="none"/>
+    <path d="M 80 520 Q 240 400 400 320 T 720 240" stroke="url(#foehnFlow)" stroke-width="4" fill="none"/>
+    <path d="M 120 560 Q 280 440 440 360 T 700 280" stroke="url(#foehnFlow)" stroke-width="3" fill="none"/>
+  </g>
+  
+  <!-- Confidence dots around München -->
+  <g transform="translate(380, 320)">
+    <circle cx="-22" cy="-12" r="5" fill="#7A9466" opacity="0.85"/>
+    <circle cx="22" cy="-12" r="5" fill="#7A9466" opacity="0.85"/>
+    <circle cx="-22" cy="12" r="5" fill="#7A9466" opacity="0.85"/>
+    <circle cx="22" cy="12" r="5" fill="#7A9466" opacity="0.85"/>
+  </g>
+  
+  <!-- Active forecast pin München -->
+  <g transform="translate(380, 320)">
+    <circle r="32" fill="url(#pinPulse27)"/>
+    <circle r="18" fill="#FFFFFF" stroke="#C97B47" stroke-width="3"/>
+    <text y="6" font-size="18" font-weight="600" fill="#C97B47" text-anchor="middle">22°</text>
+  </g>
+  
+  <!-- Other pins -->
+  <g transform="translate(140, 200)">
+    <circle r="14" fill="#FFFFFF" stroke="#2C2A26" stroke-width="2"/>
+    <text y="4" font-size="13" font-weight="500" fill="#2C2A26" text-anchor="middle">18°</text>
+  </g>
+  <g transform="translate(560, 310)">
+    <circle r="14" fill="#FFFFFF" stroke="#2C2A26" stroke-width="2"/>
+    <text y="4" font-size="13" font-weight="500" fill="#2C2A26" text-anchor="middle">19°</text>
+  </g>
+  <g transform="translate(280, 420)">
+    <circle r="14" fill="#FFFFFF" stroke="#2C2A26" stroke-width="2"/>
+    <text y="4" font-size="13" font-weight="500" fill="#2C2A26" text-anchor="middle">14°</text>
+  </g>
+  <g transform="translate(520, 480)">
+    <circle r="14" fill="#FFFFFF" stroke="#2C2A26" stroke-width="2"/>
+    <text y="4" font-size="13" font-weight="500" fill="#2C2A26" text-anchor="middle">15°</text>
+  </g>
+  
+  <!-- ============ STATUS BAR ============ -->
+  <g transform="translate(0, 0)">
+    <rect width="750" height="60" fill="#F5F1E8" opacity="0.95"/>
+    <text x="60" y="38" font-size="16" fill="#2C2A26" font-weight="600">10:42</text>
+    
+    <g transform="translate(600, 22)">
+      <g fill="#2C2A26">
+        <rect x="0" y="14" width="4" height="6" rx="1"/>
+        <rect x="7" y="10" width="4" height="10" rx="1"/>
+        <rect x="14" y="6" width="4" height="14" rx="1"/>
+        <rect x="21" y="2" width="4" height="18" rx="1"/>
+      </g>
+      <text x="40" y="16" font-size="13" fill="#2C2A26" font-weight="500">5G</text>
+      <g transform="translate(74, 4)">
+        <rect width="32" height="14" rx="3" fill="none" stroke="#2C2A26" stroke-width="1.5"/>
+        <rect x="2" y="2" width="24" height="10" rx="1" fill="#2C2A26"/>
+        <rect x="34" y="4" width="2" height="6" rx="1" fill="#2C2A26"/>
+      </g>
+    </g>
+  </g>
+  
+  <!-- ============ TOP BAR: BACK + SEARCH ============ -->
+  <g transform="translate(40, 80)">
+    <!-- Back button -->
+    <g>
+      <rect width="44" height="44" rx="22" fill="#FFFFFF" stroke="#D9D0B8" stroke-width="0.5"/>
+      <g transform="translate(14, 14)" stroke="#2C2A26" stroke-width="2.5" fill="none" stroke-linecap="round">
+        <line x1="0" y1="8" x2="14" y2="8"/>
+        <polyline points="5,3 0,8 5,13"/>
+      </g>
+    </g>
+    
+    <!-- Location search bar -->
+    <g transform="translate(60, 0)">
+      <rect width="540" height="44" rx="22" fill="#FFFFFF" stroke="#D9D0B8" stroke-width="0.5"/>
+      <g transform="translate(18, 14)" stroke="#8B7355" stroke-width="2" fill="none">
+        <circle cx="7" cy="7" r="6"/>
+        <line x1="11" y1="11" x2="16" y2="16" stroke-linecap="round"/>
+      </g>
+      <text x="48" y="29" font-size="15" fill="#2C2A26" font-weight="500">München, Marienplatz</text>
+    </g>
+    
+    <!-- Layer button -->
+    <g transform="translate(620, 0)">
+      <rect width="44" height="44" rx="22" fill="#FFFFFF" stroke="#D9D0B8" stroke-width="0.5"/>
+      <g transform="translate(13, 13)" fill="#5C5447">
+        <rect width="18" height="3" rx="1"/>
+        <rect y="7" width="18" height="3" rx="1"/>
+        <rect y="14" width="18" height="3" rx="1"/>
+      </g>
+    </g>
+  </g>
+  
+  <!-- ============ FAB · LAYER TOGGLE (right) ============ -->
+  <g transform="translate(640, 700)">
+    <rect width="60" height="60" rx="30" fill="#2C2A26"/>
+    <g transform="translate(18, 18)" fill="#FFFFFF">
+      <rect x="0" y="2" width="22" height="3" rx="1"/>
+      <rect x="0" y="10" width="22" height="3" rx="1"/>
+      <rect x="0" y="18" width="22" height="3" rx="1"/>
+    </g>
+    <!-- Live dot -->
+    <circle cx="48" cy="12" r="6" fill="#7A9466" stroke="#FFFFFF" stroke-width="1.5"/>
+  </g>
+  
+  <!-- ============ LIVE INDICATOR (left mini-chip) ============ -->
+  <g transform="translate(40, 700)">
+    <rect width="200" height="36" rx="18" fill="#FFFFFF" opacity="0.95"/>
+    <circle cx="20" cy="18" r="5" fill="#7A9466"/>
+    <text x="36" y="23" font-size="12" fill="#5C5447">Lauf 11:00 UTC</text>
+  </g>
+  
+  <!-- ============ BOTTOM SHEET (half-expanded) ============ -->
+  <g transform="translate(0, 880)">
+    <!-- Sheet background with shadow simulation -->
+    <rect width="750" height="744" rx="32" fill="url(#sheetBg)"/>
+    
+    <!-- Grab handle -->
+    <rect x="345" y="14" width="60" height="6" rx="3" fill="#D9D0B8"/>
+    
+    <!-- Content -->
+    <g transform="translate(40, 56)">
+      <!-- Eyebrow + Föhn badge -->
+      <g>
+        <text font-size="11" fill="#A89A7A" letter-spacing="2.5" font-weight="500">FORECAST · MÜNCHEN</text>
+      </g>
+      
+      <g transform="translate(0, 24)">
+        <rect width="180" height="32" rx="16" fill="#C97B47"/>
+        <g transform="translate(12, 9)">
+          <path d="M 0 8 L 6 0 L 12 8 Z" fill="#FFFFFF"/>
+          <path d="M 0 16 L 6 8 L 12 16 Z" fill="#FFFFFF" opacity="0.6"/>
+        </g>
+        <text x="36" y="21" font-size="12" fill="#FFFFFF" font-weight="600" letter-spacing="0.4">FÖHN-LAGE AKTIV</text>
+      </g>
+      
+      <!-- Big temperature row -->
+      <g transform="translate(0, 84)">
+        <text font-size="120" font-weight="200" fill="#2C2A26" letter-spacing="-4">22°</text>
+        
+        <g transform="translate(220, 50)">
+          <text font-size="20" fill="#5C5447" font-weight="300">± 1.2°</text>
+          
+          <g transform="translate(0, 16)" font-size="11" fill="#A89A7A">
+            <text>4 / 4 Modelle übereinstimmend</text>
+          </g>
+          
+          <g transform="translate(0, 38)">
+            <circle r="6" fill="#7A9466"/>
+            <circle cx="18" r="6" fill="#7A9466"/>
+            <circle cx="36" r="6" fill="#7A9466"/>
+            <circle cx="54" r="6" fill="#7A9466"/>
+            <text x="74" y="6" font-size="12" fill="#5C5447">Hoch</text>
+          </g>
+        </g>
+      </g>
+      
+      <!-- Feels-like row -->
+      <g transform="translate(0, 240)">
+        <text font-size="14" fill="#5C5447">Gefühlt 24°</text>
+        <text x="120" font-size="14" fill="#5C5447">·</text>
+        <text x="136" font-size="14" fill="#C97B47" font-weight="500">Föhn +3°</text>
+      </g>
+      
+      <!-- 4 metric cards in 2x2 grid -->
+      <g transform="translate(0, 280)">
+        <!-- Wind -->
+        <g>
+          <rect width="324" height="120" rx="20" fill="#F5F1E8"/>
+          <g transform="translate(20, 18)">
+            <text font-size="11" fill="#A89A7A" letter-spacing="2" font-weight="500">WIND</text>
+            <text y="40" font-size="36" font-weight="200" fill="#2C2A26" letter-spacing="-1">14</text>
+            <text x="60" y="40" font-size="14" fill="#5C5447">km/h</text>
+            <text y="70" font-size="13" fill="#5C5447">SW · Böen 24</text>
+            
+            <g transform="translate(232, 28)">
+              <circle r="20" fill="#FFFFFF"/>
+              <g transform="translate(0, 0)" stroke="#5C5447" stroke-width="1.5" fill="none">
+                <line x1="-12" y1="0" x2="12" y2="0"/>
+                <polygon points="12,0 7,-4 7,4" fill="#5C5447"/>
+              </g>
+              <text x="0" y="34" font-size="9" fill="#A89A7A" text-anchor="middle" font-weight="600">SW</text>
+            </g>
+          </g>
+        </g>
+        
+        <!-- Rain -->
+        <g transform="translate(342, 0)">
+          <rect width="324" height="120" rx="20" fill="#F5F1E8"/>
+          <g transform="translate(20, 18)">
+            <text font-size="11" fill="#A89A7A" letter-spacing="2" font-weight="500">REGEN · 12 H</text>
+            <text y="40" font-size="36" font-weight="200" fill="#2C2A26" letter-spacing="-1">12</text>
+            <text x="56" y="40" font-size="14" fill="#5C5447">%</text>
+            <text y="70" font-size="13" fill="#5C5447">trocken bis 22:00</text>
+            
+            <g transform="translate(248, 32)" stroke="#3A6FA8" stroke-width="2" fill="none">
+              <path d="M 0 8 Q 4 0 8 8 Q 12 0 16 8 Q 20 0 24 8" stroke-linecap="round"/>
+            </g>
+          </g>
+        </g>
+      </g>
+      
+      <!-- Pressure + UV row -->
+      <g transform="translate(0, 416)">
+        <g>
+          <rect width="324" height="120" rx="20" fill="#F5F1E8"/>
+          <g transform="translate(20, 18)">
+            <text font-size="11" fill="#A89A7A" letter-spacing="2" font-weight="500">DRUCK</text>
+            <text y="40" font-size="36" font-weight="200" fill="#2C2A26" letter-spacing="-1">1018</text>
+            <text x="110" y="40" font-size="14" fill="#5C5447">hPa</text>
+            <text y="70" font-size="13" fill="#5C5447">fallend · −2 / 6h</text>
+          </g>
+        </g>
+        
+        <g transform="translate(342, 0)">
+          <rect width="324" height="120" rx="20" fill="#F5F1E8"/>
+          <g transform="translate(20, 18)">
+            <text font-size="11" fill="#A89A7A" letter-spacing="2" font-weight="500">UV-INDEX</text>
+            <text y="40" font-size="36" font-weight="200" fill="#2C2A26" letter-spacing="-1">5</text>
+            <text x="28" y="40" font-size="14" fill="#5C5447">moderat</text>
+            <text y="70" font-size="13" fill="#5C5447">Peak 13:00 · UV 7</text>
+            
+            <g transform="translate(244, 40)">
+              <circle r="14" fill="#D4A373"/>
+            </g>
+          </g>
+        </g>
+      </g>
+      
+      <!-- Action buttons -->
+      <g transform="translate(0, 558)">
+        <g>
+          <rect width="324" height="56" rx="28" fill="transparent" stroke="#2C2A26" stroke-width="1.5"/>
+          <text x="162" y="36" font-size="14" fill="#2C2A26" text-anchor="middle">Tagesablauf</text>
+        </g>
+        <g transform="translate(342, 0)">
+          <rect width="324" height="56" rx="28" fill="#2C2A26"/>
+          <text x="162" y="36" font-size="14" fill="#F5F1E8" text-anchor="middle" font-weight="500">Stündlich →</text>
+        </g>
+      </g>
+      
+      <!-- Source -->
+      <g transform="translate(0, 638)">
+        <line x1="0" y1="0" x2="666" y2="0" stroke="#E0D6BE"/>
+        <text y="22" font-size="11" fill="#A89A7A">Quelle: DWD via Open-Meteo · Lauf 06:00 UTC · ICON-D2 + MOSMIX</text>
+      </g>
+    </g>
+  </g>
+  
+  <!-- LABEL -->
+  <g transform="translate(40, 1604)">
+    <text font-size="11" fill="#A89A7A" letter-spacing="3" font-weight="500">27 · MOBILE 2D-KARTE · BOTTOM-SHEET · 375 px</text>
+  </g>
+</svg>

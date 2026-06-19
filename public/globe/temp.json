@@ -1,0 +1,14 @@
+{
+  "variable": "2m_air_temperature",
+  "source": "NASA MERRA-2 (2-m air temperature) via NASA GIBS WMS",
+  "layer": "MERRA2_2m_Air_Temperature_Monthly",
+  "sampleDate": "2025-06-01",
+  "units": "K",
+  "minK": 220,
+  "maxK": 310,
+  "note": "Bundled public-domain sample field (monthly mean). Pre-rendered spectral palette; not a live forecast.",
+  "license": "NASA data — public domain, free for commercial use, no API key/limit",
+  "width": 2048,
+  "height": 1024,
+  "coverage": "global equirectangular, lon -180..180, lat 90..-90"
+}

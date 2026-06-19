@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 980" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">
+<defs>
+  <linearGradient id="bgSand" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FAF6EA"/><stop offset="1" stop-color="#F5F1E8"/></linearGradient>
+  <linearGradient id="heroGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FBFAF3"/><stop offset="1" stop-color="#F2EEDE"/></linearGradient>
+  <filter id="cardShadow" x="-10%" y="-10%" width="120%" height="130%"><feGaussianBlur in="SourceAlpha" stdDeviation="6"/><feOffset dx="0" dy="3"/><feComponentTransfer><feFuncA type="linear" slope="0.10"/></feComponentTransfer><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  <filter id="strongShadow" x="-20%" y="-20%" width="140%" height="160%"><feGaussianBlur in="SourceAlpha" stdDeviation="10"/><feOffset dx="0" dy="6"/><feComponentTransfer><feFuncA type="linear" slope="0.18"/></feComponentTransfer><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  <pattern id="grain" width="120" height="120" patternUnits="userSpaceOnUse"><rect width="120" height="120" fill="transparent"/><circle cx="20" cy="40" r="0.7" fill="#C4B896" opacity="0.18"/><circle cx="80" cy="20" r="0.5" fill="#C4B896" opacity="0.14"/><circle cx="55" cy="95" r="0.6" fill="#C4B896" opacity="0.16"/></pattern>
+  <pattern id="tendHatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="7" stroke="#8B7355" stroke-width="1.2" opacity="0.4"/></pattern>
+</defs>
+<rect width="1440" height="980" fill="url(#bgSand)"/><rect width="1440" height="980" fill="url(#grain)"/>
+<g><rect x="0" y="0" width="1440" height="72" fill="#FAF6EA" opacity="0.85"/><line x1="0" y1="72" x2="1440" y2="72" stroke="#E0D6BE"/><g transform="translate(64,24)"><circle cx="14" cy="14" r="12" fill="none" stroke="#C97B47" stroke-width="2"/><circle cx="14" cy="14" r="5" fill="#C97B47"/><text x="36" y="19" font-size="18" font-weight="600" fill="#2C2A26">buscosun</text></g><g font-size="14" fill="#5C5447"><text x="240" y="44">Start</text><text x="298" y="44">Tourenplanung</text><text x="418" y="44">Nowcast</text><text x="500" y="44">3D-Wetter</text><text x="600" y="44" font-weight="600" fill="#2C2A26">Vorhersage</text><rect x="597" y="56" width="86" height="2" rx="1" fill="#7A9466"/><text x="700" y="44">Event-Planung</text></g><g transform="translate(1230,24)"><circle cx="14" cy="14" r="4" fill="#7A9466"/><text x="28" y="19" font-size="12" fill="#5C5447">5 Quellen aktiv</text><circle cx="170" cy="14" r="14" fill="#E0D6BE"/><text x="170" y="19" font-size="12" font-weight="600" fill="#5C5447" text-anchor="middle">JK</text></g></g>
+<g transform="translate(64,104)"><text x="0" y="0" font-size="11" letter-spacing="0.22em" font-weight="600" fill="#7A9466">VORHERSAGE-STABILITÄT · STUTTGART</text><text y="28" font-size="26" font-weight="700" fill="#2C2A26">Wie stark hat sich die Vorhersage geändert?</text></g>
+<g transform="translate(1226,108)"><rect width="150" height="34" rx="17" fill="#FAF6EA" stroke="#E0D6BE"/><rect x="75" width="75" height="34" rx="17" fill="#3A6FA8"/><text x="37" y="22" font-size="12" font-weight="600" fill="#8B7355" text-anchor="middle">Einfach</text><text x="112" y="22" font-size="12" font-weight="700" fill="#FAF6EA" text-anchor="middle">Experte</text></g>
+<g transform="translate(64,168)"><rect width="1312" height="48" rx="14" fill="#F1F0E4"/><g transform="translate(24,24)"><circle r="11" fill="#8B7355"/><text y="4" font-size="13" font-weight="700" fill="#FAF6EA" text-anchor="middle">i</text></g><text x="48" y="28" font-size="12" fill="#5C5447"><tspan font-weight="700" fill="#2C2A26">Stabilität</tspan> = wie stark sich die Vorhersage seit gestern geändert hat — nicht, ob sie richtig war. (Das zeigt der Rückblick „Treffsicherheit".)</text></g>
+<g transform="translate(64,244)"><text x="0" y="0" font-size="11" letter-spacing="0.22em" font-weight="600" fill="#7A9466">ÄNDERUNG SEIT GESTERN</text></g>
+<g transform="translate(64,264)" filter="url(#cardShadow)"><rect width="172" height="150" rx="16" fill="#FAF6EA" stroke="#E0D6BE" stroke-width="1"/>
+<text x="20" y="32" font-size="15" font-weight="700" fill="#2C2A26">Mi</text>
+<text x="50" y="32" font-size="10" fill="#8B7355">Heute</text>
+<text x="20" y="68" font-size="26" font-weight="700" fill="#2C2A26">22°</text>
+<text x="20" y="92" font-size="12" font-weight="600" fill="#7A9466">● unverändert</text>
+<g transform="translate(20,108)"><rect width="70" height="22" rx="11" fill="#ECF1E6"/><text x="35" y="15" font-size="11" font-weight="700" fill="#5C7A4A" text-anchor="middle">stabil</text></g>
+<path d="M 20 136 L 62 132 L 104 132 L 146 132" fill="none" stroke="#7A9466" stroke-width="1.6"/>
+<circle cx="146" cy="132" r="2.5" fill="#7A9466"/>
+</g>
+<g transform="translate(250,264)" filter="url(#cardShadow)"><rect width="172" height="150" rx="16" fill="#FAF6EA" stroke="#E0D6BE" stroke-width="1"/>
+<text x="20" y="32" font-size="15" font-weight="700" fill="#2C2A26">Do</text>
+<text x="20" y="68" font-size="26" font-weight="700" fill="#2C2A26">24°</text>
+<text x="20" y="92" font-size="13" font-weight="700" fill="#8B7355">▲ +1° seit gestern</text>
+<g transform="translate(20,108)"><rect width="70" height="22" rx="11" fill="#ECF1E6"/><text x="35" y="15" font-size="11" font-weight="700" fill="#5C7A4A" text-anchor="middle">stabil</text></g>
+<path d="M 20 136 L 62 132 L 104 128 L 146 128" fill="none" stroke="#7A9466" stroke-width="1.6"/>
+<circle cx="146" cy="128" r="2.5" fill="#7A9466"/>
+</g>
+<g transform="translate(436,264)" filter="url(#cardShadow)"><rect width="172" height="150" rx="16" fill="#FAF6EA" stroke="#E0D6BE" stroke-width="1"/>
+<text x="20" y="32" font-size="15" font-weight="700" fill="#2C2A26">Fr</text>
+<text x="20" y="68" font-size="26" font-weight="700" fill="#2C2A26">23°</text>
+<text x="20" y="92" font-size="13" font-weight="700" fill="#8B7355">▼ -1° seit gestern</text>
+<g transform="translate(20,108)"><rect width="70" height="22" rx="11" fill="#ECF1E6"/><text x="35" y="15" font-size="11" font-weight="700" fill="#5C7A4A" text-anchor="middle">stabil</text></g>
+<path d="M 20 132 L 62 132 L 104 136 L 146 136" fill="none" stroke="#7A9466" stroke-width="1.6"/>
+<circle cx="146" cy="136" r="2.5" fill="#7A9466"/>
+</g>
+<g transform="translate(622,264)" filter="url(#cardShadow)"><rect width="172" height="150" rx="16" fill="#FBFAF3" stroke="#C99A4E" stroke-width="2"/>
+<text x="20" y="32" font-size="15" font-weight="700" fill="#2C2A26">Sa</text>
+<text x="20" y="68" font-size="26" font-weight="700" fill="#2C2A26">25°</text>
+<text x="20" y="92" font-size="13" font-weight="700" fill="#C97B47">▲ +5° seit gestern</text>
+<g transform="translate(20,108)"><rect width="100" height="22" rx="11" fill="#F8EEDB"/><text x="50" y="15" font-size="11" font-weight="700" fill="#C99A4E" text-anchor="middle">wechselhaft</text></g>
+<path d="M 20 132 L 62 136 L 104 124 L 146 116" fill="none" stroke="#C99A4E" stroke-width="1.6"/>
+<circle cx="146" cy="116" r="2.5" fill="#C99A4E"/>
+</g>
+<g transform="translate(808,264)" filter="url(#cardShadow)"><rect width="172" height="150" rx="16" fill="#FBFAF3" stroke="#C99A4E" stroke-width="2"/>
+<text x="20" y="32" font-size="15" font-weight="700" fill="#2C2A26">So</text>
+<text x="20" y="68" font-size="26" font-weight="700" fill="#2C2A26">21°</text>
+<text x="20" y="92" font-size="13" font-weight="700" fill="#C97B47">▼ -3° seit gestern</text>
+<g transform="translate(20,108)"><rect width="100" height="22" rx="11" fill="#F8EEDB"/><text x="50" y="15" font-size="11" font-weight="700" fill="#C99A4E" text-anchor="middle">wechselhaft</text></g>
+<path d="M 20 124 L 62 124 L 104 132 L 146 136" fill="none" stroke="#C99A4E" stroke-width="1.6"/>
+<circle cx="146" cy="136" r="2.5" fill="#C99A4E"/>
+</g>
+<g transform="translate(994,264)" filter="url(#cardShadow)"><rect width="172" height="150" rx="16" fill="#FAF6EA" stroke="#E0D6BE" stroke-width="1"/>
+<text x="20" y="32" font-size="15" font-weight="700" fill="#2C2A26">Mo</text>
+<text x="20" y="68" font-size="26" font-weight="700" fill="#2C2A26">19°</text>
+<text x="20" y="92" font-size="13" font-weight="700" fill="#8B7355">▲ +2° seit gestern</text>
+<g transform="translate(20,108)"><rect width="70" height="22" rx="11" fill="#ECF1E6"/><text x="35" y="15" font-size="11" font-weight="700" fill="#5C7A4A" text-anchor="middle">stabil</text></g>
+<path d="M 20 136 L 62 132 L 104 128 L 146 124" fill="none" stroke="#7A9466" stroke-width="1.6"/>
+<circle cx="146" cy="124" r="2.5" fill="#7A9466"/>
+</g>
+<g transform="translate(1180,264)" filter="url(#cardShadow)"><rect width="172" height="150" rx="16" fill="#FAF6EA" stroke="#E0D6BE" stroke-width="1"/>
+<text x="20" y="32" font-size="15" font-weight="700" fill="#2C2A26">Di</text>
+<text x="20" y="68" font-size="26" font-weight="700" fill="#2C2A26">20°</text>
+<text x="20" y="92" font-size="12" font-weight="600" fill="#7A9466">● unverändert</text>
+<g transform="translate(20,108)"><rect width="70" height="22" rx="11" fill="#ECF1E6"/><text x="35" y="15" font-size="11" font-weight="700" fill="#5C7A4A" text-anchor="middle">stabil</text></g>
+<path d="M 20 136 L 62 136 L 104 136 L 146 136" fill="none" stroke="#7A9466" stroke-width="1.6"/>
+<circle cx="146" cy="136" r="2.5" fill="#7A9466"/>
+</g>
+<g transform="translate(64,450)"><text x="0" y="0" font-size="11" letter-spacing="0.22em" font-weight="600" fill="#7A9466">VERLAUF SAMSTAG · FRÜHERE STÄNDE ALS GEISTERLINIEN</text></g>
+<g transform="translate(64,470)" filter="url(#cardShadow)"><rect width="900" height="400" rx="20" fill="#FAF6EA" stroke="#E0D6BE"/></g>
+<line x1="140" y1="755" x2="930" y2="755" stroke="#E0D6BE" stroke-dasharray="2 4"/><text x="130" y="758" font-size="10" fill="#8B7355" text-anchor="end">10°</text>
+<line x1="140" y1="691" x2="930" y2="691" stroke="#E0D6BE" stroke-dasharray="2 4"/><text x="130" y="694" font-size="10" fill="#8B7355" text-anchor="end">15°</text>
+<line x1="140" y1="627" x2="930" y2="627" stroke="#E0D6BE" stroke-dasharray="2 4"/><text x="130" y="630" font-size="10" fill="#8B7355" text-anchor="end">20°</text>
+<line x1="140" y1="564" x2="930" y2="564" stroke="#E0D6BE" stroke-dasharray="2 4"/><text x="130" y="567" font-size="10" fill="#8B7355" text-anchor="end">25°</text>
+<text x="140" y="800" font-size="10" fill="#8B7355" text-anchor="middle">00:00</text>
+<text x="338" y="800" font-size="10" fill="#8B7355" text-anchor="middle">06:00</text>
+<text x="535" y="800" font-size="10" fill="#8B7355" text-anchor="middle">12:00</text>
+<text x="732" y="800" font-size="10" fill="#8B7355" text-anchor="middle">18:00</text>
+<text x="930" y="800" font-size="10" fill="#8B7355" text-anchor="middle">24:00</text>
+<path d="M 140 704 L 239 716 L 338 691 L 436 653 L 535 627 L 634 615 L 732 640 L 831 678 L 930 704" fill="none" stroke="#6B7A8F" stroke-width="1.6" opacity="0.18"/>
+<text x="934" y="707" font-size="9" fill="#6B7A8F" opacity="0.48">vor 3 Tagen</text>
+<path d="M 140 704 L 239 716 L 338 691 L 436 653 L 535 615 L 634 602 L 732 627 L 831 665 L 930 691" fill="none" stroke="#6B7A8F" stroke-width="1.6" opacity="0.3"/>
+<text x="934" y="694" font-size="9" fill="#6B7A8F" opacity="0.6">vor 2 Tagen</text>
+<path d="M 140 704 L 239 716 L 338 691 L 436 640 L 535 602 L 634 576 L 732 615 L 831 665 L 930 691" fill="none" stroke="#6B7A8F" stroke-width="1.6" opacity="0.45"/>
+<text x="934" y="694" font-size="9" fill="#6B7A8F" opacity="0.75">gestern</text>
+<path d="M 140 704 L 239 716 L 338 691 L 436 640 L 535 589 L 634 564 L 732 602 L 831 653 L 930 678" fill="none" stroke="#2C2A26" stroke-width="3"/>
+<text x="934" y="681" font-size="10" font-weight="700" fill="#2C2A26">heute</text>
+<g transform="translate(634,564)"><line x1="0" y1="0" x2="0" y2="51" stroke="#C97B47" stroke-width="1.5" stroke-dasharray="3 2"/><circle r="3" fill="#C97B47"/><text x="8" y="-4" font-size="11" font-weight="700" fill="#C97B47">+5° in 3 Tagen</text></g>
+<g transform="translate(996,470)" filter="url(#cardShadow)"><rect width="380" height="180" rx="18" fill="#FAF6EA" stroke="#E0D6BE"/><text x="22" y="32" font-size="11" letter-spacing="0.22em" font-weight="600" fill="#7A9466">STAND DURCHSCHALTEN</text><text x="22" y="68" font-size="22" font-weight="700" fill="#2C2A26">Stand: heute 11:00</text><g transform="translate(22,92)"><rect width="336" height="6" rx="3" fill="#E0D6BE"/><rect width="336" height="6" rx="3" fill="#3A6FA8"/><circle cx="336" cy="3" r="10" fill="#FAF6EA" stroke="#3A6FA8" stroke-width="2.5"/><circle cx="336" cy="3" r="3.5" fill="#3A6FA8"/></g><g transform="translate(22,116)" font-size="9" fill="#8B7355"><text x="0">−3 T</text><text x="112">−2 T</text><text x="224">gestern</text><text x="336" text-anchor="end">heute</text></g><g transform="translate(22,140)"><rect width="40" height="30" rx="8" fill="#EDE6D3"/><path d="M 24 9 L 16 15 L 24 21 Z" fill="#5C5447"/></g><g transform="translate(70,140)"><rect width="40" height="30" rx="8" fill="#EDE6D3"/><path d="M 16 9 L 24 15 L 16 21 Z" fill="#5C5447"/></g><text x="130" y="160" font-size="11" fill="#8B7355">vor-/zurückschalten</text></g>
+<g transform="translate(996,670)" filter="url(#cardShadow)"><rect width="380" height="100" rx="18" fill="#F8F2E2" stroke="#C99A4E" stroke-width="1.5"/><text x="22" y="30" font-size="11" letter-spacing="0.22em" font-weight="600" fill="#C99A4E">STABILITÄTS-SCORE SAMSTAG</text><text x="22" y="64" font-size="28" font-weight="700" fill="#C99A4E">wechselhaft</text><text x="22" y="86" font-size="11" fill="#5C5447">Schwankte zuletzt um ±5°. Vor einer Buchung morgen erneut prüfen.</text></g>
+<g transform="translate(64,898)"><text font-size="11" fill="#8B7355">Ein durchgehender Trend (z. B. langsam wärmer) gilt nicht als „wechselhaft" — nur echte Sprünge zwischen den Ständen. Schwellen sind getunt.</text></g>
+</svg>

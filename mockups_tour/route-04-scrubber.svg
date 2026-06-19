@@ -1,0 +1,254 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1060" font-family="ui-sans-serif, system-ui, -apple-system">
+  <defs>
+    <linearGradient id="bgR4" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F5F1E8"/><stop offset="100%" stop-color="#EDE6D3"/>
+    </linearGradient>
+    <linearGradient id="elevR4" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#E0D6BE" stop-opacity="0.9"/><stop offset="100%" stop-color="#E0D6BE" stop-opacity="0.3"/>
+    </linearGradient>
+    <linearGradient id="gustR4" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#C6633B" stop-opacity="0.35"/><stop offset="100%" stop-color="#C6633B" stop-opacity="0.05"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1440" height="1060" fill="url(#bgR4)"/>
+
+  <!-- ============ TOP NAV ============ -->
+  <g>
+    <g transform="translate(32, 24)">
+      <circle cx="14" cy="14" r="6" fill="#2C2A26"/>
+      <g stroke="#2C2A26" stroke-width="1.5" stroke-linecap="round">
+        <line x1="14" y1="0" x2="14" y2="3"/><line x1="14" y1="25" x2="14" y2="28"/><line x1="0" y1="14" x2="3" y2="14"/><line x1="25" y1="14" x2="28" y2="14"/>
+        <line x1="4" y1="4" x2="6" y2="6"/><line x1="22" y1="22" x2="24" y2="24"/><line x1="4" y1="24" x2="6" y2="22"/><line x1="22" y1="6" x2="24" y2="4"/>
+      </g>
+      <text x="42" y="20" font-size="18" font-weight="500" fill="#2C2A26" letter-spacing="-0.5">buscosun</text>
+    </g>
+    <g transform="translate(200, 30)" font-size="13" fill="#5C5447">
+      <text>Tourenplanung</text><text x="110" fill="#A89A7A">·</text><text x="124" fill="#2C2A26" font-weight="500">Freiburg–Schauinsland</text>
+    </g>
+    <g transform="translate(740, 18)" font-size="12">
+      <g><text x="30" y="25" fill="#5C5447" text-anchor="middle">Karte</text></g>
+      <g transform="translate(64, 0)"><rect width="60" height="40" rx="20" fill="#2C2A26"/><text x="30" y="25" fill="#F5F1E8" text-anchor="middle" font-weight="500">Route</text></g>
+      <g transform="translate(128, 0)"><text x="28" y="25" fill="#5C5447" text-anchor="middle">Event</text></g>
+      <g transform="translate(188, 0)"><text x="42" y="25" fill="#5C5447" text-anchor="middle">Tagesablauf</text></g>
+    </g>
+    <g transform="translate(1314, 18)"><rect width="40" height="40" rx="20" fill="#FFFFFF" stroke="#D9D0B8" stroke-width="0.5"/><circle cx="20" cy="20" r="7" fill="#7A9466"/><text x="20" y="24" font-size="9" fill="#FFFFFF" text-anchor="middle" font-weight="500">JS</text></g>
+  </g>
+
+  <!-- ============ ROW 1: SCRUBBER ============ -->
+  <text transform="translate(32, 96)" font-size="10" fill="#A89A7A" letter-spacing="3" font-weight="500">ZEIT-SCRUBBER · ZIEH DEN MARKER</text>
+
+  <!-- detail panel -->
+  <g transform="translate(32, 116)">
+    <rect width="540" height="340" rx="20" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    <g transform="translate(24, 24)">
+      <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">DEINE POSITION UM 16:03</text>
+      <text y="44" font-size="40" font-weight="300" fill="#2C2A26" letter-spacing="-1">23,6 °C</text>
+      <text y="66" font-size="12" fill="#5C5447">gefühlt 23,6 °C · 4,8 km · 687 m</text>
+
+      <!-- detail grid 3×2 -->
+      <g transform="translate(0, 88)">
+        <g><text font-size="9" fill="#A89A7A" letter-spacing="1">NIEDERSCHLAG</text><text y="20" font-size="17" fill="#2C2A26" font-weight="500">0 mm/h</text><text y="36" font-size="10" fill="#8B7355">NWP-Modell</text></g>
+        <g transform="translate(168,0)"><text font-size="9" fill="#A89A7A" letter-spacing="1">WIND · BÖEN</text><text y="20" font-size="17" fill="#2C2A26" font-weight="500">9,1 · 12,7</text><g transform="translate(0, 30)"><g transform="translate(5,-3)" stroke="#4f627e" stroke-width="1.5" fill="none" stroke-linecap="round"><line x1="0" y1="3" x2="8" y2="3"/><polyline points="5,0 8,3 5,6"/></g><text x="16" y="2" font-size="10" fill="#8B7355">W · Rückenwind</text></g></g>
+        <g transform="translate(336,0)"><text font-size="9" fill="#A89A7A" letter-spacing="1">BEWÖLKUNG</text><text y="20" font-size="17" fill="#2C2A26" font-weight="500">61 %</text><text y="36" font-size="10" fill="#8B7355">wechselnd</text></g>
+        <g transform="translate(0,64)"><text font-size="9" fill="#A89A7A" letter-spacing="1">UV-INDEX</text><text y="20" font-size="17" fill="#2C2A26" font-weight="500">4,9</text><g transform="translate(40, 8)"><rect width="44" height="16" rx="8" fill="#f46036"/><text x="22" y="11.5" font-size="9" fill="#FFFFFF" text-anchor="middle" font-weight="600">hoch</text></g></g>
+        <g transform="translate(168,64)"><text font-size="9" fill="#A89A7A" letter-spacing="1">SCHNEEFALLGRENZE</text><text y="20" font-size="17" fill="#2C2A26" font-weight="500">—</text></g>
+        <g transform="translate(336,64)"><text font-size="9" fill="#A89A7A" letter-spacing="1">LUFTFEUCHTE</text><text y="20" font-size="17" fill="#2C2A26" font-weight="500">46 %</text></g>
+      </g>
+
+      <!-- sub cards -->
+      <g transform="translate(0, 200)">
+        <rect width="240" height="36" rx="10" fill="#FFEFD4" stroke="#d7263d" stroke-width="1.2"/>
+        <g transform="translate(12, 12)" stroke="#d7263d" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M7 1 L13 12 H1 Z"/><path d="M7 5 v3.2"/><circle cx="7" cy="10" r="0.5" fill="#d7263d" stroke="none"/></g>
+        <text x="30" y="17" font-size="11.5" fill="#2C2A26" font-weight="600">Windböen</text><text x="30" y="29" font-size="10" fill="#5C5447">DWD · Level 1 · bis 20:00</text>
+
+        <g transform="translate(252, 0)"><rect width="240" height="36" rx="10" fill="#FAF6EA" stroke="#D4A373" stroke-width="1.2"/>
+          <g transform="translate(12, 13)" stroke="#A85E2E" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M1 3 h9 a1.6 1.6 0 1 0 -1.6 -1.6"/><path d="M1 7 h11 a1.6 1.6 0 1 1 -1.6 1.6"/></g>
+          <text x="30" y="17" font-size="11.5" fill="#2C2A26" font-weight="600">Föhn-Lage</text><text x="30" y="29" font-size="10" fill="#5C5447">Score 2,4 · heuristisch</text></g>
+      </g>
+    </g>
+  </g>
+
+  <!-- elevation scrubber -->
+  <g transform="translate(588, 116)">
+    <rect width="820" height="340" rx="20" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    <g transform="translate(24, 22)">
+      <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">HÖHENPROFIL · WETTER-OVERLAYS</text>
+      <g transform="translate(700, -6)"><g stroke="#6B7A8F" stroke-width="1.4" fill="none"><path d="M 3 8 a3.4 3.4 0 0 1 .3 -6.7 4.6 4.6 0 0 1 8.7 1.3 3.2 3.2 0 0 1 -1 6 Z"/></g><text x="22" y="9" font-size="12" fill="#5C5447">4,8 km</text></g>
+    </g>
+
+    <!-- km chips -->
+    <g transform="translate(24, 36)" font-size="11">
+      <g><rect width="56" height="26" rx="13" fill="#C97B47"/><text x="28" y="17" fill="#FFFFFF" text-anchor="middle" font-weight="500">0,0 km</text></g>
+      <g transform="translate(64,0)"><rect width="56" height="26" rx="13" fill="#EDE6D3"/><text x="28" y="17" fill="#5C5447" text-anchor="middle">4,7 km</text></g>
+      <g transform="translate(128,0)"><rect width="56" height="26" rx="13" fill="#EDE6D3"/><text x="28" y="17" fill="#5C5447" text-anchor="middle">6,6 km</text></g>
+      <g transform="translate(192,0)"><rect width="56" height="26" rx="13" fill="#EDE6D3"/><text x="28" y="17" fill="#5C5447" text-anchor="middle">8,6 km</text></g>
+      <g transform="translate(256,0)"><rect width="56" height="26" rx="13" fill="#EDE6D3"/><text x="28" y="17" fill="#5C5447" text-anchor="middle">9,7 km</text></g>
+    </g>
+
+    <!-- canvas -->
+    <g transform="translate(24, 80)">
+      <rect width="772" height="150" rx="12" fill="#FAF6EA" stroke="#E0D6BE" stroke-width="0.5"/>
+      <g transform="translate(0, 0)">
+        <!-- precip bands (none here, dry) — show faint föhn zone near end -->
+        <rect x="560" y="6" width="180" height="138" fill="#D4A373" opacity="0.12"/>
+        <text x="650" y="20" font-size="9" fill="#A85E2E" text-anchor="middle" opacity="0.8">FÖHN-ZONE</text>
+        <!-- elevation -->
+        <path d="M 16 130 L 100 126 L 184 116 L 268 108 L 352 94 L 436 76 L 520 58 L 604 40 L 688 24 L 756 16 L 756 144 L 16 144 Z" fill="url(#elevR4)"/>
+        <path d="M 16 130 L 100 126 L 184 116 L 268 108 L 352 94 L 436 76 L 520 58 L 604 40 L 688 24 L 756 16" fill="none" stroke="#8B7355" stroke-width="1.8"/>
+        <!-- wind speed line (secondary) -->
+        <path d="M 16 104 L 100 100 L 184 96 L 268 88 L 352 80 L 436 70 L 520 56 L 604 46 L 688 36 L 756 30" fill="none" stroke="#C97B47" stroke-width="1.4" stroke-dasharray="4 3" opacity="0.7"/>
+        <!-- break markers -->
+        <rect x="525" y="-3" width="6" height="6" rx="1.5" fill="#C97B47"/>
+        <rect x="640" y="-3" width="6" height="6" rx="1.5" fill="#D4A373"/>
+        <!-- snow line (none) -->
+        <!-- scrub handle at km 4.8 (~x 390) -->
+        <line x1="390" y1="-14" x2="390" y2="144" stroke="#C97B47" stroke-width="2.5"/>
+        <g transform="translate(390, -16)"><rect x="-30" y="-13" width="60" height="20" rx="10" fill="#C97B47"/><text y="1" font-size="11" font-weight="700" fill="#FAF6EA" text-anchor="middle">16:03</text></g>
+        <circle cx="390" cy="144" r="9" fill="#C97B47"/>
+        <g stroke="#FAF6EA" stroke-width="1.4" stroke-linecap="round"><line x1="386" y1="141" x2="394" y2="141"/><line x1="386" y1="144" x2="394" y2="144"/><line x1="386" y1="147" x2="394" y2="147"/></g>
+      </g>
+    </g>
+    <g transform="translate(24, 244)" font-size="10" fill="#8B7355"><text x="0">08:00 · 0 km</text><text x="772" text-anchor="end">19:51 · 9,7 km</text></g>
+
+    <!-- controls -->
+    <g transform="translate(348, 270)">
+      <g><circle cx="20" cy="20" r="20" fill="#FFFFFF" stroke="#E0D6BE"/><g transform="translate(20,20)" fill="#3A3833"><path d="M3 -7 L-5 0 L3 7 Z"/></g></g>
+      <g transform="translate(48, 0)"><circle cx="22" cy="20" r="22" fill="#C97B47"/><path d="M-6 -8 L8 0 L-6 8 Z" fill="#FFFFFF" transform="translate(22,20)"/></g>
+      <g transform="translate(108, 0)"><circle cx="20" cy="20" r="20" fill="#FFFFFF" stroke="#E0D6BE"/><g transform="translate(20,20)" fill="#3A3833"><path d="M-3 -7 L5 0 L-3 7 Z"/></g></g>
+    </g>
+    <g transform="translate(24, 312)"><g transform="translate(0,-9)" stroke="#D4A373" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8 a5 5 0 1 1 6 0 c-.6.5-1 1-1 1.8 h-4 c0-.8-.4-1.3-1-1.8 Z"/><path d="M5 12 h4"/></g><text x="18" y="0" font-size="11" fill="#8B7355">Zieh den Marker oder tippe einen km-Chip an. <tspan font-style="italic">Pfeiltasten ← → fein · Leertaste startet die Tour.</tspan></text></g>
+  </g>
+
+  <!-- ============ ROW 2: WEATHER PROFILE + TIME OVERVIEW ============ -->
+  <text transform="translate(32, 488)" font-size="10" fill="#A89A7A" letter-spacing="3" font-weight="500">WETTER ENTLANG DER STRECKE · ZEIT-ÜBERSICHT</text>
+
+  <!-- weather profile sparklines -->
+  <g transform="translate(32, 508)">
+    <rect width="820" height="220" rx="20" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    <g transform="translate(24, 20)">
+      <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">TEMPERATUR · NIEDERSCHLAG · WIND</text>
+      <g transform="translate(620, -4)"><rect width="150" height="26" rx="13" fill="#FFFFFF" stroke="#E0D6BE"/><g transform="translate(14,9)" stroke="#5C5447" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M5 0 V8 M2 5 L5 8 L8 5"/></g><text x="32" y="17" font-size="11" fill="#5C5447" font-weight="500">Als Bild</text></g>
+
+      <!-- Temp sparkline -->
+      <g transform="translate(0, 22)">
+        <text font-size="8.5" fill="#A89A7A" letter-spacing="0.8">TEMPERATUR °C</text>
+        <path d="M 0 28 L 96 22 L 192 18 L 288 12 L 384 14 L 480 20 L 576 28 L 672 34 L 770 38 L 770 44 L 0 44 Z" fill="#C6633B" opacity="0.12"/>
+        <path d="M 0 28 L 96 22 L 192 18 L 288 12 L 384 14 L 480 20 L 576 28 L 672 34 L 770 38" fill="none" stroke="#C6633B" stroke-width="2"/>
+        <path d="M 0 32 L 96 26 L 192 22 L 288 16 L 384 18 L 480 24 L 576 32 L 672 38 L 770 42" fill="none" stroke="#A8431F" stroke-width="1.3" stroke-dasharray="3 2" opacity="0.6"/>
+      </g>
+      <!-- Precip bars -->
+      <g transform="translate(0, 84)">
+        <text font-size="8.5" fill="#A89A7A" letter-spacing="0.8">NIEDERSCHLAG mm/h</text>
+        <line x1="0" y1="36" x2="770" y2="36" stroke="#E0D6BE" stroke-width="0.5"/>
+        <g fill="#4f627e" opacity="0.85"><rect x="300" y="30" width="10" height="6"/><rect x="320" y="26" width="10" height="10"/><rect x="340" y="32" width="10" height="4"/></g>
+        <text x="0" y="34" font-size="9" fill="#7A9466">trocken bis km 9,7</text>
+      </g>
+      <!-- Wind line -->
+      <g transform="translate(0, 132)">
+        <text font-size="8.5" fill="#A89A7A" letter-spacing="0.8">WIND · BÖEN m/s</text>
+        <path d="M 0 26 L 96 24 L 192 22 L 288 20 L 384 18 L 480 14 L 576 10 L 672 6 L 770 4 L 770 30 L 0 30 Z" fill="url(#gustR4)"/>
+        <path d="M 0 30 L 96 29 L 192 27 L 288 25 L 384 24 L 480 21 L 576 18 L 672 16 L 770 14" fill="none" stroke="#4f627e" stroke-width="2"/>
+      </g>
+    </g>
+  </g>
+
+  <!-- time overview -->
+  <g transform="translate(868, 508)">
+    <rect width="540" height="220" rx="20" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    <g transform="translate(24, 24)">
+      <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">ZEIT-ÜBERSICHT</text>
+      <g transform="translate(0, 22)" font-size="13">
+        <g><text fill="#8B7355">Start</text><text x="492" fill="#2C2A26" font-weight="500" text-anchor="end">Sa, 14.06.2026, 08:00</text></g>
+        <line x1="0" y1="14" x2="492" y2="14" stroke="#E0D6BE" stroke-width="0.5"/>
+        <g transform="translate(0, 36)"><text fill="#8B7355">Gehzeit</text><text x="492" fill="#2C2A26" font-weight="500" text-anchor="end">4 h 43 min</text></g>
+        <line x1="0" y1="50" x2="492" y2="50" stroke="#E0D6BE" stroke-width="0.5"/>
+        <g transform="translate(0, 72)"><text fill="#8B7355">Pausen</text><text x="492" fill="#2C2A26" font-weight="500" text-anchor="end">3 · 1 h 25 min</text></g>
+        <line x1="0" y1="86" x2="492" y2="86" stroke="#E0D6BE" stroke-width="0.5"/>
+        <g transform="translate(0, 108)"><text fill="#8B7355">Gesamtdauer</text><text x="492" fill="#C97B47" font-weight="600" font-size="15" text-anchor="end">6 h 08 min</text></g>
+        <line x1="0" y1="122" x2="492" y2="122" stroke="#E0D6BE" stroke-width="0.5"/>
+        <g transform="translate(0, 144)"><text fill="#8B7355">Ankunft</text><text x="492" fill="#2C2A26" font-weight="500" text-anchor="end">Sa, 14.06.2026, 19:51</text></g>
+      </g>
+    </g>
+  </g>
+
+  <!-- ============ ROW 3: TIMELINE + QUALITY ============ -->
+  <text transform="translate(32, 760)" font-size="10" fill="#A89A7A" letter-spacing="3" font-weight="500">ZEITPLAN · DATEN-HERKUNFT &amp; QUALITÄT</text>
+
+  <!-- timeline -->
+  <g transform="translate(32, 780)">
+    <rect width="540" height="232" rx="20" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    <g transform="translate(28, 26)">
+      <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">ZEITPLAN</text>
+      <line x1="6" y1="24" x2="6" y2="180" stroke="#E0D6BE" stroke-width="2"/>
+      <!-- legs -->
+      <g transform="translate(0, 28)" font-size="13">
+        <circle cx="6" cy="4" r="6" fill="#2C2A26" stroke="#FAF6EA" stroke-width="2"/>
+        <text x="24" y="0" font-size="8.5" fill="#A89A7A" letter-spacing="1">START</text><text x="24" y="14" fill="#2C2A26">08:00 · Start <tspan fill="#8B7355">· 0,0 km</tspan></text>
+      </g>
+      <g transform="translate(0, 70)" font-size="13">
+        <rect x="2" y="0" width="9" height="9" rx="1.5" fill="#D4A373"/>
+        <text x="24" y="-2" font-size="8.5" fill="#A89A7A" letter-spacing="1">PAUSE</text><text x="24" y="12" fill="#2C2A26">15:45 → 16:05 · Pause <tspan fill="#8B7355">· 4,7 km · +20 min</tspan></text>
+      </g>
+      <g transform="translate(0, 104)" font-size="13">
+        <rect x="2" y="0" width="9" height="9" rx="1.5" fill="#C6633B"/>
+        <text x="24" y="-2" font-size="8.5" fill="#A89A7A" letter-spacing="1">MAHLZEIT</text><text x="24" y="12" fill="#2C2A26">17:03 → 17:48 · Mittagspause <tspan fill="#8B7355">· 6,6 km</tspan></text>
+      </g>
+      <g transform="translate(0, 138)" font-size="13">
+        <rect x="2" y="0" width="9" height="9" rx="1.5" fill="#D4A373"/>
+        <text x="24" y="-2" font-size="8.5" fill="#A89A7A" letter-spacing="1">PAUSE</text><text x="24" y="12" fill="#2C2A26">18:48 → 19:08 · Pause <tspan fill="#8B7355">· 8,6 km · +20 min</tspan></text>
+      </g>
+      <g transform="translate(0, 174)" font-size="13">
+        <circle cx="6" cy="2" r="6" fill="#C97B47"/>
+        <text x="24" y="-2" font-size="8.5" fill="#A89A7A" letter-spacing="1">ZIEL</text><text x="24" y="12" fill="#2C2A26">19:51 · Ziel <tspan fill="#8B7355">· 9,7 km</tspan></text>
+      </g>
+    </g>
+  </g>
+
+  <!-- quality row -->
+  <g transform="translate(588, 780)">
+    <rect width="820" height="232" rx="20" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    <g transform="translate(28, 26)">
+      <!-- col 1 Quellen -->
+      <g>
+        <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">QUELLEN</text>
+        <g transform="translate(0, 22)" font-size="12" fill="#5C5447">
+          <text y="0">DE — DWD live · höhenkorrigiert</text>
+          <text y="24">11 Punkte Radar-Nowcast (RADOLAN)</text>
+          <text y="48">23 Punkte höhenkorrigiert</text>
+          <text y="72" fill="#A89A7A">Bias-Korrektur vor 4 Min</text>
+        </g>
+      </g>
+      <line x1="248" y1="0" x2="248" y2="180" stroke="#E0D6BE" stroke-width="0.5"/>
+      <!-- col 2 Abdeckung -->
+      <g transform="translate(280, 0)">
+        <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">ABDECKUNG</text>
+        <g transform="translate(0, 22)" font-size="12" fill="#5C5447">
+          <g><text>Temperatur, Wind</text><g transform="translate(232,-4)" stroke="#7A9466" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M0 4 L3.5 7.5 L9 1"/></g></g>
+          <g transform="translate(0,28)"><text>Niederschlag (Radar + NWP)</text><g transform="translate(232,-4)" stroke="#7A9466" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M0 4 L3.5 7.5 L9 1"/></g></g>
+          <g transform="translate(0,56)"><text>Schneefallgrenze</text><g transform="translate(232,-4)" stroke="#7A9466" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M0 4 L3.5 7.5 L9 1"/></g></g>
+          <g transform="translate(0,84)"><text>UV-Index</text><text x="245" text-anchor="end" font-style="italic" fill="#8B7355">DE gemessen</text></g>
+        </g>
+      </g>
+      <line x1="560" y1="0" x2="560" y2="180" stroke="#E0D6BE" stroke-width="0.5"/>
+      <!-- col 3 Modell -->
+      <g transform="translate(592, 0)">
+        <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">MODELL &amp; PERFORMANCE</text>
+        <g transform="translate(0, 20)">
+          <text font-size="9" fill="#8B7355" letter-spacing="1">NAHBEREICH 0–2 H</text>
+          <text y="20" font-size="15" fill="#2C2A26" font-weight="500">RADOLAN-RV</text>
+          <text y="48" font-size="9" fill="#8B7355" letter-spacing="1">FERNBEREICH 2–6 H</text>
+          <text y="68" font-size="15" fill="#2C2A26" font-weight="500">ICON-D2 · 2,2 km</text>
+          <text y="96" font-size="9" fill="#8B7355" letter-spacing="1">BERECHNUNG</text>
+          <text y="116" font-size="15" fill="#2C2A26" font-weight="500">182 ms</text>
+        </g>
+      </g>
+    </g>
+  </g>
+
+  <!-- ============ LABEL ============ -->
+  <g transform="translate(32, 1036)">
+    <text font-size="10" fill="#A89A7A" letter-spacing="3" font-weight="500">RP-04 · ZEIT-SCRUBBER · SPARKLINES · ZEITPLAN · QUALITÄT · v1.8</text>
+    <text x="1376" font-size="10" fill="#A89A7A" letter-spacing="2" text-anchor="end">Höhenprofil-Overlays · Detail-Panel · Pausen-Timeline · Daten-Herkunft</text>
+  </g>
+</svg>

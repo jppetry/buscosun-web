@@ -1,0 +1,130 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 750 1500" font-family="ui-sans-serif, system-ui, -apple-system">
+  <defs>
+    <linearGradient id="bgM4" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#F5F1E8"/><stop offset="100%" stop-color="#EDE6D3"/></linearGradient>
+    <linearGradient id="mapM4" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#E8DFC4"/><stop offset="100%" stop-color="#D4C8A3"/></linearGradient>
+    <linearGradient id="elevM4" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#E0D6BE" stop-opacity="0.9"/><stop offset="100%" stop-color="#E0D6BE" stop-opacity="0.3"/></linearGradient>
+    <radialGradient id="pulseM4"><stop offset="0%" stop-color="#C97B47" stop-opacity="0.4"/><stop offset="100%" stop-color="#C97B47" stop-opacity="0"/></radialGradient>
+    <pattern id="topoM4" x="0" y="0" width="120" height="120" patternUnits="userSpaceOnUse"><path d="M 0 60 Q 30 30 60 60 T 120 60" stroke="#C4B896" stroke-width="0.8" fill="none" opacity="0.4"/></pattern>
+    <clipPath id="mapClipM4"><rect width="750" height="300"/></clipPath>
+  </defs>
+  <rect width="750" height="1500" fill="url(#bgM4)"/>
+
+  <!-- status bar -->
+  <g><rect width="750" height="60" fill="#F5F1E8"/>
+    <text x="48" y="38" font-size="16" fill="#2C2A26" font-weight="600">9:41</text>
+    <g transform="translate(600, 22)"><g fill="#2C2A26"><rect x="0" y="14" width="4" height="6" rx="1"/><rect x="7" y="10" width="4" height="10" rx="1"/><rect x="14" y="6" width="4" height="14" rx="1"/><rect x="21" y="2" width="4" height="18" rx="1"/></g><text x="40" y="16" font-size="13" fill="#2C2A26" font-weight="500">5G</text><g transform="translate(74, 4)"><rect width="32" height="14" rx="3" fill="none" stroke="#2C2A26" stroke-width="1.5"/><rect x="2" y="2" width="24" height="10" rx="1" fill="#2C2A26"/><rect x="34" y="4" width="2" height="6" rx="1" fill="#2C2A26"/></g></g>
+  </g>
+  <!-- top bar -->
+  <g transform="translate(0, 60)"><rect width="750" height="92" fill="#FFFFFF"/>
+    <g transform="translate(40, 30)">
+      <g transform="translate(0, 10)" stroke="#2C2A26" stroke-width="2.5" fill="none" stroke-linecap="round"><line x1="0" y1="8" x2="20" y2="8"/><polyline points="7,3 0,8 7,13"/></g>
+      <g transform="translate(48, 0)"><text font-size="11" fill="#A89A7A" letter-spacing="2" font-weight="500">ZEIT-SCRUBBER · ZIEH DEN MARKER</text><text y="24" font-size="22" font-weight="500" fill="#2C2A26" letter-spacing="-0.4">Freiburg–Schauinsland</text></g>
+    </g>
+  </g>
+
+  <!-- map -->
+  <g transform="translate(0, 152)">
+    <g clip-path="url(#mapClipM4)">
+      <rect width="750" height="300" fill="url(#mapM4)"/><rect width="750" height="300" fill="url(#topoM4)"/>
+      <g opacity="0.45"><path d="M 0 190 Q 160 140 340 170 T 750 190 L 750 250 L 0 250 Z" fill="#A89472" opacity="0.6"/></g>
+      <g font-size="11" fill="#5C5447" font-weight="500" opacity="0.8"><text x="110" y="70">Freiburg</text><text x="500" y="240">Schauinsland</text></g>
+      <path d="M 130 70 Q 260 130 340 180 Q 420 230 460 270 Q 520 290 600 280" stroke="#FFFFFF" stroke-width="9" fill="none" stroke-linecap="round"/>
+      <path d="M 130 70 Q 260 130 340 180 Q 420 230 460 270 Q 520 290 600 280" stroke="#C97B47" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+      <g transform="translate(230, 130)" stroke="#7A9466" fill="#7A9466"><line x1="0" y1="0" x2="16" y2="-3" stroke-width="2.8" stroke-linecap="round"/><polygon points="16,-3 12,-8 12,2"/></g>
+      <g transform="translate(130, 70)"><circle r="12" fill="#2C2A26"/><circle r="5" fill="#FFFFFF"/></g>
+      <g transform="translate(600, 280)"><circle r="11" fill="#2C2A26"/><g transform="translate(-5,-5)" stroke="#FFFFFF" stroke-width="2"><line x1="0" y1="0" x2="10" y2="10"/><line x1="10" y1="0" x2="0" y2="10"/></g></g>
+      <!-- scrub pin -->
+      <g transform="translate(340, 180)"><circle r="32" fill="url(#pulseM4)"/><circle r="14" fill="#C97B47"/><circle r="6" fill="#FFFFFF"/><g transform="translate(0, -30)"><rect x="-34" width="68" height="22" rx="11" fill="#C97B47"/><text y="15" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="600">16:03 · 4,8 km</text></g></g>
+    </g>
+    <g transform="translate(20, 20)"><rect width="180" height="34" rx="17" fill="#FFFFFF" opacity="0.95"/><circle cx="20" cy="17" r="5" fill="#7A9466"/><text x="36" y="22" font-size="11" fill="#2C2A26" font-weight="500">Wische zum Scrubben</text></g>
+  </g>
+
+  <!-- dark detail panel -->
+  <g transform="translate(0, 452)">
+    <rect width="750" height="372" fill="#2C2A26"/>
+    <g transform="translate(40, 34)">
+      <text font-size="11" fill="#A89A7A" letter-spacing="2.5" font-weight="500">DEINE POSITION UM 16:03</text>
+      <text y="58" font-size="56" font-weight="200" fill="#FFFFFF" letter-spacing="-1.5">23,6 °C</text>
+      <text y="86" font-size="13" fill="#A89A7A">gefühlt 23,6 °C · 4,8 km · 687 m · Bergwandern</text>
+
+      <!-- metrics 3×2 -->
+      <g transform="translate(0, 116)">
+        <g><text font-size="10" fill="#A89A7A" letter-spacing="1">NIEDERSCHLAG</text><text y="26" font-size="22" fill="#FFFFFF" font-weight="300">0 mm/h</text></g>
+        <g transform="translate(230,0)"><text font-size="10" fill="#A89A7A" letter-spacing="1">WIND · BÖEN</text><text y="26" font-size="22" fill="#FFFFFF" font-weight="300">9,1 · 12,7</text></g>
+        <g transform="translate(470,0)"><text font-size="10" fill="#A89A7A" letter-spacing="1">BEWÖLKUNG</text><text y="26" font-size="22" fill="#FFFFFF" font-weight="300">61 %</text></g>
+        <g transform="translate(0,58)"><text font-size="10" fill="#A89A7A" letter-spacing="1">UV-INDEX</text><text y="26" font-size="22" fill="#FFFFFF" font-weight="300">4,9</text></g>
+        <g transform="translate(230,58)"><text font-size="10" fill="#A89A7A" letter-spacing="1">SCHNEEFALLGRENZE</text><text y="26" font-size="22" fill="#FFFFFF" font-weight="300">—</text></g>
+        <g transform="translate(470,58)"><text font-size="10" fill="#A89A7A" letter-spacing="1">LUFTFEUCHTE</text><text y="26" font-size="22" fill="#FFFFFF" font-weight="300">46 %</text></g>
+      </g>
+
+      <!-- sub pills -->
+      <g transform="translate(0, 240)">
+        <g><rect width="320" height="36" rx="10" fill="#3A2420"/>
+          <g transform="translate(14, 12)" stroke="#E89B7A" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M7 1 L13 12 H1 Z"/><path d="M7 5 v3.2"/><circle cx="7" cy="10" r="0.5" fill="#E89B7A" stroke="none"/></g>
+          <text x="32" y="17" font-size="12" fill="#FFFFFF" font-weight="600">Windböen</text><text x="32" y="29" font-size="10.5" fill="#C9A89A">DWD · Level 1 · bis 20:00</text></g>
+        <g transform="translate(338, 0)"><rect width="320" height="36" rx="10" fill="#3A352A"/>
+          <g transform="translate(14, 13)" stroke="#E2C08A" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M1 3 h9 a1.6 1.6 0 1 0 -1.6 -1.6"/><path d="M1 7 h11 a1.6 1.6 0 1 1 -1.6 1.6"/></g>
+          <text x="32" y="17" font-size="12" fill="#FFFFFF" font-weight="600">Föhn-Lage</text><text x="32" y="29" font-size="10.5" fill="#C9BE9A">Score 2,4 · heuristisch</text></g>
+      </g>
+    </g>
+  </g>
+
+  <!-- elevation scrubber card -->
+  <g transform="translate(40, 840)">
+    <rect width="670" height="290" rx="20" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    <g transform="translate(28, 24)">
+      <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">HÖHENPROFIL · WETTER-OVERLAYS</text>
+      <!-- km chips -->
+      <g transform="translate(0, 16)" font-size="11">
+        <g><rect width="58" height="26" rx="13" fill="#C97B47"/><text x="29" y="17" fill="#FFFFFF" text-anchor="middle" font-weight="500">0,0 km</text></g>
+        <g transform="translate(66,0)"><rect width="58" height="26" rx="13" fill="#EDE6D3"/><text x="29" y="17" fill="#5C5447" text-anchor="middle">4,7 km</text></g>
+        <g transform="translate(132,0)"><rect width="58" height="26" rx="13" fill="#EDE6D3"/><text x="29" y="17" fill="#5C5447" text-anchor="middle">6,6 km</text></g>
+        <g transform="translate(198,0)"><rect width="58" height="26" rx="13" fill="#EDE6D3"/><text x="29" y="17" fill="#5C5447" text-anchor="middle">9,7 km</text></g>
+      </g>
+      <!-- canvas -->
+      <g transform="translate(0, 54)">
+        <rect width="614" height="120" rx="12" fill="#FAF6EA" stroke="#E0D6BE" stroke-width="0.5"/>
+        <rect x="448" y="6" width="150" height="108" fill="#D4A373" opacity="0.12"/><text x="523" y="20" font-size="9" fill="#A85E2E" text-anchor="middle" opacity="0.8">FÖHN-ZONE</text>
+        <path d="M 16 104 L 100 100 L 184 92 L 268 84 L 352 70 L 436 54 L 520 36 L 600 18 L 600 114 L 16 114 Z" fill="url(#elevM4)"/>
+        <path d="M 16 104 L 100 100 L 184 92 L 268 84 L 352 70 L 436 54 L 520 36 L 600 18" fill="none" stroke="#8B7355" stroke-width="1.8"/>
+        <path d="M 16 80 L 100 78 L 184 74 L 268 68 L 352 60 L 436 50 L 520 38 L 600 28" fill="none" stroke="#C97B47" stroke-width="1.4" stroke-dasharray="4 3" opacity="0.7"/>
+        <rect x="417" y="-3" width="6" height="6" rx="1.5" fill="#C97B47"/>
+        <!-- scrub handle -->
+        <line x1="310" y1="-12" x2="310" y2="114" stroke="#C97B47" stroke-width="2.5"/>
+        <g transform="translate(310, -14)"><rect x="-30" y="-13" width="60" height="20" rx="10" fill="#C97B47"/><text y="1" font-size="11" font-weight="700" fill="#FAF6EA" text-anchor="middle">16:03</text></g>
+        <circle cx="310" cy="114" r="9" fill="#C97B47"/>
+      </g>
+      <g transform="translate(0, 180)" font-size="10" fill="#8B7355"><text x="0">08:00 · 0 km</text><text x="614" text-anchor="end">19:51 · 9,7 km</text></g>
+      <!-- playback -->
+      <g transform="translate(238, 200)">
+        <g><circle cx="20" cy="18" r="18" fill="#FFFFFF" stroke="#E0D6BE"/><path d="M3 -6 L-4 0 L3 6 Z" fill="#3A3833" transform="translate(20,18)"/></g>
+        <g transform="translate(44,0)"><circle cx="20" cy="18" r="20" fill="#C97B47"/><path d="M-5 -7 L7 0 L-5 7 Z" fill="#FFFFFF" transform="translate(20,18)"/></g>
+        <g transform="translate(96,0)"><circle cx="20" cy="18" r="18" fill="#FFFFFF" stroke="#E0D6BE"/><path d="M-3 -6 L4 0 L-3 6 Z" fill="#3A3833" transform="translate(20,18)"/></g>
+      </g>
+    </g>
+  </g>
+
+  <!-- timeline + quality card -->
+  <g transform="translate(40, 1146)">
+    <rect width="670" height="288" rx="20" fill="#FFFFFF" stroke="#E0D6BE" stroke-width="0.5"/>
+    <g transform="translate(28, 26)">
+      <text font-size="10" fill="#A89A7A" letter-spacing="2" font-weight="500">ZEITPLAN</text>
+      <line x1="6" y1="24" x2="6" y2="170" stroke="#E0D6BE" stroke-width="2"/>
+      <g transform="translate(0, 26)" font-size="13"><circle cx="6" cy="4" r="6" fill="#2C2A26" stroke="#FAF6EA" stroke-width="2"/><text x="26" y="0" font-size="9" fill="#A89A7A" letter-spacing="1">START</text><text x="26" y="15" fill="#2C2A26">08:00 · Start <tspan fill="#8B7355">· 0,0 km</tspan></text></g>
+      <g transform="translate(0, 66)" font-size="13"><rect x="2" y="0" width="9" height="9" rx="1.5" fill="#D4A373"/><text x="26" y="-2" font-size="9" fill="#A89A7A" letter-spacing="1">PAUSE</text><text x="26" y="12" fill="#2C2A26">15:45 → 16:05 <tspan fill="#8B7355">· 4,7 km</tspan></text></g>
+      <g transform="translate(0, 102)" font-size="13"><rect x="2" y="0" width="9" height="9" rx="1.5" fill="#C6633B"/><text x="26" y="-2" font-size="9" fill="#A89A7A" letter-spacing="1">MAHLZEIT</text><text x="26" y="12" fill="#2C2A26">17:03 → 17:48 · Gipfelhütte <tspan fill="#8B7355">· 6,6 km</tspan></text></g>
+      <g transform="translate(0, 140)" font-size="13"><circle cx="6" cy="2" r="6" fill="#C97B47"/><text x="26" y="-2" font-size="9" fill="#A89A7A" letter-spacing="1">ZIEL</text><text x="26" y="12" fill="#2C2A26">19:51 · Ziel <tspan fill="#8B7355">· 9,7 km · 6 h 08 gesamt</tspan></text></g>
+
+      <line x1="0" y1="188" x2="614" y2="188" stroke="#E0D6BE" stroke-width="0.5"/>
+      <g transform="translate(0, 206)">
+        <text font-size="9" fill="#A89A7A" letter-spacing="2" font-weight="500">DATEN-HERKUNFT</text>
+        <g transform="translate(0, 18)" font-size="11.5" fill="#5C5447">
+          <g><text>RADOLAN-RV + ICON-D2</text><g transform="translate(232,-4)" stroke="#7A9466" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M0 4 L3.5 7.5 L9 1"/></g></g>
+          <g transform="translate(300,0)"><text>11 Punkte Radar · höhenkorr.</text><g transform="translate(252,-4)" stroke="#7A9466" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M0 4 L3.5 7.5 L9 1"/></g></g>
+        </g>
+      </g>
+    </g>
+  </g>
+
+  <g transform="translate(40, 1456)"><text font-size="11" fill="#A89A7A" letter-spacing="3" font-weight="500">RP-M4 · MOBILE SCRUBBER &amp; ZEITPLAN · 375 px</text></g>
+</svg>

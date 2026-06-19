@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="buscosun">
+  <!-- Full-bleed Sand-Hintergrund (maskable-tauglich) -->
+  <rect width="512" height="512" fill="#FAF6EA"/>
+  <!-- Sonne (terracotta) -->
+  <circle cx="206" cy="196" r="46" fill="#C97B47"/>
+  <!-- Höhenlinie -->
+  <g stroke="#C4B896" stroke-width="9" fill="none" stroke-linecap="round" opacity="0.75">
+    <path d="M150 250 Q 230 232 312 250"/>
+  </g>
+  <!-- Berge + Grundlinie (ink) -->
+  <path d="M138 356 L208 250 L256 308 L320 240 L374 356 Z" fill="#2C2A26"/>
+  <rect x="138" y="350" width="236" height="13" rx="6" fill="#2C2A26"/>
+</svg>

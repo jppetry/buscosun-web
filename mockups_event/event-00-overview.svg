@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1700 1500" font-family="ui-sans-serif, system-ui, -apple-system">
+  <defs>
+    <linearGradient id="bgEvOv" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#F5F1E8"/><stop offset="100%" stop-color="#EDE6D3"/></linearGradient>
+  </defs>
+  <rect width="1700" height="1500" fill="url(#bgEvOv)"/>
+
+  <!-- title -->
+  <g transform="translate(80, 64)">
+    <circle cx="12" cy="10" r="6" fill="#2C2A26"/>
+    <g stroke="#2C2A26" stroke-width="1.4" stroke-linecap="round"><line x1="12" y1="-3" x2="12" y2="0"/><line x1="12" y1="20" x2="12" y2="23"/><line x1="-1" y1="10" x2="2" y2="10"/><line x1="22" y1="10" x2="25" y2="10"/><line x1="2.5" y1="0.5" x2="4.5" y2="2.5"/><line x1="19.5" y1="17.5" x2="21.5" y2="19.5"/><line x1="2.5" y1="19.5" x2="4.5" y2="17.5"/><line x1="19.5" y1="2.5" x2="21.5" y2="0.5"/></g>
+    <text x="36" y="16" font-size="17" font-weight="500" fill="#2C2A26" letter-spacing="-0.4">buscosun</text>
+    <text y="56" font-size="40" font-weight="300" fill="#2C2A26" letter-spacing="-1.1">Event-Planung · Mockup-Übersicht</text>
+    <text y="86" font-size="14" fill="#5C5447">15 Ansichten · Desktop / Tablet / Mobile · Design-System v1.8 · „Welcher Tag passt am besten?"</text>
+    <text y="108" font-size="12" fill="#8B7355">Anlass &amp; Feinjustierung · Ort · Zeitfenster · Phasen · Plan B · Bester-Tag-Hero · Ablauf · Karte · Konfidenz · Rangliste · Foto-Licht · Astro-Nächte</text>
+  </g>
+  <line x1="80" y1="200" x2="1620" y2="200" stroke="#E0D6BE" stroke-width="0.5"/>
+
+  <!-- DESKTOP ROW -->
+  <g>
+    <text x="80" y="228" font-size="10" fill="#A89A7A" letter-spacing="3" font-weight="500">DESKTOP · 1440 px</text>
+    <g transform="translate(0, 240)">
+      <g transform="translate(80,0)"><rect width="218" height="300" rx="10" fill="#FFFFFF" stroke="#E0D6BE"/><image href="event-01-eingabe-anlass.svg" width="218" height="300" preserveAspectRatio="xMidYMid meet"/><text y="318" font-size="12" fill="#5C5447" font-weight="500">01 · Eingabe · Anlass</text></g>
+      <g transform="translate(344,0)"><rect width="218" height="300" rx="10" fill="#FFFFFF" stroke="#E0D6BE"/><image href="event-02-eingabe-rahmen.svg" width="218" height="300" preserveAspectRatio="xMidYMid meet"/><text y="318" font-size="12" fill="#5C5447" font-weight="500">02 · Eingabe · Rahmen</text></g>
+      <g transform="translate(608,0)"><rect width="218" height="300" rx="10" fill="#FFFFFF" stroke="#E0D6BE"/><image href="event-03-ergebnis-hero.svg" width="218" height="300" preserveAspectRatio="xMidYMid meet"/><text y="318" font-size="12" fill="#5C5447" font-weight="500">03 · Ergebnis · Bester Tag</text></g>
+      <g transform="translate(872,0)"><rect width="218" height="300" rx="10" fill="#FFFFFF" stroke="#E0D6BE"/><image href="event-04-ergebnis-verlauf.svg" width="218" height="300" preserveAspectRatio="xMidYMid meet"/><text y="318" font-size="12" fill="#5C5447" font-weight="500">04 · Ergebnis · Verlauf</text></g>
+      <g transform="translate(1136,0)"><rect width="218" height="300" rx="10" fill="#FFFFFF" stroke="#E0D6BE"/><image href="event-05-foto-licht.svg" width="218" height="300" preserveAspectRatio="xMidYMid meet"/><text y="318" font-size="12" fill="#5C5447" font-weight="500">05 · Spezial · Foto-Licht</text></g>
+      <g transform="translate(1400,0)"><rect width="218" height="300" rx="10" fill="#FFFFFF" stroke="#E0D6BE"/><image href="event-06-astro-planb.svg" width="218" height="300" preserveAspectRatio="xMidYMid meet"/><text y="318" font-size="12" fill="#5C5447" font-weight="500">06 · Spezial · Astro &amp; Plan B</text></g>
+    </g>
+  </g>
+
+  <!-- TABLET ROW -->
+  <g>
+    <text x="80" y="608" font-size="10" fill="#A89A7A" letter-spacing="3" font-weight="500">TABLET · 834 px</text>
+    <g transform="translate(0, 620)">
+      <g transform="translate(80,0)"><rect width="190" height="330" rx="12" fill="#FFFFFF" stroke="#E0D6BE"/><image href="event-t1-eingabe.svg" width="190" height="330" preserveAspectRatio="xMidYMid meet"/><text y="348" font-size="12" fill="#5C5447" font-weight="500">T1 · Eingabe</text></g>
+      <g transform="translate(536,0)"><rect width="190" height="330" rx="12" fill="#FFFFFF" stroke="#E0D6BE"/><image href="event-t2-ergebnis.svg" width="190" height="330" preserveAspectRatio="xMidYMid meet"/><text y="348" font-size="12" fill="#5C5447" font-weight="500">T2 · Ergebnis</text></g>
+      <g transform="translate(992,0)"><rect width="190" height="330" rx="12" fill="#FFFFFF" stroke="#E0D6BE"/><image href="event-t3-verlauf.svg" width="190" height="330" preserveAspectRatio="xMidYMid meet"/><text y="348" font-size="12" fill="#5C5447" font-weight="500">T3 · Verlauf</text></g>
+      <g transform="translate(1448,0)"><rect width="190" height="330" rx="12" fill="#FFFFFF" stroke="#E0D6BE"/><image href="event-t4-spezial.svg" width="190" height="330" preserveAspectRatio="xMidYMid meet"/><text y="348" font-size="12" fill="#5C5447" font-weight="500">T4 · Spezial</text></g>
+    </g>
+  </g>
+
+  <!-- MOBILE ROW -->
+  <g>
+    <text x="80" y="1024" font-size="10" fill="#A89A7A" letter-spacing="3" font-weight="500">MOBILE · 390 px</text>
+    <g transform="translate(0, 1040)">
+      <g transform="translate(80,0)"><rect width="150" height="340" rx="14" fill="#FFFFFF" stroke="#E0D6BE"/><image href="event-m1-anlass.svg" width="150" height="340" preserveAspectRatio="xMidYMid meet"/><text y="358" font-size="12" fill="#5C5447" font-weight="500">M1 · Anlass</text></g>
+      <g transform="translate(427,0)"><rect width="150" height="340" rx="14" fill="#FFFFFF" stroke="#E0D6BE"/><image href="event-m2-rahmen.svg" width="150" height="340" preserveAspectRatio="xMidYMid meet"/><text y="358" font-size="12" fill="#5C5447" font-weight="500">M2 · Rahmen</text></g>
+      <g transform="translate(774,0)"><rect width="150" height="340" rx="14" fill="#FFFFFF" stroke="#E0D6BE"/><image href="event-m3-ergebnis.svg" width="150" height="340" preserveAspectRatio="xMidYMid meet"/><text y="358" font-size="12" fill="#5C5447" font-weight="500">M3 · Ergebnis</text></g>
+      <g transform="translate(1121,0)"><rect width="150" height="340" rx="14" fill="#FFFFFF" stroke="#E0D6BE"/><image href="event-m4-verlauf.svg" width="150" height="340" preserveAspectRatio="xMidYMid meet"/><text y="358" font-size="12" fill="#5C5447" font-weight="500">M4 · Verlauf</text></g>
+      <g transform="translate(1468,0)"><rect width="150" height="340" rx="14" fill="#FFFFFF" stroke="#E0D6BE"/><image href="event-m5-spezial.svg" width="150" height="340" preserveAspectRatio="xMidYMid meet"/><text y="358" font-size="12" fill="#5C5447" font-weight="500">M5 · Spezial</text></g>
+    </g>
+  </g>
+
+  <!-- footer -->
+  <line x1="80" y1="1448" x2="1620" y2="1448" stroke="#E0D6BE" stroke-width="0.5"/>
+  <g transform="translate(80, 1472)">
+    <text font-size="10" fill="#A89A7A" letter-spacing="3" font-weight="500">EV-00 · CONTACT SHEET · 15 ANSICHTEN × 3 GERÄTE</text>
+    <text x="1540" font-size="10" fill="#A89A7A" letter-spacing="2" text-anchor="end">Eingabe (Anlass/Ort/Zeit/Phasen/Plan B) · Ergebnis (Hero/Ablauf/Karte/Konfidenz/Rangliste) · Foto · Astro</text>
+  </g>
+</svg>
