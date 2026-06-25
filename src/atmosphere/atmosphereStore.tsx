@@ -18,6 +18,7 @@ import type { SoundingProfile } from '../sources/iconEuSounding';
 import type { SoundingDerived } from '../threed/soundingMath';
 import type { GeoPoint } from '../threed/sectionGeometry';
 import type { ThreeDLayers } from '../threed/threedState';
+import { decodeState as decodeThreeD, hasThreeDHash } from '../threed/threedState';
 
 export type SectionMode = '2d' | '3d' | 'terrain';
 const DEFAULT_SECTION_LAYERS: ThreeDLayers = { mean: true, gust: false, shear: false, inversion: false, cloudBase: false, cloudLayers: false, streamlines: false, foehn: false, temp: false };
@@ -71,16 +72,21 @@ export function AtmosphereProvider({ children }: { children: ReactNode }) {
   // Initial state: hash wins; else last lens from localStorage; else first-time
   // default lens = "Himmel" (sky), per spec.
   const initial = useMemo(() => {
-    const st = typeof window !== 'undefined' ? decodeState(window.location.hash) : null;
-    const lens: Lens = st?.lens ?? readLensFromStorage() ?? 'sky';
-    return {
-      lens,
-      hour: st?.hour ?? 0,
-      nerd: st?.nerd ?? false,
-      loc: st?.loc ? { name: st.loc.name, lat: st.loc.lat, lon: st.loc.lon, country: st.loc.country } : null,
-      // Marker defaults to the location when the hash carries no explicit marker.
-      marker: st?.marker ?? (st?.loc ? { lat: st.loc.lat, lon: st.loc.lon } : null),
-    };
+    const hash = typeof window !== 'undefined' ? window.location.hash : '';
+    const st = decodeState(hash);
+    if (st) {
+      const loc = st.loc ? { name: st.loc.name, lat: st.loc.lat, lon: st.loc.lon, country: st.loc.country } : null;
+      return { lens: st.lens, hour: st.hour, nerd: st.nerd, loc,
+        marker: st.marker ?? (loc ? { lat: loc.lat, lon: loc.lon } : null), cut: st.cut };
+    }
+    // Migration: alter threed-Permalink (#3d=) → Schnitt-Linse mit Ort + Schnittlinie.
+    const td = hasThreeDHash(hash) ? decodeThreeD(hash) : null;
+    if (td) {
+      const loc = td.loc ? { name: td.loc.name, lat: td.loc.lat, lon: td.loc.lon, country: td.loc.country } : null;
+      return { lens: 'section' as Lens, hour: 0, nerd: false, loc,
+        marker: loc ? { lat: loc.lat, lon: loc.lon } : null, cut: td.points };
+    }
+    return { lens: readLensFromStorage() ?? 'sky', hour: 0, nerd: false, loc: null, marker: null, cut: [] as GeoPoint[] };
   }, []);
 
   const [lens, setLensState] = useState<Lens>(initial.lens);
@@ -91,7 +97,7 @@ export function AtmosphereProvider({ children }: { children: ReactNode }) {
   const [modelRunAt, setModelRunAt] = useState<Date | null>(null);
   const [profile, setProfile] = useState<DerivedProfile | null>(null);
   const [sounding, setSounding] = useState<SoundingBundle | null>(null);
-  const [cutPoints, setCutPoints] = useState<GeoPoint[]>([]);
+  const [cutPoints, setCutPoints] = useState<GeoPoint[]>(initial.cut);
   const [sectionLayers, setSectionLayers] = useState<ThreeDLayers>(DEFAULT_SECTION_LAYERS);
   const [sectionMode, setSectionMode] = useState<SectionMode>('2d');
 
@@ -109,10 +115,10 @@ export function AtmosphereProvider({ children }: { children: ReactNode }) {
     if (!restoredRef.current) { restoredRef.current = true; }
     const hash = encodeState({
       loc: location ? { lat: location.lat, lon: location.lon, name: location.name, country: location.country } : null,
-      hour, lens, nerd: nerdOpen, marker,
+      hour, lens, nerd: nerdOpen, marker, cut: cutPoints,
     });
     if (window.location.hash !== hash) window.history.replaceState(null, '', hash);
-  }, [location, hour, lens, nerdOpen, marker]);
+  }, [location, hour, lens, nerdOpen, marker, cutPoints]);
 
   // When the location changes, reset the marker to the new location.
   const locKey = location ? `${location.lat},${location.lon}` : null;

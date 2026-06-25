@@ -96,8 +96,18 @@ Legende: [ ] offen · [~] in Arbeit · [x] erledigt (grün verifiziert) · [G] E
 - [x] Verifikation grün: typecheck+build; Live Innsbruck — Linie zeichnen → 2D-Schnitt
       (Layer-Chips/GoNoGo/Pick) + 3D-Gelände-Vorhang; sauberes Unmount beim Linsenwechsel,
       keine Konsolen-Errors
-- [G] threed bleibt vorerst PARALLEL (Kachel + `#3d=`) — Stufe-2-Ablösung später
-- [ ] (offen) Cut-line im `#atm=`-Permalink (v1 transient)
+- [x] Cut-line im `#atm=`-Permalink (Codec erweitert, 16/16 Selbsttest inkl. round-trip)
+
+## Konsolidierung Stufe 2 — threed-Einstieg abgelöst
+- [x] Startseiten-Kachel „Atmosphäre in drei Dimensionen" + `ThreeDPreview` entfernt
+- [x] `App.tsx`: FeatureId `'threed'` + Route entfernt; `#3d=` leitet auf die
+      Atmosphäre um (Migration in `atmosphereStore`: `#3d=` → Ort + Schnittlinie +
+      Schnitt-Linse, URL wird zu `#atm=` aktualisiert)
+- [x] threed-Komponenten bleiben als geteilte Module (von SectionLens genutzt);
+      `ThreeDPage` bleibt nur noch als `LayerState`-Typquelle referenziert
+- [x] Verifikation grün: typecheck+build; Startseite ohne threed-Kachel; alter
+      `#3d=`-Link (mit Linie) → Schnitt-Linse mit „2 Punkte", URL → `#atm=`,
+      keine Konsolen-Errors
 
 ## P7 — Nerd-Mode + Feinschliff
 - [x] Nerd-Panel **lazy** (`React.lazy` → eigener Chunk `NerdPanel-*.js` ~2,6 kB,

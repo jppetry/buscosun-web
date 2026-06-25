@@ -412,15 +412,6 @@ function HeroFeatures({ onOpenFeature }: { onOpenFeature: (feature: FeatureInfo)
         onOpen={onOpenFeature}
       />
       <FeatureTile
-        id="threed"
-        eyebrow="3D-Wetterdaten"
-        title="Atmosphäre in drei Dimensionen"
-        description="Temperatur, Wind und Wolken als volumetrische Schichten über dem Gelände — frei drehen, zoomen und in die Höhe schneiden."
-        preview={<ThreeDPreview />}
-        flush
-        onOpen={onOpenFeature}
-      />
-      <FeatureTile
         id="atmosphere"
         eyebrow="Atmosphäre"
         title="Die Atmosphäre über dir"
@@ -666,40 +657,6 @@ function NowcastPreview() {
           <line x1="0" y1="12" x2="-3" y2="20" />
           <line x1="10" y1="12" x2="7" y2="20" />
         </g>
-      </g>
-    </svg>
-  );
-}
-
-/* ----- 3D-Wetterdaten — isometrisch gestapelte Atmosphären-Schichten mit
-   vertikaler Sampling-Säule + Knoten, Akzent steel-600. Line-Art-Spec +
-   randlose Sandfläche/Größe wie die Wetterkarte. ----- */
-function ThreeDPreview() {
-  const cx = 130, hw = 66, hh = 19, t = 7;
-  const rhombus = (cy: number) => `${cx},${cy - hh} ${cx + hw},${cy} ${cx},${cy + hh} ${cx - hw},${cy}`;
-  const side = (cy: number) =>
-    `M ${cx - hw} ${cy} L ${cx} ${cy + hh} L ${cx + hw} ${cy} L ${cx + hw} ${cy + t} L ${cx} ${cy + hh + t} L ${cx - hw} ${cy + t} Z`;
-  const cyCloud = 44, cyMid = 76, cyGround = 108;
-  return (
-    <svg viewBox="0 0 260 140" fill="none" aria-hidden="true" className="feature-svg"
-      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-      style={{ color: 'var(--steel-600)' }}>
-      <rect x="0" y="0" width="260" height="140" rx="12" fill="var(--sand-100)" />
-      {/* Grund-/Geländeschicht (unten) */}
-      <path d={side(cyGround)} fill="var(--sand-300)" stroke="none" />
-      <polygon points={rhombus(cyGround)} fill="var(--sand-200)" stroke="var(--sand-300)" strokeWidth="1" />
-      {/* Mittlere Schicht (Akzent, transluzent) */}
-      <path d={side(cyMid)} fill="currentColor" opacity="0.16" stroke="none" />
-      <polygon points={rhombus(cyMid)} fill="currentColor" opacity="0.14" stroke="currentColor" strokeWidth="1" />
-      {/* Obere Schicht */}
-      <path d={side(cyCloud)} fill="currentColor" opacity="0.1" stroke="none" />
-      <polygon points={rhombus(cyCloud)} fill="currentColor" opacity="0.1" stroke="currentColor" strokeWidth="1" />
-      {/* Vertikale Sampling-Säule + Knoten je Schicht */}
-      <line x1={cx} y1={cyCloud - hh - 4} x2={cx} y2={cyGround + hh + t} stroke="currentColor" strokeWidth="1.6" strokeDasharray="3 3" opacity="0.85" />
-      <g fill="currentColor" stroke="none">
-        <circle cx={cx} cy={cyCloud} r="3" />
-        <circle cx={cx} cy={cyMid} r="3" />
-        <circle cx={cx} cy={cyGround} r="3" />
       </g>
     </svg>
   );

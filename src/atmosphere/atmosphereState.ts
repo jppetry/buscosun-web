@@ -8,6 +8,7 @@
  */
 
 import type { Country } from '../types';
+import type { GeoPoint } from '../threed/sectionGeometry';
 
 export type Lens = 'fly' | 'mountain' | 'sky' | 'section';
 /** Stable order — used for the compact lens index in the hash. */
@@ -32,6 +33,8 @@ export interface AtmosphereState {
   lens: Lens;
   nerd: boolean;
   marker: AtmosphereMarker | null;
+  /** Schnittlinie der Schnitt-Linse (teilbar im Permalink). */
+  cut: GeoPoint[];
 }
 
 export const HASH_PREFIX = '#atm=';
@@ -47,6 +50,7 @@ export function encodeState(s: AtmosphereState): string {
     le: Math.max(0, LENSES.indexOf(s.lens)),
     n: s.nerd ? 1 : 0,
     m: s.marker ? [r5(s.marker.lat), r5(s.marker.lon)] : null,
+    c: s.cut.length ? s.cut.map((p) => [r5(p.lat), r5(p.lon)]) : undefined,
   };
   return HASH_PREFIX + encodeURIComponent(JSON.stringify(payload));
 }
@@ -56,7 +60,7 @@ export function decodeState(hash: string): AtmosphereState | null {
   if (!hash || !hash.startsWith(HASH_PREFIX)) return null;
   try {
     const o = JSON.parse(decodeURIComponent(hash.slice(HASH_PREFIX.length))) as {
-      l: [number, number, string, string] | null; h: number; le: number; n: number; m: [number, number] | null;
+      l: [number, number, string, string] | null; h: number; le: number; n: number; m: [number, number] | null; c?: [number, number][];
     };
     const loc = o.l && o.l.length >= 4 && Number.isFinite(o.l[0]) && Number.isFinite(o.l[1])
       ? { lat: o.l[0], lon: o.l[1], name: String(o.l[2]), country: o.l[3] as Country }
@@ -65,7 +69,10 @@ export function decodeState(hash: string): AtmosphereState | null {
       ? { lat: o.m[0], lon: o.m[1] }
       : null;
     const lens = LENSES[o.le] ?? 'sky';
-    return { loc, hour: clampHour(typeof o.h === 'number' ? o.h : 0), lens, nerd: o.n === 1, marker };
+    const cut = Array.isArray(o.c)
+      ? o.c.filter((q) => Array.isArray(q) && Number.isFinite(q[0]) && Number.isFinite(q[1])).map((q) => ({ lat: q[0], lon: q[1] }))
+      : [];
+    return { loc, hour: clampHour(typeof o.h === 'number' ? o.h : 0), lens, nerd: o.n === 1, marker, cut };
   } catch { return null; }
 }
 
@@ -85,6 +92,7 @@ export function verifyAtmosphereState(): { checks: AtmCheck[]; passed: number; f
   const s: AtmosphereState = {
     loc: { lat: 47.2692, lon: 11.4041, name: 'Innsbruck', country: 'AT' },
     hour: 12, lens: 'mountain', nerd: true, marker: { lat: 47.3, lon: 11.4 },
+    cut: [{ lat: 47.2, lon: 11.3 }, { lat: 47.4, lon: 11.5 }],
   };
   const enc = encodeState(s);
   add('hash carries prefix', enc.startsWith(HASH_PREFIX));
@@ -96,6 +104,7 @@ export function verifyAtmosphereState(): { checks: AtmCheck[]; passed: number; f
   add('loc round-trips', dec?.loc?.name === 'Innsbruck' && dec?.loc?.country === 'AT');
   add('coords ~equal', !!dec && Math.abs(dec.loc!.lat - 47.2692) < 1e-4);
   add('marker round-trips', !!dec?.marker && Math.abs(dec!.marker!.lat - 47.3) < 1e-4);
+  add('cut round-trips', dec?.cut.length === 2 && Math.abs(dec!.cut[1].lon - 11.5) < 1e-4);
 
   add('hour clamps high', clampHour(99) === HOUR_MAX);
   add('hour clamps low', clampHour(-5) === HOUR_MIN);
@@ -104,7 +113,7 @@ export function verifyAtmosphereState(): { checks: AtmCheck[]; passed: number; f
   add('broken JSON → null', decodeState(HASH_PREFIX + '%7Bnope') === null);
   add('hasAtmosphereHash detects prefix', hasAtmosphereHash(enc) && !hasAtmosphereHash('#x'));
 
-  const empty = decodeState(encodeState({ loc: null, hour: 0, lens: 'sky', nerd: false, marker: null }));
+  const empty = decodeState(encodeState({ loc: null, hour: 0, lens: 'sky', nerd: false, marker: null, cut: [] }));
   add('empty round-trip', !!empty && empty.loc === null && empty.lens === 'sky' && empty.hour === 0);
 
   return { checks, passed: checks.filter((c) => c.ok).length, failed: checks.filter((c) => !c.ok).length };

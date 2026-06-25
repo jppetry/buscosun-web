@@ -5,7 +5,6 @@ import FeaturePage from './feature/FeaturePage';
 import RoutePage from './route/RoutePage';
 import EventPage from './event/EventPage';
 import NowcastPage from './nowcast/NowcastPage';
-import ThreeDPage from './threed/ThreeDPage';
 import ForecastPage from './confidence/ForecastPage';
 import HistoryPage from './history/HistoryPage';
 import GlobePage from './globe/GlobePage';
@@ -17,7 +16,7 @@ import { decodeMapState } from './mapState';
 import { hasEventHash } from './event/eventState';
 import './designTokens.css';
 
-export type FeatureId = 'route' | 'event' | 'dayflow' | 'forecast' | 'nowcast' | 'threed' | 'atmosphere' | 'history' | 'globe' | 'map2d' | 'validation';
+export type FeatureId = 'route' | 'event' | 'dayflow' | 'forecast' | 'nowcast' | 'atmosphere' | 'history' | 'globe' | 'map2d' | 'validation';
 
 /** Standort-Default für die 2D-Karten-Kachel (ohne Ortssuche): DACH-Überblick,
  *  zentriert auf Mitteleuropa. Marker/Punktpanel sind im overview-Modus aus. */
@@ -40,8 +39,8 @@ export default function App() {
   const [view, setView] = useState<View>(() => {
     if (typeof window === 'undefined') return { kind: 'search' };
     const h = window.location.hash;
-    if (h.startsWith('#3d=')) return { kind: 'feature', feature: { id: 'threed', eyebrow: '3D-Wetterdaten', title: 'Atmosphäre in drei Dimensionen' } };
-    if (h.startsWith('#atm=')) return { kind: 'feature', feature: { id: 'atmosphere', eyebrow: 'Atmosphäre', title: 'Die Atmosphäre über dir' } };
+    // #3d= = alter threed-Permalink → in die Atmosphäre (Schnitt-Linse) migriert.
+    if (h.startsWith('#3d=') || h.startsWith('#atm=')) return { kind: 'feature', feature: { id: 'atmosphere', eyebrow: 'Atmosphäre', title: 'Die Atmosphäre über dir' } };
     if (h.startsWith('#h=')) return { kind: 'feature', feature: { id: 'history', eyebrow: 'Historie', title: 'Wie hat sich das Wetter bei dir verändert?' } };
     if (h.startsWith('#val')) return { kind: 'feature', feature: { id: 'validation', eyebrow: 'Validierung', title: 'Wie gut ist der KI-Nowcast wirklich?' } };
     if (h.startsWith('#g=')) return { kind: 'feature', feature: { id: 'globe', eyebrow: 'Globale Wetter-Visualisierung', title: 'Das Wetter der ganzen Erde' } };
@@ -75,9 +74,6 @@ export default function App() {
     }
     if (view.feature.id === 'nowcast') {
       return <NowcastPage onBack={back} />;
-    }
-    if (view.feature.id === 'threed') {
-      return <ThreeDPage onBack={back} />;
     }
     if (view.feature.id === 'atmosphere') {
       return <AtmospherePage onBack={back} />;
