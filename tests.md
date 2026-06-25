@@ -25,6 +25,10 @@
   Tendenz (mäßiger Südwind), Nordwest stark → none, schwach → none, Kammwind aus
   Höhenband (nicht Boden).
 
+- P6b `isentropes` → `window.__verifyIsentropes()` — 6/6 grün: θ steigt mit Höhe,
+  flache Lage ≈ horizontale Isentropen, Föhn (Lee aloft wärmer) → Isentrope sinkt
+  im Lee ab, heightForTheta außerhalb → null.
+
 ## Geplant
 - P3 `verdict`: Linsen-Mapping (Fliegen/Berg&Weg/Himmel) → sage/amber/terracotta
 - P5 Himmel-Derivations + Degradierungspfade bei fehlenden Daten

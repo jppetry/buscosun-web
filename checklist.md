@@ -78,11 +78,14 @@ Legende: [ ] offen · [~] in Arbeit · [x] erledigt (grün verifiziert) · [G] E
 - [G] 6a Cross-Barrier-Druckdifferenz AUSGELASSEN — kein Stationsdruck-Ingest
       (Gate); Hinweis PRESSURE_GATE_NOTE; Index aus ICON-EU-Höhenwind + Trockenheit
 - [x] 6a Verifikation grün: typecheck+build; 5/5 Tests; Live „Kein Föhn" + Hinweis
-- [G] 6b 3D-Isentropen-Querschnitt — ENTSCHEIDUNGS-GATE (Feasibility/Architektur):
-      bräuchte cross-barrier θ-Feld (nur heuristisch) + neuen MapLibre-WebGL-Curtain,
-      der threed/CurtainLayer dupliziert, headless nicht verlässlich verifizierbar.
-      Empfehlung: threed-Curtain wiederverwenden/verlinken ODER 2D-θ-Querschnitt aus
-      buildCrossSection. Wartet auf Freigabe.
+- [x] 6b 2D-Isentropen-Querschnitt (statt 3D-WebGL-Curtain, per Freigabe):
+      `isentropes.ts` rein + Selbsttest 6/6 (θ↑ mit Höhe, flach≈horizontal,
+      Föhn-Absinken im Lee, Bereichs-Clamping). `FoehnCrossSection` legt N–S-Schnitt
+      via bestehendem prepareCrossSection, zeichnet θ-Isentropen als SVG, folgt dem
+      Scrubber (Zeit-Slice ohne Refetch). Ehrlich: θ aus heuristischem Schnitt.
+- [x] 6b Verifikation grün: typecheck+build; 6/6 Tests; Live Innsbruck/Berg —
+      Isentropen (312–324 K) + Gelände, keine Errors. (3D-WebGL-Curtain bewusst
+      nicht gebaut — Duplikat von threed/CurtainLayer; 2D ist das Paket-Fallback.)
 
 ## P7 — Nerd-Mode + Feinschliff
 - [ ] Nerd-Panel (lazy): Skew-T/Log-P, CAPE/CIN, Deckel, rohe Levels, Lauf-Alter
