@@ -13,6 +13,7 @@ import type { Location } from '../types';
 import {
   decodeState, encodeState, clampHour, LENSES, type Lens, type AtmosphereMarker,
 } from './atmosphereState';
+import type { DerivedProfile } from './profile-derivations';
 
 const LENS_KEY = 'buscosun.atm.lens.v1';
 
@@ -32,6 +33,9 @@ interface AtmosphereContextValue {
   /** Reference run of the loaded model data — anchors the scrubber's valid time. */
   modelRunAt: Date | null;
   setModelRunAt: (d: Date | null) => void;
+  /** Derived vertical profile for the active marker/hour — shared by profile + verdict. */
+  profile: DerivedProfile | null;
+  setProfile: (p: DerivedProfile | null) => void;
 }
 
 const AtmosphereContext = createContext<AtmosphereContextValue | null>(null);
@@ -65,6 +69,7 @@ export function AtmosphereProvider({ children }: { children: ReactNode }) {
   const [location, setLocation] = useState<Location | null>(initial.loc);
   const [marker, setMarker] = useState<AtmosphereMarker | null>(initial.marker);
   const [modelRunAt, setModelRunAt] = useState<Date | null>(null);
+  const [profile, setProfile] = useState<DerivedProfile | null>(null);
 
   const setLens = (l: Lens) => {
     setLensState(l);
@@ -96,7 +101,7 @@ export function AtmosphereProvider({ children }: { children: ReactNode }) {
 
   const value: AtmosphereContextValue = {
     lens, setLens, hour, setHour, nerdOpen, setNerdOpen, location, setLocation, marker, setMarker,
-    modelRunAt, setModelRunAt,
+    modelRunAt, setModelRunAt, profile, setProfile,
   };
   return <AtmosphereContext.Provider value={value}>{children}</AtmosphereContext.Provider>;
 }

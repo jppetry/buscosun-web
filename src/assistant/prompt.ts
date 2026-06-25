@@ -44,6 +44,8 @@ const PHYSICS_ANCHOR: Record<Phenomenon, string> = {
     'Physik: Mehrere unabhängige Wettermodelle werden verglichen. Große Temperatur-Streuung = unsichere Lage; kleine Streuung = die Modelle sind sich einig.',
   leewaves:
     'Physik: Lee-Wellen (Leewellen) entstehen, wenn stabil geschichtete Luft quer über einen Gebirgskamm strömt. Günstig sind kräftiger Querwind, ausgeprägtes Relief und eine stabile Schicht. Mache KEINE Angaben zu Wellenlänge oder Amplitude.',
+  atmosphere:
+    'Physik: Die Atmosphäre ist vertikal geschichtet. Die Grenzschicht ist die durchmischte Bodenschicht; Thermik (Aufwinde) reicht bis zu ihrer Obergrenze. Die Wolkenuntergrenze liegt am Hebungskondensationsniveau, die Nullgradgrenze dort, wo die Temperatur 0 °C kreuzt. Höhen in Metern, Wind in km/h. Begründe die gelieferte Einschätzung aus genau diesen Werten.',
 };
 
 /** Serialisiert einen GroundingBlock in den User-Prompt (Messwerte + Auftrag). */

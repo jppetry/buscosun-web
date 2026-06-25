@@ -63,6 +63,21 @@
 .atm-verdict-line { margin: 0; font-size: 1.05rem; font-weight: 600; color: var(--ink-900, #2C2A26); }
 .atm-verdict-sub { margin: 0.35rem 0 0; font-size: 0.85rem; color: var(--stone-600, #5C5447); }
 
+/* „Warum?" — LLM-Erklärung (Tiefe 1 → Erklärschicht) */
+.atm-why {
+  margin-top: 0.7rem; border: 1px solid var(--atm-accent); background: transparent; color: var(--atm-accent-dark);
+  border-radius: 999px; padding: 0.32rem 0.9rem; font: inherit; font-size: 0.8rem; font-weight: 600;
+  cursor: pointer; min-height: 34px;
+}
+.atm-why:hover { background: var(--atm-accent); color: #FAF6EA; }
+.atm-why-box { margin-top: 0.7rem; }
+.atm-why-text { margin: 0.7rem 0 0; font-size: 0.9rem; line-height: 1.5; color: var(--ink-900, #2C2A26); }
+.atm-why-status { margin: 0.7rem 0 0; font-size: 0.82rem; color: var(--stone-600, #5C5447); display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+.atm-why-link {
+  border: 0; background: transparent; color: var(--atm-accent-dark); font: inherit; font-size: 0.8rem;
+  font-weight: 600; cursor: pointer; text-decoration: underline; padding: 0;
+}
+
 /* Globe / Terrain (Platzhalter in P1) */
 .atm-globe {
   position: relative; min-height: 420px; padding: 0; overflow: hidden;

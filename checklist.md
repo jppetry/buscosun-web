@@ -35,10 +35,17 @@ Legende: [ ] offen · [~] in Arbeit · [x] erledigt (grün verifiziert) · [G] E
       Scrub→Refetch aktualisiert Gültigzeit, 11/11 Derivation-Tests
 
 ## P3 — Verdict + LLM-„Warum?"
-- [ ] `verdict.ts` rein + Tests (Linsen-Mapping)
-- [ ] Verdict-UI (Status-Punkt sage/amber/terracotta) pro Linse
-- [ ] „Warum?" über bestehenden LLM-Pfad + Offline-Template-Fallback
-- [ ] Verifikation grün
+- [x] `verdict.ts` rein + Selbsttest 10/10 (Fliegen gut/windig/flach, Berg
+      Inversion/klar/Wolke, Himmel trüb, Grounding-Block, Template-Fallback)
+- [x] Verdict-UI (Status-Punkt sage/amber/terracotta) pro Linse; geteiltes
+      store.profile → Linsenwechsel rechnet ohne Refetch neu
+- [x] „Warum?" über BESTEHENDEN Assistant-Pfad (useWeatherDescriber/describe,
+      neues phenomenon 'atmosphere' + Physik-Anker) + Offline-Template-Fallback
+- [x] Verifikation grün: typecheck+build; Live-Render (Fliegen→„Kaum Thermik"
+      terracotta, Berg→„Klare Bergsicht" sage), Linsenwechsel ohne Refetch, 10/10
+      Tests. Hinweis: Live-LLM + In-UI-Fallback nicht ausführbar — Headless meldet
+      WebGPU (Adapter+shader-f16), „Warum?" würde 2,6-GB-Download starten (bewusst
+      nicht geklickt); Pfad ist der erprobte AssistantPage-Pfad, Fallback rein/getestet.
 
 ## P4 — Thermik-Terrain-Overlay (Fliegen)
 - [ ] MapLibre-Overlay-Layer (green→red), nur Fliegen-Linse, sauberes Unmount

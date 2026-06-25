@@ -24,7 +24,7 @@ const DEBOUNCE_MS = 500;
 interface Ready { data: DerivedProfile; runAt: Date; validAt: Date }
 
 export default function AtmosphereProfile() {
-  const { marker, hour, setModelRunAt } = useAtmosphere();
+  const { marker, hour, setModelRunAt, setProfile } = useAtmosphere();
   const [ready, setReady] = useState<Ready | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -35,7 +35,7 @@ export default function AtmosphereProfile() {
   const lon = marker?.lon ?? null;
 
   useEffect(() => {
-    if (lat == null || lon == null) { acRef.current?.abort(); setReady(null); setError(null); setLoading(false); return; }
+    if (lat == null || lon == null) { acRef.current?.abort(); setReady(null); setProfile(null); setError(null); setLoading(false); return; }
     setLoading(true); setError(null);
     const timer = window.setTimeout(() => {
       acRef.current?.abort();
@@ -59,6 +59,7 @@ export default function AtmosphereProfile() {
           const data = deriveProfile(profile, computeSounding(profile));
           setReady({ data, runAt: profile.runAt, validAt: profile.validAt });
           setModelRunAt(profile.runAt);
+          setProfile(data);
           setLoading(false);
         } catch (err) {
           if (ac.signal.aborted) return;

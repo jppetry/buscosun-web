@@ -17,7 +17,7 @@ import type { InversionInfo, SectionCell, ColumnProfile } from '../threed/crossS
 import { SHEAR_THRESHOLD_KMH_PER_300M } from '../threed/crossSection';
 import type { AgreementInfo } from '../confidence/agreementModel';
 
-export type Phenomenon = 'foehn' | 'inversion' | 'cloudbase' | 'windprofile' | 'modelspread' | 'leewaves';
+export type Phenomenon = 'foehn' | 'inversion' | 'cloudbase' | 'windprofile' | 'modelspread' | 'leewaves' | 'atmosphere';
 
 export interface GroundedFact {
   /** Stabiler Schlüssel (für Debug/Tests). */

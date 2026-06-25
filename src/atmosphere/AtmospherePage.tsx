@@ -17,6 +17,7 @@ import { geocodeDACH, flagForCountry } from '../geocode';
 import { AtmosphereProvider, useAtmosphere } from './atmosphereStore';
 import { LENSES, LENS_LABEL, HOUR_MIN, HOUR_MAX, type Lens } from './atmosphereState';
 import AtmosphereProfile from './AtmosphereProfile';
+import AtmosphereVerdict from './AtmosphereVerdict';
 import '../route/tourTheme.css';
 import './atmosphere.css';
 
@@ -60,7 +61,7 @@ function AtmosphereShell({ onBack }: Props) {
         </div>
 
         <div className="atm-grid">
-          <Verdict />
+          <AtmosphereVerdict />
           <GlobePlaceholder />
           <AtmosphereProfile />
           <NerdMode />
@@ -93,27 +94,6 @@ function LensSwitcher() {
         </button>
       ))}
     </div>
-  );
-}
-
-// --- Verdict (Tiefe 1, Platzhalter in P1) ------------------------------------
-
-const VERDICT_PLACEHOLDER: Record<Lens, string> = {
-  fly: 'Thermik, Wind und Wolkenbasis fürs Fliegen',
-  mountain: 'Inversion, Nebelmeer und Nullgradgrenze für Berg & Weg',
-  sky: 'Sonnenuntergangs-Qualität, Nebelmeer und Himmelsoptik',
-};
-
-function Verdict() {
-  const { lens } = useAtmosphere();
-  return (
-    <section className="rt-card atm-verdict" aria-label="Verdict">
-      <p className="atm-verdict-line">
-        <span className="atm-verdict-dot is-watch" aria-hidden="true" />
-        {LENS_LABEL[lens]} — Einschätzung folgt
-      </p>
-      <p className="atm-verdict-sub">{VERDICT_PLACEHOLDER[lens]} (Tiefe 1, ab P3).</p>
-    </section>
   );
 }
 
