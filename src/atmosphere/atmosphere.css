@@ -18,9 +18,9 @@
 
 /* Linsen-Segmented-Control (Muster wie .ev-seg / .td-toggle) */
 .atm-seg {
-  display: inline-flex; gap: 3px; padding: 4px;
+  display: inline-flex; flex-wrap: wrap; gap: 3px; padding: 4px; max-width: 100%;
   background: var(--sand-100, #EDE6D3); border: 1px solid var(--sand-200, #E0D6BE);
-  border-radius: 999px;
+  border-radius: 22px;
 }
 .atm-seg-btn {
   border: 0; background: transparent; font: inherit; font-size: 0.86rem; font-weight: 600;

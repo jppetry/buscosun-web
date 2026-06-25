@@ -11,7 +11,7 @@
  */
 
 import type { DerivedProfile } from './profile-derivations';
-import type { Lens } from './atmosphereState';
+import { LENS_LABEL, type Lens } from './atmosphereState';
 import type { GroundingBlock } from '../assistant/grounding';
 import { sunsetCard, fogSeaCard } from './skyCards';
 
@@ -105,7 +105,6 @@ export function computeVerdict(lens: Lens, p: DerivedProfile): Verdict {
   }
 }
 
-const LENS_TITLE: Record<Lens, string> = { fly: 'Fliegen', mountain: 'Berg & Weg', sky: 'Himmel', section: 'Schnitt' };
 const TONE_WORD: Record<VerdictTone, string> = { good: 'gut', watch: 'Vorsicht', bad: 'ungünstig' };
 
 /**
@@ -120,7 +119,7 @@ export function buildVerdictFacts(
   const base = cloudBaseAgl(p);
   const facts = [
     { key: 'verdict', label: 'Einschätzung', value: `${TONE_WORD[v.tone]} — ${v.headline}` },
-    { key: 'lens', label: 'Linse', value: LENS_TITLE[lens] },
+    { key: 'lens', label: 'Linse', value: LENS_LABEL[lens] },
     { key: 'thermalTop', label: 'Thermik-/Grenzschicht-Obergrenze', value: `${de0(p.boundaryLayerTopM)} m ü. NN` },
     { key: 'thermalStrength', label: 'Thermik-Stärke (Schätzung)', value: `${p.thermalStrengthMs.toString().replace('.', ',')} m/s` },
     { key: 'wind', label: 'Wind unten (bis 2000 m AGL)', value: `${de0(wind)} km/h` },
@@ -132,7 +131,7 @@ export function buildVerdictFacts(
 
   return {
     phenomenon: 'atmosphere',
-    title: `Einschätzung ${LENS_TITLE[lens]}`,
+    title: `Einschätzung ${LENS_LABEL[lens]}`,
     locationLabel,
     timeLabel,
     facts,
@@ -145,7 +144,7 @@ export function buildVerdictFacts(
 
 /** Offline-Fallback: getemplatete deutsche Erklärung ohne LLM. */
 export function templateExplanation(lens: Lens, v: Verdict): string {
-  return `${LENS_TITLE[lens]}: ${v.headline}. ${v.detail}.`;
+  return `${LENS_LABEL[lens]}: ${v.headline}. ${v.detail}.`;
 }
 
 // --- Verification (pure, DEV) ------------------------------------------------

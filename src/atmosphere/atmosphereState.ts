@@ -14,10 +14,10 @@ export type Lens = 'fly' | 'mountain' | 'sky' | 'section';
 /** Stable order — used for the compact lens index in the hash. */
 export const LENSES: Lens[] = ['fly', 'mountain', 'sky', 'section'];
 export const LENS_LABEL: Record<Lens, string> = {
-  fly: 'Fliegen',
-  mountain: 'Berg & Weg',
-  sky: 'Himmel',
-  section: 'Schnitt',
+  fly: 'Fliegen & Thermik',
+  mountain: 'Berg & Tour',
+  sky: 'Himmelsschauspiel',
+  section: 'Querschnitt',
 };
 
 export const HOUR_MIN = 0;
