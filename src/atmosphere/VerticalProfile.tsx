@@ -10,7 +10,12 @@
  * Reine Darstellung — alle Zahlen kommen aus dem getesteten Derivations-Modul.
  */
 
+import { useRef, useState } from 'react';
 import type { DerivedProfile } from './profile-derivations';
+
+const de0 = (n: number) => Math.round(n).toString();
+const de1 = (n: number) => (Math.round(n * 10) / 10).toString().replace('.', ',');
+const compass = (deg: number) => ['N', 'NO', 'O', 'SO', 'S', 'SW', 'W', 'NW'][Math.round((((deg % 360) + 360) % 360) / 45) % 8];
 
 interface Props {
   data: DerivedProfile;
@@ -37,6 +42,29 @@ function thermalColor(ms: number): string {
 
 export default function VerticalProfile({ data, capM, expanded, onToggleCap, validAt, runAt }: Props) {
   const yOf = (z: number) => BOTTOM_Y - (Math.max(0, Math.min(capM, z)) / capM) * (BOTTOM_Y - TOP);
+
+  // Punkt-Abfrage: Zeiger-Höhe → interpolierte Werte (Höhe/T/Td/Wind).
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const [pickZ, setPickZ] = useState<number | null>(null);
+  function onMove(clientY: number) {
+    const svg = svgRef.current; if (!svg) return;
+    const r = svg.getBoundingClientRect();
+    const vy = ((clientY - r.top) / r.height) * H;
+    setPickZ(Math.max(0, Math.min(capM, ((BOTTOM_Y - vy) / (BOTTOM_Y - TOP)) * capM)));
+  }
+  function sampleAt(z: number) {
+    const ls = data.levels; if (!ls.length) return null;
+    if (z <= ls[0].heightM) return { heightM: z, tempC: ls[0].tempC, dewC: ls[0].dewC, windKmh: ls[0].windKmh, windDirDeg: ls[0].windDirDeg };
+    for (let i = 1; i < ls.length; i++) {
+      if (z <= ls[i].heightM) {
+        const a = ls[i - 1], b = ls[i], t = (z - a.heightM) / (b.heightM - a.heightM || 1);
+        return { heightM: z, tempC: a.tempC + (b.tempC - a.tempC) * t, dewC: a.dewC + (b.dewC - a.dewC) * t, windKmh: a.windKmh + (b.windKmh - a.windKmh) * t, windDirDeg: (t < 0.5 ? a : b).windDirDeg };
+      }
+    }
+    const last = ls[ls.length - 1];
+    return { heightM: z, tempC: last.tempC, dewC: last.dewC, windKmh: last.windKmh, windDirDeg: last.windDirDeg };
+  }
+  const pick = pickZ != null ? sampleAt(pickZ) : null;
 
   // Sichtbare Niveaus (innerhalb Cap, plus erstes darüber für stetige Kurven).
   const vis = data.levels.filter((l) => l.heightM <= capM + 1);
@@ -71,7 +99,8 @@ export default function VerticalProfile({ data, capM, expanded, onToggleCap, val
         </button>
       </div>
 
-      <svg className="atm-prof-svg" viewBox={`0 0 ${W} ${H}`} role="img"
+      <svg ref={svgRef} className="atm-prof-svg" viewBox={`0 0 ${W} ${H}`} role="img"
+        onPointerMove={(e) => onMove(e.clientY)} onPointerLeave={() => setPickZ(null)}
         aria-label={`Vertikalprofil bis ${Math.round(capM)} m: Temperatur, Taupunkt, Wind und Grenzschicht`}>
         {/* Rahmen */}
         <rect x={PLOT_X0} y={TOP} width={PLOT_X1 - PLOT_X0} height={BOTTOM_Y - TOP} fill="#fff" stroke="var(--sand-200, #E0D6BE)" />
@@ -158,6 +187,30 @@ export default function VerticalProfile({ data, capM, expanded, onToggleCap, val
         })}
         <text x={WIND_X} y={TOP - 2} className="atm-prof-ax" textAnchor="middle">Wind km/h</text>
 
+        {/* Windscherungs-Zonen (≥ Schwelle km/h/300 m) */}
+        {data.shearZones.filter((z) => z.baseM <= capM).map((z, i) => (
+          <line key={`sh${i}`} x1={WIND_X - 12} y1={yOf(z.topM)} x2={WIND_X - 12} y2={yOf(z.baseM)}
+            stroke="var(--terracotta-500, #C97B47)" strokeWidth={3} strokeLinecap="round">
+            <title>Windscherung {z.kmhPer300m} km/h je 300 m ({z.baseM}–{z.topM} m)</title>
+          </line>
+        ))}
+
+        {/* Punkt-Abfrage: Führungslinie + Readout */}
+        {pick && (
+          <g pointerEvents="none">
+            <line x1={PLOT_X0} y1={yOf(pick.heightM)} x2={WIND_X} y2={yOf(pick.heightM)}
+              stroke="var(--ink-900, #2C2A26)" strokeDasharray="2 2" opacity={0.45} />
+            <rect x={PLOT_X0 + 2} y={Math.max(TOP, yOf(pick.heightM) - 30)} width={158} height={27} rx={4}
+              fill="#fff" stroke="var(--sand-200, #E0D6BE)" opacity={0.96} />
+            <text x={PLOT_X0 + 8} y={Math.max(TOP, yOf(pick.heightM) - 30) + 11} className="atm-prof-tag">
+              {de0(pick.heightM)} m · {de1(pick.tempC)}° / Td {de1(pick.dewC)}°
+            </text>
+            <text x={PLOT_X0 + 8} y={Math.max(TOP, yOf(pick.heightM) - 30) + 22} className="atm-prof-tag">
+              Wind {de0(pick.windKmh)} km/h {compass(pick.windDirDeg)}
+            </text>
+          </g>
+        )}
+
         <defs>
           <marker id="atm-arrow" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
             <path d="M0,0 L6,3 L0,6 Z" fill="var(--stone-600, #5C5447)" />
@@ -170,6 +223,8 @@ export default function VerticalProfile({ data, capM, expanded, onToggleCap, val
         <span><i style={{ background: 'var(--steel-600, #3A6FA8)' }} />Taupunkt</span>
         <span><i className="dash" />Parcel</span>
         <span><i style={{ background: 'var(--amber-500, #D4A373)' }} />Inversion</span>
+        {data.shearZones.length > 0 && <span><i style={{ background: 'var(--terracotta-500, #C97B47)' }} />Scherung</span>}
+        <span className="atm-prof-hint">· über die Kurve fahren für Werte</span>
       </div>
       <p className="atm-prof-source">
         ICON-EU (~7 km, Druckflächen) · Lauf {fmtUTC(runAt)} · gültig {fmtUTC(validAt)} ·

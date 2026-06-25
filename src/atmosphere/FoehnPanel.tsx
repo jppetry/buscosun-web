@@ -10,6 +10,7 @@
 import { useAtmosphere } from './atmosphereStore';
 import { foehnIndex, PRESSURE_GATE_NOTE, type FoehnLevel } from './foehn';
 import FoehnCrossSection from './FoehnCrossSection';
+import TalwindPanel from './TalwindPanel';
 
 const DOT: Record<FoehnLevel, string> = { active: 'is-bad', tendency: 'is-watch', none: 'is-none' };
 const LABEL: Record<FoehnLevel, string> = { active: 'Föhn aktiv', tendency: 'Föhn-Tendenz', none: 'Kein Föhn' };
@@ -39,6 +40,7 @@ export default function FoehnPanel() {
         {f.drivers.length > 0 && <p className="atm-foehn-drivers">{f.drivers.join(' · ')}</p>}
         <p className="atm-foehn-note">{PRESSURE_GATE_NOTE}</p>
       </div>
+      <TalwindPanel />
       <FoehnCrossSection />
     </section>
   );

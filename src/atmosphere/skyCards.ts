@@ -133,7 +133,7 @@ function mk(over: Partial<DerivedProfile>): DerivedProfile {
       { heightM: 8000, tempC: -34, dewC: -45, windKmh: 60, windDirDeg: 270 },
     ],
     parcel: [], boundaryLayerTopM: 1500, thermalStrengthMs: 1, cloudBaseM: null,
-    cloudLayers: [], inversions: [], freezingLevelM: 2800, lclM: 1500, capeJkg: 0, cinJkg: 0,
+    cloudLayers: [], inversions: [], shearZones: [], freezingLevelM: 2800, lclM: 1500, capeJkg: 0, cinJkg: 0,
     ...over,
   };
 }

@@ -29,6 +29,15 @@
   flache Lage ≈ horizontale Isentropen, Föhn (Lee aloft wärmer) → Isentrope sinkt
   im Lee ab, heightForTheta außerhalb → null.
 
+## Migration aus threed (A/B/C/D)
+- D Windscherung: `profile-derivations` Selbsttest jetzt 12/12 (Scherungszone bei
+  starkem Wind-Sprung erkannt). Render: terracotta-Marker im Windgürtel.
+- C Talwind: `threed/dynamics.talwindReversals`/`bearingDeg` wiederverwendet
+  (dort `__verifyDynamics` getestet); `TalwindPanel` = getPointForecast 48 h +
+  DEM-Hangrichtung. Live Innsbruck: Umkehrzeiten gelistet.
+- A Tour-Import: `threed/tourImport` wiederverwendet; Live „⤓ Tour laden" im Header.
+- B Punkt-Abfrage: Live-Readout im Profil bestätigt („2137 m · 14,3° / Td …").
+
 ## Geplant
 - P3 `verdict`: Linsen-Mapping (Fliegen/Berg&Weg/Himmel) → sage/amber/terracotta
 - P5 Himmel-Derivations + Degradierungspfade bei fehlenden Daten

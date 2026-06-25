@@ -118,6 +118,13 @@
 .atm-foehn-note { margin: 0.55rem 0 0; font-size: 0.72rem; line-height: 1.45; color: var(--stone-500, #8B7355); }
 .atm-foehn-soon { font-size: 0.82rem; }
 
+/* Talwind-Tagesgang (C) */
+.atm-talwind { padding: 0.9rem 1.1rem; }
+.atm-talwind-text { margin: 0.4rem 0 0; font-size: 0.86rem; color: var(--stone-600, #5C5447); }
+.atm-talwind-list { margin: 0.4rem 0 0; padding-left: 1.1rem; font-size: 0.86rem; color: var(--ink-900, #2C2A26); }
+.atm-talwind-list li { margin: 0.15rem 0; }
+.atm-talwind-note { margin: 0.5rem 0 0; font-size: 0.72rem; color: var(--stone-500, #8B7355); }
+
 /* Föhn-Querschnitt (P6b, 2D-Isentropen) */
 .atm-xsec { padding: 0.9rem 1rem; }
 .atm-xsec-head { display: flex; align-items: center; justify-content: space-between; }
@@ -168,6 +175,18 @@
 .atm-prof-legend i { width: 14px; height: 3px; border-radius: 2px; display: inline-block; }
 .atm-prof-legend i.dash { background: repeating-linear-gradient(90deg, var(--ink-900, #2C2A26) 0 4px, transparent 4px 7px); }
 .atm-prof-source { margin: 0.6rem 0 0; font-size: 0.72rem; line-height: 1.45; color: var(--stone-500, #8B7355); }
+.atm-prof-hint { color: var(--stone-500, #8B7355); }
+.atm-prof-svg { touch-action: none; }
+
+/* Tour-Import (A) */
+.atm-tour { display: inline-flex; align-items: center; gap: 0.4rem; }
+.atm-tour-btn {
+  border: 1.5px dashed var(--border-strong, #C4B896); background: transparent; color: var(--atm-accent-dark);
+  border-radius: 12px; padding: 0.4rem 0.7rem; font: inherit; font-size: 0.78rem; font-weight: 600;
+  cursor: pointer; min-height: 36px;
+}
+.atm-tour-btn:hover { border-color: var(--atm-accent); }
+.atm-tour-err { font-size: 0.74rem; color: #B5341F; }
 
 .atm-prof-wrap { position: relative; }
 .atm-prof-wrap.is-loading { opacity: 0.6; }

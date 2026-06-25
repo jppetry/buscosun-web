@@ -15,6 +15,7 @@
 
 import type { SoundingLevel, SoundingProfile } from '../sources/iconEuSounding';
 import { computeSounding, type SoundingDerived } from '../threed/soundingMath';
+import { SHEAR_THRESHOLD_KMH_PER_300M } from '../threed/crossSection';
 
 const DRY_LAPSE_PER_M = 9.8 / 1000; // trockenadiabatisch, K/m
 /** Taupunktspreizung (°C), unter der ein Niveau als wolkig gilt (RH-Proxy). */
@@ -30,6 +31,7 @@ export interface RenderLevel {
 }
 export interface CloudLayer { baseM: number; topM: number }
 export interface Inversion { baseM: number; topM: number; deltaC: number }
+export interface ShearZone { baseM: number; topM: number; kmhPer300m: number }
 
 export interface DerivedProfile {
   surfaceM: number;
@@ -44,6 +46,8 @@ export interface DerivedProfile {
   cloudBaseM: number | null;
   cloudLayers: CloudLayer[];
   inversions: Inversion[];
+  /** Zonen starker Windscherung (≥ Schwelle km/h je 300 m). */
+  shearZones: ShearZone[];
   freezingLevelM: number | null;
   lclM: number;
   capeJkg: number;
@@ -103,6 +107,21 @@ function findCloudLayers(ls: SoundingLevel[]): CloudLayer[] {
 }
 const roundCloud = (c: CloudLayer): CloudLayer => ({ baseM: Math.round(c.baseM), topM: Math.round(c.topM) });
 
+/** Zonen starker Windscherung: |Δwind| je 300 m ≥ Schwelle, zwischen Nachbar-Niveaus. */
+function findShearZones(levels: RenderLevel[]): ShearZone[] {
+  const out: ShearZone[] = [];
+  for (let i = 1; i < levels.length; i++) {
+    const a = levels[i - 1], b = levels[i];
+    const dz = b.heightM - a.heightM;
+    if (dz <= 0) continue;
+    const per300 = (Math.abs(b.windKmh - a.windKmh) / dz) * 300;
+    if (per300 >= SHEAR_THRESHOLD_KMH_PER_300M) {
+      out.push({ baseM: Math.round(a.heightM), topM: Math.round(b.heightM), kmhPer300m: Math.round(per300) });
+    }
+  }
+  return out;
+}
+
 /** Höhe (m) bei Druck p über ln(p)-Interpolation der Levels. */
 function pressureToHeight(ls: SoundingLevel[], p: number): number {
   if (p >= ls[0].pressureHpa) return ls[0].heightM;
@@ -148,7 +167,7 @@ export function deriveProfile(profile: SoundingProfile, derived?: SoundingDerive
     boundaryLayerTopM: Math.round(boundaryLayerTopM),
     thermalStrengthMs: Math.round(thermalStrengthMs * 10) / 10,
     cloudBaseM: cloudBaseM == null ? null : Math.round(cloudBaseM),
-    cloudLayers, inversions,
+    cloudLayers, inversions, shearZones: findShearZones(levels),
     freezingLevelM: d.freezingM, lclM: d.lclM, capeJkg: d.capeJkg, cinJkg: d.cinJkg,
   };
 }
@@ -204,6 +223,19 @@ export function verifyProfileDerivations(): { checks: ProfCheck[]; passed: numbe
   const wind = deriveProfile(mkProfile([[1000, 15, 5], [850, 8, 0], [700, 2, -8], [500, -12, -28], [300, -40, -55]], 10, 0));
   add('Wind: km/h aus m/s', Math.abs(wind.levels[0].windKmh - 36) < 0.5, `${wind.levels[0].windKmh}`);
   add('Wind: Westwind ~270°', Math.abs(wind.levels[0].windDirDeg - 270) < 1, `${wind.levels[0].windDirDeg}`);
+
+  // Windscherung: starker Wind-Sprung über ein dünnes Höhenintervall → Zone.
+  const shearProf: SoundingProfile = {
+    lat: 47, lon: 11, runAt: new Date(0), validAt: new Date(0), surfaceM: 600, surfacePressureHpa: 940,
+    levels: [
+      { pressureHpa: 900, heightM: 600, tempC: 10, dewC: 0, windU: 0, windV: 0 },
+      { pressureHpa: 850, heightM: 1100, tempC: 7, dewC: -2, windU: 15, windV: 0 },
+      { pressureHpa: 700, heightM: 3000, tempC: 0, dewC: -8, windU: 16, windV: 0 },
+      { pressureHpa: 500, heightM: 5500, tempC: -15, dewC: -25, windU: 17, windV: 0 },
+    ],
+  };
+  const sp = deriveProfile(shearProf);
+  add('Windscherung: Zone erkannt', sp.shearZones.length >= 1, JSON.stringify(sp.shearZones));
 
   return { checks, passed: checks.filter((c) => c.ok).length, failed: checks.filter((c) => !c.ok).length };
 }

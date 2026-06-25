@@ -14,6 +14,8 @@
 import { lazy, Suspense, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import type { Location } from '../types';
 import { geocodeDACH, flagForCountry } from '../geocode';
+import { tourFileToCutLine } from '../threed/tourImport';
+import { pickCountry } from '../pointForecast/clustering';
 import { AtmosphereProvider, useAtmosphere } from './atmosphereStore';
 import { LENSES, LENS_LABEL, HOUR_MIN, HOUR_MAX, type Lens } from './atmosphereState';
 import AtmosphereProfile from './AtmosphereProfile';
@@ -62,6 +64,7 @@ function AtmosphereShell({ onBack }: Props) {
           <LensSwitcher />
           <div className="atm-head-right">
             <LocationField />
+            <TourImportButton />
             <span className="atm-run">⏱ Modelllauf: <b>{modelRunAt ? `${fmtRunUTC(modelRunAt)} · vor ${ageHours(modelRunAt)} h` : '—'}</b></span>
           </div>
         </div>
@@ -183,6 +186,34 @@ function Scrubber() {
       </span>
       <span className="atm-scrub-end">+48h</span>
     </div>
+  );
+}
+
+// --- Tour-/GPX-Import (A) — setzt Ort/Marker aus einer Tourdatei --------------
+
+function TourImportButton() {
+  const { setLocation } = useAtmosphere();
+  const fileRef = useRef<HTMLInputElement | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    e.target.value = ''; // erneuter Upload derselben Datei erlauben
+    if (!f) return;
+    setErr(null);
+    try {
+      const tour = await tourFileToCutLine(f);
+      const s = tour.points[0];
+      setLocation({ name: tour.name, lat: s.lat, lon: s.lon, country: pickCountry(s.lat, s.lon) });
+    } catch (x) {
+      setErr(x instanceof Error ? x.message : 'Tour konnte nicht gelesen werden.');
+    }
+  }
+  return (
+    <span className="atm-tour">
+      <input ref={fileRef} type="file" accept=".gpx,.tcx,.fit,.kml,.kmz" style={{ display: 'none' }} onChange={onFile} />
+      <button type="button" className="atm-tour-btn" onClick={() => fileRef.current?.click()}>⤓ Tour laden</button>
+      {err && <span className="atm-tour-err">⚠ {err}</span>}
+    </span>
   );
 }
 

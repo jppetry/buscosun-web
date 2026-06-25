@@ -86,7 +86,7 @@ function mk(levels: Array<{ heightM: number; windKmh: number; windDirDeg: number
   return {
     surfaceM: 600, topM: 12000, levels: ls, parcel: [],
     boundaryLayerTopM: 1500, thermalStrengthMs: 1, cloudBaseM: null,
-    cloudLayers: [], inversions: [], freezingLevelM: 3000, lclM: 1500, capeJkg: 0, cinJkg: 0,
+    cloudLayers: [], inversions: [], shearZones: [], freezingLevelM: 3000, lclM: 1500, capeJkg: 0, cinJkg: 0,
   };
 }
 

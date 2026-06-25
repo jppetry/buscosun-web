@@ -154,7 +154,7 @@ function mkDerived(over: Partial<DerivedProfile>): DerivedProfile {
   return {
     surfaceM: 600, topM: 12000, levels: [], parcel: [],
     boundaryLayerTopM: 600, thermalStrengthMs: 0, cloudBaseM: null,
-    cloudLayers: [], inversions: [], freezingLevelM: 3500, lclM: 2000, capeJkg: 0, cinJkg: 0,
+    cloudLayers: [], inversions: [], shearZones: [], freezingLevelM: 3500, lclM: 2000, capeJkg: 0, cinJkg: 0,
     ...over,
   };
 }
