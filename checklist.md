@@ -23,10 +23,16 @@ Legende: [ ] offen · [~] in Arbeit · [x] erledigt (grün verifiziert) · [G] E
       Column-Mechanik wie Mobile, orientation-Query via matchMedia bestätigt.
 
 ## P2 — Vertikalprofil
-- [ ] `profile-derivations.ts` rein + Unit-Tests (stabil/Thermik/Deckel/blau)
-- [ ] SVG-Profil (Meter, linear, 0–4000 m Cap + „ganze Höhe")
-- [ ] An `activeHour` + Marker gekoppelt; flüssiges Re-Render
-- [ ] Verifikation grün
+- [x] `profile-derivations.ts` rein + Selbsttest 11/11 (stabil/Thermik/Deckel/blau/Wind)
+- [x] SVG-Profil (Meter, linear, 0–4000 m Cap + „ganze Höhe"): T/Td/Parcel,
+      Grenzschicht-/Thermikbalken, Wolken-/Inversionsbänder, Nullgradgrenze,
+      Höhenwind, Terrain-Bodenbox
+- [x] Quelle ICON-EU-Sounding (bestehende Pipeline) + soundingMath; DEM-Anker
+- [x] An `activeHour` + Marker gekoppelt; debounced Refetch; Lade-/Fehler-States
+- [x] Scrubber-Zeit am Modelllauf verankert (valid = Lauf + Vorlaufstunde) →
+      Uhrzeit == Daten-Gültigzeit; Modelllauf im Header
+- [x] Verifikation grün: typecheck+build; Live-ICON-EU-Render (Innsbruck),
+      Scrub→Refetch aktualisiert Gültigzeit, 11/11 Derivation-Tests
 
 ## P3 — Verdict + LLM-„Warum?"
 - [ ] `verdict.ts` rein + Tests (Linsen-Mapping)

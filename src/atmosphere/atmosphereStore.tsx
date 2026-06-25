@@ -29,6 +29,9 @@ interface AtmosphereContextValue {
   /** Profile marker (defaults to the location until the user picks on the map). */
   marker: AtmosphereMarker | null;
   setMarker: (m: AtmosphereMarker | null) => void;
+  /** Reference run of the loaded model data — anchors the scrubber's valid time. */
+  modelRunAt: Date | null;
+  setModelRunAt: (d: Date | null) => void;
 }
 
 const AtmosphereContext = createContext<AtmosphereContextValue | null>(null);
@@ -51,7 +54,8 @@ export function AtmosphereProvider({ children }: { children: ReactNode }) {
       hour: st?.hour ?? 0,
       nerd: st?.nerd ?? false,
       loc: st?.loc ? { name: st.loc.name, lat: st.loc.lat, lon: st.loc.lon, country: st.loc.country } : null,
-      marker: st?.marker ?? null,
+      // Marker defaults to the location when the hash carries no explicit marker.
+      marker: st?.marker ?? (st?.loc ? { lat: st.loc.lat, lon: st.loc.lon } : null),
     };
   }, []);
 
@@ -60,6 +64,7 @@ export function AtmosphereProvider({ children }: { children: ReactNode }) {
   const [nerdOpen, setNerdOpen] = useState<boolean>(initial.nerd);
   const [location, setLocation] = useState<Location | null>(initial.loc);
   const [marker, setMarker] = useState<AtmosphereMarker | null>(initial.marker);
+  const [modelRunAt, setModelRunAt] = useState<Date | null>(null);
 
   const setLens = (l: Lens) => {
     setLensState(l);
@@ -91,6 +96,7 @@ export function AtmosphereProvider({ children }: { children: ReactNode }) {
 
   const value: AtmosphereContextValue = {
     lens, setLens, hour, setHour, nerdOpen, setNerdOpen, location, setLocation, marker, setMarker,
+    modelRunAt, setModelRunAt,
   };
   return <AtmosphereContext.Provider value={value}>{children}</AtmosphereContext.Provider>;
 }

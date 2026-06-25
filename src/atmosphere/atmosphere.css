@@ -85,8 +85,33 @@
   .atm-globe { min-height: 0; height: 45vh; }
 }
 
-/* Profil-Box (Platzhalter in P1; Chart kommt in P2) */
+/* Profil-Box + Vertikalprofil (P2) */
 .atm-profile-box { padding: 1.1rem 1.2rem; }
+.atm-prof-head { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; }
+.atm-prof-cap {
+  border: 1px solid var(--atm-accent); background: transparent; color: var(--atm-accent-dark);
+  border-radius: 999px; padding: 0.28rem 0.75rem; font: inherit; font-size: 0.74rem; font-weight: 600;
+  cursor: pointer; min-height: 32px;
+}
+.atm-prof-cap[aria-pressed="true"] { background: var(--atm-accent); color: #FAF6EA; }
+.atm-prof-svg { width: 100%; height: auto; display: block; margin-top: 0.5rem; }
+.atm-prof-ax { font-size: 9px; fill: var(--stone-500, #8B7355); }
+.atm-prof-tag { font-size: 9px; font-weight: 600; fill: var(--stone-600, #5C5447); }
+.atm-prof-legend { display: flex; flex-wrap: wrap; gap: 0.8rem; margin-top: 0.5rem; font-size: 0.74rem; color: var(--stone-600, #5C5447); }
+.atm-prof-legend span { display: inline-flex; align-items: center; gap: 0.35rem; }
+.atm-prof-legend i { width: 14px; height: 3px; border-radius: 2px; display: inline-block; }
+.atm-prof-legend i.dash { background: repeating-linear-gradient(90deg, var(--ink-900, #2C2A26) 0 4px, transparent 4px 7px); }
+.atm-prof-source { margin: 0.6rem 0 0; font-size: 0.72rem; line-height: 1.45; color: var(--stone-500, #8B7355); }
+
+.atm-prof-wrap { position: relative; }
+.atm-prof-wrap.is-loading { opacity: 0.6; }
+.atm-prof-overlay {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+  font-size: 0.82rem; color: var(--stone-600, #5C5447);
+}
+.atm-prof-loading { display: flex; align-items: center; gap: 0.7rem; padding: 1.4rem 0.4rem; color: var(--stone-600, #5C5447); }
+.atm-prof-loading p { margin: 0; font-size: 0.86rem; }
+.atm-prof-loading em { color: var(--stone-500, #8B7355); font-style: italic; }
 
 /* Nerd-Mode (Tiefe 3) */
 .atm-nerd { padding: 0.4rem 0.5rem; }

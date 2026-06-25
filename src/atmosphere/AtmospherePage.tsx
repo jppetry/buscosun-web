@@ -16,6 +16,7 @@ import type { Location } from '../types';
 import { geocodeDACH, flagForCountry } from '../geocode';
 import { AtmosphereProvider, useAtmosphere } from './atmosphereStore';
 import { LENSES, LENS_LABEL, HOUR_MIN, HOUR_MAX, type Lens } from './atmosphereState';
+import AtmosphereProfile from './AtmosphereProfile';
 import '../route/tourTheme.css';
 import './atmosphere.css';
 
@@ -30,7 +31,7 @@ export default function AtmospherePage({ onBack }: Props) {
 }
 
 function AtmosphereShell({ onBack }: Props) {
-  const { lens, location } = useAtmosphere();
+  const { lens, location, modelRunAt } = useAtmosphere();
   return (
     <div className="rt-page atm-page">
       <div className="rt-grain" />
@@ -54,14 +55,14 @@ function AtmosphereShell({ onBack }: Props) {
           <LensSwitcher />
           <div className="atm-head-right">
             <LocationField />
-            <span className="atm-run">⏱ Modelllauf: <b>—</b></span>
+            <span className="atm-run">⏱ Modelllauf: <b>{modelRunAt ? fmtRunUTC(modelRunAt) : '—'}</b></span>
           </div>
         </div>
 
         <div className="atm-grid">
           <Verdict />
           <GlobePlaceholder />
-          <ProfilePlaceholder />
+          <AtmosphereProfile />
           <NerdMode />
         </div>
 
@@ -137,20 +138,6 @@ function GlobePlaceholder() {
   );
 }
 
-// --- Vertikalprofil (Platzhalter in P1) --------------------------------------
-
-function ProfilePlaceholder() {
-  return (
-    <section className="rt-card atm-profile-box" aria-label="Vertikalprofil">
-      <span className="rt-eyebrow">Vertikalprofil</span>
-      <div className="atm-ph" style={{ marginTop: '0.6rem' }}>
-        Emagramm (Meter · km/h · °C) — Platzhalter. Kommt in P2 aus dem ICON-EU-Sounding
-        plus abgeleitetem 3D-Schnitt.
-      </div>
-    </section>
-  );
-}
-
 // --- Nerd-Mode (Tiefe 3, Platzhalter in P1) ----------------------------------
 
 function NerdMode() {
@@ -179,19 +166,32 @@ function fmtAbs(d: Date): string {
   const wd = d.toLocaleDateString('de-DE', { weekday: 'short' }).replace('.', '');
   return `${wd} ${pad2(d.getHours())}:00`;
 }
-function relLabel(hour: number): string {
-  if (hour <= 0) return 'jetzt';
-  if (hour < 24) return `in ${hour} h`;
-  const d = Math.round(hour / 24);
-  return `in ${d} Tag${d > 1 ? 'en' : ''}`;
+function fmtRunUTC(d: Date): string {
+  return `${pad2(d.getUTCDate())}.${pad2(d.getUTCMonth() + 1)}. ${pad2(d.getUTCHours())}Z`;
+}
+/** Relative Bezeichnung gegenüber der echten aktuellen Zeit. */
+function relFromNow(deltaMs: number): string {
+  const min = Math.round(deltaMs / 60_000);
+  const a = Math.abs(min);
+  if (a < 30) return 'jetzt';
+  const fut = min > 0;
+  if (a < 60 * 24) { const h = Math.round(a / 60); return fut ? `in ${h} h` : `vor ${h} h`; }
+  const d = Math.round(a / (60 * 24));
+  return fut ? `in ${d} Tag${d > 1 ? 'en' : ''}` : `vor ${d} Tag${d > 1 ? 'en' : ''}`;
 }
 
 function Scrubber() {
-  const { hour, setHour } = useAtmosphere();
-  // Stable "now" base, rounded down to the full hour (computed once on mount).
-  const baseMs = useMemo(() => { const d = new Date(); d.setMinutes(0, 0, 0); return d.getTime(); }, []);
-  const activeTime = new Date(baseMs + hour * 3_600_000);
-  const nowPct = ((0 - HOUR_MIN) / (HOUR_MAX - HOUR_MIN)) * 100;
+  const { hour, setHour, modelRunAt } = useAtmosphere();
+  // Absolute Zeit ankert am Modelllauf (valid = Lauf + Vorlaufstunde); vor dem
+  // ersten Laden Fallback auf die volle aktuelle Stunde.
+  const nowBase = useMemo(() => { const d = new Date(); d.setMinutes(0, 0, 0); return d.getTime(); }, []);
+  const baseMs = modelRunAt ? modelRunAt.getTime() : nowBase;
+  const activeMs = baseMs + hour * 3_600_000;
+  const activeTime = new Date(activeMs);
+  const nowMs = Date.now();
+  const nowOffset = (nowMs - baseMs) / 3_600_000;
+  const nowPct = Math.max(0, Math.min(100, ((nowOffset - HOUR_MIN) / (HOUR_MAX - HOUR_MIN)) * 100));
+  const rel = relFromNow(activeMs - nowMs);
 
   return (
     <div className="atm-scrub">
@@ -200,16 +200,18 @@ function Scrubber() {
           type="range" className="atm-scrub-range"
           min={HOUR_MIN} max={HOUR_MAX} step={1} value={hour}
           onChange={(e) => setHour(Number(e.target.value))}
-          aria-label="Vorhersagezeitpunkt (Stunden ab jetzt)"
-          aria-valuetext={`${relLabel(hour)} · ${fmtAbs(activeTime)}`}
+          aria-label="Vorhersage-Vorlaufstunde"
+          aria-valuetext={`${rel} · ${fmtAbs(activeTime)}`}
         />
-        <span className="atm-scrub-now" style={{ left: `${nowPct}%` }} aria-hidden="true">
-          <span className="atm-scrub-now-label" style={{ left: 0 }}>jetzt</span>
-        </span>
+        {nowOffset >= 0 && nowOffset <= HOUR_MAX && (
+          <span className="atm-scrub-now" style={{ left: `${nowPct}%` }} aria-hidden="true">
+            <span className="atm-scrub-now-label" style={{ left: 0 }}>jetzt</span>
+          </span>
+        )}
       </div>
       <span className="atm-scrub-label">
         <span className="atm-scrub-time">{fmtAbs(activeTime)}</span>
-        <span className="atm-scrub-rel">{relLabel(hour)}</span>
+        <span className="atm-scrub-rel">{rel}</span>
       </span>
       <span className="atm-scrub-end">+48h</span>
     </div>
