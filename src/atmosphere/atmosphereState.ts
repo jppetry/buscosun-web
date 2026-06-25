@@ -16,7 +16,7 @@ export const LENSES: Lens[] = ['fly', 'mountain', 'sky', 'section'];
 export const LENS_LABEL: Record<Lens, string> = {
   fly: 'Fliegen & Thermik',
   mountain: 'Berg & Tour',
-  sky: 'Himmelsschauspiel',
+  sky: 'Himmelsoptik',
   section: 'Querschnitt',
 };
 
