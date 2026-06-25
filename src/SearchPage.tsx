@@ -429,6 +429,15 @@ function HeroFeatures({ onOpenFeature }: { onOpenFeature: (feature: FeatureInfo)
         flush
         onOpen={onOpenFeature}
       />
+      <FeatureTile
+        id="feedback"
+        eyebrow="Feedback"
+        title="Ideen & Vorschläge"
+        description="Was sollen wir verbessern, was fehlt dir? Schick uns deine Anregung direkt per E-Mail — ohne Konto, ohne Tracker."
+        preview={<FeedbackPreview />}
+        flush
+        onOpen={onOpenFeature}
+      />
     </section>
   );
 }
@@ -733,6 +742,29 @@ function GlobePreview() {
       </g>
       {/* Glanzlicht */}
       <ellipse cx={cx - 16} cy={cy - 16} rx="12" ry="8" fill="#fff" opacity="0.4" stroke="none" />
+    </svg>
+  );
+}
+
+/* ----- Feedback — Sprechblase mit „Funken"/Idee, Akzent sage-600. Line-Art-Spec
+   + randlose Sandfläche/Größe wie die Wetterkarte. ----- */
+function FeedbackPreview() {
+  return (
+    <svg viewBox="0 0 260 140" fill="none" aria-hidden="true" className="feature-svg"
+      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+      style={{ color: 'var(--sage-600)' }}>
+      <rect x="0" y="0" width="260" height="140" rx="12" fill="var(--sand-100)" />
+      {/* Sprechblase */}
+      <path d="M 60 40 H 200 a 14 14 0 0 1 14 14 V 92 a 14 14 0 0 1 -14 14 H 108 l -22 18 v -18 H 60 a 14 14 0 0 1 -14 -14 V 54 a 14 14 0 0 1 14 -14 Z"
+        fill="#fff" stroke="currentColor" />
+      {/* Idee-Funke / Stern in der Blase */}
+      <path d="M 130 58 L 134 72 L 148 76 L 134 80 L 130 94 L 126 80 L 112 76 L 126 72 Z"
+        fill="currentColor" stroke="none" opacity="0.9" />
+      {/* zwei kleine Funken */}
+      <g stroke="currentColor" strokeWidth="1.6" opacity="0.7">
+        <line x1="166" y1="60" x2="172" y2="60" /><line x1="169" y1="57" x2="169" y2="63" />
+        <line x1="92" y1="88" x2="98" y2="88" /><line x1="95" y1="85" x2="95" y2="91" />
+      </g>
     </svg>
   );
 }

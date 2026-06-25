@@ -1,0 +1,44 @@
+/* Feedback „Ideen & Vorschläge" — v1.8-Tokens, Akzent sage (freundlich/positiv). */
+
+.fb-page { --fb-accent: var(--sage-600, #7A9466); }
+
+.fb-form { padding: 1.3rem 1.4rem; display: flex; flex-direction: column; gap: 1rem; max-width: 640px; }
+.fb-field { display: flex; flex-direction: column; gap: 0.35rem; position: relative; }
+.fb-label { font-size: 0.82rem; font-weight: 600; color: var(--ink-900, #2C2A26); }
+.fb-req { color: var(--terracotta-500, #C97B47); font-style: normal; }
+.fb-opt { color: var(--stone-500, #8B7355); font-weight: 500; }
+
+.fb-input {
+  font: inherit; font-size: 0.92rem; color: var(--ink-900, #2C2A26);
+  background: #fff; border: 1px solid var(--border-default, #E0D6BE); border-radius: 12px;
+  padding: 0.6rem 0.8rem;
+}
+.fb-input:focus-visible { outline: 2px solid var(--fb-accent); outline-offset: 1px; border-color: var(--fb-accent); }
+.fb-textarea { resize: vertical; min-height: 8rem; line-height: 1.5; }
+.fb-count { align-self: flex-end; font-size: 0.7rem; color: var(--stone-500, #8B7355); font-variant-numeric: tabular-nums; }
+
+.fb-error { margin: 0; font-size: 0.85rem; color: #B5341F; }
+
+.fb-send {
+  align-self: flex-start; border: 0; background: var(--fb-accent); color: #FAF6EA;
+  border-radius: 999px; padding: 0.6rem 1.4rem; font: inherit; font-size: 0.92rem; font-weight: 600;
+  cursor: pointer; min-height: 44px; text-decoration: none; display: inline-flex; align-items: center;
+}
+.fb-send:hover { background: #6a8459; }
+.fb-send:focus-visible { outline: 2px solid var(--fb-accent); outline-offset: 2px; }
+.fb-note { margin: 0; font-size: 0.76rem; color: var(--stone-500, #8B7355); }
+
+.fb-sent { padding: 1.3rem 1.4rem; display: flex; flex-direction: column; gap: 0.7rem; max-width: 640px; }
+.fb-sent-head { margin: 0; font-size: 1.05rem; font-weight: 600; color: var(--ink-900, #2C2A26); }
+.fb-sent p { margin: 0; font-size: 0.9rem; color: var(--stone-600, #5C5447); }
+.fb-sent-actions { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; margin-top: 0.2rem; }
+.fb-copy {
+  border: 1px solid var(--border-default, #E0D6BE); background: var(--cream-50, #FAF6EA);
+  color: var(--ink-900, #2C2A26); border-radius: 999px; padding: 0.5rem 1rem; font: inherit;
+  font-size: 0.85rem; font-weight: 600; cursor: pointer; min-height: 40px;
+}
+.fb-copy:hover { border-color: var(--fb-accent); }
+.fb-again {
+  align-self: flex-start; border: 0; background: transparent; color: var(--fb-accent);
+  font: inherit; font-size: 0.85rem; font-weight: 600; cursor: pointer; padding: 0.3rem 0; text-decoration: underline;
+}

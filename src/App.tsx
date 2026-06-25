@@ -9,6 +9,7 @@ import ForecastPage from './confidence/ForecastPage';
 import HistoryPage from './history/HistoryPage';
 import GlobePage from './globe/GlobePage';
 import AtmospherePage from './atmosphere/AtmospherePage';
+import FeedbackPage from './feedback/FeedbackPage';
 import ValidationPage from './validation/ValidationPage';
 import type { Location } from './types';
 import type { LayerKey } from './MapView';
@@ -16,7 +17,7 @@ import { decodeMapState } from './mapState';
 import { hasEventHash } from './event/eventState';
 import './designTokens.css';
 
-export type FeatureId = 'route' | 'event' | 'dayflow' | 'forecast' | 'nowcast' | 'atmosphere' | 'history' | 'globe' | 'map2d' | 'validation';
+export type FeatureId = 'route' | 'event' | 'dayflow' | 'forecast' | 'nowcast' | 'atmosphere' | 'history' | 'globe' | 'map2d' | 'feedback' | 'validation';
 
 /** Standort-Default für die 2D-Karten-Kachel (ohne Ortssuche): DACH-Überblick,
  *  zentriert auf Mitteleuropa. Marker/Punktpanel sind im overview-Modus aus. */
@@ -86,6 +87,9 @@ export default function App() {
     }
     if (view.feature.id === 'globe') {
       return <GlobePage onBack={back} />;
+    }
+    if (view.feature.id === 'feedback') {
+      return <FeedbackPage onBack={back} />;
     }
     if (view.feature.id === 'validation') {
       return <ValidationPage onBack={back} />;
