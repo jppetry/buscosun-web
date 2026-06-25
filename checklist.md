@@ -88,7 +88,13 @@ Legende: [ ] offen · [~] in Arbeit · [x] erledigt (grün verifiziert) · [G] E
       nicht gebaut — Duplikat von threed/CurtainLayer; 2D ist das Paket-Fallback.)
 
 ## P7 — Nerd-Mode + Feinschliff
-- [ ] Nerd-Panel (lazy): Skew-T/Log-P, CAPE/CIN, Deckel, rohe Levels, Lauf-Alter
-- [ ] Empty/Error/Loading deutsch; A11y-Audit; Breakpoint-Review hoher Charts
-- [ ] tests.md vollständig; checklist abgehakt; plan.md erledigt
-- [ ] Abschlusszusammenfassung im Chat
+- [x] Nerd-Panel **lazy** (`React.lazy` → eigener Chunk `NerdPanel-*.js` ~2,6 kB,
+      nicht im Standard-Bundle): Skew-T/Log-P (reused `threed/SkewTChart`), CAPE/CIN/
+      LCL/LFC/EL/LI, Deckelinversions-Stärke (dünn <200 m markiert), rohe ICON-EU-
+      Level-Tabelle (hPa/m/T/Td/Wind), Lauf-Alter
+- [x] Feinschliff: Lauf-Alter im Header („vor X h"); Empty/Error/Loading deutsch in
+      allen Loadern; Unsicherheit/Lauf-Alter überall (Profil/Verdict/Sky/Föhn/Nerd);
+      A11y (role=tablist, slider aria-valuetext, aria-expanded, SVG aria-label)
+- [x] Verifikation grün: typecheck+build (Lazy-Chunk bestätigt); Live Desktop +
+      Mobile (390) — Skew-T + Indizes + Roh-Tabelle + Lauf-Alter, keine Errors
+- [x] tests.md aktuell; checklist abgehakt; plan.md erledigt; Abschluss im Chat

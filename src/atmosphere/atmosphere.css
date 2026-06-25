@@ -188,6 +188,19 @@
 }
 .atm-nerd-toggle:focus-visible { outline: 2px solid var(--atm-accent); outline-offset: 2px; }
 .atm-nerd-body { padding: 0 0.8rem 0.8rem; font-size: 0.85rem; color: var(--stone-600, #5C5447); }
+.atm-nerd-grid { display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-start; }
+.atm-nerd-skewt { flex: 1 1 280px; min-width: 0; }
+.atm-nerd-side { flex: 1 1 200px; min-width: 0; }
+.atm-nerd-idx { margin: 0; display: grid; grid-template-columns: 1fr auto; gap: 0.15rem 0.8rem; }
+.atm-nerd-idxrow { display: contents; }
+.atm-nerd-idx dt { color: var(--stone-500, #8B7355); }
+.atm-nerd-idx dd { margin: 0; font-weight: 600; color: var(--ink-900, #2C2A26); font-variant-numeric: tabular-nums; text-align: right; }
+.atm-nerd-cap { margin: 0.6rem 0 0; font-size: 0.8rem; color: var(--stone-600, #5C5447); }
+.atm-nerd-table { width: 100%; border-collapse: collapse; margin-top: 0.9rem; font-size: 0.76rem; font-variant-numeric: tabular-nums; }
+.atm-nerd-table th, .atm-nerd-table td { text-align: right; padding: 0.2rem 0.4rem; border-bottom: 1px solid var(--sand-200, #E0D6BE); }
+.atm-nerd-table th { color: var(--stone-500, #8B7355); font-weight: 600; }
+.atm-nerd-table td:last-child, .atm-nerd-table th:last-child { text-align: left; }
+.atm-nerd-src { margin: 0.7rem 0 0; font-size: 0.72rem; line-height: 1.45; color: var(--stone-500, #8B7355); }
 
 /* Generischer Platzhalter-Block */
 .atm-ph {

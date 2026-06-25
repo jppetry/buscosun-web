@@ -14,6 +14,11 @@ import {
   decodeState, encodeState, clampHour, LENSES, type Lens, type AtmosphereMarker,
 } from './atmosphereState';
 import type { DerivedProfile } from './profile-derivations';
+import type { SoundingProfile } from '../sources/iconEuSounding';
+import type { SoundingDerived } from '../threed/soundingMath';
+
+/** Rohes Sounding + Thermodynamik für den Nerd-Mode (Tiefe 3). */
+export interface SoundingBundle { profile: SoundingProfile; derived: SoundingDerived }
 
 const LENS_KEY = 'buscosun.atm.lens.v1';
 
@@ -36,6 +41,9 @@ interface AtmosphereContextValue {
   /** Derived vertical profile for the active marker/hour — shared by profile + verdict. */
   profile: DerivedProfile | null;
   setProfile: (p: DerivedProfile | null) => void;
+  /** Raw sounding + thermodynamics for the lazy Nerd-Mode (depth 3). */
+  sounding: SoundingBundle | null;
+  setSounding: (s: SoundingBundle | null) => void;
 }
 
 const AtmosphereContext = createContext<AtmosphereContextValue | null>(null);
@@ -70,6 +78,7 @@ export function AtmosphereProvider({ children }: { children: ReactNode }) {
   const [marker, setMarker] = useState<AtmosphereMarker | null>(initial.marker);
   const [modelRunAt, setModelRunAt] = useState<Date | null>(null);
   const [profile, setProfile] = useState<DerivedProfile | null>(null);
+  const [sounding, setSounding] = useState<SoundingBundle | null>(null);
 
   const setLens = (l: Lens) => {
     setLensState(l);
@@ -101,7 +110,7 @@ export function AtmosphereProvider({ children }: { children: ReactNode }) {
 
   const value: AtmosphereContextValue = {
     lens, setLens, hour, setHour, nerdOpen, setNerdOpen, location, setLocation, marker, setMarker,
-    modelRunAt, setModelRunAt, profile, setProfile,
+    modelRunAt, setModelRunAt, profile, setProfile, sounding, setSounding,
   };
   return <AtmosphereContext.Provider value={value}>{children}</AtmosphereContext.Provider>;
 }

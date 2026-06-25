@@ -13,6 +13,8 @@
 - **D3:** Saharastaub-Card in P5 = Entscheidungs-Gate (keine Aerosol-Pipeline) → ausblenden.
 - **D4:** Föhn ohne Cross-Barrier-Stationsdruck → ICON-ableitbare Indikatoren.
 
+## Status: ERLEDIGT (P0–P7 grün, alle auf feat/atmosphere committet)
+
 ## Phasen
 - **P0 — Diagnose + Doku.** ✅ context.md / architecture.md / plan.md / checklist.md.
 - **P1 — Shell:** Linsen-Umschalter (Fliegen/Berg&Weg/Himmel), 3 Tiefen (Verdict/

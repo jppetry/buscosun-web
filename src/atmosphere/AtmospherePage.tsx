@@ -11,7 +11,7 @@
  * die aktive Stunde — alle Bereiche abonnieren sie über useAtmosphere().
  */
 
-import { useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import { lazy, Suspense, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import type { Location } from '../types';
 import { geocodeDACH, flagForCountry } from '../geocode';
 import { AtmosphereProvider, useAtmosphere } from './atmosphereStore';
@@ -25,6 +25,9 @@ import '../route/tourTheme.css';
 import './atmosphere.css';
 
 interface Props { onBack: () => void }
+
+// Tiefe 3: nur bei Opt-in laden (hält Skew-T & Co. aus dem Standard-Bundle).
+const NerdPanel = lazy(() => import('./NerdPanel'));
 
 export default function AtmospherePage({ onBack }: Props) {
   return (
@@ -59,7 +62,7 @@ function AtmosphereShell({ onBack }: Props) {
           <LensSwitcher />
           <div className="atm-head-right">
             <LocationField />
-            <span className="atm-run">⏱ Modelllauf: <b>{modelRunAt ? fmtRunUTC(modelRunAt) : '—'}</b></span>
+            <span className="atm-run">⏱ Modelllauf: <b>{modelRunAt ? `${fmtRunUTC(modelRunAt)} · vor ${ageHours(modelRunAt)} h` : '—'}</b></span>
           </div>
         </div>
 
@@ -113,9 +116,9 @@ function NerdMode() {
         {nerdOpen ? '▾' : '▸'} Werte anzeigen (Nerd-Mode)
       </button>
       {nerdOpen && (
-        <div className="atm-nerd-body">
-          Skew-T/Log-P, CAPE/CIN, rohe Level-Werte und Lauf-Alter — Platzhalter (ab P7).
-        </div>
+        <Suspense fallback={<div className="atm-nerd-body">Nerd-Mode wird geladen …</div>}>
+          <NerdPanel />
+        </Suspense>
       )}
     </section>
   );
@@ -130,6 +133,9 @@ function fmtAbs(d: Date): string {
 }
 function fmtRunUTC(d: Date): string {
   return `${pad2(d.getUTCDate())}.${pad2(d.getUTCMonth() + 1)}. ${pad2(d.getUTCHours())}Z`;
+}
+function ageHours(d: Date): number {
+  return Math.max(0, Math.round((Date.now() - d.getTime()) / 3_600_000));
 }
 /** Relative Bezeichnung gegenüber der echten aktuellen Zeit. */
 function relFromNow(deltaMs: number): string {
