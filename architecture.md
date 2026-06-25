@@ -54,5 +54,12 @@ App.tsx
 - Modell-Spread: `fetchMultiModelForecast`
 - Erklärung: `assistant/*` (LLM erklärt, rechnet nie)
 
-**Perf-Notizen (werden in P4/P6b ergänzt):** Frame-Timing vorher/nachher via Chrome-
-DevTools-MCP; Layer mounten pro Linse, sauberes Unmount; Mobile/Tablet-Fallback.
+**Perf-Notizen:**
+- P4 Thermik-Overlay (`ThermalMap` + `thermalField`): das Feld ist ein CPU-gerechnetes
+  160×120-RGBA-Bild (~19 200 Zellen, je ein trockener Parcel-Aufstieg) → als Raster-
+  ImageSource gezeichnet (ein Draw, kein Custom-GL-Layer). Neuberechnung nur bei
+  Marker-/Stunden-Wechsel. Eine MapLibre-Instanz, nur auf der Fliegen-Linse gemountet,
+  sauberes `map.remove()` beim Linsenwechsel (verifiziert, keine Konsolen-Errors). Eine
+  formale gedrosselte Frame-Trace wurde im Headless-Setup nicht gefahren; Kosten sind
+  durch die feste Gittergröße begrenzt, kein Jank beobachtet.
+- P6b (3D-Isentropen) ergänzt eigene Perf-Notiz.

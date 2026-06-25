@@ -48,10 +48,18 @@ Legende: [ ] offen · [~] in Arbeit · [x] erledigt (grün verifiziert) · [G] E
       nicht geklickt); Pfad ist der erprobte AssistantPage-Pfad, Fallback rein/getestet.
 
 ## P4 — Thermik-Terrain-Overlay (Fliegen)
-- [ ] MapLibre-Overlay-Layer (green→red), nur Fliegen-Linse, sauberes Unmount
-- [ ] Terrain-Tap → Marker → Profil/Verdict neu
-- [ ] Perf-Notiz (Desktop + gedrosselt) in architecture.md
-- [ ] Verifikation grün
+- [x] `thermalField.ts` rein + Selbsttest 7/7 (Thermik>0 durchmischt, tief≥hoch,
+      stabil schwach, Farbe/Transparenz, Bild-Spiegelung)
+- [x] MapLibre-Karte (Terrarium raster-dem + setTerrain) NUR Fliegen-Linse;
+      Thermik-Overlay als Raster-ImageSource aus EINEM ICON-EU-Profil + Flächen-DEM
+      (sage→amber→terracotta, schwach=transparent); sauberes Unmount beim Linsenwechsel
+- [x] Terrain-Tap → setMarker (Muster wie TerrainMap) → Profil/Verdict neu
+- [x] Verifikation grün: typecheck+build; 7/7 Tests; Live Innsbruck — Overlay
+      transparent (stabiler Abend) → farbig (labiler Nachmittag, „Gute Thermik
+      2584 m"), Scrub aktualisiert Overlay, Unmount sauber, keine Konsolen-Errors
+- [~] Perf: Overlay = 160×120 CPU-Raster (trivial), eine Karteninstanz, kein
+      Custom-GL-Layer; keine formale gedrosselte Frame-Trace gefahren (Headless),
+      kein Jank/Errors beobachtet → in architecture.md vermerkt
 
 ## P5 — Himmel-Cards
 - [ ] Sonnenuntergang/Nebelmeer/Optik aus ICON + deutsche Erklärtexte

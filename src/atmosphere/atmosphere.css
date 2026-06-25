@@ -100,6 +100,30 @@
   .atm-globe { min-height: 0; height: 45vh; }
 }
 
+/* Thermik-Gelände-Karte (P4, Fliegen-Linse) */
+.atm-thermal-card { display: block; position: relative; padding: 0; overflow: hidden; }
+.atm-thermal-map { position: absolute; inset: 0; }
+.atm-mark {
+  width: 18px; height: 18px; border-radius: 50%;
+  background: var(--terracotta-500, #C97B47); border: 3px solid #FAF6EA;
+  box-shadow: 0 2px 6px rgba(44,42,38,0.35);
+}
+.atm-thermal-legend {
+  position: absolute; left: 10px; bottom: 34px; z-index: 2;
+  display: flex; align-items: center; gap: 0.4rem;
+  background: rgba(250,246,234,0.92); border: 1px solid var(--sand-200, #E0D6BE);
+  border-radius: 10px; padding: 0.3rem 0.55rem; font-size: 0.68rem; color: var(--stone-600, #5C5447);
+}
+.atm-thermal-legend-bar {
+  width: 70px; height: 8px; border-radius: 4px;
+  background: linear-gradient(90deg, rgba(122,148,102,0.5), #D4A373, #C97B47);
+}
+.atm-thermal-cap {
+  position: absolute; left: 10px; right: 10px; bottom: 8px; z-index: 2; margin: 0;
+  font-size: 0.68rem; color: var(--stone-600, #5C5447); text-align: center;
+  background: rgba(250,246,234,0.82); border-radius: 8px; padding: 0.2rem 0.4rem;
+}
+
 /* Profil-Box + Vertikalprofil (P2) */
 .atm-profile-box { padding: 1.1rem 1.2rem; }
 .atm-prof-head { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; }

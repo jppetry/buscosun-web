@@ -18,6 +18,7 @@ import { AtmosphereProvider, useAtmosphere } from './atmosphereStore';
 import { LENSES, LENS_LABEL, HOUR_MIN, HOUR_MAX, type Lens } from './atmosphereState';
 import AtmosphereProfile from './AtmosphereProfile';
 import AtmosphereVerdict from './AtmosphereVerdict';
+import ThermalMap from './ThermalMap';
 import '../route/tourTheme.css';
 import './atmosphere.css';
 
@@ -62,7 +63,7 @@ function AtmosphereShell({ onBack }: Props) {
 
         <div className="atm-grid">
           <AtmosphereVerdict />
-          <GlobePlaceholder />
+          {lens === 'fly' ? <ThermalMap /> : <GlobePlaceholder />}
           <AtmosphereProfile />
           <NerdMode />
         </div>

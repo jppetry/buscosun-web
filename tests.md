@@ -13,6 +13,10 @@
   flach), Berg & Weg (Inversion→Nebelmeer / klar / Gipfel in Wolken), Himmel (trüb),
   Grounding-Block (phenomenon 'atmosphere'), Template-Fallback.
 
+- P4 `thermalField` → `window.__verifyThermalField()` — 7/7 grün: Thermik>0 über
+  durchmischtem Profil, tieferes Gelände ≥ höheres, stabil schwach, Farb-/Alpha-Ramp,
+  Bildgröße + vertikale Spiegelung (latMin unten).
+
 ## Geplant
 - P3 `verdict`: Linsen-Mapping (Fliegen/Berg&Weg/Himmel) → sage/amber/terracotta
 - P5 Himmel-Derivations + Degradierungspfade bei fehlenden Daten
