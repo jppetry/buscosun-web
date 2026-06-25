@@ -9,7 +9,7 @@ import ThreeDPage from './threed/ThreeDPage';
 import ForecastPage from './confidence/ForecastPage';
 import HistoryPage from './history/HistoryPage';
 import GlobePage from './globe/GlobePage';
-import GoNoGoPage from './gonogo/GoNoGoPage';
+import AtmospherePage from './atmosphere/AtmospherePage';
 import ValidationPage from './validation/ValidationPage';
 import type { Location } from './types';
 import type { LayerKey } from './MapView';
@@ -17,7 +17,7 @@ import { decodeMapState } from './mapState';
 import { hasEventHash } from './event/eventState';
 import './designTokens.css';
 
-export type FeatureId = 'route' | 'event' | 'dayflow' | 'forecast' | 'nowcast' | 'threed' | 'history' | 'globe' | 'map2d' | 'gonogo' | 'validation';
+export type FeatureId = 'route' | 'event' | 'dayflow' | 'forecast' | 'nowcast' | 'threed' | 'atmosphere' | 'history' | 'globe' | 'map2d' | 'validation';
 
 /** Standort-Default für die 2D-Karten-Kachel (ohne Ortssuche): DACH-Überblick,
  *  zentriert auf Mitteleuropa. Marker/Punktpanel sind im overview-Modus aus. */
@@ -41,6 +41,7 @@ export default function App() {
     if (typeof window === 'undefined') return { kind: 'search' };
     const h = window.location.hash;
     if (h.startsWith('#3d=')) return { kind: 'feature', feature: { id: 'threed', eyebrow: '3D-Wetterdaten', title: 'Atmosphäre in drei Dimensionen' } };
+    if (h.startsWith('#atm=')) return { kind: 'feature', feature: { id: 'atmosphere', eyebrow: 'Atmosphäre', title: 'Die Atmosphäre über dir' } };
     if (h.startsWith('#h=')) return { kind: 'feature', feature: { id: 'history', eyebrow: 'Historie', title: 'Wie hat sich das Wetter bei dir verändert?' } };
     if (h.startsWith('#val')) return { kind: 'feature', feature: { id: 'validation', eyebrow: 'Validierung', title: 'Wie gut ist der KI-Nowcast wirklich?' } };
     if (h.startsWith('#g=')) return { kind: 'feature', feature: { id: 'globe', eyebrow: 'Globale Wetter-Visualisierung', title: 'Das Wetter der ganzen Erde' } };
@@ -78,6 +79,9 @@ export default function App() {
     if (view.feature.id === 'threed') {
       return <ThreeDPage onBack={back} />;
     }
+    if (view.feature.id === 'atmosphere') {
+      return <AtmospherePage onBack={back} />;
+    }
     if (view.feature.id === 'forecast') {
       return <ForecastPage onBack={back} />;
     }
@@ -86,9 +90,6 @@ export default function App() {
     }
     if (view.feature.id === 'globe') {
       return <GlobePage onBack={back} />;
-    }
-    if (view.feature.id === 'gonogo') {
-      return <GoNoGoPage onBack={back} />;
     }
     if (view.feature.id === 'validation') {
       return <ValidationPage onBack={back} />;

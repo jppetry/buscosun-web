@@ -61,16 +61,6 @@ export default function SearchPage({ onSelect, onOpenFeature }: Props) {
       <HeroNav />
 
       <main className="hero-center">
-        <span className="eyebrow eyebrow-rule">Deutschland · Österreich · Schweiz</span>
-
-        <h1 className="hero-headline-center">
-          buscosun
-        </h1>
-
-        <p className="hero-sub-center">
-          DWD · GeoSphere · MeteoSwiss — live, höhenkorrigiert, ohne Tracker.
-        </p>
-
         <HeroSearchInline onSelect={onSelect} />
         <HeroFavorites onSelect={onSelect} />
         <IntroTrigger tour={tour} />
@@ -148,21 +138,7 @@ function HeroFavorites({ onSelect }: { onSelect: (location: Location) => void })
 }
 
 function Logo() {
-  return (
-    <svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true">
-      <circle cx="16" cy="16" r="7" fill="#2C2A26" />
-      <g stroke="#2C2A26" strokeWidth="1.5" strokeLinecap="round">
-        <line x1="16" y1="0" x2="16" y2="4" />
-        <line x1="16" y1="28" x2="16" y2="32" />
-        <line x1="0" y1="16" x2="4" y2="16" />
-        <line x1="28" y1="16" x2="32" y2="16" />
-        <line x1="4" y1="4" x2="7" y2="7" />
-        <line x1="25" y1="25" x2="28" y2="28" />
-        <line x1="4" y1="28" x2="7" y2="25" />
-        <line x1="25" y1="7" x2="28" y2="4" />
-      </g>
-    </svg>
-  );
+  return <img className="hero-logo-mark" src="/buscosun-mark.svg" width="32" height="32" alt="" aria-hidden="true" />;
 }
 
 // ============================================================================
@@ -436,20 +412,20 @@ function HeroFeatures({ onOpenFeature }: { onOpenFeature: (feature: FeatureInfo)
         onOpen={onOpenFeature}
       />
       <FeatureTile
-        id="gonogo"
-        eyebrow="Go / No-Go"
-        title="Wann darfst du raus?"
-        description="Arbeitsfenster für Drohne, Kran, Höhenarbeit, Anstrich oder Event-Aufbau. Setze deine Wind-, Böen- und Regen-Schwellen — wir zeigen die nächsten 48 h als Ampel."
-        preview={<GoNoGoPreview />}
-        flush
-        onOpen={onOpenFeature}
-      />
-      <FeatureTile
         id="threed"
         eyebrow="3D-Wetterdaten"
         title="Atmosphäre in drei Dimensionen"
         description="Temperatur, Wind und Wolken als volumetrische Schichten über dem Gelände — frei drehen, zoomen und in die Höhe schneiden."
         preview={<ThreeDPreview />}
+        flush
+        onOpen={onOpenFeature}
+      />
+      <FeatureTile
+        id="atmosphere"
+        eyebrow="Atmosphäre"
+        title="Die Atmosphäre über dir"
+        description="Eine Linse fürs Fliegen, Berg & Weg oder den Himmel: Thermik, Inversion, Wolkenbasis und Höhenwind als Vertikalprofil — mit ehrlicher Einschätzung über die nächsten 48 Stunden."
+        preview={<AtmospherePreview />}
         flush
         onOpen={onOpenFeature}
       />
@@ -635,36 +611,6 @@ function DayScorePreview() {
   );
 }
 
-/* ----- Go / No-Go — Zeitfenster als Zellenreihe (frei = Akzent, gesperrt =
-   neutral) mit Klammer unter dem freien Fenster, Akzent sage-600. Line-Art-Spec
-   + randlose Sandfläche/Größe wie die Wetterkarte. ----- */
-function GoNoGoPreview() {
-  const cells = [true, true, true, false, false, true, true, true, true, false, true, true];
-  const x0 = 26, cellW = 14, gap = 4, y = 52, h = 30;
-  const winStart = x0 + 5 * (cellW + gap);
-  const winSpan = 4 * cellW + 3 * gap;
-  return (
-    <svg viewBox="0 0 260 140" fill="none" aria-hidden="true" className="feature-svg"
-      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-      style={{ color: 'var(--sage-600)' }}>
-      <rect x="0" y="0" width="260" height="140" rx="12" fill="var(--sand-100)" />
-      {/* Zellen: frei (Akzent) vs. gesperrt (neutral) */}
-      <g strokeWidth="1.5">
-        {cells.map((free, i) => (
-          <rect key={i} x={x0 + i * (cellW + gap)} y={y} width={cellW} height={h} rx="4"
-            fill={free ? 'currentColor' : '#fff'} stroke={free ? 'none' : 'var(--sand-200)'} />
-        ))}
-      </g>
-      {/* freies Fenster markiert */}
-      <g stroke="var(--ink-900)" strokeWidth="2">
-        <line x1={winStart} y1={y + h + 9} x2={winStart + winSpan} y2={y + h + 9} />
-        <line x1={winStart} y1={y + h + 5} x2={winStart} y2={y + h + 9} />
-        <line x1={winStart + winSpan} y1={y + h + 5} x2={winStart + winSpan} y2={y + h + 9} />
-      </g>
-    </svg>
-  );
-}
-
 /* ----- Vorhersage — gespiegelt aus Intro „Vorhersage" (introArt.tsx · ForecastArt):
    Mehrmodell-Spread-Fächer mit Unsicherheitsband + Caliper, Akzent steel-600.
    Randlose Sandfläche/Größe wie die Wetterkarte. ----- */
@@ -754,6 +700,49 @@ function ThreeDPreview() {
         <circle cx={cx} cy={cyCloud} r="3" />
         <circle cx={cx} cy={cyMid} r="3" />
         <circle cx={cx} cy={cyGround} r="3" />
+      </g>
+    </svg>
+  );
+}
+
+/* ----- Atmosphäre — Vertikalprofil-Säule mit Schicht-Bändern (Grenzschicht →
+   Wolkenbasis → Höhenwind) + Sonne, Akzent steel-600. Line-Art-Spec + randlose
+   Sandfläche/Größe wie die Wetterkarte. ----- */
+function AtmospherePreview() {
+  return (
+    <svg viewBox="0 0 260 140" fill="none" aria-hidden="true" className="feature-svg"
+      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+      style={{ color: 'var(--steel-600)' }}>
+      <rect x="0" y="0" width="260" height="140" rx="12" fill="var(--sand-100)" />
+      {/* Sonne oben rechts */}
+      <g transform="translate(214 34)" stroke="currentColor">
+        <circle r="9" fill="#fff" />
+        <g strokeWidth="2">
+          <line x1="0" y1="-15" x2="0" y2="-12" /><line x1="0" y1="12" x2="0" y2="15" />
+          <line x1="-15" y1="0" x2="-12" y2="0" /><line x1="12" y1="0" x2="15" y2="0" />
+          <line x1="-11" y1="-11" x2="-8.5" y2="-8.5" /><line x1="8.5" y1="8.5" x2="11" y2="11" />
+        </g>
+      </g>
+      {/* Höhen-Bänder (transluzent, von oben kühl → unten warm) */}
+      <g stroke="none">
+        <rect x="26" y="30" width="150" height="22" rx="3" fill="currentColor" opacity="0.10" />
+        <rect x="26" y="56" width="150" height="22" rx="3" fill="currentColor" opacity="0.16" />
+        <rect x="26" y="82" width="150" height="22" rx="3" fill="var(--sage-600)" opacity="0.22" />
+      </g>
+      {/* Geländeboden */}
+      <path d="M 26 116 Q 70 102 110 110 T 200 106 L 200 116 Z" fill="var(--sand-300)" stroke="none" />
+      {/* Vertikale Sampling-Säule + Knoten je Schicht */}
+      <line x1="101" y1="26" x2="101" y2="116" stroke="currentColor" strokeWidth="1.6" strokeDasharray="3 3" opacity="0.85" />
+      <g fill="currentColor" stroke="none">
+        <circle cx="101" cy="41" r="3" />
+        <circle cx="101" cy="67" r="3" />
+        <circle cx="101" cy="93" r="3" />
+      </g>
+      {/* Höhenwind-Barbs rechts der Säule */}
+      <g stroke="currentColor" strokeWidth="1.6">
+        <line x1="120" y1="41" x2="140" y2="41" /><line x1="140" y1="41" x2="135" y2="37" />
+        <line x1="120" y1="67" x2="136" y2="67" /><line x1="136" y1="67" x2="132" y2="64" />
+        <line x1="120" y1="93" x2="132" y2="93" />
       </g>
     </svg>
   );

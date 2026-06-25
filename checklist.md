@@ -9,15 +9,18 @@ Legende: [ ] offen · [~] in Arbeit · [x] erledigt (grün verifiziert) · [G] E
 - [x] plan.md + checklist.md angelegt; CLAUDE.md-Leitplanken
 
 ## P1 — Shell
-- [ ] Feature-Ordner `src/atmosphere/` nach bestehender Struktur
-- [ ] Routing-Eintrag (`FeatureId 'atmosphere'`, Hash `#atm=`) + Startseiten-Kachel
-- [ ] Linsen-Umschalter (Fliegen/Berg&Weg/Himmel), Segmented-Control-Muster
-- [ ] 3 Tiefen-Struktur (Verdict / Profil / Nerd) als Platzhalter
-- [ ] Globaler Time-Scrubber +0..+48 h, 1-h-Schritte, „jetzt"-Tick
-- [ ] `activeHour`-Store/Context (Single Source of Truth) + URL/localStorage-Sync
-- [ ] 3 Breakpoint-Layouts (Desktop/Tablet hoch+quer/Mobile), sticky Scrubber
-- [ ] A11y: Tastatur + deutsche ARIA-Labels
-- [ ] Verifikation grün (typecheck/build, Context7, DevTools 3 Breakpoints)
+- [x] Feature-Ordner `src/atmosphere/` nach bestehender Struktur
+- [x] Routing-Eintrag (`FeatureId 'atmosphere'`, Hash `#atm=`) + Startseiten-Kachel
+- [x] Linsen-Umschalter (Fliegen/Berg&Weg/Himmel), Segmented-Control-Muster
+- [x] 3 Tiefen-Struktur (Verdict / Profil / Nerd) als Platzhalter
+- [x] Globaler Time-Scrubber +0..+48 h, 1-h-Schritte, „jetzt"-Tick
+- [x] `activeHour`-Store/Context (Single Source of Truth) + URL/localStorage-Sync
+- [x] 3 Breakpoint-Layouts (Desktop/Tablet hoch+quer/Mobile), sticky Scrubber
+- [x] A11y: Tastatur + deutsche ARIA-Labels (role=tablist, slider aria-valuetext de)
+- [x] Verifikation grün: typecheck+build; DevTools Desktop/Tablet-quer/Mobile +
+      Lens/Scrubber-Propagation + Permalink. Hinweis: Tablet-Hochformat-Viewport im
+      Headless-Emulator nicht herstellbar (innerH ~769 gecappt) — gleiche Single-
+      Column-Mechanik wie Mobile, orientation-Query via matchMedia bestätigt.
 
 ## P2 — Vertikalprofil
 - [ ] `profile-derivations.ts` rein + Unit-Tests (stabil/Thermik/Deckel/blau)

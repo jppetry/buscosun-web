@@ -1,0 +1,136 @@
+/* Atmosphäre — Feature-Shell (P1). Adoptiert v1.8-Tokens + rt-*-Shell.
+   Akzent: steel (Himmel/Atmosphäre-Blau), wie Nowcast/3D. Keine Hardcodes. */
+
+.atm-page {
+  --atm-accent: var(--steel-600, #3A6FA8);
+  --atm-accent-dark: #28507A;
+  --atm-accent-soft: var(--steel-50, #E8F0FA);
+}
+
+/* Kopf: Linsen-Umschalter + Ort + Modelllauf */
+.atm-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 1rem; flex-wrap: wrap; margin: 0.6rem 0 1.1rem;
+}
+.atm-head-right { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+.atm-run { font-size: 0.78rem; color: var(--stone-500, #8B7355); white-space: nowrap; }
+.atm-run b { color: var(--ink-900, #2C2A26); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* Linsen-Segmented-Control (Muster wie .ev-seg / .td-toggle) */
+.atm-seg {
+  display: inline-flex; gap: 3px; padding: 4px;
+  background: var(--sand-100, #EDE6D3); border: 1px solid var(--sand-200, #E0D6BE);
+  border-radius: 999px;
+}
+.atm-seg-btn {
+  border: 0; background: transparent; font: inherit; font-size: 0.86rem; font-weight: 600;
+  color: var(--stone-500, #8B7355); padding: 0.45rem 1.1rem; border-radius: 999px; cursor: pointer;
+  min-height: 40px;
+}
+.atm-seg-btn.is-active { background: var(--atm-accent); color: #FAF6EA; }
+.atm-seg-btn:focus-visible { outline: 2px solid var(--atm-accent); outline-offset: 2px; }
+
+/* Grid: Desktop/Tablet-Quer = Split (Globe links / Panel rechts);
+   Mobile/Tablet-Hoch = gestapelt (Verdict → Globe → Profil → Nerd). */
+.atm-grid {
+  display: grid; gap: 1rem; grid-template-columns: 1fr;
+  grid-template-areas: "verdict" "globe" "profile" "nerd";
+}
+.atm-verdict { grid-area: verdict; }
+.atm-globe   { grid-area: globe; }
+.atm-profile-box { grid-area: profile; }
+.atm-nerd    { grid-area: nerd; }
+
+@media (min-width: 1024px) {
+  .atm-grid {
+    grid-template-columns: 1.5fr 1fr; align-items: start;
+    grid-template-areas: "globe verdict" "globe profile" "globe nerd";
+  }
+}
+@media (min-width: 768px) and (max-width: 1024px) and (orientation: landscape) {
+  .atm-grid {
+    grid-template-columns: 1.2fr 1fr; align-items: start;
+    grid-template-areas: "globe verdict" "globe profile" "globe nerd";
+  }
+}
+
+/* Verdict (Tiefe 1) */
+.atm-verdict { padding: 1.1rem 1.2rem; }
+.atm-verdict-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 0.5rem; vertical-align: -1px; }
+.atm-verdict-dot.is-good { background: var(--sage-600, #7A9466); }
+.atm-verdict-dot.is-watch { background: var(--amber-500, #D4A373); }
+.atm-verdict-dot.is-bad { background: var(--terracotta-500, #C97B47); }
+.atm-verdict-line { margin: 0; font-size: 1.05rem; font-weight: 600; color: var(--ink-900, #2C2A26); }
+.atm-verdict-sub { margin: 0.35rem 0 0; font-size: 0.85rem; color: var(--stone-600, #5C5447); }
+
+/* Globe / Terrain (Platzhalter in P1) */
+.atm-globe {
+  position: relative; min-height: 420px; padding: 0; overflow: hidden;
+  display: grid; place-items: center; text-align: center;
+}
+.atm-globe-ph { color: var(--stone-500, #8B7355); font-size: 0.9rem; padding: 1.2rem; }
+.atm-globe-ph strong { display: block; color: var(--atm-accent-dark); font-size: 1rem; margin-bottom: 0.3rem; }
+.atm-globe-fs {
+  position: absolute; top: 10px; right: 10px; min-height: 36px; padding: 0 0.7rem;
+  border: 1px solid var(--sand-200, #E0D6BE); background: rgba(250,246,234,0.95);
+  color: var(--atm-accent-dark); border-radius: 10px; font: inherit; font-size: 0.78rem;
+  font-weight: 600; cursor: pointer;
+}
+@media (max-width: 767px) {
+  .atm-globe { min-height: 0; }
+  .atm-globe.is-collapsed { height: 140px; }
+  .atm-globe:not(.is-collapsed) { height: 70vh; }
+}
+@media (min-width: 768px) and (max-width: 1024px) and (orientation: portrait) {
+  .atm-globe { min-height: 0; height: 45vh; }
+}
+
+/* Profil-Box (Platzhalter in P1; Chart kommt in P2) */
+.atm-profile-box { padding: 1.1rem 1.2rem; }
+
+/* Nerd-Mode (Tiefe 3) */
+.atm-nerd { padding: 0.4rem 0.5rem; }
+.atm-nerd-toggle {
+  width: 100%; text-align: left; border: 0; background: transparent; cursor: pointer;
+  font: inherit; font-size: 0.9rem; font-weight: 600; color: var(--atm-accent-dark);
+  padding: 0.7rem 0.8rem; min-height: 44px;
+}
+.atm-nerd-toggle:focus-visible { outline: 2px solid var(--atm-accent); outline-offset: 2px; }
+.atm-nerd-body { padding: 0 0.8rem 0.8rem; font-size: 0.85rem; color: var(--stone-600, #5C5447); }
+
+/* Generischer Platzhalter-Block */
+.atm-ph {
+  border: 1.5px dashed var(--border-strong, #C4B896); border-radius: 12px;
+  padding: 1rem 1.1rem; color: var(--stone-500, #8B7355); font-size: 0.85rem;
+  background: var(--sand-50, #F5F1E8);
+}
+
+/* Time-Scrubber — einzige Quelle der Wahrheit; sticky unten auf Touch-Layouts */
+.atm-scrub {
+  display: flex; align-items: center; gap: 0.9rem; margin-top: 1rem;
+  padding: 0.8rem 1rem; background: var(--cream-50, #FAF6EA);
+  border: 1px solid var(--border-default, #E0D6BE); border-radius: 16px;
+  box-shadow: var(--shadow-card, 0 4px 16px rgba(44,42,38,0.06));
+}
+.atm-scrub-track { position: relative; flex: 1; display: flex; align-items: center; }
+.atm-scrub-range { flex: 1; accent-color: var(--atm-accent); min-height: 36px; }
+.atm-scrub-now {
+  position: absolute; top: -3px; bottom: -3px; width: 0;
+  border-left: 2px solid var(--terracotta-500, #C97B47); transform: translateX(-1px);
+  pointer-events: none; z-index: 1;
+}
+.atm-scrub-now-label {
+  position: absolute; top: -13px; transform: translateX(-50%);
+  font-size: 0.54rem; font-weight: 700; letter-spacing: 0.08em; color: var(--terracotta-500, #C97B47);
+}
+.atm-scrub-label { min-width: 9.5rem; text-align: right; }
+.atm-scrub-time { font-size: 0.82rem; font-weight: 600; color: var(--atm-accent-dark); font-variant-numeric: tabular-nums; }
+.atm-scrub-rel { display: block; font-size: 0.7rem; color: var(--stone-500, #8B7355); }
+.atm-scrub-end { font-size: 0.72rem; font-weight: 600; color: var(--stone-500, #8B7355); white-space: nowrap; }
+
+@media (max-width: 767px) {
+  .atm-scrub { position: sticky; bottom: 0; z-index: 5; margin-top: 1rem; }
+}
+@media (min-width: 768px) and (max-width: 1024px) and (orientation: portrait) {
+  .atm-scrub { position: sticky; bottom: 0; z-index: 5; }
+}
