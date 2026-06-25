@@ -17,6 +17,10 @@
   durchmischtem Profil, tieferes Gelände ≥ höheres, stabil schwach, Farb-/Alpha-Ramp,
   Bildgröße + vertikale Spiegelung (latMin unten).
 
+- P5 `skyCards` → `window.__verifySkyCards()` — 8/8 grün: Sonnenuntergang (tiefe
+  Wolke poor / hohe Wolke good / klar fair), Nebelmeer (Inversion+Wolke good /
+  nur Inversion fair / keins none), Optik (kalter Cirrus good / keine none).
+
 ## Geplant
 - P3 `verdict`: Linsen-Mapping (Fliegen/Berg&Weg/Himmel) → sage/amber/terracotta
 - P5 Himmel-Derivations + Degradierungspfade bei fehlenden Daten

@@ -100,6 +100,15 @@
   .atm-globe { min-height: 0; height: 45vh; }
 }
 
+.atm-verdict-dot.is-none { background: var(--stone-400, #A89A7A); }
+
+/* Himmel-Cards (P5, Himmel-Linse) — belegen den Globe-Slot */
+.atm-sky { grid-area: globe; display: flex; flex-direction: column; gap: 0.8rem; }
+.atm-sky-card { padding: 0.9rem 1.1rem; }
+.atm-sky-head { margin: 0; font-size: 0.98rem; font-weight: 600; color: var(--ink-900, #2C2A26); }
+.atm-sky-text { margin: 0.35rem 0 0; font-size: 0.86rem; line-height: 1.5; color: var(--stone-600, #5C5447); }
+.atm-sky-note { margin: 0.1rem 0 0; font-size: 0.72rem; color: var(--stone-500, #8B7355); }
+
 /* Thermik-Gelände-Karte (P4, Fliegen-Linse) */
 .atm-thermal-card { display: block; position: relative; padding: 0; overflow: hidden; }
 .atm-thermal-map { position: absolute; inset: 0; }

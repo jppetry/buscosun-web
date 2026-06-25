@@ -62,10 +62,16 @@ Legende: [ ] offen · [~] in Arbeit · [x] erledigt (grün verifiziert) · [G] E
       kein Jank/Errors beobachtet → in architecture.md vermerkt
 
 ## P5 — Himmel-Cards
-- [ ] Sonnenuntergang/Nebelmeer/Optik aus ICON + deutsche Erklärtexte
-- [G] Saharastaub-Card — keine Aerosol-Pipeline → ausblenden + STOP-Hinweis
-- [ ] Sonnenuntergang/Nebelmeer speisen Verdicts; Degradierungspfade getestet
-- [ ] Verifikation grün
+- [x] `skyCards.ts` rein + Selbsttest 8/8 (Sonnenuntergang poor/good/fair,
+      Nebelmeer good/fair/none, Optik good/none)
+- [x] Sonnenuntergang/Nebelmeer/Optik aus ICON-EU-Wolkenstruktur + deutsche,
+      probabilistische Texte; Cards degradieren einzeln (none-Zustand)
+- [G] Saharastaub-Card AUSGEBLENDET — keine Aerosol-/Staub-Pipeline im Repo
+      (Entscheidungs-Gate); ehrlicher Hinweis in der UI (DUST_NOTE)
+- [x] Sonnenuntergang + Nebelmeer speisen das Himmel-Verdict (skyVerdict nutzt
+      sunsetCard/fogSeaCard)
+- [x] Verifikation grün: typecheck+build; 8/8 Tests; Live Innsbruck/Himmel —
+      3 Cards + Staub-Hinweis, Verdict aus Sonnenuntergang-Signal, keine Errors
 
 ## P6 — Föhn
 - [ ] 6a Föhn-Index (rein, getestet) + Verdict/Anzeige (ICON-ableitbar)

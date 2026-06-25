@@ -13,6 +13,7 @@
 import type { DerivedProfile } from './profile-derivations';
 import type { Lens } from './atmosphereState';
 import type { GroundingBlock } from '../assistant/grounding';
+import { sunsetCard, fogSeaCard } from './skyCards';
 
 export type VerdictTone = 'good' | 'watch' | 'bad';
 export interface Verdict {
@@ -48,9 +49,6 @@ const lowInversion = (p: DerivedProfile) =>
 /** Bodennahe Wolkenschicht (Hochnebel / Gipfel in Wolken). */
 const lowCloud = (p: DerivedProfile) =>
   p.cloudLayers.find((c) => c.baseM <= p.surfaceM + 400) ?? null;
-/** Hohe/mittelhohe Wolkenschicht (Farbpotenzial Sonnenuntergang). */
-const highCloud = (p: DerivedProfile) =>
-  p.cloudLayers.find((c) => c.baseM >= p.surfaceM + 4000) ?? null;
 
 function flyVerdict(p: DerivedProfile): Verdict {
   const wind = maxLowWindKmh(p);
@@ -85,12 +83,16 @@ function mountainVerdict(p: DerivedProfile): Verdict {
 }
 
 function skyVerdict(p: DerivedProfile): Verdict {
-  const lc = lowCloud(p);
-  const hc = highCloud(p);
-  const detail = '(volle Sonnenuntergangs-/Nebelmeer-/Optik-Bewertung ab P5)';
-  if (lc) return { tone: 'watch', headline: 'Tiefe Bewölkung — wenig Farbe am Himmel', detail, drivers: ['lowcloud'] };
-  if (hc) return { tone: 'good', headline: 'Hohe Wolken — Farbpotenzial zum Sonnenuntergang', detail, drivers: ['highcloud'] };
-  return { tone: 'good', headline: 'Weitgehend klarer Himmel', detail, drivers: ['clear'] };
+  // Sonnenuntergang + Nebelmeer (P5-Card-Ableitungen) speisen das Himmel-Verdict.
+  const fog = fogSeaCard(p);
+  const sunset = sunsetCard(p);
+  if (fog.level === 'good')
+    return { tone: 'good', headline: 'Nebelmeer wahrscheinlich — oben sonnig', detail: fog.text, drivers: ['fogsea'] };
+  if (sunset.level === 'good')
+    return { tone: 'good', headline: 'Farbenfroher Sonnenuntergang möglich', detail: sunset.text, drivers: ['sunset'] };
+  if (sunset.level === 'poor')
+    return { tone: 'watch', headline: 'Trüb — wenig Abendfarbe', detail: sunset.text, drivers: ['lowcloud'] };
+  return { tone: 'good', headline: 'Weitgehend klarer Himmel', detail: sunset.text, drivers: ['clear'] };
 }
 
 export function computeVerdict(lens: Lens, p: DerivedProfile): Verdict {
