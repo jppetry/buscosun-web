@@ -16,6 +16,11 @@ import {
 import type { DerivedProfile } from './profile-derivations';
 import type { SoundingProfile } from '../sources/iconEuSounding';
 import type { SoundingDerived } from '../threed/soundingMath';
+import type { GeoPoint } from '../threed/sectionGeometry';
+import type { ThreeDLayers } from '../threed/threedState';
+
+export type SectionMode = '2d' | '3d' | 'terrain';
+const DEFAULT_SECTION_LAYERS: ThreeDLayers = { mean: true, gust: false, shear: false, inversion: false, cloudBase: false, cloudLayers: false, streamlines: false, foehn: false, temp: false };
 
 /** Rohes Sounding + Thermodynamik für den Nerd-Mode (Tiefe 3). */
 export interface SoundingBundle { profile: SoundingProfile; derived: SoundingDerived }
@@ -44,6 +49,13 @@ interface AtmosphereContextValue {
   /** Raw sounding + thermodynamics for the lazy Nerd-Mode (depth 3). */
   sounding: SoundingBundle | null;
   setSounding: (s: SoundingBundle | null) => void;
+  /** Section lens: user-drawn cut line, layers and sub-mode (reused threed view). */
+  cutPoints: GeoPoint[];
+  setCutPoints: (p: GeoPoint[]) => void;
+  sectionLayers: ThreeDLayers;
+  setSectionLayers: (l: ThreeDLayers) => void;
+  sectionMode: SectionMode;
+  setSectionMode: (m: SectionMode) => void;
 }
 
 const AtmosphereContext = createContext<AtmosphereContextValue | null>(null);
@@ -79,6 +91,9 @@ export function AtmosphereProvider({ children }: { children: ReactNode }) {
   const [modelRunAt, setModelRunAt] = useState<Date | null>(null);
   const [profile, setProfile] = useState<DerivedProfile | null>(null);
   const [sounding, setSounding] = useState<SoundingBundle | null>(null);
+  const [cutPoints, setCutPoints] = useState<GeoPoint[]>([]);
+  const [sectionLayers, setSectionLayers] = useState<ThreeDLayers>(DEFAULT_SECTION_LAYERS);
+  const [sectionMode, setSectionMode] = useState<SectionMode>('2d');
 
   const setLens = (l: Lens) => {
     setLensState(l);
@@ -106,11 +121,13 @@ export function AtmosphereProvider({ children }: { children: ReactNode }) {
     if (prevLocKeyRef.current === locKey) return;
     prevLocKeyRef.current = locKey;
     setMarker(location ? { lat: location.lat, lon: location.lon } : null);
+    setCutPoints([]); // neue Lage → Schnittlinie verwerfen
   }, [locKey, location]);
 
   const value: AtmosphereContextValue = {
     lens, setLens, hour, setHour, nerdOpen, setNerdOpen, location, setLocation, marker, setMarker,
     modelRunAt, setModelRunAt, profile, setProfile, sounding, setSounding,
+    cutPoints, setCutPoints, sectionLayers, setSectionLayers, sectionMode, setSectionMode,
   };
   return <AtmosphereContext.Provider value={value}>{children}</AtmosphereContext.Provider>;
 }

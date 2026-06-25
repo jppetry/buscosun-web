@@ -100,10 +100,12 @@ export function computeVerdict(lens: Lens, p: DerivedProfile): Verdict {
     case 'fly': return flyVerdict(p);
     case 'mountain': return mountainVerdict(p);
     case 'sky': return skyVerdict(p);
+    // Die Schnitt-Linse zeigt kein Verdict (eigene Ansicht) — neutraler Fallback.
+    case 'section': return { tone: 'good', headline: 'Schnittansicht', detail: '', drivers: [] };
   }
 }
 
-const LENS_TITLE: Record<Lens, string> = { fly: 'Fliegen', mountain: 'Berg & Weg', sky: 'Himmel' };
+const LENS_TITLE: Record<Lens, string> = { fly: 'Fliegen', mountain: 'Berg & Weg', sky: 'Himmel', section: 'Schnitt' };
 const TONE_WORD: Record<VerdictTone, string> = { good: 'gut', watch: 'Vorsicht', bad: 'ungünstig' };
 
 /**

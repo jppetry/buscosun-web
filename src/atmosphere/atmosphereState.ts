@@ -9,13 +9,14 @@
 
 import type { Country } from '../types';
 
-export type Lens = 'fly' | 'mountain' | 'sky';
+export type Lens = 'fly' | 'mountain' | 'sky' | 'section';
 /** Stable order — used for the compact lens index in the hash. */
-export const LENSES: Lens[] = ['fly', 'mountain', 'sky'];
+export const LENSES: Lens[] = ['fly', 'mountain', 'sky', 'section'];
 export const LENS_LABEL: Record<Lens, string> = {
   fly: 'Fliegen',
   mountain: 'Berg & Weg',
   sky: 'Himmel',
+  section: 'Schnitt',
 };
 
 export const HOUR_MIN = 0;

@@ -23,6 +23,8 @@ import AtmosphereVerdict from './AtmosphereVerdict';
 import ThermalMap from './ThermalMap';
 import SkyCards from './SkyCardsPanel';
 import FoehnPanel from './FoehnPanel';
+import SectionLens from './SectionLens';
+import '../threed/threed.css';
 import '../route/tourTheme.css';
 import './atmosphere.css';
 
@@ -69,18 +71,24 @@ function AtmosphereShell({ onBack }: Props) {
           </div>
         </div>
 
-        <div className="atm-grid">
-          <AtmosphereVerdict />
-          {lens === 'fly' ? <ThermalMap /> : lens === 'sky' ? <SkyCards /> : <FoehnPanel />}
-          <AtmosphereProfile />
-          <NerdMode />
-        </div>
+        {lens === 'section' ? (
+          <SectionLens />
+        ) : (
+          <>
+            <div className="atm-grid">
+              <AtmosphereVerdict />
+              {lens === 'fly' ? <ThermalMap /> : lens === 'sky' ? <SkyCards /> : <FoehnPanel />}
+              <AtmosphereProfile />
+              <NerdMode />
+            </div>
 
-        {location && <Scrubber />}
-        {!location && (
-          <div className="atm-ph" style={{ marginTop: '1rem' }}>
-            Suche oben einen Ort, um die Atmosphäre und den Zeit-Scrubber zu aktivieren.
-          </div>
+            {location && <Scrubber />}
+            {!location && (
+              <div className="atm-ph" style={{ marginTop: '1rem' }}>
+                Suche oben einen Ort, um die Atmosphäre und den Zeit-Scrubber zu aktivieren.
+              </div>
+            )}
+          </>
         )}
       </main>
     </div>

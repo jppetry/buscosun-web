@@ -87,6 +87,18 @@ Legende: [ ] offen · [~] in Arbeit · [x] erledigt (grün verifiziert) · [G] E
       Isentropen (312–324 K) + Gelände, keine Errors. (3D-WebGL-Curtain bewusst
       nicht gebaut — Duplikat von threed/CurtainLayer; 2D ist das Paket-Fallback.)
 
+## Konsolidierung Stufe 1 — Schnitt-Linse (threed-Wiederverwendung)
+- [x] 4. Linse „Schnitt" (`atmosphereState` LENSES) + Store (cutPoints/sectionLayers/
+      sectionMode, Reset bei Ortswechsel)
+- [x] `SectionLens.tsx` komponiert `ThreeDMap`/`SectionView`/`TerrainView` +
+      `prepareCrossSection` (abbrechbar, Lade-/Fehler-State); globaler Scrubber auf
+      der Schnitt-Linse ausgeblendet; `threed.css` importiert
+- [x] Verifikation grün: typecheck+build; Live Innsbruck — Linie zeichnen → 2D-Schnitt
+      (Layer-Chips/GoNoGo/Pick) + 3D-Gelände-Vorhang; sauberes Unmount beim Linsenwechsel,
+      keine Konsolen-Errors
+- [G] threed bleibt vorerst PARALLEL (Kachel + `#3d=`) — Stufe-2-Ablösung später
+- [ ] (offen) Cut-line im `#atm=`-Permalink (v1 transient)
+
 ## P7 — Nerd-Mode + Feinschliff
 - [x] Nerd-Panel **lazy** (`React.lazy` → eigener Chunk `NerdPanel-*.js` ~2,6 kB,
       nicht im Standard-Bundle): Skew-T/Log-P (reused `threed/SkewTChart`), CAPE/CIN/

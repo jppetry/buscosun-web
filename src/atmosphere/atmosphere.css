@@ -118,6 +118,9 @@
 .atm-foehn-note { margin: 0.55rem 0 0; font-size: 0.72rem; line-height: 1.45; color: var(--stone-500, #8B7355); }
 .atm-foehn-soon { font-size: 0.82rem; }
 
+/* Schnitt-Linse (Konsolidierung threed) */
+.atm-section { margin-top: 0.6rem; }
+
 /* Talwind-Tagesgang (C) */
 .atm-talwind { padding: 0.9rem 1.1rem; }
 .atm-talwind-text { margin: 0.4rem 0 0; font-size: 0.86rem; color: var(--stone-600, #5C5447); }
