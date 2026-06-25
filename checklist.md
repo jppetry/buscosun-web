@@ -74,9 +74,15 @@ Legende: [ ] offen · [~] in Arbeit · [x] erledigt (grün verifiziert) · [G] E
       3 Cards + Staub-Hinweis, Verdict aus Sonnenuntergang-Signal, keine Errors
 
 ## P6 — Föhn
-- [ ] 6a Föhn-Index (rein, getestet) + Verdict/Anzeige (ICON-ableitbar)
-- [ ] 6b 3D-Isentropen-Querschnitt (MapLibre-Layer) + Scrubber-Animation + 2D-Fallback
-- [ ] Verifikation grün (Perf Desktop + gedrosselt)
+- [x] 6a Föhn-Index (`foehn.ts`, rein, Selbsttest 5/5) + `FoehnPanel` (Berg-&-Weg)
+- [G] 6a Cross-Barrier-Druckdifferenz AUSGELASSEN — kein Stationsdruck-Ingest
+      (Gate); Hinweis PRESSURE_GATE_NOTE; Index aus ICON-EU-Höhenwind + Trockenheit
+- [x] 6a Verifikation grün: typecheck+build; 5/5 Tests; Live „Kein Föhn" + Hinweis
+- [G] 6b 3D-Isentropen-Querschnitt — ENTSCHEIDUNGS-GATE (Feasibility/Architektur):
+      bräuchte cross-barrier θ-Feld (nur heuristisch) + neuen MapLibre-WebGL-Curtain,
+      der threed/CurtainLayer dupliziert, headless nicht verlässlich verifizierbar.
+      Empfehlung: threed-Curtain wiederverwenden/verlinken ODER 2D-θ-Querschnitt aus
+      buildCrossSection. Wartet auf Freigabe.
 
 ## P7 — Nerd-Mode + Feinschliff
 - [ ] Nerd-Panel (lazy): Skew-T/Log-P, CAPE/CIN, Deckel, rohe Levels, Lauf-Alter

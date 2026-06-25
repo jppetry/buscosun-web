@@ -21,6 +21,10 @@
   Wolke poor / hohe Wolke good / klar fair), Nebelmeer (Inversion+Wolke good /
   nur Inversion fair / keins none), Optik (kalter Cirrus good / keine none).
 
+- P6a `foehn` → `window.__verifyFoehn()` — 5/5 grün: aktiv (starker Südwind),
+  Tendenz (mäßiger Südwind), Nordwest stark → none, schwach → none, Kammwind aus
+  Höhenband (nicht Boden).
+
 ## Geplant
 - P3 `verdict`: Linsen-Mapping (Fliegen/Berg&Weg/Himmel) → sage/amber/terracotta
 - P5 Himmel-Derivations + Degradierungspfade bei fehlenden Daten

@@ -20,6 +20,7 @@ import AtmosphereProfile from './AtmosphereProfile';
 import AtmosphereVerdict from './AtmosphereVerdict';
 import ThermalMap from './ThermalMap';
 import SkyCards from './SkyCardsPanel';
+import FoehnPanel from './FoehnPanel';
 import '../route/tourTheme.css';
 import './atmosphere.css';
 
@@ -64,7 +65,7 @@ function AtmosphereShell({ onBack }: Props) {
 
         <div className="atm-grid">
           <AtmosphereVerdict />
-          {lens === 'fly' ? <ThermalMap /> : lens === 'sky' ? <SkyCards /> : <GlobePlaceholder />}
+          {lens === 'fly' ? <ThermalMap /> : lens === 'sky' ? <SkyCards /> : <FoehnPanel />}
           <AtmosphereProfile />
           <NerdMode />
         </div>
@@ -96,27 +97,6 @@ function LensSwitcher() {
         </button>
       ))}
     </div>
-  );
-}
-
-// --- Globe / Terrain (Platzhalter in P1) -------------------------------------
-
-function GlobePlaceholder() {
-  const [collapsed, setCollapsed] = useState(true);
-  return (
-    <section className={`rt-card atm-globe${collapsed ? ' is-collapsed' : ''}`} aria-label="3D-Globe / Terrain">
-      <button
-        type="button" className="atm-globe-fs"
-        onClick={() => setCollapsed((c) => !c)}
-        aria-expanded={!collapsed}
-      >
-        {collapsed ? '⤢ Vollbild' : '× Schließen'}
-      </button>
-      <div className="atm-globe-ph">
-        <strong>3D-Globe / Terrain</strong>
-        Wind, Wolken & Thermik — Platzhalter (MapLibre-Layer ab P4).
-      </div>
-    </section>
   );
 }
 

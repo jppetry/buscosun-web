@@ -109,6 +109,15 @@
 .atm-sky-text { margin: 0.35rem 0 0; font-size: 0.86rem; line-height: 1.5; color: var(--stone-600, #5C5447); }
 .atm-sky-note { margin: 0.1rem 0 0; font-size: 0.72rem; color: var(--stone-500, #8B7355); }
 
+/* Föhn-Panel (P6a, Berg-&-Weg-Linse) — belegt den Globe-Slot */
+.atm-foehn { grid-area: globe; display: flex; flex-direction: column; gap: 0.8rem; }
+.atm-foehn-card { padding: 1rem 1.1rem; }
+.atm-foehn-head { margin: 0; font-size: 1.05rem; font-weight: 600; color: var(--ink-900, #2C2A26); }
+.atm-foehn-text { margin: 0.4rem 0 0; font-size: 0.9rem; line-height: 1.5; color: var(--stone-600, #5C5447); }
+.atm-foehn-drivers { margin: 0.45rem 0 0; font-size: 0.78rem; font-weight: 600; color: var(--stone-500, #8B7355); }
+.atm-foehn-note { margin: 0.55rem 0 0; font-size: 0.72rem; line-height: 1.45; color: var(--stone-500, #8B7355); }
+.atm-foehn-soon { font-size: 0.82rem; }
+
 /* Thermik-Gelände-Karte (P4, Fliegen-Linse) */
 .atm-thermal-card { display: block; position: relative; padding: 0; overflow: hidden; }
 .atm-thermal-map { position: absolute; inset: 0; }
