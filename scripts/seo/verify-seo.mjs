@@ -61,6 +61,13 @@ function checkCommon(file, html, { type }) {
   if (!/property=["']og:/i.test(html)) fail(file, 'keine og:-Tags');
   else ok(file, 'OG-Tags vorhanden');
 
+  // og:image muss ein Raster (PNG/JPG/WebP) sein — SVG wird von Social/Discover
+  // nicht gerendert.
+  const ogImg = html.match(/property=["']og:image["'][^>]*content=["']([^"']+)["']/i);
+  if (!ogImg) fail(file, 'kein og:image');
+  else if (/\.svg(\?|$)/i.test(ogImg[1])) fail(file, `og:image ist SVG (${ogImg[1]}) — Social rendert kein SVG`);
+  else ok(file, `og:image Raster (${ogImg[1].split('/').pop()})`);
+
   if (!/rel=["']canonical["']/i.test(html)) fail(file, 'kein canonical');
   else ok(file, 'canonical vorhanden');
 

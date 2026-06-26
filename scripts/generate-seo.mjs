@@ -61,7 +61,9 @@ function hubPage() {
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
     <meta name="theme-color" content="#2C2A26" />
     <meta property="og:title" content="Wetter in DACH-Orten | ${SITE.name}" />
-    <meta property="og:image" content="${SITE.url}/og.svg" />
+    <meta property="og:image" content="${SITE.url}/og/wetter.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="${SITE.url}/og/wetter.png" />
     <style>:root{--sand:#FAF6EA;--ink:#2C2A26;--stone:#5C5447;--terra:#C97B47;--border:#E0D6BE}
 body{margin:0;font-family:system-ui,sans-serif;background:var(--sand);color:var(--ink);line-height:1.6}
 .wrap{max-width:820px;margin:0 auto;padding:2rem 1.25rem 4rem}h1{font-size:2rem}h2{font-size:1.15rem;border-bottom:1px solid var(--border);padding-bottom:.3rem;margin-top:2rem}

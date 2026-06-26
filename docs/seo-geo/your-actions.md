@@ -28,8 +28,9 @@ Community). Der autonome Runner sammelt sie hier und macht code-seitig weiter.
       Nebelobergrenze) manuell in ChatGPT/Perplexity/Gemini abfragen.
 
 ### Phase 2 — Distribution
-- [ ] **Per-Tool-Screenshots** erstellen und statt `/og.svg` als Hero/OG-Bild je
-      Funktionsseite einsetzen (aktuell Platzhalter `og.svg`).
+- [x] ~~Per-Tool/-Seite OG-Bilder statt `og.svg`-Platzhalter~~ → erledigt:
+      14 gebrandete 1200×630-PNGs in `public/og/` (Regen: `og-images.md`).
+      Optional: echte Produkt-Screenshots der Tools als noch hochwertigere Heros.
 - [ ] **Community-Seeding** gemäß `seeding-kit.md`: Tools transparent/nicht-werblich
       posten (Wetterzentrale-Forum, Gleitschirm/Drachen-Foren, astronomie.de,
       Garten-/Drohnen-Foren). Vorher Forenregeln + Aktivität prüfen.

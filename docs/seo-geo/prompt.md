@@ -78,4 +78,13 @@ Append-only. Ein Eintrag pro Schritt: Start → Kernentscheidung → Gate → Co
   schritte (GSC/Bing/Otterly) → `your-actions.md`.
 - Gate: Parser an synthetischem Log getestet (GPTBot/ClaudeBot/Bingbot 100% 200,
   perplexity.ai-Referral erkannt); Runbook + Baseline gespeichert → PASS (final).
+- Commit: 62c3122.
+
+## [POST] OG-/Hero-Bilder (Raster statt SVG-Platzhalter)
+- Start: SVG-OG wird von Social/Discover nicht gerendert → 14 gebrandete
+  1200×630-PNGs via `public/_og-card.html` + Headless-Chrome erzeugt (keine Dep).
+- Entscheidung (User-Gate): Browser-PNG committen statt Rasterizer-Dependency.
+  Ortsseiten teilen `wetter-default.png`; volle Piloten/Hubs eigene Bilder.
+- Verdrahtung: `explainerOgImage`/`toolOgImage` + per-Seite `ogImage`; `verify-seo`
+  erzwingt nun Raster-og:image. Build grün, 0 og.svg-Referenzen, 63 Checks.
 - Commit: folgt.

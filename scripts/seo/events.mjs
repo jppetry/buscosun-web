@@ -24,7 +24,7 @@ export const EVENTS = [
     status: 'full',
     datePublished: '2026-06-26',
     dateModified: '2026-06-26',
-    hero: { url: '/og.svg', w: 1200, h: 630, alt: 'buscosun — Wetterlage über Mitteleuropa' },
+    hero: { url: '/og/omega-lage-mitteleuropa.png', w: 1200, h: 630, alt: 'buscosun — Wetterlage über Mitteleuropa' },
     dek:
       'Eine Omega-Lage ist ein blockierendes Hochdruckgebiet, dessen Strömungsmuster im Höhenwind dem ' +
       'griechischen Buchstaben Ω gleicht. Sie sorgt über Mitteleuropa für tagelang beständiges, oft sonnig-warmes ' +

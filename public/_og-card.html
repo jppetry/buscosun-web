@@ -1,0 +1,74 @@
+<!doctype html>
+<!--
+  OG-Karten-Renderer (build-/share-only). Rendert eine gebrandete 1200x630-Karte
+  aus Query-Parametern; per Headless-Chrome zu public/og/<key>.png gescreenshottet.
+  Nicht für Endnutzer/Index — noindex + via robots/Generator ausgeschlossen.
+  Regenerierung: siehe docs/seo-geo/og-images.md.
+
+  Params: ?t=Titel&e=Eyebrow(Kategorie)&c=accentHex(optional)
+-->
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>OG-Karte</title>
+    <style>
+      :root { --sand:#FAF6EA; --ink:#2C2A26; --stone:#5C5447; --terra:#C97B47; --border:#E0D6BE; }
+      * { margin:0; padding:0; box-sizing:border-box; }
+      html,body { width:1200px; height:630px; }
+      body {
+        font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+        background: var(--sand); color: var(--ink); overflow:hidden;
+        position:relative;
+      }
+      /* Akzent-Ecke oben rechts */
+      .corner { position:absolute; top:0; right:0; width:340px; height:340px;
+        background: radial-gradient(circle at top right, var(--accent,#C97B47) 0%, transparent 70%);
+        opacity:.18; }
+      .bar { position:absolute; left:0; top:0; bottom:0; width:14px; background:var(--accent,#C97B47); }
+      .card { position:absolute; inset:0; padding:72px 80px; display:flex; flex-direction:column; }
+      .brand { display:flex; align-items:center; gap:16px; }
+      .brand img { width:54px; height:54px; }
+      .brand .wm { font-size:34px; font-weight:800; letter-spacing:-.5px; }
+      .eyebrow { margin-top:auto; font-size:26px; font-weight:700; letter-spacing:3px;
+        text-transform:uppercase; color:var(--accent,#C97B47); }
+      .title { font-size:84px; line-height:1.06; font-weight:800; letter-spacing:-1.5px;
+        margin:14px 0 0; max-width:1010px; }
+      .foot { margin-top:auto; display:flex; align-items:center; gap:14px;
+        font-size:23px; color:var(--stone); font-weight:600; }
+      .foot .dot { color:var(--accent,#C97B47); }
+    </style>
+  </head>
+  <body>
+    <div class="corner"></div>
+    <div class="bar"></div>
+    <div class="card">
+      <div class="brand">
+        <img src="/buscosun-mark.svg" alt="" />
+        <span class="wm">buscosun</span>
+      </div>
+      <div class="eyebrow" id="eyebrow"></div>
+      <h1 class="title" id="title"></h1>
+      <div class="foot">
+        <span>Wetter DE · AT · CH</span><span class="dot">·</span>
+        <span>höhenkorrigiert, ohne Tracker</span><span class="dot">·</span>
+        <span>buscosun.app</span>
+      </div>
+    </div>
+    <script>
+      const p = new URLSearchParams(location.search);
+      const accent = p.get('c') || '#C97B47';
+      document.documentElement.style.setProperty('--accent', accent);
+      document.getElementById('eyebrow').textContent = p.get('e') || 'buscosun';
+      const titleEl = document.getElementById('title');
+      titleEl.textContent = p.get('t') || 'Wetter für Deutschland, Österreich & die Schweiz';
+      // Auto-Fit: Schrift verkleinern, bis der Titel in seinen Bereich passt.
+      let size = 84;
+      const maxH = 300;
+      while ((titleEl.scrollHeight > maxH || titleEl.scrollWidth > 1010) && size > 40) {
+        size -= 3; titleEl.style.fontSize = size + 'px';
+      }
+      window.__ogReady = true;
+    </script>
+  </body>
+</html>

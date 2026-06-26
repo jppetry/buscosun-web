@@ -1,6 +1,8 @@
 # buscosun — robots.txt
 User-agent: *
 Allow: /
+# OG-Karten-Renderer (nur zur Bildgenerierung, kein Inhalt)
+Disallow: /_og-card.html
 
 # Klassische Suchmaschinen (explizit, zur Klarheit)
 User-agent: Googlebot

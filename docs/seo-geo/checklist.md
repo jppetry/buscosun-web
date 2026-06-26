@@ -18,7 +18,10 @@ Abhaken pro Schritt. `[x]` erledigt, `[~]` teilweise/Scaffold, `[ ]` offen.
       Nebel/Nebelobergrenze), 7 Scaffolds (noindex); Article+FAQPage-JSON-LD,
       Direktantwort, Quellen, /wissen/-Hub; nur volle Explainer in Sitemap
 
-## 2 — Distribution
+## 2 — Distribution (+ OG-Bilder)
+- [x] OG/Hero-Bilder: 14 gebrandete 1200×630-**PNG**s in `public/og/` (Raster,
+      social-/Discover-tauglich); per-Seite verdrahtet; `verify:seo` erzwingt
+      Raster (kein SVG). Renderer `public/_og-card.html`, Regen-Doku `og-images.md`
 - [x] 2.1 Tool-Landingpages `/funktionen/`: 9 Tools, 2 voll (Wetterkarte,
       Atmosphäre), 7 Scaffold (noindex); SoftwareApplication+FAQ+Breadcrumb-JSON-LD,
       OG-Großbild, Deep-Link in die App, /funktionen/-Hub

@@ -267,6 +267,7 @@ export function renderPlacePage(place) {
   const neighbors = nearestPlaces(place, 6);
   const head = headBlock({
     title: meta.title, description: meta.description, canonicalPath, locale: meta.locale,
+    ogImage: '/og/wetter-default.png',
     jsonLd: [placeJsonLd(place), datasetJsonLd(place), breadcrumbJsonLd(place), faqJsonLd(faqs), webAppJsonLd()],
   });
 
@@ -374,12 +375,18 @@ import { EXPLAINERS } from './explainers.mjs';
 const PLACE_BY_SLUG = Object.fromEntries(PLACES.map((p) => [p.slug, p]));
 
 /** Article-JSON-LD für einen Explainer (mit author, datePublished, dateModified). */
+/** OG/Hero-Bild je Explainer (volle = eigenes PNG, Scaffold = Kategorie-Default). */
+export function explainerOgImage(ex) {
+  return ex.status === 'full' ? `/og/${ex.slug}.png` : '/og/wissen-default.png';
+}
+
 export function articleJsonLd(ex) {
   const url = `${SITE.url}/wissen/${ex.slug}/`;
   return {
     '@context': 'https://schema.org',
     '@type': 'Article',
     headline: ex.h1,
+    image: [SITE.url + explainerOgImage(ex)],
     description: ex.answer,
     inLanguage: 'de-DE',
     mainEntityOfPage: url,
@@ -419,6 +426,7 @@ export function renderExplainerPage(ex, allBySlug) {
   const noindex = ex.status !== 'full';
   const head = headBlock({
     title: meta.title, description: meta.description, canonicalPath, locale: 'de-DE', noindex,
+    ogImage: explainerOgImage(ex),
     jsonLd: [articleJsonLd(ex), faqJsonLd(ex.faqs || []), explainerBreadcrumbJsonLd(ex)],
   });
 
@@ -481,7 +489,7 @@ export function renderWissenHub(explainers) {
   const head = headBlock({
     title: `Wetterwissen — Phänomene einfach erklärt | ${SITE.name}`,
     description: 'Föhn, Temperaturinversion, Nebelobergrenze, Thermik, Schneefallgrenze und mehr — meteorologische Phänomene der DACH-Region verständlich und faktenbasiert erklärt.',
-    canonicalPath: '/wissen/', locale: 'de-DE',
+    canonicalPath: '/wissen/', locale: 'de-DE', ogImage: '/og/wissen.png',
     jsonLd: [{
       '@context': 'https://schema.org', '@type': 'CollectionPage',
       name: 'Wetterwissen', url: SITE.url + '/wissen/',
@@ -530,6 +538,11 @@ export function relevantExplainersFor(place, explainers, n = 3) {
 
 import { EXPLAINERS_BY_SLUG } from './explainers.mjs';
 
+/** OG/Hero-Bild je Tool (volle = eigenes PNG, Scaffold = Kategorie-Default). */
+export function toolOgImage(tool) {
+  return tool.status === 'full' ? `/og/${tool.slug}.png` : '/og/funktionen-default.png';
+}
+
 export function softwareApplicationJsonLd(tool) {
   const url = `${SITE.url}/funktionen/${tool.slug}/`;
   return {
@@ -537,6 +550,7 @@ export function softwareApplicationJsonLd(tool) {
     '@type': 'SoftwareApplication',
     name: `${SITE.name} — ${tool.title}`,
     url,
+    image: SITE.url + toolOgImage(tool),
     applicationCategory: 'Weather',
     operatingSystem: 'Web',
     inLanguage: ['de-DE', 'de-AT', 'de-CH'],
@@ -571,8 +585,10 @@ export function renderToolPage(tool) {
   const meta = metaForTool(tool);
   const canonicalPath = `/funktionen/${tool.slug}/`;
   const noindex = tool.status !== 'full';
+  const ogImage = toolOgImage(tool);
   const head = headBlock({
     title: meta.title, description: meta.description, canonicalPath, locale: 'de-DE', noindex,
+    ogImage,
     jsonLd: [softwareApplicationJsonLd(tool), faqJsonLd(tool.faqs || []), toolBreadcrumbJsonLd(tool)],
   });
   const bullets = (tool.bullets || []).map((b) => `<li>${escapeHtml(b)}</li>`).join('\n        ');
@@ -598,7 +614,7 @@ ${head}
     <div class="wrap">
       <nav class="bc" aria-label="Brotkrumen"><a href="/">Start</a> › <a href="/funktionen/">Funktionen</a> › ${escapeHtml(tool.title)}</nav>
       <h1>${escapeHtml(tool.h1)}</h1>
-      <img class="hero" src="/og.svg" width="1200" height="630" alt="${escapeHtml(tool.title)} — buscosun" />
+      <img class="hero" src="${ogImage}" width="1200" height="630" alt="${escapeHtml(tool.title)} — buscosun" />
       <p class="answer">${escapeHtml(tool.answer)}</p>
       <a class="cta" href="${tool.deepLink}">${escapeHtml(tool.title)} in buscosun öffnen →</a>
       ${stubNote}
@@ -629,7 +645,7 @@ export function renderFunktionenHub(tools) {
   const head = headBlock({
     title: `Funktionen — was buscosun kann | ${SITE.name}`,
     description: 'Alle buscosun-Funktionen im Überblick: interaktive Wetterkarte, 3D-Atmosphäre, Tourenplanung, bester Event-Tag, Nowcast, Modellvergleich, Globus, Historie und Arbeitsfenster — kostenlos und ohne Tracker.',
-    canonicalPath: '/funktionen/', locale: 'de-DE',
+    canonicalPath: '/funktionen/', locale: 'de-DE', ogImage: '/og/funktionen.png',
     jsonLd: [{
       '@context': 'https://schema.org', '@type': 'CollectionPage',
       name: 'buscosun-Funktionen', url: SITE.url + '/funktionen/',
@@ -718,7 +734,7 @@ export function renderEventPage(ev) {
   // OG-Titel als headBlock-title-Quelle für OG, behalten aber den <title>.
   const head = headBlock({
     title: meta.title, description: meta.description, canonicalPath, locale: 'de-DE', noindex,
-    ogTitle: meta.ogTitle,
+    ogTitle: meta.ogTitle, ogImage: ev.hero.url,
     jsonLd: [newsArticleJsonLd(ev), eventBreadcrumbJsonLd(ev)],
   });
   const sections = (ev.sections || [])
@@ -770,7 +786,7 @@ export function renderWetterlageHub(events) {
   const head = headBlock({
     title: `Wetterlagen — aktuelle Einordnungen | ${SITE.name}`,
     description: 'Einordnung markanter Wetterlagen in der DACH-Region: Hintergründe, betroffene Orte und meteorologische Erklärungen — faktenbasiert, ohne amtliche Warnungen zu implizieren.',
-    canonicalPath: '/wetterlage/', locale: 'de-DE',
+    canonicalPath: '/wetterlage/', locale: 'de-DE', ogImage: '/og/wetterlage.png',
     jsonLd: [{ '@context': 'https://schema.org', '@type': 'CollectionPage', name: 'Wetterlagen', url: SITE.url + '/wetterlage/' }],
   });
   return `<!doctype html>
@@ -807,11 +823,11 @@ export function homeHeadExtras() {
     <meta property="og:description" content="${escapeHtml(SITE.description)}" />
     <meta property="og:url" content="${url}" />
     <meta property="og:locale" content="de_DE" />
-    <meta property="og:image" content="${SITE.url}/og.svg" />
+    <meta property="og:image" content="${SITE.url}/og/home.png" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="buscosun — ${escapeHtml(SITE.tagline)}" />
     <meta name="twitter:description" content="${escapeHtml(SITE.description)}" />
-    <meta name="twitter:image" content="${SITE.url}/og.svg" />
+    <meta name="twitter:image" content="${SITE.url}/og/home.png" />
     ${jsonLdScript(webAppJsonLd())}
     ${jsonLdScript(organizationJsonLd())}`;
 }
