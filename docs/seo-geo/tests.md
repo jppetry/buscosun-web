@@ -32,6 +32,26 @@ Lighthouse mobil (Chrome DevTools MCP) auf Home + einer Ortsseite. Schwellen:
 LCP < 2.5s, INP < 200ms, CLS < 0.1 (p75). LCP-Element MUSS Text/Poster sein.
 Ergebnis bzw. dokumentierte Lücke in `blockers.md`.
 
+## CWV-Messung (0.4) — Ergebnis
+Gemessen via Chrome-DevTools-MCP-Performance-Trace, mobil (390×844×3),
+Throttling Slow 4G + 4× CPU, `vite preview` (`dist/`). Lab-Werte (CrUX/Feld n/a,
+da noch kein Traffic):
+
+| Seite | LCP | CLS | LCP-Element |
+|-------|-----|-----|-------------|
+| Home `/` | **257 ms** | **0.00** | vorgerenderter Text-Fallback (H1/Lead), nicht Canvas |
+| Ort `/wetter/muenchen/` | **938 ms** | **0.00** | Fakten-/Lead-Text |
+
+Schwellen (LCP < 2.5s, CLS < 0.1) **deutlich erfüllt**. Lighthouse mobil auf der
+Ortsseite: **SEO 100, Best Practices 100, A11y 92**.
+
+Befund: Das P0-Prinzip (SEO-Text im rohen HTML) liefert nebenbei ausgezeichnete
+CWV — der LCP-Text paintet vor dem schweren SPA-JS-Bundle (Progressive
+Enhancement). Nicht-blockierende Beobachtungen (App-intern, kein SEO-Risiko):
+Render-Blocking-CSS + ein Forced-Reflow auf der Home → in `blockers.md` als
+optionale Optimierung notiert, nicht umgesetzt (CWV bereits grün, Eingriff in den
+laufenden interaktiven Pfad wäre Risiko ohne Nutzen).
+
 ## Strukturdaten
 JSON-LD gegen schema.org-Typen validieren (Rich-Results-Test extern; lokal:
 `verify-seo.mjs` prüft JSON-Gültigkeit + Pflichtfelder).

@@ -22,4 +22,12 @@ Append-only. Ein Eintrag pro Schritt: Start → Kernentscheidung → Gate → Co
   (Netlify/CF Pages automatisch; GitHub Pages liefert 200 → ungeeignet vor Tier-Expansion).
 - Gate: robots ausgeliefert, sitemap valide XML (140 URLs), 404 erzeugt, JSON-LD
   valide (verify grün) → PASS.
+- Commit: 6fdafd4.
+
+## [STEP 0.4] Core Web Vitals
+- Start: Lighthouse + Performance-Trace (mobil, Slow 4G, 4× CPU) auf Home + Ort.
+- Entscheidung: keine App-internen Perf-Refactors (CWV bereits grün; Eingriff in
+  laufenden SPA-Pfad = Risiko ohne Nutzen). Optionale Punkte in `blockers.md`.
+- Gate: Home LCP 257 ms/CLS 0.00; Ort LCP 938 ms/CLS 0.00; LCP=Text; Lighthouse
+  SEO 100 / BP 100 / A11y 92 → PASS.
 - Commit: folgt.

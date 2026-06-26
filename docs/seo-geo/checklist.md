@@ -8,7 +8,7 @@ Abhaken pro Schritt. `[x]` erledigt, `[~]` teilweise/Scaffold, `[ ]` offen.
 - [x] 0.2 `verify-seo.mjs` prüft Roh-HTML (Home + Ort, Explainer/Tool/Event sobald vorhanden): H1, Lead, Meta, JSON-LD — 32 Checks grün
 - [x] 0.3 robots.txt erweitert (Googlebot, Bingbot, CCBot, Claude-SearchBot)
 - [x] 0.3 `dist/404.html` (noindex) erzeugt; sitemap valide (140 URLs); canonical überall (verify grün). HTTP-404-Status host-seitig → your-actions
-- [ ] 0.4 CWV mobil gemessen / Lücke in `blockers.md` dokumentiert
+- [x] 0.4 CWV mobil gemessen: Home LCP 257 ms / CLS 0.00, Ort LCP 938 ms / CLS 0.00; LCP=Text; Lighthouse SEO/BP 100. Optionale App-Opt. in `blockers.md`
 
 ## 1 — Content & Programmatic
 - [x] 1.1 Location-Pages (Tier 1, ~140 Orte) mit Differenzierern
