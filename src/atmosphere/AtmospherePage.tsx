@@ -99,7 +99,7 @@ function AtmosphereShell({ onBack }: Props) {
 
 const ATM_INTRO_CAPS = [
   'Vertikalprofil aus echtem ICON-EU-Sounding — Temperatur, Taupunkt, Höhenwind, Inversion',
-  'Drei Linsen: Inversion & Föhn · Fliegen & Thermik · Querschnitt',
+  'Drei Linsen: Föhn · Thermik · Querschnitt',
   'Thermik-Karte, Föhn-Index, Talwind, Vertikalschnitt & Skew-T (Nerd-Mode)',
   'Aus ICON-EU (~7 km) + Gelände, höhenkorrigiert — werbefrei, keine Tracker',
 ];
