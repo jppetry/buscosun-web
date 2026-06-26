@@ -10,13 +10,12 @@
 import type { Country } from '../types';
 import type { GeoPoint } from '../threed/sectionGeometry';
 
-export type Lens = 'fly' | 'mountain' | 'sky' | 'section';
+export type Lens = 'fly' | 'mountain' | 'section';
 /** Stable order — used for the compact lens index in the hash. */
-export const LENSES: Lens[] = ['fly', 'mountain', 'sky', 'section'];
+export const LENSES: Lens[] = ['fly', 'mountain', 'section'];
 export const LENS_LABEL: Record<Lens, string> = {
   fly: 'Fliegen & Thermik',
   mountain: 'Berg & Tour',
-  sky: 'Himmelsoptik',
   section: 'Querschnitt',
 };
 
@@ -68,7 +67,7 @@ export function decodeState(hash: string): AtmosphereState | null {
     const marker = Array.isArray(o.m) && Number.isFinite(o.m[0]) && Number.isFinite(o.m[1])
       ? { lat: o.m[0], lon: o.m[1] }
       : null;
-    const lens = LENSES[o.le] ?? 'sky';
+    const lens = LENSES[o.le] ?? 'fly';
     const cut = Array.isArray(o.c)
       ? o.c.filter((q) => Array.isArray(q) && Number.isFinite(q[0]) && Number.isFinite(q[1])).map((q) => ({ lat: q[0], lon: q[1] }))
       : [];
@@ -113,8 +112,8 @@ export function verifyAtmosphereState(): { checks: AtmCheck[]; passed: number; f
   add('broken JSON → null', decodeState(HASH_PREFIX + '%7Bnope') === null);
   add('hasAtmosphereHash detects prefix', hasAtmosphereHash(enc) && !hasAtmosphereHash('#x'));
 
-  const empty = decodeState(encodeState({ loc: null, hour: 0, lens: 'sky', nerd: false, marker: null, cut: [] }));
-  add('empty round-trip', !!empty && empty.loc === null && empty.lens === 'sky' && empty.hour === 0);
+  const empty = decodeState(encodeState({ loc: null, hour: 0, lens: 'fly', nerd: false, marker: null, cut: [] }));
+  add('empty round-trip', !!empty && empty.loc === null && empty.lens === 'fly' && empty.hour === 0);
 
   return { checks, passed: checks.filter((c) => c.ok).length, failed: checks.filter((c) => !c.ok).length };
 }

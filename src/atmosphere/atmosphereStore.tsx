@@ -86,7 +86,7 @@ export function AtmosphereProvider({ children }: { children: ReactNode }) {
       return { lens: 'section' as Lens, hour: 0, nerd: false, loc,
         marker: loc ? { lat: loc.lat, lon: loc.lon } : null, cut: td.points };
     }
-    return { lens: readLensFromStorage() ?? 'sky', hour: 0, nerd: false, loc: null, marker: null, cut: [] as GeoPoint[] };
+    return { lens: readLensFromStorage() ?? 'fly', hour: 0, nerd: false, loc: null, marker: null, cut: [] as GeoPoint[] };
   }, []);
 
   const [lens, setLensState] = useState<Lens>(initial.lens);

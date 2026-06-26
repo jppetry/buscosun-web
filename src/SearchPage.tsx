@@ -415,7 +415,7 @@ function HeroFeatures({ onOpenFeature }: { onOpenFeature: (feature: FeatureInfo)
         id="atmosphere"
         eyebrow="Atmosphäre"
         title="Die Atmosphäre über dir"
-        description="Eine Linse fürs Fliegen, Berg & Weg oder den Himmel: Thermik, Inversion, Wolkenbasis und Höhenwind als Vertikalprofil — mit ehrlicher Einschätzung über die nächsten 48 Stunden."
+        description="Linsen fürs Fliegen, für Berg & Tour und den vertikalen Querschnitt: Thermik, Inversion, Wolkenbasis und Höhenwind als Vertikalprofil — mit ehrlicher Einschätzung über die nächsten 48 Stunden."
         preview={<AtmospherePreview />}
         flush
         onOpen={onOpenFeature}

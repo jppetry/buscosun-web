@@ -21,7 +21,6 @@ import { LENSES, LENS_LABEL, HOUR_MIN, HOUR_MAX, type Lens } from './atmosphereS
 import AtmosphereProfile from './AtmosphereProfile';
 import AtmosphereVerdict from './AtmosphereVerdict';
 import ThermalMap from './ThermalMap';
-import SkyCards from './SkyCardsPanel';
 import FoehnPanel from './FoehnPanel';
 import SectionLens from './SectionLens';
 import '../threed/threed.css';
@@ -82,7 +81,7 @@ function AtmosphereShell({ onBack }: Props) {
               <>
                 <div className="atm-grid">
                   <AtmosphereVerdict />
-                  {lens === 'fly' ? <ThermalMap /> : lens === 'sky' ? <SkyCards /> : <FoehnPanel />}
+                  {lens === 'fly' ? <ThermalMap /> : <FoehnPanel />}
                   <AtmosphereProfile />
                   <NerdMode />
                 </div>
@@ -100,8 +99,8 @@ function AtmosphereShell({ onBack }: Props) {
 
 const ATM_INTRO_CAPS = [
   'Vertikalprofil aus echtem ICON-EU-Sounding — Temperatur, Taupunkt, Höhenwind, Inversion',
-  'Vier Linsen: Fliegen & Thermik · Berg & Tour · Himmelsoptik · Querschnitt',
-  'Thermik-Karte, Föhn-Index, Talwind, Nebelmeer & Sonnenuntergang, Skew-T (Nerd-Mode)',
+  'Drei Linsen: Fliegen & Thermik · Berg & Tour · Querschnitt',
+  'Thermik-Karte, Föhn-Index, Talwind, Vertikalschnitt & Skew-T (Nerd-Mode)',
   'Aus ICON-EU (~7 km) + Gelände, höhenkorrigiert — werbefrei, keine Tracker',
 ];
 

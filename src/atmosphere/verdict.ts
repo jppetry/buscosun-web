@@ -13,7 +13,6 @@
 import type { DerivedProfile } from './profile-derivations';
 import { LENS_LABEL, type Lens } from './atmosphereState';
 import type { GroundingBlock } from '../assistant/grounding';
-import { sunsetCard, fogSeaCard } from './skyCards';
 
 export type VerdictTone = 'good' | 'watch' | 'bad';
 export interface Verdict {
@@ -82,24 +81,10 @@ function mountainVerdict(p: DerivedProfile): Verdict {
   return { tone: 'good', headline: 'Klare Bergsicht erwartbar', detail, drivers: ['clear'] };
 }
 
-function skyVerdict(p: DerivedProfile): Verdict {
-  // Sonnenuntergang + Nebelmeer (P5-Card-Ableitungen) speisen das Himmel-Verdict.
-  const fog = fogSeaCard(p);
-  const sunset = sunsetCard(p);
-  if (fog.level === 'good')
-    return { tone: 'good', headline: 'Nebelmeer wahrscheinlich — oben sonnig', detail: fog.text, drivers: ['fogsea'] };
-  if (sunset.level === 'good')
-    return { tone: 'good', headline: 'Farbenfroher Sonnenuntergang möglich', detail: sunset.text, drivers: ['sunset'] };
-  if (sunset.level === 'poor')
-    return { tone: 'watch', headline: 'Trüb — wenig Abendfarbe', detail: sunset.text, drivers: ['lowcloud'] };
-  return { tone: 'good', headline: 'Weitgehend klarer Himmel', detail: sunset.text, drivers: ['clear'] };
-}
-
 export function computeVerdict(lens: Lens, p: DerivedProfile): Verdict {
   switch (lens) {
     case 'fly': return flyVerdict(p);
     case 'mountain': return mountainVerdict(p);
-    case 'sky': return skyVerdict(p);
     // Die Schnitt-Linse zeigt kein Verdict (eigene Ansicht) — neutraler Fallback.
     case 'section': return { tone: 'good', headline: 'Schnittansicht', detail: '', drivers: [] };
   }
@@ -193,10 +178,6 @@ export function verifyVerdict(): { checks: VerdictCheck[]; passed: number; faile
   // Berg: tiefe Wolke → schlecht (Gipfel in Wolken).
   const mtCloud = computeVerdict('mountain', mkDerived({ cloudLayers: [{ baseM: 800, topM: 2000 }], levels: [lv(600, 8)] }));
   add('Berg tiefe Wolke → bad', mtCloud.tone === 'bad', mtCloud.headline);
-
-  // Himmel: tiefe Bewölkung → Vorsicht.
-  const skyDull = computeVerdict('sky', mkDerived({ cloudLayers: [{ baseM: 700, topM: 1500 }], levels: [lv(600, 8)] }));
-  add('Himmel trüb → watch', skyDull.tone === 'watch', skyDull.headline);
 
   // Grounding-Block korrekt aufgebaut.
   const block = buildVerdictFacts('fly', 'Innsbruck', mkDerived({ boundaryLayerTopM: 3000, thermalStrengthMs: 3.2, cloudBaseM: 2200, levels: [lv(600, 12)] }), flyGood);
