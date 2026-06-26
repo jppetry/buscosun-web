@@ -11,8 +11,9 @@ Abhaken pro Schritt. `[x]` erledigt, `[~]` teilweise/Scaffold, `[ ]` offen.
 - [x] 0.4 CWV mobil gemessen: Home LCP 257 ms / CLS 0.00, Ort LCP 938 ms / CLS 0.00; LCP=Text; Lighthouse SEO/BP 100. Optionale App-Opt. in `blockers.md`
 
 ## 1 — Content & Programmatic
-- [x] 1.1 Location-Pages (Tier 1, ~140 Orte) mit Differenzierern
-- [ ] 1.1 Cross-Links Location ↔ Explainer
+- [x] 1.1 Location-Pages (Tier 1, ~140 Orte): Direktantwort-Lead, Föhn/Schneefall-
+      grenze (alpin), Modell-Spread, „bester Tag", Dataset-JSON-LD, DWD-CC-BY-Attribution
+- [~] 1.1 Cross-Links Location ↔ Explainer (Location→Explainer-Hälfte folgt mit 1.2)
 - [ ] 1.2 GEO-Explainer `/wissen/`: 3 Piloten voll, Rest Scaffold
 
 ## 2 — Distribution

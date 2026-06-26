@@ -71,6 +71,8 @@ export function placeFacts(place) {
   } else {
     facts.push(`UV wird für ${place.name} per Klarhimmel-Modell geschätzt; Pollen sind optional über Open-Meteo/CAMS zuschaltbar (kein amtlicher AT/CH-Feed).`);
   }
+  facts.push(`Der Modellvergleich zeigt für ${place.name} den Unsicherheits-Spread mehrerer Wettermodelle (ICON-D2, MOSMIX, ICON-EU) ehrlich an, statt eine Scheingenauigkeit vorzutäuschen.`);
+  facts.push(`Für Vorhaben im Freien ermittelt die Event-Planung den besten der nächsten sieben Tage in ${place.name} — inklusive Plan-B-Tag, Foto-Licht und Astro-Nacht.`);
   return facts;
 }
 
@@ -160,6 +162,30 @@ export function placeJsonLd(place) {
   };
 }
 
+/** Dataset-JSON-LD: höhenkorrigierte Vorhersage je Ort, ehrliche Quellen-/
+ *  Lizenzangabe (DWD CC BY 4.0). Macht die Datenbasis GEO-/Rich-Result-lesbar. */
+export function datasetJsonLd(place) {
+  const license = place.country === 'DE'
+    ? 'https://www.dwd.de/DE/service/copyright/copyright_node.html'
+    : 'https://creativecommons.org/licenses/by/4.0/';
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Dataset',
+    name: `Höhenkorrigierte Wettervorhersage ${place.name}`,
+    description: `Vorhersage- und Standortdaten für ${place.name} (${place.region}, ${COUNTRY_NAME[place.country]}, rund ${place.ele} m), höhenkorrigiert über ein digitales Geländemodell. Quellen: ${sourcesFor(place.country)}.`,
+    url: `${SITE.url}/wetter/${place.slug}/`,
+    license,
+    isAccessibleForFree: true,
+    creator: { '@type': 'Organization', name: SITE.name, url: SITE.url + '/' },
+    spatialCoverage: {
+      '@type': 'Place',
+      name: place.name,
+      geo: { '@type': 'GeoCoordinates', latitude: place.lat, longitude: place.lon, elevation: place.ele },
+    },
+    inLanguage: LOCALE[place.country],
+  };
+}
+
 export function breadcrumbJsonLd(place) {
   return {
     '@context': 'https://schema.org',
@@ -240,7 +266,7 @@ export function renderPlacePage(place) {
   const neighbors = nearestPlaces(place, 6);
   const head = headBlock({
     title: meta.title, description: meta.description, canonicalPath, locale: meta.locale,
-    jsonLd: [placeJsonLd(place), breadcrumbJsonLd(place), faqJsonLd(faqs), webAppJsonLd()],
+    jsonLd: [placeJsonLd(place), datasetJsonLd(place), breadcrumbJsonLd(place), faqJsonLd(faqs), webAppJsonLd()],
   });
 
   const factItems = facts.map((f) => `<li>${escapeHtml(f)}</li>`).join('\n        ');
@@ -291,8 +317,8 @@ ${head}
       </section>
 
       <footer>
-        ${escapeHtml(SITE.name)} — ${escapeHtml(SITE.tagline)}. Quellen: DWD · GeoSphere · MeteoSwiss. Keine Tracker, keine Werbung.
-        Hinweis: Diese Seite nennt stabile Standort-Fakten; aktuelle Messwerte und Vorhersagen liefert die interaktive App.
+        ${escapeHtml(SITE.name)} — ${escapeHtml(SITE.tagline)}. Datenbasis: Deutscher Wetterdienst (DWD, CC BY 4.0) · GeoSphere Austria · MeteoSwiss. Keine Tracker, keine Werbung.
+        Hinweis: Diese Seite nennt stabile Standort-Fakten; aktuelle Messwerte und Vorhersagen liefert die interaktive App. buscosun gibt keine amtlichen Warnungen heraus.
       </footer>
     </div>
   </body>

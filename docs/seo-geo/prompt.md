@@ -30,4 +30,12 @@ Append-only. Ein Eintrag pro Schritt: Start → Kernentscheidung → Gate → Co
   laufenden SPA-Pfad = Risiko ohne Nutzen). Optionale Punkte in `blockers.md`.
 - Gate: Home LCP 257 ms/CLS 0.00; Ort LCP 938 ms/CLS 0.00; LCP=Text; Lighthouse
   SEO 100 / BP 100 / A11y 92 → PASS.
+- Commit: 11c51f3.
+
+## [STEP 1.1] Location-Pages — Differenzierer + Dataset
+- Start: Modell-Spread- + „bester-Tag"-Fakten, Dataset-JSON-LD (DWD CC BY 4.0),
+  explizite Attribution „Datenbasis: Deutscher Wetterdienst".
+- Entscheidung: URL-Schema `/wetter/<slug>/` unverändert; Location→Explainer-
+  Cross-Links folgen mit 1.2 (Explainer existieren erst dann).
+- Gate: Tier 1 baut (138 Seiten), `verify:seo` 32 Checks grün, Dataset-JSON-LD valide → PASS.
 - Commit: folgt.
