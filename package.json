@@ -11,7 +11,6 @@
     "qa:layers": "node scripts/qa-layers.mjs"
   },
   "dependencies": {
-    "@mlc-ai/web-llm": "^0.2.84",
     "bz2": "^1.0.1",
     "bzip2-wasm": "^1.0.1",
     "jsfive": "^0.4.0",
