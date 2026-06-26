@@ -15,7 +15,7 @@ export type Lens = 'fly' | 'mountain' | 'section';
  *  zugleich der kompakte Linsen-Index im Hash. */
 export const LENSES: Lens[] = ['mountain', 'fly', 'section'];
 export const LENS_LABEL: Record<Lens, string> = {
-  mountain: 'Berg & Tour',
+  mountain: 'Inversion & Föhn',
   fly: 'Fliegen & Thermik',
   section: 'Querschnitt',
 };

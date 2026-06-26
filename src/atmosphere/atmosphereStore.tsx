@@ -70,7 +70,7 @@ function readLensFromStorage(): Lens | null {
 
 export function AtmosphereProvider({ children }: { children: ReactNode }) {
   // Initial state: hash wins; else last lens from localStorage; else first-time
-  // default lens = "Himmel" (sky), per spec.
+  // default lens = "Inversion & Föhn" (mountain) — the broadest everyday lens.
   const initial = useMemo(() => {
     const hash = typeof window !== 'undefined' ? window.location.hash : '';
     const st = decodeState(hash);
