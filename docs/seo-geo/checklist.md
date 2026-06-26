@@ -32,9 +32,10 @@ Abhaken pro Schritt. `[x]` erledigt, `[~]` teilweise/Scaffold, `[ ]` offen.
 - [x] 3.1 Event-Content-Checkliste (unten)
 
 ## 4 — Measurement
-- [ ] 4.1 GSC/Bing-Runbook
-- [ ] 4.1 Server-Log-AI-Crawler-Parser
-- [ ] 4.1 AI-Visibility-Prompt-Baseline + Log
+- [x] 4.1 GSC/Bing-Runbook (`measurement.md`) inkl. monatlicher Routine
+- [x] 4.1 Server-Log-Parser `parse-crawler-logs.mjs` (AI-Crawler-200 + AI-Referrals), `npm run seo:logs`
+- [x] 4.1 AI-Referral-Erkennung über Referer (tracker-frei, statt JS-Analytics)
+- [x] 4.1 AI-Visibility-Baseline `ai-visibility-prompts.md` (28 Prompts + Monats-Log)
 
 ---
 

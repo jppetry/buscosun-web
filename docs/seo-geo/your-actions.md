@@ -43,3 +43,11 @@ Community). Der autonome Runner sammelt sie hier und macht code-seitig weiter.
       `scripts/seo/events.mjs`, Checkliste in `checklist.md`). News-Sitemap führt
       nur Artikel der letzten 2 Tage — alte werden automatisch ausgelassen.
 - [ ] **Per-Event-Hero-Bilder** (≥1200px) statt `og.svg`-Platzhalter.
+
+### Phase 4 — Measurement (siehe `measurement.md`)
+- [ ] **GSC + Bing WMT** monatlich sichten (Indexierung, Leistung, Discover, hreflang).
+- [ ] **Server-Logs ziehen** und `npm run seo:logs -- <access.log>` ausführen
+      (AI-Crawler-200 + AI-Referrals). Bei Crawler-Nicht-200 → CDN/WAF prüfen.
+- [ ] **AI-Visibility-Baseline**: `ai-visibility-prompts.md` (28 Prompts) monatlich
+      in ChatGPT/Perplexity/Gemini abfragen, Log-Zeile ergänzen.
+- [ ] Optional kostenpflichtig: Otterly.AI / Peec AI für automatisiertes AI-Monitoring.

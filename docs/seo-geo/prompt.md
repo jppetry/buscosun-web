@@ -68,4 +68,14 @@ Append-only. Ein Eintrag pro Schritt: Start → Kernentscheidung → Gate → Co
   Sitemaps; Feed nicht blockiert. Per-Event-Hero-Bilder → `your-actions.md`.
 - Gate: Build (1 Wetterlage idx, Sitemap 149 URLs), Feed valide (4 Items),
   News-Sitemap valide XML, `verify:seo` 56 Checks grün, NewsArticle valide → PASS.
+- Commit: (3.1-Hash siehe git log).
+
+## [STEP 4.1] Measurement & Monitoring
+- Start: `parse-crawler-logs.mjs` (AI-Crawler-200 + AI-Referrals über Referer,
+  da tracker-frei), `measurement.md` (GSC/Bing-Runbook), `ai-visibility-prompts.md`
+  (28 Prompts + Monats-Log), `npm run seo:logs`.
+- Entscheidung: Server-Logs statt JS-Analytics (Privacy-Stance); externe Mess-
+  schritte (GSC/Bing/Otterly) → `your-actions.md`.
+- Gate: Parser an synthetischem Log getestet (GPTBot/ClaudeBot/Bingbot 100% 200,
+  perplexity.ai-Referral erkannt); Runbook + Baseline gespeichert → PASS (final).
 - Commit: folgt.
