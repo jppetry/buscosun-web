@@ -11,11 +11,12 @@ import type { Country } from '../types';
 import type { GeoPoint } from '../threed/sectionGeometry';
 
 export type Lens = 'fly' | 'mountain' | 'section';
-/** Stable order — used for the compact lens index in the hash. */
-export const LENSES: Lens[] = ['fly', 'mountain', 'section'];
+/** Tab-Reihenfolge nach Wichtigkeit (Alltag zuerst, Schnitt-Werkzeug zuletzt);
+ *  zugleich der kompakte Linsen-Index im Hash. */
+export const LENSES: Lens[] = ['mountain', 'fly', 'section'];
 export const LENS_LABEL: Record<Lens, string> = {
-  fly: 'Fliegen & Thermik',
   mountain: 'Berg & Tour',
+  fly: 'Fliegen & Thermik',
   section: 'Querschnitt',
 };
 
@@ -67,7 +68,7 @@ export function decodeState(hash: string): AtmosphereState | null {
     const marker = Array.isArray(o.m) && Number.isFinite(o.m[0]) && Number.isFinite(o.m[1])
       ? { lat: o.m[0], lon: o.m[1] }
       : null;
-    const lens = LENSES[o.le] ?? 'fly';
+    const lens = LENSES[o.le] ?? 'mountain';
     const cut = Array.isArray(o.c)
       ? o.c.filter((q) => Array.isArray(q) && Number.isFinite(q[0]) && Number.isFinite(q[1])).map((q) => ({ lat: q[0], lon: q[1] }))
       : [];
