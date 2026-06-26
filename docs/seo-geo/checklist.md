@@ -19,8 +19,10 @@ Abhaken pro Schritt. `[x]` erledigt, `[~]` teilweise/Scaffold, `[ ]` offen.
       Direktantwort, Quellen, /wissen/-Hub; nur volle Explainer in Sitemap
 
 ## 2 — Distribution
-- [ ] 2.1 Tool-Landingpages `/funktionen/`: 2 voll, Rest Scaffold
-- [ ] 2.1 `seeding-kit.md`
+- [x] 2.1 Tool-Landingpages `/funktionen/`: 9 Tools, 2 voll (Wetterkarte,
+      Atmosphäre), 7 Scaffold (noindex); SoftwareApplication+FAQ+Breadcrumb-JSON-LD,
+      OG-Großbild, Deep-Link in die App, /funktionen/-Hub
+- [x] 2.1 `seeding-kit.md` (Community → Winkel → Tool)
 
 ## 3 — Discover & Events
 - [ ] 3.1 RSS/Atom-Feed

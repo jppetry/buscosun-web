@@ -48,4 +48,14 @@ Append-only. Ein Eintrag pro Schritt: Start → Kernentscheidung → Gate → Co
   Cross-Links Ort↔Wissen (vervollständigt 1.1).
 - Gate: Build (10 Explainer, 3 indexiert, Sitemap 144 URLs), `verify:seo` 40 Checks
   grün; Pilot mit Sektionen + indexierbar, Stub noindex, Cross-Links vorhanden → PASS.
+- Commit: (1.2-Hash siehe git log).
+
+## [STEP 2.1] Tool-Landingpages (/funktionen/)
+- Start: `scripts/seo/tools.mjs` (9 reale Tools) + Renderer in `content.mjs`
+  (SoftwareApplication+FAQ+Breadcrumb-JSON-LD, OG-Großbild, CTA-Deep-Link).
+- Entscheidung: 2 Piloten voll (Wetterkarte, Atmosphäre), 7 Scaffolds noindex;
+  Deep-Links nur über sichere präfix-only Hashes (#atm=/#h=/#g=), sonst '/'.
+  Hero = `og.svg` Platzhalter → Per-Tool-Screenshots in `your-actions.md`.
+- Gate: Build (9 Tools, 2 idx, Sitemap 147 URLs), `verify:seo` 48 Checks grün,
+  SoftwareApplication-JSON-LD valide; `seeding-kit.md` erstellt → PASS.
 - Commit: folgt.

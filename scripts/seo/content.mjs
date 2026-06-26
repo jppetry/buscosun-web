@@ -525,6 +525,143 @@ export function relevantExplainersFor(place, explainers, n = 3) {
   return order.map((s) => bySlug[s]).filter(Boolean).slice(0, n);
 }
 
+// --- Tool-Landingpages (/funktionen/) ---------------------------------------
+
+import { EXPLAINERS_BY_SLUG } from './explainers.mjs';
+
+export function softwareApplicationJsonLd(tool) {
+  const url = `${SITE.url}/funktionen/${tool.slug}/`;
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: `${SITE.name} — ${tool.title}`,
+    url,
+    applicationCategory: 'Weather',
+    operatingSystem: 'Web',
+    inLanguage: ['de-DE', 'de-AT', 'de-CH'],
+    description: tool.answer,
+    offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },
+    publisher: { '@type': 'Organization', name: SITE.name, url: SITE.url + '/' },
+    isAccessibleForFree: true,
+  };
+}
+
+function toolBreadcrumbJsonLd(tool) {
+  return {
+    '@context': 'https://schema.org', '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Start', item: SITE.url + '/' },
+      { '@type': 'ListItem', position: 2, name: 'Funktionen', item: SITE.url + '/funktionen/' },
+      { '@type': 'ListItem', position: 3, name: tool.title, item: `${SITE.url}/funktionen/${tool.slug}/` },
+    ],
+  };
+}
+
+function metaForTool(tool) {
+  const title = `${tool.title} — buscosun-Funktion`;
+  let d = tool.answer.replace(/\s+/g, ' ').trim();
+  if (d.length > 155) d = d.slice(0, 152).replace(/\s+\S*$/, '') + '…';
+  return { title, description: d };
+}
+
+/** Tool-Landingpage (Wertversprechen + Datenbasis im rohen HTML, Live-Canvas
+ *  ist nur Enhancement; CTA öffnet das Tool in der App). */
+export function renderToolPage(tool) {
+  const meta = metaForTool(tool);
+  const canonicalPath = `/funktionen/${tool.slug}/`;
+  const noindex = tool.status !== 'full';
+  const head = headBlock({
+    title: meta.title, description: meta.description, canonicalPath, locale: 'de-DE', noindex,
+    jsonLd: [softwareApplicationJsonLd(tool), faqJsonLd(tool.faqs || []), toolBreadcrumbJsonLd(tool)],
+  });
+  const bullets = (tool.bullets || []).map((b) => `<li>${escapeHtml(b)}</li>`).join('\n        ');
+  const sections = (tool.sections || [])
+    .map((s) => `      <section id="${s.id}">\n        <h2>${escapeHtml(s.h2)}</h2>\n        ${s.html}\n      </section>`).join('\n');
+  const faqItems = (tool.faqs || [])
+    .map((f) => `<details><summary>${escapeHtml(f.q)}</summary><p>${escapeHtml(f.a)}</p></details>`).join('\n      ');
+  const relExplainers = (tool.relatedExplainers || [])
+    .map((slug) => EXPLAINERS_BY_SLUG[slug]).filter(Boolean)
+    .map((r) => `<a href="/wissen/${r.slug}/">${escapeHtml(r.title)}</a>`).join('\n        ');
+  const stubNote = noindex
+    ? '<p class="sub">Diese Funktionsseite wird ausgebaut; die Kurzbeschreibung oben fasst das Wichtigste zusammen.</p>' : '';
+
+  return `<!doctype html>
+<html lang="de">
+  <head>
+${head}
+    <style>${PAGE_CSS}
+.hero{width:100%;height:auto;border:1px solid var(--border);border-radius:12px;margin:0 0 1.2rem;background:#fff}
+.answer{font-size:1.1rem;margin:0 0 1.2rem}</style>
+  </head>
+  <body>
+    <div class="wrap">
+      <nav class="bc" aria-label="Brotkrumen"><a href="/">Start</a> › <a href="/funktionen/">Funktionen</a> › ${escapeHtml(tool.title)}</nav>
+      <h1>${escapeHtml(tool.h1)}</h1>
+      <img class="hero" src="/og.svg" width="1200" height="630" alt="${escapeHtml(tool.title)} — buscosun" />
+      <p class="answer">${escapeHtml(tool.answer)}</p>
+      <a class="cta" href="${tool.deepLink}">${escapeHtml(tool.title)} in buscosun öffnen →</a>
+      ${stubNote}
+${bullets ? `      <section>\n        <h2>Auf einen Blick</h2>\n        <ul class="facts">\n        ${bullets}\n        </ul>\n      </section>` : ''}
+${sections}
+      <section>
+        <h2>Häufige Fragen</h2>
+        ${faqItems}
+      </section>
+${relExplainers ? `      <section>\n        <h2>Passendes Wetterwissen</h2>\n        <div class="links">\n        ${relExplainers}\n        </div>\n      </section>` : ''}
+      <footer>
+        ${escapeHtml(SITE.name)} — ${escapeHtml(SITE.tagline)}. Datenbasis: Deutscher Wetterdienst (DWD, CC BY 4.0) · GeoSphere Austria · MeteoSwiss. Kostenlos, ohne Tracker.
+      </footer>
+    </div>
+  </body>
+</html>
+`;
+}
+
+/** /funktionen/-Hub. */
+export function renderFunktionenHub(tools) {
+  const card = (t) => `<a href="/funktionen/${t.slug}/" class="card${t.status === 'full' ? '' : ' stub'}">
+        <strong>${escapeHtml(t.title)}</strong>
+        <span>${escapeHtml(metaForTool(t).description)}</span>
+      </a>`;
+  const full = tools.filter((t) => t.status === 'full').map(card).join('\n      ');
+  const stubs = tools.filter((t) => t.status !== 'full').map(card).join('\n      ');
+  const head = headBlock({
+    title: `Funktionen — was buscosun kann | ${SITE.name}`,
+    description: 'Alle buscosun-Funktionen im Überblick: interaktive Wetterkarte, 3D-Atmosphäre, Tourenplanung, bester Event-Tag, Nowcast, Modellvergleich, Globus, Historie und Arbeitsfenster — kostenlos und ohne Tracker.',
+    canonicalPath: '/funktionen/', locale: 'de-DE',
+    jsonLd: [{
+      '@context': 'https://schema.org', '@type': 'CollectionPage',
+      name: 'buscosun-Funktionen', url: SITE.url + '/funktionen/',
+    }],
+  });
+  return `<!doctype html>
+<html lang="de">
+  <head>
+${head}
+    <style>${PAGE_CSS}
+.cards{display:grid;gap:.8rem}@media(min-width:560px){.cards{grid-template-columns:1fr 1fr}}
+.card{display:flex;flex-direction:column;gap:.3rem;background:#fff;border:1px solid var(--border);border-radius:10px;padding:.9rem 1rem;text-decoration:none;color:var(--ink)}
+.card strong{color:var(--terra)}.card span{font-size:.85rem;color:var(--stone)}.card.stub{opacity:.7}</style>
+  </head>
+  <body>
+    <div class="wrap">
+      <nav class="bc" aria-label="Brotkrumen"><a href="/">Start</a> › Funktionen</nav>
+      <h1>buscosun-Funktionen</h1>
+      <p class="lead">Alle Werkzeuge von buscosun auf einen Blick — interaktive Wetterkarte, 3D-Atmosphäre, Tourenplanung, bester Event-Tag, Nowcast, Modellvergleich, Globus, Wetterhistorie und Arbeitsfenster. Alles höhenkorrigiert, aus amtlichen Quellen, kostenlos und ohne Tracker.</p>
+      <h2>Ausführlich vorgestellt</h2>
+      <div class="cards">
+      ${full}
+      </div>
+      <h2>Weitere Funktionen</h2>
+      <div class="cards">
+      ${stubs}
+      </div>
+    </div>
+  </body>
+</html>
+`;
+}
+
 /** Head-Ergänzungen für die Home (OG/Twitter/canonical/hreflang/JSON-LD). */
 export function homeHeadExtras() {
   const canonicalPath = '/';

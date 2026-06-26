@@ -11,9 +11,10 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PLACES } from './seo/places.mjs';
 import { EXPLAINERS, EXPLAINERS_BY_SLUG } from './seo/explainers.mjs';
+import { TOOLS } from './seo/tools.mjs';
 import {
   SITE, renderPlacePage, renderHomeRootContent, homeHeadExtras, escapeHtml, metaFor,
-  renderExplainerPage, renderWissenHub,
+  renderExplainerPage, renderWissenHub, renderToolPage, renderFunktionenHub,
 } from './seo/content.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -92,6 +93,17 @@ for (const ex of EXPLAINERS) {
 mkdirSync(join(DIST, 'wissen'), { recursive: true });
 writeFileSync(join(DIST, 'wissen', 'index.html'), renderWissenHub(EXPLAINERS), 'utf8');
 
+// 2d) Tool-Landingpages (/funktionen/<slug>/) + /funktionen/-Hub
+let toolPages = 0;
+for (const tool of TOOLS) {
+  const dir = join(DIST, 'funktionen', tool.slug);
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, 'index.html'), renderToolPage(tool), 'utf8');
+  toolPages++;
+}
+mkdirSync(join(DIST, 'funktionen'), { recursive: true });
+writeFileSync(join(DIST, 'funktionen', 'index.html'), renderFunktionenHub(TOOLS), 'utf8');
+
 // 2b) 404.html — echte Fehlerseite (Host muss sie mit HTTP 404 ausliefern,
 // siehe docs/seo-geo/your-actions.md). noindex, aber crawlbar verlinkt.
 function notFoundPage() {
@@ -132,6 +144,8 @@ function sitemap() {
     { loc: `${SITE.url}/wissen/`, pri: '0.7' },
     // Nur vollständige Explainer indexieren (Scaffolds sind noindex).
     ...EXPLAINERS.filter((e) => e.status === 'full').map((e) => ({ loc: `${SITE.url}/wissen/${e.slug}/`, pri: '0.6' })),
+    { loc: `${SITE.url}/funktionen/`, pri: '0.7' },
+    ...TOOLS.filter((t) => t.status === 'full').map((t) => ({ loc: `${SITE.url}/funktionen/${t.slug}/`, pri: '0.6' })),
   ];
   const body = urls.map((u) =>
     `  <url><loc>${u.loc}</loc><lastmod>${BUILD_DATE}</lastmod><changefreq>daily</changefreq><priority>${u.pri}</priority></url>`).join('\n');
@@ -149,4 +163,6 @@ html = html.replace('<div id="root"></div>', `<div id="root">${renderHomeRootCon
 writeFileSync(indexPath, html, 'utf8');
 
 const fullExplainers = EXPLAINERS.filter((e) => e.status === 'full').length;
-console.log(`[seo] ${pages} Geo-Seiten, ${explainerPages} Explainer (${fullExplainers} indexiert) + /wissen/-Hub, /wetter/-Hub, sitemap.xml (${PLACES.length + 3 + fullExplainers} URLs), Home angereichert. Build ${BUILD_DATE}.`);
+const fullTools = TOOLS.filter((t) => t.status === 'full').length;
+const urlCount = PLACES.length + 4 + fullExplainers + fullTools;
+console.log(`[seo] ${pages} Geo-Seiten, ${explainerPages} Explainer (${fullExplainers} idx) + Hub, ${toolPages} Tools (${fullTools} idx) + Hub, /wetter/-Hub, sitemap.xml (${urlCount} URLs), Home angereichert. Build ${BUILD_DATE}.`);

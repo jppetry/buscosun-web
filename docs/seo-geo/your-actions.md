@@ -21,3 +21,16 @@ Community). Der autonome Runner sammelt sie hier und macht code-seitig weiter.
       (Cloudflare „Block AI Scrapers"-Toggle AUS lassen, wenn Zitierbarkeit erwünscht).
 - [ ] **JSON-LD extern gegenprüfen**: Rich-Results-Test (Google) für Home + eine
       Ortsseite (lokal bereits via `verify:seo` JSON-validiert).
+
+### Phase 1 — Content
+- [ ] **Tier-1-Indexierung in GSC bestätigen**, bevor weitere Orts-Tiers ergänzt werden.
+- [ ] **AI-Zitierbarkeit baselinen**: die 3 Explainer-Piloten (Föhn, Inversion,
+      Nebelobergrenze) manuell in ChatGPT/Perplexity/Gemini abfragen.
+
+### Phase 2 — Distribution
+- [ ] **Per-Tool-Screenshots** erstellen und statt `/og.svg` als Hero/OG-Bild je
+      Funktionsseite einsetzen (aktuell Platzhalter `og.svg`).
+- [ ] **Community-Seeding** gemäß `seeding-kit.md`: Tools transparent/nicht-werblich
+      posten (Wetterzentrale-Forum, Gleitschirm/Drachen-Foren, astronomie.de,
+      Garten-/Drohnen-Foren). Vorher Forenregeln + Aktivität prüfen.
+- [ ] **Digital-PR-Pitches** rund um Wetterereignisse vorbereiten.
