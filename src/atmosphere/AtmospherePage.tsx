@@ -11,7 +11,7 @@
  * die aktive Stunde — alle Bereiche abonnieren sie über useAtmosphere().
  */
 
-import { lazy, Suspense, useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import { lazy, Suspense, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import type { Location } from '../types';
 import { geocodeDACH, flagForCountry } from '../geocode';
 import { tourFileToCutLine } from '../threed/tourImport';
@@ -26,6 +26,7 @@ import FoehnPanel from './FoehnPanel';
 import SectionLens from './SectionLens';
 import '../threed/threed.css';
 import '../route/tourTheme.css';
+import '../intro/intro.css';
 import './atmosphere.css';
 
 interface Props { onBack: () => void }
@@ -57,41 +58,100 @@ function AtmosphereShell({ onBack }: Props) {
       </nav>
 
       <main className="rt-container">
-        <header className="rt-intro">
-          <span className="rt-eyebrow">Atmosphäre</span>
-          <h1>Die Atmosphäre über dir</h1>
-        </header>
-
-        <div className="atm-head">
-          <LensSwitcher />
-          <div className="atm-head-right">
-            <LocationField />
-            <TourImportButton />
-            <span className="atm-run">⏱ Modelllauf: <b>{modelRunAt ? `${fmtRunUTC(modelRunAt)} · vor ${ageHours(modelRunAt)} h` : '—'}</b></span>
-          </div>
-        </div>
-
-        {lens === 'section' ? (
-          <SectionLens />
+        {!location ? (
+          <AtmosphereIntro />
         ) : (
           <>
-            <div className="atm-grid">
-              <AtmosphereVerdict />
-              {lens === 'fly' ? <ThermalMap /> : lens === 'sky' ? <SkyCards /> : <FoehnPanel />}
-              <AtmosphereProfile />
-              <NerdMode />
+            <header className="rt-intro">
+              <span className="rt-eyebrow">Atmosphäre</span>
+              <h1>Die Atmosphäre über dir</h1>
+            </header>
+
+            <div className="atm-head">
+              <LensSwitcher />
+              <div className="atm-head-right">
+                <LocationField />
+                <TourImportButton />
+                <span className="atm-run">⏱ Modelllauf: <b>{modelRunAt ? `${fmtRunUTC(modelRunAt)} · vor ${ageHours(modelRunAt)} h` : '—'}</b></span>
+              </div>
             </div>
 
-            {location && <Scrubber />}
-            {!location && (
-              <div className="atm-ph" style={{ marginTop: '1rem' }}>
-                Suche oben einen Ort, um die Atmosphäre und den Zeit-Scrubber zu aktivieren.
-              </div>
+            {lens === 'section' ? (
+              <SectionLens />
+            ) : (
+              <>
+                <div className="atm-grid">
+                  <AtmosphereVerdict />
+                  {lens === 'fly' ? <ThermalMap /> : lens === 'sky' ? <SkyCards /> : <FoehnPanel />}
+                  <AtmosphereProfile />
+                  <NerdMode />
+                </div>
+                <Scrubber />
+              </>
             )}
           </>
         )}
       </main>
     </div>
+  );
+}
+
+// --- Idle-Intro (Einstieg wie die übrigen Features: Stichpunkte + Ort/Tour) ---
+
+const ATM_INTRO_CAPS = [
+  'Vertikalprofil aus echtem ICON-EU-Sounding — Temperatur, Taupunkt, Höhenwind, Inversion',
+  'Vier Linsen: Fliegen & Thermik · Berg & Tour · Himmelsoptik · Querschnitt',
+  'Thermik-Karte, Föhn-Index, Talwind, Nebelmeer & Sonnenuntergang, Skew-T (Nerd-Mode)',
+  'Aus ICON-EU (~7 km) + Gelände, höhenkorrigiert — werbefrei, keine Tracker',
+];
+
+function AtmosphereIntro() {
+  return (
+    <section className="atm-intro" style={{ ['--intro-accent']: 'var(--steel-600)' } as CSSProperties}>
+      <span className="intro-eyebrow">Atmosphäre</span>
+      <h1 className="intro-title">Die Atmosphäre über dir</h1>
+      <p className="intro-body">
+        Wähle einen Ort oder lade eine Tour (GPX/TCX/FIT) hoch — dann zeigen wir dir die Atmosphäre
+        darüber: Thermik, Wind und Wolken in der Höhe, mit ehrlicher Einschätzung über die nächsten 48 Stunden.
+      </p>
+      <ul className="intro-caps">
+        {ATM_INTRO_CAPS.map((c) => (
+          <li key={c}><span className="intro-caps-mark" aria-hidden="true"><IconCheck /></span>{c}</li>
+        ))}
+      </ul>
+
+      <div className="atm-intro-action">
+        <span className="rt-eyebrow">Ort wählen oder Tour hochladen</span>
+        <div className="atm-intro-row">
+          <LocationField />
+          <TourImportButton />
+        </div>
+      </div>
+
+      <p className="intro-howto">
+        <span className="intro-howto-ic" aria-hidden="true"><IconHowTo /></span>
+        <span><strong>So geht’s:</strong> Ort suchen oder GPX/Tour laden — danach wählst du die Linse und scrubbst durch die nächsten 48 Stunden.</span>
+      </p>
+
+      <div className="rt-trust" style={{ marginTop: '1rem' }}>
+        <span className="dot">●</span> ICON-EU (~7 km) + Gelände, höhenkorrigiert · werbefrei · keine Tracker
+      </div>
+    </section>
+  );
+}
+
+function IconCheck() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polyline points="3,8.5 6.5,12 13,4" />
+    </svg>
+  );
+}
+function IconHowTo() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="8" cy="8" r="6.5" /><polyline points="6.6,5.4 10,8 6.6,10.6" />
+    </svg>
   );
 }
 

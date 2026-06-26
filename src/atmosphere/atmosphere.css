@@ -7,6 +7,11 @@
   --atm-accent-soft: var(--steel-50, #E8F0FA);
 }
 
+/* Idle-Intro (Einstieg: Stichpunkte + Ort/Tour) */
+.atm-intro { display: flex; flex-direction: column; gap: 0.9rem; max-width: 660px; margin-top: 0.4rem; }
+.atm-intro-action { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.3rem; }
+.atm-intro-row { display: flex; gap: 0.7rem; flex-wrap: wrap; align-items: center; }
+
 /* Kopf: Linsen-Umschalter + Ort + Modelllauf */
 .atm-head {
   display: flex; align-items: center; justify-content: space-between;
