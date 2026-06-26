@@ -58,4 +58,14 @@ Append-only. Ein Eintrag pro Schritt: Start → Kernentscheidung → Gate → Co
   Hero = `og.svg` Platzhalter → Per-Tool-Screenshots in `your-actions.md`.
 - Gate: Build (9 Tools, 2 idx, Sitemap 147 URLs), `verify:seo` 48 Checks grün,
   SoftwareApplication-JSON-LD valide; `seeding-kit.md` erstellt → PASS.
+- Commit: (2.1-Hash siehe git log).
+
+## [STEP 3.1] RSS, Discover-Templates, Event-Workflow
+- Start: `scripts/seo/events.mjs` (1 Sample „Omega-Lage", evergreen + ehrlich) +
+  Renderer (NewsArticle+Breadcrumb-JSON-LD, sichtbares Datum, Hero ≥1200px,
+  separater og:title); `feed.xml` (RSS 2.0) + `sitemap-news.xml` (Google-News).
+- Entscheidung: News-Sitemap nur Artikel ≤2 Tage; robots verweist auf beide
+  Sitemaps; Feed nicht blockiert. Per-Event-Hero-Bilder → `your-actions.md`.
+- Gate: Build (1 Wetterlage idx, Sitemap 149 URLs), Feed valide (4 Items),
+  News-Sitemap valide XML, `verify:seo` 56 Checks grün, NewsArticle valide → PASS.
 - Commit: folgt.

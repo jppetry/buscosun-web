@@ -41,3 +41,4 @@ User-agent: Applebot-Extended
 Allow: /
 
 Sitemap: https://buscosun.app/sitemap.xml
+Sitemap: https://buscosun.app/sitemap-news.xml

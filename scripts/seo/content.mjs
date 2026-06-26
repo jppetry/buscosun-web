@@ -219,8 +219,9 @@ function hreflangLinks(canonicalPath) {
     + `\n    <link rel="alternate" hreflang="x-default" href="${url}" />`;
 }
 
-function headBlock({ title, description, canonicalPath, locale, ogImage, jsonLd, noindex }) {
+function headBlock({ title, description, canonicalPath, locale, ogImage, jsonLd, noindex, ogTitle }) {
   const url = SITE.url + canonicalPath;
+  const ogt = ogTitle || title;
   return `    <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>${escapeHtml(title)}</title>
@@ -231,13 +232,13 @@ function headBlock({ title, description, canonicalPath, locale, ogImage, jsonLd,
     <meta name="theme-color" content="#2C2A26" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="${SITE.name}" />
-    <meta property="og:title" content="${escapeHtml(title)}" />
+    <meta property="og:title" content="${escapeHtml(ogt)}" />
     <meta property="og:description" content="${escapeHtml(description)}" />
     <meta property="og:url" content="${url}" />
     <meta property="og:locale" content="${(locale || 'de-DE').replace('-', '_')}" />
     <meta property="og:image" content="${SITE.url}${ogImage || '/og.svg'}" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="${escapeHtml(title)}" />
+    <meta name="twitter:title" content="${escapeHtml(ogt)}" />
     <meta name="twitter:description" content="${escapeHtml(description)}" />
     <meta name="twitter:image" content="${SITE.url}${ogImage || '/og.svg'}" />
     ${jsonLd.map(jsonLdScript).join('\n    ')}`;
@@ -655,6 +656,138 @@ ${head}
       <h2>Weitere Funktionen</h2>
       <div class="cards">
       ${stubs}
+      </div>
+    </div>
+  </body>
+</html>
+`;
+}
+
+// --- Event-/Wetterlage-Artikel (/wetterlage/) -------------------------------
+
+/** Deutsches Datum (TT.MM.JJJJ) für sichtbare Zeitstempel. */
+function deDate(iso) {
+  const [y, m, d] = iso.split('-');
+  return `${d}.${m}.${y}`;
+}
+
+export function newsArticleJsonLd(ev) {
+  const url = `${SITE.url}/wetterlage/${ev.slug}/`;
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'NewsArticle',
+    headline: ev.title,
+    description: ev.dek,
+    image: [SITE.url + ev.hero.url],
+    inLanguage: 'de-DE',
+    mainEntityOfPage: url,
+    url,
+    datePublished: ev.datePublished,
+    dateModified: ev.dateModified,
+    articleSection: ev.section,
+    author: { '@type': 'Organization', name: SITE.name, url: SITE.url + '/' },
+    publisher: { '@type': 'Organization', name: SITE.name, url: SITE.url + '/', logo: { '@type': 'ImageObject', url: SITE.url + '/icon.svg' } },
+    isAccessibleForFree: true,
+  };
+}
+
+function eventBreadcrumbJsonLd(ev) {
+  return {
+    '@context': 'https://schema.org', '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Start', item: SITE.url + '/' },
+      { '@type': 'ListItem', position: 2, name: 'Wetterlage', item: SITE.url + '/wetterlage/' },
+      { '@type': 'ListItem', position: 3, name: ev.title, item: `${SITE.url}/wetterlage/${ev.slug}/` },
+    ],
+  };
+}
+
+function metaForEvent(ev) {
+  let d = ev.dek.replace(/\s+/g, ' ').trim();
+  if (d.length > 155) d = d.slice(0, 152).replace(/\s+\S*$/, '') + '…';
+  return { title: `${ev.title} | ${SITE.name}`, ogTitle: ev.ogTitle || ev.title, description: d };
+}
+
+/** Event-/Wetterlage-Artikel (Discover/News-tauglich, Text komplett im rohen HTML). */
+export function renderEventPage(ev) {
+  const meta = metaForEvent(ev);
+  const canonicalPath = `/wetterlage/${ev.slug}/`;
+  const noindex = ev.status !== 'full';
+  // OG-Titel separat optimiert → headBlock baut OG aus `title`; daher hier
+  // headBlock mit ogTitle-überschreibendem Twist: wir nutzen den optimierten
+  // OG-Titel als headBlock-title-Quelle für OG, behalten aber den <title>.
+  const head = headBlock({
+    title: meta.title, description: meta.description, canonicalPath, locale: 'de-DE', noindex,
+    ogTitle: meta.ogTitle,
+    jsonLd: [newsArticleJsonLd(ev), eventBreadcrumbJsonLd(ev)],
+  });
+  const sections = (ev.sections || [])
+    .map((s) => `      <section id="${s.id}">\n        <h2>${escapeHtml(s.h2)}</h2>\n        ${s.html}\n      </section>`).join('\n');
+  const relPlaces = (ev.relatedPlaces || [])
+    .map((slug) => PLACE_BY_SLUG[slug]).filter(Boolean)
+    .map((p) => `<a href="/wetter/${p.slug}/">Wetter ${escapeHtml(p.name)}</a>`).join('\n        ');
+  const relExplainers = (ev.relatedExplainers || [])
+    .map((slug) => EXPLAINERS_BY_SLUG[slug]).filter(Boolean)
+    .map((r) => `<a href="/wissen/${r.slug}/">${escapeHtml(r.title)}</a>`).join('\n        ');
+
+  return `<!doctype html>
+<html lang="de">
+  <head>
+${head}
+    <style>${PAGE_CSS}
+.hero{width:100%;height:auto;border:1px solid var(--border);border-radius:12px;margin:.4rem 0 1rem;background:#fff}
+.byline{font-size:.85rem;color:var(--stone);margin:0 0 1rem}.dek{font-size:1.15rem;margin:0 0 1.2rem}</style>
+  </head>
+  <body>
+    <div class="wrap">
+      <nav class="bc" aria-label="Brotkrumen"><a href="/">Start</a> › <a href="/wetterlage/">Wetterlage</a> › ${escapeHtml(ev.section)}</nav>
+      <article>
+        <h1>${escapeHtml(ev.h1)}</h1>
+        <p class="byline">${escapeHtml(SITE.name)} · Veröffentlicht am <time datetime="${ev.datePublished}">${deDate(ev.datePublished)}</time>${ev.dateModified !== ev.datePublished ? ` · Aktualisiert am <time datetime="${ev.dateModified}">${deDate(ev.dateModified)}</time>` : ''}</p>
+        <img class="hero" src="${ev.hero.url}" width="${ev.hero.w}" height="${ev.hero.h}" alt="${escapeHtml(ev.hero.alt)}" />
+        <p class="dek">${escapeHtml(ev.dek)}</p>
+${sections}
+${relPlaces ? `        <section>\n          <h2>Betroffene Orte</h2>\n          <div class="links">\n        ${relPlaces}\n          </div>\n        </section>` : ''}
+${relExplainers ? `        <section>\n          <h2>Hintergrund</h2>\n          <div class="links">\n        ${relExplainers}\n          </div>\n        </section>` : ''}
+      </article>
+      <footer>
+        ${escapeHtml(SITE.name)} — ${escapeHtml(SITE.tagline)}. Datenbasis: Deutscher Wetterdienst (DWD, CC BY 4.0) · GeoSphere Austria · MeteoSwiss.
+        Einordnung einer Wetterlage, keine amtliche Warnung. Verbindliche Warnungen geben die staatlichen Wetterdienste heraus.
+      </footer>
+    </div>
+  </body>
+</html>
+`;
+}
+
+/** /wetterlage/-Hub (Liste der Event-Artikel, neueste zuerst). */
+export function renderWetterlageHub(events) {
+  const sorted = [...events].sort((a, b) => (a.datePublished < b.datePublished ? 1 : -1));
+  const items = sorted.map((e) => `<a href="/wetterlage/${e.slug}/" class="card">
+        <strong>${escapeHtml(e.title)}</strong>
+        <span>${deDate(e.datePublished)} · ${escapeHtml(metaForEvent(e).description)}</span>
+      </a>`).join('\n      ');
+  const head = headBlock({
+    title: `Wetterlagen — aktuelle Einordnungen | ${SITE.name}`,
+    description: 'Einordnung markanter Wetterlagen in der DACH-Region: Hintergründe, betroffene Orte und meteorologische Erklärungen — faktenbasiert, ohne amtliche Warnungen zu implizieren.',
+    canonicalPath: '/wetterlage/', locale: 'de-DE',
+    jsonLd: [{ '@context': 'https://schema.org', '@type': 'CollectionPage', name: 'Wetterlagen', url: SITE.url + '/wetterlage/' }],
+  });
+  return `<!doctype html>
+<html lang="de">
+  <head>
+${head}
+    <style>${PAGE_CSS}
+.cards{display:grid;gap:.8rem}.card{display:flex;flex-direction:column;gap:.3rem;background:#fff;border:1px solid var(--border);border-radius:10px;padding:.9rem 1rem;text-decoration:none;color:var(--ink)}
+.card strong{color:var(--terra)}.card span{font-size:.85rem;color:var(--stone)}</style>
+  </head>
+  <body>
+    <div class="wrap">
+      <nav class="bc" aria-label="Brotkrumen"><a href="/">Start</a> › Wetterlage</nav>
+      <h1>Wetterlagen</h1>
+      <p class="lead">Einordnung markanter Wetterlagen in der DACH-Region — Hintergründe, betroffene Orte und die Meteorologie dahinter. buscosun erklärt die Lage und gibt keine amtlichen Warnungen heraus.</p>
+      <div class="cards">
+      ${items}
       </div>
     </div>
   </body>

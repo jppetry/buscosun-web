@@ -34,3 +34,12 @@ Community). Der autonome Runner sammelt sie hier und macht code-seitig weiter.
       posten (Wetterzentrale-Forum, Gleitschirm/Drachen-Foren, astronomie.de,
       Garten-/Drohnen-Foren). Vorher Forenregeln + Aktivität prüfen.
 - [ ] **Digital-PR-Pitches** rund um Wetterereignisse vorbereiten.
+
+### Phase 3 — Discover & Events
+- [ ] **RSS + News-Sitemap einreichen** (`/feed.xml`, `/sitemap-news.xml`) und
+      Discover-Berichte in GSC beobachten.
+- [ ] **Google Publisher Center** prüfen (optional) für News-Aufnahme.
+- [ ] **Echte Event-Artikel** bei markanten Wetterlagen anlegen (Vorlage:
+      `scripts/seo/events.mjs`, Checkliste in `checklist.md`). News-Sitemap führt
+      nur Artikel der letzten 2 Tage — alte werden automatisch ausgelassen.
+- [ ] **Per-Event-Hero-Bilder** (≥1200px) statt `og.svg`-Platzhalter.

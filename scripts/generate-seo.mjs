@@ -12,9 +12,11 @@ import { fileURLToPath } from 'node:url';
 import { PLACES } from './seo/places.mjs';
 import { EXPLAINERS, EXPLAINERS_BY_SLUG } from './seo/explainers.mjs';
 import { TOOLS } from './seo/tools.mjs';
+import { EVENTS } from './seo/events.mjs';
 import {
   SITE, renderPlacePage, renderHomeRootContent, homeHeadExtras, escapeHtml, metaFor,
   renderExplainerPage, renderWissenHub, renderToolPage, renderFunktionenHub,
+  renderEventPage, renderWetterlageHub,
 } from './seo/content.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -104,6 +106,17 @@ for (const tool of TOOLS) {
 mkdirSync(join(DIST, 'funktionen'), { recursive: true });
 writeFileSync(join(DIST, 'funktionen', 'index.html'), renderFunktionenHub(TOOLS), 'utf8');
 
+// 2e) Event-/Wetterlage-Artikel (/wetterlage/<slug>/) + Hub
+let eventPages = 0;
+for (const ev of EVENTS) {
+  const dir = join(DIST, 'wetterlage', ev.slug);
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, 'index.html'), renderEventPage(ev), 'utf8');
+  eventPages++;
+}
+mkdirSync(join(DIST, 'wetterlage'), { recursive: true });
+writeFileSync(join(DIST, 'wetterlage', 'index.html'), renderWetterlageHub(EVENTS), 'utf8');
+
 // 2b) 404.html — echte Fehlerseite (Host muss sie mit HTTP 404 ausliefern,
 // siehe docs/seo-geo/your-actions.md). noindex, aber crawlbar verlinkt.
 function notFoundPage() {
@@ -146,12 +159,74 @@ function sitemap() {
     ...EXPLAINERS.filter((e) => e.status === 'full').map((e) => ({ loc: `${SITE.url}/wissen/${e.slug}/`, pri: '0.6' })),
     { loc: `${SITE.url}/funktionen/`, pri: '0.7' },
     ...TOOLS.filter((t) => t.status === 'full').map((t) => ({ loc: `${SITE.url}/funktionen/${t.slug}/`, pri: '0.6' })),
+    { loc: `${SITE.url}/wetterlage/`, pri: '0.6' },
+    ...EVENTS.filter((e) => e.status === 'full').map((e) => ({ loc: `${SITE.url}/wetterlage/${e.slug}/`, pri: '0.7' })),
   ];
   const body = urls.map((u) =>
     `  <url><loc>${u.loc}</loc><lastmod>${BUILD_DATE}</lastmod><changefreq>daily</changefreq><priority>${u.pri}</priority></url>`).join('\n');
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${body}\n</urlset>\n`;
 }
 writeFileSync(join(DIST, 'sitemap.xml'), sitemap(), 'utf8');
+
+// 3b) RSS-2.0-Feed (/feed.xml) — neueste Inhalte für Discover/Reader. Enthält
+// Event-Artikel + vollständige Explainer, neueste zuerst. Nicht in robots blockiert.
+function rssFeed() {
+  const items = [
+    ...EVENTS.filter((e) => e.status === 'full').map((e) => ({
+      title: e.title, link: `${SITE.url}/wetterlage/${e.slug}/`, desc: e.dek, date: e.dateModified, cat: 'Wetterlage',
+    })),
+    ...EXPLAINERS.filter((e) => e.status === 'full').map((e) => ({
+      title: e.title, link: `${SITE.url}/wissen/${e.slug}/`, desc: e.answer, date: e.dateModified, cat: 'Wetterwissen',
+    })),
+  ].sort((a, b) => (a.date < b.date ? 1 : -1));
+  const rfc822 = (iso) => new Date(iso + 'T08:00:00Z').toUTCString();
+  const body = items.map((it) => `    <item>
+      <title>${escapeHtml(it.title)}</title>
+      <link>${it.link}</link>
+      <guid isPermaLink="true">${it.link}</guid>
+      <category>${escapeHtml(it.cat)}</category>
+      <description>${escapeHtml(it.desc)}</description>
+      <pubDate>${rfc822(it.date)}</pubDate>
+    </item>`).join('\n');
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>${escapeHtml(SITE.name)} — Wetterwissen &amp; Wetterlagen</title>
+    <link>${SITE.url}/</link>
+    <atom:link href="${SITE.url}/feed.xml" rel="self" type="application/rss+xml" />
+    <description>${escapeHtml(SITE.tagline)} — Erklärungen und Einordnungen aktueller Wetterlagen in der DACH-Region.</description>
+    <language>de</language>
+    <lastBuildDate>${rfc822(BUILD_DATE)}</lastBuildDate>
+${body}
+  </channel>
+</rss>
+`;
+}
+writeFileSync(join(DIST, 'feed.xml'), rssFeed(), 'utf8');
+
+// 3c) News-Sitemap (/sitemap-news.xml) — Google-News-Format. Nur Artikel der
+// letzten 2 Tage (Google-News-Vorgabe); ältere werden ausgelassen.
+function newsSitemap() {
+  const cutoff = new Date(BUILD_DATE + 'T00:00:00Z').getTime() - 2 * 86400000;
+  const recent = EVENTS.filter((e) => e.status === 'full' && new Date(e.datePublished + 'T00:00:00Z').getTime() >= cutoff);
+  const body = recent.map((e) => `  <url>
+    <loc>${SITE.url}/wetterlage/${e.slug}/</loc>
+    <news:news>
+      <news:publication>
+        <news:name>${escapeHtml(SITE.name)}</news:name>
+        <news:language>de</news:language>
+      </news:publication>
+      <news:publication_date>${e.datePublished}</news:publication_date>
+      <news:title>${escapeHtml(e.title)}</news:title>
+    </news:news>
+  </url>`).join('\n');
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">
+${body}
+</urlset>
+`;
+}
+writeFileSync(join(DIST, 'sitemap-news.xml'), newsSitemap(), 'utf8');
 
 // 4) Home anreichern: Head-Meta/JSON-LD + crawlbarer #root-Inhalt
 const indexPath = join(DIST, 'index.html');
@@ -164,5 +239,6 @@ writeFileSync(indexPath, html, 'utf8');
 
 const fullExplainers = EXPLAINERS.filter((e) => e.status === 'full').length;
 const fullTools = TOOLS.filter((t) => t.status === 'full').length;
-const urlCount = PLACES.length + 4 + fullExplainers + fullTools;
-console.log(`[seo] ${pages} Geo-Seiten, ${explainerPages} Explainer (${fullExplainers} idx) + Hub, ${toolPages} Tools (${fullTools} idx) + Hub, /wetter/-Hub, sitemap.xml (${urlCount} URLs), Home angereichert. Build ${BUILD_DATE}.`);
+const fullEvents = EVENTS.filter((e) => e.status === 'full').length;
+const urlCount = PLACES.length + 5 + fullExplainers + fullTools + fullEvents;
+console.log(`[seo] ${pages} Geo, ${explainerPages} Explainer (${fullExplainers} idx), ${toolPages} Tools (${fullTools} idx), ${eventPages} Wetterlage (${fullEvents} idx) + Hubs, sitemap.xml (${urlCount} URLs), feed.xml, sitemap-news.xml, Home angereichert. Build ${BUILD_DATE}.`);

@@ -25,10 +25,11 @@ Abhaken pro Schritt. `[x]` erledigt, `[~]` teilweise/Scaffold, `[ ]` offen.
 - [x] 2.1 `seeding-kit.md` (Community → Winkel → Tool)
 
 ## 3 — Discover & Events
-- [ ] 3.1 RSS/Atom-Feed
-- [ ] 3.1 Event-Template `/wetterlage/` + NewsArticle-JSON-LD
-- [ ] 3.1 News-Sitemap
-- [ ] 3.1 Event-Content-Checkliste (unten)
+- [x] 3.1 RSS-2.0-Feed `/feed.xml` (Events + volle Explainer, nicht in robots blockiert)
+- [x] 3.1 Event-Template `/wetterlage/` + NewsArticle-JSON-LD + Hub; 1 Sample
+      (Omega-Lage), Hero ≥1200px, sichtbares datePublished/dateModified, separater og:title
+- [x] 3.1 News-Sitemap `/sitemap-news.xml` (Google-News-Format, nur Artikel ≤2 Tage)
+- [x] 3.1 Event-Content-Checkliste (unten)
 
 ## 4 — Measurement
 - [ ] 4.1 GSC/Bing-Runbook
