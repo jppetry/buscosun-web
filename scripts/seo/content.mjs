@@ -74,6 +74,25 @@ export function placeFacts(place) {
   return facts;
 }
 
+/** Kurzes Quellen-Label je Land (für den Lead). */
+function shortSource(country) {
+  if (country === 'DE') return 'DWD (ICON-D2, MOSMIX, RADOLAN)';
+  if (country === 'AT') return 'GeoSphere Austria (AROME, INCA) + ICON-D2';
+  return 'MeteoSwiss (AROME, Radar) + ICON-D2';
+}
+
+/** Extrahierbarer 40–60-Wort-Direktantwort-Lead (GEO). Nur stabile Fakten. */
+export function placeLead(place) {
+  const base =
+    `Das Wetter für ${place.name} (${place.region}, ${COUNTRY_NAME[place.country]}, rund ${place.ele} m — ${elevationBand(place.ele)}) ` +
+    `zeigt buscosun höhenkorrigiert aus amtlichen Quellen: ${shortSource(place.country)}. ` +
+    `Temperaturen werden über ein digitales Geländemodell auf die tatsächliche Höhe umgerechnet; Karte, Stundenverlauf, 6-Stunden-Nowcast und Modellvergleich sind kostenlos und ohne Tracker abrufbar.`;
+  const alpine = isAlpine(place)
+    ? ` Für die Höhenlage von ${place.name} sind zudem Schneefallgrenze, Höhenwind und – im Alpenraum – Föhn relevant.`
+    : '';
+  return base + alpine;
+}
+
 /** Zitierbare FAQ (GEO) — klar beantwortbare Fragen. */
 export function placeFaqs(place) {
   const faqs = [];
@@ -202,7 +221,8 @@ const PAGE_CSS = `:root{--sand:#FAF6EA;--ink:#2C2A26;--stone:#5C5447;--terra:#C9
 *{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--sand);color:var(--ink);line-height:1.6}
 .wrap{max-width:760px;margin:0 auto;padding:2rem 1.25rem 4rem}
 a{color:var(--terra)}nav.bc{font-size:.85rem;color:var(--stone);margin-bottom:1.5rem}nav.bc a{color:var(--stone)}
-h1{font-size:2rem;margin:.2rem 0 .3rem}.sub{color:var(--stone);margin:0 0 1.5rem}
+h1{font-size:2rem;margin:.2rem 0 .3rem}.sub{color:var(--stone);margin:0 0 .6rem}
+p.lead{font-size:1.05rem;margin:0 0 1.2rem}
 .cta{display:inline-block;background:var(--ink);color:#fff;text-decoration:none;font-weight:600;padding:.7rem 1.2rem;border-radius:999px;margin:.5rem 0 1.5rem}
 .cta:hover{background:var(--terra)}
 section{margin:1.8rem 0}h2{font-size:1.2rem;border-bottom:1px solid var(--border);padding-bottom:.3rem}
@@ -240,6 +260,7 @@ ${head}
       <nav class="bc" aria-label="Brotkrumen"><a href="/">Start</a> › <a href="/wetter/">Wetter</a> › ${escapeHtml(place.name)}</nav>
       <h1>Wetter ${escapeHtml(place.name)}</h1>
       <p class="sub">${FLAG[place.country]} ${escapeHtml(place.region)} · ${COUNTRY_NAME[place.country]} · rund ${place.ele} m</p>
+      <p class="lead">${escapeHtml(placeLead(place))}</p>
       <a class="cta" href="${mapPermalink(place)}">Wetter für ${escapeHtml(place.name)} auf der interaktiven Karte öffnen →</a>
 
       <section>
@@ -284,9 +305,14 @@ ${head}
 export function renderHomeRootContent(places) {
   const topByCountry = (c) => places.filter((p) => p.country === c).slice(0, 8)
     .map((p) => `<a href="/wetter/${p.slug}/">${escapeHtml(p.name)}</a>`).join(' · ');
+  const lead =
+    'buscosun ist eine kostenlose, tracker-freie Wetter-Web-App für Deutschland, Österreich und die Schweiz. ' +
+    'Alle Vorhersagen stammen aus amtlichen Quellen (DWD, GeoSphere Austria, MeteoSwiss) und werden über ein ' +
+    'digitales Geländemodell höhenkorrigiert. Karte, Tourenplanung, bester Event-Tag, 6-Stunden-Nowcast, ' +
+    'Modellvergleich und 3D-Atmosphäre laufen direkt im Browser, ohne Konto und ohne Werbung.';
   return `<div id="seo-fallback">
       <h1>buscosun — ${escapeHtml(SITE.tagline)}</h1>
-      <p>${escapeHtml(SITE.description)}</p>
+      <p>${escapeHtml(lead)}</p>
       <h2>Funktionen</h2>
       <ul>
         <li>Interaktive 2D-Wetterkarte (Wind, Niederschlag, Temperatur, Wolken, Satellit, Blitze)</li>

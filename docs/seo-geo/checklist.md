@@ -5,7 +5,7 @@ Abhaken pro Schritt. `[x]` erledigt, `[~]` teilweise/Scaffold, `[ ]` offen.
 ## 0 — Foundation
 - [x] 0.0 Neun Doku-Dateien unter `docs/seo-geo/`
 - [x] 0.1 Diagnose in `architecture.md` (versions-verifiziert, mit DECISION)
-- [ ] 0.2 `verify-seo.mjs` prüft Roh-HTML (Home + Ort + Explainer): H1, Lead, Meta, JSON-LD
+- [x] 0.2 `verify-seo.mjs` prüft Roh-HTML (Home + Ort, Explainer/Tool/Event sobald vorhanden): H1, Lead, Meta, JSON-LD — 32 Checks grün
 - [ ] 0.3 robots.txt erweitert (Bingbot, CCBot, Claude-SearchBot, Googlebot)
 - [ ] 0.3 `dist/404.html` + sitemap(s) valide + canonical überall
 - [ ] 0.4 CWV mobil gemessen / Lücke in `blockers.md` dokumentiert

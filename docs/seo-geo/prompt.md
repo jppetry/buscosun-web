@@ -7,3 +7,10 @@ Append-only. Ein Eintrag pro Schritt: Start → Kernentscheidung → Gate → Co
 - Entscheidung: P0-Prinzip (SEO-Text im rohen HTML) in CLAUDE.md + context.md fixiert.
 - Gate: alle neun Dateien existieren mit Inhalt → PASS.
 - Commit: folgt.
+
+## [STEP 0.1/0.2] Diagnose + SSG-Verifikation (HARD GATE)
+- Start: Diagnose in `architecture.md` festgehalten (SSG-Generator behalten/erweitern).
+- Entscheidung: `scripts/seo/verify-seo.mjs` als permanenter Roh-HTML-Regressionstest;
+  Direktantwort-Lead (40–60 W) auf Ortsseiten + Home ergänzt (GEO-Direktantwort).
+- Gate: `npm run build` grün; `verify:seo` 32 Checks, 0 Fehler → PASS.
+- Commit: folgt.

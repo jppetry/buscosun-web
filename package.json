@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build && node scripts/generate-seo.mjs",
+    "verify:seo": "node scripts/seo/verify-seo.mjs",
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
     "qa:layers": "node scripts/qa-layers.mjs"
