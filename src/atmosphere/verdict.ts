@@ -11,8 +11,7 @@
  */
 
 import type { DerivedProfile } from './profile-derivations';
-import { LENS_LABEL, type Lens } from './atmosphereState';
-import type { GroundingBlock } from '../assistant/grounding';
+import type { Lens } from './atmosphereState';
 
 export type VerdictTone = 'good' | 'watch' | 'bad';
 export interface Verdict {
@@ -90,48 +89,6 @@ export function computeVerdict(lens: Lens, p: DerivedProfile): Verdict {
   }
 }
 
-const TONE_WORD: Record<VerdictTone, string> = { good: 'gut', watch: 'Vorsicht', bad: 'ungünstig' };
-
-/**
- * Baut den Grounding-Block für die LLM-„Warum?"-Erklärung des Verdicts.
- * Nutzt den bestehenden Assistant-Pfad (phenomenon 'atmosphere'); alle Zahlen
- * stammen aus den getesteten Ableitungen, das Modell formuliert nur.
- */
-export function buildVerdictFacts(
-  lens: Lens, locationLabel: string, p: DerivedProfile, v: Verdict, timeLabel?: string,
-): GroundingBlock {
-  const wind = maxLowWindKmh(p);
-  const base = cloudBaseAgl(p);
-  const facts = [
-    { key: 'verdict', label: 'Einschätzung', value: `${TONE_WORD[v.tone]} — ${v.headline}` },
-    { key: 'lens', label: 'Linse', value: LENS_LABEL[lens] },
-    { key: 'thermalTop', label: 'Thermik-/Grenzschicht-Obergrenze', value: `${de0(p.boundaryLayerTopM)} m ü. NN` },
-    { key: 'thermalStrength', label: 'Thermik-Stärke (Schätzung)', value: `${p.thermalStrengthMs.toString().replace('.', ',')} m/s` },
-    { key: 'wind', label: 'Wind unten (bis 2000 m AGL)', value: `${de0(wind)} km/h` },
-  ];
-  if (base != null) facts.push({ key: 'cloudbase', label: 'Wolkenbasis über Grund', value: `${de0(base)} m` });
-  if (p.freezingLevelM != null) facts.push({ key: 'freezing', label: 'Nullgradgrenze', value: `${de0(p.freezingLevelM)} m ü. NN` });
-  const inv = lowInversion(p);
-  if (inv) facts.push({ key: 'inversion', label: 'Inversion (Obergrenze)', value: `${de0(inv.topM)} m, +${inv.deltaC.toString().replace('.', ',')} °C` });
-
-  return {
-    phenomenon: 'atmosphere',
-    title: `Einschätzung ${LENS_LABEL[lens]}`,
-    locationLabel,
-    timeLabel,
-    facts,
-    caveats: [
-      'Höhen in Metern, Wind in km/h. Thermik-Stärke und Grenzschicht sind aus ICON-EU (~7 km) geschätzt.',
-      'Übernimm die gelieferte Einschätzung genau — nicht abschwächen oder verstärken.',
-    ],
-  };
-}
-
-/** Offline-Fallback: getemplatete deutsche Erklärung ohne LLM. */
-export function templateExplanation(lens: Lens, v: Verdict): string {
-  return `${LENS_LABEL[lens]}: ${v.headline}. ${v.detail}.`;
-}
-
 // --- Verification (pure, DEV) ------------------------------------------------
 
 export interface VerdictCheck { case: string; ok: boolean; detail?: string }
@@ -178,14 +135,6 @@ export function verifyVerdict(): { checks: VerdictCheck[]; passed: number; faile
   // Berg: tiefe Wolke → schlecht (Gipfel in Wolken).
   const mtCloud = computeVerdict('mountain', mkDerived({ cloudLayers: [{ baseM: 800, topM: 2000 }], levels: [lv(600, 8)] }));
   add('Berg tiefe Wolke → bad', mtCloud.tone === 'bad', mtCloud.headline);
-
-  // Grounding-Block korrekt aufgebaut.
-  const block = buildVerdictFacts('fly', 'Innsbruck', mkDerived({ boundaryLayerTopM: 3000, thermalStrengthMs: 3.2, cloudBaseM: 2200, levels: [lv(600, 12)] }), flyGood);
-  add('Grounding phenomenon=atmosphere', block.phenomenon === 'atmosphere');
-  add('Grounding hat Einschätzung-Fakt', block.facts[0].key === 'verdict' && /gut/.test(block.facts[0].value));
-
-  // Offline-Fallback nennt die Schlagzeile.
-  add('Template-Fallback nennt Schlagzeile', /Gute Thermik/.test(templateExplanation('fly', flyGood)));
 
   return { checks, passed: checks.filter((c) => c.ok).length, failed: checks.filter((c) => !c.ok).length };
 }

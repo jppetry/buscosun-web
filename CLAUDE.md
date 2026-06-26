@@ -30,7 +30,8 @@
   prompt.md, context.md, architecture.md, tests.md.
 
 ## Atmosphäre — Schlüsselbefunde (P0)
-- Rendering = MapLibre GL 5.6 (kein Three.js). Browser-LLM voll gebaut in `src/assistant/*`.
+- Rendering = MapLibre GL 5.6 (kein Three.js). KI-Assistent (`src/assistant/*`,
+  Browser-LLM) wurde entfernt; Verdict/Erklärung ist rein deterministisch.
 - Keine nativen ICON-D2-Druckflächen → Vertikalquelle ICON-EU-Sounding + abgeleiteter
   3D-Schnitt. Keine Aerosol-/Staub-Pipeline (Staub-Card entfällt).
 - Charts = handgerolltes SVG (keine Charting-Lib).

@@ -100,7 +100,7 @@ function AtmosphereShell({ onBack }: Props) {
 const ATM_INTRO_CAPS = [
   'Vertikalprofil aus echtem ICON-EU-Sounding — Temperatur, Taupunkt, Höhenwind, Inversion',
   'Drei Linsen: Föhn · Thermik · Querschnitt',
-  'Thermik-Karte, Föhn-Index, Talwind, Vertikalschnitt & Skew-T (Nerd-Mode)',
+  'Thermik-Karte, Föhn-Index, Talwind, Vertikalschnitt & Skew-T (Detailansicht)',
   'Aus ICON-EU (~7 km) + Gelände, höhenkorrigiert — werbefrei, keine Tracker',
 ];
 
@@ -178,15 +178,15 @@ function LensSwitcher() {
 function NerdMode() {
   const { nerdOpen, setNerdOpen } = useAtmosphere();
   return (
-    <section className="rt-card atm-nerd" aria-label="Nerd-Mode">
+    <section className="rt-card atm-nerd" aria-label="Detailansicht">
       <button
         type="button" className="atm-nerd-toggle"
         aria-expanded={nerdOpen} onClick={() => setNerdOpen(!nerdOpen)}
       >
-        {nerdOpen ? '▾' : '▸'} Werte anzeigen (Nerd-Mode)
+        {nerdOpen ? '▾' : '▸'} Werte anzeigen (Detailansicht)
       </button>
       {nerdOpen && (
-        <Suspense fallback={<div className="atm-nerd-body">Nerd-Mode wird geladen …</div>}>
+        <Suspense fallback={<div className="atm-nerd-body">Detailansicht wird geladen …</div>}>
           <NerdPanel />
         </Suspense>
       )}
