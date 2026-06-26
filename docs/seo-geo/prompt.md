@@ -13,4 +13,13 @@ Append-only. Ein Eintrag pro Schritt: Start → Kernentscheidung → Gate → Co
 - Entscheidung: `scripts/seo/verify-seo.mjs` als permanenter Roh-HTML-Regressionstest;
   Direktantwort-Lead (40–60 W) auf Ortsseiten + Home ergänzt (GEO-Direktantwort).
 - Gate: `npm run build` grün; `verify:seo` 32 Checks, 0 Fehler → PASS.
+- Commit: 160a203.
+
+## [STEP 0.3] SEO-Infrastruktur
+- Start: robots.txt um Googlebot, Bingbot, Claude-SearchBot, CCBot erweitert;
+  `dist/404.html` (noindex, follow) im Generator ergänzt.
+- Entscheidung: HTTP-404-Status ist host-Konfiguration → `your-actions.md`
+  (Netlify/CF Pages automatisch; GitHub Pages liefert 200 → ungeeignet vor Tier-Expansion).
+- Gate: robots ausgeliefert, sitemap valide XML (140 URLs), 404 erzeugt, JSON-LD
+  valide (verify grün) → PASS.
 - Commit: folgt.

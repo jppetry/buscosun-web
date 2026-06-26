@@ -79,6 +79,37 @@ a{color:var(--terra)}</style>
 mkdirSync(join(DIST, 'wetter'), { recursive: true });
 writeFileSync(join(DIST, 'wetter', 'index.html'), hubPage(), 'utf8');
 
+// 2b) 404.html — echte Fehlerseite (Host muss sie mit HTTP 404 ausliefern,
+// siehe docs/seo-geo/your-actions.md). noindex, aber crawlbar verlinkt.
+function notFoundPage() {
+  return `<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Seite nicht gefunden (404) | ${SITE.name}</title>
+    <meta name="robots" content="noindex, follow" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <meta name="theme-color" content="#2C2A26" />
+    <style>:root{--sand:#FAF6EA;--ink:#2C2A26;--stone:#5C5447;--terra:#C97B47;--border:#E0D6BE}
+body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--sand);color:var(--ink);line-height:1.6}
+.wrap{max-width:640px;margin:0 auto;padding:4rem 1.25rem;text-align:center}h1{font-size:2.2rem;margin:.2rem 0}
+.cta{display:inline-block;background:var(--ink);color:#fff;text-decoration:none;font-weight:600;padding:.7rem 1.2rem;border-radius:999px;margin:1rem .3rem}
+.cta:hover{background:var(--terra)}a{color:var(--terra)}</style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>404 — Seite nicht gefunden</h1>
+      <p>Diese Seite gibt es nicht (mehr). Vielleicht suchst du das Wetter für einen Ort oder eine der Funktionen von ${SITE.name}.</p>
+      <a class="cta" href="/">Zur Startseite</a>
+      <a class="cta" href="/wetter/">Wetter nach Ort</a>
+    </div>
+  </body>
+</html>
+`;
+}
+writeFileSync(join(DIST, '404.html'), notFoundPage(), 'utf8');
+
 // 3) sitemap.xml
 function sitemap() {
   const urls = [

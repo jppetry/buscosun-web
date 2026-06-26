@@ -6,8 +6,8 @@ Abhaken pro Schritt. `[x]` erledigt, `[~]` teilweise/Scaffold, `[ ]` offen.
 - [x] 0.0 Neun Doku-Dateien unter `docs/seo-geo/`
 - [x] 0.1 Diagnose in `architecture.md` (versions-verifiziert, mit DECISION)
 - [x] 0.2 `verify-seo.mjs` prüft Roh-HTML (Home + Ort, Explainer/Tool/Event sobald vorhanden): H1, Lead, Meta, JSON-LD — 32 Checks grün
-- [ ] 0.3 robots.txt erweitert (Bingbot, CCBot, Claude-SearchBot, Googlebot)
-- [ ] 0.3 `dist/404.html` + sitemap(s) valide + canonical überall
+- [x] 0.3 robots.txt erweitert (Googlebot, Bingbot, CCBot, Claude-SearchBot)
+- [x] 0.3 `dist/404.html` (noindex) erzeugt; sitemap valide (140 URLs); canonical überall (verify grün). HTTP-404-Status host-seitig → your-actions
 - [ ] 0.4 CWV mobil gemessen / Lücke in `blockers.md` dokumentiert
 
 ## 1 — Content & Programmatic
