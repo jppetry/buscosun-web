@@ -38,4 +38,14 @@ Append-only. Ein Eintrag pro Schritt: Start → Kernentscheidung → Gate → Co
 - Entscheidung: URL-Schema `/wetter/<slug>/` unverändert; Location→Explainer-
   Cross-Links folgen mit 1.2 (Explainer existieren erst dann).
 - Gate: Tier 1 baut (138 Seiten), `verify:seo` 32 Checks grün, Dataset-JSON-LD valide → PASS.
+- Commit: 1b8b147.
+
+## [STEP 1.2] GEO-Explainer (/wissen/)
+- Start: `scripts/seo/explainers.mjs` (10 Themen) + Renderer in `content.mjs`
+  (Article+FAQPage+Breadcrumb-JSON-LD, Direktantwort, Sektionen, Quellen, Hub).
+- Entscheidung: 3 Piloten voll indexiert (Föhn, Inversion, Nebel/Nebelobergrenze),
+  7 Scaffolds `noindex` (kein Thin-Spam); nur volle in Sitemap. Beidseitige
+  Cross-Links Ort↔Wissen (vervollständigt 1.1).
+- Gate: Build (10 Explainer, 3 indexiert, Sitemap 144 URLs), `verify:seo` 40 Checks
+  grün; Pilot mit Sektionen + indexierbar, Stub noindex, Cross-Links vorhanden → PASS.
 - Commit: folgt.

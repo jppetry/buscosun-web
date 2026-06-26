@@ -219,12 +219,12 @@ function hreflangLinks(canonicalPath) {
     + `\n    <link rel="alternate" hreflang="x-default" href="${url}" />`;
 }
 
-function headBlock({ title, description, canonicalPath, locale, ogImage, jsonLd }) {
+function headBlock({ title, description, canonicalPath, locale, ogImage, jsonLd, noindex }) {
   const url = SITE.url + canonicalPath;
   return `    <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>${escapeHtml(title)}</title>
-    <meta name="description" content="${escapeHtml(description)}" />
+    <meta name="description" content="${escapeHtml(description)}" />${noindex ? '\n    <meta name="robots" content="noindex, follow" />' : ''}
     <link rel="canonical" href="${url}" />
     ${hreflangLinks(canonicalPath)}
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
@@ -274,6 +274,8 @@ export function renderPlacePage(place) {
   const neighborLinks = neighbors.map((n) => `<a href="/wetter/${n.slug}/">${escapeHtml(n.name)} <span>(${n.distKm} km)</span></a>`).join('\n        ');
   const featureLinks = ['Karte', 'Tourenplanung', 'Event-Tag', 'Nowcast', 'Vorhersage', 'Arbeitsfenster']
     .map((f) => `<a href="/">${f}</a>`).join('\n        ');
+  const knowledgeLinks = relevantExplainersFor(place, EXPLAINERS, 3)
+    .map((e) => `<a href="/wissen/${e.slug}/">${escapeHtml(e.title)}</a>`).join('\n        ');
 
   return `<!doctype html>
 <html lang="de">
@@ -306,6 +308,13 @@ ${head}
         <h2>Wetter in der Umgebung</h2>
         <div class="links">
         ${neighborLinks}
+        </div>
+      </section>
+
+      <section>
+        <h2>Wetterwissen für ${escapeHtml(place.name)}</h2>
+        <div class="links">
+        ${knowledgeLinks}
         </div>
       </section>
 
@@ -354,6 +363,166 @@ export function renderHomeRootContent(places) {
       <p>${topByCountry('CH')}</p>
       <p>Datenquellen: DWD · GeoSphere · MeteoSwiss — höhenkorrigiert, ohne Tracker.</p>
     </div>`;
+}
+
+// --- Explainer (/wissen/) ---------------------------------------------------
+
+import { PLACES } from './places.mjs';
+import { EXPLAINERS } from './explainers.mjs';
+
+const PLACE_BY_SLUG = Object.fromEntries(PLACES.map((p) => [p.slug, p]));
+
+/** Article-JSON-LD für einen Explainer (mit author, datePublished, dateModified). */
+export function articleJsonLd(ex) {
+  const url = `${SITE.url}/wissen/${ex.slug}/`;
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: ex.h1,
+    description: ex.answer,
+    inLanguage: 'de-DE',
+    mainEntityOfPage: url,
+    url,
+    datePublished: ex.datePublished,
+    dateModified: ex.dateModified,
+    author: { '@type': 'Organization', name: SITE.name, url: SITE.url + '/' },
+    publisher: { '@type': 'Organization', name: SITE.name, url: SITE.url + '/', logo: { '@type': 'ImageObject', url: SITE.url + '/icon.svg' } },
+    isAccessibleForFree: true,
+  };
+}
+
+function explainerBreadcrumbJsonLd(ex) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Start', item: SITE.url + '/' },
+      { '@type': 'ListItem', position: 2, name: 'Wetterwissen', item: SITE.url + '/wissen/' },
+      { '@type': 'ListItem', position: 3, name: ex.title, item: `${SITE.url}/wissen/${ex.slug}/` },
+    ],
+  };
+}
+
+function metaForExplainer(ex) {
+  const title = `${ex.title} — einfach erklärt | ${SITE.name}`;
+  // Description aus der Direktantwort (auf ~155 Zeichen gekürzt).
+  let d = ex.answer.replace(/\s+/g, ' ').trim();
+  if (d.length > 155) d = d.slice(0, 152).replace(/\s+\S*$/, '') + '…';
+  return { title, description: d };
+}
+
+/** Vollständige/Scaffold-Explainer-Seite (semantisch, crawlbar, GEO-zitierbar). */
+export function renderExplainerPage(ex, allBySlug) {
+  const meta = metaForExplainer(ex);
+  const canonicalPath = `/wissen/${ex.slug}/`;
+  const noindex = ex.status !== 'full';
+  const head = headBlock({
+    title: meta.title, description: meta.description, canonicalPath, locale: 'de-DE', noindex,
+    jsonLd: [articleJsonLd(ex), faqJsonLd(ex.faqs || []), explainerBreadcrumbJsonLd(ex)],
+  });
+
+  const sections = (ex.sections || [])
+    .map((s) => `      <section id="${s.id}">\n        <h2>${escapeHtml(s.h2)}</h2>\n        ${s.html}\n      </section>`)
+    .join('\n');
+  const faqItems = (ex.faqs || [])
+    .map((f) => `<details><summary>${escapeHtml(f.q)}</summary><p>${escapeHtml(f.a)}</p></details>`).join('\n      ');
+  const relExplainers = (ex.relatedExplainers || [])
+    .map((slug) => allBySlug[slug]).filter(Boolean)
+    .map((r) => `<a href="/wissen/${r.slug}/">${escapeHtml(r.title)}</a>`).join('\n        ');
+  const relPlaces = (ex.relatedPlaces || [])
+    .map((slug) => PLACE_BY_SLUG[slug]).filter(Boolean)
+    .map((p) => `<a href="/wetter/${p.slug}/">Wetter ${escapeHtml(p.name)}</a>`).join('\n        ');
+  const sources = (ex.sources || [])
+    .map((s) => `<li><a href="${s.url}" rel="nofollow noopener" target="_blank">${escapeHtml(s.name)}</a></li>`).join('\n        ');
+  const stubNote = noindex
+    ? '<p class="sub">Dieser Beitrag wird laufend ausgebaut. Die Kurzantwort oben fasst das Wichtigste bereits zusammen.</p>'
+    : '';
+
+  return `<!doctype html>
+<html lang="de">
+  <head>
+${head}
+    <style>${PAGE_CSS}
+.answer{font-size:1.1rem;background:#fff;border:1px solid var(--border);border-left:4px solid var(--terra);border-radius:10px;padding:1rem 1.1rem;margin:0 0 1.5rem}</style>
+  </head>
+  <body>
+    <div class="wrap">
+      <nav class="bc" aria-label="Brotkrumen"><a href="/">Start</a> › <a href="/wissen/">Wetterwissen</a> › ${escapeHtml(ex.title)}</nav>
+      <h1>${escapeHtml(ex.h1)}</h1>
+      <p class="answer">${escapeHtml(ex.answer)}</p>
+      ${stubNote}
+${sections}
+      <section>
+        <h2>Häufige Fragen</h2>
+        ${faqItems}
+      </section>
+${relExplainers ? `      <section>\n        <h2>Verwandte Themen</h2>\n        <div class="links">\n        ${relExplainers}\n        </div>\n      </section>` : ''}
+${relPlaces ? `      <section>\n        <h2>Passende Orte</h2>\n        <div class="links">\n        ${relPlaces}\n        </div>\n      </section>` : ''}
+${sources ? `      <section>\n        <h2>Quellen</h2>\n        <ul>\n        ${sources}\n        </ul>\n      </section>` : ''}
+      <footer>
+        ${escapeHtml(SITE.name)} — ${escapeHtml(SITE.tagline)}. Datenbasis: Deutscher Wetterdienst (DWD, CC BY 4.0) · GeoSphere Austria · MeteoSwiss.
+        buscosun erklärt Wetterphänomene und gibt keine amtlichen Warnungen heraus.
+      </footer>
+    </div>
+  </body>
+</html>
+`;
+}
+
+/** /wissen/-Hub: Index aller Explainer (volle zuerst, Scaffolds dezent). */
+export function renderWissenHub(explainers) {
+  const card = (e) => `<a href="/wissen/${e.slug}/" class="card${e.status === 'full' ? '' : ' stub'}">
+        <strong>${escapeHtml(e.title)}</strong>
+        <span>${escapeHtml(metaForExplainer(e).description)}</span>
+      </a>`;
+  const full = explainers.filter((e) => e.status === 'full').map(card).join('\n      ');
+  const stubs = explainers.filter((e) => e.status !== 'full').map(card).join('\n      ');
+  const head = headBlock({
+    title: `Wetterwissen — Phänomene einfach erklärt | ${SITE.name}`,
+    description: 'Föhn, Temperaturinversion, Nebelobergrenze, Thermik, Schneefallgrenze und mehr — meteorologische Phänomene der DACH-Region verständlich und faktenbasiert erklärt.',
+    canonicalPath: '/wissen/', locale: 'de-DE',
+    jsonLd: [{
+      '@context': 'https://schema.org', '@type': 'CollectionPage',
+      name: 'Wetterwissen', url: SITE.url + '/wissen/',
+      description: 'Meteorologie-Explainer der DACH-Region.',
+    }],
+  });
+  return `<!doctype html>
+<html lang="de">
+  <head>
+${head}
+    <style>${PAGE_CSS}
+.cards{display:grid;gap:.8rem}@media(min-width:560px){.cards{grid-template-columns:1fr 1fr}}
+.card{display:flex;flex-direction:column;gap:.3rem;background:#fff;border:1px solid var(--border);border-radius:10px;padding:.9rem 1rem;text-decoration:none;color:var(--ink)}
+.card strong{color:var(--terra)}.card span{font-size:.85rem;color:var(--stone)}.card.stub{opacity:.7}</style>
+  </head>
+  <body>
+    <div class="wrap">
+      <nav class="bc" aria-label="Brotkrumen"><a href="/">Start</a> › Wetterwissen</nav>
+      <h1>Wetterwissen</h1>
+      <p class="lead">Meteorologische Phänomene der DACH-Region — Föhn, Inversion, Nebelobergrenze, Thermik, Schneefallgrenze und mehr — verständlich, faktenbasiert und mit Quellen erklärt. buscosun erklärt nur und gibt keine amtlichen Warnungen heraus.</p>
+      <h2>Ausführliche Beiträge</h2>
+      <div class="cards">
+      ${full}
+      </div>
+      <h2>Weitere Themen (im Aufbau)</h2>
+      <div class="cards">
+      ${stubs}
+      </div>
+    </div>
+  </body>
+</html>
+`;
+}
+
+/** Für Ortsseiten: bis zu n Explainer, die zum Ort passen (alpin → Föhn etc.). */
+export function relevantExplainersFor(place, explainers, n = 3) {
+  const alpine = place.ele >= 800 && (place.country !== 'DE' || place.region === 'Bayern');
+  const order = alpine
+    ? ['foehn', 'schneefallgrenze', 'temperaturinversion', 'nebel-hochnebel-nebelobergrenze']
+    : ['temperaturinversion', 'nebel-hochnebel-nebelobergrenze', 'modellvergleich-unsicherheit', 'gewitter-unwetter'];
+  const bySlug = Object.fromEntries(explainers.map((e) => [e.slug, e]));
+  return order.map((s) => bySlug[s]).filter(Boolean).slice(0, n);
 }
 
 /** Head-Ergänzungen für die Home (OG/Twitter/canonical/hreflang/JSON-LD). */

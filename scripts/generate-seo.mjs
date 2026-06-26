@@ -10,8 +10,10 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PLACES } from './seo/places.mjs';
+import { EXPLAINERS, EXPLAINERS_BY_SLUG } from './seo/explainers.mjs';
 import {
   SITE, renderPlacePage, renderHomeRootContent, homeHeadExtras, escapeHtml, metaFor,
+  renderExplainerPage, renderWissenHub,
 } from './seo/content.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -79,6 +81,17 @@ a{color:var(--terra)}</style>
 mkdirSync(join(DIST, 'wetter'), { recursive: true });
 writeFileSync(join(DIST, 'wetter', 'index.html'), hubPage(), 'utf8');
 
+// 2c) Explainer (/wissen/<slug>/) + /wissen/-Hub
+let explainerPages = 0;
+for (const ex of EXPLAINERS) {
+  const dir = join(DIST, 'wissen', ex.slug);
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, 'index.html'), renderExplainerPage(ex, EXPLAINERS_BY_SLUG), 'utf8');
+  explainerPages++;
+}
+mkdirSync(join(DIST, 'wissen'), { recursive: true });
+writeFileSync(join(DIST, 'wissen', 'index.html'), renderWissenHub(EXPLAINERS), 'utf8');
+
 // 2b) 404.html — echte Fehlerseite (Host muss sie mit HTTP 404 ausliefern,
 // siehe docs/seo-geo/your-actions.md). noindex, aber crawlbar verlinkt.
 function notFoundPage() {
@@ -116,6 +129,9 @@ function sitemap() {
     { loc: `${SITE.url}/`, pri: '1.0' },
     { loc: `${SITE.url}/wetter/`, pri: '0.8' },
     ...PLACES.map((p) => ({ loc: `${SITE.url}/wetter/${p.slug}/`, pri: '0.6' })),
+    { loc: `${SITE.url}/wissen/`, pri: '0.7' },
+    // Nur vollständige Explainer indexieren (Scaffolds sind noindex).
+    ...EXPLAINERS.filter((e) => e.status === 'full').map((e) => ({ loc: `${SITE.url}/wissen/${e.slug}/`, pri: '0.6' })),
   ];
   const body = urls.map((u) =>
     `  <url><loc>${u.loc}</loc><lastmod>${BUILD_DATE}</lastmod><changefreq>daily</changefreq><priority>${u.pri}</priority></url>`).join('\n');
@@ -132,4 +148,5 @@ if (!html.includes('og:site_name')) {
 html = html.replace('<div id="root"></div>', `<div id="root">${renderHomeRootContent(PLACES)}</div>`);
 writeFileSync(indexPath, html, 'utf8');
 
-console.log(`[seo] ${pages} Geo-Seiten, /wetter/-Hub, sitemap.xml (${PLACES.length + 2} URLs), Home angereichert. Build ${BUILD_DATE}.`);
+const fullExplainers = EXPLAINERS.filter((e) => e.status === 'full').length;
+console.log(`[seo] ${pages} Geo-Seiten, ${explainerPages} Explainer (${fullExplainers} indexiert) + /wissen/-Hub, /wetter/-Hub, sitemap.xml (${PLACES.length + 3 + fullExplainers} URLs), Home angereichert. Build ${BUILD_DATE}.`);
