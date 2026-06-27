@@ -408,11 +408,20 @@ export default function MapView({ location, onBack, embedded = false, initialAct
     // location so the user can see it in context; they can drag/zoom in
     // manually. (The country profile still drives the *point forecast*
     // source mix — only the camera + mask use DACH_VIEW.)
+    // Geräte-Pixelratio auf Touch-Geräten (Handy/Tablet) cappen: ohne Cap rendert
+    // MapLibre bei DPR 3 das ~9-fache an Fragmenten — Basemap-Vektorkacheln UND
+    // alle WebGL-Wetterlayer (Heatmap, Maske, Dim, Skalar, Wind-Partikel) laufen
+    // pro Geräte-Pixel. Auf Mobile dominiert das die Ladezeit/Ruckler. Cap 1.5 ≈
+    // viertelt die GPU-Fragmentlast bei kaum sichtbarem Schärfeverlust. Desktop
+    // (Maus/feiner Zeiger) behält die volle native Auflösung.
+    const coarsePointer = typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
+    const dpr = window.devicePixelRatio || 1;
     const map = new maplibregl.Map({
       container: containerRef.current,
       style: 'https://tiles.openfreemap.org/styles/liberty',
       center: embedded ? [location.lon, location.lat] : DACH_VIEW.defaultCenter,
       zoom: embedded ? 7.4 : DACH_VIEW.defaultZoom,
+      pixelRatio: coarsePointer ? Math.min(dpr, 1.5) : dpr,
     });
 
     map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-left');

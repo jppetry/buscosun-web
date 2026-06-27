@@ -5,10 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>buscosun — Wetter DE · AT · CH</title>
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <!-- PNG-Fallback fuer Browser ohne SVG-Favicon-Unterstuetzung (v. a. mobile). -->
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="theme-color" content="#2C2A26" />
     <meta name="description" content="DACH-Wetter: Karte, Tourenplanung, Event-Tag, Nowcast, Vorhersage, Arbeitsfenster — höhenkorrigiert, ohne Tracker." />
-    <link rel="apple-touch-icon" href="/icon.svg" />
+    <!-- iOS Safari unterstuetzt KEIN SVG als apple-touch-icon → PNG noetig, sonst
+         erscheint beim Hinzufuegen zum Home-Bildschirm kein Logo. -->
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="buscosun" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
