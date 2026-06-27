@@ -14,6 +14,16 @@ export default defineConfig({
   // import.meta.url)` findet die Binärdatei nicht und der Loader hängt. Ausgeschlossen
   // lädt das Glue direkt aus node_modules, wo die .wasm adjazent liegt.
   optimizeDeps: { exclude: ['bzip2-wasm'] },
+  build: {
+    rollupOptions: {
+      output: {
+        // maplibre-gl (~500 KB) in einen eigenen, von allen Lazy-Karten-Seiten
+        // geteilten Chunk auslagern → einmal laden + langfristig cachebar,
+        // statt in mehrere Seiten-Chunks dupliziert zu werden.
+        manualChunks: { maplibre: ['maplibre-gl'] },
+      },
+    },
+  },
   server: {
     proxy: {
       '/_dwd_opendata': {

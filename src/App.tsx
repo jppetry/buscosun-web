@@ -1,21 +1,27 @@
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import SearchPage from './SearchPage';
-import MapView from './MapView';
-import FeaturePage from './feature/FeaturePage';
-import RoutePage from './route/RoutePage';
-import EventPage from './event/EventPage';
-import NowcastPage from './nowcast/NowcastPage';
-import ForecastPage from './confidence/ForecastPage';
-import HistoryPage from './history/HistoryPage';
-import GlobePage from './globe/GlobePage';
-import AtmospherePage from './atmosphere/AtmospherePage';
-import FeedbackPage from './feedback/FeedbackPage';
-import ValidationPage from './validation/ValidationPage';
 import type { Location } from './types';
 import type { LayerKey } from './MapView';
 import { decodeMapState } from './mapState';
 import { hasEventHash } from './event/eventState';
 import './designTokens.css';
+
+// Code-Splitting: nur die Startseite (Default-Landing) wird eager geladen. Alle
+// Feature-Seiten — inkl. der schweren MapView (zieht maplibre-gl) und des
+// WebGL-Globus — laden lazy als eigener Chunk, erst wenn der Nutzer sie öffnet.
+// Das hält den Initial-Bundle der Startseite klein (vorher: ein 2,3-MB-Monolith
+// für ALLE Routen). Suspense-Fallback überbrückt den Chunk-Download.
+const MapView = lazy(() => import('./MapView'));
+const FeaturePage = lazy(() => import('./feature/FeaturePage'));
+const RoutePage = lazy(() => import('./route/RoutePage'));
+const EventPage = lazy(() => import('./event/EventPage'));
+const NowcastPage = lazy(() => import('./nowcast/NowcastPage'));
+const ForecastPage = lazy(() => import('./confidence/ForecastPage'));
+const HistoryPage = lazy(() => import('./history/HistoryPage'));
+const GlobePage = lazy(() => import('./globe/GlobePage'));
+const AtmospherePage = lazy(() => import('./atmosphere/AtmospherePage'));
+const FeedbackPage = lazy(() => import('./feedback/FeedbackPage'));
+const ValidationPage = lazy(() => import('./validation/ValidationPage'));
 
 export type FeatureId = 'route' | 'event' | 'dayflow' | 'forecast' | 'nowcast' | 'atmosphere' | 'history' | 'globe' | 'map2d' | 'feedback' | 'validation';
 
@@ -33,6 +39,35 @@ type View =
   | { kind: 'search' }
   | { kind: 'map'; location: Location; mapInit?: { layers: LayerKey[]; hour: number } }
   | { kind: 'feature'; feature: FeatureInfo };
+
+/** Leichter, marken-getönter Fallback während ein Lazy-Seiten-Chunk lädt.
+ *  Selbsttragend gestylt (designTokens.css ist eager geladen), damit kein
+ *  seiten-spezifisches CSS nötig ist, das ja erst mit dem Chunk käme. */
+function AppLoader() {
+  return (
+    <div
+      style={{
+        minHeight: '100vh', display: 'grid', placeItems: 'center',
+        background: 'var(--cream-50, #FAF6EA)', color: 'var(--stone-600, #5C5447)',
+        fontFamily: 'var(--font-base, ui-sans-serif, system-ui, -apple-system, sans-serif)',
+      }}
+    >
+      <style>{'@keyframes app-spin{to{transform:rotate(360deg)}}'}</style>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.85rem' }}>
+        <div
+          style={{
+            width: 34, height: 34, borderRadius: '50%',
+            border: '3px solid var(--sand-200, #E0D6BE)',
+            borderTopColor: 'var(--terracotta-500, #C97B47)',
+            animation: 'app-spin 0.8s linear infinite',
+          }}
+          aria-hidden="true"
+        />
+        <span style={{ fontSize: '0.9rem' }}>lädt …</span>
+      </div>
+    </div>
+  );
+}
 
 export default function App() {
   // Permalink: mit dem passenden Hash direkt in die jeweilige Ansicht starten —
@@ -59,53 +94,34 @@ export default function App() {
     setView({ kind: 'search' });
   };
 
+  // Aktuelle Ansicht als Element bestimmen; Lazy-Komponenten werden vom
+  // umschließenden <Suspense> abgefedert.
+  let content: React.ReactNode;
   if (view.kind === 'map') {
-    return <MapView location={view.location} initialActive={view.mapInit?.layers} initialHour={view.mapInit?.hour} onBack={goSearch} />;
-  }
-  if (view.kind === 'feature') {
+    content = <MapView location={view.location} initialActive={view.mapInit?.layers} initialHour={view.mapInit?.hour} onBack={goSearch} />;
+  } else if (view.kind === 'feature') {
     const back = goSearch;
-    if (view.feature.id === 'map2d') {
-      return <MapView location={DACH_OVERVIEW_LOCATION} overview onBack={back} />;
-    }
-    if (view.feature.id === 'route') {
-      return <RoutePage onBack={back} />;
-    }
-    if (view.feature.id === 'event') {
-      return <EventPage onBack={back} />;
-    }
-    if (view.feature.id === 'nowcast') {
-      return <NowcastPage onBack={back} />;
-    }
-    if (view.feature.id === 'atmosphere') {
-      return <AtmospherePage onBack={back} />;
-    }
-    if (view.feature.id === 'forecast') {
-      return <ForecastPage onBack={back} />;
-    }
-    if (view.feature.id === 'history') {
-      return <HistoryPage onBack={back} />;
-    }
-    if (view.feature.id === 'globe') {
-      return <GlobePage onBack={back} />;
-    }
-    if (view.feature.id === 'feedback') {
-      return <FeedbackPage onBack={back} />;
-    }
-    if (view.feature.id === 'validation') {
-      return <ValidationPage onBack={back} />;
-    }
-    return (
-      <FeaturePage
-        eyebrow={view.feature.eyebrow}
-        title={view.feature.title}
-        onBack={back}
+    const f = view.feature;
+    content =
+      f.id === 'map2d' ? <MapView location={DACH_OVERVIEW_LOCATION} overview onBack={back} /> :
+      f.id === 'route' ? <RoutePage onBack={back} /> :
+      f.id === 'event' ? <EventPage onBack={back} /> :
+      f.id === 'nowcast' ? <NowcastPage onBack={back} /> :
+      f.id === 'atmosphere' ? <AtmospherePage onBack={back} /> :
+      f.id === 'forecast' ? <ForecastPage onBack={back} /> :
+      f.id === 'history' ? <HistoryPage onBack={back} /> :
+      f.id === 'globe' ? <GlobePage onBack={back} /> :
+      f.id === 'feedback' ? <FeedbackPage onBack={back} /> :
+      f.id === 'validation' ? <ValidationPage onBack={back} /> :
+      <FeaturePage eyebrow={f.eyebrow} title={f.title} onBack={back} />;
+  } else {
+    content = (
+      <SearchPage
+        onSelect={(location) => setView({ kind: 'map', location })}
+        onOpenFeature={(feature) => setView({ kind: 'feature', feature })}
       />
     );
   }
-  return (
-    <SearchPage
-      onSelect={(location) => setView({ kind: 'map', location })}
-      onOpenFeature={(feature) => setView({ kind: 'feature', feature })}
-    />
-  );
+
+  return <Suspense fallback={<AppLoader />}>{content}</Suspense>;
 }

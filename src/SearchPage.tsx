@@ -11,12 +11,15 @@
  *   - Footer: Buscosun · v0.9 Beta · keine Tracker
  */
 
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
-import maplibregl from 'maplibre-gl';
-import 'maplibre-gl/dist/maplibre-gl.css';
+import { lazy, Suspense, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import type { Location, NominatimResult } from './types';
 import type { FeatureId, FeatureInfo } from './App';
-import { parseCountry, DACH_VIEW } from './countryProfiles';
+import { parseCountry } from './countryProfiles';
+// Deko-Hero-Karte lazy: maplibre-gl bleibt aus dem Initial-Bundle (eigener Chunk).
+const HeroMapBackground = lazy(() => import('./HeroMapBackground'));
+// Touch-Geräte: die rein dekorative Hintergrundkarte gar nicht laden (SVG genügt).
+const SHOW_HERO_MAP = typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+  && !window.matchMedia('(pointer: coarse)').matches;
 import { warmMapData } from './fusion/loadFusedForecast';
 import { flagForCountry } from './geocode';
 import { getFavorites, removeFavorite } from './favorites';
@@ -55,9 +58,14 @@ export default function SearchPage({ onSelect, onOpenFeature }: Props) {
 
   return (
     <div className="hero-page">
-      {/* Sand-Art-SVG als Sofort-/Offline-Fallback, darüber die echte 2D-Karte. */}
+      {/* Sand-Art-SVG als Sofort-/Offline-Fallback, darüber (nur Desktop) die
+          echte 2D-Karte — lazy geladen, damit maplibre-gl nicht im Initial-Bundle ist. */}
       <HeroBackground />
-      <HeroMapBackground />
+      {SHOW_HERO_MAP && (
+        <Suspense fallback={null}>
+          <HeroMapBackground />
+        </Suspense>
+      )}
       <HeroNav />
 
       <main className="hero-center">
@@ -168,40 +176,6 @@ function HeroBackground() {
         <path d="M -50 520 Q 360 510 720 530 T 1490 550" stroke="url(#wind-grad)" strokeWidth="1.5" fill="none" />
       </g>
     </svg>
-  );
-}
-
-// ============================================================================
-// BACKGROUND MAP — echte 2D-DACH-Karte als Hero-Hintergrund (Experiment).
-// Nicht-interaktiv, in die Sand-Palette getönt und mit Sand-Scrim überblendet,
-// damit Headline/Suche/Feature-Kacheln lesbar bleiben. Liegt über dem SVG-
-// Fallback (HeroBackground), das bei Offline/Tile-Fehler sichtbar bleibt.
-// ============================================================================
-function HeroMapBackground() {
-  const ref = useRef<HTMLDivElement>(null);
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    if (!ref.current) return;
-    const map = new maplibregl.Map({
-      container: ref.current,
-      style: 'https://tiles.openfreemap.org/styles/liberty',
-      center: DACH_VIEW.defaultCenter,
-      zoom: 4.7,
-      minZoom: 3,
-      maxZoom: 7,
-      interactive: false,
-      attributionControl: false,
-    });
-    map.on('load', () => setReady(true));
-    return () => map.remove();
-  }, []);
-
-  return (
-    <div className={`hero-map${ready ? ' is-ready' : ''}`} aria-hidden="true">
-      <div ref={ref} className="hero-map-canvas" />
-      <div className="hero-map-scrim" />
-    </div>
   );
 }
 
