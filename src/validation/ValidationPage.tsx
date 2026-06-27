@@ -53,10 +53,16 @@ export default function ValidationPage({ onBack }: { onBack: () => void }) {
         </p>
 
         {state === 'loading' && (
-          <div className="val-loading">
-            <span className="val-spinner" />
-            <span>Lade echte RADOLAN-Beobachtungen & rechne das Ensemble … (~20 s)</span>
-          </div>
+          <>
+            <div className="val-loading">
+              <span className="val-spinner" />
+              <span>Lade echte RADOLAN-Beobachtungen & rechne das Ensemble … (~20 s)</span>
+            </div>
+            {/* Skeleton spiegelt die Ergebnis-Struktur (gleiche Container/Höhen) →
+                reserviert den Platz, damit beim Eintreffen der Werte nichts springt
+                (verhindert den hohen CLS) und wirkt als bewusster Ladezustand. */}
+            <ResultsSkeleton />
+          </>
         )}
         {state === 'error' && (
           <p className="val-error">⚠ {err} — das Hindcast braucht mehrere aufeinanderfolgende RADOLAN-Läufe (nur DE).</p>
@@ -109,6 +115,35 @@ function Results({ r }: { r: LiveHindcast }) {
           <h2 className="val-h2">Reliability-Diagramm</h2>
           <ReliabilityChart bins={r.reliability} />
           <p className="val-foot">Punkte auf der Diagonale = perfekt kalibriert (vorhergesagte 70 % treten zu ~70 % ein).</p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/** Platzhalter mit gleicher Layout-Höhe wie <Results> — hält die Position der
+ *  nachfolgenden Methodik stabil (CLS-Schutz) während des ~20-s-Hindcasts. */
+function ResultsSkeleton() {
+  return (
+    <section className="val-results val-skeleton" aria-hidden="true">
+      <div className="val-sk-box val-sk-window" />
+      <div className="val-cards">
+        {[0, 1, 2, 3].map((i) => (
+          <div className="val-card" key={i}>
+            <span className="val-sk-box val-sk-eyebrow" />
+            <span className="val-sk-box val-sk-value" />
+            <span className="val-sk-box val-sk-sub" />
+          </div>
+        ))}
+      </div>
+      <div className="val-twocol">
+        <div>
+          <div className="val-sk-box val-sk-h2" />
+          <div className="val-sk-box val-sk-table" />
+        </div>
+        <div>
+          <div className="val-sk-box val-sk-h2" />
+          <div className="val-sk-box val-sk-chart" />
         </div>
       </div>
     </section>

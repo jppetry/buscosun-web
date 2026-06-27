@@ -123,7 +123,25 @@
 .val-foot { font-size: 0.72rem; color: var(--stone-500, #78716c); line-height: 1.4; margin-top: 0.6rem; }
 
 .val-reliability { width: 100%; max-width: 260px; display: block; }
-.val-axis { font-size: 8px; fill: var(--stone-500, #78716c); letter-spacing: 0.03em; }
+.val-axis { font-size: 10px; fill: var(--stone-500, #78716c); letter-spacing: 0.03em; }
+
+/* ----- Lade-Skeleton: spiegelt die <Results>-Höhen → verhindert Layout-Shift
+   (CLS) beim Eintreffen der berechneten Werte nach dem ~20-s-Hindcast. ----- */
+.val-skeleton { margin-top: 0.4rem; }
+.val-sk-box {
+  display: block;
+  background: var(--sand-100, #f0e9d8);
+  border-radius: 8px;
+  animation: val-sk-pulse 1.4s ease-in-out infinite;
+}
+@keyframes val-sk-pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 0.85; } }
+.val-sk-window { height: 18px; width: 72%; margin-bottom: 2rem; border-radius: 6px; }
+.val-sk-eyebrow { height: 9px; width: 60%; }
+.val-sk-value { height: 30px; width: 50%; margin: 0.3rem 0; }
+.val-sk-sub { height: 26px; width: 92%; }
+.val-sk-h2 { height: 15px; width: 55%; margin-bottom: 0.7rem; }
+.val-sk-table { height: 232px; border-radius: 12px; }
+.val-sk-chart { height: 240px; width: 100%; max-width: 260px; border-radius: 12px; }
 
 /* ----- Methodik ----- */
 .val-method { margin-top: 2.5rem; border-top: 1px solid var(--sand-200, #e6ddc8); padding-top: 1.5rem; }
