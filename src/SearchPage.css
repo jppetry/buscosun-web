@@ -73,6 +73,8 @@
 .hero-nav {
   display: flex;
   align-items: center;
+  justify-content: center;
+  position: relative;
   padding: 2rem var(--hero-pad-x-desktop) 0;
   gap: 2rem;
 }
@@ -82,9 +84,10 @@
   gap: 0.85rem;
   text-decoration: none;
 }
-.hero-logo svg { display: block; }
+.hero-logo svg, .hero-logo img { display: block; }
+.hero-logo .hero-logo-mark { width: 88px; height: 88px; }
 .hero-logo-name {
-  font-size: 1.25rem;
+  font-size: 2.6rem;
   font-weight: 500;
   color: var(--ink-900);
   letter-spacing: -0.015em;
@@ -93,7 +96,10 @@
   display: flex;
   align-items: center;
   gap: 1.25rem;
-  margin-left: auto;
+  position: absolute;
+  right: var(--hero-pad-x-desktop);
+  top: calc(2rem + 44px);
+  transform: translateY(-50%);
 }
 .hero-lang {
   font-size: 0.84rem;
@@ -115,6 +121,9 @@
   max-width: 100%;
 }
 
+.hero-topline { display: flex; justify-content: center; margin-top: 0.85rem; }
+.hero-eyebrow.eyebrow { color: var(--ink-900, #2C2A26); }
+.hero-eyebrow.eyebrow-rule::before { background: var(--ink-900, #2C2A26); }
 .hero-headline-center {
   font-size: clamp(3rem, 7vw, 6rem);
   line-height: 1.02;
@@ -138,7 +147,7 @@
 .hero-sub-center {
   font-size: 1.1rem;
   font-weight: 400;
-  color: var(--stone-600);
+  color: var(--ink-900, #2C2A26);
   letter-spacing: -0.008em;
   line-height: 1.45;
   margin: 0;
@@ -386,9 +395,16 @@
 }
 /* Vorschau ohne weißen Rahmen (z. B. Wetterkarte): kein weißer Hintergrund/
    Border, nur ein dezenter Innenabstand, damit das Icon etwas kleiner sitzt.
-   Der Abstand zeigt die Kachelfläche (kein Weiß). */
-.feature-preview-flush {
-  padding: 1.9rem 2.6rem;
+   Der Abstand zeigt die Kachelfläche (kein Weiß).
+   Padding PROZENTUAL (relativ zur Breite) statt rem → das Icon↔Kachel-Verhältnis
+   bleibt über ALLE Viewports konstant (≈ Desktop, svg ≈ 60 % der Kachelbreite).
+   Sonst überschrieb die Mobile-`.feature-preview`-Regel (gleiche Spezifität, aber
+   später im Quelltext) das rem-Padding und die Icons wurden auf Mobile zu groß;
+   die höhere Spezifität (.feature-preview.feature-preview-flush) sichert den
+   Vorrang zusätzlich ab. 11,3 % / 15,5 % entsprechen den bisherigen 1,9rem/2,6rem
+   bei Desktop-Kachelbreite. */
+.feature-preview.feature-preview-flush {
+  padding: 11.3% 15.5%;
   background: none;
   border: none;
 }

@@ -9,7 +9,7 @@
  * live station observations in the blend.
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { getPointForecast } from './pointForecast';
 import type { PointForecast } from './types';
 import type { Country } from '../types';
@@ -49,6 +49,39 @@ export function PointForecastPanel({ lat, lng, country, locationLabel, hours = 2
   const [omPollen, setOmPollen] = useState<OpenMeteoPollen | null>(null);
   const [omOptIn, setOmOptIn] = useState<boolean>(() => isOpenMeteoOptIn());
   const [view, setView] = useState<View>('overview');
+
+  // Mobile-Bottom-Sheet: per Touch nach oben/unten wischbar (peek ↔ full ↔ zu).
+  const [snap, setSnap] = useState<'peek' | 'full'>('peek');
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const drag = useRef({ startY: 0, startH: 0, active: false });
+
+  function onGrabStart(e: React.TouchEvent) {
+    const body = bodyRef.current;
+    if (!body) return;
+    drag.current = { startY: e.touches[0].clientY, startH: body.offsetHeight, active: true };
+    body.style.transition = 'none';
+  }
+  function onGrabMove(e: React.TouchEvent) {
+    const body = bodyRef.current;
+    if (!body || !drag.current.active) return;
+    const dy = drag.current.startY - e.touches[0].clientY;      // hoch = positiv
+    const maxH = window.innerHeight * 0.92;
+    const next = Math.max(60, Math.min(maxH, drag.current.startH + dy));
+    body.style.height = `${next}px`;
+    e.preventDefault();
+  }
+  function onGrabEnd() {
+    const body = bodyRef.current;
+    if (!body || !drag.current.active) return;
+    drag.current.active = false;
+    const finalH = body.offsetHeight;
+    const vh = window.innerHeight;
+    body.style.transition = '';
+    body.style.height = '';                                      // CSS-Klasse übernimmt (mit Transition)
+    if (finalH < vh * 0.24) { setSnap('peek'); setOpen(false); } // weit runter → schließen
+    else if (finalH > vh * 0.6) setSnap('full');                 // weit hoch → voll
+    else setSnap('peek');
+  }
 
   function enableOmPollen() { setOpenMeteoOptIn(true); setOmOptIn(true); }
   function disableOmPollen() { setOpenMeteoOptIn(false); setOmOptIn(false); setOmPollen(null); }
@@ -110,7 +143,7 @@ export function PointForecastPanel({ lat, lng, country, locationLabel, hours = 2
   }, [lat, lng, country, omOptIn]);
 
   return (
-    <div className={`pfc-panel ${open ? 'pfc-open' : 'pfc-closed'}`}>
+    <div className={`pfc-panel ${open ? 'pfc-open' : 'pfc-closed'} pfc-m-${snap}`}>
       <button
         className="pfc-toggle"
         onClick={() => setOpen((v) => !v)}
@@ -120,7 +153,19 @@ export function PointForecastPanel({ lat, lng, country, locationLabel, hours = 2
         {open ? '›' : '‹'} Forecast
       </button>
       {open && (
-        <div className="pfc-body">
+        <div className="pfc-body" ref={bodyRef}>
+          <div
+            className="pfc-grab"
+            role="button"
+            tabIndex={0}
+            aria-label="Forecast-Fenster ziehen — hoch für mehr, runter zum Schließen"
+            onTouchStart={onGrabStart}
+            onTouchMove={onGrabMove}
+            onTouchEnd={onGrabEnd}
+            onTouchCancel={onGrabEnd}
+          >
+            <span className="pfc-grab-bar" />
+          </div>
           <div className="pfc-head">
             <div className="pfc-title">Punktforecast</div>
             <div className="pfc-loc" title={`${lat.toFixed(3)}, ${lng.toFixed(3)}`}>

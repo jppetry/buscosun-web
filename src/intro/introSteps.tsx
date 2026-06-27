@@ -10,14 +10,14 @@
  * Order = a deliberate arc: first teach how buscosun works, then ground the
  * visitor in the core map, hit the most frequent everyday need (radar), the
  * planning tools (route, event), the trust differentiator (multi-model
- * confidence), the visual "wow" (globe), close on the unique local AI assistant
- * — then a clear CTA into the app.
+ * confidence), the visual "wow" (globe), close on the 3D atmosphere — the
+ * vertical cross-section that sets buscosun apart — then a clear CTA into the app.
  */
 
 import type { IntroArt } from './introArt';
 import {
-  FlowArt, MapArt, RadarArt, RouteArt, EventArt, ForecastArt, GlobeArt, StartArt,
-  MapDetail, RadarDetail, RouteDetail, EventDetail, ForecastDetail, GlobeDetail,
+  FlowArt, MapArt, RadarArt, RouteArt, EventArt, ForecastArt, GlobeArt, AtmosphereArt, StartArt,
+  MapDetail, RadarDetail, RouteDetail, EventDetail, ForecastDetail, GlobeDetail, AtmosphereDetail,
 } from './introArt';
 
 export interface IntroStep {
@@ -149,6 +149,22 @@ export const INTRO_STEPS: IntroStep[] = [
     accent: '--slate-500',
     Illustration: GlobeArt,
     Detail: GlobeDetail,
+  },
+  {
+    id: 'atmosphere',
+    eyebrow: 'Atmosphäre',
+    title: 'Die Luftschichten über dir – in 3D',
+    body: 'Ein vertikaler Querschnitt durch die Atmosphäre zeigt Temperatur, Wind und Feuchte mit der Höhe – so werden Föhn, Inversionen und die Nebel- oder Schneefallgrenze sichtbar.',
+    capabilities: [
+      'Vertikalprofil von Temperatur, Wind und Feuchte',
+      'Linsen für Föhn, Thermik und Querschnitt',
+      'Höhen-Cap 0–4000 m oder ganze Höhe',
+      'Dünne Inversionen klar als unsicher markiert',
+    ],
+    howTo: 'Ort wählen, dann zwischen den Linsen Föhn · Thermik · Querschnitt umschalten.',
+    accent: '--terracotta-500',
+    Illustration: AtmosphereArt,
+    Detail: AtmosphereDetail,
   },
   {
     id: 'start',

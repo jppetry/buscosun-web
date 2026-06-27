@@ -73,57 +73,6 @@
 }
 .back-btn:active { transform: translateY(1px); }
 
-/* Permalink-Teilen — gleiche Pillen-Optik wie der Zurück-Button */
-.map-share-btn {
-  pointer-events: auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.6rem 1rem;
-  background: var(--surface-glass);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  border: 1px solid var(--border-default);
-  border-radius: 999px;
-  font-family: inherit;
-  font-size: 0.84rem;
-  font-weight: 500;
-  color: var(--ink-900);
-  cursor: pointer;
-  box-shadow: var(--shadow-card);
-  white-space: nowrap;
-  transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.05s;
-}
-.map-share-btn:hover { background: var(--cream-50); border-color: var(--terracotta-500); color: var(--terracotta-700, #A85E2E); }
-.map-share-btn:active { transform: translateY(1px); }
-.map-share-btn svg { flex-shrink: 0; }
-
-/* Ort merken (Favorit) — gleiche Pillen-Optik */
-.map-fav-btn {
-  pointer-events: auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.6rem 1rem;
-  background: var(--surface-glass);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  border: 1px solid var(--border-default);
-  border-radius: 999px;
-  font-family: inherit;
-  font-size: 0.84rem;
-  font-weight: 500;
-  color: var(--ink-900);
-  cursor: pointer;
-  box-shadow: var(--shadow-card);
-  white-space: nowrap;
-  transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.05s;
-}
-.map-fav-btn:hover { background: var(--cream-50); border-color: var(--terracotta-500); }
-.map-fav-btn:active { transform: translateY(1px); }
-.map-fav-btn.is-fav { color: var(--terracotta-500, #C97B47); border-color: var(--terracotta-500, #C97B47); }
-.map-fav-btn svg { flex-shrink: 0; }
-
 .location-label {
   pointer-events: auto;
   flex: 1;
@@ -343,248 +292,7 @@
 }
 @media (max-width: 767px) { .layer-info { display: none; } }
 
-/* ============ MODELL RAIL · UNTER LAYER-RAIL ============ */
-/*
- * Country-Chip-Rail: drei Flag-Chips (DE/AT/CH) statt direkter Modell-Buttons.
- * Klick auf einen Chip öffnet ein Popover mit den verfügbaren Modellen für
- * dieses Land plus Kurzbeschreibung. Sand-Ink-Designsprache:
- *   – Rail: kreamfarbene Glas-Oberfläche mit Eyebrow „MODELL"
- *   – Home-Chip (=location.country): subtiler sand-100 Hintergrund + Punkt
- *   – Aktiver / offener Chip: ink-900 gefüllt
- *   – Popover: cream-white Karte, links angeflanscht ans Rail
- */
-.model-rail {
-  /* In-flow im .left-rails-Flexstack → automatisch unter dem Layer-Rail. */
-  width: 56px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.4rem;
-  background: var(--surface-glass);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  border: 1px solid var(--border-default);
-  border-radius: 28px;
-  padding: 0.55rem 0.5rem 0.7rem;
-  box-shadow: var(--shadow-card);
-  pointer-events: auto;
-}
-.model-rail::before {
-  content: 'MODELL';
-  font-size: 0.53rem;
-  letter-spacing: 0.18em;
-  font-weight: 500;
-  color: var(--stone-400);
-  text-align: center;
-  width: 100%;
-  margin-bottom: 0.1rem;
-}
-.model-rail-chip {
-  position: relative;
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  background: transparent;
-  border: 1px solid var(--border-default);
-  border-radius: 14px;
-  padding: 0;
-  font-family: inherit;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.15s;
-  line-height: 1;
-}
-.model-rail-chip:hover {
-  background: var(--sand-50);
-  border-color: var(--border-medium);
-  transform: translateY(-1px);
-}
-.model-rail-chip .flag {
-  font-size: 1.05rem;
-  margin-bottom: 1px;
-  /* Emoji-Flag-Glyphs sind farbig — bei .open invertieren wir gar nicht,
-     da sie auch auf dunklem Hintergrund noch klar lesbar bleiben. */
-}
-.model-rail-chip .code {
-  font-size: 0.58rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  color: var(--stone-600);
-}
-/* Home-Chip: subtiler sand-Backing + kleiner Akzent-Punkt */
-.model-rail-chip.home {
-  background: var(--sand-50);
-  border-color: var(--sand-200);
-}
-.model-rail-chip.home .code { color: var(--ink-800); }
-.model-rail-chip .home-dot {
-  position: absolute;
-  top: 5px;
-  right: 6px;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--terracotta-500);
-}
-/* Offener Chip: ink-900 gefüllt — analog zur Active-Logik im Layer-Rail */
-.model-rail-chip.open {
-  background: var(--ink-900);
-  border-color: var(--ink-900);
-}
-.model-rail-chip.open .code { color: #fff; }
-.model-rail-chip.open .home-dot { background: var(--terracotta-300); }
-
-/* -------- POPOVER: erscheint rechts neben dem Country-Rail -------- */
-.model-popover-scrim {
-  position: fixed;
-  inset: 0;
-  z-index: 11;
-  background: transparent;
-}
-.model-popover {
-  position: absolute;
-  top: calc(5.7rem + 414px + 0.5rem);
-  left: calc(1rem + 56px + 0.5rem);
-  z-index: 12;
-  width: 280px;
-  max-width: calc(100vw - 2.2rem - 56px);
-  background: var(--cream-50);
-  border: 1px solid var(--border-default);
-  border-radius: 20px;
-  box-shadow: var(--shadow-card-strong, 0 14px 40px rgba(20, 18, 12, 0.18));
-  pointer-events: auto;
-  overflow: hidden;
-  /* Sand-tinted left edge so the popover visually „grows" out of the rail */
-  animation: model-popover-pop 0.16s ease-out;
-}
-@keyframes model-popover-pop {
-  from { opacity: 0; transform: translateX(-6px) scale(0.985); }
-  to   { opacity: 1; transform: translateX(0)   scale(1); }
-}
-.model-popover-header {
-  display: grid;
-  grid-template-columns: 32px 1fr auto;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 0.85rem 0.9rem 0.65rem;
-  border-bottom: 1px solid var(--sand-100);
-  background: var(--sand-50);
-}
-.model-popover-header .flag {
-  font-size: 1.5rem;
-  line-height: 1;
-}
-.model-popover-header .title-block {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-.model-popover-header .eyebrow {
-  font-size: 0.53rem;
-  letter-spacing: 0.18em;
-  font-weight: 500;
-  color: var(--stone-500);
-  text-transform: uppercase;
-}
-.model-popover-header .country-name {
-  font-size: 0.92rem;
-  font-weight: 600;
-  color: var(--ink-900);
-  line-height: 1.2;
-  margin-top: 1px;
-}
-.model-popover-header .close {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  background: transparent;
-  border: 1px solid var(--border-default);
-  border-radius: 50%;
-  color: var(--stone-600);
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
-  padding: 0;
-}
-.model-popover-header .close:hover {
-  background: var(--sand-100);
-  color: var(--ink-900);
-  border-color: var(--border-medium);
-}
-.model-popover-list {
-  list-style: none;
-  margin: 0;
-  padding: 0.35rem 0.4rem;
-}
-.model-popover-item {
-  display: grid;
-  grid-template-columns: 22px 1fr;
-  align-items: flex-start;
-  gap: 0.6rem;
-  width: 100%;
-  text-align: left;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 12px;
-  padding: 0.55rem 0.6rem;
-  cursor: pointer;
-  font-family: inherit;
-  transition: background 0.15s, border-color 0.15s;
-}
-.model-popover-item:hover {
-  background: var(--sand-50);
-}
-.model-popover-item.active {
-  background: var(--sand-50);
-  border-color: var(--sand-200);
-}
-.model-popover-item .indicator {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-  border: 1.4px solid var(--border-medium);
-  border-radius: 50%;
-  margin-top: 2px;
-  flex-shrink: 0;
-  transition: border-color 0.15s;
-}
-.model-popover-item.active .indicator {
-  border-color: var(--ink-900);
-}
-.model-popover-item .indicator .dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--ink-900);
-  opacity: 0;
-  transition: opacity 0.15s;
-}
-.model-popover-item.active .indicator .dot { opacity: 1; }
-.model-popover-item .body {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-.model-popover-item .model-name {
-  font-size: 0.88rem;
-  font-weight: 600;
-  color: var(--ink-900);
-  letter-spacing: -0.005em;
-}
-.model-popover-item .model-desc {
-  font-size: 0.74rem;
-  line-height: 1.35;
-  color: var(--stone-600);
-}
-.model-popover-item.active .model-desc { color: var(--stone-700); }
-
-/* ============ SAT PRODUCT SWITCH · im .left-rails-Stack unter der Modell-Rail ============ */
+/* ============ SAT PRODUCT SWITCH · im .left-rails-Stack unter dem Layer-Rail ============ */
 .sat-product-switch {
   /* In-flow im .left-rails-Flexstack → automatisch unter der Modell-Rail. */
   width: 56px;
@@ -915,6 +623,8 @@
   display: flex;
   flex-direction: column;
 }
+/* Griff zum Ziehen — nur im mobilen Bottom-Sheet sichtbar (s. Media-Query). */
+.pfc-grab { display: none; }
 .pfc-head {
   padding: 0.85rem 1.1rem;
   border-bottom: 1px solid var(--border-default);
@@ -1574,47 +1284,57 @@
   color: var(--stone-400);
 }
 
-/* ============ CITY TEMPERATURE LABELS ============ */
+/* ============ CITY TEMPERATURE LABELS (windy-style) ============ */
+/* Bare temperature-coloured numbers (no pill) scattered across the map. The
+   colour is set inline per marker from `tempLabelColor()`; the dot inherits it
+   via currentColor. A multi-stop dark halo keeps the coloured glyphs legible
+   over the wind particles, precip radar, and the dark basemap alike. */
 .temp-label {
+  /* maplibre-gl 5.6 does NOT add the `.maplibregl-marker` class to markers
+     created with a custom `element`, so they miss its `position: absolute`
+     and stay in normal document flow — the inline transform maplibre sets to
+     position the marker then stacks on top of the flow offset, dragging the
+     labels east (outside DACH) and shifting them on every zoom-driven reflow.
+     Provide the absolute anchoring ourselves so the transform alone places it. */
+  position: absolute;
+  top: 0;
+  left: 0;
+  will-change: transform;
+  /* Fade newly-appearing labels in (set inline opacity:0 on create, released on
+     the next frame) so zooming reveals places gently instead of popping. */
+  opacity: 1;
+  transition: opacity 0.28s ease;
   display: inline-flex;
   align-items: center;
-  gap: 0.32rem;
-  padding: 0.2rem 0.55rem;
-  background: rgba(44, 42, 38, 0.82);
-  backdrop-filter: blur(3px);
-  -webkit-backdrop-filter: blur(3px);
-  color: #fff;
-  border-radius: 999px;
+  gap: 0.24rem;
   font-family: var(--font-base);
-  font-size: 0.7rem;
-  font-weight: 500;
-  line-height: 1.1;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1;
   white-space: nowrap;
   pointer-events: none;
   font-variant-numeric: tabular-nums;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
-  letter-spacing: 0.005em;
-  transform: translateY(-2px);
+  letter-spacing: -0.015em;
+  text-shadow:
+    0 0 2px rgba(0, 0, 0, 0.95),
+    0 1px 3px rgba(0, 0, 0, 0.75),
+    0 0 7px rgba(0, 0, 0, 0.5);
 }
-.temp-label-name {
-  opacity: 0.82;
+.temp-label-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.55);
 }
 .temp-label-val {
-  font-weight: 700;
-  color: #fff;
+  color: inherit;
 }
-.temp-label-rank-3 {
-  font-size: 0.64rem;
-  padding: 0.16rem 0.45rem;
-  background: rgba(44, 42, 38, 0.72);
-}
-.temp-label-rank-4 {
-  font-size: 0.58rem;
-  padding: 0.13rem 0.38rem;
-  background: rgba(44, 42, 38, 0.64);
-  gap: 0.22rem;
-}
-.temp-label-rank-4 .temp-label-name { opacity: 0.7; }
+/* Zoom-tier de-emphasis: smaller, lighter as the rank grows. */
+.temp-label-rank-2 { font-size: 0.76rem; }
+.temp-label-rank-3 { font-size: 0.7rem; font-weight: 600; }
+.temp-label-rank-4 { font-size: 0.64rem; font-weight: 600; opacity: 0.92; }
 
 /* ============ RESPONSIVE ============ */
 @media (max-width: 1024px) and (min-width: 768px) {
@@ -1652,40 +1372,6 @@
   /* Auf Touch-Devices: kein Hover-Tooltip (würde nicht ausgelöst) */
   .layer-switch button:hover::after,
   .layer-switch button:hover::before { display: none; }
-
-  /* Modell-Rail (Country-Chips) — Stapelung übernimmt .left-rails, hier nur Größe */
-  .model-rail {
-    width: 48px;
-    padding: 0.45rem 0.35rem 0.55rem;
-    gap: 0.35rem;
-    border-radius: 24px;
-  }
-  .model-rail::before { font-size: 0.5rem; }
-  .model-rail-chip { width: 38px; height: 38px; border-radius: 12px; }
-  .model-rail-chip .flag { font-size: 0.95rem; }
-  .model-rail-chip .code { font-size: 0.52rem; }
-  .model-rail-chip .home-dot { top: 4px; right: 5px; width: 4px; height: 4px; }
-
-  /* Auf Mobile rutscht das Popover als Bottom-Sheet ein */
-  .model-popover {
-    position: fixed;
-    top: auto;
-    left: 0.55rem;
-    right: 0.55rem;
-    bottom: 0.7rem;
-    width: auto;
-    max-width: none;
-    border-radius: 18px 18px 16px 16px;
-    box-shadow: 0 -8px 30px rgba(20, 18, 12, 0.18);
-    animation: model-popover-sheet 0.2s ease-out;
-  }
-  @keyframes model-popover-sheet {
-    from { opacity: 0; transform: translateY(14px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-  .model-popover-scrim { background: rgba(20, 18, 12, 0.18); }
-  .model-popover-header { padding: 0.7rem 0.85rem 0.55rem; }
-  .model-popover-list { padding: 0.3rem 0.35rem 0.55rem; max-height: 60vh; overflow-y: auto; }
 
   /* Sat-Switch (wenn sichtbar) — Stapelung übernimmt .left-rails, hier nur Größe */
   .sat-product-switch {
@@ -1737,9 +1423,39 @@
   }
   .pfc-body {
     width: 100%;
-    max-height: 70vh;
+    height: 50vh;                 /* Default; per Snap-Klasse überschrieben */
+    max-height: 92vh;
     border-radius: 20px 20px 0 0;
     border-bottom: none;
+    transition: height 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    overscroll-behavior: contain;
+  }
+  /* Snap-Höhen: per Touch am Griff nach oben/unten wischbar. */
+  .pfc-m-peek .pfc-body { height: 50vh; }
+  .pfc-m-full .pfc-body { height: 90vh; }
+
+  /* Zieh-Griff — bleibt beim Scrollen oben sichtbar. */
+  .pfc-grab {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    height: 26px;
+    flex: 0 0 auto;
+    cursor: grab;
+    touch-action: none;          /* eigene Drag-Geste, kein Browser-Scroll */
+    background: var(--surface-glass-strong);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-radius: 20px 20px 0 0;
+  }
+  .pfc-grab-bar {
+    width: 40px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border-strong, #c9bfa6);
   }
 
   /* Forecast-Slider unten – über dem FAB */
@@ -1896,11 +1612,10 @@
     flex: none; display: flex; align-items: center; gap: 0.55rem; margin: 0 0.85rem 0.55rem;
     padding: 0.6rem 0.9rem; min-height: 44px; border: 1px solid var(--border-default);
     background: var(--cream-50); border-radius: 14px; font: inherit; text-align: left;
-    cursor: pointer; color: var(--ink-900);
+    color: var(--ink-900);
   }
   .map-sheet-model-label { font-size: 0.6rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--stone-400); }
   .map-sheet-model-val { font-size: 0.9rem; font-weight: 500; }
-  .map-sheet-model-arr { margin-left: auto; color: var(--stone-400); flex: none; }
 
   .map-sheet-list { overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 0 0.6rem; }
   .map-sheet-row { border-bottom: 1px solid var(--sand-100); }

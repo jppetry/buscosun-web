@@ -177,10 +177,6 @@ export default function HistoryPage({ onBack }: Props) {
         <a className="rt-nav-logo" href="#" onClick={(e) => { e.preventDefault(); handleBack(); }}>
           <span className="rt-nav-logo-mark" /><span className="rt-nav-logo-name">buscosun</span>
         </a>
-        <div className="rt-nav-items">
-          <button type="button" className="rt-nav-item" onClick={handleBack}>Start</button>
-          <span className="rt-nav-item is-active">Historie</span>
-        </div>
         <div className="rt-nav-right">
           <button type="button" className="hi-theme-btn" onClick={toggleDark} aria-label={dark ? 'Heller Modus' : 'Dunkler Modus'} title="Hell/Dunkel">{dark ? '☀' : '☾'}</button>
           <span className="rt-nav-live hi-live">{available ? `${available.min}–${available.max}` : 'Klima-Rückblick'}</span>

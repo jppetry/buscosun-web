@@ -99,12 +99,6 @@ export default function RoutePage({ onBack }: Props) {
         <a className="rt-nav-logo" href="#" onClick={(e) => { e.preventDefault(); onBack(); }}>
           <span className="rt-nav-logo-mark" /><span className="rt-nav-logo-name">buscosun</span>
         </a>
-        <div className="rt-nav-items">
-          <button type="button" className="rt-nav-item" onClick={onBack}>Start</button>
-          <span className="rt-nav-item is-active">Tourenplanung</span>
-          <button type="button" className="rt-nav-item" onClick={onBack}>Vorhersage</button>
-          <button type="button" className="rt-nav-item" onClick={onBack}>Nowcast</button>
-        </div>
         <div className="rt-nav-right">
           <span className="rt-nav-live"><span className="live-dot" /> Daten live</span>
           <span className="rt-nav-avatar">JK</span>

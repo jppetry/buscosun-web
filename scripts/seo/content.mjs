@@ -219,6 +219,12 @@ function hreflangLinks(canonicalPath) {
     + `\n    <link rel="alternate" hreflang="x-default" href="${url}" />`;
 }
 
+// Default OG/Twitter image when a page type forgets to pass one. MUST be a
+// raster (PNG/JPG/WebP) — social + Discover never render SVG, so we fall back to
+// the branded home hero, NOT the og.svg placeholder. verify-seo.mjs additionally
+// hard-fails on any SVG og:image, so this can never regress silently.
+const DEFAULT_OG_IMAGE = '/og/home.png';
+
 function headBlock({ title, description, canonicalPath, locale, ogImage, jsonLd, noindex, ogTitle }) {
   const url = SITE.url + canonicalPath;
   const ogt = ogTitle || title;
@@ -236,11 +242,11 @@ function headBlock({ title, description, canonicalPath, locale, ogImage, jsonLd,
     <meta property="og:description" content="${escapeHtml(description)}" />
     <meta property="og:url" content="${url}" />
     <meta property="og:locale" content="${(locale || 'de-DE').replace('-', '_')}" />
-    <meta property="og:image" content="${SITE.url}${ogImage || '/og.svg'}" />
+    <meta property="og:image" content="${SITE.url}${ogImage || DEFAULT_OG_IMAGE}" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="${escapeHtml(ogt)}" />
     <meta name="twitter:description" content="${escapeHtml(description)}" />
-    <meta name="twitter:image" content="${SITE.url}${ogImage || '/og.svg'}" />
+    <meta name="twitter:image" content="${SITE.url}${ogImage || DEFAULT_OG_IMAGE}" />
     ${jsonLd.map(jsonLdScript).join('\n    ')}`;
 }
 

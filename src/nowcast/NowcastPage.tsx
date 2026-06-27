@@ -90,12 +90,6 @@ export default function NowcastPage({ onBack }: Props) {
         <a className="rt-nav-logo" href="#" onClick={(e) => { e.preventDefault(); onBack(); }}>
           <span className="rt-nav-logo-mark" /><span className="rt-nav-logo-name">buscosun</span>
         </a>
-        <div className="rt-nav-items">
-          <button type="button" className="rt-nav-item" onClick={onBack}>Start</button>
-          <button type="button" className="rt-nav-item" onClick={onBack}>Vorhersage</button>
-          <span className="rt-nav-item is-active">Regenradar</span>
-          <button type="button" className="rt-nav-item" onClick={onBack}>Event-Planung</button>
-        </div>
         <div className="rt-nav-right">
           <span className="rt-nav-live nc-live"><span className="live-dot nc-dot" /> Radar live</span>
           <span className="rt-nav-avatar">JK</span>

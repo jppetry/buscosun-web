@@ -75,6 +75,47 @@ export function loadDachMask(): Promise<GeoJSON.Feature> {
   return dachMaskPromise;
 }
 
+let dachRingsPromise: Promise<number[][][]> | null = null;
+
+/**
+ * Raw DE + AT + CH boundary rings ([lng,lat] vertices), for point-in-DACH
+ * tests (e.g. clipping the temperature grid-fill labels to the three national
+ * territories so they never spill over the dimmed area outside DACH). Reuses
+ * the same cached country GeoJSON as the mask, so it is essentially free once
+ * the mask has loaded.
+ */
+export function loadDachRings(): Promise<number[][][]> {
+  if (dachRingsPromise) return dachRingsPromise;
+  dachRingsPromise = (async () => {
+    const [de, at, ch] = await Promise.all([
+      loadCountryHoles('DE'),
+      loadCountryHoles('AT'),
+      loadCountryHoles('CH'),
+    ]);
+    return [...de, ...at, ...ch];
+  })();
+  return dachRingsPromise;
+}
+
+/**
+ * Even-odd point-in-polygon over a set of rings. Returns true when (lng,lat)
+ * lies inside an odd number of rings — i.e. inside the DACH union. Tiny
+ * enclaves/exclaves (Büsingen, Campione) may flip but are negligible here.
+ */
+export function pointInRings(rings: number[][][], lng: number, lat: number): boolean {
+  let inside = false;
+  for (const ring of rings) {
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const xi = ring[i][0], yi = ring[i][1];
+      const xj = ring[j][0], yj = ring[j][1];
+      if (((yi > lat) !== (yj > lat)) && (lng < ((xj - xi) * (lat - yi)) / (yj - yi) + xi)) {
+        inside = !inside;
+      }
+    }
+  }
+  return inside;
+}
+
 async function loadCountryHoles(country: Country): Promise<number[][][]> {
   const res = await fetch(`/countries/${country}.geojson`);
   if (!res.ok) throw new Error(`country mask ${country}: HTTP ${res.status}`);

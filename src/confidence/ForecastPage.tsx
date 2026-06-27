@@ -132,12 +132,6 @@ export default function ForecastPage({ onBack }: Props) {
         <a className="rt-nav-logo" href="#" onClick={(e) => { e.preventDefault(); onBack(); }}>
           <span className="rt-nav-logo-mark" /><span className="rt-nav-logo-name">buscosun</span>
         </a>
-        <div className="rt-nav-items">
-          <button type="button" className="rt-nav-item" onClick={onBack}>Start</button>
-          <button type="button" className="rt-nav-item" onClick={onBack}>Nowcast</button>
-          <span className="rt-nav-item is-active">Vorhersage</span>
-          <button type="button" className="rt-nav-item" onClick={onBack}>Event-Planung</button>
-        </div>
         <div className="rt-nav-right">
           <span className="rt-nav-live fc-live">{state.kind === 'ready' ? `${state.forecast.models.length} Quellen aktiv` : 'Modellvergleich'}</span>
           <span className="rt-nav-avatar">JK</span>

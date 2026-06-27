@@ -47,6 +47,39 @@ export function loadTempLabelCache(maxAgeMs = 6 * 3600_000): Record<string, numb
   } catch { return null; }
 }
 
+// ---------------------------------------------------------------------------
+// Temperature → colour for the windy-style on-map labels. Mirrors the app-wide
+// blue→red TEMP_STOPS language (see globe/gfs.ts) so the numbers read in the
+// same palette as the temperature heatmap — but kept local here to avoid
+// pulling the GRIB-decoder module into the map bundle, and lifted toward
+// brighter/more saturated tones so a coloured number stays legible on the dark
+// map canvas (with the CSS text-shadow halo doing the rest).
+// ---------------------------------------------------------------------------
+const TEMP_LABEL_STOPS: Array<[number, [number, number, number]]> = [
+  [-30, [125, 152, 230]], [-20, [112, 176, 226]], [-10, [120, 196, 214]],
+  [-2, [142, 206, 192]], [6, [168, 210, 158]], [14, [206, 210, 120]],
+  [22, [236, 200, 96]], [28, [240, 160, 80]], [34, [236, 112, 76]],
+  [42, [222, 82, 72]],
+];
+
+/** CSS `rgb(...)` for a 2 m temperature in °C, on the windy-style label ramp. */
+export function tempLabelColor(c: number): string {
+  const stops = TEMP_LABEL_STOPS;
+  let rgb: [number, number, number] = stops[stops.length - 1][1];
+  if (c <= stops[0][0]) rgb = stops[0][1];
+  else if (c < stops[stops.length - 1][0]) {
+    for (let i = 0; i < stops.length - 1; i++) {
+      const [x0, c0] = stops[i], [x1, c1] = stops[i + 1];
+      if (c >= x0 && c <= x1) {
+        const t = (c - x0) / (x1 - x0);
+        rgb = [c0[0] + (c1[0] - c0[0]) * t, c0[1] + (c1[1] - c0[1]) * t, c0[2] + (c1[2] - c0[2]) * t];
+        break;
+      }
+    }
+  }
+  return `rgb(${Math.round(rgb[0])}, ${Math.round(rgb[1])}, ${Math.round(rgb[2])})`;
+}
+
 export interface City {
   name: string;
   lat: number;
@@ -64,12 +97,15 @@ export interface City {
 
 /**
  * Returns the minimum zoom level at which a label of this rank should be
- * rendered. Calibrated so a DACH-overview camera (z ≈ 5.5) shows only
- * rank 1, a country view (z ≈ 7) adds rank 2, regional view (z ≈ 9.5) adds
- * rank 3, and a city view (z ≈ 11) brings in rank 4.
+ * rendered. The DACH-overview camera (z ≈ 5.3) already shows rank 1 + 2 (iconic
+ * peaks + all major metros, ~29 labels) for a populated overview; a little zoom
+ * brings the second-tier cities in fast (rank 3 at z ≈ 6.2) and the small towns
+ * + alpine villages right after (rank 4 at z ≈ 7.6). Since every label is tied
+ * to a real town (no grid fill), the total is bounded and never floods — paired
+ * with the per-label fade-in the reveal stays smooth.
  */
 export function minZoomForRank(rank: 1 | 2 | 3 | 4): number {
-  return rank === 1 ? 0 : rank === 2 ? 6.4 : rank === 3 ? 8.2 : 10.0;
+  return rank === 1 ? 0 : rank === 2 ? 4.8 : rank === 3 ? 6.2 : 7.6;
 }
 
 export const DACH_CITIES: City[] = [

@@ -277,12 +277,17 @@ function Recommendation({ rec, query, forecast, activityLabel, datesMode }: { re
       </div>
       <EventCourseChart forecast={forecast} best={best} />
 
-      {/* Wetterkarte fürs Event (stilisiert, Ort + Lage) */}
-      <div className="ev-section-head">
-        <span className="rt-eyebrow">Dein Event auf der Karte</span>
-        <span className="ev-section-sub">Ort &amp; Wetterlage am besten Tag</span>
-      </div>
-      <EventMapSection location={query.location} best={best} />
+      {/* Wetterkarte fürs Event — nur wenn der Zeitraum im Raster-Horizont liegt,
+          d. h. echte Wetterdaten für den Tag vorliegen (sonst keine Karte). */}
+      {eventWithinRasterHorizon(best) && (
+        <>
+          <div className="ev-section-head">
+            <span className="rt-eyebrow">Dein Event auf der Karte</span>
+            <span className="ev-section-sub">Ort &amp; Wetterlage am besten Tag</span>
+          </div>
+          <EventMapSection location={query.location} best={best} />
+        </>
+      )}
 
       {/* Fotografie-Licht (Epic FOTO) — nur für den Foto-Anlass */}
       {query.activity.id === 'photo' && <PhotoLightSection rec={rec} query={query} forecast={forecast} />}
@@ -543,7 +548,7 @@ function EventCourseChart({ forecast, best }: { forecast: PointForecast; best: D
 
   const n = course.length;
   const W = 720, plotX0 = 52, plotX1 = 704, plotW = plotX1 - plotX0;
-  const plotY0 = 58, plotY1 = 208, plotH = plotY1 - plotY0;
+  const plotY0 = 48, plotY1 = 168, plotH = plotY1 - plotY0;
   const xi = (i: number) => (n <= 1 ? plotX0 + plotW / 2 : plotX0 + (plotW * i) / (n - 1));
   const xForHour = (h: number) => xi(h - startH);
 
@@ -617,7 +622,7 @@ function EventCourseChart({ forecast, best }: { forecast: PointForecast; best: D
         </button>
       </div>
 
-      <svg ref={svgRef} className="ev-course-svg" viewBox={`0 0 ${W} 248`} role="img"
+      <svg ref={svgRef} className="ev-course-svg" viewBox={`0 0 ${W} 196`} role="img"
         aria-label={`${TABS.find((t) => t.id === metric)!.label} am ${formatDayLong(best.date)}, stündlich über das Eventfenster.`}>
         {/* Phasen-Ribbon */}
         {best.phases.map((p, i) => {
@@ -694,12 +699,21 @@ function EventCourseChart({ forecast, best }: { forecast: PointForecast; best: D
   );
 }
 
+/** Liegt das Eventfenster im Karten-Raster-Horizont (~1–2 Tage)? Nur dann gibt es
+ *  echte Wetter-Layer für den Zeitraum — sonst wird die Event-Karte ausgeblendet. */
+function eventWithinRasterHorizon(best: DayResult): boolean {
+  const [startH, endH] = eventWindow(best);
+  const hourOffset = (h: number) => (new Date(`${best.date}T${String(Math.min(23, h)).padStart(2, '0')}:00:00`).getTime() - Date.now()) / 3_600_000;
+  const mid = (hourOffset(startH) + hourOffset(endH)) / 2;
+  return mid <= RASTER_HORIZON_H;
+}
+
 /**
- * Wetterkarte fürs Event. Liegt der beste Tag im Raster-Horizont (~1–2 Tage),
- * wird die echte 2D-Karte (MapView) eingebettet — zentriert auf den Ort, Layer +
- * Zeit-Slider auf den Event-Zeitpunkt vorpositioniert, sodass man das Wetter über
- * den Zeitraum „durchspielen" kann. Weiter entfernte Tage haben keine
- * Karten-Rasterdaten → stilisierte Karte + ehrlicher Hinweis.
+ * Wetterkarte fürs Event. Wird nur gerendert, wenn der beste Tag im Raster-
+ * Horizont (~1–2 Tage) liegt (siehe eventWithinRasterHorizon) — dann gibt es
+ * echte Karten-Rasterdaten für den Zeitraum. Die 2D-Karte (MapView) wird
+ * eingebettet, zentriert auf den Ort, Layer + Zeit-Slider auf den Event-Zeitpunkt
+ * vorpositioniert, sodass man das Wetter über den Zeitraum „durchspielen" kann.
  */
 function EventMapSection({ location, best }: { location: EventQuery['location']; best: DayResult }) {
   const [mapLayer, setMapLayer] = useState<LayerKey>('temp');
@@ -707,11 +721,7 @@ function EventMapSection({ location, best }: { location: EventQuery['location'];
   const hourOffset = (h: number) => (new Date(`${best.date}T${String(Math.min(23, h)).padStart(2, '0')}:00:00`).getTime() - Date.now()) / 3_600_000;
   const startOffset = hourOffset(startH);
   const endOffset = hourOffset(endH);
-  const midOffset = (startOffset + endOffset) / 2;
-  const withinHorizon = midOffset <= RASTER_HORIZON_H;
-  // Karte IMMER zeigen (zentriert auf den Ort). Wetter-Layer + Tagesablauf-Slider
-  // nur, wenn der Tag im Raster-Horizont liegt; sonst Karte ohne Layer + Hinweis.
-  const initialHour = withinHorizon ? Math.max(0, midOffset) : 0;
+  const initialHour = Math.max(0, (startOffset + endOffset) / 2);
 
   return (
     <div className="ev-livemap">
@@ -728,22 +738,16 @@ function EventMapSection({ location, best }: { location: EventQuery['location'];
           <EmbeddedMapView
             location={location}
             embedded
-            initialActive={withinHorizon ? [mapLayer] : []}
+            initialActive={[mapLayer]}
             embeddedLayer={mapLayer}
             initialHour={initialHour}
-            embedHourRange={withinHorizon ? [Math.max(0, startOffset), endOffset] : undefined}
+            embedHourRange={[Math.max(0, startOffset), endOffset]}
           />
         </Suspense>
       </div>
-      {withinHorizon ? (
-        <p className="ev-livemap-cap">
-          <IconClock size={13} /> Simuliertes Wetter für {formatDayLong(best.date)} — oben die Ebene wählen (Temperatur · Niederschlag · Wind), der Slider verschiebt die Zeit über deinen Zeitraum.
-        </p>
-      ) : (
-        <p className="ev-livemap-note">
-          <IconWarning size={13} /> Der {formatDayLong(best.date)} liegt jenseits des Karten-Raster-Horizonts (~1–2 Tage): die Karte zeigt deinen Ort, aber ein zugeschalteter Wetter-Layer zeigt das <strong>aktuelle</strong> Wetter, nicht den Event-Tag. Die exakten Event-Werte stehen im Ablauf-Diagramm oben.
-        </p>
-      )}
+      <p className="ev-livemap-cap">
+        <IconClock size={13} /> Simuliertes Wetter für {formatDayLong(best.date)} — oben die Ebene wählen (Temperatur · Niederschlag · Wind), der Slider verschiebt die Zeit über deinen Zeitraum.
+      </p>
     </div>
   );
 }
@@ -836,7 +840,7 @@ function ConfBars({ confidence, withLabel = true }: { confidence: number; withLa
  * Gering — so wird „spätere Tage sind unsicherer" auf einen Blick erfassbar.
  */
 function ConfidenceTimeline({ days }: { days: DayResult[] }) {
-  const W = 640, H = 150, padL = 12, padR = 12, padT = 12, padB = 26;
+  const W = 640, H = 120, padL = 12, padR = 12, padT = 12, padB = 26;
   const plotW = W - padL - padR, plotH = H - padT - padB;
   const n = days.length;
   const x = (i: number) => (n <= 1 ? padL + plotW / 2 : padL + (plotW * i) / (n - 1));

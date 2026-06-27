@@ -29,8 +29,7 @@
   border-bottom: 1px solid var(--sand-200, #E0D6BE);
 }
 .rt-nav-logo { display: inline-flex; align-items: center; gap: 0.55rem; text-decoration: none; color: var(--ink-900); }
-.rt-nav-logo-mark { width: 26px; height: 26px; border: 2px solid var(--terracotta-500, #C97B47); border-radius: 50%; display: grid; place-items: center; }
-.rt-nav-logo-mark::after { content: ''; width: 9px; height: 9px; border-radius: 50%; background: var(--terracotta-500, #C97B47); }
+.rt-nav-logo-mark { width: 26px; height: 26px; flex: none; background-color: var(--terracotta-500, #C97B47); -webkit-mask: url(/buscosun-mark.svg) center / contain no-repeat; mask: url(/buscosun-mark.svg) center / contain no-repeat; }
 .rt-nav-logo-name { font-weight: 600; font-size: 1.05rem; letter-spacing: -0.01em; }
 .rt-nav-items { display: flex; gap: 1.4rem; margin-left: 1.5rem; font-size: 0.86rem; color: var(--stone-600, #5C5447); }
 .rt-nav-item { position: relative; cursor: pointer; background: none; border: none; color: inherit; font: inherit; padding: 0; }

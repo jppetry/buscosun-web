@@ -24,8 +24,7 @@
   border-bottom: 1px solid var(--border-default, #E0D6BE);
 }
 .ev-logo { display: inline-flex; align-items: center; gap: 0.55rem; text-decoration: none; color: var(--ink-900); }
-.ev-logo-mark { width: 24px; height: 24px; border-radius: 50%; background: radial-gradient(circle at 50% 42%, #D88A56, #C97B47); position: relative; flex: 0 0 auto; }
-.ev-logo-mark::after { content: ''; position: absolute; inset: 0; margin: auto; width: 6px; height: 6px; border-radius: 50%; background: var(--ink-800, #3A3833); }
+.ev-logo-mark { width: 24px; height: 24px; flex: 0 0 auto; background-color: #C97B47; -webkit-mask: url(/buscosun-mark.svg) center / contain no-repeat; mask: url(/buscosun-mark.svg) center / contain no-repeat; }
 .ev-logo-name { font-weight: 500; font-size: 1.02rem; letter-spacing: -0.01em; }
 .ev-topbar-right { margin-left: auto; display: flex; align-items: center; gap: 1rem; }
 .ev-live { display: inline-flex; align-items: center; gap: 0.45rem; font-size: 0.74rem; color: var(--stone-500, #8B7355); }

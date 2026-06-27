@@ -215,6 +215,37 @@ export const GlobeArt: IntroArt = ({ accent }) => (
   </Frame>
 );
 
+/* 7 · Atmosphäre — Vertikalschnitt: Höhenprofil mit Inversion (rechter Knick =
+ * wärmere Schicht über kälterer), Föhn-Bergsilhouette, Höhenwind-Pfeile */
+export const AtmosphereArt: IntroArt = ({ accent }) => (
+  <Frame accent={accent}>
+    {/* profile panel */}
+    <rect x="44" y="30" width="232" height="140" rx="14" fill={SAND} stroke={SAND2} />
+    {/* height gridlines */}
+    <g stroke={SAND2} strokeWidth="1.3">
+      <line x1="62" y1="58" x2="258" y2="58" />
+      <line x1="62" y1="92" x2="258" y2="92" />
+      <line x1="62" y1="126" x2="258" y2="126" />
+    </g>
+    {/* inversion band — warm over cold, highlighted */}
+    <rect x="62" y="84" width="196" height="18" fill="currentColor" opacity="0.12" stroke="none" />
+    {/* terrain / Föhn mountain */}
+    <path d="M 62 158 L 104 158 L 150 116 L 196 150 L 258 134 L 258 158 Z" fill={STONE} opacity="0.3" stroke="none" />
+    <path d="M 104 158 L 150 116 L 196 150" stroke={STONE} strokeWidth="1.6" fill="none" />
+    {/* temperature profile with inversion kink */}
+    <path d="M 150 156 L 120 102 L 150 84 L 116 50" stroke="currentColor" fill="none" />
+    <g fill="currentColor" stroke="none">
+      <circle cx="150" cy="156" r="3.4" /><circle cx="120" cy="102" r="3.4" />
+      <circle cx="150" cy="84" r="3.4" /><circle cx="116" cy="50" r="3.4" />
+    </g>
+    {/* height-wind arrows (stronger aloft) */}
+    <g stroke="currentColor" strokeWidth="1.8" opacity="0.7">
+      <g transform="translate(214 62)"><line x1="-12" y1="0" x2="12" y2="0" /><polyline points="6,-5 12,0 6,5" fill="none" /></g>
+      <g transform="translate(220 120)"><line x1="-8" y1="0" x2="8" y2="0" /><polyline points="3,-4 8,0 3,4" fill="none" /></g>
+    </g>
+  </Frame>
+);
+
 /* ===========================================================================
  * Detail vignettes — a second, smaller "real UI snippet" per feature. Same spec
  * (currentColor = accent, stroke 2, sand/ink neutrals), wider/shorter canvas
@@ -333,6 +364,27 @@ export const GlobeDetail: IntroArt = ({ accent }) => (
       <rect x="92" y="54" width="150" height="20" rx="10" fill="#fff" stroke={SAND2} />
       <text x="167" y="68" fontSize="10" fill={T_STONE} textAnchor="middle" stroke="none">47,3° N · 11,4° O</text>
     </g>
+  </DetailFrame>
+);
+
+/* atmosphere · Linsen-Switcher (Föhn aktiv, wie LensSwitcher) + Inversionsmarke
+ * + Höhen-Cap-Hinweis */
+export const AtmosphereDetail: IntroArt = ({ accent }) => (
+  <DetailFrame accent={accent}>
+    <g strokeWidth="1.5">
+      <rect x="18" y="12" width="58" height="22" rx="11" fill={T_INK} stroke="none" />
+      <text x="47" y="27" fontSize="10" fill="#fff" textAnchor="middle" stroke="none">Föhn</text>
+      <rect x="82" y="12" width="74" height="22" rx="11" fill="#fff" stroke={SAND2} />
+      <text x="119" y="27" fontSize="10" fill={T_STONE} textAnchor="middle" stroke="none">Thermik</text>
+      <rect x="162" y="12" width="92" height="22" rx="11" fill="#fff" stroke={SAND2} />
+      <text x="208" y="27" fontSize="10" fill={T_STONE} textAnchor="middle" stroke="none">Querschnitt</text>
+    </g>
+    {/* height axis + mini temperature profile with inversion kink */}
+    <line x1="24" y1="48" x2="24" y2="84" stroke={SAND2} strokeWidth="2" />
+    <path d="M 44 82 L 32 68 L 50 58 L 36 48" stroke="currentColor" strokeWidth="2" fill="none" />
+    <line x1="60" y1="60" x2="244" y2="60" stroke="currentColor" strokeDasharray="3 4" opacity="0.55" />
+    <text x="244" y="56" fontSize="9" fill={T_STONE} textAnchor="end" stroke="none">Inversion 900 m</text>
+    <text x="300" y="84" fontSize="9" fill={T_STONE} textAnchor="end" stroke="none">Cap 0–4000 m</text>
   </DetailFrame>
 );
 

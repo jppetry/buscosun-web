@@ -141,15 +141,16 @@ export const TOOLS = [
     datePublished: PUBLISHED, dateModified: MODIFIED,
   },
   {
-    slug: 'nowcast', title: '6-Stunden-Nowcast', h1: 'Nowcast: minutengenaue Regenvorhersage',
+    slug: 'nowcast', title: '6-Stunden-Nowcast', h1: 'Nowcast: Regenvorhersage für die nächsten 6 Stunden',
     status: 'stub', deepLink: '/',
     answer:
-      'Der Nowcast liefert eine minutengenaue Niederschlagsvorhersage für die nächsten sechs Stunden aus ' +
-      'Radar-Extrapolation und ICON-D2, ergänzt um Blitz- und Sturm-Alerts. Damit lässt sich abschätzen, ' +
-      'wann ein Schauer beginnt oder endet — präziser als eine Stundenvorhersage.',
-    bullets: ['Radar-Extrapolation + ICON-D2', 'Minutengenau, 6 Stunden', 'Blitz- & Sturm-Alerts'],
+      'Der Nowcast liefert eine Niederschlagsvorhersage für die nächsten sechs Stunden im 15-Minuten-Raster: ' +
+      'Radar-Extrapolation für die ersten rund zwei Stunden, danach ein ehrlicher Übergang zu ICON-D2. Bis zum ' +
+      'Skill-Horizont (~2 h) nennt er minutengenaue Start- und Stoppzeiten von Schauern, ergänzt um ' +
+      'Sturmzellen-Zugbahn und Blitze.',
+    bullets: ['Radar (0–2 h) + ICON-D2 (2–6 h)', '6 Stunden im 15-Minuten-Raster', 'Minutengenaue Start/Stopp bis ~2 h Skill-Horizont', 'Sturmzellen-Zugbahn & Blitze'],
     faqs: [
-      { q: 'Wie weit reicht der Nowcast?', a: 'Sechs Stunden, minutengenau. Er kombiniert Radar-Extrapolation mit ICON-D2 und weist auf Blitz- und Sturmgefahr hin.' },
+      { q: 'Wie weit reicht der Nowcast?', a: 'Sechs Stunden im 15-Minuten-Raster. Die ersten rund zwei Stunden stammen aus Radar-Extrapolation mit minutengenauen Start- und Stoppzeiten; danach übernimmt ICON-D2. Sturmzellen-Zugbahn und Blitze werden mitgeführt.' },
     ],
     relatedExplainers: ['gewitter-unwetter', 'thermik'],
     datePublished: PUBLISHED, dateModified: MODIFIED,
@@ -158,11 +159,13 @@ export const TOOLS = [
     slug: 'modellvergleich', title: 'Modellvergleich', h1: 'Modellvergleich: Vorhersagen ehrlich gegenübergestellt',
     status: 'stub', deepLink: '/',
     answer:
-      'Der Modellvergleich stellt ICON-D2, MOSMIX und ICON-EU nebeneinander und zeigt den Unsicherheits-Spread ' +
-      'sowie einen Trefferquoten-Rückblick. Statt einer Scheingenauigkeit macht er sichtbar, wie verlässlich ' +
-      'die Vorhersage gerade ist — eng beieinander heißt sicher, weit auseinander heißt Vorsicht.',
-    bullets: ['ICON-D2 · MOSMIX · ICON-EU', 'Ehrlicher Unsicherheits-Spread', 'Trefferquoten-Rückblick'],
+      'Der Modellvergleich stellt fünf unabhängige Wettermodelle — ICON (DWD), ECMWF, GFS (NOAA), GEM (Kanada) ' +
+      'und Météo-France — nebeneinander und zeigt den Unsicherheits-Spread sowie einen Trefferquoten-Rückblick. ' +
+      'Statt einer Scheingenauigkeit macht er sichtbar, wie verlässlich die Vorhersage gerade ist — eng ' +
+      'beieinander heißt sicher, weit auseinander heißt Vorsicht.',
+    bullets: ['ICON · ECMWF · GFS · GEM · Météo-France', 'Ehrlicher Unsicherheits-Spread (Spannweite & Konsens)', 'Trefferquoten-Rückblick'],
     faqs: [
+      { q: 'Welche Modelle vergleicht buscosun?', a: 'Fünf unabhängige globale bzw. regionale Modelle mit DACH-Abdeckung: ICON (DWD), ECMWF, GFS (NOAA), GEM (Kanada) und Météo-France.' },
       { q: 'Was bringt ein Modellvergleich?', a: 'Er zeigt die Streuung mehrerer Wettermodelle als Maß für die Vorhersageunsicherheit, statt eine einzelne Zahl als sicher auszugeben.' },
     ],
     relatedExplainers: ['modellvergleich-unsicherheit', 'hoehenkorrektur-lapse-rate'],
@@ -172,12 +175,13 @@ export const TOOLS = [
     slug: 'globus', title: '3D-Wetterglobus', h1: '3D-Wetterglobus: das Wetter der ganzen Erde',
     status: 'stub', deepLink: '/#g=',
     answer:
-      'Der 3D-Wetterglobus visualisiert globale Wetterfelder auf einer drehbaren Kugel. Er dient der ' +
-      'Veranschaulichung großräumiger Strömungen und nutzt gebündelte Beispieldaten sowie NOAA-GFS — keine ' +
-      'globale Live-Vorhersage, sondern ein anschaulicher Überblick über die Dynamik der Atmosphäre.',
-    bullets: ['Drehbarer 3D-Globus', 'Globale Strömungsmuster', 'Datenbasis: NOAA GFS + Beispieldaten'],
+      'Der 3D-Wetterglobus visualisiert globale Wetterfelder — Wind, Temperatur, Feuchte und Luftdruck — auf ' +
+      'einer drehbaren Kugel mit animierten Wind-Partikeln. Datenbasis ist der jeweils neueste, live geladene ' +
+      'NOAA-GFS-Lauf (Public Domain); vier Höhenstufen (Boden bis 250 hPa) und ein Vorlauf bis +120 Stunden ' +
+      'lassen sich durchscrubben.',
+    bullets: ['Drehbarer 3D-Globus mit Wind-Partikeln', 'Felder: Wind, Temperatur, Feuchte, Luftdruck', '4 Höhenstufen, Vorlauf bis +120 h', 'Datenbasis: live NOAA GFS (neuester Lauf)'],
     faqs: [
-      { q: 'Zeigt der Globus eine Live-Vorhersage?', a: 'Nein. Der Globus nutzt gebündelte Beispieldaten und NOAA-GFS zur Veranschaulichung großräumiger Muster, nicht als globale Live-Prognose.' },
+      { q: 'Welche Daten zeigt der Globus?', a: 'Den jeweils neuesten global verfügbaren NOAA-GFS-Lauf (Public Domain), live geladen — Wind, Temperatur, Feuchte und Luftdruck auf vier Höhenstufen mit Vorlauf bis +120 Stunden.' },
     ],
     relatedExplainers: ['windboeen-sturm'],
     datePublished: PUBLISHED, dateModified: MODIFIED,
@@ -186,26 +190,30 @@ export const TOOLS = [
     slug: 'historie', title: 'Wetterhistorie', h1: 'Wetterhistorie: wie sich das Wetter verändert hat',
     status: 'stub', deepLink: '/#h=',
     answer:
-      'Die Wetterhistorie zeigt, wie sich Temperatur und weitere Größen an einem Ort über die Jahre verändert ' +
-      'haben. Sie ordnet das aktuelle Wetter in den langjährigen Verlauf ein und macht Trends und Rekorde ' +
-      'sichtbar — auf Basis amtlicher Klimadaten.',
-    bullets: ['Langjähriger Temperaturverlauf', 'Einordnung des aktuellen Wetters', 'Trends & Rekorde'],
+      'Die Wetterhistorie zeigt, wie sich Temperatur, Niederschlag, Wind und weitere Größen an einem Ort über ' +
+      'die Jahre verändert haben. Sie ordnet das aktuelle Wetter gegen Normal und Rekord ein und macht Trends, ' +
+      'Rekorde und Kenntage sichtbar — mit Klimastreifen, Anomaliebalken, Kalender-Heatmap und über einem ' +
+      'Dutzend weiterer Diagramme. Datenbasis ist die ERA5-Reanalyse (modelliert, mit Beobachtungen ' +
+      'assimiliert, in der App als Reanalyse gekennzeichnet).',
+    bullets: ['Langjähriger Verlauf von Temperatur, Niederschlag, Wind u. a.', 'Einordnung des aktuellen Wetters gegen Normal & Rekord', 'Trends, Rekorde & Kenntage in 12+ Diagrammtypen', 'Datenbasis: ERA5-Reanalyse (Open-Meteo Archive)'],
     faqs: [
-      { q: 'Worauf basiert die Wetterhistorie?', a: 'Auf amtlichen Klima- und Messdaten, die den langjährigen Verlauf an einem Ort abbilden.' },
+      { q: 'Worauf basiert die Wetterhistorie?', a: 'Auf der ERA5-Reanalyse über das Open-Meteo-Archiv — modellierte Klimadaten, die mit Beobachtungen assimiliert sind. Die App kennzeichnet dies als Reanalyse (keine reine Stationsmessung).' },
     ],
     relatedExplainers: ['hoehenkorrektur-lapse-rate'],
     datePublished: PUBLISHED, dateModified: MODIFIED,
   },
   {
-    slug: 'arbeitsfenster', title: 'Arbeitsfenster (Go/No-Go)', h1: 'Arbeitsfenster: Go/No-Go für Wind, Regen und Frost',
+    slug: 'arbeitsfenster', title: 'Arbeitsfenster (Go/No-Go)', h1: 'Arbeitsfenster: Go/No-Go für Böen auf Arbeitshöhe',
     status: 'stub', deepLink: '/',
     answer:
-      'Das Arbeitsfenster prüft Wind-, Böen-, Regen- und Frostschwellen für Vorhaben wie Drohnenflug, ' +
-      'Kranarbeit, Höhenarbeit, Anstrich oder Event-Aufbau und zeigt sie als 48-Stunden-Ampel. Entscheidend ' +
-      'sind dabei die Böenspitzen, nicht der Mittelwind.',
-    bullets: ['Wind-/Böen-/Regen-/Frost-Schwellen', '48-Stunden-Ampel', 'Für Drohne, Kran, Höhenarbeit, Anstrich'],
+      'Das Arbeitsfenster prüft, ob die Böen auf einer frei wählbaren Arbeits- oder Flughöhe einen Grenzwert ' +
+      'überschreiten, und liefert über die nächsten 36 Stunden einen eindeutigen Go/No-Go-Status mit ' +
+      'Zeitfenstern. Ein Höhenfaktor rechnet die Bodenböen auf die Arbeitshöhe hoch — entscheidend sind die ' +
+      'Böenspitzen auf Höhe, nicht der Mittelwind am Boden. Gedacht für wetterabhängige Vorhaben wie ' +
+      'Drohnenflug, Kran- oder Höhenarbeit und Event-Aufbau.',
+    bullets: ['Böen-Grenzwert auf wählbarer Arbeitshöhe (m AGL)', 'Go/No-Go mit Zeitfenstern über 36 h', 'Höhenfaktor Boden → Arbeitshöhe', 'Für Drohne, Kran, Höhenarbeit, Event'],
     faqs: [
-      { q: 'Für wen ist das Arbeitsfenster gedacht?', a: 'Für wetterabhängige Arbeiten wie Drohnenflug, Kran- und Höhenarbeit, Anstrich oder Event-Aufbau. Es bewertet Böen, Regen und Frost als 48-Stunden-Ampel.' },
+      { q: 'Wie funktioniert das Arbeitsfenster?', a: 'Du gibst eine Arbeits- oder Flughöhe (m über Grund) und einen Böen-Grenzwert vor. Das Tool rechnet die prognostizierten Bodenböen über ein Grenzschichtprofil auf diese Höhe hoch und meldet über 36 Stunden, wann der Grenzwert überschritten wird (No-Go-Fenster).' },
     ],
     relatedExplainers: ['windboeen-sturm'],
     datePublished: PUBLISHED, dateModified: MODIFIED,

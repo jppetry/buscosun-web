@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { encodeMapState } from './mapState';
-import { isFavorite, toggleFavorite } from './favorites';
 import maplibregl, { Map as MapLibreMap, Marker } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import type { Country, Location } from './types';
+import type { Location } from './types';
 import { WindLayer } from './wind/WindLayer';
 import type { DwdForecastResult } from './wind/brightSkySource';
 import type { ScalarGridResult } from './wind/openMeteoSource';
@@ -15,7 +14,7 @@ import { lerpFrameImage } from './fusion/frameInterp';
 import { COUNTRY_PROFILES, DACH_VIEW } from './countryProfiles';
 import { loadDachMask } from './countryMask';
 import { PointForecastPanel } from './pointForecast/PointForecastPanel';
-import { DACH_CITIES, TemperatureSampler, minZoomForRank, saveTempLabelCache, loadTempLabelCache, type TemperatureSamplerOptions, type City } from './temperatureLabels';
+import { DACH_CITIES, TemperatureSampler, minZoomForRank, saveTempLabelCache, loadTempLabelCache, tempLabelColor, type TemperatureSamplerOptions, type City } from './temperatureLabels';
 import { LayerIcon } from './components/LayerIcon';
 import { LayerInfoPanel } from './components/LayerInfoPanel';
 import {
@@ -220,44 +219,6 @@ const SAT_PRODUCT_FULL_LABELS: Record<SatelliteProduct, string> = {
   world_ir: 'Welt IR',
 };
 
-// Model-selector options per country. 'fusion' (Buscosun Fusion) is the
-// default everywhere; individual models are exposed for transparency so
-// users can see how each underlying source looks on its own.
-//
-// **DACH-only stack policy** — we deliberately do NOT expose Open-Meteo or
-// any other rate-limited / non-commercial / paid API. Every model below
-// is backed by an open, CC-BY-licensed national source. ICON-D2/EPS,
-// AROME-FR and COSMO-1E/2E are not available via free REST APIs and are
-// therefore not listed — for transparency we surface what we actually use.
-const MODEL_OPTIONS_BY_COUNTRY: Record<
-  'DE' | 'AT' | 'CH',
-  Array<{ key: ModelChoice; label: string; short: string; title: string }>
-> = {
-  DE: [
-    { key: 'fusion', label: 'Fusion', short: 'Fus', title: 'Buscosun-Fusion: DWD MOSMIX + Live-Stationen + (grenznah) AROME-AT/INCA' },
-    { key: 'mosmix', label: 'MOSMIX', short: 'MOS', title: 'DWD MOSMIX — ICON-EU NWP bias-korrigiert auf DWD-Stationen, +24 h' },
-    { key: 'obs',    label: 'Obs',    short: 'OBS', title: 'DWD-Live-Stationen (mit grenznahem TAWES/SMN-Beimisch), nur Stunde 0' },
-  ],
-  AT: [
-    { key: 'fusion', label: 'Fusion', short: 'Fus', title: 'Buscosun-Fusion: AROME-AT + INCA + TAWES-Live + (grenznah) MOSMIX' },
-    { key: 'arome',  label: 'AROME',  short: 'ARO', title: 'GeoSphere AROME-AT — 2,5 km, +60 h Forecast' },
-    { key: 'inca',   label: 'INCA',   short: 'INC', title: 'GeoSphere INCA — Nowcast 1 km / 15 min, ≤ 3 h' },
-    { key: 'obs',    label: 'Obs',    short: 'OBS', title: 'TAWES-Live-Stationen (mit grenznahem DWD/SMN-Beimisch), nur Stunde 0' },
-  ],
-  CH: [
-    { key: 'fusion', label: 'Fusion', short: 'Fus', title: 'Buscosun-Fusion: AROME-CH + SMN-Live + (grenznah) MOSMIX' },
-    { key: 'arome',  label: 'AROME',  short: 'ARO', title: 'GeoSphere AROME — 2,5 km, CH-Abdeckung über die AT-Bounding-Box' },
-    { key: 'obs',    label: 'Obs',    short: 'OBS', title: 'MeteoSwiss SMN-Live-Stationen (mit grenznahem DWD/TAWES-Beimisch), nur Stunde 0' },
-  ],
-};
-
-/** Country chips shown in the model rail — order: DE, AT, CH. */
-const COUNTRY_CHIPS: ReadonlyArray<{ code: Country; flag: string; name: string; }> = [
-  { code: 'DE', flag: '🇩🇪', name: 'Deutschland' },
-  { code: 'AT', flag: '🇦🇹', name: 'Österreich' },
-  { code: 'CH', flag: '🇨🇭', name: 'Schweiz' },
-];
-
 // Temperature spans -20°C..+40°C in the color ramp
 const TEMP_RANGE = { min: -20, max: 40 };
 
@@ -327,14 +288,10 @@ export default function MapView({ location, onBack, embedded = false, initialAct
   }, [active]);
   // Eingebettet: Play/Pause für den Tagesablauf (animiert den Slider über das Fenster).
   const [playing, setPlaying] = useState(false);
-  // Which model drives the map. Default 'fusion' = Buscosun fusion across all
-  // sources for the active country. The selector lets users compare individual
-  // models for transparency.
-  const [modelChoice, setModelChoice] = useState<ModelChoice>('fusion');
-  // Which country's model-popover is currently open in the model-rail.
-  // null = popover closed. Decoupled from `modelChoice` so users can browse
-  // a neighbouring country's models without committing the selection yet.
-  const [openModelCountry, setOpenModelCountry] = useState<Country | null>(null);
+  // Which model drives the map. Fixed to 'fusion' (Buscosun fusion across all
+  // sources for the active country) — the per-country model selector was removed
+  // from the 2D map; fusion is the only product surfaced here.
+  const [modelChoice] = useState<ModelChoice>('fusion');
   const forecastRef = useRef<DwdForecastResult | null>(null);
   const layerRefs = useRef<{ wind?: WindLayer; temp?: ScalarLayer; gust?: ScalarLayer; clouds?: CloudLayer; precip?: ScalarLayer; rain?: RainLayer; confidence?: ConfidenceLayer; ki?: RainLayer; pop?: RainLayer }>({});
   // Flow-Nowcast: geschätztes Bewegungsfeld + Basis-Frame (gröber) je RADOLAN-Lauf.
@@ -458,10 +415,6 @@ export default function MapView({ location, onBack, embedded = false, initialAct
       zoom: embedded ? 7.4 : DACH_VIEW.defaultZoom,
     });
 
-    map.addControl(
-      new maplibregl.NavigationControl({ visualizePitch: true }),
-      'top-right',
-    );
     map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-left');
 
     // Dim overlay — a semi-transparent dark fill that sits over the basemap
@@ -488,12 +441,14 @@ export default function MapView({ location, onBack, embedded = false, initialAct
             id: DIM_LAYER_ID,
             type: 'fill',
             source: WORLD_SOURCE_ID,
-            // Same sand-200 as the country-mask, at moderate opacity.
-            // Used as a soft dim layer that can complement the mask if
-            // ever toggled on; keeps the colour family consistent with
-            // the homepage hero gradient.
-            paint: { 'fill-color': '#E0D6BE', 'fill-opacity': 0.55 },
-            layout: { visibility: 'none' },
+            // ink-900 (#2C2A26) dark wash. Sits over the basemap but below
+            // boundary/label layers, so it darkens the DACH interior (outside
+            // DACH is covered by the opaque country mask) without dimming the
+            // city labels. Always on — wind particles and the precip radar
+            // "pop" on a dark canvas instead of washing out against the light
+            // basemap, regardless of which weather layer is active.
+            paint: { 'fill-color': '#2C2A26', 'fill-opacity': 0.7 },
+            layout: { visibility: 'visible' },
           },
           beforeId,
         );
@@ -682,7 +637,6 @@ export default function MapView({ location, onBack, embedded = false, initialAct
       applyVisibility();
     };
     const applyVisibility = () => {
-      const anyWeather = active.size > 0;
       const set: Record<string, boolean> = {
         wind: active.has('wind'),
         clouds: active.has('clouds'),
@@ -700,7 +654,7 @@ export default function MapView({ location, onBack, embedded = false, initialAct
         [SNOWLINE_LAYER_ID]: active.has('snowline'),
         [FLOW_NOWCAST_LAYER_ID]: active.has('flownowcast'),
         [POP_LAYER_ID]: active.has('poprob'),
-        [DIM_LAYER_ID]: anyWeather,
+        [DIM_LAYER_ID]: true, // dark wash always on — keeps the canvas dark even with no weather layer
       };
       for (const id of Object.keys(set)) {
         if (map.getLayer(id)) {
@@ -1333,9 +1287,10 @@ export default function MapView({ location, onBack, embedded = false, initialAct
   // (+ hsurf-DEM) ziehen. Hier wird auch die gridded Fusion einmalig nachgeladen
   // (Temp-Fallback + Stadt-Temp-Labels) — sie läuft nicht mehr eager am Mount.
   useEffect(() => {
-    // Vertrauens-Schleier UND Schneefallgrenze brauchen das ICON-D2-Temperatur-
-    // gitter (Werte + hsurf-Höhe) → auch ohne sichtbaren Temp-Layer laden.
-    if (!active.has('temp') && !active.has('confidence') && !active.has('snowline')) return;
+    // Stadt-Temperatur-Labels sind dauerhaft sichtbar (windy-Stil) → das native
+    // ICON-D2-t_2m-Gitter (Werte + hsurf-Höhe) IMMER laden, nicht mehr nur bei
+    // aktivem Temp-/Confidence-/Schneefallgrenze-Layer. Dieselbe Quelle deckt
+    // weiterhin Vertrauens-Schleier und Schneefallgrenze ab.
     if (!iconD2TempRef.current) void installTempRef.current?.();
     if (active.has('temp') && !fusionRequestedRef.current) {
       fusionRequestedRef.current = true;
@@ -1740,12 +1695,16 @@ export default function MapView({ location, onBack, embedded = false, initialAct
     return () => { delete w.__bsSample; delete w.__bsQA; delete w.__bsSnowlineQA; };
   }, [forecastHour]);
 
-  // City temperature labels — visible while the temperature layer is on,
-  // updates with the forecast slider, uses the SAME DEM-aware lapse math
-  // as the heatmap shader so the label value matches the pixel colour.
-  // Density scales with zoom via `minZoomForRank`: rank 1 (top metros +
-  // iconic peaks) always shown, rank 2-3 added at intermediate zooms, rank
-  // 4 (small towns + alpine villages) only at city-view zoom.
+  // City temperature labels — windy-style: a small location dot + the bare,
+  // temperature-coloured value (no city name, no pill). PERMANENTLY visible
+  // (independent of the temperature layer toggle), updates with the forecast
+  // slider, and uses the SAME DEM-aware lapse math as the heatmap shader so
+  // the value matches the underlying pixel. ALWAYS tied to a real town/city
+  // from the curated `DACH_CITIES` list (no free-floating grid numbers).
+  // Density scales gently with zoom via `minZoomForRank`: rank 1 (top metros +
+  // iconic peaks) always shown, rank 2-3 added at intermediate zooms, rank 4
+  // (small towns + alpine villages) only at city-view zoom — so zooming in
+  // reveals smaller places gradually, and each new label fades in (CSS).
   useEffect(() => {
     const map = mapRef.current;
     const markers = tempLabelMarkersRef.current;
@@ -1753,7 +1712,7 @@ export default function MapView({ location, onBack, embedded = false, initialAct
       markers.forEach((m) => m.remove());
       markers.clear();
     };
-    if (!map || !active.has('temp')) {
+    if (!map) {
       removeAll();
       return;
     }
@@ -1780,40 +1739,63 @@ export default function MapView({ location, onBack, embedded = false, initialAct
         demMax: forecast.demMax ?? 4500, lapseRatePerM: forecast.lapseRatePerM ?? 0.0065,
       };
     }
-    // Generischer Painter: `getTemp(city)` → °C oder null. Übernimmt Zoom-
-    // Sichtbarkeit + Marker anlegen/aktualisieren/entfernen. Quelle ist entweder
-    // der Live-Sampler (frisches Gitter) oder der Sofort-Cache (Kaltstart).
+    // Marker anlegen/wiederverwenden (Schlüssel = Stadtname). Neue Marker starten
+    // unsichtbar (opacity 0) und blenden per CSS-Transition sanft ein, statt beim
+    // Zoom abrupt aufzuploppen.
+    const ensureMarker = (key: string, lng: number, lat: number): Marker => {
+      let m = markers.get(key);
+      // Verwaiste Marker (Element nicht mehr im DOM — z. B. nach Karten-Neuaufbau
+      // unter StrictMode) verwerfen und neu anlegen, sonst blieben sie unsichtbar.
+      if (m && !m.getElement().isConnected) { m.remove(); markers.delete(key); m = undefined; }
+      if (!m) {
+        const el = document.createElement('div');
+        el.className = 'temp-label';
+        el.style.opacity = '0';
+        // Windy-Stil: kleiner Standort-Punkt + reine, eingefärbte Zahl.
+        el.innerHTML = `<span class="temp-label-dot"></span><span class="temp-label-val"></span>`;
+        m = new maplibregl.Marker({ element: el, anchor: 'center' })
+          .setLngLat([lng, lat])
+          .addTo(map);
+        // Auf den nächsten Frame warten, dann opacity freigeben → Transition greift.
+        requestAnimationFrame(() => { el.style.opacity = ''; });
+        markers.set(key, m);
+      }
+      return m;
+    };
+    const writeMarker = (m: Marker, t: number, rankClass: string) => {
+      const root = m.getElement();
+      const cls = `temp-label ${rankClass}`;
+      if (root.className !== cls) root.className = cls;
+      const val = root.querySelector('.temp-label-val') as HTMLElement | null;
+      // Nur schreiben/umfärben, wenn sich der Wert wirklich ändert — spart beim
+      // Scrubben Layout/Paint, wenn Nachbarstunden denselben gerundeten Wert geben.
+      const display = `${Math.round(t)}°`;
+      if (val && val.textContent !== display) val.textContent = display;
+      // Farbe auf der Wurzel → Punkt (currentColor) und Zahl erben sie.
+      const col = tempLabelColor(t);
+      if (root.dataset.col !== col) { root.style.color = col; root.dataset.col = col; }
+    };
+
+    // Painter: `getTemp(city)` → °C für jede sichtbare Stadt/Dorf. Quelle ist der
+    // Live-Sampler (frisches Gitter) oder der Sofort-Cache (Kaltstart). Es werden
+    // AUSSCHLIESSLICH Orte aus `DACH_CITIES` beschriftet — keine frei im Gitter
+    // platzierten Zahlen, jede Temperatur klebt an einem echten Ort.
     const paint = (getTemp: (c: City) => number | null) => {
       const zoom = map.getZoom();
+      const keep = new Set<string>();
+
       for (const city of DACH_CITIES) {
-        const visible = zoom >= minZoomForRank(city.rank);
-        const existing = markers.get(city.name);
-        const t = visible ? getTemp(city) : null;
-        if (t == null || !Number.isFinite(t)) {
-          if (existing) { existing.remove(); markers.delete(city.name); }
-          continue;
-        }
-        let m = existing;
-        // Verwaiste Marker (Element nicht mehr im DOM — z. B. nach Karten-Neuaufbau
-        // unter StrictMode) verwerfen und neu anlegen, sonst blieben sie unsichtbar.
-        if (m && !m.getElement().isConnected) { m.remove(); markers.delete(city.name); m = undefined; }
-        if (!m) {
-          const el = document.createElement('div');
-          el.className = `temp-label temp-label-rank-${city.rank}`;
-          el.innerHTML = `<span class="temp-label-name"></span><span class="temp-label-val"></span>`;
-          m = new maplibregl.Marker({ element: el, anchor: 'center' })
-            .setLngLat([city.lng, city.lat])
-            .addTo(map);
-          markers.set(city.name, m);
-        }
-        const root = m.getElement();
-        const name = root.querySelector('.temp-label-name') as HTMLElement | null;
-        const val = root.querySelector('.temp-label-val') as HTMLElement | null;
-        // Nur schreiben, wenn sich der Text wirklich ändert — spart beim Scrubben
-        // Layout/Paint, wenn benachbarte Stunden denselben gerundeten Wert ergeben.
-        if (name && name.textContent !== city.name) name.textContent = city.name;
-        const display = `${Math.round(t)}°`;
-        if (val && val.textContent !== display) val.textContent = display;
+        if (zoom < minZoomForRank(city.rank)) continue;
+        const t = getTemp(city);
+        if (t == null || !Number.isFinite(t)) continue;
+        writeMarker(ensureMarker(city.name, city.lng, city.lat), t, `temp-label-rank-${city.rank}`);
+        keep.add(city.name);
+      }
+
+      // Nicht mehr benötigte Marker entfernen (außerhalb des Ausschnitts oder
+      // durch Zoom verschwundene Ränge).
+      for (const [key, m] of markers) {
+        if (!keep.has(key)) { m.remove(); markers.delete(key); }
       }
     };
 
@@ -1825,8 +1807,10 @@ export default function MapView({ location, onBack, embedded = false, initialAct
     const renderWhenReady = (render: () => void): (() => void) => {
       render();
       if (!map.isStyleLoaded()) map.once('load', render);
-      map.on('zoomend', render);
-      return () => { map.off('load', render); map.off('zoomend', render); };
+      // 'moveend' deckt Zoom UND Pan ab — beim Reinzoomen tauchen rangniedrigere
+      // Orte auf, beim Pannen folgt die Auswahl dem sichtbaren Ausschnitt.
+      map.on('moveend', render);
+      return () => { map.off('load', render); map.off('moveend', render); };
     };
 
     const atHour0 = Math.round(forecastHour) === 0;
@@ -1852,6 +1836,8 @@ export default function MapView({ location, onBack, embedded = false, initialAct
     // bumpt nowcastTick und dieser Effekt rendert mit den echten Werten neu.
     const cached = atHour0 ? loadTempLabelCache() : null;
     if (cached) {
+      // Kaltstart: benannte Städte aus dem Cache. Sobald das frische Gitter lädt,
+      // bumpt nowcastTick und der Effekt rendert mit den echten Werten neu.
       return renderWhenReady(() => paint((c) => cached[c.name] ?? null));
     }
     removeAll();
@@ -1882,7 +1868,6 @@ export default function MapView({ location, onBack, embedded = false, initialAct
     const map = mapRef.current;
     if (!map) return;
     const apply = () => {
-      const anyWeather = active.size > 0;
       const set: Record<string, boolean> = {
         wind: active.has('wind'),
         clouds: active.has('clouds'),
@@ -1900,7 +1885,7 @@ export default function MapView({ location, onBack, embedded = false, initialAct
         [SNOWLINE_LAYER_ID]: active.has('snowline'),
         [FLOW_NOWCAST_LAYER_ID]: active.has('flownowcast'),
         [POP_LAYER_ID]: active.has('poprob'),
-        [DIM_LAYER_ID]: anyWeather,
+        [DIM_LAYER_ID]: true, // dark wash always on — keeps the canvas dark even with no weather layer
       };
       for (const id of Object.keys(set)) {
         if (map.getLayer(id)) {
@@ -2041,24 +2026,12 @@ export default function MapView({ location, onBack, embedded = false, initialAct
     if (window.location.hash !== hash) window.history.replaceState(null, '', hash);
   }, [embedded, location, active, forecastHour]);
 
-  const [isFav, setIsFav] = useState<boolean>(() => !overview && !embedded && isFavorite(location));
-  useEffect(() => { setIsFav(!overview && !embedded && isFavorite(location)); }, [location, overview, embedded]);
-  const toggleFav = () => setIsFav(toggleFavorite(location).isFav);
 
   // Mobile (<768px): die linke Rail + Wind-/Legenden-/Badge-Overlays werden in
   // ein gebündeltes „Layer & Daten"-Bottom-Sheet umgeschichtet (Informationserhalt
   // + Touch-Targets ≥44px + Hover→Tap). Desktop/Tablet bleiben unberührt.
   const [mobileLayers, setMobileLayers] = useState(false);
   const [sheetExpanded, setSheetExpanded] = useState<LayerKey | null>(null);
-
-  const [shareCopied, setShareCopied] = useState(false);
-  const copyMapLink = async () => {
-    const hash = encodeMapState({ location, layers: [...active], hour: forecastHour });
-    const url = `${window.location.origin}${window.location.pathname}${hash}`;
-    try { await navigator.clipboard.writeText(url); } catch { /* ignore */ }
-    setShareCopied(true);
-    window.setTimeout(() => setShareCopied(false), 2000);
-  };
 
   return (
     <div className={`map-view${embedded ? ' map-view-embedded' : ''}`}>
@@ -2082,25 +2055,6 @@ export default function MapView({ location, onBack, embedded = false, initialAct
           </svg>
           <span className="location-label-text">{location.name}</span>
         </div>
-        {!embedded && !overview && (
-          <button className={`map-fav-btn${isFav ? ' is-fav' : ''}`} onClick={toggleFav} type="button"
-            aria-pressed={isFav} title={isFav ? 'Aus gespeicherten Orten entfernen' : 'Ort merken (Startseite)'}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill={isFav ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <polygon points="12,2.5 15,9 22,9.7 16.7,14.2 18.3,21 12,17.3 5.7,21 7.3,14.2 2,9.7 9,9" />
-            </svg>
-            <span>{isFav ? 'Gemerkt' : 'Merken'}</span>
-          </button>
-        )}
-        {!embedded && (
-          <button className="map-share-btn" onClick={copyMapLink} type="button"
-            title="Link zu genau dieser Kartenansicht kopieren (Ort · Layer · Zeit)">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
-              <line x1="8.6" y1="10.5" x2="15.4" y2="6.5" /><line x1="8.6" y1="13.5" x2="15.4" y2="17.5" />
-            </svg>
-            <span>{shareCopied ? '✓ Link kopiert' : 'Link teilen'}</span>
-          </button>
-        )}
       </div>
 
       {!embedded && (
@@ -2123,27 +2077,6 @@ export default function MapView({ location, onBack, embedded = false, initialAct
             </button>
           ))}
         </div>
-        <div className="model-rail">
-        {COUNTRY_CHIPS.map(c => {
-          const isHome = c.code === location.country;
-          const isOpen = openModelCountry === c.code;
-          return (
-            <button
-              key={c.code}
-              type="button"
-              className={`model-rail-chip${isHome ? ' home' : ''}${isOpen ? ' open' : ''}`}
-              onClick={() => setOpenModelCountry(prev => (prev === c.code ? null : c.code))}
-              aria-expanded={isOpen}
-              aria-haspopup="menu"
-              title={`Modelle für ${c.name}`}
-            >
-              <span className="flag" aria-hidden="true">{c.flag}</span>
-              <span className="code">{c.code}</span>
-              {isHome && <span className="home-dot" aria-label="Aktuelles Land" />}
-            </button>
-          );
-        })}
-        </div>
         {active.has('sat') && (
           <div className="sat-product-switch">
             {SATELLITE_PRODUCTS.map(p => (
@@ -2164,65 +2097,6 @@ export default function MapView({ location, onBack, embedded = false, initialAct
       {!embedded && layerHover && (
         <LayerInfoPanel layer={layerHover.key} style={{ top: layerHover.top, left: layerHover.left }} />
       )}
-      {!embedded && openModelCountry && (
-        <>
-          <div className="model-popover-scrim" onClick={() => setOpenModelCountry(null)} />
-          <aside
-            className="model-popover"
-            data-country={openModelCountry}
-            role="menu"
-            aria-label={`Modellauswahl für ${COUNTRY_CHIPS.find(c => c.code === openModelCountry)?.name}`}
-          >
-            <header className="model-popover-header">
-              <span className="flag" aria-hidden="true">
-                {COUNTRY_CHIPS.find(c => c.code === openModelCountry)?.flag}
-              </span>
-              <div className="title-block">
-                <span className="eyebrow">MODELLE</span>
-                <span className="country-name">{COUNTRY_CHIPS.find(c => c.code === openModelCountry)?.name}</span>
-              </div>
-              <button
-                type="button"
-                className="close"
-                onClick={() => setOpenModelCountry(null)}
-                aria-label="Schließen"
-              >
-                <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
-                  <path d="M3 3 L11 11 M11 3 L3 11" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-                </svg>
-              </button>
-            </header>
-            <ul className="model-popover-list" role="none">
-              {(MODEL_OPTIONS_BY_COUNTRY[openModelCountry] ?? []).map(opt => {
-                const isActive = modelChoice === opt.key;
-                return (
-                  <li key={opt.key} role="none">
-                    <button
-                      type="button"
-                      role="menuitemradio"
-                      aria-checked={isActive}
-                      className={`model-popover-item${isActive ? ' active' : ''}`}
-                      onClick={() => {
-                        setModelChoice(opt.key);
-                        setOpenModelCountry(null);
-                      }}
-                    >
-                      <span className="indicator" aria-hidden="true">
-                        <span className="dot" />
-                      </span>
-                      <span className="body">
-                        <span className="model-name">{opt.label}</span>
-                        <span className="model-desc">{opt.title}</span>
-                      </span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          </aside>
-        </>
-      )}
-
       {!embedded && (active.has('confidence') || active.has('snowline') || active.has('flownowcast') || active.has('poprob')) && (
         <div className="map-legends">
           {active.has('confidence') && (
@@ -2429,22 +2303,13 @@ export default function MapView({ location, onBack, embedded = false, initialAct
                   </button>
                 </header>
 
-                <button
-                  type="button"
-                  className="map-sheet-model"
-                  onClick={() => { setMobileLayers(false); setOpenModelCountry(location.country); }}
-                >
-                  <span className="map-sheet-model-label">Land &amp; Modell</span>
+                <div className="map-sheet-model is-static">
+                  <span className="map-sheet-model-label">Land</span>
                   <strong className="map-sheet-model-val">
                     {({ DE: '🇩🇪', AT: '🇦🇹', CH: '🇨🇭' } as const)[location.country]}{' '}
                     {COUNTRY_PROFILES[location.country].name}
-                    {(() => {
-                      const m = (MODEL_OPTIONS_BY_COUNTRY[location.country] ?? []).find(o => o.key === modelChoice);
-                      return m ? ` · ${m.label}` : '';
-                    })()}
                   </strong>
-                  <svg className="map-sheet-model-arr" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><line x1="2" y1="8" x2="12" y2="8" /><polyline points="8,4 12,8 8,12" /></svg>
-                </button>
+                </div>
 
                 <div className="map-sheet-list">
                   {LAYER_OPTIONS.map(opt => {
