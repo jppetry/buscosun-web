@@ -38,7 +38,7 @@
 .gl-brand { display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.92rem; font-weight: 500; letter-spacing: -0.01em; color: #eef1f6; }
 .gl-brand-mark { width: 18px; height: 18px; flex: none; background-color: #d88a56; -webkit-mask: url(/buscosun-mark.svg) center / contain no-repeat; mask: url(/buscosun-mark.svg) center / contain no-repeat; }
 .gl-iconbtn {
-  margin-left: auto; width: 34px; height: 34px; display: grid; place-items: center;
+  margin-left: auto; width: 44px; height: 44px; display: grid; place-items: center;
   background: rgba(20,24,32,0.55); border: 1px solid rgba(255,255,255,0.12); color: #d8dbe2;
   border-radius: 50%; cursor: pointer; font-size: 0.7rem; transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
@@ -61,7 +61,8 @@
 .gl-seg { display: flex; flex-wrap: wrap; gap: 0.1rem 0.15rem; align-items: baseline; }
 .gl-link {
   background: none; border: none; color: #c2c8d4; font: inherit; font-size: 0.8rem; cursor: pointer;
-  padding: 0.12rem 0.42rem; border-radius: 7px; transition: background 0.12s, color 0.12s;
+  padding: 0.12rem 0.6rem; border-radius: 7px; transition: background 0.12s, color 0.12s;
+  display: inline-flex; align-items: center; justify-content: center; min-height: 44px;
 }
 .gl-link:hover:not(:disabled) { color: #fff; background: rgba(255,255,255,0.06); }
 .gl-link.is-active { color: #fff; background: rgba(255,255,255,0.14); font-weight: 600; }
@@ -85,15 +86,15 @@
 .gl-legend { margin-top: 0.7rem; padding-bottom: 0.7rem; }
 .gl-legend-title { font-size: 0.64rem; letter-spacing: 0.06em; text-transform: uppercase; color: #8b93a3; }
 .gl-legend-bar { position: relative; height: 9px; border-radius: 5px; margin-top: 0.3rem; border: 1px solid rgba(255,255,255,0.12); }
-.gl-legend-tick { position: absolute; top: 12px; transform: translateX(-50%); font-size: 0.6rem; color: #9aa2b2; font-variant-numeric: tabular-nums; }
+.gl-legend-tick { position: absolute; top: 12px; transform: translateX(-50%); font-size: 0.72rem; color: #9aa2b2; font-variant-numeric: tabular-nums; }
 
 /* Zeit-Zeile mit feinem Slider */
 .gl-row-time { align-items: center; }
 .gl-play { flex: 0 0 auto; }
 .gl-play.is-active { background: #2f6f4f; color: #eafff2; }
 .gl-slider { flex: 1; min-width: 0; height: 4px; -webkit-appearance: none; appearance: none; background: rgba(255,255,255,0.16); border-radius: 999px; cursor: pointer; margin: 0 0.1rem; }
-.gl-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #eef1f6; border: 2px solid #7fb4e6; box-shadow: 0 1px 4px rgba(0,0,0,0.5); cursor: pointer; }
-.gl-slider::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: #eef1f6; border: 2px solid #7fb4e6; cursor: pointer; }
+.gl-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 26px; height: 26px; border-radius: 50%; background: #eef1f6; border: 2px solid #7fb4e6; box-shadow: 0 1px 4px rgba(0,0,0,0.5); cursor: pointer; }
+.gl-slider::-moz-range-thumb { width: 26px; height: 26px; border-radius: 50%; background: #eef1f6; border: 2px solid #7fb4e6; cursor: pointer; }
 .gl-fhlabel { flex: 0 0 auto; font-size: 0.74rem; color: #c2c8d4; font-variant-numeric: tabular-nums; min-width: 2.8rem; text-align: right; }
 
 .gl-validtime { margin-top: 0.45rem; font-size: 0.74rem; color: #aab2c2; }

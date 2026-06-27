@@ -139,8 +139,8 @@
 .atm-xsec { padding: 0.9rem 1rem; }
 .atm-xsec-head { display: flex; align-items: center; justify-content: space-between; }
 .atm-xsec-svg { width: 100%; height: auto; display: block; margin-top: 0.4rem; }
-.atm-xsec-lbl { font-size: 8px; fill: var(--steel-600, #3A6FA8); font-weight: 600; }
-.atm-xsec-ax { font-size: 9px; fill: var(--stone-500, #8B7355); }
+.atm-xsec-lbl { font-size: 10px; fill: var(--steel-600, #3A6FA8); font-weight: 600; }
+.atm-xsec-ax { font-size: 10px; fill: var(--stone-500, #8B7355); }
 .atm-xsec-cap { margin: 0.5rem 0 0; font-size: 0.72rem; line-height: 1.45; color: var(--stone-500, #8B7355); }
 .atm-xsec-state { display: flex; align-items: center; gap: 0.6rem; font-size: 0.86rem; color: var(--stone-600, #5C5447); }
 
@@ -178,8 +178,8 @@
 }
 .atm-prof-cap[aria-pressed="true"] { background: var(--atm-accent); color: #FAF6EA; }
 .atm-prof-svg { width: 100%; height: auto; display: block; margin-top: 0.5rem; }
-.atm-prof-ax { font-size: 9px; fill: var(--stone-500, #8B7355); }
-.atm-prof-tag { font-size: 9px; font-weight: 600; fill: var(--stone-600, #5C5447); }
+.atm-prof-ax { font-size: 10px; fill: var(--stone-500, #8B7355); }
+.atm-prof-tag { font-size: 10px; font-weight: 600; fill: var(--stone-600, #5C5447); }
 .atm-prof-legend { display: flex; flex-wrap: wrap; gap: 0.8rem; margin-top: 0.5rem; font-size: 0.74rem; color: var(--stone-600, #5C5447); }
 .atm-prof-legend span { display: inline-flex; align-items: center; gap: 0.35rem; }
 .atm-prof-legend i { width: 14px; height: 3px; border-radius: 2px; display: inline-block; }

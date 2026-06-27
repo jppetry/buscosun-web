@@ -47,7 +47,7 @@
 .fc-card.is-selected { border-color: var(--fc-blue, #3A6FA8); border-width: 2px; background: #FBFAF3; }
 .fc-card-head { display: flex; align-items: baseline; gap: 0.35rem; }
 .fc-card-day { font-size: 0.95rem; font-weight: 700; color: var(--ink-900, #2C2A26); }
-.fc-card-today { font-size: 0.62rem; color: var(--stone-500, #8B7355); }
+.fc-card-today { font-size: 0.72rem; color: var(--stone-500, #8B7355); }
 .fc-wx { display: block; }
 .fc-card-temps { display: flex; align-items: baseline; gap: 0.4rem; }
 .fc-card-tmax { font-size: 1.25rem; font-weight: 700; color: var(--ink-900, #2C2A26); font-variant-numeric: tabular-nums; }

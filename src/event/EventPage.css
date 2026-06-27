@@ -546,14 +546,14 @@
 
 /* .ics-Kalenderexport — backend-freier Termin-Download */
 .ev-best-actions { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-top: 1.15rem; }
-.ev-ics-btn { display: inline-flex; align-items: center; gap: 0.5rem; font-family: inherit; font-size: 0.85rem; font-weight: 600;
-  color: #fff; background: var(--ink-900, #2C2A26); border: none; border-radius: 999px; padding: 0.55rem 1.05rem;
+.ev-ics-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; font-family: inherit; font-size: 0.85rem; font-weight: 600;
+  color: #fff; background: var(--ink-900, #2C2A26); border: none; border-radius: 999px; padding: 0.55rem 1.05rem; min-height: 44px;
   cursor: pointer; transition: background 0.15s, transform 0.08s; }
 .ev-ics-btn:hover { background: var(--terracotta-500, #C97B47); }
 .ev-ics-btn:active { transform: translateY(1px); }
 .ev-ics-btn svg { flex: none; }
-.ev-share-btn { display: inline-flex; align-items: center; gap: 0.5rem; font-family: inherit; font-size: 0.85rem; font-weight: 600;
-  color: var(--ink-800, #3A3833); background: var(--sand-50, #F5F1E8); border: 1px solid var(--border-default, #E0D6BE); border-radius: 999px; padding: 0.55rem 1.05rem;
+.ev-share-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; font-family: inherit; font-size: 0.85rem; font-weight: 600;
+  color: var(--ink-800, #3A3833); background: var(--sand-50, #F5F1E8); border: 1px solid var(--border-default, #E0D6BE); border-radius: 999px; padding: 0.55rem 1.05rem; min-height: 44px;
   cursor: pointer; transition: border-color 0.15s, color 0.15s, transform 0.08s; }
 .ev-share-btn:hover { border-color: var(--terracotta-500, #C97B47); color: var(--terracotta-700, #A85E2E); }
 .ev-share-btn:active { transform: translateY(1px); }
@@ -589,7 +589,7 @@
 .ev-tl-band-high { fill: rgba(201,123,71,0.12); }
 .ev-tl-band-med { fill: rgba(212,163,115,0.12); }
 .ev-tl-band-low { fill: rgba(107,122,143,0.12); }
-.ev-tl-yband { font-size: 9px; fill: var(--stone-400, #A89A7A); letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; }
+.ev-tl-yband { font-size: 10px; fill: var(--stone-400, #A89A7A); letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; }
 .ev-tl-area { fill: rgba(60,42,33,0.05); }
 .ev-tl-line { fill: none; stroke: var(--ink-800, #3A3833); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
 .ev-tl-dot { stroke: #fff; stroke-width: 2; }
@@ -601,7 +601,7 @@
 .ev-tl-xlabel { font-size: 10px; fill: var(--stone-500, #8B7355); }
 .ev-tl-note { margin: 0.7rem 0 0; font-size: 0.78rem; color: var(--stone-500, #8B7355); line-height: 1.5; }
 .ev-tl-horizon { stroke: var(--terracotta-500, #C97B47); stroke-width: 1.5; stroke-dasharray: 4 3; }
-.ev-tl-horizon-label { font-size: 9px; fill: var(--terracotta-700, #A85E2E); font-weight: 600; letter-spacing: 0.04em; }
+.ev-tl-horizon-label { font-size: 10px; fill: var(--terracotta-700, #A85E2E); font-weight: 600; letter-spacing: 0.04em; }
 
 /* ============================================================================
    Tendenz / Konflikt / Risiko
@@ -960,9 +960,9 @@
 .ev-daychart-cap.ev-daychart-na { font-weight: 500; fill: var(--stone-400, #A89A7A); }
 .ev-daychart-wd { font-size: 11px; fill: var(--stone-600, #5C5447); }
 .ev-daychart-wd.is-best { fill: var(--ink-900, #2C2A26); font-weight: 700; }
-.ev-daychart-dt { font-size: 9px; fill: var(--stone-400, #A89A7A); }
+.ev-daychart-dt { font-size: 10px; fill: var(--stone-400, #A89A7A); }
 .ev-daychart-best { font-size: 10px; font-weight: 600; letter-spacing: 0.04em; fill: #fff; font-family: var(--font-base); }
-.ev-daychart-horizon { font-size: 9px; font-weight: 600; fill: var(--terracotta-700, #A85E2E); font-family: var(--font-base); }
+.ev-daychart-horizon { font-size: 10px; font-weight: 600; fill: var(--terracotta-700, #A85E2E); font-family: var(--font-base); }
 .ev-daychart-note { margin: 0.5rem 0 0; font-size: 0.72rem; color: var(--stone-500, #8B7355); display: flex; align-items: center; gap: 0.1rem; flex-wrap: wrap; }
 
 /* ============================================================================
@@ -972,8 +972,8 @@
 .ev-course-empty { padding: 1.3rem 1.4rem; color: var(--stone-600, #5C5447); font-size: 0.9rem; }
 .ev-course-empty p { margin: 0; line-height: 1.5; }
 .ev-course-svg { display: block; width: 100%; height: auto; }
-.ev-course-panel-label { font-size: 9px; letter-spacing: 0.14em; font-weight: 600; fill: var(--stone-400, #A89A7A); }
-.ev-course-axis, .ev-course-hour { font-size: 9px; fill: var(--stone-400, #A89A7A); font-family: ui-monospace, Menlo, monospace; }
+.ev-course-panel-label { font-size: 10px; letter-spacing: 0.14em; font-weight: 600; fill: var(--stone-400, #A89A7A); }
+.ev-course-axis, .ev-course-hour { font-size: 10px; fill: var(--stone-400, #A89A7A); font-family: ui-monospace, Menlo, monospace; }
 .ev-course-base { stroke: var(--border-medium, #D9D0B8); stroke-width: 1; }
 .ev-course-temp { fill: none; stroke: var(--terracotta-500, #C97B47); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
 .ev-course-tval { font-size: 11px; font-weight: 700; fill: var(--ink-900, #2C2A26); font-variant-numeric: tabular-nums; }
@@ -1020,13 +1020,14 @@
 .ev-chart-export svg { flex: none; }
 .ev-livemap-tabs { margin: 0 0 0.75rem; }
 .ev-course-tab { border: none; background: none; padding: 0.42rem 1.05rem; border-radius: 999px; font-family: inherit;
+  display: inline-flex; align-items: center; justify-content: center; min-height: 40px;
   font-size: 0.82rem; font-weight: 500; color: var(--stone-600, #5C5447); cursor: pointer; transition: background 0.15s, color 0.15s; }
 .ev-course-tab.is-active { background: var(--terracotta-500, #C97B47); color: #fff; }
 .ev-course-tab:hover:not(.is-active) { color: var(--ink-900, #2C2A26); }
 .ev-course-plot { fill: var(--cream-50, #FAF6EA); stroke: var(--border-default, #E0D6BE); stroke-width: 0.5; }
 .ev-course-grid { stroke: var(--border-default, #E0D6BE); stroke-width: 0.5; }
 .ev-course-phasebound { stroke: var(--border-medium, #D9D0B8); stroke-width: 1; stroke-dasharray: 3 3; opacity: 0.6; }
-.ev-course-unit { font-size: 9px; letter-spacing: 0.12em; fill: var(--stone-400, #A89A7A); font-family: ui-monospace, Menlo, monospace; }
+.ev-course-unit { font-size: 10px; letter-spacing: 0.12em; fill: var(--stone-400, #A89A7A); font-family: ui-monospace, Menlo, monospace; }
 .ev-course-tick { stroke: var(--border-strong, #C4B896); stroke-width: 1; }
 .ev-course-hlpill { font-size: 10px; font-weight: 600; fill: #F5F1E8; font-family: ui-monospace, Menlo, monospace; }
 .ev-course-drynote { font-size: 12px; fill: var(--stone-400, #A89A7A); font-style: italic; }
