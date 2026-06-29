@@ -1308,10 +1308,23 @@ export default function MapView({ location, onBack, embedded = false, initialAct
   // (Temp-Fallback + Stadt-Temp-Labels) — sie läuft nicht mehr eager am Mount.
   useEffect(() => {
     // Stadt-Temperatur-Labels sind dauerhaft sichtbar (windy-Stil) → das native
-    // ICON-D2-t_2m-Gitter (Werte + hsurf-Höhe) IMMER laden, nicht mehr nur bei
-    // aktivem Temp-/Confidence-/Schneefallgrenze-Layer. Dieselbe Quelle deckt
-    // weiterhin Vertrauens-Schleier und Schneefallgrenze ab.
-    if (!iconD2TempRef.current) void installTempRef.current?.();
+    // ICON-D2-t_2m-Gitter (Werte + hsurf-Höhe) IMMER laden. Es ist aber SEKUNDÄR
+    // ggü. dem sichtbaren Wetterlayer: am Mount konkurriert es sonst mit dem
+    // Default-Layer (Wind) um den 4-Worker-bz2-Pool + Main-Thread und verzögert
+    // dessen ersten Frame (gemessen: Temp-Fetches starten vor Wind). Daher das
+    // Gitter — wenn Temp NICHT der aktive Layer ist — erst im Leerlauf nach dem
+    // Hero-Layer laden (Labels ~1 s später, Hero dafür spürbar schneller).
+    if (!iconD2TempRef.current) {
+      if (active.has('temp')) {
+        void installTempRef.current?.();
+      } else {
+        const ric: (cb: () => void) => void =
+          typeof window.requestIdleCallback === 'function'
+            ? (cb) => { window.requestIdleCallback(cb, { timeout: 2500 }); }
+            : (cb) => { window.setTimeout(cb, 900); };
+        ric(() => { if (!iconD2TempRef.current) void installTempRef.current?.(); });
+      }
+    }
     if (active.has('temp') && !fusionRequestedRef.current) {
       fusionRequestedRef.current = true;
       void reloadForecastRef.current?.();
