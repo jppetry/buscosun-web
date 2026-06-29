@@ -201,6 +201,12 @@ export class WindLayer implements CustomLayerInterface {
   // Zeitstempel des letzten Update-Schritts für die delta-time-Normierung der
   // Advektion (entkoppelt die Partikelgeschwindigkeit von der Bildwiederholrate).
   private lastFrameTime = 0;
+  // Per-frame delta-time scale (relative to 60 fps), computed once per render and
+  // shared by BOTH the advection step and the trail fade. Time-normalizing the
+  // fade makes the trail LENGTH frame-rate-independent — otherwise a slower
+  // (mobile) frame rate stretches trails in wall-clock, a key cause of the
+  // mobile↔desktop particle mismatch (advection was already dt-normalized).
+  private frameDtScale = 1;
 
   private clearOnNextFrame = true;
   private onMove = () => {
@@ -301,7 +307,11 @@ export class WindLayer implements CustomLayerInterface {
     this.autoScale = options.numParticles == null;
     this.baseDensity = options.baseDensity ?? 3600;
     this.densityMultiplier = options.densityMultiplier ?? 1;
-    this.minParticles = options.minParticles ?? 1800;
+    // Floor kept low enough that typical phone viewports (~0.33 CSS-MP) still
+    // resolve to the AREA-PROPORTIONAL count (~baseDensity × area) instead of
+    // being clamped up — the old 1800 floor over-densified small screens to
+    // ~1.5× desktop, a key cause of the mobile↔desktop particle mismatch.
+    this.minParticles = options.minParticles ?? 1200;
     this.maxParticles = options.maxParticles ?? 22000;
     // Startwert; bei autoScale in onAdd aus der echten Canvas-Größe ersetzt.
     this._numParticles = options.numParticles ?? 4500;
@@ -718,6 +728,14 @@ export class WindLayer implements CustomLayerInterface {
 
     this.allocScreenTextures();
 
+    // Delta-time since the previous rendered frame, referenced to 60 fps and
+    // clamped 1–66 ms (a tab-switch / first frame must not jump). Shared by the
+    // trail fade (drawScreen) and the advection (updateParticles).
+    const now = performance.now();
+    const dtMs = this.lastFrameTime ? now - this.lastFrameTime : 16.667;
+    this.lastFrameTime = now;
+    this.frameDtScale = Math.min(Math.max(dtMs, 1), 66) / 16.667;
+
     if (this.clearOnNextFrame) {
       this.clearScreen();
       this.clearOnNextFrame = false;
@@ -794,8 +812,12 @@ export class WindLayer implements CustomLayerInterface {
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT);
 
-    // fade-redraw previous frame
-    this.drawTexture(this.backgroundTexture, this.fadeOpacity);
+    // fade-redraw previous frame. fadeOpacity is a per-FRAME factor; raising it
+    // to the dt-scale power makes the trail decay per unit of WALL-CLOCK time
+    // instead of per frame, so trail length matches across frame rates
+    // (desktop↔mobile parity). At 60 fps dtScale≈1 → unchanged.
+    const fade = Math.pow(this.fadeOpacity, this.frameDtScale);
+    this.drawTexture(this.backgroundTexture, fade);
 
     // draw new particle positions on top
     this.drawParticles(matrix);
@@ -844,7 +866,14 @@ export class WindLayer implements CustomLayerInterface {
     // scale point size with zoom so particles stay readable when zoomed in
     const zoom = this.map?.getZoom() ?? 5;
     const zoomFactor = Math.max(0.85, Math.min(3.4, 1.0 + (zoom - 5) * 0.3));
-    gl.uniform1f(p.u_point_size as WebGLUniformLocation, this.pointSize * zoomFactor);
+    // gl_PointSize is in FRAMEBUFFER pixels, so apparent CSS thickness would be
+    // pointSize / effectivePixelRatio — i.e. thinner on high-DPR desktops and on
+    // the DPR-capped mobile buffer (a key cause of the mobile↔desktop mismatch).
+    // Multiply by the effective pixel ratio (drawingBuffer ÷ CSS width) so the
+    // CSS-space thickness is identical across devices. DPR-1 desktop → ×1.
+    const canvas = this.map?.getCanvas();
+    const epr = canvas && canvas.clientWidth ? gl.drawingBufferWidth / canvas.clientWidth : 1;
+    gl.uniform1f(p.u_point_size as WebGLUniformLocation, this.pointSize * zoomFactor * epr);
     const c = this.particleColor;
     gl.uniform4f(p.u_particle_color as WebGLUniformLocation, c[0], c[1], c[2], c[3]);
     const [dx0, dy0, dx1, dy1] = this.windData!.uvBounds;
@@ -870,13 +899,9 @@ export class WindLayer implements CustomLayerInterface {
     gl.uniform2f(p.u_wind_min as WebGLUniformLocation, this.windData!.uMin, this.windData!.vMin);
     gl.uniform2f(p.u_wind_max as WebGLUniformLocation, this.windData!.uMax, this.windData!.vMax);
     gl.uniform1f(p.u_speed_factor as WebGLUniformLocation, this.speedFactor);
-    // delta-time seit dem letzten Schritt, referenziert auf 60 fps. Geklemmt auf
-    // 1–66 ms, damit ein Tab-Wechsel / erster Frame keinen Riesensprung erzeugt.
-    const now = performance.now();
-    let dtMs = this.lastFrameTime ? now - this.lastFrameTime : 16.667;
-    this.lastFrameTime = now;
-    dtMs = Math.min(Math.max(dtMs, 1), 66);
-    gl.uniform1f(p.u_dt_scale as WebGLUniformLocation, dtMs / 16.667);
+    // delta-time scale (relative to 60 fps) computed once per frame in render();
+    // keeps the advection speed independent of the frame rate.
+    gl.uniform1f(p.u_dt_scale as WebGLUniformLocation, this.frameDtScale);
     // Zoom-Dämpfung: 2^(-(zoom - Z0)·k). Beim Reinzoomen wird der geografische
     // Schritt kleiner, damit die Bildschirmgeschwindigkeit nicht mit 2^zoom
     // hochschießt. Geklemmt, damit Extrem-Zoomstufen nicht ausreißen.
