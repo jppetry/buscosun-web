@@ -422,6 +422,14 @@ export default function MapView({ location, onBack, embedded = false, initialAct
       center: embedded ? [location.lon, location.lat] : DACH_VIEW.defaultCenter,
       zoom: embedded ? 7.4 : DACH_VIEW.defaultZoom,
       pixelRatio: coarsePointer ? Math.min(dpr, 1.5) : dpr,
+      // Load tuning. The OpenFreeMap basemap is effectively static, so don't
+      // spend requests re-fetching expired tiles in the background. fadeDuration
+      // 0 makes basemap tiles/labels paint immediately instead of cross-fading
+      // over 300 ms — faster first viewport fill and fewer compositor repaints
+      // during the load burst (the weather custom layers carry the visual
+      // interest, not a basemap label fade).
+      refreshExpiredTiles: false,
+      fadeDuration: 0,
     });
 
     map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-left');
