@@ -1031,9 +1031,10 @@ export default function MapView({ location, onBack, embedded = false, initialAct
         updateStatus('clouds', { ok: { model: 'DWD ICON-D2 Wolken tief/mittel/hoch · 2,2 km', fetchedAt: Date.now() } });
       };
       try {
+        let firstCloud = true;
         const c = await fetchIconD2CloudStack(abort.signal, (partial) => {
           iconD2CloudsRef.current = partial;
-          setNowcastTick((t) => t + 1);
+          if (firstCloud) { firstCloud = false; setNowcastTick((t) => t + 1); } // Tick-Coalescing (s. Wind)
           if (partial.frames.length > 0) markReady();
         });
         iconD2CloudsRef.current = c;
@@ -1065,9 +1066,16 @@ export default function MapView({ location, onBack, embedded = false, initialAct
         }
       }
       try {
+        // Re-Render-Coalescing (Map-TBT): onProgress feuert pro Frame (~13×).
+        // Jeder setNowcastTick rendert die große MapView + ~5 nowcastTick-Effekte
+        // neu → bei 13–24 Frames pro Quelle ein Re-Render-Sturm (DER Haupttreiber
+        // der Mount-Blockade, NICHT der Decode — gemessen ~20 ms/Feld). Wir ticken
+        // nur beim ERSTEN Frame (sofort sichtbar) und am ENDE (alle Frames für den
+        // Slider da); Zwischen-Frames aktualisieren still nur die Ref.
+        let firstWind = true;
         const wd = await fetchIconD2Wind(abort.signal, (partial) => {
           iconD2WindRef.current = partial;
-          setNowcastTick((t) => t + 1);
+          if (firstWind) { firstWind = false; setNowcastTick((t) => t + 1); }
         });
         iconD2WindRef.current = wd;
         setNowcastTick((t) => t + 1);
@@ -1085,10 +1093,12 @@ export default function MapView({ location, onBack, embedded = false, initialAct
     // die stündlichen Frames. Deckt DE/AT/CH geografisch ab → kein Länderbranch.
     const installTemp = async () => {
       try {
+        // Tick-Coalescing wie bei Wind (Re-Render-Sturm vermeiden). Temp lädt am
+        // Mount IMMER (Stadt-Labels), also auch auf der Default-Karte relevant.
+        let firstTemp = true;
         const td = await fetchIconD2Temp(abort.signal, (partial) => {
           iconD2TempRef.current = partial;
-          layerRefs.current.temp?.setDem(partial.demImage);
-          setNowcastTick((t) => t + 1);
+          if (firstTemp) { firstTemp = false; layerRefs.current.temp?.setDem(partial.demImage); setNowcastTick((t) => t + 1); }
         });
         iconD2TempRef.current = td;
         layerRefs.current.temp?.setDem(td.demImage);
@@ -1104,9 +1114,10 @@ export default function MapView({ location, onBack, embedded = false, initialAct
     // Eigene Schicht, kein DEM-Refinement; speist sich über den Slider-Effekt.
     const installGust = async () => {
       try {
+        let firstGust = true;
         const gd = await fetchIconD2Gust(abort.signal, (partial) => {
           iconD2GustRef.current = partial;
-          setNowcastTick((t) => t + 1);
+          if (firstGust) { firstGust = false; setNowcastTick((t) => t + 1); } // Tick-Coalescing (s. Wind)
         });
         iconD2GustRef.current = gd;
         setNowcastTick((t) => t + 1);
