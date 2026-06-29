@@ -535,6 +535,10 @@ export default function MapView({ location, onBack, embedded = false, initialAct
       windPngUrl: '', windJsonUrl: '',
       speedFactor: 0.02, speedRefZoom: 5.5, speedZoomDamping: 0,
       speedGamma: 0.5, speedRef: 5, speedMin: 2,
+      // Touch/coarse-pointer (mobile/tablet): skip the particle passes during
+      // active pan/zoom so the basemap + heatmap stay smooth; particles resume
+      // on moveend. Desktop (fine pointer) keeps full fidelity.
+      reduceMotionOnMove: coarsePointer,
     });
     const tempLayer = new ScalarLayer({
       id: 'temperature',

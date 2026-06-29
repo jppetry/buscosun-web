@@ -101,6 +101,12 @@ export interface WindLayerOptions {
    *  1°-Quellgitter (360×180) wird so kontinuierlicher → weichere Strömung.
    *  1 = aus. Default 2. */
   upsample?: number;
+  /** Auf Touch-/Schwachgeräten (coarse pointer) die teuren Partikel-Pässe
+   *  (Trail-Komposit + Advektions-Update) WÄHREND aktiver Karten-Bewegung
+   *  auslassen — nur die Heatmap folgt der Karte, die Partikel kehren bei
+   *  `moveend` zurück. Trails werden pro Move-Frame ohnehin verworfen, also kein
+   *  sichtbarer Verlust. Default false (Desktop bleibt voll-fidel). */
+  reduceMotionOnMove?: boolean;
 }
 
 // Saubere, perzeptuell gleichmäßige Wind-Rampe im nullschool-Charakter:
@@ -212,6 +218,13 @@ export class WindLayer implements CustomLayerInterface {
   private onMove = () => {
     this.clearOnNextFrame = true;
   };
+  // Skip the per-frame particle passes while the camera is actively moving
+  // (mobile/coarse-pointer only — see reduceMotionOnMove). MapLibre repaints the
+  // heatmap from the camera change anyway; particles resume on moveend.
+  private reduceMotionOnMove = false;
+  private moving = false;
+  private onMoveStart = () => { this.moving = true; };
+  private onMoveEnd = () => { this.moving = false; this.map?.triggerRepaint(); };
   // Resize: Trails verwerfen UND Partikelzahl an die neue Viewport-Größe anpassen
   // (windy-artig — mehr Bildschirmfläche ⇒ mehr Partikel, gleichbleibende Dichte).
   private onResize = () => {
@@ -331,6 +344,7 @@ export class WindLayer implements CustomLayerInterface {
     this.speedTint = options.speedTint ?? 0;
     this.subSteps = Math.max(1, Math.min(4, Math.round(options.subSteps ?? 1)));
     this.upsample = Math.max(1, Math.min(4, Math.round(options.upsample ?? 2)));
+    this.reduceMotionOnMove = options.reduceMotionOnMove ?? false;
     this.windPngUrl = options.windPngUrl ?? '/wind/wind.png';
     this.windJsonUrl = options.windJsonUrl ?? '/wind/wind.json';
     this.colorRampStops = options.colorRamp ?? defaultColorRamp;
@@ -363,6 +377,8 @@ export class WindLayer implements CustomLayerInterface {
     map.on('rotate', this.onMove);
     map.on('pitch', this.onMove);
     map.on('resize', this.onResize);
+    map.on('movestart', this.onMoveStart);
+    map.on('moveend', this.onMoveEnd);
 
     if (this._pendingWindData) {
       const { image, meta } = this._pendingWindData;
@@ -379,6 +395,8 @@ export class WindLayer implements CustomLayerInterface {
     map.off('rotate', this.onMove);
     map.off('pitch', this.onMove);
     map.off('resize', this.onResize);
+    map.off('movestart', this.onMoveStart);
+    map.off('moveend', this.onMoveEnd);
 
     gl.deleteProgram(this.drawProgram.program);
     gl.deleteProgram(this.screenProgram.program);
@@ -757,7 +775,13 @@ export class WindLayer implements CustomLayerInterface {
     if (this.showHeatmap) {
       this.drawHeatmap(matrix, prevFB, prevViewport);
     }
-    if (this.showParticles) {
+    // While the camera is actively moving on a coarse-pointer device, skip the
+    // two full-viewport particle passes (trail composite) + the advection update.
+    // Trails are discarded every move-frame anyway (onMove → clearOnNextFrame),
+    // so panning shows only the heatmap; particles resume on moveend. Desktop
+    // keeps full fidelity (reduceMotionOnMove defaults false).
+    const skipParticles = this.reduceMotionOnMove && this.moving;
+    if (this.showParticles && !skipParticles) {
       this.drawScreen(matrix, prevFB, prevViewport);
       this.updateParticles();
     }
