@@ -164,6 +164,17 @@ export class WindLayer implements CustomLayerInterface {
   private gl: WebGLRenderingContext | null = null;
   private windData: WindData | null = null;
 
+  // Identity of the wind field currently resident on the GPU. Re-applying the
+  // SAME frame — e.g. the layer toggled off→on at an unchanged slider hour, or
+  // an unrelated layer toggling and re-running the active-keyed effect — used to
+  // re-run decodeAndRefine (CPU upsample + 3×3 smooth) and a HALF_FLOAT upload,
+  // the dominant per-toggle cost. Frame images are stable references per
+  // (hour, dataset) (windFrameInterpolated returns the original/cached frame),
+  // so reference identity + the normalization scalars uniquely key the texture;
+  // an identical re-apply is now a no-op.
+  private _lastWindImage: HTMLImageElement | HTMLCanvasElement | null = null;
+  private _lastWindMetaKey = '';
+
   private _numParticles: number;
   private particleStateResolution = 0;
 
@@ -400,6 +411,17 @@ export class WindLayer implements CustomLayerInterface {
       this._pendingWindData = { image, meta };
       return;
     }
+
+    // Skip the decode + re-upload when the exact same field is already on the
+    // GPU. This is what makes a layer on/off toggle cheap: enabling re-runs the
+    // active-keyed effect which re-applies the current frame, but the pixels are
+    // unchanged, so there is nothing to do. New frames (slider scrub, new model
+    // run) carry a different image reference / normalization and fall through.
+    const metaKey = `${meta.width}x${meta.height}|${meta.uMin},${meta.uMax},${meta.vMin},${meta.vMax}|${(meta.uvBounds ?? [0, 0, 1, 1]).join(',')}`;
+    if (this.windTexture && image === this._lastWindImage && metaKey === this._lastWindMetaKey) {
+      return;
+    }
+
     if (this.windTexture) gl.deleteTexture(this.windTexture);
 
     // Quelle ist ein grobes, 8-bit-quantisiertes Gitter (z. B. 360×180). Wir
@@ -417,6 +439,8 @@ export class WindLayer implements CustomLayerInterface {
       image,
       uvBounds: meta.uvBounds ?? [0, 0, 1, 1],
     };
+    this._lastWindImage = image;
+    this._lastWindMetaKey = metaKey;
     this.clearOnNextFrame = true;
     this.map?.triggerRepaint();
   }
