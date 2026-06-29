@@ -547,6 +547,16 @@ export default function MapView({ location, onBack, embedded = false, initialAct
       // active pan/zoom so the basemap + heatmap stay smooth; particles resume
       // on moveend. Desktop (fine pointer) keeps full fidelity.
       reduceMotionOnMove: coarsePointer,
+      // The CPU wind-field refine (bilinear ×upsample + 3×3 smooth, then a
+      // HALF_FLOAT upload) runs on every genuine frame change — toggle re-apply
+      // that slips past the dedup guard, slider scrub, time interpolation. At
+      // upsample 2 it was measured at ~2.5 s on a 4×-throttled phone and blocked
+      // the main thread. On coarse-pointer devices the map renders at half native
+      // resolution (pixelRatio cap) and the GPU already samples the field with
+      // LINEAR bilinear, so the extra CPU upsample is largely invisible there —
+      // drop it to 1 (skips the 4× pixel grid AND the smooth) to cut the decode
+      // ~4–8×. Desktop keeps upsample 2 for the crisp continuous field.
+      upsample: coarsePointer ? 1 : 2,
     });
     const tempLayer = new ScalarLayer({
       id: 'temperature',
