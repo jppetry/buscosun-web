@@ -422,6 +422,14 @@ export default function MapView({ location, onBack, embedded = false, initialAct
       center: embedded ? [location.lon, location.lat] : DACH_VIEW.defaultCenter,
       zoom: embedded ? 7.4 : DACH_VIEW.defaultZoom,
       pixelRatio: coarsePointer ? Math.min(dpr, 1.5) : dpr,
+      // Load tuning. The OpenFreeMap basemap is effectively static, so don't
+      // spend requests re-fetching expired tiles in the background. fadeDuration
+      // 0 makes basemap tiles/labels paint immediately instead of cross-fading
+      // over 300 ms — faster first viewport fill and fewer compositor repaints
+      // during the load burst (the weather custom layers carry the visual
+      // interest, not a basemap label fade).
+      refreshExpiredTiles: false,
+      fadeDuration: 0,
     });
 
     map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-left');
@@ -535,6 +543,20 @@ export default function MapView({ location, onBack, embedded = false, initialAct
       windPngUrl: '', windJsonUrl: '',
       speedFactor: 0.02, speedRefZoom: 5.5, speedZoomDamping: 0,
       speedGamma: 0.5, speedRef: 5, speedMin: 2,
+      // Touch/coarse-pointer (mobile/tablet): skip the particle passes during
+      // active pan/zoom so the basemap + heatmap stay smooth; particles resume
+      // on moveend. Desktop (fine pointer) keeps full fidelity.
+      reduceMotionOnMove: coarsePointer,
+      // The CPU wind-field refine (bilinear ×upsample + 3×3 smooth, then a
+      // HALF_FLOAT upload) runs on every genuine frame change — toggle re-apply
+      // that slips past the dedup guard, slider scrub, time interpolation. At
+      // upsample 2 it was measured at ~2.5 s on a 4×-throttled phone and blocked
+      // the main thread. On coarse-pointer devices the map renders at half native
+      // resolution (pixelRatio cap) and the GPU already samples the field with
+      // LINEAR bilinear, so the extra CPU upsample is largely invisible there —
+      // drop it to 1 (skips the 4× pixel grid AND the smooth) to cut the decode
+      // ~4–8×. Desktop keeps upsample 2 for the crisp continuous field.
+      upsample: coarsePointer ? 1 : 2,
     });
     const tempLayer = new ScalarLayer({
       id: 'temperature',

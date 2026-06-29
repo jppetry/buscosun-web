@@ -101,6 +101,12 @@ export interface WindLayerOptions {
    *  1°-Quellgitter (360×180) wird so kontinuierlicher → weichere Strömung.
    *  1 = aus. Default 2. */
   upsample?: number;
+  /** Auf Touch-/Schwachgeräten (coarse pointer) die teuren Partikel-Pässe
+   *  (Trail-Komposit + Advektions-Update) WÄHREND aktiver Karten-Bewegung
+   *  auslassen — nur die Heatmap folgt der Karte, die Partikel kehren bei
+   *  `moveend` zurück. Trails werden pro Move-Frame ohnehin verworfen, also kein
+   *  sichtbarer Verlust. Default false (Desktop bleibt voll-fidel). */
+  reduceMotionOnMove?: boolean;
 }
 
 // Saubere, perzeptuell gleichmäßige Wind-Rampe im nullschool-Charakter:
@@ -164,6 +170,17 @@ export class WindLayer implements CustomLayerInterface {
   private gl: WebGLRenderingContext | null = null;
   private windData: WindData | null = null;
 
+  // Identity of the wind field currently resident on the GPU. Re-applying the
+  // SAME frame — e.g. the layer toggled off→on at an unchanged slider hour, or
+  // an unrelated layer toggling and re-running the active-keyed effect — used to
+  // re-run decodeAndRefine (CPU upsample + 3×3 smooth) and a HALF_FLOAT upload,
+  // the dominant per-toggle cost. Frame images are stable references per
+  // (hour, dataset) (windFrameInterpolated returns the original/cached frame),
+  // so reference identity + the normalization scalars uniquely key the texture;
+  // an identical re-apply is now a no-op.
+  private _lastWindImage: HTMLImageElement | HTMLCanvasElement | null = null;
+  private _lastWindMetaKey = '';
+
   private _numParticles: number;
   private particleStateResolution = 0;
 
@@ -190,11 +207,24 @@ export class WindLayer implements CustomLayerInterface {
   // Zeitstempel des letzten Update-Schritts für die delta-time-Normierung der
   // Advektion (entkoppelt die Partikelgeschwindigkeit von der Bildwiederholrate).
   private lastFrameTime = 0;
+  // Per-frame delta-time scale (relative to 60 fps), computed once per render and
+  // shared by BOTH the advection step and the trail fade. Time-normalizing the
+  // fade makes the trail LENGTH frame-rate-independent — otherwise a slower
+  // (mobile) frame rate stretches trails in wall-clock, a key cause of the
+  // mobile↔desktop particle mismatch (advection was already dt-normalized).
+  private frameDtScale = 1;
 
   private clearOnNextFrame = true;
   private onMove = () => {
     this.clearOnNextFrame = true;
   };
+  // Skip the per-frame particle passes while the camera is actively moving
+  // (mobile/coarse-pointer only — see reduceMotionOnMove). MapLibre repaints the
+  // heatmap from the camera change anyway; particles resume on moveend.
+  private reduceMotionOnMove = false;
+  private moving = false;
+  private onMoveStart = () => { this.moving = true; };
+  private onMoveEnd = () => { this.moving = false; this.map?.triggerRepaint(); };
   // Resize: Trails verwerfen UND Partikelzahl an die neue Viewport-Größe anpassen
   // (windy-artig — mehr Bildschirmfläche ⇒ mehr Partikel, gleichbleibende Dichte).
   private onResize = () => {
@@ -290,7 +320,11 @@ export class WindLayer implements CustomLayerInterface {
     this.autoScale = options.numParticles == null;
     this.baseDensity = options.baseDensity ?? 3600;
     this.densityMultiplier = options.densityMultiplier ?? 1;
-    this.minParticles = options.minParticles ?? 1800;
+    // Floor kept low enough that typical phone viewports (~0.33 CSS-MP) still
+    // resolve to the AREA-PROPORTIONAL count (~baseDensity × area) instead of
+    // being clamped up — the old 1800 floor over-densified small screens to
+    // ~1.5× desktop, a key cause of the mobile↔desktop particle mismatch.
+    this.minParticles = options.minParticles ?? 1200;
     this.maxParticles = options.maxParticles ?? 22000;
     // Startwert; bei autoScale in onAdd aus der echten Canvas-Größe ersetzt.
     this._numParticles = options.numParticles ?? 4500;
@@ -310,6 +344,7 @@ export class WindLayer implements CustomLayerInterface {
     this.speedTint = options.speedTint ?? 0;
     this.subSteps = Math.max(1, Math.min(4, Math.round(options.subSteps ?? 1)));
     this.upsample = Math.max(1, Math.min(4, Math.round(options.upsample ?? 2)));
+    this.reduceMotionOnMove = options.reduceMotionOnMove ?? false;
     this.windPngUrl = options.windPngUrl ?? '/wind/wind.png';
     this.windJsonUrl = options.windJsonUrl ?? '/wind/wind.json';
     this.colorRampStops = options.colorRamp ?? defaultColorRamp;
@@ -342,6 +377,8 @@ export class WindLayer implements CustomLayerInterface {
     map.on('rotate', this.onMove);
     map.on('pitch', this.onMove);
     map.on('resize', this.onResize);
+    map.on('movestart', this.onMoveStart);
+    map.on('moveend', this.onMoveEnd);
 
     if (this._pendingWindData) {
       const { image, meta } = this._pendingWindData;
@@ -358,6 +395,8 @@ export class WindLayer implements CustomLayerInterface {
     map.off('rotate', this.onMove);
     map.off('pitch', this.onMove);
     map.off('resize', this.onResize);
+    map.off('movestart', this.onMoveStart);
+    map.off('moveend', this.onMoveEnd);
 
     gl.deleteProgram(this.drawProgram.program);
     gl.deleteProgram(this.screenProgram.program);
@@ -400,6 +439,17 @@ export class WindLayer implements CustomLayerInterface {
       this._pendingWindData = { image, meta };
       return;
     }
+
+    // Skip the decode + re-upload when the exact same field is already on the
+    // GPU. This is what makes a layer on/off toggle cheap: enabling re-runs the
+    // active-keyed effect which re-applies the current frame, but the pixels are
+    // unchanged, so there is nothing to do. New frames (slider scrub, new model
+    // run) carry a different image reference / normalization and fall through.
+    const metaKey = `${meta.width}x${meta.height}|${meta.uMin},${meta.uMax},${meta.vMin},${meta.vMax}|${(meta.uvBounds ?? [0, 0, 1, 1]).join(',')}`;
+    if (this.windTexture && image === this._lastWindImage && metaKey === this._lastWindMetaKey) {
+      return;
+    }
+
     if (this.windTexture) gl.deleteTexture(this.windTexture);
 
     // Quelle ist ein grobes, 8-bit-quantisiertes Gitter (z. B. 360×180). Wir
@@ -417,6 +467,8 @@ export class WindLayer implements CustomLayerInterface {
       image,
       uvBounds: meta.uvBounds ?? [0, 0, 1, 1],
     };
+    this._lastWindImage = image;
+    this._lastWindMetaKey = metaKey;
     this.clearOnNextFrame = true;
     this.map?.triggerRepaint();
   }
@@ -694,6 +746,14 @@ export class WindLayer implements CustomLayerInterface {
 
     this.allocScreenTextures();
 
+    // Delta-time since the previous rendered frame, referenced to 60 fps and
+    // clamped 1–66 ms (a tab-switch / first frame must not jump). Shared by the
+    // trail fade (drawScreen) and the advection (updateParticles).
+    const now = performance.now();
+    const dtMs = this.lastFrameTime ? now - this.lastFrameTime : 16.667;
+    this.lastFrameTime = now;
+    this.frameDtScale = Math.min(Math.max(dtMs, 1), 66) / 16.667;
+
     if (this.clearOnNextFrame) {
       this.clearScreen();
       this.clearOnNextFrame = false;
@@ -715,7 +775,13 @@ export class WindLayer implements CustomLayerInterface {
     if (this.showHeatmap) {
       this.drawHeatmap(matrix, prevFB, prevViewport);
     }
-    if (this.showParticles) {
+    // While the camera is actively moving on a coarse-pointer device, skip the
+    // two full-viewport particle passes (trail composite) + the advection update.
+    // Trails are discarded every move-frame anyway (onMove → clearOnNextFrame),
+    // so panning shows only the heatmap; particles resume on moveend. Desktop
+    // keeps full fidelity (reduceMotionOnMove defaults false).
+    const skipParticles = this.reduceMotionOnMove && this.moving;
+    if (this.showParticles && !skipParticles) {
       this.drawScreen(matrix, prevFB, prevViewport);
       this.updateParticles();
     }
@@ -770,8 +836,12 @@ export class WindLayer implements CustomLayerInterface {
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT);
 
-    // fade-redraw previous frame
-    this.drawTexture(this.backgroundTexture, this.fadeOpacity);
+    // fade-redraw previous frame. fadeOpacity is a per-FRAME factor; raising it
+    // to the dt-scale power makes the trail decay per unit of WALL-CLOCK time
+    // instead of per frame, so trail length matches across frame rates
+    // (desktop↔mobile parity). At 60 fps dtScale≈1 → unchanged.
+    const fade = Math.pow(this.fadeOpacity, this.frameDtScale);
+    this.drawTexture(this.backgroundTexture, fade);
 
     // draw new particle positions on top
     this.drawParticles(matrix);
@@ -820,7 +890,14 @@ export class WindLayer implements CustomLayerInterface {
     // scale point size with zoom so particles stay readable when zoomed in
     const zoom = this.map?.getZoom() ?? 5;
     const zoomFactor = Math.max(0.85, Math.min(3.4, 1.0 + (zoom - 5) * 0.3));
-    gl.uniform1f(p.u_point_size as WebGLUniformLocation, this.pointSize * zoomFactor);
+    // gl_PointSize is in FRAMEBUFFER pixels, so apparent CSS thickness would be
+    // pointSize / effectivePixelRatio — i.e. thinner on high-DPR desktops and on
+    // the DPR-capped mobile buffer (a key cause of the mobile↔desktop mismatch).
+    // Multiply by the effective pixel ratio (drawingBuffer ÷ CSS width) so the
+    // CSS-space thickness is identical across devices. DPR-1 desktop → ×1.
+    const canvas = this.map?.getCanvas();
+    const epr = canvas && canvas.clientWidth ? gl.drawingBufferWidth / canvas.clientWidth : 1;
+    gl.uniform1f(p.u_point_size as WebGLUniformLocation, this.pointSize * zoomFactor * epr);
     const c = this.particleColor;
     gl.uniform4f(p.u_particle_color as WebGLUniformLocation, c[0], c[1], c[2], c[3]);
     const [dx0, dy0, dx1, dy1] = this.windData!.uvBounds;
@@ -846,13 +923,9 @@ export class WindLayer implements CustomLayerInterface {
     gl.uniform2f(p.u_wind_min as WebGLUniformLocation, this.windData!.uMin, this.windData!.vMin);
     gl.uniform2f(p.u_wind_max as WebGLUniformLocation, this.windData!.uMax, this.windData!.vMax);
     gl.uniform1f(p.u_speed_factor as WebGLUniformLocation, this.speedFactor);
-    // delta-time seit dem letzten Schritt, referenziert auf 60 fps. Geklemmt auf
-    // 1–66 ms, damit ein Tab-Wechsel / erster Frame keinen Riesensprung erzeugt.
-    const now = performance.now();
-    let dtMs = this.lastFrameTime ? now - this.lastFrameTime : 16.667;
-    this.lastFrameTime = now;
-    dtMs = Math.min(Math.max(dtMs, 1), 66);
-    gl.uniform1f(p.u_dt_scale as WebGLUniformLocation, dtMs / 16.667);
+    // delta-time scale (relative to 60 fps) computed once per frame in render();
+    // keeps the advection speed independent of the frame rate.
+    gl.uniform1f(p.u_dt_scale as WebGLUniformLocation, this.frameDtScale);
     // Zoom-Dämpfung: 2^(-(zoom - Z0)·k). Beim Reinzoomen wird der geografische
     // Schritt kleiner, damit die Bildschirmgeschwindigkeit nicht mit 2^zoom
     // hochschießt. Geklemmt, damit Extrem-Zoomstufen nicht ausreißen.

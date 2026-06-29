@@ -22,3 +22,4 @@ dist-ssr
 /ms_*.csv
 /smhi_*.json
 /tawes_*.json
+perf-artifacts/
