@@ -344,7 +344,9 @@
 .wind-particle-switch {
   position: absolute;
   left: 50%;
-  bottom: 4.6rem;
+  /* Sits above the forecast-slider (bottom 1.25rem + ~4rem tall). Keep a gap so
+   * the two centered pills never overlap on desktop / tablet-landscape. */
+  bottom: 6rem;
   transform: translateX(-50%);
   z-index: 10;
   display: flex;

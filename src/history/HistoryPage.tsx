@@ -39,6 +39,7 @@ import HistoryPro from './HistoryPro';
 import ExploreView from './ExploreView';
 import type { HistoryMode, ExploreGranularity } from './historyState';
 import '../intro/intro.css';
+import '../route/tourTheme.css';
 import './history.css';
 
 interface Props { onBack: () => void }

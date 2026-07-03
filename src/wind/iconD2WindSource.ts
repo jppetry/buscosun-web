@@ -14,7 +14,8 @@
  * CC BY 4.0, kein API-Key.
  */
 
-import { resolveLatestRun, fetchStepField, gribCorners, type GribField } from '../sources/iconD2Precip';
+import { resolveLatestRun, fetchStepBytes, gribCorners, decodeGrib2, type GribField } from '../sources/iconD2Precip';
+import { buildWindRgba } from './windFrameBuild';
 
 export const ICON_D2_WIND_ATTRIBUTION =
   'Wind: <a href="https://www.dwd.de/EN/ourservices/opendata/opendata.html" ' +
@@ -23,6 +24,15 @@ export const ICON_D2_WIND_ATTRIBUTION =
 /** Horizont-Cap (h). Wind = primär „aktuell"; naher Bereich reicht (Slider clamp).
  *  u+v verdoppeln die Fetch-Last ggü. Precip → bewusst kürzerer Horizont. */
 const MAX_STEP = 12;
+/** Naher Horizont, der auf dem KRITISCHEN Pfad geladen wird (0…NEAR_STEP h). Der
+ *  Slider startet bei 0; diese Frames machen den Wind sofort nutzbar. Die fernen
+ *  Schritte (NEAR_STEP+1…MAX_STEP) füllen danach im Hintergrund nach, ohne den
+ *  Erstpaint zu blockieren. */
+const NEAR_STEP = 4;
+/** Schritte, die SPEKULATIV (mit dem geratenen Lauf) parallel zur ~1,9-s-
+ *  Directory-Auflösung geladen werden — so ist der nahe Horizont da, ohne auf das
+ *  Listing zu warten. Bei Fehlgriff (nur am Zyklusrand) werden sie verworfen. */
+const SPEC_STEPS = 3;
 /** Ziel-Breite nach Subsampling (das 1215er-Nativgitter ist für Partikel-Viz Overkill). */
 const TARGET_WIDTH = 700;
 /** Parallele Fetches (bz2-Decompress läuft im Worker-Pool). */
@@ -48,99 +58,219 @@ export interface IconD2Wind {
 function lngToEquiX(lng: number): number { return (lng + 180) / 360; }
 function latToEquiY(lat: number): number { return (90 - lat) / 180; }
 
-/** Kombiniert ein u- und v-Feld zu einem subsampelten, north-up RG-Canvas + Normierung.
- *  Modell-unabhängig (ICON-D2-Surface wie ICON-EU-Druckfläche) → exportiert. */
-export function buildWindFrame(u: GribField, v: GribField): Omit<IconD2WindFrame, 'validAt' | 'stepHours'> {
-  const { ni, nj } = u;
-  const ss = Math.max(1, Math.ceil(ni / TARGET_WIDTH));
-  const w = Math.ceil(ni / ss);
-  const h = Math.ceil(nj / ss);
-
-  const us = new Float32Array(w * h);
-  const vs = new Float32Array(w * h);
-  let uMin = Infinity, uMax = -Infinity, vMin = Infinity, vMax = -Infinity;
-  for (let jj = 0; jj < h; jj++) {
-    const sj = Math.min(nj - 1, jj * ss);
-    for (let ii = 0; ii < w; ii++) {
-      const si = Math.min(ni - 1, ii * ss);
-      const k = sj * ni + si;
-      let uVal = u.values[k]; let vVal = v.values[k];
-      if (!Number.isFinite(uVal)) uVal = 0;     // außerhalb der Domain → Windstille
-      if (!Number.isFinite(vVal)) vVal = 0;
-      const o = jj * w + ii;
-      us[o] = uVal; vs[o] = vVal;
-      if (uVal < uMin) uMin = uVal; if (uVal > uMax) uMax = uVal;
-      if (vVal < vMin) vMin = vVal; if (vVal > vMax) vMax = vVal;
-    }
-  }
-  // Mindest-Spanne gegen Division durch 0 im Shader.
-  if (uMax - uMin < 0.5) { const c = (uMax + uMin) / 2; uMin = c - 0.5; uMax = c + 0.5; }
-  if (vMax - vMin < 0.5) { const c = (vMax + vMin) / 2; vMin = c - 0.5; vMax = c + 0.5; }
-
+/** RGBA-Bytes in ein 2D-Canvas übertragen (billiger Main-Thread-Schritt). */
+function rgbaToCanvas(rgba: Uint8ClampedArray, w: number, h: number): HTMLCanvasElement {
   const canvas = document.createElement('canvas');
   canvas.width = w; canvas.height = h;
-  const ctx = canvas.getContext('2d')!;
-  const img = ctx.createImageData(w, h);
-  for (let jj = 0; jj < h; jj++) {
-    const y = h - 1 - jj;                        // Quelle: jj=0 = Süden → north-up flippen
-    for (let ii = 0; ii < w; ii++) {
-      const o = jj * w + ii;
-      const idx = (y * w + ii) * 4;
-      img.data[idx + 0] = Math.round(((us[o] - uMin) / (uMax - uMin)) * 255);
-      img.data[idx + 1] = Math.round(((vs[o] - vMin) / (vMax - vMin)) * 255);
-      img.data[idx + 2] = 0;
-      img.data[idx + 3] = 255;
+  canvas.getContext('2d')!.putImageData(new ImageData(rgba, w, h), 0, 0);
+  return canvas;
+}
+
+/** Kombiniert ein u- und v-Feld zu einem subsampelten, north-up RG-Canvas + Normierung.
+ *  Modell-unabhängig (ICON-D2-Surface wie ICON-EU-Druckfläche) → exportiert. Der
+ *  teure Kern (`buildWindRgba`) ist DOM-frei und läuft für Wind off-main im Worker;
+ *  hier wird das Ergebnis nur noch ins Canvas gelegt (z. B. ICON-EU-Druckwind). */
+export function buildWindFrame(u: GribField, v: GribField): Omit<IconD2WindFrame, 'validAt' | 'stepHours'> {
+  const b = buildWindRgba(u, v, TARGET_WIDTH);
+  return { image: rgbaToCanvas(b.rgba, b.width, b.height), width: b.width, height: b.height, uMin: b.uMin, uMax: b.uMax, vMin: b.vMin, vMax: b.vMax };
+}
+
+// ---------------------------------------------------------------------------
+// Wind-Frame-Decode-Pool: decodeGrib2 (u+v) + RGBA-Bau laufen off-main im Worker
+// (`windFrameWorker`) — bisher pro geladenem Frame (×~26 am Kaltstart) auf dem
+// Main-Thread (~2×18 ms Decode + Subsample/Encode). Fetch + bz2 bleiben beim
+// bz2-Worker-Pool; hier gehen nur die ENTPACKTEN Bytes rein, ein RGBA-Puffer raus.
+// Fällt transparent auf Main-Thread-Decode zurück, wenn Worker nicht verfügbar.
+// ---------------------------------------------------------------------------
+export interface WindBuilt {
+  rgba: Uint8ClampedArray;
+  width: number; height: number;
+  uMin: number; uMax: number; vMin: number; vMax: number;
+  corners: [[number, number], [number, number], [number, number], [number, number]];
+}
+interface WfMsg {
+  id: number; ok: boolean; error?: string;
+  rgba?: ArrayBuffer; width?: number; height?: number;
+  uMin?: number; uMax?: number; vMin?: number; vMax?: number;
+  corners?: WindBuilt['corners'];
+}
+const WF_POOL_SIZE = Math.max(1, Math.min((navigator.hardwareConcurrency || 2) - 1, 3));
+let wfWorkers: Worker[] = [];
+let wfUsable = true, wfInited = false, wfRr = 0, wfNextId = 1;
+const wfPending = new Map<number, { resolve: (b: WindBuilt) => void; reject: (e: Error) => void }>();
+
+function wfInit(): void {
+  if (wfInited) return;
+  wfInited = true;
+  try {
+    for (let i = 0; i < WF_POOL_SIZE; i++) {
+      const w = new Worker(new URL('./windFrameWorker.ts', import.meta.url), { type: 'module' });
+      w.onmessage = (e: MessageEvent<WfMsg>) => {
+        const d = e.data;
+        const p = wfPending.get(d.id);
+        if (!p) return;
+        wfPending.delete(d.id);
+        if (d.ok && d.rgba) {
+          p.resolve({
+            rgba: new Uint8ClampedArray(d.rgba), width: d.width!, height: d.height!,
+            uMin: d.uMin!, uMax: d.uMax!, vMin: d.vMin!, vMax: d.vMax!, corners: d.corners!,
+          });
+        } else {
+          p.reject(new Error(d.error || 'wind frame worker error'));
+        }
+      };
+      w.onerror = () => {
+        // Worker-Crash (Script-/Load-Fehler): künftige Frames gehen auf den
+        // Main-Thread-Fallback (wfUsable=false). In-flight-Anfragen NICHT hängen
+        // lassen — ihre Bytes sind bereits transferiert (nicht rückholbar), also
+        // ablehnen; loadStep überspringt den Frame dann sauber.
+        wfUsable = false;
+        for (const [id, p] of wfPending) { wfPending.delete(id); p.reject(new Error('wind frame worker crashed')); }
+      };
+      wfWorkers.push(w);
     }
+  } catch {
+    wfUsable = false;
+    wfWorkers = [];
   }
-  ctx.putImageData(img, 0, 0);
-  return { image: canvas, width: w, height: h, uMin, uMax, vMin, vMax };
+}
+
+/** Main-Thread-Fallback: decodiert u+v + baut RGBA lokal (wie zuvor). */
+function buildWindOnMain(uBytes: Uint8Array, vBytes: Uint8Array): WindBuilt {
+  const u = decodeGrib2(uBytes);
+  const v = decodeGrib2(vBytes);
+  const b = buildWindRgba(u, v, TARGET_WIDTH);
+  return { ...b, corners: gribCorners(u) };
+}
+
+/** Decodiert u+v (entpackte GRIB-Bytes) + baut den RGBA-Frame OFF-MAIN. Die
+ *  übergebenen Puffer werden an den Worker TRANSFERIERT (danach nicht mehr nutzen). */
+function decodeWindFrameOffMain(uBytes: Uint8Array, vBytes: Uint8Array): Promise<WindBuilt> {
+  wfInit();
+  if (!wfUsable || wfWorkers.length === 0) return Promise.resolve(buildWindOnMain(uBytes, vBytes));
+  const w = wfWorkers[wfRr++ % wfWorkers.length];
+  const id = wfNextId++;
+  return new Promise<WindBuilt>((resolve, reject) => {
+    wfPending.set(id, { resolve, reject });
+    try {
+      w.postMessage(
+        { id, uBuf: uBytes.buffer, vBuf: vBytes.buffer, targetWidth: TARGET_WIDTH },
+        [uBytes.buffer, vBytes.buffer],
+      );
+    } catch {
+      wfPending.delete(id);
+      // Transfer/Worker-Post fehlgeschlagen → Main-Thread. (Puffer ggf. schon
+      // detached; buildWindOnMain nutzt sie dann leer → daher hier NICHT nutzen,
+      // sondern nur ablehnen, falls Bytes weg sind.)
+      try { resolve(buildWindOnMain(uBytes, vBytes)); }
+      catch (e) { reject(e as Error); }
+    }
+  });
 }
 
 /**
- * Lädt das native ICON-D2-10-m-Windgitter (u+v) des jüngsten Laufs für 0–MAX_STEP h.
- * Progressiv: `onProgress` feuert pro fertigem Frame (naher Horizont sofort nutzbar).
+ * Lädt das native ICON-D2-10-m-Windgitter (u+v) des jüngsten Laufs.
+ *
+ * Staged/dynamisch: Der NAHE Horizont (0…NEAR_STEP h) lädt auf dem kritischen
+ * Pfad und macht den Wind sofort nutzbar; die Promise löst danach auf. Die
+ * FERNEN Schritte (…MAX_STEP h) füllen im HINTERGRUND nach (via `onProgress`,
+ * ohne Erstpaint/Basemap zu verdrängen). Zusätzlich werden die ersten Schritte
+ * SPEKULATIV parallel zur ~1,9-s-Lauf-Auflösung geladen. `onProgress` feuert pro
+ * fertigem Frame; das übergebene Objekt teilt sich das wachsende `frames`-Array.
  */
 export async function fetchIconD2Wind(
   signal?: AbortSignal,
   onProgress?: (partial: IconD2Wind) => void,
+  /** Einmal aufgerufen, wenn AUCH der ferne Horizont im Hintergrund fertig ist —
+   *  der Aufrufer kann damit genau ein Repaint auslösen (Slider-Parkposition). */
+  onSettled?: () => void,
 ): Promise<IconD2Wind> {
-  const { runStr, runAt, steps } = await resolveLatestRun('u_10m', signal);
-  const wanted = steps.filter((s) => s <= MAX_STEP);
-
   const frames: IconD2WindFrame[] = [];
   let uvBounds: [number, number, number, number] | null = null;
 
-  const loadStep = async (step: number): Promise<void> => {
+  const loadStep = async (rs: string, ra: Date, step: number): Promise<boolean> => {
     try {
-      const [u, v] = await Promise.all([
-        fetchStepField(runStr, 'u_10m', step, signal),
-        fetchStepField(runStr, 'v_10m', step, signal),
+      // Nur fetch + bz2 (bz2-Worker-Pool) auf dem Aufrufer-Pfad; decodeGrib2 + der
+      // RGBA-Bau laufen off-main im Wind-Frame-Worker.
+      const [uBytes, vBytes] = await Promise.all([
+        fetchStepBytes(rs, 'u_10m', step, signal),
+        fetchStepBytes(rs, 'v_10m', step, signal),
       ]);
+      const b = await decodeWindFrameOffMain(uBytes, vBytes);
       if (!uvBounds) {
-        const c = gribCorners(u);               // [NW, NE, SE, SW] in [lon,lat]
+        const c = b.corners;                    // [NW, NE, SE, SW] in [lon,lat]
         uvBounds = [lngToEquiX(c[0][0]), latToEquiY(c[0][1]), lngToEquiX(c[1][0]), latToEquiY(c[2][1])];
       }
-      const built = buildWindFrame(u, v);
-      frames.push({ validAt: new Date(runAt.getTime() + step * 3_600_000), stepHours: step, ...built });
-      frames.sort((a, b) => a.stepHours - b.stepHours);
-      if (onProgress && uvBounds) onProgress({ runAt, frames: [...frames], uvBounds });
+      const image = rgbaToCanvas(b.rgba, b.width, b.height);
+      frames.push({
+        validAt: new Date(ra.getTime() + step * 3_600_000), stepHours: step,
+        image, width: b.width, height: b.height, uMin: b.uMin, uMax: b.uMax, vMin: b.vMin, vMax: b.vMax,
+      });
+      frames.sort((a, b2) => a.stepHours - b2.stepHours);
+      if (onProgress && uvBounds) onProgress({ runAt: ra, frames: [...frames], uvBounds });
+      return true;
     } catch {
       // Einzelner Schritt fehlt (z. B. v noch nicht publiziert) → überspringen.
+      return false;
     }
   };
 
-  // Bounded-Concurrency-Pump über die Schritte.
-  let ptr = 0;
-  const workers = Array.from({ length: Math.min(CONCURRENCY, wanted.length) }, async () => {
-    while (ptr < wanted.length) {
-      if (signal?.aborted) return;
-      const step = wanted[ptr++];
-      await loadStep(step);
-    }
-  });
-  await Promise.all(workers);
+  // Bounded-Concurrency-Pump über eine Schrittliste (bereits spekulativ geladene
+  // Schritte überspringen).
+  const pump = async (list: number[], rs: string, ra: Date, conc: number, skip: Set<number>) => {
+    let ptr = 0;
+    const workers = Array.from({ length: Math.min(conc, list.length) }, async () => {
+      while (ptr < list.length) {
+        if (signal?.aborted) return;
+        const step = list[ptr++];
+        if (skip.has(step)) continue;
+        await loadStep(rs, ra, step);
+      }
+    });
+    await Promise.all(workers);
+  };
+
+  // SPECULATIVE near-step fetch (0…SPEC_STEPS-1). Filenames are deterministic for
+  // the current 3 h cycle, so we fetch them in PARALLEL with the (~1.9 s)
+  // directory-listing resolution instead of AFTER it — removing the dir-listing
+  // wait from the near-horizon cold-start path. On a guess miss (only at a cycle
+  // boundary, when the newest cycle isn't a full run yet) the speculative frames
+  // are discarded and reloaded from the resolved run — never worse than before,
+  // at the cost of a few wasted requests in that window.
+  const p2 = (n: number) => String(n).padStart(2, '0');
+  const g = new Date(); g.setUTCMinutes(0, 0, 0); g.setUTCHours(g.getUTCHours() - (g.getUTCHours() % 3));
+  const guessRunStr = `${g.getUTCFullYear()}${p2(g.getUTCMonth() + 1)}${p2(g.getUTCDate())}${p2(g.getUTCHours())}`;
+  const specSteps = Array.from({ length: SPEC_STEPS }, (_, i) => i);
+  const specDone = Promise.all(specSteps.map((s) => loadStep(guessRunStr, g, s)));
+
+  const { runStr, runAt, steps } = await resolveLatestRun('u_10m', signal);
+  const wanted = steps.filter((s) => s <= MAX_STEP);
+  const specResults = await specDone;
+  const guessHit = runStr === guessRunStr;
+  if (!guessHit) { frames.length = 0; uvBounds = null; }     // guess missed → drop, load normally
+  // Nur ERFOLGREICH spekulierte Schritte überspringen (ein fehlender Schritt darf
+  // nicht als „geladen" gelten, sonst bliebe er im nahen Horizont leer).
+  const specLoaded = new Set<number>(guessHit ? specSteps.filter((_, i) => specResults[i]) : []);
+
+  // Nahen Horizont auf dem kritischen Pfad laden → Wind sofort nutzbar.
+  const near = wanted.filter((s) => s <= NEAR_STEP);
+  const far = wanted.filter((s) => s > NEAR_STEP);
+  await pump(near, runStr, runAt, CONCURRENCY, specLoaded);
 
   if (!uvBounds || frames.length === 0) throw new Error('ICON-D2 Wind: keine Frames erzeugt');
+
+  // Fernen Horizont im Hintergrund nachfüllen (reduzierte Concurrency, damit er
+  // nicht mit Erstpaint/Basemap konkurriert). Aktualisiert die Ref via onProgress;
+  // die Promise wartet NICHT darauf. `frames` ist geteilt → das zurückgegebene
+  // Objekt wächst mit, der Slider findet ferne Frames sobald sie da sind.
+  if (far.length && !signal?.aborted) {
+    void pump(far, runStr, runAt, Math.min(CONCURRENCY, 3), specLoaded)
+      .then(() => { if (!signal?.aborted) onSettled?.(); })
+      .catch(() => {});
+  } else {
+    onSettled?.();
+  }
+
   return { runAt, frames, uvBounds };
 }
 

@@ -33,6 +33,62 @@ import {
   type DenseGridResult,
 } from './spatialInterp';
 import { STANDARD_LAPSE_RATE_PER_M, type ElevationGrid } from './elevation';
+import {
+  buildOiKernel, applyOiKernel, innovationAt,
+  DEFAULT_OI_PARAMS, type OiObservation, type OiKernel,
+} from './oi';
+import { addPersistedIncrement } from './increment';
+import { encodeSigmaPng } from './uncertainty';
+import { OI_PRIORS } from './params';
+
+/**
+ * Fixed encoding range (°C) for the temperature-uncertainty σ layer (eq. 15).
+ * σ_a is 0 at a station and grows toward σ_b (≈1.5 K prior) away from obs; the
+ * forecast σ relaxes toward the multi-model spread with lead. 6 K covers this
+ * with headroom. Fixed range so the R channel is comparable across hours.
+ */
+const UNCERTAINTY_MAX = 6;
+
+/**
+ * fusion engine v2 sub-flags. All default off — with every flag off, `run()`
+ * is byte-for-byte the current IDW/weight-table path. Each phase turns on one
+ * concern (Rule 2: the old path stays fully intact behind the flag).
+ */
+export interface FusionV2Flags {
+  /** Phase 1: temperature analysed by local OI (eqs 3/7/8) instead of IDW. */
+  oi?: boolean;
+  /**
+   * Phase 4: persist the h=0 analysis increment into τ>0 with e^{−τ/T_v}
+   * (eq. 10) instead of dropping it after the analysis hour. Requires `oi`.
+   * Uses the provisional prior T_v from `OI_PRIORS` until the archive fits it.
+   */
+  incrementPersist?: boolean;
+  /**
+   * Phase 5: emit the fifth σ PNG (temperature analysis/forecast uncertainty,
+   * eq. 15) as an OPTIONAL layer. Requires `oi` (σ_a comes from the OI variance
+   * ratio). Off by default; when off the four-layer output is byte-identical.
+   * σ_b / T_v are provisional priors until the archive fits them + an inflation.
+   */
+  uncertainty?: boolean;
+  /**
+   * Phase 3: model background combined by fitted minimum-variance weights
+   * (eq. 2) from `background-v1.json` instead of the hand weight table. Inert
+   * until the artifact ships and is validated by LOSO (Rule 2 fallback).
+   */
+  bgMinVar?: boolean;
+  /** Phase 3: use off-diagonal Σ in the min-variance weights (constraint C2 —
+   *  default off until the archive supports it). */
+  bgOffDiag?: boolean;
+}
+
+/**
+ * Phase-1 prior for the observation-error variance ratio r = σ_o²/σ_b² of the
+ * live surface networks. Small ⇒ obs strongly trusted at analysis time, which
+ * reproduces the current station-dominates-hour-0 behaviour. This is a NAMED
+ * prior (Rule 7); Phase 3 replaces it with the Desroziers estimate (eq. 9) per
+ * network shipped in `oi-v1.json`.
+ */
+const OI_OBS_VAR_RATIO_PRIOR = 0.1;
 
 function lngToEquiX(lng: number): number { return (lng + 180) / 360; }
 function latToEquiY(lat: number): number { return (90 - lat) / 180; }
@@ -56,6 +112,8 @@ export interface FusionConfig {
    * its hairline-ramp colour map is the most artefact-sensitive layer.
    */
   quickMode?: boolean;
+  /** fusion engine v2 staged sub-flags (all default off). */
+  fusionV2?: FusionV2Flags;
 }
 
 const DEFAULT_CONFIG: FusionConfig = {
@@ -83,7 +141,7 @@ interface IngestedSource {
 
 export interface FusedHour {
   timestamp: Date;
-  layers: OpenMeteoBulkResult & { precipitation?: ScalarGridResult };
+  layers: OpenMeteoBulkResult & { precipitation?: ScalarGridResult; uncertainty?: ScalarGridResult };
   /** Combined source list used to produce this hour. */
   modelTag: string;
 }
@@ -267,6 +325,44 @@ export class FusionEngine {
     // Wind-Geschwindigkeit als Skalar (für die speed-erhaltende Vektor-Korrektur).
     const vSpeed = new Float32Array(N);
 
+    // -----------------------------------------------------------------
+    // fusionV2 — Phase 1: local-OI temperature analysis (eqs 3/7/8).
+    // -----------------------------------------------------------------
+    // When `fusionV2.oi` is on AND a DEM is available (H's vertical term needs
+    // it), temperature is analysed as: model-only IDW background x_b + local OI
+    // increment of the station innovations d = y − H(x_b). Everything else in
+    // run() is unchanged, and with the flag off this whole block is skipped and
+    // the temperature path is byte-identical to before.
+    const useOI = this.cfg.fusionV2?.oi === true && gridElevations != null;
+    const oiObs: OiObservation[] = [];
+    const oiObsPosIdx: number[] = [];
+    let wTempBg = wTemp;
+    let oiInnov: Float32Array | null = null;
+    if (useOI) {
+      // Background must EXCLUDE the observations it will be corrected against
+      // (else the innovation is self-referential) — station weight → 0.
+      wTempBg = new Float32Array(N);
+      for (let k = 0; k < N; k++) wTempBg[k] = positions[k].isStation ? 0 : wTemp[k];
+      for (let k = 0; k < N; k++) {
+        const pos = positions[k];
+        if (pos.isStation && pos.stationElev != null) {
+          oiObs.push({ x: pos.x, y: pos.y, elev: pos.stationElev, obsVarRatio: OI_OBS_VAR_RATIO_PRIOR });
+          oiObsPosIdx.push(k);
+        }
+      }
+      oiInnov = new Float32Array(oiObs.length);
+    }
+    const oiActive = useOI && oiObs.length > 0;
+    // The OI smoother is position-only (paper Sect. 4 identity (i)) → built once
+    // at h=0 and reused across every hour. L_v is halved when h=0 diagnoses an
+    // inversion (γ̂<0), the paper's boundary-layer decoupling (Frei 2014).
+    let oiKernel: OiKernel | null = null;
+    // Phase 4 (eq. 10): the h=0 analysis increment, captured once and persisted
+    // into τ>0 when `incrementPersist` is on. Provisional prior T_v (hours).
+    let oiInc0: Float32Array | null = null;
+    const oiPersist = useOI && this.cfg.fusionV2?.incrementPersist === true;
+    const oiTvHours = OI_PRIORS.t2m.tvHours;
+
     for (let h = 0; h < maxHours; h++) {
       const timestamp = refTimes[h] ?? new Date(fetchedAt + h * 3600e3);
       const stationsTemp: PointSample[] = [];
@@ -319,12 +415,59 @@ export class FusionEngine {
       const sigC  = quick ? 0 : 1.6;
       const sigP  = quick ? 0 : 1.0;
 
-      const tempGrid = applySpatialKernel(kTemp, vTemp, wTemp, elevArr, {
-        barnesSigma: sigT,
-        elevationCorrection: gridElevations
-          ? { gridElevations, lapseRatePerM: lapseRate }
-          : undefined,
-      });
+      let tempGrid: DenseGridResult;
+      if (oiActive) {
+        // x_b: model-only IDW background (same machinery, stations weighted 0).
+        // Coverage mask is the model background's → identical semantics to the
+        // IDW path, which the models also blanket over DACH.
+        const bg = applySpatialKernel(kTemp, vTemp, wTempBg, elevArr, {
+          barnesSigma: sigT,
+          elevationCorrection: gridElevations
+            ? { gridElevations, lapseRatePerM: lapseRate }
+            : undefined,
+        });
+        // Build the OI smoother once (h=0), using the h=0 inversion diagnosis.
+        if (h === 0) {
+          oiKernel = buildOiKernel(
+            oiObs,
+            { cols: denseCols, rows: denseRows, uvBounds, cellElev: gridElevations! },
+            DEFAULT_OI_PARAMS,
+            lapseRate < 0,
+          );
+        }
+        if (oiKernel) {
+          if (oiPersist && h > 0 && oiInc0) {
+            // eq. (10): persist the captured h=0 increment with e^{−τ/T_v}.
+            // Stations carry values only at h=0, so without this the increment
+            // would simply be 0 for τ>0; persistence keeps the analysis skill.
+            addPersistedIncrement(bg.values, oiInc0, h, oiTvHours);
+          } else {
+            // Innovations d = y − H(x_b) at each station (elevation-aware H, eq. 7).
+            for (let o = 0; o < oiObs.length; o++) {
+              const pk = oiObsPosIdx[o];
+              oiInnov![o] = innovationAt(
+                bg.values, gridElevations!, denseCols, denseRows, uvBounds,
+                oiObs[o].x, oiObs[o].y, oiObs[o].elev, vTemp[pk], lapseRate,
+              );
+            }
+            const inc = applyOiKernel(oiKernel, oiInnov!);
+            if (h === 0) oiInc0 = inc.slice();   // capture h=0 increment for persistence
+            const bv = bg.values;
+            for (let c = 0; c < bv.length; c++) {
+              const d = inc[c];
+              if (d === d) bv[c] += d;   // NaN-skip
+            }
+          }
+        }
+        tempGrid = bg;
+      } else {
+        tempGrid = applySpatialKernel(kTemp, vTemp, wTemp, elevArr, {
+          barnesSigma: sigT,
+          elevationCorrection: gridElevations
+            ? { gridElevations, lapseRatePerM: lapseRate }
+            : undefined,
+        });
+      }
       const uGrid = applySpatialKernel(kWindCloud, vU, wWind, null, { barnesSigma: sigUV });
       const vGrid = applySpatialKernel(kWindCloud, vV, wWind, null, { barnesSigma: sigUV });
       // Speed-erhaltende Korrektur: komponentenweises IDW/Barnes-Glätten der
@@ -378,8 +521,20 @@ export class FusionEngine {
       temporalMedian3(rawHours.map((r) => r.chGrid.values));
     }
 
+    // Optional Phase 5 σ layer (eq. 15): σ_a = √(varRatio)·σ_b from the OI, the
+    // forecast σ relaxing toward the multi-model spread with lead. Requires OI.
+    // σ_b / T_v are provisional priors; a fitted inflation factor is admitted
+    // later. Provisional deviation from the literal eq. 15: the multi-model
+    // spread term Σ_m w_m(x̃_m−x_b)² is approximated by σ_b²(1−e^{−2τ/T}) (so σ
+    // ramps from σ_a at τ=0 to σ_b at long lead) until per-model grids are
+    // carried; documented in docs/fusion-forecast-spec.md §9.1.
+    const emitSigma = this.cfg.fusionV2?.uncertainty === true && oiKernel != null;
+    const sigmaB = OI_PRIORS.t2m.sigmaB;
+    const sigmaT = OI_PRIORS.t2m.tvHours;
+
     // Now encode PNGs from the smoothed arrays.
-    for (const rh of rawHours) {
+    for (let hIdx = 0; hIdx < rawHours.length; hIdx++) {
+      const rh = rawHours[hIdx];
       const { timestamp, uGrid, vGrid, tempGrid, clGrid, cmGrid, chGrid, pGrid, modelTag } = rh;
       const uMin = minOf(uGrid.values, -10);
       const uMax = maxOf(uGrid.values, 10);
@@ -430,9 +585,28 @@ export class FusionEngine {
         uvBounds, fetchedAt: timestamp.getTime(), model: 'fused', variable: 'precipitation',
       };
 
+      let uncertainty: ScalarGridResult | undefined;
+      if (emitSigma && oiKernel) {
+        const vr = oiKernel.varRatio;
+        const sig = new Float32Array(vr.length);
+        const decay = Math.exp(-2 * hIdx / sigmaT);
+        for (let c = 0; c < vr.length; c++) {
+          const sa2 = vr[c] * sigmaB * sigmaB;                 // σ_a² = varRatio·σ_b²
+          sig[c] = hIdx === 0
+            ? Math.sqrt(sa2)                                    // analysis σ_a
+            : Math.sqrt(sa2 * decay + sigmaB * sigmaB * (1 - decay));  // forecast σ (eq. 15, provisional spread)
+        }
+        const sigImg = encodeSigmaPng(denseCols, denseRows, sig, tempGrid.mask, UNCERTAINTY_MAX);
+        uncertainty = {
+          image: sigImg, width: denseCols, height: denseRows,
+          vMin: 0, vMax: UNCERTAINTY_MAX,
+          uvBounds, fetchedAt: timestamp.getTime(), model: 'fused', variable: 'uncertainty_t2m',
+        };
+      }
+
       hoursOut.push({
         timestamp,
-        layers: { wind, temperature, clouds, precipitation },
+        layers: { wind, temperature, clouds, precipitation, ...(uncertainty ? { uncertainty } : {}) },
         modelTag,
       });
     }

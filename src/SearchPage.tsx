@@ -56,6 +56,24 @@ export default function SearchPage({ onSelect, onOpenFeature }: Props) {
     warmMapData();
   }, []);
 
+  // Den schweren MapView-Chunk (maplibre-gl + alle Layer-/Source-/Fusion-Module)
+  // im Leerlauf vorwärmen, WÄHREND der Nutzer noch sucht. Sonst zahlt erst der
+  // Klick auf eine Location den Chunk-Download+Parse auf dem kritischen Pfad zum
+  // Erstpaint. Idle-geplant, damit es die Hero-Karte nicht verdrängt; auf Touch-
+  // Geräten (keine Hero-Karte) wird so maplibre-gl überhaupt erst vorgewärmt.
+  useEffect(() => {
+    const ric: (cb: () => void) => number =
+      typeof window.requestIdleCallback === 'function'
+        ? (cb) => window.requestIdleCallback(cb, { timeout: 3000 })
+        : (cb) => window.setTimeout(cb, 1200);
+    const cancel: (id: number) => void =
+      typeof window.cancelIdleCallback === 'function'
+        ? (id) => window.cancelIdleCallback(id)
+        : (id) => window.clearTimeout(id);
+    const id = ric(() => { void import('./MapView'); });
+    return () => cancel(id);
+  }, []);
+
   return (
     <div className="hero-page">
       {/* Sand-Art-SVG als Sofort-/Offline-Fallback, darüber (nur Desktop) die

@@ -157,25 +157,36 @@ async function pruneGribCache(cache: Cache): Promise<void> {
   } catch { /* ignore */ }
 }
 
-/** Holt + entpackt + dekodiert ein GRIB2-Feld, mit Cache der entpackten Bytes.
- *  Generisch über die volle URL → auch von anderen Modell-Quellen nutzbar
- *  (z. B. ICON-EU-Druckflächenwind), solange das Packing GDT 0 / DRT 0|1 ist. */
-export async function fetchDecodeCached(url: string, signal?: AbortSignal): Promise<GribField> {
+/** Holt + entpackt ein GRIB2-Feld und cacht die ENTPACKTEN Bytes (ohne Decode).
+ *  Der Decode kann so off-main erfolgen (z. B. Wind-Frame-Worker) — der teure
+ *  Teil (fetch + bz2) bleibt hier zentral inkl. Cache. */
+export async function fetchDecompressedCached(url: string, signal?: AbortSignal): Promise<Uint8Array> {
   const cache = await gribCache();
   if (cache) {
     const hit = await cache.match(url);
-    if (hit) return decodeGrib2(new Uint8Array(await hit.arrayBuffer()));
+    if (hit) return new Uint8Array(await hit.arrayBuffer());
   }
   const res = await fetch(url, { signal });
   if (!res.ok) throw new Error(`ICON-D2: ${res.status} (${url})`);
   const decompressed = await decompress(await res.arrayBuffer());
-  const field = decodeGrib2(decompressed);
   if (cache) {
-    // Kopie cachen (put konsumiert den Body); fire-and-forget + FIFO-Prune.
+    // Kopie cachen (put konsumiert den Body); fire-and-forget + FIFO-Prune. Die
+    // `.slice()` läuft synchron VOR einem etwaigen Transfer des Originalpuffers.
     cache.put(url, new Response(decompressed.slice().buffer))
       .then(() => pruneGribCache(cache)).catch(() => {});
   }
-  return field;
+  return decompressed;
+}
+
+/** Holt + entpackt + dekodiert ein GRIB2-Feld, mit Cache der entpackten Bytes.
+ *  Generisch über die volle URL → auch von anderen Modell-Quellen nutzbar
+ *  (z. B. ICON-EU-Druckflächenwind), solange das Packing GDT 0 / DRT 0|1 ist. */
+export async function fetchDecodeCached(url: string, signal?: AbortSignal): Promise<GribField> {
+  return decodeGrib2(await fetchDecompressedCached(url, signal));
+}
+
+function stepFileName(runStr: string, param: string, step: number): string {
+  return `icon-d2_germany_regular-lat-lon_single-level_${runStr}_${pad3(step)}_2d_${param}.grib2.bz2`;
 }
 
 export async function fetchStepField(
@@ -185,9 +196,18 @@ export async function fetchStepField(
   signal?: AbortSignal,
 ): Promise<GribField> {
   const hh = runStr.slice(8, 10);
-  const name =
-    `icon-d2_germany_regular-lat-lon_single-level_${runStr}_${pad3(step)}_2d_${param}.grib2.bz2`;
-  return fetchDecodeCached(`${D2_GRIB_BASE}/${hh}/${param}/${name}`, signal);
+  return fetchDecodeCached(`${D2_GRIB_BASE}/${hh}/${param}/${stepFileName(runStr, param, step)}`, signal);
+}
+
+/** Wie `fetchStepField`, liefert aber die ENTPACKTEN Bytes (Decode off-main). */
+export async function fetchStepBytes(
+  runStr: string,
+  param: string,
+  step: number,
+  signal?: AbortSignal,
+): Promise<Uint8Array> {
+  const hh = runStr.slice(8, 10);
+  return fetchDecompressedCached(`${D2_GRIB_BASE}/${hh}/${param}/${stepFileName(runStr, param, step)}`, signal);
 }
 
 /**

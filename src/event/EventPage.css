@@ -241,48 +241,9 @@
 
 /* ============================================================================
    2 · ORT — Suche (Pill-Style)
+   Basis-Styles (.ev-search-*, .ev-loc-*) leben in tourTheme.css — geteilt von
+   allen rt-Feature-Seiten, die die Standortsuche einbinden.
    ============================================================================ */
-.ev-search-wrap {
-  position: relative;
-  background: var(--cream-50, #FAF6EA);
-  border: 1px solid var(--border-default, #E0D6BE);
-  border-radius: 20px;
-  padding: 1rem;
-  box-shadow: var(--shadow-card, 0 4px 16px rgba(44,42,38,0.06));
-}
-.ev-search {
-  display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.4rem 0.4rem 0.95rem;
-  background: var(--sand-50, #F5F1E8); border: 1px solid var(--border-default, #E0D6BE); border-radius: 999px;
-  max-width: 36rem;
-}
-.ev-search:focus-within { border-color: var(--terracotta-500, #C97B47); }
-.ev-search-icon { color: var(--stone-400, #A89A7A); flex: 0 0 auto; }
-.ev-search-input { flex: 1; min-width: 0; border: none; background: none; font-family: inherit; font-size: 0.95rem; color: var(--ink-900); }
-.ev-search-input:focus { outline: none; }
-.ev-search-go {
-  flex: 0 0 auto; border: none; background: var(--terracotta-500, #C97B47); color: #fff;
-  border-radius: 999px; padding: 0.55rem 1.1rem; font-family: inherit; font-size: 0.82rem; font-weight: 500; cursor: pointer; transition: background 0.15s;
-}
-.ev-search-go:hover:not(:disabled) { background: var(--terracotta-700, #A85E2E); }
-.ev-search-go:disabled { opacity: 0.4; cursor: default; }
-.ev-search-dropdown {
-  position: absolute; left: 0; right: 0; top: calc(100% + 0.45rem); z-index: 10;
-  background: var(--cream-50, #FAF6EA); border: 1px solid var(--border-default, #E0D6BE); border-radius: 16px; box-shadow: var(--shadow-float); overflow: hidden; padding: 0.3rem;
-}
-.ev-search-error { padding: 0.7rem 0.9rem; font-size: 0.82rem; color: var(--terracotta-700, #A85E2E); }
-.ev-search-result { display: flex; align-items: center; gap: 0.55rem; width: 100%; text-align: left;
-  padding: 0.6rem 0.8rem; border: none; background: none; cursor: pointer; font-size: 0.88rem; color: var(--ink-800); border-radius: 10px; }
-.ev-search-result:hover { background: var(--sand-50, #F5F1E8); }
-.ev-search-result-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-/* ausgewählter Ort — Panel-Style wie ev-search-wrap */
-.ev-loc-chip { display: flex; align-items: center; gap: 0.65rem; padding: 0.8rem 0.9rem; }
-.ev-loc-chip.ev-card { border-radius: 20px; max-width: none; }
-.ev-loc-chip .ev-loc-change { background: var(--sand-50, #F5F1E8); }
-.ev-loc-flag { font-size: 1.05rem; flex: 0 0 auto; }
-.ev-loc-name { font-size: 0.92rem; font-weight: 500; color: var(--ink-900); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ev-loc-change { margin-left: auto; flex: 0 0 auto; border: 1px solid var(--border-default, #E0D6BE); background: var(--sand-50, #F5F1E8); border-radius: 999px; padding: 0.35rem 0.9rem; font-size: 0.78rem; font-weight: 500; color: var(--stone-600); cursor: pointer; }
-.ev-loc-change:hover { border-color: var(--terracotta-500, #C97B47); color: var(--ink-900); }
 
 /* ============================================================================
    3 · ZEITFENSTER

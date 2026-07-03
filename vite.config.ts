@@ -1,9 +1,23 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-// Dev-server proxies for upstreams that block browser CORS. In production
-// these need a real backend proxy or a CORS-friendly mirror — for now the
-// dev server fronts them so the client just sees same-origin URLs.
+// Upstream proxies for sources that block browser CORS. In production these
+// need a real backend proxy or a CORS-friendly mirror — dev + preview front
+// them so the client just sees same-origin URLs.
+const upstreamProxy = {
+  '/_dwd_opendata': {
+    target: 'https://opendata.dwd.de',
+    changeOrigin: true,
+    rewrite: (p: string) => p.replace(/^\/_dwd_opendata/, ''),
+  },
+  // NOAA GFS (AWS Open Data, S3 — Range-fähig, Public Domain) für den 3D-Globus.
+  '/_gfs': {
+    target: 'https://noaa-gfs-bdp-pds.s3.amazonaws.com',
+    changeOrigin: true,
+    rewrite: (p: string) => p.replace(/^\/_gfs/, ''),
+  },
+};
+
 export default defineConfig({
   plugins: [react()],
   // ESM-Worker (statt iife) — der bz2-Decompress-Worker nutzt einen dynamischen
@@ -24,19 +38,9 @@ export default defineConfig({
       },
     },
   },
-  server: {
-    proxy: {
-      '/_dwd_opendata': {
-        target: 'https://opendata.dwd.de',
-        changeOrigin: true,
-        rewrite: (p) => p.replace(/^\/_dwd_opendata/, ''),
-      },
-      // NOAA GFS (AWS Open Data, S3 — Range-fähig, Public Domain) für den 3D-Globus.
-      '/_gfs': {
-        target: 'https://noaa-gfs-bdp-pds.s3.amazonaws.com',
-        changeOrigin: true,
-        rewrite: (p) => p.replace(/^\/_gfs/, ''),
-      },
-    },
-  },
+  // Same proxy map for dev AND `vite preview`, so a production-build cold-start
+  // can be measured realistically (preview otherwise SPA-falls-back
+  // /_dwd_opendata to index.html).
+  server: { proxy: upstreamProxy },
+  preview: { proxy: upstreamProxy },
 });

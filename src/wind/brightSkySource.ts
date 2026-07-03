@@ -60,7 +60,13 @@ export interface DwdForecastResult {
   /** One bulk-result snapshot per forecast hour, ordered by ascending time. */
   hours: Array<{
     timestamp: Date;
-    layers: OpenMeteoBulkResult;
+    /**
+     * `precipitation` and `uncertainty` are optional add-on layers produced by
+     * the fusion engine. `uncertainty` is the fifth σ PNG (temperature analysis/
+     * forecast error, eq. 15), emitted only when `fusionV2.uncertainty` is on;
+     * its PNG contract is documented in docs/fusion-forecast-spec.md §9.1.
+     */
+    layers: OpenMeteoBulkResult & { precipitation?: ScalarGridResult; uncertainty?: ScalarGridResult };
   }>;
   fetchedAt: number;
   uvBounds: [number, number, number, number];

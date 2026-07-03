@@ -27,7 +27,10 @@ import { fetchSmnCurrentGrid } from '../sources/meteoSwissSmn';
 import { fetchSmhiCurrentGrid } from '../sources/smhiStations';
 import { fetchDmiCurrentGrid } from '../sources/dmiStations';
 import { fetchIpmaCurrentGrid } from '../sources/ipmaStations';
-import { FusionEngine } from './fusionEngine';
+import { FusionEngine, type FusionV2Flags } from './fusionEngine';
+// Dev-only: registers window.__captureFusionFixture for recording verification
+// fixtures from real sources. Self-guards to DEV; no-op in production.
+import './captureFixture';
 import { loadElevationLookup, type ElevationGrid } from './elevation';
 import type { DwdForecastResult } from '../wind/brightSkySource';
 import { COUNTRY_PROFILES, DACH_VIEW, type CountryProfile } from '../countryProfiles';
@@ -240,6 +243,12 @@ export interface FusedLoadOptions {
   useOpenMeteo?: boolean;
   /** When `useOpenMeteo` is true, also add a dedicated ICON-D2 DACH call. */
   useDachBias?: boolean;
+  /**
+   * fusion engine v2 staged sub-flags (all default off). When unset in dev, the
+   * engine also honours `window.__fusionV2` so a build can be A/B-tested from
+   * the console without a rebuild. See `docs/fusionV2-plan.md`.
+   */
+  fusionV2?: FusionV2Flags;
 }
 
 export async function loadFusedForecast(options: FusedLoadOptions = {}): Promise<DwdForecastResult> {
@@ -252,10 +261,21 @@ export async function loadFusedForecast(options: FusedLoadOptions = {}): Promise
   const _denseRows = options.denseRows ?? 128;
   const _modelChoice: ModelChoice = options.modelChoice ?? 'fusion';
   const _quickMode = options.quickMode ?? false;
+  // fusionV2 sub-flags: explicit option wins; otherwise a dev-only console
+  // override (`window.__fusionV2 = { oi: true }`) enables A/B testing without a
+  // rebuild. Prod ships with the flags off unless a caller opts in.
+  const fusionV2: FusionV2Flags | undefined = options.fusionV2
+    ?? ((import.meta.env?.DEV && typeof window !== 'undefined')
+      ? (window as unknown as { __fusionV2?: FusionV2Flags }).__fusionV2
+      : undefined);
   // Cache hit? Sub-100 ms response for already-computed combinations. The
   // quick-mode flag is part of the cache key — Phase A and Phase B never
-  // share a cache slot (different visual fidelity).
-  const cKey = resultKey(options.country, hours, _modelChoice, _denseCols, _denseRows, _quickMode);
+  // share a cache slot (different visual fidelity). ALL fusionV2 sub-flags join
+  // the key so toggling any of them (oi / incrementPersist / uncertainty /
+  // bgMinVar / bgOffDiag) recomputes instead of returning a stale result.
+  const v2Key = `${fusionV2?.oi ? 'o' : ''}${fusionV2?.incrementPersist ? 'p' : ''}${fusionV2?.uncertainty ? 'u' : ''}${fusionV2?.bgMinVar ? 'b' : ''}${fusionV2?.bgOffDiag ? 'd' : ''}`;
+  const cKey = resultKey(options.country, hours, _modelChoice, _denseCols, _denseRows, _quickMode)
+    + `|v2${v2Key}`;
   const cachedResult = fusedResultCache.get(cKey);
   if (cachedResult && Date.now() - cachedResult.fetchedAt < RESULT_TTL_MS) {
     return cachedResult.value;
@@ -298,6 +318,7 @@ export async function loadFusedForecast(options: FusedLoadOptions = {}): Promise
     temperatureRange: tempRange,
     precipitationRange: { min: 0, max: 10 },
     quickMode: _quickMode,
+    fusionV2,
   });
   const modelTags: string[] = [];
 

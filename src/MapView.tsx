@@ -358,6 +358,10 @@ export default function MapView({ location, onBack, embedded = false, initialAct
   // Wind: natives ICON-D2 u/v-10m-Gitter (0–12 h) statt Open-Meteo-Punktgrid.
   const iconD2WindRef = useRef<IconD2Wind | null>(null);
   const installWindRef = useRef<(() => Promise<void>) | null>(null);
+  // Guard gegen einen DOPPELTEN nebenläufigen Wind-Load am Kaltstart: mehrere
+  // Effects können installWind feuern, bevor iconD2WindRef gesetzt ist (die Ref
+  // wird erst nach dem ersten Frame gesetzt) → sonst wird jedes GRIB-Feld 2× geholt.
+  const windLoadingRef = useRef(false);
   // Temperatur: natives ICON-D2 t_2m-Gitter (0–24 h) + hsurf-DEM-Korrektur,
   // statt der Fusion (Open-Meteo/IDW).
   const iconD2TempRef = useRef<IconD2Temp | null>(null);
@@ -382,6 +386,16 @@ export default function MapView({ location, onBack, embedded = false, initialAct
   const installNowcastRef = useRef<(() => Promise<void>) | null>(null);
   // Lazy-Loader für den Wolken-Layer (ICON-D2 CLCT).
   const installCloudsRef = useRef<(() => Promise<void>) | null>(null);
+  // Satellit + Blitze lazy: sind keine Default-Layer, wurden aber bisher eager am
+  // Mount installiert (2× fetchWmsLatestTime + Raster-Source-Add konkurrieren mit
+  // dem Wind-Hero-Layer um den Kaltstart). Erst bei Aktivierung laden.
+  const installSatelliteRef = useRef<(() => void) | null>(null);
+  const satLoadedRef = useRef(false);
+  const installLightningRef = useRef<(() => void) | null>(null);
+  const lightningLoadedRef = useRef(false);
+  // Aktuelles Satelliten-Produkt frisch für Mount-Closures (deps []).
+  const satProductRef = useRef(satProduct);
+  satProductRef.current = satProduct;
   const tempLabelMarkersRef = useRef<Map<string, Marker>>(new Map());
   // Ref-backed loader so we can fire a fresh forecast from anywhere (e.g.
   // when the model-choice selector changes) without re-mounting the map.
@@ -1105,6 +1119,12 @@ export default function MapView({ location, onBack, embedded = false, initialAct
     // den Layer damit füttern (ersetzt das coarse Open-Meteo-Punktgrid der
     // Fusion). Deckt DE/AT/CH geografisch ab → kein Länderbranch nötig.
     const installWind = async () => {
+      // Nebenläufigen Doppel-Load verhindern (s. windLoadingRef). Refresh (30 min)
+      // läuft weiter, weil dann nicht „loading". Synchron VOR jedem await gesetzt →
+      // greift auch, wenn zwei Effects im selben Tick feuern.
+      if (windLoadingRef.current) return;
+      windLoadingRef.current = true;
+      try {
       // Sofort-Erstpaint aus dem localStorage-Cache (letzter „jetzt"-Frame, ggf.
       // paar h alt) — die Partikel erscheinen so unmittelbar beim Seitenaufruf,
       // statt ~2 s auf den Netz-Fetch zu warten. Wird vom frischen Gitter ersetzt.
@@ -1129,16 +1149,28 @@ export default function MapView({ location, onBack, embedded = false, initialAct
         // nur beim ERSTEN Frame (sofort sichtbar) und am ENDE (alle Frames für den
         // Slider da); Zwischen-Frames aktualisieren still nur die Ref.
         let firstWind = true;
-        const wd = await fetchIconD2Wind(abort.signal, (partial) => {
-          iconD2WindRef.current = partial;
-          if (firstWind) { firstWind = false; setNowcastTick((t) => t + 1); }
-        });
+        const wd = await fetchIconD2Wind(
+          abort.signal,
+          (partial) => {
+            iconD2WindRef.current = partial;
+            if (firstWind) { firstWind = false; setNowcastTick((t) => t + 1); }
+          },
+          // Ein einzelner Tick, wenn der ferne Horizont im Hintergrund fertig ist —
+          // sonst bliebe eine Slider-Parkposition jenseits des nahen Horizonts auf
+          // dem geclampten Frame stehen, bis der Nutzer erneut interagiert.
+          () => { if (!abort.signal.aborted) setNowcastTick((t) => t + 1); },
+        );
         iconD2WindRef.current = wd;
         setNowcastTick((t) => t + 1);
         if (wd.frames[0]) saveWindNowCache(wd.frames[0], wd.uvBounds); // für den nächsten Sofort-Start
         updateStatus('wind', { ok: { model: 'DWD ICON-D2 u/v 10m · 2,2 km', fetchedAt: Date.now() } });
       } catch {
         // nicht fatal — beim nächsten Aufruf greift der Cache erneut.
+      }
+      } finally {
+        // Nach dem NAHEN Horizont zurücksetzen (der ferne lädt im Hintergrund
+        // weiter); ein späterer Refresh/Reaktivieren darf dann neu laden.
+        windLoadingRef.current = false;
       }
     };
     installWindRef.current = installWind;
@@ -1237,8 +1269,11 @@ export default function MapView({ location, onBack, embedded = false, initialAct
       uvBounds: [0, 0, 1, 1],
       model: '',
     });
-    installSatelliteLayer(satProduct);
-    installLightningLayer();
+    // Satellit + Blitze lazy (eigene Effects) statt eager — nimmt 2× WMS-TIME-
+    // Fetch + 2 Raster-Sources aus dem Mount-Burst, der sonst mit dem Wind-Hero
+    // um Main-Thread + die 6-pro-Host-Verbindungen konkurriert.
+    installSatelliteRef.current = () => installSatelliteLayer(satProductRef.current);
+    installLightningRef.current = installLightningLayer;
     // Stationen lazy (eigener Effect) statt eager — spart ~150 SMN/TAWES-Requests.
     installStationsRef.current = installStationsLayer;
     // Niederschlag lazy: erst beim Aktivieren laden. Land-passende „jetzt"-
@@ -1278,12 +1313,13 @@ export default function MapView({ location, onBack, embedded = false, initialAct
     // Satellite refresh every 30 min — the data only updates every 3 h but
     // the WMS endpoint reissues the freshest tile each time, so a refresh
     // covers the case where the user keeps the tab open across a 3 h slot.
-    const t3 = window.setInterval(
-      () => installSatelliteLayer(satProduct),
-      30 * 60 * 1000,
-    );
+    const t3 = window.setInterval(() => {
+      if (satLoadedRef.current) installSatelliteLayer(satProductRef.current);
+    }, 30 * 60 * 1000);
     // Lightning network refreshes every ~10 min on DWD's side.
-    const t4 = window.setInterval(installLightningLayer, 10 * 60 * 1000);
+    const t4 = window.setInterval(() => {
+      if (lightningLoadedRef.current) installLightningLayer();
+    }, 10 * 60 * 1000);
     // Stations refresh every 10 min (DWD obs cadence is 10 min; TAWES same).
     const t7 = window.setInterval(() => {
       if (stationsLoadedRef.current) void installStationsLayer();
@@ -1356,6 +1392,23 @@ export default function MapView({ location, onBack, embedded = false, initialAct
     if (active.has('stations')) {
       stationsLoadedRef.current = true;
       void installStationsRef.current?.();
+    }
+  }, [active]);
+
+  // Satellit lazy laden: erst beim Aktivieren die WMS-Raster-Source + das echte
+  // Capture-Datum ziehen — nicht mehr eager am Mount (Kaltstart-Entlastung).
+  useEffect(() => {
+    if (active.has('sat')) {
+      satLoadedRef.current = true;
+      installSatelliteRef.current?.();
+    }
+  }, [active]);
+
+  // Blitze lazy laden: erst beim Aktivieren.
+  useEffect(() => {
+    if (active.has('lightning')) {
+      lightningLoadedRef.current = true;
+      installLightningRef.current?.();
     }
   }, [active]);
 
