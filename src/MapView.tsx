@@ -12,14 +12,14 @@ import { CloudLayer } from './scalar/CloudLayer';
 import { loadFusedForecast, prefetchSecondarySources, type ModelChoice } from './fusion/loadFusedForecast';
 import {
   FUSION_RASTER_ENABLED,
-  initialModelSourceState, isFusionActive, isFusionCapable, resolveModelSource,
+  initialModelSourceState, isFusionCapable, resolveModelSource, resolveModel, activeModelId,
   setGlobalSource, setLayerOverride, clearLayerOverride,
   setActiveCountry, setCountryModel, toggleRadar,
   resolvePointSource, setPointSource,
   type ModelSource, type ModelSourceState,
 } from './fusion/modelSource';
 import ModelSwitcher from './map/ModelSwitcher';
-import type { ModelId } from './fusion/modelCatalog';
+import { modelEntry, type ModelId } from './fusion/modelCatalog';
 import { lerpFrameImage } from './fusion/frameInterp';
 import { COUNTRY_PROFILES, DACH_VIEW } from './countryProfiles';
 import { loadDachMask } from './countryMask';
@@ -220,6 +220,13 @@ const LAYER_OPTIONS: { key: LayerKey; label: string; title: string }[] = [
   { key: 'poprob', label: 'Regen-Chance', title: 'Regenwahrscheinlichkeit (%): kalibriertes Flow-Ensemble — 15 Member advehieren das Radar mit gestörten Bewegungsfeldern; je Zelle der Anteil, der Regen bringt. „Wie wahrscheinlich" statt „wie viel". Nur DE, ~0–60 min.' },
 ];
 
+// Aktives Per-Land-Modell (ModelId) → Grid-Isolation (ModelChoice) für loadFusedForecast.
+// Nur engine-gerasterte Modelle; alles andere fällt auf 'fusion' (nur Temp-Fallback,
+// nicht gerendert solange fusionFor=false) bzw. den nativen Pfad zurück.
+const MODEL_ID_TO_CHOICE: Partial<Record<ModelId, ModelChoice>> = {
+  fusion: 'fusion', 'arome-at': 'arome', inca: 'inca',
+};
+
 const SAT_PRODUCT_LABELS: Record<SatelliteProduct, string> = {
   eu_rgb: 'EU',
   world_ir: 'Welt',
@@ -307,18 +314,23 @@ export default function MapView({ location, onBack, embedded = false, initialAct
   }, [active]);
   // Eingebettet: Play/Pause für den Tagesablauf (animiert den Slider über das Fenster).
   const [playing, setPlaying] = useState(false);
-  // Which model drives the map. Fixed to 'fusion' (Buscosun fusion across all
-  // sources for the active country) — the per-country model selector was removed
-  // from the 2D map; fusion is the only product surfaced here.
-  const [modelChoice] = useState<ModelChoice>('fusion');
-  // Fusion⇄Native-Modellquelle je Kartenlayer (Phase 2/3, s. docs/fusion-2d-integration.md).
-  // Globaler Default (Flag-getrieben, Start `native` = eingefrorenes Verhalten) +
-  // Per-Layer-Override. Der Resolver nagelt native-by-design-Layer unverlierbar auf `native`.
+  // Fusion⇄Native/Per-Land-Modellquelle je Kartenlayer (docs/model-switcher-gate0.md).
+  // Globaler Default (Start `native`), Per-Land-Wahl (`perCountry`) + Per-Layer-Override.
   const [modelSource, setModelSource] = useState<ModelSourceState>(() => initialModelSourceState());
   const modelSourceRef = useRef(modelSource);
   modelSourceRef.current = modelSource;
-  // Fusion für Layer X aktiv? (frisch aus der Ref → für Effekt-Closures mit []-deps).
-  const fusionFor = (layer: string) => isFusionActive(layer, modelSourceRef.current);
+  // „Engine-Raster aktiv für Layer X?" = das resolvte Modell ist engine-gerastert
+  // (Fusion/AROME/INCA) → das Grid speist den Layer statt des nativen Pfads. ICON-D2/
+  // Native/Punktquellen → false (nativer ICON-D2-Pfad rendert). Frisch aus der Ref
+  // (für []-dep-Effekt-Closures). Unabhängig von FUSION_RASTER_ENABLED — die Wahl ist
+  // hier explizit + mit Qualitäts-Badge.
+  const fusionFor = (layer: string) => {
+    const id = resolveModel(layer, modelSourceRef.current);
+    return id !== 'native' && modelEntry(id)?.engineGridded === true;
+  };
+  // Aktives Per-Land-Modell → ModelChoice fürs Grid-Loading. Ändert sich die Wahl,
+  // reagieren die bestehenden [modelChoice]-Effects (Ref-Update + Grid-Reload).
+  const modelChoice: ModelChoice = MODEL_ID_TO_CHOICE[activeModelId(modelSource)] ?? 'fusion';
   // Globaler UI-Switch (Phase 4): setzt Raster-`global` UND die Punkt-Engine gemeinsam
   // (s. docs/fusion-2d-integration.md) — ein Klick, beide Domänen konsistent.
   const setGlobalModel = (src: ModelSource) =>
