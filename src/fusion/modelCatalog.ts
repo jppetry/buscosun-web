@@ -150,7 +150,8 @@ export const MODEL_CATALOG: readonly ModelEntry[] = [
     id: 'icon-d2-eps', name: 'ICON-D2-EPS', operator: 'DWD', kind: 'raster', ensemble: true,
     resolutionKm: 2.2, horizonH: 48, license: 'CC-BY-4.0',
     attribution: 'Daten: DWD · CC BY 4.0',
-    ingested: false, rasterCapable: true, engineGridded: true, coverage: full3, group: 'local',
+    ingested: true, rasterCapable: true, engineGridded: true, coverage: full3, group: 'local',
+    pipelineNote: '2D-Raster aktuell als Kurzfrist-Ensemble-Mittel (0–6 h); lädt im Hintergrund.',
   },
   {
     id: 'icon-ch2-eps', name: 'ICON-CH2-EPS', operator: 'MeteoSchweiz', kind: 'raster',

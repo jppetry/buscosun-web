@@ -223,7 +223,7 @@ const LAYER_OPTIONS: { key: LayerKey; label: string; title: string }[] = [
 // Nur engine-gerasterte Modelle; alles andere fällt auf 'fusion' (nur Temp-Fallback,
 // nicht gerendert solange fusionFor=false) bzw. den nativen Pfad zurück.
 const MODEL_ID_TO_CHOICE: Partial<Record<ModelId, ModelChoice>> = {
-  fusion: 'fusion', 'arome-at': 'arome', inca: 'inca',
+  fusion: 'fusion', 'arome-at': 'arome', inca: 'inca', 'icon-d2-eps': 'icon-d2-eps',
 };
 
 const SAT_PRODUCT_LABELS: Record<SatelliteProduct, string> = {

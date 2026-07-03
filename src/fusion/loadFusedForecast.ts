@@ -22,6 +22,7 @@ import { fetchBrightSkyGrid } from '../sources/brightSkyForecast';
 import { fetchBrightSkyCurrentGrid } from '../sources/brightSkyCurrent';
 import { fetchGeoSphereIncaGrid } from '../sources/geosphereInca';
 import { fetchGeoSphereAromeGrid } from '../sources/geosphereArome';
+import { fetchIconD2EpsGrid } from '../sources/iconD2EpsSource';
 import { fetchTawesCurrentGrid } from '../sources/geosphereTawes';
 import { fetchSmnCurrentGrid } from '../sources/meteoSwissSmn';
 import { fetchSmhiCurrentGrid } from '../sources/smhiStations';
@@ -201,8 +202,9 @@ async function getCachedSource<T>(
  *  'arome'    → GeoSphere AROME-AT only (2.5 km, AT/CH/sDE coverage)
  *  'inca'     → GeoSphere INCA nowcast only (AT, 1 km, ~3 h horizon)
  *  'obs'      → live station obs only (DWD + TAWES + SMN, h=0)
+ *  'icon-d2-eps' → DWD ICON-D2-EPS ensemble mean only (2.2 km icosahedral, DACH)
  */
-export type ModelChoice = 'fusion' | 'mosmix' | 'arome' | 'inca' | 'obs';
+export type ModelChoice = 'fusion' | 'mosmix' | 'arome' | 'inca' | 'obs' | 'icon-d2-eps';
 
 export interface FusedLoadOptions {
   signal?: AbortSignal;
@@ -305,6 +307,10 @@ export async function loadFusedForecast(options: FusedLoadOptions = {}): Promise
   const skipSecondary = isFusion && _quickMode;
   const useInca   = allow('inca')  && !skipSecondary;
   const useArome  = allow('arome') && !skipSecondary;
+  // ICON-D2-EPS deckt ganz DACH (icosahedral) → unabhängig vom Länderprofil.
+  // Nicht in quickMode's skipSecondary, weil es bei expliziter Wahl die einzige
+  // Quelle ist (sonst leerer Phase-A-Render).
+  const useEps = allow('icon-d2-eps');
   const useTawesOrSmnInQuick = !skipSecondary;
 
   const engine = new FusionEngine({
@@ -397,8 +403,9 @@ export async function loadFusedForecast(options: FusedLoadOptions = {}): Promise
   const wantArome  = profile.useArome  && useArome;
   const wantTawes  = profile.useTawes  && useObs && useTawesOrSmnInQuick;
   const wantSmn    = profile.useSmn    && useObs && useTawesOrSmnInQuick;
+  const wantEps    = useEps;
 
-  const [obs, bs, inca, arome, tawes, smn] = await Promise.all([
+  const [obs, bs, inca, arome, tawes, smn, eps] = await Promise.all([
     wantObs ? getCachedSource(sourceKey('dwd_obs', hours), () =>
         fetchBrightSkyCurrentGrid({ cols: 10, rows: 8 })).catch(() => null) : Promise.resolve(null),
     wantMosmix ? getCachedSource(sourceKey('mosmix', hours), () =>
@@ -411,6 +418,8 @@ export async function loadFusedForecast(options: FusedLoadOptions = {}): Promise
         fetchTawesCurrentGrid()).catch(() => null) : Promise.resolve(null),
     wantSmn ? getCachedSource(sourceKey('smn', hours), () =>
         fetchSmnCurrentGrid({ maxStations: 80 })).catch(() => null) : Promise.resolve(null),
+    wantEps ? getCachedSource(sourceKey('icon-d2-eps', hours), () =>
+        fetchIconD2EpsGrid({ hours, signal: options.signal })).catch(() => null) : Promise.resolve(null),
   ]);
 
   // Live obs — dominate hour 0 with measurement weight.
@@ -443,6 +452,11 @@ export async function loadFusedForecast(options: FusedLoadOptions = {}): Promise
   if (smn && smn.points[0]?.length) {
     engine.ingest(smn, { temperature: 5.0, wind: 3.0, clouds: 0, precipitation: 4.0 });
     modelTags.push('smn');
+  }
+  // ICON-D2-EPS — Ensemble-Mittel (2,2 km icosahedral, ganz DACH).
+  if (eps && eps.points[0]?.length) {
+    engine.ingest(eps, { temperature: 1.4, wind: 1.4, clouds: 1.4, precipitation: 1.4 });
+    modelTags.push('icon_d2_eps');
   }
 
   // --- Source I (SE live stations, hour 0 only): SMHI ------------------------
@@ -516,6 +530,7 @@ export async function loadFusedForecast(options: FusedLoadOptions = {}): Promise
     arome:  'GeoSphere AROME',
     inca:   'GeoSphere INCA',
     obs:    'Station-Obs',
+    'icon-d2-eps': 'DWD ICON-D2-EPS',
   };
   const model = modelChoice !== 'fusion'
     ? `${SINGLE_MODEL_LABEL[modelChoice]} (${modelTags.join(', ') || 'no data'})`
