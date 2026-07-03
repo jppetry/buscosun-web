@@ -12,7 +12,12 @@
  * passt zur „native/freie Quellen"-Haltung.
  */
 
-const GFS_BASE = '/_gfs';
+// Browser: CORS-Proxy `/_gfs` (dev: vite, prod: netlify.toml). Node (Verify-
+// Harness, kein `window`): kein CORS → direkt gegen den AWS-S3-Bucket. Für den
+// Browser exakt wie zuvor.
+const GFS_BASE = typeof window === 'undefined'
+  ? 'https://noaa-gfs-bdp-pds.s3.amazonaws.com'
+  : '/_gfs';
 
 export interface GfsRun { date: string; hour: string; } // date=YYYYMMDD, hour=HH (UTC)
 

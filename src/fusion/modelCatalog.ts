@@ -242,9 +242,9 @@ export const MODEL_CATALOG: readonly ModelEntry[] = [
   {
     id: 'gfs', name: 'NOAA GFS', operator: 'NOAA', kind: 'raster',
     resolutionKm: 28, horizonH: 384, license: 'Public-Domain',
-    attribution: 'Daten: NOAA · Public Domain', ingested: false, rasterCapable: true,
+    attribution: 'Daten: NOAA · Public Domain', ingested: true, rasterCapable: true,
     engineGridded: true, coverage: coarse3, group: 'global',
-    pipelineNote: 'Heute nur als Höhenprofil (Sounding) + Wind-Globus, noch nicht als DACH-2D-Raster.',
+    pipelineNote: '2D-Raster (Temperatur/Wind/Wolken/Niederschlag), grobes 1°-Globalgitter, 0–6 h.',
   },
   {
     id: 'aifs', name: 'AIFS Single', operator: 'ECMWF', kind: 'raster', ai: true,
