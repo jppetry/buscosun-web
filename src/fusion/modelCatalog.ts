@@ -211,9 +211,10 @@ export const MODEL_CATALOG: readonly ModelEntry[] = [
   },
   {
     id: 'arpege', name: 'ARPEGE', operator: 'Météo-France', kind: 'raster',
-    resolutionKm: 11, horizonH: 102, license: 'Etalab-2.0',
-    attribution: 'Daten: Météo-France · Etalab 2.0', ingested: false, rasterCapable: true,
+    resolutionKm: 25, horizonH: 102, license: 'Etalab-2.0',
+    attribution: 'Daten: Météo-France · Etalab 2.0', ingested: true, rasterCapable: true,
     engineGridded: true, coverage: coarse3, group: 'global',
+    pipelineNote: '2D-Raster nur Temperatur + Wind (0–6 h); große gebündelte Dateien, Erstabruf langsam.',
   },
   {
     id: 'icon-global', name: 'ICON global', operator: 'DWD', kind: 'raster',

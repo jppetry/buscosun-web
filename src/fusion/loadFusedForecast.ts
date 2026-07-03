@@ -30,6 +30,7 @@ import { fetchGfs2dGrid } from '../sources/gfs2dSource';
 import { fetchEcmwfGrid } from '../sources/ecmwfIfsSource';
 import { fetchIconGlobalGrid } from '../sources/iconGlobalSource';
 import { fetchAiconGrid } from '../sources/aiconSource';
+import { fetchArpegeGrid } from '../sources/arpegeSource';
 import { fetchTawesCurrentGrid } from '../sources/geosphereTawes';
 import { fetchSmnCurrentGrid } from '../sources/meteoSwissSmn';
 import { fetchSmhiCurrentGrid } from '../sources/smhiStations';
@@ -217,11 +218,12 @@ async function getCachedSource<T>(
  *  'ifs' / 'aifs' / 'aifs-ens' → ECMWF IFS / AIFS / AIFS-ENS global 2D raster only
  *  'icon-global' → DWD ICON global 2D raster only (icosahedral, all DACH)
  *  'aicon' → DWD AICON (KI) 2D raster only (temp/wind/precip; all DACH)
+ *  'arpege' → Météo-France ARPEGE global 2D raster only (temp/wind; all DACH)
  */
 export type ModelChoice =
   | 'fusion' | 'mosmix' | 'arome' | 'inca' | 'obs'
   | 'icon-d2-eps' | 'icon-ch1-eps' | 'icon-ch2-eps' | 'arome-fr' | 'icon-eu' | 'gfs'
-  | 'ifs' | 'aifs' | 'aifs-ens' | 'icon-global' | 'aicon';
+  | 'ifs' | 'aifs' | 'aifs-ens' | 'icon-global' | 'aicon' | 'arpege';
 
 export interface FusedLoadOptions {
   signal?: AbortSignal;
@@ -348,6 +350,8 @@ export async function loadFusedForecast(options: FusedLoadOptions = {}): Promise
   const useIconGlobal = modelChoice === 'icon-global';
   // AICON (DWD KI): nur bei expliziter Einzelwahl.
   const useAicon = modelChoice === 'aicon';
+  // ARPEGE (Météo-France global): nur bei expliziter Einzelwahl.
+  const useArpege = modelChoice === 'arpege';
   const useTawesOrSmnInQuick = !skipSecondary;
 
   const engine = new FusionEngine({
@@ -451,8 +455,9 @@ export async function loadFusedForecast(options: FusedLoadOptions = {}): Promise
   const wantAifsEns = useAifsEns;
   const wantIconGlobal = useIconGlobal;
   const wantAicon = useAicon;
+  const wantArpege = useArpege;
 
-  const [obs, bs, inca, arome, tawes, smn, eps, ch1, ch2, aromeFr, iconEu, gfs2d, ifs, aifs, aifsEns, iconGlobal, aicon] = await Promise.all([
+  const [obs, bs, inca, arome, tawes, smn, eps, ch1, ch2, aromeFr, iconEu, gfs2d, ifs, aifs, aifsEns, iconGlobal, aicon, arpege] = await Promise.all([
     wantObs ? getCachedSource(sourceKey('dwd_obs', hours), () =>
         fetchBrightSkyCurrentGrid({ cols: 10, rows: 8 })).catch(() => null) : Promise.resolve(null),
     wantMosmix ? getCachedSource(sourceKey('mosmix', hours), () =>
@@ -487,6 +492,8 @@ export async function loadFusedForecast(options: FusedLoadOptions = {}): Promise
         fetchIconGlobalGrid({ hours, signal: options.signal })).catch(() => null) : Promise.resolve(null),
     wantAicon ? getCachedSource(sourceKey('aicon', hours), () =>
         fetchAiconGrid({ hours, signal: options.signal })).catch(() => null) : Promise.resolve(null),
+    wantArpege ? getCachedSource(sourceKey('arpege', hours), () =>
+        fetchArpegeGrid({ hours, signal: options.signal })).catch(() => null) : Promise.resolve(null),
   ]);
 
   // Live obs — dominate hour 0 with measurement weight.
@@ -575,6 +582,11 @@ export async function loadFusedForecast(options: FusedLoadOptions = {}): Promise
     engine.ingest(aicon, { temperature: 1.4, wind: 1.4, clouds: 0, precipitation: 1.4 });
     modelTags.push('aicon');
   }
+  // ARPEGE (Météo-France global): Temp + Wind (keine Wolken/Regen → Gewicht 0).
+  if (arpege && arpege.points[0]?.length) {
+    engine.ingest(arpege, { temperature: 1.4, wind: 1.4, clouds: 0, precipitation: 0 });
+    modelTags.push('arpege');
+  }
 
   // --- Source I (SE live stations, hour 0 only): SMHI ------------------------
   // SMHI is geographically out of scope for the DE/AT/CH country pages.
@@ -658,6 +670,7 @@ export async function loadFusedForecast(options: FusedLoadOptions = {}): Promise
     'aifs-ens': 'ECMWF AIFS-ENS',
     'icon-global': 'DWD ICON global',
     'aicon': 'DWD AICON',
+    'arpege': 'Météo-France ARPEGE',
   };
   const model = modelChoice !== 'fusion'
     ? `${SINGLE_MODEL_LABEL[modelChoice]} (${modelTags.join(', ') || 'no data'})`
