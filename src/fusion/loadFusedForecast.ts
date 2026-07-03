@@ -29,6 +29,7 @@ import { fetchIconEuRasterGrid } from '../sources/iconEuRasterSource';
 import { fetchGfs2dGrid } from '../sources/gfs2dSource';
 import { fetchEcmwfGrid } from '../sources/ecmwfIfsSource';
 import { fetchIconGlobalGrid } from '../sources/iconGlobalSource';
+import { fetchAiconGrid } from '../sources/aiconSource';
 import { fetchTawesCurrentGrid } from '../sources/geosphereTawes';
 import { fetchSmnCurrentGrid } from '../sources/meteoSwissSmn';
 import { fetchSmhiCurrentGrid } from '../sources/smhiStations';
@@ -215,11 +216,12 @@ async function getCachedSource<T>(
  *  'gfs' → NOAA GFS global 2D raster only (coarse, all DACH)
  *  'ifs' / 'aifs' / 'aifs-ens' → ECMWF IFS / AIFS / AIFS-ENS global 2D raster only
  *  'icon-global' → DWD ICON global 2D raster only (icosahedral, all DACH)
+ *  'aicon' → DWD AICON (KI) 2D raster only (temp/wind/precip; all DACH)
  */
 export type ModelChoice =
   | 'fusion' | 'mosmix' | 'arome' | 'inca' | 'obs'
   | 'icon-d2-eps' | 'icon-ch1-eps' | 'icon-ch2-eps' | 'arome-fr' | 'icon-eu' | 'gfs'
-  | 'ifs' | 'aifs' | 'aifs-ens' | 'icon-global';
+  | 'ifs' | 'aifs' | 'aifs-ens' | 'icon-global' | 'aicon';
 
 export interface FusedLoadOptions {
   signal?: AbortSignal;
@@ -344,6 +346,8 @@ export async function loadFusedForecast(options: FusedLoadOptions = {}): Promise
   const useAifsEns = modelChoice === 'aifs-ens';
   // ICON global (DWD, icosahedral): nur bei expliziter Einzelwahl.
   const useIconGlobal = modelChoice === 'icon-global';
+  // AICON (DWD KI): nur bei expliziter Einzelwahl.
+  const useAicon = modelChoice === 'aicon';
   const useTawesOrSmnInQuick = !skipSecondary;
 
   const engine = new FusionEngine({
@@ -446,8 +450,9 @@ export async function loadFusedForecast(options: FusedLoadOptions = {}): Promise
   const wantAifs    = useAifs;
   const wantAifsEns = useAifsEns;
   const wantIconGlobal = useIconGlobal;
+  const wantAicon = useAicon;
 
-  const [obs, bs, inca, arome, tawes, smn, eps, ch1, ch2, aromeFr, iconEu, gfs2d, ifs, aifs, aifsEns, iconGlobal] = await Promise.all([
+  const [obs, bs, inca, arome, tawes, smn, eps, ch1, ch2, aromeFr, iconEu, gfs2d, ifs, aifs, aifsEns, iconGlobal, aicon] = await Promise.all([
     wantObs ? getCachedSource(sourceKey('dwd_obs', hours), () =>
         fetchBrightSkyCurrentGrid({ cols: 10, rows: 8 })).catch(() => null) : Promise.resolve(null),
     wantMosmix ? getCachedSource(sourceKey('mosmix', hours), () =>
@@ -480,6 +485,8 @@ export async function loadFusedForecast(options: FusedLoadOptions = {}): Promise
         fetchEcmwfGrid('aifs-ens', { hours, signal: options.signal })).catch(() => null) : Promise.resolve(null),
     wantIconGlobal ? getCachedSource(sourceKey('icon-global', hours), () =>
         fetchIconGlobalGrid({ hours, signal: options.signal })).catch(() => null) : Promise.resolve(null),
+    wantAicon ? getCachedSource(sourceKey('aicon', hours), () =>
+        fetchAiconGrid({ hours, signal: options.signal })).catch(() => null) : Promise.resolve(null),
   ]);
 
   // Live obs — dominate hour 0 with measurement weight.
@@ -563,6 +570,11 @@ export async function loadFusedForecast(options: FusedLoadOptions = {}): Promise
     engine.ingest(iconGlobal, { temperature: 1.4, wind: 1.4, clouds: 1.4, precipitation: 1.4 });
     modelTags.push('icon_global');
   }
+  // AICON (DWD KI): Temp/Wind/Niederschlag (keine Wolken → Gewicht 0).
+  if (aicon && aicon.points[0]?.length) {
+    engine.ingest(aicon, { temperature: 1.4, wind: 1.4, clouds: 0, precipitation: 1.4 });
+    modelTags.push('aicon');
+  }
 
   // --- Source I (SE live stations, hour 0 only): SMHI ------------------------
   // SMHI is geographically out of scope for the DE/AT/CH country pages.
@@ -645,6 +657,7 @@ export async function loadFusedForecast(options: FusedLoadOptions = {}): Promise
     'aifs': 'ECMWF AIFS',
     'aifs-ens': 'ECMWF AIFS-ENS',
     'icon-global': 'DWD ICON global',
+    'aicon': 'DWD AICON',
   };
   const model = modelChoice !== 'fusion'
     ? `${SINGLE_MODEL_LABEL[modelChoice]} (${modelTags.join(', ') || 'no data'})`

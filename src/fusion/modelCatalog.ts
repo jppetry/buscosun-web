@@ -225,8 +225,9 @@ export const MODEL_CATALOG: readonly ModelEntry[] = [
   {
     id: 'aicon', name: 'AICON', operator: 'DWD', kind: 'raster', ai: true,
     resolutionKm: 13, horizonH: 180, license: 'CC-BY-4.0',
-    attribution: 'Daten: DWD (AICON) · CC BY 4.0', ingested: false, rasterCapable: true,
+    attribution: 'Daten: DWD (AICON) · CC BY 4.0', ingested: true, rasterCapable: true,
     engineGridded: true, coverage: coarse3, group: 'global',
+    pipelineNote: 'KI-Modell · 2D-Raster Temperatur/Wind/Niederschlag (0–6 h); Wolken folgen.',
   },
   {
     id: 'gem', name: 'GEM / GDPS', operator: 'ECCC', kind: 'raster',

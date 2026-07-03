@@ -123,6 +123,19 @@ function nearestIndex(coords: CellCoords, lats: number[], lngs: number[]): Int32
   return out;
 }
 
+/**
+ * Nearest-Cell-Index über das ICON-global-Gitter (clat/clon) für ein Ausgabe-
+ * Gitter. Öffentlich, weil DWD-AICON dasselbe icosahedrale Gitter (2,95 M Zellen,
+ * identische Zellordnung) nutzt, aber keine eigenen clat/clon publiziert — der
+ * AICON-Adapter leiht sich die Koordinaten hier. Das Gitter ist zeitinvariant,
+ * daher genügt der jüngste ICON-global-Lauf.
+ */
+export async function iconGlobalNearestIndex(lats: number[], lngs: number[], signal?: AbortSignal): Promise<Int32Array> {
+  const { run } = await resolveRun(signal);
+  const coords = await getCellCoords(run, signal);
+  return nearestIndex(coords, lats, lngs);
+}
+
 async function fieldAtPoints(run: string, step: number, param: string, idx: Int32Array, signal?: AbortSignal): Promise<Float32Array> {
   const raw = await fetchDecompressedCached(singleUrl(run, step, param), signal);
   const f = decodeGrib2(raw);
