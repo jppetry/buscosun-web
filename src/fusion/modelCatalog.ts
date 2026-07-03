@@ -250,8 +250,9 @@ export const MODEL_CATALOG: readonly ModelEntry[] = [
   {
     id: 'aifs', name: 'AIFS Single', operator: 'ECMWF', kind: 'raster', ai: true,
     resolutionKm: 28, horizonH: 360, license: 'CC-BY-4.0',
-    attribution: 'Daten: ECMWF (AIFS) · CC BY 4.0', ingested: false, rasterCapable: true,
+    attribution: 'Daten: ECMWF (AIFS) · CC BY 4.0', ingested: true, rasterCapable: true,
     engineGridded: true, coverage: coarse3, group: 'global',
+    pipelineNote: 'KI-Modell · 2D-Raster (Temperatur/Wind/Wolken/Niederschlag), 0,25°, 0–6 h.',
   },
   {
     id: 'aifs-ens', name: 'AIFS ENS', operator: 'ECMWF', kind: 'raster', ai: true, ensemble: true,

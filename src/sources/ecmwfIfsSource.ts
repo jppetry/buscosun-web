@@ -1,7 +1,9 @@
 /**
- * ECMWF IFS (Open Data, 0,25°) — globales 2D-Raster (Temperatur, Wind, Wolken,
- * Niederschlag) als coarse `ForecastGrid` für den Per-Land-Modell-Switcher
- * (Phase 4.7). IFS ist global (deckt DACH), CC BY 4.0, ohne Key.
+ * ECMWF Open Data (0,25°) — globales 2D-Raster (Temperatur, Wind, Wolken,
+ * Niederschlag) als coarse `ForecastGrid` für den Per-Land-Modell-Switcher.
+ * Deckt das klassische **IFS** (Phase 4.7) UND die KI-Modelle **AIFS-single**
+ * (Phase 4.8) ab — identische Infrastruktur, nur anderes Modell-Pfadsegment.
+ * Global (deckt DACH), CC BY 4.0, ohne Key.
  *
  * ECMWF Open Data liefert je Step eine GRIB2-Datei PLUS ein `.index`-Sidecar
  * (JSON-Lines mit `_offset`/`_length` je Feld) → **direkter HTTP-Range** je
@@ -27,6 +29,13 @@ const ECMWF_BASE = typeof window === 'undefined'
 
 const EU_BOUNDS: ForecastBounds = { lngMin: 5.5, lngMax: 17.5, latMin: 45.5, latMax: 55.5 };
 
+/** ECMWF-Open-Data-Modell → (Pfadsegment, ForecastHourPoint.model-Tag). */
+export type EcmwfModelId = 'ifs' | 'aifs-single';
+const ECMWF_MODELS: Record<EcmwfModelId, { path: string; tag: string }> = {
+  'ifs': { path: 'ifs/0p25/oper', tag: 'ecmwf_ifs' },
+  'aifs-single': { path: 'aifs-single/0p25/oper', tag: 'ecmwf_aifs' },
+};
+
 export interface EcmwfIfsOptions {
   cols?: number;
   rows?: number;
@@ -36,13 +45,13 @@ export interface EcmwfIfsOptions {
 
 function pad2(n: number) { return String(n).padStart(2, '0'); }
 
-/** Pfad-Stamm einer (Lauf, Step)-Datei ohne Endung. */
-function stem(date: string, hh: string, step: number): string {
-  return `${ECMWF_BASE}/${date}/${hh}z/ifs/0p25/oper/${date}${hh}0000-${step}h-oper-fc`;
+/** Pfad-Stamm einer (Modell, Lauf, Step)-Datei ohne Endung. */
+function stem(model: EcmwfModelId, date: string, hh: string, step: number): string {
+  return `${ECMWF_BASE}/${date}/${hh}z/${ECMWF_MODELS[model].path}/${date}${hh}0000-${step}h-oper-fc`;
 }
 
 interface IfsRun { date: string; hh: string; runAt: Date; }
-let runCache: { at: number; run: IfsRun } | null = null;
+const runCache = new Map<EcmwfModelId, { at: number; run: IfsRun }>();
 const RUN_TTL = 5 * 60 * 1000;
 
 async function headOk(url: string, signal?: AbortSignal): Promise<boolean> {
@@ -50,8 +59,9 @@ async function headOk(url: string, signal?: AbortSignal): Promise<boolean> {
 }
 
 /** Jüngsten publizierten Lauf finden (6-h-Läufe rückwärts; ~7–9 h Publikationslag). */
-async function resolveRun(signal?: AbortSignal): Promise<IfsRun> {
-  if (runCache && Date.now() - runCache.at < RUN_TTL) return runCache.run;
+async function resolveRun(model: EcmwfModelId, signal?: AbortSignal): Promise<IfsRun> {
+  const cached = runCache.get(model);
+  if (cached && Date.now() - cached.at < RUN_TTL) return cached.run;
   const now = new Date();
   now.setUTCMinutes(0, 0, 0);
   now.setUTCHours(now.getUTCHours() - (now.getUTCHours() % 6));
@@ -59,20 +69,20 @@ async function resolveRun(signal?: AbortSignal): Promise<IfsRun> {
     const cand = new Date(now.getTime() - back * 6 * 3600_000);
     const date = `${cand.getUTCFullYear()}${pad2(cand.getUTCMonth() + 1)}${pad2(cand.getUTCDate())}`;
     const hh = pad2(cand.getUTCHours());
-    if (await headOk(`${stem(date, hh, 0)}.index`, signal)) {
+    if (await headOk(`${stem(model, date, hh, 0)}.index`, signal)) {
       const run = { date, hh, runAt: cand };
-      runCache = { at: Date.now(), run };
+      runCache.set(model, { at: Date.now(), run });
       return run;
     }
   }
-  throw new Error('ECMWF IFS: kein publizierter Lauf gefunden');
+  throw new Error(`ECMWF ${model}: kein publizierter Lauf gefunden`);
 }
 
 interface IdxEntry { param: string; levtype?: string; _offset: number; _length: number; }
 
 /** `.index` laden (JSON-Lines) und nach Oberflächenfeldern indizieren. */
-async function loadIndex(date: string, hh: string, step: number, signal?: AbortSignal): Promise<Map<string, IdxEntry>> {
-  const res = await fetch(`${stem(date, hh, step)}.index`, { signal });
+async function loadIndex(model: EcmwfModelId, date: string, hh: string, step: number, signal?: AbortSignal): Promise<Map<string, IdxEntry>> {
+  const res = await fetch(`${stem(model, date, hh, step)}.index`, { signal });
   if (!res.ok) throw new Error(`ECMWF IFS: index ${res.status}`);
   const map = new Map<string, IdxEntry>();
   for (const line of (await res.text()).trim().split('\n')) {
@@ -85,8 +95,8 @@ async function loadIndex(date: string, hh: string, step: number, signal?: AbortS
 }
 
 /** Ein Feld per Byte-Range aus der GRIB2-Datei holen + dekodieren. */
-async function fetchField(date: string, hh: string, step: number, e: IdxEntry, signal?: AbortSignal): Promise<GribField> {
-  const res = await fetch(`${stem(date, hh, step)}.grib2`, {
+async function fetchField(model: EcmwfModelId, date: string, hh: string, step: number, e: IdxEntry, signal?: AbortSignal): Promise<GribField> {
+  const res = await fetch(`${stem(model, date, hh, step)}.grib2`, {
     headers: { Range: `bytes=${e._offset}-${e._offset + e._length - 1}` }, signal,
   });
   if (!res.ok && res.status !== 206) throw new Error(`ECMWF IFS: Range ${res.status}`);
@@ -107,8 +117,9 @@ function sampleGlobal(f: GribField, lat: number, lon: number): number {
   return f.values[rj * f.ni + ci];
 }
 
-/** Lädt ECMWF IFS als coarse `ForecastGrid` (Temperatur/Wind/Wolken/Niederschlag). */
-export async function fetchEcmwfIfsGrid(options: EcmwfIfsOptions = {}): Promise<ForecastGrid> {
+/** Lädt ein ECMWF-Open-Data-Modell (IFS/AIFS) als coarse `ForecastGrid`
+ *  (Temperatur/Wind/Wolken/Niederschlag). */
+export async function fetchEcmwfGrid(model: EcmwfModelId, options: EcmwfIfsOptions = {}): Promise<ForecastGrid> {
   const cols = options.cols ?? 24;
   const rows = options.rows ?? 20;
   const total = cols * rows;
@@ -116,7 +127,7 @@ export async function fetchEcmwfIfsGrid(options: EcmwfIfsOptions = {}): Promise<
   const steps: number[] = [];
   for (let s = 0; s <= cap; s += 3) steps.push(s);
 
-  const { date, hh, runAt } = await resolveRun(options.signal);
+  const { date, hh, runAt } = await resolveRun(model, options.signal);
 
   const lats = new Array<number>(total), lngs = new Array<number>(total);
   for (let j = 0; j < rows; j++) {
@@ -129,14 +140,14 @@ export async function fetchEcmwfIfsGrid(options: EcmwfIfsOptions = {}): Promise<
 
   const PARAMS = ['2t', '10u', '10v', 'tcc', 'tp'] as const;
   const perStep = await Promise.all(steps.map(async (step) => {
-    const idx = await loadIndex(date, hh, step, options.signal).catch(() => null);
+    const idx = await loadIndex(model, date, hh, step, options.signal).catch(() => null);
     if (!idx) return null;
     const out: Record<string, Float32Array> = {};
     await Promise.all(PARAMS.map(async (p) => {
       const e = idx.get(p);
       const arr = new Float32Array(total).fill(NaN);
       if (e) {
-        const f = await fetchField(date, hh, step, e, options.signal).catch(() => null);
+        const f = await fetchField(model, date, hh, step, e, options.signal).catch(() => null);
         if (f) for (let k = 0; k < total; k++) arr[k] = sampleGlobal(f, lats[k], lngs[k]);
       }
       out[p] = arr;
@@ -170,12 +181,12 @@ export async function fetchEcmwfIfsGrid(options: EcmwfIfsOptions = {}): Promise<
         cloudMid: total100 != null ? total100 * 0.30 : null,
         cloudHigh: total100 != null ? total100 * 0.15 : null,
         precipitation: precip,
-        model: 'ecmwf_ifs',
+        model: ECMWF_MODELS[model].tag,
       };
     }
     points.push(arr);
   }
-  if (points.length === 0) throw new Error('ECMWF IFS: keine Felder dekodiert');
+  if (points.length === 0) throw new Error(`ECMWF ${model}: keine Felder dekodiert`);
 
   return { cols, rows, bounds: EU_BOUNDS, times, points, fetchedAt: Date.now() };
 }

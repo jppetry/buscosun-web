@@ -27,7 +27,7 @@ import { fetchIconChEpsGrid } from '../sources/iconChEpsSource';
 import { fetchAromeFranceGrid } from '../sources/aromeFranceSource';
 import { fetchIconEuRasterGrid } from '../sources/iconEuRasterSource';
 import { fetchGfs2dGrid } from '../sources/gfs2dSource';
-import { fetchEcmwfIfsGrid } from '../sources/ecmwfIfsSource';
+import { fetchEcmwfGrid } from '../sources/ecmwfIfsSource';
 import { fetchTawesCurrentGrid } from '../sources/geosphereTawes';
 import { fetchSmnCurrentGrid } from '../sources/meteoSwissSmn';
 import { fetchSmhiCurrentGrid } from '../sources/smhiStations';
@@ -212,11 +212,11 @@ async function getCachedSource<T>(
  *  'arome-fr' → Météo-France AROME-France 0.01° only (temp+wind; DE/CH + west AT)
  *  'icon-eu' → DWD ICON-EU single-level 2D raster only (all DACH)
  *  'gfs' → NOAA GFS global 2D raster only (coarse, all DACH)
- *  'ifs' → ECMWF IFS global 2D raster only (coarse, all DACH)
+ *  'ifs' / 'aifs' → ECMWF IFS / AIFS global 2D raster only (coarse, all DACH)
  */
 export type ModelChoice =
   | 'fusion' | 'mosmix' | 'arome' | 'inca' | 'obs'
-  | 'icon-d2-eps' | 'icon-ch1-eps' | 'icon-ch2-eps' | 'arome-fr' | 'icon-eu' | 'gfs' | 'ifs';
+  | 'icon-d2-eps' | 'icon-ch1-eps' | 'icon-ch2-eps' | 'arome-fr' | 'icon-eu' | 'gfs' | 'ifs' | 'aifs';
 
 export interface FusedLoadOptions {
   signal?: AbortSignal;
@@ -335,8 +335,9 @@ export async function loadFusedForecast(options: FusedLoadOptions = {}): Promise
   const useIconEu = modelChoice === 'icon-eu';
   // GFS (global, coarse): nur bei expliziter Einzelwahl.
   const useGfs = modelChoice === 'gfs';
-  // ECMWF IFS (global, coarse): nur bei expliziter Einzelwahl.
+  // ECMWF IFS / AIFS (global, coarse): nur bei expliziter Einzelwahl.
   const useIfs = modelChoice === 'ifs';
+  const useAifs = modelChoice === 'aifs';
   const useTawesOrSmnInQuick = !skipSecondary;
 
   const engine = new FusionEngine({
@@ -436,8 +437,9 @@ export async function loadFusedForecast(options: FusedLoadOptions = {}): Promise
   const wantIconEu  = useIconEu;
   const wantGfs     = useGfs;
   const wantIfs     = useIfs;
+  const wantAifs    = useAifs;
 
-  const [obs, bs, inca, arome, tawes, smn, eps, ch1, ch2, aromeFr, iconEu, gfs2d, ifs] = await Promise.all([
+  const [obs, bs, inca, arome, tawes, smn, eps, ch1, ch2, aromeFr, iconEu, gfs2d, ifs, aifs] = await Promise.all([
     wantObs ? getCachedSource(sourceKey('dwd_obs', hours), () =>
         fetchBrightSkyCurrentGrid({ cols: 10, rows: 8 })).catch(() => null) : Promise.resolve(null),
     wantMosmix ? getCachedSource(sourceKey('mosmix', hours), () =>
@@ -463,7 +465,9 @@ export async function loadFusedForecast(options: FusedLoadOptions = {}): Promise
     wantGfs ? getCachedSource(sourceKey('gfs', hours), () =>
         fetchGfs2dGrid({ hours, signal: options.signal })).catch(() => null) : Promise.resolve(null),
     wantIfs ? getCachedSource(sourceKey('ifs', hours), () =>
-        fetchEcmwfIfsGrid({ hours, signal: options.signal })).catch(() => null) : Promise.resolve(null),
+        fetchEcmwfGrid('ifs', { hours, signal: options.signal })).catch(() => null) : Promise.resolve(null),
+    wantAifs ? getCachedSource(sourceKey('aifs', hours), () =>
+        fetchEcmwfGrid('aifs-single', { hours, signal: options.signal })).catch(() => null) : Promise.resolve(null),
   ]);
 
   // Live obs — dominate hour 0 with measurement weight.
@@ -531,6 +535,11 @@ export async function loadFusedForecast(options: FusedLoadOptions = {}): Promise
   if (ifs && ifs.points[0]?.length) {
     engine.ingest(ifs, { temperature: 1.4, wind: 1.4, clouds: 1.4, precipitation: 1.4 });
     modelTags.push('ecmwf_ifs');
+  }
+  // ECMWF AIFS (KI) global, nur bei Einzelwahl.
+  if (aifs && aifs.points[0]?.length) {
+    engine.ingest(aifs, { temperature: 1.4, wind: 1.4, clouds: 1.4, precipitation: 1.4 });
+    modelTags.push('ecmwf_aifs');
   }
 
   // --- Source I (SE live stations, hour 0 only): SMHI ------------------------
@@ -611,6 +620,7 @@ export async function loadFusedForecast(options: FusedLoadOptions = {}): Promise
     'icon-eu': 'DWD ICON-EU',
     'gfs': 'NOAA GFS',
     'ifs': 'ECMWF IFS',
+    'aifs': 'ECMWF AIFS',
   };
   const model = modelChoice !== 'fusion'
     ? `${SINGLE_MODEL_LABEL[modelChoice]} (${modelTags.join(', ') || 'no data'})`
