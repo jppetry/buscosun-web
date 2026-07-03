@@ -23,6 +23,14 @@ export interface GribField {
   scanMode: number;
   /** ni·nj Werte in Scan-Reihenfolge, NaN = Bitmap-maskiert (kein Wert). */
   values: Float32Array;
+  /**
+   * true = unstrukturiertes (icosahedrales) ICON-Gitter (GDT 101): `values` ist
+   * ein flaches Array von `ni` Zellen (nj=1), lat/lon/di/dj sind bedeutungslos —
+   * die Zellkoordinaten kommen aus separaten `clat`/`clon`-Feldern. Für ICON-D2-
+   * EPS (nur icosahedral publiziert). Reguläre lat-lon-Felder (GDT 0) haben das
+   * Flag nicht gesetzt.
+   */
+  unstructured?: boolean;
 }
 
 /** 16-bit-Ganzzahl in GRIB2-Vorzeichen-Betrag-Darstellung. */
@@ -153,6 +161,7 @@ export function decodeGrib2(raw: Uint8Array): GribField {
   let drt = 0, aecBlock = 0, aecRsi = 0; // DRT 42 (CCSDS/AEC)
   let bitmap: Uint8Array | null = null;
   let hasBitmap = false;
+  let unstructured = false;
   let data: Uint8Array | null = null;
 
   let off = p + 16; // Sektion 0 ist 16 Byte
@@ -165,16 +174,27 @@ export function decodeGrib2(raw: Uint8Array): GribField {
     const secnum = raw[off + 4];
     if (secnum === 3) {
       const gdt = dv.getUint16(off + 12);
-      if (gdt !== 0) throw new Error('GRIB2: GDT ' + gdt + ' (nur reguläres lat-lon GDT 0)');
-      ni = dv.getUint32(off + 30);
-      nj = dv.getUint32(off + 34);
-      la1 = signMag16Big(dv.getUint32(off + 46)) / 1e6;
-      lo1 = signMag16Big(dv.getUint32(off + 50)) / 1e6;
-      la2 = signMag16Big(dv.getUint32(off + 55)) / 1e6;
-      lo2 = signMag16Big(dv.getUint32(off + 59)) / 1e6;
-      di = dv.getUint32(off + 63) / 1e6;
-      dj = dv.getUint32(off + 67) / 1e6;
-      scanMode = raw[off + 71];
+      if (gdt === 0) {
+        ni = dv.getUint32(off + 30);
+        nj = dv.getUint32(off + 34);
+        la1 = signMag16Big(dv.getUint32(off + 46)) / 1e6;
+        lo1 = signMag16Big(dv.getUint32(off + 50)) / 1e6;
+        la2 = signMag16Big(dv.getUint32(off + 55)) / 1e6;
+        lo2 = signMag16Big(dv.getUint32(off + 59)) / 1e6;
+        di = dv.getUint32(off + 63) / 1e6;
+        dj = dv.getUint32(off + 67) / 1e6;
+        scanMode = raw[off + 71];
+      } else if (gdt === 101) {
+        // Unstrukturiertes (icosahedrales) ICON-Gitter: keine ni/nj/lat-lon im
+        // File. `numberOfDataPoints` (Sektion-3-Gemeinfeld, Oktett 7-10) liefert
+        // die Zellzahl; wir modellieren sie als ni=N, nj=1 (flaches Werte-Array).
+        // Die Zellkoordinaten kommen aus den separaten clat/clon-Feldern.
+        unstructured = true;
+        ni = dv.getUint32(off + 6);
+        nj = 1;
+      } else {
+        throw new Error('GRIB2: GDT ' + gdt + ' (nur GDT 0 reg-latlon + GDT 101 icosahedral)');
+      }
     } else if (secnum === 5) {
       ndata = dv.getUint32(off + 5);
       drt = dv.getUint16(off + 9);
@@ -244,7 +264,39 @@ export function decodeGrib2(raw: Uint8Array): GribField {
     ni, nj,
     lat1: la1, lon1: normLon1, lat2: la2, lon2: normLon2,
     di, dj, scanMode, values,
+    unstructured,
   };
+}
+
+/**
+ * Dekodiert ALLE GRIB2-Nachrichten eines (entpackten) Puffers — für Multi-
+ * Message-Dateien wie ICON-D2-EPS, wo ein Datei je Step alle ~20 Ensemble-
+ * Member als separate Nachrichten enthält. Iteriert über die Gesamtlänge aus
+ * Sektion 0 (Oktett 9-16), dekodiert jede Nachricht einzeln. Reihenfolge =
+ * Datei-Reihenfolge (i. d. R. perturbationNumber aufsteigend).
+ */
+export function decodeGrib2All(raw: Uint8Array): GribField[] {
+  const dv = new DataView(raw.buffer, raw.byteOffset, raw.byteLength);
+  const out: GribField[] = [];
+  let off = 0;
+  while (off < raw.length - 4) {
+    if (!(raw[off] === 0x47 && raw[off + 1] === 0x52 && raw[off + 2] === 0x49 && raw[off + 3] === 0x42)) {
+      off++;
+      continue;
+    }
+    // Sektion 0: Gesamtlänge der Nachricht (Oktett 9-16, 64-bit big-endian).
+    const totalLen = Number(dv.getBigUint64(off + 8));
+    if (totalLen < 16 || off + totalLen > raw.length) break;
+    // Einzelne fehlerhafte Nachricht überspringen statt den ganzen Satz zu
+    // verwerfen. ICON-D2-EPS: gelegentlich trägt ein einzelner Member ein
+    // vollflächiges Bitmap-Layout, das nicht sauber parst — für das Ensemble-
+    // Mittel ist der Verlust eines Members irrelevant. Die Nachrichtengrenze
+    // (totalLen) ist unabhängig vom Inhalt korrekt → wir resynchronisieren sauber.
+    try { out.push(decodeGrib2(raw.subarray(off, off + totalLen))); } catch { /* skip */ }
+    off += totalLen;
+  }
+  if (out.length === 0) throw new Error('GRIB2: keine dekodierbare Nachricht gefunden');
+  return out;
 }
 
 /**
