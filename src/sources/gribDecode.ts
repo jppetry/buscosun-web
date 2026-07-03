@@ -94,7 +94,18 @@ export function aecDecode(data: Uint8Array, bitsPerSample: number, count: number
     let refPending = true;       // erstes Sample der RSI = Referenz
     for (let blk = 0; blk < rsi && oi < count; blk++) {
       const id = rd(idLen);
+      // Low-Entropy-Blöcke (id 0) tragen VOR dem Referenzsample ein 1-Bit-Flag
+      // (0 = Zero-Block-Run, 1 = Second Extension). libaec liest dieses Bit in
+      // m_low_entropy — also noch bevor m_low_entropy_ref das Referenzsample per
+      // copysample einliest. Korrekte Reihenfolge ist daher: id → sub → Referenz
+      // → Rumpf. Für alle anderen Block-Typen liegt zwischen id und Referenz
+      // nichts. Läse man das Referenzsample vor dem sub-Bit, desynchronisiert
+      // der Bitstrom um 1 Bit, sobald der ERSTE Block einer RSI low-entropy ist
+      // (die restlichen Blöcke sind davon nicht betroffen, weil sie kein
+      // Referenzsample tragen).
+      const sub = id === 0 ? rd(1) : 0;
       let nSamp = blockSize;
+      const refThisBlock = refPending;
       if (refPending) {
         prev = rd(bitsPerSample);
         out[oi++] = prev; nSamp = blockSize - 1; refPending = false;
@@ -103,12 +114,14 @@ export function aecDecode(data: Uint8Array, bitsPerSample: number, count: number
       if (id === idUncomp) {
         for (let j = 0; j < nSamp && oi < count; j++) { prev = unmap(rd(bitsPerSample), prev); out[oi++] = prev; }
       } else if (id === 0) {
-        const sub = rd(1);
         if (sub === 0) {
           // Zero-Block-Run (δ=0 → Wert bleibt konstant). ROS = bis Segmentende.
           let zb = readFS() + 1;
           const ROS = 5;
-          if (zb === ROS) zb = rsi - blk;       // alle restlichen Blöcke der RSI
+          // libaec m_zero_block: bei ROS läuft der Run bis zum Ende der RSI,
+          // jedoch gedeckelt auf die aktuelle 64er-Blockgruppe (MIN(rsi−b,
+          // 64−(b%64)) mit b = bereits geschriebene Blöcke = blk).
+          if (zb === ROS) zb = Math.min(rsi - blk, 64 - (blk % 64));
           else if (zb > ROS) zb--;
           for (let b = 0; b < zb && oi < count; b++) {
             const cnt = b === 0 ? nSamp : blockSize;
@@ -116,16 +129,22 @@ export function aecDecode(data: Uint8Array, bitsPerSample: number, count: number
           }
           blk += zb - 1; // diese Schleife hat zb Blöcke (aktueller + zb−1) verbraucht
         } else {
-          // Second Extension: Paare über Dreieckscode (m → (d0,d1)).
-          for (let j = 0; j < nSamp && oi < count; j += 2) {
+          // Second Extension: Paare über Dreieckscode (m → (d0,d1)). libaec
+          // startet den Paar-Index bei `ref`: ist dies der erste Block der RSI,
+          // belegt das bereits ausgegebene Referenzsample den geraden Slot des
+          // ersten Paars — der erste FS-Wert liefert dann nur das ungerade
+          // Sample (d1). Ohne diesen versetzten Start stimmt zwar die Bit-, aber
+          // nicht die Sample-Zuordnung.
+          let i = refThisBlock ? 1 : 0;
+          while (i < blockSize && oi < count) {
             const m = readFS();
             let s = Math.floor((Math.sqrt(8 * m + 1) - 1) / 2);
             while (((s + 1) * (s + 2)) / 2 <= m) s++;
             while ((s * (s + 1)) / 2 > m) s--;
             const d1 = m - (s * (s + 1)) / 2;
             const d0 = s - d1;
-            prev = unmap(d0, prev); out[oi++] = prev;
-            if (j + 1 < nSamp && oi < count) { prev = unmap(d1, prev); out[oi++] = prev; }
+            if ((i & 1) === 0) { prev = unmap(d0, prev); out[oi++] = prev; i++; }
+            if (oi < count) { prev = unmap(d1, prev); out[oi++] = prev; i++; }
           }
         }
       } else {
