@@ -37,21 +37,6 @@ export type FusionCapableLayer = (typeof FUSION_CAPABLE_LAYERS)[number];
 
 const CAPABLE_SET: ReadonlySet<string> = new Set(FUSION_CAPABLE_LAYERS);
 
-/**
- * Master-Schalter für den **stillen Default-**Fusion-Raster-Pfad (Bestand).
- *
- * `false`: ohne explizite Nutzerwahl rendert die Karte ausschließlich **nativ**,
- * und `isFusionActive` bleibt aus. Grund (verifiziert 2026-07): das gridded
- * Fusion-Temperaturfeld unter-auflöst die alpine Höhenkorrektur (effektives
- * Lapse ~0,27 statt ~0,65 °C/100 m). Der komplette Switch-Mechanismus bleibt
- * intakt; ein Flip auf `true` reaktiviert den stillen Fusion-Default.
- *
- * Der **neue Per-Land-Switcher** (Phase 3, `resolveModel`/`activeModelId`) ist
- * von diesem Flag **unabhängig**: dort ist die Wahl explizit + mit Qualitäts-
- * Badge, daher rendert eine ausdrücklich gewählte Quelle unabhängig vom Flag.
- */
-export const FUSION_RASTER_ENABLED: boolean = false;
-
 /** Hat der Layer überhaupt eine umschaltbare Raster-Quelle (sonst „native-by-design")? */
 export function isFusionCapable(layer: string): layer is FusionCapableLayer {
   return CAPABLE_SET.has(layer);
@@ -169,14 +154,6 @@ export function resolveModelWithFallback(
   return { id, requested, fellBack: id !== requested };
 }
 
-/**
- * Bequemer Boolean für die Render-Effekte des **stillen Default-Pfads**
- * (Bestand). Respektiert `FUSION_RASTER_ENABLED`. Der explizite Per-Land-
- * Switcher nutzt stattdessen `resolveModel`/`activeModelId`.
- */
-export function isFusionActive(layer: string, state: ModelSourceState): boolean {
-  return FUSION_RASTER_ENABLED && resolveModelSource(layer, state) === 'fusion';
-}
 
 /**
  * Quelle der Punkt-Engine (`getPointForecast`). `'fusion'` = Multi-Quellen-

@@ -11,8 +11,7 @@ import { RainLayer, precipRainRamp } from './scalar/RainLayer';
 import { CloudLayer } from './scalar/CloudLayer';
 import { loadFusedForecast, prefetchSecondarySources, type ModelChoice } from './fusion/loadFusedForecast';
 import {
-  FUSION_RASTER_ENABLED,
-  initialModelSourceState, isFusionCapable, resolveModelSource, resolveModel, activeModelId,
+  initialModelSourceState, isFusionCapable, resolveModel, activeModelId,
   setGlobalSource, setLayerOverride, clearLayerOverride,
   setActiveCountry, setCountryModel, toggleRadar,
   resolvePointSource, setPointSource,
@@ -322,8 +321,7 @@ export default function MapView({ location, onBack, embedded = false, initialAct
   // „Engine-Raster aktiv für Layer X?" = das resolvte Modell ist engine-gerastert
   // (Fusion/AROME/INCA) → das Grid speist den Layer statt des nativen Pfads. ICON-D2/
   // Native/Punktquellen → false (nativer ICON-D2-Pfad rendert). Frisch aus der Ref
-  // (für []-dep-Effekt-Closures). Unabhängig von FUSION_RASTER_ENABLED — die Wahl ist
-  // hier explizit + mit Qualitäts-Badge.
+  // (für []-dep-Effekt-Closures). Die Wahl ist explizit (Switcher) + mit Qualitäts-Badge.
   const fusionFor = (layer: string) => {
     const id = resolveModel(layer, modelSourceRef.current);
     return id !== 'native' && modelEntry(id)?.engineGridded === true;
@@ -331,10 +329,6 @@ export default function MapView({ location, onBack, embedded = false, initialAct
   // Aktives Per-Land-Modell → ModelChoice fürs Grid-Loading. Ändert sich die Wahl,
   // reagieren die bestehenden [modelChoice]-Effects (Ref-Update + Grid-Reload).
   const modelChoice: ModelChoice = MODEL_ID_TO_CHOICE[activeModelId(modelSource)] ?? 'fusion';
-  // Globaler UI-Switch (Phase 4): setzt Raster-`global` UND die Punkt-Engine gemeinsam
-  // (s. docs/fusion-2d-integration.md) — ein Klick, beide Domänen konsistent.
-  const setGlobalModel = (src: ModelSource) =>
-    setModelSource((s) => setPointSource(setGlobalSource(s, src), src));
   // Per-Land-Modell-Switcher (Phase 3): Land-Wahl · Modellwahl je Land · Radar-Toggle.
   // Die Modellwahl koppelt Raster + Punkt über den Resolver (resolvePointSource).
   const onSelectCountry = (c: Country) => setModelSource((s) => setActiveCountry(s, c));
@@ -2329,47 +2323,6 @@ export default function MapView({ location, onBack, embedded = false, initialAct
           onToggleRadar={onToggleRadar}
           fusionError={fusionError}
         />
-        {/* Fusion⇄Native-Modellquelle (Master oben im Stack): global (Raster + Punkt)
-            + optionaler Per-Layer-Override. Nur fusion-fähige aktive Layer sind
-            übersteuerbar; die übrigen bleiben native-by-design und fehlen hier.
-            Ausgeblendet, solange FUSION_RASTER_ENABLED === false (Raster nur nativ). */}
-        {FUSION_RASTER_ENABLED && (
-        <div className="model-switch" role="group" aria-label="Modellquelle">
-          <div className="ms-global">
-            <button
-              type="button"
-              className={modelSource.global === 'fusion' ? 'active' : ''}
-              onClick={() => setGlobalModel('fusion')}
-              title="Fusion — höhenkorrigierter Multi-Quellen-Blend (DACH-Raster + Punkt-Panel)"
-            >Fusion</button>
-            <button
-              type="button"
-              className={modelSource.global === 'native' ? 'active' : ''}
-              onClick={() => setGlobalModel('native')}
-              title="Native — rohe Einzelquelle (ICON-D2-Raster · dominantes Landesmodell im Punkt-Panel)"
-            >Native</button>
-          </div>
-          {LAYER_OPTIONS.some(o => active.has(o.key) && isFusionCapable(o.key)) && (
-            <div className="ms-layers">
-              {LAYER_OPTIONS.filter(o => active.has(o.key) && isFusionCapable(o.key)).map(opt => {
-                const src = resolveModelSource(opt.key, modelSource);
-                const overridden = opt.key in modelSource.overrides;
-                return (
-                  <div key={opt.key} className={`ms-row${overridden ? ' is-override' : ''}`}>
-                    <span className="ms-row-icon" title={overridden ? `${opt.label}: eigener Override` : `${opt.label}: folgt global`} aria-label={opt.label}><LayerIcon layer={opt.key} /></span>
-                    <button type="button" className={src === 'fusion' ? 'active' : ''} onClick={() => setModelSource(s => setLayerOverride(s, opt.key, 'fusion'))} title="Fusion für diesen Layer">F</button>
-                    <button type="button" className={src === 'native' ? 'active' : ''} onClick={() => setModelSource(s => setLayerOverride(s, opt.key, 'native'))} title="Native für diesen Layer">N</button>
-                    <button type="button" className="ms-clear" disabled={!overridden} onClick={() => setModelSource(s => clearLayerOverride(s, opt.key))} title="Override entfernen — folgt wieder global" aria-label="Override entfernen">↺</button>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-          {fusionError && (modelSource.global === 'fusion' || Object.values(modelSource.overrides).includes('fusion')) && (
-            <div className="ms-note" role="status" title="Die gridded Fusion konnte nicht geladen werden — die Layer rendern automatisch nativ (ICON-D2).">⚠ Fusion offline · nativ</div>
-          )}
-        </div>
-        )}
         <div className="layer-switch">
           {LAYER_OPTIONS.map(opt => (
             <button
@@ -2632,19 +2585,6 @@ export default function MapView({ location, onBack, embedded = false, initialAct
                   fusionError={fusionError}
                 />
 
-                {FUSION_RASTER_ENABLED && (
-                <div className="map-sheet-model">
-                  <span className="map-sheet-model-label">Modell</span>
-                  {fusionError && (modelSource.global === 'fusion' || Object.values(modelSource.overrides).includes('fusion')) && (
-                    <span className="map-sheet-modelnote" role="status">⚠ Fusion offline · nativ</span>
-                  )}
-                  <div className="map-sheet-seg" role="group" aria-label="Modellquelle">
-                    <button type="button" className={modelSource.global === 'fusion' ? 'active' : ''} onClick={() => setGlobalModel('fusion')}>Fusion</button>
-                    <button type="button" className={modelSource.global === 'native' ? 'active' : ''} onClick={() => setGlobalModel('native')}>Native</button>
-                  </div>
-                </div>
-                )}
-
                 <div className="map-sheet-list">
                   {LAYER_OPTIONS.map(opt => {
                     const on = active.has(opt.key);
@@ -2713,18 +2653,6 @@ export default function MapView({ location, onBack, embedded = false, initialAct
                                 ))}
                               </div>
                             )}
-                            {FUSION_RASTER_ENABLED && isFusionCapable(opt.key) && on && (() => {
-                              const src = resolveModelSource(opt.key, modelSource);
-                              const overridden = opt.key in modelSource.overrides;
-                              return (
-                                <div className="map-sheet-sub model-layer-switch" role="group" aria-label="Modellquelle dieses Layers">
-                                  <span aria-hidden="true">Modell</span>
-                                  <button type="button" className={src === 'fusion' ? 'active' : ''} onClick={() => setModelSource(s => setLayerOverride(s, opt.key, 'fusion'))}>Fusion</button>
-                                  <button type="button" className={src === 'native' ? 'active' : ''} onClick={() => setModelSource(s => setLayerOverride(s, opt.key, 'native'))}>Native</button>
-                                  <button type="button" className="mls-clear" disabled={!overridden} onClick={() => setModelSource(s => clearLayerOverride(s, opt.key))} title="Override entfernen — folgt wieder global">↺ Global</button>
-                                </div>
-                              );
-                            })()}
                           </div>
                         )}
                       </div>
