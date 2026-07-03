@@ -112,8 +112,18 @@
   align-items: flex-start;
   gap: 0.5rem;
   pointer-events: none; /* Lücken zwischen den Leisten blockieren die Karte nicht */
+  /* Bei vielen aktiven Layern (Layer-Rail + MODELL-Rail + Per-Layer-Overrides)
+     kann der Stack die Fensterhöhe überschreiten; deckeln + scrollen statt
+     die MODELL-Rail unter den Fold zu schieben. Slider-/Legenden-Zone freihalten. */
+  max-height: calc(100vh - 5.7rem - 6.5rem);
+  overflow-y: auto;
+  scrollbar-width: none;              /* dezent: keine sichtbare Scrollbar */
+  /* Rand, damit das overflow-Clipping die Rail-Schatten nicht abschneidet
+     (links am 1rem-Anker unverändert). */
+  padding: 6px 10px 6px 0;
 }
-.left-rails > * { pointer-events: auto; }
+.left-rails::-webkit-scrollbar { width: 0; height: 0; }
+.left-rails > * { pointer-events: auto; flex: none; }
 
 .layer-switch {
   width: 56px;
@@ -339,6 +349,50 @@
   border-color: var(--ink-900);
   color: #fff;
 }
+
+/* ============ MODEL SOURCE SWITCH (Fusion ⇄ Native) ============
+   In-flow im .left-rails-Flexstack (→ auf Mobile via .left-rails{display:none}
+   automatisch versteckt; das Sheet repliziert den Switch). Global (Raster+Punkt)
+   + optionaler Per-Layer-Override je aktivem fusion-fähigem Layer. */
+.model-switch {
+  width: 96px;
+  display: flex; flex-direction: column; align-items: stretch; gap: 0.4rem;
+  background: var(--surface-glass);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  border: 1px solid var(--border-default); border-radius: 18px;
+  padding: 0.5rem 0.4rem; box-shadow: var(--shadow-card); pointer-events: auto;
+}
+.model-switch::before {
+  content: 'MODELL'; font-size: 0.5rem; letter-spacing: 0.18em; font-weight: 500;
+  color: var(--stone-400); text-align: center;
+}
+.ms-global { display: flex; gap: 0.25rem; }
+.ms-global button {
+  flex: 1; background: transparent; border: 1px solid var(--border-default); border-radius: 999px;
+  padding: 0.3rem 0.2rem; font-family: inherit; font-size: 0.6rem; font-weight: 500;
+  color: var(--stone-600); cursor: pointer; transition: background .15s, color .15s, border-color .15s;
+}
+.ms-global button:hover { background: var(--sand-50); border-color: var(--border-medium); color: var(--ink-900); }
+.ms-global button.active { background: var(--ink-900); border-color: var(--ink-900); color: #fff; }
+.ms-layers {
+  display: flex; flex-direction: column; gap: 0.28rem;
+  border-top: 1px solid var(--sand-100); padding-top: 0.35rem;
+}
+.ms-row { display: flex; align-items: center; gap: 0.2rem; }
+.ms-row-icon {
+  flex: 1; min-width: 0; display: inline-flex; align-items: center; color: var(--stone-500);
+}
+.ms-row-icon svg { width: 15px; height: 15px; }
+.ms-row.is-override .ms-row-icon { color: var(--terracotta-700); }
+.ms-row button {
+  flex: none; width: 19px; height: 19px; padding: 0; border: 1px solid var(--border-default); border-radius: 6px;
+  background: transparent; font-family: inherit; font-size: 0.58rem; font-weight: 600; color: var(--stone-600);
+  cursor: pointer; transition: background .15s, color .15s, border-color .15s;
+}
+.ms-row button:hover:not(:disabled) { background: var(--sand-50); border-color: var(--border-medium); color: var(--ink-900); }
+.ms-row button.active { background: var(--ink-900); border-color: var(--ink-900); color: #fff; }
+.ms-row .ms-clear { font-weight: 400; color: var(--stone-400); }
+.ms-row .ms-clear:disabled { opacity: 0.3; cursor: default; }
 
 /* ============ WIND PARTICLE SWITCH (bottom-center, über dem Slider) ============ */
 .wind-particle-switch {
@@ -1621,6 +1675,30 @@
   }
   .map-sheet-model-label { font-size: 0.6rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--stone-400); }
   .map-sheet-model-val { font-size: 0.9rem; font-weight: 500; }
+
+  /* Globaler Fusion⇄Native-Switch im Sheet (spiegelt die Desktop-.model-switch). */
+  .map-sheet-seg { margin-left: auto; display: flex; gap: 0.35rem; }
+  .map-sheet-seg button {
+    min-height: 36px; padding: 0.3rem 0.75rem; border: 1px solid var(--border-default); border-radius: 999px;
+    background: var(--cream-50); font: inherit; font-size: 0.78rem; font-weight: 500; color: var(--stone-600);
+    cursor: pointer; transition: background .15s, color .15s, border-color .15s;
+  }
+  .map-sheet-seg button.active { background: var(--ink-900); border-color: var(--ink-900); color: #fff; }
+
+  /* Per-Layer-Override in der aufgeklappten Layer-Info. */
+  .map-sheet .model-layer-switch {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.6rem;
+    position: static; background: none; border: none; box-shadow: none; padding: 0;
+  }
+  .map-sheet .model-layer-switch > span { font-size: 0.64rem; letter-spacing: 0.04em; text-transform: uppercase; color: var(--stone-400); font-weight: 500; }
+  .map-sheet .model-layer-switch button {
+    min-height: 36px; padding: 0.28rem 0.7rem; border: 1px solid var(--border-default); border-radius: 999px;
+    background: var(--cream-50); font: inherit; font-size: 0.78rem; font-weight: 500; color: var(--stone-600);
+    cursor: pointer; transition: background .15s, color .15s, border-color .15s;
+  }
+  .map-sheet .model-layer-switch button.active { background: var(--ink-900); border-color: var(--ink-900); color: #fff; }
+  .map-sheet .model-layer-switch .mls-clear { margin-left: auto; font-size: 0.68rem; color: var(--stone-400); }
+  .map-sheet .model-layer-switch .mls-clear:disabled { opacity: 0.35; cursor: default; }
 
   .map-sheet-list { overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 0 0.6rem; }
   .map-sheet-row { border-bottom: 1px solid var(--sand-100); }

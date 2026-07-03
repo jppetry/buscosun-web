@@ -126,16 +126,21 @@ sie sind **nicht** versehentlich unabgedeckt. Der Fusion⇄Native-Switch ist fü
 
 1. **Gate 0** — dieses Dokument. ✅
 2. **State & Resolver** — ✅ `src/fusion/modelSource.ts` (`ModelSource`, global+Per-Layer-Override,
-   `resolveModelSource`, reine Reducer). Selbsttest `verifyModelSource()` 32/32 (Node strip-types).
-3. **Fusion-Wiring** — 🔄 **Teil A fertig & verifiziert:** State/Ref/`fusionFor` + Dev-Hook
-   (`window.__setFusion2d`) in MapView; genereller Fusion-Load-Trigger (jeder fusion-fähige
-   aktive Layer); **wind + temp** byte-identisch resolver-gegated (zentraler Fusion-Effekt feeds,
-   native Effects treten via Early-Return zurück). Runtime: Native-Default unverändert (ICON-D2
-   Temp/Wind rendern), Flip→Fusion zeigt sichtbar das Fusion-Temp-Feld; State-Machine
-   (global/Override/native-by-design-Pin) live bestätigt. **Teil B offen:** clouds (Transport-
-   Adapter Canvas→Uint8Array + uvBounds→corners), precip (Sichtbarkeits-Swap `precip-forecast`↔`rain`),
-   Punkt-Panel (`getPointForecast` Native = Einzelmodell-Isolation).
-4. **UI-Switch** — Toggle in der (reaktivierten) `modelChoice`-UI, global + per Layer, flicker-frei.
+   `resolveModelSource`, reine Reducer). Selbsttest `verifyModelSource()` **37/37** (Node strip-types;
+   +5 Punkt-Domänen-Checks). Eigene `point`-Domäne mit invertiertem eingefrorenem Default (`'fusion'`),
+   unabhängig vom Raster-`global` (`'native'`) — `resolvePointSource`/`setPointSource`.
+3. **Fusion-Wiring (4 Quadranten)** — ✅ **vollständig & verifiziert.**
+   - **Raster** (`de98067`,`269f4c8`): wind + temp byte-identisch resolver-gegated; **clouds**
+     (Transport-Adapter Canvas→Uint8Array + `uvBounds→corners`); **precip** (Sichtbarkeits-Swap
+     `precip-forecast`↔`rain`). Native-Default unverändert (ICON-D2), Flip→Fusion sichtbar; State-
+     Machine (global/Override/native-by-design-Pin) live bestätigt.
+   - **Punkt** (`18c7b6f`): `getPointForecast` additiver `sourceMode`; `'native'` = Einzelmodell-
+     Isolation (DE→MOSMIX, AT/CH→AROME), roh ohne Obs-Anker/Radar/Consensus, garantierter Fallback
+     auf den Blend. **Verifikations-Gate (zweite Engine, Runtime):** Native kollabiert die Quellen
+     (München→`[mosmix,dwd_uv]`, Innsbruck→`[arome_at]`); Werte weichen echt ab (Innsbruck **+2.7 °C**
+     rohe Gitter-Topografie vs. Blend-QC); Confidence fällt ehrlich auf den **0.60**-Single-Source-Cap
+     statt falscher 100 %; Fusion-Pfad byte-identisch.
+4. **UI-Switch** — 🔄 Toggle (global + per Layer, flicker-frei) in der Layer-Steuerung.
 5. **Fallback & Flag** — Auto-Fallback + Indikator; `fusion2d.default`-Flag.
 6. **Verifizieren & Übergabe** — Tests (a–e), Layer×Quadrant-Abdeckung, Stopp am Prod-Default-Flip.
 

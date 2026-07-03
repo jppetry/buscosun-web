@@ -11,7 +11,7 @@ import { RainLayer, precipRainRamp } from './scalar/RainLayer';
 import { CloudLayer } from './scalar/CloudLayer';
 import { loadFusedForecast, prefetchSecondarySources, type ModelChoice } from './fusion/loadFusedForecast';
 import {
-  initialModelSourceState, isFusionActive, isFusionCapable,
+  initialModelSourceState, isFusionActive, isFusionCapable, resolveModelSource,
   setGlobalSource, setLayerOverride, clearLayerOverride,
   resolvePointSource, setPointSource,
   type ModelSource, type ModelSourceState,
@@ -315,8 +315,12 @@ export default function MapView({ location, onBack, embedded = false, initialAct
   modelSourceRef.current = modelSource;
   // Fusion für Layer X aktiv? (frisch aus der Ref → für Effekt-Closures mit []-deps).
   const fusionFor = (layer: string) => isFusionActive(layer, modelSourceRef.current);
+  // Globaler UI-Switch (Phase 4): setzt Raster-`global` UND die Punkt-Engine gemeinsam
+  // (s. docs/fusion-2d-integration.md) — ein Klick, beide Domänen konsistent.
+  const setGlobalModel = (src: ModelSource) =>
+    setModelSource((s) => setPointSource(setGlobalSource(s, src), src));
   // Dev-Verifikations-Hook (Repo-Konvention wie __fusionV2 / __bsQA): Switch aus der
-  // Konsole flippen, bevor die UI (Phase 4) existiert. Nur im Dev-Build.
+  // Konsole flippen (ergänzt die UI). Nur im Dev-Build.
   useEffect(() => {
     if (!import.meta.env.DEV) return;
     const w = window as unknown as Record<string, unknown>;
@@ -2262,6 +2266,41 @@ export default function MapView({ location, onBack, embedded = false, initialAct
 
       {!embedded && (
         <div className="left-rails">
+        {/* Fusion⇄Native-Modellquelle (Master oben im Stack): global (Raster + Punkt)
+            + optionaler Per-Layer-Override. Nur fusion-fähige aktive Layer sind
+            übersteuerbar; die übrigen bleiben native-by-design und fehlen hier. */}
+        <div className="model-switch" role="group" aria-label="Modellquelle">
+          <div className="ms-global">
+            <button
+              type="button"
+              className={modelSource.global === 'fusion' ? 'active' : ''}
+              onClick={() => setGlobalModel('fusion')}
+              title="Fusion — höhenkorrigierter Multi-Quellen-Blend (DACH-Raster + Punkt-Panel)"
+            >Fusion</button>
+            <button
+              type="button"
+              className={modelSource.global === 'native' ? 'active' : ''}
+              onClick={() => setGlobalModel('native')}
+              title="Native — rohe Einzelquelle (ICON-D2-Raster · dominantes Landesmodell im Punkt-Panel)"
+            >Native</button>
+          </div>
+          {LAYER_OPTIONS.some(o => active.has(o.key) && isFusionCapable(o.key)) && (
+            <div className="ms-layers">
+              {LAYER_OPTIONS.filter(o => active.has(o.key) && isFusionCapable(o.key)).map(opt => {
+                const src = resolveModelSource(opt.key, modelSource);
+                const overridden = opt.key in modelSource.overrides;
+                return (
+                  <div key={opt.key} className={`ms-row${overridden ? ' is-override' : ''}`}>
+                    <span className="ms-row-icon" title={overridden ? `${opt.label}: eigener Override` : `${opt.label}: folgt global`} aria-label={opt.label}><LayerIcon layer={opt.key} /></span>
+                    <button type="button" className={src === 'fusion' ? 'active' : ''} onClick={() => setModelSource(s => setLayerOverride(s, opt.key, 'fusion'))} title="Fusion für diesen Layer">F</button>
+                    <button type="button" className={src === 'native' ? 'active' : ''} onClick={() => setModelSource(s => setLayerOverride(s, opt.key, 'native'))} title="Native für diesen Layer">N</button>
+                    <button type="button" className="ms-clear" disabled={!overridden} onClick={() => setModelSource(s => clearLayerOverride(s, opt.key))} title="Override entfernen — folgt wieder global" aria-label="Override entfernen">↺</button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
         <div className="layer-switch">
           {LAYER_OPTIONS.map(opt => (
             <button
@@ -2515,6 +2554,14 @@ export default function MapView({ location, onBack, embedded = false, initialAct
                   </strong>
                 </div>
 
+                <div className="map-sheet-model">
+                  <span className="map-sheet-model-label">Modell</span>
+                  <div className="map-sheet-seg" role="group" aria-label="Modellquelle">
+                    <button type="button" className={modelSource.global === 'fusion' ? 'active' : ''} onClick={() => setGlobalModel('fusion')}>Fusion</button>
+                    <button type="button" className={modelSource.global === 'native' ? 'active' : ''} onClick={() => setGlobalModel('native')}>Native</button>
+                  </div>
+                </div>
+
                 <div className="map-sheet-list">
                   {LAYER_OPTIONS.map(opt => {
                     const on = active.has(opt.key);
@@ -2583,6 +2630,18 @@ export default function MapView({ location, onBack, embedded = false, initialAct
                                 ))}
                               </div>
                             )}
+                            {isFusionCapable(opt.key) && on && (() => {
+                              const src = resolveModelSource(opt.key, modelSource);
+                              const overridden = opt.key in modelSource.overrides;
+                              return (
+                                <div className="map-sheet-sub model-layer-switch" role="group" aria-label="Modellquelle dieses Layers">
+                                  <span aria-hidden="true">Modell</span>
+                                  <button type="button" className={src === 'fusion' ? 'active' : ''} onClick={() => setModelSource(s => setLayerOverride(s, opt.key, 'fusion'))}>Fusion</button>
+                                  <button type="button" className={src === 'native' ? 'active' : ''} onClick={() => setModelSource(s => setLayerOverride(s, opt.key, 'native'))}>Native</button>
+                                  <button type="button" className="mls-clear" disabled={!overridden} onClick={() => setModelSource(s => clearLayerOverride(s, opt.key))} title="Override entfernen — folgt wieder global">↺ Global</button>
+                                </div>
+                              );
+                            })()}
                           </div>
                         )}
                       </div>
