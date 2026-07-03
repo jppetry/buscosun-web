@@ -226,6 +226,7 @@ const MODEL_ID_TO_CHOICE: Partial<Record<ModelId, ModelChoice>> = {
   fusion: 'fusion', 'arome-at': 'arome', inca: 'inca', 'icon-d2-eps': 'icon-d2-eps',
   'icon-ch1-eps': 'icon-ch1-eps', 'icon-ch2-eps': 'icon-ch2-eps', 'arome-fr': 'arome-fr',
   'icon-eu': 'icon-eu', gfs: 'gfs', ifs: 'ifs', aifs: 'aifs', 'aifs-ens': 'aifs-ens',
+  'icon-global': 'icon-global',
 };
 
 const SAT_PRODUCT_LABELS: Record<SatelliteProduct, string> = {

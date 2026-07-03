@@ -218,8 +218,9 @@ export const MODEL_CATALOG: readonly ModelEntry[] = [
   {
     id: 'icon-global', name: 'ICON global', operator: 'DWD', kind: 'raster',
     resolutionKm: 13, horizonH: 180, license: 'CC-BY-4.0',
-    attribution: 'Daten: DWD · CC BY 4.0', ingested: false, rasterCapable: true,
+    attribution: 'Daten: DWD · CC BY 4.0', ingested: true, rasterCapable: true,
     engineGridded: true, coverage: coarse3, group: 'global',
+    pipelineNote: '2D-Raster (Temperatur/Wind/Wolken/Niederschlag), icosahedral 13 km, 0–6 h.',
   },
   {
     id: 'aicon', name: 'AICON', operator: 'DWD', kind: 'raster', ai: true,
