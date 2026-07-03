@@ -16,6 +16,15 @@ const upstreamProxy = {
     changeOrigin: true,
     rewrite: (p: string) => p.replace(/^\/_gfs/, ''),
   },
+  // MeteoSchweiz OGD (ICON-CH1/CH2-EPS): der STAC-Katalog (data.geo.admin.ch)
+  // erlaubt Browser-CORS, der pre-signed S3-Objektspeicher rgw.cscs.ch NICHT.
+  // changeOrigin setzt Host=rgw.cscs.ch → die S3-v2-Signatur (Host+Pfad+Expires
+  // in der Query) bleibt gültig; die Query wird 1:1 durchgereicht.
+  '/_cscs': {
+    target: 'https://rgw.cscs.ch',
+    changeOrigin: true,
+    rewrite: (p: string) => p.replace(/^\/_cscs/, ''),
+  },
 };
 
 export default defineConfig({

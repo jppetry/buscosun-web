@@ -137,8 +137,11 @@ export const MODEL_CATALOG: readonly ModelEntry[] = [
     id: 'icon-ch1-eps', name: 'ICON-CH1-EPS', operator: 'MeteoSchweiz', kind: 'raster',
     ensemble: true, resolutionKm: 1, horizonH: 33, license: 'CC-BY-4.0',
     attribution: 'Daten: MeteoSchweiz · CC BY 4.0',
-    ingested: false, rasterCapable: true, engineGridded: true,
-    coverage: { DE: 'partial', AT: 'partial', CH: 'full' }, group: 'local',
+    ingested: true, rasterCapable: true, engineGridded: true,
+    // Domäne ist die Schweiz (+ kleiner Rand) → für DE/AT kein Raster (Fallback
+    // auf Native). Erster Schnitt: Kontrolllauf (1 Member), nicht Ensemble-Mittel.
+    coverage: { DE: 'none', AT: 'none', CH: 'full' }, group: 'local',
+    pipelineNote: '2D-Raster aktuell als Kontrolllauf (0–6 h); Ensemble-Mittel folgt. Lädt im Hintergrund.',
   },
   {
     id: 'icon-d2', name: 'ICON-D2', operator: 'DWD', kind: 'raster',
@@ -157,8 +160,9 @@ export const MODEL_CATALOG: readonly ModelEntry[] = [
     id: 'icon-ch2-eps', name: 'ICON-CH2-EPS', operator: 'MeteoSchweiz', kind: 'raster',
     ensemble: true, resolutionKm: 2.1, horizonH: 120, license: 'CC-BY-4.0',
     attribution: 'Daten: MeteoSchweiz · CC BY 4.0',
-    ingested: false, rasterCapable: true, engineGridded: true,
-    coverage: { DE: 'partial', AT: 'partial', CH: 'full' }, group: 'local',
+    ingested: true, rasterCapable: true, engineGridded: true,
+    coverage: { DE: 'none', AT: 'none', CH: 'full' }, group: 'local',
+    pipelineNote: '2D-Raster aktuell als Kontrolllauf (0–6 h); Ensemble-Mittel folgt. Lädt im Hintergrund.',
   },
   {
     id: 'arome-at', name: 'AROME-AT', operator: 'GeoSphere Austria', kind: 'raster',

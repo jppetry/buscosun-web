@@ -23,6 +23,7 @@ import { fetchBrightSkyCurrentGrid } from '../sources/brightSkyCurrent';
 import { fetchGeoSphereIncaGrid } from '../sources/geosphereInca';
 import { fetchGeoSphereAromeGrid } from '../sources/geosphereArome';
 import { fetchIconD2EpsGrid } from '../sources/iconD2EpsSource';
+import { fetchIconChEpsGrid } from '../sources/iconChEpsSource';
 import { fetchTawesCurrentGrid } from '../sources/geosphereTawes';
 import { fetchSmnCurrentGrid } from '../sources/meteoSwissSmn';
 import { fetchSmhiCurrentGrid } from '../sources/smhiStations';
@@ -203,8 +204,11 @@ async function getCachedSource<T>(
  *  'inca'     → GeoSphere INCA nowcast only (AT, 1 km, ~3 h horizon)
  *  'obs'      → live station obs only (DWD + TAWES + SMN, h=0)
  *  'icon-d2-eps' → DWD ICON-D2-EPS ensemble mean only (2.2 km icosahedral, DACH)
+ *  'icon-ch1-eps' / 'icon-ch2-eps' → MeteoSchweiz ICON-CH control run only (CH)
  */
-export type ModelChoice = 'fusion' | 'mosmix' | 'arome' | 'inca' | 'obs' | 'icon-d2-eps';
+export type ModelChoice =
+  | 'fusion' | 'mosmix' | 'arome' | 'inca' | 'obs'
+  | 'icon-d2-eps' | 'icon-ch1-eps' | 'icon-ch2-eps';
 
 export interface FusedLoadOptions {
   signal?: AbortSignal;
@@ -311,6 +315,11 @@ export async function loadFusedForecast(options: FusedLoadOptions = {}): Promise
   // Nicht in quickMode's skipSecondary, weil es bei expliziter Wahl die einzige
   // Quelle ist (sonst leerer Phase-A-Render).
   const useEps = allow('icon-d2-eps');
+  // ICON-CH1/CH2-EPS-Kontrolllauf: CH-only → NUR bei expliziter Einzelwahl, nie
+  // in der DACH-weiten 'fusion'-Mischung (sonst CH-Daten für DE/AT + ungewollte
+  // Änderung der Hausmischung). `allow` schließt 'fusion' ein, daher direkt.
+  const useCh1 = modelChoice === 'icon-ch1-eps';
+  const useCh2 = modelChoice === 'icon-ch2-eps';
   const useTawesOrSmnInQuick = !skipSecondary;
 
   const engine = new FusionEngine({
@@ -404,8 +413,10 @@ export async function loadFusedForecast(options: FusedLoadOptions = {}): Promise
   const wantTawes  = profile.useTawes  && useObs && useTawesOrSmnInQuick;
   const wantSmn    = profile.useSmn    && useObs && useTawesOrSmnInQuick;
   const wantEps    = useEps;
+  const wantCh1    = useCh1;
+  const wantCh2    = useCh2;
 
-  const [obs, bs, inca, arome, tawes, smn, eps] = await Promise.all([
+  const [obs, bs, inca, arome, tawes, smn, eps, ch1, ch2] = await Promise.all([
     wantObs ? getCachedSource(sourceKey('dwd_obs', hours), () =>
         fetchBrightSkyCurrentGrid({ cols: 10, rows: 8 })).catch(() => null) : Promise.resolve(null),
     wantMosmix ? getCachedSource(sourceKey('mosmix', hours), () =>
@@ -420,6 +431,10 @@ export async function loadFusedForecast(options: FusedLoadOptions = {}): Promise
         fetchSmnCurrentGrid({ maxStations: 80 })).catch(() => null) : Promise.resolve(null),
     wantEps ? getCachedSource(sourceKey('icon-d2-eps', hours), () =>
         fetchIconD2EpsGrid({ hours, signal: options.signal })).catch(() => null) : Promise.resolve(null),
+    wantCh1 ? getCachedSource(sourceKey('icon-ch1-eps', hours), () =>
+        fetchIconChEpsGrid('icon-ch1-eps', { hours, signal: options.signal })).catch(() => null) : Promise.resolve(null),
+    wantCh2 ? getCachedSource(sourceKey('icon-ch2-eps', hours), () =>
+        fetchIconChEpsGrid('icon-ch2-eps', { hours, signal: options.signal })).catch(() => null) : Promise.resolve(null),
   ]);
 
   // Live obs — dominate hour 0 with measurement weight.
@@ -457,6 +472,15 @@ export async function loadFusedForecast(options: FusedLoadOptions = {}): Promise
   if (eps && eps.points[0]?.length) {
     engine.ingest(eps, { temperature: 1.4, wind: 1.4, clouds: 1.4, precipitation: 1.4 });
     modelTags.push('icon_d2_eps');
+  }
+  // ICON-CH1/CH2-EPS-Kontrolllauf (nur bei Einzelwahl, s. o.) — alleinige Quelle.
+  if (ch1 && ch1.points[0]?.length) {
+    engine.ingest(ch1, { temperature: 1.4, wind: 1.4, clouds: 1.4, precipitation: 1.4 });
+    modelTags.push('icon_ch1_eps');
+  }
+  if (ch2 && ch2.points[0]?.length) {
+    engine.ingest(ch2, { temperature: 1.4, wind: 1.4, clouds: 1.4, precipitation: 1.4 });
+    modelTags.push('icon_ch2_eps');
   }
 
   // --- Source I (SE live stations, hour 0 only): SMHI ------------------------
@@ -531,6 +555,8 @@ export async function loadFusedForecast(options: FusedLoadOptions = {}): Promise
     inca:   'GeoSphere INCA',
     obs:    'Station-Obs',
     'icon-d2-eps': 'DWD ICON-D2-EPS',
+    'icon-ch1-eps': 'MeteoSchweiz ICON-CH1',
+    'icon-ch2-eps': 'MeteoSchweiz ICON-CH2',
   };
   const model = modelChoice !== 'fusion'
     ? `${SINGLE_MODEL_LABEL[modelChoice]} (${modelTags.join(', ') || 'no data'})`
