@@ -67,6 +67,7 @@ export interface ModelSourceState {
 export function defaultModelSource(): ModelSource {
   try {
     if (typeof window !== 'undefined') {
+      // 1) Dev-/Preview-Override (flüchtig, höchste Präzedenz): window.__fusion2d bzw. ?fusion2d=.
       const w = window as unknown as { __fusion2d?: unknown };
       if (w.__fusion2d === 'fusion' || w.__fusion2d === 'native') return w.__fusion2d;
       const q = new URLSearchParams(window.location.search).get('fusion2d')
@@ -74,8 +75,14 @@ export function defaultModelSource(): ModelSource {
           ? new URLSearchParams(window.location.hash.replace(/^[^?]*\??/, '')).get('fusion2d')
           : null);
       if (q === 'fusion' || q === 'native') return q;
+      // 2) Deploybarer Config-Default: localStorage['fusion2d.default']. Erlaubt den
+      //    Production-Default-Flip OHNE Code-Änderung — der Flip selbst bleibt Hard Stop
+      //    (dieser Schlüssel wird von uns nirgends auf 'fusion' gesetzt).
+      const cfg = window.localStorage?.getItem('fusion2d.default');
+      if (cfg === 'fusion' || cfg === 'native') return cfg;
     }
   } catch { /* SSR / gesperrter Storage → Default unten */ }
+  // 3) Eingefrorener Default: native (= heutiges Raster-Verhalten ICON-D2).
   return 'native';
 }
 

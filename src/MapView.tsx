@@ -333,8 +333,29 @@ export default function MapView({ location, onBack, embedded = false, initialAct
         : setGlobalSource(s, src));
     w.__clearFusion2d = (layer: string) => setModelSource((s) => clearLayerOverride(s, layer));
     w.__getFusion2d = () => modelSourceRef.current;
+    // Fallback-Indikator simulieren (Phase-5-Verifikation): Fusion-Ladefehler an/aus.
+    w.__setFusion2dError = (on: boolean) => setFusionError(!!on);
   }, []);
   const forecastRef = useRef<DwdForecastResult | null>(null);
+  // Auto-Fallback (Phase 5): Fusion nur rendern, wenn die gridded-Fusion-Daten für
+  // DIESEN Layer tatsächlich vorliegen; sonst rendert weiter der native Pfad
+  // (garantierter Fallback, nie leer). Liest aus der Ref → kein stale Closure.
+  const fusionReadyFor = (layer: string): boolean => {
+    const l0 = forecastRef.current?.hours[0]?.layers as
+      (Record<string, unknown> & { precipitation?: unknown }) | undefined;
+    if (!l0) return false;
+    if (layer === 'wind') return !!l0.wind;
+    if (layer === 'temp') return !!l0.temperature;
+    if (layer === 'clouds') return !!l0.clouds;
+    if (layer === 'nowcast') return !!l0.precipitation;
+    return false;
+  };
+  // „Fusion aktiv fürs Rendern" = vom Nutzer gewählt UND Daten bereit. Nur DANN
+  // treten die nativen Effekte zurück — fehlt/scheitert die Fusion, bleibt nativ.
+  const fusionActiveFor = (layer: string) => fusionFor(layer) && fusionReadyFor(layer);
+  // Fusion-Ladefehler (Phase A) → nicht-blockierender Indikator am Switch. Während
+  // des normalen Ladens (noch kein Fehler, noch keine Daten) rendert still nativ.
+  const [fusionError, setFusionError] = useState(false);
   const layerRefs = useRef<{ wind?: WindLayer; temp?: ScalarLayer; gust?: ScalarLayer; clouds?: CloudLayer; precip?: ScalarLayer; rain?: RainLayer; confidence?: ConfidenceLayer; ki?: RainLayer; pop?: RainLayer }>({});
   // Flow-Nowcast: geschätztes Bewegungsfeld + Basis-Frame (gröber) je RADOLAN-Lauf.
   const flowRef = useRef<{ key: string; base: Float32Array; flow: Flow; corners: QuadCorners; intervalMin: number } | null>(null);
@@ -731,10 +752,10 @@ export default function MapView({ location, onBack, embedded = false, initialAct
         gust: active.has('gust'),
         // Niederschlag-Layer nur sichtbar, wenn für die Slider-Stunde ein Frame
         // verfügbar ist (länderabhängig: RV/INCA/rzc bzw. ICON-D2 im Horizont).
-        [NOWCAST_LAYER_ID]: active.has('nowcast') && precipFrameReady(forecastHour) && !fusionFor('nowcast'),
+        [NOWCAST_LAYER_ID]: active.has('nowcast') && precipFrameReady(forecastHour) && !fusionActiveFor('nowcast'),
         // Fusion-Niederschlag (Forecast-Grid) statt Radar-Komposit, wenn der Resolver
         // Fusion für 'nowcast' wählt. Ohne Daten rendert der ScalarLayer nichts (transparent).
-        'precip-forecast': active.has('nowcast') && fusionFor('nowcast'),
+        'precip-forecast': active.has('nowcast') && fusionActiveFor('nowcast'),
         [SAT_LAYER_ID]: active.has('sat'),
         [LIGHTNING_LAYER_ID]: active.has('lightning'),
         [STATIONS_LAYER_ID]: active.has('stations'),
@@ -797,6 +818,7 @@ export default function MapView({ location, onBack, embedded = false, initialAct
     const loadOpenMeteo = async () => {
       const applyForecast = (r: DwdForecastResult, tempLayerRef: ScalarLayer) => {
         forecastRef.current = r;
+        setFusionError(false);          // Fusion da → etwaigen Fallback-Indikator löschen
         setForecast(r);
         const h0 = r.hours[0]?.layers;
         // Wind kommt ausschließlich nativ aus ICON-D2 (installWind) — die Fusion
@@ -867,6 +889,9 @@ export default function MapView({ location, onBack, embedded = false, initialAct
       } catch (err) {
         if ((err as { name?: string })?.name === 'AbortError') return;
         const msg = err instanceof Error ? err.message : String(err);
+        // Fusion-Load gescheitert → nicht-blockierender Fallback-Indikator; die
+        // fusion-gewählten Layer rendern via fusionActiveFor weiter nativ (nicht leer).
+        setFusionError(true);
         // Wind hängt nicht mehr an der Fusion → nur Temp (Fusion-Fallback) melden.
         updateStatus('temp', { err: msg });
       }
@@ -1731,9 +1756,10 @@ export default function MapView({ location, onBack, embedded = false, initialAct
   useEffect(() => {
     const rain = layerRefs.current.rain;
     if (!rain || !active.has('nowcast')) return;
-    // Bei Fusion-Niederschlag speist der `precip-forecast`-ScalarLayer (zentraler
-    // Fusion-Effekt) statt des Radar-Komposits; hier nativ zurücktreten.
-    if (fusionFor('nowcast')) return;
+    // Bei aktiver Fusion-Niederschlag (gewählt UND Daten bereit) speist der
+    // `precip-forecast`-ScalarLayer (zentraler Fusion-Effekt) statt des Radar-
+    // Komposits; hier nativ zurücktreten. Fehlt/scheitert die Fusion → nativ.
+    if (fusionActiveFor('nowcast')) return;
     if (!compositorRef.current) compositorRef.current = new PrecipCompositor();
     // DACH-Komposit: pro Zelle das richtige Landesradar (DE RADOLAN / AT INCA /
     // CH rzc) im jeweiligen Nowcast-Horizont, sonst/danach ICON-D2 — unabhängig
@@ -1742,15 +1768,16 @@ export default function MapView({ location, onBack, embedded = false, initialAct
       rv: nowcastRef.current, inca: incaGridRef.current, rzc: meteoRadarRef.current, d2: iconD2Ref.current,
     }, Date.now());
     rain.setFrame({ values: frame.values, width: frame.width, height: frame.height, corners: frame.corners });
-  }, [forecastHour, nowcastTick, active, modelSource]);
+  }, [forecastHour, nowcastTick, active, modelSource, forecast]);
 
   // Wolken-Layer (ICON-D2 CLCT): bei jeder Slider-Bewegung den Frame mit der
   // nächstgelegenen Gültigkeitszeit setzen. Deckt den ganzen ICON-D2-Horizont ab.
   useEffect(() => {
     const cloudL = layerRefs.current.clouds;
     if (!cloudL || !active.has('clouds')) return;
-    // Bei Fusion-Wolken speist der zentrale Fusion-Effekt (Adapter); hier zurücktreten.
-    if (fusionFor('clouds')) return;
+    // Bei aktiver Fusion-Wolken (gewählt UND Daten bereit) speist der zentrale
+    // Fusion-Effekt (Adapter); hier zurücktreten. Fehlt/scheitert die Fusion → nativ.
+    if (fusionActiveFor('clouds')) return;
     const cl = iconD2CloudsRef.current;
     if (!cl || cl.frames.length === 0) return;
     const target = Date.now() + forecastHour * 3600_000;
@@ -1760,7 +1787,7 @@ export default function MapView({ location, onBack, embedded = false, initialAct
     }
     cloudL.setFrame({ values: best.values, width: best.width, height: best.height, corners: cl.corners });
     reportValidAt(best.validAt.getTime());
-  }, [forecastHour, nowcastTick, active, modelSource, reportValidAt]);
+  }, [forecastHour, nowcastTick, active, modelSource, forecast, reportValidAt]);
 
   // Wind-Layer (natives ICON-D2 u/v-10m): bei jeder Slider-Bewegung den Frame
   // setzen — bei Sub-Stunden-Positionen im GESCHWINDIGKEITSRAUM zwischen den
@@ -1771,9 +1798,10 @@ export default function MapView({ location, onBack, embedded = false, initialAct
     if (!wind || !active.has('wind')) return;
     // Aktive Quelle je nach Höhe: Surface = ICON-D2, sonst ICON-EU-Druckfläche.
     const lvl = windLevelRef.current;
-    // Bei Fusion-Wind + Surface speist die gridded Fusion (zentraler Fusion-Effekt);
-    // hier nativ zurücktreten, damit sich beide Quellen nicht überschreiben.
-    if (lvl === 'surface' && fusionFor('wind')) return;
+    // Bei aktiver Fusion-Wind + Surface (gewählt UND Daten bereit) speist die gridded
+    // Fusion (zentraler Fusion-Effekt); hier nativ zurücktreten. Fehlt/scheitert die
+    // Fusion → nativ (ICON-D2) rendert weiter.
+    if (lvl === 'surface' && fusionActiveFor('wind')) return;
     const wd = lvl === 'surface' ? iconD2WindRef.current : euWindRef.current[lvl];
     if (!wd || wd.frames.length === 0) return;
     const f = windFrameAtValidTime(wd, Date.now() + forecastHour * 3600_000);
@@ -1783,7 +1811,7 @@ export default function MapView({ location, onBack, embedded = false, initialAct
       uvBounds: wd.uvBounds,
     });
     reportValidAt(f.validAt.getTime());
-  }, [forecastHour, nowcastTick, active, windLevel, modelSource, reportValidAt]);
+  }, [forecastHour, nowcastTick, active, windLevel, modelSource, forecast, reportValidAt]);
 
   // Wind-Höhe (Druckfläche) laden + anwenden. Surface kommt aus installWind
   // (ICON-D2); Druckflächen aus ICON-EU, je Level gecacht. Frame-Setzen läuft
@@ -1844,9 +1872,9 @@ export default function MapView({ location, onBack, embedded = false, initialAct
   useEffect(() => {
     const temp = layerRefs.current.temp;
     if (!temp || !active.has('temp')) return;
-    // Bei Fusion-Temp speist die gridded Fusion (zentraler Fusion-Effekt); nativ
-    // zurücktreten, damit sich beide Quellen nicht überschreiben.
-    if (fusionFor('temp')) return;
+    // Bei aktiver Fusion-Temp (gewählt UND Daten bereit) speist die gridded Fusion
+    // (zentraler Fusion-Effekt); nativ zurücktreten. Fehlt/scheitert die Fusion → nativ.
+    if (fusionActiveFor('temp')) return;
     const td = iconD2TempRef.current;
     if (!td || td.frames.length === 0) return;
     const f = frameAtValidTime(td.frames, Date.now() + forecastHour * 3600_000);
@@ -1855,7 +1883,7 @@ export default function MapView({ location, onBack, embedded = false, initialAct
       vMin: td.vMin, vMax: td.vMax, uvBounds: td.uvBounds,
     });
     reportValidAt(f.validAt.getTime());
-  }, [forecastHour, nowcastTick, active, modelSource, reportValidAt]);
+  }, [forecastHour, nowcastTick, active, modelSource, forecast, reportValidAt]);
 
   // Böen-Layer (natives ICON-D2 vmax_10m): bei jeder Slider-Bewegung den Frame
   // mit der nächstgelegenen Vorlaufstunde setzen.
@@ -2080,10 +2108,10 @@ export default function MapView({ location, onBack, embedded = false, initialAct
         gust: active.has('gust'),
         // Niederschlag-Layer nur sichtbar, wenn für die Slider-Stunde ein Frame
         // verfügbar ist (länderabhängig: RV/INCA/rzc bzw. ICON-D2 im Horizont).
-        [NOWCAST_LAYER_ID]: active.has('nowcast') && precipFrameReady(forecastHour) && !fusionFor('nowcast'),
+        [NOWCAST_LAYER_ID]: active.has('nowcast') && precipFrameReady(forecastHour) && !fusionActiveFor('nowcast'),
         // Fusion-Niederschlag (Forecast-Grid) statt Radar-Komposit, wenn der Resolver
         // Fusion für 'nowcast' wählt. Ohne Daten rendert der ScalarLayer nichts (transparent).
-        'precip-forecast': active.has('nowcast') && fusionFor('nowcast'),
+        'precip-forecast': active.has('nowcast') && fusionActiveFor('nowcast'),
         [SAT_LAYER_ID]: active.has('sat'),
         [LIGHTNING_LAYER_ID]: active.has('lightning'),
         [STATIONS_LAYER_ID]: active.has('stations'),
@@ -2127,7 +2155,7 @@ export default function MapView({ location, onBack, embedded = false, initialAct
     // request queue, leaving layer visibility frozen.
     const safeApply = () => { try { apply(); } catch { map.once('styledata', safeApply); } };
     safeApply();
-  }, [active, forecastHour, nowcastTick, location.country, modelSource]);
+  }, [active, forecastHour, nowcastTick, location.country, modelSource, forecast]);
 
   const fmtTime = (ms: number) =>
     new Date(ms).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
@@ -2299,6 +2327,9 @@ export default function MapView({ location, onBack, embedded = false, initialAct
                 );
               })}
             </div>
+          )}
+          {fusionError && (modelSource.global === 'fusion' || Object.values(modelSource.overrides).includes('fusion')) && (
+            <div className="ms-note" role="status" title="Die gridded Fusion konnte nicht geladen werden — die Layer rendern automatisch nativ (ICON-D2).">⚠ Fusion offline · nativ</div>
           )}
         </div>
         <div className="layer-switch">
@@ -2556,6 +2587,9 @@ export default function MapView({ location, onBack, embedded = false, initialAct
 
                 <div className="map-sheet-model">
                   <span className="map-sheet-model-label">Modell</span>
+                  {fusionError && (modelSource.global === 'fusion' || Object.values(modelSource.overrides).includes('fusion')) && (
+                    <span className="map-sheet-modelnote" role="status">⚠ Fusion offline · nativ</span>
+                  )}
                   <div className="map-sheet-seg" role="group" aria-label="Modellquelle">
                     <button type="button" className={modelSource.global === 'fusion' ? 'active' : ''} onClick={() => setGlobalModel('fusion')}>Fusion</button>
                     <button type="button" className={modelSource.global === 'native' ? 'active' : ''} onClick={() => setGlobalModel('native')}>Native</button>

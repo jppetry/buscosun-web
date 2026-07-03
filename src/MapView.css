@@ -393,6 +393,11 @@
 .ms-row button.active { background: var(--ink-900); border-color: var(--ink-900); color: #fff; }
 .ms-row .ms-clear { font-weight: 400; color: var(--stone-400); }
 .ms-row .ms-clear:disabled { opacity: 0.3; cursor: default; }
+/* Nicht-blockierender Fallback-Indikator (Fusion offline → nativ). */
+.ms-note {
+  font-size: 0.5rem; line-height: 1.25; text-align: center; font-weight: 500;
+  color: var(--terracotta-700); border-top: 1px solid var(--sand-100); padding-top: 0.3rem;
+}
 
 /* ============ WIND PARTICLE SWITCH (bottom-center, über dem Slider) ============ */
 .wind-particle-switch {
@@ -1684,6 +1689,8 @@
     cursor: pointer; transition: background .15s, color .15s, border-color .15s;
   }
   .map-sheet-seg button.active { background: var(--ink-900); border-color: var(--ink-900); color: #fff; }
+  .map-sheet-modelnote { margin-left: auto; margin-right: 0.5rem; font-size: 0.66rem; font-weight: 500; color: var(--terracotta-700); }
+  .map-sheet-modelnote + .map-sheet-seg { margin-left: 0; }
 
   /* Per-Layer-Override in der aufgeklappten Layer-Info. */
   .map-sheet .model-layer-switch {
