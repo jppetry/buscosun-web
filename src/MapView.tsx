@@ -225,6 +225,7 @@ const LAYER_OPTIONS: { key: LayerKey; label: string; title: string }[] = [
 const MODEL_ID_TO_CHOICE: Partial<Record<ModelId, ModelChoice>> = {
   fusion: 'fusion', 'arome-at': 'arome', inca: 'inca', 'icon-d2-eps': 'icon-d2-eps',
   'icon-ch1-eps': 'icon-ch1-eps', 'icon-ch2-eps': 'icon-ch2-eps', 'arome-fr': 'arome-fr',
+  'icon-eu': 'icon-eu',
 };
 
 const SAT_PRODUCT_LABELS: Record<SatelliteProduct, string> = {

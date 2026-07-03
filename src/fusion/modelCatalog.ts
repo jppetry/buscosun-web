@@ -186,8 +186,8 @@ export const MODEL_CATALOG: readonly ModelEntry[] = [
     id: 'icon-eu', name: 'ICON-EU', operator: 'DWD', kind: 'raster',
     resolutionKm: 7, horizonH: 120, license: 'CC-BY-4.0',
     attribution: 'Daten: DWD · CC BY 4.0',
-    ingested: false, rasterCapable: true, engineGridded: true, coverage: full3, group: 'regional',
-    pipelineNote: 'Heute nur als Höhenprofil (Sounding), noch nicht als 2D-Kartenraster.',
+    ingested: true, rasterCapable: true, engineGridded: true, coverage: full3, group: 'regional',
+    pipelineNote: '2D-Raster (Temperatur/Wind/Wolken/Niederschlag), 0–6 h; lädt im Hintergrund.',
   },
   {
     id: 'mosmix', name: 'MOSMIX', operator: 'DWD', kind: 'point',

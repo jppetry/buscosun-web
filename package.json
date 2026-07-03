@@ -19,6 +19,7 @@
     "verify:eps": "node --experimental-strip-types scripts/verify-eps.mjs",
     "verify:ch-eps": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-ch-eps.mjs",
     "verify:arome-fr": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-arome-fr.mjs",
+    "verify:icon-eu": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-icon-eu.mjs",
     "fusion:status": "node --experimental-strip-types scripts/archive-status.mjs fixtures/",
     "fusion:gate": "node --experimental-strip-types scripts/phase3-gate.mjs fixtures/"
   },

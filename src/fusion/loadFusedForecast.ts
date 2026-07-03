@@ -25,6 +25,7 @@ import { fetchGeoSphereAromeGrid } from '../sources/geosphereArome';
 import { fetchIconD2EpsGrid } from '../sources/iconD2EpsSource';
 import { fetchIconChEpsGrid } from '../sources/iconChEpsSource';
 import { fetchAromeFranceGrid } from '../sources/aromeFranceSource';
+import { fetchIconEuRasterGrid } from '../sources/iconEuRasterSource';
 import { fetchTawesCurrentGrid } from '../sources/geosphereTawes';
 import { fetchSmnCurrentGrid } from '../sources/meteoSwissSmn';
 import { fetchSmhiCurrentGrid } from '../sources/smhiStations';
@@ -207,10 +208,11 @@ async function getCachedSource<T>(
  *  'icon-d2-eps' → DWD ICON-D2-EPS ensemble mean only (2.2 km icosahedral, DACH)
  *  'icon-ch1-eps' / 'icon-ch2-eps' → MeteoSchweiz ICON-CH control run only (CH)
  *  'arome-fr' → Météo-France AROME-France 0.01° only (temp+wind; DE/CH + west AT)
+ *  'icon-eu' → DWD ICON-EU single-level 2D raster only (all DACH)
  */
 export type ModelChoice =
   | 'fusion' | 'mosmix' | 'arome' | 'inca' | 'obs'
-  | 'icon-d2-eps' | 'icon-ch1-eps' | 'icon-ch2-eps' | 'arome-fr';
+  | 'icon-d2-eps' | 'icon-ch1-eps' | 'icon-ch2-eps' | 'arome-fr' | 'icon-eu';
 
 export interface FusedLoadOptions {
   signal?: AbortSignal;
@@ -325,6 +327,8 @@ export async function loadFusedForecast(options: FusedLoadOptions = {}): Promise
   // AROME-France (0,01°): nur bei expliziter Einzelwahl (großes GRIB, CH-/DE-/
   // West-AT-Domäne) — nie in der 'fusion'-Mischung.
   const useAromeFr = modelChoice === 'arome-fr';
+  // ICON-EU (single-level 2D): nur bei expliziter Einzelwahl.
+  const useIconEu = modelChoice === 'icon-eu';
   const useTawesOrSmnInQuick = !skipSecondary;
 
   const engine = new FusionEngine({
@@ -421,8 +425,9 @@ export async function loadFusedForecast(options: FusedLoadOptions = {}): Promise
   const wantCh1    = useCh1;
   const wantCh2    = useCh2;
   const wantAromeFr = useAromeFr;
+  const wantIconEu  = useIconEu;
 
-  const [obs, bs, inca, arome, tawes, smn, eps, ch1, ch2, aromeFr] = await Promise.all([
+  const [obs, bs, inca, arome, tawes, smn, eps, ch1, ch2, aromeFr, iconEu] = await Promise.all([
     wantObs ? getCachedSource(sourceKey('dwd_obs', hours), () =>
         fetchBrightSkyCurrentGrid({ cols: 10, rows: 8 })).catch(() => null) : Promise.resolve(null),
     wantMosmix ? getCachedSource(sourceKey('mosmix', hours), () =>
@@ -443,6 +448,8 @@ export async function loadFusedForecast(options: FusedLoadOptions = {}): Promise
         fetchIconChEpsGrid('icon-ch2-eps', { hours, signal: options.signal })).catch(() => null) : Promise.resolve(null),
     wantAromeFr ? getCachedSource(sourceKey('arome-fr', hours), () =>
         fetchAromeFranceGrid({ hours, signal: options.signal })).catch(() => null) : Promise.resolve(null),
+    wantIconEu ? getCachedSource(sourceKey('icon-eu', hours), () =>
+        fetchIconEuRasterGrid({ hours, signal: options.signal })).catch(() => null) : Promise.resolve(null),
   ]);
 
   // Live obs — dominate hour 0 with measurement weight.
@@ -495,6 +502,11 @@ export async function loadFusedForecast(options: FusedLoadOptions = {}): Promise
   if (aromeFr && aromeFr.points[0]?.length) {
     engine.ingest(aromeFr, { temperature: 1.4, wind: 1.4, clouds: 0, precipitation: 0 });
     modelTags.push('arome_france');
+  }
+  // ICON-EU single-level (Temperatur/Wind/Wolken/Niederschlag), nur bei Einzelwahl.
+  if (iconEu && iconEu.points[0]?.length) {
+    engine.ingest(iconEu, { temperature: 1.4, wind: 1.4, clouds: 1.4, precipitation: 1.4 });
+    modelTags.push('icon_eu');
   }
 
   // --- Source I (SE live stations, hour 0 only): SMHI ------------------------
@@ -572,6 +584,7 @@ export async function loadFusedForecast(options: FusedLoadOptions = {}): Promise
     'icon-ch1-eps': 'MeteoSchweiz ICON-CH1',
     'icon-ch2-eps': 'MeteoSchweiz ICON-CH2',
     'arome-fr': 'Météo-France AROME',
+    'icon-eu': 'DWD ICON-EU',
   };
   const model = modelChoice !== 'fusion'
     ? `${SINGLE_MODEL_LABEL[modelChoice]} (${modelTags.join(', ') || 'no data'})`
