@@ -333,6 +333,12 @@ function days(h: number): number {
   return Math.max(1, Math.round(h / 24));
 }
 
+/** Deutsches Tag/Tage mit korrektem Singular („1 Tag" statt „1 Tage"). */
+function dayStr(h: number): string {
+  const d = days(h);
+  return `${d} ${d === 1 ? 'Tag' : 'Tage'}`;
+}
+
 /**
  * „Gut für …"-Nutzensatz, **rein aus Katalogdaten generiert** (keine
  * Fantasieaussagen). Deterministisch → headless testbar.
@@ -344,18 +350,18 @@ export function gutFuerSatz(id: ModelId): string {
   if (e.special === 'fusion') return 'Gut für: ein geglättetes Gesamtbild aus allen Quellen';
   if (e.nowcast) return `Gut für: Regen in den nächsten ${e.horizonH} Stunden`;
   if (e.kind === 'analysis') return 'Gut für: die aktuelle Lage aus echten Messungen';
-  if (e.kind === 'point') return `Gut für: Ortsvorhersage bis ${days(e.horizonH)} Tage an Stationen`;
+  if (e.kind === 'point') return `Gut für: Ortsvorhersage bis ${dayStr(e.horizonH)} an Stationen`;
   const fine = (e.resolutionKm ?? 99) <= 2.5;
   if (e.ensemble) {
-    return `Gut für: Trends bis ${days(e.horizonH)} Tage — mit Unsicherheitsspanne`;
+    return `Gut für: Trends bis ${dayStr(e.horizonH)} — mit Unsicherheitsspanne`;
   }
   if (fine && e.horizonH <= 60) {
-    return `Gut für: die nächsten ${days(e.horizonH)} Tage, sehr detailliert`;
+    return `Gut für: die nächsten ${dayStr(e.horizonH)}, sehr detailliert`;
   }
   if ((e.resolutionKm ?? 0) >= 10) {
-    return `Gut für: Langfrist-Trends bis ${days(e.horizonH)} Tage`;
+    return `Gut für: Langfrist-Trends bis ${dayStr(e.horizonH)}`;
   }
-  return `Gut für: die nächsten ${days(e.horizonH)} Tage`;
+  return `Gut für: die nächsten ${dayStr(e.horizonH)}`;
 }
 
 /**

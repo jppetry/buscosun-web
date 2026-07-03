@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { encodeMapState } from './mapState';
 import maplibregl, { Map as MapLibreMap, Marker } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import type { Location } from './types';
+import type { Location, Country } from './types';
 import { WindLayer } from './wind/WindLayer';
 import type { DwdForecastResult } from './wind/brightSkySource';
 import type { ScalarGridResult } from './wind/openMeteoSource';
@@ -11,11 +11,15 @@ import { RainLayer, precipRainRamp } from './scalar/RainLayer';
 import { CloudLayer } from './scalar/CloudLayer';
 import { loadFusedForecast, prefetchSecondarySources, type ModelChoice } from './fusion/loadFusedForecast';
 import {
+  FUSION_RASTER_ENABLED,
   initialModelSourceState, isFusionActive, isFusionCapable, resolveModelSource,
   setGlobalSource, setLayerOverride, clearLayerOverride,
+  setActiveCountry, setCountryModel, toggleRadar,
   resolvePointSource, setPointSource,
   type ModelSource, type ModelSourceState,
 } from './fusion/modelSource';
+import ModelSwitcher from './map/ModelSwitcher';
+import type { ModelId } from './fusion/modelCatalog';
 import { lerpFrameImage } from './fusion/frameInterp';
 import { COUNTRY_PROFILES, DACH_VIEW } from './countryProfiles';
 import { loadDachMask } from './countryMask';
@@ -319,6 +323,11 @@ export default function MapView({ location, onBack, embedded = false, initialAct
   // (s. docs/fusion-2d-integration.md) — ein Klick, beide Domänen konsistent.
   const setGlobalModel = (src: ModelSource) =>
     setModelSource((s) => setPointSource(setGlobalSource(s, src), src));
+  // Per-Land-Modell-Switcher (Phase 3): Land-Wahl · Modellwahl je Land · Radar-Toggle.
+  // Die Modellwahl koppelt Raster + Punkt über den Resolver (resolvePointSource).
+  const onSelectCountry = (c: Country) => setModelSource((s) => setActiveCountry(s, c));
+  const onSelectModel = (c: Country, id: ModelId) => setModelSource((s) => setCountryModel(s, c, id));
+  const onToggleRadar = () => setModelSource((s) => toggleRadar(s));
   // Dev-Verifikations-Hook (Repo-Konvention wie __fusionV2 / __bsQA): Switch aus der
   // Konsole flippen (ergänzt die UI). Nur im Dev-Build.
   useEffect(() => {
@@ -336,6 +345,9 @@ export default function MapView({ location, onBack, embedded = false, initialAct
     // Fallback-Indikator simulieren (Phase-5-Verifikation): Fusion-Ladefehler an/aus.
     w.__setFusion2dError = (on: boolean) => setFusionError(!!on);
   }, []);
+  // Aktives Land des Switchers folgt der gesuchten Location (Reset bei neuer Suche;
+  // manuelle Tab-Wahl im Switcher hält bis zur nächsten Suche).
+  useEffect(() => { setModelSource((s) => setActiveCountry(s, location.country)); }, [location.country]);
   const forecastRef = useRef<DwdForecastResult | null>(null);
   // Auto-Fallback (Phase 5): Fusion nur rendern, wenn die gridded-Fusion-Daten für
   // DIESEN Layer tatsächlich vorliegen; sonst rendert weiter der native Pfad
@@ -752,18 +764,18 @@ export default function MapView({ location, onBack, embedded = false, initialAct
         gust: active.has('gust'),
         // Niederschlag-Layer nur sichtbar, wenn für die Slider-Stunde ein Frame
         // verfügbar ist (länderabhängig: RV/INCA/rzc bzw. ICON-D2 im Horizont).
-        [NOWCAST_LAYER_ID]: active.has('nowcast') && precipFrameReady(forecastHour) && !fusionActiveFor('nowcast'),
+        [NOWCAST_LAYER_ID]: active.has('nowcast') && precipFrameReady(forecastHour) && !fusionActiveFor('nowcast') && modelSourceRef.current.radar,
         // Fusion-Niederschlag (Forecast-Grid) statt Radar-Komposit, wenn der Resolver
         // Fusion für 'nowcast' wählt. Ohne Daten rendert der ScalarLayer nichts (transparent).
-        'precip-forecast': active.has('nowcast') && fusionActiveFor('nowcast'),
+        'precip-forecast': active.has('nowcast') && fusionActiveFor('nowcast') && modelSourceRef.current.radar,
         [SAT_LAYER_ID]: active.has('sat'),
         [LIGHTNING_LAYER_ID]: active.has('lightning'),
         [STATIONS_LAYER_ID]: active.has('stations'),
         [CONFIDENCE_LAYER_ID]: active.has('confidence'),
         [SNOWLINE_CASING_ID]: active.has('snowline'),
         [SNOWLINE_LAYER_ID]: active.has('snowline'),
-        [FLOW_NOWCAST_LAYER_ID]: active.has('flownowcast'),
-        [POP_LAYER_ID]: active.has('poprob'),
+        [FLOW_NOWCAST_LAYER_ID]: active.has('flownowcast') && modelSourceRef.current.radar,
+        [POP_LAYER_ID]: active.has('poprob') && modelSourceRef.current.radar,
         [DIM_LAYER_ID]: true, // dark wash always on — keeps the canvas dark even with no weather layer
       };
       for (const id of Object.keys(set)) {
@@ -2108,18 +2120,18 @@ export default function MapView({ location, onBack, embedded = false, initialAct
         gust: active.has('gust'),
         // Niederschlag-Layer nur sichtbar, wenn für die Slider-Stunde ein Frame
         // verfügbar ist (länderabhängig: RV/INCA/rzc bzw. ICON-D2 im Horizont).
-        [NOWCAST_LAYER_ID]: active.has('nowcast') && precipFrameReady(forecastHour) && !fusionActiveFor('nowcast'),
+        [NOWCAST_LAYER_ID]: active.has('nowcast') && precipFrameReady(forecastHour) && !fusionActiveFor('nowcast') && modelSourceRef.current.radar,
         // Fusion-Niederschlag (Forecast-Grid) statt Radar-Komposit, wenn der Resolver
         // Fusion für 'nowcast' wählt. Ohne Daten rendert der ScalarLayer nichts (transparent).
-        'precip-forecast': active.has('nowcast') && fusionActiveFor('nowcast'),
+        'precip-forecast': active.has('nowcast') && fusionActiveFor('nowcast') && modelSourceRef.current.radar,
         [SAT_LAYER_ID]: active.has('sat'),
         [LIGHTNING_LAYER_ID]: active.has('lightning'),
         [STATIONS_LAYER_ID]: active.has('stations'),
         [CONFIDENCE_LAYER_ID]: active.has('confidence'),
         [SNOWLINE_CASING_ID]: active.has('snowline'),
         [SNOWLINE_LAYER_ID]: active.has('snowline'),
-        [FLOW_NOWCAST_LAYER_ID]: active.has('flownowcast'),
-        [POP_LAYER_ID]: active.has('poprob'),
+        [FLOW_NOWCAST_LAYER_ID]: active.has('flownowcast') && modelSourceRef.current.radar,
+        [POP_LAYER_ID]: active.has('poprob') && modelSourceRef.current.radar,
         [DIM_LAYER_ID]: true, // dark wash always on — keeps the canvas dark even with no weather layer
       };
       for (const id of Object.keys(set)) {
@@ -2294,9 +2306,22 @@ export default function MapView({ location, onBack, embedded = false, initialAct
 
       {!embedded && (
         <div className="left-rails">
+        {/* Per-Land-Modell-Switcher (Phase 3, docs/model-switcher-gate0.md). Ersetzt
+            die alte binäre .model-switch-Rail (bleibt unten flag-gated & unsichtbar
+            bis zur Bereinigung). */}
+        <ModelSwitcher
+          state={modelSource}
+          variant="rail"
+          onSelectCountry={onSelectCountry}
+          onSelectModel={onSelectModel}
+          onToggleRadar={onToggleRadar}
+          fusionError={fusionError}
+        />
         {/* Fusion⇄Native-Modellquelle (Master oben im Stack): global (Raster + Punkt)
             + optionaler Per-Layer-Override. Nur fusion-fähige aktive Layer sind
-            übersteuerbar; die übrigen bleiben native-by-design und fehlen hier. */}
+            übersteuerbar; die übrigen bleiben native-by-design und fehlen hier.
+            Ausgeblendet, solange FUSION_RASTER_ENABLED === false (Raster nur nativ). */}
+        {FUSION_RASTER_ENABLED && (
         <div className="model-switch" role="group" aria-label="Modellquelle">
           <div className="ms-global">
             <button
@@ -2332,6 +2357,7 @@ export default function MapView({ location, onBack, embedded = false, initialAct
             <div className="ms-note" role="status" title="Die gridded Fusion konnte nicht geladen werden — die Layer rendern automatisch nativ (ICON-D2).">⚠ Fusion offline · nativ</div>
           )}
         </div>
+        )}
         <div className="layer-switch">
           {LAYER_OPTIONS.map(opt => (
             <button
@@ -2585,6 +2611,16 @@ export default function MapView({ location, onBack, embedded = false, initialAct
                   </strong>
                 </div>
 
+                <ModelSwitcher
+                  state={modelSource}
+                  variant="sheet"
+                  onSelectCountry={onSelectCountry}
+                  onSelectModel={onSelectModel}
+                  onToggleRadar={onToggleRadar}
+                  fusionError={fusionError}
+                />
+
+                {FUSION_RASTER_ENABLED && (
                 <div className="map-sheet-model">
                   <span className="map-sheet-model-label">Modell</span>
                   {fusionError && (modelSource.global === 'fusion' || Object.values(modelSource.overrides).includes('fusion')) && (
@@ -2595,6 +2631,7 @@ export default function MapView({ location, onBack, embedded = false, initialAct
                     <button type="button" className={modelSource.global === 'native' ? 'active' : ''} onClick={() => setGlobalModel('native')}>Native</button>
                   </div>
                 </div>
+                )}
 
                 <div className="map-sheet-list">
                   {LAYER_OPTIONS.map(opt => {
@@ -2664,7 +2701,7 @@ export default function MapView({ location, onBack, embedded = false, initialAct
                                 ))}
                               </div>
                             )}
-                            {isFusionCapable(opt.key) && on && (() => {
+                            {FUSION_RASTER_ENABLED && isFusionCapable(opt.key) && on && (() => {
                               const src = resolveModelSource(opt.key, modelSource);
                               const overridden = opt.key in modelSource.overrides;
                               return (

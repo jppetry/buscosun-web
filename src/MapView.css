@@ -1758,3 +1758,133 @@
     border-top: 1px solid var(--sand-100); font-size: 0.7rem; color: var(--stone-500);
   }
 }
+
+/* ============ PER-LAND-MODELL-SWITCHER (Phase 3, src/map/ModelSwitcher) ============ */
+.model-switcher {
+  display: flex; flex-direction: column; gap: 0.4rem;
+  font-family: var(--font-base); color: var(--ink-900); text-align: left;
+}
+/* Desktop: eigene Glas-Karte oben im .left-rails-Stack (breiter als die Icon-Rail). */
+.model-switcher.ms-rail {
+  width: 244px;
+  background: var(--surface-glass-strong);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  border: 1px solid var(--border-default); border-radius: 16px;
+  padding: 0.55rem; box-shadow: var(--shadow-card); pointer-events: auto;
+}
+/* Mobile: in-flow im Sheet, volle Breite (kein eigener Rahmen — Sheet trägt ihn). */
+.model-switcher.ms-sheet { width: 100%; padding: 0.25rem 0 0.4rem; }
+
+/* Land-Tabs */
+.ms-countries { display: flex; gap: 0.25rem; }
+.ms-countries button {
+  flex: 1; background: transparent; border: 1px solid var(--border-default); border-radius: 999px;
+  padding: 0.3rem 0.2rem; font-family: inherit; font-size: 0.72rem; font-weight: 500;
+  color: var(--stone-600); cursor: pointer; transition: background .15s, color .15s, border-color .15s;
+}
+.ms-countries button:hover { background: var(--sand-50); border-color: var(--border-medium); color: var(--ink-900); }
+.ms-countries button.active { background: var(--ink-900); border-color: var(--ink-900); color: #fff; }
+
+/* Statuszeile */
+.ms-status {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.25rem 0.5rem;
+  font-size: 0.66rem; line-height: 1.3; color: var(--stone-500);
+  border-bottom: 1px solid var(--sand-100); padding-bottom: 0.35rem;
+}
+.ms-status-src { font-weight: 600; color: var(--ink-800); }
+.ms-status-radar { margin-left: auto; color: var(--stone-400); }
+.ms-status-radar.on { color: var(--sage-600); font-weight: 600; }
+
+/* Radar-Toggle (orthogonal) */
+.ms-radar-toggle {
+  display: flex; align-items: center; gap: 0.5rem; width: 100%;
+  background: var(--sand-50); border: 1px solid var(--border-default); border-radius: 12px;
+  padding: 0.4rem 0.5rem; cursor: pointer; text-align: left;
+  transition: background .15s, border-color .15s;
+}
+.ms-radar-toggle:hover { border-color: var(--border-medium); }
+.ms-radar-toggle.on { background: var(--sage-50); border-color: var(--sage-600); }
+.ms-radar-knob {
+  flex: none; width: 30px; height: 18px; border-radius: 999px; background: var(--stone-400);
+  position: relative; transition: background .15s;
+}
+.ms-radar-knob::after {
+  content: ''; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px;
+  border-radius: 50%; background: #fff; transition: transform .15s;
+}
+.ms-radar-toggle.on .ms-radar-knob { background: var(--sage-600); }
+.ms-radar-toggle.on .ms-radar-knob::after { transform: translateX(12px); }
+.ms-radar-text { display: flex; flex-direction: column; line-height: 1.2; }
+.ms-radar-title { font-size: 0.72rem; font-weight: 600; color: var(--ink-900); }
+.ms-radar-sub { font-size: 0.62rem; color: var(--stone-500); }
+
+/* Disclosure */
+.ms-disclosure {
+  display: flex; align-items: center; justify-content: space-between; width: 100%;
+  background: transparent; border: 1px dashed var(--border-medium); border-radius: 10px;
+  padding: 0.35rem 0.5rem; font-family: inherit; font-size: 0.7rem; font-weight: 500;
+  color: var(--stone-600); cursor: pointer;
+}
+.ms-disclosure:hover { background: var(--sand-50); color: var(--ink-900); }
+.ms-disclosure svg { transition: transform .18s; }
+.model-switcher.is-open .ms-disclosure svg { transform: rotate(180deg); }
+
+/* Modellgruppen */
+.ms-group { display: flex; flex-direction: column; gap: 0.3rem; }
+.ms-group-head {
+  display: flex; align-items: baseline; gap: 0.4rem; font-size: 0.6rem; font-weight: 700;
+  letter-spacing: 0.06em; text-transform: uppercase; color: var(--stone-500);
+  margin-top: 0.15rem;
+}
+.ms-group-hint { font-weight: 400; letter-spacing: 0; text-transform: none; font-size: 0.6rem; color: var(--stone-400); }
+.ms-group-cards { display: flex; flex-direction: column; gap: 0.3rem; }
+
+/* Modellkarte */
+.mc-card {
+  display: flex; flex-direction: column; gap: 0.15rem; width: 100%;
+  background: var(--cream-50); border: 1px solid var(--border-default); border-radius: 12px;
+  padding: 0.45rem 0.55rem; font-family: inherit; text-align: left; cursor: pointer;
+  transition: border-color .15s, background .15s, box-shadow .15s;
+}
+.mc-card:hover:not(.is-disabled) { border-color: var(--border-strong); box-shadow: var(--shadow-card); }
+.mc-card.is-selected { border-color: var(--terracotta-500); background: var(--terracotta-50); box-shadow: 0 0 0 1px var(--terracotta-500) inset; }
+.mc-card.is-disabled { opacity: 0.55; cursor: default; background: var(--sand-50); }
+.mc-recommended { border-color: var(--sage-600); }
+.mc-recommended.is-selected { border-color: var(--terracotta-500); }
+.mc-head { display: flex; align-items: baseline; gap: 0.4rem; }
+.mc-name { font-size: 0.8rem; font-weight: 700; color: var(--ink-900); }
+.mc-op { font-size: 0.62rem; color: var(--stone-500); }
+.mc-tag-reco { margin-left: auto; font-size: 0.55rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--sage-600); }
+.mc-tag-house { margin-left: auto; font-size: 0.55rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--stone-400); }
+.mc-cov { margin-left: auto; font-size: 0.55rem; font-weight: 600; padding: 0.05rem 0.3rem; border-radius: 999px; }
+.mc-cov-part { color: var(--terracotta-700); background: var(--terracotta-50); }
+.mc-cov-coarse { color: var(--slate-500); background: var(--sand-100); }
+.mc-badges { display: flex; flex-wrap: wrap; gap: 0.2rem; margin-top: 0.1rem; }
+.mc-badge {
+  font-size: 0.56rem; font-weight: 600; color: var(--stone-600);
+  background: var(--sand-100); border-radius: 5px; padding: 0.05rem 0.28rem;
+}
+.mc-badge-ai { color: var(--steel-600); background: var(--steel-50); }
+.mc-badge-soon { color: var(--stone-400); background: transparent; border: 1px dashed var(--border-medium); }
+.mc-good { font-size: 0.66rem; line-height: 1.3; color: var(--stone-600); margin-top: 0.1rem; }
+.mc-good-sub { color: var(--stone-400); }
+.mc-warn { font-size: 0.6rem; line-height: 1.25; color: var(--terracotta-700); margin-top: 0.1rem; }
+.mc-pipe, .mc-fallback { font-size: 0.58rem; line-height: 1.25; color: var(--stone-400); margin-top: 0.05rem; }
+
+/* Fallback-Indikator + Attribution */
+.ms-offline {
+  font-size: 0.6rem; font-weight: 600; color: var(--terracotta-700);
+  background: var(--terracotta-50); border-radius: 8px; padding: 0.3rem 0.4rem;
+}
+.ms-attrib {
+  display: flex; flex-direction: column; gap: 0.1rem; margin-top: 0.15rem;
+  border-top: 1px solid var(--sand-100); padding-top: 0.3rem;
+  font-size: 0.56rem; line-height: 1.3; color: var(--stone-400);
+}
+
+/* Mobile-Sheet: etwas größere Tap-Ziele + Schrift. */
+.model-switcher.ms-sheet .ms-countries button { font-size: 0.85rem; padding: 0.45rem; }
+.model-switcher.ms-sheet .ms-status { font-size: 0.75rem; }
+.model-switcher.ms-sheet .mc-name { font-size: 0.9rem; }
+.model-switcher.ms-sheet .mc-good { font-size: 0.75rem; }
+.model-switcher.ms-sheet .ms-radar-title { font-size: 0.82rem; }
