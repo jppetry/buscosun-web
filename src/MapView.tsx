@@ -246,6 +246,15 @@ const precipRamp: Record<number, string> = {
   1.0:   'rgb(170, 50, 130)',         // 10 mm/h extreme — purple
 };
 
+/** Äquirektangular-UV-Bounds (x0,y0,x1,y1) → QuadCorners [NW,NE,SE,SW] in [lng,lat].
+ *  Adapter für den Fusion→CloudLayer-Transport (Fusion liefert uvBounds, der
+ *  CloudLayer erwartet 4 Geo-Ecken). x=(lng+180)/360, y=(90−lat)/180 invertiert. */
+function uvBoundsToCorners(uv: [number, number, number, number]): QuadCorners {
+  const west = uv[0] * 360 - 180, north = 90 - uv[1] * 180;
+  const east = uv[2] * 360 - 180, south = 90 - uv[3] * 180;
+  return [[west, north], [east, north], [east, south], [west, south]];
+}
+
 export default function MapView({ location, onBack, embedded = false, initialActive, initialHour, embedHourRange, embeddedLayer, overview = false }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
@@ -698,8 +707,10 @@ export default function MapView({ location, onBack, embedded = false, initialAct
         gust: active.has('gust'),
         // Niederschlag-Layer nur sichtbar, wenn für die Slider-Stunde ein Frame
         // verfügbar ist (länderabhängig: RV/INCA/rzc bzw. ICON-D2 im Horizont).
-        [NOWCAST_LAYER_ID]: active.has('nowcast') && precipFrameReady(forecastHour),
-        'precip-forecast': false,
+        [NOWCAST_LAYER_ID]: active.has('nowcast') && precipFrameReady(forecastHour) && !fusionFor('nowcast'),
+        // Fusion-Niederschlag (Forecast-Grid) statt Radar-Komposit, wenn der Resolver
+        // Fusion für 'nowcast' wählt. Ohne Daten rendert der ScalarLayer nichts (transparent).
+        'precip-forecast': active.has('nowcast') && fusionFor('nowcast'),
         [SAT_LAYER_ID]: active.has('sat'),
         [LIGHTNING_LAYER_ID]: active.has('lightning'),
         [STATIONS_LAYER_ID]: active.has('stations'),
@@ -1616,9 +1627,26 @@ export default function MapView({ location, onBack, embedded = false, initialAct
         uvBounds: lA.temperature.uvBounds,
       });
     }
-    // Wolken kommen jetzt aus ICON-D2 (eigener Effekt unten), nicht mehr aus
-    // der Fusion — daher hier kein clouds.setData mehr.
-    if (precip && lA.precipitation) {
+    // WOLKEN (Fusion-Quelle): der CloudLayer erwartet rohe RGBA-Bytes + 4 Geo-Ecken,
+    // die Fusion liefert Canvas + uvBounds → Transport-Adapter (getImageData +
+    // uvBounds→QuadCorners; Kanal-Encoding R/G/B=low/mid/high ist byte-identisch).
+    // Wolken werden nicht sub-Stunden-gelerpt → nächstliegende Stunde.
+    const clouds = layerRefs.current.clouds;
+    const lCloud = (frac > 0.5 && lB.clouds) ? lB.clouds : lA.clouds;
+    if (clouds && lCloud && fusionFor('clouds')) {
+      const cv = document.createElement('canvas');
+      cv.width = lCloud.width; cv.height = lCloud.height;
+      const ctx = cv.getContext('2d', { willReadFrequently: true })!;
+      ctx.drawImage(lCloud.image, 0, 0);
+      const px = ctx.getImageData(0, 0, lCloud.width, lCloud.height).data;
+      const values = new Uint8Array(px.buffer, px.byteOffset, px.byteLength);
+      clouds.setFrame({ values, width: lCloud.width, height: lCloud.height, corners: uvBoundsToCorners(lCloud.uvBounds) });
+    }
+
+    // NIEDERSCHLAG (Fusion-Forecast): speist den `precip-forecast`-ScalarLayer
+    // (byte-identischer Sink, spec §9); Sichtbarkeit (precip-forecast↔rain) regelt
+    // applyVisibility. Nur füttern, wenn der Resolver Fusion für 'nowcast' wählt.
+    if (precip && lA.precipitation && fusionFor('nowcast')) {
       const image = frac > 0.001 && lB.precipitation
         ? lerpFrameImage(lA.precipitation.image, lB.precipitation.image, frac, 'precip')
         : lA.precipitation.image;
@@ -1640,6 +1668,9 @@ export default function MapView({ location, onBack, embedded = false, initialAct
   useEffect(() => {
     const rain = layerRefs.current.rain;
     if (!rain || !active.has('nowcast')) return;
+    // Bei Fusion-Niederschlag speist der `precip-forecast`-ScalarLayer (zentraler
+    // Fusion-Effekt) statt des Radar-Komposits; hier nativ zurücktreten.
+    if (fusionFor('nowcast')) return;
     if (!compositorRef.current) compositorRef.current = new PrecipCompositor();
     // DACH-Komposit: pro Zelle das richtige Landesradar (DE RADOLAN / AT INCA /
     // CH rzc) im jeweiligen Nowcast-Horizont, sonst/danach ICON-D2 — unabhängig
@@ -1648,13 +1679,15 @@ export default function MapView({ location, onBack, embedded = false, initialAct
       rv: nowcastRef.current, inca: incaGridRef.current, rzc: meteoRadarRef.current, d2: iconD2Ref.current,
     }, Date.now());
     rain.setFrame({ values: frame.values, width: frame.width, height: frame.height, corners: frame.corners });
-  }, [forecastHour, nowcastTick, active]);
+  }, [forecastHour, nowcastTick, active, modelSource]);
 
   // Wolken-Layer (ICON-D2 CLCT): bei jeder Slider-Bewegung den Frame mit der
   // nächstgelegenen Gültigkeitszeit setzen. Deckt den ganzen ICON-D2-Horizont ab.
   useEffect(() => {
     const cloudL = layerRefs.current.clouds;
     if (!cloudL || !active.has('clouds')) return;
+    // Bei Fusion-Wolken speist der zentrale Fusion-Effekt (Adapter); hier zurücktreten.
+    if (fusionFor('clouds')) return;
     const cl = iconD2CloudsRef.current;
     if (!cl || cl.frames.length === 0) return;
     const target = Date.now() + forecastHour * 3600_000;
@@ -1664,7 +1697,7 @@ export default function MapView({ location, onBack, embedded = false, initialAct
     }
     cloudL.setFrame({ values: best.values, width: best.width, height: best.height, corners: cl.corners });
     reportValidAt(best.validAt.getTime());
-  }, [forecastHour, nowcastTick, active, reportValidAt]);
+  }, [forecastHour, nowcastTick, active, modelSource, reportValidAt]);
 
   // Wind-Layer (natives ICON-D2 u/v-10m): bei jeder Slider-Bewegung den Frame
   // setzen — bei Sub-Stunden-Positionen im GESCHWINDIGKEITSRAUM zwischen den
@@ -1984,8 +2017,10 @@ export default function MapView({ location, onBack, embedded = false, initialAct
         gust: active.has('gust'),
         // Niederschlag-Layer nur sichtbar, wenn für die Slider-Stunde ein Frame
         // verfügbar ist (länderabhängig: RV/INCA/rzc bzw. ICON-D2 im Horizont).
-        [NOWCAST_LAYER_ID]: active.has('nowcast') && precipFrameReady(forecastHour),
-        'precip-forecast': false,
+        [NOWCAST_LAYER_ID]: active.has('nowcast') && precipFrameReady(forecastHour) && !fusionFor('nowcast'),
+        // Fusion-Niederschlag (Forecast-Grid) statt Radar-Komposit, wenn der Resolver
+        // Fusion für 'nowcast' wählt. Ohne Daten rendert der ScalarLayer nichts (transparent).
+        'precip-forecast': active.has('nowcast') && fusionFor('nowcast'),
         [SAT_LAYER_ID]: active.has('sat'),
         [LIGHTNING_LAYER_ID]: active.has('lightning'),
         [STATIONS_LAYER_ID]: active.has('stations'),
@@ -2029,7 +2064,7 @@ export default function MapView({ location, onBack, embedded = false, initialAct
     // request queue, leaving layer visibility frozen.
     const safeApply = () => { try { apply(); } catch { map.once('styledata', safeApply); } };
     safeApply();
-  }, [active, forecastHour, nowcastTick, location.country]);
+  }, [active, forecastHour, nowcastTick, location.country, modelSource]);
 
   const fmtTime = (ms: number) =>
     new Date(ms).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
