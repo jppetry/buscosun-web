@@ -33,6 +33,13 @@ const upstreamProxy = {
     changeOrigin: true,
     rewrite: (p: string) => p.replace(/^\/_mf/, ''),
   },
+  // ECMWF Open Data (IFS): GRIB2 + .index-Sidecars (Byte-Range je Feld), CC-BY-4.0,
+  // kein Key. Browser-CORS blockiert → Proxy.
+  '/_ecmwf': {
+    target: 'https://data.ecmwf.int',
+    changeOrigin: true,
+    rewrite: (p: string) => p.replace(/^\/_ecmwf/, ''),
+  },
 };
 
 export default defineConfig({

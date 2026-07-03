@@ -323,7 +323,7 @@ export function verifyModelSource(): { checks: string[]; passed: number; failed:
   ok(resolveModel('temp', mk({ country: 'CH', global: 'inca' })) === 'native', '(e) INCA in CH nicht abgedeckt → native');
   ok(resolveModel('temp', mk({ country: 'DE', global: 'inca' })) === 'native', '(e) INCA in DE (AT-only) → native');
   ok(resolveModel('temp', mk({ global: 'mosmix' })) === 'native', '(f) MOSMIX (Punkt) auf Raster → native');
-  ok(resolveModel('temp', mk({ global: 'ifs' })) === 'native', '(f) IFS nicht ingestiert → native');
+  ok(resolveModel('temp', mk({ global: 'graphcast' })) === 'native', '(f) GraphCast nicht ingestiert → native');
   ok(resolveModel('temp', mk({ global: 'icon-eu' })) === 'icon-eu', '(f) ICON-EU ingestiert → rastert');
   const fb = resolveModelWithFallback('temp', mk({ global: 'mosmix' }));
   ok(fb.fellBack && fb.requested === 'mosmix' && fb.id === 'native', '(e) Fallback meldet requested=mosmix→native');

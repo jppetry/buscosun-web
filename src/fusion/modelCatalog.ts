@@ -236,8 +236,9 @@ export const MODEL_CATALOG: readonly ModelEntry[] = [
   {
     id: 'ifs', name: 'ECMWF IFS', operator: 'ECMWF', kind: 'raster',
     resolutionKm: 28, horizonH: 240, license: 'CC-BY-4.0',
-    attribution: 'Daten: ECMWF · CC BY 4.0', ingested: false, rasterCapable: true,
+    attribution: 'Daten: ECMWF · CC BY 4.0', ingested: true, rasterCapable: true,
     engineGridded: true, coverage: coarse3, group: 'global',
+    pipelineNote: '2D-Raster (Temperatur/Wind/Wolken/Niederschlag), 0,25°-Globalgitter, 0–6 h.',
   },
   {
     id: 'gfs', name: 'NOAA GFS', operator: 'NOAA', kind: 'raster',
