@@ -21,6 +21,7 @@ There is **no lint script** and **no unit-test runner**. "Tests" are runtime ver
 - Adopt the v1.8 design system: CSS variables from `src/designTokens.css` (sand/cream/stone/terracotta palette) and the shared `.rt-*` page shell from `src/route/tourTheme.css`. **No new color system, no hardcoded hex values.**
 - Meteorology lives in pure, tested modules; deterministic math only (the former browser-LLM assistant was removed — verdicts/explanations are computed, never generated). Meters + km/h + linear scales for vertical data.
 - Only use the **existing data pipelines** (ICON-D2/EU, GeoSphere AROME/INCA, MeteoSwiss, BrightSky, GFS, Terrarium DEM). Do not add a new external source, fetch/ingest path, or third-party adapter. If a datum is missing, reduce/hide the feature rather than build a pipeline for it.
+  - **Exception — Per-Land-Modell-Switcher (freigegeben 2026-07):** Der Betreiber hat die geschlossene Modell-Whitelist in `docs/model-switcher-gate0.md` (§1b) ausdrücklich vorab freigegeben. Für **genau diese** Modelle (kommerziell frei/unlimitiert: ICON-D2-EPS, ICON-CH1/CH2-EPS, AROME-France, ICON-EU-Raster, GFS-2D, ECMWF IFS/AIFS, ECCC GEM, UKMO, ARPEGE, DWD AICON, NOAA-KI-Modelle) dürfen neue Adapter angelegt werden — **einzeln, je Quelle gegated** (Ingestion → Adapter → Verifikation → Commit → Gate). Diese Ausnahme gilt **nur** für die Whitelist; keine Quelle außerhalb davon.
 
 ## Architecture
 
