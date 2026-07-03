@@ -13,6 +13,7 @@ import { loadFusedForecast, prefetchSecondarySources, type ModelChoice } from '.
 import {
   initialModelSourceState, isFusionActive, isFusionCapable,
   setGlobalSource, setLayerOverride, clearLayerOverride,
+  resolvePointSource, setPointSource,
   type ModelSource, type ModelSourceState,
 } from './fusion/modelSource';
 import { lerpFrameImage } from './fusion/frameInterp';
@@ -319,8 +320,13 @@ export default function MapView({ location, onBack, embedded = false, initialAct
   useEffect(() => {
     if (!import.meta.env.DEV) return;
     const w = window as unknown as Record<string, unknown>;
+    // layer==='point' steuert die zweite Engine (Punkt-Panel); sonst Raster-Layer
+    // bzw. (ohne layer) der globale Raster-Default.
     w.__setFusion2d = (src: ModelSource, layer?: string) =>
-      setModelSource((s) => (layer ? setLayerOverride(s, layer, src) : setGlobalSource(s, src)));
+      setModelSource((s) =>
+        layer === 'point' ? setPointSource(s, src)
+        : layer ? setLayerOverride(s, layer, src)
+        : setGlobalSource(s, src));
     w.__clearFusion2d = (layer: string) => setModelSource((s) => clearLayerOverride(s, layer));
     w.__getFusion2d = () => modelSourceRef.current;
   }, []);
@@ -2466,6 +2472,7 @@ export default function MapView({ location, onBack, embedded = false, initialAct
           lng={location.lon}
           country={location.country}
           locationLabel={location.name}
+          sourceMode={resolvePointSource(modelSource)}
         />
       )}
 

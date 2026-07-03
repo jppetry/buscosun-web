@@ -50,6 +50,25 @@ import { fetchDwdUvPoint, uvToHourSamples } from '../sources/dwdUvForecast';
 import { terrainContext, terrainTempDeltaC, type TerrainContext } from './terrainPhysics';
 import { createRadarNowcastSampler, type RadarNowcastSampler } from './radarNowcast';
 import { fetchGfsPointTail } from './gfsPoint';
+import type { ModelSource } from '../fusion/modelSource';
+
+/**
+ * Dominante native Modellquelle je Land für den Punkt-`'native'`-Modus
+ * (Einzelmodell-Isolation). Bewusst die lizenz-tragende Primärquelle des
+ * jeweiligen Landes — kein Blend, kein Obs-Anker, kein Radar/GFS-Consensus:
+ *  - DE → MOSMIX (DWD, ICON-EU-biaskorrigiert auf DWD-Stationen)
+ *  - AT → AROME 2,5 km (GeoSphere-Primärmodell; INCA-Nowcast bewusst ausgelassen)
+ *  - CH → AROME (GeoSphere-bbox deckt CH; MeteoSwiss-Punkt hier nicht abgerufen)
+ * `dwd_uv` bleibt überall enthalten: der UV-Index ist orthogonal (kein NWP
+ * liefert ihn), konkurriert also mit keiner Modellvariable und würde sonst grundlos
+ * ausgeblendet. Der native Pfad ist der garantierte Fallback: liefert die Quelle
+ * NICHTS, bleibt der volle Blend erhalten (Panel nie leer).
+ */
+const NATIVE_POINT_SOURCES: Record<Country, ReadonlySet<string>> = {
+  DE: new Set(['mosmix', 'dwd_uv']),
+  AT: new Set(['arome_at', 'dwd_uv']),
+  CH: new Set(['arome_at', 'dwd_uv']),
+};
 
 const STD_LAPSE_PER_M = 0.0065;
 /** spatialWeight-Schwelle, ab der eine Station als quasi ko-lokalisierter
@@ -100,6 +119,15 @@ export interface PointForecastOptions {
    * (Route/3D) lassen ihn aus. AT nutzt bereits INCA als nowcast-Familie.
    */
   includeRadarNowcast?: boolean;
+  /**
+   * Modellquelle der Punkt-Engine (Fusion→Layer-Integration, zweite Engine).
+   *  - `'fusion'` (Default) → bestehender Multi-Quellen-Blend, unverändert für
+   *    ALLE bestehenden Aufrufer (Event/Route/3D/Nowcast/Notifications).
+   *  - `'native'` → Einzelmodell-Isolation auf die dominante native Quelle des
+   *    Landes (`NATIVE_POINT_SOURCES`). Additiv und opt-in; garantierter Fallback
+   *    auf den Blend, wenn die native Quelle nichts liefert.
+   */
+  sourceMode?: ModelSource;
 }
 
 // Modulweiter Cache des positions-unabhängigen Radar-Samplers (ein Stack je Land
@@ -125,11 +153,12 @@ interface PfCacheEntry { hours: number; forecast: PointForecast; ts: number }
 const PF_CACHE = new Map<string, PfCacheEntry>();
 const PF_CACHE_TTL_MS = 180_000;     // 3 min
 const PF_CACHE_MAX = 64;
-function pfCacheKey(lat: number, lng: number, country: Country, radar: boolean): string {
+function pfCacheKey(lat: number, lng: number, country: Country, radar: boolean, native: boolean): string {
   // Das Radar-Flag MUSS in den Key: sonst könnte ein Nicht-Radar-Aufrufer
   // (Route/3D) den Cache füllen und ein Radar-Aufrufer (Event/Panel) bekäme das
-  // radarlose Ergebnis (fehlender Nowcast-Niederschlag).
-  return `${country}:${lat.toFixed(3)}:${lng.toFixed(3)}${radar ? ':r' : ''}`;
+  // radarlose Ergebnis (fehlender Nowcast-Niederschlag). Ebenso der Native-Modus:
+  // sonst kollidierten Blend- und Einzelmodell-Ergebnis am selben Punkt.
+  return `${country}:${lat.toFixed(3)}:${lng.toFixed(3)}${radar ? ':r' : ''}${native ? ':n' : ''}`;
 }
 
 /**
@@ -140,7 +169,7 @@ export async function getPointForecast(opts: PointForecastOptions): Promise<Poin
   const profile = COUNTRY_PROFILES[country];
   const hours = opts.hours ?? profile.forecastHours;
 
-  const cacheKey = pfCacheKey(lat, lng, country, !!opts.includeRadarNowcast);
+  const cacheKey = pfCacheKey(lat, lng, country, !!opts.includeRadarNowcast, opts.sourceMode === 'native');
   const cached = PF_CACHE.get(cacheKey);
   if (cached && cached.hours >= hours && (Date.now() - cached.ts) < PF_CACHE_TTL_MS) {
     return cached.forecast;
@@ -292,6 +321,28 @@ export async function getPointForecast(opts: PointForecastOptions): Promise<Poin
     }
   }
 
+  // --- 3b) Native-Einzelmodell-Isolation (Punkt-Panel „Native"-Modus) ------
+  // Fusion-Default (oben) = voller Blend, unverändert. Im Native-Modus wird pro
+  // Stunde auf die dominante native Modellquelle des Landes reduziert — rohe
+  // Einzelmodell-Referenz statt Blend, konsistent mit dem Raster-Native (kein
+  // Obs-Anker/Radar/Consensus). Die nachgelagerte Höhen-/Mikroklima-Korrektur
+  // (elevation/terrain) bleibt erhalten — sie macht auch das Einzelmodell am
+  // Abfragepunkt erst brauchbar (Kernwert der App), analog zum Raster-ICON-D2.
+  // Garantierter Fallback: liefert die native Quelle NICHTS, bleibt der Blend.
+  let isolatedNative = false;
+  if (opts.sourceMode === 'native') {
+    const nativeSet = NATIVE_POINT_SOURCES[country];
+    if (unified.some((h) => h.samples.some((s) => nativeSet.has(s.source)))) {
+      for (const h of unified) h.samples = h.samples.filter((s) => nativeSet.has(s.source));
+      // Zeitachse auf den Horizont des nativen Modells kürzen (AROME ~60 h),
+      // statt jenseits davon leere Stunden mit null-Werten zu zeigen.
+      let lastNative = -1;
+      for (let h = 0; h < unified.length; h++) if (unified[h].samples.length) lastNative = h;
+      unified.length = lastNative + 1;
+      isolatedNative = true;
+    }
+  }
+
   // --- 4) Blend per-hour -------------------------------------------------
   const outHours: PointForecastHour[] = unified.map((hour, hIdx) => {
     // Blend each variable ONCE (value + confidence come from the same result).
@@ -405,7 +456,11 @@ export async function getPointForecast(opts: PointForecastOptions): Promise<Poin
     uvPoint.some((u) => u.uvIndex != null) ? 'dwd_uv' : null,
     radarContributed && radarSampler ? radarSampler.meta.source : null,
     gfsHours.some((g) => g && g.samples.length) ? 'gfs' : null,
-  ].filter((s): s is string => !!s)));
+  ].filter((s): s is string => !!s)))
+    // Im isolierten Native-Modus nur die tatsächlich genutzten nativen Quellen
+    // ausweisen — sonst zeigten die Herkunfts-Badges Quellen, die nicht in den
+    // Blend eingegangen sind.
+    .filter((s) => !isolatedNative || NATIVE_POINT_SOURCES[country].has(s));
 
   const result: PointForecast = {
     query: { lat, lng, elevation, country },

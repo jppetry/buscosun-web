@@ -13,6 +13,7 @@ import { useEffect, useRef, useState } from 'react';
 import { getPointForecast } from './pointForecast';
 import type { PointForecast } from './types';
 import type { Country } from '../types';
+import type { ModelSource } from '../fusion/modelSource';
 import { fetchDwdAlerts, severityColor, type DwdAlertsResult } from '../sources/dwdAlerts';
 import {
   fetchPollenForecast,
@@ -35,11 +36,17 @@ interface Props {
   country: Country;
   locationLabel: string;
   hours?: number;
+  /**
+   * Modellquelle der Punkt-Engine: `'fusion'` (Default) = Multi-Quellen-Blend,
+   * `'native'` = Einzelmodell-Isolation. Vom Fusion⇄Native-Switch der Karte
+   * gesteuert; Default hält das eingefrorene Blend-Verhalten.
+   */
+  sourceMode?: ModelSource;
 }
 
 const REFRESH_MS = 10 * 60 * 1000;        // refresh every 10 min
 
-export function PointForecastPanel({ lat, lng, country, locationLabel, hours = 24 }: Props) {
+export function PointForecastPanel({ lat, lng, country, locationLabel, hours = 24, sourceMode = 'fusion' }: Props) {
   const [data, setData] = useState<PointForecast | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -90,7 +97,7 @@ export function PointForecastPanel({ lat, lng, country, locationLabel, hours = 2
     const abort = new AbortController();
     setLoading(true);
     setError(null);
-    getPointForecast({ lat, lng, country, hours, signal: abort.signal, includeRadarNowcast: true })
+    getPointForecast({ lat, lng, country, hours, signal: abort.signal, includeRadarNowcast: true, sourceMode })
       .then((r) => { if (!abort.signal.aborted) { setData(r); setLoading(false); } })
       .catch((err: unknown) => {
         if ((err as { name?: string })?.name === 'AbortError') return;
@@ -98,10 +105,10 @@ export function PointForecastPanel({ lat, lng, country, locationLabel, hours = 2
         setLoading(false);
       });
     const t = window.setInterval(() => {
-      getPointForecast({ lat, lng, country, hours, includeRadarNowcast: true }).then(setData).catch(() => {});
+      getPointForecast({ lat, lng, country, hours, includeRadarNowcast: true, sourceMode }).then(setData).catch(() => {});
     }, REFRESH_MS);
     return () => { abort.abort(); window.clearInterval(t); };
-  }, [lat, lng, country, hours]);
+  }, [lat, lng, country, hours, sourceMode]);
 
   // DWD warnings: refreshed every 5 min, point-query via BrightSky.
   useEffect(() => {

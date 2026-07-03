@@ -40,13 +40,22 @@ export function isFusionCapable(layer: string): layer is FusionCapableLayer {
 }
 
 /**
- * Umschaltzustand. `global` ist der Default für alle fusion-fähigen Layer;
+ * Umschaltzustand. `global` ist der Default für alle fusion-fähigen Raster-Layer;
  * `overrides` hebt ihn pro Layer auf (Per-Layer gewinnt). Nicht-fähige Layer
  * tauchen hier nie auf.
+ *
+ * `point` ist die Quelle der **zweiten Engine** — des Punkt-Panels
+ * (`getPointForecast`). Es steht bewusst NEBEN `global`, weil seine
+ * eingefrorene Referenz **invertiert** ist: das heutige Punkt-Verhalten ist der
+ * Multi-Quellen-**Blend** (`'fusion'`), während das Raster heute **nativ**
+ * (ICON-D2) rendert. Ein einziger globaler Wert könnte nicht beide Domänen
+ * gleichzeitig auf ihrem eingefrorenen Ist-Verhalten halten — daher ein
+ * eigenes Feld mit eigenem Default (`defaultPointSource` → `'fusion'`).
  */
 export interface ModelSourceState {
   global: ModelSource;
   overrides: Partial<Record<FusionCapableLayer, ModelSource>>;
+  point: ModelSource;
 }
 
 /**
@@ -70,9 +79,20 @@ export function defaultModelSource(): ModelSource {
   return 'native';
 }
 
+/**
+ * Eingefrorener Start-Default der **Punkt-Engine**: immer `'fusion'` (der
+ * heutige Blend). Bewusst flag-**unabhängig** und invertiert zum Raster —
+ * der Umstieg des Punkt-Panels auf Einzelmodell-Isolation ist eine echte
+ * Verhaltensänderung und bleibt bis zum Production-Default-Flip Hard-Stop-
+ * pflichtig. Der Nutzer-Switch (Phase 4) kann ihn danach flippen.
+ */
+export function defaultPointSource(): ModelSource {
+  return 'fusion';
+}
+
 /** Frischer Zustand mit dem Flag-Default und ohne Overrides. */
 export function initialModelSourceState(): ModelSourceState {
-  return { global: defaultModelSource(), overrides: {} };
+  return { global: defaultModelSource(), overrides: {}, point: defaultPointSource() };
 }
 
 /**
@@ -91,11 +111,20 @@ export function isFusionActive(layer: string, state: ModelSourceState): boolean 
   return resolveModelSource(layer, state) === 'fusion';
 }
 
+/**
+ * Quelle der **Punkt-Engine** (`getPointForecast`). Eigene Domäne, unabhängig
+ * vom Raster-`global` (invertierter eingefrorener Default, s. `ModelSourceState`).
+ * `'fusion'` = bestehender Multi-Quellen-Blend, `'native'` = Einzelmodell-Isolation.
+ */
+export function resolvePointSource(state: ModelSourceState): ModelSource {
+  return state.point;
+}
+
 // --- Reine Reducer (neuer Zustand, kein Mutieren) -------------------------------
 
-/** Globalen Default setzen (Overrides bleiben — Per-Layer gewinnt weiter). */
+/** Globalen Raster-Default setzen (Overrides + Punkt-Quelle bleiben unberührt). */
 export function setGlobalSource(state: ModelSourceState, src: ModelSource): ModelSourceState {
-  return { global: src, overrides: { ...state.overrides } };
+  return { global: src, overrides: { ...state.overrides }, point: state.point };
 }
 
 /** Per-Layer-Override setzen (nur für fusion-fähige Layer; sonst unverändert). */
@@ -105,7 +134,7 @@ export function setLayerOverride(
   src: ModelSource,
 ): ModelSourceState {
   if (!isFusionCapable(layer)) return state;
-  return { global: state.global, overrides: { ...state.overrides, [layer]: src } };
+  return { global: state.global, overrides: { ...state.overrides, [layer]: src }, point: state.point };
 }
 
 /** Per-Layer-Override entfernen → Layer folgt wieder dem globalen Default. */
@@ -113,7 +142,7 @@ export function clearLayerOverride(state: ModelSourceState, layer: string): Mode
   if (!(layer in state.overrides)) return state;
   const next = { ...state.overrides };
   delete next[layer as FusionCapableLayer];
-  return { global: state.global, overrides: next };
+  return { global: state.global, overrides: next, point: state.point };
 }
 
 /** Override pro Layer togglen (Fusion↔Native), relativ zum aktuell resolvten Wert. */
@@ -121,6 +150,11 @@ export function toggleLayerOverride(state: ModelSourceState, layer: string): Mod
   if (!isFusionCapable(layer)) return state;
   const current = resolveModelSource(layer, state);
   return setLayerOverride(state, layer, current === 'fusion' ? 'native' : 'fusion');
+}
+
+/** Quelle der Punkt-Engine setzen (unabhängig von `global`/Overrides). */
+export function setPointSource(state: ModelSourceState, src: ModelSource): ModelSourceState {
+  return { global: state.global, overrides: { ...state.overrides }, point: src };
 }
 
 // --- Headless-Selbsttest (Repo-Konvention: kein Test-Runner) ---------------------
@@ -139,7 +173,7 @@ export function verifyModelSource(): { checks: string[]; passed: number; failed:
     if (cond) passed++; else failed++;
   };
 
-  const base: ModelSourceState = { global: 'fusion', overrides: {} };
+  const base: ModelSourceState = { global: 'fusion', overrides: {}, point: 'fusion' };
 
   // (c) Native-by-design ist unverlierbar: nicht-fähige Layer bleiben IMMER native,
   //     selbst bei global='fusion' und selbst wenn ein Override versucht wird.
@@ -151,12 +185,12 @@ export function verifyModelSource(): { checks: string[]; passed: number; failed:
   // Fusion-fähige Layer folgen dem globalen Default.
   for (const l of FUSION_CAPABLE_LAYERS) {
     ok(resolveModelSource(l, base) === 'fusion', `fähiger Layer "${l}" folgt global=fusion`);
-    ok(resolveModelSource(l, { global: 'native', overrides: {} }) === 'native', `fähiger Layer "${l}" folgt global=native`);
+    ok(resolveModelSource(l, { global: 'native', overrides: {}, point: 'fusion' }) === 'native', `fähiger Layer "${l}" folgt global=native`);
   }
 
   // (e) Per-Layer schlägt Global — in beide Richtungen.
-  ok(resolveModelSource('wind', { global: 'native', overrides: { wind: 'fusion' } }) === 'fusion', 'Override fusion schlägt global=native');
-  ok(resolveModelSource('temp', { global: 'fusion', overrides: { temp: 'native' } }) === 'native', 'Override native schlägt global=fusion');
+  ok(resolveModelSource('wind', { global: 'native', overrides: { wind: 'fusion' }, point: 'fusion' }) === 'fusion', 'Override fusion schlägt global=native');
+  ok(resolveModelSource('temp', { global: 'fusion', overrides: { temp: 'native' }, point: 'fusion' }) === 'native', 'Override native schlägt global=fusion');
 
   // Reducer-Semantik: setGlobal lässt Overrides bestehen; clear/toggle wie erwartet.
   const withOverride = setLayerOverride(base, 'clouds', 'native');
@@ -164,12 +198,21 @@ export function verifyModelSource(): { checks: string[]; passed: number; failed:
   ok(setGlobalSource(withOverride, 'native').overrides.clouds === 'native', 'setGlobalSource bewahrt Overrides');
   ok(!('clouds' in clearLayerOverride(withOverride, 'clouds').overrides), 'clearLayerOverride entfernt Override');
   ok(resolveModelSource('nowcast', toggleLayerOverride(base, 'nowcast')) === 'native', 'toggle fusion→native');
-  ok(resolveModelSource('nowcast', toggleLayerOverride({ global: 'native', overrides: {} }, 'nowcast')) === 'fusion', 'toggle native→fusion');
+  ok(resolveModelSource('nowcast', toggleLayerOverride({ global: 'native', overrides: {}, point: 'fusion' }, 'nowcast')) === 'fusion', 'toggle native→fusion');
+
+  // Punkt-Engine (zweite Engine): eigener Default 'fusion', unabhängig von global,
+  // per setPointSource flippbar; Layer-Reducer lassen `point` unangetastet.
+  ok(resolvePointSource(initialModelSourceState()) === 'fusion', 'Punkt-Default ist fusion (eingefrorener Blend)');
+  ok(resolvePointSource({ global: 'native', overrides: {}, point: 'fusion' }) === 'fusion', 'Punkt-Quelle folgt NICHT global (invertierter Default)');
+  ok(resolvePointSource(setPointSource(base, 'native')) === 'native', 'setPointSource flippt die Punkt-Quelle');
+  ok(setLayerOverride(base, 'wind', 'native').point === 'fusion', 'Layer-Override lässt point unangetastet');
+  ok(setGlobalSource(setPointSource(base, 'native'), 'fusion').point === 'native', 'setGlobalSource bewahrt point');
 
   // Immutabilität: Reducer mutieren den Eingangszustand nicht.
-  const snapshot: ModelSourceState = { global: 'fusion', overrides: { wind: 'native' } };
+  const snapshot: ModelSourceState = { global: 'fusion', overrides: { wind: 'native' }, point: 'fusion' };
   const before = JSON.stringify(snapshot);
-  setGlobalSource(snapshot, 'native'); setLayerOverride(snapshot, 'temp', 'native'); clearLayerOverride(snapshot, 'wind');
+  setGlobalSource(snapshot, 'native'); setLayerOverride(snapshot, 'temp', 'native');
+  clearLayerOverride(snapshot, 'wind'); setPointSource(snapshot, 'native');
   ok(JSON.stringify(snapshot) === before, 'Reducer mutieren den Eingangszustand nicht');
 
   return { checks, passed, failed };
