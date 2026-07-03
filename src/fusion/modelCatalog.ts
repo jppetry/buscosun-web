@@ -173,10 +173,12 @@ export const MODEL_CATALOG: readonly ModelEntry[] = [
   },
   {
     id: 'arome-fr', name: 'AROME-France', operator: 'Météo-France', kind: 'raster',
-    resolutionKm: 2.5, horizonH: 42, license: 'Etalab-2.0',
+    resolutionKm: 1.3, horizonH: 42, license: 'Etalab-2.0',
     attribution: 'Daten: Météo-France · Etalab 2.0',
-    ingested: false, rasterCapable: true, engineGridded: true,
-    coverage: { DE: 'partial', AT: 'none', CH: 'partial' }, group: 'local',
+    ingested: true, rasterCapable: true, engineGridded: true,
+    // Domäne EURW1S100 (12°W–16°E) → DE + CH voll, West-AT bis 16°E (Wien außen).
+    coverage: { DE: 'full', AT: 'partial', CH: 'full' }, group: 'local',
+    pipelineNote: '2D-Raster aktuell nur Temperatur + Wind (0–6 h); Wolken/Niederschlag folgen. Große Dateien, lädt im Hintergrund.',
   },
 
   // ---- Regional (7 km / Stationen) ------------------------------------------

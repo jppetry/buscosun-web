@@ -24,6 +24,18 @@ export interface GribField {
   /** ni·nj Werte in Scan-Reihenfolge, NaN = Bitmap-maskiert (kein Wert). */
   values: Float32Array;
   /**
+   * Produkt-Identität (GRIB2 Sektion 0 + 4) — nötig, wenn eine Datei MEHRERE
+   * Variablen als getrennte Nachrichten bündelt (z. B. Météo-France AROME-Pakete:
+   * ein SP1-File enthält 2t/10u/10v/… nebeneinander). Bei Ein-Variablen-Dateien
+   * (ICON-D2) irrelevant. `surfaceType`/`level` = erste feste Fläche (Tabelle 4.5),
+   * z. B. 103/2 = 2 m über Grund, 103/10 = 10 m.
+   */
+  discipline?: number;
+  parameterCategory?: number;
+  parameterNumber?: number;
+  surfaceType?: number;
+  level?: number;
+  /**
    * true = unstrukturiertes (icosahedrales) ICON-Gitter (GDT 101): `values` ist
    * ein flaches Array von `ni` Zellen (nj=1), lat/lon/di/dj sind bedeutungslos —
    * die Zellkoordinaten kommen aus separaten `clat`/`clon`-Feldern. Für ICON-D2-
@@ -182,6 +194,9 @@ export function decodeGrib2(raw: Uint8Array): GribField {
   let hasBitmap = false;
   let unstructured = false;
   let data: Uint8Array | null = null;
+  const discipline = raw[p + 6]; // Sektion 0, Oktett 7
+  let parameterCategory: number | undefined, parameterNumber: number | undefined;
+  let surfaceType: number | undefined, level: number | undefined;
 
   let off = p + 16; // Sektion 0 ist 16 Byte
   while (off < raw.length - 4) {
@@ -213,6 +228,19 @@ export function decodeGrib2(raw: Uint8Array): GribField {
         nj = 1;
       } else {
         throw new Error('GRIB2: GDT ' + gdt + ' (nur GDT 0 reg-latlon + GDT 101 icosahedral)');
+      }
+    } else if (secnum === 4) {
+      // Produktdefinition (Template 4.0/4.8…): Kategorie/Nummer + erste feste
+      // Fläche. Oktett 10/11 = cat/num; 23 = surface type; 24 = scale; 25-28 =
+      // scaled value. Für Multi-Variablen-Dateien (AROME-Pakete) zur Identität.
+      parameterCategory = raw[off + 9];
+      parameterNumber = raw[off + 10];
+      surfaceType = raw[off + 22];
+      const sfcScale = raw[off + 23];
+      const sfcVal = dv.getUint32(off + 24);
+      if (surfaceType !== 255 && sfcVal !== 0xffffffff) {
+        const s = sfcScale > 127 ? sfcScale - 256 : sfcScale; // signed
+        level = sfcVal * Math.pow(10, -s);
       }
     } else if (secnum === 5) {
       ndata = dv.getUint32(off + 5);
@@ -284,6 +312,7 @@ export function decodeGrib2(raw: Uint8Array): GribField {
     lat1: la1, lon1: normLon1, lat2: la2, lon2: normLon2,
     di, dj, scanMode, values,
     unstructured,
+    discipline, parameterCategory, parameterNumber, surfaceType, level,
   };
 }
 

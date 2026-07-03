@@ -25,6 +25,14 @@ const upstreamProxy = {
     changeOrigin: true,
     rewrite: (p: string) => p.replace(/^\/_cscs/, ''),
   },
+  // Météo-France PNT (AROME-France): key-freie GRIB2-Pakete auf OVH-Cloud-S3,
+  // ohne Browser-CORS → Proxy. Range-fähig (für selektives Nachladen einzelner
+  // Nachrichten aus den großen 0,01°-Multi-Variablen-Dateien).
+  '/_mf': {
+    target: 'https://meteofrance-pnt.s3.rbx.io.cloud.ovh.net',
+    changeOrigin: true,
+    rewrite: (p: string) => p.replace(/^\/_mf/, ''),
+  },
 };
 
 export default defineConfig({
