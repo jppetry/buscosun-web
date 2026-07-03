@@ -140,9 +140,16 @@ sie sind **nicht** versehentlich unabgedeckt. Der Fusion⇄Native-Switch ist fü
      (München→`[mosmix,dwd_uv]`, Innsbruck→`[arome_at]`); Werte weichen echt ab (Innsbruck **+2.7 °C**
      rohe Gitter-Topografie vs. Blend-QC); Confidence fällt ehrlich auf den **0.60**-Single-Source-Cap
      statt falscher 100 %; Fusion-Pfad byte-identisch.
-4. **UI-Switch** — 🔄 Toggle (global + per Layer, flicker-frei) in der Layer-Steuerung.
-5. **Fallback & Flag** — Auto-Fallback + Indikator; `fusion2d.default`-Flag.
-6. **Verifizieren & Übergabe** — Tests (a–e), Layer×Quadrant-Abdeckung, Stopp am Prod-Default-Flip.
+4. **UI-Switch** — ✅ (`0cd2fd2`) `.model-switch`-Rail (Master oben im `.left-rails`-Stack):
+   globaler Fusion/Native-Toggle + Per-Layer-Override (Icon + F/N/↺) je aktivem fusion-fähigem
+   Layer; Rail deckelt Höhe & scrollt dezent. Mobile: „MODELL"-Segmentzeile im Sheet + Per-Layer-
+   Override in der aufgeklappten Layer-Info. Globaler Switch koppelt Raster+Punkt (`setGlobalModel`);
+   Per-Layer schlägt global, ohne den Punkt zu berühren; rein state-getrieben → flicker-frei.
+5. **Fallback & Flag** — ✅ (`65948bf`) Render-Fallback via `fusionActiveFor` (= gewählt UND Grid
+   bereit): native Effekte treten nur bei bereitliegender Fusion zurück, sonst rendert ICON-D2
+   (nie leer). Nicht-blockierender Indikator „⚠ Fusion offline · nativ" (`fusionError`). Deploybares
+   `localStorage['fusion2d.default']`-Flag (Präzedenz dev-Override → Config → eingefroren `native`).
+6. **Verifizieren & Übergabe** — ✅ s. u. — **Stopp am Production-Default-Flip (Hard Stop, offen).**
 
 ### Scoping-Entscheidung (bestätigt 2026-07-03): **Raster UND Punkt**
 Der Fusion⇄Native-Switch deckt **beide Domänen** ab:
@@ -160,3 +167,46 @@ Der Fusion⇄Native-Switch deckt **beide Domänen** ab:
 **Raster-Nowcast** (Radar-`PrecipCompositor`) bleibt der native Nowcast-Pfad; die Fusion-Precip
 speist den `precip-forecast`-ScalarLayer (Forecast-Horizont). **Punkt-Nowcast** (`buildNowcast`)
 ist eine eigene Seite und nicht Teil des MapView-Panel-Switches.
+
+---
+
+## 7. Verifikation (Phase 6)
+
+**Headless-Gate (reproduzierbar):** `npm run fusion:verify` fährt u. a.
+`scripts/verify-modelsource.mjs` → `verifyModelSource()` **37/37 passed** (Node
+`--experimental-strip-types`, kein Vitest — Decision B).
+
+**Deliverable-Tests a–e:**
+
+| # | Test | Nachweis |
+|---|------|----------|
+| a | Fusion rendert je Layer (Raster) | Runtime: Flip→Fusion zeigt sichtbar das Fusion-Feld (Temp/Wolken/Precip/Wind surface); Footer-Quelle wechselt auf Fusion. |
+| b | Native-Default unverändert (Freeze) | `initialModelSourceState()` → `global:'native'`, `point:'fusion'`; Raster rendert ICON-D2, Punkt-Panel den Blend („4 Modelle · Stationen im Mix"). Fusion-Spalte byte-identisch zum Vorzustand. |
+| c | Nativer Pfad festgenagelt | `verifyModelSource` (c): nicht-fähige Layer (gust/sat/…) bleiben IMMER `native`, Override wird ignoriert. |
+| d | Auto-Fallback | Runtime: Fusion-Quellen geblockt bei `global=fusion` → Karte bleibt funktional, **Wolken fielen auf nativ ICON-D2 zurück**; Indikator „⚠ Fusion offline · nativ" rendert/löscht (Dev-Hook). |
+| e | Per-Layer schlägt Global | `verifyModelSource` (e) + Runtime: `overrides.wind` gesetzt bei `global`-Gegenwert, andere Layer folgen global, Punkt unberührt; ↺ setzt auf global zurück. |
+
+**Zweite Engine (Punkt) — eigenes Gate:** Native-Isolation kollabiert die Quellen
+(München→`[mosmix,dwd_uv]`, Innsbruck→`[arome_at]`), Werte weichen echt ab
+(Innsbruck **+2,7 °C** rohe Gitter-Topografie vs. Blend-QC), Confidence fällt
+ehrlich auf den **0,60**-Single-Source-Cap. Fusion-Blend byte-identisch.
+
+### Layer × Quadrant — Abdeckung
+
+| | **Raster (Kartenlayer)** | **Punkt (Panel)** |
+|---|---|---|
+| **Forecast** | wind·temp·clouds ⇄ ICON-D2 (Fusion/Native, resolver-gegated, Auto-Fallback) | `getPointForecast` Blend ⇄ Einzelmodell-Isolation |
+| **Nowcast** | Fusion-Precip (`precip-forecast`) ⇄ Radar-`PrecipCompositor` (RV/INCA/rzc), Sichtbarkeits-Swap | native-by-design (`buildNowcast` = eigene Seite, nicht im Panel-Switch) |
+
+Alle vier Quadranten explizit abgedeckt; native-by-design-Layer vom Resolver unverlierbar auf `native`.
+
+## 8. Hard Stop — Production-Default-Flip (offen, auf Freigabe)
+
+Implementiert + in **beiden** Flag-Zuständen getestet. Der eingefrorene Default bleibt
+`native` (Raster) / `fusion`-Blend (Punkt) = heutiges Verhalten. Der Flip auf einen
+Fusion-Default in Produktion ist **nicht** ausgeführt (Hard Stop):
+
+- **Ohne Code-Änderung:** `localStorage.setItem('fusion2d.default','fusion')` (bzw. `?fusion2d=fusion`).
+- **Rücknahme:** Key entfernen / auf `native` setzen → sofort zurück.
+
+Nächster Schritt liegt beim Betreiber (bewusste Freigabe), nicht beim Agenten.
