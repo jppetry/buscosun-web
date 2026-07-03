@@ -10,6 +10,11 @@ import { ScalarLayer, temperatureRamp } from './scalar/ScalarLayer';
 import { RainLayer, precipRainRamp } from './scalar/RainLayer';
 import { CloudLayer } from './scalar/CloudLayer';
 import { loadFusedForecast, prefetchSecondarySources, type ModelChoice } from './fusion/loadFusedForecast';
+import {
+  initialModelSourceState, isFusionActive, isFusionCapable,
+  setGlobalSource, setLayerOverride, clearLayerOverride,
+  type ModelSource, type ModelSourceState,
+} from './fusion/modelSource';
 import { lerpFrameImage } from './fusion/frameInterp';
 import { COUNTRY_PROFILES, DACH_VIEW } from './countryProfiles';
 import { loadDachMask } from './countryMask';
@@ -292,6 +297,24 @@ export default function MapView({ location, onBack, embedded = false, initialAct
   // sources for the active country) — the per-country model selector was removed
   // from the 2D map; fusion is the only product surfaced here.
   const [modelChoice] = useState<ModelChoice>('fusion');
+  // Fusion⇄Native-Modellquelle je Kartenlayer (Phase 2/3, s. docs/fusion-2d-integration.md).
+  // Globaler Default (Flag-getrieben, Start `native` = eingefrorenes Verhalten) +
+  // Per-Layer-Override. Der Resolver nagelt native-by-design-Layer unverlierbar auf `native`.
+  const [modelSource, setModelSource] = useState<ModelSourceState>(() => initialModelSourceState());
+  const modelSourceRef = useRef(modelSource);
+  modelSourceRef.current = modelSource;
+  // Fusion für Layer X aktiv? (frisch aus der Ref → für Effekt-Closures mit []-deps).
+  const fusionFor = (layer: string) => isFusionActive(layer, modelSourceRef.current);
+  // Dev-Verifikations-Hook (Repo-Konvention wie __fusionV2 / __bsQA): Switch aus der
+  // Konsole flippen, bevor die UI (Phase 4) existiert. Nur im Dev-Build.
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    const w = window as unknown as Record<string, unknown>;
+    w.__setFusion2d = (src: ModelSource, layer?: string) =>
+      setModelSource((s) => (layer ? setLayerOverride(s, layer, src) : setGlobalSource(s, src)));
+    w.__clearFusion2d = (layer: string) => setModelSource((s) => clearLayerOverride(s, layer));
+    w.__getFusion2d = () => modelSourceRef.current;
+  }, []);
   const forecastRef = useRef<DwdForecastResult | null>(null);
   const layerRefs = useRef<{ wind?: WindLayer; temp?: ScalarLayer; gust?: ScalarLayer; clouds?: CloudLayer; precip?: ScalarLayer; rain?: RainLayer; confidence?: ConfidenceLayer; ki?: RainLayer; pop?: RainLayer }>({});
   // Flow-Nowcast: geschätztes Bewegungsfeld + Basis-Frame (gröber) je RADOLAN-Lauf.
@@ -1353,6 +1376,19 @@ export default function MapView({ location, onBack, embedded = false, initialAct
     }
   }, [active]);
 
+  // Fusion-Load auslösen, sobald IRGENDEIN fusion-fähiger, aktiver Layer per
+  // Resolver auf Fusion aufgelöst wird (nicht mehr nur Temp). Native bleibt lazy —
+  // die gridded Fusion lädt nur, wenn der Switch sie für einen sichtbaren Layer
+  // anfordert. Idempotent via fusionRequestedRef (der 10-min-Refresh übernimmt danach).
+  useEffect(() => {
+    if (fusionRequestedRef.current) return;
+    const anyFusion = [...active].some((l) => isFusionCapable(l) && fusionFor(l));
+    if (anyFusion) {
+      fusionRequestedRef.current = true;
+      void reloadForecastRef.current?.();
+    }
+  }, [active, modelSource]);
+
   // Vertrauens-Schleier (ML #1): gebündelte DACH-Stationsklimatologie lazy laden,
   // sobald „Sicherheit" zum ersten Mal aktiv ist. setNowcastTick stößt danach den
   // Build-Effekt an.
@@ -1551,14 +1587,26 @@ export default function MapView({ location, onBack, embedded = false, initialAct
 
     const lA = A.layers as typeof A.layers & { precipitation?: ScalarGridResult };
     const lB = (B?.layers ?? A.layers) as typeof A.layers & { precipitation?: ScalarGridResult };
-    const { temp, precip } = layerRefs.current;
+    const { wind, temp, precip } = layerRefs.current;
 
-    // Wind wird ausschließlich nativ aus ICON-D2 gespeist (eigener Effekt) —
-    // keine Fusion-Fast-First-Paint-Visualisierung mehr.
+    // WIND (Fusion-Quelle): nur wenn der Resolver Fusion wählt UND Surface aktiv ist
+    // (die Fusion hat keine Druckflächen — dort speist weiter nativ ICON-EU). Wind
+    // wird NICHT gelerpt (uMin/uMax variieren je Stunde) → nächstliegende Stunde.
+    // Der native Wind-Slider-Effekt macht bei Fusion+Surface einen Early-Return.
+    const lWind = (frac > 0.5 && lB.wind) ? lB.wind : lA.wind;
+    if (wind && lWind && fusionFor('wind') && windLevelRef.current === 'surface') {
+      wind.setWindData(lWind.image, {
+        width: lWind.width, height: lWind.height,
+        uMin: lWind.uMin, uMax: lWind.uMax, vMin: lWind.vMin, vMax: lWind.vMax,
+        uvBounds: lWind.uvBounds,
+      });
+      reportValidAt(A.timestamp.getTime());
+    }
 
-    // Temperatur nur als Fast-First-Paint aus der Fusion, solange das native
-    // ICON-D2-t_2m-Gitter noch nicht geladen ist (danach übernimmt der Temp-Effekt).
-    if (temp && lA.temperature && !iconD2TempRef.current) {
+    // TEMPERATUR: aus der Fusion, wenn der Resolver sie wählt ODER als Fast-First-
+    // Paint, solange das native ICON-D2-t_2m-Gitter noch nicht geladen ist (danach
+    // übernimmt der native Temp-Effekt — der bei fusionFor('temp') zurücktritt).
+    if (temp && lA.temperature && (fusionFor('temp') || !iconD2TempRef.current)) {
       const image = frac > 0.001 && lB.temperature
         ? lerpFrameImage(lA.temperature.image, lB.temperature.image, frac, 'temp')
         : lA.temperature.image;
@@ -1580,7 +1628,7 @@ export default function MapView({ location, onBack, embedded = false, initialAct
         uvBounds: lA.precipitation.uvBounds,
       });
     }
-  }, [forecast, forecastHour]);
+  }, [forecast, forecastHour, modelSource, windLevel]);
 
   // Durchgehender Niederschlags-Layer: bei jeder Slider-Bewegung den passenden
   // Frame in den RainLayer schieben. Land-passende „jetzt"-Quelle, dann ICON-D2.
@@ -1627,6 +1675,9 @@ export default function MapView({ location, onBack, embedded = false, initialAct
     if (!wind || !active.has('wind')) return;
     // Aktive Quelle je nach Höhe: Surface = ICON-D2, sonst ICON-EU-Druckfläche.
     const lvl = windLevelRef.current;
+    // Bei Fusion-Wind + Surface speist die gridded Fusion (zentraler Fusion-Effekt);
+    // hier nativ zurücktreten, damit sich beide Quellen nicht überschreiben.
+    if (lvl === 'surface' && fusionFor('wind')) return;
     const wd = lvl === 'surface' ? iconD2WindRef.current : euWindRef.current[lvl];
     if (!wd || wd.frames.length === 0) return;
     const f = windFrameAtValidTime(wd, Date.now() + forecastHour * 3600_000);
@@ -1636,7 +1687,7 @@ export default function MapView({ location, onBack, embedded = false, initialAct
       uvBounds: wd.uvBounds,
     });
     reportValidAt(f.validAt.getTime());
-  }, [forecastHour, nowcastTick, active, windLevel, reportValidAt]);
+  }, [forecastHour, nowcastTick, active, windLevel, modelSource, reportValidAt]);
 
   // Wind-Höhe (Druckfläche) laden + anwenden. Surface kommt aus installWind
   // (ICON-D2); Druckflächen aus ICON-EU, je Level gecacht. Frame-Setzen läuft
@@ -1697,6 +1748,9 @@ export default function MapView({ location, onBack, embedded = false, initialAct
   useEffect(() => {
     const temp = layerRefs.current.temp;
     if (!temp || !active.has('temp')) return;
+    // Bei Fusion-Temp speist die gridded Fusion (zentraler Fusion-Effekt); nativ
+    // zurücktreten, damit sich beide Quellen nicht überschreiben.
+    if (fusionFor('temp')) return;
     const td = iconD2TempRef.current;
     if (!td || td.frames.length === 0) return;
     const f = frameAtValidTime(td.frames, Date.now() + forecastHour * 3600_000);
@@ -1705,7 +1759,7 @@ export default function MapView({ location, onBack, embedded = false, initialAct
       vMin: td.vMin, vMax: td.vMax, uvBounds: td.uvBounds,
     });
     reportValidAt(f.validAt.getTime());
-  }, [forecastHour, nowcastTick, active, reportValidAt]);
+  }, [forecastHour, nowcastTick, active, modelSource, reportValidAt]);
 
   // Böen-Layer (natives ICON-D2 vmax_10m): bei jeder Slider-Bewegung den Frame
   // mit der nächstgelegenen Vorlaufstunde setzen.
