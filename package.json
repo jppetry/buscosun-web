@@ -23,6 +23,7 @@
     "verify:gfs-2d": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-gfs-2d.mjs",
     "verify:ifs": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-ifs.mjs ifs",
     "verify:aifs": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-ifs.mjs aifs-single",
+    "verify:aifs-ens": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-ifs.mjs aifs-ens",
     "fusion:status": "node --experimental-strip-types scripts/archive-status.mjs fixtures/",
     "fusion:gate": "node --experimental-strip-types scripts/phase3-gate.mjs fixtures/"
   },

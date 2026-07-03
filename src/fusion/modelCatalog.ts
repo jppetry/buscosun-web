@@ -257,8 +257,9 @@ export const MODEL_CATALOG: readonly ModelEntry[] = [
   {
     id: 'aifs-ens', name: 'AIFS ENS', operator: 'ECMWF', kind: 'raster', ai: true, ensemble: true,
     resolutionKm: 28, horizonH: 360, license: 'CC-BY-4.0',
-    attribution: 'Daten: ECMWF (AIFS ENS) · CC BY 4.0', ingested: false, rasterCapable: true,
+    attribution: 'Daten: ECMWF (AIFS ENS) · CC BY 4.0', ingested: true, rasterCapable: true,
     engineGridded: true, coverage: coarse3, group: 'global',
+    pipelineNote: 'KI-Ensemble · 2D-Raster aktuell als Kontrolllauf (0–6 h); perturbiertes Ensemble folgt.',
   },
   {
     id: 'aigfs', name: 'AIGFS', operator: 'NOAA', kind: 'raster', ai: true,

@@ -29,11 +29,14 @@ const ECMWF_BASE = typeof window === 'undefined'
 
 const EU_BOUNDS: ForecastBounds = { lngMin: 5.5, lngMax: 17.5, latMin: 45.5, latMax: 55.5 };
 
-/** ECMWF-Open-Data-Modell → (Pfadsegment, ForecastHourPoint.model-Tag). */
-export type EcmwfModelId = 'ifs' | 'aifs-single';
-const ECMWF_MODELS: Record<EcmwfModelId, { path: string; tag: string }> = {
-  'ifs': { path: 'ifs/0p25/oper', tag: 'ecmwf_ifs' },
-  'aifs-single': { path: 'aifs-single/0p25/oper', tag: 'ecmwf_aifs' },
+/** ECMWF-Open-Data-Modell → (Pfadsegment, Datei-Suffix, model-Tag). AIFS-ENS
+ *  nutzt den Kontrolllauf (`enfo-cf`, 1 Member) — sauberer Einzel-Member analog
+ *  AROME/CH; das perturbierte Ensemble (`enfo-pf`) ist eine spätere Ausbaustufe. */
+export type EcmwfModelId = 'ifs' | 'aifs-single' | 'aifs-ens';
+const ECMWF_MODELS: Record<EcmwfModelId, { path: string; suffix: string; tag: string }> = {
+  'ifs': { path: 'ifs/0p25/oper', suffix: 'oper-fc', tag: 'ecmwf_ifs' },
+  'aifs-single': { path: 'aifs-single/0p25/oper', suffix: 'oper-fc', tag: 'ecmwf_aifs' },
+  'aifs-ens': { path: 'aifs-ens/0p25/enfo', suffix: 'enfo-cf', tag: 'ecmwf_aifs_ens' },
 };
 
 export interface EcmwfIfsOptions {
@@ -47,7 +50,8 @@ function pad2(n: number) { return String(n).padStart(2, '0'); }
 
 /** Pfad-Stamm einer (Modell, Lauf, Step)-Datei ohne Endung. */
 function stem(model: EcmwfModelId, date: string, hh: string, step: number): string {
-  return `${ECMWF_BASE}/${date}/${hh}z/${ECMWF_MODELS[model].path}/${date}${hh}0000-${step}h-oper-fc`;
+  const m = ECMWF_MODELS[model];
+  return `${ECMWF_BASE}/${date}/${hh}z/${m.path}/${date}${hh}0000-${step}h-${m.suffix}`;
 }
 
 interface IfsRun { date: string; hh: string; runAt: Date; }
