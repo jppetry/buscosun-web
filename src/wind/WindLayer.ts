@@ -1089,7 +1089,21 @@ export class WindLayer implements CustomLayerInterface {
     gl.uniform1f(p.u_speed_min as WebGLUniformLocation, this.speedMin);
     gl.uniform1f(p.u_drop_rate as WebGLUniformLocation, this.dropRate);
     gl.uniform1f(p.u_drop_rate_bump as WebGLUniformLocation, this.dropRateBump);
-    gl.uniform1f(p.u_sub_steps as WebGLUniformLocation, this.subSteps);
+    // Frame-rate-DETERMINISTIC advection (cross-device parity of speed AND
+    // direction). u_dt_scale already normalizes the AVERAGE speed, but a single
+    // Euler step of size ∝ dt makes a low-fps device take big steps that cut
+    // corners through the curving wind field → it drifts onto a different
+    // streamline (looks like a different direction) and covers less arc per
+    // second (looks slower). Fix: scale the SUB-STEP COUNT with dt so the
+    // per-sub-step offset is constant across devices — a 30 fps phone (dtScale≈2)
+    // runs 2 sub-steps of exactly the size a 60 fps desktop runs across 2 frames,
+    // re-sampling wind each time → identical discrete trajectory. Total per-frame
+    // offset is unchanged (the shader divides by `steps`), so average speed is
+    // preserved. At 60 fps (dtScale≈1) this equals the static subSteps → desktop
+    // byte-identical. Capped at MAX_SUB_STEPS (4) in the shader; dtScale is
+    // clamped to ≤3.96 in render(), so round() lands in [1,4].
+    const simSubSteps = Math.max(1, Math.min(4, Math.round(this.frameDtScale * this.subSteps)));
+    gl.uniform1f(p.u_sub_steps as WebGLUniformLocation, simSubSteps);
 
     const bounds = this.getEquirectangularBounds();
     gl.uniform4f(p.u_bounds as WebGLUniformLocation, bounds[0], bounds[1], bounds[2], bounds[3]);
