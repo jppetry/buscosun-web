@@ -29,11 +29,19 @@ const feedN = (g, dt, n) => { for (let i = 0; i < n; i++) g.feed(typeof dt === '
   check(g.quality === 1.0, `top level quality is exactly 1.0 (got ${g.quality})`);
 }
 
-// 3) Dead band: steady 16.7 ms (60 fps) from MID → never moves.
+// 3) Solid 60 fps (16.7 ms, vsync-capped WITH headroom) must climb to the TOP —
+//    this is the core "stuck below full quality on a smooth device" bug fix.
+{
+  const g = new FrameGovernor({ startLevelIndex: 0 });
+  feedN(g, 16.7, 400);
+  check(g.levelIndex === g.levelCount - 1, `solid 60fps climbs from floor to top (got index ${g.levelIndex}, ema ${g.ema.toFixed(1)})`);
+}
+
+// 3b) Dead band: steady ~48 fps (21 ms, between upMs 18 and downMs 24) → holds.
 {
   const g = new FrameGovernor({ startLevelIndex: 2 });
-  feedN(g, 16.7, 400);
-  check(g.levelIndex === 2, `steady 60fps stays put (got index ${g.levelIndex}, ema ${g.ema.toFixed(1)})`);
+  feedN(g, 21, 400);
+  check(g.levelIndex === 2, `steady 48fps holds in the dead band (got index ${g.levelIndex}, ema ${g.ema.toFixed(1)})`);
 }
 
 // 4) Anti-oscillation: alternating 13/27 ms (avg 20, inside the dead band) → stable.

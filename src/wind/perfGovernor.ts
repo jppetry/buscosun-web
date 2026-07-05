@@ -104,7 +104,11 @@ export interface GovernorOptions {
   levels?: number[];
   /** Step DOWN when the frame-interval EMA exceeds this (ms). ~24 ms ≈ 42 fps. */
   downMs?: number;
-  /** Step UP when the EMA is below this (ms). Must be < downMs (hysteresis gap). */
+  /** Step UP when the EMA is below this (ms). Must be < downMs (hysteresis gap).
+   *  MUST be ABOVE the vsync frame time (~16.7 ms @ 60 Hz): a display-capped
+   *  device sits at ~16.7 ms even with headroom, so a lower threshold would trap
+   *  it below full quality forever. 18 ms lets any ~56 fps+ device climb to top;
+   *  only a device that measurably drops below that stops climbing. */
   upMs?: number;
   /** EMA smoothing factor (0..1); higher = reacts faster. */
   emaAlpha?: number;
@@ -138,7 +142,7 @@ export class FrameGovernor {
   constructor(opts: GovernorOptions = {}) {
     this.levels = opts.levels && opts.levels.length ? opts.levels.slice() : DEFAULT_LEVELS.slice();
     this.downMs = opts.downMs ?? 24;
-    this.upMs = opts.upMs ?? 15.5;
+    this.upMs = opts.upMs ?? 18;
     this.alpha = opts.emaAlpha ?? 0.08;
     this.cooldownFrames = opts.cooldownFrames ?? 45;
     this.warmupFrames = opts.warmupFrames ?? 30;
