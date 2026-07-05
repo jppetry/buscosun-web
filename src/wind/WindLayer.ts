@@ -805,11 +805,21 @@ export class WindLayer implements CustomLayerInterface {
     this.lastFrameTime = now;
     this.frameDtScale = Math.min(Math.max(dtMs, 1), 66) / 16.667;
 
-    // Feed the adaptive governor the real frame interval — but NOT while the
-    // camera is moving on a coarse-pointer device (particle passes are skipped
-    // then → artificially cheap frames, unrepresentative), and NOT in globe mode
-    // (full density there). It steps the drawn-particle quality up/down.
-    if (this.governor && !this.globeMode && !(this.reduceMotionOnMove && this.moving)) {
+    // Decide once whether to skip the expensive particle passes this frame. Only
+    // skip when a coarse-pointer device is actively moving AND the governor has
+    // throttled it to the FLOOR tier — i.e. it genuinely can't afford particles
+    // during a pan. A capable device keeps its particles VISIBLE while panning
+    // (no blackout / no flicker); if that starts to jank, the governor lowers the
+    // tier and the skip engages automatically. No governor → fall back to the old
+    // blanket skip. Desktop (reduceMotionOnMove=false) never skips.
+    const skipParticlesDuringMove =
+      this.reduceMotionOnMove && this.moving &&
+      (!this.governor || this.governor.levelIndex === 0);
+
+    // Feed the adaptive governor the real frame interval — but NOT on frames whose
+    // particle work we skipped (artificially cheap → unrepresentative), and NOT in
+    // globe mode (full density there). It steps the drawn-particle quality up/down.
+    if (this.governor && !this.globeMode && !skipParticlesDuringMove) {
       this.governor.feed(dtMs);
     }
 
@@ -834,13 +844,10 @@ export class WindLayer implements CustomLayerInterface {
     if (this.showHeatmap) {
       this.drawHeatmap(matrix, prevFB, prevViewport);
     }
-    // While the camera is actively moving on a coarse-pointer device, skip the
-    // two full-viewport particle passes (trail composite) + the advection update.
-    // Trails are discarded every move-frame anyway (onMove → clearOnNextFrame),
-    // so panning shows only the heatmap; particles resume on moveend. Desktop
-    // keeps full fidelity (reduceMotionOnMove defaults false).
-    const skipParticles = this.reduceMotionOnMove && this.moving;
-    if (this.showParticles && !skipParticles) {
+    // Particle passes (two full-viewport trail composites + the advection update).
+    // Skipped only for a floor-tier device mid-pan (see skipParticlesDuringMove) —
+    // capable devices keep particles visible while panning instead of blacking out.
+    if (this.showParticles && !skipParticlesDuringMove) {
       this.drawScreen(matrix, prevFB, prevViewport);
       this.updateParticles();
     }
