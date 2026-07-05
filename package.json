@@ -27,6 +27,7 @@
     "verify:icon-global": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-icon-global.mjs",
     "verify:aicon": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-aicon.mjs",
     "verify:arpege": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-arpege.mjs",
+    "verify:governor": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-governor.mjs",
     "fusion:status": "node --experimental-strip-types scripts/archive-status.mjs fixtures/",
     "fusion:gate": "node --experimental-strip-types scripts/phase3-gate.mjs fixtures/"
   },

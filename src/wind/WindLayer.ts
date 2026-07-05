@@ -11,6 +11,7 @@ import {
   type ProgramWrapper,
 } from './glUtil';
 import { drawFrag, drawVert, drawVertProjected, heatmapFrag, heatmapVert, heatmapVertProjected, quadVert, screenFrag, updateFrag } from './shaders';
+import { FrameGovernor, readDeviceCaps, initialTier, tierToLevelIndex, type DeviceCaps } from './perfGovernor';
 
 /** MapLibre v5 projection data passed to custom layers (subset we use). */
 interface ProjectionUniforms {
@@ -107,6 +108,11 @@ export interface WindLayerOptions {
    *  `moveend` zurück. Trails werden pro Move-Frame ohnehin verworfen, also kein
    *  sichtbarer Verlust. Default false (Desktop bleibt voll-fidel). */
   reduceMotionOnMove?: boolean;
+  /** Laufzeit-FPS-Governor: passt die GEZEICHNETE Partikelzahl an die real
+   *  gemessene Bildrate an (EMA + Hysterese), damit schwache GPUs/CPUs flüssig
+   *  bleiben und starke die volle Dichte behalten. Oberstes Tier = ×1.0 = keine
+   *  Änderung (Desktop bleibt identisch). Default true; für Globus/Tests abschaltbar. */
+  adaptiveQuality?: boolean;
 }
 
 // Saubere, perzeptuell gleichmäßige Wind-Rampe im nullschool-Charakter:
@@ -213,6 +219,21 @@ export class WindLayer implements CustomLayerInterface {
   // (mobile) frame rate stretches trails in wall-clock, a key cause of the
   // mobile↔desktop particle mismatch (advection was already dt-normalized).
   private frameDtScale = 1;
+  // Effective pixel ratio (drawingBuffer ÷ CSS width), cached. Used to keep the
+  // particle CSS thickness DPR-independent. Reading canvas.clientWidth is a DOM
+  // layout query — doing it every frame (as drawParticles used to) forces a
+  // reflow each frame whenever styles are dirty (confirmed as a ForcedReflow in
+  // the model-switch trace). It only changes on resize, so recompute it in
+  // allocScreenTextures (which already runs on buffer-size change) and read the
+  // cache in the hot per-frame path.
+  private _epr = 1;
+
+  // Adaptive FPS governor: regulates the DRAWN particle count from the measured
+  // frame interval so weak devices stay smooth and strong ones keep full density.
+  // Null when disabled (globe/tests). See perfGovernor.ts.
+  private adaptiveQuality: boolean;
+  private governor: FrameGovernor | null = null;
+  private perfCaps: DeviceCaps | null = null;
 
   private clearOnNextFrame = true;
   private onMove = () => {
@@ -314,6 +335,19 @@ export class WindLayer implements CustomLayerInterface {
     this.map?.triggerRepaint();
   }
 
+  /** Telemetry for the adaptive governor (null if disabled). Exposed for the
+   *  dev `__map` inspector so tier/quality/frame-rate can be watched on-device. */
+  get perfState(): { tier: string; quality: number; ema: number; level: number; caps: DeviceCaps | null } | null {
+    if (!this.governor) return null;
+    return {
+      tier: this.governor.tierName,
+      quality: this.governor.quality,
+      ema: Math.round(this.governor.ema * 10) / 10,
+      level: this.governor.levelIndex,
+      caps: this.perfCaps,
+    };
+  }
+
   constructor(options: WindLayerOptions = {}) {
     this.id = options.id ?? 'wind';
     // Auto-Skalierung nach Viewport, außer numParticles ist explizit fix gesetzt.
@@ -345,6 +379,7 @@ export class WindLayer implements CustomLayerInterface {
     this.subSteps = Math.max(1, Math.min(4, Math.round(options.subSteps ?? 1)));
     this.upsample = Math.max(1, Math.min(4, Math.round(options.upsample ?? 2)));
     this.reduceMotionOnMove = options.reduceMotionOnMove ?? false;
+    this.adaptiveQuality = options.adaptiveQuality ?? true;
     this.windPngUrl = options.windPngUrl ?? '/wind/wind.png';
     this.windJsonUrl = options.windJsonUrl ?? '/wind/wind.json';
     this.colorRampStops = options.colorRamp ?? defaultColorRamp;
@@ -353,6 +388,14 @@ export class WindLayer implements CustomLayerInterface {
   onAdd(map: MapLibreMap, gl: WebGLRenderingContext) {
     this.map = map;
     this.gl = gl;
+
+    // Adaptive governor: read device capabilities (GPU string, cores, memory,
+    // DPR, pointer) to pick a starting quality tier; the runtime loop then
+    // regulates from the measured frame rate. Disabled in globe/test mode.
+    if (this.adaptiveQuality) {
+      this.perfCaps = readDeviceCaps(gl);
+      this.governor = new FrameGovernor({ startLevelIndex: tierToLevelIndex(initialTier(this.perfCaps)) });
+    }
 
     this.drawProgram = createProgram(gl, drawVert, drawFrag);
     this.screenProgram = createProgram(gl, quadVert, screenFrag);
@@ -633,6 +676,11 @@ export class WindLayer implements CustomLayerInterface {
     if (w === this.screenWidth && h === this.screenHeight && this.backgroundTexture) return;
     this.screenWidth = w;
     this.screenHeight = h;
+    // Recompute the cached effective pixel ratio here (buffer size just changed)
+    // instead of per-frame in drawParticles — avoids a per-frame clientWidth
+    // reflow. DPR-1 desktop → 1 (unchanged).
+    const canvas = this.map?.getCanvas();
+    this._epr = canvas && canvas.clientWidth ? w / canvas.clientWidth : 1;
     const empty = new Uint8Array(w * h * 4);
     if (this.backgroundTexture) gl.deleteTexture(this.backgroundTexture);
     if (this.screenTexture) gl.deleteTexture(this.screenTexture);
@@ -704,7 +752,10 @@ export class WindLayer implements CustomLayerInterface {
     if (zoom < 6) {
       frac = Math.max(0.05, Math.min(1.0, 0.05 + Math.max(0, zoom - 1) * 0.19));
     }
-    return Math.min(this._numParticles, Math.floor(this._numParticles * frac));
+    // Adaptive quality multiplier from the FPS governor (1.0 = top tier = no
+    // change; lower on weak GPUs/CPUs that can't sustain the frame budget).
+    const q = this.governor ? this.governor.quality : 1;
+    return Math.min(this._numParticles, Math.floor(this._numParticles * frac * q));
   }
 
   render(gl: WebGLRenderingContext, args: CustomRenderMethodInput | number[] | Float32Array) {
@@ -753,6 +804,14 @@ export class WindLayer implements CustomLayerInterface {
     const dtMs = this.lastFrameTime ? now - this.lastFrameTime : 16.667;
     this.lastFrameTime = now;
     this.frameDtScale = Math.min(Math.max(dtMs, 1), 66) / 16.667;
+
+    // Feed the adaptive governor the real frame interval — but NOT while the
+    // camera is moving on a coarse-pointer device (particle passes are skipped
+    // then → artificially cheap frames, unrepresentative), and NOT in globe mode
+    // (full density there). It steps the drawn-particle quality up/down.
+    if (this.governor && !this.globeMode && !(this.reduceMotionOnMove && this.moving)) {
+      this.governor.feed(dtMs);
+    }
 
     if (this.clearOnNextFrame) {
       this.clearScreen();
@@ -894,10 +953,9 @@ export class WindLayer implements CustomLayerInterface {
     // pointSize / effectivePixelRatio — i.e. thinner on high-DPR desktops and on
     // the DPR-capped mobile buffer (a key cause of the mobile↔desktop mismatch).
     // Multiply by the effective pixel ratio (drawingBuffer ÷ CSS width) so the
-    // CSS-space thickness is identical across devices. DPR-1 desktop → ×1.
-    const canvas = this.map?.getCanvas();
-    const epr = canvas && canvas.clientWidth ? gl.drawingBufferWidth / canvas.clientWidth : 1;
-    gl.uniform1f(p.u_point_size as WebGLUniformLocation, this.pointSize * zoomFactor * epr);
+    // CSS-space thickness is identical across devices. DPR-1 desktop → ×1. The
+    // ratio is cached (see _epr) so this hot path does no per-frame DOM query.
+    gl.uniform1f(p.u_point_size as WebGLUniformLocation, this.pointSize * zoomFactor * this._epr);
     const c = this.particleColor;
     gl.uniform4f(p.u_particle_color as WebGLUniformLocation, c[0], c[1], c[2], c[3]);
     const [dx0, dy0, dx1, dy1] = this.windData!.uvBounds;

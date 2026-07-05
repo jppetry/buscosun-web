@@ -9,7 +9,7 @@
  * live station observations in the blend.
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { getPointForecast } from './pointForecast';
 import type { PointForecast } from './types';
 import type { Country } from '../types';
@@ -46,7 +46,16 @@ interface Props {
 
 const REFRESH_MS = 10 * 60 * 1000;        // refresh every 10 min
 
-export function PointForecastPanel({ lat, lng, country, locationLabel, hours = 24, sourceMode = 'fusion' }: Props) {
+// Memoized: this panel does the full point-forecast compute + charts/table
+// render. Its props (lat/lng/country/label/sourceMode) are all stable primitives
+// and are UNCHANGED by a map layer toggle — yet the parent MapView re-renders on
+// every toggle (the `active` Set is new each time). Without memo, each toggle
+// re-rendered this whole subtree, the dominant share of the measured ~490 ms
+// main-thread block on mobile. memo makes a layer toggle skip it entirely.
+// Desktop is unaffected (identical output; only redundant renders are skipped).
+export const PointForecastPanel = memo(PointForecastPanelImpl);
+
+function PointForecastPanelImpl({ lat, lng, country, locationLabel, hours = 24, sourceMode = 'fusion' }: Props) {
   const [data, setData] = useState<PointForecast | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
