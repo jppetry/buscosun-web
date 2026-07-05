@@ -8,6 +8,7 @@ import {
   createProgram,
   createTexture,
   getColorRamp,
+  type DataTextureFormat,
   type ProgramWrapper,
 } from './glUtil';
 import { drawFrag, drawVert, drawVertProjected, heatmapFrag, heatmapVert, heatmapVertProjected, quadVert, screenFrag, updateFrag } from './shaders';
@@ -235,6 +236,13 @@ export class WindLayer implements CustomLayerInterface {
   private governor: FrameGovernor | null = null;
   private perfCaps: DeviceCaps | null = null;
 
+  // Actual GPU upload format of the wind texture (half-float / float / byte).
+  // Captured for the on-device diagnostic (glDiag) — a mobile GPU without float
+  // sampling extensions falls back to 'byte' (still correct, just quantized).
+  private _windTexFormat: DataTextureFormat = { kind: 'byte' };
+  // Run the WebGL capability + framebuffer-completeness probe exactly once.
+  private _diagLogged = false;
+
   private clearOnNextFrame = true;
   private onMove = () => {
     this.clearOnNextFrame = true;
@@ -334,6 +342,72 @@ export class WindLayer implements CustomLayerInterface {
     this.fadeOpacity = Math.max(0.5, Math.min(0.995, v));
     this.map?.triggerRepaint();
   }
+
+  private fbStatusName(status: number): string {
+    const gl = this.gl!;
+    switch (status) {
+      case gl.FRAMEBUFFER_COMPLETE: return 'COMPLETE';
+      case gl.FRAMEBUFFER_INCOMPLETE_ATTACHMENT: return 'INCOMPLETE_ATTACHMENT';
+      case gl.FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT: return 'INCOMPLETE_MISSING_ATTACHMENT';
+      case gl.FRAMEBUFFER_INCOMPLETE_DIMENSIONS: return 'INCOMPLETE_DIMENSIONS';
+      case gl.FRAMEBUFFER_UNSUPPORTED: return 'UNSUPPORTED';
+      default: return `0x${status.toString(16)}`;
+    }
+  }
+
+  /**
+   * One-time WebGL capability + framebuffer-completeness probe. Directly answers
+   * the "float render target INCOMPLETE on mobile" hypothesis with real numbers
+   * from the actual device (the sandbox can't reach a phone GPU). Note this layer
+   * uses ONLY RGBA8 render targets — the trail buffers (background/screen) and the
+   * ping-pong particle-state buffers are all UNSIGNED_BYTE, so they must be
+   * COMPLETE on any GPU; the only float texture (the wind field) is SAMPLED, never
+   * a render target, and already falls back to 'byte' without float extensions.
+   * Warns loudly only if a framebuffer is genuinely incomplete (→ no trail
+   * accumulation). Reachable on-device via
+   * `__map.style._layers.wind.implementation.glDiag`.
+   */
+  diagnose(): Record<string, unknown> {
+    const gl = this.gl;
+    if (!gl) return { error: 'no gl context' };
+    const prevFB = gl.getParameter(gl.FRAMEBUFFER_BINDING);
+    const check = (tex: WebGLTexture | null): string => {
+      if (!tex) return 'no-texture';
+      bindFramebuffer(gl, this.framebuffer, tex);
+      return this.fbStatusName(gl.checkFramebufferStatus(gl.FRAMEBUFFER));
+    };
+    const highp = (shaderType: number): boolean => {
+      const f = gl.getShaderPrecisionFormat(shaderType, gl.HIGH_FLOAT);
+      return f ? f.precision > 0 : false;
+    };
+    const diag = {
+      contextType: 'texImage3D' in gl ? 'webgl2' : 'webgl1',
+      windTextureFormat: this._windTexFormat.kind,
+      fb_background: check(this.backgroundTexture),
+      fb_screen: check(this.screenTexture),
+      fb_particleState: check(this.particleStateTexture1),
+      vertexHighpSupported: highp(gl.VERTEX_SHADER),
+      fragmentHighpSupported: highp(gl.FRAGMENT_SHADER),
+      ext: {
+        OES_texture_half_float: !!gl.getExtension('OES_texture_half_float'),
+        OES_texture_half_float_linear: !!gl.getExtension('OES_texture_half_float_linear'),
+        OES_texture_float: !!gl.getExtension('OES_texture_float'),
+        OES_texture_float_linear: !!gl.getExtension('OES_texture_float_linear'),
+        EXT_color_buffer_float: !!gl.getExtension('EXT_color_buffer_float'),
+        EXT_color_buffer_half_float: !!gl.getExtension('EXT_color_buffer_half_float'),
+      },
+    };
+    gl.bindFramebuffer(gl.FRAMEBUFFER, prevFB);
+    const incomplete = [diag.fb_background, diag.fb_screen, diag.fb_particleState]
+      .some((s) => s !== 'COMPLETE' && s !== 'no-texture');
+    if (incomplete) {
+      console.warn('[WindLayer] framebuffer INCOMPLETE — trails cannot accumulate:', diag);
+    }
+    return diag;
+  }
+
+  /** Dev handle: `__map.style._layers.wind.implementation.glDiag` on-device. */
+  get glDiag(): Record<string, unknown> { return this.diagnose(); }
 
   /** Telemetry for the adaptive governor (null if disabled). Exposed for the
    *  dev `__map` inspector so tier/quality/frame-rate can be watched on-device. */
@@ -501,7 +575,7 @@ export class WindLayer implements CustomLayerInterface {
     // 1°-Stufen und gibt der Strömung den weichen nullschool-Charakter. Fällt bei
     // fehlender Float-Extension automatisch auf 8-bit zurück.
     const { rgba, width, height } = this.decodeAndRefine(image, meta);
-    this.windTexture = createDataTexture(gl, gl.LINEAR, rgba, width, height);
+    this.windTexture = createDataTexture(gl, gl.LINEAR, rgba, width, height, this._windTexFormat);
 
     this.windData = {
       ...meta,
@@ -796,6 +870,14 @@ export class WindLayer implements CustomLayerInterface {
     }
 
     this.allocScreenTextures();
+
+    // One-time capability + framebuffer-completeness probe (wind now present and
+    // screen textures allocated). Silent unless a framebuffer is actually
+    // incomplete; the full report is readable on-device via `glDiag`.
+    if (!this._diagLogged) {
+      this._diagLogged = true;
+      this.diagnose();
+    }
 
     // Delta-time since the previous rendered frame, referenced to 60 fps and
     // clamped 1–66 ms (a tab-switch / first frame must not jump). Shared by the

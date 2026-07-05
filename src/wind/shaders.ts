@@ -1,5 +1,13 @@
 export const drawVert = `
-precision mediump float;
+// highp is REQUIRED here (and mandatory-supported in vertex shaders per GLSL ES).
+// The particle position is a 16-bit value packed across two bytes and rebuilt as
+// color.r/255.0 + color.b — recovering the fine byte needs ~2^-16 resolution near
+// magnitude 1.0, far beyond mediump's guaranteed 2^-10 mantissa. Under mediump a
+// phone that honors it strictly drops the fine byte, snapping every particle to a
+// coarse ~1/255-of-world grid → sparse stationary DOTS instead of flowing streaks
+// (desktop treats mediump as highp, so the bug is mobile-only). highp fixes it and
+// is byte-identical on desktop.
+precision highp float;
 
 attribute float a_index;
 
@@ -43,7 +51,9 @@ void main() {
 // redeclare PI or any u_projection_* uniform. `projectTile(vec2 mercatorXY)`
 // handles both projections (and clips the back of the globe via Z).
 export const drawVertProjected = `
-precision mediump float;
+// highp required for the 2-byte position decode — see drawVert above (mediump
+// snaps particles to a coarse grid on mobile → dots instead of streaks).
+precision highp float;
 
 attribute float a_index;
 
