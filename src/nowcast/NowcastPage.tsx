@@ -187,18 +187,23 @@ function NowcastResult({ nowcast, location, reloadNonce, onReload }: { nowcast: 
       {/* US3 — Kennzahlen */}
       <MetricCards nowcast={nowcast} mode={mode} />
 
-      {/* US4/US-E5/US-B1/US-B5 — Intensität & Confidence Timeline */}
-      <div className="nc-block-head">
-        <span className="rt-eyebrow nc-eyebrow">
-          {mode === 'detail' ? 'Detail-Timeline · Phase · Charakter · 6 h' : 'Intensität & Confidence · 0–6 h'}
-        </span>
-        <span className="nc-block-sub">{fmtClockV(nowcast.nowMs)} → {fmtClockV(nowcast.nowMs + 360 * 60_000)}</span>
-      </div>
-      <div className="rt-card nc-tl-card">
-        <NowcastTimeline nowcast={nowcast} variant={mode} />
+      {/* US4/US-E5/US-B1/US-B5 — Intensität & Confidence Timeline.
+          Die Detail-Variante (Phase/Charakter-Bänder) ist auf Mobile ausgeblendet
+          (nc-tl-block-detail, siehe nowcast.css) — zu dicht für schmale Screens. */}
+      <div className={`nc-tl-block${mode === 'detail' ? ' nc-tl-block-detail' : ''}`}>
+        <div className="nc-block-head">
+          <span className="rt-eyebrow nc-eyebrow">
+            {mode === 'detail' ? 'Detail-Timeline · Phase · Charakter · 6 h' : 'Intensität & Confidence · 0–6 h'}
+          </span>
+          <span className="nc-block-sub">{fmtClockV(nowcast.nowMs)} → {fmtClockV(nowcast.nowMs + 360 * 60_000)}</span>
+        </div>
+        <div className="rt-card nc-tl-card">
+          <NowcastTimeline nowcast={nowcast} variant={mode} />
+        </div>
       </div>
 
-      {/* US-B6 / Ereignisse — nur im Detail-Modus */}
+      {/* US-B6 / Ereignisse — nur im Detail-Modus. nc-detail-grid (Summe +
+          Ereignisse) ist auf Mobile ausgeblendet, siehe nowcast.css. */}
       {mode === 'detail' && (
         <>
           <div className="nc-detail-grid">

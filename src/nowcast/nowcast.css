@@ -318,6 +318,13 @@
 
   /* Fußnoten/Guardrail: langer Text bricht sauber um (war Overflow-Quelle) */
   .nc-foot, .nc-guardrail, .nc-help, .nc-help li { overflow-wrap: anywhere; }
+
+  /* Detail-Modus wirkt auf schmalen Screens überladen: Detail-Timeline
+     (Phase/Charakter-Bänder), Akkumulationskurve und Ereignisliste raus.
+     Die Detail-Kennzahlen (Starkregen/Hagel/Charakter-Karten) und die
+     Alpine-Trennung bleiben — die sind schon mobil-tauglich. */
+  .nc-page .nc-tl-block-detail,
+  .nc-page .nc-detail-grid { display: none; }
 }
 
 @media (max-width: 420px) {

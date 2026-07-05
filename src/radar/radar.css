@@ -329,5 +329,40 @@
   .rdr-tl-controls { flex-wrap: wrap; row-gap: 0.45rem; justify-content: center; }
   .rdr-tl-loop { margin-left: 0; }
   .rdr-tl-speeds { margin-left: auto; }
+
+  /* ===== Bedienbarkeit auf Touch-Geräten =====
+     Elf Ebenen-Pills untereinander umbrechen zu lassen, kostet auf schmalen
+     Screens 4–5 Zeilen, bevor die Karte überhaupt sichtbar wird. Stattdessen:
+     eine einzeilige Wisch-Leiste (Chip-Scroller), randabfallend bis zur
+     Kartenkante — Standardmuster für Filter-Chips auf Mobile. */
+  .nc-radar-layersbar { row-gap: 0.5rem; }
+  .nc-radar-layersbar .nc-radar-eyebrow { order: 1; }
+  .nc-radar-layersbar .nc-rchip-layers { order: 2; }
+  .nc-radar-toggles {
+    order: 3;
+    flex: 1 1 100%;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+    margin: 0 -0.85rem;
+    padding: 0.1rem 0.85rem 0.3rem;
+  }
+  .nc-radar-toggles::-webkit-scrollbar { display: none; }
+
+  /* Tap-Ziele vergrößern (Ebenen-Pills, Einstellungen-Chip, Zeit-Steuerung,
+     Segmented-Buttons) — vorher ~29–38px, jetzt näher an der 44px-Richtgröße. */
+  .nc-rtoggle { flex: none; scroll-snap-align: start; padding: 0.55rem 0.85rem; font-size: 0.8rem; }
+  .nc-rchip { padding: 0.55rem 0.9rem; }
+  .nc-radar-seg button { padding: 0.5rem 0.8rem; }
+  .rdr-tl-btn { width: 2.6rem; height: 2.6rem; }
+  .rdr-tl-play { width: 2.9rem; height: 2.9rem; }
+  .rdr-tl-now { height: 2.6rem; }
+  .rdr-tl-speed { padding: 0.42rem 0.65rem; }
+
+  /* MapLibre-Zoom/Standort-Controls (Default 29px) sind unter der Touch-Richtgröße. */
+  .nc-radar-stage .maplibregl-ctrl-group button { width: 38px; height: 38px; }
 }
 @media (prefers-reduced-motion: reduce) { .ev-spinner { animation: none; } .nc-rchip-caret { transition: none; } }
