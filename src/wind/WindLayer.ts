@@ -409,6 +409,184 @@ export class WindLayer implements CustomLayerInterface {
   /** Dev handle: `__map.style._layers.wind.implementation.glDiag` on-device. */
   get glDiag(): Record<string, unknown> { return this.diagnose(); }
 
+  // ---- On-device motion probe (dev-only; inert until called) -----------------
+  // Measures the GROUND TRUTH of the two reported mobile↔desktop symptoms —
+  // reversed direction and excessive speed — straight from the GPU, so the
+  // comparison is hard numbers, never "feels off". It reads the ping-pong
+  // particle-state texture back with readPixels (RGBA8 → FBO-readable on ANY GPU,
+  // unlike the float wind texture), decodes the SAME 2-byte position packing the
+  // shader uses, and diffs two snapshots `ms` apart. It changes no physics and
+  // adds zero per-frame cost (runs only when invoked from the console via
+  // `__map.style._layers.wind.implementation.windMotionDiag()`).
+
+  /** Cached scratch canvas for re-deriving source (u,v) at a sample point. */
+  private _probeCanvas: HTMLCanvasElement | null = null;
+  private _probeCtx: CanvasRenderingContext2D | null = null;
+
+  /** Read the whole committed particle-state texture (RGBA8) back to the CPU.
+   *  particleStateTexture0 holds the latest state (updateParticles swaps into it).
+   *  Saves/restores the FBO binding like diagnose(). */
+  private readParticleState(): Uint8Array | null {
+    const gl = this.gl;
+    if (!gl || !this.particleStateTexture0) return null;
+    const res = this.particleStateResolution;
+    const prevFB = gl.getParameter(gl.FRAMEBUFFER_BINDING);
+    bindFramebuffer(gl, this.framebuffer, this.particleStateTexture0);
+    const buf = new Uint8Array(res * res * 4);
+    if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE) {
+      gl.readPixels(0, 0, res, res, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    }
+    gl.bindFramebuffer(gl.FRAMEBUFFER, prevFB);
+    return buf;
+  }
+
+  /** Decode particle `i`'s equirectangular position from a readback buffer using
+   *  the EXACT packing of drawVert/updateFrag: pos = hiByte/255 + loByte/65025.
+   *  Particle i lives at texel (i%res, floor(i/res)); readPixels is row-major from
+   *  the lower-left, which matches the un-flipped upload order → linear index i. */
+  private decodeParticle(buf: Uint8Array, i: number): { x: number; y: number } {
+    const o = i * 4;
+    return {
+      x: buf[o + 2] / 255 + buf[o] / 65025,
+      y: buf[o + 3] / 255 + buf[o + 1] / 65025,
+    };
+  }
+
+  /** Re-derive the source wind (u,v) at an equirectangular point exactly as the
+   *  shader samples it (same uvBounds + uMin/uMax mapping). Lets the probe detect a
+   *  GPU-side texture flip: if the measured drift sign disagrees with this, the
+   *  wind field is mirrored on this device. Returns null outside the data bounds. */
+  private sampleSourceWind(x: number, y: number): { u: number; v: number } | null {
+    const wd = this.windData;
+    if (!wd) return null;
+    const [dx0, dy0, dx1, dy1] = wd.uvBounds;
+    const wx = (x - dx0) / (dx1 - dx0);
+    const wy = (y - dy0) / (dy1 - dy0);
+    if (wx < 0 || wx > 1 || wy < 0 || wy > 1) return null;
+    const img = wd.image;
+    const iw = (img as HTMLImageElement).naturalWidth || img.width;
+    const ih = (img as HTMLImageElement).naturalHeight || img.height;
+    if (!this._probeCanvas) {
+      this._probeCanvas = document.createElement('canvas');
+      this._probeCtx = this._probeCanvas.getContext('2d', { willReadFrequently: true });
+    }
+    const cv = this._probeCanvas!;
+    const ctx = this._probeCtx!;
+    if (cv.width !== iw || cv.height !== ih) {
+      cv.width = iw; cv.height = ih;
+      ctx.drawImage(img, 0, 0, iw, ih);
+    }
+    const px = Math.max(0, Math.min(iw - 1, Math.round(wx * (iw - 1))));
+    const py = Math.max(0, Math.min(ih - 1, Math.round(wy * (ih - 1))));
+    const d = ctx.getImageData(px, py, 1, 1).data;
+    return {
+      u: wd.uMin + (wd.uMax - wd.uMin) * (d[0] / 255),
+      v: wd.vMin + (wd.vMax - wd.vMin) * (d[1] / 255),
+    };
+  }
+
+  /**
+   * Record N particle trajectories over `ms` and report the two symptoms
+   * separately. Run it identically on desktop and mobile and compare:
+   *   • DIRECTION — `dirSign` = [sign(median Δlng/s), sign(median Δlat/s)] must be
+   *     IDENTICAL across devices. `windSignAtStart` is the sign of the sampled
+   *     (u, v); `advectionMatchesWind` is true when the drift agrees with the wind
+   *     (Δlng↔u, Δlat↔ +v = northward). A mismatch on ONE device = a platform flip.
+   *   • SPEED — `cssPxPerSec` (median) is DPR-independent screen speed; it must
+   *     match within tolerance. `degPerSec` is the raw geographic rate.
+   * Recycled/wrapped particles are filtered out (Δ unwrapped at the 0/1 seam,
+   * jumps > 0.02 equirect dropped as respawns).
+   */
+  async windMotionDiag(opts: { count?: number; ms?: number } = {}): Promise<Record<string, unknown>> {
+    const gl = this.gl;
+    const map = this.map;
+    if (!gl || !map || !this.windData) return { error: 'layer not ready' };
+    const ms = opts.ms ?? 1000;
+    const n = this._numParticles;
+    const count = Math.max(1, Math.min(opts.count ?? 32, n));
+    const step = Math.max(1, Math.floor(n / count));
+    const idxs: number[] = [];
+    for (let i = 0; i < n && idxs.length < count; i += step) idxs.push(i);
+
+    const bufA = this.readParticleState();
+    if (!bufA) return { error: 'readback failed' };
+    const tA = performance.now();
+    const posA = idxs.map((i) => this.decodeParticle(bufA, i));
+
+    // Count display frames over the window (fps ground truth) while the layer
+    // keeps animating; then snapshot again.
+    map.triggerRepaint();
+    let frames = 0;
+    await new Promise<void>((resolve) => {
+      const tick = () => {
+        if (performance.now() - tA >= ms) { resolve(); return; }
+        frames++;
+        requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    });
+    const tB = performance.now();
+    const bufB = this.readParticleState();
+    if (!bufB) return { error: 'readback failed (B)' };
+    const dtSec = (tB - tA) / 1000;
+
+    const unwrap = (d: number) => (d > 0.5 ? d - 1 : d < -0.5 ? d + 1 : d);
+    const dLng: number[] = [], dLat: number[] = [], pxs: number[] = [];
+    let windAgree = 0, windTotal = 0;
+    const uSigns: number[] = [], vSigns: number[] = [];
+    for (let k = 0; k < idxs.length; k++) {
+      const a = posA[k];
+      const b = this.decodeParticle(bufB, idxs[k]);
+      const dxe = unwrap(b.x - a.x);
+      const dye = unwrap(b.y - a.y);
+      if (Math.abs(dxe) > 0.02 || Math.abs(dye) > 0.02) continue; // respawn/drop
+      // equirect → geographic; Δlat = -Δy (equirect y grows southward)
+      const dLngK = dxe * 360;
+      const dLatK = -dye * 180;
+      dLng.push(dLngK / dtSec);
+      dLat.push(dLatK / dtSec);
+      const lngA = a.x * 360 - 180, latA = 90 - a.y * 180;
+      const lngB = b.x * 360 - 180, latB = 90 - b.y * 180;
+      const pA = map.project([lngA, latA]);
+      const pB = map.project([lngB, latB]);
+      pxs.push(Math.hypot(pB.x - pA.x, pB.y - pA.y) / dtSec);
+      const w = this.sampleSourceWind(a.x, a.y);
+      if (w) {
+        windTotal++;
+        uSigns.push(Math.sign(w.u));
+        vSigns.push(Math.sign(w.v));
+        // drift east ↔ u>0 ; drift north (Δlat>0) ↔ v>0
+        if (Math.sign(dLngK) === Math.sign(w.u) && Math.sign(dLatK) === Math.sign(w.v)) windAgree++;
+      }
+    }
+    const median = (arr: number[]) => {
+      if (!arr.length) return 0;
+      const s = [...arr].sort((p, q) => p - q);
+      return s[Math.floor(s.length / 2)];
+    };
+    const mLng = median(dLng), mLat = median(dLat);
+    const report = {
+      // --- SPEED (must match desktop↔mobile within tolerance) ---
+      cssPxPerSec: Math.round(median(pxs) * 10) / 10,
+      degPerSec: { lng: Math.round(mLng * 1000) / 1000, lat: Math.round(mLat * 1000) / 1000 },
+      // --- DIRECTION (sign vector must be IDENTICAL across devices) ---
+      dirSign: [Math.sign(mLng), Math.sign(mLat)] as [number, number],
+      windSignAtStart: [Math.sign(median(uSigns)), Math.sign(median(vSigns))] as [number, number],
+      advectionMatchesWind: windTotal ? `${windAgree}/${windTotal}` : 'n/a',
+      // --- context for correlating the two ---
+      sampled: dLng.length,
+      measuredFps: Math.round((frames / dtSec) * 10) / 10,
+      frameDtScale: Math.round(this.frameDtScale * 100) / 100,
+      windTexFormat: this._windTexFormat.kind,
+      epr: Math.round(this._epr * 100) / 100,
+      upsample: this.upsample,
+      zoom: Math.round((map.getZoom() ?? 0) * 100) / 100,
+    };
+    // eslint-disable-next-line no-console
+    console.table(report);
+    return report;
+  }
+
   /** Telemetry for the adaptive governor (null if disabled). Exposed for the
    *  dev `__map` inspector so tier/quality/frame-rate can be watched on-device. */
   get perfState(): { tier: string; quality: number; ema: number; level: number; caps: DeviceCaps | null } | null {

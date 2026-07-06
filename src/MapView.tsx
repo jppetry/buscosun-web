@@ -1946,7 +1946,13 @@ export default function MapView({ location, onBack, embedded = false, initialAct
       const data = (src?._data as GeoJSON.FeatureCollection | undefined) ?? null;
       return runSnowlineQA(data, (lon, lat) => sampleDemAt(iconD2TempRef.current, lon, lat));
     };
-    return () => { delete w.__bsSample; delete w.__bsQA; delete w.__bsSnowlineQA; };
+    // On-device wind motion probe (dev-only ergonomic handle for phone remote
+    // console): `await __windDiag()` reports measured direction sign + CSS px/s
+    // straight from the GPU ping-pong so desktop↔mobile is compared as hard
+    // numbers. Resolves the live layer so timing (created in addLayers) is moot.
+    w.__windDiag = (o?: { count?: number; ms?: number }) =>
+      layerRefs.current.wind?.windMotionDiag(o) ?? Promise.resolve({ error: 'wind layer not active — enable the Wind layer first' });
+    return () => { delete w.__bsSample; delete w.__bsQA; delete w.__bsSnowlineQA; delete w.__windDiag; };
   }, [forecastHour]);
 
   // City temperature labels — windy-style: a small location dot + the bare,
