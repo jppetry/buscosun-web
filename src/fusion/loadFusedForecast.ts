@@ -1,3 +1,4 @@
+
 /**
  * Orchestrates the full data-source → fusion-engine → layer-ready PNGs flow.
  *
@@ -22,24 +23,12 @@ import { fetchBrightSkyGrid } from '../sources/brightSkyForecast';
 import { fetchBrightSkyCurrentGrid } from '../sources/brightSkyCurrent';
 import { fetchGeoSphereIncaGrid } from '../sources/geosphereInca';
 import { fetchGeoSphereAromeGrid } from '../sources/geosphereArome';
-import { fetchIconD2EpsGrid } from '../sources/iconD2EpsSource';
-import { fetchIconChEpsGrid } from '../sources/iconChEpsSource';
-import { fetchAromeFranceGrid } from '../sources/aromeFranceSource';
-import { fetchIconEuRasterGrid } from '../sources/iconEuRasterSource';
-import { fetchGfs2dGrid } from '../sources/gfs2dSource';
-import { fetchEcmwfGrid } from '../sources/ecmwfIfsSource';
-import { fetchIconGlobalGrid } from '../sources/iconGlobalSource';
-import { fetchAiconGrid } from '../sources/aiconSource';
-import { fetchArpegeGrid } from '../sources/arpegeSource';
 import { fetchTawesCurrentGrid } from '../sources/geosphereTawes';
 import { fetchSmnCurrentGrid } from '../sources/meteoSwissSmn';
 import { fetchSmhiCurrentGrid } from '../sources/smhiStations';
 import { fetchDmiCurrentGrid } from '../sources/dmiStations';
 import { fetchIpmaCurrentGrid } from '../sources/ipmaStations';
 import { FusionEngine, type FusionV2Flags } from './fusionEngine';
-// Dev-only: registers window.__captureFusionFixture for recording verification
-// fixtures from real sources. Self-guards to DEV; no-op in production.
-import './captureFixture';
 import { loadElevationLookup, type ElevationGrid } from './elevation';
 import type { DwdForecastResult } from '../wind/brightSkySource';
 import { COUNTRY_PROFILES, DACH_VIEW, type CountryProfile } from '../countryProfiles';
@@ -210,20 +199,8 @@ async function getCachedSource<T>(
  *  'arome'    → GeoSphere AROME-AT only (2.5 km, AT/CH/sDE coverage)
  *  'inca'     → GeoSphere INCA nowcast only (AT, 1 km, ~3 h horizon)
  *  'obs'      → live station obs only (DWD + TAWES + SMN, h=0)
- *  'icon-d2-eps' → DWD ICON-D2-EPS ensemble mean only (2.2 km icosahedral, DACH)
- *  'icon-ch1-eps' / 'icon-ch2-eps' → MeteoSchweiz ICON-CH control run only (CH)
- *  'arome-fr' → Météo-France AROME-France 0.01° only (temp+wind; DE/CH + west AT)
- *  'icon-eu' → DWD ICON-EU single-level 2D raster only (all DACH)
- *  'gfs' → NOAA GFS global 2D raster only (coarse, all DACH)
- *  'ifs' / 'aifs' / 'aifs-ens' → ECMWF IFS / AIFS / AIFS-ENS global 2D raster only
- *  'icon-global' → DWD ICON global 2D raster only (icosahedral, all DACH)
- *  'aicon' → DWD AICON (KI) 2D raster only (temp/wind/precip; all DACH)
- *  'arpege' → Météo-France ARPEGE global 2D raster only (temp/wind; all DACH)
  */
-export type ModelChoice =
-  | 'fusion' | 'mosmix' | 'arome' | 'inca' | 'obs'
-  | 'icon-d2-eps' | 'icon-ch1-eps' | 'icon-ch2-eps' | 'arome-fr' | 'icon-eu' | 'gfs'
-  | 'ifs' | 'aifs' | 'aifs-ens' | 'icon-global' | 'aicon' | 'arpege';
+export type ModelChoice = 'fusion' | 'mosmix' | 'arome' | 'inca' | 'obs';
 
 export interface FusedLoadOptions {
   signal?: AbortSignal;
@@ -291,12 +268,10 @@ export async function loadFusedForecast(options: FusedLoadOptions = {}): Promise
       : undefined);
   // Cache hit? Sub-100 ms response for already-computed combinations. The
   // quick-mode flag is part of the cache key — Phase A and Phase B never
-  // share a cache slot (different visual fidelity). ALL fusionV2 sub-flags join
-  // the key so toggling any of them (oi / incrementPersist / uncertainty /
-  // bgMinVar / bgOffDiag) recomputes instead of returning a stale result.
-  const v2Key = `${fusionV2?.oi ? 'o' : ''}${fusionV2?.incrementPersist ? 'p' : ''}${fusionV2?.uncertainty ? 'u' : ''}${fusionV2?.bgMinVar ? 'b' : ''}${fusionV2?.bgOffDiag ? 'd' : ''}`;
+  // share a cache slot (different visual fidelity). The v2 flag joins the key
+  // so toggling it recomputes instead of returning a stale IDW result.
   const cKey = resultKey(options.country, hours, _modelChoice, _denseCols, _denseRows, _quickMode)
-    + `|v2${v2Key}`;
+    + `|v2o${fusionV2?.oi ? 1 : 0}`;
   const cachedResult = fusedResultCache.get(cKey);
   if (cachedResult && Date.now() - cachedResult.fetchedAt < RESULT_TTL_MS) {
     return cachedResult.value;
@@ -326,32 +301,6 @@ export async function loadFusedForecast(options: FusedLoadOptions = {}): Promise
   const skipSecondary = isFusion && _quickMode;
   const useInca   = allow('inca')  && !skipSecondary;
   const useArome  = allow('arome') && !skipSecondary;
-  // ICON-D2-EPS deckt ganz DACH (icosahedral) → unabhängig vom Länderprofil.
-  // Nicht in quickMode's skipSecondary, weil es bei expliziter Wahl die einzige
-  // Quelle ist (sonst leerer Phase-A-Render).
-  const useEps = allow('icon-d2-eps');
-  // ICON-CH1/CH2-EPS-Kontrolllauf: CH-only → NUR bei expliziter Einzelwahl, nie
-  // in der DACH-weiten 'fusion'-Mischung (sonst CH-Daten für DE/AT + ungewollte
-  // Änderung der Hausmischung). `allow` schließt 'fusion' ein, daher direkt.
-  const useCh1 = modelChoice === 'icon-ch1-eps';
-  const useCh2 = modelChoice === 'icon-ch2-eps';
-  // AROME-France (0,01°): nur bei expliziter Einzelwahl (großes GRIB, CH-/DE-/
-  // West-AT-Domäne) — nie in der 'fusion'-Mischung.
-  const useAromeFr = modelChoice === 'arome-fr';
-  // ICON-EU (single-level 2D): nur bei expliziter Einzelwahl.
-  const useIconEu = modelChoice === 'icon-eu';
-  // GFS (global, coarse): nur bei expliziter Einzelwahl.
-  const useGfs = modelChoice === 'gfs';
-  // ECMWF IFS / AIFS (global, coarse): nur bei expliziter Einzelwahl.
-  const useIfs = modelChoice === 'ifs';
-  const useAifs = modelChoice === 'aifs';
-  const useAifsEns = modelChoice === 'aifs-ens';
-  // ICON global (DWD, icosahedral): nur bei expliziter Einzelwahl.
-  const useIconGlobal = modelChoice === 'icon-global';
-  // AICON (DWD KI): nur bei expliziter Einzelwahl.
-  const useAicon = modelChoice === 'aicon';
-  // ARPEGE (Météo-France global): nur bei expliziter Einzelwahl.
-  const useArpege = modelChoice === 'arpege';
   const useTawesOrSmnInQuick = !skipSecondary;
 
   const engine = new FusionEngine({
@@ -444,20 +393,8 @@ export async function loadFusedForecast(options: FusedLoadOptions = {}): Promise
   const wantArome  = profile.useArome  && useArome;
   const wantTawes  = profile.useTawes  && useObs && useTawesOrSmnInQuick;
   const wantSmn    = profile.useSmn    && useObs && useTawesOrSmnInQuick;
-  const wantEps    = useEps;
-  const wantCh1    = useCh1;
-  const wantCh2    = useCh2;
-  const wantAromeFr = useAromeFr;
-  const wantIconEu  = useIconEu;
-  const wantGfs     = useGfs;
-  const wantIfs     = useIfs;
-  const wantAifs    = useAifs;
-  const wantAifsEns = useAifsEns;
-  const wantIconGlobal = useIconGlobal;
-  const wantAicon = useAicon;
-  const wantArpege = useArpege;
 
-  const [obs, bs, inca, arome, tawes, smn, eps, ch1, ch2, aromeFr, iconEu, gfs2d, ifs, aifs, aifsEns, iconGlobal, aicon, arpege] = await Promise.all([
+  const [obs, bs, inca, arome, tawes, smn] = await Promise.all([
     wantObs ? getCachedSource(sourceKey('dwd_obs', hours), () =>
         fetchBrightSkyCurrentGrid({ cols: 10, rows: 8 })).catch(() => null) : Promise.resolve(null),
     wantMosmix ? getCachedSource(sourceKey('mosmix', hours), () =>
@@ -470,30 +407,6 @@ export async function loadFusedForecast(options: FusedLoadOptions = {}): Promise
         fetchTawesCurrentGrid()).catch(() => null) : Promise.resolve(null),
     wantSmn ? getCachedSource(sourceKey('smn', hours), () =>
         fetchSmnCurrentGrid({ maxStations: 80 })).catch(() => null) : Promise.resolve(null),
-    wantEps ? getCachedSource(sourceKey('icon-d2-eps', hours), () =>
-        fetchIconD2EpsGrid({ hours, signal: options.signal })).catch(() => null) : Promise.resolve(null),
-    wantCh1 ? getCachedSource(sourceKey('icon-ch1-eps', hours), () =>
-        fetchIconChEpsGrid('icon-ch1-eps', { hours, signal: options.signal })).catch(() => null) : Promise.resolve(null),
-    wantCh2 ? getCachedSource(sourceKey('icon-ch2-eps', hours), () =>
-        fetchIconChEpsGrid('icon-ch2-eps', { hours, signal: options.signal })).catch(() => null) : Promise.resolve(null),
-    wantAromeFr ? getCachedSource(sourceKey('arome-fr', hours), () =>
-        fetchAromeFranceGrid({ hours, signal: options.signal })).catch(() => null) : Promise.resolve(null),
-    wantIconEu ? getCachedSource(sourceKey('icon-eu', hours), () =>
-        fetchIconEuRasterGrid({ hours, signal: options.signal })).catch(() => null) : Promise.resolve(null),
-    wantGfs ? getCachedSource(sourceKey('gfs', hours), () =>
-        fetchGfs2dGrid({ hours, signal: options.signal })).catch(() => null) : Promise.resolve(null),
-    wantIfs ? getCachedSource(sourceKey('ifs', hours), () =>
-        fetchEcmwfGrid('ifs', { hours, signal: options.signal })).catch(() => null) : Promise.resolve(null),
-    wantAifs ? getCachedSource(sourceKey('aifs', hours), () =>
-        fetchEcmwfGrid('aifs-single', { hours, signal: options.signal })).catch(() => null) : Promise.resolve(null),
-    wantAifsEns ? getCachedSource(sourceKey('aifs-ens', hours), () =>
-        fetchEcmwfGrid('aifs-ens', { hours, signal: options.signal })).catch(() => null) : Promise.resolve(null),
-    wantIconGlobal ? getCachedSource(sourceKey('icon-global', hours), () =>
-        fetchIconGlobalGrid({ hours, signal: options.signal })).catch(() => null) : Promise.resolve(null),
-    wantAicon ? getCachedSource(sourceKey('aicon', hours), () =>
-        fetchAiconGrid({ hours, signal: options.signal })).catch(() => null) : Promise.resolve(null),
-    wantArpege ? getCachedSource(sourceKey('arpege', hours), () =>
-        fetchArpegeGrid({ hours, signal: options.signal })).catch(() => null) : Promise.resolve(null),
   ]);
 
   // Live obs — dominate hour 0 with measurement weight.
@@ -526,66 +439,6 @@ export async function loadFusedForecast(options: FusedLoadOptions = {}): Promise
   if (smn && smn.points[0]?.length) {
     engine.ingest(smn, { temperature: 5.0, wind: 3.0, clouds: 0, precipitation: 4.0 });
     modelTags.push('smn');
-  }
-  // ICON-D2-EPS — Ensemble-Mittel (2,2 km icosahedral, ganz DACH).
-  if (eps && eps.points[0]?.length) {
-    engine.ingest(eps, { temperature: 1.4, wind: 1.4, clouds: 1.4, precipitation: 1.4 });
-    modelTags.push('icon_d2_eps');
-  }
-  // ICON-CH1/CH2-EPS-Kontrolllauf (nur bei Einzelwahl, s. o.) — alleinige Quelle.
-  if (ch1 && ch1.points[0]?.length) {
-    engine.ingest(ch1, { temperature: 1.4, wind: 1.4, clouds: 1.4, precipitation: 1.4 });
-    modelTags.push('icon_ch1_eps');
-  }
-  if (ch2 && ch2.points[0]?.length) {
-    engine.ingest(ch2, { temperature: 1.4, wind: 1.4, clouds: 1.4, precipitation: 1.4 });
-    modelTags.push('icon_ch2_eps');
-  }
-  // AROME-France (nur SP1 → Temperatur + Wind; Wolken/Niederschlag null → Engine
-  // ignoriert die fehlenden Variablen).
-  if (aromeFr && aromeFr.points[0]?.length) {
-    engine.ingest(aromeFr, { temperature: 1.4, wind: 1.4, clouds: 0, precipitation: 0 });
-    modelTags.push('arome_france');
-  }
-  // ICON-EU single-level (Temperatur/Wind/Wolken/Niederschlag), nur bei Einzelwahl.
-  if (iconEu && iconEu.points[0]?.length) {
-    engine.ingest(iconEu, { temperature: 1.4, wind: 1.4, clouds: 1.4, precipitation: 1.4 });
-    modelTags.push('icon_eu');
-  }
-  // GFS global (Temperatur/Wind/Wolken/Niederschlag), nur bei Einzelwahl.
-  if (gfs2d && gfs2d.points[0]?.length) {
-    engine.ingest(gfs2d, { temperature: 1.4, wind: 1.4, clouds: 1.4, precipitation: 1.4 });
-    modelTags.push('gfs');
-  }
-  // ECMWF IFS global (Temperatur/Wind/Wolken/Niederschlag), nur bei Einzelwahl.
-  if (ifs && ifs.points[0]?.length) {
-    engine.ingest(ifs, { temperature: 1.4, wind: 1.4, clouds: 1.4, precipitation: 1.4 });
-    modelTags.push('ecmwf_ifs');
-  }
-  // ECMWF AIFS (KI) global, nur bei Einzelwahl.
-  if (aifs && aifs.points[0]?.length) {
-    engine.ingest(aifs, { temperature: 1.4, wind: 1.4, clouds: 1.4, precipitation: 1.4 });
-    modelTags.push('ecmwf_aifs');
-  }
-  // ECMWF AIFS-ENS (KI-Ensemble, Kontrolllauf) global, nur bei Einzelwahl.
-  if (aifsEns && aifsEns.points[0]?.length) {
-    engine.ingest(aifsEns, { temperature: 1.4, wind: 1.4, clouds: 1.4, precipitation: 1.4 });
-    modelTags.push('ecmwf_aifs_ens');
-  }
-  // ICON global (DWD, icosahedral) global, nur bei Einzelwahl.
-  if (iconGlobal && iconGlobal.points[0]?.length) {
-    engine.ingest(iconGlobal, { temperature: 1.4, wind: 1.4, clouds: 1.4, precipitation: 1.4 });
-    modelTags.push('icon_global');
-  }
-  // AICON (DWD KI): Temp/Wind/Niederschlag (keine Wolken → Gewicht 0).
-  if (aicon && aicon.points[0]?.length) {
-    engine.ingest(aicon, { temperature: 1.4, wind: 1.4, clouds: 0, precipitation: 1.4 });
-    modelTags.push('aicon');
-  }
-  // ARPEGE (Météo-France global): Temp + Wind (keine Wolken/Regen → Gewicht 0).
-  if (arpege && arpege.points[0]?.length) {
-    engine.ingest(arpege, { temperature: 1.4, wind: 1.4, clouds: 0, precipitation: 0 });
-    modelTags.push('arpege');
   }
 
   // --- Source I (SE live stations, hour 0 only): SMHI ------------------------
@@ -659,18 +512,6 @@ export async function loadFusedForecast(options: FusedLoadOptions = {}): Promise
     arome:  'GeoSphere AROME',
     inca:   'GeoSphere INCA',
     obs:    'Station-Obs',
-    'icon-d2-eps': 'DWD ICON-D2-EPS',
-    'icon-ch1-eps': 'MeteoSchweiz ICON-CH1',
-    'icon-ch2-eps': 'MeteoSchweiz ICON-CH2',
-    'arome-fr': 'Météo-France AROME',
-    'icon-eu': 'DWD ICON-EU',
-    'gfs': 'NOAA GFS',
-    'ifs': 'ECMWF IFS',
-    'aifs': 'ECMWF AIFS',
-    'aifs-ens': 'ECMWF AIFS-ENS',
-    'icon-global': 'DWD ICON global',
-    'aicon': 'DWD AICON',
-    'arpege': 'Météo-France ARPEGE',
   };
   const model = modelChoice !== 'fusion'
     ? `${SINGLE_MODEL_LABEL[modelChoice]} (${modelTags.join(', ') || 'no data'})`
