@@ -11,7 +11,16 @@ precision highp float;
 
 attribute float a_index;
 
-uniform sampler2D u_particles;
+// GLSL ES gives sampler types their OWN default precision (lowp), separate from
+// "precision highp float" above — a spec detail desktop/ANGLE drivers commonly
+// ignore (promoting everything to highp) but a real mobile GPU may honor. This
+// texture is NEAREST-filtered and addressed by exact fract()/floor() texel math
+// (see below); lowp coordinate precision there can snap to the WRONG texel —
+// i.e. fetch a neighboring particle's state — which reads as scrambled
+// position/direction/speed on hardware while looking correct on desktop AND in
+// Chrome's device-mode emulation (same desktop driver). highp makes the
+// coordinate math spec-guaranteed full precision on both.
+uniform highp sampler2D u_particles;
 uniform float u_particles_res;
 uniform mat4 u_matrix;
 uniform float u_point_size;
@@ -57,7 +66,9 @@ precision highp float;
 
 attribute float a_index;
 
-uniform sampler2D u_particles;
+// highp sampler2D — see drawVert above (sampler precision is separate from
+// "precision highp float"; NEAREST exact-texel addressing needs it explicit).
+uniform highp sampler2D u_particles;
 uniform float u_particles_res;
 uniform float u_point_size;
 
@@ -221,8 +232,12 @@ void main() {
 export const updateFrag = `
 precision highp float;
 
-uniform sampler2D u_particles;
-uniform sampler2D u_wind;
+// highp sampler2D on both — see drawVert. u_particles is the exact-texel
+// NEAREST position fetch; u_wind feeds the advection direction/speed directly,
+// so a lowp-default coordinate/LOD computation here would corrupt the very
+// (u,v) the whole shader advects by.
+uniform highp sampler2D u_particles;
+uniform highp sampler2D u_wind;
 uniform vec2 u_wind_res;
 uniform vec2 u_wind_min;
 uniform vec2 u_wind_max;
