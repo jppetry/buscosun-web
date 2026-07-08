@@ -1,0 +1,28 @@
+/*
+ * Safe-area utility (notch / home-indicator handling for iOS devices with viewport-fit=cover).
+ * Import once per fixed/floating mobile element that needs it — never inline env() ad hoc.
+ */
+
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+}
+
+.safe-pad-top {
+  padding-top: calc(var(--safe-top) + var(--pad, 0px));
+}
+.safe-pad-bottom {
+  padding-bottom: calc(var(--safe-bottom) + var(--pad, 0px));
+}
+.safe-pad-x {
+  padding-left: calc(var(--safe-left) + var(--pad, 0px));
+  padding-right: calc(var(--safe-right) + var(--pad, 0px));
+}
+.safe-inset {
+  padding-top: calc(var(--safe-top) + var(--pad, 0px));
+  padding-bottom: calc(var(--safe-bottom) + var(--pad, 0px));
+  padding-left: calc(var(--safe-left) + var(--pad, 0px));
+  padding-right: calc(var(--safe-right) + var(--pad, 0px));
+}

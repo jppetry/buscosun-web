@@ -1,122 +1,97 @@
-# checklist.md — Atmosphäre
+# checklist.md — Gates & Fortschritt
 
-Legende: [ ] offen · [~] in Arbeit · [x] erledigt (grün verifiziert) · [G] Entscheidungs-Gate
+Regel: Ein Kästchen wird nur mit Beleg abgehakt (Screenshot-Pfad, Trace-Datei oder Konsolen-Auszug in `audit/` referenzieren). Nächste Phase erst nach vollständigem Gate.
 
-## P0 — Diagnose + Doku
-- [x] Design-System inventarisiert (context.md)
-- [x] Bestehende Features kartiert (context.md / architecture.md)
-- [x] Reusable vs New + Risiken/Abweichungen (context.md)
-- [x] plan.md + checklist.md angelegt; CLAUDE.md-Leitplanken
+## Phase 0 — Fundament (G0)
+- [x] Chrome DevTools MCP: iPhone-12-Pro-Emulation (390×844, DPR 3, Touch) verifiziert — `audit/screenshots/baseline/emulation-test-searchpage-mobile.png`, Details in `audit/phase0-fundament.md` §2
+- [x] Breakpoint-Bestandsaufnahme dokumentiert, Konvention festgelegt (`max-width:767px` mobil / 768–1024px Tablet / >1024px Desktop) — `audit/phase0-fundament.md` §3
+- [x] Viewport-Meta geprüft (`viewport-fit=cover`, kein `user-scalable=no`) — Befund: `viewport-fit=cover` fehlte, ergänzt in `index.html`; `audit/phase0-fundament.md` §4
+- [x] Baseline-Screenshots mobil: alle 8 Seiten in `audit/screenshots/baseline/<feature>/mobile.png`
+- [x] Baseline-Screenshots Desktop (1440×900): alle 8 Seiten in `audit/screenshots/baseline/<feature>/desktop.png`
+- [x] Konsolen-Baseline pro Seite dokumentiert — `audit/phase0-fundament.md` §6 (vorbestehendes a11y-Issue auf 6/8 Seiten dokumentiert, keine Errors)
+- [x] BottomSheet-, MobileToolbar-, Safe-Area-Primitives angelegt und sichtbar testbar — `src/mobile/*`, Testroute `#mobiletest`, Screenshots `mobile-primitives-test*.png`
+- [x] Kein Eingriff ins Produktions-Layout erfolgt — nur additive Dateien/Route, `npm run typecheck` grün; `audit/phase0-fundament.md` §8
 
-## P1 — Shell
-- [x] Feature-Ordner `src/atmosphere/` nach bestehender Struktur
-- [x] Routing-Eintrag (`FeatureId 'atmosphere'`, Hash `#atm=`) + Startseiten-Kachel
-- [x] Linsen-Umschalter (Fliegen/Berg&Weg/Himmel), Segmented-Control-Muster
-- [x] 3 Tiefen-Struktur (Verdict / Profil / Nerd) als Platzhalter
-- [x] Globaler Time-Scrubber +0..+48 h, 1-h-Schritte, „jetzt"-Tick
-- [x] `activeHour`-Store/Context (Single Source of Truth) + URL/localStorage-Sync
-- [x] 3 Breakpoint-Layouts (Desktop/Tablet hoch+quer/Mobile), sticky Scrubber
-- [x] A11y: Tastatur + deutsche ARIA-Labels (role=tablist, slider aria-valuetext de)
-- [x] Verifikation grün: typecheck+build; DevTools Desktop/Tablet-quer/Mobile +
-      Lens/Scrubber-Propagation + Permalink. Hinweis: Tablet-Hochformat-Viewport im
-      Headless-Emulator nicht herstellbar (innerH ~769 gecappt) — gleiche Single-
-      Column-Mechanik wie Mobile, orientation-Query via matchMedia bestätigt.
+## Phase 1 — Wetterkarte (G1)
+- [x] Diagnose in `audit/wetterkarte.md` abgeschlossen (vor jeder Code-Änderung)
+- [x] Alle Layer auf Mobile schaltbar — 12/12 per Skript verifiziert, `audit/wetterkarte.md` §5 Punkt 6
+- [x] Model-Switcher DE/AT/CH voll funktionsfähig — unverändert funktional, Touch-Targets vergrößert
+- [x] Fusion⇄Native-Toggle voll funktionsfähig (inkl. Fallback-Verhalten) — nicht angefasst, `ms-offline`-Fallback intakt
+- [x] Legenden erreichbar und lesbar — unverändert (conditional `.map-legends`, kein Eingriff)
+- [x] Windpartikel: konservativer Quality-Tier auf Mobile aktiv, keine Shader-Änderung — WindLayer/Shader nicht berührt
+- [x] Gesten: Karte vs. Sheet/Controls konfliktfrei — Sheet jetzt mit half/full-Snap, Karte im half-Zustand interaktiv (Scrim `pointer-events:none`)
+- [x] Touch-Targets ≥ 44 px (Audit-Liste) — 23→4 begründete Ausnahmen (Footer-Attribution), `audit/wetterkarte.md` §3.1/§5
+- [x] Selbstverifikations-Fragen 1–5 (CLAUDE.md) schriftlich mit Beleg beantwortet — `audit/wetterkarte.md` §6
+- [x] Desktop-Screenshot-Diff: unverändert — `verify-desktop-after.png` vs. Baseline
+- [x] Vorher/Nachher-Screenshots abgelegt — `audit/screenshots/wetterkarte/`
+- [x] Zusatzfund behoben: Landscape 844×390 Overlap-Bug (nicht in ursprünglicher Checkliste, aus V-ALL Schritt 9 aufgedeckt), `audit/wetterkarte.md` §3.3/§4.3
+- [x] Follow-up (2026-07-08, nach G1): Getrennte Layer-/Modell-FABs statt kombiniertem FAB + Karte fest auf obere 2/3 des Viewports begrenzt (Control-Dock im unteren Drittel) — `audit/wetterkarte.md` §8, Desktop/Landscape-Regression erneut geprüft (grün)
 
-## P2 — Vertikalprofil
-- [x] `profile-derivations.ts` rein + Selbsttest 11/11 (stabil/Thermik/Deckel/blau/Wind)
-- [x] SVG-Profil (Meter, linear, 0–4000 m Cap + „ganze Höhe"): T/Td/Parcel,
-      Grenzschicht-/Thermikbalken, Wolken-/Inversionsbänder, Nullgradgrenze,
-      Höhenwind, Terrain-Bodenbox
-- [x] Quelle ICON-EU-Sounding (bestehende Pipeline) + soundingMath; DEM-Anker
-- [x] An `activeHour` + Marker gekoppelt; debounced Refetch; Lade-/Fehler-States
-- [x] Scrubber-Zeit am Modelllauf verankert (valid = Lauf + Vorlaufstunde) →
-      Uhrzeit == Daten-Gültigzeit; Modelllauf im Header
-- [x] Verifikation grün: typecheck+build; Live-ICON-EU-Render (Innsbruck),
-      Scrub→Refetch aktualisiert Gültigzeit, 11/11 Derivation-Tests
+## Phase 2 — Regenradar (G2)
+- [ ] Diagnose in `audit/regenradar.md` abgeschlossen
+- [ ] Scrubber daumentauglich (≥ 44 px, volle Breite)
+- [ ] Alle Zeitschritte erreichbar, Play/Pause funktioniert
+- [ ] Scrubbing ohne Stottern (Performance-Trace als Beleg)
+- [ ] Touch-Targets ≥ 44 px
+- [ ] Selbstverifikation 1–5 beantwortet
+- [ ] Desktop-Diff unverändert, Screenshots abgelegt
 
-## P3 — Verdict + LLM-„Warum?"
-- [x] `verdict.ts` rein + Selbsttest 10/10 (Fliegen gut/windig/flach, Berg
-      Inversion/klar/Wolke, Himmel trüb, Grounding-Block, Template-Fallback)
-- [x] Verdict-UI (Status-Punkt sage/amber/terracotta) pro Linse; geteiltes
-      store.profile → Linsenwechsel rechnet ohne Refetch neu
-- [x] „Warum?" über BESTEHENDEN Assistant-Pfad (useWeatherDescriber/describe,
-      neues phenomenon 'atmosphere' + Physik-Anker) + Offline-Template-Fallback
-- [x] Verifikation grün: typecheck+build; Live-Render (Fliegen→„Kaum Thermik"
-      terracotta, Berg→„Klare Bergsicht" sage), Linsenwechsel ohne Refetch, 10/10
-      Tests. Hinweis: Live-LLM + In-UI-Fallback nicht ausführbar — Headless meldet
-      WebGPU (Adapter+shader-f16), „Warum?" würde 2,6-GB-Download starten (bewusst
-      nicht geklickt); Pfad ist der erprobte AssistantPage-Pfad, Fallback rein/getestet.
+## Phase 3 — Vorhersage (G3)
+- [ ] Diagnose in `audit/vorhersage.md` abgeschlossen
+- [ ] Alle Parameter/Panels ohne horizontales Seiten-Scrollen erreichbar
+- [ ] Modellvergleich vollständig nutzbar
+- [ ] Konfidenz-Anzeigen erhalten und lesbar
+- [ ] Chart-Details per Tap (keine Hover-Only-Infos)
+- [ ] Selbstverifikation 1–5 beantwortet
+- [ ] Desktop-Diff unverändert, Screenshots abgelegt
 
-## P4 — Thermik-Terrain-Overlay (Fliegen)
-- [x] `thermalField.ts` rein + Selbsttest 7/7 (Thermik>0 durchmischt, tief≥hoch,
-      stabil schwach, Farbe/Transparenz, Bild-Spiegelung)
-- [x] MapLibre-Karte (Terrarium raster-dem + setTerrain) NUR Fliegen-Linse;
-      Thermik-Overlay als Raster-ImageSource aus EINEM ICON-EU-Profil + Flächen-DEM
-      (sage→amber→terracotta, schwach=transparent); sauberes Unmount beim Linsenwechsel
-- [x] Terrain-Tap → setMarker (Muster wie TerrainMap) → Profil/Verdict neu
-- [x] Verifikation grün: typecheck+build; 7/7 Tests; Live Innsbruck — Overlay
-      transparent (stabiler Abend) → farbig (labiler Nachmittag, „Gute Thermik
-      2584 m"), Scrub aktualisiert Overlay, Unmount sauber, keine Konsolen-Errors
-- [~] Perf: Overlay = 160×120 CPU-Raster (trivial), eine Karteninstanz, kein
-      Custom-GL-Layer; keine formale gedrosselte Frame-Trace gefahren (Headless),
-      kein Jank/Errors beobachtet → in architecture.md vermerkt
+## Phase 4 — Tourenplanung (G4)
+- [ ] Diagnose in `audit/tourenplanung.md` abgeschlossen
+- [ ] GPX-Upload in Emulation funktionsfähig; Real-iOS-Check als TODO an Jan notiert
+- [ ] Karte + Tour-Details gleichzeitig nutzbar (Sheet-Pattern)
+- [ ] Abfahrtszeit-Optimierer voll bedienbar
+- [ ] Wegpunkt-/Segmentinfos vollständig erreichbar
+- [ ] Selbstverifikation 1–5 beantwortet
+- [ ] Desktop-Diff unverändert, Screenshots abgelegt
 
-## P5 — Himmel-Cards
-- [x] `skyCards.ts` rein + Selbsttest 8/8 (Sonnenuntergang poor/good/fair,
-      Nebelmeer good/fair/none, Optik good/none)
-- [x] Sonnenuntergang/Nebelmeer/Optik aus ICON-EU-Wolkenstruktur + deutsche,
-      probabilistische Texte; Cards degradieren einzeln (none-Zustand)
-- [G] Saharastaub-Card AUSGEBLENDET — keine Aerosol-/Staub-Pipeline im Repo
-      (Entscheidungs-Gate); ehrlicher Hinweis in der UI (DUST_NOTE)
-- [x] Sonnenuntergang + Nebelmeer speisen das Himmel-Verdict (skyVerdict nutzt
-      sunsetCard/fogSeaCard)
-- [x] Verifikation grün: typecheck+build; 8/8 Tests; Live Innsbruck/Himmel —
-      3 Cards + Staub-Hinweis, Verdict aus Sonnenuntergang-Signal, keine Errors
+## Phase 5 — Event-Planung (G5)
+- [ ] Diagnose in `audit/event.md` abgeschlossen
+- [ ] Formulare ohne iOS-Auto-Zoom (font-size ≥ 16 px) und mit passenden inputmodes
+- [ ] Kompletter Flow Eingabe → Best-Day-Ergebnis durchführbar
+- [ ] Ergebnisdarstellung vollständig (kein Informationsverlust ggü. Desktop)
+- [ ] Selbstverifikation 1–5 beantwortet
+- [ ] Desktop-Diff unverändert, Screenshots abgelegt
 
-## P6 — Föhn
-- [x] 6a Föhn-Index (`foehn.ts`, rein, Selbsttest 5/5) + `FoehnPanel` (Berg-&-Weg)
-- [G] 6a Cross-Barrier-Druckdifferenz AUSGELASSEN — kein Stationsdruck-Ingest
-      (Gate); Hinweis PRESSURE_GATE_NOTE; Index aus ICON-EU-Höhenwind + Trockenheit
-- [x] 6a Verifikation grün: typecheck+build; 5/5 Tests; Live „Kein Föhn" + Hinweis
-- [x] 6b 2D-Isentropen-Querschnitt (statt 3D-WebGL-Curtain, per Freigabe):
-      `isentropes.ts` rein + Selbsttest 6/6 (θ↑ mit Höhe, flach≈horizontal,
-      Föhn-Absinken im Lee, Bereichs-Clamping). `FoehnCrossSection` legt N–S-Schnitt
-      via bestehendem prepareCrossSection, zeichnet θ-Isentropen als SVG, folgt dem
-      Scrubber (Zeit-Slice ohne Refetch). Ehrlich: θ aus heuristischem Schnitt.
-- [x] 6b Verifikation grün: typecheck+build; 6/6 Tests; Live Innsbruck/Berg —
-      Isentropen (312–324 K) + Gelände, keine Errors. (3D-WebGL-Curtain bewusst
-      nicht gebaut — Duplikat von threed/CurtainLayer; 2D ist das Paket-Fallback.)
+## Phase 6 — Historie (G6)
+- [ ] Diagnose in `audit/historie.md` abgeschlossen
+- [ ] Alle Zeiträume/Vergleiche erreichbar
+- [ ] Charts lesbar, Datenpunkte per Tap explorierbar
+- [ ] Kein Gestenkonflikt Chart vs. Seiten-Scroll
+- [ ] Selbstverifikation 1–5 beantwortet
+- [ ] Desktop-Diff unverändert, Screenshots abgelegt
 
-## Konsolidierung Stufe 1 — Schnitt-Linse (threed-Wiederverwendung)
-- [x] 4. Linse „Schnitt" (`atmosphereState` LENSES) + Store (cutPoints/sectionLayers/
-      sectionMode, Reset bei Ortswechsel)
-- [x] `SectionLens.tsx` komponiert `ThreeDMap`/`SectionView`/`TerrainView` +
-      `prepareCrossSection` (abbrechbar, Lade-/Fehler-State); globaler Scrubber auf
-      der Schnitt-Linse ausgeblendet; `threed.css` importiert
-- [x] Verifikation grün: typecheck+build; Live Innsbruck — Linie zeichnen → 2D-Schnitt
-      (Layer-Chips/GoNoGo/Pick) + 3D-Gelände-Vorhang; sauberes Unmount beim Linsenwechsel,
-      keine Konsolen-Errors
-- [x] Cut-line im `#atm=`-Permalink (Codec erweitert, 16/16 Selbsttest inkl. round-trip)
+## Phase 7 — Atmosphäre (G7)
+- [ ] Diagnose in `audit/atmosphaere.md` abgeschlossen
+- [ ] Alle 3 Linsen × alle 3 Disclosure-Tiefen per Touch erreichbar
+- [ ] Inhaltsumfang je Tiefe unverändert (Abgleich gegen Desktop)
+- [ ] Linsen-Wechsel ohne Layout-Sprünge
+- [ ] Selbstverifikation 1–5 beantwortet
+- [ ] Desktop-Diff unverändert, Screenshots abgelegt
 
-## Konsolidierung Stufe 2 — threed-Einstieg abgelöst
-- [x] Startseiten-Kachel „Atmosphäre in drei Dimensionen" + `ThreeDPreview` entfernt
-- [x] `App.tsx`: FeatureId `'threed'` + Route entfernt; `#3d=` leitet auf die
-      Atmosphäre um (Migration in `atmosphereStore`: `#3d=` → Ort + Schnittlinie +
-      Schnitt-Linse, URL wird zu `#atm=` aktualisiert)
-- [x] threed-Komponenten bleiben als geteilte Module (von SectionLens genutzt);
-      `ThreeDPage` bleibt nur noch als `LayerState`-Typquelle referenziert
-- [x] Verifikation grün: typecheck+build; Startseite ohne threed-Kachel; alter
-      `#3d=`-Link (mit Linie) → Schnitt-Linse mit „2 Punkte", URL → `#atm=`,
-      keine Konsolen-Errors
+## Phase 8 — 3D Globus (G8)
+- [ ] Diagnose in `audit/globus.md` abgeschlossen
+- [ ] Touch-Orbit/Zoom funktioniert, kein Konflikt mit Seiten-Scroll
+- [ ] Mobile-Quality-Default über AdaptiveQualityController (keine Shader-Änderung)
+- [ ] Pixel-Ratio-Handling auf DPR 3 geprüft
+- [ ] Kein neuer Konsolen-Error, kein WebGL-Context-Loss im Test
+- [ ] Real-Device-Stichprobe als expliziter TODO für Jan notiert
+- [ ] Selbstverifikation 1–5 beantwortet
+- [ ] Desktop-Diff unverändert, Screenshots abgelegt
 
-## P7 — Nerd-Mode + Feinschliff
-- [x] Nerd-Panel **lazy** (`React.lazy` → eigener Chunk `NerdPanel-*.js` ~2,6 kB,
-      nicht im Standard-Bundle): Skew-T/Log-P (reused `threed/SkewTChart`), CAPE/CIN/
-      LCL/LFC/EL/LI, Deckelinversions-Stärke (dünn <200 m markiert), rohe ICON-EU-
-      Level-Tabelle (hPa/m/T/Td/Wind), Lauf-Alter
-- [x] Feinschliff: Lauf-Alter im Header („vor X h"); Empty/Error/Loading deutsch in
-      allen Loadern; Unsicherheit/Lauf-Alter überall (Profil/Verdict/Sky/Föhn/Nerd);
-      A11y (role=tablist, slider aria-valuetext, aria-expanded, SVG aria-label)
-- [x] Verifikation grün: typecheck+build (Lazy-Chunk bestätigt); Live Desktop +
-      Mobile (390) — Skew-T + Indizes + Roh-Tabelle + Lauf-Alter, keine Errors
-- [x] tests.md aktuell; checklist abgehakt; plan.md erledigt; Abschluss im Chat
+## Phase 9 — Gesamtregression (G9)
+- [ ] Kurzprotokoll V-ALL für alle 8 Features grün
+- [ ] Desktop-Diff aller 8 Seiten gegen Phase-0-Baseline: keine Abweichung
+- [ ] Konsolen-Abgleich: keine neuen Errors/Warnings ggü. Baseline
+- [ ] Stichprobe 360×800 und 430×932: Layout stabil
+- [ ] Abschlussbericht im Session-Log (context.md) geschrieben
+- [ ] Liste empfohlener Real-Device-Tests (iPhone Safari) an Jan übergeben

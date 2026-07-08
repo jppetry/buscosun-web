@@ -300,7 +300,7 @@
   font-weight: 600;
   color: var(--sage-600, #5e7a4f);
 }
-@media (max-width: 767px) { .layer-info { display: none; } }
+@media (max-width: 767px), (max-height: 430px) and (orientation: landscape) { .layer-info { display: none; } }
 
 /* ============ SAT PRODUCT SWITCH · im .left-rails-Stack unter dem Layer-Rail ============ */
 .sat-product-switch {
@@ -1409,7 +1409,11 @@
   .pfc-body { width: 100%; border-radius: 14px 0 14px 14px; max-height: 55vh; }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-height: 430px) and (orientation: landscape) {
+  /* Zusätzlich zur Breiten-Schwelle: kurze Querformat-Viewports (z. B. iPhone
+     12 Pro landscape 844×390) bekommen dieselbe kompakte Darstellung — sonst
+     greift hier die Desktop-Rail-Stapelung trotz nur ~390px Bauhöhe
+     (Overlap-Bug, audit/wetterkarte.md §3.3). */
   /* Topbar kompakter: nur 36-px Icon-Back + Location-Pill */
   .map-topbar { top: 0.55rem; left: 0.55rem; right: 0.55rem; gap: 0.4rem; }
   .back-btn { padding: 0; width: 44px; height: 44px; justify-content: center; font-size: 0; }
@@ -1622,36 +1626,79 @@
 }
 
 /* ============================================================================
-   MOBILE (<768px) — Karte vollflächig; Rail/Wind/Legenden/Badge → „Layer &
-   Daten"-Bottom-Sheet. Dock = Layer-FAB (links) + PFC-FAB (rechts) über dem
-   immer sichtbaren Zeit-Slider. Desktop/Tablet: Dock/Sheet ausgeblendet.
+   MOBILE (<768px) — Karte auf die oberen 2/3 begrenzt; Rail/Wind/Legenden/
+   Badge → „Layer"- und „Modell"-Bottom-Sheets (zwei getrennte FABs, Follow-up
+   nach Gate G1, audit/wetterkarte.md §8). Dock = Layer-FAB + Modell-FAB
+   (links) + PFC-FAB (rechts) über dem immer sichtbaren Zeit-Slider, auf einem
+   blickdichten Dock-Hintergrund im unteren Drittel statt schwebend über der
+   Karte. Desktop/Tablet: Dock/Sheet/Dock-Hintergrund ausgeblendet.
    ============================================================================ */
-.map-layer-fab, .map-sheet, .map-sheet-scrim { display: none; }
+.mobile-dock-fabs, .map-layer-fab, .map-model-fab, .map-sheet, .map-sheet-scrim, .mobile-dock-bg { display: none; }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-height: 430px) and (orientation: landscape) {
   /* In das Sheet umgeschichtet → von der Karte nehmen (kein Verlust). */
   .left-rails, .map-legends, .wind-particle-switch, .sat-product-switch { display: none !important; }
   /* Zoom-Control aus (Pinch/Doppeltipp); macht oben rechts Platz für die Topbar. */
   .maplibregl-ctrl-top-right { display: none; }
 
-  /* Layer-FAB links unten, PFC-FAB rechts unten, Slider voll darüber-/darunter. */
-  .map-layer-fab {
-    display: inline-flex; align-items: center; gap: 0.4rem;
+  /* Karte auf die oberen 2/3 des Viewports begrenzt (Follow-up nach Gate G1,
+     audit/wetterkarte.md §8) — das untere Drittel gehört dem Control-Dock.
+     Der bestehende ResizeObserver auf containerRef (siehe MapView.tsx) ruft
+     map.resize() bei dieser Höhenänderung automatisch auf. */
+  .map-container { height: 66.6667vh; bottom: auto; }
+
+  /* Blickdichter Dock-Hintergrund im unteren Drittel, damit die Buttons nicht
+     länger transparent über der Karte schweben, sondern klar sichtbar auf
+     festem Grund liegen. */
+  .mobile-dock-bg {
+    display: block; position: absolute; left: 0; right: 0; top: 66.6667vh; bottom: 0;
+    z-index: 2; background: var(--cream-50); border-top: 1px solid var(--border-default);
+  }
+
+  /* Layer-/Modell-FABs nebeneinander (links), PFC-FAB rechts unten, Slider
+     voll darüber-/darunter. Reihe bleibt linksbündig statt full-width, damit
+     auf 390px kein Überlapp mit dem rechten PFC-FAB entsteht. */
+  .mobile-dock-fabs {
+    display: flex; align-items: center; gap: 0.5rem;
     position: absolute; left: 0.6rem; bottom: 3.5rem; z-index: 12;
+  }
+  .map-layer-fab, .map-model-fab {
+    display: inline-flex; align-items: center; gap: 0.4rem;
     height: 44px; padding: 0 0.95rem; border-radius: 999px;
     background: var(--ink-900); color: var(--cream-50); border: none;
     font: inherit; font-size: 0.82rem; font-weight: 600; cursor: pointer;
     box-shadow: var(--shadow-float);
   }
   .map-layer-fab svg { flex: none; }
+  .map-model-fab span[aria-hidden] { font-size: 1rem; line-height: 1; }
   .pfc-panel { bottom: 3.5rem; right: 0.6rem; left: auto; }
   .forecast-slider { bottom: 0.6rem; left: 0.6rem; right: 0.6rem; width: auto; transform: none; }
+  /* Trefferfläche des Zeit-Reglers auf ≥44px anheben (Touch-Target-Audit,
+     audit/wetterkarte.md §3.1) — sichtbare Spur bleibt dünn. */
+  .forecast-slider input[type="range"] {
+    height: 44px;
+    background: none;
+  }
+  .forecast-slider input[type="range"]::-webkit-slider-runnable-track {
+    height: 6px;
+    background: var(--sand-100);
+    border-radius: 3px;
+  }
+  .forecast-slider input[type="range"]::-moz-range-track {
+    height: 6px;
+    background: var(--sand-100);
+    border-radius: 3px;
+  }
 
-  /* Bottom-Sheet */
+  /* Bottom-Sheet — zwei Snap-Zustände (audit/wetterkarte.md §4.2): half lässt
+     die Karte dahinter sichtbar/bedienbar (Scrim inert), full verhält sich wie
+     ein klassisches Modal. */
   .map-sheet-scrim {
     display: block; position: fixed; inset: 0; z-index: 40;
     background: rgba(20, 18, 12, 0.28); animation: map-scrim-in 0.18s ease-out;
+    transition: background 0.22s ease-out;
   }
+  .map-sheet-scrim-half { background: transparent; pointer-events: none; }
   .map-sheet {
     display: flex; flex-direction: column;
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 41; max-height: 86vh;
@@ -1660,14 +1707,20 @@
     border: 1px solid var(--border-default); border-bottom: none;
     border-radius: 20px 20px 0 0; box-shadow: 0 -10px 40px rgba(20, 18, 12, 0.22);
     animation: map-sheet-in 0.22s ease-out;
+    transition: max-height 0.22s cubic-bezier(0.4, 0, 0.2, 1);
   }
+  .map-sheet-half { max-height: 45vh; }
   @keyframes map-scrim-in { from { opacity: 0; } to { opacity: 1; } }
   @keyframes map-sheet-in { from { transform: translateY(18px); opacity: 0; } to { transform: none; opacity: 1; } }
   .map-sheet-grab { flex: none; width: 38px; height: 4px; border-radius: 2px; background: var(--sand-300); margin: 0.5rem auto 0.15rem; }
-  .map-sheet-head { flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0.3rem 1rem 0.5rem; }
+  /* Drag-Fläche für den Snap-Wechsel half/full: der ganze Kopfbereich (Grab-Leiste
+     + Titel), nicht nur der 4px-Strich — sonst kein ≥44px-Trefferziel. Der
+     Close-Button bleibt unabhängig klickbar (eigener onClick, unbeeinflusst
+     von einem 0px-Drag). */
+  .map-sheet-head { flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0.3rem 1rem 0.5rem; cursor: grab; touch-action: none; }
   .map-sheet-head .eyebrow { color: var(--stone-500); }
   .map-sheet-close {
-    width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center;
+    width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center;
     border: 1px solid var(--border-default); background: var(--cream-50); border-radius: 50%;
     color: var(--stone-600); cursor: pointer;
   }
@@ -1708,6 +1761,14 @@
   .map-sheet .model-layer-switch .mls-clear:disabled { opacity: 0.35; cursor: default; }
 
   .map-sheet-list { overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 0 0.6rem; }
+  /* Modell-Sheet-Body: eigener Scroll-Container (Land-Zeile + ModelSwitcher +
+     Quellen-Footer), analog zu .map-sheet-list. */
+  .map-sheet-modelbody { overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 0 0.85rem calc(0.7rem + env(safe-area-inset-bottom, 0px)); }
+  /* .map-sheet-model/.map-sheet-sources bringen sonst eigene Seitenränder/
+     -Padding mit (Kontext: direktes Kind von .map-sheet ohne Padding) — im
+     Modell-Sheet-Body mit eigenem Padding würde das den Einzug verdoppeln. */
+  .map-sheet-modelbody .map-sheet-model { margin-left: 0; margin-right: 0; }
+  .map-sheet-modelbody .map-sheet-sources { margin: 0.6rem 0 0; padding: 0.5rem 0 0; }
   .map-sheet-row { border-bottom: 1px solid var(--sand-100); }
   .map-sheet-row:last-child { border-bottom: none; }
   .map-sheet-rowmain { display: flex; align-items: center; gap: 0.55rem; padding: 0.28rem 0.2rem; }
@@ -1727,7 +1788,7 @@
   .map-sheet-name { font-size: 0.95rem; font-weight: 500; color: var(--ink-900); }
   .map-sheet-stamp { font-size: 0.64rem; letter-spacing: 0.04em; text-transform: uppercase; color: var(--stone-400); font-weight: 500; }
   .map-sheet-chev {
-    flex: none; width: 40px; height: 44px; display: inline-flex; align-items: center; justify-content: center;
+    flex: none; width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center;
     background: none; border: none; color: var(--stone-400); cursor: pointer; transition: transform 0.15s;
   }
   .map-sheet-chev.is-open { transform: rotate(180deg); }
@@ -1883,8 +1944,11 @@
 }
 
 /* Mobile-Sheet: etwas größere Tap-Ziele + Schrift. */
-.model-switcher.ms-sheet .ms-countries button { font-size: 0.85rem; padding: 0.45rem; }
+.model-switcher.ms-sheet .ms-countries button { font-size: 0.85rem; padding: 0.45rem; min-height: 44px; }
 .model-switcher.ms-sheet .ms-status { font-size: 0.75rem; }
 .model-switcher.ms-sheet .mc-name { font-size: 0.9rem; }
 .model-switcher.ms-sheet .mc-good { font-size: 0.75rem; }
+/* Touch-Targets ≥44px (Phase 1, Wetterkarte-Audit) — nur im Sheet, Rail/Desktop unverändert. */
+.model-switcher.ms-sheet .ms-disclosure { min-height: 44px; }
+.model-switcher.ms-sheet .ms-radar-toggle { min-height: 44px; }
 .model-switcher.ms-sheet .ms-radar-title { font-size: 0.82rem; }

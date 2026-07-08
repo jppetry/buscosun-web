@@ -1,57 +1,56 @@
-# CLAUDE.md
+# CLAUDE.md — Session: Mobile-Optimierung buscosun.com
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+## Mission
+Alle acht Kern-Features der buscosun-Plattform werden **einzeln, nacheinander** analysiert und für den mobilen Gebrauch optimiert. Referenzgerät: **iPhone 12 Pro (390×844 CSS-px, DPR 3)**.
 
-buscosun is a tracker-free weather web app focused on **DACH** (Germany · Austria · Switzerland):
-elevation-corrected forecasts blended from official sources, plus tour planning, event-day
-planning, nowcast, 3D atmosphere, and a global wind globe. React 19 + Vite 6 + TypeScript,
-rendered with MapLibre GL 5.6 (no Three.js). No backend — everything runs client-side.
+**Oberste Direktive: Funktionserhalt.** Jede Funktion, die aktuell auf Desktop existiert, bleibt vollständig erhalten. Es wird ausschließlich die Darstellung, Bedienung und Performance für Mobile optimiert. Kein Feature-Cut, kein "auf Mobile blenden wir das aus" ohne explizite Freigabe durch Jan.
 
-## Commands
-- `npm run dev` — Vite dev server (http://localhost:5173). Upstream proxies live here (see below); `window.__bsQA()` exists only in the dev build.
-- `npm run typecheck` — `tsc -b --noEmit`. First static gate.
-- `npm run build` — `tsc -b && vite build && node scripts/generate-seo.mjs`. Second gate; also emits the SEO pages into `dist/`.
-- `npm run qa:layers` — headless layer-QA runner (`scripts/qa-layers.mjs`): drives the running dev server with Playwright, calls `window.__bsQA()`, exits non-zero on a decode/valid-time/unit regression. Requires `npm i -D playwright && npx playwright install chromium` and a running `npm run dev`.
-- `npm run verify:seo` / `npm run seo:logs` — validate generated SEO output / parse crawler logs.
+## Feature-Reihenfolge (fix, nicht umsortieren)
+1. Wetterkarte
+2. Regenradar
+3. Vorhersage
+4. Tourenplanung
+5. Event-Planung
+6. Historie
+7. Atmosphäre
+8. 3D Globus
 
-There is **no lint script** and **no unit-test runner**. "Tests" are runtime verification harnesses: `qa:layers`, `src/route/verifySamples.ts`, and `scripts/verify-aec.mjs`. The static gate for any change is `npm run typecheck` + `npm run build`.
+Begründung der Reihenfolge: Wetterkarte zuerst, weil dort die geteilten Layout-Primitives (BottomSheet, MobileToolbar, Safe-Area-Handling) entstehen, die alle anderen Features wiederverwenden. 3D Globus zuletzt, weil GPU-lastig und mit dem höchsten Regressionsrisiko.
 
-## Conventions
-- Implementation code + comments in **English**; all user-facing text in **German**.
-- Adopt the v1.8 design system: CSS variables from `src/designTokens.css` (sand/cream/stone/terracotta palette) and the shared `.rt-*` page shell from `src/route/tourTheme.css`. **No new color system, no hardcoded hex values.**
-- Meteorology lives in pure, tested modules; deterministic math only (the former browser-LLM assistant was removed — verdicts/explanations are computed, never generated). Meters + km/h + linear scales for vertical data.
-- Only use the **existing data pipelines** (ICON-D2/EU, GeoSphere AROME/INCA, MeteoSwiss, BrightSky, GFS, Terrarium DEM). Do not add a new external source, fetch/ingest path, or third-party adapter. If a datum is missing, reduce/hide the feature rather than build a pipeline for it.
-  - **Exception — Per-Land-Modell-Switcher (freigegeben 2026-07):** Der Betreiber hat die geschlossene Modell-Whitelist in `docs/model-switcher-gate0.md` (§1b) ausdrücklich vorab freigegeben. Für **genau diese** Modelle (kommerziell frei/unlimitiert: ICON-D2-EPS, ICON-CH1/CH2-EPS, AROME-France, ICON-EU-Raster, GFS-2D, ECMWF IFS/AIFS, ECCC GEM, UKMO, ARPEGE, DWD AICON, NOAA-KI-Modelle) dürfen neue Adapter angelegt werden — **einzeln, je Quelle gegated** (Ingestion → Adapter → Verifikation → Commit → Gate). Diese Ausnahme gilt **nur** für die Whitelist; keine Quelle außerhalb davon.
+## Arbeitsmodus: Diagnose-First
+Pro Feature gilt zwingend diese Sequenz — keine Ausnahme:
 
-## Architecture
+1. **DIAGNOSE** — Feature im iPhone-12-Pro-Viewport laden (Chrome DevTools MCP), Screenshots, Konsole, Touch-Target-Audit, Performance-Trace. Befund schriftlich in `audit/<feature>.md` festhalten. **Kein Code vor abgeschlossener Diagnose.**
+2. **PLAN** — Konkrete Maßnahmenliste aus der Diagnose ableiten, gegen `mobile-design-guidelines.md` prüfen, in `plan.md` unter der Phase eintragen.
+3. **IMPLEMENT** — Umsetzung in kleinen Commits (Conventional Commits, Scope = Feature-Name, z.B. `feat(wetterkarte): bottom sheet layer controls`).
+4. **VERIFY** — Verifikationsprotokoll aus `tests.md` vollständig durchlaufen. MCP-gestützt, nicht "sieht gut aus".
+5. **GATE** — Checkliste in `checklist.md` abhaken. Erst wenn ALLE Punkte grün sind, beginnt das nächste Feature.
 
-**App shell** (`src/App.tsx`, `src/main.tsx`) — hash-routed SPA. Only `SearchPage` loads eagerly; every feature page is `lazy()`-imported as its own chunk (MapLibre and the WebGL globe are heavy, so they must stay out of the initial bundle). Permalink hashes deep-link into a view: `#3d=`/`#atm=` → atmosphere, `#h=` → history, `#val` → validation, `#g=` → globe, event hashes → event, encoded map state → 2D map. Every page takes an `onBack` prop. `FeatureId` (in `App.tsx`) enumerates the routes.
+## Harte Regeln
+- **NIEMALS** zwei Features parallel anfassen. Ein Feature = eine Phase = ein Gate.
+- **NIEMALS** Desktop-Layout verändern, außer die Änderung ist per Media Query / Breakpoint sauber isoliert. Desktop-Regression = Phase gilt als fehlgeschlagen.
+- **NIEMALS** bestehende Funktionen entfernen, verstecken oder "vereinfachen". Umgruppieren (z.B. in Bottom Sheet, Tabs, Akkordeon) ist erlaubt; Weglassen nicht.
+- **STOPP & FRAGEN** bei: Änderungen an Shadern/WebGL-Pipeline, Änderungen an der Fusion-Engine, Löschen von Komponenten, Abhängigkeits-Upgrades, allem was irreversibel wirkt.
+- Bekannte Mobile-GPU-Fallen respektieren: kein Verlass auf `EXT_color_buffer_float`, explizite `highp`-Deklarationen in Shadern, RGBA8-Packing-Pfad nicht anrühren. Der AdaptiveQualityController ist die zentrale Stellschraube für Mobile-Performance — nutzen, nicht umgehen.
+- Breakpoint-Konvention: Mobile-Styles gelten für `max-width: 767px` (bzw. bestehende Projekt-Breakpoints, falls definiert — zuerst prüfen). Keine neuen Ad-hoc-Breakpoints einführen.
+- Safe-Area beachten: `env(safe-area-inset-*)` für Notch und Home-Indicator (iPhone 12 Pro hat beides).
 
-**Data layer** — the core value of the app.
-- `src/sources/` — one adapter per upstream, each normalizing into the shared `ForecastGrid` type (`src/sources/openMeteoForecast.ts`). DWD is the licensing backbone (BrightSky MOSMIX/current stations + native GRIB2 grids decoded in-browser via `gribDecode.ts`/`decompress.ts`, RADOLAN radar). GeoSphere covers AT (AROME, INCA, TAWES stations); MeteoSwiss covers CH (SMN, radar). OpenMeteo is opt-in only. SMHI/DMI/IPMA adapters exist but are hard-disabled (outside DACH).
-- `src/fusion/` — `loadFusedForecast.ts` orchestrates: pick a `countryProfiles.ts` profile, fetch enabled sources in parallel (cached ~10 min), feed each into `FusionEngine` (`fusionEngine.ts`) with per-variable weights (live obs dominate hour 0). The engine builds IDW `SpatialKernel`s (`spatialInterp.ts`), interpolates onto a dense DACH grid, applies elevation/lapse-rate correction (`elevation.ts`, Terrarium DEM), and encodes per-hour PNG textures. `frameInterp.ts` lerps textures for sub-hour slider positions.
-- **Rendering layers** — `src/wind/WindLayer.ts` (GPU particle wind, MapLibre custom WebGL layer + `shaders.ts`), `src/scalar/` (`ScalarLayer`/`CloudLayer`/`RainLayer`/`ConfidenceLayer` heatmaps + `snowLine.ts`).
+## Verifikations-Setup
+- **Chrome DevTools MCP** ist das primäre Verifikationswerkzeug: Device-Emulation iPhone 12 Pro (390×844, DPR 3, Touch aktiviert, UA iOS Safari-nah), Screenshots, Console-Log-Prüfung, Performance-Traces, Netzwerk-Inspektion.
+- Emulation ist notwendig, aber nicht hinreichend: WebGL-Verhalten im Emulator ist NICHT repräsentativ (bekannt aus dem Wind-Partikel-Debugging). Für GPU-kritische Phasen (Wetterkarte, Regenradar, 3D Globus) zusätzlich Real-Device-Check via scrcpy/ADB einplanen und Jan informieren.
+- Jede Phase produziert Vorher/Nachher-Screenshots unter `audit/screenshots/<feature>/`.
 
-**2D map** — `src/MapView.tsx` (lazy, heavy). Orchestrates the WebGL layers, fused forecasts, and embeds the point-forecast panel. `LayerKey` = `'wind' | 'gust' | 'nowcast' | 'temp' | 'clouds' | 'sat' | 'lightning' | 'stations' | 'confidence' | 'snowline' | 'flownowcast' | 'poprob'`.
+## Dokumentation & Sprache
+- Alle Session-Dokumente auf Deutsch, Prompts an Claude Code auf Englisch.
+- Nach jeder Phase: `checklist.md` aktualisieren, kurzes Phasen-Fazit (3–5 Sätze) in `context.md` unter "Session-Log" anhängen.
+- Commits: Conventional Commits, englisch.
 
-**Feature pages** (each `src/<feature>/<Feature>Page.tsx`):
-- `route/` — tour weather: upload GPX/TCX/FIT/KML/KMZ → validate → parse → per-km weather at actual arrival time. Models: `speedModel.ts` + `movementModels.ts` (grade × movement type), `tourTiming.ts`/`breaks.ts`/`startTime.ts` (schedule/ETAs), `windEffect.ts`/`windSampling.ts` (head/tailwind), `ebikeBattery.ts` (SoC).
-- `pointForecast/` — shared forecast engine (consumed by MapView, event, astro, photo, nowcast; not directly routed). `clustering.ts`, `foehnDetector.ts`, `apparentTemperature.ts`, `precipType.ts`, `uvClearSky.ts`.
-- `nowcast/` — rain in the next 6h; `nowcastEngine.ts` fuses radar (0–2h) + ICON-D2 (2–6h) into a 15-min series.
-- `event/` — "which day fits best?"; `eventScoring.ts` ranks days with activity presets + Plan-B logic.
-- `atmosphere/` — 3D atmosphere (MapLibre custom WebGL layer, per-lens mount/unmount, mobile/tablet/WebGPU fallbacks). Lens switcher + progressive disclosure (Verdict / Profile / Skew-T). Vertical source is ICON-EU sounding (no native ICON-D2 pressure levels). Migrated from the older `src/threed/`.
-- `globe/` — full-screen nullschool-style earth: live-GFS wind particles + overlays at multiple pressure levels (`gfs.ts`/`gfsClient.ts`).
-- `confidence/` (the `forecast` route) — multi-model spread + honest uncertainty (`multiModel.ts`, `ensemble.ts`, `hitRateModel.ts`).
-- `history/` — ERA5 climate retrospective via Open-Meteo Archive (`historyModel.ts`).
-- `validation/` — live radar hindcast scoring the flow-ensemble against real RADOLAN (`ml/radarHindcast.ts`).
-- Support features (not routed): `astro/`, `photo/`, `notifications/` (pure IO-free trigger engine), `ml/` (MOS calibration, optical-flow nowcast, metrics), `radar/` (WebGL rain raster; used by nowcast/event, no standalone page).
+## Selbstverifikation vor Phasenabschluss
+Vor dem Gate stellt Claude Code sich selbst diese Fragen und beantwortet sie schriftlich:
+1. Funktioniert jede einzelne Funktion des Features, die vor der Phase existierte, nach der Phase noch? (Liste durchgehen, nicht pauschal bejahen.)
+2. Ist die Desktop-Ansicht pixelgleich unverändert? (Screenshot-Vergleich.)
+3. Sind alle Touch-Targets ≥ 44×44 px?
+4. Ist die Konsole frei von neuen Errors/Warnings?
+5. Läuft die Interaktion im Performance-Trace ohne Long Tasks > 200 ms?
 
-**CORS / proxy** — GeoSphere, MeteoSwiss, and S3 (Terrarium DEM, GFS) allow browser CORS. `opendata.dwd.de` **blocks it** — proxied in dev via `vite.config.ts` (`/_dwd_opendata`, `/_gfs`). Production needs an equivalent same-origin server-side proxy/mirror; there is no such backend in this repo yet.
-
-**Build notes** (`vite.config.ts`) — ESM workers (the bz2 decompress worker uses dynamic `import`), `bzip2-wasm` excluded from optimizeDeps (keep glue next to its `.wasm`), `maplibre-gl` split into its own shared chunk. `scripts/generate-seo.mjs` runs post-build, is pure Node ESM with no app import (can't break the app bundle), and writes programmatic geo/explainer pages + sitemap into `dist/`.
-
-## Working process (from the Atmosphäre phase; applies broadly)
-- Diagnose before writing; verify after writing. Verification suite: typecheck + build (+ QA harnesses where they exist) → Context7 for API consistency → Chrome DevTools for runtime/perf at 3 breakpoints → atomic commit.
-- Auto-advance on green verification. **Stop** only on a red check or one of three decision gates: (1) a new heavy dependency, (2) a data need outside existing pipelines, (3) an unresolvable conflict with the design system / architecture.
-- Layout: mobile / tablet portrait+landscape / desktop; split on desktop & tablet-landscape, otherwise stacked. Label probabilistic forecasts with model-run age; mark thin inversions (<200 m) as under-resolved.
-- For features carrying their own docs, keep the seven-file doc set current: CLAUDE.md, plan.md, checklist.md, prompt.md, context.md, architecture.md, tests.md.
+Nur wenn alle fünf mit "ja + Beleg" beantwortet sind: Gate passiert.

@@ -2341,10 +2341,35 @@ export default function MapView({ location, onBack, embedded = false, initialAct
 
 
   // Mobile (<768px): die linke Rail + Wind-/Legenden-/Badge-Overlays werden in
-  // ein gebündeltes „Layer & Daten"-Bottom-Sheet umgeschichtet (Informationserhalt
-  // + Touch-Targets ≥44px + Hover→Tap). Desktop/Tablet bleiben unberührt.
-  const [mobileLayers, setMobileLayers] = useState(false);
+  // zwei gebündelte Bottom-Sheets umgeschichtet — „Layer & Daten" und „Modell"
+  // (Informationserhalt + Touch-Targets ≥44px + Hover→Tap). Desktop/Tablet
+  // bleiben unberührt. Zwei getrennte FABs statt eines kombinierten (Follow-up
+  // nach Gate G1, audit/wetterkarte.md §8).
+  const [mobileSheet, setMobileSheet] = useState<'layer' | 'model' | null>(null);
   const [sheetExpanded, setSheetExpanded] = useState<LayerKey | null>(null);
+  // Snap-Zustand des mobilen Sheets: half = Karte bleibt sichtbar/bedienbar
+  // dahinter (mobile-design-guidelines.md §2), full = klassischer Modal-Scrim.
+  // Der dritte Referenz-Zustand "collapsed" wird durch den Layer-FAB abgedeckt
+  // (siehe audit/wetterkarte.md §4.2 für die Begründung dieser Abweichung).
+  const [sheetSnap, setSheetSnap] = useState<'half' | 'full'>('half');
+  const sheetDragRef = useRef<{ startY: number; startSnap: 'half' | 'full' } | null>(null);
+
+  const onSheetGrabPointerDown = (e: React.PointerEvent) => {
+    const startY = e.clientY;
+    sheetDragRef.current = { startY, startSnap: sheetSnap };
+    const onMove = (ev: PointerEvent) => {
+      const delta = startY - ev.clientY;
+      if (delta > 40) setSheetSnap('full');
+      else if (delta < -40) setSheetSnap('half');
+    };
+    const onUp = () => {
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      sheetDragRef.current = null;
+    };
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
+  };
 
   return (
     <div className={`map-view${embedded ? ' map-view-embedded' : ''}`}>
@@ -2597,54 +2622,77 @@ export default function MapView({ location, onBack, embedded = false, initialAct
         />
       )}
 
-      {/* ===== Mobile-Dock + „Layer & Daten"-Sheet (<768px; per CSS) ============
-          Bündelt die linke Rail, Wind-/Sat-Feinsteuerung, Legenden und die
-          Datenherkunft (Quelle/„Stand") in EIN Bottom-Sheet — Touch-tauglich,
-          Hover-Infos als Tap-Disclosure. Auf Desktop/Tablet ist das Dock/Sheet
-          per CSS ausgeblendet. */}
+      {/* ===== Mobile-Dock + Layer-/Modell-Sheets (<768px; per CSS) ============
+          Zwei getrennte, klar beschriftete FABs — „Layer" und „Modell" —
+          öffnen je ein eigenes Bottom-Sheet (Follow-up nach Gate G1,
+          audit/wetterkarte.md §8, statt des vorherigen kombinierten FABs).
+          Touch-tauglich, Hover-Infos als Tap-Disclosure. Auf Desktop/Tablet
+          ist das Dock/Sheet per CSS ausgeblendet. */}
       {!embedded && (
         <>
-          <button
-            type="button"
-            className="map-layer-fab"
-            onClick={() => setMobileLayers(true)}
-            aria-label="Layer und Daten öffnen"
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <polygon points="12,3 22,8.5 12,14 2,8.5" /><polyline points="2,13 12,18.5 22,13" /><polyline points="2,17.5 12,23 22,17.5" />
-            </svg>
-            <span>Layer</span>
-          </button>
+          <div className="mobile-dock-fabs">
+            <button
+              type="button"
+              className="map-layer-fab"
+              onClick={() => { setSheetSnap('half'); setMobileSheet('layer'); }}
+              aria-label="Layer öffnen"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <polygon points="12,3 22,8.5 12,14 2,8.5" /><polyline points="2,13 12,18.5 22,13" /><polyline points="2,17.5 12,23 22,17.5" />
+              </svg>
+              <span>Layer</span>
+            </button>
+            <button
+              type="button"
+              className="map-model-fab"
+              onClick={() => { setSheetSnap('half'); setMobileSheet('model'); }}
+              aria-label="Modell öffnen"
+            >
+              <span aria-hidden="true">{({ DE: '🇩🇪', AT: '🇦🇹', CH: '🇨🇭' } as const)[location.country]}</span>
+              <span>Modell</span>
+            </button>
+          </div>
 
-          {mobileLayers && (
+          {mobileSheet && (
             <>
-              <div className="map-sheet-scrim" onClick={() => setMobileLayers(false)} />
-              <aside className="map-sheet" role="dialog" aria-modal="true" aria-label="Layer und Daten">
+              <div
+                className={`map-sheet-scrim map-sheet-scrim-${sheetSnap}`}
+                onClick={sheetSnap === 'full' ? () => setMobileSheet(null) : undefined}
+              />
+              <aside className={`map-sheet map-sheet-${sheetSnap}`} role="dialog" aria-modal={sheetSnap === 'full'} aria-label={mobileSheet === 'layer' ? 'Layer und Daten' : 'Modell'}>
                 <div className="map-sheet-grab" aria-hidden="true" />
-                <header className="map-sheet-head">
-                  <span className="eyebrow">Layer &amp; Daten</span>
-                  <button type="button" className="map-sheet-close" onClick={() => setMobileLayers(false)} aria-label="Schließen">
+                <header className="map-sheet-head" onPointerDown={onSheetGrabPointerDown}>
+                  <span className="eyebrow">{mobileSheet === 'layer' ? 'Layer & Daten' : 'Modell'}</span>
+                  <button type="button" className="map-sheet-close" onClick={() => setMobileSheet(null)} aria-label="Schließen">
                     <svg width="16" height="16" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 3 L11 11 M11 3 L3 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
                   </button>
                 </header>
 
-                <div className="map-sheet-model is-static">
-                  <span className="map-sheet-model-label">Land</span>
-                  <strong className="map-sheet-model-val">
+                {mobileSheet === 'model' ? (
+                <div className="map-sheet-modelbody">
+                  <div className="map-sheet-model is-static">
+                    <span className="map-sheet-model-label">Land</span>
+                    <strong className="map-sheet-model-val">
+                      {({ DE: '🇩🇪', AT: '🇦🇹', CH: '🇨🇭' } as const)[location.country]}{' '}
+                      {COUNTRY_PROFILES[location.country].name}
+                    </strong>
+                  </div>
+
+                  <ModelSwitcher
+                    state={modelSource}
+                    variant="sheet"
+                    onSelectCountry={onSelectCountry}
+                    onSelectModel={onSelectModel}
+                    onToggleRadar={onToggleRadar}
+                    fusionError={fusionError}
+                  />
+
+                  <div className="map-sheet-sources">
                     {({ DE: '🇩🇪', AT: '🇦🇹', CH: '🇨🇭' } as const)[location.country]}{' '}
-                    {COUNTRY_PROFILES[location.country].name}
-                  </strong>
+                    {COUNTRY_PROFILES[location.country].name} · {COUNTRY_PROFILES[location.country].stackLabel}
+                  </div>
                 </div>
-
-                <ModelSwitcher
-                  state={modelSource}
-                  variant="sheet"
-                  onSelectCountry={onSelectCountry}
-                  onSelectModel={onSelectModel}
-                  onToggleRadar={onToggleRadar}
-                  fusionError={fusionError}
-                />
-
+                ) : (
                 <div className="map-sheet-list">
                   {LAYER_OPTIONS.map(opt => {
                     const on = active.has(opt.key);
@@ -2719,11 +2767,7 @@ export default function MapView({ location, onBack, embedded = false, initialAct
                     );
                   })}
                 </div>
-
-                <div className="map-sheet-sources">
-                  {({ DE: '🇩🇪', AT: '🇦🇹', CH: '🇨🇭' } as const)[location.country]}{' '}
-                  {COUNTRY_PROFILES[location.country].name} · {COUNTRY_PROFILES[location.country].stackLabel}
-                </div>
+                )}
               </aside>
             </>
           )}

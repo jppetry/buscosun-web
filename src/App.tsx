@@ -22,8 +22,11 @@ const GlobePage = lazy(() => import('./globe/GlobePage'));
 const AtmospherePage = lazy(() => import('./atmosphere/AtmospherePage'));
 const FeedbackPage = lazy(() => import('./feedback/FeedbackPage'));
 const ValidationPage = lazy(() => import('./validation/ValidationPage'));
+// Phase-0-Scaffold (Mobile-Optimierung): nur über #mobiletest erreichbar, keine UI-Verlinkung,
+// kein Einfluss auf Produktions-Layout. Wird entfernt, sobald Phase 1 die Primitives direkt nutzt.
+const MobilePrimitivesTestPage = lazy(() => import('./mobile/MobilePrimitivesTestPage'));
 
-export type FeatureId = 'route' | 'event' | 'dayflow' | 'forecast' | 'nowcast' | 'atmosphere' | 'history' | 'globe' | 'map2d' | 'feedback' | 'validation';
+export type FeatureId = 'route' | 'event' | 'dayflow' | 'forecast' | 'nowcast' | 'atmosphere' | 'history' | 'globe' | 'map2d' | 'feedback' | 'validation' | 'mobiletest';
 
 /** Standort-Default für die 2D-Karten-Kachel (ohne Ortssuche): DACH-Überblick,
  *  zentriert auf Mitteleuropa. Marker/Punktpanel sind im overview-Modus aus. */
@@ -80,6 +83,7 @@ export default function App() {
     if (h.startsWith('#h=')) return { kind: 'feature', feature: { id: 'history', eyebrow: 'Historie', title: 'Wie hat sich das Wetter bei dir verändert?' } };
     if (h.startsWith('#val')) return { kind: 'feature', feature: { id: 'validation', eyebrow: 'Validierung', title: 'Wie gut ist der KI-Nowcast wirklich?' } };
     if (h.startsWith('#g=')) return { kind: 'feature', feature: { id: 'globe', eyebrow: 'Globale Wetter-Visualisierung', title: 'Das Wetter der ganzen Erde' } };
+    if (h.startsWith('#mobiletest')) return { kind: 'feature', feature: { id: 'mobiletest', eyebrow: 'Mobile-Primitives', title: 'Testroute' } };
     if (hasEventHash(h)) return { kind: 'feature', feature: { id: 'event', eyebrow: 'Event-Planung', title: 'Welcher Tag passt am besten?' } };
     const m = decodeMapState(h);
     if (m) return { kind: 'map', location: m.location, mapInit: { layers: m.layers, hour: m.hour } };
@@ -113,6 +117,7 @@ export default function App() {
       f.id === 'globe' ? <GlobePage onBack={back} /> :
       f.id === 'feedback' ? <FeedbackPage onBack={back} /> :
       f.id === 'validation' ? <ValidationPage onBack={back} /> :
+      f.id === 'mobiletest' ? <MobilePrimitivesTestPage onBack={back} /> :
       <FeaturePage eyebrow={f.eyebrow} title={f.title} onBack={back} />;
   } else {
     content = (
