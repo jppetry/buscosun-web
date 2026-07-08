@@ -154,7 +154,15 @@ export class CloudLayer implements CustomLayerInterface {
 
     const prevBlend = gl.getParameter(gl.BLEND) as boolean;
     const prevDepth = gl.getParameter(gl.DEPTH_TEST) as boolean;
-    gl.disable(gl.DEPTH_TEST);
+    const prevDepthMask = gl.getParameter(gl.DEPTH_WRITEMASK) as boolean;
+    // MapLibre's Custom-Layer-Vertrag: Depth-Test bleibt AN (LEQUAL, per
+    // Default) — nur so respektiert dieser Layer opake Layer, die SPÄTER in
+    // der Stack-Reihenfolge gezeichnet werden (hier: die Länder-Maske). Ein
+    // `disable(DEPTH_TEST)` unterbindet den Depth-Write komplett (WebGL-Spec),
+    // wodurch die Maske später nichts mehr zu testen hat und der Layer über
+    // die Landesgrenzen hinaus durchscheint (User-Report).
+    gl.enable(gl.DEPTH_TEST);
+    gl.depthMask(false);
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
@@ -170,6 +178,7 @@ export class CloudLayer implements CustomLayerInterface {
     gl.drawArrays(gl.TRIANGLES, 0, 6);
 
     if (!prevBlend) gl.disable(gl.BLEND);
-    if (prevDepth) gl.enable(gl.DEPTH_TEST);
+    gl.depthMask(prevDepthMask);
+    if (!prevDepth) gl.disable(gl.DEPTH_TEST);
   }
 }

@@ -16,15 +16,7 @@
 
 import { fetchIconD2Grid } from './iconD2Precip';
 import { sampleRadarQuad } from '../pointForecast/quadSampler';
-
-/** Obergrenze der U8-Quantisierung (J/kg). DACH-Extremkonvektion liegt darunter. */
-const CAPE_MAX = 4000;
-
-function capeToU8(v: number): number {
-  if (!(v > 0)) return 0;
-  const u = Math.round((v / CAPE_MAX) * 255);
-  return u < 0 ? 0 : u > 255 ? 255 : u;
-}
+import { CAPE_MAX } from '../scalar/RainLayer';
 
 export interface CapeStep {
   /** Vorlaufstunde ab Modelllauf. */
@@ -42,7 +34,7 @@ export interface CapeStep {
 export async function fetchCapeSeriesAtPoint(
   lat: number, lon: number, maxStepHours = 24, signal?: AbortSignal,
 ): Promise<CapeStep[]> {
-  const grid = await fetchIconD2Grid('cape_ml', { accumulate: false, toU8: capeToU8, maxStep: maxStepHours }, signal);
+  const grid = await fetchIconD2Grid('cape_ml', { accumulate: false, kind: 'cape', maxStep: maxStepHours }, signal);
   return grid.frames.map((f) => ({
     stepHours: f.stepHours,
     validAtMs: f.validAt.getTime(),

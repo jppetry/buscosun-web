@@ -53,7 +53,12 @@ async function loadTile(z: number, x: number, y: number, signal?: AbortSignal): 
     // for tainted-canvas situations: S3 returns CORS headers on the fetch
     // path but cached <img> requests sometimes don't carry them, leaving the
     // canvas tainted and getImageData throwing SecurityError.
-    const res = await fetch(url, { signal, mode: 'cors' });
+    // priority: 'low' — die Basemap-Kacheln/Style/Glyphs (tiles.openfreemap.org)
+    // sollen bei knapper Bandbreite (Kaltstart, Mobilfunk) zuerst durchkommen;
+    // das DEM speist nur die Höhenkorrektur und wird erst gebraucht, sobald die
+    // Fusion tatsächlich rechnet — leicht verzögert ist unschädlich, eine
+    // langsame Basemap dahinter ist visuell sofort spürbar (User-Report).
+    const res = await fetch(url, { signal, mode: 'cors', priority: 'low' });
     if (!res.ok) return null;
     const blob = await res.blob();
     const bmp = await createImageBitmap(blob);
@@ -98,7 +103,24 @@ export async function loadElevationLookup(
       tilesNeeded.push([x, y]);
     }
   }
-  const loaded = await Promise.all(tilesNeeded.map(([x, y]) => loadTile(zoom, x, y, signal)));
+  // Begrenzte Nebenläufigkeit statt Promise.all über alle Kacheln auf einmal:
+  // bei DACH-weiten Bounds + z7 sind das ~70-90 Kacheln von s3.amazonaws.com,
+  // die sonst geballt gegen die Basemap-Kacheln/Glyphs (tiles.openfreemap.org)
+  // um Bandbreite/Verbindungen konkurrieren und so den gefühlt langsamen
+  // Kartenhintergrund beim Kaltstart verursachen (User-Report). 6 gleichzeitig
+  // (wie FETCH_CONCURRENCY in iconD2Precip.ts) lädt das DEM weiterhin zügig,
+  // ohne die Basemap auszubremsen.
+  const DEM_CONCURRENCY = 6;
+  const loaded = new Array<TilePixels | null>(tilesNeeded.length);
+  let nextTile = 0;
+  const runners = Array.from({ length: Math.min(DEM_CONCURRENCY, tilesNeeded.length) }, async () => {
+    while (nextTile < tilesNeeded.length) {
+      const i = nextTile++;
+      const [x, y] = tilesNeeded[i];
+      loaded[i] = await loadTile(zoom, x, y, signal);
+    }
+  });
+  await Promise.all(runners);
   const tiles = new Map<string, TilePixels>();
   for (const t of loaded) {
     if (t) tiles.set(`${t.z}/${t.x}/${t.y}`, t);

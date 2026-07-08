@@ -16,6 +16,8 @@
 
 import { resolveLatestRun, fetchStepBytes, gribCorners, decodeGrib2, type GribField } from '../sources/iconD2Precip';
 import { buildWindRgba } from './windFrameBuild';
+import { blendAndRefine, type FrameNorm } from './windBlendRefine';
+import type { DataTextureFormat, PackedTexture } from './glUtil';
 
 export const ICON_D2_WIND_ATTRIBUTION =
   'Wind: <a href="https://www.dwd.de/EN/ourservices/opendata/opendata.html" ' +
@@ -58,11 +60,14 @@ export interface IconD2Wind {
 function lngToEquiX(lng: number): number { return (lng + 180) / 360; }
 function latToEquiY(lat: number): number { return (90 - lat) / 180; }
 
-/** RGBA-Bytes in ein 2D-Canvas übertragen (billiger Main-Thread-Schritt). */
+/** RGBA-Bytes in ein 2D-Canvas übertragen (billiger Main-Thread-Schritt).
+ *  willReadFrequently: jeder Frame wird potenziell mehrfach per getImageData
+ *  zurückgelesen (Blend-Interpolation, decodeAndRefine) — ohne das Flag wählt
+ *  Chrome eine GPU-backed Surface, die bei wiederholtem Readback stallt. */
 function rgbaToCanvas(rgba: Uint8ClampedArray, w: number, h: number): HTMLCanvasElement {
   const canvas = document.createElement('canvas');
   canvas.width = w; canvas.height = h;
-  canvas.getContext('2d')!.putImageData(new ImageData(rgba, w, h), 0, 0);
+  canvas.getContext('2d', { willReadFrequently: true })!.putImageData(new ImageData(rgba, w, h), 0, 0);
   return canvas;
 }
 
@@ -289,7 +294,25 @@ export function windFrameAtHour(wind: IconD2Wind, hour: number): IconD2WindFrame
 // (gleiche Slider-Position → kein Neuaufbau).
 // ---------------------------------------------------------------------------
 
-let _blendCache: { key: string; frame: IconD2WindFrame } | null = null;
+// Kleiner LRU statt eines Einzel-Slots: eine echte Scrub-Geste besucht beim
+// Vor-/Zurück-Wischen (touch) oder minimalen Nachjustieren oft dieselben
+// Bruch-Positionen erneut — ein Einzel-Slot trifft dann fast nie, ein kleiner
+// LRU (8 Einträge, ~ein paar 100 KB je Eintrag) dagegen häufig.
+const BLEND_LRU_MAX = 8;
+const _blendCache = new Map<string, IconD2WindFrame>();
+function blendCacheGet(key: string): IconD2WindFrame | undefined {
+  const v = _blendCache.get(key);
+  if (v) { _blendCache.delete(key); _blendCache.set(key, v); } // Recency auffrischen
+  return v;
+}
+function blendCacheSet(key: string, frame: IconD2WindFrame): void {
+  _blendCache.delete(key);
+  _blendCache.set(key, frame);
+  if (_blendCache.size > BLEND_LRU_MAX) {
+    const oldest = _blendCache.keys().next().value;
+    if (oldest !== undefined) _blendCache.delete(oldest);
+  }
+}
 
 function blendWindFrames(a: IconD2WindFrame, b: IconD2WindFrame, t: number): IconD2WindFrame {
   const w = Math.min(a.width, b.width), h = Math.min(a.height, b.height);
@@ -347,9 +370,10 @@ export function windFrameInterpolated(wind: IconD2Wind, hour: number): IconD2Win
   if (frac < 0.02) return a;
   if (frac > 0.98) return b;
   const key = `${a.stepHours}|${b.stepHours}|${frac.toFixed(2)}`;
-  if (_blendCache?.key === key) return _blendCache.frame;
+  const cached = blendCacheGet(key);
+  if (cached) return cached;
   const frame = blendWindFrames(a, b, frac);
-  _blendCache = { key, frame };
+  blendCacheSet(key, frame);
   return frame;
 }
 
@@ -363,6 +387,178 @@ export function windFrameInterpolated(wind: IconD2Wind, hour: number): IconD2Win
 export function windFrameAtValidTime(wind: IconD2Wind, targetMs: number): IconD2WindFrame {
   const hour = (targetMs - wind.runAt.getTime()) / 3600_000;
   return windFrameInterpolated(wind, hour);
+}
+
+// ---------------------------------------------------------------------------
+// Off-main Slider-Scrub: dieselbe Geschwindigkeitsraum-Interpolation wie oben,
+// aber Blend + Upsample/Glätten + GPU-Format-Pack laufen in EINEM
+// Worker-Roundtrip (windBlendWorker) statt als drei synchrone Main-Thread-
+// Schritte (blendWindFrames → WindLayer.decodeAndRefine → createDataTexture).
+// Live-Messung vorher: 34 Long Tasks / 23,2 s blockierter Main Thread über
+// 25 Slider-Ticks (4×-CPU-Throttle). Fällt bei fehlendem/abgestürztem Worker
+// transparent auf denselben Main-Thread-Pfad zurück (s. wfUsable-Muster oben)
+// — nie schlechter als vorher. windFrameAtValidTime (sync) bleibt UNVERÄNDERT
+// bestehen (u. a. für scripts/qa: `layerSampler.ts` braucht synchron).
+// ---------------------------------------------------------------------------
+
+interface PackedFrame {
+  packed: PackedTexture; width: number; height: number;
+  uMin: number; uMax: number; vMin: number; vMax: number;
+}
+
+export type WindFrameAsyncResult =
+  | { kind: 'image'; frame: IconD2WindFrame }
+  | ({ kind: 'packed'; key: string } & PackedFrame);
+
+interface BwMsg {
+  id: number; ok: boolean; error?: string;
+  dataBuf?: ArrayBuffer; packedKind?: DataTextureFormat['kind'];
+  width?: number; height?: number;
+  uMin?: number; uMax?: number; vMin?: number; vMax?: number;
+}
+// Ein Worker reicht: Blend-Anfragen sind ohnehin durch die Drag-Geschwindigkeit
+// des Nutzers serialisiert (kein Kaltstart-Fan-out wie beim Grib-Decode-Pool).
+const bwWorkers: Worker[] = [];
+let bwUsable = true, bwInited = false, bwRr = 0, bwNextId = 1;
+const bwPending = new Map<number, { resolve: (r: PackedFrame) => void; reject: (e: Error) => void }>();
+
+function bwInit(): void {
+  if (bwInited) return;
+  bwInited = true;
+  try {
+    const w = new Worker(new URL('./windBlendWorker.ts', import.meta.url), { type: 'module' });
+    w.onmessage = (e: MessageEvent<BwMsg>) => {
+      const d = e.data;
+      const p = bwPending.get(d.id);
+      if (!p) return;
+      bwPending.delete(d.id);
+      if (d.ok && d.dataBuf && d.packedKind) {
+        p.resolve({
+          packed: unpackTyped(d.packedKind, d.dataBuf),
+          width: d.width!, height: d.height!,
+          uMin: d.uMin!, uMax: d.uMax!, vMin: d.vMin!, vMax: d.vMax!,
+        });
+      } else {
+        p.reject(new Error(d.error || 'wind blend worker error'));
+      }
+    };
+    w.onerror = () => {
+      // Worker-Crash: künftige Ticks gehen auf den Main-Thread-Fallback. In-
+      // flight-Anfragen NICHT hängen lassen — ihre Puffer sind bereits
+      // transferiert (nicht rückholbar), also ablehnen.
+      bwUsable = false;
+      for (const [id, p] of bwPending) { bwPending.delete(id); p.reject(new Error('wind blend worker crashed')); }
+    };
+    bwWorkers.push(w);
+  } catch {
+    bwUsable = false;
+  }
+}
+
+function unpackTyped(kind: DataTextureFormat['kind'], buf: ArrayBuffer): PackedTexture {
+  if (kind === 'half-float') return { kind, data: new Uint16Array(buf) };
+  if (kind === 'float') return { kind, data: new Float32Array(buf) };
+  return { kind: 'byte', data: new Uint8Array(buf) };
+}
+
+/** Normierte RG-Bytes eines Frames auslesen. Canvas-Readback bleibt zwingend
+ *  Main-Thread, ist aber (anders als Blend/Upsample) ein billiger, linearer
+ *  Speicher-Kopiervorgang — nicht der Teil, den dieser Fix adressiert. */
+function framePixels(f: IconD2WindFrame): Uint8ClampedArray {
+  return f.image.getContext('2d')!.getImageData(0, 0, f.width, f.height).data;
+}
+function frameNorm(f: IconD2WindFrame): FrameNorm {
+  return { uMin: f.uMin, uMax: f.uMax, vMin: f.vMin, vMax: f.vMax };
+}
+
+const PACKED_LRU_MAX = 8;
+const _packedCache = new Map<string, WindFrameAsyncResult>();
+function packedCacheGet(key: string): WindFrameAsyncResult | undefined {
+  const v = _packedCache.get(key);
+  if (v) { _packedCache.delete(key); _packedCache.set(key, v); }
+  return v;
+}
+function packedCacheSet(key: string, v: WindFrameAsyncResult): void {
+  _packedCache.delete(key);
+  _packedCache.set(key, v);
+  if (_packedCache.size > PACKED_LRU_MAX) {
+    const oldest = _packedCache.keys().next().value;
+    if (oldest !== undefined) _packedCache.delete(oldest);
+  }
+}
+
+/**
+ * Off-main Gegenstück zu `windFrameAtValidTime` für den Live-Slider im
+ * MapView-Wind-Effekt. Bei einem exakten Stunden-Frame (kein Blend nötig)
+ * identisch zu vorher: `{kind:'image', frame}` → `WindLayer.setWindData`. Bei
+ * einer echten Zwischen-Position läuft Blend+Upsample+Pack im Worker
+ * (`{kind:'packed', ...}` → `WindLayer.setWindDataPacked`), der Main Thread
+ * bleibt frei. `windTexKind` kommt von `WindLayer.windTextureKind` (einmalig
+ * in onAdd bestimmt — ein Worker hat keinen GL-Context zum Selbst-Prüfen).
+ */
+export async function windFrameAtValidTimeAsync(
+  wind: IconD2Wind,
+  targetMs: number,
+  upsample: number,
+  windTexKind: DataTextureFormat['kind'],
+): Promise<WindFrameAsyncResult> {
+  const hour = (targetMs - wind.runAt.getTime()) / 3600_000;
+  const frames = wind.frames;
+  if (frames.length < 2) return { kind: 'image', frame: frames[0] };
+  const minH = frames[0].stepHours, maxH = frames[frames.length - 1].stepHours;
+  const hr = Math.max(minH, Math.min(maxH, hour));
+  let a = frames[0], b = frames[frames.length - 1];
+  for (let i = 0; i < frames.length; i++) {
+    if (frames[i].stepHours <= hr) a = frames[i];
+    if (frames[i].stepHours >= hr) { b = frames[i]; break; }
+  }
+  const span = b.stepHours - a.stepHours;
+  const frac = span > 0 ? (hr - a.stepHours) / span : 0;
+  if (frac < 0.02) return { kind: 'image', frame: a };
+  if (frac > 0.98) return { kind: 'image', frame: b };
+
+  const key = `${a.stepHours}|${b.stepHours}|${frac.toFixed(2)}|${upsample}|${windTexKind}`;
+  const cached = packedCacheGet(key);
+  if (cached) return cached;
+
+  const aPx = framePixels(a), bPx = framePixels(b);
+  const blendInput = {
+    aPx, aWidth: a.width, aHeight: a.height, aNorm: frameNorm(a),
+    bPx, bWidth: b.width, bHeight: b.height, bNorm: frameNorm(b),
+    t: frac, upsample, kind: windTexKind,
+  };
+
+  bwInit();
+  let packedFrame: PackedFrame;
+  if (bwUsable && bwWorkers.length > 0) {
+    const w = bwWorkers[bwRr++ % bwWorkers.length];
+    const id = bwNextId++;
+    try {
+      packedFrame = await new Promise<PackedFrame>((resolve, reject) => {
+        bwPending.set(id, { resolve, reject });
+        w.postMessage(
+          { id, aBuf: aPx.buffer, aWidth: a.width, aHeight: a.height, aNorm: frameNorm(a),
+            bBuf: bPx.buffer, bWidth: b.width, bHeight: b.height, bNorm: frameNorm(b),
+            t: frac, upsample, kind: windTexKind },
+          [aPx.buffer, bPx.buffer],
+        );
+      });
+    } catch (err) {
+      bwPending.delete(id);
+      // aPx/bPx sind nach einem ERFOLGREICHEN Transfer detached (Länge 0) —
+      // das passiert nur, wenn der Worker NACH der Übernahme abstürzt/ablehnt.
+      // Dann gibt es keinen sicheren Main-Thread-Fallback: diesen einen Tick
+      // überspringen (voriger Frame bleibt sichtbar), der nächste Tick landet
+      // wegen bwUsable=false direkt im synchronen Pfad unten.
+      if (aPx.buffer.byteLength === 0 || bPx.buffer.byteLength === 0) throw err;
+      packedFrame = blendAndRefine(blendInput);
+    }
+  } else {
+    packedFrame = blendAndRefine(blendInput);
+  }
+  const result: WindFrameAsyncResult = { kind: 'packed', key, ...packedFrame };
+  packedCacheSet(key, result);
+  return result;
 }
 
 // ---------------------------------------------------------------------------

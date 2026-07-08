@@ -42,7 +42,7 @@ import { fetchIconD2Precip, type IconD2Precip } from './sources/iconD2Precip';
 // Wolken: DWD ICON-D2 Bewölkungsgrad (CLCT) als Gitter, 0–27 h, gleiche
 // GRIB2-Pipeline wie der Niederschlag.
 import { fetchIconD2CloudStack, type IconD2CloudStack } from './sources/iconD2Clouds';
-import { fetchIconD2Wind, windFrameAtValidTime, loadWindNowCache, saveWindNowCache, type IconD2Wind } from './wind/iconD2WindSource';
+import { fetchIconD2Wind, windFrameAtValidTimeAsync, loadWindNowCache, saveWindNowCache, type IconD2Wind } from './wind/iconD2WindSource';
 import { frameAtValidTime } from './sources/frameAtValidTime';
 import { sampleTempAt, sampleGustAt, sampleWindAt, sampleCloudsAt, sampleDemAt } from './qa/layerSampler';
 import { runLayerQA, runSnowlineQA, type SampleApi } from './qa/layerQA';
@@ -301,6 +301,26 @@ export default function MapView({ location, onBack, embedded = false, initialAct
   // forecast cache + currently displayed hour (0 = "now", positive = hours into the future)
   const [forecast, setForecast] = useState<DwdForecastResult | null>(null);
   const [forecastHour, setForecastHour] = useState(initialHour ?? 0);
+  // Slider-Drag rAF-koaleszieren: ein natives <input type=range> feuert
+  // `input` potenziell schneller als ein Repaint (schnelle Maus/Trackpad-
+  // Wischgeste) — jedes Event löst sonst sofort die volle Wind/Niederschlag/
+  // Wolken-Kette aus. Höchstens 1 State-Update pro Animationsframe.
+  const pendingForecastHourRef = useRef<number | null>(null);
+  const forecastHourRafRef = useRef<number | null>(null);
+  const scheduleForecastHour = useCallback((h: number) => {
+    pendingForecastHourRef.current = h;
+    if (forecastHourRafRef.current != null) return;
+    forecastHourRafRef.current = requestAnimationFrame(() => {
+      forecastHourRafRef.current = null;
+      if (pendingForecastHourRef.current != null) {
+        setForecastHour(pendingForecastHourRef.current);
+        pendingForecastHourRef.current = null;
+      }
+    });
+  }, []);
+  useEffect(() => () => {
+    if (forecastHourRafRef.current != null) cancelAnimationFrame(forecastHourRafRef.current);
+  }, []);
   // Gültigkeitszeit des aktuell angezeigten nativen Frames (Temp/Wind/Böen/Wolken)
   // → speist das Uhr-Label (Single Source of Truth, P0-3). null = kein
   // zeitvariabler Nativ-Layer aktiv → Label fällt auf die Fusions-Logik zurück.
@@ -414,6 +434,10 @@ export default function MapView({ location, onBack, embedded = false, initialAct
   // Effects können installWind feuern, bevor iconD2WindRef gesetzt ist (die Ref
   // wird erst nach dem ersten Frame gesetzt) → sonst wird jedes GRIB-Feld 2× geholt.
   const windLoadingRef = useRef(false);
+  // Generation-Zähler für den asynchronen (Worker-Offload) Wind-Effekt: schützt
+  // davor, dass ein verspätet zurückkommendes Blend-Ergebnis einen inzwischen
+  // weitergezogenen Slider kurz auf eine alte Position zurückspringen lässt.
+  const windReqGenRef = useRef(0);
   // Temperatur: natives ICON-D2 t_2m-Gitter (0–24 h) + hsurf-DEM-Korrektur,
   // statt der Fusion (Open-Meteo/IDW).
   const iconD2TempRef = useRef<IconD2Temp | null>(null);
@@ -516,7 +540,13 @@ export default function MapView({ location, onBack, embedded = false, initialAct
     const dpr = window.devicePixelRatio || 1;
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: 'https://tiles.openfreemap.org/styles/liberty',
+      // Positron statt Liberty: gleiche OSM-Vektorkacheln (kein Bandbreiten-
+      // Unterschied), aber halb so viele Style-Layer (55 statt 111, keine
+      // 3D-Gebäude-Extrusion) → spürbar weniger Paint-Aufwand. Lohnt sich hier
+      // besonders, weil die Karte ohnehin unter dem 70%-Dim-Overlay liegt (s.
+      // addDimOverlay) — Liberty-Detail (Gebäude, POI-Icons) geht darunter
+      // optisch sowieso unter, kostet aber trotzdem Rechenzeit.
+      style: 'https://tiles.openfreemap.org/styles/positron',
       center: embedded ? [location.lon, location.lat] : DACH_VIEW.defaultCenter,
       zoom: embedded ? 7.4 : DACH_VIEW.defaultZoom,
       pixelRatio: coarsePointer ? Math.min(dpr, 1.5) : dpr,
@@ -604,10 +634,11 @@ export default function MapView({ location, onBack, embedded = false, initialAct
       const data: GeoJSON.Feature | GeoJSON.FeatureCollection = mask ?? { type: 'FeatureCollection', features: [] };
       addCountryMask(data);
       // Country mask just landed at the top of the style stack — re-hoist
-      // the weather overlays above it. Same logic as applyVisibility's tail;
-      // doing it here makes sure the layers come up correct on the very first
-      // paint even before the user toggles anything.
-      if (map.getLayer('precip-forecast')) map.moveLayer('precip-forecast');
+      // the layers that must stay visible outside DACH above it (Stationen:
+      // Klickbarkeit). precip-forecast bleibt bewusst UNTEN (s. addLayers) —
+      // sonst hebt genau dieser Aufruf den Niederschlag beim allerersten
+      // Paint dauerhaft über die Maske (User-Report: Regen über Belgien/
+      // Slowenien auch nach dem applyVisibility-Fix noch sichtbar).
       if (map.getLayer(STATIONS_LAYER_ID)) map.moveLayer(STATIONS_LAYER_ID);
     };
     if (map.isStyleLoaded()) void initOverlays();
@@ -753,16 +784,9 @@ export default function MapView({ location, onBack, embedded = false, initialAct
           paint: { 'line-color': '#1f4fd0', 'line-width': 2 },
         });
       }
-      // Move the fusion precipitation scalar ABOVE the country mask.
-      // Without this, precipitation cells located outside DACH (e.g. an
-      // approaching front sitting over N-Italy or the Czech Republic) get
-      // covered by the sand-200 country mask and the layer appears empty —
-      // misleading the user, especially when the only forecasted precip
-      // sits in the neighbouring countries. Weather is continental, the
-      // mask just dims the basemap; the data layer must render globally.
-      if (map.getLayer('country-mask-fill') && map.getLayer(precipLayer.id)) {
-        map.moveLayer(precipLayer.id);
-      }
+      // precipLayer bleibt UNTER der Länder-Maske (wie temp/wind/clouds) — die
+      // Niederschlagsdaten sollen auf DACH begrenzt bleiben, nicht kontinental
+      // durchscheinen (User-Report: Regen sichtbar über Slowenien/Belgien).
       applyVisibility();
     };
     const applyVisibility = () => {
@@ -792,19 +816,11 @@ export default function MapView({ location, onBack, embedded = false, initialAct
           map.setLayoutProperty(id, 'visibility', set[id] ? 'visible' : 'none');
         }
       }
-      // Precipitation fusion scalar needs to render ABOVE the country mask
-      // so precip systems outside DACH (e.g. fronts over N-Italy moving
-      // north) stay visible. The mask cuts out DACH for the basemap; the
-      // data layer is continental.
-      if (map.getLayer('precip-forecast')) map.moveLayer('precip-forecast');
-      // Niederschlags-RainLayer über die Maske heben, damit das Radar/Modell
-      // sauber über der freigestellten Karte liegt.
-      if (map.getLayer(NOWCAST_LAYER_ID)) map.moveLayer(NOWCAST_LAYER_ID);
-      if (map.getLayer(FLOW_NOWCAST_LAYER_ID)) map.moveLayer(FLOW_NOWCAST_LAYER_ID);
-      if (map.getLayer(POP_LAYER_ID)) map.moveLayer(POP_LAYER_ID);
-      // Vertrauens-Schleier ÜBER den Datenschichten (auch über dem Niederschlag,
-      // der gerade nach oben gehoben wurde) — sonst verdeckt das Radar die
-      // Schraffur. Die Stationen bleiben darüber (nächster moveLayer).
+      // precip-forecast/NOWCAST/FLOW_NOWCAST/POP bleiben UNTER der Länder-Maske
+      // (wie temp/wind/clouds, s. addLayers) — Niederschlag soll auf DACH
+      // begrenzt bleiben statt kontinental durchzuscheinen (User-Report).
+      // Vertrauens-Schleier ÜBER den Datenschichten — sonst verdeckt das Radar
+      // die Schraffur. Die Stationen bleiben darüber (nächster moveLayer).
       if (map.getLayer(CONFIDENCE_LAYER_ID)) map.moveLayer(CONFIDENCE_LAYER_ID);
       // Schneefallgrenze als Linie ganz oben (dünn → verdeckt nichts), über den
       // Rastern und dem Schleier.
@@ -1062,15 +1078,18 @@ export default function MapView({ location, onBack, embedded = false, initialAct
     //   hier nur Daten laden + über die Maske heben.
     // ------------------------------------------------------------------
     const hoistRain = () => {
-      if (map.getLayer(NOWCAST_LAYER_ID)) map.moveLayer(NOWCAST_LAYER_ID);
-      if (map.getLayer(FLOW_NOWCAST_LAYER_ID)) map.moveLayer(FLOW_NOWCAST_LAYER_ID);
-      if (map.getLayer(POP_LAYER_ID)) map.moveLayer(POP_LAYER_ID);
+      // NOWCAST/FLOW_NOWCAST/POP bleiben UNTER der Länder-Maske (s. addLayers) —
+      // nur die Stationen werden weiterhin über alles gehoben (Klickbarkeit).
       if (map.getLayer(STATIONS_LAYER_ID)) map.moveLayer(STATIONS_LAYER_ID);
     };
     // CH-„jetzt": MeteoSwiss-Radar rzc.
     const loadRzc = async () => {
       try {
         meteoRadarRef.current = await fetchRzcLatest(abort.signal);
+        // Index-Map off-main vorwärmen (s. PrecipCompositor.primeCh) — VOR dem
+        // Tick, damit build() im Render-Pfad gleich den warmen Cache trifft statt
+        // den Newton-Solver synchron nachzuholen.
+        if (compositorRef.current) await compositorRef.current.primeCh(meteoRadarRef.current);
         hoistRain();
         setNowcastTick((t) => t + 1);
         setCompositeStatus();
@@ -1082,6 +1101,7 @@ export default function MapView({ location, onBack, embedded = false, initialAct
     const loadRv = async () => {
       try {
         nowcastRef.current = await fetchRvNowcast(abort.signal);
+        if (compositorRef.current) await compositorRef.current.primeDe(nowcastRef.current);
         hoistRain();
         setNowcastTick((t) => t + 1);
         setCompositeStatus();
@@ -1093,6 +1113,7 @@ export default function MapView({ location, onBack, embedded = false, initialAct
     const loadInca = async () => {
       try {
         incaGridRef.current = await fetchIncaGrid(abort.signal);
+        if (compositorRef.current) await compositorRef.current.primeAt(incaGridRef.current);
         hoistRain();
         setNowcastTick((t) => t + 1);
         setCompositeStatus();
@@ -1129,15 +1150,31 @@ export default function MapView({ location, onBack, embedded = false, initialAct
       if (model) updateStatus('nowcast', { ok: { model, fetchedAt: Date.now() } });
     };
     // ICON-D2 (Forecast) im Hintergrund nachladen — GRIB2 dekodieren ist
-    // langsamer (~mehrere Sekunden), läuft progressiv: jeder fertige Frame
-    // bumpt den Tick, sodass der Slider den nahen Horizont sofort nutzen kann.
+    // langsamer (~mehrere Sekunden), läuft progressiv. Re-Render-Coalescing
+    // (wie installWind/installClouds): jeder Progress-Frame würde sonst
+    // MapView + PrecipCompositor.build() (DACH-weites 600×512-Komposit) neu
+    // rendern lassen — bei ~27 Schritten ein Re-Render-Sturm (gemessen als
+    // Haupttreiber der verbliebenen Blockade NACH dem GRIB-Worker-Offload,
+    // nicht der Decode selbst). Nur der ERSTE Frame tickt (sofort sichtbar);
+    // der finale Tick nach dem `await` liefert ohnehin den vollständigen Stand.
     const installIconD2 = async () => {
       try {
+        let firstD2 = true;
         const d2 = await fetchIconD2Precip(abort.signal, (partial) => {
           iconD2Ref.current = partial;
-          setNowcastTick((t) => t + 1);
+          if (firstD2) {
+            firstD2 = false;
+            // Index-Map off-main vorwärmen (s. PrecipCompositor.primeD2), dann
+            // erst ticken — sonst holt build() den Newton-Solver synchron nach.
+            void (async () => {
+              if (!compositorRef.current) compositorRef.current = new PrecipCompositor();
+              await compositorRef.current.primeD2(partial);
+              setNowcastTick((t) => t + 1);
+            })();
+          }
         });
         iconD2Ref.current = d2;
+        if (compositorRef.current) await compositorRef.current.primeD2(d2);
         setNowcastTick((t) => t + 1);
         setCompositeStatus();
       } catch {
@@ -1825,13 +1862,35 @@ export default function MapView({ location, onBack, embedded = false, initialAct
     if (lvl === 'surface' && fusionActiveFor('wind')) return;
     const wd = lvl === 'surface' ? iconD2WindRef.current : euWindRef.current[lvl];
     if (!wd || wd.frames.length === 0) return;
-    const f = windFrameAtValidTime(wd, Date.now() + forecastHour * 3600_000);
-    wind.setWindData(f.image, {
-      width: f.width, height: f.height,
-      uMin: f.uMin, uMax: f.uMax, vMin: f.vMin, vMax: f.vMax,
-      uvBounds: wd.uvBounds,
-    });
-    reportValidAt(f.validAt.getTime());
+    const targetMs = Date.now() + forecastHour * 3600_000;
+    // Blend+Upsample+Pack laufen off-main (Worker, s. windFrameAtValidTimeAsync);
+    // ein rascher weiterer Slider-Tick kann diese Anfrage überholen, bevor sie
+    // zurück ist — Generation-Guard verhindert, dass ein verspätetes Ergebnis
+    // den Wind kurz auf eine alte Slider-Position zurückspringen lässt.
+    const myGen = ++windReqGenRef.current;
+    windFrameAtValidTimeAsync(wd, targetMs, wind.upsampleFactor, wind.windTextureKind)
+      .then((res) => {
+        if (windReqGenRef.current !== myGen) return;
+        if (res.kind === 'image') {
+          wind.setWindData(res.frame.image, {
+            width: res.frame.width, height: res.frame.height,
+            uMin: res.frame.uMin, uMax: res.frame.uMax, vMin: res.frame.vMin, vMax: res.frame.vMax,
+            uvBounds: wd.uvBounds,
+          });
+          reportValidAt(res.frame.validAt.getTime());
+        } else {
+          wind.setWindDataPacked(
+            res.packed, res.width, res.height,
+            { width: res.width, height: res.height, uMin: res.uMin, uMax: res.uMax, vMin: res.vMin, vMax: res.vMax, uvBounds: wd.uvBounds },
+            res.key,
+          );
+          reportValidAt(targetMs);
+        }
+      })
+      .catch(() => {
+        // Worker-Fehler o. Ä. (selten, s. windFrameAtValidTimeAsync) — dieser
+        // eine Tick bleibt aus, der vorige Frame bleibt sichtbar.
+      });
   }, [forecastHour, nowcastTick, active, windLevel, modelSource, forecast, reportValidAt]);
 
   // Wind-Höhe (Druckfläche) laden + anwenden. Surface kommt aus installWind
@@ -2154,19 +2213,11 @@ export default function MapView({ location, onBack, embedded = false, initialAct
           map.setLayoutProperty(id, 'visibility', set[id] ? 'visible' : 'none');
         }
       }
-      // Precipitation fusion scalar needs to render ABOVE the country mask
-      // so precip systems outside DACH (e.g. fronts over N-Italy moving
-      // north) stay visible. The mask cuts out DACH for the basemap; the
-      // data layer is continental.
-      if (map.getLayer('precip-forecast')) map.moveLayer('precip-forecast');
-      // Niederschlags-RainLayer über die Maske heben, damit das Radar/Modell
-      // sauber über der freigestellten Karte liegt.
-      if (map.getLayer(NOWCAST_LAYER_ID)) map.moveLayer(NOWCAST_LAYER_ID);
-      if (map.getLayer(FLOW_NOWCAST_LAYER_ID)) map.moveLayer(FLOW_NOWCAST_LAYER_ID);
-      if (map.getLayer(POP_LAYER_ID)) map.moveLayer(POP_LAYER_ID);
-      // Vertrauens-Schleier ÜBER den Datenschichten (auch über dem Niederschlag,
-      // der gerade nach oben gehoben wurde) — sonst verdeckt das Radar die
-      // Schraffur. Die Stationen bleiben darüber (nächster moveLayer).
+      // precip-forecast/NOWCAST/FLOW_NOWCAST/POP bleiben UNTER der Länder-Maske
+      // (wie temp/wind/clouds, s. addLayers) — Niederschlag soll auf DACH
+      // begrenzt bleiben statt kontinental durchzuscheinen (User-Report).
+      // Vertrauens-Schleier ÜBER den Datenschichten — sonst verdeckt das Radar
+      // die Schraffur. Die Stationen bleiben darüber (nächster moveLayer).
       if (map.getLayer(CONFIDENCE_LAYER_ID)) map.moveLayer(CONFIDENCE_LAYER_ID);
       // Schneefallgrenze als Linie ganz oben (dünn → verdeckt nichts), über den
       // Rastern und dem Schleier.
@@ -2528,7 +2579,7 @@ export default function MapView({ location, onBack, embedded = false, initialAct
               max={dayHi}
               step={0.2}
               value={Math.max(dayLo, Math.min(dayHi, forecastHour))}
-              onChange={e => { setPlaying(false); setForecastHour(Number(e.target.value)); }}
+              onChange={e => { setPlaying(false); scheduleForecastHour(Number(e.target.value)); }}
               aria-label={embedded ? 'Uhrzeit am Tag' : 'Forecast-Stunde'}
             />
             <span className="forecast-label">{forecastLabel}</span>

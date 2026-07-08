@@ -17,21 +17,20 @@
  *
  * Gerendert wird EIN reguläres lat/lon-Gitter über DACH (ein RainLayer-Frame).
  * Die Zelle→Quellgitter-Zuordnung ist geometrisch fix → wird je Quelle EINMAL
- * vorberechnet (Index-Map); pro Slider-Schritt nur noch Array-Gather (flüssig).
- * RADOLAN ist polar-stereografisch → exakte Inverse über `psFwd`; INCA/rzc/
- * ICON-D2 über inverse Bilinear-Interpolation ihrer vier Geo-Ecken.
+ * vorberechnet (Index-Map, s. precipIndexMap.ts); pro Slider-Schritt nur noch
+ * Array-Gather (flüssig). RADOLAN ist polar-stereografisch → exakte Inverse
+ * über `psFwd`; INCA/rzc/ICON-D2 über inverse Bilinear-Interpolation ihrer
+ * vier Geo-Ecken.
  */
 
 import { pickCountry } from '../pointForecast/clustering';
-import { psFwd } from '../sources/radolan';
+import { G, buildIndexMap, buildCompositeIndexMap, gridLatLon } from './precipIndexMap';
 import type { QuadCorners } from './RainLayer';
 import type { RvNowcast } from '../sources/radolan';
 import type { IncaGrid } from '../sources/geosphereIncaGrid';
 import type { RadarFrame } from '../sources/meteoSwissRadar';
 import type { IconD2Precip } from '../sources/iconD2Precip';
 
-/** DACH-Komposit-Gitter (reguläres lat/lon, ~0,02° ≈ 2 km). */
-const G = { lonMin: 5.5, lonMax: 17.4, latMin: 45.3, latMax: 55.5, w: 600, h: 512 };
 /** Ecken [NW, NE, SE, SW] für RainLayer.setFrame (north-up). */
 export const COMPOSITE_CORNERS: QuadCorners = [
   [G.lonMin, G.latMax], [G.lonMax, G.latMax], [G.lonMax, G.latMin], [G.lonMin, G.latMin],
@@ -41,52 +40,6 @@ export const COMPOSITE_CORNERS: QuadCorners = [
 export const RV_MAX_H = 2;     // DE RADOLAN-RV
 export const INCA_MAX_H = 3;   // AT GeoSphere INCA
 export const RZC_MAX_H = 0.5;  // CH rzc (nur „jetzt")
-
-type XY = [number, number];
-
-/** Inverse Bilinear: Punkt P im Viereck (NW,NE,SE,SW) → (u,v) im Einheitsquadrat
- *  (u: 0=West…1=Ost, v: 0=Nord…1=Süd — wie die RainLayer-uv-Konvention). Newton. */
-function invBilinear(nw: XY, ne: XY, se: XY, sw: XY, px: number, py: number): [number, number] {
-  let u = 0.5, v = 0.5;
-  for (let it = 0; it < 8; it++) {
-    const bx = (1 - u) * (1 - v) * nw[0] + u * (1 - v) * ne[0] + u * v * se[0] + (1 - u) * v * sw[0];
-    const by = (1 - u) * (1 - v) * nw[1] + u * (1 - v) * ne[1] + u * v * se[1] + (1 - u) * v * sw[1];
-    const rx = bx - px, ry = by - py;
-    const dux = (1 - v) * (ne[0] - nw[0]) + v * (se[0] - sw[0]);
-    const duy = (1 - v) * (ne[1] - nw[1]) + v * (se[1] - sw[1]);
-    const dvx = (1 - u) * (sw[0] - nw[0]) + u * (se[0] - ne[0]);
-    const dvy = (1 - u) * (sw[1] - nw[1]) + u * (se[1] - ne[1]);
-    const det = dux * dvy - duy * dvx;
-    if (Math.abs(det) < 1e-12) break;
-    u -= (dvy * rx - dvx * ry) / det;
-    v -= (-duy * rx + dux * ry) / det;
-  }
-  return [u, v];
-}
-
-/** Baut die Zelle→Quellgitter-Index-Map (−1 = außerhalb des Quellgitters).
- *  `ps`=true → Verortung im polar-stereografischen Raum (RADOLAN). */
-function buildIndexMap(
-  corners: QuadCorners, sCols: number, sRows: number,
-  lat: Float32Array, lon: Float32Array, ps: boolean,
-): Int32Array {
-  const [NW, NE, SE, SW] = corners;
-  const cNW: XY = ps ? psFwd(NW[0], NW[1]) : [NW[0], NW[1]];
-  const cNE: XY = ps ? psFwd(NE[0], NE[1]) : [NE[0], NE[1]];
-  const cSE: XY = ps ? psFwd(SE[0], SE[1]) : [SE[0], SE[1]];
-  const cSW: XY = ps ? psFwd(SW[0], SW[1]) : [SW[0], SW[1]];
-  const out = new Int32Array(lat.length);
-  for (let i = 0; i < out.length; i++) {
-    let px = lon[i], py = lat[i];
-    if (ps) { const p = psFwd(lon[i], lat[i]); px = p[0]; py = p[1]; }
-    const [u, v] = invBilinear(cNW, cNE, cSE, cSW, px, py);
-    if (u < -0.001 || u > 1.001 || v < -0.001 || v > 1.001) { out[i] = -1; continue; }
-    const col = Math.min(sCols - 1, Math.max(0, Math.round(u * (sCols - 1))));
-    const row = Math.min(sRows - 1, Math.max(0, Math.round(v * (sRows - 1))));
-    out[i] = row * sCols + col;
-  }
-  return out;
-}
 
 export interface CompositeSources {
   rv?: RvNowcast | null;
@@ -102,6 +55,62 @@ export interface CompositeFrame {
   corners: QuadCorners;
 }
 
+// ---------------------------------------------------------------------------
+// Index-Map-Pool: buildCompositeIndexMap() (s. precipIndexMap.ts) läuft off-main
+// im precipIndexWorker — vorher blockierte der Newton-Solver (8 Iterationen ×
+// 307.200 Zellen, ~250-370 ms je Quelle, 4×-CPU-Throttle gemessen) synchron im
+// build()-Render-Pfad, sobald eine Quelle (RADOLAN/INCA/rzc/ICON-D2) neu
+// zuschaltet. Fällt bei fehlendem/abgestürztem Worker transparent auf denselben
+// Code zurück (gleiches Muster wie decompress.ts/gribGridWorker/radolanWorker).
+// ---------------------------------------------------------------------------
+interface PiMsg { id: number; ok: boolean; error?: string; idxBuf?: ArrayBuffer }
+const PI_POOL_SIZE = Math.max(1, Math.min((navigator.hardwareConcurrency || 2) - 1, 2));
+let piWorkers: Worker[] = [];
+let piUsable = true, piInited = false, piRr = 0, piNextId = 1;
+const piPending = new Map<number, { resolve: (r: Int32Array) => void; reject: (e: Error) => void }>();
+
+function piInit(): void {
+  if (piInited) return;
+  piInited = true;
+  try {
+    for (let i = 0; i < PI_POOL_SIZE; i++) {
+      const w = new Worker(new URL('./precipIndexWorker.ts', import.meta.url), { type: 'module' });
+      w.onmessage = (e: MessageEvent<PiMsg>) => {
+        const d = e.data;
+        const p = piPending.get(d.id);
+        if (!p) return;
+        piPending.delete(d.id);
+        if (d.ok && d.idxBuf) p.resolve(new Int32Array(d.idxBuf));
+        else p.reject(new Error(d.error || 'precip index worker error'));
+      };
+      w.onerror = () => {
+        piUsable = false;
+        for (const [id, p] of piPending) { piPending.delete(id); p.reject(new Error('precip index worker crashed')); }
+      };
+      piWorkers.push(w);
+    }
+  } catch {
+    piUsable = false;
+    piWorkers = [];
+  }
+}
+
+async function buildIndexMapOffMain(corners: QuadCorners, sCols: number, sRows: number, ps: boolean): Promise<Int32Array> {
+  piInit();
+  if (!piUsable || piWorkers.length === 0) return buildCompositeIndexMap(corners, sCols, sRows, ps);
+  const w = piWorkers[piRr++ % piWorkers.length];
+  const id = piNextId++;
+  try {
+    return await new Promise<Int32Array>((resolve, reject) => {
+      piPending.set(id, { resolve, reject });
+      w.postMessage({ id, corners, sCols, sRows, ps });
+    });
+  } catch {
+    piPending.delete(id);
+    return buildCompositeIndexMap(corners, sCols, sRows, ps);
+  }
+}
+
 /**
  * Hält das feste Komposit-Gitter + die je Quelle einmalig berechneten Index-Maps
  * und mischt pro Slider-Stunde den Frame zusammen.
@@ -110,8 +119,8 @@ export class PrecipCompositor {
   readonly width = G.w;
   readonly height = G.h;
   readonly corners = COMPOSITE_CORNERS;
-  private readonly lat = new Float32Array(G.w * G.h);
-  private readonly lon = new Float32Array(G.w * G.h);
+  private readonly lat: Float32Array;
+  private readonly lon: Float32Array;
   private readonly country = new Uint8Array(G.w * G.h); // 0=DE, 1=AT, 2=CH
   private deIdx: Int32Array | null = null; private deKey = '';
   private atIdx: Int32Array | null = null; private atKey = '';
@@ -119,15 +128,11 @@ export class PrecipCompositor {
   private d2Idx: Int32Array | null = null; private d2Key = '';
 
   constructor() {
-    for (let r = 0; r < G.h; r++) {
-      const lat = G.latMax - (r / (G.h - 1)) * (G.latMax - G.latMin);
-      for (let c = 0; c < G.w; c++) {
-        const i = r * G.w + c;
-        const lon = G.lonMin + (c / (G.w - 1)) * (G.lonMax - G.lonMin);
-        this.lat[i] = lat; this.lon[i] = lon;
-        const cc = pickCountry(lat, lon);
-        this.country[i] = cc === 'AT' ? 1 : cc === 'CH' ? 2 : 0;
-      }
+    const { lat, lon } = gridLatLon();
+    this.lat = lat; this.lon = lon;
+    for (let i = 0; i < lat.length; i++) {
+      const cc = pickCountry(lat[i], lon[i]);
+      this.country[i] = cc === 'AT' ? 1 : cc === 'CH' ? 2 : 0;
     }
   }
 
@@ -154,6 +159,37 @@ export class PrecipCompositor {
     if (key === this.d2Key && this.d2Idx) return;
     this.d2Idx = buildIndexMap(d2.corners, f.width, f.height, this.lat, this.lon, false);
     this.d2Key = key;
+  }
+
+  // -- Off-main-Vorwärmen -----------------------------------------------------
+  // Dieselbe Key-Logik wie ensureXxx, aber die Index-Map wird im Worker gebaut
+  // und NUR das Ergebnis (Cache-Feld) synchron übernommen. MapView ruft diese
+  // Methoden auf, sobald eine Quelle lädt — VOR dem React-Tick, der build()
+  // auslöst, damit ensureXxx() dort nur noch den (bereits warmen) Cache trifft.
+
+  async primeDe(rv: RvNowcast): Promise<void> {
+    const f = rv.frames[0]; const key = `${f.width}x${f.height}`;
+    if (key === this.deKey && this.deIdx) return;
+    const idx = await buildIndexMapOffMain(rv.corners, f.width, f.height, true);
+    this.deIdx = idx; this.deKey = key;
+  }
+  async primeAt(inca: IncaGrid): Promise<void> {
+    const f = inca.frames[0]; const key = `${f.width}x${f.height}:${inca.corners[0][0]}`;
+    if (key === this.atKey && this.atIdx) return;
+    const idx = await buildIndexMapOffMain(inca.corners, f.width, f.height, false);
+    this.atIdx = idx; this.atKey = key;
+  }
+  async primeCh(rzc: RadarFrame): Promise<void> {
+    const key = `${rzc.width}x${rzc.height}:${rzc.corners[0][0]}`;
+    if (key === this.chKey && this.chIdx) return;
+    const idx = await buildIndexMapOffMain(rzc.corners, rzc.width, rzc.height, false);
+    this.chIdx = idx; this.chKey = key;
+  }
+  async primeD2(d2: IconD2Precip): Promise<void> {
+    const f = d2.frames[0]; const key = `${f.width}x${f.height}`;
+    if (key === this.d2Key && this.d2Idx) return;
+    const idx = await buildIndexMapOffMain(d2.corners, f.width, f.height, false);
+    this.d2Idx = idx; this.d2Key = key;
   }
 
   /** Komposit-Frame für Vorlaufstunde `h` (nowMs = aktuelle Zeit für ICON-D2-Wahl). */

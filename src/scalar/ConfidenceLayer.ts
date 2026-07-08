@@ -162,7 +162,13 @@ export class ConfidenceLayer implements CustomLayerInterface {
 
     const prevBlend = gl.getParameter(gl.BLEND) as boolean;
     const prevDepth = gl.getParameter(gl.DEPTH_TEST) as boolean;
-    gl.disable(gl.DEPTH_TEST);
+    const prevDepthMask = gl.getParameter(gl.DEPTH_WRITEMASK) as boolean;
+    // MapLibre's Custom-Layer-Vertrag: Depth-Test bleibt AN (LEQUAL, per
+    // Default) — nur so respektieren später gezeichnete opake Layer (Länder-
+    // Maske) bzw. wird dieser Layer von ihnen respektiert. Ein
+    // `disable(DEPTH_TEST)` unterbindet den Depth-Write komplett (WebGL-Spec).
+    gl.enable(gl.DEPTH_TEST);
+    gl.depthMask(false);
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
@@ -183,6 +189,7 @@ export class ConfidenceLayer implements CustomLayerInterface {
     gl.drawArrays(gl.TRIANGLES, 0, this.meshVertexCount);
 
     if (!prevBlend) gl.disable(gl.BLEND);
-    if (prevDepth) gl.enable(gl.DEPTH_TEST);
+    gl.depthMask(prevDepthMask);
+    if (!prevDepth) gl.disable(gl.DEPTH_TEST);
   }
 }

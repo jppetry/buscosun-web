@@ -261,7 +261,15 @@ export class RainLayer implements CustomLayerInterface {
 
     const prevBlend = gl.getParameter(gl.BLEND) as boolean;
     const prevDepth = gl.getParameter(gl.DEPTH_TEST) as boolean;
-    gl.disable(gl.DEPTH_TEST);
+    const prevDepthMask = gl.getParameter(gl.DEPTH_WRITEMASK) as boolean;
+    // MapLibre's Custom-Layer-Vertrag: Depth-Test bleibt AN (LEQUAL, per
+    // Default) — nur so respektiert dieser Layer opake Layer, die SPÄTER in
+    // der Stack-Reihenfolge gezeichnet werden (hier: die Länder-Maske). Ein
+    // `disable(DEPTH_TEST)` unterbindet den Depth-Write komplett (WebGL-Spec),
+    // wodurch die Maske später nichts mehr zu testen hat und der Layer über
+    // die Landesgrenzen hinaus durchscheint (User-Report).
+    gl.enable(gl.DEPTH_TEST);
+    gl.depthMask(false);
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
@@ -280,7 +288,8 @@ export class RainLayer implements CustomLayerInterface {
     gl.drawArrays(gl.TRIANGLES, 0, this.vertexCount);
 
     if (!prevBlend) gl.disable(gl.BLEND);
-    if (prevDepth) gl.enable(gl.DEPTH_TEST);
+    gl.depthMask(prevDepthMask);
+    if (!prevDepth) gl.disable(gl.DEPTH_TEST);
   }
 }
 
@@ -330,4 +339,16 @@ export const cloudRamp: Record<number, string> = {
 export function cloudToU8(pct: number): number {
   if (!(pct >= 3)) return 0; // NaN oder < 3 % → transparent (klarer Himmel)
   return Math.max(1, Math.min(255, Math.round(pct / CLOUD_VMAX * 255)));
+}
+
+/** Obergrenze der CAPE-Quantisierung (J/kg) — DACH-Extremkonvektion liegt
+ *  darunter. Hier statt in iconD2Cape.ts, damit gribGridDecode.ts (Worker-
+ *  fähig) sie ohne Zyklus über iconD2Precip.ts importieren kann. */
+export const CAPE_MAX = 4000;
+
+/** CAPE (J/kg) → Uint8 (0 = keine Labilität, sonst J/kg ÷ CAPE_MAX · 255). */
+export function capeToU8(v: number): number {
+  if (!(v > 0)) return 0;
+  const u = Math.round((v / CAPE_MAX) * 255);
+  return u < 0 ? 0 : u > 255 ? 255 : u;
 }

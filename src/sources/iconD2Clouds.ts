@@ -15,7 +15,7 @@ import {
   fetchIconD2Grid, resolveLatestRun, fetchStepField, gribCorners,
   type IconD2Precip, type GribField,
 } from './iconD2Precip';
-import { cloudToU8, type QuadCorners } from '../scalar/RainLayer';
+import type { QuadCorners } from '../scalar/RainLayer';
 
 /** Verfügbare Bewölkungs-Parameter. */
 export type CloudParam = 'clct' | 'clcl' | 'clcm' | 'clch';
@@ -28,7 +28,7 @@ export function fetchIconD2Clouds(
 ): Promise<IconD2Precip> {
   return fetchIconD2Grid(
     param,
-    { accumulate: false, toU8: cloudToU8, maxStep: 27 },
+    { accumulate: false, kind: 'cloud', maxStep: 27 },
     signal,
     onProgress,
   );

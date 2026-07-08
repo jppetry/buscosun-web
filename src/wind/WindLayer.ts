@@ -8,11 +8,15 @@ import {
   createProgram,
   createTexture,
   getColorRamp,
+  pickWindTextureKind,
+  uploadPackedTexture,
   type DataTextureFormat,
+  type PackedTexture,
   type ProgramWrapper,
 } from './glUtil';
 import { drawFrag, drawVert, drawVertProjected, heatmapFrag, heatmapVert, heatmapVertProjected, quadVert, screenFrag, updateFrag } from './shaders';
 import { FrameGovernor, readDeviceCaps, initialTier, tierToLevelIndex, type DeviceCaps } from './perfGovernor';
+import { refineNormalizedUV } from './windRefine';
 
 /** MapLibre v5 projection data passed to custom layers (subset we use). */
 interface ProjectionUniforms {
@@ -35,7 +39,11 @@ export interface WindMeta {
 }
 
 interface WindData extends WindMeta {
-  image: HTMLImageElement | HTMLCanvasElement;
+  // Optional: Frames, die als bereits gepackter GPU-Puffer angewendet wurden
+  // (s. setWindDataPacked — Slider-Interpolation off-main) haben kein Quell-
+  // Image mehr (der Blend+Refine-Schritt lief bereits im Worker). Nur der
+  // Dev-Diagnose-Probe (sampleSourceWind) braucht es und bricht ohne sauber ab.
+  image?: HTMLImageElement | HTMLCanvasElement;
   uvBounds: [number, number, number, number];
 }
 
@@ -409,6 +417,16 @@ export class WindLayer implements CustomLayerInterface {
   /** Dev handle: `__map.style._layers.wind.implementation.glDiag` on-device. */
   get glDiag(): Record<string, unknown> { return this.diagnose(); }
 
+  /** GPU-Upload-Format dieses Layers (einmalig in onAdd bestimmt) — ein
+   *  off-main Wind-Blend-Worker braucht das VORAB, um passend zu packen
+   *  (s. windFrameAtValidTimeAsync in iconD2WindSource.ts). */
+  get windTextureKind(): DataTextureFormat['kind'] { return this._windTexFormat.kind; }
+
+  /** CPU-Upsampling-Faktor (Konstruktor-Option, s. WindLayerOptions.upsample) —
+   *  der Wind-Blend-Worker muss denselben Faktor verwenden wie decodeAndRefine,
+   *  damit Slider-Scrub und exakte Stunden-Frames dieselbe Feld-Auflösung haben. */
+  get upsampleFactor(): number { return this.upsample; }
+
   // ---- On-device motion probe (dev-only; inert until called) -----------------
   // Measures the GROUND TRUTH of the two reported mobile↔desktop symptoms —
   // reversed direction and excessive speed — straight from the GPU, so the
@@ -464,6 +482,7 @@ export class WindLayer implements CustomLayerInterface {
     const wy = (y - dy0) / (dy1 - dy0);
     if (wx < 0 || wx > 1 || wy < 0 || wy > 1) return null;
     const img = wd.image;
+    if (!img) return null; // Frame per setWindDataPacked angewendet — kein Quell-Image mehr vorhanden.
     const iw = (img as HTMLImageElement).naturalWidth || img.width;
     const ih = (img as HTMLImageElement).naturalHeight || img.height;
     if (!this._probeCanvas) {
@@ -641,6 +660,12 @@ export class WindLayer implements CustomLayerInterface {
     this.map = map;
     this.gl = gl;
 
+    // Upload-Format VORAB bestimmen (statt es erst als Nebeneffekt des ersten
+    // createDataTexture-Aufrufs zu erfahren) — ein off-main Wind-Blend-Worker
+    // muss wissen, in welches Format er packen soll, BEVOR er rechnet (im
+    // Worker steht kein GL-Context zur Verfügung). S. setWindDataPacked.
+    this._windTexFormat = { kind: pickWindTextureKind(gl, true) };
+
     // Adaptive governor: read device capabilities (GPU string, cores, memory,
     // DPR, pointer) to pick a starting quality tier; the runtime loop then
     // regulates from the measured frame rate. Disabled in globe/test mode.
@@ -679,6 +704,10 @@ export class WindLayer implements CustomLayerInterface {
       const { image, meta } = this._pendingWindData;
       this._pendingWindData = null;
       this.setWindData(image, meta);
+    } else if (this._pendingWindDataPacked) {
+      const { packed, width, height, meta, key } = this._pendingWindDataPacked;
+      this._pendingWindDataPacked = null;
+      this.setWindDataPacked(packed, width, height, meta, key);
     } else if (this.windPngUrl) {
       void this.loadWindData();
     }
@@ -769,6 +798,53 @@ export class WindLayer implements CustomLayerInterface {
   }
 
   /**
+   * Wendet einen bereits fertig gepackten GPU-Puffer an (Half-Float/Float/Byte,
+   * s. `packRgbaFloats` in glUtil.ts) — der Gegenpart zu `setWindData` für
+   * Frames, deren Blend+Upsample+Pack bereits OFF-MAIN (Worker) gelaufen ist,
+   * s. `windFrameAtValidTimeAsync` in iconD2WindSource.ts. Der einzige noch
+   * nötige Main-Thread-Schritt ist der `texImage2D`-Upload selbst (WebGL-Calls
+   * sind zwingend Main-Thread-only). Kein Quell-Image → `windData.image`
+   * bleibt undefined (nur der Dev-Motion-Probe braucht es, s. sampleSourceWind).
+   */
+  setWindDataPacked(
+    packed: PackedTexture,
+    width: number,
+    height: number,
+    meta: WindMeta,
+    /** Stabiler Cache-Key des Aufrufers (z. B. "stepA|stepB|frac") — erlaubt
+     *  dasselbe No-op-Dedup wie setWindData, obwohl es keine Image-Referenz
+     *  gibt, mit der man vergleichen könnte. */
+    key: string,
+  ): void {
+    const gl = this.gl;
+    if (!gl) {
+      // queue until onAdd has set up gl context (s. _pendingWindData oben —
+      // ohne das blieb der erste Frame auf Kaltstart stumm verworfen, sichtbar
+      // erst nach einem zufälligen Repaint durch einen unrelated Layer-Toggle).
+      this._pendingWindDataPacked = { packed, width, height, meta, key };
+      return;
+    }
+    const metaKey = `packed|${key}|${meta.width}x${meta.height}|${(meta.uvBounds ?? [0, 0, 1, 1]).join(',')}`;
+    if (this.windTexture && metaKey === this._lastWindMetaKey) return;
+
+    if (this.windTexture) gl.deleteTexture(this.windTexture);
+    this.windTexture = uploadPackedTexture(gl, gl.LINEAR, packed, width, height);
+
+    this.windData = {
+      ...meta,
+      width,
+      height,
+      uvBounds: meta.uvBounds ?? [0, 0, 1, 1],
+    };
+    // Kein Image-Objekt für diesen Frame → der reference-basierte Dedup in
+    // setWindData darf nicht versehentlich auf einen alten Treffer laufen.
+    this._lastWindImage = null;
+    this._lastWindMetaKey = metaKey;
+    this.clearOnNextFrame = true;
+    this.map?.triggerRepaint();
+  }
+
+  /**
    * Dekodiert das Wind-Bild zu normierten u/v-Floats (R/G in [0,1]), upsampelt
    * bilinear um `this.upsample` und glättet anschließend leicht (3×3) — so wird
    * aus dem groben Quellgitter ein kontinuierliches Feld. Liefert RGBA-Floats
@@ -786,87 +862,17 @@ export class WindLayer implements CustomLayerInterface {
     const ctx = cv.getContext('2d', { willReadFrequently: true })!;
     ctx.drawImage(image, 0, 0, sw, sh);
     const px = ctx.getImageData(0, 0, sw, sh).data;
-
-    // Quell-u/v normiert (0..1).
-    const su = new Float32Array(sw * sh);
-    const sv = new Float32Array(sw * sh);
-    for (let i = 0; i < sw * sh; i++) {
-      su[i] = px[i * 4] / 255;
-      sv[i] = px[i * 4 + 1] / 255;
-    }
-
-    const f = this.upsample;
-    const dw = sw * f;
-    const dh = sh * f;
-
-    // Bilineares Upsampling. Längengrad wrappt (zyklisch), Breitengrad geklemmt.
-    const sampleSrc = (arr: Float32Array, fx: number, fy: number): number => {
-      const gx = fx * sw - 0.5;
-      const gy = fy * sh - 0.5;
-      const x0 = Math.floor(gx);
-      const y0 = Math.floor(gy);
-      const tx = gx - x0;
-      const ty = gy - y0;
-      const wrapX = (x: number) => ((x % sw) + sw) % sw;
-      const clampY = (y: number) => Math.max(0, Math.min(sh - 1, y));
-      const x1 = wrapX(x0 + 1);
-      const x0w = wrapX(x0);
-      const y0c = clampY(y0);
-      const y1c = clampY(y0 + 1);
-      const a = arr[y0c * sw + x0w];
-      const b = arr[y0c * sw + x1];
-      const c = arr[y1c * sw + x0w];
-      const d = arr[y1c * sw + x1];
-      return (a * (1 - tx) + b * tx) * (1 - ty) + (c * (1 - tx) + d * tx) * ty;
-    };
-
-    const uu = new Float32Array(dw * dh);
-    const vv = new Float32Array(dw * dh);
-    for (let y = 0; y < dh; y++) {
-      const fy = (y + 0.5) / dh;
-      for (let x = 0; x < dw; x++) {
-        const fx = (x + 0.5) / dw;
-        const di = y * dw + x;
-        uu[di] = sampleSrc(su, fx, fy);
-        vv[di] = sampleSrc(sv, fx, fy);
-      }
-    }
-
-    // Leichte 3×3-Glättung (zyklisch in X), um Interpolations-Kanten zu brechen.
-    const smooth = (arr: Float32Array): Float32Array => {
-      const out = new Float32Array(arr.length);
-      for (let y = 0; y < dh; y++) {
-        for (let x = 0; x < dw; x++) {
-          let sum = 0;
-          let wsum = 0;
-          for (let dy = -1; dy <= 1; dy++) {
-            const yy = Math.max(0, Math.min(dh - 1, y + dy));
-            for (let dx = -1; dx <= 1; dx++) {
-              const xx = ((x + dx) % dw + dw) % dw;
-              const w = dx === 0 && dy === 0 ? 4 : (dx === 0 || dy === 0 ? 2 : 1);
-              sum += arr[yy * dw + xx] * w;
-              wsum += w;
-            }
-          }
-          out[y * dw + x] = sum / wsum;
-        }
-      }
-      return out;
-    };
-    const us = this.upsample > 1 ? smooth(uu) : uu;
-    const vs = this.upsample > 1 ? smooth(vv) : vv;
-
-    const rgba = new Float32Array(dw * dh * 4);
-    for (let i = 0; i < dw * dh; i++) {
-      rgba[i * 4] = us[i];
-      rgba[i * 4 + 1] = vs[i];
-      rgba[i * 4 + 2] = 0;
-      rgba[i * 4 + 3] = 1;
-    }
-    return { rgba, width: dw, height: dh };
+    // Der eigentliche (teure) Upsample+Glätten-Kern ist in windRefine.ts
+    // ausgelagert — DOM-frei, damit derselbe Code auch im Wind-Blend-Worker
+    // läuft (s. setWindDataPacked/windBlendRefine.ts). Hier bleibt nur die
+    // Bild→Bytes-Beschaffung, die zwingend Main-Thread-Canvas braucht.
+    return refineNormalizedUV(px, sw, sh, this.upsample);
   }
 
   private _pendingWindData: { image: HTMLImageElement | HTMLCanvasElement; meta: WindMeta } | null = null;
+  private _pendingWindDataPacked: {
+    packed: PackedTexture; width: number; height: number; meta: WindMeta; key: string;
+  } | null = null;
 
   private buildHeatmapMesh() {
     const gl = this.gl!;
@@ -1092,9 +1098,20 @@ export class WindLayer implements CustomLayerInterface {
     const prevViewport = gl.getParameter(gl.VIEWPORT) as Int32Array;
     const prevBlend = gl.getParameter(gl.BLEND) as boolean;
     const prevDepth = gl.getParameter(gl.DEPTH_TEST) as boolean;
+    const prevDepthMask = gl.getParameter(gl.DEPTH_WRITEMASK) as boolean;
     const prevStencil = gl.getParameter(gl.STENCIL_TEST) as boolean;
 
-    gl.disable(gl.DEPTH_TEST);
+    // MapLibre's Custom-Layer-Vertrag: Depth-Test bleibt AN (LEQUAL, per
+    // Default) — nur so respektiert der Heatmap/Partikel-Composite auf dem
+    // Karten-Framebuffer opake Layer, die SPÄTER in der Stack-Reihenfolge
+    // gezeichnet werden (hier: die Länder-Maske). Ein `disable(DEPTH_TEST)`
+    // unterbindet den Depth-Write komplett (WebGL-Spec), wodurch die Maske
+    // später nichts mehr zu testen hat und Wind über die Landesgrenzen hinaus
+    // durchscheint (User-Report). Die Offscreen-Compute-Pässe (Partikel-FBO)
+    // haben ohnehin keinen Depth-Attachment — depthMask(false) verhindert nur
+    // versehentliches Beschreiben des Karten-Depth-Buffers.
+    gl.enable(gl.DEPTH_TEST);
+    gl.depthMask(false);
     gl.disable(gl.STENCIL_TEST);
     gl.disable(gl.BLEND);
 
@@ -1117,7 +1134,8 @@ export class WindLayer implements CustomLayerInterface {
     gl.viewport(prevViewport[0], prevViewport[1], prevViewport[2], prevViewport[3]);
     if (prevBlend) gl.enable(gl.BLEND);
     else gl.disable(gl.BLEND);
-    if (prevDepth) gl.enable(gl.DEPTH_TEST);
+    gl.depthMask(prevDepthMask);
+    if (!prevDepth) gl.disable(gl.DEPTH_TEST);
     if (prevStencil) gl.enable(gl.STENCIL_TEST);
 
     // Nur weiter animieren, solange Partikel sichtbar sind. Bei reiner Heatmap

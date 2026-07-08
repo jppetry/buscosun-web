@@ -64,8 +64,10 @@ export function createTexture(
 }
 
 /** IEEE-754 float → half-float (Uint16) Bit-Muster. Für HALF_FLOAT-Uploads,
- *  da WebGL1 keine Float32→Half-Konvertierung beim Upload macht. */
-function floatToHalf(val: number): number {
+ *  da WebGL1 keine Float32→Half-Konvertierung beim Upload macht. Rein
+ *  arithmetisch (kein DOM/GL) → sicher auch in einem Worker aufrufbar
+ *  (s. windBlendRefine.ts). */
+export function floatToHalf(val: number): number {
   const f = new Float32Array(1);
   const i = new Int32Array(f.buffer);
   f[0] = val;
@@ -95,6 +97,95 @@ export interface DataTextureFormat {
   kind: 'half-float' | 'float' | 'byte';
 }
 
+interface WindTextureExts {
+  halfExt: ReturnType<WebGLRenderingContext['getExtension']>;
+  halfLinear: ReturnType<WebGLRenderingContext['getExtension']>;
+  floatExt: ReturnType<WebGLRenderingContext['getExtension']>;
+  floatLinear: ReturnType<WebGLRenderingContext['getExtension']>;
+}
+
+// gl.getExtension() lookups per Context cachen — createDataTexture wird bei
+// JEDEM Wind-Frame-Wechsel (Slider-Tick, Modellwechsel, Layer-Toggle) neu
+// aufgerufen; ohne Cache wären das 4 Extension-Lookups pro Aufruf statt einmalig.
+const extCache = new WeakMap<WebGLRenderingContext, WindTextureExts>();
+function getWindTextureExts(gl: WebGLRenderingContext): WindTextureExts {
+  let exts = extCache.get(gl);
+  if (!exts) {
+    exts = {
+      halfExt: gl.getExtension('OES_texture_half_float'),
+      halfLinear: gl.getExtension('OES_texture_half_float_linear'),
+      floatExt: gl.getExtension('OES_texture_float'),
+      floatLinear: gl.getExtension('OES_texture_float_linear'),
+    };
+    extCache.set(gl, exts);
+  }
+  return exts;
+}
+
+/** Welches GPU-Upload-Format für den aktuellen Context/Filter verfügbar ist —
+ *  einmal pro Context bestimmbar (s. WindLayer.onAdd), damit ein Worker VORAB
+ *  weiß, in welches Format er packen soll (kein GL im Worker verfügbar). */
+export function pickWindTextureKind(gl: WebGLRenderingContext, wantLinear: boolean): DataTextureFormat['kind'] {
+  const { halfExt, halfLinear, floatExt, floatLinear } = getWindTextureExts(gl);
+  if (halfExt && (!wantLinear || halfLinear)) return 'half-float';
+  if (floatExt && (!wantLinear || floatLinear)) return 'float';
+  return 'byte';
+}
+
+export type PackedTexture =
+  | { kind: 'half-float'; data: Uint16Array }
+  | { kind: 'float'; data: Float32Array }
+  | { kind: 'byte'; data: Uint8Array };
+
+/** Packt normierte RGBA-Floats ([0,1]) in das gewünschte GPU-Format. Rein
+ *  arithmetisch (kein DOM/GL) → im Worker aufrufbar (s. windBlendRefine.ts),
+ *  damit das teure Half-Float-Packing (ein Bit-Trick pro Float, bis zu
+ *  ~1 Mio. Elemente bei upsample 2) off-main läuft statt bei jedem
+ *  Textur-Swap auf dem Main Thread. */
+export function packRgbaFloats(rgbaFloats: Float32Array, kind: DataTextureFormat['kind']): PackedTexture {
+  if (kind === 'half-float') {
+    const half = new Uint16Array(rgbaFloats.length);
+    for (let i = 0; i < rgbaFloats.length; i++) half[i] = floatToHalf(rgbaFloats[i]);
+    return { kind, data: half };
+  }
+  if (kind === 'float') {
+    return { kind, data: rgbaFloats };
+  }
+  const bytes = new Uint8Array(rgbaFloats.length);
+  for (let i = 0; i < rgbaFloats.length; i++) {
+    bytes[i] = Math.max(0, Math.min(255, Math.round(rgbaFloats[i] * 255)));
+  }
+  return { kind: 'byte', data: bytes };
+}
+
+/** Lädt ein bereits gepacktes Datenfeld (s. `packRgbaFloats`) als Textur hoch —
+ *  der einzige GL-Aufruf, der nach einem Worker-Roundtrip noch auf dem Main
+ *  Thread nötig ist (texImage2D kann nur dort passieren). */
+export function uploadPackedTexture(
+  gl: WebGLRenderingContext,
+  filter: number,
+  packed: PackedTexture,
+  width: number,
+  height: number,
+): WebGLTexture {
+  const texture = gl.createTexture()!;
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, filter);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, filter);
+  if (packed.kind === 'half-float') {
+    const { halfExt } = getWindTextureExts(gl);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, halfExt.HALF_FLOAT_OES, packed.data);
+  } else if (packed.kind === 'float') {
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.FLOAT, packed.data);
+  } else {
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, packed.data);
+  }
+  gl.bindTexture(gl.TEXTURE_2D, null);
+  return texture;
+}
+
 /**
  * Lädt ein Float-Datenfeld (RGBA, Werte i. d. R. normiert 0..1) als Textur hoch.
  * Bevorzugt HALF_FLOAT (kontinuierliche Werte, halber Speicher), fällt auf FLOAT
@@ -110,37 +201,10 @@ export function createDataTexture(
   height: number,
   out?: DataTextureFormat,
 ): WebGLTexture {
-  const texture = gl.createTexture()!;
-  gl.bindTexture(gl.TEXTURE_2D, texture);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, filter);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, filter);
-
-  const halfExt = gl.getExtension('OES_texture_half_float');
-  const halfLinear = gl.getExtension('OES_texture_half_float_linear');
-  const floatExt = gl.getExtension('OES_texture_float');
-  const floatLinear = gl.getExtension('OES_texture_float_linear');
-  const wantLinear = filter === gl.LINEAR;
-
-  if (halfExt && (!wantLinear || halfLinear)) {
-    const half = new Uint16Array(rgbaFloats.length);
-    for (let i = 0; i < rgbaFloats.length; i++) half[i] = floatToHalf(rgbaFloats[i]);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, halfExt.HALF_FLOAT_OES, half);
-    if (out) out.kind = 'half-float';
-  } else if (floatExt && (!wantLinear || floatLinear)) {
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.FLOAT, rgbaFloats);
-    if (out) out.kind = 'float';
-  } else {
-    const bytes = new Uint8Array(rgbaFloats.length);
-    for (let i = 0; i < rgbaFloats.length; i++) {
-      bytes[i] = Math.max(0, Math.min(255, Math.round(rgbaFloats[i] * 255)));
-    }
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, bytes);
-    if (out) out.kind = 'byte';
-  }
-  gl.bindTexture(gl.TEXTURE_2D, null);
-  return texture;
+  const kind = pickWindTextureKind(gl, filter === gl.LINEAR);
+  const packed = packRgbaFloats(rgbaFloats, kind);
+  if (out) out.kind = packed.kind;
+  return uploadPackedTexture(gl, filter, packed, width, height);
 }
 
 export function bindTexture(gl: WebGLRenderingContext, texture: WebGLTexture, unit: number) {

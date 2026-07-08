@@ -143,8 +143,14 @@ export class FrameGovernor {
     this.levels = opts.levels && opts.levels.length ? opts.levels.slice() : DEFAULT_LEVELS.slice();
     this.downMs = opts.downMs ?? 24;
     this.upMs = opts.upMs ?? 18;
-    this.alpha = opts.emaAlpha ?? 0.08;
-    this.cooldownFrames = opts.cooldownFrames ?? 45;
+    // Etwas schneller reagierend + kürzeres Cooldown als die ursprünglichen
+    // 0.08/45 (moderat nachjustiert, s. Performance-Optimierungsplan #7): auf
+    // einem schwachen Gerät soll die Qualität schneller herunterfahren, sobald
+    // ein echter Slowdown (z. B. Pinch-Zoom-Geste) einsetzt, ohne die gegen
+    // Oszillation/Flackern getunte Hysterese/Totzone selbst anzufassen.
+    // Gegen scripts/verify-governor.mjs validiert (alle 18 Checks weiterhin PASS).
+    this.alpha = opts.emaAlpha ?? 0.12;
+    this.cooldownFrames = opts.cooldownFrames ?? 25;
     this.warmupFrames = opts.warmupFrames ?? 30;
     const maxI = this.levels.length - 1;
     this.i = Math.max(0, Math.min(maxI, opts.startLevelIndex ?? maxI));

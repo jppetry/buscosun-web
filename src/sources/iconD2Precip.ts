@@ -19,8 +19,9 @@
  */
 
 import { decompress } from './decompress';
-import { precipToU8, type QuadCorners } from '../scalar/RainLayer';
-import { decodeGrib2, gribCorners, type GribField } from './gribDecode';
+import type { QuadCorners } from '../scalar/RainLayer';
+import { decodeGrib2, type GribField } from './gribDecode';
+import { decodeGridStep, type GridToU8Kind, type DecodedGridStep } from './gribGridDecode';
 
 // Reiner GRIB2-Decoder lebt jetzt in ./gribDecode (browser-unabhängig, headless
 // gegen eccodes verifizierbar). Re-Export hält bestehende Importpfade stabil
@@ -230,21 +231,101 @@ export interface IconD2GridOptions {
   /** true: akkumuliertes Feld → Differenz aufeinanderfolgender Schritte (Niederschlag).
    *  false: instantanes Feld, jeder Schritt ist ein Frame (Bewölkung). */
   accumulate: boolean;
-  /** Physikalischer Zellwert → Uint8 (precipToU8 / cloudToU8). */
-  toU8: (value: number) => number;
+  /** Physikalischer Zellwert → Uint8 (precipToU8 / cloudToU8 / capeToU8) —
+   *  Diskriminator statt Callback, da Funktionen nicht in den Worker klonbar sind. */
+  kind: GridToU8Kind;
   /** Optionaler Horizont-Cap in Stunden (z.B. Wolken: 27). */
   maxStep?: number;
 }
 
 const FETCH_CONCURRENCY = 6;
 
+// ---------------------------------------------------------------------------
+// Grid-Decode-Pool: GRIB2-Decode + Diff/Quantisierung (s. gribGridDecode.ts)
+// laufen off-main im gribGridWorker — vorher blockierte das kumuliert
+// ~1,5-2,5 s Main Thread über die ~27 Schritte eines Laufs (4×-CPU-Throttle,
+// gemessen), TROTZ eines Main-Thread-Yields pro Konsumenten-Schritt: mehrere
+// Fetches lösen dank FETCH_CONCURRENCY oft im selben Tick auf, ihre
+// Decode-Callbacks liefen dann als Mikrotask-Kette VOR dem nächsten Yield.
+// Fällt bei fehlendem/abgestürztem Worker transparent auf denselben Code
+// zurück (gleiches Muster wie decompress.ts/windFrameWorker/radolanWorker).
+// ---------------------------------------------------------------------------
+interface GgMsg {
+  id: number; ok: boolean; error?: string;
+  valuesBuf?: ArrayBuffer; width?: number; height?: number; rawBuf?: ArrayBuffer;
+  corners?: [[number, number], [number, number], [number, number], [number, number]];
+}
+const GG_POOL_SIZE = Math.max(1, Math.min((navigator.hardwareConcurrency || 2) - 1, 3));
+let ggWorkers: Worker[] = [];
+let ggUsable = true, ggInited = false, ggRr = 0, ggNextId = 1;
+const ggPending = new Map<number, { resolve: (r: DecodedGridStep) => void; reject: (e: Error) => void }>();
+
+function ggInit(): void {
+  if (ggInited) return;
+  ggInited = true;
+  try {
+    for (let i = 0; i < GG_POOL_SIZE; i++) {
+      const w = new Worker(new URL('./gribGridWorker.ts', import.meta.url), { type: 'module' });
+      w.onmessage = (e: MessageEvent<GgMsg>) => {
+        const d = e.data;
+        const p = ggPending.get(d.id);
+        if (!p) return;
+        ggPending.delete(d.id);
+        if (d.ok && d.valuesBuf && d.rawBuf && d.corners) {
+          p.resolve({
+            values: new Uint8Array(d.valuesBuf), width: d.width!, height: d.height!,
+            rawValues: new Float32Array(d.rawBuf), corners: d.corners,
+          });
+        } else {
+          p.reject(new Error(d.error || 'grib grid worker error'));
+        }
+      };
+      w.onerror = () => {
+        ggUsable = false;
+        for (const [id, p] of ggPending) { ggPending.delete(id); p.reject(new Error('grib grid worker crashed')); }
+      };
+      ggWorkers.push(w);
+    }
+  } catch {
+    ggUsable = false;
+    ggWorkers = [];
+  }
+}
+
+async function decodeGridStepOffMain(
+  bytes: Uint8Array,
+  refRawValues: Float32Array | null,
+  accumulate: boolean,
+  kind: GridToU8Kind,
+): Promise<DecodedGridStep> {
+  ggInit();
+  if (!ggUsable || ggWorkers.length === 0) return decodeGridStep(bytes, refRawValues, accumulate, kind);
+  const w = ggWorkers[ggRr++ % ggWorkers.length];
+  const id = ggNextId++;
+  try {
+    return await new Promise<DecodedGridStep>((resolve, reject) => {
+      ggPending.set(id, { resolve, reject });
+      const bytesBuf = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+      const refBuf = refRawValues
+        ? refRawValues.buffer.slice(refRawValues.byteOffset, refRawValues.byteOffset + refRawValues.byteLength)
+        : null;
+      const transfer: Transferable[] = refBuf ? [bytesBuf, refBuf] : [bytesBuf];
+      w.postMessage({ id, bytesBuf, refBuf, accumulate, kind }, transfer);
+    });
+  } catch (err) {
+    ggPending.delete(id);
+    return decodeGridStep(bytes, refRawValues, accumulate, kind);
+  }
+}
+
 /**
  * Generischer ICON-D2-Gitter-Loader. Lädt die Schritte des jüngsten Laufs
  * **parallel** (begrenzte Concurrency; bz2-Decompress läuft im Worker-Pool),
- * dekodiert in Schritt-Reihenfolge und baut kompakte Uint8-Werte-Grids. Statt
- * strikt sequenziell (≈ 154 ms Fetch × N) überlappen Fetch/Decompress/Decode →
- * Vielfaches schneller. Speicher-schonend: nie mehr als ~Concurrency Felder
- * gleichzeitig (für Akkumulation zusätzlich das Vorgängerfeld).
+ * dekodiert off-main (Grid-Decode-Pool, s.o.) in Schritt-Reihenfolge und baut
+ * kompakte Uint8-Werte-Grids. Statt strikt sequenziell (≈ 154 ms Fetch × N)
+ * überlappen Fetch/Decompress/Decode → Vielfaches schneller. Speicher-schonend:
+ * nie mehr als ~Concurrency Felder gleichzeitig (für Akkumulation zusätzlich
+ * das rohe Vorgängerfeld).
  *
  * `onProgress` feuert pro fertigem Frame, damit der Slider den nahen Horizont
  * sofort nutzen kann, während ferne Schritte noch laden.
@@ -264,65 +345,53 @@ export async function fetchIconD2Grid(
   const frames: IconD2Frame[] = [];
   let corners: QuadCorners | null = null;
 
-  // Producer: hält bis FETCH_CONCURRENCY Fetches in der Luft, legt dekodierte
-  // Felder (oder null bei Fehler) nach Schritt ab.
-  const fieldByStep = new Map<number, GribField | null>();
+  // Producer: hält bis FETCH_CONCURRENCY Fetches in der Luft, legt die
+  // ENTPACKTEN (noch undekodierten) Bytes nach Schritt ab — der Decode selbst
+  // passiert erst im Konsumenten, off-main (s. decodeGridStepOffMain).
+  const bytesByStep = new Map<number, Uint8Array | null>();
   const inflight = new Map<number, Promise<void>>();
   let fetchPtr = 0;
   const pump = () => {
     while (inflight.size < FETCH_CONCURRENCY && fetchPtr < steps.length) {
       const step = steps[fetchPtr++];
-      const p = fetchStepField(runStr, param, step, signal)
-        .then((f) => { fieldByStep.set(step, f); }, () => { fieldByStep.set(step, null); })
+      const p = fetchStepBytes(runStr, param, step, signal)
+        .then((b) => { bytesByStep.set(step, b); }, () => { bytesByStep.set(step, null); })
         .finally(() => { inflight.delete(step); });
       inflight.set(step, p);
     }
   };
 
-  const toValues = (field: GribField, ref: GribField | null): Uint8Array => {
-    const { ni, nj, values: cur } = field;
-    const out = new Uint8Array(ni * nj);
-    for (let j = 0; j < nj; j++) {
-      const dst = (nj - 1 - j) * ni; // S→N → north-up
-      const src = j * ni;
-      for (let i = 0; i < ni; i++) {
-        const raw = opts.accumulate
-          ? Math.max(0, cur[src + i] - (ref ? ref.values[src + i] : 0))
-          : cur[src + i];
-        out[dst + i] = opts.toU8(raw);
-      }
-    }
-    return out;
-  };
-
   // Consumer: in Schritt-Reihenfolge (für die Akkumulations-Differenz nötig).
-  let prevField: GribField | null = null;
+  let prevRawValues: Float32Array | null = null;
   for (const step of steps) {
     pump();
-    while (!fieldByStep.has(step) && inflight.size > 0) {
+    while (!bytesByStep.has(step) && inflight.size > 0) {
       await Promise.race(inflight.values());
       pump();
     }
-    const field = fieldByStep.get(step) ?? null;
-    fieldByStep.delete(step);
+    const bytes = bytesByStep.get(step) ?? null;
+    bytesByStep.delete(step);
 
-    if (field) {
-      if (!corners) corners = gribCorners(field);
+    if (bytes) {
+      const decoded = await decodeGridStepOffMain(
+        bytes, opts.accumulate ? prevRawValues : null, opts.accumulate, opts.kind,
+      );
+      if (!corners) corners = decoded.corners;
       if (opts.accumulate) {
-        if (prevField && step > 0) {
+        if (prevRawValues && step > 0) {
           frames.push({
             validAt: new Date(runAt.getTime() + step * 3600_000),
-            stepHours: step, values: toValues(field, prevField),
-            width: field.ni, height: field.nj,
+            stepHours: step, values: decoded.values,
+            width: decoded.width, height: decoded.height,
           });
           if (onProgress && corners) onProgress({ runAt, frames: [...frames], corners });
         }
-        prevField = field;
+        prevRawValues = decoded.rawValues;
       } else {
         frames.push({
           validAt: new Date(runAt.getTime() + step * 3600_000),
-          stepHours: step, values: toValues(field, null),
-          width: field.ni, height: field.nj,
+          stepHours: step, values: decoded.values,
+          width: decoded.width, height: decoded.height,
         });
         if (onProgress && corners) onProgress({ runAt, frames: [...frames], corners });
       }
@@ -344,5 +413,5 @@ export function fetchIconD2Precip(
   signal?: AbortSignal,
   onProgress?: (partial: IconD2Precip) => void,
 ): Promise<IconD2Precip> {
-  return fetchIconD2Grid('tot_prec', { accumulate: true, toU8: precipToU8, maxStep: 27 }, signal, onProgress);
+  return fetchIconD2Grid('tot_prec', { accumulate: true, kind: 'precip', maxStep: 27 }, signal, onProgress);
 }

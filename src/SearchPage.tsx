@@ -62,6 +62,13 @@ export default function SearchPage({ onSelect, onOpenFeature }: Props) {
   // Erstpaint. Idle-geplant, damit es die Hero-Karte nicht verdrängt; auf Touch-
   // Geräten (keine Hero-Karte) wird so maplibre-gl überhaupt erst vorgewärmt.
   useEffect(() => {
+    // Auf langsamen/getakteten Verbindungen NICHT vorwärmen — der Chunk-Download
+    // (maplibre-gl u. a.) würde dort echte Bandbreite kosten, die der Nutzer
+    // evtl. dringender fürs eigentliche Ziel braucht, falls er die Karte am
+    // Ende gar nicht öffnet. `connection` ist Chromium-only; ohne API (Safari/
+    // Firefox) unverändert vorwärmen wie bisher.
+    const conn = (navigator as unknown as { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
+    if (conn?.saveData || conn?.effectiveType === 'slow-2g' || conn?.effectiveType === '2g') return;
     const ric: (cb: () => void) => number =
       typeof window.requestIdleCallback === 'function'
         ? (cb) => window.requestIdleCallback(cb, { timeout: 3000 })
