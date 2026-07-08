@@ -236,14 +236,20 @@ export async function fetchIconD2Wind(
   };
 
   // SPECULATIVE near-step fetch (0…SPEC_STEPS-1). Filenames are deterministic for
-  // the current 3 h cycle, so we fetch them in PARALLEL with the (~1.9 s)
-  // directory-listing resolution instead of AFTER it — removing the dir-listing
-  // wait from the near-horizon cold-start path. On a guess miss (only at a cycle
-  // boundary, when the newest cycle isn't a full run yet) the speculative frames
-  // are discarded and reloaded from the resolved run — never worse than before,
-  // at the cost of a few wasted requests in that window.
+  // a 3 h cycle, so we fetch them in PARALLEL with the (~1.9 s) directory-listing
+  // resolution instead of AFTER it — removing the dir-listing wait from the
+  // near-horizon cold-start path.
+  // Guess = current 3h-bucket MINUS one extra cycle (i.e. the PREVIOUS bucket),
+  // not the current one: ICON-D2 needs ~3-3.5 h from reference time to actually
+  // land on opendata.dwd.de (measured: the 12z run was fully published by
+  // 15:31 UTC, the 15z run wasn't even started yet) — guessing the current
+  // bucket is therefore wrong for most of every cycle, not just "at the
+  // boundary", and produced a console-visible 404 burst on every cold load
+  // (User-Report). On a guess miss the speculative frames are discarded and
+  // reloaded from the resolved run — never worse than before, at the cost of
+  // a few wasted (successful, non-404) requests.
   const p2 = (n: number) => String(n).padStart(2, '0');
-  const g = new Date(); g.setUTCMinutes(0, 0, 0); g.setUTCHours(g.getUTCHours() - (g.getUTCHours() % 3));
+  const g = new Date(); g.setUTCMinutes(0, 0, 0); g.setUTCHours(g.getUTCHours() - (g.getUTCHours() % 3) - 3);
   const guessRunStr = `${g.getUTCFullYear()}${p2(g.getUTCMonth() + 1)}${p2(g.getUTCDate())}${p2(g.getUTCHours())}`;
   const specSteps = Array.from({ length: SPEC_STEPS }, (_, i) => i);
   const specDone = Promise.all(specSteps.map((s) => loadStep(guessRunStr, g, s)));
