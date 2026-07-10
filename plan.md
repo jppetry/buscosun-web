@@ -40,6 +40,32 @@ Jede Phase folgt dem Zyklus **Diagnose → Plan → Implement → Verify → Gat
 
 ---
 
+## Phase 1-C — Wetterkarte Mobile-Redesign „Variante C" (Gate G1-C)
+
+**Auslöser:** Jan wollte eine hochprofessionelle Mobilansicht der 2D-Wetterkarte und hat aus drei ausgearbeiteten Layout-Varianten **Variante C** gewählt: **ein** Bottom-Sheet mit Segment-Umschalter `Layer · Modell · Vorhersage`, Karte vollflächig, drei Snap-Zustände (collapsed / half / full).
+
+**Bewusste Abweichung ggü. dem §8-Follow-up:** Variante C führt die zwei getrennten „Layer"/„Modell"-FABs wieder in ein Sheet zusammen und integriert die Punkt-Vorhersage als drittes Segment (vereinheitlicht die heute zwei getrennten Sheet-Systeme `.map-sheet` + `.pfc-body`). Von Jan mit der Wahl von Variante C freigegeben — im Audit als gewollte Änderung, nicht als Regression, dokumentieren.
+
+**Verbindliche Umsetzungs-Spezifikation:** `audit/mockups/wetterkarte-c-spec.md` (Ist-Code-Mapping, Ziel-State `sheetSnap`/`sheetSegment`, Zustandsautomat, Maße/Tokens, Segment-Inhalte, Motion-Vorgabe `transform` statt `max-height`, CSS-Aufräumauftrag, 13-Punkte-Preservation-Contract, Verifikationsprotokoll). **Diese Datei ist die maßgebliche Vorgabe — die Punkte unten sind nur die Kurzfassung.**
+
+**Visuelle Referenz-Mockups (echte Tokens, iPhone 12 Pro 390×844):**
+- `audit/mockups/wetterkarte-mobile.html` — Varianten-Vergleich A/B/C (Entscheidungsgrundlage).
+- `audit/mockups/wetterkarte-c-detail.html` — fünf Zielzustände Z1–Z5 (collapsed, half·Layer, full·Layer-Wind-expandiert, half·Modell, half·Vorhersage).
+
+**Diagnose-First gilt unverändert:** Vor Code erst den Ist-Stand gegen die Spec prüfen und Abweichungen/Risiken (v. a. PFC-Integration, §9 der Spec) in `audit/wetterkarte.md` (neuer Abschnitt §9/„Variante C") festhalten.
+
+**Kern-Maßnahmen (Kurzfassung, Details in der Spec):**
+1. State-Umbau: `mobileSheet` → `sheetSnap: 'collapsed'|'half'|'full'` + `sheetSegment: 'layer'|'model'|'fc'`; Sheet **persistent** gerendert; Karte zurück auf `inset:0`; alte FABs/`.mobile-dock-*` entfernen.
+2. Segment-Control (`Layer · Modell · Vorhersage`) + Chip-Strip im collapsed-Zustand (aktive Layer + Modell-Badge).
+3. Segment-Inhalte umziehen (kein Funktionsverlust): Layer-Liste + Feinsteuerung (Wind/Sat), `ModelSwitcher variant="sheet"` inkl. Radar-Toggle, Punkt-Vorhersage als Segment `fc` (nur Location-Modus).
+4. Motion über `transform: translateY()` (behebt CLS-0.68-Beobachtung), Scrim nur im full-Zustand.
+5. CSS-Konsolidierung: die zwei doppelten Mobile-Media-Queries (`MapView.css:1412`/`:1638`) zusammenführen, tote `.left-rails`-Mobilregeln entfernen; sichtbare Legende-Kapsel statt `.map-legends{display:none}`.
+
+**Verify:** tests.md → V-ALL + V-WETTERKARTE, plus Spec §13 (Touch-Audit, `scrollWidth≤390`, Funktionsliste §12, Konsole, Performance-Trace mit CLS≈0, Desktop-Diff pixelgleich, Landscape 844×390, Vorher/Nachher-Screenshots aller fünf Zustände).
+**Gate G1-C:** Alle 13 Preservation-Punkte erreichbar, drei Snap-Zustände + Segment-Wechsel flüssig, Desktop unverändert, keine neuen Konsolenfehler, kein Long Task > 200 ms.
+
+---
+
 ## Phase 2 — Regenradar (Gate G2)
 
 **Diagnose-Fokus:** Timeline/Scrubber-Bedienung mit Daumen, Frame-Wechsel-Performance, Nowcast-Ladeverhalten auf simuliertem Mobilnetz.
@@ -85,15 +111,20 @@ Jede Phase folgt dem Zyklus **Diagnose → Plan → Implement → Verify → Gat
 
 ## Phase 5 — Event-Planung (Gate G5)
 
-**Diagnose-Fokus:** Formulareingaben (Ort, Datum/Zeitraum), Ergebnisdarstellung Best-Day-Ranking.
+**Reihenfolge-Ausnahme (2026-07-08):** Jan hat diese Phase bewusst vor Abschluss von Phase 2–4 vorgezogen. Explizite Freigabe, siehe `context.md` Session-Log. Phase 2–4 bleiben offen und werden danach in ursprünglicher Reihenfolge nachgeholt.
 
-**Erwartete Maßnahmen (Hypothese):**
-- Formularfelder: `font-size ≥ 16px`, passende `inputmode`, native Date-Picker nutzen.
-- Ergebnisliste als Karten-Stapel mit klarer Best-Day-Hervorhebung.
-- Mehrschritt-Eingabe ggf. als vertikaler Flow statt Nebeneinander.
+**Zusätzlicher Auftrag von Jan:** Mehrschritt-Formular auf Mobile — Eingaben (Ort, Anlass, Zeitraum/Datum, ggf. weitere Parameter) werden auf **getrennte Seiten/Schritte** aufgeteilt statt auf einer einzigen überladenen Seite, damit der Nutzer auf Mobile nicht überfordert wird. Wird Teil der Diagnose/Plan-Maßnahmenliste unten.
 
-**Verify:** V-ALL + V-EVENT.
-**Gate G5:** Kompletter Flow Eingabe → Ergebnis auf 390 px ohne Zoom-Zwang durchführbar.
+**Diagnose-Ergebnis (siehe `audit/event.md`):** Schritt 1 (Ort) ist bereits eine eigene Seite. Danach folgen alle 4 verbleibenden Abschnitte (Anlass, Zeitfenster, Phasen, Plan B) gestapelt auf einer einzigen ~3–3,5-Bildschirmlängen-Seite — das ist die Ursache der von Jan beschriebenen Überforderung. Zusätzlich: 4 Formularfelder mit `font-size` < 16px (iOS-Auto-Zoom-Risiko), 24/36 interaktive Elemente unter 44×44px.
+
+**Umzusetzende Maßnahmen:**
+1. **Mobile Multi-Step-Wizard** (nur `useIsMobile()`, Desktop unverändert einspaltig wie bisher): nach Ortswahl je ein Schritt für Anlass → Zeitfenster → Phasen → Plan B (inkl. finalem CTA). Fortschrittsanzeige („Schritt 2 von 4 · Anlass") + sticky Back/Weiter-Fußzeile (safe-area-gepolstert). „Weiter" pro Schritt gated durch vorhandene Validierung (`isWindowValid`, Phasen-Hours-Check); Plan B bleibt optional, letzter Schritt zeigt den bestehenden CTA statt „Weiter". Zusammenfassungs-Kacheln (`ev-tiles`) bleiben auf jedem Schritt sichtbar als Kontext.
+2. Formularfelder auf `font-size: 16px` anheben (`.ev-date`, `.ev-phase-name`, `.ev-tune-hr`, `.ev-phase-hr`) — scope-isoliert in der mobilen Media-Query, kein Effekt auf Desktop-Optik.
+3. Touch-Targets ≥ 44px für: `.ev-loc-change`, `.ev-seg-btn`, `.ev-preset-btn`, `.ev-phase-name`, `.ev-phase-hr`, `.ev-tune-hr`, `.ev-add-btn.ev-phase-add` — ebenfalls nur in der mobilen Media-Query.
+4. Explizit nicht umgesetzt: `EventResult`/Ergebnisdarstellung (Best-Day-Ranking) wird in dieser Runde nicht angefasst — Fokus ist der Eingabe-Flow, wie von Jan gewünscht; Ergebnis-Mobile-Check kann als Nachtrag folgen, falls gewünscht.
+
+**Verify:** V-ALL + V-EVENT — kompletter Wizard-Durchlauf (alle 4 Schritte + Zurück-Navigation + Validierungs-Gates), Desktop-Diff (Screenshot 1440×900 unverändert), Konsole sauber.
+**Gate G5:** Kompletter Flow Eingabe → Ergebnis auf 390 px ohne Zoom-Zwang durchführbar, jeder Schritt einzeln erreichbar/verlassbar, kein Informationsverlust ggü. der bisherigen Einzelseite.
 
 ---
 

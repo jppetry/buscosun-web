@@ -26,6 +26,7 @@ import { PointForecastPanel } from './pointForecast/PointForecastPanel';
 import { DACH_CITIES, TemperatureSampler, minZoomForRank, saveTempLabelCache, loadTempLabelCache, tempLabelColor, type TemperatureSamplerOptions, type City } from './temperatureLabels';
 import { LayerIcon } from './components/LayerIcon';
 import { LayerInfoPanel } from './components/LayerInfoPanel';
+import { useMediaQuery } from './mobile/useIsMobile';
 import {
   SATELLITE_PRODUCTS,
   satelliteSourceMeta,
@@ -228,6 +229,32 @@ const MODEL_ID_TO_CHOICE: Partial<Record<ModelId, ModelChoice>> = {
   'icon-eu': 'icon-eu', gfs: 'gfs', ifs: 'ifs', aifs: 'aifs', 'aifs-ens': 'aifs-ens',
   'icon-global': 'icon-global', aicon: 'aicon', arpege: 'arpege',
 };
+
+/** JS-Pendant zur Mobile-Media-Query in MapView.css — MUSS deckungsgleich
+ *  bleiben, sonst weichen Render-Ort (JSX) und Darstellung (CSS) voneinander
+ *  ab (z. B. Landscape 844×390). Steuert nur den Render-Ort des Punkt-
+ *  Forecasts (Desktop-Panel vs. „Vorhersage"-Segment im Sheet). */
+const MOBILE_MAP_MEDIA_QUERY = '(max-width: 767px), (max-height: 430px) and (orientation: landscape)';
+
+/** Akzentfarben der Layer-Chips im collapsed Chip-Strip (Variante C) —
+ *  wiederverwendete Kartenfarben (precipRamp/temperatureRamp/Legenden),
+ *  keine neuen Design-Tokens. */
+const LAYER_CHIP_DOT: Record<LayerKey, string> = {
+  wind: '#7aaafa',
+  gust: '#5b8ed6',
+  nowcast: 'rgb(45, 130, 215)',
+  temp: 'rgb(232, 176, 74)',
+  clouds: '#9aa3ad',
+  sat: '#8b7355',
+  lightning: '#e8c14a',
+  stations: '#c97b47',
+  confidence: '#a89a7a',
+  snowline: '#1f4fd0',
+  flownowcast: '#46a5b8',
+  poprob: 'rgb(112, 70, 198)',
+};
+
+const COUNTRY_FLAG = { DE: '🇩🇪', AT: '🇦🇹', CH: '🇨🇭' } as const;
 
 const SAT_PRODUCT_LABELS: Record<SatelliteProduct, string> = {
   eu_rgb: 'EU',
@@ -2340,39 +2367,55 @@ export default function MapView({ location, onBack, embedded = false, initialAct
   }, [embedded, location, active, forecastHour]);
 
 
-  // Mobile (<768px): die linke Rail + Wind-/Legenden-/Badge-Overlays werden in
-  // zwei gebündelte Bottom-Sheets umgeschichtet — „Layer & Daten" und „Modell"
-  // (Informationserhalt + Touch-Targets ≥44px + Hover→Tap). Desktop/Tablet
-  // bleiben unberührt. Zwei getrennte FABs statt eines kombinierten (Follow-up
-  // nach Gate G1, audit/wetterkarte.md §8).
-  const [mobileSheet, setMobileSheet] = useState<'layer' | 'model' | null>(null);
+  // Mobile (<768px / kurzes Landscape): EIN persistentes Bottom-Sheet mit
+  // Segment-Umschalter „Layer · Modell · Vorhersage" und drei Snap-Zuständen
+  // collapsed/half/full (Variante C, audit/mockups/wetterkarte-c-spec.md).
+  // Führt die zwei getrennten FABs des §8-Follow-ups bewusst wieder zusammen —
+  // von Jan freigegeben (plan.md Phase 1-C). Desktop/Tablet bleiben unberührt
+  // (Sheet dort per CSS ausgeblendet).
+  type SheetSnap = 'collapsed' | 'half' | 'full';
+  type SheetSegment = 'layer' | 'model' | 'fc';
+  const [sheetSnap, setSheetSnap] = useState<SheetSnap>('collapsed');
+  const [sheetSegment, setSheetSegment] = useState<SheetSegment>('layer');
   const [sheetExpanded, setSheetExpanded] = useState<LayerKey | null>(null);
-  // Snap-Zustand des mobilen Sheets: half = Karte bleibt sichtbar/bedienbar
-  // dahinter (mobile-design-guidelines.md §2), full = klassischer Modal-Scrim.
-  // Der dritte Referenz-Zustand "collapsed" wird durch den Layer-FAB abgedeckt
-  // (siehe audit/wetterkarte.md §4.2 für die Begründung dieser Abweichung).
-  const [sheetSnap, setSheetSnap] = useState<'half' | 'full'>('half');
-  const sheetDragRef = useRef<{ startY: number; startSnap: 'half' | 'full' } | null>(null);
+  // Render-Ort des Punkt-Forecasts: Desktop-Panel vs. „Vorhersage"-Segment.
+  // Per JS-Media-Query entschieden, weil die Komponente beim Mount fetcht
+  // (Punktforecast + Alerts + Pollen) und deshalb nie doppelt existieren darf.
+  const isMobileMap = useMediaQuery(MOBILE_MAP_MEDIA_QUERY);
+
+  const sheetDragRef = useRef<{ startY: number; startSnap: SheetSnap; moved: boolean } | null>(null);
 
   const onSheetGrabPointerDown = (e: React.PointerEvent) => {
     const startY = e.clientY;
-    sheetDragRef.current = { startY, startSnap: sheetSnap };
+    const startSnap = sheetSnap;
+    sheetDragRef.current = { startY, startSnap, moved: false };
+    const snapUp: Record<SheetSnap, SheetSnap> = { collapsed: 'half', half: 'full', full: 'full' };
+    const snapDown: Record<SheetSnap, SheetSnap> = { full: 'half', half: 'collapsed', collapsed: 'collapsed' };
     const onMove = (ev: PointerEvent) => {
-      const delta = startY - ev.clientY;
-      if (delta > 40) setSheetSnap('full');
-      else if (delta < -40) setSheetSnap('half');
+      const drag = sheetDragRef.current;
+      if (!drag) return;
+      const delta = drag.startY - ev.clientY;                    // hoch = positiv
+      if (Math.abs(delta) > 8) drag.moved = true;
+      if (delta > 220) setSheetSnap('full');                     // langer Zug: zwei Stufen
+      else if (delta > 40) setSheetSnap(snapUp[drag.startSnap]);
+      else if (delta < -220) setSheetSnap('collapsed');
+      else if (delta < -40) setSheetSnap(snapDown[drag.startSnap]);
+      else setSheetSnap(drag.startSnap);
     };
     const onUp = () => {
       document.removeEventListener('pointermove', onMove);
       document.removeEventListener('pointerup', onUp);
+      const drag = sheetDragRef.current;
       sheetDragRef.current = null;
+      // Tap (kein Zug) auf den Kopfbereich öffnet aus collapsed nach half.
+      if (drag && !drag.moved && drag.startSnap === 'collapsed') setSheetSnap('half');
     };
     document.addEventListener('pointermove', onMove);
     document.addEventListener('pointerup', onUp);
   };
 
   return (
-    <div className={`map-view${embedded ? ' map-view-embedded' : ''}`}>
+    <div className={`map-view${embedded ? ' map-view-embedded' : ` map-sheet-snap-${sheetSnap}`}`}>
       <div className="map-topbar">
         {!embedded && (
           <button className="back-btn" onClick={onBack} type="button" aria-label="Zurück zur Suche">
@@ -2612,7 +2655,10 @@ export default function MapView({ location, onBack, embedded = false, initialAct
         </div>
       )}
 
-      {!embedded && !overview && (
+      {/* Punkt-Forecast: auf Desktop/Tablet als eigenes Panel rechts; auf
+          Mobile stattdessen im „Vorhersage"-Segment des Sheets (unten) —
+          nie beides, die Komponente fetcht beim Mount (Spec §9). */}
+      {!embedded && !overview && !isMobileMap && (
         <PointForecastPanel
           lat={location.lat}
           lng={location.lon}
@@ -2622,53 +2668,86 @@ export default function MapView({ location, onBack, embedded = false, initialAct
         />
       )}
 
-      {/* ===== Mobile-Dock + Layer-/Modell-Sheets (<768px; per CSS) ============
-          Zwei getrennte, klar beschriftete FABs — „Layer" und „Modell" —
-          öffnen je ein eigenes Bottom-Sheet (Follow-up nach Gate G1,
-          audit/wetterkarte.md §8, statt des vorherigen kombinierten FABs).
-          Touch-tauglich, Hover-Infos als Tap-Disclosure. Auf Desktop/Tablet
-          ist das Dock/Sheet per CSS ausgeblendet. */}
+      {/* ===== Mobiles Bottom-Sheet „Variante C" (<768px; per CSS) ============
+          EIN persistentes Sheet mit drei Snap-Zuständen (collapsed = Griff +
+          Chip-Strip, half/full = Segment-Control + Body) und Segmenten
+          „Layer · Modell · Vorhersage" (Spec: audit/mockups/wetterkarte-c-
+          spec.md). Auf Desktop/Tablet per CSS ausgeblendet. */}
       {!embedded && (
         <>
-          <div className="mobile-dock-fabs">
-            <button
-              type="button"
-              className="map-layer-fab"
-              onClick={() => { setSheetSnap('half'); setMobileSheet('layer'); }}
-              aria-label="Layer öffnen"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <polygon points="12,3 22,8.5 12,14 2,8.5" /><polyline points="2,13 12,18.5 22,13" /><polyline points="2,17.5 12,23 22,17.5" />
-              </svg>
-              <span>Layer</span>
-            </button>
-            <button
-              type="button"
-              className="map-model-fab"
-              onClick={() => { setSheetSnap('half'); setMobileSheet('model'); }}
-              aria-label="Modell öffnen"
-            >
-              <span aria-hidden="true">{({ DE: '🇩🇪', AT: '🇦🇹', CH: '🇨🇭' } as const)[location.country]}</span>
-              <span>Modell</span>
-            </button>
-          </div>
+          <div
+            className={`map-sheet-scrim map-sheet-scrim-${sheetSnap}`}
+            onClick={sheetSnap === 'full' ? () => setSheetSnap('half') : undefined}
+          />
+          <aside
+            className={`map-sheet map-sheet-${sheetSnap}`}
+            role="dialog"
+            aria-modal={sheetSnap === 'full'}
+            aria-label="Karten-Steuerung"
+          >
+            {/* Drag-Fläche = ganzer Kopfbereich (Griff + Chip-Strip bzw.
+                Segment-Control), nicht nur die 5px-Griffleiste (≥44px-Ziel). */}
+            <div className="map-sheet-top" onPointerDown={onSheetGrabPointerDown}>
+              <div className="map-sheet-grab" aria-hidden="true" />
 
-          {mobileSheet && (
-            <>
-              <div
-                className={`map-sheet-scrim map-sheet-scrim-${sheetSnap}`}
-                onClick={sheetSnap === 'full' ? () => setMobileSheet(null) : undefined}
-              />
-              <aside className={`map-sheet map-sheet-${sheetSnap}`} role="dialog" aria-modal={sheetSnap === 'full'} aria-label={mobileSheet === 'layer' ? 'Layer und Daten' : 'Modell'}>
-                <div className="map-sheet-grab" aria-hidden="true" />
-                <header className="map-sheet-head" onPointerDown={onSheetGrabPointerDown}>
-                  <span className="eyebrow">{mobileSheet === 'layer' ? 'Layer & Daten' : 'Modell'}</span>
-                  <button type="button" className="map-sheet-close" onClick={() => setMobileSheet(null)} aria-label="Schließen">
-                    <svg width="16" height="16" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 3 L11 11 M11 3 L3 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
+              {sheetSnap === 'collapsed' ? (
+                <div className="map-chip-strip" aria-label="Aktive Layer und Modell">
+                  {LAYER_OPTIONS.filter(o => active.has(o.key)).map(o => (
+                    <button
+                      key={o.key}
+                      type="button"
+                      className="map-chip is-on"
+                      onClick={() => { setSheetSegment('layer'); setSheetSnap('half'); }}
+                    >
+                      <span className="map-chip-dot" style={{ background: LAYER_CHIP_DOT[o.key] }} aria-hidden="true" />
+                      {o.label}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    className="map-chip"
+                    onClick={() => { setSheetSegment('model'); setSheetSnap('half'); }}
+                  >
+                    <span aria-hidden="true">{COUNTRY_FLAG[location.country]}</span>{' '}
+                    {modelEntry(activeModelId(modelSource))?.name ?? 'Modell'}
                   </button>
-                </header>
+                </div>
+              ) : (
+                <div className="map-sheet-seg-bar" role="tablist" aria-label="Sheet-Bereich">
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={sheetSegment === 'layer'}
+                    className={sheetSegment === 'layer' ? 'active' : ''}
+                    onClick={() => setSheetSegment('layer')}
+                  >
+                    Layer
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={sheetSegment === 'model'}
+                    className={sheetSegment === 'model' ? 'active' : ''}
+                    onClick={() => setSheetSegment('model')}
+                  >
+                    Modell
+                  </button>
+                  {!overview && (
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={sheetSegment === 'fc'}
+                      className={sheetSegment === 'fc' ? 'active' : ''}
+                      onClick={() => setSheetSegment('fc')}
+                    >
+                      Vorhersage
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
 
-                {mobileSheet === 'model' ? (
+            {sheetSnap !== 'collapsed' && sheetSegment === 'model' && (
                 <div className="map-sheet-modelbody">
                   <div className="map-sheet-model is-static">
                     <span className="map-sheet-model-label">Land</span>
@@ -2692,7 +2771,9 @@ export default function MapView({ location, onBack, embedded = false, initialAct
                     {COUNTRY_PROFILES[location.country].name} · {COUNTRY_PROFILES[location.country].stackLabel}
                   </div>
                 </div>
-                ) : (
+            )}
+
+            {sheetSnap !== 'collapsed' && sheetSegment === 'layer' && (
                 <div className="map-sheet-list">
                   {LAYER_OPTIONS.map(opt => {
                     const on = active.has(opt.key);
@@ -2767,10 +2848,28 @@ export default function MapView({ location, onBack, embedded = false, initialAct
                     );
                   })}
                 </div>
-                )}
-              </aside>
-            </>
-          )}
+            )}
+
+            {/* Segment „Vorhersage" (Spec §9, preservation-kritisch): die
+                unveränderte PointForecastPanel-Komponente, per Wrapper-Umzug
+                ins Sheet. Bleibt über Segment-/Snap-Wechsel hinweg GEMOUNTET
+                (nur versteckt), damit ihre Fetch-Intervalle/Sub-Tab-Zustände
+                nicht bei jedem Wechsel neu starten. Nur im Location-Modus. */}
+            {!overview && isMobileMap && (
+              <div
+                className="map-sheet-fc"
+                hidden={sheetSnap === 'collapsed' || sheetSegment !== 'fc'}
+              >
+                <PointForecastPanel
+                  lat={location.lat}
+                  lng={location.lon}
+                  country={location.country}
+                  locationLabel={location.name}
+                  sourceMode={resolvePointSource(modelSource)}
+                />
+              </div>
+            )}
+          </aside>
         </>
       )}
 

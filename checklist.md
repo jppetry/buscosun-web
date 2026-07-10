@@ -27,6 +27,21 @@ Regel: Ein Kästchen wird nur mit Beleg abgehakt (Screenshot-Pfad, Trace-Datei o
 - [x] Zusatzfund behoben: Landscape 844×390 Overlap-Bug (nicht in ursprünglicher Checkliste, aus V-ALL Schritt 9 aufgedeckt), `audit/wetterkarte.md` §3.3/§4.3
 - [x] Follow-up (2026-07-08, nach G1): Getrennte Layer-/Modell-FABs statt kombiniertem FAB + Karte fest auf obere 2/3 des Viewports begrenzt (Control-Dock im unteren Drittel) — `audit/wetterkarte.md` §8, Desktop/Landscape-Regression erneut geprüft (grün)
 
+## Phase 1-C — Wetterkarte Redesign „Variante C" (G1-C)
+Maßgebliche Vorgabe: `audit/mockups/wetterkarte-c-spec.md`. Visuelle Referenz: `audit/mockups/wetterkarte-c-detail.html` (Zustände Z1–Z5) + `audit/mockups/wetterkarte-mobile.html` (A/B/C-Vergleich). Bewusste Abweichung vom §8-Follow-up (zwei getrennte FABs → ein Sheet mit Segment-Switcher Layer·Modell·Vorhersage), von Jan durch Wahl der Variante C freigegeben.
+- [x] Diagnose in `audit/wetterkarte.md` gegen Spec abgeschlossen (Ist-Code-Mapping §1, vor jeder Code-Änderung) — `audit/wetterkarte.md` §9.1–§9.4 inkl. Diagnose-Fund: Wind-/Sat-Steuerung im Sheet war im Ist verdeckt gebrochen (§9.2.6)
+- [x] Alle 13 Preservation-Punkte (Spec §12) einzeln geprüft und erhalten — §9.6 Punkt 3 + §9.7 Frage 1 (12/12 Layer-Toggles skriptverifiziert, Rest einzeln ausgelöst; Punkte 6+7 durch den Umbau sogar repariert)
+- [x] Drei Snap-Zustände (`collapsed`/`half`/`full`) + Segment-Wechsel (`layer`/`model`/`fc`) funktionsfähig (Spec §2/§3) — §9.6 Punkt 9, Screenshots Z1–Z5
+- [x] Layer-Segment: alle 12 Layer + Wind-Detailsteuerung (Aus/Normal/Intensiv, Dichte, Höhe) schaltbar (Spec §7) — §9.6 Punkt 3, `c-nachher-z3-full-wind.png`
+- [x] Modell-Segment: DE/AT/CH + Native/Fusion + Katalog + Radar-Toggle voll funktionsfähig (Spec §8) — §9.6 Punkt 3, `c-nachher-z4-half-model.png`
+- [x] Vorhersage-Segment: Punkt-Vorhersage (PFC) vollständig integriert, kein Informationsverlust ggü. Desktop (Spec §9, preservation-kritisch) — Wrapper-Umzug, Sub-Tabs Übersicht/Diagramme/Tabelle skriptverifiziert, `c-nachher-z5-half-fc.png`
+- [x] Transform-basierte Sheet-Motion (`translateY`, nicht `max-height`), CLS ≈ 0 (Spec §10) — CLS 0.002 (auch Timeline auf transform umgestellt), kein Long Task > 200 ms; §9.6 Punkt 5
+- [x] CSS konsolidiert: tote `.left-rails`-Regeln + doppelte Media-Queries bereinigt (Spec §11) — ein Mobile-Block, Dock/FAB/PFC-Mobil-Altregeln entfernt; §9.5 Punkt 6
+- [x] Touch-Targets ≥ 44 px im gesamten neuen Sheet (Spec §13) — nur die 4 bekannten Attribution-Ausnahmen; §9.6 Punkt 1
+- [x] Selbstverifikations-Fragen 1–5 (CLAUDE.md) schriftlich mit Beleg beantwortet — §9.7
+- [x] Desktop-Screenshot-Diff: pixelgleich zur Baseline — `c-verify-desktop-after.png` vs. `c-baseline-desktop-location.png`; §9.6 Punkt 6
+- [x] Vorher/Nachher-Screenshots aller 5 Zustände (Z1–Z5) unter `audit/screenshots/wetterkarte/` — `c-vorher-*` (5) + `c-nachher-z1…z5` + Overview/Landscape
+
 ## Phase 2 — Regenradar (G2)
 - [ ] Diagnose in `audit/regenradar.md` abgeschlossen
 - [ ] Scrubber daumentauglich (≥ 44 px, volle Breite)

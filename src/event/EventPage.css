@@ -1029,3 +1029,47 @@
 .ev-livemap-note { margin: 0.55rem 0 0; font-size: 0.8rem; line-height: 1.5; color: var(--stone-600, #5C5447); display: flex; align-items: flex-start; gap: 0.45rem; }
 .ev-livemap-note svg { color: var(--amber-500, #D4A373); flex: 0 0 auto; margin-top: 0.15rem; }
 @media (max-width: 640px) { .ev-livemap-frame { height: 360px; } }
+
+/* ============================================================================
+   MOBILE WIZARD — Multi-Step-Formular (Phase 5, vorgezogen; siehe audit/event.md)
+   Nur < 768px aktiv (useIsMobile()); Desktop bleibt die bestehende Einzelseite
+   unverändert (React rendert dort schlicht alle 4 Abschnitte + eigene CTA-Row).
+   ============================================================================ */
+@media (max-width: 767px) {
+  .ev-step-progress { display: flex; align-items: center; gap: 0.45rem; margin: 1.1rem 0 0.4rem; }
+  .ev-step-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--sand-200, #E0D6BE); flex: 0 0 auto; transition: background 0.15s, width 0.15s; }
+  .ev-step-dot.is-done { background: var(--terracotta-300, #DDA47C); }
+  .ev-step-dot.is-active { width: 20px; border-radius: 999px; background: var(--terracotta-500, #C97B47); }
+  .ev-step-label { margin-left: 0.35rem; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--stone-500, #8B7355); }
+
+  .ev-step-nav {
+    position: sticky; bottom: 0; z-index: 15; margin: 1.6rem -1rem 0;
+    padding: 0.7rem 1rem calc(0.7rem + var(--safe-bottom, 0px));
+    display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap;
+    background: rgba(245, 241, 232, 0.92); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    border-top: 1px solid var(--border-default, #E0D6BE);
+  }
+  .ev-step-back {
+    display: inline-flex; align-items: center; gap: 0.4rem; flex: 0 0 auto;
+    min-height: 44px; padding: 0 1.05rem; cursor: pointer; font-family: inherit; font-size: 0.88rem; font-weight: 500;
+    color: var(--stone-600, #5C5447); background: var(--sand-50, #F5F1E8); border: 1px solid var(--border-default, #E0D6BE); border-radius: 999px;
+  }
+  .ev-step-back:hover { border-color: var(--border-medium, #D9D0B8); color: var(--ink-900, #2C2A26); }
+  .ev-step-next, .ev-step-cta { flex: 1; min-height: 44px; justify-content: center; }
+  .ev-step-next {
+    display: inline-flex; align-items: center; gap: 0.55rem; border: none; cursor: pointer; font-family: inherit;
+    background: var(--terracotta-500, #C97B47); color: #fff; border-radius: 999px; font-size: 0.95rem; font-weight: 500;
+    transition: background 0.15s, transform 0.06s, opacity 0.15s;
+  }
+  .ev-step-next:hover:not(:disabled) { background: var(--terracotta-700, #A85E2E); }
+  .ev-step-next:active:not(:disabled) { transform: translateY(1px); }
+  .ev-step-next:disabled { opacity: 0.4; cursor: default; }
+  .ev-step-nav .ev-cta-hint { flex-basis: 100%; }
+
+  /* iOS-Auto-Zoom vermeiden (guideline §3: font-size >= 16px auf Formularfeldern) */
+  .ev-date, .ev-phase-name, .ev-tune-hr, .ev-phase-hr { font-size: 16px; }
+
+  /* Touch-Targets >= 44px fuer direkt bedienbare Formular-Controls */
+  .ev-loc-change, .ev-seg-btn, .ev-preset-btn, .ev-add-btn.ev-phase-add { min-height: 44px; }
+  .ev-phase-name, .ev-phase-hr, .ev-tune-hr { min-height: 44px; }
+}

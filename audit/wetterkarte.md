@@ -136,6 +136,86 @@ Die beiden mobilen Media-Queries (`MapView.css:1412`, `1631`) um eine Höhen-Bed
 
 **Alle Punkte mit Beleg beantwortet → Follow-up abgeschlossen, Gate G1 bleibt gültig.**
 
+## 9. Phase 1-C — Diagnose „Variante C" (2026-07-08, vor jeder Code-Änderung)
+
+**Auftrag:** Umbau der Mobilansicht auf Variante C gemäß `audit/mockups/wetterkarte-c-spec.md` — **ein** persistentes Bottom-Sheet mit Segment-Umschalter `Layer · Modell · Vorhersage`, Karte vollflächig, drei Snap-Zustände. Bewusste, von Jan freigegebene Abweichung vom §8-Follow-up (zwei getrennte FABs → ein Sheet); keine Regression, sondern gewollte Design-Entscheidung.
+
+### 9.1 Ist-Code-Mapping (Spec §1 verifiziert, Zeilennummern aktualisiert)
+
+| Baustein | Fundort (verifiziert) | Ist-Verhalten |
+|---|---|---|
+| Sheet-State | `MapView.tsx:2348` | `mobileSheet: 'layer' \| 'model' \| null` — bestätigt |
+| Snap-State | `MapView.tsx:2354` | `sheetSnap: 'half' \| 'full'`; half=45vh (`.map-sheet-half`, CSS:1712), Basis `max-height:86vh` (CSS:1704) |
+| Row-Expand | `MapView.tsx:2349` | `sheetExpanded: LayerKey \| null` — bleibt unverändert bestehen |
+| Drag-Handler | `MapView.tsx:2357–2372` | Pointer-Drag am `.map-sheet-head`, Schwelle ±40px |
+| Zwei FABs | `MapView.tsx:2633–2654` | `.mobile-dock-fabs` mit `.map-layer-fab` + `.map-model-fab` |
+| Sheet-Markup | `MapView.tsx:2656–2773` | konditional `mobileSheet && …`, Scrim + `aside.map-sheet`, Body verzweigt layer/model |
+| Sheet-CSS | `MapView.css:1696–1821` | `max-height`-Transition (CLS-Quelle, s. §5 Punkt 7), Scrim half=transparent+inert / full=blockierend |
+| Karte | `MapView.css:1648` | `.map-container { height:66.6667vh; bottom:auto }` — Karte obere 2/3 |
+| PFC mobil | `MapView.css:1452–1527` | eigenes zweites Sheet-System: FAB (`.pfc-closed .pfc-toggle`), Snap peek 50vh / full 90vh (`.pfc-m-*`), eigener Touch-Drag (`PointForecastPanel.tsx:74–100`) |
+| Modell | `MapView.tsx:2681` | `ModelSwitcher variant="sheet"` mit `onSelectCountry/onSelectModel/onToggleRadar/fusionError` |
+| Doppelte Media-Query | `MapView.css:1412` **und** `:1638` | beide `(max-width:767px), (max-height:430px) and (orientation:landscape)`; im ersten Block tote `.left-rails`-Regeln (:1426–1442), im zweiten `display:none !important` (:1640) |
+
+### 9.2 Korrekturen gegenüber Spec §1/§4 (Diagnose-Funde)
+
+1. **`.mobile-dock-bg` existiert nur im CSS** (`MapView.css:1636/1653`), **kein** zugehöriges JSX-Element in `MapView.tsx` — der blickdichte Grund im unteren Drittel ist schlicht der Seitenhintergrund hinter der verkürzten Karte. Die CSS-Regeln sind toter Code und werden ersatzlos entfernt.
+2. **`ResizeObserver` (`MapView.tsx:2321–2331`) läuft nur im `embedded`-Modus** (early return `if (!embedded)`). Die Spec-§4-Annahme „ResizeObserver übernimmt map.resize() automatisch" gilt für die Vollansicht nicht. Unkritisch: `inset:0` ist statisch pro Breakpoint; Breakpoint-Wechsel geht mit Window-Resize einher, den MapLibre (`trackResize`, Default an) selbst behandelt. Kein Zusatzcode nötig.
+3. **PFC öffnet auf Mobile per Default als 50vh-Sheet** (`open=true` initial, `PointForecastPanel.tsx:62`) und verdeckt beim Laden die halbe Karte (Screenshot `c-vorher-dock-location.png`). Schließen nur per Drag nach unten — der `.pfc-toggle` ist im offenen Mobil-Zustand `display:none` (CSS:1489–1491). Beides entfällt mit der Segment-Integration.
+4. **PFC darf nicht doppelt gerendert werden:** `PointForecastPanel` fetcht beim Mount (Punkt-Forecast + DWD-Alerts + Pollen, eigene Intervalle). Der Render-Ort (Desktop-Panel vs. `fc`-Segment) muss daher per JS-Media-Query umgeschaltet werden — `useMediaQuery` aus `src/mobile/useIsMobile.ts` existiert bereits; als Query dieselbe Bedingung wie die CSS-Mobile-Media-Query verwenden (`(max-width:767px), (max-height:430px) and (orientation:landscape)`), sonst bricht Landscape 844×390.
+5. Der Punkt-Forecast wird heute schon nur im Location-Modus gerendert (`!embedded && !overview`, `MapView.tsx:2615`) — deckt Spec §5/§9 („Vorhersage-Segment nur im Location-Modus") ohne neue Logik ab.
+6. **Vorbestehende Regression (live verifiziert):** Die Wind-Feinsteuerung und die Satellit-Produktwahl **im Sheet** sind aktuell unsichtbar — `MapView.css:1640` versteckt `.wind-particle-switch`/`.sat-product-switch` mit `display:none !important`, und das trifft auch die im Sheet gerenderten Kopien (`.map-sheet-sub wind-particle-switch`); die Sheet-Regeln `:1805–1815` setzen kein eigenes `display` und können das `!important` nicht überstimmen (Messung: `getComputedStyle(...).display === 'none'`, Höhe 0). Preservation-Punkte 6+7 sind auf Mobile also im **Ist** bereits gebrochen (vermutlich seit dem §8-Follow-up-Umbau; die G1-Verifikation davor hatte sie grün). Der Variante-C-Umbau behebt das durch korrektes Scoping (nur die Overlay-Instanzen direkt unter `.map-view` verstecken, nicht die Sheet-Kopien) — wird in der §13-Verifikation explizit nachgewiesen.
+
+### 9.3 Preservation Contract — Ist-Verhalten bestätigt (13 Punkte, Spec §12)
+
+Basis: G1-Verifikation (§5/§6, alle 13 Punkte grün) + heutige Stichprobe (a11y-Snapshot + Screenshots, iPhone-12-Pro-Emulation, Location-Modus München):
+
+1. **Zurück-Button** — `button "Zurück zur Suche"` im Snapshot ✓ 2. **Standort-Label** „München" ✓ 3. **Zeit-Regler** `slider "Forecast-Stunde" 0–23` + „jetzt"-Button + Zeitstempel „jetzt · Mi., 22:40" ✓ 4. **12 Layer** im Layer-Sheet (Screenshot `c-vorher-layersheet-half/full.png`) ✓ 5. **LayerInfoPanel** per Chevron-Disclosure ✓ 6. **Wind-Feinsteuerung** (Aus/Normal/Intensiv, Dichte, Höhe) in aufgeklappter Wind-Zeile ✓ 7. **Satellit-Produktwahl** in aufgeklappter Sat-Zeile ✓ 8. **Modell-Switcher** komplett im Modell-Sheet (Screenshot `c-vorher-modelsheet.png`) ✓ 9. **Kartenlegenden** — mobil aktuell `display:none` (`.map-legends`, CSS:1640) = dokumentierte G1-Lücke, wird durch Legende-Kapsel (Spec §4) **verbessert** ✓ 10. **Stations-Marker** ✓ 11. **PFC** Übersicht/Diagramme/Tabelle im eigenen Sheet ✓ 12. **Attribution/Quellen** (4 Footer-Links + `.map-sheet-sources`) ✓ 13. **Kartengesten** Pan/Pinch/Rotate nativ ✓
+
+### 9.4 Risiken & Reihenfolge
+
+- **Höchstes Risiko: PFC-Integration (Spec §9).** Gewählt: Wrapper-Umzug — `PointForecastPanel` unverändert, Render-Ort per `useMediaQuery` (s. 9.2.4), CSS neutralisiert `.pfc-panel/.pfc-body`-Positionierung im Sheet-Kontext (analog zum bestehenden Muster für `.wind-particle-switch` im Sheet, CSS:1804–1815). `.pfc-toggle`/`.pfc-grab` im Sheet verstecken (Öffnen/Schließen/Snap übernimmt das gemeinsame Sheet).
+- Umsetzungsreihenfolge = Spec §14 (State-Umbau → Segment-Control/Chip-Strip → Segmente → Motion → PFC → CSS-Aufräumen → Verifikation). Desktop nach jedem Schritt pixelgleich (Referenz: `c-baseline-desktop-location.png`, frisch vor dieser Phase aufgenommen).
+- Konsolen-Baseline vor Umbau: nur vorbekannte BrightSky-404 (extern, s. §5 Punkt 2) + Vite-Debug + RADOLAN-Info-Log. Keine Errors aus eigenem Code.
+
+**Vorher-Screenshots (Ist):** `audit/screenshots/wetterkarte/c-vorher-dock-location.png` (Load-Zustand mit offenem PFC), `c-vorher-dock-pfc-closed.png` (Dock: 2 FABs + PFC-FAB + Slider, leeres unteres Drittel), `c-vorher-layersheet-half.png`, `c-vorher-layersheet-full.png`, `c-vorher-modelsheet.png`, Desktop-Referenz `c-baseline-desktop-location.png`.
+
+### 9.5 Umsetzung (Spec §14, in dieser Reihenfolge)
+
+1. **State-Umbau** (`MapView.tsx`): `mobileSheet: 'layer'|'model'|null` → `sheetSnap: 'collapsed'|'half'|'full'` + `sheetSegment: 'layer'|'model'|'fc'`; Sheet persistent gerendert (nicht mehr konditional); `sheetExpanded` unverändert. Drag-Handler auf drei Stufen erweitert (±40px eine Stufe, ±220px zwei Stufen; Tap auf Kopf in collapsed → half). Beide FABs + `.mobile-dock-fabs` entfernt.
+2. **Chip-Strip + Segment-Control**: collapsed zeigt Griff + horizontal scrollbaren Chip-Strip (aktive Layer mit Akzent-Farbpunkt aus `LAYER_CHIP_DOT` — wiederverwendete Kartenfarben, keine neuen Tokens — + Modell-Badge `Flagge + modelEntry(activeModelId()).name`); Chip-Tap → half + passendes Segment. half/full zeigen Segment-Control (`role="tablist"`, 44px-Tabs); „Vorhersage"-Tab nur im Location-Modus (`!overview`).
+3. **Segmente Layer & Modell**: bestehende `.map-sheet-list`- und `.map-sheet-modelbody`-Inhalte unverändert unter die Segmente gehängt (reine Umgruppierung, Props identisch durchgereicht).
+4. **Motion**: Sheet auf 88vh Zielhöhe gerendert, Snap über `transform: translateY(...)` + `will-change: transform`; Scrim persistent, nur in full sichtbar/blockierend (Tap → half), sonst `opacity:0; pointer-events:none`. Segment-Body-Höhen pro Snap-Klasse (`calc(46vh/88vh − var(--sheet-head-h))`). **Auch die Timeline** bewegt sich per `transform: translateY` statt `bottom`-Sprung (Nachbesserung aus der Verifikation: der bottom-Sprung war die einzige verbliebene CLS-Quelle, s. §9.6 Punkt 5).
+5. **PFC-Integration (Spec §9, Wrapper-Umzug)**: `PointForecastPanel` unverändert; Render-Ort per `useMediaQuery(MOBILE_MAP_MEDIA_QUERY)` — Desktop: bisherige Position, Mobile: `.map-sheet-fc`-Container im Sheet. Im Sheet bleibt die Komponente über Segment-/Snap-Wechsel **gemountet** (nur `hidden`), damit Fetch-Intervalle/Sub-Tab-Zustand nicht neu starten. CSS neutralisiert Panel-Chrome (`.pfc-panel/.pfc-body` static, `.pfc-toggle/.pfc-grab` versteckt — Auf/Zu/Snap übernimmt das Sheet). Altes PFC-Mobil-Sheet/FAB-CSS entfernt.
+6. **CSS-Konsolidierung (Spec §11)**: die zwei Mobile-Media-Query-Blöcke (`:1412`/`:1638`) zu **einem** zusammengeführt; tote `.left-rails`-Größenregeln, `.mobile-dock-*`, FAB-Regeln, `map-scrim-in/map-sheet-in`-Keyframes und `.map-sheet-close/.map-sheet-head`-Regeln entfernt; `.map-container` zurück auf Basis-`inset:0`. Wind-/Sat-Overlay-Verstecken korrekt gescopet (`.map-view > .wind-particle-switch` statt pauschal) → behebt §9.2.6. Legende-Kapsel: `.map-legends` rechts oben (14px/96px, 168px breit, scrollbar gedeckelt) statt `display:none`. Wind-Feinsteuerungs-Buttons im Sheet 36→44px, Dichte-Slider-Trefferfläche 44px.
+
+### 9.6 Verifikation (Spec §13, MCP-gestützt, iPhone 12 Pro 390×844 DPR3)
+
+| # | Prüfung | Ergebnis | Beleg |
+|---|---------|----------|-------|
+| 1 | Touch-Target-Audit (Skript über `button/a/input/switch/tab`) | Nur die 4 bekannten Footer-Attribution-Ausnahmen < 44px; Wind-Feinsteuerung/Sat-Produktwahl/Chips/Segment-Tabs alle ≥ 44px (Chips: 44px-Trefferbox um 32px-Pill via transparentem Border) | Skript-Ausgabe |
+| 2 | `scrollWidth` | 390 (portrait) / 844 (landscape) — exakt Viewport | Skript-Ausgabe |
+| 3 | Funktionsliste §12 | 12/12 Layer-Toggles per Skript je an→aus→an OK (`aria-checked` verifiziert); Segmente Layer/Modell/Vorhersage durchgeschaltet; DE→AT→CH-Tabs OK; Radar-Toggle an→aus→an OK; Land-Zeile + Quellen-Footer + 21 Katalog-Karten gerendert; **Wind-Feinsteuerung im Sheet jetzt sichtbar** (display:flex, vorher §9.2.6-Regression) mit Aus/Normal/Intensiv + Dichte + Höhe; Sat-Produktwahl EU/Welt je 44px; PFC-Sub-Tabs Übersicht/Diagramme/Tabelle alle schaltbar; Legende-Kapsel erscheint bei Regen-Chance (top 96/right 14/168px) | Skript-Ausgaben + Screenshots Z1–Z5 |
+| 4 | Konsole | Nur vorbestehende BrightSky-404 (extern, Baseline §5 Punkt 2); keine neuen Errors/Warnings | Konsolen-Log |
+| 5 | Performance-Trace (Snap-Zyklus collapsed→half→Segmente→full→half→collapsed) | Kein Long Task > 200 ms (max. 103 ms, PerformanceObserver longtask). CLS: Erst-Trace zeigte 0.147 — Quelle per LayoutShift-Attribution identifiziert: **`.forecast-slider`-bottom-Sprung**, nicht das Sheet (Sheet-Motion war bereits shift-frei). Nach Umstellung der Timeline auf `transform` → **CLS 0.002 ≈ 0** (Rest: Chip-Strip-Re-Render 0.002). Ruhezustand 25 s: null Shifts | Trace-Zusammenfassungen + Observer-Ausgaben |
+| 6 | Desktop-Diff 1440×900 | Layout identisch zur frischen Vorher-Referenz (Rail, Wind-Leiste, Slider, PFC-Panel, Data-Badge, Attribution — nur Live-Wetterdaten unterscheiden sich); Sheet/Scrim auf Desktop `display:none` | `c-verify-desktop-after.png` vs. `c-baseline-desktop-location.png` |
+| 7 | Landscape 844×390 | collapsed 64px sichtbar, half 179px (=46vh) sichtbar, Layer-Liste 95px hoch + scrollbar, kein Rail-Overlap (§3.3-Fix intakt), kein horizontales Scrollen | `c-nachher-landscape-collapsed.png` + Messwerte |
+| 8 | Overview-Modus (SearchPage-Kachel) | Segment-Control zeigt nur `Layer · Modell`, kein PFC im Sheet gerendert (Spec §5/§9) | `c-nachher-overview-half.png` |
+| 9 | Zustandsautomat | Chip/Kopf-Tap collapsed→half; Drag ±40px eine Stufe, Scrim-Tap full→half; Segment-Wechsel ändert nie den Snap; Timeline folgt synchron (Abstand konstant 10px über Sheet-Oberkante, collapsed bottom 74px) | Skript-Messungen |
+
+**Nachher-Screenshots (alle 5 Zustände):** `c-nachher-z1-collapsed.png`, `c-nachher-z2-half-layer.png`, `c-nachher-z3-full-wind.png` (Wind expandiert inkl. Feinsteuerung), `c-nachher-z4-half-model.png`, `c-nachher-z5-half-fc.png`, plus `c-nachher-overview-half.png`, `c-nachher-landscape-collapsed.png`.
+
+### 9.7 Selbstverifikation (CLAUDE.md, 5 Fragen)
+
+1. **Funktioniert jede Funktion aus dem Preservation Contract (§12 der Spec) noch?** Ja — alle 13 Punkte einzeln ausgelöst (§9.6 Punkt 3): Zurück-Button + Standort-Label + Zeit-Regler im a11y-Snapshot, 12 Layer skriptgeprüft, LayerInfoPanel/Wind-Feinsteuerung/Sat-Produktwahl in Z3 sichtbar bedienbar, Modell-Switcher komplett (Tabs/Fusion⇄Native-Katalog/Radar/Fallback unverändert durchgereicht), Legenden jetzt SICHTBAR statt versteckt, Stations-Marker im Snapshot, PFC vollständig mit allen drei Sub-Tabs, Attribution + Quellen-Footer vorhanden, Kartengesten frei (Scrim inert außer full). Punkte 6+7 waren im Ist verdeckt gebrochen (§9.2.6) und sind jetzt repariert — ein Plus, kein Verlust.
+2. **Desktop pixelgleich?** Ja — Screenshot-Vergleich §9.6 Punkt 6; alle Änderungen scope-isoliert in der (jetzt einen) Mobile-Media-Query bzw. in nur mobil gerenderten Klassen; `useMediaQuery`-Weiche rendert das Desktop-PFC-Panel unverändert an alter Stelle.
+3. **Alle Touch-Targets ≥ 44×44?** Ja — Audit §9.6 Punkt 1, nur die 4 dokumentierten Attribution-Ausnahmen.
+4. **Konsole frei von neuen Errors/Warnings?** Ja — nur vorbestehende externe BrightSky-404 (§9.6 Punkt 4).
+5. **Keine Long Tasks > 200 ms?** Ja — max. 103 ms im kompletten Snap-/Segment-Zyklus; CLS ≈ 0 (0.002) nach transform-Umstellung von Sheet UND Timeline (§9.6 Punkt 5).
+
+**Alle fünf Fragen mit „ja + Beleg" → Gate G1-C bestanden.**
+
+**Real-Device-Hinweis für Jan (aus Spec §13.9):** Safe-Area-Insets (Notch/Home-Indicator) liefern im Emulator konstant 0 — collapsed-Höhe (64px + Inset) und Sheet-Footer-Padding bitte einmal auf echtem iPhone prüfen; Windpartikel-Richtung/-Präzision wie gehabt nur auf Real-Device beurteilbar.
+
 ## 7. Real-Device-Hinweis für Jan
 - Windpartikel-Richtung/-Präzision: nur auf echtem iOS/Android-Gerät final beurteilbar (bekannt aus Vorgänger-Debugging, unverändert seit Baseline).
 - Safe-Area-Insets (Notch/Home-Indicator): Emulator liefert `env(safe-area-inset-*)` konstant 0; echte Werte erst auf Real-Device sichtbar.

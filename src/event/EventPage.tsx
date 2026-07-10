@@ -24,9 +24,20 @@ import { ActivityIcon, VenueIcon, IconRing, IconSliders, IconReset, IconChevron 
 import EventResult from './EventResult';
 import { NotificationProvider } from '../notifications/useNotifications';
 import NotificationCenter from '../notifications/NotificationCenter';
+import { useIsMobile } from '../mobile/useIsMobile';
+import '../mobile/safeArea.css';
 import '../route/tourTheme.css';
 import '../intro/intro.css';
 import './EventPage.css';
+
+/** Mobile-Wizard (Phase 5, vorgezogen — siehe audit/event.md): nach der Ortswahl war der Rest des
+ *  Formulars eine einzige ~3,5-Bildschirmlängen-Seite mit 4 gestapelten Themen. Auf Mobile wird
+ *  jeweils nur ein Schritt gerendert; Desktop bleibt unverändert die Einzelseite (siehe `!isMobile`). */
+const EVENT_STEPS = ['activity', 'window', 'phases', 'planb'] as const;
+type EventStep = (typeof EVENT_STEPS)[number];
+const EVENT_STEP_LABELS: Record<EventStep, string> = {
+  activity: 'Anlass', window: 'Zeitfenster', phases: 'Phasen', planb: 'Plan B',
+};
 
 interface Props {
   onBack: () => void;
@@ -80,6 +91,12 @@ function EventPageInner({ onBack }: Props) {
   const [planB, setPlanB] = useState<PlanBConfig>(defaultPlanB());
   const [submitted, setSubmitted] = useState<EventQuery | null>(null);
   const restoredRef = useRef(false);
+  const isMobile = useIsMobile();
+  const [mobileStep, setMobileStep] = useState<EventStep>('activity');
+  const stepIdx = EVENT_STEPS.indexOf(mobileStep);
+
+  // Neuer Ort (Erstwahl oder „Ändern") → Wizard wieder beim ersten Schritt starten.
+  useEffect(() => { if (location) setMobileStep('activity'); }, [location]);
 
   // Permalink: mit #ev=-Hash direkt mit der geteilten Anfrage ins Ergebnis starten.
   useEffect(() => {
@@ -110,6 +127,17 @@ function EventPageInner({ onBack }: Props) {
 
   const partial: Partial<EventQuery> = { activity: activity ?? undefined, location: location ?? undefined, window: windowSel, phases, tuning, planB };
   const complete = isQueryComplete(partial);
+
+  // Gate zwischen den Mobile-Wizard-Schritten — nutzt dieselbe Validierung wie die Desktop-Warnhinweise.
+  const phasesValid = phases.every((p) => p.hours[0] !== p.hours[1]);
+  const stepValid: Record<EventStep, boolean> = {
+    activity: !!activity,
+    window: isWindowValid(windowSel),
+    phases: phasesValid,
+    planb: true,
+  };
+  const stepCanProceed = stepValid[mobileStep];
+  const showStep = (s: EventStep) => !isMobile || mobileStep === s;
 
   return (
     <div className="ev-page">
@@ -210,48 +238,106 @@ function EventPageInner({ onBack }: Props) {
               />
             </div>
 
-            <section className="rt-section">
-              <span className="rt-eyebrow">1 · Anlass</span>
-              <ActivityPicker value={activity} onChange={handleActivity} />
-              {activity && (activity.id !== 'custom' || activity.label.length > 0) && (
-                <>
-                  <PresetFactors activity={activity} tuning={tuning} />
-                  <TuningPanel activity={activity} tuning={tuning} onChange={setTuning} />
-                </>
-              )}
-            </section>
+            {isMobile && (
+              <nav className="ev-step-progress" aria-label="Fortschritt">
+                {EVENT_STEPS.map((s, i) => (
+                  <span key={s} className={`ev-step-dot${i === stepIdx ? ' is-active' : i < stepIdx ? ' is-done' : ''}`} aria-hidden="true" />
+                ))}
+                <span className="ev-step-label">Schritt {stepIdx + 1} von {EVENT_STEPS.length} · {EVENT_STEP_LABELS[mobileStep]}</span>
+              </nav>
+            )}
 
-            <section className="rt-section">
-              <span className="rt-eyebrow">2 · Zeitfenster</span>
-              <TimeWindowField value={windowSel} onChange={setWindowSel} />
-            </section>
+            {showStep('activity') && (
+              <section className="rt-section">
+                <span className="rt-eyebrow">1 · Anlass</span>
+                <ActivityPicker value={activity} onChange={handleActivity} />
+                {activity && (activity.id !== 'custom' || activity.label.length > 0) && (
+                  <>
+                    <PresetFactors activity={activity} tuning={tuning} />
+                    <TuningPanel activity={activity} tuning={tuning} onChange={setTuning} />
+                  </>
+                )}
+              </section>
+            )}
 
-            <section className="rt-section">
-              <span className="rt-eyebrow">3 · Phasen</span>
-              <p className="ev-section-lead">Lege Phasen wie Trauung, Empfang und Abendfeier mit eigenen Zeiten an — jede wird einzeln bewertet, der Tag fasst sie zusammen.</p>
-              <PhasesField value={phases} onChange={setPhases} />
-            </section>
+            {showStep('window') && (
+              <section className="rt-section">
+                <span className="rt-eyebrow">2 · Zeitfenster</span>
+                <TimeWindowField value={windowSel} onChange={setWindowSel} />
+              </section>
+            )}
 
-            <section className="rt-section">
-              <span className="rt-eyebrow">4 · Plan B <span className="ev-optional">optional</span></span>
-              <p className="ev-section-lead">Lege eine klare Schwelle fest, ab der dir ein Plan B (z. B. Zelt oder Innenraum) empfohlen wird — plus Ausweichtag und -ort, falls dein Wunschtermin nicht hält.</p>
-              <PlanBField value={planB} window={windowSel} onChange={setPlanB} />
-            </section>
+            {showStep('phases') && (
+              <section className="rt-section">
+                <span className="rt-eyebrow">3 · Phasen</span>
+                <p className="ev-section-lead">Lege Phasen wie Trauung, Empfang und Abendfeier mit eigenen Zeiten an — jede wird einzeln bewertet, der Tag fasst sie zusammen.</p>
+                <PhasesField value={phases} onChange={setPhases} />
+              </section>
+            )}
 
-            <div className="ev-cta-row">
-              <button
-                type="button"
-                className="ev-cta"
-                disabled={!complete}
-                onClick={() => complete && setSubmitted(partial as EventQuery)}
-              >
-                Beste Tage finden
-                <svg width="14" height="14" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden="true">
-                  <line x1="1" y1="6" x2="10" y2="6" /><polyline points="6,2 10,6 6,10" />
-                </svg>
-              </button>
-              {!complete && <span className="ev-cta-hint">Anlass und Zeitfenster wählen</span>}
-            </div>
+            {showStep('planb') && (
+              <section className="rt-section">
+                <span className="rt-eyebrow">4 · Plan B <span className="ev-optional">optional</span></span>
+                <p className="ev-section-lead">Lege eine klare Schwelle fest, ab der dir ein Plan B (z. B. Zelt oder Innenraum) empfohlen wird — plus Ausweichtag und -ort, falls dein Wunschtermin nicht hält.</p>
+                <PlanBField value={planB} window={windowSel} onChange={setPlanB} />
+              </section>
+            )}
+
+            {!isMobile && (
+              <div className="ev-cta-row">
+                <button
+                  type="button"
+                  className="ev-cta"
+                  disabled={!complete}
+                  onClick={() => complete && setSubmitted(partial as EventQuery)}
+                >
+                  Beste Tage finden
+                  <svg width="14" height="14" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden="true">
+                    <line x1="1" y1="6" x2="10" y2="6" /><polyline points="6,2 10,6 6,10" />
+                  </svg>
+                </button>
+                {!complete && <span className="ev-cta-hint">Anlass und Zeitfenster wählen</span>}
+              </div>
+            )}
+
+            {isMobile && (
+              <div className="ev-step-nav safe-pad-bottom">
+                {stepIdx > 0 && (
+                  <button type="button" className="ev-step-back" onClick={() => setMobileStep(EVENT_STEPS[stepIdx - 1])}>
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <line x1="13" y1="8" x2="3" y2="8" /><polyline points="7,4 3,8 7,12" />
+                    </svg>
+                    Zurück
+                  </button>
+                )}
+                {mobileStep !== 'planb' ? (
+                  <button
+                    type="button"
+                    className="ev-step-next"
+                    disabled={!stepCanProceed}
+                    onClick={() => stepCanProceed && setMobileStep(EVENT_STEPS[stepIdx + 1])}
+                  >
+                    Weiter
+                    <svg width="14" height="14" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden="true">
+                      <line x1="1" y1="6" x2="10" y2="6" /><polyline points="6,2 10,6 6,10" />
+                    </svg>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="ev-cta ev-step-cta"
+                    disabled={!complete}
+                    onClick={() => complete && setSubmitted(partial as EventQuery)}
+                  >
+                    Beste Tage finden
+                    <svg width="14" height="14" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden="true">
+                      <line x1="1" y1="6" x2="10" y2="6" /><polyline points="6,2 10,6 6,10" />
+                    </svg>
+                  </button>
+                )}
+                {mobileStep === 'planb' && !complete && <span className="ev-cta-hint">Anlass und Zeitfenster wählen</span>}
+              </div>
+            )}
 
             <div className="rt-trust" style={{ marginTop: '1.6rem' }}>
               <span className="dot">●</span> Native Behörden-Quellen: DWD · GeoSphere · MeteoSwiss · höhenkorrigiert · keine Tracker
