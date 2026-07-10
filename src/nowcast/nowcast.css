@@ -354,8 +354,10 @@
 .nc-page .rdr-strip,
 .nc-page .nc-radar-quality { background: var(--sand-50, #F5F1E8); }
 
-/* Interaktive Chips/Buttons: kein hartes Weiß mehr, je nach Untergrund warm. */
-.nc-page .nc-rtoggle { background: var(--sand-50, #F5F1E8); }   /* Chip auf Cream-Karte */
+/* Interaktive Chips/Buttons: kein hartes Weiß mehr, je nach Untergrund warm.
+   :not(.is-on), sonst überschreibt die Warm-Fläche (gleiche Spezifität, spätere
+   Datei) die blaue Aktiv-Füllung aus radar.css → weißer Text auf Sand. */
+.nc-page .nc-rtoggle:not(.is-on) { background: var(--sand-50, #F5F1E8); }   /* Chip auf Cream-Karte */
 /* neutrale Zeit-Buttons auf dem Sand-Panel → Cream; Play + aktiver Loop behalten
    ihr Blau (ausgenommen). */
 .nc-page .rdr-tl-btn:not(.rdr-tl-play):not(.is-active) { background: var(--cream-50, #FAF6EA); }
