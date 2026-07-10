@@ -718,6 +718,11 @@ export default function MapView({ location, onBack, embedded = false, initialAct
       // drop it to 1 (skips the 4× pixel grid AND the smooth) to cut the decode
       // ~4–8×. Desktop keeps upsample 2 for the crisp continuous field.
       upsample: coarsePointer ? 1 : 2,
+      // Wind-Animation auf Touch-/Schwachgeräten auf ~30 fps deckeln (statt des
+      // ungedeckelten Display-Rate-Dauerloops): halbiert Idle-GPU/Compositor-Last
+      // und damit Akku/Thermik. Advektion ist dt-normalisiert → Partikel-Tempo und
+      // Trails bleiben identisch. Desktop (fine pointer) ungedeckelt = Referenz.
+      maxParticleFps: coarsePointer ? 30 : 0,
     });
     const tempLayer = new ScalarLayer({
       id: 'temperature',

@@ -117,6 +117,12 @@ export interface WindLayerOptions {
    *  `moveend` zurück. Trails werden pro Move-Frame ohnehin verworfen, also kein
    *  sichtbarer Verlust. Default false (Desktop bleibt voll-fidel). */
   reduceMotionOnMove?: boolean;
+  /** Deckelt die Wind-Animations-Repaint-Rate (fps). 0 = ungedeckelt → der Loop
+   *  läuft mit der Display-Rate (Desktop-Referenz). Auf Touch-/Schwachgeräten
+   *  z. B. 30 → halbiert die Idle-GPU/Compositor-Last + Wind-Draw-Arbeit. Die
+   *  Advektion ist dt-normalisiert (`frameDtScale`), Geschwindigkeit UND Trail-
+   *  Länge bleiben identisch. Default 0. */
+  maxParticleFps?: number;
   /** Laufzeit-FPS-Governor: passt die GEZEICHNETE Partikelzahl an die real
    *  gemessene Bildrate an (EMA + Hysterese), damit schwache GPUs/CPUs flüssig
    *  bleiben und starke die volle Dichte behalten. Oberstes Tier = ×1.0 = keine
@@ -259,6 +265,11 @@ export class WindLayer implements CustomLayerInterface {
   // (mobile/coarse-pointer only — see reduceMotionOnMove). MapLibre repaints the
   // heatmap from the camera change anyway; particles resume on moveend.
   private reduceMotionOnMove = false;
+  // Deckel für die Wind-Repaint-Rate (fps); 0 = ungedeckelt (Display-Rate).
+  // Frame-Zeit-Gate-Zustand s. scheduleParticleRepaint().
+  private maxParticleFps = 0;
+  private lastRepaintReqMs = 0;
+  private repaintCapTimer: number | null = null;
   private moving = false;
   private onMoveStart = () => { this.moving = true; };
   private onMoveEnd = () => { this.moving = false; this.map?.triggerRepaint(); };
@@ -650,6 +661,7 @@ export class WindLayer implements CustomLayerInterface {
     this.subSteps = Math.max(1, Math.min(4, Math.round(options.subSteps ?? 1)));
     this.upsample = Math.max(1, Math.min(4, Math.round(options.upsample ?? 2)));
     this.reduceMotionOnMove = options.reduceMotionOnMove ?? false;
+    this.maxParticleFps = Math.max(0, options.maxParticleFps ?? 0);
     this.adaptiveQuality = options.adaptiveQuality ?? true;
     this.windPngUrl = options.windPngUrl ?? '/wind/wind.png';
     this.windJsonUrl = options.windJsonUrl ?? '/wind/wind.json';
@@ -721,6 +733,7 @@ export class WindLayer implements CustomLayerInterface {
     map.off('resize', this.onResize);
     map.off('movestart', this.onMoveStart);
     map.off('moveend', this.onMoveEnd);
+    if (this.repaintCapTimer != null) { clearTimeout(this.repaintCapTimer); this.repaintCapTimer = null; }
 
     gl.deleteProgram(this.drawProgram.program);
     gl.deleteProgram(this.screenProgram.program);
@@ -1140,8 +1153,37 @@ export class WindLayer implements CustomLayerInterface {
 
     // Nur weiter animieren, solange Partikel sichtbar sind. Bei reiner Heatmap
     // („Aus") rendert MapLibre ohnehin bei jeder Karten-/Slider-Bewegung neu —
-    // ein Dauer-Repaint wäre reine Akku-Verschwendung.
-    if (this.showParticles) this.map?.triggerRepaint();
+    // ein Dauer-Repaint wäre reine Akku-Verschwendung. Optional auf maxParticleFps
+    // gedeckelt (mobil) — s. scheduleParticleRepaint.
+    if (this.showParticles) this.scheduleParticleRepaint();
+  }
+
+  /** Fordert den nächsten Wind-Frame an. Bei `maxParticleFps` > 0 über ein Frame-
+   *  Zeit-Gate, das den selbst-perpetuierenden Repaint-Loop auf ~cap fps hält
+   *  (statt der ungedeckelten Display-Rate) — halbiert auf Mobile die GPU-/
+   *  Compositor-Last. Bei 0 unverändert direktes `triggerRepaint` (Desktop-
+   *  Referenz). Die Advektion ist dt-normalisiert (`frameDtScale`), daher bleiben
+   *  Partikel-Geschwindigkeit und Trail-Länge über die Bildrate hinweg gleich. */
+  private scheduleParticleRepaint(): void {
+    const cap = this.maxParticleFps;
+    if (!cap || cap <= 0) { this.map?.triggerRepaint(); return; }
+    const minInterval = 1000 / cap;
+    const now = performance.now();
+    const elapsed = now - this.lastRepaintReqMs;
+    if (elapsed >= minInterval) {
+      this.lastRepaintReqMs = now;
+      this.map?.triggerRepaint();
+    } else if (this.repaintCapTimer == null) {
+      // Genau EINEN Nachschlag-Timer auf die Restzeit legen → der Loop läuft mit
+      // der gedeckelten Rate weiter (ohne Timer bliebe er nach dem Skip stehen,
+      // da MapLibre nur auf ein triggerRepaint hin die nächste Frame rendert).
+      this.repaintCapTimer = window.setTimeout(() => {
+        this.repaintCapTimer = null;
+        if (!this.showParticles || !this.map) return;
+        this.lastRepaintReqMs = performance.now();
+        this.map.triggerRepaint();
+      }, minInterval - elapsed);
+    }
   }
 
   private drawHeatmap(matrix: Float32List, mapFB: WebGLFramebuffer | null, mapViewport: Int32Array) {
