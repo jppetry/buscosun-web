@@ -319,6 +319,10 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0 }: Pr
 
   return (
     <div className="rt-card nc-radar">
+      {/* Bühne (R1.3): Desktop = Karte vollhoch mit schwebenden Instrumenten,
+          Mobile/Tablet = unverändert gestapelt (rail/dock sind dort display:contents). */}
+      <div className="nc-radar-scene">
+      <div className="nc-radar-rail">
       {/* Ebenen + Einstellungen */}
       <div className="nc-radar-layersbar">
         <span className="nc-radar-eyebrow">Ebenen</span>
@@ -366,6 +370,7 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0 }: Pr
           </div>
         </div>
       )}
+      </div>
 
       {/* Kartenbühne */}
       <div className="nc-radar-stage">
@@ -424,25 +429,24 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0 }: Pr
         )}
       </div>
 
-      {/* Zeitachse mit Messung↔Vorhersage-Bruch */}
+      {/* Anflug-Dock: Zeitachse + Punkt-Instrument (Desktop: schwebend unten links) */}
       {stack && (
-        <RadarTimeline
-          stack={stack} framePos={framePos} playing={playing} speed={speed} loop={loop} intensities={frameMmH}
-          onScrub={(p) => { setPlaying(false); setFramePos(p); }}
-          onTogglePlay={() => setPlaying((p) => !p)} onStep={step} onJumpNow={jumpNow}
-          onSpeed={setSpeed} onToggleLoop={() => setLoop((l) => !l)}
-        />
+        <div className="nc-radar-dock">
+          <RadarTimeline
+            stack={stack} framePos={framePos} playing={playing} speed={speed} loop={loop} intensities={frameMmH}
+            onScrub={(p) => { setPlaying(false); setFramePos(p); }}
+            onTogglePlay={() => setPlaying((p) => !p)} onStep={step} onJumpNow={jumpNow}
+            onSpeed={setSpeed} onToggleLoop={() => setLoop((l) => !l)}
+          />
+          <PointStrip
+            name={point.name} country={point.country} samples={pointSamples}
+            nowMs={Date.now()} skillMin={stack.skillMin || 120} palette={palette}
+            nowcast={pointNowcast} expertDbz={expertDbz} pop={pointPop} convective={convective}
+            hero eta={eta}
+          />
+        </div>
       )}
-
-      {/* Punkt-Streifen am angetippten/Heimat-Punkt */}
-      {stack && (
-        <PointStrip
-          name={point.name} country={point.country} samples={pointSamples}
-          nowMs={Date.now()} skillMin={stack.skillMin || 120} palette={palette}
-          nowcast={pointNowcast} expertDbz={expertDbz} pop={pointPop} convective={convective}
-          hero eta={eta}
-        />
-      )}
+      </div>
 
       {/* Datenqualität & Quellen */}
       <details className="nc-radar-quality">
