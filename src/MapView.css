@@ -530,6 +530,20 @@
   gap: 0.75rem;
 }
 
+/* Track-Spalte (Regler + mobile Tick-Beschriftung). Auf Desktop unsichtbarer
+   Wrapper: nimmt die flex:1-Rolle des Reglers ein, Ticks ausgeblendet. */
+.forecast-track {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+/* flex:1 der Basis-Regel unten wirkt in der Spalte VERTIKAL (staucht den
+   Regler) → mit höherer Spezifität neutralisieren; Breite über width:100%. */
+.forecast-slider .forecast-track input[type="range"] { width: 100%; flex: none; }
+.forecast-ticks { display: none; }
+
 .forecast-slider input[type="range"] {
   flex: 1;
   -webkit-appearance: none;
@@ -1536,6 +1550,10 @@
     max-height: 42vh; overflow-y: auto; scrollbar-width: none;
   }
   .map-legends::-webkit-scrollbar { display: none; }
+  /* Im half-Zustand endet der Legenden-Stapel über der hochgerückten
+     Timeline (46vh + Slider-Höhe) — sonst kollidieren beide bei mehreren
+     aktiven Legenden-Layern oder kurzen Viewports. */
+  .map-sheet-snap-half .map-legends { max-height: calc(54vh - 200px); }
   .confidence-legend { width: 168px; padding: 0.5rem 0.6rem; }
 
   /* Timeline: schwebt direkt über der Sheet-Oberkante (Spec §4); im full-
@@ -1543,12 +1561,24 @@
      transform statt bottom-Sprung — bewegt sich compositor-seitig synchron
      zum Sheet, erzeugt keinen Layout-Shift (CLS ≈ 0, Spec §10). Der
      bottom:0.7rem-Fallback gilt für den eingebetteten Modus (kein Sheet,
-     keine Snap-Klasse). Trefferfläche des Reglers ≥44px. */
+     keine Snap-Klasse). Optik nach Mockup (wetterkarte-c-detail.html):
+     runder Ink-Button, Terracotta-Füllstand, weißer Knob mit Terracotta-
+     Ring, Tick-Beschriftung, fetter Zeitstempel. Trefferflächen ≥44px. */
   .forecast-slider {
     left: 14px; right: 14px; width: auto; transform: none;
-    bottom: 0.7rem; z-index: 56; padding: 0.5rem 0.7rem;
+    bottom: 0.7rem; z-index: 56;
+    border-radius: 16px; padding: 6px 10px;
   }
-  .forecast-label { min-width: 80px; font-size: 0.7rem; }
+  .forecast-slider-row { gap: 10px; }
+  .forecast-now {
+    flex: none; width: 44px; height: 44px; min-height: 0; padding: 0;
+    border-radius: 50%; background: var(--ink-900); border-color: var(--ink-900);
+    color: var(--cream-50); font-size: 0.62rem; font-weight: 700; letter-spacing: 0.02em;
+  }
+  .forecast-label {
+    min-width: 0; font-size: 0.8rem; font-weight: 700; color: var(--ink-900);
+    font-variant-numeric: tabular-nums;
+  }
   .map-sheet-snap-collapsed .forecast-slider,
   .map-sheet-snap-half .forecast-slider {
     bottom: 0;
@@ -1565,13 +1595,45 @@
   }
   .forecast-slider input[type="range"]::-webkit-slider-runnable-track {
     height: 6px;
-    background: var(--sand-100);
     border-radius: 3px;
+    background: linear-gradient(90deg,
+      var(--terracotta-700) 0,
+      var(--terracotta-700) var(--tl-fill, 0%),
+      var(--sand-200) var(--tl-fill, 0%));
+  }
+  .forecast-slider input[type="range"]::-webkit-slider-thumb {
+    width: 20px; height: 20px; margin-top: -7px;
+    background: #fff; border: 2px solid var(--terracotta-700);
+    box-shadow: var(--shadow-card);
   }
   .forecast-slider input[type="range"]::-moz-range-track {
     height: 6px;
-    background: var(--sand-100);
+    background: var(--sand-200);
     border-radius: 3px;
+  }
+  .forecast-slider input[type="range"]::-moz-range-progress {
+    height: 6px;
+    border-radius: 3px;
+    background: var(--terracotta-700);
+  }
+  .forecast-slider input[type="range"]::-moz-range-thumb {
+    width: 20px; height: 20px;
+    background: #fff; border: 2px solid var(--terracotta-700);
+    box-shadow: var(--shadow-card);
+  }
+  .forecast-ticks {
+    display: flex; justify-content: space-between;
+    margin-top: -8px; padding: 0 2px 2px;
+  }
+  .forecast-ticks span { font-size: 0.6rem; color: var(--stone-400); font-weight: 600; }
+
+  /* Karten-Attribution + Maßstab: über die collapsed-Sheet-Kante + Timeline
+     heben (Karte ist jetzt vollflächig — am Viewport-Boden lägen sie hinter
+     dem Sheet, Preservation-Punkt 12). In half/full verdeckt sie das Sheet —
+     im primären Karten-Zustand (collapsed) sind sie sichtbar. */
+  .maplibregl-ctrl-bottom-left,
+  .maplibregl-ctrl-bottom-right {
+    bottom: calc(152px + env(safe-area-inset-bottom, 0px));
   }
 
   /* Scrim: persistent gerendert, aber nur im full-Zustand sichtbar +
@@ -1666,6 +1728,16 @@
     backdrop-filter: none; -webkit-backdrop-filter: none;
     overflow: visible;
   }
+  /* Z5-Mockup-Look: der Panel-Kopf „PUNKTFORECAST · <Ort>" ist im Sheet
+     redundant (Ort steht in der Topbar-Pill, das Segment heißt bereits
+     „Vorhersage") — ausblenden; Meta-Zeile (Höhe/Stationen/Modelle) bleibt
+     kompakt erhalten. Sub-Tabs etwas größer, direkt unter dem Segment. */
+  .map-sheet-fc .pfc-head { padding: 0 1.1rem 0.45rem; border-bottom: none; }
+  .map-sheet-fc .pfc-title,
+  .map-sheet-fc .pfc-loc { display: none; }
+  .map-sheet-fc .pfc-meta { margin-top: 0; font-size: 0.68rem; }
+  .map-sheet-fc .pfc-tabs { margin-top: 0.15rem; }
+  .map-sheet-fc .pfc-tabs button { font-size: 0.82rem; font-weight: 600; }
 
   .map-sheet-model {
     flex: none; display: flex; align-items: center; gap: 0.55rem; margin: 0 0.85rem 0.55rem;

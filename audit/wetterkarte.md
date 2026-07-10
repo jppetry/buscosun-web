@@ -216,6 +216,22 @@ Basis: G1-Verifikation (§5/§6, alle 13 Punkte grün) + heutige Stichprobe (a11
 
 **Real-Device-Hinweis für Jan (aus Spec §13.9):** Safe-Area-Insets (Notch/Home-Indicator) liefern im Emulator konstant 0 — collapsed-Höhe (64px + Inset) und Sheet-Footer-Padding bitte einmal auf echtem iPhone prüfen; Windpartikel-Richtung/-Präzision wie gehabt nur auf Real-Device beurteilbar.
 
+### 9.8 Nachbesserung nach Jans Review (2026-07-10)
+
+**Feedback:** (1) Vorhersage-Tab nicht im Mockup-Look angelegt / „schöner Style" fehlt, (2) Timeline nicht im Mockup-Stil und kollidiert „manchmal" mit einer großen Kachel.
+
+**Diagnose:**
+- Vorhersage-Tab existiert und funktioniert (Location-Modus, §9.6) — es fehlte der **Z5-Look**: das eingehängte `PointForecastPanel` brachte seinen Desktop-Kopf („PUNKTFORECAST · München" + Meta) mit, im Sheet doppelt redundant (Ort steht in der Topbar-Pill, das Segment heißt „Vorhersage").
+- Timeline war noch die alte Pill (Text-Reset-Button, dicker 28px-Ink-Thumb, kein Füllstand, keine Ticks) statt der Mockup-Timeline aus `wetterkarte-c-detail.html`.
+- Kollisionsquelle reproduziert: Bei **mehreren aktiven Legenden-Layern oder kurzen Viewports** ragte der `.map-legends`-Stapel (max-height 42vh, top 96px) im half-Zustand in die hochgerückte Timeline (46vh+10px). Zusätzlich entdeckt: Karten-**Attribution + Maßstab** lagen seit `inset:0` am Viewport-Boden **hinter dem Sheet** (Preservation-Punkt 12 verletzt).
+
+**Maßnahmen (alle scope-isoliert in der Mobile-Media-Query; Desktop-Diff erneut geprüft):**
+1. **Timeline im Mockup-Stil:** runder 44px-Ink-Button, Terracotta-Füllstand links vom 20px-weißen Knob mit Terracotta-Ring (`--tl-fill`-CSS-Variable, von React am Input gesetzt; Firefox über `::-moz-range-progress`), Tick-Reihe `jetzt · +¼ · +½ · +¾ · +max h` (nur Vollansicht, nur wenn Horizont ≥ 4h), fetter tabellarischer Zeitstempel, Radius 16px. Neuer `.forecast-track`-Wrapper (Spalte Regler+Ticks); auf Desktop unsichtbar (Ticks `display:none`, Regler-Geometrie unverändert — `flex:none`-Override nötig, da das Basis-`flex:1` in der Spalte vertikal wirkte und den Regler auf 6px stauchte).
+2. **Kollisionen:** `.map-sheet-snap-half .map-legends { max-height: calc(54vh - 200px) }` — Legenden-Stapel endet immer über der Timeline. Attribution/Maßstab (`maplibregl-ctrl-bottom-*`) auf `bottom: calc(152px + safe-area)` gehoben: sichtbar im collapsed-Kartenzustand über der Timeline, in half/full vom Sheet verdeckt (Punkt 12 wiederhergestellt).
+3. **Z5-Look Vorhersage-Segment:** `.map-sheet-fc`-scoped: `pfc-title`/`pfc-loc` ausgeblendet (redundant), Meta-Zeile kompakt, Sub-Tabs größer — Segment beginnt jetzt wie im Mockup mit Meta + Sub-Tabs + großem Jetzt-Wert. Keine Änderung an PFC-Interna.
+
+**Verify:** Timeline-Füllstand + Ticks + Knob per Screenshot (`c-nachher2-z1-collapsed.png`, `c-nachher2-timeline-fill.png` bei +12h), fc-Segment (`c-nachher2-z5-half-fc.png`), Legende-Cap in half rechnerisch + gemessen kollisionsfrei (36px Abstand bei 844px, positiv auch bei kurzen Viewports), Landscape 844×390 (Slider 10px über Sheet, Attribution 20px über Slider, scrollWidth 844), Desktop 1440×900 pixelgleich (`c-verify2-desktop-after.png` — Slider-Pill/Geometrie unverändert: Input 6px, Button 44px, Ticks absent), Touch-Audit erneut nur die 4 Attribution-Ausnahmen, Konsole nur vorbestehende BrightSky-404, `npm run typecheck` grün.
+
 ## 7. Real-Device-Hinweis für Jan
 - Windpartikel-Richtung/-Präzision: nur auf echtem iOS/Android-Gerät final beurteilbar (bekannt aus Vorgänger-Debugging, unverändert seit Baseline).
 - Safe-Area-Insets (Notch/Home-Indicator): Emulator liefert `env(safe-area-inset-*)` konstant 0; echte Werte erst auf Real-Device sichtbar.

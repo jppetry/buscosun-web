@@ -2641,15 +2641,31 @@ export default function MapView({ location, onBack, embedded = false, initialAct
                 jetzt
               </button>
             )}
-            <input
-              type="range"
-              min={dayLo}
-              max={dayHi}
-              step={0.2}
-              value={Math.max(dayLo, Math.min(dayHi, forecastHour))}
-              onChange={e => { setPlaying(false); scheduleForecastHour(Number(e.target.value)); }}
-              aria-label={embedded ? 'Uhrzeit am Tag' : 'Forecast-Stunde'}
-            />
+            <div className="forecast-track">
+              <input
+                type="range"
+                min={dayLo}
+                max={dayHi}
+                step={0.2}
+                value={Math.max(dayLo, Math.min(dayHi, forecastHour))}
+                onChange={e => { setPlaying(false); scheduleForecastHour(Number(e.target.value)); }}
+                aria-label={embedded ? 'Uhrzeit am Tag' : 'Forecast-Stunde'}
+                style={{
+                  // Füllstand für die Mobile-Timeline (Terracotta-Fill links vom
+                  // Knob, Mockup-Style) — Desktop konsumiert die Variable nicht.
+                  '--tl-fill': `${((Math.max(dayLo, Math.min(dayHi, forecastHour)) - dayLo) / Math.max(dayHi - dayLo, 1e-6)) * 100}%`,
+                } as React.CSSProperties}
+              />
+              {!embedded && sliderMax >= 4 && (
+                <div className="forecast-ticks" aria-hidden="true">
+                  <span>jetzt</span>
+                  <span>+{Math.round(sliderMax / 4)}</span>
+                  <span>+{Math.round(sliderMax / 2)}</span>
+                  <span>+{Math.round((sliderMax * 3) / 4)}</span>
+                  <span>+{Math.round(sliderMax)}h</span>
+                </div>
+              )}
+            </div>
             <span className="forecast-label">{forecastLabel}</span>
           </div>
         </div>
