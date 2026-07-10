@@ -39,7 +39,7 @@ import { fetchWmsLatestTime } from './sources/wmsTime';
 import { fetchRvNowcast, de1200WarpMesh, DE1200_WARP_N, type RvNowcast } from './sources/radolan';
 // ICON-D2 2,2-km-Niederschlags-Forecast (GRIB2 → mm/h) — Hauptlayer ab +2 h,
 // hinter dem RADOLAN-RV-Nowcast, beide unter dem "Niederschlag"-Button.
-import { fetchIconD2Precip, type IconD2Precip } from './sources/iconD2Precip';
+import { fetchIconD2Precip, resolveLatestRun, type IconD2Precip } from './sources/iconD2Precip';
 // Wolken: DWD ICON-D2 Bewölkungsgrad (CLCT) als Gitter, 0–27 h, gleiche
 // GRIB2-Pipeline wie der Niederschlag.
 import { fetchIconD2CloudStack, type IconD2CloudStack } from './sources/iconD2Clouds';
@@ -468,6 +468,11 @@ export default function MapView({ location, onBack, embedded = false, initialAct
   // Temperatur: natives ICON-D2 t_2m-Gitter (0–24 h) + hsurf-DEM-Korrektur,
   // statt der Fusion (Open-Meteo/IDW).
   const iconD2TempRef = useRef<IconD2Temp | null>(null);
+  // Guard gegen einen DOPPELTEN nebenläufigen Temp-Load (spiegelt windLoadingRef):
+  // Aktivierungs-Effekt und der eager `requestIdleCallback`-Pfad (Stadt-Labels)
+  // können installTemp im selben Tick feuern, bevor iconD2TempRef gesetzt ist →
+  // sonst wird jedes t_2m-Feld (+ hsurf) 2× geholt.
+  const tempLoadingRef = useRef(false);
   // Windböen: natives ICON-D2 vmax_10m-Gitter (0–24 h), lazy beim Aktivieren.
   const iconD2GustRef = useRef<IconD2Gust | null>(null);
   const installGustRef = useRef<(() => Promise<void>) | null>(null);
@@ -1300,6 +1305,11 @@ export default function MapView({ location, onBack, embedded = false, initialAct
     // ICON-Bounds → einmalig per setDem aktivieren; danach speist der Slider-Effekt
     // die stündlichen Frames. Deckt DE/AT/CH geografisch ab → kein Länderbranch.
     const installTemp = async () => {
+      // Nebenläufigen Doppel-Load verhindern (s. tempLoadingRef). Synchron VOR jedem
+      // await gesetzt → greift auch, wenn Aktivierungs-Effekt + requestIdleCallback im
+      // selben Tick feuern. Der 30-min-Refresh läuft weiter, weil dann nicht „loading".
+      if (tempLoadingRef.current) return;
+      tempLoadingRef.current = true;
       try {
         // Tick-Coalescing wie bei Wind (Re-Render-Sturm vermeiden). Temp lädt am
         // Mount IMMER (Stadt-Labels), also auch auf der Default-Karte relevant.
@@ -1314,6 +1324,8 @@ export default function MapView({ location, onBack, embedded = false, initialAct
         updateStatus('temp', { ok: { model: 'DWD ICON-D2 t_2m · 2,2 km', fetchedAt: Date.now() } });
       } catch {
         // nicht fatal — die Fusion-Temperatur deckt weiter ab.
+      } finally {
+        tempLoadingRef.current = false;
       }
     };
     installTempRef.current = installTemp;
@@ -1411,25 +1423,30 @@ export default function MapView({ location, onBack, embedded = false, initialAct
     // nachladen (nur falls bereits aktiviert/geladen).
     const t9 = window.setInterval(refreshNowSource, 5 * 60 * 1000);
     // ICON-D2 läuft alle 3 h — alle 30 min auf einen neueren Lauf prüfen.
-    const t10 = window.setInterval(() => {
-      if (iconD2Ref.current) void installIconD2();
-    }, 30 * 60 * 1000);
-    // Wolken (ICON-D2) ebenfalls alle 30 min auffrischen, falls geladen.
-    const t11 = window.setInterval(() => {
-      if (iconD2CloudsRef.current) void installClouds();
-    }, 30 * 60 * 1000);
-    // Wind (ICON-D2) ebenfalls alle 30 min auffrischen, falls aktiv/geladen.
-    const t12 = window.setInterval(() => {
-      if (active.has('wind') && iconD2WindRef.current) void installWind();
-    }, 30 * 60 * 1000);
-    // Temperatur (ICON-D2) ebenfalls alle 30 min auffrischen, falls aktiv/geladen.
-    const t13 = window.setInterval(() => {
-      if (active.has('temp') && iconD2TempRef.current) void installTemp();
-    }, 30 * 60 * 1000);
-    // Böen (ICON-D2) ebenfalls alle 30 min auffrischen, falls aktiv/geladen.
-    const t14 = window.setInterval(() => {
-      if (active.has('gust') && iconD2GustRef.current) void installGust();
-    }, 30 * 60 * 1000);
+    // Refresh-KOORDINATOR (vorher: fünf separate Intervalle t10–t14, die je nebenläufig
+    // installXxx() → resolveLatestRun() feuerten). Am 30-min-Tick sind sharedRun/runCache
+    // (3-min-TTL) abgelaufen → ohne Koordination starten alle geladenen Layer gleichzeitig
+    // ihre eigene 6er-Rückwärtssuche (sharedRun ist beim Start aller noch null). Hier wird
+    // der jüngste Lauf EINMAL aufgelöst (sharedRun/runCache warm), dann fächern nur die
+    // Per-Param-Fetches der tatsächlich geladenen Layer auf (Ref-Präsenz = „geladen").
+    // Die alten active.has(...)-Guards lasen `active` aus der Mount-Closure (deps []) =
+    // stale → Temp/Böen wurden faktisch nie per Interval aufgefrischt; die Ref-Gates
+    // beheben das und sind konsistent mit t10/t11 (die schon nur auf die Ref gaten).
+    const refreshIconD2Layers = async () => {
+      const jobs: Array<() => Promise<void>> = [];
+      if (iconD2Ref.current) jobs.push(installIconD2);
+      if (iconD2CloudsRef.current) jobs.push(installClouds);
+      if (iconD2WindRef.current) jobs.push(installWind);
+      if (iconD2TempRef.current) jobs.push(installTemp);
+      if (iconD2GustRef.current) jobs.push(installGust);
+      if (jobs.length === 0) return;
+      // Lauf einmal vorab auflösen → sharedRun/runCache sind warm, wenn die Installer
+      // starten (jeder trifft dann seinen Param mit einer Directory-Probe statt einer
+      // nebenläufigen Rückwärtssuche). t_2m ist immer ein gültiger Param.
+      try { await resolveLatestRun('t_2m', abort.signal); } catch { /* Installer lösen selbst auf */ }
+      for (const job of jobs) void job();
+    };
+    const tD2 = window.setInterval(() => { void refreshIconD2Layers(); }, 30 * 60 * 1000);
     // Satellite refresh every 30 min — the data only updates every 3 h but
     // the WMS endpoint reissues the freshest tile each time, so a refresh
     // covers the case where the user keeps the tab open across a 3 h slot.
@@ -1451,11 +1468,7 @@ export default function MapView({ location, onBack, embedded = false, initialAct
       window.clearInterval(t3);
       window.clearInterval(t4);
       window.clearInterval(t9);
-      window.clearInterval(t10);
-      window.clearInterval(t11);
-      window.clearInterval(t12);
-      window.clearInterval(t13);
-      window.clearInterval(t14);
+      window.clearInterval(tD2);
       window.clearInterval(t7);
       markerRef.current?.remove();
       map.remove();
