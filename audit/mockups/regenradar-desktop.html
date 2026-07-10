@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>buscosun · Regenradar — Desktop-Redesign-Mockup „Der Anflug"</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* ---- bestehende Marken-Tokens (unverändert übernommen, designTokens.css v1.8) ---- */
+  --sand-50:#F5F1E8; --sand-100:#EDE6D3; --sand-200:#E0D6BE; --sand-300:#D9CEB0;
+  --cream-50:#FAF6EA;
+  --surface-glass:rgba(250,246,234,0.92); --surface-glass-strong:rgba(250,246,234,0.97);
+  --ink-900:#2C2A26; --ink-800:#3A3833; --stone-600:#5C5447; --stone-500:#8B7355; --stone-400:#A89A7A;
+  --terracotta-500:#C97B47; --terracotta-700:#A85E2E; --terracotta-50:#FAEEDA;
+  --amber-500:#D4A373; --sage-600:#7A9466; --sage-50:#F0F4EA;
+  --steel-600:#3A6FA8; --steel-700:#28507A; --steel-50:#E8F0FA; --slate-500:#6B7A8F;
+  --border-default:#E0D6BE; --border-medium:#D9D0B8; --border-strong:#C4B896;
+  --shadow-card:0 4px 16px rgba(44,42,38,0.06);
+  --shadow-float:0 8px 32px rgba(44,42,38,0.10);
+  --shadow-hover:0 12px 40px rgba(44,42,38,0.14);
+  --font-base:ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono:'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* RADOLAN-Intensitätsrampe (radarModel.ts CLASSIC_STOPS) */
+  --i-light:#96c8f5; --i-moderate:#4696e6; --i-strong:#3cc878;
+  --i-yellow:#e1be37; --i-heavy:#ee7828; --i-red:#d22d37; --i-extreme:#96288c;
+  --alarm:#7e0028; /* Zell-ETA-Alarm, radar.css */
+}
+*{box-sizing:border-box; margin:0; padding:0}
+body{
+  font-family:var(--font-base); background:#cfc8b8;
+  min-height:100vh; display:flex; flex-direction:column; align-items:center;
+  padding:32px 16px 60px; color:var(--ink-900); -webkit-font-smoothing:antialiased;
+}
+
+/* ============ Dokument-Rahmen ============ */
+.doc-head{max-width:1440px; width:100%; margin-bottom:18px}
+.doc-tag{display:inline-block; font:600 10px var(--font-mono); letter-spacing:.16em; text-transform:uppercase;
+  color:var(--stone-500); background:var(--cream-50); border:1px solid var(--border-default);
+  padding:3px 8px; border-radius:6px; margin-bottom:10px}
+.doc-head h1{font-size:19px; font-weight:600; letter-spacing:-.01em}
+.doc-head p{font-size:13px; color:var(--stone-600); margin-top:5px; max-width:880px; line-height:1.55}
+.doc-head p b{color:var(--ink-900)}
+
+/* ============ FRAME (Desktop-Viewport) ============ */
+.frame{position:relative; width:1440px; height:864px; border-radius:16px; overflow:hidden;
+  box-shadow:var(--shadow-hover); background:#20201d; flex:none}
+
+/* ---- Karte: dunkler Basemap-Grund + RADOLAN-Zellen (angedeutet) ---- */
+.map{position:absolute; inset:0; overflow:hidden;
+  background:linear-gradient(158deg,#2a2925,#1e1d1a 70%)}
+.map-graticule{position:absolute; inset:0; opacity:.07;
+  background-image:
+    repeating-linear-gradient(0deg,#fff 0 1px,transparent 1px 104px),
+    repeating-linear-gradient(90deg,#fff 0 1px,transparent 1px 104px)}
+.map-coast{position:absolute; inset:0; opacity:.5;
+  background:
+    radial-gradient(38% 30% at 8% 20%, rgba(58,90,120,.34), transparent 62%),
+    radial-gradient(30% 24% at 88% 84%, rgba(58,90,120,.24), transparent 60%)}
+/* Niederschlagsfeld: eine konvektive Zelle südwestlich des Punkts, Kern rot/orange */
+.cell{position:absolute; border-radius:50%; filter:blur(6px); mix-blend-mode:screen}
+.cell-halo{left:40%; top:60%; width:360px; height:300px; transform:translate(-50%,-50%);
+  background:radial-gradient(circle,var(--i-light) 0%,rgba(150,200,245,.25) 45%,transparent 70%); opacity:.55}
+.cell-body{left:41%; top:59%; width:230px; height:200px; transform:translate(-50%,-50%);
+  background:radial-gradient(circle,var(--i-strong) 0%,var(--i-moderate) 55%,transparent 75%); opacity:.8}
+.cell-core{left:42%; top:58%; width:132px; height:112px; transform:translate(-50%,-50%);
+  background:radial-gradient(circle,var(--i-extreme) 0%,var(--i-red) 30%,var(--i-heavy) 58%,var(--i-yellow) 78%,transparent 90%); opacity:.96}
+.cell-2{left:22%; top:78%; width:180px; height:150px; transform:translate(-50%,-50%);
+  background:radial-gradient(circle,var(--i-moderate) 0%,rgba(70,150,230,.2) 55%,transparent 75%); opacity:.6}
+/* Zug-Vektor der Zelle Richtung Punkt + ETA-Trichter */
+.track{position:absolute; left:42%; top:58%; width:340px; height:2px; transform-origin:left center;
+  transform:rotate(-34deg); background:repeating-linear-gradient(90deg,rgba(255,255,255,.75) 0 8px,transparent 8px 15px); z-index:2}
+.track::after{content:""; position:absolute; right:-2px; top:-4px; border-left:9px solid rgba(255,255,255,.85);
+  border-top:5px solid transparent; border-bottom:5px solid transparent}
+.funnel{position:absolute; left:42%; top:58%; width:340px; height:150px; transform-origin:left center;
+  transform:rotate(-34deg) translateY(-50%);
+  background:linear-gradient(90deg,rgba(126,0,40,.02),rgba(126,0,40,.16)); clip-path:polygon(0 46%,100% 0,100% 100%,0 54%); z-index:1}
+/* Standort-Pin */
+.pin{position:absolute; left:57%; top:39%; transform:translate(-50%,-100%); z-index:4}
+.pin svg{filter:drop-shadow(0 3px 6px rgba(0,0,0,.5))}
+.pin-ring{position:absolute; left:57%; top:39%; width:26px; height:26px; transform:translate(-50%,-50%);
+  border-radius:50%; border:2px solid rgba(58,111,168,.9); z-index:3;
+  animation:ping 2.8s ease-out infinite}
+@keyframes ping{0%{transform:translate(-50%,-50%) scale(.5); opacity:.9}100%{transform:translate(-50%,-50%) scale(3.4); opacity:0}}
+
+/* ============ TOPBAR ============ */
+.topbar{position:absolute; top:16px; left:20px; right:20px; z-index:20; display:flex; align-items:center; gap:12px}
+.brand{display:flex; align-items:center; gap:9px; background:var(--surface-glass);
+  border:1px solid var(--border-default); border-radius:999px; padding:8px 15px 8px 12px;
+  box-shadow:var(--shadow-card); backdrop-filter:blur(8px)}
+.brand-mark{width:22px; height:22px; border-radius:7px;
+  background:radial-gradient(circle at 35% 30%,var(--i-light),var(--steel-600) 72%);
+  box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.35)}
+.brand b{font-size:15px; font-weight:600; letter-spacing:-.01em}
+.loc{display:flex; align-items:center; gap:9px; background:var(--surface-glass);
+  border:1px solid var(--border-default); border-radius:999px; padding:8px 15px 8px 13px;
+  box-shadow:var(--shadow-card); backdrop-filter:blur(8px)}
+.loc .fl{font-size:14px}
+.loc b{font-size:14px; font-weight:600}
+.loc .chg{font:500 11px var(--font-mono); color:var(--stone-500); border-left:1px solid var(--border-default); padding-left:9px; margin-left:2px}
+.spacer{flex:1}
+.fresh{display:flex; align-items:center; gap:8px; background:var(--surface-glass);
+  border:1px solid var(--border-default); border-radius:999px; padding:8px 14px;
+  box-shadow:var(--shadow-card); backdrop-filter:blur(8px); font:500 11px var(--font-mono); color:var(--stone-600)}
+.fresh .d{width:7px; height:7px; border-radius:50%; background:var(--sage-600); position:relative}
+.fresh .d::after{content:""; position:absolute; inset:-4px; border-radius:50%; background:var(--sage-600); opacity:.3; animation:pulse 2.4s ease-out infinite}
+@keyframes pulse{0%{transform:scale(.6); opacity:.55}100%{transform:scale(2.3); opacity:0}}
+.fresh b{color:var(--ink-900)}
+.reload{width:34px; height:34px; border:1px solid var(--border-default); border-radius:10px;
+  background:var(--surface-glass-strong); color:var(--ink-800); font-size:15px; cursor:pointer;
+  box-shadow:var(--shadow-card); display:grid; place-items:center}
+
+/* ============ RECHTS: EBENEN-SCHIENE ============ */
+.rail{position:absolute; top:66px; right:20px; z-index:15; width:236px;
+  background:var(--surface-glass-strong); border:1px solid var(--border-default);
+  border-radius:16px; box-shadow:var(--shadow-float); backdrop-filter:blur(10px); overflow:hidden}
+.rail-hd{display:flex; align-items:baseline; justify-content:space-between; padding:12px 14px 7px}
+.eyebrow{font:600 10px var(--font-mono); letter-spacing:.18em; text-transform:uppercase; color:var(--stone-400)}
+.rail-hd .preset{font:600 10px var(--font-mono); color:var(--steel-600)}
+.layers{padding:0 8px 8px; display:flex; flex-direction:column; gap:1px}
+.layer{display:flex; align-items:center; gap:10px; padding:7px 9px; border-radius:10px; cursor:pointer; border:1px solid transparent}
+.layer:hover{background:var(--sand-50)}
+.layer .dot{width:9px; height:9px; border-radius:50%; flex:none; box-shadow:0 0 0 3px rgba(255,255,255,.5)}
+.layer .nm{font-size:13px; color:var(--ink-800); flex:1}
+.layer .sub{font:500 9px var(--font-mono); color:var(--stone-400)}
+.layer.active{background:var(--ink-900); border-color:var(--ink-900)}
+.layer.active .nm{color:var(--cream-50); font-weight:500}
+.layer.active .sub{color:var(--sand-300)}
+.layer.active .dot{box-shadow:0 0 0 3px rgba(255,255,255,.16)}
+.rail-foot{border-top:1px solid var(--border-default); padding:11px 14px 13px; background:var(--cream-50)}
+.rf-row{display:flex; align-items:center; gap:8px; margin-bottom:9px}
+.rf-row:last-child{margin-bottom:0}
+.rf-lbl{font:600 9px var(--font-mono); letter-spacing:.1em; text-transform:uppercase; color:var(--stone-500); width:52px; flex:none}
+.seg{display:flex; gap:3px; background:var(--sand-100); border-radius:8px; padding:3px; flex:1}
+.seg button{flex:1; border:none; background:transparent; font:500 10.5px var(--font-base); color:var(--stone-600); padding:5px 4px; border-radius:6px; cursor:pointer}
+.seg button.on{background:var(--ink-900); color:var(--cream-50)}
+
+/* ============ RECHTS-UNTEN: INTENSITÄTS-LEGENDE (Säule) ============ */
+.legend{position:absolute; right:20px; bottom:20px; z-index:15; width:236px;
+  background:var(--surface-glass); border:1px solid var(--border-default); border-radius:16px;
+  box-shadow:var(--shadow-float); backdrop-filter:blur(10px); padding:12px 14px 13px}
+.legend .eyebrow{display:block; margin-bottom:9px}
+.leg-scale{height:8px; border-radius:4px; margin-bottom:7px;
+  background:linear-gradient(90deg,var(--i-light),var(--i-moderate),var(--i-strong),var(--i-yellow),var(--i-heavy),var(--i-red),var(--i-extreme))}
+.leg-ticks{display:flex; justify-content:space-between; font:500 9px var(--font-mono); color:var(--stone-500)}
+.leg-rows{margin-top:11px; display:flex; flex-direction:column; gap:6px}
+.leg-row{display:flex; align-items:center; gap:8px; font-size:11.5px; color:var(--ink-800)}
+.leg-row i{width:13px; height:9px; border-radius:2px; flex:none}
+.leg-row .rg{margin-left:auto; font:500 9.5px var(--font-mono); color:var(--stone-400)}
+
+/* ============ ZELL-ETA-ALARM (schwebt an der Zelle) ============ */
+.eta{position:absolute; left:30%; top:22%; z-index:16; max-width:300px;
+  display:flex; align-items:flex-start; gap:9px; background:var(--alarm); color:#fff;
+  border-radius:12px; padding:10px 13px; box-shadow:0 8px 24px rgba(126,0,40,.4)}
+.eta .ic{font-size:15px; line-height:1.2}
+.eta .tx{font-size:12px; line-height:1.4}
+.eta .tx b{font:600 13px var(--font-mono)}
+.eta .tx .m{font-family:var(--font-mono); opacity:.85; font-size:10.5px}
+
+/* ============ SIGNATUR: DER ANFLUG-BALKEN (unten links, Held) ============ */
+.approach{position:absolute; left:20px; bottom:20px; z-index:16; width:812px;
+  background:var(--surface-glass-strong); border:1px solid var(--border-default);
+  border-radius:20px; box-shadow:var(--shadow-float); backdrop-filter:blur(12px); overflow:hidden}
+.ap-hd{display:flex; align-items:center; gap:12px; padding:13px 18px 0}
+.ap-hd .eyebrow{display:flex; align-items:center; gap:7px}
+.ap-hd .fl{font-size:12px}
+.verdict{margin-left:auto; display:inline-flex; align-items:center; gap:6px;
+  font:600 11px var(--font-base); padding:4px 11px 4px 9px; border-radius:999px}
+.verdict i{width:8px; height:8px; border-radius:50%}
+.verdict.wait{background:#fbe3df; color:#a8431f} .verdict.wait i{background:#a8431f}
+.ap-body{display:flex; align-items:flex-end; gap:22px; padding:6px 18px 4px}
+.ap-answer{flex:none}
+.ap-answer .line{font-size:23px; font-weight:300; letter-spacing:-.015em; color:var(--ink-900); line-height:1.15}
+.ap-answer .line b{font:600 34px var(--font-mono); letter-spacing:-.02em; color:var(--steel-600); vertical-align:-2px}
+.ap-answer .sub{margin-top:4px; font:500 11.5px var(--font-mono); color:var(--stone-600)}
+.ap-answer .sub .s{color:var(--alarm)}
+/* Mini-Kompass für die Zellrichtung */
+.compass{flex:none; width:58px; height:58px; border-radius:50%; border:1px solid var(--border-default);
+  background:var(--cream-50); position:relative; box-shadow:inset 0 0 0 4px rgba(255,255,255,.5)}
+.compass span{position:absolute; font:600 8px var(--font-mono); color:var(--stone-400)}
+.compass .n{top:3px; left:50%; transform:translateX(-50%)}
+.compass .s{bottom:3px; left:50%; transform:translateX(-50%)}
+.compass .e{right:4px; top:50%; transform:translateY(-50%)}
+.compass .w{left:4px; top:50%; transform:translateY(-50%)}
+.compass .arr{position:absolute; left:50%; top:50%; width:2px; height:22px; background:var(--alarm);
+  transform-origin:bottom center; transform:translate(-50%,-100%) rotate(56deg); border-radius:2px}
+.compass .arr::before{content:""; position:absolute; top:-4px; left:-3px; border-bottom:7px solid var(--alarm);
+  border-left:4px solid transparent; border-right:4px solid transparent}
+.compass .hub{position:absolute; left:50%; top:50%; width:6px; height:6px; border-radius:50%; background:var(--ink-800); transform:translate(-50%,-50%)}
+
+/* Vitals-Chips (Summe/Gewitter/Schneefallgrenze bleiben erhalten) */
+.vitals{margin-left:auto; display:flex; gap:8px}
+.vital{background:var(--sand-50); border:1px solid var(--border-default); border-radius:11px; padding:7px 11px; min-width:74px}
+.vital .k{font:600 8.5px var(--font-mono); letter-spacing:.09em; text-transform:uppercase; color:var(--stone-400)}
+.vital .v{font:600 15px var(--font-mono); color:var(--ink-900); margin-top:2px}
+.vital .v em{font-size:10px; font-style:normal; color:var(--stone-500)}
+
+/* Der Seam-Sparkline (Kern der Signatur) */
+.seam{position:relative; margin:8px 18px 0; padding-top:4px}
+.seam svg{display:block; width:100%; height:118px}
+.seam-x{display:flex; justify-content:space-between; margin-top:2px; font:500 9px var(--font-mono); color:var(--stone-400)}
+.seam-note{position:absolute; left:0; right:0; top:2px; pointer-events:none}
+
+/* Scrub-/Abspiel-Zeile — dieselbe Zeitachse wie der Seam */
+.ap-foot{display:flex; align-items:center; gap:10px; padding:9px 18px 14px}
+.play{width:38px; height:38px; border-radius:50%; border:none; background:var(--steel-600); color:#fff;
+  cursor:pointer; display:grid; place-items:center; box-shadow:var(--shadow-card)}
+.stepbtn{width:32px; height:32px; border-radius:50%; border:1px solid var(--border-default);
+  background:var(--cream-50); color:var(--ink-800); cursor:pointer; display:grid; place-items:center}
+.now-btn{height:32px; padding:0 12px; border-radius:999px; border:1px solid var(--border-default);
+  background:var(--cream-50); color:var(--ink-800); font:500 11px var(--font-base); cursor:pointer;
+  display:inline-flex; align-items:center; gap:5px}
+.speeds{display:flex; gap:3px; background:var(--sand-100); border-radius:8px; padding:3px; margin-left:2px}
+.speeds button{border:none; background:transparent; font:500 10.5px var(--font-mono); color:var(--stone-600); padding:5px 8px; border-radius:6px; cursor:pointer}
+.speeds button.on{background:var(--ink-900); color:var(--cream-50)}
+.key{margin-left:auto; display:flex; gap:14px; font:500 10px var(--font-mono); color:var(--stone-500)}
+.key span{display:inline-flex; align-items:center; gap:5px}
+.key i{width:15px; height:4px; border-radius:2px}
+.key .meas{background:var(--steel-700)}
+.key .fc{background:repeating-linear-gradient(90deg,var(--steel-600) 0 3px,transparent 3px 6px)}
+
+/* ============ Untertitel / Funktionserhalt ============ */
+.doc-foot{max-width:1440px; width:100%; margin-top:16px; display:flex; gap:22px; flex-wrap:wrap}
+.doc-foot .col{flex:1; min-width:300px}
+.doc-foot h3{font:600 11px var(--font-mono); letter-spacing:.1em; text-transform:uppercase; color:var(--stone-500); margin-bottom:7px}
+.doc-foot p, .doc-foot li{font-size:12.5px; color:var(--stone-600); line-height:1.6}
+.doc-foot ul{list-style:none; display:flex; flex-direction:column; gap:4px}
+.doc-foot li::before{content:"✓ "; color:var(--sage-600); font-weight:600}
+.doc-foot li b{color:var(--ink-800)}
+
+@media (prefers-reduced-motion: reduce){
+  .fresh .d::after,.pin-ring{animation:none}
+}
+</style>
+</head>
+<body>
+
+<div class="doc-head">
+  <span class="doc-tag">Konzept-Mockup · Desktop 1440 · Funktionserhalt geprüft</span>
+  <h1>Regenradar — „Der Anflug"</h1>
+  <p>Das Radar wird vom gestapelten Karten-Dashboard zur <b>Karten-Bühne</b> mit schwebenden Cream-Glas-Instrumenten — dieselbe Sprache wie das Wetterkarte-Desktop-Mockup. Signatur ist <b>der Anflug-Balken</b>: der Punkt-Nowcast, dessen Regenprofil links (Radar-gemessen/extrapoliert) scharf gezeichnet ist und am <b>Skill-Horizont</b> sichtbar in eine gerasterte, ausbleichende Prognose zerfällt. Buscosuns Ehrlichkeits-Versprechen wird zum Bild statt zur Fußnote. Szenario: Köln, konvektive Zelle aus SW (München wäre trocken und zeigte die Signatur nicht).</p>
+</div>
+
+<div class="frame">
+  <!-- ===== Karte ===== -->
+  <div class="map">
+    <div class="map-coast"></div>
+    <div class="map-graticule"></div>
+    <div class="cell cell-halo"></div>
+    <div class="cell cell-2"></div>
+    <div class="cell cell-body"></div>
+    <div class="cell cell-core"></div>
+    <div class="funnel"></div>
+    <div class="track"></div>
+    <div class="pin-ring"></div>
+    <div class="pin">
+      <svg width="30" height="40" viewBox="0 0 30 40"><path d="M15 0C7 0 1 6 1 14c0 9 14 26 14 26s14-17 14-26C29 6 23 0 15 0z" fill="#3A6FA8"/><circle cx="15" cy="14" r="5.5" fill="#FAF6EA"/></svg>
+    </div>
+  </div>
+
+  <!-- ===== Topbar ===== -->
+  <div class="topbar">
+    <div class="brand"><span class="brand-mark"></span><b>buscosun</b></div>
+    <div class="loc"><span class="fl">🇩🇪</span><b>Köln</b><span class="chg">ändern</span></div>
+    <div class="spacer"></div>
+    <div class="fresh"><span class="d"></span>DWD RADOLAN-RV · <b>vor 2 min</b> · Lauf 15:50</div>
+    <button class="reload" title="Neu laden">↻</button>
+  </div>
+
+  <!-- ===== Ebenen-Schiene ===== -->
+  <div class="rail">
+    <div class="rail-hd"><span class="eyebrow">Ebenen</span><span class="preset">▲ Gewitter-Jagd</span></div>
+    <div class="layers">
+      <div class="layer active"><span class="dot" style="background:var(--i-moderate)"></span><span class="nm">Niederschlag</span><span class="sub">mm/h</span></div>
+      <div class="layer active"><span class="dot" style="background:var(--alarm)"></span><span class="nm">Sturmzellen + ETA</span><span class="sub">2 aktiv</span></div>
+      <div class="layer active"><span class="dot" style="background:var(--i-yellow)"></span><span class="nm">Blitze</span><span class="sub">DWD</span></div>
+      <div class="layer"><span class="dot" style="background:var(--terracotta-500)"></span><span class="nm">Warnungen</span><span class="sub">amtlich</span></div>
+      <div class="layer"><span class="dot" style="background:var(--slate-500)"></span><span class="nm">Regen / Schnee</span><span class="sub">Phase</span></div>
+      <div class="layer"><span class="dot" style="background:var(--steel-600)"></span><span class="nm">Schneefallgrenze</span><span class="sub">DEM</span></div>
+      <div class="layer"><span class="dot" style="background:var(--sage-600)"></span><span class="nm">Summe</span><span class="sub">6 h</span></div>
+      <div class="layer"><span class="dot" style="background:var(--stone-400)"></span><span class="nm">Radarsicht</span><span class="sub">Qualität</span></div>
+    </div>
+    <div class="rail-foot">
+      <div class="rf-row"><span class="rf-lbl">Palette</span>
+        <div class="seg"><button class="on">Klassisch</button><button>Farbsicher</button><button>Mono</button></div></div>
+      <div class="rf-row"><span class="rf-lbl">Basis</span>
+        <div class="seg"><button class="on">Straße</button><button>Gelände</button><button>Satellit</button></div></div>
+      <div class="rf-row"><span class="rf-lbl">Deckkraft</span>
+        <div class="seg" style="background:transparent; padding:0; align-items:center">
+          <div style="flex:1; height:5px; border-radius:3px; background:linear-gradient(90deg,var(--steel-600) 85%,var(--sand-200) 85%)"></div>
+          <span style="font:500 10px var(--font-mono); color:var(--stone-500); flex:none">85%</span></div></div>
+    </div>
+  </div>
+
+  <!-- ===== Intensitäts-Legende ===== -->
+  <div class="legend">
+    <span class="eyebrow">Intensität · mm/h</span>
+    <div class="leg-scale"></div>
+    <div class="leg-ticks"><span>0,1</span><span>0,5</span><span>2</span><span>5</span><span>10</span><span>20</span><span>50+</span></div>
+    <div class="leg-rows">
+      <div class="leg-row"><i style="background:var(--i-light)"></i>leicht<span class="rg">0,1–0,5</span></div>
+      <div class="leg-row"><i style="background:var(--i-moderate)"></i>mäßig<span class="rg">0,5–2</span></div>
+      <div class="leg-row"><i style="background:var(--i-strong)"></i>stark<span class="rg">2–10</span></div>
+      <div class="leg-row"><i style="background:var(--i-heavy)"></i>Starkregen<span class="rg">10–50</span></div>
+      <div class="leg-row"><i style="background:var(--i-extreme)"></i>extrem<span class="rg">&gt; 50</span></div>
+    </div>
+  </div>
+
+  <!-- ===== Zell-ETA-Alarm ===== -->
+  <div class="eta">
+    <span class="ic">⛈</span>
+    <span class="tx">Verstärkende Zelle (<b>28 mm/h</b>) erreicht dich in <b>~9 min</b><br><span class="m">24 km/h · aus SW · Kern Starkregen</span></span>
+  </div>
+
+  <!-- ===== SIGNATUR: Der Anflug-Balken ===== -->
+  <div class="approach">
+    <div class="ap-hd">
+      <span class="eyebrow"><span class="fl">🇩🇪</span> Anflug · Köln · 62 m</span>
+      <span class="verdict wait"><i></i>Warten — Schauer zieht auf</span>
+    </div>
+    <div class="ap-body">
+      <div class="ap-answer">
+        <div class="line">Regen in <b>9</b> min</div>
+        <div class="sub">stark, ~8 mm/h · <span class="s">Zelle aus SW, 24 km/h</span></div>
+      </div>
+      <div class="compass" title="Zug-Richtung der Zelle: aus Südwest">
+        <span class="n">N</span><span class="e">O</span><span class="s">S</span><span class="w">W</span>
+        <span class="arr"></span><span class="hub"></span>
+      </div>
+      <div class="vitals">
+        <div class="vital"><div class="k">Summe 6 h</div><div class="v">11 <em>mm</em></div></div>
+        <div class="vital"><div class="k">Gewitter</div><div class="v">64 <em>%</em></div></div>
+        <div class="vital"><div class="k">Spitze</div><div class="v">28 <em>mm/h</em></div></div>
+      </div>
+    </div>
+
+    <!-- Der Seam-Sparkline -->
+    <div class="seam">
+      <svg viewBox="0 0 1000 118" preserveAspectRatio="none" aria-hidden="true">
+        <defs>
+          <linearGradient id="rainFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#3A6FA8" stop-opacity="0.55"/>
+            <stop offset="1" stop-color="#3A6FA8" stop-opacity="0.04"/>
+          </linearGradient>
+          <pattern id="fcHatch" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+            <rect width="7" height="7" fill="#3A6FA8" fill-opacity="0.05"/>
+            <line x1="0" y1="0" x2="0" y2="7" stroke="#3A6FA8" stroke-opacity="0.5" stroke-width="1.4"/>
+          </pattern>
+          <linearGradient id="fcFade" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stop-color="#fff" stop-opacity="1"/>
+            <stop offset="1" stop-color="#fff" stop-opacity="0.08"/>
+          </linearGradient>
+          <mask id="fcMask"><rect x="667" y="0" width="333" height="118" fill="url(#fcFade)"/></mask>
+        </defs>
+
+        <!-- Grundlinie -->
+        <line x1="0" y1="104" x2="1000" y2="104" stroke="#E0D6BE" stroke-width="1"/>
+
+        <!-- Gemessen / Nowcast (0–120 min, x 0–667): scharfe Fläche + Linie -->
+        <path d="M0,104 L50,104 L70,88 L110,60 L160,44 L220,30 L300,36 L400,52 L500,66 L600,84 L667,92 L667,104 Z" fill="url(#rainFill)"/>
+        <path d="M0,104 L50,104 L70,88 L110,60 L160,44 L220,30 L300,36 L400,52 L500,66 L600,84 L667,92" fill="none" stroke="#28507A" stroke-width="2.5" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>
+
+        <!-- Prognose (120–180 min, x 667–1000): gerastert + ausbleichend (Konfidenz-Nebel) -->
+        <g mask="url(#fcMask)">
+          <path d="M667,88 L760,80 L860,86 L1000,92 L1000,104 L667,104 Z" fill="url(#fcHatch)"/>
+          <path d="M667,92 L760,86 L860,90 L1000,95" fill="none" stroke="#3A6FA8" stroke-width="2" stroke-dasharray="3 4" vector-effect="non-scaling-stroke"/>
+          <!-- Konfidenzband min/max, weitet sich -->
+          <path d="M667,80 L760,66 L860,60 L1000,54" fill="none" stroke="#3A6FA8" stroke-opacity="0.35" stroke-width="1" stroke-dasharray="2 3" vector-effect="non-scaling-stroke"/>
+        </g>
+
+        <!-- JETZT-Kante -->
+        <line x1="0" y1="6" x2="0" y2="104" stroke="#2C2A26" stroke-width="2"/>
+        <!-- Onset-Marker (Regen beginnt +9 min) -->
+        <circle cx="50" cy="104" r="4" fill="#28507A"/>
+        <!-- Skill-Horizont-Naht -->
+        <line x1="667" y1="0" x2="667" y2="104" stroke="#8B7355" stroke-width="1.4" stroke-dasharray="4 3"/>
+      </svg>
+      <!-- Textmarken über dem SVG -->
+      <div class="seam-note">
+        <span style="position:absolute; left:0; font:700 9px var(--font-mono); letter-spacing:.08em; color:var(--ink-900)">JETZT</span>
+        <span style="position:absolute; left:5%; top:-2px; font:600 9px var(--font-mono); color:var(--steel-700)">↑ Regen +9 min</span>
+        <span style="position:absolute; left:66.7%; transform:translateX(-50%); font:600 9px var(--font-mono); color:var(--stone-500); background:var(--surface-glass-strong); padding:0 4px">SKILL-HORIZONT +2 h</span>
+        <span style="position:absolute; right:0; top:-2px; font-style:italic; font:italic 500 9.5px var(--font-base); color:var(--stone-400)">ab hier Modell, keine Minuten</span>
+      </div>
+      <div class="seam-x"><span>jetzt</span><span>+30</span><span>+60</span><span>+90</span><span>+120</span><span>+150</span><span>+180 min</span></div>
+    </div>
+
+    <!-- Scrub / Abspiel -->
+    <div class="ap-foot">
+      <button class="stepbtn" title="Frame zurück">⟨</button>
+      <button class="play" title="Abspielen">▶</button>
+      <button class="stepbtn" title="Frame vor">⟩</button>
+      <button class="now-btn">✛ Jetzt</button>
+      <div class="speeds"><button>0,5×</button><button class="on">1×</button><button>2×</button></div>
+      <div class="key">
+        <span><i class="meas"></i>gemessen</span>
+        <span><i class="fc"></i>Vorhersage</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="doc-foot">
+  <div class="col">
+    <h3>Was die Signatur löst</h3>
+    <p>Heute ist der Messung↔Vorhersage-Bruch eine 2px-Strichellinie im Scrubber und die Ehrlichkeits-Regel eine Fußnote ganz unten. Der Anflug-Balken macht beides zum <b>Blickfang</b>: das Profil zerfällt sichtbar am Skill-Horizont — man <em>sieht</em>, wo die App aufhört, minutengenau zu tun. Das ist das buscosun-Versprechen als Bild.</p>
+  </div>
+  <div class="col">
+    <h3>Funktionserhalt — nichts fällt weg, alles umgruppiert</h3>
+    <ul>
+      <li><b>11 Ebenen</b> + Presets → Ebenen-Schiene rechts (aktive dunkel, wie heute)</li>
+      <li><b>Palette / Basiskarte / Deckkraft / dBZ-Expert</b> → Schienen-Fuß</li>
+      <li><b>Scrub · Play · Speed · Loop · Jetzt</b> → Fuß des Anflug-Balkens</li>
+      <li><b>Punkt-Nowcast + Zell-ETA + Kompass</b> → in die Signatur fusioniert</li>
+      <li><b>KPIs (Summe/Gewitter/Spitze) · Datenqualität</b> → Vitals-Chips / ausklappbar</li>
+    </ul>
+  </div>
+</div>
+
+</body>
+</html>
