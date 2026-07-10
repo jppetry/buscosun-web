@@ -310,6 +310,27 @@
 .rdr-verdict-wait { background: #fbe3df; color: #a8431f; }
 .rdr-strip-headline { font-size: 0.95rem; font-weight: 600; margin: 0.6rem 0 0.2rem; color: var(--ink-900, #2C2A26); }
 .rdr-strip-detail { font-size: 0.78rem; color: var(--stone-600, #5C5447); margin: 0 0 0.6rem; }
+
+/* ===== Hero-„Anflug"-Modus (R1.2): großer Antwort-Kopf + Zell-Anflug ===== */
+.rdr-strip-hero { padding: 1rem 1.15rem 1.05rem; box-shadow: var(--shadow-float, 0 8px 32px rgba(44,42,38,0.10)); }
+.rdr-strip-hero .rdr-strip-head { margin-top: 0.15rem; }
+.rdr-ap-eyebrow {
+  display: block; font-size: 0.62rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--rdr-blue, #3A6FA8); font-family: var(--font-mono, ui-monospace, monospace); margin-bottom: 0.35rem;
+}
+.rdr-strip-headline-hero { font-size: 1.28rem; font-weight: 600; letter-spacing: -0.01em; margin: 0.5rem 0 0.25rem; line-height: 1.2; }
+/* Zell-Anflug-Zeile: Kompass + ETA-Text */
+.rdr-ap-cell {
+  display: flex; align-items: center; gap: 0.8rem; margin: 0.2rem 0 0.7rem;
+  padding: 0.6rem 0.75rem; border-radius: 12px;
+  background: #fbe9ec; border: 1px solid #f0cdd4;
+}
+.rdr-ap-compass { flex: none; }
+.rdr-ap-compass-t { font-family: var(--font-mono, ui-monospace, monospace); font-size: 7px; font-weight: 600; fill: var(--stone-400, #A89A7A); text-anchor: middle; }
+.rdr-ap-cell-tx { display: flex; flex-direction: column; gap: 0.12rem; min-width: 0; }
+.rdr-ap-cell-tx strong { font-size: 0.86rem; font-weight: 600; color: var(--ink-900, #2C2A26); }
+.rdr-ap-cell-tx span { font-size: 0.74rem; color: var(--stone-600, #5C5447); font-variant-numeric: tabular-nums; }
+.rdr-ap-eta { font-family: var(--font-mono, ui-monospace, monospace); font-weight: 700; color: var(--alarm, #7e0028); font-variant-numeric: tabular-nums; }
 .rdr-strip-bars { display: flex; align-items: flex-end; gap: 1px; height: 68px; background: linear-gradient(to top, #f0ead8 0%, #faf6ee 100%); border-radius: 8px; padding: 0 3px; }
 .rdr-bar { flex: 1; border-radius: 2px 2px 0 0; min-height: 2px; }
 .rdr-bar.is-fc { opacity: 0.78; }

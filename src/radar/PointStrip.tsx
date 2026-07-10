@@ -17,6 +17,7 @@ import {
 import type { RadarStack } from './radarFrames';
 import { peakPoP, type PointPoP } from './pointPoP';
 import type { ConvectiveIndex } from './convectiveIndex';
+import type { StormCell } from './cellTracking';
 import type { Nowcast } from '../nowcast/nowcastModel';
 import {
   IconCheck, IconWarning, IconHourglass, IconRain, IconSnowflake, IconBolt, IconDrop,
@@ -55,11 +56,15 @@ interface Props {
   /** Gewittergefahr-Index am Punkt (CAPE + Zelle + Warnung); null wenn (noch) nicht berechnet. */
   convective?: ConvectiveIndex | null;
   accent?: 'primary' | 'compare';
+  /** Hero-„Anflug"-Modus: großer Antwort-Kopf + Zell-Anflug (Kompass/ETA) fusioniert. */
+  hero?: boolean;
+  /** Anziehende Sturmzelle am Punkt (nur Hero) — speist Kompass + ETA-Satz. */
+  eta?: { etaMin: number; cell: StormCell } | null;
   onRemove?: () => void;
 }
 
 export default function PointStrip({
-  name, country, samples, nowMs, skillMin, palette, nowcast, expertDbz, pop = [], convective = null, accent = 'primary', onRemove,
+  name, country, samples, nowMs, skillMin, palette, nowcast, expertDbz, pop = [], convective = null, accent = 'primary', hero = false, eta = null, onRemove,
 }: Props) {
   // Regenwahrscheinlichkeit: Schlagzeilen-Wert (nächste 60 min) + Lead→% für Tooltips.
   const pop60 = peakPoP(pop, 60);
@@ -82,7 +87,8 @@ export default function PointStrip({
   const VerdictIcon = plain.verdict === 'go' ? IconCheck : plain.verdict === 'caution' ? IconWarning : IconHourglass;
 
   return (
-    <div className={`rdr-strip rdr-strip-${accent}`}>
+    <div className={`rdr-strip rdr-strip-${accent}${hero ? ' rdr-strip-hero' : ''}`}>
+      {hero && <span className="rdr-ap-eyebrow">Anflug · dein Punkt</span>}
       <div className="rdr-strip-head">
         <span className="rdr-strip-name">
           <span aria-hidden="true">{flagForCountry(country)}</span> {shortName(name)}
@@ -92,8 +98,21 @@ export default function PointStrip({
         {onRemove && <button type="button" className="rdr-strip-x" onClick={onRemove} aria-label="Vergleichspunkt entfernen">×</button>}
       </div>
 
-      <p className="rdr-strip-headline">{plain.headline}</p>
+      <p className={`rdr-strip-headline${hero ? ' rdr-strip-headline-hero' : ''}`}>{plain.headline}</p>
       <p className="rdr-strip-detail">{plain.detail}</p>
+
+      {/* Zell-Anflug: Kompass (Zug-Richtung) + ETA — nur Hero, nur wenn eine Zelle zieht */}
+      {hero && eta && eta.cell.speedKmh >= 1 && (
+        <div className="rdr-ap-cell">
+          <CellCompass bearingDeg={eta.cell.bearingDeg} />
+          <div className="rdr-ap-cell-tx">
+            <strong>
+              {eta.cell.trend === 'intensifying' ? 'Verstärkende ' : ''}Zelle erreicht dich in <span className="rdr-ap-eta">~{eta.etaMin} min</span>
+            </strong>
+            <span>{Math.round(eta.cell.peakMmH)} mm/h · {Math.round(eta.cell.speedKmh)} km/h Richtung {eta.cell.compass}</span>
+          </div>
+        </div>
+      )}
 
       <div className="rdr-strip-bars" role="img" aria-label={`Niederschlag am Punkt: ${plain.headline}. ${plain.detail}`}>
         {samples.map((s, i) => {
@@ -146,6 +165,24 @@ export default function PointStrip({
 }
 
 function shortName(name: string): string { return name.split(',')[0]; }
+
+/** Kompass-Rose mit Pfeil in Zug-Richtung der Zelle (bearingDeg = Fahrtrichtung, 0°=N). */
+function CellCompass({ bearingDeg }: { bearingDeg: number }) {
+  // SVG: 0° zeigt nach oben (N). Pfeil um bearingDeg im Uhrzeigersinn drehen.
+  return (
+    <svg className="rdr-ap-compass" width="46" height="46" viewBox="0 0 46 46" role="img" aria-label={`Zelle zieht Richtung ${bearingDeg.toFixed(0)}°`}>
+      <circle cx="23" cy="23" r="21" fill="var(--cream-50, #FAF6EA)" stroke="var(--sand-200, #E0D6BE)" strokeWidth="1" />
+      <text x="23" y="9" className="rdr-ap-compass-t">N</text>
+      <text x="40" y="26" className="rdr-ap-compass-t">O</text>
+      <text x="23" y="43" className="rdr-ap-compass-t">S</text>
+      <text x="6" y="26" className="rdr-ap-compass-t">W</text>
+      <g transform={`rotate(${bearingDeg} 23 23)`}>
+        <path d="M23 8 L27 25 L23 22 L19 25 Z" fill="var(--alarm, #7e0028)" />
+      </g>
+      <circle cx="23" cy="23" r="2.4" fill="var(--ink-800, #3A3833)" />
+    </svg>
+  );
+}
 
 /** Phasen-Chip mit passendem Line-Icon (statt Emoji). */
 function PhaseChip({ phase }: { phase: string }) {

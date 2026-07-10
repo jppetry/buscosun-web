@@ -440,6 +440,7 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0 }: Pr
           name={point.name} country={point.country} samples={pointSamples}
           nowMs={Date.now()} skillMin={stack.skillMin || 120} palette={palette}
           nowcast={pointNowcast} expertDbz={expertDbz} pop={pointPop} convective={convective}
+          hero eta={eta}
         />
       )}
 
