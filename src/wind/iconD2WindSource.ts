@@ -568,55 +568,101 @@ export async function windFrameAtValidTimeAsync(
 }
 
 // ---------------------------------------------------------------------------
-// Sofort-Erstpaint-Cache: den „jetzt"-Frame (Schritt 0) des letzten Laufs in
-// localStorage ablegen, damit der Wind-Layer beim nächsten Seitenaufruf SOFORT
-// rendert (statt ~2 s auf den Netz-Fetch zu warten). Wird vom frischen nativen
-// Gitter ersetzt, sobald es geladen ist. Das Gitter ist standort-unabhängig
-// (immer dieselbe ICON-D2-DACH-Domäne), darum ein einziger globaler Key.
+// Sofort-Erstpaint-Cache: den „jetzt"-Frame (Schritt 0) des letzten Laufs
+// persistieren, damit der Wind-Layer beim nächsten Seitenaufruf SOFORT rendert
+// (statt ~2 s auf den Netz-Fetch zu warten). Wird vom frischen nativen Gitter
+// ersetzt, sobald es geladen ist. Das Gitter ist standort-unabhängig (immer
+// dieselbe ICON-D2-DACH-Domäne), darum ein einziger globaler Key.
+//
+// Speicher = IndexedDB mit ROHEN RGBA-Bytes (kein PNG-Codec): Speichern liest die
+// Bytes per getImageData, Laden baut mit `rgbaToCanvas` direkt ein Canvas — kein
+// `toDataURL`-Encode, kein async `Image`-Decode. IndexedDB (statt localStorage)
+// hält die ~886-KB-RGBA per Structured-Clone nativ, ohne Base64-Inflation/Quota-
+// Risiko. `WindLayer.setWindData` akzeptiert Canvas wie Image → kein Layer-Eingriff.
 // ---------------------------------------------------------------------------
 
-const WIND_CACHE_KEY = 'bc_wind_now_v2';
+const WIND_DB = 'buscosun-wind';
+const WIND_STORE = 'now';
+const WIND_CACHE_ID = 'v3';
+/** Alter localStorage-Key (PNG-DataURL) — wird beim Speichern best-effort aufgeräumt. */
+const LEGACY_WIND_CACHE_KEY = 'bc_wind_now_v2';
 /** Cache ignorieren, wenn älter (paar h alter Wind als 2-s-Platzhalter ist ok). */
 const WIND_CACHE_MAX_AGE_MS = 24 * 3_600_000;
 
 export interface CachedWindNow {
-  image: HTMLImageElement;
+  image: HTMLImageElement | HTMLCanvasElement;
   width: number; height: number;
   uMin: number; uMax: number; vMin: number; vMax: number;
   uvBounds: [number, number, number, number];
 }
 
-/** Den „jetzt"-Frame als PNG-DataURL + Normierung/Bounds persistieren. */
-export function saveWindNowCache(frame: IconD2WindFrame, uvBounds: [number, number, number, number]): void {
-  try {
-    const payload = {
-      dataUrl: frame.image.toDataURL('image/png'),
-      width: frame.width, height: frame.height,
-      uMin: frame.uMin, uMax: frame.uMax, vMin: frame.vMin, vMax: frame.vMax,
-      uvBounds, savedMs: Date.now(),
-    };
-    localStorage.setItem(WIND_CACHE_KEY, JSON.stringify(payload));
-  } catch {
-    // localStorage voll/nicht verfügbar (Private Mode) → still ignorieren.
-  }
+interface WindCacheRecord {
+  rgba: Uint8ClampedArray;
+  width: number; height: number;
+  uMin: number; uMax: number; vMin: number; vMax: number;
+  uvBounds: [number, number, number, number];
+  savedMs: number;
 }
 
-/** Gecachten „jetzt"-Frame laden (Image aus DataURL dekodiert, kein Netz). */
+/** IndexedDB öffnen (Objektstore einmalig anlegen). Null, wenn IDB nicht verfügbar. */
+function openWindDb(): Promise<IDBDatabase | null> {
+  return new Promise((resolve) => {
+    try {
+      const req = indexedDB.open(WIND_DB, 1);
+      req.onupgradeneeded = () => { req.result.createObjectStore(WIND_STORE); };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => resolve(null);
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
+/** Den „jetzt"-Frame als ROH-RGBA (+ Normierung/Bounds) in IndexedDB ablegen. */
+export function saveWindNowCache(frame: IconD2WindFrame, uvBounds: [number, number, number, number]): void {
+  void (async () => {
+    try {
+      const ctx = frame.image.getContext('2d', { willReadFrequently: true });
+      if (!ctx) return;
+      const rgba = ctx.getImageData(0, 0, frame.width, frame.height).data;
+      const record: WindCacheRecord = {
+        rgba, width: frame.width, height: frame.height,
+        uMin: frame.uMin, uMax: frame.uMax, vMin: frame.vMin, vMax: frame.vMax,
+        uvBounds, savedMs: Date.now(),
+      };
+      const db = await openWindDb();
+      if (!db) return;
+      const tx = db.transaction(WIND_STORE, 'readwrite');
+      tx.objectStore(WIND_STORE).put(record, WIND_CACHE_ID);
+      tx.oncomplete = () => db.close();
+      // Altlast (PNG-DataURL, ~0,5 MB localStorage-Quota) best-effort entfernen.
+      try { localStorage.removeItem(LEGACY_WIND_CACHE_KEY); } catch { /* ignore */ }
+    } catch {
+      // IDB voll/nicht verfügbar (Private Mode) → still ignorieren.
+    }
+  })();
+}
+
+/** Gecachten „jetzt"-Frame laden (Canvas aus Roh-RGBA, kein Netz, kein PNG-Decode). */
 export async function loadWindNowCache(): Promise<CachedWindNow | null> {
   try {
-    const raw = localStorage.getItem(WIND_CACHE_KEY);
-    if (!raw) return null;
-    const p = JSON.parse(raw);
-    if (!p?.dataUrl || Date.now() - (p.savedMs ?? 0) > WIND_CACHE_MAX_AGE_MS) return null;
-    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => resolve(img);
-      img.onerror = () => reject(new Error('wind cache decode failed'));
-      img.src = p.dataUrl;
+    const db = await openWindDb();
+    if (!db) return null;
+    const record = await new Promise<WindCacheRecord | null>((resolve) => {
+      const tx = db.transaction(WIND_STORE, 'readonly');
+      const req = tx.objectStore(WIND_STORE).get(WIND_CACHE_ID);
+      req.onsuccess = () => resolve((req.result as WindCacheRecord) ?? null);
+      req.onerror = () => resolve(null);
+      tx.oncomplete = () => db.close();
     });
+    if (!record || Date.now() - (record.savedMs ?? 0) > WIND_CACHE_MAX_AGE_MS) return null;
+    const rgba = record.rgba instanceof Uint8ClampedArray
+      ? record.rgba
+      : new Uint8ClampedArray(record.rgba as ArrayBufferLike);
+    const image = rgbaToCanvas(rgba, record.width, record.height);
     return {
-      image, width: p.width, height: p.height,
-      uMin: p.uMin, uMax: p.uMax, vMin: p.vMin, vMax: p.vMax, uvBounds: p.uvBounds,
+      image, width: record.width, height: record.height,
+      uMin: record.uMin, uMax: record.uMax, vMin: record.vMin, vMax: record.vMax, uvBounds: record.uvBounds,
     };
   } catch {
     return null;
