@@ -181,3 +181,28 @@ Jede Phase folgt dem Zyklus **Diagnose → Plan → Implement → Verify → Gat
 5. Abschlussbericht in `context.md` (Session-Log): Was wurde geändert, offene Punkte, empfohlene Real-Device-Tests für Jan (iPhone Safari!).
 
 **Gate G9 = Session abgeschlossen.**
+
+---
+
+## Querschnitt-Phase P — WebGL Cross-Device-Parität (Gate GP)
+
+**Nicht eine der 8 Feature-Phasen**, sondern ein querschnittliches Performance-/Parität-Vorhaben an der Wind-Animation (betrifft primär die Wetterkarte, wirkt aber auf jeden WindLayer-Nutzer inkl. Globus).
+
+**Maßgebliche Vorgabe:** `audit/webgl-cross-device.md` (Verifikation der externen Fachmann-Einschätzung, Fillrate-Diagnose, Entscheidung, Umsetzungs-Spec P-1…P-4, harte-Regeln-Nachweis, ehrliche Decke). **Die Punkte hier sind nur die Kurzfassung.**
+
+**Ziel:** Partikel*dichte* auf jedem Gerät identisch (Desktop = Mobile); Performance-Parität über **partikel-neutrale** Hebel statt über Partikel-Reduktion.
+
+**Diagnose-Ergebnis (Code-Analyse, siehe Audit §2):** Die zwei Full-Screen-Trail-Pässe (~2,2 MPix/Frame) sind partikel-unabhängig; die Advektion (der einzige partikel-skalierende Pass) kostet ~440× weniger. ⇒ Partikelzahl ist der schwächste Perf-Hebel — der Governor drosselt heute ausgerechnet diesen. DPR-Cap 1,5 und CSS-flächen-gekoppelte Dichte sind bereits vorhanden.
+
+**Entscheidung (Jan): Governor regelt FPS statt Partikel.** Partikel-Multiplikator aus dem Partikelpfad entfernen (volle, flächengleiche Zahl überall); Governor-Ausgang auf die Wind-FPS umhängen (mobil z. B. 30→24→20 bei Einbruch), Desktop ungedeckelt/gepinnt = Referenz. Governor bleibt aktiv (Regel „nutzen, nicht umgehen" erfüllt).
+
+**Umzusetzende Maßnahmen (Kurzfassung, Details Audit §4):**
+1. **P-1** `getEffectiveParticleCount()` — `governor.quality`-Faktor entfernen (Parität der Zahl).
+2. **P-2** Governor-Level → FPS-Leiter, auf `maxParticleFps`/`scheduleParticleRepaint` legen. **Kritisch:** Governor mit echter Render-Dauer füttern (nicht dem gecappten Wall-Clock-Intervall) und `downMs`/`upMs` relativ zum aktiven FPS-Ziel re-basieren, sonst sabotiert der Cap die Regelung.
+3. **P-3** `scripts/verify-governor.mjs` auf FPS-Ziel-Semantik erweitern (kein Vitest, Node-strip-types, deterministisch).
+4. **P-4** DPR-Cap 1,5 bestätigen (kein Code).
+
+**Explizit nicht in diesem Vorhaben:** Trail-Buffer-Downscale (Hebel 2, RGBA8-Pfad → separates STOPP-gegateter Vorhaben); Shader-/Fusion-/Packing-Eingriff.
+
+**Verify:** tests.md → V-PARITY (+ Governor-Harness). 🔴 Real-Device-Pflichtcheck iPhone 12 Pro **und** schwaches Android.
+**Gate GP:** Partikelzahl Desktop↔Mobile nachweislich gleich, Einbruch senkt FPS (nicht Partikel), Bewegung dt-normalisiert unverändert, Desktop byte-identisch, Governor-Harness grün, keine neuen Konsolenfehler.

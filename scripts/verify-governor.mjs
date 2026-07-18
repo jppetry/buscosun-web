@@ -90,5 +90,80 @@ check(initialTier({ dpr: 2, cores: 6, memoryGB: 6, coarsePointer: true, gpu: 'Ma
 // 8) tierToLevelIndex maps to the 4-level ladder ends/middle.
 check(tierToLevelIndex('high') === 3 && tierToLevelIndex('low') === 0 && tierToLevelIndex('mid') === 2, 'tierToLevelIndex maps high/low/mid → 3/0/2');
 
+// ---------------------------------------------------------------------------
+// FPS-TARGET MODE (Phase P — cross-device parity). The governor regulates the
+// FPS TARGET (mobile ladder 20/24/30) from the measured per-frame RENDER
+// DURATION, NOT a particle multiplier. Thresholds are re-based to the ACTIVE
+// target interval: down at > downFactor×(1000/targetFps), up at < upFactor×.
+// Ladder [20,24,30] → target ms {50, 41.7, 33.3}; defaults down 1.3 / up 0.9 →
+// down thresholds {65, 54.2, 43.3}, up thresholds {45, 37.5, 30}.
+const LADDER = [20, 24, 30];
+
+// F1) Over-budget render duration (45 ms) from the top tier (30 fps, budget
+//     33.3 ms) → step DOWN to 24 fps and SETTLE there (45 is inside 24's dead
+//     band 37.5..54.2). Proves the FPS lever engages and does not overshoot.
+{
+  const g = new FrameGovernor({ fpsLadder: LADDER, startLevelIndex: 2 });
+  feedN(g, 45, 400);
+  check(g.levelIndex === 1 && g.targetFps === 24, `render 45ms from 30fps → settles at 24fps (got idx ${g.levelIndex}, fps ${g.targetFps}, ema ${g.ema.toFixed(1)})`);
+}
+
+// F2) Comfortable render duration (10 ms) from the floor (20 fps) → climb all the
+//     way to the TOP tier (30 fps = the un-governed mobile reference).
+{
+  const g = new FrameGovernor({ fpsLadder: LADDER, startLevelIndex: 0 });
+  feedN(g, 10, 400);
+  check(g.levelIndex === LADDER.length - 1 && g.targetFps === 30, `render 10ms from floor → climbs to 30fps top (got idx ${g.levelIndex}, fps ${g.targetFps})`);
+}
+
+// F3) Sustained heavy render duration (80 ms) → all the way to the FLOOR (20 fps)
+//     and no lower (there is no cheaper tier — particle count stays full).
+{
+  const g = new FrameGovernor({ fpsLadder: LADDER, startLevelIndex: 2 });
+  feedN(g, 80, 600);
+  check(g.levelIndex === 0 && g.targetFps === 20, `render 80ms → floor 20fps, particle count untouched (got idx ${g.levelIndex}, fps ${g.targetFps})`);
+}
+
+// F4) Dead band: steady 41 ms at 24 fps (between up 37.5 and down 54.2) → holds,
+//     no oscillation of the FPS target.
+{
+  const g = new FrameGovernor({ fpsLadder: LADDER, startLevelIndex: 1 });
+  feedN(g, 41, 120);
+  const settled = g.levelIndex;
+  let changed = false;
+  for (let i = 0; i < 300; i++) { g.feed(41); if (g.levelIndex !== settled) changed = true; }
+  check(!changed && settled === 1, `steady 41ms holds 24fps in the dead band (held idx ${settled}, ema ${g.ema.toFixed(1)})`);
+}
+
+// F5) CRITICAL self-sabotage guard: a HEALTHY capped device whose wall-clock
+//     interval sits at the cap (~33 ms @ 30 fps) but whose actual render work is
+//     cheap (8 ms) must NOT be dragged down. Feeding render duration (not the
+//     capped interval) keeps it pinned at the top tier.
+{
+  const g = new FrameGovernor({ fpsLadder: LADDER, startLevelIndex: 2 });
+  feedN(g, 8, 400); // render work is cheap; the ~33 ms interval is the CAP, not slowness
+  check(g.levelIndex === 2 && g.targetFps === 30, `cheap render under an active cap stays at 30fps top (got idx ${g.levelIndex}, fps ${g.targetFps})`);
+}
+
+// F6) Cooldown in FPS mode: after the first down-step, no second step within
+//     cooldownFrames even under continued load.
+{
+  const g = new FrameGovernor({ fpsLadder: LADDER, startLevelIndex: 2, cooldownFrames: 45, warmupFrames: 30 });
+  let stepAt = -1, prev = g.levelIndex;
+  for (let i = 0; i < 200; i++) {
+    g.feed(80);
+    if (g.levelIndex !== prev) { stepAt = i; break; }
+    prev = g.levelIndex;
+  }
+  const afterStep = g.levelIndex;
+  feedN(g, 80, 40); // < cooldown 45 → must NOT step again
+  check(stepAt >= 0 && g.levelIndex === afterStep, `FPS mode: no second step within cooldown (step@${stepAt}, idx ${afterStep}→${g.levelIndex})`);
+}
+
+// F7) A fresh FPS-mode governor starts at the TOP tier (= requested cap / mobile
+//     reference); legacy mode has no FPS target (targetFps 0).
+check(new FrameGovernor({ fpsLadder: LADDER }).targetFps === 30, 'FPS governor default starts at top tier (30fps)');
+check(new FrameGovernor({ startLevelIndex: 3 }).targetFps === 0, 'legacy governor reports targetFps 0 (no FPS mode)');
+
 console.log(`\n${failures === 0 ? 'ALLE CHECKS PASS' : `${failures} CHECK(S) FEHLGESCHLAGEN`}`);
 process.exit(failures === 0 ? 0 : 1);

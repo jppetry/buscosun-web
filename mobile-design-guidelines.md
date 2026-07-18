@@ -33,7 +33,8 @@ Diese Datei definiert das einheitliche Ziel-Erscheinungsbild. Jede Phase misst i
 
 ## 6. Performance-Budget Mobile
 - Interaktionen: keine Long Tasks > 200 ms; Ziel INP < 200 ms.
-- GPU-Features starten auf Mobile im konservativen Quality-Tier des AdaptiveQualityControllers; Hochstufung nur durch den Controller selbst.
+- GPU-Features starten auf Mobile im konservativen Tier des **`FrameGovernor`** (der reale Adaptivregler — „AdaptiveQualityController" ist Altdoku-Name ohne Code-Entsprechung, s. `audit/performance-2d.md` §2); Regelung ausschließlich über den Governor, keine neuen Sonderpfade.
+- **Cross-Device-Parität (Wind, Querschnitt-Phase P):** Partikel*dichte* ist auf jedem Gerät gleich (CSS-flächen-gekoppelt) und wird **nicht** über den Governor reduziert. Performance-Parität kommt aus **partikel-neutralen** Hebeln — DPR-Cap 1,5 und FPS-Governance (der Governor senkt bei Einbruch die Wind-FPS, nicht die Partikelzahl). Bewegung/Trails sind dt-normalisiert → FPS-Änderung ändert die Optik nicht. Maßgeblich: `audit/webgl-cross-device.md`.
 - 3D Globus: reduzierte Ray-March-Steps / Auflösungs-Scale als Mobile-Default über bestehende Quality-Tiers; Pixel-Ratio-Cap prüfen (`Math.min(devicePixelRatio, 2)` ist auf DPR-3-Geräten üblich — gegen bestehende Controller-Logik abgleichen, nicht doppelt cappen).
 - Lazy-Load schwerer Module (Three.js-Globus, WebLLM) erst bei Feature-Aufruf — prüfen, ob bereits gegeben; falls nicht, als Maßnahme aufnehmen.
 

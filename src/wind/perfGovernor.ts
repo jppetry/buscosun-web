@@ -10,16 +10,23 @@
  *     STARTING quality from DPR, core count, device memory, pointer type and the
  *     GPU renderer string. This is only a starting point so the runtime loop
  *     converges fast; it is deliberately NOT a hard cap.
- *  2. RUNTIME governor (`FrameGovernor`) — an EMA of the real frame interval steps
- *     a discrete quality level up or down with HYSTERESIS (separate up/down
- *     thresholds) and a COOLDOWN, so it settles instead of oscillating. Quality is
- *     a multiplier on the drawn particle count (a flicker-free lever: no texture
- *     realloc, it only draws fewer of the existing particles → less overdraw).
+ *  2. RUNTIME governor (`FrameGovernor`) — an EMA of the real per-frame RENDER
+ *     duration steps a discrete level up or down with HYSTERESIS (separate up/down
+ *     thresholds) and a COOLDOWN, so it settles instead of oscillating.
  *
- * Desktop safety: a healthy device sits at the TOP level, whose multiplier is
- * exactly 1.0 → identical to the un-governed behaviour. The governor only pulls a
- * device DOWN when its measured frame interval is sustainedly bad; it never makes
- * a smooth device render differently.
+ * The lever the level drives depends on the mode:
+ *  - LEGACY quality mode (no `fpsLadder`): the level is a multiplier on the drawn
+ *    particle count. Kept for callers/tests that still regulate that way.
+ *  - FPS-TARGET mode (`fpsLadder` given, Phase P): the level maps to a target FPS
+ *    tier (e.g. mobile 30→24→20). The particle count is NOT touched — cross-device
+ *    parity keeps the full density everywhere and the governor lowers the FPS cap
+ *    instead (a particle-neutral lever). Thresholds are re-based relative to the
+ *    ACTIVE FPS target so a healthy capped device is never mistaken for "too slow".
+ *
+ * Desktop safety: a healthy device sits at the TOP level (quality 1.0 in legacy
+ * mode / the top FPS tier in FPS mode) → identical to the un-governed behaviour.
+ * The governor only pulls a device DOWN when its measured render duration is
+ * sustainedly over budget; it never makes a smooth device render differently.
  *
  * Pure module (no DOM beyond an optional WebGL context read) → the stepping logic
  * is verified deterministically by `scripts/verify-governor.mjs` with synthetic
@@ -100,11 +107,25 @@ export function initialTier(caps: DeviceCaps): PerfTier {
 }
 
 export interface GovernorOptions {
-  /** Quality multipliers, ascending; the LAST must be 1.0 (top = un-governed). */
+  /** Quality multipliers, ascending; the LAST must be 1.0 (top = un-governed).
+   *  LEGACY mode only — ignored when `fpsLadder` is set. */
   levels?: number[];
-  /** Step DOWN when the frame-interval EMA exceeds this (ms). ~24 ms ≈ 42 fps. */
+  /** FPS-TARGET mode (Phase P): ascending FPS tiers, e.g. `[20, 24, 30]`. When
+   *  set, the governor regulates the FPS TARGET instead of a particle multiplier:
+   *  the current level maps to `fpsLadder[levelIndex]` (top = highest FPS = the
+   *  un-governed reference) and the up/down thresholds are re-based relative to
+   *  the active target interval (see `downFactor`/`upFactor`). The particle count
+   *  is deliberately never touched in this mode. */
+  fpsLadder?: number[];
+  /** FPS mode: step DOWN when the render-duration EMA exceeds this multiple of the
+   *  active target interval (1000/targetFps). Default 1.3 (~30 % over budget). */
+  downFactor?: number;
+  /** FPS mode: step UP when the render-duration EMA is below this multiple of the
+   *  active target interval. Must be < downFactor (hysteresis gap). Default 0.9. */
+  upFactor?: number;
+  /** LEGACY mode: step DOWN when the frame-interval EMA exceeds this (ms). ~24 ms ≈ 42 fps. */
   downMs?: number;
-  /** Step UP when the EMA is below this (ms). Must be < downMs (hysteresis gap).
+  /** LEGACY mode: step UP when the EMA is below this (ms). Must be < downMs (hysteresis gap).
    *  MUST be ABOVE the vsync frame time (~16.7 ms @ 60 Hz): a display-capped
    *  device sits at ~16.7 ms even with headroom, so a lower threshold would trap
    *  it below full quality forever. 18 ms lets any ~56 fps+ device climb to top;
@@ -116,7 +137,7 @@ export interface GovernorOptions {
   cooldownFrames?: number;
   /** Ignore the first N frames (load spikes / cold GPU compile). */
   warmupFrames?: number;
-  /** Starting level index into `levels`. */
+  /** Starting level index into `levels` / `fpsLadder`. */
   startLevelIndex?: number;
 }
 
@@ -128,6 +149,10 @@ const DEFAULT_LEVELS = [0.4, 0.6, 0.8, 1.0];
  */
 export class FrameGovernor {
   private levels: number[];
+  /** FPS tiers (ascending) when in FPS-target mode; null in legacy quality mode. */
+  private fpsLadder: number[] | null;
+  private downFactor: number;
+  private upFactor: number;
   private downMs: number;
   private upMs: number;
   private alpha: number;
@@ -140,7 +165,14 @@ export class FrameGovernor {
   private cooldown = 0;
 
   constructor(opts: GovernorOptions = {}) {
-    this.levels = opts.levels && opts.levels.length ? opts.levels.slice() : DEFAULT_LEVELS.slice();
+    this.fpsLadder = opts.fpsLadder && opts.fpsLadder.length ? opts.fpsLadder.slice() : null;
+    // In FPS mode the quality multiplier is unused; keep a same-length 1.0 ladder
+    // so levelIndex/levelCount/tierName stay valid and `quality` reads 1.0.
+    this.levels = this.fpsLadder
+      ? this.fpsLadder.map(() => 1)
+      : (opts.levels && opts.levels.length ? opts.levels.slice() : DEFAULT_LEVELS.slice());
+    this.downFactor = opts.downFactor ?? 1.3;
+    this.upFactor = opts.upFactor ?? 0.9;
     this.downMs = opts.downMs ?? 24;
     this.upMs = opts.upMs ?? 18;
     // Etwas schneller reagierend + kürzeres Cooldown als die ursprünglichen
@@ -156,7 +188,15 @@ export class FrameGovernor {
     this.i = Math.max(0, Math.min(maxI, opts.startLevelIndex ?? maxI));
   }
 
-  /** Feed the interval (ms) since the previous rendered frame. */
+  /**
+   * Feed one measurement (ms) and step the level with hysteresis + cooldown.
+   *
+   * CRITICAL (Phase P): in FPS-target mode this MUST be the actual per-frame
+   * RENDER duration, NOT the wall-clock frame interval. Under an active FPS cap
+   * the interval is pinned near ~1000/targetFps (e.g. 33 ms) by design; feeding
+   * that would drive the governor to the floor forever (self-sabotage). The
+   * render duration reflects whether the device can actually hold the target.
+   */
   feed(dtMs: number): void {
     // Clamp: a tab-switch / GC pause / first frame must not swing the EMA.
     const dt = Math.min(100, Math.max(4, dtMs));
@@ -164,17 +204,35 @@ export class FrameGovernor {
     this._ema = this._ema === 0 ? dt : this._ema * (1 - this.alpha) + dt * this.alpha;
     if (this.frames <= this.warmupFrames) return;
     if (this.cooldown > 0) { this.cooldown--; return; }
-    if (this._ema > this.downMs && this.i > 0) {
+    let down: boolean;
+    let up: boolean;
+    if (this.fpsLadder) {
+      // Thresholds re-based to the ACTIVE FPS target (Phase P): a device that
+      // holds ~1000/targetFps is healthy; only render work sustainedly OVER
+      // budget (downFactor) steps down, only comfortable headroom (upFactor)
+      // steps back up. Fixed 60-fps thresholds would make any capped tier look
+      // permanently "too slow".
+      const targetMs = 1000 / this.fpsLadder[this.i];
+      down = this._ema > this.downFactor * targetMs;
+      up = this._ema < this.upFactor * targetMs;
+    } else {
+      down = this._ema > this.downMs;
+      up = this._ema < this.upMs;
+    }
+    if (down && this.i > 0) {
       this.i--;
       this.cooldown = this.cooldownFrames;
-    } else if (this._ema < this.upMs && this.i < this.levels.length - 1) {
+    } else if (up && this.i < this.levels.length - 1) {
       this.i++;
       this.cooldown = this.cooldownFrames;
     }
   }
 
-  /** Current quality multiplier (drawn-particle fraction). Top level = 1.0. */
+  /** Current quality multiplier (drawn-particle fraction). Top level = 1.0.
+   *  Always 1.0 in FPS-target mode (the particle count is not governed there). */
   get quality(): number { return this.levels[this.i]; }
+  /** Current target FPS in FPS-target mode; 0 (uncapped/N-A) in legacy mode. */
+  get targetFps(): number { return this.fpsLadder ? this.fpsLadder[this.i] : 0; }
   get levelIndex(): number { return this.i; }
   get levelCount(): number { return this.levels.length; }
   get ema(): number { return this._ema; }

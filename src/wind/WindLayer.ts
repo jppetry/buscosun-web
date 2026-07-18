@@ -146,6 +146,13 @@ const defaultColorRamp: Record<number, string> = {
   1.0:  'rgb(240, 220, 245)',
 };
 
+// Cross-device parity (Phase P) FPS ladder for coarse-pointer devices, ascending.
+// Top tier (last) = the requested mobile cap (30 fps, unchanged reference on
+// mobile); the governor steps DOWN toward 24 then 20 fps only when the measured
+// render duration says the device can't hold the higher rate. The particle count
+// stays full at every tier — the FPS is the particle-neutral lever.
+const MOBILE_FPS_LADDER = [20, 24, 30];
+
 export class WindLayer implements CustomLayerInterface {
   readonly id: string;
   readonly type = 'custom' as const;
@@ -243,11 +250,17 @@ export class WindLayer implements CustomLayerInterface {
   // cache in the hot per-frame path.
   private _epr = 1;
 
-  // Adaptive FPS governor: regulates the DRAWN particle count from the measured
-  // frame interval so weak devices stay smooth and strong ones keep full density.
-  // Null when disabled (globe/tests). See perfGovernor.ts.
+  // Adaptive FPS governor. Cross-device PARITY (Phase P): on coarse-pointer
+  // devices the governor regulates the FPS TARGET (30→24→20) from the measured
+  // per-frame render duration — the particle count is left at full density on
+  // every device. On desktop (fine pointer) it stays in legacy mode, pinned to the
+  // top tier and uncapped → byte-identical reference. Null when disabled
+  // (globe/tests). See perfGovernor.ts.
   private adaptiveQuality: boolean;
   private governor: FrameGovernor | null = null;
+  // True when the governor drives the FPS cap (coarse-pointer / maxParticleFps>0);
+  // false on desktop where the cap stays 0 (uncapped, pinned reference).
+  private governorDrivesFps = false;
   private perfCaps: DeviceCaps | null = null;
 
   // Actual GPU upload format of the wind texture (half-float / float / byte).
@@ -619,13 +632,17 @@ export class WindLayer implements CustomLayerInterface {
 
   /** Telemetry for the adaptive governor (null if disabled). Exposed for the
    *  dev `__map` inspector so tier/quality/frame-rate can be watched on-device. */
-  get perfState(): { tier: string; quality: number; ema: number; level: number; caps: DeviceCaps | null } | null {
+  get perfState(): { tier: string; quality: number; ema: number; level: number; targetFps: number; maxParticleFps: number; drivesFps: boolean; caps: DeviceCaps | null } | null {
     if (!this.governor) return null;
     return {
       tier: this.governor.tierName,
       quality: this.governor.quality,
       ema: Math.round(this.governor.ema * 10) / 10,
       level: this.governor.levelIndex,
+      // Phase P: the governor's active FPS target and the cap actually applied.
+      targetFps: this.governor.targetFps,
+      maxParticleFps: this.maxParticleFps,
+      drivesFps: this.governorDrivesFps,
       caps: this.perfCaps,
     };
   }
@@ -683,7 +700,21 @@ export class WindLayer implements CustomLayerInterface {
     // regulates from the measured frame rate. Disabled in globe/test mode.
     if (this.adaptiveQuality) {
       this.perfCaps = readDeviceCaps(gl);
-      this.governor = new FrameGovernor({ startLevelIndex: tierToLevelIndex(initialTier(this.perfCaps)) });
+      if (this.maxParticleFps > 0 && !this.globeMode) {
+        // Coarse-pointer / mobile (a cap was requested): the governor regulates
+        // the FPS TARGET (parity lever) instead of the particle count. Start at
+        // the top tier (= the requested cap) and only step down under load.
+        this.governorDrivesFps = true;
+        this.governor = new FrameGovernor({
+          fpsLadder: MOBILE_FPS_LADDER,
+          startLevelIndex: MOBILE_FPS_LADDER.length - 1,
+        });
+      } else {
+        // Desktop / fine pointer (uncapped) or globe: legacy governor, pinned to
+        // the starting tier. With the particle multiplier removed (Phase P) this
+        // no longer alters rendering — the desktop reference stays byte-identical.
+        this.governor = new FrameGovernor({ startLevelIndex: tierToLevelIndex(initialTier(this.perfCaps)) });
+      }
     }
 
     this.drawProgram = createProgram(gl, drawVert, drawFrag);
@@ -1023,10 +1054,13 @@ export class WindLayer implements CustomLayerInterface {
     if (zoom < 6) {
       frac = Math.max(0.05, Math.min(1.0, 0.05 + Math.max(0, zoom - 1) * 0.19));
     }
-    // Adaptive quality multiplier from the FPS governor (1.0 = top tier = no
-    // change; lower on weak GPUs/CPUs that can't sustain the frame budget).
-    const q = this.governor ? this.governor.quality : 1;
-    return Math.min(this._numParticles, Math.floor(this._numParticles * frac * q));
+    // Cross-device PARITY (Phase P): the particle count is DELIBERATELY NOT
+    // governed. Every device draws the full, CSS-area-scaled count so the
+    // *density* is identical desktop↔mobile. `frac(zoom)` is device-independent
+    // (zoom-only thinning) and therefore does not break parity. Performance is
+    // regulated by the particle-NEUTRAL FPS lever instead (see the governor →
+    // maxParticleFps mapping in render()), never by dropping particles.
+    return Math.min(this._numParticles, Math.floor(this._numParticles * frac));
   }
 
   render(gl: WebGLRenderingContext, args: CustomRenderMethodInput | number[] | Float32Array) {
@@ -1095,12 +1129,11 @@ export class WindLayer implements CustomLayerInterface {
       this.reduceMotionOnMove && this.moving &&
       (!this.governor || this.governor.levelIndex === 0);
 
-    // Feed the adaptive governor the real frame interval — but NOT on frames whose
-    // particle work we skipped (artificially cheap → unrepresentative), and NOT in
-    // globe mode (full density there). It steps the drawn-particle quality up/down.
-    if (this.governor && !this.globeMode && !skipParticlesDuringMove) {
-      this.governor.feed(dtMs);
-    }
+    // NOTE (Phase P): the governor is fed the actual per-frame RENDER duration
+    // AFTER the passes below — NOT the wall-clock interval `dtMs`. Under an active
+    // FPS cap `dtMs` is pinned near ~1000/cap by design, so feeding it would drive
+    // the governor to the floor forever (self-sabotage). See the feed() call after
+    // the particle passes.
 
     if (this.clearOnNextFrame) {
       this.clearScreen();
@@ -1131,6 +1164,12 @@ export class WindLayer implements CustomLayerInterface {
     bindTexture(gl, this.windTexture, 0);
     bindTexture(gl, this.particleStateTexture0, 1);
 
+    // Measure the actual render-work duration of the custom-layer passes. This is
+    // the governor's input (Phase P): it reflects whether the device can hold the
+    // target rate, and is independent of the FPS cap (unlike the wall-clock
+    // interval). CPU-side draw-submission time — no GPU sync / no readback added.
+    const renderStart = performance.now();
+
     if (this.showHeatmap) {
       this.drawHeatmap(matrix, prevFB, prevViewport);
     }
@@ -1140,6 +1179,18 @@ export class WindLayer implements CustomLayerInterface {
     if (this.showParticles && !skipParticlesDuringMove) {
       this.drawScreen(matrix, prevFB, prevViewport);
       this.updateParticles();
+    }
+
+    // Feed the governor the measured render duration — but NOT on frames whose
+    // particle work we skipped (artificially cheap → unrepresentative), and NOT in
+    // globe mode (full density there). In FPS-target mode this steps the FPS cap
+    // (30→24→20); the particle count is never touched. Then apply the current
+    // target to the repaint gate so the cap follows the governor dynamically.
+    if (this.governor && !this.globeMode && !skipParticlesDuringMove) {
+      this.governor.feed(performance.now() - renderStart);
+      if (this.governorDrivesFps) {
+        this.maxParticleFps = this.governor.targetFps;
+      }
     }
 
     // restore state for MapLibre

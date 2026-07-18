@@ -103,6 +103,20 @@ Maßgebliche Vorgabe: `audit/mockups/wetterkarte-c-spec.md`. Visuelle Referenz: 
 - [ ] Selbstverifikation 1–5 beantwortet
 - [ ] Desktop-Diff unverändert, Screenshots abgelegt
 
+## Querschnitt-Phase P — WebGL Cross-Device-Parität (GP)
+Maßgebliche Vorgabe: `audit/webgl-cross-device.md`. Entscheidung (Jan): Governor regelt FPS statt Partikel. Umsetzung erfolgt separat über die CLI.
+- [x] Diagnose in `audit/webgl-cross-device.md` abgeschlossen (Fillrate-Bilanz + Verifikation der Fachmann-Einschätzung, vor jeder Code-Änderung) — **erledigt** (dieses Dokument)
+- [x] P-1: `governor.quality` aus `getEffectiveParticleCount()` entfernt — Partikelzahl Desktop↔Mobile bei gleichem Viewport/Zoom nachweislich gleich (Beleg: Dichte Desktop 3683 vs. Mobile 3722 Part./MPix, Verhältnis 1,011; `effectiveCount = floor(_numParticles × 0,867)` GPU-klassen-unabhängig — Audit §9.2)
+- [x] P-2: Governor-Ausgang auf FPS-Leiter umgehängt (`maxParticleFps` dynamisch); Einbruch senkt FPS (30→24→20), **nicht** Partikelzahl (Beleg: Mobile perfState `drivesFps=true/targetFps=30`; Harness F1/F3: 45 ms→24 fps, 80 ms→20 fps bei konstanter Partikelzahl)
+- [x] P-2: Governor mit echter Render-Dauer gefüttert (nicht gecapptes Wall-Clock-Intervall); `downMs`/`upMs` relativ zum FPS-Ziel re-basiert (kein Selbst-Runterregeln bei aktivem Cap) (Beleg: Harness F5 „cheap render under an active cap stays at 30fps"; feed nach den Pässen mit `performance.now()`-Delta)
+- [x] Desktop (Fine-Pointer): Top-Tier gepinnt → ungedeckelt → byte-identisch zur Referenz (Beleg: perfState `drivesFps=false/maxParticleFps=0/targetFps=0/level 3`, `q`-Faktor entfernt)
+- [x] Bewegung/Trails dt-normalisiert unverändert (Partikel-Geschwindigkeit + Trail-Länge über FPS-Änderung konstant) (`frameDtScale`-Pfad nicht angefasst) — 🔴 visueller Real-Device-Gegencheck an Jan
+- [x] P-3: `scripts/verify-governor.mjs` auf FPS-Ziel-Semantik erweitert und grün (kein Vitest, Node-strip-types) — **27/27 PASS** (19 Legacy + 8 FPS-Modus)
+- [x] Harte Regeln eingehalten: kein Shader-/RGBA8-/Float-Target-/Fusion-Eingriff (Diff-Beleg: nur `perfGovernor.ts`, `WindLayer.ts`, `verify-governor.mjs`)
+- [x] Selbstverifikation 1–5 (CLAUDE.md) schriftlich mit Beleg beantwortet (Audit §9.3)
+- [x] Keine neuen Konsolen-Errors/-Warnings (Desktop + Mobile, MCP); Typecheck grün
+- [ ] 🔴 Real-Device-Stichprobe iPhone 12 Pro **und** schwaches Android an Jan übergeben (Emulator-FPS nicht belastbar — `ema`=0 unter Emulation bestätigt rAF-Drosselung; FPS-Stepping/Thermik nur real messbar)
+
 ## Phase 9 — Gesamtregression (G9)
 - [ ] Kurzprotokoll V-ALL für alle 8 Features grün
 - [ ] Desktop-Diff aller 8 Seiten gegen Phase-0-Baseline: keine Abweichung

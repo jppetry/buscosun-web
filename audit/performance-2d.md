@@ -76,3 +76,17 @@ Das ist exakt die in `prompt-performance.md`/CLAUDE.md dokumentierte Falle („e
 - **Regression:** Overview (mobil) lädt, Wind rendert, Canvas vorhanden, **keine** neuen Konsolen-Fehler/-Warnungen; Typecheck grün.
 - **Cap-Logik:** Leading+Trailing-Throttle (sofort repainten, wenn ≥ `1000/cap` ms seit letztem Request; sonst genau EIN `setTimeout` auf die Restzeit → Loop läuft mit Cap-Rate weiter). Timer wird in `onRemove` gecleart. Im Emulator (rAF ~1 fps) greift der Cap nicht (elapsed ≫ 33 ms → sofort) → Verhalten dort identisch zu vorher; der Effekt tritt erst auf echten 60/120-Hz-Geräten auf → **🔴 dort FPS + Thermik gegenprüfen**.
 - **Kein** Shader-/RGBA8-Packing-/`EXT_color_buffer_float`-Eingriff; nur Frame-Scheduling.
+
+---
+
+## 6. Follow-up — Cross-Device-Parität (Querschnitt-Phase P, 2026-07-18)
+
+Aufbauend auf §2/§3 dieses Dokuments: Jan verfolgt das Ziel **gleiche Partikeldichte auf jedem Gerät** bei **gleicher Performance**. Neue Fillrate-Bilanz (iPhone 12 Pro, DPR-gecappt 1,5 → 585×1266 ≈ 0,74 MPix/Full-Screen-Pass, `WindLayer.ts:1217-1247`): zwei Full-Screen-Trail-Pässe (Fade + Composite) ≈ **2,2 MPix/Frame**, **partikel-unabhängig**; die Advektion (einziger partikel-skalierender Pass, `updateParticles`) ≈ **0,005 MPix**. ⇒ Die Partikelzahl ist der **schwächste** Perf-Hebel — der `FrameGovernor` drosselt heute ausgerechnet diese.
+
+**Entscheidung (Jan):** Der Governor wird von „regelt Partikelzahl" auf „regelt **FPS**" umgewidmet:
+- **#1 (dieses Dokument) wird dynamisch:** Der statische `maxParticleFps = coarsePointer ? 30 : 0` wird vom Governor gesetzt (mobil-Leiter z. B. 30→24→20; Desktop 0/gepinnt). Der Frame-Zeit-Gate-Mechanismus aus §4 bleibt, wird nur dynamisch gespeist.
+- **Partikel-Multiplikator wird pensioniert:** `governor.quality` fällt aus `getEffectiveParticleCount()` (`WindLayer.ts:1015`) → volle, flächengleiche Zahl auf allen Geräten.
+- Diese Umwidmung ist exakt das in §2 geforderte „`FrameGovernor` erweitern, keinen Bypass bauen". Die dt-Normalisierung (§2) sichert weiterhin, dass der FPS-Wechsel Geschwindigkeit/Trails **nicht** ändert.
+- **Kritische Umsetzungs-Fallen** (Governor mit echter Render-Dauer füttern statt gecapptem Intervall; `downMs`/`upMs` relativ zum FPS-Ziel) und die vollständige Spec: **`audit/webgl-cross-device.md` §4**. Verify: `tests.md` V-PARITY.
+
+**Zurückgestellt bleibt** der Trail-Buffer-Downscale (Hebel 2 der Fachmann-Einschätzung) — stärkster verbleibender Fillrate-Win, aber RGBA8-Trail-Pfad → eigenes STOPP-gegatetes Vorhaben, nur falls Real-Device ein schwaches Android trotz FPS-Abbau reißen sieht.

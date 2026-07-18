@@ -80,6 +80,16 @@ Vor jedem Protokoll sicherstellen:
 4. UI-Overlays des Globus: erreichbar, ≥ 44 px.
 5. **Pflicht-Vermerk:** GPU-Verhalten (Wolken-Ray-Marching, Präzision) final nur auf echtem Gerät beurteilbar → Real-Device-TODO an Jan.
 
+## V-PARITY — WebGL Cross-Device-Parität (Querschnitt-Phase P)
+Vorgabe: `audit/webgl-cross-device.md`. Ziel: gleiche Partikeldichte überall, Performance über FPS-Governance statt Partikel-Reduktion. **Emulator-Warnung gilt verschärft** — FPS/Thermik nur real belastbar.
+1. **Partikelzahl-Gleichstand:** Bei identischem Viewport/Zoom die effektive Partikelzahl auf Desktop und (emuliertem) Mobile per Skript loggen (`getEffectiveParticleCount`/`_numParticles`) → **gleich** (bzw. nur über CSS-Fläche skaliert, nicht über den Governor). Beleg: Zahlenpaar.
+2. **FPS-statt-Partikel:** Unter künstlicher Last (synthetische Render-Dauer / gedrosseltes Profil) fällt die **FPS-Rate** (30→24→20), die **Partikelzahl bleibt konstant**. Beleg: `maxParticleFps`-Verlauf + konstante Zahl.
+3. **Bewegungs-Parität:** Partikel-Geschwindigkeit und Trail-Länge über einen FPS-Wechsel hinweg unverändert (dt-Normalisierung greift). Beleg: visueller Vergleich / `frameDtScale`-Prüfung.
+4. **Desktop-Referenz:** Fine-Pointer → Top-Tier gepinnt, `maxParticleFps = 0`, ungedeckelt; Verhalten/Screenshot byte-identisch zur Baseline.
+5. **Governor-Harness:** `node scripts/verify-governor.mjs` grün (FPS-Ziel-Semantik, alle Checks PASS).
+6. **Konsole/Typecheck:** keine neuen WebGL-Warnings, Typecheck grün.
+7. 🔴 **Real-Device (Pflicht):** iPhone 12 Pro + schwaches Android — hält die volle Partikelzahl bei geregelter FPS; thermisches Verhalten über ≥ 90 s beobachten (Governor soll FPS senken, nicht die Zahl).
+
 ---
 
 ## Beleg-Ablage
