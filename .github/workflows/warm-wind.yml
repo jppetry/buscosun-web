@@ -1,23 +1,23 @@
 # ============================================================================
-# INACTIVE — Warm-Cron für den ICON-D2-Wind-Layer (Phase T1.2)
+# Warm-Cron für den ICON-D2-Wind-Layer (Phase T1.2)
 # ============================================================================
-# Diese Datei liegt BEWUSST unter audit/ und NICHT unter .github/workflows/ —
-# GitHub führt ausschließlich Workflows in .github/workflows/ aus. Solange die
-# Datei hier liegt, ist sie INAKTIV und läuft nicht.
+# Aktiv, sobald dieser Branch (main) nach origin gepusht ist. Läuft NUR auf dem
+# Default-Branch.
 #
-# AKTIVIERUNG (bewusster Schritt, gehört zum GT1-Deploy-Gate — HARD STOP, Jans
-# Freigabe nötig; „Aktivieren eines Cron in der echten CI" ist STOPP&FRAGEN):
-#   1. Nach audit/wind-transport.md / plan.md T1 lokal grün.
-#   2. Netlify-Deploy mit aktiver Edge Function (netlify/edge-functions/dwd-wind.ts).
-#   3. Repo-Variable SITE_URL auf die Produktions-URL setzen (öffentlich, kein Secret).
-#   4. Diese Datei nach .github/workflows/warm-wind.yml verschieben und pushen.
+# VORAUSSETZUNG (einmalig, sonst No-op): Repo-Variable SITE_URL auf die Netlify-
+# Prod-URL setzen (öffentlich, KEIN Secret) — Repo → Settings → Secrets and
+# variables → Actions → Variables → New variable: SITE_URL = https://<site>.
 #
-# Persistenz des Manifests in Produktion: dieser Workflow committet das
-# aktualisierte public/latest-wind.json zurück → Netlify baut neu und liefert das
-# frische Manifest statisch aus. Der Early-Exit sorgt dafür, dass nur bei einem
-# NEUEN DWD-Lauf (~alle 3 h) tatsächlich committet/deployt wird; die 15-min-Ticks
-# dazwischen sind No-ops (Sekunden). Alternative (kein Deploy je Lauf): Manifest in
-# Netlify Blobs schreiben + über eine Function ausliefern — bewusst zurückgestellt.
+# Ablauf: DWD pollen → neuesten vollständigen Lauf → Wind-URLs durch
+# SITE_URL/_dwd_wind curlen (füllt den Durable-Edge-Cache) → erst DANN
+# public/latest-wind.json atomar schreiben und zurück-committen. Der Commit
+# löst einen Netlify-Rebuild aus, der das neue Manifest statisch ausliefert
+# (deshalb KEIN [skip ci]). Early-Exit bei unverändertem Lauf → nur bei einem
+# neuen DWD-Lauf (~alle 3 h) wird committet/deployt; die 15-min-Ticks dazwischen
+# sind Sekunden-No-ops.
+#
+# Persistenz-Alternative (kein Rebuild je Lauf): Manifest in Netlify Blobs
+# schreiben + über eine Function ausliefern — bewusst zurückgestellt.
 # ============================================================================
 
 name: warm-wind
@@ -25,7 +25,7 @@ name: warm-wind
 on:
   schedule:
     - cron: '*/15 * * * *'   # alle 15 min pollen; Early-Exit wenn Manifest aktuell
-  workflow_dispatch: {}       # manueller Trigger für Tests
+  workflow_dispatch: {}       # manueller Trigger (erste Wärmung / Test)
 
 # Nur ein Warmer gleichzeitig (überlappende Läufe würden dasselbe Manifest umlegen).
 concurrency:
@@ -62,5 +62,5 @@ jobs:
           git config user.name  "buscosun-warmer[bot]"
           git config user.email "warmer@users.noreply.github.com"
           git add public/latest-wind.json
-          git commit -m "chore(wind): warm cache + advance latest-wind manifest [skip ci]"
+          git commit -m "chore(wind): warm cache + advance latest-wind manifest"
           git push
