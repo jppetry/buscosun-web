@@ -1,0 +1,66 @@
+# ============================================================================
+# INACTIVE — Warm-Cron für den ICON-D2-Wind-Layer (Phase T1.2)
+# ============================================================================
+# Diese Datei liegt BEWUSST unter audit/ und NICHT unter .github/workflows/ —
+# GitHub führt ausschließlich Workflows in .github/workflows/ aus. Solange die
+# Datei hier liegt, ist sie INAKTIV und läuft nicht.
+#
+# AKTIVIERUNG (bewusster Schritt, gehört zum GT1-Deploy-Gate — HARD STOP, Jans
+# Freigabe nötig; „Aktivieren eines Cron in der echten CI" ist STOPP&FRAGEN):
+#   1. Nach audit/wind-transport.md / plan.md T1 lokal grün.
+#   2. Netlify-Deploy mit aktiver Edge Function (netlify/edge-functions/dwd-wind.ts).
+#   3. Repo-Variable SITE_URL auf die Produktions-URL setzen (öffentlich, kein Secret).
+#   4. Diese Datei nach .github/workflows/warm-wind.yml verschieben und pushen.
+#
+# Persistenz des Manifests in Produktion: dieser Workflow committet das
+# aktualisierte public/latest-wind.json zurück → Netlify baut neu und liefert das
+# frische Manifest statisch aus. Der Early-Exit sorgt dafür, dass nur bei einem
+# NEUEN DWD-Lauf (~alle 3 h) tatsächlich committet/deployt wird; die 15-min-Ticks
+# dazwischen sind No-ops (Sekunden). Alternative (kein Deploy je Lauf): Manifest in
+# Netlify Blobs schreiben + über eine Function ausliefern — bewusst zurückgestellt.
+# ============================================================================
+
+name: warm-wind
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'   # alle 15 min pollen; Early-Exit wenn Manifest aktuell
+  workflow_dispatch: {}       # manueller Trigger für Tests
+
+# Nur ein Warmer gleichzeitig (überlappende Läufe würden dasselbe Manifest umlegen).
+concurrency:
+  group: warm-wind
+  cancel-in-progress: false
+
+permissions:
+  contents: write             # committet public/latest-wind.json zurück
+
+jobs:
+  warm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Warm edge cache + update manifest
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}            # öffentliche Prod-URL (Edge-Cache-Fill)
+          MANIFEST_PATH: public/latest-wind.json
+          WARM_MAX_STEP: '12'
+          NEAR_REQUIRED: '4'
+        run: node scripts/warm-wind.mjs
+
+      - name: Commit manifest if changed
+        run: |
+          if git diff --quiet -- public/latest-wind.json; then
+            echo "Manifest unverändert (Early-Exit oder Fail-Safe) — kein Commit."
+            exit 0
+          fi
+          git config user.name  "buscosun-warmer[bot]"
+          git config user.email "warmer@users.noreply.github.com"
+          git add public/latest-wind.json
+          git commit -m "chore(wind): warm cache + advance latest-wind manifest [skip ci]"
+          git push

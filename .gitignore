@@ -23,3 +23,7 @@ dist-ssr
 /smhi_*.json
 /tawes_*.json
 perf-artifacts/
+
+# Local Netlify folder
+.netlify
+deno.lock

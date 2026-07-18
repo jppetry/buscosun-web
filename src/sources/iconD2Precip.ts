@@ -200,15 +200,20 @@ export async function fetchStepField(
   return fetchDecodeCached(`${D2_GRIB_BASE}/${hh}/${param}/${stepFileName(runStr, param, step)}`, signal);
 }
 
-/** Wie `fetchStepField`, liefert aber die ENTPACKTEN Bytes (Decode off-main). */
+/** Wie `fetchStepField`, liefert aber die ENTPACKTEN Bytes (Decode off-main).
+ *  `base` erlaubt einem einzelnen Layer, einen anderen (gecachten) Transportpfad
+ *  zu nutzen, ohne die übrigen Layer zu berühren — der Wind-Layer zieht seine
+ *  immutablen (Lauf,Step)-Dateien über den durable-gecachten `/_dwd_wind`-Edge-
+ *  Pfad (Phase T1), Precip/Clouds/Temp bleiben auf `/_dwd_opendata` (Default). */
 export async function fetchStepBytes(
   runStr: string,
   param: string,
   step: number,
   signal?: AbortSignal,
+  base: string = D2_GRIB_BASE,
 ): Promise<Uint8Array> {
   const hh = runStr.slice(8, 10);
-  return fetchDecompressedCached(`${D2_GRIB_BASE}/${hh}/${param}/${stepFileName(runStr, param, step)}`, signal);
+  return fetchDecompressedCached(`${base}/${hh}/${param}/${stepFileName(runStr, param, step)}`, signal);
 }
 
 /**
