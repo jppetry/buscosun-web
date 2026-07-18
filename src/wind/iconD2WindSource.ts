@@ -40,6 +40,69 @@ const TARGET_WIDTH = 700;
 /** Parallele Fetches (bz2-Decompress läuft im Worker-Pool). */
 const CONCURRENCY = 6;
 
+// --- Phase T1: Transportschicht (nur Wind) --------------------------------
+/** Durable-gecachter Edge-Pfad für die immutablen Wind-(Lauf,Step)-Dateien.
+ *  In Prod/`netlify dev` bedient die Edge Function `netlify/edge-functions/
+ *  dwd-wind.ts` diesen Pfad (durable Edge-Cache); in `vite dev` ein dünner
+ *  Pass-Through-Proxy. Precip/Clouds/Temp bleiben unberührt auf `/_dwd_opendata`. */
+const WIND_GRIB_BASE = '/_dwd_wind/weather/nwp/icon-d2/grib';
+/** Warm-Manifest (winzig, same-origin, vom Warm-Cron umgelegt). Nennt den zuletzt
+ *  vollständig gewärmten Lauf + dessen Schritte → der Client fragt AUSSCHLIESSLICH
+ *  gewärmte Läufe an (kein Directory-Scan, kein spekulativer Fehl-Rat). */
+const WIND_MANIFEST_URL = '/latest-wind.json';
+/** Max. Alter des Manifest-Laufs (Referenzzeit). Jenseits davon sind die GRIB-
+ *  Dateien i. d. R. auch von opendata.dwd.de verschwunden → das Manifest ist
+ *  „kaputt statt stale": wir überspringen es günstig (kein 404-Sturm) und der
+ *  Directory-Scan holt den AKTUELLEN Lauf (frischerer Wind statt tage-alter). Ein
+ *  gesundes Manifest ist ~3,5–6,5 h alt (Publikationslag + 3-h-Rotation), 24 h
+ *  lässt reichlich Luft für einen kurz ausgefallenen Warmer (stale, nie kalt). */
+const MAX_MANIFEST_RUN_AGE_H = 24;
+
+/** Rückgabeform der Lauf-Auflösung — deckungsgleich mit `resolveLatestRun`. */
+interface WindRunInfo { runStr: string; runAt: Date; steps: number[]; }
+
+/** `YYYYMMDDHH` → UTC-Date. */
+function parseRunStr(run: string): Date {
+  return new Date(Date.UTC(
+    +run.slice(0, 4), +run.slice(4, 6) - 1, +run.slice(6, 8), +run.slice(8, 10), 0, 0, 0,
+  ));
+}
+
+/**
+ * Liest das Warm-Manifest (`/latest-wind.json`) und liefert den gewärmten Lauf.
+ * Gibt `null` zurück, wenn kein/ungültiges Manifest vorliegt — dann fällt der
+ * Aufrufer auf den bestehenden Directory-Scan-Pfad (`resolveLatestRun` +
+ * Spekulation) zurück. Das ist die Graceful-Degrade-Naht in beide Richtungen:
+ *  • kein Manifest (Dev vor dem ersten Warm-Lauf / Netz-Fehler) → alter Pfad;
+ *  • eingefrorenes Manifest (Warmer aus) → letzter gewärmter Lauf (stale, nie kalt).
+ * `cache: 'no-store'` hält den HTTP-Layer frisch; ein evtl. Service-Worker
+ * (stale-while-revalidate für `.json`) serviert höchstens den letzten Lauf und
+ * revalidiert — konsistent mit „stale statt slow".
+ */
+async function resolveWindRunFromManifest(signal?: AbortSignal): Promise<WindRunInfo | null> {
+  try {
+    const res = await fetch(WIND_MANIFEST_URL, { signal, cache: 'no-store' });
+    if (!res.ok) return null;
+    const m = await res.json() as { run?: unknown; runAt?: unknown; steps?: unknown };
+    if (typeof m.run !== 'string' || !/^\d{10}$/.test(m.run)) return null;
+    if (!Array.isArray(m.steps)) return null;
+    const steps = (m.steps as unknown[])
+      .filter((s): s is number => Number.isInteger(s) && (s as number) >= 0)
+      .sort((a, b) => a - b);
+    if (steps.length === 0) return null;
+    const runAt = typeof m.runAt === 'string' ? new Date(m.runAt) : parseRunStr(m.run);
+    if (Number.isNaN(runAt.getTime())) return null;
+    // Staleness-Guard: zu alter (Files-weg) oder unplausibel zukünftiger Lauf →
+    // Manifest verwerfen, Directory-Scan holt den aktuellen Lauf (kein 404-Sturm
+    // auf einen toten Lauf, u. a. gegen ein versehentlich committetes Altmanifest).
+    const ageH = (Date.now() - runAt.getTime()) / 3_600_000;
+    if (ageH > MAX_MANIFEST_RUN_AGE_H || ageH < -2) return null;
+    return { runStr: m.run, runAt, steps };
+  } catch {
+    return null;   // Netzfehler / JSON-Parse → Fallback auf Directory-Scan
+  }
+}
+
 export interface IconD2WindFrame {
   validAt: Date;
   stepHours: number;
@@ -198,8 +261,8 @@ export async function fetchIconD2Wind(
       // Nur fetch + bz2 (bz2-Worker-Pool) auf dem Aufrufer-Pfad; decodeGrib2 + der
       // RGBA-Bau laufen off-main im Wind-Frame-Worker.
       const [uBytes, vBytes] = await Promise.all([
-        fetchStepBytes(rs, 'u_10m', step, signal),
-        fetchStepBytes(rs, 'v_10m', step, signal),
+        fetchStepBytes(rs, 'u_10m', step, signal, WIND_GRIB_BASE),
+        fetchStepBytes(rs, 'v_10m', step, signal, WIND_GRIB_BASE),
       ]);
       const b = await decodeWindFrameOffMain(uBytes, vBytes);
       if (!uvBounds) {
@@ -235,38 +298,58 @@ export async function fetchIconD2Wind(
     await Promise.all(workers);
   };
 
-  // SPECULATIVE near-step fetch (0…SPEC_STEPS-1). Filenames are deterministic for
-  // a 3 h cycle, so we fetch them in PARALLEL with the (~1.9 s) directory-listing
-  // resolution instead of AFTER it — removing the dir-listing wait from the
-  // near-horizon cold-start path.
-  // Guess = current 3h-bucket MINUS one extra cycle (i.e. the PREVIOUS bucket),
-  // not the current one: ICON-D2 needs ~3-3.5 h from reference time to actually
-  // land on opendata.dwd.de (measured: the 12z run was fully published by
-  // 15:31 UTC, the 15z run wasn't even started yet) — guessing the current
-  // bucket is therefore wrong for most of every cycle, not just "at the
-  // boundary", and produced a console-visible 404 burst on every cold load
-  // (User-Report). On a guess miss the speculative frames are discarded and
-  // reloaded from the resolved run — never worse than before, at the cost of
-  // a few wasted (successful, non-404) requests.
-  const p2 = (n: number) => String(n).padStart(2, '0');
-  const g = new Date(); g.setUTCMinutes(0, 0, 0); g.setUTCHours(g.getUTCHours() - (g.getUTCHours() % 3) - 3);
-  const guessRunStr = `${g.getUTCFullYear()}${p2(g.getUTCMonth() + 1)}${p2(g.getUTCDate())}${p2(g.getUTCHours())}`;
-  const specSteps = Array.from({ length: SPEC_STEPS }, (_, i) => i);
-  const specDone = Promise.all(specSteps.map((s) => loadStep(guessRunStr, g, s)));
+  // FALLBACK-Auflösung (kein/ungültiges/leeres Manifest): bestehender spekulativer
+  // Kaltstart + Directory-Scan, UNVERÄNDERT. SPECULATIVE near-step fetch
+  // (0…SPEC_STEPS-1): Dateinamen sind für einen 3-h-Zyklus deterministisch, also
+  // parallel zur (~1,9 s) Directory-Auflösung statt danach. Rat = aktueller
+  // 3h-Bucket MINUS ein Zyklus (voriger Bucket): ICON-D2 braucht ~3–3,5 h von der
+  // Referenzzeit bis zur Publikation. Bei Fehlrat werden die spekulativen Frames
+  // verworfen und aus dem aufgelösten Lauf neu geladen — nie schlechter als zuvor.
+  const resolveViaScan = async (): Promise<{ runStr: string; runAt: Date; wanted: number[]; specLoaded: Set<number> }> => {
+    const p2 = (n: number) => String(n).padStart(2, '0');
+    const g = new Date(); g.setUTCMinutes(0, 0, 0); g.setUTCHours(g.getUTCHours() - (g.getUTCHours() % 3) - 3);
+    const guessRunStr = `${g.getUTCFullYear()}${p2(g.getUTCMonth() + 1)}${p2(g.getUTCDate())}${p2(g.getUTCHours())}`;
+    const specSteps = Array.from({ length: SPEC_STEPS }, (_, i) => i);
+    const specDone = Promise.all(specSteps.map((s) => loadStep(guessRunStr, g, s)));
 
-  const { runStr, runAt, steps } = await resolveLatestRun('u_10m', signal);
-  const wanted = steps.filter((s) => s <= MAX_STEP);
-  const specResults = await specDone;
-  const guessHit = runStr === guessRunStr;
-  if (!guessHit) { frames.length = 0; uvBounds = null; }     // guess missed → drop, load normally
-  // Nur ERFOLGREICH spekulierte Schritte überspringen (ein fehlender Schritt darf
-  // nicht als „geladen" gelten, sonst bliebe er im nahen Horizont leer).
-  const specLoaded = new Set<number>(guessHit ? specSteps.filter((_, i) => specResults[i]) : []);
+    const resolved = await resolveLatestRun('u_10m', signal);
+    const specResults = await specDone;
+    const guessHit = resolved.runStr === guessRunStr;
+    if (!guessHit) { frames.length = 0; uvBounds = null; }     // guess missed → drop, load normally
+    // Nur ERFOLGREICH spekulierte Schritte überspringen (ein fehlender Schritt darf
+    // nicht als „geladen" gelten, sonst bliebe er im nahen Horizont leer).
+    const specLoaded = new Set<number>(guessHit ? specSteps.filter((_, i) => specResults[i]) : []);
+    return { runStr: resolved.runStr, runAt: resolved.runAt, wanted: resolved.steps.filter((s) => s <= MAX_STEP), specLoaded };
+  };
+
+  // MANIFEST-GATE (T1.3): den zuletzt GEWÄRMTEN Lauf same-origin aus
+  // `/latest-wind.json` lesen. Das ersetzt für Wind den ~1,9-s-Directory-Scan UND
+  // die spekulative Lauf-Raterei: das Manifest nennt den Lauf sofort + korrekt,
+  // der Client fragt ausschließlich gewärmte (Lauf,Step)-URLs an.
+  const manifest = await resolveWindRunFromManifest(signal);
+  let usedManifest = manifest != null;
+  let { runStr, runAt, wanted, specLoaded } = manifest
+    ? { runStr: manifest.runStr, runAt: manifest.runAt, wanted: manifest.steps.filter((s) => s <= MAX_STEP), specLoaded: new Set<number>() }
+    : await resolveViaScan();
 
   // Nahen Horizont auf dem kritischen Pfad laden → Wind sofort nutzbar.
-  const near = wanted.filter((s) => s <= NEAR_STEP);
-  const far = wanted.filter((s) => s > NEAR_STEP);
+  let near = wanted.filter((s) => s <= NEAR_STEP);
+  let far = wanted.filter((s) => s > NEAR_STEP);
   await pump(near, runStr, runAt, CONCURRENCY, specLoaded);
+
+  // Robustheit / Graceful-Degrade: liefert ein (veraltetes/aus dem Cache
+  // evakuiertes/auf DWD gelöschtes) Manifest KEINE Frames, ist das Manifest nur
+  // eine Optimierung — einmalig transparent auf den Directory-Scan zurückfallen,
+  // damit der Kaltstart NIE schlechter ist als vor T1 (auch bei einem eingefroren-
+  // veralteten committeten Manifest).
+  if (usedManifest && (frames.length === 0 || !uvBounds)) {
+    frames.length = 0; uvBounds = null;
+    usedManifest = false;
+    ({ runStr, runAt, wanted, specLoaded } = await resolveViaScan());
+    near = wanted.filter((s) => s <= NEAR_STEP);
+    far = wanted.filter((s) => s > NEAR_STEP);
+    await pump(near, runStr, runAt, CONCURRENCY, specLoaded);
+  }
 
   if (!uvBounds || frames.length === 0) throw new Error('ICON-D2 Wind: keine Frames erzeugt');
 

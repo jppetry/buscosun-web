@@ -2,111 +2,74 @@
 
 Regel: Ein Kästchen wird nur mit Beleg abgehakt (Screenshot-Pfad, Trace-Datei oder Konsolen-Auszug in `audit/` referenzieren). Nächste Phase erst nach vollständigem Gate.
 
-## Phase 0 — Fundament (G0)
-- [x] Chrome DevTools MCP: iPhone-12-Pro-Emulation (390×844, DPR 3, Touch) verifiziert — `audit/screenshots/baseline/emulation-test-searchpage-mobile.png`, Details in `audit/phase0-fundament.md` §2
-- [x] Breakpoint-Bestandsaufnahme dokumentiert, Konvention festgelegt (`max-width:767px` mobil / 768–1024px Tablet / >1024px Desktop) — `audit/phase0-fundament.md` §3
-- [x] Viewport-Meta geprüft (`viewport-fit=cover`, kein `user-scalable=no`) — Befund: `viewport-fit=cover` fehlte, ergänzt in `index.html`; `audit/phase0-fundament.md` §4
-- [x] Baseline-Screenshots mobil: alle 8 Seiten in `audit/screenshots/baseline/<feature>/mobile.png`
-- [x] Baseline-Screenshots Desktop (1440×900): alle 8 Seiten in `audit/screenshots/baseline/<feature>/desktop.png`
-- [x] Konsolen-Baseline pro Seite dokumentiert — `audit/phase0-fundament.md` §6 (vorbestehendes a11y-Issue auf 6/8 Seiten dokumentiert, keine Errors)
-- [x] BottomSheet-, MobileToolbar-, Safe-Area-Primitives angelegt und sichtbar testbar — `src/mobile/*`, Testroute `#mobiletest`, Screenshots `mobile-primitives-test*.png`
-- [x] Kein Eingriff ins Produktions-Layout erfolgt — nur additive Dateien/Route, `npm run typecheck` grün; `audit/phase0-fundament.md` §8
+Aktueller Fokus: **Desktop-Redesign der 2D-Wetterkarte (Phase D1 / Gate GD1).** Die Mobile-Gates G0/G1/G1-C sind bestanden und bilden die Nicht-Regressions-Baseline (Historie in `plan.md` und den `audit/`-Dateien).
 
-## Phase 1 — Wetterkarte (G1)
-- [x] Diagnose in `audit/wetterkarte.md` abgeschlossen (vor jeder Code-Änderung)
-- [x] Alle Layer auf Mobile schaltbar — 12/12 per Skript verifiziert, `audit/wetterkarte.md` §5 Punkt 6
-- [x] Model-Switcher DE/AT/CH voll funktionsfähig — unverändert funktional, Touch-Targets vergrößert
-- [x] Fusion⇄Native-Toggle voll funktionsfähig (inkl. Fallback-Verhalten) — nicht angefasst, `ms-offline`-Fallback intakt
-- [x] Legenden erreichbar und lesbar — unverändert (conditional `.map-legends`, kein Eingriff)
-- [x] Windpartikel: konservativer Quality-Tier auf Mobile aktiv, keine Shader-Änderung — WindLayer/Shader nicht berührt
-- [x] Gesten: Karte vs. Sheet/Controls konfliktfrei — Sheet jetzt mit half/full-Snap, Karte im half-Zustand interaktiv (Scrim `pointer-events:none`)
-- [x] Touch-Targets ≥ 44 px (Audit-Liste) — 23→4 begründete Ausnahmen (Footer-Attribution), `audit/wetterkarte.md` §3.1/§5
-- [x] Selbstverifikations-Fragen 1–5 (CLAUDE.md) schriftlich mit Beleg beantwortet — `audit/wetterkarte.md` §6
-- [x] Desktop-Screenshot-Diff: unverändert — `verify-desktop-after.png` vs. Baseline
-- [x] Vorher/Nachher-Screenshots abgelegt — `audit/screenshots/wetterkarte/`
-- [x] Zusatzfund behoben: Landscape 844×390 Overlap-Bug (nicht in ursprünglicher Checkliste, aus V-ALL Schritt 9 aufgedeckt), `audit/wetterkarte.md` §3.3/§4.3
-- [x] Follow-up (2026-07-08, nach G1): Getrennte Layer-/Modell-FABs statt kombiniertem FAB + Karte fest auf obere 2/3 des Viewports begrenzt (Control-Dock im unteren Drittel) — `audit/wetterkarte.md` §8, Desktop/Landscape-Regression erneut geprüft (grün)
+## Phase D1 — Wetterkarte Desktop-Redesign (GD1) · AKTIV
+Maßgebliche Vorgabe: `audit/mockups/wetterkarte-desktop-spec.md`. Visuelle Referenz: `audit/mockups/wetterkarte-desktop.html`. Auflage: `frontend-design`-Skill vor der visuellen Umsetzung aufrufen.
 
-## Phase 1-C — Wetterkarte Redesign „Variante C" (G1-C)
-Maßgebliche Vorgabe: `audit/mockups/wetterkarte-c-spec.md`. Visuelle Referenz: `audit/mockups/wetterkarte-c-detail.html` (Zustände Z1–Z5) + `audit/mockups/wetterkarte-mobile.html` (A/B/C-Vergleich). Bewusste Abweichung vom §8-Follow-up (zwei getrennte FABs → ein Sheet mit Segment-Switcher Layer·Modell·Vorhersage), von Jan durch Wahl der Variante C freigegeben.
-- [x] Diagnose in `audit/wetterkarte.md` gegen Spec abgeschlossen (Ist-Code-Mapping §1, vor jeder Code-Änderung) — `audit/wetterkarte.md` §9.1–§9.4 inkl. Diagnose-Fund: Wind-/Sat-Steuerung im Sheet war im Ist verdeckt gebrochen (§9.2.6)
-- [x] Alle 13 Preservation-Punkte (Spec §12) einzeln geprüft und erhalten — §9.6 Punkt 3 + §9.7 Frage 1 (12/12 Layer-Toggles skriptverifiziert, Rest einzeln ausgelöst; Punkte 6+7 durch den Umbau sogar repariert)
-- [x] Drei Snap-Zustände (`collapsed`/`half`/`full`) + Segment-Wechsel (`layer`/`model`/`fc`) funktionsfähig (Spec §2/§3) — §9.6 Punkt 9, Screenshots Z1–Z5
-- [x] Layer-Segment: alle 12 Layer + Wind-Detailsteuerung (Aus/Normal/Intensiv, Dichte, Höhe) schaltbar (Spec §7) — §9.6 Punkt 3, `c-nachher-z3-full-wind.png`
-- [x] Modell-Segment: DE/AT/CH + Native/Fusion + Katalog + Radar-Toggle voll funktionsfähig (Spec §8) — §9.6 Punkt 3, `c-nachher-z4-half-model.png`
-- [x] Vorhersage-Segment: Punkt-Vorhersage (PFC) vollständig integriert, kein Informationsverlust ggü. Desktop (Spec §9, preservation-kritisch) — Wrapper-Umzug, Sub-Tabs Übersicht/Diagramme/Tabelle skriptverifiziert, `c-nachher-z5-half-fc.png`
-- [x] Transform-basierte Sheet-Motion (`translateY`, nicht `max-height`), CLS ≈ 0 (Spec §10) — CLS 0.002 (auch Timeline auf transform umgestellt), kein Long Task > 200 ms; §9.6 Punkt 5
-- [x] CSS konsolidiert: tote `.left-rails`-Regeln + doppelte Media-Queries bereinigt (Spec §11) — ein Mobile-Block, Dock/FAB/PFC-Mobil-Altregeln entfernt; §9.5 Punkt 6
-- [x] Touch-Targets ≥ 44 px im gesamten neuen Sheet (Spec §13) — nur die 4 bekannten Attribution-Ausnahmen; §9.6 Punkt 1
-- [x] Selbstverifikations-Fragen 1–5 (CLAUDE.md) schriftlich mit Beleg beantwortet — §9.7
-- [x] Desktop-Screenshot-Diff: pixelgleich zur Baseline — `c-verify-desktop-after.png` vs. `c-baseline-desktop-location.png`; §9.6 Punkt 6
-- [x] Vorher/Nachher-Screenshots aller 5 Zustände (Z1–Z5) unter `audit/screenshots/wetterkarte/` — `c-vorher-*` (5) + `c-nachher-z1…z5` + Overview/Landscape
+- [x] `frontend-design`-Skill aufgerufen und Design-Leitlinien angewandt (Signatur = Instrument-Ribbon; Marke = Brief; Instrument-Mono-Typografie `--font-mono`)
+- [x] Diagnose in `audit/wetterkarte-desktop.md` abgeschlossen: Ist-Code-Mapping (Spec §1) gegen echten Code verifiziert (eine Korrektur: `.sat-product-switch` liegt im `.left-rails`) + 12 Preservation-Punkte + Baseline-Screenshots vor jeder Code-Änderung
+- [x] Zone A „Ebenen & Modell": 12 Layer gruppiert schaltbar, aktiver Layer klappt Inline-Regler auf (Wind-Feinsteuerung + Sat-Produktwahl 1:1 umgezogen) — `after-desktop-1440-zoneA-controls.png`
+- [x] Zone A: ModelSwitcher DE/AT/CH + Native/Fusion + Katalog + Radar-Toggle voll funktionsfähig im Panel-Fuß (Fusion-Logik unangetastet, nur verschoben)
+- [x] Zone B „Instrument-Ribbon": Zeitachse funktionsfähig (State `forecastHour` + `scheduleForecastHour` + RAF **unverändert**), ganzer Bereich scrubbar, `<input>` für Tastatur erhalten
+- [x] Zone B: persistente Live-Legende sichtbar (Rampen-Registry `map/legendModel` aus ScalarLayer/RainLayer/mapRamps/WindLayer) + Cursor-Bubble am Punktwert; 4 Spezial-Legenden als Ribbon-Note + volltext im Hover-`LayerInfoPanel` → **kein Legenden-Verlust**
+- [x] Zone B: Trend-Sparkline am Punkt (an PFC-Daten via additivem `onData`-Callback, **kein neuer Fetch**), Min/Max/Aktuell-Marker
+- [x] Zone C „Punkt-Dossier": PFC vollständig integriert (`display:contents`-Hülle, Komponente unverändert), Sub-Tabs/Warnungen/Vitals — kein Informationsverlust
+- [x] Daten-/Quellen-Badge (Land · Modell · Stand) im Zone-A-Fuß erhalten; Zurück/Ort + Karten-Zoom (Gesten) funktionsfähig
+- [x] Windpartikel rendern unverändert (kein Shader-/WindLayer-/Fusion-Eingriff; nur `defaultColorRamp` additiv exportiert für die Legende)
+- [x] Transform-basierte Motion (**CLS 0.00** im Trace), `prefers-reduced-motion` respektiert, **keine neue Dauer-Repaint-Schleife** (Idle 0 Long Tasks)
+- [x] CSS desktop-gescopet (`@media (min-width:768px)`, neue `.wx-*`-Klassen), Mobile-Media-Query **unangetastet**; inerte Altregeln konservativ belassen (matchen kein DOM mehr) — optionaler Cleanup später
+- [x] **Mobile-Regression** 390×844 DPR 3: `after-mobile-390-temp.png` = `before-mobile-390-temp.png`; Sheet öffnet, Segmente Layer/Modell/Vorhersage, Snap funktionieren
+- [~] Desktop-Performance-Trace: **Timeline-Scrub max 149 ms (0 > 200 ms), Idle 0 Long Tasks, CLS 0.00** ✓ · **Layer-Load-Decode bis ~548 ms = vorbestehende GRIB-Pipeline (kein D1-Regress, D2-Scope)** — ehrlich vermerkt in `audit/wetterkarte-desktop.md` §E/§F
+- [x] Selbstverifikations-Fragen 1–5 (CLAUDE.md) schriftlich mit Beleg — `audit/wetterkarte-desktop.md` §E
+- [x] Vorher/Nachher-Screenshots (Desktop 1280/1440/1680 + Mobile 390) unter `audit/screenshots/wetterkarte-desktop/`
+- [x] Konsole frei von neuen Errors/Warnings (einziger 404 = vorbestehende externe Daten-Frame-Verfügbarkeit)
 
-## Phase 2 — Regenradar (G2)
-- [ ] Diagnose in `audit/regenradar.md` abgeschlossen
-- [ ] Scrubber daumentauglich (≥ 44 px, volle Breite)
-- [ ] Alle Zeitschritte erreichbar, Play/Pause funktioniert
-- [ ] Scrubbing ohne Stottern (Performance-Trace als Beleg)
-- [ ] Touch-Targets ≥ 44 px
-- [ ] Selbstverifikation 1–5 beantwortet
-- [ ] Desktop-Diff unverändert, Screenshots abgelegt
+## Phase T1 — Wind-Transport: Caching-Proxy + Manifest-Warm (GT1) · VORBEREITET
+Transport-/Datenschicht-Umbau (kein UI/Fusion/Shader/Decode). Vorgabe: `plan.md` (Phase T1), Diagnose `audit/wind-transport.md`, Protokoll `tests.md` (V-WIND-TRANSPORT). **Local-first (`netlify dev`) → Netlify.** Belegregel gilt (Header-Auszug, Trace, Screenshot, Konsolen-Log).
 
-## Phase 3 — Vorhersage (G3)
-- [ ] Diagnose in `audit/vorhersage.md` abgeschlossen
-- [ ] Alle Parameter/Panels ohne horizontales Seiten-Scrollen erreichbar
-- [ ] Modellvergleich vollständig nutzbar
-- [ ] Konfidenz-Anzeigen erhalten und lesbar
-- [ ] Chart-Details per Tap (keine Hover-Only-Infos)
-- [ ] Selbstverifikation 1–5 beantwortet
-- [ ] Desktop-Diff unverändert, Screenshots abgelegt
+**Diagnose & Baseline**
+- [x] T1.0: Befund + Trace-Beleg (10 Live-Requests, ~5 s origin-gebunden, bestehende Client-Mitigationen) in `audit/wind-transport.md`; frische Kalt-Baseline-Messung (Netzwerk-Tab) — §A/§B; **Neu-Befund:** spekulativer Lauf-Rat ging daneben (06z geraten, 09z real) → 6 verschwendete ~1,05-MB-Fetches; Directory-Listing 1271 ms lokal auf kritischem Pfad. Screenshot `before/baseline-wind-1440.png`
+- [x] Bestätigt: `buildWindRgba` / `blendWindFrames` / per-Frame-Norm / Shader werden in T1 **nicht** angefasst (nur Transport) — `audit/wind-transport.md` §D
 
-## Phase 4 — Tourenplanung (G4)
-- [ ] Diagnose in `audit/tourenplanung.md` abgeschlossen
-- [ ] GPX-Upload in Emulation funktionsfähig; Real-iOS-Check als TODO an Jan notiert
-- [ ] Karte + Tour-Details gleichzeitig nutzbar (Sheet-Pattern)
-- [ ] Abfahrtszeit-Optimierer voll bedienbar
-- [ ] Wegpunkt-/Segmentinfos vollständig erreichbar
-- [ ] Selbstverifikation 1–5 beantwortet
-- [ ] Desktop-Diff unverändert, Screenshots abgelegt
+**T1.1 — Caching-Proxy (Netlify Edge Function)** — lokal (Node-Handler-Test + Vite-Dev)
+- [x] Edge Function `netlify/edge-functions/dwd-wind.ts` frontet Wind über **additiven** Pfad `/_dwd_wind/*` (DWD server-seitig gefetcht); `/_dwd_opendata` bleibt für Radar unverändert (netlify.toml unangetastet, Datei-basierte `config.path`)
+- [x] Ausgelieferte Bytes **identisch** zum Direkt-Fetch — `scripts/verify-wind-transport.mjs`: Länge 1.062.522==1.062.522, **SHA-256 identisch** (§F.1)
+- [x] `Netlify-CDN-Cache-Control: public, durable, max-age=21600, immutable` gesetzt; Cache-Key = URL (Lauf+Step); Fehler → `no-store` (§F.2)
+- [x] Wind-Layer lädt lokal über den Pfad unverändert (26/26 Frames, Slider scrubbar) — §F.3/F.4
+- [x] Unter echtem **`netlify dev`** gefahren (netlify-cli 26.2.0 global installiert): „Loaded edge function dwd-wind", `/_dwd_wind` auf :8888 → `server: Netlify` + `netlify-cdn-cache-control: public, durable, immutable`, Bytes **SHA-256-identisch**, Wind lädt 26/26 via Edge Function, Manifest-Gate greift, Konsole sauber — §F.8
 
-## Phase 5 — Event-Planung (G5)
-- [ ] Diagnose in `audit/event.md` abgeschlossen
-- [ ] Formulare ohne iOS-Auto-Zoom (font-size ≥ 16 px) und mit passenden inputmodes
-- [ ] Kompletter Flow Eingabe → Best-Day-Ergebnis durchführbar
-- [ ] Ergebnisdarstellung vollständig (kein Informationsverlust ggü. Desktop)
-- [ ] Selbstverifikation 1–5 beantwortet
-- [ ] Desktop-Diff unverändert, Screenshots abgelegt
+**T1.2 — Warm-Cron (Skript + INAKTIVES YAML)**
+- [x] `scripts/warm-wind.mjs` pollt DWD, erkennt neuesten **vollständigen** Lauf; Early-Exit wenn Manifest aktuell (§F.5, Lauf #2)
+- [x] Warmt alle Wind-URLs **durch den Proxy** (`SITE_URL/_dwd_wind`, Cache-Fill), **dann** `latest-wind.json` umlegen (atomar temp+rename, zuletzt)
+- [x] Idempotenz: #2 ohne neuen Lauf = No-op; simulierter Fehllauf (#3 `FAIL_STEP`, #4 DWD down) → Manifest bleibt letzter guter Lauf, heilt nächsten Tick (§F.5)
+- [x] Manifest-Alter überwachbar: `updatedAt`-Feld im Manifest (Alarm-Verdrahtung deploy-seitig)
+- [x] YAML `audit/warm-wind.workflow.yml` **INAKTIV** (außerhalb `.github/workflows/`), Aktivierung dokumentiert = STOPP&FRAGEN
 
-## Phase 6 — Historie (G6)
-- [ ] Diagnose in `audit/historie.md` abgeschlossen
-- [ ] Alle Zeiträume/Vergleiche erreichbar
-- [ ] Charts lesbar, Datenpunkte per Tap explorierbar
-- [ ] Kein Gestenkonflikt Chart vs. Seiten-Scroll
-- [ ] Selbstverifikation 1–5 beantwortet
-- [ ] Desktop-Diff unverändert, Screenshots abgelegt
+**T1.3 — Manifest-Gate im Client**
+- [x] Wind-Lauf-Auflösung liest `/latest-wind.json` (neu `resolveWindRunFromManifest` in `iconD2WindSource.ts`) statt DWD-Verzeichnis; restlicher Loader (fetchStepBytes/Decode/Blend/Norm) unverändert; **Fallback** auf Directory-Scan wenn kein Manifest
+- [x] Client fragt **nur** manifestierten Lauf an → **{2026071809: 26}**, **0** spekulative 06z-Fetches (§F.4)
+- [x] ~1,9-s-Directory-Auflösung entfernt: **0** Directory-Listings, stattdessen `/latest-wind.json` **3 ms** (Baseline 1271 ms) — Netzwerk-Trace §F.4
 
-## Phase 7 — Atmosphäre (G7)
-- [ ] Diagnose in `audit/atmosphaere.md` abgeschlossen
-- [ ] Alle 3 Linsen × alle 3 Disclosure-Tiefen per Touch erreichbar
-- [ ] Inhaltsumfang je Tiefe unverändert (Abgleich gegen Desktop)
-- [ ] Linsen-Wechsel ohne Layout-Sprünge
-- [ ] Selbstverifikation 1–5 beantwortet
-- [ ] Desktop-Diff unverändert, Screenshots abgelegt
+**Deploy & Netlify-Verifikation** — _bewusst zurückgestellt (nächster Run, Jans Gate — §G)_
+- [ ] Auf Netlify deployt; Durable-Cache **Miss→Hit** belegt (erster Fetch füllt, folgende ~150 ms — Header/Timing)
+- [ ] Cross-Request-Warm: zweiter „Besucher" (anderer Request/Session) trifft warmen Cache
+- [ ] Warm-Cron scharf; nach Lauf ist der Cache **vor** dem ersten echten Besucher gefüllt
+- [ ] **Graceful degrade** auf Netlify geprüft: Manifest eingefroren → letzter Lauf wird serviert (stale, nicht kalt) _(Logik lokal bereits belegt, §F.5)_
 
-## Phase 8 — 3D Globus (G8)
-- [ ] Diagnose in `audit/globus.md` abgeschlossen
-- [ ] Touch-Orbit/Zoom funktioniert, kein Konflikt mit Seiten-Scroll
-- [ ] Mobile-Quality-Default über AdaptiveQualityController (keine Shader-Änderung)
-- [ ] Pixel-Ratio-Handling auf DPR 3 geprüft
-- [ ] Kein neuer Konsolen-Error, kein WebGL-Context-Loss im Test
-- [ ] Real-Device-Stichprobe als expliziter TODO für Jan notiert
-- [ ] Selbstverifikation 1–5 beantwortet
-- [ ] Desktop-Diff unverändert, Screenshots abgelegt
+**Funktionserhalt & Gate**
+- [x] Windpartikel **numerisch/visuell identisch** zur Baseline (Byte-Identität + gleicher Lauf/Steps + unveränderter Frame-Pfad + Screenshot-Abgleich) — §E.2
+- [x] Zeit-Interpolation/Scrubbing unverändert (`blendWindFrames`-Pfad unberührt; Scrub ohne neue Netz-Requests) — §F.6
+- [x] Konsole frei von neuen Errors/Warnings; keine CORS-Regression (same-origin `/_dwd_wind`) — §F, §E.4
+- [x] Selbstverifikations-Fragen 1–5 (CLAUDE.md, sinngemäß auf Transport) schriftlich in `audit/wind-transport.md` §E
 
-## Phase 9 — Gesamtregression (G9)
-- [ ] Kurzprotokoll V-ALL für alle 8 Features grün
-- [ ] Desktop-Diff aller 8 Seiten gegen Phase-0-Baseline: keine Abweichung
-- [ ] Konsolen-Abgleich: keine neuen Errors/Warnings ggü. Baseline
-- [ ] Stichprobe 360×800 und 430×932: Layout stabil
-- [ ] Abschlussbericht im Session-Log (context.md) geschrieben
-- [ ] Liste empfohlener Real-Device-Tests (iPhone Safari) an Jan übergeben
+## Bestanden (Mobile-Baseline)
+- [x] Phase 0 — Fundament (G0) — `audit/phase0-fundament.md`
+- [x] Phase 1 — Wetterkarte Mobile (G1) — `audit/wetterkarte.md`
+- [x] Phase 1-C — Wetterkarte Mobile-Redesign „Variante C" (G1-C) — `audit/wetterkarte.md` §9; Spec `audit/mockups/wetterkarte-c-spec.md`
+
+## Rückgestellt (nach GD1 bzw. nach Jans Umpriorisierung)
+- [ ] D2 — Desktop-Performance/Rendering (`prompt-performance.md`, `audit/performance-2d.md`)
+- [ ] D3 — Lade-/Cache-Optimierung (`prompt-loading.md`, `audit/loading-optimization.md`) — T1 ist die erste konkrete Ausprägung
+- [ ] Stufe 1 (mess-gegatet, NICHT T1): RG8-WebP-Ingest — nur nach Real-iPhone-Messung post-T1 (lossless WebP + per-Frame-Norm-Sidecar + atomarer Publish)
+- [ ] Mobile-Roadmap Rest: Regenradar, Vorhersage, Tourenplanung, Event, Historie, Atmosphäre, 3D Globus

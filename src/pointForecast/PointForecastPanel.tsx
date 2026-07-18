@@ -42,6 +42,13 @@ interface Props {
    * gesteuert; Default hält das eingefrorene Blend-Verhalten.
    */
   sourceMode?: ModelSource;
+  /**
+   * Optionaler Reflex der geladenen Forecast-Daten an den Container (Desktop-
+   * Redesign D1): speist die Trend-Sparkline der Instrument-Ribbon aus DERSELBEN
+   * Quelle (kein zweiter Fetch). Rein additiv — ohne Callback unverändertes
+   * Verhalten. `null` bei Fehler/Unmount.
+   */
+  onData?: (data: PointForecast | null) => void;
 }
 
 const REFRESH_MS = 10 * 60 * 1000;        // refresh every 10 min
@@ -55,7 +62,7 @@ const REFRESH_MS = 10 * 60 * 1000;        // refresh every 10 min
 // Desktop is unaffected (identical output; only redundant renders are skipped).
 export const PointForecastPanel = memo(PointForecastPanelImpl);
 
-function PointForecastPanelImpl({ lat, lng, country, locationLabel, hours = 24, sourceMode = 'fusion' }: Props) {
+function PointForecastPanelImpl({ lat, lng, country, locationLabel, hours = 24, sourceMode = 'fusion', onData }: Props) {
   const [data, setData] = useState<PointForecast | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -118,6 +125,11 @@ function PointForecastPanelImpl({ lat, lng, country, locationLabel, hours = 24, 
     }, REFRESH_MS);
     return () => { abort.abort(); window.clearInterval(t); };
   }, [lat, lng, country, hours, sourceMode]);
+
+  // D1: geladene Daten an den Container spiegeln (Ribbon-Sparkline). Rein additiv;
+  // beim Unmount null, damit die Ribbon keine veralteten Werte zeigt.
+  useEffect(() => { onData?.(data); }, [data, onData]);
+  useEffect(() => () => { onData?.(null); }, [onData]);
 
   // DWD warnings: refreshed every 5 min, point-query via BrightSky.
   useEffect(() => {

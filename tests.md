@@ -80,6 +80,27 @@ Vor jedem Protokoll sicherstellen:
 4. UI-Overlays des Globus: erreichbar, ≥ 44 px.
 5. **Pflicht-Vermerk:** GPU-Verhalten (Wolken-Ray-Marching, Präzision) final nur auf echtem Gerät beurteilbar → Real-Device-TODO an Jan.
 
+## V-WIND-TRANSPORT (Phase T1 — Transport-/Datenschicht)
+**Abweichendes Setup:** Dieses Protokoll ist **nicht** iPhone-Emulations-zentriert, sondern netzwerk-/cache-/korrektheitszentriert. Zwei Umgebungen: **(L) lokal `netlify dev`** (Edge Function + Client + Warmer-Logik) für **Korrektheit**, **(N) Netlify-Deploy** für **Latenz/Cache-Wirkung**. Der Wind-Layer läuft in einem Vordergrund-Browser (In-App-Browser pausiert rAF / WebGL nicht repräsentativ).
+
+**(L) Lokal — Korrektheit (`netlify dev`)**
+1. Eine `.grib2.bz2` über die Edge Function vs. direkt von DWD holen → **Bytes identisch** (Größe/Hash). Beleg: Vergleichsausgabe.
+2. Response-Header der Edge Function prüfen: `Netlify-CDN-Cache-Control` mit `durable, immutable` gesetzt; Cache-Key = URL (Lauf+Step). Beleg: Header-Auszug.
+3. Wind-Layer lädt über die Edge Function → Frames erscheinen, Slider scrubbar, **Vektoren/Dichte unverändert** ggü. Baseline. Beleg: Screenshot + kurzer Verhaltensabgleich.
+4. **Manifest-Gate:** Client fetcht `latest-wind.json`, danach **ausschließlich** die dort genannten (Lauf,Step)-URLs — kein Fallback auf DWD-Verzeichnis-Scan. Beleg: Netzwerk-Liste.
+5. **Warmer idempotent:** Warm-Skript zweimal ohne neuen DWD-Lauf laufen lassen → zweiter Lauf ändert Manifest nicht (Early-Exit). Simulierter Fehllauf (DWD-URL blockiert) → Manifest bleibt auf letztem gutem Lauf, nächster Lauf heilt. Beleg: Log.
+6. **Output-Gleichheit:** Zeit-Interpolation/Scrubbing über mehrere Stunden identisch zu vorher (`blendWindFrames`-Pfad unberührt). Beleg: Screenshot-Stichproben gleicher Slider-Positionen.
+
+**(N) Netlify — Latenz & Cache**
+7. Kalter (Lauf,Step): erster Request füllt Durable Cache (Miss), zweiter ist **Hit** (~150 ms). Beleg: Timing + Cache-Status-Header, vorher/nachher.
+8. **Cross-Request-Warm:** zweiter Request aus anderer Session/anderem Client trifft warmen Cache (kein erneuter DWD-Fetch). Beleg: Timing.
+9. **Kein Cold-Path für Besucher:** nach einem frischen Lauf ist der Cache durch den Warm-Cron gefüllt, **bevor** ein simulierter Erst-Besucher lädt → erster echter Load ist warm. Beleg: Reihenfolge Cron-Log ↔ Load-Timing.
+10. **Kritischer Pfad:** Trace vorher/nachher — die ~1,9-s-Directory-Auflösung ist entfernt (Manifest-Fetch ~50 ms), erster Wind deutlich früher. Beleg: Trace-Zusammenfassung.
+11. **Graceful degrade:** Manifest künstlich einfrieren/veraltet → Client serviert letzten gewärmten Lauf (stale), **nie kalt/kaputt**. Beleg: Verhalten + Screenshot.
+12. Konsole frei von neuen Errors/Warnings; keine CORS-Regression (same-origin über Edge Function). Beleg: Konsolen-Auszug.
+
+**Nicht-Regression (beide Umgebungen):** Windpartikel numerisch/visuell = Baseline (Richtung, Dichte, **FPS-Cap** mobil 30 unverändert); Fusion/Shader/IDB-Now-Cache-Pfade unangetastet.
+
 ---
 
 ## Beleg-Ablage

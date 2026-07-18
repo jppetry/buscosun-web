@@ -1,0 +1,404 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 940" font-family="ui-sans-serif, system-ui, -apple-system">
+  <defs>
+    <clipPath id="mapClip"><rect x="24" y="96" width="1392" height="820" rx="20"/></clipPath>
+    <clipPath id="sidebarClip"><rect x="1048" y="120" width="344" height="772" rx="20"/></clipPath>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="3" stdDeviation="10" flood-color="#1A1A1E" flood-opacity="0.07"/>
+    </filter>
+    <linearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="1"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1440" height="940" fill="#FAFAFA"/>
+
+  <!-- ============ MAP STAGE ============ -->
+  <rect x="24" y="96" width="1392" height="820" rx="20" fill="#F4F4F5" stroke="#E4E4E7"/>
+
+  <g clip-path="url(#mapClip)">
+    <!-- graticule -->
+    <g stroke="#E4E4E7" stroke-width="1" opacity="0.7">
+      <line x1="144" y1="96" x2="144" y2="916"/><line x1="264" y1="96" x2="264" y2="916"/>
+      <line x1="384" y1="96" x2="384" y2="916"/><line x1="504" y1="96" x2="504" y2="916"/>
+      <line x1="624" y1="96" x2="624" y2="916"/><line x1="744" y1="96" x2="744" y2="916"/>
+      <line x1="864" y1="96" x2="864" y2="916"/><line x1="984" y1="96" x2="984" y2="916"/>
+      <line x1="1104" y1="96" x2="1104" y2="916"/><line x1="1224" y1="96" x2="1224" y2="916"/>
+      <line x1="1344" y1="96" x2="1344" y2="916"/>
+      <line x1="24" y1="156" x2="1416" y2="156"/><line x1="24" y1="276" x2="1416" y2="276"/>
+      <line x1="24" y1="396" x2="1416" y2="396"/><line x1="24" y1="516" x2="1416" y2="516"/>
+      <line x1="24" y1="636" x2="1416" y2="636"/><line x1="24" y1="756" x2="1416" y2="756"/>
+      <line x1="24" y1="876" x2="1416" y2="876"/>
+    </g>
+
+    <!-- landmass (stylized DE) -->
+    <path d="M700,150 L742,166 L770,200 L760,244 L800,300 L826,352 L810,432 L800,520 L772,600 L740,632 L688,648 L636,626 L600,588 L588,538 L560,496 L548,430 L556,372 L540,338 L566,300 L588,250 L614,206 L650,178 L672,160 Z"
+          fill="#FFFFFF" stroke="#D4D4D8" stroke-width="1.5" stroke-linejoin="round"/>
+    <!-- state boundaries -->
+    <g stroke="#E4E4E7" stroke-width="1" stroke-dasharray="2 4" fill="none">
+      <path d="M560,372 L810,392"/>
+      <path d="M694,182 L700,516"/>
+      <path d="M600,470 L772,470"/>
+    </g>
+    <!-- Rhine -->
+    <path d="M600,250 Q588,370 604,470 Q616,556 640,616" fill="none" stroke="#3A6FA8" stroke-width="1.5" opacity="0.28"/>
+
+    <!-- scattered installations -->
+    <g stroke="#FFFFFF" stroke-width="1.5">
+      <circle cx="646" cy="338" r="5" fill="#D4A373"/><circle cx="712" cy="352" r="5" fill="#3A6FA8"/>
+      <circle cx="760" cy="470" r="5" fill="#D4A373"/><circle cx="664" cy="548" r="5" fill="#7A9466"/>
+      <circle cx="604" cy="470" r="5" fill="#D4A373"/><circle cx="742" cy="548" r="5" fill="#3A6FA8"/>
+      <circle cx="690" cy="258" r="5" fill="#3A6FA8"/><circle cx="596" cy="372" r="5" fill="#7A9466"/>
+      <circle cx="730" cy="430" r="5" fill="#D4A373"/><circle cx="676" cy="410" r="5" fill="#7A9466"/>
+    </g>
+
+    <!-- clusters -->
+    <!-- Hamburg / Nord · Wind -->
+    <circle cx="700" cy="215" r="40" fill="#3A6FA8" opacity="0.14"/>
+    <circle cx="700" cy="215" r="32" fill="#3A6FA8" stroke="#FFFFFF" stroke-width="1.5"/>
+    <text x="700" y="221" font-size="16" fill="#FFFFFF" text-anchor="middle" font-weight="600">342</text>
+    <!-- Berlin · Solar -->
+    <circle cx="800" cy="300" r="34" fill="#D4A373" opacity="0.14"/>
+    <circle cx="800" cy="300" r="26" fill="#D4A373" stroke="#FFFFFF" stroke-width="1.5"/>
+    <text x="800" y="305" font-size="14" fill="#FFFFFF" text-anchor="middle" font-weight="600">218</text>
+    <!-- Köln · Biomasse -->
+    <circle cx="580" cy="418" r="30" fill="#7A9466" opacity="0.14"/>
+    <circle cx="580" cy="418" r="22" fill="#7A9466" stroke="#FFFFFF" stroke-width="1.5"/>
+    <text x="580" y="423" font-size="13" fill="#FFFFFF" text-anchor="middle" font-weight="600">156</text>
+    <!-- Frankfurt · Solar -->
+    <circle cx="648" cy="470" r="26" fill="#D4A373" opacity="0.14"/>
+    <circle cx="648" cy="470" r="18" fill="#D4A373" stroke="#FFFFFF" stroke-width="1.5"/>
+    <text x="648" y="474" font-size="12" fill="#FFFFFF" text-anchor="middle" font-weight="600">97</text>
+    <!-- Leipzig · Wind -->
+    <circle cx="762" cy="378" r="25" fill="#3A6FA8" opacity="0.14"/>
+    <circle cx="762" cy="378" r="17" fill="#3A6FA8" stroke="#FFFFFF" stroke-width="1.5"/>
+    <text x="762" y="382" font-size="11" fill="#FFFFFF" text-anchor="middle" font-weight="600">74</text>
+    <!-- München · Solar · SELECTED -->
+    <circle cx="720" cy="600" r="36" fill="#D4A373" opacity="0.16"/>
+    <circle cx="720" cy="600" r="34" fill="none" stroke="#FFFFFF" stroke-width="4"/>
+    <circle cx="720" cy="600" r="34" fill="none" stroke="#1A1A1E" stroke-width="1.5"/>
+    <circle cx="720" cy="600" r="28" fill="#D4A373" stroke="#FFFFFF" stroke-width="1.5"/>
+    <text x="720" y="605" font-size="15" fill="#FFFFFF" text-anchor="middle" font-weight="600">289</text>
+
+    <!-- city labels -->
+    <g font-size="9" fill="#71717A" font-weight="600" letter-spacing="1.5" text-anchor="middle" style="paint-order:stroke" stroke="#F4F4F5" stroke-width="3" stroke-linejoin="round">
+      <text x="700" y="266">HAMBURG</text>
+      <text x="800" y="342">BERLIN</text>
+      <text x="580" y="454">KÖLN</text>
+      <text x="648" y="502">FRANKFURT</text>
+      <text x="762" y="409">LEIPZIG</text>
+      <text x="720" y="646">MÜNCHEN</text>
+    </g>
+  </g>
+
+  <!-- selected cluster callout -->
+  <g filter="url(#soft)">
+    <rect x="756" y="474" width="234" height="104" rx="14" fill="#FFFFFF" stroke="#E4E4E7"/>
+    <path d="M790,578 L778,590 L802,590 Z" fill="#FFFFFF" stroke="#E4E4E7"/>
+    <rect x="790" y="577" width="14" height="3" fill="#FFFFFF"/>
+  </g>
+  <g transform="translate(756, 474)">
+    <text x="16" y="26" font-size="9" fill="#A1A1AA" letter-spacing="2" font-weight="500">AUSGEWÄHLT · REGION MÜNCHEN</text>
+    <text x="16" y="52" font-size="20" fill="#1A1A1E" font-weight="500" letter-spacing="-0.3">289 Anlagen</text>
+    <text x="218" y="52" font-size="15" fill="#3A6FA8" text-anchor="end" font-weight="600">412 MWp</text>
+    <g transform="translate(16, 60)">
+      <rect width="66" height="20" rx="10" fill="#FBF6EE"/>
+      <circle cx="13" cy="10" r="4" fill="#D4A373"/>
+      <text x="24" y="14" font-size="10" fill="#A85E2E" font-weight="600">PV 71%</text>
+    </g>
+    <g transform="translate(88, 60)">
+      <rect width="74" height="20" rx="10" fill="#E8F0FA"/>
+      <circle cx="13" cy="10" r="4" fill="#3A6FA8"/>
+      <text x="24" y="14" font-size="10" fill="#2C5680" font-weight="600">Wind 18%</text>
+    </g>
+    <text x="16" y="96" font-size="9" fill="#71717A" letter-spacing="0.3">Ø Inbetriebnahme 2016 · 34× Post-EEG · 940 kWh/kWp</text>
+  </g>
+
+  <!-- compass -->
+  <g filter="url(#soft)">
+    <circle cx="1012" cy="156" r="18" fill="#FFFFFF" stroke="#E4E4E7"/>
+  </g>
+  <path d="M1012,144 L1007,158 L1012,153 L1017,158 Z" fill="#1A1A1E"/>
+  <text x="1012" y="171" font-size="8" fill="#71717A" text-anchor="middle" font-weight="600">N</text>
+
+  <!-- attribution -->
+  <text x="1028" y="908" font-size="9" fill="#A1A1AA" text-anchor="end" letter-spacing="0.5" font-weight="500">QUELLE: MASTR · OPEN-MASTR · STAND 2024</text>
+
+  <!-- ============ HEADER BAR ============ -->
+  <g filter="url(#soft)">
+    <rect x="24" y="24" width="1392" height="56" rx="20" fill="#FFFFFF" stroke="#E4E4E7"/>
+  </g>
+  <rect x="40" y="36" width="32" height="32" rx="10" fill="#1A1A1E"/>
+  <text x="56" y="59" font-size="18" fill="#FAFAFA" text-anchor="middle" font-weight="500">e</text>
+  <text x="84" y="49" font-size="18" fill="#1A1A1E" font-weight="500" letter-spacing="-0.3">energieatlas</text>
+  <text x="84" y="64" font-size="9" fill="#A1A1AA" letter-spacing="2" font-weight="500">MASTR-KATASTER · DEUTSCHLAND</text>
+  <!-- search -->
+  <rect x="520" y="36" width="380" height="32" rx="16" fill="#F4F4F5" stroke="#D4D4D8"/>
+  <circle cx="540" cy="52" r="6" fill="none" stroke="#71717A" stroke-width="1.5"/>
+  <line x1="544.5" y1="56.5" x2="549" y2="61" stroke="#71717A" stroke-width="1.5" stroke-linecap="round"/>
+  <text x="558" y="56" font-size="13" fill="#71717A">Anlage, Ort oder MaStR-Nr. suchen</text>
+  <!-- segmented -->
+  <rect x="1040" y="36" width="216" height="32" rx="10" fill="#F4F4F5" stroke="#D4D4D8"/>
+  <rect x="1043" y="39" width="70" height="26" rx="8" fill="#1A1A1E"/>
+  <text x="1078" y="56" font-size="12" fill="#FAFAFA" text-anchor="middle" font-weight="500">Karte</text>
+  <text x="1148" y="56" font-size="12" fill="#52525B" text-anchor="middle">Analyse</text>
+  <text x="1220" y="56" font-size="12" fill="#52525B" text-anchor="middle">Liste</text>
+  <!-- filter button -->
+  <rect x="1272" y="36" width="32" height="32" rx="10" fill="#FFFFFF" stroke="#D4D4D8"/>
+  <path d="M1281,45 L1295,45 L1290,52 L1290,59 L1286,57 L1286,52 Z" fill="none" stroke="#1A1A1E" stroke-width="1.3" stroke-linejoin="round"/>
+  <!-- avatar -->
+  <circle cx="1376" cy="52" r="16" fill="#6B7A8F"/>
+  <text x="1376" y="57" font-size="12" fill="#FFFFFF" text-anchor="middle" font-weight="600">JP</text>
+
+  <!-- ============ LEFT TOOLBAR ============ -->
+  <g filter="url(#soft)">
+    <rect x="48" y="120" width="44" height="88" rx="14" fill="#FFFFFF" stroke="#E4E4E7"/>
+    <rect x="48" y="220" width="44" height="132" rx="14" fill="#FFFFFF" stroke="#E4E4E7"/>
+  </g>
+  <line x1="60" y1="164" x2="80" y2="164" stroke="#E4E4E7"/>
+  <line x1="60" y1="264" x2="80" y2="264" stroke="#E4E4E7"/>
+  <line x1="60" y1="308" x2="80" y2="308" stroke="#E4E4E7"/>
+  <!-- zoom + -->
+  <line x1="63" y1="142" x2="77" y2="142" stroke="#1A1A1E" stroke-width="1.6" stroke-linecap="round"/>
+  <line x1="70" y1="135" x2="70" y2="149" stroke="#1A1A1E" stroke-width="1.6" stroke-linecap="round"/>
+  <!-- zoom - -->
+  <line x1="63" y1="186" x2="77" y2="186" stroke="#1A1A1E" stroke-width="1.6" stroke-linecap="round"/>
+  <!-- layers -->
+  <path d="M70,238 L80,244 L70,250 L60,244 Z" fill="none" stroke="#1A1A1E" stroke-width="1.4" stroke-linejoin="round"/>
+  <path d="M60,249 L70,255 L80,249" fill="none" stroke="#1A1A1E" stroke-width="1.4" stroke-linejoin="round"/>
+  <!-- filter -->
+  <path d="M62,284 L78,284 L72,291 L72,298 L68,296 L68,291 Z" fill="none" stroke="#1A1A1E" stroke-width="1.3" stroke-linejoin="round"/>
+  <!-- locate -->
+  <circle cx="70" cy="330" r="5" fill="none" stroke="#1A1A1E" stroke-width="1.4"/>
+  <line x1="70" y1="321" x2="70" y2="325" stroke="#1A1A1E" stroke-width="1.4" stroke-linecap="round"/>
+  <line x1="70" y1="335" x2="70" y2="339" stroke="#1A1A1E" stroke-width="1.4" stroke-linecap="round"/>
+  <line x1="61" y1="330" x2="65" y2="330" stroke="#1A1A1E" stroke-width="1.4" stroke-linecap="round"/>
+  <line x1="75" y1="330" x2="79" y2="330" stroke="#1A1A1E" stroke-width="1.4" stroke-linecap="round"/>
+
+  <!-- ============ LEGEND CARD ============ -->
+  <g filter="url(#soft)">
+    <rect x="112" y="120" width="212" height="140" rx="14" fill="#FFFFFF" stroke="#E4E4E7"/>
+  </g>
+  <g transform="translate(112, 120)">
+    <text x="16" y="26" font-size="9" fill="#A1A1AA" letter-spacing="2" font-weight="500">EBENEN · ENERGIETRÄGER</text>
+    <g transform="translate(16, 44)">
+      <circle cx="5" cy="6" r="5" fill="#D4A373"/><text x="18" y="10" font-size="12" fill="#52525B">PV · Solar</text>
+      <text x="180" y="10" font-size="11" fill="#1A1A1E" text-anchor="end" font-weight="600">7 240</text>
+    </g>
+    <g transform="translate(16, 68)">
+      <circle cx="5" cy="6" r="5" fill="#3A6FA8"/><text x="18" y="10" font-size="12" fill="#52525B">Wind</text>
+      <text x="180" y="10" font-size="11" fill="#1A1A1E" text-anchor="end" font-weight="600">2 980</text>
+    </g>
+    <g transform="translate(16, 92)">
+      <circle cx="5" cy="6" r="5" fill="#7A9466"/><text x="18" y="10" font-size="12" fill="#52525B">Biomasse</text>
+      <text x="180" y="10" font-size="11" fill="#1A1A1E" text-anchor="end" font-weight="600">1 460</text>
+    </g>
+    <g transform="translate(16, 116)">
+      <circle cx="5" cy="6" r="5" fill="#6B7A8F"/><text x="18" y="10" font-size="12" fill="#52525B">Sonstige</text>
+      <text x="180" y="10" font-size="11" fill="#1A1A1E" text-anchor="end" font-weight="600">800</text>
+    </g>
+  </g>
+
+  <!-- ============ ERZEUGUNGSANALYSE PANEL ============ -->
+  <g filter="url(#soft)">
+    <rect x="48" y="556" width="560" height="336" rx="20" fill="#FFFFFF" stroke="#E4E4E7"/>
+  </g>
+  <g transform="translate(48, 556)">
+    <text x="24" y="30" font-size="10" fill="#A1A1AA" letter-spacing="2" font-weight="500">ERZEUGUNGSANALYSE</text>
+    <text x="536" y="30" font-size="9" fill="#A1A1AA" text-anchor="end" letter-spacing="1.5" font-weight="500">STAND 2024</text>
+
+    <!-- bar chart: Zubau nach Jahr -->
+    <text x="24" y="54" font-size="11" fill="#71717A">Zubau nach Jahr</text>
+    <text x="300" y="54" font-size="9" fill="#3A6FA8" text-anchor="end" font-weight="600">MWp</text>
+    <line x1="24" y1="196" x2="300" y2="196" stroke="#E4E4E7"/>
+    <g>
+      <rect x="30"  y="159" width="16" height="37"  rx="3" fill="#1A1A1E"/>
+      <rect x="58"  y="140" width="16" height="56"  rx="3" fill="#1A1A1E"/>
+      <rect x="85"  y="146" width="16" height="50"  rx="3" fill="#1A1A1E"/>
+      <rect x="113" y="128" width="16" height="68"  rx="3" fill="#1A1A1E"/>
+      <rect x="140" y="119" width="16" height="77"  rx="3" fill="#1A1A1E"/>
+      <rect x="168" y="134" width="16" height="62"  rx="3" fill="#1A1A1E"/>
+      <rect x="196" y="109" width="16" height="87"  rx="3" fill="#1A1A1E"/>
+      <rect x="223" y="124" width="16" height="72"  rx="3" fill="#1A1A1E"/>
+      <rect x="251" y="97"  width="16" height="99"  rx="3" fill="#1A1A1E"/>
+      <rect x="278" y="82"  width="16" height="114" rx="3" fill="#C97B47"/>
+    </g>
+    <text x="30"  y="210" font-size="9" fill="#A1A1AA">'15</text>
+    <text x="172" y="210" font-size="9" fill="#A1A1AA" text-anchor="middle">'20</text>
+    <text x="294" y="210" font-size="9" fill="#A1A1AA" text-anchor="end">'24</text>
+
+    <!-- donut: Energiemix -->
+    <text x="336" y="54" font-size="11" fill="#71717A">Energiemix</text>
+    <circle cx="390" cy="132" r="44" fill="none" stroke="#E4E4E7" stroke-width="16"/>
+    <circle cx="390" cy="132" r="44" fill="none" stroke="#D4A373" stroke-width="16" stroke-dasharray="166 400" transform="rotate(-90 390 132)"/>
+    <circle cx="390" cy="132" r="44" fill="none" stroke="#3A6FA8" stroke-width="16" stroke-dasharray="64 400" transform="rotate(129.6 390 132)"/>
+    <circle cx="390" cy="132" r="44" fill="none" stroke="#7A9466" stroke-width="16" stroke-dasharray="39 400" transform="rotate(216 390 132)"/>
+    <text x="390" y="128" font-size="24" fill="#1A1A1E" text-anchor="middle" font-weight="200" letter-spacing="-1">61%</text>
+    <text x="390" y="146" font-size="9" fill="#71717A" text-anchor="middle" letter-spacing="1">PV-ANTEIL</text>
+    <g font-size="11">
+      <circle cx="456" cy="110" r="4" fill="#D4A373"/><text x="468" y="114" fill="#52525B">PV · 61 %</text>
+      <circle cx="456" cy="132" r="4" fill="#3A6FA8"/><text x="468" y="136" fill="#52525B">Wind · 24 %</text>
+      <circle cx="456" cy="154" r="4" fill="#7A9466"/><text x="468" y="158" fill="#52525B">Biomasse · 15 %</text>
+    </g>
+
+    <!-- stat tiles -->
+    <g transform="translate(24, 232)">
+      <rect width="164" height="80" rx="14" fill="#FAFAFA" stroke="#E4E4E7"/>
+      <text x="16" y="24" font-size="9" fill="#A1A1AA" letter-spacing="1.5" font-weight="500">GESAMTLEISTUNG</text>
+      <text x="16" y="52" font-size="24" fill="#1A1A1E" font-weight="200" letter-spacing="-1">4.8<tspan font-size="12" fill="#52525B"> GW</tspan></text>
+      <text x="16" y="70" font-size="9" fill="#3F5E2F" font-weight="600">▲ +312 MW ggü. Vorjahr</text>
+    </g>
+    <g transform="translate(198, 232)">
+      <rect width="164" height="80" rx="14" fill="#FAFAFA" stroke="#E4E4E7"/>
+      <text x="16" y="24" font-size="9" fill="#A1A1AA" letter-spacing="1.5" font-weight="500">ANLAGEN</text>
+      <text x="16" y="52" font-size="24" fill="#1A1A1E" font-weight="200" letter-spacing="-1">12 480</text>
+      <text x="16" y="70" font-size="9" fill="#A85E2E" font-weight="600">1 240 Post-EEG / Ü20</text>
+    </g>
+    <g transform="translate(372, 232)">
+      <rect width="164" height="80" rx="14" fill="#FAFAFA" stroke="#E4E4E7"/>
+      <text x="16" y="24" font-size="9" fill="#A1A1AA" letter-spacing="1.5" font-weight="500">Ø ERTRAG</text>
+      <text x="16" y="52" font-size="24" fill="#1A1A1E" font-weight="200" letter-spacing="-1">940<tspan font-size="12" fill="#52525B"> kWh/kWp</tspan></text>
+      <text x="16" y="70" font-size="9" fill="#71717A" font-weight="500">Median 905</text>
+    </g>
+  </g>
+
+  <!-- ============ TIME SCRUBBER ============ -->
+  <g filter="url(#soft)">
+    <rect x="628" y="846" width="400" height="46" rx="16" fill="#FFFFFF" stroke="#E4E4E7"/>
+  </g>
+  <g transform="translate(628, 846)">
+    <text x="20" y="21" font-size="9" fill="#A1A1AA" letter-spacing="1.5" font-weight="500">INBETRIEBNAHME</text>
+    <text x="20" y="36" font-size="13" fill="#1A1A1E" font-weight="600">2008–2024</text>
+    <text x="150" y="27" font-size="9" fill="#A1A1AA">2000</text>
+    <rect x="180" y="20" width="180" height="6" rx="3" fill="#E4E4E7"/>
+    <rect x="216" y="20" width="144" height="6" rx="3" fill="#1A1A1E"/>
+    <circle cx="216" cy="23" r="9" fill="#FFFFFF" stroke="#1A1A1E" stroke-width="2"/>
+    <circle cx="360" cy="23" r="9" fill="#FFFFFF" stroke="#1A1A1E" stroke-width="2"/>
+    <text x="372" y="27" font-size="9" fill="#A1A1AA">2024</text>
+  </g>
+
+  <!-- ============ ANLAGEN SIDEBAR ============ -->
+  <g filter="url(#soft)">
+    <rect x="1048" y="120" width="344" height="772" rx="20" fill="#FFFFFF" stroke="#E4E4E7"/>
+  </g>
+  <g transform="translate(1048, 120)">
+    <text x="20" y="40" font-size="20" fill="#1A1A1E" font-weight="500" letter-spacing="-0.3">Anlagen</text>
+    <text x="20" y="58" font-size="9" fill="#A1A1AA" letter-spacing="2" font-weight="500">12 480 TREFFER</text>
+    <rect x="232" y="24" width="92" height="30" rx="15" fill="#FAFAFA" stroke="#D4D4D8"/>
+    <text x="248" y="43" font-size="11" fill="#52525B">Leistung</text>
+    <path d="M304,36 L308,42 L312,36" fill="none" stroke="#52525B" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <!-- filter chips -->
+    <g transform="translate(20, 74)">
+      <rect width="46" height="28" rx="14" fill="#1A1A1E"/>
+      <text x="23" y="18" font-size="11" fill="#FAFAFA" text-anchor="middle" font-weight="500">PV</text>
+      <rect x="54" width="62" height="28" rx="14" fill="#FFFFFF" stroke="#D4D4D8"/>
+      <text x="85" y="18" font-size="11" fill="#52525B" text-anchor="middle">Wind</text>
+      <rect x="124" width="86" height="28" rx="14" fill="#FFFFFF" stroke="#D4D4D8"/>
+      <text x="167" y="18" font-size="11" fill="#52525B" text-anchor="middle">Biomasse</text>
+      <rect x="218" width="86" height="28" rx="14" fill="#FBF3E9" stroke="#E7C9AE"/>
+      <text x="261" y="18" font-size="11" fill="#A85E2E" text-anchor="middle" font-weight="500">Post-EEG</text>
+    </g>
+    <line x1="20" y1="122" x2="324" y2="122" stroke="#E4E4E7"/>
+
+    <g clip-path="url(#sidebarClip)" transform="translate(-1048, -120)">
+      <!-- card 1 · SELECTED -->
+      <g transform="translate(1068, 254)">
+        <rect width="304" height="96" rx="14" fill="#FFFFFF" stroke="#1A1A1E" stroke-width="1.5"/>
+        <rect x="16" y="16" width="24" height="24" rx="7" fill="#D4A373"/>
+        <circle cx="28" cy="28" r="3.5" fill="#FFFFFF"/>
+        <g stroke="#FFFFFF" stroke-width="1.4" stroke-linecap="round">
+          <line x1="28" y1="19" x2="28" y2="21.5"/><line x1="28" y1="34.5" x2="28" y2="37"/>
+          <line x1="19" y1="28" x2="21.5" y2="28"/><line x1="34.5" y1="28" x2="37" y2="28"/>
+        </g>
+        <text x="52" y="31" font-size="14" fill="#1A1A1E" font-weight="600">Solarpark Aubing</text>
+        <text x="288" y="31" font-size="14" fill="#1A1A1E" text-anchor="end" font-weight="600">12.4 MWp</text>
+        <text x="52" y="48" font-size="9" fill="#71717A">SEE912345 · München · seit 2019</text>
+        <g transform="translate(16, 62)">
+          <rect width="36" height="20" rx="10" fill="#FBF6EE"/><text x="18" y="14" font-size="10" fill="#A85E2E" text-anchor="middle" font-weight="600">PV</text>
+          <rect x="42" width="76" height="20" rx="10" fill="#FBF3E9"/><text x="80" y="14" font-size="10" fill="#A85E2E" text-anchor="middle" font-weight="600">Post-EEG</text>
+        </g>
+        <text x="288" y="78" font-size="9" fill="#71717A" text-anchor="end">940 kWh/kWp</text>
+      </g>
+      <!-- card 2 -->
+      <g transform="translate(1068, 366)">
+        <rect width="304" height="96" rx="14" fill="#FFFFFF" stroke="#E4E4E7"/>
+        <rect x="16" y="16" width="24" height="24" rx="7" fill="#3A6FA8"/>
+        <g stroke="#FFFFFF" stroke-width="1.4" stroke-linecap="round">
+          <line x1="28" y1="28" x2="28" y2="20"/><line x1="28" y1="28" x2="35" y2="32"/><line x1="28" y1="28" x2="21" y2="32"/>
+        </g>
+        <circle cx="28" cy="28" r="1.6" fill="#FFFFFF"/>
+        <text x="52" y="31" font-size="14" fill="#1A1A1E" font-weight="600">WP Nordsee-Küste</text>
+        <text x="288" y="31" font-size="14" fill="#1A1A1E" text-anchor="end" font-weight="600">8.6 MW</text>
+        <text x="52" y="48" font-size="9" fill="#71717A">SEE774120 · Cuxhaven · seit 2016</text>
+        <g transform="translate(16, 62)">
+          <rect width="44" height="20" rx="10" fill="#E8F0FA"/><text x="22" y="14" font-size="10" fill="#2C5680" text-anchor="middle" font-weight="600">Wind</text>
+          <rect x="50" width="52" height="20" rx="10" fill="#F0F4EA"/><text x="76" y="14" font-size="10" fill="#3F5E2F" text-anchor="middle" font-weight="600">aktiv</text>
+        </g>
+        <text x="288" y="78" font-size="9" fill="#71717A" text-anchor="end">2 980 h/a</text>
+      </g>
+      <!-- card 3 -->
+      <g transform="translate(1068, 478)">
+        <rect width="304" height="96" rx="14" fill="#FFFFFF" stroke="#E4E4E7"/>
+        <rect x="16" y="16" width="24" height="24" rx="7" fill="#D4A373"/>
+        <circle cx="28" cy="28" r="3.5" fill="#FFFFFF"/>
+        <g stroke="#FFFFFF" stroke-width="1.4" stroke-linecap="round">
+          <line x1="28" y1="19" x2="28" y2="21.5"/><line x1="28" y1="34.5" x2="28" y2="37"/>
+          <line x1="19" y1="28" x2="21.5" y2="28"/><line x1="34.5" y1="28" x2="37" y2="28"/>
+        </g>
+        <text x="52" y="31" font-size="14" fill="#1A1A1E" font-weight="600">Bürgerpark PV Leipzig</text>
+        <text x="288" y="31" font-size="14" fill="#1A1A1E" text-anchor="end" font-weight="600">4.2 MWp</text>
+        <text x="52" y="48" font-size="9" fill="#71717A">SEE551002 · Leipzig · seit 2021</text>
+        <g transform="translate(16, 62)">
+          <rect width="36" height="20" rx="10" fill="#FBF6EE"/><text x="18" y="14" font-size="10" fill="#A85E2E" text-anchor="middle" font-weight="600">PV</text>
+          <rect x="42" width="52" height="20" rx="10" fill="#F0F4EA"/><text x="68" y="14" font-size="10" fill="#3F5E2F" text-anchor="middle" font-weight="600">aktiv</text>
+        </g>
+        <text x="288" y="78" font-size="9" fill="#71717A" text-anchor="end">1 010 kWh/kWp</text>
+      </g>
+      <!-- card 4 -->
+      <g transform="translate(1068, 590)">
+        <rect width="304" height="96" rx="14" fill="#FFFFFF" stroke="#E4E4E7"/>
+        <rect x="16" y="16" width="24" height="24" rx="7" fill="#7A9466"/>
+        <circle cx="28" cy="26" r="3.5" fill="#FFFFFF"/>
+        <line x1="28" y1="29" x2="28" y2="36" stroke="#FFFFFF" stroke-width="1.4" stroke-linecap="round"/>
+        <text x="52" y="31" font-size="14" fill="#1A1A1E" font-weight="600">Biogas Hof Renner</text>
+        <text x="288" y="31" font-size="14" fill="#1A1A1E" text-anchor="end" font-weight="600">1.1 MW</text>
+        <text x="52" y="48" font-size="9" fill="#71717A">SEE330891 · Passau · seit 2009</text>
+        <g transform="translate(16, 62)">
+          <rect width="72" height="20" rx="10" fill="#F0F4EA"/><text x="36" y="14" font-size="10" fill="#3F5E2F" text-anchor="middle" font-weight="600">Biomasse</text>
+          <rect x="78" width="42" height="20" rx="10" fill="#FBF3E9"/><text x="99" y="14" font-size="10" fill="#A85E2E" text-anchor="middle" font-weight="600">Ü20</text>
+        </g>
+        <text x="288" y="78" font-size="9" fill="#71717A" text-anchor="end">6 900 h/a</text>
+      </g>
+      <!-- card 5 -->
+      <g transform="translate(1068, 702)">
+        <rect width="304" height="96" rx="14" fill="#FFFFFF" stroke="#E4E4E7"/>
+        <rect x="16" y="16" width="24" height="24" rx="7" fill="#D4A373"/>
+        <circle cx="28" cy="28" r="3.5" fill="#FFFFFF"/>
+        <g stroke="#FFFFFF" stroke-width="1.4" stroke-linecap="round">
+          <line x1="28" y1="19" x2="28" y2="21.5"/><line x1="28" y1="34.5" x2="28" y2="37"/>
+          <line x1="19" y1="28" x2="21.5" y2="28"/><line x1="34.5" y1="28" x2="37" y2="28"/>
+        </g>
+        <text x="52" y="31" font-size="14" fill="#1A1A1E" font-weight="600">Dachanlage Rheinauhafen</text>
+        <text x="288" y="31" font-size="14" fill="#1A1A1E" text-anchor="end" font-weight="600">0.8 MWp</text>
+        <text x="52" y="48" font-size="9" fill="#71717A">SEE221457 · Köln · seit 2014</text>
+        <g transform="translate(16, 62)">
+          <rect width="36" height="20" rx="10" fill="#FBF6EE"/><text x="18" y="14" font-size="10" fill="#A85E2E" text-anchor="middle" font-weight="600">PV</text>
+          <rect x="42" width="52" height="20" rx="10" fill="#F0F4EA"/><text x="68" y="14" font-size="10" fill="#3F5E2F" text-anchor="middle" font-weight="600">aktiv</text>
+        </g>
+        <text x="288" y="78" font-size="9" fill="#71717A" text-anchor="end">905 kWh/kWp</text>
+      </g>
+      <!-- card 6 · peeking -->
+      <g transform="translate(1068, 814)">
+        <rect width="304" height="96" rx="14" fill="#FFFFFF" stroke="#E4E4E7"/>
+        <rect x="16" y="16" width="24" height="24" rx="7" fill="#3A6FA8"/>
+        <text x="52" y="31" font-size="14" fill="#1A1A1E" font-weight="600">WP Uckermark</text>
+        <text x="288" y="31" font-size="14" fill="#1A1A1E" text-anchor="end" font-weight="600">6.0 MW</text>
+      </g>
+    </g>
+
+    <!-- scroll fade + track -->
+    <rect x="20" y="828" width="304" height="44" fill="url(#fade)"/>
+    <rect x="330" y="140" width="3" height="120" rx="1.5" fill="#D4D4D8"/>
+  </g>
+</svg>

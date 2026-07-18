@@ -10,6 +10,17 @@ const upstreamProxy = {
     changeOrigin: true,
     rewrite: (p: string) => p.replace(/^\/_dwd_opendata/, ''),
   },
+  // Wind-Layer-Caching-Pfad (Phase T1). In Produktion / `netlify dev` fängt die
+  // Edge Function `netlify/edge-functions/dwd-wind.ts` `/_dwd_wind/*` VOR dem
+  // Framework-Server ab und liefert durable-gecacht aus. Dieser Vite-Eintrag ist
+  // der Dev-Fallback (dünner Pass-Through ohne Cache), damit `vite dev`/`vite
+  // preview` die Wind-Bytes über denselben Client-Pfad ausliefern — für die
+  // lokale Client-/Output-Gleichheits-Verifikation ohne Netlify-CLI.
+  '/_dwd_wind': {
+    target: 'https://opendata.dwd.de',
+    changeOrigin: true,
+    rewrite: (p: string) => p.replace(/^\/_dwd_wind/, ''),
+  },
   // NOAA GFS (AWS Open Data, S3 — Range-fähig, Public Domain) für den 3D-Globus.
   '/_gfs': {
     target: 'https://noaa-gfs-bdp-pds.s3.amazonaws.com',

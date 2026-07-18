@@ -8,6 +8,7 @@ import type { DwdForecastResult } from './wind/brightSkySource';
 import type { ScalarGridResult } from './wind/openMeteoSource';
 import { ScalarLayer, temperatureRamp } from './scalar/ScalarLayer';
 import { RainLayer, precipRainRamp } from './scalar/RainLayer';
+import { precipRamp, gustRamp, popRamp } from './scalar/mapRamps';
 import { CloudLayer } from './scalar/CloudLayer';
 import { loadFusedForecast, prefetchSecondarySources, type ModelChoice } from './fusion/loadFusedForecast';
 import {
@@ -23,6 +24,9 @@ import { lerpFrameImage } from './fusion/frameInterp';
 import { COUNTRY_PROFILES, DACH_VIEW } from './countryProfiles';
 import { loadDachMask } from './countryMask';
 import { PointForecastPanel } from './pointForecast/PointForecastPanel';
+import type { PointForecast } from './pointForecast/types';
+import { legendForLayer, primaryLegendLayer } from './map/legendModel';
+import { RibbonSparkline, RibbonLegend } from './map/RibbonInstruments';
 import { DACH_CITIES, TemperatureSampler, minZoomForRank, saveTempLabelCache, loadTempLabelCache, tempLabelColor, type TemperatureSamplerOptions, type City } from './temperatureLabels';
 import { LayerIcon } from './components/LayerIcon';
 import { LayerInfoPanel } from './components/LayerInfoPanel';
@@ -147,35 +151,9 @@ const FLOW_FACTOR = 8;
 /** Zeitabstand der beiden Eingabe-Frames (RADOLAN-RV-Schritt), Minuten. */
 const FLOW_INTERVAL_MIN = 5;
 // Regenwahrscheinlichkeit (PoP) — kalibriertes Ensemble-Produkt als ScalarLayer.
+// Farbrampen (popRamp/gustRamp/precipRamp) leben jetzt in scalar/mapRamps (SSoT
+// für Render-Pfad + Ribbon-Legende, s. import oben).
 const POP_LAYER_ID = 'pop-layer';
-/** Wahrscheinlichkeits-Farbrampe (t = PoP 0..1): hellblau → blau → violett.
- *  Alpha im Verlauf eingebacken (RainLayer hat kein visRange): < ~4 % transparent,
- *  Einblendung bis ~25 %, darüber voll (× layer-opacity). Ersetzt die frühere
- *  ScalarLayer-visRange {0.05, 0.25}. */
-const popRamp: Record<number, string> = {
-  0.0:  'rgba(190,214,255,0)',
-  0.04: 'rgba(185,210,255,0)',
-  0.12: 'rgba(150,190,252,0.55)',
-  0.25: 'rgba(122,170,250,1)',
-  0.5:  'rgba(74,120,228,1)',
-  0.75: 'rgba(112,70,198,1)',
-  1.0:  'rgba(86,28,138,1)',
-};
-/** Windböen-Farbrampe (0..1 ≙ 0..40 m/s): ruhig grünlich → Amber → Terrakotta →
- *  Magenta/Violett für Sturm/Orkan. Schwellen grob an Beaufort orientiert
- *  (~17 m/s Sturmböe Bft 8, ~25 m/s Bft 10, ~33 m/s Bft 12). */
-const gustRamp: Record<number, string> = {
-  0.0:    'rgb(214,226,224)', // 0 m/s, ruhig
-  0.125:  'rgb(150,200,162)', // 5 m/s
-  0.25:   'rgb(120,190,120)', // 10 m/s
-  0.35:   'rgb(214,204,120)', // 14 m/s
-  0.425:  'rgb(224,168,92)',  // 17 m/s — Sturmböe (Bft 8)
-  0.525:  'rgb(214,110,70)',  // 21 m/s — Bft 9
-  0.625:  'rgb(190,58,58)',   // 25 m/s — schwere Sturmböe (Bft 10)
-  0.75:   'rgb(150,50,110)',  // 30 m/s — Bft 11
-  0.875:  'rgb(110,50,130)',  // 35 m/s — orkanartig
-  1.0:    'rgb(70,40,110)',   // 40 m/s — Orkan (Bft 12)
-};
 /** DE/AT-RV-Nowcast-Horizont in Slider-Stunden (RV reicht bis +120 min). */
 const NOWCAST_MAX_HOURS = 2;
 /** AT GeoSphere-INCA-Nowcast-Horizont (Leadtimes 0.25 … 3.0 h). */
@@ -254,6 +232,23 @@ const LAYER_CHIP_DOT: Record<LayerKey, string> = {
   poprob: 'rgb(112, 70, 198)',
 };
 
+// Zone A (Desktop-Redesign D1): rein VISUELLE Gruppierung der 12 Layer — keine
+// Funktionsänderung, Labels/Toggle-Handler bleiben aus LAYER_OPTIONS. Deckt alle
+// 12 Keys genau einmal ab (Spec §3).
+const LAYER_GROUPS: { title: string; keys: LayerKey[] }[] = [
+  { title: 'Wind', keys: ['wind', 'gust'] },
+  { title: 'Niederschlag & Radar', keys: ['nowcast', 'flownowcast', 'poprob'] },
+  { title: 'Temperatur & Luft', keys: ['temp', 'snowline'] },
+  { title: 'Beobachtung', keys: ['clouds', 'sat', 'lightning', 'stations'] },
+  { title: 'Vertrauen', keys: ['confidence'] },
+];
+// Kurzer Meta-Text rechts in der Layer-Zeile (kosmetisch, Mockup Zone A).
+const LAYER_META: Record<LayerKey, string> = {
+  wind: '10 m', gust: '0–24 h', nowcast: 'Nowcast', flownowcast: '0–60 min', poprob: '%',
+  temp: '2 m', snowline: 'Linie', clouds: '0–12 h', sat: 'Meteosat', lightning: '60 min',
+  stations: 'live', confidence: 'KI-MOS',
+};
+
 const COUNTRY_FLAG = { DE: '🇩🇪', AT: '🇦🇹', CH: '🇨🇭' } as const;
 
 const SAT_PRODUCT_LABELS: Record<SatelliteProduct, string> = {
@@ -267,25 +262,6 @@ const SAT_PRODUCT_FULL_LABELS: Record<SatelliteProduct, string> = {
 
 // Temperature spans -20°C..+40°C in the color ramp
 const TEMP_RANGE = { min: -20, max: 40 };
-
-// Precipitation ramp — color values keyed on normalised intensity (0..1
-// against precipitationRange.max = 10 mm/h). Empirically most ICON-EU /
-// MOSMIX forecasts deliver 0-2 mm/h in DACH (anything > 5 mm/h is a real
-// downpour), so we COMPRESS the colorful part of the ramp into 0..0.3
-// normalised (= 0..3 mm/h). Heavier rain past 3 mm/h still escalates but
-// the most "real-world" precip already shows up in green / yellow rather
-// than getting stuck in pale blue.
-const precipRamp: Record<number, string> = {
-  0.0:   'rgba(180, 220, 250, 0.0)',  // 0 mm/h — transparent
-  0.01:  'rgb(180, 220, 250)',        // 0.1 mm/h drizzle — pale blue
-  0.05:  'rgb(95, 175, 235)',         // 0.5 mm/h light rain — medium blue
-  0.1:   'rgb(45, 130, 215)',         // 1 mm/h moderate rain — deep blue
-  0.2:   'rgb(60, 195, 130)',         // 2 mm/h — green
-  0.3:   'rgb(245, 200, 50)',         // 3 mm/h — amber
-  0.5:   'rgb(235, 110, 55)',         // 5 mm/h heavy — orange
-  0.75:  'rgb(200, 50, 50)',          // 7.5 mm/h very heavy — red
-  1.0:   'rgb(170, 50, 130)',         // 10 mm/h extreme — purple
-};
 
 /** Äquirektangular-UV-Bounds (x0,y0,x1,y1) → QuadCorners [NW,NE,SE,SW] in [lng,lat].
  *  Adapter für den Fusion→CloudLayer-Transport (Fusion liefert uvBounds, der
@@ -593,6 +569,10 @@ export default function MapView({ location, onBack, embedded = false, initialAct
     });
 
     map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-left');
+
+    // Dev-only: Karte am Performance-HUD registrieren, um echte MapLibre-Repaints
+    // zu zählen (belegt die uncapped-triggerRepaint-Schleife). Kein Prod-Effekt.
+    if (import.meta.env.DEV) window.__perfHud?.attachMap(map);
 
     // Dim overlay — a semi-transparent dark fill that sits over the basemap
     // but underneath the boundary/label/weather layers. Toggled visible when
@@ -1251,25 +1231,32 @@ export default function MapView({ location, onBack, embedded = false, initialAct
     const installWind = async () => {
       // Nebenläufigen Doppel-Load verhindern (s. windLoadingRef). Refresh (30 min)
       // läuft weiter, weil dann nicht „loading". Synchron VOR jedem await gesetzt →
-      // greift auch, wenn zwei Effects im selben Tick feuern.
-      if (windLoadingRef.current) return;
+      // greift auch, wenn zwei Effects im selben Tick feuern. Mit bereits totem
+      // Signal (StrictMode-Mount #1 nach Cleanup) gar nicht erst starten — jeder
+      // fetch würde sofort verwerfen und der Guard nur den echten Load blockieren.
+      if (windLoadingRef.current || abort.signal.aborted) return;
       windLoadingRef.current = true;
       try {
-      // Sofort-Erstpaint aus dem localStorage-Cache (letzter „jetzt"-Frame, ggf.
+      // Sofort-Erstpaint aus dem IndexedDB-Cache (letzter „jetzt"-Frame, ggf.
       // paar h alt) — die Partikel erscheinen so unmittelbar beim Seitenaufruf,
       // statt ~2 s auf den Netz-Fetch zu warten. Wird vom frischen Gitter ersetzt.
+      // BEWUSST nicht awaited: der IDB-Roundtrip (~100 ms) gehört nicht auf den
+      // kritischen Pfad des Netz-Loads — beide starten parallel; der Apply-Guard
+      // (!iconD2WindRef.current) verhindert, dass ein langsamer Cache-Read ein
+      // bereits eingetroffenes frisches Gitter übermalt.
       if (!iconD2WindRef.current) {
-        const cached = await loadWindNowCache();
-        const windL = layerRefs.current.wind;
-        // Nur malen, wenn Surface auch wirklich die aktive Höhe ist — sonst würde
-        // der verzögerte Sofort-Paint eine ICON-EU-Druckflächen-Ansicht übermalen.
-        if (cached && windL && !iconD2WindRef.current && !abort.signal.aborted && windLevelRef.current === 'surface') {
-          windL.setWindData(cached.image, {
-            width: cached.width, height: cached.height,
-            uMin: cached.uMin, uMax: cached.uMax, vMin: cached.vMin, vMax: cached.vMax,
-            uvBounds: cached.uvBounds,
-          });
-        }
+        void loadWindNowCache().then((cached) => {
+          const windL = layerRefs.current.wind;
+          // Nur malen, wenn Surface auch wirklich die aktive Höhe ist — sonst würde
+          // der verzögerte Sofort-Paint eine ICON-EU-Druckflächen-Ansicht übermalen.
+          if (cached && windL && !iconD2WindRef.current && !abort.signal.aborted && windLevelRef.current === 'surface') {
+            windL.setWindData(cached.image, {
+              width: cached.width, height: cached.height,
+              uMin: cached.uMin, uMax: cached.uMax, vMin: cached.vMin, vMax: cached.vMax,
+              uvBounds: cached.uvBounds,
+            });
+          }
+        });
       }
       try {
         // Re-Render-Coalescing (Map-TBT): onProgress feuert pro Frame (~13×).
@@ -1299,8 +1286,12 @@ export default function MapView({ location, onBack, embedded = false, initialAct
       }
       } finally {
         // Nach dem NAHEN Horizont zurücksetzen (der ferne lädt im Hintergrund
-        // weiter); ein späterer Refresh/Reaktivieren darf dann neu laden.
-        windLoadingRef.current = false;
+        // weiter); ein späterer Refresh/Reaktivieren darf dann neu laden. Ein
+        // abgebrochener Lauf (Unmount/StrictMode) lässt den Guard in Ruhe — den
+        // hat der Effect-Cleanup bereits für den nächsten Mount zurückgesetzt,
+        // und ein hier nachlaufendes `false` könnte den Guard eines inzwischen
+        // GESTARTETEN neuen Loads aufheben (Doppel-Load-Fenster).
+        if (!abort.signal.aborted) windLoadingRef.current = false;
       }
     };
     installWindRef.current = installWind;
@@ -1313,7 +1304,8 @@ export default function MapView({ location, onBack, embedded = false, initialAct
       // Nebenläufigen Doppel-Load verhindern (s. tempLoadingRef). Synchron VOR jedem
       // await gesetzt → greift auch, wenn Aktivierungs-Effekt + requestIdleCallback im
       // selben Tick feuern. Der 30-min-Refresh läuft weiter, weil dann nicht „loading".
-      if (tempLoadingRef.current) return;
+      // Totes Signal (StrictMode-Mount #1) → gar nicht starten, s. installWind.
+      if (tempLoadingRef.current || abort.signal.aborted) return;
       tempLoadingRef.current = true;
       try {
         // Tick-Coalescing wie bei Wind (Re-Render-Sturm vermeiden). Temp lädt am
@@ -1330,7 +1322,8 @@ export default function MapView({ location, onBack, embedded = false, initialAct
       } catch {
         // nicht fatal — die Fusion-Temperatur deckt weiter ab.
       } finally {
-        tempLoadingRef.current = false;
+        // Abgebrochener Lauf → Guard nicht anfassen (s. installWind-Finally).
+        if (!abort.signal.aborted) tempLoadingRef.current = false;
       }
     };
     installTempRef.current = installTemp;
@@ -1469,6 +1462,14 @@ export default function MapView({ location, onBack, embedded = false, initialAct
 
     return () => {
       abort.abort();
+      // Loading-Guards für den nächsten Mount freigeben: die Refs überleben einen
+      // StrictMode-Remount (gleiche Komponenten-Instanz), ein noch in-flight
+      // laufender install* dieses (abgebrochenen) Mounts würde sie sonst gesetzt
+      // lassen und der Re-Mount-Load prallte dauerhaft am Guard ab — der Wind-
+      // Layer blieb dann bis zur nächsten Nutzer-Interaktion komplett leer
+      // (Dev-Kaltstart-Befund, s. audit).
+      windLoadingRef.current = false;
+      tempLoadingRef.current = false;
       window.clearInterval(t1);
       window.clearInterval(t3);
       window.clearInterval(t4);
@@ -2401,6 +2402,11 @@ export default function MapView({ location, onBack, embedded = false, initialAct
   // (Punktforecast + Alerts + Pollen) und deshalb nie doppelt existieren darf.
   const isMobileMap = useMediaQuery(MOBILE_MAP_MEDIA_QUERY);
 
+  // Desktop-Redesign D1: die vom Punkt-Dossier (Zone C) geladenen Forecast-Daten
+  // hochgereicht, damit die Instrument-Ribbon (Zone B) ihre Trend-Sparkline OHNE
+  // eigenen Fetch aus derselben Quelle speist. null = kein Punkt/Overview → Ruhe.
+  const [pointData, setPointData] = useState<PointForecast | null>(null);
+
   const sheetDragRef = useRef<{ startY: number; startSnap: SheetSnap; moved: boolean } | null>(null);
 
   const onSheetGrabPointerDown = (e: React.PointerEvent) => {
@@ -2432,6 +2438,73 @@ export default function MapView({ location, onBack, embedded = false, initialAct
     document.addEventListener('pointerup', onUp);
   };
 
+  // ===== Desktop-Redesign D1: Zonen-Layout ==============================
+  // Die neuen Zonen A/B/C rendern NUR auf Desktop (!isMobileMap, !embedded);
+  // Mobile behält das unveränderte Phase-1-C-Sheet. Geteilte Elemente (Timeline,
+  // Legenden, Badge) branchen über `showDesktopZones` an ihren Render-Ort.
+  const showDesktopZones = !embedded && !isMobileMap;
+  const activeCount = LAYER_OPTIONS.filter(o => active.has(o.key)).length;
+  // Aktive Ribbon-Legende: der höchstpriorisierte aktive Layer bestimmt die Skala.
+  const legendLayerKey = primaryLegendLayer(active);
+  const legend = legendLayerKey ? legendForLayer(legendLayerKey) : null;
+
+  // Vorhersage-Timeline als EIN wiederverwendbarer Knoten: Desktop rendert ihn in
+  // der Instrument-Ribbon, Mobile/embedded freistehend wie bisher. Der Kern
+  // <input type=range> (forecastHour + scheduleForecastHour + RAF) ist identisch.
+  const forecastSliderEl = forecast ? (
+    <div className="forecast-slider">
+      <div className="forecast-slider-row">
+        {embedded ? (
+          <button
+            type="button"
+            className="forecast-now"
+            onClick={() => setPlaying(p => !p)}
+            title={playing ? 'Tagesablauf pausieren' : 'Tagesablauf abspielen'}
+            aria-pressed={playing}
+          >
+            {playing ? '⏸' : '▶'}
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="forecast-now"
+            disabled={forecastHour === 0}
+            onClick={() => setForecastHour(0)}
+            title="Auf 'jetzt' zurücksetzen"
+          >
+            jetzt
+          </button>
+        )}
+        <div className="forecast-track">
+          <input
+            type="range"
+            min={dayLo}
+            max={dayHi}
+            step={0.2}
+            value={Math.max(dayLo, Math.min(dayHi, forecastHour))}
+            onChange={e => { setPlaying(false); scheduleForecastHour(Number(e.target.value)); }}
+            aria-label={embedded ? 'Uhrzeit am Tag' : 'Forecast-Stunde'}
+            style={{
+              // Füllstand für die Timeline (Terracotta-/Ink-Fill links vom Knob) —
+              // Mobile-Mockup UND Desktop-Ribbon lesen dieselbe Variable.
+              '--tl-fill': `${((Math.max(dayLo, Math.min(dayHi, forecastHour)) - dayLo) / Math.max(dayHi - dayLo, 1e-6)) * 100}%`,
+            } as React.CSSProperties}
+          />
+          {!embedded && sliderMax >= 4 && (
+            <div className="forecast-ticks" aria-hidden="true">
+              <span>jetzt</span>
+              <span>+{Math.round(sliderMax / 4)}</span>
+              <span>+{Math.round(sliderMax / 2)}</span>
+              <span>+{Math.round((sliderMax * 3) / 4)}</span>
+              <span>+{Math.round(sliderMax)}h</span>
+            </div>
+          )}
+        </div>
+        <span className="forecast-label">{forecastLabel}</span>
+      </div>
+    </div>
+  ) : null;
+
   return (
     <div className={`map-view${embedded ? ' map-view-embedded' : ` map-sheet-snap-${sheetSnap}`}`}>
       <div className="map-topbar">
@@ -2456,58 +2529,115 @@ export default function MapView({ location, onBack, embedded = false, initialAct
         </div>
       </div>
 
-      {!embedded && (
-        <div className="left-rails">
-        {/* Per-Land-Modell-Switcher (Phase 3, docs/model-switcher-gate0.md). Ersetzt
-            die alte binäre .model-switch-Rail (bleibt unten flag-gated & unsichtbar
-            bis zur Bereinigung). */}
-        <ModelSwitcher
-          state={modelSource}
-          variant="rail"
-          onSelectCountry={onSelectCountry}
-          onSelectModel={onSelectModel}
-          onToggleRadar={onToggleRadar}
-          fusionError={fusionError}
-        />
-        <div className="layer-switch">
-          {LAYER_OPTIONS.map(opt => (
-            <button
-              key={opt.key}
-              type="button"
-              className={active.has(opt.key) ? 'active' : ''}
-              onClick={() => toggle(opt.key)}
-              onMouseEnter={(e) => showLayerInfo(e.currentTarget, opt.key)}
-              onMouseLeave={() => setLayerHover(null)}
-              onFocus={(e) => showLayerInfo(e.currentTarget, opt.key)}
-              onBlur={() => setLayerHover(null)}
-              title={opt.title}
-            >
-              <LayerIcon layer={opt.key} />
-              <span>{opt.label}</span>
-            </button>
-          ))}
-        </div>
-        {active.has('sat') && (
-          <div className="sat-product-switch">
-            {SATELLITE_PRODUCTS.map(p => (
-              <button
-                key={p}
-                type="button"
-                className={satProduct === p ? 'active' : ''}
-                onClick={() => setSatProduct(p)}
-                title={SAT_PRODUCT_FULL_LABELS[p]}
-              >
-                {SAT_PRODUCT_LABELS[p]}
-              </button>
+      {/* ===== ZONE A — „Ebenen & Modell" (Desktop-Redesign D1) ==========
+          Ersetzt das visuelle Layout von .left-rails/.layer-switch, behält aber
+          Funktion + Handler. 12 Layer visuell gruppiert (LAYER_GROUPS); der aktive
+          Layer klappt seine Regler inline auf (Wind-Feinsteuerung/Sat-Produkt 1:1,
+          Skala-Vorschau für Skalare). Modell-Switcher + Quellen-Fuß unten. */}
+      {showDesktopZones && (
+        <aside className="wx-panel" aria-label="Ebenen und Modell">
+          <div className="wx-panel-hd">
+            <span className="wx-eyebrow">Ebenen &amp; Modell</span>
+            <span className="wx-count">{activeCount} aktiv</span>
+          </div>
+          <div className="wx-groups">
+            {LAYER_GROUPS.map(grp => (
+              <div key={grp.title} className="wx-grp">
+                <div className="wx-grp-h">{grp.title}</div>
+                {grp.keys.map(key => {
+                  const opt = LAYER_OPTIONS.find(o => o.key === key)!;
+                  const on = active.has(key);
+                  const rowLegend = legendForLayer(key);
+                  return (
+                    <div key={key} className={`wx-layer-wrap${on ? ' is-active' : ''}`}>
+                      <button
+                        type="button"
+                        className={`wx-layer${on ? ' is-active' : ''}`}
+                        aria-pressed={on}
+                        onClick={() => toggle(key)}
+                        onMouseEnter={(e) => showLayerInfo(e.currentTarget, key)}
+                        onMouseLeave={() => setLayerHover(null)}
+                        onFocus={(e) => showLayerInfo(e.currentTarget, key)}
+                        onBlur={() => setLayerHover(null)}
+                        title={opt.title}
+                      >
+                        <span className="wx-dot" style={{ background: LAYER_CHIP_DOT[key] }} aria-hidden="true" />
+                        <span className="wx-nm">{opt.label}</span>
+                        <span className="wx-sub">{LAYER_META[key]}</span>
+                      </button>
+                      {on && (
+                        <div className="wx-lc">
+                          {key === 'wind' && (
+                            <div className="wx-lc-wind" role="group" aria-label="Wind-Partikel">
+                              <div className="wx-seg wpc-modes">
+                                <button type="button" className={!windCfg.on ? 'on' : ''} onClick={() => setWindCfg(c => ({ ...c, on: false }))} title="Nur Wind-Heatmap, keine Partikel-Animation">Aus</button>
+                                <button type="button" className={windCfg.on && !windCfg.intensive ? 'on' : ''} onClick={() => setWindCfg(c => ({ ...c, on: true, intensive: false }))} title="Normale Partikeldichte">Normal</button>
+                                <button type="button" className={windCfg.on && windCfg.intensive ? 'on' : ''} onClick={() => setWindCfg(c => ({ ...c, on: true, intensive: true }))} title="Dichtere, längere Partikel">Intensiv</button>
+                              </div>
+                              {windCfg.on && (
+                                <label className="wx-lc-range" title="Partikel-Dichte">
+                                  <span className="wx-lc-lbl">Dichte</span>
+                                  <input type="range" min={0.3} max={2.5} step={0.1} value={windCfg.density} onChange={e => setWindCfg(c => ({ ...c, density: Number(e.target.value) }))} aria-label="Partikel-Dichte" />
+                                </label>
+                              )}
+                              <div className="wx-lc-row" role="group" aria-label="Wind-Höhe">
+                                <span className="wx-lc-lbl">Höhe</span>
+                                <div className="wx-seg">
+                                  <button type="button" className={windLevel === 'surface' ? 'on' : ''} onClick={() => setWindLevel('surface')} title="Bodennah · 10 m (ICON-D2, 2,2 km)">10&nbsp;m</button>
+                                  {WIND_PRESSURE_LEVELS.map(lvl => (
+                                    <button key={lvl} type="button" className={windLevel === lvl ? 'on' : ''} onClick={() => setWindLevel(lvl)} title={`${lvl} hPa Höhenwind (ICON-EU, ~7 km)`}>{lvl}</button>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                          {key === 'sat' && (
+                            <div className="wx-lc-row" role="group" aria-label="Satellitenprodukt">
+                              <span className="wx-lc-lbl">Bild</span>
+                              <div className="wx-seg">
+                                {SATELLITE_PRODUCTS.map(p => (
+                                  <button key={p} type="button" className={satProduct === p ? 'on' : ''} onClick={() => setSatProduct(p)} title={SAT_PRODUCT_FULL_LABELS[p]}>{SAT_PRODUCT_LABELS[p]}</button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {key !== 'wind' && rowLegend?.kind === 'continuous' && (
+                            <div className="wx-lc-row">
+                              <span className="wx-lc-lbl">Skala</span>
+                              <span className="wx-lc-scale" style={{ background: rowLegend.gradientCss }} aria-hidden="true" />
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             ))}
           </div>
-        )}
-        </div>
+          <div className="wx-panel-model">
+            <span className="wx-eyebrow">Modell</span>
+            <ModelSwitcher
+              state={modelSource}
+              variant="rail"
+              onSelectCountry={onSelectCountry}
+              onSelectModel={onSelectModel}
+              onToggleRadar={onToggleRadar}
+              fusionError={fusionError}
+            />
+          </div>
+          <div className="wx-panel-foot" title={COUNTRY_PROFILES[location.country].stackLabel}>
+            <span className="wx-foot-flag" aria-hidden="true">{COUNTRY_FLAG[location.country]}</span>
+            <span className="wx-foot-tx">{COUNTRY_PROFILES[location.country].name} · {COUNTRY_PROFILES[location.country].stackLabel}</span>
+          </div>
+        </aside>
       )}
       {!embedded && layerHover && (
         <LayerInfoPanel layer={layerHover.key} style={{ top: layerHover.top, left: layerHover.left }} />
       )}
-      {!embedded && (active.has('confidence') || active.has('snowline') || active.has('flownowcast') || active.has('poprob')) && (
+      {/* Mobile behält den bisherigen Legenden-Kapsel-Block unverändert. Desktop
+          zeigt dieselben Inhalte in der Ribbon (Note) + im Hover-Info-Panel (voll). */}
+      {!embedded && !showDesktopZones && (active.has('confidence') || active.has('snowline') || active.has('flownowcast') || active.has('poprob')) && (
         <div className="map-legends">
           {active.has('confidence') && (
             <div className="confidence-legend" role="note" aria-label="Vertrauens-Schleier">
@@ -2549,157 +2679,72 @@ export default function MapView({ location, onBack, embedded = false, initialAct
         </div>
       )}
 
-      {!embedded && active.has('wind') && (
-        <div className="wind-particle-switch" role="group" aria-label="Wind-Partikel">
-          <div className="wpc-modes">
-            <button
-              type="button"
-              className={!windCfg.on ? 'active' : ''}
-              onClick={() => setWindCfg(c => ({ ...c, on: false }))}
-              title="Nur Wind-Heatmap, keine Partikel-Animation"
-            >
-              Aus
-            </button>
-            <button
-              type="button"
-              className={windCfg.on && !windCfg.intensive ? 'active' : ''}
-              onClick={() => setWindCfg(c => ({ ...c, on: true, intensive: false }))}
-              title="Normale Partikeldichte"
-            >
-              Normal
-            </button>
-            <button
-              type="button"
-              className={windCfg.on && windCfg.intensive ? 'active' : ''}
-              onClick={() => setWindCfg(c => ({ ...c, on: true, intensive: true }))}
-              title="Dichtere, längere Partikel (windy.com-intensiv)"
-            >
-              Intensiv
-            </button>
-          </div>
-          {windCfg.on && (
-            <label className="wpc-density" title="Partikel-Dichte">
-              <span aria-hidden="true">Dichte</span>
-              <input
-                type="range"
-                min={0.3}
-                max={2.5}
-                step={0.1}
-                value={windCfg.density}
-                onChange={e => setWindCfg(c => ({ ...c, density: Number(e.target.value) }))}
-                aria-label="Partikel-Dichte"
-              />
-            </label>
-          )}
-          <div className="wpc-levels" role="group" aria-label="Wind-Höhe">
-            <span aria-hidden="true">Höhe</span>
-            <button
-              type="button"
-              className={windLevel === 'surface' ? 'active' : ''}
-              onClick={() => setWindLevel('surface')}
-              title="Bodennah · 10 m (ICON-D2, 2,2 km)"
-            >
-              10&nbsp;m
-            </button>
-            {WIND_PRESSURE_LEVELS.map(lvl => (
-              <button
-                key={lvl}
-                type="button"
-                className={windLevel === lvl ? 'active' : ''}
-                onClick={() => setWindLevel(lvl)}
-                title={`${lvl} hPa Höhenwind (ICON-EU, ~7 km)`}
-              >
-                {lvl}
-              </button>
-            ))}
-          </div>
+      {/* Daten-/Quellen-Badge: Desktop trägt die Quelle im Zone-A-Fuß + der
+          Ribbon-Quellzeile; freistehend nur noch Mobile/embedded (Mobile blendet
+          ihn per CSS aus — unverändert). */}
+      {!showDesktopZones && (
+        <div className="data-badge">
+          <span title={COUNTRY_PROFILES[location.country].stackLabel}>
+            {({ DE: '🇩🇪', AT: '🇦🇹', CH: '🇨🇭' } as const)[location.country]}{' '}
+            {COUNTRY_PROFILES[location.country].name} · {COUNTRY_PROFILES[location.country].stackLabel}
+          </span>
+          {LAYER_OPTIONS.filter(o => active.has(o.key)).map(o => {
+            const s = statuses[o.key];
+            return (
+              <span key={o.key} className={s.err ? 'err' : ''} title={s.err ?? undefined}>
+                {s.err
+                  ? `${o.label}: ${s.err}`
+                  : s.ok
+                    ? `${o.label} · ${s.ok.model.toUpperCase()} · ${s.ok.captured ? 'Stand ' : ''}${fmtTime(s.ok.fetchedAt)}`
+                    : `${o.label} wird geladen…`}
+              </span>
+            );
+          })}
         </div>
       )}
 
-      <div className="data-badge">
-        <span title={COUNTRY_PROFILES[location.country].stackLabel}>
-          {({ DE: '🇩🇪', AT: '🇦🇹', CH: '🇨🇭' } as const)[location.country]}{' '}
-          {COUNTRY_PROFILES[location.country].name} · {COUNTRY_PROFILES[location.country].stackLabel}
-        </span>
-        {LAYER_OPTIONS.filter(o => active.has(o.key)).map(o => {
-          const s = statuses[o.key];
-          return (
-            <span key={o.key} className={s.err ? 'err' : ''} title={s.err ?? undefined}>
-              {s.err
-                ? `${o.label}: ${s.err}`
-                : s.ok
-                  ? `${o.label} · ${s.ok.model.toUpperCase()} · ${s.ok.captured ? 'Stand ' : ''}${fmtTime(s.ok.fetchedAt)}`
-                  : `${o.label} wird geladen…`}
-            </span>
-          );
-        })}
-      </div>
+      {/* Vorhersage-Timeline freistehend nur Mobile/embedded; Desktop rendert
+          denselben Knoten in der Instrument-Ribbon (Zone B, unten). */}
+      {!showDesktopZones && forecastSliderEl}
 
-      {forecast && (
-        <div className="forecast-slider">
-          <div className="forecast-slider-row">
-            {embedded ? (
-              <button
-                type="button"
-                className="forecast-now"
-                onClick={() => setPlaying(p => !p)}
-                title={playing ? 'Tagesablauf pausieren' : 'Tagesablauf abspielen'}
-                aria-pressed={playing}
-              >
-                {playing ? '⏸' : '▶'}
-              </button>
-            ) : (
-              <button
-                type="button"
-                className="forecast-now"
-                disabled={forecastHour === 0}
-                onClick={() => setForecastHour(0)}
-                title="Auf 'jetzt' zurücksetzen"
-              >
-                jetzt
-              </button>
-            )}
-            <div className="forecast-track">
-              <input
-                type="range"
-                min={dayLo}
-                max={dayHi}
-                step={0.2}
-                value={Math.max(dayLo, Math.min(dayHi, forecastHour))}
-                onChange={e => { setPlaying(false); scheduleForecastHour(Number(e.target.value)); }}
-                aria-label={embedded ? 'Uhrzeit am Tag' : 'Forecast-Stunde'}
-                style={{
-                  // Füllstand für die Mobile-Timeline (Terracotta-Fill links vom
-                  // Knob, Mockup-Style) — Desktop konsumiert die Variable nicht.
-                  '--tl-fill': `${((Math.max(dayLo, Math.min(dayHi, forecastHour)) - dayLo) / Math.max(dayHi - dayLo, 1e-6)) * 100}%`,
-                } as React.CSSProperties}
-              />
-              {!embedded && sliderMax >= 4 && (
-                <div className="forecast-ticks" aria-hidden="true">
-                  <span>jetzt</span>
-                  <span>+{Math.round(sliderMax / 4)}</span>
-                  <span>+{Math.round(sliderMax / 2)}</span>
-                  <span>+{Math.round((sliderMax * 3) / 4)}</span>
-                  <span>+{Math.round(sliderMax)}h</span>
-                </div>
-              )}
+      {/* ===== ZONE C — „Punkt-Dossier" (Desktop-Redesign D1) =============
+          Unveränderte PointForecastPanel in eine rechte Dock-Hülle gesetzt.
+          Mount-Bedingung wie bisher (!overview). onData reicht die Daten an die
+          Ribbon-Sparkline (kein zweiter Fetch). Mobile nutzt weiter das Sheet-
+          Segment „Vorhersage". */}
+      {showDesktopZones && !overview && (
+        <aside className="wx-dossier" aria-label="Punkt-Dossier">
+          <PointForecastPanel
+            lat={location.lat}
+            lng={location.lon}
+            country={location.country}
+            locationLabel={location.name}
+            sourceMode={resolvePointSource(modelSource)}
+            onData={setPointData}
+          />
+        </aside>
+      )}
+
+      {/* ===== ZONE B — „Instrument-Ribbon" (Signatur, Desktop-Redesign D1) =
+          Drei gestapelte Streifen: Trend-Sparkline am Punkt · Zeitachse (Kern-
+          <input> unverändert) · dauerhaft sichtbare Live-Legende des aktiven
+          Layers. Nur Desktop. */}
+      {showDesktopZones && (
+        <div className="wx-ribbon" aria-label="Zeit und Skala">
+          <div className="wx-rb-top">
+            <div className="wx-rb-title">
+              <span className="wx-eyebrow">Zeit &amp; Skala</span>
+              {legend && <span className="wx-rb-lay">{legend.name}{legend.unit ? ` · ${legend.unit}` : ''}</span>}
             </div>
-            <span className="forecast-label">{forecastLabel}</span>
+            <span className="wx-rb-cursor">{forecastLabel}</span>
           </div>
-        </div>
-      )}
 
-      {/* Punkt-Forecast: auf Desktop/Tablet als eigenes Panel rechts; auf
-          Mobile stattdessen im „Vorhersage"-Segment des Sheets (unten) —
-          nie beides, die Komponente fetcht beim Mount (Spec §9). */}
-      {!embedded && !overview && !isMobileMap && (
-        <PointForecastPanel
-          lat={location.lat}
-          lng={location.lon}
-          country={location.country}
-          locationLabel={location.name}
-          sourceMode={resolvePointSource(modelSource)}
-        />
+          <RibbonSparkline data={pointData} legendLayer={legendLayerKey} forecastHour={forecastHour} sliderMax={sliderMax} />
+
+          <div className="wx-rb-time">{forecastSliderEl}</div>
+
+          <RibbonLegend legend={legend} pointData={pointData} forecastHour={forecastHour} />
+        </div>
       )}
 
       {/* ===== Mobiles Bottom-Sheet „Variante C" (<768px; per CSS) ============

@@ -134,7 +134,10 @@ export interface WindLayerOptions {
 // dunkles Navy → Teal → Grün → klares Amber → Orange → Rot → Violett → Weiß.
 // Bewusst OHNE die matschigen Oliv-/Brauntöne der alten windy-Rampe, die das
 // Bild „dreckig" wirken ließen.
-const defaultColorRamp: Record<number, string> = {
+// Exportiert, damit die persistente Ribbon-Legende (map/legendModel) exakt die
+// Wind-Farben zeigt, die der Shader zeichnet (SSoT, Spec §7) — NICHT die
+// Shader-Pipeline anfassen, nur die Rampe als Datentabelle mitlesen.
+export const defaultColorRamp: Record<number, string> = {
   0.0:  'rgb(20, 30, 55)',
   0.15: 'rgb(30, 90, 140)',
   0.3:  'rgb(40, 150, 160)',

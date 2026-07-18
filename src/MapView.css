@@ -1507,6 +1507,216 @@
 }
 
 /* ============================================================================
+   === Desktop-Redesign D1 ===  (Spec: audit/mockups/wetterkarte-desktop-spec.md)
+   Drei bewusste Zonen über der vollflächigen Karte: A „Ebenen & Modell" (links),
+   B „Instrument-Ribbon" (unten, Signatur), C „Punkt-Dossier" (rechts).
+   Nur Desktop/Tablet — `@media (min-width:768px)`; die neuen `.wx-*`-Elemente
+   rendern ohnehin nur bei !isMobileMap. Marke = Brief (Tokens, IBM-Plex-Mono-
+   Stack `--font-mono` für Instrument-Ziffern). Mobile-Block darunter unberührt.
+   ============================================================================ */
+@media (min-width: 768px) {
+  /* ---------- gemeinsame Primitive ---------- */
+  .wx-eyebrow {
+    font-family: var(--font-mono); font-size: 0.62rem; font-weight: 600;
+    letter-spacing: 0.16em; text-transform: uppercase; color: var(--stone-400);
+  }
+
+  /* ========================================================================
+     ZONE A — Panel „Ebenen & Modell" (links) — ruhig & diszipliniert
+     ======================================================================== */
+  .wx-panel {
+    position: absolute; top: 4.4rem; left: 1.25rem; z-index: 15; width: 276px;
+    max-height: calc(100vh - 4.4rem - 11rem);
+    display: flex; flex-direction: column; overflow: hidden;
+    background: var(--surface-glass-strong);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--border-default); border-radius: 18px;
+    box-shadow: var(--shadow-float); pointer-events: auto;
+  }
+  .wx-panel-hd {
+    flex: none; padding: 0.8rem 1rem 0.55rem;
+    display: flex; align-items: baseline; justify-content: space-between;
+  }
+  .wx-count { font-family: var(--font-mono); font-size: 0.62rem; color: var(--stone-400); }
+
+  .wx-groups { flex: 1 1 auto; overflow-y: auto; padding: 0 0.5rem 0.4rem; }
+  .wx-groups::-webkit-scrollbar { width: 0; height: 0; }
+  .wx-grp-h {
+    font-size: 0.62rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+    color: var(--stone-500); padding: 0.65rem 0.5rem 0.3rem;
+  }
+  .wx-layer {
+    display: flex; align-items: center; gap: 0.6rem; width: 100%;
+    padding: 0.5rem 0.55rem; border-radius: 11px; cursor: pointer;
+    border: 1px solid transparent; background: transparent; text-align: left;
+    font-family: var(--font-base); transition: background 0.14s, border-color 0.14s;
+  }
+  .wx-layer:hover { background: var(--sand-50); }
+  .wx-layer:focus-visible { outline: 2px solid var(--steel-600); outline-offset: 1px; }
+  .wx-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; box-shadow: 0 0 0 3px rgba(255,255,255,0.5); }
+  .wx-nm { font-size: 0.84rem; color: var(--ink-800); flex: 1; }
+  .wx-sub { font-family: var(--font-mono); font-size: 0.6rem; color: var(--stone-400); }
+  .wx-layer.is-active { background: var(--ink-900); border-color: var(--ink-900); }
+  .wx-layer.is-active .wx-nm { color: var(--cream-50); font-weight: 500; }
+  .wx-layer.is-active .wx-sub { color: var(--sand-300); }
+  .wx-layer.is-active .wx-dot { box-shadow: 0 0 0 3px rgba(255,255,255,0.16); }
+
+  /* aktiver Layer: Inline-Regler direkt unter der Zeile */
+  .wx-lc {
+    margin: 0.15rem 0.25rem 0.5rem; padding: 0.6rem 0.7rem; border-radius: 12px;
+    background: var(--sand-50); border: 1px solid var(--border-default);
+  }
+  .wx-lc-row, .wx-lc-range { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
+  .wx-lc-row:last-child, .wx-lc-range:last-child, .wx-lc-wind > :last-child { margin-bottom: 0; }
+  .wx-lc-wind > * { margin-bottom: 0.5rem; }
+  .wx-lc-lbl {
+    font-family: var(--font-mono); font-size: 0.58rem; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase; color: var(--stone-500);
+    width: 2.9rem; flex: none;
+  }
+  .wx-seg { display: flex; gap: 0.18rem; background: var(--sand-100); border-radius: 9px; padding: 0.18rem; flex: 1; }
+  .wx-seg button {
+    flex: 1; border: none; background: transparent; cursor: pointer;
+    font-family: var(--font-base); font-size: 0.7rem; font-weight: 500; color: var(--stone-600);
+    padding: 0.3rem 0.35rem; border-radius: 6px; transition: background 0.14s, color 0.14s;
+  }
+  .wx-seg button:hover { color: var(--ink-900); }
+  .wx-seg button.on { background: var(--ink-900); color: var(--cream-50); }
+  .wx-lc-range input[type="range"] { flex: 1; min-width: 0; accent-color: var(--ink-900); cursor: pointer; }
+  .wx-lc-scale { flex: 1; height: 6px; border-radius: 3px; box-shadow: inset 0 0 0 1px rgba(44,42,38,0.06); }
+
+  /* Modell-Block + Quellen-Fuß (im Panel unten) */
+  .wx-panel-model {
+    flex: none; border-top: 1px solid var(--border-default);
+    padding: 0.7rem 0.85rem 0.6rem; background: var(--cream-50);
+    display: flex; flex-direction: column; gap: 0.5rem;
+  }
+  .wx-panel-model .model-switcher.ms-rail {
+    width: 100%; background: transparent; border: none; box-shadow: none; padding: 0; backdrop-filter: none;
+  }
+  .wx-panel-foot {
+    flex: none; display: flex; align-items: center; gap: 0.45rem;
+    padding: 0.55rem 0.9rem; border-top: 1px solid var(--border-default); background: var(--cream-50);
+  }
+  .wx-foot-flag { font-size: 0.85rem; flex: none; }
+  .wx-foot-tx { font-family: var(--font-mono); font-size: 0.6rem; color: var(--stone-500); line-height: 1.3; }
+
+  /* ========================================================================
+     ZONE C — „Punkt-Dossier": das bestehende .pfc-panel positioniert sich
+     selbst (rechts). Die Dock-Hülle bleibt layout-neutral, damit die PFC
+     pixel-/funktionsgleich erhalten bleibt (Preservation §10.7).
+     ======================================================================== */
+  .wx-dossier { display: contents; }
+
+  /* ========================================================================
+     ZONE B — „Instrument-Ribbon" (Signatur) — hier sitzt die Boldness
+     ======================================================================== */
+  .wx-ribbon {
+    position: absolute; bottom: 1.2rem; z-index: 16;
+    /* Zentriert im FREIEN Band zwischen Zone A (links ~300px) und Zone C
+       (rechts ~392px), nicht im Viewport — sonst schöbe die Viewport-Mitte die
+       Ribbon in die PFC. Breite auf das Band geklemmt (kein Überlappen). */
+    left: calc((300px + (100vw - 392px)) / 2); transform: translateX(-50%);
+    width: min(668px, calc(100vw - 720px));
+    padding: 0.7rem 1.1rem 0.8rem;
+    background: var(--surface-glass-strong);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--border-default); border-radius: 18px;
+    box-shadow: var(--shadow-float); pointer-events: auto;
+  }
+  .wx-rb-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.3rem; }
+  .wx-rb-title { display: flex; align-items: center; gap: 0.5rem; }
+  .wx-rb-lay {
+    font-size: 0.7rem; font-weight: 600; color: var(--ink-800);
+    background: var(--sand-100); padding: 0.12rem 0.5rem; border-radius: 6px;
+  }
+  .wx-rb-cursor {
+    font-family: var(--font-mono); font-size: 0.72rem; font-weight: 600; color: var(--terracotta-500);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Streifen 1 — Trend-Sparkline am Punkt */
+  .wx-rb-spark { position: relative; height: 42px; margin: 0.1rem 0 0.35rem; }
+  .wx-rb-spark svg { display: block; width: 100%; height: 100%; }
+  .wx-rb-spark.is-empty {
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-mono); font-size: 0.62rem; color: var(--stone-400);
+    border: 1px dashed var(--border-default); border-radius: 10px;
+  }
+
+  /* Streifen 2 — Zeitachse: das bestehende .forecast-slider in Ribbon-Optik */
+  .wx-rb-time { margin-bottom: 0.6rem; }
+  .wx-ribbon .forecast-slider {
+    position: static; transform: none; width: 100%; padding: 0;
+    background: transparent; border: none; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none;
+  }
+  .wx-ribbon .forecast-slider-row { gap: 0.6rem; }
+  .wx-ribbon .forecast-label { display: none; }        /* Zeit steht schon oben als Cursor */
+  .wx-ribbon .forecast-now {
+    min-height: 30px; padding: 0.2rem 0.7rem; font-size: 0.7rem; border-radius: 8px;
+    border-color: var(--border-default); background: var(--sand-50);
+  }
+  .wx-ribbon .forecast-track { justify-content: flex-start; gap: 0.25rem; }
+  .wx-ribbon input[type="range"] {
+    height: 5px; border-radius: 3px;
+    /* Ink-Fill links vom Knob (--tl-fill wird im JSX gesetzt) */
+    background: linear-gradient(90deg, var(--ink-900) var(--tl-fill, 0%), var(--sand-200) var(--tl-fill, 0%));
+  }
+  .wx-ribbon input[type="range"]::-webkit-slider-thumb {
+    width: 15px; height: 15px; border: 2px solid var(--cream-50);
+    box-shadow: var(--shadow-card);
+  }
+  .wx-ribbon input[type="range"]::-moz-range-thumb {
+    width: 15px; height: 15px; border: 2px solid var(--cream-50);
+    box-shadow: var(--shadow-card);
+  }
+  .wx-ribbon .forecast-ticks {
+    display: flex; justify-content: space-between; margin-top: 0.2rem;
+  }
+  .wx-ribbon .forecast-ticks span {
+    font-family: var(--font-mono); font-size: 0.56rem; color: var(--stone-400);
+  }
+
+  /* Streifen 3 — persistente Live-Legende des aktiven Layers (Kern-Neuerung) */
+  .wx-rb-legend { display: flex; align-items: center; gap: 0.65rem; }
+  .wx-rb-legend.is-empty, .wx-rb-legend.is-note { align-items: baseline; }
+  .wx-rb-lg-name {
+    font-family: var(--font-mono); font-size: 0.58rem; font-weight: 600; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--stone-400); flex: none; width: 6.2rem; line-height: 1.25;
+  }
+  .wx-rb-lg-note { font-size: 0.68rem; color: var(--stone-600); line-height: 1.35; }
+  .wx-rb-scale-wrap { flex: 1; min-width: 0; }
+  .wx-rb-scale {
+    position: relative; height: 12px; border-radius: 6px;
+    box-shadow: inset 0 0 0 1px rgba(44,42,38,0.08);
+  }
+  .wx-rb-cur {
+    position: absolute; top: -3px; width: 3px; height: 18px; transform: translateX(-50%);
+    background: #fff; border-radius: 2px; box-shadow: 0 0 0 1px rgba(44,42,38,0.35);
+  }
+  .wx-rb-bub {
+    position: absolute; left: 50%; top: -1.5rem; transform: translateX(-50%);
+    font-family: var(--font-mono); font-size: 0.66rem; font-weight: 600; color: #fff;
+    background: var(--ink-900); padding: 0.1rem 0.4rem; border-radius: 6px; white-space: nowrap;
+  }
+  .wx-rb-bub::after {
+    content: ""; position: absolute; left: 50%; bottom: -3px; transform: translateX(-50%);
+    border: 3px solid transparent; border-top-color: var(--ink-900);
+  }
+  .wx-rb-ends { position: relative; height: 0.9rem; margin-top: 0.25rem; }
+  .wx-rb-ends span {
+    position: absolute; transform: translateX(-50%);
+    font-family: var(--font-mono); font-size: 0.56rem; color: var(--stone-400);
+  }
+  .wx-rb-ends span:first-child { transform: none; }
+  .wx-rb-ends span:last-child { transform: translateX(-100%); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .wx-layer, .wx-seg button { transition: none; }
+  }
+}
+
+/* ============================================================================
    MOBILE (<768px + kurzes Landscape) — Variante C (Spec: audit/mockups/
    wetterkarte-c-spec.md, Gate G1-C): Karte vollflächig, EIN persistentes
    Bottom-Sheet mit Segment-Umschalter „Layer · Modell · Vorhersage" und drei

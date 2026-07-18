@@ -42,3 +42,9 @@ Diese Datei definiert das einheitliche Ziel-Erscheinungsbild. Jede Phase misst i
 - Desktop-Layout verändern (außer sauber isolierte Refactorings ohne visuelle Änderung, per Screenshot-Diff belegt).
 - Neue Farb-/Designsysteme einführen — bestehende Tokens/Styles weiterverwenden.
 - Shader-Logik, Fusion-Engine, Datenpipelines oder Tile-Pipeline verändern.
+
+## 8. Datentransport / Caching (nicht-UI, aber regressionsrelevant)
+Transport-/Datenschicht-Umbauten (z. B. Phase T1 — Wind-Caching-Proxy + Manifest-Warm) ändern **kein UI** und fallen daher nicht unter die visuellen Regeln oben — aber ihr **Output ist regressionsrelevant** und wird gegen diese Guidelines nur an einem Punkt gemessen: **Gleichheit**.
+- Der visuelle Output eines Features darf sich durch einen Transport-/Cache-Umbau **nicht** ändern: gleiche Windvektoren/-richtung, gleiche Partikeldichte, **gleicher FPS-Cap** (mobil 30). Es ändert sich nur, *woher* und *wie schnell* dieselben Daten kommen.
+- Das Mobile-Performance-Budget (§6) bleibt maßgeblich: keine neuen Long Tasks; Ladeoptimierung darf keinen neuen Main-Thread-Block einführen. Ziel ist weniger Wartezeit bei identischem Bild.
+- Kein visuelles/qualitatives Downgrade als „Mobile-Sparmaßnahme" durch die Hintertür (z. B. gröbere Daten). Präzisions-/Formatentscheidungen (etwa ein späterer RG8-WebP-Ingest) sind eigene, mess-gegatete Schritte — nicht Teil eines Transport-Umbaus.

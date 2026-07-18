@@ -54,3 +54,13 @@ Vor dem Gate stellt Claude Code sich selbst diese Fragen und beantwortet sie sch
 5. Läuft die Interaktion im Performance-Trace ohne Long Tasks > 200 ms?
 
 Nur wenn alle fünf mit "ja + Beleg" beantwortet sind: Gate passiert.
+
+## Nebenstrang: Wind-Transport / Caching (Infrastruktur, Phase T1)
+Neben den Feature-Phasen läuft ein **reiner Transport-/Datenschicht-Strang** — er optimiert, *woher und wie schnell* dieselben Daten kommen, nicht das Feature selbst. Er folgt demselben Zyklus (Diagnose→Plan→Implement→Verify→Gate), hat aber eigene Guardrails. Kontext: `context.md` → „Infrastruktur-Strang", Plan `plan.md` (Phase T1), Gate `checklist.md` (GT1), Protokoll `tests.md` (V-WIND-TRANSPORT), Diagnose `audit/wind-transport.md`.
+
+- **Output-Gleichheit ist die oberste Regel dieses Strangs.** Der visuelle/numerische Output (Windvektoren, Partikeldichte, FPS-Cap) muss nach dem Umbau **identisch** sein. Selbstverifikations-Frage 1 (jede Funktion erhalten) gilt hier als „liefert dasselbe Bild aus derselben Datenlage".
+- **Kein Eingriff** in `buildWindRgba` / `blendWindFrames` / per-Frame-Norm / Shader / Fusion / RGBA8-Packing / IndexedDB-Now-Cache in T1. Nur die Transportschicht (Proxy → Edge-Cache, Directory-Scan → Manifest).
+- **Local-first Pflicht:** erst mit `netlify dev` (Edge Function + Client + Warmer) auf **Korrektheit** verifizieren, **dann** Netlify-Deploy für **Latenz/Cache**. Korrektheit lokal, Performance auf Netlify — lokal ist die Edge-Cache-Latenz nicht repräsentativ.
+- **Precompute/Ingest ist NICHT Teil von T1.** Der RG8-WebP-Ingest ist bewusst **mess-gegatet zurückgestellt** (erst nach Real-iPhone-Messung post-T1). Falls je gebaut: **lossless** WebP + per-Frame-Norm-Sidecar + atomarer Publish — sonst Datenschaden.
+- **Graceful degrade ist Design, nicht Zufall:** Warmer aus / Manifest eingefroren → letzter gewärmter Lauf wird serviert (stale, nie kalt). Manifest-Alter überwachen.
+- **STOPP & FRAGEN** (zusätzlich zu den harten Regeln oben) vor: Secrets/API-Token anlegen, DNS/Custom-Domain, produktive Redirect-/Proxy-Umstellung, Aktivieren eines Cron in der echten CI. Scope bleibt **Wind** — der `/_dwd_opendata`-Proxy bleibt für Radar/übrige DWD-Quellen bestehen.
