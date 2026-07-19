@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #EDE6D3; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; color: #2C2A26; }
+  a { color: #A85E2E; text-decoration: none; }
+  a:hover { color: #C97B47; }
+  ::placeholder { color: #A89A7A; }
+  @keyframes bcsRadar { 0% { transform: scale(.2); opacity:.9; } 100% { transform: scale(1); opacity:0; } }
+  @keyframes bcsSpin { to { transform: rotate(360deg); } }
+</style>
+</helmet>
+
+<div id="bcs-home" style="min-height:100vh; background:linear-gradient(180deg,#FAF6EA 0%,#F5F1E8 380px,#EDE6D3 100%);">
+
+  <!-- ===== COMMAND BAR ===== -->
+  <header style="position:sticky; top:0; z-index:40; backdrop-filter:blur(10px); background:rgba(250,246,234,.82); border-bottom:1px solid #E0D6BE;">
+    <div style="max-width:1360px; margin:0 auto; padding:14px 32px; display:flex; align-items:center; gap:20px;">
+      <div style="display:flex; align-items:center; gap:11px;">
+        <img src="buscosun-mark.svg" width="26" height="26" alt="" style="display:block;">
+        <span style="font-family:'Space Grotesk',sans-serif; font-size:19px; font-weight:600; letter-spacing:-0.3px;">buscosun</span>
+      </div>
+      <button data-pal-open style="flex:1; max-width:520px; display:flex; align-items:center; gap:10px; background:#FFFFFF; border:1px solid #D9D0B8; border-radius:12px; padding:9px 14px; cursor:pointer; text-align:left;">
+        <svg width="16" height="16" viewBox="0 0 18 18" fill="none"><circle cx="8" cy="8" r="6" stroke="#8B7355" stroke-width="1.6"/><line x1="12.5" y1="12.5" x2="16" y2="16" stroke="#8B7355" stroke-width="1.6" stroke-linecap="round"/></svg>
+        <span style="flex:1; font-size:14px; color:#A89A7A;">Ort suchen oder Werkzeug springen …</span>
+        <span style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:#8B7355; border:1px solid #D9D0B8; border-radius:5px; padding:2px 6px;">⌘K</span>
+      </button>
+      <div style="margin-left:auto; display:flex; align-items:center; gap:16px;">
+        <div style="display:flex; align-items:center; gap:7px; font-family:'IBM Plex Mono',monospace; font-size:11px; color:#5C5447; background:#F0F4EA; border:1px solid #C5D6B4; border-radius:10px; padding:6px 11px;"><span style="width:7px; height:7px; border-radius:50%; background:#7A9466;"></span>DATEN LIVE</div>
+        <div style="font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:1px;"><span style="color:#2C2A26;">DE</span> <span style="color:#C4B896;">·</span> <span style="color:#A89A7A;">EN</span></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===== HERO ===== -->
+  <section style="max-width:1360px; margin:0 auto; padding:64px 32px 26px;">
+    <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:3px; color:#A89A7A; font-weight:500;">LIVE · DE · AT · CH · OHNE ACCOUNT</div>
+    <h1 style="font-family:'Space Grotesk',sans-serif; font-weight:500; font-size:64px; line-height:1.02; letter-spacing:-2px; margin:16px 0 0; max-width:880px;">buscosun</h1>
+    <p style="font-size:18px; line-height:1.5; color:#5C5447; margin:18px 0 0; max-width:660px;">Modelle, Live-Stationen und Höhenkorrektur — zu einem Feld verschmolzen. Suche einen Ort oder steig direkt in ein Werkzeug ein.</p>
+
+    <div style="margin-top:30px; max-width:720px; display:flex; align-items:center; gap:10px; background:#FFFFFF; border:1px solid #D9D0B8; border-radius:22px; padding:8px 8px 8px 22px; box-shadow:0 18px 40px -26px rgba(44,42,38,.45);">
+      <svg width="19" height="19" viewBox="0 0 18 18" fill="none"><circle cx="8" cy="8" r="6" stroke="#8B7355" stroke-width="1.6"/><line x1="12.5" y1="12.5" x2="16" y2="16" stroke="#8B7355" stroke-width="1.6" stroke-linecap="round"/></svg>
+      <input placeholder="Stadt, Straße oder PLZ …" style="flex:1; border:none; outline:none; background:transparent; font-size:17px; color:#2C2A26; font-family:inherit;">
+      <button style="border:none; background:#2C2A26; color:#F5F1E8; font-size:15px; font-weight:500; padding:12px 26px; border-radius:16px; cursor:pointer; font-family:'Space Grotesk',sans-serif;">Öffnen →</button>
+    </div>
+    <div style="margin-top:12px; font-size:12.5px; color:#8B7355;">Enter zum Suchen · Live-Daten aus DE · AT · CH · oder direkt in die <a href="#karte">DACH-Wetterkarte</a></div>
+  </section>
+
+  <!-- ===== FILTER CHIPS ===== -->
+  <section style="max-width:1360px; margin:0 auto; padding:18px 32px 8px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+    <span style="font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:2px; color:#A89A7A; margin-right:6px;">09 WERKZEUGE</span>
+    <button data-cat-chip="alle" style="font-size:13px; font-family:'Space Grotesk',sans-serif; font-weight:500; color:#F5F1E8; background:#2C2A26; border:1px solid #2C2A26; border-radius:11px; padding:7px 15px; cursor:pointer;">Alle</button>
+    <button data-cat-chip="radar" style="font-size:13px; font-family:'Space Grotesk',sans-serif; font-weight:500; color:#5C5447; background:#FAF6EA; border:1px solid #E0D6BE; border-radius:11px; padding:7px 15px; cursor:pointer;">Karten &amp; Radar</button>
+    <button data-cat-chip="planen" style="font-size:13px; font-family:'Space Grotesk',sans-serif; font-weight:500; color:#5C5447; background:#FAF6EA; border:1px solid #E0D6BE; border-radius:11px; padding:7px 15px; cursor:pointer;">Planen</button>
+    <button data-cat-chip="verstehen" style="font-size:13px; font-family:'Space Grotesk',sans-serif; font-weight:500; color:#5C5447; background:#FAF6EA; border:1px solid #E0D6BE; border-radius:11px; padding:7px 15px; cursor:pointer;">Verstehen</button>
+    <button data-cat-chip="erkunden" style="font-size:13px; font-family:'Space Grotesk',sans-serif; font-weight:500; color:#5C5447; background:#FAF6EA; border:1px solid #E0D6BE; border-radius:11px; padding:7px 15px; cursor:pointer;">Erkunden</button>
+  </section>
+
+  <!-- ===== BENTO GRID ===== -->
+  <section style="max-width:1360px; margin:0 auto; padding:12px 32px 20px;">
+    <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:16px; grid-auto-rows:minmax(0,auto);">
+
+      <!-- WETTERKARTE — big -->
+      <a href="#karte" id="karte" data-cat="radar" style="grid-column:span 2; grid-row:span 2; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:22px; padding:26px; display:flex; flex-direction:column; color:inherit; transition:transform .18s, box-shadow .18s;" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 24px 50px -34px rgba(44,42,38,.5)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+          <div><div style="font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:2px; color:#A89A7A;">01 · WETTERKARTE</div><div style="font-family:'Space Grotesk',sans-serif; font-size:27px; font-weight:600; letter-spacing:-0.6px; margin-top:8px; line-height:1.05;">Die ganze DACH-Wetterkarte</div></div>
+          <span style="font-size:11px; color:#3F5E2F; background:#F0F4EA; border:1px solid #7A9466; border-radius:12px; padding:4px 11px; white-space:nowrap;">● Regenradar an</span>
+        </div>
+        <p style="font-size:13.5px; line-height:1.5; color:#5C5447; margin:12px 0 0; max-width:440px;">Wind, Niederschlag, Temperatur (höhenkorrigiert), Wolken, Satellit, Blitze und Stationen — mit Zeit-Slider und Modellwahl je Land. Direkt-Einstieg ohne Ortssuche.</p>
+        <div style="flex:1; min-height:170px; margin-top:16px; border-radius:14px; position:relative; overflow:hidden; background:repeating-linear-gradient(135deg,#EDE6D3 0 15px,#E6DEC8 15px 30px); border:1px solid #E0D6BE;">
+          <svg viewBox="0 0 600 320" preserveAspectRatio="none" style="position:absolute; inset:0; width:100%; height:100%; opacity:.6;">
+            <g fill="none" stroke="#3A6FA8" stroke-width="1.5" stroke-opacity=".5"><path d="M30 100 C160 60 380 140 580 90"/><path d="M30 160 C160 120 380 200 580 150"/><path d="M30 220 C160 180 380 260 580 210"/></g>
+            <g fill="#C97B47" fill-opacity=".45"><circle cx="200" cy="150" r="40"/><circle cx="440" cy="220" r="52"/></g>
+            <g fill="#D4A373"><circle cx="120" cy="220" r="4"/><circle cx="300" cy="170" r="4"/><circle cx="480" cy="120" r="4"/><circle cx="240" cy="260" r="4"/><circle cx="380" cy="90" r="4"/></g>
+          </svg>
+          <span style="position:absolute; left:12px; bottom:11px; font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:1px; color:#8B7355; background:rgba(250,246,234,.85); padding:3px 8px; border-radius:6px;">2D · MAPLIBRE · DWD ICON-D2 · RADOLAN-RV</span>
+        </div>
+        <div style="display:flex; gap:7px; margin-top:14px; flex-wrap:wrap;">
+          <span style="font-size:11px; color:#5C5447; background:#F5F1E8; border:1px solid #E0D6BE; border-radius:10px; padding:5px 11px;">Wind</span>
+          <span style="font-size:11px; color:#5C5447; background:#F5F1E8; border:1px solid #E0D6BE; border-radius:10px; padding:5px 11px;">Niederschlag</span>
+          <span style="font-size:11px; color:#5C5447; background:#F5F1E8; border:1px solid #E0D6BE; border-radius:10px; padding:5px 11px;">Temperatur</span>
+          <span style="font-size:11px; color:#5C5447; background:#F5F1E8; border:1px solid #E0D6BE; border-radius:10px; padding:5px 11px;">Wolken</span>
+          <span style="font-size:11px; color:#5C5447; background:#F5F1E8; border:1px solid #E0D6BE; border-radius:10px; padding:5px 11px;">Satellit</span>
+          <span style="font-size:11px; color:#5C5447; background:#F5F1E8; border:1px solid #E0D6BE; border-radius:10px; padding:5px 11px;">Blitze</span>
+          <span style="font-size:11px; color:#5C5447; background:#F5F1E8; border:1px solid #E0D6BE; border-radius:10px; padding:5px 11px;">Stationen</span>
+        </div>
+      </a>
+
+      <!-- TOUR -->
+      <a href="#tour" data-cat="planen" style="grid-column:span 2; background:#2C2A26; border-radius:22px; padding:24px; display:flex; flex-direction:column; justify-content:space-between; color:#F5F1E8; min-height:230px; transition:transform .18s, box-shadow .18s;" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 24px 50px -34px rgba(44,42,38,.6)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+          <div><div style="font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:2px; color:#A89A7A;">02 · TOURENPLANUNG</div><div style="font-family:'Space Grotesk',sans-serif; font-size:24px; font-weight:600; letter-spacing:-0.5px; margin-top:8px;">Wetter entlang deiner Route</div></div>
+          <span style="font-size:10px; font-family:'IBM Plex Mono',monospace; color:#C4B896; border:1px solid #5C5447; border-radius:10px; padding:4px 9px; white-space:nowrap;">E-BIKE</span>
+        </div>
+        <p style="font-size:13px; line-height:1.5; color:#C4B896; margin:10px 0;">GPX/TCX/FIT/KML hochladen — Wind, Regen und Temperatur pro km zur echten Ankunftszeit. 8 Bewegungsarten, E-Bike-Akku-Reichweite, Pausenplanung, Rücken-/Gegenwind.</p>
+        <svg viewBox="0 0 520 70" preserveAspectRatio="none" style="width:100%; height:56px;"><path d="M0 56 L70 38 L140 48 L210 18 L290 32 L360 22 L440 40 L520 12" fill="none" stroke="#D4A373" stroke-width="2.5"/><circle cx="210" cy="18" r="4" fill="#C97B47"/><circle cx="440" cy="40" r="4" fill="#3A6FA8"/></svg>
+      </a>
+
+      <!-- EVENT -->
+      <a href="#event" data-cat="planen" style="grid-column:span 2; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:22px; padding:24px; display:flex; flex-direction:column; justify-content:space-between; color:inherit; min-height:230px; transition:transform .18s, box-shadow .18s;" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 24px 50px -34px rgba(44,42,38,.5)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
+        <div><div style="font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:2px; color:#A89A7A;">03 · EVENT-PLANUNG</div><div style="font-family:'Space Grotesk',sans-serif; font-size:24px; font-weight:600; letter-spacing:-0.5px; margin-top:8px;">Welcher Tag passt am besten?</div>
+        <p style="font-size:13px; line-height:1.5; color:#5C5447; margin:10px 0 0;">Anlass + Ort + Zeitfenster → 7-Tage-Score. Phasen (Trauung/Empfang/Abendfeier) einzeln bewertet, Plan B, Regen-/Wind-/Hitze-Hazards, Foto-Licht &amp; Astro-Nacht.</p></div>
+        <div style="display:flex; gap:6px; align-items:flex-end; height:52px; margin-top:12px;">
+          <div style="flex:1; height:40%; background:#D9D0B8; border-radius:3px;"></div><div style="flex:1; height:64%; background:#D4A373; border-radius:3px;"></div><div style="flex:1; height:100%; background:#7A9466; border-radius:3px;"></div><div style="flex:1; height:52%; background:#D9D0B8; border-radius:3px;"></div><div style="flex:1; height:76%; background:#D4A373; border-radius:3px;"></div><div style="flex:1; height:34%; background:#D9D0B8; border-radius:3px;"></div><div style="flex:1; height:58%; background:#D9D0B8; border-radius:3px;"></div>
+        </div>
+      </a>
+
+      <!-- NOWCAST -->
+      <a href="#nowcast" data-cat="radar" style="background:#FFFFFF; border:1px solid #E0D6BE; border-radius:22px; padding:22px; display:flex; flex-direction:column; justify-content:space-between; color:inherit; min-height:210px; transition:transform .18s, box-shadow .18s;" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 24px 50px -34px rgba(44,42,38,.5)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
+        <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:2px; color:#A89A7A;">04 · NOWCAST</div>
+        <div style="position:relative; height:64px; display:flex; align-items:center; justify-content:center;">
+          <svg width="64" height="64" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="none" stroke="#E0D6BE"/><circle cx="32" cy="32" r="20" fill="none" stroke="#E0D6BE"/><circle cx="32" cy="32" r="10" fill="none" stroke="#E0D6BE"/><circle cx="32" cy="32" r="3" fill="#3A6FA8"/><line x1="32" y1="32" x2="58" y2="24" stroke="#3A6FA8" stroke-width="1.5" style="transform-origin:32px 32px; animation:bcsSpin 4s linear infinite;"/></svg>
+        </div>
+        <div><div style="font-family:'Space Grotesk',sans-serif; font-size:18px; font-weight:600; letter-spacing:-0.3px;">Regnet es in 40 Min?</div><p style="font-size:12px; line-height:1.45; color:#5C5447; margin:5px 0 0;">0–2 h Radar, 2–6 h ICON-D2. Blitz- &amp; Sturm-Alerts, alpine Tal/Grat-Trennung.</p></div>
+      </a>
+
+      <!-- VORHERSAGE -->
+      <a href="#vorhersage" data-cat="verstehen" style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:22px; padding:22px; display:flex; flex-direction:column; justify-content:space-between; color:inherit; min-height:210px; transition:transform .18s, box-shadow .18s;" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 24px 50px -34px rgba(44,42,38,.5)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
+        <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:2px; color:#A89A7A;">05 · VORHERSAGE</div>
+        <div style="display:flex; align-items:center; gap:14px;">
+          <svg width="58" height="58" viewBox="0 0 56 56"><circle cx="28" cy="28" r="22" fill="none" stroke="#E0D6BE" stroke-width="6"/><circle cx="28" cy="28" r="22" fill="none" stroke="#7A9466" stroke-width="6" stroke-linecap="round" stroke-dasharray="138 138" stroke-dashoffset="34" transform="rotate(-90 28 28)"/></svg>
+          <div style="font-family:'Space Grotesk',sans-serif; font-size:26px; font-weight:600; color:#3F5E2F; letter-spacing:-0.5px;">78%<span style="display:block; font-size:11px; font-weight:400; color:#8B7355; letter-spacing:0;">Trefferquote 3 Tage</span></div>
+        </div>
+        <div><div style="font-family:'Space Grotesk',sans-serif; font-size:18px; font-weight:600; letter-spacing:-0.3px;">Konfidenz &amp; Modelle</div><p style="font-size:12px; line-height:1.45; color:#5C5447; margin:5px 0 0;">ICON-D2 + MOSMIX + ICON-EU, Unsicherheitsband, Hit-Rate-Rückblick. Einfach/Experte.</p></div>
+      </a>
+
+      <!-- HISTORIE -->
+      <a href="#historie" data-cat="verstehen" style="background:#FFFFFF; border:1px solid #E0D6BE; border-radius:22px; padding:22px; display:flex; flex-direction:column; justify-content:space-between; color:inherit; min-height:210px; transition:transform .18s, box-shadow .18s;" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 24px 50px -34px rgba(44,42,38,.5)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
+        <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:2px; color:#A89A7A;">06 · HISTORIE</div>
+        <div style="display:flex; gap:1.5px; height:46px; border-radius:5px; overflow:hidden;"><div style="flex:1; background:#3A6FA8;"></div><div style="flex:1; background:#4A6E93;"></div><div style="flex:1; background:#6B7A8F;"></div><div style="flex:1; background:#8B8A80;"></div><div style="flex:1; background:#A89A7A;"></div><div style="flex:1; background:#C9A878;"></div><div style="flex:1; background:#D4A373;"></div><div style="flex:1; background:#C97B47;"></div><div style="flex:1; background:#B96A3C;"></div><div style="flex:1; background:#A85E2E;"></div></div>
+        <div><div style="font-family:'Space Grotesk',sans-serif; font-size:18px; font-weight:600; letter-spacing:-0.3px;">Klima seit 1940</div><p style="font-size:12px; line-height:1.45; color:#5C5447; margin:5px 0 0;">ERA5: Warming-Stripes, Anomalien, Kenntage, Rekorde, Trends, Windrose.</p></div>
+      </a>
+
+      <!-- 3D-WETTER -->
+      <a href="#threed" data-cat="erkunden" style="background:#FFFFFF; border:1px solid #E0D6BE; border-radius:22px; padding:22px; display:flex; flex-direction:column; justify-content:space-between; color:inherit; min-height:210px; transition:transform .18s, box-shadow .18s;" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 24px 50px -34px rgba(44,42,38,.5)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start;"><div style="font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:2px; color:#A89A7A;">07 · 3D-WETTER</div><span style="font-size:10px; color:#FFFFFF; background:#C97B47; border-radius:10px; padding:3px 9px;">Föhn</span></div>
+        <svg viewBox="0 0 220 70" preserveAspectRatio="none" style="width:100%; height:52px;"><path d="M0 68 L60 40 L110 20 L150 34 L220 60 L220 70 L0 70 Z" fill="#EDE6D3" stroke="#C4B896"/><g stroke="#3A6FA8" stroke-width="1.4" stroke-opacity=".6"><line x1="30" y1="16" x2="50" y2="14"/><line x1="90" y1="12" x2="112" y2="9"/><line x1="150" y1="14" x2="172" y2="11"/></g><path d="M110 20 L150 34" stroke="#C97B47" stroke-width="2"/></svg>
+        <div><div style="font-family:'Space Grotesk',sans-serif; font-size:18px; font-weight:600; letter-spacing:-0.3px;">Vertikalschnitt</div><p style="font-size:12px; line-height:1.45; color:#5C5447; margin:5px 0 0;">Höhenwind, Inversion, Wolkenschichten, Windscherung, Föhn-Durchgriff. Gelände-Modus.</p></div>
+      </a>
+
+      <!-- GLOBUS -->
+      <a href="#globus" data-cat="erkunden" style="background:#FFFFFF; border:1px solid #E0D6BE; border-radius:22px; padding:22px; display:flex; flex-direction:column; justify-content:space-between; color:inherit; min-height:210px; transition:transform .18s, box-shadow .18s;" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 24px 50px -34px rgba(44,42,38,.5)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
+        <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:2px; color:#A89A7A;">08 · GLOBUS</div>
+        <div style="display:flex; justify-content:center; height:64px; align-items:center;"><svg width="60" height="60" viewBox="0 0 60 60"><circle cx="30" cy="30" r="26" fill="#EDE6D3" stroke="#C4B896"/><g fill="none" stroke="#6B7A8F" stroke-width="1" stroke-opacity=".7"><ellipse cx="30" cy="30" rx="10" ry="26"/><ellipse cx="30" cy="30" rx="22" ry="26"/><line x1="4" y1="30" x2="56" y2="30"/><path d="M9 17 H51 M9 43 H51"/></g></svg></div>
+        <div><div style="font-family:'Space Grotesk',sans-serif; font-size:18px; font-weight:600; letter-spacing:-0.3px;">3D-Globus</div><p style="font-size:12px; line-height:1.45; color:#5C5447; margin:5px 0 0;">Wind-Partikel + Temperatur. <span style="color:#A85E2E;">Sample-Felder — keine Live-Vorhersage.</span></p></div>
+      </a>
+
+      <!-- KI-METEOROLOGE -->
+      <a href="#assistant" data-cat="verstehen" style="grid-column:span 2; background:#3A3833; border-radius:22px; padding:24px; display:flex; align-items:center; gap:22px; color:#F5F1E8; min-height:190px; transition:transform .18s, box-shadow .18s;" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 24px 50px -34px rgba(44,42,38,.6)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
+        <div style="flex-shrink:0; width:72px; height:72px; border-radius:18px; background:#2C2A26; display:flex; align-items:center; justify-content:center;"><svg width="30" height="30" viewBox="0 0 24 24" fill="none"><path d="M12 2 L14 9 L21 11 L14 13 L12 20 L10 13 L3 11 L10 9 Z" fill="#D4A373"/></svg></div>
+        <div style="flex:1;"><div style="font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:2px; color:#A89A7A;">09 · KI-METEOROLOGE</div><div style="font-family:'Space Grotesk',sans-serif; font-size:22px; font-weight:600; letter-spacing:-0.4px; margin-top:6px;">Frag nach Föhn, Inversion oder Höhenwind</div><p style="font-size:13px; line-height:1.5; color:#C4B896; margin:8px 0 0; max-width:520px;">Lokales LLM (WebGPU, läuft im Browser) — erklärt Phänomene und Modell-Unsicherheit, gegroundet aus der Punktforecast-Pipeline. Nichts verlässt dein Gerät.</p></div>
+        <span style="align-self:flex-start; font-size:10px; font-family:'IBM Plex Mono',monospace; color:#C4B896; border:1px solid #5C5447; border-radius:10px; padding:4px 9px; white-space:nowrap;">WEBGPU</span>
+      </a>
+
+    </div>
+  </section>
+
+  <!-- ===== FUNDAMENT ===== -->
+  <sc-if value="{{ showFundament }}" hint-placeholder-val="{{ true }}">
+  <section id="fundament" style="max-width:1360px; margin:0 auto; padding:44px 32px 20px;">
+    <div style="border-top:1px solid #E0D6BE; padding-top:36px;">
+      <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:3px; color:#A89A7A;">DAS FUNDAMENT · FUSION FORECAST</div>
+      <h2 style="font-family:'Space Grotesk',sans-serif; font-size:34px; font-weight:600; letter-spacing:-1px; margin:12px 0 0; max-width:720px;">Wie aus vielen Quellen ein Feld wird</h2>
+      <p style="font-size:15px; line-height:1.55; color:#5C5447; margin:14px 0 0; max-width:680px;">Mehrere Modelle und Live-Stationen werden clientseitig zu einem dichten Gitterfeld pro Vorhersagestunde verschmolzen — deterministisch, ohne Backend. Kein „bestes Modell", nur additive Information.</p>
+      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-top:28px;">
+        <div style="background:#FFFFFF; border:1px solid #E0D6BE; border-radius:16px; padding:20px;"><div style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:#C97B47;">01 · 02</div><div style="font-family:'Space Grotesk',sans-serif; font-size:17px; font-weight:600; margin-top:8px;">Quellen wählen &amp; laden</div><p style="font-size:12.5px; line-height:1.5; color:#5C5447; margin:6px 0 0;">DE → DWD, AT → GeoSphere AROME/INCA, CH → MeteoSwiss. Parallel, fehlertolerant, 10-min-Cache.</p></div>
+        <div style="background:#FFFFFF; border:1px solid #E0D6BE; border-radius:16px; padding:20px;"><div style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:#C97B47;">03 · 04</div><div style="font-family:'Space Grotesk',sans-serif; font-size:17px; font-weight:600; margin-top:8px;">Gewichten &amp; interpolieren</div><p style="font-size:12.5px; line-height:1.5; color:#5C5447; margin:6px 0 0;">Live-Messungen dominieren Stunde 0, Modelle tragen den Horizont. IDW + Barnes-Glättung.</p></div>
+        <div style="background:#FFFFFF; border:1px solid #E0D6BE; border-radius:16px; padding:20px;"><div style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:#C97B47;">05 · 06</div><div style="font-family:'Space Grotesk',sans-serif; font-size:17px; font-weight:600; margin-top:8px;">Physik &amp; Kodierung</div><p style="font-size:12.5px; line-height:1.5; color:#5C5447; margin:6px 0 0;">Höhenkorrektur per DEM, speed-erhaltender Wind, temporaler Median — als PNG-Textur an die Karte.</p></div>
+      </div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:16px;">
+        <span style="font-size:11.5px; color:#5C5447; background:#F5F1E8; border:1px solid #E0D6BE; border-radius:10px; padding:6px 12px;">Höhenkorrektur (Lapse-Rate + DEM)</span>
+        <span style="font-size:11.5px; color:#A85E2E; background:#FAEEDA; border:1px solid #E3C39A; border-radius:10px; padding:6px 12px;">Föhn-Detektor</span>
+        <span style="font-size:11.5px; color:#5C5447; background:#F5F1E8; border:1px solid #E0D6BE; border-radius:10px; padding:6px 12px;">Niederschlagsart (Schneefallgrenze)</span>
+        <span style="font-size:11.5px; color:#5C5447; background:#F5F1E8; border:1px solid #E0D6BE; border-radius:10px; padding:6px 12px;">Gefühlte Temperatur</span>
+      </div>
+    </div>
+  </section>
+  </sc-if>
+
+  <!-- ===== EHRLICH BLEIBEN ===== -->
+  <sc-if value="{{ showHonesty }}" hint-placeholder-val="{{ true }}">
+  <section style="max-width:1360px; margin:0 auto; padding:36px 32px 20px;">
+    <div style="background:#F5F1E8; border:1px solid #E0D6BE; border-radius:22px; padding:32px;">
+      <div style="display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:12px;">
+        <h2 style="font-family:'Space Grotesk',sans-serif; font-size:26px; font-weight:600; letter-spacing:-0.6px; margin:0;">Ehrlich bleiben — was wir <em style="font-style:normal; color:#A85E2E;">nicht</em> können</h2>
+        <span style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:#8B7355;">ABDECKUNG · DE · AT · CH</span>
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:22px;">
+        <div style="display:flex; gap:11px;"><span style="color:#C97B47; font-size:15px;">▲</span><div><div style="font-size:13.5px; font-weight:500;">UV, Pollen &amp; amtliche Warnungen</div><div style="font-size:12px; color:#5C5447; margin-top:3px;">Nur Deutschland (DWD). AT/CH bekommen das nicht.</div></div></div>
+        <div style="display:flex; gap:11px;"><span style="color:#C97B47; font-size:15px;">▲</span><div><div style="font-size:13.5px; font-weight:500;">AT/CH Raster-Horizont</div><div style="font-size:12px; color:#5C5447; margin-top:3px;">Karten ~1–2 Tage; weiter draußen nur Punkt-Blend.</div></div></div>
+        <div style="display:flex; gap:11px;"><span style="color:#C97B47; font-size:15px;">▲</span><div><div style="font-size:13.5px; font-weight:500;">Globus = Sample-Daten</div><div style="font-size:12px; color:#5C5447; margin-top:3px;">Keine echte globale Live-Vorhersage.</div></div></div>
+        <div style="display:flex; gap:11px;"><span style="color:#C97B47; font-size:15px;">▲</span><div><div style="font-size:13.5px; font-weight:500;">Kein Backend</div><div style="font-size:12px; color:#5C5447; margin-top:3px;">Kein zuverlässiges Push, keine Accounts/Sync — nur localStorage.</div></div></div>
+        <div style="display:flex; gap:11px;"><span style="color:#C97B47; font-size:15px;">▲</span><div><div style="font-size:13.5px; font-weight:500;">Kein offizielles Briefing</div><div style="font-size:12px; color:#5C5447; margin-top:3px;">Kein METAR/TAF, Lawinen- oder Seegangsbericht.</div></div></div>
+        <div style="display:flex; gap:11px;"><span style="color:#7A9466; font-size:15px;">●</span><div><div style="font-size:13.5px; font-weight:500;">Dafür: ehrliche Unsicherheit</div><div style="font-size:12px; color:#5C5447; margin-top:3px;">Spread, Konfidenz und Hit-Rate offen ausgewiesen.</div></div></div>
+      </div>
+    </div>
+  </section>
+  </sc-if>
+
+  <!-- ===== FOOTER ===== -->
+  <footer style="max-width:1360px; margin:0 auto; padding:40px 32px 56px;">
+    <div style="border-top:1px solid #E0D6BE; padding-top:26px; display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:24px;">
+      <div>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <img src="buscosun-mark.svg" width="22" height="22" alt="" style="display:block;">
+          <span style="font-family:'Space Grotesk',sans-serif; font-size:16px; font-weight:600;">buscosun</span>
+        </div>
+        <p style="font-size:12px; color:#8B7355; margin:12px 0 0; max-width:360px; line-height:1.6;">Reine Frontend-Web-App für DACH. Kein Account · keine Tracker · Einstellungen bleiben lokal (localStorage).</p>
+      </div>
+      <div style="display:flex; gap:48px; flex-wrap:wrap;">
+        <div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:2px; color:#A89A7A;">QUELLEN</div>
+          <div style="font-size:12.5px; color:#5C5447; margin-top:10px; line-height:1.9;">DWD · GeoSphere Austria<br>MeteoSwiss · Open-Meteo<br>ERA5 · Meteosat</div>
+        </div>
+        <div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:2px; color:#A89A7A;">WERKZEUGE</div>
+          <div style="font-size:12.5px; margin-top:10px; line-height:1.9;"><a href="#karte">Wetterkarte</a> · <a href="#nowcast">Nowcast</a><br><a href="#tour">Touren</a> · <a href="#event">Event</a><br><a href="#historie">Historie</a> · <a href="#threed">3D</a></div>
+        </div>
+        <div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:2px; color:#A89A7A;">RECHTLICHES</div>
+          <div style="font-size:12.5px; margin-top:10px; line-height:1.9;"><a href="#">Über buscosun</a><br><a href="#">Datenschutz</a><br><a href="#">Impressum</a></div>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:26px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:#A89A7A;">
+      <span>MapLibre · © OpenStreetMap-Mitwirkende</span>
+      <span>© 2026 buscosun · Kein sicherheitskritisches Briefing</span>
+    </div>
+  </footer>
+
+  <!-- ===== COMMAND PALETTE ===== -->
+  <div id="bcs-pal" style="display:none; position:fixed; inset:0; z-index:80; background:rgba(44,42,38,.32); backdrop-filter:blur(3px); align-items:flex-start; justify-content:center; padding-top:12vh;">
+    <div style="width:min(620px,92vw); background:#FAF6EA; border:1px solid #D9D0B8; border-radius:18px; box-shadow:0 40px 90px -30px rgba(44,42,38,.6); overflow:hidden;">
+      <div style="display:flex; align-items:center; gap:12px; padding:16px 20px; border-bottom:1px solid #E0D6BE;">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="8" cy="8" r="6" stroke="#8B7355" stroke-width="1.6"/><line x1="12.5" y1="12.5" x2="16" y2="16" stroke="#8B7355" stroke-width="1.6" stroke-linecap="round"/></svg>
+        <input id="bcs-pal-input" placeholder="Ort suchen oder Werkzeug springen …" style="flex:1; border:none; outline:none; background:transparent; font-size:16px; color:#2C2A26; font-family:inherit;">
+        <span style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:#8B7355; border:1px solid #D9D0B8; border-radius:5px; padding:2px 6px;">ESC</span>
+      </div>
+      <div style="max-height:52vh; overflow:auto; padding:8px;">
+        <div style="font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:2px; color:#A89A7A; padding:8px 12px 4px;">WERKZEUGE</div>
+        <a data-pal-item href="#karte" style="display:flex; align-items:center; gap:12px; padding:11px 12px; border-radius:10px; color:inherit;" onmouseover="this.style.background='#F0EAD9'" onmouseout="this.style.background=''"><span style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:#A89A7A; width:20px;">01</span><span style="font-size:14px; font-weight:500;">Wetterkarte</span><span style="margin-left:auto; font-size:11px; color:#8B7355;">Wind · Regen · Blitze</span></a>
+        <a data-pal-item href="#tour" style="display:flex; align-items:center; gap:12px; padding:11px 12px; border-radius:10px; color:inherit;" onmouseover="this.style.background='#F0EAD9'" onmouseout="this.style.background=''"><span style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:#A89A7A; width:20px;">02</span><span style="font-size:14px; font-weight:500;">Tourenplanung</span><span style="margin-left:auto; font-size:11px; color:#8B7355;">Wetter pro km · E-Bike</span></a>
+        <a data-pal-item href="#event" style="display:flex; align-items:center; gap:12px; padding:11px 12px; border-radius:10px; color:inherit;" onmouseover="this.style.background='#F0EAD9'" onmouseout="this.style.background=''"><span style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:#A89A7A; width:20px;">03</span><span style="font-size:14px; font-weight:500;">Event-Planung</span><span style="margin-left:auto; font-size:11px; color:#8B7355;">Bester Tag · Plan B</span></a>
+        <a data-pal-item href="#nowcast" style="display:flex; align-items:center; gap:12px; padding:11px 12px; border-radius:10px; color:inherit;" onmouseover="this.style.background='#F0EAD9'" onmouseout="this.style.background=''"><span style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:#A89A7A; width:20px;">04</span><span style="font-size:14px; font-weight:500;">Nowcast</span><span style="margin-left:auto; font-size:11px; color:#8B7355;">Regen 0–6 h</span></a>
+        <a data-pal-item href="#vorhersage" style="display:flex; align-items:center; gap:12px; padding:11px 12px; border-radius:10px; color:inherit;" onmouseover="this.style.background='#F0EAD9'" onmouseout="this.style.background=''"><span style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:#A89A7A; width:20px;">05</span><span style="font-size:14px; font-weight:500;">Vorhersage &amp; Konfidenz</span><span style="margin-left:auto; font-size:11px; color:#8B7355;">Modell · Spread</span></a>
+        <a data-pal-item href="#historie" style="display:flex; align-items:center; gap:12px; padding:11px 12px; border-radius:10px; color:inherit;" onmouseover="this.style.background='#F0EAD9'" onmouseout="this.style.background=''"><span style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:#A89A7A; width:20px;">06</span><span style="font-size:14px; font-weight:500;">Historie</span><span style="margin-left:auto; font-size:11px; color:#8B7355;">Klima seit 1940</span></a>
+        <a data-pal-item href="#threed" style="display:flex; align-items:center; gap:12px; padding:11px 12px; border-radius:10px; color:inherit;" onmouseover="this.style.background='#F0EAD9'" onmouseout="this.style.background=''"><span style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:#A89A7A; width:20px;">07</span><span style="font-size:14px; font-weight:500;">3D-Wetter</span><span style="margin-left:auto; font-size:11px; color:#8B7355;">Höhenwind · Föhn</span></a>
+        <a data-pal-item href="#globus" style="display:flex; align-items:center; gap:12px; padding:11px 12px; border-radius:10px; color:inherit;" onmouseover="this.style.background='#F0EAD9'" onmouseout="this.style.background=''"><span style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:#A89A7A; width:20px;">08</span><span style="font-size:14px; font-weight:500;">3D-Globus</span><span style="margin-left:auto; font-size:11px; color:#8B7355;">Sample-Daten</span></a>
+        <a data-pal-item href="#assistant" style="display:flex; align-items:center; gap:12px; padding:11px 12px; border-radius:10px; color:inherit;" onmouseover="this.style.background='#F0EAD9'" onmouseout="this.style.background=''"><span style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:#A89A7A; width:20px;">09</span><span style="font-size:14px; font-weight:500;">KI-Meteorologe</span><span style="margin-left:auto; font-size:11px; color:#8B7355;">WebGPU · lokal</span></a>
+      </div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;showFundament&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Abschnitte&quot;},&quot;showHonesty&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Abschnitte&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      showFundament: this.props.showFundament ?? true,
+      showHonesty: this.props.showHonesty ?? true,
+    };
+  }
+  componentDidMount() {
+    const root = document.getElementById('bcs-home');
+    if (!root) return;
+    // category filter (dim non-matching, layout stays stable)
+    const chips = root.querySelectorAll('[data-cat-chip]');
+    const tiles = root.querySelectorAll('[data-cat]');
+    chips.forEach(chip => chip.addEventListener('click', () => {
+      const c = chip.getAttribute('data-cat-chip');
+      chips.forEach(x => {
+        const on = x === chip;
+        x.style.background = on ? '#2C2A26' : '#FAF6EA';
+        x.style.color = on ? '#F5F1E8' : '#5C5447';
+        x.style.borderColor = on ? '#2C2A26' : '#E0D6BE';
+      });
+      tiles.forEach(t => {
+        const show = c === 'alle' || (t.getAttribute('data-cat') || '').split(' ').includes(c);
+        t.style.opacity = show ? '1' : '.22';
+        t.style.pointerEvents = show ? '' : 'none';
+      });
+    }));
+    // command palette
+    const pal = document.getElementById('bcs-pal');
+    const input = document.getElementById('bcs-pal-input');
+    const items = pal ? Array.from(pal.querySelectorAll('[data-pal-item]')) : [];
+    const open = () => { if (!pal) return; pal.style.display = 'flex'; setTimeout(() => input && input.focus(), 30); };
+    const close = () => { if (!pal) return; pal.style.display = 'none'; if (input) input.value = ''; items.forEach(i => i.style.display = ''); };
+    root.querySelectorAll('[data-pal-open]').forEach(b => b.addEventListener('click', open));
+    items.forEach(i => i.addEventListener('click', close));
+    if (pal) pal.addEventListener('click', e => { if (e.target === pal) close(); });
+    if (input) input.addEventListener('input', () => {
+      const q = input.value.toLowerCase();
+      items.forEach(i => { i.style.display = i.textContent.toLowerCase().includes(q) ? '' : 'none'; });
+    });
+    this._kd = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); pal && pal.style.display === 'flex' ? close() : open(); }
+      if (e.key === 'Escape') close();
+    };
+    document.addEventListener('keydown', this._kd);
+  }
+  componentWillUnmount() { if (this._kd) document.removeEventListener('keydown', this._kd); }
+}
+</script>
+</body>
+</html>

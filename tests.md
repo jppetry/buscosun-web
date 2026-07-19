@@ -90,6 +90,26 @@ Vorgabe: `audit/webgl-cross-device.md`. Ziel: gleiche Partikeldichte überall, P
 6. **Konsole/Typecheck:** keine neuen WebGL-Warnings, Typecheck grün.
 7. 🔴 **Real-Device (Pflicht):** iPhone 12 Pro + schwaches Android — hält die volle Partikelzahl bei geregelter FPS; thermisches Verhalten über ≥ 90 s beobachten (Governor soll FPS senken, nicht die Zahl).
 
+## V-PARITY-2 — Trail-Res-Governance / Hebel 2 (Querschnitt-Phase P2)
+Vorgabe: `audit/webgl-cross-device.md` §10. Trail-0,5× ist der **letzte** Governor-Hebel (nach FPS-Floor). **GPU-visuell → Emulator nicht belastbar, Real-Device Pflicht.**
+1. **Letzthebel-Ordnung:** Governor-Harness — synthetische Render-Dauer treibt erst die FPS-Leiter (30→24→20), **dann** `trailScale`→0,5; bei Erholung kommt `trailScale`→1,0 **zuerst** zurück, dann FPS hoch. Beleg: `node scripts/verify-governor.mjs` grün inkl. neuer Trail-Checks.
+2. **Partikel-Parität bleibt:** Auf der Trail-Sprosse ist `_numParticles`/`getEffectiveParticleCount` **unverändert** (nur die Trail-Auflösung sinkt). Beleg: Zahl vor/auf der Sprosse gleich.
+3. **Point-Size-Kompensation:** Bei `trailScale=0.5` bleibt die sichtbare CSS-Partikeldicke gleich wie bei 1,0 (Uniform × trailScale). Beleg: visueller Vergleich real-device.
+4. **Filter:** Trail-Texturen `gl.LINEAR` → Upscale weich, nicht blockig (Screenshot Zoom-In auf Partikel).
+5. **Abgrenzung:** Diff zeigt kein GLSL-Edit, kein Float-Target; Partikel-State-Textur weiterhin `NEAREST`/voll aufgelöst; Trail-Targets RGBA8. Beleg: Diff + `WindLayer.diagnose()`/`glDiag` (Framebuffer-Completeness auf jeder GPU).
+6. **Desktop:** Fine-Pointer nie im FPS-/Trail-Modus → `trailScale` immer 1,0, byte-identisch.
+7. 🔴 **Real-Device (Pflicht + visueller Sign-off):** iPhone 12 Pro → Trail-Sprosse wird **nie** erreicht (Partikel scharf). Schwaches Android → Sprosse wird erreicht, volle Partikelzahl gehalten, **Weichheit bewerten** (akzeptabel? Jan entscheidet). Thermik ≥ 90 s beobachten.
+
+## V-PARITY-3 — Repaint-Disziplin / Hebel 5 (Querschnitt-Phase P3)
+Vorgabe: `audit/webgl-cross-device.md` §12. **Anders als V-PARITY/-2 grösstenteils emulator-belastbar** — der Loop-Stopp ist JS-beobachtbar.
+1. **Hidden-Pause:** Wind sichtbar, dann Tab verstecken (`visibilitychange`, `document.hidden=true` — via DevTools/Script). Repaint-Anforderungen enden (kein weiteres `triggerRepaint`; `repaintCapTimer` gecleart). Beleg: Instrumentierung/Spy oder ausbleibende Frames.
+2. **Resume:** Wieder sichtbar → Loop startet neu (ein `triggerRepaint`), Partikel laufen weiter, kein eingefrorener Alt-Trail (P3-4 `clearOnNextFrame`). Beleg: Screenshot vor/nach.
+3. **Offscreen-Pause:** Karten-Canvas aus dem Viewport scrollen (falls Layout es zulässt) → `IntersectionObserver ratio 0` → Pause; zurück → Fortsetzung.
+4. **Sichtbar+aktiv unverändert:** Bei sichtbarer, aktiver Karte identisches Verhalten wie vorher (Loop läuft, FPS-Cap/Governor unberührt). Desktop byte-identisch.
+5. **Abgrenzung:** Diff berührt nur Event-Listener/Scheduling in `WindLayer` (`onAdd`/`onRemove`/`scheduleParticleRepaint`); kein Shader/RGBA8/Trail-Ladder/Fusion. `onRemove` entfernt Listener + `IntersectionObserver.disconnect()` (kein Leak).
+6. **Konsole/Typecheck:** keine neuen Errors/Warnings; `npm run typecheck` grün.
+7. 🔴 **Real-Device (nice-to-have, nicht gate-blockierend):** Akku-/Thermik-Gewinn bei Hintergrund/Standby beobachten.
+
 ---
 
 ## Beleg-Ablage

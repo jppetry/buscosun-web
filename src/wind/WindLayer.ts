@@ -146,12 +146,23 @@ const defaultColorRamp: Record<number, string> = {
   1.0:  'rgb(240, 220, 245)',
 };
 
-// Cross-device parity (Phase P) FPS ladder for coarse-pointer devices, ascending.
-// Top tier (last) = the requested mobile cap (30 fps, unchanged reference on
-// mobile); the governor steps DOWN toward 24 then 20 fps only when the measured
-// render duration says the device can't hold the higher rate. The particle count
-// stays full at every tier — the FPS is the particle-neutral lever.
-const MOBILE_FPS_LADDER = [20, 24, 30];
+// Cross-device parity FPS + trail ladder for coarse-pointer devices, ascending,
+// modelled as ONE monotonic index (Phase P = FPS lever, Phase P2 = trail lever):
+//
+//   idx 0: { 20 fps, trail 0.5 }  ← bottom rung, LAST resort (RGBA8 trail buffers
+//   idx 1: { 20 fps, trail 1.0 }    at half resolution — engaged only below the
+//   idx 2: { 24 fps, trail 1.0 }    FPS floor; particle count still full)
+//   idx 3: { 30 fps, trail 1.0 }  ← top = the requested mobile cap (reference)
+//
+// The governor steps DOWN only when the measured render duration says the device
+// can't hold the current rung, and the FPS is spent BEFORE the trail: 30→24→20 fps
+// all keep trail 1.0; only the very bottom rung halves the trail resolution. On
+// recovery the single index climbs back through idx 1 first, so trail sharpness
+// returns before the FPS target rises. The particle count stays full at EVERY rung
+// — FPS and trail resolution are the particle-neutral levers. Capable phones (e.g.
+// iPhone 12 Pro) never reach idx 0, so they stay sharp.
+const MOBILE_FPS_LADDER = [20, 20, 24, 30];
+const MOBILE_TRAIL_LADDER = [0.5, 1.0, 1.0, 1.0];
 
 export class WindLayer implements CustomLayerInterface {
   readonly id: string;
@@ -230,8 +241,24 @@ export class WindLayer implements CustomLayerInterface {
   private backgroundTexture!: WebGLTexture;
   private screenTexture!: WebGLTexture;
 
+  // Trail-color-buffer dimensions (backgroundTexture/screenTexture). These are the
+  // DRAWING-BUFFER size scaled by the current trailScale (Phase P2) — NOT the CSS
+  // or full drawing-buffer size. The trail passes render at this resolution; the
+  // composite pass upscales it (LINEAR) to the full map framebuffer.
   private screenWidth = 0;
   private screenHeight = 0;
+  // Trail-buffer resolution scale (Phase P2): the governor's LAST-RESORT lever.
+  // 1.0 = full drawing-buffer resolution (desktop reference, and every mobile rung
+  // above the FPS floor). Drops to 0.5 only on the governor's bottom rung. Read
+  // live in drawParticles (point-size compensation) and in allocScreenTextures
+  // (texture sizing). Stays 1.0 whenever the governor does not drive FPS.
+  private trailScale = 1;
+  // Source values the current trail textures were allocated against, so the realloc
+  // fires exactly when (drawingBuffer, trailScale) changes — the governor steps with
+  // a cooldown, so this is rare.
+  private _texDrawW = 0;
+  private _texDrawH = 0;
+  private _texTrailScale = 1;
   // Zeitstempel des letzten Update-Schritts für die delta-time-Normierung der
   // Advektion (entkoppelt die Partikelgeschwindigkeit von der Bildwiederholrate).
   private lastFrameTime = 0;
@@ -292,6 +319,46 @@ export class WindLayer implements CustomLayerInterface {
     this.clearOnNextFrame = true;
     this.applyTargetParticleCount();
   };
+
+  // Phase P3 (Hebel 5) — Repaint-Disziplin. Der selbst-perpetuierende Wind-
+  // Repaint-Loop (scheduleParticleRepaint) ist der einzige Dauerloop der 2D-
+  // Karte; er wird pausiert, sobald NICHTS sichtbar ist: Tab im Hintergrund
+  // (document.hidden) ODER Karte aus dem Viewport gescrollt (IntersectionObserver
+  // ratio 0). Beide Quellen sind oder-verknüpft (`paused`). Reines Scheduling —
+  // sichtbar/aktiv ist byte-identisch, keine Optik-Änderung, keine Desktop-
+  // Regression; gilt auf allen Geräten.
+  private paused = false;
+  private _docHidden = false;
+  private _offscreen = false;
+  private _intersectionObserver: IntersectionObserver | null = null;
+  private onVisibilityChange = () => {
+    this._docHidden = typeof document !== 'undefined' && document.hidden;
+    this.updatePausedState();
+  };
+  private onIntersect = (entries: IntersectionObserverEntry[]) => {
+    const e = entries[entries.length - 1];
+    if (!e) return;
+    this._offscreen = e.intersectionRatio === 0;
+    this.updatePausedState();
+  };
+  /** Vereint hidden/offscreen zu einem `paused`-Flag (P3-3: gated NUR den selbst-
+   *  perpetuierenden Repaint-Pfad; ein Kamera-Move-Repaint von MapLibre rendert
+   *  weiter korrekt). Übergang → pausiert: ausstehenden Nachschlag-Timer clearen.
+   *  Übergang → sichtbar: eingefrorenen Alt-Trail verwerfen (P3-4) und den Loop
+   *  einmalig neu anstoßen (`triggerRepaint`). */
+  private updatePausedState(): void {
+    const next = this._docHidden || this._offscreen;
+    if (next === this.paused) return;
+    this.paused = next;
+    if (next) {
+      if (this.repaintCapTimer != null) { clearTimeout(this.repaintCapTimer); this.repaintCapTimer = null; }
+    } else {
+      // Resume-Hygiene: stale Trail verwerfen, dann den Loop genau einmal
+      // wieder anstoßen (MapLibre rendert nur auf ein triggerRepaint hin).
+      this.clearOnNextFrame = true;
+      this.map?.triggerRepaint();
+    }
+  }
 
   /**
    * Ziel-Partikelzahl. Bei Auto-Skalierung proportional zur sichtbaren CSS-Fläche
@@ -632,7 +699,7 @@ export class WindLayer implements CustomLayerInterface {
 
   /** Telemetry for the adaptive governor (null if disabled). Exposed for the
    *  dev `__map` inspector so tier/quality/frame-rate can be watched on-device. */
-  get perfState(): { tier: string; quality: number; ema: number; level: number; targetFps: number; maxParticleFps: number; drivesFps: boolean; caps: DeviceCaps | null } | null {
+  get perfState(): { tier: string; quality: number; ema: number; level: number; targetFps: number; maxParticleFps: number; trailScale: number; drivesFps: boolean; paused: boolean; caps: DeviceCaps | null } | null {
     if (!this.governor) return null;
     return {
       tier: this.governor.tierName,
@@ -642,7 +709,13 @@ export class WindLayer implements CustomLayerInterface {
       // Phase P: the governor's active FPS target and the cap actually applied.
       targetFps: this.governor.targetFps,
       maxParticleFps: this.maxParticleFps,
+      // Phase P2: the active trail-buffer resolution scale (< 1.0 only on the
+      // bottom rung). On desktop / capable phones this reads 1.0 → sharp.
+      trailScale: this.trailScale,
       drivesFps: this.governorDrivesFps,
+      // Phase P3: repaint loop paused because nothing is visible (hidden tab OR
+      // map scrolled offscreen). JS-observable for V-PARITY-3.
+      paused: this.paused,
       caps: this.perfCaps,
     };
   }
@@ -707,6 +780,7 @@ export class WindLayer implements CustomLayerInterface {
         this.governorDrivesFps = true;
         this.governor = new FrameGovernor({
           fpsLadder: MOBILE_FPS_LADDER,
+          trailLadder: MOBILE_TRAIL_LADDER,
           startLevelIndex: MOBILE_FPS_LADDER.length - 1,
         });
       } else {
@@ -743,6 +817,22 @@ export class WindLayer implements CustomLayerInterface {
     map.on('movestart', this.onMoveStart);
     map.on('moveend', this.onMoveEnd);
 
+    // Phase P3 — Repaint-Disziplin: den Dauerloop pausieren, wenn nichts sichtbar
+    // ist. Haupt-Win = visibilitychange (Hintergrund-Tab); Offscreen-Scroll über
+    // einen IntersectionObserver auf dem Karten-Canvas.
+    if (typeof document !== 'undefined') {
+      this._docHidden = document.hidden;
+      document.addEventListener('visibilitychange', this.onVisibilityChange);
+    }
+    const p3Canvas = map.getCanvas();
+    if (p3Canvas && typeof IntersectionObserver !== 'undefined') {
+      this._intersectionObserver = new IntersectionObserver(this.onIntersect, { threshold: 0 });
+      this._intersectionObserver.observe(p3Canvas);
+    }
+    // Startzustand einmal auswerten (Layer könnte in einem versteckten Tab
+    // hinzugefügt werden) — setzt `paused` ohne einen Resume-Repaint auszulösen.
+    this.updatePausedState();
+
     if (this._pendingWindData) {
       const { image, meta } = this._pendingWindData;
       this._pendingWindData = null;
@@ -765,6 +855,16 @@ export class WindLayer implements CustomLayerInterface {
     map.off('movestart', this.onMoveStart);
     map.off('moveend', this.onMoveEnd);
     if (this.repaintCapTimer != null) { clearTimeout(this.repaintCapTimer); this.repaintCapTimer = null; }
+
+    // Phase P3 — Listener/Observer sauber abmelden (keine Leaks) und den Pause-
+    // Zustand zurücksetzen, falls der Layer später erneut hinzugefügt wird.
+    if (typeof document !== 'undefined') {
+      document.removeEventListener('visibilitychange', this.onVisibilityChange);
+    }
+    if (this._intersectionObserver) { this._intersectionObserver.disconnect(); this._intersectionObserver = null; }
+    this.paused = false;
+    this._docHidden = false;
+    this._offscreen = false;
 
     gl.deleteProgram(this.drawProgram.program);
     gl.deleteProgram(this.screenProgram.program);
@@ -973,21 +1073,39 @@ export class WindLayer implements CustomLayerInterface {
 
   private allocScreenTextures() {
     const gl = this.gl!;
-    const w = gl.drawingBufferWidth;
-    const h = gl.drawingBufferHeight;
-    if (w === this.screenWidth && h === this.screenHeight && this.backgroundTexture) return;
+    const dbW = gl.drawingBufferWidth;
+    const dbH = gl.drawingBufferHeight;
+    const scale = this.trailScale;
+    // Realloc only when the drawing buffer OR the trail scale changes — the
+    // governor steps the trail rung with a cooldown, so this is rare. A rebuild
+    // clears the trails; they re-accumulate in < 1 s (clearOnNextFrame below).
+    if (dbW === this._texDrawW && dbH === this._texDrawH && scale === this._texTrailScale && this.backgroundTexture) return;
+    this._texDrawW = dbW;
+    this._texDrawH = dbH;
+    this._texTrailScale = scale;
+    // Phase P2: the trail-color buffers are sized at trailScale × the DRAWING
+    // buffer (0.5 only on the governor's bottom rung, else 1.0 = a 1:1 blit).
+    const w = Math.max(1, Math.round(dbW * scale));
+    const h = Math.max(1, Math.round(dbH * scale));
     this.screenWidth = w;
     this.screenHeight = h;
     // Recompute the cached effective pixel ratio here (buffer size just changed)
     // instead of per-frame in drawParticles — avoids a per-frame clientWidth
-    // reflow. DPR-1 desktop → 1 (unchanged).
+    // reflow. DPR-1 desktop → 1 (unchanged). CRITICAL (P2-2): _epr is the FULL
+    // ratio (drawingBuffer ÷ CSS width) — it must NOT be derived from the shrunk
+    // trail buffer `w`, or the point size would halve twice. trailScale is applied
+    // as a SEPARATE factor in drawParticles.
     const canvas = this.map?.getCanvas();
-    this._epr = canvas && canvas.clientWidth ? w / canvas.clientWidth : 1;
+    this._epr = canvas && canvas.clientWidth ? dbW / canvas.clientWidth : 1;
     const empty = new Uint8Array(w * h * 4);
     if (this.backgroundTexture) gl.deleteTexture(this.backgroundTexture);
     if (this.screenTexture) gl.deleteTexture(this.screenTexture);
-    this.backgroundTexture = createTexture(gl, gl.NEAREST, empty, w, h);
-    this.screenTexture = createTexture(gl, gl.NEAREST, empty, w, h);
+    // Phase P2: LINEAR (not NEAREST) so the composite pass upscales a half-res
+    // trail buffer smoothly instead of blocky. At trailScale 1.0 it is a 1:1 blit
+    // → LINEAR is harmless. Still RGBA8/UNSIGNED_BYTE (createTexture) — no float
+    // target, no packing-path change.
+    this.backgroundTexture = createTexture(gl, gl.LINEAR, empty, w, h);
+    this.screenTexture = createTexture(gl, gl.LINEAR, empty, w, h);
     this.clearOnNextFrame = true;
   }
 
@@ -1065,7 +1183,12 @@ export class WindLayer implements CustomLayerInterface {
 
   render(gl: WebGLRenderingContext, args: CustomRenderMethodInput | number[] | Float32Array) {
     if (!this.windData || !this.windTexture) {
-      this.map?.triggerRepaint();
+      // Zweiter selbst-perpetuierender Repaint-Pfad („warte auf Wind-Daten"-
+      // Spinner). Fällt unter dieselbe P3-Repaint-Disziplin wie
+      // scheduleParticleRepaint: nicht weiter drehen, wenn nichts sichtbar ist
+      // (Tab hidden / offscreen). Beim Resume stößt updatePausedState einen
+      // triggerRepaint an → dieser Pfad läuft wieder an, bis Daten da sind.
+      if (!this.paused) this.map?.triggerRepaint();
       return;
     }
 
@@ -1190,6 +1313,9 @@ export class WindLayer implements CustomLayerInterface {
       this.governor.feed(performance.now() - renderStart);
       if (this.governorDrivesFps) {
         this.maxParticleFps = this.governor.targetFps;
+        // Phase P2: the trail rung is the last-resort lever below the FPS floor.
+        // Picked up by allocScreenTextures next frame (rare — cooldown-gated).
+        this.trailScale = this.governor.trailScale;
       }
     }
 
@@ -1216,6 +1342,11 @@ export class WindLayer implements CustomLayerInterface {
    *  Referenz). Die Advektion ist dt-normalisiert (`frameDtScale`), daher bleiben
    *  Partikel-Geschwindigkeit und Trail-Länge über die Bildrate hinweg gleich. */
   private scheduleParticleRepaint(): void {
+    // Phase P3: Nichts sichtbar (Tab hidden / Karte offscreen) → den selbst-
+    // perpetuierenden Loop nicht weiter befeuern. Ein etwaiger Nachschlag-Timer
+    // wurde beim Pausieren (updatePausedState) bereits gecleart; der Loop wird
+    // beim Resume via triggerRepaint neu angestoßen.
+    if (this.paused) return;
     const cap = this.maxParticleFps;
     if (!cap || cap <= 0) { this.map?.triggerRepaint(); return; }
     const minInterval = 1000 / cap;
@@ -1333,7 +1464,11 @@ export class WindLayer implements CustomLayerInterface {
     // Multiply by the effective pixel ratio (drawingBuffer ÷ CSS width) so the
     // CSS-space thickness is identical across devices. DPR-1 desktop → ×1. The
     // ratio is cached (see _epr) so this hot path does no per-frame DOM query.
-    gl.uniform1f(p.u_point_size as WebGLUniformLocation, this.pointSize * zoomFactor * this._epr);
+    // Phase P2: also multiply by trailScale — particles are drawn INTO the trail
+    // buffer, whose gl_PointSize is in that buffer's pixels; at trailScale 0.5 a
+    // point must be half the pixels so it upscales back to the same CSS thickness.
+    // At trailScale 1.0 this is ×1 → unchanged.
+    gl.uniform1f(p.u_point_size as WebGLUniformLocation, this.pointSize * zoomFactor * this._epr * this.trailScale);
     const c = this.particleColor;
     gl.uniform4f(p.u_particle_color as WebGLUniformLocation, c[0], c[1], c[2], c[3]);
     const [dx0, dy0, dx1, dy1] = this.windData!.uvBounds;

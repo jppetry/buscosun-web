@@ -47,6 +47,11 @@
 
   /* === Type === */
   --font-base: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  /* Kommando-Deck: Display-Font für Headlines/Wordmark/Zahlen, Mono für
+     Eyebrows/Labels/kbd-Chips. Additiv — Fallback bleibt --font-base, falls die
+     Google-Fonts (index.html) noch nicht geladen sind. */
+  --font-display: 'Space Grotesk', var(--font-base);
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
 
   /* === Layout === */
   --hero-pad-x-desktop: 5rem;

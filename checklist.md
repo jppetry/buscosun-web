@@ -104,7 +104,7 @@ Maßgebliche Vorgabe: `audit/mockups/wetterkarte-c-spec.md`. Visuelle Referenz: 
 - [ ] Desktop-Diff unverändert, Screenshots abgelegt
 
 ## Querschnitt-Phase P — WebGL Cross-Device-Parität (GP)
-Maßgebliche Vorgabe: `audit/webgl-cross-device.md`. Entscheidung (Jan): Governor regelt FPS statt Partikel. Umsetzung erfolgt separat über die CLI.
+Maßgebliche Vorgabe: `audit/webgl-cross-device.md`. Entscheidung (Jan): Governor regelt FPS statt Partikel. **Status: umgesetzt (§9), alle emulator-prüfbaren Punkte grün; offen nur 🔴 Real-Device.**
 - [x] Diagnose in `audit/webgl-cross-device.md` abgeschlossen (Fillrate-Bilanz + Verifikation der Fachmann-Einschätzung, vor jeder Code-Änderung) — **erledigt** (dieses Dokument)
 - [x] P-1: `governor.quality` aus `getEffectiveParticleCount()` entfernt — Partikelzahl Desktop↔Mobile bei gleichem Viewport/Zoom nachweislich gleich (Beleg: Dichte Desktop 3683 vs. Mobile 3722 Part./MPix, Verhältnis 1,011; `effectiveCount = floor(_numParticles × 0,867)` GPU-klassen-unabhängig — Audit §9.2)
 - [x] P-2: Governor-Ausgang auf FPS-Leiter umgehängt (`maxParticleFps` dynamisch); Einbruch senkt FPS (30→24→20), **nicht** Partikelzahl (Beleg: Mobile perfState `drivesFps=true/targetFps=30`; Harness F1/F3: 45 ms→24 fps, 80 ms→20 fps bei konstanter Partikelzahl)
@@ -116,6 +116,33 @@ Maßgebliche Vorgabe: `audit/webgl-cross-device.md`. Entscheidung (Jan): Governo
 - [x] Selbstverifikation 1–5 (CLAUDE.md) schriftlich mit Beleg beantwortet (Audit §9.3)
 - [x] Keine neuen Konsolen-Errors/-Warnings (Desktop + Mobile, MCP); Typecheck grün
 - [ ] 🔴 Real-Device-Stichprobe iPhone 12 Pro **und** schwaches Android an Jan übergeben (Emulator-FPS nicht belastbar — `ema`=0 unter Emulation bestätigt rAF-Drosselung; FPS-Stepping/Thermik nur real messbar)
+
+## Querschnitt-Phase P2 — Trail-Res-Governance / Hebel 2 (GP2)
+Maßgebliche Vorgabe: `audit/webgl-cross-device.md` §10. STOPP-Gate von Jan geöffnet (RGBA8-Trail-*Color*-Pfad, nicht das Packing). Umsetzung separat über die CLI.
+- [x] Diagnose/Spec in `audit/webgl-cross-device.md` §10 abgeschlossen — **erledigt** (dieses Dokument)
+- [x] P2-1: Governor-Ladder um Sprosse `{targetFps:20, trailScale:0.5}` erweitert; Trail-Res ist der **letzte** Hebel (greift nur am FPS-Floor + fortgesetztem Einbruch) — 4-stufiger monotoner Index `[20/0.5, 20/1.0, 24/1.0, 30/1.0]`, s. §11.1
+- [x] P2-1: `scripts/verify-governor.mjs` +Checks (Abstieg …→trail0.5, Aufstieg trail0.5→… zuerst) grün; kein Vitest — **35/35 PASS** (T1–T6), s. §11.2
+- [x] P2-2: `allocScreenTextures` skaliert Trail-Dims mit `trailScale`; `_epr` bleibt volle `drawingBufferWidth/clientWidth`-Ratio (kein Doppel-Cap) — `trailScale` separater Faktor
+- [x] P2-3: Trail-Texturen auf `gl.LINEAR` (Upscale beim Composite nicht blockig)
+- [x] P2-4: Point-Size × `trailScale` — CSS-Partikeldicke nach Upscale konstant (bei trailScale=1.0 unverändert)
+- [x] Abgrenzung belegt: **kein** GLSL-Edit, **kein** Float-Target, Partikel-State-Packing/`NEAREST` unberührt, Trail-Targets bleiben RGBA8 (Diff-Beleg) — 3 Files, Token-Scan leer, s. §11.2 Zeile 5
+- [x] Desktop byte-identisch (nie im FPS-/Trail-Modus) — `governorDrivesFps=false` → `trailScale` immer 1.0 → 1:1-Blit (LINEAR==NEAREST bit-exakt), s. §11.3 Q2
+- [x] Selbstverifikation 1–5 (CLAUDE.md) schriftlich mit Beleg beantwortet — §11.3
+- [x] Keine neuen Konsolen-Errors/-Warnings; Typecheck grün — `tsc -b` clean
+- [ ] 🔴 Real-Device: iPhone bleibt scharf (Trail-Sprosse nie erreicht) **und** schwaches Android hält volle Partikelzahl auf der Sprosse — **visueller Sign-off** an Jan übergeben
+
+## Querschnitt-Phase P3 — Repaint-Disziplin / Hebel 5 (GP3)
+Maßgebliche Vorgabe: `audit/webgl-cross-device.md` §12. Letzter der 5 Fachmann-Hebel; niedrigstes Risiko (Event-Listener/Scheduling, kein STOPP-Gate). Umsetzung separat über die CLI.
+- [x] Spec in `audit/webgl-cross-device.md` §12 abgeschlossen — **erledigt** (dieses Dokument)
+- [x] P3-1: `visibilitychange` → `document.hidden` stoppt `scheduleParticleRepaint` (Loop-Anforderungen enden); sichtbar → einmal `triggerRepaint`; Listener in `onAdd`/`onRemove` — *live belegt: 61→0 Repaints/s bei hidden, Resume-Kick zurück auf 61/s (§12.4.2 V-PARITY-3 #1/#2)*
+- [x] P3-2: `IntersectionObserver` auf Karten-Canvas → `ratio===0` pausiert, `>0` setzt fort; `disconnect()` in `onRemove` — *live belegt: `paused` false→true→false beim Offscreen/Onscreen (§12.4.2 #3)*
+- [x] P3-3: `paused`-Flag (hidden ∨ offscreen) gated **nur** den Self-Repaint-Pfad; `render()` bei MapLibre-Repaints weiter korrekt — *zusätzlich der Pre-Data-Spinner in `render()` unter denselben Flag gestellt (§12.4.1)*
+- [x] P3-4: Resume-Hygiene (`clearOnNextFrame`) — kein Alt-Trail-Aufblitzen beim Fortsetzen
+- [x] Sichtbar + aktiv byte-identisch (keine Desktop-Regression; Pause greift nur, wenn nichts sichtbar ist) — *Baseline 61/s == Resumed 61/s (§12.4.2 #4)*
+- [x] Abgrenzung belegt: kein Shader-/RGBA8-/Trail-Ladder-/Fusion-Eingriff (Diff-Beleg, P/P2 unberührt) — *P3-eigener Diff = nur `WindLayer.ts`, alle P3-`+`-Zeilen reine Event/Scheduling (kein GL/Float/RGBA); Governor-Harness 35/35 (P3 rührt ihn nicht an). Working-Tree zeigt gegen HEAD zusätzlich die noch nicht committeten P/P2-Diffs — nicht Teil von P3 (§12.4.2 #5)*
+- [x] Selbstverifikation 1–5 (CLAUDE.md) schriftlich mit Beleg beantwortet — *§12.4.3*
+- [x] Keine neuen Konsolen-Errors/-Warnings; Typecheck grün; `visibilitychange`/Offscreen-Verhalten im Emulator verifiziert (JS-beobachtbar) — *`list_console_messages` leer, `tsc -b` grün (§12.4.2 #6)*
+- [ ] 🔴 Real-Device Akku-/Thermik-Gewinn (nice-to-have, **nicht** gate-blockierend) an Jan notiert
 
 ## Phase 9 — Gesamtregression (G9)
 - [ ] Kurzprotokoll V-ALL für alle 8 Features grün

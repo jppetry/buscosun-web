@@ -22,6 +22,11 @@
  *    parity keeps the full density everywhere and the governor lowers the FPS cap
  *    instead (a particle-neutral lever). Thresholds are re-based relative to the
  *    ACTIVE FPS target so a healthy capped device is never mistaken for "too slow".
+ *    An optional `trailLadder` (Phase P2) adds a per-level trail-buffer resolution
+ *    scale as the LAST-RESORT lever below the FPS floor: the bottom rung drops to
+ *    e.g. 0.5 while still keeping the full particle count. Both ladders share the
+ *    one monotonic level index, so recovery restores trail sharpness (→ 1.0) before
+ *    the FPS target climbs again.
  *
  * Desktop safety: a healthy device sits at the TOP level (quality 1.0 in legacy
  * mode / the top FPS tier in FPS mode) → identical to the un-governed behaviour.
@@ -117,6 +122,15 @@ export interface GovernorOptions {
    *  the active target interval (see `downFactor`/`upFactor`). The particle count
    *  is deliberately never touched in this mode. */
   fpsLadder?: number[];
+  /** FPS-TARGET mode (Phase P2): optional per-level trail-buffer resolution scale,
+   *  PARALLEL to `fpsLadder` (same length, indexed by the SAME level). Lets the
+   *  bottom rung drop the trail-color-buffer resolution (e.g. 0.5) as the LAST-
+   *  RESORT lever, engaged only BELOW the FPS floor; every higher rung stays 1.0.
+   *  Because both ladders share the single monotonic `levelIndex`, the restore
+   *  order is automatic: recovering off the bottom rung raises `trailScale` back to
+   *  1.0 (sharpness returns) BEFORE the FPS target climbs. Omitted, wrong length,
+   *  or legacy mode → `trailScale` is always 1.0 (no trail downscale). */
+  trailLadder?: number[];
   /** FPS mode: step DOWN when the render-duration EMA exceeds this multiple of the
    *  active target interval (1000/targetFps). Default 1.3 (~30 % over budget). */
   downFactor?: number;
@@ -151,6 +165,9 @@ export class FrameGovernor {
   private levels: number[];
   /** FPS tiers (ascending) when in FPS-target mode; null in legacy quality mode. */
   private fpsLadder: number[] | null;
+  /** Trail-resolution scale per level (Phase P2), parallel to `fpsLadder`; null
+   *  when no trail ladder applies (legacy / not given / length mismatch). */
+  private trailLadder: number[] | null;
   private downFactor: number;
   private upFactor: number;
   private downMs: number;
@@ -171,6 +188,13 @@ export class FrameGovernor {
     this.levels = this.fpsLadder
       ? this.fpsLadder.map(() => 1)
       : (opts.levels && opts.levels.length ? opts.levels.slice() : DEFAULT_LEVELS.slice());
+    // Trail ladder (Phase P2): only honoured in FPS mode and only when it lines up
+    // 1:1 with the FPS ladder — a mismatched length would desync the shared index,
+    // so fall back to "no downscale" (trailScale 1.0 everywhere) instead.
+    this.trailLadder =
+      this.fpsLadder && opts.trailLadder && opts.trailLadder.length === this.fpsLadder.length
+        ? opts.trailLadder.slice()
+        : null;
     this.downFactor = opts.downFactor ?? 1.3;
     this.upFactor = opts.upFactor ?? 0.9;
     this.downMs = opts.downMs ?? 24;
@@ -233,6 +257,10 @@ export class FrameGovernor {
   get quality(): number { return this.levels[this.i]; }
   /** Current target FPS in FPS-target mode; 0 (uncapped/N-A) in legacy mode. */
   get targetFps(): number { return this.fpsLadder ? this.fpsLadder[this.i] : 0; }
+  /** Current trail-buffer resolution scale (Phase P2). < 1.0 only on the bottom
+   *  rung of a trail-ladder FPS governor; 1.0 everywhere else (legacy mode, no
+   *  trail ladder, or any rung above the floor). */
+  get trailScale(): number { return this.trailLadder ? this.trailLadder[this.i] : 1; }
   get levelIndex(): number { return this.i; }
   get levelCount(): number { return this.levels.length; }
   get ema(): number { return this._ema; }

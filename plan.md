@@ -205,4 +205,49 @@ Jede Phase folgt dem Zyklus **Diagnose → Plan → Implement → Verify → Gat
 **Explizit nicht in diesem Vorhaben:** Trail-Buffer-Downscale (Hebel 2, RGBA8-Pfad → separates STOPP-gegateter Vorhaben); Shader-/Fusion-/Packing-Eingriff.
 
 **Verify:** tests.md → V-PARITY (+ Governor-Harness). 🔴 Real-Device-Pflichtcheck iPhone 12 Pro **und** schwaches Android.
-**Gate GP:** Partikelzahl Desktop↔Mobile nachweislich gleich, Einbruch senkt FPS (nicht Partikel), Bewegung dt-normalisiert unverändert, Desktop byte-identisch, Governor-Harness grün, keine neuen Konsolenfehler.
+**Gate GP:** Partikelzahl Desktop↔Mobile nachweislich gleich, Einbruch senkt FPS (nicht Partikel), Bewegung dt-normalisiert unverändert, Desktop byte-identisch, Governor-Harness grün, keine neuen Konsolenfehler. **Status: umgesetzt** (§9 im Audit), bis auf 🔴 Real-Device grün.
+
+---
+
+## Querschnitt-Phase P2 — Trail-Res-Governance / Hebel 2 (Gate GP2)
+
+**Fortsetzung von Phase P.** Maßgebliche Vorgabe: `audit/webgl-cross-device.md` **§10**. **UMGESETZT am 2026-07-19 auf `main`** (Verifikation §11, Gate GP2 bis auf 🔴 Real-Device grün, Harness 35/35) — Details/Selbstverifikation §11.
+
+**STOPP-Gate bewusst geöffnet (Jan):** Hebel 2 fasst den RGBA8-Trail-*Color*-Pfad an (Auflösung + Filter der `background`/`screen`-Trail-Buffer). **Nicht** betroffen: das Partikel-State-Positions-Packing (bleibt voll aufgelöst, `NEAREST`, byte-exakt) und die Shader-GLSL.
+
+**Ziel:** Auf sehr schwachen GPUs die **volle Partikelzahl + Flüssigkeit** halten, indem als **letzter** Hebel — nach ausgereiztem FPS-Abbau — die Trail-Auflösung auf 0,5× fällt (spart ~1,1 MPix/Frame am partikel-unabhängigen Fillrate-Killer). Ein monotoner Governor-Ladder: `[fps30] > [fps24] > [fps20] > [fps20,trail0,5]`. Capable Mobiles (iPhone) erreichen die Trail-Sprosse nie → volle Schärfe; Desktop nie im FPS-Modus → byte-identisch.
+
+**Umzusetzende Maßnahmen (Kurzfassung, Details §10.1):**
+1. **P2-1** Governor-Ladder um Sprosse `{targetFps:20, trailScale:0.5}` erweitern; `verify-governor.mjs` +Checks.
+2. **P2-2** `allocScreenTextures` skaliert Trail-Dimensionen mit `trailScale`; `_epr` bleibt volle Ratio (nicht doppelt cappen).
+3. **P2-3** Trail-Texturen auf `gl.LINEAR` (Upscale beim Composite nicht blockig).
+4. **P2-4** Point-Size mit `trailScale` multiplizieren (CSS-Dicke nach Upscale konstant).
+5. **P2-5** Viewport folgt automatisch über `screenWidth/Height`.
+
+**Explizit außerhalb:** Shader-GLSL-Edit, Float-Target, Packing/Encoding-Pfad, Fusion. Trail-Targets bleiben RGBA8.
+
+**Verify:** tests.md → V-PARITY-2. 🔴 Real-Device Pflicht: iPhone (Trail-Sprosse nie erreicht → scharf) **und** schwaches Android (Sprosse erreicht, volle Zahl gehalten, Weichheit visuell bewerten — **visueller Sign-off Pflicht**).
+**Gate GP2:** Trail-Sprosse greift nur am FPS-Floor + fortgesetztem Einbruch; iPhone bleibt scharf; volle Partikelzahl auch auf der Sprosse; Desktop byte-identisch; Governor-Harness grün; RGBA8-Packing-Pfad nachweislich unberührt (Diff-Beleg); keine neuen Konsolenfehler.
+
+---
+
+## Querschnitt-Phase P3 — Repaint-Disziplin / Hebel 5 (Gate GP3)
+
+> **UMGESETZT 2026-07-19 auf `main`** (Verifikation `audit/webgl-cross-device.md` §12.4, Gate GP3 grün — im Emulator live belegt: hidden/offscreen stoppt den Loop 0/s, Resume startet neu; Diff = 1 File `WindLayer.ts`; Governor-Harness 35/35 unverändert). 🔴 Real-Device Akku/Thermik nur nice-to-have. **Alle 5 Fachmann-Hebel abgeschlossen.**
+
+**Abschluss der 5 Fachmann-Hebel** (1/3 waren schon gelöst, 4 = Phase P, 2 = Phase P2, **5 = diese Phase**). Maßgebliche Vorgabe: `audit/webgl-cross-device.md` **§12**. Umsetzung separat über die CLI.
+
+**Niedrigstes Risiko aller Hebel** — reine Event-Listener-/Repaint-Scheduling-Logik, **kein** Shader-/RGBA8-/Pipeline-/Fusion-Eingriff, **kein** STOPP-Gate.
+
+**Ziel:** Den selbst-perpetuierenden Wind-Repaint-Loop (`scheduleParticleRepaint`, der einzige Dauerloop der 2D-Karte, `performance-2d.md` §1a „Akku/Thermik-Treiber Nr. 1") **pausieren, wenn nichts sichtbar ist** → weniger Hitze → weniger thermisches Throttling → Zielrate hält länger, Governor steppt seltener runter (inkl. seltener die P2-Trail-Sprosse). Direkt „gleich performant über Zeit".
+
+**Umzusetzende Maßnahmen (Kurzfassung, Details §12.1):**
+1. **P3-1** `visibilitychange`-Pause (Haupt-Win): `document.hidden` → Loop stoppen; sichtbar → einmal `triggerRepaint`. Listener in `onAdd`/`onRemove`.
+2. **P3-2** Offscreen-Pause via `IntersectionObserver` auf das Karten-Canvas (`ratio===0` → pausieren).
+3. **P3-3** Ein `paused`-Flag (hidden ∨ offscreen) gated **nur** `scheduleParticleRepaint`; `render()` bleibt für MapLibre-eigene Repaints korrekt.
+4. **P3-4** Resume-Hygiene: `clearOnNextFrame` beim Fortsetzen (kein Alt-Trail-Aufblitzen).
+
+**Explizit außerhalb:** Shader/RGBA8/Trail-Ladder (P/P2 unberührt), Fusion. „Map-idle-Pause" entfällt (animierte Ebene ist nie idle); opakes DOM-Overlay wird von IO nicht erkannt (akzeptierte kleine Lücke).
+
+**Verify:** tests.md → V-PARITY-3 — **grösstenteils emulator-belastbar** (Loop-Stopp ist JS-beobachtbar, anders als FPS/Thermik). 🔴 Real-Device nur noch für den Akku-/Thermik-Gewinn (nice-to-have, nicht gate-blockierend).
+**Gate GP3:** hidden/offscreen stoppt die Repaint-Anforderungen, sichtbar/onscreen startet neu; sichtbar+aktiv byte-identisch (keine Desktop-Regression); Konsole/Typecheck grün.

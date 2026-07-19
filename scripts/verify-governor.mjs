@@ -165,5 +165,68 @@ const LADDER = [20, 24, 30];
 check(new FrameGovernor({ fpsLadder: LADDER }).targetFps === 30, 'FPS governor default starts at top tier (30fps)');
 check(new FrameGovernor({ startLevelIndex: 3 }).targetFps === 0, 'legacy governor reports targetFps 0 (no FPS mode)');
 
+// ---------------------------------------------------------------------------
+// TRAIL-RES LAST-RESORT LEVER (Phase P2). A parallel `trailLadder` adds a bottom
+// rung that halves the trail-buffer resolution AFTER the FPS floor is exhausted.
+// One monotonic index over both ladders → automatic restore order (trail sharpness
+// back to 1.0 BEFORE the FPS target climbs). Ladder (ascending):
+//   idx 0 {20fps, 0.5} < idx 1 {20fps, 1.0} < idx 2 {24fps, 1.0} < idx 3 {30fps, 1.0}
+const TRAIL_FPS   = [20, 20, 24, 30];
+const TRAIL_SCALE = [0.5, 1.0, 1.0, 1.0];
+const mkTrail = (o = {}) => new FrameGovernor({ fpsLadder: TRAIL_FPS, trailLadder: TRAIL_SCALE, ...o });
+
+// T1) Sustained heavy render (80 ms) from the TOP → descends all the way to the
+//     bottom rung: 20 fps AND trail 0.5. Proves the trail lever is the LAST resort.
+{
+  const g = mkTrail({ startLevelIndex: 3 });
+  feedN(g, 80, 800);
+  check(g.levelIndex === 0 && g.targetFps === 20 && g.trailScale === 0.5,
+    `heavy load descends to bottom rung 20fps+trail0.5 (got idx ${g.levelIndex}, fps ${g.targetFps}, trail ${g.trailScale})`);
+}
+
+// T2) FPS floor reached but trail NOT yet spent: a load that settles at idx 1
+//     (55 ms → past 24fps's down 54.2, inside 20fps's dead band 45..65) holds at
+//     20 fps with trail STILL 1.0. The trail is not sacrificed prematurely.
+{
+  const g = mkTrail({ startLevelIndex: 3 });
+  feedN(g, 55, 800);
+  check(g.levelIndex === 1 && g.targetFps === 20 && g.trailScale === 1.0,
+    `at FPS floor but trail still full (got idx ${g.levelIndex}, fps ${g.targetFps}, trail ${g.trailScale})`);
+}
+
+// T3) Recovery restores TRAIL FIRST: from the bottom rung, comfortable render
+//     (10 ms) → the FIRST up-step raises trailScale back to 1.0 while the FPS
+//     target is STILL 20 (sharpness returns before the frame rate climbs).
+{
+  const g = mkTrail({ startLevelIndex: 0 });
+  let firstFps = -1, firstTrail = -1, prev = g.levelIndex;
+  for (let i = 0; i < 400; i++) { g.feed(10); if (g.levelIndex !== prev) { firstFps = g.targetFps; firstTrail = g.trailScale; break; } prev = g.levelIndex; }
+  check(firstFps === 20 && firstTrail === 1.0,
+    `recovery restores trail 1.0 BEFORE fps climbs (first step: fps ${firstFps}, trail ${firstTrail})`);
+}
+
+// T4) Full recovery terminus: from the bottom rung, sustained 10 ms → climbs to
+//     the TOP (30 fps, trail 1.0 = the un-governed mobile reference).
+{
+  const g = mkTrail({ startLevelIndex: 0 });
+  feedN(g, 10, 800);
+  check(g.levelIndex === 3 && g.targetFps === 30 && g.trailScale === 1.0,
+    `recovery climbs from bottom rung to 30fps+trail1.0 top (got idx ${g.levelIndex}, fps ${g.targetFps}, trail ${g.trailScale})`);
+}
+
+// T5) Bottom rung is the floor: sustained 80 ms at the bottom stays there — there
+//     is no cheaper rung, and the particle count is never touched (parity held).
+{
+  const g = mkTrail({ startLevelIndex: 0 });
+  feedN(g, 80, 400);
+  check(g.levelIndex === 0 && g.trailScale === 0.5, `bottom rung holds under sustained load (got idx ${g.levelIndex}, trail ${g.trailScale})`);
+}
+
+// T6) trailScale getter defaults to 1.0 when no trail lever applies: legacy mode,
+//     FPS mode without a trailLadder, and a length-mismatched trailLadder (ignored).
+check(new FrameGovernor({ startLevelIndex: 3 }).trailScale === 1, 'legacy governor reports trailScale 1.0');
+check(new FrameGovernor({ fpsLadder: LADDER }).trailScale === 1, 'FPS governor without trailLadder reports trailScale 1.0');
+check(new FrameGovernor({ fpsLadder: LADDER, trailLadder: [0.5, 1.0] }).trailScale === 1, 'length-mismatched trailLadder is ignored (trailScale 1.0)');
+
 console.log(`\n${failures === 0 ? 'ALLE CHECKS PASS' : `${failures} CHECK(S) FEHLGESCHLAGEN`}`);
 process.exit(failures === 0 ? 0 : 1);

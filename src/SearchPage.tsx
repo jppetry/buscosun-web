@@ -1,19 +1,29 @@
 /**
- * Buscosun Startseite v2.0 — radikal vereinfacht.
+ * Buscosun Startseite v3.0 — „Kommando-Deck".
  *
- * Reduziert auf das Wesentliche: Logo oben, Headline + Suchfeld zentriert,
- * schmaler Footer unten. Keine Live-Demo-Karte, kein Hero-Split — Suche ist
- * der Einstieg. Sand-Ink-Designsprache.
+ * Redesign nach design_handoff_startseite (references/desktop|tablet|mobile.dc.html):
+ * eine Kommandozentrale statt Landingpage. Aufbau von oben nach unten:
+ *   - Command-Bar: Logo · ⌘K-Trigger · „DATEN LIVE" · DE/EN
+ *   - Hero: Eyebrow · Wortmarke · Sub · große Ortssuche (+ Direkt-Link Wetterkarte)
+ *   - Filter-Chips: Alle / Karten & Radar / Planen / Verstehen / Erkunden
+ *   - Bento-Grid: 9 Werkzeug-Kacheln (Desktop 4-Spalten, Tablet 3, Mobile 1–2)
+ *   - Fundament (Fusion Forecast) · „Ehrlich bleiben" · Footer
+ *   - ⌘K-Command-Palette (Overlay) · Mobile-Bottom-Tab-Bar
  *
- * Layout
- *   - Nav: Logo + DE/EN
- *   - Center: Eyebrow + Headline + Sub + Inline-Suchfeld + Subline
- *   - Footer: Buscosun · v0.9 Beta · keine Tracker
+ * ALLE bestehenden Verdrahtungen bleiben erhalten und werden weitergenutzt:
+ *   onSelect (Geocode-Flow), onOpenFeature (jede Kachel + Palette-Eintrag),
+ *   warmMapData()-Warm-up, lazy HeroMapBackground, Favoriten, Intro-Tour.
+ * Kein Tile/Palette-Eintrag zeigt ins Leere — jede Ziel-ID existiert in
+ * App.tsx (FeatureId). Das Mock-Tile „KI-Meteorologe" hat kein reales Feature;
+ * an seiner Stelle steht die bestehende Feedback-Kachel (Entscheidung Jan).
  */
 
-import { lazy, Suspense, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import {
+  lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState,
+  type FormEvent, type ReactNode,
+} from 'react';
 import type { Location, NominatimResult } from './types';
-import type { FeatureId, FeatureInfo } from './App';
+import type { FeatureInfo } from './App';
 import { parseCountry } from './countryProfiles';
 // Deko-Hero-Karte lazy: maplibre-gl bleibt aus dem Initial-Bundle (eigener Chunk).
 const HeroMapBackground = lazy(() => import('./HeroMapBackground'));
@@ -25,6 +35,7 @@ import { flagForCountry } from './geocode';
 import { getFavorites, removeFavorite } from './favorites';
 import { useIntroTour, type IntroTour } from './intro/useIntroTour';
 import IntroOverlay from './intro/IntroOverlay';
+import './mobile/safeArea.css';
 import './SearchPage.css';
 
 interface Props {
@@ -43,30 +54,56 @@ function toLocation(r: NominatimResult): Location | null {
   };
 }
 
+// ============================================================================
+// FEATURE-ZIELE — Single Source of Truth für jede Kachel & jeden Palette-Eintrag.
+// Jede `feature`-Definition entspricht einer realen FeatureId aus App.tsx.
+// ============================================================================
+type Category = 'radar' | 'planen' | 'verstehen' | 'erkunden';
+
+const FEATURE: Record<string, FeatureInfo> = {
+  map2d:      { id: 'map2d',      eyebrow: 'Wetterkarte',   title: 'Die ganze DACH-Wetterkarte' },
+  route:      { id: 'route',      eyebrow: 'Tourenplanung', title: 'Wetter entlang deiner Route' },
+  event:      { id: 'event',      eyebrow: 'Event-Planung', title: 'Welcher Tag passt am besten?' },
+  nowcast:    { id: 'nowcast',    eyebrow: 'Regenradar',    title: 'Regnet es in 40 Minuten?' },
+  forecast:   { id: 'forecast',   eyebrow: 'Vorhersage',    title: 'Konfidenz & Modelle' },
+  history:    { id: 'history',    eyebrow: 'Historie',      title: 'Klima seit 1940' },
+  atmosphere: { id: 'atmosphere', eyebrow: 'Atmosphäre',    title: 'Die Atmosphäre über dir' },
+  globe:      { id: 'globe',      eyebrow: '3D-Globus',     title: 'Das Wetter der ganzen Erde' },
+  feedback:   { id: 'feedback',   eyebrow: 'Feedback',      title: 'Ideen & Vorschläge' },
+  validation: { id: 'validation', eyebrow: 'Validierung',   title: 'Wie gut ist der KI-Nowcast wirklich?' },
+};
+
+interface PaletteEntry { num: string; label: string; hint: string; feature: FeatureInfo; }
+const PALETTE: PaletteEntry[] = [
+  { num: '01', label: 'Wetterkarte',            hint: 'Wind · Regen · Blitze',      feature: FEATURE.map2d },
+  { num: '02', label: 'Tourenplanung',          hint: 'Wetter pro km · E-Bike',     feature: FEATURE.route },
+  { num: '03', label: 'Event-Planung',          hint: 'Bester Tag · Plan B',        feature: FEATURE.event },
+  { num: '04', label: 'Regenradar / Nowcast',   hint: 'Regen 0–6 h',                feature: FEATURE.nowcast },
+  { num: '05', label: 'Vorhersage & Konfidenz', hint: 'Modell · Spread',            feature: FEATURE.forecast },
+  { num: '06', label: 'Historie',               hint: 'Klima seit 1940',            feature: FEATURE.history },
+  { num: '07', label: 'Atmosphäre',             hint: 'Höhenwind · Föhn',           feature: FEATURE.atmosphere },
+  { num: '08', label: '3D-Globus',              hint: 'Sample-Daten',               feature: FEATURE.globe },
+  { num: '09', label: 'Feedback',               hint: 'Ideen & Vorschläge',         feature: FEATURE.feedback },
+  { num: '10', label: 'Validierung',            hint: 'Wie gut ist der Nowcast?',   feature: FEATURE.validation },
+];
+
+// ============================================================================
+// ROOT
+// ============================================================================
 export default function SearchPage({ onSelect, onOpenFeature }: Props) {
   const tour = useIntroTour();
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [activeCat, setActiveCat] = useState<'alle' | Category>('alle');
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
-    // Volles Warm-up beim Mount der Startseite. Lädt im Hintergrund:
-    //   – DEM-Tiles (Terrarium z=5, ~1 MB)
-    //   – Primary-Sources: DWD-Obs + MOSMIX in beiden Hour-Slots
-    //   – Secondary-Sources: AROME / INCA / TAWES / SMN
-    //   – Phase-A-Fusion für DE (Default-Land) via requestIdleCallback
-    // Resultat: MapView öffnet bei Klick auf eine DE-Location instant
-    // (Result-Cache-Hit), AT/CH profitieren vom warmen Source-Cache.
+    // Volles Warm-up beim Mount der Startseite (DEM-Tiles, Primary/Secondary-
+    // Sources, Phase-A-Fusion für DE). MapView öffnet dann bei DE-Klick instant.
     warmMapData();
   }, []);
 
-  // Den schweren MapView-Chunk (maplibre-gl + alle Layer-/Source-/Fusion-Module)
-  // im Leerlauf vorwärmen, WÄHREND der Nutzer noch sucht. Sonst zahlt erst der
-  // Klick auf eine Location den Chunk-Download+Parse auf dem kritischen Pfad zum
-  // Erstpaint. Idle-geplant, damit es die Hero-Karte nicht verdrängt; auf Touch-
-  // Geräten (keine Hero-Karte) wird so maplibre-gl überhaupt erst vorgewärmt.
+  // Den schweren MapView-Chunk im Leerlauf vorwärmen, während der Nutzer sucht.
   useEffect(() => {
-    // Auf langsamen/getakteten Verbindungen NICHT vorwärmen — der Chunk-Download
-    // (maplibre-gl u. a.) würde dort echte Bandbreite kosten, die der Nutzer
-    // evtl. dringender fürs eigentliche Ziel braucht, falls er die Karte am
-    // Ende gar nicht öffnet. `connection` ist Chromium-only; ohne API (Safari/
-    // Firefox) unverändert vorwärmen wie bisher.
     const conn = (navigator as unknown as { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
     if (conn?.saveData || conn?.effectiveType === 'slow-2g' || conn?.effectiveType === '2g') return;
     const ric: (cb: () => void) => number =
@@ -81,158 +118,155 @@ export default function SearchPage({ onSelect, onOpenFeature }: Props) {
     return () => cancel(id);
   }, []);
 
+  // ⌘K / Ctrl-K global: Palette togglen. Esc schließt (auch aus der Palette).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setPaletteOpen((v) => !v);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  const openFeature = useCallback((f: FeatureInfo) => {
+    setPaletteOpen(false);
+    onOpenFeature(f);
+  }, [onOpenFeature]);
+
+  const focusSearch = useCallback(() => {
+    setPaletteOpen(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Nach dem Scroll fokussieren, damit das Feld sicher im Viewport steht.
+    window.setTimeout(() => searchInputRef.current?.focus(), 260);
+  }, []);
+
   return (
-    <div className="hero-page">
-      {/* Sand-Art-SVG als Sofort-/Offline-Fallback, darüber (nur Desktop) die
-          echte 2D-Karte — lazy geladen, damit maplibre-gl nicht im Initial-Bundle ist. */}
-      <HeroBackground />
+    <div className="deck">
+      {/* Sehr dezente, lazy geladene Deko-Karte hinter Command-Bar + Hero.
+          Bleibt gemountet, um Warm-up/Chunk-Verhalten zu erhalten; per Scrim
+          zur Sandfläche ausgeblendet, damit die Kacheln auf reinem Sand sitzen. */}
       {SHOW_HERO_MAP && (
         <Suspense fallback={null}>
           <HeroMapBackground />
         </Suspense>
       )}
-      <HeroNav />
 
-      <main className="hero-center">
-        <HeroSearchInline onSelect={onSelect} />
-        <HeroFavorites onSelect={onSelect} />
-        <IntroTrigger tour={tour} />
+      <CommandBar onOpenPalette={() => setPaletteOpen(true)} />
+
+      <main className="deck-main">
+        <Hero onSelect={onSelect} onOpenFeature={openFeature} inputRef={searchInputRef} tour={tour} />
+        <FilterChips active={activeCat} onChange={setActiveCat} />
+        <BentoGrid activeCat={activeCat} onOpenFeature={openFeature} />
+        <Fundament />
+        <Honesty />
       </main>
 
-      <HeroFeatures onOpenFeature={onOpenFeature} />
-      <HeroFooter onOpenFeature={onOpenFeature} />
+      <DeckFooter onOpenFeature={openFeature} />
+
+      <CommandPalette
+        open={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+        onOpenFeature={openFeature}
+      />
+      <MobileTabBar onOpenFeature={openFeature} onSearch={focusSearch} />
+
       <IntroOverlay tour={tour} />
     </div>
   );
 }
 
 // ============================================================================
-// INTRO-TOUR — dezenter Trigger unter dem Hero (Erstbesuch: einmaliger Puls)
+// LOGO
 // ============================================================================
-function IntroTrigger({ tour }: { tour: IntroTour }) {
-  return (
-    <button
-      type="button"
-      className={`intro-trigger${tour.pulse ? ' is-pulse' : ''}`}
-      onClick={tour.start}
-    >
-      <span className="intro-trigger-spark" aria-hidden="true">
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M8 1.5 L9.4 6.6 L14.5 8 L9.4 9.4 L8 14.5 L6.6 9.4 L1.5 8 L6.6 6.6 Z" />
-        </svg>
-      </span>
-      Entdecke buscosun
-    </button>
-  );
+function LogoMark({ size = 26 }: { size?: number }) {
+  return <img className="deck-logo-mark" src="/buscosun-mark.svg" width={size} height={size} alt="" aria-hidden="true" />;
 }
 
-// ============================================================================
-// NAV — nur Logo + Sprachschalter
-// ============================================================================
-function HeroNav() {
+function SearchIcon({ size = 16 }: { size?: number }) {
   return (
-    <nav className="hero-nav">
-      <a className="hero-logo" href="#">
-        <Logo />
-        <span className="hero-logo-name">buscosun</span>
-      </a>
-      <div className="hero-nav-right">
-        <span className="hero-lang">
-          <span>DE</span>
-          <span className="sep">·</span>
-          <span className="inactive">EN</span>
-        </span>
-      </div>
-    </nav>
-  );
-}
-
-// ============================================================================
-// Gespeicherte Orte (Favoriten) — Ein-Klick zur Karte
-// ============================================================================
-function HeroFavorites({ onSelect }: { onSelect: (location: Location) => void }) {
-  const [favs, setFavs] = useState<Location[]>(() => getFavorites());
-  if (favs.length === 0) return null;
-  return (
-    <div className="hero-favs">
-      <span className="hero-favs-label">Gespeichert</span>
-      {favs.map((f) => (
-        <span key={`${f.lat},${f.lon}`} className="hero-fav-chip">
-          <button type="button" className="hero-fav-open" onClick={() => onSelect(f)} title={f.name}>
-            <span aria-hidden="true">{flagForCountry(f.country)}</span>
-            <span className="hero-fav-name">{f.name.split(',')[0]}</span>
-          </button>
-          <button type="button" className="hero-fav-x" aria-label={`${f.name} entfernen`}
-            onClick={() => setFavs(removeFavorite(f))}>×</button>
-        </span>
-      ))}
-    </div>
-  );
-}
-
-function Logo() {
-  return <img className="hero-logo-mark" src="/buscosun-mark.svg" width="32" height="32" alt="" aria-hidden="true" />;
-}
-
-// ============================================================================
-// BACKGROUND ART — Wind streamlines
-// ============================================================================
-function HeroBackground() {
-  return (
-    <svg className="hero-bg" viewBox="0 0 1440 1100" preserveAspectRatio="xMidYMin slice" aria-hidden="true">
-      <defs>
-        <linearGradient id="wind-grad" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor="#8B7355" stopOpacity="0" />
-          <stop offset="50%" stopColor="#8B7355" stopOpacity="0.45" />
-          <stop offset="100%" stopColor="#8B7355" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <g opacity="0.12">
-        <path d="M 0 760 Q 200 640 400 670 T 800 650 T 1200 660 T 1440 680 L 1440 1100 L 0 1100 Z" fill="#B8A480" />
-        <path d="M 0 820 Q 240 720 480 750 T 960 730 T 1440 760 L 1440 1100 L 0 1100 Z" fill="#A89472" />
-        <path d="M 0 880 Q 300 800 600 830 T 1200 810 T 1440 840 L 1440 1100 L 0 1100 Z" fill="#988168" />
-      </g>
-      <g opacity="0.35">
-        <path d="M -50 280 Q 360 270 720 290 T 1490 310" stroke="url(#wind-grad)" strokeWidth="2"   fill="none" />
-        <path d="M -50 340 Q 360 330 720 350 T 1490 370" stroke="url(#wind-grad)" strokeWidth="1.5" fill="none" />
-        <path d="M -50 220 Q 360 210 720 230 T 1490 250" stroke="url(#wind-grad)" strokeWidth="1"   fill="none" />
-        <path d="M -50 400 Q 360 390 720 410 T 1490 430" stroke="url(#wind-grad)" strokeWidth="2"   fill="none" />
-        <path d="M -50 460 Q 360 450 720 470 T 1490 490" stroke="url(#wind-grad)" strokeWidth="1"   fill="none" />
-        <path d="M -50 520 Q 360 510 720 530 T 1490 550" stroke="url(#wind-grad)" strokeWidth="1.5" fill="none" />
-      </g>
+    <svg width={size} height={size} viewBox="0 0 18 18" fill="none" aria-hidden="true">
+      <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.6" />
+      <line x1="12.5" y1="12.5" x2="16" y2="16" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
     </svg>
   );
 }
 
 // ============================================================================
-// INLINE-SUCHFELD — direkt im Hero, ohne Modal-Indirektion
+// COMMAND BAR — Logo · ⌘K-Trigger · „DATEN LIVE" · DE/EN
 // ============================================================================
-interface SearchInlineProps {
-  onSelect: (loc: Location) => void;
+function CommandBar({ onOpenPalette }: { onOpenPalette: () => void }) {
+  return (
+    <header className="deck-bar">
+      <div className="deck-bar-inner">
+        <a className="deck-brand" href="#top" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
+          <LogoMark size={26} />
+          <span className="deck-wordmark">buscosun</span>
+        </a>
+
+        <button type="button" className="deck-kbar" onClick={onOpenPalette} aria-label="Befehls-Palette öffnen (⌘K)" aria-keyshortcuts="Meta+K Control+K">
+          <span className="deck-kbar-icon"><SearchIcon size={16} /></span>
+          <span className="deck-kbar-text">Ort suchen oder Werkzeug springen …</span>
+          <kbd className="deck-kbd">⌘K</kbd>
+        </button>
+
+        <div className="deck-bar-right">
+          <span className="deck-live"><span className="deck-live-dot" aria-hidden="true" />DATEN LIVE</span>
+          <span className="deck-lang"><span className="is-active">DE</span><span className="sep">·</span><span>EN</span></span>
+        </div>
+      </div>
+    </header>
+  );
 }
-function HeroSearchInline({ onSelect }: SearchInlineProps) {
+
+// ============================================================================
+// HERO — Eyebrow · Wortmarke · Sub · große Ortssuche · Favoriten · Intro-Tour
+// ============================================================================
+interface HeroProps {
+  onSelect: (loc: Location) => void;
+  onOpenFeature: (f: FeatureInfo) => void;
+  inputRef: React.RefObject<HTMLInputElement | null>;
+  tour: IntroTour;
+}
+function Hero({ onSelect, onOpenFeature, inputRef, tour }: HeroProps) {
+  return (
+    <section className="deck-hero" id="top">
+      <div className="deck-hero-eyebrow">LIVE · DE · AT · CH · OHNE ACCOUNT</div>
+      <h1 className="deck-h1">buscosun</h1>
+      <p className="deck-hero-sub">
+        Modelle, Live-Stationen und Höhenkorrektur — zu einem Feld verschmolzen.
+        Suche einen Ort oder steig direkt in ein Werkzeug ein.
+      </p>
+
+      <HeroSearch onSelect={onSelect} onOpenFeature={onOpenFeature} inputRef={inputRef} />
+      <HeroFavorites onSelect={onSelect} />
+      <IntroTrigger tour={tour} />
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Ortssuche — bestehende Geocode-Logik, neu als Hero-Pille gestylt.
+// ---------------------------------------------------------------------------
+interface HeroSearchProps {
+  onSelect: (loc: Location) => void;
+  onOpenFeature: (f: FeatureInfo) => void;
+  inputRef: React.RefObject<HTMLInputElement | null>;
+}
+function HeroSearch({ onSelect, onOpenFeature, inputRef }: HeroSearchProps) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<NominatimResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
-
-  // Esc leert die Suche, Outside-Klick schließt das Dropdown.
-  useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setResults([]); setError(null);
-      }
+      if (e.key === 'Escape') { setResults([]); setError(null); }
     };
     const onClick = (e: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
-        setResults([]);
-      }
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setResults([]);
     };
     window.addEventListener('keydown', onKey);
     window.addEventListener('mousedown', onClick);
@@ -283,27 +317,20 @@ function HeroSearchInline({ onSelect }: SearchInlineProps) {
   const showDropdown = results.length > 0 || error != null;
 
   return (
-    <div className={`hero-search-wrap${showDropdown ? ' has-dropdown' : ''}`} ref={wrapRef}>
-      <form className="hero-search" onSubmit={handleSubmit} role="search">
-        <svg className="hero-search-icon" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
-          <circle cx="8" cy="8" r="6" />
-          <line x1="13" y1="13" x2="17" y2="17" strokeLinecap="round" />
-        </svg>
+    <div className={`deck-search-wrap${showDropdown ? ' has-dropdown' : ''}`} ref={wrapRef}>
+      <form className="deck-search" onSubmit={handleSubmit} role="search">
+        <span className="deck-search-icon"><SearchIcon size={19} /></span>
         <input
           ref={inputRef}
           type="text"
-          className="hero-search-input"
+          className="deck-search-input"
           placeholder="Stadt, Straße oder PLZ …"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           disabled={loading}
           aria-label="Standort suchen"
         />
-        <button
-          type="submit"
-          className="hero-search-go"
-          disabled={loading || !query.trim()}
-        >
+        <button type="submit" className="deck-search-go" disabled={loading || !query.trim()}>
           {loading ? 'Suche …' : 'Öffnen'}
           {!loading && (
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden="true">
@@ -314,27 +341,24 @@ function HeroSearchInline({ onSelect }: SearchInlineProps) {
       </form>
 
       {showDropdown && (
-        <div className="hero-search-dropdown" role="listbox">
-          {error && <div className="hero-search-error">⚠ {error}</div>}
+        <div className="deck-search-dropdown" role="listbox">
+          {error && <div className="deck-search-error">⚠ {error}</div>}
           {results.map((r) => (
-            <button
-              key={r.place_id}
-              type="button"
-              className="hero-search-result"
-              onClick={() => pickResult(r)}
-            >
-              <span className="country-flag" aria-hidden="true">{flagFor(r.address?.country_code)}</span>
-              <span className="result-name">{r.display_name}</span>
+            <button key={r.place_id} type="button" className="deck-search-result" onClick={() => pickResult(r)}>
+              <span className="deck-flag" aria-hidden="true">{flagFor(r.address?.country_code)}</span>
+              <span className="deck-result-name">{r.display_name}</span>
             </button>
           ))}
         </div>
       )}
 
-      <div className="hero-search-foot">
-        <span className="kbd">↵</span>
-        <span>Enter zum Suchen</span>
-        <span className="hero-search-foot-sep" />
-        <span>Live-Daten aus DE · AT · CH</span>
+      <div className="deck-search-foot">
+        <span className="deck-kbd sm">↵</span>
+        <span>Enter zum Suchen · Live-Daten aus DE · AT · CH · oder direkt in die{' '}
+          <button type="button" className="deck-inline-link" onClick={() => onOpenFeature(FEATURE.map2d)}>
+            DACH-Wetterkarte
+          </button>
+        </span>
       </div>
     </div>
   );
@@ -349,448 +373,466 @@ function flagFor(cc?: string): string {
   }
 }
 
-// ============================================================================
-// FEATURE TILES — visuelle Vorschau auf kommende Features. Jede Kachel ist
-// klickbar und öffnet ihre eigene Feature-Seite.
-// ============================================================================
-function HeroFeatures({ onOpenFeature }: { onOpenFeature: (feature: FeatureInfo) => void }) {
+// ---------------------------------------------------------------------------
+// Gespeicherte Orte (Favoriten) — Ein-Klick zur Karte. Erhalten aus v2.
+// ---------------------------------------------------------------------------
+function HeroFavorites({ onSelect }: { onSelect: (location: Location) => void }) {
+  const [favs, setFavs] = useState<Location[]>(() => getFavorites());
+  if (favs.length === 0) return null;
   return (
-    <section className="hero-features" aria-label="Features">
-      <FeatureTile
-        id="map2d"
-        eyebrow="Wetterkarte"
-        title="Die ganze DACH-Wetterkarte"
-        description="Wind, Niederschlag, Temperatur, Wolken, Satellit & Blitze auf der interaktiven 2D-Karte — ohne Ortssuche, direkt loslegen."
-        preview={<MapTilePreview />}
-        flush
-        onOpen={onOpenFeature}
-      />
-      <FeatureTile
-        id="route"
-        eyebrow="Tourenplanung"
-        title="Wetter entlang deiner Route"
-        description="GPX hochladen oder Strecke planen. Sieh Wind, Regen und Temperatur an jedem Kilometer mit Zeit-Scrubber."
-        preview={<RoutePreview />}
-        flush
-        onOpen={onOpenFeature}
-      />
-      <FeatureTile
-        id="event"
-        eyebrow="Event-Planung"
-        title="Welcher Tag passt am besten?"
-        description="Sag uns wann du wandern, grillen oder fotografieren willst — wir vergleichen die nächsten 7 Tage und nennen den besten."
-        preview={<DayScorePreview />}
-        flush
-        onOpen={onOpenFeature}
-      />
-      <FeatureTile
-        id="history"
-        eyebrow="Historie"
-        title="Wie hat sich das Wetter bei dir verändert?"
-        description="Klimastreifen, Kenntage-Trends und Rekorde aus Jahrzehnten Wetterhistorie — stell eine Frage oder such deinen Ort, kein Fachwissen nötig."
-        preview={<HistoryPreview />}
-        flush
-        onOpen={onOpenFeature}
-      />
-      <FeatureTile
-        id="forecast"
-        eyebrow="Vorhersage"
-        title="Mehrere Modelle, ehrlicher Spread"
-        description="ICON-D2, MOSMIX und ICON-EU im Vergleich. Du siehst nicht nur eine Zahl, sondern wie sicher sie ist."
-        preview={<SpreadPreview />}
-        flush
-        onOpen={onOpenFeature}
-      />
-      <FeatureTile
-        id="nowcast"
-        eyebrow="Regenradar"
-        title="Regenradar"
-        description="Minutengenaues Radar mit ehrlichem Messung↔Vorhersage-Bruch, Punkt-Streifen „Regen in X min“, Sturmzellen-ETA, Schneefallgrenze, Blitzen & Datenqualität — aus DWD-RADOLAN, GeoSphere INCA & MeteoSchweiz."
-        preview={<NowcastPreview />}
-        flush
-        onOpen={onOpenFeature}
-      />
-      <FeatureTile
-        id="atmosphere"
-        eyebrow="Atmosphäre"
-        title="Die Atmosphäre über dir"
-        description="Drei Linsen — Föhn, Thermik und Querschnitt: Inversion, Nebelmeer, Wolkenbasis und Höhenwind als Vertikalprofil — mit ehrlicher Einschätzung über die nächsten 48 Stunden."
-        preview={<AtmospherePreview />}
-        flush
-        onOpen={onOpenFeature}
-      />
-      <FeatureTile
-        id="globe"
-        eyebrow="3D-Globus"
-        title="Das Wetter der ganzen Erde"
-        description="Eine frei drehbare 3D-Erdkugel mit globalem Wind und Wetter — vom Jetstream bis zum Tiefdruckwirbel, in einem Bild."
-        preview={<GlobePreview />}
-        flush
-        onOpen={onOpenFeature}
-      />
-      <FeatureTile
-        id="feedback"
-        eyebrow="Feedback"
-        title="Ideen & Vorschläge"
-        description="Was sollen wir verbessern, was fehlt dir? Schick uns deine Anregung direkt per E-Mail — ohne Konto, ohne Tracker."
-        preview={<FeedbackPreview />}
-        flush
-        onOpen={onOpenFeature}
-      />
+    <div className="deck-favs">
+      <span className="deck-favs-label">Gespeichert</span>
+      {favs.map((f) => (
+        <span key={`${f.lat},${f.lon}`} className="deck-fav-chip">
+          <button type="button" className="deck-fav-open" onClick={() => onSelect(f)} title={f.name}>
+            <span aria-hidden="true">{flagForCountry(f.country)}</span>
+            <span className="deck-fav-name">{f.name.split(',')[0]}</span>
+          </button>
+          <button type="button" className="deck-fav-x" aria-label={`${f.name} entfernen`} onClick={() => setFavs(removeFavorite(f))}>×</button>
+        </span>
+      ))}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Intro-Tour-Trigger (dezent, Erstbesuch: einmaliger Puls). Erhalten aus v2.
+// ---------------------------------------------------------------------------
+function IntroTrigger({ tour }: { tour: IntroTour }) {
+  return (
+    <button type="button" className={`deck-intro${tour.pulse ? ' is-pulse' : ''}`} onClick={tour.start}>
+      <span className="deck-intro-spark" aria-hidden="true">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M8 1.5 L9.4 6.6 L14.5 8 L9.4 9.4 L8 14.5 L6.6 9.4 L1.5 8 L6.6 6.6 Z" />
+        </svg>
+      </span>
+      Entdecke buscosun
+    </button>
+  );
+}
+
+// ============================================================================
+// FILTER CHIPS — Kategorien dimmen die Kacheln (kein Reflow).
+// ============================================================================
+const CHIPS: Array<{ key: 'alle' | Category; label: string }> = [
+  { key: 'alle', label: 'Alle' },
+  { key: 'radar', label: 'Karten & Radar' },
+  { key: 'planen', label: 'Planen' },
+  { key: 'verstehen', label: 'Verstehen' },
+  { key: 'erkunden', label: 'Erkunden' },
+];
+function FilterChips({ active, onChange }: { active: 'alle' | Category; onChange: (c: 'alle' | Category) => void }) {
+  return (
+    <section className="deck-chips" aria-label="Werkzeuge filtern">
+      <span className="deck-chips-count">09 WERKZEUGE</span>
+      {CHIPS.map((c) => (
+        <button
+          key={c.key}
+          type="button"
+          className={`deck-chip${active === c.key ? ' is-active' : ''}`}
+          aria-pressed={active === c.key}
+          onClick={() => onChange(c.key)}
+        >
+          {c.label}
+        </button>
+      ))}
     </section>
   );
 }
 
-interface FeatureTileProps {
-  id: FeatureId;
-  eyebrow: string;
-  title: string;
-  description: string;
-  preview: ReactNode;
-  /** When set, the tile becomes an interactive button that opens its feature page. */
-  onOpen?: (feature: FeatureInfo) => void;
-  /** Vorschau füllt die Box randlos (ohne Padding/Hintergrund) — z. B. Wetterkarte. */
-  flush?: boolean;
-}
-function FeatureTile({ id, eyebrow, title, description, preview, onOpen, flush }: FeatureTileProps) {
-  const live = !!onOpen;
-  const open = () => onOpen?.({ id, eyebrow, title });
-  const inner = (
-    <>
-      <div className={`feature-preview${flush ? ' feature-preview-flush' : ''}`}>{preview}</div>
-      <div className="feature-text">
-        <span className="feature-eyebrow">{eyebrow}{live && <span className="feature-live-dot" aria-label="verfügbar" />}</span>
-        <h3 className="feature-title">{title}</h3>
-        <p className="feature-desc">{description}</p>
-        <span className="feature-arrow" aria-hidden="true">
-          <svg width="20" height="14" viewBox="0 0 20 14" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round">
-            <line x1="1" y1="7" x2="17" y2="7" />
-            <polyline points="12,2 17,7 12,12" />
+// ============================================================================
+// BENTO GRID — 9 Werkzeug-Kacheln. DOM-Reihenfolge = Mock-Desktop; Tablet
+// ordnet per CSS `order` um; Mobile stapelt (3D+Globus als Paar).
+// ============================================================================
+function BentoGrid({ activeCat, onOpenFeature }: { activeCat: 'alle' | Category; onOpenFeature: (f: FeatureInfo) => void }) {
+  // Dim-Logik: bei aktivem Filter alles ausblenden, was nicht zur Kategorie passt.
+  const dim = (cats: Category[]) => activeCat !== 'alle' && !cats.includes(activeCat);
+
+  const tile = (cats: Category[], cls: string, feature: FeatureInfo, ariaLabel: string, children: ReactNode) => (
+    <button
+      type="button"
+      className={`deck-tile ${cls}${dim(cats) ? ' is-dim' : ''}`}
+      aria-label={ariaLabel}
+      aria-hidden={dim(cats) || undefined}
+      tabIndex={dim(cats) ? -1 : undefined}
+      onClick={() => onOpenFeature(feature)}
+    >
+      {children}
+    </button>
+  );
+
+  return (
+    <section className="deck-bento" aria-label="Werkzeuge">
+      {/* 01 · WETTERKARTE — groß (2×2) */}
+      {tile(['radar'], 'tile-karte t-lg', FEATURE.map2d, 'Wetterkarte öffnen',
+        <>
+          <div className="tile-head">
+            <div>
+              <div className="tile-eyebrow">01 · WETTERKARTE</div>
+              <div className="tile-title tile-title-xl">Die ganze DACH-Wetterkarte</div>
+            </div>
+            <span className="tile-badge badge-live">● Regenradar an</span>
+          </div>
+          <p className="tile-desc">Wind, Niederschlag, Temperatur (höhenkorrigiert), Wolken, Satellit, Blitze und Stationen — mit Zeit-Slider und Modellwahl je Land. Direkt-Einstieg ohne Ortssuche.</p>
+          <div className="tile-map">
+            <svg viewBox="0 0 600 320" preserveAspectRatio="none" className="tile-map-svg" aria-hidden="true">
+              <g fill="none" stroke="var(--steel-600)" strokeWidth="1.5" strokeOpacity=".5">
+                <path d="M30 100 C160 60 380 140 580 90" /><path d="M30 160 C160 120 380 200 580 150" /><path d="M30 220 C160 180 380 260 580 210" />
+              </g>
+              <g fill="var(--terracotta-500)" fillOpacity=".45"><circle cx="200" cy="150" r="40" /><circle cx="440" cy="220" r="52" /></g>
+              <g fill="var(--amber-500)"><circle cx="120" cy="220" r="4" /><circle cx="300" cy="170" r="4" /><circle cx="480" cy="120" r="4" /><circle cx="240" cy="260" r="4" /><circle cx="380" cy="90" r="4" /></g>
+            </svg>
+            <span className="tile-map-tag">2D · MAPLIBRE · DWD ICON-D2 · RADOLAN-RV</span>
+          </div>
+          <div className="tile-tags">
+            {['Wind', 'Niederschlag', 'Temperatur', 'Wolken', 'Satellit', 'Blitze', 'Stationen'].map((t) => (
+              <span key={t} className="tile-tag">{t}</span>
+            ))}
+          </div>
+        </>)}
+
+      {/* 02 · TOURENPLANUNG — dunkel, span 2 */}
+      {tile(['planen'], 'tile-tour t-w2 t-ink', FEATURE.route, 'Tourenplanung öffnen',
+        <>
+          <div className="tile-head">
+            <div>
+              <div className="tile-eyebrow">02 · TOURENPLANUNG</div>
+              <div className="tile-title tile-title-lg">Wetter entlang deiner Route</div>
+            </div>
+            <span className="tile-badge badge-mono-ghost">E-BIKE</span>
+          </div>
+          <p className="tile-desc on-ink">GPX/TCX/FIT/KML hochladen — Wind, Regen und Temperatur pro km zur echten Ankunftszeit. 8 Bewegungsarten, E-Bike-Akku-Reichweite, Pausenplanung, Rücken-/Gegenwind.</p>
+          <svg viewBox="0 0 520 70" preserveAspectRatio="none" className="tile-route-svg" aria-hidden="true">
+            <path d="M0 56 L70 38 L140 48 L210 18 L290 32 L360 22 L440 40 L520 12" fill="none" stroke="var(--amber-500)" strokeWidth="2.5" />
+            <circle cx="210" cy="18" r="4" fill="var(--terracotta-500)" /><circle cx="440" cy="40" r="4" fill="var(--steel-600)" />
           </svg>
-        </span>
+        </>)}
+
+      {/* 03 · EVENT-PLANUNG — weiß, span 2 */}
+      {tile(['planen'], 'tile-event t-w2', FEATURE.event, 'Event-Planung öffnen',
+        <>
+          <div>
+            <div className="tile-eyebrow">03 · EVENT-PLANUNG</div>
+            <div className="tile-title tile-title-lg">Welcher Tag passt am besten?</div>
+            <p className="tile-desc">Anlass + Ort + Zeitfenster → 7-Tage-Score. Phasen (Trauung/Empfang/Abendfeier) einzeln bewertet, Plan B, Regen-/Wind-/Hitze-Hazards, Foto-Licht & Astro-Nacht.</p>
+          </div>
+          <div className="tile-bars">
+            {[40, 64, 100, 52, 76, 34, 58].map((h, i) => (
+              <span key={i} className={`tile-bar${h === 100 ? ' is-best' : h >= 64 ? ' is-mid' : ''}`} style={{ height: `${h}%` }} />
+            ))}
+          </div>
+        </>)}
+
+      {/* 04 · NOWCAST / Regenradar */}
+      {tile(['radar'], 'tile-nowcast', FEATURE.nowcast, 'Regenradar / Nowcast öffnen',
+        <>
+          <div className="tile-eyebrow">04 · NOWCAST</div>
+          <div className="tile-radar">
+            <svg width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
+              <circle cx="32" cy="32" r="30" fill="none" stroke="var(--sand-200)" /><circle cx="32" cy="32" r="20" fill="none" stroke="var(--sand-200)" /><circle cx="32" cy="32" r="10" fill="none" stroke="var(--sand-200)" />
+              <circle cx="32" cy="32" r="3" fill="var(--steel-600)" />
+              <line x1="32" y1="32" x2="58" y2="24" stroke="var(--steel-600)" strokeWidth="1.5" className="tile-radar-sweep" />
+            </svg>
+          </div>
+          <div>
+            <div className="tile-title tile-title-sm">Regnet es in 40 Min?</div>
+            <p className="tile-desc sm">0–2 h Radar, 2–6 h ICON-D2. Blitz- & Sturm-Alerts, alpine Tal/Grat-Trennung.</p>
+          </div>
+        </>)}
+
+      {/* 05 · VORHERSAGE */}
+      {tile(['verstehen'], 'tile-forecast t-cream', FEATURE.forecast, 'Vorhersage & Konfidenz öffnen',
+        <>
+          <div className="tile-eyebrow">05 · VORHERSAGE</div>
+          <div className="tile-donut-row">
+            <svg width="58" height="58" viewBox="0 0 56 56" aria-hidden="true">
+              <circle cx="28" cy="28" r="22" fill="none" stroke="var(--sand-200)" strokeWidth="6" />
+              <circle cx="28" cy="28" r="22" fill="none" stroke="var(--sage-600)" strokeWidth="6" strokeLinecap="round" strokeDasharray="138 138" strokeDashoffset="34" transform="rotate(-90 28 28)" />
+            </svg>
+            <div className="tile-donut-val">78%<span>Trefferquote 3 Tage</span></div>
+          </div>
+          <div>
+            <div className="tile-title tile-title-sm">Konfidenz & Modelle</div>
+            <p className="tile-desc sm">ICON-D2 + MOSMIX + ICON-EU, Unsicherheitsband, Hit-Rate-Rückblick. Einfach/Experte.</p>
+          </div>
+        </>)}
+
+      {/* 06 · HISTORIE */}
+      {tile(['verstehen'], 'tile-history', FEATURE.history, 'Historie öffnen',
+        <>
+          <div className="tile-eyebrow">06 · HISTORIE</div>
+          <div className="tile-stripes" aria-hidden="true">
+            {['#3A6FA8', '#4A6E93', '#6B7A8F', '#8B8A80', '#A89A7A', '#C9A878', '#D4A373', '#C97B47', '#B96A3C', '#A85E2E'].map((c, i) => (
+              <span key={i} style={{ background: c }} />
+            ))}
+          </div>
+          <div>
+            <div className="tile-title tile-title-sm">Klima seit 1940</div>
+            <p className="tile-desc sm">ERA5: Warming-Stripes, Anomalien, Kenntage, Rekorde, Trends, Windrose.</p>
+          </div>
+        </>)}
+
+      {/* 07 · 3D-WETTER → Atmosphäre */}
+      {tile(['erkunden'], 'tile-threed t-half', FEATURE.atmosphere, 'Atmosphäre / 3D-Wetter öffnen',
+        <>
+          <div className="tile-head">
+            <div className="tile-eyebrow">07 · 3D-WETTER</div>
+            <span className="tile-badge badge-solid">Föhn</span>
+          </div>
+          <svg viewBox="0 0 220 70" preserveAspectRatio="none" className="tile-terrain-svg" aria-hidden="true">
+            <path d="M0 68 L60 40 L110 20 L150 34 L220 60 L220 70 L0 70 Z" fill="var(--sand-100)" stroke="var(--border-strong)" />
+            <g stroke="var(--steel-600)" strokeWidth="1.4" strokeOpacity=".6"><line x1="30" y1="16" x2="50" y2="14" /><line x1="90" y1="12" x2="112" y2="9" /><line x1="150" y1="14" x2="172" y2="11" /></g>
+            <path d="M110 20 L150 34" stroke="var(--terracotta-500)" strokeWidth="2" />
+          </svg>
+          <div>
+            <div className="tile-title tile-title-sm">Vertikalschnitt</div>
+            <p className="tile-desc sm">Höhenwind, Inversion, Wolkenschichten, Windscherung, Föhn-Durchgriff. Gelände-Modus.</p>
+          </div>
+        </>)}
+
+      {/* 08 · GLOBUS */}
+      {tile(['erkunden'], 'tile-globus t-half', FEATURE.globe, '3D-Globus öffnen',
+        <>
+          <div className="tile-eyebrow">08 · GLOBUS</div>
+          <div className="tile-center">
+            <svg width="60" height="60" viewBox="0 0 60 60" aria-hidden="true">
+              <circle cx="30" cy="30" r="26" fill="var(--sand-100)" stroke="var(--border-strong)" />
+              <g fill="none" stroke="var(--slate-500)" strokeWidth="1" strokeOpacity=".7"><ellipse cx="30" cy="30" rx="10" ry="26" /><ellipse cx="30" cy="30" rx="22" ry="26" /><line x1="4" y1="30" x2="56" y2="30" /><path d="M9 17 H51 M9 43 H51" /></g>
+            </svg>
+          </div>
+          <div>
+            <div className="tile-title tile-title-sm">3D-Globus</div>
+            <p className="tile-desc sm">Wind-Partikel + Temperatur. <span className="tile-caveat">Sample-Felder — keine Live-Vorhersage.</span></p>
+          </div>
+        </>)}
+
+      {/* 09 · FEEDBACK (an Stelle des Mock-Tiles „KI-Meteorologe") — dunkel, span 2 */}
+      {tile([], 'tile-feedback t-w2 t-ink2', FEATURE.feedback, 'Feedback geben',
+        <>
+          <div className="tile-feedback-icon" aria-hidden="true">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2 L14 9 L21 11 L14 13 L12 20 L10 13 L3 11 L10 9 Z" fill="var(--amber-500)" />
+            </svg>
+          </div>
+          <div className="tile-feedback-body">
+            <div className="tile-eyebrow">09 · FEEDBACK</div>
+            <div className="tile-title tile-title-lg">Ideen, Wünsche & Fehler melden</div>
+            <p className="tile-desc on-ink">Was sollen wir verbessern, was fehlt dir? Schick uns deine Anregung direkt per E-Mail — ohne Konto, ohne Tracker. Jede Rückmeldung fließt in die nächste Ausbaustufe.</p>
+          </div>
+          <span className="tile-badge badge-mono-ghost">E-MAIL</span>
+        </>)}
+    </section>
+  );
+}
+
+// ============================================================================
+// FUNDAMENT · FUSION FORECAST
+// ============================================================================
+function Fundament() {
+  return (
+    <section className="deck-fundament" aria-label="Fundament">
+      <div className="deck-fundament-inner">
+        <div className="deck-eyebrow-line">DAS FUNDAMENT · FUSION FORECAST</div>
+        <h2 className="deck-h2">Wie aus vielen Quellen ein Feld wird</h2>
+        <p className="deck-lead">Mehrere Modelle und Live-Stationen werden clientseitig zu einem dichten Gitterfeld pro Vorhersagestunde verschmolzen — deterministisch, ohne Backend. Kein „bestes Modell", nur additive Information.</p>
+        <div className="deck-steps">
+          <div className="deck-step"><div className="deck-step-num">01 · 02</div><div className="deck-step-title">Quellen wählen & laden</div><p>DE → DWD, AT → GeoSphere AROME/INCA, CH → MeteoSwiss. Parallel, fehlertolerant, 10-min-Cache.</p></div>
+          <div className="deck-step"><div className="deck-step-num">03 · 04</div><div className="deck-step-title">Gewichten & interpolieren</div><p>Live-Messungen dominieren Stunde 0, Modelle tragen den Horizont. IDW + Barnes-Glättung.</p></div>
+          <div className="deck-step"><div className="deck-step-num">05 · 06</div><div className="deck-step-title">Physik & Kodierung</div><p>Höhenkorrektur per DEM, speed-erhaltender Wind, temporaler Median — als PNG-Textur an die Karte.</p></div>
+        </div>
+        <div className="deck-pills">
+          <span className="deck-pill">Höhenkorrektur (Lapse-Rate + DEM)</span>
+          <span className="deck-pill accent">Föhn-Detektor</span>
+          <span className="deck-pill">Niederschlagsart (Schneefallgrenze)</span>
+          <span className="deck-pill">Gefühlte Temperatur</span>
+        </div>
       </div>
-    </>
-  );
-  // Live = echtes <button> (native Tastatur/Fokus/ARIA, korrekte a11y-Rolle);
-  // inert = neutrales <div>. Kein role="button" auf <article> mehr.
-  return live ? (
-    <button type="button" className="feature-tile feature-tile-live" onClick={open}>{inner}</button>
-  ) : (
-    <div className="feature-tile">{inner}</div>
-  );
-}
-
-/* ----- Preview 0: 2D-WETTERKARTE — gespiegelt aus der Intro-Illustration
-   „Wetterkarte" (intro/introArt.tsx · MapArt): gerahmte Sandkarte mit
-   Höhenlinien, Pin und Layer-Chips, Akzent steel-600. Line-Art-Designsprache
-   statt des früheren bunten Verlauf-/Wind-/Punkte-Mix. ----- */
-function MapTilePreview() {
-  return (
-    <svg viewBox="0 0 260 140" fill="none" aria-hidden="true" className="feature-svg"
-      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-      style={{ color: 'var(--steel-600)' }}>
-      {/* Kartenfläche — füllt die Vorschau, dezenter Abstand kommt aus dem Padding */}
-      <rect x="0" y="0" width="260" height="140" rx="12" fill="var(--sand-100)" />
-      {/* Höhenlinien (Akzent) */}
-      <g stroke="currentColor" opacity="0.45">
-        <path d="M 28 52 Q 92 40 150 52 T 232 46" />
-        <path d="M 28 78 Q 92 66 150 78 T 232 72" />
-        <path d="M 28 102 Q 92 90 150 102 T 232 96" />
-      </g>
-      {/* Ort-Pin (Akzent) */}
-      <g>
-        <path d="M 130 100 C 121 86 117 79 117 71 a 13 13 0 1 1 26 0 c 0 8 -4 15 -13 29 Z" fill="currentColor" stroke="none" />
-        <circle cx="130" cy="71" r="5" fill="var(--sand-100)" stroke="none" />
-      </g>
-      {/* Layer-Chips: zwei neutral, einer aktiv (Akzent) */}
-      <g strokeWidth="1.5">
-        <rect x="55" y="108" width="42" height="14" rx="7" fill="#fff" stroke="var(--sand-200)" />
-        <rect x="105" y="108" width="50" height="14" rx="7" fill="currentColor" stroke="none" />
-        <rect x="163" y="108" width="42" height="14" rx="7" fill="#fff" stroke="var(--sand-200)" />
-      </g>
-    </svg>
-  );
-}
-
-/* ----- Preview 1: TOURENPLANUNG — gespiegelt aus der Intro-Illustration
-   „Tourenplanung" (intro/introArt.tsx · RouteArt): Höhenprofil mit Start/Ziel,
-   Sonne und Wolke, Akzent sage-600. Gleiche randlose Sandfläche + Größe wie
-   die Wetterkarte. ----- */
-function RoutePreview() {
-  return (
-    <svg viewBox="0 0 260 140" fill="none" aria-hidden="true" className="feature-svg"
-      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-      style={{ color: 'var(--sage-600)' }}>
-      {/* Sandfläche */}
-      <rect x="0" y="0" width="260" height="140" rx="12" fill="var(--sand-100)" />
-      {/* Höhenprofil-Fläche — Basislinie über der Kachelkante, damit der untere
-          Sand-Rand (runde Ecke) sichtbar bleibt wie bei den anderen Icons */}
-      <path d="M 26 116 Q 86 44 132 48 T 238 100 L 238 122 L 26 122 Z" fill="var(--sand-200)" stroke="none" />
-      {/* Profil-Kurve (Akzent) */}
-      <path d="M 26 116 Q 86 44 132 48 T 238 100" stroke="currentColor" />
-      {/* Start (ink) + Ziel (Akzent) */}
-      <circle cx="26" cy="116" r="5" fill="var(--ink-900)" stroke="none" />
-      <circle cx="238" cy="100" r="5" fill="currentColor" stroke="none" />
-      {/* Sonne über dem Aufstieg */}
-      <g transform="translate(74 44)" stroke="currentColor">
-        <circle r="8" fill="#fff" />
-        <g strokeWidth="2">
-          <line x1="0" y1="-14" x2="0" y2="-11" /><line x1="0" y1="11" x2="0" y2="14" />
-          <line x1="-14" y1="0" x2="-11" y2="0" /><line x1="11" y1="0" x2="14" y2="0" />
-          <line x1="-10" y1="-10" x2="-7.7" y2="-7.7" /><line x1="7.7" y1="7.7" x2="10" y2="10" />
-          <line x1="-10" y1="10" x2="-7.7" y2="7.7" /><line x1="7.7" y1="-7.7" x2="10" y2="-10" />
-        </g>
-      </g>
-      {/* Wolke beim Abstieg */}
-      <g transform="translate(196 56)">
-        <path d="M -18 6 C -25 6 -26 -3 -19 -6 C -19 -14 -7 -17 -1 -11 C 4 -17 17 -14 17 -3 C 25 -3 25 6 17 6 Z"
-          fill="#fff" stroke="var(--stone-400)" />
-      </g>
-    </svg>
-  );
-}
-
-/* ----- Historie — Klimastreifen als Akzent-Opazitätsverlauf (kühl→warm) mit
-   Erwärmungs-Trendlinie, Akzent terracotta-500. Line-Art-Spec + randlose
-   Sandfläche/Größe wie die Wetterkarte. ----- */
-function HistoryPreview() {
-  const N = 16;
-  return (
-    <svg viewBox="0 0 260 140" fill="none" aria-hidden="true" className="feature-svg"
-      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-      style={{ color: 'var(--terracotta-500)' }}>
-      <rect x="0" y="0" width="260" height="140" rx="12" fill="var(--sand-100)" />
-      {/* Klimastreifen: kühl → warm über die Akzent-Opazität */}
-      <g stroke="none">
-        {Array.from({ length: N }, (_, i) => (
-          <rect key={i} x={26 + i * 13} y="34" width="11.5" height="72" rx="1.5"
-            fill="currentColor" opacity={0.18 + (i / (N - 1)) * 0.72} />
-        ))}
-      </g>
-      {/* Erwärmungs-Trendlinie + Endpunkt */}
-      <path d="M 30 98 Q 132 90 230 58" stroke="var(--ink-900)" />
-      <circle cx="230" cy="58" r="4.5" fill="var(--ink-900)" stroke="none" />
-    </svg>
-  );
-}
-
-/* ----- Preview 2: EVENT-PLANUNG — gespiegelt aus der Intro-Illustration
-   „Event-Planung" (intro/introArt.tsx · EventArt): Score-Donut + 7-Tage-Balken
-   mit markiertem besten Tag, Akzent amber-500. Gleiche randlose Sandfläche +
-   Größe wie die Wetterkarte. ----- */
-function DayScorePreview() {
-  const C = 2 * Math.PI * 24;
-  const filled = C * 0.78;
-  const bars = [22, 30, 36, 50, 40, 26, 22];
-  return (
-    <svg viewBox="0 0 260 140" fill="none" aria-hidden="true" className="feature-svg"
-      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-      style={{ color: 'var(--amber-500)' }}>
-      {/* Sandfläche */}
-      <rect x="0" y="0" width="260" height="140" rx="12" fill="var(--sand-100)" />
-      {/* Score-Donut (78 %) */}
-      <g transform="translate(60 70)">
-        <circle r="24" stroke="var(--sand-200)" strokeWidth="7" />
-        <circle r="24" stroke="currentColor" strokeWidth="7" strokeDasharray={`${filled} ${C}`} transform="rotate(-90)" />
-        <circle r="3.5" cx="0" cy="-24" fill="currentColor" stroke="none" transform="rotate(-90)" />
-      </g>
-      {/* 7-Tage-Balken, bester Tag markiert */}
-      <g transform="translate(112 42)" strokeWidth="1.5">
-        {bars.map((h, i) => {
-          const best = i === 3;
-          return (
-            <g key={i} transform={`translate(${i * 20} ${56 - h})`}>
-              <rect width="14" height={h} rx="3.5" fill={best ? 'currentColor' : '#fff'} stroke={best ? 'none' : 'var(--sand-200)'} />
-              {best && <path d="M 4 7 L 7 10 L 11 4" stroke="#fff" strokeWidth="2" fill="none" />}
-            </g>
-          );
-        })}
-      </g>
-    </svg>
-  );
-}
-
-/* ----- Vorhersage — gespiegelt aus Intro „Vorhersage" (introArt.tsx · ForecastArt):
-   Mehrmodell-Spread-Fächer mit Unsicherheitsband + Caliper, Akzent steel-600.
-   Randlose Sandfläche/Größe wie die Wetterkarte. ----- */
-function SpreadPreview() {
-  return (
-    <svg viewBox="0 0 260 140" fill="none" aria-hidden="true" className="feature-svg"
-      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-      style={{ color: 'var(--steel-600)' }}>
-      <rect x="0" y="0" width="260" height="140" rx="12" fill="var(--sand-100)" />
-      {/* Basislinie */}
-      <line x1="30" y1="116" x2="232" y2="116" stroke="var(--sand-300)" strokeDasharray="3 5" />
-      {/* Spread-Band */}
-      <path d="M 40 84 L 220 44 L 220 108 Z" fill="currentColor" fillOpacity="0.12" stroke="none" />
-      {/* Modell-Linien (Fächer) + Mittelwert */}
-      <path d="M 40 84 L 220 44" stroke="currentColor" opacity="0.55" />
-      <path d="M 40 84 L 220 108" stroke="currentColor" opacity="0.55" />
-      <path d="M 40 84 L 220 78" stroke="var(--ink-900)" />
-      <circle cx="40" cy="84" r="5" fill="var(--ink-900)" stroke="none" />
-      {/* Caliper (Spannweite) */}
-      <g stroke="var(--ink-900)" strokeWidth="1.6">
-        <line x1="232" y1="44" x2="232" y2="108" />
-        <line x1="227" y1="44" x2="237" y2="44" />
-        <line x1="227" y1="108" x2="237" y2="108" />
-      </g>
-    </svg>
-  );
-}
-
-/* ----- Regenradar — gespiegelt aus Intro „Regenradar" (introArt.tsx · RadarArt):
-   Reichweiten-Ringe, Sweep-Keil und Regenwolke, Akzent slate-500. Randlose
-   Sandfläche/Größe wie die Wetterkarte. ----- */
-function NowcastPreview() {
-  return (
-    <svg viewBox="0 0 260 140" fill="none" aria-hidden="true" className="feature-svg"
-      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-      style={{ color: 'var(--slate-500)' }}>
-      <rect x="0" y="0" width="260" height="140" rx="12" fill="var(--sand-100)" />
-      {/* Reichweiten-Ringe */}
-      <g stroke="var(--sand-300)">
-        <circle cx="104" cy="78" r="48" />
-        <circle cx="104" cy="78" r="32" />
-        <circle cx="104" cy="78" r="16" />
-      </g>
-      {/* Sweep-Keil + Strahl (Akzent) */}
-      <path d="M 104 78 L 104 30 A 48 48 0 0 1 146 56 Z" fill="currentColor" opacity="0.16" stroke="none" />
-      <line x1="104" y1="78" x2="146" y2="56" stroke="currentColor" />
-      <circle cx="104" cy="78" r="4" fill="currentColor" stroke="none" />
-      {/* Regenwolke oben rechts */}
-      <g transform="translate(198 48)">
-        <path d="M -20 7 C -28 7 -29 -2 -22 -5 C -22 -14 -9 -18 -3 -12 C 3 -18 16 -14 16 -3 C 25 -3 25 7 16 7 Z" fill="#fff" stroke="currentColor" />
-        <g stroke="currentColor" strokeWidth="2">
-          <line x1="-10" y1="12" x2="-13" y2="20" />
-          <line x1="0" y1="12" x2="-3" y2="20" />
-          <line x1="10" y1="12" x2="7" y2="20" />
-        </g>
-      </g>
-    </svg>
-  );
-}
-
-/* ----- Atmosphäre — Vertikalprofil-Säule mit Schicht-Bändern (Grenzschicht →
-   Wolkenbasis → Höhenwind) + Sonne, Akzent steel-600. Line-Art-Spec + randlose
-   Sandfläche/Größe wie die Wetterkarte. ----- */
-function AtmospherePreview() {
-  return (
-    <svg viewBox="0 0 260 140" fill="none" aria-hidden="true" className="feature-svg"
-      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-      style={{ color: 'var(--steel-600)' }}>
-      <rect x="0" y="0" width="260" height="140" rx="12" fill="var(--sand-100)" />
-      {/* Sonne oben rechts */}
-      <g transform="translate(214 34)" stroke="currentColor">
-        <circle r="9" fill="#fff" />
-        <g strokeWidth="2">
-          <line x1="0" y1="-15" x2="0" y2="-12" /><line x1="0" y1="12" x2="0" y2="15" />
-          <line x1="-15" y1="0" x2="-12" y2="0" /><line x1="12" y1="0" x2="15" y2="0" />
-          <line x1="-11" y1="-11" x2="-8.5" y2="-8.5" /><line x1="8.5" y1="8.5" x2="11" y2="11" />
-        </g>
-      </g>
-      {/* Höhen-Bänder (transluzent, von oben kühl → unten warm) */}
-      <g stroke="none">
-        <rect x="26" y="30" width="150" height="22" rx="3" fill="currentColor" opacity="0.10" />
-        <rect x="26" y="56" width="150" height="22" rx="3" fill="currentColor" opacity="0.16" />
-        <rect x="26" y="82" width="150" height="22" rx="3" fill="var(--sage-600)" opacity="0.22" />
-      </g>
-      {/* Geländeboden */}
-      <path d="M 26 116 Q 70 102 110 110 T 200 106 L 200 116 Z" fill="var(--sand-300)" stroke="none" />
-      {/* Vertikale Sampling-Säule + Knoten je Schicht */}
-      <line x1="101" y1="26" x2="101" y2="116" stroke="currentColor" strokeWidth="1.6" strokeDasharray="3 3" opacity="0.85" />
-      <g fill="currentColor" stroke="none">
-        <circle cx="101" cy="41" r="3" />
-        <circle cx="101" cy="67" r="3" />
-        <circle cx="101" cy="93" r="3" />
-      </g>
-      {/* Höhenwind-Barbs rechts der Säule */}
-      <g stroke="currentColor" strokeWidth="1.6">
-        <line x1="120" y1="41" x2="140" y2="41" /><line x1="140" y1="41" x2="135" y2="37" />
-        <line x1="120" y1="67" x2="136" y2="67" /><line x1="136" y1="67" x2="132" y2="64" />
-        <line x1="120" y1="93" x2="132" y2="93" />
-      </g>
-    </svg>
-  );
-}
-
-/* ----- 3D-Globus — gespiegelt aus Intro „3D-Globus" (introArt.tsx · GlobeArt):
-   Kugel mit Gitter, Atmosphäre und Jetstream-Bändern, Akzent slate-500. Randlose
-   Sandfläche/Größe wie die Wetterkarte. ----- */
-function GlobePreview() {
-  const cx = 130, cy = 70, r = 48;
-  return (
-    <svg viewBox="0 0 260 140" fill="none" aria-hidden="true" className="feature-svg"
-      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-      style={{ color: 'var(--slate-500)' }}>
-      <rect x="0" y="0" width="260" height="140" rx="12" fill="var(--sand-100)" />
-      {/* Atmosphäre */}
-      <circle cx={cx} cy={cy} r={r + 6} stroke="currentColor" strokeWidth="6" opacity="0.22" />
-      {/* Kugel */}
-      <circle cx={cx} cy={cy} r={r} fill="var(--sand-200)" stroke="var(--sand-300)" />
-      {/* Gitter */}
-      <g stroke="var(--stone-400)" strokeWidth="1.2" opacity="0.6" fill="none">
-        <line x1={cx - r} y1={cy} x2={cx + r} y2={cy} />
-        <line x1={cx} y1={cy - r} x2={cx} y2={cy + r} />
-        <ellipse cx={cx} cy={cy} rx={r * 0.4} ry={r} />
-        <ellipse cx={cx} cy={cy} rx={r} ry={r * 0.42} />
-      </g>
-      {/* Jetstream-Bänder (Akzent) */}
-      <g fill="none">
-        <path d="M 92 56 Q 130 46 172 58" stroke="currentColor" />
-        <path d="M 90 90 Q 130 100 174 88" stroke="currentColor" opacity="0.55" />
-      </g>
-      {/* Glanzlicht */}
-      <ellipse cx={cx - 16} cy={cy - 16} rx="12" ry="8" fill="#fff" opacity="0.4" stroke="none" />
-    </svg>
-  );
-}
-
-/* ----- Feedback — Sprechblase mit „Funken"/Idee, Akzent sage-600. Line-Art-Spec
-   + randlose Sandfläche/Größe wie die Wetterkarte. ----- */
-function FeedbackPreview() {
-  return (
-    <svg viewBox="0 0 260 140" fill="none" aria-hidden="true" className="feature-svg"
-      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-      style={{ color: 'var(--sage-600)' }}>
-      <rect x="0" y="0" width="260" height="140" rx="12" fill="var(--sand-100)" />
-      {/* Sprechblase */}
-      <path d="M 60 40 H 200 a 14 14 0 0 1 14 14 V 92 a 14 14 0 0 1 -14 14 H 108 l -22 18 v -18 H 60 a 14 14 0 0 1 -14 -14 V 54 a 14 14 0 0 1 14 -14 Z"
-        fill="#fff" stroke="currentColor" />
-      {/* Idee-Funke / Stern in der Blase */}
-      <path d="M 130 58 L 134 72 L 148 76 L 134 80 L 130 94 L 126 80 L 112 76 L 126 72 Z"
-        fill="currentColor" stroke="none" opacity="0.9" />
-      {/* zwei kleine Funken */}
-      <g stroke="currentColor" strokeWidth="1.6" opacity="0.7">
-        <line x1="166" y1="60" x2="172" y2="60" /><line x1="169" y1="57" x2="169" y2="63" />
-        <line x1="92" y1="88" x2="98" y2="88" /><line x1="95" y1="85" x2="95" y2="91" />
-      </g>
-    </svg>
+    </section>
   );
 }
 
 // ============================================================================
-// FOOTER — slim
+// EHRLICH BLEIBEN — alle 6 Punkte
 // ============================================================================
-function HeroFooter({ onOpenFeature }: { onOpenFeature: (feature: FeatureInfo) => void }) {
+const HONESTY: Array<{ tone: 'warn' | 'ok'; head: string; body: string }> = [
+  { tone: 'warn', head: 'UV, Pollen & amtliche Warnungen', body: 'Nur Deutschland (DWD). AT/CH bekommen das nicht.' },
+  { tone: 'warn', head: 'AT/CH Raster-Horizont', body: 'Karten ~1–2 Tage; weiter draußen nur Punkt-Blend.' },
+  { tone: 'warn', head: 'Globus = Sample-Daten', body: 'Keine echte globale Live-Vorhersage.' },
+  { tone: 'warn', head: 'Kein Backend', body: 'Kein zuverlässiges Push, keine Accounts/Sync — nur localStorage.' },
+  { tone: 'warn', head: 'Kein offizielles Briefing', body: 'Kein METAR/TAF, Lawinen- oder Seegangsbericht.' },
+  { tone: 'ok', head: 'Dafür: ehrliche Unsicherheit', body: 'Spread, Konfidenz und Hit-Rate offen ausgewiesen.' },
+];
+function Honesty() {
   return (
-    <footer className="hero-footer">
-      <div className="hero-footer-slim">
-        <span className="hero-footer-logo">
-          <Logo />
-          buscosun
-        </span>
-        <span className="hero-footer-version">v0.9 Beta</span>
-        <button
-          type="button"
-          className="hero-footer-link"
-          onClick={() => onOpenFeature({ id: 'validation', eyebrow: 'Validierung', title: 'Wie gut ist der KI-Nowcast wirklich?' })}
-        >
-          Validierung
-        </button>
-        <span className="hero-footer-bot">
-          © 2026 buscosun · keine Tracker · keine Werbung
-        </span>
+    <section className="deck-honesty" aria-label="Grenzen">
+      <div className="deck-honesty-card">
+        <div className="deck-honesty-head">
+          <h2 className="deck-h3">Ehrlich bleiben — was wir <em>nicht</em> können</h2>
+          <span className="deck-honesty-cov">ABDECKUNG · DE · AT · CH</span>
+        </div>
+        <div className="deck-honesty-grid">
+          {HONESTY.map((h) => (
+            <div key={h.head} className="deck-honesty-item">
+              <span className={`deck-honesty-mark ${h.tone}`} aria-hidden="true">{h.tone === 'ok' ? '●' : '▲'}</span>
+              <div><div className="deck-honesty-title">{h.head}</div><div className="deck-honesty-body">{h.body}</div></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ============================================================================
+// FOOTER — Quellen · Werkzeuge · Rechtliches (inkl. Feedback/Validierung) ·
+// MapLibre/OSM-Attribution.
+// ============================================================================
+function DeckFooter({ onOpenFeature }: { onOpenFeature: (f: FeatureInfo) => void }) {
+  return (
+    <footer className="deck-footer">
+      <div className="deck-footer-top">
+        <div className="deck-footer-brand">
+          <div className="deck-footer-logo"><LogoMark size={22} /><span>buscosun</span></div>
+          <p>Reine Frontend-Web-App für DACH. Kein Account · keine Tracker · Einstellungen bleiben lokal (localStorage).</p>
+          <span className="deck-footer-version">v0.9 Beta</span>
+        </div>
+        <div className="deck-footer-cols">
+          <div className="deck-footer-col">
+            <div className="deck-footer-h">QUELLEN</div>
+            <div className="deck-footer-list">DWD · GeoSphere Austria<br />MeteoSwiss · Open-Meteo<br />ERA5 · Meteosat</div>
+          </div>
+          <div className="deck-footer-col">
+            <div className="deck-footer-h">WERKZEUGE</div>
+            <div className="deck-footer-links">
+              <button type="button" onClick={() => onOpenFeature(FEATURE.map2d)}>Wetterkarte</button> ·{' '}
+              <button type="button" onClick={() => onOpenFeature(FEATURE.nowcast)}>Nowcast</button><br />
+              <button type="button" onClick={() => onOpenFeature(FEATURE.route)}>Touren</button> ·{' '}
+              <button type="button" onClick={() => onOpenFeature(FEATURE.event)}>Event</button><br />
+              <button type="button" onClick={() => onOpenFeature(FEATURE.history)}>Historie</button> ·{' '}
+              <button type="button" onClick={() => onOpenFeature(FEATURE.atmosphere)}>Atmosphäre</button>
+            </div>
+          </div>
+          <div className="deck-footer-col">
+            <div className="deck-footer-h">MEHR</div>
+            <div className="deck-footer-links">
+              <button type="button" onClick={() => onOpenFeature(FEATURE.feedback)}>Feedback</button><br />
+              <button type="button" onClick={() => onOpenFeature(FEATURE.validation)}>Validierung</button><br />
+              <button type="button" onClick={() => onOpenFeature(FEATURE.globe)}>3D-Globus</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="deck-footer-bot">
+        <span>MapLibre · © OpenStreetMap-Mitwirkende</span>
+        <span>© 2026 buscosun · Kein sicherheitskritisches Briefing</span>
       </div>
     </footer>
+  );
+}
+
+// ============================================================================
+// COMMAND PALETTE — ⌘K-Overlay: Text filtert, Enter/Klick öffnet Feature.
+// ============================================================================
+function CommandPalette({ open, onClose, onOpenFeature }: {
+  open: boolean;
+  onClose: () => void;
+  onOpenFeature: (f: FeatureInfo) => void;
+}) {
+  const [query, setQuery] = useState('');
+  const [sel, setSel] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return PALETTE;
+    return PALETTE.filter((p) => `${p.label} ${p.hint} ${p.feature.eyebrow}`.toLowerCase().includes(q));
+  }, [query]);
+
+  // Beim Öffnen zurücksetzen + Fokus. Auswahl bei Filterwechsel klemmen.
+  useEffect(() => {
+    if (open) { setQuery(''); setSel(0); const t = window.setTimeout(() => inputRef.current?.focus(), 30); return () => window.clearTimeout(t); }
+  }, [open]);
+  useEffect(() => { setSel((s) => Math.min(s, Math.max(0, filtered.length - 1))); }, [filtered.length]);
+
+  if (!open) return null;
+
+  const commit = (i: number) => {
+    const entry = filtered[i];
+    if (entry) onOpenFeature(entry.feature);
+  };
+
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowDown') { e.preventDefault(); setSel((s) => Math.min(s + 1, filtered.length - 1)); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); setSel((s) => Math.max(s - 1, 0)); }
+    else if (e.key === 'Enter') { e.preventDefault(); commit(sel); }
+    else if (e.key === 'Escape') { e.preventDefault(); onClose(); }
+  };
+
+  return (
+    <div className="deck-pal" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="deck-pal-card" role="dialog" aria-modal="true" aria-label="Befehls-Palette">
+        <div className="deck-pal-search">
+          <span className="deck-pal-icon"><SearchIcon size={18} /></span>
+          <input
+            ref={inputRef}
+            className="deck-pal-input"
+            placeholder="Ort suchen oder Werkzeug springen …"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={onKeyDown}
+            aria-label="Werkzeug suchen"
+            aria-activedescendant={filtered[sel] ? `pal-${filtered[sel].feature.id}` : undefined}
+          />
+          <kbd className="deck-kbd">ESC</kbd>
+        </div>
+        <div className="deck-pal-list" role="listbox" aria-label="Werkzeuge">
+          <div className="deck-pal-section">WERKZEUGE</div>
+          {filtered.length === 0 && <div className="deck-pal-empty">Kein Werkzeug gefunden — tippe einen Ort in die große Suche oben.</div>}
+          {filtered.map((p, i) => (
+            <button
+              key={p.feature.id}
+              id={`pal-${p.feature.id}`}
+              type="button"
+              role="option"
+              aria-selected={i === sel}
+              className={`deck-pal-item${i === sel ? ' is-sel' : ''}`}
+              onMouseEnter={() => setSel(i)}
+              onClick={() => commit(i)}
+            >
+              <span className="deck-pal-num">{p.num}</span>
+              <span className="deck-pal-label">{p.label}</span>
+              <span className="deck-pal-hint">{p.hint}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// MOBILE BOTTOM-TAB-BAR — Start · Karte · Touren · Suche (nur ≤767px).
+// safeArea.css sorgt für Home-Indicator-Abstand.
+// ============================================================================
+function MobileTabBar({ onOpenFeature, onSearch }: { onOpenFeature: (f: FeatureInfo) => void; onSearch: () => void }) {
+  return (
+    <nav className="deck-tabbar safe-pad-bottom" aria-label="Schnellzugriff">
+      <button type="button" className="deck-tab is-active" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} aria-label="Start">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 11 L12 3 L21 11" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /><path d="M5 10 V20 H19 V10" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" /></svg>
+        <span>Start</span>
+      </button>
+      <button type="button" className="deck-tab" onClick={() => onOpenFeature(FEATURE.map2d)} aria-label="Wetterkarte">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6 L9 4 L15 6 L20 4 V18 L15 20 L9 18 L4 20 Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" /><path d="M9 4 V18 M15 6 V20" stroke="currentColor" strokeWidth="1.6" /></svg>
+        <span>Karte</span>
+      </button>
+      <button type="button" className="deck-tab" onClick={() => onOpenFeature(FEATURE.route)} aria-label="Tourenplanung">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 18 L9 9 L13 14 L20 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        <span>Touren</span>
+      </button>
+      <button type="button" className="deck-tab" onClick={onSearch} aria-label="Ort suchen">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10" cy="10" r="6.5" stroke="currentColor" strokeWidth="1.8" /><line x1="15" y1="15" x2="20" y2="20" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
+        <span>Suche</span>
+      </button>
+    </nav>
   );
 }
