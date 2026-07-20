@@ -28,7 +28,8 @@ import { avalancheFor, AVALANCHE_MIN_ELEVATION_M } from '../avalanche';
 import { PointForecastOverview } from './PointForecastOverview';
 import { PointForecastCharts } from './PointForecastCharts';
 
-type View = 'overview' | 'charts' | 'table';
+export type PointForecastView = 'overview' | 'charts' | 'table';
+type View = PointForecastView;
 
 interface Props {
   lat: number;
@@ -42,6 +43,13 @@ interface Props {
    * gesteuert; Default hält das eingefrorene Blend-Verhalten.
    */
   sourceMode?: ModelSource;
+  /**
+   * Optional kontrollierter Tab (Übersicht/Diagramme/Tabelle) — die mobile
+   * Kartenseite steuert damit die Ansicht Karte⇄Diagramm von außen. Ohne
+   * Prop verhält sich der Tab-Zustand wie bisher (intern).
+   */
+  view?: PointForecastView;
+  onViewChange?: (v: PointForecastView) => void;
 }
 
 const REFRESH_MS = 10 * 60 * 1000;        // refresh every 10 min
@@ -55,7 +63,7 @@ const REFRESH_MS = 10 * 60 * 1000;        // refresh every 10 min
 // Desktop is unaffected (identical output; only redundant renders are skipped).
 export const PointForecastPanel = memo(PointForecastPanelImpl);
 
-function PointForecastPanelImpl({ lat, lng, country, locationLabel, hours = 24, sourceMode = 'fusion' }: Props) {
+function PointForecastPanelImpl({ lat, lng, country, locationLabel, hours = 24, sourceMode = 'fusion', view: viewProp, onViewChange }: Props) {
   const [data, setData] = useState<PointForecast | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -64,7 +72,10 @@ function PointForecastPanelImpl({ lat, lng, country, locationLabel, hours = 24, 
   const [pollen, setPollen] = useState<PollenForecast | null>(null);
   const [omPollen, setOmPollen] = useState<OpenMeteoPollen | null>(null);
   const [omOptIn, setOmOptIn] = useState<boolean>(() => isOpenMeteoOptIn());
-  const [view, setView] = useState<View>('overview');
+  const [viewState, setViewState] = useState<View>('overview');
+  // Kontrolliert-wenn-übergeben: `view`-Prop gewinnt, sonst interner Zustand.
+  const view = viewProp ?? viewState;
+  const setView = (v: View) => { onViewChange?.(v); if (viewProp === undefined) setViewState(v); };
 
   // Mobile-Bottom-Sheet: per Touch nach oben/unten wischbar (peek ↔ full ↔ zu).
   const [snap, setSnap] = useState<'peek' | 'full'>('peek');

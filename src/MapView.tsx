@@ -13,16 +13,15 @@ import { loadFusedForecast, prefetchSecondarySources, type ModelChoice } from '.
 import {
   initialModelSourceState, isFusionCapable, resolveModel, activeModelId,
   setGlobalSource, setLayerOverride, clearLayerOverride,
-  setActiveCountry, setCountryModel, toggleRadar,
+  setActiveCountry, setCountryModel, clearCountryModel, toggleRadar,
   resolvePointSource, setPointSource,
   type ModelSource, type ModelSourceState,
 } from './fusion/modelSource';
-import ModelSwitcher from './map/ModelSwitcher';
-import { modelEntry, type ModelId } from './fusion/modelCatalog';
+import { modelEntry, RADAR_SOURCE, type ModelId } from './fusion/modelCatalog';
 import { lerpFrameImage } from './fusion/frameInterp';
 import { COUNTRY_PROFILES, DACH_VIEW } from './countryProfiles';
 import { loadDachMask } from './countryMask';
-import { PointForecastPanel } from './pointForecast/PointForecastPanel';
+import { PointForecastPanel, type PointForecastView } from './pointForecast/PointForecastPanel';
 import { DACH_CITIES, TemperatureSampler, minZoomForRank, saveTempLabelCache, loadTempLabelCache, tempLabelColor, type TemperatureSamplerOptions, type City } from './temperatureLabels';
 import { LayerIcon } from './components/LayerIcon';
 import { LayerInfoPanel } from './components/LayerInfoPanel';
@@ -80,6 +79,17 @@ import {
   type StationsFeatureCollection,
 } from './sources/dachStations';
 import './MapView.css';
+// Command-Deck der Kartenseite (references/*-karte.png): Topbar · Ink-Rail ·
+// Layer-Dock · dunkle Bühne · rechtes Panel · Modellseite · Mobile-Bottom-Bar.
+import ModelLibraryOverlay from './map/ModelLibraryOverlay';
+import SevenDayForecast from './map/SevenDayForecast';
+import { nativeComposition } from './map/ModelSwitcher';
+import {
+  IcoLayers, IcoGlobe, IcoTrend, IcoPulse, IcoStar, IcoSun, IcoSearch, IcoGauge,
+  IcoRows, IcoArrowRight, IcoPlay, IcoPause, IcoPlus, IcoMinus,
+} from './map/deckIcons';
+import { geocodeDACH } from './geocode';
+import './map/mapDeck.css';
 
 function renderStationPopup(p: StationFeatureProperties, loading = false, errorMsg?: string): string {
   const srcLabel =
@@ -183,9 +193,16 @@ const INCA_MAX_HOURS = 3;
 
 export type LayerKey = 'wind' | 'gust' | 'nowcast' | 'temp' | 'clouds' | 'sat' | 'lightning' | 'stations' | 'confidence' | 'snowline' | 'flownowcast' | 'poprob';
 
+/** Features, zu denen die Deck-Rail/Bottom-Bar navigiert (App.tsx → onOpenFeature). */
+export type MapDeckFeature = 'nowcast' | 'forecast' | 'event';
+
 interface Props {
   location: Location;
   onBack?: () => void;
+  /** Rail-/Bottom-Bar-Navigation zu anderen Werkzeugen (App.tsx-View-Routing). */
+  onOpenFeature?: (id: MapDeckFeature) => void;
+  /** Ortssuche im Deck-Kopf: gewählten Ort als neue Karten-Location setzen. */
+  onSelectLocation?: (l: Location) => void;
   /** Eingebetteter Modus (z. B. in der Event-Ergebnisseite): füllt den
    *  Container statt Vollbild, blendet die Vollbild-Chrome (Zurück, Modell-Rail,
    *  Punktforecast-Panel, Wind-/Sat-Schalter) aus, zentriert auf den Ort. */
@@ -236,26 +253,6 @@ const MODEL_ID_TO_CHOICE: Partial<Record<ModelId, ModelChoice>> = {
  *  Forecasts (Desktop-Panel vs. „Vorhersage"-Segment im Sheet). */
 const MOBILE_MAP_MEDIA_QUERY = '(max-width: 767px), (max-height: 430px) and (orientation: landscape)';
 
-/** Akzentfarben der Layer-Chips im collapsed Chip-Strip (Variante C) —
- *  wiederverwendete Kartenfarben (precipRamp/temperatureRamp/Legenden),
- *  keine neuen Design-Tokens. */
-const LAYER_CHIP_DOT: Record<LayerKey, string> = {
-  wind: '#7aaafa',
-  gust: '#5b8ed6',
-  nowcast: 'rgb(45, 130, 215)',
-  temp: 'rgb(232, 176, 74)',
-  clouds: '#9aa3ad',
-  sat: '#8b7355',
-  lightning: '#e8c14a',
-  stations: '#c97b47',
-  confidence: '#a89a7a',
-  snowline: '#1f4fd0',
-  flownowcast: '#46a5b8',
-  poprob: 'rgb(112, 70, 198)',
-};
-
-const COUNTRY_FLAG = { DE: '🇩🇪', AT: '🇦🇹', CH: '🇨🇭' } as const;
-
 const SAT_PRODUCT_LABELS: Record<SatelliteProduct, string> = {
   eu_rgb: 'EU',
   world_ir: 'Welt',
@@ -296,7 +293,7 @@ function uvBoundsToCorners(uv: [number, number, number, number]): QuadCorners {
   return [[west, north], [east, north], [east, south], [west, south]];
 }
 
-export default function MapView({ location, onBack, embedded = false, initialActive, initialHour, embedHourRange, embeddedLayer, overview = false }: Props) {
+export default function MapView({ location, onBack, onOpenFeature, onSelectLocation, embedded = false, initialActive, initialHour, embedHourRange, embeddedLayer, overview = false }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const markerRef = useRef<Marker | null>(null);
@@ -383,7 +380,28 @@ export default function MapView({ location, onBack, embedded = false, initialAct
   // Die Modellwahl koppelt Raster + Punkt über den Resolver (resolvePointSource).
   const onSelectCountry = (c: Country) => setModelSource((s) => setActiveCountry(s, c));
   const onSelectModel = (c: Country, id: ModelId) => setModelSource((s) => setCountryModel(s, c, id));
+  const onClearCountryModel = (c: Country) => setModelSource((s) => clearCountryModel(s, c));
   const onToggleRadar = () => setModelSource((s) => toggleRadar(s));
+
+  // ---- Command-Deck-Zustand (Kartenseiten-Redesign) ------------------------
+  // Modellseite (Vollflächen-Overlay auf Desktop/Tablet; auf Mobile eigener Tab).
+  const [modelsOpen, setModelsOpen] = useState(false);
+  // Mobile-Bottom-Bar-Tab (Karte · Layer · Forecast · Modelle; Nowcast navigiert).
+  const [mobileTab, setMobileTab] = useState<'karte' | 'layer' | 'forecast' | 'modelle'>('karte');
+  // Modus des mobilen Layer-Screens: Standard (schlank) ⇄ Detail (Sublabels +
+  // Wind-/Satellit-Feinsteuerung + Lade-Stand je Layer).
+  const [layerMode, setLayerMode] = useState<'standard' | 'detail'>('standard');
+  // Ansicht Karte⇄Diagramm (mobil): steuert den Punktforecast-Tab von außen —
+  // „Diagramm" öffnet das Sheet voll mit der Diagramme-Ansicht.
+  const [pfcView, setPfcView] = useState<PointForecastView>('overview');
+  // Mobiles Land-Menü (DE/AT/CH-Chip neben der Suche).
+  const [countryMenuOpen, setCountryMenuOpen] = useState(false);
+  // Topbar-Uhr (Vorlage: 19:03 · MI · 21 MAI) — minütlich aktualisiert.
+  const [clockMs, setClockMs] = useState(() => Date.now());
+  useEffect(() => {
+    const id = window.setInterval(() => setClockMs(Date.now()), 30_000);
+    return () => window.clearInterval(id);
+  }, []);
   // Dev-Verifikations-Hook (Repo-Konvention wie __fusionV2 / __bsQA): Switch aus der
   // Konsole flippen (ergänzt die UI). Nur im Dev-Build.
   useEffect(() => {
@@ -624,7 +642,9 @@ export default function MapView({ location, onBack, embedded = false, initialAct
             // city labels. Always on — wind particles and the precip radar
             // "pop" on a dark canvas instead of washing out against the light
             // basemap, regardless of which weather layer is active.
-            paint: { 'fill-color': '#2C2A26', 'fill-opacity': 0.7 },
+            // Command-Deck (Vollansicht): tieferes Ink-Feld wie in der Vorlage
+            // (references/desktop-karte.png); eingebettet bleibt der Alt-Wert.
+            paint: { 'fill-color': '#2C2A26', 'fill-opacity': embedded ? 0.7 : 0.8 },
             layout: { visibility: 'visible' },
           },
           beforeId,
@@ -2340,10 +2360,10 @@ export default function MapView({ location, onBack, embedded = false, initialAct
   const dayLo = embedded && embedHourRange ? Math.max(0, Math.min(sliderMax, embedHourRange[0])) : 0;
   const dayHi = embedded && embedHourRange ? Math.max(dayLo + 0.2, Math.min(sliderMax, embedHourRange[1])) : sliderMax;
 
-  // Eingebettet: Tagesablauf animieren (Play) — Slider Schritt für Schritt durchs
-  // Fenster, am Ende zurück an den Anfang.
+  // Play: Slider Schritt für Schritt durchs Fenster animieren, am Ende zurück an
+  // den Anfang. Eingebettet = Eventfenster; Vollansicht = 0…Horizont (Zeit-Deck ▶).
   useEffect(() => {
-    if (!embedded || !playing) return;
+    if (!playing) return;
     const id = window.setInterval(() => {
       setForecastHour(h => {
         const next = Math.round((h + 1) * 10) / 10;
@@ -2351,7 +2371,7 @@ export default function MapView({ location, onBack, embedded = false, initialAct
       });
     }, 900);
     return () => window.clearInterval(id);
-  }, [embedded, playing, dayLo, dayHi]);
+  }, [playing, dayLo, dayHi]);
 
   // Eingebettet: aktiver Layer kommt von außen (Tab-Umschalter in der
   // Ergebnisseite) → internen active-State darauf spiegeln.
@@ -2392,14 +2412,19 @@ export default function MapView({ location, onBack, embedded = false, initialAct
   // von Jan freigegeben (plan.md Phase 1-C). Desktop/Tablet bleiben unberührt
   // (Sheet dort per CSS ausgeblendet).
   type SheetSnap = 'collapsed' | 'half' | 'full';
-  type SheetSegment = 'layer' | 'model' | 'fc';
-  const [sheetSnap, setSheetSnap] = useState<SheetSnap>('collapsed');
-  const [sheetSegment, setSheetSegment] = useState<SheetSegment>('layer');
-  const [sheetExpanded, setSheetExpanded] = useState<LayerKey | null>(null);
-  // Render-Ort des Punkt-Forecasts: Desktop-Panel vs. „Vorhersage"-Segment.
-  // Per JS-Media-Query entschieden, weil die Komponente beim Mount fetcht
-  // (Punktforecast + Alerts + Pollen) und deshalb nie doppelt existieren darf.
+  const [sheetSnap, setSheetSnap] = useState<SheetSnap>('half');
+  // Render-Ort des Punkt-Forecasts: Desktop-Panel (rechtes Deck-Panel) vs.
+  // mobiles Bottom-Sheet. Per JS-Media-Query entschieden, weil die Komponente
+  // beim Mount fetcht (Punktforecast + Alerts + Pollen) und deshalb nie doppelt
+  // existieren darf.
   const isMobileMap = useMediaQuery(MOBILE_MAP_MEDIA_QUERY);
+
+  // Bühnen-Geometrie ändert sich mit Breakpoint/Tab/Overlay — MapLibre nachmessen,
+  // sonst rendert die Karte auf veralteter Containergröße.
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => mapRef.current?.resize());
+    return () => cancelAnimationFrame(raf);
+  }, [isMobileMap, mobileTab, modelsOpen]);
 
   const sheetDragRef = useRef<{ startY: number; startSnap: SheetSnap; moved: boolean } | null>(null);
 
@@ -2432,213 +2457,50 @@ export default function MapView({ location, onBack, embedded = false, initialAct
     document.addEventListener('pointerup', onUp);
   };
 
-  return (
-    <div className={`map-view${embedded ? ' map-view-embedded' : ` map-sheet-snap-${sheetSnap}`}`}>
-      <div className="map-topbar">
-        {!embedded && (
-          <button className="back-btn" onClick={onBack} type="button" aria-label="Zurück zur Suche">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <polyline points="8,2 3,7 8,12" />
-              <line x1="3" y1="7" x2="12" y2="7" />
-            </svg>
-            <span>Zurück</span>
-          </button>
-        )}
-        <div className="location-label" title={location.name}>
-          <svg width="14" height="16" viewBox="0 0 14 16" fill="none" aria-hidden="true">
-            <path
-              d="M 7 1.5 C 4 1.5, 2 3.5, 2 6 C 2 9.5, 7 14.5, 7 14.5 C 7 14.5, 12 9.5, 12 6 C 12 3.5, 10 1.5, 7 1.5 Z"
-              stroke="var(--terracotta-500)" strokeWidth="1.4" strokeLinejoin="round"
-            />
-            <circle cx="7" cy="6" r="1.7" fill="var(--terracotta-500)" />
-          </svg>
-          <span className="location-label-text">{location.name}</span>
-        </div>
-      </div>
+  // ==========================================================================
+  // Render. Eingebetteter Modus (Event-Ergebnisseite u. ä.) behält die schlanke
+  // Alt-Chrome aus MapView.css (Karte + Tagesablauf-Slider + Quellen-Badge);
+  // die Vollansicht rendert das Command-Deck (references/*-karte.png).
+  // ==========================================================================
 
-      {!embedded && (
-        <div className="left-rails">
-        {/* Per-Land-Modell-Switcher (Phase 3, docs/model-switcher-gate0.md). Ersetzt
-            die alte binäre .model-switch-Rail (bleibt unten flag-gated & unsichtbar
-            bis zur Bereinigung). */}
-        <ModelSwitcher
-          state={modelSource}
-          variant="rail"
-          onSelectCountry={onSelectCountry}
-          onSelectModel={onSelectModel}
-          onToggleRadar={onToggleRadar}
-          fusionError={fusionError}
-        />
-        <div className="layer-switch">
-          {LAYER_OPTIONS.map(opt => (
-            <button
-              key={opt.key}
-              type="button"
-              className={active.has(opt.key) ? 'active' : ''}
-              onClick={() => toggle(opt.key)}
-              onMouseEnter={(e) => showLayerInfo(e.currentTarget, opt.key)}
-              onMouseLeave={() => setLayerHover(null)}
-              onFocus={(e) => showLayerInfo(e.currentTarget, opt.key)}
-              onBlur={() => setLayerHover(null)}
-              title={opt.title}
-            >
-              <LayerIcon layer={opt.key} />
-              <span>{opt.label}</span>
-            </button>
-          ))}
-        </div>
-        {active.has('sat') && (
-          <div className="sat-product-switch">
-            {SATELLITE_PRODUCTS.map(p => (
-              <button
-                key={p}
-                type="button"
-                className={satProduct === p ? 'active' : ''}
-                onClick={() => setSatProduct(p)}
-                title={SAT_PRODUCT_FULL_LABELS[p]}
-              >
-                {SAT_PRODUCT_LABELS[p]}
-              </button>
-            ))}
-          </div>
-        )}
-        </div>
-      )}
-      {!embedded && layerHover && (
-        <LayerInfoPanel layer={layerHover.key} style={{ top: layerHover.top, left: layerHover.left }} />
-      )}
-      {!embedded && (active.has('confidence') || active.has('snowline') || active.has('flownowcast') || active.has('poprob')) && (
-        <div className="map-legends">
-          {active.has('confidence') && (
-            <div className="confidence-legend" role="note" aria-label="Vertrauens-Schleier">
-              <div className="cl-title">{active.has('nowcast') ? 'Sicherheit · Regen' : 'Sicherheit · Temperatur'}</div>
-              <div className="cl-scale" aria-hidden="true">
-                <span className="cl-swatch cl-sure" />
-                <span className="cl-swatch cl-mid" />
-                <span className="cl-swatch cl-unsure" />
-              </div>
-              <div className="cl-ends"><span>sicher</span><span>unsicher</span></div>
-              <div className="cl-note">
-                {active.has('nowcast')
-                  ? 'Dichtere Schraffur = unsicherere Regenvorhersage. Echter Ensemble-Spread (DE): 15 Member advehieren das Radar mit gestörten Bewegungsfeldern — wo sie uneins sind (Niederschlagskanten, ferne Lead-Zeiten), ist es unsicher.'
-                  : 'Dichtere Schraffur = unsicherere Vorhersage. Abweichung von der DWD-Stationsklimatologie (30 J.) × Lauf-zu-Lauf-Übereinstimmung zweier ICON-D2-Läufe (echtes zeitversetztes Ensemble).'}
-              </div>
-            </div>
-          )}
-          {active.has('snowline') && (
-            <div className="confidence-legend" role="note" aria-label="Schneefallgrenze">
-              <div className="cl-title">Schneefallgrenze</div>
-              <div className="sl-swatch" aria-hidden="true" />
-              <div className="cl-note">Linie = Übergang Regen↔Schnee; oberhalb fällt Niederschlag als Schnee. KI · ML #2: Physik-Anker + gelernte Orts-Korrektur (DWD-Stationen), dem Gelände folgend. Bei milder Luft existiert keine Linie (alles Regen).</div>
-            </div>
-          )}
-          {active.has('flownowcast') && (
-            <div className="confidence-legend" role="note" aria-label="Flow-Nowcast">
-              <div className="cl-title">🌀 Flow-Nowcast</div>
-              <div className="cl-note">Optical-Flow-Extrapolation: aus zwei RADOLAN-Frames wird das Bewegungsfeld geschätzt (Horn-Schunck) und das aktuelle Radar damit vorwärts advehiert. Regen wandert intensitätserhaltend (~0–60 min). Nur DE, trainingsfrei.</div>
-            </div>
-          )}
-          {active.has('poprob') && (
-            <div className="confidence-legend" role="note" aria-label="Regenwahrscheinlichkeit">
-              <div className="cl-title">Regen-Chance (%)</div>
-              <div className="pop-scale" aria-hidden="true" />
-              <div className="cl-ends"><span>unwahrsch.</span><span>sicher</span></div>
-              <div className="cl-note">Kalibrierte Regenwahrscheinlichkeit aus dem Flow-Ensemble (15 Member, gestörte Bewegungsfelder). „Wie wahrscheinlich" statt „wie viel". Nur DE, ~0–60 min.</div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {!embedded && active.has('wind') && (
-        <div className="wind-particle-switch" role="group" aria-label="Wind-Partikel">
-          <div className="wpc-modes">
-            <button
-              type="button"
-              className={!windCfg.on ? 'active' : ''}
-              onClick={() => setWindCfg(c => ({ ...c, on: false }))}
-              title="Nur Wind-Heatmap, keine Partikel-Animation"
-            >
-              Aus
-            </button>
-            <button
-              type="button"
-              className={windCfg.on && !windCfg.intensive ? 'active' : ''}
-              onClick={() => setWindCfg(c => ({ ...c, on: true, intensive: false }))}
-              title="Normale Partikeldichte"
-            >
-              Normal
-            </button>
-            <button
-              type="button"
-              className={windCfg.on && windCfg.intensive ? 'active' : ''}
-              onClick={() => setWindCfg(c => ({ ...c, on: true, intensive: true }))}
-              title="Dichtere, längere Partikel (windy.com-intensiv)"
-            >
-              Intensiv
-            </button>
-          </div>
-          {windCfg.on && (
-            <label className="wpc-density" title="Partikel-Dichte">
-              <span aria-hidden="true">Dichte</span>
-              <input
-                type="range"
-                min={0.3}
-                max={2.5}
-                step={0.1}
-                value={windCfg.density}
-                onChange={e => setWindCfg(c => ({ ...c, density: Number(e.target.value) }))}
-                aria-label="Partikel-Dichte"
+  if (embedded) {
+    return (
+      <div className="map-view map-view-embedded">
+        <div className="map-topbar">
+          <div className="location-label" title={location.name}>
+            <svg width="14" height="16" viewBox="0 0 14 16" fill="none" aria-hidden="true">
+              <path
+                d="M 7 1.5 C 4 1.5, 2 3.5, 2 6 C 2 9.5, 7 14.5, 7 14.5 C 7 14.5, 12 9.5, 12 6 C 12 3.5, 10 1.5, 7 1.5 Z"
+                stroke="var(--terracotta-500)" strokeWidth="1.4" strokeLinejoin="round"
               />
-            </label>
-          )}
-          <div className="wpc-levels" role="group" aria-label="Wind-Höhe">
-            <span aria-hidden="true">Höhe</span>
-            <button
-              type="button"
-              className={windLevel === 'surface' ? 'active' : ''}
-              onClick={() => setWindLevel('surface')}
-              title="Bodennah · 10 m (ICON-D2, 2,2 km)"
-            >
-              10&nbsp;m
-            </button>
-            {WIND_PRESSURE_LEVELS.map(lvl => (
-              <button
-                key={lvl}
-                type="button"
-                className={windLevel === lvl ? 'active' : ''}
-                onClick={() => setWindLevel(lvl)}
-                title={`${lvl} hPa Höhenwind (ICON-EU, ~7 km)`}
-              >
-                {lvl}
-              </button>
-            ))}
+              <circle cx="7" cy="6" r="1.7" fill="var(--terracotta-500)" />
+            </svg>
+            <span className="location-label-text">{location.name}</span>
           </div>
         </div>
-      )}
 
-      <div className="data-badge">
-        <span title={COUNTRY_PROFILES[location.country].stackLabel}>
-          {({ DE: '🇩🇪', AT: '🇦🇹', CH: '🇨🇭' } as const)[location.country]}{' '}
-          {COUNTRY_PROFILES[location.country].name} · {COUNTRY_PROFILES[location.country].stackLabel}
-        </span>
-        {LAYER_OPTIONS.filter(o => active.has(o.key)).map(o => {
-          const s = statuses[o.key];
-          return (
-            <span key={o.key} className={s.err ? 'err' : ''} title={s.err ?? undefined}>
-              {s.err
-                ? `${o.label}: ${s.err}`
-                : s.ok
-                  ? `${o.label} · ${s.ok.model.toUpperCase()} · ${s.ok.captured ? 'Stand ' : ''}${fmtTime(s.ok.fetchedAt)}`
-                  : `${o.label} wird geladen…`}
-            </span>
-          );
-        })}
-      </div>
+        <div className="data-badge">
+          <span title={COUNTRY_PROFILES[location.country].stackLabel}>
+            {({ DE: '🇩🇪', AT: '🇦🇹', CH: '🇨🇭' } as const)[location.country]}{' '}
+            {COUNTRY_PROFILES[location.country].name} · {COUNTRY_PROFILES[location.country].stackLabel}
+          </span>
+          {LAYER_OPTIONS.filter(o => active.has(o.key)).map(o => {
+            const s = statuses[o.key];
+            return (
+              <span key={o.key} className={s.err ? 'err' : ''} title={s.err ?? undefined}>
+                {s.err
+                  ? `${o.label}: ${s.err}`
+                  : s.ok
+                    ? `${o.label} · ${s.ok.model.toUpperCase()} · ${s.ok.captured ? 'Stand ' : ''}${fmtTime(s.ok.fetchedAt)}`
+                    : `${o.label} wird geladen…`}
+              </span>
+            );
+          })}
+        </div>
 
-      {forecast && (
-        <div className="forecast-slider">
-          <div className="forecast-slider-row">
-            {embedded ? (
+        {forecast && (
+          <div className="forecast-slider">
+            <div className="forecast-slider-row">
               <button
                 type="button"
                 className="forecast-now"
@@ -2648,252 +2510,482 @@ export default function MapView({ location, onBack, embedded = false, initialAct
               >
                 {playing ? '⏸' : '▶'}
               </button>
-            ) : (
-              <button
-                type="button"
-                className="forecast-now"
-                disabled={forecastHour === 0}
-                onClick={() => setForecastHour(0)}
-                title="Auf 'jetzt' zurücksetzen"
-              >
-                jetzt
-              </button>
-            )}
-            <div className="forecast-track">
-              <input
-                type="range"
-                min={dayLo}
-                max={dayHi}
-                step={0.2}
-                value={Math.max(dayLo, Math.min(dayHi, forecastHour))}
-                onChange={e => { setPlaying(false); scheduleForecastHour(Number(e.target.value)); }}
-                aria-label={embedded ? 'Uhrzeit am Tag' : 'Forecast-Stunde'}
-                style={{
-                  // Füllstand für die Mobile-Timeline (Terracotta-Fill links vom
-                  // Knob, Mockup-Style) — Desktop konsumiert die Variable nicht.
-                  '--tl-fill': `${((Math.max(dayLo, Math.min(dayHi, forecastHour)) - dayLo) / Math.max(dayHi - dayLo, 1e-6)) * 100}%`,
-                } as React.CSSProperties}
-              />
-              {!embedded && sliderMax >= 4 && (
-                <div className="forecast-ticks" aria-hidden="true">
-                  <span>jetzt</span>
-                  <span>+{Math.round(sliderMax / 4)}</span>
-                  <span>+{Math.round(sliderMax / 2)}</span>
-                  <span>+{Math.round((sliderMax * 3) / 4)}</span>
-                  <span>+{Math.round(sliderMax)}h</span>
-                </div>
-              )}
+              <div className="forecast-track">
+                <input
+                  type="range"
+                  min={dayLo}
+                  max={dayHi}
+                  step={0.2}
+                  value={Math.max(dayLo, Math.min(dayHi, forecastHour))}
+                  onChange={e => { setPlaying(false); scheduleForecastHour(Number(e.target.value)); }}
+                  aria-label="Uhrzeit am Tag"
+                />
+              </div>
+              <span className="forecast-label">{forecastLabel}</span>
             </div>
-            <span className="forecast-label">{forecastLabel}</span>
+          </div>
+        )}
+
+        <div ref={containerRef} className="map-container" />
+      </div>
+    );
+  }
+
+  // ---- Deck-Bausteine ------------------------------------------------------
+  const activeEntry = modelEntry(activeModelId(modelSource));
+  const activeModelName = activeEntry?.name ?? 'Native';
+  const isNativeActive = activeEntry?.special === 'native';
+  // Quellen-Pille/Modell-Karte: Native zeigt die Komposit-Zusammensetzung
+  // (Vorlage: „ICON-D2 · MOSMIX · RADOLAN-RV · 2,2 km"), konkrete Modelle
+  // Betreiber · Auflösung · Horizont.
+  const modelMetaLine = isNativeActive
+    ? `ICON-D2 · MOSMIX · ${RADAR_SOURCE[modelSource.country].name} · 2,2 km`
+    : [
+        activeEntry?.operator,
+        activeEntry?.resolutionKm != null ? `${String(activeEntry.resolutionKm).replace('.', ',')} km` : null,
+        activeEntry && activeEntry.horizonH > 0 ? `+${activeEntry.horizonH} h` : null,
+      ].filter(Boolean).join(' · ');
+  const openModels = () => { if (isMobileMap) setMobileTab('modelle'); else setModelsOpen(true); };
+  const clock = new Date(clockMs);
+  const clockTime = clock.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+  const clockDate = `${clock.toLocaleDateString('de-DE', { weekday: 'short' }).replace('.', '')} · ${clock.getDate()} ${clock.toLocaleDateString('de-DE', { month: 'short' }).replace('.', '')}`.toUpperCase();
+  const hourClamped = Math.max(dayLo, Math.min(dayHi, forecastHour));
+
+  /** Layer-Zeile — Dock (klein) und mobiler Layer-Screen (groß, mit Sublabels
+   *  im Detail-Modus). Gleiche Toggles, gleiche `toggle()`-Logik wie bisher. */
+  const layerRowDeck = (key: LayerKey, accent: string, sub?: string, big = false) => {
+    const opt = LAYER_BY_KEY.get(key)!;
+    const on = active.has(key);
+    const st = statuses[key];
+    const stamp = st?.err ? '⚠ Fehler' : st?.ok ? `${st.ok.captured ? 'Stand ' : ''}${fmtTime(st.ok.fetchedAt)}` : on ? 'lädt…' : '';
+    const showSub = big && layerMode === 'detail';
+    return (
+      <button
+        key={key}
+        type="button"
+        className={`${big ? 'mdk-m-layer' : 'mdk-layer'}${on ? ' is-on' : ' is-off'}`}
+        data-accent={accent}
+        role="switch"
+        aria-checked={on}
+        onClick={() => toggle(key)}
+        onMouseEnter={big ? undefined : (e) => showLayerInfo(e.currentTarget, key)}
+        onMouseLeave={big ? undefined : () => setLayerHover(null)}
+        onFocus={big ? undefined : (e) => showLayerInfo(e.currentTarget, key)}
+        onBlur={big ? undefined : () => setLayerHover(null)}
+        title={opt.title}
+      >
+        <span className="mdk-layer-ic"><LayerIcon layer={key} size={big ? 16 : 14} /></span>
+        <span className="mdk-layer-tx">
+          <span className="mdk-layer-label">{opt.label}</span>
+          {showSub && (sub || (on && stamp)) && (
+            <span className="mdk-layer-sub">{[sub, on ? stamp : null].filter(Boolean).join(' · ')}</span>
+          )}
+        </span>
+        <span className="mdk-switch" aria-hidden="true"><span className="mdk-switch-knob" /></span>
+      </button>
+    );
+  };
+
+  const satSeg = (
+    <div className="mdk-subseg" data-accent="slate" role="group" aria-label="Satellitenprodukt">
+      {SATELLITE_PRODUCTS.map(p => (
+        <button
+          key={p}
+          type="button"
+          className={satProduct === p ? 'is-active' : ''}
+          onClick={() => setSatProduct(p)}
+          title={SAT_PRODUCT_FULL_LABELS[p]}
+        >
+          {SAT_PRODUCT_LABELS[p]}
+        </button>
+      ))}
+    </div>
+  );
+
+  const windDeckControls = (
+    <>
+      <span className="mdk-winddeck-label">Dichte</span>
+      <div className="mdk-winddeck-seg" role="group" aria-label="Wind-Partikel">
+        <button
+          type="button"
+          className={!windCfg.on ? 'is-active' : ''}
+          onClick={() => setWindCfg(c => ({ ...c, on: false }))}
+          title="Nur Wind-Heatmap, keine Partikel-Animation"
+        >
+          Aus
+        </button>
+        <button
+          type="button"
+          className={windCfg.on && !windCfg.intensive ? 'is-active' : ''}
+          onClick={() => setWindCfg(c => ({ ...c, on: true, intensive: false }))}
+          title="Normale Partikeldichte"
+        >
+          Normal
+        </button>
+        <button
+          type="button"
+          className={windCfg.on && windCfg.intensive ? 'is-active' : ''}
+          onClick={() => setWindCfg(c => ({ ...c, on: true, intensive: true }))}
+          title="Dichtere, längere Partikel"
+        >
+          Intensiv
+        </button>
+      </div>
+      {windCfg.on && (
+        <label className="mdk-winddeck-density" title="Partikel-Dichte">
+          <input
+            type="range"
+            min={0.3}
+            max={2.5}
+            step={0.1}
+            value={windCfg.density}
+            onChange={e => setWindCfg(c => ({ ...c, density: Number(e.target.value) }))}
+            aria-label="Partikel-Dichte"
+          />
+        </label>
+      )}
+      <span className="mdk-winddeck-label">Höhe</span>
+      <div className="mdk-winddeck-seg is-level" role="group" aria-label="Wind-Höhe">
+        <button
+          type="button"
+          className={windLevel === 'surface' ? 'is-active' : ''}
+          onClick={() => setWindLevel('surface')}
+          title="Bodennah · 10 m (ICON-D2, 2,2 km)"
+        >
+          10&nbsp;m
+        </button>
+        {WIND_PRESSURE_LEVELS.map(lvl => (
+          <button
+            key={lvl}
+            type="button"
+            className={windLevel === lvl ? 'is-active' : ''}
+            onClick={() => setWindLevel(lvl)}
+            title={`${lvl} hPa Höhenwind (ICON-EU, ~7 km)`}
+          >
+            {lvl}
+          </button>
+        ))}
+      </div>
+    </>
+  );
+
+  const timeDeck = forecast ? (
+    <div className="mdk-timedeck mdk-glass">
+      <div className="mdk-td-row">
+        <button
+          type="button"
+          className="mdk-td-play"
+          onClick={() => setPlaying(p => !p)}
+          aria-pressed={playing}
+          title={playing ? 'Zeitraffer pausieren' : 'Zeitraffer abspielen'}
+        >
+          {playing ? <IcoPause /> : <IcoPlay />}
+        </button>
+        <div className="mdk-td-track">
+          <div className="mdk-td-ticks">
+            <button
+              type="button"
+              className="mdk-td-now"
+              disabled={forecastHour === 0}
+              onClick={() => { setPlaying(false); setForecastHour(0); }}
+              title="Auf jetzt zurücksetzen"
+            >
+              {(forecastLabel ?? 'jetzt').replace('.,', '')}
+            </button>
+            {sliderMax >= 4 && (
+              <>
+                <span>+{Math.round(sliderMax / 4)} h</span>
+                <span>+{Math.round(sliderMax / 2)} h</span>
+                <span>+{Math.round((sliderMax * 3) / 4)} h</span>
+                <span>+{Math.round(sliderMax)} h</span>
+              </>
+            )}
+          </div>
+          <input
+            type="range"
+            min={dayLo}
+            max={dayHi}
+            step={0.2}
+            value={hourClamped}
+            onChange={e => { setPlaying(false); scheduleForecastHour(Number(e.target.value)); }}
+            aria-label="Forecast-Stunde"
+            style={{ '--tl-fill': `${((hourClamped - dayLo) / Math.max(dayHi - dayLo, 1e-6)) * 100}%` } as React.CSSProperties}
+          />
+        </div>
+        {dataValidAtMs != null && (
+          <span className="mdk-td-stand">
+            Stand · {new Date(dataValidAtMs).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', weekday: 'short' }).replace('.,', '')}
+          </span>
+        )}
+      </div>
+      <div className="mdk-td-legend">
+        <span className="mdk-td-legend-label">Legende</span>
+        <span className="mdk-td-legend-item">Temp <i className="mdk-ramp mdk-ramp-temp" aria-hidden="true" /> −10…30°</span>
+        <span className="mdk-td-legend-item">Regen <i className="mdk-ramp mdk-ramp-precip" aria-hidden="true" /> 0,1…&gt;10</span>
+        <span className="mdk-td-legend-item"><span className="mdk-td-legend-wind" aria-hidden="true">⟶</span> Wind</span>
+        <span className="mdk-td-legend-item"><i className="mdk-td-legend-stationdot" aria-hidden="true" /> Stationen</span>
+        <span className="mdk-td-legend-item"><i className="mdk-td-legend-radar" aria-hidden="true" /> Radar-Grenze</span>
+      </div>
+    </div>
+  ) : null;
+
+  // Layer-Legenden (Sicherheit · Schneegrenze · Flow-Nowcast · Regen-Chance) —
+  // Inhalte unverändert, im Deck als Glas-Karten rechts gestapelt.
+  const legendsBlock = (active.has('confidence') || active.has('snowline') || active.has('flownowcast') || active.has('poprob')) ? (
+    <div className="mdk-legends">
+      {active.has('confidence') && (
+        <div className="confidence-legend" role="note" aria-label="Vertrauens-Schleier">
+          <div className="cl-title">{active.has('nowcast') ? 'Sicherheit · Regen' : 'Sicherheit · Temperatur'}</div>
+          <div className="cl-scale" aria-hidden="true">
+            <span className="cl-swatch cl-sure" />
+            <span className="cl-swatch cl-mid" />
+            <span className="cl-swatch cl-unsure" />
+          </div>
+          <div className="cl-ends"><span>sicher</span><span>unsicher</span></div>
+          <div className="cl-note">
+            {active.has('nowcast')
+              ? 'Dichtere Schraffur = unsicherere Regenvorhersage. Echter Ensemble-Spread (DE): 15 Member advehieren das Radar mit gestörten Bewegungsfeldern — wo sie uneins sind (Niederschlagskanten, ferne Lead-Zeiten), ist es unsicher.'
+              : 'Dichtere Schraffur = unsicherere Vorhersage. Abweichung von der DWD-Stationsklimatologie (30 J.) × Lauf-zu-Lauf-Übereinstimmung zweier ICON-D2-Läufe (echtes zeitversetztes Ensemble).'}
           </div>
         </div>
       )}
+      {active.has('snowline') && (
+        <div className="confidence-legend" role="note" aria-label="Schneefallgrenze">
+          <div className="cl-title">Schneefallgrenze</div>
+          <div className="sl-swatch" aria-hidden="true" />
+          <div className="cl-note">Linie = Übergang Regen↔Schnee; oberhalb fällt Niederschlag als Schnee. KI · ML #2: Physik-Anker + gelernte Orts-Korrektur (DWD-Stationen), dem Gelände folgend. Bei milder Luft existiert keine Linie (alles Regen).</div>
+        </div>
+      )}
+      {active.has('flownowcast') && (
+        <div className="confidence-legend" role="note" aria-label="Flow-Nowcast">
+          <div className="cl-title">Flow-Nowcast</div>
+          <div className="cl-note">Optical-Flow-Extrapolation: aus zwei RADOLAN-Frames wird das Bewegungsfeld geschätzt (Horn-Schunck) und das aktuelle Radar damit vorwärts advehiert. Regen wandert intensitätserhaltend (~0–60 min). Nur DE, trainingsfrei.</div>
+        </div>
+      )}
+      {active.has('poprob') && (
+        <div className="confidence-legend" role="note" aria-label="Regenwahrscheinlichkeit">
+          <div className="cl-title">Regen-Chance (%)</div>
+          <div className="pop-scale" aria-hidden="true" />
+          <div className="cl-ends"><span>unwahrsch.</span><span>sicher</span></div>
+          <div className="cl-note">Kalibrierte Regenwahrscheinlichkeit aus dem Flow-Ensemble (15 Member, gestörte Bewegungsfelder). „Wie wahrscheinlich" statt „wie viel". Nur DE, ~0–60 min.</div>
+        </div>
+      )}
+    </div>
+  ) : null;
 
-      {/* Punkt-Forecast: auf Desktop/Tablet als eigenes Panel rechts; auf
-          Mobile stattdessen im „Vorhersage"-Segment des Sheets (unten) —
-          nie beides, die Komponente fetcht beim Mount (Spec §9). */}
-      {!embedded && !overview && !isMobileMap && (
-        <PointForecastPanel
-          lat={location.lat}
-          lng={location.lon}
-          country={location.country}
-          locationLabel={location.name}
-          sourceMode={resolvePointSource(modelSource)}
-        />
+  const statusChip = (
+    <div className="mdk-status-chip mdk-glass" role="status" aria-label="Datenlage">
+      <span title={COUNTRY_PROFILES[location.country].stackLabel}>
+        {COUNTRY_PROFILES[location.country].name} · {COUNTRY_PROFILES[location.country].stackLabel}
+      </span>
+      {LAYER_OPTIONS.filter(o => active.has(o.key)).map(o => {
+        const s = statuses[o.key];
+        return (
+          <span key={o.key} className={s.err ? 'err' : ''} title={s.err ?? undefined}>
+            {s.err
+              ? `${o.label}: ${s.err}`
+              : s.ok
+                ? `${o.label} · ${s.ok.model.toUpperCase()} · ${s.ok.captured ? 'Stand ' : ''}${fmtTime(s.ok.fetchedAt)}`
+                : `${o.label} wird geladen…`}
+          </span>
+        );
+      })}
+    </div>
+  );
+
+  const modelLibrary = (
+    <ModelLibraryOverlay
+      state={modelSource}
+      onClose={() => { setModelsOpen(false); if (isMobileMap) setMobileTab('karte'); }}
+      onSelectModel={onSelectModel}
+      onClearCountryModel={onClearCountryModel}
+      onToggleRadar={onToggleRadar}
+    />
+  );
+
+  return (
+    <div className="mdk-root" style={{ '--mdk-bar-h': '64px' } as React.CSSProperties}>
+      {/* ---- Topbar (Desktop/Tablet) ---------------------------------------- */}
+      {!isMobileMap && (
+        <header className="mdk-topbar">
+          <button type="button" className="mdk-brand" onClick={onBack} aria-label="Zur Startseite">
+            <img className="mdk-brand-mark" src="/buscosun-mark.svg" width={26} height={26} alt="" />
+            <span className="mdk-brand-name">buscosun</span>
+          </button>
+          <span className="mdk-topdiv" aria-hidden="true" />
+          <DeckSearch placeholder={overview ? 'Deutschland · Österreich · Schweiz' : location.name} onSelect={onSelectLocation} />
+          <div className="mdk-countries" role="tablist" aria-label="Land (Modellwahl)">
+            {(['DE', 'AT', 'CH'] as Country[]).map(c => (
+              <button
+                key={c}
+                type="button"
+                role="tab"
+                aria-selected={modelSource.country === c}
+                className={modelSource.country === c ? 'is-active' : ''}
+                onClick={() => onSelectCountry(c)}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+          <div className="mdk-topright">
+            <span className="mdk-live">
+              <span className="mdk-live-dot" aria-hidden="true"><span /><span /></span>
+              <span className="mdk-live-text">LIVE</span>
+            </span>
+            <div className="mdk-clock" aria-hidden="true">
+              <div className="mdk-clock-time">{clockTime}</div>
+              <div className="mdk-clock-date">{clockDate}</div>
+            </div>
+          </div>
+        </header>
       )}
 
-      {/* ===== Mobiles Bottom-Sheet „Variante C" (<768px; per CSS) ============
-          EIN persistentes Sheet mit drei Snap-Zuständen (collapsed = Griff +
-          Chip-Strip, half/full = Segment-Control + Body) und Segmenten
-          „Layer · Modell · Vorhersage" (Spec: audit/mockups/wetterkarte-c-
-          spec.md). Auf Desktop/Tablet per CSS ausgeblendet. */}
-      {!embedded && (
-        <>
-          <div
-            className={`map-sheet-scrim map-sheet-scrim-${sheetSnap}`}
-            onClick={sheetSnap === 'full' ? () => setSheetSnap('half') : undefined}
-          />
-          <aside
-            className={`map-sheet map-sheet-${sheetSnap}`}
-            role="dialog"
-            aria-modal={sheetSnap === 'full'}
-            aria-label="Karten-Steuerung"
-          >
-            {/* Drag-Fläche = ganzer Kopfbereich (Griff + Chip-Strip bzw.
-                Segment-Control), nicht nur die 5px-Griffleiste (≥44px-Ziel). */}
-            <div className="map-sheet-top" onPointerDown={onSheetGrabPointerDown}>
-              <div className="map-sheet-grab" aria-hidden="true" />
+      <div className="mdk-body">
+        {/* ---- Ink-Icon-Rail ------------------------------------------------ */}
+        {!isMobileMap && (
+          <nav className="mdk-rail" aria-label="Werkzeuge">
+            <button type="button" className="mdk-rail-btn is-active" aria-current="page" title="Wetterkarte">
+              <IcoLayers />
+            </button>
+            <button type="button" className="mdk-rail-btn" onClick={openModels} title="Modellseite — Wettermodelle & Wirkungsbereiche">
+              <IcoGlobe />
+            </button>
+            <button type="button" className="mdk-rail-btn" onClick={() => onOpenFeature?.('forecast')} title="Vorhersage & Konfidenz">
+              <IcoTrend />
+            </button>
+            <button type="button" className="mdk-rail-btn" onClick={() => onOpenFeature?.('nowcast')} title="Regenradar · Nowcast">
+              <IcoPulse />
+            </button>
+            <button type="button" className="mdk-rail-btn" onClick={() => onOpenFeature?.('event')} title="Event-Planung">
+              <IcoStar />
+            </button>
+            <button type="button" className="mdk-rail-btn mdk-rail-bottom" onClick={onBack} title="Zur Startseite">
+              <IcoSun />
+            </button>
+          </nav>
+        )}
 
-              {sheetSnap === 'collapsed' ? (
-                <div className="map-chip-strip" aria-label="Aktive Layer und Modell">
-                  {LAYER_OPTIONS.filter(o => active.has(o.key)).map(o => (
-                    <button
-                      key={o.key}
-                      type="button"
-                      className="map-chip is-on"
-                      onClick={() => { setSheetSegment('layer'); setSheetSnap('half'); }}
-                    >
-                      <span className="map-chip-dot" style={{ background: LAYER_CHIP_DOT[o.key] }} aria-hidden="true" />
-                      {o.label}
-                    </button>
-                  ))}
-                  <button
-                    type="button"
-                    className="map-chip"
-                    onClick={() => { setSheetSegment('model'); setSheetSnap('half'); }}
-                  >
-                    <span aria-hidden="true">{COUNTRY_FLAG[location.country]}</span>{' '}
-                    {modelEntry(activeModelId(modelSource))?.name ?? 'Modell'}
-                  </button>
+        {/* ---- Layer-Dock --------------------------------------------------- */}
+        {!isMobileMap && (
+          <aside className="mdk-dock" aria-label="Wetterlayer">
+            <div className="mdk-dock-head">
+              <span className="mdk-eyebrow">Wetterlayer</span>
+              <span className="mdk-dock-count">{active.size} aktiv</span>
+            </div>
+            {DECK_GROUPS.map(g => (
+              <div key={g.title} className="mdk-group" data-accent={g.accent}>
+                <div className="mdk-group-head">{g.title}</div>
+                <div className="mdk-layers">
+                  {g.layers.map(l => layerRowDeck(l.key, l.accent ?? g.accent, l.sub, false))}
+                  {g.layers.some(l => l.key === 'sat') && active.has('sat') && satSeg}
                 </div>
-              ) : (
-                <div className="map-sheet-seg-bar" role="tablist" aria-label="Sheet-Bereich">
+              </div>
+            ))}
+          </aside>
+        )}
+
+        {/* ---- Karten-Bühne (dunkles Feld) ---------------------------------- */}
+        <main className="mdk-stage">
+          <div ref={containerRef} className="map-container" />
+
+          {!isMobileMap && (
+            <>
+              <button type="button" className="mdk-source-pill mdk-glass" onClick={openModels} title={isNativeActive ? nativeComposition(modelSource.country) : `${activeModelName} — Modellseite öffnen`}>
+                <span className="mdk-src-dot" aria-hidden="true" />
+                <span className="mdk-src-label">Modell · {activeModelName}</span>
+                <span className="mdk-src-meta">{modelMetaLine}</span>
+                {fusionError && (activeEntry?.engineGridded || activeEntry?.special === 'fusion') && (
+                  <span className="mdk-src-warn">⚠ Quelle offline — rendert nativ</span>
+                )}
+                <span className="mdk-src-cta">wählen →</span>
+              </button>
+              <div className="mdk-zoom mdk-glass">
+                <button type="button" onClick={() => mapRef.current?.zoomIn()} aria-label="Hineinzoomen"><IcoPlus /></button>
+                <button type="button" onClick={() => mapRef.current?.zoomOut()} aria-label="Herauszoomen"><IcoMinus /></button>
+              </div>
+              {statusChip}
+              {active.has('wind') && (
+                <div className="mdk-winddeck mdk-glass" role="group" aria-label="Wind-Steuerung">{windDeckControls}</div>
+              )}
+              {timeDeck}
+            </>
+          )}
+
+          {(!isMobileMap || mobileTab === 'karte') && legendsBlock}
+
+          {/* Mobile: schwebender Kopf (Suche + Land) + Modell-Pille */}
+          {isMobileMap && (
+            <>
+              <div className="mdk-m-topfloat">
+                <DeckSearch placeholder={overview ? 'Ort suchen …' : location.name} onSelect={onSelectLocation} compact />
+                <div style={{ position: 'relative', flex: '0 0 auto' }}>
                   <button
                     type="button"
-                    role="tab"
-                    aria-selected={sheetSegment === 'layer'}
-                    className={sheetSegment === 'layer' ? 'active' : ''}
-                    onClick={() => setSheetSegment('layer')}
+                    className="mdk-m-country"
+                    aria-haspopup="menu"
+                    aria-expanded={countryMenuOpen}
+                    aria-label="Land für die Modellwahl"
+                    onClick={() => setCountryMenuOpen(o => !o)}
                   >
-                    Layer
+                    {modelSource.country}
                   </button>
-                  <button
-                    type="button"
-                    role="tab"
-                    aria-selected={sheetSegment === 'model'}
-                    className={sheetSegment === 'model' ? 'active' : ''}
-                    onClick={() => setSheetSegment('model')}
-                  >
-                    Modell
-                  </button>
-                  {!overview && (
-                    <button
-                      type="button"
-                      role="tab"
-                      aria-selected={sheetSegment === 'fc'}
-                      className={sheetSegment === 'fc' ? 'active' : ''}
-                      onClick={() => setSheetSegment('fc')}
-                    >
-                      Vorhersage
-                    </button>
+                  {countryMenuOpen && (
+                    <div className="mdk-m-country-menu" role="menu">
+                      {(['DE', 'AT', 'CH'] as Country[]).map(c => (
+                        <button
+                          key={c}
+                          type="button"
+                          role="menuitemradio"
+                          aria-checked={modelSource.country === c}
+                          className={modelSource.country === c ? 'is-active' : ''}
+                          onClick={() => { onSelectCountry(c); setCountryMenuOpen(false); }}
+                        >
+                          {COUNTRY_PROFILES[c].name}
+                        </button>
+                      ))}
+                    </div>
                   )}
                 </div>
+              </div>
+              {mobileTab === 'karte' && (
+                <button type="button" className="mdk-m-modelpill mdk-glass" onClick={() => setMobileTab('modelle')}>
+                  <span className="mdk-src-dot" aria-hidden="true" />
+                  <span className="mdk-src-label">Modell · {activeModelName}</span>
+                  <span className="mdk-src-cta">wählen →</span>
+                </button>
               )}
+            </>
+          )}
+        </main>
+
+        {/* ---- Rechtes Panel (Desktop/Tablet): Modell + Punktforecast + 7 Tage */}
+        {!isMobileMap && (
+          <aside className="mdk-readout">
+            <div className="mdk-ro-section-head">
+              <span className="mdk-eyebrow">Aktives Modell</span>
             </div>
+            <button type="button" className="mdk-model-card" onClick={openModels} title={isNativeActive ? nativeComposition(modelSource.country) : undefined}>
+              <span className="mdk-model-ic"><IcoGlobe size={22} /></span>
+              <span className="mdk-model-tx">
+                <span className="mdk-model-name">
+                  <b>{activeModelName}</b>
+                  {isNativeActive && <span className="mdk-model-reco">Empfohlen</span>}
+                </span>
+                <span className="mdk-model-comp">{modelMetaLine}</span>
+              </span>
+              <span className="mdk-model-arrow"><IcoArrowRight /></span>
+            </button>
+            <p className="mdk-model-hint">
+              Tippen öffnet die Modellseite — alle Modelle mit Abdeckung, Auflösung &amp; Horizont zum Wechseln.
+            </p>
 
-            {sheetSnap !== 'collapsed' && sheetSegment === 'model' && (
-                <div className="map-sheet-modelbody">
-                  <div className="map-sheet-model is-static">
-                    <span className="map-sheet-model-label">Land</span>
-                    <strong className="map-sheet-model-val">
-                      {({ DE: '🇩🇪', AT: '🇦🇹', CH: '🇨🇭' } as const)[location.country]}{' '}
-                      {COUNTRY_PROFILES[location.country].name}
-                    </strong>
-                  </div>
-
-                  <ModelSwitcher
-                    state={modelSource}
-                    variant="sheet"
-                    onSelectCountry={onSelectCountry}
-                    onSelectModel={onSelectModel}
-                    onToggleRadar={onToggleRadar}
-                    fusionError={fusionError}
-                  />
-
-                  <div className="map-sheet-sources">
-                    {({ DE: '🇩🇪', AT: '🇦🇹', CH: '🇨🇭' } as const)[location.country]}{' '}
-                    {COUNTRY_PROFILES[location.country].name} · {COUNTRY_PROFILES[location.country].stackLabel}
-                  </div>
+            {!overview ? (
+              <>
+                <div className="mdk-ro-section-head">
+                  <span className="mdk-eyebrow">Punktforecast</span>
+                  <span className="mdk-ro-live"><i aria-hidden="true" />LIVE</span>
                 </div>
-            )}
-
-            {sheetSnap !== 'collapsed' && sheetSegment === 'layer' && (
-                <div className="map-sheet-list">
-                  {LAYER_OPTIONS.map(opt => {
-                    const on = active.has(opt.key);
-                    const st = statuses[opt.key];
-                    const exp = sheetExpanded === opt.key;
-                    const stamp = st?.err ? '⚠ Fehler' : st?.ok ? `${st.ok.captured ? 'Stand ' : ''}${fmtTime(st.ok.fetchedAt)}` : on ? 'lädt…' : '';
-                    return (
-                      <div key={opt.key} className={`map-sheet-row${on ? ' is-on' : ''}`}>
-                        <div className="map-sheet-rowmain">
-                          <button
-                            type="button"
-                            className={`map-sheet-toggle${on ? ' is-on' : ''}`}
-                            role="switch"
-                            aria-checked={on}
-                            onClick={() => toggle(opt.key)}
-                            aria-label={`${opt.label} ${on ? 'ausschalten' : 'einschalten'}`}
-                          >
-                            <LayerIcon layer={opt.key} />
-                          </button>
-                          <button
-                            type="button"
-                            className="map-sheet-rowtx"
-                            aria-expanded={exp}
-                            onClick={() => setSheetExpanded(exp ? null : opt.key)}
-                          >
-                            <span className="map-sheet-name">{opt.label}</span>
-                            {on && stamp && <span className="map-sheet-stamp">{stamp}</span>}
-                          </button>
-                          <button
-                            type="button"
-                            className={`map-sheet-chev${exp ? ' is-open' : ''}`}
-                            onClick={() => setSheetExpanded(exp ? null : opt.key)}
-                            aria-label={exp ? 'Details schließen' : 'Details & Legende'}
-                          >
-                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="4,6 8,10 12,6" /></svg>
-                          </button>
-                        </div>
-                        {exp && (
-                          <div className="map-sheet-info">
-                            <LayerInfoPanel layer={opt.key} />
-                            {opt.key === 'wind' && on && (
-                              <div className="map-sheet-sub wind-particle-switch" role="group" aria-label="Wind-Partikel">
-                                <div className="wpc-modes">
-                                  <button type="button" className={!windCfg.on ? 'active' : ''} onClick={() => setWindCfg(c => ({ ...c, on: false }))}>Aus</button>
-                                  <button type="button" className={windCfg.on && !windCfg.intensive ? 'active' : ''} onClick={() => setWindCfg(c => ({ ...c, on: true, intensive: false }))}>Normal</button>
-                                  <button type="button" className={windCfg.on && windCfg.intensive ? 'active' : ''} onClick={() => setWindCfg(c => ({ ...c, on: true, intensive: true }))}>Intensiv</button>
-                                </div>
-                                {windCfg.on && (
-                                  <label className="wpc-density"><span aria-hidden="true">Dichte</span>
-                                    <input type="range" min={0.3} max={2.5} step={0.1} value={windCfg.density} onChange={e => setWindCfg(c => ({ ...c, density: Number(e.target.value) }))} aria-label="Partikel-Dichte" />
-                                  </label>
-                                )}
-                                <div className="wpc-levels" role="group" aria-label="Wind-Höhe">
-                                  <span aria-hidden="true">Höhe</span>
-                                  <button type="button" className={windLevel === 'surface' ? 'active' : ''} onClick={() => setWindLevel('surface')}>10&nbsp;m</button>
-                                  {WIND_PRESSURE_LEVELS.map(lvl => (
-                                    <button key={lvl} type="button" className={windLevel === lvl ? 'active' : ''} onClick={() => setWindLevel(lvl)}>{lvl}</button>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                            {opt.key === 'sat' && on && (
-                              <div className="map-sheet-sub sat-product-switch" role="group" aria-label="Satellitenprodukt">
-                                {SATELLITE_PRODUCTS.map(p => (
-                                  <button key={p} type="button" className={satProduct === p ? 'active' : ''} onClick={() => setSatProduct(p)} title={SAT_PRODUCT_FULL_LABELS[p]}>{SAT_PRODUCT_LABELS[p]}</button>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-            )}
-
-            {/* Segment „Vorhersage" (Spec §9, preservation-kritisch): die
-                unveränderte PointForecastPanel-Komponente, per Wrapper-Umzug
-                ins Sheet. Bleibt über Segment-/Snap-Wechsel hinweg GEMOUNTET
-                (nur versteckt), damit ihre Fetch-Intervalle/Sub-Tab-Zustände
-                nicht bei jedem Wechsel neu starten. Nur im Location-Modus. */}
-            {!overview && isMobileMap && (
-              <div
-                className="map-sheet-fc"
-                hidden={sheetSnap === 'collapsed' || sheetSegment !== 'fc'}
-              >
                 <PointForecastPanel
                   lat={location.lat}
                   lng={location.lon}
@@ -2901,13 +2993,338 @@ export default function MapView({ location, onBack, embedded = false, initialAct
                   locationLabel={location.name}
                   sourceMode={resolvePointSource(modelSource)}
                 />
+
+                <div className="mdk-ro-section-head">
+                  <span className="mdk-eyebrow">7-Tage-Forecast</span>
+                  <button type="button" className="mdk-ro-modelle-link" onClick={openModels}>
+                    Modelle <IcoArrowRight size={12} />
+                  </button>
+                </div>
+                <SevenDayForecast lat={location.lat} lon={location.lon} variant="panel" />
+                <div className="sdf-legend mdk-ro-sdf-legend">
+                  <span className="sdf-legend-label">Legende</span>
+                  <span className="sdf-legend-item">kühl <span className="sdf-legend-ramp" aria-hidden="true" /> warm</span>
+                  <span className="sdf-legend-item"><b className="sdf-legend-pct">%</b> Regenrisiko</span>
+                </div>
+              </>
+            ) : (
+              <div className="mdk-ro-note" style={{ marginTop: 14 }}>
+                DACH-Übersicht ohne gewählten Ort. Über die Suche oben einen Ort wählen —
+                dann erscheinen hier der volle Punktforecast und der 7-Tage-Forecast.
               </div>
             )}
           </aside>
+        )}
+      </div>
+
+      {/* ---- Mobile: Bottom-Sheet · Screens · Sticky-Bottom-Bar -------------- */}
+      {isMobileMap && (
+        <>
+          {mobileTab === 'karte' && !overview && (
+            <>
+              <div
+                className={`mdk-sheet-scrim${sheetSnap === 'full' ? ' is-full' : ''}`}
+                onClick={sheetSnap === 'full' ? () => setSheetSnap('half') : undefined}
+              />
+              <aside
+                className={`mdk-sheet is-${sheetSnap}`}
+                role="dialog"
+                aria-modal={sheetSnap === 'full'}
+                aria-label="Punktforecast"
+              >
+                <div className="mdk-sheet-grabzone" onPointerDown={onSheetGrabPointerDown}>
+                  <div className="mdk-sheet-grab" aria-hidden="true" />
+                  <div className="mdk-sheet-head">
+                    <span className="mdk-sheet-title">{location.name}</span>
+                    <span className="mdk-ro-live"><i aria-hidden="true" />LIVE</span>
+                  </div>
+                  <div className="mdk-sheet-sub">Punktforecast</div>
+                </div>
+                <div className="mdk-sheet-body">
+                  <PointForecastPanel
+                    lat={location.lat}
+                    lng={location.lon}
+                    country={location.country}
+                    locationLabel={location.name}
+                    sourceMode={resolvePointSource(modelSource)}
+                    view={pfcView}
+                    onViewChange={setPfcView}
+                  />
+                </div>
+                {timeDeck}
+              </aside>
+            </>
+          )}
+          {mobileTab === 'karte' && overview && timeDeck && (
+            <div className="mdk-m-timesolo">{timeDeck}</div>
+          )}
+
+          {mobileTab === 'layer' && (
+            <div className="mdk-screen" aria-label="Wetterlayer">
+              <div className="mdk-screen-head">
+                <div>
+                  <span className="mdk-eyebrow">Karte · Layer</span>
+                  <h1>Wetterlayer</h1>
+                </div>
+                <span className="mdk-screen-chip">{active.size} aktiv</span>
+              </div>
+              <div className="mdk-screen-body">
+                <div className="mdk-m-segrow">
+                  <div className="mdk-m-seg mdk-m-seg-ansicht" role="tablist" aria-label="Ansicht">
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={pfcView !== 'charts'}
+                      className={pfcView !== 'charts' ? 'is-active' : ''}
+                      onClick={() => { setPfcView('overview'); setMobileTab('karte'); setSheetSnap('half'); }}
+                    >
+                      Karte
+                    </button>
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={pfcView === 'charts'}
+                      className={pfcView === 'charts' ? 'is-active' : ''}
+                      disabled={overview}
+                      onClick={() => { setPfcView('charts'); setMobileTab('karte'); setSheetSnap('full'); }}
+                    >
+                      Diagramm
+                    </button>
+                  </div>
+                  <div className="mdk-m-seg mdk-m-seg-modus" role="tablist" aria-label="Modus">
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={layerMode === 'standard'}
+                      className={layerMode === 'standard' ? 'is-active' : ''}
+                      onClick={() => setLayerMode('standard')}
+                    >
+                      Standard
+                    </button>
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={layerMode === 'detail'}
+                      className={layerMode === 'detail' ? 'is-active' : ''}
+                      onClick={() => setLayerMode('detail')}
+                    >
+                      Detail
+                    </button>
+                  </div>
+                </div>
+
+                {DECK_GROUPS.map(g => (
+                  <div key={g.title} data-accent={g.accent}>
+                    <div className="mdk-m-group-head">{g.title}</div>
+                    <div className="mdk-m-layers">
+                      {g.layers.map(l => layerRowDeck(l.key, l.accent ?? g.accent, l.sub, true))}
+                      {layerMode === 'detail' && g.layers.some(l => l.key === 'wind') && active.has('wind') && (
+                        <div className="mdk-m-sub" data-accent="sage" role="group" aria-label="Wind-Steuerung">{windDeckControls}</div>
+                      )}
+                      {layerMode === 'detail' && g.layers.some(l => l.key === 'sat') && active.has('sat') && (
+                        <div className="mdk-m-sub" data-accent="slate">{satSeg}</div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {mobileTab === 'forecast' && (
+            <div className="mdk-screen" aria-label="7-Tage-Forecast">
+              <div className="mdk-screen-head">
+                <div>
+                  <span className="mdk-eyebrow">{overview ? '7 Tage · DACH' : location.name}</span>
+                  <h1>7-Tage-Forecast</h1>
+                </div>
+                <button type="button" className="mdk-screen-chip mdk-screen-chip-btn" onClick={() => setMobileTab('modelle')}>
+                  Modelle →
+                </button>
+              </div>
+              <div className="mdk-screen-body">
+                {overview ? (
+                  <div className="mdk-ro-note">
+                    Kein Ort gewählt. Über die Suche auf der Karte einen Ort wählen —
+                    dann erscheint hier der 7-Tage-Forecast.
+                  </div>
+                ) : (
+                  <SevenDayForecast lat={location.lat} lon={location.lon} variant="screen" />
+                )}
+              </div>
+            </div>
+          )}
+
+          {mobileTab === 'modelle' && modelLibrary}
+
+          <nav className="mdk-bar" aria-label="Kartenseite">
+            {([
+              { key: 'karte', label: 'Karte', ico: <IcoLayers size={22} /> },
+              { key: 'nowcast', label: 'Nowcast', ico: <IcoGauge /> },
+              { key: 'layer', label: 'Layer', ico: <IcoRows /> },
+              { key: 'forecast', label: 'Forecast', ico: <IcoTrend size={22} /> },
+              { key: 'modelle', label: 'Modelle', ico: <IcoGlobe size={22} /> },
+            ] as const).map(t => (
+              <button
+                key={t.key}
+                type="button"
+                className={`mdk-bar-btn${t.key !== 'nowcast' && mobileTab === t.key ? ' is-active' : ''}`}
+                aria-current={t.key !== 'nowcast' && mobileTab === t.key ? 'page' : undefined}
+                onClick={() => { if (t.key === 'nowcast') onOpenFeature?.('nowcast'); else setMobileTab(t.key); }}
+              >
+                {t.ico}
+                <span>{t.label}</span>
+              </button>
+            ))}
+          </nav>
         </>
       )}
 
-      <div ref={containerRef} className="map-container" />
+      {/* Modellseite als Desktop-/Tablet-Overlay */}
+      {modelsOpen && !isMobileMap && modelLibrary}
+
+      {/* Hover-Info der Dock-Layer (Desktop) */}
+      {!isMobileMap && layerHover && (
+        <LayerInfoPanel layer={layerHover.key} style={{ top: layerHover.top, left: layerHover.left }} />
+      )}
+    </div>
+  );
+}
+
+/** Schnellzugriff Label/Title je LayerKey (Dock + mobiler Layer-Screen). */
+const LAYER_BY_KEY = new Map(LAYER_OPTIONS.map(o => [o.key, o]));
+
+/** Gruppierung + Akzentfarben des Layer-Docks (Vorlage references/*-karte.png).
+ *  Deckt ALLE zwölf LayerKeys ab — Funktionserhalt vor Vorlagen-Auslassung. */
+const DECK_GROUPS: {
+  title: string;
+  accent: 'steel' | 'sage' | 'terracotta' | 'violet';
+  layers: { key: LayerKey; sub?: string; accent?: 'steel' | 'sage' | 'terracotta' | 'violet' | 'amber' | 'slate' }[];
+}[] = [
+  {
+    title: 'Niederschlag', accent: 'steel',
+    layers: [
+      { key: 'nowcast', sub: 'Radar + Nowcast' },
+      { key: 'flownowcast', sub: 'Optical Flow · 0–60 min' },
+      { key: 'poprob', sub: 'Flow-Ensemble · %' },
+      { key: 'snowline', sub: 'Regen ↔ Schnee' },
+    ],
+  },
+  {
+    title: 'Wind & Böen', accent: 'sage',
+    layers: [
+      { key: 'wind', sub: 'Pfeile · Partikel' },
+      { key: 'gust', sub: 'Spitzenböen 24 h' },
+    ],
+  },
+  {
+    title: 'Temperatur & Himmel', accent: 'terracotta',
+    layers: [
+      { key: 'temp', sub: 'höhenkorrigiert' },
+      { key: 'clouds', sub: 'tief · mittel · hoch', accent: 'slate' },
+      { key: 'sat', sub: 'Meteosat', accent: 'slate' },
+    ],
+  },
+  {
+    title: 'Punkte & Vertrauen', accent: 'violet',
+    layers: [
+      { key: 'lightning', sub: 'letzte 60 min', accent: 'amber' },
+      { key: 'stations', sub: 'Live-Messwerte' },
+      { key: 'confidence', sub: 'Vertrauens-Schleier', accent: 'slate' },
+    ],
+  },
+];
+
+/** Ortssuche im Deck-Kopf (Desktop-Topbar + mobiler Float) — geocodeDACH,
+ *  Enter sucht, Auswahl setzt die Karten-Location (App.tsx). ⌘K fokussiert. */
+function DeckSearch({ placeholder, onSelect, compact = false }: {
+  placeholder: string;
+  onSelect?: (l: Location) => void;
+  compact?: boolean;
+}) {
+  const [q, setQ] = useState('');
+  const [hits, setHits] = useState<Location[]>([]);
+  const [err, setErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const acRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    if (compact) return;
+    const kd = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        inputRef.current?.focus();
+      }
+    };
+    document.addEventListener('keydown', kd);
+    return () => document.removeEventListener('keydown', kd);
+  }, [compact]);
+
+  const reset = () => { setHits([]); setErr(null); };
+
+  async function run() {
+    const query = q.trim();
+    if (!query) return;
+    acRef.current?.abort();
+    const ac = new AbortController();
+    acRef.current = ac;
+    setBusy(true);
+    reset();
+    try {
+      const found = await geocodeDACH(query, ac.signal);
+      if (ac.signal.aborted) return;
+      if (found.length === 0) setErr('Keine Ergebnisse in DE · AT · CH.');
+      else if (found.length === 1 && onSelect) { onSelect(found[0]); setQ(''); }
+      else setHits(found);
+    } catch (e) {
+      if ((e as { name?: string })?.name === 'AbortError') return;
+      setErr(e instanceof Error ? e.message : 'Suche fehlgeschlagen');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mdk-search">
+      <div className="mdk-search-box">
+        <IcoSearch />
+        <input
+          ref={inputRef}
+          className="mdk-search-input"
+          type="text"
+          value={q}
+          placeholder={placeholder}
+          aria-label="Ort suchen"
+          onChange={e => setQ(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === 'Enter') { e.preventDefault(); void run(); }
+            if (e.key === 'Escape') { setQ(''); reset(); }
+          }}
+          disabled={busy}
+        />
+        {compact
+          ? <span className="mdk-m-live-dot" aria-hidden="true" />
+          : <span className="mdk-kbd" aria-hidden="true">⌘K</span>}
+      </div>
+      {(hits.length > 0 || err) && (
+        <div className="mdk-search-drop" role="listbox" aria-label="Suchergebnisse">
+          {err && <div className="mdk-search-err">⚠ {err}</div>}
+          {hits.map(h => (
+            <button
+              key={`${h.lat},${h.lon}`}
+              type="button"
+              className="mdk-search-hit"
+              role="option"
+              aria-selected="false"
+              onClick={() => { onSelect?.(h); setQ(''); reset(); }}
+            >
+              <span className="mdk-search-hit-cc">{h.country}</span>
+              {h.name}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

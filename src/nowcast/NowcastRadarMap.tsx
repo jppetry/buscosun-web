@@ -55,6 +55,22 @@ interface Props {
   /** Erhöht sich beim ↻-Reload der Seite → erzwingt einen stillen Soft-Refresh
    *  des Radar-Stacks (neuer DWD-Lauf, ohne die Karte zu leeren). */
   reloadKey?: number;
+  /** Command-Deck: aktive Radar-Layer von außen steuern (Dock-Toggles). Wenn
+   *  gesetzt, ist die Layer-Auswahl controlled — sonst bleibt sie intern. */
+  layers?: RadarLayerId[];
+  onLayersChange?: (layers: RadarLayerId[]) => void;
+  /** Interne „Ebenen"-Leiste ausblenden — im Deck stellt das linke Dock die
+   *  Layer-Toggles, die Leiste über der Karte wäre doppelt. */
+  hideLayerbar?: boolean;
+  /** Command-Deck: Zeitachse (Scrubber) + Punkt-Streifen + Datenqualität in ein
+   *  eingeklapptes Akkordeon falten, damit die Karte die Bühne dominiert. Der
+   *  Play-Button lebt dann im schwebenden Deck (via playing/onPlayingChange). */
+  compact?: boolean;
+  /** Radar-Animation von außen steuern (Deck-Play-Button). Controlled, wenn gesetzt. */
+  playing?: boolean;
+  onPlayingChange?: (playing: boolean) => void;
+  /** MapLibre-Instanz nach außen reichen (Mobile-Zoom-Buttons im Deck). Additiv. */
+  onMapReady?: (m: maplibregl.Map | null) => void;
 }
 
 const LAYER_META: Record<RadarLayerId, { label: string }> = {
@@ -77,9 +93,15 @@ const HEURISTIC_PHASES = new Set<RadarLayerId>(['graupel', 'hail']);
 
 type PointInfo = { lat: number; lon: number; name: string; country: 'DE' | 'AT' | 'CH' };
 
-export default function NowcastRadarMap({ location, nowcast, reloadKey = 0 }: Props) {
+export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, layers: controlledLayers, onLayersChange, hideLayerbar = false, compact = false, playing: controlledPlaying, onPlayingChange, onMapReady }: Props) {
   const last = useMemo(() => loadLastView(), []);
-  const [layers, setLayers] = useState<RadarLayerId[]>((last?.layers as RadarLayerId[]) ?? ['precip']);
+  const [layersUnc, setLayersUnc] = useState<RadarLayerId[]>((last?.layers as RadarLayerId[]) ?? ['precip']);
+  // Controlled/uncontrolled-Hybrid: steuert das Dock die Layer, gewinnt dessen
+  // Auswahl; sonst der interne Zustand. Beide teilen dieselbe Persistenz.
+  const layers = controlledLayers ?? layersUnc;
+  const applyLayers = useCallback((next: RadarLayerId[]) => {
+    if (onLayersChange) onLayersChange(next); else setLayersUnc(next);
+  }, [onLayersChange]);
   const [palette, setPalette] = useState<PaletteId>(last?.palette ?? 'classic');
   const [basemap, setBasemap] = useState<Basemap>(last?.basemap ?? 'streets');
   const [opacity, setOpacity] = useState<number>(last?.opacity ?? 0.85);
@@ -91,7 +113,14 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0 }: Pr
   const [terrain, setTerrain] = useState<RadarTerrain | null>(null);
   const [loadErr, setLoadErr] = useState<string | null>(null);
   const [framePos, setFramePos] = useState(0);
-  const [playing, setPlaying] = useState(false);
+  // Play-Zustand controlled/uncontrolled-Hybrid: steuert das Deck den Play-Button,
+  // gewinnt dessen Zustand; sonst der interne. Die rAF-Animationsschleife lebt
+  // hier (braucht `stack`), liest aber `playing` und meldet Stopp via applyPlaying.
+  const [playingUnc, setPlayingUnc] = useState(false);
+  const playing = controlledPlaying ?? playingUnc;
+  const applyPlaying = useCallback((next: boolean) => {
+    if (onPlayingChange) onPlayingChange(next); else setPlayingUnc(next);
+  }, [onPlayingChange]);
   const [speed, setSpeed] = useState(1);
   const [loop, setLoop] = useState(true);
 
@@ -230,7 +259,7 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0 }: Pr
     const maxIdx = stack.frames.length - 1; const fps = 2.5 * speed;
     const tick = (t: number) => {
       const dt = (t - prev) / 1000; prev = t;
-      setFramePos((p) => { let n = p + dt * fps; if (n > maxIdx) { if (loop) n = 0; else { n = maxIdx; setPlaying(false); } } return n; });
+      setFramePos((p) => { let n = p + dt * fps; if (n > maxIdx) { if (loop) n = 0; else { n = maxIdx; applyPlaying(false); } } return n; });
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
@@ -313,13 +342,14 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0 }: Pr
       .catch(() => setPoint({ lat, lon, name: `${lat.toFixed(3)}, ${lon.toFixed(3)}`, country: point.country }));
   }, [point.country]);
 
-  const toggleLayer = (id: RadarLayerId) => setLayers((ls) => ls.includes(id) ? ls.filter((l) => l !== id) : [...ls, id]);
-  const step = (d: number) => { setPlaying(false); setFramePos((p) => Math.max(0, Math.min((stack?.frames.length ?? 1) - 1, Math.round(p) + d))); };
-  const jumpNow = () => { setPlaying(false); if (stack) setFramePos(stack.nowIndex); };
+  const toggleLayer = (id: RadarLayerId) => applyLayers(layers.includes(id) ? layers.filter((l) => l !== id) : [...layers, id]);
+  const step = (d: number) => { applyPlaying(false); setFramePos((p) => Math.max(0, Math.min((stack?.frames.length ?? 1) - 1, Math.round(p) + d))); };
+  const jumpNow = () => { applyPlaying(false); if (stack) setFramePos(stack.nowIndex); };
 
   return (
     <div className="rt-card nc-radar">
       {/* Ebenen + Einstellungen */}
+      {!hideLayerbar && (
       <div className="nc-radar-layersbar">
         <span className="nc-radar-eyebrow">Ebenen</span>
         <div className="nc-radar-toggles">
@@ -338,6 +368,7 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0 }: Pr
           <IconChevron size={14} className={`nc-rchip-caret${showLayers ? ' is-open' : ''}`} />
         </button>
       </div>
+      )}
 
       {/* ausklappbare Darstellungs-Einstellungen */}
       {showLayers && (
@@ -375,7 +406,7 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0 }: Pr
             layers={layerSet} accumValues={accumValues} cells={cells} coverageValues={coverageValues}
             elevFull={terrain?.elevFull ?? null} snowLineM={snowLineM} snowLineFeatures={snowLineFeatures}
             point={{ lat: point.lat, lon: point.lon }} comparePoint={null}
-            onPick={onPick} onHover={(mmH) => setHover(mmH)} onMapRef={(m) => { mapRef.current = m; }}
+            onPick={onPick} onHover={(mmH) => setHover(mmH)} onMapRef={(m) => { mapRef.current = m; onMapReady?.(m); }}
           />
         ) : (
           <div className="nc-radar-loading">{loadErr ? `⚠ ${loadErr}` : <><span className="ev-spinner" /> Radar wird geladen … (RADOLAN-Komposit)</>}</div>
@@ -424,35 +455,57 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0 }: Pr
         )}
       </div>
 
-      {/* Zeitachse mit Messung↔Vorhersage-Bruch */}
-      {stack && (
-        <RadarTimeline
-          stack={stack} framePos={framePos} playing={playing} speed={speed} loop={loop} intensities={frameMmH}
-          onScrub={(p) => { setPlaying(false); setFramePos(p); }}
-          onTogglePlay={() => setPlaying((p) => !p)} onStep={step} onJumpNow={jumpNow}
-          onSpeed={setSpeed} onToggleLoop={() => setLoop((l) => !l)}
-        />
-      )}
-
-      {/* Punkt-Streifen am angetippten/Heimat-Punkt */}
-      {stack && (
-        <PointStrip
-          name={point.name} country={point.country} samples={pointSamples}
-          nowMs={Date.now()} skillMin={stack.skillMin || 120} palette={palette}
-          nowcast={pointNowcast} expertDbz={expertDbz} pop={pointPop} convective={convective}
-        />
-      )}
-
-      {/* Datenqualität & Quellen */}
-      <details className="nc-radar-quality">
-        <summary><IconRadarSignal size={15} /> Datenqualität &amp; Radarsicht</summary>
-        <ul>
-          {stack && <li><strong>Quelle:</strong> {stack.attribution}</li>}
-          {stack && <li><strong>Skill-Horizont:</strong> minutengenau bis ~{Math.round((stack.skillMin || 0) / 60 * 10) / 10} h, danach Modell (ICON-D2).</li>}
-          <li><strong>Radarsicht:</strong> {coverageNote(point.lat, point.country)}</li>
-          <li>Karte antippen für Punktabfrage. Raster sättigt ~20 mm/h (RADOLAN-RV-Kodierung).</li>
-        </ul>
-      </details>
+      {/* Zeitachse (Scrubber) · Punkt-Streifen · Datenqualität.
+          Deck (compact): alles in ein eingeklapptes Akkordeon gefaltet — der
+          Play-Button lebt im schwebenden Deck. Standalone: direkt sichtbar.
+          Funktion bleibt in beiden Fällen vollständig erhalten. */}
+      {(() => {
+        const scrubber = stack ? (
+          <RadarTimeline
+            stack={stack} framePos={framePos} playing={playing} speed={speed} loop={loop} intensities={frameMmH}
+            onScrub={(p) => { applyPlaying(false); setFramePos(p); }}
+            onTogglePlay={() => applyPlaying(!playing)} onStep={step} onJumpNow={jumpNow}
+            onSpeed={setSpeed} onToggleLoop={() => setLoop((l) => !l)}
+          />
+        ) : null;
+        const pointStrip = stack ? (
+          <PointStrip
+            name={point.name} country={point.country} samples={pointSamples}
+            nowMs={Date.now()} skillMin={stack.skillMin || 120} palette={palette}
+            nowcast={pointNowcast} expertDbz={expertDbz} pop={pointPop} convective={convective}
+          />
+        ) : null;
+        const qualityList = (
+          <ul>
+            {stack && <li><strong>Quelle:</strong> {stack.attribution}</li>}
+            {stack && <li><strong>Skill-Horizont:</strong> minutengenau bis ~{Math.round((stack.skillMin || 0) / 60 * 10) / 10} h, danach Modell (ICON-D2).</li>}
+            <li><strong>Radarsicht:</strong> {coverageNote(point.lat, point.country)}</li>
+            <li>Karte antippen für Punktabfrage. Raster sättigt ~20 mm/h (RADOLAN-RV-Kodierung).</li>
+          </ul>
+        );
+        if (compact) {
+          return (
+            <details className="nc-radar-morebox">
+              <summary><IconRadarSignal size={15} /> Zeitachse, Punktabfrage &amp; Datenqualität</summary>
+              <div className="nc-radar-morebox-body">
+                {scrubber}
+                {pointStrip}
+                <div className="nc-radar-quality nc-radar-quality-inline">{qualityList}</div>
+              </div>
+            </details>
+          );
+        }
+        return (
+          <>
+            {scrubber}
+            {pointStrip}
+            <details className="nc-radar-quality">
+              <summary><IconRadarSignal size={15} /> Datenqualität &amp; Radarsicht</summary>
+              {qualityList}
+            </details>
+          </>
+        );
+      })()}
 
     </div>
   );

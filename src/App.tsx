@@ -1,7 +1,7 @@
 import { lazy, Suspense, useState } from 'react';
 import SearchPage from './SearchPage';
 import type { Location } from './types';
-import type { LayerKey } from './MapView';
+import type { LayerKey, MapDeckFeature } from './MapView';
 import { decodeMapState } from './mapState';
 import { hasEventHash } from './event/eventState';
 import './designTokens.css';
@@ -98,16 +98,26 @@ export default function App() {
     setView({ kind: 'search' });
   };
 
+  // Deck-Rail/Bottom-Bar der Kartenseite: Navigation zu anderen Werkzeugen
+  // (gleiche FeatureInfo-Texte wie die Startseiten-Kacheln).
+  const DECK_FEATURES: Record<MapDeckFeature, FeatureInfo> = {
+    nowcast: { id: 'nowcast', eyebrow: 'Regenradar', title: 'Regnet es in 40 Minuten?' },
+    forecast: { id: 'forecast', eyebrow: 'Vorhersage', title: 'Konfidenz & Modelle' },
+    event: { id: 'event', eyebrow: 'Event-Planung', title: 'Welcher Tag passt am besten?' },
+  };
+  const openDeckFeature = (id: MapDeckFeature) => setView({ kind: 'feature', feature: DECK_FEATURES[id] });
+  const selectMapLocation = (location: Location) => setView({ kind: 'map', location });
+
   // Aktuelle Ansicht als Element bestimmen; Lazy-Komponenten werden vom
   // umschließenden <Suspense> abgefedert.
   let content: React.ReactNode;
   if (view.kind === 'map') {
-    content = <MapView location={view.location} initialActive={view.mapInit?.layers} initialHour={view.mapInit?.hour} onBack={goSearch} />;
+    content = <MapView location={view.location} initialActive={view.mapInit?.layers} initialHour={view.mapInit?.hour} onBack={goSearch} onOpenFeature={openDeckFeature} onSelectLocation={selectMapLocation} />;
   } else if (view.kind === 'feature') {
     const back = goSearch;
     const f = view.feature;
     content =
-      f.id === 'map2d' ? <MapView location={DACH_OVERVIEW_LOCATION} overview onBack={back} /> :
+      f.id === 'map2d' ? <MapView location={DACH_OVERVIEW_LOCATION} overview onBack={back} onOpenFeature={openDeckFeature} onSelectLocation={selectMapLocation} /> :
       f.id === 'route' ? <RoutePage onBack={back} /> :
       f.id === 'event' ? <EventPage onBack={back} /> :
       f.id === 'nowcast' ? <NowcastPage onBack={back} /> :

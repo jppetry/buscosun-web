@@ -1,0 +1,300 @@
+/* ============================================================================
+   Regenradar — „Command-Deck" (hell). Vollflächige App-Shell im Stil der
+   Wetterkarte: Sand/Ink, League Spartan, dunkles Radarfeld, Steel-Akzent.
+   Vorlage: references/regenradar.dc.html + references/{desktop,tablet,mobile}.png
+   Nur additiv — das Idle-Intro & die Bausteine (nowcast.css) bleiben unberührt.
+   ============================================================================ */
+
+.rr-deck {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  background: var(--sand-100, #EDE6D3);
+  color: var(--ink-900, #2C2A26);
+  font-family: 'League Spartan', var(--font-base, system-ui, sans-serif);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+.rr-deck ::placeholder { color: var(--stone-400, #A89A7A); }
+
+/* ---- Top-Statusleiste ---------------------------------------------------- */
+.rr-topbar {
+  height: 60px; flex: 0 0 auto;
+  display: flex; align-items: center; gap: 18px;
+  padding: 0 20px;
+  background: var(--cream-50, #FAF6EA);
+  border-bottom: 1px solid var(--sand-200, #E0D6BE);
+}
+.rr-brand { display: flex; align-items: center; gap: 10px; background: none; border: 0; cursor: pointer; padding: 0; font: inherit; }
+.rr-brand-mark { width: 26px; height: 26px; display: block; }
+.rr-brand-name { font-size: 19px; font-weight: 700; letter-spacing: -0.4px; color: var(--ink-900, #2C2A26); }
+.rr-topdiv { width: 1px; height: 26px; background: var(--sand-200, #E0D6BE); flex: 0 0 auto; }
+.rr-topsearch { flex: 1; max-width: 400px; }
+.rr-topright { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+.rr-live { display: inline-flex; align-items: center; gap: 8px; }
+.rr-live-dot { position: relative; width: 8px; height: 8px; display: inline-block; }
+.rr-live-dot span { position: absolute; inset: 0; border-radius: 50%; background: var(--steel-600, #3A6FA8); }
+.rr-live-dot span:last-child { animation: rrHalo 2.4s ease-out infinite; }
+@keyframes rrHalo { 0% { transform: scale(.5); opacity: .7; } 100% { transform: scale(2.4); opacity: 0; } }
+.rr-live-text { font-size: 11px; letter-spacing: 1.5px; color: var(--steel-600, #3A6FA8); font-weight: 600; }
+.rr-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--sand-200, #E0D6BE); color: #5C5447;
+  display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex: 0 0 auto; }
+
+/* Ortssuche im Kopf: NowcastLocationField-Chip/Feld auf das Deck trimmen. */
+.rr-topsearch .ev-loc-chip {
+  display: flex; align-items: center; gap: 9px;
+  background: #fff; border: 1px solid var(--border-medium, #D9D0B8); border-radius: 9px;
+  padding: 8px 13px; margin: 0; box-shadow: none; max-width: none;
+}
+.rr-topsearch .ev-loc-name { flex: 1; font-size: 14px; color: var(--ink-900, #2C2A26); font-weight: 400;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rr-topsearch .ev-loc-change { font-size: 11px; color: var(--steel-600, #3A6FA8); font-weight: 600; }
+.rr-topsearch .ev-search-wrap { max-width: none; }
+.rr-topsearch .ev-search { background: #fff; border: 1px solid var(--border-medium, #D9D0B8); border-radius: 9px; }
+
+/* ---- Body: Rail · Dock · Center · Readout -------------------------------- */
+.rr-body { flex: 1; display: flex; min-height: 0; }
+
+/* Icon-Rail (Ink) */
+.rr-rail {
+  width: 62px; flex: 0 0 auto;
+  background: var(--ink-900, #2C2A26);
+  display: flex; flex-direction: column; align-items: center;
+  padding: 14px 0; gap: 6px;
+}
+.rr-rail-btn {
+  width: 42px; height: 42px; border-radius: 11px;
+  display: flex; align-items: center; justify-content: center;
+  color: #8B7355; background: transparent; border: 0; cursor: pointer; position: relative;
+}
+.rr-rail-btn:hover { color: #C4B896; }
+.rr-rail-btn.is-active { background: #3A3833; color: #5B9BD5; }
+.rr-rail-btn.is-active::before {
+  content: ''; position: absolute; left: -14px; top: 9px; bottom: 9px;
+  width: 3px; border-radius: 2px; background: var(--steel-600, #3A6FA8);
+}
+.rr-rail-spacer { margin-top: auto; }
+
+/* Linkes Dock */
+.rr-dock {
+  width: 226px; flex: 0 0 auto;
+  background: var(--cream-50, #FAF6EA);
+  border-right: 1px solid var(--sand-200, #E0D6BE);
+  overflow-y: auto; padding: 16px 12px;
+}
+.rr-eyebrow { font-size: 11px; letter-spacing: 2px; color: var(--stone-400, #A89A7A);
+  font-weight: 700; text-transform: uppercase; }
+.rr-dock-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.rr-dock-count { font-size: 10px; color: #5C5447; font-weight: 500; background: var(--sand-100, #EDE6D3);
+  border-radius: 6px; padding: 2px 7px; }
+
+.rr-layers { display: flex; flex-direction: column; gap: 5px; margin: 0 0 16px; }
+.rr-layer {
+  display: flex; align-items: center; gap: 9px; width: 100%; text-align: left;
+  background: #fff; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 9px;
+  padding: 7px 10px; cursor: pointer; font: inherit;
+}
+.rr-layer.is-on { border-color: var(--rr-layer-color, #3A6FA8); }
+.rr-layer-ic { flex: 0 0 auto; display: flex; color: var(--rr-layer-color, #3A6FA8); }
+.rr-layer.is-off .rr-layer-ic { color: var(--stone-500, #8B7355); }
+.rr-layer-label { flex: 1; font-size: 13px; font-weight: 600; color: var(--ink-900, #2C2A26); }
+.rr-layer.is-off .rr-layer-label { font-weight: 500; color: var(--stone-500, #8B7355); }
+.rr-switch { width: 30px; height: 17px; border-radius: 9px; background: var(--sand-200, #E0D6BE);
+  position: relative; flex: 0 0 auto; transition: background .15s; }
+.rr-layer.is-on .rr-switch { background: var(--rr-layer-color, #3A6FA8); }
+.rr-switch-knob { position: absolute; top: 2px; left: 2px; width: 13px; height: 13px; border-radius: 50%;
+  background: #fff; transition: transform .15s; }
+.rr-layer.is-on .rr-switch-knob { transform: translateX(13px); }
+
+.rr-seg { margin: 10px 0 16px; background: #fff; border: 1px solid var(--sand-200, #E0D6BE);
+  border-radius: 9px; padding: 3px; display: flex; }
+.rr-seg-btn { flex: 1; text-align: center; font-size: 12px; font-weight: 500; color: var(--stone-500, #8B7355);
+  border-radius: 6px; padding: 7px 0; cursor: pointer; border: 0; background: transparent; font-family: inherit; }
+.rr-seg-btn.is-active { color: #FAF6EA; background: var(--steel-600, #3A6FA8); font-weight: 600; }
+.rr-seg--modus .rr-seg-btn.is-active { color: var(--ink-900, #2C2A26); background: var(--sand-100, #EDE6D3); }
+
+.rr-datalage { background: #fff; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 11px; padding: 12px; }
+.rr-datalage-eyebrow { font-size: 10px; letter-spacing: 1.5px; color: var(--stone-400, #A89A7A); font-weight: 700; text-transform: uppercase; }
+.rr-datalage-row { font-size: 12px; color: var(--ink-900, #2C2A26); font-weight: 500; margin-top: 7px; line-height: 1.5; }
+.rr-datalage-row + .rr-datalage-row { margin-top: 0; }
+.rr-datalage-fresh { display: flex; align-items: center; gap: 7px; margin-top: 9px; font-size: 11px; color: #5F7A4C; }
+.rr-datalage-fresh.is-stale { color: var(--terracotta-500, #C97B47); font-weight: 600; }
+.rr-datalage-fresh .rr-fresh-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--sage-600, #7A9466); }
+.rr-datalage-fresh.is-stale .rr-fresh-dot { background: var(--terracotta-500, #C97B47); }
+.rr-reload { margin-left: auto; display: inline-flex; align-items: center; gap: 3px; color: var(--steel-600, #3A6FA8);
+  background: none; border: 0; cursor: pointer; font: inherit; font-size: 11px; }
+.rr-reload:hover { color: var(--nc-blue-dark, #28507A); }
+
+/* Center — dunkles Radarfeld */
+.rr-center { flex: 1; position: relative; min-width: 0; overflow: hidden;
+  background: #0B0E12; display: flex; flex-direction: column; }
+.rr-stage { position: relative; flex: 1; min-height: 0; overflow: hidden;
+  background: radial-gradient(120% 90% at 50% 35%, #14202A 0%, #0F1620 55%, #0B0E12 100%); }
+
+/* Das echte Radar-Widget in die Bühne einpassen: Karten-Chrome ablegen, füllen. */
+.rr-stage .nc-radar { background: transparent; border: 0; box-shadow: none; padding: 0;
+  height: 100%; display: flex; flex-direction: column; gap: 0; border-radius: 0; }
+/* Karte dominiert (Referenz): füllt die Bühne; die (erhaltenen, aber
+   verschlankten) nativen Radar-Bedienelemente sitzen als schmale Leiste darunter. */
+.rr-stage .nc-radar-stage { flex: 1; min-height: 340px; border-radius: 0; }
+.rr-stage .nc-radar .maplibregl-map { border-radius: 0; }
+
+/* Footprint der nativen Radar-Controls verschlanken (Scrubber · Punkt/Qualität-
+   Akkordeon) — nur im Deck gescoped, Standalone-Radar unberührt. */
+.rr-stage .rdr-timeline { padding: 6px 14px 7px; }
+.rr-stage .rdr-timeline .rdr-tl-legend2 { display: none; }
+/* Punkt-Streifen + Datenqualität als eingeklapptes Akkordeon (schmaler Footprint) */
+.rr-stage .nc-radar-morebox { border-top: 1px solid var(--sand-200, #E0D6BE); background: var(--sand-50, #F5F1E8); }
+.rr-stage .nc-radar-morebox > summary { list-style: none; cursor: pointer; padding: 9px 14px;
+  font-size: 12px; font-weight: 600; color: var(--ink-800, #3A3833); display: flex; align-items: center; gap: 7px; }
+.rr-stage .nc-radar-morebox > summary::-webkit-details-marker { display: none; }
+.rr-stage .nc-radar-morebox > summary::after { content: '⌄'; margin-left: auto; color: var(--stone-500, #8B7355); }
+.rr-stage .nc-radar-morebox[open] > summary::after { content: '⌃'; }
+.rr-stage .nc-radar-morebox-body { padding: 2px 14px 12px; display: flex; flex-direction: column; gap: 12px; }
+.rr-stage .nc-radar-quality-inline { border: 0; padding: 0; margin: 0; }
+/* Native „Ebenen/Einstellungen"-Panel (falls offen) über der Karte schlank halten */
+.rr-stage .nc-radar-panel { position: absolute; left: 12px; right: 12px; top: 12px; z-index: 5;
+  border-radius: 12px; max-width: 420px; }
+
+/* Diagramm-Ansicht im Center */
+.rr-chart { position: absolute; inset: 0; overflow: auto; padding: 20px 20px 90px;
+  background: radial-gradient(120% 90% at 50% 35%, #14202A 0%, #0F1620 55%, #0B0E12 100%); }
+.rr-chart .rt-card { background: rgba(250,246,234,.96); border: 1px solid var(--sand-200, #E0D6BE); }
+
+/* Schwebende Overlays über der Karte */
+.rr-glass { background: rgba(250,246,234,.94); backdrop-filter: blur(8px);
+  border: 1px solid var(--sand-200, #E0D6BE); border-radius: 10px; }
+.rr-source-pill { position: absolute; left: 16px; top: 16px; z-index: 4;
+  display: flex; align-items: center; gap: 9px; padding: 8px 13px; }
+.rr-source-pill .rr-src-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--steel-600, #3A6FA8); }
+.rr-source-pill .rr-src-name { font-size: 12px; color: var(--ink-900, #2C2A26); font-weight: 600; }
+.rr-source-pill .rr-src-meta { font-size: 11px; color: var(--stone-500, #8B7355); }
+
+.rr-topright-map { position: absolute; right: 16px; top: 16px; z-index: 4;
+  display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
+.rr-viewtoggle { display: flex; padding: 3px; }
+.rr-viewtoggle button { font-size: 12px; font-weight: 500; color: var(--stone-500, #8B7355);
+  border: 0; background: transparent; border-radius: 7px; padding: 6px 12px; cursor: pointer; font-family: inherit; }
+.rr-viewtoggle button.is-active { color: #FAF6EA; background: var(--steel-600, #3A6FA8); font-weight: 600; }
+.rr-zoom { display: flex; flex-direction: column; overflow: hidden; }
+.rr-zoom button { width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;
+  color: var(--ink-900, #2C2A26); font-size: 20px; cursor: pointer; border: 0; background: transparent; }
+.rr-zoom button:first-child { border-bottom: 1px solid var(--sand-200, #E0D6BE); }
+
+/* Verlauf & Ereignisse (Referenz): Niederschlagssumme (Balken) + Ereignis-Liste */
+.rr-vsum-card, .rr-ev-card { background: #fff; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 12px; padding: 14px 15px; }
+.rr-ev-card { margin-top: 10px; }
+.rr-vsum-title { font-size: 13.5px; font-weight: 700; color: var(--ink-900, #2C2A26); }
+.rr-vsum-bars { display: flex; align-items: flex-end; gap: 5px; height: 58px; margin-top: 13px; }
+.rr-vsum-bar { flex: 1 1 0; min-height: 3px; border-radius: 4px 4px 2px 2px; }
+.rr-vsum-cap { font-size: 11px; color: var(--stone-500, #8B7355); margin-top: 11px; }
+.rr-vsum-cap b { color: var(--ink-900, #2C2A26); font-weight: 700; }
+.rr-ev-list { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 11px; }
+.rr-ev-row { display: grid; grid-template-columns: 44px 1fr; gap: 10px; align-items: baseline; }
+.rr-ev-time { font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rr-ev-text { font-size: 12.5px; color: var(--ink-900, #2C2A26); line-height: 1.4; }
+.rr-ev-text b { font-weight: 600; }
+.rr-ev-detail { color: var(--stone-500, #8B7355); font-weight: 400; }
+.rr-ev-empty { font-size: 12px; color: var(--stone-500, #8B7355); margin-top: 10px; }
+
+/* Rechter Readout */
+.rr-readout { width: 352px; flex: 0 0 auto; background: var(--cream-50, #FAF6EA);
+  border-left: 1px solid var(--sand-200, #E0D6BE); overflow-y: auto; padding: 18px 16px; }
+.rr-readout-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.rr-readout-eyebrow { font-size: 11px; letter-spacing: 2.5px; color: var(--stone-400, #A89A7A); font-weight: 700; text-transform: uppercase; }
+.rr-readout-fresh { font-size: 10px; color: #5F7A4C; font-weight: 600; white-space: nowrap; }
+.rr-readout-fresh.is-stale { color: var(--terracotta-500, #C97B47); }
+
+/* Schnellblick-Hero */
+.rr-hero { margin-top: 12px; background: #fff; border: 1px solid var(--steel-600, #3A6FA8); border-radius: 14px; padding: 16px; }
+.rr-hero-tag { display: inline-block; font-size: 9px; letter-spacing: 1.5px; color: var(--steel-600, #3A6FA8); font-weight: 700;
+  border: 1px solid #B7CBE0; border-radius: 5px; padding: 3px 8px; text-transform: uppercase; }
+.rr-hero-line { font-size: 30px; font-weight: 700; color: var(--ink-900, #2C2A26); letter-spacing: -0.8px;
+  margin: 12px 0 0; line-height: 1.05; }
+.rr-hero-line .rr-accent { color: var(--steel-600, #3A6FA8); }
+.rr-hero-sub { font-size: 12.5px; color: #5C5447; margin: 8px 0 0; line-height: 1.5; }
+.rr-hero-badges { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+.rr-badge { display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 600;
+  color: #9A5A2A; background: var(--terracotta-50, #FAEEDA); border: 1px solid #E3C39A; border-radius: 8px; padding: 6px 10px; }
+.rr-badge svg { flex: 0 0 auto; }
+
+/* Kennzahlen */
+.rr-section-label { font-size: 11px; letter-spacing: 2px; color: var(--stone-400, #A89A7A); font-weight: 700;
+  text-transform: uppercase; margin: 20px 0 10px; }
+.rr-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.rr-metric { background: #fff; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 11px; padding: 12px; }
+.rr-metric.is-alert { border-color: #E3C39A; }
+.rr-metric-label { font-size: 10px; letter-spacing: 1px; color: var(--stone-400, #A89A7A); text-transform: uppercase; }
+.rr-metric.is-alert .rr-metric-label { color: #9A5A2A; }
+.rr-metric-value { font-size: 18px; font-weight: 700; color: var(--ink-900, #2C2A26); margin-top: 3px; font-variant-numeric: tabular-nums; }
+.rr-metric.is-alert .rr-metric-value { color: var(--terracotta-500, #C97B47); }
+.rr-metric-sub { font-size: 10.5px; color: var(--stone-500, #8B7355); margin-top: 2px; }
+.rr-metric--wide { grid-column: span 2; }
+
+/* Verlauf/Ereignisse/Alpin: bestehende Karten in die Readout-Spalte einpassen */
+.rr-readout .nc-block-head { margin: 0 0 10px; }
+.rr-readout .nc-acc-card, .rr-readout .nc-events-card, .rr-readout .nc-alp-card { background: #fff; padding: 14px; }
+.rr-readout .nc-detail-single { margin-top: 0; }
+
+/* Quellen & Ehrlichkeit */
+.rr-sources { margin-top: 16px; display: flex; flex-direction: column; gap: 8px; }
+.rr-sources details { background: #fff; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 10px; padding: 11px 13px; }
+.rr-sources summary { font-size: 12px; font-weight: 600; color: var(--ink-900, #2C2A26); cursor: pointer; }
+.rr-sources details > div { font-size: 11px; color: #5C5447; line-height: 1.6; margin-top: 8px; }
+.rr-honesty { background: #FBF3E3; border: 1px solid #E3C39A; border-radius: 10px; padding: 11px 13px;
+  font-size: 11px; color: #5C5447; line-height: 1.55; }
+.rr-honesty b { color: var(--terracotta-500, #C97B47); font-weight: 700; }
+.rr-readout-foot { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--sand-200, #E0D6BE);
+  font-size: 10px; color: var(--stone-400, #A89A7A); line-height: 1.7; }
+
+/* ---- Lade-/Fehlerzustand im Deck ---------------------------------------- */
+.rr-center-state { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 0.8rem; color: #C4B896; font-size: 0.95rem; text-align: center; padding: 2rem; z-index: 5; }
+
+/* ============================================================================
+   Tablet 768–1024 px — schmaleres Dock/Readout, Rail bleibt
+   ============================================================================ */
+@media (max-width: 1024px) {
+  .rr-dock { width: 186px; padding: 14px 11px; }
+  .rr-readout { width: 300px; }
+  .rr-hero-line { font-size: 24px; }
+  .rr-metrics { gap: 8px; }
+}
+
+/* ============================================================================
+   Mobile <768 px — Radarkarte oben + Bottom-Sheet
+   ============================================================================ */
+.rr-deck.is-mobile .rr-body { flex-direction: column; }
+/* Karte füllt die ganze Fläche; das Bottom-Sheet legt sich darüber. */
+.rr-deck.is-mobile .rr-mobile-map { position: absolute; inset: 0; display: flex;
+  overflow: hidden; background: #0B0E12; }
+.rr-deck.is-mobile .rr-mobile-map .rr-center { flex: 1; height: 100%; }
+.rr-deck.is-mobile .rr-mobile-map .rr-stage { height: 100%; }
+/* Karte auf feste Höhe — die (funktionserhaltenden) nativen Radar-Bedienelemente
+   rutschen darunter hinter das Sheet und sind erreichbar, wenn man es einklappt. */
+.rr-deck.is-mobile .rr-mobile-map .nc-radar-stage { flex: 0 0 auto; height: 60vh; }
+/* Quellen-Pille würde die Suchleiste am oberen Rand überlagern → auf Mobile aus. */
+.rr-deck.is-mobile .rr-source-pill { display: none; }
+
+.rr-mobile-topfloat { position: absolute; left: 12px; right: 12px;
+  top: calc(12px + env(safe-area-inset-top, 0px)); z-index: 6;
+  display: flex; align-items: center; gap: 9px; }
+.rr-mobile-topfloat .rr-topsearch { flex: 1; }
+.rr-mobile-geo { width: 40px; height: 40px; border-radius: 11px; display: flex; align-items: center; justify-content: center;
+  color: var(--steel-600, #3A6FA8); flex: 0 0 auto; border: 1px solid var(--sand-200, #E0D6BE); background: rgba(250,246,234,.94); }
+
+/* Bottom-Sheet-Inhalt (rr-sheet-*) nutzt dieselben Readout-Bausteine, kompakter. */
+.rr-sheet { display: flex; flex-direction: column; gap: 12px; padding-bottom: 8px; }
+.rr-sheet .rr-hero { margin-top: 0; }
+.rr-sheet-toggle { background: #fff; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 10px; padding: 3px; display: flex; }
+.rr-sheet-toggle button { flex: 1; text-align: center; font-size: 12px; font-weight: 500; color: var(--stone-500, #8B7355);
+  border: 0; background: transparent; border-radius: 7px; padding: 8px 0; cursor: pointer; font-family: inherit; }
+.rr-sheet-toggle button.is-active { color: #FAF6EA; background: var(--steel-600, #3A6FA8); font-weight: 600; }
+
+/* Bottom-Sheet-Handle-Kopf: schlanke Peek-Zeile (der volle Hero steht im Body) */
+.rr-sheet-head { display: flex; align-items: baseline; gap: 8px; }
+.rr-sheet-head-tag { font-size: 9px; letter-spacing: 1.5px; color: var(--steel-600, #3A6FA8); font-weight: 700; text-transform: uppercase; }
+.rr-sheet-head-line { font-size: 14px; font-weight: 600; color: var(--ink-900, #2C2A26); letter-spacing: -0.2px; }
+.rr-sheet-head-line .rr-accent { color: var(--steel-600, #3A6FA8); }

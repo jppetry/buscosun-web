@@ -34,6 +34,21 @@
   --steel-600: #3A6FA8;
   --steel-50:  #E8F0FA;
   --slate-500: #6B7A8F;
+  /* Kartenseite Command-Deck: Violett der Gruppe „Punkte & Vertrauen"
+     (Stationen-Toggle, Stations-Punkte) — references/*-karte.png. */
+  --violet-600: #7C6BC4;
+  --violet-300: #B9A8E8;
+
+  /* === Regenradar / Nowcast (Command-Deck) === */
+  --nc-blue:      #3A6FA8;  /* Steel-Akzent der Nowcast-Designsprache */
+  --nc-blue-dark: #28507A;
+  --nc-int-light:    #9DC3E6;  /* Intensitätsskala: leicht */
+  --nc-int-moderate: #3A6FA8;  /* mäßig */
+  --nc-int-strong:   #28507A;  /* stark */
+  --nc-spike:     #9E86D6;  /* Spitze (violett) */
+  --nc-model:     #A9C0DA;  /* blass = Modell */
+  --nc-dry:       #C9BE9E;  /* Trockenfenster (tan) */
+  --nc-radarbg:   #0B1016;  /* dunkles Radarfeld */
 
   /* === Borders === */
   --border-default: #E0D6BE;

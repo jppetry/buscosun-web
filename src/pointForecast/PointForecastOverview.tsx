@@ -74,7 +74,7 @@ export function PointForecastOverview({ data }: Props) {
             <span className="pfc-ov-vital-sub">{cloudDescription(now.cloudCoverTotal)}</span>
           </div>
           <div className="pfc-ov-vital">
-            <dt>Niederschlag</dt>
+            <dt>Regen</dt>
             <dd>{precipTotal > 0.05 ? `${precipTotal.toFixed(1)} mm` : '0.0 mm'}</dd>
             <span className="pfc-ov-vital-sub">{precipDescription(now.precipitation, precipTotal)}</span>
           </div>
