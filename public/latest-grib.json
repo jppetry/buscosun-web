@@ -1,7 +1,7 @@
 {
-  "run": "2026072218",
-  "runAt": "2026-07-22T18:00:00.000Z",
-  "updatedAt": "2026-07-22T20:02:58.195Z",
+  "run": "2026072215",
+  "runAt": "2026-07-22T15:00:00.000Z",
+  "updatedAt": "2026-07-22T17:42:28.072Z",
   "warmedThroughProxy": "http://localhost:5196/_dwd_grib",
   "params": {
     "t_2m": [
