@@ -12,6 +12,10 @@
  *   (2) Response trägt `Netlify-CDN-Cache-Control: … durable … immutable`;
  *       fehlender Step → nicht-200 + `no-store` (nie durable gecacht);
  *       Pfad-Whitelist lehnt Fremdpfade/Listings/Traversal ab.
+ *   (3) Phase T2b-1 (V-TRANSPORT-2b): Whitelist akzeptiert ZUSÄTZLICH den
+ *       ICON-D2-EPS-Baum (icosahedral, Fusion-Engine); EPS-Byte-Identität je
+ *       EPS-Param (t_2m, u_10m, v_10m, clct, tot_prec — die Menge aus
+ *       fetchIconD2EpsGrid) + clat/clon-Invarianten; EPS-Listings weiter 400.
  *
  * Aufruf:  node scripts/verify-layer-transport.mjs
  * (Auf Node < 23.6 startet sich das Skript selbst mit
@@ -35,7 +39,10 @@ const { default: handler, resolveDwdUrl } = await import('../netlify/edge-functi
 
 const DWD_ORIGIN = 'https://opendata.dwd.de';
 const DWD_BASE = `${DWD_ORIGIN}/weather/nwp/icon-d2/grib`;
+const EPS_BASE = `${DWD_ORIGIN}/weather/nwp/icon-d2-eps/grib`;
 const PARAMS = ['t_2m', 'vmax_10m', 'tot_prec', 'clcl', 'clcm', 'clch', 'clct'];
+/** EPS-Menge aus fetchIconD2EpsGrid (src/sources/iconD2EpsSource.ts). */
+const EPS_PARAMS = ['t_2m', 'u_10m', 'v_10m', 'clct', 'tot_prec'];
 const pad2 = (n) => String(n).padStart(2, '0');
 const sha256 = (buf) => createHash('sha256').update(Buffer.from(buf)).digest('hex');
 
@@ -55,6 +62,23 @@ async function findRun() {
     if (!res.ok) continue;
     const html = await res.text();
     if (html.includes(`icon-d2_germany_regular-lat-lon_single-level_${run}_000_2d_t_2m.grib2.bz2`)) return run;
+  }
+  return null;
+}
+
+/** Neuesten EPS-Lauf finden (icosahedral, eigener Lauf — Rückwärtssuche). */
+async function findEpsRun() {
+  const now = new Date();
+  now.setUTCMinutes(0, 0, 0);
+  now.setUTCHours(now.getUTCHours() - (now.getUTCHours() % 3));
+  for (let back = 0; back < 6; back++) {
+    const cand = new Date(now.getTime() - back * 3 * 3600_000);
+    const run = `${cand.getUTCFullYear()}${pad2(cand.getUTCMonth() + 1)}${pad2(cand.getUTCDate())}${pad2(cand.getUTCHours())}`;
+    const hh = run.slice(8, 10);
+    const res = await fetch(`${EPS_BASE}/${hh}/t_2m/`);
+    if (!res.ok) continue;
+    const html = await res.text();
+    if (html.includes(`icon-d2-eps_germany_icosahedral_single-level_${run}_000_2d_t_2m.grib2.bz2`)) return run;
   }
   return null;
 }
@@ -103,6 +127,33 @@ async function main() {
     `weather/nwp/icon-d2/grib/${hh}/hsurf/icon-d2_germany_regular-lat-lon_time-invariant_${run}_000_0_hsurf.grib2.bz2`,
     'hsurf',
   );
+
+  // — Phase T2b-1: EPS-Baum (icosahedral, Fusion-Engine) — Whitelist + Bytes. —
+  console.log('\n== V-TRANSPORT-2b — EPS-Baum (T2b-1) ==');
+  const epsRun = await findEpsRun();
+  if (!epsRun) {
+    ok(false, 'Kein publizierter ICON-D2-EPS-Lauf gefunden — Netz/Publikation?');
+  } else {
+    console.log(`EPS-Lauf: ${epsRun}`);
+    const ehh = epsRun.slice(8, 10);
+    const epsSample = `weather/nwp/icon-d2-eps/grib/${ehh}/t_2m/icon-d2-eps_germany_icosahedral_single-level_${epsRun}_000_2d_t_2m.grib2.bz2`;
+    ok(resolveDwdUrl(`http://localhost/_dwd_grib/${epsSample}`) === `${DWD_ORIGIN}/${epsSample}`,
+      'resolveDwdUrl akzeptiert EPS-Baum (icon-d2-eps/grib/)');
+    ok(resolveDwdUrl(`http://localhost/_dwd_grib/weather/nwp/icon-d2-eps/grib/${ehh}/t_2m/`) === null,
+      'resolveDwdUrl lehnt EPS-Directory-Listing ab (nicht .grib2.bz2)');
+    for (const param of EPS_PARAMS) {
+      await checkFile(
+        `weather/nwp/icon-d2-eps/grib/${ehh}/${param}/icon-d2-eps_germany_icosahedral_single-level_${epsRun}_000_2d_${param}.grib2.bz2`,
+        `eps:${param}`,
+      );
+    }
+    for (const inv of ['clat', 'clon']) {
+      await checkFile(
+        `weather/nwp/icon-d2-eps/grib/${ehh}/${inv}/icon-d2-eps_germany_icosahedral_time-invariant_${epsRun}_000_0_${inv}.grib2.bz2`,
+        `eps:${inv}`,
+      );
+    }
+  }
 
   // Fehlerpfad wird NICHT durable gecacht.
   const missing = sample.replace('_000_', '_999_');

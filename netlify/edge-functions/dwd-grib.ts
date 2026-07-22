@@ -3,7 +3,10 @@
  * (Phase T2-1, Ausrollung des T1-Wind-Musters auf Temp/Gust/Precip/Clouds).
  *
  * Fronted die immutablen per-(Lauf,Step)-GRIB-Fetches ALLER 2D-Kartenlayer, die
- * dem T1-Muster folgen (t_2m, vmax_10m, tot_prec, clcl/clcm/clch/clct, hsurf …).
+ * dem T1-Muster folgen (t_2m, vmax_10m, tot_prec, clcl/clcm/clch/clct, hsurf …)
+ * sowie (Phase T2b-1) die ICON-D2-EPS-Dateien (icosahedral, Fusion-Engine —
+ * src/sources/iconD2EpsSource.ts): gleiche Bytes, gleicher Client-Decode, nur
+ * durable gecachte Herkunft statt Pass-Through.
  * Additiv: der bestehende `/_dwd_opendata`-Rewrite (netlify.toml, Radar/RADOLAN)
  * und der Wind-Pfad `/_dwd_wind` (Phase T1) bleiben UNVERÄNDERT bestehen —
  * diese Funktion hängt am eigenen Pfad `/_dwd_grib/*`.
@@ -23,8 +26,10 @@
  */
 
 const DWD_ORIGIN = 'https://opendata.dwd.de';
-/** Nur dieser Teilbaum darf proxied werden (Anti-Open-Proxy). */
-const ALLOWED_PREFIX = 'weather/nwp/icon-d2/grib/';
+/** Nur diese Teilbäume dürfen proxied werden (Anti-Open-Proxy). T2b-1: der
+ *  EPS-Baum (icosahedral, Fusion-Engine) kommt hinzu — dieselbe Datei-only-
+ *  Semantik, die 4–15-s-EPS-Fetches laufen damit über den Durable-Cache. */
+const ALLOWED_PREFIXES = ['weather/nwp/icon-d2/grib/', 'weather/nwp/icon-d2-eps/grib/'];
 /** Durable-Cache-Retention. Inhalt ist per URL (Lauf+Step) immutabel → großzügig
  *  wählbar; alte Läufe altern natürlich aus. 6 h deckt die Nutzungsdauer eines
  *  Laufs komfortabel ab. */
@@ -43,8 +48,8 @@ export function resolveDwdUrl(requestUrl: string): string | null {
   const url = new URL(requestUrl);
   // Alles nach dem /_dwd_grib-Präfix ist der DWD-Pfad.
   const rest = url.pathname.replace(/^\/_dwd_grib\//, '');
-  // Nur der ICON-D2-GRIB-Teilbaum, nur unveränderliche .grib2.bz2-Dateien.
-  if (!rest.startsWith(ALLOWED_PREFIX)) return null;
+  // Nur die ICON-D2-/ICON-D2-EPS-GRIB-Teilbäume, nur unveränderliche .grib2.bz2-Dateien.
+  if (!ALLOWED_PREFIXES.some((p) => rest.startsWith(p))) return null;
   if (!rest.endsWith('.grib2.bz2')) return null;
   // Kein Directory-Traversal.
   if (rest.includes('..')) return null;

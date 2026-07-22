@@ -26,6 +26,16 @@
  * der Client serviert den letzten gewärmten Lauf (stale, nie kalt) bzw. fällt
  * nach dem 24h-Staleness-Guard auf den Directory-Scan zurück. Nächster Tick heilt.
  *
+ * Phase T2b-3: zusätzlich werden die ICON-D2-**EPS**-Dateien gewärmt (icosahedral,
+ * Fusion-Engine via src/sources/iconD2EpsSource.ts — die 4–15-s-Kaltload-Sünder):
+ * eigener EPS-Lauf (eigene Discovery, Spiegel von resolveLatestEpsRun), exakt die
+ * Client-Menge (5 Variablen × Steps 0/3/6 + clat/clon-Invarianten) durch
+ * `/_dwd_grib/weather/nwp/icon-d2-eps/grib`. Das Manifest bekommt einen
+ * sekundären `eps`-Abschnitt (Doku/Ops — der Client liest ihn NICHT, seine
+ * EPS-Lauf-Discovery bleibt der Directory-Scan). EPS-Fehler blockieren NIE das
+ * Umlegen des 2D-Manifests (und umgekehrt hält ein 2D-Fehler den EPS-Byte-Warm
+ * nicht auf); Early-Exit prüft beide Abschnitte getrennt.
+ *
  * Kein eccodes, kein Decode, kein bz2 — reines Cache-Wärmen + Manifest.
  * Wind (T1, latest-wind.json + /_dwd_wind) bleibt unberührt.
  *
@@ -35,6 +45,8 @@
  *   MANIFEST_PATH       Zielpfad des Manifests. Default public/latest-grib.json.
  *   DWD_BASE            DWD-Origin für die Lauf-Discovery.
  *                       Default https://opendata.dwd.de/weather/nwp/icon-d2/grib.
+ *   EPS_DWD_BASE        DWD-Origin für die EPS-Lauf-Discovery. Default
+ *                       https://opendata.dwd.de/weather/nwp/icon-d2-eps/grib.
  *   NEAR_REQUIRED       Steps 0…N müssen je Param gewärmt sein, um umzulegen. Default 4.
  *   WARM_CONCURRENCY    Parallele Warm-Fetches. Default 4.
  *   WARM_MAX_STEP       TEST: globaler Step-Cap, der die per-Param-Caps zusätzlich
@@ -67,6 +79,16 @@ const PARAMS = [
   { name: 'clct', maxStep: 12 },
 ];
 
+const EPS_DWD_BASE = (process.env.EPS_DWD_BASE || 'https://opendata.dwd.de/weather/nwp/icon-d2-eps/grib').replace(/\/+$/, '');
+/** EPS-Variablen + Step-Menge, die `fetchIconD2EpsGrid` tatsächlich zieht
+ *  (src/sources/iconD2EpsSource.ts: VARS, cap MAX_STEP_DEFAULT=6, nur s % 3 === 0
+ *  → Steps 0/3/6). Exakt diese Menge wärmen — EPS-Dateien sind groß (~16 MB
+ *  entpackt), Über-Wärmen wäre teuer und nutzlos. */
+const EPS_PARAMS = ['t_2m', 'u_10m', 'v_10m', 'clct', 'tot_prec'];
+const EPS_MAX_STEP = 6;
+const epsWanted = (steps) => steps.filter((s) =>
+  s <= EPS_MAX_STEP && s % 3 === 0 && (WARM_MAX_STEP == null || s <= WARM_MAX_STEP));
+
 const pad2 = (n) => String(n).padStart(2, '0');
 const pad3 = (n) => String(n).padStart(3, '0');
 const log = (...a) => console.log('[warm-grib]', ...a);
@@ -85,6 +107,12 @@ function stepFile(run, param, step) {
 function invariantFile(run, param) {
   return `icon-d2_germany_regular-lat-lon_time-invariant_${run}_000_0_${param}.grib2.bz2`;
 }
+function epsStepFile(run, param, step) {
+  return `icon-d2-eps_germany_icosahedral_single-level_${run}_${pad3(step)}_2d_${param}.grib2.bz2`;
+}
+function epsInvariantFile(run, param) {
+  return `icon-d2-eps_germany_icosahedral_time-invariant_${run}_000_0_${param}.grib2.bz2`;
+}
 
 /** DWD-Directory-Listing eines (Lauf,Param) parsen → verfügbare Steps (regular-lat-lon). */
 async function listSteps(run, param) {
@@ -97,6 +125,45 @@ async function listSteps(run, param) {
   let m;
   while ((m = re.exec(html)) !== null) steps.add(parseInt(m[1], 10));
   return [...steps].sort((a, b) => a - b);
+}
+
+/** EPS-Directory-Listing eines (Lauf,Param) parsen → verfügbare Steps (icosahedral). */
+async function listEpsSteps(run, param) {
+  const hh = run.slice(8, 10);
+  const res = await fetch(`${EPS_DWD_BASE}/${hh}/${param}/`);
+  if (!res.ok) return [];
+  const html = await res.text();
+  const re = new RegExp(`icon-d2-eps_germany_icosahedral_single-level_${run}_(\\d{3})_2d_${param}\\.grib2\\.bz2`, 'g');
+  const steps = new Set();
+  let m;
+  while ((m = re.exec(html)) !== null) steps.add(parseInt(m[1], 10));
+  return [...steps].sort((a, b) => a - b);
+}
+
+/** Neuesten EPS-Lauf finden — SPIEGEL der Client-Discovery (resolveLatestEpsRun in
+ *  iconD2EpsSource.ts: t_2m-Listing, max(Step) ≥ 6). Es wird bewusst DER Lauf
+ *  gewärmt, den auch der Client wählen wird; hinkt eine andere Variable nach,
+ *  fehlt sie schlicht (Client füllt dann NaN — unverändertes Verhalten). */
+async function findLatestEpsRun() {
+  const now = new Date();
+  now.setUTCMinutes(0, 0, 0);
+  now.setUTCHours(now.getUTCHours() - (now.getUTCHours() % 3));
+  for (let back = 0; back < 6; back++) {
+    const cand = new Date(now.getTime() - back * 3 * 3600_000);
+    const run = runStrOf(cand);
+    let t2m;
+    try { t2m = await listEpsSteps(run, 't_2m'); } catch { continue; }
+    if (t2m.length === 0 || Math.max(...t2m) < EPS_MAX_STEP) continue;
+    const stepsByParam = { t_2m: epsWanted(t2m) };
+    for (const p of EPS_PARAMS) {
+      if (p === 't_2m') continue;
+      stepsByParam[p] = epsWanted(await listEpsSteps(run, p).catch(() => []));
+    }
+    const total = Object.values(stepsByParam).reduce((n, a) => n + a.length, 0);
+    log(`EPS-Lauf ${run} (Client-Wahl), warmbare Steps gesamt: ${total}`);
+    return { run, runAt: cand, stepsByParam };
+  }
+  return null;
 }
 
 /** Neuesten Lauf finden, dessen Near-Horizon (0…NEAR_REQUIRED) für ALLE Params da ist.
@@ -151,6 +218,10 @@ function warmStepUrl(run, param, step) {
   const hh = run.slice(8, 10);
   return `${SITE_URL}/_dwd_grib/weather/nwp/icon-d2/grib/${hh}/${param}/${stepFile(run, param, step)}`;
 }
+function warmEpsStepUrl(run, param, step) {
+  const hh = run.slice(8, 10);
+  return `${SITE_URL}/_dwd_grib/weather/nwp/icon-d2-eps/grib/${hh}/${param}/${epsStepFile(run, param, step)}`;
+}
 
 function readManifest() {
   try { return JSON.parse(readFileSync(MANIFEST_PATH, 'utf8')); } catch { return null; }
@@ -168,6 +239,18 @@ function manifestCovers(existing, latest) {
   });
 }
 
+/** Early-Exit-Prüfung des sekundären `eps`-Abschnitts (gleiche Logik: Lauf +
+ *  Step-Abdeckung je EPS-Param — progressive Publikation gilt auch hier). */
+function manifestCoversEps(existing, latestEps) {
+  const eps = existing?.eps;
+  if (!eps || eps.run !== latestEps.run) return false;
+  if (eps.params == null || typeof eps.params !== 'object') return false;
+  return EPS_PARAMS.every((p) => {
+    const have = Array.isArray(eps.params[p]) ? eps.params[p] : [];
+    return latestEps.stepsByParam[p].every((s) => have.includes(s));
+  });
+}
+
 /** Atomar schreiben: temp + rename (der Client sieht nie ein halbes Manifest). */
 function writeManifestAtomic(obj) {
   mkdirSync(dirname(MANIFEST_PATH), { recursive: true });
@@ -177,66 +260,114 @@ function writeManifestAtomic(obj) {
 }
 
 async function main() {
-  log(`Start · SITE_URL=${SITE_URL} · Manifest=${MANIFEST_PATH} · Params=${PARAMS.map((p) => `${p.name}≤${capOf(p)}`).join(',')}`);
-
-  const latest = await findLatestCompleteRun();
-  if (!latest) {
-    log('Kein vollständiger Lauf gefunden → Manifest UNVERÄNDERT (graceful degrade). Exit 0.');
-    return 0;
-  }
+  log(`Start · SITE_URL=${SITE_URL} · Manifest=${MANIFEST_PATH} · Params=${PARAMS.map((p) => `${p.name}≤${capOf(p)}`).join(',')} · EPS=${EPS_PARAMS.join(',')}≤${EPS_MAX_STEP}`);
 
   const existing = readManifest();
-  if (!FORCE && manifestCovers(existing, latest)) {
-    log(`Early-Exit: Manifest steht bereits auf Lauf ${latest.run} und deckt alle warmbaren Steps ab.`);
+
+  // Discovery beider Familien getrennt — ein Ausfall der einen hält die andere
+  // nicht auf (2D-Karte und Fusion/EPS haben eigene Läufe + eigene Nutzer).
+  const latest = await findLatestCompleteRun();
+  if (!latest) log('Kein vollständiger 2D-Lauf gefunden → 2D-Abschnitt UNVERÄNDERT (graceful degrade).');
+  let latestEps = null;
+  try { latestEps = await findLatestEpsRun(); } catch (e) { log(`EPS-Discovery-Fehler (${e?.message || e}).`); }
+  if (!latestEps) log('Kein EPS-Lauf gefunden → eps-Abschnitt UNVERÄNDERT (graceful degrade).');
+
+  const needMain = latest != null && (FORCE || !manifestCovers(existing, latest));
+  const needEps = latestEps != null && (FORCE || !manifestCoversEps(existing, latestEps));
+  if (!needMain && !needEps) {
+    log('Early-Exit: Manifest deckt 2D und EPS bereits vollständig ab.');
     return 0;
   }
+  if (!needMain && latest) log(`2D bereits abgedeckt (Lauf ${latest.run}) → nur EPS wärmen.`);
+  if (!needEps && latestEps) log(`EPS bereits abgedeckt (Lauf ${latestEps.run}) → nur 2D wärmen.`);
 
-  // Cache füllen — ERST wärmen, DANN umlegen. Flache Task-Liste (Param × Step)
-  // + hsurf (Invariante, braucht der Temp-Layer), Pool mit WARM_CONCURRENCY.
+  // Cache füllen — ERST wärmen, DANN umlegen. Flache Task-Liste BEIDER Familien
+  // (Param × Step), Pool mit WARM_CONCURRENCY; nur nicht-abgedeckte Familien.
   const tasks = [];
-  for (const p of PARAMS) {
-    for (const step of latest.stepsByParam[p.name]) tasks.push({ param: p.name, step });
-  }
-  log(`Wärme Lauf ${latest.run} (${tasks.length} Step-Dateien + hsurf) durch ${SITE_URL}/_dwd_grib …`);
+  if (needMain) for (const p of PARAMS) for (const step of latest.stepsByParam[p.name]) tasks.push({ fam: '2d', param: p.name, step });
+  if (needEps) for (const p of EPS_PARAMS) for (const step of latestEps.stepsByParam[p]) tasks.push({ fam: 'eps', param: p, step });
+  log(`Wärme ${tasks.length} Step-Dateien (+ Invarianten) durch ${SITE_URL}/_dwd_grib …`);
 
   const warmed = Object.fromEntries(PARAMS.map((p) => [p.name, []]));
+  const warmedEps = Object.fromEntries(EPS_PARAMS.map((p) => [p, []]));
   let ptr = 0;
-  const workers = Array.from({ length: Math.min(WARM_CONCURRENCY, tasks.length) }, async () => {
+  const workers = Array.from({ length: Math.min(WARM_CONCURRENCY, Math.max(tasks.length, 1)) }, async () => {
     while (ptr < tasks.length) {
       const t = tasks[ptr++];
-      const ok = await warmUrl(
-        warmStepUrl(latest.run, t.param, t.step),
-        `${t.param}/${t.step}`,
-        FAIL_STEP != null && t.step === FAIL_STEP,
-      );
-      if (ok) warmed[t.param].push(t.step);
+      const url = t.fam === 'eps'
+        ? warmEpsStepUrl(latestEps.run, t.param, t.step)
+        : warmStepUrl(latest.run, t.param, t.step);
+      const ok = await warmUrl(url, `${t.fam === 'eps' ? 'eps:' : ''}${t.param}/${t.step}`, FAIL_STEP != null && t.step === FAIL_STEP);
+      if (ok) (t.fam === 'eps' ? warmedEps : warmed)[t.param].push(t.step);
     }
   });
   await Promise.all(workers);
 
-  // hsurf best-effort (kein Gate: der Client holt sie notfalls ungewärmt durch
-  // den Proxy und läuft ohne hsurf schlicht ohne Höhen-Refinement weiter).
-  const hh = latest.run.slice(8, 10);
-  await warmUrl(`${SITE_URL}/_dwd_grib/weather/nwp/icon-d2/grib/${hh}/hsurf/${invariantFile(latest.run, 'hsurf')}`, 'hsurf', false);
+  // Invarianten best-effort (kein Gate: der Client holt sie notfalls ungewärmt
+  // durch den Proxy): hsurf (Temp-Layer), clat/clon (EPS-Zellkoordinaten).
+  if (needMain) {
+    const hh = latest.run.slice(8, 10);
+    await warmUrl(`${SITE_URL}/_dwd_grib/weather/nwp/icon-d2/grib/${hh}/hsurf/${invariantFile(latest.run, 'hsurf')}`, 'hsurf', false);
+  }
+  if (needEps) {
+    const hh = latestEps.run.slice(8, 10);
+    for (const p of ['clat', 'clon']) {
+      await warmUrl(`${SITE_URL}/_dwd_grib/weather/nwp/icon-d2-eps/grib/${hh}/${p}/${epsInvariantFile(latestEps.run, p)}`, `eps:${p}`, false);
+    }
+  }
 
-  // Fail-Safe: Near-Horizon (0…NEAR_REQUIRED) muss für JEDEN Param gewärmt sein.
-  const near = Array.from({ length: NEAR_REQUIRED + 1 }, (_, i) => i);
-  const nearBad = PARAMS.filter((p) => !near.every((s) => warmed[p.name].includes(s)));
-  if (nearBad.length > 0) {
-    log(`Near-Horizon nicht vollständig gewärmt (${nearBad.map((p) => `${p.name}:[${warmed[p.name].join(',')}]`).join(' ')}).`);
-    log('→ Manifest UNVERÄNDERT (Fail-Safe: letzter guter Lauf bleibt, nächster Tick heilt). Exit 0.');
+  // Fail-Safes je Familie, UNABHÄNGIG — ein EPS-Fehlschlag blockiert nie das
+  // Umlegen des 2D-Manifests (und umgekehrt). Nächster Tick heilt die andere Seite.
+  let advanceMain = false;
+  if (needMain) {
+    const near = Array.from({ length: NEAR_REQUIRED + 1 }, (_, i) => i);
+    const nearBad = PARAMS.filter((p) => !near.every((s) => warmed[p.name].includes(s)));
+    if (nearBad.length > 0) {
+      log(`2D-Near-Horizon nicht vollständig gewärmt (${nearBad.map((p) => `${p.name}:[${warmed[p.name].join(',')}]`).join(' ')}) → 2D-Abschnitt UNVERÄNDERT (Fail-Safe).`);
+    } else advanceMain = true;
+  }
+  let advanceEps = false;
+  if (needEps) {
+    const epsBad = EPS_PARAMS.filter((p) => !latestEps.stepsByParam[p].every((s) => warmedEps[p].includes(s)));
+    if (epsBad.length > 0 || latestEps.stepsByParam.t_2m.length === 0) {
+      log(`EPS nicht vollständig gewärmt (${epsBad.map((p) => `${p}:[${warmedEps[p].join(',')}]`).join(' ')}) → eps-Abschnitt UNVERÄNDERT (Fail-Safe).`);
+    } else advanceEps = true;
+  }
+  if (!advanceMain && !advanceEps) {
+    log('Nichts umzulegen (Fail-Safes). Exit 0.');
     return 0;
   }
 
+  // Manifest komponieren: nicht-avancierte Abschnitte 1:1 aus dem Bestand.
+  const mainRun = advanceMain ? latest.run : existing?.run;
+  const mainParams = advanceMain
+    ? Object.fromEntries(PARAMS.map((p) => [p.name, warmed[p.name].sort((a, b) => a - b)]))
+    : existing?.params;
+  if (typeof mainRun !== 'string' || mainParams == null || typeof mainParams !== 'object') {
+    // Ohne gültigen 2D-Abschnitt wäre das Manifest für den Client unbrauchbar
+    // (gribManifest.ts verlangt run+params) → nicht schreiben; EPS-Bytes sind
+    // trotzdem gewärmt (der Client findet sie über seinen Directory-Scan).
+    log('Kein gültiger 2D-Abschnitt verfügbar → Manifest NICHT geschrieben (EPS-Bytes sind gewärmt). Exit 0.');
+    return 0;
+  }
+  const epsSection = advanceEps
+    ? {
+        run: latestEps.run,
+        runAt: parseRunStr(latestEps.run).toISOString(),
+        params: Object.fromEntries(EPS_PARAMS.map((p) => [p, warmedEps[p].sort((a, b) => a - b)])),
+      }
+    : existing?.eps;
+
   const manifest = {
-    run: latest.run,
-    runAt: parseRunStr(latest.run).toISOString(),
+    run: mainRun,
+    runAt: advanceMain ? parseRunStr(latest.run).toISOString() : (existing?.runAt ?? parseRunStr(mainRun).toISOString()),
     updatedAt: new Date().toISOString(),
     warmedThroughProxy: `${SITE_URL}/_dwd_grib`,
-    params: Object.fromEntries(PARAMS.map((p) => [p.name, warmed[p.name].sort((a, b) => a - b)])),
+    params: mainParams,
+    ...(epsSection ? { eps: epsSection } : {}),
   };
   writeManifestAtomic(manifest);
-  log(`Manifest umgelegt → Lauf ${manifest.run}, Steps ${PARAMS.map((p) => `${p.name}:${manifest.params[p.name].length}`).join(' ')}. Fertig.`);
+  log(`Manifest umgelegt → 2D-Lauf ${manifest.run}${advanceMain ? ' (neu)' : ' (übernommen)'}${epsSection ? ` · EPS-Lauf ${epsSection.run}${advanceEps ? ' (neu)' : ' (übernommen)'}` : ''}. Fertig.`);
   return 0;
 }
 

@@ -16,6 +16,10 @@
  * eng gedeckelt (wenige Steps × wenige Member) und im Hintergrund geladen; die
  * entpackten Bytes werden über `fetchDecompressedCached` (Cache API) wieder-
  * verwendet, sodass Reloads schnell sind. CC BY 4.0, kein Key.
+ *
+ * Transport (Phase T2b-2, audit/layer-transport.md §H): Directory-Listings
+ * (Lauf-Discovery) laufen weiter über `/_dwd_opendata`; die großen Byte-Fetches
+ * laufen über den durablen Edge-Proxy `/_dwd_grib` — Base-Split wie Precip/T1.
  */
 
 import { fetchDecompressedCached } from './iconD2Precip';
@@ -23,7 +27,14 @@ import { decodeGrib2All, type GribField } from './gribDecode';
 import { correctCloudBias } from './cloudBias';
 import type { ForecastBounds, ForecastGrid, ForecastHourPoint } from './openMeteoForecast';
 
+/** Basis für Directory-LISTINGS (Lauf-Discovery): bleibt auf dem Pass-Through-
+ *  Rewrite — die datei-only Edge-Function kann keine Listings bedienen. */
 const EPS_BASE = '/_dwd_opendata/weather/nwp/icon-d2-eps/grib';
+/** Basis für die `.grib2.bz2`-BYTE-Fetches (Steps + clat/clon-Invarianten):
+ *  Phase T2b-2 — durch den durablen Edge-Proxy (netlify/edge-functions/
+ *  dwd-grib.ts) + Warm-Cron (scripts/warm-grib.mjs), wie Precip/T1. Dieselben
+ *  Bytes, derselbe Decode — nur gecachte Herkunft statt 4–15 s DWD-Kaltpfad. */
+const EPS_GRIB_PROXY_BASE = '/_dwd_grib/weather/nwp/icon-d2-eps/grib';
 const KELVIN = 273.15;
 
 /** Deckelung (Perf): so viele Member fürs Mittel, so viele Vorlaufstunden. */
@@ -97,7 +108,7 @@ function toDegrees(values: Float32Array): Float32Array {
 async function invariant(runStr: string, param: string, signal?: AbortSignal): Promise<GribField> {
   const hh = runStr.slice(8, 10);
   const name = `icon-d2-eps_germany_icosahedral_time-invariant_${runStr}_000_0_${param}.grib2.bz2`;
-  const raw = await fetchDecompressedCached(`${EPS_BASE}/${hh}/${param}/${name}`, signal);
+  const raw = await fetchDecompressedCached(`${EPS_GRIB_PROXY_BASE}/${hh}/${param}/${name}`, signal);
   const fields = decodeGrib2All(raw);
   if (!fields.length) throw new Error(`ICON-D2-EPS ${param}: leer`);
   return fields[0];
@@ -143,7 +154,7 @@ async function meanAtPoints(
 ): Promise<Float32Array> {
   const hh = runStr.slice(8, 10);
   const name = `icon-d2-eps_germany_icosahedral_single-level_${runStr}_${pad3(step)}_2d_${param}.grib2.bz2`;
-  const raw = await fetchDecompressedCached(`${EPS_BASE}/${hh}/${param}/${name}`, signal);
+  const raw = await fetchDecompressedCached(`${EPS_GRIB_PROXY_BASE}/${hh}/${param}/${name}`, signal);
   const members = decodeGrib2All(raw).slice(0, MAX_MEMBERS);
   const out = new Float32Array(idx.length);
   for (let p = 0; p < idx.length; p++) {

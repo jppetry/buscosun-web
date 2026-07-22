@@ -120,6 +120,16 @@ Vorgabe: `audit/layer-transport.md`. Transport-only, Output-identisch. **Latenz 
 6. **Konsole/Typecheck:** keine neuen Errors/Warnings; `npm run typecheck` grün.
 7. 🔴 **Prod (nach Deploy, Jan):** Durable-Cache-`Cache-Status: … hit` je Param, Kaltload-Latenz vs. T1-Baseline; Warm-Cron `workflow_dispatch` → success/early-exit.
 
+## V-TRANSPORT-2b — EPS/icosahedral-Transport (Infrastruktur-Phase T2b)
+Vorgabe: `audit/layer-transport.md` §H. Transport-only (T2b-1…3); Output-identisch. Latenz erst nach Deploy belastbar.
+1. **EPS-Byte-Gleichheit:** `node scripts/verify-layer-transport.mjs` — EPS-Params (t_2m, tot_prec, u_10m/v_10m, clct, clat/clon) über `/_dwd_grib` vs. direkt DWD SHA-256 + Länge identisch; Whitelist akzeptiert `icon-d2/grib/` **und** `icon-d2-eps/grib/`, lehnt Fremdpfade (400) weiter ab. Grün.
+2. **EPS raus aus `/_dwd_opendata`:** Kaltload mit aktiver Fusion/Punkt-Vorhersage im Network-Waterfall — die `icon-d2-eps_…icosahedral_…grib2.bz2`-Byte-Fetches laufen über `/_dwd_grib` (Directory-Listing darf auf `/_dwd_opendata` bleiben); bei warmem Edge verschwinden die 4–15-s-Fetches.
+3. **Fusion-Ergebnis unverändert:** die Fusion-/Punkt-Vorhersage rechnet numerisch identisch (Ensemble-Mittel/Blend unberührt) — Stichprobe vor/nach.
+4. **Abgrenzung:** Diff berührt `dwd-grib.ts` (Whitelist), `iconD2EpsSource.ts` (Byte-Base), `warm-grib.mjs`, Verifier — **kein** Decode/Member-Mittel/Resampling/Fusion-Blend; `/_dwd_opendata`+`/_dwd_wind` unverändert; Fusion-Lade-Timing nicht angefasst.
+5. **Konsole/Typecheck:** keine neuen Errors/Warnings; `npm run typecheck` grün.
+6. **(Optional T2b-4):** vor-resampelte EPS-Grid numerisch == aktuelle Client-Berechnung (Zell-für-Zell-Diff unter Toleranz), bevor der Client-Pfad umgestellt wird.
+7. 🔴 **Prod (nach Deploy, Jan):** Durable-`Cache-Status: … hit` je EPS-Param; EPS-Kaltload-Latenz vs. 4–15-s-Baseline.
+
 ---
 
 ## Beleg-Ablage

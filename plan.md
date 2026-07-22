@@ -274,4 +274,25 @@ Jede Phase folgt dem Zyklus **Diagnose → Plan → Implement → Verify → Gat
 **Explizit außerhalb:** Radar/Nowcast/PoP, Confidence, Wind (T1), Decode/Norm/Shader/Fusion, `/_dwd_opendata`- und `/_dwd_wind`-Pfade.
 
 **Verify:** tests.md → V-TRANSPORT-2 (+ Verifier-Skript). 🔴 Latenz/Durable-Cache-`hit` erst nach Netlify-Deploy belastbar (Jan).
-**Gate GT2:** Bytes je Param identisch (Proxy vs. direkt), Durable-Header, Manifest-Gate eliminiert Directory-Scans + spekulative Fehl-Fetches je Layer, Output visuell/numerisch identisch, Konsole/Typecheck grün, `/_dwd_opendata`+`/_dwd_wind` unberührt (Diff-Beleg).
+**Gate GT2:** Bytes je Param identisch (Proxy vs. direkt), Durable-Header, Manifest-Gate eliminiert Directory-Scans + spekulative Fehl-Fetches je Layer, Output visuell/numerisch identisch, Konsole/Typecheck grün, `/_dwd_opendata`+`/_dwd_wind` unberührt (Diff-Beleg). **Status: umgesetzt + lokal verifiziert** (§G), bis auf 🔴 Prod-Deploy grün.
+
+---
+
+## Infrastruktur-Phase T2b — EPS/icosahedral-Transport (Gate GT2b)
+
+**Fortsetzung von T2.** Maßgebliche Vorgabe: `audit/layer-transport.md` **§H**. Umsetzung via CLI; Prod-Deploy = Jans Gate.
+
+**Auslöser (Prod-Traffic):** Der Kaltload-Flaschenhals sind **nicht** die T2-Layer, sondern die **ICON-D2-EPS-Dateien** (icosahedral, Fusion-Engine) mit **4–15 s je Datei** — sie laufen über `/_dwd_opendata` **ohne** Durable-Cache, weil der Edge-`ALLOWED_PREFIX` nur `icon-d2/grib/` matcht, nicht `icon-d2-eps/grib/`. Zusätzlich ~16 MB entpackt + teurer icosahedraler Decode.
+
+**Ziel:** Die EPS-Byte-Fetches genauso durch den Durable-Proxy + Warm-Cron ziehen (Kern, rein Transport), optional das icosahedrale Resampling in den Cron verlagern.
+
+**Umzusetzende Maßnahmen (Kurzfassung, Details §H.1):**
+1. **T2b-1** `dwd-grib.ts` `ALLOWED_PREFIX` → Liste inkl. `weather/nwp/icon-d2-eps/grib/`; Verifier erweitern.
+2. **T2b-2** `iconD2EpsSource.ts`: Byte-Fetches über `/_dwd_grib`-EPS-Base (Directory-Listing bleibt auf `/_dwd_opendata`); kein Decode-Eingriff.
+3. **T2b-3** `warm-grib.mjs`: EPS-Params (eigener EPS-Lauf, bis Cap 6) mitwarmen.
+4. **T2b-4** (OPTIONAL, größer) Vor-Resampling icosahedral→coarse im Cron → kompaktes Artefakt; **Output-Äquivalenz** (nicht -Identität) → numerischer Beweis Pflicht.
+
+**Explizit außerhalb:** *Wann/ob* Fusion EPS auf den kritischen Pfad lädt (Deferral) = Fusion-Verhaltensänderung → **STOPP & FRAGEN**, nur Vermerk. `/_dwd_opendata`+`/_dwd_wind`+Fusion-Blend-Logik unberührt.
+
+**Verify:** tests.md → V-TRANSPORT-2b. 🔴 Latenz/Durable-`hit` erst nach Deploy.
+**Gate GT2b:** EPS-Bytes je Param identisch (Proxy vs. direkt), Durable-Header, EPS-Kaltload nicht mehr über `/_dwd_opendata` (die 4–15-s-Fetches verschwinden bei warmem Edge), Fusion-Ergebnis unverändert, Konsole/Typecheck grün; (T2b-4 falls umgesetzt: vor-resampelte Grid numerisch == Client).

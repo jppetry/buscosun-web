@@ -159,6 +159,19 @@ Maßgebliche Vorgabe: `audit/layer-transport.md`. Muster aus T1 (Wind) auf Temp/
 - [x] Keine neuen Konsolen-Errors/-Warnings; `npm run typecheck` grün — §G.8
 - [ ] 🔴 Prod nach Deploy: Durable-Cache-`hit`-Header je Param + Latenz an Jan (wie T1; Repo-Var + Cron-Aktivierung = Jans Gate, Branch-Protection-Bot-Push beachten)
 
+## Infrastruktur-Phase T2b — EPS/icosahedral-Transport (GT2b)
+Maßgebliche Vorgabe: `audit/layer-transport.md` §H. Auslöser: EPS-Dateien (Fusion, icosahedral) mit 4–15 s je Datei über `/_dwd_opendata` ohne Durable-Cache. Umsetzung via CLI; Prod-Deploy = Jans Gate.
+- [x] Diagnose §H abgeschlossen (Traffic-Befund, Wurzel = ALLOWED_PREFIX deckt `icon-d2-eps` nicht) — **erledigt** (dieses Dokument)
+- [x] T2b-1: `dwd-grib.ts` `ALLOWED_PREFIX` → Liste inkl. `weather/nwp/icon-d2-eps/grib/`; `resolveDwdUrl` `.some(...)`; Rest (Suffix/`..`/Header) unverändert (§I.1/§I.5)
+- [x] T2b-1: `scripts/verify-layer-transport.mjs` um EPS-Byte-Identität (Proxy vs. direkt) + Whitelist-Akzeptanz beider Bäume erweitert, grün (73/73 Checks, §I.1)
+- [x] T2b-2: `iconD2EpsSource.ts` Byte-Fetches (Steps + clat/clon) über `/_dwd_grib`-EPS-Base; Directory-Listing bleibt auf `/_dwd_opendata`; **kein** Decode-/Member-/Resampling-Eingriff (+13/−2, §I.5)
+- [x] T2b-3: `warm-grib.mjs` warmt die EPS-Params (eigener EPS-Lauf, bis Cap 6) durch `/_dwd_grib` (realer Lauf 2026072218 + 4 Fail-Safe-/Early-Exit-Proben, §I.4)
+- [x] EPS-Kaltload nicht mehr über `/_dwd_opendata` (17 Byte-Fetches via `/_dwd_grib`, nur das Listing verbleibt — §I.2); Fusion-Ergebnis unverändert (Byte-Identität + Determinismus-Beweis, §I.3; Durable-`hit`-Verschwinden der 4–15 s = Prod/🔴)
+- [x] Abgrenzung belegt: `/_dwd_opendata`+`/_dwd_wind`+Fusion-Blend-Logik unberührt (Diff-Beleg §I.5); Fusion-Lade-Timing NICHT angefasst (STOPP-Vermerk)
+- [ ] (Optional T2b-4) Vor-Resampling im Cron: vor-resampelte Grid numerisch == Client-Berechnung (Äquivalenz-Beweis) — NICHT umgesetzt, nur auf Zuruf
+- [x] Keine neuen Konsolen-Errors/-Warnings; `npm run typecheck` grün (§I.6)
+- [ ] 🔴 Prod nach Deploy: Durable-`hit` je EPS-Param + Kaltload-Latenz an Jan
+
 ## Phase 9 — Gesamtregression (G9)
 - [ ] Kurzprotokoll V-ALL für alle 8 Features grün
 - [ ] Desktop-Diff aller 8 Seiten gegen Phase-0-Baseline: keine Abweichung
