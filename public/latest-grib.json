@@ -1,8 +1,8 @@
 {
   "run": "2026072215",
   "runAt": "2026-07-22T15:00:00.000Z",
-  "updatedAt": "2026-07-22T17:42:28.072Z",
-  "warmedThroughProxy": "http://localhost:5196/_dwd_grib",
+  "updatedAt": "2026-07-22T22:44:02.009Z",
+  "warmedThroughProxy": "https://buscosun.com/_dwd_grib",
   "params": {
     "t_2m": [
       0,
@@ -150,8 +150,8 @@
     ]
   },
   "eps": {
-    "run": "2026072218",
-    "runAt": "2026-07-22T18:00:00.000Z",
+    "run": "2026072221",
+    "runAt": "2026-07-22T21:00:00.000Z",
     "params": {
       "t_2m": [
         0,
