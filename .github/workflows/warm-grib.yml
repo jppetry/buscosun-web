@@ -1,0 +1,66 @@
+# ============================================================================
+# Warm-Cron für die ICON-D2-Kartenlayer Temp/Gust/Precip/Clouds (Phase T2-4)
+# ============================================================================
+# Generalisierung des T1-Wind-Warmers (warm-wind.yml — bleibt unverändert
+# parallel bestehen). Aktiv, sobald dieser Branch (main) nach origin gepusht
+# ist. Läuft NUR auf dem Default-Branch.
+#
+# VORAUSSETZUNG (einmalig, sonst No-op): Repo-Variable SITE_URL auf die Netlify-
+# Prod-URL setzen (öffentlich, KEIN Secret) — Repo → Settings → Secrets and
+# variables → Actions → Variables. Dieselbe Variable wie beim Wind-Warmer.
+#
+# Ablauf: DWD pollen → neuesten Lauf mit vollständigem Near-Horizon für ALLE
+# T2-Params → alle GRIB-URLs (t_2m/vmax_10m/tot_prec/clcl/clcm/clch/clct bis
+# zum jeweiligen Karten-Cap + hsurf) durch SITE_URL/_dwd_grib holen (füllt den
+# Durable-Edge-Cache) → erst DANN public/latest-grib.json atomar schreiben und
+# zurück-committen. Der Commit löst einen Netlify-Rebuild aus, der das neue
+# Manifest statisch ausliefert (deshalb KEIN [skip ci]). Early-Exit, wenn das
+# Manifest den Lauf UND alle aktuell warmbaren Steps schon abdeckt → committet
+# wird nur bei einem neuen Lauf bzw. neu publizierten Steps; die 15-min-Ticks
+# dazwischen sind Sekunden-No-ops.
+# ============================================================================
+
+name: warm-grib
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'   # alle 15 min pollen; Early-Exit wenn Manifest aktuell
+  workflow_dispatch: {}       # manueller Trigger (erste Wärmung / Test)
+
+# Nur ein Warmer gleichzeitig (überlappende Läufe würden dasselbe Manifest umlegen).
+concurrency:
+  group: warm-grib
+  cancel-in-progress: false
+
+permissions:
+  contents: write             # committet public/latest-grib.json zurück
+
+jobs:
+  warm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Warm edge cache + update manifest
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}            # öffentliche Prod-URL (Edge-Cache-Fill)
+          MANIFEST_PATH: public/latest-grib.json
+          NEAR_REQUIRED: '4'
+          WARM_CONCURRENCY: '4'
+        run: node scripts/warm-grib.mjs
+
+      - name: Commit manifest if changed
+        run: |
+          if git diff --quiet -- public/latest-grib.json; then
+            echo "Manifest unverändert (Early-Exit oder Fail-Safe) — kein Commit."
+            exit 0
+          fi
+          git config user.name  "buscosun-warmer[bot]"
+          git config user.email "warmer@users.noreply.github.com"
+          git add public/latest-grib.json
+          git commit -m "chore(transport): warm grib cache + advance latest-grib manifest"
+          git push

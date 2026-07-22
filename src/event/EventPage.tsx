@@ -1,18 +1,21 @@
 /**
- * Event-Planung — „Welcher Tag passt am besten?".
+ * Event-Planung — „Welcher Tag passt am besten?" · Command-Deck (hell).
  *
- * KERN-US1: Eingabe von Anlass, Ort und Zeitfenster (Datumsbereich ODER konkrete
- * Einzeltermine). Auf „Beste Tage finden" werden die Angaben übernommen und
- * (vorerst) in einer Review-Karte bestätigt — die Wetter-Bewertung/Empfehlung
- * folgt in der nächsten Story und nutzt die bestehende Punktforecast-Pipeline.
+ * Redesign nach verbindlicher Vorlage (audit/screenshots/kartenseite/
+ * eventplaner.dc.html + desktop/tablet/mobile-1..4.png): dreistufiger Wizard
+ * (Ort & Anlass · Zeitfenster & Phasen · Plan B) VOR der Resultatseite, danach
+ * das bester-Tag-Deck (EventResult). Funktionserhalt: Anlass/Profil, Geocode,
+ * Zeitfenster (Zeitraum/Einzeltermine), Phasen (Vorlagen/Stundenfenster/Hochzeit),
+ * Feinjustierung, Plan-B (Schwelle/Metrik/Ausweich/Venue), Permalink — alles bleibt
+ * verdrahtet, nur nach Vorlage angeordnet.
  */
 
-import { useState, useRef, useEffect, type KeyboardEvent, type CSSProperties } from 'react';
+import { useState, useRef, useEffect, type KeyboardEvent } from 'react';
 import type { Location } from '../types';
 import { geocodeDACH, flagForCountry } from '../geocode';
 import {
   EVENT_ACTIVITIES, customActivity, isQueryComplete, isWindowValid,
-  todayISO, horizonEndISO, formatDateLabel, EVENT_HORIZON_DAYS,
+  todayISO, horizonEndISO, formatDateLabel,
   DAYPARTS, defaultPhasesFor, daypartPhase, weddingPhases, newPhaseId,
   PLANB_METRICS, PLANB_VENUES, planBMetricDef, defaultPlanB,
   type EventActivity, type TimeWindow, type EventQuery, type Daypart, type EventPhase, type PresetTuning,
@@ -20,764 +23,506 @@ import {
 } from './eventModel';
 import { activityFactorPriorities, defaultTuningFor, candidateDays } from './eventScoring';
 import { encodeEventState, decodeEventState, hasEventHash } from './eventState';
-import { ActivityIcon, VenueIcon, IconRing, IconSliders, IconReset, IconChevron } from './eventIcons';
+import {
+  DeckActivityIcon,
+  IconDeckMap, IconDeckRadar, IconDeckEvent, IconDeckTour, IconDeckGear,
+  IconDeckSearch, IconDeckPin, IconDeckArrowRight, IconDeckChevLeft, IconDeckPlus,
+  IconDeckCalendar, IconRing, IconSliders, IconReset,
+} from './eventIcons';
 import EventResult from './EventResult';
 import { NotificationProvider } from '../notifications/useNotifications';
-import NotificationCenter from '../notifications/NotificationCenter';
 import { useIsMobile } from '../mobile/useIsMobile';
 import '../mobile/safeArea.css';
-import '../route/tourTheme.css';
-import '../intro/intro.css';
-import './EventPage.css';
+import './eventDeck.css';
 
-/** Mobile-Wizard (Phase 5, vorgezogen — siehe audit/event.md): nach der Ortswahl war der Rest des
- *  Formulars eine einzige ~3,5-Bildschirmlängen-Seite mit 4 gestapelten Themen. Auf Mobile wird
- *  jeweils nur ein Schritt gerendert; Desktop bleibt unverändert die Einzelseite (siehe `!isMobile`). */
-const EVENT_STEPS = ['activity', 'window', 'phases', 'planb'] as const;
-type EventStep = (typeof EVENT_STEPS)[number];
-const EVENT_STEP_LABELS: Record<EventStep, string> = {
-  activity: 'Anlass', window: 'Zeitfenster', phases: 'Phasen', planb: 'Plan B',
-};
+interface Props { onBack: () => void; }
 
-interface Props {
-  onBack: () => void;
-}
-
-function shortDate(iso: string): string {
-  const [, m, d] = iso.split('-').map(Number);
-  return `${d}.${m}.`;
-}
-
-/** Möglichkeiten-Liste des Ort-zuerst-Kopfs (Designsprache wie Regenradar-Intro). */
-const EV_INTRO_CAPS = [
-  'Bester Tag aus den nächsten Tagen — automatisch bewertet',
-  'Anlass-Presets (Hochzeit, Grillen, Drohne …) mit Feinjustierung',
-  'Phasen wie Trauung & Empfang einzeln gewichtet',
-  'Plan-B-Schwelle, Ausweichtag & -ort — native Behörden-Quellen',
+const STEP_META: Array<{ eyebrow: string; title: string; sub: string; optional?: boolean }> = [
+  { eyebrow: 'Schritt 1 von 3 · Ort & Anlass', title: 'Welcher Tag passt am besten?', sub: 'Sag uns zuerst, wo dein Event stattfindet und um welchen Anlass es geht — danach Zeitfenster & Plan B.' },
+  { eyebrow: 'Schritt 2 von 3 · Zeitfenster & Phasen', title: 'Wann hast du Zeit?', sub: 'Wähle Zeitraum oder konkrete Termine und lege Phasen wie Trauung & Empfang mit eigenen Zeiten an — jede wird einzeln bewertet.' },
+  { eyebrow: 'Schritt 3 von 3 · Plan B', title: 'Falls es doch nicht hält', sub: 'Lege eine klare Schwelle fest, ab der dir ein Plan B (z. B. Zelt oder Innenraum) empfohlen wird — plus Ausweichtag und -ort, falls dein Wunschtermin nicht hält.', optional: true },
 ];
 
-/* Kleine Line-Icons (currentColor) — wie im Intro/Regenradar. */
-function IconCheck() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <polyline points="3,8.5 6.5,12 13,4" />
-    </svg>
-  );
-}
-function IconHowTo() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="8" cy="8" r="6.5" /><polyline points="6.6,5.4 10,8 6.6,10.6" />
-    </svg>
-  );
-}
-
-export default function EventPage(props: Props) {
-  // Benachrichtigungs-Kontext umschließt die ganze Seite (Glocke in der Nav +
-  // Toggle im Ergebnis greifen auf denselben Provider zu).
+export default function EventPage({ onBack }: Props) {
   return (
     <NotificationProvider>
-      <EventPageInner {...props} />
+      <EventPageInner onBack={onBack} />
     </NotificationProvider>
   );
 }
 
 function EventPageInner({ onBack }: Props) {
+  const isMobile = useIsMobile();
   const [activity, setActivity] = useState<EventActivity | null>(null);
   const [location, setLocation] = useState<Location | null>(null);
   const [windowSel, setWindowSel] = useState<TimeWindow>({ mode: 'range', from: todayISO(), to: horizonEndISO() });
   const [phases, setPhases] = useState<EventPhase[]>(defaultPhasesFor(''));
   const [tuning, setTuning] = useState<PresetTuning>(defaultTuningFor(''));
-  const [planB, setPlanB] = useState<PlanBConfig>(defaultPlanB());
+  // Standard-Metrik „Score" wie in der Vorlage (Schritt 3 zeigt die Score-Schwelle
+  // mit kritisch/okay/gut). Bleibt deaktiviert — ehrlicher Ausgangszustand.
+  const [planB, setPlanB] = useState<PlanBConfig>(() => ({ ...defaultPlanB(), metric: 'score', threshold: planBMetricDef('score').default }));
   const [submitted, setSubmitted] = useState<EventQuery | null>(null);
+  const [step, setStep] = useState(0);
   const restoredRef = useRef(false);
-  const isMobile = useIsMobile();
-  const [mobileStep, setMobileStep] = useState<EventStep>('activity');
-  const stepIdx = EVENT_STEPS.indexOf(mobileStep);
 
-  // Neuer Ort (Erstwahl oder „Ändern") → Wizard wieder beim ersten Schritt starten.
-  useEffect(() => { if (location) setMobileStep('activity'); }, [location]);
-
-  // Permalink: mit #ev=-Hash direkt mit der geteilten Anfrage ins Ergebnis starten.
+  // Permalink beim Öffnen wiederherstellen (#ev=…) → direkt ins Resultat.
   useEffect(() => {
     if (restoredRef.current) return;
     restoredRef.current = true;
+    if (typeof window === 'undefined') return;
     const q = decodeEventState(window.location.hash);
     if (!q) return;
     setActivity(q.activity); setLocation(q.location); setWindowSel(q.window);
     setPhases(q.phases); setTuning(q.tuning); setPlanB(q.planB); setSubmitted(q);
   }, []);
 
-  // Ergebnis sichtbar → Anfrage in den Hash schreiben; beim Bearbeiten wieder leeren.
+  // Resultat ⇄ Hash spiegeln (teilbarer Link); beim Bearbeiten Hash räumen.
   useEffect(() => {
-    if (!restoredRef.current) return;
+    if (typeof window === 'undefined') return;
     if (submitted) {
-      const hash = encodeEventState(submitted);
-      if (window.location.hash !== hash) window.history.replaceState(null, '', hash);
+      window.history.replaceState(null, '', encodeEventState(submitted));
     } else if (hasEventHash(window.location.hash)) {
       window.history.replaceState(null, '', window.location.pathname);
     }
   }, [submitted]);
 
-  // Anlasswechsel schlägt Standard-Fenster + Standard-Tuning des Presets vor.
   const handleActivity = (a: EventActivity | null) => {
     setActivity(a);
     if (a) { setPhases(defaultPhasesFor(a.id)); setTuning(defaultTuningFor(a.id)); }
   };
 
-  const partial: Partial<EventQuery> = { activity: activity ?? undefined, location: location ?? undefined, window: windowSel, phases, tuning, planB };
+  const partial: Partial<EventQuery> = {
+    activity: activity ?? undefined, location: location ?? undefined,
+    window: windowSel, phases, tuning, planB,
+  };
   const complete = isQueryComplete(partial);
-
-  // Gate zwischen den Mobile-Wizard-Schritten — nutzt dieselbe Validierung wie die Desktop-Warnhinweise.
   const phasesValid = phases.every((p) => p.hours[0] !== p.hours[1]);
-  const stepValid: Record<EventStep, boolean> = {
-    activity: !!activity,
-    window: isWindowValid(windowSel),
-    phases: phasesValid,
-    planb: true,
-  };
-  const stepCanProceed = stepValid[mobileStep];
-  const showStep = (s: EventStep) => !isMobile || mobileStep === s;
+  const stepValid = [!!activity && !!location, isWindowValid(windowSel) && phasesValid, true];
 
-  return (
-    <div className="ev-page">
-      <header className="ev-topbar">
-        <a className="ev-logo" href="#" onClick={(e) => { e.preventDefault(); onBack(); }}>
-          <span className="ev-logo-mark" /><span className="ev-logo-name">buscosun</span>
-        </a>
-        <div className="ev-topbar-right">
-          <span className="ev-live"><span className="live-dot" /> Daten live</span>
-          <NotificationCenter />
-          <button type="button" className="ev-back" onClick={onBack}>
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <line x1="13" y1="8" x2="3" y2="8" /><polyline points="7,4 3,8 7,12" />
-            </svg>
-            Zurück zur Startseite
-          </button>
-        </div>
-      </header>
+  const submit = () => { if (complete) setSubmitted(partial as EventQuery); };
+  const next = () => { if (step < 2) { if (stepValid[step]) setStep(step + 1); } else submit(); };
+  const back = () => { if (step > 0) setStep(step - 1); };
 
-      <main className="rt-container">
-        {submitted ? (
-          <>
-            <header className="rt-intro">
-              <span className="rt-eyebrow">Event-Planung</span>
-              <h1>Welcher Tag passt am besten?</h1>
-              <p>Sag uns Anlass, Ort und wann du Zeit hast — wir vergleichen die nächsten {EVENT_HORIZON_DAYS} Tage und nennen dir den besten.</p>
-            </header>
-            <EventResult query={submitted} onEdit={() => setSubmitted(null)} />
-          </>
-        ) : !location ? (
-          /* SCHRITT 1 — Ort zuerst, eigene Seite in der Regenradar-Designsprache.
-             Erst wenn ein Ort gewählt ist, erscheint das eigentliche Formular. */
-          <section className="rt-section ev-intro" style={{ ['--intro-accent']: 'var(--terracotta-500)' } as CSSProperties}>
-            <div className="ev-intro-copy">
-              <span className="intro-eyebrow">Event-Planung</span>
-              <h1 className="ev-intro-title">Welcher Tag passt am besten?</h1>
-              <p className="intro-body">
-                Sag uns zuerst, <strong>wo</strong> dein Event stattfindet. Danach wählst du Anlass und
-                Zeitfenster — wir vergleichen die nächsten {EVENT_HORIZON_DAYS} Tage und nennen dir den besten.
-              </p>
-              <ul className="intro-caps">
-                {EV_INTRO_CAPS.map((c) => (
-                  <li key={c}><span className="intro-caps-mark" aria-hidden="true"><IconCheck /></span>{c}</li>
-                ))}
-              </ul>
-              <div className="ev-intro-search">
-                <span className="rt-eyebrow">Ort</span>
-                <LocationField value={location} onChange={setLocation} />
-              </div>
-              <p className="intro-howto">
-                <span className="intro-howto-ic" aria-hidden="true"><IconHowTo /></span>
-                <span><strong>So geht’s:</strong> Ort eingeben — danach Anlass &amp; Zeitfenster festlegen und die besten Tage finden.</span>
-              </p>
-            </div>
-          </section>
-        ) : (
-          <>
-            <header className="rt-intro">
-              <span className="rt-eyebrow">Event-Planung</span>
-              <h1>Welcher Tag passt am besten?</h1>
-              <p>Anlass und Zeitfenster festlegen — wir vergleichen die nächsten {EVENT_HORIZON_DAYS} Tage für deinen Ort.</p>
-            </header>
+  if (submitted) {
+    return <EventResult query={submitted} onEdit={() => setSubmitted(null)} onBack={onBack} />;
+  }
 
-            {/* Gewählter Ort — kompakt; „Ändern" führt zurück zur Ortswahl. */}
-            <section className="rt-section ev-loc-compact">
-              <span className="rt-eyebrow">Ort</span>
-              <LocationField value={location} onChange={setLocation} />
-            </section>
+  const meta = STEP_META[step];
+  const canProceed = stepValid[step];
 
-            <div className="ev-tiles ev-tiles-3">
-              <SummaryTile
-                label="Anlass"
-                value={activity?.label ?? null}
-                note={activity?.hint ?? 'Nicht gewählt'}
-              />
-              <SummaryTile
-                label="Zeitfenster"
-                value={
-                  windowSel.mode === 'range'
-                    ? `${shortDate(windowSel.from)}–${shortDate(windowSel.to)}`
-                    : windowSel.dates.length > 0
-                    ? `${windowSel.dates.length} Termin${windowSel.dates.length !== 1 ? 'e' : ''}`
-                    : null
-                }
-                note={windowSel.mode === 'range' ? 'Zeitraum' : windowSel.dates.length > 0 ? formatDateLabel(windowSel.dates[0]) : 'Keine Termine'}
-              />
-              <SummaryTile
-                label="Status"
-                value={complete ? 'Bereit' : null}
-                note={
-                  complete
-                    ? 'Alle Angaben vollständig'
-                    : !activity
-                    ? 'Anlass fehlt'
-                    : 'Zeitfenster prüfen'
-                }
-                accent={complete ? 'sage' : undefined}
-              />
-            </div>
-
-            {isMobile && (
-              <nav className="ev-step-progress" aria-label="Fortschritt">
-                {EVENT_STEPS.map((s, i) => (
-                  <span key={s} className={`ev-step-dot${i === stepIdx ? ' is-active' : i < stepIdx ? ' is-done' : ''}`} aria-hidden="true" />
-                ))}
-                <span className="ev-step-label">Schritt {stepIdx + 1} von {EVENT_STEPS.length} · {EVENT_STEP_LABELS[mobileStep]}</span>
-              </nav>
-            )}
-
-            {showStep('activity') && (
-              <section className="rt-section">
-                <span className="rt-eyebrow">1 · Anlass</span>
-                <ActivityPicker value={activity} onChange={handleActivity} />
-                {activity && (activity.id !== 'custom' || activity.label.length > 0) && (
-                  <>
-                    <PresetFactors activity={activity} tuning={tuning} />
-                    <TuningPanel activity={activity} tuning={tuning} onChange={setTuning} />
-                  </>
-                )}
-              </section>
-            )}
-
-            {showStep('window') && (
-              <section className="rt-section">
-                <span className="rt-eyebrow">2 · Zeitfenster</span>
-                <TimeWindowField value={windowSel} onChange={setWindowSel} />
-              </section>
-            )}
-
-            {showStep('phases') && (
-              <section className="rt-section">
-                <span className="rt-eyebrow">3 · Phasen</span>
-                <p className="ev-section-lead">Lege Phasen wie Trauung, Empfang und Abendfeier mit eigenen Zeiten an — jede wird einzeln bewertet, der Tag fasst sie zusammen.</p>
-                <PhasesField value={phases} onChange={setPhases} />
-              </section>
-            )}
-
-            {showStep('planb') && (
-              <section className="rt-section">
-                <span className="rt-eyebrow">4 · Plan B <span className="ev-optional">optional</span></span>
-                <p className="ev-section-lead">Lege eine klare Schwelle fest, ab der dir ein Plan B (z. B. Zelt oder Innenraum) empfohlen wird — plus Ausweichtag und -ort, falls dein Wunschtermin nicht hält.</p>
-                <PlanBField value={planB} window={windowSel} onChange={setPlanB} />
-              </section>
-            )}
-
-            {!isMobile && (
-              <div className="ev-cta-row">
-                <button
-                  type="button"
-                  className="ev-cta"
-                  disabled={!complete}
-                  onClick={() => complete && setSubmitted(partial as EventQuery)}
-                >
-                  Beste Tage finden
-                  <svg width="14" height="14" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden="true">
-                    <line x1="1" y1="6" x2="10" y2="6" /><polyline points="6,2 10,6 6,10" />
-                  </svg>
-                </button>
-                {!complete && <span className="ev-cta-hint">Anlass und Zeitfenster wählen</span>}
-              </div>
-            )}
-
-            {isMobile && (
-              <div className="ev-step-nav safe-pad-bottom">
-                {stepIdx > 0 && (
-                  <button type="button" className="ev-step-back" onClick={() => setMobileStep(EVENT_STEPS[stepIdx - 1])}>
-                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <line x1="13" y1="8" x2="3" y2="8" /><polyline points="7,4 3,8 7,12" />
-                    </svg>
-                    Zurück
-                  </button>
-                )}
-                {mobileStep !== 'planb' ? (
-                  <button
-                    type="button"
-                    className="ev-step-next"
-                    disabled={!stepCanProceed}
-                    onClick={() => stepCanProceed && setMobileStep(EVENT_STEPS[stepIdx + 1])}
-                  >
-                    Weiter
-                    <svg width="14" height="14" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden="true">
-                      <line x1="1" y1="6" x2="10" y2="6" /><polyline points="6,2 10,6 6,10" />
-                    </svg>
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    className="ev-cta ev-step-cta"
-                    disabled={!complete}
-                    onClick={() => complete && setSubmitted(partial as EventQuery)}
-                  >
-                    Beste Tage finden
-                    <svg width="14" height="14" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden="true">
-                      <line x1="1" y1="6" x2="10" y2="6" /><polyline points="6,2 10,6 6,10" />
-                    </svg>
-                  </button>
-                )}
-                {mobileStep === 'planb' && !complete && <span className="ev-cta-hint">Anlass und Zeitfenster wählen</span>}
-              </div>
-            )}
-
-            <div className="rt-trust" style={{ marginTop: '1.6rem' }}>
-              <span className="dot">●</span> Native Behörden-Quellen: DWD · GeoSphere · MeteoSwiss · höhenkorrigiert · keine Tracker
-            </div>
-          </>
-        )}
-      </main>
-    </div>
-  );
-}
-
-// ============================================================================
-// Summary-Kacheln (wie asst-stat im Meteorologen — leer=cream, gefüllt=weiß)
-// ============================================================================
-function SummaryTile({ label, value, note, accent }: {
-  label: string;
-  value: string | null;
-  note?: string;
-  accent?: 'sage';
-}) {
-  const filled = value !== null;
-  return (
-    <div className={`ev-tile${filled ? ' ev-tile-filled' : ''}${accent === 'sage' && filled ? ' ev-tile-sage' : ''}`}>
-      <span className="ev-tile-label">{label}</span>
-      <strong className="ev-tile-val">{value ?? '–'}</strong>
-      {note && <em className="ev-tile-note">{note}</em>}
-    </div>
-  );
-}
-
-// ============================================================================
-// 1 · Anlass — Kachel-Grid + freier Anlass
-// ============================================================================
-function ActivityPicker({ value, onChange }: { value: EventActivity | null; onChange: (a: EventActivity | null) => void }) {
-  const isCustom = value?.id === 'custom';
-  const [customText, setCustomText] = useState(isCustom ? value!.label : '');
-  const customRef = useRef<HTMLInputElement>(null);
-
-  const selectCustom = () => {
-    onChange(customActivity(customText));
-    setTimeout(() => customRef.current?.focus(), 0);
-  };
-
-  return (
+  // Geteilte Schritt-Inhalte (Felder branchen intern auf isMobile für das Raster).
+  const stepBody = (
     <>
-      <div className="ev-activities" role="radiogroup" aria-label="Anlass">
-        {EVENT_ACTIVITIES.map((a) => (
-          <button
-            key={a.id}
-            type="button"
-            role="radio"
-            aria-checked={value?.id === a.id}
-            className={`ev-activity${value?.id === a.id ? ' is-selected' : ''}`}
-            onClick={() => onChange(a)}
-          >
-            <span className="ev-activity-icon" aria-hidden="true"><ActivityIcon id={a.id} size={24} /></span>
-            <span className="ev-activity-label">{a.label}</span>
-            <span className="ev-activity-hint">{a.hint}</span>
-          </button>
-        ))}
-        <button
-          type="button"
-          role="radio"
-          aria-checked={isCustom}
-          className={`ev-activity ev-activity-custom${isCustom ? ' is-selected' : ''}`}
-          onClick={selectCustom}
-        >
-          <span className="ev-activity-icon" aria-hidden="true"><ActivityIcon id="custom" size={24} /></span>
-          <span className="ev-activity-label">Eigener Anlass</span>
-          <span className="ev-activity-hint">frei beschreiben</span>
-        </button>
-      </div>
-      {isCustom && (
-        <input
-          ref={customRef}
-          type="text"
-          className="ev-custom-input"
-          placeholder="z. B. Open-Air-Konzert, Drohnenflug …"
-          value={customText}
-          onChange={(e) => { setCustomText(e.target.value); onChange(customActivity(e.target.value)); }}
-          aria-label="Eigener Anlass"
-        />
+      {step === 0 && (
+        <div className={isMobile ? undefined : 'evd-grid-2'}>
+          <div>
+            <span className={isMobile ? 'evd-m-section-lab' : 'evd-field-label'}>Ort</span>
+            <LocationField value={location} onChange={setLocation} />
+          </div>
+          <div>
+            <span className={isMobile ? 'evd-m-section-lab' : 'evd-field-label'}>Anlass</span>
+            <ActivityGrid value={activity} onChange={handleActivity} isMobile={isMobile} />
+          </div>
+          {activity && <TuningPanel activity={activity} tuning={tuning} onChange={setTuning} />}
+        </div>
+      )}
+      {step === 1 && (
+        <div className={isMobile ? undefined : 'evd-grid-2 evd-grid-2--time'}>
+          <div>
+            <span className={isMobile ? 'evd-m-section-lab' : 'evd-field-label'}>Zeitraum</span>
+            <TimeFields value={windowSel} onChange={setWindowSel} />
+          </div>
+          <div>
+            <span className={isMobile ? 'evd-m-section-lab' : 'evd-field-label'}>Phasen · Vorlage</span>
+            <PhaseFields value={phases} onChange={setPhases} />
+          </div>
+        </div>
+      )}
+      {step === 2 && (
+        <div>
+          {isMobile && <p className="evd-sub" style={{ marginTop: 0 }}>{meta.sub}</p>}
+          <PlanBFields value={planB} window={windowSel} onChange={setPlanB} />
+        </div>
       )}
     </>
   );
-}
 
-/** PRE-US1 — zeigt, welche Faktoren das gewählte Preset automatisch bewertet (mit Tuning). */
-function PresetFactors({ activity, tuning }: { activity: EventActivity; tuning: PresetTuning }) {
-  const factors = activityFactorPriorities(activity.id, tuning);
-  const isCustom = activity.id === 'custom';
+  const primaryLabel = step < 2 ? 'Weiter' : 'Beste Tage finden';
+  const leftLabel = step === 0 ? 'Überspringen' : 'Zurück';
+  const onLeft = step === 0 ? submit : back;
+  const leftDisabled = step === 0 && !complete;
+
+  // ------- Mobile -------
+  if (isMobile) {
+    return (
+      <div className="evd-m-root">
+        <div className="evd-m-header">
+          <button className="evd-m-back" onClick={step > 0 ? back : onBack} aria-label="Zurück"><IconDeckChevLeft /></button>
+          <div className="evd-m-htext">
+            <div className="evd-m-eyebrow">{meta.eyebrow}{meta.optional ? <span style={{ color: 'var(--stone-400)' }}> · Optional</span> : null}</div>
+            <div className="evd-m-title">{meta.title}</div>
+          </div>
+        </div>
+        <div className="evd-m-progress">
+          {[0, 1, 2].map((i) => <span key={i} className={i <= step ? 'on' : undefined} />)}
+        </div>
+        <div className="evd-m-scroll">{stepBody}</div>
+        <div className="evd-m-footer">
+          <button className="evd-btn-ghost" onClick={onLeft} disabled={leftDisabled}>{leftLabel}</button>
+          <button className="evd-btn-primary" onClick={next} disabled={!canProceed}>
+            {primaryLabel} <IconDeckArrowRight />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ------- Desktop / Tablet -------
   return (
-    <div className="ev-preset-factors" role="status">
-      <span className="ev-preset-factors-label">
-        ✓ {isCustom ? 'Standard-Faktoren (eigener Anlass)' : `Für ${activity.label} automatisch bewertet`} — keine Einstellung nötig:
-      </span>
-      <div className="ev-preset-chips">
-        {factors.map((f, i) => (
-          <span key={f.key} className={`ev-pf-chip${i === 0 ? ' ev-pf-top' : ''}`}>
-            {f.label}{i === 0 && <span className="ev-pf-badge">wichtigste</span>}
-          </span>
-        ))}
+    <div className="evd-root">
+      <div className="evd-topbar">
+        <div className="evd-brandwrap">
+          <img src="/buscosun-mark.svg" width={26} height={26} alt="" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+          <button className="evd-brand" onClick={onBack}>buscosun</button>
+        </div>
+        <div className="evd-topright">
+          <div className="evd-live"><span className="evd-live-dot" /><span className="evd-live-txt">DATEN LIVE</span></div>
+        </div>
+      </div>
+      <div className="evd-body">
+        <nav className="evd-rail" aria-label="Werkzeuge">
+          <button className="evd-rail-btn" title="Wetterkarte" onClick={onBack}><IconDeckMap /></button>
+          <button className="evd-rail-btn" title="Regenradar" onClick={onBack}><IconDeckRadar /></button>
+          <button className="evd-rail-btn evd-rail-btn--active" title="Event-Planung" aria-current="page"><IconDeckEvent /></button>
+          <button className="evd-rail-btn" title="Tourenplanung" onClick={onBack}><IconDeckTour /></button>
+          <span className="evd-rail-spacer" />
+          <button className="evd-rail-btn" title="Einstellungen" onClick={onBack}><IconDeckGear /></button>
+        </nav>
+        <div className="evd-wiz evd-scroll">
+          <div className={step === 2 ? 'evd-wiz-inner evd-wiz-inner--narrow' : 'evd-wiz-inner'}>
+            <div className="evd-eyebrow">{meta.eyebrow}{meta.optional ? <span className="evd-eyebrow-mut"> · Optional</span> : null}</div>
+            <h2 className="evd-h2">{meta.title}</h2>
+            <p className="evd-sub">{meta.sub}</p>
+            <div className="evd-progress">
+              {[0, 1, 2].map((i) => <span key={i} className={i <= step ? 'on' : undefined} />)}
+            </div>
+            {stepBody}
+          </div>
+        </div>
+      </div>
+      <div className="evd-footer">
+        <button className="evd-btn-ghost" onClick={onLeft} disabled={leftDisabled}>{leftLabel}</button>
+        <button className="evd-btn-primary" onClick={next} disabled={!canProceed}>
+          {primaryLabel} <IconDeckArrowRight />
+        </button>
       </div>
     </div>
   );
 }
 
-// ============================================================================
-// PRE-US2 — Preset feinjustieren (Schwellwerte ändern + zurücksetzen)
-// ============================================================================
-const TUNE_FACTORS: Array<{ key: 'precip' | 'temp' | 'wind' | 'cloud'; label: string }> = [
-  { key: 'precip', label: 'Trockenheit' },
-  { key: 'temp', label: 'Temperatur' },
-  { key: 'wind', label: 'Windruhe' },
-  { key: 'cloud', label: 'Sonne / Sicht' },
-];
-const weightLevel = (w: number) => (w >= 0.7 ? 'entscheidend' : w >= 0.4 ? 'wichtig' : w >= 0.15 ? 'wenig' : 'egal');
-const weightTier = (w: number) => (w >= 0.7 ? 'high' : w >= 0.4 ? 'mid' : w >= 0.15 ? 'low' : 'off');
-const clampHrLocal = (v: string) => Math.max(-10, Math.min(45, parseInt(v || '0', 10) || 0));
-
-function TuningPanel({ activity, tuning, onChange }: { activity: EventActivity; tuning: PresetTuning; onChange: (t: PresetTuning) => void }) {
-  const def = defaultTuningFor(activity.id);
-  const changed = JSON.stringify(tuning) !== JSON.stringify(def);
-  const setWeight = (k: 'precip' | 'temp' | 'wind' | 'cloud', v: number) =>
-    onChange({ ...tuning, weights: { ...tuning.weights, [k]: v } });
-  const setTemp = (idx: 0 | 1, v: number) => {
-    const t: [number, number] = [tuning.idealTemp[0], tuning.idealTemp[1]];
-    t[idx] = v;
-    onChange({ ...tuning, idealTemp: t });
-  };
-
-  return (
-    <details className="ev-tune" open>
-      <summary className="ev-tune-summary">
-        <span className="ev-tune-summary-icon" aria-hidden="true"><IconSliders size={16} /></span>
-        <span className="ev-tune-summary-text">Feinjustierung — an mein Empfinden anpassen</span>
-        {changed && <span className="ev-tune-changed">angepasst</span>}
-        <span className="ev-tune-chevron" aria-hidden="true"><IconChevron size={16} /></span>
-      </summary>
-      <div className="ev-tune-body">
-        <div className="ev-tune-row ev-tune-temp">
-          <label className="ev-tune-label">Wohlfühl-Temperatur</label>
-          <div className="ev-tune-control">
-            <input type="number" className="ev-tune-hr" min={-10} max={45} value={tuning.idealTemp[0]}
-              aria-label="Wohlfühl-Temperatur von" onChange={(e) => setTemp(0, clampHrLocal(e.target.value))} />
-            <span className="ev-tune-dash">–</span>
-            <input type="number" className="ev-tune-hr" min={-10} max={45} value={tuning.idealTemp[1]}
-              aria-label="Wohlfühl-Temperatur bis" onChange={(e) => setTemp(1, clampHrLocal(e.target.value))} />
-            <span className="ev-tune-unit">°C</span>
-          </div>
-        </div>
-        <div className="ev-tune-weights">
-          {TUNE_FACTORS.map((f) => {
-            const w = tuning.weights[f.key];
-            return (
-              <div key={f.key} className="ev-tune-row">
-                <label className="ev-tune-label" htmlFor={`tune-${f.key}`}>{f.label}</label>
-                <div className="ev-tune-control">
-                  <input id={`tune-${f.key}`} type="range" className="ev-tune-slider" min={0} max={1} step={0.05}
-                    value={w} style={{ '--fill': `${Math.round(w * 100)}%` } as React.CSSProperties}
-                    onChange={(e) => setWeight(f.key, parseFloat(e.target.value))} />
-                  <span className={`ev-tune-level ev-tune-level-${weightTier(w)}`}>{weightLevel(w)}</span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        <button type="button" className="ev-tune-reset" disabled={!changed} onClick={() => onChange(def)}>
-          <IconReset size={14} /> Auf Preset zurücksetzen
-        </button>
-      </div>
-    </details>
-  );
-}
-
-// ============================================================================
-// 2 · Ort — Geocoder-Suche → ausgewählter Ort
-// ============================================================================
+/* ============================ Ort ============================ */
 function LocationField({ value, onChange }: { value: Location | null; onChange: (l: Location | null) => void }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Location[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState('');
   const abortRef = useRef<AbortController | null>(null);
 
-  async function search() {
+  const runSearch = async () => {
     const q = query.trim();
     if (!q) return;
     abortRef.current?.abort();
     const ac = new AbortController();
     abortRef.current = ac;
-    setLoading(true); setError(null); setResults([]);
+    setLoading(true); setError('');
     try {
       const found = await geocodeDACH(q, ac.signal);
       if (ac.signal.aborted) return;
-      if (found.length === 0) setError('Keine Ergebnisse in DE / AT / CH gefunden.');
-      else if (found.length === 1) onChange(found[0]);
+      if (found.length === 0) { setError('Kein Ort gefunden.'); setResults([]); }
+      else if (found.length === 1) { onChange(found[0]); setResults([]); setQuery(''); }
       else setResults(found);
-    } catch (err) {
-      if ((err as { name?: string })?.name === 'AbortError') return;
-      setError(err instanceof Error ? err.message : 'Unbekannter Fehler');
+    } catch {
+      if (!ac.signal.aborted) setError('Suche fehlgeschlagen.');
     } finally {
-      setLoading(false);
+      if (!ac.signal.aborted) setLoading(false);
     }
-  }
-
-  function onKey(e: KeyboardEvent<HTMLInputElement>) {
-    if (e.key === 'Enter') { e.preventDefault(); void search(); }
-    if (e.key === 'Escape') { setResults([]); setError(null); }
-  }
+  };
+  const onKey = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') { e.preventDefault(); void runSearch(); }
+    else if (e.key === 'Escape') { setQuery(''); setResults([]); setError(''); }
+  };
 
   if (value) {
+    const elev = (value as Location & { elevation?: number }).elevation;
     return (
-      <div className="ev-loc-chip ev-card">
-        <span className="ev-loc-flag" aria-hidden="true">{flagForCountry(value.country)}</span>
-        <span className="ev-loc-name">{value.name}</span>
-        <button type="button" className="ev-loc-change" onClick={() => { onChange(null); setResults([]); setQuery(''); }}>
-          Ändern
-        </button>
-      </div>
+      <>
+        <div className="evd-ort">
+          <IconDeckSearch />
+          <span className="evd-ort-name">{flagForCountry(value.country)} {value.name}</span>
+          <button className="evd-link" onClick={() => { onChange(null); setResults([]); setQuery(''); }}>Ändern</button>
+        </div>
+        <div className="evd-ort-note"><IconDeckPin />Standort erkannt · höhenkorrigiert{typeof elev === 'number' ? ` (${Math.round(elev)} m)` : ''}</div>
+      </>
     );
   }
-
   return (
-    <div className="ev-search-wrap">
-      <div className="ev-search">
-        <svg className="ev-search-icon" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
-          <circle cx="8" cy="8" r="6" /><line x1="13" y1="13" x2="17" y2="17" strokeLinecap="round" />
-        </svg>
+    <>
+      <div className="evd-ort">
+        <IconDeckSearch />
         <input
-          type="text"
-          className="ev-search-input"
-          placeholder="Stadt, Adresse oder PLZ …"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={onKey}
-          disabled={loading}
-          aria-label="Ort suchen"
+          value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={onKey}
+          placeholder="Ort suchen (DE · AT · CH)…" aria-label="Ort suchen" autoComplete="off"
         />
-        <button type="button" className="ev-search-go" onClick={() => void search()} disabled={loading || !query.trim()}>
-          {loading ? 'Suche …' : 'Suchen'}
-        </button>
+        <button className="evd-link" onClick={() => void runSearch()}>{loading ? '…' : 'Suchen'}</button>
       </div>
-      {(results.length > 0 || error) && (
-        <div className="ev-search-dropdown" role="listbox">
-          {error && <div className="ev-search-error">⚠ {error}</div>}
-          {results.map((r) => (
-            <button key={`${r.lat},${r.lon}`} type="button" className="ev-search-result" onClick={() => onChange(r)}>
-              <span className="ev-loc-flag" aria-hidden="true">{flagForCountry(r.country)}</span>
-              <span className="ev-search-result-name">{r.name}</span>
+      {error && <div className="evd-ort-err">{error}</div>}
+      {results.length > 0 && (
+        <div className="evd-ort-results">
+          {results.map((r, i) => (
+            <button key={`${r.lat}-${r.lon}-${i}`} className="evd-ort-result" onClick={() => { onChange(r); setResults([]); setQuery(''); }}>
+              {flagForCountry(r.country)} {r.name}
             </button>
           ))}
         </div>
       )}
+    </>
+  );
+}
+
+/* ============================ Anlass ============================ */
+function ActivityGrid({ value, onChange, isMobile }: { value: EventActivity | null; onChange: (a: EventActivity | null) => void; isMobile: boolean }) {
+  const [customText, setCustomText] = useState(value?.id === 'custom' ? value.label : '');
+  const gridClass = isMobile ? 'evd-m-anlass-grid' : 'evd-anlass-grid';
+  const tileClass = (active: boolean) => isMobile
+    ? `evd-m-anlass${active ? ' evd-m-anlass--active' : ''}`
+    : `evd-anlass${active ? ' evd-anlass--active' : ''}`;
+  const commit = () => { const t = customText.trim(); if (t) onChange(customActivity(t)); };
+  return (
+    <div className={gridClass}>
+      {EVENT_ACTIVITIES.map((a) => {
+        const active = value?.id === a.id;
+        return (
+          <button key={a.id} className={tileClass(active)} onClick={() => onChange(a)} aria-pressed={active}>
+            <span className={`evd-anlass-ico${active ? '' : ''}`}><DeckActivityIcon id={a.id} size={isMobile ? 19 : 18} /></span>
+            <div>
+              <div className="evd-anlass-name">{a.label}</div>
+              <div className="evd-anlass-tag">{a.tag}</div>
+            </div>
+          </button>
+        );
+      })}
+      <div className="evd-anlass-custom">
+        <input
+          value={customText}
+          onChange={(e) => setCustomText(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => { if (e.key === 'Enter') commit(); }}
+          placeholder="Eigener Anlass …" aria-label="Eigener Anlass"
+        />
+      </div>
     </div>
   );
 }
 
-// ============================================================================
-// 3 · Zeitfenster — Bereich ODER Einzeltermine
-// ============================================================================
-function TimeWindowField({ value, onChange }: { value: TimeWindow; onChange: (w: TimeWindow) => void }) {
-  const min = todayISO();
-  const max = horizonEndISO();
-  const [pendingDate, setPendingDate] = useState('');
+/* ============================ Feinjustierung (Tuning) ============================ */
+const TUNE_FACTORS: Array<{ key: keyof PresetTuning['weights']; label: string }> = [
+  { key: 'precip', label: 'Trockenheit' }, { key: 'temp', label: 'Temperatur' },
+  { key: 'wind', label: 'wenig Wind' }, { key: 'cloud', label: 'Licht / Wolken' },
+];
+function TuningPanel({ activity, tuning, onChange }: { activity: EventActivity; tuning: PresetTuning; onChange: (t: PresetTuning) => void }) {
+  const def = defaultTuningFor(activity.id);
+  const changed = JSON.stringify(def) !== JSON.stringify(tuning);
+  const priorities = activityFactorPriorities(activity.id, tuning);
+  const setWeight = (k: keyof PresetTuning['weights'], v: number) => onChange({ ...tuning, weights: { ...tuning.weights, [k]: v } });
+  const setTemp = (idx: 0 | 1, v: number) => {
+    const t: [number, number] = [tuning.idealTemp[0], tuning.idealTemp[1]];
+    t[idx] = v; onChange({ ...tuning, idealTemp: t });
+  };
+  return (
+    <details className="evd-tune">
+      <summary><IconSliders size={15} />Faktoren feinjustieren{changed ? ' · angepasst' : ''}</summary>
+      <div className="evd-tune-body">
+        {TUNE_FACTORS.map((f) => (
+          <div className="evd-tune-row" key={f.key}>
+            <label>{f.label}<span>{Math.round((tuning.weights[f.key] ?? 0) * 100)}%</span></label>
+            <input type="range" min={0} max={1} step={0.05} value={tuning.weights[f.key]} onChange={(e) => setWeight(f.key, parseFloat(e.target.value))} />
+          </div>
+        ))}
+        <div className="evd-tune-row">
+          <label>Wohlfühl-Temperatur</label>
+          <div className="evd-tune-temp">
+            <input type="number" value={tuning.idealTemp[0]} onChange={(e) => setTemp(0, parseInt(e.target.value) || 0)} aria-label="Temperatur von" />
+            <span className="evd-hourdash">–</span>
+            <input type="number" value={tuning.idealTemp[1]} onChange={(e) => setTemp(1, parseInt(e.target.value) || 0)} aria-label="Temperatur bis" />
+            <span className="evd-houruhr">°C</span>
+          </div>
+        </div>
+        <div className="evd-tune-row" style={{ alignSelf: 'end' }}>
+          <span className="evd-anlass-tag">{priorities.map((p) => p.label).join(' · ')}</span>
+        </div>
+      </div>
+      {changed && <button className="evd-tune-reset" onClick={() => onChange(def)}><IconReset size={13} />Auf Anlass-Vorgabe zurücksetzen</button>}
+    </details>
+  );
+}
 
+/* ============================ Zeitfenster ============================ */
+const clampHr = (n: number) => Math.max(0, Math.min(24, Math.round(n)));
+function TimeFields({ value, onChange }: { value: TimeWindow; onChange: (w: TimeWindow) => void }) {
+  const min = todayISO(); const max = horizonEndISO();
   const setMode = (mode: 'range' | 'dates') => {
     if (mode === value.mode) return;
     onChange(mode === 'range' ? { mode: 'range', from: min, to: max } : { mode: 'dates', dates: [] });
   };
-
-  const addDate = () => {
-    if (value.mode !== 'dates' || !pendingDate) return;
-    if (pendingDate < min || pendingDate > max) return;
-    if (value.dates.includes(pendingDate)) { setPendingDate(''); return; }
-    onChange({ mode: 'dates', dates: [...value.dates, pendingDate].sort() });
-    setPendingDate('');
-  };
-  const removeDate = (d: string) => {
-    if (value.mode !== 'dates') return;
-    onChange({ mode: 'dates', dates: value.dates.filter((x) => x !== d) });
-  };
-
   return (
-    <div className="ev-window">
-      <div className="ev-seg" role="tablist" aria-label="Art des Zeitfensters">
-        <button type="button" role="tab" aria-selected={value.mode === 'range'} className={`ev-seg-btn${value.mode === 'range' ? ' is-active' : ''}`} onClick={() => setMode('range')}>
-          Zeitraum
-        </button>
-        <button type="button" role="tab" aria-selected={value.mode === 'dates'} className={`ev-seg-btn${value.mode === 'dates' ? ' is-active' : ''}`} onClick={() => setMode('dates')}>
-          Einzeltermine
-        </button>
+    <>
+      <div className="evd-seg">
+        <button className={`evd-seg-btn${value.mode === 'range' ? ' evd-seg-btn--active' : ''}`} onClick={() => setMode('range')}>Zeitraum</button>
+        <button className={`evd-seg-btn${value.mode === 'dates' ? ' evd-seg-btn--active' : ''}`} onClick={() => setMode('dates')}>Einzeltermine</button>
       </div>
-
       {value.mode === 'range' ? (
-        <div className="ev-range">
-          <label className="ev-field">
-            <span className="ev-field-label">Von</span>
-            <input type="date" className="ev-date" min={min} max={max} value={value.from}
-              onChange={(e) => onChange({ mode: 'range', from: e.target.value, to: value.to })} />
-          </label>
-          <span className="ev-range-dash" aria-hidden="true">–</span>
-          <label className="ev-field">
-            <span className="ev-field-label">Bis</span>
-            <input type="date" className="ev-date" min={value.from || min} max={max} value={value.to}
-              onChange={(e) => onChange({ mode: 'range', from: value.from, to: e.target.value })} />
-          </label>
-          {!isWindowValid(value) && <span className="ev-window-warn">Bitte einen gültigen Zeitraum innerhalb der nächsten {EVENT_HORIZON_DAYS} Tage wählen.</span>}
-        </div>
-      ) : (
-        <div className="ev-dates">
-          <div className="ev-dates-add">
-            <input type="date" className="ev-date" min={min} max={max} value={pendingDate}
-              onChange={(e) => setPendingDate(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addDate(); } }} />
-            <button type="button" className="ev-add-btn" onClick={addDate} disabled={!pendingDate}>+ Hinzufügen</button>
+        <>
+          <div className="evd-daterow">
+            <label className="evd-datecard">
+              <div className="evd-datecard-lab">Von</div>
+              <div className="evd-datecard-val">{shortDate(value.from)}</div>
+              <input type="date" value={value.from} min={min} max={value.to} onChange={(e) => onChange({ ...value, from: e.target.value })} />
+            </label>
+            <label className="evd-datecard">
+              <div className="evd-datecard-lab">Bis</div>
+              <div className="evd-datecard-val">{shortDate(value.to)}</div>
+              <input type="date" value={value.to} min={value.from} max={max} onChange={(e) => onChange({ ...value, to: e.target.value })} />
+            </label>
           </div>
-          {value.dates.length > 0 ? (
-            <div className="ev-chips">
-              {value.dates.map((d) => (
-                <span key={d} className="ev-chip">
-                  {formatDateLabel(d)}
-                  <button type="button" className="ev-chip-x" aria-label={`${formatDateLabel(d)} entfernen`} onClick={() => removeDate(d)}>×</button>
-                </span>
-              ))}
-            </div>
-          ) : (
-            <p className="ev-dates-empty">Noch keine Termine — füge bis zu {EVENT_HORIZON_DAYS} konkrete Tage hinzu.</p>
-          )}
-        </div>
+          <div className="evd-note">Bis zu 7 Tage werden verglichen · DE bis ~7 Tage, AT/CH bis ~2,5 Tage</div>
+        </>
+      ) : (
+        <>
+          <div className="evd-datechips">
+            {value.dates.map((d) => (
+              <span key={d} className="evd-datechip">{shortDate(d)}<button onClick={() => onChange({ mode: 'dates', dates: value.dates.filter((x) => x !== d) })} aria-label="Termin entfernen">×</button></span>
+            ))}
+            <label className="evd-datechip-add">
+              <IconDeckPlus size={13} /> Termin
+              <input type="date" min={min} max={max} onChange={(e) => {
+                const d = e.target.value;
+                if (d && d >= min && d <= max && !value.dates.includes(d)) onChange({ mode: 'dates', dates: [...value.dates, d].sort() });
+              }} />
+            </label>
+          </div>
+          <div className="evd-note">Konkrete Termine werden einzeln bewertet.</div>
+        </>
       )}
-    </div>
+    </>
   );
 }
 
-// ============================================================================
-// 4 · Phasen — eine oder mehrere benannte Zeitfenster (WIN-US1 + WIN-US2)
-// ============================================================================
-const clampHr = (v: string) => Math.max(0, Math.min(24, parseInt(v || '0', 10) || 0));
-
-function PhasesField({ value, onChange }: { value: EventPhase[]; onChange: (p: EventPhase[]) => void }) {
+/* ============================ Phasen ============================ */
+function PhaseFields({ value, onChange }: { value: EventPhase[]; onChange: (p: EventPhase[]) => void }) {
   const setPreset = (id: Daypart) => onChange([daypartPhase(id)]);
   const addPhase = () => onChange([...value, { id: newPhaseId(), label: `Phase ${value.length + 1}`, hours: [14, 18] }]);
   const update = (id: string, patch: Partial<EventPhase>) => onChange(value.map((p) => (p.id === id ? { ...p, ...patch } : p)));
   const remove = (id: string) => onChange(value.filter((p) => p.id !== id));
-
+  const activePreset = value.length === 1 ? DAYPARTS.find((d) => d.hours[0] === value[0].hours[0] && d.hours[1] === value[0].hours[1] && d.label === value[0].label)?.id : undefined;
+  const isWedding = value.length === 3;
   return (
-    <div className="ev-phases-field">
-      <div className="ev-phase-presets">
-        <span className="ev-phase-presets-label">Vorlage:</span>
+    <>
+      <div className="evd-chips">
         {DAYPARTS.map((d) => (
-          <button key={d.id} type="button" className="ev-preset-btn" onClick={() => setPreset(d.id)}>{d.label}</button>
+          <button key={d.id} className={`evd-chip${activePreset === d.id ? ' evd-chip--active' : ''}`} onClick={() => setPreset(d.id)}>{d.label}</button>
         ))}
-        <button type="button" className="ev-preset-btn ev-preset-wedding" onClick={() => onChange(weddingPhases())}><IconRing size={15} /> Hochzeit (3 Phasen)</button>
+        <button className={`evd-chip${isWedding ? ' evd-chip--active' : ' evd-chip--special'}`} onClick={() => onChange(weddingPhases())}>
+          <IconRing size={14} />Hochzeit (3 Phasen)
+        </button>
       </div>
-
-      <div className="ev-phase-rows">
-        {value.map((p) => (
-          <div key={p.id} className="ev-phase-row">
-            <input
-              className="ev-phase-name" type="text" value={p.label} placeholder="Phasenname" aria-label="Phasenname"
-              onChange={(e) => update(p.id, { label: e.target.value })}
-            />
-            <div className="ev-phase-times">
-              <input className="ev-phase-hr" type="number" min={0} max={24} value={p.hours[0]} aria-label="Von (Stunde)"
-                onChange={(e) => update(p.id, { hours: [clampHr(e.target.value), p.hours[1]] })} />
-              <span className="ev-phase-dash" aria-hidden="true">–</span>
-              <input className="ev-phase-hr" type="number" min={0} max={24} value={p.hours[1]} aria-label="Bis (Stunde)"
-                onChange={(e) => update(p.id, { hours: [p.hours[0], clampHr(e.target.value)] })} />
-              <span className="ev-phase-uhr">Uhr</span>
-            </div>
-            {value.length > 1 && (
-              <button type="button" className="ev-phase-remove" aria-label={`${p.label} entfernen`} onClick={() => remove(p.id)}>×</button>
-            )}
+      {value.map((p) => (
+        <div className="evd-phasecard" key={p.id}>
+          <div className="evd-phasecard-head">
+            <input className="evd-phasecard-title" value={p.label} onChange={(e) => update(p.id, { label: e.target.value })} aria-label="Phasenname" />
+            {value.length > 1 && <button className="evd-phasecard-rm" onClick={() => remove(p.id)}>Entfernen</button>}
           </div>
-        ))}
-      </div>
-
-      <button type="button" className="ev-add-btn ev-phase-add" onClick={addPhase}>+ Phase hinzufügen</button>
-      {value.some((p) => p.hours[0] === p.hours[1]) && <p className="ev-window-warn">Jede Phase braucht ein Fenster (Von ≠ Bis).</p>}
-    </div>
-  );
-}
-
-// ============================================================================
-// 5 · Plan B — Schwelle, Ausweich-Option, Wunschtag (PLANB-US1)
-// ============================================================================
-function PlanBField({ value, window, onChange }: { value: PlanBConfig; window: TimeWindow; onChange: (p: PlanBConfig) => void }) {
-  const days = candidateDays(window);
-  const def = planBMetricDef(value.metric);
-  const setMetric = (metric: PlanBMetric) => onChange({ ...value, metric, threshold: planBMetricDef(metric).default });
-
-  return (
-    <div className="ev-planb-field">
-      <label className="ev-planb-enable">
-        <input type="checkbox" checked={value.enabled} onChange={(e) => onChange({ ...value, enabled: e.target.checked })} />
-        <span>Plan-B-Schwelle aktivieren</span>
-      </label>
-
-      {value.enabled && (
-        <div className="ev-planb-config">
-          <div className="ev-planb-row">
-            <label className="ev-planb-label" htmlFor="planb-metric">Auslöser</label>
-            <select id="planb-metric" className="ev-planb-select" value={value.metric} onChange={(e) => setMetric(e.target.value as PlanBMetric)}>
-              {PLANB_METRICS.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
-            </select>
-          </div>
-
-          <div className="ev-planb-row">
-            <label className="ev-planb-label" htmlFor="planb-thr">{def.direction === 'above' ? 'Plan B ab' : 'Plan B unter'}</label>
-            <div className="ev-planb-thr">
-              <input id="planb-thr" type="range" min={def.min} max={def.max} step={def.step} value={value.threshold}
-                onChange={(e) => onChange({ ...value, threshold: parseFloat(e.target.value) })} />
-              <span className="ev-planb-thr-val">{value.threshold} {def.unit}</span>
-            </div>
-          </div>
-          <p className="ev-planb-hint">{def.hint}</p>
-
-          <div className="ev-planb-row ev-planb-venues-row">
-            <span className="ev-planb-label">Ausweich-Option</span>
-            <div className="ev-planb-venues">
-              {PLANB_VENUES.map((v) => (
-                <button key={v.id} type="button" className={`ev-planb-venue${value.venue === v.id ? ' is-selected' : ''}`}
-                  onClick={() => onChange({ ...value, venue: v.id })}>
-                  <span className="ev-planb-venue-icon" aria-hidden="true"><VenueIcon id={v.id} size={20} /></span>
-                  <span className="ev-planb-venue-label">{v.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="ev-planb-row">
-            <label className="ev-planb-label" htmlFor="planb-wish">Wunschtag</label>
-            <select id="planb-wish" className="ev-planb-select" value={value.wishDate ?? ''} onChange={(e) => onChange({ ...value, wishDate: e.target.value || null })}>
-              <option value="">Bester Tag (automatisch)</option>
-              {days.map((d) => <option key={d} value={d}>{formatDateLabel(d)}</option>)}
-            </select>
+          <div className="evd-phasecard-rule" />
+          <div className="evd-hourrow">
+            <span className="evd-hourbox"><input type="number" min={0} max={24} value={p.hours[0]} onChange={(e) => update(p.id, { hours: [clampHr(parseInt(e.target.value) || 0), p.hours[1]] })} aria-label="Startstunde" /></span>
+            <span className="evd-hourdash">–</span>
+            <span className="evd-hourbox"><input type="number" min={0} max={24} value={p.hours[1]} onChange={(e) => update(p.id, { hours: [p.hours[0], clampHr(parseInt(e.target.value) || 0)] })} aria-label="Endstunde" /></span>
+            <span className="evd-houruhr">Uhr</span>
           </div>
         </div>
-      )}
-    </div>
+      ))}
+      <button className="evd-addphase" onClick={addPhase}><IconDeckPlus size={15} />Phase hinzufügen</button>
+    </>
   );
 }
 
+/* ============================ Plan B ============================ */
+function PlanBFields({ value, window: win, onChange }: { value: PlanBConfig; window: TimeWindow; onChange: (p: PlanBConfig) => void }) {
+  const mdef = planBMetricDef(value.metric);
+  const days = candidateDays(win);
+  const pct = Math.round(((value.threshold - mdef.min) / (mdef.max - mdef.min)) * 100);
+  const valueText = value.metric === 'score'
+    ? `Score < ${value.threshold}`
+    : `${mdef.direction === 'above' ? '>' : '<'} ${value.threshold} ${mdef.unit}`;
+  const sliderLabels = value.metric === 'score'
+    ? ['kritisch (30)', 'okay (55)', 'gut (80)']
+    : [`${mdef.min} ${mdef.unit}`, `${Math.round((mdef.min + mdef.max) / 2)} ${mdef.unit}`, `${mdef.max} ${mdef.unit}`];
+  return (
+    <>
+      <div className={`evd-toggle-row${value.enabled ? '' : ' evd-toggle-row--off'}`} onClick={() => onChange({ ...value, enabled: !value.enabled })} role="switch" aria-checked={value.enabled} tabIndex={0}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onChange({ ...value, enabled: !value.enabled }); } }}>
+        <span className="evd-toggle-label">Plan-B-Schwelle aktivieren</span>
+        <span className={`evd-switch${value.enabled ? ' evd-switch--on' : ''}`} />
+      </div>
+
+      <div className="evd-metric-seg" role="group" aria-label="Schwelle bezieht sich auf">
+        {PLANB_METRICS.map((m) => (
+          <button key={m.id} className={`evd-metric-chip${value.metric === m.id ? ' evd-metric-chip--active' : ''}`}
+            onClick={() => onChange({ ...value, metric: m.id as PlanBMetric, threshold: planBMetricDef(m.id).default })}>
+            {m.id === 'score' ? 'Score' : m.id === 'rain' ? 'Regen' : 'Wind'}
+          </button>
+        ))}
+      </div>
+
+      <div className="evd-schwelle">
+        <div className="evd-schwelle-head">
+          <span className="evd-schwelle-lab">Schwelle</span>
+          <span className="evd-schwelle-val">{valueText}</span>
+        </div>
+        <div className="evd-slider">
+          <input type="range" min={mdef.min} max={mdef.max} step={mdef.step} value={value.threshold}
+            onChange={(e) => onChange({ ...value, threshold: parseFloat(e.target.value) })}
+            aria-label="Schwelle"
+            style={{ background: `linear-gradient(to right, var(--terracotta-500) ${pct}%, var(--sand-200) ${pct}%)` }} />
+        </div>
+        <div className="evd-slider-labels"><span>{sliderLabels[0]}</span><span>{sliderLabels[1]}</span><span>{sliderLabels[2]}</span></div>
+      </div>
+
+      <div className="evd-planb-cards">
+        <label className="evd-planb-card">
+          <div className="evd-planb-card-head"><IconDeckCalendar size={15} /><span className="evd-planb-card-lab">Wunschtermin</span></div>
+          <div className="evd-planb-card-val">{value.wishDate ? shortDate(value.wishDate) : 'Bester Tag'}</div>
+          <select value={value.wishDate ?? ''} onChange={(e) => onChange({ ...value, wishDate: e.target.value || null })} aria-label="Wunschtermin">
+            <option value="">Bester Tag</option>
+            {days.map((d) => <option key={d} value={d}>{formatDateLabel(d)}</option>)}
+          </select>
+        </label>
+        <label className="evd-planb-card">
+          <div className="evd-planb-card-head"><IconDeckPin size={15} /><span className="evd-planb-card-lab">Ausweichort</span></div>
+          <div className="evd-planb-card-val">{PLANB_VENUES.find((v) => v.id === value.venue)?.label ?? '—'}</div>
+          <select value={value.venue} onChange={(e) => onChange({ ...value, venue: e.target.value as PlanBConfig['venue'] })} aria-label="Ausweichort">
+            {PLANB_VENUES.map((v) => <option key={v.id} value={v.id}>{v.label}</option>)}
+          </select>
+        </label>
+      </div>
+
+      <div className="evd-hint"><b>Hinweis:</b> Ausweichtag & -ort nutzen dieselben nativen Behörden-Quellen (DWD · GeoSphere · MeteoSwiss) — kein Konto, keine Tracker.</div>
+    </>
+  );
+}
+
+/* ============================ Helpers ============================ */
+function shortDate(iso: string): string {
+  if (!iso) return '—';
+  const d = new Date(`${iso}T00:00:00`);
+  return d.toLocaleDateString('de-DE', { day: 'numeric', month: 'long' });
+}

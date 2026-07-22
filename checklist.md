@@ -144,6 +144,21 @@ Maßgebliche Vorgabe: `audit/webgl-cross-device.md` §12. Letzter der 5 Fachmann
 - [x] Keine neuen Konsolen-Errors/-Warnings; Typecheck grün; `visibilitychange`/Offscreen-Verhalten im Emulator verifiziert (JS-beobachtbar) — *`list_console_messages` leer, `tsc -b` grün (§12.4.2 #6)*
 - [ ] 🔴 Real-Device Akku-/Thermik-Gewinn (nice-to-have, **nicht** gate-blockierend) an Jan notiert
 
+## Infrastruktur-Phase T2 — Layer-Transport / Caching (GT2)
+Maßgebliche Vorgabe: `audit/layer-transport.md`. Muster aus T1 (Wind) auf Temp/Gust/Precip/Clouds ausrollen. Output-identisch, additiv. Umsetzung via CLI; Prod-Deploy+Cron = Jans Gate.
+- [x] Diagnose in `audit/layer-transport.md` abgeschlossen (Fit/No-Fit-Tabelle, wiederverwendbare Hebel) — **erledigt** (dieses Dokument)
+- [x] T2-1: generische Edge-Route `/_dwd_grib/*` (`netlify/edge-functions/dwd-grib.ts`), Durable-Header; `/_dwd_opendata`+`/_dwd_wind` unangetastet — Beleg Audit §G.2/§G.7
+- [x] T2-2: Temp (`t_2m`+`hsurf`)/Gust (`vmax_10m`)/Precip (`tot_prec`)/Clouds (`clcl/clcm/clch/clct`) mit eigenem `base` durch den Proxy geroutet — **kein** Decode-/Norm-/Shader-Eingriff — Beleg §G.3/§G.7
+- [x] T2-3: kombiniertes `public/latest-grib.json` (per-Param Step-Listen); Client-Resolver generalisiert (`src/sources/gribManifest.ts`, 24h-Staleness-Guard + Directory-Scan-Fallback pro Layer) — Fallback-Beleg §G.4
+- [x] T2-4: `scripts/warm-grib.mjs` + `.github/workflows/warm-grib.yml` (poll→warm-durch-Proxy→atomares Manifest→commit-back; idempotent/fail-safe; `SITE_URL`-Var) — Probeläufe §G.6
+- [x] T2-5: Vite-Dev-Proxy `/_dwd_grib`-Eintrag (`vite.config.ts`)
+- [x] T2-6: `scripts/verify-layer-transport.mjs` grün (43/43) — Bytes je Param SHA-256-identisch (Proxy vs. direkt), Durable-Header, Whitelist-Rejection, fehlender Step = `no-store`; als `npm run verify:layer-transport` registriert — §G.1/§G.2
+- [x] Output-Gleichheit je Layer belegt (visuell/numerisch identisch vor/nach, gleicher Lauf 2026072215) — §G.5 + `audit/screenshots/layer-transport/`
+- [x] Manifest-Gate eliminiert Directory-Listings + spekulative Fehl-Fetches je Layer (Network-Beleg: 0 Listings, 0 `/_dwd_opendata`-GRIB-Requests, Manifest 4 ms) — §G.3
+- [x] Abgrenzung belegt: Radar/Confidence/Wind/Decode/Fusion unberührt (Diff-Beleg: `git diff` über wind/scalar/fusion/radolan/Decode/dwd-wind.ts/netlify.toml/MapView leer) — §G.7
+- [x] Keine neuen Konsolen-Errors/-Warnings; `npm run typecheck` grün — §G.8
+- [ ] 🔴 Prod nach Deploy: Durable-Cache-`hit`-Header je Param + Latenz an Jan (wie T1; Repo-Var + Cron-Aktivierung = Jans Gate, Branch-Protection-Bot-Push beachten)
+
 ## Phase 9 — Gesamtregression (G9)
 - [ ] Kurzprotokoll V-ALL für alle 8 Features grün
 - [ ] Desktop-Diff aller 8 Seiten gegen Phase-0-Baseline: keine Abweichung

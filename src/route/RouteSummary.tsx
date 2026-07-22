@@ -1,7 +1,8 @@
 /**
- * Strecken-Informationen aus dem aufbereiteten {@link TourTrack}: Kennzahlen-
- * Raster, Höhenprofil und Hinweise zur Aufbereitung (Gelände, DEM-Höhen,
- * Punkt-Reduktion).
+ * Strecken-Vorschau aus dem aufbereiteten {@link TourTrack} — Command-Deck (T2/T14):
+ * vier Primär-Kennzahlen (Distanz/Aufstieg/Abstieg/Gelände), Höhenprofil und
+ * Detail-Chips (höchster/tiefster Punkt, Wetter-Punkte, DEM-Aufbereitung).
+ * Kein Informationsverlust — nur nach Vorlage angeordnet.
  */
 
 import { useMemo } from 'react';
@@ -11,49 +12,41 @@ interface Props {
   track: TourTrack;
 }
 
+function cap(s: string): string { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+
 export default function RouteSummary({ track }: Props) {
   const { meta } = track;
 
-  // Sechs Kennzahlen wie Mockup 01 (Track-Punkte stehen im „161 → 23"-Chip,
-  // Dauer folgt erst nach der Zeitplanung).
-  const items: Array<{ label: string; value: string }> = [
+  const stats: Array<{ label: string; value: string }> = [
     { label: 'Distanz', value: `${(meta.totalDistanceM / 1000).toFixed(1).replace('.', ',')} km` },
     { label: 'Aufstieg', value: meta.elevationAvailable ? `${meta.ascentM} hm` : '—' },
     { label: 'Abstieg', value: meta.elevationAvailable ? `${meta.descentM} hm` : '—' },
-    { label: 'Höchster Punkt', value: meta.maxEleM != null ? `${meta.maxEleM} m` : '—' },
-    { label: 'Tiefster Punkt', value: meta.minEleM != null ? `${meta.minEleM} m` : '—' },
-    { label: 'Wetter-Punkte', value: meta.sampleCount.toLocaleString('de-DE') },
+    { label: 'Gelände', value: cap(meta.terrain) },
   ];
 
   return (
-    <div className="route-summary">
-      <div className="route-summary-main">
-        <div className="route-summary-stats">
-          <dl className="route-stats">
-            {items.map((it) => (
-              <div key={it.label} className="route-stat">
-                <dt>{it.label}</dt>
-                <dd>{it.value}</dd>
-              </div>
-            ))}
-          </dl>
-
-          <div className="route-prep">
-            <span className="route-chip-info">Gelände: {meta.terrain}</span>
-            {meta.elevationEnriched && (
-              <span className="route-chip-info">Höhen aus DEM ergänzt</span>
-            )}
-            <span className="route-chip-info">
-              {meta.pointCount.toLocaleString('de-DE')} → {meta.sampleCount} Wetter-Punkte
-            </span>
+    <div className="rd-summary">
+      <div className="rd-statgrid">
+        {stats.map((s) => (
+          <div key={s.label} className="rd-stat">
+            <div className="rd-stat-label">{s.label}</div>
+            <div className="rd-stat-value">{s.value}</div>
           </div>
-        </div>
+        ))}
+      </div>
 
-        <ElevationProfile track={track} />
+      <ElevationProfile track={track} />
+
+      <div className="rd-preview-details">
+        {meta.maxEleM != null && <span className="rd-chip-info">Höchster Punkt: {meta.maxEleM} m</span>}
+        {meta.minEleM != null && <span className="rd-chip-info">Tiefster Punkt: {meta.minEleM} m</span>}
+        <span className="rd-chip-info">{meta.sampleCount.toLocaleString('de-DE')} Wetter-Punkte</span>
+        {meta.elevationEnriched && <span className="rd-chip-info">Höhen aus DEM ergänzt</span>}
+        <span className="rd-chip-info">{meta.pointCount.toLocaleString('de-DE')} → {meta.sampleCount} Punkte</span>
       </div>
 
       {meta.startTime != null && (
-        <p className="route-time-range">
+        <p className="rd-time-range">
           Original-Zeit: {formatStamp(meta.startTime)}
           {meta.endTime != null && meta.endTime !== meta.startTime ? ` – ${formatStamp(meta.endTime)}` : ''}
         </p>
@@ -70,7 +63,7 @@ function ElevationProfile({ track }: { track: TourTrack }) {
     const total = pts[pts.length - 1].dist;
     if (total <= 0) return null;
 
-    const W = 600, H = 120, padY = 8;
+    const W = 1180, H = 200, padY = 12;
     let min = Infinity, max = -Infinity;
     for (const p of pts) { if (p.ele < min) min = p.ele; if (p.ele > max) max = p.ele; }
     const span = Math.max(1, max - min);
@@ -81,24 +74,38 @@ function ElevationProfile({ track }: { track: TourTrack }) {
     let line = `M ${x(0).toFixed(1)} ${y(pts[0].ele).toFixed(1)}`;
     for (let i = 1; i < pts.length; i++) line += ` L ${x(pts[i].dist).toFixed(1)} ${y(pts[i].ele).toFixed(1)}`;
     const area = `${line} L ${W} ${H} L 0 ${H} Z`;
-    return { W, H, line, area, max: Math.round(max), totalKm: total / 1000 };
+    return {
+      W, H, line, area,
+      startY: y(pts[0].ele).toFixed(1), endY: y(pts[pts.length - 1].ele).toFixed(1),
+      min: Math.round(min), max: Math.round(max), totalKm: total / 1000,
+    };
   }, [track]);
 
   if (!profile) return null;
+  const nn = (n: number) => n.toLocaleString('de-DE');
 
   return (
-    <figure className="route-profile">
-      <figcaption>Höhenprofil{track.meta.elevationEnriched ? ' (DEM)' : ''}</figcaption>
-      <svg viewBox={`0 0 ${profile.W} ${profile.H}`} preserveAspectRatio="none" className="route-profile-svg" aria-hidden="true">
-        <path d={profile.area} fill="var(--sage-50, #f0f4ea)" />
-        <path d={profile.line} fill="none" stroke="var(--sage-600, #7a9466)" strokeWidth="2" vectorEffect="non-scaling-stroke" />
-      </svg>
-      <div className="route-profile-axis">
-        <span>0 km</span>
-        <span>{profile.max} m</span>
-        <span>{profile.totalKm.toFixed(1).replace('.', ',')} km</span>
+    <div className="rd-elev">
+      <div className="rd-elev-head">
+        <span>Höhenprofil{track.meta.elevationEnriched ? ' (DEM)' : ''}</span>
+        <span>{nn(profile.min)} m → {nn(profile.max)} m ü. NN</span>
       </div>
-    </figure>
+      <svg viewBox={`0 0 ${profile.W} ${profile.H}`} preserveAspectRatio="none" aria-hidden="true">
+        <g stroke="var(--border-default)" strokeWidth="1">
+          <line x1="0" y1={profile.H * 0.25} x2={profile.W} y2={profile.H * 0.25} />
+          <line x1="0" y1={profile.H * 0.5} x2={profile.W} y2={profile.H * 0.5} />
+          <line x1="0" y1={profile.H * 0.75} x2={profile.W} y2={profile.H * 0.75} />
+        </g>
+        <path d={profile.area} fill="rgba(201,123,71,.14)" />
+        <path d={profile.line} fill="none" stroke="var(--terracotta-500)" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+        <circle cx="0" cy={profile.startY} r="4" fill="var(--sage-600)" />
+        <circle cx={profile.W} cy={profile.endY} r="4" fill="var(--rd-red)" />
+      </svg>
+      <div className="rd-elev-axis">
+        <span>Start · {nn(profile.min)} m</span>
+        <span>Ziel · {nn(profile.max)} m</span>
+      </div>
+    </div>
   );
 }
 

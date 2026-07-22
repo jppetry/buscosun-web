@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #0B0E12; font-family: "League Spartan", system-ui, sans-serif; -webkit-font-smoothing: antialiased; color: #2C2A26; }
+  a { color: #C97B47; text-decoration: none; }
+  a:hover { color: #B5482E; }
+  ::placeholder { color: #A89A7A; }
+  .ev-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+  .ev-scroll::-webkit-scrollbar-thumb { background: #D9D0B8; border-radius: 3px; }
+</style>
+</helmet>
+
+<section style="padding:56px 72px 120px; display:flex; flex-direction:column; gap:56px; font-family:'League Spartan',sans-serif;">
+
+  <div style="display:flex; align-items:flex-end; gap:20px; flex-wrap:wrap;">
+    <div>
+      <div style="font-size:11px; letter-spacing:4px; color:#A89A7A; font-weight:600; text-transform:uppercase;">buscosun · event-planung</div>
+      <div style="font-size:30px; font-weight:600; color:#E9ECF1; letter-spacing:-0.5px; margin-top:6px;">Event-Planer — Command-Deck (hell)</div>
+    </div>
+    <div style="font-size:13px; color:#98A2AF; max-width:560px; line-height:1.5; padding-bottom:3px; font-weight:300;">
+      Exakt im Stil der Wetterkarte (Sand/Ink · League Spartan · Steel/Terracotta/Sage). „Welcher Tag passt am besten?" ohne Informationsverlust — Vorhaben-Dock links, bester-Tag-Deck in der Mitte, Risiko-Readout rechts. Referenzen:
+      <a href="#E1a">E1a</a>–<a href="#E1c">c</a> Desktop-Konfig · <a href="#E1">E1</a> Desktop-Resultat · <a href="#E2a">E2a</a>–<a href="#E2c">c</a> Tablet-Konfig · <a href="#E2">E2</a> Tablet-Resultat · <a href="#E3a">E3a</a>–<a href="#E3c">c</a> Mobile-Konfig · <a href="#E3">E3</a> Mobile-Resultat.
+    </div>
+  </div>
+
+  <!-- ============================ E1a — DESKTOP WIZARD · SCHRITT 1 ============================ -->
+  <article id="E1a" style="width:1440px;">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+      <span style="display:inline-flex; align-items:center; justify-content:center; min-width:40px; height:26px; padding:0 10px; background:#C97B47; color:#FAF6EA; border-radius:6px; font-size:13px; font-weight:700; letter-spacing:1px;">E1a</span>
+      <span style="font-size:15px; font-weight:600; color:#E9ECF1;">Desktop · Konfig 1/3 — Ort &amp; Anlass</span>
+    </div>
+    <div style="height:720px; border-radius:18px; overflow:hidden; background:#EDE6D3; border:1px solid #E0D6BE; box-shadow:0 40px 90px -50px rgba(0,0,0,.55); display:flex; flex-direction:column;">
+      <div style="height:60px; flex:0 0 auto; display:flex; align-items:center; gap:14px; padding:0 20px; background:#FAF6EA; border-bottom:1px solid #E0D6BE;"><img src="buscosun-mark.svg" width="26" height="26" alt=""><span style="font-size:19px; font-weight:700; color:#2C2A26;">buscosun</span><span style="margin-left:auto; display:flex; align-items:center; gap:8px;"><span style="width:7px; height:7px; border-radius:50%; background:#7A9466;"></span><span style="font-size:11px; letter-spacing:1.5px; color:#5F7A4C; font-weight:600;">DATEN LIVE</span></span></div>
+      <div style="flex:1; display:flex; min-height:0;">
+        <div style="width:62px; flex:0 0 auto; background:#2C2A26; display:flex; flex-direction:column; align-items:center; padding:14px 0; gap:6px;"><div style="width:42px; height:42px; border-radius:11px; display:flex; align-items:center; justify-content:center; background:#3A3833; color:#E0A567;"><svg width="21" height="21" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5" stroke="currentColor" stroke-width="1.6"/><line x1="3.5" y1="9.5" x2="20.5" y2="9.5" stroke="currentColor" stroke-width="1.6"/><path d="M8 14 L11 17 L16.5 12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>
+        <div class="ev-scroll" style="flex:1; overflow-y:auto; background:#EDE6D3; padding:34px 40px;">
+          <div style="max-width:900px; margin:0 auto;">
+            <div style="font-size:11px; letter-spacing:2.5px; color:#C97B47; font-weight:700;">SCHRITT 1 VON 3 · ORT &amp; ANLASS</div>
+            <h2 style="font-size:34px; font-weight:700; color:#2C2A26; letter-spacing:-1px; margin:8px 0 0;">Welcher Tag passt am besten?</h2>
+            <p style="font-size:14px; color:#5C5447; margin:8px 0 0; max-width:560px; line-height:1.5;">Sag uns zuerst, <strong>wo</strong> dein Event stattfindet und um welchen Anlass es geht — danach Zeitfenster &amp; Plan B.</p>
+            <div style="display:flex; gap:6px; margin-top:20px; max-width:420px;"><span style="flex:1; height:5px; border-radius:3px; background:#C97B47;"></span><span style="flex:1; height:5px; border-radius:3px; background:#E0D6BE;"></span><span style="flex:1; height:5px; border-radius:3px; background:#E0D6BE;"></span></div>
+
+            <div style="display:grid; grid-template-columns:1fr 1.4fr; gap:28px; margin-top:26px; align-items:start;">
+              <div>
+                <span style="font-size:11px; letter-spacing:2px; color:#A89A7A; font-weight:700;">ORT</span>
+                <div style="margin-top:10px; display:flex; align-items:center; gap:10px; background:#FFFFFF; border:1px solid #D9D0B8; border-radius:12px; padding:12px 15px;"><svg width="16" height="16" viewBox="0 0 18 18" fill="none"><circle cx="8" cy="8" r="6" stroke="#8B7355" stroke-width="1.6"/><line x1="12.5" y1="12.5" x2="16" y2="16" stroke="#8B7355" stroke-width="1.6" stroke-linecap="round"/></svg><span style="flex:1; font-size:15px; color:#2C2A26; font-weight:500;">🇩🇪 München, Bayern</span><span style="font-size:12px; color:#C97B47; font-weight:600;">Ändern</span></div>
+                <div style="display:flex; align-items:center; gap:8px; margin-top:9px; font-size:11.5px; color:#8B7355;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 21 C12 21 19 14.5 19 9.5 A7 7 0 0 0 5 9.5 C5 14.5 12 21 12 21 Z" stroke="#8B7355" stroke-width="1.5" stroke-linejoin="round"/><circle cx="12" cy="9.5" r="2.4" stroke="#8B7355" stroke-width="1.5"/></svg>Standort erkannt · höhenkorrigiert (519 m)</div>
+              </div>
+              <div>
+                <span style="font-size:11px; letter-spacing:2px; color:#A89A7A; font-weight:700;">ANLASS</span>
+                <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:10px;">
+                  <div style="background:#FFF7EF; border:1.5px solid #C97B47; border-radius:12px; padding:13px; display:flex; align-items:center; gap:10px;"><span style="width:34px; height:34px; border-radius:9px; background:#FBEFE2; display:flex; align-items:center; justify-content:center; flex:0 0 auto;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 21 C7.5 21 5 17.8 5 14.5 C5 11 8 9 8.5 5.5 C11 8 10.5 10 11 11 C11.5 8.5 13 7 12.5 3 C16 5.5 19 9.5 19 14.5 C19 17.8 16.5 21 12 21 Z" fill="#E9A05C" fill-opacity=".3" stroke="#C97B47" stroke-width="1.5" stroke-linejoin="round"/></svg></span><div><div style="font-size:14px; font-weight:700; color:#2C2A26;">Grillen</div><div style="font-size:10px; color:#8B7355;">warm · trocken</div></div></div>
+                  <div style="background:#FFFFFF; border:1px solid #E0D6BE; border-radius:12px; padding:13px; display:flex; align-items:center; gap:10px;"><span style="width:34px; height:34px; border-radius:9px; background:#F2EEE3; display:flex; align-items:center; justify-content:center; flex:0 0 auto;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="8.5" cy="13" r="4.5" stroke="#8B7355" stroke-width="1.5"/><circle cx="15.5" cy="13" r="4.5" stroke="#8B7355" stroke-width="1.5"/></svg></span><div><div style="font-size:14px; font-weight:700; color:#2C2A26;">Hochzeit</div><div style="font-size:10px; color:#8B7355;">3 Phasen</div></div></div>
+                  <div style="background:#FFFFFF; border:1px solid #E0D6BE; border-radius:12px; padding:13px; display:flex; align-items:center; gap:10px;"><span style="width:34px; height:34px; border-radius:9px; background:#F2EEE3; display:flex; align-items:center; justify-content:center; flex:0 0 auto;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M3 20 L9 8 L13 14 L16 9 L21 20 Z" stroke="#8B7355" stroke-width="1.5" stroke-linejoin="round"/></svg></span><div><div style="font-size:14px; font-weight:700; color:#2C2A26;">Wandern</div><div style="font-size:10px; color:#8B7355;">Sicht · Wind</div></div></div>
+                  <div style="background:#FFFFFF; border:1px solid #E0D6BE; border-radius:12px; padding:13px; display:flex; align-items:center; gap:10px;"><span style="width:34px; height:34px; border-radius:9px; background:#F2EEE3; display:flex; align-items:center; justify-content:center; flex:0 0 auto;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="2.5" stroke="#8B7355" stroke-width="1.5"/><g stroke="#8B7355" stroke-width="1.4"><ellipse cx="6" cy="7" rx="3" ry="1.6"/><ellipse cx="18" cy="7" rx="3" ry="1.6"/><ellipse cx="6" cy="17" rx="3" ry="1.6"/><ellipse cx="18" cy="17" rx="3" ry="1.6"/></g></svg></span><div><div style="font-size:14px; font-weight:700; color:#2C2A26;">Drohne</div><div style="font-size:10px; color:#8B7355;">Böen · Sicht</div></div></div>
+                  <div style="background:#FFFFFF; border:1px solid #E0D6BE; border-radius:12px; padding:13px; display:flex; align-items:center; gap:10px;"><span style="width:34px; height:34px; border-radius:9px; background:#F2EEE3; display:flex; align-items:center; justify-content:center; flex:0 0 auto;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 8 H7 L9 5.5 H15 L17 8 H20 A1 1 0 0 1 21 9 V18 A1 1 0 0 1 20 19 H4 A1 1 0 0 1 3 18 V9 A1 1 0 0 1 4 8 Z" stroke="#8B7355" stroke-width="1.5" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.5" stroke="#8B7355" stroke-width="1.5"/></svg></span><div><div style="font-size:14px; font-weight:700; color:#2C2A26;">Fotografie</div><div style="font-size:10px; color:#8B7355;">Licht · Wolken</div></div></div>
+                  <div style="background:#FFFFFF; border:1px solid #E0D6BE; border-radius:12px; padding:13px; display:flex; align-items:center; gap:10px;"><span style="width:34px; height:34px; border-radius:9px; background:#F2EEE3; display:flex; align-items:center; justify-content:center; flex:0 0 auto;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 3 L13.6 8.4 L19 8.6 L14.7 12 L16.2 17.4 L12 14.2 L7.8 17.4 L9.3 12 L5 8.6 L10.4 8.4 Z" stroke="#8B7355" stroke-width="1.4" stroke-linejoin="round"/></svg></span><div><div style="font-size:14px; font-weight:700; color:#2C2A26;">Sterne</div><div style="font-size:10px; color:#8B7355;">klar · dunkel</div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="flex:0 0 auto; padding:16px 40px; background:#FAF6EA; border-top:1px solid #E0D6BE; display:flex; justify-content:space-between;">
+        <a href="#E1" style="font-family:inherit; font-size:13px; font-weight:600; color:#8B7355; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:11px; padding:12px 20px; text-decoration:none;">Überspringen</a>
+        <a href="#E1b" style="display:flex; align-items:center; gap:8px; font-family:inherit; font-size:14px; font-weight:600; color:#FAF6EA; background:#C97B47; border-radius:11px; padding:12px 28px; text-decoration:none;">Weiter <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12 H19 M13 6 L19 12 L13 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+      </div>
+    </div>
+    <p style="width:1440px; font-size:12.5px; color:#98A2AF; line-height:1.6; margin:16px 2px 0; font-weight:300;"><strong style="color:#E9ECF1; font-weight:600;">Desktop-Konfig 1/3:</strong> Ort + Anlass-Grid in der Command-Deck-Shell. Weiter → E1b.</p>
+  </article>
+
+  <!-- ============================ E1b — DESKTOP WIZARD · SCHRITT 2 ============================ -->
+  <article id="E1b" style="width:1440px;">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+      <span style="display:inline-flex; align-items:center; justify-content:center; min-width:40px; height:26px; padding:0 10px; background:#C97B47; color:#FAF6EA; border-radius:6px; font-size:13px; font-weight:700; letter-spacing:1px;">E1b</span>
+      <span style="font-size:15px; font-weight:600; color:#E9ECF1;">Desktop · Konfig 2/3 — Zeitfenster &amp; Phasen</span>
+    </div>
+    <div style="height:720px; border-radius:18px; overflow:hidden; background:#EDE6D3; border:1px solid #E0D6BE; box-shadow:0 40px 90px -50px rgba(0,0,0,.55); display:flex; flex-direction:column;">
+      <div style="height:60px; flex:0 0 auto; display:flex; align-items:center; gap:14px; padding:0 20px; background:#FAF6EA; border-bottom:1px solid #E0D6BE;"><img src="buscosun-mark.svg" width="26" height="26" alt=""><span style="font-size:19px; font-weight:700; color:#2C2A26;">buscosun</span><span style="margin-left:auto; display:flex; align-items:center; gap:8px;"><span style="width:7px; height:7px; border-radius:50%; background:#7A9466;"></span><span style="font-size:11px; letter-spacing:1.5px; color:#5F7A4C; font-weight:600;">DATEN LIVE</span></span></div>
+      <div style="flex:1; display:flex; min-height:0;">
+        <div style="width:62px; flex:0 0 auto; background:#2C2A26; display:flex; flex-direction:column; align-items:center; padding:14px 0; gap:6px;"><div style="width:42px; height:42px; border-radius:11px; display:flex; align-items:center; justify-content:center; background:#3A3833; color:#E0A567;"><svg width="21" height="21" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5" stroke="currentColor" stroke-width="1.6"/><line x1="3.5" y1="9.5" x2="20.5" y2="9.5" stroke="currentColor" stroke-width="1.6"/><path d="M8 14 L11 17 L16.5 12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>
+        <div class="ev-scroll" style="flex:1; overflow-y:auto; background:#EDE6D3; padding:34px 40px;">
+          <div style="max-width:900px; margin:0 auto;">
+            <div style="font-size:11px; letter-spacing:2.5px; color:#C97B47; font-weight:700;">SCHRITT 2 VON 3 · ZEITFENSTER &amp; PHASEN</div>
+            <h2 style="font-size:34px; font-weight:700; color:#2C2A26; letter-spacing:-1px; margin:8px 0 0;">Wann hast du Zeit?</h2>
+            <p style="font-size:14px; color:#5C5447; margin:8px 0 0; max-width:600px; line-height:1.5;">Wähle Zeitraum oder konkrete Termine und lege Phasen wie Trauung &amp; Empfang mit eigenen Zeiten an — jede wird einzeln bewertet.</p>
+            <div style="display:flex; gap:6px; margin-top:20px; max-width:420px;"><span style="flex:1; height:5px; border-radius:3px; background:#C97B47;"></span><span style="flex:1; height:5px; border-radius:3px; background:#C97B47;"></span><span style="flex:1; height:5px; border-radius:3px; background:#E0D6BE;"></span></div>
+
+            <div style="display:grid; grid-template-columns:1fr 1.2fr; gap:28px; margin-top:26px; align-items:start;">
+              <div>
+                <span style="font-size:11px; letter-spacing:2px; color:#A89A7A; font-weight:700;">ZEITRAUM</span>
+                <div style="display:flex; gap:8px; margin-top:10px;"><span style="flex:1; text-align:center; font-size:13px; font-weight:600; color:#FAF6EA; background:#C97B47; border-radius:9px; padding:9px 0;">Zeitraum</span><span style="flex:1; text-align:center; font-size:13px; font-weight:500; color:#8B7355; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:9px; padding:9px 0;">Einzeltermine</span></div>
+                <div style="display:flex; gap:8px; margin-top:10px;"><div style="flex:1; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:11px; padding:11px 13px;"><div style="font-size:9px; color:#A89A7A; letter-spacing:1px;">VON</div><div style="font-size:17px; font-weight:700; color:#2C2A26;">8. Juli</div></div><div style="flex:1; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:11px; padding:11px 13px;"><div style="font-size:9px; color:#A89A7A; letter-spacing:1px;">BIS</div><div style="font-size:17px; font-weight:700; color:#2C2A26;">15. Juli</div></div></div>
+                <div style="font-size:11.5px; color:#8B7355; margin-top:9px;">7 Tage werden verglichen · DE bis ~7 Tage, AT/CH bis ~2,5 Tage</div>
+              </div>
+              <div>
+                <span style="font-size:11px; letter-spacing:2px; color:#A89A7A; font-weight:700;">PHASEN · VORLAGE</span>
+                <div style="display:flex; flex-wrap:wrap; gap:7px; margin-top:10px;">
+                  <span style="font-size:12.5px; font-weight:600; color:#FAF6EA; background:#C97B47; border-radius:9px; padding:8px 13px;">Ganzer Tag</span>
+                  <span style="font-size:12.5px; font-weight:500; color:#5C5447; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:9px; padding:8px 13px;">Vormittag</span>
+                  <span style="font-size:12.5px; font-weight:500; color:#5C5447; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:9px; padding:8px 13px;">Nachmittag</span>
+                  <span style="font-size:12.5px; font-weight:500; color:#5C5447; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:9px; padding:8px 13px;">Abend</span>
+                  <span style="font-size:12.5px; font-weight:500; color:#5C5447; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:9px; padding:8px 13px;">Kernnacht</span>
+                  <span style="display:inline-flex; align-items:center; gap:6px; font-size:12.5px; font-weight:600; color:#C97B47; background:#FFF7EF; border:1px solid #E7C6A6; border-radius:9px; padding:8px 13px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="8.5" cy="14" r="4" stroke="#C97B47" stroke-width="1.5"/><circle cx="15.5" cy="14" r="4" stroke="#C97B47" stroke-width="1.5"/></svg>Hochzeit (3 Phasen)</span>
+                </div>
+                <div style="margin-top:14px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:12px; padding:14px;">
+                  <div style="font-size:15px; font-weight:700; color:#2C2A26;">Ganzer Tag</div>
+                  <div style="height:1px; background:#EDE6D3; margin:11px 0;"></div>
+                  <div style="display:flex; align-items:center; gap:10px;"><span style="width:60px; height:50px; border:1px solid #E0D6BE; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:700; color:#2C2A26;">8</span><span style="font-size:18px; color:#A89A7A;">–</span><span style="width:60px; height:50px; border:1px solid #E0D6BE; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:700; color:#2C2A26;">20</span><span style="font-size:14px; color:#8B7355;">Uhr</span></div>
+                </div>
+                <button style="margin-top:10px; display:flex; align-items:center; gap:7px; font-family:inherit; font-size:13px; font-weight:600; color:#C97B47; background:#FFF7EF; border:1px dashed #E7C6A6; border-radius:11px; padding:10px 16px; cursor:pointer;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 5 V19 M5 12 H19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Phase hinzufügen</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="flex:0 0 auto; padding:16px 40px; background:#FAF6EA; border-top:1px solid #E0D6BE; display:flex; justify-content:space-between;">
+        <a href="#E1a" style="font-family:inherit; font-size:13px; font-weight:600; color:#8B7355; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:11px; padding:12px 20px; text-decoration:none;">Zurück</a>
+        <a href="#E1c" style="display:flex; align-items:center; gap:8px; font-family:inherit; font-size:14px; font-weight:600; color:#FAF6EA; background:#C97B47; border-radius:11px; padding:12px 28px; text-decoration:none;">Weiter <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12 H19 M13 6 L19 12 L13 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+      </div>
+    </div>
+    <p style="width:1440px; font-size:12.5px; color:#98A2AF; line-height:1.6; margin:16px 2px 0; font-weight:300;"><strong style="color:#E9ECF1; font-weight:600;">Desktop-Konfig 2/3:</strong> Zeitraum/Einzeltermine + Phasen-Vorlagen &amp; Stundenfenster. Zurück → E1a · Weiter → E1c.</p>
+  </article>
+
+  <!-- ============================ E1c — DESKTOP WIZARD · SCHRITT 3 ============================ -->
+  <article id="E1c" style="width:1440px;">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+      <span style="display:inline-flex; align-items:center; justify-content:center; min-width:40px; height:26px; padding:0 10px; background:#C97B47; color:#FAF6EA; border-radius:6px; font-size:13px; font-weight:700; letter-spacing:1px;">E1c</span>
+      <span style="font-size:15px; font-weight:600; color:#E9ECF1;">Desktop · Konfig 3/3 — Plan B</span>
+    </div>
+    <div style="height:720px; border-radius:18px; overflow:hidden; background:#EDE6D3; border:1px solid #E0D6BE; box-shadow:0 40px 90px -50px rgba(0,0,0,.55); display:flex; flex-direction:column;">
+      <div style="height:60px; flex:0 0 auto; display:flex; align-items:center; gap:14px; padding:0 20px; background:#FAF6EA; border-bottom:1px solid #E0D6BE;"><img src="buscosun-mark.svg" width="26" height="26" alt=""><span style="font-size:19px; font-weight:700; color:#2C2A26;">buscosun</span><span style="margin-left:auto; display:flex; align-items:center; gap:8px;"><span style="width:7px; height:7px; border-radius:50%; background:#7A9466;"></span><span style="font-size:11px; letter-spacing:1.5px; color:#5F7A4C; font-weight:600;">DATEN LIVE</span></span></div>
+      <div style="flex:1; display:flex; min-height:0;">
+        <div style="width:62px; flex:0 0 auto; background:#2C2A26; display:flex; flex-direction:column; align-items:center; padding:14px 0; gap:6px;"><div style="width:42px; height:42px; border-radius:11px; display:flex; align-items:center; justify-content:center; background:#3A3833; color:#E0A567;"><svg width="21" height="21" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5" stroke="currentColor" stroke-width="1.6"/><line x1="3.5" y1="9.5" x2="20.5" y2="9.5" stroke="currentColor" stroke-width="1.6"/><path d="M8 14 L11 17 L16.5 12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>
+        <div class="ev-scroll" style="flex:1; overflow-y:auto; background:#EDE6D3; padding:34px 40px;">
+          <div style="max-width:760px; margin:0 auto;">
+            <div style="font-size:11px; letter-spacing:2.5px; color:#C97B47; font-weight:700;">SCHRITT 3 VON 3 · PLAN B <span style="color:#A89A7A;">· OPTIONAL</span></div>
+            <h2 style="font-size:34px; font-weight:700; color:#2C2A26; letter-spacing:-1px; margin:8px 0 0;">Falls es doch nicht hält</h2>
+            <p style="font-size:14px; color:#5C5447; margin:8px 0 0; max-width:600px; line-height:1.5;">Lege eine klare Schwelle fest, ab der dir ein Plan B (z. B. Zelt oder Innenraum) empfohlen wird — plus Ausweichtag und -ort, falls dein Wunschtermin nicht hält.</p>
+            <div style="display:flex; gap:6px; margin-top:20px; max-width:420px;"><span style="flex:1; height:5px; border-radius:3px; background:#C97B47;"></span><span style="flex:1; height:5px; border-radius:3px; background:#C97B47;"></span><span style="flex:1; height:5px; border-radius:3px; background:#C97B47;"></span></div>
+
+            <div style="margin-top:24px; background:#FFFFFF; border:1px solid #C97B47; border-radius:12px; padding:16px; display:flex; align-items:center; justify-content:space-between;"><span style="font-size:15px; font-weight:700; color:#2C2A26;">Plan-B-Schwelle aktivieren</span><span style="width:40px; height:23px; border-radius:12px; background:#C97B47; position:relative;"><span style="position:absolute; top:2.5px; right:2.5px; width:18px; height:18px; border-radius:50%; background:#FFFFFF;"></span></span></div>
+            <div style="margin-top:14px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:12px; padding:16px;">
+              <div style="display:flex; align-items:baseline; justify-content:space-between;"><span style="font-size:13px; font-weight:600; color:#2C2A26;">Schwelle</span><span style="font-size:16px; font-weight:700; color:#C97B47;">Score &lt; 55</span></div>
+              <div style="position:relative; height:6px; background:#E0D6BE; border-radius:3px; margin-top:14px;"><div style="position:absolute; left:0; width:55%; top:0; bottom:0; background:#C97B47; border-radius:3px;"></div><div style="position:absolute; left:55%; top:50%; transform:translate(-50%,-50%); width:18px; height:18px; border-radius:50%; background:#C97B47; border:3px solid #FFFFFF; box-shadow:0 1px 4px rgba(0,0,0,.2);"></div></div>
+              <div style="display:flex; justify-content:space-between; font-size:10.5px; color:#A89A7A; margin-top:8px;"><span>kritisch (30)</span><span>okay (55)</span><span>gut (80)</span></div>
+            </div>
+            <div style="display:flex; gap:12px; margin-top:14px;">
+              <div style="flex:1; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:12px; padding:14px;"><div style="display:flex; align-items:center; gap:7px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5" stroke="#8B7355" stroke-width="1.5"/><line x1="3.5" y1="9.5" x2="20.5" y2="9.5" stroke="#8B7355" stroke-width="1.5"/></svg><span style="font-size:9.5px; letter-spacing:1px; color:#A89A7A; font-weight:600;">AUSWEICHTAG</span></div><div style="font-size:16px; font-weight:700; color:#2C2A26; margin-top:7px;">Sa 12. Juli</div></div>
+              <div style="flex:1; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:12px; padding:14px;"><div style="display:flex; align-items:center; gap:7px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 21 C12 21 19 14.5 19 9.5 A7 7 0 0 0 5 9.5 C5 14.5 12 21 12 21 Z" stroke="#8B7355" stroke-width="1.5" stroke-linejoin="round"/><circle cx="12" cy="9.5" r="2.4" stroke="#8B7355" stroke-width="1.5"/></svg><span style="font-size:9.5px; letter-spacing:1px; color:#A89A7A; font-weight:600;">AUSWEICHORT</span></div><div style="font-size:16px; font-weight:700; color:#2C2A26; margin-top:7px;">+15 km Umkreis</div></div>
+            </div>
+            <div style="margin-top:14px; background:#FBF3E7; border:1px solid #E7D3B4; border-radius:11px; padding:13px; font-size:12px; color:#5C5447; line-height:1.55;"><span style="color:#C97B47; font-weight:700;">Hinweis:</span> Ausweichtag &amp; -ort nutzen dieselben nativen Behörden-Quellen (DWD · GeoSphere · MeteoSwiss) — kein Konto, keine Tracker.</div>
+          </div>
+        </div>
+      </div>
+      <div style="flex:0 0 auto; padding:16px 40px; background:#FAF6EA; border-top:1px solid #E0D6BE; display:flex; justify-content:space-between;">
+        <a href="#E1b" style="font-family:inherit; font-size:13px; font-weight:600; color:#8B7355; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:11px; padding:12px 20px; text-decoration:none;">Zurück</a>
+        <a href="#E1" style="display:flex; align-items:center; gap:8px; font-family:inherit; font-size:14px; font-weight:600; color:#FAF6EA; background:#C97B47; border-radius:11px; padding:12px 28px; text-decoration:none;">Beste Tage finden <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12 H19 M13 6 L19 12 L13 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+      </div>
+    </div>
+    <p style="width:1440px; font-size:12.5px; color:#98A2AF; line-height:1.6; margin:16px 2px 0; font-weight:300;"><strong style="color:#E9ECF1; font-weight:600;">Desktop-Konfig 3/3:</strong> Plan-B-Schwelle (Score-Slider) + Ausweichtag &amp; -ort. „Beste Tage finden" → Resultat E1.</p>
+  </article>
+
+  <!-- ============================ E1 — DESKTOP ============================ -->
+  <article id="E1" style="width:1440px;">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+      <span style="display:inline-flex; align-items:center; justify-content:center; min-width:36px; height:26px; padding:0 10px; background:#C97B47; color:#FAF6EA; border-radius:6px; font-size:13px; font-weight:700; letter-spacing:1px;">E1</span>
+      <span style="font-size:15px; font-weight:600; color:#E9ECF1;">Desktop · Resultat — Event „Bester Tag"</span>
+    </div>
+
+    <div style="height:1000px; border-radius:18px; overflow:hidden; background:#EDE6D3; border:1px solid #E0D6BE; box-shadow:0 40px 90px -50px rgba(0,0,0,.55); display:flex; flex-direction:column;">
+
+      <!-- TOP STATUS BAR -->
+      <div style="height:60px; flex:0 0 auto; display:flex; align-items:center; gap:18px; padding:0 20px; background:#FAF6EA; border-bottom:1px solid #E0D6BE;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <img src="buscosun-mark.svg" width="26" height="26" alt="" style="display:block;">
+          <span style="font-size:19px; font-weight:700; color:#2C2A26; letter-spacing:-0.4px;">buscosun</span>
+        </div>
+        <div style="width:1px; height:26px; background:#E0D6BE;"></div>
+        <div style="display:flex; align-items:center; gap:9px; flex:1; max-width:400px; background:#FFFFFF; border:1px solid #D9D0B8; border-radius:9px; padding:8px 13px;">
+          <svg width="15" height="15" viewBox="0 0 18 18" fill="none"><circle cx="8" cy="8" r="6" stroke="#8B7355" stroke-width="1.6"/><line x1="12.5" y1="12.5" x2="16" y2="16" stroke="#8B7355" stroke-width="1.6" stroke-linecap="round"/></svg>
+          <span style="flex:1; font-size:14px; color:#2C2A26; font-weight:400;">🇩🇪 München, Bayern</span>
+          <span style="font-size:11px; color:#C97B47; font-weight:600; cursor:pointer;">Ändern</span>
+        </div>
+        <div style="margin-left:auto; display:flex; align-items:center; gap:16px;">
+          <div style="display:flex; align-items:center; gap:8px;"><span style="width:7px; height:7px; border-radius:50%; background:#7A9466;"></span><span style="font-size:11px; letter-spacing:1.5px; color:#5F7A4C; font-weight:600;">DATEN LIVE</span></div>
+          <span style="width:34px; height:34px; border-radius:10px; border:1px solid #E0D6BE; display:flex; align-items:center; justify-content:center; color:#8B7355; cursor:pointer;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M12 3 A6 6 0 0 1 18 9 V13 L20 16 H4 L6 13 V9 A6 6 0 0 1 12 3 Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M9.5 19 A2.5 2.5 0 0 0 14.5 19" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span>
+          <span style="width:32px; height:32px; border-radius:50%; background:#E0D6BE; color:#5C5447; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700;">JK</span>
+        </div>
+      </div>
+
+      <!-- BODY -->
+      <div style="flex:1; display:flex; min-height:0;">
+
+        <!-- ICON NAV RAIL (Event aktiv) -->
+        <div style="width:62px; flex:0 0 auto; background:#2C2A26; display:flex; flex-direction:column; align-items:center; padding:14px 0; gap:6px;">
+          <div style="width:42px; height:42px; border-radius:11px; display:flex; align-items:center; justify-content:center; color:#8B7355; cursor:pointer;" title="Wetterkarte"><svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M12 3 L21 8 L12 13 L3 8 Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M3 13 L12 18 L21 13" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
+          <div style="width:42px; height:42px; border-radius:11px; display:flex; align-items:center; justify-content:center; color:#8B7355; cursor:pointer;" title="Regenradar"><svg width="21" height="21" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/><path d="M12 3 A9 9 0 0 1 21 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M12 12 L19.5 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg></div>
+          <div style="width:42px; height:42px; border-radius:11px; display:flex; align-items:center; justify-content:center; background:#3A3833; color:#E0A567; position:relative;" title="Event-Planung"><span style="position:absolute; left:-14px; top:9px; bottom:9px; width:3px; border-radius:2px; background:#C97B47;"></span><svg width="21" height="21" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5" stroke="currentColor" stroke-width="1.6"/><line x1="3.5" y1="9.5" x2="20.5" y2="9.5" stroke="currentColor" stroke-width="1.6"/><line x1="8" y1="3" x2="8" y2="6.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><line x1="16" y1="3" x2="16" y2="6.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M8 14 L11 17 L16.5 12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div style="width:42px; height:42px; border-radius:11px; display:flex; align-items:center; justify-content:center; color:#8B7355; cursor:pointer;" title="Tour"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M6 20 C6 20 5 13.5 9 11.5 C13 9.5 12 6.5 16 5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="6" cy="20" r="1.8" fill="currentColor"/><path d="M16 2.5 C14 2.5 12.4 4.1 12.4 6.1 C12.4 8.8 16 11.5 16 11.5 C16 11.5 19.6 8.8 19.6 6.1 C19.6 4.1 18 2.5 16 2.5 Z" stroke="currentColor" stroke-width="1.3"/><circle cx="16" cy="6.1" r="1.3" fill="currentColor"/></svg></div>
+          <div style="margin-top:auto; width:42px; height:42px; border-radius:11px; display:flex; align-items:center; justify-content:center; color:#8B7355; cursor:pointer;" title="Einstellungen"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.6"/><path d="M12 2.5 V5 M12 19 V21.5 M2.5 12 H5 M19 12 H21.5 M5.2 5.2 L7 7 M17 17 L18.8 18.8 M18.8 5.2 L17 7 M7 17 L5.2 18.8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+        </div>
+
+        <!-- LEFT DOCK — DEIN VORHABEN (Wizard verdichtet) -->
+        <div class="ev-scroll" style="width:284px; flex:0 0 auto; background:#FAF6EA; border-right:1px solid #E0D6BE; overflow-y:auto; padding:16px 14px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+            <span style="font-size:11px; letter-spacing:2px; color:#A89A7A; font-weight:700;">DEIN VORHABEN</span>
+            <a href="#E1a" style="font-size:10px; color:#C97B47; font-weight:600; cursor:pointer; text-decoration:none;">Angaben ändern</a>
+          </div>
+
+          <!-- Anlass -->
+          <div style="background:#FFFFFF; border:1px solid #E0D6BE; border-radius:12px; padding:13px; display:flex; align-items:center; gap:11px;">
+            <span style="width:40px; height:40px; border-radius:10px; background:#FBEFE2; display:flex; align-items:center; justify-content:center; flex:0 0 auto;"><svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M12 21 C7.5 21 5 17.8 5 14.5 C5 11 8 9 8.5 5.5 C11 8 10.5 10 11 11 C11.5 8.5 13 7 12.5 3 C16 5.5 19 9.5 19 14.5 C19 17.8 16.5 21 12 21 Z" fill="#E9A05C" fill-opacity=".25" stroke="#C97B47" stroke-width="1.5" stroke-linejoin="round"/></svg></span>
+            <div style="flex:1; min-width:0;"><div style="font-size:10px; letter-spacing:1px; color:#A89A7A; font-weight:600;">ANLASS</div><div style="font-size:17px; font-weight:700; color:#2C2A26; margin-top:1px;">Grillen</div><div style="font-size:11px; color:#8B7355;">warm · trocken · windstill</div></div>
+          </div>
+
+          <!-- Anlass presets -->
+          <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;">
+            <span style="font-size:12px; font-weight:600; color:#FAF6EA; background:#C97B47; border:1px solid #C97B47; border-radius:8px; padding:6px 11px;">Grillen</span>
+            <span style="font-size:12px; font-weight:500; color:#5C5447; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:8px; padding:6px 11px;">Hochzeit</span>
+            <span style="font-size:12px; font-weight:500; color:#5C5447; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:8px; padding:6px 11px;">Wandern</span>
+            <span style="font-size:12px; font-weight:500; color:#5C5447; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:8px; padding:6px 11px;">Drohne</span>
+            <span style="font-size:12px; font-weight:500; color:#5C5447; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:8px; padding:6px 11px;">Fotografie</span>
+            <span style="font-size:12px; font-weight:500; color:#5C5447; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:8px; padding:6px 11px;">Sterne</span>
+          </div>
+
+          <!-- Zeitfenster -->
+          <div style="margin-top:16px;">
+            <span style="font-size:11px; letter-spacing:2px; color:#A89A7A; font-weight:700;">ZEITRAUM</span>
+            <div style="margin-top:9px; display:flex; gap:8px;">
+              <div style="flex:1; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:10px; padding:9px 11px;"><div style="font-size:9.5px; color:#A89A7A;">VON</div><div style="font-size:14px; font-weight:600; color:#2C2A26; margin-top:1px;">8. Juli</div></div>
+              <div style="flex:1; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:10px; padding:9px 11px;"><div style="font-size:9.5px; color:#A89A7A;">BIS</div><div style="font-size:14px; font-weight:600; color:#2C2A26; margin-top:1px;">15. Juli</div></div>
+            </div>
+            <div style="font-size:11px; color:#8B7355; margin-top:7px;">nächste 7 Tage werden verglichen</div>
+          </div>
+
+          <!-- Phasen -->
+          <div style="margin-top:16px;">
+            <div style="display:flex; align-items:center; justify-content:space-between;"><span style="font-size:11px; letter-spacing:2px; color:#A89A7A; font-weight:700;">PHASEN</span><span style="font-size:10px; color:#8B7355;">Fenster</span></div>
+            <div style="margin-top:9px; display:flex; flex-direction:column; gap:6px;">
+              <div style="display:flex; align-items:center; gap:9px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:10px; padding:9px 11px;"><span style="width:8px; height:8px; border-radius:50%; background:#C97B47; flex:0 0 auto;"></span><span style="flex:1; font-size:13px; font-weight:600; color:#2C2A26;">Ganzer Tag</span><span style="font-size:12px; color:#8B7355;">8–20 Uhr</span></div>
+            </div>
+            <div style="display:flex; flex-wrap:wrap; gap:5px; margin-top:8px;">
+              <span style="font-size:11px; color:#8B7355; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:7px; padding:5px 9px;">Vormittag</span>
+              <span style="font-size:11px; color:#8B7355; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:7px; padding:5px 9px;">Abend</span>
+              <span style="font-size:11px; color:#8B7355; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:7px; padding:5px 9px;">Hochzeit · 3 Phasen</span>
+              <span style="font-size:11px; color:#C97B47; background:#FFFFFF; border:1px dashed #D9A87E; border-radius:7px; padding:5px 9px;">+ Phase</span>
+            </div>
+          </div>
+
+          <!-- Plan B -->
+          <div style="margin-top:16px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:12px; padding:13px;">
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+              <span style="font-size:12px; font-weight:600; color:#2C2A26;">Plan-B-Schwelle</span>
+              <span style="width:34px; height:19px; border-radius:10px; background:#C97B47; position:relative; flex:0 0 auto;"><span style="position:absolute; top:2px; right:2px; width:15px; height:15px; border-radius:50%; background:#FFFFFF;"></span></span>
+            </div>
+            <div style="font-size:11px; color:#8B7355; margin-top:7px; line-height:1.5;">Ab Score &lt; 55 → Ausweichtag &amp; -ort vorschlagen (Zelt/Innenraum).</div>
+            <div style="display:flex; gap:6px; margin-top:9px;"><span style="font-size:11px; color:#5C5447; background:#FBF3E7; border:1px solid #E7D3B4; border-radius:7px; padding:5px 9px;">Ausweichtag: Sa 12.7.</span><span style="font-size:11px; color:#5C5447; background:#FBF3E7; border:1px solid #E7D3B4; border-radius:7px; padding:5px 9px;">+15 km</span></div>
+          </div>
+
+          <button style="width:100%; margin-top:16px; background:#C97B47; border:none; border-radius:11px; padding:12px; color:#FAF6EA; font-size:14px; font-weight:600; font-family:inherit; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
+            Beste Tage finden
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12 H19 M13 6 L19 12 L13 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+
+        <!-- CENTER — BESTER TAG + ABLAUF + RANGLISTE -->
+        <div class="ev-scroll" style="flex:1; min-width:0; overflow-y:auto; background:#EDE6D3; padding:18px 20px;">
+
+          <!-- HERO: Bester Tag -->
+          <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:16px; padding:20px; display:flex; gap:22px;">
+            <!-- donut -->
+            <div style="flex:0 0 auto; display:flex; flex-direction:column; align-items:center; gap:8px;">
+              <svg width="104" height="104" viewBox="0 0 104 104"><g transform="translate(52 52)"><circle r="40" fill="none" stroke="#E0D6BE" stroke-width="9"/><circle r="40" fill="none" stroke="#7A9466" stroke-width="9" stroke-linecap="round" stroke-dasharray="241.3 251.3" transform="rotate(-90)"/><text text-anchor="middle" y="6" font-size="30" font-weight="700" fill="#2C2A26" font-family="League Spartan">96</text><text text-anchor="middle" y="22" font-size="8" letter-spacing="2.5" fill="#A89A7A" font-family="League Spartan">SCORE</text></g></svg>
+              <span style="display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:600; color:#5F7A4C; background:#EFF3E8; border:1px solid #C3D2AF; border-radius:8px; padding:5px 10px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><rect x="3" y="13" width="4" height="8" rx="1" fill="#7A9466"/><rect x="10" y="8" width="4" height="13" rx="1" fill="#7A9466"/><rect x="17" y="3" width="4" height="18" rx="1" fill="#7A9466"/></svg>Konfidenz Hoch · 78 %</span>
+            </div>
+            <!-- main -->
+            <div style="flex:1; min-width:0;">
+              <span style="font-size:11px; letter-spacing:2px; color:#C97B47; font-weight:700;">BESTER TAG FÜR GRILLEN</span>
+              <h3 style="font-size:30px; font-weight:700; color:#2C2A26; letter-spacing:-0.8px; margin:6px 0 0;">Freitag, 10. Juli</h3>
+              <p style="font-size:14px; color:#5C5447; margin:8px 0 0; line-height:1.5;">Durchgehend trocken, angenehme 29 °C und kaum Wind — passt zu Grillen.</p>
+              <p style="font-size:12px; color:#8B7355; margin:8px 0 0;">Verlässlichkeit: 2 Tage Vorlauf · Quellen weitgehend einig</p>
+              <!-- factors -->
+              <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:9px; margin-top:14px;">
+                <div style="background:#FFFFFF; border:1px solid #C3D2AF; border-radius:11px; padding:11px;"><div style="display:flex; align-items:center; gap:6px;"><span style="width:7px; height:7px; border-radius:50%; background:#7A9466;"></span><span style="font-size:10px; color:#A89A7A;">NIEDERSCHLAG</span></div><div style="font-size:18px; font-weight:700; color:#2C2A26; margin-top:5px;">0 mm</div><span style="font-size:9px; font-weight:700; color:#C97B47;">WICHTIGSTE</span></div>
+                <div style="background:#FFFFFF; border:1px solid #C3D2AF; border-radius:11px; padding:11px;"><div style="display:flex; align-items:center; gap:6px;"><span style="width:7px; height:7px; border-radius:50%; background:#7A9466;"></span><span style="font-size:10px; color:#A89A7A;">TEMPERATUR</span></div><div style="font-size:18px; font-weight:700; color:#2C2A26; margin-top:5px;">29 °C</div><div style="font-size:10px; color:#8B7355; margin-top:1px;">angenehm</div></div>
+                <div style="background:#FFFFFF; border:1px solid #C3D2AF; border-radius:11px; padding:11px;"><div style="display:flex; align-items:center; gap:6px;"><span style="width:7px; height:7px; border-radius:50%; background:#7A9466;"></span><span style="font-size:10px; color:#A89A7A;">WIND</span></div><div style="font-size:18px; font-weight:700; color:#2C2A26; margin-top:5px;">1,8 m/s</div><div style="font-size:10px; color:#8B7355; margin-top:1px;">windstill</div></div>
+                <div style="background:#FFFFFF; border:1px solid #E7D3B4; border-radius:11px; padding:11px;"><div style="display:flex; align-items:center; gap:6px;"><span style="width:7px; height:7px; border-radius:50%; background:#D4A373;"></span><span style="font-size:10px; color:#A89A7A;">BEWÖLKUNG</span></div><div style="font-size:18px; font-weight:700; color:#2C2A26; margin-top:5px;">40 %</div><div style="font-size:10px; color:#8B7355; margin-top:1px;">heiter</div></div>
+              </div>
+              <div style="font-size:11px; color:#8B7355; margin-top:9px;">Faktoren nach Wichtigkeit für Grillen · <span style="color:#5F7A4C; font-weight:600;">gut</span> <span style="color:#B8862F; font-weight:600;">okay</span> <span style="color:#B5482E; font-weight:600;">kritisch</span></div>
+              <!-- actions -->
+              <div style="display:flex; align-items:center; gap:9px; margin-top:14px; flex-wrap:wrap;">
+                <button style="display:flex; align-items:center; gap:7px; font-family:inherit; font-size:13px; font-weight:600; color:#FAF6EA; background:#2C2A26; border:none; border-radius:10px; padding:9px 14px; cursor:pointer;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2.5" x2="8" y2="6"/><line x1="16" y1="2.5" x2="16" y2="6"/></svg>In den Kalender</button>
+                <button style="display:flex; align-items:center; gap:7px; font-family:inherit; font-size:13px; font-weight:600; color:#2C2A26; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:10px; padding:9px 14px; cursor:pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="10.5" x2="15.4" y2="6.5"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/></svg>Link teilen</button>
+                <span style="font-size:11px; color:#A89A7A;">.ics &amp; Link — offline, ganz ohne Konto</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Event-Ablauf -->
+          <div style="display:flex; align-items:baseline; justify-content:space-between; margin:20px 2px 10px;">
+            <span style="font-size:11px; letter-spacing:2px; color:#A89A7A; font-weight:700;">ABLAUF AM BESTEN TAG</span>
+            <span style="font-size:12px; color:#8B7355;">Freitag, 10. Juli · Stunde für Stunde über dein Fenster</span>
+          </div>
+          <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:14px; padding:16px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+              <div style="display:flex; gap:3px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:9px; padding:3px;">
+                <span style="font-size:12px; font-weight:600; color:#FAF6EA; background:#C97B47; border-radius:6px; padding:6px 13px; cursor:pointer;">Temperatur</span>
+                <span style="font-size:12px; font-weight:500; color:#8B7355; border-radius:6px; padding:6px 13px; cursor:pointer;">Niederschlag</span>
+                <span style="font-size:12px; font-weight:500; color:#8B7355; border-radius:6px; padding:6px 13px; cursor:pointer;">Wind</span>
+              </div>
+              <span style="display:flex; align-items:center; gap:6px; font-size:12px; color:#8B7355; cursor:pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Als Bild</span>
+            </div>
+            <svg viewBox="0 0 720 196" style="width:100%; height:auto;" font-family="League Spartan">
+              <!-- phase ribbon -->
+              <rect x="52" y="8" width="652" height="26" rx="6" fill="#EFF3E8" stroke="#C3D2AF" stroke-width="1"/>
+              <text x="378" y="25" text-anchor="middle" font-size="11" fill="#5F7A4C" font-weight="600">Ganzer Tag · 8–20 Uhr</text>
+              <rect x="52" y="48" width="652" height="120" rx="10" fill="#FFFFFF" stroke="#E0D6BE"/>
+              <g stroke="#EDE6D3"><line x1="52" y1="88" x2="704" y2="88"/><line x1="52" y1="128" x2="704" y2="128"/></g>
+              <g fill="#A89A7A" font-size="10" text-anchor="end"><text x="44" y="51">32°</text><text x="44" y="111">24°</text><text x="44" y="171">16°</text></g>
+              <text x="704" y="42" text-anchor="end" font-size="10" fill="#A89A7A">°C</text>
+              <path d="M52 150 Q130 140 210 120 Q300 96 390 82 Q480 74 560 88 Q630 104 704 118 L704 168 L52 168 Z" fill="#C97B47" fill-opacity=".12"/>
+              <path d="M52 158 Q130 150 210 134 Q300 112 390 100 Q480 94 560 106 Q630 120 704 132" fill="none" stroke="#A89A7A" stroke-width="1.4" stroke-dasharray="4 3"/>
+              <path d="M52 150 Q130 140 210 120 Q300 96 390 82 Q480 74 560 88 Q630 104 704 118" fill="none" stroke="#C97B47" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+              <g fill="#C97B47"><circle cx="52" cy="150" r="2.4"/><circle cx="210" cy="120" r="2.4"/><circle cx="390" cy="82" r="2.4"/><circle cx="560" cy="88" r="2.4"/><circle cx="704" cy="118" r="2.4"/></g>
+              <circle cx="390" cy="82" r="6" fill="#FFFFFF" stroke="#C97B47" stroke-width="2.5"/>
+              <g transform="translate(390 60)"><rect x="-24" y="-13" width="48" height="19" rx="9" fill="#2C2A26"/><text y="0" text-anchor="middle" font-size="11" font-weight="600" fill="#FAF6EA">29°</text></g>
+              <g fill="#A89A7A" font-size="10" text-anchor="middle"><text x="52" y="186">8</text><text x="182" y="186">11</text><text x="312" y="186">14</text><text x="442" y="186">17</text><text x="572" y="186">20</text><text x="704" y="186" text-anchor="end">Uhr</text></g>
+            </svg>
+            <p style="font-size:11.5px; color:#8B7355; margin:8px 0 0;">Linie = Temperatur · <span style="border-bottom:1px dashed #A89A7A;">gestrichelt</span> = gefühlt · Freitag, 10. Juli</p>
+          </div>
+
+          <!-- Event-Karte -->
+          <div style="display:flex; align-items:baseline; justify-content:space-between; margin:20px 2px 10px;">
+            <span style="font-size:11px; letter-spacing:2px; color:#A89A7A; font-weight:700;">DEIN EVENT AUF DER KARTE</span>
+            <span style="font-size:12px; color:#8B7355;">Ort &amp; Wetterlage am besten Tag</span>
+          </div>
+          <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:14px; padding:16px;">
+            <div style="display:flex; gap:3px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:9px; padding:3px; width:max-content; margin-bottom:12px;">
+              <span style="font-size:12px; font-weight:600; color:#FAF6EA; background:#C97B47; border-radius:6px; padding:6px 13px;">Temperatur</span>
+              <span style="font-size:12px; font-weight:500; color:#8B7355; border-radius:6px; padding:6px 13px;">Niederschlag</span>
+              <span style="font-size:12px; font-weight:500; color:#8B7355; border-radius:6px; padding:6px 13px;">Wind</span>
+            </div>
+            <div style="height:200px; border-radius:12px; position:relative; overflow:hidden; background:#0B0E12;">
+              <div style="position:absolute; inset:0; background:radial-gradient(120% 90% at 50% 40%, #24303A 0%, #14202A 55%, #0F1620 100%);"></div>
+              <svg viewBox="0 0 700 200" preserveAspectRatio="xMidYMid slice" style="position:absolute; inset:0; width:100%; height:100%;">
+                <g stroke="#20303B" stroke-width="1"><path d="M0 66 H700 M0 133 H700 M175 0 V200 M350 0 V200 M525 0 V200"/></g>
+                <ellipse cx="360" cy="100" rx="150" ry="80" fill="#C97B47" fill-opacity=".22"/><ellipse cx="250" cy="120" rx="90" ry="55" fill="#D4A373" fill-opacity=".22"/>
+                <g><circle cx="360" cy="100" r="20" fill="none" stroke="#FAF6EA" stroke-width="1.5" stroke-opacity=".7"/><circle cx="360" cy="100" r="5" fill="#FAF6EA"/></g>
+              </svg>
+              <span style="position:absolute; left:12px; bottom:12px; font-size:11px; color:#2C2A26; font-weight:600; background:rgba(250,246,234,.94); border:1px solid #E0D6BE; border-radius:8px; padding:5px 10px;">🇩🇪 München · Fr 10.7. · 14 Uhr</span>
+            </div>
+            <p style="font-size:11.5px; color:#8B7355; margin:8px 0 0; display:flex; align-items:center; gap:6px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#A89A7A" stroke-width="1.6"/><path d="M12 7 V12 L15 14" stroke="#A89A7A" stroke-width="1.6" stroke-linecap="round"/></svg>Simuliertes Wetter für Freitag — Ebene oben wählen, Slider verschiebt die Zeit über deinen Zeitraum.</p>
+          </div>
+
+          <!-- Rangliste -->
+          <div style="display:flex; align-items:baseline; justify-content:space-between; margin:20px 2px 10px;">
+            <span style="font-size:11px; letter-spacing:2px; color:#A89A7A; font-weight:700;">RANGLISTE</span>
+            <span style="font-size:12px; color:#8B7355;">5 von 7 Tagen bewertet</span>
+          </div>
+          <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:14px; padding:16px;">
+            <svg viewBox="0 0 448 196" style="width:100%; height:auto;" font-family="League Spartan">
+              <line x1="0" y1="150" x2="448" y2="150" stroke="#D9D0B8"/>
+              <line x1="320" y1="14" x2="320" y2="150" stroke="#C4B896" stroke-width="1.2" stroke-dasharray="4 4"/>
+              <text x="326" y="24" font-size="10" fill="#A89A7A">Tendenz →</text>
+              <!-- bars: Mi63 Do78 Fr96(best) Sa54 So71 Mo– Di– -->
+              <g font-size="12" text-anchor="middle">
+                <rect x="19" y="74" width="26" height="76" rx="6" fill="#B8862F"/><text x="32" y="66" fill="#5C5447" font-weight="600">63</text><text x="32" y="168" fill="#8B7355">Mi</text><text x="32" y="182" fill="#A89A7A" font-size="10">9.</text>
+                <rect x="83" y="56" width="26" height="94" rx="6" fill="#7A9466"/><text x="96" y="48" fill="#5C5447" font-weight="600">78</text><text x="96" y="168" fill="#8B7355">Do</text><text x="96" y="182" fill="#A89A7A" font-size="10">10.</text>
+                <rect x="145" y="34" width="32" height="116" rx="6" fill="none" stroke="#2C2A26" stroke-width="2"/><rect x="147" y="36" width="28" height="114" rx="5" fill="#2C2A26"/><text x="161" y="26" fill="#2C2A26" font-weight="700">96</text><g transform="translate(161 14)"><rect x="-27" y="-11" width="54" height="17" rx="8" fill="#2C2A26"/><text y="1" text-anchor="middle" font-size="9" fill="#FAF6EA" letter-spacing="1">BESTER</text></g><text x="161" y="168" fill="#2C2A26" font-weight="700">Fr</text><text x="161" y="182" fill="#A89A7A" font-size="10">11.</text>
+                <rect x="211" y="86" width="26" height="64" rx="6" fill="#C08A45"/><text x="224" y="78" fill="#5C5447" font-weight="600">54</text><text x="224" y="168" fill="#8B7355">Sa</text><text x="224" y="182" fill="#A89A7A" font-size="10">12.</text>
+                <rect x="275" y="64" width="26" height="86" rx="6" fill="#7A9466" opacity=".5"/><text x="288" y="56" fill="#8B7355" font-weight="600">71</text><text x="288" y="168" fill="#8B7355">So</text><text x="288" y="182" fill="#A89A7A" font-size="10">13.</text>
+                <rect x="339" y="142" width="26" height="8" rx="4" fill="#E0D6BE"/><text x="352" y="136" fill="#A89A7A">–</text><text x="352" y="168" fill="#8B7355">Mo</text><text x="352" y="182" fill="#A89A7A" font-size="10">14.</text>
+                <rect x="403" y="142" width="26" height="8" rx="4" fill="#E0D6BE"/><text x="416" y="136" fill="#A89A7A">–</text><text x="416" y="168" fill="#8B7355">Di</text><text x="416" y="182" fill="#A89A7A" font-size="10">15.</text>
+              </g>
+            </svg>
+            <p style="font-size:11.5px; color:#8B7355; margin:10px 0 0;">Höhe = Wetter-Score · gedimmt = unsichere Tendenz · <span style="color:#5F7A4C; font-weight:600;">gut</span> <span style="color:#B8862F; font-weight:600;">okay</span> <span style="color:#B5482E; font-weight:600;">kritisch</span></p>
+            <div style="display:flex; flex-direction:column; gap:7px; margin-top:14px;">
+              <div style="display:flex; align-items:center; gap:12px; background:#FFFFFF; border:1px solid #C3D2AF; border-radius:10px; padding:10px 13px;"><span style="font-size:14px; font-weight:700; color:#2C2A26; width:18px;">1</span><div style="flex:1;"><div style="font-size:13px; font-weight:600; color:#2C2A26;">Freitag, 10. Juli <span style="font-size:10px; font-weight:700; color:#FAF6EA; background:#7A9466; border-radius:5px; padding:2px 7px; margin-left:4px;">Bester Tag</span></div><div style="font-size:11px; color:#8B7355;">Durchgehend trocken, angenehm warm</div></div><span style="display:flex; gap:2px;"><i style="width:4px;height:12px;background:#7A9466;border-radius:1px;"></i><i style="width:4px;height:12px;background:#7A9466;border-radius:1px;"></i><i style="width:4px;height:12px;background:#7A9466;border-radius:1px;"></i></span><span style="font-size:14px; font-weight:700; color:#7A9466; width:28px; text-align:right;">96</span></div>
+              <div style="display:flex; align-items:center; gap:12px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:10px; padding:10px 13px;"><span style="font-size:14px; font-weight:700; color:#2C2A26; width:18px;">2</span><div style="flex:1;"><div style="font-size:13px; font-weight:600; color:#2C2A26;">Donnerstag, 9. Juli</div><div style="font-size:11px; color:#8B7355;">Meist trocken, etwas wechselhaft</div></div><span style="display:flex; gap:2px;"><i style="width:4px;height:12px;background:#7A9466;border-radius:1px;"></i><i style="width:4px;height:12px;background:#7A9466;border-radius:1px;"></i><i style="width:4px;height:12px;background:#E0D6BE;border-radius:1px;"></i></span><span style="font-size:14px; font-weight:700; color:#7A9466; width:28px; text-align:right;">78</span></div>
+              <div style="display:flex; align-items:center; gap:12px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:10px; padding:10px 13px;"><span style="font-size:14px; font-weight:700; color:#2C2A26; width:18px;">3</span><div style="flex:1;"><div style="font-size:13px; font-weight:600; color:#2C2A26;">Sonntag, 13. Juli <span style="font-size:10px; font-weight:600; color:#C97B47; background:#FBF3E7; border:1px solid #E7D3B4; border-radius:5px; padding:2px 6px; margin-left:4px;">Tendenz</span></div><div style="font-size:11px; color:#8B7355;">Warm, aber Schauerneigung <span style="color:#B8862F;">↓ Regenrisiko</span></div></div><span style="display:flex; gap:2px;"><i style="width:4px;height:12px;background:#D4A373;border-radius:1px;"></i><i style="width:4px;height:12px;background:#E0D6BE;border-radius:1px;"></i><i style="width:4px;height:12px;background:#E0D6BE;border-radius:1px;"></i></span><span style="font-size:14px; font-weight:700; color:#B8862F; width:28px; text-align:right;">71</span></div>
+            </div>
+            <p style="font-size:11px; color:#A89A7A; margin:12px 0 0;">Quellen: DWD · GeoSphere · MeteoSwiss, höhenkorrigiert. Tage ohne Wertung liegen jenseits des Vorhersage-Horizonts.</p>
+          </div>
+        </div>
+
+        <!-- RIGHT PANEL — RISIKO-READOUT -->
+        <div class="ev-scroll" style="width:336px; flex:0 0 auto; background:#FAF6EA; border-left:1px solid #E0D6BE; overflow-y:auto; padding:18px 16px;">
+          <div style="display:flex; align-items:center; justify-content:space-between;">
+            <span style="font-size:11px; letter-spacing:2.5px; color:#A89A7A; font-weight:700;">RISIKO-READOUT · FR 10.7.</span>
+            <span style="font-size:10px; color:#5F7A4C; font-weight:600;">● geprüft</span>
+          </div>
+
+          <!-- Regenrisiko -->
+          <div style="margin-top:12px; background:#FFFFFF; border:1px solid #C3D2AF; border-radius:13px; padding:14px; display:flex; gap:12px;">
+            <span style="width:38px; height:38px; border-radius:10px; background:#EFF3E8; display:flex; align-items:center; justify-content:center; flex:0 0 auto;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="5.5" fill="#E9A05C" fill-opacity=".3" stroke="#C97B47" stroke-width="1.5"/><g stroke="#C97B47" stroke-width="1.5" stroke-linecap="round"><line x1="12" y1="2.5" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="21.5"/><line x1="2.5" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="21.5" y2="12"/><line x1="5.5" y1="5.5" x2="7" y2="7"/><line x1="17" y1="17" x2="18.5" y2="18.5"/></g></svg></span>
+            <div><span style="font-size:10px; letter-spacing:1.5px; color:#A89A7A; font-weight:700;">REGENRISIKO FÜRS FEIERFENSTER · 8–20 UHR</span><div style="font-size:16px; font-weight:700; color:#5F7A4C; margin-top:4px;">Kein Regen erwartet</div><div style="font-size:11.5px; color:#8B7355; margin-top:3px; line-height:1.5;">0,0 mm · durchgehend trocken · Sicherheit 78 %</div></div>
+          </div>
+
+          <!-- Gewittergefahr -->
+          <div style="margin-top:10px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:13px; padding:14px; display:flex; gap:12px;">
+            <span style="width:38px; height:38px; border-radius:10px; background:#F1F4EC; display:flex; align-items:center; justify-content:center; flex:0 0 auto;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M7 16 A4.4 4.4 0 0 1 8 7.6 A5.6 5.6 0 0 1 18.4 10 A3.4 3.4 0 0 1 17.8 16.5 H8 A4.4 4.4 0 0 1 7 16 Z" stroke="#7A9466" stroke-width="1.5" stroke-linejoin="round"/><path d="M12.5 13 L10 17 H12 L11.2 20.5 L14 15.5 H12 Z" fill="#7A9466" fill-opacity=".3" stroke="#7A9466" stroke-width="1.2" stroke-linejoin="round"/></svg></span>
+            <div><span style="font-size:10px; letter-spacing:1.5px; color:#A89A7A; font-weight:700;">GEWITTERGEFAHR</span><div style="font-size:16px; font-weight:700; color:#5F7A4C; margin-top:4px;">Gering · 12 %</div><div style="font-size:11.5px; color:#8B7355; margin-top:3px; line-height:1.5;">ICON-D2-CAPE niedrig · keine amtliche DWD-Warnung.</div></div>
+          </div>
+
+          <!-- Komfort -->
+          <div style="margin-top:10px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:13px; padding:14px;">
+            <span style="font-size:10px; letter-spacing:1.5px; color:#A89A7A; font-weight:700;">GEFÜHLT &amp; WIND · GANZER TAG</span>
+            <div style="display:flex; gap:10px; margin-top:9px;">
+              <div style="flex:1; background:#FBF6EC; border:1px solid #EAD9BC; border-radius:9px; padding:9px;"><div style="font-size:9.5px; color:#A89A7A;">GEFÜHLT</div><div style="font-size:15px; font-weight:700; color:#2C2A26; margin-top:2px;">24–31 °C</div></div>
+              <div style="flex:1; background:#FBF6EC; border:1px solid #EAD9BC; border-radius:9px; padding:9px;"><div style="font-size:9.5px; color:#A89A7A;">WIND · BÖEN</div><div style="font-size:15px; font-weight:700; color:#2C2A26; margin-top:2px;">2 · 5 m/s</div></div>
+            </div>
+            <div style="font-size:11px; color:#8B7355; margin-top:8px; line-height:1.5;">Angenehm warm, kaum Wind — gute Bedingungen für draußen.</div>
+          </div>
+
+          <!-- Plan B -->
+          <div style="margin-top:16px; display:flex; align-items:center; gap:8px;"><span style="font-size:11px; letter-spacing:2px; color:#A89A7A; font-weight:700;">PLAN B</span><span style="flex:1; height:1px; background:#E0D6BE;"></span></div>
+          <div style="margin-top:10px; background:#FFFFFF; border:1px solid #C3D2AF; border-radius:13px; padding:14px; display:flex; gap:12px;">
+            <span style="width:38px; height:38px; border-radius:10px; background:#EFF3E8; display:flex; align-items:center; justify-content:center; flex:0 0 auto;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M6 11 L12 5.5 L18 11 V19 A1 1 0 0 1 17 20 H7 A1 1 0 0 1 6 19 Z" stroke="#7A9466" stroke-width="1.5" stroke-linejoin="round"/><path d="M9.5 20 V14.5 H14.5 V20" stroke="#7A9466" stroke-width="1.5" stroke-linejoin="round"/></svg></span>
+            <div><span style="font-size:10px; letter-spacing:1.5px; color:#A89A7A; font-weight:700;">SCHWELLE SCORE &lt; 55</span><div style="font-size:15px; font-weight:700; color:#5F7A4C; margin-top:4px;">Plan B nicht nötig</div><div style="font-size:11.5px; color:#8B7355; margin-top:3px; line-height:1.5;">Bester Tag liegt klar über der Schwelle. Fällt der Termin: <strong style="color:#2C2A26;">Sa 12.7.</strong> oder Ausweichort <strong style="color:#2C2A26;">+15 km</strong> (Innenraum/Zelt).</div></div>
+          </div>
+
+          <!-- Sicherheit über Zeit -->
+          <div style="margin-top:16px; display:flex; align-items:center; gap:8px;"><span style="font-size:11px; letter-spacing:2px; color:#A89A7A; font-weight:700;">SICHERHEIT ÜBER DIE ZEIT</span></div>
+          <div style="margin-top:10px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:13px; padding:14px;">
+            <svg viewBox="0 0 300 110" style="width:100%; height:auto;" font-family="League Spartan">
+              <rect x="12" y="12" width="276" height="26" fill="#EFF3E8"/><rect x="12" y="38" width="276" height="26" fill="#FBF3E7"/><rect x="12" y="64" width="276" height="24" fill="#F7E7E0"/>
+              <text x="16" y="24" font-size="9" fill="#A89A7A">Hoch</text><text x="16" y="84" font-size="9" fill="#A89A7A">Gering</text>
+              <line x1="205" y1="12" x2="205" y2="88" stroke="#C4B896" stroke-width="1" stroke-dasharray="4 4"/><text x="209" y="22" font-size="9" fill="#A89A7A">Tendenz →</text>
+              <path d="M30 30 L86 34 L142 42 L198 58 L254 72" fill="none" stroke="#7A9466" stroke-width="2"/>
+              <g fill="#7A9466"><circle cx="30" cy="30" r="4"/><circle cx="86" cy="34" r="4"/><circle cx="142" cy="42" r="6" stroke="#2C2A26" stroke-width="1.5"/></g>
+              <g fill="#C08A45"><circle cx="198" cy="58" r="4"/><circle cx="254" cy="72" r="4"/></g>
+              <g fill="#8B7355" font-size="9" text-anchor="middle"><text x="30" y="102">Do</text><text x="86" y="102">Fr</text><text x="142" y="102">Sa</text><text x="198" y="102">So</text><text x="254" y="102">Mo</text></g>
+            </svg>
+            <p style="font-size:11px; color:#8B7355; margin:8px 0 0; line-height:1.5;">Je weiter ein Tag entfernt liegt, desto unsicherer — späte Tage sind eher grobe Tendenz als Festlegung.</p>
+          </div>
+
+          <div style="margin-top:16px; padding-top:14px; border-top:1px solid #E0D6BE; font-size:10px; color:#A89A7A; line-height:1.7;">● Native Behörden-Quellen: DWD · GeoSphere · MeteoSwiss · höhenkorrigiert · keine Tracker</div>
+        </div>
+      </div>
+    </div>
+    <p style="width:1440px; font-size:12.5px; color:#98A2AF; line-height:1.6; margin:16px 2px 0; font-weight:300;"><strong style="color:#E9ECF1; font-weight:600;">Event-Desktop:</strong> Wetterkarte-Shell (Sand/Ink · Ink-Rail · Steel/Terracotta/Sage). Links das Vorhaben-Dock (Anlass-Presets, Zeitraum, Phasen, Plan-B-Schwelle + Ausweichtag/-ort) — der ganze Wizard verdichtet; Mitte der bester-Tag-Hero (Score-Donut, Konfidenz, gewichtete Faktoren, .ics/Link), Ablauf-Diagramm (Temp/Regen/Wind-Tabs), Event-Karte &amp; Rangliste mit Score-Balken; rechts der Risiko-Readout — Regen, Gewitter, Komfort, Plan B, Konfidenz-Timeline. Kein Informationsverlust.</p>
+  </article>
+
+  <!-- ============================ E2a — TABLET WIZARD · SCHRITT 1 ============================ -->
+  <article id="E2a" style="width:1024px;">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+      <span style="display:inline-flex; align-items:center; justify-content:center; min-width:40px; height:26px; padding:0 10px; background:#C97B47; color:#FAF6EA; border-radius:6px; font-size:13px; font-weight:700; letter-spacing:1px;">E2a</span>
+      <span style="font-size:15px; font-weight:600; color:#E9ECF1;">Tablet · Konfig 1/3 — Ort &amp; Anlass</span>
+    </div>
+    <div style="height:768px; border-radius:18px; overflow:hidden; background:#EDE6D3; border:1px solid #E0D6BE; box-shadow:0 40px 90px -50px rgba(0,0,0,.55); display:flex; flex-direction:column;">
+      <div style="height:54px; flex:0 0 auto; display:flex; align-items:center; gap:14px; padding:0 16px; background:#FAF6EA; border-bottom:1px solid #E0D6BE;"><img src="buscosun-mark.svg" width="24" height="24" alt=""><span style="font-size:17px; font-weight:700; color:#2C2A26;">buscosun</span><span style="margin-left:auto; display:flex; align-items:center; gap:7px;"><span style="width:7px; height:7px; border-radius:50%; background:#7A9466;"></span><span style="font-size:11px; color:#5F7A4C; font-weight:600; letter-spacing:1px;">DATEN LIVE</span></span></div>
+      <div style="flex:1; display:flex; min-height:0;">
+        <div style="width:54px; flex:0 0 auto; background:#2C2A26; display:flex; flex-direction:column; align-items:center; padding:12px 0;"><div style="width:38px; height:38px; border-radius:10px; background:#3A3833; color:#E0A567; display:flex; align-items:center; justify-content:center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5" stroke="currentColor" stroke-width="1.6"/><line x1="3.5" y1="9.5" x2="20.5" y2="9.5" stroke="currentColor" stroke-width="1.6"/><path d="M8 14 L11 17 L16.5 12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>
+        <div class="ev-scroll" style="flex:1; overflow-y:auto; background:#EDE6D3; padding:26px 30px;">
+          <div style="font-size:11px; letter-spacing:2.5px; color:#C97B47; font-weight:700;">SCHRITT 1 VON 3 · ORT &amp; ANLASS</div>
+          <h2 style="font-size:28px; font-weight:700; color:#2C2A26; letter-spacing:-0.8px; margin:7px 0 0;">Welcher Tag passt am besten?</h2>
+          <div style="display:flex; gap:6px; margin-top:16px; max-width:360px;"><span style="flex:1; height:5px; border-radius:3px; background:#C97B47;"></span><span style="flex:1; height:5px; border-radius:3px; background:#E0D6BE;"></span><span style="flex:1; height:5px; border-radius:3px; background:#E0D6BE;"></span></div>
+          <span style="display:block; font-size:10px; letter-spacing:2px; color:#A89A7A; font-weight:700; margin:22px 0 9px;">ORT</span>
+          <div style="display:flex; align-items:center; gap:10px; background:#FFFFFF; border:1px solid #D9D0B8; border-radius:12px; padding:11px 14px; max-width:440px;"><svg width="15" height="15" viewBox="0 0 18 18" fill="none"><circle cx="8" cy="8" r="6" stroke="#8B7355" stroke-width="1.6"/><line x1="12.5" y1="12.5" x2="16" y2="16" stroke="#8B7355" stroke-width="1.6" stroke-linecap="round"/></svg><span style="flex:1; font-size:14px; color:#2C2A26; font-weight:500;">🇩🇪 München, Bayern</span><span style="font-size:11px; color:#C97B47; font-weight:600;">Ändern</span></div>
+          <span style="display:block; font-size:10px; letter-spacing:2px; color:#A89A7A; font-weight:700; margin:22px 0 9px;">ANLASS</span>
+          <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px;">
+            <div style="background:#FFF7EF; border:1.5px solid #C97B47; border-radius:12px; padding:13px; display:flex; align-items:center; gap:10px;"><span style="width:34px; height:34px; border-radius:9px; background:#FBEFE2; display:flex; align-items:center; justify-content:center; flex:0 0 auto;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 21 C7.5 21 5 17.8 5 14.5 C5 11 8 9 8.5 5.5 C11 8 10.5 10 11 11 C11.5 8.5 13 7 12.5 3 C16 5.5 19 9.5 19 14.5 C19 17.8 16.5 21 12 21 Z" fill="#E9A05C" fill-opacity=".3" stroke="#C97B47" stroke-width="1.5" stroke-linejoin="round"/></svg></span><div><div style="font-size:14px; font-weight:700; color:#2C2A26;">Grillen</div><div style="font-size:10px; color:#8B7355;">warm · trocken</div></div></div>
+            <div style="background:#FFFFFF; border:1px solid #E0D6BE; border-radius:12px; padding:13px; display:flex; align-items:center; gap:10px;"><span style="width:34px; height:34px; border-radius:9px; background:#F2EEE3; display:flex; align-items:center; justify-content:center; flex:0 0 auto;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="8.5" cy="13" r="4.5" stroke="#8B7355" stroke-width="1.5"/><circle cx="15.5" cy="13" r="4.5" stroke="#8B7355" stroke-width="1.5"/></svg></span><div><div style="font-size:14px; font-weight:700; color:#2C2A26;">Hochzeit</div><div style="font-size:10px; color:#8B7355;">3 Phasen</div></div></div>
+            <div style="background:#FFFFFF; border:1px solid #E0D6BE; border-radius:12px; padding:13px; display:flex; align-items:center; gap:10px;"><span style="width:34px; height:34px; border-radius:9px; background:#F2EEE3; display:flex; align-items:center; justify-content:center; flex:0 0 auto;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M3 20 L9 8 L13 14 L16 9 L21 20 Z" stroke="#8B7355" stroke-width="1.5" stroke-linejoin="round"/></svg></span><div><div style="font-size:14px; font-weight:700; color:#2C2A26;">Wandern</div><div style="font-size:10px; color:#8B7355;">Sicht · Wind</div></div></div>
+            <div style="background:#FFFFFF; border:1px solid #E0D6BE; border-radius:12px; padding:13px; display:flex; align-items:center; gap:10px;"><span style="width:34px; height:34px; border-radius:9px; background:#F2EEE3; display:flex; align-items:center; justify-content:center; flex:0 0 auto;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="2.5" stroke="#8B7355" stroke-width="1.5"/><g stroke="#8B7355" stroke-width="1.4"><ellipse cx="6" cy="7" rx="3" ry="1.6"/><ellipse cx="18" cy="7" rx="3" ry="1.6"/><ellipse cx="6" cy="17" rx="3" ry="1.6"/><ellipse cx="18" cy="17" rx="3" ry="1.6"/></g></svg></span><div><div style="font-size:14px; font-weight:700; color:#2C2A26;">Drohne</div><div style="font-size:10px; color:#8B7355;">Böen · Sicht</div></div></div>
+            <div style="background:#FFFFFF; border:1px solid #E0D6BE; border-radius:12px; padding:13px; display:flex; align-items:center; gap:10px;"><span style="width:34px; height:34px; border-radius:9px; background:#F2EEE3; display:flex; align-items:center; justify-content:center; flex:0 0 auto;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 8 H7 L9 5.5 H15 L17 8 H20 A1 1 0 0 1 21 9 V18 A1 1 0 0 1 20 19 H4 A1 1 0 0 1 3 18 V9 A1 1 0 0 1 4 8 Z" stroke="#8B7355" stroke-width="1.5" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.5" stroke="#8B7355" stroke-width="1.5"/></svg></span><div><div style="font-size:14px; font-weight:700; color:#2C2A26;">Fotografie</div><div style="font-size:10px; color:#8B7355;">Licht · Wolken</div></div></div>
+            <div style="background:#FFFFFF; border:1px solid #E0D6BE; border-radius:12px; padding:13px; display:flex; align-items:center; gap:10px;"><span style="width:34px; height:34px; border-radius:9px; background:#F2EEE3; display:flex; align-items:center; justify-content:center; flex:0 0 auto;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 3 L13.6 8.4 L19 8.6 L14.7 12 L16.2 17.4 L12 14.2 L7.8 17.4 L9.3 12 L5 8.6 L10.4 8.4 Z" stroke="#8B7355" stroke-width="1.4" stroke-linejoin="round"/></svg></span><div><div style="font-size:14px; font-weight:700; color:#2C2A26;">Sterne</div><div style="font-size:10px; color:#8B7355;">klar · dunkel</div></div></div>
+          </div>
+        </div>
+      </div>
+      <div style="flex:0 0 auto; padding:14px 30px; background:#FAF6EA; border-top:1px solid #E0D6BE; display:flex; justify-content:space-between;">
+        <a href="#E2" style="font-family:inherit; font-size:13px; font-weight:600; color:#8B7355; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:11px; padding:11px 18px; text-decoration:none;">Überspringen</a>
+        <a href="#E2b" style="display:flex; align-items:center; gap:7px; font-family:inherit; font-size:13.5px; font-weight:600; color:#FAF6EA; background:#C97B47; border-radius:11px; padding:11px 24px; text-decoration:none;">Weiter <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M5 12 H19 M13 6 L19 12 L13 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+      </div>
+    </div>
+    <p style="width:1024px; font-size:12.5px; color:#98A2AF; line-height:1.6; margin:16px 2px 0; font-weight:300;"><strong style="color:#E9ECF1; font-weight:600;">Tablet-Konfig 1/3:</strong> Ort + Anlass-Grid. Weiter → E2b.</p>
+  </article>
+
+  <!-- ============================ E2b — TABLET WIZARD · SCHRITT 2 ============================ -->
+  <article id="E2b" style="width:1024px;">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+      <span style="display:inline-flex; align-items:center; justify-content:center; min-width:40px; height:26px; padding:0 10px; background:#C97B47; color:#FAF6EA; border-radius:6px; font-size:13px; font-weight:700; letter-spacing:1px;">E2b</span>
+      <span style="font-size:15px; font-weight:600; color:#E9ECF1;">Tablet · Konfig 2/3 — Zeitfenster &amp; Phasen</span>
+    </div>
+    <div style="height:768px; border-radius:18px; overflow:hidden; background:#EDE6D3; border:1px solid #E0D6BE; box-shadow:0 40px 90px -50px rgba(0,0,0,.55); display:flex; flex-direction:column;">
+      <div style="height:54px; flex:0 0 auto; display:flex; align-items:center; gap:14px; padding:0 16px; background:#FAF6EA; border-bottom:1px solid #E0D6BE;"><img src="buscosun-mark.svg" width="24" height="24" alt=""><span style="font-size:17px; font-weight:700; color:#2C2A26;">buscosun</span><span style="margin-left:auto; display:flex; align-items:center; gap:7px;"><span style="width:7px; height:7px; border-radius:50%; background:#7A9466;"></span><span style="font-size:11px; color:#5F7A4C; font-weight:600; letter-spacing:1px;">DATEN LIVE</span></span></div>
+      <div style="flex:1; display:flex; min-height:0;">
+        <div style="width:54px; flex:0 0 auto; background:#2C2A26; display:flex; flex-direction:column; align-items:center; padding:12px 0;"><div style="width:38px; height:38px; border-radius:10px; background:#3A3833; color:#E0A567; display:flex; align-items:center; justify-content:center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5" stroke="currentColor" stroke-width="1.6"/><line x1="3.5" y1="9.5" x2="20.5" y2="9.5" stroke="currentColor" stroke-width="1.6"/><path d="M8 14 L11 17 L16.5 12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>
+        <div class="ev-scroll" style="flex:1; overflow-y:auto; background:#EDE6D3; padding:26px 30px;">
+          <div style="font-size:11px; letter-spacing:2.5px; color:#C97B47; font-weight:700;">SCHRITT 2 VON 3 · ZEITFENSTER &amp; PHASEN</div>
+          <h2 style="font-size:28px; font-weight:700; color:#2C2A26; letter-spacing:-0.8px; margin:7px 0 0;">Wann hast du Zeit?</h2>
+          <div style="display:flex; gap:6px; margin-top:16px; max-width:360px;"><span style="flex:1; height:5px; border-radius:3px; background:#C97B47;"></span><span style="flex:1; height:5px; border-radius:3px; background:#C97B47;"></span><span style="flex:1; height:5px; border-radius:3px; background:#E0D6BE;"></span></div>
+          <span style="display:block; font-size:10px; letter-spacing:2px; color:#A89A7A; font-weight:700; margin:22px 0 9px;">ZEITRAUM</span>
+          <div style="display:flex; gap:8px; max-width:320px;"><span style="flex:1; text-align:center; font-size:12.5px; font-weight:600; color:#FAF6EA; background:#C97B47; border-radius:9px; padding:9px 0;">Zeitraum</span><span style="flex:1; text-align:center; font-size:12.5px; font-weight:500; color:#8B7355; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:9px; padding:9px 0;">Einzeltermine</span></div>
+          <div style="display:flex; gap:8px; margin-top:9px; max-width:320px;"><div style="flex:1; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:11px; padding:10px 13px;"><div style="font-size:9px; color:#A89A7A;">VON</div><div style="font-size:16px; font-weight:700; color:#2C2A26;">8. Juli</div></div><div style="flex:1; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:11px; padding:10px 13px;"><div style="font-size:9px; color:#A89A7A;">BIS</div><div style="font-size:16px; font-weight:700; color:#2C2A26;">15. Juli</div></div></div>
+          <div style="font-size:11px; color:#8B7355; margin-top:8px;">7 Tage werden verglichen · DE bis ~7 Tage, AT/CH bis ~2,5 Tage</div>
+          <span style="display:block; font-size:10px; letter-spacing:2px; color:#A89A7A; font-weight:700; margin:22px 0 9px;">PHASEN · VORLAGE</span>
+          <div style="display:flex; flex-wrap:wrap; gap:7px;">
+            <span style="font-size:12.5px; font-weight:600; color:#FAF6EA; background:#C97B47; border-radius:9px; padding:8px 13px;">Ganzer Tag</span>
+            <span style="font-size:12.5px; font-weight:500; color:#5C5447; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:9px; padding:8px 13px;">Vormittag</span>
+            <span style="font-size:12.5px; font-weight:500; color:#5C5447; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:9px; padding:8px 13px;">Nachmittag</span>
+            <span style="font-size:12.5px; font-weight:500; color:#5C5447; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:9px; padding:8px 13px;">Abend</span>
+            <span style="font-size:12.5px; font-weight:500; color:#5C5447; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:9px; padding:8px 13px;">Kernnacht</span>
+            <span style="display:inline-flex; align-items:center; gap:6px; font-size:12.5px; font-weight:600; color:#C97B47; background:#FFF7EF; border:1px solid #E7C6A6; border-radius:9px; padding:8px 13px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="8.5" cy="14" r="4" stroke="#C97B47" stroke-width="1.5"/><circle cx="15.5" cy="14" r="4" stroke="#C97B47" stroke-width="1.5"/></svg>Hochzeit (3 Phasen)</span>
+          </div>
+          <div style="margin-top:14px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:12px; padding:14px; max-width:420px;">
+            <div style="font-size:15px; font-weight:700; color:#2C2A26;">Ganzer Tag</div>
+            <div style="height:1px; background:#EDE6D3; margin:11px 0;"></div>
+            <div style="display:flex; align-items:center; gap:10px;"><span style="width:58px; height:50px; border:1px solid #E0D6BE; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:700; color:#2C2A26;">8</span><span style="font-size:18px; color:#A89A7A;">–</span><span style="width:58px; height:50px; border:1px solid #E0D6BE; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:700; color:#2C2A26;">20</span><span style="font-size:14px; color:#8B7355;">Uhr</span></div>
+          </div>
+          <button style="margin-top:10px; display:flex; align-items:center; gap:7px; font-family:inherit; font-size:13px; font-weight:600; color:#C97B47; background:#FFF7EF; border:1px dashed #E7C6A6; border-radius:11px; padding:10px 16px; cursor:pointer;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 5 V19 M5 12 H19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Phase hinzufügen</button>
+        </div>
+      </div>
+      <div style="flex:0 0 auto; padding:14px 30px; background:#FAF6EA; border-top:1px solid #E0D6BE; display:flex; justify-content:space-between;">
+        <a href="#E2a" style="font-family:inherit; font-size:13px; font-weight:600; color:#8B7355; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:11px; padding:11px 18px; text-decoration:none;">Zurück</a>
+        <a href="#E2c" style="display:flex; align-items:center; gap:7px; font-family:inherit; font-size:13.5px; font-weight:600; color:#FAF6EA; background:#C97B47; border-radius:11px; padding:11px 24px; text-decoration:none;">Weiter <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M5 12 H19 M13 6 L19 12 L13 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+      </div>
+    </div>
+    <p style="width:1024px; font-size:12.5px; color:#98A2AF; line-height:1.6; margin:16px 2px 0; font-weight:300;"><strong style="color:#E9ECF1; font-weight:600;">Tablet-Konfig 2/3:</strong> Zeitraum/Einzeltermine + Phasen. Zurück → E2a · Weiter → E2c.</p>
+  </article>
+
+  <!-- ============================ E2c — TABLET WIZARD · SCHRITT 3 ============================ -->
+  <article id="E2c" style="width:1024px;">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+      <span style="display:inline-flex; align-items:center; justify-content:center; min-width:40px; height:26px; padding:0 10px; background:#C97B47; color:#FAF6EA; border-radius:6px; font-size:13px; font-weight:700; letter-spacing:1px;">E2c</span>
+      <span style="font-size:15px; font-weight:600; color:#E9ECF1;">Tablet · Konfig 3/3 — Plan B</span>
+    </div>
+    <div style="height:768px; border-radius:18px; overflow:hidden; background:#EDE6D3; border:1px solid #E0D6BE; box-shadow:0 40px 90px -50px rgba(0,0,0,.55); display:flex; flex-direction:column;">
+      <div style="height:54px; flex:0 0 auto; display:flex; align-items:center; gap:14px; padding:0 16px; background:#FAF6EA; border-bottom:1px solid #E0D6BE;"><img src="buscosun-mark.svg" width="24" height="24" alt=""><span style="font-size:17px; font-weight:700; color:#2C2A26;">buscosun</span><span style="margin-left:auto; display:flex; align-items:center; gap:7px;"><span style="width:7px; height:7px; border-radius:50%; background:#7A9466;"></span><span style="font-size:11px; color:#5F7A4C; font-weight:600; letter-spacing:1px;">DATEN LIVE</span></span></div>
+      <div style="flex:1; display:flex; min-height:0;">
+        <div style="width:54px; flex:0 0 auto; background:#2C2A26; display:flex; flex-direction:column; align-items:center; padding:12px 0;"><div style="width:38px; height:38px; border-radius:10px; background:#3A3833; color:#E0A567; display:flex; align-items:center; justify-content:center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5" stroke="currentColor" stroke-width="1.6"/><line x1="3.5" y1="9.5" x2="20.5" y2="9.5" stroke="currentColor" stroke-width="1.6"/><path d="M8 14 L11 17 L16.5 12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>
+        <div class="ev-scroll" style="flex:1; overflow-y:auto; background:#EDE6D3; padding:26px 30px;">
+          <div style="max-width:640px;">
+            <div style="font-size:11px; letter-spacing:2.5px; color:#C97B47; font-weight:700;">SCHRITT 3 VON 3 · PLAN B <span style="color:#A89A7A;">· OPTIONAL</span></div>
+            <h2 style="font-size:28px; font-weight:700; color:#2C2A26; letter-spacing:-0.8px; margin:7px 0 0;">Falls es doch nicht hält</h2>
+            <p style="font-size:13.5px; color:#5C5447; margin:8px 0 0; line-height:1.5;">Lege eine klare Schwelle fest, ab der dir ein Plan B (Zelt/Innenraum) empfohlen wird — plus Ausweichtag und -ort.</p>
+            <div style="display:flex; gap:6px; margin-top:16px; max-width:360px;"><span style="flex:1; height:5px; border-radius:3px; background:#C97B47;"></span><span style="flex:1; height:5px; border-radius:3px; background:#C97B47;"></span><span style="flex:1; height:5px; border-radius:3px; background:#C97B47;"></span></div>
+            <div style="margin-top:20px; background:#FFFFFF; border:1px solid #C97B47; border-radius:12px; padding:15px; display:flex; align-items:center; justify-content:between; justify-content:space-between;"><span style="font-size:15px; font-weight:700; color:#2C2A26;">Plan-B-Schwelle aktivieren</span><span style="width:38px; height:22px; border-radius:12px; background:#C97B47; position:relative;"><span style="position:absolute; top:2.5px; right:2.5px; width:17px; height:17px; border-radius:50%; background:#FFFFFF;"></span></span></div>
+            <div style="margin-top:13px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:12px; padding:15px;">
+              <div style="display:flex; align-items:baseline; justify-content:space-between;"><span style="font-size:12.5px; font-weight:600; color:#2C2A26;">Schwelle</span><span style="font-size:15px; font-weight:700; color:#C97B47;">Score &lt; 55</span></div>
+              <div style="position:relative; height:6px; background:#E0D6BE; border-radius:3px; margin-top:13px;"><div style="position:absolute; left:0; width:55%; top:0; bottom:0; background:#C97B47; border-radius:3px;"></div><div style="position:absolute; left:55%; top:50%; transform:translate(-50%,-50%); width:18px; height:18px; border-radius:50%; background:#C97B47; border:3px solid #FFFFFF; box-shadow:0 1px 4px rgba(0,0,0,.2);"></div></div>
+              <div style="display:flex; justify-content:space-between; font-size:10px; color:#A89A7A; margin-top:8px;"><span>kritisch (30)</span><span>okay (55)</span><span>gut (80)</span></div>
+            </div>
+            <div style="display:flex; gap:12px; margin-top:13px;">
+              <div style="flex:1; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:12px; padding:13px;"><div style="display:flex; align-items:center; gap:7px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5" stroke="#8B7355" stroke-width="1.5"/><line x1="3.5" y1="9.5" x2="20.5" y2="9.5" stroke="#8B7355" stroke-width="1.5"/></svg><span style="font-size:9px; letter-spacing:1px; color:#A89A7A; font-weight:600;">AUSWEICHTAG</span></div><div style="font-size:16px; font-weight:700; color:#2C2A26; margin-top:6px;">Sa 12. Juli</div></div>
+              <div style="flex:1; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:12px; padding:13px;"><div style="display:flex; align-items:center; gap:7px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 21 C12 21 19 14.5 19 9.5 A7 7 0 0 0 5 9.5 C5 14.5 12 21 12 21 Z" stroke="#8B7355" stroke-width="1.5" stroke-linejoin="round"/><circle cx="12" cy="9.5" r="2.4" stroke="#8B7355" stroke-width="1.5"/></svg><span style="font-size:9px; letter-spacing:1px; color:#A89A7A; font-weight:600;">AUSWEICHORT</span></div><div style="font-size:16px; font-weight:700; color:#2C2A26; margin-top:6px;">+15 km Umkreis</div></div>
+            </div>
+            <div style="margin-top:13px; background:#FBF3E7; border:1px solid #E7D3B4; border-radius:11px; padding:12px; font-size:11.5px; color:#5C5447; line-height:1.55;"><span style="color:#C97B47; font-weight:700;">Hinweis:</span> Ausweichtag &amp; -ort nutzen dieselben nativen Behörden-Quellen (DWD · GeoSphere · MeteoSwiss) — kein Konto, keine Tracker.</div>
+          </div>
+        </div>
+      </div>
+      <div style="flex:0 0 auto; padding:14px 30px; background:#FAF6EA; border-top:1px solid #E0D6BE; display:flex; justify-content:space-between;">
+        <a href="#E2b" style="font-family:inherit; font-size:13px; font-weight:600; color:#8B7355; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:11px; padding:11px 18px; text-decoration:none;">Zurück</a>
+        <a href="#E2" style="display:flex; align-items:center; gap:7px; font-family:inherit; font-size:13.5px; font-weight:600; color:#FAF6EA; background:#C97B47; border-radius:11px; padding:11px 24px; text-decoration:none;">Beste Tage finden <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M5 12 H19 M13 6 L19 12 L13 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+      </div>
+    </div>
+    <p style="width:1024px; font-size:12.5px; color:#98A2AF; line-height:1.6; margin:16px 2px 0; font-weight:300;"><strong style="color:#E9ECF1; font-weight:600;">Tablet-Konfig 3/3:</strong> Plan-B-Schwelle + Ausweichtag/-ort. „Beste Tage finden" → Resultat E2.</p>
+  </article>
+
+  <!-- ============================ E2 — TABLET ============================ -->
+  <article id="E2" style="width:1024px;">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+      <span style="display:inline-flex; align-items:center; justify-content:center; min-width:36px; height:26px; padding:0 10px; background:#C97B47; color:#FAF6EA; border-radius:6px; font-size:13px; font-weight:700; letter-spacing:1px;">E2</span>
+      <span style="font-size:15px; font-weight:600; color:#E9ECF1;">Tablet · Resultat — Event „Bester Tag"</span>
+    </div>
+    <div style="height:820px; border-radius:18px; overflow:hidden; background:#EDE6D3; border:1px solid #E0D6BE; box-shadow:0 40px 90px -50px rgba(0,0,0,.55); display:flex; flex-direction:column;">
+      <div style="height:54px; flex:0 0 auto; display:flex; align-items:center; gap:14px; padding:0 16px; background:#FAF6EA; border-bottom:1px solid #E0D6BE;">
+        <img src="buscosun-mark.svg" width="24" height="24" alt="" style="display:block;">
+        <span style="font-size:17px; font-weight:700; color:#2C2A26;">buscosun</span>
+        <div style="flex:1; max-width:240px; display:flex; align-items:center; gap:8px; background:#FFFFFF; border:1px solid #D9D0B8; border-radius:9px; padding:7px 12px;"><svg width="14" height="14" viewBox="0 0 18 18" fill="none"><circle cx="8" cy="8" r="6" stroke="#8B7355" stroke-width="1.6"/><line x1="12.5" y1="12.5" x2="16" y2="16" stroke="#8B7355" stroke-width="1.6" stroke-linecap="round"/></svg><span style="flex:1; font-size:13px; color:#2C2A26;">🇩🇪 München</span></div>
+        <div style="margin-left:auto; display:flex; align-items:center; gap:7px;"><span style="width:7px; height:7px; border-radius:50%; background:#7A9466;"></span><span style="font-size:11px; color:#5F7A4C; font-weight:600; letter-spacing:1px;">DATEN LIVE</span></div>
+      </div>
+      <div style="flex:1; display:flex; min-height:0;">
+        <!-- rail -->
+        <div style="width:54px; flex:0 0 auto; background:#2C2A26; display:flex; flex-direction:column; align-items:center; padding:12px 0; gap:6px;">
+          <div style="width:38px; height:38px; border-radius:10px; color:#8B7355; display:flex; align-items:center; justify-content:center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M12 3 L21 8 L12 13 L3 8 Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M3 13 L12 18 L21 13" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
+          <div style="width:38px; height:38px; border-radius:10px; color:#8B7355; display:flex; align-items:center; justify-content:center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/><path d="M12 3 A9 9 0 0 1 21 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg></div>
+          <div style="width:38px; height:38px; border-radius:10px; background:#3A3833; color:#E0A567; display:flex; align-items:center; justify-content:center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5" stroke="currentColor" stroke-width="1.6"/><line x1="3.5" y1="9.5" x2="20.5" y2="9.5" stroke="currentColor" stroke-width="1.6"/><path d="M8 14 L11 17 L16.5 12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        </div>
+        <!-- left dock slim -->
+        <div class="ev-scroll" style="width:224px; flex:0 0 auto; background:#FAF6EA; border-right:1px solid #E0D6BE; overflow-y:auto; padding:14px 11px;">
+          <span style="font-size:10px; letter-spacing:2px; color:#A89A7A; font-weight:700;">DEIN VORHABEN</span>
+          <div style="margin-top:9px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:11px; padding:11px; display:flex; align-items:center; gap:9px;">
+            <span style="width:34px; height:34px; border-radius:9px; background:#FBEFE2; display:flex; align-items:center; justify-content:center; flex:0 0 auto;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 21 C7.5 21 5 17.8 5 14.5 C5 11 8 9 8.5 5.5 C11 8 10.5 10 11 11 C11.5 8.5 13 7 12.5 3 C16 5.5 19 9.5 19 14.5 C19 17.8 16.5 21 12 21 Z" fill="#E9A05C" fill-opacity=".25" stroke="#C97B47" stroke-width="1.5" stroke-linejoin="round"/></svg></span>
+            <div><div style="font-size:9px; color:#A89A7A;">ANLASS</div><div style="font-size:15px; font-weight:700; color:#2C2A26;">Grillen</div></div>
+          </div>
+          <div style="display:flex; flex-wrap:wrap; gap:5px; margin-top:9px;">
+            <span style="font-size:11px; font-weight:600; color:#FAF6EA; background:#C97B47; border-radius:7px; padding:5px 9px;">Grillen</span>
+            <span style="font-size:11px; color:#5C5447; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:7px; padding:5px 9px;">Hochzeit</span>
+            <span style="font-size:11px; color:#5C5447; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:7px; padding:5px 9px;">Drohne</span>
+            <span style="font-size:11px; color:#5C5447; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:7px; padding:5px 9px;">Foto</span>
+          </div>
+          <div style="margin-top:14px; display:flex; gap:7px;">
+            <div style="flex:1; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:9px; padding:8px;"><div style="font-size:9px; color:#A89A7A;">ZEITRAUM</div><div style="font-size:12.5px; font-weight:600; color:#2C2A26;">8.–15.7.</div></div>
+            <div style="flex:1; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:9px; padding:8px;"><div style="font-size:9px; color:#A89A7A;">PHASEN</div><div style="font-size:12.5px; font-weight:600; color:#2C2A26;">Ganzer Tag</div></div>
+          </div>
+          <div style="margin-top:10px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:11px; padding:11px;">
+            <div style="display:flex; align-items:center; justify-content:space-between;"><span style="font-size:12px; font-weight:600; color:#2C2A26;">Plan B</span><span style="width:30px; height:17px; border-radius:9px; background:#C97B47; position:relative;"><span style="position:absolute; top:2px; right:2px; width:13px; height:13px; border-radius:50%; background:#FFFFFF;"></span></span></div>
+            <div style="font-size:10.5px; color:#8B7355; margin-top:6px;">Score &lt; 55 → Ausweichtag Sa 12.7. · +15 km</div>
+          </div>
+          <button style="width:100%; margin-top:12px; background:#C97B47; border:none; border-radius:10px; padding:11px; color:#FAF6EA; font-size:13px; font-weight:600; font-family:inherit; cursor:pointer;">Beste Tage finden →</button>
+        </div>
+        <!-- center -->
+        <div class="ev-scroll" style="flex:1; min-width:0; overflow-y:auto; background:#EDE6D3; padding:14px 16px;">
+          <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:14px; padding:16px; display:flex; gap:16px;">
+            <div style="flex:0 0 auto; display:flex; flex-direction:column; align-items:center; gap:7px;">
+              <svg width="86" height="86" viewBox="0 0 86 86"><g transform="translate(43 43)"><circle r="33" fill="none" stroke="#E0D6BE" stroke-width="8"/><circle r="33" fill="none" stroke="#7A9466" stroke-width="8" stroke-linecap="round" stroke-dasharray="199 207" transform="rotate(-90)"/><text text-anchor="middle" y="5" font-size="25" font-weight="700" fill="#2C2A26" font-family="League Spartan">96</text><text text-anchor="middle" y="18" font-size="7" letter-spacing="2" fill="#A89A7A" font-family="League Spartan">SCORE</text></g></svg>
+              <span style="font-size:10px; font-weight:600; color:#5F7A4C; background:#EFF3E8; border:1px solid #C3D2AF; border-radius:7px; padding:4px 8px;">Konf. Hoch · 78 %</span>
+            </div>
+            <div style="flex:1; min-width:0;">
+              <span style="font-size:10px; letter-spacing:2px; color:#C97B47; font-weight:700;">BESTER TAG FÜR GRILLEN</span>
+              <h3 style="font-size:24px; font-weight:700; color:#2C2A26; letter-spacing:-0.6px; margin:5px 0 0;">Freitag, 10. Juli</h3>
+              <p style="font-size:12.5px; color:#5C5447; margin:6px 0 0; line-height:1.5;">Durchgehend trocken, angenehme 29 °C und kaum Wind — passt zu Grillen.</p>
+              <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:7px; margin-top:12px;">
+                <div style="background:#FFFFFF; border:1px solid #C3D2AF; border-radius:9px; padding:8px;"><div style="font-size:8.5px; color:#A89A7A;">REGEN</div><div style="font-size:14px; font-weight:700; color:#2C2A26;">0 mm</div></div>
+                <div style="background:#FFFFFF; border:1px solid #C3D2AF; border-radius:9px; padding:8px;"><div style="font-size:8.5px; color:#A89A7A;">TEMP</div><div style="font-size:14px; font-weight:700; color:#2C2A26;">29 °C</div></div>
+                <div style="background:#FFFFFF; border:1px solid #C3D2AF; border-radius:9px; padding:8px;"><div style="font-size:8.5px; color:#A89A7A;">WIND</div><div style="font-size:14px; font-weight:700; color:#2C2A26;">1,8</div></div>
+                <div style="background:#FFFFFF; border:1px solid #E7D3B4; border-radius:9px; padding:8px;"><div style="font-size:8.5px; color:#A89A7A;">WOLKEN</div><div style="font-size:14px; font-weight:700; color:#2C2A26;">40 %</div></div>
+              </div>
+              <div style="display:flex; gap:8px; margin-top:12px;"><button style="display:flex; align-items:center; gap:6px; font-family:inherit; font-size:12px; font-weight:600; color:#FAF6EA; background:#2C2A26; border:none; border-radius:9px; padding:8px 12px; cursor:pointer;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><line x1="3" y1="9" x2="21" y2="9"/></svg>Kalender</button><button style="font-family:inherit; font-size:12px; font-weight:600; color:#2C2A26; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:9px; padding:8px 12px; cursor:pointer;">Link teilen</button></div>
+            </div>
+          </div>
+          <!-- ablauf -->
+          <div style="font-size:10px; letter-spacing:2px; color:#A89A7A; font-weight:700; margin:16px 2px 8px;">ABLAUF AM BESTEN TAG</div>
+          <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:12px; padding:13px;">
+            <div style="display:flex; gap:3px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:8px; padding:3px; width:max-content; margin-bottom:10px;"><span style="font-size:11px; font-weight:600; color:#FAF6EA; background:#C97B47; border-radius:6px; padding:5px 11px;">Temperatur</span><span style="font-size:11px; font-weight:500; color:#8B7355; border-radius:6px; padding:5px 11px;">Niederschlag</span><span style="font-size:11px; font-weight:500; color:#8B7355; border-radius:6px; padding:5px 11px;">Wind</span></div>
+            <svg viewBox="0 0 660 150" style="width:100%; height:auto;" font-family="League Spartan">
+              <rect x="44" y="30" width="608" height="90" rx="9" fill="#FFFFFF" stroke="#E0D6BE"/>
+              <g stroke="#EDE6D3"><line x1="44" y1="60" x2="652" y2="60"/><line x1="44" y1="90" x2="652" y2="90"/></g>
+              <g fill="#A89A7A" font-size="9" text-anchor="end"><text x="38" y="33">32°</text><text x="38" y="93">24°</text><text x="38" y="120">16°</text></g>
+              <path d="M44 108 Q140 100 230 84 Q330 66 430 58 Q520 60 590 70 Q625 76 652 82 L652 120 L44 120 Z" fill="#C97B47" fill-opacity=".12"/>
+              <path d="M44 108 Q140 100 230 84 Q330 66 430 58 Q520 60 590 70 Q625 76 652 82" fill="none" stroke="#C97B47" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+              <circle cx="430" cy="58" r="5.5" fill="#FFFFFF" stroke="#C97B47" stroke-width="2.5"/>
+              <g transform="translate(430 40)"><rect x="-22" y="-11" width="44" height="17" rx="8" fill="#2C2A26"/><text y="1" text-anchor="middle" font-size="10" font-weight="600" fill="#FAF6EA">29°</text></g>
+              <g fill="#A89A7A" font-size="9" text-anchor="middle"><text x="44" y="138">8</text><text x="230" y="138">12</text><text x="430" y="138">16</text><text x="652" y="138" text-anchor="end">Uhr</text></g>
+            </svg>
+          </div>
+          <!-- rangliste compact -->
+          <div style="font-size:10px; letter-spacing:2px; color:#A89A7A; font-weight:700; margin:16px 2px 8px;">RANGLISTE · 5 VON 7 BEWERTET</div>
+          <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:12px; padding:13px; display:flex; flex-direction:column; gap:6px;">
+            <div style="display:flex; align-items:center; gap:10px; background:#FFFFFF; border:1px solid #C3D2AF; border-radius:9px; padding:9px 11px;"><span style="font-size:13px; font-weight:700; width:16px;">1</span><div style="flex:1;"><div style="font-size:12.5px; font-weight:600; color:#2C2A26;">Fr 10.7. <span style="font-size:9px; font-weight:700; color:#FAF6EA; background:#7A9466; border-radius:4px; padding:1px 6px;">Bester</span></div><div style="font-size:10.5px; color:#8B7355;">Trocken, angenehm warm</div></div><span style="font-size:13px; font-weight:700; color:#7A9466;">96</span></div>
+            <div style="display:flex; align-items:center; gap:10px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:9px; padding:9px 11px;"><span style="font-size:13px; font-weight:700; width:16px;">2</span><div style="flex:1;"><div style="font-size:12.5px; font-weight:600; color:#2C2A26;">Do 9.7.</div><div style="font-size:10.5px; color:#8B7355;">Meist trocken</div></div><span style="font-size:13px; font-weight:700; color:#7A9466;">78</span></div>
+            <div style="display:flex; align-items:center; gap:10px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:9px; padding:9px 11px;"><span style="font-size:13px; font-weight:700; width:16px;">3</span><div style="flex:1;"><div style="font-size:12.5px; font-weight:600; color:#2C2A26;">So 13.7. <span style="font-size:9px; font-weight:600; color:#C97B47; background:#FBF3E7; border:1px solid #E7D3B4; border-radius:4px; padding:1px 5px;">Tendenz</span></div><div style="font-size:10.5px; color:#8B7355;">Schauerneigung <span style="color:#B8862F;">↓ Regen</span></div></div><span style="font-size:13px; font-weight:700; color:#B8862F;">71</span></div>
+          </div>
+        </div>
+        <!-- right readout -->
+        <div class="ev-scroll" style="width:250px; flex:0 0 auto; background:#FAF6EA; border-left:1px solid #E0D6BE; overflow-y:auto; padding:14px 12px;">
+          <span style="font-size:10px; letter-spacing:2px; color:#A89A7A; font-weight:700;">RISIKO-READOUT · FR 10.7.</span>
+          <div style="margin-top:9px; background:#FFFFFF; border:1px solid #C3D2AF; border-radius:11px; padding:11px;"><div style="font-size:9px; letter-spacing:1px; color:#A89A7A; font-weight:700;">REGENRISIKO · 8–20 UHR</div><div style="font-size:14px; font-weight:700; color:#5F7A4C; margin-top:3px;">Kein Regen</div><div style="font-size:10.5px; color:#8B7355; margin-top:2px;">0,0 mm · trocken · 78 %</div></div>
+          <div style="margin-top:8px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:11px; padding:11px;"><div style="font-size:9px; letter-spacing:1px; color:#A89A7A; font-weight:700;">GEWITTERGEFAHR</div><div style="font-size:14px; font-weight:700; color:#5F7A4C; margin-top:3px;">Gering · 12 %</div><div style="font-size:10.5px; color:#8B7355; margin-top:2px;">CAPE niedrig · keine DWD-Warnung</div></div>
+          <div style="margin-top:8px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:11px; padding:11px;"><div style="font-size:9px; letter-spacing:1px; color:#A89A7A; font-weight:700;">GEFÜHLT &amp; WIND</div><div style="font-size:13px; font-weight:700; color:#2C2A26; margin-top:3px;">24–31 °C · Böen 5 m/s</div><div style="font-size:10.5px; color:#8B7355; margin-top:2px;">angenehm, kaum Wind</div></div>
+          <div style="margin-top:8px; background:#FFFFFF; border:1px solid #C3D2AF; border-radius:11px; padding:11px;"><div style="font-size:9px; letter-spacing:1px; color:#A89A7A; font-weight:700;">PLAN B · SCHWELLE &lt; 55</div><div style="font-size:14px; font-weight:700; color:#5F7A4C; margin-top:3px;">Nicht nötig</div><div style="font-size:10.5px; color:#8B7355; margin-top:2px;">Ausweich: Sa 12.7. · +15 km</div></div>
+          <div style="margin-top:14px; font-size:9.5px; color:#A89A7A; line-height:1.6;">● DWD · GeoSphere · MeteoSwiss · höhenkorrigiert · keine Tracker</div>
+        </div>
+      </div>
+    </div>
+    <p style="width:1024px; font-size:12.5px; color:#98A2AF; line-height:1.6; margin:16px 2px 0; font-weight:300;"><strong style="color:#E9ECF1; font-weight:600;">Tablet:</strong> Rail + schlankes Vorhaben-Dock + Ergebnis-Mitte (Hero, Ablauf, Rangliste) + rechter Risiko-Readout. Alle Kennzahlen &amp; Risiko-Karten erhalten.</p>
+  </article>
+
+  <!-- ============================ E3a — MOBILE WIZARD · SCHRITT 1 (Ort & Anlass) ============================ -->
+  <article id="E3a" style="width:402px;">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+      <span style="display:inline-flex; align-items:center; justify-content:center; min-width:36px; height:26px; padding:0 10px; background:#C97B47; color:#FAF6EA; border-radius:6px; font-size:13px; font-weight:700; letter-spacing:1px;">E3a</span>
+      <span style="font-size:15px; font-weight:600; color:#E9ECF1;">Mobile · Konfig 1/3 — Ort &amp; Anlass</span>
+    </div>
+    <div style="width:402px; height:860px; border-radius:36px; overflow:hidden; background:#EDE6D3; border:1px solid #E0D6BE; box-shadow:0 40px 90px -50px rgba(0,0,0,.55); position:relative; display:flex; flex-direction:column;">
+      <div style="height:44px; flex:0 0 auto; display:flex; align-items:center; justify-content:space-between; padding:0 22px; color:#2C2A26; font-size:13px; font-weight:600;"><span>19:03</span><span style="display:flex; gap:5px; align-items:center;"><svg width="16" height="11" viewBox="0 0 16 11" fill="#2C2A26"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4" y="5" width="3" height="6" rx="1"/><rect x="8" y="3" width="3" height="8" rx="1"/><rect x="12" y="1" width="3" height="10" rx="1"/></svg><svg width="22" height="11" viewBox="0 0 24 12" fill="none"><rect x="1" y="1" width="20" height="10" rx="2.5" stroke="#2C2A26"/><rect x="3" y="3" width="15" height="6" rx="1" fill="#2C2A26"/></svg></span></div>
+      <div style="flex:0 0 auto; display:flex; align-items:center; gap:10px; padding:6px 18px 12px; border-bottom:1px solid #E0D6BE;">
+        <span style="width:34px; height:34px; border-radius:10px; border:1px solid #E0D6BE; background:#FAF6EA; display:flex; align-items:center; justify-content:center; color:#8B7355;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M15 5 L8 12 L15 19" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <div style="flex:1;"><div style="font-size:9px; letter-spacing:1.5px; color:#C97B47; font-weight:700;">SCHRITT 1 VON 3 · ORT &amp; ANLASS</div><div style="font-size:16px; font-weight:700; color:#2C2A26;">Welcher Tag passt am besten?</div></div>
+      </div>
+      <div style="flex:0 0 auto; display:flex; gap:6px; padding:12px 18px 0;"><span style="flex:1; height:5px; border-radius:3px; background:#C97B47;"></span><span style="flex:1; height:5px; border-radius:3px; background:#E0D6BE;"></span><span style="flex:1; height:5px; border-radius:3px; background:#E0D6BE;"></span></div>
+      <div class="ev-scroll" style="flex:1; overflow-y:auto; padding:16px 18px 90px;">
+        <span style="font-size:10px; letter-spacing:2px; color:#A89A7A; font-weight:700;">ORT</span>
+        <div style="margin-top:9px; display:flex; align-items:center; gap:9px; background:#FFFFFF; border:1px solid #D9D0B8; border-radius:12px; padding:12px 14px;"><svg width="16" height="16" viewBox="0 0 18 18" fill="none"><circle cx="8" cy="8" r="6" stroke="#8B7355" stroke-width="1.6"/><line x1="12.5" y1="12.5" x2="16" y2="16" stroke="#8B7355" stroke-width="1.6" stroke-linecap="round"/></svg><span style="flex:1; font-size:14px; color:#2C2A26; font-weight:500;">🇩🇪 München, Bayern</span><span style="font-size:11px; color:#C97B47; font-weight:600;">Ändern</span></div>
+        <div style="display:flex; align-items:center; gap:7px; margin-top:8px; font-size:11px; color:#8B7355;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 21 C12 21 19 14.5 19 9.5 A7 7 0 0 0 5 9.5 C5 14.5 12 21 12 21 Z" stroke="#8B7355" stroke-width="1.5" stroke-linejoin="round"/><circle cx="12" cy="9.5" r="2.4" stroke="#8B7355" stroke-width="1.5"/></svg>Standort erkannt · höhenkorrigiert (519 m)</div>
+
+        <span style="display:block; font-size:10px; letter-spacing:2px; color:#A89A7A; font-weight:700; margin:20px 0 10px;">ANLASS</span>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <div style="background:#FFF7EF; border:1.5px solid #C97B47; border-radius:12px; padding:13px; display:flex; flex-direction:column; gap:8px;"><span style="width:34px; height:34px; border-radius:9px; background:#FBEFE2; display:flex; align-items:center; justify-content:center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M12 21 C7.5 21 5 17.8 5 14.5 C5 11 8 9 8.5 5.5 C11 8 10.5 10 11 11 C11.5 8.5 13 7 12.5 3 C16 5.5 19 9.5 19 14.5 C19 17.8 16.5 21 12 21 Z" fill="#E9A05C" fill-opacity=".3" stroke="#C97B47" stroke-width="1.5" stroke-linejoin="round"/></svg></span><div><div style="font-size:14px; font-weight:700; color:#2C2A26;">Grillen</div><div style="font-size:10.5px; color:#8B7355;">warm · trocken · windstill</div></div></div>
+          <div style="background:#FFFFFF; border:1px solid #E0D6BE; border-radius:12px; padding:13px; display:flex; flex-direction:column; gap:8px;"><span style="width:34px; height:34px; border-radius:9px; background:#F2EEE3; display:flex; align-items:center; justify-content:center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="8.5" cy="13" r="4.5" stroke="#8B7355" stroke-width="1.5"/><circle cx="15.5" cy="13" r="4.5" stroke="#8B7355" stroke-width="1.5"/><path d="M6.5 8 L8.5 5 L10.5 8" stroke="#8B7355" stroke-width="1.5" stroke-linejoin="round"/></svg></span><div><div style="font-size:14px; font-weight:700; color:#2C2A26;">Hochzeit</div><div style="font-size:10.5px; color:#8B7355;">3 Phasen · sanft</div></div></div>
+          <div style="background:#FFFFFF; border:1px solid #E0D6BE; border-radius:12px; padding:13px; display:flex; flex-direction:column; gap:8px;"><span style="width:34px; height:34px; border-radius:9px; background:#F2EEE3; display:flex; align-items:center; justify-content:center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M3 20 L9 8 L13 14 L16 9 L21 20 Z" stroke="#8B7355" stroke-width="1.5" stroke-linejoin="round"/></svg></span><div><div style="font-size:14px; font-weight:700; color:#2C2A26;">Wandern</div><div style="font-size:10.5px; color:#8B7355;">Sicht · Regen · Wind</div></div></div>
+          <div style="background:#FFFFFF; border:1px solid #E0D6BE; border-radius:12px; padding:13px; display:flex; flex-direction:column; gap:8px;"><span style="width:34px; height:34px; border-radius:9px; background:#F2EEE3; display:flex; align-items:center; justify-content:center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="2.5" stroke="#8B7355" stroke-width="1.5"/><g stroke="#8B7355" stroke-width="1.5"><ellipse cx="6" cy="7" rx="3" ry="1.6"/><ellipse cx="18" cy="7" rx="3" ry="1.6"/><ellipse cx="6" cy="17" rx="3" ry="1.6"/><ellipse cx="18" cy="17" rx="3" ry="1.6"/></g><path d="M8 8 L10.5 11 M16 8 L13.5 11 M8 16 L10.5 13 M16 16 L13.5 13" stroke="#8B7355" stroke-width="1.3"/></svg></span><div><div style="font-size:14px; font-weight:700; color:#2C2A26;">Drohne</div><div style="font-size:10.5px; color:#8B7355;">Böen · Sicht · Regen</div></div></div>
+          <div style="background:#FFFFFF; border:1px solid #E0D6BE; border-radius:12px; padding:13px; display:flex; flex-direction:column; gap:8px;"><span style="width:34px; height:34px; border-radius:9px; background:#F2EEE3; display:flex; align-items:center; justify-content:center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M4 8 H7 L9 5.5 H15 L17 8 H20 A1 1 0 0 1 21 9 V18 A1 1 0 0 1 20 19 H4 A1 1 0 0 1 3 18 V9 A1 1 0 0 1 4 8 Z" stroke="#8B7355" stroke-width="1.5" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.5" stroke="#8B7355" stroke-width="1.5"/></svg></span><div><div style="font-size:14px; font-weight:700; color:#2C2A26;">Fotografie</div><div style="font-size:10.5px; color:#8B7355;">Licht · Wolken</div></div></div>
+          <div style="background:#FFFFFF; border:1px solid #E0D6BE; border-radius:12px; padding:13px; display:flex; flex-direction:column; gap:8px;"><span style="width:34px; height:34px; border-radius:9px; background:#F2EEE3; display:flex; align-items:center; justify-content:center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M12 3 L13.6 8.4 L19 8.6 L14.7 12 L16.2 17.4 L12 14.2 L7.8 17.4 L9.3 12 L5 8.6 L10.4 8.4 Z" stroke="#8B7355" stroke-width="1.4" stroke-linejoin="round"/></svg></span><div><div style="font-size:14px; font-weight:700; color:#2C2A26;">Sterne</div><div style="font-size:10.5px; color:#8B7355;">klarer Himmel · dunkel</div></div></div>
+        </div>
+      </div>
+      <div style="position:absolute; left:0; right:0; bottom:0; padding:12px 18px 22px; background:#FAF6EA; border-top:1px solid #E0D6BE; display:flex; gap:10px;">
+        <a href="#E3" style="flex:0 0 auto; font-family:inherit; font-size:13px; font-weight:600; color:#8B7355; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:11px; padding:12px 18px; text-decoration:none;">Überspringen</a>
+        <a href="#E3b" style="flex:1; display:flex; align-items:center; justify-content:center; gap:7px; font-family:inherit; font-size:13.5px; font-weight:600; color:#FAF6EA; background:#C97B47; border-radius:11px; padding:12px; text-decoration:none;">Weiter <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M5 12 H19 M13 6 L19 12 L13 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+      </div>
+      <div style="position:absolute; bottom:6px; left:50%; transform:translateX(-50%); width:130px; height:5px; border-radius:3px; background:#C4B896;"></div>
+    </div>
+    <p style="width:402px; font-size:12.5px; color:#98A2AF; line-height:1.6; margin:16px 2px 0; font-weight:300;"><strong style="color:#E9ECF1; font-weight:600;">Konfig 1/3:</strong> Ort (Suche/Standort, höhenkorrigiert) + Anlass-Auswahl als Kachel-Grid. Weiter → E3b.</p>
+  </article>
+
+  <!-- ============================ E3b — MOBILE WIZARD · SCHRITT 2 (Zeitfenster & Phasen) ============================ -->
+  <article id="E3b" style="width:402px;">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+      <span style="display:inline-flex; align-items:center; justify-content:center; min-width:36px; height:26px; padding:0 10px; background:#C97B47; color:#FAF6EA; border-radius:6px; font-size:13px; font-weight:700; letter-spacing:1px;">E3b</span>
+      <span style="font-size:15px; font-weight:600; color:#E9ECF1;">Mobile · Konfig 2/3 — Zeitfenster &amp; Phasen</span>
+    </div>
+    <div style="width:402px; height:860px; border-radius:36px; overflow:hidden; background:#EDE6D3; border:1px solid #E0D6BE; box-shadow:0 40px 90px -50px rgba(0,0,0,.55); position:relative; display:flex; flex-direction:column;">
+      <div style="height:44px; flex:0 0 auto; display:flex; align-items:center; justify-content:space-between; padding:0 22px; color:#2C2A26; font-size:13px; font-weight:600;"><span>19:03</span><span style="display:flex; gap:5px; align-items:center;"><svg width="16" height="11" viewBox="0 0 16 11" fill="#2C2A26"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4" y="5" width="3" height="6" rx="1"/><rect x="8" y="3" width="3" height="8" rx="1"/><rect x="12" y="1" width="3" height="10" rx="1"/></svg><svg width="22" height="11" viewBox="0 0 24 12" fill="none"><rect x="1" y="1" width="20" height="10" rx="2.5" stroke="#2C2A26"/><rect x="3" y="3" width="15" height="6" rx="1" fill="#2C2A26"/></svg></span></div>
+      <div style="flex:0 0 auto; display:flex; align-items:center; gap:10px; padding:6px 18px 12px; border-bottom:1px solid #E0D6BE;">
+        <a href="#E3a" style="width:34px; height:34px; border-radius:10px; border:1px solid #E0D6BE; background:#FAF6EA; display:flex; align-items:center; justify-content:center; color:#8B7355; text-decoration:none;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M15 5 L8 12 L15 19" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+        <div style="flex:1;"><div style="font-size:9px; letter-spacing:1.5px; color:#C97B47; font-weight:700;">SCHRITT 2 VON 3 · ZEITFENSTER &amp; PHASEN</div><div style="font-size:16px; font-weight:700; color:#2C2A26;">Wann hast du Zeit?</div></div>
+      </div>
+      <div style="flex:0 0 auto; display:flex; gap:6px; padding:12px 18px 0;"><span style="flex:1; height:5px; border-radius:3px; background:#C97B47;"></span><span style="flex:1; height:5px; border-radius:3px; background:#C97B47;"></span><span style="flex:1; height:5px; border-radius:3px; background:#E0D6BE;"></span></div>
+      <div class="ev-scroll" style="flex:1; overflow-y:auto; padding:16px 18px 90px;">
+        <span style="font-size:10px; letter-spacing:2px; color:#A89A7A; font-weight:700;">ZEITRAUM</span>
+        <div style="display:flex; gap:8px; margin-top:9px;"><span style="flex:1; text-align:center; font-size:12.5px; font-weight:600; color:#FAF6EA; background:#C97B47; border-radius:9px; padding:9px 0;">Zeitraum</span><span style="flex:1; text-align:center; font-size:12.5px; font-weight:500; color:#8B7355; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:9px; padding:9px 0;">Einzeltermine</span></div>
+        <div style="display:flex; gap:8px; margin-top:9px;">
+          <div style="flex:1; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:11px; padding:11px 13px;"><div style="font-size:9px; color:#A89A7A; letter-spacing:1px;">VON</div><div style="font-size:16px; font-weight:700; color:#2C2A26; margin-top:2px;">8. Juli</div></div>
+          <div style="flex:1; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:11px; padding:11px 13px;"><div style="font-size:9px; color:#A89A7A; letter-spacing:1px;">BIS</div><div style="font-size:16px; font-weight:700; color:#2C2A26; margin-top:2px;">15. Juli</div></div>
+        </div>
+        <div style="font-size:11px; color:#8B7355; margin-top:8px;">7 Tage werden verglichen · DE bis ~7 Tage, AT/CH bis ~2,5 Tage</div>
+
+        <span style="display:block; font-size:10px; letter-spacing:2px; color:#A89A7A; font-weight:700; margin:20px 0 10px;">PHASEN · VORLAGE</span>
+        <div style="display:flex; flex-wrap:wrap; gap:7px;">
+          <span style="font-size:12.5px; font-weight:600; color:#FAF6EA; background:#C97B47; border-radius:9px; padding:8px 13px;">Ganzer Tag</span>
+          <span style="font-size:12.5px; font-weight:500; color:#5C5447; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:9px; padding:8px 13px;">Vormittag</span>
+          <span style="font-size:12.5px; font-weight:500; color:#5C5447; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:9px; padding:8px 13px;">Nachmittag</span>
+          <span style="font-size:12.5px; font-weight:500; color:#5C5447; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:9px; padding:8px 13px;">Abend</span>
+          <span style="font-size:12.5px; font-weight:500; color:#5C5447; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:9px; padding:8px 13px;">Kernnacht</span>
+          <span style="display:inline-flex; align-items:center; gap:6px; font-size:12.5px; font-weight:600; color:#C97B47; background:#FFF7EF; border:1px solid #E7C6A6; border-radius:9px; padding:8px 13px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="8.5" cy="14" r="4" stroke="#C97B47" stroke-width="1.5"/><circle cx="15.5" cy="14" r="4" stroke="#C97B47" stroke-width="1.5"/></svg>Hochzeit (3 Phasen)</span>
+        </div>
+        <div style="margin-top:14px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:12px; padding:14px;">
+          <div style="font-size:15px; font-weight:700; color:#2C2A26;">Ganzer Tag</div>
+          <div style="height:1px; background:#EDE6D3; margin:11px 0;"></div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span style="width:56px; height:52px; border:1px solid #E0D6BE; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:700; color:#2C2A26;">8</span>
+            <span style="font-size:18px; color:#A89A7A;">–</span>
+            <span style="width:56px; height:52px; border:1px solid #E0D6BE; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:700; color:#2C2A26;">20</span>
+            <span style="font-size:14px; color:#8B7355;">Uhr</span>
+          </div>
+        </div>
+        <button style="width:100%; margin-top:10px; display:flex; align-items:center; justify-content:center; gap:7px; font-family:inherit; font-size:13px; font-weight:600; color:#C97B47; background:#FFF7EF; border:1px dashed #E7C6A6; border-radius:11px; padding:11px; cursor:pointer;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 5 V19 M5 12 H19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Phase hinzufügen</button>
+      </div>
+      <div style="position:absolute; left:0; right:0; bottom:0; padding:12px 18px 22px; background:#FAF6EA; border-top:1px solid #E0D6BE; display:flex; gap:10px;">
+        <a href="#E3a" style="flex:0 0 auto; font-family:inherit; font-size:13px; font-weight:600; color:#8B7355; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:11px; padding:12px 18px; text-decoration:none;">Zurück</a>
+        <a href="#E3c" style="flex:1; display:flex; align-items:center; justify-content:center; gap:7px; font-family:inherit; font-size:13.5px; font-weight:600; color:#FAF6EA; background:#C97B47; border-radius:11px; padding:12px; text-decoration:none;">Weiter <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M5 12 H19 M13 6 L19 12 L13 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+      </div>
+      <div style="position:absolute; bottom:6px; left:50%; transform:translateX(-50%); width:130px; height:5px; border-radius:3px; background:#C4B896;"></div>
+    </div>
+    <p style="width:402px; font-size:12.5px; color:#98A2AF; line-height:1.6; margin:16px 2px 0; font-weight:300;"><strong style="color:#E9ECF1; font-weight:600;">Konfig 2/3:</strong> Zeitraum vs. Einzeltermine, Phasen-Vorlagen (inkl. Hochzeit 3 Phasen) + Stundenfenster, „Phase hinzufügen". Zurück → E3a · Weiter → E3c.</p>
+  </article>
+
+  <!-- ============================ E3c — MOBILE WIZARD · SCHRITT 3 (Plan B) ============================ -->
+  <article id="E3c" style="width:402px;">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+      <span style="display:inline-flex; align-items:center; justify-content:center; min-width:36px; height:26px; padding:0 10px; background:#C97B47; color:#FAF6EA; border-radius:6px; font-size:13px; font-weight:700; letter-spacing:1px;">E3c</span>
+      <span style="font-size:15px; font-weight:600; color:#E9ECF1;">Mobile · Konfig 3/3 — Plan B</span>
+    </div>
+    <div style="width:402px; height:860px; border-radius:36px; overflow:hidden; background:#EDE6D3; border:1px solid #E0D6BE; box-shadow:0 40px 90px -50px rgba(0,0,0,.55); position:relative; display:flex; flex-direction:column;">
+      <div style="height:44px; flex:0 0 auto; display:flex; align-items:center; justify-content:space-between; padding:0 22px; color:#2C2A26; font-size:13px; font-weight:600;"><span>19:03</span><span style="display:flex; gap:5px; align-items:center;"><svg width="16" height="11" viewBox="0 0 16 11" fill="#2C2A26"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4" y="5" width="3" height="6" rx="1"/><rect x="8" y="3" width="3" height="8" rx="1"/><rect x="12" y="1" width="3" height="10" rx="1"/></svg><svg width="22" height="11" viewBox="0 0 24 12" fill="none"><rect x="1" y="1" width="20" height="10" rx="2.5" stroke="#2C2A26"/><rect x="3" y="3" width="15" height="6" rx="1" fill="#2C2A26"/></svg></span></div>
+      <div style="flex:0 0 auto; display:flex; align-items:center; gap:10px; padding:6px 18px 12px; border-bottom:1px solid #E0D6BE;">
+        <a href="#E3b" style="width:34px; height:34px; border-radius:10px; border:1px solid #E0D6BE; background:#FAF6EA; display:flex; align-items:center; justify-content:center; color:#8B7355; text-decoration:none;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M15 5 L8 12 L15 19" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+        <div style="flex:1;"><div style="font-size:9px; letter-spacing:1.5px; color:#C97B47; font-weight:700;">SCHRITT 3 VON 3 · PLAN B <span style="color:#A89A7A;">· OPTIONAL</span></div><div style="font-size:16px; font-weight:700; color:#2C2A26;">Falls es doch nicht hält</div></div>
+      </div>
+      <div style="flex:0 0 auto; display:flex; gap:6px; padding:12px 18px 0;"><span style="flex:1; height:5px; border-radius:3px; background:#C97B47;"></span><span style="flex:1; height:5px; border-radius:3px; background:#C97B47;"></span><span style="flex:1; height:5px; border-radius:3px; background:#C97B47;"></span></div>
+      <div class="ev-scroll" style="flex:1; overflow-y:auto; padding:16px 18px 90px;">
+        <p style="font-size:13px; color:#5C5447; line-height:1.55; margin:0;">Lege eine klare Schwelle fest, ab der dir ein Plan B (z. B. Zelt oder Innenraum) empfohlen wird — plus Ausweichtag und -ort, falls dein Wunschtermin nicht hält.</p>
+        <div style="margin-top:14px; background:#FFFFFF; border:1px solid #C97B47; border-radius:12px; padding:14px;">
+          <div style="display:flex; align-items:center; justify-content:space-between;"><span style="font-size:14px; font-weight:700; color:#2C2A26;">Plan-B-Schwelle aktivieren</span><span style="width:38px; height:22px; border-radius:12px; background:#C97B47; position:relative; flex:0 0 auto;"><span style="position:absolute; top:2.5px; right:2.5px; width:17px; height:17px; border-radius:50%; background:#FFFFFF;"></span></span></div>
+        </div>
+        <div style="margin-top:12px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:12px; padding:14px;">
+          <div style="display:flex; align-items:baseline; justify-content:space-between;"><span style="font-size:12px; font-weight:600; color:#2C2A26;">Schwelle</span><span style="font-size:15px; font-weight:700; color:#C97B47;">Score &lt; 55</span></div>
+          <div style="position:relative; height:6px; background:#E0D6BE; border-radius:3px; margin-top:12px;"><div style="position:absolute; left:0; width:55%; top:0; bottom:0; background:#C97B47; border-radius:3px;"></div><div style="position:absolute; left:55%; top:50%; transform:translate(-50%,-50%); width:18px; height:18px; border-radius:50%; background:#C97B47; border:3px solid #FFFFFF; box-shadow:0 1px 4px rgba(0,0,0,.2);"></div></div>
+          <div style="display:flex; justify-content:space-between; font-size:10px; color:#A89A7A; margin-top:7px;"><span>kritisch (30)</span><span>okay (55)</span><span>gut (80)</span></div>
+        </div>
+        <div style="display:flex; gap:10px; margin-top:12px;">
+          <div style="flex:1; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:12px; padding:13px;"><div style="display:flex; align-items:center; gap:7px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5" stroke="#8B7355" stroke-width="1.5"/><line x1="3.5" y1="9.5" x2="20.5" y2="9.5" stroke="#8B7355" stroke-width="1.5"/></svg><span style="font-size:9px; letter-spacing:1px; color:#A89A7A; font-weight:600;">AUSWEICHTAG</span></div><div style="font-size:15px; font-weight:700; color:#2C2A26; margin-top:6px;">Sa 12. Juli</div></div>
+          <div style="flex:1; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:12px; padding:13px;"><div style="display:flex; align-items:center; gap:7px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 21 C12 21 19 14.5 19 9.5 A7 7 0 0 0 5 9.5 C5 14.5 12 21 12 21 Z" stroke="#8B7355" stroke-width="1.5" stroke-linejoin="round"/><circle cx="12" cy="9.5" r="2.4" stroke="#8B7355" stroke-width="1.5"/></svg><span style="font-size:9px; letter-spacing:1px; color:#A89A7A; font-weight:600;">AUSWEICHORT</span></div><div style="font-size:15px; font-weight:700; color:#2C2A26; margin-top:6px;">+15 km Umkreis</div></div>
+        </div>
+        <div style="margin-top:12px; background:#FBF3E7; border:1px solid #E7D3B4; border-radius:11px; padding:12px; font-size:11.5px; color:#5C5447; line-height:1.55;"><span style="color:#C97B47; font-weight:700;">Hinweis:</span> Ausweichtag &amp; -ort nutzen dieselben nativen Behörden-Quellen (DWD · GeoSphere · MeteoSwiss) — kein Konto, keine Tracker.</div>
+      </div>
+      <div style="position:absolute; left:0; right:0; bottom:0; padding:12px 18px 22px; background:#FAF6EA; border-top:1px solid #E0D6BE; display:flex; gap:10px;">
+        <a href="#E3b" style="flex:0 0 auto; font-family:inherit; font-size:13px; font-weight:600; color:#8B7355; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:11px; padding:12px 18px; text-decoration:none;">Zurück</a>
+        <a href="#E3" style="flex:1; display:flex; align-items:center; justify-content:center; gap:7px; font-family:inherit; font-size:13.5px; font-weight:600; color:#FAF6EA; background:#C97B47; border-radius:11px; padding:12px; text-decoration:none;">Beste Tage finden <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M5 12 H19 M13 6 L19 12 L13 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+      </div>
+      <div style="position:absolute; bottom:6px; left:50%; transform:translateX(-50%); width:130px; height:5px; border-radius:3px; background:#C4B896;"></div>
+    </div>
+    <p style="width:402px; font-size:12.5px; color:#98A2AF; line-height:1.6; margin:16px 2px 0; font-weight:300;"><strong style="color:#E9ECF1; font-weight:600;">Konfig 3/3:</strong> Plan-B-Schwelle (Score-Slider) + Ausweichtag &amp; -ort. „Beste Tage finden" → Resultat E3. Zurück → E3b.</p>
+  </article>
+
+  <!-- ============================ E3 — MOBILE RESULTAT ============================ -->
+  <article id="E3" style="width:402px;">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+      <span style="display:inline-flex; align-items:center; justify-content:center; min-width:36px; height:26px; padding:0 10px; background:#C97B47; color:#FAF6EA; border-radius:6px; font-size:13px; font-weight:700; letter-spacing:1px;">E3</span>
+      <span style="font-size:15px; font-weight:600; color:#E9ECF1;">Mobile · Resultat — Event „Bester Tag"</span>
+    </div>
+    <div style="width:402px; height:860px; border-radius:36px; overflow:hidden; background:#EDE6D3; border:1px solid #E0D6BE; box-shadow:0 40px 90px -50px rgba(0,0,0,.55); position:relative; display:flex; flex-direction:column;">
+      <div style="height:44px; flex:0 0 auto; display:flex; align-items:center; justify-content:space-between; padding:0 22px; color:#2C2A26; font-size:13px; font-weight:600;"><span>19:03</span><span style="display:flex; gap:5px; align-items:center;"><svg width="16" height="11" viewBox="0 0 16 11" fill="#2C2A26"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4" y="5" width="3" height="6" rx="1"/><rect x="8" y="3" width="3" height="8" rx="1"/><rect x="12" y="1" width="3" height="10" rx="1"/></svg><svg width="22" height="11" viewBox="0 0 24 12" fill="none"><rect x="1" y="1" width="20" height="10" rx="2.5" stroke="#2C2A26"/><rect x="3" y="3" width="15" height="6" rx="1" fill="#2C2A26"/></svg></span></div>
+      <!-- header -->
+      <div style="flex:0 0 auto; display:flex; align-items:center; justify-content:space-between; padding:6px 18px 12px; border-bottom:1px solid #E0D6BE;">
+        <div style="display:flex; align-items:center; gap:9px;"><img src="buscosun-mark.svg" width="22" height="22" alt=""><div><div style="font-size:9px; letter-spacing:1.5px; color:#C97B47; font-weight:700;">EVENT · GRILLEN</div><div style="font-size:15px; font-weight:700; color:#2C2A26;">🇩🇪 München</div></div></div>
+        <a href="#E3a" style="font-size:11px; color:#C97B47; font-weight:600; border:1px solid #E0D6BE; border-radius:8px; padding:6px 10px; text-decoration:none;">Ändern</a>
+      </div>
+      <div class="ev-scroll" style="flex:1; overflow-y:auto; padding:14px 16px 90px;">
+        <!-- hero -->
+        <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:14px; padding:16px;">
+          <div style="display:flex; align-items:center; gap:14px;">
+            <svg width="80" height="80" viewBox="0 0 80 80" style="flex:0 0 auto;"><g transform="translate(40 40)"><circle r="31" fill="none" stroke="#E0D6BE" stroke-width="8"/><circle r="31" fill="none" stroke="#7A9466" stroke-width="8" stroke-linecap="round" stroke-dasharray="187 195" transform="rotate(-90)"/><text text-anchor="middle" y="4" font-size="23" font-weight="700" fill="#2C2A26" font-family="League Spartan">96</text><text text-anchor="middle" y="17" font-size="7" letter-spacing="2" fill="#A89A7A" font-family="League Spartan">SCORE</text></g></svg>
+            <div><span style="font-size:10px; letter-spacing:1.5px; color:#C97B47; font-weight:700;">BESTER TAG FÜR GRILLEN</span><h3 style="font-size:23px; font-weight:700; color:#2C2A26; letter-spacing:-0.6px; margin:4px 0 0;">Freitag, 10. Juli</h3><span style="display:inline-flex; align-items:center; gap:5px; font-size:10.5px; font-weight:600; color:#5F7A4C; background:#EFF3E8; border:1px solid #C3D2AF; border-radius:7px; padding:4px 8px; margin-top:6px;">Konfidenz Hoch · 78 %</span></div>
+          </div>
+          <p style="font-size:13px; color:#5C5447; margin:12px 0 0; line-height:1.5;">Durchgehend trocken, angenehme 29 °C und kaum Wind — passt zu Grillen.</p>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px;">
+            <div style="background:#FFFFFF; border:1px solid #C3D2AF; border-radius:10px; padding:10px;"><div style="display:flex; align-items:center; gap:5px;"><span style="width:6px;height:6px;border-radius:50%;background:#7A9466;"></span><span style="font-size:9px; color:#A89A7A;">NIEDERSCHLAG</span></div><div style="font-size:16px; font-weight:700; color:#2C2A26; margin-top:3px;">0 mm <span style="font-size:8px; font-weight:700; color:#C97B47;">WICHTIGSTE</span></div></div>
+            <div style="background:#FFFFFF; border:1px solid #C3D2AF; border-radius:10px; padding:10px;"><div style="display:flex; align-items:center; gap:5px;"><span style="width:6px;height:6px;border-radius:50%;background:#7A9466;"></span><span style="font-size:9px; color:#A89A7A;">TEMPERATUR</span></div><div style="font-size:16px; font-weight:700; color:#2C2A26; margin-top:3px;">29 °C</div></div>
+            <div style="background:#FFFFFF; border:1px solid #C3D2AF; border-radius:10px; padding:10px;"><div style="display:flex; align-items:center; gap:5px;"><span style="width:6px;height:6px;border-radius:50%;background:#7A9466;"></span><span style="font-size:9px; color:#A89A7A;">WIND</span></div><div style="font-size:16px; font-weight:700; color:#2C2A26; margin-top:3px;">1,8 m/s</div></div>
+            <div style="background:#FFFFFF; border:1px solid #E7D3B4; border-radius:10px; padding:10px;"><div style="display:flex; align-items:center; gap:5px;"><span style="width:6px;height:6px;border-radius:50%;background:#D4A373;"></span><span style="font-size:9px; color:#A89A7A;">BEWÖLKUNG</span></div><div style="font-size:16px; font-weight:700; color:#2C2A26; margin-top:3px;">40 %</div></div>
+          </div>
+          <div style="display:flex; gap:8px; margin-top:12px;"><button style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; font-family:inherit; font-size:12.5px; font-weight:600; color:#FAF6EA; background:#2C2A26; border:none; border-radius:10px; padding:11px 0; cursor:pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><line x1="3" y1="9" x2="21" y2="9"/></svg>Kalender</button><button style="flex:1; font-family:inherit; font-size:12.5px; font-weight:600; color:#2C2A26; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:10px; padding:11px 0; cursor:pointer;">Link teilen</button></div>
+        </div>
+        <!-- ablauf -->
+        <div style="font-size:10px; letter-spacing:2px; color:#A89A7A; font-weight:700; margin:16px 2px 8px;">ABLAUF AM BESTEN TAG</div>
+        <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:12px; padding:12px;">
+          <div style="display:flex; gap:3px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:8px; padding:3px; margin-bottom:10px;"><span style="flex:1; text-align:center; font-size:11px; font-weight:600; color:#FAF6EA; background:#C97B47; border-radius:6px; padding:6px 0;">Temp</span><span style="flex:1; text-align:center; font-size:11px; font-weight:500; color:#8B7355; border-radius:6px; padding:6px 0;">Regen</span><span style="flex:1; text-align:center; font-size:11px; font-weight:500; color:#8B7355; border-radius:6px; padding:6px 0;">Wind</span></div>
+          <svg viewBox="0 0 360 140" style="width:100%; height:auto;" font-family="League Spartan">
+            <rect x="30" y="20" width="322" height="90" rx="9" fill="#FFFFFF" stroke="#E0D6BE"/>
+            <g stroke="#EDE6D3"><line x1="30" y1="50" x2="352" y2="50"/><line x1="30" y1="80" x2="352" y2="80"/></g>
+            <g fill="#A89A7A" font-size="9" text-anchor="end"><text x="26" y="23">32°</text><text x="26" y="83">24°</text><text x="26" y="110">16°</text></g>
+            <path d="M30 98 Q100 90 160 74 Q230 56 290 50 Q325 54 352 62 L352 110 L30 110 Z" fill="#C97B47" fill-opacity=".12"/>
+            <path d="M30 98 Q100 90 160 74 Q230 56 290 50 Q325 54 352 62" fill="none" stroke="#C97B47" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+            <circle cx="290" cy="50" r="5" fill="#FFFFFF" stroke="#C97B47" stroke-width="2.5"/>
+            <g transform="translate(290 34)"><rect x="-20" y="-10" width="40" height="16" rx="8" fill="#2C2A26"/><text y="1" text-anchor="middle" font-size="9" font-weight="600" fill="#FAF6EA">29°</text></g>
+            <g fill="#A89A7A" font-size="9" text-anchor="middle"><text x="30" y="128">8</text><text x="160" y="128">14</text><text x="290" y="128">18</text><text x="352" y="128" text-anchor="end">Uhr</text></g>
+          </svg>
+        </div>
+        <!-- risiko readout -->
+        <div style="font-size:10px; letter-spacing:2px; color:#A89A7A; font-weight:700; margin:16px 2px 8px;">RISIKO-READOUT</div>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div style="background:#FFFFFF; border:1px solid #C3D2AF; border-radius:11px; padding:12px; display:flex; gap:11px; align-items:center;"><span style="width:34px; height:34px; border-radius:9px; background:#EFF3E8; display:flex; align-items:center; justify-content:center; flex:0 0 auto;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="5.5" fill="#E9A05C" fill-opacity=".3" stroke="#C97B47" stroke-width="1.5"/><g stroke="#C97B47" stroke-width="1.4" stroke-linecap="round"><line x1="12" y1="3" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="21"/><line x1="3" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="21" y2="12"/></g></svg></span><div style="flex:1;"><div style="font-size:9px; letter-spacing:1px; color:#A89A7A; font-weight:700;">REGENRISIKO · 8–20 UHR</div><div style="font-size:14px; font-weight:700; color:#5F7A4C;">Kein Regen erwartet</div><div style="font-size:10.5px; color:#8B7355;">0,0 mm · trocken · Sicherheit 78 %</div></div></div>
+          <div style="background:#FFFFFF; border:1px solid #E0D6BE; border-radius:11px; padding:12px;"><div style="font-size:9px; letter-spacing:1px; color:#A89A7A; font-weight:700;">GEWITTERGEFAHR</div><div style="font-size:14px; font-weight:700; color:#5F7A4C; margin-top:2px;">Gering · 12 %</div><div style="font-size:10.5px; color:#8B7355; margin-top:1px;">CAPE niedrig · keine amtliche DWD-Warnung</div></div>
+          <div style="background:#FFFFFF; border:1px solid #E0D6BE; border-radius:11px; padding:12px;"><div style="font-size:9px; letter-spacing:1px; color:#A89A7A; font-weight:700;">GEFÜHLT &amp; WIND · GANZER TAG</div><div style="font-size:14px; font-weight:700; color:#2C2A26; margin-top:2px;">24–31 °C · Böen 5 m/s</div><div style="font-size:10.5px; color:#8B7355; margin-top:1px;">angenehm warm, kaum Wind</div></div>
+          <div style="background:#FFFFFF; border:1px solid #C3D2AF; border-radius:11px; padding:12px; display:flex; gap:11px; align-items:center;"><span style="width:34px; height:34px; border-radius:9px; background:#EFF3E8; display:flex; align-items:center; justify-content:center; flex:0 0 auto;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 11 L12 5.5 L18 11 V19 A1 1 0 0 1 17 20 H7 A1 1 0 0 1 6 19 Z" stroke="#7A9466" stroke-width="1.5" stroke-linejoin="round"/><path d="M9.5 20 V14.5 H14.5 V20" stroke="#7A9466" stroke-width="1.5" stroke-linejoin="round"/></svg></span><div style="flex:1;"><div style="font-size:9px; letter-spacing:1px; color:#A89A7A; font-weight:700;">PLAN B · SCHWELLE &lt; 55</div><div style="font-size:14px; font-weight:700; color:#5F7A4C;">Nicht nötig</div><div style="font-size:10.5px; color:#8B7355;">Ausweich: Sa 12.7. · +15 km (Innenraum)</div></div></div>
+        </div>
+        <!-- rangliste -->
+        <div style="font-size:10px; letter-spacing:2px; color:#A89A7A; font-weight:700; margin:16px 2px 8px;">RANGLISTE · 5 VON 7 BEWERTET</div>
+        <div style="display:flex; flex-direction:column; gap:7px;">
+          <div style="display:flex; align-items:center; gap:11px; background:#FFFFFF; border:1px solid #C3D2AF; border-radius:10px; padding:10px 12px;"><span style="font-size:14px; font-weight:700; width:16px;">1</span><div style="flex:1;"><div style="font-size:12.5px; font-weight:600; color:#2C2A26;">Fr 10.7. <span style="font-size:9px; font-weight:700; color:#FAF6EA; background:#7A9466; border-radius:4px; padding:1px 6px;">Bester</span></div><div style="font-size:10.5px; color:#8B7355;">Trocken, angenehm warm</div></div><span style="font-size:14px; font-weight:700; color:#7A9466;">96</span></div>
+          <div style="display:flex; align-items:center; gap:11px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:10px; padding:10px 12px;"><span style="font-size:14px; font-weight:700; width:16px;">2</span><div style="flex:1;"><div style="font-size:12.5px; font-weight:600; color:#2C2A26;">Do 9.7.</div><div style="font-size:10.5px; color:#8B7355;">Meist trocken, wechselhaft</div></div><span style="font-size:14px; font-weight:700; color:#7A9466;">78</span></div>
+          <div style="display:flex; align-items:center; gap:11px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:10px; padding:10px 12px;"><span style="font-size:14px; font-weight:700; width:16px;">3</span><div style="flex:1;"><div style="font-size:12.5px; font-weight:600; color:#2C2A26;">So 13.7. <span style="font-size:9px; font-weight:600; color:#C97B47; background:#FBF3E7; border:1px solid #E7D3B4; border-radius:4px; padding:1px 5px;">Tendenz</span></div><div style="font-size:10.5px; color:#8B7355;">Schauerneigung <span style="color:#B8862F;">↓ Regen</span></div></div><span style="font-size:14px; font-weight:700; color:#B8862F;">71</span></div>
+        </div>
+        <p style="font-size:10px; color:#A89A7A; margin:14px 0 0; text-align:center; line-height:1.6;">● DWD · GeoSphere · MeteoSwiss · höhenkorrigiert · keine Tracker</p>
+      </div>
+      <!-- bottom nav -->
+      <div style="position:absolute; left:0; right:0; bottom:0; height:74px; background:#FAF6EA; border-top:1px solid #E0D6BE; display:flex; justify-content:space-around; align-items:flex-start; padding-top:10px;">
+        <div style="display:flex; flex-direction:column; align-items:center; gap:4px; color:#8B7355;"><svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M12 3 L21 8 L12 13 L3 8 Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M3 13 L12 18 L21 13" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg><span style="font-size:10px;">Karte</span></div>
+        <div style="display:flex; flex-direction:column; align-items:center; gap:4px; color:#8B7355;"><svg width="21" height="21" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/><path d="M12 3 A9 9 0 0 1 21 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg><span style="font-size:10px;">Radar</span></div>
+        <div style="display:flex; flex-direction:column; align-items:center; gap:4px; color:#C97B47;"><svg width="21" height="21" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5" stroke="currentColor" stroke-width="1.6"/><line x1="3.5" y1="9.5" x2="20.5" y2="9.5" stroke="currentColor" stroke-width="1.6"/><path d="M8 14 L11 17 L16.5 12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span style="font-size:10px; font-weight:600;">Event</span></div>
+        <div style="display:flex; flex-direction:column; align-items:center; gap:4px; color:#8B7355;"><svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M12 4 L14.3 9.2 L20 9.7 L15.7 13.5 L17 19 L12 16 L7 19 L8.3 13.5 L4 9.7 L9.7 9.2 Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg><span style="font-size:10px;">Favoriten</span></div>
+      </div>
+      <div style="position:absolute; bottom:6px; left:50%; transform:translateX(-50%); width:130px; height:5px; border-radius:3px; background:#C4B896;"></div>
+    </div>
+    <p style="width:402px; font-size:12.5px; color:#98A2AF; line-height:1.6; margin:16px 2px 0; font-weight:300;"><strong style="color:#E9ECF1; font-weight:600;">Mobile:</strong> Vertikaler Fluss — bester-Tag-Hero (Score, Faktoren, Aktionen), Ablauf-Diagramm, Risiko-Readout (Regen, Gewitter, Komfort, Plan B), Rangliste; sticky Bottom-Nav. Vorhaben oben im Header, „Ändern" öffnet den Wizard.</p>
+  </article>
+
+</section>
+</x-dc>
+</body>
+</html>

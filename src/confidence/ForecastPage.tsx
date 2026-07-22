@@ -6,24 +6,13 @@
  * Übereinstimmung mehrerer unabhängiger Modelle (US-6.1/6.2).
  */
 
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
+import { useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import type { Location } from '../types';
 import { geocodeDACH, flagForCountry } from '../geocode';
-import { fetchMultiModelForecast, type MultiModelForecast } from './multiModel';
-import { fetchForecastHistory, type ForecastHistory } from './forecastHistory';
-import { buildDayVMs, firstLowConfidenceDay, buildStabilityMap } from './forecastView';
-import { fetchHitRate, type HitRateData } from './hitRate';
-import { sourceRanking, simpleLabel, confidenceFactor } from './hitRateModel';
-import ConfidenceCards from './ConfidenceCards';
-import ModelCompare from './ModelCompare';
-import DayDetail from './DayDetail';
-import HitRatePanel from './HitRatePanel';
-import MosPanel from '../ml/MosPanel';
+import ForecastDeck from './ForecastDeck';
 import '../intro/intro.css';
 import '../route/tourTheme.css';
 import './forecast.css';
-
-const DISCOVERY_KEY = 'buscosun.forecast.stabilityDiscovered.v1';
 
 /** Möglichkeiten-Stichpunkte des Idle-Kopfs (Aufbau wie das Regenradar). */
 const FC_INTRO_CAPS = [
@@ -51,79 +40,16 @@ function IconHowTo() {
 
 interface Props { onBack: () => void }
 
-type State =
-  | { kind: 'idle' }
-  | { kind: 'loading' }
-  | { kind: 'ready'; forecast: MultiModelForecast }
-  | { kind: 'error'; message: string };
-
+/**
+ * Orchestriert nur noch Idle-/Standortschritt vs. das Command-Deck: ohne Ort der
+ * Regenradar-artige Idle-Kopf (Eyebrow → Headline → Stichpunkte → Suche →
+ * „So geht's"), mit Ort das vollflächige `ForecastDeck` (Topbar · Rail · Dock ·
+ * Center · Readout). Der gesamte Datenlebenszyklus liegt im Deck.
+ */
 export default function ForecastPage({ onBack }: Props) {
   const [location, setLocation] = useState<Location | null>(null);
-  const [state, setState] = useState<State>({ kind: 'idle' });
-  const [history, setHistory] = useState<ForecastHistory | null>(null);
-  const [hitData, setHitData] = useState<HitRateData | null>(null);
-  const [selected, setSelected] = useState(0);
-  const [showDiscovery, setShowDiscovery] = useState<boolean>(() => {
-    try { return localStorage.getItem(DISCOVERY_KEY) !== '1'; } catch { return true; }
-  });
-  function dismissDiscovery() { setShowDiscovery(false); try { localStorage.setItem(DISCOVERY_KEY, '1'); } catch { /* ignore */ } }
-  const acRef = useRef<AbortController | null>(null);
 
-  useEffect(() => {
-    if (!location) { setState({ kind: 'idle' }); return; }
-    acRef.current?.abort();
-    const ac = new AbortController();
-    acRef.current = ac;
-    setState({ kind: 'loading' });
-    setSelected(0);
-    setHistory(null);
-    setHitData(null);
-    (async () => {
-      try {
-        // Modellvergleich (Pflicht) + Verlaufshistorie (optional) parallel.
-        const [fcRes, histRes] = await Promise.allSettled([
-          fetchMultiModelForecast(location.lat, location.lon, ac.signal),
-          fetchForecastHistory(location.lat, location.lon, ac.signal),
-        ]);
-        if (ac.signal.aborted) return;
-        if (fcRes.status === 'rejected') {
-          setState({ kind: 'error', message: fcRes.reason instanceof Error ? fcRes.reason.message : 'Modelldaten nicht erreichbar' });
-          return;
-        }
-        setState({ kind: 'ready', forecast: fcRes.value });
-        setHistory(histRes.status === 'fulfilled' ? histRes.value : null);
-      } catch (err) {
-        if (ac.signal.aborted) return;
-        setState({ kind: 'error', message: err instanceof Error ? err.message : 'Modelldaten nicht erreichbar' });
-      }
-    })();
-    return () => ac.abort();
-  }, [location]);
-
-  // Treffsicherheit/Rückblick separat & lazy (datenintensiv, blockiert den
-  // ersten Paint nicht). US-7.1 ff.
-  useEffect(() => {
-    if (!location) { setHitData(null); return; }
-    const ac = new AbortController();
-    fetchHitRate(location.lat, location.lon, ac.signal)
-      .then((d) => { if (!ac.signal.aborted) setHitData(d); })
-      .catch((err) => { if (err?.name !== 'AbortError') setHitData(null); });
-    return () => ac.abort();
-  }, [location]);
-
-  // Beste jüngste Temperatur-Trefferquote (Lead 1, 7 Tage) → Laien-Label (US-7.2)
-  // und Confidence-Faktor (US-7.5).
-  const bestTempMae = useMemo(() => {
-    if (!hitData) return NaN;
-    const best = sourceRanking(hitData, 'temp', 1, 7).scores.find((s) => Number.isFinite(s.raw));
-    return best ? best.raw : NaN;
-  }, [hitData]);
-  const hitLabel = useMemo(() => simpleLabel(bestTempMae), [bestTempMae]);
-  const hitFactor = useMemo(() => confidenceFactor(bestTempMae), [bestTempMae]);
-
-  const days = useMemo(() => (state.kind === 'ready' ? buildDayVMs(state.forecast, hitFactor) : []), [state, hitFactor]);
-  const lowDay = useMemo(() => firstLowConfidenceDay(days), [days]);
-  const stabMap = useMemo(() => (history ? buildStabilityMap(history) : null), [history]);
+  if (location) return <ForecastDeck location={location} setLocation={setLocation} onBack={onBack} />;
 
   return (
     <div className="rt-page fc-page">
@@ -133,7 +59,7 @@ export default function ForecastPage({ onBack }: Props) {
           <span className="rt-nav-logo-mark" /><span className="rt-nav-logo-name">buscosun</span>
         </a>
         <div className="rt-nav-right">
-          <span className="rt-nav-live fc-live">{state.kind === 'ready' ? `${state.forecast.models.length} Quellen aktiv` : 'Modellvergleich'}</span>
+          <span className="rt-nav-live fc-live">Modellvergleich</span>
           <span className="rt-nav-avatar">JK</span>
         </div>
       </nav>
@@ -141,89 +67,29 @@ export default function ForecastPage({ onBack }: Props) {
       <main className="rt-container">
         {/* Idle-Kopf ohne Standort: Aufbau wie das Regenradar — Eyebrow → Headline
             → Body → Stichpunkte → Suche → „So geht's". Sobald ein Ort gewählt ist,
-            wird die Suche kompakt (Chip) und die Ergebnisse übernehmen. */}
-        {!location ? (
-          <section className="rt-section fc-lead" style={{ ['--intro-accent']: 'var(--fc-sage)' } as CSSProperties}>
-            <div className="fc-lead-copy">
-              <span className="intro-eyebrow">Vorhersage-Sicherheit &amp; Modellvergleich</span>
-              <h1 className="fc-lead-title">Wie verlässlich ist die Vorhersage?</h1>
-              <p className="intro-body">
-                Mehrere unabhängige Wettermodelle für deinen Ort — wo sie sich einig sind, ist die Prognose verlässlich.
-              </p>
-              <ul className="intro-caps">
-                {FC_INTRO_CAPS.map((c) => (
-                  <li key={c}><span className="intro-caps-mark" aria-hidden="true"><IconCheck /></span>{c}</li>
-                ))}
-              </ul>
-              <div className="fc-lead-search">
-                <span className="rt-eyebrow fc-eyebrow">Standort</span>
-                <ForecastLocationField value={location} onChange={setLocation} />
-              </div>
-              <p className="intro-howto">
-                <span className="intro-howto-ic" aria-hidden="true"><IconHowTo /></span>
-                <span><strong>So geht’s:</strong> Ort wählen und auf die Spannweite achten — eng heißt sicher.</span>
-              </p>
-            </div>
-          </section>
-        ) : (
-          <section className="rt-section">
-            <ForecastLocationField value={location} onChange={setLocation} />
-          </section>
-        )}
-
-        {location && state.kind === 'loading' && (
-          <div className="rt-card fc-state"><span className="ev-spinner" /> <p>Mehrere Modelle werden abgeglichen …</p></div>
-        )}
-        {location && state.kind === 'error' && (
-          <div className="rt-card fc-state"><p>⚠ {state.message}</p></div>
-        )}
-
-        {state.kind === 'ready' && days.length > 0 && (
-          <>
-            {showDiscovery && stabMap && (
-              <div className="fc-discovery">
-                <span className="fc-discovery-icon">✦</span>
-                <div>
-                  <strong>Neu: Vorhersage-Stabilität</strong>
-                  <p>Jede Tageskarte zeigt jetzt einen Chip „Stabil / Wechselhaft" — wie sehr sich die Prognose über die letzten Läufe noch bewegt. <em>Stabil heißt nicht automatisch richtig.</em></p>
-                </div>
-                <button type="button" className="fc-discovery-close" onClick={dismissDiscovery} aria-label="Hinweis schließen">✕</button>
-              </div>
-            )}
-
-            <div className="fc-block-head">
-              <span className="rt-eyebrow fc-eyebrow">7 Tage · Sicherheit sinkt mit Vorlaufzeit</span>
-            </div>
-            {hitData && Number.isFinite(bestTempMae) && (
-              <div className={`fc-hitlabel is-${hitLabel.tone}`}>
-                <span className="fc-hitlabel-glyph">{hitLabel.glyph}</span>
-                <span className="fc-hitlabel-text">{hitLabel.text}</span>
-                <span className="fc-hitlabel-sub">— Rückblick der letzten Tage</span>
-              </div>
-            )}
-
-            <ConfidenceCards days={days} selected={selected} onSelect={setSelected} stab={stabMap} />
-
-            <ModelCompare forecast={state.forecast} vm={days[selected]} />
-
-            <DayDetail
-              forecast={state.forecast}
-              vm={days[selected]}
-              lowDay={lowDay}
-              history={history}
-              stab={stabMap?.get(days[selected].day.dateISO) ?? null}
-            />
-
-            {hitData && <HitRatePanel data={hitData} />}
-
-            {location && <MosPanel location={location} live={state.forecast} />}
-
-            <p className="fc-foot">
-              Sicherheit aus der Übereinstimmung von {state.forecast.models.length} unabhängigen Modellen
-              ({state.forecast.models.map((m) => m.label).join(' · ')}). Stufen: Hoch ≥ 70 %, Mittel 40–69 %, Niedrig &lt; 40 %.
+            übernimmt das Command-Deck. */}
+        <section className="rt-section fc-lead" style={{ ['--intro-accent']: 'var(--fc-sage)' } as CSSProperties}>
+          <div className="fc-lead-copy">
+            <span className="intro-eyebrow">Vorhersage-Sicherheit &amp; Modellvergleich</span>
+            <h1 className="fc-lead-title">Wie verlässlich ist die Vorhersage?</h1>
+            <p className="intro-body">
+              Mehrere unabhängige Wettermodelle für deinen Ort — wo sie sich einig sind, ist die Prognose verlässlich.
             </p>
-          </>
-        )}
+            <ul className="intro-caps">
+              {FC_INTRO_CAPS.map((c) => (
+                <li key={c}><span className="intro-caps-mark" aria-hidden="true"><IconCheck /></span>{c}</li>
+              ))}
+            </ul>
+            <div className="fc-lead-search">
+              <span className="rt-eyebrow fc-eyebrow">Standort</span>
+              <ForecastLocationField value={location} onChange={setLocation} />
+            </div>
+            <p className="intro-howto">
+              <span className="intro-howto-ic" aria-hidden="true"><IconHowTo /></span>
+              <span><strong>So geht’s:</strong> Ort wählen und auf die Spannweite achten — eng heißt sicher.</span>
+            </p>
+          </div>
+        </section>
       </main>
     </div>
   );

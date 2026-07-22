@@ -55,6 +55,107 @@
   --border-medium:  #D9D0B8;
   --border-strong:  #C4B896;
 
+  /* === Event-Planer „Command-Deck" (hell) — Farbwerte aus eventplaner.dc.html.
+     Additiv; nur vom Event-Deck genutzt. Sand/Ink + Terracotta/Sage/Amber. === */
+  --evd-terra-tint:    #FFF7EF;  /* aktive Anlass-Kachel / Terracotta-Fläche */
+  --evd-terra-chip:    #FBEFE2;  /* Icon-Chip hinter aktivem Anlass */
+  --evd-terra-border:  #E7C6A6;  /* Rahmen Terracotta-Chips / gestrichelt */
+  --evd-terra-border2: #D9A87E;  /* gestrichelter „+ Phase"-Rahmen (Dock) */
+  --evd-neutral-chip:  #F2EEE3;  /* Icon-Chip neutral (inaktive Anlass-Kachel) */
+  --evd-sage-tint:     #EFF3E8;  /* Sage-Fläche (Konfidenz, Regen-OK) */
+  --evd-sage-border:   #C3D2AF;  /* Sage-Rahmen */
+  --evd-sage-text:     #5F7A4C;  /* Sage-Text (gut / geprüft) */
+  --evd-amber-tint:    #FBF3E7;  /* Amber-Fläche (Hinweis) */
+  --evd-amber-tint2:   #FBF6EC;  /* Amber-Fläche 2 (Komfort-Kacheln) */
+  --evd-amber-border:  #E7D3B4;  /* Amber-Rahmen */
+  --evd-amber-border2: #EAD9BC;  /* Amber-Rahmen 2 */
+  --evd-okay:          #B8862F;  /* „okay" (Amber-Text/Balken) */
+  --evd-critical:      #B5482E;  /* „kritisch" (Terracotta-Text) */
+  --evd-flame:         #E9A05C;  /* Flammen-Füllung */
+  --evd-amber-bar:     #C08A45;  /* Amber-Score-Balken */
+  --evd-rail-icon:     #E0A567;  /* aktives Rail-Icon (Amber auf Ink) */
+  --evd-radar-bg:      #0B0E12;  /* dunkles Kartenfeld im Resultat */
+
+  /* === Historie „Command-Deck" (hell) — Farbwerte aus references/historie.dc.html.
+     Additiv; nur vom Historie-Deck genutzt. Sand/Ink + Steel/Terracotta. === */
+  --hd-brief-fg:     #F5F1E8;  /* Haupttext im Briefing-Strip (auf Ink) */
+  --hd-brief-muted:  #B7AE9C;  /* Sub-Text im Briefing-Strip */
+  --hd-brief-label:  #8B8474;  /* Telemetrie-Labels im Briefing-Strip */
+  --hd-brief-line:   #47433B;  /* Trennlinien im Briefing-Strip */
+  --hd-steel-border: #C7D6E4;  /* Rahmen Steel-Kacheln/-Karten */
+  --hd-steel-chip:   #EAF1F7;  /* Icon-Chip Steel */
+  --hd-hot:          #C0492F;  /* Rekord heiß / Terracotta-Rot */
+  --hd-hot-border:   #E7C6A6;  /* Rahmen Hitze-Rekordkarte */
+  --hd-hot-chip:     #FBEAD9;  /* Icon-Chip Hitze */
+  --hd-cold:         #3A6FA8;  /* Rekord kalt (= Steel) */
+  --hd-sun:          #E8A33D;  /* Sonnen-Icon / Stundenverlauf-Linie */
+  --hd-hero-tint:    #F6DEC8;  /* Hero-Verlauf (Rückblick) Start */
+  --hd-place-record: #F0E2CC;  /* Einordnung: Rekordbereich */
+  --hd-place-normal: #CFE0C4;  /* Einordnung: typischer Bereich (p10–p90) */
+  --hd-rail-steel:   #A9C7E4;  /* aktives Rail-Icon im Rückblick (Steel) */
+  --hd-rail-amber:   #E0A567;  /* aktives Rail-Icon in Veränderung (Amber) */
+  --hd-chip-neutral: #F4EFE3;  /* neutraler Chip-Hintergrund (Diagramm-Box) */
+
+  /* === Vertikalschnitt „Command-Deck" (hell) — Farbwerte aus references/vertikalschnitt.dc.html.
+     Additiv; nur vom Vertikalschnitt-Deck genutzt. Sand/Ink + Steel/Terracotta/Sage,
+     plus Gefahr-Rot (Böen/NO-GO) und Slate-Blaus (Kaltluftsee/Inversion). === */
+  --vs-danger:       #D7263D;  /* Böen / NO-GO / Windband > 60 */
+  --vs-danger-tint:  #FBE9E4;  /* NO-GO-Hero-Fläche */
+  --vs-danger-line:  #E8C9BD;  /* Trennlinie im NO-GO-Hero */
+  --vs-nogo-band:    #E4A2A2;  /* NO-GO-Zeitband-Fläche */
+  --vs-nogo-ink:     #8A1C1C;  /* Text auf NO-GO-Band */
+  --vs-go-tint:      #ECF1E6;  /* GO-Fenster-Fläche (sage tint) */
+  --vs-valley:       #6B8198;  /* Tal-/Kaltluft-Marker (Slate) */
+  --vs-coldpool:     #7C93A8;  /* Kaltluftsee-Volumen */
+  --vs-inv-line:     #9BB0C4;  /* Inversionshöhe-Kurve/Fläche */
+  --vs-ridge-1:      #6E624B;  /* Inversions-Szene: vorderer Grat */
+  --vs-ridge-2:      #746850;  /* mittlerer Grat */
+  --vs-ridge-3:      #827458;  /* hinterer Grat */
+  --vs-sun:          #F4C969;  /* Sonnenscheibe */
+  --vs-sun-halo:     #F0B94E;  /* Sonnenhof */
+  --vs-amber-card:   #F8F2E2;  /* Amber-Hinweis-Karte (Inversion) */
+  --vs-scene-1:      #F6E9CE;  /* Inversions-Szene Verlauf oben */
+  --vs-scene-2:      #EFEAD8;  /* Mitte */
+  --vs-scene-3:      #E6E3D2;  /* unten */
+  --vs-plot-1:       #EEF1F4;  /* Schnitt-Rahmen Verlauf oben */
+  --vs-plot-2:       #F6F2E8;  /* unten */
+
+  /* === Routenplaner „Command-Deck" (hell) — Farbwerte aus references/routenplaner.dc.html.
+     Additiv; nur vom Route-Deck (routeDeck.css) genutzt. Sand/Ink + Terracotta/Sage,
+     plus Format-/Warn-Chips und Wind-Relation (Rücken=Sage / Seite=Terracotta / Gegen=Rot). === */
+  --rd-content-bg:   #EDE6D3;  /* Content-Fläche (= sand-100) */
+  --rd-card:         #FAF6EA;  /* Karten/Panels (= cream-50) */
+  --rd-badge-bg:     #F6E7D8;  /* Format-/GPX-Chip-Fläche */
+  --rd-badge-border: #E3C39A;  /* Format-/GPX-Chip-Rahmen */
+  --rd-cap-tint:     #F3E3D3;  /* Möglichkeiten-Kreis (Häkchen) / Föhn-Fläche */
+  --rd-dash:         #CBB68C;  /* gestrichelter Dropzone-Rahmen */
+  --rd-dash-ico:     #C4B79A;  /* Dropzone-Wolken-Kontur */
+  --rd-warn-tint:    #FBF3E7;  /* Hinweis-/Warn-Bannerfläche */
+  --rd-warn-border:  #EAD9BE;  /* Hinweis-/Warn-Bannerrahmen */
+  --rd-warn-ink:     #9A5A2A;  /* Warn-Titel („Windwarnung"/„Föhn") */
+  --rd-red:          #A8431F;  /* Gegenwind / Ziel-Marker */
+  --rd-sage-strong:  #5F7A4C;  /* Rückenwind / geprüft (= evd-sage-text) */
+  --rd-sage-tint:    #EFF3E8;  /* Sage-Chip-Fläche (Akku/Mahlzeit-Icon) */
+  --rd-sage-border:  #C3D2AF;  /* Sage-Chip-Rahmen (AKKU-Badge) */
+  --rd-neutral-chip: #EFECE2;  /* neutraler Icon-Chip (inaktive Bewegungsart) */
+  --rd-rail-icon:    #E0A567;  /* aktives Rail-Icon (Amber auf Ink) */
+  --rd-map-bg:       #0B0E12;  /* dunkles Kartenfeld im Resultat */
+  --rd-map-border:   #232A33;  /* Rahmen der dunklen Karte */
+  --rd-steel:        #3A6FA8;  /* Regen (= steel-600) */
+  --rd-home-ind:     #C4B896;  /* Home-Indicator-Balken (Mobile) */
+
+  /* === Vorhersage / Modellvergleich „Command-Deck" (hell) — Farbwerte aus
+     references/modellvergleich.dc.html. Additiv; nur vom Forecast-Deck
+     (forecastDeck.css) genutzt. Sand/Ink + Sage-Akzent; Konfidenz-Stufen als
+     sequenzielle Skala Sage(hoch)→Amber(mittel)→Slate(niedrig), kein Rot-Grün.
+     ICON=Steel, ECMWF=Amber, GFS=Terracotta, GEM=Sage, Météo/low=Slate. === */
+  --fd-mid:        #C99A4E;  /* mittlere Konfidenz / ECMWF-Amber / „≈" */
+  --fd-mid-tint:   #F8F2E2;  /* „~ wechselhaft"-Chip-Fläche */
+  --fd-mid-ink:    #9A5A2A;  /* „~ wechselhaft"-Text (Amber-Braun) */
+  --fd-low-tint:   #EEF1F4;  /* Unsicherheits-Hinweis-Fläche (Slate) */
+  --fd-low-border: #9AA7B5;  /* Unsicherheits-Hinweis-Rahmen (Slate) */
+  --fd-spread:     #7A9466;  /* Spread-Band (Sage, 12 % Deckung) */
+
   /* === Shadows === */
   --shadow-card:   0 4px 16px rgba(44, 42, 38, 0.06);
   --shadow-float:  0 8px 32px rgba(44, 42, 38, 0.10);

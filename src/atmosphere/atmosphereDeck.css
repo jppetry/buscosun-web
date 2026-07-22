@@ -1,0 +1,288 @@
+/*
+ * Vertikalschnitt / 3D-Wetter — „Command-Deck" (hell). Sand/Ink · League Spartan ·
+ * Steel/Terracotta/Sage + Gefahr-Rot & Slate. Verbindliche Vorlage:
+ * references/vertikalschnitt.dc.html + desktop/tablet/mobile-1..3.png.
+ * Ersetzt das alte Schnitt-Layout (atm-section/td-*) vollständig.
+ *
+ * Breakpoints (Projektkonvention): Mobile ≤767 · Tablet 768–1439 · Desktop ≥1440.
+ * Farben ausschließlich über Design-Tokens (designTokens.css → --vs-*, --sand-*,
+ * --steel-*, --terracotta-*, --sage-*, --stone-*, --ink-*).
+ */
+
+/* ============================ Font-Scope + Root ============================ */
+.vsd-root {
+  font-family: 'League Spartan', var(--font-base, system-ui, sans-serif);
+  color: var(--ink-900);
+  -webkit-font-smoothing: antialiased;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--sand-100);
+  overflow: hidden;
+}
+.vsd-root *, .vsd-root *::before, .vsd-root *::after { box-sizing: border-box; }
+.vsd-root button, .vsd-root input { font-family: inherit; }
+
+.vsd-scroll { scrollbar-width: thin; scrollbar-color: var(--border-medium) transparent; }
+.vsd-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+.vsd-scroll::-webkit-scrollbar-thumb { background: var(--border-medium); border-radius: 3px; }
+
+/* ============================ Topbar ============================ */
+.vsd-topbar {
+  flex: 0 0 auto; height: 60px; display: flex; align-items: center; gap: 18px;
+  padding: 0 20px; padding-top: env(safe-area-inset-top, 0);
+  background: var(--cream-50); border-bottom: 1px solid var(--border-default);
+  box-sizing: content-box;
+}
+.vsd-brandwrap { display: flex; align-items: center; gap: 10px; }
+.vsd-brand { font-size: 19px; font-weight: 700; color: var(--ink-900); letter-spacing: -0.4px; background: none; border: none; cursor: pointer; padding: 0; }
+.vsd-topdivider { width: 1px; height: 26px; background: var(--border-default); }
+.vsd-loc { display: flex; align-items: center; gap: 9px; background: #fff; border: 1px solid var(--border-medium); border-radius: 9px; padding: 8px 13px; }
+.vsd-loc-flag { font-size: 14px; }
+.vsd-loc-name { font-size: 14px; color: var(--ink-900); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 240px; }
+.vsd-loc-change { font-size: 11px; color: var(--steel-600); font-weight: 600; cursor: pointer; background: none; border: none; padding: 0 0 0 2px; }
+.vsd-topsearch { display: flex; align-items: center; gap: 9px; flex: 1; max-width: 320px; background: #fff; border: 1px solid var(--border-medium); border-radius: 9px; padding: 8px 13px; color: var(--stone-500); }
+.vsd-topsearch input { flex: 1; border: none; outline: none; background: transparent; font-size: 14px; color: var(--ink-900); min-width: 0; }
+.vsd-topsearch-go { font-size: 12px; font-weight: 600; color: var(--steel-600); background: none; border: none; cursor: pointer; }
+.vsd-topright { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+.vsd-live { display: flex; align-items: center; gap: 7px; }
+.vsd-live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--sage-600); flex: 0 0 auto; }
+.vsd-live-txt { font-size: 11px; color: var(--evd-sage-text); font-weight: 600; white-space: nowrap; }
+.vsd-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--sand-200); color: var(--stone-600); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; }
+.vsd-toppill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; border-radius: 16px; padding: 7px 14px; cursor: pointer; border: 1px solid var(--border-default); background: var(--cream-50); color: var(--steel-600); }
+.vsd-toppill--primary { background: var(--steel-600); color: var(--cream-50); border-color: var(--steel-600); }
+.vsd-toppill:hover { border-color: var(--steel-600); }
+.vsd-toppill--primary:hover { background: var(--nc-blue-dark); }
+
+/* ============================ Body + Rail ============================ */
+.vsd-body { flex: 1; display: flex; min-height: 0; }
+.vsd-rail { width: 62px; flex: 0 0 auto; background: var(--ink-900); display: flex; flex-direction: column; align-items: center; padding: 14px 0; gap: 6px; }
+.vsd-rail-btn { width: 42px; height: 42px; border-radius: 11px; display: flex; align-items: center; justify-content: center; color: var(--stone-500); background: none; border: none; cursor: pointer; position: relative; }
+.vsd-rail-btn:hover { color: #b79a72; }
+.vsd-rail-btn--active { background: var(--ink-800); color: #A9C7E4; cursor: default; }
+.vsd-rail-btn--active::before { content: ''; position: absolute; left: -14px; top: 9px; bottom: 9px; width: 3px; border-radius: 2px; background: var(--steel-600); }
+.vsd-rail-spacer { margin-top: auto; }
+
+/* ============================ Lens-Pills (Umschalter) ============================ */
+.vsd-lenses { display: flex; gap: 6px; flex-wrap: wrap; }
+.vsd-lens { font-size: 12px; font-weight: 600; color: var(--stone-500); background: var(--cream-50); border: 1px solid var(--border-default); border-radius: 16px; padding: 7px 14px; cursor: pointer; }
+.vsd-lens:hover { border-color: var(--border-medium); }
+.vsd-lens--active { font-weight: 700; color: var(--cream-50); background: var(--steel-600); border-color: var(--steel-600); }
+
+/* ============================ Höhenwind — Dock ============================ */
+.vsd-dock { width: 300px; flex: 0 0 auto; background: var(--cream-50); border-right: 1px solid var(--border-default); overflow-y: auto; padding: 16px 14px; }
+.vsd-eyebrow { font-size: 11px; letter-spacing: 2.5px; color: var(--steel-600); font-weight: 700; text-transform: uppercase; }
+.vsd-eyebrow--mut { color: var(--stone-400); letter-spacing: 2px; }
+.vsd-dock-title { font-size: 16px; font-weight: 700; color: var(--ink-900); margin-top: 4px; }
+.vsd-toggle { display: flex; gap: 4px; margin-top: 12px; background: #fff; border: 1px solid var(--border-default); border-radius: 10px; padding: 3px; width: max-content; }
+.vsd-toggle-btn { font-size: 12px; font-weight: 600; color: var(--stone-500); border-radius: 7px; padding: 6px 14px; cursor: pointer; background: none; border: none; }
+.vsd-toggle-btn--active { font-weight: 700; color: var(--cream-50); background: var(--steel-600); }
+.vsd-toggle-btn:disabled { opacity: .45; cursor: not-allowed; }
+.vsd-note { font-size: 10.5px; color: var(--stone-500); margin-top: 6px; }
+
+.vsd-mapcard { margin-top: 14px; height: 220px; border-radius: 14px; position: relative; overflow: hidden; background: var(--sand-100); border: 1px solid var(--border-default); }
+.vsd-mapcard .maplibregl-map, .vsd-mapcard .td-map { position: absolute; inset: 0; width: 100%; height: 100%; }
+.vsd-map-badge { position: absolute; left: 10px; top: 10px; z-index: 3; display: flex; align-items: center; gap: 7px; background: var(--surface-glass-strong); border: 1px solid var(--border-default); border-radius: 14px; padding: 5px 10px; }
+.vsd-map-badge-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--steel-600); }
+.vsd-map-badge-txt { font-size: 10.5px; font-weight: 600; color: var(--ink-900); }
+.vsd-map-tour { position: absolute; left: 10px; right: 10px; bottom: 10px; z-index: 3; display: flex; align-items: center; gap: 7px; background: var(--surface-glass-strong); border: 1px solid var(--border-default); border-radius: 14px; padding: 6px 10px; cursor: pointer; color: var(--steel-600); }
+.vsd-map-tour span { font-size: 10px; font-weight: 600; }
+
+.vsd-pquery { margin-top: 14px; background: #fff; border: 1px solid var(--border-default); border-radius: 13px; padding: 14px; }
+.vsd-pquery-lab { font-size: 10px; letter-spacing: 1px; color: var(--stone-500); font-weight: 600; text-transform: uppercase; }
+.vsd-pquery-rows { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; font-size: 13px; }
+.vsd-pquery-row { display: flex; justify-content: space-between; }
+.vsd-pquery-row span { color: var(--stone-600); }
+.vsd-pquery-row b { font-weight: 700; color: var(--ink-900); }
+.vsd-pquery-row b.wind { color: var(--terracotta-500); }
+.vsd-pquery-row b.gust { color: var(--vs-danger); }
+.vsd-pquery-empty { font-size: 12px; color: var(--stone-500); margin-top: 10px; line-height: 1.5; }
+
+/* ============================ Höhenwind — Center ============================ */
+.vsd-center { flex: 1; min-width: 0; overflow-y: auto; background: var(--sand-100); padding: 18px 20px; }
+.vsd-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; }
+.vsd-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; border-radius: 16px; padding: 6px 13px; cursor: pointer; border: 1px solid var(--border-default); background: #fff; color: var(--stone-500); }
+.vsd-chip-dot { width: 9px; height: 9px; border-radius: 50%; border: 1px solid var(--border-strong); }
+.vsd-chip--active { color: var(--cream-50); background: var(--steel-600); border-color: var(--steel-600); }
+.vsd-chip--active .vsd-chip-dot { background: var(--cream-50); border-color: var(--cream-50); }
+.vsd-chip-info { margin-left: auto; display: inline-flex; align-items: center; gap: 7px; font-size: 10px; color: var(--stone-600); background: var(--cream-50); border: 1px solid var(--border-default); border-radius: 10px; padding: 6px 11px; }
+.vsd-ibadge { width: 16px; height: 16px; border-radius: 50%; background: var(--stone-500); color: var(--cream-50); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 10px; flex: 0 0 auto; }
+
+.vsd-plot { background: linear-gradient(180deg, var(--vs-plot-1), var(--vs-plot-2)); border: 1px solid var(--border-default); border-radius: 16px; padding: 16px; position: relative; }
+.vsd-plot .td-chart { width: 100%; height: auto; display: block; }
+.vsd-plot-empty { display: grid; place-items: center; text-align: center; min-height: 340px; gap: 12px; color: var(--stone-600); }
+.vsd-plot-empty strong { font-size: 15px; color: var(--ink-900); }
+.vsd-plot-empty p { margin: 0; font-size: 13px; max-width: 380px; line-height: 1.5; }
+.vsd-pickpill { position: absolute; right: 22px; top: 26px; background: var(--cream-50); border: 1.5px solid var(--border-default); border-radius: 12px; padding: 9px 12px; box-shadow: 0 6px 18px -8px rgba(0,0,0,.3); pointer-events: none; }
+.vsd-pickpill-lab { font-size: 9px; letter-spacing: .5px; color: var(--stone-500); font-weight: 600; }
+.vsd-pickpill-val { font-size: 17px; font-weight: 700; color: var(--terracotta-500); margin-top: 2px; }
+.vsd-pickpill-val small { font-size: 10px; color: var(--stone-600); font-weight: 400; }
+.vsd-pickpill-sub { font-size: 10.5px; color: var(--stone-600); }
+.vsd-pickpill-sub b { color: var(--vs-danger); }
+
+.vsd-legend { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; background: var(--cream-50); border: 1px solid var(--border-default); border-radius: 12px; padding: 12px 15px; margin-top: 12px; }
+.vsd-legend-lab { font-size: 9px; letter-spacing: 1px; color: var(--stone-500); font-weight: 600; text-transform: uppercase; }
+.vsd-legend-item { display: flex; align-items: center; gap: 5px; }
+.vsd-legend-sw { width: 22px; height: 11px; }
+.vsd-legend-item span { font-size: 10px; color: var(--stone-600); }
+.vsd-legend-div { width: 1px; height: 16px; background: var(--border-default); }
+.vsd-legend-line { width: 20px; height: 2px; background: var(--ink-900); opacity: .6; }
+.vsd-legend-line--dash { height: 0; border-top: 2px dashed var(--vs-danger); background: none; }
+
+.vsd-timedeck { background: var(--cream-50); border: 1px solid var(--border-default); border-radius: 14px; padding: 14px 16px; margin-top: 12px; }
+.vsd-timedeck-head { display: flex; align-items: baseline; justify-content: space-between; }
+.vsd-timedeck-lab { font-size: 10px; letter-spacing: 2px; color: var(--steel-600); font-weight: 700; text-transform: uppercase; }
+.vsd-timedeck-when { font-size: 12.5px; font-weight: 700; color: var(--ink-900); font-variant-numeric: tabular-nums; }
+.vsd-timedeck-row { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
+.vsd-play { width: 34px; height: 34px; border-radius: 50%; background: var(--steel-600); color: var(--cream-50); display: flex; align-items: center; justify-content: center; flex: 0 0 auto; border: none; cursor: pointer; }
+.vsd-track { flex: 1; position: relative; height: 6px; }
+.vsd-track input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 6px; border-radius: 3px; background: var(--sand-200); outline: none; margin: 0; }
+.vsd-track input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--terracotta-500); border: 3px solid var(--cream-50); cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,.2); }
+.vsd-track input[type=range]::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: var(--terracotta-500); border: 3px solid var(--cream-50); cursor: pointer; }
+.vsd-timedeck-end { font-size: 11px; color: var(--stone-500); white-space: nowrap; }
+.vsd-timedeck-ticks { display: flex; justify-content: space-between; font-size: 9px; color: var(--stone-500); margin-top: 6px; }
+.vsd-caption { font-size: 11px; color: var(--stone-500); margin: 12px 2px 0; text-align: center; }
+
+/* ============================ Inversion ============================ */
+.vsd-inv-head { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 14px; }
+.vsd-inv-title { font-size: 20px; font-weight: 700; color: var(--ink-900); margin-top: 3px; }
+.vsd-inv-row { display: flex; gap: 16px; align-items: stretch; }
+.vsd-scene { flex: 1; min-width: 0; border-radius: 16px; overflow: hidden; border: 1px solid var(--border-default); position: relative; background: linear-gradient(180deg, var(--vs-scene-1), var(--vs-scene-2) 55%, var(--vs-scene-3)); }
+.vsd-scene svg { width: 100%; height: 100%; display: block; }
+.vsd-scene-rotate { position: absolute; right: 14px; bottom: 14px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.vsd-scene-rotate span:first-child { width: 40px; height: 40px; border-radius: 50%; background: var(--surface-glass-strong); border: 1px solid var(--border-default); display: flex; align-items: center; justify-content: center; }
+.vsd-scene-rotate span:last-child { font-size: 9px; color: var(--stone-500); }
+.vsd-inv-cards { width: 360px; flex: 0 0 auto; display: flex; flex-direction: column; gap: 12px; }
+.vsd-card { background: #fff; border: 1px solid var(--border-default); border-radius: 16px; padding: 16px; }
+.vsd-card-lab { font-size: 10px; letter-spacing: 1px; color: var(--stone-500); font-weight: 600; text-transform: uppercase; }
+.vsd-tdiff-row { display: flex; justify-content: space-between; align-items: baseline; margin-top: 10px; }
+.vsd-tdiff-row span { font-size: 13px; color: var(--stone-600); }
+.vsd-tdiff-hi { font-size: 22px; font-weight: 700; color: var(--amber-500); }
+.vsd-tdiff-lo { font-size: 22px; font-weight: 700; color: var(--vs-valley); }
+.vsd-card-rule { height: 1px; background: var(--border-default); margin: 12px 0; }
+.vsd-tdiff-sum { display: flex; justify-content: space-between; align-items: baseline; }
+.vsd-tdiff-sum b { font-size: 14px; font-weight: 700; color: var(--ink-900); }
+.vsd-tdiff-sum .k { font-size: 28px; font-weight: 700; color: var(--terracotta-500); }
+.vsd-tdiff-note { font-size: 11px; color: var(--stone-500); margin-top: 4px; }
+.vsd-hint { border: 1px solid var(--border-default); border-radius: 16px; padding: 14px; display: flex; gap: 11px; background: #fff; }
+.vsd-hint--amber { background: var(--vs-amber-card); }
+.vsd-hint-ico { width: 26px; height: 26px; border-radius: 50%; background: var(--stone-500); color: var(--cream-50); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; flex: 0 0 auto; }
+.vsd-hint-ico--sq { width: 28px; height: 28px; border-radius: 8px; background: var(--sand-100); color: var(--vs-valley); }
+.vsd-hint-title { font-size: 13px; font-weight: 700; color: var(--ink-900); }
+.vsd-hint-text { font-size: 11px; color: var(--stone-600); margin-top: 4px; line-height: 1.5; }
+.vsd-hint-fine { font-size: 10px; font-style: italic; color: var(--stone-500); margin-top: 6px; }
+.vsd-invday { background: var(--cream-50); border: 1px solid var(--border-default); border-radius: 14px; padding: 14px 16px; margin-top: 12px; }
+.vsd-invday-head { display: flex; align-items: baseline; justify-content: space-between; }
+.vsd-invday-body { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
+
+/* ============================ Go/No-Go — Dock ============================ */
+.vsd-dock--wide { width: 466px; }
+.vsd-hero { margin-top: 14px; background: var(--vs-danger-tint); border: 2px solid var(--terracotta-500); border-radius: 18px; padding: 18px; }
+.vsd-hero--go { background: var(--vs-go-tint); border-color: var(--sage-600); }
+.vsd-hero-top { display: flex; align-items: center; gap: 16px; }
+.vsd-hero-badge { flex: 0 0 auto; display: flex; align-items: center; justify-content: center; }
+.vsd-hero-status { font-size: 38px; font-weight: 700; line-height: 1; color: var(--vs-danger); }
+.vsd-hero--go .vsd-hero-status { color: var(--evd-sage-text); }
+.vsd-hero-sub { font-size: 14px; font-weight: 600; color: var(--ink-900); margin-top: 6px; }
+.vsd-hero-rule { height: 1px; background: var(--vs-danger-line); margin: 16px 0; }
+.vsd-hero--go .vsd-hero-rule { background: var(--evd-sage-border); }
+.vsd-hero-metric { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px; }
+.vsd-hero-metric span { color: var(--stone-600); }
+.vsd-hero-metric b { font-weight: 700; color: var(--ink-900); }
+.vsd-hero-metric b.over { color: var(--vs-danger); }
+.vsd-hero-window { display: flex; align-items: center; gap: 11px; background: var(--vs-go-tint); border-radius: 10px; padding: 9px 12px; margin-top: 14px; }
+.vsd-hero-window-ic { width: 22px; height: 22px; border-radius: 50%; background: var(--sage-600); color: var(--cream-50); display: flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+.vsd-hero-window span { font-size: 13px; color: var(--ink-900); }
+
+.vsd-fh { margin-top: 12px; background: #fff; border: 1px solid var(--border-default); border-radius: 14px; padding: 14px; }
+.vsd-fh-body { display: flex; align-items: center; gap: 14px; margin-top: 10px; flex-wrap: wrap; }
+.vsd-fh-box { flex: 0 0 auto; display: flex; align-items: baseline; gap: 8px; background: var(--sand-50); border: 1px solid var(--border-strong); border-radius: 12px; padding: 10px 16px; }
+.vsd-fh-box input { width: 58px; border: none; outline: none; background: transparent; font-size: 28px; font-weight: 700; color: var(--ink-900); }
+.vsd-fh-box span { font-size: 14px; color: var(--stone-600); }
+.vsd-fh-quick { flex: 1; min-width: 150px; }
+.vsd-fh-quick-lab { font-size: 10px; letter-spacing: 1px; color: var(--stone-500); font-weight: 600; margin-bottom: 6px; text-transform: uppercase; }
+.vsd-fh-quick-row { display: flex; gap: 6px; }
+.vsd-qbtn { font-size: 11px; color: var(--stone-600); background: var(--cream-50); border: 1px solid var(--border-default); border-radius: 13px; padding: 6px 12px; cursor: pointer; }
+.vsd-qbtn--active { font-weight: 600; color: var(--cream-50); background: var(--steel-600); border-color: var(--steel-600); }
+
+.vsd-limits { margin-top: 12px; background: #fff; border: 1px solid var(--border-default); border-radius: 14px; padding: 14px; }
+.vsd-limits-rows { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.vsd-limit { display: flex; align-items: center; justify-content: space-between; background: var(--sand-50); border: 1px solid var(--border-default); border-radius: 10px; padding: 9px 12px; }
+.vsd-limit span { font-size: 12.5px; color: var(--stone-600); }
+.vsd-limit b { font-size: 13px; font-weight: 700; color: var(--ink-900); }
+.vsd-limit input { width: 52px; border: 1px solid var(--border-default); border-radius: 7px; padding: 4px 6px; text-align: right; font-size: 13px; font-weight: 700; color: var(--ink-900); background: #fff; outline: none; }
+.vsd-limit input:focus { border-color: var(--steel-600); }
+
+/* ============================ Go/No-Go — Center ============================ */
+.vsd-sec-lab { font-size: 11px; letter-spacing: 2px; color: var(--stone-400); font-weight: 700; text-transform: uppercase; margin: 0 2px 10px; }
+.vsd-sec-lab:not(:first-child) { margin-top: 20px; }
+.vsd-panel { background: var(--cream-50); border: 1px solid var(--border-default); border-radius: 16px; padding: 18px; }
+.vsd-panel svg { width: 100%; height: auto; display: block; }
+.vsd-hf-foot { display: flex; gap: 20px; margin-top: 12px; flex-wrap: wrap; }
+.vsd-hf-foot span { font-size: 12px; color: var(--stone-600); }
+.vsd-hf-foot b { color: var(--ink-900); }
+.vsd-hf-foot b.over { color: var(--vs-danger); }
+.vsd-band { display: flex; height: 44px; border-radius: 10px; overflow: hidden; border: 1px solid var(--border-default); }
+.vsd-band-seg { display: flex; align-items: center; justify-content: center; }
+.vsd-band-seg span { font-size: 11px; font-weight: 700; }
+.vsd-band-seg--go { background: var(--sage-600); }
+.vsd-band-seg--go span { color: var(--cream-50); }
+.vsd-band-seg--nogo { background: var(--vs-nogo-band); }
+.vsd-band-seg--nogo span { color: var(--vs-nogo-ink); }
+.vsd-band-ticks { display: flex; justify-content: space-between; font-size: 9.5px; color: var(--stone-500); margin-top: 7px; }
+.vsd-band-ticks .now { color: var(--vs-danger); font-weight: 700; }
+.vsd-band-legend { display: flex; align-items: center; gap: 16px; margin-top: 12px; flex-wrap: wrap; }
+.vsd-band-legend-item { display: flex; align-items: center; gap: 6px; }
+.vsd-band-legend-sw { width: 14px; height: 14px; border-radius: 4px; }
+.vsd-band-legend-item span { font-size: 11px; color: var(--stone-600); }
+.vsd-info { background: var(--cream-50); border: 1px solid var(--border-default); border-radius: 12px; padding: 12px 15px; margin-top: 12px; display: flex; align-items: center; gap: 10px; }
+.vsd-info span { font-size: 11px; color: var(--stone-600); }
+
+/* ============================ Föhn / Thermik host ============================ */
+.vsd-host { padding: 4px 2px; }
+.vsd-host .atm-foehn, .vsd-host .atm-thermal-card, .vsd-host .rt-card { max-width: 900px; }
+
+/* ============================ Loading / states ============================ */
+.vsd-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; min-height: 300px; color: var(--stone-600); }
+.vsd-loading-bar { width: 240px; height: 6px; border-radius: 3px; background: var(--sand-200); overflow: hidden; }
+.vsd-loading-fill { height: 100%; background: var(--steel-600); border-radius: 3px; transition: width .3s; }
+
+/* ============================ Tablet (768–1439) ============================ */
+@media (max-width: 1439px) {
+  .vsd-topbar { height: 54px; gap: 14px; padding: 0 16px; }
+  .vsd-brand { font-size: 17px; }
+  .vsd-rail { width: 54px; padding: 12px 0; }
+  .vsd-rail-btn { width: 38px; height: 38px; border-radius: 10px; }
+  .vsd-dock { width: 240px; padding: 14px 12px; }
+  .vsd-dock--wide { width: 300px; }
+  .vsd-center { padding: 14px 16px; }
+  .vsd-inv-cards { width: 300px; }
+  .vsd-hero-status { font-size: 32px; }
+  .vsd-fh-box input { font-size: 24px; width: 48px; }
+}
+
+/* ============================ Mobile (≤767) ============================ */
+.vsd-m-root {
+  font-family: 'League Spartan', var(--font-base, system-ui, sans-serif);
+  color: var(--ink-900); -webkit-font-smoothing: antialiased;
+  height: 100dvh; display: flex; flex-direction: column; background: var(--sand-100); overflow: hidden;
+}
+.vsd-m-root *, .vsd-m-root *::before, .vsd-m-root *::after { box-sizing: border-box; }
+.vsd-m-root button, .vsd-m-root input { font-family: inherit; }
+.vsd-m-header { flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 18px 12px; padding-top: max(env(safe-area-inset-top), 10px); border-bottom: 1px solid var(--border-default); background: var(--sand-100); }
+.vsd-m-brandrow { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.vsd-m-htext { min-width: 0; }
+.vsd-m-eyebrow { font-size: 9px; letter-spacing: 1.5px; color: var(--steel-600); font-weight: 700; text-transform: uppercase; }
+.vsd-m-title { font-size: 15px; font-weight: 700; color: var(--ink-900); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vsd-m-share { font-size: 11px; color: var(--steel-600); font-weight: 600; border: 1px solid var(--border-default); border-radius: 8px; padding: 6px 10px; background: none; cursor: pointer; flex: 0 0 auto; min-height: 40px; }
+.vsd-m-back { width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--border-default); background: var(--cream-50); display: flex; align-items: center; justify-content: center; color: var(--stone-500); flex: 0 0 auto; cursor: pointer; }
+.vsd-m-tabs { flex: 0 0 auto; display: flex; gap: 6px; overflow-x: auto; padding: 12px 16px 3px; scrollbar-width: none; }
+.vsd-m-tabs::-webkit-scrollbar { display: none; }
+.vsd-m-tab { flex: 0 0 auto; font-size: 12px; color: var(--stone-600); background: #fff; border: 1px solid var(--border-default); border-radius: 8px; padding: 9px 13px; cursor: pointer; min-height: 44px; display: inline-flex; align-items: center; }
+.vsd-m-tab--active { font-weight: 700; color: var(--cream-50); background: var(--steel-600); border-color: var(--steel-600); }
+.vsd-m-scroll { flex: 1; overflow-y: auto; padding: 14px 16px calc(24px + env(safe-area-inset-bottom)); }
+.vsd-m-scroll > * + * { margin-top: 12px; }
+.vsd-m-pgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 9px; }
+.vsd-m-pgrid-lab { font-size: 9.5px; color: var(--stone-400); }
+.vsd-m-pgrid-val { font-size: 15px; font-weight: 700; }
+.vsd-m-caption { font-size: 10px; color: var(--stone-500); line-height: 1.5; }

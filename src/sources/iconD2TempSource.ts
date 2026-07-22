@@ -17,6 +17,7 @@
 
 import {
   resolveLatestRun, fetchStepField, fetchInvariantField, gribCorners,
+  D2_GRIB_PROXY_BASE,
   type GribField,
 } from './iconD2Precip';
 import { loadElevationLookup } from '../fusion/elevation';
@@ -175,11 +176,12 @@ export async function fetchIconD2Temp(
   const wanted = steps.filter((s) => s <= MAX_STEP);
 
   // hsurf (Referenzhöhe) einmalig laden — fehlt sie, läuft es ohne Refinement.
-  const hsurf = await fetchInvariantField(runStr, 'hsurf', signal).catch(() => null);
+  // Phase T2-2: wie die Schritt-Felder über den durable-gecachten Edge-Pfad.
+  const hsurf = await fetchInvariantField(runStr, 'hsurf', signal, D2_GRIB_PROXY_BASE).catch(() => null);
 
   // Ein Feld für Bounds/Grid brauchen wir sicher: hsurf hat dasselbe Gitter,
   // sonst das erste t_2m-Feld holen.
-  const gridRef = hsurf ?? await fetchStepField(runStr, 't_2m', wanted[0], signal);
+  const gridRef = hsurf ?? await fetchStepField(runStr, 't_2m', wanted[0], signal, D2_GRIB_PROXY_BASE);
   const c = gribCorners(gridRef); // [NW, NE, SE, SW] in [lon,lat]
   const uvBounds: [number, number, number, number] = [
     lngToEquiX(c[0][0]), latToEquiY(c[0][1]), lngToEquiX(c[1][0]), latToEquiY(c[2][1]),
@@ -194,7 +196,7 @@ export async function fetchIconD2Temp(
 
   const loadStep = async (step: number): Promise<void> => {
     try {
-      const t2m = await fetchStepField(runStr, 't_2m', step, signal);
+      const t2m = await fetchStepField(runStr, 't_2m', step, signal, D2_GRIB_PROXY_BASE);
       const built = buildTempImage(t2m, hsurf, ss);
       frames.push({ validAt: new Date(runAt.getTime() + step * 3_600_000), stepHours: step, ...built });
       frames.sort((a, b) => a.stepHours - b.stepHours);
@@ -291,8 +293,10 @@ export async function fetchTempRunSpread(signal?: AbortSignal): Promise<IconD2Te
     let cur: GribField, prev: GribField;
     try {
       [cur, prev] = await Promise.all([
-        fetchStepField(latest.runStr, 't_2m', s, signal),       // i. d. R. Cache-Treffer
-        fetchStepField(prevStr, 't_2m', s + 3, signal),         // vorheriger Lauf, gleiche Gültigkeit
+        fetchStepField(latest.runStr, 't_2m', s, signal, D2_GRIB_PROXY_BASE),  // i. d. R. Cache-Treffer
+        // Vorheriger Lauf, gleiche Gültigkeit — nicht gewärmt, aber der Edge-Pfad
+        // reicht auch ungewärmte erlaubte Dateien durch (und cacht sie on-demand).
+        fetchStepField(prevStr, 't_2m', s + 3, signal, D2_GRIB_PROXY_BASE),
       ]);
     } catch { continue; } // Schritt im Vorlauf fehlt → überspringen
     if (cur.ni !== prev.ni || cur.nj !== prev.nj) continue;

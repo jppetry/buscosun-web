@@ -132,6 +132,7 @@ const PROFILES: Record<string, ActivityProfile> = {
   hiking:     { idealTemp: [12, 22], weights: { precip: 1.0, temp: 0.6, wind: 0.4, cloud: 0.25 }, cloudPref: 'any', window: 'day' },
   cycling:    { idealTemp: [12, 24], weights: { precip: 1.0, temp: 0.5, wind: 0.7, cloud: 0.2 }, cloudPref: 'any', window: 'day' },
   bbq:        { idealTemp: [19, 30], weights: { precip: 1.0, temp: 0.7, wind: 0.5, cloud: 0.5 }, cloudPref: 'low', window: 'day' },
+  drone:      { idealTemp: [2, 30], weights: { precip: 0.9, temp: 0.1, wind: 1.0, cloud: 0.4 }, cloudPref: 'any', window: 'day' },
   photo:      { idealTemp: [2, 28], weights: { precip: 0.7, temp: 0.15, wind: 0.25, cloud: 1.0 }, cloudPref: 'soft', window: 'day' },
   picnic:     { idealTemp: [17, 28], weights: { precip: 1.0, temp: 0.7, wind: 0.5, cloud: 0.45 }, cloudPref: 'low', window: 'day' },
   running:    { idealTemp: [5, 17], weights: { precip: 0.8, temp: 0.6, wind: 0.4, cloud: 0.15 }, cloudPref: 'any', window: 'day' },

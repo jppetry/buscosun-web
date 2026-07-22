@@ -1,0 +1,263 @@
+/*
+ * Vorhersage / Modellvergleich — „Command-Deck" (hell). Sand/Ink · League Spartan ·
+ * Sage-Akzent. Verbindliche Vorlage: references/modellvergleich.dc.html +
+ * desktop-modelle.png / tablet-modelle.png / mobile-modelle.png.
+ *
+ * Ersetzt das alte einspaltige rt-container-Layout (fc-lead bleibt für den
+ * Idle-/Standortschritt). Reihenfolge Vorlage: links Metrik + Quellen + Stufen,
+ * Mitte Konfidenzkarten + Agreement + Modell-Linien + Tag-Detail, rechts Readout
+ * (Regen · Stabilität · Treffsicherheit/MAE · Unsicherheits-Hinweis).
+ *
+ * Breakpoints (Projektkonvention): Mobile ≤767 · Tablet 768–1439 · Desktop ≥1440.
+ * Farben ausschließlich über Design-Tokens (designTokens.css → --fd-*, --sand-*,
+ * --sage-*, --evd-sage-*, --steel-*, --terracotta-*, --slate-*, --stone-*, --ink-*).
+ */
+
+/* ============================ Font-Scope + Root ============================ */
+.fcd-root {
+  font-family: 'League Spartan', var(--font-base, system-ui, sans-serif);
+  color: var(--ink-900);
+  -webkit-font-smoothing: antialiased;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--sand-100);
+  overflow: hidden;
+}
+.fcd-root *, .fcd-root *::before, .fcd-root *::after { box-sizing: border-box; }
+.fcd-root button, .fcd-root input { font-family: inherit; }
+
+/* Tastatur-Fokus sichtbar (Sage-Ring), Maus-Klicks bleiben ruhig. */
+.fcd-root :focus-visible, .fcd-m-root :focus-visible {
+  outline: 2px solid var(--sage-600);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+/* Auf der dunklen Ink-Rail heller Ring, damit er auf #2C2A26 lesbar bleibt. */
+.fcd-rail :focus-visible { outline-color: #A9C088; }
+
+.fcd-scroll { scrollbar-width: thin; scrollbar-color: var(--border-medium) transparent; }
+.fcd-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+.fcd-scroll::-webkit-scrollbar-thumb { background: var(--border-medium); border-radius: 3px; }
+
+/* ============================ Topbar ============================ */
+.fcd-topbar {
+  flex: 0 0 auto; height: 60px; display: flex; align-items: center; gap: 18px;
+  padding: 0 20px; padding-top: env(safe-area-inset-top, 0);
+  background: var(--cream-50); border-bottom: 1px solid var(--border-default);
+  box-sizing: content-box;
+}
+.fcd-brandwrap { display: flex; align-items: center; gap: 10px; }
+.fcd-brand { font-size: 19px; font-weight: 700; color: var(--ink-900); letter-spacing: -0.4px; background: none; border: none; cursor: pointer; padding: 0; }
+.fcd-topdivider { width: 1px; height: 26px; background: var(--border-default); }
+.fcd-loc { display: flex; align-items: center; gap: 9px; flex: 1; max-width: 400px; background: #fff; border: 1px solid var(--border-medium); border-radius: 9px; padding: 8px 13px; }
+.fcd-loc-icon { color: var(--stone-500); flex: 0 0 auto; }
+.fcd-loc-flag { font-size: 14px; }
+.fcd-loc-name { flex: 1; font-size: 14px; color: var(--ink-900); font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fcd-loc-change { font-size: 11px; color: var(--evd-sage-text); font-weight: 600; cursor: pointer; background: none; border: none; padding: 0 0 0 2px; }
+.fcd-topright { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+.fcd-live { display: flex; align-items: center; gap: 8px; }
+.fcd-live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--sage-600); flex: 0 0 auto; }
+.fcd-live-txt { font-size: 11px; letter-spacing: 1.5px; color: var(--evd-sage-text); font-weight: 600; white-space: nowrap; }
+.fcd-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--sand-200); color: var(--stone-600); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; }
+
+/* ============================ Body + Rail ============================ */
+.fcd-body { flex: 1; display: flex; min-height: 0; }
+.fcd-rail { width: 62px; flex: 0 0 auto; background: var(--ink-900); display: flex; flex-direction: column; align-items: center; padding: 14px 0; gap: 6px; }
+.fcd-rail-btn { width: 42px; height: 42px; border-radius: 11px; display: flex; align-items: center; justify-content: center; color: var(--stone-500); background: none; border: none; cursor: pointer; position: relative; }
+.fcd-rail-btn:hover { color: #b79a72; }
+.fcd-rail-btn--active { background: var(--ink-800); color: #A9C088; cursor: default; }
+.fcd-rail-btn--active::before { content: ''; position: absolute; left: -14px; top: 9px; bottom: 9px; width: 3px; border-radius: 2px; background: var(--sage-600); }
+.fcd-rail-spacer { margin-top: auto; }
+
+/* ============================ Left dock — Metrik + Quellen + Stufen ============================ */
+.fcd-dock { width: 250px; flex: 0 0 auto; background: var(--cream-50); border-right: 1px solid var(--border-default); overflow-y: auto; padding: 16px 13px; }
+.fcd-eyebrow { font-size: 11px; letter-spacing: 2px; color: var(--stone-400); font-weight: 700; text-transform: uppercase; }
+.fcd-metrics { display: flex; flex-direction: column; gap: 5px; margin: 10px 0 18px; }
+.fcd-metric { font-size: 13px; font-weight: 500; color: var(--stone-600); background: #fff; border: 1px solid var(--border-default); border-radius: 9px; padding: 9px 12px; cursor: pointer; text-align: left; }
+.fcd-metric:hover { border-color: var(--border-medium); }
+.fcd-metric--active { font-weight: 600; color: var(--cream-50); background: var(--sage-600); border-color: var(--sage-600); }
+.fcd-sources { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.fcd-source { display: flex; align-items: center; gap: 9px; background: #fff; border: 1px solid var(--border-default); border-radius: 9px; padding: 8px 10px; }
+.fcd-source--outlier { border-color: #E7D3B4; }
+.fcd-source--consensus { background: #F4EFE3; }
+.fcd-source-sw { width: 14px; height: 4px; border-radius: 2px; flex: 0 0 auto; }
+.fcd-source-name { flex: 1; font-size: 12.5px; font-weight: 600; color: var(--ink-900); white-space: nowrap; }
+.fcd-source--muted .fcd-source-name { color: var(--stone-500); font-weight: 500; }
+.fcd-source--consensus .fcd-source-name { font-weight: 700; }
+.fcd-source-warn { color: var(--terracotta-500); }
+.fcd-note { font-size: 10.5px; color: var(--stone-500); margin-top: 9px; line-height: 1.5; }
+.fcd-stufen { margin-top: 18px; background: #fff; border: 1px solid var(--border-default); border-radius: 11px; padding: 12px; }
+.fcd-stufen-lab { font-size: 10px; letter-spacing: 1.5px; color: var(--stone-400); font-weight: 700; }
+.fcd-stufen-rows { display: flex; flex-direction: column; gap: 5px; margin-top: 8px; font-size: 11px; color: var(--stone-600); }
+.fcd-stufen-rows b { font-weight: 700; }
+
+/* Toggle-Schalter im Dock — an Vorlagenmaß (28×16) angleichen. */
+.fcd-dock .fc-switch, .fcd-m-scroll .fc-switch { width: 28px; height: 16px; border-radius: 9px; background: var(--sand-200); }
+.fcd-dock .fc-switch.is-on, .fcd-m-scroll .fc-switch.is-on { background: var(--sage-600); }
+.fcd-dock .fc-switch-knob, .fcd-m-scroll .fc-switch-knob { width: 12px; height: 12px; }
+.fcd-dock .fc-switch.is-on .fc-switch-knob, .fcd-m-scroll .fc-switch.is-on .fc-switch-knob { transform: translateX(12px); }
+
+/* ============================ Center — Karten + Charts + Detail ============================ */
+.fcd-center { flex: 1; min-width: 0; overflow-y: auto; background: var(--sand-100); padding: 18px 20px; }
+.fcd-center > * + * { margin-top: 0; }
+
+.fcd-hit { display: flex; align-items: center; gap: 10px; background: var(--evd-sage-tint); border: 1px solid var(--evd-sage-border); border-radius: 11px; padding: 11px 14px; }
+.fcd-hit--mixed { background: var(--fd-mid-tint); border-color: #E4CE9C; }
+.fcd-hit--poor { background: var(--fd-low-tint); border-color: var(--fd-low-border); }
+.fcd-hit-ico { width: 26px; height: 26px; border-radius: 7px; background: var(--sage-600); color: var(--cream-50); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; flex: 0 0 auto; }
+.fcd-hit--mixed .fcd-hit-ico { background: var(--fd-mid); }
+.fcd-hit--poor .fcd-hit-ico { background: var(--slate-500); }
+.fcd-hit-txt { font-size: 14px; font-weight: 600; color: var(--ink-900); }
+.fcd-hit-sub { font-size: 12px; color: var(--stone-500); }
+
+.fcd-sec-lab { display: block; font-size: 11px; letter-spacing: 2px; color: var(--stone-400); font-weight: 700; text-transform: uppercase; margin: 18px 2px 10px; }
+.fcd-detail-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 20px 2px 10px; }
+.fcd-detail-head .fcd-sec-lab { margin: 0; }
+.fcd-detail-sub { font-size: 12px; font-weight: 600; white-space: nowrap; }
+
+/* 7-Tage-Konfidenzkarten (ConfidenceCards → fc-cards/fc-card), Deck-Overrides. */
+.fcd-center .fc-cards { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
+.fcd-center .fc-card { border-radius: 13px; padding: 12px 7px; gap: 7px; background: #fff; box-shadow: none; min-width: 0; }
+.fcd-center .fc-card-level { white-space: nowrap; }
+.fcd-center .fc-card.is-selected { border-color: var(--sage-600); border-width: 1.5px; background: var(--cream-50); }
+.fcd-center .fc-card-today { text-transform: uppercase; font-size: 8px; font-weight: 700; color: var(--cream-50); background: var(--sage-600); border-radius: 4px; padding: 1px 5px; }
+/* Vorlage: Tageskarte trägt Sparkline + Stabilitäts-Chip, KEINE Delta-Textzeile
+   (die lange „≈ stabil seit gestern"-Zeile lebt nur im Readout). Ausblenden hält
+   das 7-Spalten-Raster schmal. Chip klein & kleingeschrieben wie Vorlage. */
+.fcd-center .fc-delta { display: none; }
+.fcd-center .fc-card-stab { justify-content: center; }
+.fcd-center .fc-stab-chip { text-transform: lowercase; font-size: 8.5px; border-radius: 4px; padding: 2px 6px; }
+.fcd-center .fc-stab-chip.is-stable { color: var(--evd-sage-text); background: var(--evd-sage-tint); }
+.fcd-center .fc-stab-chip.is-volatile { color: var(--fd-mid-ink); background: var(--fd-mid-tint); }
+
+.fcd-agree { display: flex; align-items: center; gap: 12px; background: var(--evd-sage-tint); border: 1px solid var(--sage-600); border-radius: 13px; padding: 13px 16px; }
+.fcd-agree-ring { width: 34px; height: 34px; border-radius: 50%; border: 2px solid currentColor; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; flex: 0 0 auto; background: none; box-shadow: none; }
+.fcd-agree strong { display: block; font-size: 14px; color: var(--ink-900); }
+.fcd-agree p { margin: 3px 0 0; font-size: 12px; color: var(--stone-600); }
+
+.fcd-chartcard { background: var(--cream-50); border: 1px solid var(--border-default); border-radius: 14px; padding: 16px; margin-top: 12px; }
+.fcd-chartcard-title { font-size: 12px; font-weight: 600; color: var(--ink-900); margin-bottom: 10px; }
+.fcd-chartcard-title em { color: var(--stone-400); font-weight: 400; font-style: normal; }
+.fcd-chart-note { font-size: 11.5px; color: var(--stone-500); margin: 8px 0 0; }
+.fcd-chart-note .dash { border-bottom: 1px dashed var(--border-strong); }
+
+/* Preserved-Panels (HitRatePanel/MosPanel) — Abstand im Center. */
+.fcd-preserved { margin-top: 20px; display: flex; flex-direction: column; gap: 4px; }
+.fcd-preserved > * { margin-top: 0 !important; }
+
+/* ============================ Right — Readout ============================ */
+.fcd-readout { width: 330px; flex: 0 0 auto; background: var(--cream-50); border-left: 1px solid var(--border-default); overflow-y: auto; padding: 18px 16px; }
+.fcd-rd-eyebrow { font-size: 11px; letter-spacing: 2.5px; color: var(--stone-400); font-weight: 700; text-transform: uppercase; }
+.fcd-rd-card { background: #fff; border: 1px solid var(--border-default); border-radius: 13px; padding: 14px; margin-top: 12px; }
+.fcd-rd-lab { font-size: 10px; letter-spacing: 1.5px; color: var(--stone-400); font-weight: 700; text-transform: uppercase; }
+.fcd-precip-row { display: flex; align-items: baseline; gap: 10px; margin-top: 7px; }
+.fcd-precip-big { font-size: 28px; font-weight: 700; color: var(--steel-600); line-height: 1; font-variant-numeric: tabular-nums; }
+.fcd-precip-sub { font-size: 12.5px; color: var(--stone-600); }
+.fcd-precip-note { font-size: 11px; color: var(--stone-500); margin: 7px 0 0; line-height: 1.5; }
+.fcd-stab-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
+.fcd-chip { font-size: 12px; font-weight: 600; border-radius: 8px; padding: 5px 10px; white-space: nowrap; }
+.fcd-chip--stable { color: var(--evd-sage-text); background: var(--evd-sage-tint); border: 1px solid var(--evd-sage-border); }
+.fcd-chip--volatile { color: var(--fd-mid-ink); background: var(--fd-mid-tint); border: 1px solid #E4CE9C; }
+.fcd-stab-since { font-size: 11.5px; color: var(--stone-500); }
+.fcd-stab-note { font-size: 11px; color: var(--stone-500); margin: 8px 0 0; line-height: 1.5; }
+.fcd-stab-note em { font-style: italic; }
+
+.fcd-mae-intro { font-size: 11px; color: var(--stone-500); margin-bottom: 10px; }
+.fcd-mae-rows { display: flex; flex-direction: column; gap: 8px; }
+.fcd-mae-row { display: flex; align-items: center; gap: 9px; }
+.fcd-mae-name { width: 64px; font-size: 11.5px; font-weight: 600; color: var(--ink-900); white-space: nowrap; }
+.fcd-mae-bar { flex: 1; height: 8px; background: var(--sand-100); border-radius: 4px; overflow: hidden; }
+.fcd-mae-fill { height: 100%; border-radius: 4px; }
+.fcd-mae-val { font-size: 11px; color: var(--stone-600); width: 46px; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fcd-mae-note { font-size: 10.5px; color: var(--stone-400); margin: 10px 0 0; line-height: 1.5; }
+
+.fcd-hint { margin-top: 10px; background: var(--fd-low-tint); border: 1px solid var(--fd-low-border); border-radius: 13px; padding: 14px; display: flex; gap: 11px; }
+.fcd-hint-ico { width: 26px; height: 26px; border-radius: 50%; background: var(--slate-500); color: var(--cream-50); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; flex: 0 0 auto; }
+.fcd-hint strong { font-size: 13px; color: var(--ink-900); }
+.fcd-hint p { font-size: 11px; color: var(--stone-600); margin: 3px 0 0; line-height: 1.5; }
+.fcd-foot { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border-default); font-size: 10px; color: var(--stone-400); line-height: 1.7; }
+
+/* Chart-Reuse: Legende/Achsen im Deck kompakter, Karte transparent. */
+.fcd-chartcard .fc-chart-wrap { display: block; }
+.fcd-chartcard .fc-chart { width: 100%; height: auto; display: block; }
+.fcd-chartcard .fc-chart-legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 10px; font-size: 11px; color: var(--stone-600); }
+.fcd-chartcard .fc-chart-empty { padding: 2rem 1rem; text-align: center; color: var(--stone-500); font-size: 13px; }
+
+/* State (Loading/Error) — mittig im Body. */
+.fcd-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; background: var(--sand-100); color: var(--stone-600); padding: 24px; text-align: center; }
+.fcd-state p { margin: 0; font-size: 14px; }
+
+/* ============================ Tablet (768–1439) ============================
+   Grenze bei 1400 (statt 1439), damit das 1440-Desktop-Artboard zuverlässig das
+   7-Spalten-Raster erhält — die effektive CSS-Viewport-Breite liegt bei 1440-px-
+   Fenstern durch die Spalten-Scrollbars knapp unter 1440. */
+@media (max-width: 1400px) {
+  .fcd-topbar { gap: 14px; padding: 0 16px; height: 54px; }
+  .fcd-rail { width: 54px; }
+  .fcd-rail-btn { width: 38px; height: 38px; border-radius: 10px; }
+  .fcd-dock { width: 196px; padding: 14px 11px; }
+  .fcd-metric { font-size: 12.5px; padding: 8px 11px; }
+  .fcd-center { padding: 14px 16px; }
+  .fcd-readout { width: 238px; padding: 14px 12px; }
+  .fcd-precip-big { font-size: 22px; }
+  /* Konfidenzkarten: Grid → horizontaler Scroll (Vorlage V2). */
+  .fcd-center .fc-cards { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
+  .fcd-center .fc-cards::-webkit-scrollbar { height: 6px; }
+  .fcd-center .fc-card { flex: 0 0 96px; }
+}
+
+/* ============================ Mobile (≤767) ============================ */
+.fcd-m-root {
+  font-family: 'League Spartan', var(--font-base, system-ui, sans-serif);
+  color: var(--ink-900); -webkit-font-smoothing: antialiased;
+  height: 100dvh; display: flex; flex-direction: column; background: var(--sand-100); overflow: hidden;
+}
+.fcd-m-root *, .fcd-m-root *::before, .fcd-m-root *::after { box-sizing: border-box; }
+.fcd-m-root button, .fcd-m-root input { font-family: inherit; }
+.fcd-m-header { flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 18px 12px; padding-top: max(env(safe-area-inset-top), 10px); border-bottom: 1px solid var(--border-default); background: var(--sand-100); }
+.fcd-m-brandrow { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.fcd-m-htext { min-width: 0; }
+.fcd-m-eyebrow { font-size: 9px; letter-spacing: 1.5px; color: var(--evd-sage-text); font-weight: 700; text-transform: uppercase; }
+.fcd-m-title { font-size: 15px; font-weight: 700; color: var(--ink-900); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fcd-m-change { font-size: 11px; color: var(--evd-sage-text); font-weight: 600; border: 1px solid var(--border-default); border-radius: 8px; padding: 6px 12px; background: none; cursor: pointer; flex: 0 0 auto; min-height: 44px; }
+.fcd-m-scroll { flex: 1; overflow-y: auto; padding: 14px 16px calc(24px + env(safe-area-inset-bottom)); }
+.fcd-m-scroll > * + * { margin-top: 12px; }
+
+/* Prominenter ausgewählter Tag. */
+.fcd-m-hero { background: var(--cream-50); border: 1.5px solid var(--sage-600); border-radius: 14px; padding: 16px; display: flex; align-items: center; gap: 14px; }
+.fcd-m-hero-mid { flex: 1; min-width: 0; }
+.fcd-m-hero-dayrow { display: flex; align-items: center; gap: 7px; }
+.fcd-m-hero-day { font-size: 16px; font-weight: 700; color: var(--ink-900); }
+.fcd-m-hero-badge { font-size: 9px; font-weight: 700; color: var(--cream-50); background: var(--sage-600); border-radius: 4px; padding: 2px 6px; }
+.fcd-m-hero-temps { display: flex; align-items: baseline; gap: 8px; margin-top: 2px; }
+.fcd-m-hero-tmax { font-size: 30px; font-weight: 700; color: var(--ink-900); line-height: 1; font-variant-numeric: tabular-nums; }
+.fcd-m-hero-tmin { font-size: 15px; color: var(--stone-400); font-variant-numeric: tabular-nums; }
+.fcd-m-hero-right { text-align: right; flex: 0 0 auto; }
+.fcd-m-hero-pct { font-size: 22px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.fcd-m-hero-level { font-size: 11px; font-weight: 600; margin-top: 2px; }
+.fcd-m-hero-stab { display: inline-block; font-size: 9px; font-weight: 600; border-radius: 4px; padding: 2px 6px; margin-top: 4px; }
+
+/* Metrik-Tabs (horizontal scrollbar). */
+.fcd-m-tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 3px; scrollbar-width: none; }
+.fcd-m-tabs::-webkit-scrollbar { display: none; }
+.fcd-m-tab { flex: 0 0 auto; font-size: 12px; font-weight: 500; color: var(--stone-600); background: #fff; border: 1px solid var(--border-default); border-radius: 8px; padding: 10px 13px; cursor: pointer; min-height: 44px; display: inline-flex; align-items: center; }
+.fcd-m-tab--active { font-weight: 600; color: var(--cream-50); background: var(--sage-600); border-color: var(--sage-600); }
+
+/* 7-Tage-Karten (horizontal scrollbar, tippen zum Wählen). */
+.fcd-m-cardrow { display: flex; gap: 7px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+.fcd-m-cardrow::-webkit-scrollbar { display: none; }
+.fcd-m-card { flex: 0 0 92px; background: #fff; border: 1px solid var(--border-default); border-radius: 12px; padding: 11px 8px; display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; font: inherit; }
+.fcd-m-card--sel { background: var(--cream-50); border: 1.5px solid var(--sage-600); }
+.fcd-m-card-day { font-size: 13px; font-weight: 700; color: var(--ink-900); }
+.fcd-m-card-temp { font-size: 16px; font-weight: 700; color: var(--ink-900); font-variant-numeric: tabular-nums; }
+.fcd-m-card-conf { font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.fcd-m-card-stab { font-size: 8px; font-weight: 600; border-radius: 4px; padding: 1px 5px; }
+
+.fcd-m-rd-grid { display: flex; gap: 8px; }
+.fcd-m-rd-grid > * { flex: 1; margin-top: 0 !important; }
+.fcd-m-foot { font-size: 10px; color: var(--stone-400); margin: 14px 0 0; text-align: center; line-height: 1.6; }
+
+/* Stufen-Chips (stabil/wechselhaft), geteilt Hero + Karten. */
+.is-stab-stable { color: var(--evd-sage-text); background: var(--evd-sage-tint); }
+.is-stab-volatile { color: var(--fd-mid-ink); background: var(--fd-mid-tint); }

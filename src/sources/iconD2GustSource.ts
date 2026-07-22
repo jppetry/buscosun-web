@@ -12,7 +12,7 @@
  * Orografie bereits enthält). CC BY 4.0, kein API-Key.
  */
 
-import { resolveLatestRun, fetchStepField, gribCorners, type GribField } from './iconD2Precip';
+import { resolveLatestRun, fetchStepField, gribCorners, D2_GRIB_PROXY_BASE, type GribField } from './iconD2Precip';
 
 export const ICON_D2_GUST_ATTRIBUTION =
   'Windböen: <a href="https://www.dwd.de/EN/ourservices/opendata/opendata.html" ' +
@@ -88,7 +88,8 @@ export async function fetchIconD2Gust(
   const { runStr, runAt, steps } = await resolveLatestRun('vmax_10m', signal);
   const wanted = steps.filter((s) => s <= MAX_STEP);
 
-  const gridRef = await fetchStepField(runStr, 'vmax_10m', wanted[0], signal);
+  // Phase T2-2: durch den durable-gecachten Edge-Pfad (statt /_dwd_opendata).
+  const gridRef = await fetchStepField(runStr, 'vmax_10m', wanted[0], signal, D2_GRIB_PROXY_BASE);
   const c = gribCorners(gridRef); // [NW, NE, SE, SW] in [lon,lat]
   const uvBounds: [number, number, number, number] = [
     lngToEquiX(c[0][0]), latToEquiY(c[0][1]), lngToEquiX(c[1][0]), latToEquiY(c[2][1]),
@@ -99,7 +100,7 @@ export async function fetchIconD2Gust(
 
   const loadStep = async (step: number): Promise<void> => {
     try {
-      const g = await fetchStepField(runStr, 'vmax_10m', step, signal);
+      const g = await fetchStepField(runStr, 'vmax_10m', step, signal, D2_GRIB_PROXY_BASE);
       frames.push({ validAt: new Date(runAt.getTime() + step * 3_600_000), stepHours: step, ...buildGustImage(g, ss) });
       frames.sort((a, b) => a.stepHours - b.stepHours);
       if (onProgress) onProgress({ runAt, frames: [...frames], uvBounds, vMin: GUST_VMIN, vMax: GUST_VMAX });

@@ -1,0 +1,414 @@
+/*
+ * routeDeck.css — Routenplaner „Command-Deck" (hell). Sand/Ink · League Spartan ·
+ * Terracotta/Sage. Verbindliche Vorlage: references/routenplaner.dc.html +
+ * desktop/tablet/mobile-*.png. Ersetzt das alte Route-Layout (rt-page/rt-nav +
+ * Intro) vollständig durch die Command-Deck-Shell (Topbar + Ink-Rail + Content).
+ *
+ * WICHTIG: tourTheme.css ist ein GETEILTES Design-System (Atmosphäre, Forecast,
+ * Historie, Nowcast, 3D nutzen .rt-card / .ev-search). Deshalb werden die dort
+ * definierten Klassen hier NUR unter `.rd-root` überschrieben (höhere Spezifität,
+ * kein Einfluss auf andere Seiten). Neue Shell-/Screen-Klassen tragen den Präfix
+ * `rd-`. Farben ausschließlich über Tokens (designTokens.css → --rd-*, --sand-*,
+ * --terracotta-*, --sage-*, --stone-*, --ink-*).
+ *
+ * Breakpoints (Projektkonvention): Mobile ≤767 · Tablet 768–1439 · Desktop ≥1440.
+ */
+
+/* ============================ Font-Scope + Root ============================ */
+.rd-root,
+.rd-m-root {
+  font-family: 'League Spartan', var(--font-base, system-ui, sans-serif);
+  color: var(--ink-900);
+  -webkit-font-smoothing: antialiased;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--rd-content-bg);
+  overflow: hidden;
+}
+.rd-root *, .rd-root *::before, .rd-root *::after,
+.rd-m-root *, .rd-m-root *::before, .rd-m-root *::after { box-sizing: border-box; }
+.rd-root button, .rd-m-root button { font-family: inherit; }
+
+.rd-scroll { scrollbar-width: thin; scrollbar-color: var(--border-medium) transparent; }
+.rd-scroll::-webkit-scrollbar { width: 7px; height: 7px; }
+.rd-scroll::-webkit-scrollbar-thumb { background: var(--border-medium); border-radius: 4px; }
+
+/* ============================ Topbar (Desktop/Tablet) ============================ */
+.rd-topbar {
+  flex: 0 0 auto;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 0 20px;
+  padding-top: env(safe-area-inset-top, 0);
+  background: var(--rd-card);
+  border-bottom: 1px solid var(--border-default);
+  box-sizing: content-box;
+}
+.rd-brandwrap { display: flex; align-items: center; gap: 10px; }
+.rd-mark { width: 26px; height: 26px; flex: 0 0 auto; display: block; }
+.rd-brand {
+  font-size: 19px; font-weight: 700; color: var(--ink-900);
+  letter-spacing: -0.4px; background: none; border: none; cursor: pointer; padding: 0;
+}
+.rd-topdivider { width: 1px; height: 26px; background: var(--border-default); flex: 0 0 auto; }
+.rd-crumb { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.rd-back {
+  display: inline-flex; align-items: center; gap: 5px; background: none; border: none; cursor: pointer;
+  font: inherit; font-size: 12px; font-weight: 600; color: var(--terracotta-500); padding: 0; white-space: nowrap;
+}
+.rd-back:hover { color: var(--terracotta-700); }
+.rd-crumb-txt {
+  font-size: 13px; color: var(--stone-500); font-weight: 500;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
+}
+.rd-topright { margin-left: auto; display: flex; align-items: center; gap: 14px; flex: 0 0 auto; }
+.rd-live { display: flex; align-items: center; gap: 7px; }
+.rd-live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--sage-600); flex: 0 0 auto; }
+.rd-live-txt { font-size: 11px; letter-spacing: 1.5px; color: var(--rd-sage-strong); font-weight: 600; white-space: nowrap; }
+.rd-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--sand-200); color: var(--stone-600); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; }
+
+/* ============================ Body + Rail ============================ */
+.rd-body { flex: 1; display: flex; min-height: 0; }
+.rd-rail {
+  width: 62px; flex: 0 0 auto; background: var(--ink-900);
+  display: flex; flex-direction: column; align-items: center; padding: 14px 0; gap: 6px;
+}
+.rd-rail-btn {
+  width: 42px; height: 42px; border-radius: 11px; display: flex; align-items: center; justify-content: center;
+  color: var(--stone-500); background: none; border: none; cursor: pointer; position: relative; transition: color 0.15s;
+}
+.rd-rail-btn:hover { color: #b79a72; }
+.rd-rail-btn--active { background: var(--ink-800); color: var(--rd-rail-icon); cursor: default; }
+.rd-rail-btn--active::before {
+  content: ''; position: absolute; left: -14px; top: 9px; bottom: 9px;
+  width: 3px; border-radius: 2px; background: var(--terracotta-500);
+}
+.rd-rail-spacer { margin-top: auto; }
+
+/* ============================ Content-Fläche ============================ */
+.rd-content {
+  flex: 1; overflow-y: auto; background: var(--rd-content-bg);
+  padding: 40px 56px;
+  padding-bottom: max(40px, env(safe-area-inset-bottom, 0));
+}
+.rd-content--result { padding: 28px 40px; }
+.rd-content--tight { padding: 34px 56px; }
+
+@media (max-width: 1439px) {
+  .rd-topbar { height: 54px; gap: 14px; padding: 0 16px; }
+  .rd-brand { font-size: 17px; }
+  .rd-mark { width: 24px; height: 24px; }
+  .rd-rail { width: 54px; }
+  .rd-rail-btn { width: 38px; height: 38px; border-radius: 10px; }
+  .rd-content { padding: 26px 30px; }
+  .rd-content--result { padding: 22px 26px; }
+  .rd-content--tight { padding: 26px 30px; }
+}
+
+/* ============================ Mobile-Shell (<768) ============================ */
+.rd-m-header {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px; padding-top: max(12px, env(safe-area-inset-top, 0));
+  background: var(--rd-content-bg); border-bottom: 1px solid var(--border-default);
+}
+.rd-m-brand { display: flex; align-items: center; gap: 10px; }
+.rd-m-brand-name { font-size: 17px; font-weight: 700; color: var(--ink-900); background: none; border: none; padding: 0; cursor: pointer; }
+.rd-m-live { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+.rd-m-live-txt { font-size: 10.5px; color: var(--rd-sage-strong); font-weight: 600; }
+.rd-m-back {
+  width: 32px; height: 32px; border-radius: 9px; background: #fff; border: 1px solid var(--border-default);
+  display: flex; align-items: center; justify-content: center; color: var(--ink-900); cursor: pointer; flex: 0 0 auto;
+}
+.rd-m-htext { min-width: 0; }
+.rd-m-eyebrow { font-size: 9px; letter-spacing: 1.5px; color: var(--terracotta-500); font-weight: 700; text-transform: uppercase; }
+.rd-m-title { font-size: 15px; font-weight: 700; color: var(--ink-900); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rd-m-scroll {
+  flex: 1; overflow-y: auto; background: var(--rd-content-bg);
+  padding: 16px 16px calc(24px + env(safe-area-inset-bottom, 0));
+}
+
+/* ============================ Eyebrows / Labels ============================ */
+.rd-eyebrow { font-size: 11px; letter-spacing: 2.5px; color: var(--terracotta-500); font-weight: 700; text-transform: uppercase; }
+.rd-label { font-size: 11px; letter-spacing: 2px; color: var(--stone-400); font-weight: 700; text-transform: uppercase; }
+
+.rd-h2 { font-size: 30px; font-weight: 700; color: var(--ink-900); letter-spacing: -0.6px; margin: 10px 0 0; }
+.rd-p { font-size: 14px; color: var(--stone-600); font-weight: 300; margin: 8px 0 0; line-height: 1.5; }
+
+/* Fortschritts-Kopf (Schritt 1/2 von 2 …) */
+.rd-progress { display: flex; align-items: center; gap: 10px; }
+.rd-progress-bar { flex: 1; max-width: 180px; height: 4px; border-radius: 2px; background: var(--sand-200); overflow: hidden; }
+.rd-progress-bar > span { display: block; height: 100%; background: var(--terracotta-500); }
+
+/* CTA (Weiter / Wetter berechnen) */
+.rd-cta {
+  display: inline-flex; align-items: center; gap: 9px; margin-top: 20px;
+  background: var(--terracotta-500); color: var(--rd-card); border: none; border-radius: 24px;
+  padding: 14px 32px; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.15s;
+}
+.rd-cta:hover:not(:disabled) { background: var(--terracotta-700); }
+.rd-cta:disabled { opacity: 0.5; cursor: default; }
+.rd-cta svg { flex: 0 0 auto; }
+.rd-cta--full { width: 100%; justify-content: center; padding: 14px; }
+
+/* ============================ Upload-Intro (T1 / T8 / T11) ============================ */
+.rd-intro-eyebrow { font-size: 11px; letter-spacing: 3px; color: var(--terracotta-500); font-weight: 700; text-transform: uppercase; }
+.rd-intro-title { font-size: 46px; font-weight: 300; color: var(--ink-900); letter-spacing: -1.5px; margin: 10px 0 0; line-height: 1; }
+.rd-intro-body { font-size: 16px; color: var(--stone-600); font-weight: 300; margin: 16px 0 0; max-width: 560px; line-height: 1.5; }
+.rd-caps { display: flex; flex-direction: column; gap: 11px; margin: 22px 0 0; padding: 0; list-style: none; }
+.rd-caps li { display: flex; align-items: center; gap: 11px; font-size: 14px; color: #3B3833; }
+.rd-caps-mark { width: 24px; height: 24px; border-radius: 50%; background: var(--rd-cap-tint); color: var(--terracotta-500); display: flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+.rd-section-label { font-size: 11px; letter-spacing: 2.5px; color: var(--stone-400); font-weight: 700; margin: 32px 0 12px; text-transform: uppercase; }
+
+.rd-howto {
+  display: flex; align-items: center; gap: 10px; margin-top: 16px;
+  background: var(--rd-warn-tint); border: 1px solid var(--rd-warn-border); border-radius: 12px; padding: 13px 16px;
+}
+.rd-howto-ic { width: 26px; height: 26px; border-radius: 50%; background: var(--rd-cap-tint); color: var(--terracotta-500); display: flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+.rd-howto span:last-child { font-size: 13px; color: var(--stone-600); }
+.rd-howto strong { color: var(--ink-900); }
+.rd-trust { display: flex; align-items: center; gap: 8px; margin-top: 22px; font-size: 11.5px; color: var(--stone-500); }
+.rd-trust .dot { color: var(--terracotta-500); }
+
+/* ============================ Upload-Zone (RouteUpload) ============================ */
+.rd-upload { display: flex; gap: 22px; align-items: stretch; }
+.rd-dropzone-card { flex: 1; min-width: 0; background: var(--rd-card); border: 1px solid var(--border-default); border-radius: 16px; padding: 12px; }
+.rd-dropzone {
+  height: 100%; border: 2px dashed var(--rd-dash); border-radius: 12px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 44px 20px; cursor: pointer; text-align: center; position: relative; transition: border-color 0.15s, background 0.15s;
+}
+.rd-dropzone.is-dragging { border-color: var(--terracotta-500); background: rgba(201, 123, 71, 0.05); }
+.rd-dropzone.has-error { border-color: var(--rd-red); }
+.rd-dropzone-input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.rd-dropzone-title { font-size: 24px; font-weight: 700; color: var(--ink-900); margin: 18px 0 0; letter-spacing: -0.5px; }
+.rd-dropzone-or { font-size: 14px; color: var(--stone-500); margin-top: 6px; }
+.rd-dropzone-btn { margin-top: 16px; background: var(--terracotta-500); border: none; border-radius: 24px; padding: 13px 30px; color: var(--rd-card); font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
+.rd-dropzone:hover .rd-dropzone-btn { background: var(--terracotta-700); }
+.rd-dropzone-sub { font-size: 12px; color: var(--stone-400); margin-top: 16px; letter-spacing: 0.5px; }
+.rd-dropzone-error { font-size: 12.5px; color: var(--rd-red); margin-top: 12px; font-weight: 600; }
+
+.rd-formats { width: 400px; flex: 0 0 auto; background: var(--rd-card); border: 1px solid var(--border-default); border-radius: 16px; padding: 22px; }
+.rd-formats-list { display: flex; flex-direction: column; gap: 14px; margin: 16px 0 0; padding: 0; list-style: none; }
+.rd-format-row { display: flex; align-items: center; gap: 12px; }
+.rd-format-tag { width: 42px; text-align: center; font-size: 11px; font-weight: 700; color: var(--terracotta-500); background: var(--rd-badge-bg); border: 1px solid var(--rd-badge-border); border-radius: 20px; padding: 4px 0; flex: 0 0 auto; }
+.rd-format-row span:last-child { font-size: 13.5px; color: #3B3833; }
+.rd-formats-note { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-default); font-size: 12px; color: var(--stone-500); line-height: 1.7; }
+
+/* ============================ Datei-Leiste + Vorschau (T2 / T12 / T14) ============================ */
+.rd-filebar { display: flex; align-items: center; gap: 14px; background: var(--rd-card); border: 1px solid var(--border-default); border-radius: 12px; padding: 12px 16px; }
+.rd-filebar-badge { font-size: 11px; font-weight: 700; color: var(--terracotta-500); background: var(--rd-badge-bg); border: 1px solid var(--rd-badge-border); border-radius: 8px; padding: 5px 10px; flex: 0 0 auto; }
+.rd-filebar-name { font-size: 14px; font-weight: 600; color: var(--ink-900); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.rd-filebar-sub { font-size: 12px; color: var(--stone-500); flex: 0 0 auto; }
+.rd-filebar-replace { margin-left: auto; background: none; border: none; font: inherit; font-size: 12px; color: var(--terracotta-500); font-weight: 600; cursor: pointer; flex: 0 0 auto; }
+.rd-filebar-replace:hover { color: var(--terracotta-700); }
+.rd-filebar--error { border-color: var(--rd-red); }
+.rd-filebar--error .rd-filebar-sub { color: var(--rd-red); }
+
+.rd-preview-eyebrow { display: block; font-size: 11px; letter-spacing: 2.5px; color: var(--stone-400); font-weight: 700; margin: 26px 0 4px; text-transform: uppercase; }
+.rd-preview-title { font-size: 30px; font-weight: 700; color: var(--ink-900); letter-spacing: -0.6px; margin: 0; }
+
+.rd-statgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 20px; }
+.rd-stat { background: var(--rd-card); border: 1px solid var(--border-default); border-radius: 13px; padding: 16px; }
+.rd-stat-label { font-size: 10px; letter-spacing: 1.5px; color: var(--stone-400); font-weight: 700; text-transform: uppercase; }
+.rd-stat-value { font-size: 26px; font-weight: 700; color: var(--ink-900); margin-top: 5px; }
+
+.rd-elev { background: var(--rd-card); border: 1px solid var(--border-default); border-radius: 14px; padding: 20px; margin-top: 16px; }
+.rd-elev-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.rd-elev-head span:first-child { font-size: 12px; font-weight: 600; color: var(--ink-900); }
+.rd-elev-head span:last-child { font-size: 11px; color: var(--stone-500); }
+.rd-elev svg { width: 100%; height: 200px; margin-top: 12px; display: block; }
+.rd-elev-axis { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--stone-400); margin-top: 6px; }
+.rd-preview-details { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.rd-chip-info { font-size: 12px; color: var(--stone-600); background: var(--rd-card); border: 1px solid var(--border-default); border-radius: 999px; padding: 5px 12px; }
+.rd-time-range { margin: 12px 0 0; font-size: 12px; color: var(--stone-500); }
+
+/* Track-Auswahl (Mehrfach-Tracks) */
+.rd-tracks { margin-top: 16px; }
+.rd-tracks-label { display: block; font-size: 12px; color: var(--stone-500); margin-bottom: 8px; }
+.rd-tracks-options { display: flex; flex-wrap: wrap; gap: 8px; }
+.rd-track-chip { background: var(--rd-card); border: 1px solid var(--border-default); border-radius: 999px; padding: 8px 14px; font: inherit; font-size: 12.5px; color: var(--stone-600); cursor: pointer; }
+.rd-track-chip:hover { border-color: var(--border-strong); }
+.rd-track-chip.is-active { background: var(--terracotta-500); border-color: var(--terracotta-500); color: var(--rd-card); font-weight: 600; }
+.rd-status { font-size: 14px; color: var(--stone-500); margin: 16px 0; }
+.rd-status--error { color: var(--rd-red); font-weight: 600; }
+
+/* ============================ Bewegungsart-Grid (T3 / T13) — überschreibt MovementPicker ============================ */
+.rd-mvgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 26px; }
+:is(.rd-root, .rd-m-root) .rt-mvgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 26px; background: none; border: none; padding: 0; box-shadow: none; }
+:is(.rd-root, .rd-m-root) .rt-mvcard {
+  position: relative; text-align: left; cursor: pointer; display: block;
+  background: var(--rd-card); border: 1px solid var(--border-default); border-radius: 15px;
+  padding: 20px; transition: border-color 0.15s, box-shadow 0.15s;
+}
+:is(.rd-root, .rd-m-root) .rt-mvcard:hover:not(.is-active) { border-color: var(--border-strong); box-shadow: var(--shadow-card); background: var(--rd-card); }
+:is(.rd-root, .rd-m-root) .rt-mvcard.is-active { background: var(--rd-card); border: 1.5px solid var(--terracotta-500); box-shadow: none; }
+:is(.rd-root, .rd-m-root) .rt-mvcard-ico {
+  width: 44px; height: 44px; border-radius: 12px; background: var(--rd-neutral-chip);
+  display: flex; align-items: center; justify-content: center; color: var(--stone-500);
+  grid-row: auto;
+}
+:is(.rd-root, .rd-m-root) .rt-mvcard.is-active .rt-mvcard-ico { background: var(--rd-badge-bg); color: var(--terracotta-500); }
+:is(.rd-root, .rd-m-root) .rt-mvcard-ico .mv-icon { width: 24px; height: 24px; }
+:is(.rd-root, .rd-m-root) .rt-mvcard-name { display: block; font-size: 17px; font-weight: 700; color: var(--ink-900); margin-top: 14px; padding: 0; letter-spacing: -0.2px; }
+:is(.rd-root, .rd-m-root) .rt-mvcard.is-active .rt-mvcard-name { color: var(--ink-900); }
+:is(.rd-root, .rd-m-root) .rt-mvcard-blurb { display: block; font-size: 12px; color: var(--stone-500); margin-top: 3px; line-height: 1.5; }
+:is(.rd-root, .rd-m-root) .rt-mvcard.is-active .rt-mvcard-blurb { color: var(--stone-500); }
+:is(.rd-root, .rd-m-root) .rt-mvcard-speed { display: block; font-size: 11px; color: var(--stone-400); margin-top: 6px; font-weight: 500; }
+:is(.rd-root, .rd-m-root) .rt-mvcard.is-active .rt-mvcard-speed { color: var(--stone-400); }
+:is(.rd-root, .rd-m-root) .rt-mvcard-check {
+  position: absolute; top: 14px; right: 14px; width: 18px; height: 18px; border-radius: 50%;
+  background: var(--terracotta-500); color: var(--rd-card); display: flex; align-items: center; justify-content: center;
+}
+:is(.rd-root, .rd-m-root) .rt-mvcard-ebadge {
+  position: absolute; top: 14px; right: 14px; width: auto; height: auto; border-radius: 5px;
+  background: var(--rd-sage-tint); color: var(--rd-sage-strong); border: 1px solid var(--rd-sage-border);
+  font-size: 9px; font-weight: 700; padding: 2px 7px; letter-spacing: 0.5px;
+}
+:is(.rd-root, .rd-m-root) .rt-mvcard.is-active .rt-mvcard-ebadge { display: none; }
+
+/* ============================ Konfiguration (T4 / T6 / T9) ============================ */
+.rd-config-head { display: flex; align-items: center; gap: 12px; margin-top: 16px; background: var(--rd-card); border: 1px solid var(--border-default); border-radius: 12px; padding: 13px 16px; }
+.rd-config-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--terracotta-500); flex: 0 0 auto; }
+.rd-config-name { font-size: 16px; font-weight: 700; color: var(--ink-900); }
+.rd-config-blurb { font-size: 12.5px; color: var(--stone-500); }
+.rd-config-change { margin-left: auto; background: none; border: none; font: inherit; font-size: 12px; color: var(--terracotta-500); font-weight: 600; cursor: pointer; flex: 0 0 auto; }
+.rd-config-change:hover { color: var(--terracotta-700); }
+
+.rd-config-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; align-items: start; }
+.rd-config-panel { background: var(--rd-card); border: 1px solid var(--border-default); border-radius: 14px; padding: 20px; min-width: 0; }
+.rd-ebike-panel { background: var(--rd-card); border: 1px solid var(--border-default); border-radius: 14px; padding: 20px; margin-top: 16px; }
+
+/* ============================ Ergebnis (T5 / T7 / T10) ============================ */
+.rd-result-head { }
+.rd-result-title { font-size: 28px; font-weight: 700; color: var(--ink-900); letter-spacing: -0.5px; margin: 6px 0 0; }
+.rd-result-sub { font-size: 13.5px; color: var(--stone-600); margin-top: 5px; }
+.rd-result-sub strong { color: var(--ink-900); }
+
+.rd-result-strip-label { display: block; font-size: 10px; letter-spacing: 2px; color: var(--stone-400); font-weight: 700; margin: 22px 0 9px; text-transform: uppercase; }
+
+.rd-result-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; margin-top: 16px; align-items: stretch; }
+.rd-mapwrap { position: relative; height: 380px; border-radius: 14px; overflow: hidden; background: var(--rd-map-bg); border: 1px solid var(--rd-map-border); }
+.rd-mapwrap .route-map { position: absolute; inset: 0; height: 100%; }
+
+.rd-fcpanel { background: var(--rd-card); border: 1px solid var(--border-default); border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 12px; }
+
+.rd-section { margin-top: 16px; }
+.rd-analysis-grid { display: grid; gap: 16px; margin-top: 16px; align-items: start; }
+.rd-analysis-grid--lr { grid-template-columns: minmax(0, 1fr) 340px; }
+.rd-analysis-grid--rl { grid-template-columns: 340px minmax(0, 1fr); }
+.rd-panel { background: var(--rd-card); border: 1px solid var(--border-default); border-radius: 14px; padding: 18px; min-width: 0; }
+
+.rd-footer { display: flex; align-items: center; gap: 8px; margin-top: 20px; font-size: 11.5px; color: var(--stone-500); }
+.rd-footer .dot { color: var(--terracotta-500); }
+.rd-note { font-size: 13px; color: var(--stone-500); margin: 10px 0; display: flex; align-items: center; gap: 6px; }
+.rd-note--warn { color: var(--rd-warn-ink); }
+.rd-note svg { flex: 0 0 auto; }
+
+/* Karten-Overlays (Quellen / Wind-Legende) — an die helle Vorlage angepasst */
+:is(.rd-root, .rd-m-root) .rt-quellen { background: rgba(250, 246, 234, 0.94); border-color: var(--border-default); border-radius: 9px; }
+:is(.rd-root, .rd-m-root) .rt-windlegend { background: rgba(250, 246, 234, 0.94); border-color: var(--border-default); border-radius: 9px; }
+
+/* =========================================================================
+   Deck-scoped Retuning geteilter Widgets (tourTheme.css) — nur unter .rd-root.
+   Sorgt für einheitliche Kartenradien/Labels im Command-Deck, ohne andere
+   Feature-Seiten zu berühren.
+   ========================================================================= */
+:is(.rd-root, .rd-m-root) .rt-card { border-radius: 14px; box-shadow: none; background: var(--rd-card); border-color: var(--border-default); }
+:is(.rd-root, .rd-m-root) .rt-eyebrow { font-size: 10px; letter-spacing: 2px; color: var(--stone-400); font-weight: 700; }
+:is(.rd-root, .rd-m-root) .rt-cta { border-radius: 24px; box-shadow: none; }
+:is(.rd-root, .rd-m-root) .rt-statgrid { grid-template-columns: 1fr 1fr; gap: 10px; }
+:is(.rd-root, .rd-m-root) .rt-stat { border-radius: 10px; background: #fff; box-shadow: none; padding: 11px; }
+:is(.rd-root, .rd-m-root) .rt-stat-value { font-size: 17px; }
+:is(.rd-root, .rd-m-root) .rt-fcpanel .rt-stat { background: #fff; }
+
+/* Wetter-Strip als gleichmäßige Kartenreihe (Vorlage: 6 gleich breite Karten) */
+:is(.rd-root, .rd-m-root) .rt-rwx { background: transparent; border: none; box-shadow: none; padding: 0; }
+:is(.rd-root, .rd-m-root) .rt-rwx-cards { gap: 6px; padding: 0 0 3px; }
+:is(.rd-root, .rd-m-root) .rt-rwx-card { width: auto; flex: 1 1 0; min-width: 74px; border-radius: 11px; background: var(--rd-card); padding: 11px 8px; }
+:is(.rd-root, .rd-m-root) .rt-rwx-card.is-selected { border-color: var(--terracotta-500); box-shadow: 0 0 0 2px rgba(201, 123, 71, 0.18); }
+
+/* Banner kompakt im Panel */
+:is(.rd-root, .rd-m-root) .rt-banner { border-radius: 10px; }
+:is(.rd-root, .rd-m-root) .rt-banner-warn { background: var(--rd-warn-tint); border: 1px solid var(--rd-badge-border); }
+:is(.rd-root, .rd-m-root) .rt-banner-foehn { background: var(--rd-cap-tint); border: 1px solid var(--rd-badge-border); }
+
+/* Zeitplan / Zeit-Übersicht / Qualität in Panels */
+:is(.rd-root, .rd-m-root) .rt-timeline, :is(.rd-root, .rd-m-root) .rt-timeover, :is(.rd-root, .rd-m-root) .rt-quality, :is(.rd-root, .rd-m-root) .rt-profile, :is(.rd-root, .rd-m-root) .rt-scrubber, :is(.rd-root, .rd-m-root) .rt-detail { padding: 18px; }
+
+/* Aktionen im Vorhersage-Panel (Als Event / Tagesablauf / Speichern) */
+:is(.rd-root, .rd-m-root) .rt-fc-actions { gap: 8px; }
+:is(.rd-root, .rd-m-root) .rt-act { border-radius: 10px; background: #fff; font-size: 12.5px; }
+:is(.rd-root, .rd-m-root) .rt-act-primary { background: var(--terracotta-500); border-color: transparent; color: var(--rd-card); }
+:is(.rd-root, .rd-m-root) .rt-act-primary:hover { background: var(--terracotta-700); color: var(--rd-card); }
+
+/* ============================ Sub-Panel-Retuning (mv/tp/eb) im Deck ============================ */
+:is(.rd-root, .rd-m-root) .mv-config-eyebrow, :is(.rd-root, .rd-m-root) .tp-block-title { font-size: 11px; letter-spacing: 1.5px; color: var(--stone-400); font-weight: 700; text-transform: uppercase; }
+.rd-content .tp-block + .tp-block,
+.rd-m-scroll .tp-block + .tp-block { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border-default); }
+:is(.rd-root, .rd-m-root) .mv-presets { margin-top: 10px; }
+:is(.rd-root, .rd-m-root) .tp-quick { margin-top: 9px; }
+
+/* Richtungs-Segment (Hinweg/Rückwärts) an die Vorlage angeglichen */
+:is(.rd-root, .rd-m-root) .tp-seg { display: flex; width: 100%; gap: 4px; background: #fff; border: 1px solid var(--border-default); border-radius: 9px; padding: 3px; margin-top: 9px; }
+:is(.rd-root, .rd-m-root) .tp-seg-btn { flex: 1; text-align: center; font: inherit; font-size: 12.5px; font-weight: 500; color: var(--stone-500); background: none; border: none; border-radius: 6px; padding: 7px 0; cursor: pointer; }
+:is(.rd-root, .rd-m-root) .tp-seg-btn.is-active { color: var(--rd-card); background: var(--terracotta-500); font-weight: 600; }
+:is(.rd-root, .rd-m-root) .tp-loop-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--rd-sage-strong); font-weight: 600; }
+
+/* Panels sollen die inneren Blöcke tragen, ohne Doppel-Karten */
+.rd-config-panel .mv-config, .rd-config-panel .tp-block:first-child { margin-top: 0; }
+.rd-config-panel .mv-config > .rt-eyebrow:first-child, .rd-config-panel .mv-config-eyebrow { margin-top: 0; }
+
+/* ============================ Mobile-Layouts (<768) ============================ */
+@media (max-width: 767px) {
+  .rd-intro-title { font-size: 30px; letter-spacing: -1px; line-height: 1.05; }
+  .rd-intro-body { font-size: 14px; margin-top: 12px; }
+  .rd-caps { gap: 9px; margin-top: 16px; }
+  .rd-caps li { font-size: 13px; }
+  .rd-caps-mark { width: 22px; height: 22px; }
+  .rd-section-label { margin: 22px 0 10px; }
+
+  .rd-upload { flex-direction: column; }
+  .rd-formats { width: 100%; }
+  .rd-formats-list { flex-direction: row; flex-wrap: wrap; gap: 6px; }
+  .rd-format-row { gap: 0; }
+  .rd-format-row span:last-child { display: none; }
+  .rd-format-tag { width: auto; border-radius: 16px; padding: 4px 11px; }
+  .rd-dropzone { padding: 30px 16px; }
+  .rd-dropzone-title { font-size: 19px; }
+  .rd-dropzone-btn { width: 100%; }
+
+  .rd-statgrid { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .rd-stat { border-radius: 11px; padding: 12px; }
+  .rd-stat-value { font-size: 20px; }
+  .rd-preview-title { font-size: 22px; }
+  .rd-elev svg { height: 120px; }
+
+  .rd-config-cols { grid-template-columns: 1fr; gap: 12px; }
+  .rd-result-grid { grid-template-columns: 1fr; }
+  .rd-analysis-grid--lr, .rd-analysis-grid--rl { grid-template-columns: 1fr; }
+  .rd-mapwrap { height: 170px; }
+
+  /* Bewegungsart als scrollbare Chips über der Konfiguration */
+  .rd-mvchips { display: flex; gap: 8px; overflow-x: auto; margin-top: 10px; padding-bottom: 3px; -webkit-overflow-scrolling: touch; }
+  .rd-mvchip {
+    flex: 0 0 auto; min-width: 82px; background: var(--rd-card); border: 1px solid var(--border-default);
+    border-radius: 12px; padding: 12px 16px; text-align: center; font: inherit; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+  }
+  .rd-mvchip .mv-icon { width: 22px; height: 22px; color: var(--stone-500); }
+  .rd-mvchip-name { font-size: 12px; font-weight: 600; color: var(--stone-500); }
+  .rd-mvchip.is-active { border: 1.5px solid var(--terracotta-500); }
+  .rd-mvchip.is-active .mv-icon { color: var(--terracotta-500); }
+  .rd-mvchip.is-active .rd-mvchip-name { color: var(--ink-900); font-weight: 700; }
+
+  /* Wetter-Strip horizontal scrollbar auf Mobile */
+  :is(.rd-root, .rd-m-root) .rt-rwx-card { flex: 0 0 auto; width: 62px; min-width: 62px; }
+
+  :is(.rd-root, .rd-m-root) .rt-result-grid, :is(.rd-root, .rd-m-root) .rt-cols, :is(.rd-root, .rd-m-root) .rt-cols-wide-l, :is(.rd-root, .rd-m-root) .rt-cols-wide-r { grid-template-columns: 1fr; }
+}
+
+/* Mobile Home-Indicator-Balken (nur dekorativ, wenn ausdrücklich gerendert) */
+.rd-home-ind { position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%); width: 130px; height: 5px; border-radius: 3px; background: var(--rd-home-ind); pointer-events: none; }

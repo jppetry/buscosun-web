@@ -1,37 +1,26 @@
 /**
- * Atmosphäre · Feature-Shell (P1).
+ * Atmosphäre · Feature-Shell.
  *
- * Linsen-Umschalter (Fliegen / Berg & Weg / Himmel), dreistufige Progressive
- * Disclosure (Verdict / Profil / Nerd) und der globale Time-Scrubber (+0..+48h).
- * Layout folgt der Layout-Schematik: Split bei Desktop & Tablet-Querformat,
- * gestapelt bei Mobile & Tablet-Hochformat; Scrubber sticky unten auf Touch.
- *
- * P1 verdrahtet nur das Gerüst: Datenbereiche sind klar beschriftete Platzhalter
- * (keine Fake-Daten). Der Time-Scrubber ist die einzige Quelle der Wahrheit für
- * die aktive Stunde — alle Bereiche abonnieren sie über useAtmosphere().
+ * Ohne Ort: Idle-Intro (Stichpunkte + Ort-/Tour-Einstieg). Mit Ort: das
+ * „Command-Deck" (AtmosphereDeck) — Vertikalschnitt/3D-Wetter mit den Linsen
+ * Höhenwind · Inversion · Go/No-Go sowie den erhaltenen Linsen Föhn & Thermik.
+ * Das alte Split-/Grid-Layout ist vom Deck abgelöst; die Datenpfade bleiben
+ * (Store, Cross-Section, Sounding-Profil, Go/No-Go).
  */
 
-import { lazy, Suspense, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
+import { useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import type { Location } from '../types';
 import { geocodeDACH, flagForCountry } from '../geocode';
 import { tourFileToCutLine } from '../threed/tourImport';
 import { pickCountry } from '../pointForecast/clustering';
 import { AtmosphereProvider, useAtmosphere } from './atmosphereStore';
-import { LENSES, LENS_LABEL, HOUR_MIN, HOUR_MAX, type Lens } from './atmosphereState';
-import AtmosphereProfile from './AtmosphereProfile';
-import AtmosphereVerdict from './AtmosphereVerdict';
-import ThermalMap from './ThermalMap';
-import FoehnPanel from './FoehnPanel';
-import SectionLens from './SectionLens';
+import AtmosphereDeck from './AtmosphereDeck';
 import '../threed/threed.css';
 import '../route/tourTheme.css';
 import '../intro/intro.css';
 import './atmosphere.css';
 
 interface Props { onBack: () => void }
-
-// Tiefe 3: nur bei Opt-in laden (hält Skew-T & Co. aus dem Standard-Bundle).
-const NerdPanel = lazy(() => import('./NerdPanel'));
 
 export default function AtmospherePage({ onBack }: Props) {
   return (
@@ -42,7 +31,9 @@ export default function AtmospherePage({ onBack }: Props) {
 }
 
 function AtmosphereShell({ onBack }: Props) {
-  const { lens, location, modelRunAt } = useAtmosphere();
+  const { location } = useAtmosphere();
+  if (location) return <AtmosphereDeck onBack={onBack} />;
+
   return (
     <div className="rt-page atm-page">
       <div className="rt-grain" />
@@ -51,67 +42,35 @@ function AtmosphereShell({ onBack }: Props) {
           <span className="rt-nav-logo-mark" /><span className="rt-nav-logo-name">buscosun</span>
         </a>
         <div className="rt-nav-right">
-          <span className="rt-nav-live">{LENS_LABEL[lens]}</span>
+          <span className="rt-nav-live">Vertikalschnitt</span>
           <button type="button" className="rt-nav-item" onClick={onBack}>Zurück</button>
         </div>
       </nav>
-
       <main className="rt-container">
-        {!location ? (
-          <AtmosphereIntro />
-        ) : (
-          <>
-            <header className="rt-intro">
-              <span className="rt-eyebrow">Atmosphäre</span>
-              <h1>Die Atmosphäre über dir</h1>
-            </header>
-
-            <div className="atm-head">
-              <LensSwitcher />
-              <div className="atm-head-right">
-                <LocationField />
-                <TourImportButton />
-                <span className="atm-run">⏱ Modelllauf: <b>{modelRunAt ? `${fmtRunUTC(modelRunAt)} · vor ${ageHours(modelRunAt)} h` : '—'}</b></span>
-              </div>
-            </div>
-
-            {lens === 'section' ? (
-              <SectionLens />
-            ) : (
-              <>
-                <div className="atm-grid">
-                  <AtmosphereVerdict />
-                  {lens === 'fly' ? <ThermalMap /> : <FoehnPanel />}
-                  <AtmosphereProfile />
-                  <NerdMode />
-                </div>
-                <Scrubber />
-              </>
-            )}
-          </>
-        )}
+        <AtmosphereIntro />
       </main>
     </div>
   );
 }
 
-// --- Idle-Intro (Einstieg wie die übrigen Features: Stichpunkte + Ort/Tour) ---
+// --- Idle-Intro (Einstieg: Stichpunkte + Ort/Tour) ---------------------------
 
 const ATM_INTRO_CAPS = [
-  'Vertikalprofil aus echtem ICON-EU-Sounding — Temperatur, Taupunkt, Höhenwind, Inversion',
-  'Drei Linsen: Föhn · Thermik · Querschnitt',
-  'Thermik-Karte, Föhn-Index, Talwind, Vertikalschnitt & Skew-T (Detailansicht)',
-  'Aus ICON-EU (~7 km) + Gelände, höhenkorrigiert — werbefrei, keine Tracker',
+  'Höhenwind-Geländeschnitt mit Vektoren, Isotachen, Shear & Wolkenbasis',
+  'Inversion / Kaltluftsee — Temperatur-Umkehr, Nebelobergrenze, Aufstiegs-Delta',
+  'Go/No-Go Betriebs-Check (B2B): Böen auf Arbeitshöhe, Grenzwerte, Zeitfenster',
+  'Aus ICON-D2-Druckflächen + Gelände (DEM), höhenkorrigiert — werbefrei, keine Tracker',
 ];
 
 function AtmosphereIntro() {
   return (
     <section className="atm-intro" style={{ ['--intro-accent']: 'var(--steel-600)' } as CSSProperties}>
-      <span className="intro-eyebrow">Atmosphäre</span>
+      <span className="intro-eyebrow">Atmosphäre · Vertikalschnitt</span>
       <h1 className="intro-title">Die Atmosphäre über dir</h1>
       <p className="intro-body">
-        Wähle einen Ort oder lade eine Tour (GPX/TCX/FIT) hoch — dann zeigen wir dir die Atmosphäre
-        darüber: Thermik, Wind und Wolken in der Höhe, mit ehrlicher Einschätzung über die nächsten 48 Stunden.
+        Wähle einen Ort oder lade eine Tour (GPX/TCX/FIT) hoch — dann zeigen wir dir den
+        Vertikalschnitt darüber: Höhenwind, Inversion und den Go/No-Go-Betriebs-Check über die
+        nächsten Stunden, mit ehrlicher Einordnung.
       </p>
       <ul className="intro-caps">
         {ATM_INTRO_CAPS.map((c) => (
@@ -129,11 +88,11 @@ function AtmosphereIntro() {
 
       <p className="intro-howto">
         <span className="intro-howto-ic" aria-hidden="true"><IconHowTo /></span>
-        <span><strong>So geht’s:</strong> Ort suchen oder GPX/Tour laden — danach wählst du die Linse und scrubbst durch die nächsten 48 Stunden.</span>
+        <span><strong>So geht’s:</strong> Ort suchen oder GPX/Tour laden — danach zeichnest du die Schnittlinie und wählst die Linse.</span>
       </p>
 
       <div className="rt-trust" style={{ marginTop: '1rem' }}>
-        <span className="dot">●</span> ICON-EU (~7 km) + Gelände, höhenkorrigiert · werbefrei · keine Tracker
+        <span className="dot">●</span> ICON-D2 + Gelände, höhenkorrigiert · werbefrei · keine Tracker
       </div>
     </section>
   );
@@ -154,109 +113,7 @@ function IconHowTo() {
   );
 }
 
-// --- Linsen-Umschalter -------------------------------------------------------
-
-function LensSwitcher() {
-  const { lens, setLens } = useAtmosphere();
-  return (
-    <div className="atm-seg" role="tablist" aria-label="Linse">
-      {LENSES.map((l: Lens) => (
-        <button
-          key={l} type="button" role="tab" aria-selected={lens === l}
-          className={`atm-seg-btn${lens === l ? ' is-active' : ''}`}
-          onClick={() => setLens(l)}
-        >
-          {LENS_LABEL[l]}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-// --- Nerd-Mode (Tiefe 3, Platzhalter in P1) ----------------------------------
-
-function NerdMode() {
-  const { nerdOpen, setNerdOpen } = useAtmosphere();
-  return (
-    <section className="rt-card atm-nerd" aria-label="Detailansicht">
-      <button
-        type="button" className="atm-nerd-toggle"
-        aria-expanded={nerdOpen} onClick={() => setNerdOpen(!nerdOpen)}
-      >
-        {nerdOpen ? '▾' : '▸'} Werte anzeigen (Detailansicht)
-      </button>
-      {nerdOpen && (
-        <Suspense fallback={<div className="atm-nerd-body">Detailansicht wird geladen …</div>}>
-          <NerdPanel />
-        </Suspense>
-      )}
-    </section>
-  );
-}
-
-// --- Time-Scrubber (einzige Quelle der Wahrheit) -----------------------------
-
-const pad2 = (n: number) => String(n).padStart(2, '0');
-function fmtAbs(d: Date): string {
-  const wd = d.toLocaleDateString('de-DE', { weekday: 'short' }).replace('.', '');
-  return `${wd} ${pad2(d.getHours())}:00`;
-}
-function fmtRunUTC(d: Date): string {
-  return `${pad2(d.getUTCDate())}.${pad2(d.getUTCMonth() + 1)}. ${pad2(d.getUTCHours())}Z`;
-}
-function ageHours(d: Date): number {
-  return Math.max(0, Math.round((Date.now() - d.getTime()) / 3_600_000));
-}
-/** Relative Bezeichnung gegenüber der echten aktuellen Zeit. */
-function relFromNow(deltaMs: number): string {
-  const min = Math.round(deltaMs / 60_000);
-  const a = Math.abs(min);
-  if (a < 30) return 'jetzt';
-  const fut = min > 0;
-  if (a < 60 * 24) { const h = Math.round(a / 60); return fut ? `in ${h} h` : `vor ${h} h`; }
-  const d = Math.round(a / (60 * 24));
-  return fut ? `in ${d} Tag${d > 1 ? 'en' : ''}` : `vor ${d} Tag${d > 1 ? 'en' : ''}`;
-}
-
-function Scrubber() {
-  const { hour, setHour, modelRunAt } = useAtmosphere();
-  // Absolute Zeit ankert am Modelllauf (valid = Lauf + Vorlaufstunde); vor dem
-  // ersten Laden Fallback auf die volle aktuelle Stunde.
-  const nowBase = useMemo(() => { const d = new Date(); d.setMinutes(0, 0, 0); return d.getTime(); }, []);
-  const baseMs = modelRunAt ? modelRunAt.getTime() : nowBase;
-  const activeMs = baseMs + hour * 3_600_000;
-  const activeTime = new Date(activeMs);
-  const nowMs = Date.now();
-  const nowOffset = (nowMs - baseMs) / 3_600_000;
-  const nowPct = Math.max(0, Math.min(100, ((nowOffset - HOUR_MIN) / (HOUR_MAX - HOUR_MIN)) * 100));
-  const rel = relFromNow(activeMs - nowMs);
-
-  return (
-    <div className="atm-scrub">
-      <div className="atm-scrub-track">
-        <input
-          type="range" className="atm-scrub-range"
-          min={HOUR_MIN} max={HOUR_MAX} step={1} value={hour}
-          onChange={(e) => setHour(Number(e.target.value))}
-          aria-label="Vorhersage-Vorlaufstunde"
-          aria-valuetext={`${rel} · ${fmtAbs(activeTime)}`}
-        />
-        {nowOffset >= 0 && nowOffset <= HOUR_MAX && (
-          <span className="atm-scrub-now" style={{ left: `${nowPct}%` }} aria-hidden="true">
-            <span className="atm-scrub-now-label" style={{ left: 0 }}>jetzt</span>
-          </span>
-        )}
-      </div>
-      <span className="atm-scrub-label">
-        <span className="atm-scrub-time">{fmtAbs(activeTime)}</span>
-        <span className="atm-scrub-rel">{rel}</span>
-      </span>
-      <span className="atm-scrub-end">+48h</span>
-    </div>
-  );
-}
-
-// --- Tour-/GPX-Import (A) — setzt Ort/Marker aus einer Tourdatei --------------
+// --- Tour-/GPX-Import — setzt Ort/Marker aus einer Tourdatei ------------------
 
 function TourImportButton() {
   const { setLocation } = useAtmosphere();
@@ -264,7 +121,7 @@ function TourImportButton() {
   const [err, setErr] = useState<string | null>(null);
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
-    e.target.value = ''; // erneuter Upload derselben Datei erlauben
+    e.target.value = '';
     if (!f) return;
     setErr(null);
     try {
@@ -284,7 +141,7 @@ function TourImportButton() {
   );
 }
 
-// --- Ort-Suche (kompakt, DACH) — gleiches Muster wie übrige Features ----------
+// --- Ort-Suche (kompakt, DACH) -----------------------------------------------
 
 function LocationField() {
   const { location, setLocation } = useAtmosphere();

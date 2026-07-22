@@ -15,23 +15,29 @@ export interface EventActivity {
   emoji: string;
   /** Kurzer Hinweis aufs ideale Wetter (rein informativ; Gewichtung kommt später). */
   hint: string;
+  /** Sehr kurzer Kachel-Tag (2 Faktoren), wie in der Command-Deck-Vorlage. */
+  tag: string;
 }
 
+// Reihenfolge folgt der Command-Deck-Vorlage: die sechs abgebildeten Anlässe
+// führen (Grillen, Hochzeit, Wandern, Drohne, Fotografie, Sterne), danach die
+// übrigen Bestands-Anlässe — kein Anlass entfällt (Funktionserhalt).
 export const EVENT_ACTIVITIES: EventActivity[] = [
-  { id: 'wedding', label: 'Hochzeit', emoji: '💍', hint: 'trocken, warm, festlich' },
-  { id: 'hiking', label: 'Wandern', emoji: '🥾', hint: 'trocken, mild, gute Sicht' },
-  { id: 'cycling', label: 'Radtour', emoji: '🚲', hint: 'wenig Wind & Regen' },
-  { id: 'bbq', label: 'Grillen', emoji: '🔥', hint: 'warm, trocken, windstill' },
-  { id: 'photo', label: 'Fotografieren', emoji: '📷', hint: 'Lichtstimmung, weiches Wolkenlicht' },
-  { id: 'picnic', label: 'Picknick', emoji: '🧺', hint: 'mild, trocken, sonnig' },
-  { id: 'running', label: 'Laufen', emoji: '🏃', hint: 'kühl, trocken' },
-  { id: 'swimming', label: 'Baden', emoji: '🏊', hint: 'heiß & sonnig' },
-  { id: 'stargazing', label: 'Sterne schauen', emoji: '🔭', hint: 'klar, wolkenlos, nachts' },
+  { id: 'bbq', label: 'Grillen', emoji: '🔥', hint: 'warm, trocken, windstill', tag: 'warm · trocken' },
+  { id: 'wedding', label: 'Hochzeit', emoji: '💍', hint: 'trocken, warm, festlich', tag: '3 Phasen' },
+  { id: 'hiking', label: 'Wandern', emoji: '🥾', hint: 'trocken, mild, gute Sicht', tag: 'Sicht · Wind' },
+  { id: 'drone', label: 'Drohne', emoji: '🛩️', hint: 'schwache Böen, gute Sicht, trocken', tag: 'Böen · Sicht' },
+  { id: 'photo', label: 'Fotografie', emoji: '📷', hint: 'Lichtstimmung, weiches Wolkenlicht', tag: 'Licht · Wolken' },
+  { id: 'stargazing', label: 'Sterne', emoji: '🔭', hint: 'klar, wolkenlos, nachts', tag: 'klar · dunkel' },
+  { id: 'cycling', label: 'Radtour', emoji: '🚲', hint: 'wenig Wind & Regen', tag: 'wenig Wind' },
+  { id: 'picnic', label: 'Picknick', emoji: '🧺', hint: 'mild, trocken, sonnig', tag: 'mild · trocken' },
+  { id: 'running', label: 'Laufen', emoji: '🏃', hint: 'kühl, trocken', tag: 'kühl · trocken' },
+  { id: 'swimming', label: 'Baden', emoji: '🏊', hint: 'heiß & sonnig', tag: 'heiß · sonnig' },
 ];
 
 /** Anlass für einen frei eingegebenen Text. */
 export function customActivity(label: string): EventActivity {
-  return { id: 'custom', label: label.trim(), emoji: '✨', hint: '' };
+  return { id: 'custom', label: label.trim(), emoji: '✨', hint: '', tag: 'eigener Anlass' };
 }
 
 /** Planungs-Horizont in Tagen ab heute (deckt MOSMIX-Punktforecast ab). */

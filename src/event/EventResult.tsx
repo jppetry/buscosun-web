@@ -13,7 +13,7 @@ import type { LayerKey } from '../MapView';
 import { flagForCountry, shortLocationName } from '../geocode';
 import { fmtPhaseHours, phasesLatestHour, planBVenueDef, type EventQuery } from './eventModel';
 import {
-  recommendBestDay, candidateDays, hoursNeededFor, confidenceTier, defaultTuningFor, rainRiskFor, windHazardFor, heatHazardFor, coldHazardFor, safetyScore,
+  recommendBestDay, candidateDays, hoursNeededFor, confidenceTier, rainRiskFor, windHazardFor, heatHazardFor, coldHazardFor, safetyScore,
   assessPlanB,
   type EventRecommendation, type DayResult, type Factor, type PhaseResult, type WindowRisk, type PlanBAssessment,
 } from './eventScoring';
@@ -25,7 +25,7 @@ import { downloadEventICS } from './icsExport';
 import { encodeEventState } from './eventState';
 import { exportSvgAsPng } from '../imageExport';
 import {
-  ActivityIcon, VenueIcon, IconRain, IconSun, IconWind, IconThermometer, IconSnow,
+  VenueIcon, IconRain, IconSun, IconWind, IconThermometer, IconSnow,
   IconWarning, IconCheck, IconArrowUpRight, IconPin, IconClock, IconCamera, IconSunrise,
   IconSunset, IconFog, IconCloud, IconMoon, IconDrop, IconCity, IconLamp, IconStars, IconTelescope,
 } from './eventIcons';
@@ -34,6 +34,20 @@ import { buildPhotoDay, chanceLabel, type PhotoDay, type CloudMood, type ChanceA
 import { estimateLightPollution, type LightPollution } from '../astro/lightPollution';
 import { buildAstroNight, rankAstroNights, type AstroNight } from '../astro/astroNight';
 import type { PointForecast, PointForecastHour } from '../pointForecast/types';
+import { useIsMobile } from '../mobile/useIsMobile';
+import NotificationCenter from '../notifications/NotificationCenter';
+import {
+  DeckActivityIcon,
+  IconDeckMap, IconDeckRadar, IconDeckEvent, IconDeckEventPlain, IconDeckTour, IconDeckGear,
+  IconDeckSearch, IconDeckArrowRight, IconDeckCalendar,
+  IconDeckShare, IconDeckSun, IconDeckStorm, IconDeckHouse, IconDeckStarNav,
+} from './eventIcons';
+import './eventDeck.css';
+// Bewusst zusätzlich geladen: die wiederverwendeten Detail-Bausteine (Ablauf-Chart,
+// Karte, Rangliste, Konfidenz-Timeline, Plan-B-Sektion, Foto/Astro/Hochzeit-Karten)
+// nutzen weiterhin ihre ev-/rt-Klassen. EventPage.css ist vollständig klassen-
+// gescoped (keine globalen Selektoren) → kein Konflikt mit dem evd-Deck.
+import './EventPage.css';
 
 /** Echte 2D-Wetterkarte (schwer) nur bei Bedarf laden. */
 const EmbeddedMapView = lazy(() => import('../MapView'));
@@ -55,6 +69,8 @@ const isEveningPhase = (h: [number, number]) => h[0] >= 17 || h[0] >= h[1];
 interface Props {
   query: EventQuery;
   onEdit: () => void;
+  /** Zurück zum App-Hub (Rail/Logo/Bottom-Nav). Optional — ohne bleibt „Angaben ändern". */
+  onBack?: () => void;
 }
 
 type State =
@@ -62,8 +78,9 @@ type State =
   | { kind: 'error'; message: string }
   | { kind: 'ready'; rec: EventRecommendation; forecast: PointForecast };
 
-export default function EventResult({ query, onEdit }: Props) {
+export default function EventResult({ query, onEdit, onBack }: Props) {
   const [state, setState] = useState<State>({ kind: 'loading' });
+  const isMobile = useIsMobile();
   const { ingest } = useNotifications();
 
   useEffect(() => {
@@ -93,53 +110,120 @@ export default function EventResult({ query, onEdit }: Props) {
     if (state.kind === 'ready') ingest(query, { rec: state.rec, forecast: state.forecast });
   }, [state, query, ingest]);
 
-  return (
-    <section className="rt-section">
-      {/* Vorhaben-Kopf */}
-      <div className="ev-result-head">
-        <span className="ev-activity-icon ev-result-glyph" aria-hidden="true"><ActivityIcon id={query.activity.id} size={26} /></span>
-        <div>
-          <span className="rt-eyebrow">Dein Vorhaben</span>
-          <h2 className="ev-result-title">
-            {query.activity.label}
-            <span className="ev-result-where"> · {flagForCountry(query.location.country)} {shortPlace(query.location.name)}</span>
-            {JSON.stringify(query.tuning) !== JSON.stringify(defaultTuningFor(query.activity.id)) && <span className="ev-tune-changed">angepasst</span>}
-          </h2>
-          <span className="ev-result-window">
-            <IconClock size={13} /> {query.phases.length === 1
-              ? `bewertet fürs Fenster: ${query.phases[0].label} · ${fmtPhaseHours(query.phases[0].hours)}`
-              : `${query.phases.length} Phasen einzeln bewertet: ${query.phases.map((p) => p.label).join(' · ')}`}
-          </span>
-        </div>
-        <button type="button" className="rt-filebar-replace" onClick={onEdit}>Angaben ändern</button>
+  if (state.kind === 'ready' && state.rec.bestIndex >= 0) {
+    return (
+      <Recommendation
+        rec={state.rec} query={query} forecast={state.forecast}
+        activityLabel={query.activity.label} datesMode={query.window.mode === 'dates'}
+        onEdit={onEdit} onBack={onBack} isMobile={isMobile}
+      />
+    );
+  }
+
+  // Lade-/Fehler-/Kein-Forecast-Zustände in derselben Deck-Schale.
+  const body =
+    state.kind === 'loading' ? (
+      <div className="evd-panel" style={{ display: 'grid', placeItems: 'center', gap: 12, minHeight: 200, textAlign: 'center' }}>
+        <span className="ev-spinner" aria-hidden="true" />
+        <p style={{ color: 'var(--stone-600)' }}>Wir vergleichen das Wetter an deinen Tagen …</p>
       </div>
+    ) : state.kind === 'error' ? (
+      <div className="evd-panel" style={{ display: 'grid', placeItems: 'center', gap: 12, minHeight: 200, textAlign: 'center' }}>
+        <p style={{ display: 'flex', gap: 8, alignItems: 'center', color: 'var(--evd-critical)' }}><IconWarning size={16} /> {state.message}</p>
+        <button type="button" className="evd-btn-primary" onClick={onEdit}>Erneut versuchen</button>
+      </div>
+    ) : (
+      <div className="evd-panel"><NoForecast /></div>
+    );
 
-      {state.kind === 'loading' && (
-        <div className="ev-card ev-state">
-          <span className="ev-spinner" aria-hidden="true" />
-          <p>Wir vergleichen das Wetter an deinen Tagen …</p>
-        </div>
-      )}
+  return <ResultStateShell query={query} onEdit={onEdit} onBack={onBack} isMobile={isMobile}>{body}</ResultStateShell>;
+}
 
-      {state.kind === 'error' && (
-        <div className="ev-card ev-state ev-state-error">
-          <p><IconWarning size={16} /> {state.message}</p>
-          <button type="button" className="ev-add-btn" onClick={onEdit}>Erneut versuchen</button>
-        </div>
-      )}
-
-      {state.kind === 'ready' && (
-        <>
-          {state.rec.bestIndex < 0
-            ? <NoForecast />
-            : <Recommendation rec={state.rec} query={query} forecast={state.forecast} activityLabel={query.activity.label} datesMode={query.window.mode === 'dates'} />}
-        </>
-      )}
-    </section>
+/* Deck-Schale für Lade-/Fehlerzustände (ohne Empfehlungsdaten). */
+function ResultStateShell({ query, onEdit, onBack, isMobile, children }: { query: EventQuery; onEdit: () => void; onBack?: () => void; isMobile: boolean; children: React.ReactNode }) {
+  if (isMobile) {
+    return (
+      <div className="evd-m-root">
+        <MobileResultHeader query={query} onEdit={onEdit} onBack={onBack} />
+        <div className="evd-m-scroll evd-m-scroll--nav">{children}</div>
+        <ResultBottomNav onBack={onBack} />
+      </div>
+    );
+  }
+  return (
+    <div className="evd-root">
+      <ResultTopbar query={query} onEdit={onEdit} onBack={onBack} />
+      <div className="evd-body">
+        <ResultRail onBack={onBack} />
+        <div className="evd-center evd-scroll">{children}</div>
+      </div>
+    </div>
   );
 }
 
-function Recommendation({ rec, query, forecast, activityLabel, datesMode }: { rec: EventRecommendation; query: EventQuery; forecast: PointForecast; activityLabel: string; datesMode: boolean }) {
+/* ---- geteilte Deck-Chrome-Bausteine ---- */
+function ResultTopbar({ query, onEdit, onBack }: { query: EventQuery; onEdit: () => void; onBack?: () => void }) {
+  return (
+    <div className="evd-topbar">
+      <div className="evd-brandwrap">
+        <img src="/buscosun-mark.svg" width={26} height={26} alt="" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+        <button className="evd-brand" onClick={() => (onBack ? onBack() : onEdit())}>buscosun</button>
+      </div>
+      <div className="evd-topdivider" />
+      <div className="evd-topsearch">
+        <IconDeckSearch />
+        <span className="evd-topsearch-name">{flagForCountry(query.location.country)} {shortPlace(query.location.name)}</span>
+        <button className="evd-link" onClick={onEdit}>Ändern</button>
+      </div>
+      <div className="evd-topright">
+        <div className="evd-live"><span className="evd-live-dot" /><span className="evd-live-txt">DATEN LIVE</span></div>
+        <NotificationCenter />
+        <span className="evd-avatar">JK</span>
+      </div>
+    </div>
+  );
+}
+
+function ResultRail({ onBack }: { onBack?: () => void }) {
+  return (
+    <nav className="evd-rail" aria-label="Werkzeuge">
+      <button className="evd-rail-btn" title="Wetterkarte" onClick={onBack}><IconDeckMap /></button>
+      <button className="evd-rail-btn" title="Regenradar" onClick={onBack}><IconDeckRadar /></button>
+      <button className="evd-rail-btn evd-rail-btn--active" title="Event-Planung" aria-current="page"><IconDeckEvent /></button>
+      <button className="evd-rail-btn" title="Tourenplanung" onClick={onBack}><IconDeckTour /></button>
+      <span className="evd-rail-spacer" />
+      <button className="evd-rail-btn" title="Einstellungen" onClick={onBack}><IconDeckGear /></button>
+    </nav>
+  );
+}
+
+function MobileResultHeader({ query, onEdit, onBack }: { query: EventQuery; onEdit: () => void; onBack?: () => void }) {
+  return (
+    <div className="evd-m-header">
+      <div className="evd-m-brandrow">
+        <img src="/buscosun-mark.svg" width={22} height={22} alt="" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} onClick={onBack} />
+        <div className="evd-m-htext">
+          <div className="evd-m-eyebrow">Event · {query.activity.label}</div>
+          <div className="evd-m-title">{flagForCountry(query.location.country)} {shortPlace(query.location.name)}</div>
+        </div>
+      </div>
+      <button className="evd-m-changed" onClick={onEdit}>Ändern</button>
+    </div>
+  );
+}
+
+function ResultBottomNav({ onBack }: { onBack?: () => void }) {
+  return (
+    <nav className="evd-m-nav" aria-label="Navigation">
+      <button className="evd-m-navitem" onClick={onBack}><IconDeckMap size={21} /><span>Karte</span></button>
+      <button className="evd-m-navitem" onClick={onBack}><IconDeckRadar size={21} /><span>Radar</span></button>
+      <button className="evd-m-navitem evd-m-navitem--active" aria-current="page"><IconDeckEventPlain size={21} /><span>Event</span></button>
+      <button className="evd-m-navitem" onClick={onBack}><IconDeckStarNav size={21} /><span>Favoriten</span></button>
+    </nav>
+  );
+}
+
+function Recommendation({ rec, query, forecast, activityLabel, datesMode, onEdit, onBack, isMobile }: { rec: EventRecommendation; query: EventQuery; forecast: PointForecast; activityLabel: string; datesMode: boolean; onEdit: () => void; onBack?: () => void; isMobile: boolean }) {
   const best = rec.days[rec.bestIndex];
   const [linkCopied, setLinkCopied] = useState(false);
   const storm = useEventStormOutlook(query.location, forecast, best);
@@ -149,203 +233,327 @@ function Recommendation({ rec, query, forecast, activityLabel, datesMode }: { re
     setLinkCopied(true);
     window.setTimeout(() => setLinkCopied(false), 2000);
   };
-  // Rangliste: bewertete Tage nach Score absteigend (gleichstand → früher zuerst),
-  // Tage ohne Vorhersage chronologisch ans Ende.
   const ranked = [...rec.days].sort((a, b) => {
     if (a.summary && b.summary) return b.score - a.score || a.date.localeCompare(b.date);
     if (a.summary) return -1;
     if (b.summary) return 1;
     return a.date.localeCompare(b.date);
   });
-  // KONF-US4: Widerspruch erkennen — gut bewertet, aber unsicher. Dann eine
-  // verlässlichere Alternative (bester Tag innerhalb des sicheren Horizonts) anbieten.
   const conflict = best.isTendency && best.score >= 70;
-  const reliableAlt = conflict
-    ? (ranked.find((d) => d.summary && !d.isTendency && d.score >= 55) ?? null)
-    : null;
-  return (
-    <>
-      {/* Bester Tag — Hero mit Begründung (US4) */}
-      <div className={`ev-card ev-best${best.isTendency ? ' ev-best-tendency' : ''}`}>
-        <ScoreDonut score={best.score} />
-        <div className="ev-best-main">
-          <div className="ev-best-head">
-            <span className="rt-eyebrow ev-best-eyebrow">
-              Bester Tag für {activityLabel}
-              {best.isTendency && <span className="ev-tendency-tag">Tendenz</span>}
-            </span>
-            <ConfPill confidence={best.confidence} />
-          </div>
-          <h3 className="ev-best-day">{formatDayLong(best.date)}</h3>
-          {conflict ? (
-            <ConflictWarning best={best} alt={reliableAlt} />
-          ) : best.isTendency ? (
-            <p className="ev-tendency-banner">
-              Liegt jenseits des verlässlichen Horizonts ({best.confidenceNote.split(' · ')[0]}) — als grobe <strong>Tendenz</strong> verstehen, nicht als feste Prognose. Werte können sich noch deutlich ändern.
-            </p>
-          ) : null}
-          <p className="ev-best-rationale">{best.isTendency ? `Tendenz: ${lowerFirst(best.rationale)}` : best.rationale}</p>
-          {best.risks.length > 0 && <WindowRiskBanner risks={best.risks} multiPhase={best.phases.length > 1} />}
-          <p className="ev-conf-note">Verlässlichkeit: {best.confidenceNote}</p>
-          <div className="ev-best-stats">
-            {[...best.factors].sort((a, b) => b.weight - a.weight).map((f, i) => (
-              <FactorStat key={f.key} factor={f} primary={i === 0} approx={best.isTendency} />
-            ))}
-          </div>
-          <p className="ev-best-legend">Faktoren nach Wichtigkeit für {activityLabel} · <span className="ev-leg good">gut</span> <span className="ev-leg ok">okay</span> <span className="ev-leg bad">kritisch</span></p>
-          <div className="ev-best-actions">
-            <button type="button" className="ev-ics-btn" onClick={() => downloadEventICS(query, best)}
-              title="Diesen Tag als Termin (.ics) herunterladen — öffnet sich in Kalender/Handy">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <rect x="3" y="4.5" width="18" height="16" rx="2.5" /><line x1="3" y1="9" x2="21" y2="9" /><line x1="8" y1="2.5" x2="8" y2="6" /><line x1="16" y1="2.5" x2="16" y2="6" />
-              </svg>
-              In den Kalender ({best.phases.length > 1 ? `${best.phases.length} Phasen` : 'Termin'})
-            </button>
-            <button type="button" className="ev-share-btn" onClick={copyEventLink}
-              title="Link zu dieser Auswertung kopieren (Anlass · Ort · Zeitfenster · Phasen)">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
-                <line x1="8.6" y1="10.5" x2="15.4" y2="6.5" /><line x1="8.6" y1="13.5" x2="15.4" y2="17.5" />
-              </svg>
-              {linkCopied ? '✓ Link kopiert' : 'Link teilen'}
-            </button>
-            <span className="ev-ics-hint">.ics &amp; Link — offline, ganz ohne Konto</span>
-          </div>
-        </div>
+  const reliableAlt = conflict ? (ranked.find((d) => d.summary && !d.isTendency && d.score >= 55) ?? null) : null;
+
+  const isWedding = best.phases.some((p) => isCeremony(p.label));
+  const scorablePhases = best.phases.filter((p) => p.summary);
+  const factors = [...best.factors].sort((a, b) => b.weight - a.weight);
+  const tier = confidenceTier(best.confidence);
+  const confPct = Math.round(best.confidence * 100);
+  const dObj = new Date(`${best.date}T00:00:00`);
+  const riskDate = `${weekdayShort(best.date)} ${dObj.getDate()}.${dObj.getMonth() + 1}.`;
+
+  // --- Regenrisiko fürs Feierfenster/Trauung ---
+  const rainPhase = best.phases.find((p) => isCeremony(p.label) && p.summary)
+    ?? (scorablePhases.length ? scorablePhases.reduce((a, b) => (b.summary!.precipPeakMmH > a.summary!.precipPeakMmH ? b : a)) : null);
+  const rain = rainPhase ? rainRiskFor(rainPhase.summary!) : null;
+  const rainGood = !rain || rain.level === 'none' || rain.level === 'low';
+
+  // --- Komfort ---
+  const feltMin = scorablePhases.length ? Math.round(Math.min(...scorablePhases.map((p) => p.summary!.apparentMinC))) : null;
+  const feltMax = scorablePhases.length ? Math.round(Math.max(...scorablePhases.map((p) => p.summary!.apparentMaxC))) : null;
+  const windMax = scorablePhases.length ? Math.round(Math.max(...scorablePhases.map((p) => p.summary!.windMaxMs))) : null;
+  const gustMax = scorablePhases.length ? Math.round(Math.max(...scorablePhases.map((p) => p.summary!.gustMaxMs))) : null;
+
+  // --- Gewitter ---
+  const stormShown = storm && storm.capeAvailable;
+  const stormHigh = stormShown && storm!.index.level === 'elevated';
+
+  // --- Plan B (Kurz-Readout) ---
+  const planAssess = query.planB.enabled ? assessPlanB(query, rec) : null;
+
+  const factorCard = (f: Factor, i: number) => (
+    <div key={f.key} className={`evd-factor${f.assessment === 'ok' ? ' evd-factor--amber' : f.assessment === 'bad' ? ' evd-factor--bad' : ''}`}>
+      <div className="evd-factor-head">
+        <span className={`evd-factor-dot evd-factor-dot--${f.assessment === 'good' ? 'good' : f.assessment === 'ok' ? 'ok' : 'bad'}`} />
+        <span className="evd-factor-lab">{f.label}</span>
       </div>
+      <div className="evd-factor-val">{f.valueText}</div>
+      {i === 0 ? <span className="evd-factor-primary">WICHTIGSTE</span> : <div className="evd-factor-note">{f.phrase}</div>}
+    </div>
+  );
 
-      {/* Regenrisiko gesondert ausweisen: Trauung (PRE-HOCH-US1) ODER Feierfenster (PRE-EVENT-US1) */}
-      {(() => {
-        const ceremony = best.phases.find((p) => isCeremony(p.label) && p.summary);
-        if (ceremony) return <RainRiskCard phase={ceremony} title="Regenrisiko zur Trauung" />;
-        const scorable = best.phases.filter((p) => p.summary);
-        if (!scorable.length) return null;
-        const wettest = scorable.reduce((a, b) => (b.summary!.precipPeakMmH > a.summary!.precipPeakMmH ? b : a));
-        const title = scorable.length > 1 ? `Regenrisiko · ${wettest.label}` : 'Regenrisiko fürs Feierfenster';
-        return <RainRiskCard phase={wettest} title={title} />;
-      })()}
+  const donut = (size: number) => {
+    const r = size === 104 ? 40 : size === 86 ? 33 : 31;
+    const stroke = size === 104 ? 9 : 8;
+    const circ = 2 * Math.PI * r;
+    const dash = (best.score / 100) * circ;
+    const num = size === 104 ? 30 : size === 86 ? 25 : 23;
+    return (
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <g transform={`translate(${size / 2} ${size / 2})`}>
+          <circle r={r} fill="none" stroke="var(--sand-200)" strokeWidth={stroke} />
+          <circle r={r} fill="none" stroke={scoreColor(best.score)} strokeWidth={stroke} strokeLinecap="round" strokeDasharray={`${dash} ${circ}`} transform="rotate(-90)" />
+          <text textAnchor="middle" y={size === 104 ? 6 : 5} fontSize={num} fontWeight={700} fill="var(--ink-900)" fontFamily="League Spartan">{best.score}</text>
+          <text textAnchor="middle" y={size === 104 ? 22 : 18} fontSize={size === 104 ? 8 : 7} letterSpacing="2" fill="var(--stone-400)" fontFamily="League Spartan">SCORE</text>
+        </g>
+      </svg>
+    );
+  };
 
-      {/* Gewittergefahr fürs Eventfenster (#3) — nur DE & nur im nahen CAPE-Horizont */}
-      {storm && <ThunderstormCard outlook={storm} />}
+  const icsBtn = (
+    <button type="button" className="evd-btn-ink" onClick={() => downloadEventICS(query, best)} title="Diesen Tag als Termin (.ics) herunterladen">
+      <IconDeckCalendar size={15} />In den Kalender
+    </button>
+  );
+  const shareBtn = (
+    <button type="button" className="evd-btn-white" onClick={copyEventLink} title="Link zu dieser Auswertung kopieren">
+      <IconDeckShare size={14} />{linkCopied ? '✓ Link kopiert' : 'Link teilen'}
+    </button>
+  );
 
-      {/* Gefühlte Temperatur + Wind fürs Feierfenster (PRE-EVENT-US2) — Nicht-Hochzeit */}
-      {(() => {
-        if (best.phases.some((p) => isCeremony(p.label))) return null;
-        const scorable = best.phases.filter((p) => p.summary);
-        if (!scorable.length) return null;
-        const feltMin = Math.round(Math.min(...scorable.map((p) => p.summary!.apparentMinC)));
-        const feltMax = Math.round(Math.max(...scorable.map((p) => p.summary!.apparentMaxC)));
-        const windMax = Math.round(Math.max(...scorable.map((p) => p.summary!.windMaxMs)));
-        const gustMax = Math.round(Math.max(...scorable.map((p) => p.summary!.gustMaxMs)));
-        const windowLabel = scorable.length === 1 ? `${scorable[0].label} · ${fmtPhaseHours(scorable[0].hours)}` : 'über alle Phasen';
-        return <ComfortCard feltMin={feltMin} feltMax={feltMax} windMax={windMax} gustMax={gustMax} windowLabel={windowLabel} />;
-      })()}
-
-      {/* Wind-Warnung für Deko/Zelt/Frisur (PRE-HOCH-US2) — im Hochzeitskontext */}
-      {(() => {
-        const isWedding = best.phases.some((p) => isCeremony(p.label));
-        if (!isWedding) return null;
-        const windiest = best.phases.filter((p) => p.summary).reduce<PhaseResult | null>(
-          (a, b) => (!a || b.summary!.gustMaxMs > a.summary!.gustMaxMs ? b : a), null);
+  // --- Wiederverwendete Detail-Bausteine (Funktionserhalt) für die Center-Extras ---
+  const centerExtras = (
+    <>
+      {query.activity.id === 'photo' && <PhotoLightSection rec={rec} query={query} forecast={forecast} />}
+      {query.activity.id === 'stargazing' && <AstroNightSection rec={rec} query={query} forecast={forecast} />}
+      {isWedding && (() => {
+        const windiest = scorablePhases.reduce<PhaseResult | null>((a, b) => (!a || b.summary!.gustMaxMs > a.summary!.gustMaxMs ? b : a), null);
         const hazard = windiest ? windHazardFor(windiest.summary!) : null;
         return hazard && windiest ? <WeddingWindCard phase={windiest} hazard={hazard} /> : null;
       })()}
-
-      {/* Hitze-/Schwüle-Warnung für Gäste & Catering (PRE-HOCH-US3) */}
-      {(() => {
-        const isWedding = best.phases.some((p) => isCeremony(p.label));
-        if (!isWedding) return null;
-        const hottest = best.phases.filter((p) => p.summary).reduce<PhaseResult | null>(
-          (a, b) => (!a || b.summary!.apparentMaxC > a.summary!.apparentMaxC ? b : a), null);
+      {isWedding && (() => {
+        const hottest = scorablePhases.reduce<PhaseResult | null>((a, b) => (!a || b.summary!.apparentMaxC > a.summary!.apparentMaxC ? b : a), null);
         const hazard = hottest ? heatHazardFor(hottest.summary!) : null;
         return hazard && hottest ? <WeddingHeatCard phase={hottest} hazard={hazard} /> : null;
       })()}
-
-      {/* Kälte am Abend (PRE-HOCH-US4) — für jedes Abend-/Nachtfenster */}
       {(() => {
         const evenings = best.phases.filter((p) => p.summary && isEveningPhase(p.hours));
-        const coldest = evenings.reduce<PhaseResult | null>(
-          (a, b) => (!a || b.summary!.apparentMinC < a.summary!.apparentMinC ? b : a), null);
+        const coldest = evenings.reduce<PhaseResult | null>((a, b) => (!a || b.summary!.apparentMinC < a.summary!.apparentMinC ? b : a), null);
         const hazard = coldest ? coldHazardFor(coldest.summary!) : null;
         return hazard && coldest ? <EveningColdCard phase={coldest} hazard={hazard} /> : null;
       })()}
-
-      {/* Event-Ablauf (stündlicher Verlauf aller Wetterdaten) am besten Tag */}
-      <div className="ev-section-head">
-        <span className="rt-eyebrow">Ablauf am besten Tag</span>
-        <span className="ev-section-sub">{formatDayLong(best.date)} · Stunde für Stunde über dein Fenster</span>
-      </div>
-      <EventCourseChart forecast={forecast} best={best} />
-
-      {/* Wetterkarte fürs Event — nur wenn der Zeitraum im Raster-Horizont liegt,
-          d. h. echte Wetterdaten für den Tag vorliegen (sonst keine Karte). */}
-      {eventWithinRasterHorizon(best) && (
-        <>
-          <div className="ev-section-head">
-            <span className="rt-eyebrow">Dein Event auf der Karte</span>
-            <span className="ev-section-sub">Ort &amp; Wetterlage am besten Tag</span>
-          </div>
-          <EventMapSection location={query.location} best={best} />
-        </>
-      )}
-
-      {/* Fotografie-Licht (Epic FOTO) — nur für den Foto-Anlass */}
-      {query.activity.id === 'photo' && <PhotoLightSection rec={rec} query={query} forecast={forecast} />}
-
-      {/* Astrofotografie & Sternenbeobachtung (Epic ASTRO) — nur für „Sterne schauen" */}
-      {query.activity.id === 'stargazing' && <AstroNightSection rec={rec} query={query} forecast={forecast} />}
-
-      {/* Plan B / Ausweich-Logik (Epic PLANB) — nur wenn aktiviert */}
       <PlanBSection query={query} rec={rec} />
-
-      {/* Phasen einzeln (WIN-US2) — nur bei mehreren Phasen */}
       {best.phases.length > 1 && (
         <>
-          <div className="ev-section-head">
-            <span className="rt-eyebrow">Phasen am besten Tag</span>
-            <span className="ev-section-sub">jede einzeln · der Tag zählt die schwächste</span>
-          </div>
+          <div className="evd-sec-head"><span className="evd-sec-lab">Phasen am besten Tag</span><span className="evd-sec-note">jede einzeln · der Tag zählt die schwächste</span></div>
           <PhaseBreakdown phases={best.phases} />
         </>
       )}
-
-      {/* Sicherheit über die Zeit (KONF-US2) — sichtbar abnehmende Konfidenz */}
-      {rec.scorableCount >= 2 && (
-        <>
-          <div className="ev-section-head">
-            <span className="rt-eyebrow">Sicherheit über die Zeit</span>
-            <span className="ev-section-sub">spätere Tage sind unsicherer</span>
-          </div>
-          <div className="ev-card ev-tl-card">
-            <ConfidenceTimeline days={rec.days} />
-            <p className="ev-tl-note">
-              Je weiter ein Tag entfernt liegt, desto unsicherer die Vorhersage — späte Tage sind eher grobe Tendenz als Festlegung.
-            </p>
-          </div>
-        </>
-      )}
-
-      {/* Einzeltermine → Termin-Vergleich (PRE-HOCH-US5); sonst Rangliste */}
-      {rec.days.length > 1 && (datesMode ? (
-        <TerminVergleich days={rec.days} />
-      ) : (
-        <>
-          <div className="ev-section-head">
-            <span className="rt-eyebrow">Rangliste</span>
-            <span className="ev-section-sub">{rec.scorableCount} von {rec.days.length} Tagen bewertet</span>
-          </div>
-          <DayScoreChart days={rec.days} />
-          <div className="ev-rank-list">
-            {ranked.map((d, i) => <RankRow key={d.date} rank={d.summary ? i + 1 : null} day={d} />)}
-          </div>
-          <p className="ev-days-note">
-            Quellen: DWD · GeoSphere · MeteoSwiss, höhenkorrigiert.
-            {rec.scorableCount < rec.days.length && ' Tage ohne Wertung liegen jenseits des Vorhersage-Horizonts.'}
-          </p>
-        </>
-      ))}
     </>
   );
+
+  // --- Rangliste ---
+  const ranglisteBlock = rec.days.length > 1 && (datesMode ? (
+    <>
+      <div className="evd-sec-head"><span className="evd-sec-lab">Termin-Vergleich</span><span className="evd-sec-note">{rec.scorableCount} von {rec.days.length} bewertet</span></div>
+      <TerminVergleich days={rec.days} />
+    </>
+  ) : (
+    <>
+      <div className="evd-sec-head"><span className="evd-sec-lab">Rangliste</span><span className="evd-sec-note">{rec.scorableCount} von {rec.days.length} Tagen bewertet</span></div>
+      <div className="evd-panel">
+        <DayScoreChart days={rec.days} />
+        <div className="evd-ranklist">
+          {ranked.slice(0, 5).map((d, i) => <RankRow key={d.date} rank={d.summary ? i + 1 : null} day={d} />)}
+        </div>
+        <p className="evd-panel-cap" style={{ marginTop: 12 }}>Quellen: DWD · GeoSphere · MeteoSwiss, höhenkorrigiert.{rec.scorableCount < rec.days.length && ' Tage ohne Wertung liegen jenseits des Vorhersage-Horizonts.'}</p>
+      </div>
+    </>
+  ));
+
+  // --- Risiko-Readout-Karten ---
+  const readoutCards = (
+    <>
+      <div className={`evd-risk-card${rainGood ? ' evd-risk-card--good' : ''} evd-risk-card--flex`}>
+        <span className="evd-risk-ico"><IconDeckSun size={20} /></span>
+        <div>
+          <span className="evd-risk-lab">Regenrisiko fürs Feierfenster</span>
+          <div className={`evd-risk-val ${rainGood ? 'evd-risk-val--good' : 'evd-risk-val--warn'}`}>{rain ? rain.label : 'Keine Wertung'}</div>
+          <div className="evd-risk-desc">{rain ? rain.detail : 'Für dieses Fenster liegt keine Vorhersage vor.'}</div>
+        </div>
+      </div>
+
+      <div className="evd-risk-card evd-risk-card--flex">
+        <span className="evd-risk-ico" style={{ background: 'var(--evd-sage-tint)' }}><IconDeckStorm size={20} /></span>
+        <div>
+          <span className="evd-risk-lab">Gewittergefahr</span>
+          <div className={`evd-risk-val ${stormHigh ? 'evd-risk-val--warn' : 'evd-risk-val--good'}`}>{stormShown ? storm!.index.label : 'Gering'}</div>
+          <div className="evd-risk-desc">{stormShown ? storm!.index.drivers.join(' · ') : 'Kein belastbares CAPE-Signal · keine amtliche DWD-Warnung.'}</div>
+        </div>
+      </div>
+
+      <div className="evd-risk-card">
+        <span className="evd-risk-lab">Gefühlt &amp; Wind · {scorablePhases.length === 1 ? scorablePhases[0].label : 'ganzer Tag'}</span>
+        <div className="evd-comfort-grid">
+          <div className="evd-comfort-cell"><div className="evd-comfort-lab">Gefühlt</div><div className="evd-comfort-val">{feltMin != null ? `${feltMin}–${feltMax} °C` : '—'}</div></div>
+          <div className="evd-comfort-cell"><div className="evd-comfort-lab">Wind · Böen</div><div className="evd-comfort-val">{windMax != null ? `${windMax} · ${gustMax} m/s` : '—'}</div></div>
+        </div>
+        <div className="evd-risk-desc" style={{ marginTop: 8 }}>{feltMin != null && windMax != null && windMax <= 4 ? 'Angenehm, kaum Wind — gute Bedingungen für draußen.' : 'Gefühlte Temperatur & Böen fürs Feierfenster.'}</div>
+      </div>
+
+      <div className="evd-readout-sep"><span>Plan B</span><span className="rule" /></div>
+      <div className={`evd-risk-card${planAssess && !planAssess.triggered ? ' evd-risk-card--good' : ''} evd-risk-card--flex`}>
+        <span className="evd-risk-ico"><IconDeckHouse size={20} /></span>
+        <div>
+          <span className="evd-risk-lab">{planAssess ? `Schwelle ${planAssess.thresholdText}` : 'Schwelle nicht aktiv'}</span>
+          <div className={`evd-risk-val ${!planAssess ? 'evd-risk-val--ink' : planAssess.triggered ? 'evd-risk-val--warn' : 'evd-risk-val--good'}`}>
+            {!planAssess ? 'Nicht aktiviert' : planAssess.triggered ? 'Plan B empfohlen' : 'Plan B nicht nötig'}
+          </div>
+          <div className="evd-risk-desc">
+            {!planAssess ? 'Im Wizard aktivierbar (Schritt „Plan B").' : planAssess.recommendation}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+
+  const confidenceBlock = rec.scorableCount >= 2 && (
+    <>
+      <div className="evd-readout-sep"><span>Sicherheit über die Zeit</span><span className="rule" /></div>
+      <div className="evd-risk-card">
+        <ConfidenceTimeline days={rec.days} />
+        <div className="evd-risk-desc" style={{ marginTop: 8 }}>Je weiter ein Tag entfernt liegt, desto unsicherer — späte Tage sind eher grobe Tendenz als Festlegung.</div>
+      </div>
+    </>
+  );
+
+  // ------- Mobile: vertikaler Fluss -------
+  if (isMobile) {
+    return (
+      <div className="evd-m-root">
+        <MobileResultHeader query={query} onEdit={onEdit} onBack={onBack} />
+        <div className="evd-m-scroll evd-m-scroll--nav">
+          <div className="evd-m-hero">
+            <div className="evd-m-hero-top">
+              {donut(80)}
+              <div>
+                <span className="evd-eyebrow">Bester Tag für {activityLabel}</span>
+                <h3 className="evd-hero-title" style={{ fontSize: 23 }}>{formatDayLong(best.date)}</h3>
+                <span className={`evd-conf-pill${tier.band === 'high' ? '' : ' evd-conf-pill--amber'}`} style={{ marginTop: 6 }}>Konfidenz {tier.label} · {confPct} %</span>
+              </div>
+            </div>
+            <p className="evd-hero-desc">{best.isTendency ? `Tendenz: ${lowerFirst(best.rationale)}` : best.rationale}</p>
+            <div className="evd-m-factors">{factors.map(factorCard)}</div>
+            <div className="evd-m-actions">{icsBtn}{shareBtn}</div>
+          </div>
+
+          <div className="evd-sec-head"><span className="evd-sec-lab">Ablauf am besten Tag</span></div>
+          <EventCourseChart forecast={forecast} best={best} />
+
+          <div className="evd-sec-head"><span className="evd-sec-lab">Risiko-Readout</span></div>
+          <div className="evd-m-risklist">{readoutCards}</div>
+          {confidenceBlock}
+
+          {ranglisteBlock}
+          {centerExtras}
+          <p className="evd-panel-cap" style={{ textAlign: 'center', marginTop: 14 }}>● DWD · GeoSphere · MeteoSwiss · höhenkorrigiert · keine Tracker</p>
+        </div>
+        <ResultBottomNav onBack={onBack} />
+      </div>
+    );
+  }
+
+  // ------- Desktop / Tablet: Dock | Center | Readout -------
+  return (
+    <div className="evd-root">
+      <ResultTopbar query={query} onEdit={onEdit} onBack={onBack} />
+      <div className="evd-body">
+        <ResultRail onBack={onBack} />
+
+        {/* DOCK — DEIN VORHABEN */}
+        <div className="evd-dock evd-scroll">
+          <div className="evd-dock-head">
+            <span className="evd-field-label">Dein Vorhaben</span>
+            <button className="evd-link" onClick={onEdit}>Angaben ändern</button>
+          </div>
+          <div className="evd-dock-card evd-dock-anlass">
+            <span className="evd-anlass-ico"><DeckActivityIcon id={query.activity.id} size={21} /></span>
+            <div>
+              <div className="evd-anlass-tag" style={{ letterSpacing: 1 }}>ANLASS</div>
+              <div className="evd-anlass-name" style={{ fontSize: 17 }}>{query.activity.label}</div>
+              <div className="evd-anlass-tag">{query.activity.tag}</div>
+            </div>
+          </div>
+          <div className="evd-dock-section">
+            <span className="evd-field-label">Zeitraum</span>
+            <div className="evd-daterow" style={{ marginTop: 9 }}>
+              <div className="evd-datecard" style={{ cursor: 'default' }}><div className="evd-datecard-lab">{query.window.mode === 'range' ? 'Von' : 'Termine'}</div><div className="evd-datecard-val" style={{ fontSize: 14 }}>{query.window.mode === 'range' ? shortDateResult(query.window.from) : `${query.window.dates.length} Tage`}</div></div>
+              {query.window.mode === 'range' && <div className="evd-datecard" style={{ cursor: 'default' }}><div className="evd-datecard-lab">Bis</div><div className="evd-datecard-val" style={{ fontSize: 14 }}>{shortDateResult(query.window.to)}</div></div>}
+            </div>
+            <div className="evd-dock-sub">{rec.scorableCount} von {rec.days.length} Tagen bewertet</div>
+          </div>
+          <div className="evd-dock-section">
+            <span className="evd-field-label">Phasen</span>
+            <div style={{ marginTop: 9, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {query.phases.map((p) => (
+                <div className="evd-dock-mini" key={p.id}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--terracotta-500)', flex: '0 0 auto' }} />
+                  <span style={{ flex: 1, fontSize: 13, fontWeight: 600 }}>{p.label}</span>
+                  <span style={{ fontSize: 12, color: 'var(--stone-500)' }}>{fmtPhaseHours(p.hours)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="evd-dock-card" style={{ marginTop: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: 12, fontWeight: 600 }}>Plan-B-Schwelle</span>
+              <span className={`evd-switch${query.planB.enabled ? ' evd-switch--on' : ''}`} style={{ width: 34, height: 19 }} />
+            </div>
+            <div className="evd-dock-sub">{planAssess ? `Ab ${planAssess.thresholdText} → Ausweich vorschlagen.` : 'Nicht aktiviert.'}</div>
+            {planAssess?.alternative && <div className="evd-pilltags"><span className="evd-pilltag evd-pilltag--amber">Ausweichtag: {shortDateResult(planAssess.alternative.date)}</span></div>}
+          </div>
+          <button className="evd-dock-cta" onClick={onEdit}>Angaben ändern <IconDeckArrowRight /></button>
+        </div>
+
+        {/* CENTER */}
+        <div className="evd-center evd-scroll">
+          <div className="evd-hero">
+            <div className="evd-hero-left">
+              {donut(104)}
+              <span className={`evd-conf-pill${tier.band === 'high' ? '' : ' evd-conf-pill--amber'}`}>Konfidenz {tier.label} · {confPct} %</span>
+            </div>
+            <div className="evd-hero-main">
+              <span className="evd-eyebrow">Bester Tag für {activityLabel}{best.isTendency ? ' · Tendenz' : ''}</span>
+              <h3 className="evd-hero-title">{formatDayLong(best.date)}</h3>
+              <p className="evd-hero-desc">{best.isTendency ? `Tendenz: ${lowerFirst(best.rationale)}` : best.rationale}</p>
+              <p className="evd-hero-meta">Verlässlichkeit: {best.confidenceNote}{conflict && reliableAlt ? ` · verlässlichere Alternative: ${formatDayLong(reliableAlt.date)}` : ''}</p>
+              <div className="evd-factors">{factors.map(factorCard)}</div>
+              <p className="evd-legend">Faktoren nach Wichtigkeit für {activityLabel} · <span className="g">gut</span> <span className="o">okay</span> <span className="c">kritisch</span></p>
+              <div className="evd-hero-actions">{icsBtn}{shareBtn}<span className="evd-hero-hint">.ics &amp; Link — offline, ganz ohne Konto</span></div>
+            </div>
+          </div>
+
+          <div className="evd-sec-head"><span className="evd-sec-lab">Ablauf am besten Tag</span><span className="evd-sec-note">{formatDayLong(best.date)} · Stunde für Stunde</span></div>
+          <EventCourseChart forecast={forecast} best={best} />
+
+          {eventWithinRasterHorizon(best) && (
+            <>
+              <div className="evd-sec-head"><span className="evd-sec-lab">Dein Event auf der Karte</span><span className="evd-sec-note">Ort &amp; Wetterlage am besten Tag</span></div>
+              <EventMapSection location={query.location} best={best} />
+            </>
+          )}
+
+          {ranglisteBlock}
+          {centerExtras}
+        </div>
+
+        {/* READOUT */}
+        <div className="evd-readout evd-scroll">
+          <div className="evd-readout-head">
+            <span className="evd-sec-lab" style={{ letterSpacing: '2.5px' }}>Risiko-Readout · {riskDate}</span>
+            <span style={{ fontSize: 10, color: 'var(--evd-sage-text)', fontWeight: 600 }}>● geprüft</span>
+          </div>
+          {readoutCards}
+          {confidenceBlock}
+          <div className="evd-readout-foot">● Native Behörden-Quellen: DWD · GeoSphere · MeteoSwiss · höhenkorrigiert · keine Tracker</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function shortDateResult(iso: string): string {
+  if (!iso) return '—';
+  const d = new Date(`${iso}T00:00:00`);
+  return d.toLocaleDateString('de-DE', { day: 'numeric', month: 'long' });
 }
 
 function NoForecast() {
@@ -752,38 +960,6 @@ function EventMapSection({ location, best }: { location: EventQuery['location'];
   );
 }
 
-function ScoreDonut({ score }: { score: number }) {
-  const r = 34;
-  const C = 2 * Math.PI * r;
-  const filled = C * (score / 100);
-  return (
-    <svg className="ev-donut" width="92" height="92" viewBox="0 0 92 92" aria-label={`Score ${score} von 100`}>
-      <g transform="translate(46 46)">
-        <circle r={r} fill="none" stroke="var(--sand-200, #E0D6BE)" strokeWidth="8" />
-        <circle r={r} fill="none" stroke={scoreColor(score)} strokeWidth="8"
-          strokeDasharray={`${filled} ${C}`} transform="rotate(-90)" strokeLinecap="round" />
-        <text textAnchor="middle" y="4" fontSize="24" fontWeight="600" fill="var(--ink-900, #2C2A26)"
-          style={{ fontVariantNumeric: 'tabular-nums' }}>{score}</text>
-        <text textAnchor="middle" y="18" fontSize="7" letterSpacing="0.18em" fill="var(--stone-400, #A89A82)">SCORE</text>
-      </g>
-    </svg>
-  );
-}
-
-function FactorStat({ factor, primary, approx }: { factor: Factor; primary?: boolean; approx?: boolean }) {
-  // Bei Tendenz-Tagen Werte sichtbar entschärfen (keine Scheingenauigkeit).
-  const soft = approx && (factor.key === 'temp' || factor.key === 'wind');
-  return (
-    <div className={`ev-stat ev-stat-${factor.assessment}${primary ? ' ev-stat-primary' : ''}`}>
-      <span className="ev-stat-label">
-        <span className="ev-stat-dot" />{factor.label}
-        {primary && <span className="ev-stat-key">wichtigste</span>}
-      </span>
-      <span className="ev-stat-value">{soft ? `~ ${factor.valueText}` : factor.valueText}</span>
-    </div>
-  );
-}
-
 function RankRow({ rank, day }: { rank: number | null; day: DayResult }) {
   const band = !day.summary ? 'nodata' : day.isBest ? 'best' : scoreBand(day.score);
   // KONF-US3: jenseits des verlässlichen Horizonts → Negativfaktor ohne
@@ -897,44 +1073,6 @@ function ConfidenceTimeline({ days }: { days: DayResult[] }) {
  * Spannung Score↔Sicherheit deutlich und rät vom voreiligen Buchen ab. Bietet,
  * wenn vorhanden, eine verlässlichere Alternative im sicheren Horizont an.
  */
-function ConflictWarning({ best, alt }: { best: DayResult; alt: DayResult | null }) {
-  const pct = Math.round(best.confidence * 100);
-  return (
-    <div className="ev-conflict" role="alert">
-      <span className="ev-conflict-icon" aria-hidden="true"><IconWarning size={18} /></span>
-      <div className="ev-conflict-body">
-        <strong className="ev-conflict-head">
-          Top-Bewertung ({best.score}), aber erst {pct}&nbsp;% Sicherheit
-        </strong>
-        <p className="ev-conflict-text">
-          {capitalize(best.confidenceNote.split(' · ')[0])} — diese Empfehlung kann noch kippen. Zum Einladen oder Buchen lieber abwarten.
-          {alt && (
-            <> Verlässlicher schon jetzt: <span className="ev-conflict-alt">{formatDayLong(alt.date)}</span> ({alt.score} Punkte · {Math.round(alt.confidence * 100)}&nbsp;% sicher).</>
-          )}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-/** Gesondertes Regenrisiko fürs Fenster (PRE-HOCH-US1 Trauung / PRE-EVENT-US1 Feier). */
-function RainRiskCard({ phase, title }: { phase: PhaseResult; title: string }) {
-  const risk = rainRiskFor(phase.summary!);
-  const pct = Math.round(phase.confidence * 100);
-  return (
-    <div className={`ev-card ev-rain-card ev-rain-${risk.level}`} role="status">
-      <span className="ev-rain-icon" aria-hidden="true">{risk.level === 'none' ? <IconSun size={24} /> : <IconRain size={24} />}</span>
-      <div className="ev-rain-body">
-        <span className="rt-eyebrow ev-rain-eyebrow">{title} · {fmtPhaseHours(phase.hours)}</span>
-        <strong className="ev-rain-level">{risk.label}</strong>
-        <p className="ev-rain-detail">
-          {risk.detail} · Sicherheit {pct} %{phase.isTendency && ' · noch unsicher (Tendenz)'}
-        </p>
-      </div>
-    </div>
-  );
-}
-
 /**
  * Gewittergefahr fürs Eventfenster (#3). Holt — nur DE und nur wenn der beste
  * Tag im nahen CAPE-Horizont (~27 h) liegt — ICON-D2-CAPE + amtliche
@@ -978,31 +1116,6 @@ function precipAtMs(forecast: PointForecast, atMs: number): number | null {
   let best: number | null = null, bestD = 45 * 60_000;
   for (const h of forecast.hours) { const d = Math.abs(h.timestamp.getTime() - atMs); if (d <= bestD) { bestD = d; best = h.precipitation; } }
   return best;
-}
-
-function ThunderstormCard({ outlook }: { outlook: ConvectiveOutlook }) {
-  if (!outlook.capeAvailable) return null;
-  const { index, peakAtMs } = outlook;
-  if (index.level === 'none' || index.level === 'low') return null; // nur bei echter Gefahr
-  const when = peakAtMs ? new Date(peakAtMs).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : null;
-  return (
-    <div className={`ev-card ev-storm-card ev-storm-${index.level}`} role="alert">
-      <span className="ev-storm-icon" aria-hidden="true"><StormGlyph /></span>
-      <div className="ev-storm-body">
-        <span className="rt-eyebrow ev-storm-eyebrow">Gewittergefahr fürs Eventfenster{when ? ` · Spitze gegen ${when} Uhr` : ''}</span>
-        <strong className="ev-storm-level">{index.label}</strong>
-        <p className="ev-storm-detail">{index.drivers.join(' · ')}</p>
-      </div>
-    </div>
-  );
-}
-
-function StormGlyph() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M19 16.9A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25" /><polyline points="13 11 9 17 15 17 11 23" />
-    </svg>
-  );
 }
 
 /** PRE-HOCH-US2 — Wind-Warnung für Deko/Zelt/Frisur. */
@@ -1050,29 +1163,6 @@ function EveningColdCard({ phase, hazard }: { phase: PhaseResult; hazard: Return
   );
 }
 
-/** PRE-EVENT-US2 — gefühlte Temperatur + Wind fürs Feierfenster (immer sichtbar). */
-function ComfortCard({ feltMin, feltMax, windMax, gustMax, windowLabel }: { feltMin: number; feltMax: number; windMax: number; gustMax: number; windowLabel: string }) {
-  const flame = gustMax < 8 ? 'offene Flamme & Kerzen unkritisch'
-    : gustMax < 13 ? 'Kerzen/offene Flamme windgeschützt aufstellen'
-    : 'offene Flamme riskant — Deko & Kerzen sichern';
-  const comfort = feltMax < 15 ? 'durchweg kühl — warme Optionen bereithalten'
-    : feltMin >= 27 ? 'heiß — Schatten & Getränke einplanen'
-    : feltMin < 12 ? 'tagsüber mild, später frisch — Decken bereithalten'
-    : 'angenehm temperiert';
-  return (
-    <div className="ev-card ev-comfort-card" role="status">
-      <span className="ev-comfort-icon" aria-hidden="true"><IconThermometer size={24} /></span>
-      <div className="ev-comfort-body">
-        <span className="rt-eyebrow ev-comfort-eyebrow">Komfort im Feierfenster · {windowLabel}</span>
-        <strong className="ev-comfort-vals">
-          Gefühlt {feltMin === feltMax ? `${feltMax}` : `${feltMin}–${feltMax}`} °C · Wind {windMax} m/s{gustMax >= windMax + 2 ? ` (Böen ${gustMax})` : ''}
-        </strong>
-        <p className="ev-comfort-detail">{comfort} · {flame}</p>
-      </div>
-    </div>
-  );
-}
-
 /** WIN-US3 — Marker für ein Schlechtwetter-Risiko genau im Eventfenster. */
 function RiskChip({ risk, compact }: { risk: WindowRisk; compact?: boolean }) {
   return (
@@ -1080,20 +1170,6 @@ function RiskChip({ risk, compact }: { risk: WindowRisk; compact?: boolean }) {
       {risk.kind === 'rain' ? <IconRain size={13} /> : <IconWind size={13} />}
       {compact ? risk.label : `${risk.label} · ${risk.detail}`}
     </span>
-  );
-}
-
-/** WIN-US3 — prominenter Hinweis, dass ungünstiges Wetter genau ins Fenster fällt. */
-function WindowRiskBanner({ risks, multiPhase }: { risks: WindowRisk[]; multiPhase: boolean }) {
-  const alert = risks.some((r) => r.severity === 'alert');
-  return (
-    <div className={`ev-riskbanner${alert ? ' ev-riskbanner-alert' : ''}`} role="alert">
-      <span className="ev-riskbanner-icon" aria-hidden="true"><IconWarning size={18} /></span>
-      <p className="ev-riskbanner-text">
-        <strong>Genau im {multiPhase ? 'Eventfenster' : 'Fenster'}:</strong>{' '}
-        {risks.map((r) => `${r.label} (${r.detail})`).join(' · ')} — fällt mitten in deine Zeit, auch wenn der Tag insgesamt günstig wirkt.
-      </p>
-    </div>
   );
 }
 
@@ -1132,18 +1208,6 @@ function PhaseBreakdown({ phases }: { phases: PhaseResult[] }) {
         );
       })}
     </div>
-  );
-}
-
-/** Prominente Konfidenz-Pille im Hero. */
-function ConfPill({ confidence }: { confidence: number }) {
-  const { band, label } = confidenceTier(confidence);
-  const pct = Math.round(confidence * 100);
-  return (
-    <span className={`ev-conf-pill ev-conf-${band}`}>
-      <ConfBars confidence={confidence} withLabel={false} />
-      Konfidenz {label} · {pct} %
-    </span>
   );
 }
 
@@ -1574,11 +1638,11 @@ function AltLocationFinder({ query, targetDate, homeScore, triggered }: { query:
 // --- Helfer ------------------------------------------------------------------
 
 function scoreColor(score: number): string {
-  // Gut = unser Orange (terracotta), mittel = amber, schwach/kritisch = neutrales
-  // Slate — so bleibt „gut" klar von „kritisch" unterscheidbar, obwohl Grün raus ist.
-  if (score >= 70) return 'var(--terracotta-500, #C97B47)';
-  if (score >= 45) return 'var(--amber-500, #D4A373)';
-  return 'var(--slate-500, #6B7A8F)';
+  // Command-Deck-Palette (eventplaner.dc.html): gut = Sage, okay = Amber,
+  // kritisch = Terracotta — passt zu Score-Donut, Rangliste-Balken & Legende.
+  if (score >= 70) return 'var(--sage-600, #7A9466)';
+  if (score >= 45) return 'var(--evd-okay, #B8862F)';
+  return 'var(--evd-critical, #B5482E)';
 }
 function scoreBand(score: number): 'good' | 'mid' | 'low' {
   return score >= 70 ? 'good' : score >= 45 ? 'mid' : 'low';

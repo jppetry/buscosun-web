@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #0B0E12; font-family: "League Spartan", system-ui, sans-serif; -webkit-font-smoothing: antialiased; color: #2C2A26; }
+  a { color: #5F7A4C; text-decoration: none; }
+  a:hover { color: #7A9466; }
+  ::placeholder { color: #A89A7A; }
+  .fc-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+  .fc-scroll::-webkit-scrollbar-thumb { background: #D9D0B8; border-radius: 3px; }
+</style>
+</helmet>
+
+<section style="padding:56px 72px 120px; display:flex; flex-direction:column; gap:56px; font-family:'League Spartan',sans-serif;">
+
+  <div style="display:flex; align-items:flex-end; gap:20px; flex-wrap:wrap;">
+    <div>
+      <div style="font-size:11px; letter-spacing:4px; color:#A89A7A; font-weight:600; text-transform:uppercase;">buscosun · modellvergleich</div>
+      <div style="font-size:30px; font-weight:600; color:#E9ECF1; letter-spacing:-0.5px; margin-top:6px;">Modellvergleich — Command-Deck (hell)</div>
+    </div>
+    <div style="font-size:13px; color:#98A2AF; max-width:560px; line-height:1.5; padding-bottom:3px; font-weight:300;">
+      Exakt im Stil der Wetterkarte (Sand/Ink · League Spartan · Sage-Akzent). „Wie verlässlich ist die Vorhersage?" ohne Informationsverlust — 5 Modelle, Spread, Konfidenz, Stabilität, Treffsicherheit. Referenzen:
+      <a href="#V1">V1</a> Desktop · <a href="#V2">V2</a> Tablet · <a href="#V3">V3</a> Mobile.
+    </div>
+  </div>
+
+  <!-- ============================ V1 — DESKTOP ============================ -->
+  <article id="V1" style="width:1440px;">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+      <span style="display:inline-flex; align-items:center; justify-content:center; min-width:36px; height:26px; padding:0 10px; background:#7A9466; color:#FAF6EA; border-radius:6px; font-size:13px; font-weight:700; letter-spacing:1px;">V1</span>
+      <span style="font-size:15px; font-weight:600; color:#E9ECF1;">Desktop · ≥1440 px — Modellvergleich</span>
+    </div>
+
+    <div style="height:1000px; border-radius:18px; overflow:hidden; background:#EDE6D3; border:1px solid #E0D6BE; box-shadow:0 40px 90px -50px rgba(0,0,0,.55); display:flex; flex-direction:column;">
+
+      <!-- TOP STATUS BAR -->
+      <div style="height:60px; flex:0 0 auto; display:flex; align-items:center; gap:18px; padding:0 20px; background:#FAF6EA; border-bottom:1px solid #E0D6BE;">
+        <div style="display:flex; align-items:center; gap:10px;"><img src="buscosun-mark.svg" width="26" height="26" alt=""><span style="font-size:19px; font-weight:700; color:#2C2A26; letter-spacing:-0.4px;">buscosun</span></div>
+        <div style="width:1px; height:26px; background:#E0D6BE;"></div>
+        <div style="display:flex; align-items:center; gap:9px; flex:1; max-width:400px; background:#FFFFFF; border:1px solid #D9D0B8; border-radius:9px; padding:8px 13px;"><svg width="15" height="15" viewBox="0 0 18 18" fill="none"><circle cx="8" cy="8" r="6" stroke="#8B7355" stroke-width="1.6"/><line x1="12.5" y1="12.5" x2="16" y2="16" stroke="#8B7355" stroke-width="1.6" stroke-linecap="round"/></svg><span style="flex:1; font-size:14px; color:#2C2A26; font-weight:400;">🇩🇪 München, Bayern</span><span style="font-size:11px; color:#5F7A4C; font-weight:600; cursor:pointer;">Ändern</span></div>
+        <div style="margin-left:auto; display:flex; align-items:center; gap:16px;">
+          <div style="display:flex; align-items:center; gap:8px;"><span style="width:7px; height:7px; border-radius:50%; background:#7A9466;"></span><span style="font-size:11px; letter-spacing:1.5px; color:#5F7A4C; font-weight:600;">5 QUELLEN AKTIV</span></div>
+          <span style="width:32px; height:32px; border-radius:50%; background:#E0D6BE; color:#5C5447; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700;">JK</span>
+        </div>
+      </div>
+
+      <div style="flex:1; display:flex; min-height:0;">
+        <!-- ICON RAIL (Modellvergleich aktiv) -->
+        <div style="width:62px; flex:0 0 auto; background:#2C2A26; display:flex; flex-direction:column; align-items:center; padding:14px 0; gap:6px;">
+          <div style="width:42px; height:42px; border-radius:11px; display:flex; align-items:center; justify-content:center; color:#8B7355;" title="Wetterkarte"><svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M12 3 L21 8 L12 13 L3 8 Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M3 13 L12 18 L21 13" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
+          <div style="width:42px; height:42px; border-radius:11px; display:flex; align-items:center; justify-content:center; color:#8B7355;" title="Regenradar"><svg width="21" height="21" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/><path d="M12 3 A9 9 0 0 1 21 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg></div>
+          <div style="width:42px; height:42px; border-radius:11px; display:flex; align-items:center; justify-content:center; background:#3A3833; color:#A9C088; position:relative;" title="Modellvergleich"><span style="position:absolute; left:-14px; top:9px; bottom:9px; width:3px; border-radius:2px; background:#7A9466;"></span><svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M4 18 L9 11 L13 14 L20 5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 5 L4 20 L20 20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-opacity=".5"/></svg></div>
+          <div style="width:42px; height:42px; border-radius:11px; display:flex; align-items:center; justify-content:center; color:#8B7355;" title="Event"><svg width="21" height="21" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5" stroke="currentColor" stroke-width="1.6"/><line x1="3.5" y1="9.5" x2="20.5" y2="9.5" stroke="currentColor" stroke-width="1.6"/></svg></div>
+          <div style="margin-top:auto; width:42px; height:42px; border-radius:11px; display:flex; align-items:center; justify-content:center; color:#8B7355;" title="Einstellungen"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.6"/><path d="M12 2.5 V5 M12 19 V21.5 M2.5 12 H5 M19 12 H21.5 M5.2 5.2 L7 7 M17 17 L18.8 18.8 M18.8 5.2 L17 7 M7 17 L5.2 18.8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+        </div>
+
+        <!-- LEFT DOCK — METRIK + QUELLEN -->
+        <div class="fc-scroll" style="width:250px; flex:0 0 auto; background:#FAF6EA; border-right:1px solid #E0D6BE; overflow-y:auto; padding:16px 13px;">
+          <span style="font-size:11px; letter-spacing:2px; color:#A89A7A; font-weight:700;">WETTERGRÖSSE</span>
+          <div style="display:flex; flex-direction:column; gap:5px; margin:10px 0 18px;">
+            <span style="font-size:13px; font-weight:600; color:#FAF6EA; background:#7A9466; border-radius:9px; padding:9px 12px;">Temperatur</span>
+            <span style="font-size:13px; font-weight:500; color:#5C5447; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:9px; padding:9px 12px;">Niederschlag</span>
+            <span style="font-size:13px; font-weight:500; color:#5C5447; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:9px; padding:9px 12px;">Wind</span>
+            <span style="font-size:13px; font-weight:500; color:#5C5447; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:9px; padding:9px 12px;">Wolkendichte</span>
+          </div>
+
+          <span style="font-size:11px; letter-spacing:2px; color:#A89A7A; font-weight:700;">QUELLEN EIN-/AUSBLENDEN</span>
+          <div style="display:flex; flex-direction:column; gap:6px; margin-top:10px;">
+            <div style="display:flex; align-items:center; gap:9px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:9px; padding:8px 10px;"><span style="width:14px; height:4px; border-radius:2px; background:#3A6FA8; flex:0 0 auto;"></span><span style="flex:1; font-size:12.5px; font-weight:600; color:#2C2A26;">ICON · DWD</span><span style="width:28px; height:16px; border-radius:9px; background:#7A9466; position:relative;"><span style="position:absolute; top:2px; right:2px; width:12px; height:12px; border-radius:50%; background:#FFFFFF;"></span></span></div>
+            <div style="display:flex; align-items:center; gap:9px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:9px; padding:8px 10px;"><span style="width:14px; height:4px; border-radius:2px; background:#C99A4E; flex:0 0 auto;"></span><span style="flex:1; font-size:12.5px; font-weight:600; color:#2C2A26;">ECMWF</span><span style="width:28px; height:16px; border-radius:9px; background:#7A9466; position:relative;"><span style="position:absolute; top:2px; right:2px; width:12px; height:12px; border-radius:50%; background:#FFFFFF;"></span></span></div>
+            <div style="display:flex; align-items:center; gap:9px; background:#FFFFFF; border:1px solid #E7D3B4; border-radius:9px; padding:8px 10px;"><span style="width:14px; height:4px; border-radius:2px; background:#C97B47; flex:0 0 auto;"></span><span style="flex:1; font-size:12.5px; font-weight:600; color:#2C2A26;">GFS · NOAA <span style="color:#C97B47;" title="Ausreißer">⚠</span></span><span style="width:28px; height:16px; border-radius:9px; background:#7A9466; position:relative;"><span style="position:absolute; top:2px; right:2px; width:12px; height:12px; border-radius:50%; background:#FFFFFF;"></span></span></div>
+            <div style="display:flex; align-items:center; gap:9px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:9px; padding:8px 10px;"><span style="width:14px; height:4px; border-radius:2px; background:#7A9466; flex:0 0 auto;"></span><span style="flex:1; font-size:12.5px; font-weight:600; color:#2C2A26;">GEM · Kanada</span><span style="width:28px; height:16px; border-radius:9px; background:#7A9466; position:relative;"><span style="position:absolute; top:2px; right:2px; width:12px; height:12px; border-radius:50%; background:#FFFFFF;"></span></span></div>
+            <div style="display:flex; align-items:center; gap:9px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:9px; padding:8px 10px;"><span style="width:14px; height:4px; border-radius:2px; background:#6B7A8F; flex:0 0 auto;"></span><span style="flex:1; font-size:12.5px; font-weight:500; color:#8B7355;">Météo-France</span><span style="width:28px; height:16px; border-radius:9px; background:#E0D6BE; position:relative;"><span style="position:absolute; top:2px; left:2px; width:12px; height:12px; border-radius:50%; background:#FFFFFF;"></span></span></div>
+            <div style="display:flex; align-items:center; gap:9px; background:#F4EFE3; border:1px solid #E0D6BE; border-radius:9px; padding:8px 10px;"><span style="width:14px; height:4px; border-radius:2px; background:#2C2A26; flex:0 0 auto;"></span><span style="flex:1; font-size:12.5px; font-weight:700; color:#2C2A26;">Konsens</span><span style="width:28px; height:16px; border-radius:9px; background:#7A9466; position:relative;"><span style="position:absolute; top:2px; right:2px; width:12px; height:12px; border-radius:50%; background:#FFFFFF;"></span></span></div>
+          </div>
+          <div style="font-size:10.5px; color:#8B7355; margin-top:9px; line-height:1.5;">Auswahl wird gemerkt — beim nächsten Öffnen wieder da.</div>
+
+          <div style="margin-top:18px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:11px; padding:12px;">
+            <div style="font-size:10px; letter-spacing:1.5px; color:#A89A7A; font-weight:700;">STUFEN</div>
+            <div style="display:flex; flex-direction:column; gap:5px; margin-top:8px; font-size:11px; color:#5C5447;"><span><span style="color:#5F7A4C; font-weight:700;">✓</span> Hoch ≥ 70 %</span><span><span style="color:#C99A4E; font-weight:700;">≈</span> Mittel 40–69 %</span><span><span style="color:#6B7A8F; font-weight:700;">!</span> Niedrig &lt; 40 %</span></div>
+          </div>
+        </div>
+
+        <!-- CENTER — KONFIDENZKARTEN + CHART + DETAIL -->
+        <div class="fc-scroll" style="flex:1; min-width:0; overflow-y:auto; background:#EDE6D3; padding:18px 20px;">
+          <!-- Hit-Label -->
+          <div style="display:flex; align-items:center; gap:10px; background:#EFF3E8; border:1px solid #C3D2AF; border-radius:11px; padding:11px 14px;"><span style="width:26px; height:26px; border-radius:7px; background:#7A9466; color:#FAF6EA; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700;">✓</span><span style="font-size:14px; font-weight:600; color:#2C2A26;">Zuletzt sehr treffsicher</span><span style="font-size:12px; color:#8B7355;">— Rückblick der letzten Tage</span></div>
+
+          <div style="display:flex; align-items:baseline; justify-content:space-between; margin:18px 2px 10px;">
+            <span style="font-size:11px; letter-spacing:2px; color:#A89A7A; font-weight:700;">7 TAGE · SICHERHEIT SINKT MIT VORLAUFZEIT</span>
+          </div>
+          <!-- 7-Tage-Konfidenzkarten -->
+          <div style="display:grid; grid-template-columns:repeat(7,1fr); gap:8px;">
+            <!-- day card generator -->
+            <div style="background:#FAF6EA; border:1.5px solid #7A9466; border-radius:13px; padding:12px 9px; display:flex; flex-direction:column; align-items:center; gap:7px;">
+              <div style="display:flex; align-items:center; gap:5px;"><span style="font-size:13px; font-weight:700; color:#2C2A26;">Mi</span><span style="font-size:8px; font-weight:700; color:#FAF6EA; background:#7A9466; border-radius:4px; padding:1px 5px;">HEUTE</span></div>
+              <svg width="30" height="30" viewBox="0 0 40 40"><circle cx="20" cy="20" r="8" fill="#D4A373"/><g stroke="#D4A373" stroke-width="2" stroke-linecap="round"><line x1="20" y1="5" x2="20" y2="9"/><line x1="20" y1="31" x2="20" y2="35"/><line x1="5" y1="20" x2="9" y2="20"/><line x1="31" y1="20" x2="35" y2="20"/></g></svg>
+              <div style="display:flex; align-items:baseline; gap:4px;"><span style="font-size:17px; font-weight:700; color:#2C2A26;">24°</span><span style="font-size:12px; color:#A89A7A;">14°</span></div>
+              <svg width="30" height="30" viewBox="0 0 34 34"><circle cx="17" cy="17" r="13" fill="none" stroke="#7A9466" stroke-width="4" opacity=".2"/><circle cx="17" cy="17" r="13" fill="none" stroke="#7A9466" stroke-width="4" stroke-linecap="round" stroke-dasharray="73 82" transform="rotate(-90 17 17)"/><text x="17" y="21" text-anchor="middle" font-size="12" font-weight="700" fill="#7A9466">✓</text></svg>
+              <span style="font-size:12px; font-weight:700; color:#7A9466;">89 %</span>
+              <span style="font-size:10px; font-weight:600; color:#7A9466;">✓ Hohe</span>
+              <div style="display:flex; align-items:center; gap:4px; margin-top:2px;"><svg width="34" height="14" viewBox="0 0 40 16"><path d="M2 9 L12 8 L22 6 L32 7 L38 5" fill="none" stroke="#8B7355" stroke-width="1.4"/></svg></div>
+              <span style="font-size:8.5px; font-weight:600; color:#5F7A4C; background:#EFF3E8; border-radius:4px; padding:2px 6px;">● stabil</span>
+            </div>
+            <div style="background:#FFFFFF; border:1px solid #E0D6BE; border-radius:13px; padding:12px 9px; display:flex; flex-direction:column; align-items:center; gap:7px;">
+              <span style="font-size:13px; font-weight:700; color:#2C2A26;">Do</span>
+              <svg width="30" height="30" viewBox="0 0 40 40"><circle cx="15" cy="15" r="9" fill="#D4A373"/><path d="M 8 28 Q 8 18 18 18 Q 24 10 32 18 Q 40 18 40 26 Q 40 30 34 30 L 12 30 Q 8 30 8 28 Z" fill="#C9CFD6"/></svg>
+              <div style="display:flex; align-items:baseline; gap:4px;"><span style="font-size:17px; font-weight:700; color:#2C2A26;">23°</span><span style="font-size:12px; color:#A89A7A;">13°</span></div>
+              <svg width="30" height="30" viewBox="0 0 34 34"><circle cx="17" cy="17" r="13" fill="none" stroke="#7A9466" stroke-width="4" opacity=".2"/><circle cx="17" cy="17" r="13" fill="none" stroke="#7A9466" stroke-width="4" stroke-linecap="round" stroke-dasharray="65 82" transform="rotate(-90 17 17)"/><text x="17" y="21" text-anchor="middle" font-size="12" font-weight="700" fill="#7A9466">✓</text></svg>
+              <span style="font-size:12px; font-weight:700; color:#7A9466;">79 %</span>
+              <span style="font-size:10px; font-weight:600; color:#7A9466;">✓ Hohe</span>
+              <div style="height:14px;"></div>
+              <span style="font-size:8.5px; font-weight:600; color:#5F7A4C; background:#EFF3E8; border-radius:4px; padding:2px 6px;">● stabil</span>
+            </div>
+            <div style="background:#FFFFFF; border:1px solid #E0D6BE; border-radius:13px; padding:12px 9px; display:flex; flex-direction:column; align-items:center; gap:7px;">
+              <span style="font-size:13px; font-weight:700; color:#2C2A26;">Fr</span>
+              <svg width="30" height="30" viewBox="0 0 40 40"><circle cx="15" cy="15" r="9" fill="#D4A373"/><path d="M 8 28 Q 8 18 18 18 Q 24 10 32 18 Q 40 18 40 26 Q 40 30 34 30 L 12 30 Q 8 30 8 28 Z" fill="#C9CFD6"/></svg>
+              <div style="display:flex; align-items:baseline; gap:4px;"><span style="font-size:17px; font-weight:700; color:#2C2A26;">25°</span><span style="font-size:12px; color:#A89A7A;">15°</span></div>
+              <svg width="30" height="30" viewBox="0 0 34 34"><circle cx="17" cy="17" r="13" fill="none" stroke="#C99A4E" stroke-width="4" opacity=".2"/><circle cx="17" cy="17" r="13" fill="none" stroke="#C99A4E" stroke-width="4" stroke-linecap="round" stroke-dasharray="50 82" transform="rotate(-90 17 17)"/><text x="17" y="21" text-anchor="middle" font-size="12" font-weight="700" fill="#C99A4E">≈</text></svg>
+              <span style="font-size:12px; font-weight:700; color:#C99A4E;">61 %</span>
+              <span style="font-size:10px; font-weight:600; color:#C99A4E;">≈ Mittlere</span>
+              <div style="display:flex; align-items:center; gap:4px;"><svg width="34" height="14" viewBox="0 0 40 16"><path d="M2 6 L12 9 L22 5 L32 10 L38 7" fill="none" stroke="#8B7355" stroke-width="1.4"/></svg></div>
+              <span style="font-size:8.5px; font-weight:600; color:#9A5A2A; background:#F8F2E2; border-radius:4px; padding:2px 6px;">~ wechselhaft</span>
+            </div>
+            <div style="background:#FFFFFF; border:1px solid #E0D6BE; border-radius:13px; padding:12px 9px; display:flex; flex-direction:column; align-items:center; gap:7px;">
+              <span style="font-size:13px; font-weight:700; color:#2C2A26;">Sa</span>
+              <svg width="30" height="30" viewBox="0 0 40 40"><path d="M 6 22 Q 6 12 16 12 Q 22 4 30 12 Q 38 12 38 20 Q 38 24 32 24 L 10 24 Q 6 24 6 22 Z" fill="#9AB8CF"/><g stroke="#3A6FA8" stroke-width="2" stroke-linecap="round"><line x1="14" y1="28" x2="12" y2="34"/><line x1="22" y1="28" x2="20" y2="34"/><line x1="30" y1="28" x2="28" y2="34"/></g></svg>
+              <div style="display:flex; align-items:baseline; gap:4px;"><span style="font-size:17px; font-weight:700; color:#2C2A26;">21°</span><span style="font-size:12px; color:#A89A7A;">13°</span></div>
+              <svg width="30" height="30" viewBox="0 0 34 34"><circle cx="17" cy="17" r="13" fill="none" stroke="#C99A4E" stroke-width="4" opacity=".2"/><circle cx="17" cy="17" r="13" fill="none" stroke="#C99A4E" stroke-width="4" stroke-linecap="round" stroke-dasharray="41 82" transform="rotate(-90 17 17)"/><text x="17" y="21" text-anchor="middle" font-size="12" font-weight="700" fill="#C99A4E">≈</text></svg>
+              <span style="font-size:12px; font-weight:700; color:#C99A4E;">50 %</span>
+              <span style="font-size:10px; font-weight:600; color:#C99A4E;">≈ Mittlere</span>
+              <div style="height:14px;"></div>
+              <span style="font-size:8.5px; font-weight:600; color:#9A5A2A; background:#F8F2E2; border-radius:4px; padding:2px 6px;">~ wechselhaft</span>
+            </div>
+            <div style="background:#FFFFFF; border:1px solid #E0D6BE; border-radius:13px; padding:12px 9px; display:flex; flex-direction:column; align-items:center; gap:7px; opacity:.9;">
+              <span style="font-size:13px; font-weight:700; color:#2C2A26;">So</span>
+              <svg width="30" height="30" viewBox="0 0 40 40"><path d="M 6 22 Q 6 12 16 12 Q 22 4 30 12 Q 38 12 38 20 Q 38 24 32 24 L 10 24 Q 6 24 6 22 Z" fill="#9AB8CF"/><g stroke="#3A6FA8" stroke-width="2" stroke-linecap="round"><line x1="14" y1="28" x2="12" y2="34"/><line x1="22" y1="28" x2="20" y2="34"/></g></svg>
+              <div style="display:flex; align-items:baseline; gap:4px;"><span style="font-size:17px; font-weight:700; color:#2C2A26;">19°</span><span style="font-size:12px; color:#A89A7A;">12°</span></div>
+              <svg width="30" height="30" viewBox="0 0 34 34"><circle cx="17" cy="17" r="13" fill="none" stroke="#6B7A8F" stroke-width="4" opacity=".2"/><circle cx="17" cy="17" r="13" fill="none" stroke="#6B7A8F" stroke-width="4" stroke-linecap="round" stroke-dasharray="29 82" transform="rotate(-90 17 17)"/><text x="17" y="21" text-anchor="middle" font-size="12" font-weight="700" fill="#6B7A8F">!</text></svg>
+              <span style="font-size:12px; font-weight:700; color:#6B7A8F;">35 %</span>
+              <span style="font-size:10px; font-weight:600; color:#6B7A8F;">! Niedrige</span>
+              <div style="height:14px;"></div>
+              <span style="font-size:8.5px; font-weight:600; color:#9A5A2A; background:#F8F2E2; border-radius:4px; padding:2px 6px;">~ wechselhaft</span>
+            </div>
+            <div style="background:#FFFFFF; border:1px solid #E0D6BE; border-radius:13px; padding:12px 9px; display:flex; flex-direction:column; align-items:center; gap:7px; opacity:.9;">
+              <span style="font-size:13px; font-weight:700; color:#2C2A26;">Mo</span>
+              <svg width="30" height="30" viewBox="0 0 40 40"><circle cx="15" cy="15" r="9" fill="#D4A373"/><path d="M 8 28 Q 8 18 18 18 Q 24 10 32 18 Q 40 18 40 26 Q 40 30 34 30 L 12 30 Q 8 30 8 28 Z" fill="#C9CFD6"/></svg>
+              <div style="display:flex; align-items:baseline; gap:4px;"><span style="font-size:17px; font-weight:700; color:#2C2A26;">22°</span><span style="font-size:12px; color:#A89A7A;">12°</span></div>
+              <svg width="30" height="30" viewBox="0 0 34 34"><circle cx="17" cy="17" r="13" fill="none" stroke="#6B7A8F" stroke-width="4" opacity=".2"/><circle cx="17" cy="17" r="13" fill="none" stroke="#6B7A8F" stroke-width="4" stroke-linecap="round" stroke-dasharray="26 82" transform="rotate(-90 17 17)"/><text x="17" y="21" text-anchor="middle" font-size="12" font-weight="700" fill="#6B7A8F">!</text></svg>
+              <span style="font-size:12px; font-weight:700; color:#6B7A8F;">32 %</span>
+              <span style="font-size:10px; font-weight:600; color:#6B7A8F;">! Niedrige</span>
+              <div style="height:14px;"></div>
+              <span style="font-size:8.5px; font-weight:600; color:#6B7A8F;">? unklar</span>
+            </div>
+            <div style="background:#FFFFFF; border:1px solid #E0D6BE; border-radius:13px; padding:12px 9px; display:flex; flex-direction:column; align-items:center; gap:7px; opacity:.9;">
+              <span style="font-size:13px; font-weight:700; color:#2C2A26;">Di</span>
+              <svg width="30" height="30" viewBox="0 0 40 40"><circle cx="20" cy="20" r="8" fill="#D4A373"/><g stroke="#D4A373" stroke-width="2" stroke-linecap="round"><line x1="20" y1="5" x2="20" y2="9"/><line x1="5" y1="20" x2="9" y2="20"/></g></svg>
+              <div style="display:flex; align-items:baseline; gap:4px;"><span style="font-size:17px; font-weight:700; color:#2C2A26;">24°</span><span style="font-size:12px; color:#A89A7A;">13°</span></div>
+              <svg width="30" height="30" viewBox="0 0 34 34"><circle cx="17" cy="17" r="13" fill="none" stroke="#6B7A8F" stroke-width="4" opacity=".2"/><circle cx="17" cy="17" r="13" fill="none" stroke="#6B7A8F" stroke-width="4" stroke-linecap="round" stroke-dasharray="23 82" transform="rotate(-90 17 17)"/><text x="17" y="21" text-anchor="middle" font-size="12" font-weight="700" fill="#6B7A8F">!</text></svg>
+              <span style="font-size:12px; font-weight:700; color:#6B7A8F;">28 %</span>
+              <span style="font-size:10px; font-weight:600; color:#6B7A8F;">! Niedrige</span>
+              <div style="height:14px;"></div>
+              <span style="font-size:8.5px; font-weight:600; color:#6B7A8F;">? unklar</span>
+            </div>
+          </div>
+
+          <!-- Agreement + Chart -->
+          <div style="display:flex; align-items:baseline; justify-content:space-between; margin:20px 2px 10px;"><span style="font-size:11px; letter-spacing:2px; color:#A89A7A; font-weight:700;">SIND SICH DIE VORHERSAGEN EINIG? · MI</span></div>
+          <div style="display:flex; align-items:center; gap:12px; background:#EFF3E8; border:1px solid #7A9466; border-radius:13px; padding:13px 16px;"><span style="width:34px; height:34px; border-radius:50%; border:2px solid #7A9466; color:#5F7A4C; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:700; flex:0 0 auto;">✓</span><div><strong style="font-size:14px; color:#2C2A26;">Alle Modelle einig bei Temperatur.</strong><p style="font-size:12px; color:#5C5447; margin:3px 0 0;">Temperatur-Streuung ±0,8 °C — die Prognose ist verlässlich.</p></div></div>
+
+          <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:14px; padding:16px; margin-top:12px;">
+            <div style="font-size:12px; font-weight:600; color:#2C2A26; margin-bottom:10px;">Modell-Linien · Temperatur über den Tag <span style="color:#A89A7A; font-weight:400;">— Band = Spread</span></div>
+            <svg viewBox="0 0 760 240" style="width:100%; height:auto;" font-family="League Spartan">
+              <rect x="46" y="16" width="700" height="180" rx="10" fill="#FFFFFF" stroke="#E0D6BE"/>
+              <g stroke="#EDE6D3"><line x1="46" y1="61" x2="746" y2="61"/><line x1="46" y1="106" x2="746" y2="106"/><line x1="46" y1="151" x2="746" y2="151"/></g>
+              <g fill="#A89A7A" font-size="10" text-anchor="end"><text x="40" y="20">28°</text><text x="40" y="65">24°</text><text x="40" y="110">20°</text><text x="40" y="155">16°</text><text x="40" y="199">12°</text></g>
+              <!-- spread band -->
+              <path d="M46 150 Q180 120 320 96 Q460 74 600 82 Q680 88 746 96 L746 128 Q680 122 600 116 Q460 108 320 130 Q180 156 46 182 Z" fill="#7A9466" fill-opacity=".12"/>
+              <!-- model lines -->
+              <path d="M46 166 Q180 138 320 112 Q460 90 600 98 Q680 104 746 112" fill="none" stroke="#3A6FA8" stroke-width="1.6"/>
+              <path d="M46 160 Q180 130 320 106 Q460 84 600 92 Q680 96 746 104" fill="none" stroke="#C99A4E" stroke-width="1.6"/>
+              <path d="M46 176 Q180 150 320 132 Q460 110 600 118 Q680 120 746 128" fill="none" stroke="#C97B47" stroke-width="1.6" stroke-dasharray="5 4"/>
+              <path d="M46 158 Q180 128 320 100 Q460 80 600 88 Q680 92 746 100" fill="none" stroke="#7A9466" stroke-width="1.6"/>
+              <!-- consensus -->
+              <path d="M46 162 Q180 133 320 108 Q460 86 600 94 Q680 100 746 108" fill="none" stroke="#2C2A26" stroke-width="2.6" stroke-linecap="round"/>
+              <g fill="#A89A7A" font-size="10" text-anchor="middle"><text x="46" y="214">0</text><text x="220" y="214">6</text><text x="396" y="214">12</text><text x="572" y="214">18</text><text x="746" y="214" text-anchor="end">Uhr</text></g>
+            </svg>
+            <div style="display:flex; flex-wrap:wrap; gap:12px; margin-top:10px;">
+              <span style="display:flex; align-items:center; gap:5px; font-size:11px; color:#5C5447;"><span style="width:14px; height:3px; background:#2C2A26; border-radius:2px;"></span>Konsens</span>
+              <span style="display:flex; align-items:center; gap:5px; font-size:11px; color:#5C5447;"><span style="width:14px; height:3px; background:#3A6FA8; border-radius:2px;"></span>ICON</span>
+              <span style="display:flex; align-items:center; gap:5px; font-size:11px; color:#5C5447;"><span style="width:14px; height:3px; background:#C99A4E; border-radius:2px;"></span>ECMWF</span>
+              <span style="display:flex; align-items:center; gap:5px; font-size:11px; color:#5C5447;"><span style="width:14px; height:3px; background:#C97B47; border-radius:2px;"></span>GFS</span>
+              <span style="display:flex; align-items:center; gap:5px; font-size:11px; color:#5C5447;"><span style="width:14px; height:3px; background:#7A9466; border-radius:2px;"></span>GEM</span>
+              <span style="display:flex; align-items:center; gap:5px; font-size:11px; color:#5C5447;"><span style="width:14px; height:8px; background:#7A9466; opacity:.2; border-radius:2px;"></span>Spread-Band</span>
+            </div>
+          </div>
+
+          <!-- Tag-Detail: Unsicherheitschart -->
+          <div style="display:flex; align-items:baseline; justify-content:space-between; margin:20px 2px 10px;"><span style="font-size:11px; letter-spacing:2px; color:#A89A7A; font-weight:700;">MITTWOCH, 09. JULI IM DETAIL · TEMPERATURVERLAUF MIT UNSICHERHEIT</span><span style="font-size:12px; color:#5F7A4C; font-weight:600;">✓ Hohe Sicherheit · 89 %</span></div>
+          <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:14px; padding:16px;">
+            <svg viewBox="0 0 760 200" style="width:100%; height:auto;" font-family="League Spartan">
+              <rect x="46" y="14" width="700" height="150" rx="10" fill="#FFFFFF" stroke="#E0D6BE"/>
+              <g stroke="#EDE6D3"><line x1="46" y1="52" x2="746" y2="52"/><line x1="46" y1="89" x2="746" y2="89"/><line x1="46" y1="126" x2="746" y2="126"/></g>
+              <path d="M46 120 Q200 84 400 62 Q560 50 746 66 L746 92 Q560 78 400 90 Q200 112 46 148 Z" fill="#3A6FA8" fill-opacity=".1"/>
+              <!-- ghost lines (letzte läufe) -->
+              <path d="M46 130 Q200 96 400 74 Q560 62 746 78" fill="none" stroke="#C4B896" stroke-width="1.2" stroke-dasharray="3 3"/>
+              <path d="M46 126 Q200 92 400 70 Q560 58 746 74" fill="none" stroke="#C4B896" stroke-width="1.2" stroke-dasharray="3 3"/>
+              <path d="M46 128 Q200 90 400 68 Q560 54 746 72" fill="none" stroke="#3A6FA8" stroke-width="2.4" stroke-linecap="round"/>
+              <g fill="#A89A7A" font-size="10" text-anchor="middle"><text x="46" y="182">0</text><text x="240" y="182">8</text><text x="440" y="182">14</text><text x="640" y="182">20</text><text x="746" y="182" text-anchor="end">Uhr</text></g>
+            </svg>
+            <p style="font-size:11.5px; color:#8B7355; margin:8px 0 0;">Linie = Konsens · Band = Spread der Modelle · <span style="border-bottom:1px dashed #C4B896;">gestrichelt</span> = frühere Läufe (Ghosts)</p>
+          </div>
+        </div>
+
+        <!-- RIGHT PANEL — READOUT -->
+        <div class="fc-scroll" style="width:330px; flex:0 0 auto; background:#FAF6EA; border-left:1px solid #E0D6BE; overflow-y:auto; padding:18px 16px;">
+          <span style="font-size:11px; letter-spacing:2.5px; color:#A89A7A; font-weight:700;">VERLÄSSLICHKEIT · MÜNCHEN</span>
+
+          <!-- Regenwahrscheinlichkeit -->
+          <div style="margin-top:12px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:13px; padding:14px;">
+            <span style="font-size:10px; letter-spacing:1.5px; color:#A89A7A; font-weight:700;">REGENWAHRSCHEINLICHKEIT</span>
+            <div style="display:flex; align-items:baseline; gap:10px; margin-top:7px;"><span style="font-size:28px; font-weight:700; color:#3A6FA8;">20 %</span><span style="font-size:12.5px; color:#5C5447;">eher trocken</span></div>
+            <p style="font-size:11px; color:#8B7355; margin:7px 0 0; line-height:1.5;">Wahrscheinlichkeit, dass es an diesem Tag überhaupt messbar regnet (≥ 0,2 mm).</p>
+          </div>
+
+          <!-- Stabilität -->
+          <div style="margin-top:10px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:13px; padding:14px;">
+            <span style="font-size:10px; letter-spacing:1.5px; color:#A89A7A; font-weight:700;">STABILITÄT · LETZTE LÄUFE</span>
+            <div style="display:flex; align-items:center; gap:10px; margin-top:8px;"><span style="font-size:12px; font-weight:600; color:#5F7A4C; background:#EFF3E8; border:1px solid #C3D2AF; border-radius:8px; padding:5px 10px;">● stabil</span><span style="font-size:11.5px; color:#8B7355;">≈ stabil seit gestern</span></div>
+            <p style="font-size:11px; color:#8B7355; margin:8px 0 0; line-height:1.5;">Die Prognose für diesen Tag ist über die letzten Läufe weitgehend gleich geblieben. <em>Stabil heißt nicht automatisch richtig.</em></p>
+          </div>
+
+          <!-- Treffsicherheits-Rückblick -->
+          <div style="margin-top:16px; display:flex; align-items:center; gap:8px;"><span style="font-size:11px; letter-spacing:2px; color:#A89A7A; font-weight:700;">TREFFSICHERHEIT · RÜCKBLICK</span></div>
+          <div style="margin-top:10px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:13px; padding:14px;">
+            <div style="font-size:11px; color:#8B7355; margin-bottom:10px;">Wie gut lagen die Modelle zuletzt (Temperatur, +1 Tag)?</div>
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              <div style="display:flex; align-items:center; gap:9px;"><span style="width:64px; font-size:11.5px; font-weight:600; color:#2C2A26;">ICON</span><div style="flex:1; height:8px; background:#EDE6D3; border-radius:4px; overflow:hidden;"><div style="width:88%; height:100%; background:#3A6FA8; border-radius:4px;"></div></div><span style="font-size:11px; color:#5C5447; width:44px; text-align:right;">±0,9°</span></div>
+              <div style="display:flex; align-items:center; gap:9px;"><span style="width:64px; font-size:11.5px; font-weight:600; color:#2C2A26;">ECMWF</span><div style="flex:1; height:8px; background:#EDE6D3; border-radius:4px; overflow:hidden;"><div style="width:82%; height:100%; background:#C99A4E; border-radius:4px;"></div></div><span style="font-size:11px; color:#5C5447; width:44px; text-align:right;">±1,1°</span></div>
+              <div style="display:flex; align-items:center; gap:9px;"><span style="width:64px; font-size:11.5px; font-weight:600; color:#2C2A26;">GEM</span><div style="flex:1; height:8px; background:#EDE6D3; border-radius:4px; overflow:hidden;"><div style="width:74%; height:100%; background:#7A9466; border-radius:4px;"></div></div><span style="font-size:11px; color:#5C5447; width:44px; text-align:right;">±1,5°</span></div>
+              <div style="display:flex; align-items:center; gap:9px;"><span style="width:64px; font-size:11.5px; font-weight:600; color:#2C2A26;">GFS</span><div style="flex:1; height:8px; background:#EDE6D3; border-radius:4px; overflow:hidden;"><div style="width:64%; height:100%; background:#C97B47; border-radius:4px;"></div></div><span style="font-size:11px; color:#5C5447; width:44px; text-align:right;">±2,1°</span></div>
+            </div>
+            <p style="font-size:10.5px; color:#A89A7A; margin:10px 0 0; line-height:1.5;">Mittlerer Fehler (MAE) der letzten 7 Tage · kleiner = treffsicherer.</p>
+          </div>
+
+          <!-- niedrig-Sicherheit-Hinweis -->
+          <div style="margin-top:10px; background:#EEF1F4; border:1px solid #9AA7B5; border-radius:13px; padding:14px; display:flex; gap:11px;"><span style="width:26px; height:26px; border-radius:50%; background:#6B7A8F; color:#FAF6EA; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; flex:0 0 auto;">!</span><div><strong style="font-size:13px; color:#2C2A26;">Prognose noch unsicher</strong><p style="font-size:11px; color:#5C5447; margin:3px 0 0; line-height:1.5;">Ab So ist die Sicherheit niedrig (&lt; 40 %). Am besten morgen erneut prüfen.</p></div></div>
+
+          <div style="margin-top:16px; padding-top:14px; border-top:1px solid #E0D6BE; font-size:10px; color:#A89A7A; line-height:1.7;">Sicherheit aus 5 unabhängigen Modellen (ICON · ECMWF · GFS · GEM · Météo-France). Stufen: Hoch ≥ 70 %, Mittel 40–69 %, Niedrig &lt; 40 %.</div>
+        </div>
+      </div>
+    </div>
+    <p style="width:1440px; font-size:12.5px; color:#98A2AF; line-height:1.6; margin:16px 2px 0; font-weight:300;"><strong style="color:#E9ECF1; font-weight:600;">Modellvergleich-Desktop:</strong> Wetterkarte-Shell (Sand/Ink · Ink-Rail · Sage-Akzent). Links Metrik-Tabs (Temp/Niederschlag/Wind/Wolkendichte) + Quellen-Toggles (5 Modelle + Konsens, Ausreißer ⚠) + Stufen-Legende; Mitte die 7-Tage-Konfidenzkarten (Ring, Stabilitäts-Chip, Delta, Sparkline), Agreement-Karte, überlagerte Modell-Linien mit Spread-Band + Tag-Detail (Unsicherheit + Ghost-Läufe); rechts der Readout — Regenwahrscheinlichkeit, Stabilität, Treffsicherheits-Rückblick (MAE je Modell), Unsicherheits-Hinweis. Kein Informationsverlust.</p>
+  </article>
+
+  <!-- ============================ V2 — TABLET ============================ -->
+  <article id="V2" style="width:1024px;">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+      <span style="display:inline-flex; align-items:center; justify-content:center; min-width:36px; height:26px; padding:0 10px; background:#7A9466; color:#FAF6EA; border-radius:6px; font-size:13px; font-weight:700; letter-spacing:1px;">V2</span>
+      <span style="font-size:15px; font-weight:600; color:#E9ECF1;">Tablet · 768–1439 px — Modellvergleich</span>
+    </div>
+    <div style="height:820px; border-radius:18px; overflow:hidden; background:#EDE6D3; border:1px solid #E0D6BE; box-shadow:0 40px 90px -50px rgba(0,0,0,.55); display:flex; flex-direction:column;">
+      <div style="height:54px; flex:0 0 auto; display:flex; align-items:center; gap:14px; padding:0 16px; background:#FAF6EA; border-bottom:1px solid #E0D6BE;"><img src="buscosun-mark.svg" width="24" height="24" alt=""><span style="font-size:17px; font-weight:700; color:#2C2A26;">buscosun</span><div style="flex:1; max-width:230px; display:flex; align-items:center; gap:8px; background:#FFFFFF; border:1px solid #D9D0B8; border-radius:9px; padding:7px 12px;"><svg width="14" height="14" viewBox="0 0 18 18" fill="none"><circle cx="8" cy="8" r="6" stroke="#8B7355" stroke-width="1.6"/><line x1="12.5" y1="12.5" x2="16" y2="16" stroke="#8B7355" stroke-width="1.6" stroke-linecap="round"/></svg><span style="flex:1; font-size:13px; color:#2C2A26;">🇩🇪 München</span></div><span style="margin-left:auto; display:flex; align-items:center; gap:7px;"><span style="width:7px; height:7px; border-radius:50%; background:#7A9466;"></span><span style="font-size:11px; color:#5F7A4C; font-weight:600; letter-spacing:1px;">5 QUELLEN</span></span></div>
+      <div style="flex:1; display:flex; min-height:0;">
+        <div style="width:54px; flex:0 0 auto; background:#2C2A26; display:flex; flex-direction:column; align-items:center; padding:12px 0; gap:6px;">
+          <div style="width:38px; height:38px; border-radius:10px; color:#8B7355; display:flex; align-items:center; justify-content:center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M12 3 L21 8 L12 13 L3 8 Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M3 13 L12 18 L21 13" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
+          <div style="width:38px; height:38px; border-radius:10px; background:#3A3833; color:#A9C088; display:flex; align-items:center; justify-content:center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M4 18 L9 11 L13 14 L20 5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 5 L4 20 L20 20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-opacity=".5"/></svg></div>
+          <div style="width:38px; height:38px; border-radius:10px; color:#8B7355; display:flex; align-items:center; justify-content:center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5" stroke="currentColor" stroke-width="1.6"/><line x1="3.5" y1="9.5" x2="20.5" y2="9.5" stroke="currentColor" stroke-width="1.6"/></svg></div>
+        </div>
+        <!-- left dock slim -->
+        <div class="fc-scroll" style="width:196px; flex:0 0 auto; background:#FAF6EA; border-right:1px solid #E0D6BE; overflow-y:auto; padding:14px 11px;">
+          <span style="font-size:10px; letter-spacing:2px; color:#A89A7A; font-weight:700;">WETTERGRÖSSE</span>
+          <div style="display:flex; flex-direction:column; gap:4px; margin:9px 0 16px;">
+            <span style="font-size:12.5px; font-weight:600; color:#FAF6EA; background:#7A9466; border-radius:8px; padding:8px 11px;">Temperatur</span>
+            <span style="font-size:12.5px; font-weight:500; color:#5C5447; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:8px; padding:8px 11px;">Niederschlag</span>
+            <span style="font-size:12.5px; font-weight:500; color:#5C5447; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:8px; padding:8px 11px;">Wind</span>
+            <span style="font-size:12.5px; font-weight:500; color:#5C5447; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:8px; padding:8px 11px;">Wolkendichte</span>
+          </div>
+          <span style="font-size:10px; letter-spacing:2px; color:#A89A7A; font-weight:700;">QUELLEN</span>
+          <div style="display:flex; flex-direction:column; gap:5px; margin-top:9px;">
+            <div style="display:flex; align-items:center; gap:8px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:8px; padding:7px 9px;"><span style="width:12px; height:4px; border-radius:2px; background:#3A6FA8;"></span><span style="flex:1; font-size:11.5px; font-weight:600; color:#2C2A26;">ICON</span><span style="width:26px; height:15px; border-radius:8px; background:#7A9466; position:relative;"><span style="position:absolute; top:2px; right:2px; width:11px; height:11px; border-radius:50%; background:#FFFFFF;"></span></span></div>
+            <div style="display:flex; align-items:center; gap:8px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:8px; padding:7px 9px;"><span style="width:12px; height:4px; border-radius:2px; background:#C99A4E;"></span><span style="flex:1; font-size:11.5px; font-weight:600; color:#2C2A26;">ECMWF</span><span style="width:26px; height:15px; border-radius:8px; background:#7A9466; position:relative;"><span style="position:absolute; top:2px; right:2px; width:11px; height:11px; border-radius:50%; background:#FFFFFF;"></span></span></div>
+            <div style="display:flex; align-items:center; gap:8px; background:#FFFFFF; border:1px solid #E7D3B4; border-radius:8px; padding:7px 9px;"><span style="width:12px; height:4px; border-radius:2px; background:#C97B47;"></span><span style="flex:1; font-size:11.5px; font-weight:600; color:#2C2A26;">GFS ⚠</span><span style="width:26px; height:15px; border-radius:8px; background:#7A9466; position:relative;"><span style="position:absolute; top:2px; right:2px; width:11px; height:11px; border-radius:50%; background:#FFFFFF;"></span></span></div>
+            <div style="display:flex; align-items:center; gap:8px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:8px; padding:7px 9px;"><span style="width:12px; height:4px; border-radius:2px; background:#7A9466;"></span><span style="flex:1; font-size:11.5px; font-weight:600; color:#2C2A26;">GEM</span><span style="width:26px; height:15px; border-radius:8px; background:#7A9466; position:relative;"><span style="position:absolute; top:2px; right:2px; width:11px; height:11px; border-radius:50%; background:#FFFFFF;"></span></span></div>
+            <div style="display:flex; align-items:center; gap:8px; background:#F4EFE3; border:1px solid #E0D6BE; border-radius:8px; padding:7px 9px;"><span style="width:12px; height:4px; border-radius:2px; background:#2C2A26;"></span><span style="flex:1; font-size:11.5px; font-weight:700; color:#2C2A26;">Konsens</span><span style="width:26px; height:15px; border-radius:8px; background:#7A9466; position:relative;"><span style="position:absolute; top:2px; right:2px; width:11px; height:11px; border-radius:50%; background:#FFFFFF;"></span></span></div>
+          </div>
+        </div>
+        <!-- center -->
+        <div class="fc-scroll" style="flex:1; min-width:0; overflow-y:auto; background:#EDE6D3; padding:14px 16px;">
+          <div style="display:flex; align-items:center; gap:9px; background:#EFF3E8; border:1px solid #C3D2AF; border-radius:10px; padding:9px 12px;"><span style="width:22px; height:22px; border-radius:6px; background:#7A9466; color:#FAF6EA; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700;">✓</span><span style="font-size:13px; font-weight:600; color:#2C2A26;">Zuletzt sehr treffsicher</span></div>
+          <div style="font-size:10px; letter-spacing:2px; color:#A89A7A; font-weight:700; margin:14px 2px 8px;">7 TAGE · SICHERHEIT SINKT MIT VORLAUF</div>
+          <div style="display:flex; gap:6px; overflow-x:auto; padding-bottom:4px;">
+            <div style="flex:0 0 92px; background:#FAF6EA; border:1.5px solid #7A9466; border-radius:11px; padding:10px 7px; display:flex; flex-direction:column; align-items:center; gap:5px;"><span style="font-size:12px; font-weight:700; color:#2C2A26;">Mi</span><svg width="26" height="26" viewBox="0 0 40 40"><circle cx="20" cy="20" r="8" fill="#D4A373"/><g stroke="#D4A373" stroke-width="2" stroke-linecap="round"><line x1="20" y1="6" x2="20" y2="9"/><line x1="6" y1="20" x2="9" y2="20"/></g></svg><span style="font-size:14px; font-weight:700; color:#2C2A26;">24°</span><span style="font-size:11px; font-weight:700; color:#7A9466;">✓ 89%</span></div>
+            <div style="flex:0 0 92px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:11px; padding:10px 7px; display:flex; flex-direction:column; align-items:center; gap:5px;"><span style="font-size:12px; font-weight:700; color:#2C2A26;">Do</span><svg width="26" height="26" viewBox="0 0 40 40"><circle cx="15" cy="15" r="9" fill="#D4A373"/><path d="M 8 28 Q 8 18 18 18 Q 24 10 32 18 Q 40 18 40 26 Q 40 30 34 30 L 12 30 Q 8 30 8 28 Z" fill="#C9CFD6"/></svg><span style="font-size:14px; font-weight:700; color:#2C2A26;">23°</span><span style="font-size:11px; font-weight:700; color:#7A9466;">✓ 79%</span></div>
+            <div style="flex:0 0 92px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:11px; padding:10px 7px; display:flex; flex-direction:column; align-items:center; gap:5px;"><span style="font-size:12px; font-weight:700; color:#2C2A26;">Fr</span><svg width="26" height="26" viewBox="0 0 40 40"><circle cx="15" cy="15" r="9" fill="#D4A373"/><path d="M 8 28 Q 8 18 18 18 Q 24 10 32 18 Q 40 18 40 26 Q 40 30 34 30 L 12 30 Q 8 30 8 28 Z" fill="#C9CFD6"/></svg><span style="font-size:14px; font-weight:700; color:#2C2A26;">25°</span><span style="font-size:11px; font-weight:700; color:#C99A4E;">≈ 61%</span></div>
+            <div style="flex:0 0 92px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:11px; padding:10px 7px; display:flex; flex-direction:column; align-items:center; gap:5px;"><span style="font-size:12px; font-weight:700; color:#2C2A26;">Sa</span><svg width="26" height="26" viewBox="0 0 40 40"><path d="M 6 22 Q 6 12 16 12 Q 22 4 30 12 Q 38 12 38 20 Q 38 24 32 24 L 10 24 Q 6 24 6 22 Z" fill="#9AB8CF"/><g stroke="#3A6FA8" stroke-width="2" stroke-linecap="round"><line x1="14" y1="28" x2="12" y2="33"/><line x1="24" y1="28" x2="22" y2="33"/></g></svg><span style="font-size:14px; font-weight:700; color:#2C2A26;">21°</span><span style="font-size:11px; font-weight:700; color:#C99A4E;">≈ 50%</span></div>
+            <div style="flex:0 0 92px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:11px; padding:10px 7px; display:flex; flex-direction:column; align-items:center; gap:5px; opacity:.9;"><span style="font-size:12px; font-weight:700; color:#2C2A26;">So</span><svg width="26" height="26" viewBox="0 0 40 40"><path d="M 6 22 Q 6 12 16 12 Q 22 4 30 12 Q 38 12 38 20 Q 38 24 32 24 L 10 24 Q 6 24 6 22 Z" fill="#9AB8CF"/><g stroke="#3A6FA8" stroke-width="2" stroke-linecap="round"><line x1="14" y1="28" x2="12" y2="33"/></g></svg><span style="font-size:14px; font-weight:700; color:#2C2A26;">19°</span><span style="font-size:11px; font-weight:700; color:#6B7A8F;">! 35%</span></div>
+            <div style="flex:0 0 92px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:11px; padding:10px 7px; display:flex; flex-direction:column; align-items:center; gap:5px; opacity:.9;"><span style="font-size:12px; font-weight:700; color:#2C2A26;">Mo</span><svg width="26" height="26" viewBox="0 0 40 40"><circle cx="15" cy="15" r="9" fill="#D4A373"/><path d="M 8 28 Q 8 18 18 18 Q 24 10 32 18 Q 40 18 40 26 Q 40 30 34 30 L 12 30 Q 8 30 8 28 Z" fill="#C9CFD6"/></svg><span style="font-size:14px; font-weight:700; color:#2C2A26;">22°</span><span style="font-size:11px; font-weight:700; color:#6B7A8F;">! 32%</span></div>
+            <div style="flex:0 0 92px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:11px; padding:10px 7px; display:flex; flex-direction:column; align-items:center; gap:5px; opacity:.9;"><span style="font-size:12px; font-weight:700; color:#2C2A26;">Di</span><svg width="26" height="26" viewBox="0 0 40 40"><circle cx="20" cy="20" r="8" fill="#D4A373"/><g stroke="#D4A373" stroke-width="2" stroke-linecap="round"><line x1="20" y1="6" x2="20" y2="9"/></g></svg><span style="font-size:14px; font-weight:700; color:#2C2A26;">24°</span><span style="font-size:11px; font-weight:700; color:#6B7A8F;">! 28%</span></div>
+          </div>
+          <div style="display:flex; align-items:center; gap:11px; background:#EFF3E8; border:1px solid #7A9466; border-radius:12px; padding:12px 14px; margin-top:14px;"><span style="width:30px; height:30px; border-radius:50%; border:2px solid #7A9466; color:#5F7A4C; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:700; flex:0 0 auto;">✓</span><div><strong style="font-size:13px; color:#2C2A26;">Alle Modelle einig bei Temperatur.</strong><p style="font-size:11.5px; color:#5C5447; margin:2px 0 0;">Streuung ±0,8 °C — verlässlich.</p></div></div>
+          <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:12px; padding:13px; margin-top:12px;">
+            <div style="font-size:11.5px; font-weight:600; color:#2C2A26; margin-bottom:9px;">Modell-Linien · Temperatur <span style="color:#A89A7A; font-weight:400;">— Band = Spread</span></div>
+            <svg viewBox="0 0 620 190" style="width:100%; height:auto;" font-family="League Spartan">
+              <rect x="40" y="12" width="568" height="140" rx="9" fill="#FFFFFF" stroke="#E0D6BE"/>
+              <g stroke="#EDE6D3"><line x1="40" y1="47" x2="608" y2="47"/><line x1="40" y1="82" x2="608" y2="82"/><line x1="40" y1="117" x2="608" y2="117"/></g>
+              <g fill="#A89A7A" font-size="9" text-anchor="end"><text x="34" y="16">28°</text><text x="34" y="86">20°</text><text x="34" y="152">12°</text></g>
+              <path d="M40 118 Q160 92 300 72 Q440 56 608 68 L608 96 Q440 84 300 100 Q160 120 40 144 Z" fill="#7A9466" fill-opacity=".12"/>
+              <path d="M40 130 Q160 106 300 86 Q440 68 608 80" fill="none" stroke="#3A6FA8" stroke-width="1.5"/>
+              <path d="M40 124 Q160 100 300 80 Q440 62 608 74" fill="none" stroke="#C99A4E" stroke-width="1.5"/>
+              <path d="M40 138 Q160 116 300 100 Q440 82 608 92" fill="none" stroke="#C97B47" stroke-width="1.5" stroke-dasharray="5 4"/>
+              <path d="M40 126 Q160 102 300 82 Q440 64 608 76" fill="none" stroke="#2C2A26" stroke-width="2.4" stroke-linecap="round"/>
+              <g fill="#A89A7A" font-size="9" text-anchor="middle"><text x="40" y="170">0</text><text x="240" y="170">8</text><text x="440" y="170">16</text><text x="608" y="170" text-anchor="end">Uhr</text></g>
+            </svg>
+            <div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:8px;">
+              <span style="display:flex; align-items:center; gap:5px; font-size:10.5px; color:#5C5447;"><span style="width:12px; height:3px; background:#2C2A26; border-radius:2px;"></span>Konsens</span>
+              <span style="display:flex; align-items:center; gap:5px; font-size:10.5px; color:#5C5447;"><span style="width:12px; height:3px; background:#3A6FA8; border-radius:2px;"></span>ICON</span>
+              <span style="display:flex; align-items:center; gap:5px; font-size:10.5px; color:#5C5447;"><span style="width:12px; height:3px; background:#C99A4E; border-radius:2px;"></span>ECMWF</span>
+              <span style="display:flex; align-items:center; gap:5px; font-size:10.5px; color:#5C5447;"><span style="width:12px; height:6px; background:#7A9466; opacity:.2; border-radius:2px;"></span>Spread</span>
+            </div>
+          </div>
+        </div>
+        <!-- right readout -->
+        <div class="fc-scroll" style="width:238px; flex:0 0 auto; background:#FAF6EA; border-left:1px solid #E0D6BE; overflow-y:auto; padding:14px 12px;">
+          <span style="font-size:10px; letter-spacing:2px; color:#A89A7A; font-weight:700;">VERLÄSSLICHKEIT · MI</span>
+          <div style="margin-top:9px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:11px; padding:12px;"><div style="font-size:9px; letter-spacing:1px; color:#A89A7A; font-weight:700;">REGENWAHRSCHEINLICHKEIT</div><div style="font-size:22px; font-weight:700; color:#3A6FA8; margin-top:4px;">20 %</div><div style="font-size:11px; color:#8B7355;">eher trocken</div></div>
+          <div style="margin-top:8px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:11px; padding:12px;"><div style="font-size:9px; letter-spacing:1px; color:#A89A7A; font-weight:700;">STABILITÄT</div><div style="margin-top:6px;"><span style="font-size:11.5px; font-weight:600; color:#5F7A4C; background:#EFF3E8; border:1px solid #C3D2AF; border-radius:7px; padding:4px 9px;">● stabil</span></div><div style="font-size:10.5px; color:#8B7355; margin-top:7px; line-height:1.5;">Über die letzten Läufe gleich geblieben. Stabil ≠ richtig.</div></div>
+          <div style="margin-top:8px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:11px; padding:12px;"><div style="font-size:9px; letter-spacing:1px; color:#A89A7A; font-weight:700;">TREFFSICHERHEIT · MAE</div><div style="display:flex; flex-direction:column; gap:6px; margin-top:8px;"><div style="display:flex; align-items:center; gap:7px;"><span style="width:42px; font-size:10.5px; font-weight:600;">ICON</span><div style="flex:1; height:6px; background:#EDE6D3; border-radius:3px; overflow:hidden;"><div style="width:88%; height:100%; background:#3A6FA8;"></div></div><span style="font-size:10px; width:34px; text-align:right; color:#5C5447;">±0,9°</span></div><div style="display:flex; align-items:center; gap:7px;"><span style="width:42px; font-size:10.5px; font-weight:600;">ECMWF</span><div style="flex:1; height:6px; background:#EDE6D3; border-radius:3px; overflow:hidden;"><div style="width:82%; height:100%; background:#C99A4E;"></div></div><span style="font-size:10px; width:34px; text-align:right; color:#5C5447;">±1,1°</span></div><div style="display:flex; align-items:center; gap:7px;"><span style="width:42px; font-size:10.5px; font-weight:600;">GFS</span><div style="flex:1; height:6px; background:#EDE6D3; border-radius:3px; overflow:hidden;"><div style="width:64%; height:100%; background:#C97B47;"></div></div><span style="font-size:10px; width:34px; text-align:right; color:#5C5447;">±2,1°</span></div></div></div>
+          <div style="margin-top:8px; background:#EEF1F4; border:1px solid #9AA7B5; border-radius:11px; padding:11px; font-size:10.5px; color:#5C5447; line-height:1.5;"><span style="color:#6B7A8F; font-weight:700;">! Prognose unsicher:</span> ab So &lt; 40 %. Morgen erneut prüfen.</div>
+        </div>
+      </div>
+    </div>
+    <p style="width:1024px; font-size:12.5px; color:#98A2AF; line-height:1.6; margin:16px 2px 0; font-weight:300;"><strong style="color:#E9ECF1; font-weight:600;">Tablet:</strong> Rail + Metrik/Quellen-Dock + scrollbare Konfidenzkarten + Agreement + Modell-Linien; rechter Readout (Regen, Stabilität, MAE, Unsicherheits-Hinweis).</p>
+  </article>
+
+  <!-- ============================ V3 — MOBILE ============================ -->
+  <article id="V3" style="width:402px;">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+      <span style="display:inline-flex; align-items:center; justify-content:center; min-width:36px; height:26px; padding:0 10px; background:#7A9466; color:#FAF6EA; border-radius:6px; font-size:13px; font-weight:700; letter-spacing:1px;">V3</span>
+      <span style="font-size:15px; font-weight:600; color:#E9ECF1;">Mobile · &lt;768 px — Modellvergleich</span>
+    </div>
+    <div style="width:402px; height:860px; border-radius:36px; overflow:hidden; background:#EDE6D3; border:1px solid #E0D6BE; box-shadow:0 40px 90px -50px rgba(0,0,0,.55); position:relative; display:flex; flex-direction:column;">
+      <div style="height:44px; flex:0 0 auto; display:flex; align-items:center; justify-content:space-between; padding:0 22px; color:#2C2A26; font-size:13px; font-weight:600;"><span>19:03</span><span style="display:flex; gap:5px; align-items:center;"><svg width="16" height="11" viewBox="0 0 16 11" fill="#2C2A26"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4" y="5" width="3" height="6" rx="1"/><rect x="8" y="3" width="3" height="8" rx="1"/><rect x="12" y="1" width="3" height="10" rx="1"/></svg><svg width="22" height="11" viewBox="0 0 24 12" fill="none"><rect x="1" y="1" width="20" height="10" rx="2.5" stroke="#2C2A26"/><rect x="3" y="3" width="15" height="6" rx="1" fill="#2C2A26"/></svg></span></div>
+      <div style="flex:0 0 auto; display:flex; align-items:center; justify-content:space-between; padding:6px 18px 12px; border-bottom:1px solid #E0D6BE;">
+        <div style="display:flex; align-items:center; gap:9px;"><img src="buscosun-mark.svg" width="22" height="22" alt=""><div><div style="font-size:9px; letter-spacing:1.5px; color:#5F7A4C; font-weight:700;">MODELLVERGLEICH</div><div style="font-size:15px; font-weight:700; color:#2C2A26;">🇩🇪 München</div></div></div>
+        <span style="font-size:11px; color:#5F7A4C; font-weight:600; border:1px solid #E0D6BE; border-radius:8px; padding:6px 10px;">Ändern</span>
+      </div>
+      <div class="fc-scroll" style="flex:1; overflow-y:auto; padding:14px 16px 24px;">
+        <div style="display:flex; align-items:center; gap:9px; background:#EFF3E8; border:1px solid #C3D2AF; border-radius:11px; padding:10px 12px;"><span style="width:24px; height:24px; border-radius:6px; background:#7A9466; color:#FAF6EA; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700;">✓</span><span style="font-size:13px; font-weight:600; color:#2C2A26;">Zuletzt sehr treffsicher</span></div>
+        <!-- prominenter ausgewählter Tag -->
+        <div style="margin-top:12px; background:#FAF6EA; border:1.5px solid #7A9466; border-radius:14px; padding:16px; display:flex; align-items:center; gap:14px;">
+          <svg width="52" height="52" viewBox="0 0 40 40" style="flex:0 0 auto;"><circle cx="20" cy="20" r="8" fill="#D4A373"/><g stroke="#D4A373" stroke-width="2" stroke-linecap="round"><line x1="20" y1="5" x2="20" y2="9"/><line x1="20" y1="31" x2="20" y2="35"/><line x1="5" y1="20" x2="9" y2="20"/><line x1="31" y1="20" x2="35" y2="20"/><line x1="9" y1="9" x2="12" y2="12"/><line x1="28" y1="28" x2="31" y2="31"/></g></svg>
+          <div style="flex:1; min-width:0;">
+            <div style="display:flex; align-items:center; gap:7px;"><span style="font-size:16px; font-weight:700; color:#2C2A26;">Mittwoch, 9. Juli</span><span style="font-size:9px; font-weight:700; color:#FAF6EA; background:#7A9466; border-radius:4px; padding:2px 6px;">HEUTE</span></div>
+            <div style="display:flex; align-items:baseline; gap:8px; margin-top:2px;"><span style="font-size:30px; font-weight:700; color:#2C2A26; line-height:1;">24°</span><span style="font-size:15px; color:#A89A7A;">14°</span></div>
+          </div>
+          <div style="text-align:right; flex:0 0 auto;"><div style="font-size:22px; font-weight:700; color:#7A9466; line-height:1;">89%</div><div style="font-size:11px; font-weight:600; color:#7A9466; margin-top:2px;">✓ Hohe</div><div style="font-size:9px; font-weight:600; color:#5F7A4C; background:#EFF3E8; border-radius:4px; padding:2px 6px; margin-top:4px;">● stabil</div></div>
+        </div>
+        <!-- metric tabs -->
+        <div style="font-size:10px; letter-spacing:2px; color:#A89A7A; font-weight:700; margin:16px 2px 8px;">WETTERGRÖSSE</div>
+        <div style="display:flex; gap:6px; overflow-x:auto; padding-bottom:3px;">
+          <span style="flex:0 0 auto; font-size:12px; font-weight:600; color:#FAF6EA; background:#7A9466; border-radius:8px; padding:7px 13px;">Temperatur</span>
+          <span style="flex:0 0 auto; font-size:12px; font-weight:500; color:#5C5447; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:8px; padding:7px 13px;">Niederschlag</span>
+          <span style="flex:0 0 auto; font-size:12px; font-weight:500; color:#5C5447; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:8px; padding:7px 13px;">Wind</span>
+          <span style="flex:0 0 auto; font-size:12px; font-weight:500; color:#5C5447; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:8px; padding:7px 13px;">Wolkendichte</span>
+        </div>
+        <!-- 7-day cards horizontal -->
+        <div style="display:flex; align-items:baseline; justify-content:space-between; margin:16px 2px 8px;"><span style="font-size:10px; letter-spacing:2px; color:#A89A7A; font-weight:700;">7 TAGE · SICHERHEIT SINKT MIT VORLAUF</span><span style="font-size:10px; color:#8B7355;">tippen zum Wählen →</span></div>
+        <div style="display:flex; gap:7px; overflow-x:auto; padding-bottom:4px;">
+          <div style="flex:0 0 92px; background:#FAF6EA; border:1.5px solid #7A9466; border-radius:12px; padding:11px 8px; display:flex; flex-direction:column; align-items:center; gap:6px;"><span style="font-size:13px; font-weight:700; color:#2C2A26;">Mi</span><svg width="28" height="28" viewBox="0 0 40 40"><circle cx="20" cy="20" r="8" fill="#D4A373"/><g stroke="#D4A373" stroke-width="2" stroke-linecap="round"><line x1="20" y1="6" x2="20" y2="9"/><line x1="6" y1="20" x2="9" y2="20"/></g></svg><span style="font-size:16px; font-weight:700; color:#2C2A26;">24°</span><span style="font-size:11px; font-weight:700; color:#7A9466;">✓ 89%</span><span style="font-size:8px; font-weight:600; color:#5F7A4C; background:#EFF3E8; border-radius:4px; padding:1px 5px;">● stabil</span></div>
+          <div style="flex:0 0 92px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:12px; padding:11px 8px; display:flex; flex-direction:column; align-items:center; gap:6px;"><span style="font-size:13px; font-weight:700; color:#2C2A26;">Do</span><svg width="28" height="28" viewBox="0 0 40 40"><circle cx="15" cy="15" r="9" fill="#D4A373"/><path d="M 8 28 Q 8 18 18 18 Q 24 10 32 18 Q 40 18 40 26 Q 40 30 34 30 L 12 30 Q 8 30 8 28 Z" fill="#C9CFD6"/></svg><span style="font-size:16px; font-weight:700; color:#2C2A26;">23°</span><span style="font-size:11px; font-weight:700; color:#7A9466;">✓ 79%</span><span style="font-size:8px; font-weight:600; color:#5F7A4C; background:#EFF3E8; border-radius:4px; padding:1px 5px;">● stabil</span></div>
+          <div style="flex:0 0 92px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:12px; padding:11px 8px; display:flex; flex-direction:column; align-items:center; gap:6px;"><span style="font-size:13px; font-weight:700; color:#2C2A26;">Fr</span><svg width="28" height="28" viewBox="0 0 40 40"><circle cx="15" cy="15" r="9" fill="#D4A373"/><path d="M 8 28 Q 8 18 18 18 Q 24 10 32 18 Q 40 18 40 26 Q 40 30 34 30 L 12 30 Q 8 30 8 28 Z" fill="#C9CFD6"/></svg><span style="font-size:16px; font-weight:700; color:#2C2A26;">25°</span><span style="font-size:11px; font-weight:700; color:#C99A4E;">≈ 61%</span><span style="font-size:8px; font-weight:600; color:#9A5A2A; background:#F8F2E2; border-radius:4px; padding:1px 5px;">~ wechs.</span></div>
+          <div style="flex:0 0 92px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:12px; padding:11px 8px; display:flex; flex-direction:column; align-items:center; gap:6px;"><span style="font-size:13px; font-weight:700; color:#2C2A26;">Sa</span><svg width="28" height="28" viewBox="0 0 40 40"><path d="M 6 22 Q 6 12 16 12 Q 22 4 30 12 Q 38 12 38 20 Q 38 24 32 24 L 10 24 Q 6 24 6 22 Z" fill="#9AB8CF"/><g stroke="#3A6FA8" stroke-width="2" stroke-linecap="round"><line x1="16" y1="28" x2="14" y2="33"/></g></svg><span style="font-size:16px; font-weight:700; color:#2C2A26;">21°</span><span style="font-size:11px; font-weight:700; color:#C99A4E;">≈ 50%</span><span style="font-size:8px; font-weight:600; color:#9A5A2A; background:#F8F2E2; border-radius:4px; padding:1px 5px;">~ wechs.</span></div>
+          <div style="flex:0 0 92px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:12px; padding:11px 8px; display:flex; flex-direction:column; align-items:center; gap:6px; opacity:.9;"><span style="font-size:13px; font-weight:700; color:#2C2A26;">So</span><svg width="28" height="28" viewBox="0 0 40 40"><path d="M 6 22 Q 6 12 16 12 Q 22 4 30 12 Q 38 12 38 20 Q 38 24 32 24 L 10 24 Q 6 24 6 22 Z" fill="#9AB8CF"/><g stroke="#3A6FA8" stroke-width="2" stroke-linecap="round"><line x1="16" y1="28" x2="14" y2="33"/></g></svg><span style="font-size:16px; font-weight:700; color:#2C2A26;">19°</span><span style="font-size:11px; font-weight:700; color:#6B7A8F;">! 35%</span></div>
+          <div style="flex:0 0 92px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:12px; padding:11px 8px; display:flex; flex-direction:column; align-items:center; gap:6px; opacity:.9;"><span style="font-size:13px; font-weight:700; color:#2C2A26;">Mo</span><svg width="28" height="28" viewBox="0 0 40 40"><circle cx="15" cy="15" r="9" fill="#D4A373"/><path d="M 8 28 Q 8 18 18 18 Q 24 10 32 18 Q 40 18 40 26 Q 40 30 34 30 L 12 30 Q 8 30 8 28 Z" fill="#C9CFD6"/></svg><span style="font-size:16px; font-weight:700; color:#2C2A26;">22°</span><span style="font-size:11px; font-weight:700; color:#6B7A8F;">! 32%</span></div>
+          <div style="flex:0 0 92px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:12px; padding:11px 8px; display:flex; flex-direction:column; align-items:center; gap:6px; opacity:.9;"><span style="font-size:13px; font-weight:700; color:#2C2A26;">Di</span><svg width="28" height="28" viewBox="0 0 40 40"><circle cx="20" cy="20" r="8" fill="#D4A373"/><g stroke="#D4A373" stroke-width="2" stroke-linecap="round"><line x1="20" y1="6" x2="20" y2="9"/></g></svg><span style="font-size:16px; font-weight:700; color:#2C2A26;">24°</span><span style="font-size:11px; font-weight:700; color:#6B7A8F;">! 28%</span></div>
+        </div>
+        <!-- agreement -->
+        <div style="display:flex; align-items:center; gap:11px; background:#EFF3E8; border:1px solid #7A9466; border-radius:12px; padding:12px 14px; margin-top:14px;"><span style="width:30px; height:30px; border-radius:50%; border:2px solid #7A9466; color:#5F7A4C; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:700; flex:0 0 auto;">✓</span><div><strong style="font-size:13px; color:#2C2A26;">Alle Modelle einig bei Temperatur.</strong><p style="font-size:11.5px; color:#5C5447; margin:2px 0 0;">Streuung ±0,8 °C — verlässlich.</p></div></div>
+        <!-- chart -->
+        <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:12px; padding:12px; margin-top:12px;">
+          <div style="font-size:11.5px; font-weight:600; color:#2C2A26; margin-bottom:8px;">Modell-Linien · Mi</div>
+          <svg viewBox="0 0 360 170" style="width:100%; height:auto;" font-family="League Spartan">
+            <rect x="30" y="10" width="322" height="120" rx="9" fill="#FFFFFF" stroke="#E0D6BE"/>
+            <g stroke="#EDE6D3"><line x1="30" y1="40" x2="352" y2="40"/><line x1="30" y1="70" x2="352" y2="70"/><line x1="30" y1="100" x2="352" y2="100"/></g>
+            <g fill="#A89A7A" font-size="9" text-anchor="end"><text x="26" y="14">28°</text><text x="26" y="74">20°</text><text x="26" y="130">12°</text></g>
+            <path d="M30 100 Q120 78 220 60 Q300 48 352 58 L352 82 Q300 70 220 84 Q120 102 30 122 Z" fill="#7A9466" fill-opacity=".12"/>
+            <path d="M30 110 Q120 90 220 72 Q300 58 352 68" fill="none" stroke="#3A6FA8" stroke-width="1.5"/>
+            <path d="M30 104 Q120 84 220 66 Q300 52 352 62" fill="none" stroke="#C99A4E" stroke-width="1.5"/>
+            <path d="M30 106 Q120 86 220 68 Q300 54 352 64" fill="none" stroke="#2C2A26" stroke-width="2.2" stroke-linecap="round"/>
+            <g fill="#A89A7A" font-size="9" text-anchor="middle"><text x="30" y="148">0</text><text x="190" y="148">12</text><text x="352" y="148" text-anchor="end">Uhr</text></g>
+          </svg>
+          <div style="display:flex; flex-wrap:wrap; gap:9px; margin-top:8px;"><span style="display:flex; align-items:center; gap:4px; font-size:10px; color:#5C5447;"><span style="width:11px; height:3px; background:#2C2A26; border-radius:2px;"></span>Konsens</span><span style="display:flex; align-items:center; gap:4px; font-size:10px; color:#5C5447;"><span style="width:11px; height:3px; background:#3A6FA8; border-radius:2px;"></span>ICON</span><span style="display:flex; align-items:center; gap:4px; font-size:10px; color:#5C5447;"><span style="width:11px; height:6px; background:#7A9466; opacity:.2; border-radius:2px;"></span>Spread</span></div>
+        </div>
+        <!-- readout -->
+        <div style="font-size:10px; letter-spacing:2px; color:#A89A7A; font-weight:700; margin:16px 2px 8px;">VERLÄSSLICHKEIT · MI 09.07.</div>
+        <div style="display:flex; gap:8px;">
+          <div style="flex:1; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:11px; padding:12px;"><div style="font-size:9px; letter-spacing:1px; color:#A89A7A; font-weight:700;">REGEN</div><div style="font-size:20px; font-weight:700; color:#3A6FA8; margin-top:3px;">20 %</div><div style="font-size:10px; color:#8B7355;">eher trocken</div></div>
+          <div style="flex:1; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:11px; padding:12px;"><div style="font-size:9px; letter-spacing:1px; color:#A89A7A; font-weight:700;">STABILITÄT</div><div style="margin-top:5px;"><span style="font-size:11px; font-weight:600; color:#5F7A4C; background:#EFF3E8; border:1px solid #C3D2AF; border-radius:6px; padding:3px 8px;">● stabil</span></div><div style="font-size:9.5px; color:#8B7355; margin-top:5px;">seit gestern gleich</div></div>
+        </div>
+        <div style="margin-top:8px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:11px; padding:12px;"><div style="font-size:9px; letter-spacing:1px; color:#A89A7A; font-weight:700;">TREFFSICHERHEIT · MAE (7 TAGE)</div><div style="display:flex; flex-direction:column; gap:6px; margin-top:8px;"><div style="display:flex; align-items:center; gap:7px;"><span style="width:48px; font-size:11px; font-weight:600;">ICON</span><div style="flex:1; height:7px; background:#EDE6D3; border-radius:4px; overflow:hidden;"><div style="width:88%; height:100%; background:#3A6FA8;"></div></div><span style="font-size:10px; width:36px; text-align:right; color:#5C5447;">±0,9°</span></div><div style="display:flex; align-items:center; gap:7px;"><span style="width:48px; font-size:11px; font-weight:600;">ECMWF</span><div style="flex:1; height:7px; background:#EDE6D3; border-radius:4px; overflow:hidden;"><div style="width:82%; height:100%; background:#C99A4E;"></div></div><span style="font-size:10px; width:36px; text-align:right; color:#5C5447;">±1,1°</span></div><div style="display:flex; align-items:center; gap:7px;"><span style="width:48px; font-size:11px; font-weight:600;">GFS</span><div style="flex:1; height:7px; background:#EDE6D3; border-radius:4px; overflow:hidden;"><div style="width:64%; height:100%; background:#C97B47;"></div></div><span style="font-size:10px; width:36px; text-align:right; color:#5C5447;">±2,1°</span></div></div></div>
+        <div style="margin-top:8px; background:#EEF1F4; border:1px solid #9AA7B5; border-radius:11px; padding:11px; display:flex; gap:10px;"><span style="width:22px; height:22px; border-radius:50%; background:#6B7A8F; color:#FAF6EA; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; flex:0 0 auto;">!</span><div><strong style="font-size:12px; color:#2C2A26;">Prognose noch unsicher</strong><p style="font-size:10.5px; color:#5C5447; margin:2px 0 0; line-height:1.5;">Ab So niedrig (&lt; 40 %). Morgen erneut prüfen.</p></div></div>
+        <p style="font-size:10px; color:#A89A7A; margin:14px 0 0; text-align:center; line-height:1.6;">5 Modelle · ICON · ECMWF · GFS · GEM · Météo-France</p>
+      </div>
+      <div style="position:absolute; bottom:6px; left:50%; transform:translateX(-50%); width:130px; height:5px; border-radius:3px; background:#C4B896;"></div>
+    </div>
+    <p style="width:402px; font-size:12.5px; color:#98A2AF; line-height:1.6; margin:16px 2px 0; font-weight:300;"><strong style="color:#E9ECF1; font-weight:600;">Mobile:</strong> Vertikaler Fluss — Hit-Label, Metrik-Tabs, horizontale Konfidenzkarten, Agreement, Modell-Linien mit Spread, Readout (Regen, Stabilität, MAE, Unsicherheits-Hinweis).</p>
+  </article>
+
+</section>
+</x-dc>
+</body>
+</html>

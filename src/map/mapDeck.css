@@ -77,6 +77,7 @@
 .mdk-search-input {
   flex: 1; min-width: 0; border: 0; outline: none; background: transparent;
   font: inherit; font-size: 14px; color: var(--ink-900, #2C2A26); padding: 0;
+  height: 100%; align-self: stretch;
 }
 .mdk-kbd {
   font-family: var(--font-mono, monospace); font-size: 10px; color: var(--stone-500, #8B7355);
@@ -634,7 +635,7 @@
   .mdk-src-meta { display: none; }
   .mdk-timedeck { left: 16px; right: 16px; }
   .mdk-td-legend { gap: 11px; }
-  .mdk-winddeck { max-width: calc(100% - 32px); overflow-x: auto; }
+  .mdk-winddeck { max-width: calc(100% - 32px); flex-wrap: wrap; justify-content: center; row-gap: 6px; }
   /* Tablet-Vorlage: aktiver Punktforecast-Tab in Terracotta */
   .mdk-readout .pfc-tabs button.active { background: var(--terracotta-500, #C97B47); color: #fff; }
   .mlo-detail { grid-template-columns: 300px 1fr; }
@@ -643,9 +644,10 @@
 }
 
 /* ============================================================================
-   Mobile <768 px — Vollflächige Karte · Bottom-Sheet · Sticky-Bottom-Bar
+   Mobile <768 px (bzw. kurzes Landscape — deckungsgleich mit
+   MOBILE_MAP_MEDIA_QUERY in MapView.tsx) — Vollkarte · Sheet · Bottom-Bar
    ============================================================================ */
-@media (max-width: 767px) {
+@media (max-width: 767px), (max-height: 430px) and (orientation: landscape) {
   .mdk-topbar, .mdk-rail, .mdk-dock, .mdk-readout { display: none; }
   .mdk-body { position: relative; }
   .mdk-stage { position: absolute; inset: 0; }
@@ -660,11 +662,13 @@
   .mdk-m-topfloat .mdk-search-box { height: 46px; border-radius: 14px; box-shadow: var(--shadow-card); }
   .mdk-m-live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--sage-600, #7A9466); flex: 0 0 auto; }
   .mdk-m-country {
-    flex: 0 0 auto; min-width: 52px; border-radius: 14px; border: 1px solid var(--border-medium, #D9D0B8);
+    flex: 0 0 auto; min-width: 52px; min-height: 46px; height: 100%;
+    border-radius: 14px; border: 1px solid var(--border-medium, #D9D0B8);
     background: var(--cream-50, #FAF6EA); box-shadow: var(--shadow-card);
     font: inherit; font-size: 15px; font-weight: 700; letter-spacing: 0.05em; color: var(--ink-900, #2C2A26);
     cursor: pointer;
   }
+  .mdk-m-topfloat > div { display: flex; }
   .mdk-m-country-menu {
     position: absolute; right: 0; top: calc(100% + 6px); z-index: 40;
     background: var(--cream-50, #FAF6EA); border: 1px solid var(--border-medium, #D9D0B8);
@@ -678,8 +682,8 @@
   .mdk-m-country-menu button.is-active { color: var(--terracotta-700, #A85E2E); }
 
   .mdk-m-modelpill {
-    position: absolute; left: 12px; top: calc(66px + env(safe-area-inset-top, 0px)); z-index: 11;
-    display: flex; align-items: center; gap: 8px; padding: 9px 12px;
+    position: absolute; left: 12px; top: calc(68px + env(safe-area-inset-top, 0px)); z-index: 11;
+    display: flex; align-items: center; gap: 8px; padding: 12px 13px; min-height: 44px;
     border: 0; cursor: pointer; font: inherit; border-radius: 12px; box-shadow: var(--shadow-card);
   }
   .mdk-m-modelpill .mdk-src-label { font-size: 13px; }
@@ -705,15 +709,15 @@
     background: var(--cream-50, #FAF6EA);
     border: 1px solid var(--sand-200, #E0D6BE); border-bottom: 0;
     border-radius: 22px 22px 0 0;
-    box-shadow: 0 -12px 40px -18px rgba(44, 42, 38, 0.5);
+    box-shadow: 0 -12px 40px -18px rgba(44, 38, 38, 0.5);
     display: flex; flex-direction: column;
-    height: 78dvh;
-    transform: translateY(calc(78dvh - var(--mdk-sheet-h, 320px)));
-    transition: transform 0.22s ease-out;
+    height: var(--mdk-sheet-h, 320px);
+    transition: height 0.22s ease-out;
     touch-action: none;
+    overflow: hidden;
   }
-  .mdk-sheet.is-collapsed { --mdk-sheet-h: 118px; }
-  .mdk-sheet.is-half { --mdk-sheet-h: 348px; }
+  .mdk-sheet.is-collapsed { --mdk-sheet-h: 128px; }
+  .mdk-sheet.is-half { --mdk-sheet-h: 430px; }
   .mdk-sheet.is-full { --mdk-sheet-h: 78dvh; }
   .mdk-sheet-grabzone { flex: 0 0 auto; padding: 9px 16px 0; cursor: grab; }
   .mdk-sheet-grab { width: 44px; height: 5px; border-radius: 3px; background: var(--sand-300, #D9CEB0); margin: 0 auto 8px; }
@@ -742,20 +746,35 @@
   .mdk-sheet .pfc-tabs button {
     flex: 1; border: 0; background: transparent; cursor: pointer; font: inherit;
     font-size: 12.5px; font-weight: 600; color: var(--stone-500, #8B7355);
-    border-radius: 7px; padding: 9px 0; min-height: 40px;
+    border-radius: 7px; padding: 9px 0; min-height: 44px;
   }
+  /* Touch-Ziele im Sheet-Zeit-Deck: größerer Slider + Jetzt-Label mit
+     ausgeweiteter Trefferfläche (visuell unverändert). */
+  .mdk-sheet .mdk-timedeck input[type='range'] { height: 36px; }
+  .mdk-sheet .mdk-timedeck input[type='range']::-webkit-slider-thumb { width: 20px; height: 20px; margin-top: -7px; }
+  .mdk-td-now { padding: 13px 8px; margin: -13px -8px; }
   .mdk-sheet .pfc-tabs button.active { background: var(--terracotta-500, #C97B47); color: #fff; }
-  /* Halb geöffnet: kompakter Schnellblick (Vorlage RM „Karte-Sheet") — Trend,
-     Quellen & Tabs erst im Vollzustand. */
+  /* Halb geöffnet: kompakter Schnellblick (Vorlage mobile-karte.png) — Trend,
+     Quellen, Pollen & Tabs erst im Vollzustand. Warnungen (Alerts) bleiben
+     immer sichtbar (Sicherheitsinformation). */
   .mdk-sheet.is-half .pfc-tabs,
   .mdk-sheet.is-half .pfc-ov-trend,
   .mdk-sheet.is-half .pfc-ov-foot,
+  .mdk-sheet.is-half .pfc-pollen,
+  .mdk-sheet.is-half .pfc-optin,
+  .mdk-sheet.is-half .pfc-avalanche,
   .mdk-sheet.is-collapsed .pfc-tabs { display: none; }
+  /* Vitals-Trio als weiße Karte (Vorlage) */
+  .mdk-sheet .pfc-ov-vitals {
+    background: #fff; border: 1px solid var(--sand-200, #E0D6BE);
+    border-radius: 14px; padding: 12px 14px;
+  }
 
   /* Timeline im Sheet */
   .mdk-sheet .mdk-timedeck {
     display: block; position: static; border: 0; background: none; border-radius: 0;
-    padding: 10px 0 4px; margin-top: 2px; border-top: 1px solid var(--sand-200, #E0D6BE);
+    padding: 10px 16px calc(6px + env(safe-area-inset-bottom, 0px) / 2); margin-top: 2px;
+    border-top: 1px solid var(--sand-200, #E0D6BE);
   }
   .mdk-sheet .mdk-td-legend { display: none; }
   .mdk-sheet .mdk-td-stand { display: none; }
@@ -806,6 +825,9 @@
     padding: 13px 14px; min-height: 56px; cursor: pointer; font: inherit;
   }
   .mdk-m-layer.is-on { border-color: var(--mdk-accent, #3A6FA8); }
+  .mdk-m-layer.is-on .mdk-switch { background: var(--mdk-accent, #3A6FA8); }
+  .mdk-m-layer.is-off .mdk-layer-ic { color: var(--stone-500, #8B7355); }
+  .mdk-m-layer.is-off .mdk-layer-label { font-weight: 500; color: var(--stone-600, #5C5447); }
   .mdk-m-layer .mdk-layer-ic { transform: scale(1.25); transform-origin: left center; }
   .mdk-m-layer .mdk-layer-label { font-size: 15.5px; }
   .mdk-m-layer .mdk-layer-sub { font-size: 12px; }
@@ -888,7 +910,8 @@
   .mdk-bar-btn:focus-visible { outline: 2px solid var(--terracotta-500, #C97B47); outline-offset: -2px; border-radius: 10px; }
 }
 
-/* Kurzes Landscape (Mobile-Media-Query der Karte) — wie Mobile behandeln */
+/* Kurzes Landscape: flacheres Sheet, damit die Karte sichtbar bleibt */
 @media (max-height: 430px) and (orientation: landscape) {
-  .mdk-topbar .mdk-clock { display: none; }
+  .mdk-sheet.is-half { --mdk-sheet-h: 62dvh; }
+  .mdk-sheet.is-full { --mdk-sheet-h: 86dvh; }
 }

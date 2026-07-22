@@ -110,6 +110,16 @@ Vorgabe: `audit/webgl-cross-device.md` §12. **Anders als V-PARITY/-2 grösstent
 6. **Konsole/Typecheck:** keine neuen Errors/Warnings; `npm run typecheck` grün.
 7. 🔴 **Real-Device (nice-to-have, nicht gate-blockierend):** Akku-/Thermik-Gewinn bei Hintergrund/Standby beobachten.
 
+## V-TRANSPORT-2 — Layer-Transport / Caching (Infrastruktur-Phase T2)
+Vorgabe: `audit/layer-transport.md`. Transport-only, Output-identisch. **Latenz erst nach Netlify-Deploy belastbar** (Dev-Proxy nicht repräsentativ, wie T1); Struktur (Request-Anzahl/-Reihenfolge) lokal 1:1 gültig.
+1. **Byte-Gleichheit je Param:** `node scripts/verify-layer-transport.mjs` — für `t_2m`, `vmax_10m`, `tot_prec`, `clcl/clcm/clch/clct` die Bytes über `/_dwd_grib` vs. direkt DWD SHA-256 + Länge identisch. Grün.
+2. **Durable-Header:** Antwort trägt `Netlify-CDN-Cache-Control: public, durable, …immutable`; fehlender/unpublizierter Step = `no-store` (nie durable gecacht); Pfad außerhalb `weather/nwp/icon-d2/grib/` = 400.
+3. **Manifest-Gate:** Kaltload je Layer im Network-Waterfall — **keine** Directory-Listings (`GET …/<param>/`) und **keine** spekulativen Fehl-Fetches mehr; Steps kommen aus `latest-grib.json`. Fallback: Manifest leeren → Scan-Pfad greift einmalig (kein Dauer-404).
+4. **Output-Gleichheit:** Temp/Gust/Precip/Clouds rendern visuell/numerisch identisch vor/nach (Screenshot-Stichprobe + Konsole ohne Decode-Fehler).
+5. **Abgrenzung:** Diff berührt Edge-Function/Manifest/Source-`base`/Vite-Proxy/Warm-Cron — **kein** Decode/Norm/Shader/Fusion; `/_dwd_opendata` (Radar) und `/_dwd_wind` (Wind) unverändert.
+6. **Konsole/Typecheck:** keine neuen Errors/Warnings; `npm run typecheck` grün.
+7. 🔴 **Prod (nach Deploy, Jan):** Durable-Cache-`Cache-Status: … hit` je Param, Kaltload-Latenz vs. T1-Baseline; Warm-Cron `workflow_dispatch` → success/early-exit.
+
 ---
 
 ## Beleg-Ablage

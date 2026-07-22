@@ -37,7 +37,7 @@ export default function MovementPicker({ selected, onSelect }: Props) {
             <span className="rt-mvcard-speed">{speedLabel(m)}</span>
             {active
               ? <span className="rt-mvcard-check" aria-hidden="true"><IconCheck size={12} /></span>
-              : m.id === 'ebike' ? <span className="rt-mvcard-ebadge" aria-hidden="true">E</span> : null}
+              : m.id === 'ebike' ? <span className="rt-mvcard-ebadge" aria-hidden="true">Akku</span> : null}
           </button>
         );
       })}

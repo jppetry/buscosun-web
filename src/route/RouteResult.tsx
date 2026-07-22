@@ -1,12 +1,13 @@
 /**
- * Ergebnis nach erfolgreichem Parsen: Datei-Leiste, Track-Auswahl (bei mehreren
- * Tracks), Validierung, Aufbereitung (Normalisierung, DEM-Höhen, Glättung,
- * Punkt-Reduktion) und schließlich Karte + Kennzahlen.
+ * Ergebnis nach erfolgreichem Parsen — Command-Deck (hell). Datei-Leiste,
+ * Track-Auswahl (bei mehreren Tracks), Validierung, Aufbereitung und die
+ * Strecken-Vorschau (Vorlage T2/T12/T14). „Weiter zur Planung" → TourView.
  */
 
 import { useEffect, useMemo, useState } from 'react';
 import TourView from './TourView';
 import RouteSummary from './RouteSummary';
+import RouteDeckShell, { DeckLive, IconChevLeft } from './RouteDeck';
 import { validateTrack } from './routeValidation';
 import { buildTourTrack, type TourTrack } from './tourTrack';
 import { formatFileSize, type RouteFormat } from './routeFormats';
@@ -25,12 +26,14 @@ interface Props {
   format: RouteFormat;
   parsed: ParsedFile;
   onReset: () => void;
+  onHome: () => void;
+  isMobile: boolean;
 }
 
-export default function RouteResult({ file, format, parsed, onReset }: Props) {
+export default function RouteResult({ file, format, parsed, onReset, onHome, isMobile }: Props) {
   const multi = parsed.tracks.length > 1;
   const [selection, setSelection] = useState<Selection>(multi ? 'all' : 0);
-  // Schritt-Flow: erst Parse-Vorschau (Mockup 01), dann Planung/Ergebnis (TourView).
+  // Schritt-Flow: erst Parse-Vorschau (T2), dann Planung/Ergebnis (TourView).
   const [started, setStarted] = useState(false);
 
   const route = useMemo<ParsedRoute>(() => buildRoute(parsed, selection), [parsed, selection]);
@@ -53,53 +56,57 @@ export default function RouteResult({ file, format, parsed, onReset }: Props) {
     return () => { cancelled = true; ctrl.abort(); };
   }, [route, validation, format.id]);
 
-  // In der Planung/Ergebnis-Phase übernimmt TourView Kopf & Navigation (Mockup 02–04).
+  // Planung/Ergebnis: TourView übernimmt die Shell (Vorlage T3–T5).
   if (tour.kind === 'done' && started) {
-    return (
-      <div className="route-result">
-        <TourView track={tour.track} fileLabel={file.name} onBack={() => setStarted(false)} />
-      </div>
-    );
+    return <TourView track={tour.track} fileLabel={file.name} onBack={() => setStarted(false)} onHome={onHome} isMobile={isMobile} />;
   }
 
+  const crumb = (
+    <div className="rd-crumb">
+      <button type="button" className="rd-back" onClick={onReset}><IconChevLeft size={14} /> Andere Datei</button>
+      <span className="rd-crumb-txt">· Tourenplanung</span>
+    </div>
+  );
+  const mobileHeader = (
+    <>
+      <button type="button" className="rd-m-back" onClick={onReset} aria-label="Andere Datei"><IconChevLeft /></button>
+      <div className="rd-m-htext"><div className="rd-m-title">Strecke erkannt</div></div>
+    </>
+  );
+
   return (
-    <div className="route-result">
-      <div className="rt-card rt-filebar">
-        <span className="rt-filebar-badge">{format.label}</span>
-        <span className="rt-filebar-name" title={file.name}>{file.name}</span>
-        <span className="rt-filebar-sub">{formatFileSize(file.size)} · Tier {format.tier}</span>
-        <button type="button" className="rt-filebar-replace" onClick={onReset}>Andere Datei</button>
+    <RouteDeckShell isMobile={isMobile} onHome={onHome} crumb={crumb} right={<DeckLive />} mobileHeader={mobileHeader}>
+      <div className="rd-filebar">
+        <span className="rd-filebar-badge">{format.label}</span>
+        <span className="rd-filebar-name" title={file.name}>{file.name}</span>
+        <span className="rd-filebar-sub">{formatFileSize(file.size)} · Tier {format.tier}</span>
+        <button type="button" className="rd-filebar-replace" onClick={onReset}>Andere Datei</button>
       </div>
 
-      {multi && (
-        <TrackSelector parsed={parsed} selection={selection} onSelect={setSelection} />
-      )}
+      {multi && <TrackSelector parsed={parsed} selection={selection} onSelect={setSelection} />}
 
       {!validation.ok ? (
-        <p className="route-status route-status-error" role="alert">{validation.message}</p>
+        <p className="rd-status rd-status--error" role="alert">{validation.message}</p>
       ) : tour.kind === 'working' ? (
-        <p className="route-status">Strecke wird aufbereitet …</p>
+        <p className="rd-status">Strecke wird aufbereitet …</p>
       ) : tour.kind === 'error' ? (
-        <p className="route-status route-status-error" role="alert">{tour.message}</p>
+        <p className="rd-status rd-status--error" role="alert">{tour.message}</p>
       ) : tour.kind === 'done' ? (
-        <ParsedPreview track={tour.track} onContinue={() => setStarted(true)} />
+        <ParsedPreview track={tour.track} isMobile={isMobile} onContinue={() => setStarted(true)} />
       ) : null}
-    </div>
+    </RouteDeckShell>
   );
 }
 
-/** Parse-Vorschau (Mockup 01): Streckenname, Kennzahlen + Höhenprofil, „Weiter". */
-function ParsedPreview({ track, onContinue }: { track: TourTrack; onContinue: () => void }) {
+/** Parse-Vorschau (T2): erkannter Streckenname, Kennzahlen + Höhenprofil, „Weiter". */
+function ParsedPreview({ track, isMobile, onContinue }: { track: TourTrack; isMobile: boolean; onContinue: () => void }) {
   return (
     <>
-      <section className="rt-card rt-preview">
-        <div className="rt-preview-head">
-          <span className="rt-eyebrow">{(track.meta.name || 'Strecke erkannt').toUpperCase()}</span>
-        </div>
-        <RouteSummary track={track} />
-      </section>
-      <button type="button" className="rt-cta" onClick={onContinue}>
-        Weiter zur Planung <IconArrowRight size={17} />
+      <span className="rd-preview-eyebrow">Strecke erkannt</span>
+      <h1 className="rd-preview-title">{track.meta.name || 'Deine Strecke'}</h1>
+      <RouteSummary track={track} />
+      <button type="button" className={`rd-cta${isMobile ? ' rd-cta--full' : ''}`} onClick={onContinue}>
+        Weiter zur Planung <IconArrowRight size={16} />
       </button>
     </>
   );
@@ -112,14 +119,14 @@ function TrackSelector({ parsed, selection, onSelect }: {
 }) {
   const total = parsed.tracks.reduce((s, t) => s + t.points.length, 0);
   return (
-    <div className="route-tracks">
-      <span className="route-tracks-label">
+    <div className="rd-tracks">
+      <span className="rd-tracks-label">
         {parsed.tracks.length} Tracks in der Datei — welcher soll angezeigt werden?
       </span>
-      <div className="route-tracks-options" role="group">
+      <div className="rd-tracks-options" role="group">
         <button
           type="button"
-          className={`route-track-chip${selection === 'all' ? ' is-active' : ''}`}
+          className={`rd-track-chip${selection === 'all' ? ' is-active' : ''}`}
           onClick={() => onSelect('all')}
         >
           Alle (zusammengefügt) · {total.toLocaleString('de-DE')} Pkt.
@@ -128,7 +135,7 @@ function TrackSelector({ parsed, selection, onSelect }: {
           <button
             key={i}
             type="button"
-            className={`route-track-chip${selection === i ? ' is-active' : ''}`}
+            className={`rd-track-chip${selection === i ? ' is-active' : ''}`}
             onClick={() => onSelect(i)}
           >
             {t.name ?? `Track ${i + 1}`} · {t.points.length.toLocaleString('de-DE')} Pkt.

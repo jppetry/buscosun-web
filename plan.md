@@ -251,3 +251,27 @@ Jede Phase folgt dem Zyklus **Diagnose → Plan → Implement → Verify → Gat
 
 **Verify:** tests.md → V-PARITY-3 — **grösstenteils emulator-belastbar** (Loop-Stopp ist JS-beobachtbar, anders als FPS/Thermik). 🔴 Real-Device nur noch für den Akku-/Thermik-Gewinn (nice-to-have, nicht gate-blockierend).
 **Gate GP3:** hidden/offscreen stoppt die Repaint-Anforderungen, sichtbar/onscreen startet neu; sichtbar+aktiv byte-identisch (keine Desktop-Regression); Konsole/Typecheck grün.
+
+---
+
+## Infrastruktur-Phase T2 — Layer-Transport / Caching für alle ICON-D2-Layer (Gate GT2)
+
+**Nebengleis (Transport/Datenschicht), Fortsetzung von T1 (Wind-Transport, `audit/wind-transport.md`).** Maßgebliche Vorgabe: `audit/layer-transport.md`. Umsetzung separat über die CLI; Prod-Deploy + Cron = **Jans Gate**.
+
+**Ziel:** Das T1-Muster (Durable-Edge-Proxy + GitHub-Action-Warm-Cron + Manifest-Gate), das den Wind-Layer vom kritischen DWD-Pfad genommen hat, auf **alle passenden Kartenlayer** ausrollen. **Output-identisch** — dieselben GRIB-Bytes, nur Herkunft/Latenz ändern sich.
+
+**Diagnose (2 Code-Analysen, Audit §A/§B):** Temp (`t_2m`+`hsurf`), Gust (`vmax_10m`), Precip (`tot_prec`), Clouds (`clcl/clcm/clch/clct`) sind alle ICON-D2-GRIB über `fetchStepField`/`fetchStepBytes` mit Default-`base` → passen direkt. Der Edge-`ALLOWED_PREFIX` ist **schon** generisch. **Radar passt nicht** (5-Min-Kadenz, Tar-Bündel, eigener Rewrite/Cache, Live-WMS); **Confidence** hat keinen eigenen Transport. Der Refresh-Koordinator fächert die Layer bereits auf → kein Umbau.
+
+**Umzusetzende Maßnahmen (Kurzfassung, Details Audit §C):**
+1. **T2-1** Generische Edge-Route `/_dwd_grib/*` (`netlify/edge-functions/dwd-grib.ts`, Kopie von `dwd-wind.ts`), additiv.
+2. **T2-2** Temp/Gust/Precip/Clouds-Quellen mit eigenem `base = '/_dwd_grib/...'` routen (kein Decode-Eingriff).
+3. **T2-3** Kombiniertes `public/latest-grib.json` (per-Param Step-Listen); Client-Resolver generalisieren (24h-Guard + Scan-Fallback).
+4. **T2-4** `scripts/warm-grib.mjs` + `.github/workflows/warm-grib.yml` (poll→warm→atomares Manifest→commit-back, `SITE_URL`-Var).
+5. **T2-5** Vite-Dev-Proxy `/_dwd_grib`-Eintrag.
+6. **T2-6** `scripts/verify-layer-transport.mjs` (Node strip-types, kein Vitest).
+7. **T2-7** (optional/vertagt) Per-Layer-IndexedDB-Now-Cache.
+
+**Explizit außerhalb:** Radar/Nowcast/PoP, Confidence, Wind (T1), Decode/Norm/Shader/Fusion, `/_dwd_opendata`- und `/_dwd_wind`-Pfade.
+
+**Verify:** tests.md → V-TRANSPORT-2 (+ Verifier-Skript). 🔴 Latenz/Durable-Cache-`hit` erst nach Netlify-Deploy belastbar (Jan).
+**Gate GT2:** Bytes je Param identisch (Proxy vs. direkt), Durable-Header, Manifest-Gate eliminiert Directory-Scans + spekulative Fehl-Fetches je Layer, Output visuell/numerisch identisch, Konsole/Typecheck grün, `/_dwd_opendata`+`/_dwd_wind` unberührt (Diff-Beleg).

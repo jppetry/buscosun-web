@@ -21,6 +21,15 @@ const upstreamProxy = {
     changeOrigin: true,
     rewrite: (p: string) => p.replace(/^\/_dwd_wind/, ''),
   },
+  // Generischer ICON-D2-GRIB-Caching-Pfad (Phase T2: Temp/Gust/Precip/Clouds).
+  // In Produktion / `netlify dev` bedient die Edge Function `netlify/edge-
+  // functions/dwd-grib.ts` `/_dwd_grib/*` durable-gecacht; dieser Vite-Eintrag
+  // ist der Dev-Fallback (dünner Pass-Through ohne Cache), analog `/_dwd_wind`.
+  '/_dwd_grib': {
+    target: 'https://opendata.dwd.de',
+    changeOrigin: true,
+    rewrite: (p: string) => p.replace(/^\/_dwd_grib/, ''),
+  },
   // NOAA GFS (AWS Open Data, S3 — Range-fähig, Public Domain) für den 3D-Globus.
   '/_gfs': {
     target: 'https://noaa-gfs-bdp-pds.s3.amazonaws.com',

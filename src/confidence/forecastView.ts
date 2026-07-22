@@ -58,7 +58,7 @@ export function buildStabilityMap(history: ForecastHistory): Map<string, DayStab
 /** Visuelle Kodierung je Stufe (Farbe + Icon-Glyph) — barrierearm (US-1.2). */
 export function levelStyle(level: ConfidenceResult['level']): { color: string; glyph: string } {
   switch (level) {
-    case 'high': return { color: '#5C7A4A', glyph: '✓' };
+    case 'high': return { color: '#7A9466', glyph: '✓' };
     case 'mid': return { color: '#C99A4E', glyph: '≈' };
     case 'low': return { color: '#6B7A8F', glyph: '!' };
   }

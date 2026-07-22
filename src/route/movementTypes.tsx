@@ -29,9 +29,10 @@ export interface MovementType {
   descentRate?: Range;
 }
 
+/* Icon-Formen exakt aus references/routenplaner.dc.html (24er viewBox, 1.7 stroke). */
 function Svg({ children }: { children: ReactNode }) {
   return (
-    <svg className="mv-icon" viewBox="0 0 32 32" fill="none"
+    <svg className="mv-icon" viewBox="0 0 24 24" fill="none"
       stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       {children}
     </svg>
@@ -41,49 +42,44 @@ function Svg({ children }: { children: ReactNode }) {
 // --- Fuß-Icons ---
 const WalkIcon = (
   <Svg>
-    <circle cx="15" cy="6.5" r="2.4" />
-    <path d="M15 9 L15 18 L12 25 M15 18 L19 23" />
-    <path d="M15 12 L19 15" />
-    <path d="M21 8 L22 25" />
+    <circle cx="13" cy="4" r="1.8" />
+    <path d="M13 7 L10 12 L14 14 L15 20 M10 12 L6 13 M14 14 L11 11 L15 9 L18 11" />
   </Svg>
 );
 const MountainIcon = (
   <Svg>
-    <path d="M3 25 L12 11 L17 18 L22 9 L29 25 Z" />
-    <path d="M22 9 L22 5 L25 6 L22 7" />
+    <path d="M3 20 L10 8 L14 14 L17 9 L21 20 Z" />
+    <path d="M17 9 L17 5 L20 6 L17 7" />
   </Svg>
 );
 const RunIcon = (
   <Svg>
-    <circle cx="18" cy="6.5" r="2.4" />
-    <path d="M18 9 L14 16 L18 23 M14 16 L10 21" />
-    <path d="M16 11 L21 10 M15 13 L11 15" />
+    <circle cx="15" cy="4.5" r="1.8" />
+    <path d="M15 7 L11 11 L14 14 L13 20 M11 11 L7 12 M14 14 L17 12" />
   </Svg>
 );
 const TrailRunIcon = (
   <Svg>
-    <circle cx="18" cy="6" r="2.2" />
-    <path d="M18 8.5 L14 15 L18 21 M14 15 L10 19" />
-    <path d="M16 10.5 L21 9.5 M15 12.5 L11 14" />
-    <path d="M3 27 Q9 23 15 27 T27 27" />
+    <path d="M4 20 L9 5 L13 18 M11 12 L16 4 L20 20" />
   </Svg>
 );
 
-// --- Rad-Icons (gemeinsames Grundgerüst + Unterscheidungsmerkmal) ---
-function BikeBase({ extra }: { extra?: ReactNode }) {
+// --- Rad-Icons (gemeinsames Grundgerüst aus der Vorlage + Unterscheidungsmerkmal) ---
+function BikeBase({ topBar, extra }: { topBar?: boolean; extra?: ReactNode }) {
   return (
     <Svg>
-      <circle cx="9" cy="23" r="4.6" />
-      <circle cx="23" cy="23" r="4.6" />
-      <path d="M9 23 L15 23 L13 12 L21 13 L23 23 M15 23 L21 13" />
+      <circle cx="5.5" cy="17" r="3.5" />
+      <circle cx="18.5" cy="17" r="3.5" />
+      <path d="M5.5 17 L9 8 H13 M12 8 L15.5 17" />
+      {topBar && <path d="M9.5 8 H15" />}
       {extra}
     </Svg>
   );
 }
-const RoadBikeIcon = <BikeBase extra={<path d="M21 13 q3 0 2.4 2.6" />} />;
-const GravelBikeIcon = <BikeBase extra={<><path d="M19.5 12 H23" /><circle cx="7" cy="29.5" r="0.6" /><circle cx="11" cy="29.5" r="0.6" /><circle cx="21" cy="29.5" r="0.6" /></>} />;
-const MtbIcon = <BikeBase extra={<><path d="M19.5 12 H22.5" /><path d="M22 14 L24 22" /></>} />;
-const EbikeIcon = <BikeBase extra={<><path d="M19.5 12 H23" /><path d="M16.5 14 L13.5 19 L15.5 19 L13 23.5" /></>} />;
+const RoadBikeIcon = <BikeBase topBar />;
+const GravelBikeIcon = <BikeBase extra={<path d="M18.5 17 L17 11" />} />;
+const MtbIcon = <BikeBase />;
+const EbikeIcon = <BikeBase extra={<path d="M13 4 L11 8 h3 l-1.5 3.5" />} />;
 
 export const MOVEMENT_TYPES: MovementType[] = [
   {

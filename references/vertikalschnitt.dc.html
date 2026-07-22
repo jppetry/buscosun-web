@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #0B0E12; font-family: "League Spartan", system-ui, sans-serif; -webkit-font-smoothing: antialiased; color: #2C2A26; }
+  a { color: #3A6FA8; text-decoration: none; }
+  a:hover { color: #5B9BD5; }
+  .vs-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+  .vs-scroll::-webkit-scrollbar-thumb { background: #D9D0B8; border-radius: 3px; }
+</style>
+</helmet>
+
+<section style="padding:56px 72px 120px; display:flex; flex-direction:column; gap:56px; font-family:'League Spartan',sans-serif;">
+
+  <div style="display:flex; align-items:flex-end; gap:20px; flex-wrap:wrap;">
+    <div>
+      <div style="font-size:11px; letter-spacing:4px; color:#A89A7A; font-weight:600; text-transform:uppercase;">buscosun · 3D-wetter · vertikalschnitt</div>
+      <div style="font-size:30px; font-weight:600; color:#E9ECF1; letter-spacing:-0.5px; margin-top:6px;">Vertikalschnitt — Command-Deck (hell)</div>
+    </div>
+    <div style="font-size:13px; color:#98A2AF; max-width:600px; line-height:1.5; padding-bottom:3px; font-weight:300;">
+      Exakt im Stil der Wetterkarte (Sand/Ink · League Spartan · Steel). Ohne Informationsverlust — alle drei Seiten des Vertikalschnitts: Höhenwind-Geländeschnitt, Inversion/Kaltluftsee und Go/No-Go (B2B).<br>
+      Desktop: <a href="#S1">S1</a> Höhenwind · <a href="#S2">S2</a> Inversion · <a href="#S3">S3</a> Go/No-Go · Tablet: <a href="#S4">S4</a> · <a href="#S5">S5</a> · Mobile: <a href="#S6">S6</a> · <a href="#S7">S7</a> · <a href="#S8">S8</a>.
+    </div>
+  </div>
+
+  <!-- ============================ S1 — DESKTOP · HÖHENWIND-GELÄNDESCHNITT ============================ -->
+  <article id="S1" style="width:1440px;">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+      <span style="display:inline-flex; align-items:center; justify-content:center; min-width:36px; height:26px; padding:0 10px; background:#3A6FA8; color:#FAF6EA; border-radius:6px; font-size:13px; font-weight:700; letter-spacing:1px;">S1</span>
+      <span style="font-size:15px; font-weight:600; color:#E9ECF1;">Desktop · Höhenwind-Geländeschnitt</span>
+    </div>
+    <div style="height:1000px; border-radius:18px; overflow:hidden; background:#EDE6D3; border:1px solid #E0D6BE; box-shadow:0 40px 90px -50px rgba(0,0,0,.55); display:flex; flex-direction:column;">
+      <div style="height:60px; flex:0 0 auto; display:flex; align-items:center; gap:18px; padding:0 20px; background:#FAF6EA; border-bottom:1px solid #E0D6BE;">
+        <div style="display:flex; align-items:center; gap:10px;"><img src="buscosun-mark.svg" width="26" height="26" alt=""><span style="font-size:19px; font-weight:700; color:#2C2A26; letter-spacing:-0.4px;">buscosun</span></div>
+        <div style="width:1px; height:26px; background:#E0D6BE;"></div>
+        <div style="display:flex; align-items:center; gap:9px; background:#FFFFFF; border:1px solid #D9D0B8; border-radius:9px; padding:8px 13px;"><span style="font-size:14px;">🇩🇪</span><span style="font-size:14px; color:#2C2A26; font-weight:600;">Zugspitze → Eibsee</span></div>
+        <div style="margin-left:auto; display:flex; align-items:center; gap:14px;"><div style="display:flex; align-items:center; gap:7px;"><span style="width:7px; height:7px; border-radius:50%; background:#7A9466;"></span><span style="font-size:11px; color:#5F7A4C; font-weight:600;">ICON-D2 · 08:00 UTC</span></div><span style="width:32px; height:32px; border-radius:50%; background:#E0D6BE; color:#5C5447; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700;">JK</span></div>
+      </div>
+      <div style="flex:1; display:flex; min-height:0;">
+        <!-- rail (3D-Wetter aktiv) -->
+        <div style="width:62px; flex:0 0 auto; background:#2C2A26; display:flex; flex-direction:column; align-items:center; padding:14px 0; gap:6px;">
+          <div style="width:42px; height:42px; border-radius:11px; display:flex; align-items:center; justify-content:center; color:#8B7355;" title="Wetterkarte"><svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M12 3 L21 8 L12 13 L3 8 Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M3 13 L12 18 L21 13" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
+          <div style="width:42px; height:42px; border-radius:11px; display:flex; align-items:center; justify-content:center; color:#8B7355;" title="Tour"><svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M6 20 C6 20 5 13.5 9 11.5 C13 9.5 12 6.5 16 5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="6" cy="20" r="1.8" fill="currentColor"/><path d="M16 2.5 C14 2.5 12.4 4.1 12.4 6.1 C12.4 8.8 16 11.5 16 11.5 C16 11.5 19.6 8.8 19.6 6.1 C19.6 4.1 18 2.5 16 2.5 Z" stroke="currentColor" stroke-width="1.3"/></svg></div>
+          <div style="width:42px; height:42px; border-radius:11px; display:flex; align-items:center; justify-content:center; background:#3A3833; color:#A9C7E4; position:relative;" title="3D-Wetter / Vertikalschnitt"><span style="position:absolute; left:-14px; top:9px; bottom:9px; width:3px; border-radius:2px; background:#3A6FA8;"></span><svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M3 17 L9 9 L13 13 L17 6 L21 11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 20 L21 20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M3 20 L3 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+          <div style="margin-top:auto; width:42px; height:42px; border-radius:11px; display:flex; align-items:center; justify-content:center; color:#8B7355;" title="Einstellungen"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.6"/><path d="M12 2.5 V5 M12 19 V21.5 M2.5 12 H5 M19 12 H21.5 M5.2 5.2 L7 7 M17 17 L18.8 18.8 M18.8 5.2 L17 7 M7 17 L5.2 18.8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+        </div>
+        <!-- LEFT DOCK — Karte + Punkt-Abfrage -->
+        <div class="vs-scroll" style="width:300px; flex:0 0 auto; background:#FAF6EA; border-right:1px solid #E0D6BE; overflow-y:auto; padding:16px 14px;">
+          <div style="font-size:11px; letter-spacing:2.5px; color:#3A6FA8; font-weight:700;">HÖHENWIND-GELÄNDESCHNITT</div>
+          <div style="font-size:16px; font-weight:700; color:#2C2A26; margin-top:4px;">Zugspitze → Eibsee</div>
+          <!-- 2D/3D toggle + Linsen -->
+          <div style="display:flex; gap:4px; margin-top:12px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:10px; padding:3px; width:max-content;"><span style="font-size:12px; font-weight:600; color:#8B7355; border-radius:7px; padding:6px 14px;">2D</span><span style="font-size:12px; font-weight:700; color:#FAF6EA; background:#3A6FA8; border-radius:7px; padding:6px 14px;">3D</span></div>
+          <div style="font-size:10.5px; color:#8B7355; margin-top:6px;">Ort · Zeit · Parameter bleiben erhalten</div>
+          <!-- Karte -->
+          <div style="margin-top:14px; height:220px; border-radius:14px; position:relative; overflow:hidden; background:#EDE6D3; border:1px solid #E0D6BE;">
+            <svg viewBox="0 0 300 220" preserveAspectRatio="none" style="position:absolute; inset:0; width:100%; height:100%;">
+              <g opacity=".4" fill="none" stroke="#8B7355" stroke-width="0.8"><path d="M20 150 Q90 135 150 140 Q220 145 280 135"/><path d="M25 120 Q95 100 160 108 Q225 116 280 104"/><path d="M40 90 Q110 70 165 78 Q220 86 270 76"/></g>
+              <ellipse cx="230" cy="160" rx="34" ry="18" fill="#3A6FA8" fill-opacity=".3"/>
+              <line x1="55" y1="170" x2="140" y2="90" stroke="#C97B47" stroke-width="3"/><line x1="140" y1="90" x2="240" y2="155" stroke="#C97B47" stroke-width="3"/>
+              <circle cx="55" cy="170" r="7" fill="#FAF6EA" stroke="#C97B47" stroke-width="3"/><circle cx="140" cy="90" r="6" fill="#C97B47"/><circle cx="240" cy="155" r="7" fill="#FAF6EA" stroke="#C97B47" stroke-width="3"/>
+            </svg>
+            <div style="position:absolute; left:10px; top:10px; display:flex; align-items:center; gap:7px; background:rgba(250,246,234,.96); border:1px solid #E0D6BE; border-radius:14px; padding:5px 10px;"><span style="width:9px; height:9px; border-radius:50%; background:#3A6FA8;"></span><span style="font-size:10.5px; font-weight:600; color:#2C2A26;">Schnitt-Modus aktiv</span></div>
+            <div style="position:absolute; left:10px; right:10px; bottom:10px; display:flex; align-items:center; gap:7px; background:rgba(250,246,234,.96); border:1px solid #E0D6BE; border-radius:14px; padding:6px 10px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 4 H14 L18 8 V20 H6 Z" stroke="#3A6FA8" stroke-width="1.5" stroke-linejoin="round"/></svg><span style="font-size:10px; font-weight:600; color:#3A6FA8;">Gespeicherte Tour als Schnittlinie übernehmen</span></div>
+          </div>
+          <div style="font-size:10.5px; color:#8B7355; margin-top:8px;">3 Punkte · Marker ziehen oder antippen zum Löschen</div>
+          <!-- Punkt-Abfrage -->
+          <div style="margin-top:14px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:13px; padding:14px;">
+            <div style="font-size:10px; letter-spacing:1px; color:#8B7355; font-weight:600;">PUNKT-ABFRAGE · KM 9,4 · 2000 M</div>
+            <div style="display:flex; flex-direction:column; gap:8px; margin-top:10px; font-size:13px;">
+              <div style="display:flex; justify-content:space-between;"><span style="color:#5C5447;">Höhe</span><span style="font-weight:700; color:#2C2A26;">2000 m ü. NN</span></div>
+              <div style="display:flex; justify-content:space-between;"><span style="color:#5C5447;">über Grund</span><span style="font-weight:700; color:#2C2A26;">540 m AGL</span></div>
+              <div style="display:flex; justify-content:space-between;"><span style="color:#5C5447;">Mittelwind</span><span style="font-weight:700; color:#C97B47;">48 km/h · WSW</span></div>
+              <div style="display:flex; justify-content:space-between;"><span style="color:#5C5447;">Böen</span><span style="font-weight:700; color:#D7263D;">71 km/h</span></div>
+              <div style="display:flex; justify-content:space-between;"><span style="color:#5C5447;">Temperatur</span><span style="font-weight:700; color:#2C2A26;">−4,2 °C</span></div>
+            </div>
+          </div>
+        </div>
+        <!-- CENTER — Vertikalschnitt -->
+        <div class="vs-scroll" style="flex:1; min-width:0; overflow-y:auto; background:#EDE6D3; padding:18px 20px;">
+          <!-- Layer toggles -->
+          <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
+            <span style="display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color:#FAF6EA; background:#3A6FA8; border-radius:16px; padding:6px 13px;"><span style="width:9px; height:9px; border-radius:50%; background:#FAF6EA;"></span>Mittelwind</span>
+            <span style="display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color:#FAF6EA; background:#3A6FA8; border-radius:16px; padding:6px 13px;"><span style="width:9px; height:9px; border-radius:50%; background:#FAF6EA;"></span>Böen</span>
+            <span style="display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color:#FAF6EA; background:#3A6FA8; border-radius:16px; padding:6px 13px;"><span style="width:9px; height:9px; border-radius:50%; background:#FAF6EA;"></span>Shear</span>
+            <span style="display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color:#FAF6EA; background:#3A6FA8; border-radius:16px; padding:6px 13px;"><span style="width:9px; height:9px; border-radius:50%; background:#FAF6EA;"></span>Streamlines</span>
+            <span style="display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:500; color:#8B7355; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:16px; padding:6px 13px;"><span style="width:9px; height:9px; border-radius:50%; border:1px solid #C4B896;"></span>Wolkenbasis</span>
+            <span style="margin-left:auto; display:inline-flex; align-items:center; gap:7px; font-size:10px; color:#5C5447; background:#FAF6EA; border:1px solid #E0D6BE; border-radius:10px; padding:6px 11px;"><span style="width:16px; height:16px; border-radius:50%; background:#8B7355; color:#FAF6EA; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:10px;">i</span>Gitterzellen ≈ 2 km · 333 m · Auflösung begrenzt die Genauigkeit</span>
+          </div>
+          <!-- Cross-section -->
+          <div style="background:linear-gradient(180deg,#EEF1F4,#F6F2E8); border:1px solid #E0D6BE; border-radius:16px; padding:16px; position:relative;">
+            <svg viewBox="0 0 900 470" style="width:100%; height:auto;" font-family="League Spartan">
+              <!-- wind speed bands (color grid) -->
+              <g opacity=".5">
+                <rect x="40" y="20" width="108" height="120" fill="#D4A373"/><rect x="40" y="140" width="108" height="180" fill="#7A9466"/>
+                <rect x="148" y="20" width="108" height="120" fill="#D4A373"/><rect x="148" y="140" width="108" height="150" fill="#7A9466"/>
+                <rect x="256" y="20" width="108" height="90" fill="#D4A373"/><rect x="256" y="110" width="108" height="120" fill="#7A9466"/>
+                <rect x="364" y="20" width="108" height="70" fill="#D4A373"/>
+                <rect x="472" y="20" width="108" height="45" fill="#C97B47"/><rect x="472" y="65" width="108" height="30" fill="#D4A373"/>
+                <rect x="580" y="20" width="108" height="45" fill="#D7263D"/><rect x="580" y="65" width="108" height="30" fill="#C97B47"/>
+                <rect x="688" y="20" width="108" height="90" fill="#D4A373"/>
+                <rect x="796" y="20" width="64" height="120" fill="#D4A373"/><rect x="796" y="140" width="64" height="120" fill="#7A9466"/>
+              </g>
+              <!-- shear zone -->
+              <rect x="256" y="120" width="264" height="92" fill="none" stroke="#C97B47" stroke-width="1.2" stroke-dasharray="4 3"/>
+              <g transform="translate(388,116)"><rect x="-70" y="-15" width="140" height="17" rx="8" fill="#C97B47"/><text y="-3" font-size="9.5" font-weight="700" fill="#FAF6EA" text-anchor="middle">WIND-SHEAR &gt; 25 km/h/300m</text></g>
+              <!-- mean wind streamlines -->
+              <g stroke="#2C2A26" stroke-width="2" opacity=".55" fill="none" marker-end="url(#vsArr)">
+                <path d="M40 300 Q250 250 460 150 Q640 130 860 210"/>
+                <path d="M40 250 Q250 210 460 120 Q640 105 860 175"/>
+                <path d="M40 200 Q250 170 460 95 Q640 90 860 150"/>
+              </g>
+              <defs><marker id="vsArr" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 1 L9 5 L0 9 z" fill="#2C2A26"/></marker></defs>
+              <!-- gust dashed red -->
+              <path d="M40 275 Q250 230 460 130 Q640 112 860 190" fill="none" stroke="#D7263D" stroke-width="2" opacity=".5" stroke-dasharray="6 5"/>
+              <!-- terrain -->
+              <path d="M40 400 L40 330 Q180 320 300 300 Q430 250 520 150 Q560 130 600 150 Q700 220 860 300 L860 400 Z" fill="#7A6E56"/>
+              <path d="M40 330 Q180 320 300 300 Q430 250 520 150 Q560 130 600 150 Q700 220 860 300" fill="none" stroke="#4A4233" stroke-width="1.5"/>
+              <!-- cloud base dashed sage -->
+              <path d="M40 315 Q180 305 300 285 Q430 235 520 135 Q560 118 600 135 Q700 205 860 285" fill="none" stroke="#7A9466" stroke-width="2.4" stroke-dasharray="2 4"/>
+              <g transform="translate(120,300)"><rect x="0" y="-13" width="96" height="17" rx="8" fill="#7A9466"/><text x="48" y="-1" font-size="9" font-weight="700" fill="#FAF6EA" text-anchor="middle">120 m AGL · Drohne</text></g>
+              <!-- pick marker -->
+              <g transform="translate(500,150)"><circle r="16" fill="#C97B47" opacity=".14"/><circle r="7" fill="#FAF6EA" stroke="#C97B47" stroke-width="2.5"/><circle r="2.5" fill="#C97B47"/></g>
+              <!-- Y axis -->
+              <line x1="40" y1="20" x2="40" y2="400" stroke="#8B7355"/>
+              <g fill="#8B7355" font-size="9" text-anchor="end"><text x="34" y="403">0</text><text x="34" y="337">1000</text><text x="34" y="273">1500</text><text x="34" y="210">2000</text><text x="34" y="147">2500</text><text x="34" y="84">3000</text></g>
+              <text x="14" y="210" font-size="10" font-weight="600" fill="#5C5447" text-anchor="middle" transform="rotate(-90 14 210)">Höhe m ü. NN</text>
+              <!-- X axis -->
+              <line x1="40" y1="400" x2="860" y2="400" stroke="#8B7355"/>
+              <g fill="#8B7355" font-size="9" text-anchor="middle"><text x="40" y="415">0 km</text><text x="260" y="415">8 km</text><text x="500" y="415">16 km</text><text x="740" y="415">22 km</text></g>
+              <g font-size="9" font-weight="600" fill="#C97B47" text-anchor="middle"><text x="40" y="430">Start</text><text x="520" y="430">Gipfel 2962 m</text><text x="860" y="430" text-anchor="end">Eibsee</text></g>
+            </svg>
+            <!-- floating pick pill -->
+            <div style="position:absolute; right:70px; top:60px; background:#FAF6EA; border:1.5px solid #E0D6BE; border-radius:12px; padding:9px 12px; box-shadow:0 6px 18px -8px rgba(0,0,0,.3);">
+              <div style="font-size:9px; letter-spacing:.5px; color:#8B7355; font-weight:600;">2000 M · 540 M AGL</div>
+              <div style="font-size:17px; font-weight:700; color:#C97B47; margin-top:2px;">48 km/h <span style="font-size:10px; color:#5C5447; font-weight:400;">Mittel</span></div>
+              <div style="font-size:10.5px; color:#5C5447;">Böe <b style="color:#D7263D;">71</b> · WSW · −4,2 °C</div>
+            </div>
+          </div>
+          <!-- Legend -->
+          <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:center; background:#FAF6EA; border:1px solid #E0D6BE; border-radius:12px; padding:12px 15px; margin-top:12px;">
+            <span style="font-size:9px; letter-spacing:1px; color:#8B7355; font-weight:600;">WINDGESCHWINDIGKEIT km/h · HÖHE = m ü. NN</span>
+            <div style="display:flex; align-items:center; gap:5px;"><span style="width:22px; height:11px; background:#B6C8D6;"></span><span style="font-size:10px; color:#5C5447;">&lt;15</span></div>
+            <div style="display:flex; align-items:center; gap:5px;"><span style="width:22px; height:11px; background:#7A9466;"></span><span style="font-size:10px; color:#5C5447;">15–30</span></div>
+            <div style="display:flex; align-items:center; gap:5px;"><span style="width:22px; height:11px; background:#D4A373;"></span><span style="font-size:10px; color:#5C5447;">30–45</span></div>
+            <div style="display:flex; align-items:center; gap:5px;"><span style="width:22px; height:11px; background:#C97B47;"></span><span style="font-size:10px; color:#5C5447;">45–60</span></div>
+            <div style="display:flex; align-items:center; gap:5px;"><span style="width:22px; height:11px; background:#D7263D;"></span><span style="font-size:10px; color:#5C5447;">&gt;60</span></div>
+            <span style="width:1px; height:16px; background:#E0D6BE;"></span>
+            <div style="display:flex; align-items:center; gap:5px;"><span style="width:20px; height:2px; background:#2C2A26; opacity:.6;"></span><span style="font-size:10px; color:#5C5447;">Mittelwind</span></div>
+            <div style="display:flex; align-items:center; gap:5px;"><span style="width:20px; height:0; border-top:2px dashed #D7263D;"></span><span style="font-size:10px; color:#5C5447;">Böen</span></div>
+          </div>
+          <!-- Time deck -->
+          <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:14px; padding:14px 16px; margin-top:12px;">
+            <div style="display:flex; align-items:baseline; justify-content:space-between;"><span style="font-size:10px; letter-spacing:2px; color:#3A6FA8; font-weight:700;">ZEITVERLAUF · 15-MIN-RASTER</span><span style="font-size:12.5px; font-weight:700; color:#2C2A26;">Sa 14. Jun · 11:15 Uhr</span></div>
+            <div style="display:flex; align-items:center; gap:12px; margin-top:12px;">
+              <span style="width:34px; height:34px; border-radius:50%; background:#3A6FA8; color:#FAF6EA; display:flex; align-items:center; justify-content:center; flex:0 0 auto;"><svg width="13" height="13" viewBox="0 0 24 24" fill="#FAF6EA"><path d="M7 5 L19 12 L7 19 Z"/></svg></span>
+              <div style="flex:1; position:relative; height:6px; background:#E0D6BE; border-radius:3px;"><div style="position:absolute; left:18%; width:50%; top:0; bottom:0; background:#D4A373; opacity:.5; border-radius:3px;"></div><div style="position:absolute; left:32%; top:50%; transform:translate(-50%,-50%); width:16px; height:16px; border-radius:50%; background:#C97B47; border:3px solid #FAF6EA;"></div></div>
+              <span style="font-size:11px; color:#8B7355;">+48 h</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:9px; color:#8B7355; margin-top:6px;"><span>06:00</span><span>08:00</span><span style="color:#C97B47; font-weight:700;">11:15</span><span>14:00</span><span>20:00</span></div>
+          </div>
+          <p style="font-size:11px; color:#8B7355; margin:12px 2px 0; text-align:center;">Wind auf realer Höhe über Grund (AGL) aus ICON-D2-Druckflächen + DEM interpoliert · ≥30 FPS · werbefrei</p>
+        </div>
+      </div>
+    </div>
+    <p style="width:1440px; font-size:12.5px; color:#98A2AF; line-height:1.6; margin:16px 2px 0; font-weight:300;"><strong style="color:#E9ECF1; font-weight:600;">Höhenwind-Geländeschnitt:</strong> Links Karte mit Schnittlinie (Start/Gipfel/Eibsee) + Punkt-Abfrage (Höhe, AGL, Mittelwind, Böen, Temp); Mitte der Vertikalschnitt mit Windgeschwindigkeits-Bändern, Mittelwind-Streamlines, Böen (rot gestrichelt), Shear-Zone, Wolkenbasis (sage), 120-m-AGL-Drohnenlinie, Punkt-Pick-Marker, Höhen-/Distanz-Achsen; Legende + 15-Min-Zeitdeck. 2D/3D-Umschalter, ICON-D2-Provenienz.</p>
+  </article>
+
+  <!-- ============================ S2 — DESKTOP · INVERSION / KALTLUFTSEE ============================ -->
+  <article id="S2" style="width:1440px;">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+      <span style="display:inline-flex; align-items:center; justify-content:center; min-width:36px; height:26px; padding:0 10px; background:#3A6FA8; color:#FAF6EA; border-radius:6px; font-size:13px; font-weight:700; letter-spacing:1px;">S2</span>
+      <span style="font-size:15px; font-weight:600; color:#E9ECF1;">Desktop · Inversion / Kaltluftsee</span>
+    </div>
+    <div style="height:940px; border-radius:18px; overflow:hidden; background:#EDE6D3; border:1px solid #E0D6BE; box-shadow:0 40px 90px -50px rgba(0,0,0,.55); display:flex; flex-direction:column;">
+      <div style="height:60px; flex:0 0 auto; display:flex; align-items:center; gap:18px; padding:0 20px; background:#FAF6EA; border-bottom:1px solid #E0D6BE;">
+        <div style="display:flex; align-items:center; gap:10px;"><img src="buscosun-mark.svg" width="26" height="26" alt=""><span style="font-size:19px; font-weight:700; color:#2C2A26; letter-spacing:-0.4px;">buscosun</span></div>
+        <div style="width:1px; height:26px; background:#E0D6BE;"></div>
+        <div style="display:flex; align-items:center; gap:9px; background:#FFFFFF; border:1px solid #D9D0B8; border-radius:9px; padding:8px 13px;"><span style="font-size:14px;">🇩🇪</span><span style="font-size:14px; color:#2C2A26; font-weight:600;">Inntal</span></div>
+        <div style="margin-left:auto; display:flex; align-items:center; gap:14px;"><div style="display:flex; align-items:center; gap:7px;"><span style="width:7px; height:7px; border-radius:50%; background:#7A9466;"></span><span style="font-size:11px; color:#5F7A4C; font-weight:600;">ICON-D2 · 08:00 UTC</span></div><span style="width:32px; height:32px; border-radius:50%; background:#E0D6BE; color:#5C5447; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700;">JK</span></div>
+      </div>
+      <div style="flex:1; display:flex; min-height:0;">
+        <div style="width:62px; flex:0 0 auto; background:#2C2A26; display:flex; flex-direction:column; align-items:center; padding:14px 0; gap:6px;">
+          <div style="width:42px; height:42px; border-radius:11px; display:flex; align-items:center; justify-content:center; color:#8B7355;"><svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M12 3 L21 8 L12 13 L3 8 Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M3 13 L12 18 L21 13" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
+          <div style="width:42px; height:42px; border-radius:11px; display:flex; align-items:center; justify-content:center; background:#3A3833; color:#A9C7E4;"><svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M3 17 L9 9 L13 13 L17 6 L21 11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 20 L21 20 M3 20 L3 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+        </div>
+        <div class="vs-scroll" style="flex:1; min-width:0; overflow-y:auto; background:#EDE6D3; padding:16px 20px;">
+          <div style="display:flex; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+            <div><div style="font-size:11px; letter-spacing:2.5px; color:#3A6FA8; font-weight:700;">INVERSION · KALTLUFTSEE</div><div style="font-size:20px; font-weight:700; color:#2C2A26; margin-top:3px;">Inntal · Nebelobergrenze 1.150 m</div></div>
+            <div style="display:flex; gap:6px;"><span style="font-size:12px; color:#8B7355; background:#FAF6EA; border:1px solid #E0D6BE; border-radius:16px; padding:7px 14px;">Höhenwind</span><span style="font-size:12px; font-weight:700; color:#FAF6EA; background:#3A6FA8; border-radius:16px; padding:7px 14px;">Inversion</span><span style="font-size:12px; color:#8B7355; background:#FAF6EA; border:1px solid #E0D6BE; border-radius:16px; padding:7px 14px;">Wolkenbasis</span><span style="font-size:12px; color:#8B7355; background:#FAF6EA; border:1px solid #E0D6BE; border-radius:16px; padding:7px 14px;">Föhn</span></div>
+          </div>
+          <div style="display:flex; gap:16px; margin-top:14px; align-items:stretch;">
+            <!-- 3D scene -->
+            <div style="flex:1; min-width:0; border-radius:16px; overflow:hidden; border:1px solid #E0D6BE; position:relative; background:linear-gradient(180deg,#F6E9CE,#EFEAD8 55%,#E6E3D2);">
+              <svg viewBox="0 0 900 480" preserveAspectRatio="xMidYMid slice" style="width:100%; height:100%; display:block;">
+                <circle cx="740" cy="110" r="70" fill="#F0B94E" opacity=".35"/><circle cx="740" cy="110" r="24" fill="#F4C969"/>
+                <!-- terrain ridges -->
+                <path d="M120 480 L120 200 Q200 120 300 200 Q360 260 420 220 L420 480 Z" fill="#6E624B" opacity=".96"/>
+                <path d="M300 480 L300 150 Q400 80 500 150 Q560 210 620 175 L620 480 Z" fill="#746850" opacity=".96"/>
+                <path d="M520 480 L520 175 Q640 95 760 175 Q820 230 880 200 L880 480 Z" fill="#827458" opacity=".96"/>
+                <!-- cold air pool -->
+                <path d="M250 300 L640 300 L560 210 L330 210 Z" fill="#7C93A8" opacity=".6"/>
+                <path d="M250 300 L640 300" stroke="#FAF6EA" stroke-width="2" opacity=".8"/>
+                <g transform="translate(445,300)"><rect x="-90" y="0" width="180" height="20" rx="10" fill="#3A6FA8"/><text y="14" font-size="11" font-weight="700" fill="#FAF6EA" text-anchor="middle">Inversion 1.150 m ü. NN</text></g>
+                <!-- peak above -->
+                <g transform="translate(300,150)"><circle r="12" fill="#D4A373"/><circle r="5" fill="#FAF6EA"/></g>
+                <g transform="translate(300,118)"><rect x="-66" y="-14" width="132" height="18" rx="9" fill="#D4A373"/><text y="-1" font-size="9.5" font-weight="700" fill="#FAF6EA" text-anchor="middle">über Inversion · sonnig</text></g>
+                <text x="300" y="182" font-size="10" font-weight="600" fill="#2C2A26" text-anchor="middle">Hochfelln 1.674 m</text>
+                <!-- valley below -->
+                <g transform="translate(440,360)"><circle r="10" fill="#6B8198"/></g>
+                <g transform="translate(440,330)"><rect x="-64" y="-14" width="128" height="18" rx="9" fill="#6B8198"/><text y="-1" font-size="9.5" font-weight="700" fill="#FAF6EA" text-anchor="middle">im Kaltluftsee · Nebel</text></g>
+                <text x="440" y="384" font-size="10" font-weight="600" fill="#FAF6EA" text-anchor="middle">Rosenheim 447 m</text>
+              </svg>
+              <div style="position:absolute; right:14px; bottom:14px; display:flex; flex-direction:column; align-items:center; gap:4px;"><span style="width:40px; height:40px; border-radius:50%; background:rgba(250,246,234,.95); border:1px solid #E0D6BE; display:flex; align-items:center; justify-content:center;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M8 12 A8 8 0 1 1 10 17" stroke="#5C5447" stroke-width="1.6" fill="none"/><path d="M10 13 L10 18 L5 17 Z" fill="#5C5447"/></svg></span><span style="font-size:9px; color:#8B7355;">drehen</span></div>
+            </div>
+            <!-- right cards -->
+            <div style="width:360px; flex:0 0 auto; display:flex; flex-direction:column; gap:12px;">
+              <div style="background:#FFFFFF; border:1px solid #E0D6BE; border-radius:16px; padding:16px;">
+                <div style="font-size:10px; letter-spacing:1px; color:#8B7355; font-weight:600;">TEMPERATUR-DIFFERENZ</div>
+                <div style="display:flex; justify-content:space-between; align-items:baseline; margin-top:10px;"><span style="font-size:13px; color:#5C5447;">oberhalb (1.674 m)</span><span style="font-size:22px; font-weight:700; color:#D4A373;">+11 °C</span></div>
+                <div style="display:flex; justify-content:space-between; align-items:baseline; margin-top:6px;"><span style="font-size:13px; color:#5C5447;">im Tal (447 m)</span><span style="font-size:22px; font-weight:700; color:#6B8198;">−2 °C</span></div>
+                <div style="height:1px; background:#E0D6BE; margin:12px 0;"></div>
+                <div style="display:flex; justify-content:space-between; align-items:baseline;"><span style="font-size:14px; font-weight:700; color:#2C2A26;">Aufstieg lohnt sich</span><span style="font-size:28px; font-weight:700; color:#C97B47;">+13 K</span></div>
+                <div style="font-size:11px; color:#8B7355; margin-top:4px;">Sonne &amp; Wärme oberhalb 1.150 m</div>
+              </div>
+              <div style="background:#F8F2E2; border:1px solid #E0D6BE; border-radius:16px; padding:14px; display:flex; gap:11px;">
+                <span style="width:26px; height:26px; border-radius:50%; background:#8B7355; color:#FAF6EA; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; flex:0 0 auto;">!</span>
+                <div><div style="font-size:13px; font-weight:700; color:#2C2A26;">Stabile Inversion · Luftqualität</div><div style="font-size:11px; color:#5C5447; margin-top:4px; line-height:1.5;">Feinstaub reichert sich im Tal an. Frostgefahr in den Morgenstunden bis ~09:00.</div><div style="font-size:10px; font-style:italic; color:#8B7355; margin-top:6px;">Hinweis nicht verbindlich · ICON-D2 + DWD-Beobachtung</div></div>
+              </div>
+              <div style="background:#FFFFFF; border:1px solid #E0D6BE; border-radius:16px; padding:14px; display:flex; gap:11px;">
+                <span style="width:28px; height:28px; border-radius:8px; background:#EDE6D3; display:flex; align-items:center; justify-content:center; flex:0 0 auto;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 20 L12 6 L18 20 Z" stroke="#6B8198" stroke-width="1.6" stroke-linejoin="round"/></svg></span>
+                <div><div style="font-size:13px; font-weight:700; color:#2C2A26;">Oberflächenreif möglich</div><div style="font-size:11px; color:#5C5447; margin-top:4px; line-height:1.5;">An der Nebelobergrenze (~1.150 m) — als Schwachschicht für Touren einplanen.</div><div style="font-size:10px; font-style:italic; color:#8B7355; margin-top:6px;">nicht-verbindlicher Lawinen-Kontext</div></div>
+              </div>
+            </div>
+          </div>
+          <!-- inversion over day -->
+          <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:14px; padding:14px 16px; margin-top:12px;">
+            <div style="display:flex; align-items:baseline; justify-content:space-between;"><span style="font-size:10px; letter-spacing:2px; color:#3A6FA8; font-weight:700;">INVERSIONSHÖHE ÜBER DEN TAG</span><span style="font-size:12.5px; font-weight:700; color:#2C2A26;">So 15. Jun · 09:00</span></div>
+            <div style="display:flex; align-items:center; gap:12px; margin-top:10px;">
+              <span style="width:32px; height:32px; border-radius:50%; background:#3A6FA8; color:#FAF6EA; display:flex; align-items:center; justify-content:center; flex:0 0 auto;"><svg width="12" height="12" viewBox="0 0 24 24" fill="#FAF6EA"><path d="M7 5 L19 12 L7 19 Z"/></svg></span>
+              <svg viewBox="0 0 820 70" style="flex:1; height:auto;" font-family="League Spartan">
+                <path d="M0 44 L120 40 L240 36 L360 24 L480 12 L600 6 L720 8 L820 20 L820 56 L0 56 Z" fill="#9BB0C4" opacity=".4"/>
+                <path d="M0 44 L120 40 L240 36 L360 24 L480 12 L600 6 L720 8 L820 20" fill="none" stroke="#3A6FA8" stroke-width="2"/>
+                <text x="470" y="6" font-size="9" font-weight="600" fill="#7A9466" text-anchor="middle">Auflösung ~13:00</text>
+                <g transform="translate(105,40)"><circle r="8" fill="#C97B47"/><circle r="3" fill="#FAF6EA"/></g>
+                <g font-size="9" fill="#8B7355"><text x="0" y="68">06:00</text><text x="105" y="68" font-weight="700" fill="#C97B47" text-anchor="middle">09:00 · 1.150 m</text><text x="440" y="68" text-anchor="middle">12:00</text><text x="820" y="68" text-anchor="end">22:00</text></g>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p style="width:1440px; font-size:12.5px; color:#98A2AF; line-height:1.6; margin:16px 2px 0; font-weight:300;"><strong style="color:#E9ECF1; font-weight:600;">Inversion / Kaltluftsee:</strong> 3D-Szene mit Kaltluft-Volumen bis zur Inversionsgrenze, Gipfel „über Inversion · sonnig" vs. Ort „im Kaltluftsee · Nebel"; rechts Temperaturdifferenz Tal↔oberhalb (+13 K), Luftqualitäts-/Frost-Hinweis und Oberflächenreif-Lawinenkontext; unten die Inversionshöhe über den Tag mit Auflösungszeitpunkt. Linsen-Umschalter (Höhenwind/Inversion/Wolkenbasis/Föhn).</p>
+  </article>
+
+  <!-- ============================ S3 — DESKTOP · GO / NO-GO ============================ -->
+  <article id="S3" style="width:1440px;">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+      <span style="display:inline-flex; align-items:center; justify-content:center; min-width:36px; height:26px; padding:0 10px; background:#3A6FA8; color:#FAF6EA; border-radius:6px; font-size:13px; font-weight:700; letter-spacing:1px;">S3</span>
+      <span style="font-size:15px; font-weight:600; color:#E9ECF1;">Desktop · Betriebs-Check · Go/No-Go (B2B)</span>
+    </div>
+    <div style="height:820px; border-radius:18px; overflow:hidden; background:#EDE6D3; border:1px solid #E0D6BE; box-shadow:0 40px 90px -50px rgba(0,0,0,.55); display:flex; flex-direction:column;">
+      <div style="height:60px; flex:0 0 auto; display:flex; align-items:center; gap:18px; padding:0 20px; background:#FAF6EA; border-bottom:1px solid #E0D6BE;">
+        <div style="display:flex; align-items:center; gap:10px;"><img src="buscosun-mark.svg" width="26" height="26" alt=""><span style="font-size:19px; font-weight:700; color:#2C2A26; letter-spacing:-0.4px;">buscosun</span></div>
+        <div style="width:1px; height:26px; background:#E0D6BE;"></div>
+        <div style="display:flex; align-items:center; gap:9px; background:#FFFFFF; border:1px solid #D9D0B8; border-radius:9px; padding:8px 13px;"><span style="font-size:14px;">🇩🇪</span><span style="font-size:14px; color:#2C2A26; font-weight:600;">Feldberg-Süd</span></div>
+        <div style="margin-left:auto; display:flex; align-items:center; gap:10px;"><span style="display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color:#3A6FA8; background:#FAF6EA; border:1px solid #E0D6BE; border-radius:16px; padding:7px 14px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 4 V15 M8 12 L12 16 L16 12 M6 20 H18" stroke="#3A6FA8" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>PDF</span><span style="display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color:#FAF6EA; background:#3A6FA8; border-radius:16px; padding:7px 14px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="18" cy="5" r="3" stroke="#FAF6EA" stroke-width="1.6"/><circle cx="6" cy="12" r="3" stroke="#FAF6EA" stroke-width="1.6"/><circle cx="18" cy="19" r="3" stroke="#FAF6EA" stroke-width="1.6"/><line x1="8.6" y1="10.5" x2="15.4" y2="6.5" stroke="#FAF6EA" stroke-width="1.6"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5" stroke="#FAF6EA" stroke-width="1.6"/></svg>Link teilen</span></div>
+      </div>
+      <div style="flex:1; display:flex; min-height:0;">
+        <div style="width:62px; flex:0 0 auto; background:#2C2A26; display:flex; flex-direction:column; align-items:center; padding:14px 0; gap:6px;">
+          <div style="width:42px; height:42px; border-radius:11px; display:flex; align-items:center; justify-content:center; color:#8B7355;"><svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M12 3 L21 8 L12 13 L3 8 Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M3 13 L12 18 L21 13" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
+          <div style="width:42px; height:42px; border-radius:11px; display:flex; align-items:center; justify-content:center; background:#3A3833; color:#A9C7E4;"><svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M3 17 L9 9 L13 13 L17 6 L21 11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 20 L21 20 M3 20 L3 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+        </div>
+        <!-- LEFT DOCK — B2B controls -->
+        <div class="vs-scroll" style="width:466px; flex:0 0 auto; background:#FAF6EA; border-right:1px solid #E0D6BE; overflow-y:auto; padding:16px 16px;">
+          <div style="font-size:11px; letter-spacing:2.5px; color:#3A6FA8; font-weight:700;">BETRIEBS-CHECK · DROHNE</div>
+          <div style="font-size:18px; font-weight:700; color:#2C2A26; margin-top:3px;">Vermessungsflug · Feldberg-Süd</div>
+          <!-- NO-GO hero -->
+          <div style="margin-top:14px; background:#FBE9E4; border:2px solid #C97B47; border-radius:18px; padding:18px;">
+            <div style="display:flex; align-items:center; gap:16px;">
+              <span style="width:52px; height:52px; flex:0 0 auto; display:flex; align-items:center; justify-content:center;"><svg width="48" height="48" viewBox="0 0 48 48"><path d="M12 0 L36 0 L48 12 L48 36 L36 48 L12 48 L0 36 L0 12 Z" fill="#D7263D"/><line x1="16" y1="16" x2="32" y2="32" stroke="#FAF6EA" stroke-width="4" stroke-linecap="round"/><line x1="32" y1="16" x2="16" y2="32" stroke="#FAF6EA" stroke-width="4" stroke-linecap="round"/></svg></span>
+              <div><div style="font-size:38px; font-weight:700; color:#D7263D; line-height:1;">NO-GO</div><div style="font-size:14px; font-weight:600; color:#2C2A26; margin-top:6px;">jetzt 11:15 · Böen über Limit</div></div>
+            </div>
+            <div style="height:1px; background:#E8C9BD; margin:16px 0;"></div>
+            <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:8px;"><span style="color:#5C5447;">Böen auf 120 m AGL</span><span style="font-weight:700; color:#D7263D;">52 km/h</span></div>
+            <div style="display:flex; justify-content:space-between; font-size:13px;"><span style="color:#5C5447;">dein Limit</span><span style="font-weight:700; color:#2C2A26;">40 km/h</span></div>
+            <div style="display:flex; align-items:center; gap:11px; background:#ECF1E6; border-radius:10px; padding:9px 12px; margin-top:14px;"><span style="width:22px; height:22px; border-radius:50%; background:#7A9466; color:#FAF6EA; display:flex; align-items:center; justify-content:center; flex:0 0 auto;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M5 13 L10 18 L19 6" stroke="#FAF6EA" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span style="font-size:13px; color:#2C2A26;"><b>Nächstes GO-Fenster:</b> ab 16:30</span></div>
+          </div>
+          <!-- Flughöhe -->
+          <div style="margin-top:12px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:14px; padding:14px;">
+            <div style="font-size:10px; letter-spacing:1px; color:#8B7355; font-weight:600;">FLUGHÖHE (AGL)</div>
+            <div style="display:flex; align-items:center; gap:14px; margin-top:10px;">
+              <div style="flex:0 0 auto; display:flex; align-items:baseline; gap:8px; background:#F5F1E8; border:1px solid #C4B896; border-radius:12px; padding:10px 16px;"><span style="font-size:28px; font-weight:700; color:#2C2A26;">120</span><span style="font-size:14px; color:#5C5447;">m über Grund</span></div>
+              <div style="flex:1;"><div style="font-size:10px; letter-spacing:1px; color:#8B7355; font-weight:600; margin-bottom:6px;">SCHNELLWAHL</div><div style="display:flex; gap:6px;"><span style="font-size:11px; color:#5C5447; background:#FAF6EA; border:1px solid #E0D6BE; border-radius:13px; padding:6px 12px;">50 m</span><span style="font-size:11px; font-weight:600; color:#FAF6EA; background:#3A6FA8; border-radius:13px; padding:6px 12px;">120 m</span><span style="font-size:11px; color:#5C5447; background:#FAF6EA; border:1px solid #E0D6BE; border-radius:13px; padding:6px 12px;">300 m</span></div></div>
+            </div>
+          </div>
+          <!-- Grenzwerte -->
+          <div style="margin-top:12px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:14px; padding:14px;">
+            <div style="font-size:10px; letter-spacing:1px; color:#8B7355; font-weight:600;">EIGENE GRENZWERTE · GESPEICHERT</div>
+            <div style="display:flex; flex-direction:column; gap:8px; margin-top:10px;">
+              <div style="display:flex; align-items:center; justify-content:space-between; background:#F5F1E8; border:1px solid #E0D6BE; border-radius:10px; padding:9px 12px;"><span style="font-size:12.5px; color:#5C5447;">Böen-Limit</span><span style="font-size:13px; font-weight:700; color:#2C2A26;">40 km/h</span></div>
+              <div style="display:flex; align-items:center; justify-content:space-between; background:#F5F1E8; border:1px solid #E0D6BE; border-radius:10px; padding:9px 12px;"><span style="font-size:12.5px; color:#5C5447;">Mittelwind-Limit</span><span style="font-size:13px; font-weight:700; color:#2C2A26;">28 km/h</span></div>
+              <div style="display:flex; align-items:center; justify-content:space-between; background:#F5F1E8; border:1px solid #E0D6BE; border-radius:10px; padding:9px 12px;"><span style="font-size:12.5px; color:#5C5447;">Niederschlag</span><span style="font-size:13px; font-weight:700; color:#2C2A26;">0 mm</span></div>
+            </div>
+          </div>
+        </div>
+        <!-- CENTER — Höhenfaktor + Go/No-Go-Zeitband -->
+        <div class="vs-scroll" style="flex:1; min-width:0; overflow-y:auto; background:#EDE6D3; padding:18px 20px;">
+          <div style="font-size:11px; letter-spacing:2px; color:#A89A7A; font-weight:700; margin:0 2px 10px;">HÖHENFAKTOR-PROFIL · WIND NIMMT MIT DER HÖHE ZU</div>
+          <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:16px; padding:18px;">
+            <svg viewBox="0 0 820 300" style="width:100%; height:auto;" font-family="League Spartan">
+              <rect x="46" y="14" width="758" height="230" rx="10" fill="#FFFFFF" stroke="#E0D6BE"/>
+              <g stroke="#EDE6D3"><line x1="46" y1="71" x2="804" y2="71"/><line x1="46" y1="128" x2="804" y2="128"/><line x1="46" y1="186" x2="804" y2="186"/></g>
+              <g fill="#A89A7A" font-size="10" text-anchor="end"><text x="40" y="18">300 m</text><text x="40" y="132">120 m</text><text x="40" y="247">Boden</text></g>
+              <!-- limit line -->
+              <line x1="560" y1="14" x2="560" y2="244" stroke="#D7263D" stroke-width="1.5" stroke-dasharray="5 4"/><text x="566" y="26" font-size="10" font-weight="700" fill="#D7263D">Limit 40 km/h</text>
+              <!-- wind profile curve (increases with height) -->
+              <path d="M120 244 Q220 200 300 128 Q380 60 520 26" fill="none" stroke="#3A6FA8" stroke-width="2.6" stroke-linecap="round"/>
+              <g fill="#3A6FA8"><circle cx="120" cy="244" r="4"/><circle cx="300" cy="128" r="6" stroke="#FAF6EA" stroke-width="2"/><circle cx="520" cy="26" r="4"/></g>
+              <g transform="translate(310,110)"><rect x="0" y="-16" width="150" height="20" rx="10" fill="#C97B47"/><text x="75" y="-2" font-size="10" font-weight="700" fill="#FAF6EA" text-anchor="middle">120 m · 52 km/h · über Limit</text></g>
+              <g font-size="10" fill="#5C5447"><text x="120" y="264" text-anchor="middle">Boden 22</text><text x="520" y="264" text-anchor="middle">300 m · 61 km/h</text></g>
+            </svg>
+            <div style="display:flex; gap:20px; margin-top:12px; flex-wrap:wrap;"><span style="font-size:12px; color:#5C5447;">Bodenwert <b style="color:#2C2A26;">22 km/h</b></span><span style="font-size:12px; color:#5C5447;">Arbeitshöhe (120 m) <b style="color:#D7263D;">52 km/h</b></span><span style="font-size:12px; color:#5C5447;">Faktor <b style="color:#2C2A26;">×2,4</b></span></div>
+          </div>
+          <!-- Go/No-Go time band -->
+          <div style="font-size:11px; letter-spacing:2px; color:#A89A7A; font-weight:700; margin:20px 2px 10px;">GO / NO-GO ÜBER DEN TAG · 120 M AGL</div>
+          <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:16px; padding:18px;">
+            <div style="display:flex; height:44px; border-radius:10px; overflow:hidden; border:1px solid #E0D6BE;">
+              <div style="width:14%; background:#7A9466; display:flex; align-items:center; justify-content:center;"><span style="font-size:11px; font-weight:700; color:#FAF6EA;">GO</span></div>
+              <div style="width:44%; background:#E4A2A2; display:flex; align-items:center; justify-content:center;"><span style="font-size:11px; font-weight:700; color:#8A1C1C;">NO-GO</span></div>
+              <div style="width:42%; background:#7A9466; display:flex; align-items:center; justify-content:center;"><span style="font-size:11px; font-weight:700; color:#FAF6EA;">GO ab 16:30</span></div>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:9.5px; color:#8B7355; margin-top:7px;"><span>06:00</span><span>09:00</span><span style="color:#D7263D; font-weight:700;">11:15 jetzt</span><span>16:30</span><span>20:00</span></div>
+            <div style="display:flex; align-items:center; gap:16px; margin-top:12px; flex-wrap:wrap;">
+              <div style="display:flex; align-items:center; gap:6px;"><span style="width:14px; height:14px; border-radius:4px; background:#7A9466;"></span><span style="font-size:11px; color:#5C5447;">GO · innerhalb aller Grenzwerte</span></div>
+              <div style="display:flex; align-items:center; gap:6px;"><span style="width:14px; height:14px; border-radius:4px; background:#E4A2A2;"></span><span style="font-size:11px; color:#5C5447;">NO-GO · mind. ein Grenzwert überschritten</span></div>
+            </div>
+          </div>
+          <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:12px; padding:12px 15px; margin-top:12px; display:flex; align-items:center; gap:10px;"><span style="width:16px; height:16px; border-radius:50%; background:#8B7355; color:#FAF6EA; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:10px; flex:0 0 auto;">i</span><span style="font-size:11px; color:#5C5447;">Auswertung enthält Ort, Zeit, Höhe, Werte, Grenzwert &amp; Status — als PDF/Link exportierbar. Modell ICON-D2, Gitterzellen ≈ 2 km.</span></div>
+        </div>
+      </div>
+    </div>
+    <p style="width:1440px; font-size:12.5px; color:#98A2AF; line-height:1.6; margin:16px 2px 0; font-weight:300;"><strong style="color:#E9ECF1; font-weight:600;">Go/No-Go (B2B):</strong> Links der eindeutige NO-GO-Status (Böen 52 &gt; Limit 40 km/h, nächstes GO-Fenster ab 16:30), Flughöhe-Eingabe (AGL, Schnellwahl) &amp; gespeicherte Grenzwerte; Mitte das Höhenfaktor-Profil (Wind nimmt mit der Höhe zu, Limit-Linie) und das Go/No-Go-Zeitband über den Tag; PDF-/Link-Export. Für Drohne/Kran/Event.</p>
+  </article>
+
+  <!-- ============================ S4 — TABLET · HÖHENWIND ============================ -->
+  <article id="S4" style="width:1024px;">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+      <span style="display:inline-flex; align-items:center; justify-content:center; min-width:36px; height:26px; padding:0 10px; background:#3A6FA8; color:#FAF6EA; border-radius:6px; font-size:13px; font-weight:700; letter-spacing:1px;">S4</span>
+      <span style="font-size:15px; font-weight:600; color:#E9ECF1;">Tablet · Höhenwind-Geländeschnitt</span>
+    </div>
+    <div style="height:800px; border-radius:18px; overflow:hidden; background:#EDE6D3; border:1px solid #E0D6BE; box-shadow:0 40px 90px -50px rgba(0,0,0,.55); display:flex; flex-direction:column;">
+      <div style="height:54px; flex:0 0 auto; display:flex; align-items:center; gap:14px; padding:0 16px; background:#FAF6EA; border-bottom:1px solid #E0D6BE;"><img src="buscosun-mark.svg" width="24" height="24" alt=""><span style="font-size:17px; font-weight:700; color:#2C2A26;">buscosun</span><div style="display:flex; align-items:center; gap:7px; background:#FFFFFF; border:1px solid #D9D0B8; border-radius:9px; padding:6px 11px;"><span style="font-size:13px;">🇩🇪</span><span style="font-size:13px; color:#2C2A26; font-weight:600;">Zugspitze → Eibsee</span></div><span style="margin-left:auto; display:flex; align-items:center; gap:7px;"><span style="width:7px; height:7px; border-radius:50%; background:#7A9466;"></span><span style="font-size:11px; color:#5F7A4C; font-weight:600;">ICON-D2</span></span></div>
+      <div style="flex:1; display:flex; min-height:0;">
+        <div style="width:54px; flex:0 0 auto; background:#2C2A26; display:flex; flex-direction:column; align-items:center; padding:12px 0;"><div style="width:38px; height:38px; border-radius:10px; background:#3A3833; color:#A9C7E4; display:flex; align-items:center; justify-content:center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M3 17 L9 9 L13 13 L17 6 L21 11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 20 L21 20 M3 20 L3 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div></div>
+        <div class="vs-scroll" style="flex:1; min-width:0; overflow-y:auto; background:#EDE6D3; padding:14px 16px;">
+          <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:10px;"><span style="font-size:11px; font-weight:600; color:#FAF6EA; background:#3A6FA8; border-radius:14px; padding:5px 11px;">Mittelwind</span><span style="font-size:11px; font-weight:600; color:#FAF6EA; background:#3A6FA8; border-radius:14px; padding:5px 11px;">Böen</span><span style="font-size:11px; font-weight:600; color:#FAF6EA; background:#3A6FA8; border-radius:14px; padding:5px 11px;">Shear</span><span style="font-size:11px; color:#8B7355; background:#FAF6EA; border:1px solid #E0D6BE; border-radius:14px; padding:5px 11px;">Wolkenbasis</span></div>
+          <div style="background:linear-gradient(180deg,#EEF1F4,#F6F2E8); border:1px solid #E0D6BE; border-radius:14px; padding:14px;">
+            <svg viewBox="0 0 620 320" style="width:100%; height:auto;" font-family="League Spartan">
+              <g opacity=".5"><rect x="34" y="16" width="120" height="90" fill="#D4A373"/><rect x="34" y="106" width="120" height="130" fill="#7A9466"/><rect x="154" y="16" width="120" height="70" fill="#D4A373"/><rect x="154" y="86" width="120" height="110" fill="#7A9466"/><rect x="274" y="16" width="120" height="40" fill="#C97B47"/><rect x="274" y="56" width="120" height="30" fill="#D4A373"/><rect x="394" y="16" width="120" height="40" fill="#D7263D"/><rect x="394" y="56" width="120" height="30" fill="#C97B47"/><rect x="514" y="16" width="72" height="90" fill="#D4A373"/><rect x="514" y="106" width="72" height="90" fill="#7A9466"/></g>
+              <rect x="154" y="90" width="240" height="80" fill="none" stroke="#C97B47" stroke-width="1.2" stroke-dasharray="4 3"/>
+              <g stroke="#2C2A26" stroke-width="2" opacity=".55" fill="none"><path d="M34 200 Q200 160 340 100 Q460 90 586 140"/><path d="M34 160 Q200 130 340 75 Q460 70 586 110"/></g>
+              <path d="M34 260 Q160 250 260 230 Q360 180 420 110 Q450 95 480 110 Q540 170 586 220 L586 260 Z" fill="#7A6E56"/>
+              <path d="M34 250 Q160 240 260 220 Q360 170 420 100 Q450 88 480 100 Q540 160 586 210" fill="none" stroke="#7A9466" stroke-width="2" stroke-dasharray="2 4"/>
+              <g transform="translate(360,100)"><circle r="6" fill="#FAF6EA" stroke="#C97B47" stroke-width="2.5"/></g>
+              <line x1="34" y1="16" x2="34" y2="260" stroke="#8B7355"/><line x1="34" y1="260" x2="586" y2="260" stroke="#8B7355"/>
+              <g fill="#8B7355" font-size="8" text-anchor="end"><text x="30" y="263">0</text><text x="30" y="140">2000</text><text x="30" y="20">3000</text></g>
+              <g fill="#C97B47" font-size="9" font-weight="600" text-anchor="middle"><text x="34" y="278" text-anchor="start">Start</text><text x="310" y="278">Gipfel</text><text x="586" y="278" text-anchor="end">Eibsee</text></g>
+            </svg>
+          </div>
+          <div style="display:flex; gap:12px; margin-top:12px;">
+            <div style="flex:1; background:#FAF6EA; border:1px solid #E0D6BE; border-radius:12px; padding:12px;"><div style="font-size:9px; letter-spacing:1px; color:#8B7355; font-weight:600;">PUNKT · 2000 M · 540 M AGL</div><div style="display:flex; flex-direction:column; gap:5px; margin-top:8px; font-size:12.5px;"><div style="display:flex; justify-content:space-between;"><span style="color:#5C5447;">Mittelwind</span><b style="color:#C97B47;">48 km/h WSW</b></div><div style="display:flex; justify-content:space-between;"><span style="color:#5C5447;">Böen</span><b style="color:#D7263D;">71 km/h</b></div><div style="display:flex; justify-content:space-between;"><span style="color:#5C5447;">Temperatur</span><b style="color:#2C2A26;">−4,2 °C</b></div></div></div>
+            <div style="flex:0 0 200px; background:#FAF6EA; border:1px solid #E0D6BE; border-radius:12px; padding:12px;"><div style="font-size:9px; letter-spacing:1px; color:#8B7355; font-weight:600;">LEGENDE km/h</div><div style="display:flex; flex-direction:column; gap:5px; margin-top:8px;"><div style="display:flex; align-items:center; gap:6px;"><span style="width:18px; height:9px; background:#7A9466;"></span><span style="font-size:10px; color:#5C5447;">15–30</span></div><div style="display:flex; align-items:center; gap:6px;"><span style="width:18px; height:9px; background:#D4A373;"></span><span style="font-size:10px; color:#5C5447;">30–45</span></div><div style="display:flex; align-items:center; gap:6px;"><span style="width:18px; height:9px; background:#D7263D;"></span><span style="font-size:10px; color:#5C5447;">&gt;60</span></div></div></div>
+          </div>
+          <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:12px; padding:12px 14px; margin-top:12px;"><div style="display:flex; align-items:center; gap:10px;"><span style="width:30px; height:30px; border-radius:50%; background:#3A6FA8; color:#FAF6EA; display:flex; align-items:center; justify-content:center; flex:0 0 auto;"><svg width="12" height="12" viewBox="0 0 24 24" fill="#FAF6EA"><path d="M7 5 L19 12 L7 19 Z"/></svg></span><div style="flex:1; position:relative; height:6px; background:#E0D6BE; border-radius:3px;"><div style="position:absolute; left:32%; top:50%; transform:translate(-50%,-50%); width:15px; height:15px; border-radius:50%; background:#C97B47; border:3px solid #FAF6EA;"></div></div><span style="font-size:11.5px; font-weight:700; color:#2C2A26;">Sa 11:15</span></div><div style="font-size:9px; color:#8B7355; margin-top:6px; text-align:right;">15-Min-Raster · +48 h</div></div>
+        </div>
+      </div>
+    </div>
+    <p style="width:1024px; font-size:12.5px; color:#98A2AF; line-height:1.6; margin:16px 2px 0; font-weight:300;"><strong style="color:#E9ECF1; font-weight:600;">Tablet-Höhenwind:</strong> Vertikalschnitt mit Wind-Bändern/Streamlines/Shear, Punkt-Abfrage, Legende, 15-Min-Zeitdeck.</p>
+  </article>
+
+  <!-- ============================ S5 — TABLET · INVERSION ============================ -->
+  <article id="S5" style="width:1024px;">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+      <span style="display:inline-flex; align-items:center; justify-content:center; min-width:36px; height:26px; padding:0 10px; background:#3A6FA8; color:#FAF6EA; border-radius:6px; font-size:13px; font-weight:700; letter-spacing:1px;">S5</span>
+      <span style="font-size:15px; font-weight:600; color:#E9ECF1;">Tablet · Inversion · Go/No-Go (Tab)</span>
+    </div>
+    <div style="height:800px; border-radius:18px; overflow:hidden; background:#EDE6D3; border:1px solid #E0D6BE; box-shadow:0 40px 90px -50px rgba(0,0,0,.55); display:flex; flex-direction:column;">
+      <div style="height:54px; flex:0 0 auto; display:flex; align-items:center; gap:14px; padding:0 16px; background:#FAF6EA; border-bottom:1px solid #E0D6BE;"><img src="buscosun-mark.svg" width="24" height="24" alt=""><span style="font-size:17px; font-weight:700; color:#2C2A26;">buscosun</span><div style="display:flex; align-items:center; gap:7px; background:#FFFFFF; border:1px solid #D9D0B8; border-radius:9px; padding:6px 11px;"><span style="font-size:13px;">🇩🇪</span><span style="font-size:13px; color:#2C2A26; font-weight:600;">Inntal</span></div></div>
+      <div style="flex:1; display:flex; min-height:0;">
+        <div style="width:54px; flex:0 0 auto; background:#2C2A26; display:flex; flex-direction:column; align-items:center; padding:12px 0;"><div style="width:38px; height:38px; border-radius:10px; background:#3A3833; color:#A9C7E4; display:flex; align-items:center; justify-content:center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M3 17 L9 9 L13 13 L17 6 L21 11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 20 L21 20 M3 20 L3 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div></div>
+        <div class="vs-scroll" style="flex:1; min-width:0; overflow-y:auto; background:#EDE6D3; padding:14px 16px;">
+          <div style="display:flex; gap:6px; margin-bottom:12px;"><span style="font-size:11px; color:#8B7355; background:#FAF6EA; border:1px solid #E0D6BE; border-radius:14px; padding:6px 13px;">Höhenwind</span><span style="font-size:11px; font-weight:700; color:#FAF6EA; background:#3A6FA8; border-radius:14px; padding:6px 13px;">Inversion</span><span style="font-size:11px; color:#8B7355; background:#FAF6EA; border:1px solid #E0D6BE; border-radius:14px; padding:6px 13px;">Wolkenbasis</span><span style="font-size:11px; color:#8B7355; background:#FAF6EA; border:1px solid #E0D6BE; border-radius:14px; padding:6px 13px;">Föhn</span></div>
+          <div style="border-radius:14px; overflow:hidden; border:1px solid #E0D6BE; background:linear-gradient(180deg,#F6E9CE,#E6E3D2); position:relative;">
+            <svg viewBox="0 0 620 260" preserveAspectRatio="xMidYMid slice" style="width:100%; height:auto; display:block;">
+              <circle cx="510" cy="60" r="44" fill="#F0B94E" opacity=".35"/><circle cx="510" cy="60" r="16" fill="#F4C969"/>
+              <path d="M90 260 L90 110 Q160 60 230 110 Q270 150 310 125 L310 260 Z" fill="#746850"/>
+              <path d="M240 260 L240 90 Q330 45 420 90 L420 260 Z" fill="#827458"/>
+              <path d="M180 165 L440 165 L390 115 L230 115 Z" fill="#7C93A8" opacity=".6"/>
+              <path d="M180 165 L440 165" stroke="#FAF6EA" stroke-width="2" opacity=".8"/>
+              <g transform="translate(310,165)"><rect x="-78" y="0" width="156" height="17" rx="8" fill="#3A6FA8"/><text y="12" font-size="9.5" font-weight="700" fill="#FAF6EA" text-anchor="middle">Inversion 1.150 m</text></g>
+              <g transform="translate(200,90)"><rect x="-52" y="-13" width="104" height="16" rx="8" fill="#D4A373"/><text y="-1" font-size="8.5" font-weight="700" fill="#FAF6EA" text-anchor="middle">über Inversion · sonnig</text></g>
+              <g transform="translate(310,200)"><rect x="-50" y="-13" width="100" height="16" rx="8" fill="#6B8198"/><text y="-1" font-size="8.5" font-weight="700" fill="#FAF6EA" text-anchor="middle">Kaltluftsee · Nebel</text></g>
+            </svg>
+          </div>
+          <div style="display:flex; gap:12px; margin-top:12px;">
+            <div style="flex:1; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:12px; padding:13px;"><div style="font-size:9px; letter-spacing:1px; color:#8B7355; font-weight:600;">TEMPERATUR-DIFFERENZ</div><div style="display:flex; justify-content:space-between; margin-top:8px; font-size:12.5px;"><span style="color:#5C5447;">oberhalb 1.674 m</span><b style="color:#D4A373;">+11 °C</b></div><div style="display:flex; justify-content:space-between; margin-top:4px; font-size:12.5px;"><span style="color:#5C5447;">im Tal 447 m</span><b style="color:#6B8198;">−2 °C</b></div><div style="display:flex; justify-content:space-between; margin-top:8px; padding-top:8px; border-top:1px solid #E0D6BE;"><b style="font-size:13px; color:#2C2A26;">Aufstieg lohnt</b><b style="font-size:20px; color:#C97B47;">+13 K</b></div></div>
+            <div style="flex:1; background:#F8F2E2; border:1px solid #E0D6BE; border-radius:12px; padding:13px;"><div style="display:flex; align-items:center; gap:8px;"><span style="width:22px; height:22px; border-radius:50%; background:#8B7355; color:#FAF6EA; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:12px;">!</span><b style="font-size:12.5px; color:#2C2A26;">Stabile Inversion</b></div><div style="font-size:11px; color:#5C5447; margin-top:7px; line-height:1.5;">Feinstaub im Tal · Frost bis ~09:00. Oberflächenreif an der Nebelobergrenze (Lawinen-Kontext, nicht verbindlich).</div></div>
+          </div>
+          <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:12px; padding:12px 14px; margin-top:12px;"><div style="font-size:9px; letter-spacing:1.5px; color:#3A6FA8; font-weight:700;">INVERSIONSHÖHE ÜBER DEN TAG · SO 09:00</div><svg viewBox="0 0 560 60" style="width:100%; height:auto; margin-top:6px;" font-family="League Spartan"><path d="M0 40 L100 36 L200 30 L300 18 L400 10 L500 14 L560 24 L560 50 L0 50 Z" fill="#9BB0C4" opacity=".4"/><path d="M0 40 L100 36 L200 30 L300 18 L400 10 L500 14 L560 24" fill="none" stroke="#3A6FA8" stroke-width="2"/><text x="330" y="8" font-size="8" font-weight="600" fill="#7A9466" text-anchor="middle">Auflösung ~13:00</text><circle cx="90" cy="36" r="6" fill="#C97B47"/></svg></div>
+        </div>
+      </div>
+    </div>
+    <p style="width:1024px; font-size:12.5px; color:#98A2AF; line-height:1.6; margin:16px 2px 0; font-weight:300;"><strong style="color:#E9ECF1; font-weight:600;">Tablet-Inversion:</strong> 3D-Kaltluftsee, Temperaturdifferenz +13 K, Stabilitäts-/Reif-Hinweis, Inversionshöhe über den Tag. (Go/No-Go als weiterer Linsen-Tab, siehe S3/S8.)</p>
+  </article>
+
+  <!-- ============================ S6 — MOBILE · HÖHENWIND ============================ -->
+  <article id="S6" style="width:402px;">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+      <span style="display:inline-flex; align-items:center; justify-content:center; min-width:36px; height:26px; padding:0 10px; background:#3A6FA8; color:#FAF6EA; border-radius:6px; font-size:13px; font-weight:700; letter-spacing:1px;">S6</span>
+      <span style="font-size:15px; font-weight:600; color:#E9ECF1;">Mobile · Höhenwind</span>
+    </div>
+    <div style="width:402px; height:860px; border-radius:36px; overflow:hidden; background:#EDE6D3; border:1px solid #E0D6BE; box-shadow:0 40px 90px -50px rgba(0,0,0,.55); position:relative; display:flex; flex-direction:column;">
+      <div style="height:44px; flex:0 0 auto; display:flex; align-items:center; justify-content:space-between; padding:0 22px; color:#2C2A26; font-size:13px; font-weight:600;"><span>11:15</span><span style="display:flex; gap:5px; align-items:center;"><svg width="16" height="11" viewBox="0 0 16 11" fill="#2C2A26"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4" y="5" width="3" height="6" rx="1"/><rect x="8" y="3" width="3" height="8" rx="1"/><rect x="12" y="1" width="3" height="10" rx="1"/></svg><svg width="22" height="11" viewBox="0 0 24 12" fill="none"><rect x="1" y="1" width="20" height="10" rx="2.5" stroke="#2C2A26"/><rect x="3" y="3" width="15" height="6" rx="1" fill="#2C2A26"/></svg></span></div>
+      <div style="flex:0 0 auto; display:flex; align-items:center; justify-content:space-between; padding:6px 18px 12px; border-bottom:1px solid #E0D6BE;"><div style="display:flex; align-items:center; gap:9px;"><img src="buscosun-mark.svg" width="22" height="22" alt=""><div><div style="font-size:9px; letter-spacing:1.5px; color:#3A6FA8; font-weight:700;">3D-WETTER · SCHNITT</div><div style="font-size:15px; font-weight:700; color:#2C2A26;">Zugspitze → Eibsee</div></div></div></div>
+      <div class="vs-scroll" style="flex:1; overflow-y:auto; padding:14px 16px 24px;">
+        <!-- lens tabs -->
+        <div style="display:flex; gap:6px; overflow-x:auto; padding-bottom:3px;"><span style="flex:0 0 auto; font-size:12px; font-weight:700; color:#FAF6EA; background:#3A6FA8; border-radius:8px; padding:7px 13px;">Höhenwind</span><span style="flex:0 0 auto; font-size:12px; color:#5C5447; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:8px; padding:7px 13px;">Inversion</span><span style="flex:0 0 auto; font-size:12px; color:#5C5447; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:8px; padding:7px 13px;">Wolkenbasis</span><span style="flex:0 0 auto; font-size:12px; color:#5C5447; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:8px; padding:7px 13px;">Go/No-Go</span></div>
+        <!-- cross-section -->
+        <div style="background:linear-gradient(180deg,#EEF1F4,#F6F2E8); border:1px solid #E0D6BE; border-radius:14px; padding:12px; margin-top:12px;">
+          <svg viewBox="0 0 360 260" style="width:100%; height:auto;" font-family="League Spartan">
+            <g opacity=".5"><rect x="26" y="12" width="80" height="70" fill="#D4A373"/><rect x="26" y="82" width="80" height="110" fill="#7A9466"/><rect x="106" y="12" width="80" height="50" fill="#C97B47"/><rect x="106" y="62" width="80" height="90" fill="#D4A373"/><rect x="186" y="12" width="80" height="40" fill="#D7263D"/><rect x="186" y="52" width="80" height="30" fill="#C97B47"/><rect x="266" y="12" width="68" height="70" fill="#D4A373"/><rect x="266" y="82" width="68" height="90" fill="#7A9466"/></g>
+            <rect x="106" y="66" width="160" height="66" fill="none" stroke="#C97B47" stroke-width="1.2" stroke-dasharray="4 3"/>
+            <g stroke="#2C2A26" stroke-width="2" opacity=".55" fill="none"><path d="M26 170 Q140 130 240 80 Q300 72 334 110"/><path d="M26 130 Q140 100 240 60 Q300 54 334 90"/></g>
+            <path d="M26 216 Q120 206 200 186 Q260 150 300 96 Q320 84 334 100 L334 216 Z" fill="#7A6E56"/>
+            <path d="M26 206 Q120 196 200 176 Q260 142 300 88 Q320 78 334 92" fill="none" stroke="#7A9466" stroke-width="2" stroke-dasharray="2 4"/>
+            <circle cx="240" cy="70" r="6" fill="#FAF6EA" stroke="#C97B47" stroke-width="2.5"/>
+            <line x1="26" y1="12" x2="26" y2="216" stroke="#8B7355"/><line x1="26" y1="216" x2="334" y2="216" stroke="#8B7355"/>
+            <g fill="#8B7355" font-size="8" text-anchor="end"><text x="22" y="219">0</text><text x="22" y="115">2000</text></g>
+            <g fill="#C97B47" font-size="8.5" font-weight="600"><text x="26" y="234">Start</text><text x="180" y="234" text-anchor="middle">Gipfel</text><text x="334" y="234" text-anchor="end">Eibsee</text></g>
+          </svg>
+        </div>
+        <!-- legend chips -->
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;"><span style="display:flex; align-items:center; gap:5px; font-size:10px; color:#5C5447;"><span style="width:16px; height:8px; background:#7A9466;"></span>15–30</span><span style="display:flex; align-items:center; gap:5px; font-size:10px; color:#5C5447;"><span style="width:16px; height:8px; background:#D4A373;"></span>30–45</span><span style="display:flex; align-items:center; gap:5px; font-size:10px; color:#5C5447;"><span style="width:16px; height:8px; background:#D7263D;"></span>&gt;60</span><span style="display:flex; align-items:center; gap:5px; font-size:10px; color:#5C5447;"><span style="width:16px; height:0; border-top:2px dashed #D7263D;"></span>Böen</span></div>
+        <!-- point query -->
+        <div style="background:#FFFFFF; border:1px solid #E0D6BE; border-radius:12px; padding:13px; margin-top:12px;"><div style="font-size:9px; letter-spacing:1px; color:#8B7355; font-weight:600;">PUNKT · 2000 M · 540 M AGL</div><div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:9px;"><div><div style="font-size:9.5px; color:#A89A7A;">Mittelwind</div><div style="font-size:15px; font-weight:700; color:#C97B47;">48 km/h</div></div><div><div style="font-size:9.5px; color:#A89A7A;">Böen</div><div style="font-size:15px; font-weight:700; color:#D7263D;">71 km/h</div></div><div><div style="font-size:9.5px; color:#A89A7A;">Richtung</div><div style="font-size:15px; font-weight:700; color:#2C2A26;">WSW</div></div><div><div style="font-size:9.5px; color:#A89A7A;">Temperatur</div><div style="font-size:15px; font-weight:700; color:#2C2A26;">−4,2 °C</div></div></div></div>
+        <!-- time deck -->
+        <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:12px; padding:12px; margin-top:12px;"><div style="display:flex; align-items:baseline; justify-content:space-between;"><span style="font-size:9px; letter-spacing:1.5px; color:#3A6FA8; font-weight:700;">15-MIN-RASTER</span><span style="font-size:11.5px; font-weight:700; color:#2C2A26;">Sa 11:15</span></div><div style="display:flex; align-items:center; gap:10px; margin-top:9px;"><span style="width:30px; height:30px; border-radius:50%; background:#3A6FA8; color:#FAF6EA; display:flex; align-items:center; justify-content:center; flex:0 0 auto;"><svg width="12" height="12" viewBox="0 0 24 24" fill="#FAF6EA"><path d="M7 5 L19 12 L7 19 Z"/></svg></span><div style="flex:1; position:relative; height:6px; background:#E0D6BE; border-radius:3px;"><div style="position:absolute; left:32%; top:50%; transform:translate(-50%,-50%); width:15px; height:15px; border-radius:50%; background:#C97B47; border:3px solid #FAF6EA;"></div></div><span style="font-size:10px; color:#8B7355;">+48h</span></div></div>
+        <p style="font-size:10px; color:#8B7355; margin:12px 2px 0; line-height:1.5;">Wind auf AGL aus ICON-D2-Druckflächen + DEM · Gitterzellen ≈ 2 km · werbefrei.</p>
+      </div>
+      <div style="position:absolute; bottom:6px; left:50%; transform:translateX(-50%); width:130px; height:5px; border-radius:3px; background:#C4B896;"></div>
+    </div>
+    <p style="width:402px; font-size:12.5px; color:#98A2AF; line-height:1.6; margin:16px 2px 0; font-weight:300;"><strong style="color:#E9ECF1; font-weight:600;">Mobile-Höhenwind:</strong> Linsen-Tabs, Vertikalschnitt, Legende, Punkt-Abfrage, 15-Min-Zeitdeck.</p>
+  </article>
+
+  <!-- ============================ S7 — MOBILE · INVERSION ============================ -->
+  <article id="S7" style="width:402px;">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+      <span style="display:inline-flex; align-items:center; justify-content:center; min-width:36px; height:26px; padding:0 10px; background:#3A6FA8; color:#FAF6EA; border-radius:6px; font-size:13px; font-weight:700; letter-spacing:1px;">S7</span>
+      <span style="font-size:15px; font-weight:600; color:#E9ECF1;">Mobile · Inversion</span>
+    </div>
+    <div style="width:402px; height:860px; border-radius:36px; overflow:hidden; background:#EDE6D3; border:1px solid #E0D6BE; box-shadow:0 40px 90px -50px rgba(0,0,0,.55); position:relative; display:flex; flex-direction:column;">
+      <div style="height:44px; flex:0 0 auto; display:flex; align-items:center; justify-content:space-between; padding:0 22px; color:#2C2A26; font-size:13px; font-weight:600;"><span>09:00</span><span style="display:flex; gap:5px; align-items:center;"><svg width="16" height="11" viewBox="0 0 16 11" fill="#2C2A26"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4" y="5" width="3" height="6" rx="1"/><rect x="8" y="3" width="3" height="8" rx="1"/><rect x="12" y="1" width="3" height="10" rx="1"/></svg><svg width="22" height="11" viewBox="0 0 24 12" fill="none"><rect x="1" y="1" width="20" height="10" rx="2.5" stroke="#2C2A26"/><rect x="3" y="3" width="15" height="6" rx="1" fill="#2C2A26"/></svg></span></div>
+      <div style="flex:0 0 auto; display:flex; align-items:center; justify-content:space-between; padding:6px 18px 12px; border-bottom:1px solid #E0D6BE;"><div style="display:flex; align-items:center; gap:9px;"><img src="buscosun-mark.svg" width="22" height="22" alt=""><div><div style="font-size:9px; letter-spacing:1.5px; color:#3A6FA8; font-weight:700;">INVERSION · KALTLUFTSEE</div><div style="font-size:15px; font-weight:700; color:#2C2A26;">Inntal · 1.150 m</div></div></div></div>
+      <div class="vs-scroll" style="flex:1; overflow-y:auto; padding:14px 16px 24px;">
+        <div style="display:flex; gap:6px; overflow-x:auto; padding-bottom:3px;"><span style="flex:0 0 auto; font-size:12px; color:#5C5447; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:8px; padding:7px 13px;">Höhenwind</span><span style="flex:0 0 auto; font-size:12px; font-weight:700; color:#FAF6EA; background:#3A6FA8; border-radius:8px; padding:7px 13px;">Inversion</span><span style="flex:0 0 auto; font-size:12px; color:#5C5447; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:8px; padding:7px 13px;">Wolkenbasis</span><span style="flex:0 0 auto; font-size:12px; color:#5C5447; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:8px; padding:7px 13px;">Föhn</span></div>
+        <div style="border-radius:14px; overflow:hidden; border:1px solid #E0D6BE; background:linear-gradient(180deg,#F6E9CE,#E6E3D2); margin-top:12px; position:relative;">
+          <svg viewBox="0 0 360 220" preserveAspectRatio="xMidYMid slice" style="width:100%; height:auto; display:block;">
+            <circle cx="300" cy="50" r="38" fill="#F0B94E" opacity=".35"/><circle cx="300" cy="50" r="14" fill="#F4C969"/>
+            <path d="M50 220 L50 90 Q120 45 190 90 Q230 125 270 105 L270 220 Z" fill="#746850"/>
+            <path d="M170 220 L170 75 Q250 35 330 75 L330 220 Z" fill="#827458"/>
+            <path d="M110 140 L320 140 L280 98 L150 98 Z" fill="#7C93A8" opacity=".6"/>
+            <path d="M110 140 L320 140" stroke="#FAF6EA" stroke-width="2" opacity=".8"/>
+            <g transform="translate(215,140)"><rect x="-70" y="0" width="140" height="16" rx="8" fill="#3A6FA8"/><text y="12" font-size="9" font-weight="700" fill="#FAF6EA" text-anchor="middle">Inversion 1.150 m</text></g>
+            <g transform="translate(150,78)"><rect x="-46" y="-12" width="92" height="15" rx="7" fill="#D4A373"/><text y="-1" font-size="8" font-weight="700" fill="#FAF6EA" text-anchor="middle">über Inversion · sonnig</text></g>
+            <g transform="translate(215,175)"><rect x="-44" y="-12" width="88" height="15" rx="7" fill="#6B8198"/><text y="-1" font-size="8" font-weight="700" fill="#FAF6EA" text-anchor="middle">Kaltluftsee · Nebel</text></g>
+          </svg>
+        </div>
+        <div style="background:#FFFFFF; border:1px solid #E0D6BE; border-radius:12px; padding:13px; margin-top:12px;">
+          <div style="font-size:9px; letter-spacing:1px; color:#8B7355; font-weight:600;">TEMPERATUR-DIFFERENZ</div>
+          <div style="display:flex; justify-content:space-between; margin-top:9px; font-size:13px;"><span style="color:#5C5447;">oberhalb 1.674 m</span><b style="color:#D4A373;">+11 °C</b></div>
+          <div style="display:flex; justify-content:space-between; margin-top:5px; font-size:13px;"><span style="color:#5C5447;">im Tal 447 m</span><b style="color:#6B8198;">−2 °C</b></div>
+          <div style="display:flex; justify-content:space-between; align-items:baseline; margin-top:10px; padding-top:10px; border-top:1px solid #E0D6BE;"><b style="font-size:14px; color:#2C2A26;">Aufstieg lohnt sich</b><b style="font-size:24px; color:#C97B47;">+13 K</b></div>
+        </div>
+        <div style="background:#F8F2E2; border:1px solid #E0D6BE; border-radius:12px; padding:13px; margin-top:10px; display:flex; gap:10px;"><span style="width:24px; height:24px; border-radius:50%; background:#8B7355; color:#FAF6EA; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; flex:0 0 auto;">!</span><div><b style="font-size:12.5px; color:#2C2A26;">Stabile Inversion · Luftqualität</b><div style="font-size:11px; color:#5C5447; margin-top:4px; line-height:1.5;">Feinstaub im Tal · Frost bis ~09:00. Oberflächenreif an der Nebelobergrenze (Lawinen-Kontext, nicht verbindlich).</div></div></div>
+        <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:12px; padding:12px; margin-top:12px;"><div style="font-size:9px; letter-spacing:1.5px; color:#3A6FA8; font-weight:700;">INVERSIONSHÖHE ÜBER DEN TAG</div><svg viewBox="0 0 330 60" style="width:100%; height:auto; margin-top:6px;" font-family="League Spartan"><path d="M0 40 L60 36 L120 30 L180 18 L240 10 L300 16 L330 24 L330 50 L0 50 Z" fill="#9BB0C4" opacity=".4"/><path d="M0 40 L60 36 L120 30 L180 18 L240 10 L300 16 L330 24" fill="none" stroke="#3A6FA8" stroke-width="2"/><circle cx="55" cy="36" r="6" fill="#C97B47"/><text x="190" y="8" font-size="8" font-weight="600" fill="#7A9466" text-anchor="middle">Auflösung ~13:00</text></svg><div style="display:flex; justify-content:space-between; font-size:9px; color:#8B7355; margin-top:2px;"><span style="color:#C97B47; font-weight:700;">09:00 · 1.150 m</span><span>22:00</span></div></div>
+      </div>
+      <div style="position:absolute; bottom:6px; left:50%; transform:translateX(-50%); width:130px; height:5px; border-radius:3px; background:#C4B896;"></div>
+    </div>
+    <p style="width:402px; font-size:12.5px; color:#98A2AF; line-height:1.6; margin:16px 2px 0; font-weight:300;"><strong style="color:#E9ECF1; font-weight:600;">Mobile-Inversion:</strong> 3D-Kaltluftsee, Temperaturdifferenz +13 K, Stabilitäts-/Reif-Hinweis, Inversionshöhe über den Tag.</p>
+  </article>
+
+  <!-- ============================ S8 — MOBILE · GO / NO-GO ============================ -->
+  <article id="S8" style="width:402px;">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+      <span style="display:inline-flex; align-items:center; justify-content:center; min-width:36px; height:26px; padding:0 10px; background:#3A6FA8; color:#FAF6EA; border-radius:6px; font-size:13px; font-weight:700; letter-spacing:1px;">S8</span>
+      <span style="font-size:15px; font-weight:600; color:#E9ECF1;">Mobile · Go/No-Go (B2B)</span>
+    </div>
+    <div style="width:402px; height:860px; border-radius:36px; overflow:hidden; background:#EDE6D3; border:1px solid #E0D6BE; box-shadow:0 40px 90px -50px rgba(0,0,0,.55); position:relative; display:flex; flex-direction:column;">
+      <div style="height:44px; flex:0 0 auto; display:flex; align-items:center; justify-content:space-between; padding:0 22px; color:#2C2A26; font-size:13px; font-weight:600;"><span>11:15</span><span style="display:flex; gap:5px; align-items:center;"><svg width="16" height="11" viewBox="0 0 16 11" fill="#2C2A26"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4" y="5" width="3" height="6" rx="1"/><rect x="8" y="3" width="3" height="8" rx="1"/><rect x="12" y="1" width="3" height="10" rx="1"/></svg><svg width="22" height="11" viewBox="0 0 24 12" fill="none"><rect x="1" y="1" width="20" height="10" rx="2.5" stroke="#2C2A26"/><rect x="3" y="3" width="15" height="6" rx="1" fill="#2C2A26"/></svg></span></div>
+      <div style="flex:0 0 auto; display:flex; align-items:center; justify-content:space-between; padding:6px 18px 12px; border-bottom:1px solid #E0D6BE;"><div style="display:flex; align-items:center; gap:9px;"><img src="buscosun-mark.svg" width="22" height="22" alt=""><div><div style="font-size:9px; letter-spacing:1.5px; color:#3A6FA8; font-weight:700;">BETRIEBS-CHECK · DROHNE</div><div style="font-size:15px; font-weight:700; color:#2C2A26;">Feldberg-Süd</div></div></div><span style="font-size:11px; color:#3A6FA8; font-weight:600; border:1px solid #E0D6BE; border-radius:8px; padding:6px 10px;">Teilen</span></div>
+      <div class="vs-scroll" style="flex:1; overflow-y:auto; padding:14px 16px 24px;">
+        <div style="display:flex; gap:6px; overflow-x:auto; padding-bottom:3px;"><span style="flex:0 0 auto; font-size:12px; color:#5C5447; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:8px; padding:7px 13px;">Höhenwind</span><span style="flex:0 0 auto; font-size:12px; color:#5C5447; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:8px; padding:7px 13px;">Inversion</span><span style="flex:0 0 auto; font-size:12px; font-weight:700; color:#FAF6EA; background:#3A6FA8; border-radius:8px; padding:7px 13px;">Go/No-Go</span></div>
+        <!-- NO-GO hero -->
+        <div style="margin-top:12px; background:#FBE9E4; border:2px solid #C97B47; border-radius:16px; padding:16px;">
+          <div style="display:flex; align-items:center; gap:14px;">
+            <svg width="46" height="46" viewBox="0 0 48 48" style="flex:0 0 auto;"><path d="M12 0 L36 0 L48 12 L48 36 L36 48 L12 48 L0 36 L0 12 Z" fill="#D7263D"/><line x1="16" y1="16" x2="32" y2="32" stroke="#FAF6EA" stroke-width="4" stroke-linecap="round"/><line x1="32" y1="16" x2="16" y2="32" stroke="#FAF6EA" stroke-width="4" stroke-linecap="round"/></svg>
+            <div><div style="font-size:34px; font-weight:700; color:#D7263D; line-height:1;">NO-GO</div><div style="font-size:12.5px; font-weight:600; color:#2C2A26; margin-top:4px;">jetzt 11:15 · Böen über Limit</div></div>
+          </div>
+          <div style="height:1px; background:#E8C9BD; margin:14px 0;"></div>
+          <div style="display:flex; justify-content:space-between; font-size:12.5px; margin-bottom:7px;"><span style="color:#5C5447;">Böen auf 120 m AGL</span><b style="color:#D7263D;">52 km/h</b></div>
+          <div style="display:flex; justify-content:space-between; font-size:12.5px;"><span style="color:#5C5447;">dein Limit</span><b style="color:#2C2A26;">40 km/h</b></div>
+          <div style="display:flex; align-items:center; gap:10px; background:#ECF1E6; border-radius:10px; padding:9px 12px; margin-top:12px;"><span style="width:22px; height:22px; border-radius:50%; background:#7A9466; color:#FAF6EA; display:flex; align-items:center; justify-content:center; flex:0 0 auto;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M5 13 L10 18 L19 6" stroke="#FAF6EA" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span style="font-size:12.5px; color:#2C2A26;"><b>Nächstes GO-Fenster:</b> ab 16:30</span></div>
+        </div>
+        <!-- Flughöhe -->
+        <div style="background:#FFFFFF; border:1px solid #E0D6BE; border-radius:12px; padding:13px; margin-top:12px;"><div style="font-size:9px; letter-spacing:1px; color:#8B7355; font-weight:600;">FLUGHÖHE (AGL)</div><div style="display:flex; align-items:center; gap:8px; margin-top:9px;"><div style="flex:0 0 auto; display:flex; align-items:baseline; gap:6px; background:#F5F1E8; border:1px solid #C4B896; border-radius:10px; padding:8px 13px;"><span style="font-size:22px; font-weight:700; color:#2C2A26;">120</span><span style="font-size:12px; color:#5C5447;">m</span></div><span style="font-size:11px; color:#5C5447; background:#FAF6EA; border:1px solid #E0D6BE; border-radius:12px; padding:6px 10px;">50</span><span style="font-size:11px; font-weight:600; color:#FAF6EA; background:#3A6FA8; border-radius:12px; padding:6px 10px;">120</span><span style="font-size:11px; color:#5C5447; background:#FAF6EA; border:1px solid #E0D6BE; border-radius:12px; padding:6px 10px;">300</span></div></div>
+        <!-- Go/No-Go time band -->
+        <div style="font-size:10px; letter-spacing:1.5px; color:#A89A7A; font-weight:700; margin:14px 2px 8px;">GO / NO-GO ÜBER DEN TAG · 120 M</div>
+        <div style="display:flex; height:40px; border-radius:10px; overflow:hidden; border:1px solid #E0D6BE;"><div style="width:14%; background:#7A9466; display:flex; align-items:center; justify-content:center;"><span style="font-size:9px; font-weight:700; color:#FAF6EA;">GO</span></div><div style="width:44%; background:#E4A2A2; display:flex; align-items:center; justify-content:center;"><span style="font-size:9px; font-weight:700; color:#8A1C1C;">NO-GO</span></div><div style="width:42%; background:#7A9466; display:flex; align-items:center; justify-content:center;"><span style="font-size:9px; font-weight:700; color:#FAF6EA;">GO 16:30</span></div></div>
+        <div style="display:flex; justify-content:space-between; font-size:9px; color:#8B7355; margin-top:6px;"><span>06:00</span><span style="color:#D7263D; font-weight:700;">11:15</span><span>16:30</span><span>20:00</span></div>
+        <!-- Höhenfaktor -->
+        <div style="font-size:10px; letter-spacing:1.5px; color:#A89A7A; font-weight:700; margin:14px 2px 8px;">HÖHENFAKTOR · WIND ↑ MIT HÖHE</div>
+        <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:12px; padding:13px;">
+          <svg viewBox="0 0 330 150" style="width:100%; height:auto;" font-family="League Spartan">
+            <rect x="30" y="10" width="290" height="110" rx="8" fill="#FFFFFF" stroke="#E0D6BE"/>
+            <line x1="220" y1="10" x2="220" y2="120" stroke="#D7263D" stroke-width="1.4" stroke-dasharray="5 4"/><text x="224" y="22" font-size="8.5" font-weight="700" fill="#D7263D">Limit 40</text>
+            <path d="M60 120 Q120 90 160 60 Q200 30 210 20" fill="none" stroke="#3A6FA8" stroke-width="2.4" stroke-linecap="round"/>
+            <g fill="#3A6FA8"><circle cx="60" cy="120" r="3.5"/><circle cx="160" cy="60" r="5" stroke="#FAF6EA" stroke-width="1.8"/></g>
+            <g fill="#5C5447" font-size="8.5"><text x="60" y="138" text-anchor="middle">Boden 22</text><text x="160" y="52" text-anchor="middle" fill="#D7263D" font-weight="700">120m 52</text></g>
+          </svg>
+          <div style="display:flex; gap:14px; margin-top:8px; font-size:11px; color:#5C5447;"><span>Boden <b style="color:#2C2A26;">22</b></span><span>120 m <b style="color:#D7263D;">52</b></span><span>Faktor <b style="color:#2C2A26;">×2,4</b></span></div>
+        </div>
+        <div style="display:flex; gap:8px; margin-top:12px;"><span style="flex:1; text-align:center; font-size:12px; font-weight:600; color:#3A6FA8; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:10px; padding:10px 0;">PDF</span><span style="flex:1; text-align:center; font-size:12px; font-weight:600; color:#FAF6EA; background:#3A6FA8; border-radius:10px; padding:10px 0;">Link teilen</span></div>
+        <p style="font-size:10px; color:#8B7355; margin:12px 2px 0; line-height:1.5;">Export enthält Ort, Zeit, Höhe, Werte, Grenzwert &amp; Status. Modell ICON-D2 · Gitterzellen ≈ 2 km.</p>
+      </div>
+      <div style="position:absolute; bottom:6px; left:50%; transform:translateX(-50%); width:130px; height:5px; border-radius:3px; background:#C4B896;"></div>
+    </div>
+    <p style="width:402px; font-size:12.5px; color:#98A2AF; line-height:1.6; margin:16px 2px 0; font-weight:300;"><strong style="color:#E9ECF1; font-weight:600;">Mobile-Go/No-Go:</strong> NO-GO-Status + nächstes GO-Fenster, Flughöhe (AGL), Go/No-Go-Zeitband, Höhenfaktor-Profil, PDF/Link-Export.</p>
+  </article>
+
+</section>
+</x-dc>
+</body>
+</html>

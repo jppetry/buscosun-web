@@ -22,6 +22,7 @@ import { decompress } from './decompress';
 import type { QuadCorners } from '../scalar/RainLayer';
 import { decodeGrib2, type GribField } from './gribDecode';
 import { decodeGridStep, type GridToU8Kind, type DecodedGridStep } from './gribGridDecode';
+import { resolveRunFromManifest, GRIB_MANIFEST_URL } from './gribManifest';
 
 // Reiner GRIB2-Decoder lebt jetzt in ./gribDecode (browser-unabhängig, headless
 // gegen eccodes verifizierbar). Re-Export hält bestehende Importpfade stabil
@@ -30,6 +31,14 @@ export { decodeGrib2, gribCorners, aecDecode } from './gribDecode';
 export type { GribField } from './gribDecode';
 
 const D2_GRIB_BASE = '/_dwd_opendata/weather/nwp/icon-d2/grib';
+
+/** Durable-gecachter Edge-Pfad für die immutablen ICON-D2-(Lauf,Step)-Dateien
+ *  (Phase T2, Ausrollung des T1-Wind-Musters auf Temp/Gust/Precip/Clouds). In
+ *  Prod/`netlify dev` bedient die Edge Function `netlify/edge-functions/
+ *  dwd-grib.ts` diesen Pfad (durable Edge-Cache); in `vite dev` ein dünner
+ *  Pass-Through-Proxy. Der Radar-Pfad (`/_dwd_opendata`, radolan.ts) und der
+ *  Wind-Pfad (`/_dwd_wind`, T1) bleiben unberührt. */
+export const D2_GRIB_PROXY_BASE = '/_dwd_grib/weather/nwp/icon-d2/grib';
 
 export const ICON_D2_ATTRIBUTION =
   'Niederschlag-Forecast: <a href="https://www.dwd.de/EN/ourservices/opendata/opendata.html" ' +
@@ -95,6 +104,21 @@ export async function resolveLatestRun(
   const t = Date.now();
   const cached = runCache.get(param);
   if (cached && t - cached.at < RUN_CACHE_TTL_MS) return cached.info;
+
+  // MANIFEST-GATE (Phase T2-3, Muster aus T1/Wind): den zuletzt GEWÄRMTEN Lauf
+  // same-origin aus `latest-grib.json` lesen. Ersetzt für die T2-Params (t_2m,
+  // vmax_10m, tot_prec, clcl/clcm/clch/clct) den Directory-Scan vollständig —
+  // der Client fragt ausschließlich gewärmte (Lauf,Step)-URLs an. Params ohne
+  // Manifest-Eintrag (z. B. cape_ml) und alle Fehlerfälle (kein/ungültiges/
+  // veraltetes Manifest, 24h-Staleness-Guard) fallen auf den Scan darunter
+  // zurück — nie schlechter als vor T2. `sharedRun` wird bewusst NICHT gesetzt
+  // (Scan-Verhalten für Nicht-Manifest-Params bleibt byte-identisch).
+  const fromManifest = await resolveRunFromManifest(GRIB_MANIFEST_URL, param, signal);
+  if (fromManifest) {
+    const info: RunInfo = { runStr: fromManifest.runStr, runAt: fromManifest.runAt, steps: fromManifest.steps };
+    runCache.set(param, { at: Date.now(), info });
+    return info;
+  }
 
   // Kürzlich von einem anderen Layer aufgelösten Lauf direkt für diesen Param probieren.
   if (sharedRun && t - sharedRun.at < RUN_CACHE_TTL_MS) {
@@ -195,16 +219,18 @@ export async function fetchStepField(
   param: string,
   step: number,
   signal?: AbortSignal,
+  base: string = D2_GRIB_BASE,
 ): Promise<GribField> {
   const hh = runStr.slice(8, 10);
-  return fetchDecodeCached(`${D2_GRIB_BASE}/${hh}/${param}/${stepFileName(runStr, param, step)}`, signal);
+  return fetchDecodeCached(`${base}/${hh}/${param}/${stepFileName(runStr, param, step)}`, signal);
 }
 
 /** Wie `fetchStepField`, liefert aber die ENTPACKTEN Bytes (Decode off-main).
  *  `base` erlaubt einem einzelnen Layer, einen anderen (gecachten) Transportpfad
  *  zu nutzen, ohne die übrigen Layer zu berühren — der Wind-Layer zieht seine
  *  immutablen (Lauf,Step)-Dateien über den durable-gecachten `/_dwd_wind`-Edge-
- *  Pfad (Phase T1), Precip/Clouds/Temp bleiben auf `/_dwd_opendata` (Default). */
+ *  Pfad (Phase T1); Temp/Gust/Precip/Clouds nutzen seit Phase T2 den generischen
+ *  `/_dwd_grib`-Edge-Pfad (D2_GRIB_PROXY_BASE). Default bleibt `/_dwd_opendata`. */
 export async function fetchStepBytes(
   runStr: string,
   param: string,
@@ -224,11 +250,12 @@ export async function fetchInvariantField(
   runStr: string,
   param: string,
   signal?: AbortSignal,
+  base: string = D2_GRIB_BASE,
 ): Promise<GribField> {
   const hh = runStr.slice(8, 10);
   const name =
     `icon-d2_germany_regular-lat-lon_time-invariant_${runStr}_000_0_${param}.grib2.bz2`;
-  return fetchDecodeCached(`${D2_GRIB_BASE}/${hh}/${param}/${name}`, signal);
+  return fetchDecodeCached(`${base}/${hh}/${param}/${name}`, signal);
 }
 
 /** Optionen für den generischen ICON-D2-Gitter-Loader. */
@@ -359,7 +386,9 @@ export async function fetchIconD2Grid(
   const pump = () => {
     while (inflight.size < FETCH_CONCURRENCY && fetchPtr < steps.length) {
       const step = steps[fetchPtr++];
-      const p = fetchStepBytes(runStr, param, step, signal)
+      // Phase T2-2: durch den durable-gecachten Edge-Pfad (statt /_dwd_opendata).
+      // Kein Decode-/Norm-Eingriff — nur die Herkunft derselben Bytes ändert sich.
+      const p = fetchStepBytes(runStr, param, step, signal, D2_GRIB_PROXY_BASE)
         .then((b) => { bytesByStep.set(step, b); }, () => { bytesByStep.set(step, null); })
         .finally(() => { inflight.delete(step); });
       inflight.set(step, p);

@@ -13,6 +13,7 @@
 
 import {
   fetchIconD2Grid, resolveLatestRun, fetchStepField, gribCorners,
+  D2_GRIB_PROXY_BASE,
   type IconD2Precip, type GribField,
 } from './iconD2Precip';
 import type { QuadCorners } from '../scalar/RainLayer';
@@ -102,10 +103,11 @@ export async function fetchIconD2CloudStack(
 
   const loadStep = async (step: number): Promise<void> => {
     try {
+      // Phase T2-2: durch den durable-gecachten Edge-Pfad (statt /_dwd_opendata).
       const [low, mid, high] = await Promise.all([
-        fetchStepField(runStr, 'clcl', step, signal),
-        fetchStepField(runStr, 'clcm', step, signal),
-        fetchStepField(runStr, 'clch', step, signal),
+        fetchStepField(runStr, 'clcl', step, signal, D2_GRIB_PROXY_BASE),
+        fetchStepField(runStr, 'clcm', step, signal, D2_GRIB_PROXY_BASE),
+        fetchStepField(runStr, 'clch', step, signal, D2_GRIB_PROXY_BASE),
       ]);
       if (!corners) corners = gribCorners(low);
       const built = packCloudRGBA(low, mid, high);

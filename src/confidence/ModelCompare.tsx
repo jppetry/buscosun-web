@@ -11,33 +11,33 @@ import type { HourPoint, MultiModelForecast } from './multiModel';
 import type { DayVM } from './forecastView';
 import ModelCompareChart, { type ChartMetric } from './ModelCompareChart';
 
-const SEL_KEY = 'buscosun.forecast.compareSel.v1';
-const METRIC_KEY = 'buscosun.forecast.compareMetric.v1';
+export const SEL_KEY = 'buscosun.forecast.compareSel.v1';
+export const METRIC_KEY = 'buscosun.forecast.compareMetric.v1';
 
-interface CompareSettings { disabled: string[]; consensus: boolean }
+export interface CompareSettings { disabled: string[]; consensus: boolean }
 
-function loadSettings(): CompareSettings {
+export function loadSettings(): CompareSettings {
   try { const raw = localStorage.getItem(SEL_KEY); if (raw) return { disabled: [], consensus: true, ...JSON.parse(raw) }; } catch { /* ignore */ }
   return { disabled: [], consensus: true };
 }
-function loadMetric(): ChartMetric {
+export function loadMetric(): ChartMetric {
   try { const v = localStorage.getItem(METRIC_KEY); if (v === 'precip' || v === 'wind' || v === 'cloud') return v; } catch { /* ignore */ }
   return 'temp';
 }
 
-const METRICS: Array<{ id: ChartMetric; label: string }> = [
+export const METRICS: Array<{ id: ChartMetric; label: string }> = [
   { id: 'temp', label: 'Temperatur' },
   { id: 'precip', label: 'Niederschlag' },
   { id: 'wind', label: 'Wind' },
   { id: 'cloud', label: 'Wolkendichte' },
 ];
 
-const agreeStyle = (l: AgreeLevel) =>
+export const agreeStyle = (l: AgreeLevel) =>
   l === 'high' ? { color: '#5C7A4A', glyph: '✓', bg: '#F1F4EC', border: '#7A9466' }
     : l === 'mixed' ? { color: '#C99A4E', glyph: '≈', bg: '#F8F2E2', border: '#C99A4E' }
       : { color: '#6B7A8F', glyph: '!', bg: '#EEF1F4', border: '#9AA7B5' };
 
-function metricAgreement(metric: ChartMetric, vm: DayVM, hours: HourPoint[], modelLabels: string[]): AgreementInfo {
+export function metricAgreement(metric: ChartMetric, vm: DayVM, hours: HourPoint[], modelLabels: string[]): AgreementInfo {
   if (metric === 'temp') return agreement(vm.day.tMaxByModel, vm.day.precipByModel, modelLabels);
 
   if (metric === 'precip') {
@@ -163,7 +163,7 @@ export default function ModelCompare({ forecast, vm }: { forecast: MultiModelFor
   );
 }
 
-function Toggle({ on, onChange, label }: { on: boolean; onChange: () => void; label: string }) {
+export function Toggle({ on, onChange, label }: { on: boolean; onChange: () => void; label: string }) {
   return (
     <button type="button" role="switch" aria-checked={on} aria-label={`${label} ${on ? 'aus' : 'ein'}blenden`}
       className={`fc-switch${on ? ' is-on' : ''}`} onClick={onChange}>

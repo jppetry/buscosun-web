@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #0B0E12; font-family: "League Spartan", system-ui, sans-serif; -webkit-font-smoothing: antialiased; color: #2C2A26; }
+  a { color: #C97B47; text-decoration: none; }
+  a:hover { color: #D98E5A; }
+  .tp-scroll::-webkit-scrollbar { width: 7px; height: 7px; }
+  .tp-scroll::-webkit-scrollbar-thumb { background: #D9D0B8; border-radius: 4px; }
+</style>
+</helmet>
+
+<section style="padding:56px 72px 120px; display:flex; flex-direction:column; gap:56px; font-family:'League Spartan',sans-serif;">
+
+  <div style="display:flex; align-items:flex-end; gap:20px; flex-wrap:wrap;">
+    <div>
+      <div style="font-size:11px; letter-spacing:4px; color:#A89A7A; font-weight:600; text-transform:uppercase;">buscosun · routenplaner</div>
+      <div style="font-size:30px; font-weight:600; color:#E9ECF1; letter-spacing:-0.5px; margin-top:6px;">Routenplaner — Command-Deck</div>
+    </div>
+    <div style="font-size:13px; color:#98A2AF; max-width:620px; line-height:1.5; padding-bottom:3px; font-weight:300;">
+      Alle Seiten im Wetterkarte-Stil (Sand/Ink · League Spartan · Terracotta). Ohne Informationsverlust.
+      Desktop: <a href="#T1">T1</a> Upload · <a href="#T2">T2</a> Vorschau · <a href="#T3">T3</a> Bewegungsart · <a href="#T4">T4</a> Konfiguration · <a href="#T5">T5</a> Ergebnis ·
+      Tablet: <a href="#T11">T11</a> Upload · <a href="#T12">T12</a> Vorschau · <a href="#T13">T13</a> Bewegungsart · <a href="#T6">T6</a> Konfig · <a href="#T7">T7</a> Ergebnis ·
+      Mobile: <a href="#T8">T8</a> Upload · <a href="#T14">T14</a> Vorschau · <a href="#T9">T9</a> Konfig · <a href="#T10">T10</a> Ergebnis
+    </div>
+  </div>
+
+  <!-- ============================ T1 — DESKTOP · UPLOAD ============================ -->
+  <article id="T1" style="width:1440px;">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+      <span style="display:inline-flex; align-items:center; justify-content:center; min-width:36px; height:26px; padding:0 10px; background:#C97B47; color:#FAF6EA; border-radius:6px; font-size:13px; font-weight:700; letter-spacing:1px;">T1</span>
+      <span style="font-size:15px; font-weight:600; color:#E9ECF1;">Desktop · Strecke hochladen</span>
+    </div>
+    <div style="height:900px; border-radius:18px; overflow:hidden; background:#EDE6D3; border:1px solid #E0D6BE; box-shadow:0 40px 90px -50px rgba(0,0,0,.55); display:flex; flex-direction:column;">
+      <!-- top bar -->
+      <div style="height:60px; flex:0 0 auto; display:flex; align-items:center; gap:18px; padding:0 20px; background:#FAF6EA; border-bottom:1px solid #E0D6BE;">
+        <div style="display:flex; align-items:center; gap:10px;"><img src="buscosun-mark.svg" width="26" height="26" alt=""><span style="font-size:19px; font-weight:700; color:#2C2A26; letter-spacing:-0.4px;">buscosun</span></div>
+        <div style="width:1px; height:26px; background:#E0D6BE;"></div>
+        <span style="font-size:13px; color:#8B7355; font-weight:500;">Tourenplanung</span>
+        <div style="margin-left:auto; display:flex; align-items:center; gap:14px;"><span style="display:flex; align-items:center; gap:7px;"><span style="width:7px; height:7px; border-radius:50%; background:#7A9466;"></span><span style="font-size:11px; letter-spacing:1.5px; color:#5F7A4C; font-weight:600;">DATEN LIVE</span></span><span style="width:32px; height:32px; border-radius:50%; background:#E0D6BE; color:#5C5447; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700;">JK</span></div>
+      </div>
+      <div style="flex:1; display:flex; min-height:0;">
+        <!-- rail -->
+        <div style="width:62px; flex:0 0 auto; background:#2C2A26; display:flex; flex-direction:column; align-items:center; padding:14px 0; gap:6px;">
+          <div style="width:42px; height:42px; border-radius:11px; display:flex; align-items:center; justify-content:center; color:#8B7355;" title="Wetterkarte"><svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M12 3 L21 8 L12 13 L3 8 Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M3 13 L12 18 L21 13" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
+          <div style="width:42px; height:42px; border-radius:11px; display:flex; align-items:center; justify-content:center; color:#8B7355;" title="Regenradar"><svg width="21" height="21" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/><path d="M12 3 A9 9 0 0 1 21 12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/></svg></div>
+          <div style="width:42px; height:42px; border-radius:11px; display:flex; align-items:center; justify-content:center; background:#3A3833; color:#E0A567; position:relative;" title="Tour"><span style="position:absolute; left:-14px; top:9px; bottom:9px; width:3px; border-radius:2px; background:#C97B47;"></span><svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M6 20 C6 20 5 13.5 9 11.5 C13 9.5 12 6.5 16 5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="6" cy="20" r="1.8" fill="currentColor"/><path d="M16 2.5 C14 2.5 12.4 4.1 12.4 6.1 C12.4 8.8 16 11.5 16 11.5 C16 11.5 19.6 8.8 19.6 6.1 C19.6 4.1 18 2.5 16 2.5 Z" stroke="currentColor" stroke-width="1.3"/><circle cx="16" cy="6.1" r="1.3" fill="currentColor"/></svg></div>
+          <div style="margin-top:auto; width:42px; height:42px; border-radius:11px; display:flex; align-items:center; justify-content:center; color:#8B7355;" title="Einstellungen"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.6"/><path d="M12 2.5 V5 M12 19 V21.5 M2.5 12 H5 M19 12 H21.5 M5.2 5.2 L7 7 M17 17 L18.8 18.8 M18.8 5.2 L17 7 M7 17 L5.2 18.8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+        </div>
+        <!-- content -->
+        <div class="tp-scroll" style="flex:1; overflow-y:auto; background:#EDE6D3; padding:40px 56px;">
+          <span style="font-size:11px; letter-spacing:3px; color:#C97B47; font-weight:700;">TOURENPLANUNG</span>
+          <h1 style="font-size:46px; font-weight:300; color:#2C2A26; letter-spacing:-1.5px; margin:10px 0 0; line-height:1;">Wetter entlang deiner Route</h1>
+          <p style="font-size:16px; color:#5C5447; font-weight:300; margin:16px 0 0; max-width:560px; line-height:1.5;">Lade deine geplante Tour hoch — wir zeigen dir Wind, Regen und Temperatur an jedem Kilometer, zur tatsächlichen Uhrzeit deiner Ankunft.</p>
+          <div style="display:flex; flex-direction:column; gap:11px; margin-top:22px;">
+            <div style="display:flex; align-items:center; gap:11px; font-size:14px; color:#3B3833;"><span style="width:24px; height:24px; border-radius:50%; background:#F3E3D3; display:flex; align-items:center; justify-content:center; flex:0 0 auto;"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#C97B47" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,8.5 6.5,12 13,4"/></svg></span>Wind, Regen und Temperatur an jedem Kilometer</div>
+            <div style="display:flex; align-items:center; gap:11px; font-size:14px; color:#3B3833;"><span style="width:24px; height:24px; border-radius:50%; background:#F3E3D3; display:flex; align-items:center; justify-content:center; flex:0 0 auto;"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#C97B47" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,8.5 6.5,12 13,4"/></svg></span>Wetter zur tatsächlichen Ankunftszeit — nicht pauschal „heute"</div>
+            <div style="display:flex; align-items:center; gap:11px; font-size:14px; color:#3B3833;"><span style="width:24px; height:24px; border-radius:50%; background:#F3E3D3; display:flex; align-items:center; justify-content:center; flex:0 0 auto;"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#C97B47" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,8.5 6.5,12 13,4"/></svg></span>Rücken- und Gegenwind entlang deiner Fahrtrichtung</div>
+            <div style="display:flex; align-items:center; gap:11px; font-size:14px; color:#3B3833;"><span style="width:24px; height:24px; border-radius:50%; background:#F3E3D3; display:flex; align-items:center; justify-content:center; flex:0 0 auto;"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#C97B47" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,8.5 6.5,12 13,4"/></svg></span>Native Behörden-Quellen (DWD · GeoSphere · MeteoSwiss), höhenkorrigiert</div>
+          </div>
+
+          <div style="font-size:11px; letter-spacing:2.5px; color:#A89A7A; font-weight:700; margin:32px 0 12px;">STRECKE HOCHLADEN</div>
+          <div style="display:flex; gap:22px; align-items:stretch;">
+            <!-- dropzone -->
+            <div style="flex:1; background:#FAF6EA; border:1px solid #E0D6BE; border-radius:16px; padding:12px;">
+              <div style="height:100%; border:2px dashed #CBB68C; border-radius:12px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:44px 20px;">
+                <svg width="72" height="72" viewBox="0 0 72 72" fill="none"><path d="M22 44 A11 11 0 0 1 24 22 A14 14 0 0 1 50 27 A9 9 0 0 1 48 45 Z" stroke="#C4B79A" stroke-width="2" stroke-linejoin="round"/><circle cx="24" cy="50" r="2.2" fill="#7A9466"/><circle cx="48" cy="50" r="2.2" fill="#7A9466"/><path d="M24 50 Q36 56 48 50" stroke="#7A9466" stroke-width="1.6" fill="none"/><path d="M36 52 V34 M30 40 L36 34 L42 40" stroke="#C97B47" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <div style="font-size:24px; font-weight:700; color:#2C2A26; margin-top:18px; letter-spacing:-0.5px;">Strecke hierher ziehen</div>
+                <div style="font-size:14px; color:#8B7355; margin-top:6px;">oder</div>
+                <button style="margin-top:16px; background:#C97B47; border:none; border-radius:24px; padding:13px 30px; color:#FAF6EA; font-size:15px; font-weight:600; font-family:inherit; cursor:pointer;">Datei auswählen</button>
+                <div style="font-size:12px; color:#A89A7A; margin-top:16px; letter-spacing:.5px;">GPX · TCX · FIT · KML · KMZ · max. 25 MB</div>
+              </div>
+            </div>
+            <!-- formats sidebar -->
+            <div style="width:400px; flex:0 0 auto; background:#FAF6EA; border:1px solid #E0D6BE; border-radius:16px; padding:22px;">
+              <div style="font-size:11px; letter-spacing:2px; color:#A89A7A; font-weight:700;">UNTERSTÜTZTE FORMATE</div>
+              <div style="display:flex; flex-direction:column; gap:14px; margin-top:16px;">
+                <div style="display:flex; align-items:center; gap:12px;"><span style="width:42px; text-align:center; font-size:11px; font-weight:700; color:#C97B47; background:#F6E7D8; border:1px solid #E3C39A; border-radius:20px; padding:4px 0;">GPX</span><span style="font-size:13.5px; color:#3B3833;">Komoot, Strava, Garmin, Wikiloc, Bergfex</span></div>
+                <div style="display:flex; align-items:center; gap:12px;"><span style="width:42px; text-align:center; font-size:11px; font-weight:700; color:#C97B47; background:#F6E7D8; border:1px solid #E3C39A; border-radius:20px; padding:4px 0;">TCX</span><span style="font-size:13.5px; color:#3B3833;">Garmin Training Center</span></div>
+                <div style="display:flex; align-items:center; gap:12px;"><span style="width:42px; text-align:center; font-size:11px; font-weight:700; color:#C97B47; background:#F6E7D8; border:1px solid #E3C39A; border-radius:20px; padding:4px 0;">FIT</span><span style="font-size:13.5px; color:#3B3833;">Garmin- &amp; Wahoo-Geräte (binär)</span></div>
+                <div style="display:flex; align-items:center; gap:12px;"><span style="width:42px; text-align:center; font-size:11px; font-weight:700; color:#C97B47; background:#F6E7D8; border:1px solid #E3C39A; border-radius:20px; padding:4px 0;">KML</span><span style="font-size:13.5px; color:#3B3833;">Google Earth</span></div>
+                <div style="display:flex; align-items:center; gap:12px;"><span style="width:42px; text-align:center; font-size:11px; font-weight:700; color:#C97B47; background:#F6E7D8; border:1px solid #E3C39A; border-radius:20px; padding:4px 0;">KMZ</span><span style="font-size:13.5px; color:#3B3833;">Google Earth (gezippt)</span></div>
+              </div>
+              <div style="margin-top:20px; padding-top:16px; border-top:1px solid #E0D6BE; font-size:12px; color:#8B7355; line-height:1.7;">Max. 25 MB · max. 100.000 Trackpunkte<br>Region: Deutschland · Österreich · Schweiz</div>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:10px; margin-top:16px; background:#FBF3E7; border:1px solid #EAD9BE; border-radius:12px; padding:13px 16px;"><span style="width:26px; height:26px; border-radius:50%; background:#F3E3D3; display:flex; align-items:center; justify-content:center; flex:0 0 auto;"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#C97B47" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6.5"/><polyline points="6.6,5.4 10,8 6.6,10.6"/></svg></span><span style="font-size:13px; color:#5C5447;"><strong style="color:#2C2A26;">So geht's:</strong> Strecke hochladen — wir rechnen Tempo, Ankunftszeiten und das Wetter Kilometer für Kilometer aus.</span></div>
+          <div style="display:flex; align-items:center; gap:8px; margin-top:22px; font-size:11.5px; color:#8B7355;"><span style="color:#C97B47;">●</span> Native Behörden-Quellen: DWD · GeoSphere · MeteoSwiss · höhenkorrigiert · keine Tracker</div>
+        </div>
+      </div>
+    </div>
+    <p style="width:1440px; font-size:12.5px; color:#98A2AF; line-height:1.6; margin:16px 2px 0; font-weight:300;"><strong style="color:#E9ECF1; font-weight:600;">Upload:</strong> Command-Deck-Shell (Ink-Rail, Tour aktiv) + Intro-Kopf mit Möglichkeiten, große Dropzone und Format-Sidebar (GPX/TCX/FIT/KML/KMZ), „So geht's" und Quellen-Zeile — alle Original-Infos erhalten.</p>
+  </article>
+
+  <!-- ============================ T2 — DESKTOP · VORSCHAU ============================ -->
+  <article id="T2" style="width:1440px;">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+      <span style="display:inline-flex; align-items:center; justify-content:center; min-width:36px; height:26px; padding:0 10px; background:#C97B47; color:#FAF6EA; border-radius:6px; font-size:13px; font-weight:700; letter-spacing:1px;">T2</span>
+      <span style="font-size:15px; font-weight:600; color:#E9ECF1;">Desktop · Strecken-Vorschau (erkannt)</span>
+    </div>
+    <div style="height:820px; border-radius:18px; overflow:hidden; background:#EDE6D3; border:1px solid #E0D6BE; box-shadow:0 40px 90px -50px rgba(0,0,0,.55); display:flex; flex-direction:column;">
+      <div style="height:60px; flex:0 0 auto; display:flex; align-items:center; gap:18px; padding:0 20px; background:#FAF6EA; border-bottom:1px solid #E0D6BE;">
+        <div style="display:flex; align-items:center; gap:10px;"><img src="buscosun-mark.svg" width="26" height="26" alt=""><span style="font-size:19px; font-weight:700; color:#2C2A26;">buscosun</span></div>
+        <div style="width:1px; height:26px; background:#E0D6BE;"></div>
+        <a href="#T1" style="font-size:12px; color:#C97B47; font-weight:600;">← Andere Datei</a>
+        <span style="font-size:13px; color:#8B7355;">· Tourenplanung</span>
+        <div style="margin-left:auto; display:flex; align-items:center; gap:14px;"><span style="display:flex; align-items:center; gap:7px;"><span style="width:7px; height:7px; border-radius:50%; background:#7A9466;"></span><span style="font-size:11px; letter-spacing:1.5px; color:#5F7A4C; font-weight:600;">DATEN LIVE</span></span></div>
+      </div>
+      <div style="flex:1; display:flex; min-height:0;">
+        <div style="width:62px; flex:0 0 auto; background:#2C2A26; display:flex; flex-direction:column; align-items:center; padding:14px 0; gap:6px;">
+          <div style="width:42px; height:42px; border-radius:11px; background:#3A3833; color:#E0A567; display:flex; align-items:center; justify-content:center;"><svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M6 20 C6 20 5 13.5 9 11.5 C13 9.5 12 6.5 16 5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="6" cy="20" r="1.8" fill="currentColor"/><path d="M16 2.5 C14 2.5 12.4 4.1 12.4 6.1 C12.4 8.8 16 11.5 16 11.5 C16 11.5 19.6 8.8 19.6 6.1 C19.6 4.1 18 2.5 16 2.5 Z" stroke="currentColor" stroke-width="1.3"/></svg></div>
+        </div>
+        <div class="tp-scroll" style="flex:1; overflow-y:auto; background:#EDE6D3; padding:32px 56px;">
+          <!-- file bar -->
+          <div style="display:flex; align-items:center; gap:14px; background:#FAF6EA; border:1px solid #E0D6BE; border-radius:12px; padding:12px 16px;">
+            <span style="font-size:11px; font-weight:700; color:#C97B47; background:#F6E7D8; border:1px solid #E3C39A; border-radius:8px; padding:5px 10px;">GPX</span>
+            <span style="font-size:14px; font-weight:600; color:#2C2A26;">Alpenüberquerung-E5-Etappe3.gpx</span>
+            <span style="font-size:12px; color:#8B7355;">1,8 MB · Tier A</span>
+            <a href="#T1" style="margin-left:auto; font-size:12px; color:#C97B47; font-weight:600;">Andere Datei</a>
+          </div>
+          <div style="font-size:11px; letter-spacing:2.5px; color:#A89A7A; font-weight:700; margin:26px 0 4px;">STRECKE ERKANNT</div>
+          <h1 style="font-size:30px; font-weight:700; color:#2C2A26; letter-spacing:-0.6px; margin:0;">Oberstdorf → Kemptner Hütte</h1>
+          <!-- stat grid -->
+          <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-top:20px;">
+            <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:13px; padding:16px;"><div style="font-size:10px; letter-spacing:1.5px; color:#A89A7A; font-weight:700;">DISTANZ</div><div style="font-size:26px; font-weight:700; color:#2C2A26; margin-top:5px;">18,4 km</div></div>
+            <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:13px; padding:16px;"><div style="font-size:10px; letter-spacing:1.5px; color:#A89A7A; font-weight:700;">AUFSTIEG</div><div style="font-size:26px; font-weight:700; color:#2C2A26; margin-top:5px;">1 240 hm</div></div>
+            <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:13px; padding:16px;"><div style="font-size:10px; letter-spacing:1.5px; color:#A89A7A; font-weight:700;">ABSTIEG</div><div style="font-size:26px; font-weight:700; color:#2C2A26; margin-top:5px;">380 hm</div></div>
+            <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:13px; padding:16px;"><div style="font-size:10px; letter-spacing:1.5px; color:#A89A7A; font-weight:700;">GELÄNDE</div><div style="font-size:26px; font-weight:700; color:#2C2A26; margin-top:5px;">Alpin</div></div>
+          </div>
+          <!-- elevation profile -->
+          <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:14px; padding:20px; margin-top:16px;">
+            <div style="display:flex; align-items:baseline; justify-content:space-between;"><span style="font-size:12px; font-weight:600; color:#2C2A26;">Höhenprofil</span><span style="font-size:11px; color:#8B7355;">843 m → 1 846 m ü. NN</span></div>
+            <svg viewBox="0 0 1180 200" preserveAspectRatio="none" style="width:100%; height:200px; margin-top:12px;">
+              <g stroke="#E0D6BE" stroke-width="1"><line x1="0" y1="50" x2="1180" y2="50"/><line x1="0" y1="100" x2="1180" y2="100"/><line x1="0" y1="150" x2="1180" y2="150"/></g>
+              <path d="M0 175 L120 168 L260 150 L400 120 L560 95 L720 70 L860 60 L980 40 L1080 24 L1180 18 L1180 200 L0 200 Z" fill="rgba(201,123,71,.14)"/>
+              <path d="M0 175 L120 168 L260 150 L400 120 L560 95 L720 70 L860 60 L980 40 L1080 24 L1180 18" fill="none" stroke="#C97B47" stroke-width="2"/>
+              <circle cx="0" cy="175" r="4" fill="#7A9466"/><circle cx="1180" cy="18" r="4" fill="#A8431F"/>
+            </svg>
+            <div style="display:flex; justify-content:space-between; font-size:10.5px; color:#A89A7A; margin-top:6px;"><span>Start · Oberstdorf 843 m</span><span>Ziel · Kemptner Hütte 1 846 m</span></div>
+          </div>
+          <button style="margin-top:20px; background:#C97B47; border:none; border-radius:24px; padding:14px 32px; color:#FAF6EA; font-size:15px; font-weight:600; font-family:inherit; cursor:pointer; display:inline-flex; align-items:center; gap:9px;">Weiter zur Planung <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12 H19 M13 6 L19 12 L13 18" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        </div>
+      </div>
+    </div>
+    <p style="width:1440px; font-size:12.5px; color:#98A2AF; line-height:1.6; margin:16px 2px 0; font-weight:300;"><strong style="color:#E9ECF1; font-weight:600;">Vorschau:</strong> Datei-Leiste (Format-Badge · Größe · Tier), erkannter Streckenname, Kennzahlen-Grid (Distanz/Aufstieg/Abstieg/Gelände) und Höhenprofil, „Weiter zur Planung". Track-Auswahl bei Mehrfach-Tracks identisch integrierbar.</p>
+  </article>
+
+  <!-- ============================ T3 — DESKTOP · BEWEGUNGSART ============================ -->
+  <article id="T3" style="width:1440px;">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+      <span style="display:inline-flex; align-items:center; justify-content:center; min-width:36px; height:26px; padding:0 10px; background:#C97B47; color:#FAF6EA; border-radius:6px; font-size:13px; font-weight:700; letter-spacing:1px;">T3</span>
+      <span style="font-size:15px; font-weight:600; color:#E9ECF1;">Desktop · Schritt 1 · Bewegungsart</span>
+    </div>
+    <div style="height:720px; border-radius:18px; overflow:hidden; background:#EDE6D3; border:1px solid #E0D6BE; box-shadow:0 40px 90px -50px rgba(0,0,0,.55); display:flex; flex-direction:column;">
+      <div style="height:60px; flex:0 0 auto; display:flex; align-items:center; gap:18px; padding:0 20px; background:#FAF6EA; border-bottom:1px solid #E0D6BE;">
+        <div style="display:flex; align-items:center; gap:10px;"><img src="buscosun-mark.svg" width="26" height="26" alt=""><span style="font-size:19px; font-weight:700; color:#2C2A26;">buscosun</span></div>
+        <div style="width:1px; height:26px; background:#E0D6BE;"></div>
+        <a href="#T2" style="font-size:12px; color:#C97B47; font-weight:600;">← Zurück</a>
+        <span style="font-size:13px; color:#8B7355;">· Oberstdorf → Kemptner Hütte</span>
+      </div>
+      <div style="flex:1; display:flex; min-height:0;">
+        <div style="width:62px; flex:0 0 auto; background:#2C2A26; display:flex; flex-direction:column; align-items:center; padding:14px 0;"><div style="width:42px; height:42px; border-radius:11px; background:#3A3833; color:#E0A567; display:flex; align-items:center; justify-content:center;"><svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M6 20 C6 20 5 13.5 9 11.5 C13 9.5 12 6.5 16 5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="6" cy="20" r="1.8" fill="currentColor"/><path d="M16 2.5 C14 2.5 12.4 4.1 12.4 6.1 C12.4 8.8 16 11.5 16 11.5 C16 11.5 19.6 8.8 19.6 6.1 C19.6 4.1 18 2.5 16 2.5 Z" stroke="currentColor" stroke-width="1.3"/></svg></div></div>
+        <div class="tp-scroll" style="flex:1; overflow-y:auto; background:#EDE6D3; padding:36px 56px;">
+          <div style="display:flex; align-items:center; gap:10px;"><span style="font-size:11px; letter-spacing:2.5px; color:#C97B47; font-weight:700;">SCHRITT 1 VON 2 · BEWEGUNGSART</span><span style="flex:1; max-width:180px; height:4px; border-radius:2px; background:#E0D6BE; overflow:hidden;"><span style="display:block; width:50%; height:100%; background:#C97B47;"></span></span></div>
+          <h2 style="font-size:30px; font-weight:700; color:#2C2A26; letter-spacing:-0.6px; margin:10px 0 0;">Wie bist du unterwegs?</h2>
+          <p style="font-size:14px; color:#5C5447; font-weight:300; margin:8px 0 0;">Wähle deine Bewegungsart — danach planen wir Zeiten und holen das Wetter entlang der Tour.</p>
+          <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-top:26px;">
+            <div style="background:#FAF6EA; border:1.5px solid #C97B47; border-radius:15px; padding:20px; cursor:pointer; position:relative;"><span style="position:absolute; top:14px; right:14px; width:18px; height:18px; border-radius:50%; background:#C97B47; display:flex; align-items:center; justify-content:center;"><svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="#FAF6EA" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,8.5 6.5,12 13,4"/></svg></span><span style="width:44px; height:44px; border-radius:12px; background:#F6E7D8; display:flex; align-items:center; justify-content:center;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#C97B47" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="13" cy="4" r="1.8"/><path d="M13 7 L10 12 L14 14 L15 20 M10 12 L6 13 M14 14 L11 11 L15 9 L18 11"/></svg></span><div style="font-size:17px; font-weight:700; color:#2C2A26; margin-top:14px;">Wandern</div><div style="font-size:12px; color:#8B7355; margin-top:3px; line-height:1.5;">Gehtempo nach Steigung, Gelände &amp; Pausen</div></div>
+            <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:15px; padding:20px; cursor:pointer;"><span style="width:44px; height:44px; border-radius:12px; background:#EFECE2; display:flex; align-items:center; justify-content:center;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8B7355" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="17" r="3.5"/><circle cx="18.5" cy="17" r="3.5"/><path d="M5.5 17 L9 8 H13 M12 8 L15.5 17 M9.5 8 H15"/></svg></span><div style="font-size:17px; font-weight:700; color:#2C2A26; margin-top:14px;">Rennrad</div><div style="font-size:12px; color:#8B7355; margin-top:3px; line-height:1.5;">Straßentempo, Wind-Effekt entlang Fahrtrichtung</div></div>
+            <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:15px; padding:20px; cursor:pointer;"><span style="width:44px; height:44px; border-radius:12px; background:#EFECE2; display:flex; align-items:center; justify-content:center;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8B7355" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="17" r="3.5"/><circle cx="18.5" cy="17" r="3.5"/><path d="M5.5 17 L9 8 H13 M12 8 L15.5 17 M9.5 8 H15"/></svg></span><div style="font-size:17px; font-weight:700; color:#2C2A26; margin-top:14px;">Mountainbike</div><div style="font-size:12px; color:#8B7355; margin-top:3px; line-height:1.5;">Trail-Tempo, mehr Zeit bergauf</div></div>
+            <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:15px; padding:20px; cursor:pointer; position:relative;"><span style="position:absolute; top:14px; right:14px; font-size:9px; font-weight:700; color:#5F7A4C; background:#EFF3E8; border:1px solid #C3D2AF; border-radius:5px; padding:2px 7px;">AKKU</span><span style="width:44px; height:44px; border-radius:12px; background:#EFECE2; display:flex; align-items:center; justify-content:center;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8B7355" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="17" r="3.5"/><circle cx="18.5" cy="17" r="3.5"/><path d="M5.5 17 L9 8 H13 M12 8 L15.5 17"/><path d="M13 4 L11 8 h3 l-1.5 3.5" stroke="#C97B47"/></svg></span><div style="font-size:17px; font-weight:700; color:#2C2A26; margin-top:14px;">E-Bike</div><div style="font-size:12px; color:#8B7355; margin-top:3px; line-height:1.5;">Mit Reichweiten-Prognose &amp; Rest-Akku pro km</div></div>
+            <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:15px; padding:20px; cursor:pointer;"><span style="width:44px; height:44px; border-radius:12px; background:#EFECE2; display:flex; align-items:center; justify-content:center;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8B7355" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20 L9 5 L13 18 M11 12 L16 4 L20 20"/></svg></span><div style="font-size:17px; font-weight:700; color:#2C2A26; margin-top:14px;">Trailrunning</div><div style="font-size:12px; color:#8B7355; margin-top:3px; line-height:1.5;">Lauftempo mit Höhenmeter-Abschlag</div></div>
+            <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:15px; padding:20px; cursor:pointer;"><span style="width:44px; height:44px; border-radius:12px; background:#EFECE2; display:flex; align-items:center; justify-content:center;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#8B7355" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18 h18 M5 18 l2 -5 h10 l2 5 M8 13 v-3 h8 v3 M12 5 v5"/></svg></span><div style="font-size:17px; font-weight:700; color:#2C2A26; margin-top:14px;">Skitour</div><div style="font-size:12px; color:#8B7355; margin-top:3px; line-height:1.5;">Aufstiegstempo, Schneefallgrenze relevant</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p style="width:1440px; font-size:12.5px; color:#98A2AF; line-height:1.6; margin:16px 2px 0; font-weight:300;"><strong style="color:#E9ECF1; font-weight:600;">Bewegungsart:</strong> Fortschritts-Kopf (1/2), Kachel-Grid aller Bewegungsarten mit Icon, Titel, Kurzbeschreibung; E-Bike mit Akku-Badge. Auswahl gelb umrandet + Häkchen.</p>
+  </article>
+
+  <!-- ============================ T4 — DESKTOP · KONFIGURATION ============================ -->
+  <article id="T4" style="width:1440px;">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+      <span style="display:inline-flex; align-items:center; justify-content:center; min-width:36px; height:26px; padding:0 10px; background:#C97B47; color:#FAF6EA; border-radius:6px; font-size:13px; font-weight:700; letter-spacing:1px;">T4</span>
+      <span style="font-size:15px; font-weight:600; color:#E9ECF1;">Desktop · Schritt 2 · Konfiguration (E-Bike)</span>
+    </div>
+    <div style="height:900px; border-radius:18px; overflow:hidden; background:#EDE6D3; border:1px solid #E0D6BE; box-shadow:0 40px 90px -50px rgba(0,0,0,.55); display:flex; flex-direction:column;">
+      <div style="height:60px; flex:0 0 auto; display:flex; align-items:center; gap:18px; padding:0 20px; background:#FAF6EA; border-bottom:1px solid #E0D6BE;">
+        <div style="display:flex; align-items:center; gap:10px;"><img src="buscosun-mark.svg" width="26" height="26" alt=""><span style="font-size:19px; font-weight:700; color:#2C2A26;">buscosun</span></div>
+        <div style="width:1px; height:26px; background:#E0D6BE;"></div>
+        <a href="#T3" style="font-size:12px; color:#C97B47; font-weight:600;">← Zurück</a>
+        <span style="font-size:13px; color:#8B7355;">· Oberstdorf → Kemptner Hütte</span>
+      </div>
+      <div style="flex:1; display:flex; min-height:0;">
+        <div style="width:62px; flex:0 0 auto; background:#2C2A26; display:flex; flex-direction:column; align-items:center; padding:14px 0;"><div style="width:42px; height:42px; border-radius:11px; background:#3A3833; color:#E0A567; display:flex; align-items:center; justify-content:center;"><svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M6 20 C6 20 5 13.5 9 11.5 C13 9.5 12 6.5 16 5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="6" cy="20" r="1.8" fill="currentColor"/><path d="M16 2.5 C14 2.5 12.4 4.1 12.4 6.1 C12.4 8.8 16 11.5 16 11.5 C16 11.5 19.6 8.8 19.6 6.1 C19.6 4.1 18 2.5 16 2.5 Z" stroke="currentColor" stroke-width="1.3"/></svg></div></div>
+        <div class="tp-scroll" style="flex:1; overflow-y:auto; background:#EDE6D3; padding:34px 56px;">
+          <div style="display:flex; align-items:center; gap:10px;"><span style="font-size:11px; letter-spacing:2.5px; color:#C97B47; font-weight:700;">SCHRITT 2 VON 2 · KONFIGURATION</span><span style="flex:1; max-width:180px; height:4px; border-radius:2px; background:#E0D6BE; overflow:hidden;"><span style="display:block; width:100%; height:100%; background:#C97B47;"></span></span></div>
+          <!-- config head -->
+          <div style="display:flex; align-items:center; gap:12px; margin-top:16px; background:#FAF6EA; border:1px solid #E0D6BE; border-radius:12px; padding:13px 16px;"><span style="width:10px; height:10px; border-radius:50%; background:#C97B47;"></span><span style="font-size:16px; font-weight:700; color:#2C2A26;">E-Bike</span><span style="font-size:12.5px; color:#8B7355;">Mit Reichweiten-Prognose &amp; Rest-Akku pro Kilometer</span><a href="#T3" style="margin-left:auto; font-size:12px; color:#C97B47; font-weight:600;">andere Art wählen</a></div>
+          <!-- config columns -->
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:16px;">
+            <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:14px; padding:20px;">
+              <div style="font-size:11px; letter-spacing:1.5px; color:#A89A7A; font-weight:700;">TEMPO-PROFIL</div>
+              <div style="display:flex; align-items:baseline; gap:8px; margin-top:10px;"><span style="font-size:24px; font-weight:700; color:#2C2A26;">22 km/h</span><span style="font-size:12px; color:#8B7355;">Basistempo eben</span></div>
+              <div style="height:6px; border-radius:3px; background:#E0D6BE; margin-top:12px; position:relative;"><div style="position:absolute; left:0; width:58%; top:0; bottom:0; background:#C97B47; border-radius:3px;"></div><div style="position:absolute; left:58%; top:50%; transform:translate(-50%,-50%); width:16px; height:16px; border-radius:50%; background:#C97B47; border:3px solid #FAF6EA;"></div></div>
+              <div style="display:flex; justify-content:space-between; font-size:10.5px; color:#A89A7A; margin-top:6px;"><span>gemütlich</span><span>sportlich</span></div>
+              <div style="display:flex; gap:16px; margin-top:16px;"><div style="flex:1;"><div style="font-size:10px; color:#A89A7A;">STEIGUNGS-EINFLUSS</div><div style="font-size:15px; font-weight:600; color:#2C2A26; margin-top:3px;">Stark</div></div><div style="flex:1;"><div style="font-size:10px; color:#A89A7A;">WIND-EINFLUSS</div><div style="font-size:15px; font-weight:600; color:#2C2A26; margin-top:3px;">An</div></div></div>
+              <div style="margin-top:18px; padding-top:16px; border-top:1px solid #E0D6BE;"><div style="font-size:11px; letter-spacing:1.5px; color:#A89A7A; font-weight:700;">RICHTUNG</div><div style="display:flex; gap:4px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:9px; padding:3px; margin-top:9px;"><span style="flex:1; text-align:center; font-size:12.5px; font-weight:600; color:#FAF6EA; background:#C97B47; border-radius:6px; padding:7px 0;">Hinweg</span><span style="flex:1; text-align:center; font-size:12.5px; font-weight:500; color:#8B7355; border-radius:6px; padding:7px 0;">Rückwärts</span></div></div>
+              <div style="margin-top:16px;"><div style="font-size:11px; letter-spacing:1.5px; color:#A89A7A; font-weight:700;">STARTZEIT</div><div style="display:flex; align-items:center; gap:10px; margin-top:9px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:10px; padding:10px 13px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="16" rx="2.5" stroke="#C97B47" stroke-width="1.6"/><path d="M3 9 H21 M8 3 V7 M16 3 V7" stroke="#C97B47" stroke-width="1.6" stroke-linecap="round"/></svg><span style="flex:1; font-size:13.5px; font-weight:600; color:#2C2A26;">Sa 12. Juli · 08:30</span><span style="font-size:11px; color:#C97B47; font-weight:600;">ändern</span></div></div>
+            </div>
+            <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:14px; padding:20px;">
+              <div style="font-size:11px; letter-spacing:1.5px; color:#A89A7A; font-weight:700;">PAUSEN</div>
+              <div style="display:flex; align-items:center; justify-content:space-between; margin-top:12px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:10px; padding:11px 13px;"><span style="font-size:13.5px; font-weight:600; color:#2C2A26;">Automatische Pausen</span><span style="width:34px; height:19px; border-radius:10px; background:#C97B47; position:relative;"><span style="position:absolute; top:2px; right:2px; width:15px; height:15px; border-radius:50%; background:#FFFFFF;"></span></span></div>
+              <div style="font-size:12px; color:#8B7355; margin-top:10px; line-height:1.5;">Alle 2 h eine Rast von 15 min, dazu eine Mittagspause 45 min gegen 12:30.</div>
+              <div style="display:flex; flex-direction:column; gap:8px; margin-top:14px;">
+                <div style="display:flex; align-items:center; gap:10px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:10px; padding:10px 12px;"><span style="width:26px; height:26px; border-radius:7px; background:#EFF3E8; display:flex; align-items:center; justify-content:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5F7A4C" stroke-width="1.7" stroke-linecap="round"><path d="M6 3 V9 A3 3 0 0 0 12 9 V3 M9 12 V21 M15 3 C15 3 18 5 18 10 V21"/></svg></span><span style="flex:1;"><b style="font-size:13px; color:#2C2A26;">Mittagspause</b><em style="display:block; font-size:11px; color:#8B7355; font-style:normal;">bei km 11,2 · 45 min</em></span><span style="font-size:11px; color:#C97B47; font-weight:600;">bearbeiten</span></div>
+                <div style="display:flex; align-items:center; gap:10px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:10px; padding:10px 12px;"><span style="width:26px; height:26px; border-radius:7px; background:#F3E3D3; display:flex; align-items:center; justify-content:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C97B47" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M12 8 V12 L15 14" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span style="flex:1;"><b style="font-size:13px; color:#2C2A26;">Rast</b><em style="display:block; font-size:11px; color:#8B7355; font-style:normal;">bei km 6,0 · 15 min</em></span><span style="font-size:11px; color:#C97B47; font-weight:600;">bearbeiten</span></div>
+                <button style="font-size:12px; font-weight:600; color:#C97B47; background:none; border:1px dashed #E3C39A; border-radius:9px; padding:9px; font-family:inherit; cursor:pointer;">+ Pause hinzufügen</button>
+              </div>
+            </div>
+          </div>
+          <!-- ebike battery panel -->
+          <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:14px; padding:20px; margin-top:16px;">
+            <div style="display:flex; align-items:center; gap:10px;"><span style="width:28px; height:28px; border-radius:8px; background:#EFF3E8; display:flex; align-items:center; justify-content:center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5F7A4C" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="18" height="10" rx="2"/><path d="M22 10 v4"/><path d="M11 9 L8 13 h3 l-1 4" stroke="#C97B47"/></svg></span><span style="font-size:15px; font-weight:700; color:#2C2A26;">E-Bike-Reichweite</span><span style="margin-left:auto; font-size:12px; color:#8B7355;">625 Wh · Unterstützung Tour</span></div>
+            <div style="display:grid; grid-template-columns:repeat(3,auto) 1fr; gap:24px; align-items:center; margin-top:16px;">
+              <div><div style="font-size:10px; color:#A89A7A;">START-AKKU</div><div style="font-size:22px; font-weight:700; color:#2C2A26; margin-top:3px;">100 %</div></div>
+              <div><div style="font-size:10px; color:#A89A7A;">REST AM ZIEL</div><div style="font-size:22px; font-weight:700; color:#5F7A4C; margin-top:3px;">34 %</div></div>
+              <div><div style="font-size:10px; color:#A89A7A;">REICHWEITE</div><div style="font-size:22px; font-weight:700; color:#2C2A26; margin-top:3px;">28 km</div></div>
+              <div style="flex:1;"><div style="height:26px; border-radius:8px; background:#E0D6BE; overflow:hidden; position:relative;"><div style="position:absolute; left:0; top:0; bottom:0; width:66%; background:linear-gradient(90deg,#7A9466,#C99A4E,#C97B47);"></div><span style="position:absolute; right:10px; top:50%; transform:translateY(-50%); font-size:11px; font-weight:700; color:#5C5447;">Ziel bei 34 %</span></div></div>
+            </div>
+          </div>
+          <button style="margin-top:20px; background:#C97B47; border:none; border-radius:24px; padding:15px 34px; color:#FAF6EA; font-size:16px; font-weight:600; font-family:inherit; cursor:pointer; display:inline-flex; align-items:center; gap:9px;">Wetter berechnen <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M5 12 H19 M13 6 L19 12 L13 18" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        </div>
+      </div>
+    </div>
+    <p style="width:1440px; font-size:12.5px; color:#98A2AF; line-height:1.6; margin:16px 2px 0; font-weight:300;"><strong style="color:#E9ECF1; font-weight:600;">Konfiguration:</strong> Zwei Spalten — Tempo-Profil (Slider, Steigungs-/Wind-Einfluss, Richtung Hinweg/Rückwärts, Startzeit) + Pausen (Auto-Toggle, Mittagspause/Rast bearbeiten, hinzufügen). Bei E-Bike zusätzlich das Reichweiten-Panel (Start/Rest/Reichweite + Verbrauchsbalken). CTA „Wetter berechnen".</p>
+  </article>
+
+  <!-- ============================ T5 — DESKTOP · ERGEBNIS ============================ -->
+  <article id="T5" style="width:1440px;">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+      <span style="display:inline-flex; align-items:center; justify-content:center; min-width:36px; height:26px; padding:0 10px; background:#C97B47; color:#FAF6EA; border-radius:6px; font-size:13px; font-weight:700; letter-spacing:1px;">T5</span>
+      <span style="font-size:15px; font-weight:600; color:#E9ECF1;">Desktop · Ergebnis — Wetter entlang der Tour</span>
+    </div>
+    <div style="height:1120px; border-radius:18px; overflow:hidden; background:#EDE6D3; border:1px solid #E0D6BE; box-shadow:0 40px 90px -50px rgba(0,0,0,.55); display:flex; flex-direction:column;">
+      <div style="height:60px; flex:0 0 auto; display:flex; align-items:center; gap:18px; padding:0 20px; background:#FAF6EA; border-bottom:1px solid #E0D6BE;">
+        <div style="display:flex; align-items:center; gap:10px;"><img src="buscosun-mark.svg" width="26" height="26" alt=""><span style="font-size:19px; font-weight:700; color:#2C2A26;">buscosun</span></div>
+        <div style="width:1px; height:26px; background:#E0D6BE;"></div>
+        <a href="#T4" style="font-size:12px; color:#C97B47; font-weight:600;">← Planung anpassen</a>
+        <span style="font-size:13px; color:#8B7355;">· Ergebnis · E-Bike</span>
+        <div style="margin-left:auto; display:flex; align-items:center; gap:14px;"><span style="display:flex; align-items:center; gap:7px;"><span style="width:7px; height:7px; border-radius:50%; background:#7A9466;"></span><span style="font-size:11px; letter-spacing:1.5px; color:#5F7A4C; font-weight:600;">DATEN LIVE</span></span></div>
+      </div>
+      <div style="flex:1; display:flex; min-height:0;">
+        <div style="width:62px; flex:0 0 auto; background:#2C2A26; display:flex; flex-direction:column; align-items:center; padding:14px 0;"><div style="width:42px; height:42px; border-radius:11px; background:#3A3833; color:#E0A567; display:flex; align-items:center; justify-content:center;"><svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M6 20 C6 20 5 13.5 9 11.5 C13 9.5 12 6.5 16 5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="6" cy="20" r="1.8" fill="currentColor"/><path d="M16 2.5 C14 2.5 12.4 4.1 12.4 6.1 C12.4 8.8 16 11.5 16 11.5 C16 11.5 19.6 8.8 19.6 6.1 C19.6 4.1 18 2.5 16 2.5 Z" stroke="currentColor" stroke-width="1.3"/></svg></div></div>
+        <div class="tp-scroll" style="flex:1; overflow-y:auto; background:#EDE6D3; padding:28px 40px;">
+          <!-- head -->
+          <span style="font-size:11px; letter-spacing:2.5px; color:#C97B47; font-weight:700;">ERGEBNIS · E-BIKE</span>
+          <h1 style="font-size:28px; font-weight:700; color:#2C2A26; letter-spacing:-0.5px; margin:6px 0 0;">Oberstdorf → Kemptner Hütte</h1>
+          <div style="font-size:13.5px; color:#5C5447; margin-top:5px;">Sa 12. Juli 08:30 → <strong style="color:#2C2A26;">12:14</strong> · Gesamt <strong style="color:#2C2A26;">3:44 h</strong> · <strong style="color:#2C2A26;">18,4 km</strong></div>
+
+          <!-- weather strip -->
+          <div style="font-size:10px; letter-spacing:2px; color:#A89A7A; font-weight:700; margin:22px 0 9px;">WETTER ENTLANG · VERLÄSSLICHKEIT</div>
+          <div style="display:flex; gap:6px;">
+            <div style="flex:1; background:#FAF6EA; border:1px solid #E0D6BE; border-radius:11px; padding:11px 8px; text-align:center;"><div style="font-size:10px; color:#8B7355;">km 0</div><svg width="26" height="26" viewBox="0 0 40 40" style="margin:5px auto 0; display:block;"><circle cx="20" cy="20" r="8" fill="#D4A373"/><g stroke="#D4A373" stroke-width="2.2" stroke-linecap="round"><line x1="20" y1="6" x2="20" y2="9"/><line x1="6" y1="20" x2="9" y2="20"/></g></svg><div style="font-size:14px; font-weight:700; color:#2C2A26; margin-top:5px;">14°</div><div style="font-size:10px; color:#5F7A4C; margin-top:2px;">↙ Rücken</div></div>
+            <div style="flex:1; background:#FAF6EA; border:1px solid #E0D6BE; border-radius:11px; padding:11px 8px; text-align:center;"><div style="font-size:10px; color:#8B7355;">km 4</div><svg width="26" height="26" viewBox="0 0 40 40" style="margin:5px auto 0; display:block;"><circle cx="15" cy="16" r="8" fill="#D4A373"/><path d="M 8 27 Q 8 18 17 18 Q 22 11 29 18 Q 37 18 37 25 Q 37 29 31 29 L 12 29 Q 8 29 8 27 Z" fill="#C9CFD6"/></svg><div style="font-size:14px; font-weight:700; color:#2C2A26; margin-top:5px;">12°</div><div style="font-size:10px; color:#C97B47; margin-top:2px;">→ Seite</div></div>
+            <div style="flex:1; background:#FAF6EA; border:1px solid #E0D6BE; border-radius:11px; padding:11px 8px; text-align:center;"><div style="font-size:10px; color:#8B7355;">km 8</div><svg width="26" height="26" viewBox="0 0 40 40" style="margin:5px auto 0; display:block;"><path d="M 6 24 Q 6 14 16 14 Q 22 7 29 14 Q 37 14 37 22 Q 37 26 31 26 L 11 26 Q 6 26 6 24 Z" fill="#9AB8CF"/><g stroke="#3A6FA8" stroke-width="2" stroke-linecap="round"><line x1="14" y1="30" x2="12" y2="34"/></g></svg><div style="font-size:14px; font-weight:700; color:#2C2A26; margin-top:5px;">9°</div><div style="font-size:10px; color:#A8431F; margin-top:2px;">↑ Gegen</div></div>
+            <div style="flex:1; background:#FAF6EA; border:1px solid #E0D6BE; border-radius:11px; padding:11px 8px; text-align:center;"><div style="font-size:10px; color:#8B7355;">km 12</div><svg width="26" height="26" viewBox="0 0 40 40" style="margin:5px auto 0; display:block;"><path d="M 6 24 Q 6 14 16 14 Q 22 7 29 14 Q 37 14 37 22 Q 37 26 31 26 L 11 26 Q 6 26 6 24 Z" fill="#9AB8CF"/><g stroke="#3A6FA8" stroke-width="2" stroke-linecap="round"><line x1="14" y1="30" x2="12" y2="34"/><line x1="22" y1="30" x2="20" y2="34"/></g></svg><div style="font-size:14px; font-weight:700; color:#2C2A26; margin-top:5px;">7°</div><div style="font-size:10px; color:#C97B47; margin-top:2px;">→ Seite</div></div>
+            <div style="flex:1; background:#FAF6EA; border:1px solid #E0D6BE; border-radius:11px; padding:11px 8px; text-align:center;"><div style="font-size:10px; color:#8B7355;">km 15</div><svg width="26" height="26" viewBox="0 0 40 40" style="margin:5px auto 0; display:block;"><path d="M 6 22 Q 6 12 16 12 Q 22 5 30 12 Q 38 12 38 20 Q 38 24 32 24 L 10 24 Q 6 24 6 22 Z" fill="#9AB8CF"/></svg><div style="font-size:14px; font-weight:700; color:#2C2A26; margin-top:5px;">6°</div><div style="font-size:10px; color:#5F7A4C; margin-top:2px;">↙ Rücken</div></div>
+            <div style="flex:1; background:#FBF3E7; border:1px solid #E3C39A; border-radius:11px; padding:11px 8px; text-align:center;"><div style="font-size:10px; color:#9A5A2A;">km 18 · Ziel</div><svg width="26" height="26" viewBox="0 0 40 40" style="margin:5px auto 0; display:block;"><path d="M 6 22 Q 6 12 16 12 Q 22 5 30 12 Q 38 12 38 20 Q 38 24 32 24 L 10 24 Q 6 24 6 22 Z" fill="#9AB8CF"/><g stroke="#3A6FA8" stroke-width="2" stroke-linecap="round"><line x1="14" y1="28" x2="12" y2="33"/><line x1="22" y1="28" x2="20" y2="33"/><line x1="18" y1="30" x2="16" y2="35"/></g></svg><div style="font-size:14px; font-weight:700; color:#2C2A26; margin-top:5px;">5°</div><div style="font-size:10px; color:#A8431F; margin-top:2px;">↑ Gegen</div></div>
+          </div>
+
+          <!-- map + panel -->
+          <div style="display:grid; grid-template-columns:1fr 340px; gap:16px; margin-top:16px;">
+            <div style="position:relative; height:380px; border-radius:14px; overflow:hidden; background:#0B0E12; border:1px solid #232A33;">
+              <div style="position:absolute; inset:0; background:radial-gradient(120% 90% at 50% 40%, #16202A 0%, #0F1620 55%, #0B0E12 100%);"></div>
+              <svg viewBox="0 0 760 380" preserveAspectRatio="xMidYMid slice" style="position:absolute; inset:0; width:100%; height:100%;">
+                <g stroke="#1C2630" stroke-width="1"><path d="M0 95 H760 M0 190 H760 M0 285 H760 M190 0 V380 M380 0 V380 M570 0 V380"/></g>
+                <path d="M90 300 Q180 250 240 270 Q320 296 380 230 Q450 160 540 180 Q620 196 680 120" fill="none" stroke="#C97B47" stroke-width="3.5" stroke-linecap="round"/>
+                <circle cx="90" cy="300" r="7" fill="#7A9466" stroke="#0B0E12" stroke-width="2"/>
+                <circle cx="380" cy="230" r="5" fill="#E0A567" stroke="#0B0E12" stroke-width="2"/>
+                <circle cx="680" cy="120" r="7" fill="#A8431F" stroke="#0B0E12" stroke-width="2"/>
+                <g font-family="League Spartan" font-size="11" font-weight="700" fill="#F5F1E8"><text x="100" y="322">Start</text><text x="690" y="118">Ziel</text></g>
+              </svg>
+              <div style="position:absolute; left:12px; bottom:12px; background:rgba(250,246,234,.94); border:1px solid #E0D6BE; border-radius:9px; padding:8px 11px;"><div style="font-size:9px; letter-spacing:1.5px; color:#A89A7A; font-weight:700;">QUELLEN</div><div style="font-size:11px; color:#2C2A26; margin-top:3px;">DE · AT — live, höhenkorrigiert</div></div>
+              <div style="position:absolute; right:12px; top:12px; background:rgba(250,246,234,.94); border:1px solid #E0D6BE; border-radius:9px; padding:9px 11px;"><div style="font-size:9px; letter-spacing:1.5px; color:#A89A7A; font-weight:700;">WIND ZUR ROUTE</div><div style="display:flex; gap:10px; margin-top:6px; font-size:10.5px; color:#5C5447;"><span style="display:flex; align-items:center; gap:4px;"><i style="width:9px; height:9px; border-radius:2px; background:#5e8048; display:inline-block;"></i>Rücken</span><span style="display:flex; align-items:center; gap:4px;"><i style="width:9px; height:9px; border-radius:2px; background:#C97B47; display:inline-block;"></i>Seite</span><span style="display:flex; align-items:center; gap:4px;"><i style="width:9px; height:9px; border-radius:2px; background:#A8431F; display:inline-block;"></i>Gegen</span></div></div>
+            </div>
+            <aside style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:14px; padding:18px; display:flex; flex-direction:column;">
+              <div style="font-size:10px; letter-spacing:2px; color:#A89A7A; font-weight:700;">WETTER · GESAMTE TOUR</div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px;">
+                <div style="background:#FFFFFF; border:1px solid #E0D6BE; border-radius:10px; padding:11px;"><div style="font-size:9px; color:#A89A7A;">TEMP-SPANNE</div><div style="font-size:17px; font-weight:700; color:#2C2A26; margin-top:2px;">5–14°</div></div>
+                <div style="background:#FFFFFF; border:1px solid #E0D6BE; border-radius:10px; padding:11px;"><div style="font-size:9px; color:#A89A7A;">REGEN</div><div style="font-size:17px; font-weight:700; color:#3A6FA8; margin-top:2px;">2,4 mm</div></div>
+                <div style="background:#FFFFFF; border:1px solid #E0D6BE; border-radius:10px; padding:11px;"><div style="font-size:9px; color:#A89A7A;">WIND MAX</div><div style="font-size:17px; font-weight:700; color:#2C2A26; margin-top:2px;">34 km/h</div></div>
+                <div style="background:#FFFFFF; border:1px solid #E0D6BE; border-radius:10px; padding:11px;"><div style="font-size:9px; color:#A89A7A;">UV</div><div style="font-size:17px; font-weight:700; color:#2C2A26; margin-top:2px;">5 · mittel</div></div>
+              </div>
+              <div style="display:flex; align-items:center; gap:9px; background:#FBF3E7; border:1px solid #E3C39A; border-radius:10px; padding:10px 12px; margin-top:12px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C97B47" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 L22 20 H2 Z"/><line x1="12" y1="10" x2="12" y2="14"/><circle cx="12" cy="17" r="0.6" fill="#C97B47"/></svg><span style="font-size:11.5px; color:#5C5447;"><strong style="color:#9A5A2A;">Windwarnung</strong> ab km 8 — Böen bis 55 km/h am Grat.</span></div>
+              <div style="display:flex; align-items:center; gap:9px; background:#F6E7D8; border:1px solid #E3C39A; border-radius:10px; padding:10px 12px; margin-top:8px;"><span style="font-size:16px;">🌬️</span><span style="font-size:11.5px; color:#5C5447;"><strong style="color:#9A5A2A;">Föhn</strong> wahrscheinlich — mild &amp; klar, aber böig.</span></div>
+              <div style="display:flex; gap:8px; margin-top:auto; padding-top:16px;">
+                <button style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; background:#C97B47; border:none; border-radius:10px; padding:11px; color:#FAF6EA; font-size:12.5px; font-weight:600; font-family:inherit; cursor:pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 9 H21 M8 3 V7 M16 3 V7" stroke-linecap="round"/></svg>Als Event</button>
+                <button style="display:flex; align-items:center; justify-content:center; gap:6px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:10px; padding:11px 14px; color:#2C2A26; font-size:12.5px; font-weight:600; font-family:inherit; cursor:pointer;">Tagesablauf</button>
+                <button style="display:flex; align-items:center; justify-content:center; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:10px; padding:11px 13px; color:#2C2A26; font-family:inherit; cursor:pointer;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M6 3 H18 V21 L12 17 L6 21 Z"/></svg></button>
+              </div>
+            </aside>
+          </div>
+
+          <!-- scrubber -->
+          <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:14px; padding:16px 18px; margin-top:16px;">
+            <div style="display:flex; align-items:baseline; justify-content:space-between;"><span style="font-size:10px; letter-spacing:2px; color:#A89A7A; font-weight:700;"> POSITION ENTLANG DER TOUR</span><span style="font-size:12px; color:#2C2A26; font-weight:600;">km 8,2 · 09:52 · 9° · Gegenwind 28 km/h · Akku 71 %</span></div>
+            <div style="position:relative; height:8px; background:#E0D6BE; border-radius:4px; margin-top:12px;"><div style="position:absolute; left:0; width:45%; top:0; bottom:0; background:#C97B47; border-radius:4px;"></div><div style="position:absolute; left:45%; top:50%; transform:translate(-50%,-50%); width:18px; height:18px; border-radius:50%; background:#C97B47; border:4px solid #FAF6EA; box-shadow:0 2px 6px rgba(0,0,0,.2);"></div></div>
+            <div style="display:flex; justify-content:space-between; font-size:10px; color:#A89A7A; margin-top:7px;"><span>Start · 08:30</span><span>Mittag · 11,2 km</span><span>Ziel · 12:14</span></div>
+          </div>
+
+          <!-- profile + time overview -->
+          <div style="display:grid; grid-template-columns:1fr 340px; gap:16px; margin-top:16px;">
+            <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:14px; padding:18px;">
+              <span style="font-size:10px; letter-spacing:2px; color:#A89A7A; font-weight:700;">VERLAUF · TEMPERATUR · REGEN · WIND</span>
+              <svg viewBox="0 0 700 150" preserveAspectRatio="none" style="width:100%; height:150px; margin-top:12px;">
+                <g stroke="#E0D6BE" stroke-width="1"><line x1="0" y1="38" x2="700" y2="38"/><line x1="0" y1="75" x2="700" y2="75"/><line x1="0" y1="112" x2="700" y2="112"/></g>
+                <path d="M0 40 Q120 44 220 58 Q360 78 480 96 Q600 112 700 120" fill="none" stroke="#C97B47" stroke-width="2"/>
+                <g fill="#3A6FA8" opacity=".5"><rect x="330" y="96" width="10" height="54" rx="2"/><rect x="346" y="88" width="10" height="62" rx="2"/><rect x="362" y="104" width="10" height="46" rx="2"/></g>
+                <path d="M0 110 Q160 100 320 84 Q500 66 700 44" fill="none" stroke="#7A9466" stroke-width="1.6" stroke-dasharray="4 4"/>
+              </svg>
+              <div style="display:flex; gap:16px; margin-top:8px; font-size:11px; color:#8B7355;"><span style="display:flex; align-items:center; gap:5px;"><i style="width:14px; height:2.5px; background:#C97B47; display:inline-block;"></i>Temperatur</span><span style="display:flex; align-items:center; gap:5px;"><i style="width:10px; height:8px; background:#3A6FA8; opacity:.5; display:inline-block; border-radius:2px;"></i>Regen</span><span style="display:flex; align-items:center; gap:5px;"><i style="width:14px; height:2.5px; background:#7A9466; display:inline-block;"></i>Wind</span></div>
+            </div>
+            <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:14px; padding:18px;">
+              <span style="font-size:10px; letter-spacing:2px; color:#A89A7A; font-weight:700;">ZEIT-ÜBERSICHT</span>
+              <div style="margin-top:12px; display:flex; flex-direction:column; gap:0;">
+                <div style="display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px solid #EDE6D3;"><span style="font-size:12.5px; color:#8B7355;">Start</span><span style="font-size:12.5px; font-weight:600; color:#2C2A26;">Sa 12.7. · 08:30</span></div>
+                <div style="display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px solid #EDE6D3;"><span style="font-size:12.5px; color:#8B7355;">Fahrzeit</span><span style="font-size:12.5px; font-weight:600; color:#2C2A26;">2:59 h</span></div>
+                <div style="display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px solid #EDE6D3;"><span style="font-size:12.5px; color:#8B7355;">Pausen</span><span style="font-size:12.5px; font-weight:600; color:#2C2A26;">2 · 0:45 h</span></div>
+                <div style="display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px solid #EDE6D3;"><span style="font-size:12.5px; font-weight:700; color:#2C2A26;">Gesamtdauer</span><span style="font-size:12.5px; font-weight:700; color:#C97B47;">3:44 h</span></div>
+                <div style="display:flex; justify-content:space-between; padding:9px 0;"><span style="font-size:12.5px; color:#8B7355;">Ankunft</span><span style="font-size:12.5px; font-weight:600; color:#2C2A26;">12:14</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- timeline + quality -->
+          <div style="display:grid; grid-template-columns:340px 1fr; gap:16px; margin-top:16px;">
+            <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:14px; padding:18px;">
+              <span style="font-size:10px; letter-spacing:2px; color:#A89A7A; font-weight:700;">ZEITPLAN</span>
+              <div style="margin-top:12px; display:flex; flex-direction:column; gap:14px;">
+                <div style="display:flex; gap:11px;"><span style="width:10px; height:10px; border-radius:50%; background:#7A9466; margin-top:3px; flex:0 0 auto;"></span><div><div style="font-size:11px; color:#8B7355;">Start · 08:30</div><div style="font-size:13px; font-weight:600; color:#2C2A26;">Oberstdorf</div><div style="font-size:10.5px; color:#A89A7A;">0,0 km</div></div></div>
+                <div style="display:flex; gap:11px;"><span style="width:10px; height:10px; border-radius:50%; background:#C97B47; margin-top:3px; flex:0 0 auto;"></span><div><div style="font-size:11px; color:#8B7355;">10:15 → 10:30 · Rast</div><div style="font-size:13px; font-weight:600; color:#2C2A26;">Spielmannsau</div><div style="font-size:10.5px; color:#A89A7A;">6,0 km · +15 min</div></div></div>
+                <div style="display:flex; gap:11px;"><span style="width:10px; height:10px; border-radius:50%; background:#5F7A4C; margin-top:3px; flex:0 0 auto;"></span><div><div style="font-size:11px; color:#8B7355;">11:20 → 12:05 · Mahlzeit</div><div style="font-size:13px; font-weight:600; color:#2C2A26;">Mittagsrast</div><div style="font-size:10.5px; color:#A89A7A;">11,2 km · +45 min</div></div></div>
+                <div style="display:flex; gap:11px;"><span style="width:10px; height:10px; border-radius:50%; background:#A8431F; margin-top:3px; flex:0 0 auto;"></span><div><div style="font-size:11px; color:#8B7355;">Ziel · 12:14</div><div style="font-size:13px; font-weight:600; color:#2C2A26;">Kemptner Hütte</div><div style="font-size:10.5px; color:#A89A7A;">18,4 km</div></div></div>
+              </div>
+            </div>
+            <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:14px; padding:18px;">
+              <span style="font-size:10px; letter-spacing:2px; color:#A89A7A; font-weight:700;">DATEN-HERKUNFT &amp; QUALITÄT</span>
+              <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-top:14px;">
+                <div><div style="font-size:12px; font-weight:700; color:#2C2A26;">Wind-Iteration</div><div style="display:flex; align-items:center; gap:6px; font-size:11px; color:#5F7A4C; margin-top:6px;"><span style="width:8px; height:8px; border-radius:50%; background:#7A9466;"></span>konvergiert</div><div style="font-size:10.5px; color:#8B7355; margin-top:4px;">3 Iterationen · Drift 12 s</div><div style="font-size:10.5px; color:#8B7355;">DE: 6 Cluster, 48 h Tiefe</div></div>
+                <div><div style="font-size:12px; font-weight:700; color:#2C2A26;">Wetter-Abruf</div><div style="font-size:11px; color:#5C5447; margin-top:6px;"><strong>8/8 Cluster</strong> · 12 Calls</div><div style="font-size:10.5px; color:#8B7355; margin-top:4px;">3 Punkte Radar-Nowcast</div><div style="font-size:10.5px; color:#8B7355;">18 höhenkorrigiert · 421 ms</div></div>
+                <div><div style="font-size:12px; font-weight:700; color:#2C2A26;">Abdeckung</div><div style="display:flex; justify-content:space-between; font-size:10.5px; color:#5C5447; margin-top:6px;"><span>Temp, Wind</span><span style="color:#5F7A4C;">✓</span></div><div style="display:flex; justify-content:space-between; font-size:10.5px; color:#5C5447; margin-top:3px;"><span>Niederschlag</span><span style="color:#5F7A4C;">✓</span></div><div style="display:flex; justify-content:space-between; font-size:10.5px; color:#5C5447; margin-top:3px;"><span>Schneegrenze</span><span style="color:#A89A7A;">nur AT/CH</span></div><div style="display:flex; justify-content:space-between; font-size:10.5px; color:#5C5447; margin-top:3px;"><span>UV-Index</span><span style="color:#A89A7A;">DE gemessen</span></div></div>
+              </div>
+              <div style="font-size:10.5px; color:#8B7355; margin-top:14px; padding-top:12px; border-top:1px solid #EDE6D3; line-height:1.5;">Quellen: DWD (Deutschland) · GeoSphere (Österreich) · MeteoSwiss (Schweiz) · live, höhenkorrigiert, ohne Tracker.</div>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px; margin-top:20px; font-size:11.5px; color:#8B7355;"><span style="color:#C97B47;">●</span> Wetter, das seine Arbeit zeigt.</div>
+        </div>
+      </div>
+    </div>
+    <p style="width:1440px; font-size:12.5px; color:#98A2AF; line-height:1.6; margin:16px 2px 0; font-weight:300;"><strong style="color:#E9ECF1; font-weight:600;">Ergebnis:</strong> Voller Readout ohne Verlust — Wetter-Strip pro km (mit Wind-Relation), dunkle Routenkarte (Zugbahn, Start/Pause/Ziel, Quellen- &amp; Wind-Legende), Gesamt-Statistik + Warn-/Föhn-Banner + Aktionen, Positions-Scrubber, Verlaufs-Chart (Temp/Regen/Wind), Zeit-Übersicht, Zeitplan-Timeline und Daten-Herkunft/Qualität.</p>
+  </article>
+
+  <!-- ============================ T6 — TABLET · KONFIGURATION ============================ -->
+  <article id="T6" style="width:1024px;">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+      <span style="display:inline-flex; align-items:center; justify-content:center; min-width:36px; height:26px; padding:0 10px; background:#C97B47; color:#FAF6EA; border-radius:6px; font-size:13px; font-weight:700; letter-spacing:1px;">T6</span>
+      <span style="font-size:15px; font-weight:600; color:#E9ECF1;">Tablet · Konfiguration (E-Bike)</span>
+    </div>
+    <div style="height:768px; border-radius:18px; overflow:hidden; background:#EDE6D3; border:1px solid #E0D6BE; box-shadow:0 40px 90px -50px rgba(0,0,0,.55); display:flex; flex-direction:column;">
+      <div style="height:54px; flex:0 0 auto; display:flex; align-items:center; gap:14px; padding:0 16px; background:#FAF6EA; border-bottom:1px solid #E0D6BE;"><img src="buscosun-mark.svg" width="24" height="24" alt=""><span style="font-size:17px; font-weight:700; color:#2C2A26;">buscosun</span><a href="#T2" style="font-size:12px; color:#C97B47; font-weight:600; margin-left:6px;">← Zurück</a><span style="margin-left:auto; display:flex; align-items:center; gap:7px;"><span style="width:7px; height:7px; border-radius:50%; background:#7A9466;"></span><span style="font-size:11px; color:#5F7A4C; font-weight:600; letter-spacing:1px;">LIVE</span></span></div>
+      <div style="flex:1; display:flex; min-height:0;">
+        <div style="width:54px; flex:0 0 auto; background:#2C2A26; display:flex; flex-direction:column; align-items:center; padding:12px 0;"><div style="width:38px; height:38px; border-radius:10px; background:#3A3833; color:#E0A567; display:flex; align-items:center; justify-content:center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M6 20 C6 20 5 13.5 9 11.5 C13 9.5 12 6.5 16 5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="6" cy="20" r="1.8" fill="currentColor"/><path d="M16 2.5 C14 2.5 12.4 4.1 12.4 6.1 C12.4 8.8 16 11.5 16 11.5 C16 11.5 19.6 8.8 19.6 6.1 C19.6 4.1 18 2.5 16 2.5 Z" stroke="currentColor" stroke-width="1.3"/></svg></div></div>
+        <div class="tp-scroll" style="flex:1; overflow-y:auto; background:#EDE6D3; padding:26px 30px;">
+          <div style="display:flex; align-items:center; gap:10px;"><span style="font-size:10px; letter-spacing:2px; color:#C97B47; font-weight:700;">SCHRITT 2 VON 2 · KONFIGURATION</span><span style="flex:1; max-width:140px; height:4px; border-radius:2px; background:#E0D6BE; overflow:hidden;"><span style="display:block; width:100%; height:100%; background:#C97B47;"></span></span></div>
+          <div style="display:flex; align-items:center; gap:10px; margin-top:14px; background:#FAF6EA; border:1px solid #E0D6BE; border-radius:11px; padding:11px 14px;"><span style="width:9px; height:9px; border-radius:50%; background:#C97B47;"></span><span style="font-size:15px; font-weight:700; color:#2C2A26;">E-Bike</span><a href="#T3" style="margin-left:auto; font-size:11.5px; color:#C97B47; font-weight:600;">andere Art</a></div>
+          <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:13px; padding:18px; margin-top:14px;">
+            <div style="font-size:10px; letter-spacing:1.5px; color:#A89A7A; font-weight:700;">TEMPO-PROFIL</div>
+            <div style="display:flex; align-items:baseline; gap:8px; margin-top:9px;"><span style="font-size:22px; font-weight:700; color:#2C2A26;">22 km/h</span><span style="font-size:11.5px; color:#8B7355;">Basistempo eben</span></div>
+            <div style="height:6px; border-radius:3px; background:#E0D6BE; margin-top:11px; position:relative;"><div style="position:absolute; left:0; width:58%; top:0; bottom:0; background:#C97B47; border-radius:3px;"></div><div style="position:absolute; left:58%; top:50%; transform:translate(-50%,-50%); width:15px; height:15px; border-radius:50%; background:#C97B47; border:3px solid #FAF6EA;"></div></div>
+            <div style="display:flex; gap:8px; margin-top:16px;"><div style="flex:1;"><div style="font-size:10px; color:#A89A7A;">RICHTUNG</div><div style="display:flex; gap:3px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:8px; padding:3px; margin-top:6px;"><span style="flex:1; text-align:center; font-size:11.5px; font-weight:600; color:#FAF6EA; background:#C97B47; border-radius:5px; padding:6px 0;">Hin</span><span style="flex:1; text-align:center; font-size:11.5px; font-weight:500; color:#8B7355; border-radius:5px; padding:6px 0;">Zurück</span></div></div><div style="flex:1;"><div style="font-size:10px; color:#A89A7A;">STARTZEIT</div><div style="display:flex; align-items:center; gap:6px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:8px; padding:7px 10px; margin-top:6px;"><span style="font-size:12px; font-weight:600; color:#2C2A26;">Sa · 08:30</span></div></div></div>
+          </div>
+          <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:13px; padding:18px; margin-top:12px;">
+            <div style="display:flex; align-items:center; justify-content:space-between;"><div style="font-size:10px; letter-spacing:1.5px; color:#A89A7A; font-weight:700;">AUTOMATISCHE PAUSEN</div><span style="width:32px; height:18px; border-radius:9px; background:#C97B47; position:relative;"><span style="position:absolute; top:2px; right:2px; width:14px; height:14px; border-radius:50%; background:#FFFFFF;"></span></span></div>
+            <div style="display:flex; gap:8px; margin-top:12px;"><div style="flex:1; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:9px; padding:9px 11px;"><b style="font-size:12px; color:#2C2A26;">Mittag</b><span style="display:block; font-size:10.5px; color:#8B7355;">km 11,2 · 45 min</span></div><div style="flex:1; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:9px; padding:9px 11px;"><b style="font-size:12px; color:#2C2A26;">Rast</b><span style="display:block; font-size:10.5px; color:#8B7355;">km 6,0 · 15 min</span></div></div>
+          </div>
+          <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:13px; padding:18px; margin-top:12px;">
+            <div style="display:flex; align-items:center; gap:8px;"><span style="width:26px; height:26px; border-radius:7px; background:#EFF3E8; display:flex; align-items:center; justify-content:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5F7A4C" stroke-width="1.7"><rect x="2" y="7" width="18" height="10" rx="2"/><path d="M22 10 v4"/></svg></span><span style="font-size:14px; font-weight:700; color:#2C2A26;">E-Bike-Reichweite</span></div>
+            <div style="display:flex; gap:18px; margin-top:12px;"><div><div style="font-size:9px; color:#A89A7A;">START</div><div style="font-size:18px; font-weight:700; color:#2C2A26;">100 %</div></div><div><div style="font-size:9px; color:#A89A7A;">ZIEL</div><div style="font-size:18px; font-weight:700; color:#5F7A4C;">34 %</div></div><div style="flex:1; align-self:center;"><div style="height:22px; border-radius:7px; background:#E0D6BE; overflow:hidden;"><div style="height:100%; width:66%; background:linear-gradient(90deg,#7A9466,#C99A4E,#C97B47);"></div></div></div></div>
+          </div>
+          <button style="margin-top:18px; background:#C97B47; border:none; border-radius:22px; padding:13px 28px; color:#FAF6EA; font-size:15px; font-weight:600; font-family:inherit; cursor:pointer; display:inline-flex; align-items:center; gap:8px;">Wetter berechnen <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12 H19 M13 6 L19 12 L13 18" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        </div>
+      </div>
+    </div>
+    <p style="width:1024px; font-size:12.5px; color:#98A2AF; line-height:1.6; margin:16px 2px 0; font-weight:300;"><strong style="color:#E9ECF1; font-weight:600;">Tablet-Konfiguration:</strong> Gestapelte Karten — Tempo-Profil (Slider, Richtung, Startzeit), Auto-Pausen (Mittag/Rast), E-Bike-Reichweite; CTA „Wetter berechnen".</p>
+  </article>
+
+  <!-- ============================ T7 — TABLET · ERGEBNIS ============================ -->
+  <article id="T7" style="width:1024px;">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+      <span style="display:inline-flex; align-items:center; justify-content:center; min-width:36px; height:26px; padding:0 10px; background:#C97B47; color:#FAF6EA; border-radius:6px; font-size:13px; font-weight:700; letter-spacing:1px;">T7</span>
+      <span style="font-size:15px; font-weight:600; color:#E9ECF1;">Tablet · Ergebnis</span>
+    </div>
+    <div style="height:900px; border-radius:18px; overflow:hidden; background:#EDE6D3; border:1px solid #E0D6BE; box-shadow:0 40px 90px -50px rgba(0,0,0,.55); display:flex; flex-direction:column;">
+      <div style="height:54px; flex:0 0 auto; display:flex; align-items:center; gap:14px; padding:0 16px; background:#FAF6EA; border-bottom:1px solid #E0D6BE;"><img src="buscosun-mark.svg" width="24" height="24" alt=""><span style="font-size:17px; font-weight:700; color:#2C2A26;">buscosun</span><a href="#T6" style="font-size:12px; color:#C97B47; font-weight:600; margin-left:6px;">← Planung anpassen</a></div>
+      <div style="flex:1; display:flex; min-height:0;">
+        <div style="width:54px; flex:0 0 auto; background:#2C2A26; display:flex; flex-direction:column; align-items:center; padding:12px 0;"><div style="width:38px; height:38px; border-radius:10px; background:#3A3833; color:#E0A567; display:flex; align-items:center; justify-content:center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M6 20 C6 20 5 13.5 9 11.5 C13 9.5 12 6.5 16 5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="6" cy="20" r="1.8" fill="currentColor"/><path d="M16 2.5 C14 2.5 12.4 4.1 12.4 6.1 C12.4 8.8 16 11.5 16 11.5 C16 11.5 19.6 8.8 19.6 6.1 C19.6 4.1 18 2.5 16 2.5 Z" stroke="currentColor" stroke-width="1.3"/></svg></div></div>
+        <div class="tp-scroll" style="flex:1; overflow-y:auto; background:#EDE6D3; padding:22px 26px;">
+          <span style="font-size:10px; letter-spacing:2px; color:#C97B47; font-weight:700;">ERGEBNIS · E-BIKE</span>
+          <h1 style="font-size:23px; font-weight:700; color:#2C2A26; letter-spacing:-0.4px; margin:5px 0 0;">Oberstdorf → Kemptner Hütte</h1>
+          <div style="font-size:12.5px; color:#5C5447; margin-top:4px;">08:30 → <strong style="color:#2C2A26;">12:14</strong> · 3:44 h · 18,4 km</div>
+          <!-- strip -->
+          <div style="display:flex; gap:5px; margin-top:16px;">
+            <div style="flex:1; background:#FAF6EA; border:1px solid #E0D6BE; border-radius:10px; padding:9px 5px; text-align:center;"><div style="font-size:9px; color:#8B7355;">km 0</div><div style="font-size:13px; font-weight:700; color:#2C2A26; margin-top:4px;">14°</div><div style="font-size:9px; color:#5F7A4C;">↙</div></div>
+            <div style="flex:1; background:#FAF6EA; border:1px solid #E0D6BE; border-radius:10px; padding:9px 5px; text-align:center;"><div style="font-size:9px; color:#8B7355;">km 4</div><div style="font-size:13px; font-weight:700; color:#2C2A26; margin-top:4px;">12°</div><div style="font-size:9px; color:#C97B47;">→</div></div>
+            <div style="flex:1; background:#FAF6EA; border:1px solid #E0D6BE; border-radius:10px; padding:9px 5px; text-align:center;"><div style="font-size:9px; color:#8B7355;">km 8</div><div style="font-size:13px; font-weight:700; color:#2C2A26; margin-top:4px;">9°</div><div style="font-size:9px; color:#A8431F;">↑</div></div>
+            <div style="flex:1; background:#FAF6EA; border:1px solid #E0D6BE; border-radius:10px; padding:9px 5px; text-align:center;"><div style="font-size:9px; color:#8B7355;">km 12</div><div style="font-size:13px; font-weight:700; color:#2C2A26; margin-top:4px;">7°</div><div style="font-size:9px; color:#C97B47;">→</div></div>
+            <div style="flex:1; background:#FAF6EA; border:1px solid #E0D6BE; border-radius:10px; padding:9px 5px; text-align:center;"><div style="font-size:9px; color:#8B7355;">km 15</div><div style="font-size:13px; font-weight:700; color:#2C2A26; margin-top:4px;">6°</div><div style="font-size:9px; color:#5F7A4C;">↙</div></div>
+            <div style="flex:1; background:#FBF3E7; border:1px solid #E3C39A; border-radius:10px; padding:9px 5px; text-align:center;"><div style="font-size:9px; color:#9A5A2A;">Ziel</div><div style="font-size:13px; font-weight:700; color:#2C2A26; margin-top:4px;">5°</div><div style="font-size:9px; color:#A8431F;">↑</div></div>
+          </div>
+          <!-- map -->
+          <div style="position:relative; height:240px; border-radius:12px; overflow:hidden; background:#0B0E12; border:1px solid #232A33; margin-top:14px;">
+            <div style="position:absolute; inset:0; background:radial-gradient(120% 90% at 50% 40%, #16202A 0%, #0F1620 55%, #0B0E12 100%);"></div>
+            <svg viewBox="0 0 620 240" preserveAspectRatio="xMidYMid slice" style="position:absolute; inset:0; width:100%; height:100%;"><g stroke="#1C2630" stroke-width="1"><path d="M0 80 H620 M0 160 H620 M210 0 V240 M410 0 V240"/></g><path d="M70 190 Q160 150 220 168 Q300 188 360 140 Q440 90 540 106 Q580 112 570 70" fill="none" stroke="#C97B47" stroke-width="3" stroke-linecap="round"/><circle cx="70" cy="190" r="6" fill="#7A9466" stroke="#0B0E12" stroke-width="2"/><circle cx="570" cy="70" r="6" fill="#A8431F" stroke="#0B0E12" stroke-width="2"/></svg>
+            <div style="position:absolute; left:10px; bottom:10px; background:rgba(250,246,234,.94); border:1px solid #E0D6BE; border-radius:8px; padding:6px 9px; font-size:10px; color:#2C2A26;">DE · AT — höhenkorrigiert</div>
+          </div>
+          <!-- stat + banner -->
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:8px; margin-top:14px;">
+            <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:10px; padding:10px;"><div style="font-size:9px; color:#A89A7A;">TEMP</div><div style="font-size:15px; font-weight:700; color:#2C2A26;">5–14°</div></div>
+            <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:10px; padding:10px;"><div style="font-size:9px; color:#A89A7A;">REGEN</div><div style="font-size:15px; font-weight:700; color:#3A6FA8;">2,4 mm</div></div>
+            <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:10px; padding:10px;"><div style="font-size:9px; color:#A89A7A;">WIND</div><div style="font-size:15px; font-weight:700; color:#2C2A26;">34 km/h</div></div>
+            <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:10px; padding:10px;"><div style="font-size:9px; color:#A89A7A;">UV</div><div style="font-size:15px; font-weight:700; color:#2C2A26;">5</div></div>
+          </div>
+          <div style="display:flex; align-items:center; gap:9px; background:#FBF3E7; border:1px solid #E3C39A; border-radius:10px; padding:10px 12px; margin-top:10px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C97B47" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 L22 20 H2 Z"/><line x1="12" y1="10" x2="12" y2="14"/></svg><span style="font-size:11.5px; color:#5C5447;"><strong style="color:#9A5A2A;">Windwarnung</strong> ab km 8 — Böen bis 55 km/h am Grat. Föhn wahrscheinlich.</span></div>
+          <!-- scrubber -->
+          <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:12px; padding:14px; margin-top:12px;">
+            <div style="display:flex; justify-content:space-between;"><span style="font-size:10px; letter-spacing:1.5px; color:#A89A7A; font-weight:700;">POSITION</span><span style="font-size:11.5px; color:#2C2A26; font-weight:600;">km 8,2 · 09:52 · 9° · Akku 71 %</span></div>
+            <div style="position:relative; height:7px; background:#E0D6BE; border-radius:4px; margin-top:10px;"><div style="position:absolute; left:0; width:45%; top:0; bottom:0; background:#C97B47; border-radius:4px;"></div><div style="position:absolute; left:45%; top:50%; transform:translate(-50%,-50%); width:16px; height:16px; border-radius:50%; background:#C97B47; border:4px solid #FAF6EA;"></div></div>
+          </div>
+          <!-- timeline -->
+          <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:12px; padding:16px; margin-top:12px;">
+            <span style="font-size:10px; letter-spacing:1.5px; color:#A89A7A; font-weight:700;">ZEITPLAN</span>
+            <div style="display:flex; gap:8px; margin-top:12px; overflow-x:auto;"><div style="flex:0 0 auto; text-align:center;"><span style="display:block; width:9px; height:9px; border-radius:50%; background:#7A9466; margin:0 auto;"></span><div style="font-size:10.5px; color:#8B7355; margin-top:5px;">08:30</div><div style="font-size:11.5px; font-weight:600; color:#2C2A26;">Start</div></div><div style="flex:1; height:1px; background:#E0D6BE; align-self:flex-start; margin-top:4px;"></div><div style="flex:0 0 auto; text-align:center;"><span style="display:block; width:9px; height:9px; border-radius:50%; background:#C97B47; margin:0 auto;"></span><div style="font-size:10.5px; color:#8B7355; margin-top:5px;">10:15</div><div style="font-size:11.5px; font-weight:600; color:#2C2A26;">Rast</div></div><div style="flex:1; height:1px; background:#E0D6BE; align-self:flex-start; margin-top:4px;"></div><div style="flex:0 0 auto; text-align:center;"><span style="display:block; width:9px; height:9px; border-radius:50%; background:#5F7A4C; margin:0 auto;"></span><div style="font-size:10.5px; color:#8B7355; margin-top:5px;">11:20</div><div style="font-size:11.5px; font-weight:600; color:#2C2A26;">Mittag</div></div><div style="flex:1; height:1px; background:#E0D6BE; align-self:flex-start; margin-top:4px;"></div><div style="flex:0 0 auto; text-align:center;"><span style="display:block; width:9px; height:9px; border-radius:50%; background:#A8431F; margin:0 auto;"></span><div style="font-size:10.5px; color:#8B7355; margin-top:5px;">12:14</div><div style="font-size:11.5px; font-weight:600; color:#2C2A26;">Ziel</div></div></div>
+          </div>
+          <div style="font-size:10.5px; color:#8B7355; margin-top:12px; line-height:1.5;">Quellen: DWD · GeoSphere · MeteoSwiss · live, höhenkorrigiert · Wind-Iteration konvergiert (3×) · 8/8 Cluster.</div>
+        </div>
+      </div>
+    </div>
+    <p style="width:1024px; font-size:12.5px; color:#98A2AF; line-height:1.6; margin:16px 2px 0; font-weight:300;"><strong style="color:#E9ECF1; font-weight:600;">Tablet-Ergebnis:</strong> Wetter-Strip, kompakte Routenkarte, Stat-Grid, Warn/Föhn-Banner, Positions-Scrubber, horizontale Zeitplan-Timeline und Quellen/Qualität — vollständig, gestapelt.</p>
+  </article>
+
+  <!-- ============================ T8 — MOBILE · UPLOAD ============================ -->
+  <article id="T8" style="width:402px;">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+      <span style="display:inline-flex; align-items:center; justify-content:center; min-width:36px; height:26px; padding:0 10px; background:#C97B47; color:#FAF6EA; border-radius:6px; font-size:13px; font-weight:700; letter-spacing:1px;">T8</span>
+      <span style="font-size:15px; font-weight:600; color:#E9ECF1;">Mobile · Upload</span>
+    </div>
+    <div style="width:402px; height:860px; border-radius:36px; overflow:hidden; background:#EDE6D3; border:1px solid #E0D6BE; box-shadow:0 40px 90px -50px rgba(0,0,0,.55); position:relative; display:flex; flex-direction:column;">
+      <div style="height:44px; flex:0 0 auto; display:flex; align-items:center; justify-content:space-between; padding:0 22px; color:#2C2A26; font-size:13px; font-weight:600;"><span>08:24</span><span style="display:flex; gap:5px; align-items:center;"><svg width="16" height="11" viewBox="0 0 16 11" fill="#2C2A26"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4" y="5" width="3" height="6" rx="1"/><rect x="8" y="3" width="3" height="8" rx="1"/><rect x="12" y="1" width="3" height="10" rx="1"/></svg><svg width="22" height="11" viewBox="0 0 24 12" fill="none"><rect x="1" y="1" width="20" height="10" rx="2.5" stroke="#2C2A26"/><rect x="3" y="3" width="15" height="6" rx="1" fill="#2C2A26"/></svg></span></div>
+      <div style="flex:0 0 auto; display:flex; align-items:center; gap:10px; padding:6px 18px 12px; border-bottom:1px solid #E0D6BE;"><img src="buscosun-mark.svg" width="24" height="24" alt=""><span style="font-size:17px; font-weight:700; color:#2C2A26;">buscosun</span><span style="margin-left:auto; display:flex; align-items:center; gap:6px;"><span style="width:7px; height:7px; border-radius:50%; background:#7A9466;"></span><span style="font-size:10.5px; color:#5F7A4C; font-weight:600;">Live</span></span></div>
+      <div class="tp-scroll" style="flex:1; overflow-y:auto; padding:16px 16px 24px;">
+        <span style="font-size:10px; letter-spacing:2.5px; color:#C97B47; font-weight:700;">TOURENPLANUNG</span>
+        <h1 style="font-size:30px; font-weight:300; color:#2C2A26; letter-spacing:-1px; margin:8px 0 0; line-height:1.05;">Wetter entlang deiner Route</h1>
+        <p style="font-size:14px; color:#5C5447; font-weight:300; margin:12px 0 0; line-height:1.5;">Lade deine Tour hoch — Wind, Regen und Temperatur an jedem Kilometer, zur Ankunftszeit.</p>
+        <div style="display:flex; flex-direction:column; gap:9px; margin-top:16px;">
+          <div style="display:flex; align-items:center; gap:10px; font-size:13px; color:#3B3833;"><span style="width:22px; height:22px; border-radius:50%; background:#F3E3D3; display:flex; align-items:center; justify-content:center; flex:0 0 auto;"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="#C97B47" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,8.5 6.5,12 13,4"/></svg></span>Wetter an jedem Kilometer</div>
+          <div style="display:flex; align-items:center; gap:10px; font-size:13px; color:#3B3833;"><span style="width:22px; height:22px; border-radius:50%; background:#F3E3D3; display:flex; align-items:center; justify-content:center; flex:0 0 auto;"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="#C97B47" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,8.5 6.5,12 13,4"/></svg></span>Zur tatsächlichen Ankunftszeit</div>
+          <div style="display:flex; align-items:center; gap:10px; font-size:13px; color:#3B3833;"><span style="width:22px; height:22px; border-radius:50%; background:#F3E3D3; display:flex; align-items:center; justify-content:center; flex:0 0 auto;"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="#C97B47" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,8.5 6.5,12 13,4"/></svg></span>Rücken- und Gegenwind zur Fahrtrichtung</div>
+        </div>
+        <div style="font-size:10px; letter-spacing:2px; color:#A89A7A; font-weight:700; margin:22px 0 10px;">STRECKE HOCHLADEN</div>
+        <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:15px; padding:10px;">
+          <div style="border:2px dashed #CBB68C; border-radius:12px; display:flex; flex-direction:column; align-items:center; padding:30px 16px;">
+            <svg width="60" height="60" viewBox="0 0 72 72" fill="none"><path d="M22 44 A11 11 0 0 1 24 22 A14 14 0 0 1 50 27 A9 9 0 0 1 48 45 Z" stroke="#C4B79A" stroke-width="2" stroke-linejoin="round"/><circle cx="24" cy="50" r="2.2" fill="#7A9466"/><circle cx="48" cy="50" r="2.2" fill="#7A9466"/><path d="M24 50 Q36 56 48 50" stroke="#7A9466" stroke-width="1.6" fill="none"/><path d="M36 52 V34 M30 40 L36 34 L42 40" stroke="#C97B47" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <div style="font-size:19px; font-weight:700; color:#2C2A26; margin-top:14px;">Strecke hierher ziehen</div>
+            <div style="font-size:13px; color:#8B7355; margin-top:5px;">oder</div>
+            <button style="margin-top:14px; background:#C97B47; border:none; border-radius:22px; padding:13px 28px; color:#FAF6EA; font-size:15px; font-weight:600; font-family:inherit; cursor:pointer; width:100%;">Datei auswählen</button>
+            <div style="font-size:11.5px; color:#A89A7A; margin-top:14px;">GPX · TCX · FIT · KML · KMZ · max. 25 MB</div>
+          </div>
+        </div>
+        <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:13px; padding:14px; margin-top:12px;"><div style="font-size:10px; letter-spacing:1.5px; color:#A89A7A; font-weight:700;">UNTERSTÜTZTE FORMATE</div><div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;"><span style="font-size:11px; font-weight:700; color:#C97B47; background:#F6E7D8; border:1px solid #E3C39A; border-radius:16px; padding:4px 11px;">GPX</span><span style="font-size:11px; font-weight:700; color:#C97B47; background:#F6E7D8; border:1px solid #E3C39A; border-radius:16px; padding:4px 11px;">TCX</span><span style="font-size:11px; font-weight:700; color:#C97B47; background:#F6E7D8; border:1px solid #E3C39A; border-radius:16px; padding:4px 11px;">FIT</span><span style="font-size:11px; font-weight:700; color:#C97B47; background:#F6E7D8; border:1px solid #E3C39A; border-radius:16px; padding:4px 11px;">KML</span><span style="font-size:11px; font-weight:700; color:#C97B47; background:#F6E7D8; border:1px solid #E3C39A; border-radius:16px; padding:4px 11px;">KMZ</span></div><div style="font-size:11px; color:#8B7355; margin-top:10px;">DE · AT · CH · höhenkorrigiert · keine Tracker</div></div>
+      </div>
+      <div style="position:absolute; bottom:6px; left:50%; transform:translateX(-50%); width:130px; height:5px; border-radius:3px; background:#C4B896;"></div>
+    </div>
+    <p style="width:402px; font-size:12.5px; color:#98A2AF; line-height:1.6; margin:16px 2px 0; font-weight:300;"><strong style="color:#E9ECF1; font-weight:600;">Mobile-Upload:</strong> Intro-Kopf, große Dropzone mit vollbreitem Button, Format-Chips und Quellen-Zeile.</p>
+  </article>
+
+  <!-- ============================ T9 — MOBILE · KONFIGURATION ============================ -->
+  <article id="T9" style="width:402px;">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+      <span style="display:inline-flex; align-items:center; justify-content:center; min-width:36px; height:26px; padding:0 10px; background:#C97B47; color:#FAF6EA; border-radius:6px; font-size:13px; font-weight:700; letter-spacing:1px;">T9</span>
+      <span style="font-size:15px; font-weight:600; color:#E9ECF1;">Mobile · Bewegungsart &amp; Konfiguration</span>
+    </div>
+    <div style="width:402px; height:860px; border-radius:36px; overflow:hidden; background:#EDE6D3; border:1px solid #E0D6BE; box-shadow:0 40px 90px -50px rgba(0,0,0,.55); position:relative; display:flex; flex-direction:column;">
+      <div style="height:44px; flex:0 0 auto; display:flex; align-items:center; justify-content:space-between; padding:0 22px; color:#2C2A26; font-size:13px; font-weight:600;"><span>08:24</span><span style="display:flex; gap:5px; align-items:center;"><svg width="16" height="11" viewBox="0 0 16 11" fill="#2C2A26"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4" y="5" width="3" height="6" rx="1"/><rect x="8" y="3" width="3" height="8" rx="1"/><rect x="12" y="1" width="3" height="10" rx="1"/></svg><svg width="22" height="11" viewBox="0 0 24 12" fill="none"><rect x="1" y="1" width="20" height="10" rx="2.5" stroke="#2C2A26"/><rect x="3" y="3" width="15" height="6" rx="1" fill="#2C2A26"/></svg></span></div>
+      <div style="flex:0 0 auto; display:flex; align-items:center; gap:10px; padding:6px 18px 12px; border-bottom:1px solid #E0D6BE;"><a href="#T8" style="width:32px; height:32px; border-radius:9px; background:#FFFFFF; border:1px solid #E0D6BE; display:flex; align-items:center; justify-content:center; color:#2C2A26; text-decoration:none;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M19 12 H5 M11 6 L5 12 L11 18" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg></a><div><div style="font-size:9px; letter-spacing:1.5px; color:#C97B47; font-weight:700;">SCHRITT 2 VON 2</div><div style="font-size:15px; font-weight:700; color:#2C2A26;">Konfiguration</div></div></div>
+      <div class="tp-scroll" style="flex:1; overflow-y:auto; padding:14px 16px 24px;">
+        <div style="font-size:10px; letter-spacing:2px; color:#A89A7A; font-weight:700;">BEWEGUNGSART</div>
+        <div style="display:flex; gap:8px; overflow-x:auto; margin-top:10px; padding-bottom:3px;">
+          <div style="flex:0 0 auto; background:#FAF6EA; border:1.5px solid #C97B47; border-radius:12px; padding:12px 16px; text-align:center; min-width:82px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C97B47" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="display:block; margin:0 auto;"><circle cx="5.5" cy="17" r="3.5"/><circle cx="18.5" cy="17" r="3.5"/><path d="M5.5 17 L9 8 H13 M12 8 L15.5 17"/><path d="M13 4 L11 8 h3 l-1.5 3.5"/></svg><div style="font-size:12px; font-weight:700; color:#2C2A26; margin-top:6px;">E-Bike</div></div>
+          <div style="flex:0 0 auto; background:#FAF6EA; border:1px solid #E0D6BE; border-radius:12px; padding:12px 16px; text-align:center; min-width:82px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8B7355" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="display:block; margin:0 auto;"><circle cx="13" cy="4" r="1.8"/><path d="M13 7 L10 12 L14 14 L15 20 M10 12 L6 13 M14 14 L11 11 L15 9 L18 11"/></svg><div style="font-size:12px; font-weight:600; color:#8B7355; margin-top:6px;">Wandern</div></div>
+          <div style="flex:0 0 auto; background:#FAF6EA; border:1px solid #E0D6BE; border-radius:12px; padding:12px 16px; text-align:center; min-width:82px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8B7355" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="display:block; margin:0 auto;"><circle cx="5.5" cy="17" r="3.5"/><circle cx="18.5" cy="17" r="3.5"/><path d="M5.5 17 L9 8 H13 M12 8 L15.5 17"/></svg><div style="font-size:12px; font-weight:600; color:#8B7355; margin-top:6px;">Rennrad</div></div>
+          <div style="flex:0 0 auto; background:#FAF6EA; border:1px solid #E0D6BE; border-radius:12px; padding:12px 16px; text-align:center; min-width:82px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8B7355" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="display:block; margin:0 auto;"><path d="M4 20 L9 5 L13 18 M11 12 L16 4 L20 20"/></svg><div style="font-size:12px; font-weight:600; color:#8B7355; margin-top:6px;">Trail</div></div>
+        </div>
+        <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:13px; padding:16px; margin-top:16px;">
+          <div style="font-size:10px; letter-spacing:1.5px; color:#A89A7A; font-weight:700;">TEMPO-PROFIL</div>
+          <div style="display:flex; align-items:baseline; gap:8px; margin-top:8px;"><span style="font-size:22px; font-weight:700; color:#2C2A26;">22 km/h</span><span style="font-size:11.5px; color:#8B7355;">eben</span></div>
+          <div style="height:6px; border-radius:3px; background:#E0D6BE; margin-top:11px; position:relative;"><div style="position:absolute; left:0; width:58%; top:0; bottom:0; background:#C97B47; border-radius:3px;"></div><div style="position:absolute; left:58%; top:50%; transform:translate(-50%,-50%); width:16px; height:16px; border-radius:50%; background:#C97B47; border:3px solid #FAF6EA;"></div></div>
+        </div>
+        <div style="display:flex; gap:10px; margin-top:12px;">
+          <div style="flex:1; background:#FAF6EA; border:1px solid #E0D6BE; border-radius:13px; padding:14px;"><div style="font-size:10px; color:#A89A7A;">RICHTUNG</div><div style="display:flex; gap:3px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:8px; padding:3px; margin-top:8px;"><span style="flex:1; text-align:center; font-size:11.5px; font-weight:600; color:#FAF6EA; background:#C97B47; border-radius:5px; padding:6px 0;">Hin</span><span style="flex:1; text-align:center; font-size:11.5px; font-weight:500; color:#8B7355; border-radius:5px; padding:6px 0;">Zurück</span></div></div>
+          <div style="flex:1; background:#FAF6EA; border:1px solid #E0D6BE; border-radius:13px; padding:14px;"><div style="font-size:10px; color:#A89A7A;">STARTZEIT</div><div style="display:flex; align-items:center; gap:6px; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:8px; padding:9px 11px; margin-top:8px;"><span style="font-size:12.5px; font-weight:600; color:#2C2A26;">Sa · 08:30</span></div></div>
+        </div>
+        <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:13px; padding:16px; margin-top:12px;">
+          <div style="display:flex; align-items:center; justify-content:space-between;"><span style="font-size:13px; font-weight:600; color:#2C2A26;">Automatische Pausen</span><span style="width:34px; height:19px; border-radius:10px; background:#C97B47; position:relative;"><span style="position:absolute; top:2px; right:2px; width:15px; height:15px; border-radius:50%; background:#FFFFFF;"></span></span></div>
+          <div style="display:flex; gap:8px; margin-top:10px;"><div style="flex:1; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:9px; padding:8px 10px;"><b style="font-size:11.5px; color:#2C2A26;">Mittag</b><span style="display:block; font-size:10px; color:#8B7355;">km 11,2 · 45 min</span></div><div style="flex:1; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:9px; padding:8px 10px;"><b style="font-size:11.5px; color:#2C2A26;">Rast</b><span style="display:block; font-size:10px; color:#8B7355;">km 6,0 · 15 min</span></div></div>
+        </div>
+        <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:13px; padding:16px; margin-top:12px;">
+          <div style="display:flex; align-items:center; gap:8px;"><span style="width:24px; height:24px; border-radius:7px; background:#EFF3E8; display:flex; align-items:center; justify-content:center;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#5F7A4C" stroke-width="1.7"><rect x="2" y="7" width="18" height="10" rx="2"/><path d="M22 10 v4"/></svg></span><span style="font-size:13.5px; font-weight:700; color:#2C2A26;">E-Bike-Reichweite</span></div>
+          <div style="display:flex; align-items:center; gap:14px; margin-top:12px;"><div><div style="font-size:9px; color:#A89A7A;">START</div><div style="font-size:17px; font-weight:700; color:#2C2A26;">100 %</div></div><div><div style="font-size:9px; color:#A89A7A;">ZIEL</div><div style="font-size:17px; font-weight:700; color:#5F7A4C;">34 %</div></div><div style="flex:1;"><div style="height:20px; border-radius:6px; background:#E0D6BE; overflow:hidden;"><div style="height:100%; width:66%; background:linear-gradient(90deg,#7A9466,#C99A4E,#C97B47);"></div></div></div></div>
+        </div>
+        <button style="margin-top:16px; width:100%; background:#C97B47; border:none; border-radius:22px; padding:14px; color:#FAF6EA; font-size:15px; font-weight:600; font-family:inherit; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">Wetter berechnen <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12 H19 M13 6 L19 12 L13 18" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      </div>
+      <div style="position:absolute; bottom:6px; left:50%; transform:translateX(-50%); width:130px; height:5px; border-radius:3px; background:#C4B896;"></div>
+    </div>
+    <p style="width:402px; font-size:12.5px; color:#98A2AF; line-height:1.6; margin:16px 2px 0; font-weight:300;"><strong style="color:#E9ECF1; font-weight:600;">Mobile-Konfiguration:</strong> Bewegungsart als scrollbare Chips, Tempo-Slider, Richtung/Startzeit nebeneinander, Auto-Pausen, E-Bike-Reichweite, vollbreiter CTA.</p>
+  </article>
+
+  <!-- ============================ T10 — MOBILE · ERGEBNIS ============================ -->
+  <article id="T10" style="width:402px;">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+      <span style="display:inline-flex; align-items:center; justify-content:center; min-width:40px; height:26px; padding:0 10px; background:#C97B47; color:#FAF6EA; border-radius:6px; font-size:13px; font-weight:700; letter-spacing:1px;">T10</span>
+      <span style="font-size:15px; font-weight:600; color:#E9ECF1;">Mobile · Ergebnis</span>
+    </div>
+    <div style="width:402px; height:860px; border-radius:36px; overflow:hidden; background:#EDE6D3; border:1px solid #E0D6BE; box-shadow:0 40px 90px -50px rgba(0,0,0,.55); position:relative; display:flex; flex-direction:column;">
+      <div style="height:44px; flex:0 0 auto; display:flex; align-items:center; justify-content:space-between; padding:0 22px; color:#2C2A26; font-size:13px; font-weight:600;"><span>08:24</span><span style="display:flex; gap:5px; align-items:center;"><svg width="16" height="11" viewBox="0 0 16 11" fill="#2C2A26"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4" y="5" width="3" height="6" rx="1"/><rect x="8" y="3" width="3" height="8" rx="1"/><rect x="12" y="1" width="3" height="10" rx="1"/></svg><svg width="22" height="11" viewBox="0 0 24 12" fill="none"><rect x="1" y="1" width="20" height="10" rx="2.5" stroke="#2C2A26"/><rect x="3" y="3" width="15" height="6" rx="1" fill="#2C2A26"/></svg></span></div>
+      <div style="flex:0 0 auto; display:flex; align-items:center; gap:10px; padding:6px 18px 12px; border-bottom:1px solid #E0D6BE;"><a href="#T9" style="width:32px; height:32px; border-radius:9px; background:#FFFFFF; border:1px solid #E0D6BE; display:flex; align-items:center; justify-content:center; color:#2C2A26; text-decoration:none;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M19 12 H5 M11 6 L5 12 L11 18" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg></a><div><div style="font-size:9px; letter-spacing:1.5px; color:#C97B47; font-weight:700;">ERGEBNIS · E-BIKE</div><div style="font-size:15px; font-weight:700; color:#2C2A26;">Oberstdorf → Kemptner H.</div></div></div>
+      <div class="tp-scroll" style="flex:1; overflow-y:auto; padding:14px 16px 24px;">
+        <div style="font-size:12.5px; color:#5C5447;">08:30 → <strong style="color:#2C2A26;">12:14</strong> · 3:44 h · 18,4 km</div>
+        <!-- map -->
+        <div style="position:relative; height:170px; border-radius:12px; overflow:hidden; background:#0B0E12; border:1px solid #232A33; margin-top:12px;">
+          <div style="position:absolute; inset:0; background:radial-gradient(120% 90% at 50% 40%, #16202A 0%, #0F1620 55%, #0B0E12 100%);"></div>
+          <svg viewBox="0 0 370 170" preserveAspectRatio="xMidYMid slice" style="position:absolute; inset:0; width:100%; height:100%;"><g stroke="#1C2630" stroke-width="1"><path d="M0 57 H370 M0 114 H370 M123 0 V170 M246 0 V170"/></g><path d="M40 135 Q100 105 140 118 Q190 132 220 98 Q270 60 330 74" fill="none" stroke="#C97B47" stroke-width="3" stroke-linecap="round"/><circle cx="40" cy="135" r="6" fill="#7A9466" stroke="#0B0E12" stroke-width="2"/><circle cx="330" cy="74" r="6" fill="#A8431F" stroke="#0B0E12" stroke-width="2"/></svg>
+          <div style="position:absolute; left:10px; bottom:9px; background:rgba(250,246,234,.94); border:1px solid #E0D6BE; border-radius:8px; padding:5px 9px; font-size:9.5px; color:#2C2A26;">DE · AT — höhenkorrigiert</div>
+        </div>
+        <!-- weather strip horizontal scroll -->
+        <div style="font-size:10px; letter-spacing:1.5px; color:#A89A7A; font-weight:700; margin:14px 0 8px;">WETTER ENTLANG</div>
+        <div style="display:flex; gap:6px; overflow-x:auto; padding-bottom:3px;">
+          <div style="flex:0 0 auto; width:62px; background:#FAF6EA; border:1px solid #E0D6BE; border-radius:11px; padding:9px 5px; text-align:center;"><div style="font-size:9px; color:#8B7355;">km 0</div><div style="font-size:14px; font-weight:700; color:#2C2A26; margin-top:4px;">14°</div><div style="font-size:10px; color:#5F7A4C;">↙</div></div>
+          <div style="flex:0 0 auto; width:62px; background:#FAF6EA; border:1px solid #E0D6BE; border-radius:11px; padding:9px 5px; text-align:center;"><div style="font-size:9px; color:#8B7355;">km 4</div><div style="font-size:14px; font-weight:700; color:#2C2A26; margin-top:4px;">12°</div><div style="font-size:10px; color:#C97B47;">→</div></div>
+          <div style="flex:0 0 auto; width:62px; background:#FAF6EA; border:1px solid #E0D6BE; border-radius:11px; padding:9px 5px; text-align:center;"><div style="font-size:9px; color:#8B7355;">km 8</div><div style="font-size:14px; font-weight:700; color:#2C2A26; margin-top:4px;">9°</div><div style="font-size:10px; color:#A8431F;">↑</div></div>
+          <div style="flex:0 0 auto; width:62px; background:#FAF6EA; border:1px solid #E0D6BE; border-radius:11px; padding:9px 5px; text-align:center;"><div style="font-size:9px; color:#8B7355;">km 12</div><div style="font-size:14px; font-weight:700; color:#2C2A26; margin-top:4px;">7°</div><div style="font-size:10px; color:#C97B47;">→</div></div>
+          <div style="flex:0 0 auto; width:62px; background:#FBF3E7; border:1px solid #E3C39A; border-radius:11px; padding:9px 5px; text-align:center;"><div style="font-size:9px; color:#9A5A2A;">Ziel</div><div style="font-size:14px; font-weight:700; color:#2C2A26; margin-top:4px;">5°</div><div style="font-size:10px; color:#A8431F;">↑</div></div>
+        </div>
+        <!-- stat grid -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:14px;">
+          <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:10px; padding:11px;"><div style="font-size:9px; color:#A89A7A;">TEMP-SPANNE</div><div style="font-size:16px; font-weight:700; color:#2C2A26;">5–14°</div></div>
+          <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:10px; padding:11px;"><div style="font-size:9px; color:#A89A7A;">REGEN</div><div style="font-size:16px; font-weight:700; color:#3A6FA8;">2,4 mm</div></div>
+          <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:10px; padding:11px;"><div style="font-size:9px; color:#A89A7A;">WIND MAX</div><div style="font-size:16px; font-weight:700; color:#2C2A26;">34 km/h</div></div>
+          <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:10px; padding:11px;"><div style="font-size:9px; color:#A89A7A;">AKKU ZIEL</div><div style="font-size:16px; font-weight:700; color:#5F7A4C;">34 %</div></div>
+        </div>
+        <div style="display:flex; align-items:center; gap:9px; background:#FBF3E7; border:1px solid #E3C39A; border-radius:10px; padding:10px 12px; margin-top:10px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C97B47" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 L22 20 H2 Z"/><line x1="12" y1="10" x2="12" y2="14"/></svg><span style="font-size:11.5px; color:#5C5447;"><strong style="color:#9A5A2A;">Windwarnung</strong> ab km 8 — Böen 55 km/h. Föhn wahrscheinlich.</span></div>
+        <!-- scrubber -->
+        <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:12px; padding:13px; margin-top:12px;">
+          <div style="font-size:11.5px; color:#2C2A26; font-weight:600;">km 8,2 · 09:52 · 9° · Akku 71 %</div>
+          <div style="position:relative; height:7px; background:#E0D6BE; border-radius:4px; margin-top:9px;"><div style="position:absolute; left:0; width:45%; top:0; bottom:0; background:#C97B47; border-radius:4px;"></div><div style="position:absolute; left:45%; top:50%; transform:translate(-50%,-50%); width:16px; height:16px; border-radius:50%; background:#C97B47; border:4px solid #FAF6EA;"></div></div>
+        </div>
+        <!-- timeline vertical -->
+        <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:12px; padding:16px; margin-top:12px;">
+          <span style="font-size:10px; letter-spacing:1.5px; color:#A89A7A; font-weight:700;">ZEITPLAN</span>
+          <div style="margin-top:12px; display:flex; flex-direction:column; gap:12px;">
+            <div style="display:flex; gap:10px;"><span style="width:9px; height:9px; border-radius:50%; background:#7A9466; margin-top:3px; flex:0 0 auto;"></span><div><div style="font-size:10.5px; color:#8B7355;">08:30 · Start</div><div style="font-size:12.5px; font-weight:600; color:#2C2A26;">Oberstdorf · 0 km</div></div></div>
+            <div style="display:flex; gap:10px;"><span style="width:9px; height:9px; border-radius:50%; background:#5F7A4C; margin-top:3px; flex:0 0 auto;"></span><div><div style="font-size:10.5px; color:#8B7355;">11:20 → 12:05 · Mahlzeit</div><div style="font-size:12.5px; font-weight:600; color:#2C2A26;">Mittagsrast · 11,2 km</div></div></div>
+            <div style="display:flex; gap:10px;"><span style="width:9px; height:9px; border-radius:50%; background:#A8431F; margin-top:3px; flex:0 0 auto;"></span><div><div style="font-size:10.5px; color:#8B7355;">12:14 · Ziel</div><div style="font-size:12.5px; font-weight:600; color:#2C2A26;">Kemptner Hütte · 18,4 km</div></div></div>
+          </div>
+        </div>
+        <div style="display:flex; gap:8px; margin-top:12px;"><button style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; background:#C97B47; border:none; border-radius:11px; padding:12px; color:#FAF6EA; font-size:12.5px; font-weight:600; font-family:inherit; cursor:pointer;">Als Event</button><button style="flex:1; background:#FFFFFF; border:1px solid #E0D6BE; border-radius:11px; padding:12px; color:#2C2A26; font-size:12.5px; font-weight:600; font-family:inherit; cursor:pointer;">Speichern</button></div>
+        <div style="font-size:10.5px; color:#8B7355; margin-top:12px; line-height:1.5;">Quellen: DWD · GeoSphere · MeteoSwiss · live, höhenkorrigiert · keine Tracker.</div>
+      </div>
+      <div style="position:absolute; bottom:6px; left:50%; transform:translateX(-50%); width:130px; height:5px; border-radius:3px; background:#C4B896;"></div>
+    </div>
+    <p style="width:402px; font-size:12.5px; color:#98A2AF; line-height:1.6; margin:16px 2px 0; font-weight:300;"><strong style="color:#E9ECF1; font-weight:600;">Mobile-Ergebnis:</strong> Routenkarte, horizontal scrollbarer Wetter-Strip, Stat-Grid (inkl. Akku am Ziel), Warn/Föhn-Banner, Positions-Scrubber, vertikale Zeitplan-Timeline, Aktionen &amp; Quellen.</p>
+  </article>
+
+  <!-- ============================ T11 — TABLET · UPLOAD ============================ -->
+  <article id="T11" style="width:1024px;">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+      <span style="display:inline-flex; align-items:center; justify-content:center; min-width:40px; height:26px; padding:0 10px; background:#C97B47; color:#FAF6EA; border-radius:6px; font-size:13px; font-weight:700; letter-spacing:1px;">T11</span>
+      <span style="font-size:15px; font-weight:600; color:#E9ECF1;">Tablet · Upload</span>
+    </div>
+    <div style="height:768px; border-radius:18px; overflow:hidden; background:#EDE6D3; border:1px solid #E0D6BE; box-shadow:0 40px 90px -50px rgba(0,0,0,.55); display:flex; flex-direction:column;">
+      <div style="height:54px; flex:0 0 auto; display:flex; align-items:center; gap:14px; padding:0 16px; background:#FAF6EA; border-bottom:1px solid #E0D6BE;"><img src="buscosun-mark.svg" width="24" height="24" alt=""><span style="font-size:17px; font-weight:700; color:#2C2A26;">buscosun</span><span style="font-size:12px; color:#8B7355; margin-left:6px;">· Tourenplanung</span><span style="margin-left:auto; display:flex; align-items:center; gap:7px;"><span style="width:7px; height:7px; border-radius:50%; background:#7A9466;"></span><span style="font-size:11px; color:#5F7A4C; font-weight:600; letter-spacing:1px;">LIVE</span></span></div>
+      <div style="flex:1; display:flex; min-height:0;">
+        <div style="width:54px; flex:0 0 auto; background:#2C2A26; display:flex; flex-direction:column; align-items:center; padding:12px 0;"><div style="width:38px; height:38px; border-radius:10px; background:#3A3833; color:#E0A567; display:flex; align-items:center; justify-content:center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M6 20 C6 20 5 13.5 9 11.5 C13 9.5 12 6.5 16 5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="6" cy="20" r="1.8" fill="currentColor"/><path d="M16 2.5 C14 2.5 12.4 4.1 12.4 6.1 C12.4 8.8 16 11.5 16 11.5 C16 11.5 19.6 8.8 19.6 6.1 C19.6 4.1 18 2.5 16 2.5 Z" stroke="currentColor" stroke-width="1.3"/></svg></div></div>
+        <div class="tp-scroll" style="flex:1; overflow-y:auto; background:#EDE6D3; padding:30px 34px;">
+          <span style="font-size:11px; letter-spacing:3px; color:#C97B47; font-weight:700;">TOURENPLANUNG</span>
+          <h1 style="font-size:36px; font-weight:300; color:#2C2A26; letter-spacing:-1.2px; margin:10px 0 0; line-height:1;">Wetter entlang deiner Route</h1>
+          <p style="font-size:15px; color:#5C5447; font-weight:300; margin:12px 0 0; max-width:520px; line-height:1.5;">Lade deine geplante Tour hoch — Wind, Regen und Temperatur an jedem Kilometer, zur tatsächlichen Ankunftszeit.</p>
+          <div style="display:flex; flex-wrap:wrap; gap:8px 22px; margin-top:16px;">
+            <div style="display:flex; align-items:center; gap:9px; font-size:13px; color:#3B3833;"><span style="width:20px; height:20px; border-radius:50%; background:#F3E3D3; display:flex; align-items:center; justify-content:center; flex:0 0 auto;"><svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="#C97B47" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,8.5 6.5,12 13,4"/></svg></span>Wetter an jedem Kilometer</div>
+            <div style="display:flex; align-items:center; gap:9px; font-size:13px; color:#3B3833;"><span style="width:20px; height:20px; border-radius:50%; background:#F3E3D3; display:flex; align-items:center; justify-content:center; flex:0 0 auto;"><svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="#C97B47" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,8.5 6.5,12 13,4"/></svg></span>Zur Ankunftszeit — nicht „heute"</div>
+            <div style="display:flex; align-items:center; gap:9px; font-size:13px; color:#3B3833;"><span style="width:20px; height:20px; border-radius:50%; background:#F3E3D3; display:flex; align-items:center; justify-content:center; flex:0 0 auto;"><svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="#C97B47" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,8.5 6.5,12 13,4"/></svg></span>Rücken- &amp; Gegenwind</div>
+          </div>
+          <div style="font-size:10px; letter-spacing:2px; color:#A89A7A; font-weight:700; margin:24px 0 10px;">STRECKE HOCHLADEN</div>
+          <div style="display:flex; gap:14px; align-items:stretch;">
+            <div style="flex:1; background:#FAF6EA; border:1px solid #E0D6BE; border-radius:15px; padding:10px;"><div style="height:100%; border:2px dashed #CBB68C; border-radius:12px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:34px 16px;"><svg width="60" height="60" viewBox="0 0 72 72" fill="none"><path d="M22 44 A11 11 0 0 1 24 22 A14 14 0 0 1 50 27 A9 9 0 0 1 48 45 Z" stroke="#C4B79A" stroke-width="2" stroke-linejoin="round"/><path d="M36 52 V34 M30 40 L36 34 L42 40" stroke="#C97B47" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><div style="font-size:20px; font-weight:700; color:#2C2A26; margin-top:14px;">Strecke hierher ziehen</div><div style="font-size:13px; color:#8B7355; margin-top:5px;">oder</div><button style="margin-top:14px; background:#C97B47; border:none; border-radius:22px; padding:12px 26px; color:#FAF6EA; font-size:14px; font-weight:600; font-family:inherit; cursor:pointer;">Datei auswählen</button><div style="font-size:11.5px; color:#A89A7A; margin-top:12px;">GPX · TCX · FIT · KML · KMZ · max. 25 MB</div></div></div>
+            <div style="width:260px; flex:0 0 auto; background:#FAF6EA; border:1px solid #E0D6BE; border-radius:15px; padding:18px;"><div style="font-size:10px; letter-spacing:2px; color:#A89A7A; font-weight:700;">FORMATE</div><div style="display:flex; flex-direction:column; gap:11px; margin-top:12px;"><div style="display:flex; align-items:center; gap:10px;"><span style="width:38px; text-align:center; font-size:10px; font-weight:700; color:#C97B47; background:#F6E7D8; border:1px solid #E3C39A; border-radius:16px; padding:3px 0;">GPX</span><span style="font-size:12px; color:#3B3833;">Komoot, Strava, Garmin</span></div><div style="display:flex; align-items:center; gap:10px;"><span style="width:38px; text-align:center; font-size:10px; font-weight:700; color:#C97B47; background:#F6E7D8; border:1px solid #E3C39A; border-radius:16px; padding:3px 0;">TCX</span><span style="font-size:12px; color:#3B3833;">Garmin Training Center</span></div><div style="display:flex; align-items:center; gap:10px;"><span style="width:38px; text-align:center; font-size:10px; font-weight:700; color:#C97B47; background:#F6E7D8; border:1px solid #E3C39A; border-radius:16px; padding:3px 0;">FIT</span><span style="font-size:12px; color:#3B3833;">Garmin &amp; Wahoo</span></div><div style="display:flex; align-items:center; gap:10px;"><span style="width:38px; text-align:center; font-size:10px; font-weight:700; color:#C97B47; background:#F6E7D8; border:1px solid #E3C39A; border-radius:16px; padding:3px 0;">KML</span><span style="font-size:12px; color:#3B3833;">Google Earth</span></div><div style="display:flex; align-items:center; gap:10px;"><span style="width:38px; text-align:center; font-size:10px; font-weight:700; color:#C97B47; background:#F6E7D8; border:1px solid #E3C39A; border-radius:16px; padding:3px 0;">KMZ</span><span style="font-size:12px; color:#3B3833;">Google Earth (zip)</span></div></div><div style="margin-top:16px; padding-top:12px; border-top:1px solid #E0D6BE; font-size:11px; color:#8B7355; line-height:1.6;">Max. 25 MB · 100.000 Punkte<br>DE · AT · CH</div></div>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px; margin-top:16px; font-size:11.5px; color:#8B7355;"><span style="color:#C97B47;">●</span> Native Behörden-Quellen · höhenkorrigiert · keine Tracker</div>
+        </div>
+      </div>
+    </div>
+    <p style="width:1024px; font-size:12.5px; color:#98A2AF; line-height:1.6; margin:16px 2px 0; font-weight:300;"><strong style="color:#E9ECF1; font-weight:600;">Tablet-Upload:</strong> Intro-Kopf, Dropzone + kompakte Format-Sidebar, Quellen-Zeile.</p>
+  </article>
+
+  <!-- ============================ T12 — TABLET · VORSCHAU ============================ -->
+  <article id="T12" style="width:1024px;">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+      <span style="display:inline-flex; align-items:center; justify-content:center; min-width:40px; height:26px; padding:0 10px; background:#C97B47; color:#FAF6EA; border-radius:6px; font-size:13px; font-weight:700; letter-spacing:1px;">T12</span>
+      <span style="font-size:15px; font-weight:600; color:#E9ECF1;">Tablet · Vorschau</span>
+    </div>
+    <div style="height:640px; border-radius:18px; overflow:hidden; background:#EDE6D3; border:1px solid #E0D6BE; box-shadow:0 40px 90px -50px rgba(0,0,0,.55); display:flex; flex-direction:column;">
+      <div style="height:54px; flex:0 0 auto; display:flex; align-items:center; gap:14px; padding:0 16px; background:#FAF6EA; border-bottom:1px solid #E0D6BE;"><img src="buscosun-mark.svg" width="24" height="24" alt=""><span style="font-size:17px; font-weight:700; color:#2C2A26;">buscosun</span><a href="#T11" style="font-size:12px; color:#C97B47; font-weight:600; margin-left:6px;">← Andere Datei</a></div>
+      <div style="flex:1; display:flex; min-height:0;">
+        <div style="width:54px; flex:0 0 auto; background:#2C2A26; display:flex; flex-direction:column; align-items:center; padding:12px 0;"><div style="width:38px; height:38px; border-radius:10px; background:#3A3833; color:#E0A567; display:flex; align-items:center; justify-content:center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M6 20 C6 20 5 13.5 9 11.5 C13 9.5 12 6.5 16 5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="6" cy="20" r="1.8" fill="currentColor"/><path d="M16 2.5 C14 2.5 12.4 4.1 12.4 6.1 C12.4 8.8 16 11.5 16 11.5 C16 11.5 19.6 8.8 19.6 6.1 C19.6 4.1 18 2.5 16 2.5 Z" stroke="currentColor" stroke-width="1.3"/></svg></div></div>
+        <div class="tp-scroll" style="flex:1; overflow-y:auto; background:#EDE6D3; padding:24px 30px;">
+          <div style="display:flex; align-items:center; gap:12px; background:#FAF6EA; border:1px solid #E0D6BE; border-radius:11px; padding:11px 14px;"><span style="font-size:10px; font-weight:700; color:#C97B47; background:#F6E7D8; border:1px solid #E3C39A; border-radius:7px; padding:4px 9px;">GPX</span><span style="font-size:13.5px; font-weight:600; color:#2C2A26;">Alpenüberquerung-E5-Etappe3.gpx</span><span style="font-size:11.5px; color:#8B7355;">1,8 MB · Tier A</span></div>
+          <div style="font-size:10px; letter-spacing:2px; color:#A89A7A; font-weight:700; margin:20px 0 4px;">STRECKE ERKANNT</div>
+          <h1 style="font-size:24px; font-weight:700; color:#2C2A26; letter-spacing:-0.5px; margin:0;">Oberstdorf → Kemptner Hütte</h1>
+          <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:16px;">
+            <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:11px; padding:13px;"><div style="font-size:9px; letter-spacing:1px; color:#A89A7A; font-weight:700;">DISTANZ</div><div style="font-size:21px; font-weight:700; color:#2C2A26; margin-top:4px;">18,4 km</div></div>
+            <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:11px; padding:13px;"><div style="font-size:9px; letter-spacing:1px; color:#A89A7A; font-weight:700;">AUFSTIEG</div><div style="font-size:21px; font-weight:700; color:#2C2A26; margin-top:4px;">1 240 hm</div></div>
+            <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:11px; padding:13px;"><div style="font-size:9px; letter-spacing:1px; color:#A89A7A; font-weight:700;">ABSTIEG</div><div style="font-size:21px; font-weight:700; color:#2C2A26; margin-top:4px;">380 hm</div></div>
+            <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:11px; padding:13px;"><div style="font-size:9px; letter-spacing:1px; color:#A89A7A; font-weight:700;">GELÄNDE</div><div style="font-size:21px; font-weight:700; color:#2C2A26; margin-top:4px;">Alpin</div></div>
+          </div>
+          <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:13px; padding:16px; margin-top:12px;">
+            <div style="display:flex; align-items:baseline; justify-content:space-between;"><span style="font-size:12px; font-weight:600; color:#2C2A26;">Höhenprofil</span><span style="font-size:11px; color:#8B7355;">843 m → 1 846 m</span></div>
+            <svg viewBox="0 0 860 150" preserveAspectRatio="none" style="width:100%; height:150px; margin-top:10px;"><g stroke="#E0D6BE" stroke-width="1"><line x1="0" y1="50" x2="860" y2="50"/><line x1="0" y1="100" x2="860" y2="100"/></g><path d="M0 130 L160 122 L340 100 L520 66 L700 34 L860 16 L860 150 L0 150 Z" fill="rgba(201,123,71,.14)"/><path d="M0 130 L160 122 L340 100 L520 66 L700 34 L860 16" fill="none" stroke="#C97B47" stroke-width="2"/><circle cx="0" cy="130" r="4" fill="#7A9466"/><circle cx="860" cy="16" r="4" fill="#A8431F"/></svg>
+          </div>
+          <button style="margin-top:16px; background:#C97B47; border:none; border-radius:22px; padding:13px 28px; color:#FAF6EA; font-size:15px; font-weight:600; font-family:inherit; cursor:pointer; display:inline-flex; align-items:center; gap:8px;">Weiter zur Planung <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12 H19 M13 6 L19 12 L13 18" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        </div>
+      </div>
+    </div>
+    <p style="width:1024px; font-size:12.5px; color:#98A2AF; line-height:1.6; margin:16px 2px 0; font-weight:300;"><strong style="color:#E9ECF1; font-weight:600;">Tablet-Vorschau:</strong> Datei-Leiste, Kennzahlen-Grid, Höhenprofil, „Weiter zur Planung".</p>
+  </article>
+
+  <!-- ============================ T13 — TABLET · BEWEGUNGSART ============================ -->
+  <article id="T13" style="width:1024px;">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+      <span style="display:inline-flex; align-items:center; justify-content:center; min-width:40px; height:26px; padding:0 10px; background:#C97B47; color:#FAF6EA; border-radius:6px; font-size:13px; font-weight:700; letter-spacing:1px;">T13</span>
+      <span style="font-size:15px; font-weight:600; color:#E9ECF1;">Tablet · Bewegungsart</span>
+    </div>
+    <div style="height:600px; border-radius:18px; overflow:hidden; background:#EDE6D3; border:1px solid #E0D6BE; box-shadow:0 40px 90px -50px rgba(0,0,0,.55); display:flex; flex-direction:column;">
+      <div style="height:54px; flex:0 0 auto; display:flex; align-items:center; gap:14px; padding:0 16px; background:#FAF6EA; border-bottom:1px solid #E0D6BE;"><img src="buscosun-mark.svg" width="24" height="24" alt=""><span style="font-size:17px; font-weight:700; color:#2C2A26;">buscosun</span><a href="#T12" style="font-size:12px; color:#C97B47; font-weight:600; margin-left:6px;">← Zurück</a></div>
+      <div style="flex:1; display:flex; min-height:0;">
+        <div style="width:54px; flex:0 0 auto; background:#2C2A26; display:flex; flex-direction:column; align-items:center; padding:12px 0;"><div style="width:38px; height:38px; border-radius:10px; background:#3A3833; color:#E0A567; display:flex; align-items:center; justify-content:center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M6 20 C6 20 5 13.5 9 11.5 C13 9.5 12 6.5 16 5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="6" cy="20" r="1.8" fill="currentColor"/><path d="M16 2.5 C14 2.5 12.4 4.1 12.4 6.1 C12.4 8.8 16 11.5 16 11.5 C16 11.5 19.6 8.8 19.6 6.1 C19.6 4.1 18 2.5 16 2.5 Z" stroke="currentColor" stroke-width="1.3"/></svg></div></div>
+        <div class="tp-scroll" style="flex:1; overflow-y:auto; background:#EDE6D3; padding:26px 30px;">
+          <div style="display:flex; align-items:center; gap:10px;"><span style="font-size:10px; letter-spacing:2px; color:#C97B47; font-weight:700;">SCHRITT 1 VON 2 · BEWEGUNGSART</span><span style="flex:1; max-width:140px; height:4px; border-radius:2px; background:#E0D6BE; overflow:hidden;"><span style="display:block; width:50%; height:100%; background:#C97B47;"></span></span></div>
+          <h2 style="font-size:24px; font-weight:700; color:#2C2A26; letter-spacing:-0.5px; margin:10px 0 0;">Wie bist du unterwegs?</h2>
+          <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:20px;">
+            <div style="background:#FAF6EA; border:1.5px solid #C97B47; border-radius:13px; padding:16px; position:relative;"><span style="position:absolute; top:12px; right:12px; width:16px; height:16px; border-radius:50%; background:#C97B47; display:flex; align-items:center; justify-content:center;"><svg width="9" height="9" viewBox="0 0 16 16" fill="none" stroke="#FAF6EA" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,8.5 6.5,12 13,4"/></svg></span><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#C97B47" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="13" cy="4" r="1.8"/><path d="M13 7 L10 12 L14 14 L15 20 M10 12 L6 13 M14 14 L11 11 L15 9 L18 11"/></svg><div style="font-size:15px; font-weight:700; color:#2C2A26; margin-top:10px;">Wandern</div><div style="font-size:11px; color:#8B7355; margin-top:3px;">Gehtempo n. Steigung</div></div>
+            <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:13px; padding:16px;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#8B7355" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="17" r="3.5"/><circle cx="18.5" cy="17" r="3.5"/><path d="M5.5 17 L9 8 H13 M12 8 L15.5 17"/></svg><div style="font-size:15px; font-weight:700; color:#2C2A26; margin-top:10px;">Rennrad</div><div style="font-size:11px; color:#8B7355; margin-top:3px;">Wind-Effekt</div></div>
+            <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:13px; padding:16px;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#8B7355" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="17" r="3.5"/><circle cx="18.5" cy="17" r="3.5"/><path d="M5.5 17 L9 8 H13 M12 8 L15.5 17"/></svg><div style="font-size:15px; font-weight:700; color:#2C2A26; margin-top:10px;">Mountainbike</div><div style="font-size:11px; color:#8B7355; margin-top:3px;">Trail-Tempo</div></div>
+            <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:13px; padding:16px; position:relative;"><span style="position:absolute; top:12px; right:12px; font-size:8px; font-weight:700; color:#5F7A4C; background:#EFF3E8; border:1px solid #C3D2AF; border-radius:5px; padding:2px 6px;">AKKU</span><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#8B7355" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="17" r="3.5"/><circle cx="18.5" cy="17" r="3.5"/><path d="M5.5 17 L9 8 H13 M12 8 L15.5 17"/><path d="M13 4 L11 8 h3 l-1.5 3.5" stroke="#C97B47"/></svg><div style="font-size:15px; font-weight:700; color:#2C2A26; margin-top:10px;">E-Bike</div><div style="font-size:11px; color:#8B7355; margin-top:3px;">Reichweiten-Prognose</div></div>
+            <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:13px; padding:16px;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#8B7355" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20 L9 5 L13 18 M11 12 L16 4 L20 20"/></svg><div style="font-size:15px; font-weight:700; color:#2C2A26; margin-top:10px;">Trailrunning</div><div style="font-size:11px; color:#8B7355; margin-top:3px;">Lauftempo</div></div>
+            <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:13px; padding:16px;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#8B7355" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18 h18 M5 18 l2 -5 h10 l2 5 M12 5 v5"/></svg><div style="font-size:15px; font-weight:700; color:#2C2A26; margin-top:10px;">Skitour</div><div style="font-size:11px; color:#8B7355; margin-top:3px;">Aufstiegstempo</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p style="width:1024px; font-size:12.5px; color:#98A2AF; line-height:1.6; margin:16px 2px 0; font-weight:300;"><strong style="color:#E9ECF1; font-weight:600;">Tablet-Bewegungsart:</strong> 3-Spalten-Kachelgrid aller Bewegungsarten, Auswahl markiert, E-Bike mit Akku-Badge.</p>
+  </article>
+
+  <!-- ============================ T14 — MOBILE · VORSCHAU ============================ -->
+  <article id="T14" style="width:402px;">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+      <span style="display:inline-flex; align-items:center; justify-content:center; min-width:40px; height:26px; padding:0 10px; background:#C97B47; color:#FAF6EA; border-radius:6px; font-size:13px; font-weight:700; letter-spacing:1px;">T14</span>
+      <span style="font-size:15px; font-weight:600; color:#E9ECF1;">Mobile · Vorschau</span>
+    </div>
+    <div style="width:402px; height:860px; border-radius:36px; overflow:hidden; background:#EDE6D3; border:1px solid #E0D6BE; box-shadow:0 40px 90px -50px rgba(0,0,0,.55); position:relative; display:flex; flex-direction:column;">
+      <div style="height:44px; flex:0 0 auto; display:flex; align-items:center; justify-content:space-between; padding:0 22px; color:#2C2A26; font-size:13px; font-weight:600;"><span>08:24</span><span style="display:flex; gap:5px; align-items:center;"><svg width="16" height="11" viewBox="0 0 16 11" fill="#2C2A26"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4" y="5" width="3" height="6" rx="1"/><rect x="8" y="3" width="3" height="8" rx="1"/><rect x="12" y="1" width="3" height="10" rx="1"/></svg><svg width="22" height="11" viewBox="0 0 24 12" fill="none"><rect x="1" y="1" width="20" height="10" rx="2.5" stroke="#2C2A26"/><rect x="3" y="3" width="15" height="6" rx="1" fill="#2C2A26"/></svg></span></div>
+      <div style="flex:0 0 auto; display:flex; align-items:center; gap:10px; padding:6px 18px 12px; border-bottom:1px solid #E0D6BE;"><a href="#T8" style="width:32px; height:32px; border-radius:9px; background:#FFFFFF; border:1px solid #E0D6BE; display:flex; align-items:center; justify-content:center; color:#2C2A26; text-decoration:none;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M19 12 H5 M11 6 L5 12 L11 18" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg></a><span style="font-size:15px; font-weight:700; color:#2C2A26;">Strecke erkannt</span></div>
+      <div class="tp-scroll" style="flex:1; overflow-y:auto; padding:14px 16px 24px;">
+        <div style="display:flex; align-items:center; gap:10px; background:#FAF6EA; border:1px solid #E0D6BE; border-radius:11px; padding:10px 12px;"><span style="font-size:10px; font-weight:700; color:#C97B47; background:#F6E7D8; border:1px solid #E3C39A; border-radius:7px; padding:4px 8px;">GPX</span><span style="font-size:12.5px; font-weight:600; color:#2C2A26; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Alpenüberquerung-E5.gpx</span></div>
+        <div style="font-size:10px; letter-spacing:2px; color:#A89A7A; font-weight:700; margin:18px 0 4px;">STRECKE ERKANNT</div>
+        <h1 style="font-size:22px; font-weight:700; color:#2C2A26; letter-spacing:-0.5px; margin:0;">Oberstdorf → Kemptner Hütte</h1>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:14px;">
+          <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:11px; padding:12px;"><div style="font-size:9px; letter-spacing:1px; color:#A89A7A; font-weight:700;">DISTANZ</div><div style="font-size:20px; font-weight:700; color:#2C2A26; margin-top:3px;">18,4 km</div></div>
+          <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:11px; padding:12px;"><div style="font-size:9px; letter-spacing:1px; color:#A89A7A; font-weight:700;">AUFSTIEG</div><div style="font-size:20px; font-weight:700; color:#2C2A26; margin-top:3px;">1 240 hm</div></div>
+          <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:11px; padding:12px;"><div style="font-size:9px; letter-spacing:1px; color:#A89A7A; font-weight:700;">ABSTIEG</div><div style="font-size:20px; font-weight:700; color:#2C2A26; margin-top:3px;">380 hm</div></div>
+          <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:11px; padding:12px;"><div style="font-size:9px; letter-spacing:1px; color:#A89A7A; font-weight:700;">GELÄNDE</div><div style="font-size:20px; font-weight:700; color:#2C2A26; margin-top:3px;">Alpin</div></div>
+        </div>
+        <div style="background:#FAF6EA; border:1px solid #E0D6BE; border-radius:13px; padding:14px; margin-top:12px;">
+          <div style="display:flex; align-items:baseline; justify-content:space-between;"><span style="font-size:11.5px; font-weight:600; color:#2C2A26;">Höhenprofil</span><span style="font-size:10px; color:#8B7355;">843 → 1 846 m</span></div>
+          <svg viewBox="0 0 340 120" preserveAspectRatio="none" style="width:100%; height:120px; margin-top:8px;"><g stroke="#E0D6BE" stroke-width="1"><line x1="0" y1="40" x2="340" y2="40"/><line x1="0" y1="80" x2="340" y2="80"/></g><path d="M0 104 L70 98 L140 80 L210 52 L280 28 L340 14 L340 120 L0 120 Z" fill="rgba(201,123,71,.14)"/><path d="M0 104 L70 98 L140 80 L210 52 L280 28 L340 14" fill="none" stroke="#C97B47" stroke-width="2"/><circle cx="0" cy="104" r="4" fill="#7A9466"/><circle cx="340" cy="14" r="4" fill="#A8431F"/></svg>
+        </div>
+        <button style="margin-top:16px; width:100%; background:#C97B47; border:none; border-radius:22px; padding:14px; color:#FAF6EA; font-size:15px; font-weight:600; font-family:inherit; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">Weiter zur Planung <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12 H19 M13 6 L19 12 L13 18" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      </div>
+      <div style="position:absolute; bottom:6px; left:50%; transform:translateX(-50%); width:130px; height:5px; border-radius:3px; background:#C4B896;"></div>
+    </div>
+    <p style="width:402px; font-size:12.5px; color:#98A2AF; line-height:1.6; margin:16px 2px 0; font-weight:300;"><strong style="color:#E9ECF1; font-weight:600;">Mobile-Vorschau:</strong> Datei-Leiste, 2×2-Kennzahlen, Höhenprofil, vollbreiter „Weiter"-Button.</p>
+  </article>
+
+</section>
+</x-dc>
+</body>
+</html>
