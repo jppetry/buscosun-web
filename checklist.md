@@ -172,6 +172,27 @@ Maßgebliche Vorgabe: `audit/layer-transport.md` §H. Auslöser: EPS-Dateien (Fu
 - [x] Keine neuen Konsolen-Errors/-Warnings; `npm run typecheck` grün (§I.6)
 - [ ] 🔴 Prod nach Deploy: Durable-`hit` je EPS-Param + Kaltload-Latenz an Jan
 
+## Diagnose-Phase T-AUDIT — Live-Netzwerk-Audit pro Layer (GT-AUDIT)
+Maßgebliche Vorgabe + Ergebnis-Ablage: `audit/live-network-audit.md`. Reine Diagnose gegen Prod (`https://buscosun.com/#m=…` DACH-Ort), kein Code. CLI via Chrome DevTools MCP.
+- [x] Client-Kaltzustand hergestellt: frischer isolierter Browser-Context, IndexedDB/Cache-API/Storage leer verifiziert, kein SW registriert (§3 Setup-Protokoll) — **2026-07-22**
+- [x] Bare-Cold-Load der Ziel-URL erfasst → Waterfall §3.1 (215 Requests, ~32 MB + DEM; je Request Route/Bytes/Dauer/Cache-Status; Edge-HIT-Quote `/_dwd_grib` 0/26)
+- [x] ALLE 12 UI-Toggles der realen Rail einzeln durchgeschaltet (Niederschlag/Flow-Nowcast/Regen-Chance/Schneegrenze/Wind/Böen/Temperatur/Wolken/Satellit/Blitze/Stationen/Sicherheit) + Punkt-Forecast-Tabs, Delta-Traffic §3.2 gefüllt (Fusion-EPS-Zeile: feuert beim Temperatur-Toggle, 191,98 MB)
+- [x] Je Request Route klassifiziert + Edge-HIT vs. Origin-MISS aus `cache-status`/`age` (Header-Samples je Route dokumentiert)
+- [x] Top-Auffälligkeiten §3.3: Top-10-Langsamste, **Warm-Lücke = Manifest-Advance** (Cron wärmte 18z = HITs, Clients folgen localhost-Seed auf 15z = 117× fwd=stale), rv-Listing auf kritischem Pfad, Duplikate (rv-Tar ×2, brightsky-Sweep 288/Toggle, Sicherheits-Refetch)
+- [x] T2b-Deploy verifiziert: **deployt + wirksam** — EPS-Bytes via `/_dwd_grib` (Edge-HITs), Listing designgemäß auf `/_dwd_opendata`, EPS-Proxy-Base im Bundle (§3.3)
+- [x] Verbesserungs-Analyse §4: 9 Maßnahmen nach Wirkung÷Aufwand mit §3-Belegen + STOPP-Vermerk Fusion-Timing
+- [x] Keine Code-/Deploy-/Account-Aktion auf der Live-Site (nur Navigation, Layer-Toggles, Lese-Sonden per GET); Fusion-Lade-Timing nur benannt (STOPP, §4 Nr. 10)
+
+## Infrastruktur-Phase T2c — Prod-Manifest-Advance-Fix (GT2c)
+Maßgebliche Vorgabe: `audit/layer-transport.md` §J. Top-Hebel aus dem Live-Audit: `warm-grib`-Manifest erreicht Prod nicht (Clients auf localhost-Seed 15z → alle 2D-Loads `fwd=stale`). CLI = Code-Seite; Prod-Verifikation = Jans Gate.
+- [x] T2c-1: Ursache aus GitHub-Actions-Logs bestätigt — Ergebnis dreiteilig statt Push-Race: Push-Kette funktioniert (Run 20:31 → Commit 7bb272d GELANDET); Jans Merge e4e888c setzte den Seed zurück (1b334bd enthielt latest-grib.json); Selbstheilung scheiterte an transienten Fetch-Fehlern ohne Retry (3/4 Runs, je Near-Horizon-Step betroffen → Fail-Safe) (§J.4.1)
+- [x] T2c-2: Commit-Back beider Workflows race-sicher — Sichern→`fetch --depth=1`→`reset --hard FETCH_HEAD`→Drüberlegen→Push, 3 Versuche (shallow-sicheres Rebase-Äquivalent, begründet: depth-1-Checkout hat keine Merge-Base; disjunkte Dateien → konfliktfrei per Konstruktion; heilt auch Merge-Regressionen) + `warmUrl`-Retry in `warm-grib.mjs` (2×, nur transiente Fehler/5xx — per Ausnahme-Klausel durch Log-Beweis autorisiert) (§J.4.2, Trockenlauf §J.4.3: Race + Regression nachgestellt, alter Push rejected, neuer Loop landet/heilt)
+- [x] (optional) Cron-Zeitpläne entzerrt: Wind `2,17,32,47 * * * *`, Grib `*/15` — kein gleichzeitiges Feuern
+- [x] Abgrenzung belegt: Diff = exakt warm-grib.yml + warm-wind.yml + warm-grib.mjs(`warmUrl`); Client-Code/Decode/Shader/Fusion unberührt; output-identisch (§J.4.4)
+- [x] `npm run typecheck` grün; `node --check` grün; keine neuen Konsolen-Errors (Client unverändert)
+- [ ] 🔴 Jans Gate: Branch-Protection erlaubt Bot-Push; `workflow_dispatch` von `warm-grib` ausgeführt
+- [ ] 🔴 Prod-Verifikation: `latest-grib.json` zeigt **aktuellen** Lauf + `warmedThroughProxy`=Prod-URL (nicht localhost); 2D-Kaltload = `Cache-Status: hit` statt `fwd=stale`; 2D-Lauf == Wind-Lauf; keine `git push`-Rejects mehr in den Logs
+
 ## Phase 9 — Gesamtregression (G9)
 - [ ] Kurzprotokoll V-ALL für alle 8 Features grün
 - [ ] Desktop-Diff aller 8 Seiten gegen Phase-0-Baseline: keine Abweichung

@@ -130,6 +130,24 @@ Vorgabe: `audit/layer-transport.md` §H. Transport-only (T2b-1…3); Output-iden
 6. **(Optional T2b-4):** vor-resampelte EPS-Grid numerisch == aktuelle Client-Berechnung (Zell-für-Zell-Diff unter Toleranz), bevor der Client-Pfad umgestellt wird.
 7. 🔴 **Prod (nach Deploy, Jan):** Durable-`Cache-Status: … hit` je EPS-Param; EPS-Kaltload-Latenz vs. 4–15-s-Baseline.
 
+## V-AUDIT — Live-Netzwerk-Audit pro Layer (Diagnose-Phase T-AUDIT)
+Vorgabe + Ergebnis-Ablage: `audit/live-network-audit.md`. Reine Diagnose gegen Prod, kein Code. **Netzwerk ist emulator-belastbar** (kein Real-Device).
+1. **Setup:** Chrome DevTools MCP, frisches Profil; IndexedDB (`buscosun-wind`), Cache-API (`icon-d2-grib-decompressed-v1`, `radolan-rv-tar-v1`), HTTP-Cache **vor** der Baseline leeren; Service-Worker-Status notieren.
+2. **Bare Cold-Load** der Ziel-URL → Waterfall aufzeichnen (`list_network_requests`); je Request voller Pfad, Bytes, Dauer und **Response-Header** (`Cache-Status`/`Netlify-CDN-Cache-Control`/`age`) via `get_network_request`.
+3. **Per Layer einzeln:** jeden UI-Layer nacheinander aktivieren, Delta-Traffic erfassen; zwischen den Layern Zustand notieren (nicht Client-Cache leeren — reale Warm-Wiederverwendung ist Teil des Befunds).
+4. **Klassifikation:** je Request Route (`/_dwd_wind`/`/_dwd_grib`/`/_dwd_opendata`/Tiles/brightsky/…) + Edge-HIT vs. Origin-MISS.
+5. **Auffälligkeiten:** Top-10 langsamste Requests, Origin-MISS trotz Warm-Cron (Warm-Lücke), Directory-Listings auf dem kritischen Pfad, Doppel-Fetches; T2b-Deploy-Status (EPS-Route).
+6. **Analyse:** priorisierte Verbesserungen je Layer (§4) mit Beleg. **Kein Code**; Fusion-Lade-Timing nur benennen.
+
+## V-TRANSPORT-2c — Prod-Manifest-Advance-Fix (Infrastruktur-Phase T2c)
+Vorgabe: `audit/layer-transport.md` §J. Ops-/Transport-Fix an der Commit-Back-Kette; output-identisch. Verifikation grösstenteils in Prod = Jans Gate.
+1. **Ursache belegt (T2c-1):** GitHub-Actions-Log des `warm-grib`-Commit-Steps zitiert (Race „non-fast-forward" / „protected branch" / „nothing to commit" / Step nie erreicht).
+2. **Fix lokal geprüft:** die geänderte Commit-Back-Sequenz (`fetch`+`rebase`+Retry) ist syntaktisch korrekt; Trockenlauf/Erklärung, dass Wind+Grib disjunkte Dateien sind → Rebase konfliktfrei.
+3. **Abgrenzung:** Diff berührt nur `.github/workflows/warm-grib.yml` (+ ggf. `warm-wind.yml`, Zeitplan); **kein** Client-/Decode-/Fusion-Eingriff. `npm run typecheck` grün.
+4. 🔴 **Prod (nach Fix + Live-Cron, Jan):** `curl https://<prod>/latest-grib.json` → **aktueller** Lauf (== Wind-Lauf) + `warmedThroughProxy`=Prod-URL (nicht `localhost:5196`).
+5. 🔴 **Prod-Kaltload:** 2D-Layer (Temp/Böen/Niederschlag/Wolken) → `Cache-Status: … hit` statt `fwd=stale`; Kaltload-Latenz je Datei ~150–600 ms (wie Wind), nicht mehr Origin.
+6. 🔴 **Regression:** keine `git push`-Rejects mehr in den `warm-grib`- und `warm-wind`-Logs über mehrere Läufe.
+
 ---
 
 ## Beleg-Ablage

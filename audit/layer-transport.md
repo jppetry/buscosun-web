@@ -237,3 +237,75 @@ Konsole: 0 Errors; nur vorbestehende Emscripten-Hinweise „still waiting on run
 5. **Performance:** Kein neuer Main-Thread-Code; erwarteter Gewinn (Durable-`hit` statt 4–15 s DWD-Kaltpfad) erst nach Deploy messbar — 🔴 Jans Gate.
 
 **Offen (🔴 Jans Gate):** Netlify-Deploy → Durable-`Cache-Status: hit` + Kaltload-Latenz je EPS-Param vs. 4–15-s-Baseline; Warm-Cron-EPS-Coverage in Prod (warm-grib.yml unverändert — EPS läuft im selben Cron mit); Branch-Protection-Bot-Push wie gehabt. Das committete `latest-grib.json` ist ein localhost-Seed (Staleness-Guard macht ihn gefahrlos). **T2b-4 (Vor-Resampling im Cron) bewusst offen** — nur auf Zuruf; Hinweis: der Client-Decode (~16 MB × 15 + 542-k-Zellen-Resampling) bleibt bis dahin unverändert teuer, T2b-1…3 beschleunigt nur den Download.
+
+---
+
+## §J — Phase T2c: Prod-Manifest-Advance-Fix (Gate GT2c)
+
+**Befund (T-AUDIT Finding 1, `audit/live-network-audit.md`):** Der `warm-grib`-Cron **läuft in Prod und wärmt den aktuellen Lauf** (18z-Edge-HITs für 2D + EPS belegt). **Aber** Prod liefert weiter den einkommitteten **localhost-Seed** `latest-grib.json` aus (2D-Lauf 15z, `warmedThroughProxy: http://localhost:5196`). Folge: Clients lesen „lade 15z" → fordern genau die **ungewärmten** 15z-Dateien an → **117/117 `fwd=stale`** (~100 MB/Session, alles Origin), Daten einen Zyklus alt, Lauf-Inkonsistenz zu Wind (18z). **Wind advanced korrekt** (`latest-wind.json`-Commits landen). Der 24h-Staleness-Guard greift nicht (15z < 24 h) → der Seed wird vertraut und pinnt alle Clients.
+
+**`warmedThroughProxy: localhost` beweist:** der Prod-Cron hat das Grib-Manifest **noch nie** committet — obwohl er wärmt. Bruch liegt zwischen *Wärmen* (funktioniert) und *Manifest in Prod bringen* (nicht).
+
+**Prime-Hypothese — Push-Race:** `warm-wind.yml` und `warm-grib.yml` sind strukturell identisch, beide committen mit `git push` **ohne** vorheriges `git pull --rebase`, und **beide auf demselben `*/15 * * * *`-Zeitplan**. `warm-grib` ist deutlich langsamer (7 Params + EPS, ~135 Dateien vs. Winds ~10) → es pusht **nach** dem Wind-Job in ein bereits bewegtes `main` → **non-fast-forward-Reject**, kein Retry → der Grib-Commit landet nie. Passt zu allen Belegen (Cron wärmt, Wind landet, Grib nicht, Seed=localhost). **Von der CLI aus den GitHub-Actions-Logs zu bestätigen** (Commit-Step: „rejected"/„protected branch"/„nothing to commit"/nie gelaufen).
+
+### J.1 Umsetzungs-Spezifikation
+
+**T2c-1 — Ursache aus den Actions-Logs bestätigen** (bevor Code): `warm-grib`-Runs → was meldet „Commit manifest if changed"? Race (non-fast-forward), Branch-Protection (protected branch), Fail-Safe (nichts zu committen), oder Step nie erreicht. Logs ziehen = `gh`/GitHub-API (Jans Creds bzw. T1-`git credential`+curl-Muster).
+
+**T2c-2 — Commit-Back race-sicher machen** (Code, beide Workflows): vor dem Push `git fetch origin main && git rebase origin/main` (bzw. `git pull --rebase`) **+ kleine Retry-Schleife** (2–3×). Wind- und Grib-Manifest sind **disjunkte Dateien** → Rebase ist immer konfliktfrei, beide können im selben Fenster landen. Optional zusätzlich die zwei Cron-Zeitpläne **entzerren** (z. B. Grib `*/15`, Wind `2,17,32,47`), damit sie nicht gleichzeitig feuern.
+
+**T2c-3 — (OPTIONAL, robust) Manifest-Persistenz ohne Repo-Push:** Manifest in **Netlify Blobs** schreiben + über eine Function ausliefern (T1-Doku-Alternative) → kein Commit-back, kein Rebuild je Lauf, kein Race, keine Branch-Protection-Abhängigkeit. Größer; nur falls die Push-Kette fragil bleibt.
+
+**T2c-0 — (Interim)** Der erste erfolgreich gelandete Advance-Commit überschreibt den Seed automatisch; ein manueller `workflow_dispatch` von `warm-grib` erzwingt die erste Landung nach dem Fix.
+
+### J.2 Harte Regeln / Abgrenzung
+- Reine Transport-/Ops-Änderung an der Commit-Back-Kette. **Kein** Decode-/Shader-/Fusion-/Output-Eingriff; **output-identisch** (nur ein frischerer, gewärmter Lauf). Der Client-Code (`gribManifest.ts`, Loader) bleibt unberührt.
+- **Verifikation in Prod = Jans Gate:** Branch-Protection prüfen/anpassen (Bot-Push), `workflow_dispatch`, Prod-`latest-grib.json` zeigt aktuellen Lauf + Prod-URL, 2D-Kaltload = Edge-HITs.
+
+### J.3 Verifikation (V-TRANSPORT-2c)
+Nach Fix + einem Live-Cron-Zyklus: Prod-`latest-grib.json` = **aktueller Lauf** + `warmedThroughProxy` = **Prod-URL** (nicht localhost); 2D-Layer-Kaltload = `Cache-Status: hit` (nicht `fwd=stale`); 2D-Lauf == Wind-Lauf; keine `git push`-Rejects mehr in den Actions-Logs.
+
+### J.4 — Verify-Protokoll-Log Phase T2c (2026-07-22/23, CLI)
+
+#### J.4.1 T2c-1 — Ursache aus den Actions-Logs (Prime-Hypothese teilweise widerlegt, tatsächliche Kette dreiteilig)
+
+Logs via GitHub-API (T1-Muster `git credential`+curl; kein `gh` installiert). `warm-grib` (Workflow-ID 318407874) hatte zum Diagnosezeitpunkt **4 Runs, alle `conclusion=success`** — der Commit-Step ist also **nie** an einem Push gescheitert:
+
+| Run (UTC) | Warm-Ergebnis (Log-Zitat) | Advance? |
+|---|---|---|
+| 19:57 | `✗ t_2m/0·5·6 / vmax_10m/19 Fehler fetch failed` → `Manifest UNVERÄNDERT (Fail-Safe…)` | nein (t_2m 22/25, vmax 24/25) |
+| **20:31** | `Manifest umgelegt → Lauf 2026072218 … Fertig.` → `[main 7bb272d]` | **JA — Push GELANDET** |
+| 21:11 | `✗ t_2m/0, ✗ clcl/2 Fehler fetch failed` → `2D-Abschnitt UNVERÄNDERT (Fail-Safe)` | nein (t_2m 24/25, clcl 12/13) |
+| 21:40 | `✗ t_2m/0·1·9 fetch failed, ✗ t_2m/5·8 terminated` → `2D-Abschnitt UNVERÄNDERT` | nein (t_2m 20/25) |
+
+**Tatsächliche Kausalkette (alle drei Glieder log-/git-belegt):**
+1. **Die Push-Kette funktioniert.** Run 20:31 advancte auf 18z und pushte erfolgreich (Commit `7bb272d`, 20:31:54Z). Kein non-fast-forward-Reject, keine Branch-Protection-Blockade beobachtet → die Prime-Hypothese „Push-Race" war **nicht** die beobachtete Bruchstelle (bleibt aber latentes Risiko, s. u.).
+2. **Manuelle Merge-Regression.** Jans lokaler Commit `1b334bd` „improve Layer" (20:50:38Z) enthielt `public/latest-grib.json` (+34/−3 — die lokale Seed-Arbeitskopie); der Merge `e4e888c` (Parents `1b334bd`+`7bb272d`) löste die Datei auf die **Seed-Seite** auf (`run 2026072215`, `warmedThroughProxy: localhost:5196` — per `git show` beider Stände belegt). Der Netlify-Deploy des Merges brachte den Seed zurück nach Prod. Das Live-Audit (21:09–21:40) lief direkt **nach** dieser Regression — daher „Manifest erreicht Prod nie".
+3. **Selbstheilung blockiert durch transiente Fetch-Fehler ohne Retry.** 3 von 4 Runs hatten 2–5 undici-Fehler (`fetch failed`/`terminated`) unter ~130 Warm-Fetches gegen `https://buscosun.com/_dwd_grib`; jedes Mal war ein Near-Horizon-Step (0–4) dabei → der (bewusst konservative) Fail-Safe blockt den gesamten 2D-Advance. `warm-wind` (~10 Dateien) trifft praktisch nie einen Fehler → advanced zuverlässig. **Diese Asymmetrie sah von außen wie ein Push-Race aus.**
+
+#### J.4.2 T2c-2 — Umsetzung
+
+- **`scripts/warm-grib.mjs` · `warmUrl()`-Retry** (autorisiert durch die Ausnahme-Klausel — der Log-Beweis verortet die Nicht-Heilung im Warm-Schritt, nicht im Push): bis zu 2 Wiederholungen (1 s/3 s Backoff) NUR bei geworfenen Netz-Fehlern und 5xx; 4xx (unpublizierter Step) wird nicht wiederholt; `FAIL_STEP`-Simulation und die gesamte Advance-/Manifest-Semantik unverändert. Erwartung: die beobachtete ~75 %-Fail-Safe-Quote je Tick fällt auf ≈0 (Einzelfehler-P² statt P).
+- **Commit-back beider Workflows race-sicher** (`warm-grib.yml` + `warm-wind.yml`): Schleife mit 3 Versuchen — Warmer-Manifest nach `/tmp` sichern → `git fetch --depth=1 origin main` → `git reset --hard FETCH_HEAD` → Manifest drüberlegen → committen → `git push origin HEAD:main`. **Begründete Abweichung von der Spec-Letter („rebase")**: `actions/checkout@v4` ist ein depth-1-Shallow-Clone; ein `git rebase origin/main` hat dort nach einem Remote-Move keine verlässliche Merge-Base (frisch geholter Tip hängt nicht am lokalen Graft). Die Sichern-Reset-Drüberlegen-Sequenz ist das shallow-sichere Äquivalent, für die disjunkten Manifest-Dateien **per Konstruktion konfliktfrei**, und macht den frisch geschriebenen Warmer-Stand für DIESE Datei autoritativ — wodurch auch Merge-Regressionen (J.4.1 Punkt 2) am nächsten Tick automatisch heilen. Erschöpfte Versuche enden mit `::error` + Exit 1 (sichtbar statt still verloren).
+- **Cron-Entzerrung:** `warm-wind` auf `2,17,32,47 * * * *` versetzt (Grib bleibt `*/15`) — die Bots feuern nicht mehr im selben Fenster.
+
+#### J.4.3 Trockenlauf (Sandbox `scratchpad/t2c-sandbox`, Race + Regression nachgestellt)
+
+Bare-Origin + depth-1-Checkout des Grib-Bots + Wind-Push dazwischen (Race hergestellt):
+- **Kontrolle altes Verhalten:** blinder `git push` → `! [rejected] HEAD -> main (fetch first)` — der Advance ginge verloren.
+- **Neuer Loop (wörtlich aus dem Workflow):** `Manifest-Advance gelandet (Versuch 1)` — Wind-Commit bleibt erhalten.
+- **Merge-Regression nachgestellt** („improve Layer"-Commit setzt den Seed zurück): nächster Bot-Tick → `Heal gelandet (Versuch 1)`; Endzustand origin/main: Grib-Manifest = Warmer-Stand (`run 2026072300`, Prod-Proxy), Wind-Advance erhalten, fremde Dateien (improve.txt) erhalten.
+
+#### J.4.4 Abgrenzung + Selbstverifikation
+
+- **Diff exakt 3 Dateien:** `.github/workflows/warm-grib.yml`, `.github/workflows/warm-wind.yml` (nur Commit-Step + Wind-Cron + Kommentare), `scripts/warm-grib.mjs` (nur `warmUrl`). **Kein** Client- (`gribManifest.ts`, Loader), Decode-, Shader-, Fusion-Touch; output-identisch (Clients bekommen nur einen frischeren, bereits gewärmten Lauf). `node --check` grün, `npm run typecheck` grün.
+- Selbstverifikation: (1) Jede bestehende Funktion erhalten? Ja — Warm-/Advance-/Fail-Safe-/Early-Exit-Semantik unverändert, nur Retry + Push-Robustheit. (2) Desktop unverändert? Ja — kein Client-Code berührt. (3–5) n/a (reine CI/Ops-Phase); Konsole unberührt, keine neuen Warnings.
+
+#### J.4.5 🔴 Jans Gate (Prod)
+
+1. Commit + Push dieser Änderungen (drei Dateien; erst dann greift der Fix — die Crons laufen den alten Stand, bis main sie enthält).
+2. `workflow_dispatch` von `warm-grib` → Log: „Manifest umgelegt … Manifest-Advance gelandet".
+3. `curl https://buscosun.com/latest-grib.json` → **aktueller Lauf == Wind-Lauf**, `warmedThroughProxy: https://buscosun.com/_dwd_grib` (nicht localhost).
+4. 2D-Kaltload (Temp/Böen/Niederschlag/Wolken): `Cache-Status: … hit` statt `fwd=stale`, ~150–600 ms/Datei.
+5. Mehrere Folge-Runs beobachten: keine Push-Rejects, keine Fail-Safe-Ketten mehr (Retry-Zeilen `… Retry n` im Log sind ok und erwartbar selten).
+6. **Ops-Hinweis:** `public/latest-grib.json`/`latest-wind.json` lokal nicht mehr von Hand committen — `1b334bd` zeigt, wie eine mitcommittete Arbeitskopie den Bot-Advance still zurückdreht. Der Cron heilt das jetzt binnen ≤15 min, aber jede Regression kostet einen Deploy-Zyklus.

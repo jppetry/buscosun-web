@@ -296,3 +296,39 @@ Jede Phase folgt dem Zyklus **Diagnose → Plan → Implement → Verify → Gat
 
 **Verify:** tests.md → V-TRANSPORT-2b. 🔴 Latenz/Durable-`hit` erst nach Deploy.
 **Gate GT2b:** EPS-Bytes je Param identisch (Proxy vs. direkt), Durable-Header, EPS-Kaltload nicht mehr über `/_dwd_opendata` (die 4–15-s-Fetches verschwinden bei warmem Edge), Fusion-Ergebnis unverändert, Konsole/Typecheck grün; (T2b-4 falls umgesetzt: vor-resampelte Grid numerisch == Client).
+
+---
+
+## Diagnose-Phase T-AUDIT — Live-Netzwerk-Audit pro Layer (Prod)
+
+**Reine Diagnose gegen die deployte Produktion, kein Code.** Maßgebliche Vorgabe + Ergebnis-Ablage: `audit/live-network-audit.md`. Ausführung durch die CLI (Chrome DevTools MCP).
+
+**Ziel-URL:** `https://buscosun.com/#m={"l":[50.2,10.5,"Deutschland · Österreich · Schweiz","DE"],"b":0,"h":0}` (Karten-Ansicht mit Ort → Punkt-Vorhersage + eager Fusion inkl. EPS).
+
+**Auftrag:** Bare-Cold-Load + **jeden Layer einzeln** durchschalten, **kompletten Netzwerk-Traffic** erfassen (Route je Request: `/_dwd_wind` · `/_dwd_grib` · `/_dwd_opendata` · Tiles · brightsky/…; Bytes, Dauer, **Cache-Status-Header** = Edge-HIT vs. Origin-MISS), dann **priorisierte Verbesserungen** je Layer ableiten. Verifiziert nebenbei, ob T2b deployt ist (EPS via `/_dwd_grib`).
+
+**Methodik-Eckpunkte (Details Audit §1/§2):** Client-Cache leeren (IndexedDB/Cache-API/HTTP) vor der Baseline; Server-Edge nicht leerbar → Header-basiert HIT/MISS interpretieren; Netzwerk ist emulator-belastbar (kein Real-Device nötig).
+
+**Ergebnis:** gefüllte Tabellen §3 + priorisierte Maßnahmenliste §4 in `audit/live-network-audit.md`. **Keine Code-Änderung** — Findings speisen Folge-Phasen; Fusion-Lade-Timing nur benennen (STOPP).
+**Gate GT-AUDIT:** Bare-Load + alle UI-Layer einzeln erfasst, je Request Route+Bytes+Dauer+Cache-Status protokolliert, Top-Auffälligkeiten + priorisierte Hebel schriftlich belegt. **Status: durchgeführt** (`audit/live-network-audit.md` §3/§4).
+
+---
+
+## Infrastruktur-Phase T2c — Prod-Manifest-Advance-Fix (Gate GT2c)
+
+**Top-Hebel aus dem Live-Audit (Finding 1).** Maßgebliche Vorgabe: `audit/layer-transport.md` **§J**. Umsetzung via CLI (Code-Seite); Prod-Verifikation = Jans Gate.
+
+**Befund:** Der `warm-grib`-Cron wärmt in Prod den aktuellen Lauf (18z), aber Prod liefert weiter den einkommitteten **localhost-Seed** `latest-grib.json` (2D-Lauf 15z) → alle Clients laden die **ungewärmten** 15z-Dateien (117/117 `fwd=stale`, ~100 MB/Session). Wind advanced korrekt. `warmedThroughProxy: localhost` ⇒ der Prod-Cron hat das Grib-Manifest **nie** committet.
+
+**Prime-Hypothese:** Push-Race — `warm-wind.yml` + `warm-grib.yml` identisch, beide `git push` **ohne** `pull --rebase`, **gleicher `*/15`-Zeitplan**; Grib ist langsamer → pusht nach Wind in ein bewegtes `main` → non-fast-forward-Reject, kein Retry → landet nie.
+
+**Umzusetzende Maßnahmen (Kurzfassung, Details §J.1):**
+1. **T2c-1** Ursache aus GitHub-Actions-Logs bestätigen (Race / Branch-Protection / Fail-Safe / nie gelaufen).
+2. **T2c-2** Commit-Back race-sicher: `git fetch + rebase origin/main` + Retry vor `push`, in **beiden** Workflows (disjunkte Dateien → konfliktfrei); optional Cron-Zeitpläne entzerren.
+3. **T2c-3** (optional, robust) Manifest via **Netlify Blobs** statt Repo-Commit — kein Race/Rebuild/Branch-Protection.
+4. **T2c-0** (interim) erster Advance-Commit überschreibt den Seed; `workflow_dispatch` erzwingt die erste Landung.
+
+**Explizit außerhalb:** Client-Code (`gribManifest.ts`/Loader), Decode/Shader/Fusion. Output-identisch (nur frischerer Lauf).
+
+**Verify:** tests.md → V-TRANSPORT-2c. 🔴 Jans Gate: Branch-Protection + Live-Cron-Zyklus.
+**Gate GT2c:** Prod-`latest-grib.json` = aktueller Lauf + `warmedThroughProxy`=Prod-URL (nicht localhost); 2D-Kaltload = Edge-HITs (nicht `fwd=stale`); 2D-Lauf == Wind-Lauf; keine `git push`-Rejects mehr.

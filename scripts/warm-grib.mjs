@@ -194,24 +194,38 @@ async function findLatestCompleteRun() {
   return null;
 }
 
-/** Eine URL DURCH DEN PROXY holen (füllt den Edge-Cache). true bei 2xx. */
+/** Eine URL DURCH DEN PROXY holen (füllt den Edge-Cache). true bei 2xx.
+ *  Phase T2c: transiente Fehler (undici "fetch failed"/"terminated", 5xx)
+ *  werden bis zu 2× wiederholt (1 s / 3 s Backoff) — die Prod-Logs (Audit §J)
+ *  zeigten, dass sonst schon 1 Ausfall unter ~130 Dateien via Near-Horizon-
+ *  Fail-Safe den gesamten Manifest-Advance blockiert. 4xx (unpublizierter
+ *  Step) wird bewusst NICHT wiederholt. */
 async function warmUrl(url, label, failStepMatch) {
   if (failStepMatch) {
     log(`  ✗ FAIL_STEP → simulierter Warm-Fehler ${label}`);
     return false;
   }
-  try {
-    const res = await fetch(url);
-    if (!res.ok) { log(`  ✗ ${res.status} ${label}`); return false; }
-    // Body konsumieren (schließt die Verbindung; Bytes werden vom Edge gecacht).
-    const buf = await res.arrayBuffer();
-    const cacheHdr = res.headers.get('netlify-cdn-cache-control') || res.headers.get('cache-control') || '';
-    log(`  ✓ ${label} ${(buf.byteLength / 1024).toFixed(0)} KB ${cacheHdr ? `[${cacheHdr}]` : ''}`);
-    return true;
-  } catch (e) {
-    log(`  ✗ ${label} Fehler ${e?.message || e}`);
-    return false;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt > 0) await new Promise((r) => setTimeout(r, attempt === 1 ? 1000 : 3000));
+    try {
+      const res = await fetch(url);
+      if (!res.ok) {
+        if (res.status >= 500 && attempt < 2) { log(`  … ${res.status} ${label} — Retry ${attempt + 1}`); continue; }
+        log(`  ✗ ${res.status} ${label}`);
+        return false;
+      }
+      // Body konsumieren (schließt die Verbindung; Bytes werden vom Edge gecacht).
+      const buf = await res.arrayBuffer();
+      const cacheHdr = res.headers.get('netlify-cdn-cache-control') || res.headers.get('cache-control') || '';
+      log(`  ✓ ${label} ${(buf.byteLength / 1024).toFixed(0)} KB ${cacheHdr ? `[${cacheHdr}]` : ''}`);
+      return true;
+    } catch (e) {
+      if (attempt < 2) { log(`  … ${label} ${e?.message || e} — Retry ${attempt + 1}`); continue; }
+      log(`  ✗ ${label} Fehler ${e?.message || e}`);
+      return false;
+    }
   }
+  return false;
 }
 
 function warmStepUrl(run, param, step) {
