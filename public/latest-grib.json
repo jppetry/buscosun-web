@@ -1,7 +1,7 @@
 {
-  "run": "2026072403",
-  "runAt": "2026-07-24T03:00:00.000Z",
-  "updatedAt": "2026-07-24T05:12:39.702Z",
+  "run": "2026072406",
+  "runAt": "2026-07-24T06:00:00.000Z",
+  "updatedAt": "2026-07-24T07:13:20.609Z",
   "warmedThroughProxy": "https://buscosun.com/_dwd_grib",
   "params": {
     "t_2m": [
