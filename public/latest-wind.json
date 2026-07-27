@@ -1,6 +1,6 @@
 {
-  "run": "2026072621",
-  "runAt": "2026-07-26T21:00:00.000Z",
+  "run": "2026072700",
+  "runAt": "2026-07-27T00:00:00.000Z",
   "steps": [
     0,
     1,
@@ -8,6 +8,6 @@
     3,
     4
   ],
-  "updatedAt": "2026-07-26T21:50:50.923Z",
+  "updatedAt": "2026-07-27T00:50:47.870Z",
   "warmedThroughProxy": "https://buscosun.com/_dwd_wind"
 }
