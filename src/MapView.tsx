@@ -43,12 +43,24 @@ import { fetchIconD2Precip, resolveLatestRun, type IconD2Precip } from './source
 // GRIB2-Pipeline wie der Niederschlag.
 import { fetchIconD2CloudStack, type IconD2CloudStack } from './sources/iconD2Clouds';
 import { fetchIconD2Wind, windFrameAtValidTimeAsync, loadWindNowCache, saveWindNowCache, type IconD2Wind } from './wind/iconD2WindSource';
-import { frameAtValidTime } from './sources/frameAtValidTime';
+import { frameAtValidTime, bracketAtValidTime } from './sources/frameAtValidTime';
 import { sampleTempAt, sampleGustAt, sampleWindAt, sampleCloudsAt, sampleDemAt } from './qa/layerSampler';
 import { runLayerQA, runSnowlineQA, type SampleApi } from './qa/layerQA';
 import { fetchIconEuPressureWind, WIND_PRESSURE_LEVELS, type WindPressureLevel } from './wind/iconEuPressureWind';
 import { fetchIconD2Temp, fetchTempRunSpread, type IconD2Temp, type IconD2TempSpread } from './sources/iconD2TempSource';
 import { fetchIconD2Gust, type IconD2Gust } from './sources/iconD2GustSource';
+// Gewitterpotenzial (Feature F1): fusioniert cape_ml×cin_ml×lpi zu einem 0–100-
+// Index — flächige Vorwarnung 0–12 h vor dem ersten Radarecho. Lazy beim Aktivieren.
+import { fetchIconD2Thunder, type IconD2Thunder } from './sources/iconD2Thunder';
+// Blitz-Vorhersage (Feature F2): ICON-D2 lpi_max als flächiges Blitz-RISIKO
+// (Prognose 0–12 h) — NICHT die gemessenen Blitze der letzten Stunde. Lazy.
+import { fetchIconD2Lpi, type IconD2Lpi } from './sources/iconD2Lpi';
+import { fetchIconD2Snow, type IconD2Snow, type SnowMode } from './sources/iconD2Snow';
+import { snowRamp } from './radar/precipPhase';
+// Rotationspotenzial (Feature F5, Experten-Layer): fusioniert uh_max×uh_max_low×sdi_2
+// zu einem geglätteten 0–100-VERDACHTS-Score für rotierende Aufwinde/Superzellen
+// (0–12 h). Modell-Verdacht, kein Warnprodukt (§0). Lazy beim Aktivieren.
+import { fetchIconD2Rotation, type IconD2Rotation } from './sources/iconD2Rotation';
 // Vertrauens-Schleier (ML #1 Klima-MOS): Kreuzschraffur, deren Dichte mit der
 // Vorhersage-Unsicherheit wächst (leadWeight × klimatologische Plausibilität).
 import { ConfidenceLayer } from './scalar/ConfidenceLayer';
@@ -72,6 +84,7 @@ import { fetchRzcLatest, type RadarFrame } from './sources/meteoSwissRadar';
 // GeoSphere INCA-Nowcast als Grid — AT-„jetzt..+3h"; danach ICON-D2.
 import { fetchIncaGrid, type IncaGrid } from './sources/geosphereIncaGrid';
 import { PrecipCompositor } from './scalar/precipComposite';
+import { precipCompositeReady, precipRadarHorizonHours, type PrecipAvailability } from './nowcast/precipSource';
 import {
   fetchDachStations,
   fetchDwdStationLive,
@@ -130,6 +143,30 @@ function escapeHtml(s: string): string {
 
 const FORECAST_REFRESH_MS = 60 * 60 * 1000; // refresh forecast hourly
 const FORECAST_HOURS = 24;
+
+/**
+ * TESTMODUS „Nur-Jetzt-Start" (Jans Vorgabe, 2026-07-23): Beim Start der
+ * Kartenseite laden AUSSCHLIESSLICH die Jetzt-Frames von Wind + Temperatur —
+ * kein Fusion-/MOSMIX-Forecast, keine Zukunftsstunden (→ kein Zeit-Deck),
+ * kein Punktforecast-/7-Tage-Abruf. Layer, die der Nutzer danach aktiviert,
+ * laden weiterhin normal. Eingebetteter Modus (Event-Tagesablauf) ist
+ * ausgenommen. Abschaltbar per `?startnow=0` (Flag-Konvention wie `fusion2d`).
+ *
+ * Vorhersagefenster (2026-07-23, Jans Folge-Vorgabe): Der Slider ist wieder
+ * eingeblendet und deckt „jetzt" … `NOWONLY_AHEAD_H` Stunden ab. Die
+ * Forecast-Frames werden NICHT eager geladen, sondern erst wenn der Nutzer den
+ * Slider bewegt — und dann nur für die aktuell aktiven Grid-Layer.
+ */
+const NOWONLY_AHEAD_H = 2;
+const START_NOW_ONLY = (() => {
+  try {
+    if (typeof window !== 'undefined') {
+      const q = new URLSearchParams(window.location.search).get('startnow');
+      if (q === '0' || q === 'off') return false;
+    }
+  } catch { /* SSR → Default */ }
+  return true;
+})();
 const WORLD_SOURCE_ID = 'world-fill';
 const DIM_LAYER_ID = 'basemap-dim';
 const COUNTRY_MASK_SOURCE_ID = 'country-mask';
@@ -158,6 +195,8 @@ const FLOW_FACTOR = 8;
 const FLOW_INTERVAL_MIN = 5;
 // Regenwahrscheinlichkeit (PoP) — kalibriertes Ensemble-Produkt als ScalarLayer.
 const POP_LAYER_ID = 'pop-layer';
+// Gewitterpotenzial (Feature F1) — fusionierter CAPE×CIN×LPI-Index als ScalarLayer.
+const THUNDER_LAYER_ID = 'thunder-potential';
 /** Wahrscheinlichkeits-Farbrampe (t = PoP 0..1): hellblau → blau → violett.
  *  Alpha im Verlauf eingebacken (RainLayer hat kein visRange): < ~4 % transparent,
  *  Einblendung bis ~25 %, darüber voll (× layer-opacity). Ersetzt die frühere
@@ -186,12 +225,76 @@ const gustRamp: Record<number, string> = {
   0.875:  'rgb(110,50,130)',  // 35 m/s — orkanartig
   1.0:    'rgb(70,40,110)',   // 40 m/s — Orkan (Bft 12)
 };
-/** DE/AT-RV-Nowcast-Horizont in Slider-Stunden (RV reicht bis +120 min). */
-const NOWCAST_MAX_HOURS = 2;
-/** AT GeoSphere-INCA-Nowcast-Horizont (Leadtimes 0.25 … 3.0 h). */
-const INCA_MAX_HOURS = 3;
+/** Gewitterpotenzial-Farbrampe (Feature F1; t = Score/100 = 0..100). Fünfstufig
+ *  nach `thunderLevelOf`: unterhalb ~Score 8 transparent (keine Lage nicht
+ *  einfärben — via `visRange`), dann Gelb (gering) → Amber (erhöht) → Orange
+ *  (deutlich) → Rot (hoch) → Magenta (extrem). Stützpunkte = Stufenschwellen
+ *  8/30/55/78/100 auf der 0..1-Achse. */
+const thunderRamp: Record<number, string> = {
+  0.0:  'rgb(247,236,140)', // Score 0 — (durch visRange ausgeblendet)
+  0.08: 'rgb(247,224,88)',  // Score 8  — gering (Gelb)
+  0.30: 'rgb(245,182,66)',  // Score 30 — erhöht (Amber)
+  0.55: 'rgb(238,124,44)',  // Score 55 — deutlich (Orange)
+  0.78: 'rgb(206,52,52)',   // Score 78 — hoch (Rot)
+  1.0:  'rgb(150,30,110)',  // Score 100 — extrem (Magenta)
+};
+// Blitz-Vorhersage (Feature F2) — ICON-D2 lpi_max als Blitz-RISIKO-Raster (0–12 h).
+const LIGHTNINGFC_LAYER_ID = 'lightning-forecast';
+/** Blitz-Vorhersage-Farbrampe (Feature F2; t = lpi/LPI_VMAX = 0..30 J/kg).
+ *  Fünfstufig nach `lpiLevelOf`: transparent unter ~1 J/kg (ruhige Zellen nicht
+ *  einfärben — via `visRange`), dann Gelb (gering) → Amber (erhöht) → Rot-Orange
+ *  (hoch) → Magenta (sehr hoch) → Elektrik-Violett (extrem). BEWUSST violett-
+ *  forciert und damit klar getrennt (a) vom gemessenen „Blitze"-Layer (Sferics-
+ *  Bolt, amber) und (b) — bei Überlappung — von der Gewitter-Rampe (endet
+ *  magenta 150,30,110), damit Beobachtung vs. Prognose vs. Fusion optisch
+ *  unterscheidbar bleiben. Stützpunkte = J/kg-Bänder 1/3/8/15/30 auf der
+ *  0..1-Achse (÷30). */
+const lpiRamp: Record<number, string> = {
+  0.0:   'rgba(255,238,120,0)', // 0 J/kg — (durch visRange ausgeblendet)
+  0.033: 'rgb(255,238,120)',    // 1 J/kg  — gering (Gelb)
+  0.10:  'rgb(255,176,48)',     // 3 J/kg  — erhöht (Amber)
+  0.267: 'rgb(240,86,60)',      // 8 J/kg  — hoch (Rot-Orange)
+  0.5:   'rgb(214,40,120)',     // 15 J/kg — sehr hoch (Magenta)
+  1.0:   'rgb(150,40,200)',     // 30 J/kg — extrem (Elektrik-Violett)
+};
+// Schnee (Feature F4) — ICON-D2 Schneemenge als Fläche (cm) in zwei Modi:
+// „Schneedecke" (h_snow, instantan, t+0) und „Neuschnee" (snow_gsp+snow_con →
+// SWE→cm, akkumuliert, minStepHours=1). Schnee-Palette (snowRamp), klar von der
+// Regen-Palette getrennt. NICHT die Schneegrenzen-Linie (das ist `snowline`).
+// Standardmäßig inaktiv, lazy geladen; Modus-Wechsel lädt das andere Feld lazy nach.
+const SNOW_LAYER_ID = 'snow-amount';
+/** Sichtbarkeits-Fade (t = cm/VMAX) je Modus: < ~1 cm transparent, „kein Schnee"
+ *  nicht einfärben. Schneedecke VMAX 150 cm → 1 cm ≈ t 0,007; Neuschnee VMAX 50 cm
+ *  → 1 cm = t 0,02. Wird beim Daten-Setzen modusabhängig gesetzt. */
+const SNOW_VIS_RANGE: Record<SnowMode, { start: number; end: number }> = {
+  depth: { start: 0.007, end: 0.02 },
+  fresh: { start: 0.02, end: 0.05 },
+};
+// Rotationspotenzial (Feature F5) — ICON-D2 uh_max×uh_max_low×sdi_2, geglättet zu
+// einem 0–100-VERDACHTS-Score für rotierende Aufwinde/Superzellen. EXPERTEN-Layer,
+// Modell-Verdacht (kein Warnprodukt, §0). Eigene, NÜCHTERNE Violett/Indigo-Palette,
+// bewusst DESATURIERT — klar getrennt von Regen/Radar, von der Gewitter-Rampe
+// (endet Magenta 150,30,110) und der neonhaften Blitzprognose-Rampe (Elektrik-
+// Violett 150,40,200). Standardmäßig inaktiv, lazy geladen.
+const ROTATION_LAYER_ID = 'rotation-potential';
+/** Rotationspotenzial-Farbrampe (Feature F5; t = Score/100 = 0..100). Stufen nach
+ *  `levelOf`: unter ~Score 20 transparent (großzügige Aktivierungsschwelle, §0.4 —
+ *  lieber Under- als Over-Paint), dann gedämpftes Lavendel (gering) → staubiges
+ *  Violett (erhöht) → Pflaume (deutlich) → tiefes Indigo (hoch) → fast-schwarzes
+ *  Purpur (extrem). Sober, nicht reißerisch. Stützpunkte = Stufenschwellen
+ *  20/40/60/80/100 auf der 0..1-Achse. */
+const rotationRamp: Record<number, string> = {
+  0.0:  'rgba(150,140,175,0)', // Score 0 — (durch visRange ausgeblendet)
+  0.20: 'rgba(158,148,180,0.55)', // Score 20 — gering (gedämpftes Lavendel)
+  0.40: 'rgb(130,112,168)',   // Score 40 — erhöht (staubiges Violett)
+  0.60: 'rgb(104,80,148)',    // Score 60 — deutlich (Pflaume)
+  0.80: 'rgb(78,52,116)',     // Score 80 — hoch (tiefes Indigo)
+  1.0:  'rgb(52,32,80)',      // Score 100 — extrem (fast-schwarzes Purpur)
+};
+// Radar-/Nowcast-Horizonte je Land (DE 2 h · AT 3 h · CH 0,5 h) leben jetzt zentral
+// in src/nowcast/precipSource.ts (RADAR_HORIZON_H) und src/scalar/precipComposite.ts.
 
-export type LayerKey = 'wind' | 'gust' | 'nowcast' | 'temp' | 'clouds' | 'sat' | 'lightning' | 'stations' | 'confidence' | 'snowline' | 'flownowcast' | 'poprob';
+export type LayerKey = 'wind' | 'gust' | 'nowcast' | 'temp' | 'clouds' | 'sat' | 'lightning' | 'lightningfc' | 'stations' | 'confidence' | 'snowline' | 'flownowcast' | 'poprob' | 'thunder' | 'snow' | 'rotation';
 
 /** Features, zu denen die Deck-Rail/Bottom-Bar navigiert (App.tsx → onOpenFeature). */
 export type MapDeckFeature = 'nowcast' | 'forecast' | 'event';
@@ -225,11 +328,15 @@ interface Props {
 const LAYER_OPTIONS: { key: LayerKey; label: string; title: string }[] = [
   { key: 'wind', label: 'Wind', title: 'Wind (DWD ICON-D2 u/v 10m · 2,2 km)' },
   { key: 'gust', label: 'Böen', title: 'Windböen — Spitzen (DWD ICON-D2 vmax_10m · 2,2 km, 0–24 h). Sicherheitsrelevant für Drohne, Kran, Höhenarbeit (vgl. Go/No-Go).' },
-  { key: 'nowcast', label: 'Niederschlag', title: 'Niederschlag-Vorhersage über den Slider — DE: 0–2 h RADOLAN-RV; AT: 0–3 h GeoSphere INCA; CH: MeteoSchweiz-Radar; danach jeweils ICON-D2' },
+  { key: 'nowcast', label: 'Niederschlag', title: 'Niederschlag · jetzt–2 h — gemessenes Landesradar/Nowcast, per Land bis zum Nowcast-Horizont (DE RADOLAN-RV bis 2 h · AT GeoSphere INCA bis 3 h · CH MeteoSchweiz). Bewusst kurz & ehrlich: nur die gemessene Nahbereichs-Vorhersage, keine Modell-Verlängerung.' },
+  { key: 'snow', label: 'Schnee', title: 'Schneehöhe & Neuschnee — ICON-D2 h_snow (Schneedecke, aktuelle Höhe) + abgeleiteter Neuschnee-Zuwachs (snow_gsp+snow_con → cm), 2,2 km. Die Schnee-MENGE als Fläche (cm), NICHT die Schneegrenzen-Linie (das ist „Schneegrenze"). Modus im Layer umschaltbar. DACH.' },
   { key: 'temp', label: 'Temperatur', title: '2-m-Temperatur (DWD ICON-D2 t_2m · 2,2 km, höhenkorrigiert)' },
   { key: 'clouds', label: 'Wolken', title: 'Bewölkung – tief/mittel/hoch geschichtet (DWD ICON-D2, 2,2 km, 0–12 h) — über den Slider' },
   { key: 'sat', label: 'Satellit', title: 'Meteosat (DWD OpenData, alle 3 h)' },
+  { key: 'thunder', label: 'Gewitter', title: 'Gewitterpotenzial — CAPE (Energie) × CIN (Deckel) × LPI (Blitzbereitschaft), ICON-D2 2,2 km, 0–12 h. Flächige Vorwarnung vor dem ersten Radarecho. DACH, near-NWP-Horizont. Potenzial ≠ Auslösung.' },
+  { key: 'rotation', label: 'Rotation', title: 'Rotationspotenzial (Experten-Layer) — ICON-D2 Updraft-Helicity (uh_max + uh_max_low) + Supercell-Index (sdi_2), 2,2 km, 0–12 h, geglättet. Modell-VERDACHTSflächen für rotierende Gewitter (Superzellen: Großhagel, organisierte Schwergewitter). KEIN amtliches Warnprodukt, KEIN Warnersatz — maßgeblich sind die DWD-Warnungen. Verdacht ≠ Ereignis, hohe Fehlalarmrate. DACH.' },
   { key: 'lightning', label: 'Blitze', title: 'Blitzortung letzte 60 Min (DWD Sferics)' },
+  { key: 'lightningfc', label: 'Blitzprognose', title: 'Blitz-Vorhersage — ICON-D2 Lightning Potential Index (lpi_max, 2,2 km, 0–12 h). Prognostiziertes Blitzrisiko über den Slider — NICHT die gemessenen Blitze der letzten Stunde (das ist der Layer „Blitze"). Prognose ≠ Messung. DACH, near-NWP-Horizont.' },
   { key: 'stations', label: 'Stationen', title: 'Wetterstationen DWD/TAWES/SMN — klicken für Live-Werte' },
   { key: 'confidence', label: 'Sicherheit', title: 'Vertrauens-Schleier (KI · Klima-MOS): Kreuzschraffur, je dichter desto unsicherer die Vorhersage — aus Vorlaufzeit × klimatologischer Plausibilität gegen 30 J. DWD-Stationsklimatologie' },
   { key: 'snowline', label: 'Schneegrenze', title: 'Schneefallgrenze (KI · ML #2): Linie — oberhalb fällt Niederschlag als Schnee. Physik-Anker ~+1 °C + gelernte Orts-Korrektur (DWD-Stationen), dem Gelände folgend (höhenkorrigiert)' },
@@ -260,6 +367,19 @@ const SAT_PRODUCT_LABELS: Record<SatelliteProduct, string> = {
 const SAT_PRODUCT_FULL_LABELS: Record<SatelliteProduct, string> = {
   eu_rgb: 'Europa RGB / IR',
   world_ir: 'Welt IR',
+};
+
+// Schnee-Modus-Umschalter (Feature F4) — analog SAT_PRODUCT: kurzer Chip-Text +
+// voller Titel. „Schneedecke" = aktuelle Höhe (h_snow, t+0), „Neuschnee" = Zuwachs
+// (snow_gsp akkumuliert, minStepHours=1).
+const SNOW_MODES: SnowMode[] = ['depth', 'fresh'];
+const SNOW_MODE_LABELS: Record<SnowMode, string> = {
+  depth: 'Decke',
+  fresh: 'Neuschnee',
+};
+const SNOW_MODE_FULL_LABELS: Record<SnowMode, string> = {
+  depth: 'Schneedecke — aktuelle Schneehöhe (h_snow)',
+  fresh: 'Neuschnee — Zuwachs über das Vorhersagefenster (snow_gsp)',
 };
 
 // Temperature spans -20°C..+40°C in the color ramp
@@ -298,7 +418,11 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
   const mapRef = useRef<MapLibreMap | null>(null);
   const markerRef = useRef<Marker | null>(null);
 
-  const [active, setActive] = useState<Set<LayerKey>>(() => new Set<LayerKey>(initialActive ?? ['wind']));
+  // Start-Layer: im Nur-Jetzt-Testmodus AUSSCHLIESSLICH Wind (Jans Vorgabe:
+  // beim Start nur der DWD-Windlayer fürs Jetzt, sonst keine Daten). Sonst
+  // ebenfalls Wind. Permalinks (#m=) bleiben unangetastet (initialActive).
+  const [active, setActive] = useState<Set<LayerKey>>(() =>
+    new Set<LayerKey>(initialActive ?? ['wind']));
   // Hover-Info-Panel rechts neben der Layer-Rail (ohne Verzögerung).
   const [layerHover, setLayerHover] = useState<{ key: LayerKey; top: number; left: number } | null>(null);
   const showLayerInfo = (btn: HTMLElement, key: LayerKey) => {
@@ -306,9 +430,11 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
     setLayerHover({ key, left: r.right + 12, top: Math.min(Math.max(8, r.top - 4), window.innerHeight - 275) });
   };
   const [statuses, setStatuses] = useState<Record<LayerKey, { ok?: { model: string; fetchedAt: number; captured?: boolean }; err?: string }>>({
-    wind: {}, gust: {}, nowcast: {}, temp: {}, clouds: {}, sat: {}, lightning: {}, stations: {}, confidence: {}, snowline: {}, flownowcast: {}, poprob: {},
+    wind: {}, gust: {}, nowcast: {}, temp: {}, clouds: {}, sat: {}, lightning: {}, lightningfc: {}, stations: {}, confidence: {}, snowline: {}, flownowcast: {}, poprob: {}, thunder: {}, snow: {}, rotation: {},
   });
   const [satProduct, setSatProduct] = useState<SatelliteProduct>('eu_rgb');
+  // Schnee-Modus (Feature F4): 'depth' = Schneedecke (h_snow), 'fresh' = Neuschnee (snow_gsp).
+  const [snowMode, setSnowMode] = useState<SnowMode>('depth');
   // Wind-Partikel-Steuerung (UI „Aus / Normal / Intensiv" + Dichte-Regler).
   // `on`=Animation an (Heatmap bleibt auch bei „Aus"), `intensive` verbreitert
   // Partikel + verlängert Schweif, `density` skaliert die viewport-Partikelzahl.
@@ -442,7 +568,7 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
   // Fusion-Ladefehler (Phase A) → nicht-blockierender Indikator am Switch. Während
   // des normalen Ladens (noch kein Fehler, noch keine Daten) rendert still nativ.
   const [fusionError, setFusionError] = useState(false);
-  const layerRefs = useRef<{ wind?: WindLayer; temp?: ScalarLayer; gust?: ScalarLayer; clouds?: CloudLayer; precip?: ScalarLayer; rain?: RainLayer; confidence?: ConfidenceLayer; ki?: RainLayer; pop?: RainLayer }>({});
+  const layerRefs = useRef<{ wind?: WindLayer; temp?: ScalarLayer; gust?: ScalarLayer; clouds?: CloudLayer; precip?: ScalarLayer; rain?: RainLayer; confidence?: ConfidenceLayer; ki?: RainLayer; pop?: RainLayer; thunder?: ScalarLayer; lightningfc?: ScalarLayer; snow?: ScalarLayer; rotation?: ScalarLayer }>({});
   // Flow-Nowcast: geschätztes Bewegungsfeld + Basis-Frame (gröber) je RADOLAN-Lauf.
   const flowRef = useRef<{ key: string; base: Float32Array; flow: Flow; corners: QuadCorners; intervalMin: number } | null>(null);
   const popReadyRef = useRef(false);
@@ -494,6 +620,28 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
   // Windböen: natives ICON-D2 vmax_10m-Gitter (0–24 h), lazy beim Aktivieren.
   const iconD2GustRef = useRef<IconD2Gust | null>(null);
   const installGustRef = useRef<(() => Promise<void>) | null>(null);
+  // Gewitterpotenzial (Feature F1): fusioniertes cape_ml×cin_ml×lpi-Gitter (0–12 h),
+  // lazy beim Aktivieren — nicht im initialActive-Default, kein Eager-Fetch am Start.
+  const iconD2ThunderRef = useRef<IconD2Thunder | null>(null);
+  const installThunderRef = useRef<(() => Promise<void>) | null>(null);
+  // Blitz-Vorhersage (Feature F2): natives ICON-D2 lpi_max-Gitter (0–12 h),
+  // lazy beim Aktivieren — nicht im initialActive-Default, kein Eager-Fetch am Start.
+  const iconD2LightningFcRef = useRef<IconD2Lpi | null>(null);
+  const installLightningFcRef = useRef<(() => Promise<void>) | null>(null);
+  // Schnee (Feature F4): natives ICON-D2 h_snow/snow_gsp-Gitter (0–24 h), lazy beim
+  // Aktivieren + bei Modus-Wechsel — nicht im initialActive-Default, kein Eager-Fetch.
+  const iconD2SnowRef = useRef<IconD2Snow | null>(null);
+  const installSnowRef = useRef<(() => Promise<void>) | null>(null);
+  // Rotationspotenzial (Feature F5, Experten): fusioniertes+geglättetes ICON-D2
+  // uh_max×uh_max_low×sdi_2-Gitter (1–12 h), lazy beim Aktivieren — nicht im
+  // initialActive-Default, kein Eager-Fetch am Kartenstart.
+  const iconD2RotationRef = useRef<IconD2Rotation | null>(null);
+  const installRotationRef = useRef<(() => Promise<void>) | null>(null);
+  // Modus als Ref, damit die install-Closure den aktuellen Modus liest; Seq-Guard
+  // gegen Stale-Callbacks bei schnellem Modus-Wechsel (depth↔fresh).
+  const snowModeRef = useRef(snowMode);
+  snowModeRef.current = snowMode;
+  const snowSeqRef = useRef(0);
   const installTempRef = useRef<(() => Promise<void>) | null>(null);
   // Die gridded Fusion (~1700 brightsky-Requests!) lädt NICHT mehr eager am Mount,
   // sondern nur lazy, wenn der Temperatur-Layer aktiviert wird (sie speist heute
@@ -512,6 +660,18 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
   const installNowcastRef = useRef<(() => Promise<void>) | null>(null);
   // Lazy-Loader für den Wolken-Layer (ICON-D2 CLCT).
   const installCloudsRef = useRef<(() => Promise<void>) | null>(null);
+  // Testmodus „Nur-Jetzt": nur der ICON-D2-Niederschlag-Forecast (nicht die
+  // Radar-„jetzt"-Quelle) — separat, damit der Slider-Move ihn mit erweitertem
+  // Fenster neu laden kann.
+  const installIconD2Ref = useRef<(() => Promise<void>) | null>(null);
+  // Testmodus „Nur-Jetzt": aktuelles Vorhersagefenster (h), das die Grid-Layer
+  // laden. 0 = nur der Jetzt-Bracket; wird beim ERSTEN Slider-Move auf
+  // NOWONLY_AHEAD_H gesetzt (Forecast lädt nach Bedarf, nur für aktive Layer).
+  const forecastAheadHRef = useRef(0);
+  // Wiederverwendeter Ausgabepuffer für die Sub-Stunden-Interpolation des
+  // Wolken-Frames (RGBA-Bytes). CloudLayer.setFrame lädt synchron per texImage2D
+  // hoch → der Puffer kann pro Slider-Tick überschrieben werden (keine Allokation).
+  const cloudLerpBufRef = useRef<Uint8Array | null>(null);
   // Satellit + Blitze lazy: sind keine Default-Layer, wurden aber bisher eager am
   // Mount installiert (2× fetchWmsLatestTime + Raster-Source-Add konkurrieren mit
   // dem Wind-Hero-Layer um den Kaltstart). Erst bei Aktivierung laden.
@@ -544,32 +704,37 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
     });
   }
 
-  // Ist für die aktuelle Slider-Stunde ein Niederschlags-Frame verfügbar?
-  // 0–2 h: RADOLAN-RV geladen. >2 h: ICON-D2 geladen UND innerhalb des Horizonts.
+  // Momentane Niederschlags-Verfügbarkeit aus den geladenen Refs (DACH-Komposit):
+  // welche Landesradare sind da? Speist die EINE Quellen-Entscheidung
+  // `resolvePrecipSource`/`precipCompositeReady` (src/nowcast/precipSource.ts).
+  // Die Ansicht ist rein gemessenes Radar/Nowcast — KEIN Modellhorizont mehr
+  // (Jan 2026-07-24: „Niederschlag · jetzt–2 h", Modellhälfte draußen).
+  function precipAvailability(): PrecipAvailability {
+    return {
+      radarDE: !!nowcastRef.current, // DE RADOLAN-RV
+      radarAT: !!incaGridRef.current, // AT GeoSphere INCA
+      radarCH: !!meteoRadarRef.current, // CH MeteoSchweiz rzc
+    };
+  }
+
+  // Ist für die aktuelle Slider-Stunde ein Radar-/Nowcast-Frame verfügbar?
+  // Dünner Wrapper um `resolvePrecipSource` (per-Land) → DACH-OR: sichtbar, sobald
+  // ein Landesradar die Stunde in seinem Horizont führt (DE 2 / AT 3 / CH 0,5 h).
+  // Jenseits davon aus (keine Modellverlängerung). Zentralisiert in precipSource.ts.
   // (Liest Refs zur Render-Zeit; der Visibility-Effekt hängt an `nowcastTick`,
   // läuft also neu, sobald Frames eintreffen.)
   function precipFrameReady(hour: number): boolean {
-    // DACH-Komposit: sichtbar, sobald eine für diese Stunde beitragende Quelle da
-    // ist — ein Landesradar im jeweiligen Horizont ODER ICON-D2 (deckt alles ab).
-    if (hour <= NOWCAST_MAX_HOURS + 1e-6 && nowcastRef.current) return true; // DE RADOLAN
-    if (hour <= INCA_MAX_HOURS + 1e-6 && incaGridRef.current) return true;   // AT INCA
-    if (hour < 0.5 && meteoRadarRef.current) return true;                    // CH rzc
-    const d2 = iconD2Ref.current;
-    if (!d2 || d2.frames.length === 0) return false;
-    const horizonH = (d2.frames[d2.frames.length - 1].validAt.getTime() - Date.now()) / 3600_000;
-    return hour <= horizonH + 0.5;
+    return precipCompositeReady(hour, precipAvailability());
   }
 
-  /** Slider-Obergrenze: ICON-D2-Horizont (Niederschlag ODER Wolken, je nachdem
-   *  welche Daten geladen sind) in Stunden ab jetzt. */
-  function iconD2HorizonHours(): number {
-    let last = 0;
-    for (const ref of [iconD2Ref.current, iconD2CloudsRef.current]) {
-      if (ref && ref.frames.length) {
-        last = Math.max(last, ref.frames[ref.frames.length - 1].validAt.getTime());
-      }
-    }
-    return last ? Math.floor((last - Date.now()) / 3600_000) : 0;
+  /** Slider-Obergrenze für WOLKEN: ICON-D2-CLCT-Horizont (0–12 h) in Stunden ab
+   *  jetzt. Niederschlag trägt separat nur seinen Radar-Horizont bei
+   *  (`precipRadarHorizonHours`, ≤3 h) — die Modellverlängerung ist draußen. */
+  function cloudsHorizonHours(): number {
+    const ref = iconD2CloudsRef.current;
+    if (!ref || !ref.frames.length) return 0;
+    const last = ref.frames[ref.frames.length - 1].validAt.getTime();
+    return Math.floor((last - Date.now()) / 3600_000);
   }
 
   useEffect(() => {
@@ -768,6 +933,70 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
       opacity: 0.82,
       zoomAttenuation: { from: 11, perStep: 0.08, floor: 0.7 },
     });
+    // Gewitterpotenzial-Layer (Feature F1, DWD ICON-D2 cape_ml×cin_ml×lpi) —
+    // eigenständiger ScalarLayer über nativem 2,2-km-Regulärgitter, eigene
+    // Palette. Keine DEM-Korrektur. visRange blendet Zellen unter ~Score 8
+    // (t=0.08) transparent aus ("keine Gewitterlage nicht einfärben", §3), damit
+    // nur echte Konvektionsfelder erscheinen statt Vollflächen. Standardmäßig
+    // inaktiv; Daten laden lazy (installThunder) erst beim Aktivieren.
+    const thunderLayer = new ScalarLayer({
+      id: THUNDER_LAYER_ID,
+      colorRamp: thunderRamp,
+      // visRange = Sichtbarkeits-Fade auf t=Score/100. Kalibriert so, dass das
+      // „gering"-Band (Score ≥ 8, `thunderLevelOf`) tatsächlich sichtbar wird:
+      // fade 5→9 (Score 8 ≈ 84 % deckend), Score < 5 („keine") transparent.
+      // Vorher {0.08,0.14} verschluckte 8–14 komplett → an schwachen Tagen wirkte
+      // der Layer „aus" (Score-8-Zelle = 0 % deckend). Spec §3: „transparent
+      // unterhalb ~Score 8, dann Gelb (gering)".
+      visRange: { start: 0.05, end: 0.09 },
+      opacity: 0.85,
+      zoomAttenuation: { from: 11, perStep: 0.08, floor: 0.7 },
+    });
+    // Blitz-Vorhersage-Layer (Feature F2, DWD ICON-D2 lpi_max) — eigenständiger
+    // ScalarLayer über nativem 2,2-km-Regulärgitter, eigene (violett-forcierte)
+    // Palette. Keine DEM-Korrektur. visRange blendet Zellen unter ~1 J/kg
+    // (t≈0.033) transparent aus ("ruhige Zellen nicht einfärben", §3), damit nur
+    // echte Blitzrisiko-Felder erscheinen. Standardmäßig inaktiv; Daten laden
+    // lazy (installLightningFc) erst beim Aktivieren.
+    const lightningFcLayer = new ScalarLayer({
+      id: LIGHTNINGFC_LAYER_ID,
+      colorRamp: lpiRamp,
+      // Fade knapp unter dem 1-J/kg-Band (0.6→1.2 J/kg auf der ÷30-Achse), sodass
+      // das „gering"-Signal (≥ 1 J/kg) sichtbar wird, aber die 0-J/kg-Ruhefläche
+      // transparent bleibt.
+      visRange: { start: 0.02, end: 0.045 },
+      opacity: 0.85,
+      zoomAttenuation: { from: 11, perStep: 0.08, floor: 0.7 },
+    });
+    // Schnee-Layer (Feature F4, DWD ICON-D2 h_snow / snow_gsp) — eigenständiger
+    // ScalarLayer über nativem 2,2-km-Regulärgitter mit der Schnee-Palette
+    // (`snowRamp`, Weiß→Blau — klar von der Regen-Palette getrennt). Keine DEM-
+    // Korrektur. Der R-Kanal trägt bereits t = cm/VMAX (modusabhängig normiert im
+    // Loader); `visRange` (< ~1 cm transparent) wird beim Daten-Setzen je Modus
+    // gesetzt. Standardmäßig inaktiv; Daten laden lazy (installSnow) erst beim
+    // Aktivieren bzw. Modus-Wechsel.
+    const snowLayer = new ScalarLayer({
+      id: SNOW_LAYER_ID,
+      colorRamp: snowRamp,
+      visRange: SNOW_VIS_RANGE.depth,
+      opacity: 0.9,
+      zoomAttenuation: { from: 10, perStep: 0.08, floor: 0.6 },
+    });
+    // Rotationspotenzial-Layer (Feature F5, DWD ICON-D2 uh_max×uh_max_low×sdi_2) —
+    // eigenständiger ScalarLayer über nativem 2,2-km-Regulärgitter, eigene NÜCHTERNE
+    // Violett/Indigo-Palette. Keine DEM-Korrektur. Der R-Kanal trägt bereits den
+    // GEGLÄTTETEN Score/100 (Fusion + Nachbarschafts-Glättung im Loader, §0.3).
+    // visRange blendet Zellen unter ~Score 20 (t=0.20) transparent aus (großzügige
+    // Aktivierungsschwelle, §0.4 — lieber Under- als Over-Paint), damit nur echte
+    // Rotations-Verdachtsflächen erscheinen. Standardmäßig inaktiv; Daten laden lazy
+    // (installRotation) erst beim Aktivieren.
+    const rotationLayer = new ScalarLayer({
+      id: ROTATION_LAYER_ID,
+      colorRamp: rotationRamp,
+      visRange: { start: 0.18, end: 0.24 },
+      opacity: 0.8,
+      zoomAttenuation: { from: 11, perStep: 0.08, floor: 0.7 },
+    });
     // Wolken-Layer (DWD ICON-D2 Multi-Layer tief/mittel/hoch, 0–12 h) — WebGL-
     // Quad-Layer mit höhen-bewusstem Composite-Shader, gespeist über den Slider
     // (Frame-Wechsel = Textur-Upload). Liegt unter Beschriftungen/Maske.
@@ -801,7 +1030,7 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
     const popLayer = new RainLayer({ id: POP_LAYER_ID, colorRamp: popRamp, opacity: 0.78 });
     // Vertrauens-Schleier (Kreuzschraffur) — über den Datenschichten.
     const confidenceLayer = new ConfidenceLayer({ id: CONFIDENCE_LAYER_ID, opacity: 0.8 });
-    layerRefs.current = { wind, temp: tempLayer, gust: gustLayer, clouds: cloudLayer, precip: precipLayer, rain: rainLayer, confidence: confidenceLayer, ki: kiLayer, pop: popLayer };
+    layerRefs.current = { wind, temp: tempLayer, gust: gustLayer, clouds: cloudLayer, precip: precipLayer, rain: rainLayer, confidence: confidenceLayer, ki: kiLayer, pop: popLayer, thunder: thunderLayer, lightningfc: lightningFcLayer, snow: snowLayer, rotation: rotationLayer };
 
     // Insert temp + clouds *under* the boundary/label layers of the OSM basemap so
     // country outlines, state borders and city labels stay readable on top of the
@@ -812,6 +1041,17 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
       const beforeId = map.getLayer(TOPMOST_INSERT_BEFORE) ? TOPMOST_INSERT_BEFORE : undefined;
       if (!map.getLayer(tempLayer.id)) map.addLayer(tempLayer, beforeId);
       if (!map.getLayer(gustLayer.id)) map.addLayer(gustLayer, beforeId);
+      // Gewitterpotenzial UNTER der Länder-Maske (wie temp/gust/precip) — der
+      // Index soll auf DACH begrenzt bleiben, nicht kontinental durchscheinen.
+      if (!map.getLayer(thunderLayer.id)) map.addLayer(thunderLayer, beforeId);
+      // Blitz-Vorhersage UNTER der Länder-Maske (wie temp/gust/thunder) — das
+      // Risiko soll auf DACH begrenzt bleiben, nicht kontinental durchscheinen.
+      if (!map.getLayer(lightningFcLayer.id)) map.addLayer(lightningFcLayer, beforeId);
+      // Schnee-Menge UNTER der Länder-Maske (wie temp/gust/precip) — auf DACH begrenzt.
+      if (!map.getLayer(snowLayer.id)) map.addLayer(snowLayer, beforeId);
+      // Rotationspotenzial UNTER der Länder-Maske (wie temp/gust/thunder) — die
+      // Verdachtsflächen sollen auf DACH begrenzt bleiben, nicht kontinental durchscheinen.
+      if (!map.getLayer(rotationLayer.id)) map.addLayer(rotationLayer, beforeId);
       if (!map.getLayer(precipLayer.id)) map.addLayer(precipLayer, beforeId);
       if (!map.getLayer(rainLayer.id)) map.addLayer(rainLayer, beforeId);
       if (!map.getLayer(kiLayer.id)) map.addLayer(kiLayer, beforeId);
@@ -852,12 +1092,18 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
         clouds: active.has('clouds'),
         temperature: active.has('temp'),
         gust: active.has('gust'),
-        // Niederschlag-Layer nur sichtbar, wenn für die Slider-Stunde ein Frame
-        // verfügbar ist (länderabhängig: RV/INCA/rzc bzw. ICON-D2 im Horizont).
-        [NOWCAST_LAYER_ID]: active.has('nowcast') && precipFrameReady(forecastHour) && !fusionActiveFor('nowcast') && modelSourceRef.current.radar,
-        // Fusion-Niederschlag (Forecast-Grid) statt Radar-Komposit, wenn der Resolver
-        // Fusion für 'nowcast' wählt. Ohne Daten rendert der ScalarLayer nichts (transparent).
-        'precip-forecast': active.has('nowcast') && fusionActiveFor('nowcast') && modelSourceRef.current.radar,
+        [THUNDER_LAYER_ID]: active.has('thunder'),
+        [LIGHTNINGFC_LAYER_ID]: active.has('lightningfc'),
+        [SNOW_LAYER_ID]: active.has('snow'),
+        [ROTATION_LAYER_ID]: active.has('rotation'),
+        // „Niederschlag · jetzt–2 h": rein gemessenes Radar/Nowcast (Jan 2026-07-24).
+        // Die Frame-Verfügbarkeit entscheidet zentral `precipCompositeReady`
+        // (precipSource.ts, DACH-OR über die DE/AT/CH-Radarhorizonte) — jenseits des
+        // Horizonts aus (keine Modellverlängerung). Der RainLayer ist die EINZIGE
+        // Precip-Quelle (auch im Fusion-Modus); die Fusion-Modellhälfte ist raus.
+        [NOWCAST_LAYER_ID]: active.has('nowcast') && precipFrameReady(forecastHour) && modelSourceRef.current.radar,
+        // Fusion-/Modell-Niederschlag (`precip-forecast`) stillgelegt → nie sichtbar.
+        'precip-forecast': false,
         [SAT_LAYER_ID]: active.has('sat'),
         [LIGHTNING_LAYER_ID]: active.has('lightning'),
         [STATIONS_LAYER_ID]: active.has('stations'),
@@ -1195,15 +1441,14 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
       if (incaGridRef.current) void loadInca();
       if (meteoRadarRef.current) void loadRzc();
     };
-    // Gemeinsamer Status: welche Landesradare aktuell beitragen + ICON-D2.
+    // Gemeinsamer Status: welche Landesradare aktuell beitragen. Rein gemessenes
+    // Radar/Nowcast (Jan 2026-07-24) — KEINE ICON-D2-Modellverlängerung mehr.
     const setCompositeStatus = () => {
       const parts: string[] = [];
       if (nowcastRef.current) parts.push('DE RADOLAN');
       if (incaGridRef.current) parts.push('AT INCA');
       if (meteoRadarRef.current) parts.push('CH rzc');
-      const model = parts.length
-        ? `DACH-Komposit · ${parts.join(' · ')}${iconD2Ref.current ? ' · + ICON-D2' : ''}`
-        : (iconD2Ref.current ? 'ICON-D2 2,2 km' : '');
+      const model = parts.length ? `DACH-Komposit · ${parts.join(' · ')}` : '';
       if (model) updateStatus('nowcast', { ok: { model, fetchedAt: Date.now() } });
     };
     // ICON-D2 (Forecast) im Hintergrund nachladen — GRIB2 dekodieren ist
@@ -1229,7 +1474,7 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
               setNowcastTick((t) => t + 1);
             })();
           }
-        });
+        }, { nowOnly: START_NOW_ONLY && !embedded, aheadHours: forecastAheadHRef.current }); // Testmodus: Jetzt-Fenster (0…+2h nach Slider-Move)
         iconD2Ref.current = d2;
         if (compositorRef.current) await compositorRef.current.primeD2(d2);
         setNowcastTick((t) => t + 1);
@@ -1256,7 +1501,7 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
           iconD2CloudsRef.current = partial;
           if (firstCloud) { firstCloud = false; setNowcastTick((t) => t + 1); } // Tick-Coalescing (s. Wind)
           if (partial.frames.length > 0) markReady();
-        });
+        }, { nowOnly: START_NOW_ONLY && !embedded, aheadHours: forecastAheadHRef.current }); // Testmodus: Jetzt-Fenster (0…+2h nach Slider-Move)
         iconD2CloudsRef.current = c;
         setNowcastTick((t) => t + 1);
         markReady();
@@ -1309,6 +1554,9 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
           // sonst bliebe eine Slider-Parkposition jenseits des nahen Horizonts auf
           // dem geclampten Frame stehen, bis der Nutzer erneut interagiert.
           () => { if (!abort.signal.aborted) setNowcastTick((t) => t + 1); },
+          // Testmodus: nur das Jetzt-Fenster (0 h beim Start; nach dem ersten
+          // Slider-Move bis +NOWONLY_AHEAD_H). Eingebettet ausgenommen.
+          { nowOnly: START_NOW_ONLY && !embedded, aheadHours: forecastAheadHRef.current },
         );
         iconD2WindRef.current = wd;
         setNowcastTick((t) => t + 1);
@@ -1321,6 +1569,11 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
         // Nach dem NAHEN Horizont zurücksetzen (der ferne lädt im Hintergrund
         // weiter); ein späterer Refresh/Reaktivieren darf dann neu laden.
         windLoadingRef.current = false;
+        // StrictMode-/Abort-Race (wie installTemp): abgebrochener Lauf holt den
+        // frischen Installer nach, statt den Layer hängen zu lassen.
+        if (abort.signal.aborted && !iconD2WindRef.current) {
+          setTimeout(() => { void installWindRef.current?.(); }, 0);
+        }
       }
     };
     installWindRef.current = installWind;
@@ -1342,7 +1595,7 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
         const td = await fetchIconD2Temp(abort.signal, (partial) => {
           iconD2TempRef.current = partial;
           if (firstTemp) { firstTemp = false; layerRefs.current.temp?.setDem(partial.demImage); setNowcastTick((t) => t + 1); }
-        });
+        }, { nowOnly: START_NOW_ONLY && !embedded, aheadHours: forecastAheadHRef.current }); // Testmodus: Jetzt-Fenster (0…+2h nach Slider-Move)
         iconD2TempRef.current = td;
         layerRefs.current.temp?.setDem(td.demImage);
         setNowcastTick((t) => t + 1);
@@ -1351,6 +1604,13 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
         // nicht fatal — die Fusion-Temperatur deckt weiter ab.
       } finally {
         tempLoadingRef.current = false;
+        // StrictMode-/Abort-Race: Läuft DIESER (abgebrochene) Installer aus,
+        // nachdem sein Guard den parallelen Neustart des Remounts verschluckt
+        // hat, den frischen Installer nachholen. `installTempRef` zeigt dann auf
+        // den neuen Mount; nach echtem Unmount ist sie genullt (Cleanup) → no-op.
+        if (abort.signal.aborted && !iconD2TempRef.current) {
+          setTimeout(() => { void installTempRef.current?.(); }, 0);
+        }
       }
     };
     installTempRef.current = installTemp;
@@ -1363,7 +1623,7 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
         const gd = await fetchIconD2Gust(abort.signal, (partial) => {
           iconD2GustRef.current = partial;
           if (firstGust) { firstGust = false; setNowcastTick((t) => t + 1); } // Tick-Coalescing (s. Wind)
-        });
+        }, { nowOnly: START_NOW_ONLY && !embedded, aheadHours: forecastAheadHRef.current }); // Testmodus: Jetzt-Fenster (0…+2h nach Slider-Move)
         iconD2GustRef.current = gd;
         setNowcastTick((t) => t + 1);
         updateStatus('gust', { ok: { model: 'DWD ICON-D2 vmax_10m · 2,2 km', fetchedAt: Date.now() } });
@@ -1372,6 +1632,89 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
       }
     };
     installGustRef.current = installGust;
+
+    // Gewitterpotenzial-Layer (Feature F1): fusioniertes ICON-D2-cape_ml×cin_ml×lpi-
+    // Gitter (0–12 h) progressiv laden. Eigenständiger ScalarLayer; speist sich
+    // über den Slider-Effekt. Wird NUR hier (lazy) geladen — beim ersten Aktivieren.
+    const installThunder = async () => {
+      try {
+        let firstThunder = true;
+        const td = await fetchIconD2Thunder(abort.signal, (partial) => {
+          iconD2ThunderRef.current = partial;
+          if (firstThunder) { firstThunder = false; setNowcastTick((t) => t + 1); } // Tick-Coalescing (s. Wind/Böen)
+        });
+        iconD2ThunderRef.current = td;
+        setNowcastTick((t) => t + 1);
+        updateStatus('thunder', { ok: { model: 'DWD ICON-D2 cape_ml·cin_ml·lpi · 2,2 km', fetchedAt: Date.now() } });
+      } catch {
+        updateStatus('thunder', { err: 'ICON-D2 Gewitterpotenzial nicht erreichbar' });
+      }
+    };
+    installThunderRef.current = installThunder;
+
+    // Blitz-Vorhersage-Layer (Feature F2): natives ICON-D2 lpi_max-Gitter (0–12 h)
+    // progressiv laden. Eigenständiger ScalarLayer; speist sich über den Slider-
+    // Effekt. Wird NUR hier (lazy) geladen — beim ersten Aktivieren, nie eager.
+    const installLightningFc = async () => {
+      try {
+        let firstLpi = true;
+        const ld = await fetchIconD2Lpi(abort.signal, (partial) => {
+          iconD2LightningFcRef.current = partial;
+          if (firstLpi) { firstLpi = false; setNowcastTick((t) => t + 1); } // Tick-Coalescing (s. Wind/Böen)
+        });
+        iconD2LightningFcRef.current = ld;
+        setNowcastTick((t) => t + 1);
+        updateStatus('lightningfc', { ok: { model: 'DWD ICON-D2 lpi_max · 2,2 km', fetchedAt: Date.now() } });
+      } catch {
+        updateStatus('lightningfc', { err: 'ICON-D2 Blitz-Vorhersage nicht erreichbar' });
+      }
+    };
+    installLightningFcRef.current = installLightningFc;
+
+    // Schnee-Layer (Feature F4): natives ICON-D2 h_snow (Schneedecke) bzw.
+    // snow_gsp+snow_con (Neuschnee) progressiv laden — modusabhängig (snowModeRef).
+    // Eigenständiger ScalarLayer; speist sich über den Slider-Effekt. Wird NUR hier
+    // (lazy) geladen — beim ersten Aktivieren + bei Modus-Wechsel, nie eager. Ein
+    // Seq-Guard verwirft Stale-Callbacks eines abgelösten Modus-Laufs.
+    const installSnow = async () => {
+      const mode = snowModeRef.current;
+      const seq = ++snowSeqRef.current;
+      try {
+        let firstSnow = true;
+        const sd = await fetchIconD2Snow(mode, abort.signal, (partial) => {
+          if (seq !== snowSeqRef.current) return; // abgelöst (Modus gewechselt)
+          iconD2SnowRef.current = partial;
+          if (firstSnow) { firstSnow = false; setNowcastTick((t) => t + 1); } // Tick-Coalescing
+        });
+        if (seq !== snowSeqRef.current) return;
+        iconD2SnowRef.current = sd;
+        setNowcastTick((t) => t + 1);
+        updateStatus('snow', { ok: { model: mode === 'depth' ? 'DWD ICON-D2 h_snow · 2,2 km' : 'DWD ICON-D2 snow_gsp · 2,2 km', fetchedAt: Date.now() } });
+      } catch {
+        if (seq === snowSeqRef.current) updateStatus('snow', { err: 'ICON-D2 Schnee nicht erreichbar' });
+      }
+    };
+    installSnowRef.current = installSnow;
+
+    // Rotationspotenzial-Layer (Feature F5): fusioniertes+geglättetes ICON-D2
+    // uh_max×uh_max_low×sdi_2-Gitter (1–12 h) progressiv laden. Eigenständiger
+    // ScalarLayer (nüchterne Violett-Palette); speist sich über den Slider-Effekt.
+    // Wird NUR hier (lazy) geladen — beim ersten Aktivieren, nie eager.
+    const installRotation = async () => {
+      try {
+        let firstRot = true;
+        const rd = await fetchIconD2Rotation(abort.signal, (partial) => {
+          iconD2RotationRef.current = partial;
+          if (firstRot) { firstRot = false; setNowcastTick((t) => t + 1); } // Tick-Coalescing (s. Wind/Böen)
+        });
+        iconD2RotationRef.current = rd;
+        setNowcastTick((t) => t + 1);
+        updateStatus('rotation', { ok: { model: 'DWD ICON-D2 uh_max·uh_max_low·sdi_2 · 2,2 km', fetchedAt: Date.now() } });
+      } catch {
+        updateStatus('rotation', { err: 'ICON-D2 Rotationspotenzial nicht erreichbar' });
+      }
+    };
+    installRotationRef.current = installRotation;
 
     // DWD lightning network — accumulated flashes last hour, refreshes ~10 min.
     const installLightningLayer = () => {
@@ -1417,8 +1760,14 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
     // statt die teure gridded Fusion eager zu laden. Die echte Fusion lädt lazy
     // erst bei Temp-Aktivierung (siehe Temp-Effect). Native Layer (Wind/Wolken/
     // Niederschlag/Temp) speisen sich ohnehin selbst.
+    // Testmodus „Nur-Jetzt": Zeitbasis wieder da, aber auf +NOWONLY_AHEAD_H
+    // gekappt (Slider „jetzt … +2 h"). Die Frames dieses Fensters laden NICHT
+    // hier, sondern erst beim ersten Slider-Move (siehe forecastAheadHRef-Effekt) —
+    // und dann nur für aktive Grid-Layer. Beim Start (Slider=0) genügt der
+    // Jetzt-Bracket, den die Layer ohnehin laden.
+    const sliderHours = (START_NOW_ONLY && !embedded) ? NOWONLY_AHEAD_H + 1 : FORECAST_HOURS;
     setForecast({
-      hours: Array.from({ length: FORECAST_HOURS }, (_, h) => ({
+      hours: Array.from({ length: sliderHours }, (_, h) => ({
         timestamp: new Date(Date.now() + h * 3_600_000),
         layers: {} as DwdForecastResult['hours'][number]['layers'],
       })),
@@ -1440,6 +1789,9 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
       if (!iconD2Ref.current) void installIconD2();
     };
     installCloudsRef.current = installClouds;
+    // Testmodus: der ICON-D2-Niederschlag-Forecast allein (ohne Radar-Reload) —
+    // vom Slider-Move genutzt, um das Fenster mit +2h neu zu laden.
+    installIconD2Ref.current = installIconD2;
     // Fusion nur auffrischen, wenn sie überhaupt (lazy) angefordert wurde.
     const t1 = window.setInterval(() => {
       if (fusionRequestedRef.current) void loadOpenMeteo();
@@ -1464,6 +1816,10 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
       if (iconD2WindRef.current) jobs.push(installWind);
       if (iconD2TempRef.current) jobs.push(installTemp);
       if (iconD2GustRef.current) jobs.push(installGust);
+      if (iconD2ThunderRef.current) jobs.push(installThunder);
+      if (iconD2LightningFcRef.current) jobs.push(installLightningFc);
+      if (iconD2SnowRef.current) jobs.push(installSnow);
+      if (iconD2RotationRef.current) jobs.push(installRotation);
       if (jobs.length === 0) return;
       // Lauf einmal vorab auflösen → sharedRun/runCache sind warm, wenn die Installer
       // starten (jeder trifft dann seinen Param mit einer Directory-Probe statt einer
@@ -1489,6 +1845,11 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
 
     return () => {
       abort.abort();
+      // Installer-Refs nullen: die Abort-Nachhol-Retries (installTemp/-Wind,
+      // StrictMode-Race) dürfen nach echtem Unmount nichts mehr anstoßen. Beim
+      // StrictMode-Remount weist der neue Effekt-Lauf sie sofort wieder zu.
+      installTempRef.current = null;
+      installWindRef.current = null;
       window.clearInterval(t1);
       window.clearInterval(t3);
       window.clearInterval(t4);
@@ -1544,6 +1905,43 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
     if (active.has('gust') && !iconD2GustRef.current) void installGustRef.current?.();
   }, [active]);
 
+  // Gewitterpotenzial lazy laden (Feature F1, Jans Vorgabe): erst beim ersten
+  // Aktivieren die drei ICON-D2-Felder ziehen — nie eager am Kartenstart.
+  useEffect(() => {
+    if (active.has('thunder') && !iconD2ThunderRef.current) void installThunderRef.current?.();
+  }, [active]);
+
+  // Blitz-Vorhersage lazy laden (Feature F2, Jans HARTE Vorgabe): erst beim ersten
+  // Aktivieren das ICON-D2-lpi_max-Gitter ziehen — nie eager am Kartenstart.
+  useEffect(() => {
+    if (active.has('lightningfc') && !iconD2LightningFcRef.current) void installLightningFcRef.current?.();
+  }, [active]);
+
+  // Schnee lazy laden (Feature F4, Jans HARTE Vorgabe): erst beim ersten Aktivieren
+  // das ICON-D2-Schnee-Gitter ziehen — nie eager am Kartenstart.
+  useEffect(() => {
+    if (active.has('snow') && !iconD2SnowRef.current) void installSnowRef.current?.();
+  }, [active]);
+
+  // Rotationspotenzial lazy laden (Feature F5, Jans HARTE Vorgabe): erst beim ersten
+  // Aktivieren die ICON-D2-uh_max/uh_max_low/sdi_2-Felder ziehen — nie eager am Start.
+  useEffect(() => {
+    if (active.has('rotation') && !iconD2RotationRef.current) void installRotationRef.current?.();
+  }, [active]);
+
+  // Schnee-Modus-Wechsel (Feature F4): das jeweils ANDERE Feld LAZY nachladen —
+  // nur wenn der Layer aktiv ist. Alten Frame-Stand verwerfen (Seq-Guard in
+  // installSnow verhindert Stale-Overwrites) und die modusabhängige visRange am
+  // Layer setzen. Feuert nicht am Mount (Layer initial inaktiv).
+  useEffect(() => {
+    if (!active.has('snow')) return;
+    const snow = layerRefs.current.snow;
+    if (snow) snow.visRange = SNOW_VIS_RANGE[snowMode];
+    iconD2SnowRef.current = null;
+    void installSnowRef.current?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [snowMode]);
+
   // Stationen lazy laden: erst beim Aktivieren die DACH-Stationen (DWD/TAWES/SMN)
   // ziehen — vorher nicht (kein Default-Layer, ~150 SMN-CSVs).
   useEffect(() => {
@@ -1585,6 +1983,11 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
       if (active.has('temp')) {
         void installTempRef.current?.();
       } else {
+        // Stadt-Temperatur-Labels sind dauerhaft sichtbar (windy-Stil) → das
+        // t_2m-Gitter (im Testmodus nur der Jetzt-Bracket) im Leerlauf NACH dem
+        // Hero-Layer laden, damit die Labels echte aktuelle Werte zeigen. Jans
+        // Vorgabe: Städte-Temperaturen beim Start anzeigen und dauerhaft halten
+        // (auch im Testmodus „Nur-Jetzt" — Wind bleibt trotzdem der erste Frame).
         const ric: (cb: () => void) => void =
           typeof window.requestIdleCallback === 'function'
             ? (cb) => { window.requestIdleCallback(cb, { timeout: 2500 }); }
@@ -1592,7 +1995,10 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
         ric(() => { if (!iconD2TempRef.current) void installTempRef.current?.(); });
       }
     }
-    if (active.has('temp') && !fusionRequestedRef.current) {
+    // Testmodus „Nur-Jetzt-Start": Temp allein fordert die Fusion NICHT mehr an
+    // (die zöge MOSMIX/Obs/AROME/INCA + 24 Zukunftsstunden). Der Temp-Layer
+    // rendert rein nativ; explizite Fusion-Modellwahl (Effekt unten) bleibt.
+    if (active.has('temp') && !fusionRequestedRef.current && !(START_NOW_ONLY && !embedded)) {
       fusionRequestedRef.current = true;
       void reloadForecastRef.current?.();
     }
@@ -1792,7 +2198,7 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
   // Push the layer data for the currently selected forecast hour into the
   // custom layers whenever the forecast cache or the slider position changes.
   //
-  // Sub-hour positions (slider step = 0.2) are produced by pixel-wise
+  // Sub-hour positions (slider step = 0.1) are produced by pixel-wise
   // interpolation between the two adjacent hour-frames. Wind interpolates too,
   // but in VELOCITY space (its u/v normalisation differs per frame) — see
   // windFrameInterpolated in the dedicated wind effect.
@@ -1879,16 +2285,16 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
   useEffect(() => {
     const rain = layerRefs.current.rain;
     if (!rain || !active.has('nowcast')) return;
-    // Bei aktiver Fusion-Niederschlag (gewählt UND Daten bereit) speist der
-    // `precip-forecast`-ScalarLayer (zentraler Fusion-Effekt) statt des Radar-
-    // Komposits; hier nativ zurücktreten. Fehlt/scheitert die Fusion → nativ.
-    if (fusionActiveFor('nowcast')) return;
+    // „Niederschlag · jetzt–2 h" = rein gemessenes Radar/Nowcast (Jan 2026-07-24):
+    // der RainLayer ist IMMER die Quelle (auch im Fusion-Modus) — die Modell-/
+    // Fusionshälfte ist draußen, also KEIN Zurücktreten vor `precip-forecast` mehr.
     if (!compositorRef.current) compositorRef.current = new PrecipCompositor();
     // DACH-Komposit: pro Zelle das richtige Landesradar (DE RADOLAN / AT INCA /
-    // CH rzc) im jeweiligen Nowcast-Horizont, sonst/danach ICON-D2 — unabhängig
-    // vom gesuchten Ort. Reguläres lat/lon-Gitter → kein Warp-Mesh nötig.
+    // CH rzc) im jeweiligen Nowcast-Horizont. Bewusst OHNE `d2` → jenseits des
+    // Land-Horizonts bleiben Zellen leer (keine ICON-D2-Verlängerung). Reguläres
+    // lat/lon-Gitter → kein Warp-Mesh nötig.
     const frame = compositorRef.current.build(forecastHour, {
-      rv: nowcastRef.current, inca: incaGridRef.current, rzc: meteoRadarRef.current, d2: iconD2Ref.current,
+      rv: nowcastRef.current, inca: incaGridRef.current, rzc: meteoRadarRef.current,
     }, Date.now());
     rain.setFrame({ values: frame.values, width: frame.width, height: frame.height, corners: frame.corners });
   }, [forecastHour, nowcastTick, active, modelSource, forecast]);
@@ -1904,12 +2310,20 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
     const cl = iconD2CloudsRef.current;
     if (!cl || cl.frames.length === 0) return;
     const target = Date.now() + forecastHour * 3600_000;
-    let best = cl.frames[0];
-    for (const f of cl.frames) {
-      if (Math.abs(f.validAt.getTime() - target) < Math.abs(best.validAt.getTime() - target)) best = f;
+    // Sub-Stunden-Positionen zwischen den beiden Frames interpolieren: die RGBA-
+    // Bytes (R/G/B = tief/mittel/hoch, 0..255, lineare %-Kodierung) linear mischen
+    // → flüssiges Scrubbing statt harter Stundensprünge. Puffer wiederverwendet.
+    const { a, b, frac } = bracketAtValidTime(cl.frames, target);
+    let values = a.values;
+    if (frac > 0.001 && a !== b && a.values.length === b.values.length) {
+      let out = cloudLerpBufRef.current;
+      if (!out || out.length !== a.values.length) { out = new Uint8Array(a.values.length); cloudLerpBufRef.current = out; }
+      const pa = a.values, pb = b.values, g = 1 - frac;
+      for (let i = 0; i < out.length; i++) out[i] = pa[i] * g + pb[i] * frac;
+      values = out;
     }
-    cloudL.setFrame({ values: best.values, width: best.width, height: best.height, corners: cl.corners });
-    reportValidAt(best.validAt.getTime());
+    cloudL.setFrame({ values, width: a.width, height: a.height, corners: cl.corners });
+    reportValidAt(target);
   }, [forecastHour, nowcastTick, active, modelSource, forecast, reportValidAt]);
 
   // Wind-Layer (natives ICON-D2 u/v-10m): bei jeder Slider-Bewegung den Frame
@@ -2022,12 +2436,17 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
     if (fusionActiveFor('temp')) return;
     const td = iconD2TempRef.current;
     if (!td || td.frames.length === 0) return;
-    const f = frameAtValidTime(td.frames, Date.now() + forecastHour * 3600_000);
-    temp.setData(f.image, {
-      width: f.width, height: f.height,
+    const targetMs = Date.now() + forecastHour * 3600_000;
+    // Sub-Stunden-Positionen im Werteraum zwischen den beiden Stunden-Frames
+    // interpolieren (t_2m ist gegen feste vMin/vMax normiert → Pixel-Lerp korrekt),
+    // damit der Slider flüssig scrubbt statt zwischen Stunden zu springen.
+    const { a, b, frac } = bracketAtValidTime(td.frames, targetMs);
+    const image = frac > 0.001 && a !== b ? lerpFrameImage(a.image, b.image, frac, 'temp-native') : a.image;
+    temp.setData(image, {
+      width: a.width, height: a.height,
       vMin: td.vMin, vMax: td.vMax, uvBounds: td.uvBounds,
     });
-    reportValidAt(f.validAt.getTime());
+    reportValidAt(targetMs);
   }, [forecastHour, nowcastTick, active, modelSource, forecast, reportValidAt]);
 
   // Böen-Layer (natives ICON-D2 vmax_10m): bei jeder Slider-Bewegung den Frame
@@ -2040,12 +2459,103 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
     // P0-2: vmax_10m ist ein Perioden-Maximum → am Analyse-Schritt t+0 strukturell
     // 0. minStepHours=1 überspringt diesen Null-Schritt, damit „jetzt" ein echtes
     // Böen-Intervall zeigt statt flächiger Windstille.
-    const f = frameAtValidTime(gd.frames, Date.now() + forecastHour * 3600_000, 1);
-    gust.setData(f.image, {
-      width: f.width, height: f.height,
+    // Sub-Stunden-Positionen zwischen den beiden Frames interpolieren (feste
+    // vMin/vMax → Pixel-Lerp korrekt) → flüssiges Scrubbing statt Stundensprüngen.
+    const targetMs = Date.now() + forecastHour * 3600_000;
+    const { a, b, frac } = bracketAtValidTime(gd.frames, targetMs, 1);
+    const image = frac > 0.001 && a !== b ? lerpFrameImage(a.image, b.image, frac, 'gust-native') : a.image;
+    gust.setData(image, {
+      width: a.width, height: a.height,
       vMin: gd.vMin, vMax: gd.vMax, uvBounds: gd.uvBounds,
     });
-    reportValidAt(f.validAt.getTime());
+    reportValidAt(targetMs);
+  }, [forecastHour, nowcastTick, active, reportValidAt]);
+
+  // Gewitterpotenzial-Layer (Feature F1, fusioniertes ICON-D2 cape×cin×lpi): bei
+  // jeder Slider-Bewegung den Frame der nächstgelegenen Gültigkeitszeit setzen.
+  useEffect(() => {
+    const thunder = layerRefs.current.thunder;
+    if (!thunder || !active.has('thunder')) return;
+    const td = iconD2ThunderRef.current;
+    if (!td || td.frames.length === 0) return;
+    // Sub-Stunden-Positionen zwischen den beiden Frames interpolieren (fester
+    // Wertebereich 0..100 → Pixel-Lerp korrekt) → flüssiges Scrubbing. Über den
+    // 0–12-h-Horizont hinaus liefert bracketAtValidTime den nächstliegenden Frame.
+    const targetMs = Date.now() + forecastHour * 3600_000;
+    const { a, b, frac } = bracketAtValidTime(td.frames, targetMs);
+    const image = frac > 0.001 && a !== b ? lerpFrameImage(a.image, b.image, frac, 'thunder-native') : a.image;
+    thunder.setData(image, {
+      width: a.width, height: a.height,
+      vMin: td.vMin, vMax: td.vMax, uvBounds: td.uvBounds,
+    });
+    reportValidAt(targetMs);
+  }, [forecastHour, nowcastTick, active, reportValidAt]);
+
+  // Blitz-Vorhersage-Layer (Feature F2, ICON-D2 lpi_max): bei jeder Slider-
+  // Bewegung den Frame der nächstgelegenen Gültigkeitszeit setzen.
+  useEffect(() => {
+    const lightningFc = layerRefs.current.lightningfc;
+    if (!lightningFc || !active.has('lightningfc')) return;
+    const ld = iconD2LightningFcRef.current;
+    if (!ld || ld.frames.length === 0) return;
+    // minStepHours = 1: `lpi_max` ist als Intervall-Maximum am Analyse-Schritt
+    // t+0 strukturell 0 → bei „jetzt" sonst flächig leer (QA-Befund D4, wie Böen).
+    // Sub-Stunden-Positionen zwischen den beiden Frames interpolieren (fester
+    // Wertebereich 0..30 J/kg → Pixel-Lerp korrekt) → flüssiges Scrubbing.
+    const targetMs = Date.now() + forecastHour * 3600_000;
+    const { a, b, frac } = bracketAtValidTime(ld.frames, targetMs, 1);
+    const image = frac > 0.001 && a !== b ? lerpFrameImage(a.image, b.image, frac, 'lightningfc-native') : a.image;
+    lightningFc.setData(image, {
+      width: a.width, height: a.height,
+      vMin: ld.vMin, vMax: ld.vMax, uvBounds: ld.uvBounds,
+    });
+    reportValidAt(targetMs);
+  }, [forecastHour, nowcastTick, active, reportValidAt]);
+
+  // Rotationspotenzial-Layer (Feature F5, fusioniertes+geglättetes ICON-D2
+  // uh_max×uh_max_low×sdi_2): bei jeder Slider-Bewegung den Frame der nächst-
+  // gelegenen Gültigkeitszeit setzen. minStepHours=1: uh_max/uh_max_low sind
+  // Intervall-Maxima → am Analyse-Schritt degeneriert (audit §8.1), sonst bei
+  // „jetzt" ohne Stütze. R = geglätteter Score/100 (fester 0..1-Bereich → Pixel-
+  // Lerp korrekt) → flüssiges Scrubbing. Über 0–12 h hinaus nächstliegender Frame.
+  useEffect(() => {
+    const rotation = layerRefs.current.rotation;
+    if (!rotation || !active.has('rotation')) return;
+    const rd = iconD2RotationRef.current;
+    if (!rd || rd.frames.length === 0) return;
+    const targetMs = Date.now() + forecastHour * 3600_000;
+    const { a, b, frac } = bracketAtValidTime(rd.frames, targetMs, 1);
+    const image = frac > 0.001 && a !== b ? lerpFrameImage(a.image, b.image, frac, 'rotation-native') : a.image;
+    rotation.setData(image, {
+      width: a.width, height: a.height,
+      vMin: rd.vMin, vMax: rd.vMax, uvBounds: rd.uvBounds,
+    });
+    reportValidAt(targetMs);
+  }, [forecastHour, nowcastTick, active, reportValidAt]);
+
+  // Schnee-Layer (Feature F4, ICON-D2 h_snow / snow_gsp): bei jeder Slider-
+  // Bewegung den Frame der nächstgelegenen Gültigkeitszeit setzen.
+  useEffect(() => {
+    const snow = layerRefs.current.snow;
+    if (!snow || !active.has('snow')) return;
+    const sd = iconD2SnowRef.current;
+    if (!sd || sd.frames.length === 0) return;
+    // Modusabhängige visRange (< ~1 cm transparent) + minStepHours: Schneedecke
+    // (h_snow) ist instantan → t+0 gültig (kein minStepHours); Neuschnee (snow_gsp)
+    // ist akkumuliert → am Analyse-Schritt strukturell 0 → minStepHours=1 (wie
+    // tot_prec/Böen), sonst bei „jetzt" flächig leer. R = cm/VMAX (fester Bereich)
+    // → Pixel-Lerp korrekt → flüssiges Scrubbing. Über den Horizont hinaus der
+    // nächstliegende Frame.
+    snow.visRange = SNOW_VIS_RANGE[sd.mode];
+    const minStep = sd.mode === 'fresh' ? 1 : 0;
+    const targetMs = Date.now() + forecastHour * 3600_000;
+    const { a, b, frac } = bracketAtValidTime(sd.frames, targetMs, minStep);
+    const image = frac > 0.001 && a !== b ? lerpFrameImage(a.image, b.image, frac, 'snow-native') : a.image;
+    snow.setData(image, {
+      width: a.width, height: a.height,
+      vMin: sd.vMin, vMax: sd.vMax, uvBounds: sd.uvBounds,
+    });
+    reportValidAt(targetMs);
   }, [forecastHour, nowcastTick, active, reportValidAt]);
 
   // DEV-Hooks (QA P1-1/P1-3): numerischer Punkt-Sampler je Layer +
@@ -2257,12 +2767,18 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
         clouds: active.has('clouds'),
         temperature: active.has('temp'),
         gust: active.has('gust'),
-        // Niederschlag-Layer nur sichtbar, wenn für die Slider-Stunde ein Frame
-        // verfügbar ist (länderabhängig: RV/INCA/rzc bzw. ICON-D2 im Horizont).
-        [NOWCAST_LAYER_ID]: active.has('nowcast') && precipFrameReady(forecastHour) && !fusionActiveFor('nowcast') && modelSourceRef.current.radar,
-        // Fusion-Niederschlag (Forecast-Grid) statt Radar-Komposit, wenn der Resolver
-        // Fusion für 'nowcast' wählt. Ohne Daten rendert der ScalarLayer nichts (transparent).
-        'precip-forecast': active.has('nowcast') && fusionActiveFor('nowcast') && modelSourceRef.current.radar,
+        [THUNDER_LAYER_ID]: active.has('thunder'),
+        [LIGHTNINGFC_LAYER_ID]: active.has('lightningfc'),
+        [SNOW_LAYER_ID]: active.has('snow'),
+        [ROTATION_LAYER_ID]: active.has('rotation'),
+        // „Niederschlag · jetzt–2 h": rein gemessenes Radar/Nowcast (Jan 2026-07-24).
+        // Die Frame-Verfügbarkeit entscheidet zentral `precipCompositeReady`
+        // (precipSource.ts, DACH-OR über die DE/AT/CH-Radarhorizonte) — jenseits des
+        // Horizonts aus (keine Modellverlängerung). Der RainLayer ist die EINZIGE
+        // Precip-Quelle (auch im Fusion-Modus); die Fusion-Modellhälfte ist raus.
+        [NOWCAST_LAYER_ID]: active.has('nowcast') && precipFrameReady(forecastHour) && modelSourceRef.current.radar,
+        // Fusion-/Modell-Niederschlag (`precip-forecast`) stillgelegt → nie sichtbar.
+        'precip-forecast': false,
         [SAT_LAYER_ID]: active.has('sat'),
         [LIGHTNING_LAYER_ID]: active.has('lightning'),
         [STATIONS_LAYER_ID]: active.has('stations'),
@@ -2343,10 +2859,16 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
   // Slider-Obergrenze: standardmäßig der 24-h-Fusionshorizont; bei aktivem
   // Niederschlag-Layer bis zum ICON-D2-Horizont (+45/48 h), sobald geladen.
   const sliderMax = useMemo(() => {
-    const base = forecast ? Math.max(0, forecast.hours.length - 1) : 0;
-    const usesIconD2 = active.has('nowcast') || active.has('clouds');
-    return usesIconD2 ? Math.max(base, iconD2HorizonHours()) : base;
-    // iconD2HorizonHours liest die Refs → nowcastTick triggert Neuberechnung.
+    let horizon = forecast ? Math.max(0, forecast.hours.length - 1) : 0;
+    // Wolken spannen den vollen ICON-D2-CLCT-Horizont (0–12 h). Niederschlag trägt
+    // NUR seinen Radar-/Nowcast-Horizont bei (DE 2 / AT 3 / CH 0,5 h) — die Modell-
+    // hälfte ist draußen (Jan 2026-07-24), also verlängert Niederschlag den Slider
+    // höchstens bis ~3 h (INCA). Im Testmodus „Nur-Jetzt" bleibt der Slider damit
+    // bei aktivem Niederschlag kurz (jetzt–2/3 h) statt bis 12/24 h.
+    if (active.has('clouds')) horizon = Math.max(horizon, cloudsHorizonHours());
+    if (active.has('nowcast')) horizon = Math.max(horizon, precipRadarHorizonHours(precipAvailability()));
+    return horizon;
+    // liest die Refs → nowcastTick triggert Neuberechnung.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [forecast, active, nowcastTick]);
 
@@ -2354,6 +2876,24 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
   useEffect(() => {
     if (forecastHour > sliderMax) setForecastHour(sliderMax);
   }, [sliderMax, forecastHour]);
+
+  // Testmodus „Nur-Jetzt": Forecast-Frames (bis +NOWONLY_AHEAD_H) NACH BEDARF —
+  // erst wenn der Nutzer den Slider das erste Mal von „jetzt" wegbewegt, das
+  // Fenster der AKTUELL AKTIVEN Grid-Layer erweitern und neu laden. Die
+  // Jetzt-Bracket-Schritte kommen dabei aus dem Decompress-Cache (kein Netz),
+  // nur die +1/+2 h-Schritte sind wirklich neue Fetches. Einmalig (Guard):
+  // danach aktivierte Layer lesen forecastAheadHRef in ihrem eigenen
+  // Aktivierungs-Effekt und laden das Fenster von sich aus.
+  useEffect(() => {
+    if (!(START_NOW_ONLY && !embedded)) return;
+    if (forecastHour <= 0 || forecastAheadHRef.current >= NOWONLY_AHEAD_H) return;
+    forecastAheadHRef.current = NOWONLY_AHEAD_H;
+    if (active.has('wind')) void installWindRef.current?.();
+    if (active.has('temp')) void installTempRef.current?.();
+    if (active.has('gust')) void installGustRef.current?.();
+    if (active.has('clouds')) void installCloudsRef.current?.();
+    if (active.has('nowcast')) void installIconD2Ref.current?.();
+  }, [forecastHour, active]);
 
   // Slider-Grenzen: eingebettet auf das Eventfenster des gewählten Tages begrenzt
   // (Tagesablauf), sonst 0 … Horizont. Auf den verfügbaren Horizont geklemmt.
@@ -2515,7 +3055,7 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
                   type="range"
                   min={dayLo}
                   max={dayHi}
-                  step={0.2}
+                  step={0.1}
                   value={Math.max(dayLo, Math.min(dayHi, forecastHour))}
                   onChange={e => { setPlaying(false); scheduleForecastHour(Number(e.target.value)); }}
                   aria-label="Uhrzeit am Tag"
@@ -2597,6 +3137,23 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
           title={SAT_PRODUCT_FULL_LABELS[p]}
         >
           {SAT_PRODUCT_LABELS[p]}
+        </button>
+      ))}
+    </div>
+  );
+
+  // Schnee-Modus-Umschalter (Feature F4) — analog satSeg: Schneedecke ↔ Neuschnee.
+  const snowSeg = (
+    <div className="mdk-subseg" data-accent="steel" role="group" aria-label="Schnee-Modus">
+      {SNOW_MODES.map(m => (
+        <button
+          key={m}
+          type="button"
+          className={snowMode === m ? 'is-active' : ''}
+          onClick={() => setSnowMode(m)}
+          title={SNOW_MODE_FULL_LABELS[m]}
+        >
+          {SNOW_MODE_LABELS[m]}
         </button>
       ))}
     </div>
@@ -2705,7 +3262,7 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
             type="range"
             min={dayLo}
             max={dayHi}
-            step={0.2}
+            step={0.1}
             value={hourClamped}
             onChange={e => { setPlaying(false); scheduleForecastHour(Number(e.target.value)); }}
             aria-label="Forecast-Stunde"
@@ -2731,8 +3288,88 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
 
   // Layer-Legenden (Sicherheit · Schneegrenze · Flow-Nowcast · Regen-Chance) —
   // Inhalte unverändert, im Deck als Glas-Karten rechts gestapelt.
-  const legendsBlock = (active.has('confidence') || active.has('snowline') || active.has('flownowcast') || active.has('poprob')) ? (
+  const legendsBlock = (active.has('confidence') || active.has('snowline') || active.has('flownowcast') || active.has('poprob') || active.has('thunder') || active.has('lightningfc') || active.has('snow') || active.has('rotation')) ? (
     <div className="mdk-legends">
+      {active.has('snow') && (
+        <div className="confidence-legend" role="note" aria-label="Schnee">
+          <div className="cl-title">Schnee <span style={{ opacity: 0.7, fontWeight: 400 }}>· {snowMode === 'depth' ? 'Schneedecke' : 'Neuschnee'}</span></div>
+          <div className="cl-scale" aria-hidden="true">
+            <span className="cl-swatch" style={{ background: 'rgb(224,238,253)' }} />
+            <span className="cl-swatch" style={{ background: 'rgb(172,207,244)' }} />
+            <span className="cl-swatch" style={{ background: 'rgb(120,166,230)' }} />
+            <span className="cl-swatch" style={{ background: 'rgb(92,120,210)' }} />
+            <span className="cl-swatch" style={{ background: 'rgb(70,96,190)' }} />
+          </div>
+          <div className="cl-ends"><span>~1 cm</span><span>{snowMode === 'depth' ? '≥150 cm' : '≥50 cm'}</span></div>
+          <div className="cl-note">
+            {snowMode === 'depth'
+              ? <>Aktuelle <b>Schneehöhe</b> (ICON-D2 <b>h_snow</b>, 2,2 km) als Fläche in cm — Modell-Schneedecke, keine Messung.</>
+              : <><b>Neuschnee</b>-Zuwachs (ICON-D2 <b>snow_gsp+snow_con</b> → cm) über das Vorhersagefenster; Summe wächst mit dem Horizont.</>}
+            {' '}Die <b>Menge</b> als Fläche — NICHT die Schneegrenzen-Linie („Schneegrenze"). Ehrliche Grenzen:
+            am Modellrand ohne Wert (transparent); Schnee-Wasser-Verhältnis ist eine <b>Näherung</b>
+            (rho_snow bevorzugt); nur naher NWP-Horizont.
+          </div>
+        </div>
+      )}
+      {active.has('lightningfc') && (
+        <div className="confidence-legend" role="note" aria-label="Blitz-Vorhersage">
+          <div className="cl-title">Blitzprognose</div>
+          <div className="cl-scale" aria-hidden="true">
+            <span className="cl-swatch" style={{ background: 'rgb(255,238,120)' }} />
+            <span className="cl-swatch" style={{ background: 'rgb(255,176,48)' }} />
+            <span className="cl-swatch" style={{ background: 'rgb(240,86,60)' }} />
+            <span className="cl-swatch" style={{ background: 'rgb(214,40,120)' }} />
+            <span className="cl-swatch" style={{ background: 'rgb(150,40,200)' }} />
+          </div>
+          <div className="cl-ends"><span>gering</span><span>extrem</span></div>
+          <div className="cl-note">
+            Prognostiziertes Blitzrisiko aus dem ICON-D2 <b>Lightning Potential Index</b> (lpi_max,
+            2,2 km), über den Slider 0–12 h in die <b>Zukunft</b>. Ehrliche Grenzen: nur naher
+            NWP-Horizont (~0–12 h), am Modellrand ohne Wert (transparent), und <b>Prognose ≠ Messung</b> —
+            die gemessenen Einschläge der letzten Stunde zeigt der Layer „Blitze".
+          </div>
+        </div>
+      )}
+      {active.has('thunder') && (
+        <div className="confidence-legend" role="note" aria-label="Gewitterpotenzial">
+          <div className="cl-title">Gewitterpotenzial</div>
+          <div className="cl-scale" aria-hidden="true">
+            <span className="cl-swatch" style={{ background: 'rgb(247,224,88)' }} />
+            <span className="cl-swatch" style={{ background: 'rgb(245,182,66)' }} />
+            <span className="cl-swatch" style={{ background: 'rgb(238,124,44)' }} />
+            <span className="cl-swatch" style={{ background: 'rgb(206,52,52)' }} />
+            <span className="cl-swatch" style={{ background: 'rgb(150,30,110)' }} />
+          </div>
+          <div className="cl-ends"><span>gering</span><span>extrem</span></div>
+          <div className="cl-note">
+            Fusion aus CAPE (Energie) × CIN (Deckel) × LPI (Blitzbereitschaft), ICON-D2 2,2 km.
+            Flächige Vorwarnung <b>vor</b> dem ersten Radarecho. Ehrliche Grenzen: nur naher
+            NWP-Horizont (~0–12 h), am Modellrand ohne Wert (transparent), und <b>Potenzial ≠ Auslösung</b> —
+            hohes CAPE allein ist noch kein Gewitter (deshalb die CIN-Dämpfung + LPI-Realisierung).
+          </div>
+        </div>
+      )}
+      {active.has('rotation') && (
+        <div className="confidence-legend" role="note" aria-label="Rotationspotenzial">
+          <div className="cl-title">Rotationspotenzial <span style={{ opacity: 0.7, fontWeight: 400 }}>· Experten-Layer</span></div>
+          <div className="cl-scale" aria-hidden="true">
+            <span className="cl-swatch" style={{ background: 'rgb(158,148,180)' }} />
+            <span className="cl-swatch" style={{ background: 'rgb(130,112,168)' }} />
+            <span className="cl-swatch" style={{ background: 'rgb(104,80,148)' }} />
+            <span className="cl-swatch" style={{ background: 'rgb(78,52,116)' }} />
+            <span className="cl-swatch" style={{ background: 'rgb(52,32,80)' }} />
+          </div>
+          <div className="cl-ends"><span>gering</span><span>hoch</span></div>
+          <div className="cl-note">
+            Geglättete Modell-<b>VERDACHTS</b>flächen für rotierende Aufwinde/Superzellen aus
+            ICON-D2 <b>uh_max</b> + <b>uh_max_low</b> (Updraft-Helicity) und <b>sdi_2</b> (Supercell-Index),
+            0–12 h. <b>Kein amtliches Warnprodukt, kein Warnersatz</b> — maßgeblich sind die
+            <b> DWD-Warnungen</b> (Layer „Blitze"/amtliche Unwetterwarnung). <b>Verdacht ≠ Ereignis</b>,
+            <b> hohe Fehlalarmrate</b>; die Felder sind rauschig und werden bewusst geglättet. Nur naher
+            NWP-Horizont, am Modellrand ohne Wert (transparent). Nischensignal für Storm-Enthusiasten.
+          </div>
+        </div>
+      )}
       {active.has('confidence') && (
         <div className="confidence-legend" role="note" aria-label="Vertrauens-Schleier">
           <div className="cl-title">{active.has('nowcast') ? 'Sicherheit · Regen' : 'Sicherheit · Temperatur'}</div>
@@ -2879,6 +3516,7 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
                 <div className="mdk-layers">
                   {g.layers.map(l => layerRowDeck(l.key, l.accent ?? g.accent, l.sub, false))}
                   {g.layers.some(l => l.key === 'sat') && active.has('sat') && satSeg}
+                  {g.layers.some(l => l.key === 'snow') && active.has('snow') && snowSeg}
                 </div>
               </div>
             ))}
@@ -2959,28 +3597,14 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
           )}
         </main>
 
-        {/* ---- Rechtes Panel (Desktop/Tablet): Modell + Punktforecast + 7 Tage */}
+        {/* ---- Rechtes Panel (Desktop/Tablet): Punktforecast + 7 Tage
+             (Modellkarte, Testmodus- und Übersichts-Hinweis auf Jans Wunsch entfernt,
+             2026-07-29 — die Modellwahl bleibt über die Quellen-Pille bzw. den
+             „Modelle"-Link erreichbar). Die Spalte selbst bleibt immer stehen —
+             ohne gewählten Ort bzw. im Testmodus „Nur-Jetzt" nur ohne Inhalt. */}
         {!isMobileMap && (
           <aside className="mdk-readout">
-            <div className="mdk-ro-section-head">
-              <span className="mdk-eyebrow">Aktives Modell</span>
-            </div>
-            <button type="button" className="mdk-model-card" onClick={openModels} title={isNativeActive ? nativeComposition(modelSource.country) : undefined}>
-              <span className="mdk-model-ic"><IcoGlobe size={22} /></span>
-              <span className="mdk-model-tx">
-                <span className="mdk-model-name">
-                  <b>{activeModelName}</b>
-                  {isNativeActive && <span className="mdk-model-reco">Empfohlen</span>}
-                </span>
-                <span className="mdk-model-comp">{modelMetaLine}</span>
-              </span>
-              <span className="mdk-model-arrow"><IcoArrowRight /></span>
-            </button>
-            <p className="mdk-model-hint">
-              Tippen öffnet die Modellseite — alle Modelle mit Abdeckung, Auflösung &amp; Horizont zum Wechseln.
-            </p>
-
-            {!overview ? (
+            {!overview && !START_NOW_ONLY && (
               <>
                 <div className="mdk-ro-section-head">
                   <span className="mdk-eyebrow">Punktforecast</span>
@@ -3007,11 +3631,6 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
                   <span className="sdf-legend-item"><b className="sdf-legend-pct">%</b> Regenrisiko</span>
                 </div>
               </>
-            ) : (
-              <div className="mdk-ro-note" style={{ marginTop: 14 }}>
-                DACH-Übersicht ohne gewählten Ort. Über die Suche oben einen Ort wählen —
-                dann erscheinen hier der volle Punktforecast und der 7-Tage-Forecast.
-              </div>
             )}
           </aside>
         )}
@@ -3020,7 +3639,7 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
       {/* ---- Mobile: Bottom-Sheet · Screens · Sticky-Bottom-Bar -------------- */}
       {isMobileMap && (
         <>
-          {mobileTab === 'karte' && !overview && (
+          {mobileTab === 'karte' && !overview && !START_NOW_ONLY && (
             <>
               <div
                 className={`mdk-sheet-scrim${sheetSnap === 'full' ? ' is-full' : ''}`}
@@ -3055,7 +3674,7 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
               </aside>
             </>
           )}
-          {mobileTab === 'karte' && overview && timeDeck && (
+          {mobileTab === 'karte' && (overview || START_NOW_ONLY) && timeDeck && (
             <div className="mdk-m-timesolo">{timeDeck}</div>
           )}
 
@@ -3124,6 +3743,9 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
                       {layerMode === 'detail' && g.layers.some(l => l.key === 'sat') && active.has('sat') && (
                         <div className="mdk-m-sub" data-accent="slate">{satSeg}</div>
                       )}
+                      {layerMode === 'detail' && g.layers.some(l => l.key === 'snow') && active.has('snow') && (
+                        <div className="mdk-m-sub" data-accent="steel">{snowSeg}</div>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -3143,10 +3765,11 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
                 </button>
               </div>
               <div className="mdk-screen-body">
-                {overview ? (
+                {overview || START_NOW_ONLY ? (
                   <div className="mdk-ro-note">
-                    Kein Ort gewählt. Über die Suche auf der Karte einen Ort wählen —
-                    dann erscheint hier der 7-Tage-Forecast.
+                    {START_NOW_ONLY
+                      ? 'Testmodus „Nur-Jetzt" (?startnow=0 zum Abschalten): Slider jetzt … +2 h, Forecast lädt nach Bedarf (nur aktive Layer) — kein 7-Tage-Forecast.'
+                      : 'Kein Ort gewählt. Über die Suche auf der Karte einen Ort wählen — dann erscheint hier der 7-Tage-Forecast.'}
                   </div>
                 ) : (
                   <SevenDayForecast lat={location.lat} lon={location.lon} variant="screen" />
@@ -3204,10 +3827,23 @@ const DECK_GROUPS: {
   {
     title: 'Niederschlag', accent: 'steel',
     layers: [
-      { key: 'nowcast', sub: 'Radar + Nowcast' },
-      { key: 'flownowcast', sub: 'Optical Flow · 0–60 min' },
-      { key: 'poprob', sub: 'Flow-Ensemble · %' },
-      { key: 'snowline', sub: 'Regen ↔ Schnee' },
+      { key: 'nowcast', sub: 'jetzt–2 h · Radar/Nowcast' },
+      // Gewitterpotenzial (Feature F1): fusionierter CAPE×CIN×LPI-Index, flächige
+      // Vorwarnung 0–12 h VOR dem ersten Radarecho — thematisch Konvektion.
+      { key: 'thunder', sub: 'Potenzial · 0–12 h', accent: 'amber' },
+      // Rotationspotenzial (Feature F5, Experten): geglättete Modell-VERDACHTSflächen
+      // für rotierende Aufwinde/Superzellen (uh_max×sdi_2) — Nischensignal, kein
+      // Warnersatz (§0). Thematisch Konvektion, direkt neben „Gewitter".
+      { key: 'rotation', sub: 'Experten · Verdacht', accent: 'violet' },
+      // Schnee (Feature F4): Schneemenge als Fläche (Decke h_snow / Neuschnee snow_gsp),
+      // Modus im Layer umschaltbar — NICHT die Schneegrenzen-Linie („Schneegrenze").
+      { key: 'snow', sub: 'Menge · cm', accent: 'steel' },
+      // Jans Vorgabe (2026-07-23): erstmal aus dem Panel ausgeblendet — Funktion/
+      // Effekte bleiben erhalten, nur die Toggles sind ausgeblendet. Zum Wieder-
+      // Einblenden diese Zeilen einkommentieren.
+      // { key: 'flownowcast', sub: 'Optical Flow · 0–60 min' },
+      // { key: 'poprob', sub: 'Flow-Ensemble · %' },
+      // { key: 'snowline', sub: 'Regen ↔ Schnee' },
     ],
   },
   {
@@ -3221,7 +3857,8 @@ const DECK_GROUPS: {
     title: 'Temperatur & Himmel', accent: 'terracotta',
     layers: [
       { key: 'temp', sub: 'höhenkorrigiert' },
-      { key: 'clouds', sub: 'tief · mittel · hoch', accent: 'slate' },
+      // Jans Vorgabe (2026-07-23): erstmal ausgeblendet (Funktion bleibt).
+      // { key: 'clouds', sub: 'tief · mittel · hoch', accent: 'slate' },
       { key: 'sat', sub: 'Meteosat', accent: 'slate' },
     ],
   },
@@ -3229,8 +3866,12 @@ const DECK_GROUPS: {
     title: 'Punkte & Vertrauen', accent: 'violet',
     layers: [
       { key: 'lightning', sub: 'letzte 60 min', accent: 'amber' },
+      // Blitz-Vorhersage (Feature F2): ICON-D2 lpi_max, Blitz-RISIKO 0–12 h in die
+      // Zukunft — direkt neben „Blitze" (Messung), bewusst getrennt beschriftet.
+      { key: 'lightningfc', sub: 'Prognose · 0–12 h', accent: 'violet' },
       { key: 'stations', sub: 'Live-Messwerte' },
-      { key: 'confidence', sub: 'Vertrauens-Schleier', accent: 'slate' },
+      // Jans Vorgabe (2026-07-23): erstmal ausgeblendet (Funktion bleibt).
+      // { key: 'confidence', sub: 'Vertrauens-Schleier', accent: 'slate' },
     ],
   },
 ];

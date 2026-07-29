@@ -37,6 +37,10 @@ const TEMP = 'linear-gradient(90deg,#3a6fa8,#6da3d3,#7A9466,#e6cf6a,#D4A373,#C97
 const CLOUD = 'linear-gradient(90deg,#f5f1e8,#cdd2d8,#8a93a0,#4f5560)';
 const PROB = 'linear-gradient(90deg, rgb(190,214,255), rgb(122,170,250), rgb(74,120,228), rgb(112,70,198), rgb(86,28,138))';
 const SAT = 'linear-gradient(90deg,#2c2a26,#7d7a72,#efe9dd)';
+const THUNDER = 'linear-gradient(90deg, rgb(247,224,88), rgb(245,182,66), rgb(238,124,44), rgb(206,52,52), rgb(150,30,110))';
+const LPI = 'linear-gradient(90deg, rgb(255,238,120), rgb(255,176,48), rgb(240,86,60), rgb(214,40,120), rgb(150,40,200))';
+const SNOW = 'linear-gradient(90deg, rgb(224,238,253), rgb(172,207,244), rgb(120,166,230), rgb(92,120,210), rgb(70,96,190))';
+const ROTATION = 'linear-gradient(90deg, rgb(158,148,180), rgb(130,112,168), rgb(104,80,148), rgb(78,52,116), rgb(52,32,80))';
 
 const LAYER_INFO: Record<LayerKey, Info> = {
   wind: {
@@ -52,9 +56,9 @@ const LAYER_INFO: Record<LayerKey, Info> = {
     legend: <><Bar css={WIND} /><Scale from="ruhig" to="orkanartig" /></>,
   },
   nowcast: {
-    eyebrow: 'Niederschlag', title: 'Niederschlag', accent: '--steel-600',
-    desc: 'Niederschlag über den Zeit-Slider: gemessenes Radar im Nahbereich, danach ICON-D2-Modell.',
-    source: 'RADOLAN-RV · INCA · MeteoSchweiz · ICON-D2',
+    eyebrow: 'Niederschlag', title: 'Niederschlag · jetzt–2 h', accent: '--steel-600',
+    desc: 'Gemessenes Radar/Nowcast über den Zeit-Slider, per Land bis zum Nowcast-Horizont: DE RADOLAN-RV (bis 2 h), AT GeoSphere INCA (bis 3 h), CH MeteoSchweiz. Bewusst kurz & ehrlich — nur die gemessene Nahbereichs-Vorhersage, keine Modell-Extrapolation darüber hinaus.',
+    source: 'RADOLAN-RV · INCA · MeteoSchweiz',
     legend: <><Bar css={PRECIP} /><Scale from="leicht" to="Starkregen" /></>,
   },
   temp: {
@@ -75,11 +79,35 @@ const LAYER_INFO: Record<LayerKey, Info> = {
     source: 'DWD OpenData',
     legend: <><Bar css={SAT} /><Scale from="klar" to="Wolken" /></>,
   },
+  thunder: {
+    eyebrow: 'Gewitter', title: 'Gewitterpotenzial', accent: '--amber-500',
+    desc: 'Fusion aus CAPE (Energie) × CIN (Deckel) × LPI (Blitzbereitschaft): flächige Vorwarnung 0–12 h vor dem ersten Radarecho. Ehrlich: nur naher Horizont, am Modellrand ohne Wert, Potenzial ≠ Auslösung.',
+    source: 'DWD ICON-D2 · cape_ml·cin_ml·lpi · 2,2 km',
+    legend: <><Bar css={THUNDER} /><Scale from="gering" to="extrem" /></>,
+  },
   lightning: {
     eyebrow: 'Gewitter', title: 'Blitze', accent: '--amber-500',
     desc: 'Blitzortung der letzten 60 Minuten aus dem DWD-Sferics-Netz.',
     source: 'DWD Sferics',
     legend: <Row swatch={<i className="li-bolt" />} label="Blitz der letzten 60 Min" />,
+  },
+  lightningfc: {
+    eyebrow: 'Gewitter', title: 'Blitzprognose', accent: '--violet-600',
+    desc: 'Prognostiziertes Blitzrisiko aus dem ICON-D2 Lightning Potential Index (lpi_max), über den Slider 0–12 h in die Zukunft. Prognose ≠ Messung — die gemessenen Einschläge der letzten Stunde zeigt „Blitze". Ehrlich: nur naher Horizont, am Modellrand ohne Wert.',
+    source: 'DWD ICON-D2 · lpi_max · 2,2 km',
+    legend: <><Bar css={LPI} /><Scale from="gering" to="extrem" /></>,
+  },
+  snow: {
+    eyebrow: 'Niederschlag', title: 'Schnee', accent: '--steel-600',
+    desc: 'Schneemenge als Fläche (cm): „Schneedecke" = aktuelle Höhe (ICON-D2 h_snow), „Neuschnee" = Zuwachs über das Vorhersagefenster (snow_gsp+snow_con → cm). Modus im Layer umschaltbar. Die Menge — NICHT die Schneegrenzen-Linie (das ist „Schneegrenze"). Modell, keine Messung; am Modellrand ohne Wert; Schnee-Wasser-Verhältnis ist eine Näherung.',
+    source: 'DWD ICON-D2 · h_snow · snow_gsp · 2,2 km',
+    legend: <><Bar css={SNOW} /><Scale from="~1 cm" to="viel" /></>,
+  },
+  rotation: {
+    eyebrow: 'Gewitter · Experten', title: 'Rotationspotenzial', accent: '--violet-600',
+    desc: 'Geglättete Modell-VERDACHTSflächen für rotierende Aufwinde/Superzellen aus ICON-D2 Updraft-Helicity (uh_max + uh_max_low) und Supercell-Index (sdi_2), 0–12 h. KEIN amtliches Warnprodukt, kein Warnersatz — maßgeblich sind die DWD-Warnungen. Verdacht ≠ Ereignis, hohe Fehlalarmrate. Experten-/Nischensignal; am Modellrand ohne Wert.',
+    source: 'DWD ICON-D2 · uh_max · uh_max_low · sdi_2 · 2,2 km',
+    legend: <><Bar css={ROTATION} /><Scale from="gering" to="hoch" /></>,
   },
   stations: {
     eyebrow: 'Messnetz', title: 'Stationen', accent: '--sage-600',

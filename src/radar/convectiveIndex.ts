@@ -46,8 +46,10 @@ export interface ConvectiveIndex {
   capeBased: boolean;
 }
 
-/** Stückweise-lineare Rampe durch (x,y)-Stützpunkte; clamps an den Enden. */
-function ramp(x: number, pts: Array<[number, number]>): number {
+/** Stückweise-lineare Rampe durch (x,y)-Stützpunkte; clamps an den Enden.
+ *  Exportiert für Reuse in `thunderPotential.ts` (Feature F1) — reine Hilfsfunktion,
+ *  Verhalten unverändert. */
+export function ramp(x: number, pts: Array<[number, number]>): number {
   if (x <= pts[0][0]) return pts[0][1];
   const last = pts[pts.length - 1];
   if (x >= last[0]) return last[1];
@@ -61,8 +63,10 @@ function ramp(x: number, pts: Array<[number, number]>): number {
 
 const clamp = (v: number, lo: number, hi: number): number => (v < lo ? lo : v > hi ? hi : v);
 
-/** CAPE (J/kg) → 0..100 Potenzial. DACH-übliche Schwellen. */
-function capeScore(cape: number): number {
+/** CAPE (J/kg) → 0..100 Potenzial. DACH-übliche Schwellen.
+ *  Exportiert für Reuse in `thunderPotential.ts` (Feature F1) — identische
+ *  Stützpunkte, Verhalten unverändert. */
+export function capeScore(cape: number): number {
   return ramp(cape, [[0, 0], [100, 5], [250, 22], [500, 42], [1000, 62], [1500, 75], [2500, 90], [3500, 100]]);
 }
 

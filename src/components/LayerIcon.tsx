@@ -80,6 +80,34 @@ export function LayerIcon({ layer, size = 14 }: Props) {
           <path d="M 7.5 1 L 4 7 L 6.5 7 L 5 13 L 9.5 6 L 7 6 L 8.5 1 Z" fill="currentColor" stroke="none" />
         </svg>
       );
+    case 'lightningfc':
+      // Blitz-Vorhersage — Blitz-Kontur (nicht gefüllt) mit vorwärtsweisenden
+      // Prognose-Punkten: klar anders als der massive gefüllte Zickzack von
+      // „lightning" (Messung). Kontur = Modell/Prognose, Punkte = Zukunft.
+      return (
+        <svg {...common}>
+          <path d="M 8 1 L 4.5 7 L 7 7 L 5.5 13 L 10 6 L 7.5 6 L 9 1 Z" />
+          <circle cx="11.4" cy="9.6" r="0.5" fill="currentColor" stroke="none" opacity="0.75" />
+          <circle cx="12.4" cy="7.9" r="0.5" fill="currentColor" stroke="none" opacity="0.5" />
+        </svg>
+      );
+    case 'snow':
+      // Schnee (Menge) — Schneeflocke über einer Boden-/Decken-Linie: MENGE als
+      // Fläche, klar anders als die reine Grenzlinie von „snowline".
+      return (
+        <svg {...common}>
+          <g strokeWidth="1.2">
+            <line x1="7" y1="1.4" x2="7" y2="8" />
+            <line x1="3.9" y1="2.9" x2="10.1" y2="6.5" />
+            <line x1="10.1" y1="2.9" x2="3.9" y2="6.5" />
+            <line x1="5.2" y1="1.9" x2="7" y2="3" />
+            <line x1="8.8" y1="1.9" x2="7" y2="3" />
+          </g>
+          <line x1="1.8" y1="11.6" x2="12.2" y2="11.6" strokeWidth="1.6" />
+          <line x1="3" y1="9.6" x2="3" y2="11.6" opacity="0.55" />
+          <line x1="11" y1="9.6" x2="11" y2="11.6" opacity="0.55" />
+        </svg>
+      );
     case 'stations':
       // Pin-Marker auf Karte
       return (
@@ -95,6 +123,24 @@ export function LayerIcon({ layer, size = 14 }: Props) {
           <path d="M 1.5 4.6 Q 5 3.4 8.4 4.6" />
           <path d="M 1.5 9.2 Q 4.5 8.2 7.6 9.2" />
           <path d="M 8.2 4.6 C 11 4 11.6 6.7 9.4 7 C 8.2 7.15 8 5.8 8.9 5.6" />
+        </svg>
+      );
+    case 'thunder':
+      // Gewitterpotenzial — Wolke mit Blitz (Konvektions-Vorwarnung)
+      return (
+        <svg {...common}>
+          <path d="M 3 7.6 Q 1.7 5.2 3.7 4.7 Q 4.7 3.1 6.7 3.8 Q 8.7 2.9 9.9 4.9 Q 12 5.3 11 7.4 Z" />
+          <path d="M 7.1 7.3 L 5.4 10 L 6.9 10 L 5.9 12.6 L 8.7 9.2 L 7.1 9.2 L 8 7.3 Z" fill="currentColor" stroke="none" />
+        </svg>
+      );
+    case 'rotation':
+      // Rotationspotenzial — rotierender Aufwind: eingerollte Spirale mit
+      // Pfeilspitze (Rotation/Wirbel), klar anders als Wolke+Blitz von „thunder".
+      return (
+        <svg {...common}>
+          <path d="M 9.8 4 A 3.4 3.4 0 1 0 10.9 7.2" />
+          <polyline points="7.6,3.3 9.9,3.9 9.5,6.3" />
+          <circle cx="7" cy="7" r="0.7" fill="currentColor" stroke="none" />
         </svg>
       );
     case 'confidence':

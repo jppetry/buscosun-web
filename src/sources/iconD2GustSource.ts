@@ -13,6 +13,7 @@
  */
 
 import { resolveLatestRun, fetchStepField, gribCorners, D2_GRIB_PROXY_BASE, type GribField } from './iconD2Precip';
+import { stepsForNowWindow } from './frameAtValidTime';
 
 export const ICON_D2_GUST_ATTRIBUTION =
   'Windböen: <a href="https://www.dwd.de/EN/ourservices/opendata/opendata.html" ' +
@@ -84,9 +85,13 @@ function buildGustImage(g: GribField, ss: number): Omit<IconD2GustFrame, 'validA
 export async function fetchIconD2Gust(
   signal?: AbortSignal,
   onProgress?: (partial: IconD2Gust) => void,
+  /** `nowOnly` (Testmodus „startnow", MapView): lädt statt 0–24 h NUR das Fenster
+   *  von „jetzt" bis „jetzt + aheadHours" (`stepsForNowWindow`); 0 = Jetzt-Bracket. */
+  opts?: { nowOnly?: boolean; aheadHours?: number },
 ): Promise<IconD2Gust> {
   const { runStr, runAt, steps } = await resolveLatestRun('vmax_10m', signal);
-  const wanted = steps.filter((s) => s <= MAX_STEP);
+  const capped = steps.filter((s) => s <= MAX_STEP);
+  const wanted = opts?.nowOnly ? stepsForNowWindow(capped, runAt, opts.aheadHours ?? 0) : capped;
 
   // Phase T2-2: durch den durable-gecachten Edge-Pfad (statt /_dwd_opendata).
   const gridRef = await fetchStepField(runStr, 'vmax_10m', wanted[0], signal, D2_GRIB_PROXY_BASE);

@@ -169,6 +169,20 @@ export function fmtDbz(mmH: number): string {
   return d <= 0 ? '— dBZ' : `${Math.round(d)} dBZ`;
 }
 
+/**
+ * dBZ → mm/h — die **Inverse** zu {@link mmhToDbz} (Marshall-Palmer Z = 200·R^1.6,
+ * also R = (Z/200)^(1/1.6) mit Z = 10^(dBZ/10)). Reiner, additiver Export.
+ * Historie: bediente den früheren Sim-Radar-Layer (Feature F3, `iconD2Dbz.ts`) —
+ * **stillgelegt zugunsten der vereinheitlichten „Niederschlag · jetzt–12 h"-Ansicht
+ * (Konsolidierung N1, 2026-07-24)**. Bleibt als dokumentierte Inverse zu `mmhToDbz`
+ * erhalten (nutzbar über den Regenradar-`expertDbz`-Pfad). ≤ 0 dBZ → 0 mm/h (kein Echo).
+ */
+export function dbzToMmh(dbz: number): number {
+  if (!(dbz > 0)) return 0;
+  const z = Math.pow(10, dbz / 10);
+  return Math.pow(z / 200, 1 / 1.6);
+}
+
 // ---------------------------------------------------------------------------
 // Klartext-Nowcast für den Punkt-Streifen (§4) — die Jogging-Entscheidung
 // ---------------------------------------------------------------------------

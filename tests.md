@@ -148,6 +148,76 @@ Vorgabe: `audit/layer-transport.md` §J. Ops-/Transport-Fix an der Commit-Back-K
 5. 🔴 **Prod-Kaltload:** 2D-Layer (Temp/Böen/Niederschlag/Wolken) → `Cache-Status: … hit` statt `fwd=stale`; Kaltload-Latenz je Datei ~150–600 ms (wie Wind), nicht mehr Origin.
 6. 🔴 **Regression:** keine `git push`-Rejects mehr in den `warm-grib`- und `warm-wind`-Logs über mehrere Läufe.
 
+## V-GEWITTER — Gewitterpotenzial-Layer (Feature-Phase F1)
+Vorgabe: `audit/gewitterpotenzial.md`. Neuer, standardmäßig inaktiver Layer aus `cape_ml` × `cin_ml` × `lpi`. **Netzwerk/Interaktion emulator-belastbar; Feld-Plausibilität braucht eine echte Konvektionslage.**
+1. **Fusion-Harness:** `node scripts/verify-thunder.mjs` grün — ruhig (kein CAPE) → „keine"; hohes CAPE + offener Deckel (kleines |CIN|) + LPki>0 → „hoch"; hohes CAPE + starker Deckel (großes |CIN|) → gedämpft unter die offene Lage; Score monoton & clamped 0..100.
+2. **Lazy-Load (kritisch):** Kartenstart im Network-Waterfall → **keine** `cape_ml`/`cin_ml`/`lpi`-Requests. Erst der Layer-Toggle „Gewitter" löst genau diese drei Grid-Fetches aus (über `/_dwd_grib`). Beleg: Waterfall vor/nach Toggle.
+3. **Rendering:** bei einer realen Konvektionslage plausibles Muster (hoher Index dort, wo CAPE hoch UND Deckel offen UND LPI>0); Domänenrand **transparent** maskiert (kein 0-Wert-Einfärben); Legende fünfstufig lesbar (keine/gering/erhöht/deutlich/hoch).
+4. **Slider/Refresh:** Zeit-Slider bewegt den Layer über die verfügbaren Steps; 30-min-`refreshIconD2Layers` zieht bei aktivem Layer nach; kein Hängen (Trace).
+5. **Abgrenzung:** `git diff` berührt nur `iconD2Thunder.ts`/`thunderPotential.ts`/Rampe + additive `MapView.tsx`-Seams; **kein** Wind-Shader/RGBA8/Fusion/EPS/Radar/Decode-Eingriff (Diff-Beleg).
+6. **Mobile (390×844):** Toggle im Sheet-Layer-Segment erreichbar, Touch-Target ≥ 44 px, Legende sichtbar, keine neuen Konsolenfehler; Desktop mit aktivem **und** inaktivem Layer sauber; `npm run typecheck` grün.
+7. **Ehrlichkeit:** Tooltip/Legende benennen Domänengrenze, ~0–12-h-Horizont und „Potenzial ≠ Auslösung"; keine Falsch-Sicherheit über den Horizont hinaus.
+
+## V-BLITZ-VORHERSAGE — Blitz-Vorhersage-Layer / LPI (Feature-Phase F2)
+Vorgabe: `audit/blitz-vorhersage.md`. Neuer, standardmäßig inaktiver Einfeld-Layer aus `lpi_max`. Eigenständig neben „Blitze" (Messung). **Netzwerk/Interaktion emulator-belastbar; Feld-Plausibilität braucht eine echte Konvektionslage.**
+1. **Lazy-Load (kritisch):** Kartenstart im Network-Waterfall → **keine** `lpi_max`-Requests. Erst der Toggle „Blitzprognose" löst den Grid-Fetch aus (über `/_dwd_grib`). Beleg: Waterfall vor/nach Toggle.
+2. **t+0 nicht leer:** bei Slider „jetzt" ist der Layer **nicht** flächig leer (Intervall-Maximum `lpi_max` → `minStepHours=1` greift, wie Böen); Domänenrand transparent maskiert (kein 0-Einfärben).
+3. **Slider/Vorausschau:** Zeit-Slider bewegt den Layer über die verfügbaren Steps (0–12 h voraus); 30-min-`refreshIconD2Layers` zieht bei aktivem Layer nach; kein Hängen (Trace).
+4. **Abgrenzung zur Messung:** „Blitze" (`Accumulated_Flash_Area`, Vergangenheit) und „Blitzprognose" (LPI, Zukunft) gleichzeitig aktiv → optisch unterscheidbar (andere Palette/Legende); Tooltips benennen Prognose ≠ Messung und verweisen aufeinander.
+5. **Rendering:** bei einer realen Konvektionslage plausibles Risikomuster (hoher LPI dort, wo das Modell Konvektion erzeugt); ruhiger Tag erwartungsgemäß fast leer (korrekt, kein Fehler).
+6. **Diff/Abgrenzung:** `git diff` berührt nur `iconD2Lpi.ts` + Rampe + additive `MapView.tsx`-Seams; **kein** `dwdLightning.ts`/Wind-Shader/RGBA8/Fusion/EPS/Radar/Decode-Eingriff (Diff-Beleg).
+7. **Mobile (390×844):** Toggle im Sheet-Layer-Segment erreichbar, Touch-Target ≥ 44 px, Legende sichtbar, keine neuen Konsolenfehler; Desktop mit aktivem **und** inaktivem Layer sauber; `npm run typecheck` grün.
+
+## V-SIM-RADAR — Simuliertes-Radar-Layer / dbz_cmax (Feature-Phase F3) — ⛔ STILLGELEGT ZUGUNSTEN N1 (2026-07-24)
+> **Stillgelegt.** Layer in Phase N1 restlos entfernt; dieses Protokoll ist Historie. Aktuell gilt **V-NIEDERSCHLAG** (unten).
+Vorgabe: `audit/simuliertes-radar.md`. Neuer, standardmäßig inaktiver Layer aus `dbz_cmax` in der bestehenden Radar-Optik. Verlängert den Nowcast über 2 h hinaus. **Netzwerk/Interaktion emulator-belastbar; Feld-Plausibilität braucht eine echte Konvektionslage.**
+1. **Lazy-Load (kritisch):** Kartenstart im Network-Waterfall → **keine** `dbz_cmax`-Requests. Erst der Toggle „Sim-Radar" löst den Grid-Fetch aus (über `/_dwd_grib`). Beleg: Waterfall vor/nach Toggle.
+2. **Optik-Konsistenz:** die simulierte Reflektivität rendert in **derselben** Radar-Farbskala wie Regenradar/Niederschlag (dBZ→mm/h via `radarModel.ts`); t+0 plausibel gefüllt (kein `minStepHours` nötig); Domänenrand transparent maskiert.
+3. **Horizont-Mehrwert:** Slider über 2 h hinaus (z. B. +6 h) → Layer zeigt weiter ein Radarbild, wo der Nowcast endet; Vorwärtsschau bis Step-Cap; 30-min-`refreshIconD2Layers` zieht bei aktivem Layer nach; kein Hängen (Trace).
+4. **Abgrenzung zur Messung:** „Sim-Radar" (Modell) und „Niederschlag"/Regenradar (Messung) gleichzeitig nachvollziehbar; Tooltip/Legende benennen „simuliert" und die 0–2-h-Präferenz fürs echte Radar.
+5. **Diff/Abgrenzung:** `git diff` berührt nur `iconD2Dbz.ts` + additive `MapView.tsx`-Seams; **kein** `nowcast`/RainLayer/RADOLAN/`radarModel.ts`-Verhalten/Wind-Shader/RGBA8/Fusion/EPS-Eingriff (Diff-Beleg).
+6. **Mobile (390×844):** Toggle im Sheet-Layer-Segment erreichbar, Touch-Target ≥ 44 px, Legende sichtbar, keine neuen Konsolenfehler; Desktop mit aktivem **und** inaktivem Layer sauber; `npm run typecheck` grün.
+
+## V-SCHNEE — Schneehöhe-&-Neuschnee-Layer (Feature-Phase F4)
+Vorgabe: `audit/schnee.md`. Neuer, standardmäßig inaktiver Layer „Schnee" mit zwei Modi (Schneedecke `h_snow` / Neuschnee cm). **Netzwerk/Interaktion emulator-belastbar; cm-Plausibilität braucht eine echte Schneelage.**
+1. **`freshsnw`-Semantik belegt:** in der Diagnose dokumentiert, dass Neuschnee **nicht** aus `freshsnw` (Frische-/Albedo-Faktor 0..1), sondern aus `snow_gsp`(+`snow_con`)/`h_snow`-Δ kommt (GRIB-shortName/Einheit geprüft).
+2. **Lazy-Load (kritisch):** Kartenstart im Waterfall → **keine** `h_snow`/`snow_gsp`-Requests. Erst der Toggle „Schnee" löst den Fetch aus (über `/_dwd_grib`); Modus-Wechsel Schneedecke↔Neuschnee lädt das jeweils andere Feld lazy nach. Beleg: Waterfall.
+3. **t+0-Verhalten:** Schneedecke (`h_snow`, instantan) bei „jetzt" plausibel gefüllt (kein `minStepHours`); Neuschnee (Akkumulation) nutzt `minStepHours=1`, ist bei t+0 nicht künstlich leer; Domänenrand transparent.
+4. **cm-Plausibilität:** in einer Schneelage plausible Werte (Schneedecke Alpen > Flachland; Neuschnee-Summe wächst mit dem Horizont); SWE→cm über die `alpineSplit.ts`-Konstante (`rho_snow` bevorzugt) nachvollziehbar.
+5. **Abgrenzung:** `snowline` (ML-Linie, bestehend) + `snow` (Raster, neu) gleichzeitig nutzbar, klar getrennt; Schnee-Palette optisch ≠ Regen-Palette.
+6. **Diff/Abgrenzung:** `git diff` berührt nur `iconD2Snow.ts` + additive `MapView.tsx`-Seams; **kein** `snowline`/`climaField`/`alpineSplit.ts`-Verhalten/Wind-Shader/RGBA8/Fusion/EPS/Radar-Eingriff (Diff-Beleg).
+7. **Mobile (390×844):** Toggle + Modus-Switch im Sheet-Layer-Segment, Touch-Targets ≥ 44 px, Legende sichtbar, keine neuen Konsolenfehler; Desktop mit aktivem **und** inaktivem Layer sauber; `npm run typecheck` grün.
+
+## V-ROTATION — Superzellen-/Rotationspotenzial-Layer (Feature-Phase F5)
+Vorgabe: `audit/rotationspotenzial.md`. Neuer, standardmäßig inaktiver **Experten**-Layer aus `uh_max`(+`uh_max_low`)+`sdi_2`. **Netzwerk/Interaktion emulator-belastbar; Feld-Plausibilität braucht eine echte Schwergewitter-Lage. Ehrlichkeits-Leitplanken §0 sind gate-blockierend.**
+1. **Fusion-Harness:** `node scripts/verify-rotation.mjs` grün — ruhig→„keine"; hohe UH + SDI-Signatur→„hoch"; nur schwache UH→„gering"; Nachbarschafts-Glättung dämpft Einzelpixel; Score monoton & clamped 0..100.
+2. **Lazy-Load (kritisch):** Kartenstart im Waterfall → **keine** `uh_max`/`sdi_2`-Requests. Erst der Toggle „Rotation" löst die Fetches aus (über `/_dwd_grib`). Beleg: Waterfall vor/nach Toggle.
+3. **Feld-Semantik/t+0:** `minStepHours=1` greift (t+0 nicht künstlich leer trotz Intervall-Maximum); SDI-Vorzeichen/Wertebereich im Decode dokumentiert; Domänenrand transparent.
+4. **Ehrlichkeit (gate-blockierend):** Tooltip/Legende benennen „kein amtliches Warnprodukt" (Verweis DWD-Warnungen), „Verdacht ≠ Ereignis", „hohe Fehlalarmrate", „Experten-Layer"; Sprache **nie** „Tornado"; Darstellung sichtbar geglättet (kein Einzelpixel-Alarmismus).
+5. **Rendering:** bei einer echten Schwergewitter-Lage plausible Verdachtsflächen; ruhige Lage erwartungsgemäß leer.
+6. **Diff/Abgrenzung:** `git diff` berührt nur `iconD2Rotation.ts`/`rotationPotential.ts` + Rampe + additive `MapView.tsx`-Seams; **kein** `dwdAlerts`/`convectiveIndex.ts`-Verhalten/Wind-Shader/RGBA8/Fusion/EPS/Radar-Eingriff (Diff-Beleg).
+7. **Mobile (390×844):** Toggle im Sheet-Layer-Segment erreichbar, Touch-Target ≥ 44 px, Legende (inkl. Experten-Hinweis) sichtbar, keine neuen Konsolenfehler; Desktop mit aktivem **und** inaktivem Layer sauber; `npm run typecheck` grün.
+
+### Ergebnis 2026-07-24 (Gate GF5 grün) — MCP-belegt, Dev :5198
+1. ✅ `npm run verify:rotation` → **30/30 PASS** (inkl. der 12 in-App-Checks via `window.__verifyRotationPotential`, im Browser 12/0 bestätigt): ruhig→keine · schwache UH (8)→gering · hohe UH (45)+SDI→hoch · SDI korroboriert/senkt nie · SDI allein (5e-4) unter Schwelle · monoton & clamped 0..100 · vorzeichen-invariant · NaN→NaN · Glättung dämpft Einzelpixel (100→36) · breite Fläche erhalten · NaN-Maske erhalten.
+2. ✅ **Lazy-Load im CDP-Waterfall belegt:** Kartenstart + vor Toggle **0** `uh_max`/`uh_max_low`/`sdi_2`-Requests (Cache geleert, sauberer Reload). Nach Toggle „Rotation": Directory-Probe `/_dwd_opendata/…/uh_max/` + **je 12 Steps (001–012) × 3 Felder = 36 Requests** über `/_dwd_grib/…/icon-d2/grib/12/{uh_max,uh_max_low,sdi_2}/` (Lauf 2026072412), alle 200. Generischer Proxy → **kein** `dwd-grib.ts`/`warm-grib`-Eingriff nötig.
+3. ✅ **`minStepHours=1`:** Steps beginnen bei **001** (kein 000 geladen). **SDI-Sign/Range im Decode dokumentiert** (Konsole-Debug: `sdi_2 decode min=-2.01e-4 max=1.99e-4` — winzig, signiert, betrags-invariant fusioniert, wie Diagnose §8.2). Domänenrand transparent (NaN-Anker `uh_max`).
+4. ✅ **Ehrlichkeit (gate-blockierend):** Tooltip **und** Legende (Desktop+Mobile) tragen alle §0-Aussagen — „Kein amtliches Warnprodukt, kein Warnersatz — maßgeblich sind die DWD-Warnungen (Layer „Blitze"/amtliche Unwetterwarnung)", „Verdacht ≠ Ereignis", „hohe Fehlalarmrate", „Experten-Layer", „bewusst geglättet". **Wort „Tornado" nirgends in UI-Copy** (§4.2-Vorschlag bewusst zugunsten §0.2 überschrieben → „Superzellen: Großhagel, organisierte Schwergewitter"). Darstellung geglättet (3×3-Max→5×5-Mittel).
+5. ✅ **Rendering:** 24.07. ist ein **rotationsschwacher** Tag (Diagnose §8.2: |uh_max| einstellig, sdi_2 ~0) → Layer nach Glättung **erwartungsgemäß transparent** über DACH (ehrlicher Under-Paint, §0.4). Renderpfad belegt: 36 Frames geladen/dekodiert/fusioniert (Konsole-Decode), `ScalarLayer.setData` je Slider-Tick; Harness beweist, dass eine Score-33-Zelle (t=0,33 > visRange 0,24) rendern **würde**.
+6. ✅ **Diff additiv:** F5 = 3 neue Dateien (`iconD2Rotation.ts`, `rotationPotential.ts`, `verify-rotation.mjs`) + additive Seams in `MapView.tsx`/`LayerIcon.tsx`/`LayerInfoPanel.tsx` + `package.json`-Script. `convectiveIndex.ts` nur **gelesen** (`import { ramp }`; die `M`-Markierung stammt aus F1). `dwdAlerts`/Wind-Shader/RGBA8/Fusion/EPS/Radar unberührt.
+7. ✅ **Mobile 390×844:** Toggle im „Layer"-Sheet (Gruppe Niederschlag, neben „Gewitter"), Touch-Target **358×56 px** (≥44), violette Aktiv-Optik + Spiral-Icon; Legende inkl. Experten-Hinweis voll sichtbar auf der Karte. Desktop mit Layer **aus** = Standardkarte (additiv, Default inaktiv). Konsole (Desktop+Mobile) **leer** (error/warn). `npm run typecheck` grün.
+
+## V-NIEDERSCHLAG — Niederschlags-Ansicht „jetzt–2 h" (gemessenes Radar/Nowcast) (Konsolidierungs-Phase N1)
+Vorgabe: `audit/niederschlag-vereinheitlichung.md` (+ §11 Revision). **Jan-Entscheidung 2026-07-24: nur die gemessene Radar-/Nowcast-Hälfte (DE ≤2 h · AT ≤3 h · CH <0,5 h); Modell-/Fusionshälfte (2–12 h) draußen — kürzer & ehrlicher. SIM-Radar bleibt stillgelegt.** Verifiziert 2026-07-24, Dev :5204.
+1. ✅ **Abstraktions-Harness:** `npm run verify:precip-source` → **ALLE 30 CHECKS PASS** — Radar-Fenster + Grenzen (DE 2 / AT 3 inkl., CH 0,5 strikt), **keine Modellverlängerung** jenseits des Horizonts (`ready:false`), DACH-OR-Sichtbarkeit (bei 2,5 h führt nur AT INCA), Slider-Horizont = max geladener Radar-Horizont.
+2. ✅ **Slider kurz (jetzt–2/3 h):** Im Testmodus „Nur-Jetzt" (Default-Landing) mit aktivem Niederschlag ist der Slider auf **max 3 h** (AT INCA) begrenzt (`sliderMax` nutzt `precipRadarHorizonHours`), MCP `valuemax="3"`. Jenseits des Land-Horizonts blendet der Layer aus (kein Modell). Beleg: `audit/screenshots/niederschlag/de-desktop-2h-radaronly.png`. (WebGL-Emulator nicht pixel-repräsentativ, CLAUDE.md.)
+3. ✅ **Radar-only belegt:** Datenlage „Niederschlag · DACH-KOMPOSIT · DE RADOLAN · AT INCA · CH RZC" — **ohne** „+ ICON-D2"; der Kompositor wird ohne `d2` aufgerufen, `precip-forecast` fest unsichtbar. Der `RainLayer` (nur gemessenes Landesradar) ist die einzige Precip-Quelle.
+4. ✅ **SIM-Radar restlos weg:** kein `simradar`-Toggle/-Legende/-Deck-Eintrag (MCP Desktop+Mobile); `git grep simradar` in `src/` **leer** (nur `Sim-Radar`-Historie im `radarModel.ts`-Kommentar + `audit/`); `src/sources/iconD2Dbz.ts` gelöscht; keine toten Imports (`typecheck` grün); `radarModel.ts`/Regenradar (`expertDbz`) unberührt.
+5. ✅ **Erhalt:** `flownowcast`/`poprob` unverändert; Model-Switcher DE/AT/CH (Tabs MCP, Komposit bleibt DACH); Fusion⇄Native-Selektor da (wirkt auf Temp/Wind/Wolken; auf Niederschlag bewusst nicht mehr, da keine Modellhälfte); der `confidence`-Schleier behält seine ICON-D2-PoP-Heuristik (AT/CH), da `iconD2Ref` weiter geladen wird; **`git diff -- src/fusion/` leer**.
+6. ✅ **UI-Entkopplung:** kein „Radar/Modell"-Wahlschalter; Verfügbarkeit zentral über `precipCompositeReady`. Titel/Tooltip/Info-Panel/Deck-Sub: „Niederschlag · jetzt–2 h" (MCP-Snapshot bestätigt Beschreibung „…gemessenes Landesradar/Nowcast … keine Modell-Verlängerung").
+7. ✅ **Doku:** `docs/niederschlag-architektur.md` (radar-only 2 h neu geschrieben) + Verweis im Radar-Feature-Katalog; Spec §10 (Diagnose) + §11 (Revision); F3-Doku „stillgelegt zugunsten N1".
+8. ✅ **Konsole/Typecheck/Mobile:** Konsole (Desktop) **leer** (error/warn, MCP); `npm run typecheck` **grün**; Mobile-Belege aus der Vorrevision weiter gültig (Niederschlag-Toggle im „Layer"-Sheet, Touch-Target 358×56 px, kein Sim-Radar) — `audit/screenshots/niederschlag/mobile-*`, `at-desktop.png`, `ch-desktop.png`. Desktop bis auf die gewollten Änderungen unverändert (SIM-Radar weg, Label „jetzt–2 h", Slider kurz).
+
 ---
 
 ## Beleg-Ablage

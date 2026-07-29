@@ -314,6 +314,184 @@ Jede Phase folgt dem Zyklus **Diagnose → Plan → Implement → Verify → Gat
 
 ---
 
+## Feature-Phase F1 — Gewitterpotenzial-Layer (Gate GF1)
+
+**Funktionserweiterung (neuer Kartenlayer), von Jan beauftragt — außerhalb der ursprünglichen Mobile-Mission (dort ist „neue Features" Nicht-Ziel), analog zu T2/Command-Deck als bewusste Scope-Erweiterung.** Maßgebliche Vorgabe: `audit/gewitterpotenzial.md`. Umsetzung separat über die CLI.
+
+**Ziel:** Ein standardmäßig **inaktiver** Layer „Gewitterpotenzial", der aus drei ICON-D2-Feldern einen 0–100-Index je Zelle bildet und flächig über DACH rendert — flächige Gewitter-Vorwarnung 0–12 h **vor** dem ersten Radarecho:
+- `cape_ml` = Energie/Potenzial · `cin_ml` = Deckel/Hemmung · `lpi` = Blitzbereitschaft/Auslösung.
+
+**Diagnose-Kern (siehe Spec §2):** Alle drei Felder sind reguläre ICON-D2-2,2-km-Gitter (kein icosahedraler EPS-Pfad) → **derselbe Decode wie Temp/Böen**. `cape_ml` wird bereits punktweise geladen (`iconD2Cape.ts`), `convectiveIndex.ts` liefert wiederverwendbare Rampen/Schwellen. Der Edge-`ALLOWED_PREFIX` deckt `icon-d2/grib/` schon ab → kein Transport-Umbau.
+
+**Zwingend (Jans Vorgabe): Lazy-Load wie alle anderen Layer** — `active.has('thunder') && !ref` → `installThunderRef` (Muster Clouds/Gust); **kein** Eager-Fetch am Kartenstart, nicht im `initialActive`-Default.
+
+**Diagnose-Befund 2026-07-24 (Details `audit/gewitterpotenzial.md` §8) — am Code verifiziert, kein STOPP:**
+- **Reguläres Gitter bestätigt** (Dateiname `regular-lat-lon`; `gribDecode.ts` akzeptiert nur GDT 0 regulär + GDT 101 icosahedral=EPS) → Decode wie `t_2m`/`vmax_10m`, **kein Eingriff**.
+- **CIN-Vorzeichen sign-agnostisch gelöst:** `cinGate(Math.abs(cin))` deckt beide DWD-Konventionen ab (§3-`|CIN|`); Harness testet beide Vorzeichen. Kein Blocker.
+- **Domänenmaske:** `decodeGrib2` → `NaN` bei Bitmap-Maske (`gribDecode.ts:299`); Builder `alpha=0` bei nicht-finitem `cape` → Rand transparent, nie 0.
+- **Architektur-Entscheidung:** Loader nutzt **`fetchStepField`** (rohes `GribField`, wie `iconD2TempSource` `t_2m`+`hsurf`→ein Canvas), **nicht** `fetchIconD2Grid` (Uint8-quantisiert, einkanalig — für die 3-Feld-Rohfusion untauglich); bewusste, in §8.4 begründete Abweichung von F1-1-Wortlaut, gleiche Pipeline/dieselbe Datei.
+- **Rampen-Reuse:** `ramp`/`capeScore` in `convectiveIndex.ts` werden `export`iert (rein additiv, keine Verhaltensänderung).
+- **Toggle-Herkunft korrigiert:** Dock **und** Mobile-Sheet rendern aus **`DECK_GROUPS`** (nicht direkt `LAYER_OPTIONS`) → ein additiver `DECK_GROUPS`-Eintrag (Gruppe „Niederschlag") liefert den Toggle auf Desktop+Mobile. Zusätzliche Typecheck-Seams: `statuses`-Init, `LAYER_INFO` (=Tooltip), `LayerIcon`-Case.
+
+**Umzusetzende Maßnahmen (Kurzfassung, Details Spec §5):**
+1. **F1-1** `src/sources/iconD2Thunder.ts` — Grid-Loader `cape_ml`/`cin_ml`/`lpi` (Reuse `fetchIconD2Grid`/`frameAtValidTime`), CIN-Vorzeichen im Decode verifizieren.
+2. **F1-2** `src/radar/thunderPotential.ts` — reine Fusion (§3) + `verifyThunderPotential()`-Harness.
+3. **F1-3** `thunderRamp` + `visRange` (fünfstufig, < Score ~8 transparent).
+4. **F1-4** `MapView.tsx` — die 7 additiven Seams (LayerKey/Option/Ref/Init/Visibility/Refresh/**Lazy-Effekt**, Spec §4).
+5. **F1-5** Legende + Tooltip mit Ehrlichkeits-Hinweisen (Domänenrand, Horizont, Potenzial≠Auslösung).
+6. **F1-6** `scripts/verify-thunder.mjs` (Node strip-types, kein Vitest).
+7. **F1-7** Mobile-Sichtprüfung (Toggle im Sheet-Layer-Segment, Touch-Target, Legende) — keine Sonderregel.
+
+**Explizit außerhalb:** Wind-Shader/RGBA8/Fusion-Engine/EPS/Radar/Decode; `warm-grib`-Vorwärmung der drei Params (optional/vertagt, bis der Layer sich bewährt).
+
+**Verify:** tests.md → V-GEWITTER (+ Fusion-Harness). **STOPP & FRAGEN**, falls `lpi`/`cin_ml` nicht regulär-gegittert sind oder der Decode angefasst werden müsste.
+**Gate GF1:** Harness grün, Lazy-Load im Waterfall belegt (0 Requests vor Aktivierung), Fusion plausibel gegen eine echte Lage, Domänenrand ehrlich maskiert, additiver Diff, Mobile-Toggle sauber, Desktop unverändert, Konsole/Typecheck grün.
+
+---
+
+## Feature-Phase F2 — Blitz-Vorhersage-Layer / LPI (Gate GF2) — ✅ UMGESETZT (2026-07-24, GF2 grün)
+
+> **Ergebnis:** Additiv umgesetzt wie geplant. Abweichung von der Wortlaut-Vorgabe F2-1: `fetchStepField` statt `fetchIconD2Grid` (letzteres hat kein `'max'`-Kind; `'cape'`-Quantisierung zerquetscht LPIs Feinbereich — Diagnose §8.4, wie F1). `minStepHours=1` + Loader-Steps 1–12 lösen das t+0-Intervallmaximum ohne Decode-/`frameAtValidTime`-Eingriff. Lazy-Load MCP-belegt (0 `lpi_max` vor Toggle, Steps 001–012 via `/_dwd_grib` danach). F2-5 mitgeliefert (`lightningPotential.ts` + `verify-lpi.mjs`, 6/6). Belege: `audit/blitz-vorhersage.md` §9, `checklist.md` GF2. Uncommitted → Commit ist Jans Gate.
+
+**Funktionserweiterung (neuer Kartenlayer), von Jan beauftragt — außerhalb der Mobile-Mission, analog F1/T2.** Maßgebliche Vorgabe: `audit/blitz-vorhersage.md`. Umsetzung separat über die CLI. **Unabhängig von F1** umsetzbar.
+
+**Ziel:** Ein standardmäßig **inaktiver** Layer „Blitz-Vorhersage", der den ICON-D2 **Lightning Potential Index** (`lpi_max`) flächig als Blitzrisiko-Raster über DACH rendert und über den Zeit-Slider in die Zukunft (0–12 h) läuft — echte Prognose statt nur gemessener Sferics. USP: kaum ein Consumer-Dienst zeigt einen Blitz-*Prognose*-Layer.
+
+**Abgrenzung (Spec §0) — drei getrennte Blitz-Dinge:** `lightning` (bestehend) = *gemessene* Blitze letzte 60 Min (DWD-WMS, bleibt unverändert); **`lightningfc` (dieser Layer)** = *prognostiziertes* Blitzrisiko (ICON-D2 LPI); `thunder` (F1) = fusionierter Gewitterindex. F2 macht LPI als **eigenständigen** Layer sichtbar (in F1 ist LPI nur interne Fusions-Zutat) — komplementär, kein Widerspruch.
+
+**Diagnose-Kern (Spec §2):** `lpi`/`lpi_max` sind reguläre ICON-D2-2,2-km-Gitter (kein EPS-Pfad) → **Einfeld-ScalarLayer**, gleicher Decode wie Temp/Böen; alle Bausteine (`fetchIconD2Grid`, `frameAtValidTime`, `ScalarLayer`, Lazy-Muster) vorhanden. **Feld-Wahl: `lpi_max`** (Peak-Risiko/Stunde) mit **`minStepHours = 1`** (Intervall-Max ist bei t+0 strukturell 0 — wie Böen); `lpi` instantan als Fallback.
+
+**Zwingend (Jans Vorgabe): Lazy-Load wie alle anderen Layer** — `active.has('lightningfc') && !ref → installLightningFcRef` (Muster Clouds/Gust); **kein** Eager-Fetch am Kartenstart, nicht im `initialActive`-Default.
+
+**Umzusetzende Maßnahmen (Kurzfassung, Details Spec §5):**
+1. **F2-1** `src/sources/iconD2Lpi.ts` — Grid-Loader `lpi_max` (Reuse `fetchIconD2Grid`), Frame-Wahl `minStepHours = 1`.
+2. **F2-2** `lpiRamp` + `visRange` (fünfstufig, < ~1 J/kg transparent), Palette klar getrennt von der Blitzortung.
+3. **F2-3** `MapView.tsx` — die 7 additiven Seams (LayerKey/Option/Ref/Init/Visibility/Refresh/**Lazy-Effekt**, Spec §4).
+4. **F2-4** Legende + Tooltip mit Ehrlichkeits-Hinweisen + Abgrenzung zum Beobachtungs-Layer.
+5. **F2-5** (optional, leichtgewichtig) `lpiRisk()`-Rampe + `scripts/verify-lpi.mjs` — nur ohne Mehraufwand.
+6. **F2-6** Mobile-Sichtprüfung (Toggle im Sheet-Layer-Segment, Touch-Target, Legende).
+
+**Explizit außerhalb:** bestehender `dwdLightning.ts`/`Accumulated_Flash_Area`-Layer, Wind-Shader/RGBA8/Fusion/EPS/Radar/Decode; `warm-grib`-Vorwärmung von `lpi_max` (optional/vertagt).
+
+**Verify:** tests.md → V-BLITZ-VORHERSAGE. **STOPP & FRAGEN**, falls `lpi_max` nicht regulär-gegittert ist oder Decode/`frameAtValidTime` über `minStepHours` hinaus angefasst werden müsste.
+**Gate GF2:** Lazy-Load im Waterfall belegt (0 Requests vor Aktivierung), t+0 nicht leer, Slider-Vorausschau funktioniert, klar von „Blitze" abgegrenzt, Domänenrand ehrlich maskiert, additiver Diff, Mobile-Toggle sauber, Desktop unverändert, Konsole/Typecheck grün.
+
+---
+
+## Feature-Phase F3 — Simuliertes-Radar-Layer / dbz_cmax (Gate GF3) — ⛔ STILLGELEGT ZUGUNSTEN N1 (2026-07-24)
+
+> **Stillgelegt.** Der Sim-Radar-Layer wurde in **Phase N1** (Niederschlag-Vereinheitlichung) restlos entfernt, da die 2–12-h-Modellhälfte der Fusion-/Modell-Niederschlag (mm/h) bleibt, nicht `dbz_cmax`. Historie unten erhalten; aktuelle Vorgabe: `audit/niederschlag-vereinheitlichung.md`.
+
+**Funktionserweiterung (neuer Kartenlayer), von Jan beauftragt — außerhalb der Mobile-Mission, analog F1/F2/T2.** Maßgebliche Vorgabe: `audit/simuliertes-radar.md`. Umsetzung separat über die CLI. **Unabhängig von F1/F2.**
+
+**Ziel:** Ein standardmäßig **inaktiver** Layer „Simuliertes Radar", der die ICON-D2-Composite-Reflektivität `dbz_cmax` flächig **in der gewohnten Radar-dBZ-Optik** über DACH rendert und über den Zeit-Slider 0–12 h in die Zukunft läuft — verlängert das Regenradar **über den 2-h-Nowcast-Horizont hinaus**. USP: gewohntes Radarbild dort, wo es sonst keins gibt.
+
+**Abgrenzung (Spec §0):** F3 ist **Modell**-Reflektivität, keine Messung. `nowcast`/Regenradar (RADOLAN-RV/INCA/MeteoSchweiz) sind in 0–2 h präziser und bleiben **unverändert**; F3 ergänzt die Vorwärtsschau. Klar als „simuliert/Modell" labeln. Unterschied zur mm/h-Ansicht: dBZ zeigt Zellstruktur (Hagel-/Graupel-Signatur) in Radar-Optik.
+
+**Diagnose-Kern (Spec §2/§3):** `dbz_cmax` ist reguläres ICON-D2-2,2-km-Gitter (kein EPS) → gleicher Decode wie Temp/Böen; **instantan pro Step → gültig bei t+0, kein `minStepHours` nötig**. **Schlüssel-Reuse: `src/radar/radarModel.ts`** hat die dBZ↔mm/h-Umrechnung + die Radar-Paletten schon → `dbz_cmax` → mm/h → **dieselbe `precipRainRamp` wie das Regenradar** → optisch konsistent, keine neue Palette (daher Aufwand Mittel, nicht Komplex).
+
+**Zwingend (Jans Vorgabe): Lazy-Load wie alle anderen Layer** — `active.has('simradar') && !ref → installSimRadarRef` (Muster Clouds/Gust); **kein** Eager-Fetch am Kartenstart, nicht im `initialActive`-Default.
+
+**Umzusetzende Maßnahmen (Kurzfassung, Details Spec §5):**
+1. **F3-1** `src/sources/iconD2Dbz.ts` — Grid-Loader `dbz_cmax` (Reuse `fetchIconD2Grid`); dBZ→mm/h über `radarModel.ts` (nicht duplizieren).
+2. **F3-2** Rendering an die bestehende Radar-Palette hängen (`precipRainRamp`/`radarModel`); < ~5–10 dBZ transparent.
+3. **F3-3** `MapView.tsx` — die 7 additiven Seams (LayerKey/Option/Ref/Init/Visibility/Refresh/**Lazy-Effekt**, Spec §4); **`nowcast`/RainLayer/RADOLAN NICHT anfassen.**
+4. **F3-4** Legende + Tooltip mit „simuliert/Modell", Horizont/Domäne + Verweis auf echtes Radar als 0–2-h-Referenz.
+5. **F3-5** (optional/vertagt) `echotop` als Punkt-Readout/Tooltip (Gewitter-Schwere) — kein eigenes Raster.
+6. **F3-6** Mobile-Sichtprüfung (Toggle im Sheet-Layer-Segment, Touch-Target, Legende).
+
+**Explizit außerhalb:** bestehender `nowcast`/RainLayer/RADOLAN-Pfad + Regenradar-Feature, `radarModel.ts`-Verhalten (nur lesen/wiederverwenden), Wind-Shader/RGBA8/Fusion/EPS; `warm-grib`-Vorwärmung von `dbz_cmax` (optional/vertagt).
+
+**Verify:** tests.md → V-SIM-RADAR. **STOPP & FRAGEN**, falls die dBZ→mm/h-Wiederverwendung eine Verhaltensänderung an `radarModel.ts` erzwingt oder `dbz_cmax` nicht regulär-gegittert ist.
+**Gate GF3:** Lazy-Load im Waterfall belegt (0 Requests vor Aktivierung), Optik konsistent zur bestehenden Radar-Palette, t+0 nicht leer, Horizont-Mehrwert jenseits 2 h sichtbar, klar als „simuliert" abgegrenzt, additiver Diff (radarModel.ts unberührt), Mobile-Toggle sauber, Desktop unverändert, Konsole/Typecheck grün.
+
+---
+
+## Feature-Phase F4 — Schneehöhe-&-Neuschnee-Layer (Gate GF4)
+
+**Funktionserweiterung (neuer Kartenlayer), von Jan beauftragt — außerhalb der Mobile-Mission, analog F1/F2/F3/T2.** Maßgebliche Vorgabe: `audit/schnee.md`. Umsetzung separat über die CLI. **Unabhängig von F1/F2/F3.**
+
+**Ziel:** Ein standardmäßig **inaktiver** Layer „Schnee" mit zwei Modi (Umschalter analog Satelliten-Produkt): **Schneedecke** (`h_snow`, cm) + **Neuschnee** (cm) — Schneemenge als Fläche statt nur der Schneegrenzen-Linie.
+
+**Abgrenzung (Spec §0):** Der bestehende `snowline`-Layer (ML-**Linie**) bleibt **unverändert**; F4 zeigt die **Menge als Raster**. `snowlmt`-Linie ist durch `snowline` abgedeckt → in F4 nicht dupliziert.
+
+**⚠️ Kritischer Diagnose-Fund (Spec §2.2):** `freshsnw` ist **NICHT** „Neuschnee in cm", sondern der ICON-**Schnee-Frische-/Albedo-Alterungsfaktor** (0..1). Neuschneemenge korrekt aus **akkumuliertem Schneefall `snow_gsp`(+`snow_con`)** → mm SWE → cm (bzw. `h_snow`-Δ). Vor Code die `freshsnw`-Semantik im Decode verifizieren.
+
+**Diagnose-Kern (Spec §2):** `h_snow`/`snow_gsp` sind reguläre ICON-D2-2,2-km-Gitter (kein EPS) → gleicher Decode wie Temp/Böen. `h_snow` instantan → t+0 gültig, kein `minStepHours`; Neuschnee ist Akkumulation → `minStepHours=1` (wie `tot_prec`). **Reuse:** `src/nowcast/alpineSplit.ts` (SWE→cm ~10:1, `freshSnowCm`) + `src/radar/precipPhase.ts` `snowRamp` sind vorhanden.
+
+**Zwingend (Jans Vorgabe): Lazy-Load wie alle anderen Layer** — `active.has('snow') && !ref → installSnowRef` (Muster Clouds/Gust); **kein** Eager-Fetch, nicht im `initialActive`-Default; Modus-Wechsel lädt das jeweilige Feld lazy nach.
+
+**Umzusetzende Maßnahmen (Kurzfassung, Details Spec §5):**
+1. **F4-1** `src/sources/iconD2Snow.ts` — `h_snow` (Schneedecke, m→cm, t+0); zuerst `freshsnw`-Semantik verifizieren.
+2. **F4-2** Neuschnee-Modus: `snow_gsp`(+`snow_con`) akkumuliert → cm via `alpineSplit.ts` (`rho_snow` bevorzugt), `minStepHours=1`.
+3. **F4-3** Rendering über `snowRamp` (Reuse); < ~1 cm transparent.
+4. **F4-4** `MapView.tsx` — additive Seams inkl. Modus-Umschalter (analog `SAT_PRODUCT`) + **Lazy-Effekt**; `snowline`/ML-Pfad NICHT anfassen.
+5. **F4-5** Legende + Tooltip (cm, Modus-Label, Domäne/Horizont, Verhältnis-Näherung).
+6. **F4-6** Mobile-Sichtprüfung (Toggle + Modus-Switch, Touch-Targets, Legende).
+
+**Explizit außerhalb:** bestehender `snowline`-ML-Layer/`climaField`, `alpineSplit.ts`/`precipPhase.ts`-Verhalten (nur lesen/wiederverwenden), Wind-Shader/RGBA8/Fusion/EPS/Radar; `warm-grib`-Vorwärmung (optional/vertagt); `freshsnw` als optische Anreicherung (vertagt).
+
+**Verify:** tests.md → V-SCHNEE. **STOPP & FRAGEN**, falls `freshsnw` doch amount-artig kodiert ist, `h_snow`/`snow_gsp` nicht regulär-gegittert sind oder die SWE→cm-Wiederverwendung `alpineSplit.ts` verändern würde.
+**Gate GF4:** `freshsnw`-Korrektur dokumentiert, Lazy-Load belegt (0 Requests vor Aktivierung, Modus-Wechsel lazy), Schneedecke t+0 gefüllt + Neuschnee `minStepHours=1`, cm-Werte plausibel, klar von `snowline` abgegrenzt, additiver Diff, Mobile sauber, Desktop unverändert, Konsole/Typecheck grün.
+
+---
+
+## Feature-Phase F5 — Superzellen-/Rotationspotenzial-Layer (Gate GF5)
+
+**Funktionserweiterung (neuer Experten-Kartenlayer), von Jan beauftragt — außerhalb der Mobile-Mission, analog F1–F4/T2.** Maßgebliche Vorgabe: `audit/rotationspotenzial.md`. Umsetzung separat über die CLI. **Unabhängig von F1–F4.**
+
+**⚠️ Heikelster Layer — Ehrlichkeits-Leitplanken (Spec §0) sind gate-blockierend:** zeigt **Modell-Verdachtsflächen** für rotierende Aufwinde, **kein** Warnprodukt. Verpflichtend: „kein Warnersatz" (Verweis DWD-Warnungen), „Verdacht ≠ Ereignis", Sprache nie „Tornado" (immer „Rotationspotenzial/Verdacht"), hohe Fehlalarmrate benannt, Darstellung **geglättet** (kein Einzelpixel-Alarmismus), als Experten-Layer gekennzeichnet. Falls seriöse Darstellung nicht möglich → STOPP & FRAGEN.
+
+**Ziel:** Ein standardmäßig **inaktiver** Experten-Layer „Rotationspotenzial", der aus `uh_max`(+`uh_max_low`) + `sdi_2` Verdachtsflächen für Superzellen/rotierende Gewitter (Großhagel/Tornado-Potenzial) flächig über DACH rendert (0–12 h). USP: Storm-Chaser-Nische, kaum ein Consumer-Dienst.
+
+**Diagnose-Kern (Spec §2):** `uh_max`/`sdi_2` sind reguläre ICON-D2-2,2-km-Gitter (kein EPS) → gleicher Decode wie Temp/Böen. `uh_max`/`uh_max_low` sind Intervall-**Maxima** → t+0 strukturell 0 → **`minStepHours=1`**; `sdi_2`-Vorzeichen/Bereich im Decode verifizieren. „Komplex" liegt an Schwellen-**Kalibrierung** + **Nachbarschafts-Glättung** des rauschigen UH-Felds + **Fusion** + **Ehrlichkeits-Labeling** — nicht am Laden.
+
+**Zwingend (Jans Vorgabe): Lazy-Load wie alle anderen Layer** — `active.has('rotation') && !ref → installRotationRef` (Muster Clouds/Gust); **kein** Eager-Fetch, nicht im `initialActive`-Default.
+
+**Umzusetzende Maßnahmen (Kurzfassung, Details Spec §5):**
+1. **F5-1** `src/sources/iconD2Rotation.ts` — Loader `uh_max`(+`uh_max_low`,`sdi_2`); Feld-Semantik/Vorzeichen/Einheiten verifizieren, `minStepHours=1`.
+2. **F5-2** `src/radar/rotationPotential.ts` — reine Fusion (§3) + Nachbarschafts-Glättung + `verifyRotationPotential()`-Harness.
+3. **F5-3** `rotationRamp` + `visRange` (dezent, eigene Palette, großzügige Aktivierungsschwelle).
+4. **F5-4** `MapView.tsx` — die 7 additiven Seams inkl. **Lazy-Effekt** (Spec §4).
+5. **F5-5** Legende + Tooltip mit den Ehrlichkeits-Leitplanken §0 + Verweis auf DWD-Warnungen.
+6. **F5-6** `scripts/verify-rotation.mjs` (Node strip-types, kein Vitest).
+7. **F5-7** Mobile-Sichtprüfung (Toggle im Sheet-Layer-Segment, Touch-Target, Legende).
+
+**Explizit außerhalb:** `dwdAlerts`/`convectiveIndex.ts`-Verhalten (nur lesen/verweisen/wiederverwenden), bestehende Konvektions-/Radar-Layer, Wind-Shader/RGBA8/Fusion/EPS; `warm-grib`-Vorwärmung (optional/vertagt); `uh_max_med`/`w_ctmax` (vertagt).
+
+**Verify:** tests.md → V-ROTATION. **STOPP & FRAGEN**, falls keine seriöse Darstellung möglich ist, `uh_max`/`sdi_2` nicht regulär-gegittert sind oder die Feld-Semantik unklar bleibt.
+**Gate GF5:** Harness grün, Lazy-Load belegt (0 Requests vor Aktivierung), Feld-Semantik/`minStepHours` verifiziert, **Ehrlichkeits-Leitplanken §0 im UI umgesetzt** (kein Warnersatz, Verdachts-Sprache, Glättung), Domänenrand ehrlich maskiert, additiver Diff, Mobile sauber, Desktop unverändert, Konsole/Typecheck grün.
+
+---
+
+## Konsolidierungs-Phase N1 — Eine Niederschlags-Ansicht (Radar↔Modell, 0–12 h) (Gate GN1)
+
+**Konsolidierung/Refactor + Stilllegung von SIM-Radar (F3), von Jan beauftragt.** Maßgebliche Vorgabe: `audit/niederschlag-vereinheitlichung.md`. Umsetzung separat über die CLI.
+
+**Design-Entscheidung Jan (2026-07-24):** Die 2–12-h-Modellhälfte bleibt der bestehende **Fusion-/Modell-Niederschlag (mm/h)** — *nicht* dbz_cmax-Reflektivität. Damit wird SIM-Radar stillgelegt.
+
+**Kernbefund der Diagnose:** Der Radar→Modell-Blend **existiert bereits** als `nowcast`-Layer (0–2 h Radar per Land: DE RADOLAN-RV / AT INCA / CH rzc; >2 h Fusion-Modell; gemeinsame `precipRainRamp`). Die Umschaltung ist heute nur über `precipFrameReady()` + Sichtbarkeits-Booleans verstreut. Aufgabe = konsolidieren, nicht neu bauen.
+
+**Ziel:** Eine Ansicht „Niederschlag" jetzt … +12 h, nahtlos, UI ohne Radar/Modell-Kenntnis.
+
+**Umzusetzende Maßnahmen (Kurzfassung, Details Spec §6):**
+1. **N1-1** `src/nowcast/precipSource.ts` — `resolvePrecipSource(hour, country, avail)` (reine Abstraktion, zieht `precipFrameReady` + Radar/Modell-Visibility zusammen).
+2. **N1-2** `scripts/verify-precip-source.mjs` (Node strip-types, kein Vitest).
+3. **N1-3** `MapView.tsx` — Sichtbarkeit `NOWCAST_LAYER_ID` ↔ `precip-forecast` **ausschließlich** aus `resolvePrecipSource`.
+4. **N1-4** Seam-Crossfade (~2 h) + Lücken-Sicherung (nie leer) + volle 0–12-h-Timeline.
+5. **N1-5** SIM-Radar restlos entfernen (Spec §5: ~15 Seams + `iconD2Dbz.ts`; F3-Doku als „stillgelegt" markieren).
+6. **N1-6** `nowcast`-Label/Tooltip → „Niederschlag · jetzt–12 h (Radar → Modell, nahtlos)".
+7. **N1-7** Doku (README/`docs/niederschlag-architektur.md`): Architektur, Datenfluss, Quellen, Umschaltlogik, 0–12 h.
+
+**Explizit außerhalb / Erhalt:** Fusion-Engine-**Logik** (`src/fusion/*`), Loader/Decode, `RainLayer`/`ScalarLayer`-Renderer (nur Sichtbarkeit koordinieren, kein neuer Renderer), `flownowcast`, `poprob`, Model-Switcher DE/AT/CH, Fusion⇄Native, `radarModel.ts`, Regenradar-Feature. **STOPP & FRAGEN**, falls die Konsolidierung einen Eingriff in die Fusion-*Berechnung* nahelegt.
+
+**Autorisierte STOPP-Punkte (durch Jans Auftrag):** Löschen der SIM-Radar-Komponente; Berühren der Radar-/Fusion-*Verdrahtung* (nicht -Logik).
+
+**Verify:** tests.md → V-NIEDERSCHLAG.
+**Gate GN1:** Abstraktion grün + zentral, Slider 0–12 h nahtlos (Seam weich, keine Lücke), Output-Identität belegt, SIM-Radar restlos entfernt, Fusion-Logik/`flownowcast`/`poprob`/Model-Switcher unverändert, UI ohne Radar/Modell-Kenntnis, Doku aktualisiert, Konsole/Typecheck grün, Desktop bis auf gewollte Änderungen unverändert.
+
+---
+
 ## Infrastruktur-Phase T2c — Prod-Manifest-Advance-Fix (Gate GT2c)
 
 **Top-Hebel aus dem Live-Audit (Finding 1).** Maßgebliche Vorgabe: `audit/layer-transport.md` **§J**. Umsetzung via CLI (Code-Seite); Prod-Verifikation = Jans Gate.

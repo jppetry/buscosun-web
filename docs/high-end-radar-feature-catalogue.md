@@ -3,6 +3,12 @@
 Reference specification for the buscosun / WeatherHub radar view.
 Organized by capability area, not by UI layout — priority and screen-placement are downstream decisions.
 
+> **Umgesetzt:** Die vereinheitlichte 2D-Karten-Ansicht **„Niederschlag · jetzt–12 h"**
+> (Radar → Modell nahtlos, Konsolidierung N1) ist in
+> [`niederschlag-architektur.md`](./niederschlag-architektur.md) dokumentiert
+> (`PrecipSource`-Abstraktion, RainLayer/ScalarLayer, Quellen DE/AT/CH, Seam@2 h + Fallback,
+> 0–12-h-Abdeckung). Spec: [`../audit/niederschlag-vereinheitlichung.md`](../audit/niederschlag-vereinheitlichung.md).
+
 Legend: **[Core]** ship-blocking · **[Diff]** differentiator vs. WetterOnline/Windy/RainViewer · **[Expert]** behind a toggle · **[Trap]** looks good in screenshots, low real value.
 
 ---

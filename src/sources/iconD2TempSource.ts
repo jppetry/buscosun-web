@@ -21,6 +21,7 @@ import {
   type GribField,
 } from './iconD2Precip';
 import { loadElevationLookup } from '../fusion/elevation';
+import { stepsForNowWindow } from './frameAtValidTime';
 import type { ForecastBounds } from './openMeteoForecast';
 
 export const ICON_D2_TEMP_ATTRIBUTION =
@@ -171,9 +172,14 @@ function buildTempImage(t2m: GribField, hsurf: GribField | null, ss: number): Om
 export async function fetchIconD2Temp(
   signal?: AbortSignal,
   onProgress?: (partial: IconD2Temp) => void,
+  /** `nowOnly` (Testmodus „startnow", MapView): lädt NUR das Fenster von „jetzt"
+   *  bis „jetzt + aheadHours" (`stepsForNowWindow`); 0 = Jetzt-Bracket. DEM/hsurf
+   *  (invariant, fürs Rendering nötig) laden unverändert. */
+  opts?: { nowOnly?: boolean; aheadHours?: number },
 ): Promise<IconD2Temp> {
   const { runStr, runAt, steps } = await resolveLatestRun('t_2m', signal);
-  const wanted = steps.filter((s) => s <= MAX_STEP);
+  const capped = steps.filter((s) => s <= MAX_STEP);
+  const wanted = opts?.nowOnly ? stepsForNowWindow(capped, runAt, opts.aheadHours ?? 0) : capped;
 
   // hsurf (Referenzhöhe) einmalig laden — fehlt sie, läuft es ohne Refinement.
   // Phase T2-2: wie die Schritt-Felder über den durable-gecachten Edge-Pfad.

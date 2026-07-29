@@ -23,6 +23,27 @@ const DEFAULT_LAPSE = -0.0065;
 /** Schnee-Wasser-Äquivalent: cm Neuschnee je mm Wasser (≈ 10:1). */
 const SNOW_RATIO_CM_PER_MM = 1.0;
 
+/**
+ * Schnee-Wasser-Äquivalent (mm) → Neuschnee (cm). Reiner, **additiver** Export
+ * für den Schnee-Karten-Layer (Feature F4, `iconD2Snow.ts`, Neuschnee-Modus) —
+ * ändert **kein** bestehendes Verhalten dieses Moduls und nutzt dieselbe
+ * {@link SNOW_RATIO_CM_PER_MM}-Konstante (10:1) wie die Punkt-Ableitung.
+ *
+ * `rho_snow` (kg/m³) wird **bevorzugt**, ABER nur in einem plausiblen
+ * **Frischschnee**-Dichtebereich (~30–250 kg/m³): dann physikalisch
+ * `cm = 100 · SWE_mm / ρ` (SWE_mm = kg/m² → Tiefe m = SWE/ρ → ×100 = cm). Ein
+ * gemeldeter alter/dichter Pack (ρ ≥ 250) oder fehlendes ρ würde den *frischen*
+ * Zuwachs unterschätzen → dann die konservative 10:1-Näherung. Das Verhältnis ist
+ * wetterabhängig und bleibt eine **Näherung** (Legende/Tooltip labeln das). ≤ 0 → 0.
+ */
+export function freshSnowCmFromSwe(sweMm: number, rhoSnowKgM3?: number | null): number {
+  if (!(sweMm > 0)) return 0;
+  if (rhoSnowKgM3 != null && Number.isFinite(rhoSnowKgM3) && rhoSnowKgM3 >= 30 && rhoSnowKgM3 <= 250) {
+    return (100 * sweMm) / rhoSnowKgM3;
+  }
+  return sweMm * SNOW_RATIO_CM_PER_MM;
+}
+
 export interface AlpineLevel {
   elevM: number;
   /** Dominante Niederschlagsphase über die 6 h. */

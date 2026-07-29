@@ -15,6 +15,7 @@
  */
 
 import { resolveLatestRun, fetchStepBytes, gribCorners, decodeGrib2, type GribField } from '../sources/iconD2Precip';
+import { stepsForNowWindow } from '../sources/frameAtValidTime';
 import { buildWindRgba } from './windFrameBuild';
 import { blendAndRefine, type FrameNorm } from './windBlendRefine';
 import type { DataTextureFormat, PackedTexture } from './glUtil';
@@ -252,7 +253,14 @@ export async function fetchIconD2Wind(
   /** Einmal aufgerufen, wenn AUCH der ferne Horizont im Hintergrund fertig ist —
    *  der Aufrufer kann damit genau ein Repaint auslösen (Slider-Parkposition). */
   onSettled?: () => void,
+  /** `nowOnly` (Testmodus „startnow", MapView): lädt statt des vollen Horizonts
+   *  NUR das Fenster von „jetzt" bis „jetzt + aheadHours" (`stepsForNowWindow`) —
+   *  keine Spekulation, kein Hintergrund-Nachfüllen. `aheadHours` (Default 0)
+   *  begrenzt das Vorhersagefenster; 0 = nur der Jetzt-Bracket. */
+  opts?: { nowOnly?: boolean; aheadHours?: number },
 ): Promise<IconD2Wind> {
+  const nowOnly = opts?.nowOnly === true;
+  const aheadH = opts?.aheadHours ?? 0;
   const frames: IconD2WindFrame[] = [];
   let uvBounds: [number, number, number, number] | null = null;
 
@@ -309,7 +317,9 @@ export async function fetchIconD2Wind(
     const p2 = (n: number) => String(n).padStart(2, '0');
     const g = new Date(); g.setUTCMinutes(0, 0, 0); g.setUTCHours(g.getUTCHours() - (g.getUTCHours() % 3) - 3);
     const guessRunStr = `${g.getUTCFullYear()}${p2(g.getUTCMonth() + 1)}${p2(g.getUTCDate())}${p2(g.getUTCHours())}`;
-    const specSteps = Array.from({ length: SPEC_STEPS }, (_, i) => i);
+    // Nur-Jetzt-Modus: keine spekulativen Vorab-Fetches — es sollen exakt die
+    // Bracket-Schritte des AUFGELÖSTEN Laufs geladen werden, sonst nichts.
+    const specSteps = nowOnly ? [] : Array.from({ length: SPEC_STEPS }, (_, i) => i);
     const specDone = Promise.all(specSteps.map((s) => loadStep(guessRunStr, g, s)));
 
     const resolved = await resolveLatestRun('u_10m', signal);
@@ -333,8 +343,10 @@ export async function fetchIconD2Wind(
     : await resolveViaScan();
 
   // Nahen Horizont auf dem kritischen Pfad laden → Wind sofort nutzbar.
-  let near = wanted.filter((s) => s <= NEAR_STEP);
-  let far = wanted.filter((s) => s > NEAR_STEP);
+  // Nur-Jetzt-Modus: ausschließlich die zwei Schritte um die aktuelle Uhrzeit.
+  if (nowOnly) wanted = stepsForNowWindow(wanted, runAt, aheadH);
+  let near = nowOnly ? wanted : wanted.filter((s) => s <= NEAR_STEP);
+  let far = nowOnly ? [] : wanted.filter((s) => s > NEAR_STEP);
   await pump(near, runStr, runAt, CONCURRENCY, specLoaded);
 
   // Robustheit / Graceful-Degrade: liefert ein (veraltetes/aus dem Cache
@@ -346,8 +358,9 @@ export async function fetchIconD2Wind(
     frames.length = 0; uvBounds = null;
     usedManifest = false;
     ({ runStr, runAt, wanted, specLoaded } = await resolveViaScan());
-    near = wanted.filter((s) => s <= NEAR_STEP);
-    far = wanted.filter((s) => s > NEAR_STEP);
+    if (nowOnly) wanted = stepsForNowWindow(wanted, runAt, aheadH);
+    near = nowOnly ? wanted : wanted.filter((s) => s <= NEAR_STEP);
+    far = nowOnly ? [] : wanted.filter((s) => s > NEAR_STEP);
     await pump(near, runStr, runAt, CONCURRENCY, specLoaded);
   }
 

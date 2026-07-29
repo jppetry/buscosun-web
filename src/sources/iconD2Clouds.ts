@@ -16,6 +16,7 @@ import {
   D2_GRIB_PROXY_BASE,
   type IconD2Precip, type GribField,
 } from './iconD2Precip';
+import { stepsForNowWindow } from './frameAtValidTime';
 import type { QuadCorners } from '../scalar/RainLayer';
 
 /** Verfügbare Bewölkungs-Parameter. */
@@ -94,9 +95,13 @@ function packCloudRGBA(low: GribField, mid: GribField, high: GribField): Omit<Cl
 export async function fetchIconD2CloudStack(
   signal?: AbortSignal,
   onProgress?: (partial: IconD2CloudStack) => void,
+  /** `nowOnly` (Testmodus „startnow", MapView): lädt statt 0–12 h NUR das Fenster
+   *  von „jetzt" bis „jetzt + aheadHours" (`stepsForNowWindow`); 0 = Jetzt-Bracket. */
+  opts?: { nowOnly?: boolean; aheadHours?: number },
 ): Promise<IconD2CloudStack> {
   const { runStr, runAt, steps } = await resolveLatestRun('clcl', signal);
-  const wanted = steps.filter((s) => s <= CLOUD_MAX_STEP);
+  const capped = steps.filter((s) => s <= CLOUD_MAX_STEP);
+  const wanted = opts?.nowOnly ? stepsForNowWindow(capped, runAt, opts.aheadHours ?? 0) : capped;
 
   const frames: CloudStackFrame[] = [];
   let corners: QuadCorners | null = null;

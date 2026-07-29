@@ -23,6 +23,7 @@ import type { QuadCorners } from '../scalar/RainLayer';
 import { decodeGrib2, type GribField } from './gribDecode';
 import { decodeGridStep, type GridToU8Kind, type DecodedGridStep } from './gribGridDecode';
 import { resolveRunFromManifest, GRIB_MANIFEST_URL } from './gribManifest';
+import { stepsForNowWindow } from './frameAtValidTime';
 
 // Reiner GRIB2-Decoder lebt jetzt in ./gribDecode (browser-unabhängig, headless
 // gegen eccodes verifizierbar). Re-Export hält bestehende Importpfade stabil
@@ -268,6 +269,13 @@ export interface IconD2GridOptions {
   kind: GridToU8Kind;
   /** Optionaler Horizont-Cap in Stunden (z.B. Wolken: 27). */
   maxStep?: number;
+  /** `nowOnly` (Testmodus „startnow", MapView): statt des vollen Horizonts NUR
+   *  das Fenster „jetzt" … „jetzt + aheadHours" (`stepsForNowWindow`). Bei
+   *  akkumulierten Feldern (Niederschlag) ist die Schrittliste zusammenhängend
+   *  (stündlich) → jede Raten-Differenz hat ihre Vorgängerstütze. */
+  nowOnly?: boolean;
+  /** Vorhersagefenster in Stunden für `nowOnly` (Default 0 = nur Jetzt-Bracket). */
+  aheadHours?: number;
 }
 
 const FETCH_CONCURRENCY = 6;
@@ -370,9 +378,10 @@ export async function fetchIconD2Grid(
 ): Promise<IconD2Precip> {
   const resolved = await resolveLatestRun(param, signal);
   const { runStr, runAt } = resolved;
-  const steps = opts.maxStep != null
+  const capped = opts.maxStep != null
     ? resolved.steps.filter((s) => s <= opts.maxStep!)
     : resolved.steps;
+  const steps = opts.nowOnly ? stepsForNowWindow(capped, runAt, opts.aheadHours ?? 0) : capped;
 
   const frames: IconD2Frame[] = [];
   let corners: QuadCorners | null = null;
@@ -446,6 +455,8 @@ export async function fetchIconD2Grid(
 export function fetchIconD2Precip(
   signal?: AbortSignal,
   onProgress?: (partial: IconD2Precip) => void,
+  /** `nowOnly` (Testmodus „startnow", MapView): nur das Fenster „jetzt" … „+ahead". */
+  opts?: { nowOnly?: boolean; aheadHours?: number },
 ): Promise<IconD2Precip> {
-  return fetchIconD2Grid('tot_prec', { accumulate: true, kind: 'precip', maxStep: 27 }, signal, onProgress);
+  return fetchIconD2Grid('tot_prec', { accumulate: true, kind: 'precip', maxStep: 27, nowOnly: opts?.nowOnly, aheadHours: opts?.aheadHours }, signal, onProgress);
 }
