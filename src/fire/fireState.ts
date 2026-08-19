@@ -57,6 +57,13 @@ export interface FireState {
   soilMode?: SoilDrynessMode;
   /** BP2: ist das Brandflächen-Panel links geöffnet? Fehlt ⇒ zu (Standard). */
   footprintPanel?: boolean;
+  /**
+   * WF3: Stundenschritt ab jetzt auf der Stundenachse. **Vorhanden ⇔ die
+   * Stundenachse ist aktiv** (auch bei 0 — „jetzt" ist ein Wert, kein Fehlen);
+   * `null`/fehlend ⇒ Tagesachse (Standard). Bestehende Links tragen kein `h`
+   * und bleiben byte-gleich.
+   */
+  hour?: number | null;
 }
 
 /** Standardtiefe der Bodentrockenheit: der Oberboden — er trägt das Zündrisiko. */
@@ -104,6 +111,8 @@ export function encodeFireState(s: FireState): string {
   // BF4: nur schreiben, wenn ein einzelner Tag gewählt ist. Der Standard („alle
   // sieben Tage") ist `null` und verlängert den Hash nicht.
   if (typeof s.burntDay === 'number' && s.burntDay <= 0 && s.burntDay > -HISTORY_DAYS) payload.bd = s.burntDay;
+  // WF3: nur auf der Stundenachse — dort auch die 0, sonst ginge die Achse verloren.
+  if (typeof s.hour === 'number' && Number.isFinite(s.hour)) payload.h = Math.max(0, Math.round(s.hour));
   return FIRE_HASH_PREFIX + encodeURIComponent(JSON.stringify(payload));
 }
 
@@ -113,7 +122,7 @@ export function decodeFireState(hash: string): FireState | null {
   try {
     const o = JSON.parse(decodeURIComponent(hash.slice(FIRE_HASH_PREFIX.length))) as {
       l?: [number, number, string, string]; b?: number; d?: number; w?: number;
-      v?: unknown; bb?: unknown; sm?: unknown; bd?: unknown; fp?: unknown;
+      v?: unknown; bb?: unknown; sm?: unknown; bd?: unknown; fp?: unknown; h?: unknown;
     };
     let location: Location | null = null;
     if (Array.isArray(o.l) && Number.isFinite(o.l[0]) && Number.isFinite(o.l[1])) {
@@ -138,6 +147,8 @@ export function decodeFireState(hash: string): FireState | null {
       burntDay: typeof o.bd === 'number' && Number.isFinite(o.bd)
         && Math.round(o.bd) <= 0 && Math.round(o.bd) > -HISTORY_DAYS ? Math.round(o.bd) : null,
       footprintPanel: o.fp === 1,
+      // WF3: `h` vorhanden ⇒ Stundenachse; Klemmung auf den Horizont macht `reconcileFireTime`.
+      hour: typeof o.h === 'number' && Number.isFinite(o.h) ? Math.max(0, Math.round(o.h)) : null,
     };
   } catch {
     return null;
@@ -257,6 +268,23 @@ export function verifyFireState(): { checks: FireStateCheck[]; passed: number; t
   add('alter Hash ohne fp ⇒ Panel zu', decodeFireState(encodeFireState(base))?.footprintPanel === false);
   add('Layer fireFootprints ist permalink-fähig (Bit 12)',
     decodeFireState(encodeFireState({ ...base, layers: ['fireFootprints'] }))?.layers.join(',') === 'fireFootprints');
+
+  // --- WF3: die Stundenachse — additiv; Tagesachse bleibt byte-gleich ---------
+  // DER Anker: ein Link von vor WF3, als Literal. Ändert sich diese Zeile, sind
+  // alle geteilten Links anders — und genau das verbietet GWF3.
+  add('Tagesachse: Hash ist byte-identisch zum Stand vor WF3 (Literal-Anker)',
+    encodeFireState(base) === `${FIRE_HASH_PREFIX}${encodeURIComponent('{"b":1,"d":0,"w":24}')}`,
+    encodeFireState(base));
+  add('Tagesachse (hour fehlt/null) verlängert den Hash NICHT',
+    encodeFireState(base) === encodeFireState({ ...base, hour: null })
+      && encodeFireState(base) === encodeFireState({ ...base, hour: undefined }));
+  add('Stunde überlebt den Round-Trip', decodeFireState(encodeFireState({ ...base, hour: 7 }))?.hour === 7);
+  add('Stunde 0 ist ein Wert, kein Fehlen (Stundenachse bleibt aktiv)',
+    decodeFireState(encodeFireState({ ...base, hour: 0 }))?.hour === 0);
+  add('alter Hash ohne h ⇒ Tagesachse (hour null)', decodeFireState(encodeFireState(base))?.hour === null);
+  add('negative oder kaputte Stunde ⇒ 0 bzw. Tagesachse, nie ein Absturz',
+    decodeFireState(`${FIRE_HASH_PREFIX}${encodeURIComponent('{"h":-4}')}`)?.hour === 0
+      && decodeFireState(`${FIRE_HASH_PREFIX}${encodeURIComponent('{"h":"x"}')}`)?.hour === null);
 
   const passed = checks.filter((c) => c.ok).length;
   return { checks, passed, total: checks.length };

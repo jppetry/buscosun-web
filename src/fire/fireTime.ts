@@ -15,6 +15,16 @@
  * gerade aktiven Layer klemmen — sonst zieht der Nutzer auf Tag +7 und drei von
  * vier Layern zeigen still ihren letzten Stand weiter, ohne das zu sagen.
  *
+ * ── WF3 (2026-08-19): EINE Achse, zwei Einheiten ─────────────────────────────
+ * Der Regler zählt in Tagen (Standard) ODER in Stunden 0…+6 h ab jetzt
+ * (`HOUR_AXIS_MAX`). Stunden gelten, wenn ein `hourly`-Layer aktiv ist
+ * (erzwungen — der Waldbrand-Forecast, WF4) oder der Nutzer sie wählt, solange
+ * ein Layer mit Stundenframes aktiv ist (`maxHour`: RH-Treiber, Boden, Wind). Auf der
+ * Stundenachse folgen Tages-Layer als **Tageswert** des Kalendertags von
+ * „jetzt + h" (`dayOfHour`), instant/window-Layer gar nicht — `hourFollow` sagt
+ * je Layer, welches von dreien, damit die UI es so benennen kann.
+ * `audit/waldbrand-forecast.md` §13 (c), §15.
+ *
  * ── Was dieses Modul ausdrücklich NICHT ist ──────────────────────────────────
  * Es ist **nicht** die Vorwegnahme von `src/map/layerTime.ts`. Das gehört zu
  * Phase L5, arbeitet in Stundenschritten und bedient die Wetterkarte. Zwei
@@ -31,15 +41,38 @@ import type { FireLayerId } from './fireModel';
 export type FireTimeMode =
   | 'instant'    // genau ein Zeitpunkt; der Regler bewegt daran nichts
   | 'window'     // ein Rückblickfenster (24 h / 7 d)
-  | 'forecast';  // Tagesschritte vorwärts ab heute
+  | 'forecast'   // Tagesschritte vorwärts ab heute
+  | 'hourly';    // WF3: Stundenschritte vorwärts ab jetzt, nur heute (0…maxHour)
 
 export interface FireLayerTime {
   mode: FireTimeMode;
-  /** Größter erreichbarer Tagesschritt (0 = nur heute). Bei `window`/`instant` 0. */
+  /** Größter erreichbarer Tagesschritt (0 = nur heute). Bei `window`/`instant`/`hourly` 0. */
   maxDay: number;
   /** Für `window`: die wählbaren Rückblickfenster in Stunden. */
   windowsH?: readonly number[];
+  /**
+   * WF3 — Stundenhorizont **ab jetzt** (nicht ab Modelllauf), aus jedem Lauf
+   * erreichbar. Pflicht bei `hourly`; bei `forecast` optional und heißt dann:
+   * der Layer hat stündliche Frames und folgt der Stundenachse, wenn sie aktiv
+   * ist. Fehlt er, folgt der Layer der Stundenachse nur als Tageswert
+   * (`hourFollow` ⇒ `'daily'`) bzw. gar nicht (`instant`/`window` ⇒ `'none'`).
+   */
+  maxHour?: number;
 }
+
+/**
+ * WF3 — die Stundenachse des Brandradars: 0…+6 h ab jetzt (Jans Entscheidung
+ * `audit/waldbrand-forecast.md` §13 c, revidiert §15.5: „allgemein nur bis 6 h",
+ * damit auch der Wind mitläuft — sein Gitter reicht +12 h **ab Lauf**, der Lauf
+ * ist beim Abruf 2–5,5 h alt, also sind +6 h ab jetzt aus jedem Lauf da). Die
+ * Zahl steht EINMAL hier; die Stundenlayer tragen sie als `maxHour`, damit die
+ * Achse beim Layerwechsel nie springt (relhum/smi reichen +24 h ab Lauf — ein
+ * Horizont, der mit der Tageszeit wandert, ist keiner).
+ */
+export const HOUR_AXIS_MAX = 6;
+
+/** WF3 — Einheit der einen Achse: Tage (Standard) oder Stunden. */
+export type FireTimeUnit = 'days' | 'hours';
 
 /**
  * Das Zeitverhalten je Layer — gemessen, nicht geraten.
@@ -53,8 +86,9 @@ export const FIRE_LAYER_TIME: Record<FireLayerId, FireLayerTime> = {
   fireIndexNational: { mode: 'forecast', maxDay: 6 },
   // Rückblick statt Vorhersage: .today = 24 h, .week = 7 d (GWIS-Typenamen).
   fireHotspots: { mode: 'window', maxDay: 0, windowsH: [24, 168] },
-  // ICON-D2 reicht ~+24 h ⇒ heute und morgen.
-  fireWeather: { mode: 'forecast', maxDay: 1 },
+  // ICON-D2 reicht ~+24 h ⇒ heute und morgen. WF3: die Frames sind stündlich
+  // (MIN_STEP 0 … MAX_STEP 24) — auf der Stundenachse folgt der Layer bis +6 h.
+  fireWeather: { mode: 'forecast', maxDay: 1, maxHour: HOUR_AXIS_MAX },
   // Feuerverbote gelten, bis sie geändert werden — kein Vorhersageprodukt.
   fireBans: { mode: 'instant', maxDay: 0 },
   // WB4 — Werte vorbelegt, damit der Regler beim Zuschalten nicht springt.
@@ -79,10 +113,15 @@ export const FIRE_LAYER_TIME: Record<FireLayerId, FireLayerTime> = {
    *    `sharedMaxDay` übergangen, genau wie die Feuerverbote.
    *
    * Die Ehrlichkeit trägt damit `followsSlider`/`laggingLayers`: ab Tag 1 steht
-   * an der Zeile „gilt für heute — folgt dem Tagesregler nicht". Gefüttert wird
-   * die Karte immer mit `Date.now()`, nie mit einer geklemmten Zukunft.
+   * an der Zeile „gilt für heute — folgt dem Tagesregler nicht".
+   *
+   * WF3 (§15.5): auf der **Stundenachse** folgt der Wind — `maxHour` 6, und genau
+   * deshalb ist die Achse 6 h lang: +6 h ab jetzt liegen aus jedem Lauf innerhalb
+   * der +12 h ab Lauf. Die Karte bekommt dann „jetzt + h" statt `Date.now()`;
+   * reicht der geladene Lauf einmal kürzer, zeigt sie den letzten Schritt und
+   * die Zeile sagt es (`FirePage` `windClamped`) — kein stilles Klemmen.
    */
-  fireWind: { mode: 'instant', maxDay: 0 },
+  fireWind: { mode: 'instant', maxDay: 0, maxHour: HOUR_AXIS_MAX },
   /**
    * WT1 — Bodentrockenheit. Anders als der Wind ist das ein **echter**
    * Vorhersage-Layer: `smi` liegt bis +48 h vor, und am Feld gemessen ändern
@@ -94,9 +133,9 @@ export const FIRE_LAYER_TIME: Record<FireLayerId, FireLayerTime> = {
    * liegt der Mittag von Tag 2 bei +60 h — jenseits des Horizonts. Ein Horizont,
    * der je nach Tageszeit des Laufs mal gilt und mal nicht, ist keiner. 1 gilt
    * aus jedem Lauf. Identisch zum Luft-Treiber, damit beide zusammen denselben
-   * Regler behalten.
+   * Regler behalten. WF3: stündliche Frames ⇒ folgt der Stundenachse bis +6 h.
    */
-  fireSoilDryness: { mode: 'forecast', maxDay: 1 },
+  fireSoilDryness: { mode: 'forecast', maxDay: 1, maxHour: HOUR_AXIS_MAX },
   /**
    * BP2 — die Brandflächen der Registry. Sie fassen die Detektionen des
    * ANGEZEIGTEN Rückblickfensters je Brand zusammen — also dasselbe Fenster
@@ -104,6 +143,12 @@ export const FIRE_LAYER_TIME: Record<FireLayerId, FireLayerTime> = {
    * trägt dieser Layer den Fensterschalter allein.
    */
   fireFootprints: { mode: 'window', maxDay: 0, windowsH: [24, 168] },
+  /**
+   * WF4 — Feuerwetter stündlich (ISI, Stufe 1): der erste `hourly`-Layer. Er
+   * ERZWINGT die Stundenachse (`timeUnit`), klemmt die Tagesachse aber nicht —
+   * `sharedMaxDay` zählt nur `forecast`. Horizont = die eine Achse, 0…+6 h.
+   */
+  fireForecast: { mode: 'hourly', maxDay: 0, maxHour: HOUR_AXIS_MAX },
 };
 
 /** Millisekunden eines Tages — als Konstante, damit die Zahl nur einmal dasteht. */
@@ -114,10 +159,17 @@ export interface FireTimeState {
   day: number;
   /** Gewähltes Rückblickfenster in Stunden (nur für `window`-Layer). */
   windowH: number;
+  /** WF3: gewählter Stundenschritt ab jetzt (0 = jetzt) — wirkt nur auf der Stundenachse. */
+  hour: number;
+  /**
+   * WF3: die vom Nutzer gewählte Einheit. Was tatsächlich gilt, sagt `timeUnit`:
+   * ein `hourly`-Layer erzwingt Stunden, ohne stundenfähigen Layer gelten Tage.
+   */
+  unit: FireTimeUnit;
 }
 
 export function defaultFireTimeState(): FireTimeState {
-  return { day: 0, windowH: 24 };
+  return { day: 0, windowH: 24, hour: 0, unit: 'days' };
 }
 
 /**
@@ -147,20 +199,75 @@ export function clampDay(day: number, active: readonly FireLayerId[]): number {
 }
 
 /**
+ * WF3 — der kleinste gemeinsame **Stunden**horizont der aktiven Layer.
+ *
+ * Gezählt werden alle Layer mit `maxHour` — gleich ob `hourly` oder `forecast`
+ * mit Stundenframes. Layer ohne `maxHour` werden übergangen, aus demselben
+ * Grund wie bei `sharedMaxDay`: der EU-Index (Tageswert) darf dem RH-Treiber
+ * seine zwölf Stunden nicht nehmen. 0 heißt: keine Stundenachse möglich.
+ */
+export function sharedMaxHour(active: readonly FireLayerId[]): number {
+  const horizons = active
+    .map((l) => FIRE_LAYER_TIME[l].maxHour ?? 0)
+    .filter((h) => h > 0);
+  if (horizons.length === 0) return 0;
+  return Math.min(...horizons);
+}
+
+/** WF3 — gibt es unter den aktiven Layern einen mit Stundenframes? */
+export function hourlyAvailable(active: readonly FireLayerId[]): boolean {
+  return sharedMaxHour(active) > 0;
+}
+
+/** WF3 — erzwingt ein aktiver Layer die Stundenachse (`mode: 'hourly'`)? */
+export function hourlyForced(active: readonly FireLayerId[]): boolean {
+  return active.some((l) => FIRE_LAYER_TIME[l].mode === 'hourly');
+}
+
+/**
+ * WF3 — die Einheit, die tatsächlich gilt: **erzwungen > gewählt > Tage.**
+ *
+ * Ein `hourly`-Layer hat keine Tagesachse (sein Horizont sind zwölf Stunden),
+ * also gelten mit ihm immer Stunden. Sonst zählt die Wahl des Nutzers — aber
+ * nur, solange ein Layer mit Stundenframes aktiv ist; ohne einen solchen wäre
+ * eine Stundenachse ein Regler, an dem nichts hängt.
+ */
+export function timeUnit(state: Pick<FireTimeState, 'unit'>, active: readonly FireLayerId[]): FireTimeUnit {
+  if (hourlyForced(active)) return 'hours';
+  return state.unit === 'hours' && hourlyAvailable(active) ? 'hours' : 'days';
+}
+
+/** WF3 — klemmt einen Stundenschritt auf den erlaubten Bereich (nie negativ). */
+export function clampHour(hour: number, active: readonly FireLayerId[]): number {
+  const max = sharedMaxHour(active);
+  if (!Number.isFinite(hour)) return 0;
+  return Math.max(0, Math.min(max, Math.round(hour)));
+}
+
+/**
  * Zieht den Zustand nach, wenn sich die aktiven Layer geändert haben.
  *
  * Der Fall, der ohne das hier schiefgeht: Der Nutzer steht auf Tag +8 (EU-Index
  * allein), schaltet die amtliche Landesstufe zu — deren Horizont ist +6. Ohne
  * Klemmung stünde der Regler auf einem Tag, den niemand mehr liefert.
+ *
+ * WF3: dasselbe für die Stunde; und die gewählte Einheit fällt auf Tage zurück,
+ * sobald kein stundenfähiger Layer mehr aktiv ist — sonst trüge der Permalink
+ * ein `h`, an dem nichts hängt, und der nächste stundenfähige Layer spränge
+ * ungefragt in die Stundenachse.
  */
 export function reconcileFireTime(
   state: FireTimeState,
   active: readonly FireLayerId[],
 ): FireTimeState {
   const day = clampDay(state.day, active);
+  const hour = clampHour(state.hour, active);
+  const unit: FireTimeUnit = state.unit === 'hours' && hourlyAvailable(active) ? 'hours' : 'days';
   const windows = windowChoices(active);
   const windowH = windows.includes(state.windowH) ? state.windowH : (windows[0] ?? state.windowH);
-  return day === state.day && windowH === state.windowH ? state : { day, windowH };
+  return day === state.day && windowH === state.windowH && hour === state.hour && unit === state.unit
+    ? state
+    : { day, windowH, hour, unit };
 }
 
 /** Die Rückblickfenster, die die aktiven Layer anbieten (leer, wenn keiner). */
@@ -172,9 +279,31 @@ export function windowChoices(active: readonly FireLayerId[]): readonly number[]
   return [];
 }
 
-/** Ist der Vorhersage-Regler überhaupt sinnvoll? */
+/** Ist der Vorhersage-Regler überhaupt sinnvoll? (Tagesachse) */
 export function hasForecastSlider(active: readonly FireLayerId[]): boolean {
   return sharedMaxDay(active) > 0;
+}
+
+/** WF3 — gibt es in der geltenden Einheit eine bedienbare Achse? */
+export function hasTimeSlider(active: readonly FireLayerId[], unit: FireTimeUnit): boolean {
+  return unit === 'hours' ? sharedMaxHour(active) > 0 : sharedMaxDay(active) > 0;
+}
+
+/**
+ * WF3 — der Tagesschritt, in den „jetzt + hour" fällt (UTC-Kalendertage, wie
+ * `dayToIsoDate`). Das ist der Tag, den die Tages-Layer (EU-Index, DWD-Stufe)
+ * auf der Stundenachse zeigen: bis Mitternacht UTC ist das Tag 0 — abends
+ * springt „jetzt + 3 h" auf morgen, und der Tageswert folgt, statt den Wert
+ * von gestern Mittag als den von heute Nacht auszugeben.
+ */
+export function dayOfHour(hour: number, nowMs: number): number {
+  const h = Number.isFinite(hour) ? Math.max(0, hour) : 0;
+  return Math.floor((nowMs + h * 3_600_000) / DAY_MS) - Math.floor(nowMs / DAY_MS);
+}
+
+/** WF3 — Beschriftung eines Stundenschritts („jetzt", „+3 h"). */
+export function hourLabel(hour: number): string {
+  return hour <= 0 ? 'jetzt' : `+${Math.round(hour)} h`;
 }
 
 /**
@@ -217,9 +346,37 @@ export function followsSlider(layer: FireLayerId, day: number): boolean {
   return day <= t.maxDay;
 }
 
-/** Layer, die beim aktuellen Reglerstand NICHT mitlaufen (für den Hinweistext). */
-export function laggingLayers(active: readonly FireLayerId[], day: number): FireLayerId[] {
-  return active.filter((l) => !followsSlider(l, day));
+/**
+ * WF3 — wie ein Layer der Stundenachse folgt:
+ *   `'hourly'` — stündlich (Stundenframes, oder Stunde 0: dort gilt alles für jetzt),
+ *   `'daily'`  — als Tageswert (EU-Index, DWD-Stufe: der Kalendertag von jetzt + h),
+ *   `'none'`   — gar nicht (instant/window: Verbote, Hotspots, Wind).
+ * Ehrlichkeitsfunktion wie `followsSlider`, nur dreistufig — „Tageswert" ist
+ * weder „folgt" noch „steht": die UI muss es so sagen können.
+ */
+export function hourFollow(layer: FireLayerId, hour: number): 'hourly' | 'daily' | 'none' {
+  const t = FIRE_LAYER_TIME[layer];
+  if (hour <= 0) return 'hourly';
+  if ((t.maxHour ?? 0) >= hour) return 'hourly';
+  if (t.mode === 'forecast') return 'daily';
+  return 'none';
+}
+
+/** WF3 — Layer, die auf der Stundenachse nur als Tageswert mitgehen. */
+export function dailyOnlyLayers(active: readonly FireLayerId[], hour: number): FireLayerId[] {
+  return active.filter((l) => hourFollow(l, hour) === 'daily');
+}
+
+/**
+ * Layer, die beim aktuellen Reglerstand NICHT mitlaufen (für den Hinweistext).
+ * WF3: `unit` wählt die Achse — `pos` ist dann Tag bzw. Stunde. Ohne `unit`
+ * verhält sich die Funktion wie vor WF3 (Tagesachse).
+ */
+export function laggingLayers(
+  active: readonly FireLayerId[], pos: number, unit: FireTimeUnit = 'days',
+): FireLayerId[] {
+  if (unit === 'hours') return active.filter((l) => hourFollow(l, pos) === 'none');
+  return active.filter((l) => !followsSlider(l, pos));
 }
 
 // ---------------------------------------------------------------------------
@@ -278,7 +435,7 @@ export function verifyFireTime(): { checks: FireTimeCheck[]; passed: number; tot
   add('clampDay verträgt NaN', clampDay(Number.NaN, ['fireDanger']) === 0);
 
   // DER Regressionsanker: Zuschalten eines kürzeren Layers zieht den Regler nach.
-  const at8 = { day: 8, windowH: 24 };
+  const at8: FireTimeState = { day: 8, windowH: 24, hour: 0, unit: 'days' };
   add('Tag 8 + amtliche Stufe zugeschaltet ⇒ auf 6 nachgezogen',
     reconcileFireTime(at8, ['fireDanger', 'fireIndexNational']).day === 6,
     String(reconcileFireTime(at8, ['fireDanger', 'fireIndexNational']).day));
@@ -289,7 +446,7 @@ export function verifyFireTime(): { checks: FireTimeCheck[]; passed: number; tot
   add('Hotspots bieten 24 h und 7 d', windowChoices(['fireHotspots']).join(',') === '24,168');
   add('ohne Hotspots gibt es keine Fensterwahl', windowChoices(['fireDanger']).length === 0);
   add('unpassendes Fenster wird auf das erste gültige gezogen',
-    reconcileFireTime({ day: 0, windowH: 999 }, ['fireHotspots']).windowH === 24);
+    reconcileFireTime({ day: 0, windowH: 999, hour: 0, unit: 'days' }, ['fireHotspots']).windowH === 24);
 
   // --- Datum und Beschriftung
   add('Tag 0 ist heute in UTC', dayToIsoDate(0, now) === '2026-08-14');
@@ -320,6 +477,69 @@ export function verifyFireTime(): { checks: FireTimeCheck[]; passed: number; tot
     laggingLayers(['fireDanger', 'fireBans', 'fireHotspots'], 2).join(',') === 'fireBans,fireHotspots',
     laggingLayers(['fireDanger', 'fireBans', 'fireHotspots'], 2).join(','));
 
+  // --- WF3: Stundenachse ---------------------------------------------------
+  add('Stundenachse ist 6 h (eine Zahl, einmal definiert — Jans Entscheidung §15.5)', HOUR_AXIS_MAX === 6);
+  add('RH-Treiber, Boden und Wind tragen die Stundenachse, EU-Index nicht',
+    sharedMaxHour(['fireWeather']) === 6 && sharedMaxHour(['fireSoilDryness']) === 6
+      && sharedMaxHour(['fireWind']) === 6 && sharedMaxHour(['fireDanger']) === 0);
+  add('Tages-Layer ziehen die Stundenachse NICHT auf 0 (wie instant bei Tagen)',
+    sharedMaxHour(['fireDanger', 'fireWeather']) === 6);
+  // Der Grund für die 6: Wind reicht +12 h ab Lauf, der Lauf ist bis ~5,5 h alt.
+  add('Wind allein: Tagesachse nein (WW1), Stundenachse ja (§15.5)',
+    hasForecastSlider(['fireWind']) === false && hourlyAvailable(['fireWind']) === true
+      && hasTimeSlider(['fireWind'], 'hours') === true);
+  add('Standard ist die Tagesachse — auch mit stundenfähigem Layer (Funktionserhalt)',
+    timeUnit(defaultFireTimeState(), ['fireWeather', 'fireDanger']) === 'days');
+  add('gewählte Stunden gelten nur mit stundenfähigem Layer',
+    timeUnit({ unit: 'hours' }, ['fireWeather']) === 'hours'
+      && timeUnit({ unit: 'hours' }, ['fireDanger']) === 'days');
+  add('ohne den Stundenlayer erzwingt kein Layer die Stundenachse (Wahl bleibt beim Nutzer)',
+    hourlyForced(['fireDanger', 'fireWeather', 'fireSoilDryness', 'fireWind']) === false);
+  // WF4: der Forecast ist der erste `hourly`-Layer — Stunden erzwungen, Tagesachse unberührt.
+  add('WF4: fireForecast erzwingt die Stundenachse',
+    hourlyForced(['fireForecast']) === true && timeUnit({ unit: 'days' }, ['fireForecast']) === 'hours');
+  add('WF4: fireForecast klemmt die Tagesachse NICHT (EU-Index behält 9 Tage)',
+    sharedMaxDay(['fireDanger', 'fireForecast']) === 9);
+  add('WF4: Forecast + Wind teilen die 6-h-Achse; Forecast allein ebenso',
+    sharedMaxHour(['fireForecast', 'fireWind']) === HOUR_AXIS_MAX && sharedMaxHour(['fireForecast']) === HOUR_AXIS_MAX);
+  add('WF4: mit Forecast folgt der EU-Index als Tageswert, der Forecast stündlich',
+    hourFollow('fireDanger', 3) === 'daily' && hourFollow('fireForecast', 6) === 'hourly');
+  add('WF4: reconcile behält die Stundenachse, solange der Forecast aktiv ist',
+    reconcileFireTime({ day: 0, windowH: 24, hour: 4, unit: 'hours' }, ['fireForecast']).unit === 'hours');
+  add('clampHour klemmt auf den gemeinsamen Stundenhorizont',
+    clampHour(20, ['fireWeather']) === 6 && clampHour(-2, ['fireWeather']) === 0
+      && clampHour(Number.NaN, ['fireWeather']) === 0 && clampHour(4.4, ['fireWeather']) === 4);
+  const hrs: FireTimeState = { day: 0, windowH: 24, hour: 5, unit: 'hours' };
+  add('reconcile: Stundenachse bleibt mit RH-Treiber, Stunde bleibt 5',
+    reconcileFireTime(hrs, ['fireWeather']) === hrs);
+  add('reconcile: ein alter Link mit h=12 wird auf 6 geklemmt',
+    reconcileFireTime({ ...hrs, hour: 12 }, ['fireWeather']).hour === 6);
+  add('reconcile: RH-Treiber aus ⇒ zurück auf Tage (kein totes h im Permalink)',
+    reconcileFireTime(hrs, ['fireDanger']).unit === 'days');
+  add('hasTimeSlider: Stunden nur mit Stundenframes, Tage wie gehabt',
+    hasTimeSlider(['fireWeather'], 'hours') === true && hasTimeSlider(['fireDanger'], 'hours') === false
+      && hasTimeSlider(['fireDanger'], 'days') === true && hasTimeSlider(['fireWind'], 'days') === false);
+  // Der Tag, in den „jetzt + h" fällt — UTC, wie dayToIsoDate.
+  add('dayOfHour: mittags + 6 h ist noch heute, 18:00 + 6 h (Mitternacht) ist morgen — wie dayToIsoDate',
+    dayOfHour(6, now) === 0 && dayOfHour(6, Date.UTC(2026, 7, 14, 18, 0)) === 1
+      && dayToIsoDate(dayOfHour(6, Date.UTC(2026, 7, 14, 18, 0)), Date.UTC(2026, 7, 14, 18, 0))
+        === new Date(Date.UTC(2026, 7, 15, 0, 0)).toISOString().slice(0, 10));
+  add('dayOfHour: 22:30 UTC + 3 h ist morgen', dayOfHour(3, Date.UTC(2026, 7, 14, 22, 30)) === 1);
+  add('dayOfHour: Stunde 0 ist immer heute', dayOfHour(0, Date.UTC(2026, 7, 14, 23, 59)) === 0);
+  add('hourLabel: jetzt / +3 h', hourLabel(0) === 'jetzt' && hourLabel(3) === '+3 h');
+  // Ehrlichkeit dreistufig: folgt stündlich / als Tageswert / gar nicht.
+  add('hourFollow: RH-Treiber und Wind stündlich bis 6, EU-Index Tageswert, Verbote gar nicht',
+    hourFollow('fireWeather', 6) === 'hourly' && hourFollow('fireWind', 6) === 'hourly'
+      && hourFollow('fireDanger', 3) === 'daily' && hourFollow('fireBans', 3) === 'none'
+      && hourFollow('fireHotspots', 1) === 'none');
+  add('hourFollow: auf Stunde 0 folgt alles (gilt für jetzt)',
+    hourFollow('fireBans', 0) === 'hourly' && hourFollow('fireDanger', 0) === 'hourly');
+  add('laggingLayers auf der Stundenachse nennt nur die stehenden Layer (Wind läuft mit)',
+    laggingLayers(['fireDanger', 'fireWeather', 'fireWind', 'fireHotspots', 'fireBans'], 4, 'hours').join(',') === 'fireHotspots,fireBans'
+      && dailyOnlyLayers(['fireDanger', 'fireWeather', 'fireWind'], 4).join(',') === 'fireDanger');
+  add('laggingLayers ohne Einheit = Tagesachse (Verhalten vor WF3)',
+    laggingLayers(['fireDanger', 'fireWind'], 1).join(',') === laggingLayers(['fireDanger', 'fireWind'], 1, 'days').join(','));
+
   // --- Vollständigkeit: kein Layer ohne Zeitmodell.
   const all: FireLayerId[] = [
     'fireDanger', 'fireIndexNational', 'fireHotspots', 'fireWeather', 'fireBans',
@@ -333,6 +553,9 @@ export function verifyFireTime(): { checks: FireTimeCheck[]; passed: number; tot
     && windowChoices(['fireFootprints', 'fireHotspots']).join(',') === '24,168');
   add('maxDay ist bei instant/window immer 0',
     all.every((l) => FIRE_LAYER_TIME[l].mode === 'forecast' || FIRE_LAYER_TIME[l].maxDay === 0));
+  add('maxHour ist nie größer als die Stundenachse und bei hourly gesetzt',
+    all.every((l) => (FIRE_LAYER_TIME[l].maxHour ?? 0) <= HOUR_AXIS_MAX
+      && (FIRE_LAYER_TIME[l].mode !== 'hourly' || (FIRE_LAYER_TIME[l].maxHour ?? 0) > 0)));
 
   const passed = checks.filter((c) => c.ok).length;
   return { checks, passed, total: checks.length };

@@ -154,6 +154,16 @@ export function FireIcon({ layer, size = 14 }: Props) {
           <path d="M 10.4 4 H 12.6 M 10.4 6.6 H 12.6 M 10.4 9.2 H 12.6" strokeWidth="1.2" />
         </svg>
       );
+    case 'fireForecast':
+      // WF4: Feuerwetter stündlich — eine kleine Flamme auf einer Stundenkurve:
+      // es ist ein Zeitverlauf (Stunden), kein Tageswert und keine Stufe.
+      return (
+        <svg {...common}>
+          <path d="M 1.6 11.6 C 3.2 11.2, 4.2 9.4, 5.6 8.6 C 7 7.8, 8.2 9.8, 9.6 9 C 10.8 8.3, 11.4 6.4, 12.4 5.4" />
+          <path d="M 4.6 6.2 C 3.9 5.2, 3.6 4.4, 3.6 3.7 A 1.3 1.3 0 0 0 6.2 3.7 C 6.2 4.4, 5.9 5.2, 5.2 6.2" strokeWidth="1.2" />
+          <path d="M 1.6 13 H 12.4" opacity="0.45" strokeWidth="1.1" />
+        </svg>
+      );
     default:
       return null;
   }

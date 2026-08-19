@@ -26,7 +26,9 @@
 | **Stündlicher Index — fachlich tragfähig?** | **Ja für FFMC/ISI/FWI, nein für DMC/DC — und der DWD selbst rechnet stündlich.** Stündliche FFMC (Van Wagner 1977; Lawson & Armitage 2008; `cffdrs::hffmc`), stündlicher ISI/FWI aus NWP (Rodell et al. 2024, *Weather and Forecasting*) und NG-CFFDRS 2025 (hFWI) sind Stand der Wissenschaft; der **DWD-WBI ist ein stündliches Bestandsmodell** („Die Berechnung des WBI erfolgt auf der Grundlage stündlicher Werte … wobei der höchste Stundenwert während der Tageslichtstunden verwendet wird"), veröffentlicht wird nur das Tagesmaximum. DMC/DC bleiben Tageskonten. Einen **eigenen** Index müssen wir **nicht** definieren: FWI-Gleichungen unverändert, Produktname **„Feuerwetter stündlich (FWI-Rechnung, buscosun) — kein amtliches Produkt"**, DWD-WBI/BAFU bleiben das amtliche Wort. Details §5. |
 | **R2 / Speicherweg** | Existiert im Repo **nicht** (`architecture.md:14, :248, :378-380`; kein Paket, kein Client, kein Bucket). Batch-Weg des Repos ist Commit-back nach `public/` (D-20). R2 ist ein **neuer** Speicherweg (zweiter Provider, Secrets, CORS, Domain) ⇒ Transport-Zone ⇒ Jans Gate — vom Auftrag gesetzt, hier trotzdem als Entscheidung ausgewiesen (§2 (b)), weil `audit/brandflaechen-panel.md:100-106` fünf Gründe dagegen protokolliert hat und der Auftrag „Freemium ausgeschlossen" sagt (R2 = Free-Tier 10 GB, danach kostenpflichtig; die Freemium-Regel zielt auf Datenquellen, nicht Infrastruktur — trotzdem benannt). **Nachtrag (Jans Rückfrage):** GitHub Actions ist der bestehende Batch-Mechanismus; mit **Stations-JSON per Commit-back + Interpolation im Client** braucht der Weg **gar keinen** neuen Speicher — Default A in §2 (b). |
 
-**Empfehlung in einem Satz:** Weg **B** (§8) — Tages-Codes (FFMC₁₂, DMC, DC → BUI) **an Stationen** einmal täglich per GitHub-Actions-Batch mit dem **Beobachtungs-Zweig und dem Raumkernel der Fusion** (dieselben Adapter wie `scripts/capture-fixture.mjs`, dieselbe `spatialInterp`), Kaltstart aus den DWD-CDC-Stundenreihen, Zustand als Stations-JSON per Commit-back (R2 nur noch Option, §2 b); **Stundenanteil im Client** (FFMC_h → ISI_h → FWI_h für h = 0…12) aus dem **Punkt-Forecast** (Klick/Panel) und aus der um **RH** erweiterten **Raster-Fusion** (Fläche); gestuft so, dass Stufe 1 (FFMC/ISI ohne Batch, ehrlich als „ohne Vortagsgedächtnis" beschriftet) **ohne** R2 und Cron ausrollbar ist und Stufe 2 den Batch nachzieht, ohne die UI zu ändern.
+> **Stand 2026-08-19 — Jan hat entschieden (§13):** (a) Composite-Vorbehalt aufgehoben · (b) GitHub Actions + Weg A · (c) Stundenregler: eine Achse, Einheitenwechsel · **(d) Punkt = Fusion, Fläche = ICON-D2 nativ 2,2 km** (Revision der „Fusion überall"-Vorgabe). Phasenplan §9 revidiert, WF1 + WF2 umgesetzt (§14), **WF3 umgesetzt (§15, Gate GWF3; §15.5: Achse 0…6 h, Wind folgt)**. §0–§8 bleiben als Diagnose-Stand vom 2026-08-18 stehen; wo sie „Fläche aus der Fusion" sagen, gilt §13 (d).
+
+**Empfehlung in einem Satz (Stand 2026-08-18):** Weg **B** (§8) — Tages-Codes (FFMC₁₂, DMC, DC → BUI) **an Stationen** einmal täglich per GitHub-Actions-Batch mit dem **Beobachtungs-Zweig und dem Raumkernel der Fusion** (dieselben Adapter wie `scripts/capture-fixture.mjs`, dieselbe `spatialInterp`), Kaltstart aus den DWD-CDC-Stundenreihen, Zustand als Stations-JSON per Commit-back (R2 nur noch Option, §2 b); **Stundenanteil im Client** (FFMC_h → ISI_h → FWI_h für h = 0…12) aus dem **Punkt-Forecast** (Klick/Panel) und aus der um **RH** erweiterten **Raster-Fusion** (Fläche); gestuft so, dass Stufe 1 (FFMC/ISI ohne Batch, ehrlich als „ohne Vortagsgedächtnis" beschriftet) **ohne** R2 und Cron ausrollbar ist und Stufe 2 den Batch nachzieht, ohne die UI zu ändern.
 
 ---
 
@@ -297,19 +299,22 @@ Legende: **PF** = Punkt-Forecast · **RF** = Raster-Fusion · ✓ vorhanden · �
 
 ## 9. Empfehlung und Phasenplan
 
-**B, gestuft — so, dass jede Stufe für sich ehrlich ist:**
+**B, gestuft — revidiert nach Jans Entscheidungen 2026-08-19 (§13): Punkt = Fusion, Fläche = ICON-D2 nativ.**
+(Die Fassung vom 2026-08-18 hatte „RH in die Raster-Fusion" als WF2 und die Fläche aus der Fusion; das ist mit §13 (d) vom kritischen Pfad genommen und lebt als V-WF-2 weiter.)
 
 | Phase | Inhalt | Gate | STOPP? |
 |---|---|---|---|
-| **WF0** | diese Diagnose; Jans Entscheidungen §2 (a)–(f), §10 | — | — |
-| **WF1** Rechenkern | `src/fire/fwi/fwi.ts` (rein: FFMC/DMC/DC/ISI/BUI/FWI täglich, `hffmc` stündlich, Lawson-Diurnal-Start, Schnee-/Saisonregel), Testvektoren aus `cffdrs`, `npm run verify:fire-fwi`; Stationszahl WBI neu messen | GWF1: Parität ≤ 0,01 auf allen Vektoren | nein |
-| **WF2** RH in der Raster-Fusion | `relativeHumidity` in MOSMIX-/AROME-Grid füllen; Engine: `SourceWeights.humidity`, Kernel, Abgriff, `layers.humidity` (σ-Muster additiv; kein Engine-Flag nötig — neue Größe, kein neuer Rechenpfad; Sichtbarkeit über den Layer); Spec §9.2 | GWF2: vier Bestandslayer byte-identisch (SHA), RH-PNG plausibel gegen Stationen | nein (kein Shader, kein Edge) |
-| **WF3** Stundenregler Brandradar | `FireLayerTime` um `hourly?: { maxHour: 12 }`; `sharedMaxDay` unverändert, neue `sharedMaxHour`; Regler-Einheit wechselt bei aktivem Stundenlayer; `#wb=` bekommt `h` (nur ≠ 0); Tages-Layer klemmen auf Tag 0; beide 12-UTC-Anker auf `bracketAtValidTime` | GWF3: bestehende Permalinks byte-identisch; Tages-Slider ohne Stundenlayer unverändert | nein |
-| **WF4** Layer + Panel (Stufe 1 = Weg-A-Ehrlichkeit) | Layer `fireForecast` (Bit 13, append-only), Fläche aus RF, Punktkurve aus PF, Steckbrief mit den drei Sätzen (kein amtliches Produkt · Fusion ~10 km · ohne Vortagsgedächtnis, bis WF5 live) | GWF4: 5 Selbstverifikationsfragen, Long Tasks am Prod-Build, Budget | nein |
-| **WF5** Batch (Stufe 2) | `scripts/fire/fwi-daily.mjs` (Fusions-Obs-Adapter, Stationscodes, Kaltstart), Workflow `fwi-daily.yml` mit Commit-back `public/fire/fwi/{stations,latest}.json` (Default A; Variante PNG → Pages/R2); Client liest Codes, interpoliert mit `spatialInterp`, BUI ins FWI_h; Datenalter + Fallback auf Stufe 1 | GWF5: Batch 7 Tage stabil; Anker-Verifier gegen DWD-WBI nächtlich | **ja** — Workflow-Datei (Jans Gate); bei B/E zusätzlich Pages/R2 |
+| **WF0** | Diagnose (2026-08-18) + Entscheidungsprotokoll §13 (2026-08-19) | — | — |
+| **WF1** Rechenkern | `src/fire/fwi/fwi.ts` (rein: FFMC/DMC/DC/ISI/BUI/FWI täglich, `hffmc` stündlich, Gleichgewichts-Start für Stufe 1, Schneeregel), Testvektoren aus `cffdrs` (`scripts/fixtures/fire-fwi-vectors.json`), `npm run verify:fire-fwi`; Kommentare `iconD2Relhum.ts` / `fireAssessment.ts` auf §13 (a) umgeschrieben; Lawson-Diurnal-Start folgt mit WF5 | GWF1: Parität ≤ 4 signifikante Stellen auf allen Vektoren; `typecheck` grün | nein |
+| **WF2** Raster-Producer ICON-D2 | `src/fire/fwi/fireWeatherGrid.ts` (rein: Zellkette, Masken, Scheiben) + `src/sources/iconD2FireWeather.ts` nach `iconD2Thunder`-Muster: `relhum_2m` (Anker), `t_2m`, `u_10m`/`v_10m` (gewärmter Wind-Pfad), `tot_prec` (Δ), `h_snow`; Schritte = Jetzt-Fenster (`stepsForNowWindow`, +12 h) plus Vorgänger-`tot_prec`; je Zelle stündliche FFMC-Kette → ISI (Stufe 1) bzw. FWI (mit BUI-Gitter, WF5); RGBA-Frames; DACH-Maske bleibt Aufgabe der Karte (WF4) | GWF2: Zell-Verifier gegen `fwi.ts` am Punkt (`verify:fire-weather-grid`), Browser-Smoke (Frames, Konsole, Long Tasks), Budget | nein (kein Edge, kein Shader; `relhum_2m` bleibt ungewärmt — Q11) |
+| **WF3** Stundenregler Brandradar ✅ (§15) | `FireLayerTime` um `hourly?: { maxHour: 12 }`; `sharedMaxDay` unverändert, neue `sharedMaxHour`; **eine Achse, Einheit wechselt** bei aktivem Stundenlayer (0…12 h heute), Tages-Layer klemmen auf Tag 0; `#wb=` bekommt `h` (nur ≠ 0); beide 12-UTC-Anker auf `bracketAtValidTime`; Playback in Stunden/s | GWF3: bestehende Permalinks byte-identisch; Tages-Slider ohne Stundenlayer unverändert; Touch ≥ 44 px | nein |
+| **WF4** Layer + Panel (Stufe 1) | Layer `fireForecast` (Bit 13, append-only, eigene Dock-Gruppe), **Fläche** aus WF2 (ICON-D2), **Punktkurve** aus dem Punkt-Forecast der Fusion via `fwi.ts` (Klick), Steckbrief mit den Sätzen: kein amtliches Produkt · Fläche ICON-D2 2,2 km · Punkt buscosun-Fusion · Stufe 1: ISI ohne Vortagsgedächtnis · Klassengrenzen EFFIS | GWF4: 5 Selbstverifikationsfragen, Long Tasks am Prod-Build, Budget (totalJs 926,1) | nein |
+| **WF5** Batch (Stufe 2, Weg A) | `scripts/fire/fwi-daily.mjs`: Fusions-Obs-Adapter (BrightSky/TAWES/SMN) → T/RH/Wind 12 UTC + 24-h-Regen je Station (Historie), Codes je Station mit Vortag, Kaltstart aus CDC-`hourly/recent`/BrightSky-Historie ab 1. März (AT/CH aus deren Historie, sonst Einschwing-Flag); Workflow `fwi-daily.yml` mit Commit-back `public/fire/fwi/{stations,latest}.json` (Race-sicherer Loop wie `warm-grib.yml`); Client interpoliert Codes mit `spatialInterp` + DEM (Raster **und** Punkt), `ffmcDiurnalStart` (Lawson & Armitage 2008), Datenalter sichtbar, > 36 h ⇒ Rückfall auf Stufe 1 mit Hinweis | GWF5: Batch 7 Tage stabil; `verify:fire-fwi-anchor` (FWI₁₂ ↔ DWD-WBI-Stufe je Station) nächtlich | **ja** — neue Workflow-Datei (Jans Go liegt vor, §13 b; Prod-Dispatch bleibt Jans Gate) |
 | **WF6** Kalibrierung Legende | Verwechslungsmatrix FWI₁₂ ↔ WBI über ≥ 1 Saison; erst dann DWD-nahe Klassenfarben | GWF6 | nein |
 
-**Was ich direkt sage:** Ohne (a) bleibt alles stehen. Ohne (b) endet der Weg bei WF4 — das ist dann Weg A, ehrlich beschriftet, und **kein** Waldbrand-Forecast. Ohne (c) gibt es keinen Stundenregler im Brandradar, und dann gehört der Layer auf die Wetterkarte (Stundenregler existiert dort) statt in den Brandradar — auch das wäre eine Antwort, aber eine andere als der Auftrag.
+**Aufwand revidiert:** ≈ 6 Sitzungen (WF1 0,5 · WF2 1,5 · WF3 1 · WF4 1 · WF5 1,5 · WF6 0,5).
+
+**Was ich direkt sage (Stand 2026-08-19):** (a)–(d) sind entschieden (§13); WF1+WF2 sind ohne STOPP-Zone gebaut (§14). Was Stufe 1 (WF1–WF4) **nicht** ist: ein Waldbrand-Forecast mit Gedächtnis — das wird es erst mit WF5, und bis dahin steht „ohne Vortagsgedächtnis" im Steckbrief. Punkt (Fusion) und Fläche (ICON-D2) werden am selben Ort **nicht** identisch sein — das ist auf der Wetterkarte heute schon so (native Raster, Fusions-Punktpanel) und wird im Steckbrief gesagt, nicht kaschiert.
 
 ---
 
@@ -339,6 +344,11 @@ Legende: **PF** = Punkt-Forecast · **RF** = Raster-Fusion · ✓ vorhanden · �
 - **V-WF-6** ICON-D2-EPS `relhum_2m` in die EPS-Wärmliste ⇒ Feuerwetter-Spread als D-04-Ehrlichkeitsangabe (Cron = STOPP).
 - **V-WF-7** `docs/DATA_SOURCES.md` §W.1: Stationszahl WBI 484 → heute 645 laut Stationsliste; §W.5 um den Batch-Befund ergänzen (FWI mit Zustand ist mit Batch möglich); §W.3 um `observations_germany/climate/hourly/*/recent` als Kaltstart-Quelle ergänzen.
 - **V-WF-8** `docs/DATA_SOURCES.md` §W.0 (2): WBI ist **kein** FWI mit deutschen Schwellen, sondern ein Bestandsmodell in FWI-Struktur (DWD-Erläuterung 2020) — Formulierung „alle vier FWI-Eingangsgrößen" bleibt richtig, die implizite Gleichsetzung nicht.
+- **V-WF-9** `relhum_2m` 0…12 h wärmen (Cron = STOPP): spart `fireWeather` **und** `fireForecast` je Sitzung den Verzeichnis-Scan (§13 Q11).
+- **V-WF-11** ✅ erledigt (§15.5, Jans Entscheidung): Stundenachse allgemein 6 h, `fireWind` `maxHour: 6`, Zielzeit `jetzt + h`, zu kurzer Lauf wird gesagt (`windClamped`).
+- **V-WF-12** (vorbestehend, mobil) `.fire-td-now` („heute"/„jetzt") misst 37 px statt 44 (Padding-Trick 13 px auf 11-px-Schrift) — `padding: 17px 8px; margin: -17px -8px` behebt es; in WF3 nicht angefasst (Bestand, Desktop-unverändert-Regel).
+- **V-WF-10** `src/sources/bz2Worker.ts`: nach dem 4-s-WASM-Init-Timeout bleibt `wasmBz2Promise` für die Sitzung `null` ⇒ dauerhaft pure-JS-bz2 (~100×) — im Smoke 28 min statt 11 s (§14). Mehrwert: kein „langsames Gerät bleibt langsam"; Skizze: Timeout anheben + Retry beim nächsten Aufruf statt Endzustand. Decoder-Zone ⇒ Jans Entscheidung.
+- **V-WF-13** (app-weit, vorbestehend — in WF4 **gemessen**) **GRIB-Dekode läuft auf dem Hauptthread** (`fetchStepField` → bz2 + GRIB2/AEC je Feld, ~906 k Punkte). Am Prod-Build kostet das beim Kaltstart Long Tasks von 200–700 ms: RH-Treiber allein 418 ms, `fireForecast` 700 ms — Letzteres, weil dieser Layer **sechs** Felder je Schritt holt statt einem (§16.3). Die FWI-Kette ist es NICHT: sie rechnet in 40 k-Scheiben (15–30 ms) mit Yield dazwischen, und Scrubben/Leerlauf/Abspielen sind long-task-frei. Mehrwert: der Kaltstart jedes ICON-D2-Layers wird ruckelfrei, nicht nur dieser. Skizze: Dekode in den bestehenden Worker-Pfad verlagern (Muster `windFrameWorker`) oder je Feld nach dem Dekode yielden; die genaue Zuordnung der 700 ms braucht Messmarken im Dekodepfad (heute per Vergleichsmessung zugeordnet, nicht per Profil). Decoder-Zone ⇒ Jans Entscheidung.
 
 ---
 
@@ -358,3 +368,223 @@ Legende: **PF** = Punkt-Forecast · **RF** = Raster-Fusion · ✓ vorhanden · �
 **Nachbarn/EU:** GeoSphere Datahub Docs https://dataset.api.hub.geosphere.at/v1/docs/ , Rate-Limit https://dataset.api.hub.geosphere.at/v1/docs/user-guide/request-limit.html , FAQ (Index abgeschaltet) https://www.geosphere.at/de/ueber-uns/faq ; MeteoSwiss OGD https://opendatadocs.meteoswiss.ch/e-forecast-data/e2-e3-numerical-weather-forecasting-model , Terms https://opendatadocs.meteoswiss.ch/general/terms-of-use ; EFFIS Fire Danger https://forest-fire.emergency.copernicus.eu/about-effis/technical-background/fire-danger-forecast , Lizenz https://forest-fire.emergency.copernicus.eu/about-effis/data-license ; BKG CLC5-2018 https://gdz.bkg.bund.de/index.php/default/open-data/corine-land-cover-5-ha-stand-2018-clc5-2018.html ; Copernicus DEM https://registry.opendata.aws/copernicus-dem/ ; ESA WorldCover https://esa-worldcover.org/en/data-access ; European Fuel Map https://doi.org/10.5194/essd-15-1287-2023
 
 **Literatur:** Van Wagner 1977, PS-X-69 https://cfs.nrcan.gc.ca/publications?id=25591 · Van Wagner 1987, For. Tech. Rep. 35 https://cfs.nrcan.gc.ca/publications?id=19927 · Van Wagner & Pickett 1985, Rep. 33 https://cfs.nrcan.gc.ca/publications?id=19973 · Lawson & Armitage 2008 https://cfs.nrcan.gc.ca/publications?id=29152 · `cffdrs::hffmc` https://search.r-project.org/CRAN/refmans/cffdrs/html/hffmc.html ; Wang et al. 2017 https://doi.org/10.1186/s13717-017-0070-z · NG-CFFDRS https://natural-resources.canada.ca/forests-forestry/wildland-fires/canadian-forest-fire-danger-rating-system-generation ; GLC-X-26 https://publications.gc.ca/collections/collection_2021/rncan-nrcan/Fo123-2-26-2021-eng.pdf · Rodell et al. 2024, WAF https://doi.org/10.1175/WAF-D-23-0226.1 · Di Giuseppe et al. 2016 https://doi.org/10.1175/JAMC-D-15-0297.1 · Vitolo et al. 2020 https://doi.org/10.1038/s41597-020-0554-z · Fosberg 1978 (FFWI); Baumgartner-Index (WSL WikiFire) https://wikifire.wsl.ch/tiki-indexcd24.html?page=Baumgartner+index
+
+---
+
+## 13. Entscheidungsprotokoll (Jan, 2026-08-19)
+
+| Frage (§2/§10) | Entscheidung | Konsequenz |
+|---|---|---|
+| **(a) Composite-Vorbehalt** | **Aufgehoben** für publizierte Gleichungssysteme (FWI nach Van Wagner). Eigene, frei gewählte Gewichte bleiben unzulässig (D-19-Linie). | `src/fire/fwi/fwi.ts` (WF1); die beiden Kommentare (`iconD2Relhum.ts`, `fireAssessment.ts`) sind auf diese Entscheidung umgeschrieben, nicht gelöscht. |
+| **(b) Batch/Speicher** | **GitHub Actions** (bestehender Mechanismus: `warm-grib`/`warm-wind`/`health`/`nightly`) + **Weg A**: Commit-back `public/fire/fwi/{stations,latest}.json`, Fläche im Client per `spatialInterp`. Kein R2, kein Bucket, kein Secret. | WF5 = eine neue Workflow-Datei nach `warm-grib.yml`-Muster; Prod-Dispatch bleibt Jans Gate. Die R2-Vorgabe des Auftrags ist zurückgenommen. |
+| **(c) Stundenregler** | Default: **eine Achse, Einheit wechselt** (0…12 h, heute) bei aktivem Stundenlayer; Tages-Layer klemmen auf Tag 0. | WF3. |
+| **(d) Meteo-Basis** | **Punkt = buscosun-Fusion** (Punkt-Forecast) · **Fläche = ICON-D2 nativ 2,2 km** („möglichst genau"). Revision der Vorgabe „Fusion als einzige Basis, kein Roh-GRIB daneben": sie gilt jetzt **für den Punkt**; das Raster folgt den bestehenden Brandradar-Treibern. | Alter WF2 (RH in die Raster-Fusion) entfällt vom kritischen Pfad (bleibt V-WF-2); neuer WF2 = ICON-D2-Raster-Producer. Zwei-Basen-Frage gelöst: Fläche teilt die Basis mit `fireWeather`/`fireSoilDryness`/`fireWind`; die Fusion arbeitet am Punkt, wo sie obs-verankert und terrain-korrigiert ist. Steckbrief nennt beides (WF4). |
+| **Umfang nächste Session** | **WF1 + WF2** (Rechenkern + Raster-Producer, kein sichtbarer Layer, kein Regler, kein Batch). | umgesetzt, §14. |
+| Q5 Raster-Auflösung | entfällt — ICON-D2 2,2 km, `TARGET_WIDTH 700` wie alle Bestandslayer | — |
+| Q6/Q7 Batch-Meteorologie, 24-h-Regen | Defaults (Fusions-Obs-Adapter an Stationen; Regen aus Stationshistorie, Fallback `tot_prec`) | WF5 |
+| Q8 Kaltstart AT/CH | Default (Historie holen, sonst Einschwing-Flag) | WF5 |
+| Q9 Legende | Default (EFFIS-Grenzen bis WF6) | WF4/WF6 |
+| Q10 Ort des Layers | Brandradar | WF3/WF4 |
+| Q11 Warm-Cron `relhum_2m` | Default (nicht wärmen); **V-WF-9**: `relhum_2m` 0…12 h zu wärmen würde `fireWeather` **und** `fireForecast` je Sitzung den Verzeichnis-Scan sparen — Cron-Entscheidung für später | — |
+
+---
+
+## 14. Gate GWF1 + GWF2 — Umsetzung WF1 + WF2 (2026-08-19)
+
+**Gebaut (kein UI, kein bestehender Pfad berührt — Rule 2, default-off durch Nichtverdrahtung):**
+
+| Datei | Inhalt |
+|---|---|
+| `src/fire/fwi/fwi.ts` (neu, rein) | `ffmcDaily`/`dmcDaily`/`dcDaily`/`isi`/`bui`/`fwi`/`dsr`/`dailyFwi`, `hffmc` (Van Wagner 1977, cffdrs-Form mit `time.step`), `hffmcChain`, `ffmcEquilibriumBand`/`ffmcEquilibrium` (Startwert ohne Vortag), `hourlyIndices`, `snowMasked` (`SNOW_MASK_M = 0,01 m`), `FWI_STARTUP` 85/6/15, Le/Lf-Tabellen, `verifyFwi()`. Ehrlichkeitsregeln: NaN durchreichen, Kelvin-Fehleingabe ⇒ NaN, kein FWI ohne BUI. **Befund beim Bau:** cffdrs rechnet Tages-FFMC, ISI **und** hFFMC mit der exakten FF-Skalen-Konstante `250·59,5/101 = 147,2772…`, nicht mit dem 1985 gedruckten 147,2 — mit 147,2 lagen die Vektoren um 0,04 FFMC / 0,07 ISI daneben; übernommen und im Kopf dokumentiert. |
+| `scripts/fixtures/fire-fwi-vectors.json` (neu, 25 KB) | Testvektoren aus `github.com/cffdrs/cffdrs_r` (main, 2026-08-19): `fwi(test_fwi)` 48 Tage × 7 Größen (`tests/testthat/data/fwi_01.csv`) + je 80–120 Punkte aus den Paket-Sweeps für FFMC/DMC/DC/ISI/BUI/FWI/hFFMC (auf physikalisch gültige Bereiche gefiltert; 4 signifikante Stellen). |
+| `scripts/verify-fire-fwi.mjs` (neu) · `npm run verify:fire-fwi` | Selbsttest + Tageskette 1985 (Zustand fortgeschrieben) + 7 Sweeps + Invarianten (Gleichgewichtsband, Monotonie RH/Regen/Wind/BUI, NaN, Kelvin, Schnee) + Quell-Sonde (keine Imports, DOM-/Netz-/Zeit-frei, exakte Konstante). **43/43.** |
+| `src/fire/fwi/fireWeatherGrid.ts` (neu, rein) | `initFfmcState`, `stepFireWeather` (Zellkette je Schritt, in Scheiben `from`/`to` mit geteilten Puffern; Masken: RH-NaN, Schnee, kein Wind; Regen-Δ ≥ 0; `rain-unknown`/`no-wind`-Notizen; `fwi` nur mit BUI-Gitter), `allocFireWeatherBuffers`, `verifyFireWeatherGrid()`. |
+| `scripts/verify-fire-weather-grid.mjs` (neu) · `npm run verify:fire-weather-grid` | Zelle == Punkt (`hffmcChain`) auf 4×3 und 608×373 × 13 Schritten, Masken, Scheiben == Durchlauf, Kosten-Anker (Node ~90 ms je vollem Schritt), Producer-Selbsttest, Quell-Sonden. **39/39.** |
+| `src/sources/iconD2FireWeather.ts` (neu) | Producer nach `iconD2Thunder`-Muster: `resolveLatestRun('relhum_2m')`, Schritte = `stepsForNowWindow(steps, runAt, 12)` + Vorgänger-`tot_prec`, je Schritt 6 Felder (u/v über `D2_WIND_PROXY_BASE`, Rest `/_dwd_grib`), Grid-Mismatch-Guard, Kette in Reihenfolge hinter einem Cursor trotz parallelem Laden, Scheiben à 40 k Zellen mit `setTimeout(0)`-Yield, RGBA-Frames R = ISI/30 (Stufe 1) bzw. FWI/80, A = Maske, `mode`/`start`/`notes` im Ergebnis, `verifyIconD2FireWeather()`. |
+| `src/sources/iconD2Precip.ts` · `src/wind/iconD2WindSource.ts` | `D2_WIND_PROXY_BASE` als **einzige** Quelle des Wind-Pfad-Strings (bisher privat im Windloader; jetzt importiert — byte-identisches Verhalten, `verify:wind-transport` grün). |
+| `src/sources/iconD2Relhum.ts:27-34` · `src/fire/fireAssessment.ts:19-24` | Vorbehalts-Kommentare auf §13 (a) umgeschrieben. |
+| `package.json` | zwei `verify:*`-Einträge (Verifier-Zahl 51 → 53). |
+
+**Belege:**
+- `npm run typecheck` grün · `verify:fire-fwi` 43/43 · `verify:fire-weather-grid` 39/39 · Bestand unverändert grün: `verify:fire-time` 75/75, `verify:fire-model` 100/100, `verify:fire-boden` 52/52, `verify:wind-transport` alle Checks.
+- `npm run build && npm run budget`: totalJs **906,7 / 926,1 KB** (unverändert — die Module sind noch nicht in den FirePage-Chunk importiert; das kommt mit WF4), eagerJs 124 KB, largestChunk 278,4 KB.
+- **Browser-Smoke** (headless Chrome 1440×900 per CDP gegen den Dev-Server, Brandradar-Route, `import('/src/sources/iconD2FireWeather.ts')` + `fetchIconD2FireWeather({ aheadHours: 12 })`, Lauf `2026081906`, „jetzt" ≈ 07:30 UTC): **14 Frames (Schritte 1…14) in 11,1 s, erster Frame nach 3,5 s**, 85 GRIB-Felder, `mode: 'isi'`, `start: 'equilibrium'`, 608×373, keine Konsolenfehler, keine Exceptions, **5 Long Tasks, max 72 ms** (Gate 200 ms), sichtbarer Anteil 83,1 % (ICON-D2-Domäne im Rechteck), keine `notes` (Vorgänger-`tot_prec` und Wind lagen für alle Schritte vor). **Tagesgang messbar:** mittlerer R-Kanal 22,7 (07 UTC) → 34,8 (15 UTC) → 23,6 (20 UTC); das Maximum erreicht ab 14 UTC den Deckel (ISI ≥ 30 auf Alpenkämmen bei starkem Wind — physikalisch plausibel, EFFIS-Oberklasse). Selbsttest 7/7 im Browser. Die Browser-MCPs (Extension, chrome-devtools) waren in dieser Sitzung nicht verbunden; der CDP-Weg misst dieselbe Seite mit derselben Konsole.
+- **Fünf Fragen:** (1) Funktionserhalt — kein bestehender Layer/Loader verändert, Windloader byte-identisch (Verifier); (2) Desktop pixelgleich — kein UI berührt; (3) Touch — n/a; (4) Konsole sauber — ja (Smoke); (5) Long Tasks — max 72 ms.
+
+**Zwei Befunde nebenbei (Ehrlichkeit):**
+1. **V-WF-10 (App-weit, vorbestehend):** Der erste Smoke lief mit `--disable-gpu` in **28 Minuten** statt 11 s. Ursache: `src/sources/bz2Worker.ts` initialisiert `bzip2-wasm` mit **4-s-Timeout**; unter Last (Pool-Worker starten gleichzeitig, Seite lädt) läuft der Timeout ab und `wasmBz2Promise` bleibt **für die Sitzung** `null` ⇒ pure-JS-bz2 (~100× langsamer) für alle folgenden Felder — Log: „still waiting on run dependencies: wasm-instantiate". Mit einem Warm-up-Decompress vor der Last: 11 s. Betrifft jeden GRIB-Layer auf langsamen Geräten; Vorschlag: Timeout hochsetzen **und** nach Fehlschlag später erneut versuchen statt dauerhaft zu degradieren. Nicht in dieser Phase geändert (Decoder-Zone).
+2. `ISI_VMAX = 30` klemmt Alpenkämme; für die Legende (EFFIS-Oberklasse > 26,8) ist das richtig, für den Punktwert (WF4) wird der ungeklemmte Wert aus `fwi.ts` genommen.
+
+**Nächster Schritt:** WF3 (Stundenregler Brandradar) — eigene Phase, eigenes Gate.
+
+---
+
+## 15. WF3 — Stundenregler im Brandradar: Diagnose + Plan (2026-08-19)
+
+**Auftrag (Jan, §13 c):** eine Achse, Einheit wechselt — 0…12 h (heute) bei aktivem Stundenlayer; Tages-Layer klemmen auf Tag 0; `#wb=` bekommt `h`; beide 12-UTC-Anker auf `frameAtValidTime`; Playback in Stunden/s. Gate GWF3: bestehende Permalinks byte-identisch, Tages-Slider ohne Stundenachse unverändert, Touch ≥ 44 px.
+
+### 15.1 Einhängepunkte (am Code gemessen)
+
+| Was | Wo | Befund |
+|---|---|---|
+| Zeitmodell | `src/fire/fireTime.ts` | `FireTimeMode` = `instant`/`window`/`forecast`, `FireLayerTime { mode, maxDay, windowsH? }`, `FireTimeState { day, windowH }`, `sharedMaxDay` = Minimum über `forecast`-Layer (instant/window übergangen — die WW1-Falle), `reconcileFireTime`, `followsSlider`/`laggingLayers`, `dayLabel`, `dayToIsoDate` (UTC). Rein, `verify:fire-time` 75/75. |
+| Permalink | `src/fire/fireState.ts` | `encodeFireState` schreibt `b`/`d`/`w` immer, alles Weitere **nur bei Abweichung vom Standard** (Links bleiben byte-gleich). Ein Stundenfeld muss dieser Konvention folgen. |
+| Playback | `src/fire/firePlayback.ts` | `stepPlayback(pos, dt, perSecond, max)` ist **einheitenfrei** (Float-Uhr, ganzzahlige Ausgabe, dt-Deckel 0,25 s) — für Stunden 1:1 wiederverwendbar; nur die Geschwindigkeit ist tagesspezifisch (`daysPerSecondForTier` 0,7/0,9/1,1 — „eine Kachelrunde je Tag beim Fremdserver"). Stundenframes liegen **im Speicher** (relhum/smi je 25 Canvases) ⇒ schneller darf sein. |
+| Zeit-Deck | `FirePage.tsx:1637-1697` | `showSlider = hasForecastSlider`; `<input type=range min=0 max={maxDay} step=1>`, Ticks „heute · +N T · +maxDay Tage", Stand `dayLabel` + „lädt …"-Pending (entprellter `committedDay`, 140 ms), Play-Kachel. Mobil: `.fire-mobile-time` schwebt über dem Sheet, Range-Höhe 44 px, `fire-td-now` mit Padding-Trick auf 44 px. |
+| 12-UTC-Anker (2×) | `FirePage.tsx:683-698` (smi) · `:703-720` (relhum) | handgerollte Nächster-Frame-Suche auf `Date.UTC(heute, 12) + day·86 400 000` — semantisch exakt `frameAtValidTime(frames, targetMs)` (`frameAtValidTime.ts:66-81`, nächster `validAt`). Die Frames sind **stündlich** 0…+24 h ab Lauf (`iconD2Relhum.ts:52`, `iconD2Smi.ts:85` `MAX_STEP 24`, `MIN_STEP 0`) — von 25 geladenen Frames zeigt der Tagesregler heute **zwei**. |
+| Wind | `FireMap.tsx:979-1020` | Zielzeit **immer `Date.now()`**, bewusst (WW1, `audit/waldbrand-wind.md` §2): `windFrameAtValidTimeAsync` klemmt still auf den letzten Frame, Gitter reicht +12 h **ab Lauf** (`iconD2WindSource.ts:30`), Lauf 2–5,5 h alt ⇒ „jetzt + 12 h" liegt außerhalb. |
+| Tages-Layer | `FirePage.tsx:969` (DE-Stationen `[time.day]`), `FireMap` `isoDate` (GWIS-WMS `TIME`), `committedIso`/`prefetchIso` | alle hängen an **einem** Tagesschritt; `dayToIsoDate(day, nowMs)` rechnet UTC-Kalendertage. |
+| Ehrlichkeitstexte | `FirePage.tsx:1172` „gilt für heute — folgt dem Tagesregler nicht", `:1576-1580` Sammelhinweis, `:1693` „kein Tagesregler"; `FireLayerCard.tsx:260` Wind: „der Regler hier zählt in Tagen" | werden mit einer Stundenachse **falsch** (der Regler zählt dann nicht mehr nur in Tagen) ⇒ Texte einheitenabhängig, Wind-Steckbrief-Satz präzisieren. |
+| Wetterkarte als Muster | `MapView.tsx:4640-4665` | Ticks „jetzt · +N h", `step=0.1` mit Lerp — hier **nicht** übernommen: die Brandradar-Frames sind Stundenstützen ohne Blend-Pfad im `ScalarLayer`; ganze Stunden sind ehrlich (keine interpolierten Felder) und teilen die Ganzzahl-Logik von `stepPlayback`. |
+
+### 15.2 Die eine offene Designfrage — und die Antwort
+
+**Was schaltet die Stundenachse ein, solange es den Stundenlayer (`fireForecast`, WF4) noch nicht gibt?** Ohne Antwort wäre WF3 ein Mechanismus, den im Produkt niemand erreicht — nicht verifizierbar (GWF3 verlangt Touch ≥ 44 px an sichtbarer UI) und ohne Nutzen.
+
+**Entscheidung WF3 (Default, Jan kann widersprechen):** Die Einheit wird an **zwei** Stellen bestimmt:
+1. **Erzwungen** durch einen Layer mit `mode: 'hourly'` (ab WF4 `fireForecast`) — dann Stunden, kein Wahlknopf.
+2. **Wählbar** („Tage | Stunden"-Umschalter im Zeit-Deck), sobald ein aktiver Layer **stündliche Frames** hat (`maxHour` gesetzt): heute `fireWeather` und `fireSoilDryness`. Standard bleibt **Tage** ⇒ ohne Handgriff ist nichts anders als heute (Funktionserhalt, Rule 2). Produktwert sofort: die 25 geladenen RH-/SMI-Frames werden als Tagesgang bedienbar (Nachmittagsminimum der Feuchte ist die feuerwetterrelevante Größe), ohne dass ein neuer Layer nötig ist.
+
+Verfeinerung von „Tages-Layer klemmen auf Tag 0": Tages-Layer zeigen den **Kalendertag, in den `jetzt + h` fällt** (`dayOfHour`). Bis Mitternacht UTC ist das Tag 0 — identisch zur Vorgabe; abends springt EU-Index/DWD-Stufe bei `jetzt + h` nach Mitternacht auf „morgen" statt den falschen Tageswert zu behaupten. Die Zeile sagt es: „Tageswert · gilt für morgen — keine Stundenauflösung".
+
+**Nicht in WF3 (V-WF-11):** `fireWind` der Stundenachse folgen lassen. Möglich bis `jetzt + (12 − Laufalter)` ≈ +6 h garantiert — ein eigener `maxHour: 6` zöge die gemeinsame Achse beim Zuschalten des Winds auf 6 zusammen (korrekte Horizont-Logik) und bräuchte eine Frame-Nähe-Prüfung in `FireMap` (kein stilles Klemmen). Eigene Phase; bis dahin sagt die Wind-Zeile „gilt für jetzt — folgt dem Stundenregler nicht".
+
+### 15.3 Plan (eine Session)
+
+| Schritt | Datei | Inhalt |
+|---|---|---|
+| 1 | `fireTime.ts` | `FireTimeMode` + `'hourly'`; `FireLayerTime.maxHour?` (Stundenhorizont **ab jetzt**, aus jedem Lauf erreichbar: relhum/smi 12 — nicht 24, damit die Achse beim Layerwechsel nie springt und identisch zu WF4 ist); `HOUR_AXIS_MAX = 12`; `FireTimeUnit = 'days' \| 'hours'`; `FireTimeState += { hour, unit }`; `sharedMaxHour`, `hourlyAvailable`, `timeUnit` (erzwungen > gewählt > Tage), `clampHour`, `reconcileFireTime` (Stunde klemmen, Einheit zurück auf Tage ohne Stundenlayer), `hasTimeSlider(active, unit)`, `dayOfHour(hour, nowMs)` (UTC-Tagesdifferenz), `hourLabel`, `hourFollow(layer, hour)` → `'hourly' \| 'daily' \| 'none'`, `laggingLayers(active, pos, unit = 'days')` abwärtskompatibel. `verifyFireTime` erweitert. |
+| 2 | `fireState.ts` | `FireState.hour?: number` — **vorhanden ⇔ Stundenachse aktiv** (auch 0); `encode` schreibt `h` nur dann; alte Links ohne `h` bleiben **byte-identisch** (Anker-Check mit Literal-Hash). |
+| 3 | `firePlayback.ts` | `hoursPerSecondForTier` (2,2/1,8/1,4 h/s — Frames im Speicher, ~0,45 s Standzeit je Stunde lesbar). |
+| 4 | `FirePage.tsx` | `unit`/`pos`/`sliderMax`; Zeit-Deck: Ticks „jetzt · +3 h · +6 h · +9 h · +12 h", Stand „+h h · HH:MM", Umschalter `fire-td-unit` (nur mit `hourlyAvailable`, stumm bei erzwungener Einheit); beide Anker → `frameAtValidTime(frames, targetMs)` mit `targetMs = Stunden ? jetzt + h : Mittag(Tag)`; `dayForLayers` → `committedDay`/`isoDate`/Stationsindex; Lag-Texte je Einheit; Permalink `hour`. |
+| 5 | `fireDeck.css` | `.fire-td-unit` (Pill wie `.fire-subseg`, 11 px), mobil 44 px Trefferfläche via Padding-Trick wie `.fire-td-now`. |
+| 6 | Texte | `FireLayerCard.tsx:260` Wind-Satz; `iconD2Relhum.ts:51`/`iconD2Smi.ts:82` Kommentar „Regler in Tagesschritten" aktualisieren. |
+| 7 | Verifier | `verify:fire-time` (+ Quell-Sonde: keine handgerollte 12-UTC-Schleife mehr in `FirePage.tsx`, `frameAtValidTime` importiert), `verify:fire-model` (Permalink-Anker). |
+| 8 | Gate | Browser 1440×900 + 390×844: Tage-Modus pixelgleich (Screenshot-Vergleich vor/nach), Stunden-Modus mit RH-Layer (Frame wechselt je Stunde — `__fireWeatherLayer`-Gegenprobe), Touch ≥ 44 px (`getBoundingClientRect`), Konsole sauber, Long Tasks; Permalink-Round-Trip. |
+
+### 15.4 Gate GWF3 — Umsetzung (2026-08-19)
+
+**Gebaut (additiv; Tagesachse ohne Stundenlayer unverändert):**
+
+| Datei | Inhalt |
+|---|---|
+| `src/fire/fireTime.ts` | `FireTimeMode` + `'hourly'`; `FireLayerTime.maxHour?`; `HOUR_AXIS_MAX = 12`; `FireTimeUnit`; `FireTimeState += { hour, unit }`; `sharedMaxHour`, `hourlyAvailable`, `hourlyForced`, `timeUnit` (erzwungen > gewählt > Tage), `clampHour`, `reconcileFireTime` (Stunde klemmen, Einheit fällt ohne Stundenlayer auf Tage zurück — kein totes `h`), `hasTimeSlider`, `dayOfHour` (UTC-Kalendertag von jetzt + h, Mitternacht = morgen wie `dayToIsoDate`), `hourLabel`, `hourFollow` (`hourly`/`daily`/`none`), `dailyOnlyLayers`, `laggingLayers(active, pos, unit = 'days')` abwärtskompatibel. `fireWeather`/`fireSoilDryness` tragen `maxHour: 12` (Frames stündlich bis +24 h ab Lauf; 12 h ab jetzt aus jedem Lauf erreichbar und identisch zum WF4-Layer ⇒ die Achse springt beim Layerwechsel nie). +26 Selbstprüfungen. |
+| `src/fire/fireState.ts` | `FireState.hour?: number \| null` — **vorhanden ⇔ Stundenachse** (auch 0); `h` wird nur dann geschrieben; **Literal-Anker** im Selbsttest: `encode({b:1,d:0,w:24})` ist byte-gleich `#wb=%7B%22b%22%3A1%2C%22d%22%3A0%2C%22w%22%3A24%7D` (Stand vor WF3). +6 Prüfungen. |
+| `src/fire/firePlayback.ts` | `hoursPerSecondForTier` = 2 × Tage (2,2/1,8/1,4 h/s — Frames im Speicher, kein Kachel-Roundtrip); `stepPlayback` unverändert einheitenfrei. +2 Prüfungen. |
+| `src/fire/FirePage.tsx` | `unit`/`hourly`/`maxHour`/`sliderMax`/`pos`/`unitChoice`/`dayForLayers`; **beide 12-UTC-Anker** (smi, relhum) durch `frameAtValidTime(frames, frameTargetMs)` ersetzt — `frameTargetMs` = Stunden ? jetzt + h : Mittag(Tag) (auf der Tagesachse semantisch identisch zur alten Schleife: nächster `validAt`); Stationsfarben/`committedDay`/`isoDate` folgen `dayForLayers`; Playback in der geltenden Einheit (`setPos`, `unitsPerSecond`); Zeit-Deck: Ticks „jetzt · +3 h · +6 h · +9 h · +12 h", Stand „+6 h · 16:26" (Ortszeit), `aria-label` Stundenschritt, Rücksetzer „jetzt", Umschalter `fire-td-unit` (Tage \| Stunden; nur mit `hourlyAvailable && !hourlyForced`); Lag-Texte je Einheit + Zeile „Tageswert · gilt für heute/morgen — keine Stundenauflösung" für Tages-Layer; Permalink `hour: hourly ? time.hour : null`. |
+| `src/fire/fireDeck.css` | `.fire-td-unit` (Pill wie `.fire-subseg`, 26 px Desktop); mobil: `.fire-td-row { flex-wrap: wrap }`, Umschalter als eigene Zeile, Knöpfe 44 px (ohne Umschalter ändert das Wrap nichts — Spur hat `flex-basis 0`). |
+| Texte | `FireLayerCard.tsx` Wind-Satz („folgt weder dem Tages- noch dem Stundenregler … ein stillschweigend geklemmter Frame wäre eine Falschaussage"); `iconD2Relhum.ts`/`iconD2Smi.ts` Horizont-Kommentare. |
+| `scripts/verify-fire-time.mjs` | +8 Quell-Sonden an `FirePage.tsx`/`fireDeck.css` (Anker über `frameAtValidTime`, keine `zielMs`-Schleife, `timeUnit`/`hasTimeSlider`, `dayOfHour` → Stationen/`committedDay`, Permalink-`h`, `stepPlayback(…unitsPerSecond, sliderMax)`, Umschalter-Bedingung, Lag-Texte, mobil 44 px). |
+
+**Belege:**
+- `npm run typecheck` grün · `verify:fire-time` **105/105** (vorher 75) · `verify:fire-model` **106/106** (vorher 100) · unverändert grün: `fire-boden` 52/52, `fire-fwi` 43/43, `fire-weather-grid` 39/39, `fire-danger-views` 44/44.
+- `npm run build && npm run budget`: totalJs **907,6 / 926,1 KB** (+0,9 KB gz), eagerJs 124 KB, largestChunk 278,4 KB — alle Budgets eingehalten.
+- **Browser (headless Chrome per CDP, `scratchpad/cdp-wf3.mjs`, Dev-Server :5173 und Prod-Preview :4173):**
+  - **Tagesachse unverändert:** Standardzustand `b=3` ⇒ `.fire-timedeck`-Markup byte-gleich zum Stand vor WF3 (Play „Tage abspielen", „heute · +2 T · +3 T · +5 T · +6 Tage", `max=6`, `aria-label` Tagesschritt, Stand „heute", **kein** Umschalter), Hash unverändert `#wb={"b":3,"d":0,"w":24}`. Screenshots `before-desk-td.png` ↔ `wf3-desk-default-td.png`, `before-mob-td.png` ↔ `wf3-mob-default-td.png`.
+  - **RH-Treiber zu (`b=9`), Tagesachse:** Umschalter erscheint (Tage aktiv), Regler `max=1`, Stand „heute", Hash ohne `h` — byte-gleich `#wb={"b":9,"d":0,"w":24}`.
+  - **Stunden:** Klick „Stunden" ⇒ `max=12`, Ticks „jetzt +3 h +6 h +9 h +12 h", Stand „jetzt · 10:26", Hash `…"h":0`, Deck `is-hourly`; +6 h ⇒ Stand „+6 h · 16:26", EU-Index-Zeile „Tageswert · gilt für heute — keine Stundenauflösung", **RH-Frame wechselt** (`__fireWeatherLayer.data.image`, mittlerer R-Kanal 59,2 (jetzt, 08 UTC) → 88,6 (+6 h, 14 UTC) → 56,3 (+12 h, 20 UTC) — der Nachmittag ist trockener, wie es sein muss; Tagesachse-Mittag 85,3); Füllung 100 % bei 12.
+  - **Playback:** 2,5 s ⇒ Stunde 5 (2,2 h/s, Desktop-Tier), endet bei 12 mit `aria-pressed=false`; mobil 1,4 h/s (Tier) ⇒ 3 nach 2,5 s, 10 nach 7,5 s.
+  - **Rücksetzer „jetzt"** ⇒ 0, Knopf `disabled`; **zurück auf Tage** ⇒ `max=1`, Hash byte-gleich zum Ausgangszustand (kein `h`).
+  - **Permalink-Round-Trip:** `#wb={"b":9,"d":0,"w":24,"h":4}` geladen ⇒ Stundenachse, Regler 4, Stand „+4 h · 14:26".
+  - **Touch (390×844, DPR 3):** Umschalter-Knöpfe **164 × 44 px**, Range 44 px, Play 46 px; `.fire-td-now` 37 px (vorbestehend, V-WF-12). Mobil wird der Umschalter zur eigenen Zeile unter dem Regler (`wf3-mob-hour6-full.png`).
+  - **Konsole:** keine Fehler, keine Exceptions, keine Warnungen (Desktop, Mobil, Prod-Preview).
+  - **Long Tasks beim Scrubben 0…12:** Dev 5 × 50–60 ms (Dev-Overhead), **Prod-Preview 0** (Framewechsel = ein `setData`); Gate 200 ms.
+- **Fünf Fragen:** (1) Funktionserhalt — Tagesachse, Fenster, Playback, Permalinks unverändert (Markup- und Hash-Anker), kein Layer entfernt; (2) Desktop pixelgleich ohne Stundenlayer — Markup byte-gleich ⇒ ja; mit RH-Treiber kommt der Umschalter additiv ans Zeilenende; (3) Touch ≥ 44 px — Umschalter, Range, Play ja; (4) Konsole sauber — ja; (5) Long Tasks — 0 am Prod-Build.
+
+**Befund nebenbei:** Navigiert man per CDP nur den Hash um (`Page.navigate` auf dieselbe Seite mit anderem `#wb=`), lädt die App **nicht** neu — der Zustand bleibt, das Permalink-Effect schreibt den alten Hash zurück. Für Smokes: über `about:blank` gehen. Kein Produktfehler (die Seite reagiert bewusst nicht auf `hashchange`; die Rail-Navigation setzt den Zustand).
+
+**Nächster Schritt:** WF4 — Layer `fireForecast` (`mode: 'hourly'`, `maxHour: 12`, Bit 13), Producer aus WF2 einhängen, Steckbrief, Punktkurve via Punkt-Forecast. Eigene Phase, eigenes Gate.
+
+### 15.5 Revision (Jan, 2026-08-19): „Stundenregler allgemein nur bis 6 h, auch okay" — Wind läuft mit
+
+**Entscheidung:** Die Stundenachse ist **0…+6 h** (nicht 12), und zwar für alles — RH-Treiber, Boden, Wind, Producer (WF2) und der spätere Layer `fireForecast` (WF4). Grund: das Windgitter reicht +12 h **ab Lauf**, der Lauf ist beim Abruf 2–6 h alt ⇒ +6 h ab jetzt liegen aus jedem Lauf im Gitter; V-WF-11 ist damit erledigt statt vertagt. Kürzere Achse, aber alle drei Treiber auf einer Zeit — das ist für die Brandlage die bessere Achse.
+
+**Geändert:**
+
+| Datei | Inhalt |
+|---|---|
+| `src/fire/fireTime.ts` | `HOUR_AXIS_MAX = 6` (Kommentar nennt den Grund); `fireWind` trägt `maxHour: HOUR_AXIS_MAX` (Modus bleibt `instant` — auf der Tagesachse unverändert WW1); Selbsttests auf 6 (Wind allein: Tagesachse nein, Stundenachse ja; alter Link `h:12` → 6; `hourFollow('fireWind', 6) === 'hourly'`; `laggingLayers` nennt den Wind nicht mehr). |
+| `src/sources/iconD2FireWeather.ts` | `FIRE_WEATHER_AHEAD_H = 6` — der Producer lädt nicht mehr, als die Achse zeigt (nicht aus `fire/` importiert: Quellen bleiben UI-frei; der Verifier prüft die Gleichheit). |
+| `src/fire/FireMap.tsx` | Prop `windTargetMs?: number \| null` — Zielzeit des Windframes: `windTargetMs ?? Date.now()`; Effekt-Deps + `windTargetMs`. Tagesachse: `null` ⇒ byte-gleiches Verhalten (Wind = jetzt). |
+| `src/fire/FirePage.tsx` | `windTargetMs = hourly ? frameTargetMs : null` → FireMap; `windHorizonH`/`windClamped`: reicht der **geladene** Lauf nicht bis zur Zielzeit (nur nach Ladeende bewertet, sonst Flackern), steht an der Wind-Zeile „Modellfeld reicht bis +X h — zeigt den letzten verfügbaren Schritt" — gesagt, nicht still geklemmt; **Wind allein** hat keine Tagesachse, aber eine Stundenachse ⇒ der Umschalter steht auch im „kein Tagesregler"-Deck (Text: „… genau einen Zeitpunkt — Stundenachse wählbar."). |
+| `src/fire/firePlayback.ts` | Selbsttest Horizont 6. |
+| `src/fire/FireLayerCard.tsx` | Wind-Steckbrief: folgt der Stundenachse bis +6 h, und warum die Achse dort endet. |
+| `src/fire/fireDeck.css` | Hinweiszeile ohne Regler als Flex-Item, Umschalter rechts. |
+| `scripts/verify-fire-time.mjs` | +5 Sonden: `windTargetMs` in FirePage/FireMap, `windClamped`, **`HOUR_AXIS_MAX + 5,5 ≤ Wind-MAX_STEP`** (die Achse ist so lang, wie der Wind aus jedem Lauf reicht), `FIRE_WEATHER_AHEAD_H === HOUR_AXIS_MAX`. |
+
+**Belege:** typecheck grün · `verify:fire-time` **111/111** · `fire-model` 106/106 · `fire-weather-grid` 39/39 · `fire-fwi` 43/43 · Budget 907,9/926,1 KB. **Browser (CDP, Desktop + Mobil, `scratchpad/cdp-wf3b.mjs`):** EU + RH + Wind ⇒ Achse `max=6`, Ticks „jetzt +2 h +3 h +5 h +6 h"; **Wind folgt messbar** — `__fireWindLayer.setWindDataPacked` (gehookt) wird je Stundenschritt mit neuem Frame-Schlüssel gerufen: jetzt `5|6|0.71` (Lauf 5,7 h alt), +3 h `8|9`, +6 h `11|12` — der letzte Schritt des Gitters, genau am Rand, kein Klemmen (`windClamped` blieb aus); Lag-Zeilen: nur „Tageswert · gilt für heute" am EU-Index, der Wind steht nicht mehr als stehend; alter Link `h:12` ⇒ geklemmt auf 6 und so zurückgeschrieben; **Wind allein:** Deck „… genau einen Zeitpunkt — Stundenachse wählbar." + Umschalter → Stunden ⇒ Regler 0…6; Touch mobil 164 × 44 / 46 / 44 px; Konsole sauber, keine Exceptions.
+
+**Randnotiz (Ehrlichkeit):** Im Smoke war der Lauf 5,7 h alt — +6 h lagen bei Schritt 11,7 von 12. Ist der Lauf älter als 6 h (Warm-Cron hinkt, Publikation verzögert), greift `windClamped` und die Zeile sagt „reicht bis +5 h"; die Achse bleibt 6, weil sie am Normalfall und nicht am Ausnahmefall hängt.
+
+**Nächster Schritt:** WF4 — Layer `fireForecast` (`mode: 'hourly'`, `maxHour: HOUR_AXIS_MAX`, Bit 13), Producer (6 h) einhängen, Steckbrief, Punktkurve.
+
+## 16. WF4 — Layer `fireForecast` (Stufe 1): Diagnose + Plan (2026-08-19, vor dem Code)
+
+**Was WF4 ist:** der erste Layer mit `mode: 'hourly'` — er erzwingt die Stundenachse (§15.2 Punkt 1), zeigt die WF2-Fläche (ICON-D2 2,2 km, ISI stündlich aus der hFFMC-Kette, Start Gleichgewichtsfeuchte, 0…+6 h) als `ScalarLayer` und auf Klick die Punktkurve aus dem Punkt-Forecast der Fusion (§13 d: Punkt = Fusion, Fläche = ICON-D2 — die beiden werden am selben Ort **nicht** identisch sein; das steht im Steckbrief). Kein WBI, keine Gefahrenstufe, kein amtliches Produkt — Stufe 1 heißt „ohne Vortagsgedächtnis" (WF5 bringt die Tages-Codes).
+
+### 16.1 Einhängepunkte (gemessen am Code)
+
+| Datei | Befund | Änderung |
+|---|---|---|
+| `src/fire/fireModel.ts` | `FireLayerId`-Union, vier Herkunftslisten, `FIRE_LAYER_ORDER` = Bitquelle (Bit 12 = `fireFootprints`), `FIRE_Z_BAND`, `FIRE_DECK_GROUPS`; `verifyFireModel` zählt „nichts Fünftes" | `'fireForecast'` + fünfte Liste `FIRE_FORECAST_LAYERS` HINTEN (**Bit 13**), Z-Band **52** (Rasterfläche über dem RH-Treiber 50, unter Boden 55), eigene Dock-Gruppe „Feuerwetter stündlich" (Plan §9), Verifier „nichts Sechstes" + Bit-13-Anker |
+| `src/fire/fireTime.ts` | `sharedMaxDay` zählt nur `forecast` ⇒ ein `hourly`-Layer klemmt die Tagesachse nicht; `hourlyForced` ⇒ Einheit erzwungen, Umschalter stumm; Selbsttest Z. 490 sagt „kein aktiver Layer erzwingt heute die Stundenachse" | `fireForecast: { mode: 'hourly', maxDay: 0, maxHour: HOUR_AXIS_MAX }`; Selbsttest umschreiben (`hourlyForced(['fireForecast'])`, `sharedMaxHour(['fireForecast','fireWind']) === 6`, mit EU-Index: Stunden erzwungen, Tages-Layer `daily`) |
+| `src/fire/fireState.ts` | Bitmaske aus `FIRE_LAYER_ORDER`, nichts handgeschrieben | nichts; `verify:fire-model` prüft Bit 13 und alte Links byte-gleich |
+| `src/fire/FirePage.tsx` | RH-Loader Z. 603–625 (Muster), `frameTargetMs` + `frameAtValidTime` (WF3), `isBuilt`, `infoFor`, Scaffold-Note Z. 1889, `LayerStatus`-Fehlerlink | `isBuilt` + Forecast-Liste; State `fireWx`; Lade-Effekt `fetchIconD2FireWeather({ signal, onProgress })`, Notiz „N Stundenschritte · ISI ohne Vortagsgedächtnis"; Memo `forecast = frameAtValidTime(fireWx.frames, frameTargetMs)` → Prop; Karten-Note „Feuerwetter stündlich (ISI) — Modellwert, kein amtliches Produkt"; Klick-Punkt: `onPointForecast(lng,lat)` → `import('../pointForecast/pointForecast')` (eigener Chunk, Budget!) → `getPointForecast({lat,lng,country,hours:12})` → `ffmcEquilibrium(T0,RH0)` + `hffmcChain` (Wind m/s·3,6, Regen mm/h) + `isi` je Stunde → Readout-Karte „Punkt (Fusion)" mit Stunden 0…+6, Hinweis Punkt ≠ Fläche |
+| `src/fire/FireMap.tsx` | `LAYER_GL`, `ATTRIB_CARRIERS` (Lizenzträger für Custom-Layer), `CUSTOM_GL_LAYERS` (kein Platzhalter!), RH-`ScalarLayer` Z. 536–569, Klick-Kette Z. 720 ff. | `fireForecast: ['fire-forecast-attrib','fire-forecast-scalar']`, Träger mit `ICON_D2_FIRE_WEATHER_ATTRIBUTION`, `forecastLayerRef` mit **ISI-Rampe in EFFIS-Klassen** (harte Gradient-Stops bei 3,2/5/7,5/13,4/26,8 ÷ `ISI_VMAX` 30 — `getColorRamp` ist ein Canvas-Gradient, doppelte Offsets ergeben harte Kanten), `setData(image,{vMin:0,vMax:1,uvBounds})` (R = ISI/30 kommt aus dem Producer), DEV `__fireForecastLayer`, Klick vor der Popup-Kette ohne `return` |
+| `src/fire/FireLayerCard.tsx` | `FIRE_LAYER_INFO` je Layer, `DangerClasses`-Muster mit `DANGER_VIEWS.isi.classes` | Steckbrief mit den Pflichtsätzen (§9): kein amtliches Produkt · Fläche ICON-D2 2,2 km · Punkt buscosun-Fusion · Stufe 1 ISI ohne Vortagsgedächtnis · Klassengrenzen EFFIS · Schnee/Außengebiet leer; Legende = ISI-Klassen |
+| `src/fire/fireIcons.tsx` | `switch(layer)` | Icon `fireForecast` |
+| `src/sources/iconD2FireWeather.ts` | fertig (WF2), `FIRE_WEATHER_AHEAD_H 6`, DEV-Haken | unverändert; Aufruf aus `FirePage` |
+| Verifier | `verify:fire-model` (Bits), `verify:fire-time` (Sonden) | + Bit 13, `hourlyForced`, Sonden `fire-forecast-scalar` in `CUSTOM_GL_LAYERS` + `ATTRIB_CARRIERS`, `fetchIconD2FireWeather` in FirePage, `import(` für den Punkt-Forecast |
+
+### 16.2 Plan (eine Session) und Gate GWF4
+
+1. rein: `fireModel` (Bit 13, Z 52, Gruppe), `fireTime` (hourly), `FireLayerCard`, `fireIcons` → `verify:fire-model`/`fire-time` grün.
+2. Seite + Karte: Loader, Frame-Memo, ScalarLayer + Träger, Karten-Note, Erzwungene Stundenachse sichtbar (Umschalter verschwindet, Ticks 0…+6 h).
+3. Punktkurve: Klick → dynamischer Import → Kurve im Readout (Desktop) / Sheet (mobil); Leerzustand benennt Grund (kein Wind ⇒ kein ISI).
+4. Gate GWF4: fünf Selbstverifikationsfragen mit Beleg; `typecheck`; Build + Budget (heute 907,9/926,1 KB — Punkt-Forecast nur per `import()`); CDP-Smoke Desktop 1440×900 + Mobil 390×844 (`b` mit Bit 13 = 8192: Frames, `__fireForecastLayer`, Achse erzwungen, Punktkurve, Touch ≥ 44 px, Konsole); Prod-Preview Long Tasks beim Scrubben mit Layer an; alte Links byte-gleich.
+
+**Risiken (benannt):** Budget-Ratsche (FWI-Kern + Grid + Producer wandern in den FirePage-Chunk); Punktkurve braucht Wind aus dem Punkt-Forecast (MOSMIX trägt ihn, fehlt er ⇒ kein ISI, gesagt); Startphase der Kette (Gleichgewicht) ist in den ersten Stunden glatter als die Wirklichkeit — Steckbrief sagt es.
+
+### 16.3 Gate GWF4 — Umsetzung und Belege (2026-08-19)
+
+**Gebaut (additiv; ohne den neuen Layer ist die Ansicht unverändert):**
+
+| Datei | Inhalt |
+|---|---|
+| `src/fire/fireModel.ts` | `FireLayerId` + `'fireForecast'`; fünfte Herkunftsliste `FIRE_FORECAST_LAYERS` HINTEN ⇒ **Bit 13** (Bits 0…12 unangetastet); `FIRE_Z_BAND.fireForecast: 52` (Rasterfläche über dem RH-Treiber 50, unter dem Boden 55); eigene Dock-Gruppe **„Feuerwetter stündlich"** (amber); Verifier: „nichts Sechstes", fünf Listen überschneidungsfrei, Bit-13-Anker, Z-Ordnung, Gruppe. |
+| `src/fire/fireTime.ts` | `fireForecast: { mode: 'hourly', maxDay: 0, maxHour: HOUR_AXIS_MAX }` — der **erste** `hourly`-Layer. Selbsttests: erzwingt die Stundenachse (`timeUnit` ⇒ `hours`), klemmt die **Tagesachse nicht** (EU-Index behält 9 Tage, weil `sharedMaxDay` nur `forecast` zählt), teilt die 6-h-Achse mit dem Wind, EU-Index folgt als Tageswert, `reconcile` behält die Einheit. |
+| `src/fire/fwi/isiRamp.ts` *(neu)* | Sechs EFFIS-ISI-Klassen als Rampe: **harte Kanten** durch Doppel-Stops an jeder Grenze (`getColorRamp` ist ein Canvas-Gradient — zwei Stops auf derselben Position ergeben den Sprung), Positionen = `ISI / ISI_VMAX` (dieselbe Normierung, mit der der Producer den R-Kanal füllt), unterste Klasse halbtransparent (kein Vollflächen-Grün ohne Aussage), `isiClassIndex` (`−1` statt Klasse 0 für nicht bestimmbar). 11 Selbstprüfungen. |
+| `src/fire/FireMap.tsx` | `LAYER_GL.fireForecast`, Lizenzträger `fire-forecast-attrib` (Custom-Layer tragen keine Source-Attribution), `CUSTOM_GL_LAYERS` + `fire-forecast-scalar` (**kein** Platzhalter in `installLayers` — sonst käme der echte Layer nie in die Karte), `forecastLayerRef` mit `visRange {0,0}` (die Ausblendung sitzt in der Rampe, nicht in einer zweiten Schwelle daneben), `setData(vMin 0, vMax 1)`, DEV `__fireForecastLayer`, `forecast` in beiden `stateRef`-Literalen **und** den `applyState`-Deps, Klick-Haken `onPointForecast` vor der Popup-Kette ohne `return`. |
+| `src/fire/FirePage.tsx` | `isBuilt` + Forecast-Liste; State `fireWx` + lazy/progressiver Loader (`onProgress` je fertigem Stundenschritt); Notiz „N Stundenschritte · **ISI ohne Vortagsgedächtnis**"; Memo `forecast = frameAtValidTime(fireWx.frames, frameTargetMs)`; Karten-Note; **Punktkurve** `requestPointCurve` mit dynamischem `import('../pointForecast/pointForecast')`, `ffmcEquilibrium` → `hffmcChain` → `isi`, vier Zustände (`loading`/`ok`/`gap` **mit Grund**/`error`), Generationszähler gegen veraltete Antworten. |
+| `src/fire/FireLayerCard.tsx` · `fireIcons.tsx` · `fireDeck.css` | Steckbrief mit den Pflichtsätzen (kein amtliches Produkt · Fläche ICON-D2 2,2 km · Punkt buscosun-Fusion · Stufe 1 ISI ohne Vortagsgedächtnis · Klassengrenzen EFFIS · Schnee/Außengebiet leer) + ISI-Klassenlegende aus `DANGER_VIEWS.isi`; Icon (Flamme auf Stundenkurve); `.fire-pc-*` in Readout-Optik, Leerzustand in derselben Terracotta-Auszeichnung wie `fire-lag-hint`, Schließen-Knopf mobil 44 px. |
+| `scripts/verify-fire-model.mjs` · `verify-fire-time.mjs` | `verifyIsiRamp()` eingehängt **plus** zwei unabhängige Gegenproben, die die **Legende gegen die Fläche** lesen (Klassengrenzen aus `DANGER_VIEWS.isi.classes` geparst ↔ `ISI_CLASS_BOUNDS`); neun WF4-Quell-Sonden (Custom-GL-Set, Lizenzträger, `vMin/vMax`, `stateRef`+Deps, Producer-Aufruf, `frameAtValidTime`, **Punkt-Forecast nur dynamisch importiert**, gemeinsamer Rechenkern, Leerzustand mit Grund, Pflichtsatz, 44 px). |
+
+**Belege**
+
+- `npm run typecheck` grün. `verify:fire-model` **123/123** (vorher 110), `verify:fire-time` **127/127** (vorher 116), `verify:fire-fwi` 43/43, `verify:fire-weather-grid` 39/39 unverändert.
+- `npm run build && npm run budget`: totalJs **914,1 / 926,1 KB** gzip (+6,2 gegenüber 907,9 — 12 KB Luft), eagerJs 124 KB, largestChunk 278,4 KB. **`pointForecast-DCJYS1tn.js` fällt als eigener Chunk** (86,4 KB roh / **30,4 KB gzip**) — der dynamische Import greift; statisch importiert hätte jeder Waldbrand-Kaltstart diese 30 KB bezahlt, auch ohne Klick. `FirePage` 214,3 KB roh / 73,05 KB gzip (vorher 66) = FWI-Kern + Zellgitter + Producer + Punktkurve.
+- **Browser (CDP, Dev-Server, `scratchpad/cdp-wf4.mjs`), Desktop 1440×900 und Mobil 390×844, `b: 8192` (Bit 13 allein):** Layer bereit in 12,1 s bzw. 12,8 s, Statuszeile „8 Stundenschritte · ISI ohne Vortagsgedächtnis". Achse `max=6`, Ticks „jetzt +2 h +3 h +5 h +6 h", **Umschalter „Tage | Stunden" verschwindet** (`unitSwitch: false`) — die Einheit ist erzwungen, wie in §15.2 entworfen. Permalink führt `h` mit (0 → 3 → 6), Stand „+6 h · 19:31". Der gehookte `setData` bekommt beim Scrubben neue Frames (92 → 246 → 399 Aufrufe): das Bild folgt dem Regler messbar. Dock-Zeile „Feuerwetter stündlich (ISI)" steht in der eigenen Gruppe.
+- **Punktkurve (Klick auf die Karte):** 50,759° N · 10,520° O · DE · 517 m ⇒ „ISI 6,2 · High · jetzt", sechs Balken in den EFFIS-Klassenfarben (`rgb(233,163,60)` High · `rgba(214,210,78,0.72)` Moderate · `rgba(143,191,107,0.3)` Low — exakt `ISI_CLASS_COLORS`), Tooltips mit den Eingängen („+2 h · ISI 3,4 (Moderate) · 19 °C · 72 % rF · 25 km/h"), Quellen `dwd_obs, mosmix, dwd_uv`. Der Pflichtsatz „Punkt (Fusion) ≠ Fläche (ICON-D2)" steht darunter; die Zeile „Eine Stunde wurde übersprungen — dort fehlten Wind oder Feuchte" griff **live** (Beleg, dass der Leerzustand nicht bloß Theorie ist).
+- **Touch mobil:** Play 46 px, Regler 44 px, Schließen-Knopf der Punktkurve 44 px. **Konsole in allen vier Läufen ohne Fehler, Warnungen und Exceptions.**
+
+**Long Tasks am Prod-Build** (`vite preview`, `scratchpad/cdp-wf4-perf.mjs`, mit **zwei Kontrollen**, damit die Zahlen zugeordnet sind statt behauptet):
+
+| Lauf | bereit | Long Tasks Kaltstart | größte | Scrubben (0→6→0) | Leerlauf 20 s | Abspielen 18 s |
+|---|---|---|---|---|---|---|
+| **`fireForecast`** (`b: 8192`) | 12,6 s | 6 | **700 ms** | **0** | **0** | **0** |
+| Kontrolle RH-Treiber (`b: 8`, seit WB2) | 19,8 s | 8 | 418 ms | 0 | 0 | 0 |
+| Kontrolle Standard-Deck (`b: 3`) | 1,6 s | 4 | 203 ms | 4 (max 242 ms) | 0 | 0 |
+
+Lesart: Die ~200-ms-Task bei ~0,5 s tritt in **allen drei** Läufen auf (App-/Kartenstart). Die großen Brocken haben ihr Gegenstück im bestehenden RH-Treiber (418 ms) — es ist der **GRIB-Dekode auf dem Hauptthread**, den jeder ICON-D2-Layer teilt; `fireForecast` liegt darüber, weil er **sechs Felder je Schritt** holt statt einem (**V-WF-13**). Die FWI-Kette ist es nicht: eine 40 k-Scheibe kostet 15–30 ms, und genau deshalb sind Scrubben, Leerlauf und Abspielen long-task-frei. Das `setData`-je-`idle`-Muster (im DEV-Lauf 399 Aufrufe in ~60 s, geteilt mit RH-Treiber und Boden) erzeugt in der Leerlaufphase **keine** Task > 50 ms. Die 242 ms beim Tageswechsel der Kontrolle sind ein vorbestehender GWIS-Raster-Effekt, den dieser Layer nicht hat.
+
+**Ein Defekt gefunden und behoben (im Smoke, nicht in der Theorie):** Die Punktkurve beschriftete **zwei** Balken mit „jetzt". Die Stützstellen des Punkt-Forecasts sind volle Stunden; gegen `Date.now()` (13:31) gerundet fielen 13:00 und 14:00 auf denselben Schritt. Bezug ist jetzt der **Beginn der laufenden Stunde** — danach „jetzt, +1 … +5" (der letzte Schritt fehlt, weil dem Punkt-Forecast dort der Wind fehlt, und die Karte sagt das).
+
+**Die fünf Selbstverifikationsfragen**
+
+1. **Funktionserhalt — einzeln geprüft.** Nichts entfernt, nichts umgehängt: `fireForecast` ist Bit 13 hinter allen bestehenden (`verify:fire-model`-Anker für Bits 0…12 unverändert grün), eigene Dock-Gruppe statt Einschub, eigenes Z-Band 52 zwischen zwei bestehenden Werten. `sharedMaxDay` zählt `hourly` nicht ⇒ der Tagesregler der anderen Layer bleibt, was er war (Selbsttest: EU-Index behält mit aktivem Forecast seine 9 Tage). Die Kontrollläufe `b: 3` und `b: 8` verhalten sich wie vorher. Die Zeit- und Modell-Verifier (127/127, 123/123) enthalten die alten Prüfungen unverändert.
+2. **Desktop pixelgleich.** Ohne den neuen Layer wird kein bestehendes Markup angefasst: der ScalarLayer-Block hängt hinter `if (s.forecast)`, die Karten-Note hinter `active.has('fireForecast')`, die Punktkurven-Karte hinter `pointCurve != null`. Der Kontrolllauf mit dem Standard-Deck zeigt dieselbe Oberfläche wie vor WF4; neu ist ausschließlich die zusätzliche Dock-Zeile in der neuen Gruppe.
+3. **Touch ≥ 44 px.** Mobil gemessen: Play 46, Regler 44, Schließen-Knopf der Punktkurve 44 px (Padding-Trick, ohne die Karte auseinanderzuziehen). Vorbestehend bleibt `.fire-td-now` mit 37 px (V-WF-12, in dieser Phase nicht angefasst).
+4. **Konsole sauber.** Vier Läufe (Desktop/Mobil Dev, Prod-Preview, Kontrollen): keine Fehler, keine Warnungen, keine Exceptions aus `fire/`. Die „Failed to fetch"-Meldungen im Standard-Deck-Kontrolllauf stammen aus MapLibre/GWIS-Kacheln und sind Bestand.
+5. **Keine Long Tasks > 200 ms im Betrieb.** Scrubben, Leerlauf und Abspielen: null Long Tasks (Tabelle oben). Beim Kaltstart 700 ms — zugeordnet auf den vorbestehenden Hauptthread-Dekode (Kontrolle: 418 ms für einen einzigen ICON-D2-Layer), als **V-WF-13** notiert und nicht in dieser Phase geändert (Decoder-Zone).
+
+**Nächster Schritt:** WF5 — Tages-Codes (DMC/DC/BUI) per GitHub-Actions-Batch mit Commit-back (§13 b, Jans Go liegt vor; **Prod-Dispatch bleibt Jans Gate**). Damit wird aus dem ISI der volle FWI (`buiGrid` ⇒ `mode: 'fwi'`), der Kettenstart wird der Lawson-Tagesgang statt der Gleichgewichtsfeuchte, und „Stufe 1: ohne Vortagsgedächtnis" verschwindet aus dem Steckbrief.

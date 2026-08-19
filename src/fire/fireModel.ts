@@ -54,7 +54,8 @@ export type FireLayerId =
   | 'fireContext'         // WB4: EEA Natura 2000 (Schutzgebiete, CH fehlt)
   | 'fireWind'            // WW1: ICON-D2 u/v 10 m — der Windlayer der Wetterkarte, 1:1
   | 'fireSoilDryness'     // WT1: ICON-D2 smi — Bodentrockenheit, zwei Tiefen
-  | 'fireFootprints';     // BP2: Brandflächen je Brand (Registry) — Polygone + Panel links
+  | 'fireFootprints'      // BP2: Brandflächen je Brand (Registry) — Polygone + Panel links
+  | 'fireForecast';       // WF4: Feuerwetter stündlich (ISI, Stufe 1) — ICON-D2-Raster, FWI-Gleichungen
 
 /** Die im MVP (WB2) tatsächlich gebauten Layer. */
 export const FIRE_MVP_LAYERS: readonly FireLayerId[] = [
@@ -88,6 +89,15 @@ export const FIRE_WEATHER_MAP_LAYERS: readonly FireLayerId[] = [
 export const FIRE_FOOTPRINT_LAYERS: readonly FireLayerId[] = ['fireFootprints'] as const;
 
 /**
+ * WF4 — der Waldbrand-Forecast (Stufe 1): stündlicher ISI aus der hFFMC-Kette
+ * (Van Wagner 1977/1987) auf dem nativen ICON-D2-Raster (`iconD2FireWeather.ts`),
+ * Punktkurve aus dem Punkt-Forecast der Fusion (§13 d). Eigene Herkunft: kein
+ * Fremdraster, kein Wetterkarten-Layer, sondern eine buscosun-Rechnung mit
+ * publizierten Gleichungen — deshalb eigene Liste, HINTEN angehängt: Bit 13.
+ */
+export const FIRE_FORECAST_LAYERS: readonly FireLayerId[] = ['fireForecast'] as const;
+
+/**
  * **Die** Reihenfolge — Quelle der Permalink-Bitmaske und der Legendensortierung.
  *
  * ⚠️ Anhängen erlaubt, umsortieren nie: Bit *n* gehört dauerhaft zu Eintrag *n*,
@@ -101,6 +111,7 @@ export const FIRE_FOOTPRINT_LAYERS: readonly FireLayerId[] = ['fireFootprints'] 
  */
 export const FIRE_LAYER_ORDER: readonly FireLayerId[] = [
   ...FIRE_MVP_LAYERS, ...FIRE_EXTENDED_LAYERS, ...FIRE_WEATHER_MAP_LAYERS, ...FIRE_FOOTPRINT_LAYERS,
+  ...FIRE_FORECAST_LAYERS,
 ] as const;
 
 /**
@@ -119,6 +130,10 @@ export const FIRE_Z_BAND: Record<FireLayerId, number> = {
   fireFuel: 40,
   fireBurnt: 45,           // fruehere Brandflaechen ueber dem Brennmaterial
   fireWeather: 50,         // ICON-D2-ScalarLayer über den Fremdrastern
+  // WF4: der stündliche ISI ist eine RASTERFLÄCHE wie der RH-Treiber und liegt
+  // direkt über ihm (beide ICON-D2, beide Treiber-Nähe) und unter dem Boden —
+  // Flächen bleiben unten, Partikel und Punkte darüber.
+  fireForecast: 52,
   // Bodentrockenheit ist eine FLÄCHE und gehört zu den Rastern, nicht nach oben
   // zu den Partikeln: sie liegt direkt über dem Luft-Treiber, damit beide
   // Treiber zusammen und unter den Gefahrenangaben stehen. Im Dock steht sie
@@ -218,6 +233,15 @@ export const FIRE_DECK_GROUPS: readonly FireDeckGroup[] = [
       // der Boden ist kein Windprodukt, und zwei Layer derselben Akzentfarbe
       // direkt untereinander lesen sich wie einer mit zwei Zeilen.
       { id: 'fireSoilDryness', accent: 'sage' },
+    ],
+  },
+  {
+    // WF4: eigene Gruppe (Plan §9) — weder Fremdraster noch Wetterkarten-Layer,
+    // sondern die eigene Rechnung mit publizierten FWI-Gleichungen. Sichtbar
+    // getrennt, damit niemand sie für eine amtliche Stufe hält.
+    title: 'Feuerwetter stündlich', accent: 'amber',
+    layers: [
+      { id: 'fireForecast', accent: 'amber' },
     ],
   },
   {
@@ -419,7 +443,7 @@ export function verifyFireModel(): { checks: FireModelCheck[]; passed: number; t
   const all: FireLayerId[] = [
     'fireDanger', 'fireIndexNational', 'fireHotspots', 'fireWeather', 'fireBans',
     'fireDrought', 'fireVegetation', 'fireFuel', 'fireBurnt', 'fireContext',
-    'fireWind', 'fireSoilDryness', 'fireFootprints',
+    'fireWind', 'fireSoilDryness', 'fireFootprints', 'fireForecast',
   ];
 
   // --- Vollständigkeit: der Fehler von LAYER_ORDER darf sich nicht wiederholen.
@@ -428,13 +452,16 @@ export function verifyFireModel(): { checks: FireModelCheck[]; passed: number; t
     `${FIRE_LAYER_ORDER.length}/${all.length}`);
   add('FIRE_LAYER_ORDER enthält keine Dubletten',
     new Set(FIRE_LAYER_ORDER).size === FIRE_LAYER_ORDER.length);
-  add('FIRE_LAYER_ORDER ist genau MVP + Ausbau + Wetterkarte + Registry, nichts Fünftes',
+  add('FIRE_LAYER_ORDER ist genau MVP + Ausbau + Wetterkarte + Registry + Forecast, nichts Sechstes',
     FIRE_LAYER_ORDER.length
-      === FIRE_MVP_LAYERS.length + FIRE_EXTENDED_LAYERS.length + FIRE_WEATHER_MAP_LAYERS.length + FIRE_FOOTPRINT_LAYERS.length);
-  add('die vier Herkunftslisten überschneiden sich nicht',
+      === FIRE_MVP_LAYERS.length + FIRE_EXTENDED_LAYERS.length + FIRE_WEATHER_MAP_LAYERS.length
+        + FIRE_FOOTPRINT_LAYERS.length + FIRE_FORECAST_LAYERS.length);
+  add('die fünf Herkunftslisten überschneiden sich nicht',
     !FIRE_MVP_LAYERS.some((l) => FIRE_EXTENDED_LAYERS.includes(l))
       && !FIRE_WEATHER_MAP_LAYERS.some((l) => FIRE_MVP_LAYERS.includes(l) || FIRE_EXTENDED_LAYERS.includes(l))
-      && !FIRE_FOOTPRINT_LAYERS.some((l) => FIRE_MVP_LAYERS.includes(l) || FIRE_EXTENDED_LAYERS.includes(l) || FIRE_WEATHER_MAP_LAYERS.includes(l)));
+      && !FIRE_FOOTPRINT_LAYERS.some((l) => FIRE_MVP_LAYERS.includes(l) || FIRE_EXTENDED_LAYERS.includes(l) || FIRE_WEATHER_MAP_LAYERS.includes(l))
+      && !FIRE_FORECAST_LAYERS.some((l) => FIRE_MVP_LAYERS.includes(l) || FIRE_EXTENDED_LAYERS.includes(l)
+        || FIRE_WEATHER_MAP_LAYERS.includes(l) || FIRE_FOOTPRINT_LAYERS.includes(l)));
 
   // Bit-Stabilität: die ersten fünf Plätze sind der MVP und bleiben dort.
   add('Bit 0..4 sind die MVP-Layer in fester Reihenfolge',
@@ -455,6 +482,10 @@ export function verifyFireModel(): { checks: FireModelCheck[]; passed: number; t
   add('fireFootprints steht an Bit 12 — angehängt, nicht eingeschoben',
     FIRE_LAYER_ORDER.indexOf('fireFootprints') === 12,
     String(FIRE_LAYER_ORDER.indexOf('fireFootprints')));
+  // WF4: der Forecast ist Bit 13 — hinter allem Bestehenden.
+  add('fireForecast steht an Bit 13 — angehängt, nicht eingeschoben',
+    FIRE_LAYER_ORDER.indexOf('fireForecast') === 13,
+    String(FIRE_LAYER_ORDER.indexOf('fireForecast')));
 
   // --- Z-Bänder
   add('jeder Layer hat ein Z-Band', all.every((l) => Number.isFinite(FIRE_Z_BAND[l])));
@@ -480,6 +511,14 @@ export function verifyFireModel(): { checks: FireModelCheck[]; passed: number; t
       const g = FIRE_DECK_GROUPS.find((x) => x.layers.some((l) => l.id === 'fireHotspots'));
       const ids = g?.layers.map((l) => l.id) ?? [];
       return ids.indexOf('fireFootprints') === ids.indexOf('fireHotspots') + 1;
+    })());
+  // WF4: der stündliche ISI ist eine Rasterfläche — über dem RH-Treiber, unter dem Boden.
+  add('Feuerwetter stündlich liegt als Fläche über dem RH-Treiber und unter dem Boden',
+    FIRE_Z_BAND.fireForecast > FIRE_Z_BAND.fireWeather && FIRE_Z_BAND.fireForecast < FIRE_Z_BAND.fireSoilDryness);
+  add('Feuerwetter stündlich hat eine eigene Dock-Gruppe (kein Fremdraster, kein Wetterkarten-Layer)',
+    (() => {
+      const g = FIRE_DECK_GROUPS.find((x) => x.layers.some((l) => l.id === 'fireForecast'));
+      return !!g && g.layers.length === 1 && g.title === 'Feuerwetter stündlich';
     })());
   add('Bodentrockenheit liegt als Fläche UNTER den Windpartikeln',
     FIRE_Z_BAND.fireSoilDryness < FIRE_Z_BAND.fireWind);

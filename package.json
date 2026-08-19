@@ -55,6 +55,8 @@
     "fusion:gate": "node --experimental-strip-types scripts/phase3-gate.mjs fixtures/",
     "verify:fire-model": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-fire-model.mjs",
     "verify:fire-time": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-fire-time.mjs",
+    "verify:fire-fwi": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-fire-fwi.mjs",
+    "verify:fire-weather-grid": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-fire-weather-grid.mjs",
     "verify:fire-sources": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-fire-sources.mjs",
     "verify:fire-firms": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-fire-firms.mjs",
     "verify:fire-events": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-fire-events.mjs",

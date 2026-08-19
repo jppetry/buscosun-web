@@ -24,6 +24,7 @@ import {
   SOIL_DRYNESS_CLASSES, SOIL_MODE_FULL_LABEL, type SoilDrynessMode,
 } from '../sources/iconD2Smi';
 import { STATUS_COLOR, STATUS_LABEL } from './footprint/fireRegistry';
+import { FIRE_WEATHER_AHEAD_H } from '../sources/iconD2FireWeather';
 
 export interface FireLayerInfo {
   eyebrow: string;
@@ -257,7 +258,7 @@ export const FIRE_LAYER_INFO: Record<FireLayerId, FireLayerInfo> = {
     // Der erste Satz ist die wortgleiche Beschreibung aus der Wetterkarte
     // (`components/LayerInfoPanel.tsx:60`) — derselbe Layer, dieselbe Aussage.
     // Danach das, was NUR hier gilt: Zeitbezug und Waldbrand-Einordnung.
-    note: 'Windrichtung und -geschwindigkeit in 10 m Höhe als animierte Partikel über einer Geschwindigkeits-Heatmap. Es ist derselbe Layer wie auf der Wetterkarte — dieselbe Quelle, dieselbe Geschwindigkeit, dieselben Farben. Er gilt für JETZT und folgt dem Tagesregler nicht: das Modellfeld reicht rund 12 Stunden voraus, der Regler hier zählt in Tagen. Für die Brandlage ist Wind ein Treiber, kein Index und kein amtliches Warnprodukt — er sagt, wohin ein Feuer laufen würde und wie schnell, nicht ob eines brennt. 10 m über Grund ist die Messhöhe der Meteorologie, nicht die Windgeschwindigkeit in einem Bestand; im Wald und in Bodennähe ist es deutlich schwächer, in Tälern und über Kämmen kann es örtlich stark davon abweichen. Böenspitzen sind NICHT enthalten — die zeigt die Wetterkarte als eigenen Layer. Das Modellgebiet reicht über DACH hinaus; außerhalb von DE, AT und CH ist die Fläche abgedunkelt, weil diese Ansicht dort nichts aussagt.',
+    note: 'Windrichtung und -geschwindigkeit in 10 m Höhe als animierte Partikel über einer Geschwindigkeits-Heatmap. Es ist derselbe Layer wie auf der Wetterkarte — dieselbe Quelle, dieselbe Geschwindigkeit, dieselben Farben. Auf der Tagesachse gilt er für JETZT und folgt dem Tagesregler nicht; auf der Stundenachse folgt er bis +6 h — und genau deshalb endet die Stundenachse dort: das Modellfeld reicht rund 12 Stunden ab Modelllauf voraus, und der Lauf ist beim Abruf schon einige Stunden alt. Reicht der geladene Lauf einmal kürzer, zeigt der Layer den letzten verfügbaren Schritt und sagt das in seiner Zeile — kein stilles Klemmen. Für die Brandlage ist Wind ein Treiber, kein Index und kein amtliches Warnprodukt — er sagt, wohin ein Feuer laufen würde und wie schnell, nicht ob eines brennt. 10 m über Grund ist die Messhöhe der Meteorologie, nicht die Windgeschwindigkeit in einem Bestand; im Wald und in Bodennähe ist es deutlich schwächer, in Tälern und über Kämmen kann es örtlich stark davon abweichen. Böenspitzen sind NICHT enthalten — die zeigt die Wetterkarte als eigenen Layer. Das Modellgebiet reicht über DACH hinaus; außerhalb von DE, AT und CH ist die Fläche abgedunkelt, weil diese Ansicht dort nichts aussagt.',
     legend: <><Bar css={WIND} /><Scale from="schwach" to="Sturm" /></>,
   },
   fireSoilDryness: soilDrynessInfoFor('topsoil'),
@@ -280,6 +281,39 @@ export const FIRE_LAYER_INFO: Record<FireLayerId, FireLayerInfo> = {
         <Row swatch={<i className="fire-li-fp is-mapped" />} label="harte Kontur: von EFFIS kartiert (ha gemessen)" />
         <Row swatch={<i className="fire-li-fp is-raster" />} label="gestrichelt: Detektionsraster — „bis … ha“, eine Obergrenze" />
         <Row swatch={<i className="fire-li-fp is-static" />} label="grau: überwiegend ortsfest — Vorbehalt, kein Ausschluss" />
+      </>
+    ),
+  },
+  /**
+   * WF4 — Feuerwetter stündlich (Stufe 1). Die Pflichtsätze aus
+   * `audit/waldbrand-forecast.md` §9/§16 stehen hier wörtlich: kein amtliches
+   * Produkt · Fläche ICON-D2 2,2 km · Punkt buscosun-Fusion · Stufe 1 = ISI ohne
+   * Vortagsgedächtnis · Klassengrenzen EFFIS. Die Legende sind die EFFIS-ISI-
+   * Klassen (`DANGER_VIEWS.isi`) — dieselben Grenzen wie in der Sub-Ansicht
+   * „Ausbreitung" des EU-Index, damit beide Flächen mit einer Skala lesbar sind.
+   */
+  fireForecast: {
+    eyebrow: 'Feuerwetter stündlich · Modell',
+    label: 'Feuerwetter stündlich (ISI)',
+    short: `DWD ICON-D2 · 2,2 km · FWI-Gleichungen (Van Wagner 1977/1987) · jetzt bis +${FIRE_WEATHER_AHEAD_H} h`,
+    note: `Stündlicher Initial Spread Index (ISI): wie schnell sich ein Feuer unmittelbar nach der Zündung ausbreiten würde — Feinstoff-Feuchte (stündlicher FFMC nach Van Wagner 1977) mal Wind. Gerechnet von buscosun mit den veröffentlichten Gleichungen des kanadischen FWI-Systems, keine eigenen Gewichte — und kein amtliches Produkt: der Waldbrandgefahrenindex des DWD und die Stufen der Länder sind etwas anderes und stehen im Layer „Amtliche Stufe". Die FLÄCHE kommt aus ICON-D2 (2,2 km, relhum_2m · t_2m · u/v_10m · tot_prec · h_snow desselben Laufs); der PUNKT auf Klick aus dem buscosun-Punkt-Forecast (Fusion aus Stationen, MOSMIX, AROME/INCA) — am selben Ort stimmen beide deshalb nicht exakt überein, und das ist kein Fehler, sondern zwei Datengrundlagen. Stufe 1: OHNE Vortagsgedächtnis — die Kette startet bei der Gleichgewichtsfeuchte der ersten Stunde, die tiefen Codes (DMC, DC, BUI) fehlen, deshalb ISI und nicht FWI; in den ersten Stunden ist der Verlauf dadurch glatter als die Wirklichkeit. Klassengrenzen nach EFFIS (wie in der Sub-Ansicht „Ausbreitung" des EU-Index). Unter Schnee, außerhalb des Modellgebiets und ohne Windfeld bleibt die Fläche leer, statt eine Null zu zeigen. Außerhalb von DE, AT und CH ist die Fläche abgedunkelt.`,
+    legend: (
+      <>
+        <div className="fire-li-classes">
+          <span className="fire-li-unit">{DANGER_VIEWS.isi.unit} · stündlich</span>
+          <ol>
+            {DANGER_VIEWS.isi.classes.map((c, i) => (
+              <li key={c.name}>
+                <span className="fire-swatch" style={{ background: DANGER_STEPS[i] }} aria-hidden="true" />
+                <span className="fire-li-cls-name">{c.name}</span>
+                <span className="fire-li-cls-range">{c.range}</span>
+              </li>
+            ))}
+          </ol>
+          <span className="fire-li-ref">
+            Klassengrenzen EFFIS · Rechnung buscosun aus ICON-D2, Stufe 1 ohne Vortagsgedächtnis · kein amtliches Produkt
+          </span>
+        </div>
       </>
     ),
   },

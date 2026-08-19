@@ -21,7 +21,7 @@ import { dirname, join } from 'node:path';
 import {
   verifyFireTime, FIRE_LAYER_TIME, sharedMaxDay, clampDay, reconcileFireTime,
   dayToIsoDate, dayLabel, windowLabel, windowChoices, hasForecastSlider,
-  followsSlider, laggingLayers, defaultFireTimeState,
+  followsSlider, laggingLayers, defaultFireTimeState, HOUR_AXIS_MAX,
 } from '../src/fire/fireTime.ts';
 import { verifyFirePlayback } from '../src/fire/firePlayback.ts';
 
@@ -107,6 +107,83 @@ add('fireTime.ts ist DOM-frei (keine window./document.-Zugriffe, keine Hooks)',
 const body = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
 add('kein Date.now() in der Logik — „jetzt" wird immer übergeben',
   !/Date\.now\(\)/.test(body));
+
+// --- (4) WF3: die Stundenachse in der Seite — Quell-Sonden an FirePage.tsx ---
+const page = readFileSync(join(ROOT, 'src', 'fire', 'FirePage.tsx'), 'utf8');
+const pageLines = page.split(/[\r]?[\n]/);
+add('FirePage: beide 12-UTC-Anker laufen über frameAtValidTime (keine handgerollte Schleife mehr)',
+  /from\s+['"]\.\.\/sources\/frameAtValidTime['"]/.test(page)
+  && (page.match(/frameAtValidTime\(/g) ?? []).length >= 2
+  && !/Math\.abs\(f\.validAt\.getTime\(\)\s*-\s*zielMs\)/.test(page));
+add('FirePage: die Einheit kommt aus timeUnit (erzwungen > gewählt > Tage), nicht aus einem lokalen Flag',
+  /timeUnit\(time,\s*activeList\)/.test(page) && /hasTimeSlider\(activeList,\s*unit\)/.test(page));
+add('FirePage: Tages-Layer zeigen auf der Stundenachse den Kalendertag von jetzt + h (dayOfHour)',
+  /dayOfHour\(time\.hour,\s*nowMs\)/.test(page)
+  && /stationLevels\.get\(s\.id\)\?\.\[dayForLayers\]/.test(page)
+  && /setCommittedDay\(dayForLayers\)/.test(page));
+add('FirePage: Wind bekommt auf der Stundenachse die Zielzeit jetzt + h (windTargetMs), sonst null',
+  /const windTargetMs = hourly \? frameTargetMs : null/.test(page) && /windTargetMs=\{windTargetMs\}/.test(page));
+add('FirePage: ein zu kurzer Windlauf wird gesagt, nicht still geklemmt (windClamped)',
+  /windClamped/.test(page) && /Modellfeld reicht bis \+/.test(page));
+const fmap = readFileSync(join(ROOT, 'src', 'fire', 'FireMap.tsx'), 'utf8');
+add('FireMap: Windframe-Zielzeit = windTargetMs ?? Date.now() — Tagesachse bleibt „jetzt"',
+  /windFrameAtValidTimeAsync\(wind,\s*windTargetMs\s*\?\?\s*Date\.now\(\)/.test(fmap)
+  && /\[wind,\s*active,\s*windEpoch,\s*windTargetMs\]/.test(fmap));
+// Die Achse ist so lang, wie der Wind aus jedem Lauf reicht: 12 h ab Lauf minus Laufalter.
+const windSrc = readFileSync(join(ROOT, 'src', 'wind', 'iconD2WindSource.ts'), 'utf8');
+const windMax = Number(/const MAX_STEP = (\d+);/.exec(windSrc)?.[1]);
+add('HOUR_AXIS_MAX (6) + maximales Laufalter (~5,5 h) ≤ Wind-MAX_STEP (12) — Wind folgt aus jedem Lauf',
+  HOUR_AXIS_MAX + 5.5 <= windMax, `axis ${HOUR_AXIS_MAX}, MAX_STEP ${windMax}`);
+// Producer (WF2) lädt nicht mehr, als die Achse zeigt.
+const producer = readFileSync(join(ROOT, 'src', 'sources', 'iconD2FireWeather.ts'), 'utf8');
+add('FIRE_WEATHER_AHEAD_H == HOUR_AXIS_MAX (Producer-Horizont = Stundenachse)',
+  Number(/export const FIRE_WEATHER_AHEAD_H = (\d+);/.exec(producer)?.[1]) === HOUR_AXIS_MAX);
+add('FirePage: Permalink schreibt h nur auf der Stundenachse',
+  /hour:\s*hourly\s*\?\s*time\.hour\s*:\s*null/.test(page));
+add('FirePage: Abspielen läuft in der geltenden Einheit (stepPlayback einheitenfrei, Stunden/s)',
+  /stepPlayback\(posRef\.current,\s*dt,\s*unitsPerSecond,\s*sliderMax\)/.test(page)
+  && /hoursPerSecondForTier\(tier\)/.test(page));
+add('FirePage: der Einheiten-Umschalter hängt an hourlyAvailable && !hourlyForced',
+  /hourlyAvailable\(activeList\)\s*&&\s*!hourlyForced\(activeList\)/.test(page));
+add('FirePage: Lag-Texte kennen beide Regler (Tages-/Stundenregler) und den Tageswert',
+  /folgt dem Stundenregler nicht/.test(page) && /folgt dem Tagesregler nicht/.test(page)
+  && /Tageswert · gilt für/.test(page));
+// Mobil: der Umschalter wird zur eigenen Zeile mit 44-px-Knöpfen (mobile-design-guidelines §3).
+const css = readFileSync(join(ROOT, 'src', 'fire', 'fireDeck.css'), 'utf8');
+const mobileBlock = css.slice(css.indexOf('@media (max-width: 767px)'));
+add('fireDeck.css: Einheiten-Umschalter mobil ≥ 44 px',
+  /\.fire-td-unit button\s*\{[^}]*min-height:\s*44px/.test(mobileBlock));
+
+// --- (5) WF4: der Forecast-Layer in Seite und Karte --------------------------
+// Der Layer ist der erste `hourly`-Layer; die Sonden sichern die drei Stellen,
+// an denen ein Custom-GL-Layer in diesem Projekt erfahrungsgemäß still bricht.
+add('FireMap: `fire-forecast-scalar` steht in CUSTOM_GL_LAYERS (sonst Platzhalter ⇒ nie sichtbar)',
+  /const CUSTOM_GL_LAYERS = new Set\(\[[^\]]*'fire-forecast-scalar'/.test(fmap));
+add('FireMap: der Forecast hat einen Lizenzträger (Custom-Layer tragen keine Source-Attribution)',
+  /ATTRIB_CARRIERS[\s\S]{0,600}fire-forecast-attrib[\s\S]{0,120}ICON_D2_FIRE_WEATHER_ATTRIBUTION/.test(fmap));
+add('FireMap: der Forecast-Frame wird mit vMin 0 / vMax 1 gesetzt (R = ISI/ISI_VMAX kommt aus dem Producer)',
+  /forecastLayerRef\.current\.setData\([\s\S]{0,240}vMin:\s*0,\s*vMax:\s*1/.test(fmap));
+add('FireMap: der Forecast-Zustand steht in stateRef UND in den applyState-Deps',
+  (fmap.match(/wind, soil, forecast, fireEvents/g) ?? []).length === 2
+    && /weather, wind, soil, forecast, day,/.test(fmap));
+add('FirePage: der Forecast lädt über den WF2-Producer',
+  /fetchIconD2FireWeather\(\{/.test(page) && /aheadHours:\s*FIRE_WEATHER_AHEAD_H/.test(page));
+add('FirePage: der Forecast-Frame kommt aus frameAtValidTime (eine Zeitregel für alle ICON-Layer)',
+  /const forecast = useMemo\([\s\S]{0,200}frameAtValidTime\(fireWx\.frames, frameTargetMs\)/.test(page));
+// Der Punkt-Forecast zieht die Fusions-Quellenschicht nach. Statisch importiert
+// läge sie im FirePage-Chunk und jeder Waldbrand-Kaltstart bezahlte sie mit.
+add('FirePage: der Punkt-Forecast wird NUR dynamisch importiert (eigener Chunk)',
+  /await Promise[.]all[(][[][\s\S]{0,200}import[(]'[.][.][/]pointForecast[/]pointForecast'[)]/.test(page)
+    && !pageLines.some((l) => /^import\s/.test(l) && /pointForecast[/]pointForecast/.test(l)));
+add('FirePage: die Punktkurve rechnet mit DEMSELBEN Kern wie die Fläche (hffmcChain + isi)',
+  /hffmcChain\(start,/.test(page) && /ffmcEquilibrium\(/.test(page) && /isiOf\(chain\[i\]/.test(page));
+// Ehrlichkeit: ein Leerzustand ohne Grund läse sich wie „keine Gefahr".
+add('FirePage: die Punktkurve kennt einen Leerzustand MIT Grund (`gap` + reason)',
+  /kind:\s*'gap'[\s\S]{0,200}reason:/.test(page));
+add('FirePage: die Punktkurve sagt „Punkt (Fusion) ≠ Fläche (ICON-D2)"',
+  /Punkt \(Fusion\) ≠ Fläche \(ICON-D2\)/.test(page));
+add('fireDeck.css: der Schließen-Knopf der Punktkurve ist mobil ≥ 44 px',
+  /\.fire-pc-close\s*\{[^}]*width:\s*44px[^}]*height:\s*44px/.test(mobileBlock));
 
 // --- Ausgabe ----------------------------------------------------------------
 let failed = 0;

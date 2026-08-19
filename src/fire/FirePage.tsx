@@ -20,12 +20,15 @@ import { FeatureRail, type RailFeature } from '../nav/featureRail';
 import FireMap, { type FireBasemap } from './FireMap';
 import {
   FIRE_DECK_GROUPS, FIRE_LAYER_ORDER, FIRE_MVP_LAYERS, FIRE_PRESETS,
-  FIRE_WEATHER_MAP_LAYERS, FIRE_FOOTPRINT_LAYERS,
+  FIRE_WEATHER_MAP_LAYERS, FIRE_FOOTPRINT_LAYERS, FIRE_FORECAST_LAYERS,
   activeFirePresetId, fireSource, nationalSourceFor, type FireLayerId,
 } from './fireModel';
 import {
-  defaultFireTimeState, reconcileFireTime, sharedMaxDay, hasForecastSlider,
+  defaultFireTimeState, reconcileFireTime, sharedMaxDay,
   dayLabel, windowChoices, windowLabel, laggingLayers, FIRE_LAYER_TIME, dayToIsoDate,
+  // WF3: eine Achse, zwei Einheiten.
+  timeUnit, sharedMaxHour, hourlyAvailable, hourlyForced, hasTimeSlider, dayOfHour, hourLabel,
+  dailyOnlyLayers, type FireTimeState,
 } from './fireTime';
 import {
   decodeFireState, encodeFireState, FIRE_HASH_PREFIX, DEFAULT_BURNT_BUCKETS, DEFAULT_SOIL_MODE,
@@ -67,6 +70,14 @@ import { fetchWarnContextsFor, type AtWarnContext } from './sources/geosphereWar
 import { loadClcMask, landcoverAt, toAssessmentLandcover, type ClcMask } from './clcMask';
 import { fetchStations, fetchStationValues, type FireStation } from './sources/dwdFireIndex';
 import { fetchIconD2Relhum, type IconD2Relhum } from '../sources/iconD2Relhum';
+// WF4: der stündliche ISI aus ICON-D2 (WF2-Producer) — Fläche des Forecast-Layers.
+import {
+  fetchIconD2FireWeather, FIRE_WEATHER_AHEAD_H, type IconD2FireWeather,
+} from '../sources/iconD2FireWeather';
+// WF4: die Punktkurve rechnet mit DENSELBEN Gleichungen wie die Fläche (ein Kern,
+// zwei Datengrundlagen — §13 d). `pointForecast` selbst wird dynamisch geladen.
+import { ffmcEquilibrium, hffmcChain, isi as isiOf } from './fwi/fwi';
+import { isiClassIndex, ISI_CLASS_COLORS } from './fwi/isiRamp';
 import { fetchIconD2Wind, type IconD2Wind } from '../wind/iconD2WindSource';
 import {
   fetchIconD2Smi, SOIL_MODE_LABEL, SOIL_MODE_FULL_LABEL,
@@ -78,7 +89,8 @@ import {
 } from './sources/euContext';
 import { DANGER_VIEWS, DANGER_VIEW_ORDER, DEFAULT_DANGER_VIEW, companionView, type DangerView } from './dangerViews';
 import { countMapped, mappedAreaFor, type BurntPolygon } from './fireCorroboration';
-import { defaultPlayback, stepPlayback, prefetchTarget, daysPerSecondForTier } from './firePlayback';
+import { defaultPlayback, stepPlayback, prefetchTarget, daysPerSecondForTier, hoursPerSecondForTier } from './firePlayback';
+import { frameAtValidTime } from '../sources/frameAtValidTime';
 import { BottomSheet, type BottomSheetSnap } from '../mobile/BottomSheet';
 import { useMediaQuery } from '../mobile/useIsMobile';
 import type { PerfTier } from '../wind/perfGovernor';
@@ -99,6 +111,25 @@ type LoadState =
   | { kind: 'error'; message: string };
 
 /**
+ * WF4 — die Punktkurve am angeklickten Ort.
+ *
+ * Vier Zustände statt „Daten oder nichts": `gap` trägt einen GRUND (fehlender
+ * Wind, keine Stunden im Horizont), weil eine leere Kurve sonst wie „keine
+ * Ausbreitung" gelesen würde — die eine Aussage, die dieser Layer nie treffen darf.
+ */
+type PointCurvePoint = {
+  atMs: number; hour: number; isi: number; ffmc: number; t: number; rh: number; w: number;
+};
+type PointCurve =
+  | { kind: 'loading'; lat: number; lng: number }
+  | { kind: 'error'; lat: number; lng: number; message: string }
+  | { kind: 'gap'; lat: number; lng: number; country: Country; reason: string; sources: string[] }
+  | {
+      kind: 'ok'; lat: number; lng: number; country: Country;
+      points: PointCurvePoint[]; elevation: number; sources: string[]; skipped: number;
+    };
+
+/**
  * Welche Ausbau-Layer sind tatsächlich gebaut?
  *
  * `fireDrought` und `fireVegetation` fehlen bewusst: Der EDO-Dienst sendet
@@ -117,7 +148,7 @@ const BUILT_EXTENDED = new Set<FireLayerId>(['fireFuel', 'fireBurnt', 'fireConte
  *  immer, Ausbaustufe 2 nur, wo die Quelle wirklich erreichbar ist. */
 const isBuilt = (id: FireLayerId) =>
   FIRE_MVP_LAYERS.includes(id) || FIRE_WEATHER_MAP_LAYERS.includes(id) || FIRE_FOOTPRINT_LAYERS.includes(id)
-  || BUILT_EXTENDED.has(id);
+  || FIRE_FORECAST_LAYERS.includes(id) || BUILT_EXTENDED.has(id);
 
 interface Props { onBack: () => void; onOpenFeature?: (id: RailFeature) => void }
 
@@ -127,9 +158,15 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
   const [active, setActive] = useState<Set<FireLayerId>>(
     () => new Set(initial?.layers.length ? initial.layers : ['fireDanger', 'fireIndexNational']),
   );
-  const [time, setTime] = useState(() => {
+  const [time, setTime] = useState<FireTimeState>(() => {
     const base = defaultFireTimeState();
-    return initial ? { day: initial.day, windowH: initial.windowH } : base;
+    if (!initial) return base;
+    // WF3: `h` im Hash ⇒ Stundenachse (auch bei 0); ohne `h` die Tagesachse wie bisher.
+    const hourly = typeof initial.hour === 'number';
+    return {
+      ...base, day: initial.day, windowH: initial.windowH,
+      hour: hourly ? (initial.hour as number) : 0, unit: hourly ? 'hours' : 'days',
+    };
   });
   const [basemap, setBasemap] = useState<FireBasemap>('streets');
   const [openInfo, setOpenInfo] = useState<FireLayerId | null>(null);
@@ -159,6 +196,15 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
   const [wind, setWind] = useState<IconD2Wind | null>(null);
   /** WT1 — Bodentrockenheit (ICON-D2 smi) der gewählten Tiefe. */
   const [smi, setSmi] = useState<IconD2Smi | null>(null);
+  /** WF4 — Feuerwetter stündlich: die ISI-Frames des jüngsten ICON-D2-Laufs. */
+  const [fireWx, setFireWx] = useState<IconD2FireWeather | null>(null);
+  /**
+   * WF4 — die Punktkurve am angeklickten Ort (Punkt-Forecast der Fusion durch
+   * dieselbe hFFMC-Kette). `null` = nie geklickt; `kind` sagt, was gerade gilt —
+   * ein Leerzustand nennt IMMER seinen Grund, sonst läse sich „keine Kurve" wie
+   * „keine Gefahr".
+   */
+  const [pointCurve, setPointCurve] = useState<PointCurve | null>(null);
   const [burntSeason, setBurntSeason] = useState<BurntRun | null>(null);
   const [burntArchive, setBurntArchive] = useState<BurntRun | null>(null);
   /** Flächen der letzten 7 Tage — Bestätigung der Detektionen (E1/E2). */
@@ -218,11 +264,26 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
 
   const activeList = useMemo(() => [...active], [active]);
   const maxDay = sharedMaxDay(activeList);
-  const showSlider = hasForecastSlider(activeList);
+  /**
+   * WF3 — EINE Achse, zwei Einheiten: erzwungen (Stundenlayer) > gewählt > Tage.
+   * `pos`/`sliderMax` sind der Reglerstand und -horizont in der geltenden Einheit;
+   * `dayForLayers` ist der Tagesschritt, den die Tages-Layer (EU-Index, DWD-Stufe,
+   * Stationsfarben) zeigen — auf der Stundenachse der Kalendertag von „jetzt + h".
+   */
+  const unit = timeUnit(time, activeList);
+  const hourly = unit === 'hours';
+  const maxHour = sharedMaxHour(activeList);
+  const sliderMax = hourly ? maxHour : maxDay;
+  const pos = hourly ? time.hour : time.day;
+  const showSlider = hasTimeSlider(activeList, unit);
+  /** Der Einheiten-Umschalter: nur, wenn Stundenframes da sind und nichts die Einheit erzwingt. */
+  const unitChoice = hourlyAvailable(activeList) && !hourlyForced(activeList);
   const windows = windowChoices(activeList);
-  const lagging = laggingLayers(activeList, time.day);
+  const lagging = laggingLayers(activeList, pos, unit);
+  const dailyOnly = hourly ? dailyOnlyLayers(activeList, time.hour) : [];
   const presetId = activeFirePresetId(activeList);
   const nowMs = Date.now();
+  const dayForLayers = hourly ? dayOfHour(time.hour, nowMs) : time.day;
 
   // Der Zustand wird nach JEDER Layer-Änderung nachgezogen — sonst steht der
   // Regler auf einem Tag, den ein neu zugeschalteter Layer nicht liefert.
@@ -680,44 +741,206 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
   }, [active, soilMode, setLayerLoad]);
 
   /**
-   * Der Bodenfeuchte-Frame zum gewählten Tag — dieselbe Mittags-Ankerregel wie
-   * beim Luft-Treiber (12 UTC ist die Bezugszeit der FWI-Familie). Zeigt der
-   * geladene Stand eine andere Tiefe als die gewählte, wird NICHTS gezeigt:
-   * lieber eine leere Fläche als eine, die die falsche Tiefe behauptet.
+   * WF4 — Feuerwetter stündlich (ISI). Lazy und progressiv wie der RH-Treiber:
+   * `onProgress` liefert jeden fertigen Stundenschritt, damit die nächste Stunde
+   * steht, bevor der ferne Horizont da ist — die Kette rechnet ohnehin der Reihe
+   * nach. Sechs ICON-D2-Felder je Schritt (`iconD2FireWeather.ts`), Lauf per
+   * Verzeichnis-Scan über `relhum_2m` (nicht gewärmt, Q11) ⇒ der erste Abruf
+   * dauert spürbar länger.
+   *
+   * Die Notiz sagt beides: wie viele Schritte da sind UND dass es Stufe 1 ist.
+   * „N Stundenschritte" allein ließe den Layer wie einen fertigen Index aussehen.
+   */
+  useEffect(() => {
+    if (!active.has('fireForecast')) return;
+    const ac = new AbortController();
+    setLayerLoad('fireForecast', { kind: 'loading' });
+    void fetchIconD2FireWeather({
+      signal: ac.signal,
+      aheadHours: FIRE_WEATHER_AHEAD_H,
+      onProgress: (partial) => {
+        // Wie beim Wind teilt sich das Partial das wachsende `frames`-Array mit
+        // dem Endergebnis — eine neue Objekthülle, damit React die Änderung sieht.
+        if (!ac.signal.aborted) setFireWx({ ...partial });
+      },
+    })
+      .then((r) => {
+        if (ac.signal.aborted) return;
+        setFireWx(r);
+        setLayerLoad('fireForecast', {
+          kind: 'ok',
+          ref: { atMs: r.runAt.getTime(), kind: 'run' },
+          note: `${r.frames.length} Stundenschritte · ${r.mode === 'isi' ? 'ISI ohne Vortagsgedächtnis' : 'FWI mit Tages-Codes'}`,
+        });
+      })
+      .catch((e) => {
+        if (ac.signal.aborted) return;
+        setFireWx(null);
+        setLayerLoad('fireForecast', { kind: 'error', message: (e as Error).message });
+      });
+    return () => ac.abort();
+  }, [active, setLayerLoad]);
+
+  /**
+   * WF4 — die Punktkurve: Klick auf die Karte ⇒ Punkt-Forecast der Fusion für
+   * genau diese Stelle, durch dieselbe stündliche FFMC-Kette wie die Fläche.
+   *
+   * Drei Entscheidungen, die hier sichtbar sind:
+   *  • **Dynamischer Import.** `pointForecast` zieht die halbe Fusions-Quellen-
+   *    schicht nach (Stationen, MOSMIX, AROME, INCA, DEM). Statisch importiert
+   *    läge das im FirePage-Chunk und würde den Waldbrand-Kaltstart bezahlen
+   *    lassen, ohne dass jemand geklickt hat. Erst der Klick lädt.
+   *  • **Fusion ≠ Fläche.** Der Punkt kommt aus der Fusion, die Fläche aus
+   *    ICON-D2 (§13 d). Sie werden am selben Ort nicht identisch sein; die Karte
+   *    sagt das, statt eine Übereinstimmung zu suggerieren.
+   *  • **Kein Wind ⇒ kein ISI.** Der ISI ist Feinstoff-Feuchte MAL Wind. Fehlt
+   *    der Wind in den Punktdaten, gibt es keine Kurve und einen Grund dazu —
+   *    keine 0, die wie „keine Ausbreitung" aussähe.
+   */
+  const pointReqRef = useRef(0);
+  const requestPointCurve = useCallback((lng: number, lat: number) => {
+    const gen = ++pointReqRef.current;
+    setPointCurve({ kind: 'loading', lat, lng });
+    void (async () => {
+      try {
+        const [{ getPointForecast }, { pickCountry }] = await Promise.all([
+          import('../pointForecast/pointForecast'),
+          import('../pointForecast/clustering'),
+        ]);
+        const country = pickCountry(lat, lng);
+        const pf = await getPointForecast({
+          lat, lng, country, hours: FIRE_WEATHER_AHEAD_H + 2, includeRadarNowcast: false,
+        });
+        if (gen !== pointReqRef.current) return;
+        const nowH = Date.now();
+        // Die Stützstellen des Punkt-Forecasts sind VOLLE Stunden. Gegen
+        // `Date.now()` gerundet fielen die laufende und die nächste Stunde auf
+        // denselben Schritt („jetzt" zweimal, gemessen um 13:31). Bezug ist
+        // deshalb der Beginn der laufenden Stunde: 13:00 ⇒ „jetzt", 14:00 ⇒ „+1".
+        const hourAnchor = Math.floor(nowH / 3_600_000) * 3_600_000;
+        // Nur die Stunden der Achse: jetzt … jetzt + Horizont. Die Kette braucht
+        // sie lückenlos und in Reihenfolge — eine fehlende Stunde bricht sie ab.
+        const rows = pf.hours
+          .filter((h) => h.timestamp.getTime() >= nowH - 3_600_000)
+          .slice(0, FIRE_WEATHER_AHEAD_H + 1)
+          .map((h) => ({
+            atMs: h.timestamp.getTime(),
+            t: h.temperature,
+            rh: h.relativeHumidity,
+            // FWI rechnet in km/h; der Punkt-Forecast liefert m/s.
+            w: h.windSpeed == null ? null : h.windSpeed * 3.6,
+            r1h: h.precipitation ?? 0,
+          }));
+        const usable = rows.filter((r) => r.t != null && r.rh != null && r.w != null);
+        if (usable.length < 2) {
+          setPointCurve({
+            kind: 'gap', lat, lng, country,
+            reason: rows.length === 0
+              ? 'Der Punkt-Forecast liefert für diese Stelle keine Stunden im Horizont.'
+              : 'Dem Punkt-Forecast fehlt hier Wind oder Feuchte — der ISI ist Feinstoff-Feuchte mal Wind und wäre ohne beides keine Zahl, sondern eine Behauptung.',
+            sources: pf.sourcesAvailable,
+          });
+          return;
+        }
+        const start = ffmcEquilibrium(usable[0].t as number, usable[0].rh as number);
+        const chain = hffmcChain(start, usable.map((r) => ({
+          t: r.t as number, rh: r.rh as number, w: r.w as number, r1h: r.r1h,
+        })));
+        const points = usable.map((r, i) => ({
+          atMs: r.atMs,
+          hour: Math.max(0, Math.round((r.atMs - hourAnchor) / 3_600_000)),
+          isi: isiOf(chain[i], r.w as number),
+          ffmc: chain[i],
+          t: r.t as number, rh: r.rh as number, w: r.w as number,
+        })).filter((pt) => Number.isFinite(pt.isi));
+        if (points.length === 0) {
+          setPointCurve({
+            kind: 'gap', lat, lng, country,
+            reason: 'Die Kette liefert für diese Stelle keinen gültigen Wert.',
+            sources: pf.sourcesAvailable,
+          });
+          return;
+        }
+        setPointCurve({
+          kind: 'ok', lat, lng, country, points,
+          elevation: pf.query.elevation,
+          sources: pf.sourcesAvailable,
+          skipped: rows.length - usable.length,
+        });
+      } catch (e) {
+        if (gen !== pointReqRef.current) return;
+        setPointCurve({ kind: 'error', lat, lng, message: (e as Error).message });
+      }
+    })();
+  }, []);
+
+  /**
+   * Zielzeit der ICON-D2-Frames (RH-Treiber, Boden) — EINE Regel für beide:
+   * auf der Stundenachse „jetzt + h"; auf der Tagesachse der **Mittag (12 UTC)**
+   * des gewählten Tages — 12 UTC ist die Bezugszeit der FWI-Familie, also
+   * fachlich der richtige Anker und nicht bloß eine bequeme Mitte. „Jetzt" wird
+   * im Memo gelesen und nur bei Regler- oder Einheitenwechsel neu bestimmt —
+   * wie vor WF3, als die Mittagsrechnung im Memo stand.
+   */
+  const frameTargetMs = useMemo(() => (hourly
+    ? Date.now() + time.hour * 3_600_000
+    : Date.UTC(
+      new Date().getUTCFullYear(), new Date().getUTCMonth(), new Date().getUTCDate(), 12,
+    ) + time.day * 86_400_000), [hourly, time.hour, time.day]);
+
+  /**
+   * Der Bodenfeuchte-Frame zur Zielzeit (nächster `validAt`, `frameAtValidTime`).
+   * Zeigt der geladene Stand eine andere Tiefe als die gewählte, wird NICHTS
+   * gezeigt: lieber eine leere Fläche als eine, die die falsche Tiefe behauptet.
    */
   const soil = useMemo(() => {
     if (!smi?.frames.length || smi.mode !== soilMode) return null;
-    const zielMs = Date.UTC(
-      new Date().getUTCFullYear(), new Date().getUTCMonth(), new Date().getUTCDate(), 12,
-    ) + time.day * 86_400_000;
-    let best = smi.frames[0];
-    for (const f of smi.frames) {
-      if (Math.abs(f.validAt.getTime() - zielMs) < Math.abs(best.validAt.getTime() - zielMs)) best = f;
-    }
+    const best = frameAtValidTime(smi.frames, frameTargetMs);
     return { image: best.image, width: best.width, height: best.height, uvBounds: smi.uvBounds };
-  }, [smi, soilMode, time.day]);
+  }, [smi, soilMode, frameTargetMs]);
 
   /**
-   * Der Frame, der zum gewählten Tag passt.
-   *
-   * Der Treiber läuft in **Stunden**schritten (0…+24 h), der Regler in **Tagen**.
-   * Gewählt wird der Schritt, der dem Mittag des gewählten Tages am nächsten
-   * liegt — 12 UTC ist auch die Bezugszeit der FWI-Familie, also fachlich der
-   * richtige Anker und nicht bloß eine bequeme Mitte.
+   * Der RH-Frame zur Zielzeit. Der Treiber läuft in **Stunden**schritten
+   * (0…+24 h ab Lauf): auf der Tagesachse sieht man davon den Mittagsschritt,
+   * auf der Stundenachse (WF3) jeden einzelnen.
    */
   const weather = useMemo(() => {
     if (!relhum?.frames.length) return null;
-    const zielMs = Date.UTC(
-      new Date().getUTCFullYear(), new Date().getUTCMonth(), new Date().getUTCDate(), 12,
-    ) + time.day * 86_400_000;
-    let best = relhum.frames[0];
-    for (const f of relhum.frames) {
-      if (Math.abs(f.validAt.getTime() - zielMs) < Math.abs(best.validAt.getTime() - zielMs)) best = f;
-    }
+    const best = frameAtValidTime(relhum.frames, frameTargetMs);
     return {
       image: best.image, width: best.width, height: best.height, uvBounds: relhum.uvBounds,
     };
-  }, [relhum, time.day]);
+  }, [relhum, frameTargetMs]);
+
+  /**
+   * WF4 — der ISI-Frame zur Zielzeit. Dieselbe eine Regel wie bei den beiden
+   * Treibern (`frameAtValidTime`): der Layer erzwingt die Stundenachse, also ist
+   * die Zielzeit „jetzt + h" — auf der Tagesachse käme er gar nicht vor.
+   */
+  const forecast = useMemo(() => {
+    if (!fireWx?.frames.length) return null;
+    const best = frameAtValidTime(fireWx.frames, frameTargetMs);
+    return {
+      image: best.image, width: best.width, height: best.height, uvBounds: fireWx.uvBounds,
+    };
+  }, [fireWx, frameTargetMs]);
+
+  /**
+   * WF3 (§15.5) — der Wind folgt der Stundenachse: Zielzeit „jetzt + h" statt
+   * `Date.now()`. Die Achse ist 6 h lang, weil das Windgitter +12 h ab Lauf reicht
+   * und der Lauf bis ~5,5 h alt ist — reicht der geladene Lauf doch einmal kürzer
+   * (alter Warm-Stand, Ladephase), klemmt der Loader auf den letzten Frame und
+   * `windClamped` sagt es in der Zeile. Erst nach Ladeende bewertet: während die
+   * fernen Schritte noch nachkommen, wäre die Zeile ein Flackern.
+   */
+  const windTargetMs = hourly ? frameTargetMs : null;
+  const windHorizonH = useMemo(() => {
+    if (!wind?.frames.length) return null;
+    const lastMs = wind.runAt.getTime() + Math.max(...wind.frames.map((f) => f.stepHours)) * 3_600_000;
+    return Math.floor((lastMs - Date.now()) / 3_600_000);
+  }, [wind]);
+  const windClamped = hourly && time.hour > 0 && load.fireWind?.kind === 'ok'
+    && windHorizonH != null && windHorizonH < time.hour;
 
   /**
    * E2 — kartierte Brandflächen in zwei Zeitkörben. Jeder eingeblendete Korb
@@ -966,7 +1189,7 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
     return {
       type: 'FeatureCollection',
       features: stations.slice(0, 60).map((s) => {
-        const lv = stationLevels.get(s.id)?.[time.day] ?? null;
+        const lv = stationLevels.get(s.id)?.[dayForLayers] ?? null;
         return {
           type: 'Feature' as const,
           geometry: { type: 'Point' as const, coordinates: [s.lon, s.lat] },
@@ -979,7 +1202,7 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
         };
       }),
     };
-  }, [stations, stationLevels, time.day]);
+  }, [stations, stationLevels, dayForLayers]);
 
   // Breakpoint 767 px — die Projekt-Konvention, kein Ad-hoc-Wert (CLAUDE.md).
   const isMobile = useMediaQuery('(max-width: 767px)');
@@ -997,7 +1220,15 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
   // beim EU-Index gar nicht (`firePlayback.ts`, dort headless verifiziert).
   const [tier, setTier] = useState<PerfTier>('high');
   const [play, setPlay] = useState(() => defaultPlayback());
-  const posRef = useRef(time.day);
+  const posRef = useRef(pos);
+  // WF3: in der geltenden Einheit abspielen — Tage/s oder Stunden/s (Frames im Speicher).
+  const unitsPerSecond = hourly ? hoursPerSecondForTier(tier) : play.daysPerSecond;
+  const setPos = useCallback((v: number) => {
+    setTime((cur) => {
+      if (hourly) return cur.hour === v ? cur : { ...cur, hour: v };
+      return cur.day === v ? cur : { ...cur, day: v };
+    });
+  }, [hourly]);
 
   // Geräteklasse steuert die Geschwindigkeit — dieselbe Klassifikation wie beim
   // FrameGovernor der Windpartikel, nur an einem anderen Stellrad (D-09).
@@ -1006,29 +1237,29 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
   }, [tier]);
 
   useEffect(() => {
-    if (!play.playing || maxDay <= 0) return;
+    if (!play.playing || sliderMax <= 0) return;
     let raf = 0;
     let prev = performance.now();
-    posRef.current = time.day;
+    posRef.current = pos;
     const tick = (t: number) => {
       const dt = (t - prev) / 1000; prev = t;
-      const r = stepPlayback(posRef.current, dt, play.daysPerSecond, maxDay);
+      const r = stepPlayback(posRef.current, dt, unitsPerSecond, sliderMax);
       posRef.current = r.pos;
-      setTime((cur) => (cur.day === r.day ? cur : { ...cur, day: r.day }));
+      setPos(r.day);
       if (r.ended) { setPlay((p) => ({ ...p, playing: false })); return; }
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-    // `time.day` bewusst NICHT in den Abhängigkeiten: sonst startet die Schleife
-    // bei jedem Tageswechsel neu, den sie selbst ausgelöst hat.
+    // `pos` bewusst NICHT in den Abhängigkeiten: sonst startet die Schleife
+    // bei jedem Schrittwechsel neu, den sie selbst ausgelöst hat.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [play.playing, play.daysPerSecond, maxDay]);
+  }, [play.playing, unitsPerSecond, sliderMax, setPos]);
 
   // Am Horizont oder ohne Regler kann nicht abgespielt werden.
   useEffect(() => {
-    if (maxDay <= 0 && play.playing) setPlay((p) => ({ ...p, playing: false }));
-  }, [maxDay, play.playing]);
+    if (sliderMax <= 0 && play.playing) setPlay((p) => ({ ...p, playing: false }));
+  }, [sliderMax, play.playing]);
 
   /**
    * Entprellter Tag für die WMS-Quelle.
@@ -1039,12 +1270,12 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
    * Während des Abspielens greift die Entprellung nicht: dort ist jeder Tag ein
    * gewollter Halt, kein Zwischenstand.
    */
-  const [committedDay, setCommittedDay] = useState(time.day);
+  const [committedDay, setCommittedDay] = useState(dayForLayers);
   useEffect(() => {
-    if (play.playing) { setCommittedDay(time.day); return; }
-    const id = window.setTimeout(() => setCommittedDay(time.day), 140);
+    if (play.playing) { setCommittedDay(dayForLayers); return; }
+    const id = window.setTimeout(() => setCommittedDay(dayForLayers), 140);
     return () => window.clearTimeout(id);
-  }, [time.day, play.playing]);
+  }, [dayForLayers, play.playing]);
 
   const committedIso = useMemo(() => dayToIsoDate(committedDay, Date.now()), [committedDay]);
   const prefetchIso = useMemo(() => {
@@ -1081,9 +1312,11 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
     const hash = encodeFireState({
       location: null, layers: activeList, day: time.day, windowH: time.windowH,
       dangerView, burntBuckets: [...burntBuckets], soilMode, burntDay, footprintPanel: fpOpen,
+      // WF3: `h` nur auf der Stundenachse — Links der Tagesachse bleiben byte-gleich.
+      hour: hourly ? time.hour : null,
     });
     if (window.location.hash !== hash) window.history.replaceState(null, '', hash);
-  }, [activeList, time.day, time.windowH, dangerView, burntBuckets, soilMode, burntDay, fpOpen]);
+  }, [activeList, time.day, time.windowH, dangerView, burntBuckets, soilMode, burntDay, fpOpen, hourly, time.hour]);
 
   const toggle = useCallback((id: FireLayerId) => {
     setActive((prev) => {
@@ -1169,7 +1402,23 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
         )}
         {inSheet && openInfo === id && <FireLayerCard layer={id} info={infoFor(id)} />}
         {on && stands && (
-          <p className="fire-layer-lag">gilt für heute — folgt dem Tagesregler nicht</p>
+          <p className="fire-layer-lag">
+            {hourly ? 'gilt für jetzt — folgt dem Stundenregler nicht' : 'gilt für heute — folgt dem Tagesregler nicht'}
+          </p>
+        )}
+        {/* WF3: Tages-Layer auf der Stundenachse — weder „folgt" noch „steht":
+            ein Tageswert für den Kalendertag, in den jetzt + h fällt. */}
+        {on && hourly && time.hour > 0 && dailyOnly.includes(id) && (
+          <p className="fire-layer-lag">
+            Tageswert · gilt für {dayLabel(dayForLayers, nowMs)} — keine Stundenauflösung
+          </p>
+        )}
+        {/* WF3 §15.5: der geladene Windlauf reicht nicht bis zur Zielzeit — gesagt,
+            nicht geklemmt. Im Normalfall (Lauf ≤ 6 h alt) erscheint das nie. */}
+        {on && id === 'fireWind' && windClamped && (
+          <p className="fire-layer-lag">
+            Modellfeld reicht bis +{Math.max(0, windHorizonH ?? 0)} h — zeigt den letzten verfügbaren Schritt
+          </p>
         )}
         {on && st?.kind === 'ok' && st.note && (
           <p className="fire-layer-status">{st.note}</p>
@@ -1535,6 +1784,116 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
   );
 
   /** Readout-Inhalte: Steckbrief-Stapel (nur Desktop), Skalen, AT-Lücke, Saison. */
+  /**
+   * WF4 — die Punktkurve als Readout-Karte (Optik der Steckbriefe, `fire-ro-lcard`).
+   *
+   * Sie steht ÜBER den Steckbriefen, weil sie die Antwort auf die letzte Handlung
+   * ist. Die Balken tragen die EFFIS-Klassenfarbe des jeweiligen Stundenwerts —
+   * dieselbe Reihe wie die Fläche (`ISI_CLASS_COLORS`), damit Karte und Kurve
+   * dieselbe Sprache sprechen. Die Höhe der Balken ist auf den größten Wert der
+   * Kurve normiert (mindestens die dritte Klassengrenze), sonst wäre ein ruhiger
+   * Tag eine flache Linie ohne Kontur — und die Klassenfarbe sagt ohnehin, was gilt.
+   */
+  const pointCurveCard = pointCurve ? (() => {
+    const pos = `${Math.abs(pointCurve.lat).toFixed(3)}° ${pointCurve.lat >= 0 ? 'N' : 'S'} · `
+      + `${Math.abs(pointCurve.lng).toFixed(3)}° ${pointCurve.lng >= 0 ? 'O' : 'W'}`;
+    const head = (
+      <div className="fire-ro-section-head">
+        <span className="fire-eyebrow">Punkt · Fusion</span>
+        <button
+          type="button" className="fire-pc-close"
+          aria-label="Punktkurve schließen" onClick={() => setPointCurve(null)}
+        >
+          ×
+        </button>
+      </div>
+    );
+    if (pointCurve.kind === 'loading') {
+      return (
+        <section className="fire-pc" aria-label="Feuerwetter am Punkt">
+          {head}
+          <p className="fire-pc-pos">{pos}</p>
+          <p className="fire-pc-note">Punkt-Forecast wird geholt …</p>
+        </section>
+      );
+    }
+    if (pointCurve.kind === 'error') {
+      return (
+        <section className="fire-pc" aria-label="Feuerwetter am Punkt">
+          {head}
+          <p className="fire-pc-pos">{pos}</p>
+          <p className="fire-pc-note is-gap">
+            Der Punkt-Forecast ist gerade nicht abrufbar — <strong>keine Daten</strong>, nicht
+            „keine Gefahr". ({pointCurve.message})
+          </p>
+        </section>
+      );
+    }
+    if (pointCurve.kind === 'gap') {
+      return (
+        <section className="fire-pc" aria-label="Feuerwetter am Punkt">
+          {head}
+          <p className="fire-pc-pos">{pos} · {pointCurve.country}</p>
+          <p className="fire-pc-note is-gap">{pointCurve.reason}</p>
+          {pointCurve.sources.length > 0 && (
+            <p className="fire-pc-src">Antwortende Quellen: {pointCurve.sources.join(', ')}</p>
+          )}
+        </section>
+      );
+    }
+    const max = Math.max(7.5, ...pointCurve.points.map((pt) => pt.isi));
+    const cls = (v: number) => {
+      const i = isiClassIndex(v);
+      return { color: ISI_CLASS_COLORS[Math.max(0, i)], name: DANGER_VIEWS.isi.classes[Math.max(0, i)]?.name ?? '' };
+    };
+    const now = pointCurve.points[0];
+    return (
+      <section className="fire-pc" aria-label="Feuerwetter am Punkt">
+        {head}
+        <p className="fire-pc-pos">
+          {pos} · {pointCurve.country} · {Math.round(pointCurve.elevation)} m
+        </p>
+        <p className="fire-pc-now">
+          <span className="fire-swatch" style={{ background: cls(now.isi).color }} aria-hidden="true" />
+          <strong>ISI {now.isi.toFixed(1).replace('.', ',')}</strong>
+          {' · '}{cls(now.isi).name}
+          {' · '}jetzt
+        </p>
+        <ol className="fire-pc-bars">
+          {pointCurve.points.map((pt) => (
+            <li key={pt.atMs}>
+              <span
+                className="fire-pc-bar"
+                style={{
+                  height: `${Math.max(4, Math.round((pt.isi / max) * 100))}%`,
+                  background: cls(pt.isi).color,
+                }}
+                title={`+${pt.hour} h · ISI ${pt.isi.toFixed(1)} (${cls(pt.isi).name}) · `
+                  + `${pt.t.toFixed(0)} °C · ${pt.rh.toFixed(0)} % rF · ${pt.w.toFixed(0)} km/h`}
+              />
+              <span className="fire-pc-h">{pt.hour === 0 ? 'jetzt' : `+${pt.hour}`}</span>
+            </li>
+          ))}
+        </ol>
+        <p className="fire-pc-note">
+          <strong>Punkt (Fusion) ≠ Fläche (ICON-D2).</strong> Die Kurve rechnet mit denselben
+          FWI-Gleichungen wie die Fläche, aber auf den Daten des buscosun-Punkt-Forecasts
+          (Stationen, MOSMIX, AROME/INCA); die Fläche kommt nativ aus ICON-D2. Am selben Ort
+          stimmen beide deshalb nicht exakt überein — das sind zwei Datengrundlagen, kein Fehler.
+          Stufe 1: ohne Vortagsgedächtnis, Start bei der Gleichgewichtsfeuchte der ersten Stunde.
+          Kein amtliches Produkt.
+        </p>
+        {pointCurve.skipped > 0 && (
+          <p className="fire-pc-note is-gap">
+            {pointCurve.skipped === 1 ? 'Eine Stunde wurde' : `${pointCurve.skipped} Stunden wurden`} übersprungen
+            — dort fehlten Wind oder Feuchte.
+          </p>
+        )}
+        <p className="fire-pc-src">Quellen: {pointCurve.sources.join(', ')}</p>
+      </section>
+    );
+  })() : null;
+
   const readoutContent = (inSheet: boolean) => (
     <>
       {/* BC1: der Umschalter steht ÜBER dem bestehenden Panel und ändert an ihm
@@ -1559,6 +1918,8 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
       </div>
       {readoutTab === 'footprints' && inSheet ? footprintPanel(true) : readoutTab === 'fires' ? clusterPanel : (
       <>
+      {/* WF4: die Antwort auf den letzten Klick steht oben — vor den Steckbriefen. */}
+      {pointCurveCard}
       {!inSheet && readoutLayers.length > 0 && (
         <section className="fire-ro-layerinfo" aria-label="Steckbriefe der aktiven Layer">
           <div className="fire-ro-section-head">
@@ -1576,7 +1937,7 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
       {lagging.length > 0 && (
         <p className="fire-lag-hint">
           {lagging.length === 1 ? 'Ein Layer folgt' : `${lagging.length} Layer folgen`} dem
-          Regler nicht und {lagging.length === 1 ? 'zeigt' : 'zeigen'} weiter den heutigen Stand.
+          Regler nicht und {lagging.length === 1 ? 'zeigt' : 'zeigen'} weiter den {hourly ? 'jetzigen' : 'heutigen'} Stand.
         </p>
       )}
 
@@ -1634,13 +1995,38 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
    * rechts — inkl. des „lädt …"-Pending beim entprellten Tageswechsel.
    * Desktop unten mittig ÜBER der Karte, mobil schwebend über dem Sheet.
    */
+  // WF3: der Einheiten-Umschalter (Tage | Stunden) — nur, wenn ein aktiver Layer
+  // Stundenframes hat und kein Stundenlayer die Einheit erzwingt. Standard Tage.
+  const unitSeg = unitChoice ? (
+    <div className="fire-td-unit" role="group" aria-label="Einheit des Zeitreglers">
+      {(['days', 'hours'] as const).map((u) => (
+        <button
+          key={u} type="button"
+          className={unit === u ? 'is-active' : ''}
+          aria-pressed={unit === u}
+          onClick={() => {
+            if (unit === u) return;
+            setPlay((p) => (p.playing ? { ...p, playing: false } : p));
+            setTime((t) => ({ ...t, unit: u }));
+          }}
+        >
+          {u === 'days' ? 'Tage' : 'Stunden'}
+        </button>
+      ))}
+    </div>
+  ) : null;
+
+  /** Uhrzeit zu „jetzt + h" — lokal, damit sie zur Uhr des Nutzers passt. */
+  const hourClock = (h: number) => new Date(nowMs + h * 3_600_000)
+    .toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+
   const timeDeck = showSlider ? (
-    <div className="fire-timedeck fire-glass">
+    <div className={`fire-timedeck fire-glass${hourly ? ' is-hourly' : ''}`}>
       <div className="fire-td-row">
         <button
           type="button"
           className="fire-td-play"
-          aria-label={play.playing ? 'Abspielen pausieren' : 'Tage abspielen'}
+          aria-label={play.playing ? 'Abspielen pausieren' : (hourly ? 'Stunden abspielen' : 'Tage abspielen')}
           aria-pressed={play.playing}
           onClick={() => setPlay((p) => ({ ...p, playing: !p.playing }))}
         >
@@ -1651,47 +2037,55 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
             <button
               type="button"
               className="fire-td-now"
-              disabled={time.day === 0}
+              disabled={pos === 0}
               onClick={() => {
                 setPlay((p) => (p.playing ? { ...p, playing: false } : p));
-                setTime((t) => ({ ...t, day: 0 }));
+                setPos(0);
               }}
-              title="Auf heute zurücksetzen"
+              title={hourly ? 'Auf jetzt zurücksetzen' : 'Auf heute zurücksetzen'}
             >
-              heute
+              {hourly ? 'jetzt' : 'heute'}
             </button>
-            {maxDay >= 4 && (
+            {sliderMax >= 4 && (
               <>
-                <span>+{Math.round(maxDay / 4)} T</span>
-                <span>+{Math.round(maxDay / 2)} T</span>
-                <span>+{Math.round((maxDay * 3) / 4)} T</span>
+                <span>+{Math.round(sliderMax / 4)} {hourly ? 'h' : 'T'}</span>
+                <span>+{Math.round(sliderMax / 2)} {hourly ? 'h' : 'T'}</span>
+                <span>+{Math.round((sliderMax * 3) / 4)} {hourly ? 'h' : 'T'}</span>
               </>
             )}
-            <span>+{maxDay} Tage</span>
+            <span>+{sliderMax} {hourly ? 'h' : 'Tage'}</span>
           </div>
           <input
-            type="range" min={0} max={maxDay} step={1} value={time.day}
-            aria-label="Tagesschritt"
+            type="range" min={0} max={sliderMax} step={1} value={pos}
+            aria-label={hourly ? 'Stundenschritt' : 'Tagesschritt'}
             onChange={(e) => {
               // Von Hand ziehen beendet das Abspielen — sonst kämpfen zwei
               // Quellen um denselben Regler und er zuckt.
               setPlay((p) => (p.playing ? { ...p, playing: false } : p));
-              setTime((t) => ({ ...t, day: Number(e.target.value) }));
+              setPos(Number(e.target.value));
             }}
-            style={{ '--tl-fill': `${(time.day / Math.max(maxDay, 1)) * 100}%` } as React.CSSProperties}
+            style={{ '--tl-fill': `${(pos / Math.max(sliderMax, 1)) * 100}%` } as React.CSSProperties}
           />
         </div>
         <span className="fire-td-stand">
-          {dayLabel(time.day, nowMs)}
-          {committedDay !== time.day && <span className="fire-td-pending"> · lädt …</span>}
+          {hourly ? `${hourLabel(time.hour)} · ${hourClock(time.hour)}` : dayLabel(time.day, nowMs)}
+          {committedDay !== dayForLayers && <span className="fire-td-pending"> · lädt …</span>}
         </span>
+        {unitSeg}
       </div>
     </div>
   ) : (
     <div className="fire-timedeck fire-glass">
-      <p className="fire-time-none">
-        Die aktiven Layer zeigen genau einen Zeitpunkt — kein Tagesregler.
-      </p>
+      <div className="fire-td-row">
+        <p className="fire-time-none">
+          {unitChoice
+            ? 'Die aktiven Layer zeigen auf der Tagesachse genau einen Zeitpunkt — Stundenachse wählbar.'
+            : 'Die aktiven Layer zeigen genau einen Zeitpunkt — kein Tagesregler.'}
+        </p>
+        {/* WF3 §15.5: Wind allein hat keine Tagesachse (WW1), aber eine Stundenachse —
+            der Umschalter muss auch hier erreichbar sein, sonst gäbe es sie nicht. */}
+        {unitSeg}
+      </div>
     </div>
   );
 
@@ -1752,6 +2146,7 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
           <main className="fire-center">
             <FireMap
               active={active} basemap={basemap} day={committedDay} isoDate={committedIso}
+              windTargetMs={windTargetMs}
               chDanger={chDanger} chBans={chBans} deStations={deStations} hotspots={hotspots}
               hotspotFootprints={hotspotFootprints} hotspotProvider={hotspotProvider}
               fireZones={mapZones}
@@ -1764,7 +2159,9 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
               burntWeekFc={burntSplit.weekFc}
               burntBuckets={burntBuckets} burntLookup={burntLookup} burntWeek={burntWeek}
               fireEvents={fireEvents} emsActs={emsActs} atContexts={atContexts} clcMask={clcMask}
-              weather={weather} wind={wind} soil={soil} prefetchIsoDate={prefetchIso} onTier={setTier}
+              weather={weather} wind={wind} soil={soil} forecast={forecast}
+              onPointForecast={requestPointCurve}
+              prefetchIsoDate={prefetchIso} onTier={setTier}
             />
             {/* E3: Der Index steht nie allein — auf der Karte hängt seine
                 Einordnung als Begleiter daneben (und umgekehrt), mit dem
@@ -1791,6 +2188,14 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
                 Feuerwetter-Treiber: eingefärbt ist die <strong>Trockenheit der Luft</strong>
                 {' '}(je dunkler, desto trockener). Ein Treiber, kein Index — die kumulativen
                 FWI-Codes sind nicht enthalten.
+              </div>
+            )}
+            {active.has('fireForecast') && forecast && (
+              <div className="fire-scaffold-note fire-glass" role="status">
+                <strong>Feuerwetter stündlich (ISI)</strong> — eingefärbt ist die erwartete
+                Ausbreitungsgeschwindigkeit nach der Zündung (Feinstoff-Feuchte × Wind), gerechnet
+                aus ICON-D2 mit den FWI-Gleichungen. Modellwert, kein amtliches Produkt · Stufe 1:
+                ohne Vortagsgedächtnis. Klick auf die Karte: Punktkurve aus dem buscosun-Punkt-Forecast.
               </div>
             )}
             {!isMobile && timeDeck}

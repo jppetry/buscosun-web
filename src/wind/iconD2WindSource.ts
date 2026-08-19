@@ -14,7 +14,7 @@
  * CC BY 4.0, kein API-Key.
  */
 
-import { resolveLatestRun, fetchStepBytes, gribCorners, decodeGrib2, type GribField } from '../sources/iconD2Precip';
+import { resolveLatestRun, fetchStepBytes, gribCorners, decodeGrib2, D2_WIND_PROXY_BASE, type GribField } from '../sources/iconD2Precip';
 import { reportManifest, stateFromUpdatedAt } from '../sources/manifestHealth';
 import { stepsForNowWindow } from '../sources/frameAtValidTime';
 import { buildWindRgba } from './windFrameBuild';
@@ -47,7 +47,7 @@ const CONCURRENCY = 6;
  *  In Prod/`netlify dev` bedient die Edge Function `netlify/edge-functions/
  *  dwd-wind.ts` diesen Pfad (durable Edge-Cache); in `vite dev` ein dünner
  *  Pass-Through-Proxy. Precip/Clouds/Temp bleiben unberührt auf `/_dwd_opendata`. */
-const WIND_GRIB_BASE = '/_dwd_wind/weather/nwp/icon-d2/grib';
+const WIND_GRIB_BASE = D2_WIND_PROXY_BASE;
 /** Warm-Manifest (winzig, same-origin, vom Warm-Cron umgelegt). Nennt den zuletzt
  *  vollständig gewärmten Lauf + dessen Schritte → der Client fragt AUSSCHLIESSLICH
  *  gewärmte Läufe an (kein Directory-Scan, kein spekulativer Fehl-Rat). */

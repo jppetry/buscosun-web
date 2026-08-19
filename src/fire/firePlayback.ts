@@ -40,6 +40,20 @@ export function daysPerSecondForTier(tier: PerfTier): number {
   return tier === 'low' ? 0.7 : tier === 'mid' ? 0.9 : 1.1;
 }
 
+/**
+ * WF3 — Abspielgeschwindigkeit auf der **Stundenachse**, je Geräteklasse.
+ *
+ * Doppelt so schnell wie die Tage, und das ist kein Gegensatz zur Begründung
+ * oben: ein Stundenwechsel holt keine Kachelrunde vom Fremdserver — die
+ * Stundenframes (RH, Boden) liegen fertig gerastert im Speicher, ein Wechsel ist
+ * ein `setData`. Bleibt die Lesbarkeit: ~0,45 s Standzeit je Stunde bei 2,2 h/s,
+ * sechs Stunden in knapp drei Sekunden. Tier-Staffel wie bei den Tagen (D-09).
+ * `stepPlayback` selbst ist einheitenfrei und wird unverändert benutzt.
+ */
+export function hoursPerSecondForTier(tier: PerfTier): number {
+  return 2 * daysPerSecondForTier(tier);
+}
+
 export function defaultPlayback(tier: PerfTier = 'high'): FirePlaybackState {
   return { playing: false, daysPerSecond: daysPerSecondForTier(tier) };
 }
@@ -105,6 +119,15 @@ export function verifyFirePlayback(): { checks: PlaybackCheck[]; passed: number;
     daysPerSecondForTier('low') > 0);
   add('Vorgabe startet pausiert — kein ungefragter Netzverkehr',
     defaultPlayback().playing === false);
+  // WF3: Stunden laufen schneller als Tage (Frames im Speicher), Staffel bleibt.
+  add('Stundenachse: schneller als Tage, Tier-Staffel erhalten, nie 0',
+    hoursPerSecondForTier('high') > daysPerSecondForTier('high')
+      && hoursPerSecondForTier('high') > hoursPerSecondForTier('mid')
+      && hoursPerSecondForTier('mid') > hoursPerSecondForTier('low')
+      && hoursPerSecondForTier('low') > 0);
+  // Sechs Stunden enden, wie sechs Tage enden: am Horizont, ohne Überlauf.
+  const hEnd = stepPlayback(5.9, 0.1, hoursPerSecondForTier('high'), 6);
+  add('Stundenachse: stepPlayback hält bei 6 an (einheitenfrei)', hEnd.day === 6 && hEnd.ended);
 
   // --- Die Schrittlogik
   // Achtung, hier ist die erste Fassung dieser Zusicherung gescheitert — und die

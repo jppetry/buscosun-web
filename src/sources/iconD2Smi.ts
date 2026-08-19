@@ -79,9 +79,10 @@ export const SOIL_MODE_FULL_LABEL: Record<SoilDrynessMode, string> = {
   rootzone: 'Wurzelzone bis 81 cm — Vorrat der Bäume, reagiert in Wochen',
 };
 
-/** Horizont in Stunden. Der Regler geht in Tagesschritten; +24 h ist der
- *  Schritt, der aus JEDEM Lauf erreichbar ist (`smi` liegt bis +48 h vor,
- *  aber ein 00z-Lauf erreicht den Mittag von Tag 2 nicht mehr). */
+/** Horizont in Stunden. Der Regler geht in Tagesschritten (Mittagsanker) oder
+ *  — WF3 — in Stundenschritten bis +12 h ab jetzt; +24 h ist der Schritt, der
+ *  aus JEDEM Lauf erreichbar ist (`smi` liegt bis +48 h vor, aber ein 00z-Lauf
+ *  erreicht den Mittag von Tag 2 nicht mehr). */
 const MAX_STEP = 24;
 const MIN_STEP = 0;
 const TARGET_WIDTH = 700;

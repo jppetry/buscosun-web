@@ -29,9 +29,13 @@
  * (FFMC, DMC, DC) tragen Wochen an Vorgeschichte und sind client-seitig nicht
  * rechenbar (D-01, `docs/DATA_SOURCES.md` §W.5) — sie kommen fertig von GWIS.
  * Ein zusammengesetzter „Treiber-Score" aus Feuchte, Temperatur, Wind und
- * Niederschlag ist bewusst **nicht** gebaut: dessen Gewichte wären frei
- * gewählt und damit eine Modellaussage, die niemand kalibriert hat (die Lehre
- * aus dem Rotations-Layer F5). Offen als Entscheidung, nicht als Versäumnis.
+ * Niederschlag mit **eigenen** Gewichten ist bewusst **nicht** gebaut: dessen
+ * Gewichte wären frei gewählt und damit eine Modellaussage, die niemand
+ * kalibriert hat (die Lehre aus dem Rotations-Layer F5). **Entschieden 2026-08-19
+ * (Jan, `audit/waldbrand-forecast.md` §13 (a)):** publizierte Gleichungssysteme
+ * sind zugelassen — der stündliche FWI nach Van Wagner lebt in `src/fire/fwi/`
+ * (WF1) und wird als eigener Layer „Feuerwetter stündlich" gebaut (WF2 ff.);
+ * er ersetzt diesen Treiber-Layer nicht. Eigene Gewichte bleiben tabu.
  */
 
 import {
@@ -44,7 +48,9 @@ export const ICON_D2_RELHUM_ATTRIBUTION =
   + 'target="_blank" rel="noopener">Deutscher Wetterdienst</a>, ICON-D2 (relhum_2m), '
   + 'Rasterdaten bildlich wiedergegeben · CC BY 4.0';
 
-/** Horizont in Stunden. Der Waldbrand-Regler geht in Tagesschritten bis +1. */
+/** Horizont in Stunden. Der Waldbrand-Regler geht in Tagesschritten bis +1
+ *  (Mittagsanker) oder — WF3 — in Stundenschritten bis +12 h ab jetzt; beides
+ *  liegt aus jedem Lauf innerhalb von +24 h. */
 const MAX_STEP = 24;
 /** `relhum_2m` ist **instantan** — anders als `lpi_max`/`vmax_10m` ist t+0 gültig. */
 const MIN_STEP = 0;

@@ -17,7 +17,10 @@
  *
  * Kein additiver Score, keine Gewichte: der vorhandene Klassifikator ist durch
  * zwei unabhängige Verfahren validiert; ein 14-Signal-Score wäre an zwei
- * Beispielen kalibriert und nur scheinbar genauer (Kickoff A4).
+ * Beispielen kalibriert und nur scheinbar genauer (Kickoff A4). Das gilt für
+ * **eigene** Gewichte; publizierte Gleichungssysteme (FWI, `src/fire/fwi/`) sind
+ * seit 2026-08-19 zugelassen (`audit/waldbrand-forecast.md` §13 (a)) — sie
+ * betreffen das Feuerwetter, nicht diese Bestätigungslogik.
  *
  * Pur, DOM-frei — `npm run verify:fire-behoerden`.
  */

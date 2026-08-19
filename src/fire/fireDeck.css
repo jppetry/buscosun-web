@@ -343,6 +343,22 @@
    Kacheln noch nicht. Das zu verschweigen sähe aus, als hinge die Karte. */
 .fire-td-pending { color: var(--terracotta-500, #C97B47); font-style: italic; }
 .fire-time-none { margin: 0; font-size: 12px; color: var(--stone-600, #5C5447); line-height: 1.5; }
+/* WF3 §15.5: ohne Tagesachse (Wind allein) steht der Hinweis in der Zeile — der
+   Umschalter rückt wie beim Regler ans rechte Ende. */
+.fire-td-row > .fire-time-none { flex: 1 1 auto; }
+/* WF3: Einheiten-Umschalter „Tage | Stunden" am rechten Ende der Zeile — Optik
+   des Dock-Untersegments (.fire-subseg), eigener Name, weil er im Zeit-Deck
+   steht. Er erscheint nur, wenn ein aktiver Layer Stundenframes hat; ohne ihn
+   ist die Zeile pixelgleich zum Stand vor WF3. */
+.fire-td-unit { display: flex; gap: 4px; flex: 0 0 auto; }
+.fire-td-unit button {
+  border: 1px solid var(--sand-200, #E0D6BE); background: #fff; cursor: pointer;
+  font: inherit; font-size: 11px; font-weight: 600; color: var(--stone-500, #8B7355);
+  border-radius: 7px; padding: 5px 9px; min-height: 26px;
+}
+.fire-td-unit button.is-active {
+  background: var(--terracotta-500, #C97B47); border-color: var(--terracotta-500, #C97B47); color: #fff;
+}
 
 /* --- Readout (Muster .mdk-readout + mdk-ro-lcard + .layer-info) ------------ */
 .fire-readout {
@@ -672,6 +688,13 @@
   .fire-timedeck input[type='range']::-webkit-slider-thumb { width: 20px; height: 20px; margin-top: -7px; }
   .fire-td-now { padding: 13px 8px; margin: -13px -8px; }
   .fire-td-play { width: 46px; height: 46px; }
+  /* WF3: der Einheiten-Umschalter passt mobil nicht mehr neben Stand und Spur —
+     er wird zur eigenen Zeile unter dem Regler, beide Knöpfe je 44 px hoch.
+     Ohne Umschalter (kein Stundenlayer aktiv) ändert das Wrap nichts: Spur
+     (flex-basis 0) und Stand passen wie zuvor in eine Zeile. */
+  .fire-td-row { flex-wrap: wrap; }
+  .fire-td-unit { flex: 1 1 100%; }
+  .fire-td-unit button { flex: 1; min-height: 44px; font-size: 12.5px; }
 
   /* Die Attributionszeile von MapLibre sitzt am unteren Kartenrand und läge
      sonst unter der Zeitleiste. Sie ist eine Lizenzpflicht (GWIS, BAFU, DWD,
@@ -986,3 +1009,76 @@
 .fire-fp-features li span:last-child { text-align: right; font-variant-numeric: tabular-nums; }
 .fire-fp-features-foot { display: flex; align-items: flex-start; gap: 8px; }
 .fire-fp-features-foot .fire-fp-inline-btn { flex: 0 0 auto; }
+
+
+/* ── WF4: Punktkurve (Feuerwetter stündlich am angeklickten Ort) ──────────────
+   Optik der Readout-Karten (`fire-ro-lcard`), aber eigene Klassen: die Karte ist
+   kein Layer-Steckbrief, sondern die Antwort auf die letzte Handlung. Die
+   Balkenfarbe kommt aus `isiRamp.ts` (dieselbe Reihe wie die Fläche) und steht
+   deshalb im Markup, nicht hier. */
+.fire-pc {
+  position: relative;
+  margin: 0 0 12px; padding: 11px 12px 10px;
+  background: #fff; border: 1px solid var(--sand-200, #E3DAC5); border-radius: 12px;
+}
+.fire-pc .fire-ro-section-head { display: flex; align-items: center; justify-content: space-between; }
+.fire-pc-close {
+  width: 26px; height: 26px; padding: 0;
+  border: 1px solid var(--sand-200, #E3DAC5); border-radius: 8px; background: #fff;
+  color: var(--stone-500, #8B7355); font-size: 15px; line-height: 1; cursor: pointer;
+}
+.fire-pc-close:hover { background: var(--sand-50, #F5F1E8); color: var(--ink-700, #3B342A); }
+.fire-pc-pos {
+  margin: 2px 0 6px; font-size: 10.5px; letter-spacing: 0.02em;
+  color: var(--stone-500, #8B7355); font-variant-numeric: tabular-nums;
+}
+.fire-pc-now {
+  display: flex; align-items: center; gap: 6px;
+  margin: 0 0 8px; font-size: 13px; color: var(--ink-700, #3B342A);
+}
+.fire-pc-now .fire-swatch { width: 12px; height: 12px; border-radius: 3px; flex: 0 0 auto; }
+
+/* Die Balken: eine Stunde je Spalte, Höhe auf das Maximum der Kurve normiert.
+   Feste Höhe, damit die Karte beim Stundenwechsel nicht springt. */
+.fire-pc-bars {
+  display: flex; align-items: flex-end; gap: 4px;
+  height: 74px; margin: 0 0 8px; padding: 0; list-style: none;
+}
+.fire-pc-bars li {
+  flex: 1 1 0; display: flex; flex-direction: column; align-items: center;
+  justify-content: flex-end; height: 100%; gap: 3px;
+}
+.fire-pc-bar {
+  width: 100%; min-height: 3px; border-radius: 3px 3px 0 0;
+  border: 1px solid rgba(59, 52, 42, 0.12); border-bottom: 0;
+}
+.fire-pc-h {
+  font-size: 9.5px; color: var(--stone-500, #8B7355);
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.fire-pc-note {
+  margin: 0 0 6px; font-size: 10.5px; line-height: 1.5; color: var(--stone-500, #8B7355);
+}
+.fire-pc-note strong { color: var(--ink-700, #3B342A); }
+/* Ein Leerzustand ist kein Nebensatz: er bekommt dieselbe Aufmerksamkeit wie
+   der Hinweis „folgt dem Regler nicht" (`fire-lag-hint`). */
+.fire-pc-note.is-gap {
+  padding: 7px 9px; border-radius: 0 8px 8px 0;
+  background: var(--terracotta-50, #FAEEDA); border-left: 2px solid var(--terracotta-500, #C97B47);
+  color: var(--terracotta-700, #A85E2E);
+}
+.fire-pc-src {
+  margin: 0; padding-top: 6px; border-top: 1px solid var(--sand-100, #EDE6D3);
+  font-size: 9.5px; color: var(--stone-400, #A89578);
+}
+
+@media (max-width: 767px) {
+  /* Touch: der Schließen-Knopf ist ein echtes Ziel (44 px), ohne die Karte
+     auseinanderzuziehen — Padding-Trick wie bei `.fire-td-now`. */
+  .fire-pc-close {
+    width: 44px; height: 44px; margin: -9px -9px -9px 0;
+    background: transparent; border-color: transparent; font-size: 20px;
+  }
+  .fire-pc-bars { height: 84px; }
+  .fire-pc-h { font-size: 10px; }
+}

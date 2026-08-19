@@ -25,6 +25,11 @@ import {
   hasOfficialFireIndex, nationalSourceFor, sortByZBand,
 } from '../src/fire/fireModel.ts';
 import { verifyFireState, encodeFireState, decodeFireState } from '../src/fire/fireState.ts';
+// WF4: die Farbrampe des Forecast-Layers — die EFFIS-Klassengrenzen der Fläche
+// müssen dieselben sein wie die der Legende daneben.
+import { verifyIsiRamp, ISI_CLASS_BOUNDS, isiRamp } from '../src/fire/fwi/isiRamp.ts';
+import { ISI_VMAX } from '../src/sources/iconD2FireWeather.ts';
+import { DANGER_VIEWS } from '../src/fire/dangerViews.ts';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const FIRE_DIR = join(ROOT, 'src', 'fire');
@@ -34,6 +39,7 @@ const add = (name, ok, detail) => checks.push({ name, ok, detail });
 // --- (1) Die in den Modulen eingebetteten Selbstverifikationen --------------
 for (const c of verifyFireModel().checks) add(`[fireModel] ${c.name}`, c.ok, c.detail);
 for (const c of verifyFireState().checks) add(`[fireState] ${c.name}`, c.ok, c.detail);
+for (const c of verifyIsiRamp().checks) add(`[isiRamp] ${c.name}`, c.ok, c.detail);
 
 // --- (2) Unabhängige Kontrollen gegen die exportierten Helfer ---------------
 
@@ -67,6 +73,22 @@ add('Round-Trip: alle Layer + Ort + Tag + Fenster',
   rt && rt.layers.length === FIRE_LAYER_ORDER.length && rt.day === 4
   && rt.windowH === 168 && rt.location?.country === 'AT',
   `${rt?.layers.length} Layer`);
+
+// WF4: die Grenzen der FLÄCHE sind exakt die der LEGENDE. Die Legende führt sie
+// als Text („3,2–5,0"), die Rampe als Zahl — hier werden beide gegeneinander
+// gelesen. Wer eine der beiden Seiten ändert, ohne die andere, fällt hier auf.
+{
+  const fromLegend = DANGER_VIEWS.isi.classes
+    .map((c) => c.range.match(/(\d+(?:,\d+)?)/))          // erste Zahl je Klasse
+    .slice(1)                                              // „< 3,2" der ersten Klasse ist die erste Grenze
+    .map((m) => (m ? Number(m[1].replace(',', '.')) : NaN));
+  add('WF4: die ISI-Rampe trägt exakt die Klassengrenzen der EFFIS-Legende',
+    fromLegend.length === ISI_CLASS_BOUNDS.length
+      && fromLegend.every((v, i) => Math.abs(v - ISI_CLASS_BOUNDS[i]) < 1e-9),
+    `Legende ${fromLegend.join('/')} · Rampe ${ISI_CLASS_BOUNDS.join('/')}`);
+  add('WF4: die Stops liegen bei ISI/ISI_VMAX — dieselbe Normierung wie der R-Kanal',
+    ISI_CLASS_BOUNDS.every((b) => isiRamp[b / ISI_VMAX] !== undefined), `ISI_VMAX=${ISI_VMAX}`);
+}
 
 // --- (3) Quell-Sonden -------------------------------------------------------
 const files = readdirSync(FIRE_DIR).filter((f) => /\.tsx?$/.test(f));

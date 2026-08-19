@@ -35,6 +35,8 @@ import {
 } from '../wind/iconD2WindSource';
 import { soilDrynessRamp, ICON_D2_SMI_ATTRIBUTION } from '../sources/iconD2Smi';
 import { drynessRamp, RELHUM_DRY_FROM, RELHUM_MAX } from '../sources/iconD2Relhum';
+import { ICON_D2_FIRE_WEATHER_ATTRIBUTION } from '../sources/iconD2FireWeather';
+import { isiRamp } from './fwi/isiRamp';
 import { gwisRasterSource, gwisPrefetchUrls, GWIS_FWI_ATTRIBUTION } from './sources/gwisFwi';
 import { GWIS_HOTSPOT_ATTRIBUTION } from './sources/gwisHotspots';
 import {
@@ -145,6 +147,9 @@ const GL_LAYERS: Record<FireLayerId, string[]> = {
   fireFootprints: [
     'fire-footprints-fill', 'fire-footprints-line', 'fire-footprints-hover-line', 'fire-footprints-sel-line',
   ],
+  // WF4: WebGL-Custom-Layer (ScalarLayer) wie `fireWeather`/`fireSoilDryness` —
+  // kein Platzhalter in installLayers, plus der leere Lizenzträger.
+  fireForecast: ['fire-forecast-attrib', 'fire-forecast-scalar'],
 };
 
 /**
@@ -164,6 +169,9 @@ const GL_LAYERS: Record<FireLayerId, string[]> = {
 const ATTRIB_CARRIERS: readonly { layerId: string; sourceId: string; attribution: string }[] = [
   { layerId: 'fire-wind-attrib', sourceId: 'fire-wind-attr', attribution: ICON_D2_WIND_ATTRIBUTION },
   { layerId: 'fire-soil-attrib', sourceId: 'fire-soil-attr', attribution: ICON_D2_SMI_ATTRIBUTION },
+  // WF4: die Zeile nennt die sechs ICON-D2-Felder UND sagt „kein amtliches
+  // Produkt" — der Layer ist eine buscosun-Rechnung auf DWD-Daten.
+  { layerId: 'fire-forecast-attrib', sourceId: 'fire-forecast-attr', attribution: ICON_D2_FIRE_WEATHER_ATTRIBUTION },
 ];
 
 /**
@@ -176,7 +184,7 @@ const ATTRIB_CARRIERS: readonly { layerId: string; sourceId: string; attribution
  * ersten Verdrahten des Treibers passiert: Werte korrekt geladen, nichts sichtbar.
  */
 const CUSTOM_GL_LAYERS = new Set([
-  'fire-weather-scalar', 'fire-wind-particles', 'fire-soil-scalar',
+  'fire-weather-scalar', 'fire-wind-particles', 'fire-soil-scalar', 'fire-forecast-scalar',
 ]);
 
 const BURNT_GL: Record<BurntBucket, string[]> = {
@@ -269,12 +277,31 @@ interface Props {
    */
   wind: IconD2Wind | null;
   /**
+   * WF3 — Zielzeit des Windframes in ms, oder `null` = jetzt. Auf der Stundenachse
+   * reicht `FirePage` „jetzt + h" herein (bis +6 h, `HOUR_AXIS_MAX`); auf der
+   * Tagesachse bleibt es bei `null`, weil der Wind dort `instant` ist (WW1).
+   */
+  windTargetMs?: number | null;
+  /**
    * WT1 — Bodentrockenheit: das `dryness`-Bild des passenden ICON-D2-Schritts,
    * bereits für die gewählte Tiefe. Wie beim Treiber reicht der fertige Frame —
    * die Tiefen- und Zeitwahl trifft `FirePage`, die Karte zeichnet nur.
    */
   soil: { image: HTMLCanvasElement; width: number; height: number;
     uvBounds: [number, number, number, number] } | null;
+  /**
+   * WF4 — Feuerwetter stündlich: der fertige ISI-Frame des passenden Schritts.
+   * Wie beim Treiber trifft `FirePage` die Zeitwahl (`frameAtValidTime`), die
+   * Karte zeichnet nur. Der R-Kanal trägt bereits `ISI/ISI_VMAX` (0..1).
+   */
+  forecast: { image: HTMLCanvasElement; width: number; height: number;
+    uvBounds: [number, number, number, number] } | null;
+  /**
+   * WF4 — Klick auf die Karte bei aktivem Forecast-Layer: die Stelle, für die
+   * die Punktkurve aus dem Punkt-Forecast der Fusion geholt wird. Läuft VOR der
+   * Popup-Kette und greift nicht in sie ein (Muster `onSelectCluster`).
+   */
+  onPointForecast?: (lng: number, lat: number) => void;
   /** Tag, der als Nächstes gebraucht wird — wird im Leerlauf vorgeladen. */
   prefetchIsoDate?: string | null;
   /** Meldet die Geräteklasse, sobald der GL-Kontext steht (fuer die Abspielrate). */
@@ -347,7 +374,8 @@ export default function FireMap({
   hotspotProvider, dangerView, burntSeason, burntArchive, burntWeekFc = null,
   burntBuckets, burntLookup, burntWeek,
   fireEvents = EMPTY_EVENTS, emsActs = EMPTY_EMS, atContexts = EMPTY_CTX, clcMask = null,
-  weather, wind, soil, prefetchIsoDate, onTier, onMapRef,
+  weather, wind, soil, prefetchIsoDate, onTier, onMapRef, windTargetMs = null,
+  forecast = null, onPointForecast,
 }: Props) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -386,13 +414,13 @@ export default function FireMap({
     active, isoDate, chDanger, chBans, deStations, hotspots, hotspotFootprints, fireZones, zoneFc,
     clusters, clusterFc, selectedClusterId, footprintFc, hoverFootprintId, selectedFootprintId,
     hotspotProvider, dangerView, burntSeason, burntArchive, burntWeekFc, burntBuckets, burntLookup, burntWeek, weather,
-    wind, soil, fireEvents, emsActs, atContexts, clcMask,
+    wind, soil, forecast, fireEvents, emsActs, atContexts, clcMask,
   });
   stateRef.current = {
     active, isoDate, chDanger, chBans, deStations, hotspots, hotspotFootprints, fireZones, zoneFc,
     clusters, clusterFc, selectedClusterId, footprintFc, hoverFootprintId, selectedFootprintId,
     hotspotProvider, dangerView, burntSeason, burntArchive, burntWeekFc, burntBuckets, burntLookup, burntWeek, weather,
-    wind, soil, fireEvents, emsActs, atContexts, clcMask,
+    wind, soil, forecast, fireEvents, emsActs, atContexts, clcMask,
   };
   /** Der Auswahl-Rückruf, so wie er JETZT ist — der Klick-Handler wird einmal
    *  registriert und dürfte sonst für immer den ersten Rückruf halten. */
@@ -407,6 +435,11 @@ export default function FireMap({
   /** WT1 — der ScalarLayer der Bodentrockenheit. Eine Instanz über Stilwechsel
    *  hinweg, genau wie der Treiber (MapLibre verwirft Custom-Layer beim setStyle). */
   const soilLayerRef = useRef<ScalarLayer | null>(null);
+  /** WF4 — der ScalarLayer des stündlichen ISI. Eine Instanz über Stilwechsel. */
+  const forecastLayerRef = useRef<ScalarLayer | null>(null);
+  /** WF4 — der Klick-Haken für die Punktkurve (einmal registriert, s. onSelectCluster). */
+  const onPointForecastRef = useRef(onPointForecast);
+  onPointForecastRef.current = onPointForecast;
   /**
    * WW1 — die eine `WindLayer`-Instanz. Wie beim Treiber: EINE Instanz über
    * Stilwechsel hinweg, weil MapLibre Custom-Layer beim `setStyle` verwirft.
@@ -601,6 +634,43 @@ export default function FireMap({
     }
 
     /**
+     * WF4 — Feuerwetter stündlich (`ScalarLayer`), Muster wie die beiden Treiber
+     * darüber: idempotent einhängen, weil `setStyle` Custom-Layer verwirft.
+     *
+     * `visRange` bleibt bei 0: die Ausblendung sitzt in der Rampe selbst — die
+     * unterste EFFIS-Klasse („Low") ist halbtransparent. Eine zweite, frei
+     * gewählte Sichtbarkeitsschwelle daneben würde die Klassengrenzen der
+     * Legende gegenüber der Fläche verschieben.
+     */
+    if (s.forecast) {
+      if (!forecastLayerRef.current) {
+        forecastLayerRef.current = new ScalarLayer({
+          id: 'fire-forecast-scalar',
+          colorRamp: isiRamp,
+          visRange: { start: 0, end: 0 },
+          opacity: 0.75,
+          zoomAttenuation: { from: 11, perStep: 0.08, floor: 0.7 },
+        });
+      }
+      if (!m.getLayer('fire-forecast-scalar')) {
+        m.addLayer(
+          forecastLayerRef.current as unknown as maplibregl.LayerSpecification,
+          firstLayerAbove(m, 'fireForecast'),
+        );
+      }
+      if (import.meta.env.DEV) {
+        (window as unknown as { __fireForecastLayer?: ScalarLayer }).__fireForecastLayer = forecastLayerRef.current;
+      }
+      forecastLayerRef.current.setData(s.forecast.image, {
+        width: s.forecast.width, height: s.forecast.height,
+        // Der R-Kanal trägt bereits ISI/ISI_VMAX (Normierung im Producer) —
+        // die Rampe erwartet genau diese 0..1 (s. `isiRamp`).
+        vMin: 0, vMax: 1,
+        uvBounds: s.forecast.uvBounds,
+      });
+    }
+
+    /**
      * WW1 — Windpartikel (`WindLayer`), wertgleich zur Wetterkarte.
      *
      * Dieselbe Falle wie beim Treiber: KEIN Platzhalter in `installLayers`,
@@ -726,6 +796,15 @@ export default function FireMap({
        * der Klick eine Brandfläche, wird sie gemeldet; den gegenseitigen
        * Ausschluss zur Cluster-Auswahl regelt die Seite in ihren Settern.
        */
+      /**
+       * WF4 — die Punktkurve: derselbe Platz und dieselbe Regel wie die beiden
+       * Auswahl-Blöcke — vor der Popup-Kette, ohne `return`, ohne Popup. Ein
+       * Klick auf die Karte holt den Punkt-Forecast der Fusion für DIESE Stelle;
+       * alles darunter (Detektions-Steckbrief, Flächen-Popup) bleibt unberührt.
+       */
+      if (onPointForecastRef.current && s.active.has('fireForecast')) {
+        onPointForecastRef.current(ev.lngLat.lng, ev.lngLat.lat);
+      }
       if (onSelectFootprintRef.current && map.getLayer('fire-footprints-fill')) {
         const fps = map.queryRenderedFeatures(ev.point, { layers: ['fire-footprints-fill'] });
         // Bei überlappenden Flächen die KLEINSTE — sie ist die spezifischere;
@@ -961,7 +1040,7 @@ export default function FireMap({
     const m = mapRef.current;
     if (m) applyState(m);
   }, [active, isoDate, chDanger, chBans, deStations, hotspots, dangerView,
-    burntSeason, burntArchive, burntBuckets, weather, wind, soil, day,
+    burntSeason, burntArchive, burntBuckets, weather, wind, soil, forecast, day,
     // BP2: neue Referenzen der Registry sofort, nicht erst beim nächsten `idle`.
     footprintFc, selectedFootprintId]);
 
@@ -982,13 +1061,17 @@ export default function FireMap({
    * `onAdd` bestimmt das GPU-Texturformat (`windTextureKind`), und genau das
    * geht als Eingabe in die Frame-Aufbereitung.
    *
-   * ── Zielzeit ist IMMER „jetzt" ──────────────────────────────────────────────
+   * ── Zielzeit ist „jetzt" — oder auf der Stundenachse „jetzt + h" ───────────
    * `windFrameAtValidTimeAsync` klemmt eine zu große Zielzeit stillschweigend auf
-   * den letzten Frame. Das ICON-D2-Gitter reicht +12 h, der Regler hier zählt in
-   * Tagen — auf Tag +3 gefüttert zeigte die Karte den +12-h-Wind und behauptete,
-   * es sei Donnerstag. Deshalb hängt hier bewusst KEIN `day` in den
-   * Abhängigkeiten: der Wind gilt für jetzt, und die Dock-Zeile sagt das ab Tag 1
-   * über `laggingLayers` (`audit/waldbrand-wind.md` §2).
+   * den letzten Frame. Das ICON-D2-Gitter reicht +12 h ab Lauf, der Tagesregler
+   * zählt in Tagen — auf Tag +3 gefüttert zeigte die Karte den +12-h-Wind und
+   * behauptete, es sei Donnerstag. Deshalb hängt hier bewusst KEIN `day` in den
+   * Abhängigkeiten: auf der Tagesachse gilt der Wind für jetzt, und die Dock-Zeile
+   * sagt das ab Tag 1 über `laggingLayers` (`audit/waldbrand-wind.md` §2).
+   * WF3 (§15.5): auf der Stundenachse kommt `windTargetMs` = jetzt + h herein
+   * (höchstens +6 h — aus jedem Lauf innerhalb der +12 h); liegt die Zielzeit
+   * doch jenseits des geladenen Horizonts, klemmt der Loader wie zuvor auf den
+   * letzten Frame, und `FirePage` sagt es in der Zeile (`windClamped`).
    */
   useEffect(() => {
     const layer = windLayerRef.current;
@@ -996,7 +1079,7 @@ export default function FireMap({
     // Generation-Guard wie in der Wetterkarte: die Aufbereitung läuft off-main,
     // ein späteres Ergebnis darf ein früheres nicht überholen.
     const myGen = ++windReqGenRef.current;
-    void windFrameAtValidTimeAsync(wind, Date.now(), layer.upsampleFactor, layer.windTextureKind)
+    void windFrameAtValidTimeAsync(wind, windTargetMs ?? Date.now(), layer.upsampleFactor, layer.windTextureKind)
       .then((res) => {
         if (windReqGenRef.current !== myGen || windLayerRef.current !== layer) return;
         if (res.kind === 'image') {
@@ -1021,7 +1104,7 @@ export default function FireMap({
       .catch(() => {
         // Worker-Fehler o. Ä. — der vorige Frame bleibt stehen, keine Meldung.
       });
-  }, [wind, active, windEpoch]);
+  }, [wind, active, windEpoch, windTargetMs]);
 
   return <div className="fire-map" ref={hostRef} aria-label="Waldbrandkarte DACH" />;
 }
