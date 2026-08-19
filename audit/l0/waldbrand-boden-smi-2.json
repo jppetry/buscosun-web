@@ -1,0 +1,132 @@
+{
+  "erzeugt": "2026-08-15T17:19:00.682Z",
+  "befunde": {
+    "lauf": {
+      "hh": "15",
+      "runStr": "2026081515"
+    },
+    "tiefeEbenen": {
+      "9": {
+        "datei": "icon-d2_germany_regular-lat-lon_soil-level_2026081515_000_9_smi.grib2.bz2",
+        "bytesGepackt": 759431,
+        "bytesEntpackt": 1623229,
+        "dateiHash": "5eb07d3bcc6c841b",
+        "nachrichtenInDatei": 1,
+        "werteHash": "a0c783f60d4685e9",
+        "ni": 1215,
+        "nj": 746
+      },
+      "27": {
+        "datei": "icon-d2_germany_regular-lat-lon_soil-level_2026081515_000_27_smi.grib2.bz2",
+        "bytesGepackt": 814457,
+        "bytesEntpackt": 1623229,
+        "dateiHash": "9941b22b9d302341",
+        "nachrichtenInDatei": 1,
+        "werteHash": "936ff5a661e097ef",
+        "ni": 1215,
+        "nj": 746
+      },
+      "81": {
+        "datei": "icon-d2_germany_regular-lat-lon_soil-level_2026081515_000_81_smi.grib2.bz2",
+        "bytesGepackt": 567685,
+        "bytesEntpackt": 1623229,
+        "dateiHash": "9c2805674793ecc9",
+        "nachrichtenInDatei": 1,
+        "werteHash": "80011c685c2fb185",
+        "ni": 1215,
+        "nj": 746
+      },
+      "243": {
+        "datei": "icon-d2_germany_regular-lat-lon_soil-level_2026081515_000_243_smi.grib2.bz2",
+        "bytesGepackt": 567824,
+        "bytesEntpackt": 1623229,
+        "dateiHash": "d44dddb6520dfb2d",
+        "nachrichtenInDatei": 1,
+        "werteHash": "766bb606c0f57daa",
+        "ni": 1215,
+        "nj": 746
+      },
+      "729": {
+        "datei": "icon-d2_germany_regular-lat-lon_soil-level_2026081515_000_729_smi.grib2.bz2",
+        "bytesGepackt": 567769,
+        "bytesEntpackt": 1623229,
+        "dateiHash": "5a22290ce18a98fd",
+        "nachrichtenInDatei": 1,
+        "werteHash": "766bb606c0f57daa",
+        "ni": 1215,
+        "nj": 746
+      }
+    },
+    "werteGruppen": [
+      [
+        "9"
+      ],
+      [
+        "27"
+      ],
+      [
+        "81"
+      ],
+      [
+        "243",
+        "729"
+      ]
+    ],
+    "werteverteilung": {
+      "haeufigsteWerte": [
+        {
+          "wert": 0,
+          "zellen": 248636
+        },
+        {
+          "wert": 0,
+          "zellen": 7581
+        },
+        {
+          "wert": -0.0001,
+          "zellen": 4733
+        },
+        {
+          "wert": 0.0001,
+          "zellen": 3545
+        },
+        {
+          "wert": 0.0002,
+          "zellen": 2897
+        },
+        {
+          "wert": -0.0002,
+          "zellen": 2088
+        },
+        {
+          "wert": -0.0003,
+          "zellen": 1647
+        },
+        {
+          "wert": 0.0003,
+          "zellen": 1477
+        }
+      ],
+      "perzentile": {
+        "p0": -0.381,
+        "p1": -0.0022,
+        "p5": 0,
+        "p25": 0,
+        "p50": 0.0513,
+        "p75": 0.2043,
+        "p95": 0.5581,
+        "p99": 0.8123,
+        "p100": 1.615
+      },
+      "anteilUnter0": 0.0458,
+      "anteilUeber1": 0.003,
+      "nanZellen": 151528
+    },
+    "maske": {
+      "nanUeberWasser": 151528,
+      "nanUeberLand": 0,
+      "wertUeberWasser": 223447,
+      "wertUeberLand": 531415
+    }
+  }
+}

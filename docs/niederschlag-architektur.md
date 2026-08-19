@@ -102,3 +102,39 @@ Niederschlags-Layer gerendert.
   CH 0,5 strikt), **keine Modellverlängerung** jenseits des Horizonts, DACH-OR-Sichtbarkeit,
   Slider-Horizont.
 - **Protokoll:** `tests.md` → **V-NIEDERSCHLAG**; Gate **GN1** in `checklist.md`.
+
+---
+
+## 5. Verhältnis zur geplanten 2D-Layer-Erweiterung (Analyse 2026-08-05)
+
+Die Analyse zur Erweiterung der 2D-Wetterlayer (`docs/2d-layer-erweiterung.md`) lässt **diese
+Ansicht unverändert**. Ausdrücklich festgehalten, weil Funktionserhalt oberste Direktive ist:
+
+- **D-14 wird nicht revidiert.** Der `nowcast`-Layer bleibt radar-only jetzt–2 h; es kommt keine
+  Modellverlängerung zurück.
+- **`precipSource.ts` wird nicht angefasst** — entschieden am 2026-08-05 in der L5/L6-Spec-Session.
+  Das geplante allgemeine Zeitmodell (`src/map/layerTime.ts`, V-136) **ruft**
+  `precipRadarHorizonHours` **auf**, statt die Logik zu übernehmen. Damit ist die Byte-Identität
+  konstruktiv gegeben statt geprüft — inklusive der Grenz-Inklusivität (DE 2 h und AT 3 h inklusiv
+  über `+EPS`, CH strikt `< 0,5`, `precipSource.ts:64-67`).
+  **Gate-Nachweis:** `npm run verify:precip-source` bleibt grün **und die Liste der 22 Prüfnamen
+  ist vorher/nachher identisch** (kein Check darf verschwinden oder umbenannt werden) — ein grünes
+  Exit allein genügt nicht. Begründung samt Gegenargument: `docs/zuglinien-radar-spec.md` §3.6;
+  eine spätere Zusammenführung liegt als **O-16** vor.
+- Der geplante **Regenradar-Layer (`rainradar`, L6) ist eine zusätzliche Ansicht**, keine Ablösung:
+  „gemessen, mit 60 min Rückblick und Playback" statt „gemessen + Nowcast". Er speist sich aus
+  demselben Kompositor mit demselben `h` — **kein zweiter Datenpfad**.
+- Der geplante **Zuglinien-Layer (`motion`, L6)** visualisiert ein Bewegungsfeld, das aus
+  **gemessenen** Analysen mit `estimateFlowHS` gerechnet wird (`src/ml/opticalFlowNowcast.ts`,
+  dasselbe Modul wie für `flownowcast`/`poprob`) — keine neue Quelle.
+  ⚠️ **RADOLAN-RV enthält selbst kein Bewegungsfeld** (2026-08-05 am Byte belegt,
+  `docs/DATA_SOURCES.md` §4.1 B1); die Pfeile sind buscosuns Rechnung und müssen als solche
+  attribuiert werden (`Datenbasis: …, eigene Elemente ergänzt`, V-140).
+- **`precipComposite.ts` wird in L5/L6 nicht angefasst.** Die Generalisierung auf eine Beitragsliste
+  (V-137) bleibt Phase **L8**.
+
+**Was sich ändern soll:** `precipComposite.ts` ist heute auf vier Quellen hart verdrahtet (je vier
+`ensureXxx`/`primeXxx`-Methoden). Hagel und Schneefall-Phase brauchen dieselbe
+Mehrländer-Zusammenführung, weshalb eine Generalisierung auf eine Beitragsliste vorgeschlagen ist
+(**V-137**). **Gate-Bedingung dabei:** Für die Bestandsmenge `{rv, inca, rzc, d2}` muss das Ergebnis
+byte-identisch bleiben (`verify:composite-equivalence`).

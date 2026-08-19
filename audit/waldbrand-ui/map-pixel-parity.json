@@ -1,0 +1,28 @@
+{
+  "date": "2026-08-14",
+  "vergleich": "ref-map-desktop-1440.png (vor der Phase) vs. after-map-desktop-1440.png (nach der Phase), Dev-Server :5199, gleicher #m=-Permalink, 1440x900",
+  "methode": "Canvas-Pixeldiff im Browser, Toleranz |dRGB|>12, Regionen ohne die animierte Kartenbuehne (Windpartikel) und ohne die Topbar-Uhr (Uhrzeit aendert sich per Definition)",
+  "ergebnis": {
+    "rail": {
+      "diffPixels": 0,
+      "totalPixels": 48488,
+      "maxChannelDelta": 0
+    },
+    "dock": {
+      "diffPixels": 0,
+      "totalPixels": 201476,
+      "maxChannelDelta": 0
+    },
+    "readout": {
+      "diffPixels": 0,
+      "totalPixels": 290928,
+      "maxChannelDelta": 0
+    },
+    "topbarOhneUhr": {
+      "diffPixels": 0,
+      "totalPixels": 76800,
+      "maxChannelDelta": 0
+    }
+  },
+  "fazit": "0 abweichende Pixel, maxChannelDelta 0 = byte-identisch in allen statischen Regionen. Die Phase aenderte ausschliesslich src/fire/*, Doku/Audit und budget.json; da der Arbeitsbaum schon vor der Phase aus frueheren uncommitteten Phasen dirty war, ist dieser Pixel-Diff der massgebliche Beweis (nicht git)."
+}

@@ -38,7 +38,7 @@ import { useIsMobile } from '../mobile/useIsMobile';
 import NotificationCenter from '../notifications/NotificationCenter';
 import {
   DeckActivityIcon,
-  IconDeckMap, IconDeckRadar, IconDeckEvent, IconDeckEventPlain, IconDeckTour, IconDeckGear,
+  IconDeckMap, IconDeckRadar, IconDeckEventPlain,
   IconDeckSearch, IconDeckArrowRight, IconDeckCalendar,
   IconDeckShare, IconDeckSun, IconDeckStorm, IconDeckHouse, IconDeckStarNav,
 } from './eventIcons';
@@ -60,6 +60,7 @@ const MAP_TABS: Array<{ id: LayerKey; label: string }> = [
 /** Raster-Horizont (ICON-D2) in Stunden — darüber keine Karten-Wetterdaten. */
 const RASTER_HORIZON_H = 28;
 import { useNotifications } from '../notifications/useNotifications';
+import { FeatureRail, type RailFeature } from '../nav/featureRail';
 
 /** Erkennt das Trauungs-/Zeremonie-Fenster anhand des Phasennamens. */
 const isCeremony = (label: string) => /trauung|zeremonie|trauzeremonie/i.test(label);
@@ -71,6 +72,8 @@ interface Props {
   onEdit: () => void;
   /** Zurück zum App-Hub (Rail/Logo/Bottom-Nav). Optional — ohne bleibt „Angaben ändern". */
   onBack?: () => void;
+  /** Rail: direkt in ein anderes Werkzeug springen. */
+  onOpenFeature?: (id: RailFeature) => void;
 }
 
 type State =
@@ -78,7 +81,7 @@ type State =
   | { kind: 'error'; message: string }
   | { kind: 'ready'; rec: EventRecommendation; forecast: PointForecast };
 
-export default function EventResult({ query, onEdit, onBack }: Props) {
+export default function EventResult({ query, onEdit, onBack, onOpenFeature }: Props) {
   const [state, setState] = useState<State>({ kind: 'loading' });
   const isMobile = useIsMobile();
   const { ingest } = useNotifications();
@@ -115,7 +118,7 @@ export default function EventResult({ query, onEdit, onBack }: Props) {
       <Recommendation
         rec={state.rec} query={query} forecast={state.forecast}
         activityLabel={query.activity.label} datesMode={query.window.mode === 'dates'}
-        onEdit={onEdit} onBack={onBack} isMobile={isMobile}
+        onEdit={onEdit} onBack={onBack} onOpenFeature={onOpenFeature} isMobile={isMobile}
       />
     );
   }
@@ -136,11 +139,11 @@ export default function EventResult({ query, onEdit, onBack }: Props) {
       <div className="evd-panel"><NoForecast /></div>
     );
 
-  return <ResultStateShell query={query} onEdit={onEdit} onBack={onBack} isMobile={isMobile}>{body}</ResultStateShell>;
+  return <ResultStateShell query={query} onEdit={onEdit} onBack={onBack} onOpenFeature={onOpenFeature} isMobile={isMobile}>{body}</ResultStateShell>;
 }
 
 /* Deck-Schale für Lade-/Fehlerzustände (ohne Empfehlungsdaten). */
-function ResultStateShell({ query, onEdit, onBack, isMobile, children }: { query: EventQuery; onEdit: () => void; onBack?: () => void; isMobile: boolean; children: React.ReactNode }) {
+function ResultStateShell({ query, onEdit, onBack, onOpenFeature, isMobile, children }: { query: EventQuery; onEdit: () => void; onBack?: () => void; onOpenFeature?: (id: RailFeature) => void; isMobile: boolean; children: React.ReactNode }) {
   if (isMobile) {
     return (
       <div className="evd-m-root">
@@ -154,7 +157,7 @@ function ResultStateShell({ query, onEdit, onBack, isMobile, children }: { query
     <div className="evd-root">
       <ResultTopbar query={query} onEdit={onEdit} onBack={onBack} />
       <div className="evd-body">
-        <ResultRail onBack={onBack} />
+        <ResultRail onBack={onBack} onOpenFeature={onOpenFeature} />
         <div className="evd-center evd-scroll">{children}</div>
       </div>
     </div>
@@ -184,16 +187,17 @@ function ResultTopbar({ query, onEdit, onBack }: { query: EventQuery; onEdit: ()
   );
 }
 
-function ResultRail({ onBack }: { onBack?: () => void }) {
+function ResultRail({ onBack, onOpenFeature }: { onBack?: () => void; onOpenFeature?: (id: RailFeature) => void }) {
   return (
-    <nav className="evd-rail" aria-label="Werkzeuge">
-      <button className="evd-rail-btn" title="Wetterkarte" onClick={onBack}><IconDeckMap /></button>
-      <button className="evd-rail-btn" title="Regenradar" onClick={onBack}><IconDeckRadar /></button>
-      <button className="evd-rail-btn evd-rail-btn--active" title="Event-Planung" aria-current="page"><IconDeckEvent /></button>
-      <button className="evd-rail-btn" title="Tourenplanung" onClick={onBack}><IconDeckTour /></button>
-      <span className="evd-rail-spacer" />
-      <button className="evd-rail-btn" title="Einstellungen" onClick={onBack}><IconDeckGear /></button>
-    </nav>
+    <FeatureRail
+      active="event"
+      onOpenFeature={onOpenFeature}
+      onHome={onBack ?? (() => {})}
+      navClass="evd-rail"
+      btnClass="evd-rail-btn"
+      activeClass="evd-rail-btn--active"
+      spacerClass="evd-rail-spacer"
+    />
   );
 }
 
@@ -223,7 +227,7 @@ function ResultBottomNav({ onBack }: { onBack?: () => void }) {
   );
 }
 
-function Recommendation({ rec, query, forecast, activityLabel, datesMode, onEdit, onBack, isMobile }: { rec: EventRecommendation; query: EventQuery; forecast: PointForecast; activityLabel: string; datesMode: boolean; onEdit: () => void; onBack?: () => void; isMobile: boolean }) {
+function Recommendation({ rec, query, forecast, activityLabel, datesMode, onEdit, onBack, onOpenFeature, isMobile }: { rec: EventRecommendation; query: EventQuery; forecast: PointForecast; activityLabel: string; datesMode: boolean; onEdit: () => void; onBack?: () => void; onOpenFeature?: (id: RailFeature) => void; isMobile: boolean }) {
   const best = rec.days[rec.bestIndex];
   const [linkCopied, setLinkCopied] = useState(false);
   const storm = useEventStormOutlook(query.location, forecast, best);
@@ -456,7 +460,7 @@ function Recommendation({ rec, query, forecast, activityLabel, datesMode, onEdit
     <div className="evd-root">
       <ResultTopbar query={query} onEdit={onEdit} onBack={onBack} />
       <div className="evd-body">
-        <ResultRail onBack={onBack} />
+        <ResultRail onBack={onBack} onOpenFeature={onOpenFeature} />
 
         {/* DOCK — DEIN VORHABEN */}
         <div className="evd-dock evd-scroll">

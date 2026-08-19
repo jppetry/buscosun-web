@@ -21,6 +21,7 @@ import { snowRamp, graupelRamp, hailRamp, classifyPhases, type PhaseBuffers } fr
 import type { RadarStack } from './radarFrames';
 import type { StormCell } from './cellTracking';
 import type { Basemap } from './radarState';
+import { loadDachMask } from '../countryMask';
 
 const STREETS = 'https://tiles.openfreemap.org/styles/liberty';
 
@@ -93,6 +94,7 @@ export default function RadarMap(props: Props) {
   const cmpMarkerRef = useRef<maplibregl.Marker | null>(null);
   const morphBuf = useRef<Uint8Array | null>(null);
   const styleReady = useRef(false);
+  const dachMaskRef = useRef<GeoJSON.Feature | null>(null);
 
   // Letzte Props in Refs, damit der einmalige Map-Init-Effect sie ohne Re-Init liest.
   const latest = useRef(props);
@@ -185,11 +187,57 @@ export default function RadarMap(props: Props) {
         paint: { 'line-color': '#5a78dc', 'line-width': 1.6, 'line-dasharray': [2, 1.5], 'line-opacity': 0.9 } });
     }
 
+    addDimAndMask(map);
+
     syncFrame();
     syncPhases();
     syncSnowline();
     syncOverlays();
     syncCoverage();
+  }
+
+  /**
+   * Dunkles Kartenfeld + DACH-Ausschnitt — identisch zur Wetterkarte
+   * (`MapView.tsx`): ein Ink-Schleier ÜBER der Basemap, aber UNTER dem
+   * Niederschlag, damit die Radar-Farben auf dunklem Grund stehen; darüber
+   * eine invertierte Weltfläche (Welt − DACH) in Sand, die alles außerhalb
+   * DE/AT/CH abdeckt — inklusive der Radar-Textur, die sonst rechteckig
+   * über die Nachbarländer laufen würde.
+   */
+  function addDimAndMask(map: maplibregl.Map) {
+    if (!map.getSource('radar-world')) {
+      map.addSource('radar-world', {
+        type: 'geojson',
+        data: {
+          type: 'Feature', properties: {},
+          geometry: { type: 'Polygon', coordinates: [[[-180, -85], [180, -85], [180, 85], [-180, 85], [-180, -85]]] },
+        },
+      });
+    }
+    if (!map.getLayer('radar-dim')) {
+      map.addLayer({
+        id: 'radar-dim', type: 'fill', source: 'radar-world',
+        paint: { 'fill-color': '#2C2A26', 'fill-opacity': 0.8 },
+      }, map.getLayer('radar-precip') ? 'radar-precip' : undefined);
+    }
+    const applyMask = (data: GeoJSON.Feature) => {
+      if (!mapRef.current || mapRef.current !== map || !styleReady.current) return;
+      if (!map.getSource('radar-dach-mask')) {
+        map.addSource('radar-dach-mask', { type: 'geojson', data });
+      } else {
+        (map.getSource('radar-dach-mask') as maplibregl.GeoJSONSource).setData(data);
+      }
+      if (!map.getLayer('radar-dach-mask-fill')) {
+        map.addLayer({
+          id: 'radar-dach-mask-fill', type: 'fill', source: 'radar-dach-mask',
+          paint: { 'fill-color': '#E0D6BE', 'fill-opacity': 1 },
+        });
+      } else {
+        map.moveLayer('radar-dach-mask-fill'); // stets oberhalb der Radar-Layer
+      }
+    };
+    if (dachMaskRef.current) applyMask(dachMaskRef.current);
+    else void loadDachMask().then((m) => { dachMaskRef.current = m; applyMask(m); }).catch(() => {});
   }
 
   // --- Basemap-Wechsel ------------------------------------------------------

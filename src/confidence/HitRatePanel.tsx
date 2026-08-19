@@ -32,7 +32,7 @@ export default function HitRatePanel({ data }: { data: HitRateData }) {
   return (
     <section className="fc-hit">
       <div className="fc-block-head fc-hit-head">
-        <span className="rt-eyebrow fc-eyebrow">Treffsicherheit · Rückblick · wie nah lagen die Vorhersagen am echten Wetter?</span>
+        <span className="rt-eyebrow fc-eyebrow">Treffsicherheit · Rückblick · wie nah lagen die Vorhersagen am Analyse-Konsens?</span>
         <div className="fc-seg" role="tablist" aria-label="Zeitraum">
           {WINDOWS.map((w) => (
             <button key={w} type="button" role="tab" aria-selected={windowDays === w}
@@ -41,7 +41,16 @@ export default function HitRatePanel({ data }: { data: HitRateData }) {
         </div>
       </div>
 
-      <p className="fc-hit-lead">Abgleich gegen das tatsächlich eingetretene Wetter — eine Prognose kann <em>stabil und trotzdem falsch</em> sein.</p>
+      <p className="fc-hit-lead">Abgleich gegen das eingetretene Wetter — eine Prognose kann <em>stabil und trotzdem falsch</em> sein.</p>
+      {/* V-21: Der Modulkopf von `hitRate.ts` benennt die Referenz korrekt, die UI
+          tat es bisher nicht. Ohne diesen Satz liest sich die Reihung wie eine
+          Messung gegen Stationen — sie ist es nicht (D-04). */}
+      <p className="fc-hit-note fc-hit-truth">
+        <strong>Woran gemessen wird:</strong> als „eingetreten" gilt hier der <em>Konsens der Modell-Analysen</em> je Stunde —
+        also die nachträgliche Rekonstruktion der Modelle selbst, nicht eine Stationsmessung. Das ist eine faire, quellen­unabhängige
+        Referenz für den <em>Vergleich der Quellen untereinander</em>, fällt aber milder aus als ein Abgleich mit Messwerten.
+        Die Reihung ist damit belastbar, die absoluten Werte sind eine Untergrenze der tatsächlichen Abweichung.
+      </p>
 
       <div className="fc-hit-grid">
         {/* Ranking */}

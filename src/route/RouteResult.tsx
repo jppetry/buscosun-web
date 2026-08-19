@@ -7,7 +7,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import TourView from './TourView';
 import RouteSummary from './RouteSummary';
-import RouteDeckShell, { DeckLive, IconChevLeft } from './RouteDeck';
+import RouteDeckShell, { DeckLive, IconChevLeft, type RailFeature } from './RouteDeck';
 import { validateTrack } from './routeValidation';
 import { buildTourTrack, type TourTrack } from './tourTrack';
 import { formatFileSize, type RouteFormat } from './routeFormats';
@@ -27,10 +27,11 @@ interface Props {
   parsed: ParsedFile;
   onReset: () => void;
   onHome: () => void;
+  onOpenFeature?: (id: RailFeature) => void;
   isMobile: boolean;
 }
 
-export default function RouteResult({ file, format, parsed, onReset, onHome, isMobile }: Props) {
+export default function RouteResult({ file, format, parsed, onReset, onHome, onOpenFeature, isMobile }: Props) {
   const multi = parsed.tracks.length > 1;
   const [selection, setSelection] = useState<Selection>(multi ? 'all' : 0);
   // Schritt-Flow: erst Parse-Vorschau (T2), dann Planung/Ergebnis (TourView).
@@ -58,7 +59,7 @@ export default function RouteResult({ file, format, parsed, onReset, onHome, isM
 
   // Planung/Ergebnis: TourView übernimmt die Shell (Vorlage T3–T5).
   if (tour.kind === 'done' && started) {
-    return <TourView track={tour.track} fileLabel={file.name} onBack={() => setStarted(false)} onHome={onHome} isMobile={isMobile} />;
+    return <TourView track={tour.track} fileLabel={file.name} onBack={() => setStarted(false)} onHome={onHome} onOpenFeature={onOpenFeature} isMobile={isMobile} />;
   }
 
   const crumb = (
@@ -75,7 +76,7 @@ export default function RouteResult({ file, format, parsed, onReset, onHome, isM
   );
 
   return (
-    <RouteDeckShell isMobile={isMobile} onHome={onHome} crumb={crumb} right={<DeckLive />} mobileHeader={mobileHeader}>
+    <RouteDeckShell isMobile={isMobile} onHome={onHome} onOpenFeature={onOpenFeature} crumb={crumb} right={<DeckLive />} mobileHeader={mobileHeader}>
       <div className="rd-filebar">
         <span className="rd-filebar-badge">{format.label}</span>
         <span className="rd-filebar-name" title={file.name}>{file.name}</span>

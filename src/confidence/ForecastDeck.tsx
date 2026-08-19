@@ -37,8 +37,9 @@ import { useIsMobile } from '../mobile/useIsMobile';
 import '../route/tourTheme.css';
 import './forecast.css';
 import './forecastDeck.css';
+import { FeatureRail, type RailFeature } from '../nav/featureRail';
 
-interface Props { location: Location; setLocation: (l: Location | null) => void; onBack: () => void }
+interface Props { location: Location; setLocation: (l: Location | null) => void; onBack: () => void; onOpenFeature?: (id: RailFeature) => void }
 
 type State =
   | { kind: 'loading' }
@@ -108,7 +109,7 @@ function useForecastData(location: Location) {
 // ----------------------------------------------------------------------------
 // Deck
 // ----------------------------------------------------------------------------
-export default function ForecastDeck({ location, setLocation, onBack }: Props) {
+export default function ForecastDeck({ location, setLocation, onBack, onOpenFeature }: Props) {
   const isMobile = useIsMobile();
   const data = useForecastData(location);
   const [selected, setSelected] = useState(0);
@@ -127,7 +128,7 @@ export default function ForecastDeck({ location, setLocation, onBack }: Props) {
   const sel = Math.min(selected, Math.max(0, days.length - 1));
 
   const ctx: DeckCtx = {
-    ...data, location, setLocation, onBack,
+    ...data, location, setLocation, onBack, onOpenFeature,
     selected: sel, setSelected,
     settings, saveSettings, toggleModel, metric, pickMetric,
   };
@@ -140,6 +141,7 @@ interface DeckCtx {
   state: State; history: ForecastHistory | null; hitData: HitRateData | null;
   bestTempMae: number; hitLabel: HitLabel; days: DayVM[]; lowDay: DayVM | null; stabMap: Map<string, DayStab> | null;
   location: Location; setLocation: (l: Location | null) => void; onBack: () => void;
+  onOpenFeature?: (id: RailFeature) => void;
   selected: number; setSelected: (i: number) => void;
   settings: CompareSettings; saveSettings: (s: CompareSettings) => void; toggleModel: (id: string) => void;
   metric: ChartMetric; pickMetric: (m: ChartMetric) => void;
@@ -177,7 +179,7 @@ const levelWord = (level: DayVM['confidence']['level']) => (level === 'high' ? '
 
 // ============================ Desktop / Tablet ============================
 function DesktopDeck(ctx: DeckCtx) {
-  const { state, location, setLocation, onBack } = ctx;
+  const { state, location, setLocation, onBack, onOpenFeature } = ctx;
   return (
     <div className="fcd-root">
       <div className="fcd-topbar">
@@ -199,7 +201,7 @@ function DesktopDeck(ctx: DeckCtx) {
       </div>
 
       <div className="fcd-body">
-        <Rail onBack={onBack} />
+        <Rail onBack={onBack} onOpenFeature={onOpenFeature} />
         {state.kind === 'loading' && <div className="fcd-state"><span className="ev-spinner" /><p>Mehrere Modelle werden abgeglichen …</p></div>}
         {state.kind === 'error' && <div className="fcd-state"><p>⚠ {state.message}</p></div>}
         {state.kind === 'ready' && ctx.days.length > 0 && <DesktopReady {...ctx} forecast={state.forecast} />}
@@ -365,16 +367,17 @@ function Readout({ ctx, vm, stab, lowDay }: { ctx: DeckCtx; vm: DayVM; stab: Day
   );
 }
 
-function Rail({ onBack }: { onBack: () => void }) {
+function Rail({ onBack, onOpenFeature }: { onBack: () => void; onOpenFeature?: (id: RailFeature) => void }) {
   return (
-    <nav className="fcd-rail" aria-label="Werkzeuge">
-      <button className="fcd-rail-btn" title="Wetterkarte" onClick={onBack} aria-label="Wetterkarte"><IconRailMap /></button>
-      <button className="fcd-rail-btn" title="Regenradar" onClick={onBack} aria-label="Regenradar"><IconRailRadar /></button>
-      <button className="fcd-rail-btn fcd-rail-btn--active" title="Modellvergleich" aria-current="page" aria-label="Modellvergleich"><IconRailCompare /></button>
-      <button className="fcd-rail-btn" title="Event" onClick={onBack} aria-label="Event"><IconRailEvent /></button>
-      <span className="fcd-rail-spacer" />
-      <button className="fcd-rail-btn" title="Einstellungen" onClick={onBack} aria-label="Einstellungen"><IconRailGear /></button>
-    </nav>
+    <FeatureRail
+      active="forecast"
+      onOpenFeature={onOpenFeature}
+      onHome={onBack}
+      navClass="fcd-rail"
+      btnClass="fcd-rail-btn"
+      activeClass="fcd-rail-btn--active"
+      spacerClass="fcd-rail-spacer"
+    />
   );
 }
 
@@ -539,19 +542,4 @@ function MobileMae({ hitData }: { hitData: HitRateData | null }) {
 // ============================ Icons (Vorlage) ============================
 function IconSearch() {
   return <svg className="fcd-loc-icon" width="15" height="15" viewBox="0 0 18 18" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.6" /><line x1="12.5" y1="12.5" x2="16" y2="16" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /></svg>;
-}
-function IconRailMap() {
-  return <svg width="21" height="21" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3 L21 8 L12 13 L3 8 Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" /><path d="M3 13 L12 18 L21 13" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" /></svg>;
-}
-function IconRailRadar() {
-  return <svg width="21" height="21" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5" /><path d="M12 3 A9 9 0 0 1 21 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /><circle cx="12" cy="12" r="1.5" fill="currentColor" /></svg>;
-}
-function IconRailCompare() {
-  return <svg width="21" height="21" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 18 L9 11 L13 14 L20 5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /><path d="M4 5 L4 20 L20 20" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" strokeOpacity=".5" /></svg>;
-}
-function IconRailEvent() {
-  return <svg width="21" height="21" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5" stroke="currentColor" strokeWidth="1.6" /><line x1="3.5" y1="9.5" x2="20.5" y2="9.5" stroke="currentColor" strokeWidth="1.6" /></svg>;
-}
-function IconRailGear() {
-  return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.6" /><path d="M12 2.5 V5 M12 19 V21.5 M2.5 12 H5 M19 12 H21.5 M5.2 5.2 L7 7 M17 17 L18.8 18.8 M18.8 5.2 L17 7 M7 17 L5.2 18.8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>;
 }

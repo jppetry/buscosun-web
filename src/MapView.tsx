@@ -1,6 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { LayerKey } from './map/layerTypes';
 import { encodeMapState } from './mapState';
+// V-19/V-20: Datenalter statt Abrufzeit + Sichtbarkeit des Warm-Manifests.
+import { dataAgeText, isStale, oldestRef, ageText, type DataRef } from './dataAge';
+import { getManifestHealth, subscribeManifestHealth, type ManifestHealth } from './sources/manifestHealth';
 import maplibregl, { Map as MapLibreMap, Marker } from 'maplibre-gl';
+import type { ExpressionSpecification } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { Location, Country } from './types';
 import { WindLayer } from './wind/WindLayer';
@@ -61,6 +66,38 @@ import { snowRamp } from './radar/precipPhase';
 // zu einem geglätteten 0–100-VERDACHTS-Score für rotierende Aufwinde/Superzellen
 // (0–12 h). Modell-Verdacht, kein Warnprodukt (§0). Lazy beim Aktivieren.
 import { fetchIconD2Rotation, type IconD2Rotation } from './sources/iconD2Rotation';
+// Zellbahnen (Phase Z1, E3): DWD KONRAD3D — amtlich erkannte Konvektionszellen
+// mit amtlicher Zugspur und amtlicher Unsicherheitsellipse. Lazy beim Aktivieren,
+// Polling nur bei aktivem Layer UND sichtbarem Tab (~0,6 MB je 5 min).
+import { fetchKonrad3d, KONRAD3D_ATTRIBUTION, KONRAD3D_HAIL_ATTRIBUTION } from './sources/dwdKonrad3d';
+import {
+  buildCellFeatures, cellFeatureCounts, cellLocationRelevance, cellRelevanceText,
+  CELL_TIME_MARK_LEADS, type CellFeatureProperties,
+} from './radar/cellPolygons';
+import type { Konrad3dRun } from './radar/konrad3d';
+// Hagel (Phase HA1): CH = MeteoSchweiz MESHS/POH (amtliche Korngröße bzw.
+// Wahrscheinlichkeit), DE = KONRAD3D-Zellen mit Hagelsignal. AT hat keine offene
+// Quelle — das sagt der Layer ausdrücklich (audit/hagel.md §7).
+import {
+  fetchSwissHail, isSwissHailSeason, METEOSWISS_HAIL_ATTRIBUTION, type HailProduct,
+} from './sources/meteoSwissHail';
+import {
+  buildHailCellFeatures, hailRasterToRGBA, hailLegendEnds, stopsFor, meshsLabel, pohLabel,
+  type HailCellProperties,
+} from './radar/hailField';
+// Amtliche Wetterwarnungen (Phase W1): DWD CAP 1.2, Landkreis-Vollstand. Der
+// EINZIGE Layer, der ein amtliches Warnprodukt IST — alle anderen verweisen
+// darauf. Texte werden zitiert, nie umformuliert (audit/wetterwarnungen.md §0).
+import { fetchDwdWarnings, DWD_WARNINGS_ATTRIBUTION, type WarnRun } from './sources/dwdCapAlerts';
+// Schweizer Hälfte desselben Layers (Phase W2): MeteoSchweiz über MeteoAlarm.
+// Eigene Quelle, eigener Ausfall, eigene Farbherkunft — bewusst NICHT mit dem
+// DWD-Pfad verschmolzen (audit/warnungen-at-ch.md §8).
+import { fetchChWarnings, CH_WARNINGS_ATTRIBUTION, type ChWarnRun } from './sources/meteoAlarmCh';
+import {
+  buildWarnFeaturesMulti, warnSummaryMulti, WARN_SOURCE_DE, WARN_SOURCE_CH,
+  type WarnFeatureProperties, type WarnSummaryTier, type WarnSourceMeta,
+} from './warnings/warnField';
+import { warningsSourceFor } from './officialSources';
 // Vertrauens-Schleier (ML #1 Klima-MOS): Kreuzschraffur, deren Dichte mit der
 // Vorhersage-Unsicherheit wächst (leadWeight × klimatologische Plausibilität).
 import { ConfidenceLayer } from './scalar/ConfidenceLayer';
@@ -91,6 +128,7 @@ import {
   type StationFeatureProps as StationFeatureProperties,
   type StationsFeatureCollection,
 } from './sources/dachStations';
+import { FeatureRail, type RailFeature } from './nav/featureRail';
 import './MapView.css';
 // Command-Deck der Kartenseite (references/*-karte.png): Topbar · Ink-Rail ·
 // Layer-Dock · dunkle Bühne · rechtes Panel · Modellseite · Mobile-Bottom-Bar.
@@ -98,7 +136,7 @@ import ModelLibraryOverlay from './map/ModelLibraryOverlay';
 import SevenDayForecast from './map/SevenDayForecast';
 import { nativeComposition } from './map/ModelSwitcher';
 import {
-  IcoLayers, IcoGlobe, IcoTrend, IcoPulse, IcoStar, IcoSun, IcoSearch, IcoGauge,
+  IcoLayers, IcoGlobe, IcoTrend, IcoSearch, IcoGauge,
   IcoRows, IcoArrowRight, IcoPlay, IcoPause, IcoPlus, IcoMinus,
 } from './map/deckIcons';
 import { geocodeDACH } from './geocode';
@@ -134,6 +172,215 @@ function renderStationPopup(p: StationFeatureProperties, loading = false, errorM
       <div class="sp-meta">${escapeHtml(srcLabel)}${stationIdPart} · ${p.elevation} m ü. NN</div>
       ${body}
       ${stamp}
+    </div>`;
+}
+/**
+ * Steckbrief einer KONRAD3D-Zelle (Klick auf den Schwerpunkt).
+ *
+ * Wortwahl ist hier **gate-blockierend** (D-19): „Zelle", „Hinweis auf Hagel in
+ * der Zelle", „geschätzte Spitzenböe". NIE „Tornado", „Warnung", „Gefahr",
+ * „Unwetter", „trifft". Amtliche Warnungen kommen aus dem Warn-Layer, nicht von
+ * hier — der Hinweis darauf steht fest im Fuß des Steckbriefs.
+ */
+function renderCellPopup(p: CellFeatureProperties): string {
+  const row = (label: string, value: string | null | undefined) =>
+    value == null ? '' : `<div class="sp-row"><span class="sp-l">${label}</span><span class="sp-v">${value}</span></div>`;
+  const n = (v: number | null | undefined) => (v == null || !Number.isFinite(v) ? null : v);
+  // Z2-6: EINE Zuggeschwindigkeit — die aus der gezeichneten Spur abgeleitete,
+  // auf 5er gerundete Zahl (`displaySpeedKmh`, als Property mitgeliefert).
+  // `cell_speed` bleibt geparst und im Verifier, beschriftet aber nicht mehr:
+  // sonst widersprächen sich Zahl und gezeichnete Geometrie (Diagnose §2.5).
+  const zug = n(p.trackSpeedKmh) != null
+    ? `~${p.trackSpeedKmh} km/h${p.compass ? ` nach ${p.compass}` : ''}`
+    : null;
+  const top = n(p.echoTopM) != null
+    ? `${(Math.round((p.echoTopM as number) / 100) / 10).toFixed(1).replace('.', ',')} km`
+    : null;
+  const dbz = n(p.dbzMax) != null ? `${Math.round(p.dbzMax as number)} dBZ` : null;
+  const area = n(p.areaKm2) != null ? `${Math.round(p.areaKm2 as number)} km²` : null;
+  const blitz = n(p.lightningRate) != null && (p.lightningRate as number) > 0
+    ? `${Math.round(p.lightningRate as number)} / 5 min` : null;
+  // Begleiterscheinungen: bewusst als HINWEIS formuliert, nicht als Zusage.
+  const hints: string[] = [];
+  if (n(p.hailFlag) != null && (p.hailFlag as number) > 0) {
+    hints.push((p.hailFlag as number) >= 2 ? 'Hinweis auf größeren Hagel in der Zelle' : 'Hinweis auf Hagel in der Zelle');
+  }
+  if (n(p.gustFlag) != null && (p.gustFlag as number) > 0) {
+    hints.push(n(p.gustKmh) != null
+      ? `Hinweis auf Böen — geschätzte Spitze ~${Math.round(p.gustKmh as number)} km/h`
+      : 'Hinweis auf Böen in der Zelle');
+  }
+  if (n(p.heavyRainFlag) != null && (p.heavyRainFlag as number) > 0 && n(p.heavyRainMm) != null) {
+    hints.push(`Hinweis auf Starkregen — ~${Math.round(p.heavyRainMm as number)} mm${
+      n(p.heavyRainMinutes) != null ? ` in ~${Math.round(p.heavyRainMinutes as number)} min` : ''}`);
+  }
+  if (n(p.mesocyclones) != null && (p.mesocyclones as number) > 0) {
+    hints.push('rotierende Struktur in der Zelle erkannt');
+  }
+  const hintBlock = hints.length
+    ? `<div class="sp-row" style="display:block;line-height:1.35;">${hints.map((h) => `⚑ ${escapeHtml(h)}`).join('<br>')}</div>`
+    : '';
+  const stamp = n(p.refMs) != null
+    ? `Messzeit ${new Date(p.refMs as number).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr`
+    : '';
+  return `
+    <div class="sp">
+      <div class="sp-name">${escapeHtml(p.headline ?? `Zelle ${p.id}`)}</div>
+      <div class="sp-meta">DWD KONRAD3D · Umriss gemessen, Spur prognostiziert (bis +${p.leadMinutes ?? 60} Min)</div>
+      ${row('Zuggeschwindigkeit', zug)}
+      ${row('Radarintensität', dbz)}
+      ${row('Obergrenze (Echotop)', top)}
+      ${row('Fläche', area)}
+      ${row('Blitzrate', blitz)}
+      ${hintBlock}
+      <div class="sp-stamp">${stamp}${stamp ? ' · ' : ''}kein amtliches Warnprodukt — maßgeblich sind die DWD-Warnungen</div>
+    </div>`;
+}
+// ---------------------------------------------------------------------------
+// Zellbahnen · Phase Z2 — Sprites für Pfeilkopf und Zeitmarken.
+//
+// Programmatisch aus einem Canvas, kein externes Asset und KEINE Glyphenquelle
+// (Muster `RouteMap.tsx:363`, Vorgabe `docs/zuglinien-radar-spec.md` §10.5).
+// Beide tragen bewusst die OPTIK DER PROGNOSE (Z2-E1): der Pfeil ist eine
+// hohle Kontur statt eines Vollkörpers, die Zeitmarke hat einen gestrichelten
+// Rand. Nichts Prognostiziertes darf solider wirken als die gestrichelte Spur,
+// an der es hängt.
+// ---------------------------------------------------------------------------
+const CELLS_SPRITE_INK = '#2C2A26';   // --ink-900
+const CELLS_SPRITE_CREAM = '#FAF6EA'; // --cream-50
+
+/** Hohler Chevron, Spitze nach Norden — `icon-rotate` dreht ihn auf die Peilung. */
+function makeCellArrowImage(): ImageData | null {
+  if (typeof document === 'undefined') return null;
+  const S = 44;
+  const c = document.createElement('canvas');
+  c.width = S; c.height = S;
+  const ctx = c.getContext('2d');
+  if (!ctx) return null;
+  ctx.translate(S / 2, S / 2);
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  const chevron = () => {
+    ctx.beginPath();
+    ctx.moveTo(-10, 6);
+    ctx.lineTo(0, -9);
+    ctx.lineTo(10, 6);
+  };
+  // Dunkle Fassung zuerst, damit die helle Kontur auf der hellen Trichterfläche
+  // wie auf der dunklen Kartenbühne gleichermaßen liest.
+  chevron(); ctx.lineWidth = 6; ctx.strokeStyle = CELLS_SPRITE_INK; ctx.stroke();
+  chevron(); ctx.lineWidth = 3; ctx.strokeStyle = CELLS_SPRITE_CREAM; ctx.stroke();
+  return ctx.getImageData(0, 0, S, S);
+}
+
+/** Zeitmarke „15"/„30"/„60" als Pille mit gestricheltem Rand (= prognostiziert). */
+function makeCellMarkImage(label: string): ImageData | null {
+  if (typeof document === 'undefined') return null;
+  const W = 52, H = 34;
+  const c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  const ctx = c.getContext('2d');
+  if (!ctx) return null;
+  const r = 12, pad = 3;
+  const pill = () => {
+    ctx.beginPath();
+    ctx.roundRect(pad, pad, W - 2 * pad, H - 2 * pad, r);
+  };
+  pill();
+  ctx.fillStyle = 'rgba(44,42,38,0.86)';
+  ctx.fill();
+  pill();
+  ctx.setLineDash([4, 3]);
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = CELLS_SPRITE_CREAM;
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.font = '700 17px "League Spartan", system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = CELLS_SPRITE_CREAM;
+  ctx.fillText(label, W / 2, H / 2 + 1);
+  return ctx.getImageData(0, 0, W, H);
+}
+
+/**
+ * Steckbrief einer Hagelzelle (DE, KONRAD3D). Wortwahl nach D-19: „Radar erkennt
+ * Hagel", „Hinweis auf Großhagel" — nie „es hagelt", nie Warnsprache.
+ */
+function renderHailPopup(p: HailCellProperties): string {
+  const row = (label: string, value: string | null) =>
+    value == null ? '' : `<div class="sp-row"><span class="sp-l">${label}</span><span class="sp-v">${value}</span></div>`;
+  const km2 = (v: number | null | undefined) =>
+    v != null && Number.isFinite(v) && v > 0 ? `${Math.round(v)} km²` : null;
+  const top = p.echoTopHail != null && Number.isFinite(p.echoTopHail)
+    ? `${(Math.round(p.echoTopHail / 100) / 10).toFixed(1).replace('.', ',')} km` : null;
+  const dbz = p.dbzMax != null && Number.isFinite(p.dbzMax) ? `${Math.round(p.dbzMax)} dBZ` : null;
+  const stamp = p.refMs != null && Number.isFinite(p.refMs)
+    ? `Messzeit ${new Date(p.refMs).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr` : '';
+  return `
+    <div class="sp">
+      <div class="sp-name">${escapeHtml(p.headline ?? `Zelle ${p.id}`)}</div>
+      <div class="sp-meta">DWD KONRAD3D · Radarerkennung, keine Bodenmeldung</div>
+      ${row('Hagelfläche', km2(p.areaHail))}
+      ${row('davon Großhagel', km2(p.areaLargeHail))}
+      ${row('Hagel-Obergrenze', top)}
+      ${row('Radarintensität', dbz)}
+      <div class="sp-stamp">${stamp}${stamp ? ' · ' : ''}kein amtliches Warnprodukt — maßgeblich sind die DWD-Warnungen</div>
+    </div>`;
+}
+/**
+ * Steckbrief der amtlichen Warnungen an einem Kartenpunkt (Phase W1).
+ *
+ * Anders als alle übrigen Popups formuliert dieser **nichts** selbst: Überschrift,
+ * Beschreibung und Handlungshinweis stehen wortwörtlich so da, wie der DWD sie
+ * ausgegeben hat (`audit/wetterwarnungen.md` §0/§7.1). Ergänzt werden nur
+ * Metadaten, die die Meldung selbst mitbringt — Gültigkeit, Höhenband, Gebiet,
+ * ausgebende Stelle, Lizenz.
+ *
+ * `props` enthält ALLE Warnungen am Klickpunkt (höchste Stufe zuerst); eine
+ * verdeckte Warnung wäre ein Ehrlichkeitsdefekt (§5.5).
+ */
+function renderWarnPopup(props: WarnFeatureProperties[]): string {
+  const block = (p: WarnFeatureProperties) => {
+    const row = (label: string, value: string) =>
+      !value ? '' : `<div class="sp-row"><span class="sp-l">${label}</span><span class="sp-v">${escapeHtml(value)}</span></div>`;
+    const para = (text: string) =>
+      !text ? '' : `<div class="sp-row" style="display:block;line-height:1.4;">${escapeHtml(text).replace(/\n+/g, '<br>')}</div>`;
+    return `
+      <div class="sp-warn-item">
+        <div class="sp-name" style="display:flex;align-items:center;gap:6px;">
+          <i style="flex:0 0 auto;width:10px;height:10px;border-radius:2px;background:${escapeHtml(p.color)};border:1px solid rgba(0,0,0,.35);"></i>
+          ${escapeHtml(p.headline)}
+        </div>
+        <div class="sp-meta">${escapeHtml(p.areaDesc)} · ${escapeHtml(p.severityLabel)} · ${escapeHtml(p.senderName)}</div>
+        ${row('Gültig', p.validity)}
+        ${p.heightNote ? row('Höhe', p.heightNote) : ''}
+        ${row('Details', p.details)}
+        ${para(p.description)}
+        ${para(p.instruction)}
+        ${p.languageNote ? `<div class="sp-row" style="display:block;opacity:.8;">${escapeHtml(p.languageNote)}</div>` : ''}
+      </div>`;
+  };
+  const stand = props[0]?.sentMs != null
+    ? `Ausgegeben ${new Date(props[0].sentMs as number).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })} Uhr · `
+    : '';
+  const license = props.find((p) => p.license)?.license ?? '';
+  // Wer gewarnt hat, steht an der Meldung — nicht als feste Zeile. Am selben
+  // Klickpunkt können (an der Grenze) Meldungen zweier Dienste liegen.
+  const issuers = [...new Set(props.map((p) => p.issuer))];
+  const who = issuers.length === 1
+    ? `amtliche Warnung — ${escapeHtml(issuers[0])}, Text unverändert übernommen`
+    : `amtliche Warnungen — ${escapeHtml(issuers.join(' und '))}, Texte unverändert übernommen`;
+  // Die Schweizer Flächenfarbe ist aus der amtlichen Stufe ABGELEITET (der Feed
+  // führt kein AREA_COLOR). Das gehört an die Fläche, nicht in eine Fußnote.
+  const derived = props.some((p) => p.colorOrigin === 'derived')
+    ? ' · Farbe aus der amtlichen Gefahrenstufe abgeleitet'
+    : '';
+  return `
+    <div class="sp sp-warn">
+      ${props.map(block).join('<div class="sp-warn-sep"></div>')}
+      <div class="sp-stamp">${stand}${who}${derived}${
+        license ? ` · ${escapeHtml(license)}` : ''}</div>
     </div>`;
 }
 function escapeHtml(s: string): string {
@@ -187,6 +434,101 @@ const CONFIDENCE_LAYER_ID = 'confidence-hatch';
 const SNOWLINE_SOURCE_ID = 'snowline';
 const SNOWLINE_CASING_ID = 'snowline-casing';
 const SNOWLINE_LAYER_ID = 'snowline-line';
+// Zellbahnen (Phase Z1, E3) — DWD KONRAD3D als native GeoJSON-Vektoren:
+// amtlicher Unsicherheits-Trichter (fill), beobachteter Zellumriss (fill+line),
+// Prognosespur (gestrichelte line) und Schwerpunkt (circle, Klickziel).
+//
+// Bewusst OHNE `text-field`: die Glyphen des Basemap-Stils kommen von einem
+// Fremd-CDN (`tiles.openfreemap.org/fonts/…`), auf das wir uns nicht verlassen.
+// (Die Z1-Notiz „garantiert keine Glyphen" war zu absolut — der Stil LÄDT
+// welche; die Regel bleibt, ihre Begründung ist korrigiert.) Phase Z2
+// ergänzt `symbol`-Layer mit `icon-image` — die brauchen KEINE Glyphenquelle,
+// weil die Sprites per `map.addImage()` aus einem Canvas registriert werden
+// (Muster `RouteMap.tsx:363`, so vorgesehen in `docs/zuglinien-radar-spec.md`
+// §10.5). Jans Entscheidung S-Z2-1 vom 2026-08-07; der glyphenfreie Rückfallweg
+// bleibt in `audit/zellbahnen-karte.md` §3 dokumentiert.
+const CELLS_SOURCE_ID = 'storm-cells';
+const CELLS_CONE_LAYER_ID = 'storm-cells-cone';
+const CELLS_CONE_STEP_LAYER_ID = 'storm-cells-cone-step';
+const CELLS_HULL_LAYER_ID = 'storm-cells-hull';
+const CELLS_HULL_LINE_ID = 'storm-cells-hull-line';
+const CELLS_PATH_LAYER_ID = 'storm-cells-path';
+const CELLS_MARK_LAYER_ID = 'storm-cells-mark';
+const CELLS_ARROW_LAYER_ID = 'storm-cells-arrow';
+const CELLS_DOT_LAYER_ID = 'storm-cells-dot';
+/** Alle Zell-Layer in Zeichenreihenfolge (unten → oben). */
+const CELLS_LAYER_IDS = [
+  CELLS_CONE_LAYER_ID, CELLS_CONE_STEP_LAYER_ID, CELLS_HULL_LAYER_ID, CELLS_HULL_LINE_ID,
+  CELLS_PATH_LAYER_ID, CELLS_MARK_LAYER_ID, CELLS_ARROW_LAYER_ID, CELLS_DOT_LAYER_ID,
+] as const;
+/** Sprite-IDs der Z2-Symbole (per `map.addImage` aus einem Canvas). */
+const CELLS_ARROW_IMAGE_ID = 'storm-cells-arrow-sprite';
+const cellsMarkImageId = (leadMin: number) => `storm-cells-mark-${leadMin}`;
+/** Ausdünnung (Z2-5) — ausschließlich native Mittel, kein JS im Repaint.
+ *  Ausgedünnt wird NUR Zusatzgeometrie; Umriss, Umrisslinie und Punkt sind
+ *  ausgenommen (Funktionserhalt). Was entfällt, wird geloggt, nicht verschwiegen. */
+const CELLS_CONE_STEP_MINZOOM = 6;
+const CELLS_MARK_MINZOOM = 8;
+const CELLS_ARROW_MINZOOM = 5;
+/** Trichterstufen erst ab dieser Severity — unterhalb bleibt die Z1-Hülle stehen.
+ *  Schwelle an der gemessenen Verteilung gesetzt (Fixture: 0,77 / 0,19 / 0,17). */
+const CELLS_CONE_STEP_MIN_SEV = 0.5;
+/** Prognosehorizont der Zellbahnen (min) — jenseits davon ist der Layer AUS,
+ *  statt eine Zelle zu zeigen, die für die eingestellte Stunde nichts aussagt
+ *  (D-14-Muster: lieber nichts als eine unbelegte Verlängerung). */
+const CELLS_HORIZON_MIN = 60;
+/** Abrufabstand (ms) — KONRAD3D erscheint alle 5 min, ~0,6 MB je Datei. */
+const CELLS_POLL_MS = 5 * 60_000;
+/** Farbe nach severity_decimal (0…3): Sand → Amber → Terracotta → Bordeaux. */
+const CELLS_SEVERITY_COLOR: ExpressionSpecification = [
+  'interpolate', ['linear'], ['coalesce', ['get', 'sev'], 0],
+  0, '#c9a227',
+  1, '#e08a2e',
+  2, '#c9522e',
+  3, '#8f2140',
+];
+// Hagel (Phase HA1, `audit/hagel.md`) — zwei belegte Quellen, bewusst getrennt
+// gehalten und nie ineinander interpoliert (D-04):
+//   CH: MeteoSchweiz MESHS (mm) / POH (0…1) als MapLibre-`image`-Source. Die
+//       Source nimmt vier Eckkoordinaten und warpt selbst — das `somerc`-Gitter
+//       ist ein Trapez in lon/lat, eine achsparallele Box läge zweistellige km
+//       daneben. Zugleich bleibt so die Shader-/WebGL-STOPP-Zone unberührt.
+//   DE: KONRAD3D-Zellen mit `hail_flag > 0` als GeoJSON-Fläche.
+const HAIL_CH_SOURCE_ID = 'hail-ch';
+const HAIL_CH_LAYER_ID = 'hail-ch-raster';
+const HAIL_DE_SOURCE_ID = 'hail-de-cells';
+const HAIL_DE_FILL_ID = 'hail-de-fill';
+const HAIL_DE_LINE_ID = 'hail-de-line';
+const HAIL_DE_DOT_ID = 'hail-de-dot';
+/** Alle Hagel-Layer in Zeichenreihenfolge (unten → oben). */
+const HAIL_LAYER_IDS = [HAIL_CH_LAYER_ID, HAIL_DE_FILL_ID, HAIL_DE_LINE_ID, HAIL_DE_DOT_ID] as const;
+/** Abrufabstand (ms) — beide Quellen publizieren im 5-Minuten-Takt. */
+const HAIL_POLL_MS = 5 * 60_000;
+/** Umschalter der CH-Produkte (analog SAT_PRODUCT / SNOW_MODES). */
+const HAIL_PRODUCTS: HailProduct[] = ['meshs', 'poh'];
+const HAIL_PRODUCT_LABELS: Record<HailProduct, string> = {
+  meshs: 'Korngröße',
+  poh: 'Chance',
+};
+const HAIL_PRODUCT_FULL_LABELS: Record<HailProduct, string> = {
+  meshs: 'MESHS — maximal erwartete Hagelkorngröße (cm), MeteoSchweiz, nur CH',
+  poh: 'POH — Hagelwahrscheinlichkeit (%), MeteoSchweiz, nur CH',
+};
+/** DE-Zellfarbe: Stufe 1 = Hagel (Eisblau), Stufe 2 / Großhagel = Violett. */
+const HAIL_CELL_COLOR: ExpressionSpecification = [
+  'case', ['>=', ['coalesce', ['get', 'flag'], 1], 2], '#8c2d78', '#3f8fb5',
+];
+// Amtliche Wetterwarnungen (Phase W1, `audit/wetterwarnungen.md`) — DWD CAP 1.2,
+// Landkreis-Vollstand. Zwei native GeoJSON-Layer: Fläche + Umriss. Die Farbe
+// kommt AUS DER MELDUNG (`AREA_COLOR`), nicht aus einer eigenen Palette; deshalb
+// steht hier keine Farbrampe, sondern nur `['get','color']`.
+const WARN_SOURCE_ID = 'dwd-warnings';
+const WARN_FILL_ID = 'dwd-warnings-fill';
+const WARN_LINE_ID = 'dwd-warnings-line';
+/** Zeichenreihenfolge (unten → oben). */
+const WARN_LAYER_IDS = [WARN_FILL_ID, WARN_LINE_ID] as const;
+/** Abrufabstand (ms). Der Vollstand wird alle ~5 min neu geschrieben; ~110 KB. */
+const WARN_POLL_MS = 5 * 60_000;
 // Flow-Nowcast — eigener RainLayer für die advehierten Radar-Frames.
 const FLOW_NOWCAST_LAYER_ID = 'flow-nowcast-layer';
 /** RADOLAN ~1100×1200 → ~140×150 für Flussschätzung + Advektion. */
@@ -294,10 +636,19 @@ const rotationRamp: Record<number, string> = {
 // Radar-/Nowcast-Horizonte je Land (DE 2 h · AT 3 h · CH 0,5 h) leben jetzt zentral
 // in src/nowcast/precipSource.ts (RADAR_HORIZON_H) und src/scalar/precipComposite.ts.
 
-export type LayerKey = 'wind' | 'gust' | 'nowcast' | 'temp' | 'clouds' | 'sat' | 'lightning' | 'lightningfc' | 'stations' | 'confidence' | 'snowline' | 'flownowcast' | 'poprob' | 'thunder' | 'snow' | 'rotation';
+// `LayerKey` wohnt seit Phase WB1 in `src/map/layerTypes.ts` (reine Verschiebung,
+// Werte und Reihenfolge unverändert). Der Re-Export hält alle bestehenden
+// Importpfade gültig — `App.tsx`, `mapState.ts`, `event/EventResult.tsx`,
+// `components/LayerIcon.tsx`, `components/LayerInfoPanel.tsx` importieren
+// weiterhin aus `MapView`. Begründung: `audit/waldbrand-geruest.md` §2.
+// Der Import daneben ist nötig, weil ein reiner `export … from` den Namen NICHT
+// in den lokalen Scope holt — und diese Datei benutzt `LayerKey` selbst.
+export type { LayerKey };
 
 /** Features, zu denen die Deck-Rail/Bottom-Bar navigiert (App.tsx → onOpenFeature). */
-export type MapDeckFeature = 'nowcast' | 'forecast' | 'event';
+// Seit die Kartenseite die gemeinsame FeatureRail nutzt, kann sie zu ALLEN
+// Werkzeugen navigieren — nicht mehr nur zu Nowcast/Forecast/Event.
+export type MapDeckFeature = RailFeature;
 
 interface Props {
   location: Location;
@@ -335,6 +686,9 @@ const LAYER_OPTIONS: { key: LayerKey; label: string; title: string }[] = [
   { key: 'sat', label: 'Satellit', title: 'Meteosat (DWD OpenData, alle 3 h)' },
   { key: 'thunder', label: 'Gewitter', title: 'Gewitterpotenzial — CAPE (Energie) × CIN (Deckel) × LPI (Blitzbereitschaft), ICON-D2 2,2 km, 0–12 h. Flächige Vorwarnung vor dem ersten Radarecho. DACH, near-NWP-Horizont. Potenzial ≠ Auslösung.' },
   { key: 'rotation', label: 'Rotation', title: 'Rotationspotenzial (Experten-Layer) — ICON-D2 Updraft-Helicity (uh_max + uh_max_low) + Supercell-Index (sdi_2), 2,2 km, 0–12 h, geglättet. Modell-VERDACHTSflächen für rotierende Gewitter (Superzellen: Großhagel, organisierte Schwergewitter). KEIN amtliches Warnprodukt, KEIN Warnersatz — maßgeblich sind die DWD-Warnungen. Verdacht ≠ Ereignis, hohe Fehlalarmrate. DACH.' },
+  { key: 'hail', label: 'Hagel', title: 'Hagel — zwei amtliche Radarprodukte, bewusst nicht vermischt. FLÄCHE: MeteoSchweiz MESHS (maximal erwartete Korngröße in cm) bzw. POH (Hagelwahrscheinlichkeit in %), 1 km / 5 Min, nur 1. April–30. September — aus dem SCHWEIZER Radarverbund, dessen Reichweite über die Grenze nach Süddeutschland und Vorarlberg geht und dort ausdünnt. ZELLEN: DWD KONRAD3D — Zellen, in denen das Radar Hagel erkennt, mit Hagelfläche und Hinweis auf Großhagel, aus dem DEUTSCHEN Radarverbund (ebenfalls grenzüberschreitend). Österreich hat KEINE eigene offene Hagelquelle — im Osten Österreichs gibt es daher keine Abdeckung; das heißt NICHT, dass es dort nicht hagelt. Radarerkennung, keine Bodenmeldung. Kein amtliches Warnprodukt und kein Warnersatz.' },
+  { key: 'cells', label: 'Zellbahnen', title: 'Zellbahnen — DWD KONRAD3D: erkannte konvektive Zellen mit AMTLICHER Zugspur und amtlichem Unsicherheits-Trichter (jetzt bis +60 Min, 5-Minuten-Takt). Umriss = gemessen, Spur/Trichter = prognostiziert. Kein amtliches Warnprodukt und kein Warnersatz — maßgeblich sind die DWD-Warnungen. Abdeckung = Reichweite des deutschen Radarverbunds (reicht über die Grenze, dünnt dort aus).' },
+  { key: 'warnings', label: 'Warnungen', title: 'Amtliche Wetterwarnungen von DWD (Deutschland, CAP, landkreisgenau) und MeteoSchweiz (Schweiz, Warnregionen, über den MeteoAlarm-Feed) — alle 5 Minuten. Das AMTLICHE Warnprodukt: alle anderen Layer dieser Karte verweisen darauf. Überschrift, Beschreibung und Handlungshinweis werden wortwörtlich übernommen. Die Flächenfarbe ist für Deutschland die amtliche Warnfarbe aus der Meldung; der Schweizer Feed führt keine Farbe mit, dort ist sie aus der amtlichen Gefahrenstufe ABGELEITET. Warnstufen werden quellenrein geführt — die Stufennummern der beiden Dienste bedeuten Verschiedenes. Der Layer folgt dem Zeit-Slider: gezeigt wird, was zur eingestellten Stunde gilt. ÖSTERREICH fehlt weiterhin (geplant) — dort warnt GeoSphere Austria; eine leere Fläche über Österreich heißt NICHT „keine Warnung". Fällt eine der beiden Quellen aus, sagt die Karte ausdrücklich, welches Land fehlt. Kein Ersatz für die amtliche Bekanntmachung: maßgeblich bleiben dwd.de/warnungen und meteoschweiz.admin.ch.' },
   { key: 'lightning', label: 'Blitze', title: 'Blitzortung letzte 60 Min (DWD Sferics)' },
   { key: 'lightningfc', label: 'Blitzprognose', title: 'Blitz-Vorhersage — ICON-D2 Lightning Potential Index (lpi_max, 2,2 km, 0–12 h). Prognostiziertes Blitzrisiko über den Slider — NICHT die gemessenen Blitze der letzten Stunde (das ist der Layer „Blitze"). Prognose ≠ Messung. DACH, near-NWP-Horizont.' },
   { key: 'stations', label: 'Stationen', title: 'Wetterstationen DWD/TAWES/SMN — klicken für Live-Werte' },
@@ -413,6 +767,50 @@ function uvBoundsToCorners(uv: [number, number, number, number]): QuadCorners {
   return [[west, north], [east, north], [east, south], [west, south]];
 }
 
+/** Ab dieser Zoomstufe bekommen auch die Orte der Basiskarte (Kleinstädte,
+ *  Gemeinden, Dörfer) eine Temperatur — davor genügt die kuratierte Liste. */
+const PLACE_LABEL_MIN_ZOOM = 8.2;
+/** Obergrenze, damit dichte Regionen (Ruhrgebiet) das Bild nicht zupflastern. */
+const PLACE_LABEL_MAX = 70;
+/** Ortsklassen der Basiskarte, die beschriftet werden sollen — Rangfolge = Priorität. */
+const PLACE_LABEL_CLASSES = ['city', 'town', 'village', 'suburb'];
+
+interface PlaceLabel { key: string; name: string; lat: number; lng: number }
+
+/**
+ * Ortspunkte, die der Basemap-Stil im aktuellen Ausschnitt gerade beschriftet.
+ * `queryRenderedFeatures` liefert genau das, was sichtbar ist — also greift die
+ * Zoom- und Kollisionslogik des Stils, ohne dass wir sie nachbauen müssen.
+ * `skip` filtert Orte, die schon aus DACH_CITIES gesetzt wurden (Doppelwerte).
+ */
+function visiblePlaceLabels(map: maplibregl.Map, skip: Set<string>): PlaceLabel[] {
+  let feats: maplibregl.MapGeoJSONFeature[] = [];
+  try {
+    feats = map.queryRenderedFeatures(undefined, { filter: ['in', ['get', 'class'], ['literal', PLACE_LABEL_CLASSES]] })
+      .filter((f) => f.sourceLayer === 'place' && f.geometry?.type === 'Point');
+  } catch {
+    return []; // Style noch nicht geladen o. Ä. — nächster moveend versucht es erneut.
+  }
+  const out: PlaceLabel[] = [];
+  const seen = new Set<string>();
+  // Nach Ortsklasse sortieren, damit bei Erreichen der Obergrenze die größeren
+  // Orte gewinnen statt einer zufälligen Kachel-Reihenfolge.
+  feats.sort((a, b) =>
+    PLACE_LABEL_CLASSES.indexOf(String(a.properties?.class)) - PLACE_LABEL_CLASSES.indexOf(String(b.properties?.class)));
+  for (const f of feats) {
+    const p = f.properties ?? {};
+    const name = String(p['name:de'] ?? p.name ?? '').trim();
+    if (!name || skip.has(name)) continue;
+    const [lng, lat] = (f.geometry as GeoJSON.Point).coordinates as [number, number];
+    const key = `place:${name}@${lng.toFixed(3)},${lat.toFixed(3)}`;
+    if (seen.has(key) || skip.has(key)) continue;
+    seen.add(key);
+    out.push({ key, name, lat, lng });
+    if (out.length >= PLACE_LABEL_MAX) break;
+  }
+  return out;
+}
+
 export default function MapView({ location, onBack, onOpenFeature, onSelectLocation, embedded = false, initialActive, initialHour, embedHourRange, embeddedLayer, overview = false }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
@@ -423,18 +821,66 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
   // ebenfalls Wind. Permalinks (#m=) bleiben unangetastet (initialActive).
   const [active, setActive] = useState<Set<LayerKey>>(() =>
     new Set<LayerKey>(initialActive ?? ['wind']));
-  // Hover-Info-Panel rechts neben der Layer-Rail (ohne Verzögerung).
-  const [layerHover, setLayerHover] = useState<{ key: LayerKey; top: number; left: number } | null>(null);
-  const showLayerInfo = (btn: HTMLElement, key: LayerKey) => {
-    const r = btn.getBoundingClientRect();
-    setLayerHover({ key, left: r.right + 12, top: Math.min(Math.max(8, r.top - 4), window.innerHeight - 275) });
-  };
-  const [statuses, setStatuses] = useState<Record<LayerKey, { ok?: { model: string; fetchedAt: number; captured?: boolean }; err?: string }>>({
-    wind: {}, gust: {}, nowcast: {}, temp: {}, clouds: {}, sat: {}, lightning: {}, lightningfc: {}, stations: {}, confidence: {}, snowline: {}, flownowcast: {}, poprob: {}, thunder: {}, snow: {}, rotation: {},
+  // Hover/Fokus auf einer Dock-Zeile. Seit Phase KD-R (audit/karten-readout.md)
+  // öffnet das kein Overlay mehr über der Karte: Ist der Layer inaktiv, blendet
+  // die Readout-Spalte seine Beschreibung an ihrer Ordnungsposition als Vorschau
+  // ein; ist er aktiv, wird die bereits stehende Karte hervorgehoben.
+  const [layerHover, setLayerHover] = useState<LayerKey | null>(null);
+  // Status je Layer. `fetchedAt` = Abrufzeitpunkt (Fallback), `ref` = ECHTE
+  // Referenzzeit der Daten (Modelllauf bzw. Messzeit, V-19). Fehlt `ref`, weist
+  // die Quelle keine aus → die Anzeige beschriftet die Abrufzeit als solche,
+  // statt sie als Datenstand auszugeben (D-04).
+  const [statuses, setStatuses] = useState<Record<LayerKey, { ok?: { model: string; fetchedAt: number; ref?: DataRef }; err?: string }>>({
+    wind: {}, gust: {}, nowcast: {}, temp: {}, clouds: {}, sat: {}, lightning: {}, lightningfc: {}, stations: {}, confidence: {}, snowline: {}, flownowcast: {}, poprob: {}, thunder: {}, snow: {}, rotation: {}, cells: {}, hail: {}, warnings: {},
   });
   const [satProduct, setSatProduct] = useState<SatelliteProduct>('eu_rgb');
   // Schnee-Modus (Feature F4): 'depth' = Schneedecke (h_snow), 'fresh' = Neuschnee (snow_gsp).
   const [snowMode, setSnowMode] = useState<SnowMode>('depth');
+  // Zellbahnen (Phase Z1): Zahl der erkannten Zellen + Messzeit des Laufs, für
+  // Legende und Leerzustand. `null` = noch nichts geladen; `count === 0` ist ein
+  // GÜLTIGES Ergebnis (konvektionsfreier Tag), kein Fehler.
+  const [cellsInfo, setCellsInfo] = useState<{ count: number; refMs: number } | null>(null);
+  // Zellbahnen (Phase Z2): der geladene Lauf liegt im State, gezeichnet wird in
+  // einem eigenen Effekt. So kostet ein Ortswechsel keinen Neuabruf der
+  // 0,6-MB-Datei — die Phase bleibt bei null zusätzlichen Bytes.
+  const [cellsRun, setCellsRun] = useState<Konrad3dRun | null>(null);
+  /** Standortbezug (Z2-4): Satz + betroffene Zelle. `null` = die Karte sagt dazu
+   *  nichts — im Übersichts-Modus ersatzlos, sonst weil keine Zelle relevant ist. */
+  const [cellsRelevance, setCellsRelevance] = useState<{ cellId: number; text: string } | null>(null);
+  // Hagel (Phase HA1): CH-Produktwahl + Zustand beider Quellen für Legende und
+  // Leerzustand. `chMax === 0` bzw. `deCells === 0` sind GÜLTIGE Ergebnisse
+  // („aktuell kein Hagel erkannt"), kein Fehler.
+  const [hailProduct, setHailProduct] = useState<HailProduct>('meshs');
+  const [hailInfo, setHailInfo] = useState<{
+    chMax: number | null; chValidMs: number | null; deCells: number | null; deRefMs: number | null;
+  }>({ chMax: null, chValidMs: null, deCells: null, deRefMs: null });
+  // Amtliche Warnungen (Phase W1): der GESAMTE Warnstand liegt im State, gefiltert
+  // wird erst beim Zeichnen — so kostet ein Slider-Zug keinen Neuabruf. `alerts:
+  // []` ist ein GÜLTIGES Ergebnis („keine amtlichen Warnungen"), kein Fehler.
+  const [warnRun, setWarnRun] = useState<WarnRun | null>(null);
+  /** Was gerade GEZEICHNET ist (zur eingestellten Slider-Stunde) — Quelle für
+   *  Legende und Statuszeile. Wird im Zeichen-Effekt gesetzt, damit Legende und
+   *  Karte nie auseinanderlaufen können. */
+  const [warnInfo, setWarnInfo] = useState<
+    {
+      total: number;
+      /** Je Quelle eine eigene Skala — die Stufennummern sind nicht vergleichbar. */
+      perSource: Array<{ source: WarnSourceMeta; total: number; tiers: WarnSummaryTier[] }>;
+      publishedMs: number | null;
+      dropped: number;
+    } | null
+  >(null);
+  /** Abruf fehlgeschlagen. Muss von „lädt noch" UNTERSCHEIDBAR sein: ein Ausfall,
+   *  der wie Laden aussieht, ist bei Warnungen der gefährlichste Zustand
+   *  (`docs/API.md` §7.3 — bei Fehler abschalten und auf die amtliche Quelle
+   *  verweisen; veraltete oder scheinbar leere Warnlagen sind schlimmer als keine). */
+  const [warnFailed, setWarnFailed] = useState(false);
+  // Schweizer Hälfte (Phase W2) — bewusst EIGENER Zustand und EIGENES
+  // Fehlerflag. Ein halber Ausfall, der wie ein ganzer Erfolg aussieht, ist
+  // genau der §7.3-Defekt, den W1 für DE schon einmal beheben musste: fällt CH
+  // aus und DE nicht, muss die Karte sagen, WELCHE Hälfte fehlt.
+  const [chWarnRun, setChWarnRun] = useState<ChWarnRun | null>(null);
+  const [chWarnFailed, setChWarnFailed] = useState(false);
   // Wind-Partikel-Steuerung (UI „Aus / Normal / Intensiv" + Dichte-Regler).
   // `on`=Animation an (Heatmap bleibt auch bei „Aus"), `intensive` verbreitert
   // Partikel + verlängert Schweif, `density` skaliert die viewport-Partikelzahl.
@@ -451,6 +897,11 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
   // forecast cache + currently displayed hour (0 = "now", positive = hours into the future)
   const [forecast, setForecast] = useState<DwdForecastResult | null>(null);
   const [forecastHour, setForecastHour] = useState(initialHour ?? 0);
+  // Spiegel für Effekte, die die Slider-Stunde LESEN müssen, ohne bei jeder
+  // Sliderbewegung neu zu laufen (Hagel-Layer: Sichtbarkeit beim Anlegen der
+  // erst zur Laufzeit entstehenden CH-Rasterquelle).
+  const forecastHourRef = useRef(forecastHour);
+  forecastHourRef.current = forecastHour;
   // Slider-Drag rAF-koaleszieren: ein natives <input type=range> feuert
   // `input` potenziell schneller als ein Repaint (schnelle Maus/Trackpad-
   // Wischgeste) — jedes Event löst sonst sofort die volle Wind/Niederschlag/
@@ -691,9 +1142,16 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
   const modelChoiceRef = useRef<ModelChoice>('fusion');
   useEffect(() => { modelChoiceRef.current = modelChoice; }, [modelChoice]);
 
-  function updateStatus(key: LayerKey, patch: { ok?: { model: string; fetchedAt: number; captured?: boolean }; err?: string }) {
+  function updateStatus(key: LayerKey, patch: { ok?: { model: string; fetchedAt: number; ref?: DataRef }; err?: string }) {
     setStatuses(prev => ({ ...prev, [key]: patch }));
   }
+
+  /** Referenzzeit eines Modelllaufs (ICON-D2/ICON-EU) für `updateStatus`. */
+  const runRef = (runAt: Date | undefined | null): DataRef | undefined =>
+    runAt ? { atMs: runAt.getTime(), kind: 'run' } : undefined;
+  /** Referenzzeit einer Messung (Radar, Satellit, Blitze). */
+  const measuredRef = (atMs: number | undefined | null): DataRef | undefined =>
+    atMs != null && Number.isFinite(atMs) ? { atMs, kind: 'measured' } : undefined;
 
   function toggle(key: LayerKey) {
     setActive(prev => {
@@ -776,6 +1234,47 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
     });
 
     map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-left');
+
+    // Startansicht: DACH exakt einpassen statt fester Zoomstufe (Jans Auftrag
+    // 2026-08-09). Ein fester Zoom passt nur zu EINEM Seitenverhältnis — auf
+    // schmalen/hohen Handy-Feldern schnitt er DE/AT/CH an, auf breiten Desktops
+    // blieb viel Rand. fitBounds rechnet Zoom + Center aus der tatsächlichen
+    // Feldgröße; das Padding hält die Ränder frei von Deck-Chrome (Dock/Sheet).
+    // Der Permalink-/Standort-Fall (embedded, initialHour, gewählter Ort) bleibt
+    // unberührt — hier greift nur der Übersichts-Start.
+    if (!embedded && overview) {
+      const fitDach = () => {
+        const c = map.getContainer();
+        const narrowField = c.clientWidth < 768;
+        map.fitBounds(
+          [[DACH_VIEW.bounds.lngMin, DACH_VIEW.bounds.latMin], [DACH_VIEW.bounds.lngMax, DACH_VIEW.bounds.latMax]],
+          {
+            // Handy: unten liegt das Bottom-Sheet, oben die Suchleiste.
+            // Unten liegt das Zeit-Deck (Desktop ~110 px) bzw. das Bottom-Sheet
+            // (Handy), oben die Modell-/Statuskarte — beides überdeckt sonst die
+            // Alpen bzw. Norddeutschland.
+            padding: narrowField
+              ? { top: 70, bottom: 190, left: 14, right: 14 }
+              : { top: 58, bottom: 130, left: 34, right: 34 },
+            animate: false,
+          },
+        );
+      };
+      fitDach();
+      // Nach dem ersten Layout (Deck-Chrome, Sheet-Snap, Safe-Area) kann sich das
+      // Feld noch einmal ändern — dann neu einpassen, aber nur solange der Nutzer
+      // die Karte nicht selbst bewegt hat.
+      let userMoved = false;
+      const markMoved = () => { userMoved = true; };
+      map.once('dragstart', markMoved);
+      map.once('zoomstart', markMoved);
+      map.once('boxzoomstart', markMoved);
+      const ro = typeof ResizeObserver === 'function'
+        ? new ResizeObserver(() => { if (!userMoved) fitDach(); })
+        : null;
+      ro?.observe(map.getContainer());
+      window.setTimeout(() => { ro?.disconnect(); }, 4000);
+    }
 
     // Dim overlay — a semi-transparent dark fill that sits over the basemap
     // but underneath the boundary/label/weather layers. Toggled visible when
@@ -869,29 +1368,44 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
 
     // Layer instances. Order in the style stack (top → bottom):
     //   wind (particles)  →  clouds  →  precip (forecast)  →  temp  →  rain-raster  →  basemap
-    // Wind-Partikel-Tempo (rein visueller Zeitraffer, echtzeit wäre unsichtbar):
-    //  • speedFactor  = Basistempo bei der Übersicht. 0.02 ≈ ~2400× (1 Anim-Sek
-    //    ≈ 40 min Wind), windy.com-nah. Höher = flotter.
-    //  • speedZoomDamping = 0 → KEINE zoom-abhängige Anpassung: reine geografische
-    //    Advektion. Die Partikel bewegen sich konsistent zur Karte (gleicher Bezug
-    //    zu den Geo-Features auf jeder Zoomstufe) — kein Bremsen beim Reinzoomen.
-    //    (k=1 hielte das Bildschirmtempo konstant, was relativ zur größer werdenden
-    //    Karte wie Verlangsamung wirkt; >1 wäre windy-artiges aktives Bremsen.)
-    // Zusätzlich delta-time-normiert im Shader → refresh-rate-unabhängig.
-    // speedGamma < 1 hebt schwache Winde an, damit sie sichtbar driften statt
-    // einzufrieren (Anker speedRef=5 m/s unverändert). speedFactor bleibt das
-    // Basistempo bei ~5 m/s; γ staucht den Dynamikumfang (schwach schneller,
-    // stark leicht langsamer) → kein „Stillstand" bei Schwachwind.
-    // speedMin = Mindest-Anzeigetempo (m/s): JEDER vorhandene Wind driftet immer
-    // sichtbar (nie Stillstand), auch der leichteste — kombiniert mit langer
-    // Partikel-Lebensdauer für Wind-Zellen (kurze Lebensdauer nur bei echter Flaute).
+    // WIND-PARTIKEL-TEMPO — ein einziger Regler, strikt linear zum GRIB-Wert.
+    //
+    //   px/s = speedPxPerMs · |V|        |V| = Windgeschwindigkeit in m/s
+    //
+    // Es gibt bewusst KEINEN zweiten Faktor mehr: keine γ-Kennlinie, kein
+    // Mindesttempo, keine Gerätedämpfung. Doppelter Wind = doppelt so schnelle
+    // Partikel, und die Richtung ist die echte (Herleitung + die früheren
+    // Verzerrungen: `audit/wind-partikel-grib-treue.md`, Mathematik in
+    // `src/wind/advection.ts`).
+    //
+    // 6 px/s je m/s trifft die Referenzoptik aus
+    // `audit/windkarte-vorbild-wetteronline.md`: der typische DACH-Wind (5–6 m/s)
+    // gleitet mit ~30–36 px/s und zieht bei fadeOpacity 0.972 einen ~25 px langen
+    // Schweif. Sturm sieht jetzt auch nach Sturm aus (20 m/s ⇒ 120 px/s) — das ist
+    // die gewollte Folge der Proportionalität.
+    //
+    // screenTempoZoomExp 0 = Bildschirmtempo über ALLE Zoomstufen konstant. Der
+    // Zeitraffer sinkt dafür beim Reinzoomen; die Bahn bleibt die echte. (Das
+    // frühere `speedZoomDamping: 0.25` entspräche exp 0.75.)
     const wind = new WindLayer({
       windPngUrl: '', windJsonUrl: '',
-      speedFactor: 0.02, speedRefZoom: 5.5, speedZoomDamping: 0,
-      speedGamma: 0.5, speedRef: 5, speedMin: 2,
+      // Partikel-Stil: 'points' (Bestand). Der WP1-Segment-Stil (windy-artige
+      // Striche, src/wind/particlePreset.ts) wurde am 2026-08-08 auf Jans
+      // Auftrag wieder DEAKTIVIERT — Optik gefiel nicht; der Code bleibt
+      // default-off hinter particleStyle:'segments' verfügbar (Gate GWP1).
+      speedPxPerMs: 6, speedRefZoom: 5.5,
+      // Jans Befund 2026-08-09: beim Rauszoomen wirkten die Partikel zu schnell.
+      // exp 0 hielt das Bildschirmtempo über alle Stufen konstant — geografisch
+      // ist das weit draußen ein enormer Zeitraffer. 0,35 dämpft das Tempo unter
+      // dem Referenzzoom (z4 ≈ 0,68×) und lässt es beim Reinzoomen leicht
+      // anziehen; die Richtung/Proportionalität zu |V| bleibt unangetastet.
+      screenTempoZoomExp: 0.35,
       // Touch/coarse-pointer (mobile/tablet): skip the particle passes during
       // active pan/zoom so the basemap + heatmap stay smooth; particles resume
       // on moveend. Desktop (fine pointer) keeps full fidelity.
+      // Gegen die Wind-Klumpen weit draußen: die Auffrischrate steigt beim
+      // Rauszoomen (s. zoomDropScale in WindLayer) — Basiswerte bleiben.
+      zoomDropBoost: 0.42,
       reduceMotionOnMove: coarsePointer,
       // The CPU wind-field refine (bilinear ×upsample + 3×3 smooth, then a
       // HALF_FLOAT upload) runs on every genuine frame change — toggle re-apply
@@ -1081,6 +1595,244 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
           paint: { 'line-color': '#1f4fd0', 'line-width': 2 },
         });
       }
+      // Zellbahnen (Phase Z1) — EINE Quelle, fünf gefilterte Layer. Die optische
+      // Trennung gemessen ↔ prognostiziert ist gate-blockierend (D-04): Umriss
+      // durchgezogen und kräftig, Spur gestrichelt, Trichter nur angedeutet.
+      // Daten kommen aus dem Poll-Effekt; initial leer/unsichtbar.
+      if (!map.getSource(CELLS_SOURCE_ID)) {
+        map.addSource(CELLS_SOURCE_ID, {
+          type: 'geojson',
+          data: { type: 'FeatureCollection', features: [] },
+          attribution: KONRAD3D_ATTRIBUTION,
+        });
+      }
+      if (!map.getLayer(CELLS_CONE_LAYER_ID)) {
+        map.addLayer({
+          id: CELLS_CONE_LAYER_ID, type: 'fill', source: CELLS_SOURCE_ID,
+          filter: ['==', ['get', 'kind'], 'cone'],
+          layout: { visibility: 'none' },
+          // Sehr zurückhaltend: der Trichter ist eine Unsicherheits-, keine
+          // Ereignisfläche — er darf das Kartenbild nicht dominieren.
+          paint: { 'fill-color': CELLS_SEVERITY_COLOR, 'fill-opacity': 0.1 },
+        });
+      }
+      // Z2: der Verlauf. Der Z1-Layer darüber bleibt UNVERÄNDERT und liefert die
+      // Grundtönung — dadurch ist `coneRing()` weiterhin gezeichnet (benannter
+      // Rückfall) und die Hülle deckt auch die Zwickel, die die Ellipsen
+      // freilassen. Die Stufen legen den Verlauf darauf: vorn dicht, hinten
+      // fast durchsichtig — genau die Aussage, die die eine Fläche verschluckt.
+      if (!map.getLayer(CELLS_CONE_STEP_LAYER_ID)) {
+        map.addLayer({
+          id: CELLS_CONE_STEP_LAYER_ID, type: 'fill', source: CELLS_SOURCE_ID,
+          minzoom: CELLS_CONE_STEP_MINZOOM,
+          filter: ['all',
+            ['==', ['get', 'kind'], 'cone-step'],
+            ['>=', ['coalesce', ['get', 'sev'], 0], CELLS_CONE_STEP_MIN_SEV],
+          ],
+          layout: { visibility: 'none' },
+          paint: {
+            'fill-color': CELLS_SEVERITY_COLOR,
+            'fill-opacity': ['interpolate', ['linear'], ['coalesce', ['get', 'leadMin'], 60],
+              5, 0.2,
+              30, 0.1,
+              60, 0.04,
+            ],
+          },
+        });
+      }
+      if (!map.getLayer(CELLS_HULL_LAYER_ID)) {
+        map.addLayer({
+          id: CELLS_HULL_LAYER_ID, type: 'fill', source: CELLS_SOURCE_ID,
+          filter: ['==', ['get', 'kind'], 'hull'],
+          layout: { visibility: 'none' },
+          paint: { 'fill-color': CELLS_SEVERITY_COLOR, 'fill-opacity': 0.22 },
+        });
+      }
+      if (!map.getLayer(CELLS_HULL_LINE_ID)) {
+        map.addLayer({
+          id: CELLS_HULL_LINE_ID, type: 'line', source: CELLS_SOURCE_ID,
+          filter: ['==', ['get', 'kind'], 'hull'],
+          layout: { visibility: 'none', 'line-join': 'round' },
+          // DURCHGEZOGEN = gemessen (Referenzzeit der Datei).
+          // Z2: die für den gewählten Ort relevante Zelle bekommt eine kräftigere
+          // Linie — über eine `case`-Expression, NICHT über einen zweiten Layer.
+          paint: {
+            'line-color': CELLS_SEVERITY_COLOR,
+            'line-width': ['case', ['==', ['get', 'affects'], 1], 2.8, 1.6],
+            'line-opacity': 0.95,
+          },
+        });
+      }
+      if (!map.getLayer(CELLS_PATH_LAYER_ID)) {
+        map.addLayer({
+          id: CELLS_PATH_LAYER_ID, type: 'line', source: CELLS_SOURCE_ID,
+          filter: ['==', ['get', 'kind'], 'path'],
+          layout: { visibility: 'none', 'line-cap': 'round', 'line-join': 'round' },
+          // GESTRICHELT = prognostiziert (+5 … +60 min).
+          paint: {
+            'line-color': CELLS_SEVERITY_COLOR,
+            'line-width': ['case', ['==', ['get', 'affects'], 1], 3.2, 2],
+            'line-opacity': 0.9,
+            'line-dasharray': [2, 1.6],
+          },
+        });
+      }
+      // Z2: Zeitmarken +15/+30/+60 auf der Spur. Ein fehlendes Sprite darf NICHT
+      // still einen unsichtbaren Layer erzeugen (Z2-11) — deshalb erst
+      // registrieren, dann `hasImage()` prüfen, sonst laut sein.
+      for (const lead of CELL_TIME_MARK_LEADS) {
+        const imgId = cellsMarkImageId(lead);
+        if (!map.hasImage(imgId)) {
+          const img = makeCellMarkImage(String(lead));
+          if (img) map.addImage(imgId, img, { pixelRatio: 2 });
+        }
+      }
+      const marksReady = CELL_TIME_MARK_LEADS.every((l) => map.hasImage(cellsMarkImageId(l)));
+      if (!marksReady) {
+        console.warn('[buscosun] Zellbahnen: Zeitmarken-Sprites fehlen — Layer wird nicht angelegt.');
+      } else if (!map.getLayer(CELLS_MARK_LAYER_ID)) {
+        map.addLayer({
+          id: CELLS_MARK_LAYER_ID, type: 'symbol', source: CELLS_SOURCE_ID,
+          minzoom: CELLS_MARK_MINZOOM,
+          filter: ['==', ['get', 'kind'], 'mark'],
+          layout: {
+            visibility: 'none',
+            'icon-image': ['concat', 'storm-cells-mark-', ['to-string', ['get', 'leadMin']]],
+            // Die Pille sitzt ÜBER der Spur, nicht auf ihr: die +60-Marke und der
+            // Pfeilkopf hängen beide an der letzten Stützstelle und lagen sonst
+            // exakt aufeinander (auf dem Bildschirm gemessen: beide bei px
+            // 523/372) — der Pfeil war damit unlesbar.
+            'icon-anchor': 'bottom',
+            'icon-offset': [0, -5],
+            // `allow-overlap: false` wäre hier eine Falle: MapLibre platziert
+            // die Basemap-Labels zuerst, unser Layer liegt oben und wird als
+            // letzter platziert — am Bildschirm gemessen verschwanden dadurch
+            // ALLE drei Marken (0 von 3 gerendert), ohne dass wir es hätten
+            // loggen können. Ein stilles Weglassen ist schlimmer als eine
+            // Überlagerung, deshalb sind die Marken platzierungsfest.
+            'icon-allow-overlap': true,
+            'icon-ignore-placement': true,
+            // Bei einer langsamen Zelle liegen +15/+30/+60 nur 4,5/9/18 km
+            // auseinander. Überlagern sie sich, liegt die KLEINERE Vorlaufzeit
+            // oben — die nähere Aussage ist die belastbarere.
+            'symbol-sort-key': ['coalesce', ['get', 'leadMin'], 60],
+            'icon-size': ['interpolate', ['linear'], ['zoom'], 8, 0.6, 11, 0.95],
+          },
+          paint: { 'icon-opacity': 0.9 },
+        });
+      }
+      // Z2: Pfeilkopf am Spurende — die Zugrichtung ohne Klick.
+      if (!map.hasImage(CELLS_ARROW_IMAGE_ID)) {
+        const img = makeCellArrowImage();
+        if (img) map.addImage(CELLS_ARROW_IMAGE_ID, img, { pixelRatio: 2 });
+      }
+      if (!map.hasImage(CELLS_ARROW_IMAGE_ID)) {
+        console.warn('[buscosun] Zellbahnen: Pfeil-Sprite fehlt — Layer wird nicht angelegt.');
+      } else if (!map.getLayer(CELLS_ARROW_LAYER_ID)) {
+        map.addLayer({
+          id: CELLS_ARROW_LAYER_ID, type: 'symbol', source: CELLS_SOURCE_ID,
+          minzoom: CELLS_ARROW_MINZOOM,
+          filter: ['==', ['get', 'kind'], 'arrow'],
+          layout: {
+            visibility: 'none',
+            'icon-image': CELLS_ARROW_IMAGE_ID,
+            'icon-rotate': ['coalesce', ['get', 'bearing'], 0],
+            'icon-rotation-alignment': 'map',
+            // Eine Marke je Zelle — sie IST die Aussage und darf nicht wegfallen.
+            'icon-allow-overlap': true,
+            'icon-ignore-placement': true,
+            'icon-size': ['interpolate', ['linear'], ['zoom'], 5, 0.55, 11, 1],
+          },
+          // Dieselbe Deckkraft wie die gestrichelte Spur (Z2-E1).
+          paint: { 'icon-opacity': ['case', ['==', ['get', 'affects'], 1], 1, 0.9] },
+        });
+      }
+      if (!map.getLayer(CELLS_DOT_LAYER_ID)) {
+        map.addLayer({
+          id: CELLS_DOT_LAYER_ID, type: 'circle', source: CELLS_SOURCE_ID,
+          filter: ['==', ['get', 'kind'], 'dot'],
+          layout: { visibility: 'none' },
+          paint: {
+            'circle-color': CELLS_SEVERITY_COLOR,
+            'circle-radius': ['interpolate', ['linear'], ['zoom'], 4, 3.5, 8, 5.5, 11, 7.5],
+            'circle-stroke-color': '#ffffff',
+            'circle-stroke-width': 1.4,
+          },
+        });
+      }
+      // Hagel DE (Phase HA1) — Zellen mit Hagelsignal aus KONRAD3D. Bewusst OHNE
+      // Zugspur/Trichter: das ist der Zellbahnen-Layer. Die CH-Rasterquelle
+      // entsteht erst mit dem ersten Frame (sie braucht Ecken + Bild).
+      if (!map.getSource(HAIL_DE_SOURCE_ID)) {
+        map.addSource(HAIL_DE_SOURCE_ID, {
+          type: 'geojson',
+          data: { type: 'FeatureCollection', features: [] },
+          // Trägt die Pflichtangaben BEIDER Hagelquellen, weil `image`-Sources
+          // im Stilschema kein `attribution` kennen (s. CH-Effekt).
+          attribution: `${KONRAD3D_HAIL_ATTRIBUTION} · ${METEOSWISS_HAIL_ATTRIBUTION}`,
+        });
+      }
+      if (!map.getLayer(HAIL_DE_FILL_ID)) {
+        map.addLayer({
+          id: HAIL_DE_FILL_ID, type: 'fill', source: HAIL_DE_SOURCE_ID,
+          filter: ['==', ['get', 'kind'], 'area'],
+          layout: { visibility: 'none' },
+          paint: { 'fill-color': HAIL_CELL_COLOR, 'fill-opacity': 0.3 },
+        });
+      }
+      if (!map.getLayer(HAIL_DE_LINE_ID)) {
+        map.addLayer({
+          id: HAIL_DE_LINE_ID, type: 'line', source: HAIL_DE_SOURCE_ID,
+          filter: ['==', ['get', 'kind'], 'area'],
+          layout: { visibility: 'none', 'line-join': 'round' },
+          paint: { 'line-color': HAIL_CELL_COLOR, 'line-width': 1.8 },
+        });
+      }
+      if (!map.getLayer(HAIL_DE_DOT_ID)) {
+        map.addLayer({
+          id: HAIL_DE_DOT_ID, type: 'circle', source: HAIL_DE_SOURCE_ID,
+          filter: ['==', ['get', 'kind'], 'dot'],
+          layout: { visibility: 'none' },
+          paint: {
+            'circle-color': HAIL_CELL_COLOR,
+            'circle-radius': ['interpolate', ['linear'], ['zoom'], 4, 3.5, 8, 5.5, 11, 7.5],
+            'circle-stroke-color': '#ffffff',
+            'circle-stroke-width': 1.4,
+          },
+        });
+      }
+      // Amtliche Warnungen (Phase W1 + W2) — Fläche + Umriss. Die Farbe steht
+      // am Feature, deshalb `['get','color']` statt einer Rampe: für DE ist es
+      // die amtliche `AREA_COLOR` aus der Meldung, für CH die aus der amtlichen
+      // Gefahrenstufe abgeleitete Farbe (der Schweizer Feed führt kein
+      // `AREA_COLOR`). `fill-sort-key` hebt die höhere Warnstufe nach oben,
+      // damit eine Unwetterwarnung nie unter einer gelben Warnung verschwindet.
+      if (!map.getSource(WARN_SOURCE_ID)) {
+        map.addSource(WARN_SOURCE_ID, {
+          type: 'geojson',
+          data: { type: 'FeatureCollection', features: [] },
+          // Beide Urheber, jeder in seiner eigenen Form. Der Schweizer Feed
+          // führt KEINEN `LICENSE`-eventCode — die Attribution darf deshalb
+          // nicht an einem leeren Lizenzfeld hängen, sondern steht fest.
+          attribution: `${DWD_WARNINGS_ATTRIBUTION} · ${CH_WARNINGS_ATTRIBUTION}`,
+        });
+      }
+      if (!map.getLayer(WARN_FILL_ID)) {
+        map.addLayer({
+          id: WARN_FILL_ID, type: 'fill', source: WARN_SOURCE_ID,
+          layout: { visibility: 'none', 'fill-sort-key': ['coalesce', ['get', 'sev'], 0] },
+          // Bewusst durchscheinend: die Warnfläche ist großflächig (Landkreis)
+          // und darf Radar/Temperatur darunter nicht unlesbar machen.
+          paint: { 'fill-color': ['get', 'color'], 'fill-opacity': 0.28 },
+        });
+      }
+      if (!map.getLayer(WARN_LINE_ID)) {
+        map.addLayer({
+          id: WARN_LINE_ID, type: 'line', source: WARN_SOURCE_ID,
+          layout: { visibility: 'none', 'line-join': 'round', 'line-sort-key': ['coalesce', ['get', 'sev'], 0] },
+          paint: { 'line-color': ['get', 'color'], 'line-width': 1.6, 'line-opacity': 0.95 },
+        });
+      }
       // precipLayer bleibt UNTER der Länder-Maske (wie temp/wind/clouds) — die
       // Niederschlagsdaten sollen auf DACH begrenzt bleiben, nicht kontinental
       // durchscheinen (User-Report: Regen sichtbar über Slowenien/Belgien).
@@ -1110,6 +1862,24 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
         [CONFIDENCE_LAYER_ID]: active.has('confidence'),
         [SNOWLINE_CASING_ID]: active.has('snowline'),
         [SNOWLINE_LAYER_ID]: active.has('snowline'),
+        // Zellbahnen: nur im belegten Fenster jetzt … +60 min. Steht der Slider
+        // weiter vorn, ist der Layer AUS statt eine Aussage vorzutäuschen, für
+        // die es keine Prognosespur gibt (D-04, Muster wie `nowcast` jenseits
+        // des Radarhorizonts). Die Legende benennt genau das.
+        ...Object.fromEntries(CELLS_LAYER_IDS.map((id) => [
+          id, active.has('cells') && forecastHour * 60 <= CELLS_HORIZON_MIN,
+        ])),
+        // Hagel: beide Quellen sind reine ANALYSEN („jetzt"). Ab der ersten
+        // Vorhersagestunde ist der Layer aus, statt einen alten Stand als
+        // Aussage über die eingestellte Stunde auszugeben (D-04).
+        ...Object.fromEntries(HAIL_LAYER_IDS.map((id) => [id, active.has('hail') && forecastHour === 0])),
+        // Warnungen: KEINE Stundenschranke — anders als Radar-Analysen tragen
+        // amtliche Warnungen ihre eigene Gültigkeit (`onset`/`expires`) und
+        // reichen oft über den Slider hinaus. Gefiltert wird über die Daten
+        // (`buildWarnFeatures` zur eingestellten Zeit), nicht über die
+        // Sichtbarkeit: gilt zur gewählten Stunde nichts, ist die Quelle leer —
+        // und die Legende sagt genau das.
+        ...Object.fromEntries(WARN_LAYER_IDS.map((id) => [id, active.has('warnings')])),
         [FLOW_NOWCAST_LAYER_ID]: active.has('flownowcast') && modelSourceRef.current.radar,
         [POP_LAYER_ID]: active.has('poprob') && modelSourceRef.current.radar,
         [DIM_LAYER_ID]: true, // dark wash always on — keeps the canvas dark even with no weather layer
@@ -1129,6 +1899,16 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
       // Rastern und dem Schleier.
       if (map.getLayer(SNOWLINE_CASING_ID)) map.moveLayer(SNOWLINE_CASING_ID);
       if (map.getLayer(SNOWLINE_LAYER_ID)) map.moveLayer(SNOWLINE_LAYER_ID);
+      // Amtliche Warnungen über die Raster, aber UNTER Zellbahnen/Hagel: die
+      // Warnfläche ist großflächig und würde die kleinen Objekte sonst
+      // überdecken. Kein Rangurteil — nur Lesbarkeit.
+      for (const id of WARN_LAYER_IDS) if (map.getLayer(id)) map.moveLayer(id);
+      // Zellbahnen über die Raster heben (sonst verdeckt das Radar den Trichter),
+      // in Zeichenreihenfolge — die Stationen bleiben darüber (nächster moveLayer).
+      for (const id of CELLS_LAYER_IDS) if (map.getLayer(id)) map.moveLayer(id);
+      // Hagel darüber: ein Hagelsignal darf von keiner Datenschicht verdeckt
+      // werden. Reihenfolge CH-Raster → DE-Fläche → Umriss → Punkt.
+      for (const id of HAIL_LAYER_IDS) if (map.getLayer(id)) map.moveLayer(id);
       // Stations live ON TOP of everything (including the country mask and
       // any precipitation overlay). Re-hoisting last keeps the markers
       // reachable regardless of init order.
@@ -1166,6 +1946,9 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
         // Temp-Status + Fusion-DEM nur als Fallback, solange das native ICON-D2-
         // Temp noch nicht geladen ist (sonst überschriebe das DACH-DEM der Fusion
         // das ICON-Bounds-DEM → uv-Versatz im Lapse-Shader).
+        // keine Referenzzeit: das Fusionsergebnis mischt mehrere Modelle mit
+        // unterschiedlichen Läufen — es GIBT keinen einen Lauf, den man ehrlich
+        // nennen könnte. Die Anzeige beschriftet daher die Abrufzeit (V-19).
         if (h0?.temperature && !iconD2TempRef.current) updateStatus('temp', { ok: { model: r.model, fetchedAt: r.fetchedAt } });
         if (r.demImage && !iconD2TempRef.current) tempLayerRef.setDem(r.demImage);
       };
@@ -1266,10 +2049,13 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
           },
           beforeId,
         );
+        // keine Referenzzeit: das Capture-Datum kommt erst mit dem WMS-TIME-Fetch
+        // eine Zeile weiter unten. Bis dahin nennt die Anzeige ausdrücklich die
+        // Abrufzeit (V-19), statt einen Datenstand zu behaupten.
         updateStatus('sat', { ok: { model: meta.title, fetchedAt: Date.now() } });
         // P2-2: echtes Capture-Datum aus WMS-TIME nachladen → „Stand HH:MM".
         void fetchWmsLatestTime(meta.layerLocalName).then((t) => {
-          if (t) updateStatus('sat', { ok: { model: meta.title, fetchedAt: t.getTime(), captured: true } });
+          if (t) updateStatus('sat', { ok: { model: meta.title, fetchedAt: Date.now(), ref: measuredRef(t.getTime()) } });
         });
       };
       if (map.isStyleLoaded()) apply();
@@ -1327,6 +2113,8 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
           const data = await fetchDachStations(abort.signal);
           const src = map.getSource(STATIONS_SOURCE_ID);
           if (src) (src as unknown as { setData: (d: StationsFeatureCollection) => void }).setData(data);
+          // keine Referenzzeit: jede Station meldet zu ihrer eigenen Zeit; eine
+          // gemeinsame Messzeit gibt es nicht (`dachStations.ts` führt keine mit).
           updateStatus('stations', {
             ok: { model: `${data.features.length} Stationen · DWD + TAWES + SMN`, fetchedAt: data.fetchedAt },
           });
@@ -1369,6 +2157,71 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
     map.on('click', STATIONS_LAYER_ID, stationClickHandler);
     map.on('mouseenter', STATIONS_LAYER_ID, () => { map.getCanvas().style.cursor = 'pointer'; });
     map.on('mouseleave', STATIONS_LAYER_ID, () => { map.getCanvas().style.cursor = ''; });
+
+    // Zellbahnen — Klick auf den Zell-Schwerpunkt öffnet den Steckbrief.
+    // Eigener Popup-Slot, damit Stationen und Zellen gleichzeitig nutzbar
+    // bleiben (Funktionserhalt: der Stations-Popup wird nicht verdrängt).
+    let cellPopup: maplibregl.Popup | null = null;
+    const cellClickHandler = (e: maplibregl.MapMouseEvent & { features?: maplibregl.MapGeoJSONFeature[] }) => {
+      const f = e.features?.[0];
+      if (!f) return;
+      if (cellPopup) cellPopup.remove();
+      cellPopup = new maplibregl.Popup({ offset: 10, closeButton: true, maxWidth: '280px' })
+        .setLngLat(e.lngLat)
+        .setHTML(renderCellPopup(f.properties as unknown as CellFeatureProperties))
+        .addTo(map);
+    };
+    map.on('click', CELLS_DOT_LAYER_ID, cellClickHandler);
+    map.on('mouseenter', CELLS_DOT_LAYER_ID, () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', CELLS_DOT_LAYER_ID, () => { map.getCanvas().style.cursor = ''; });
+
+    // Hagel DE — Klick auf Zellfläche oder Punkt öffnet den Hagel-Steckbrief.
+    let hailPopup: maplibregl.Popup | null = null;
+    const hailClickHandler = (e: maplibregl.MapMouseEvent & { features?: maplibregl.MapGeoJSONFeature[] }) => {
+      const f = e.features?.[0];
+      if (!f) return;
+      if (hailPopup) hailPopup.remove();
+      hailPopup = new maplibregl.Popup({ offset: 10, closeButton: true, maxWidth: '280px' })
+        .setLngLat(e.lngLat)
+        .setHTML(renderHailPopup(f.properties as unknown as HailCellProperties))
+        .addTo(map);
+    };
+    for (const id of [HAIL_DE_DOT_ID, HAIL_DE_FILL_ID]) {
+      map.on('click', id, hailClickHandler);
+      map.on('mouseenter', id, () => { map.getCanvas().style.cursor = 'pointer'; });
+      map.on('mouseleave', id, () => { map.getCanvas().style.cursor = ''; });
+    }
+
+    // Amtliche Warnungen — Klick auf die Fläche öffnet ALLE Warnungen dieses
+    // Punktes. `e.features` liefert bereits sämtliche Treffer des Layers unter
+    // dem Cursor; sie werden nach Warnstufe absteigend sortiert und vollständig
+    // gezeigt. Nur die oberste zu nehmen würde eine gültige amtliche Warnung
+    // verschweigen (audit/wetterwarnungen.md §5.5/§7.3).
+    let warnPopup: maplibregl.Popup | null = null;
+    const warnClickHandler = (e: maplibregl.MapMouseEvent & { features?: maplibregl.MapGeoJSONFeature[] }) => {
+      const feats = e.features ?? [];
+      if (!feats.length) return;
+      const seen = new Set<string>();
+      const props: WarnFeatureProperties[] = [];
+      for (const f of feats) {
+        const p = f.properties as unknown as WarnFeatureProperties;
+        // Ein Gebiet kann als MultiPolygon mehrere Treffer liefern — dieselbe
+        // Meldung darf im Steckbrief nur einmal stehen.
+        const key = `${p.id}|${p.areaDesc}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        props.push(p);
+      }
+      props.sort((a, b) => (b.sev ?? 0) - (a.sev ?? 0));
+      if (warnPopup) warnPopup.remove();
+      warnPopup = new maplibregl.Popup({ offset: 10, closeButton: true, maxWidth: '320px' })
+        .setLngLat(e.lngLat)
+        .setHTML(renderWarnPopup(props))
+        .addTo(map);
+    };
+    map.on('click', WARN_FILL_ID, warnClickHandler);
+    map.on('mouseenter', WARN_FILL_ID, () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', WARN_FILL_ID, () => { map.getCanvas().style.cursor = ''; });
 
     // ------------------------------------------------------------------
     // Niederschlag-Button → durchgehender Forecast über den WebGL-RainLayer.
@@ -1449,7 +2302,17 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
       if (incaGridRef.current) parts.push('AT INCA');
       if (meteoRadarRef.current) parts.push('CH rzc');
       const model = parts.length ? `DACH-Komposit · ${parts.join(' · ')}` : '';
-      if (model) updateStatus('nowcast', { ok: { model, fetchedAt: Date.now() } });
+      // V-19: Das Komposit ist so alt wie sein ÄLTESTER Teil (konservativ). DE
+      // (RADOLAN-RV) und CH (rzc, ODIM-/what) weisen eine Messzeit aus; das
+      // AT-INCA-Grid tut es nicht (`geosphereIncaGrid.ts` parst nur `leadtime`)
+      // → es geht bewusst NICHT in die Referenz ein, statt sie zu erfinden.
+      // Liefert keine Quelle eine Messzeit, bleibt `ref` leer und die Anzeige
+      // beschriftet die Abrufzeit als Abrufzeit.
+      const ref = oldestRef([
+        measuredRef(nowcastRef.current?.runAt.getTime()),
+        measuredRef(meteoRadarRef.current?.validAt.getTime()),
+      ]);
+      if (model) updateStatus('nowcast', { ok: { model, fetchedAt: Date.now(), ref: ref ?? undefined } });
     };
     // ICON-D2 (Forecast) im Hintergrund nachladen — GRIB2 dekodieren ist
     // langsamer (~mehrere Sekunden), läuft progressiv. Re-Render-Coalescing
@@ -1490,21 +2353,21 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
       // Status schon beim ersten Frame (aktuelle Lage sichtbar) auf „ok" setzen,
       // statt bis zum vollständigen Stack-Load „wird geladen…" zu zeigen.
       let statusShown = false;
-      const markReady = () => {
+      const markReady = (runAt: Date) => {
         if (statusShown) return;
         statusShown = true;
-        updateStatus('clouds', { ok: { model: 'DWD ICON-D2 Wolken tief/mittel/hoch · 2,2 km', fetchedAt: Date.now() } });
+        updateStatus('clouds', { ok: { model: 'DWD ICON-D2 Wolken tief/mittel/hoch · 2,2 km', fetchedAt: Date.now(), ref: runRef(runAt) } });
       };
       try {
         let firstCloud = true;
         const c = await fetchIconD2CloudStack(abort.signal, (partial) => {
           iconD2CloudsRef.current = partial;
           if (firstCloud) { firstCloud = false; setNowcastTick((t) => t + 1); } // Tick-Coalescing (s. Wind)
-          if (partial.frames.length > 0) markReady();
+          if (partial.frames.length > 0) markReady(partial.runAt);
         }, { nowOnly: START_NOW_ONLY && !embedded, aheadHours: forecastAheadHRef.current }); // Testmodus: Jetzt-Fenster (0…+2h nach Slider-Move)
         iconD2CloudsRef.current = c;
         setNowcastTick((t) => t + 1);
-        markReady();
+        markReady(c.runAt);
       } catch {
         if (!statusShown) updateStatus('clouds', { err: 'ICON-D2 Wolken nicht erreichbar' });
       }
@@ -1561,7 +2424,7 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
         iconD2WindRef.current = wd;
         setNowcastTick((t) => t + 1);
         if (wd.frames[0]) saveWindNowCache(wd.frames[0], wd.uvBounds); // für den nächsten Sofort-Start
-        updateStatus('wind', { ok: { model: 'DWD ICON-D2 u/v 10m · 2,2 km', fetchedAt: Date.now() } });
+        updateStatus('wind', { ok: { model: 'DWD ICON-D2 u/v 10m · 2,2 km', fetchedAt: Date.now(), ref: runRef(wd.runAt) } });
       } catch {
         // nicht fatal — beim nächsten Aufruf greift der Cache erneut.
       }
@@ -1599,7 +2462,7 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
         iconD2TempRef.current = td;
         layerRefs.current.temp?.setDem(td.demImage);
         setNowcastTick((t) => t + 1);
-        updateStatus('temp', { ok: { model: 'DWD ICON-D2 t_2m · 2,2 km', fetchedAt: Date.now() } });
+        updateStatus('temp', { ok: { model: 'DWD ICON-D2 t_2m · 2,2 km', fetchedAt: Date.now(), ref: runRef(td.runAt) } });
       } catch {
         // nicht fatal — die Fusion-Temperatur deckt weiter ab.
       } finally {
@@ -1626,7 +2489,7 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
         }, { nowOnly: START_NOW_ONLY && !embedded, aheadHours: forecastAheadHRef.current }); // Testmodus: Jetzt-Fenster (0…+2h nach Slider-Move)
         iconD2GustRef.current = gd;
         setNowcastTick((t) => t + 1);
-        updateStatus('gust', { ok: { model: 'DWD ICON-D2 vmax_10m · 2,2 km', fetchedAt: Date.now() } });
+        updateStatus('gust', { ok: { model: 'DWD ICON-D2 vmax_10m · 2,2 km', fetchedAt: Date.now(), ref: runRef(gd.runAt) } });
       } catch {
         updateStatus('gust', { err: 'ICON-D2 Böen nicht erreichbar' });
       }
@@ -1645,7 +2508,7 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
         });
         iconD2ThunderRef.current = td;
         setNowcastTick((t) => t + 1);
-        updateStatus('thunder', { ok: { model: 'DWD ICON-D2 cape_ml·cin_ml·lpi · 2,2 km', fetchedAt: Date.now() } });
+        updateStatus('thunder', { ok: { model: 'DWD ICON-D2 cape_ml·cin_ml·lpi · 2,2 km', fetchedAt: Date.now(), ref: runRef(td.runAt) } });
       } catch {
         updateStatus('thunder', { err: 'ICON-D2 Gewitterpotenzial nicht erreichbar' });
       }
@@ -1664,7 +2527,7 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
         });
         iconD2LightningFcRef.current = ld;
         setNowcastTick((t) => t + 1);
-        updateStatus('lightningfc', { ok: { model: 'DWD ICON-D2 lpi_max · 2,2 km', fetchedAt: Date.now() } });
+        updateStatus('lightningfc', { ok: { model: 'DWD ICON-D2 lpi_max · 2,2 km', fetchedAt: Date.now(), ref: runRef(ld.runAt) } });
       } catch {
         updateStatus('lightningfc', { err: 'ICON-D2 Blitz-Vorhersage nicht erreichbar' });
       }
@@ -1689,7 +2552,7 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
         if (seq !== snowSeqRef.current) return;
         iconD2SnowRef.current = sd;
         setNowcastTick((t) => t + 1);
-        updateStatus('snow', { ok: { model: mode === 'depth' ? 'DWD ICON-D2 h_snow · 2,2 km' : 'DWD ICON-D2 snow_gsp · 2,2 km', fetchedAt: Date.now() } });
+        updateStatus('snow', { ok: { model: mode === 'depth' ? 'DWD ICON-D2 h_snow · 2,2 km' : 'DWD ICON-D2 snow_gsp · 2,2 km', fetchedAt: Date.now(), ref: runRef(sd.runAt) } });
       } catch {
         if (seq === snowSeqRef.current) updateStatus('snow', { err: 'ICON-D2 Schnee nicht erreichbar' });
       }
@@ -1709,7 +2572,7 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
         });
         iconD2RotationRef.current = rd;
         setNowcastTick((t) => t + 1);
-        updateStatus('rotation', { ok: { model: 'DWD ICON-D2 uh_max·uh_max_low·sdi_2 · 2,2 km', fetchedAt: Date.now() } });
+        updateStatus('rotation', { ok: { model: 'DWD ICON-D2 uh_max·uh_max_low·sdi_2 · 2,2 km', fetchedAt: Date.now(), ref: runRef(rd.runAt) } });
       } catch {
         updateStatus('rotation', { err: 'ICON-D2 Rotationspotenzial nicht erreichbar' });
       }
@@ -1745,10 +2608,11 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
           },
           beforeId,
         );
+        // keine Referenzzeit: wie beim Satelliten kommt sie erst mit WMS-TIME (s. u.).
         updateStatus('lightning', { ok: { model: 'DWD Sferics 60 min', fetchedAt: Date.now() } });
         // P2-2: echtes Capture-Datum aus WMS-TIME nachladen → „Stand HH:MM".
         void fetchWmsLatestTime(LIGHTNING_LAYER_LOCAL).then((t) => {
-          if (t) updateStatus('lightning', { ok: { model: 'DWD Sferics 60 min', fetchedAt: t.getTime(), captured: true } });
+          if (t) updateStatus('lightning', { ok: { model: 'DWD Sferics 60 min', fetchedAt: Date.now(), ref: measuredRef(t.getTime()) } });
         });
       };
       if (map.isStyleLoaded()) apply();
@@ -2030,6 +2894,8 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
     ClimaField.load()
       .then((cf) => {
         climaFieldRef.current = cf;
+        // keine Referenzzeit: die Stationsklimatologie ist ein statisches
+        // Bundle-Asset (30-Jahres-Normalen) — ein „Datenalter" wäre erfunden.
         updateStatus('confidence', { ok: { model: `KI · Klima-MOS · ${cf.size} DWD-Stationen`, fetchedAt: Date.now() } });
         setNowcastTick((t) => t + 1);
       })
@@ -2047,6 +2913,9 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
       .then((sp) => {
         if (sp) {
           tempSpreadRef.current = sp;
+          // keine Referenzzeit: der Schleier mischt die statische Klimatologie mit
+          // einem Lauf-zu-Lauf-Spread aus MEHREREN ICON-D2-Läufen (`IconD2TempSpread`
+          // führt bewusst keinen einzelnen Lauf) — ein Wert wäre eine Auswahl, keine Angabe.
           updateStatus('confidence', { ok: { model: `KI · Klima-MOS + ICON-D2-Lauf-Ensemble (${sp.frames.length} Stützst.)`, fetchedAt: Date.now() } });
           setNowcastTick((t) => t + 1);
         } else {
@@ -2130,9 +2999,412 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
     (map.getSource(SNOWLINE_SOURCE_ID) as maplibregl.GeoJSONSource | undefined)?.setData(fc);
     if (!snowlineReadyRef.current) {
       snowlineReadyRef.current = true;
-      updateStatus('snowline', { ok: { model: 'KI · ML #2 · 156 DWD-Stationen + Physik-Anker', fetchedAt: Date.now() } });
+      // Referenzzeit = der ICON-D2-Temperaturlauf, aus dem die Iso-Kontur gerechnet
+      // wird (die Stationsklimatologie ist ein statisches Bundle-Asset ohne Lauf).
+      updateStatus('snowline', { ok: { model: 'KI · ML #2 · 156 DWD-Stationen + Physik-Anker', fetchedAt: Date.now(), ref: runRef(td.runAt) } });
     }
   }, [forecastHour, nowcastTick, active]);
+
+  // Zellbahnen (Phase Z1, E3): KONRAD3D holen — NUR solange der Layer aktiv und
+  // der Tab sichtbar ist. Aufrufregel aus `audit/zellbahnen.md` §3: eine Datei
+  // ist ~0,6 MB, Dauer-Polling wären ~7,6 MB/h. Inaktiver Layer = null Byte.
+  // Abhängigkeit ist bewusst NUR `cellsOn` (nicht `active`), sonst würde jeder
+  // fremde Layer-Toggle einen 0,6-MB-Neuabruf auslösen.
+  const cellsOn = active.has('cells');
+  useEffect(() => {
+    if (!cellsOn) return;
+    const map = mapRef.current;
+    if (!map) return;
+    const abort = new AbortController();
+    let stopped = false;
+
+    const load = async () => {
+      // Hintergrund-Tab: nicht abrufen (rAF/Netz sparen) — der
+      // visibilitychange-Hörer holt es nach, sobald die Karte wieder vorn ist.
+      if (stopped || document.visibilityState !== 'visible') return;
+      try {
+        const run = await fetchKonrad3d(abort.signal);
+        // Welche KONRAD3D-Datei liegt gerade auf der Karte? (Muster radolan.ts:297)
+        console.log(
+          `[buscosun] Zellbahnen-Layer → KONRAD3D-Datei: ${run.file}` +
+          ` · Messzeit ${new Date(run.refMs).toLocaleString('de-DE')} · ${run.cells.length} Zellen`,
+        );
+        if (stopped) return;
+        // Z2: der Abruf setzt nur noch den Lauf; gezeichnet wird im Effekt
+        // darunter. Sonst müsste ein Ortswechsel die 0,6-MB-Datei neu holen,
+        // nur damit sich der Standortbezug ändert.
+        setCellsRun(run);
+        setCellsInfo({ count: run.cells.length, refMs: run.refMs });
+        // Referenzzeit = Messzeit des Laufs (V-19), NICHT die Abrufzeit.
+        updateStatus('cells', {
+          ok: {
+            model: run.cells.length > 0
+              ? `DWD KONRAD3D · ${run.cells.length} Zelle${run.cells.length === 1 ? '' : 'n'}`
+              : 'DWD KONRAD3D · aktuell keine konvektiven Zellen erkannt',
+            fetchedAt: Date.now(),
+            ref: measuredRef(run.refMs),
+          },
+        });
+      } catch {
+        if (stopped || abort.signal.aborted) return;
+        updateStatus('cells', { err: 'Zellbahnen (DWD KONRAD3D) konnten nicht geladen werden' });
+      }
+    };
+
+    void load();
+    const timer = window.setInterval(() => { void load(); }, CELLS_POLL_MS);
+    const onVisible = () => { if (document.visibilityState === 'visible') void load(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      stopped = true;
+      abort.abort();
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+      // Layer aus ⇒ Quelle leeren: beim nächsten Einschalten darf kein alter
+      // Stand aufblitzen, bevor der frische Lauf da ist (D-04).
+      (map.getSource(CELLS_SOURCE_ID) as maplibregl.GeoJSONSource | undefined)
+        ?.setData({ type: 'FeatureCollection', features: [] });
+      setCellsInfo(null);
+      setCellsRun(null);
+    };
+  }, [cellsOn]);
+
+  // Zellbahnen zeichnen + Standortbezug (Phase Z2). Getrennt vom Abruf, damit ein
+  // Ortswechsel KEINEN Neuabruf auslöst — die Phase kostet null zusätzliche Bytes.
+  //
+  // Übersichts-Modus (`overview`): kein gewählter Ort ⇒ kein Standortbezug,
+  // ersatzlos und ohne Platzhalter (`audit/zellbahnen-karte.md` §4).
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    if (cellsRun == null) { setCellsRelevance(null); return; }
+
+    const draw = (): boolean => {
+      const src = map.getSource(CELLS_SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
+      if (!src) return false;
+      const target: [number, number] | null = overview ? null : [location.lon, location.lat];
+      const rel = target ? cellLocationRelevance(cellsRun, target) : null;
+      const fc = buildCellFeatures(cellsRun, { affectsCellId: rel?.cellId ?? null });
+      src.setData(fc);
+      setCellsRelevance(rel ? { cellId: rel.cellId, text: cellRelevanceText(rel) } : null);
+      // „no silent caps": was die Ausdünnung wegnimmt, wird benannt statt
+      // verschwiegen. Die Zahlen sind gezählt, nicht geschätzt.
+      const counts = cellFeatureCounts(fc);
+      const thinned = cellsRun.cells.filter(
+        (c) => (c.severityDecimal ?? c.severity ?? 0) < CELLS_CONE_STEP_MIN_SEV,
+      ).length;
+      console.log(
+        `[buscosun] Zellbahnen gezeichnet → ${cellsRun.cells.length} Zellen, ${fc.features.length} Features `
+        + `(${JSON.stringify(counts)}) · Ausdünnung: Trichterstufen erst ab z${CELLS_CONE_STEP_MINZOOM} `
+        + `und ab sev ${CELLS_CONE_STEP_MIN_SEV} (${thinned} Zelle(n) darunter — deren Umriss, Spur und `
+        + `Trichterhülle bleiben), Zeitmarken ab z${CELLS_MARK_MINZOOM}, Pfeile ab z${CELLS_ARROW_MINZOOM}`
+        + `${rel ? ` · Standortbezug: Zelle ${rel.cellId}` : ' · kein Standortbezug'}`,
+      );
+      return true;
+    };
+
+    if (draw()) return;
+    // Die Quelle steht noch nicht (der Stil lädt gerade). Einmal aufgeben und nie
+    // wieder hinsehen wäre eine still leere Karte — deshalb über `styledata`
+    // nachziehen, bis die Quelle da ist. Muster wie `safeApply` weiter unten.
+    let done = false;
+    const retry = () => {
+      if (done) return;
+      if (draw()) { done = true; map.off('styledata', retry); }
+    };
+    map.on('styledata', retry);
+    return () => { done = true; map.off('styledata', retry); };
+  }, [cellsRun, location.lon, location.lat, overview]);
+
+  // ---- Hagel (Phase HA1) -----------------------------------------------------
+  // Zwei Quellen, zwei Effekte: der DE-Teil hängt nur am Layer-Zustand, der
+  // CH-Teil zusätzlich am Produkt (MESHS/POH). Getrennt, damit ein Produktwechsel
+  // nicht die 0,6-MB-KONRAD3D-Datei erneut zieht.
+  const hailOn = active.has('hail');
+
+  // DE — KONRAD3D-Zellen mit Hagelsignal. Teilt sich den Lauf-Cache mit den
+  // Zellbahnen (`dwdKonrad3d.ts`), lädt also nicht doppelt, wenn beide aktiv sind.
+  useEffect(() => {
+    if (!hailOn) return;
+    const map = mapRef.current;
+    if (!map) return;
+    const abort = new AbortController();
+    let stopped = false;
+
+    const load = async () => {
+      if (stopped || document.visibilityState !== 'visible') return;
+      try {
+        const run = await fetchKonrad3d(abort.signal);
+        if (stopped) return;
+        const fc = buildHailCellFeatures(run);
+        (map.getSource(HAIL_DE_SOURCE_ID) as maplibregl.GeoJSONSource | undefined)?.setData(fc);
+        const count = fc.features.filter((f) => f.properties?.kind === 'dot').length;
+        setHailInfo((s) => ({ ...s, deCells: count, deRefMs: run.refMs }));
+      } catch {
+        if (stopped || abort.signal.aborted) return;
+        setHailInfo((s) => ({ ...s, deCells: null, deRefMs: null }));
+      }
+    };
+
+    void load();
+    const timer = window.setInterval(() => { void load(); }, HAIL_POLL_MS);
+    const onVisible = () => { if (document.visibilityState === 'visible') void load(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      stopped = true;
+      abort.abort();
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+      (map.getSource(HAIL_DE_SOURCE_ID) as maplibregl.GeoJSONSource | undefined)
+        ?.setData({ type: 'FeatureCollection', features: [] });
+      setHailInfo((s) => ({ ...s, deCells: null, deRefMs: null }));
+    };
+  }, [hailOn]);
+
+  // CH — MeteoSchweiz MESHS/POH als `image`-Source. Die Quelle entsteht erst mit
+  // dem ersten Frame, weil sie Bild UND Ecken braucht; danach wird sie über
+  // `updateImage` fortgeschrieben.
+  useEffect(() => {
+    if (!hailOn) return;
+    const map = mapRef.current;
+    if (!map) return;
+    const abort = new AbortController();
+    let stopped = false;
+
+    const load = async () => {
+      if (stopped || document.visibilityState !== 'visible') return;
+      try {
+        const r = await fetchSwissHail(hailProduct, abort.signal);
+        if (stopped) return;
+        const cv = document.createElement('canvas');
+        cv.width = r.width;
+        cv.height = r.height;
+        const ctx = cv.getContext('2d');
+        if (!ctx) return;
+        const img = ctx.createImageData(r.width, r.height);
+        img.data.set(hailRasterToRGBA(r.values, r.width, r.height, hailProduct));
+        ctx.putImageData(img, 0, 0);
+        const url = cv.toDataURL('image/png');
+        const coordinates = r.corners.map((c) => [c[0], c[1]]) as [
+          [number, number], [number, number], [number, number], [number, number],
+        ];
+
+        const existing = map.getSource(HAIL_CH_SOURCE_ID) as maplibregl.ImageSource | undefined;
+        if (existing) {
+          existing.updateImage({ url, coordinates });
+        } else {
+          // `image`-Sources tragen im MapLibre-Stilschema kein `attribution`-Feld
+          // (anders als `geojson`/`raster`) — die Pflichtangabe hängt daher an der
+          // DE-Zellquelle des Layers, s. unten.
+          map.addSource(HAIL_CH_SOURCE_ID, { type: 'image', url, coordinates });
+          map.addLayer({
+            id: HAIL_CH_LAYER_ID, type: 'raster', source: HAIL_CH_SOURCE_ID,
+            layout: { visibility: 'none' },
+            // `nearest`: die Produkte sind klassifiziert (MESHS in Stufen) —
+            // Interpolation würde Zwischenwerte erfinden, die es nicht gibt.
+            paint: { 'raster-opacity': 0.9, 'raster-resampling': 'nearest', 'raster-fade-duration': 0 },
+          });
+          // unter die DE-Zellflächen, aber über die übrigen Datenschichten
+          if (map.getLayer(HAIL_DE_FILL_ID)) map.moveLayer(HAIL_CH_LAYER_ID, HAIL_DE_FILL_ID);
+        }
+        map.setLayoutProperty(
+          HAIL_CH_LAYER_ID, 'visibility',
+          forecastHourRef.current === 0 ? 'visible' : 'none',
+        );
+
+        setHailInfo((s) => ({ ...s, chMax: r.max, chValidMs: r.validAt.getTime() }));
+      } catch {
+        if (stopped || abort.signal.aborted) return;
+        setHailInfo((s) => ({ ...s, chMax: null, chValidMs: null }));
+        updateStatus('hail', {
+          err: isSwissHailSeason(new Date())
+            ? 'Hagelprodukte (MeteoSchweiz) nicht erreichbar'
+            : 'außerhalb der Hagelsaison (1. April – 30. September)',
+        });
+      }
+    };
+
+    void load();
+    const timer = window.setInterval(() => { void load(); }, HAIL_POLL_MS);
+    const onVisible = () => { if (document.visibilityState === 'visible') void load(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      stopped = true;
+      abort.abort();
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+      if (map.getLayer(HAIL_CH_LAYER_ID)) map.setLayoutProperty(HAIL_CH_LAYER_ID, 'visibility', 'none');
+      setHailInfo((s) => ({ ...s, chMax: null, chValidMs: null }));
+    };
+  }, [hailOn, hailProduct]);
+
+  // Statuszeile des Hagel-Layers: ZWEI Quellen in einer Zeile, jede mit ihrem
+  // eigenen Ergebnis — auf Desktop ist das die einzige Stelle, an der „aktuell
+  // kein Hagel erkannt" steht (die Legendenkarte ist mobil, s. `legendsBlock`).
+  // Referenzzeit = die ÄLTERE der beiden Messzeiten (`oldestRef`, V-19).
+  useEffect(() => {
+    if (!hailOn) return;
+    const { chMax, chValidMs, deCells, deRefMs } = hailInfo;
+    if (chMax == null && deCells == null) return; // noch nichts geladen
+    const product = hailProduct === 'meshs' ? 'MESHS' : 'POH';
+    const ch = chMax == null
+      ? `MeteoSchweiz ${product} (CH) nicht erreichbar`
+      : chMax <= 0
+        ? `MeteoSchweiz ${product} (CH) · kein Hagel erkannt`
+        : `MeteoSchweiz ${product} (CH) · max ${hailProduct === 'meshs' ? meshsLabel(chMax) : pohLabel(chMax)}`;
+    const de = deCells == null
+      ? 'DWD KONRAD3D (DE) nicht erreichbar'
+      : deCells === 0
+        ? 'DWD KONRAD3D (DE) · keine Hagelzelle'
+        : `DWD KONRAD3D (DE) · ${deCells} Hagelzelle${deCells === 1 ? '' : 'n'}`;
+    updateStatus('hail', {
+      ok: {
+        model: `${ch} · ${de}`,
+        fetchedAt: Date.now(),
+        ref: oldestRef([
+          chValidMs != null ? measuredRef(chValidMs) : null,
+          deRefMs != null ? measuredRef(deRefMs) : null,
+        ]) ?? undefined,
+      },
+    });
+  }, [hailOn, hailProduct, hailInfo]);
+
+  // ---- Amtliche Wetterwarnungen (Phase W1) -----------------------------------
+  // Bewusst ZWEI Effekte:
+  //   (1) Abruf — hängt nur am Layer-Zustand. Der Vollstand (~110 KB) wird alle
+  //       5 min geholt, aber nur bei aktivem Layer UND sichtbarem Tab.
+  //   (2) Zeichnen — hängt zusätzlich an der Slider-Stunde. Ein Slider-Zug
+  //       filtert also nur neu, er löst KEINEN Neuabruf aus.
+  const warnsOn = active.has('warnings');
+  useEffect(() => {
+    if (!warnsOn) return;
+    const map = mapRef.current;
+    if (!map) return;
+    const abort = new AbortController();
+    let stopped = false;
+
+    // Die beiden Quellen werden UNABHÄNGIG geholt und scheitern unabhängig.
+    // `Promise.allSettled` statt `all`: ein Ausfall in der Schweiz darf die
+    // deutsche Warnlage nicht vom Schirm nehmen — und umgekehrt.
+    const load = async () => {
+      if (stopped || document.visibilityState !== 'visible') return;
+      const [de, ch] = await Promise.allSettled([
+        fetchDwdWarnings(abort.signal),
+        fetchChWarnings(abort.signal),
+      ]);
+      if (stopped || abort.signal.aborted) return;
+
+      if (de.status === 'fulfilled') {
+        setWarnRun(de.value);
+        setWarnFailed(false);
+      } else {
+        // Fehler ⇒ diese Hälfte leeren UND als Fehler kennzeichnen. Eine leere
+        // Karte ohne Hinweis läse sich als „keine Warnungen" (docs/API.md §7.3).
+        setWarnRun(null);
+        setWarnFailed(true);
+      }
+
+      if (ch.status === 'fulfilled') {
+        setChWarnRun(ch.value);
+        setChWarnFailed(false);
+      } else {
+        setChWarnRun(null);
+        setChWarnFailed(true);
+      }
+
+      if (de.status === 'rejected' && ch.status === 'rejected') {
+        setWarnInfo(null);
+        updateStatus('warnings', { err: 'Amtliche Warnungen konnten nicht geladen werden (DWD und MeteoSchweiz)' });
+      }
+      // Beim halben Ausfall schreibt der Zeichen-Effekt den Status — er kennt
+      // die gezeichnete Lage und kann benennen, welches Land fehlt.
+    };
+
+    void load();
+    const timer = window.setInterval(() => { void load(); }, WARN_POLL_MS);
+    const onVisible = () => { if (document.visibilityState === 'visible') void load(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      stopped = true;
+      abort.abort();
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+      // Layer aus ⇒ Quelle leeren: beim nächsten Einschalten darf keine alte
+      // Warnlage aufblitzen, bevor der frische Stand da ist (D-04).
+      (map.getSource(WARN_SOURCE_ID) as maplibregl.GeoJSONSource | undefined)
+        ?.setData({ type: 'FeatureCollection', features: [] });
+      setWarnRun(null);
+      setWarnInfo(null);
+      setWarnFailed(false);
+      setChWarnRun(null);
+      setChWarnFailed(false);
+    };
+  }, [warnsOn]);
+
+  // (2) Zeichnen zur eingestellten Zeit. `nowcastTick` hält die Auswahl auch
+  // ohne Slider-Bewegung aktuell — eine Warnung, die abläuft, verschwindet dann
+  // von selbst, statt bis zum nächsten Abruf stehen zu bleiben.
+  useEffect(() => {
+    if (!warnsOn) return;
+    const map = mapRef.current;
+    if (!map) return;
+    const src = map.getSource(WARN_SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
+    if (!src) return;
+    // Nur wenn BEIDE Quellen fehlen, ist die Karte leer. Sonst wird die
+    // erreichbare Hälfte gezeichnet und die fehlende benannt.
+    if (!warnRun && !chWarnRun) { src.setData({ type: 'FeatureCollection', features: [] }); return; }
+
+    const targetMs = Date.now() + forecastHour * 3600_000;
+    const inputs = [
+      ...(warnRun ? [{ alerts: warnRun.alerts, source: WARN_SOURCE_DE }] : []),
+      ...(chWarnRun ? [{ alerts: chWarnRun.alerts, source: WARN_SOURCE_CH }] : []),
+    ];
+    src.setData(buildWarnFeaturesMulti(inputs, targetMs));
+    const s = warnSummaryMulti(inputs, targetMs);
+    setWarnInfo({
+      total: s.total,
+      perSource: s.perSource,
+      // Datenalter = die ÄLTESTE der beteiligten Referenzzeiten. Ein
+      // zusammengesetztes Produkt darf nicht mit der frischeren Hälfte werben
+      // (V-19, Muster DACH-Komposit).
+      publishedMs: [warnRun?.publishedMs, chWarnRun?.publishedMs]
+        .filter((v): v is number => v != null)
+        .reduce<number | null>((acc, v) => (acc == null || v < acc ? v : acc), null),
+      dropped: (warnRun?.dropped ?? 0) + (chWarnRun?.dropped ?? 0),
+    });
+
+    // Statuszeile: der Leerfall ist eine AUSSAGE, kein Fehlen (§7.7). Wann er
+    // gilt, steht dabei — „keine Warnungen" ohne Zeitbezug ist wertlos.
+    const when = forecastHour === 0 ? 'jetzt' : `in ${forecastHour} h`;
+    // Welche Länder gerade fehlen. Ein halber Ausfall darf NIE wie eine
+    // vollständige Entwarnung aussehen.
+    const missing = [
+      ...(warnFailed ? ['Deutschland'] : []),
+      ...(chWarnFailed ? ['die Schweiz'] : []),
+    ];
+    const scope = inputs.map((i) => i.source.country).join(' + ');
+    const head = s.total === 0
+      ? `Amtliche Warnungen · ${when} keine für ${scope}`
+      : `Amtliche Warnungen · ${s.total} für ${when} · ${
+        s.perSource.filter((p) => p.total > 0)
+          .map((p) => `${p.source.country}: ${p.total} (${p.tiers[0].label})`).join(' · ')}`;
+    const model = missing.length
+      ? `${head} — ⚠ ${missing.join(' und ')} konnte nicht geladen werden, hier fehlen Warnungen`
+      : head;
+    updateStatus('warnings', {
+      ok: {
+        model,
+        fetchedAt: Date.now(),
+        // Referenzzeit = Ausgabezeit der jüngsten Meldung; im Leerfall die
+        // Publikationszeit der Datei (V-19), nie die Abrufzeit.
+        ref: measuredRef(
+          [warnRun?.latestSentMs ?? warnRun?.publishedMs, chWarnRun?.latestSentMs ?? chWarnRun?.publishedMs]
+            .filter((v): v is number => v != null)
+            .reduce<number | null>((acc, v) => (acc == null || v < acc ? v : acc), null),
+        ),
+      },
+    });
+  }, [warnsOn, warnRun, chWarnRun, warnFailed, chWarnFailed, forecastHour, nowcastTick]);
 
   // Flow-Nowcast / Ensemble-Schleier: Bewegungsfeld EINMAL je RADOLAN-Lauf schätzen
   // (Horn-Schunck auf den gröberen Frames 0 & 5; synchron, daher nach UI-Yield).
@@ -2154,7 +3426,8 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
       const b = coarsenFrameU8(f5.values, f5.width, f5.height, FLOW_FACTOR);
       const flow = estimateFlowHS(a.data, b.data, a.W, a.H, { alpha: 0.5, iters: 100 });
       flowRef.current = { key, base: a.data, flow, corners: nc.corners, intervalMin: FLOW_INTERVAL_MIN };
-      updateStatus('flownowcast', { ok: { model: 'Optical-Flow · Lagrange-Extrapolation (RADOLAN-RV)', fetchedAt: Date.now() } });
+      // Referenzzeit = der RADOLAN-Lauf, aus dem das Bewegungsfeld geschätzt wurde.
+      updateStatus('flownowcast', { ok: { model: 'Optical-Flow · Lagrange-Extrapolation (RADOLAN-RV)', fetchedAt: Date.now(), ref: measuredRef(nc.runAt.getTime()) } });
       setNowcastTick((t) => t + 1);
     })();
     return () => { cancelled = true; };
@@ -2187,7 +3460,8 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
     pop.setFrame({ values: u8, width: fl.flow.w, height: fl.flow.h, corners: fl.corners, warpLnglat: de1200WarpMesh(), warpN: DE1200_WARP_N });
     if (!popReadyRef.current) {
       popReadyRef.current = true;
-      updateStatus('poprob', { ok: { model: 'Flow-Ensemble · 15 Member (RADOLAN-RV)', fetchedAt: Date.now() } });
+      // Wie flownowcast: das Ensemble sitzt auf demselben RADOLAN-Lauf.
+      updateStatus('poprob', { ok: { model: 'Flow-Ensemble · 15 Member (RADOLAN-RV)', fetchedAt: Date.now(), ref: measuredRef(nowcastRef.current?.runAt.getTime()) } });
     }
   }, [forecastHour, nowcastTick, active]);
 
@@ -2384,7 +3658,7 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
       if (windLevel === 'surface') {
         if (!iconD2WindRef.current) await installWindRef.current?.();
         if (!cancelled) {
-          updateStatus('wind', { ok: { model: 'DWD ICON-D2 u/v 10m · 2,2 km', fetchedAt: Date.now() } });
+          updateStatus('wind', { ok: { model: 'DWD ICON-D2 u/v 10m · 2,2 km', fetchedAt: Date.now(), ref: runRef(iconD2WindRef.current?.runAt) } });
           setNowcastTick((t) => t + 1);
         }
         return;
@@ -2406,7 +3680,7 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
         }
       }
       if (cancelled || windLevelRef.current !== windLevel) return;
-      updateStatus('wind', { ok: { model: `DWD ICON-EU ${windLevel} hPa · 7 km`, fetchedAt: Date.now() } });
+      updateStatus('wind', { ok: { model: `DWD ICON-EU ${windLevel} hPa · 7 km`, fetchedAt: Date.now(), ref: runRef(euWindRef.current[windLevel]?.runAt) } });
       setNowcastTick((t) => t + 1);
     })();
     return () => { cancelled = true; };
@@ -2421,8 +3695,18 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
     if (!wind) return;
     wind.setShowParticles(windCfg.on);
     wind.setDensityMultiplier(windCfg.density * (windCfg.intensive ? 2.1 : 1));
-    wind.setPointSize(windCfg.intensive ? 1.75 : 1.5);
-    wind.setFadeOpacity(windCfg.intensive ? 0.972 : 0.955);
+    wind.setPointSize(windCfg.intensive ? 2.9 : 2.5);
+    // Schweiflänge = Tempo × Lebensdauer der Spur. 0,972 ⇒ ~36 Frames ⇒ bei den
+    // ~0,6 px/Frame der Übersicht ein ~22-px-Strich mit weichem Auslauf — die
+    // Kometenform der Vorlage (WetterOnline: ~25 px). Vorher 0,955 ⇒ 22 Frames
+    // ⇒ 4 px, also ein Punkt. „Intensiv" hängt einen längeren Schweif an.
+    // ACHTUNG, historisch: diese Rechnung stimmte bis 2026-08-08 NICHT — das
+    // Trail-Komposit blendete Farbe UND Alpha ab und multiplizierte beim
+    // Zusammensetzen ein zweites Mal mit dem Alpha, wodurch die Spur mit
+    // fadeOpacity² zerfiel (0,972 wirkte wie 0,9448, also ~10 statt ~19 px).
+    // Behoben in shaders.ts/screenFrag; Messung: audit/windpartikel-schweif.md.
+    // Die Zahlen hier sind seither unverändert und beschreiben wieder die Realität.
+    wind.setFadeOpacity(windCfg.intensive ? 0.982 : 0.972);
   }, [windCfg, active]);
 
   // Temperatur-Layer (natives ICON-D2 t_2m): bei jeder Slider-Bewegung den Frame
@@ -2686,6 +3970,23 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
         keep.add(city.name);
       }
 
+      // Ab Stadtansicht zusätzlich die Orte, die die BASISKARTE gerade selbst
+      // beschriftet (Kleinstädte, Gemeinden, Dörfer). Jans Auftrag 2026-08-09:
+      // beim Reinzoomen sollen auch Donauwörth, Neuburg & Co. ihre Temperatur
+      // zeigen, nicht nur die kuratierte DACH_CITIES-Liste. Quelle sind die
+      // ohnehin gerenderten `place`-Label-Features des Basemap-Stils — keine
+      // neue Datenquelle, kein zusätzliches Byte, und die Zoomstaffel des Stils
+      // sorgt automatisch dafür, dass nie mehr Orte auftauchen als beschriftet
+      // sind. Der Wert kommt aus demselben DEM-korrigierten Sampler.
+      if (zoom >= PLACE_LABEL_MIN_ZOOM) {
+        for (const place of visiblePlaceLabels(map, keep)) {
+          const t = getTemp({ name: place.name, lat: place.lat, lng: place.lng, rank: 4 });
+          if (t == null || !Number.isFinite(t)) continue;
+          writeMarker(ensureMarker(place.key, place.lng, place.lat), t, 'temp-label-rank-4');
+          keep.add(place.key);
+        }
+      }
+
       // Nicht mehr benötigte Marker entfernen (außerhalb des Ausschnitts oder
       // durch Zoom verschwundene Ränge).
       for (const [key, m] of markers) {
@@ -2748,7 +4049,14 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
       if (!src || (src as { type: string }).type !== 'raster') return;
       const meta = satelliteSourceMeta(satProduct);
       (src as unknown as { setTiles: (urls: string[]) => void }).setTiles([meta.template]);
+      // keine Referenzzeit: das gewechselte Produkt hat ein eigenes Capture-Datum,
+      // das direkt darunter nachgeladen wird.
       updateStatus('sat', { ok: { model: meta.title, fetchedAt: Date.now() } });
+      // Das neue Produkt hat ein eigenes Capture-Datum — nachladen wie beim
+      // Erst-Einbau (V-19: sonst bliebe der Status dauerhaft ohne Referenzzeit).
+      void fetchWmsLatestTime(meta.layerLocalName).then((t) => {
+        if (t) updateStatus('sat', { ok: { model: meta.title, fetchedAt: Date.now(), ref: measuredRef(t.getTime()) } });
+      });
     };
     if (map.isStyleLoaded()) apply();
     else map.once('load', apply);
@@ -2785,6 +4093,24 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
         [CONFIDENCE_LAYER_ID]: active.has('confidence'),
         [SNOWLINE_CASING_ID]: active.has('snowline'),
         [SNOWLINE_LAYER_ID]: active.has('snowline'),
+        // Zellbahnen: nur im belegten Fenster jetzt … +60 min. Steht der Slider
+        // weiter vorn, ist der Layer AUS statt eine Aussage vorzutäuschen, für
+        // die es keine Prognosespur gibt (D-04, Muster wie `nowcast` jenseits
+        // des Radarhorizonts). Die Legende benennt genau das.
+        ...Object.fromEntries(CELLS_LAYER_IDS.map((id) => [
+          id, active.has('cells') && forecastHour * 60 <= CELLS_HORIZON_MIN,
+        ])),
+        // Hagel: beide Quellen sind reine ANALYSEN („jetzt"). Ab der ersten
+        // Vorhersagestunde ist der Layer aus, statt einen alten Stand als
+        // Aussage über die eingestellte Stunde auszugeben (D-04).
+        ...Object.fromEntries(HAIL_LAYER_IDS.map((id) => [id, active.has('hail') && forecastHour === 0])),
+        // Warnungen: KEINE Stundenschranke — anders als Radar-Analysen tragen
+        // amtliche Warnungen ihre eigene Gültigkeit (`onset`/`expires`) und
+        // reichen oft über den Slider hinaus. Gefiltert wird über die Daten
+        // (`buildWarnFeatures` zur eingestellten Zeit), nicht über die
+        // Sichtbarkeit: gilt zur gewählten Stunde nichts, ist die Quelle leer —
+        // und die Legende sagt genau das.
+        ...Object.fromEntries(WARN_LAYER_IDS.map((id) => [id, active.has('warnings')])),
         [FLOW_NOWCAST_LAYER_ID]: active.has('flownowcast') && modelSourceRef.current.radar,
         [POP_LAYER_ID]: active.has('poprob') && modelSourceRef.current.radar,
         [DIM_LAYER_ID]: true, // dark wash always on — keeps the canvas dark even with no weather layer
@@ -2804,6 +4130,16 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
       // Rastern und dem Schleier.
       if (map.getLayer(SNOWLINE_CASING_ID)) map.moveLayer(SNOWLINE_CASING_ID);
       if (map.getLayer(SNOWLINE_LAYER_ID)) map.moveLayer(SNOWLINE_LAYER_ID);
+      // Amtliche Warnungen über die Raster, aber UNTER Zellbahnen/Hagel: die
+      // Warnfläche ist großflächig und würde die kleinen Objekte sonst
+      // überdecken. Kein Rangurteil — nur Lesbarkeit.
+      for (const id of WARN_LAYER_IDS) if (map.getLayer(id)) map.moveLayer(id);
+      // Zellbahnen über die Raster heben (sonst verdeckt das Radar den Trichter),
+      // in Zeichenreihenfolge — die Stationen bleiben darüber (nächster moveLayer).
+      for (const id of CELLS_LAYER_IDS) if (map.getLayer(id)) map.moveLayer(id);
+      // Hagel darüber: ein Hagelsignal darf von keiner Datenschicht verdeckt
+      // werden. Reihenfolge CH-Raster → DE-Fläche → Umriss → Punkt.
+      for (const id of HAIL_LAYER_IDS) if (map.getLayer(id)) map.moveLayer(id);
       // Stations live ON TOP of everything (including the country mask and
       // any precipitation overlay). Re-hoisting last keeps the markers
       // reachable regardless of init order.
@@ -2816,8 +4152,40 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
     safeApply();
   }, [active, forecastHour, nowcastTick, location.country, modelSource, forecast]);
 
-  const fmtTime = (ms: number) =>
-    new Date(ms).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+  // (Der frühere lokale `fmtTime` ist entfallen: seine drei Aufrufer sind auf
+  //  `statusStamp`/`dataAgeText` umgestellt, das die Uhrzeit selbst formatiert.)
+
+  // V-20: Zustand der Warm-Manifeste (`latest-grib.json` / `latest-wind.json`).
+  // Die Loader melden ihn beim Auflösen; hier wird er nur gelesen. Fällt der
+  // Schnellzugriff aus, lädt die Karte weiter — nur langsamer, und genau das
+  // soll man sehen statt sich über plötzliche Wartezeiten zu wundern.
+  const [manifestHealth, setManifestHealth] = useState<ManifestHealth>(() => getManifestHealth());
+  useEffect(() => subscribeManifestHealth(setManifestHealth), []);
+  const manifestNote = useMemo(() => {
+    if (manifestHealth.state === 'absent') {
+      return {
+        text: 'Schnellzugriff nicht aktuell — Daten kommen direkt von der Quelle.',
+        title: `Kein nutzbares Warm-Manifest (${manifestHealth.sources.join(', ') || '—'}). Die Layer lösen den Lauf per Verzeichnis-Abfrage auf: gleiche Daten, längere Ladezeit.`,
+      };
+    }
+    if (manifestHealth.state === 'stale') {
+      const age = manifestHealth.updatedAtMs != null ? ageText(clockMs - manifestHealth.updatedAtMs) : 'seit unbekannter Zeit';
+      return {
+        text: `Schnellzugriff zuletzt ${age} aufgefrischt.`,
+        title: `Das Warm-Manifest (${manifestHealth.sources.join(', ') || '—'}) wird nicht mehr regelmäßig umgelegt. Die Karte zeigt den zuletzt gewärmten Lauf.`,
+      };
+    }
+    return null;   // 'fresh' und 'unknown' erzeugen bewusst keine Zeile
+  }, [manifestHealth, clockMs]);
+
+  // V-19: EINE Beschriftung des Datenalters für alle drei Statusflächen
+  // (.data-badge, Layer-Zeile im Dock, Statuspille) — damit sie nicht wieder
+  // auseinanderlaufen. `clockMs` tickt ohnehin minütlich (s. Uhr im Deck), das
+  // Alter aktualisiert sich also von selbst.
+  const statusStamp = (ok: { fetchedAt: number; ref?: DataRef }) => ({
+    text: dataAgeText(ok.ref, ok.fetchedAt, clockMs),
+    stale: isStale(ok.ref, clockMs),
+  });
 
   // label for the slider's current forecast hour (supports sub-hour positions)
   const forecastLabel = useMemo(() => {
@@ -3026,16 +4394,22 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
           </span>
           {LAYER_OPTIONS.filter(o => active.has(o.key)).map(o => {
             const s = statuses[o.key];
+            const st = s.ok ? statusStamp(s.ok) : null;
             return (
-              <span key={o.key} className={s.err ? 'err' : ''} title={s.err ?? undefined}>
+              <span
+                key={o.key}
+                className={s.err ? 'err' : st?.stale ? 'stale' : ''}
+                title={s.err ?? (st?.stale ? `Dieser Datensatz ist ungewöhnlich alt (${ageText(clockMs - (s.ok!.ref?.atMs ?? clockMs))}).` : undefined)}
+              >
                 {s.err
                   ? `${o.label}: ${s.err}`
-                  : s.ok
-                    ? `${o.label} · ${s.ok.model.toUpperCase()} · ${s.ok.captured ? 'Stand ' : ''}${fmtTime(s.ok.fetchedAt)}`
+                  : s.ok && st
+                    ? `${st.stale ? '⚠ ' : ''}${o.label} · ${s.ok.model.toUpperCase()} · ${st.text}`
                     : `${o.label} wird geladen…`}
               </span>
             );
           })}
+          {manifestNote && <span className="mdk-manifest-note" title={manifestNote.title}>{manifestNote.text}</span>}
         </div>
 
         {forecast && (
@@ -3097,7 +4471,10 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
     const opt = LAYER_BY_KEY.get(key)!;
     const on = active.has(key);
     const st = statuses[key];
-    const stamp = st?.err ? '⚠ Fehler' : st?.ok ? `${st.ok.captured ? 'Stand ' : ''}${fmtTime(st.ok.fetchedAt)}` : on ? 'lädt…' : '';
+    const stampInfo = st?.ok ? statusStamp(st.ok) : null;
+    const stamp = st?.err
+      ? '⚠ Fehler'
+      : stampInfo ? `${stampInfo.stale ? '⚠ ' : ''}${stampInfo.text}` : on ? 'lädt…' : '';
     const showSub = big && layerMode === 'detail';
     return (
       <button
@@ -3108,9 +4485,9 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
         role="switch"
         aria-checked={on}
         onClick={() => toggle(key)}
-        onMouseEnter={big ? undefined : (e) => showLayerInfo(e.currentTarget, key)}
+        onMouseEnter={big ? undefined : () => setLayerHover(key)}
         onMouseLeave={big ? undefined : () => setLayerHover(null)}
-        onFocus={big ? undefined : (e) => showLayerInfo(e.currentTarget, key)}
+        onFocus={big ? undefined : () => setLayerHover(key)}
         onBlur={big ? undefined : () => setLayerHover(null)}
         title={opt.title}
       >
@@ -3154,6 +4531,24 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
           title={SNOW_MODE_FULL_LABELS[m]}
         >
           {SNOW_MODE_LABELS[m]}
+        </button>
+      ))}
+    </div>
+  );
+
+  // Hagel-Produktumschalter (Phase HA1) — betrifft NUR die Schweiz; der
+  // DE-Anteil (KONRAD3D-Zellen) bleibt in beiden Stellungen sichtbar.
+  const hailSeg = (
+    <div className="mdk-subseg" data-accent="violet" role="group" aria-label="Hagel-Produkt (Schweiz)">
+      {HAIL_PRODUCTS.map(p => (
+        <button
+          key={p}
+          type="button"
+          className={hailProduct === p ? 'is-active' : ''}
+          onClick={() => setHailProduct(p)}
+          title={HAIL_PRODUCT_FULL_LABELS[p]}
+        >
+          {HAIL_PRODUCT_LABELS[p]}
         </button>
       ))}
     </div>
@@ -3286,10 +4681,315 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
     </div>
   ) : null;
 
+  /** Dynamischer Titel-Zusatz je Layer (Schnee-Modus, Sicherheits-Bezug,
+   *  Experten-Hinweis) für die Readout-Karte. Die mobile Stage-Legende trägt
+   *  ihre Zusätze weiterhin im eigenen Markup — dort bleibt alles unverändert. */
+  const layerTitleSuffix = (key: LayerKey): React.ReactNode => {
+    if (key === 'snow') return `· ${snowMode === 'depth' ? 'Schneedecke' : 'Neuschnee'}`;
+    if (key === 'confidence') return `· ${active.has('nowcast') ? 'Regen' : 'Temperatur'}`;
+    if (key === 'rotation') return '· Experten-Layer';
+    return null;
+  };
+
+  /** Ausführlicher Erklär-/Ehrlichkeitstext je Layer — die EINE Quelle für die
+   *  mobile Stage-Legende (`legendsBlock`) und die Readout-Karte auf Desktop
+   *  (Phase KD-R). Nur diese acht Layer haben einen; die übrigen tragen die
+   *  Beschreibung aus `LAYER_INFO` (LayerInfoPanel). */
+  const layerExtNote = (key: LayerKey): React.ReactNode => {
+    switch (key) {
+      case 'warnings':
+        return (
+          <>
+            Die <b>amtlichen Wetterwarnungen</b> von <b>DWD</b> (Deutschland, CAP, landkreisgenau)
+            und <b>MeteoSchweiz</b> (Schweiz, Warnregionen, über MeteoAlarm), 5-Minuten-Takt —
+            das <b>amtliche Warnprodukt</b>, auf das alle anderen Layer dieser Karte verweisen.
+            Überschrift, Beschreibung und Handlungshinweis werden <b>wortwörtlich übernommen</b>.
+            Die Farbe ist in Deutschland die <b>amtliche Warnfarbe</b> aus der Meldung; der
+            Schweizer Feed führt keine mit — dort ist sie aus der <b>amtlichen Gefahrenstufe
+            abgeleitet</b> und in der Legende als solche gekennzeichnet. Die Stufenskalen bleiben{' '}
+            <b>getrennt</b>: DWD-Stufe 1 ist gelb, die Schweizer Stufe 1 grün. Der Zeitregler
+            wählt aus, was zur eingestellten Stunde gilt; Warnungen ohne festes Ende sind als solche
+            gekennzeichnet. Höhenbeschränkungen stehen bei deutschen Warnungen im Steckbrief
+            („gilt nur unterhalb 600 m"); bei Schweizer Warnungen steht die Höhe <b>im amtlichen
+            Text selbst</b> — das dortige Datenfeld widerspricht ihm teils und wird deshalb nicht
+            ausgewertet. Ehrliche Grenzen: <b>Österreich fehlt</b> — dort warnt{' '}
+            {warningsSourceFor('AT').operator}, und eine leere Fläche über Österreich heißt{' '}
+            <b>nicht</b> „keine Warnung". <b>Kein Ersatz für die amtliche Bekanntmachung</b> —
+            maßgeblich bleiben dwd.de/warnungen und meteoschweiz.admin.ch.
+          </>
+        );
+      case 'snow':
+        return (
+          <>
+            {snowMode === 'depth'
+              ? <>Aktuelle <b>Schneehöhe</b> (ICON-D2 <b>h_snow</b>, 2,2 km) als Fläche in cm — Modell-Schneedecke, keine Messung.</>
+              : <><b>Neuschnee</b>-Zuwachs (ICON-D2 <b>snow_gsp+snow_con</b> → cm) über das Vorhersagefenster; Summe wächst mit dem Horizont.</>}
+            {' '}Die <b>Menge</b> als Fläche — NICHT die Schneegrenzen-Linie („Schneegrenze"). Ehrliche Grenzen:
+            am Modellrand ohne Wert (transparent); Schnee-Wasser-Verhältnis ist eine <b>Näherung</b>
+            (rho_snow bevorzugt); nur naher NWP-Horizont.
+          </>
+        );
+      case 'lightningfc':
+        return (
+          <>
+            Prognostiziertes Blitzrisiko aus dem ICON-D2 <b>Lightning Potential Index</b> (lpi_max,
+            2,2 km), über den Slider 0–12 h in die <b>Zukunft</b>. Ehrliche Grenzen: nur naher
+            NWP-Horizont (~0–12 h), am Modellrand ohne Wert (transparent), und <b>Prognose ≠ Messung</b> —
+            die gemessenen Einschläge der letzten Stunde zeigt der Layer „Blitze".
+          </>
+        );
+      case 'thunder':
+        return (
+          <>
+            Fusion aus CAPE (Energie) × CIN (Deckel) × LPI (Blitzbereitschaft), ICON-D2 2,2 km.
+            Flächige Vorwarnung <b>vor</b> dem ersten Radarecho. Ehrliche Grenzen: nur naher
+            NWP-Horizont (~0–12 h), am Modellrand ohne Wert (transparent), und <b>Potenzial ≠ Auslösung</b> —
+            hohes CAPE allein ist noch kein Gewitter (deshalb die CIN-Dämpfung + LPI-Realisierung).
+          </>
+        );
+      case 'rotation':
+        return (
+          <>
+            Geglättete Modell-<b>VERDACHTS</b>flächen für rotierende Aufwinde/Superzellen aus
+            ICON-D2 <b>uh_max</b> + <b>uh_max_low</b> (Updraft-Helicity) und <b>sdi_2</b> (Supercell-Index),
+            0–12 h. <b>Kein amtliches Warnprodukt, kein Warnersatz</b> — maßgeblich sind die
+            <b> DWD-Warnungen</b> (Layer „Blitze"/amtliche Unwetterwarnung). <b>Verdacht ≠ Ereignis</b>,
+            <b> hohe Fehlalarmrate</b>; die Felder sind rauschig und werden bewusst geglättet. Nur naher
+            NWP-Horizont, am Modellrand ohne Wert (transparent). Nischensignal für Storm-Enthusiasten.
+          </>
+        );
+      case 'hail':
+        return (
+          <>
+            Zwei amtliche Radarprodukte, bewusst <b>nicht vermischt</b>.
+            <b> Fläche:</b> MeteoSchweiz <b>MESHS</b> (maximal erwartete Korngröße) bzw. <b>POH</b>
+            {' '}(Hagelwahrscheinlichkeit), 1 km / 5 Min, <b>nur 1. April–30. September</b> — aus dem
+            {' '}<b>Schweizer</b> Radarverbund, dessen Reichweite über die Grenze nach Süddeutschland
+            und Vorarlberg geht und dort ausdünnt.
+            <b> Zellen:</b> DWD <b>KONRAD3D</b> — Zellen, in denen das Radar Hagel erkennt, mit
+            Hagelfläche und Hinweis auf Großhagel, aus dem <b>deutschen</b> Radarverbund
+            (ebenfalls grenzüberschreitend). <b>Österreich hat keine eigene offene Hagelquelle</b>
+            {' '}(weder GeoSphere noch ALDIS) — im <b>Osten</b> Österreichs gibt es daher keine
+            Abdeckung; das heißt <b>nicht</b>, dass es dort nicht hagelt.
+            Ehrliche Grenzen: <b>Radarerkennung, keine Bodenmeldung</b>; gilt für <b>jetzt</b>
+            {' '}(ab der ersten Vorhersagestunde ist der Layer aus); <b>kein amtliches Warnprodukt,
+            kein Warnersatz</b> — maßgeblich sind die Warnungen von DWD und MeteoSchweiz.
+            Kein Hagel erkannt = an den allermeisten Tagen der Normalfall.
+          </>
+        );
+      case 'cells':
+        return (
+          <>
+            {/* Z2-4: der Standortbezug steht ZUERST — er ist die Antwort, alles
+                darunter ist Erklärung. Im Übersichts-Modus fehlt er ersatzlos. */}
+            {cellsRelevance != null && <><b>{cellsRelevance.text}</b>{' '}</>}
+            Erkannte konvektive Zellen aus <b>DWD KONRAD3D</b> (5-Minuten-Takt). Der Umriss ist
+            <b> gemessen</b>; Spur, <b>Pfeil</b> (Zugrichtung über die volle Stunde),{' '}
+            <b>Zeitmarken</b> (+15/+30/+60 Min) und Trichter sind <b>prognostiziert</b> (bis
+            +60 Min) — alles stammt <b>vom DWD</b>, der Trichter ist die <b>amtliche</b>{' '}
+            Unsicherheitsellipse je Stützstelle, keine eigene Schätzung; nach hinten wird er
+            durchsichtiger, weil er dort unsicherer ist. Die angezeigte Zuggeschwindigkeit stammt
+            aus <b>derselben Geometrie wie die gezeichnete Spur</b> und ist auf 5 km/h gerundet.
+            Ehrliche Grenzen: <b>kein amtliches Warnprodukt, kein Warnersatz</b> — maßgeblich sind
+            die DWD-Warnungen; eine <b>Ankunftszeit gibt es nur als Spanne</b> und nur mit
+            amtlicher Ellipse, sonst gar keine; beim Herauszoomen entfallen zuerst die Zeitmarken,
+            dann der Trichter-Verlauf, <b>Umriss und Spur bleiben immer</b>; die Abdeckung ist die
+            Reichweite des <b>deutschen</b> Radarverbunds (reicht über die Grenze und dünnt dort
+            aus, für AT/CH gibt es kein gleichwertiges Objektprodukt); jenseits +1 h ist der Layer
+            aus, weil die Spur dort endet. Keine Zellen = an ruhigen Tagen der Normalfall.
+          </>
+        );
+      case 'confidence':
+        return active.has('nowcast')
+          ? 'Dichtere Schraffur = unsicherere Regenvorhersage. Echter Ensemble-Spread (DE): 15 Member advehieren das Radar mit gestörten Bewegungsfeldern — wo sie uneins sind (Niederschlagskanten, ferne Lead-Zeiten), ist es unsicher.'
+          : 'Dichtere Schraffur = unsicherere Vorhersage. Abweichung von der DWD-Stationsklimatologie (30 J.) × Lauf-zu-Lauf-Übereinstimmung zweier ICON-D2-Läufe (echtes zeitversetztes Ensemble).';
+      case 'snowline':
+        return 'Linie = Übergang Regen↔Schnee; oberhalb fällt Niederschlag als Schnee. KI · ML #2: Physik-Anker + gelernte Orts-Korrektur (DWD-Stationen), dem Gelände folgend. Bei milder Luft existiert keine Linie (alles Regen).';
+      case 'flownowcast':
+        return 'Optical-Flow-Extrapolation: aus zwei RADOLAN-Frames wird das Bewegungsfeld geschätzt (Horn-Schunck) und das aktuelle Radar damit vorwärts advehiert. Regen wandert intensitätserhaltend (~0–60 min). Nur DE, trainingsfrei.';
+      case 'poprob':
+        return 'Kalibrierte Regenwahrscheinlichkeit aus dem Flow-Ensemble (15 Member, gestörte Bewegungsfelder). „Wie wahrscheinlich" statt „wie viel". Nur DE, ~0–60 min.';
+      default:
+        return null;
+    }
+  };
+
   // Layer-Legenden (Sicherheit · Schneegrenze · Flow-Nowcast · Regen-Chance) —
   // Inhalte unverändert, im Deck als Glas-Karten rechts gestapelt.
-  const legendsBlock = (active.has('confidence') || active.has('snowline') || active.has('flownowcast') || active.has('poprob') || active.has('thunder') || active.has('lightningfc') || active.has('snow') || active.has('rotation')) ? (
+  // Seit Phase KD-R nur noch der MOBILE Pfad (Desktop: Readout-Spalte, s. u.).
+  const legendsBlock = (active.has('confidence') || active.has('snowline') || active.has('flownowcast') || active.has('poprob') || active.has('thunder') || active.has('lightningfc') || active.has('snow') || active.has('rotation') || active.has('cells') || active.has('hail') || active.has('warnings')) ? (
     <div className="mdk-legends">
+      {active.has('warnings') && (
+        <div className="confidence-legend" role="note" aria-label="Amtliche Wetterwarnungen">
+          <div className="cl-title">
+            Amtliche Warnungen
+            <span style={{ opacity: 0.7, fontWeight: 400 }}>
+              {' '}· {warnFailed
+                ? 'nicht erreichbar'
+                : warnInfo == null
+                  ? 'lade …'
+                  : warnInfo.total === 0
+                    ? 'keine'
+                    : `${warnInfo.total} ${warnInfo.total === 1 ? 'Warnung' : 'Warnungen'}`}
+              {!warnFailed && forecastHour > 0 && <> · in {forecastHour} h</>}
+            </span>
+          </div>
+          {/* Die Skala zeigt AUSSCHLIESSLICH die Stufen, die gerade auf der Karte
+              liegen. Sie ist JE LAND getrennt: DWD-Stufe 1 ist gelb, die
+              Schweizer Stufe 1 grün — eine gemeinsame Skala würde zwei
+              unvereinbare Systeme zu einem verschmelzen (audit/warnungen-at-ch.md §4.4). */}
+          {warnInfo?.perSource.filter(p => p.tiers.length > 0).map(p => (
+            <Fragment key={p.source.key}>
+              <div className="cl-ends" style={{ marginTop: 4 }}>
+                <span><b>{p.source.country}</b></span>
+                <span style={{ opacity: 0.75 }}>
+                  {p.source.colorOrigin === 'derived' ? 'Farbe abgeleitet' : 'amtliche Farbe'}
+                </span>
+              </div>
+              {/* `tiers` ist absteigend sortiert (höchste Stufe zuerst, so wird
+                  gezeichnet). Die Skala läuft aber wie jede andere Legende der
+                  App von schwach nach stark — deshalb hier umgedreht, sonst
+                  stünde die kräftigste Farbe über der schwächsten Beschriftung. */}
+              <div className="cl-scale" aria-hidden="true">
+                {[...p.tiers].reverse().map(t => (
+                  <span key={t.label} className="cl-swatch" style={{ background: t.color }} />
+                ))}
+              </div>
+              <div className="cl-ends">
+                <span>{p.tiers[p.tiers.length - 1].label}</span>
+                <span>{p.tiers[0].label}</span>
+              </div>
+            </Fragment>
+          ))}
+          <div className="cl-note">
+            {/* Ausfall NIE als Leerstand darstellen (docs/API.md §7.3): eine leere
+                Karte ohne diesen Satz läse sich als „keine Warnungen". Seit W2
+                gilt das AUCH für den halben Ausfall — eine fehlende Schweiz darf
+                nicht wie eine warnfreie Schweiz aussehen. */}
+            {warnFailed && chWarnFailed && (
+              <><b>Die amtlichen Warnungen sind gerade nicht abrufbar</b> — diese Karte zeigt
+              deshalb keine. Das heißt <b>nicht</b>, dass keine gelten: bitte direkt bei{' '}
+              <a href={warningsSourceFor('DE').url} target="_blank" rel="noopener">dwd.de</a>{' '}
+              bzw. <a href={warningsSourceFor('CH').url} target="_blank" rel="noopener">naturgefahren.ch</a>{' '}
+              nachsehen.{' '}</>
+            )}
+            {warnFailed && !chWarnFailed && (
+              <><b>Für Deutschland sind die amtlichen Warnungen gerade nicht abrufbar</b> — die
+              deutsche Fläche ist deshalb leer, <b>nicht</b> warnfrei. Bitte direkt bei{' '}
+              <a href={warningsSourceFor('DE').url} target="_blank" rel="noopener">dwd.de</a>{' '}
+              nachsehen. Die Schweizer Warnungen unten sind aktuell.{' '}</>
+            )}
+            {chWarnFailed && !warnFailed && (
+              <><b>Für die Schweiz sind die amtlichen Warnungen gerade nicht abrufbar</b> — die
+              Schweizer Fläche ist deshalb leer, <b>nicht</b> warnfrei. Bitte direkt beim{' '}
+              <a href={warningsSourceFor('CH').url} target="_blank" rel="noopener">Naturgefahrenportal</a>{' '}
+              nachsehen. Die deutschen Warnungen sind aktuell.{' '}</>
+            )}
+            {!warnFailed && !chWarnFailed && warnInfo != null && warnInfo.total === 0 && (
+              <><b>Für {forecastHour === 0 ? 'jetzt' : `in ${forecastHour} h`} liegen keine amtlichen
+              Warnungen für Deutschland und die Schweiz vor.</b>{' '}</>
+            )}
+            Amtliche Warnungen des <b>Deutschen Wetterdienstes</b> (landkreisgenau) und von{' '}
+            <b>MeteoSchweiz</b> (Warnregionen, über MeteoAlarm). Die <b>Texte</b> stammen
+            unverändert aus der amtlichen Meldung. Die <b>Farbe</b> ist für Deutschland die
+            amtliche Warnfarbe aus der Meldung; für die Schweiz führt der Feed keine Farbe mit —
+            sie ist dort aus der <b>amtlichen Gefahrenstufe abgeleitet</b>. Fläche antippen zeigt{' '}
+            <b>alle</b> Warnungen dieses Ortes. Der Zeitregler wählt aus, was{' '}
+            <b>zu dieser Stunde gilt</b>.
+            {' '}<b>Österreich fehlt weiterhin</b> — dort warnt {warningsSourceFor('AT').operator}{' '}
+            (<a href={warningsSourceFor('AT').url} target="_blank" rel="noopener">Warnübersicht</a>);
+            eine leere Fläche über Österreich heißt <b>nicht</b> „keine Warnung".
+            {warnInfo != null && warnInfo.dropped > 0 && (
+              <> {warnInfo.dropped} Meldung(en) ohne darstellbare Fläche sind hier nicht abgebildet.</>
+            )}
+            {chWarnRun != null && chWarnRun.textUnavailable > 0 && (
+              <> {chWarnRun.textUnavailable} Schweizer Meldung(en) konnten im Wortlaut nicht geladen
+              werden und werden deshalb <b>nicht</b> gezeigt.</>
+            )}
+            {' '}Maßgeblich ist die amtliche Bekanntmachung auf{' '}
+            <a href={warningsSourceFor('DE').url} target="_blank" rel="noopener">dwd.de</a>{' '}
+            bzw. bei <a href={warningsSourceFor('CH').url} target="_blank" rel="noopener">MeteoSchweiz</a>.
+          </div>
+        </div>
+      )}
+      {active.has('hail') && (
+        <div className="confidence-legend" role="note" aria-label="Hagel">
+          <div className="cl-title">
+            Hagel
+            <span style={{ opacity: 0.7, fontWeight: 400 }}>
+              {' '}· CH {hailProduct === 'meshs' ? 'Korngröße' : 'Wahrscheinlichkeit'}
+            </span>
+          </div>
+          <div className="cl-scale" aria-hidden="true">
+            {stopsFor(hailProduct).map(s => (
+              <span
+                key={s.v}
+                className="cl-swatch"
+                style={{ background: `rgba(${s.rgba[0]},${s.rgba[1]},${s.rgba[2]},${(s.rgba[3] / 255).toFixed(2)})` }}
+              />
+            ))}
+          </div>
+          <div className="cl-ends">
+            <span>{hailLegendEnds(hailProduct)[0]}</span><span>{hailLegendEnds(hailProduct)[1]}</span>
+          </div>
+          <div className="cl-note">
+            <b>Fläche</b> (Schweizer Radarverbund, reicht über die Grenze): MeteoSchweiz{' '}
+            {hailProduct === 'meshs' ? 'MESHS' : 'POH'} —{' '}
+            {hailInfo.chMax == null
+              ? 'lade …'
+              : hailInfo.chMax <= 0
+                ? 'aktuell kein Hagel erkannt'
+                : `Maximum ${hailProduct === 'meshs' ? meshsLabel(hailInfo.chMax) : pohLabel(hailInfo.chMax)}`}
+            {!isSwissHailSeason(new Date()) && <> · <b>außerhalb der Hagelsaison</b> (1. April–30. September)</>}.
+            {' '}<b>Zellen</b> (deutscher Radarverbund): DWD KONRAD3D —{' '}
+            {hailInfo.deCells == null
+              ? 'lade …'
+              : hailInfo.deCells === 0
+                ? 'aktuell keine Hagelzelle erkannt'
+                : `${hailInfo.deCells} Zelle${hailInfo.deCells === 1 ? '' : 'n'} mit Hagelsignal`}.
+            {' '}<b>Österreich hat keine eigene Quelle</b> — im Osten daher keine Abdeckung; das
+            heißt nicht, dass es dort nicht hagelt. Radarerkennung, keine Bodenmeldung.
+            Gilt für <b>jetzt</b>; <b>kein Warnprodukt</b>.
+          </div>
+        </div>
+      )}
+      {active.has('cells') && (
+        <div className="confidence-legend" role="note" aria-label="Zellbahnen">
+          <div className="cl-title">
+            Zellbahnen
+            <span style={{ opacity: 0.7, fontWeight: 400 }}>
+              {' '}· {cellsInfo == null
+                ? 'lade …'
+                : cellsInfo.count === 0
+                  ? 'keine Zellen erkannt'
+                  : `${cellsInfo.count} Zelle${cellsInfo.count === 1 ? '' : 'n'}`}
+            </span>
+          </div>
+          <div className="cl-scale" aria-hidden="true">
+            <span className="cl-swatch" style={{ background: 'rgb(201,162,39)' }} />
+            <span className="cl-swatch" style={{ background: 'rgb(224,138,46)' }} />
+            <span className="cl-swatch" style={{ background: 'rgb(201,82,46)' }} />
+            <span className="cl-swatch" style={{ background: 'rgb(143,33,64)' }} />
+          </div>
+          <div className="cl-ends"><span>schwach</span><span>kräftig</span></div>
+          {/* Z2-4: der Standortbezug. Im Übersichts-Modus gibt es ihn ersatzlos
+              nicht — kein Platzhalter, keine leere Zeile. */}
+          {cellsRelevance != null && (
+            <div className="cl-note" style={{ fontWeight: 600 }}>{cellsRelevance.text}</div>
+          )}
+          {/* Bewusst KURZ gehalten: auf 390×844 gemessen wächst die Karte sonst auf
+              359 px und schiebt ausgerechnet den Warnhinweis unter die Scrollkante.
+              Die ausführliche Fassung steht in der Readout-Spalte (Desktop). */}
+          <div className="cl-note">
+            Umriss durchgezogen = <b>gemessen</b>; Spur, Pfeil, Zeitmarken (+15/+30/+60) und
+            Trichter = <b>prognostiziert</b>, alles amtlich vom DWD (Trichter = amtliche
+            Unsicherheitsellipse, nach hinten durchsichtiger = unsicherer). Gilt <b>jetzt bis
+            +60 Min</b>. Ankunftszeit <b>nur als Spanne</b>. Beim Herauszoomen entfallen Zeitmarken
+            und Trichter-Verlauf, <b>Umriss und Spur bleiben</b>. Zelle antippen für Details.
+            {' '}<b>Kein Warnprodukt</b>, maßgeblich sind die DWD-Warnungen.
+          </div>
+        </div>
+      )}
       {active.has('snow') && (
         <div className="confidence-legend" role="note" aria-label="Schnee">
           <div className="cl-title">Schnee <span style={{ opacity: 0.7, fontWeight: 400 }}>· {snowMode === 'depth' ? 'Schneedecke' : 'Neuschnee'}</span></div>
@@ -3301,14 +5001,7 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
             <span className="cl-swatch" style={{ background: 'rgb(70,96,190)' }} />
           </div>
           <div className="cl-ends"><span>~1 cm</span><span>{snowMode === 'depth' ? '≥150 cm' : '≥50 cm'}</span></div>
-          <div className="cl-note">
-            {snowMode === 'depth'
-              ? <>Aktuelle <b>Schneehöhe</b> (ICON-D2 <b>h_snow</b>, 2,2 km) als Fläche in cm — Modell-Schneedecke, keine Messung.</>
-              : <><b>Neuschnee</b>-Zuwachs (ICON-D2 <b>snow_gsp+snow_con</b> → cm) über das Vorhersagefenster; Summe wächst mit dem Horizont.</>}
-            {' '}Die <b>Menge</b> als Fläche — NICHT die Schneegrenzen-Linie („Schneegrenze"). Ehrliche Grenzen:
-            am Modellrand ohne Wert (transparent); Schnee-Wasser-Verhältnis ist eine <b>Näherung</b>
-            (rho_snow bevorzugt); nur naher NWP-Horizont.
-          </div>
+          <div className="cl-note">{layerExtNote('snow')}</div>
         </div>
       )}
       {active.has('lightningfc') && (
@@ -3322,12 +5015,7 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
             <span className="cl-swatch" style={{ background: 'rgb(150,40,200)' }} />
           </div>
           <div className="cl-ends"><span>gering</span><span>extrem</span></div>
-          <div className="cl-note">
-            Prognostiziertes Blitzrisiko aus dem ICON-D2 <b>Lightning Potential Index</b> (lpi_max,
-            2,2 km), über den Slider 0–12 h in die <b>Zukunft</b>. Ehrliche Grenzen: nur naher
-            NWP-Horizont (~0–12 h), am Modellrand ohne Wert (transparent), und <b>Prognose ≠ Messung</b> —
-            die gemessenen Einschläge der letzten Stunde zeigt der Layer „Blitze".
-          </div>
+          <div className="cl-note">{layerExtNote('lightningfc')}</div>
         </div>
       )}
       {active.has('thunder') && (
@@ -3341,12 +5029,7 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
             <span className="cl-swatch" style={{ background: 'rgb(150,30,110)' }} />
           </div>
           <div className="cl-ends"><span>gering</span><span>extrem</span></div>
-          <div className="cl-note">
-            Fusion aus CAPE (Energie) × CIN (Deckel) × LPI (Blitzbereitschaft), ICON-D2 2,2 km.
-            Flächige Vorwarnung <b>vor</b> dem ersten Radarecho. Ehrliche Grenzen: nur naher
-            NWP-Horizont (~0–12 h), am Modellrand ohne Wert (transparent), und <b>Potenzial ≠ Auslösung</b> —
-            hohes CAPE allein ist noch kein Gewitter (deshalb die CIN-Dämpfung + LPI-Realisierung).
-          </div>
+          <div className="cl-note">{layerExtNote('thunder')}</div>
         </div>
       )}
       {active.has('rotation') && (
@@ -3360,14 +5043,7 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
             <span className="cl-swatch" style={{ background: 'rgb(52,32,80)' }} />
           </div>
           <div className="cl-ends"><span>gering</span><span>hoch</span></div>
-          <div className="cl-note">
-            Geglättete Modell-<b>VERDACHTS</b>flächen für rotierende Aufwinde/Superzellen aus
-            ICON-D2 <b>uh_max</b> + <b>uh_max_low</b> (Updraft-Helicity) und <b>sdi_2</b> (Supercell-Index),
-            0–12 h. <b>Kein amtliches Warnprodukt, kein Warnersatz</b> — maßgeblich sind die
-            <b> DWD-Warnungen</b> (Layer „Blitze"/amtliche Unwetterwarnung). <b>Verdacht ≠ Ereignis</b>,
-            <b> hohe Fehlalarmrate</b>; die Felder sind rauschig und werden bewusst geglättet. Nur naher
-            NWP-Horizont, am Modellrand ohne Wert (transparent). Nischensignal für Storm-Enthusiasten.
-          </div>
+          <div className="cl-note">{layerExtNote('rotation')}</div>
         </div>
       )}
       {active.has('confidence') && (
@@ -3379,24 +5055,20 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
             <span className="cl-swatch cl-unsure" />
           </div>
           <div className="cl-ends"><span>sicher</span><span>unsicher</span></div>
-          <div className="cl-note">
-            {active.has('nowcast')
-              ? 'Dichtere Schraffur = unsicherere Regenvorhersage. Echter Ensemble-Spread (DE): 15 Member advehieren das Radar mit gestörten Bewegungsfeldern — wo sie uneins sind (Niederschlagskanten, ferne Lead-Zeiten), ist es unsicher.'
-              : 'Dichtere Schraffur = unsicherere Vorhersage. Abweichung von der DWD-Stationsklimatologie (30 J.) × Lauf-zu-Lauf-Übereinstimmung zweier ICON-D2-Läufe (echtes zeitversetztes Ensemble).'}
-          </div>
+          <div className="cl-note">{layerExtNote('confidence')}</div>
         </div>
       )}
       {active.has('snowline') && (
         <div className="confidence-legend" role="note" aria-label="Schneefallgrenze">
           <div className="cl-title">Schneefallgrenze</div>
           <div className="sl-swatch" aria-hidden="true" />
-          <div className="cl-note">Linie = Übergang Regen↔Schnee; oberhalb fällt Niederschlag als Schnee. KI · ML #2: Physik-Anker + gelernte Orts-Korrektur (DWD-Stationen), dem Gelände folgend. Bei milder Luft existiert keine Linie (alles Regen).</div>
+          <div className="cl-note">{layerExtNote('snowline')}</div>
         </div>
       )}
       {active.has('flownowcast') && (
         <div className="confidence-legend" role="note" aria-label="Flow-Nowcast">
           <div className="cl-title">Flow-Nowcast</div>
-          <div className="cl-note">Optical-Flow-Extrapolation: aus zwei RADOLAN-Frames wird das Bewegungsfeld geschätzt (Horn-Schunck) und das aktuelle Radar damit vorwärts advehiert. Regen wandert intensitätserhaltend (~0–60 min). Nur DE, trainingsfrei.</div>
+          <div className="cl-note">{layerExtNote('flownowcast')}</div>
         </div>
       )}
       {active.has('poprob') && (
@@ -3404,10 +5076,51 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
           <div className="cl-title">Regen-Chance (%)</div>
           <div className="pop-scale" aria-hidden="true" />
           <div className="cl-ends"><span>unwahrsch.</span><span>sicher</span></div>
-          <div className="cl-note">Kalibrierte Regenwahrscheinlichkeit aus dem Flow-Ensemble (15 Member, gestörte Bewegungsfelder). „Wie wahrscheinlich" statt „wie viel". Nur DE, ~0–60 min.</div>
+          <div className="cl-note">{layerExtNote('poprob')}</div>
         </div>
       )}
     </div>
+  ) : null;
+
+  // ---- Readout-Spalte: Layer-Beschreibungen (Phase KD-R) --------------------
+  // Desktop/Tablet: die Erklärung eines Layers steht rechts AUSSERHALB der Karte,
+  // solange der Layer aktiv ist — Reihenfolge = Dock-Reihenfolge, nicht gedockte
+  // Layer (nur per #m=-Permalink aktivierbar) hängen sich hinten an. Ein per
+  // Hover/Fokus angesteuerter INAKTIVER Layer erscheint zusätzlich als Vorschau
+  // an seiner Ordnungsposition (ersetzt das frühere Overlay über der Karte).
+  const readoutLayers = READOUT_ORDER.filter(k => active.has(k) || layerHover === k);
+  const layerReadout = readoutLayers.length > 0 ? (
+    <section
+      className={`mdk-ro-layerinfo${overview || START_NOW_ONLY ? ' is-solo' : ''}`}
+      aria-label="Beschreibung der aktiven Wetterlayer"
+    >
+      <div className="mdk-ro-section-head">
+        <span className="mdk-eyebrow">Aktive Layer</span>
+        <span className="mdk-dock-count">{active.size} aktiv</span>
+      </div>
+      <div className="mdk-ro-lstack">
+        {readoutLayers.map(k => {
+          const on = active.has(k);
+          const ext = layerExtNote(k);
+          return (
+            <article
+              key={k}
+              className={`mdk-ro-lcard${on ? (layerHover === k ? ' is-hot' : '') : ' is-preview'}`}
+              data-accent={LAYER_ACCENT.get(k) ?? 'steel'}
+            >
+              {!on && <span className="mdk-ro-lchip">Vorschau</span>}
+              <LayerInfoPanel layer={k} suffix={layerTitleSuffix(k)} />
+              {ext && (
+                <div className="mdk-ro-lext">
+                  <span className="mdk-ro-lext-head">Im Detail</span>
+                  {ext}
+                </div>
+              )}
+            </article>
+          );
+        })}
+      </div>
+    </section>
   ) : null;
 
   const statusChip = (
@@ -3417,16 +5130,23 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
       </span>
       {LAYER_OPTIONS.filter(o => active.has(o.key)).map(o => {
         const s = statuses[o.key];
+        const st = s.ok ? statusStamp(s.ok) : null;
         return (
-          <span key={o.key} className={s.err ? 'err' : ''} title={s.err ?? undefined}>
+          <span
+            key={o.key}
+            className={s.err ? 'err' : st?.stale ? 'stale' : ''}
+            title={s.err ?? (st?.stale ? `Dieser Datensatz ist ungewöhnlich alt (${ageText(clockMs - (s.ok!.ref?.atMs ?? clockMs))}).` : undefined)}
+          >
             {s.err
               ? `${o.label}: ${s.err}`
-              : s.ok
-                ? `${o.label} · ${s.ok.model.toUpperCase()} · ${s.ok.captured ? 'Stand ' : ''}${fmtTime(s.ok.fetchedAt)}`
+              : s.ok && st
+                ? `${st.stale ? '⚠ ' : ''}${o.label} · ${s.ok.model.toUpperCase()} · ${st.text}`
                 : `${o.label} wird geladen…`}
           </span>
         );
       })}
+      {/* V-20: Zustand des Warm-Manifests — sichtbar, wenn der Schnellzugriff nicht greift. */}
+      {manifestNote && <span className="mdk-manifest-note" title={manifestNote.title}>{manifestNote.text}</span>}
     </div>
   );
 
@@ -3481,26 +5201,24 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
       <div className="mdk-body">
         {/* ---- Ink-Icon-Rail ------------------------------------------------ */}
         {!isMobileMap && (
-          <nav className="mdk-rail" aria-label="Werkzeuge">
-            <button type="button" className="mdk-rail-btn is-active" aria-current="page" title="Wetterkarte">
-              <IcoLayers />
-            </button>
-            <button type="button" className="mdk-rail-btn" onClick={openModels} title="Modellseite — Wettermodelle & Wirkungsbereiche">
-              <IcoGlobe />
-            </button>
-            <button type="button" className="mdk-rail-btn" onClick={() => onOpenFeature?.('forecast')} title="Vorhersage & Konfidenz">
-              <IcoTrend />
-            </button>
-            <button type="button" className="mdk-rail-btn" onClick={() => onOpenFeature?.('nowcast')} title="Regenradar · Nowcast">
-              <IcoPulse />
-            </button>
-            <button type="button" className="mdk-rail-btn" onClick={() => onOpenFeature?.('event')} title="Event-Planung">
-              <IcoStar />
-            </button>
-            <button type="button" className="mdk-rail-btn mdk-rail-bottom" onClick={onBack} title="Zur Startseite">
-              <IcoSun />
-            </button>
-          </nav>
+          /* Vollständige Werkzeug-Rail wie in allen anderen Decks (eine Quelle:
+             nav/featureRail). Die Kartenseite hatte bisher nur 4 der 9
+             Werkzeuge; der kartenspezifische Modellseiten-Knopf bleibt als
+             `extra` erhalten. */
+          <FeatureRail
+            active="map2d"
+            onOpenFeature={(id) => onOpenFeature?.(id)}
+            onHome={() => onBack?.()}
+            navClass="mdk-rail"
+            btnClass="mdk-rail-btn"
+            activeClass="is-active"
+            homeBtnClass="mdk-rail-btn mdk-rail-bottom"
+            extra={(
+              <button type="button" className="mdk-rail-btn" onClick={openModels} title="Modellseite — Wettermodelle & Wirkungsbereiche" aria-label="Modellseite — Wettermodelle & Wirkungsbereiche">
+                <IcoGlobe />
+              </button>
+            )}
+          />
         )}
 
         {/* ---- Layer-Dock --------------------------------------------------- */}
@@ -3517,6 +5235,7 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
                   {g.layers.map(l => layerRowDeck(l.key, l.accent ?? g.accent, l.sub, false))}
                   {g.layers.some(l => l.key === 'sat') && active.has('sat') && satSeg}
                   {g.layers.some(l => l.key === 'snow') && active.has('snow') && snowSeg}
+                  {g.layers.some(l => l.key === 'hail') && active.has('hail') && hailSeg}
                 </div>
               </div>
             ))}
@@ -3550,7 +5269,9 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
             </>
           )}
 
-          {(!isMobileMap || mobileTab === 'karte') && legendsBlock}
+          {/* Erklärkarten liegen nur noch MOBIL über der Karte — auf Desktop/Tablet
+              stehen sie in der Readout-Spalte (Phase KD-R). */}
+          {isMobileMap && mobileTab === 'karte' && legendsBlock}
 
           {/* Mobile: schwebender Kopf (Suche + Land) + Modell-Pille */}
           {isMobileMap && (
@@ -3604,6 +5325,10 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
              ohne gewählten Ort bzw. im Testmodus „Nur-Jetzt" nur ohne Inhalt. */}
         {!isMobileMap && (
           <aside className="mdk-readout">
+            {/* Layer-Beschreibungen zuerst: sie reagieren unmittelbar auf das
+                Schalten im Dock. Der Punktforecast darunter bleibt unverändert
+                an seinem Platz (Phase KD-R, audit/karten-readout.md). */}
+            {layerReadout}
             {!overview && !START_NOW_ONLY && (
               <>
                 <div className="mdk-ro-section-head">
@@ -3746,9 +5471,17 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
                       {layerMode === 'detail' && g.layers.some(l => l.key === 'snow') && active.has('snow') && (
                         <div className="mdk-m-sub" data-accent="steel">{snowSeg}</div>
                       )}
+                      {layerMode === 'detail' && g.layers.some(l => l.key === 'hail') && active.has('hail') && (
+                        <div className="mdk-m-sub" data-accent="violet">{hailSeg}</div>
+                      )}
                     </div>
                   </div>
                 ))}
+                {/* V-20: auf Mobil ist die Statuspille ausgeblendet (mapDeck.css) —
+                    der Manifest-Hinweis gehört trotzdem sichtbar. */}
+                {manifestNote && (
+                  <p className="mdk-manifest-note mdk-manifest-note-m" title={manifestNote.title}>{manifestNote.text}</p>
+                )}
               </div>
             </div>
           )}
@@ -3806,10 +5539,6 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
       {/* Modellseite als Desktop-/Tablet-Overlay */}
       {modelsOpen && !isMobileMap && modelLibrary}
 
-      {/* Hover-Info der Dock-Layer (Desktop) */}
-      {!isMobileMap && layerHover && (
-        <LayerInfoPanel layer={layerHover.key} style={{ top: layerHover.top, left: layerHover.left }} />
-      )}
     </div>
   );
 }
@@ -3824,6 +5553,16 @@ const DECK_GROUPS: {
   accent: 'steel' | 'sage' | 'terracotta' | 'violet';
   layers: { key: LayerKey; sub?: string; accent?: 'steel' | 'sage' | 'terracotta' | 'violet' | 'amber' | 'slate' }[];
 }[] = [
+  // Amtliche Warnungen stehen bewusst GANZ OBEN und allein: Es ist der einzige
+  // Layer, der ein amtliches Warnprodukt IST — alle übrigen (Gewitter, Hagel,
+  // Rotation, Zellbahnen) verweisen in ihren Texten darauf. Die Trennung
+  // verhindert, dass er wie ein weiteres Modellprodukt gelesen wird.
+  {
+    title: 'Amtliche Warnungen', accent: 'terracotta',
+    layers: [
+      { key: 'warnings', sub: 'DWD · landkreisgenau', accent: 'terracotta' },
+    ],
+  },
   {
     title: 'Niederschlag', accent: 'steel',
     layers: [
@@ -3831,6 +5570,14 @@ const DECK_GROUPS: {
       // Gewitterpotenzial (Feature F1): fusionierter CAPE×CIN×LPI-Index, flächige
       // Vorwarnung 0–12 h VOR dem ersten Radarecho — thematisch Konvektion.
       { key: 'thunder', sub: 'Potenzial · 0–12 h', accent: 'amber' },
+      // Zellbahnen (Phase Z1, E3): amtliche KONRAD3D-Objekte — erkannte Zelle,
+      // amtliche Zugspur, amtlicher Unsicherheits-Trichter. Steht bewusst neben
+      // „Gewitter" (Modell-Potenzial) — hier ist es gemessen + amtlich verfolgt.
+      { key: 'cells', sub: 'DWD-Zugspur · +60 min', accent: 'terracotta' },
+      // Hagel (Phase HA1): amtliche Radarprodukte, je Land verschieden —
+      // CH MESHS/POH (Korngröße/Wahrscheinlichkeit), DE KONRAD3D-Hagelzellen,
+      // AT ohne offene Quelle. Steht neben Gewitter/Zellbahnen (Konvektion).
+      { key: 'hail', sub: 'Korngröße · Hagelzellen', accent: 'violet' },
       // Rotationspotenzial (Feature F5, Experten): geglättete Modell-VERDACHTSflächen
       // für rotierende Aufwinde/Superzellen (uh_max×sdi_2) — Nischensignal, kein
       // Warnersatz (§0). Thematisch Konvektion, direkt neben „Gewitter".
@@ -3875,6 +5622,20 @@ const DECK_GROUPS: {
     ],
   },
 ];
+
+/** Akzentfarbe je Layer, wie im Dock — die Readout-Karte erbt sie über
+ *  `data-accent`, damit Dock-Zeile und Beschreibung farblich zusammengehören. */
+const LAYER_ACCENT = new Map<LayerKey, string>(
+  DECK_GROUPS.flatMap(g => g.layers.map(l => [l.key, l.accent ?? g.accent] as [LayerKey, string])),
+);
+
+/** Reihenfolge der Beschreibungs-Karten in der Readout-Spalte: erst exakt die
+ *  Dock-Reihenfolge, danach die nicht gedockten Layer (nur per `#m=`-Permalink
+ *  aktivierbar) in `LAYER_OPTIONS`-Reihenfolge — so bleiben auch sie erklärt. */
+const READOUT_ORDER: LayerKey[] = (() => {
+  const docked = DECK_GROUPS.flatMap(g => g.layers.map(l => l.key));
+  return [...docked, ...LAYER_OPTIONS.map(o => o.key).filter(k => !docked.includes(k))];
+})();
 
 /** Ortssuche im Deck-Kopf (Desktop-Topbar + mobiler Float) — geocodeDACH,
  *  Enter sucht, Auswahl setzt die Karten-Location (App.tsx). ⌘K fokussiert. */

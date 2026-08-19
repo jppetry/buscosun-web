@@ -8,7 +8,8 @@
 }
 
 /* Idle-Intro (Einstieg: Stichpunkte + Ort/Tour) */
-.atm-intro { display: flex; flex-direction: column; gap: 0.9rem; max-width: 660px; margin-top: 0.4rem; }
+/* Block mittig in der Spalte, Text darin linksbündig. */
+.atm-intro { display: flex; flex-direction: column; gap: 0.9rem; max-width: 660px; margin: 0.4rem auto 0; }
 .atm-intro-action { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.3rem; }
 .atm-intro-row { display: flex; gap: 0.7rem; flex-wrap: wrap; align-items: center; }
 
@@ -267,3 +268,32 @@
 @media (min-width: 768px) and (max-width: 1024px) and (orientation: portrait) {
   .atm-scrub { position: sticky; bottom: 0; z-index: 5; }
 }
+
+/* ---------------------------------------------------------------------------
+   Standort-/Idle-Seite: Werkzeug-Rail links (Optik wie im Vertikalschnitt-Deck),
+   damit man auch ohne gewählten Ort direkt in ein anderes Werkzeug springt.
+   --------------------------------------------------------------------------- */
+.atm-idle-shell { display: flex; min-height: 100vh; }
+.atm-idle-shell > .rt-page { flex: 1; min-width: 0; }
+.atm-idle-rail {
+  width: 62px; flex: 0 0 auto;
+  background: var(--ink-900, #2C2A26);
+  display: flex; flex-direction: column; align-items: center;
+  padding: 14px 0; gap: 6px;
+  position: sticky; top: 0; height: 100vh;
+}
+.atm-idle-rail-btn {
+  width: 42px; height: 42px; border-radius: 11px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--stone-500, #8B7355); background: none; border: none; cursor: pointer; position: relative;
+}
+.atm-idle-rail-btn:hover { color: #b79a72; }
+.atm-idle-rail-btn.is-active { background: var(--ink-800, #3A3833); color: #A9C7E4; cursor: default; }
+.atm-idle-rail-btn.is-active::before {
+  content: ''; position: absolute; left: -14px; top: 9px; bottom: 9px;
+  width: 3px; border-radius: 2px; background: var(--steel-600, #3A6FA8);
+}
+.atm-idle-rail-btn:focus-visible { outline: 2px solid var(--sand-50, #F5F1E8); outline-offset: 2px; }
+.atm-idle-rail-spacer { margin-top: auto; }
+
+@media (max-width: 767px) { .atm-idle-rail { display: none; } }

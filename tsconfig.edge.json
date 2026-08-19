@@ -1,0 +1,29 @@
+{
+  // V-92: Die beiden Edge Functions lagen in KEINEM tsconfig — `npm run typecheck`
+  // prüfte ausgerechnet die Bauteile nicht, über die jedes Wetterdatenbyte fließt
+  // und die die Open-Proxy-Abwehr tragen. Ein Tippfehler in der Pfad-Whitelist
+  // wäre erst in Produktion aufgefallen.
+  //
+  // Eigenes Projekt statt Aufnahme in tsconfig.app.json, weil hier weder JSX noch
+  // DOM.Iterable gebraucht wird und die Handler bewusst NUR Web-Standard-Globals
+  // benutzen (fetch/Request/Response/URL/Headers) — genau das macht sie in Node
+  // importierbar für scripts/verify-layer-transport.mjs und verify-wind-transport.mjs.
+  // Deno-Globals werden deshalb nicht deklariert: würde einer eingeführt, soll der
+  // Typecheck es melden, statt es durchzuwinken.
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2023", "DOM"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["netlify/edge-functions"]
+}

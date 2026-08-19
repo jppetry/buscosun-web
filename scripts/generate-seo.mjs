@@ -13,10 +13,12 @@ import { PLACES } from './seo/places.mjs';
 import { EXPLAINERS, EXPLAINERS_BY_SLUG } from './seo/explainers.mjs';
 import { TOOLS } from './seo/tools.mjs';
 import { EVENTS } from './seo/events.mjs';
+import { LEGAL_PAGES, operatorIncomplete } from './seo/legal.mjs';
+import { buildLicensePage } from './seo/licenses.mjs';
 import {
   SITE, renderPlacePage, renderHomeRootContent, homeHeadExtras, escapeHtml, metaFor,
   renderExplainerPage, renderWissenHub, renderToolPage, renderFunktionenHub,
-  renderEventPage, renderWetterlageHub,
+  renderEventPage, renderWetterlageHub, renderLegalPage,
 } from './seo/content.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -119,6 +121,25 @@ for (const ev of EVENTS) {
 mkdirSync(join(DIST, 'wetterlage'), { recursive: true });
 writeFileSync(join(DIST, 'wetterlage', 'index.html'), renderWetterlageHub(EVENTS), 'utf8');
 
+// 2f) Rechtsseiten (/impressum/, /datenschutz/, /kontakt/) — V-103. Indexierbar:
+// ein Impressum muss auffindbar sein.
+// V-104: /lizenzen/ nutzt dieselbe Hülle, zieht seine Modelltabelle aber
+// build-seitig aus src/fusion/modelCatalog.ts — eine abgetippte Zweitliste
+// würde driften (die Lehre aus V-80).
+const LICENSE_PAGE = buildLicensePage();
+for (const page of [...LEGAL_PAGES, LICENSE_PAGE]) {
+  const dir = join(DIST, page.slug);
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, 'index.html'), renderLegalPage(page), 'utf8');
+}
+if (operatorIncomplete()) {
+  console.warn(
+    '[seo] ⚠️  Impressum UNVOLLSTÄNDIG — in scripts/seo/legal.mjs stehen noch\n' +
+    '        TODO-Platzhalter (Name, Anschrift). Die Seite markiert die Lücken\n' +
+    '        sichtbar, statt Daten zu erfinden. Vor dem produktiven Deploy füllen.',
+  );
+}
+
 // 2b) 404.html — echte Fehlerseite (Host muss sie mit HTTP 404 ausliefern,
 // siehe docs/seo-geo/your-actions.md). noindex, aber crawlbar verlinkt.
 function notFoundPage() {
@@ -163,6 +184,8 @@ function sitemap() {
     ...TOOLS.filter((t) => t.status === 'full').map((t) => ({ loc: `${SITE.url}/funktionen/${t.slug}/`, pri: '0.6' })),
     { loc: `${SITE.url}/wetterlage/`, pri: '0.6' },
     ...EVENTS.filter((e) => e.status === 'full').map((e) => ({ loc: `${SITE.url}/wetterlage/${e.slug}/`, pri: '0.7' })),
+    // Pflichtseiten: niedrige Priorität, aber indexierbar und auffindbar.
+    ...[...LEGAL_PAGES, LICENSE_PAGE].map((l) => ({ loc: `${SITE.url}/${l.slug}/`, pri: '0.3' })),
   ];
   const body = urls.map((u) =>
     `  <url><loc>${u.loc}</loc><lastmod>${BUILD_DATE}</lastmod><changefreq>daily</changefreq><priority>${u.pri}</priority></url>`).join('\n');
@@ -242,5 +265,5 @@ writeFileSync(indexPath, html, 'utf8');
 const fullExplainers = EXPLAINERS.filter((e) => e.status === 'full').length;
 const fullTools = TOOLS.filter((t) => t.status === 'full').length;
 const fullEvents = EVENTS.filter((e) => e.status === 'full').length;
-const urlCount = PLACES.length + 5 + fullExplainers + fullTools + fullEvents;
-console.log(`[seo] ${pages} Geo, ${explainerPages} Explainer (${fullExplainers} idx), ${toolPages} Tools (${fullTools} idx), ${eventPages} Wetterlage (${fullEvents} idx) + Hubs, sitemap.xml (${urlCount} URLs), feed.xml, sitemap-news.xml, Home angereichert. Build ${BUILD_DATE}.`);
+const urlCount = PLACES.length + 5 + fullExplainers + fullTools + fullEvents + LEGAL_PAGES.length + 1; // +1 = /lizenzen/ (V-104)
+console.log(`[seo] ${pages} Geo, ${explainerPages} Explainer (${fullExplainers} idx), ${toolPages} Tools (${fullTools} idx), ${eventPages} Wetterlage (${fullEvents} idx), ${LEGAL_PAGES.length} Rechtsseiten + Hubs, sitemap.xml (${urlCount} URLs), feed.xml, sitemap-news.xml, Home angereichert. Build ${BUILD_DATE}.`);

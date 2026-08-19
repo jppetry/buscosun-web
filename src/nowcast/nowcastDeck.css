@@ -154,6 +154,16 @@
 .rr-stage .nc-radar-morebox[open] > summary::after { content: '⌃'; }
 .rr-stage .nc-radar-morebox-body { padding: 2px 14px 12px; display: flex; flex-direction: column; gap: 12px; }
 .rr-stage .nc-radar-quality-inline { border: 0; padding: 0; margin: 0; }
+/* Methodik-Kachel: eine Zeile im zugeklappten Zustand, Inhalt auf Klick. */
+.rr-stage .nc-methodik { border: 1px solid var(--sand-200, #E0D6BE); border-radius: 10px;
+  background: var(--cream-50, #FAF6EA); padding: 0 10px; margin-top: 8px; }
+.rr-stage .nc-methodik > summary { list-style: none; cursor: pointer; display: flex; align-items: center;
+  gap: 7px; min-height: 38px; font-size: 0.78rem; font-weight: 600; color: var(--stone-600, #6F5E45); }
+.rr-stage .nc-methodik > summary::-webkit-details-marker { display: none; }
+.rr-stage .nc-methodik > summary:hover { color: var(--rdr-blue, #2E6CC4); }
+.rr-stage .nc-methodik[open] > summary { color: var(--ink-800, #3A3833); }
+.rr-stage .nc-methodik ul { margin: 0 0 10px; padding-left: 1.1rem; display: flex; flex-direction: column; gap: 4px; }
+.rr-stage .nc-methodik li { font-size: 0.76rem; line-height: 1.45; color: var(--stone-600, #6F5E45); }
 /* Native „Ebenen/Einstellungen"-Panel (falls offen) über der Karte schlank halten */
 .rr-stage .nc-radar-panel { position: absolute; left: 12px; right: 12px; top: 12px; z-index: 5;
   border-radius: 12px; max-width: 420px; }

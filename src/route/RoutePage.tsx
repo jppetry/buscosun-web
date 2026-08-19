@@ -11,7 +11,7 @@
 import { useState } from 'react';
 import RouteUpload from './RouteUpload';
 import RouteResult from './RouteResult';
-import RouteDeckShell, { DeckLive } from './RouteDeck';
+import RouteDeckShell, { DeckLive, type RailFeature } from './RouteDeck';
 import { parseRouteFile } from './parseRoute';
 import { getFormat, sniffFormat, type RouteFormat } from './routeFormats';
 import { validateFileSize, validatePointCount } from './routeValidation';
@@ -22,6 +22,8 @@ import './routeDeck.css';
 
 interface Props {
   onBack: () => void;
+  /** Rail-Sprung in ein anderes Werkzeug (optional). */
+  onOpenFeature?: (id: RailFeature) => void;
 }
 
 /** Möglichkeiten-Liste des Idle-Kopfs — was die Tourenplanung dir bietet. */
@@ -53,7 +55,7 @@ type Status =
   | { kind: 'error'; fileName: string; message: string }
   | { kind: 'ready'; file: File; format: RouteFormat; parsed: ParsedFile };
 
-export default function RoutePage({ onBack }: Props) {
+export default function RoutePage({ onBack, onOpenFeature }: Props) {
   const [status, setStatus] = useState<Status>({ kind: 'idle' });
   const isMobile = useIsMobile();
 
@@ -93,7 +95,7 @@ export default function RoutePage({ onBack }: Props) {
 
   // Planung/Ergebnis bringt seine eigene Shell mit (RouteResult → TourView).
   if (status.kind === 'ready') {
-    return <RouteResult file={status.file} format={status.format} parsed={status.parsed} onReset={reset} onHome={onBack} isMobile={isMobile} />;
+    return <RouteResult file={status.file} format={status.format} parsed={status.parsed} onReset={reset} onHome={onBack} onOpenFeature={onOpenFeature} isMobile={isMobile} />;
   }
 
   const crumb = <span className="rd-crumb-txt">Tourenplanung</span>;
@@ -112,7 +114,7 @@ export default function RoutePage({ onBack }: Props) {
   );
 
   return (
-    <RouteDeckShell isMobile={isMobile} onHome={onBack} crumb={crumb} right={right} mobileHeader={mobileHeader}>
+    <RouteDeckShell isMobile={isMobile} onHome={onBack} onOpenFeature={onOpenFeature} crumb={crumb} right={right} mobileHeader={mobileHeader}>
       {status.kind === 'idle' && (
         <section className="rd-intro">
           <span className="rd-intro-eyebrow">Tourenplanung</span>

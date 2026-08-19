@@ -412,3 +412,26 @@
 
 /* Mobile Home-Indicator-Balken (nur dekorativ, wenn ausdrücklich gerendert) */
 .rd-home-ind { position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%); width: 130px; height: 5px; border-radius: 3px; background: var(--rd-home-ind); pointer-events: none; }
+
+/* ============================================================================
+   Startseite (Upload) ohne Scrollen: kompaktere Vertikalmaße, damit Titel,
+   Möglichkeiten, Dropzone und Formatliste auf einen Desktop-Bildschirm passen.
+   Nur die Intro-Ansicht — die übrigen Route-Screens bleiben unverändert.
+   ============================================================================ */
+@media (min-width: 768px) {
+  .rd-content:has(.rd-intro) { padding-top: 26px; padding-bottom: 24px; }
+  .rd-intro .rd-intro-title { font-size: 34px; margin-top: 4px; }
+  .rd-intro .rd-intro-body { font-size: 15px; margin-top: 8px; }
+  .rd-intro .rd-caps { gap: 6px; margin-top: 12px; }
+  .rd-intro .rd-caps-mark { width: 21px; height: 21px; }
+  .rd-intro .rd-section-label { margin: 18px 0 8px; }
+  .rd-intro .rd-dropzone { padding: 22px 20px; }
+  .rd-intro .rd-dropzone-title { font-size: 21px; margin-top: 10px; }
+  .rd-intro .rd-dropzone-btn { margin-top: 12px; padding: 11px 26px; }
+  .rd-intro .rd-dropzone-sub { margin-top: 10px; }
+  .rd-intro .rd-formats { padding: 16px 18px; }
+  .rd-intro .rd-formats-list { gap: 9px; margin-top: 12px; }
+  .rd-intro .rd-formats-note { margin-top: 14px; padding-top: 12px; line-height: 1.55; }
+  .rd-intro .rd-howto { margin-top: 10px; padding: 10px 14px; }
+  .rd-intro .rd-trust { margin-top: 8px; }
+}

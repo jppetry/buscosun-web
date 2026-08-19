@@ -134,7 +134,7 @@ export function buildEventICS(query: EventQuery, best: DayResult): string {
     const summary = multi
       ? `${query.activity.label}: ${phase.label}`
       : `${query.activity.label} — bester Tag (Score ${best.score})`;
-    const uid = `buscosun-${best.date}-${slug(phase.label)}-${latKey}-${lonKey}@buscosun.app`;
+    const uid = `buscosun-${best.date}-${slug(phase.label)}-${latKey}-${lonKey}@buscosun.com`;
     lines.push(...vevent({
       uid, dtstamp, start, end, summary,
       location: query.location.name, geo,

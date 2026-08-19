@@ -649,6 +649,25 @@
 .data-badge span.err::before {
   background: var(--terracotta-700);
 }
+/* V-19: ungewöhnlich alter Datensatz — Punkt in Amber statt Sage, kein Fehler. */
+.data-badge span.stale::before {
+  background: var(--amber-500);
+}
+.data-badge span.stale {
+  color: var(--ink-900);
+  font-weight: 600;
+}
+/* V-20: Manifest-Hinweis — dezente Zeile am Fuß der Kapsel, ohne Statuspunkt. */
+.data-badge span.mdk-manifest-note {
+  white-space: normal;
+  font-style: italic;
+  border-top: 1px solid var(--border-default);
+  padding-top: 0.3rem;
+  margin-top: 0.1rem;
+}
+.data-badge span.mdk-manifest-note::before {
+  display: none;
+}
 
 /* ============ POINT-FORECAST PANEL (right side) ============ */
 .pfc-panel {
@@ -714,6 +733,10 @@
   color: var(--stone-400);
   margin-bottom: 0.2rem;
 }
+/* V-04: Ortsname + Speichern-Stern in einer Zeile. Der Stern schrumpft nie,
+   der Name bekommt den Rest und behält seine Ellipse. */
+.pfc-loc-row { display: flex; align-items: center; gap: 0.4rem; }
+.pfc-loc-row > .pfc-loc { flex: 1; min-width: 0; }
 .pfc-loc {
   font-size: 1rem;
   font-weight: 500;
@@ -816,8 +839,19 @@
 .pfc-optin-btn {
   font-family: inherit; font-size: 0.8rem; font-weight: 600; cursor: pointer;
   color: #fff; background: var(--terracotta-500, #C97B47); border: none; border-radius: 999px; padding: 0.45rem 0.9rem;
+  /* Touch-Target-Mindestmaß (CLAUDE.md ≥44px). Gilt auch für die <a>-Variante im
+     Warn-Hinweis, die dieselbe Klasse trägt. */
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 44px; text-decoration: none;
 }
 .pfc-optin-btn:hover { background: var(--terracotta-700, #A85E2E); }
+/* AT/CH: Hinweis auf den fehlenden amtlichen Warn-Feed (D-04). Steel statt
+   Terracotta — es ist eine Einordnung, keine Warnung, und darf nicht mit einer
+   echten Unwetterwarnung verwechselt werden. */
+.pfc-warn-gap { border-style: solid; border-color: var(--steel-600, #3A6FA8); background: #fff; }
+.pfc-warn-gap .pfc-optin-btn { background: var(--steel-600, #3A6FA8); }
+.pfc-warn-gap .pfc-optin-btn:hover { background: var(--steel-700, #2F5B8A); }
+.pfc-warn-gap-src { font-size: 0.68rem !important; color: var(--stone-500, #8B7355) !important; margin: 0.55rem 0 0 !important; }
 .pfc-optin-off {
   margin-top: 0.6rem; font-family: inherit; font-size: 0.68rem; cursor: pointer;
   color: var(--stone-500, #8B7355); background: none; border: none; padding: 0; text-decoration: underline;
@@ -1361,6 +1395,26 @@
   font-weight: 500;
   color: var(--stone-400);
 }
+/* Amtliche Warnungen (Phase W1) — der Steckbrief kann MEHRERE Warnungen für
+   denselben Ort enthalten (keine darf verschwiegen werden). Er bekommt daher
+   eine eigene Höhenbegrenzung mit Scroll statt Kürzung: amtlicher Text wird
+   nicht beschnitten, nur gerollt. */
+.sp-warn {
+  max-height: min(60vh, 26rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.sp-warn .sp-name {
+  /* Amtliche Überschriften sind lang („Amtliche WARNUNG vor STURMBÖEN") —
+     umbrechen statt abschneiden. */
+  white-space: normal;
+  line-height: 1.25;
+}
+.sp-warn-sep {
+  height: 1px;
+  margin: 0.7rem 0;
+  background: var(--border-default);
+}
 
 /* ============ CITY TEMPERATURE LABELS (windy-style) ============ */
 /* Bare temperature-coloured numbers (no pill) scattered across the map. The
@@ -1733,7 +1787,12 @@
      „Vorhersage") — ausblenden; Meta-Zeile (Höhe/Stationen/Modelle) bleibt
      kompakt erhalten. Sub-Tabs etwas größer, direkt unter dem Segment. */
   .map-sheet-fc .pfc-head { padding: 0 1.1rem 0.45rem; border-bottom: none; }
+  /* Das mobile Sheet trägt den Ortsnamen in seinem eigenen Kopf — Titel und
+     Ortszeile sind hier seit jeher ausgeblendet. Die V-04-Zeile teilt dieses
+     Schicksal, damit das mobile Layout unverändert bleibt; gespeichert wird
+     mobil über die Suchseite. */
   .map-sheet-fc .pfc-title,
+  .map-sheet-fc .pfc-loc-row,
   .map-sheet-fc .pfc-loc { display: none; }
   .map-sheet-fc .pfc-meta { margin-top: 0; font-size: 0.68rem; }
   .map-sheet-fc .pfc-tabs { margin-top: 0.15rem; }

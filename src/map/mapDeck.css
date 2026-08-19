@@ -280,6 +280,25 @@
   background: rgba(250, 246, 234, 0.8);
 }
 .mdk-status-chip .err { color: var(--terracotta-700, #A85E2E); font-weight: 600; }
+/* V-19: ungewöhnlich alter Datensatz. Bewusst KEINE Fehlerfarbe (der Layer
+   funktioniert, er ist nur älter als ein gesunder Lauf sein sollte) und bewusst
+   kein neuer Farb-Token (D-27): dunkleres Ink + Gewicht heben die Zeile aus dem
+   Grau heraus, das ⚠ trägt das Signal. Kontrast auf Cream ist damit unbedenklich. */
+.mdk-status-chip .stale { color: var(--ink-900, #2C2A26); font-weight: 600; }
+/* V-20: Zustand des Warm-Manifests. Dezent, eine Zeile, umbruchfähig — sie
+   erscheint nur, wenn der Schnellzugriff nicht greift. */
+.mdk-manifest-note {
+  margin-top: 3px; padding-top: 3px;
+  border-top: 1px solid var(--sand-200, #E0D6BE);
+  color: var(--stone-500, #8B7355); font-style: italic;
+  white-space: normal; text-wrap: pretty;
+}
+.mdk-manifest-note-m {
+  margin: 14px 2px 0; padding: 10px 12px; border-top: 0;
+  border: 1px solid var(--sand-200, #E0D6BE); border-radius: 12px;
+  background: var(--cream-50, #FAF6EA);
+  font-size: 12px; line-height: 1.45;
+}
 
 /* Wind-Deck (Dichte + Höhe) — schwebend über dem Zeit-Deck */
 .mdk-winddeck {
@@ -371,9 +390,12 @@
 .mdk-td-legend-stationdot { width: 7px; height: 7px; border-radius: 50%; background: var(--violet-300, #B9A8E8); display: inline-block; }
 .mdk-td-legend-radar { width: 2px; height: 11px; background: var(--steel-600, #3A6FA8); display: inline-block; border-radius: 1px; }
 
-/* ---- Rechtes Panel (Readout) ---------------------------------------------- */
+/* ---- Rechtes Panel (Readout) ----------------------------------------------
+   Desktop-Groß (≥1440 px) 348 px, Tablet/kleiner Desktop 300 px (Media Query
+   unten). Die 348 px sind der Desktop-Groß-Zuschlag aus Phase KD-R, damit die
+   Layer-Beschreibungen ruhig stehen (audit/karten-readout.md §2.1). */
 .mdk-readout {
-  width: 324px; flex: 0 0 auto;
+  width: 348px; flex: 0 0 auto;
   background: var(--cream-50, #FAF6EA);
   border-left: 1px solid var(--sand-200, #E0D6BE);
   overflow-y: auto;
@@ -386,6 +408,94 @@
 .mdk-ro-section-head:first-child { margin-top: 0; }
 .mdk-ro-live { display: inline-flex; align-items: center; gap: 6px; font-size: 10px; letter-spacing: 1.5px; font-weight: 700; color: var(--sage-600, #7A9466); }
 .mdk-ro-live i { width: 7px; height: 7px; border-radius: 50%; background: var(--sage-600, #7A9466); }
+
+/* ---- Layer-Beschreibungen in der Readout-Spalte (Phase KD-R) ---------------
+   Die Erklärung eines Layers steht rechts AUSSERHALB der Karte, solange der
+   Layer aktiv ist; die Kartenfläche bleibt frei von Beschreibungs-Overlays.
+   Markup: section.mdk-ro-layerinfo → article.mdk-ro-lcard, darin das
+   unveränderte LayerInfoPanel (.layer-info) + der ausführliche Detailtext.
+   Nur Desktop/Tablet — bei ≤767 px ist .mdk-readout ausgeblendet und die
+   Erklärkarten liegen weiterhin mobil über der Karte (.mdk-legends). */
+/* Steht der Punktforecast in derselben Spalte, wird der Stapel gedeckelt und
+   scrollt in sich — so kann er den Punktforecast nie aus der Spalte drücken.
+   Der Kopf bleibt dabei außerhalb des Scrollbereichs stehen. */
+.mdk-ro-layerinfo {
+  display: flex; flex-direction: column;
+  max-height: 46vh;
+  margin-bottom: 2px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--sand-200, #E0D6BE);
+}
+.mdk-ro-layerinfo .mdk-ro-section-head { flex: 0 0 auto; margin: 0 0 10px; }
+.mdk-ro-lstack {
+  display: flex; flex-direction: column; gap: 10px;
+  min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+}
+/* Ohne Punktforecast in der Spalte (Übersichts-Modus / Testmodus „Nur-Jetzt")
+   darf der Stapel die volle Spaltenhöhe nutzen — gescrollt wird die Spalte. */
+.mdk-ro-layerinfo.is-solo {
+  max-height: none;
+  padding-bottom: 0; border-bottom: 0;
+}
+.mdk-ro-layerinfo.is-solo .mdk-ro-lstack { overflow: visible; }
+
+.mdk-ro-lcard {
+  /* flex:0 0 auto ist zwingend: die Karten haben overflow:hidden, würden im
+     gedeckelten Stapel sonst schrumpfen statt zu scrollen (Text abgeschnitten). */
+  flex: 0 0 auto;
+  position: relative; overflow: hidden;
+  background: #fff;
+  border: 1px solid var(--sand-200, #E0D6BE);
+  border-radius: 14px;
+}
+.mdk-ro-lcard::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+  background: var(--mdk-lc-accent, var(--steel-600, #3A6FA8));
+}
+.mdk-ro-lcard[data-accent='steel'] { --mdk-lc-accent: var(--steel-600, #3A6FA8); }
+.mdk-ro-lcard[data-accent='sage'] { --mdk-lc-accent: var(--sage-600, #7A9466); }
+.mdk-ro-lcard[data-accent='terracotta'] { --mdk-lc-accent: var(--terracotta-500, #C97B47); }
+.mdk-ro-lcard[data-accent='violet'] { --mdk-lc-accent: var(--violet-600, #6850A0); }
+.mdk-ro-lcard[data-accent='amber'] { --mdk-lc-accent: var(--amber-500, #D4A373); }
+.mdk-ro-lcard[data-accent='slate'] { --mdk-lc-accent: var(--slate-500, #8A93A0); }
+
+/* Bestandsmarkup entkoppeln: .layer-info war ein fixiertes Hover-Overlay. */
+.mdk-ro-lcard .layer-info {
+  position: static; width: auto; pointer-events: auto;
+  background: transparent; border: 0; border-radius: 0; box-shadow: none;
+  animation: none;
+  padding: 11px 13px 12px 15px;
+}
+.mdk-ro-lcard .layer-info-title { font-size: 1rem; }
+.mdk-ro-lcard .layer-info-suffix { font-weight: 400; opacity: 0.7; }
+.mdk-ro-lcard .layer-info-desc { margin-top: 0.35rem; font-size: 0.78rem; line-height: 1.5; }
+.mdk-ro-lcard .layer-info-legend { margin-top: 0.6rem; }
+.mdk-ro-lcard .layer-info-src { margin-top: 0.6rem; padding-top: 0.45rem; }
+.mdk-ro-lcard .layer-info-trust { font-size: 0.7rem; }
+
+.mdk-ro-lext {
+  margin: 0 13px 12px 15px; padding-top: 9px;
+  border-top: 1px solid var(--sand-100, #EDE6D3);
+  font-size: 11px; line-height: 1.5; color: var(--stone-600, #5C5447);
+}
+.mdk-ro-lext-head {
+  display: block; margin-bottom: 4px;
+  font-size: 9.5px; letter-spacing: 1.6px; text-transform: uppercase; font-weight: 700;
+  color: var(--stone-400, #A89A7A);
+}
+.mdk-ro-lext b { font-weight: 700; color: var(--ink-900, #2C2A26); }
+
+/* Vorschau: Hover/Fokus auf einer INAKTIVEN Dock-Zeile zeigt die Beschreibung
+   transient an ihrer Ordnungsposition (ersetzt das frühere Karten-Overlay). */
+.mdk-ro-lcard.is-preview { border-style: dashed; background: var(--sand-50, #F5F1E8); }
+.mdk-ro-lchip {
+  position: absolute; right: 10px; top: 10px; z-index: 1;
+  font-size: 9px; letter-spacing: 1.4px; text-transform: uppercase; font-weight: 700;
+  color: var(--stone-500, #8B7355); background: var(--sand-100, #EDE6D3);
+  border-radius: 6px; padding: 3px 7px;
+}
+/* Hover/Fokus auf einer AKTIVEN Dock-Zeile hebt die stehende Karte hervor. */
+.mdk-ro-lcard.is-hot { border-color: var(--mdk-lc-accent, var(--steel-600, #3A6FA8)); }
 
 /* Aktives-Modell-Karte */
 .mdk-model-card {
@@ -621,6 +731,9 @@
 .mlo-card-stats b { font-weight: 700; }
 .mlo-card-cov { color: var(--terracotta-700, #A85E2E); font-weight: 600; font-size: 11.5px; }
 .mlo-foot { margin-top: 22px; font-size: 10.5px; color: var(--stone-400, #A89A7A); }
+/* V-104: Link zum vollständigen Quellenverzeichnis — gleiche Zeile, nur lesbarer. */
+.mlo-foot-link { color: var(--stone-500, #8A7B5C); text-decoration: underline; text-underline-offset: 2px; }
+.mlo-foot-link:hover { color: var(--terracotta-700, #A85F32); }
 
 /* ============================================================================
    Tablet 768–1439 px — Rail + Dock bleiben, schmaler; kompakter Kopf
@@ -737,7 +850,9 @@
   }
   .mdk-sheet .pfc-grab { display: none; }
   .mdk-sheet .pfc-head { padding: 0 0 8px; border-bottom: 0; }
-  .mdk-sheet .pfc-title, .mdk-sheet .pfc-loc { display: none; }
+  /* s. MapView.css: der Sheet-Kopf trägt den Ort selbst — V-04-Zeile folgt der
+     bestehenden Ausblendung, damit das mobile Layout unverändert bleibt. */
+  .mdk-sheet .pfc-title, .mdk-sheet .pfc-loc-row, .mdk-sheet .pfc-loc { display: none; }
   .mdk-sheet .pfc-meta { font-size: 11px; }
   .mdk-sheet .pfc-tabs {
     display: flex; background: #fff; border: 1px solid var(--sand-200, #E0D6BE);

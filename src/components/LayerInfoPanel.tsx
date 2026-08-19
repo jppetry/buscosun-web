@@ -1,9 +1,13 @@
 /**
- * Layer-Info-Panel — erscheint beim Hover (ohne Verzögerung) rechts neben der
- * Layer-Rail im MapView. Erklärt den Layer in der buscosun-Designsprache
+ * Layer-Info-Panel — erklärt einen Wetter-Layer in der buscosun-Designsprache
  * (Eyebrow → leichter Titel → Beschreibung, cream-Karte, Akzent je Layer; vgl.
  * Intro/00-design-system.svg) und zeigt eine passende Legende (Farbskala, Linie
  * oder Symbol).
+ *
+ * Seit Phase KD-R (2026-08-01, audit/karten-readout.md) rendert das Panel auf
+ * Desktop/Tablet in der Readout-Spalte am rechten Rand statt als Hover-Overlay
+ * über der Karte. Die Positionierung kommt vom Aufrufer (`style`) bzw. aus dem
+ * Readout-CSS — das Markup ist unverändert, damit die Inhalte identisch bleiben.
  */
 
 import type { CSSProperties, ReactNode } from 'react';
@@ -41,6 +45,14 @@ const THUNDER = 'linear-gradient(90deg, rgb(247,224,88), rgb(245,182,66), rgb(23
 const LPI = 'linear-gradient(90deg, rgb(255,238,120), rgb(255,176,48), rgb(240,86,60), rgb(214,40,120), rgb(150,40,200))';
 const SNOW = 'linear-gradient(90deg, rgb(224,238,253), rgb(172,207,244), rgb(120,166,230), rgb(92,120,210), rgb(70,96,190))';
 const ROTATION = 'linear-gradient(90deg, rgb(158,148,180), rgb(130,112,168), rgb(104,80,148), rgb(78,52,116), rgb(52,32,80))';
+const CELLS = 'linear-gradient(90deg, rgb(201,162,39), rgb(224,138,46), rgb(201,82,46), rgb(143,33,64))';
+const HAIL = 'linear-gradient(90deg, rgb(150,205,235), rgb(90,190,190), rgb(235,175,60), rgb(205,75,55), rgb(140,45,120))';
+/** Die vier DWD-Warnstufen. Gelb und Orange sind die an der echten CAP-Meldung
+ *  gemessenen amtlichen `AREA_COLOR`-Werte (`audit/wetterwarnungen.md` §5.1);
+ *  Rot und Dunkelrot stammen aus der im Repo dokumentierten Staffelung
+ *  (`sources/dwdAlerts.ts:146`) und sind nicht an Daten gemessen. Auf der KARTE
+ *  spielt das keine Rolle — dort gilt immer die Farbe aus der Meldung selbst. */
+const WARNINGS = 'linear-gradient(90deg, rgb(255,235,59), rgb(251,140,0), rgb(204,0,0), rgb(126,0,40))';
 
 const LAYER_INFO: Record<LayerKey, Info> = {
   wind: {
@@ -109,6 +121,29 @@ const LAYER_INFO: Record<LayerKey, Info> = {
     source: 'DWD ICON-D2 · uh_max · uh_max_low · sdi_2 · 2,2 km',
     legend: <><Bar css={ROTATION} /><Scale from="gering" to="hoch" /></>,
   },
+  hail: {
+    eyebrow: 'Gewitter', title: 'Hagel', accent: '--violet-600',
+    desc: 'Zwei amtliche Radarprodukte, bewusst nicht vermischt. FLÄCHE: MeteoSchweiz MESHS (maximal erwartete Korngröße) bzw. POH (Hagelwahrscheinlichkeit), 1 km / 5 Min, nur 1. April–30. September — aus dem Schweizer Radarverbund, dessen Reichweite über die Grenze nach Süddeutschland und Vorarlberg geht und dort ausdünnt. ZELLEN: DWD KONRAD3D — Zellen, in denen das Radar Hagel erkennt, mit Hagelfläche und Hinweis auf Großhagel; Zelle antippen für Details. Österreich hat keine eigene offene Hagelquelle — im Osten Österreichs gibt es daher keine Abdeckung; das heißt nicht, dass es dort nicht hagelt. Radarerkennung, keine Bodenmeldung; gilt für jetzt. KEIN amtliches Warnprodukt, kein Warnersatz — maßgeblich sind die Warnungen von DWD und MeteoSchweiz.',
+    source: 'MeteoSchweiz MESHS/POH · DWD KONRAD3D',
+    legend: <><Bar css={HAIL} /><Scale from="klein" to="Großhagel" /></>,
+  },
+  warnings: {
+    eyebrow: 'Amtlich', title: 'Warnungen', accent: '--terracotta-500',
+    desc: 'Die amtlichen Wetterwarnungen von DWD (Deutschland, CAP, landkreisgenau) und MeteoSchweiz (Schweiz, Warnregionen, über den MeteoAlarm-Feed), alle 5 Minuten — das amtliche Warnprodukt, auf das alle anderen Layer dieser Karte verweisen. Überschrift, Beschreibung und Handlungshinweis werden wortwörtlich übernommen. Die Flächenfarbe ist in Deutschland die amtliche Warnfarbe aus der Meldung selbst; der Schweizer Feed führt keine Farbe mit — dort ist sie aus der amtlichen Gefahrenstufe ABGELEITET und in der Legende so gekennzeichnet. Die Stufenskalen bleiben getrennt, weil die Nummern Verschiedenes bedeuten (DWD-Stufe 1 = gelb, Schweizer Stufe 1 = grün). Fläche antippen zeigt ALLE Warnungen dieses Ortes. Der Zeitregler wählt, was zur eingestellten Stunde gilt; Warnungen ohne festes Ende sind gekennzeichnet. Höhenbeschränkungen stehen bei deutschen Warnungen im Steckbrief („gilt nur unterhalb 600 m"), bei Schweizer Warnungen im amtlichen Text selbst. ÖSTERREICH fehlt weiterhin — dort warnt GeoSphere Austria; eine leere Fläche über Österreich heißt NICHT „keine Warnung". Fällt eine der beiden Quellen aus, benennt die Karte ausdrücklich, welches Land fehlt. Kein Ersatz für die amtliche Bekanntmachung: maßgeblich bleiben dwd.de/warnungen und meteoschweiz.admin.ch.',
+    source: 'DWD CAP (DE) · MeteoSchweiz über MeteoAlarm (CH) · 5 min',
+    // Die Balken-Skala zeigt die STEIGERUNG, nicht die Stufennamen eines
+    // Dienstes: DWD und MeteoSchweiz benennen ihre Stufen verschieden, und die
+    // Nummern sind nicht kompatibel. Die stufengenaue, je Land getrennte Skala
+    // steht in der Kartenlegende — nur dort ist bekannt, welche Stufen
+    // tatsächlich auf der Karte liegen.
+    legend: <><Bar css={WARNINGS} /><Scale from="schwächste Stufe" to="höchste Stufe" /></>,
+  },
+  cells: {
+    eyebrow: 'Gewitter', title: 'Zellbahnen', accent: '--terracotta-500',
+    desc: 'Erkannte konvektive Zellen mit AMTLICHER Zugspur: Umriss (gemessen) + prognostizierte Spur und Unsicherheits-Trichter bis +60 Min, alle 5 Minuten neu. Der Trichter ist die amtliche Unsicherheitsellipse des DWD, keine eigene Schätzung. Zelle antippen für Zuggeschwindigkeit, Echotop und Hinweise auf Hagel/Böen/Starkregen. KEIN amtliches Warnprodukt, kein Warnersatz — maßgeblich sind die DWD-Warnungen. Abdeckung = Reichweite des deutschen Radarverbunds (reicht über die Grenze, dünnt dort aus).',
+    source: 'DWD KONRAD3D · 5 min',
+    legend: <><Bar css={CELLS} /><Scale from="schwach" to="kräftig" /></>,
+  },
   stations: {
     eyebrow: 'Messnetz', title: 'Stationen', accent: '--sage-600',
     desc: 'Live-Messwerte echter Wetterstationen — antippen für die Detailwerte.',
@@ -145,13 +180,18 @@ const LAYER_INFO: Record<LayerKey, Info> = {
   },
 };
 
-export function LayerInfoPanel({ layer, style }: { layer: LayerKey; style?: CSSProperties }) {
+export function LayerInfoPanel({ layer, style, suffix }: {
+  layer: LayerKey;
+  style?: CSSProperties;
+  /** Dynamischer Titel-Zusatz (z. B. Schnee-Modus, „Sicherheit · Regen"). */
+  suffix?: ReactNode;
+}) {
   const info = LAYER_INFO[layer];
   if (!info) return null;
   return (
     <div className="layer-info" style={{ ['--li-accent']: `var(${info.accent})`, ...style } as CSSProperties} role="note">
       <span className="layer-info-eyebrow">{info.eyebrow}</span>
-      <h3 className="layer-info-title">{info.title}</h3>
+      <h3 className="layer-info-title">{info.title}{suffix && <span className="layer-info-suffix"> {suffix}</span>}</h3>
       <p className="layer-info-desc">{info.desc}</p>
       <div className="layer-info-legend">{info.legend}</div>
       {info.source && <span className="layer-info-src">{info.source}</span>}

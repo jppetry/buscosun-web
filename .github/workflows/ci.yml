@@ -1,0 +1,95 @@
+# ============================================================================
+# PR-Gate (V-93, konkretisiert V-11) — netzfrei, schnell, blockierend
+# ============================================================================
+# WARUM: Bis heute prüfte KEIN Workflow den Code. `tsc` und `vite build` liefen
+# erstmals beim Netlify-Deploy, die Verifier nur manuell. Fehler fielen damit
+# frühestens beim Deploy auf — oder in Produktion.
+#
+# REIHENFOLGE-BEDINGUNG (O-02, Risiko R2 „falsches Grün"): Dieses Gate durfte
+# erst NACH der Harness-Reparatur entstehen. V-91 (tautologischer simradar-
+# Verifier entfernt, D-07 ehrlich gestellt) und V-29 (Fusions-Gate urteilt
+# wieder) sind am 2026-08-03 abgeschlossen — sonst hätte die CI 18 blinde
+# Prüfmittel als „grün" zementiert.
+#
+# HIER LÄUFT NUR NETZFREIES. Die 14 unten aufgeführten Verifier wurden am
+# 2026-08-03 empirisch auf Netzfreiheit geprüft (Lauf mit gesperrtem globalem
+# `fetch` — alle grün). Alles Netzabhängige läuft in nightly.yml: Upstream-Churn
+# bei DWD/ECMWF/MeteoSchweiz darf `main` niemals rot färben, sonst gewöhnt man
+# sich an rote Gates und das Gate ist wertlos (die Lehre aus V-91).
+#
+# NICHT hier: `fusion:gate`. Es ist zwar netzfrei, trainiert aber für die
+# stationsblockierte Kreuzvalidierung fünfmal über 300+ Sessions — das gehört
+# in den Nightly, nicht in ein Gate, das unter 4 min bleiben soll.
+# ============================================================================
+
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'    # ≥ 22.6 wegen --experimental-strip-types
+          cache: npm
+
+      - run: npm ci
+
+      # tsc -b zieht seit V-92 drei Projekte: src, vite.config, netlify/edge-functions.
+      # Die Edge Functions tragen die Open-Proxy-Abwehr und standen vorher in
+      # KEINEM tsconfig.
+      - name: Typecheck (App + Vite-Config + Edge Functions)
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      - name: SEO-Gate
+        run: npm run verify:seo
+
+      - name: Performance-Budget
+        run: npm run budget
+
+      # Einzeln benannt statt in einer Schleife: fällt einer um, sagt die
+      # GitHub-UI sofort WELCHER, ohne dass jemand ein Log aufklappt.
+      - name: Verifier — Datenalter (V-19/V-20)
+        run: npm run verify:datenalter
+      - name: Verifier — Amtliche Quellen
+        run: npm run verify:official-sources
+      - name: Verifier — Niederschlagsquelle (N1/D-14)
+        run: npm run verify:precip-source
+      - name: Verifier — FrameGovernor (WebGL-Parität)
+        run: npm run verify:governor
+      - name: Verifier — Feature-Layer (Gewitter, Blitz, Schnee, Rotation)
+        run: |
+          npm run verify:thunder
+          npm run verify:lpi
+          npm run verify:snow
+          npm run verify:rotation
+      - name: Verifier — Warm-Wind-Logik (V-81)
+        run: npm run verify:warm-wind
+      - name: Verifier — Warm-Budget ⇄ Layer-Dock (V-80)
+        run: npm run verify:warm-budget
+      - name: Verifier — Betriebs-Wächter (V-79)
+        run: npm run verify:health
+      - name: Fusion — LOSO (synthetisch, Phase-2-Gate)
+        run: npm run fusion:loso
+      - name: Fusion — OI/Background/Phase45/ModelSource
+        run: npm run fusion:verify
+      - name: Fusion — Desroziers
+        run: npm run fusion:desroziers

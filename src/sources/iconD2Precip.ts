@@ -243,6 +243,101 @@ export async function fetchStepBytes(
   return fetchDecompressedCached(`${base}/${hh}/${param}/${stepFileName(runStr, param, step)}`, signal);
 }
 
+// ---------------------------------------------------------------------------
+// Bodenfelder (`soil-level`) — Phase WT1, additiv.
+//
+// Der Boden-Baum hat ein ANDERES Dateimuster als die Einzelflächen: keine
+// `2d`-Marke, dafür eine Ebene zwischen Schritt und Parameter:
+//
+//   single-level : …_<run>_<SSS>_2d_<param>.grib2.bz2
+//   soil-level   : …_<run>_<SSS>_<ebene>_<param>.grib2.bz2
+//
+// Deshalb eigene Bauer und ein eigener Lauf-Auflöser — die bestehenden bleiben
+// unangetastet (`stepFileName`/`resolveLatestRun` werden NICHT umgebaut, damit
+// kein Layer über eine geteilte Abstraktion mitgeändert wird).
+//
+// Kein Manifest-Gate: `smi` wird nicht gewärmt (wie `relhum_2m`, Jans
+// Entscheidung 2026-08-14 zum Warm-Budget) → Directory-Scan, deshalb LAZY laden.
+// ---------------------------------------------------------------------------
+
+/** Die von DWD publizierten ICON-D2-Bodenebenen. Die Zahl ist die Untergrenze
+ *  der Schicht in **Zentimetern** (TERRA-Schema, Dicken verdoppeln sich). */
+export const D2_SOIL_LEVELS = [0, 1, 3, 9, 27, 81, 243, 729] as const;
+
+function soilFileName(runStr: string, param: string, step: number, level: number): string {
+  return `icon-d2_germany_regular-lat-lon_soil-level_${runStr}_${pad3(step)}_${level}_${param}.grib2.bz2`;
+}
+
+/** Lauf + verfügbare Schritte eines BODEN-Parameters (Directory-Scan). */
+export async function resolveLatestSoilRun(
+  param: string,
+  level: number,
+  signal?: AbortSignal,
+): Promise<RunInfo> {
+  const key = `soil:${param}:${level}`;
+  const t = Date.now();
+  const cached = runCache.get(key);
+  if (cached && t - cached.at < RUN_CACHE_TTL_MS) return cached.info;
+
+  const scan = async (runStr: string): Promise<number[]> => {
+    const hh = runStr.slice(8, 10);
+    const res = await fetch(`${D2_GRIB_BASE}/${hh}/${param}/`, { signal });
+    if (!res.ok) return [];
+    const html = await res.text();
+    const re = new RegExp(
+      `icon-d2_germany_regular-lat-lon_soil-level_${runStr}_(\\d{3})_${level}_${param}\\.grib2\\.bz2`,
+      'g',
+    );
+    const steps = new Set<number>();
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(html)) !== null) steps.add(parseInt(m[1], 10));
+    return [...steps].sort((a, b) => a - b);
+  };
+
+  // Denselben Lauf zuerst probieren, den ein anderer Layer schon aufgelöst hat.
+  if (sharedRun && t - sharedRun.at < RUN_CACHE_TTL_MS) {
+    try {
+      const steps = await scan(sharedRun.runStr);
+      if (steps.length > 0 && Math.max(...steps) >= 24) {
+        const info: RunInfo = { runStr: sharedRun.runStr, runAt: sharedRun.runAt, steps };
+        runCache.set(key, { at: Date.now(), info });
+        return info;
+      }
+    } catch { /* volle Rückwärtssuche darunter */ }
+  }
+
+  const now = new Date();
+  now.setUTCMinutes(0, 0, 0);
+  now.setUTCHours(now.getUTCHours() - (now.getUTCHours() % 3));
+  for (let back = 0; back < 6; back++) {
+    const cand = new Date(now.getTime() - back * 3 * 3600_000);
+    const hh = pad2(cand.getUTCHours());
+    const runStr =
+      `${cand.getUTCFullYear()}${pad2(cand.getUTCMonth() + 1)}${pad2(cand.getUTCDate())}${hh}`;
+    let steps: number[];
+    try { steps = await scan(runStr); } catch { continue; }
+    if (steps.length > 0 && Math.max(...steps) >= 24) {
+      const info: RunInfo = { runStr, runAt: cand, steps };
+      runCache.set(key, { at: Date.now(), info });
+      return info;
+    }
+  }
+  throw new Error(`ICON-D2 ${param} (Ebene ${level}): kein publizierter Lauf gefunden`);
+}
+
+/** Holt ein Bodenfeld einer Ebene. Bytes über den durable-gecachten Edge-Pfad. */
+export async function fetchSoilStepField(
+  runStr: string,
+  param: string,
+  step: number,
+  level: number,
+  signal?: AbortSignal,
+  base: string = D2_GRIB_PROXY_BASE,
+): Promise<GribField> {
+  const hh = runStr.slice(8, 10);
+  return fetchDecodeCached(`${base}/${hh}/${param}/${soilFileName(runStr, param, step, level)}`, signal);
+}
+
 /**
  * Lädt ein zeitinvariantes ICON-D2-Feld (z. B. `hsurf` = Modell-Orographie).
  * Anderes Dateimuster als die Schritt-Felder (`time-invariant_<run>_000_0_<param>`).

@@ -20,7 +20,7 @@
  *      senden.
  *
  * ANBINDUNG (wenn das Backend steht):
- *   const backend = createHttpPushBackend('https://api.buscosun.app');
+ *   const backend = createHttpPushBackend('https://api.buscosun.com');
  *   → in `useNotifications` statt `NULL_BACKEND` injizieren; beim Abonnieren
  *     `backend.registerSubscription(...)` mit dem Web-Push-Channel aufrufen.
  */

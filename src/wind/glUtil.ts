@@ -219,6 +219,14 @@ export function createBuffer(gl: WebGLRenderingContext, data: Float32Array): Web
   return buffer;
 }
 
+export function createIndexBuffer(gl: WebGLRenderingContext, data: Uint16Array): WebGLBuffer {
+  const buffer = gl.createBuffer()!;
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer);
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, data, gl.STATIC_DRAW);
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+  return buffer;
+}
+
 export function bindAttribute(
   gl: WebGLRenderingContext,
   buffer: WebGLBuffer,

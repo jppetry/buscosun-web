@@ -6,7 +6,8 @@
  *   - Command-Bar: Logo · ⌘K-Trigger · „DATEN LIVE" · DE/EN
  *   - Hero: Eyebrow · Wortmarke · Sub · große Ortssuche (+ Direkt-Link Wetterkarte)
  *   - Filter-Chips: Alle / Karten & Radar / Planen / Verstehen / Erkunden
- *   - Bento-Grid: 9 Werkzeug-Kacheln (Desktop 4-Spalten, Tablet 3, Mobile 1–2)
+ *   - Bento-Grid: 10 Werkzeug-Kacheln (Desktop 4-Spalten, Tablet 3, Mobile 1–2)
+ *     — seit Phase WB1 schließt „10 · Waldbrand" als volle Breite die Liste ab
  *   - Fundament (Fusion Forecast) · „Ehrlich bleiben" · Footer
  *   - ⌘K-Command-Palette (Overlay) · Mobile-Bottom-Tab-Bar
  *
@@ -28,15 +29,21 @@ import { parseCountry } from './countryProfiles';
 // Deko-Hero-Karte lazy: maplibre-gl bleibt aus dem Initial-Bundle (eigener Chunk).
 const HeroMapBackground = lazy(() => import('./HeroMapBackground'));
 // Touch-Geräte: die rein dekorative Hintergrundkarte gar nicht laden (SVG genügt).
+// Mobil + kleine Tablets (≤1024 px): die vier Werkzeug-Kacheln stehen wieder
+// im Bento-Grid statt als Quadrat neben der Suche (Jan, 2026-08-09).
+const NARROW_QUERY = '(max-width: 1024px)';
+
 const SHOW_HERO_MAP = typeof window !== 'undefined' && typeof window.matchMedia === 'function'
   && !window.matchMedia('(pointer: coarse)').matches;
 import { warmMapData } from './fusion/loadFusedForecast';
 import { flagForCountry } from './geocode';
-import { getFavorites, removeFavorite } from './favorites';
+import { getFavorites, removeFavorite, subscribeFavorites } from './favorites';
+import FavoriteStar from './FavoriteStar';
 import { useIntroTour, type IntroTour } from './intro/useIntroTour';
 import IntroOverlay from './intro/IntroOverlay';
 import './mobile/safeArea.css';
 import './SearchPage.css';
+import { useMediaQuery } from './mobile/useIsMobile';
 
 interface Props {
   onSelect: (location: Location) => void;
@@ -69,22 +76,34 @@ const FEATURE: Record<string, FeatureInfo> = {
   history:    { id: 'history',    eyebrow: 'Historie',      title: 'Klima seit 1940' },
   atmosphere: { id: 'atmosphere', eyebrow: 'Atmosphäre',    title: 'Die Atmosphäre über dir' },
   globe:      { id: 'globe',      eyebrow: '3D-Globus',     title: 'Das Wetter der ganzen Erde' },
+  fire:       { id: 'fire',       eyebrow: 'Waldbrand',     title: 'Wie trocken ist der Wald?' },
   feedback:   { id: 'feedback',   eyebrow: 'Feedback',      title: 'Ideen & Vorschläge' },
   validation: { id: 'validation', eyebrow: 'Validierung',   title: 'Wie gut ist der KI-Nowcast wirklich?' },
 };
+
+/**
+ * Anzahl der Werkzeug-Kacheln (7 im Bento + 2 im HeroQuad + Waldbrand seit WB1).
+ *
+ * Stand bis Phase WB1 als „09 WERKZEUGE" hartcodiert im Chip-Kopf und wäre bei
+ * der zehnten Kachel still falsch geworden. Eine Konstante an einer Stelle ist
+ * die kleinste Fassung, die nicht wieder auseinanderläuft — die Kacheln selbst
+ * stehen als handgelegtes Raster im JSX und lassen sich nicht zählen.
+ */
+const TOOL_TILE_COUNT = 10;
 
 interface PaletteEntry { num: string; label: string; hint: string; feature: FeatureInfo; }
 const PALETTE: PaletteEntry[] = [
   { num: '01', label: 'Wetterkarte',            hint: 'Wind · Regen · Blitze',      feature: FEATURE.map2d },
   { num: '02', label: 'Tourenplanung',          hint: 'Wetter pro km · E-Bike',     feature: FEATURE.route },
   { num: '03', label: 'Event-Planung',          hint: 'Bester Tag · Plan B',        feature: FEATURE.event },
-  { num: '04', label: 'Regenradar / Nowcast',   hint: 'Regen 0–6 h',                feature: FEATURE.nowcast },
+  { num: '04', label: 'Regenradar / Nowcast',   hint: 'Gemessenes Radar',           feature: FEATURE.nowcast },
   { num: '05', label: 'Vorhersage & Konfidenz', hint: 'Modell · Spread',            feature: FEATURE.forecast },
   { num: '06', label: 'Historie',               hint: 'Klima seit 1940',            feature: FEATURE.history },
   { num: '07', label: 'Atmosphäre',             hint: 'Höhenwind · Föhn',           feature: FEATURE.atmosphere },
-  { num: '08', label: '3D-Globus',              hint: 'Sample-Daten',               feature: FEATURE.globe },
-  { num: '09', label: 'Feedback',               hint: 'Ideen & Vorschläge',         feature: FEATURE.feedback },
-  { num: '10', label: 'Validierung',            hint: 'Wie gut ist der Nowcast?',   feature: FEATURE.validation },
+  { num: '08', label: '3D-Globus',              hint: 'Live-Wind (GFS)',            feature: FEATURE.globe },
+  { num: '09', label: 'Waldbrand DACH',         hint: 'Gefahr · Brände · Trockenheit', feature: FEATURE.fire },
+  { num: '10', label: 'Feedback',               hint: 'Ideen & Vorschläge',         feature: FEATURE.feedback },
+  { num: '11', label: 'Validierung',            hint: 'Wie gut ist der Nowcast?',   feature: FEATURE.validation },
 ];
 
 // ============================================================================
@@ -94,6 +113,7 @@ export default function SearchPage({ onSelect, onOpenFeature }: Props) {
   const tour = useIntroTour();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [activeCat, setActiveCat] = useState<'alle' | Category>('alle');
+  const narrow = useMediaQuery(NARROW_QUERY);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -153,14 +173,11 @@ export default function SearchPage({ onSelect, onOpenFeature }: Props) {
         </Suspense>
       )}
 
-      <CommandBar onOpenPalette={() => setPaletteOpen(true)} />
-
       <main className="deck-main">
-        <Hero onSelect={onSelect} onOpenFeature={openFeature} inputRef={searchInputRef} tour={tour} />
+        <Hero onSelect={onSelect} onOpenFeature={openFeature} inputRef={searchInputRef} tour={tour} activeCat={activeCat} narrow={narrow} />
         <FilterChips active={activeCat} onChange={setActiveCat} />
-        <BentoGrid activeCat={activeCat} onOpenFeature={openFeature} />
+        <BentoGrid activeCat={activeCat} onOpenFeature={openFeature} narrow={narrow} />
         <Fundament />
-        <Honesty />
       </main>
 
       <DeckFooter onOpenFeature={openFeature} />
@@ -193,32 +210,9 @@ function SearchIcon({ size = 16 }: { size?: number }) {
   );
 }
 
-// ============================================================================
-// COMMAND BAR — Logo · ⌘K-Trigger · „DATEN LIVE" · DE/EN
-// ============================================================================
-function CommandBar({ onOpenPalette }: { onOpenPalette: () => void }) {
-  return (
-    <header className="deck-bar">
-      <div className="deck-bar-inner">
-        <a className="deck-brand" href="#top" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
-          <LogoMark size={26} />
-          <span className="deck-wordmark">buscosun</span>
-        </a>
+/* Die Command-Bar (Topbar) wurde am 2026-08-09 auf Jans Wunsch entfernt;
+   die Marke steht jetzt oben links im Hero, ⌘K öffnet weiterhin die Palette. */
 
-        <button type="button" className="deck-kbar" onClick={onOpenPalette} aria-label="Befehls-Palette öffnen (⌘K)" aria-keyshortcuts="Meta+K Control+K">
-          <span className="deck-kbar-icon"><SearchIcon size={16} /></span>
-          <span className="deck-kbar-text">Ort suchen oder Werkzeug springen …</span>
-          <kbd className="deck-kbd">⌘K</kbd>
-        </button>
-
-        <div className="deck-bar-right">
-          <span className="deck-live"><span className="deck-live-dot" aria-hidden="true" />DATEN LIVE</span>
-          <span className="deck-lang"><span className="is-active">DE</span><span className="sep">·</span><span>EN</span></span>
-        </div>
-      </div>
-    </header>
-  );
-}
 
 // ============================================================================
 // HERO — Eyebrow · Wortmarke · Sub · große Ortssuche · Favoriten · Intro-Tour
@@ -228,18 +222,29 @@ interface HeroProps {
   onOpenFeature: (f: FeatureInfo) => void;
   inputRef: React.RefObject<HTMLInputElement | null>;
   tour: IntroTour;
+  activeCat: 'alle' | Category;
+  /** ≤1024 px: das Kachel-Quadrat entfällt hier und steht wieder im Bento-Grid. */
+  narrow: boolean;
 }
-function Hero({ onSelect, onOpenFeature, inputRef, tour }: HeroProps) {
+function Hero({ onSelect, onOpenFeature, inputRef, tour, activeCat, narrow }: HeroProps) {
   return (
     <section className="deck-hero" id="top">
-      <div className="deck-hero-eyebrow">LIVE · DE · AT · CH · OHNE ACCOUNT</div>
-      <h1 className="deck-h1">buscosun</h1>
+      {/* Auftrag Jan 2026-08-09: Eyebrow „LIVE · DE · AT · CH · OHNE ACCOUNT"
+          entfernt. Die Aussage steht ohnehin doppelt — „DATEN LIVE" in der
+          Command-Bar und „DE · AT · CH" im Untertitel/Kachelwerk. */}
+      {/* Marke neben dem Schriftzug — ersetzt die frühere Topbar (Jan, 2026-08-09).
+          Die Befehls-Palette bleibt über ⌘K / Strg-K erreichbar. */}
+      <div className="deck-titlerow">
+        <LogoMark size={84} />
+        <h1 className="deck-h1">buscosun</h1>
+      </div>
       <p className="deck-hero-sub">
         Modelle, Live-Stationen und Höhenkorrektur — zu einem Feld verschmolzen.
         Suche einen Ort oder steig direkt in ein Werkzeug ein.
       </p>
 
-      <HeroSearch onSelect={onSelect} onOpenFeature={onOpenFeature} inputRef={inputRef} />
+      <HeroSearch onSelect={onSelect} inputRef={inputRef} />
+      {!narrow && <HeroQuad activeCat={activeCat} onOpenFeature={onOpenFeature} />}
       <HeroFavorites onSelect={onSelect} />
       <IntroTrigger tour={tour} />
     </section>
@@ -247,14 +252,126 @@ function Hero({ onSelect, onOpenFeature, inputRef, tour }: HeroProps) {
 }
 
 // ---------------------------------------------------------------------------
+// Hero-Paar — die beiden Werkzeug-Kacheln 04/05 neben der Ortssuche.
+// Gleiche Kachel-Bausteine wie im Bento-Grid; die Filter-Chips dimmen sie mit.
+//
+// Ursprünglich standen hier 04–07 als 2×2-Quadrat. 06 (Historie) und 07
+// (3D-Wetter) sind auf Jans Auftrag vom 2026-08-09 wieder ins Bento-Grid
+// gewandert: das Hero-Feld wird dadurch halb so hoch, und Wetterkarte (01) und
+// Tourenplanung (02) rücken entsprechend nach oben. Klassenname `deck-quad`
+// bleibt (Layout-Anker in SearchPage.css), die Zeilenzahl steuert das CSS.
+// ---------------------------------------------------------------------------
+function HeroQuad({ activeCat, onOpenFeature }: { activeCat: 'alle' | Category; onOpenFeature: (f: FeatureInfo) => void }) {
+  const tile = makeTile(activeCat, onOpenFeature);
+  return (
+    <div className="deck-quad" aria-label="Werkzeuge · Nowcast, Vorhersage">
+      {tile(['radar'], 'tile-nowcast q-tile', FEATURE.nowcast, 'Regenradar / Nowcast öffnen', TILE_NOWCAST)}
+      {tile(['verstehen'], 'tile-forecast t-cream q-tile', FEATURE.forecast, 'Vorhersage & Konfidenz öffnen', TILE_FORECAST)}
+    </div>
+  );
+}
+
+// Kachel-Fabrik: identisches Markup/Dim-Verhalten für Hero-Quadrat und Bento.
+function makeTile(activeCat: 'alle' | Category, onOpenFeature: (f: FeatureInfo) => void) {
+  const dim = (cats: Category[]) => activeCat !== 'alle' && !cats.includes(activeCat);
+  return (cats: Category[], cls: string, feature: FeatureInfo, ariaLabel: string, children: ReactNode) => (
+    <button
+      type="button"
+      className={`deck-tile ${cls}${dim(cats) ? ' is-dim' : ''}`}
+      aria-label={ariaLabel}
+      aria-hidden={dim(cats) || undefined}
+      tabIndex={dim(cats) ? -1 : undefined}
+      onClick={() => onOpenFeature(feature)}
+    >
+      {children}
+    </button>
+  );
+}
+
+// Kachel-Inhalte, die zwischen Hero (04/05) und Bento (06/07) wandern —
+// unverändert gegenüber dem ursprünglichen Bento-Grid.
+const TILE_NOWCAST = (
+  <>
+    <div className="tile-eyebrow">04 · NOWCAST</div>
+    <div className="tile-radar">
+      <svg width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
+        <circle cx="32" cy="32" r="30" fill="none" stroke="var(--sand-200)" /><circle cx="32" cy="32" r="20" fill="none" stroke="var(--sand-200)" /><circle cx="32" cy="32" r="10" fill="none" stroke="var(--sand-200)" />
+        <circle cx="32" cy="32" r="3" fill="var(--steel-600)" />
+        <line x1="32" y1="32" x2="58" y2="24" stroke="var(--steel-600)" strokeWidth="1.5" className="tile-radar-sweep" />
+      </svg>
+    </div>
+    <div>
+      <div className="tile-title tile-title-sm">Regnet es in 40 Min?</div>
+      {/* D-14: radar-only. Die Modellhälfte 2–12 h wurde mit N1 entfernt —
+          der Text versprach sie weiterhin. */}
+      <p className="tile-desc sm">Gemessenes Radar: jetzt bis 2 h (AT 3 h, CH 0,5 h). Blitz- &amp; Sturm-Alerts, alpine Tal/Grat-Trennung.</p>
+    </div>
+  </>
+);
+
+const TILE_FORECAST = (
+  <>
+    <div className="tile-eyebrow">05 · VORHERSAGE</div>
+    {/* Kein Zahlenwert und kein wertbehafteter Bogen: die echte Trefferquote
+        rechnet erst confidence/hitRate.ts nach dem Öffnen der Seite. Ein
+        gefüllter Ring hier wäre eine Behauptung ohne Messung (D-04). */}
+    <div className="tile-donut-row">
+      <svg width="58" height="58" viewBox="0 0 56 56" aria-hidden="true">
+        <circle cx="28" cy="28" r="22" fill="none" stroke="var(--sand-200)" strokeWidth="6" />
+        <circle cx="28" cy="28" r="22" fill="none" stroke="var(--sage-600)" strokeWidth="6" strokeLinecap="round" strokeDasharray="3 11" transform="rotate(-90 28 28)" />
+      </svg>
+      <div className="tile-donut-val tile-donut-val-text">Trefferquote<span>30-Tage-Rückblick, je Modell</span></div>
+    </div>
+    <div>
+      <div className="tile-title tile-title-sm">Konfidenz &amp; Modelle</div>
+      <p className="tile-desc sm">ICON-D2 + MOSMIX + ICON-EU, Unsicherheitsband, Hit-Rate-Rückblick. Einfach/Experte.</p>
+    </div>
+  </>
+);
+
+const TILE_HISTORY = (
+  <>
+    <div className="tile-eyebrow">06 · HISTORIE</div>
+    <div className="tile-stripes" aria-hidden="true">
+      {['#3A6FA8', '#4A6E93', '#6B7A8F', '#8B8A80', '#A89A7A', '#C9A878', '#D4A373', '#C97B47', '#B96A3C', '#A85E2E'].map((c, i) => (
+        <span key={i} style={{ background: c }} />
+      ))}
+    </div>
+    <div>
+      <div className="tile-title tile-title-sm">Klima seit 1940</div>
+      <p className="tile-desc sm">ERA5: Warming-Stripes, Anomalien, Kenntage, Rekorde, Trends, Windrose.</p>
+    </div>
+  </>
+);
+
+const TILE_THREED = (
+  <>
+    <div className="tile-head">
+      <div className="tile-eyebrow">07 · 3D-WETTER</div>
+      <span className="tile-badge badge-solid">Föhn</span>
+    </div>
+    <svg viewBox="0 0 220 70" preserveAspectRatio="none" className="tile-terrain-svg" aria-hidden="true">
+      <path d="M0 68 L60 40 L110 20 L150 34 L220 60 L220 70 L0 70 Z" fill="var(--sand-100)" stroke="var(--border-strong)" />
+      <g stroke="var(--steel-600)" strokeWidth="1.4" strokeOpacity=".6"><line x1="30" y1="16" x2="50" y2="14" /><line x1="90" y1="12" x2="112" y2="9" /><line x1="150" y1="14" x2="172" y2="11" /></g>
+      <path d="M110 20 L150 34" stroke="var(--terracotta-500)" strokeWidth="2" />
+    </svg>
+    <div>
+      <div className="tile-title tile-title-sm">Vertikalschnitt</div>
+      <p className="tile-desc sm">Höhenwind, Inversion, Wolkenschichten, Windscherung, Föhn-Durchgriff. Gelände-Modus.</p>
+    </div>
+  </>
+);
+
+// ---------------------------------------------------------------------------
 // Ortssuche — bestehende Geocode-Logik, neu als Hero-Pille gestylt.
 // ---------------------------------------------------------------------------
 interface HeroSearchProps {
   onSelect: (loc: Location) => void;
-  onOpenFeature: (f: FeatureInfo) => void;
   inputRef: React.RefObject<HTMLInputElement | null>;
 }
-function HeroSearch({ onSelect, onOpenFeature, inputRef }: HeroSearchProps) {
+// `onOpenFeature` entfiel mit der Such-Fußzeile (2026-08-09) — die Ortssuche
+// öffnet selbst kein Werkzeug mehr.
+function HeroSearch({ onSelect, inputRef }: HeroSearchProps) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<NominatimResult[]>([]);
   const [loading, setLoading] = useState(false);
@@ -343,23 +460,28 @@ function HeroSearch({ onSelect, onOpenFeature, inputRef }: HeroSearchProps) {
       {showDropdown && (
         <div className="deck-search-dropdown" role="listbox">
           {error && <div className="deck-search-error">⚠ {error}</div>}
-          {results.map((r) => (
-            <button key={r.place_id} type="button" className="deck-search-result" onClick={() => pickResult(r)}>
-              <span className="deck-flag" aria-hidden="true">{flagFor(r.address?.country_code)}</span>
-              <span className="deck-result-name">{r.display_name}</span>
-            </button>
-          ))}
+          {results.map((r) => {
+            // V-04: Der Stern muss ein EIGENER Button sein — ein Button im Button
+            // wäre ungültiges HTML und für Tastatur/Screenreader unbedienbar.
+            const loc = toLocation(r);
+            return (
+              <div key={r.place_id} className="deck-search-row">
+                <button type="button" className="deck-search-result" onClick={() => pickResult(r)}>
+                  <span className="deck-flag" aria-hidden="true">{flagFor(r.address?.country_code)}</span>
+                  <span className="deck-result-name">{r.display_name}</span>
+                </button>
+                {loc && <FavoriteStar loc={loc} className="deck-search-star" />}
+              </div>
+            );
+          })}
         </div>
       )}
 
-      <div className="deck-search-foot">
-        <span className="deck-kbd sm">↵</span>
-        <span>Enter zum Suchen · Live-Daten aus DE · AT · CH · oder direkt in die{' '}
-          <button type="button" className="deck-inline-link" onClick={() => onOpenFeature(FEATURE.map2d)}>
-            DACH-Wetterkarte
-          </button>
-        </span>
-      </div>
+      {/* Auftrag Jan 2026-08-09: die Fußzeile „↵ Enter zum Suchen · Live-Daten
+          aus DE · AT · CH · oder direkt in die DACH-Wetterkarte" ist entfernt.
+          Funktionserhalt: Der Direkteinstieg in die Karte bleibt über Kachel 01
+          und über die Befehlspalette (⌘K → „01 Wetterkarte") erreichbar; Enter
+          im Suchfeld sucht unverändert. */}
     </div>
   );
 }
@@ -378,6 +500,9 @@ function flagFor(cc?: string): string {
 // ---------------------------------------------------------------------------
 function HeroFavorites({ onSelect }: { onSelect: (location: Location) => void }) {
   const [favs, setFavs] = useState<Location[]>(() => getFavorites());
+  // V-04: Der Stern in den Suchergebnissen und im Punktforecast schreibt in
+  // denselben Speicher — ohne Abo zeigte diese Leiste weiter den alten Stand.
+  useEffect(() => subscribeFavorites(() => setFavs(getFavorites())), []);
   if (favs.length === 0) return null;
   return (
     <div className="deck-favs">
@@ -424,7 +549,9 @@ const CHIPS: Array<{ key: 'alle' | Category; label: string }> = [
 function FilterChips({ active, onChange }: { active: 'alle' | Category; onChange: (c: 'alle' | Category) => void }) {
   return (
     <section className="deck-chips" aria-label="Werkzeuge filtern">
-      <span className="deck-chips-count">09 WERKZEUGE</span>
+      {/* Abgeleitet statt hartcodiert: stand hier bis Phase WB1 als „09 WERKZEUGE"
+          und wäre bei der zehnten Kachel still falsch geworden. */}
+      <span className="deck-chips-count">{String(TOOL_TILE_COUNT).padStart(2, '0')} WERKZEUGE</span>
       {CHIPS.map((c) => (
         <button
           key={c.key}
@@ -444,22 +571,10 @@ function FilterChips({ active, onChange }: { active: 'alle' | Category; onChange
 // BENTO GRID — 9 Werkzeug-Kacheln. DOM-Reihenfolge = Mock-Desktop; Tablet
 // ordnet per CSS `order` um; Mobile stapelt (3D+Globus als Paar).
 // ============================================================================
-function BentoGrid({ activeCat, onOpenFeature }: { activeCat: 'alle' | Category; onOpenFeature: (f: FeatureInfo) => void }) {
+function BentoGrid({ activeCat, onOpenFeature, narrow }: { activeCat: 'alle' | Category; onOpenFeature: (f: FeatureInfo) => void; narrow: boolean }) {
   // Dim-Logik: bei aktivem Filter alles ausblenden, was nicht zur Kategorie passt.
-  const dim = (cats: Category[]) => activeCat !== 'alle' && !cats.includes(activeCat);
-
-  const tile = (cats: Category[], cls: string, feature: FeatureInfo, ariaLabel: string, children: ReactNode) => (
-    <button
-      type="button"
-      className={`deck-tile ${cls}${dim(cats) ? ' is-dim' : ''}`}
-      aria-label={ariaLabel}
-      aria-hidden={dim(cats) || undefined}
-      tabIndex={dim(cats) ? -1 : undefined}
-      onClick={() => onOpenFeature(feature)}
-    >
-      {children}
-    </button>
-  );
+  // 04 + 05 stehen auf Desktop im Hero (HeroQuad) und nutzen dieselbe Fabrik.
+  const tile = makeTile(activeCat, onOpenFeature);
 
   return (
     <section className="deck-bento" aria-label="Werkzeuge">
@@ -523,72 +638,21 @@ function BentoGrid({ activeCat, onOpenFeature }: { activeCat: 'alle' | Category;
           </div>
         </>)}
 
-      {/* 04 · NOWCAST / Regenradar */}
-      {tile(['radar'], 'tile-nowcast', FEATURE.nowcast, 'Regenradar / Nowcast öffnen',
+      {/* 04 + 05: auf Desktop im Hero (HeroQuad); auf ≤1024 px hier im Grid an
+          ihrer angestammten Stelle — so bleibt die schmale Ansicht wie zuvor. */}
+      {narrow && (
         <>
-          <div className="tile-eyebrow">04 · NOWCAST</div>
-          <div className="tile-radar">
-            <svg width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
-              <circle cx="32" cy="32" r="30" fill="none" stroke="var(--sand-200)" /><circle cx="32" cy="32" r="20" fill="none" stroke="var(--sand-200)" /><circle cx="32" cy="32" r="10" fill="none" stroke="var(--sand-200)" />
-              <circle cx="32" cy="32" r="3" fill="var(--steel-600)" />
-              <line x1="32" y1="32" x2="58" y2="24" stroke="var(--steel-600)" strokeWidth="1.5" className="tile-radar-sweep" />
-            </svg>
-          </div>
-          <div>
-            <div className="tile-title tile-title-sm">Regnet es in 40 Min?</div>
-            <p className="tile-desc sm">0–2 h Radar, 2–6 h ICON-D2. Blitz- & Sturm-Alerts, alpine Tal/Grat-Trennung.</p>
-          </div>
-        </>)}
+          {tile(['radar'], 'tile-nowcast', FEATURE.nowcast, 'Regenradar / Nowcast öffnen', TILE_NOWCAST)}
+          {tile(['verstehen'], 'tile-forecast t-cream', FEATURE.forecast, 'Vorhersage & Konfidenz öffnen', TILE_FORECAST)}
+        </>
+      )}
 
-      {/* 05 · VORHERSAGE */}
-      {tile(['verstehen'], 'tile-forecast t-cream', FEATURE.forecast, 'Vorhersage & Konfidenz öffnen',
-        <>
-          <div className="tile-eyebrow">05 · VORHERSAGE</div>
-          <div className="tile-donut-row">
-            <svg width="58" height="58" viewBox="0 0 56 56" aria-hidden="true">
-              <circle cx="28" cy="28" r="22" fill="none" stroke="var(--sand-200)" strokeWidth="6" />
-              <circle cx="28" cy="28" r="22" fill="none" stroke="var(--sage-600)" strokeWidth="6" strokeLinecap="round" strokeDasharray="138 138" strokeDashoffset="34" transform="rotate(-90 28 28)" />
-            </svg>
-            <div className="tile-donut-val">78%<span>Trefferquote 3 Tage</span></div>
-          </div>
-          <div>
-            <div className="tile-title tile-title-sm">Konfidenz & Modelle</div>
-            <p className="tile-desc sm">ICON-D2 + MOSMIX + ICON-EU, Unsicherheitsband, Hit-Rate-Rückblick. Einfach/Experte.</p>
-          </div>
-        </>)}
-
+      {/* 06–09 stehen als EINE Reihe zu vier Spalten (Jan, 2026-08-09). */}
       {/* 06 · HISTORIE */}
-      {tile(['verstehen'], 'tile-history', FEATURE.history, 'Historie öffnen',
-        <>
-          <div className="tile-eyebrow">06 · HISTORIE</div>
-          <div className="tile-stripes" aria-hidden="true">
-            {['#3A6FA8', '#4A6E93', '#6B7A8F', '#8B8A80', '#A89A7A', '#C9A878', '#D4A373', '#C97B47', '#B96A3C', '#A85E2E'].map((c, i) => (
-              <span key={i} style={{ background: c }} />
-            ))}
-          </div>
-          <div>
-            <div className="tile-title tile-title-sm">Klima seit 1940</div>
-            <p className="tile-desc sm">ERA5: Warming-Stripes, Anomalien, Kenntage, Rekorde, Trends, Windrose.</p>
-          </div>
-        </>)}
+      {tile(['verstehen'], 'tile-history t-half', FEATURE.history, 'Historie öffnen', TILE_HISTORY)}
 
       {/* 07 · 3D-WETTER → Atmosphäre */}
-      {tile(['erkunden'], 'tile-threed t-half', FEATURE.atmosphere, 'Atmosphäre / 3D-Wetter öffnen',
-        <>
-          <div className="tile-head">
-            <div className="tile-eyebrow">07 · 3D-WETTER</div>
-            <span className="tile-badge badge-solid">Föhn</span>
-          </div>
-          <svg viewBox="0 0 220 70" preserveAspectRatio="none" className="tile-terrain-svg" aria-hidden="true">
-            <path d="M0 68 L60 40 L110 20 L150 34 L220 60 L220 70 L0 70 Z" fill="var(--sand-100)" stroke="var(--border-strong)" />
-            <g stroke="var(--steel-600)" strokeWidth="1.4" strokeOpacity=".6"><line x1="30" y1="16" x2="50" y2="14" /><line x1="90" y1="12" x2="112" y2="9" /><line x1="150" y1="14" x2="172" y2="11" /></g>
-            <path d="M110 20 L150 34" stroke="var(--terracotta-500)" strokeWidth="2" />
-          </svg>
-          <div>
-            <div className="tile-title tile-title-sm">Vertikalschnitt</div>
-            <p className="tile-desc sm">Höhenwind, Inversion, Wolkenschichten, Windscherung, Föhn-Durchgriff. Gelände-Modus.</p>
-          </div>
-        </>)}
+      {tile(['erkunden'], 'tile-threed t-half', FEATURE.atmosphere, 'Atmosphäre / 3D-Wetter öffnen', TILE_THREED)}
 
       {/* 08 · GLOBUS */}
       {tile(['erkunden'], 'tile-globus t-half', FEATURE.globe, '3D-Globus öffnen',
@@ -602,12 +666,16 @@ function BentoGrid({ activeCat, onOpenFeature }: { activeCat: 'alle' | Category;
           </div>
           <div>
             <div className="tile-title tile-title-sm">3D-Globus</div>
-            <p className="tile-desc sm">Wind-Partikel + Temperatur. <span className="tile-caveat">Sample-Felder — keine Live-Vorhersage.</span></p>
+            {/* Präzisiert: Wind IST live (globe/gfs.ts lädt den aktuellen GFS-Lauf
+                per Range-Request), nur das Temperaturbild ist ein gebündeltes
+                MERRA-2-Raster (globe/tempRecolor.ts). „Sample-Felder" war für den
+                Wind schlicht falsch. */}
+            <p className="tile-desc sm">Wind-Partikel live aus GFS. <span className="tile-caveat">Temperaturbild ist ein gebündeltes Raster, keine Live-Analyse.</span></p>
           </div>
         </>)}
 
       {/* 09 · FEEDBACK (an Stelle des Mock-Tiles „KI-Meteorologe") — dunkel, span 2 */}
-      {tile([], 'tile-feedback t-w2 t-ink2', FEATURE.feedback, 'Feedback geben',
+      {tile([], 'tile-feedback t-half t-ink2', FEATURE.feedback, 'Feedback geben',
         <>
           <div className="tile-feedback-icon" aria-hidden="true">
             <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
@@ -620,6 +688,39 @@ function BentoGrid({ activeCat, onOpenFeature }: { activeCat: 'alle' | Category;
             <p className="tile-desc on-ink">Was sollen wir verbessern, was fehlt dir? Schick uns deine Anregung direkt per E-Mail — ohne Konto, ohne Tracker. Jede Rückmeldung fließt in die nächste Ausbaustufe.</p>
           </div>
           <span className="tile-badge badge-mono-ghost">E-MAIL</span>
+        </>)}
+
+      {/* 10 · WALDBRAND (Phase WB1) — bewusst ANS ENDE gehängt: die DOM-Reihenfolge
+          der neun bestehenden Kacheln stammt aus Jans handgelegtem SA1-Raster
+          (2026-08-09) und darf sich durch einen Zugang nicht verschieben. */}
+      {tile(['erkunden'], 'tile-fire', FEATURE.fire, 'Waldbrand DACH öffnen',
+        <>
+          <div className="tile-feedback-icon" aria-hidden="true">
+            <svg width="34" height="34" viewBox="0 0 56 56">
+              {/* Farben inline statt per CSS-Regel: die Icon-Kachel der Feedback-
+                  Kachel ist ink-900, und deren Vorgabefarben wären dunkel auf
+                  dunkel. `eagerCss` hat keinen Spielraum für eigene Regeln. */}
+              <path
+                d="M28 8 C28 17 20 19 20 27 C20 31.4 23.6 35 28 35 C32.4 35 36 31.4 36 27 C36 23.6 34 21.6 32.6 19.4"
+                fill="none" stroke="#E8A33C" strokeWidth="2.6"
+                strokeLinecap="round" strokeLinejoin="round"
+              />
+              <path d="M28 39 L20 50 H36 Z" fill="none" stroke="#C9BFA8" strokeWidth="2" strokeLinejoin="round" />
+            </svg>
+          </div>
+          <div className="tile-feedback-body">
+            <div className="tile-eyebrow">10 · WALDBRAND</div>
+            <div className="tile-title tile-title-lg">Wie trocken ist der Wald?</div>
+            <p className="tile-desc">
+              EU-Gefahrenindex bis +9 Tage, amtliche Stufen für Deutschland und die Schweiz,
+              aktive Brände aus dem Satelliten und die Faktoren dahinter — in einer Ansicht statt
+              in drei nationalen Portalen.
+              {' '}
+              <span className="tile-caveat">
+                Kein amtliches Warnprodukt. Für Österreich gibt es keine offene amtliche Stufe.
+              </span>
+            </p>
+          </div>
         </>)}
     </section>
   );
@@ -651,37 +752,9 @@ function Fundament() {
   );
 }
 
-// ============================================================================
-// EHRLICH BLEIBEN — alle 6 Punkte
-// ============================================================================
-const HONESTY: Array<{ tone: 'warn' | 'ok'; head: string; body: string }> = [
-  { tone: 'warn', head: 'UV, Pollen & amtliche Warnungen', body: 'Nur Deutschland (DWD). AT/CH bekommen das nicht.' },
-  { tone: 'warn', head: 'AT/CH Raster-Horizont', body: 'Karten ~1–2 Tage; weiter draußen nur Punkt-Blend.' },
-  { tone: 'warn', head: 'Globus = Sample-Daten', body: 'Keine echte globale Live-Vorhersage.' },
-  { tone: 'warn', head: 'Kein Backend', body: 'Kein zuverlässiges Push, keine Accounts/Sync — nur localStorage.' },
-  { tone: 'warn', head: 'Kein offizielles Briefing', body: 'Kein METAR/TAF, Lawinen- oder Seegangsbericht.' },
-  { tone: 'ok', head: 'Dafür: ehrliche Unsicherheit', body: 'Spread, Konfidenz und Hit-Rate offen ausgewiesen.' },
-];
-function Honesty() {
-  return (
-    <section className="deck-honesty" aria-label="Grenzen">
-      <div className="deck-honesty-card">
-        <div className="deck-honesty-head">
-          <h2 className="deck-h3">Ehrlich bleiben — was wir <em>nicht</em> können</h2>
-          <span className="deck-honesty-cov">ABDECKUNG · DE · AT · CH</span>
-        </div>
-        <div className="deck-honesty-grid">
-          {HONESTY.map((h) => (
-            <div key={h.head} className="deck-honesty-item">
-              <span className={`deck-honesty-mark ${h.tone}`} aria-hidden="true">{h.tone === 'ok' ? '●' : '▲'}</span>
-              <div><div className="deck-honesty-title">{h.head}</div><div className="deck-honesty-body">{h.body}</div></div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
+/* Der Block „Ehrlich bleiben" wurde auf Jans Wunsch (2026-08-09) von der
+   Startseite entfernt. Die Grenzen stehen weiterhin in den jeweiligen
+   Werkzeugen (Datenlage/Ehrlichkeits-Hinweise) und in der Doku. */
 
 // ============================================================================
 // FOOTER — Quellen · Werkzeuge · Rechtliches (inkl. Feedback/Validierung) ·
@@ -718,6 +791,19 @@ function DeckFooter({ onOpenFeature }: { onOpenFeature: (f: FeatureInfo) => void
               <button type="button" onClick={() => onOpenFeature(FEATURE.feedback)}>Feedback</button><br />
               <button type="button" onClick={() => onOpenFeature(FEATURE.validation)}>Validierung</button><br />
               <button type="button" onClick={() => onOpenFeature(FEATURE.globe)}>3D-Globus</button>
+            </div>
+          </div>
+          {/* Rechtsseiten werden vom SEO-Generator als echte Pfade erzeugt →
+              normale <a>-Links, kein Router nötig (D-06). Ohne sie wäre das
+              Impressum aus der App heraus nicht erreichbar (V-103). */}
+          <div className="deck-footer-col">
+            <div className="deck-footer-h">RECHTLICHES</div>
+            <div className="deck-footer-links">
+              <a href="/impressum/">Impressum</a><br />
+              <a href="/datenschutz/">Datenschutz</a><br />
+              {/* V-104: zentrales Quellen- und Attributionsverzeichnis. */}
+              <a href="/lizenzen/">Quellen &amp; Lizenzen</a><br />
+              <a href="/kontakt/">Kontakt</a>
             </div>
           </div>
         </div>

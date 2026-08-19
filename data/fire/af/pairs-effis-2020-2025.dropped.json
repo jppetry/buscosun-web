@@ -1,0 +1,2837 @@
+[
+ {
+  "id": "19338",
+  "areaHa": 124,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2020
+ },
+ {
+  "id": "19403",
+  "areaHa": 22,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2020
+ },
+ {
+  "id": "19547",
+  "areaHa": 57,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2020
+ },
+ {
+  "id": "19745",
+  "areaHa": 149,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2020
+ },
+ {
+  "id": "19744",
+  "areaHa": 403,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2020
+ },
+ {
+  "id": "19837",
+  "areaHa": 44,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2020
+ },
+ {
+  "id": "41943",
+  "areaHa": 19,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2020
+ },
+ {
+  "id": "43935",
+  "areaHa": 44,
+  "rows": 3,
+  "clusters": 1,
+  "zones": 2,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2020
+ },
+ {
+  "id": "44339",
+  "areaHa": 22,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2020
+ },
+ {
+  "id": "45613",
+  "areaHa": 17,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2020
+ },
+ {
+  "id": "19377",
+  "areaHa": 23,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2020
+ },
+ {
+  "id": "19622",
+  "areaHa": 78,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2020
+ },
+ {
+  "id": "19300",
+  "areaHa": 27,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2020
+ },
+ {
+  "id": "19775",
+  "areaHa": 41,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2020
+ },
+ {
+  "id": "46142",
+  "areaHa": 31,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2021
+ },
+ {
+  "id": "46220",
+  "areaHa": 76,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2021
+ },
+ {
+  "id": "46599",
+  "areaHa": 24,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2021
+ },
+ {
+  "id": "46598",
+  "areaHa": 57,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2021
+ },
+ {
+  "id": "48662",
+  "areaHa": 6,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2021
+ },
+ {
+  "id": "54751",
+  "areaHa": 1,
+  "rows": 2,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2021
+ },
+ {
+  "id": "54748",
+  "areaHa": 14,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2021
+ },
+ {
+  "id": "54750",
+  "areaHa": 2,
+  "rows": 2,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2021
+ },
+ {
+  "id": "54747",
+  "areaHa": 4,
+  "rows": 3,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2021
+ },
+ {
+  "id": "59085",
+  "areaHa": 10,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2022
+ },
+ {
+  "id": "181983",
+  "areaHa": 20,
+  "rows": 2,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2022
+ },
+ {
+  "id": "179878",
+  "areaHa": 14,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2022
+ },
+ {
+  "id": "211027",
+  "areaHa": 12,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2022
+ },
+ {
+  "id": "180407",
+  "areaHa": 6,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2022
+ },
+ {
+  "id": "179369",
+  "areaHa": 49,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2022
+ },
+ {
+  "id": "179773",
+  "areaHa": 206,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2022
+ },
+ {
+  "id": "58682",
+  "areaHa": 120,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2022
+ },
+ {
+  "id": "179877",
+  "areaHa": 150,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2022
+ },
+ {
+  "id": "179874",
+  "areaHa": 51,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2022
+ },
+ {
+  "id": "180281",
+  "areaHa": 70,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2022
+ },
+ {
+  "id": "180406",
+  "areaHa": 44,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2022
+ },
+ {
+  "id": "180439",
+  "areaHa": 8,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2022
+ },
+ {
+  "id": "203019",
+  "areaHa": 3,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2022
+ },
+ {
+  "id": "180438",
+  "areaHa": 87,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2022
+ },
+ {
+  "id": "181369",
+  "areaHa": 20,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2022
+ },
+ {
+  "id": "181570",
+  "areaHa": 64,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2022
+ },
+ {
+  "id": "181474",
+  "areaHa": 105,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2022
+ },
+ {
+  "id": "181580",
+  "areaHa": 28,
+  "rows": 11,
+  "clusters": 1,
+  "zones": 5,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2022
+ },
+ {
+  "id": "181581",
+  "areaHa": 43,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2022
+ },
+ {
+  "id": "181718",
+  "areaHa": 16,
+  "rows": 2,
+  "clusters": 1,
+  "zones": 2,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2022
+ },
+ {
+  "id": "181719",
+  "areaHa": 51,
+  "rows": 2,
+  "clusters": 1,
+  "zones": 2,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2022
+ },
+ {
+  "id": "181724",
+  "areaHa": 15,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2022
+ },
+ {
+  "id": "203020",
+  "areaHa": 5,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2022
+ },
+ {
+  "id": "203021",
+  "areaHa": 21,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2022
+ },
+ {
+  "id": "208611",
+  "areaHa": 49,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2022
+ },
+ {
+  "id": "208613",
+  "areaHa": 9,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2022
+ },
+ {
+  "id": "208614",
+  "areaHa": 10,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2022
+ },
+ {
+  "id": "208615",
+  "areaHa": 6,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2022
+ },
+ {
+  "id": "182084",
+  "areaHa": 13,
+  "rows": 2,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2022
+ },
+ {
+  "id": "183865",
+  "areaHa": 9,
+  "rows": 3,
+  "clusters": 1,
+  "zones": 2,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2022
+ },
+ {
+  "id": "183863",
+  "areaHa": 18,
+  "rows": 28,
+  "clusters": 2,
+  "zones": 7,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2022
+ },
+ {
+  "id": "184239",
+  "areaHa": 40,
+  "rows": 19,
+  "clusters": 1,
+  "zones": 5,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2022
+ },
+ {
+  "id": "184262",
+  "areaHa": 31,
+  "rows": 4,
+  "clusters": 2,
+  "zones": 3,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2022
+ },
+ {
+  "id": "184263",
+  "areaHa": 12,
+  "rows": 8,
+  "clusters": 3,
+  "zones": 4,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2022
+ },
+ {
+  "id": "190050",
+  "areaHa": 332,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2022
+ },
+ {
+  "id": "210140",
+  "areaHa": 3,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2022
+ },
+ {
+  "id": "190051",
+  "areaHa": 131,
+  "rows": 41,
+  "clusters": 2,
+  "zones": 6,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2022
+ },
+ {
+  "id": "192425",
+  "areaHa": 3,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2022
+ },
+ {
+  "id": "202434",
+  "areaHa": 6,
+  "rows": 3,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2022
+ },
+ {
+  "id": "202436",
+  "areaHa": 3,
+  "rows": 9,
+  "clusters": 1,
+  "zones": 4,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2022
+ },
+ {
+  "id": "192423",
+  "areaHa": 18,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2022
+ },
+ {
+  "id": "192417",
+  "areaHa": 1,
+  "rows": 7,
+  "clusters": 2,
+  "zones": 4,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2022
+ },
+ {
+  "id": "192418",
+  "areaHa": 5,
+  "rows": 7,
+  "clusters": 2,
+  "zones": 4,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2022
+ },
+ {
+  "id": "192426",
+  "areaHa": 3,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2022
+ },
+ {
+  "id": "192427",
+  "areaHa": 2,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2022
+ },
+ {
+  "id": "201956",
+  "areaHa": 1,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2022
+ },
+ {
+  "id": "201942",
+  "areaHa": 12,
+  "rows": 11,
+  "clusters": 2,
+  "zones": 4,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2022
+ },
+ {
+  "id": "201954",
+  "areaHa": 7,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2022
+ },
+ {
+  "id": "181577",
+  "areaHa": 71,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2022
+ },
+ {
+  "id": "180701",
+  "areaHa": 10,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2022
+ },
+ {
+  "id": "203846",
+  "areaHa": 220,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2022
+ },
+ {
+  "id": "206620",
+  "areaHa": 8,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2022
+ },
+ {
+  "id": "206457",
+  "areaHa": 15,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2022
+ },
+ {
+  "id": "206621",
+  "areaHa": 3,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2022
+ },
+ {
+  "id": "206454",
+  "areaHa": 11,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2022
+ },
+ {
+  "id": "206455",
+  "areaHa": 7,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2022
+ },
+ {
+  "id": "206456",
+  "areaHa": 18,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2022
+ },
+ {
+  "id": "206622",
+  "areaHa": 22,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2022
+ },
+ {
+  "id": "208963",
+  "areaHa": 65,
+  "rows": 14,
+  "clusters": 1,
+  "zones": 3,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2022
+ },
+ {
+  "id": "208964",
+  "areaHa": 15,
+  "rows": 7,
+  "clusters": 1,
+  "zones": 2,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2022
+ },
+ {
+  "id": "209094",
+  "areaHa": 7,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2022
+ },
+ {
+  "id": "209095",
+  "areaHa": 5,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2022
+ },
+ {
+  "id": "206680",
+  "areaHa": 2,
+  "rows": 4,
+  "clusters": 1,
+  "zones": 2,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2022
+ },
+ {
+  "id": "192416",
+  "areaHa": 15,
+  "rows": 7,
+  "clusters": 2,
+  "zones": 4,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2022
+ },
+ {
+  "id": "212748",
+  "areaHa": 33,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2023
+ },
+ {
+  "id": "212749",
+  "areaHa": 5,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2023
+ },
+ {
+  "id": "211999",
+  "areaHa": 2,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2023
+ },
+ {
+  "id": "212220",
+  "areaHa": 81,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2023
+ },
+ {
+  "id": "212747",
+  "areaHa": 118,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2023
+ },
+ {
+  "id": "213277",
+  "areaHa": 31,
+  "rows": 4,
+  "clusters": 1,
+  "zones": 3,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2023
+ },
+ {
+  "id": "213881",
+  "areaHa": 58,
+  "rows": 3,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2023
+ },
+ {
+  "id": "216365",
+  "areaHa": 2,
+  "rows": 11,
+  "clusters": 1,
+  "zones": 3,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2023
+ },
+ {
+  "id": "216171",
+  "areaHa": 2,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2023
+ },
+ {
+  "id": "216475",
+  "areaHa": 15,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2023
+ },
+ {
+  "id": "218547",
+  "areaHa": 20,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2023
+ },
+ {
+  "id": "224154",
+  "areaHa": 33,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2023
+ },
+ {
+  "id": "224222",
+  "areaHa": 17,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2024
+ },
+ {
+  "id": "248319",
+  "areaHa": 3,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2024
+ },
+ {
+  "id": "225659",
+  "areaHa": 69,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2024
+ },
+ {
+  "id": "241587",
+  "areaHa": 3,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2024
+ },
+ {
+  "id": "226531",
+  "areaHa": 10,
+  "rows": 2,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2024
+ },
+ {
+  "id": "226662",
+  "areaHa": 147,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2024
+ },
+ {
+  "id": "240636",
+  "areaHa": 2,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2024
+ },
+ {
+  "id": "231288",
+  "areaHa": 4,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2024
+ },
+ {
+  "id": "235349",
+  "areaHa": 4,
+  "rows": 7,
+  "clusters": 1,
+  "zones": 5,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2024
+ },
+ {
+  "id": "240651",
+  "areaHa": 5,
+  "rows": 7,
+  "clusters": 1,
+  "zones": 2,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2024
+ },
+ {
+  "id": "240652",
+  "areaHa": 1,
+  "rows": 7,
+  "clusters": 1,
+  "zones": 2,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2024
+ },
+ {
+  "id": "247707",
+  "areaHa": 1,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2024
+ },
+ {
+  "id": "240635",
+  "areaHa": 1,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2024
+ },
+ {
+  "id": "241409",
+  "areaHa": 2,
+  "rows": 2,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2024
+ },
+ {
+  "id": "241412",
+  "areaHa": 5,
+  "rows": 2,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2024
+ },
+ {
+  "id": "246481",
+  "areaHa": 2,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2024
+ },
+ {
+  "id": "261323",
+  "areaHa": 19,
+  "rows": 11,
+  "clusters": 1,
+  "zones": 2,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "267751",
+  "areaHa": 5,
+  "rows": 6,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "267887",
+  "areaHa": 1,
+  "rows": 4,
+  "clusters": 1,
+  "zones": 2,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "268040",
+  "areaHa": 4,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "270559",
+  "areaHa": 3,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "270504",
+  "areaHa": 0,
+  "rows": 9,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "260269",
+  "areaHa": 2,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "260327",
+  "areaHa": 8,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "260328",
+  "areaHa": 6,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "260329",
+  "areaHa": 1,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "260325",
+  "areaHa": 2,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "260326",
+  "areaHa": 1,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "260264",
+  "areaHa": 9,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "260267",
+  "areaHa": 4,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "260275",
+  "areaHa": 23,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "260281",
+  "areaHa": 33,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "270907",
+  "areaHa": 1,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "270908",
+  "areaHa": 4,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "267885",
+  "areaHa": 2,
+  "rows": 4,
+  "clusters": 1,
+  "zones": 2,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "267888",
+  "areaHa": 1,
+  "rows": 3,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "267889",
+  "areaHa": 8,
+  "rows": 3,
+  "clusters": 1,
+  "zones": 2,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "267890",
+  "areaHa": 8,
+  "rows": 5,
+  "clusters": 1,
+  "zones": 3,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "266492",
+  "areaHa": 14,
+  "rows": 2,
+  "clusters": 1,
+  "zones": 2,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "266487",
+  "areaHa": 111,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "266489",
+  "areaHa": 1,
+  "rows": 3,
+  "clusters": 1,
+  "zones": 2,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "266490",
+  "areaHa": 2,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "270032",
+  "areaHa": 11,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "260338",
+  "areaHa": 287,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "268041",
+  "areaHa": 4,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "268042",
+  "areaHa": 9,
+  "rows": 6,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "267893",
+  "areaHa": 4,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "267877",
+  "areaHa": 10,
+  "rows": 4,
+  "clusters": 1,
+  "zones": 2,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "267881",
+  "areaHa": 60,
+  "rows": 9,
+  "clusters": 2,
+  "zones": 5,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "269136",
+  "areaHa": 8,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "269137",
+  "areaHa": 19,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "270024",
+  "areaHa": 1,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "270025",
+  "areaHa": 4,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "269870",
+  "areaHa": 49,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "269871",
+  "areaHa": 3,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "270029",
+  "areaHa": 10,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "266475",
+  "areaHa": 79,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "260276",
+  "areaHa": 132,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "266481",
+  "areaHa": 1,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "275279",
+  "areaHa": 1,
+  "rows": 25,
+  "clusters": 1,
+  "zones": 2,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "278891",
+  "areaHa": 41,
+  "rows": 8,
+  "clusters": 1,
+  "zones": 3,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "278976",
+  "areaHa": 18,
+  "rows": 21,
+  "clusters": 1,
+  "zones": 4,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "278890",
+  "areaHa": 1,
+  "rows": 10,
+  "clusters": 2,
+  "zones": 3,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "282284",
+  "areaHa": 11,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "282286",
+  "areaHa": 11,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "280106",
+  "areaHa": 32,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "282273",
+  "areaHa": 37,
+  "rows": 7,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "282274",
+  "areaHa": 14,
+  "rows": 7,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "282275",
+  "areaHa": 2,
+  "rows": 7,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "282276",
+  "areaHa": 2,
+  "rows": 7,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "282278",
+  "areaHa": 6,
+  "rows": 2,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "282279",
+  "areaHa": 2,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "282280",
+  "areaHa": 3,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "282909",
+  "areaHa": 6,
+  "rows": 7,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "268034",
+  "areaHa": 1,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "268036",
+  "areaHa": 2,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "268050",
+  "areaHa": 1,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "268068",
+  "areaHa": 1,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "282673",
+  "areaHa": 1,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "269000",
+  "areaHa": 1,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "269001",
+  "areaHa": 2,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "268029",
+  "areaHa": 10,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "270494",
+  "areaHa": 3,
+  "rows": 4,
+  "clusters": 1,
+  "zones": 2,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "267900",
+  "areaHa": 5,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "269002",
+  "areaHa": 5,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "269004",
+  "areaHa": 2,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "269005",
+  "areaHa": 1,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "269006",
+  "areaHa": 3,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "267899",
+  "areaHa": 4,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "267895",
+  "areaHa": 21,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "267896",
+  "areaHa": 15,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "267897",
+  "areaHa": 36,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "267898",
+  "areaHa": 9,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "268028",
+  "areaHa": 4,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "266468",
+  "areaHa": 6,
+  "rows": 3,
+  "clusters": 2,
+  "zones": 2,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "266469",
+  "areaHa": 1,
+  "rows": 3,
+  "clusters": 2,
+  "zones": 2,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "266470",
+  "areaHa": 1,
+  "rows": 2,
+  "clusters": 2,
+  "zones": 2,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "268056",
+  "areaHa": 4,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "266509",
+  "areaHa": 1,
+  "rows": 3,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "268027",
+  "areaHa": 5,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "266513",
+  "areaHa": 5,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "268031",
+  "areaHa": 3,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "268032",
+  "areaHa": 2,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "268033",
+  "areaHa": 2,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "268035",
+  "areaHa": 1,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "268037",
+  "areaHa": 4,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "268045",
+  "areaHa": 2,
+  "rows": 4,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "268046",
+  "areaHa": 2,
+  "rows": 2,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "268047",
+  "areaHa": 1,
+  "rows": 2,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "268048",
+  "areaHa": 1,
+  "rows": 4,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "266466",
+  "areaHa": 15,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "268051",
+  "areaHa": 5,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "268052",
+  "areaHa": 11,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "268053",
+  "areaHa": 5,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "268054",
+  "areaHa": 3,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "268055",
+  "areaHa": 25,
+  "rows": 4,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "268057",
+  "areaHa": 12,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "268059",
+  "areaHa": 7,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "268060",
+  "areaHa": 7,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "268061",
+  "areaHa": 1,
+  "rows": 2,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "268063",
+  "areaHa": 1,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "268064",
+  "areaHa": 5,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "268065",
+  "areaHa": 16,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "268066",
+  "areaHa": 2,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "268067",
+  "areaHa": 1,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "268069",
+  "areaHa": 3,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "268070",
+  "areaHa": 0,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "268071",
+  "areaHa": 1,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "268072",
+  "areaHa": 3,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "270020",
+  "areaHa": 1,
+  "rows": 4,
+  "clusters": 1,
+  "zones": 2,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "260345",
+  "areaHa": 42,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "266464",
+  "areaHa": 11,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "282661",
+  "areaHa": 0,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "282654",
+  "areaHa": 1,
+  "rows": 2,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "282663",
+  "areaHa": 0,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "282664",
+  "areaHa": 1,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "282677",
+  "areaHa": 1,
+  "rows": 5,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "282678",
+  "areaHa": 0,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "282679",
+  "areaHa": 2,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "282680",
+  "areaHa": 1,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "282681",
+  "areaHa": 1,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "282684",
+  "areaHa": 0,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "282685",
+  "areaHa": 1,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "268090",
+  "areaHa": 2,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "266584",
+  "areaHa": 496,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "270500",
+  "areaHa": 2,
+  "rows": 3,
+  "clusters": 2,
+  "zones": 2,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "266472",
+  "areaHa": 9,
+  "rows": 4,
+  "clusters": 2,
+  "zones": 3,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "266587",
+  "areaHa": 16,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "268086",
+  "areaHa": 9,
+  "rows": 4,
+  "clusters": 2,
+  "zones": 3,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "268022",
+  "areaHa": 1,
+  "rows": 5,
+  "clusters": 1,
+  "zones": 2,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "268074",
+  "areaHa": 3,
+  "rows": 7,
+  "clusters": 3,
+  "zones": 4,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "268075",
+  "areaHa": 1,
+  "rows": 7,
+  "clusters": 3,
+  "zones": 4,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "268076",
+  "areaHa": 1,
+  "rows": 7,
+  "clusters": 3,
+  "zones": 4,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "268077",
+  "areaHa": 1,
+  "rows": 7,
+  "clusters": 3,
+  "zones": 4,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "268078",
+  "areaHa": 2,
+  "rows": 8,
+  "clusters": 3,
+  "zones": 5,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "268079",
+  "areaHa": 17,
+  "rows": 7,
+  "clusters": 3,
+  "zones": 4,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "268080",
+  "areaHa": 2,
+  "rows": 7,
+  "clusters": 3,
+  "zones": 4,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "268081",
+  "areaHa": 3,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "267993",
+  "areaHa": 4,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "267994",
+  "areaHa": 2,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "267995",
+  "areaHa": 2,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "267997",
+  "areaHa": 1,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "268004",
+  "areaHa": 11,
+  "rows": 5,
+  "clusters": 1,
+  "zones": 2,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "268006",
+  "areaHa": 28,
+  "rows": 5,
+  "clusters": 1,
+  "zones": 2,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "268007",
+  "areaHa": 36,
+  "rows": 5,
+  "clusters": 1,
+  "zones": 2,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "268083",
+  "areaHa": 4,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "271446",
+  "areaHa": 0,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "271442",
+  "areaHa": 3,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "271443",
+  "areaHa": 17,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "271445",
+  "areaHa": 0,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "271447",
+  "areaHa": 2,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "266585",
+  "areaHa": 12,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "266586",
+  "areaHa": 1,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "268073",
+  "areaHa": 4,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "254628",
+  "areaHa": 9,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "254629",
+  "areaHa": 143,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "271294",
+  "areaHa": 1,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "278014",
+  "areaHa": 3,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "283767",
+  "areaHa": 4,
+  "rows": 3,
+  "clusters": 1,
+  "zones": 2,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "268317",
+  "areaHa": 1,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "266547",
+  "areaHa": 38,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "270562",
+  "areaHa": 3,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "270563",
+  "areaHa": 2,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "268320",
+  "areaHa": 4,
+  "rows": 2,
+  "clusters": 2,
+  "zones": 2,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "258944",
+  "areaHa": 1,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "267903",
+  "areaHa": 14,
+  "rows": 5,
+  "clusters": 2,
+  "zones": 2,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "264406",
+  "areaHa": 49,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "268324",
+  "areaHa": 4,
+  "rows": 2,
+  "clusters": 2,
+  "zones": 2,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "270987",
+  "areaHa": 2,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "282483",
+  "areaHa": 0,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "280383",
+  "areaHa": 2,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "280384",
+  "areaHa": 1,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "280382",
+  "areaHa": 4,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "267892",
+  "areaHa": 3,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "270988",
+  "areaHa": 1,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "268325",
+  "areaHa": 0,
+  "rows": 2,
+  "clusters": 2,
+  "zones": 2,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "270503",
+  "areaHa": 2,
+  "rows": 9,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "260268",
+  "areaHa": 4,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "260381",
+  "areaHa": 33,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "260270",
+  "areaHa": 10,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "260260",
+  "areaHa": 184,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "260265",
+  "areaHa": 3,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "260266",
+  "areaHa": 7,
+  "rows": 2,
+  "clusters": 1,
+  "zones": 2,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "260287",
+  "areaHa": 17,
+  "rows": 2,
+  "clusters": 1,
+  "zones": 2,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "263053",
+  "areaHa": 182,
+  "rows": 13,
+  "clusters": 2,
+  "zones": 2,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "263055",
+  "areaHa": 249,
+  "rows": 13,
+  "clusters": 2,
+  "zones": 2,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "267902",
+  "areaHa": 13,
+  "rows": 5,
+  "clusters": 2,
+  "zones": 2,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "267883",
+  "areaHa": 14,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "267884",
+  "areaHa": 3,
+  "rows": 4,
+  "clusters": 1,
+  "zones": 2,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "267886",
+  "areaHa": 1,
+  "rows": 4,
+  "clusters": 1,
+  "zones": 2,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "270033",
+  "areaHa": 4,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "267891",
+  "areaHa": 30,
+  "rows": 8,
+  "clusters": 2,
+  "zones": 4,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "267880",
+  "areaHa": 23,
+  "rows": 4,
+  "clusters": 1,
+  "zones": 2,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "267882",
+  "areaHa": 14,
+  "rows": 4,
+  "clusters": 1,
+  "zones": 2,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "268326",
+  "areaHa": 3,
+  "rows": 2,
+  "clusters": 2,
+  "zones": 2,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "270989",
+  "areaHa": 2,
+  "rows": 2,
+  "clusters": 1,
+  "zones": 2,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "270990",
+  "areaHa": 1,
+  "rows": 2,
+  "clusters": 1,
+  "zones": 2,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "270165",
+  "areaHa": 5,
+  "rows": 9,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "270166",
+  "areaHa": 6,
+  "rows": 9,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "282482",
+  "areaHa": 1,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "278894",
+  "areaHa": 12,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "278979",
+  "areaHa": 22,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "278888",
+  "areaHa": 5,
+  "rows": 9,
+  "clusters": 2,
+  "zones": 3,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2025
+ },
+ {
+  "id": "280379",
+  "areaHa": 3,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "280380",
+  "areaHa": 7,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "280381",
+  "areaHa": 2,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "280386",
+  "areaHa": 0,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "280388",
+  "areaHa": 0,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "260377",
+  "areaHa": 275,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ },
+ {
+  "id": "266548",
+  "areaHa": 26,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2025
+ }
+]

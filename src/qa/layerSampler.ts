@@ -14,10 +14,10 @@
  */
 import { TemperatureSampler } from '../temperatureLabels';
 import { frameAtValidTime } from '../sources/frameAtValidTime';
-import { windFrameAtValidTime, type IconD2Wind } from '../wind/iconD2WindSource';
 import type { IconD2Temp } from '../sources/iconD2TempSource';
 import type { IconD2Gust } from '../sources/iconD2GustSource';
 import type { IconD2CloudStack } from '../sources/iconD2Clouds';
+import { decodeImage, bilinear, sampleWindAt, type WindSample } from '../wind/windPointSample';
 
 /** Temperatur (°C, DEM-höhenkorrigiert) am Punkt — identisch zu Shader/Labels. */
 export function sampleTempAt(temp: IconD2Temp | null, targetMs: number, lon: number, lat: number): number | null {
@@ -39,45 +39,11 @@ export function sampleGustAt(gust: IconD2Gust | null, targetMs: number, lon: num
   }).sample(lon, lat);
 }
 
-// --- generischer Bilinear-Sampler auf einem north-up-Äquirekt-Canvas ----------
-interface Decoded { w: number; h: number; data: Uint8ClampedArray; }
-const rgCache = new WeakMap<HTMLCanvasElement | HTMLImageElement, Decoded>();
-function decodeImage(img: HTMLCanvasElement | HTMLImageElement): Decoded {
-  const cached = rgCache.get(img); if (cached) return cached;
-  const w = (img as HTMLCanvasElement).width || (img as HTMLImageElement).naturalWidth;
-  const h = (img as HTMLCanvasElement).height || (img as HTMLImageElement).naturalHeight;
-  const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
-  const ctx = cv.getContext('2d', { willReadFrequently: true })!;
-  ctx.drawImage(img, 0, 0);
-  const d: Decoded = { w, h, data: ctx.getImageData(0, 0, w, h).data };
-  rgCache.set(img, d); return d;
-}
-function bilinear(d: Decoded, u: number, v: number, ch: 0 | 1 | 2 | 3): number {
-  const x = u * (d.w - 1), y = v * (d.h - 1);
-  const x0 = Math.max(0, Math.min(d.w - 1, Math.floor(x)));
-  const y0 = Math.max(0, Math.min(d.h - 1, Math.floor(y)));
-  const x1 = Math.min(d.w - 1, x0 + 1), y1 = Math.min(d.h - 1, y0 + 1);
-  const fx = x - x0, fy = y - y0;
-  const at = (xx: number, yy: number) => d.data[(yy * d.w + xx) * 4 + ch];
-  const c0 = at(x0, y0) * (1 - fx) + at(x1, y0) * fx;
-  const c1 = at(x0, y1) * (1 - fx) + at(x1, y1) * fx;
-  return c0 * (1 - fy) + c1 * fy;
-}
-
-export interface WindSample { u: number; v: number; speed: number; dir: number; }
-/** Wind (m/s + met. Richtung °, „kommt aus") am Punkt — RG-Decode + Denorm. */
-export function sampleWindAt(wind: IconD2Wind | null, targetMs: number, lon: number, lat: number): WindSample | null {
-  if (!wind || wind.frames.length === 0) return null;
-  const f = windFrameAtValidTime(wind, targetMs);
-  const [x0, y0, x1, y1] = wind.uvBounds;
-  const ux = (lon + 180) / 360, uy = (90 - lat) / 180;
-  const tu = (ux - x0) / (x1 - x0), tv = (uy - y0) / (y1 - y0);
-  if (tu < 0 || tu > 1 || tv < 0 || tv > 1) return null;
-  const d = decodeImage(f.image);
-  const u = f.uMin + (bilinear(d, tu, tv, 0) / 255) * (f.uMax - f.uMin);
-  const v = f.vMin + (bilinear(d, tu, tv, 1) / 255) * (f.vMax - f.vMin);
-  return { u, v, speed: Math.hypot(u, v), dir: (Math.atan2(-u, -v) * 180 / Math.PI + 360) % 360 };
-}
+// --- generischer Bilinear-Sampler: seit AF2 in src/wind/windPointSample.ts (V-AF-4) ---
+// Gleiche Mathematik, gleiche Signaturen; hier nur noch importiert/re-exportiert, damit
+// die Brandansicht den Windvektor abfragen kann, ohne dieses QA-Modul (temperatureLabels)
+// in ihren Chunk zu ziehen.
+export { sampleWindAt, type WindSample };
 
 /** Gelände-Höhe (m) am Punkt aus dem DEM des Temp-Layers — für die
  *  Schneegrenzen-Verifikation (P2-3: Linien-Höhe vs. OM-Frostgrenze). */

@@ -1,0 +1,400 @@
+{
+  "origin": "https://buscosun.com",
+  "at": "2026-08-14T09:32:06.350Z",
+  "steps": {
+    "gwisCapabilities": {
+      "request": "GetCapabilities 1.3.0",
+      "status": 200,
+      "ms": 1023,
+      "bytes": 190060,
+      "acao": "*",
+      "contentType": "text/xml; charset=UTF-8",
+      "cacheControl": "no-store",
+      "error": null,
+      "layerCount": 231,
+      "ecmwfLayers": [
+        "ecmwf.query",
+        "ecmwf.fwi",
+        "ecmwf.ffmc",
+        "ecmwf.dmc",
+        "ecmwf.dc",
+        "ecmwf.isi",
+        "ecmwf.bui",
+        "ecmwf.anomaly",
+        "ecmwf.anomaly_sigm",
+        "ecmwf.anomaly_day",
+        "ecmwf.ranking",
+        "ecmwf.mark5.kbdi",
+        "ecmwf.mark5.df",
+        "ecmwf.mark5.ros",
+        "ecmwf.mark5.fdi",
+        "ecmwf.nfdrs.ros",
+        "ecmwf.nfdrs.sc",
+        "ecmwf.nfdrs.erc",
+        "ecmwf.nfdrs.bi",
+        "ecmwf.nfdrs.ic",
+        "ecmwf.extra.lightning",
+        "ecmwf.extra.totalprecipitation",
+        "ecmwf.extra.windspeed",
+        "ecmwf.extra.wind.uv"
+      ],
+      "hasFwi": true,
+      "timeDimension": "2018-01-01/2099-12-31",
+      "crs": [
+        "EPSG:4326",
+        "EPSG:3035",
+        "EPSG:3034",
+        "EPSG:3857",
+        "EPSG:900913"
+      ],
+      "supports3857": true
+    },
+    "gwisGetMap": {
+      "EPSG:3857 (1.3.0)": {
+        "status": 200,
+        "ms": 190,
+        "bytes": 11645,
+        "acao": "*",
+        "contentType": "image/png",
+        "cacheControl": "public, max-age=3600",
+        "error": null,
+        "isPng": true,
+        "width": 512,
+        "height": 512
+      },
+      "EPSG:4326 (1.3.0, lat/lon)": {
+        "status": 200,
+        "ms": 73,
+        "bytes": 11775,
+        "acao": "*",
+        "contentType": "image/png",
+        "cacheControl": "public, max-age=3600",
+        "error": null,
+        "isPng": true,
+        "width": 512,
+        "height": 512
+      },
+      "EPSG:4326 (1.1.1, lon/lat)": {
+        "status": 200,
+        "ms": 63,
+        "bytes": 11775,
+        "acao": "*",
+        "contentType": "image/png",
+        "cacheControl": "public, max-age=3600",
+        "error": null,
+        "isPng": true,
+        "width": 512,
+        "height": 512
+      }
+    },
+    "effisHotspots": {
+      "request": "GWIS GetFeature ms:viirs.hs.today maxfeatures=25",
+      "status": 200,
+      "ms": 1226,
+      "bytes": 4719,
+      "acao": "*",
+      "contentType": "application/json; subtype=geojson",
+      "cacheControl": "public, max-age=3600",
+      "error": null,
+      "featureCount": 25,
+      "properties": [
+        "id",
+        "acq_at",
+        "CLASS"
+      ],
+      "firstFeature": {
+        "type": "Feature",
+        "properties": {
+          "id": "61934961652",
+          "acq_at": "2026-08-13 00:07:00",
+          "CLASS": "1DAY_2"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            88.12547,
+            69.37194
+          ]
+        }
+      },
+      "lonRange": [
+        24.19332,
+        88.12547
+      ],
+      "latRange": [
+        50.91158,
+        71.25788
+      ],
+      "hasFrp": false,
+      "hasAcqAt": true
+    },
+    "effisHotspotsDach": {
+      "request": "GWIS GetFeature ms:viirs.hs.week BBOX DACH",
+      "status": 200,
+      "ms": 7222,
+      "bytes": 37303,
+      "acao": "*",
+      "contentType": "application/json; subtype=geojson",
+      "cacheControl": "public, max-age=3600",
+      "error": null,
+      "featureCount": 200,
+      "insideDach": 200,
+      "bboxAxisOrderOk": true,
+      "acqAtRange": [
+        "2026-08-07 01:05:00",
+        "2026-08-12 02:51:00"
+      ]
+    },
+    "effisHotspotsPlanUrl": {
+      "request": "EFFIS GetFeature ms:viirs.hs (Plan-URL)",
+      "status": 200,
+      "ms": 107,
+      "bytes": 2832,
+      "acao": "*",
+      "contentType": "application/json; subtype=geojson",
+      "cacheControl": "public, max-age=3600",
+      "error": null,
+      "acqAtRange": [
+        "2019-11-13 00:48:00",
+        "2019-11-13 00:54:00"
+      ],
+      "staleYears": 6.8
+    },
+    "bafuDanger": {
+      "request": "BAFU Gefahrenstufe 2056",
+      "status": 200,
+      "ms": 117,
+      "bytes": 547149,
+      "acao": "*",
+      "contentType": "application/geo+json",
+      "cacheControl": "max-age=7200, public",
+      "error": null,
+      "featureCount": 143,
+      "crs": {
+        "type": "name",
+        "properties": {
+          "name": "EPSG:2056"
+        }
+      },
+      "properties": [
+        "region_id",
+        "canton",
+        "level",
+        "name_de",
+        "name_fr",
+        "name_it",
+        "name_en",
+        "title_de",
+        "title_fr",
+        "title_it",
+        "title_en",
+        "valid_from"
+      ],
+      "firstProperties": {
+        "region_id": 350,
+        "canton": "BE",
+        "level": 4,
+        "name_de": "Aaretal (BE)",
+        "name_fr": "Aaretal (BE)",
+        "name_it": "Aaretal (BE)",
+        "name_en": "Aaretal (BE)",
+        "title_de": "Grosse Gefahr",
+        "title_fr": "Danger fort",
+        "title_it": "Pericolo forte",
+        "title_en": "High danger",
+        "valid_from": "2026-07-20T12:10:34.634+02:00"
+      },
+      "levelKey": "level",
+      "levelValues": [
+        4,
+        5
+      ]
+    },
+    "bafuBansStac": {
+      "request": "STAC Feuerverbote",
+      "status": 200,
+      "ms": 42,
+      "bytes": 1773,
+      "acao": "*",
+      "contentType": "application/json",
+      "cacheControl": "max-age=600, public",
+      "error": null,
+      "title": "Forest fire prevention measures of the cantons",
+      "license": "proprietary",
+      "updated": [
+        [
+          "2026-08-12T12:00:00Z",
+          "2026-08-12T12:00:00Z"
+        ]
+      ]
+    },
+    "dwdWbi": {
+      "request": "WBI (Wald) Listing",
+      "url": "https://buscosun.com/_dwd_opendata/climate_environment/CDC/derived_germany/fire_danger_index/woodland/forecast/recent/",
+      "status": 200,
+      "ms": 72,
+      "bytes": 92108,
+      "acao": null,
+      "contentType": "text/html",
+      "cacheControl": null,
+      "error": null,
+      "fileCount": 484,
+      "sampleFiles": [
+        "derived_germany_fire_danger_index_woodland_forecast_recent_1001_v2-3--0.csv.gz",
+        "derived_germany_fire_danger_index_woodland_forecast_recent_1048_v2-3--0.csv.gz",
+        "derived_germany_fire_danger_index_woodland_forecast_recent_1050_v2-3--0.csv.gz"
+      ],
+      "file": "derived_germany_fire_danger_index_woodland_forecast_recent_991_v2-3--0.csv.gz",
+      "fileFetch": {
+        "status": 200,
+        "ms": 35,
+        "bytes": 939,
+        "acao": null,
+        "contentType": "application/octet-stream",
+        "cacheControl": null,
+        "error": null
+      },
+      "header": "StationsID;Termin;wbi_0;wbi_1;wbi_2;wbi_3;wbi_4;wbi_5;wbi_6",
+      "columns": [
+        "StationsID",
+        "Termin",
+        "wbi_0",
+        "wbi_1",
+        "wbi_2",
+        "wbi_3",
+        "wbi_4",
+        "wbi_5",
+        "wbi_6"
+      ],
+      "rowCount": 170,
+      "stationCount": 1,
+      "firstDataRow": "991;20260226 04:13;1;1;2;2;2;3;2",
+      "expectedDayColumns": [
+        "wbi_0",
+        "wbi_1",
+        "wbi_2",
+        "wbi_3",
+        "wbi_4",
+        "wbi_5",
+        "wbi_6"
+      ],
+      "hasAllDayColumns": true,
+      "hasStationId": true,
+      "hasTermin": true
+    },
+    "dwdGlfi": {
+      "request": "GLFI (Grasland) Listing",
+      "url": "https://buscosun.com/_dwd_opendata/climate_environment/CDC/derived_germany/fire_danger_index/grassland/forecast/recent/",
+      "status": 200,
+      "ms": 76,
+      "bytes": 92596,
+      "acao": null,
+      "contentType": "text/html",
+      "cacheControl": null,
+      "error": null,
+      "fileCount": 484,
+      "sampleFiles": [
+        "derived_germany_fire_danger_index_grassland_forecast_recent_1001_v2-0--0.csv.gz",
+        "derived_germany_fire_danger_index_grassland_forecast_recent_1048_v2-0--0.csv.gz",
+        "derived_germany_fire_danger_index_grassland_forecast_recent_1050_v2-0--0.csv.gz"
+      ],
+      "file": "derived_germany_fire_danger_index_grassland_forecast_recent_991_v2-0--0.csv.gz",
+      "fileFetch": {
+        "status": 200,
+        "ms": 33,
+        "bytes": 1025,
+        "acao": null,
+        "contentType": "application/octet-stream",
+        "cacheControl": null,
+        "error": null
+      },
+      "header": "StationsID;Termin;glfi_0;glfi_1;glfi_2;glfi_3;glfi_4;glfi_5;glfi_6",
+      "columns": [
+        "StationsID",
+        "Termin",
+        "glfi_0",
+        "glfi_1",
+        "glfi_2",
+        "glfi_3",
+        "glfi_4",
+        "glfi_5",
+        "glfi_6"
+      ],
+      "rowCount": 170,
+      "stationCount": 1,
+      "firstDataRow": "991;20260226 04:14;2;2;3;2;2;2;2",
+      "expectedDayColumns": [
+        "glfi_0",
+        "glfi_1",
+        "glfi_2",
+        "glfi_3",
+        "glfi_4",
+        "glfi_5",
+        "glfi_6"
+      ],
+      "hasAllDayColumns": true,
+      "hasStationId": true,
+      "hasTermin": true
+    },
+    "dwdWbiStations": {
+      "request": "WBI stations_list.txt",
+      "url": "https://buscosun.com/_dwd_opendata/climate_environment/CDC/derived_germany/fire_danger_index/woodland/forecast/recent/derived_germany_fire_danger_index_woodland_forecast_recent_v2-3--0_stations_list.txt",
+      "status": 200,
+      "ms": 32,
+      "bytes": 97970,
+      "acao": null,
+      "contentType": "text/plain",
+      "cacheControl": null,
+      "error": null,
+      "header": "Stationsindex; Höhe in m;Breite   ;Länge    ;Name                                                                            ;Bundesland                                                                ",
+      "stationCount": 484,
+      "sample": "           44;        44;    52.93;     8.24;Großenkneten                                                                    ;Niedersachsen                                                             ",
+      "columns": [
+        "Stationsindex",
+        "Höhe in m",
+        "Breite",
+        "Länge",
+        "Name",
+        "Bundesland"
+      ],
+      "hasLatLon": true
+    },
+    "dwdFireGrid": {
+      "request": "grids_germany/daily/fire_danger_index/",
+      "status": 404,
+      "ms": 64,
+      "bytes": 146,
+      "acao": null,
+      "contentType": "text/html",
+      "cacheControl": null,
+      "error": null,
+      "stillMissing": true,
+      "parentEntries": [
+        "Project_TRY",
+        "evapo_p",
+        "evapo_r",
+        "evaporation_fao",
+        "frost_depth",
+        "hyras_de",
+        "radolan",
+        "regnie",
+        "soil_moist",
+        "soil_moisture",
+        "soil_temperature_5cm"
+      ],
+      "parentHasFireDanger": false
+    },
+    "iconRelhum": {
+      "request": "icon-d2/grib/00/relhum_2m/",
+      "status": 200,
+      "ms": 26,
+      "bytes": 18929,
+      "acao": null,
+      "contentType": "text/html",
+      "cacheControl": null,
+      "error": null,
+      "fileCount": 98,
+      "sample": "icon-d2_germany_icosahedral_single-level_2026081400_000_2d_relhum_2m.grib2.bz2"
+    }
+  }
+}

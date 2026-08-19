@@ -128,21 +128,45 @@ export function decodeState(hash: string): DecodedState | null {
 
 // --- Favoriten / Zuletzt (US-1.5) -------------------------------------------
 
-const FAV_KEY = 'buscosun.history.favorites.v1';
+// FAV_KEY ist entfallen (V-04) — die Favoriten liegen jetzt zentral in
+// `src/favorites.ts`. Der alte localStorage-Key wird dort einmalig übernommen
+// und NICHT gelöscht; siehe `migrateLegacyOnce()`.
 const RECENT_KEY = 'buscosun.history.recents.v1';
 
 const readList = (key: string): HistoryLocation[] => { try { const r = localStorage.getItem(key); return r ? JSON.parse(r) : []; } catch { return []; } };
 const writeList = (key: string, list: HistoryLocation[]) => { try { localStorage.setItem(key, JSON.stringify(list.slice(0, 12))); } catch { /* ignore */ } };
 const sameLoc = (a: HistoryLocation, b: HistoryLocation) => Math.abs(a.lat - b.lat) < 0.01 && Math.abs(a.lon - b.lon) < 0.01;
 
-export const getFavorites = () => readList(FAV_KEY);
+/**
+ * ── V-04 (2026-08-03): ein Favoriten-Speicher statt zwei ────────────────────
+ * Vorher schrieb die Historie in `buscosun.history.favorites.v1`, und der
+ * zugehörige Leser hatte **keinen einzigen Konsumenten**: Wer hier „★ Favorit"
+ * drückte, sah den Ort nie wieder — weder in der Historie noch auf der
+ * Startseite. Umgekehrt konnte die Startseite Favoriten nur anzeigen, nicht
+ * anlegen. Beide zeigen jetzt auf `src/favorites.ts`; die Alt-Einträge werden
+ * dort einmalig übernommen (der Alt-Key bleibt unangetastet).
+ *
+ * `HistoryLocation` ist ein Superset von `Location` (zusätzlich `admin`,
+ * `elevation`) — beim Speichern gehen diese beiden Zusatzfelder verloren, was
+ * folgenlos ist: die Favoritenliste zeigt nur Name, Land und Koordinate, und
+ * die Historie lädt beim Öffnen ohnehin neu.
+ *
+ * `RECENT_KEY` bleibt bewusst getrennt: „zuletzt angesehen" ist etwas anderes
+ * als „gespeichert" und gehört zur Historie.
+ */
+import { getFavorites as getSharedFavorites, isFavorite as isSharedFavorite, toggleFavorite as toggleSharedFavorite } from '../favorites';
+import type { Country } from '../types';
+
+const asCountry = (c?: string): Country => (c === 'AT' || c === 'CH' ? c : c === 'DE' ? 'DE' : 'DE');
+
+export const getFavorites = (): HistoryLocation[] =>
+  getSharedFavorites().map((f) => ({ name: f.name, lat: f.lat, lon: f.lon, country: f.country }));
 export const getRecents = () => readList(RECENT_KEY);
-export function isFavorite(loc: HistoryLocation): boolean { return getFavorites().some((f) => sameLoc(f, loc)); }
+export function isFavorite(loc: HistoryLocation): boolean {
+  return isSharedFavorite(loc);
+}
 export function toggleFavorite(loc: HistoryLocation): boolean {
-  const list = getFavorites();
-  const idx = list.findIndex((f) => sameLoc(f, loc));
-  if (idx >= 0) { list.splice(idx, 1); writeList(FAV_KEY, list); return false; }
-  list.unshift(loc); writeList(FAV_KEY, list); return true;
+  return toggleSharedFavorite({ name: loc.name, lat: loc.lat, lon: loc.lon, country: asCountry(loc.country) }).isFav;
 }
 export function pushRecent(loc: HistoryLocation) {
   const list = getRecents().filter((r) => !sameLoc(r, loc));

@@ -13,7 +13,8 @@
    Eyebrow/Body/Stichpunkte/Howto erben die Intro-Klassen (intro.css);
    --intro-accent = fc-sage. Einspaltige Copy, Suche eingebettet. ===== */
 .fc-lead { margin-top: 1.8rem; }
-.fc-lead-copy { display: flex; flex-direction: column; gap: 0.55rem; max-width: 640px; }
+/* Block mittig in der Spalte, Text darin linksbündig. */
+.fc-lead-copy { display: flex; flex-direction: column; gap: 0.55rem; max-width: 640px; margin-inline: auto; }
 .fc-lead-title {
   margin: 0.1rem 0 0;
   font-size: clamp(2.1rem, 5.2vw, 3.1rem);
@@ -196,6 +197,18 @@
 .fc-hit-bar i { display: block; height: 100%; border-radius: 5px; }
 .fc-hit-val { font-size: 0.82rem; font-weight: 700; color: var(--ink-900, #2C2A26); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .fc-hit-note { margin: 0.55rem 0 0; font-size: 0.72rem; color: var(--stone-500, #8B7355); }
+/* V-21: Ground-Truth-Fußnote. Steht frei zwischen Lead und Raster, deshalb eine
+   Stufe größer und im dunkleren Stone des Leads — eine Ehrlichkeits-Aussage darf
+   nicht die schwächste Textfarbe der Seite tragen (Kontrast, vgl. V-69). */
+.fc-hit-truth {
+  margin: 0.15rem 0 0; padding: 0.55rem 0.7rem;
+  font-size: 0.76rem; line-height: 1.5;
+  color: var(--stone-600, #5C5447);
+  border-left: 2px solid var(--sand-200, #E0D6BE);
+  background: var(--cream-50, #FAF6EA);
+  border-radius: 0 8px 8px 0;
+}
+.fc-hit-truth strong { color: var(--ink-900, #2C2A26); }
 
 .fc-hit-back-ctrl { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
 .fc-hit-select { border: 1px solid var(--sand-200, #E0D6BE); border-radius: 8px; padding: 0.2rem 0.45rem; font-size: 0.74rem;
@@ -249,3 +262,33 @@
 .fc-page .rt-card { background: var(--cream-50, #FAF6EA); }
 /* Amber-getönte Warnkarte behält ihre Semantik-Farbe (höhere Spezifität als oben): */
 .fc-page .fc-lowhint { background: #F8F2E2; }                 /* geringe Sicherheit */
+
+
+/* ---------------------------------------------------------------------------
+   Standort-/Idle-Seite: Werkzeug-Rail links wie im Deck, damit man auch ohne
+   gewählten Ort direkt in ein anderes Werkzeug springt.
+   --------------------------------------------------------------------------- */
+.fc-idle-shell { display: flex; min-height: 100vh; }
+.fc-idle-shell > .rt-page { flex: 1; min-width: 0; }
+.fc-idle-rail {
+  width: 62px; flex: 0 0 auto;
+  background: var(--ink-900, #2C2A26);
+  display: flex; flex-direction: column; align-items: center;
+  padding: 14px 0; gap: 6px;
+  position: sticky; top: 0; height: 100vh;
+}
+.fc-idle-rail-btn {
+  width: 42px; height: 42px; border-radius: 11px;
+  display: flex; align-items: center; justify-content: center;
+  color: #8B7355; background: transparent; border: 0; cursor: pointer; position: relative;
+}
+.fc-idle-rail-btn:hover { color: #C4B896; }
+.fc-idle-rail-btn.is-active { background: #3A3833; color: var(--fc-sage, #7A9466); cursor: default; }
+.fc-idle-rail-btn.is-active::before {
+  content: ''; position: absolute; left: -14px; top: 9px; bottom: 9px;
+  width: 3px; border-radius: 2px; background: var(--fc-sage, #7A9466);
+}
+.fc-idle-rail-btn:focus-visible { outline: 2px solid var(--sand-50, #F5F1E8); outline-offset: 2px; }
+.fc-idle-rail-spacer { margin-top: auto; }
+
+@media (max-width: 767px) { .fc-idle-rail { display: none; } }

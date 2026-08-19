@@ -1,0 +1,1687 @@
+[
+ {
+  "id": "288145",
+  "areaHa": 13,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "288951",
+  "areaHa": 279,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "289069",
+  "areaHa": 2,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "289231",
+  "areaHa": 8,
+  "rows": 5,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2026
+ },
+ {
+  "id": "289233",
+  "areaHa": 78,
+  "rows": 5,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2026
+ },
+ {
+  "id": "289249",
+  "areaHa": 60,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "289251",
+  "areaHa": 35,
+  "rows": 4,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2026
+ },
+ {
+  "id": "293070",
+  "areaHa": 4,
+  "rows": 4,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2026
+ },
+ {
+  "id": "431317",
+  "areaHa": 7,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "431321",
+  "areaHa": 3,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "432092",
+  "areaHa": 4,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "497388",
+  "areaHa": 1,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "549622",
+  "areaHa": 2,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "557626",
+  "areaHa": 15,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "541226",
+  "areaHa": 6,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "555499",
+  "areaHa": 33,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "558943",
+  "areaHa": 13,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "561143",
+  "areaHa": 2,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "549861",
+  "areaHa": 100,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "561144",
+  "areaHa": 0,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "558922",
+  "areaHa": 603,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "561327",
+  "areaHa": 1,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "561352",
+  "areaHa": 6,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "561353",
+  "areaHa": 4,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "555465",
+  "areaHa": 1,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "555464",
+  "areaHa": 7,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "561576",
+  "areaHa": 1,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "567462",
+  "areaHa": 1,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "572405",
+  "areaHa": 1,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "572408",
+  "areaHa": 36,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "572409",
+  "areaHa": 192,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "572425",
+  "areaHa": 8,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "572426",
+  "areaHa": 2,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "572427",
+  "areaHa": 0,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "572428",
+  "areaHa": 8,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "572429",
+  "areaHa": 1,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "561874",
+  "areaHa": 3,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "572477",
+  "areaHa": 4,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "561940",
+  "areaHa": 17,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "581346",
+  "areaHa": 5,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "584064",
+  "areaHa": 9,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "557432",
+  "areaHa": 125,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "572404",
+  "areaHa": 10,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "561142",
+  "areaHa": 35,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "575014",
+  "areaHa": 30,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "592360",
+  "areaHa": 2,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "561577",
+  "areaHa": 5,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "592364",
+  "areaHa": 8,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "577230",
+  "areaHa": 558,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "601785",
+  "areaHa": 0,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "601786",
+  "areaHa": 0,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "605898",
+  "areaHa": 1,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "592424",
+  "areaHa": 20,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "605411",
+  "areaHa": 35,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "613652",
+  "areaHa": 71,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "613728",
+  "areaHa": 21,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "598384",
+  "areaHa": 305,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "616544",
+  "areaHa": 2,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "592362",
+  "areaHa": 30,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "612922",
+  "areaHa": 48,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "616707",
+  "areaHa": 93,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "616708",
+  "areaHa": 16,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "619483",
+  "areaHa": 14,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "619484",
+  "areaHa": 5,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "620373",
+  "areaHa": 1,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "572403",
+  "areaHa": 114,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "623091",
+  "areaHa": 7,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "616229",
+  "areaHa": 203,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "627206",
+  "areaHa": 4,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "627286",
+  "areaHa": 1,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "627418",
+  "areaHa": 16,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "622910",
+  "areaHa": 220,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "605402",
+  "areaHa": 1400,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "613646",
+  "areaHa": 72,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "622868",
+  "areaHa": 294,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "605412",
+  "areaHa": 165,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "612921",
+  "areaHa": 434,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "627420",
+  "areaHa": 327,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "636234",
+  "areaHa": 30,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "627421",
+  "areaHa": 8,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "616541",
+  "areaHa": 19,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "627280",
+  "areaHa": 1,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "636293",
+  "areaHa": 5,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "636294",
+  "areaHa": 3,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "636295",
+  "areaHa": 1,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "636263",
+  "areaHa": 26,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "636452",
+  "areaHa": 1,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "636453",
+  "areaHa": 0,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "623090",
+  "areaHa": 42,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "636454",
+  "areaHa": 19,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "636455",
+  "areaHa": 18,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "289201",
+  "areaHa": 38,
+  "rows": 2,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2026
+ },
+ {
+  "id": "289203",
+  "areaHa": 27,
+  "rows": 2,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2026
+ },
+ {
+  "id": "289204",
+  "areaHa": 17,
+  "rows": 2,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2026
+ },
+ {
+  "id": "289205",
+  "areaHa": 29,
+  "rows": 2,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2026
+ },
+ {
+  "id": "497387",
+  "areaHa": 120,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "502497",
+  "areaHa": 0,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "541223",
+  "areaHa": 27,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "561348",
+  "areaHa": 9,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "561844",
+  "areaHa": 17,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "555461",
+  "areaHa": 222,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "613722",
+  "areaHa": 88,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "613723",
+  "areaHa": 1,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "613724",
+  "areaHa": 14,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "613725",
+  "areaHa": 14,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "613726",
+  "areaHa": 9,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "613727",
+  "areaHa": 5,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "616608",
+  "areaHa": 0,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "636242",
+  "areaHa": 44,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "636231",
+  "areaHa": 319,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "636284",
+  "areaHa": 4,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "636296",
+  "areaHa": 51,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "636398",
+  "areaHa": 2,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "636230",
+  "areaHa": 2825,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "289177",
+  "areaHa": 3,
+  "rows": 16,
+  "clusters": 1,
+  "zones": 7,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2026
+ },
+ {
+  "id": "289180",
+  "areaHa": 1,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2026
+ },
+ {
+  "id": "289185",
+  "areaHa": 12,
+  "rows": 3,
+  "clusters": 1,
+  "zones": 2,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2026
+ },
+ {
+  "id": "289187",
+  "areaHa": 11,
+  "rows": 3,
+  "clusters": 1,
+  "zones": 2,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2026
+ },
+ {
+  "id": "289209",
+  "areaHa": 13,
+  "rows": 9,
+  "clusters": 1,
+  "zones": 3,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2026
+ },
+ {
+  "id": "289210",
+  "areaHa": 2,
+  "rows": 12,
+  "clusters": 1,
+  "zones": 3,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2026
+ },
+ {
+  "id": "289610",
+  "areaHa": 16,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "294141",
+  "areaHa": 2,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2026
+ },
+ {
+  "id": "294142",
+  "areaHa": 4,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2026
+ },
+ {
+  "id": "294143",
+  "areaHa": 8,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2026
+ },
+ {
+  "id": "298244",
+  "areaHa": 9,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2026
+ },
+ {
+  "id": "298245",
+  "areaHa": 3,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2026
+ },
+ {
+  "id": "298246",
+  "areaHa": 68,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "298247",
+  "areaHa": 142,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "438897",
+  "areaHa": 5,
+  "rows": 4,
+  "clusters": 1,
+  "zones": 3,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2026
+ },
+ {
+  "id": "438899",
+  "areaHa": 7,
+  "rows": 4,
+  "clusters": 1,
+  "zones": 3,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2026
+ },
+ {
+  "id": "457595",
+  "areaHa": 2,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "462770",
+  "areaHa": 5,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2026
+ },
+ {
+  "id": "475927",
+  "areaHa": 1,
+  "rows": 2,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2026
+ },
+ {
+  "id": "486412",
+  "areaHa": 0,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2026
+ },
+ {
+  "id": "486414",
+  "areaHa": 1,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "486429",
+  "areaHa": 0,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2026
+ },
+ {
+  "id": "486430",
+  "areaHa": 0,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2026
+ },
+ {
+  "id": "488533",
+  "areaHa": 7,
+  "rows": 3,
+  "clusters": 2,
+  "zones": 3,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2026
+ },
+ {
+  "id": "488534",
+  "areaHa": 2,
+  "rows": 3,
+  "clusters": 2,
+  "zones": 3,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2026
+ },
+ {
+  "id": "488535",
+  "areaHa": 13,
+  "rows": 3,
+  "clusters": 2,
+  "zones": 3,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2026
+ },
+ {
+  "id": "488536",
+  "areaHa": 4,
+  "rows": 2,
+  "clusters": 1,
+  "zones": 2,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2026
+ },
+ {
+  "id": "488539",
+  "areaHa": 1,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2026
+ },
+ {
+  "id": "488538",
+  "areaHa": 3,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "488540",
+  "areaHa": 63,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "488541",
+  "areaHa": 2,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "488543",
+  "areaHa": 1,
+  "rows": 5,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2026
+ },
+ {
+  "id": "488544",
+  "areaHa": 1,
+  "rows": 5,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2026
+ },
+ {
+  "id": "488545",
+  "areaHa": 1,
+  "rows": 5,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2026
+ },
+ {
+  "id": "488546",
+  "areaHa": 1,
+  "rows": 5,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2026
+ },
+ {
+  "id": "488547",
+  "areaHa": 1,
+  "rows": 5,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2026
+ },
+ {
+  "id": "488550",
+  "areaHa": 1,
+  "rows": 4,
+  "clusters": 2,
+  "zones": 2,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2026
+ },
+ {
+  "id": "488551",
+  "areaHa": 3,
+  "rows": 4,
+  "clusters": 2,
+  "zones": 2,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2026
+ },
+ {
+  "id": "488552",
+  "areaHa": 1,
+  "rows": 4,
+  "clusters": 2,
+  "zones": 2,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2026
+ },
+ {
+  "id": "488554",
+  "areaHa": 1,
+  "rows": 4,
+  "clusters": 2,
+  "zones": 2,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2026
+ },
+ {
+  "id": "488548",
+  "areaHa": 1,
+  "rows": 4,
+  "clusters": 2,
+  "zones": 2,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2026
+ },
+ {
+  "id": "488549",
+  "areaHa": 1,
+  "rows": 4,
+  "clusters": 2,
+  "zones": 2,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2026
+ },
+ {
+  "id": "494232",
+  "areaHa": 2,
+  "rows": 4,
+  "clusters": 2,
+  "zones": 2,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2026
+ },
+ {
+  "id": "494233",
+  "areaHa": 8,
+  "rows": 4,
+  "clusters": 2,
+  "zones": 2,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2026
+ },
+ {
+  "id": "494234",
+  "areaHa": 3,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "494235",
+  "areaHa": 4,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "494236",
+  "areaHa": 5,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "494240",
+  "areaHa": 3,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "494246",
+  "areaHa": 2,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "494247",
+  "areaHa": 1,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "494248",
+  "areaHa": 3,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "494249",
+  "areaHa": 0,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "494250",
+  "areaHa": 0,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "494251",
+  "areaHa": 0,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "494252",
+  "areaHa": 1,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "494253",
+  "areaHa": 11,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "494254",
+  "areaHa": 3,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "494392",
+  "areaHa": 4,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "497384",
+  "areaHa": 1,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "501191",
+  "areaHa": 2,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2026
+ },
+ {
+  "id": "501192",
+  "areaHa": 4,
+  "rows": 1,
+  "clusters": 1,
+  "zones": 1,
+  "effisOnlyRecord": true,
+  "reason": "noMatch",
+  "year": 2026
+ },
+ {
+  "id": "497386",
+  "areaHa": 1,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "510856",
+  "areaHa": 1,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "534933",
+  "areaHa": 1,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "541220",
+  "areaHa": 62,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "534932",
+  "areaHa": 128,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "549907",
+  "areaHa": 5,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "549906",
+  "areaHa": 4,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "549910",
+  "areaHa": 0,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "549911",
+  "areaHa": 0,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "561302",
+  "areaHa": 85,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "561313",
+  "areaHa": 4,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "561317",
+  "areaHa": 1,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "575235",
+  "areaHa": 205,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "581058",
+  "areaHa": 4,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "581059",
+  "areaHa": 1,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "581064",
+  "areaHa": 3,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "581066",
+  "areaHa": 10,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "541222",
+  "areaHa": 15,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "592423",
+  "areaHa": 4,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "595393",
+  "areaHa": 21,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "595415",
+  "areaHa": 6,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "598413",
+  "areaHa": 0,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "601775",
+  "areaHa": 4,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "601777",
+  "areaHa": 0,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "601778",
+  "areaHa": 2,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "561314",
+  "areaHa": 2,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "561316",
+  "areaHa": 4,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "561315",
+  "areaHa": 8,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "601779",
+  "areaHa": 0,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "601780",
+  "areaHa": 0,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "601781",
+  "areaHa": 3,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "601782",
+  "areaHa": 3,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "601783",
+  "areaHa": 0,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "601784",
+  "areaHa": 3,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "581060",
+  "areaHa": 48,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "586301",
+  "areaHa": 294,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "595428",
+  "areaHa": 3,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "616538",
+  "areaHa": 10,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "627261",
+  "areaHa": 6,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "627262",
+  "areaHa": 1,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "627264",
+  "areaHa": 1,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "627266",
+  "areaHa": 3,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "627267",
+  "areaHa": 1,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "627270",
+  "areaHa": 1,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "627271",
+  "areaHa": 7,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ },
+ {
+  "id": "636395",
+  "areaHa": 3,
+  "rows": 0,
+  "reason": "noDetection",
+  "year": 2026
+ }
+]

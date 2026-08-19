@@ -27,3 +27,5 @@ perf-artifacts/
 # Local Netlify folder
 .netlify
 deno.lock
+# AF4: Roh-CSV/GeoJSON des Archivabrufs (FIRMS-SP, EFFIS) — nie committen
+.cache/

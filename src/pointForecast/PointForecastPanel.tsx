@@ -25,6 +25,8 @@ import {
 import { fetchOpenMeteoPollen, type OpenMeteoPollen } from '../sources/openMeteoPollen';
 import { isOpenMeteoOptIn, setOpenMeteoOptIn } from '../optIn';
 import { avalancheFor, AVALANCHE_MIN_ELEVATION_M } from '../avalanche';
+import { hasOwnWarnings, warningsSourceFor, countryLabel } from '../officialSources';
+import FavoriteStar from '../FavoriteStar';
 import { PointForecastOverview } from './PointForecastOverview';
 import { PointForecastCharts } from './PointForecastCharts';
 
@@ -195,8 +197,13 @@ function PointForecastPanelImpl({ lat, lng, country, locationLabel, hours = 24, 
           </div>
           <div className="pfc-head">
             <div className="pfc-title">Punktforecast</div>
-            <div className="pfc-loc" title={`${lat.toFixed(3)}, ${lng.toFixed(3)}`}>
-              {locationLabel}
+            <div className="pfc-loc-row">
+              <div className="pfc-loc" title={`${lat.toFixed(3)}, ${lng.toFixed(3)}`}>
+                {locationLabel}
+              </div>
+              {/* V-04: der zweite Ort, an dem ein Favorit entstehen kann —
+                  hier steht der Nutzer bereits vor „seinem" Ort. */}
+              <FavoriteStar loc={{ name: locationLabel, lat, lon: lng, country }} className="pfc-fav" withLabel />
             </div>
             {data && (
               <div className="pfc-meta">
@@ -260,6 +267,35 @@ function PointForecastPanelImpl({ lat, lng, country, locationLabel, hours = 24, 
               ))}
             </div>
           )}
+
+          {/* AT/CH: Warn-Feed ist DE-only (dwdAlerts). Ohne diesen Hinweis sieht eine
+              Datenlücke aus wie eine Entwarnung — der gefährlichste stille Fehler der
+              App (D-04). Rein additiv; DE bleibt unverändert. */}
+          {!hasOwnWarnings(country) && (() => {
+            const src = warningsSourceFor(country);
+            return (
+              <div className="pfc-optin pfc-warn-gap">
+                <span className="eyebrow">Amtliche Warnungen</span>
+                <p>
+                  Für {countryLabel(country)} liegt uns <strong>kein amtlicher Warn-Feed</strong> vor —
+                  buscosun kann hier keine Unwetterwarnungen anzeigen. Das heißt <em>nicht</em>,
+                  dass keine bestehen.
+                </p>
+                <a
+                  className="pfc-optin-btn"
+                  href={src.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {src.name} öffnen ↗
+                </a>
+                <p className="pfc-warn-gap-src">
+                  Quelle: {src.operator}
+                  {src.caveat ? ` — ${src.caveat}` : ''}
+                </p>
+              </div>
+            );
+          })()}
 
           {view === 'overview' && pollen && (
             <details className="pfc-pollen pfc-pollen-collapse">

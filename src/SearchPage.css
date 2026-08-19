@@ -12,10 +12,22 @@
 .deck {
   --deck-max: 1360px;
   --deck-pad-x: 32px;
+  /* Auftrag Jan 2026-08-09: die KOMPLETTE Startseite in League Spartan.
+     Damit zieht sie mit den übrigen Command-Deck-Seiten gleich (D-27) —
+     Regenradar, Kartenseite, Historie, Vertikalschnitt, Event- und
+     Routenplaner setzen sie durchgehend, die Startseite war die letzte mit
+     Space Grotesk (Headlines) und IBM Plex Mono (Eyebrows/kbd).
+     Umgesetzt über die Type-Tokens LOKAL auf `.deck`: jede Regel dieser Datei
+     zieht ihre Familie aus --font-display / --font-mono / --font-base, damit
+     genügt diese eine Stelle. Der Rest der App bleibt unberührt, weil die
+     globalen Tokens in designTokens.css unverändert sind.
+     Größen und Laufweiten bleiben, wie sie sind — nur die Familie wechselt. */
+  --font-display: 'League Spartan', var(--font-base);
+  --font-mono: 'League Spartan', var(--font-base);
   min-height: 100vh;
   background: linear-gradient(180deg, var(--cream-50) 0%, var(--sand-50) 380px, var(--sand-100) 100%);
   color: var(--ink-900);
-  font-family: var(--font-base);
+  font-family: 'League Spartan', var(--font-base);
   position: relative;
   isolation: isolate;
   display: flex;
@@ -124,23 +136,75 @@
 .deck-main { display: block; }
 
 /* ============ HERO ============ */
+/* Auftrag Jan 2026-08-09: Hero-Block ein Stück nach oben. Mit dem entfallenen
+   Eyebrow („LIVE · DE · AT · CH · OHNE ACCOUNT") stand über dem Titel nur noch
+   Leerraum: 28 px Innenabstand + 16 px h1-Marge. Beides zurückgenommen — der
+   Block startet jetzt 32 px höher, alles darunter (Suche, 04/05, Chips,
+   Bento) rückt mit. */
 .deck-hero {
   max-width: var(--deck-max);
   margin: 0 auto;
-  padding: 64px var(--deck-pad-x) 26px;
+  padding: 12px var(--deck-pad-x) 8px;
 }
-.deck-hero-eyebrow {
-  font-family: var(--font-mono);
-  font-size: 11px; letter-spacing: 3px; color: var(--stone-400); font-weight: 500;
-}
+.deck-titlerow { grid-area: title; display: flex; align-items: center; gap: 16px; }
+.deck-titlerow .deck-logo-mark { flex: 0 0 auto; }
 .deck-h1 {
   font-family: var(--font-display);
-  font-weight: 500; font-size: 64px; line-height: 1.02; letter-spacing: -2px;
-  margin: 16px 0 0; max-width: 880px; color: var(--ink-900);
+  font-weight: 500; font-size: 52px; line-height: 1.02; letter-spacing: -1.6px;
+  /* Marge 16 → 0: der Titel ist seit dem Entfall des Eyebrows das erste
+     Element im Hero, ein Abstand nach oben hätte nichts mehr abzusetzen. */
+  margin: 0; max-width: 880px; color: var(--ink-900);
 }
 .deck-hero-sub {
   font-size: 18px; line-height: 1.5; color: var(--stone-600); margin: 18px 0 0; max-width: 660px;
 }
+
+/* Hero zweispaltig: Text + Suche links, Werkzeug-Quadrat (04–07) rechts. */
+.deck-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 440px);
+  /* Zeile "eye" entfiel mit dem Eyebrow (2026-08-09). */
+  grid-template-areas:
+    "title quad"
+    "sub   quad"
+    "search quad"
+    "favs  quad"
+    "intro quad";
+  /* Zeilen alle inhaltshoch; die Resthöhe des Kachel-Paars verteilt sich
+     gleichmäßig ober-/unterhalb, statt als Lücke unter dem Suchfeld zu
+     stehen. */
+  grid-template-rows: repeat(5, auto);
+  column-gap: 32px;
+  align-content: start;
+}
+/* Intro-Tour-Trigger vorerst ausgeblendet (Jan, 2026-08-09). Höhere
+   Spezifität, weil `.deck-intro` weiter unten display gesetzt bekommt. */
+.deck .deck-intro { display: none; }
+
+.deck-hero-sub { grid-area: sub; }
+.deck-search-wrap { grid-area: search; }
+.deck-favs { grid-area: favs; justify-self: start; }
+.deck-intro { grid-area: intro; justify-self: start; }
+
+/* Kachel-Paar neben dem Suchfeld (04 Nowcast + 05 Vorhersage).
+   War bis 2026-08-09 ein 2×2-Quadrat mit 04–07; 06/07 stehen jetzt wieder im
+   Bento-Grid, damit das Hero-Feld halb so hoch wird und Wetterkarte +
+   Tourenplanung nach oben rücken. Eine Reihe ⇒ aspect-ratio 2:1 statt 1:1,
+   sonst bliebe die zweite Rasterzeile als Leerraum stehen. */
+.deck-quad {
+  grid-area: quad;
+  align-self: start;
+  /* Etwas tiefer angesetzt, damit die obere Kachelreihe nicht auf Höhe der
+     Wortmarke klebt (Jan, 2026-08-09). */
+  margin-top: 34px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr;
+  gap: 14px;
+  aspect-ratio: 2 / 1;
+}
+.deck-quad .q-tile { padding: 16px; border-radius: 18px; min-height: 0; overflow: hidden; }
+.deck-quad .tile-desc.sm { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
 
 /* Ortssuche — Hero-Pille */
 .deck-search-wrap { position: relative; margin-top: 30px; max-width: 720px; }
@@ -186,8 +250,35 @@
   padding: 13px 22px; font-family: inherit; font-size: 14px; color: var(--ink-900);
   cursor: pointer; transition: background 0.12s; line-height: 1.35;
 }
+/* V-04: Ergebniszeile trägt jetzt Treffer + Speichern-Stern nebeneinander.
+   Der Rahmen wandert auf die Zeile, damit die Trennlinie über die volle
+   Breite läuft wie vorher. */
+.deck-search-row {
+  display: flex; align-items: stretch;
+  border-bottom: 1px solid var(--sand-100);
+}
+.deck-search-row:last-child { border-bottom: none; }
+.deck-search-row:hover { background: var(--sand-50); }
+/* `width: 100%` würde die Zeile um die Sternbreite überlaufen lassen und die
+   Ellipse des Ortsnamens aushebeln — als Flex-Kind schrumpfen statt fixieren. */
+.deck-search-row .deck-search-result { border-bottom: none; flex: 1; min-width: 0; width: auto; }
 .deck-search-result:last-child { border-bottom: none; }
 .deck-search-result:hover { background: var(--sand-50); }
+.deck-search-row .deck-search-result:hover { background: transparent; }
+
+/* Speichern-Stern — geteilt mit dem Punktforecast (src/FavoriteStar.tsx). */
+.fav-star {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-width: 44px; min-height: 44px;              /* Touch-Target (CLAUDE.md) */
+  flex-shrink: 0; padding: 0 12px;
+  font-family: inherit; font-size: 16px; line-height: 1;
+  color: var(--stone-400); background: none; border: none; cursor: pointer;
+  transition: color 0.12s;
+}
+.fav-star:hover { color: var(--terracotta-700); }
+.fav-star.is-on { color: var(--terracotta-500); }
+.fav-star-label { font-size: 12.5px; font-weight: 500; }
+.deck-search-star { align-self: center; }
 .deck-flag { font-size: 17px; line-height: 1; flex-shrink: 0; }
 .deck-result-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
@@ -226,7 +317,7 @@
 /* ============ FILTER CHIPS ============ */
 .deck-chips {
   max-width: var(--deck-max); margin: 0 auto;
-  padding: 18px var(--deck-pad-x) 8px;
+  padding: 8px var(--deck-pad-x) 8px;
   display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
 }
 .deck-chips-count { font-family: var(--font-mono); font-size: 10px; letter-spacing: 2px; color: var(--stone-400); margin-right: 6px; }
@@ -261,6 +352,9 @@
 .t-lg { grid-column: span 2; grid-row: span 2; padding: 26px; }
 .t-w2 { grid-column: span 2; }
 .t-half { grid-column: span 1; }
+/* 04/05 sitzen im Hero-Paar; 06–09 bilden darunter EINE Reihe aus vier
+   gleich breiten Kacheln (Jan, 2026-08-09) — dafür trägt jede `t-half`.
+   Der Globus-Sonderspan von vorher entfällt damit. */
 
 /* Dunkle Varianten */
 .t-ink { background: var(--ink-900); color: var(--sand-50); }
@@ -326,6 +420,9 @@
 .tile-donut-row { display: flex; align-items: center; gap: 14px; }
 .tile-donut-val { font-family: var(--font-display); font-size: 26px; font-weight: 600; color: #3F5E2F; letter-spacing: -0.5px; }
 .tile-donut-val span { display: block; font-size: 11px; font-weight: 400; color: var(--stone-500); letter-spacing: 0; }
+/* Textvariante statt Prozentzahl (keine erfundene Kennzahl, D-04) — kleiner,
+   damit das Wort in derselben Kachelbreite umbruchfrei sitzt. */
+.tile-donut-val-text { font-size: 17px; letter-spacing: -0.2px; }
 
 /* Historie */
 .tile-history { justify-content: space-between; min-height: 210px; padding: 22px; }
@@ -340,12 +437,32 @@
 .tile-globus { justify-content: space-between; min-height: 210px; padding: 22px; }
 .tile-center { display: flex; justify-content: center; height: 64px; align-items: center; }
 
+/* Waldbrand (Slot 10, Phase WB1).
+   Volle Breite als Abschlussband statt Halbkachel: Das Bento hat vier Spalten
+   und die Reihe 06–09 (Historie · 3D · Globus · Feedback) ist voll. Eine zehnte
+   Halbkachel stünde allein neben drei Lücken. Das Band schließt die Liste sauber
+   ab — und vor allem bewegt sich dafür KEINE der neun bestehenden Kacheln
+   (Jans SA1-Raster vom 2026-08-09 bleibt unangetastet).
+   Die Bausteine der Feedback-Kachel werden mitbenutzt (Icon-Kachel, Body) statt
+   verdoppelt — `eagerCss` steht auf der Budget-Grenze, und die Startseite ist
+   eager. Jeder eigene Block hätte das Budget gesprengt. */
+.tile-fire { grid-column: span 4; flex-direction: row; align-items: center; gap: 22px; min-height: 150px; padding: 22px; }
+
 /* Feedback (Slot 09) */
-.tile-feedback { flex-direction: row; align-items: center; gap: 22px; min-height: 190px; }
-.tile-feedback-icon { flex-shrink: 0; width: 72px; height: 72px; border-radius: 18px; background: var(--ink-900); display: flex; align-items: center; justify-content: center; }
+/* Seit 2026-08-09 steht Feedback als vierte Kachel EINER Reihe (statt über zwei
+   Spalten). In einer Viertelspalte zerfiel das frühere Zeilen-Layout
+   (Icon | Text | Badge) in Ein-Wort-Zeilen — deshalb hier gestapelt wie die drei
+   Nachbarkacheln. Die Zeilenform lebt im Mobile-Block weiter. */
+.tile-feedback { flex-direction: column; justify-content: space-between; gap: 16px; min-height: 210px; padding: 22px; }
+.tile-feedback-icon { flex-shrink: 0; width: 48px; height: 48px; border-radius: 14px; background: var(--ink-900); display: flex; align-items: center; justify-content: center; }
+.tile-feedback-icon svg { width: 24px; height: 24px; }
 .tile-feedback-body { flex: 1; }
 .tile-feedback-body .tile-title { margin-top: 6px; }
-.tile-feedback .tile-badge { align-self: flex-start; }
+/* 24 px sprengen die Viertelspalte (Titel bräche in vier Zeilen). */
+.tile-feedback .tile-title-lg { font-size: 19px; letter-spacing: -0.3px; }
+/* Badge „E-MAIL": in der schmalen Kachel kostet sie nur eine Zeile, die
+   Aussage steckt bereits im Text. */
+.tile-feedback .tile-badge { display: none; }
 
 /* ============ FUNDAMENT ============ */
 .deck-fundament { max-width: var(--deck-max); margin: 0 auto; padding: 44px var(--deck-pad-x) 20px; }
@@ -387,8 +504,10 @@
 .deck-footer-h { font-family: var(--font-mono); font-size: 10px; letter-spacing: 2px; color: var(--stone-400); }
 .deck-footer-list { font-size: 12.5px; color: var(--stone-600); margin-top: 10px; line-height: 1.9; }
 .deck-footer-links { font-size: 12.5px; margin-top: 10px; line-height: 1.9; color: var(--stone-400); }
-.deck-footer-links button { font: inherit; background: none; border: none; padding: 0; cursor: pointer; color: var(--terracotta-700); }
-.deck-footer-links button:hover { color: var(--terracotta-500); text-decoration: underline; }
+.deck-footer-links button,
+.deck-footer-links a { font: inherit; background: none; border: none; padding: 0; cursor: pointer; color: var(--terracotta-700); text-decoration: none; }
+.deck-footer-links button:hover,
+.deck-footer-links a:hover { color: var(--terracotta-500); text-decoration: underline; }
 .deck-footer-bot { margin-top: 26px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; font-family: var(--font-mono); font-size: 10.5px; color: var(--stone-400); }
 
 /* ============ COMMAND PALETTE ============ */
@@ -448,12 +567,15 @@
 @media (min-width: 768px) and (max-width: 1024px) {
   .deck { --deck-pad-x: 28px; }
   .deck-h1 { font-size: 52px; letter-spacing: -1.8px; }
-  .deck-hero { padding-top: 40px; }
+  .deck-hero { padding-top: 20px; }
 
   /* Hero zweispaltig (Text links, Suche rechts) */
-  .deck-hero { display: grid; grid-template-columns: 1fr auto; grid-template-areas: "eye eye" "title search" "sub search" "favs favs" "intro intro"; column-gap: 24px; align-items: end; }
-  .deck-hero-eyebrow { grid-area: eye; }
-  .deck-h1 { grid-area: title; }
+  .deck-hero { display: grid; grid-template-columns: 1fr auto; grid-template-areas: "title search" "sub search" "quad quad" "favs favs" "intro intro"; column-gap: 24px; align-items: end; }
+  /* Quadrat rückt unter Titel/Suche und wird zur breiten 2×2-Fläche */
+  .deck-quad { grid-area: quad; aspect-ratio: auto; margin-top: 18px; }
+  .deck-quad .q-tile { grid-column: span 1; }
+  .tile-globus { grid-column: span 1; }
+    .deck-h1 { grid-area: title; }
   .deck-hero-sub { grid-area: sub; }
   .deck-search-wrap { grid-area: search; margin-top: 0; width: 360px; max-width: 100%; align-self: end; }
   .deck-favs { grid-area: favs; }
@@ -469,10 +591,25 @@
   .tile-history { order: 6; }
   .tile-threed  { order: 7; }
   .tile-globus  { order: 8; }
-  .tile-feedback{ order: 9; }
+  /* Waldbrand vor Feedback: die Werkzeuge bleiben beieinander, Feedback schließt
+     die Liste weiterhin ab (Jans SA1-Anordnung bleibt in ihrer Logik erhalten). */
+  .tile-fire    { order: 9; }
+  .tile-feedback{ order: 10; }
   /* Tablet-Spans */
   .tile-event { grid-column: span 1; }
+  /* 06–09 passen im 3-Spalten-Raster nicht in EINE Reihe: Historie · 3D-Wetter ·
+     Globus bilden die Reihe, Feedback läuft darunter über die volle Breite —
+     dort trägt die Zeilenform (Icon | Text | Badge) wieder. */
+  .tile-feedback { flex-direction: row; align-items: center; gap: 22px; min-height: 190px; }
+  .tile-feedback-icon { width: 72px; height: 72px; border-radius: 18px; }
+  .tile-feedback-icon svg { width: 30px; height: 30px; }
+  .tile-feedback .tile-badge { display: inline-flex; align-self: flex-start; }
+  .tile-feedback .tile-title-lg { font-size: 24px; letter-spacing: -0.5px; }
+  /* 06/07 stehen im Tablet wieder im Bento: je eine Spalte, damit die Reihe
+     Historie · 3D-Wetter · Globus im 3-Spalten-Raster genau aufgeht. */
+  .tile-history, .tile-threed { grid-column: span 1; }
   .tile-feedback { grid-column: span 3; }
+  .tile-fire { grid-column: span 3; min-height: 140px; }
   .deck-h1 { font-size: 52px; }
 }
 
@@ -489,10 +626,14 @@
   .deck-lang { font-size: 11px; }
 
   /* Hero einspaltig */
-  .deck-hero { display: block; padding: 16px var(--deck-pad-x) 4px; }
-  .deck-h1 { font-size: 40px; line-height: 1; letter-spacing: -1.5px; margin-top: 12px; }
+  .deck-hero { display: block; padding: 8px var(--deck-pad-x) 4px; }
+  .deck-h1 { font-size: 40px; line-height: 1; letter-spacing: -1.5px; margin-top: 0; }
   .deck-hero-sub { font-size: 14.5px; margin-top: 12px; }
   .deck-search-wrap { width: auto; margin-top: 18px; }
+  /* Quadrat bleibt 2×2, aber ohne feste Kantenlänge */
+  .deck-quad { aspect-ratio: auto; gap: 12px; margin-top: 16px; }
+  .deck-quad .q-tile { grid-column: span 1; padding: 14px; border-radius: 16px; }
+  .deck-quad .tile-desc.sm { -webkit-line-clamp: 4; }
   .deck-search { border-radius: 16px; padding: 6px 6px 6px 16px; }
   .deck-search-input { font-size: 15px; }
   .deck-search-go { padding: 11px 16px; font-size: 14px; border-radius: 12px; }
@@ -513,10 +654,18 @@
   .tile-title-lg { font-size: 19px; }
   .tile-map { min-height: 118px; }
   .tile-tour, .tile-event, .tile-nowcast, .tile-forecast, .tile-history, .tile-threed, .tile-globus { min-height: 0; }
-  .tile-feedback { flex-direction: row; gap: 14px; min-height: 0; padding: 16px; }
+  /* Mobil bleibt es bei zwei Spalten: Historie über die volle Breite (ihr
+     Streifenband braucht sie), darunter 3D-Wetter + Globus als Paar — sonst
+     stünde der Globus allein neben einer Lücke. */
+  .tile-history { grid-column: span 2; }
+  /* Feedback bleibt mobil volle Breite (t-half zieht sonst auf eine Spalte)
+     und behält die kompakte Zeilenform. */
+  .tile-feedback { grid-column: span 2; flex-direction: row; align-items: center; gap: 14px; min-height: 0; padding: 16px; }
   .tile-feedback-icon { width: 46px; height: 46px; border-radius: 13px; }
   .tile-feedback-icon svg { width: 22px; height: 22px; }
   .tile-feedback .tile-badge { display: none; }
+  /* Waldbrand mobil wie Feedback: volle Breite, kompakte Zeilenform. */
+  .tile-fire { grid-column: span 2; gap: 14px; min-height: 0; padding: 16px; }
 
   /* Sektionen kompakter */
   .deck-fundament, .deck-honesty { padding-left: var(--deck-pad-x); padding-right: var(--deck-pad-x); }

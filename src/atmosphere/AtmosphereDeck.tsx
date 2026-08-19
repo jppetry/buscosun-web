@@ -33,13 +33,14 @@ import { useIsMobile } from '../mobile/useIsMobile';
 import '../threed/threed.css';
 import './atmosphere.css';
 import './atmosphereDeck.css';
+import { FeatureRail, type RailFeature } from '../nav/featureRail';
 
 const NerdPanel = lazy(() => import('./NerdPanel'));
 
 /** Deck-Linse: die drei Schnitt-Seiten + die erhaltenen Föhn/Thermik-Linsen. */
 type DeckLens = 'hoehenwind' | 'inversion' | 'gonogo' | 'foehn' | 'thermik';
 
-interface Props { onBack: () => void }
+interface Props { onBack: () => void; onOpenFeature?: (id: RailFeature) => void }
 
 // ----------------------------------------------------------------------------
 // Vertikalschnitt-Daten (aus der gezeichneten Schnittlinie) — geteilt von allen
@@ -94,7 +95,7 @@ function useSectionData() {
 // ----------------------------------------------------------------------------
 // Deck
 // ----------------------------------------------------------------------------
-export default function AtmosphereDeck({ onBack }: Props) {
+export default function AtmosphereDeck({ onBack, onOpenFeature }: Props) {
   const isMobile = useIsMobile();
   const { lens, setLens, location } = useAtmosphere();
   const [sub, setSub] = useState<'hoehenwind' | 'inversion' | 'gonogo'>('hoehenwind');
@@ -116,7 +117,7 @@ export default function AtmosphereDeck({ onBack }: Props) {
   const [cfg, setCfgState] = useState<GoNoGoConfig>(() => loadGoNoGo());
   const setCfg = (c: GoNoGoConfig) => { setCfgState(c); saveGoNoGo(c); };
 
-  const ctx = { deckLens, setDeckLens, ...sectionData, picked, setPicked, cfg, setCfg, onBack, location };
+  const ctx = { deckLens, setDeckLens, ...sectionData, picked, setPicked, cfg, setCfg, onBack, onOpenFeature, location };
 
   if (isMobile) return <MobileDeck {...ctx} />;
   return <DesktopDeck {...ctx} />;
@@ -127,12 +128,12 @@ type DeckCtx = {
   data: DataState; section: CrossSection | null; timeMs: number | null; setTimeMs: (v: number | ((p: number | null) => number | null)) => void;
   picked: PickedPoint | null; setPicked: (p: PickedPoint | null) => void;
   cfg: GoNoGoConfig; setCfg: (c: GoNoGoConfig) => void;
-  onBack: () => void; location: Location | null;
+  onBack: () => void; onOpenFeature?: (id: RailFeature) => void; location: Location | null;
 };
 
 // ============================ Desktop / Tablet ============================
 function DesktopDeck(ctx: DeckCtx) {
-  const { deckLens, onBack, location } = ctx;
+  const { deckLens, onBack, onOpenFeature, location } = ctx;
   const isGoNoGo = deckLens === 'gonogo';
   return (
     <div className="vsd-root">
@@ -158,7 +159,7 @@ function DesktopDeck(ctx: DeckCtx) {
         </div>
       </div>
       <div className="vsd-body">
-        <Rail onBack={onBack} />
+        <Rail onBack={onBack} onOpenFeature={onOpenFeature} />
         {deckLens === 'hoehenwind' && <HoehenwindDesktop {...ctx} />}
         {deckLens === 'inversion' && <InversionDesktop {...ctx} />}
         {deckLens === 'gonogo' && <GoNoGoDesktop {...ctx} />}
@@ -168,15 +169,17 @@ function DesktopDeck(ctx: DeckCtx) {
   );
 }
 
-function Rail({ onBack }: { onBack: () => void }) {
+function Rail({ onBack, onOpenFeature }: { onBack: () => void; onOpenFeature?: (id: RailFeature) => void }) {
   return (
-    <nav className="vsd-rail" aria-label="Werkzeuge">
-      <button className="vsd-rail-btn" title="Wetterkarte" onClick={onBack} aria-label="Wetterkarte"><IconRailMap /></button>
-      <button className="vsd-rail-btn" title="Tourenplanung" onClick={onBack} aria-label="Tourenplanung"><IconRailTour /></button>
-      <button className="vsd-rail-btn vsd-rail-btn--active" title="3D-Wetter / Vertikalschnitt" aria-current="page" aria-label="Vertikalschnitt"><IconRail3D /></button>
-      <span className="vsd-rail-spacer" />
-      <button className="vsd-rail-btn" title="Einstellungen" onClick={onBack} aria-label="Einstellungen"><IconRailGear /></button>
-    </nav>
+    <FeatureRail
+      active="atmosphere"
+      onOpenFeature={onOpenFeature}
+      onHome={onBack}
+      navClass="vsd-rail"
+      btnClass="vsd-rail-btn"
+      activeClass="vsd-rail-btn--active"
+      spacerClass="vsd-rail-spacer"
+    />
   );
 }
 
@@ -247,8 +250,17 @@ function HoehenwindDesktop(ctx: DeckCtx) {
         </div>
 
         {sectionMode === '2d' ? (
-          <div className="vsd-plot" style={{ padding: 0, overflow: 'hidden', height: 560 }}>
+          <div className="vsd-plot vsd-plot--map" style={{ padding: 0, overflow: 'hidden', height: 560 }}>
             <ThreeDMap center={center} points={cutPoints} onChange={setCutPoints} />
+            {cutPoints.length < 2 && (
+              <div className="vsd-cuthint-pill" role="status">
+                <CutHintMark />
+                <span>
+                  <b>Schnittlinie zeichnen:</b> tippe {cutPoints.length === 0 ? 'zwei Punkte' : 'noch einen Punkt'} auf die Karte,
+                  am besten quer über ein Tal oder einen Grat.
+                </span>
+              </div>
+            )}
           </div>
         ) : (
           <>
@@ -264,7 +276,7 @@ function HoehenwindDesktop(ctx: DeckCtx) {
             <div className="vsd-plot">
               {section ? (
                 <>
-                  <SectionChart section={section} layers={sectionLayers} picked={picked} onPick={setPicked} />
+                  <SectionChart section={section} layers={sectionLayers} picked={picked} onPick={setPicked} wide />
                   {picked && (
                     <div className="vsd-pickpill">
                       <div className="vsd-pickpill-lab">{Math.round(picked.levelM)} M · {Math.round(picked.agl)} M AGL</div>
@@ -319,10 +331,83 @@ function SectionPlaceholder({ data, onDraw }: { data: DataState; onDraw: () => v
   if (data.kind === 'error') return <div className="vsd-plot-empty"><strong>Schnitt nicht verfügbar</strong><p>⚠ {data.message}</p></div>;
   return (
     <div className="vsd-plot-empty">
-      <strong>Zeichne eine Schnittlinie</strong>
-      <p>Wechsle auf <b>2D</b> und tippe mindestens zwei Punkte auf der Karte — dann berechnen wir den Höhenwind-Geländeschnitt.</p>
+      <CutHintArt />
+      <strong>Zeichne eine Schnittlinie durch die Landschaft</strong>
+      <p>Wechsle auf <b>2D</b> und tippe mindestens zwei Punkte auf der Karte — z. B. quer über ein Tal oder einen Grat.
+        Entlang dieser Linie schneiden wir die Atmosphäre auf und zeigen Höhenwind, Inversion und Wolkenschichten.</p>
       <button className="vsd-toppill vsd-toppill--primary" onClick={onDraw}>Zur Karte (2D)</button>
     </div>
+  );
+}
+
+/** Kompakte Variante der Hinweis-Zeichnung für das Karten-Overlay. */
+function CutHintMark() {
+  return (
+    <svg width="52" height="34" viewBox="0 0 52 34" fill="none" aria-hidden="true">
+      <rect x="1" y="1" width="50" height="32" rx="8" fill="var(--sand-100, #EDE6D3)" stroke="var(--border-default, #E0D6BE)" />
+      <g stroke="var(--stone-400, #A89A7A)" strokeOpacity="0.6" strokeWidth="0.9" fill="none">
+        <path d="M6 26 C16 22 20 14 30 11 C38 8.5 42 6 47 5" />
+        <path d="M5 20 C15 16 21 9 32 6" />
+      </g>
+      <path className="vsd-cuthint-line" d="M11 26 L39 9" stroke="var(--terracotta-500, #C97B47)" strokeWidth="1.9" strokeLinecap="round" strokeDasharray="4 3.5" />
+      <circle cx="11" cy="26" r="2.6" fill="var(--terracotta-500, #C97B47)" stroke="var(--cream-50, #FAF6EA)" strokeWidth="1.2" />
+      <circle cx="39" cy="9" r="2.6" fill="var(--terracotta-500, #C97B47)" stroke="var(--cream-50, #FAF6EA)" strokeWidth="1.2" />
+    </svg>
+  );
+}
+
+/**
+ * Hinweis-Zeichnung „So entsteht ein Schnitt": links die Karte von oben mit der
+ * getippten Linie über dem Gelände, rechts das Ergebnis — der aufgeschnittene
+ * Luftraum. Rein dekorativ (aria-hidden), keine Daten, keine Behauptungen.
+ */
+function CutHintArt() {
+  return (
+    <svg className="vsd-cuthint" viewBox="0 0 420 150" fill="none" aria-hidden="true">
+      <defs>
+        <linearGradient id="vsdHintSky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="var(--steel-600, #3A6FA8)" stopOpacity="0.22" />
+          <stop offset="100%" stopColor="var(--steel-600, #3A6FA8)" stopOpacity="0.02" />
+        </linearGradient>
+        <linearGradient id="vsdHintGround" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="var(--sand-200, #E0D6BE)" />
+          <stop offset="100%" stopColor="var(--sand-100, #EDE6D3)" />
+        </linearGradient>
+      </defs>
+
+      {/* --- links: Karte von oben, Linie quer über Tal und Grat --- */}
+      <rect x="4" y="14" width="176" height="122" rx="14" fill="url(#vsdHintGround)" stroke="var(--border-default, #E0D6BE)" />
+      <g stroke="var(--stone-400, #A89A7A)" strokeOpacity="0.55" strokeWidth="1" fill="none">
+        <path d="M26 108 C60 96 66 74 96 66 C124 58 138 40 166 34" />
+        <path d="M20 86 C56 76 68 56 100 48 C126 42 140 28 168 24" />
+        <path d="M32 126 C64 116 74 96 104 86 C130 78 146 60 172 52" />
+      </g>
+      <path className="vsd-cuthint-line" d="M40 118 L142 42" stroke="var(--terracotta-500, #C97B47)" strokeWidth="2.6" strokeLinecap="round" strokeDasharray="7 6" />
+      <circle cx="40" cy="118" r="5.5" fill="var(--terracotta-500, #C97B47)" stroke="var(--cream-50, #FAF6EA)" strokeWidth="2" />
+      <circle cx="142" cy="42" r="5.5" fill="var(--terracotta-500, #C97B47)" stroke="var(--cream-50, #FAF6EA)" strokeWidth="2" />
+      {/* Fingerzeig am zweiten Punkt */}
+      <g stroke="var(--ink-900, #2C2A26)" strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round" fill="var(--cream-50, #FAF6EA)">
+        <path d="M150 52 L150 66 L146 62 L143 65 L138 56 L142 54 L138 48 Z" />
+      </g>
+      <text x="12" y="150" className="vsd-cuthint-cap">1 · Zwei Punkte auf der Karte</text>
+
+      {/* --- Pfeil --- */}
+      <path d="M192 76 H226" stroke="var(--stone-400, #A89A7A)" strokeWidth="1.8" strokeLinecap="round" />
+      <path d="M220 70 L227 76 L220 82" stroke="var(--stone-400, #A89A7A)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+
+      {/* --- rechts: der aufgeschnittene Luftraum --- */}
+      <rect x="240" y="14" width="176" height="122" rx="14" fill="var(--cream-50, #FAF6EA)" stroke="var(--border-default, #E0D6BE)" />
+      <path d="M240 118 C268 110 280 74 306 66 C332 58 348 34 376 28 L416 22 V118 Z" fill="url(#vsdHintSky)" />
+      <path d="M240 118 C268 110 280 74 306 66 C332 58 348 34 376 28 L416 22" stroke="var(--steel-600, #3A6FA8)" strokeWidth="1.6" fill="none" />
+      <path d="M240 136 V118 C268 110 280 74 306 66 C332 58 348 34 376 28 L416 22 V136 Z" fill="var(--sand-200, #E0D6BE)" fillOpacity="0.85" />
+      {/* Windpfeile im aufgeschnittenen Luftraum */}
+      <g stroke="var(--steel-600, #3A6FA8)" strokeWidth="1.5" strokeLinecap="round" opacity="0.75">
+        <path d="M258 44 H286" /><path d="M280 40 L287 44 L280 48" />
+        <path d="M300 32 H332" /><path d="M326 28 L333 32 L326 36" />
+        <path d="M262 66 H282" /><path d="M277 62.5 L283 66 L277 69.5" />
+      </g>
+      <text x="248" y="150" className="vsd-cuthint-cap">2 · Der Luftraum darüber</text>
+    </svg>
   );
 }
 
@@ -904,9 +989,6 @@ const fmtDayTime = (ms: number) => { const d = new Date(ms); const wd = d.toLoca
 
 // ---------------------------- Icons (aus der Vorlage) ----------------------------
 function IconRailMap() { return <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M12 3 L21 8 L12 13 L3 8 Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" /><path d="M3 13 L12 18 L21 13" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" /></svg>; }
-function IconRailTour() { return <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M6 20 C6 20 5 13.5 9 11.5 C13 9.5 12 6.5 16 5.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /><circle cx="6" cy="20" r="1.8" fill="currentColor" /><path d="M16 2.5 C14 2.5 12.4 4.1 12.4 6.1 C12.4 8.8 16 11.5 16 11.5 C16 11.5 19.6 8.8 19.6 6.1 C19.6 4.1 18 2.5 16 2.5 Z" stroke="currentColor" strokeWidth="1.3" /></svg>; }
-function IconRail3D() { return <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M3 17 L9 9 L13 13 L17 6 L21 11" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /><path d="M3 20 L21 20 M3 20 L3 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>; }
-function IconRailGear() { return <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.6" /><path d="M12 2.5 V5 M12 19 V21.5 M2.5 12 H5 M19 12 H21.5 M5.2 5.2 L7 7 M17 17 L18.8 18.8 M18.8 5.2 L17 7 M7 17 L5.2 18.8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>; }
 function IconPlay() { return <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5 L19 12 L7 19 Z" /></svg>; }
 function IconPause() { return <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" /></svg>; }
 function IconOctagonX() { return <svg width="48" height="48" viewBox="0 0 48 48"><path d="M12 0 L36 0 L48 12 L48 36 L36 48 L12 48 L0 36 L0 12 Z" fill="var(--vs-danger)" /><line x1="16" y1="16" x2="32" y2="32" stroke="var(--cream-50)" strokeWidth="4" strokeLinecap="round" /><line x1="32" y1="16" x2="16" y2="32" stroke="var(--cream-50)" strokeWidth="4" strokeLinecap="round" /></svg>; }

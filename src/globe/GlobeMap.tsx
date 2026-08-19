@@ -141,7 +141,10 @@ export default function GlobeMap(props: Props) {
     const map = new maplibregl.Map({
       container: containerRef.current, style: globeStyle(),
       center: iv?.center ?? [10, 12], zoom: iv?.zoom ?? 2.2, minZoom: 1.1, maxZoom: 6,
-      attributionControl: false, dragRotate: false,
+      // Eigener Natural-Earth-Style (Public Domain) — die Attribution nennt
+      // deshalb v. a. die Wetterquelle (NOAA GFS) und ist unkritisch, wird aber
+      // konsistent zu allen anderen Karten eingeblendet (V-105).
+      attributionControl: { compact: true }, dragRotate: false,
     });
     mapRef.current = map;
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
@@ -153,7 +156,15 @@ export default function GlobeMap(props: Props) {
 
       const wind = new WindLayer({
         baseDensity: 18000, minParticles: 7000, maxParticles: 48000,
-        showHeatmap: false, fadeOpacity: 0.97, speedFactor: 0.24, subSteps: 3, pointSize: 1.7,
+        showHeatmap: false, fadeOpacity: 0.97, subSteps: 3, pointSize: 1.7,
+        // Tempo wie in der 2D-Karte strikt linear zum GRIB-Wert (px/s = 6 · |V|),
+        // aber auf die Globus-Ansicht kalibriert: dort ist die ganze Erde im Bild,
+        // der passende Bezugsmaßstab ist deshalb Zoom 2 statt 5,5. Das ergibt
+        // ~11× größere Bodenschritte als in der Detailkarte und trifft damit das
+        // bisherige Globus-Tempo (früher: speedFactor 0.24 gegen 0.038).
+        // `setGlobeMode` sorgt dafür, dass speedRefZoom auch wirklich der
+        // Bezugszoom ist (getZoom() ist auf dem Globus kein Mercator-Zoom).
+        speedPxPerMs: 6, speedRefZoom: 2,
         particleColor: [0.86, 0.92, 1.0, 0.84], speedTint: 0.62, colorRamp: PARTICLE_RAMP,
         windPngUrl: '', windJsonUrl: '',
       });

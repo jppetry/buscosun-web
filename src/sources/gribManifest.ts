@@ -20,8 +20,12 @@
  *    VORAB (kein 404-Sturm), Scan holt den aktuellen Lauf.
  */
 
-/** Rückgabeform — deckungsgleich mit `resolveLatestRun`/`RunInfo`. */
-export interface ManifestRun { runStr: string; runAt: Date; steps: number[] }
+import { reportManifest, stateFromUpdatedAt } from './manifestHealth';
+
+/** Rückgabeform — deckungsgleich mit `resolveLatestRun`/`RunInfo`.
+ *  `updatedAt` (V-20) ist additiv: der Zeitpunkt, zu dem der Warm-Cron das
+ *  Manifest zuletzt umgelegt hat. Aufrufer, die es nicht brauchen, ignorieren es. */
+export interface ManifestRun { runStr: string; runAt: Date; steps: number[]; updatedAt?: Date }
 
 /** Manifest-URL (same-origin, winzig, vom Warm-Cron committet). */
 export const GRIB_MANIFEST_URL = '/latest-grib.json';
@@ -38,7 +42,7 @@ const MAX_MANIFEST_RUN_AGE_H = 24;
  *  30-min-Refresh-Tick einen neuen Warm-Lauf zeitnah sieht. */
 const MANIFEST_TTL_MS = 60 * 1000;
 
-interface ParsedManifest { run: string; runAt: Date; params: Record<string, number[]> }
+interface ParsedManifest { run: string; runAt: Date; params: Record<string, number[]>; updatedAt: Date | null }
 const manifestCache = new Map<string, { at: number; p: Promise<ParsedManifest | null> }>();
 
 /** `YYYYMMDDHH` → UTC-Date. */
@@ -57,7 +61,7 @@ async function fetchManifest(url: string): Promise<ParsedManifest | null> {
     // Fetch ist ~1 KB same-origin).
     const res = await fetch(url, { cache: 'no-store' });
     if (!res.ok) return null;
-    const m = await res.json() as { run?: unknown; runAt?: unknown; params?: unknown };
+    const m = await res.json() as { run?: unknown; runAt?: unknown; updatedAt?: unknown; params?: unknown };
     if (typeof m.run !== 'string' || !/^\d{10}$/.test(m.run)) return null;
     if (m.params == null || typeof m.params !== 'object' || Array.isArray(m.params)) return null;
     const runAt = typeof m.runAt === 'string' ? new Date(m.runAt) : parseRunStr(m.run);
@@ -75,7 +79,12 @@ async function fetchManifest(url: string): Promise<ParsedManifest | null> {
       if (steps.length > 0) params[key] = steps;
     }
     if (Object.keys(params).length === 0) return null;
-    return { run: m.run, runAt, params };
+    // V-20: Zeitpunkt der letzten Manifest-Auffrischung durch den Warm-Cron.
+    // Rein informativ — er beeinflusst WEDER die Auflösung NOCH den Staleness-
+    // Guard oben (der hängt an der Lauf-Referenzzeit, nicht am Schreibzeitpunkt).
+    const upd = typeof m.updatedAt === 'string' ? new Date(m.updatedAt) : null;
+    const updatedAt = upd && !Number.isNaN(upd.getTime()) ? upd : null;
+    return { run: m.run, runAt, params, updatedAt };
   } catch {
     return null;   // Netzfehler / JSON-Parse → Fallback auf Directory-Scan
   }
@@ -103,9 +112,14 @@ export async function resolveRunFromManifest(
   if (!manifest) {
     // Fehlversuch nicht bis zum TTL-Ende festhalten — nächster Aufrufer probiert neu.
     if (manifestCache.get(url) === entry) manifestCache.delete(url);
+    reportManifest(url, 'absent');   // V-20: der Aufrufer fällt auf den Directory-Scan
     return null;
   }
+  const updatedAtMs = manifest.updatedAt ? manifest.updatedAt.getTime() : null;
+  // V-20: Zustand des MANIFESTS melden — bewusst VOR dem Param-Test, denn ein
+  // fehlender Param (cape_ml, uh_max, h_snow …) ist kein Manifest-Defekt.
+  reportManifest(url, stateFromUpdatedAt(updatedAtMs, Date.now()), updatedAtMs);
   const steps = manifest.params[param];
   if (!steps || steps.length === 0) return null;
-  return { runStr: manifest.run, runAt: manifest.runAt, steps };
+  return { runStr: manifest.run, runAt: manifest.runAt, steps, updatedAt: manifest.updatedAt ?? undefined };
 }

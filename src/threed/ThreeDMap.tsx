@@ -49,7 +49,8 @@ export default function ThreeDMap({ center, points, onChange }: Props) {
       style: 'https://tiles.openfreemap.org/styles/liberty',
       center: [center.lon, center.lat],
       zoom: 10,
-      attributionControl: false,
+      // ODbL-Pflichtattribution der Kartenkacheln (V-105).
+      attributionControl: { compact: true },
     });
     mapRef.current = map;
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');

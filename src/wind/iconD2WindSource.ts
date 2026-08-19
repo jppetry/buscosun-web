@@ -15,6 +15,7 @@
  */
 
 import { resolveLatestRun, fetchStepBytes, gribCorners, decodeGrib2, type GribField } from '../sources/iconD2Precip';
+import { reportManifest, stateFromUpdatedAt } from '../sources/manifestHealth';
 import { stepsForNowWindow } from '../sources/frameAtValidTime';
 import { buildWindRgba } from './windFrameBuild';
 import { blendAndRefine, type FrameNorm } from './windBlendRefine';
@@ -81,26 +82,32 @@ function parseRunStr(run: string): Date {
  * revalidiert — konsistent mit „stale statt slow".
  */
 async function resolveWindRunFromManifest(signal?: AbortSignal): Promise<WindRunInfo | null> {
+  // V-20: jeder Rückgabepfad `null` bedeutet „Manifest unbrauchbar → Directory-Scan";
+  // genau das meldet `absent`. Rein additiv: die Auflösungslogik bleibt unverändert.
+  const absent = (): null => { reportManifest(WIND_MANIFEST_URL, 'absent'); return null; };
   try {
     const res = await fetch(WIND_MANIFEST_URL, { signal, cache: 'no-store' });
-    if (!res.ok) return null;
-    const m = await res.json() as { run?: unknown; runAt?: unknown; steps?: unknown };
-    if (typeof m.run !== 'string' || !/^\d{10}$/.test(m.run)) return null;
-    if (!Array.isArray(m.steps)) return null;
+    if (!res.ok) return absent();
+    const m = await res.json() as { run?: unknown; runAt?: unknown; updatedAt?: unknown; steps?: unknown };
+    if (typeof m.run !== 'string' || !/^\d{10}$/.test(m.run)) return absent();
+    if (!Array.isArray(m.steps)) return absent();
     const steps = (m.steps as unknown[])
       .filter((s): s is number => Number.isInteger(s) && (s as number) >= 0)
       .sort((a, b) => a - b);
-    if (steps.length === 0) return null;
+    if (steps.length === 0) return absent();
     const runAt = typeof m.runAt === 'string' ? new Date(m.runAt) : parseRunStr(m.run);
-    if (Number.isNaN(runAt.getTime())) return null;
+    if (Number.isNaN(runAt.getTime())) return absent();
     // Staleness-Guard: zu alter (Files-weg) oder unplausibel zukünftiger Lauf →
     // Manifest verwerfen, Directory-Scan holt den aktuellen Lauf (kein 404-Sturm
     // auf einen toten Lauf, u. a. gegen ein versehentlich committetes Altmanifest).
     const ageH = (Date.now() - runAt.getTime()) / 3_600_000;
-    if (ageH > MAX_MANIFEST_RUN_AGE_H || ageH < -2) return null;
+    if (ageH > MAX_MANIFEST_RUN_AGE_H || ageH < -2) return absent();
+    const upd = typeof m.updatedAt === 'string' ? new Date(m.updatedAt) : null;
+    const updatedAtMs = upd && !Number.isNaN(upd.getTime()) ? upd.getTime() : null;
+    reportManifest(WIND_MANIFEST_URL, stateFromUpdatedAt(updatedAtMs, Date.now()), updatedAtMs);
     return { runStr: m.run, runAt, steps };
   } catch {
-    return null;   // Netzfehler / JSON-Parse → Fallback auf Directory-Scan
+    return absent();   // Netzfehler / JSON-Parse → Fallback auf Directory-Scan
   }
 }
 

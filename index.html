@@ -6,16 +6,20 @@
     <title>buscosun — Wetter DE · AT · CH</title>
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
     <!-- Kommando-Deck-Startseite: Space Grotesk (Headlines/Wordmark/Zahlen) +
-         IBM Plex Mono (Eyebrows, Mono-Metadata, kbd-Chips). display=swap, damit
-         der Text sofort mit System-Fallback erscheint (kein FOIT). -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=League+Spartan:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+         IBM Plex Mono (Eyebrows, Mono-Metadata, kbd-Chips) + League Spartan.
+         Seit 2026-08-01 SELBST GEHOSTET (V-102): die frühere Einbindung über
+         fonts.googleapis.com schickte bei jedem Seitenaufruf ungefragt die
+         Besucher-IP an einen Drittanbieter — Widerspruch zu „ohne Tracker"
+         (D-02) und bekanntes Abmahnrisiko. @font-face steht in src/fonts.css
+         (generiert von scripts/fetch-fonts.mjs), display=swap unverändert.
+         Preload für die zwei Schnitte, die den ersten Bildaufbau tragen. -->
+    <link rel="preload" href="/fonts/space-grotesk-600-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/league-spartan-500-latin.woff2" as="font" type="font/woff2" crossorigin />
     <!-- PNG-Fallback fuer Browser ohne SVG-Favicon-Unterstuetzung (v. a. mobile). -->
     <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="theme-color" content="#2C2A26" />
-    <meta name="description" content="DACH-Wetter: Karte, Tourenplanung, Event-Tag, Nowcast, Vorhersage, Arbeitsfenster — höhenkorrigiert, ohne Tracker." />
+    <meta name="description" content="DACH-Wetter: Karte, Regenradar, Tourenplanung, Event-Tag, Vorhersage, Historie — höhenkorrigiert, ohne Tracker." />
     <!-- iOS Safari unterstuetzt KEIN SVG als apple-touch-icon → PNG noetig, sonst
          erscheint beim Hinzufuegen zum Home-Bildschirm kein Logo. -->
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />

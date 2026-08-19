@@ -1,0 +1,648 @@
+{
+  "origin": "https://buscosun.com",
+  "group": "fire",
+  "at": "2026-08-14T09:31:56.115Z",
+  "results": [
+    {
+      "id": "gwis-wms-caps",
+      "group": "fire",
+      "layer": "GWIS FWI (fireDanger)",
+      "url": "https://maps.effis.emergency.copernicus.eu/gwis?service=WMS&request=GetCapabilities&version=1.3.0",
+      "critical": true,
+      "expect": "unknown",
+      "note": "Rückgrat des Layers fireDanger — ECMWF-FWI bis +9 Tage",
+      "status": 200,
+      "ms": 394,
+      "finalUrl": "https://maps.effis.emergency.copernicus.eu/gwis?service=WMS&request=GetCapabilities&version=1.3.0",
+      "redirected": false,
+      "contentType": "text/xml; charset=UTF-8",
+      "cacheControl": "no-store",
+      "get": {
+        "access-control-allow-origin": "*"
+      },
+      "acao": "*",
+      "bytes": 190060,
+      "bodyKind": "xml",
+      "sample": "<?xml version='1.0' encoding=\"UTF-8\" standalone=\"no\" ?> <WMS_Capabilities version=\"1.3.0\" xmlns=\"http://www.opengis.net/wms\" xmlns:sld=\"http://www.opengis.net/sld\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instanc",
+      "preflight": {
+        "status": 200,
+        "access-control-allow-origin": "*"
+      },
+      "verdict": "OFFEN",
+      "matchesDocs": null
+    },
+    {
+      "id": "gwis-getmap-3857",
+      "group": "fire",
+      "layer": "GWIS GetMap (MapLibre-Weg)",
+      "url": "https://maps.effis.emergency.copernicus.eu/gwis?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=ecmwf.fwi&STYLES=&CRS=EPSG:3857&BBOX=612257,5700583,1948091,7459517&WIDTH=512&HEIGHT=512&FORMAT=image/png&TRANSPARENT=TRUE&TIME=2026-08-14",
+      "critical": true,
+      "expect": "unknown",
+      "note": "genau der Aufruf, den eine MapLibre raster-Source über {bbox-epsg-3857} absetzt — der entscheidende Test",
+      "status": 200,
+      "ms": 36,
+      "finalUrl": "https://maps.effis.emergency.copernicus.eu/gwis?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=ecmwf.fwi&STYLES=&CRS=EPSG:3857&BBOX=612257,5700583,1948091,7459517&WIDTH=512&HEIGHT=512&FORMAT=image/png&TRANSPARENT=TRUE&TIME=2026-08-14",
+      "redirected": false,
+      "contentType": "image/png",
+      "cacheControl": "public, max-age=3600",
+      "get": {
+        "access-control-allow-origin": "*"
+      },
+      "acao": "*",
+      "bytes": 11645,
+      "bodyKind": "png",
+      "preflight": {
+        "status": 200,
+        "access-control-allow-origin": "*"
+      },
+      "verdict": "OFFEN",
+      "matchesDocs": null
+    },
+    {
+      "id": "gwis-getmap-4326-130",
+      "group": "fire",
+      "layer": "GWIS GetMap 1.3.0 (lat,lon)",
+      "url": "https://maps.effis.emergency.copernicus.eu/gwis?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=ecmwf.fwi&STYLES=&CRS=EPSG:4326&BBOX=45.5,5.5,55.5,17.5&WIDTH=512&HEIGHT=512&FORMAT=image/png&TRANSPARENT=TRUE&TIME=2026-08-14",
+      "critical": false,
+      "expect": "unknown",
+      "note": "Achsenreihenfolge-Gegenprobe: 1.3.0 + EPSG:4326 = lat,lon",
+      "status": 200,
+      "ms": 34,
+      "finalUrl": "https://maps.effis.emergency.copernicus.eu/gwis?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=ecmwf.fwi&STYLES=&CRS=EPSG:4326&BBOX=45.5,5.5,55.5,17.5&WIDTH=512&HEIGHT=512&FORMAT=image/png&TRANSPARENT=TRUE&TIME=2026-08-14",
+      "redirected": false,
+      "contentType": "image/png",
+      "cacheControl": "public, max-age=3600",
+      "get": {
+        "access-control-allow-origin": "*"
+      },
+      "acao": "*",
+      "bytes": 11775,
+      "bodyKind": "png",
+      "preflight": {
+        "status": 200,
+        "access-control-allow-origin": "*"
+      },
+      "verdict": "OFFEN",
+      "matchesDocs": null
+    },
+    {
+      "id": "gwis-getmap-4326-111",
+      "group": "fire",
+      "layer": "GWIS GetMap 1.1.1 (lon,lat)",
+      "url": "https://maps.effis.emergency.copernicus.eu/gwis?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&LAYERS=ecmwf.fwi&STYLES=&SRS=EPSG:4326&BBOX=5.5,45.5,17.5,55.5&WIDTH=512&HEIGHT=512&FORMAT=image/png&TRANSPARENT=TRUE&TIME=2026-08-14",
+      "critical": false,
+      "expect": "unknown",
+      "note": "Achsenreihenfolge-Gegenprobe: 1.1.1 + EPSG:4326 = lon,lat",
+      "status": 200,
+      "ms": 32,
+      "finalUrl": "https://maps.effis.emergency.copernicus.eu/gwis?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&LAYERS=ecmwf.fwi&STYLES=&SRS=EPSG:4326&BBOX=5.5,45.5,17.5,55.5&WIDTH=512&HEIGHT=512&FORMAT=image/png&TRANSPARENT=TRUE&TIME=2026-08-14",
+      "redirected": false,
+      "contentType": "image/png",
+      "cacheControl": "public, max-age=3600",
+      "get": {
+        "access-control-allow-origin": "*"
+      },
+      "acao": "*",
+      "bytes": 11775,
+      "bodyKind": "png",
+      "preflight": {
+        "status": 200,
+        "access-control-allow-origin": "*"
+      },
+      "verdict": "OFFEN",
+      "matchesDocs": null
+    },
+    {
+      "id": "effis-wms-caps",
+      "group": "fire",
+      "layer": "EFFIS WMS (Météo-France FWI)",
+      "url": "https://maps.effis.emergency.copernicus.eu/effis?service=WMS&request=GetCapabilities&version=1.3.0",
+      "critical": false,
+      "expect": "unknown",
+      "note": null,
+      "status": 200,
+      "ms": 101,
+      "finalUrl": "https://maps.effis.emergency.copernicus.eu/effis?service=WMS&request=GetCapabilities&version=1.3.0",
+      "redirected": false,
+      "contentType": "text/xml; charset=UTF-8",
+      "cacheControl": "no-store",
+      "get": {
+        "access-control-allow-origin": "*"
+      },
+      "acao": "*",
+      "bytes": 104545,
+      "bodyKind": "xml",
+      "sample": "<?xml version='1.0' encoding=\"UTF-8\" standalone=\"no\" ?> <WMS_Capabilities version=\"1.3.0\" xmlns=\"http://www.opengis.net/wms\" xmlns:sld=\"http://www.opengis.net/sld\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instanc",
+      "preflight": {
+        "status": 200,
+        "access-control-allow-origin": "*"
+      },
+      "verdict": "OFFEN",
+      "matchesDocs": null
+    },
+    {
+      "id": "effis-wfs-caps",
+      "group": "fire",
+      "layer": "EFFIS WFS Capabilities",
+      "url": "https://maps.effis.emergency.copernicus.eu/effis?service=WFS&request=GetCapabilities&version=1.1.0",
+      "critical": false,
+      "expect": "unknown",
+      "note": "GEMESSEN 80 s bzw. Abbruch nach 150 s — im Produktivpfad NIE aufrufen (WB0-Befund)",
+      "status": 200,
+      "ms": 86498,
+      "finalUrl": "https://maps.effis.emergency.copernicus.eu/effis?service=WFS&request=GetCapabilities&version=1.1.0",
+      "redirected": false,
+      "contentType": "text/xml; charset=UTF-8",
+      "cacheControl": "no-store",
+      "get": {
+        "access-control-allow-origin": "*"
+      },
+      "acao": "*",
+      "bytes": 46542,
+      "bodyKind": "xml",
+      "sample": "<?xml version=\"1.0\" encoding=\"UTF-8\"?> <wfs:WFS_Capabilities xmlns:gml=\"http://www.opengis.net/gml\" xmlns:wfs=\"http://www.opengis.net/wfs\" xmlns:ows=\"http://www.opengis.net/ows\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"",
+      "preflight": {
+        "status": 200,
+        "access-control-allow-origin": "*"
+      },
+      "verdict": "OFFEN",
+      "matchesDocs": null
+    },
+    {
+      "id": "gwis-wfs-viirs-today",
+      "group": "fire",
+      "layer": "GWIS Hotspots 24 h (fireHotspots)",
+      "url": "https://maps.effis.emergency.copernicus.eu/gwis?service=WFS&request=GetFeature&typename=ms:viirs.hs.today&version=1.1.0&outputformat=geojson&maxfeatures=5",
+      "critical": true,
+      "expect": "unknown",
+      "note": "KORREKTUR aus WB0: der in plan.md/§W.2 genannte EFFIS-Endpunkt mit blankem `ms:viirs.hs` liefert einen bei Okt 2021 eingefrorenen Archivstand. Live ist der GWIS-Dienst mit .today/.week",
+      "status": 200,
+      "ms": 555,
+      "finalUrl": "https://maps.effis.emergency.copernicus.eu/gwis?service=WFS&request=GetFeature&typename=ms:viirs.hs.today&version=1.1.0&outputformat=geojson&maxfeatures=5",
+      "redirected": false,
+      "contentType": "application/json; subtype=geojson",
+      "cacheControl": "public, max-age=3600",
+      "get": {
+        "access-control-allow-origin": "*"
+      },
+      "acao": "*",
+      "bytes": 1002,
+      "bodyKind": "geojson",
+      "sample": "{ \"type\": \"FeatureCollection\", \"name\": \"viirs.hs.today\", \"features\": [ { \"type\": \"Feature\", \"properties\": { \"id\": \"61934961652\", \"acq_at\": \"2026-08-13 00:07:00\", \"CLASS\": \"1DAY_2\" }, \"geometry\": { \"type\": \"Point\", \"coord",
+      "preflight": {
+        "status": 200,
+        "access-control-allow-origin": "*"
+      },
+      "verdict": "OFFEN",
+      "matchesDocs": null
+    },
+    {
+      "id": "gwis-wfs-viirs-week",
+      "group": "fire",
+      "layer": "GWIS Hotspots 7 d (fireHotspots)",
+      "url": "https://maps.effis.emergency.copernicus.eu/gwis?service=WFS&request=GetFeature&typename=ms:viirs.hs.week&version=1.1.0&outputformat=geojson&maxfeatures=5",
+      "critical": true,
+      "expect": "unknown",
+      "note": null,
+      "status": 200,
+      "ms": 1864,
+      "finalUrl": "https://maps.effis.emergency.copernicus.eu/gwis?service=WFS&request=GetFeature&typename=ms:viirs.hs.week&version=1.1.0&outputformat=geojson&maxfeatures=5",
+      "redirected": false,
+      "contentType": "application/json; subtype=geojson",
+      "cacheControl": "public, max-age=3600",
+      "get": {
+        "access-control-allow-origin": "*"
+      },
+      "acao": "*",
+      "bytes": 1009,
+      "bodyKind": "geojson",
+      "sample": "{ \"type\": \"FeatureCollection\", \"name\": \"viirs.hs.week\", \"features\": [ { \"type\": \"Feature\", \"properties\": { \"id\": \"61334630412\", \"acq_at\": \"2026-08-07 07:46:00\", \"CLASS\": \"7DAYS_1\" }, \"geometry\": { \"type\": \"Point\", \"coord",
+      "preflight": {
+        "status": 200,
+        "access-control-allow-origin": "*"
+      },
+      "verdict": "OFFEN",
+      "matchesDocs": null
+    },
+    {
+      "id": "effis-wfs-viirs-stale",
+      "group": "fire",
+      "layer": "EFFIS Hotspots (VERALTET)",
+      "url": "https://maps.effis.emergency.copernicus.eu/effis?service=WFS&request=GetFeature&typename=ms:viirs.hs&version=1.1.0&outputformat=geojson&maxfeatures=5",
+      "critical": false,
+      "expect": "unknown",
+      "note": "nur noch als Beleg des Befunds mitgeführt — NICHT als Quelle verwenden",
+      "status": 200,
+      "ms": 36,
+      "finalUrl": "https://maps.effis.emergency.copernicus.eu/effis?service=WFS&request=GetFeature&typename=ms:viirs.hs&version=1.1.0&outputformat=geojson&maxfeatures=5",
+      "redirected": false,
+      "contentType": "application/json; subtype=geojson",
+      "cacheControl": "public, max-age=3600",
+      "get": {
+        "access-control-allow-origin": "*"
+      },
+      "acao": "*",
+      "bytes": 2832,
+      "bodyKind": "geojson",
+      "sample": "{ \"type\": \"FeatureCollection\", \"name\": \"viirs.hs\", \"features\": [ { \"type\": \"Feature\", \"properties\": { \"id\": \"1044625662\", \"acq_at\": \"2019-11-13 00:48:00\", \"lon\": \"72.06832\", \"lat\": \"71.25542\", \"frp\": \"9\", \"confidence\": \"",
+      "preflight": {
+        "status": 200,
+        "access-control-allow-origin": "*"
+      },
+      "verdict": "OFFEN",
+      "matchesDocs": null
+    },
+    {
+      "id": "effis-wfs-ba",
+      "group": "fire",
+      "layer": "EFFIS Burnt Areas (WB4)",
+      "url": "https://maps.effis.emergency.copernicus.eu/effis?service=WFS&request=GetFeature&typename=ms:modis.ba.poly&version=1.1.0&outputformat=geojson&maxfeatures=2",
+      "critical": false,
+      "expect": "unknown",
+      "note": null,
+      "status": 200,
+      "ms": 36,
+      "finalUrl": "https://maps.effis.emergency.copernicus.eu/effis?service=WFS&request=GetFeature&typename=ms:modis.ba.poly&version=1.1.0&outputformat=geojson&maxfeatures=2",
+      "redirected": false,
+      "contentType": "application/json; subtype=geojson",
+      "cacheControl": "public, max-age=3600",
+      "get": {
+        "access-control-allow-origin": "*"
+      },
+      "acao": "*",
+      "bytes": 17239,
+      "bodyKind": "geojson",
+      "sample": "{ \"type\": \"FeatureCollection\", \"name\": \"modis.ba.poly\", \"features\": [ { \"type\": \"Feature\", \"properties\": { \"id\": \"2\", \"FIREDATE\": \"2016-08-28 00:00:00\", \"FINALDATE\": \"2016-08-28 00:00:00\", \"LASTUPDATE\": \"2022-01-26 11:57",
+      "preflight": {
+        "status": 200,
+        "access-control-allow-origin": "*"
+      },
+      "verdict": "OFFEN",
+      "matchesDocs": null
+    },
+    {
+      "id": "edo-wms-caps",
+      "group": "fire",
+      "layer": "EDO Dürre (WB4)",
+      "url": "https://drought.emergency.copernicus.eu/api/wms?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetCapabilities",
+      "critical": false,
+      "expect": "unknown",
+      "note": null,
+      "status": 200,
+      "ms": 317,
+      "finalUrl": "https://drought.emergency.copernicus.eu/api/wms?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetCapabilities",
+      "redirected": false,
+      "contentType": "text/xml; charset=utf-8",
+      "cacheControl": "no-cache, private",
+      "get": {
+        "access-control-allow-origin": "*, *",
+        "access-control-allow-methods": "GET",
+        "access-control-allow-headers": "Authorization",
+        "access-control-max-age": "600",
+        "access-control-expose-headers": "Content-Security-Policy, Location",
+        "vary": "Accept-Encoding"
+      },
+      "acao": "*, *",
+      "bytes": 47165,
+      "bodyKind": "xml",
+      "sample": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?> <!DOCTYPE WMT_MS_Capabilities SYSTEM \"http://schemas.opengis.net/wms/1.1.1/WMS_MS_Capabilities.dtd\" [ <!ELEMENT VendorSpecificCapabilities EMPTY> ]> <!-- end of DOCT",
+      "preflight": {
+        "status": 204,
+        "access-control-allow-origin": "*, *",
+        "access-control-allow-methods": "GET, GET",
+        "access-control-allow-headers": "Authorization, if-none-match",
+        "access-control-max-age": "600, 0",
+        "access-control-expose-headers": "Content-Security-Policy, Location",
+        "vary": "Access-Control-Request-Method,Access-Control-Request-Headers"
+      },
+      "verdict": "OFFEN (*, *)",
+      "matchesDocs": null
+    },
+    {
+      "id": "edo-getmap-smian",
+      "group": "fire",
+      "layer": "EDO smian GetMap (WB4)",
+      "url": "https://drought.emergency.copernicus.eu/api/wms?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&LAYERS=smian&STYLES=&SRS=EPSG:4326&BBOX=5.5,45.5,17.5,55.5&WIDTH=512&HEIGHT=512&FORMAT=image/png&TRANSPARENT=TRUE",
+      "critical": false,
+      "expect": "unknown",
+      "note": null,
+      "status": 200,
+      "ms": 719,
+      "finalUrl": "https://drought.emergency.copernicus.eu/api/wms?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&LAYERS=smian&STYLES=&SRS=EPSG:4326&BBOX=5.5,45.5,17.5,55.5&WIDTH=512&HEIGHT=512&FORMAT=image/png&TRANSPARENT=TRUE",
+      "redirected": false,
+      "contentType": "image/png",
+      "cacheControl": "no-cache, private",
+      "get": {
+        "access-control-allow-origin": "*, *",
+        "access-control-allow-methods": "GET",
+        "access-control-allow-headers": "Authorization",
+        "access-control-max-age": "600",
+        "access-control-expose-headers": "Content-Security-Policy, Location"
+      },
+      "acao": "*, *",
+      "bytes": 27706,
+      "bodyKind": "png",
+      "preflight": {
+        "status": 204,
+        "access-control-allow-origin": "*, *",
+        "access-control-allow-methods": "GET, GET",
+        "access-control-allow-headers": "Authorization, if-none-match",
+        "access-control-max-age": "600, 0",
+        "access-control-expose-headers": "Content-Security-Policy, Location",
+        "vary": "Access-Control-Request-Method,Access-Control-Request-Headers"
+      },
+      "verdict": "OFFEN (*, *)",
+      "matchesDocs": null
+    },
+    {
+      "id": "eea-clc2018-caps",
+      "group": "fire",
+      "layer": "EEA CLC2018 (WB4)",
+      "url": "https://image.discomap.eea.europa.eu/arcgis/services/Corine/CLC2018_WM/MapServer/WMSServer?service=WMS&request=GetCapabilities&version=1.3.0",
+      "critical": false,
+      "expect": "unknown",
+      "note": null,
+      "status": 200,
+      "ms": 259,
+      "finalUrl": "https://image.discomap.eea.europa.eu/arcgis/services/Corine/CLC2018_WM/MapServer/WMSServer?service=WMS&request=GetCapabilities&version=1.3.0",
+      "redirected": false,
+      "contentType": "text/xml",
+      "cacheControl": null,
+      "get": {
+        "access-control-allow-origin": "https://buscosun.com",
+        "access-control-allow-credentials": "true",
+        "vary": "Origin"
+      },
+      "acao": "https://buscosun.com",
+      "bytes": 51369,
+      "bodyKind": "xml",
+      "sample": "<?xml version=\"1.0\" encoding=\"UTF-8\"?> <WMS_Capabilities version=\"1.3.0\" xmlns=\"http://www.opengis.net/wms\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:esri_wms=\"http://www.esri.com/wms\" xsi:schem",
+      "preflight": {
+        "status": 204,
+        "vary": "Origin"
+      },
+      "verdict": "OFFEN (nur diese Origin)",
+      "matchesDocs": null
+    },
+    {
+      "id": "eea-natura2000-caps",
+      "group": "fire",
+      "layer": "EEA Natura 2000 (WB4)",
+      "url": "https://bio.discomap.eea.europa.eu/arcgis/services/ProtectedSites/Natura2000Sites/MapServer/WMSServer?service=WMS&request=GetCapabilities&version=1.3.0",
+      "critical": false,
+      "expect": "unknown",
+      "note": null,
+      "status": 200,
+      "ms": 334,
+      "finalUrl": "https://bio.discomap.eea.europa.eu/arcgis/services/ProtectedSites/Natura2000Sites/MapServer/WMSServer?service=WMS&request=GetCapabilities&version=1.3.0",
+      "redirected": false,
+      "contentType": "text/xml",
+      "cacheControl": null,
+      "get": {
+        "access-control-allow-origin": "https://buscosun.com",
+        "access-control-allow-credentials": "true",
+        "vary": "Origin"
+      },
+      "acao": "https://buscosun.com",
+      "bytes": 9757,
+      "bodyKind": "xml",
+      "sample": "<?xml version=\"1.0\" encoding=\"UTF-8\"?> <WMS_Capabilities version=\"1.3.0\" xmlns=\"http://www.opengis.net/wms\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:esri_wms=\"http://www.esri.com/wms\" xsi:schem",
+      "preflight": {
+        "status": 204,
+        "vary": "Origin"
+      },
+      "verdict": "OFFEN (nur diese Origin)",
+      "matchesDocs": null
+    },
+    {
+      "id": "dlr-eoc-land-wms",
+      "group": "fire",
+      "layer": "DLR Tree Species DE (WB4)",
+      "url": "https://geoservice.dlr.de/eoc/land/wms?service=WMS&request=GetCapabilities&version=1.3.0",
+      "critical": false,
+      "expect": "unknown",
+      "note": null,
+      "status": 200,
+      "ms": 166,
+      "finalUrl": "https://geoservice.dlr.de/eoc/land/wms?service=WMS&request=GetCapabilities&version=1.3.0",
+      "redirected": false,
+      "contentType": "text/xml; charset=utf-8",
+      "cacheControl": "max-age=0, must-revalidate",
+      "get": {
+        "access-control-allow-origin": "https://buscosun.com",
+        "access-control-allow-methods": "GET, POST, OPTIONS",
+        "access-control-allow-headers": "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type",
+        "access-control-allow-credentials": "true"
+      },
+      "acao": "https://buscosun.com",
+      "bytes": 375741,
+      "bodyKind": "xml",
+      "sample": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><WMS_Capabilities xmlns:inspire_common=\"http://inspire.ec.europa.eu/schemas/common/1.0\" xmlns:inspire_vs=\"http://inspire.ec.europa.eu/schemas/inspire_vs/1.0\" version=\"1.3.0\" updateSe",
+      "preflight": {
+        "error": "fetch failed"
+      },
+      "verdict": "OFFEN (nur diese Origin)",
+      "matchesDocs": null
+    },
+    {
+      "id": "geoadmin-stac-fire",
+      "group": "fire",
+      "layer": "BAFU Gefahrenstufe CH (STAC)",
+      "url": "https://data.geo.admin.ch/api/stac/v1/collections/ch.bafu.gefahren-waldbrand_warnung",
+      "critical": true,
+      "expect": "cors",
+      "note": "geo.admin.ch ist im Repo bereits produktiv (meteoSwissHail.ts) — Gegenprobe, kein neuer Befund erwartet",
+      "status": 200,
+      "ms": 135,
+      "finalUrl": "https://data.geo.admin.ch/api/stac/v1/collections/ch.bafu.gefahren-waldbrand_warnung",
+      "redirected": false,
+      "contentType": "application/json",
+      "cacheControl": "max-age=600, public",
+      "get": {
+        "access-control-allow-origin": "*",
+        "access-control-allow-methods": "GET,HEAD",
+        "access-control-allow-headers": "Content-Type,Accept,Accept-Language",
+        "vary": "Accept"
+      },
+      "acao": "*",
+      "bytes": 1701,
+      "bodyKind": "json",
+      "sample": "{\"stac_version\":\"1.0.0\",\"id\":\"ch.bafu.gefahren-waldbrand_warnung\",\"title\":\"Warning Forest Fire Danger\",\"description\":\"The FOEN's forest fire danger warning contains the general daily forest fire danger based on meteorolo",
+      "preflight": {
+        "status": 200,
+        "access-control-allow-origin": "*",
+        "access-control-allow-methods": "GET,HEAD",
+        "access-control-allow-headers": "Content-Type,Accept,Accept-Language",
+        "vary": "Accept"
+      },
+      "verdict": "OFFEN",
+      "matchesDocs": true
+    },
+    {
+      "id": "geoadmin-bafu-geojson",
+      "group": "fire",
+      "layer": "BAFU Gefahrenstufe CH (Asset)",
+      "url": "https://data.geo.admin.ch/ch.bafu.gefahren-waldbrand_warnung/gefahren-waldbrand_warnung/gefahren-waldbrand_warnung_2056.geojson",
+      "critical": true,
+      "expect": "cors",
+      "note": null,
+      "status": 200,
+      "ms": 17,
+      "finalUrl": "https://data.geo.admin.ch/ch.bafu.gefahren-waldbrand_warnung/gefahren-waldbrand_warnung/gefahren-waldbrand_warnung_2056.geojson",
+      "redirected": false,
+      "contentType": "application/geo+json",
+      "cacheControl": "max-age=7200, public",
+      "get": {
+        "access-control-allow-origin": "*",
+        "access-control-allow-methods": "GET, HEAD",
+        "access-control-max-age": "0",
+        "vary": "Origin,Access-Control-Request-Headers,Access-Control-Request-Method"
+      },
+      "acao": "*",
+      "bytes": 547149,
+      "bodyKind": "geojson",
+      "sample": "{\"features\":[{\"type\":\"Feature\",\"id\":171947,\"geometry\":{\"type\":\"MultiPolygon\",\"coordinates\":[[[[2607356.04,1185118.13],[2607653.7,1186044.17],[2607190.68,1186705.63],[2606992.24,1188491.57],[2606595.37,1189616.05],[260606",
+      "preflight": {
+        "status": 403
+      },
+      "verdict": "OFFEN",
+      "matchesDocs": true
+    },
+    {
+      "id": "geoadmin-stac-bans",
+      "group": "fire",
+      "layer": "BAFU Feuerverbote CH (STAC)",
+      "url": "https://data.geo.admin.ch/api/stac/v1/collections/ch.bafu.gefahren-waldbrand_praeventionsmassnahmen_kantone",
+      "critical": false,
+      "expect": "cors",
+      "note": "Collection-Id aus docs/DATA_SOURCES.md §W abgeleitet — hier zum ersten Mal geprüft",
+      "status": 200,
+      "ms": 113,
+      "finalUrl": "https://data.geo.admin.ch/api/stac/v1/collections/ch.bafu.gefahren-waldbrand_praeventionsmassnahmen_kantone",
+      "redirected": false,
+      "contentType": "application/json",
+      "cacheControl": "max-age=600, public",
+      "get": {
+        "access-control-allow-origin": "*",
+        "access-control-allow-methods": "GET,HEAD",
+        "access-control-allow-headers": "Content-Type,Accept,Accept-Language",
+        "vary": "Accept"
+      },
+      "acao": "*",
+      "bytes": 1773,
+      "bodyKind": "json",
+      "sample": "{\"stac_version\":\"1.0.0\",\"id\":\"ch.bafu.gefahren-waldbrand_praeventionsmassnahmen_kantone\",\"title\":\"Forest fire prevention measures of the cantons\",\"description\":\"Contains the forest fire prevention measures currently in f",
+      "preflight": {
+        "status": 200,
+        "access-control-allow-origin": "*",
+        "access-control-allow-methods": "GET,HEAD",
+        "access-control-allow-headers": "Content-Type,Accept,Accept-Language",
+        "vary": "Accept"
+      },
+      "verdict": "OFFEN",
+      "matchesDocs": true
+    },
+    {
+      "id": "dwd-wbi-proxy",
+      "group": "fire",
+      "layer": "DWD WBI über /_dwd_opendata",
+      "url": "https://buscosun.com/_dwd_opendata/climate_environment/CDC/derived_germany/fire_danger_index/woodland/forecast/recent/",
+      "critical": true,
+      "expect": "unknown",
+      "note": "same-origin-Rewrite: ACAO ist hier NICHT erforderlich, Status 200 ist der Beleg (netlify.toml:27-31)",
+      "status": 200,
+      "ms": 751,
+      "finalUrl": "https://buscosun.com/_dwd_opendata/climate_environment/CDC/derived_germany/fire_danger_index/woodland/forecast/recent/",
+      "redirected": false,
+      "contentType": "text/html",
+      "cacheControl": null,
+      "get": {
+        "vary": "Accept-Encoding"
+      },
+      "acao": null,
+      "bytes": 92108,
+      "bodyKind": "xml",
+      "sample": "<html> <head><title>Index of /climate_environment/CDC/derived_germany/fire_danger_index/woodland/forecast/recent/</title></head> <body> <h1>Index of /climate_environment/CDC/derived_germany/fire_danger_index/woodland/",
+      "preflight": {
+        "status": 405
+      },
+      "verdict": "KEIN CORS",
+      "matchesDocs": null
+    },
+    {
+      "id": "dwd-icon-relhum",
+      "group": "fire",
+      "layer": "ICON-D2 relhum_2m (fireWeather)",
+      "url": "https://opendata.dwd.de/weather/nwp/icon-d2/grib/00/relhum_2m/",
+      "critical": false,
+      "expect": "no-cors",
+      "note": "läuft in WB2 über die BESTEHENDE Edge Function /_dwd_grib — Warm-Cron wäre STOPP & FRAGEN",
+      "status": 200,
+      "ms": 98,
+      "finalUrl": "https://opendata.dwd.de/weather/nwp/icon-d2/grib/00/relhum_2m/",
+      "redirected": false,
+      "contentType": "text/html",
+      "cacheControl": null,
+      "get": {},
+      "acao": null,
+      "bytes": 18929,
+      "bodyKind": "xml",
+      "sample": "<html> <head><title>Index of /weather/nwp/icon-d2/grib/00/relhum_2m/</title></head> <body> <h1>Index of /weather/nwp/icon-d2/grib/00/relhum_2m/</h1><hr><pre><a href=\"../\">../</a> <a href=\"icon-d2_germany_icosahedral_",
+      "preflight": {
+        "status": 405
+      },
+      "verdict": "KEIN CORS",
+      "matchesDocs": true
+    },
+    {
+      "id": "dwd-fire-grid-404",
+      "group": "fire",
+      "layer": "DWD WBI 1-km-Raster",
+      "url": "https://opendata.dwd.de/climate_environment/CDC/grids_germany/daily/fire_danger_index/",
+      "critical": false,
+      "expect": "no-cors",
+      "note": "ERWARTUNG 404 (tests.md WB-T0-6). Liefert der DWD das Raster inzwischen aus, ändert sich der Plan materiell zum Besseren — dann STOPP und Jan informieren",
+      "status": 404,
+      "ms": 13,
+      "finalUrl": "https://opendata.dwd.de/climate_environment/CDC/grids_germany/daily/fire_danger_index/",
+      "redirected": false,
+      "contentType": "text/html",
+      "cacheControl": null,
+      "get": {},
+      "acao": null,
+      "bytes": 146,
+      "bodyKind": "xml",
+      "sample": "<html> <head><title>404 Not Found</title></head> <body> <center><h1>404 Not Found</h1></center> <hr><center>nginx</center> </body> </html>",
+      "preflight": {
+        "status": 405
+      },
+      "verdict": "KEIN CORS",
+      "matchesDocs": true
+    },
+    {
+      "id": "dwd-wbi-listing-control",
+      "group": "fire",
+      "layer": "KONTROLLE (WBI direkt)",
+      "url": "https://opendata.dwd.de/climate_environment/CDC/derived_germany/fire_danger_index/woodland/forecast/recent/",
+      "critical": false,
+      "expect": "no-cors",
+      "note": "Doppelrolle: Negativkontrolle der Messung UND Nachweis, dass das WBI-Listing existiert",
+      "status": 200,
+      "ms": 17,
+      "finalUrl": "https://opendata.dwd.de/climate_environment/CDC/derived_germany/fire_danger_index/woodland/forecast/recent/",
+      "redirected": false,
+      "contentType": "text/html",
+      "cacheControl": null,
+      "get": {},
+      "acao": null,
+      "bytes": 92108,
+      "bodyKind": "xml",
+      "sample": "<html> <head><title>Index of /climate_environment/CDC/derived_germany/fire_danger_index/woodland/forecast/recent/</title></head> <body> <h1>Index of /climate_environment/CDC/derived_germany/fire_danger_index/woodland/",
+      "preflight": {
+        "status": 405
+      },
+      "verdict": "KEIN CORS",
+      "matchesDocs": true
+    }
+  ]
+}

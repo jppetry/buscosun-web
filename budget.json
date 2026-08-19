@@ -1,0 +1,19 @@
+{
+  "note": "gzip-KB. limitKb = Ratsche gegen Regression (rot). targetKb = Ziel aus dem Rendering-Audit (nur Hinweis). Aktualisieren: npm run budget -- --update",
+  "updated": "2026-08-15",
+  "budgets": {
+    "eagerJs": {
+      "limitKb": 130.2,
+      "targetKb": 90
+    },
+    "eagerCss": {
+      "limitKb": 8.9
+    },
+    "largestChunk": {
+      "limitKb": 292.3
+    },
+    "totalJs": {
+      "limitKb": 926.1
+    }
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "modelVersion": 1,
+  "featureVersion": 1,
+  "labelSource": "effis-rda",
+  "intervalLevel": 0.8,
+  "trainedAtMs": 1787097600000,
+  "years": [
+    2020,
+    2021,
+    2022,
+    2023,
+    2024,
+    2025,
+    2026
+  ],
+  "pairsTotal": 618,
+  "pairsEligible": 604,
+  "models": {
+    "fre": {
+      "coeffs": [
+        -1.1501598511505335,
+        0.2981606989069645
+      ],
+      "degree": 1,
+      "n": 368,
+      "r2": 0.1667042578585899,
+      "sigma": 1.4856817819570394,
+      "xtxInv": [
+        [
+          0.09919295719256842,
+          -0.0072848222535016795
+        ],
+        [
+          -0.0072848222535016795,
+          0.000550073324541057
+        ]
+      ],
+      "xMin": 2208,
+      "xMax": 138595341,
+      "tCrit": 1.2838689056934527,
+      "looRmseLn": 1.490521190279765,
+      "looCoverage": 0.7744565217391305
+    },
+    "det": {
+      "coeffs": [
+        1.4757793301621236,
+        0.37329557726038054,
+        0.10182145615120541
+      ],
+      "degree": 2,
+      "n": 604,
+      "r2": 0.30886748407761444,
+      "sigma": 1.3287881802381907,
+      "xtxInv": [
+        [
+          0.006385181056423071,
+          -0.005612204472470779,
+          0.0009999178513989025
+        ],
+        [
+          -0.005612204472470781,
+          0.008168119592681522,
+          -0.0018282268657038717
+        ],
+        [
+          0.0009999178513989033,
+          -0.0018282268657038724,
+          0.00048436686157022816
+        ]
+      ],
+      "xMin": 1,
+      "xMax": 462,
+      "tCrit": 1.2829617741317634,
+      "looRmseLn": 1.3316433326362664,
+      "looCoverage": 0.7880794701986755
+    }
+  },
+  "caveats": [
+    "Gilt nur für vom Satelliten detektierte Brände (Stichprobe ist detektionsbedingt: VIIRS sieht bevorzugt große, heiße Feuer) — nie auf die Gesamtheit hochrechnen.",
+    "Zielgröße = EFFIS Rapid Damage Assessment (JRC-Kartierung, seit 2020/21 Sentinel-2-gestützt); kein Trennbarkeitsmaß, kein Flächenintervall je Label.",
+    "Prädiktionsintervall 80 %: 1 von 5 wahren Flächen liegt außerhalb — das ist die erwartete Streuung, kein Fehler.",
+    "Keine Vorhersage außerhalb des Prädiktorbereichs des Trainings (keine Extrapolation) — bei quadratischem Glied umso wichtiger.",
+    "Grad der Regression datengetrieben gewählt (Leave-one-out): die Gerade unterschätzte große Brände systematisch.",
+    "Merkmale gelten innerhalb des FIRMS-Fensters des Trainings (Detektionen bis 7 Tage nach der Kartierung)."
+  ]
+}

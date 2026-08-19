@@ -8,7 +8,8 @@
  *
  * Ablauf (idempotent, self-healing, atomar):
  *   1. Neuesten VOLLSTÄNDIGEN Lauf finden (DWD-Directory-Listing, Rückwärtssuche).
- *   2. Early-Exit, wenn das Manifest bereits auf diesem Lauf steht (kostet Sekunden).
+ *   2. Early-Exit nur, wenn das Manifest auf diesem Lauf steht UND bereits alle
+ *      aktuell warmbaren Steps führt (ICON-D2 publiziert progressiv, s. V-81).
  *   3. Alle Wind-URLs (0…WARM_MAX_STEP × u/v) DURCH DEN PROXY (`SITE_URL/_dwd_wind`)
  *      curlen → füllt den Edge-Cache. Fehlt eine Near-Horizon-Datei → NICHT umlegen.
  *   4. ERST DANACH das Manifest atomar schreiben (temp + rename, zuletzt).
@@ -123,6 +124,29 @@ function readManifest() {
   try { return JSON.parse(readFileSync(MANIFEST_PATH, 'utf8')); } catch { return null; }
 }
 
+/**
+ * Early-Exit-Prüfung: Manifest steht auf diesem Lauf UND führt bereits alle
+ * aktuell warmbaren Steps.
+ *
+ * ── V-81 (2026-08-03) ───────────────────────────────────────────────────────
+ * Vorher prüfte der Early-Exit NUR den Lauf. ICON-D2 publiziert seine Schritte
+ * aber PROGRESSIV: der erste Tick nach einem neuen Lauf sieht oft nur Steps 0…4,
+ * die späteren erscheinen über die folgende Stunde. Mit reiner Lauf-Prüfung fror
+ * das Manifest damit auf dem Stand des ersten Warm-Laufs ein — belegt an
+ * `public/latest-wind.json`: Lauf 2026072921, nur Steps 0–4, geschrieben 51 min
+ * nach Referenzzeit. Da der Client die Liste als autoritativ übernimmt
+ * (`wind/iconD2WindSource.ts:340-343`), reichte der Wind-Zeitslider in solchen
+ * Fenstern nur 4 statt 12 Stunden voraus. Das ist Funktionsverlust, kein Komfort.
+ *
+ * `warm-grib.mjs:246` löste dasselbe Problem bereits korrekt — dies ist exakt
+ * dieselbe Logik, angepasst an das flache `steps`-Feld des Wind-Manifests.
+ */
+export function manifestCovers(existing, latest) {
+  if (!existing || existing.run !== latest.run) return false;
+  const have = Array.isArray(existing.steps) ? existing.steps : [];
+  return latest.steps.every((s) => have.includes(s));
+}
+
 /** Atomar schreiben: temp + rename (der Client sieht nie ein halbes Manifest). */
 function writeManifestAtomic(obj) {
   mkdirSync(dirname(MANIFEST_PATH), { recursive: true });
@@ -141,9 +165,14 @@ async function main() {
   }
 
   const existing = readManifest();
-  if (!FORCE && existing && existing.run === latest.run) {
-    log(`Early-Exit: Manifest steht bereits auf Lauf ${latest.run} (kein neuer Lauf).`);
+  if (!FORCE && manifestCovers(existing, latest)) {
+    log(`Early-Exit: Manifest steht auf Lauf ${latest.run} und führt alle warmbaren Steps [${latest.steps.join(',')}].`);
     return 0;
+  }
+  if (existing && existing.run === latest.run) {
+    const have = Array.isArray(existing.steps) ? existing.steps : [];
+    const missing = latest.steps.filter((s) => !have.includes(s));
+    if (missing.length) log(`Gleicher Lauf ${latest.run}, aber neu publizierte Steps [${missing.join(',')}] fehlen im Manifest → nachwärmen (V-81).`);
   }
 
   // Cache füllen — ERST wärmen, DANN umlegen.
@@ -166,7 +195,16 @@ async function main() {
   }
 
   // In beiden Params gewärmte Steps → das sind die, die der Client sicher findet.
-  const steps = warmed.u_10m.filter((s) => warmed.v_10m.includes(s)).sort((a, b) => a - b);
+  const fresh = warmed.u_10m.filter((s) => warmed.v_10m.includes(s));
+  // V-81-Sicherung: innerhalb DESSELBEN Laufs nie Steps verlieren. Seit dem
+  // Nachwärmen läuft dieser Pfad auch bei bereits manifestiertem Lauf — schlüge
+  // dabei ein einzelner Fetch fehl, würde ein reines Überschreiben das Manifest
+  // SCHRUMPFEN und dem Client Steps wegnehmen, die er vorher hatte. (Lauf,Step)
+  // ist unveränderlich und liegt bereits im Durable-Cache, also bleibt es gültig.
+  const steps = mergeSteps(existing, latest.run, fresh);
+  const carried = existing && existing.run === latest.run && Array.isArray(existing.steps) ? existing.steps : [];
+  const lost = carried.filter((s) => !fresh.includes(s));
+  if (lost.length) log(`Hinweis: Steps [${lost.join(',')}] diesmal nicht (neu) gewärmt, bleiben aus dem Vorlauf erhalten.`);
   const manifest = {
     run: latest.run,
     runAt: parseRunStr(latest.run).toISOString(),
@@ -179,4 +217,19 @@ async function main() {
   return 0;
 }
 
-main().then((code) => process.exit(code)).catch((e) => { console.error('[warm-wind] FATAL', e); process.exit(1); });
+/**
+ * Die Step-Liste, die nach einem Warm-Durchlauf ins Manifest gehört (V-81).
+ * Rein, damit `verify-warm-wind.mjs` sie netzfrei prüfen kann — die Warm-Skripte
+ * standen bisher komplett außerhalb jeder Verifikation (`architecture.md` §11).
+ */
+export function mergeSteps(existing, latestRun, fresh) {
+  const carried = existing && existing.run === latestRun && Array.isArray(existing.steps) ? existing.steps : [];
+  return [...new Set([...carried, ...fresh])].sort((a, b) => a - b);
+}
+
+// Nur ausführen, wenn direkt gestartet — sonst könnte der Verifier die Funktionen
+// nicht importieren, ohne den Cron mitlaufen zu lassen.
+const isMain = process.argv[1] && resolve(process.argv[1]) === resolve(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'));
+if (isMain) {
+  main().then((code) => process.exit(code)).catch((e) => { console.error('[warm-wind] FATAL', e); process.exit(1); });
+}

@@ -25,6 +25,7 @@ import { AlpineCard } from './NowcastDetail';
 import { useIsMobile } from '../mobile/useIsMobile';
 import './nowcastDeck.css';
 import './nowcastMobile.css';
+import { FeatureRail, type RailFeature } from '../nav/featureRail';
 
 type DeckState =
   | { kind: 'loading' }
@@ -38,6 +39,7 @@ interface Props {
   reloadNonce: number;
   onReload: () => void;
   onBack: () => void;
+  onOpenFeature?: (id: RailFeature) => void;
 }
 
 /** Dock-Layer, die das ECHTE Radar steuern (Teilmenge der Radar-Layer). */
@@ -62,7 +64,7 @@ const comma = (n: number) => n.toString().replace('.', ',');
 /** Mobile-Bereiche der Bottom-Tab-Bar — jeder als Sheet-Panel im Schnellblick-Stil. */
 type MobileTab = 'glance' | 'timeline' | 'chart' | 'layer' | 'detail';
 
-export default function NowcastDeck({ location, state, onChangeLocation, reloadNonce, onReload, onBack }: Props) {
+export default function NowcastDeck({ location, state, onChangeLocation, reloadNonce, onReload, onBack, onOpenFeature }: Props) {
   const isMobile = useIsMobile();
   const [layers, setLayers] = useState<RadarLayerId[]>(() => {
     const saved = loadLastView()?.layers as RadarLayerId[] | undefined;
@@ -172,7 +174,7 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
         </div>
       ) : (
         <div className="rr-body">
-          <Rail onBack={onBack} />
+          <Rail onBack={onBack} onOpenFeature={onOpenFeature} />
           <Dock
             layers={layers} toggleLayer={toggleLayer} activeLayerCount={activeLayerCount}
             view={view} setView={setView} mode={mode} setMode={setMode}
@@ -195,19 +197,17 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
 // ============================================================================
 // Rail
 // ============================================================================
-function Rail({ onBack }: { onBack: () => void }) {
+function Rail({ onBack, onOpenFeature }: { onBack: () => void; onOpenFeature?: (id: RailFeature) => void }) {
   return (
-    <div className="rr-rail">
-      <button type="button" className="rr-rail-btn" title="Wetterkarte" onClick={onBack} aria-label="Zur Startseite">
-        <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M12 3 L21 8 L12 13 L3 8 Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/><path d="M3 13 L12 18 L21 13" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/></svg>
-      </button>
-      <button type="button" className="rr-rail-btn is-active" title="Regenradar" aria-current="page">
-        <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5"/><path d="M12 3 A9 9 0 0 1 21 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/><path d="M12 12 L19.5 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/><circle cx="12" cy="12" r="4.5" stroke="currentColor" strokeWidth="1.2" strokeOpacity=".55"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg>
-      </button>
-      <button type="button" className="rr-rail-btn rr-rail-spacer" title="Einstellungen" onClick={onBack} aria-label="Weitere Werkzeuge">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.6"/><path d="M12 2.5 V5 M12 19 V21.5 M2.5 12 H5 M19 12 H21.5 M5.2 5.2 L7 7 M17 17 L18.8 18.8 M18.8 5.2 L17 7 M7 17 L5.2 18.8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
-      </button>
-    </div>
+    <FeatureRail
+      active="nowcast"
+      onOpenFeature={onOpenFeature}
+      onHome={onBack}
+      navClass="rr-rail"
+      btnClass="rr-rail-btn"
+      activeClass="is-active"
+      homeBtnClass="rr-rail-btn rr-rail-spacer"
+    />
   );
 }
 

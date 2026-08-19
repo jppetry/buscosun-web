@@ -1,0 +1,22 @@
+{
+  "source": "EEA discomap CLC2018 (Corine/CLC2018_WM/MapServer/0), Code_18 IN (121,131,132)",
+  "attribution": "Generated using European Union's Copernicus Land Monitoring Service information",
+  "built": "2026-08-15",
+  "bbox": {
+    "west": 5.5,
+    "south": 45.5,
+    "east": 17.5,
+    "north": 55.5
+  },
+  "step": 0.01,
+  "width": 1200,
+  "height": 1000,
+  "polygons": 14562,
+  "cells": 25497,
+  "cellSharePct": 2.12,
+  "classes": [
+    "121",
+    "131",
+    "132"
+  ]
+}

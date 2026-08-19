@@ -1,5 +1,10 @@
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
+import firmsHandler from './netlify/edge-functions/firms.ts';
+
+// Node-Globals ohne @types/node (D-06: keine neue Abhängigkeit, auch keine
+// Typ-Abhängigkeit). Nur das, was hier wirklich benutzt wird.
+declare const process: { cwd(): string; env: Record<string, string | undefined> };
 
 // Upstream proxies for sources that block browser CORS. In production these
 // need a real backend proxy or a CORS-friendly mirror — dev + preview front
@@ -29,6 +34,15 @@ const upstreamProxy = {
     target: 'https://opendata.dwd.de',
     changeOrigin: true,
     rewrite: (p: string) => p.replace(/^\/_dwd_grib/, ''),
+  },
+  // MeteoAlarm (EUMETNET) — amtliche Schweizer Warnungen von MeteoSchweiz
+  // (Phase W2). Kein CORS am Ursprung (mit echtem Origin-Header gegengeprüft),
+  // daher derselbe Pfad wie in `netlify.toml`: ein dünner Rewrite, KEIN
+  // Durable-Cache — für Warnungen ausgeschlossen (`docs/API.md` §7).
+  '/_meteoalarm': {
+    target: 'https://feeds.meteoalarm.org',
+    changeOrigin: true,
+    rewrite: (p: string) => p.replace(/^\/_meteoalarm/, ''),
   },
   // NOAA GFS (AWS Open Data, S3 — Range-fähig, Public Domain) für den 3D-Globus.
   '/_gfs': {
@@ -62,8 +76,81 @@ const upstreamProxy = {
   },
 };
 
+/**
+ * Dev-/Preview-Gegenstück zur Edge Function `netlify/edge-functions/firms.ts`
+ * (Phase F0, von Jan am 2026-08-14 als Dev-Pfad (a) freigegeben).
+ *
+ * Warum nicht wie `/_dwd_wind` und `/_dwd_grib` ein dünner Pass-Through:
+ * Diese Route trägt ein Geheimnis. Ein Vite-`proxy`-Eintrag kann den MAP_KEY
+ * nicht in den Pfad setzen, ohne ihn in die eingecheckte Konfiguration zu
+ * schreiben — genau das, was §W.2.1 Auflage 1 ausschließt.
+ *
+ * Statt die Prüflogik ein zweites Mal zu schreiben (und sie auseinanderlaufen
+ * zu lassen), ruft dieses Plugin **den echten Edge-Handler** auf. Dev und
+ * Produktion können damit nicht divergieren: gleiche Whitelist, gleiche
+ * DACH-Hülle, gleiche Fehlertexte, gleiche CSV-Kopfprüfung.
+ *
+ * Der Schlüssel wird per `loadEnv` aus `.env.local` gelesen (gitignoriert über
+ * `*.local`) und in `process.env` gelegt, wo `readMapKey()` ihn findet.
+ * ⚠️ Das ist der **Node**-Prozess des Dev-Servers, nicht der Browser: Vite
+ * inlint aus `import.meta.env` ausschließlich `VITE_`-Variablen, und
+ * `process.env.<X>` wird im Client nur für `NODE_ENV` ersetzt. Der Wert kann
+ * also nicht ins Bundle geraten — `FIRMS_MAP_KEY` steht bewusst OHNE
+ * `VITE_`-Präfix und wird nirgends an `define` übergeben.
+ */
+function firmsDevProxy(): Plugin {
+  return {
+    name: 'buscosun:firms-dev',
+    config(_config, { command, mode }) {
+      // Nur Dev/Preview (`vite build` läuft mit command === 'build'): im Build
+      // wird der Schlüssel nicht einmal gelesen.
+      if (command !== 'serve') return;
+      const key = loadEnv(mode, process.cwd(), '').FIRMS_MAP_KEY?.trim();
+      if (key) process.env.FIRMS_MAP_KEY = key;
+    },
+    configureServer(server) {
+      server.middlewares.use(firmsDevMiddleware);
+    },
+    configurePreviewServer(server) {
+      server.middlewares.use(firmsDevMiddleware);
+    },
+  };
+}
+
+/**
+ * Minimale Strukturtypen statt @types/node (D-06). Die Parameter sind
+ * `unknown`, weil Connects `IncomingMessage`/`ServerResponse` ohne installierte
+ * Node-Typen zu leeren Interfaces auflösen — ein direkt annotierter Parameter
+ * würde deshalb an TS' Weak-Type-Prüfung scheitern, nicht an einem echten
+ * Typfehler. Die Einengung passiert hier, an einer Stelle, sichtbar.
+ */
+interface DevReq { url?: string; method?: string }
+interface DevRes { statusCode: number; setHeader(n: string, v: string): void; end(chunk?: string): void }
+
+async function firmsDevMiddleware(rawReq: unknown, rawRes: unknown, next: () => void): Promise<void> {
+  const req = rawReq as DevReq;
+  const res = rawRes as DevRes;
+  const path = req.url ?? '';
+  if (!path.startsWith('/_firms/')) { next(); return; }
+
+  const response = await firmsHandler(
+    new Request(`http://localhost${path}`, { method: req.method ?? 'GET' }),
+  );
+
+  res.statusCode = response.status;
+  response.headers.forEach((value, name) => {
+    // Cache-Header im Dev NICHT übernehmen: ein 5-Minuten-Browser-Cache macht
+    // jede Iteration am Layer zur Rätselarbeit. In Produktion greifen sie.
+    if (name.toLowerCase().startsWith('cache-control')) return;
+    if (name.toLowerCase() === 'netlify-cdn-cache-control') return;
+    res.setHeader(name, value);
+  });
+  res.setHeader('cache-control', 'no-store');
+  res.end(await response.text());
+}
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), firmsDevProxy()],
   // ESM-Worker (statt iife) — der bz2-Decompress-Worker nutzt einen dynamischen
   // import('bz2'), was Code-Splitting verlangt; iife unterstützt das nicht.
   worker: { format: 'es' },

@@ -33,7 +33,7 @@ const cache = new Map<Country, GeoJSON.Feature>();
 export async function loadCountryMask(country: Country): Promise<GeoJSON.Feature> {
   const cached = cache.get(country);
   if (cached) return cached;
-  const holes = await loadCountryHoles(country);
+  const holes = await loadCountryRings(country);
 
   const mask: GeoJSON.Feature = {
     type: 'Feature',
@@ -59,9 +59,9 @@ export function loadDachMask(): Promise<GeoJSON.Feature> {
   if (dachMaskPromise) return dachMaskPromise;
   dachMaskPromise = (async () => {
     const [de, at, ch] = await Promise.all([
-      loadCountryHoles('DE'),
-      loadCountryHoles('AT'),
-      loadCountryHoles('CH'),
+      loadCountryRings('DE'),
+      loadCountryRings('AT'),
+      loadCountryRings('CH'),
     ]);
     return {
       type: 'Feature',
@@ -88,9 +88,9 @@ export function loadDachRings(): Promise<number[][][]> {
   if (dachRingsPromise) return dachRingsPromise;
   dachRingsPromise = (async () => {
     const [de, at, ch] = await Promise.all([
-      loadCountryHoles('DE'),
-      loadCountryHoles('AT'),
-      loadCountryHoles('CH'),
+      loadCountryRings('DE'),
+      loadCountryRings('AT'),
+      loadCountryRings('CH'),
     ]);
     return [...de, ...at, ...ch];
   })();
@@ -114,6 +114,24 @@ export function pointInRings(rings: number[][][], lng: number, lat: number): boo
     }
   }
   return inside;
+}
+
+const ringsCache = new Map<Country, Promise<number[][][]>>();
+
+/**
+ * Raw boundary rings of a single country ([lng,lat] vertices) for point-in-country
+ * tests — e.g. labelling a wildfire cluster with the country it sits in
+ * (`fire/fireClusters.ts`). Cached per country, so the mask, the DACH rings and
+ * this share one fetch each (DE 866 + AT 484 + CH 366 vertices in total).
+ */
+export function loadCountryRings(country: Country): Promise<number[][][]> {
+  const cached = ringsCache.get(country);
+  if (cached) return cached;
+  const p = loadCountryHoles(country);
+  ringsCache.set(country, p);
+  // A failed load must not be remembered as "no rings" forever.
+  p.catch(() => ringsCache.delete(country));
+  return p;
 }
 
 async function loadCountryHoles(country: Country): Promise<number[][][]> {

@@ -1,0 +1,2710 @@
+{
+  "at": "2026-08-15T08:23:37.024Z",
+  "part": "wms",
+  "steps": {
+    "capabilities": {
+      "gwis": {
+        "status": 200,
+        "ms": 529,
+        "bytes": 190060,
+        "acao": "*",
+        "contentType": "text/xml; charset=UTF-8",
+        "error": null,
+        "layers": {
+          "GWIS": {
+            "title": "GWIS",
+            "abstract": "The Global Wildfire Information System (GWIS) supports the services in charge of the protection of forests against fires and provides the European Commission services and the European Parliament with updated and reliable information on wildland fires at the global level.",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=GWIS&format=image/png&STYLE=default"
+          },
+          "ecmwf.query": {
+            "title": "ecmwf.query",
+            "abstract": null,
+            "queryable": true,
+            "time": "2018-01-01/2099-12-31",
+            "timeDefault": "2019-01-01",
+            "legend": null
+          },
+          "ecmwf.fwi": {
+            "title": "ecmwf.fwi",
+            "abstract": "Fire Weather Index (FWI) from ECMWF reanalysis data. The FWI is a numerical rating of fire intensity and potential fire behavior, based on weather conditions such as temperature, humidity, wind speed, and precipitation. It is commonly used in wildfire management and forecasting to assess fire risk and guide firefighting efforts.",
+            "queryable": false,
+            "time": "2018-01-01/2099-12-31",
+            "timeDefault": "2019-01-01",
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=ecmwf.fwi&format=image/png&STYLE=default"
+          },
+          "ecmwf.ffmc": {
+            "title": "ecmwf.ffmc",
+            "abstract": "Fine Fuel Moisture Code (FFMC) from ECMWF reanalysis data. The FFMC is a numerical rating of the moisture content of fine fuels, such as grass and leaves, which can influence the ignition and spread of wildfires. It is commonly used in wildfire management and forecasting to assess fire risk and guide firefighting efforts.",
+            "queryable": false,
+            "time": "2018-01-01/2099-12-31",
+            "timeDefault": "2019-01-01",
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=ecmwf.ffmc&format=image/png&STYLE=default"
+          },
+          "ecmwf.dmc": {
+            "title": "ecmwf.dmc",
+            "abstract": "Duff Moisture Code (DMC) from ECMWF reanalysis data. The DMC is a numerical rating of the moisture content of medium-sized fuels, such as shrubs and small branches, which can influence the ignition and spread of wildfires. It is commonly used in wildfire management and forecasting to assess fire risk and guide firefighting efforts.",
+            "queryable": false,
+            "time": "2018-01-01/2099-12-31",
+            "timeDefault": "2019-01-01",
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=ecmwf.dmc&format=image/png&STYLE=default"
+          },
+          "ecmwf.dc": {
+            "title": "ecmwf.dc",
+            "abstract": "Drought Code (DC) from ECMWF reanalysis data. The DC is a numerical rating of the moisture content of deep, compacted organic layers, which can influence the ignition and spread of wildfires. It is commonly used in wildfire management and forecasting to assess fire risk and guide firefighting efforts.",
+            "queryable": false,
+            "time": "2018-01-01/2099-12-31",
+            "timeDefault": "2019-01-01",
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=ecmwf.dc&format=image/png&STYLE=default"
+          },
+          "ecmwf.isi": {
+            "title": "ecmwf.isi",
+            "abstract": "Initial Spread Index (ISI) from ECMWF reanalysis data. The ISI is a numerical rating of the expected rate of fire spread immediately after ignition, based on weather conditions such as wind speed and fine fuel moisture content. It is commonly used in wildfire management and forecasting to assess fire risk and guide firefighting efforts.",
+            "queryable": false,
+            "time": "2018-01-01/2099-12-31",
+            "timeDefault": "2019-01-01",
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=ecmwf.isi&format=image/png&STYLE=default"
+          },
+          "ecmwf.bui": {
+            "title": "ecmwf.bui",
+            "abstract": "Buildup Index (BUI) from ECMWF reanalysis data. The BUI is a numerical rating of the total amount of fuel available for combustion, based on weather conditions such as precipitation and temperature. It is commonly used in wildfire management and forecasting to assess fire risk and guide firefighting efforts.",
+            "queryable": false,
+            "time": "2018-01-01/2099-12-31",
+            "timeDefault": "2019-01-01",
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=ecmwf.bui&format=image/png&STYLE=default"
+          },
+          "ecmwf.anomaly": {
+            "title": "ecmwf.anomaly",
+            "abstract": null,
+            "queryable": false,
+            "time": "2018-01-01/2099-12-31",
+            "timeDefault": "2019-01-01",
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=ecmwf.anomaly&format=image/png&STYLE=default"
+          },
+          "ecmwf.anomaly_sigm": {
+            "title": "ecmwf.anomaly_raw",
+            "abstract": null,
+            "queryable": false,
+            "time": "2018-01-01/2099-12-31",
+            "timeDefault": "2019-01-01",
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=ecmwf.anomaly_sigm&format=image/png&STYLE=default"
+          },
+          "ecmwf.anomaly_day": {
+            "title": "ecmwf.anomaly_day",
+            "abstract": null,
+            "queryable": false,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=ecmwf.anomaly_day&format=image/png&STYLE=default"
+          },
+          "ecmwf.ranking": {
+            "title": "ecmwf.ranking",
+            "abstract": "Fire Weather Index (FWI) from ECMWF reanalysis data. The FWI is a numerical rating of fire intensity and potential fire behavior, based on weather conditions such as temperature, humidity, wind speed, and precipitation. It is commonly used in wildfire management and forecasting to assess fire risk and guide firefighting efforts.",
+            "queryable": false,
+            "time": "2018-01-01/2099-12-31",
+            "timeDefault": "2019-01-01",
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=ecmwf.ranking&format=image/png&STYLE=default"
+          },
+          "ecmwf.mark5.kbdi": {
+            "title": "ecmwf.mark5.kbdi",
+            "abstract": null,
+            "queryable": false,
+            "time": "2018-01-01/2099-12-31",
+            "timeDefault": "2019-01-01",
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=ecmwf.mark5.kbdi&format=image/png&STYLE=default"
+          },
+          "ecmwf.mark5.df": {
+            "title": "ecmwf.mark5.df",
+            "abstract": null,
+            "queryable": false,
+            "time": "2018-01-01/2099-12-31",
+            "timeDefault": "2019-01-01",
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=ecmwf.mark5.df&format=image/png&STYLE=default"
+          },
+          "ecmwf.mark5.ros": {
+            "title": "ecmwf.mark5.ros",
+            "abstract": null,
+            "queryable": false,
+            "time": "2018-01-01/2099-12-31",
+            "timeDefault": "2019-01-01",
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=ecmwf.mark5.ros&format=image/png&STYLE=default"
+          },
+          "ecmwf.mark5.fdi": {
+            "title": "ecmwf.mark5.fdi",
+            "abstract": null,
+            "queryable": false,
+            "time": "2018-01-01/2099-12-31",
+            "timeDefault": "2019-01-01",
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=ecmwf.mark5.fdi&format=image/png&STYLE=default"
+          },
+          "ecmwf.nfdrs.ros": {
+            "title": "ecmwf.nfdrs.ros",
+            "abstract": null,
+            "queryable": false,
+            "time": "2018-01-01/2099-12-31",
+            "timeDefault": "2019-01-01",
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=ecmwf.nfdrs.ros&format=image/png&STYLE=default"
+          },
+          "ecmwf.nfdrs.sc": {
+            "title": "ecmwf.nfdrs.sc",
+            "abstract": null,
+            "queryable": false,
+            "time": "2018-01-01/2099-12-31",
+            "timeDefault": "2019-01-01",
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=ecmwf.nfdrs.sc&format=image/png&STYLE=default"
+          },
+          "ecmwf.nfdrs.erc": {
+            "title": "ecmwf.nfdrs.erc",
+            "abstract": null,
+            "queryable": false,
+            "time": "2018-01-01/2099-12-31",
+            "timeDefault": "2019-01-01",
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=ecmwf.nfdrs.erc&format=image/png&STYLE=default"
+          },
+          "ecmwf.nfdrs.bi": {
+            "title": "ecmwf.nfdrs.bi",
+            "abstract": null,
+            "queryable": false,
+            "time": "2018-01-01/2099-12-31",
+            "timeDefault": "2019-01-01",
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=ecmwf.nfdrs.bi&format=image/png&STYLE=default"
+          },
+          "ecmwf.nfdrs.ic": {
+            "title": "ecmwf.nfdrs.ic",
+            "abstract": null,
+            "queryable": false,
+            "time": "2018-01-01/2099-12-31",
+            "timeDefault": "2019-01-01",
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=ecmwf.nfdrs.ic&format=image/png&STYLE=default"
+          },
+          "mf025.query": {
+            "title": "mf025.query",
+            "abstract": null,
+            "queryable": true,
+            "time": "2018-01-01/2099-12-31",
+            "timeDefault": "2022-01-15",
+            "legend": null
+          },
+          "mf025.fwi": {
+            "title": "mf025.fwi",
+            "abstract": null,
+            "queryable": false,
+            "time": "2018-01-01/2099-12-31",
+            "timeDefault": "2022-01-15",
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=mf025.fwi&format=image/png&STYLE=default"
+          },
+          "mf025.ffmc": {
+            "title": "mf025.ffmc",
+            "abstract": null,
+            "queryable": false,
+            "time": "2018-01-01/2099-12-31",
+            "timeDefault": "2022-01-15",
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=mf025.ffmc&format=image/png&STYLE=default"
+          },
+          "mf025.dmc": {
+            "title": "mf025.dmc",
+            "abstract": null,
+            "queryable": false,
+            "time": "2018-01-01/2099-12-31",
+            "timeDefault": "2022-01-15",
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=mf025.dmc&format=image/png&STYLE=default"
+          },
+          "mf025.dc": {
+            "title": "mf025.dc",
+            "abstract": null,
+            "queryable": false,
+            "time": "2018-01-01/2099-12-31",
+            "timeDefault": "2022-01-15",
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=mf025.dc&format=image/png&STYLE=default"
+          },
+          "mf025.isi": {
+            "title": "mf025.isi",
+            "abstract": null,
+            "queryable": false,
+            "time": "2018-01-01/2099-12-31",
+            "timeDefault": "2022-01-15",
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=mf025.isi&format=image/png&STYLE=default"
+          },
+          "mf025.bui": {
+            "title": "mf025.bui",
+            "abstract": null,
+            "queryable": false,
+            "time": "2018-01-01/2099-12-31",
+            "timeDefault": "2022-01-15",
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=mf025.bui&format=image/png&STYLE=default"
+          },
+          "mf025.anomaly": {
+            "title": "mf025.anomaly",
+            "abstract": null,
+            "queryable": false,
+            "time": "2018-01-01/2099-12-31",
+            "timeDefault": "2022-01-15",
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=mf025.anomaly&format=image/png&STYLE=default"
+          },
+          "mf025.ranking": {
+            "title": "mf025.ranking",
+            "abstract": null,
+            "queryable": false,
+            "time": "2018-01-01/2099-12-31",
+            "timeDefault": "2022-01-15",
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=mf025.ranking&format=image/png&STYLE=default"
+          },
+          "nasa_geos5.query": {
+            "title": "nasa_geos5.fwi",
+            "abstract": null,
+            "queryable": true,
+            "time": "2014-05-01/2099-12-31",
+            "timeDefault": "2017-03-01",
+            "legend": null
+          },
+          "nasa_geos5.fwi": {
+            "title": "nasa_geos5.fwi",
+            "abstract": null,
+            "queryable": false,
+            "time": "2014-05-01/2099-12-31",
+            "timeDefault": "2017-03-01",
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=nasa_geos5.fwi&format=image/png&STYLE=default"
+          },
+          "nasa_geos5.ffmc": {
+            "title": "nasa_geos5.ffmc",
+            "abstract": null,
+            "queryable": false,
+            "time": "2014-05-01/2099-12-31",
+            "timeDefault": "2017-03-01",
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=nasa_geos5.ffmc&format=image/png&STYLE=default"
+          },
+          "nasa_geos5.dmc": {
+            "title": "nasa_geos5.dmc",
+            "abstract": null,
+            "queryable": false,
+            "time": "2014-05-01/2099-12-31",
+            "timeDefault": "2017-03-01",
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=nasa_geos5.dmc&format=image/png&STYLE=default"
+          },
+          "nasa_geos5.dc": {
+            "title": "nasa_geos5.dc",
+            "abstract": null,
+            "queryable": false,
+            "time": "2014-05-01/2099-12-31",
+            "timeDefault": "2017-03-01",
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=nasa_geos5.dc&format=image/png&STYLE=default"
+          },
+          "nasa_geos5.isi": {
+            "title": "nasa_geos5.isi",
+            "abstract": null,
+            "queryable": false,
+            "time": "2014-05-01/2099-12-31",
+            "timeDefault": "2017-05-01",
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=nasa_geos5.isi&format=image/png&STYLE=default"
+          },
+          "nasa_geos5.bui": {
+            "title": "nasa_geos5.bui",
+            "abstract": null,
+            "queryable": false,
+            "time": "2014-05-01/2099-12-31",
+            "timeDefault": "2017-03-01",
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=nasa_geos5.bui&format=image/png&STYLE=default"
+          },
+          "ecmwf.extra.lightning": {
+            "title": "ecmwf.extra.lightning",
+            "abstract": "The GWIS ECMWF Lightning layer provides a near-real-time raster of lightning flash density derived from the European Centre for Medium-Range Weather Forecasts (ECMWF) Integrated Forecast System. Updated hourly, the product shows the estimated number of cloud-to-ground flashes per km² for the preceding 24 hours at a spatial resolution of approximately 0.1° (≈10 km). It covers the whole European Uni",
+            "queryable": false,
+            "time": "2019-11-05/2099-12-31",
+            "timeDefault": "2019-11-05",
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=ecmwf.extra.lightning&format=image/png&STYLE=default"
+          },
+          "ecmwf.extra.totalprecipitation": {
+            "title": "ecmwf.extra.totalprecipitation",
+            "abstract": "The GWIS ECMWF Total Precipitation layer provides a near-real-time forecast raster of accumulated precipitation derived from the European Centre for Medium-Range Weather Forecasts (ECMWF) Integrated Forecast System. Updated sub-daily, the product displays accumulated total precipitation in millimeters (mm) at a spatial resolution of approximately 0.07° (~7 km). It supports the European Forest Fire",
+            "queryable": false,
+            "time": "2019-11-05 00:00:00/2099-12-31 23:00:00",
+            "timeDefault": "2026-01-01 00:00:00",
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=ecmwf.extra.totalprecipitation&format=image/png&STYLE=default"
+          },
+          "ecmwf.extra.windspeed": {
+            "title": "ecmwf.extra.windspeed",
+            "abstract": "The GWIS ECMWF 10m Wind Speed layer provides a near-real-time forecast raster of 10-meter wind speed derived from the European Centre for Medium-Range Weather Forecasts (ECMWF) Integrated Forecast System. Updated sub-daily, the product displays 10m wind speed in meters per second (m/s) at a spatial resolution of approximately 0.07° (~7 km). It supports the European Forest Fire Information System (",
+            "queryable": false,
+            "time": "2019-11-05 00:00:00/2099-12-31 23:00:00/PT6H",
+            "timeDefault": "2026-01-01 00:00:00",
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=ecmwf.extra.windspeed&format=image/png&STYLE=default"
+          },
+          "ecmwf.extra.wind.uv": {
+            "title": "ecmwf.extra.wind.uv",
+            "abstract": "The GWIS ECMWF 10m Wind Vector layer provides a near-real-time forecast of 10-meter wind speed and direction derived from U and V components of the European Centre for Medium-Range Weather Forecasts (ECMWF) Integrated Forecast System.",
+            "queryable": false,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=ecmwf.extra.wind.uv&format=image/png&STYLE=default"
+          },
+          "fuel_map": {
+            "title": "Global Fuelmap",
+            "abstract": "Global Fuelmap test",
+            "queryable": false,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=fuel_map&format=image/png&STYLE=default"
+          },
+          "all.hs": {
+            "title": "all.hs",
+            "abstract": "Active fires (MODIS + VIIRS)",
+            "queryable": true,
+            "time": "2000-01-01/2099-12-31",
+            "timeDefault": "2020-01-01",
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=all.hs&format=image/png&STYLE=default"
+          },
+          "viirs.hs": {
+            "title": "viirs.hs",
+            "abstract": "Active fires (VIIRS)",
+            "queryable": true,
+            "time": "2000-01-01/2099-12-31",
+            "timeDefault": "2020-01-01",
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=viirs.hs&format=image/png&STYLE=default"
+          },
+          "viirs.hs.n20": {
+            "title": "viirs.hs.n20",
+            "abstract": "Active fires (VIIRS/NOAA-20)",
+            "queryable": true,
+            "time": "2000-01-01/2099-12-31",
+            "timeDefault": "2020-01-01",
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=viirs.hs.n20&format=image/png&STYLE=default"
+          },
+          "viirs.hs.n21": {
+            "title": "viirs.hs.n21",
+            "abstract": "Active fires (VIIRS/NOAA-21)",
+            "queryable": true,
+            "time": "2000-01-01/2099-12-31",
+            "timeDefault": "2020-01-01",
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=viirs.hs.n21&format=image/png&STYLE=default"
+          },
+          "viirs.hs.suomi": {
+            "title": "viirs.hs.suomi",
+            "abstract": "Active fires (VIIRS/SUOMI)",
+            "queryable": true,
+            "time": "2000-01-01/2099-12-31",
+            "timeDefault": "2020-01-01",
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=viirs.hs.suomi&format=image/png&STYLE=default"
+          },
+          "modis.hs": {
+            "title": "modis.hs",
+            "abstract": "Active fires (MODIS)",
+            "queryable": true,
+            "time": "2000-01-01/2099-12-31",
+            "timeDefault": "2020-01-01",
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=modis.hs&format=image/png&STYLE=default"
+          },
+          "s3.hs": {
+            "title": "s3.hs",
+            "abstract": "Active fires (Sentinel 3)",
+            "queryable": true,
+            "time": "2000-01-01/2099-12-31",
+            "timeDefault": "2020-01-01",
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=s3.hs&format=image/png&STYLE=default"
+          },
+          "all.hs.query": {
+            "title": "all.hs.query",
+            "abstract": "Active fires (MODIS + VIIRS)",
+            "queryable": true,
+            "time": "2000-01-01/2099-12-31",
+            "timeDefault": "2020-01-01",
+            "legend": null
+          },
+          "viirs.hs.query": {
+            "title": "viirs.hs.query",
+            "abstract": "Active fires (VIIRS)",
+            "queryable": true,
+            "time": "2000-01-01/2099-12-31",
+            "timeDefault": "2020-01-01",
+            "legend": null
+          },
+          "viirs.hs.n20.query": {
+            "title": "viirs.hs.n20.query",
+            "abstract": "Active fires (VIIRS/NOAA-20)",
+            "queryable": true,
+            "time": "2000-01-01/2099-12-31",
+            "timeDefault": "2020-01-01",
+            "legend": null
+          },
+          "viirs.hs.n21.query": {
+            "title": "viirs.hs.n21.query",
+            "abstract": "Active fires (VIIRS/NOAA-21)",
+            "queryable": true,
+            "time": "2000-01-01/2099-12-31",
+            "timeDefault": "2020-01-01",
+            "legend": null
+          },
+          "viirs.hs.suomi.query": {
+            "title": "viirs.hs.suomi.query",
+            "abstract": "Active fires (VIIRS/SUOMI)",
+            "queryable": true,
+            "time": "2000-01-01/2099-12-31",
+            "timeDefault": "2020-01-01",
+            "legend": null
+          },
+          "modis.hs.query": {
+            "title": "modis.hs.query",
+            "abstract": "Active fires (MODIS)",
+            "queryable": true,
+            "time": "2000-01-01/2099-12-31",
+            "timeDefault": "2020-01-01",
+            "legend": null
+          },
+          "s3.hs.query": {
+            "title": "modis.hs.query",
+            "abstract": "Active fires (MODIS)",
+            "queryable": true,
+            "time": "2000-01-01/2099-12-31",
+            "timeDefault": "2020-01-01",
+            "legend": null
+          },
+          "gwis.globfire.finalperim": {
+            "title": "gwis.globfire.finalperim",
+            "abstract": "GlobFire Burnt Areas",
+            "queryable": false,
+            "time": "2001-01-01/2099-12-31",
+            "timeDefault": "2021-01-01",
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=gwis.globfire.finalperim&format=image/png&STYLE=default"
+          },
+          "nrt.ba": {
+            "title": "nrt.ba",
+            "abstract": "nrt.ba",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=nrt.ba&format=image/png&STYLE=default"
+          },
+          "nrt.ba.poly": {
+            "title": "nrt.ba.poly",
+            "abstract": "GWIS NRT Burnt Areas Estimation",
+            "queryable": true,
+            "time": "2001-01-01/2099-12-31",
+            "timeDefault": "2019-01-01",
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=nrt.ba.poly&format=image/png&STYLE=default"
+          },
+          "nrt.ba.point.near": {
+            "title": "nrt.ba.point.near",
+            "abstract": "GWIS NRT Burnt Areas Estimation",
+            "queryable": true,
+            "time": "2001-01-01/2099-12-31",
+            "timeDefault": "2019-01-01",
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=nrt.ba.point.near&format=image/png&STYLE=default"
+          },
+          "nrt.ba.point.far": {
+            "title": "nrt.ba.point.far",
+            "abstract": "GWIS NRT Burnt Areas Estimation",
+            "queryable": true,
+            "time": "2001-01-01/2099-12-31",
+            "timeDefault": "2019-01-01",
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=nrt.ba.point.far&format=image/png&STYLE=default"
+          },
+          "nrt.ba.bbox": {
+            "title": "nrt.ba.bbox",
+            "abstract": "Bubbles Burnt Areas",
+            "queryable": true,
+            "time": "2001-01-01/2099-12-31",
+            "timeDefault": "2019-01-01",
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=nrt.ba.bbox&format=image/png&STYLE=default"
+          },
+          "query.nrt.ba": {
+            "title": "query.nrt.ba",
+            "abstract": "query.nrt.ba",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=query.nrt.ba&format=image/png&STYLE=default"
+          },
+          "nrt.ba.query": {
+            "title": "nrt.ba.query",
+            "abstract": "Bubbles Burnt Areas",
+            "queryable": true,
+            "time": "2001-01-01/2099-12-31",
+            "timeDefault": "2019-01-01",
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=nrt.ba.query&format=image/png&STYLE=default"
+          },
+          "ghsl": {
+            "title": "Global Human Settlment Layer - Built Up",
+            "abstract": "GHSL Built Up",
+            "queryable": false,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=ghsl&format=image/png&STYLE=default"
+          },
+          "all.hs.today": {
+            "title": "all.hs.today",
+            "abstract": "Active fires (MODIS + VIIRS)",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=all.hs.today&format=image/png&STYLE=default"
+          },
+          "viirs.hs.today": {
+            "title": "viirs.hs.today",
+            "abstract": "Active fires (VIIRS)",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=viirs.hs.today&format=image/png&STYLE=default"
+          },
+          "viirs.hs.n20.today": {
+            "title": "viirs.hs.n20.today",
+            "abstract": "Active fires (VIIRS/NOAA-20)",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=viirs.hs.n20.today&format=image/png&STYLE=default"
+          },
+          "viirs.hs.n21.today": {
+            "title": "viirs.hs.n21.today",
+            "abstract": "Active fires (VIIRS/NOAA-21)",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=viirs.hs.n21.today&format=image/png&STYLE=default"
+          },
+          "viirs.hs.suomi.today": {
+            "title": "viirs.hs.suomi.today",
+            "abstract": "Active fires (VIIRS/SUOMI)",
+            "queryable": true,
+            "time": "2000-01-01/2099-12-31",
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=viirs.hs.suomi.today&format=image/png&STYLE=default"
+          },
+          "modis.hs.today": {
+            "title": "modis.hs.today",
+            "abstract": "Active fires (MODIS)",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=modis.hs.today&format=image/png&STYLE=default"
+          },
+          "s3.hs.today": {
+            "title": "s3.hs.today",
+            "abstract": "Active fires (Sentinel 3)",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=s3.hs.today&format=image/png&STYLE=default"
+          },
+          "all.hs.week": {
+            "title": "all.hs.week",
+            "abstract": "Active fires (MODIS + VIIRS)",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=all.hs.week&format=image/png&STYLE=default"
+          },
+          "viirs.hs.week": {
+            "title": "viirs.hs.week",
+            "abstract": "Active fires (VIIRS)",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=viirs.hs.week&format=image/png&STYLE=default"
+          },
+          "viirs.hs.n20.week": {
+            "title": "viirs.hs.n20.week",
+            "abstract": "Active fires (VIIRS/NOAA-20)",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=viirs.hs.n20.week&format=image/png&STYLE=default"
+          },
+          "viirs.hs.n21.week": {
+            "title": "viirs.hs.n21.week",
+            "abstract": "Active fires (VIIRS/NOAA-21)",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=viirs.hs.n21.week&format=image/png&STYLE=default"
+          },
+          "viirs.hs.suomi.week": {
+            "title": "viirs.hs.suomi.week",
+            "abstract": "Active fires (VIIRS/SUOMI)",
+            "queryable": true,
+            "time": "2000-01-01/2099-12-31",
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=viirs.hs.suomi.week&format=image/png&STYLE=default"
+          },
+          "modis.hs.week": {
+            "title": "modis.hs.week",
+            "abstract": "Active fires (MODIS)",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=modis.hs.week&format=image/png&STYLE=default"
+          },
+          "s3.hs.week": {
+            "title": "s3.hs.week",
+            "abstract": "Active fires (Sentinel 3)",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=s3.hs.week&format=image/png&STYLE=default"
+          },
+          "all.hs.month": {
+            "title": "all.hs.month",
+            "abstract": "Active fires (MODIS + VIIRS)",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=all.hs.month&format=image/png&STYLE=default"
+          },
+          "viirs.hs.month": {
+            "title": "viirs.hs.month",
+            "abstract": "Active fires (VIIRS)",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=viirs.hs.month&format=image/png&STYLE=default"
+          },
+          "viirs.hs.n20.month": {
+            "title": "viirs.hs.n20.month",
+            "abstract": "Active fires (VIIRS/NOAA-20)",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=viirs.hs.n20.month&format=image/png&STYLE=default"
+          },
+          "viirs.hs.n21.month": {
+            "title": "viirs.hs.n21.month",
+            "abstract": "Active fires (VIIRS/NOAA-21)",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=viirs.hs.n21.month&format=image/png&STYLE=default"
+          },
+          "viirs.hs.suomi.month": {
+            "title": "viirs.hs.suomi.month",
+            "abstract": "Active fires (VIIRS/SUOMI)",
+            "queryable": true,
+            "time": "2000-01-01/2099-12-31",
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=viirs.hs.suomi.month&format=image/png&STYLE=default"
+          },
+          "modis.hs.month": {
+            "title": "modis.hs.month",
+            "abstract": "Active fires (MODIS)",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=modis.hs.month&format=image/png&STYLE=default"
+          },
+          "s3.hs.month": {
+            "title": "s3.hs.month",
+            "abstract": "Active fires (Sentinel 3)",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=s3.hs.month&format=image/png&STYLE=default"
+          },
+          "all.hs.season": {
+            "title": "all.hs.season",
+            "abstract": "Active fires (MODIS + VIIRS)",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=all.hs.season&format=image/png&STYLE=default"
+          },
+          "viirs.hs.season": {
+            "title": "viirs.hs.season",
+            "abstract": "Active fires (VIIRS)",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=viirs.hs.season&format=image/png&STYLE=default"
+          },
+          "viirs.hs.n20.season": {
+            "title": "viirs.hs.n20.season",
+            "abstract": "Active fires (VIIRS/NOAA-20)",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=viirs.hs.n20.season&format=image/png&STYLE=default"
+          },
+          "viirs.hs.n21.season": {
+            "title": "viirs.hs.n21.season",
+            "abstract": "Active fires (VIIRS/NOAA-21)",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=viirs.hs.n21.season&format=image/png&STYLE=default"
+          },
+          "viirs.hs.suomi.season": {
+            "title": "viirs.hs.suomi.season",
+            "abstract": "Active fires (VIIRS/SUOMI)",
+            "queryable": true,
+            "time": "2000-01-01/2099-12-31",
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=viirs.hs.suomi.season&format=image/png&STYLE=default"
+          },
+          "modis.hs.season": {
+            "title": "modis.hs.season",
+            "abstract": "Active fires (MODIS)",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=modis.hs.season&format=image/png&STYLE=default"
+          },
+          "s3.hs.season": {
+            "title": "s3.hs.season",
+            "abstract": "Active fires (Sentinel 3)",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=s3.hs.season&format=image/png&STYLE=default"
+          },
+          "nrt.ba.today": {
+            "title": "nrt.ba.today",
+            "abstract": "nrt.ba.today",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=nrt.ba.today&format=image/png&STYLE=default"
+          },
+          "nrt.ba.poly.today": {
+            "title": "nrt.ba.poly.today",
+            "abstract": "GWIS NRT Burnt Areas Estimation",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=nrt.ba.poly.today&format=image/png&STYLE=default"
+          },
+          "nrt.ba.point.today": {
+            "title": "nrt.ba.point.today",
+            "abstract": "GWIS NRT Burnt Areas Estimation",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=nrt.ba.point.today&format=image/png&STYLE=default"
+          },
+          "nrt.ba.bbox.today": {
+            "title": "nrt.ba.bbox.today",
+            "abstract": "Bubbles Burnt Areas",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=nrt.ba.bbox.today&format=image/png&STYLE=default"
+          },
+          "nrt.ba.week": {
+            "title": "nrt.ba.week",
+            "abstract": "nrt.ba.week",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=nrt.ba.week&format=image/png&STYLE=default"
+          },
+          "nrt.ba.poly.week": {
+            "title": "nrt.ba.poly.week",
+            "abstract": "GWIS NRT Burnt Areas Estimation",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=nrt.ba.poly.week&format=image/png&STYLE=default"
+          },
+          "nrt.ba.point.week": {
+            "title": "nrt.ba.point.week",
+            "abstract": "GWIS NRT Burnt Areas Estimation",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=nrt.ba.point.week&format=image/png&STYLE=default"
+          },
+          "nrt.ba.bbox.week": {
+            "title": "nrt.ba.bbox.week",
+            "abstract": "Bubbles Burnt Areas",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=nrt.ba.bbox.week&format=image/png&STYLE=default"
+          },
+          "nrt.ba.month": {
+            "title": "nrt.ba.month",
+            "abstract": "nrt.ba.month",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=nrt.ba.month&format=image/png&STYLE=default"
+          },
+          "nrt.ba.poly.month": {
+            "title": "nrt.ba.poly.month",
+            "abstract": "GWIS NRT Burnt Areas Estimation",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=nrt.ba.poly.month&format=image/png&STYLE=default"
+          },
+          "nrt.ba.point.month": {
+            "title": "nrt.ba.point.month",
+            "abstract": "GWIS NRT Burnt Areas Estimation",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=nrt.ba.point.month&format=image/png&STYLE=default"
+          },
+          "nrt.ba.bbox.month": {
+            "title": "nrt.ba.bbox.month",
+            "abstract": "Bubbles Burnt Areas",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=nrt.ba.bbox.month&format=image/png&STYLE=default"
+          },
+          "nrt.ba.season": {
+            "title": "nrt.ba.season",
+            "abstract": "nrt.ba.season",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=nrt.ba.season&format=image/png&STYLE=default"
+          },
+          "nrt.ba.poly.season": {
+            "title": "nrt.ba.poly.season",
+            "abstract": "GWIS NRT Burnt Areas Estimation",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=nrt.ba.poly.season&format=image/png&STYLE=default"
+          },
+          "nrt.ba.point.season": {
+            "title": "nrt.ba.point.season",
+            "abstract": "GWIS NRT Burnt Areas Estimation",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=nrt.ba.point.season&format=image/png&STYLE=default"
+          },
+          "nrt.ba.bbox.season": {
+            "title": "nrt.ba.bbox.season",
+            "abstract": "Bubbles Burnt Areas",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=nrt.ba.bbox.season&format=image/png&STYLE=default"
+          },
+          "wdpa.poly": {
+            "title": "wdpa.poly",
+            "abstract": "wdpa.poly",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=wdpa.poly&format=image/png&STYLE=default"
+          },
+          "wdpa.poly_0_3": {
+            "title": "wdpa.poly_0_3",
+            "abstract": "WDPA protected Areas",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=wdpa.poly_0_3&format=image/png&STYLE=default"
+          },
+          "wdpa.poly_0_03": {
+            "title": "wdpa.poly_0_03",
+            "abstract": "WDPA protected Areas",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=wdpa.poly_0_03&format=image/png&STYLE=default"
+          },
+          "wdpa.poly_0_003": {
+            "title": "wdpa.poly_0_003",
+            "abstract": "WDPA protected Areas",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=wdpa.poly_0_003&format=image/png&STYLE=default"
+          },
+          "wdpa.poly_raw": {
+            "title": "wdpa.poly_raw",
+            "abstract": "WDPA protected Areas",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=wdpa.poly_raw&format=image/png&STYLE=default"
+          },
+          "wdpa": {
+            "title": "wdpa",
+            "abstract": "wdpa",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=wdpa&format=image/png&STYLE=default"
+          },
+          "wdpa.point": {
+            "title": "wdpa.point",
+            "abstract": "WDPA protected Areas",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=wdpa.point&format=image/png&STYLE=default"
+          },
+          "landcover.mcd12": {
+            "title": "landcover.mcd12",
+            "abstract": "landcover.mcd12",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=landcover.mcd12&format=image/png&STYLE=default"
+          },
+          "landcover.mcd12.orig.2024": {
+            "title": "landcover.mcd12.orig.2024",
+            "abstract": "MODIS MCD12Q1 Land Cover Original (2024)",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=landcover.mcd12.orig.2024&format=image/png&STYLE=default"
+          },
+          "landcover.mcd12.2024": {
+            "title": "landcover.mcd12.2024",
+            "abstract": "MODIS MCD12Q1 Land Cover (2024)",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=landcover.mcd12.2024&format=image/png&STYLE=default"
+          },
+          "landcover.mcd12.2023": {
+            "title": "landcover.mcd12.2023",
+            "abstract": "MODIS MCD12Q1 Land Cover (2023)",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=landcover.mcd12.2023&format=image/png&STYLE=default"
+          }
+        },
+        "layerCount": 120,
+        "baLayers": [
+          "nrt.ba",
+          "nrt.ba.poly",
+          "nrt.ba.point.near",
+          "nrt.ba.point.far",
+          "nrt.ba.bbox",
+          "query.nrt.ba",
+          "nrt.ba.query",
+          "nrt.ba.today",
+          "nrt.ba.poly.today",
+          "nrt.ba.point.today",
+          "nrt.ba.bbox.today",
+          "nrt.ba.week",
+          "nrt.ba.poly.week",
+          "nrt.ba.point.week",
+          "nrt.ba.bbox.week",
+          "nrt.ba.month",
+          "nrt.ba.poly.month",
+          "nrt.ba.point.month",
+          "nrt.ba.bbox.month",
+          "nrt.ba.season",
+          "nrt.ba.poly.season",
+          "nrt.ba.point.season",
+          "nrt.ba.bbox.season"
+        ],
+        "hsLayers": [
+          "all.hs",
+          "viirs.hs",
+          "viirs.hs.n20",
+          "viirs.hs.n21",
+          "viirs.hs.suomi",
+          "modis.hs",
+          "s3.hs",
+          "all.hs.query",
+          "viirs.hs.query",
+          "viirs.hs.n20.query",
+          "viirs.hs.n21.query",
+          "viirs.hs.suomi.query",
+          "modis.hs.query",
+          "s3.hs.query",
+          "all.hs.today",
+          "viirs.hs.today",
+          "viirs.hs.n20.today",
+          "viirs.hs.n21.today",
+          "viirs.hs.suomi.today",
+          "modis.hs.today",
+          "s3.hs.today",
+          "all.hs.week",
+          "viirs.hs.week",
+          "viirs.hs.n20.week",
+          "viirs.hs.n21.week",
+          "viirs.hs.suomi.week",
+          "modis.hs.week",
+          "s3.hs.week",
+          "all.hs.month",
+          "viirs.hs.month",
+          "viirs.hs.n20.month",
+          "viirs.hs.n21.month",
+          "viirs.hs.suomi.month",
+          "modis.hs.month",
+          "s3.hs.month",
+          "all.hs.season",
+          "viirs.hs.season",
+          "viirs.hs.n20.season",
+          "viirs.hs.n21.season",
+          "viirs.hs.suomi.season",
+          "modis.hs.season",
+          "s3.hs.season"
+        ],
+        "indexLayers": [
+          "ecmwf.query",
+          "ecmwf.fwi",
+          "ecmwf.ffmc",
+          "ecmwf.dmc",
+          "ecmwf.dc",
+          "ecmwf.isi",
+          "ecmwf.bui",
+          "ecmwf.anomaly",
+          "ecmwf.anomaly_sigm",
+          "ecmwf.anomaly_day",
+          "ecmwf.ranking",
+          "ecmwf.mark5.kbdi",
+          "ecmwf.mark5.df",
+          "ecmwf.mark5.ros",
+          "ecmwf.mark5.fdi",
+          "ecmwf.nfdrs.ros",
+          "ecmwf.nfdrs.sc",
+          "ecmwf.nfdrs.erc",
+          "ecmwf.nfdrs.bi",
+          "ecmwf.nfdrs.ic",
+          "mf025.query",
+          "mf025.fwi",
+          "mf025.ffmc",
+          "mf025.dmc",
+          "mf025.dc",
+          "mf025.isi",
+          "mf025.bui",
+          "mf025.anomaly",
+          "mf025.ranking",
+          "nasa_geos5.query",
+          "nasa_geos5.fwi",
+          "nasa_geos5.ffmc",
+          "nasa_geos5.dmc",
+          "nasa_geos5.dc",
+          "nasa_geos5.isi",
+          "nasa_geos5.bui",
+          "ecmwf.extra.lightning",
+          "ecmwf.extra.totalprecipitation",
+          "ecmwf.extra.windspeed",
+          "ecmwf.extra.wind.uv"
+        ]
+      },
+      "effis": {
+        "status": 200,
+        "ms": 378,
+        "bytes": 104545,
+        "acao": "*",
+        "contentType": "text/xml; charset=UTF-8",
+        "error": null,
+        "layers": {
+          "EFFIS": {
+            "title": "EFFIS",
+            "abstract": "The European Forest Fire Information System (EFFIS) supports the services in charge of the protection of forests against fires in the EU countries and provides the European Commission services and the European Parliament with updated and reliable information on wildland fires in Europe.",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=EFFIS&format=image/png&STYLE=default"
+          },
+          "mf010.query": {
+            "title": "mf010.query",
+            "abstract": null,
+            "queryable": true,
+            "time": "2018-01-01/2099-12-31",
+            "timeDefault": "2019-01-01",
+            "legend": null
+          },
+          "mf010.fwi": {
+            "title": "mf010.fwi",
+            "abstract": null,
+            "queryable": false,
+            "time": "2018-01-01/2099-12-31",
+            "timeDefault": "2021-01-01",
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=mf010.fwi&format=image/png&STYLE=default"
+          },
+          "mf010.ffmc": {
+            "title": "mf010.ffmc",
+            "abstract": null,
+            "queryable": false,
+            "time": "2018-01-01/2099-12-31",
+            "timeDefault": "2019-01-01",
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=mf010.ffmc&format=image/png&STYLE=default"
+          },
+          "mf010.dmc": {
+            "title": "mf010.dmc",
+            "abstract": null,
+            "queryable": false,
+            "time": "2018-01-01/2099-12-31",
+            "timeDefault": "2019-01-01",
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=mf010.dmc&format=image/png&STYLE=default"
+          },
+          "mf010.dc": {
+            "title": "mf010.dc",
+            "abstract": null,
+            "queryable": false,
+            "time": "2018-01-01/2099-12-31",
+            "timeDefault": "2019-01-01",
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=mf010.dc&format=image/png&STYLE=default"
+          },
+          "mf010.isi": {
+            "title": "mf010.isi",
+            "abstract": null,
+            "queryable": false,
+            "time": "2018-01-01/2099-12-31",
+            "timeDefault": "2019-01-01",
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=mf010.isi&format=image/png&STYLE=default"
+          },
+          "mf010.bui": {
+            "title": "mf010.bui",
+            "abstract": null,
+            "queryable": false,
+            "time": "2018-01-01/2099-12-31",
+            "timeDefault": "2019-01-01",
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=mf010.bui&format=image/png&STYLE=default"
+          },
+          "mf010.anomaly": {
+            "title": "mf010.anomaly",
+            "abstract": null,
+            "queryable": false,
+            "time": "2018-01-01/2099-12-31",
+            "timeDefault": "2019-01-01",
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=mf010.anomaly&format=image/png&STYLE=default"
+          },
+          "mf010.ranking": {
+            "title": "mf010.ranking",
+            "abstract": null,
+            "queryable": false,
+            "time": "2018-01-01/2099-12-31",
+            "timeDefault": "2019-01-01",
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=mf010.ranking&format=image/png&STYLE=default"
+          },
+          "all.hs": {
+            "title": "all.hs",
+            "abstract": "Active fires (VIIRS)",
+            "queryable": true,
+            "time": "2000-01-01/2099-12-31",
+            "timeDefault": "2020-01-01",
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=all.hs&format=image/png&STYLE=default"
+          },
+          "viirs.hs": {
+            "title": "viirs.hs",
+            "abstract": "Active fires (VIIRS)",
+            "queryable": true,
+            "time": "2000-01-01/2099-12-31",
+            "timeDefault": "2020-01-01",
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=viirs.hs&format=image/png&STYLE=default"
+          },
+          "noaa.hs": {
+            "title": "noaa.hs",
+            "abstract": "Active fires (VIIRS)",
+            "queryable": true,
+            "time": "2000-01-01/2099-12-31",
+            "timeDefault": "2020-01-01",
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=noaa.hs&format=image/png&STYLE=default"
+          },
+          "modis.hs": {
+            "title": "modis.hs",
+            "abstract": "Active fires (VIIRS)",
+            "queryable": true,
+            "time": "2000-01-01/2099-12-31",
+            "timeDefault": "2020-01-01",
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=modis.hs&format=image/png&STYLE=default"
+          },
+          "all.hs.query": {
+            "title": "all.hs.query",
+            "abstract": "Active fires (VIIRS)",
+            "queryable": true,
+            "time": "2000-01-01/2099-12-31",
+            "timeDefault": "2020-01-01",
+            "legend": null
+          },
+          "viirs.hs.query": {
+            "title": "viirs.hs.query",
+            "abstract": "Active fires (VIIRS)",
+            "queryable": true,
+            "time": "2000-01-01/2099-12-31",
+            "timeDefault": "2020-01-01",
+            "legend": null
+          },
+          "noaa.hs.query": {
+            "title": "noaa.hs.query",
+            "abstract": "Active fires (VIIRS)",
+            "queryable": true,
+            "time": "2000-01-01/2099-12-31",
+            "timeDefault": "2020-01-01",
+            "legend": null
+          },
+          "modis.hs.query": {
+            "title": "modis.hs.query",
+            "abstract": "Active fires (VIIRS)",
+            "queryable": true,
+            "time": "2000-01-01/2099-12-31",
+            "timeDefault": "2020-01-01",
+            "legend": null
+          },
+          "modis.ba": {
+            "title": "modis.ba",
+            "abstract": "modis.ba",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=modis.ba&format=image/png&STYLE=default"
+          },
+          "modis.ba.poly": {
+            "title": "modis.ba.poly",
+            "abstract": "Current Season Burned Areas",
+            "queryable": true,
+            "time": "2000-01-01/2099-12-31",
+            "timeDefault": "2016-05-01",
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=modis.ba.poly&format=image/png&STYLE=default"
+          },
+          "modis.ba.point": {
+            "title": "modis.ba.point",
+            "abstract": "Current Season Burned Areas",
+            "queryable": true,
+            "time": "2000-01-01/2099-12-31",
+            "timeDefault": "2016-05-01",
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=modis.ba.point&format=image/png&STYLE=default"
+          },
+          "effis.nrt.ba": {
+            "title": "viirs.ba",
+            "abstract": "The GWIS Near‑Real‑Time Burnt‑Area layer presents the extent of recent fire impact derived from the clustering of VIIRS thermal‑anomaly (hotspot) detections. Individual VIIRS hotspots are grouped in space and time to delineate contiguous burnt‑area polygons, which are then updated at each acquisition cycle (up to 14 passes per day). The product provides a synoptic view of actively burning and fres",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=effis.nrt.ba&format=image/png&STYLE=default"
+          },
+          "effis.nrt.ba.poly": {
+            "title": "viirs.ba.poly",
+            "abstract": "The GWIS Near‑Real‑Time Burnt‑Area layer presents the extent of recent fire impact derived from the clustering of VIIRS thermal‑anomaly (hotspot) detections. Individual VIIRS hotspots are grouped in space and time to delineate contiguous burnt‑area polygons, which are then updated at each acquisition cycle (up to 14 passes per day). The product provides a synoptic view of actively burning and fres",
+            "queryable": true,
+            "time": "2000-01-01/2099-12-31",
+            "timeDefault": "2016-05-01",
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=effis.nrt.ba.poly&format=image/png&STYLE=default"
+          },
+          "effis.nrt.ba.point": {
+            "title": "viirs.ba.point",
+            "abstract": "The GWIS Near‑Real‑Time Burnt‑Area layer presents the extent of recent fire impact derived from the clustering of VIIRS thermal‑anomaly (hotspot) detections. Individual VIIRS hotspots are grouped in space and time to delineate contiguous burnt‑area polygons, which are then updated at each acquisition cycle (up to 14 passes per day). The product provides a synoptic view of actively burning and fres",
+            "queryable": true,
+            "time": "2000-01-01/2099-12-31",
+            "timeDefault": "2016-05-01",
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=effis.nrt.ba.point&format=image/png&STYLE=default"
+          },
+          "modis.ba.today": {
+            "title": "modis.ba.today",
+            "abstract": "modis.ba.today",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=modis.ba.today&format=image/png&STYLE=default"
+          },
+          "modis.ba.poly.today": {
+            "title": "modis.ba.poly.today",
+            "abstract": "Current Season Burned Areas",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=modis.ba.poly.today&format=image/png&STYLE=default"
+          },
+          "modis.ba.point.today": {
+            "title": "modis.ba.point",
+            "abstract": "Current Season Burned Areas",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=modis.ba.point.today&format=image/png&STYLE=default"
+          },
+          "modis.ba.week": {
+            "title": "modis.ba.week",
+            "abstract": "modis.ba.week",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=modis.ba.week&format=image/png&STYLE=default"
+          },
+          "modis.ba.poly.week": {
+            "title": "modis.ba.poly.week",
+            "abstract": "Current Season Burned Areas",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=modis.ba.poly.week&format=image/png&STYLE=default"
+          },
+          "modis.ba.point.week": {
+            "title": "modis.ba.point",
+            "abstract": "Current Season Burned Areas",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=modis.ba.point.week&format=image/png&STYLE=default"
+          },
+          "modis.ba.month": {
+            "title": "modis.ba.month",
+            "abstract": "modis.ba.month",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=modis.ba.month&format=image/png&STYLE=default"
+          },
+          "modis.ba.poly.month": {
+            "title": "modis.ba.poly.month",
+            "abstract": "Current Season Burned Areas",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=modis.ba.poly.month&format=image/png&STYLE=default"
+          },
+          "modis.ba.point.month": {
+            "title": "modis.ba.point",
+            "abstract": "Current Season Burned Areas",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=modis.ba.point.month&format=image/png&STYLE=default"
+          },
+          "modis.ba.season": {
+            "title": "modis.ba.season",
+            "abstract": "modis.ba.season",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=modis.ba.season&format=image/png&STYLE=default"
+          },
+          "modis.ba.poly.season": {
+            "title": "modis.ba.poly.season",
+            "abstract": "Current Season Burned Areas",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=modis.ba.poly.season&format=image/png&STYLE=default"
+          },
+          "modis.ba.point.season": {
+            "title": "modis.ba.point",
+            "abstract": "Current Season Burned Areas",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=modis.ba.point.season&format=image/png&STYLE=default"
+          },
+          "modis.ba.2016": {
+            "title": "modis.ba.2016",
+            "abstract": "modis.ba.2016",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=modis.ba.2016&format=image/png&STYLE=default"
+          },
+          "modis.ba.poly.2016": {
+            "title": "modis.ba.poly.2016",
+            "abstract": "Burned Areas 2016",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=modis.ba.poly.2016&format=image/png&STYLE=default"
+          },
+          "modis.ba.point.2016": {
+            "title": "modis.ba.point.2016",
+            "abstract": "Burned Areas 2016",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=modis.ba.point.2016&format=image/png&STYLE=default"
+          },
+          "modis.ba.2017": {
+            "title": "modis.ba.2017",
+            "abstract": "modis.ba.2017",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=modis.ba.2017&format=image/png&STYLE=default"
+          },
+          "modis.ba.poly.2017": {
+            "title": "modis.ba.poly.2017",
+            "abstract": "Burned Areas 2017",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=modis.ba.poly.2017&format=image/png&STYLE=default"
+          },
+          "modis.ba.point.2017": {
+            "title": "modis.ba.point.2017",
+            "abstract": "Burned Areas 2017",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=modis.ba.point.2017&format=image/png&STYLE=default"
+          },
+          "modis.ba.2018": {
+            "title": "modis.ba.2018",
+            "abstract": "modis.ba.2018",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=modis.ba.2018&format=image/png&STYLE=default"
+          },
+          "modis.ba.poly.2018": {
+            "title": "modis.ba.poly.2018",
+            "abstract": "Burned Areas 2018",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=modis.ba.poly.2018&format=image/png&STYLE=default"
+          },
+          "modis.ba.point.2018": {
+            "title": "modis.ba.point.2018",
+            "abstract": "Burned Areas 2018",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=modis.ba.point.2018&format=image/png&STYLE=default"
+          },
+          "modis.ba.2019": {
+            "title": "modis.ba.2019",
+            "abstract": "modis.ba.2019",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=modis.ba.2019&format=image/png&STYLE=default"
+          },
+          "modis.ba.poly.2019": {
+            "title": "modis.ba.poly.2019",
+            "abstract": "Burned Areas 2019",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=modis.ba.poly.2019&format=image/png&STYLE=default"
+          },
+          "modis.ba.point.2019": {
+            "title": "modis.ba.point.2019",
+            "abstract": "Burned Areas 2019",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=modis.ba.point.2019&format=image/png&STYLE=default"
+          },
+          "modis.ba.2020": {
+            "title": "modis.ba.2020",
+            "abstract": "modis.ba.2020",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=modis.ba.2020&format=image/png&STYLE=default"
+          },
+          "modis.ba.poly.2020": {
+            "title": "modis.ba.poly.2020",
+            "abstract": "Burned Areas 2020",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=modis.ba.poly.2020&format=image/png&STYLE=default"
+          },
+          "modis.ba.point.2020": {
+            "title": "modis.ba.point.2020",
+            "abstract": "Burned Areas 2020",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=modis.ba.point.2020&format=image/png&STYLE=default"
+          },
+          "modis.ba.2021": {
+            "title": "modis.ba.2021",
+            "abstract": "modis.ba.2021",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=modis.ba.2021&format=image/png&STYLE=default"
+          },
+          "modis.ba.poly.2021": {
+            "title": "modis.ba.poly.2021",
+            "abstract": "Burned Areas 2021",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=modis.ba.poly.2021&format=image/png&STYLE=default"
+          },
+          "modis.ba.point.2021": {
+            "title": "modis.ba.point.2021",
+            "abstract": "Burned Areas 2021",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=modis.ba.point.2021&format=image/png&STYLE=default"
+          },
+          "modis.ba.2022": {
+            "title": "modis.ba.2022",
+            "abstract": "modis.ba.2022",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=modis.ba.2022&format=image/png&STYLE=default"
+          },
+          "modis.ba.poly.2022": {
+            "title": "modis.ba.poly.2022",
+            "abstract": "Burned Areas 2022",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=modis.ba.poly.2022&format=image/png&STYLE=default"
+          },
+          "modis.ba.point.2022": {
+            "title": "modis.ba.point.2022",
+            "abstract": "Burned Areas 2022",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=modis.ba.point.2022&format=image/png&STYLE=default"
+          },
+          "modis.ba.2023": {
+            "title": "modis.ba.2023",
+            "abstract": "modis.ba.2023",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=modis.ba.2023&format=image/png&STYLE=default"
+          },
+          "modis.ba.poly.2023": {
+            "title": "modis.ba.poly.2023",
+            "abstract": "Burned Areas 2023",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=modis.ba.poly.2023&format=image/png&STYLE=default"
+          },
+          "modis.ba.point.2023": {
+            "title": "modis.ba.point.2023",
+            "abstract": "Burned Areas 2023",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=modis.ba.point.2023&format=image/png&STYLE=default"
+          },
+          "modis.ba.2024": {
+            "title": "modis.ba.2024",
+            "abstract": "modis.ba.2024",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=modis.ba.2024&format=image/png&STYLE=default"
+          },
+          "modis.ba.poly.2024": {
+            "title": "modis.ba.poly.2024",
+            "abstract": "Burned Areas 2024",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=modis.ba.poly.2024&format=image/png&STYLE=default"
+          },
+          "modis.ba.point.2024": {
+            "title": "modis.ba.point.2024",
+            "abstract": "Burned Areas 2024",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=modis.ba.point.2024&format=image/png&STYLE=default"
+          },
+          "modis.ba.2025": {
+            "title": "modis.ba.2025",
+            "abstract": "modis.ba.2025",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=modis.ba.2025&format=image/png&STYLE=default"
+          },
+          "modis.ba.poly.2025": {
+            "title": "modis.ba.poly.2025",
+            "abstract": "Burned Areas 2025",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=modis.ba.poly.2025&format=image/png&STYLE=default"
+          },
+          "modis.ba.point.2025": {
+            "title": "modis.ba.point.2025",
+            "abstract": "Burned Areas 2025",
+            "queryable": true,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=modis.ba.point.2025&format=image/png&STYLE=default"
+          },
+          "fuel_map": {
+            "title": "effis.fuel_map",
+            "abstract": "Fuel Map - ver. 2017",
+            "queryable": false,
+            "time": null,
+            "timeDefault": null,
+            "legend": "http://maps.effis.emergency.copernicus.eu/effis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=fuel_map&format=image/png&STYLE=default"
+          }
+        },
+        "layerCount": 67,
+        "baLayers": [
+          "modis.ba",
+          "modis.ba.poly",
+          "modis.ba.point",
+          "effis.nrt.ba",
+          "effis.nrt.ba.poly",
+          "effis.nrt.ba.point",
+          "modis.ba.today",
+          "modis.ba.poly.today",
+          "modis.ba.point.today",
+          "modis.ba.week",
+          "modis.ba.poly.week",
+          "modis.ba.point.week",
+          "modis.ba.month",
+          "modis.ba.poly.month",
+          "modis.ba.point.month",
+          "modis.ba.season",
+          "modis.ba.poly.season",
+          "modis.ba.point.season",
+          "modis.ba.2016",
+          "modis.ba.poly.2016",
+          "modis.ba.point.2016",
+          "modis.ba.2017",
+          "modis.ba.poly.2017",
+          "modis.ba.point.2017",
+          "modis.ba.2018",
+          "modis.ba.poly.2018",
+          "modis.ba.point.2018",
+          "modis.ba.2019",
+          "modis.ba.poly.2019",
+          "modis.ba.point.2019",
+          "modis.ba.2020",
+          "modis.ba.poly.2020",
+          "modis.ba.point.2020",
+          "modis.ba.2021",
+          "modis.ba.poly.2021",
+          "modis.ba.point.2021",
+          "modis.ba.2022",
+          "modis.ba.poly.2022",
+          "modis.ba.point.2022",
+          "modis.ba.2023",
+          "modis.ba.poly.2023",
+          "modis.ba.point.2023",
+          "modis.ba.2024",
+          "modis.ba.poly.2024",
+          "modis.ba.point.2024",
+          "modis.ba.2025",
+          "modis.ba.poly.2025",
+          "modis.ba.point.2025"
+        ],
+        "hsLayers": [
+          "all.hs",
+          "viirs.hs",
+          "noaa.hs",
+          "modis.hs",
+          "all.hs.query",
+          "viirs.hs.query",
+          "noaa.hs.query",
+          "modis.hs.query"
+        ],
+        "indexLayers": [
+          "mf010.query",
+          "mf010.fwi",
+          "mf010.ffmc",
+          "mf010.dmc",
+          "mf010.dc",
+          "mf010.isi",
+          "mf010.bui",
+          "mf010.anomaly",
+          "mf010.ranking"
+        ]
+      }
+    },
+    "render": {
+      "ecmwf.fwi": {
+        "today": {
+          "status": 200,
+          "ms": 283,
+          "bytes": 13347,
+          "acao": "*",
+          "contentType": "image/png",
+          "error": null,
+          "isPng": true,
+          "width": 512,
+          "height": 512,
+          "colorType": 6,
+          "visible": 232630,
+          "visibleShare": 0.887,
+          "distinctColors": 6,
+          "topColors": [
+            [
+              "230,172,0",
+              95285
+            ],
+            [
+              "217,112,16",
+              68476
+            ],
+            [
+              "205,226,78",
+              34260
+            ],
+            [
+              "173,6,14",
+              18058
+            ],
+            [
+              "156,255,192",
+              16284
+            ],
+            [
+              "58,0,21",
+              267
+            ]
+          ]
+        },
+        "legend": {
+          "url": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=ecmwf.fwi&format=image/png&STYLE=default",
+          "status": 200,
+          "ms": 145,
+          "bytes": 6442,
+          "acao": "*",
+          "contentType": "image/png",
+          "error": null,
+          "width": 146,
+          "height": 95
+        },
+        "horizon": {
+          "2026-08-13": 14542,
+          "2026-08-14": 14542,
+          "2026-08-15": 14542,
+          "2026-08-16": 14542,
+          "2026-08-17": 14542,
+          "2026-08-18": 14542,
+          "2026-08-19": 14542,
+          "2026-08-20": 14542,
+          "2026-08-21": 14542,
+          "2026-08-22": 14542,
+          "2026-08-23": 14542,
+          "2026-08-24": 0,
+          "2026-08-25": 0
+        }
+      },
+      "ecmwf.ranking": {
+        "today": {
+          "status": 200,
+          "ms": 329,
+          "bytes": 9208,
+          "acao": "*",
+          "contentType": "image/png",
+          "error": null,
+          "isPng": true,
+          "width": 512,
+          "height": 512,
+          "colorType": 6,
+          "visible": 232102,
+          "visibleShare": 0.885,
+          "distinctColors": 6,
+          "topColors": [
+            [
+              "58,0,21",
+              174948
+            ],
+            [
+              "173,6,14",
+              25005
+            ],
+            [
+              "217,112,16",
+              20801
+            ],
+            [
+              "230,172,0",
+              5684
+            ],
+            [
+              "156,255,192",
+              3375
+            ],
+            [
+              "205,226,78",
+              2289
+            ]
+          ]
+        },
+        "legend": {
+          "url": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=ecmwf.ranking&format=image/png&STYLE=default",
+          "status": 200,
+          "ms": 101,
+          "bytes": 7020,
+          "acao": "*",
+          "contentType": "image/png",
+          "error": null,
+          "width": 161,
+          "height": 95
+        },
+        "horizon": {
+          "2026-08-13": 14509,
+          "2026-08-14": 14509,
+          "2026-08-15": 14509,
+          "2026-08-16": 14509,
+          "2026-08-17": 14509,
+          "2026-08-18": 14509,
+          "2026-08-19": 14509,
+          "2026-08-20": 14509,
+          "2026-08-21": 14509,
+          "2026-08-22": 14509,
+          "2026-08-23": 14509,
+          "2026-08-24": 0,
+          "2026-08-25": 0
+        }
+      },
+      "ecmwf.dc": {
+        "today": {
+          "status": 200,
+          "ms": 281,
+          "bytes": 12331,
+          "acao": "*",
+          "contentType": "image/png",
+          "error": null,
+          "isPng": true,
+          "width": 512,
+          "height": 512,
+          "colorType": 6,
+          "visible": 232630,
+          "visibleShare": 0.887,
+          "distinctColors": 6,
+          "topColors": [
+            [
+              "217,112,16",
+              98035
+            ],
+            [
+              "230,172,0",
+              50907
+            ],
+            [
+              "173,6,14",
+              41793
+            ],
+            [
+              "156,255,192",
+              21858
+            ],
+            [
+              "205,226,78",
+              15510
+            ],
+            [
+              "58,0,21",
+              4527
+            ]
+          ]
+        },
+        "legend": {
+          "url": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=ecmwf.dc&format=image/png&STYLE=default",
+          "status": 200,
+          "ms": 109,
+          "bytes": 7328,
+          "acao": "*",
+          "contentType": "image/png",
+          "error": null,
+          "width": 158,
+          "height": 95
+        },
+        "horizon": {
+          "2026-08-13": 14542,
+          "2026-08-14": 14542,
+          "2026-08-15": 14542,
+          "2026-08-16": 14542,
+          "2026-08-17": 14542,
+          "2026-08-18": 14542,
+          "2026-08-19": 14542,
+          "2026-08-20": 14542,
+          "2026-08-21": 14542,
+          "2026-08-22": 14542,
+          "2026-08-23": 14542,
+          "2026-08-24": 0,
+          "2026-08-25": 0
+        }
+      },
+      "ecmwf.isi": {
+        "today": {
+          "status": 200,
+          "ms": 283,
+          "bytes": 12655,
+          "acao": "*",
+          "contentType": "image/png",
+          "error": null,
+          "isPng": true,
+          "width": 512,
+          "height": 512,
+          "colorType": 6,
+          "visible": 232630,
+          "visibleShare": 0.887,
+          "distinctColors": 6,
+          "topColors": [
+            [
+              "217,112,16",
+              126436
+            ],
+            [
+              "173,6,14",
+              64251
+            ],
+            [
+              "230,172,0",
+              23909
+            ],
+            [
+              "156,255,192",
+              9823
+            ],
+            [
+              "205,226,78",
+              8202
+            ],
+            [
+              "58,0,21",
+              9
+            ]
+          ]
+        },
+        "legend": {
+          "url": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=ecmwf.isi&format=image/png&STYLE=default",
+          "status": 200,
+          "ms": 108,
+          "bytes": 6271,
+          "acao": "*",
+          "contentType": "image/png",
+          "error": null,
+          "width": 143,
+          "height": 95
+        },
+        "horizon": {
+          "2026-08-13": 14542,
+          "2026-08-14": 14542,
+          "2026-08-15": 14542,
+          "2026-08-16": 14542,
+          "2026-08-17": 14542,
+          "2026-08-18": 14542,
+          "2026-08-19": 14542,
+          "2026-08-20": 14542,
+          "2026-08-21": 14542,
+          "2026-08-22": 14542,
+          "2026-08-23": 14542,
+          "2026-08-24": 0,
+          "2026-08-25": 0
+        }
+      },
+      "ecmwf.ffmc": {
+        "today": {
+          "status": 200,
+          "ms": 286,
+          "bytes": 12509,
+          "acao": "*",
+          "contentType": "image/png",
+          "error": null,
+          "isPng": true,
+          "width": 512,
+          "height": 512,
+          "colorType": 6,
+          "visible": 232630,
+          "visibleShare": 0.887,
+          "distinctColors": 6,
+          "topColors": [
+            [
+              "173,6,14",
+              118884
+            ],
+            [
+              "217,112,16",
+              49393
+            ],
+            [
+              "58,0,21",
+              28343
+            ],
+            [
+              "230,172,0",
+              19498
+            ],
+            [
+              "205,226,78",
+              9199
+            ],
+            [
+              "156,255,192",
+              7313
+            ]
+          ]
+        },
+        "legend": {
+          "url": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=ecmwf.ffmc&format=image/png&STYLE=default",
+          "status": 200,
+          "ms": 112,
+          "bytes": 6806,
+          "acao": "*",
+          "contentType": "image/png",
+          "error": null,
+          "width": 146,
+          "height": 95
+        },
+        "horizon": {
+          "2026-08-13": 14542,
+          "2026-08-14": 14542,
+          "2026-08-15": 14542,
+          "2026-08-16": 14542,
+          "2026-08-17": 14542,
+          "2026-08-18": 14542,
+          "2026-08-19": 14542,
+          "2026-08-20": 14542,
+          "2026-08-21": 14542,
+          "2026-08-22": 14542,
+          "2026-08-23": 14542,
+          "2026-08-24": 0,
+          "2026-08-25": 0
+        }
+      },
+      "ecmwf.anomaly": {
+        "today": {
+          "status": 200,
+          "ms": 255,
+          "bytes": 9394,
+          "acao": "*",
+          "contentType": "image/png",
+          "error": null,
+          "isPng": true,
+          "width": 512,
+          "height": 512,
+          "colorType": 6,
+          "visible": 232630,
+          "visibleShare": 0.887,
+          "distinctColors": 6,
+          "topColors": [
+            [
+              "58,0,21",
+              178945
+            ],
+            [
+              "173,6,14",
+              28116
+            ],
+            [
+              "217,112,16",
+              8584
+            ],
+            [
+              "230,172,0",
+              6843
+            ],
+            [
+              "156,255,192",
+              6046
+            ],
+            [
+              "205,226,78",
+              4096
+            ]
+          ]
+        },
+        "legend": {
+          "url": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=ecmwf.anomaly&format=image/png&STYLE=default",
+          "status": 200,
+          "ms": 111,
+          "bytes": 5994,
+          "acao": "*",
+          "contentType": "image/png",
+          "error": null,
+          "width": 137,
+          "height": 95
+        },
+        "horizon": {
+          "2026-08-13": 14542,
+          "2026-08-14": 14542,
+          "2026-08-15": 14542,
+          "2026-08-16": 14542,
+          "2026-08-17": 14542,
+          "2026-08-18": 14542,
+          "2026-08-19": 14542,
+          "2026-08-20": 14542,
+          "2026-08-21": 14542,
+          "2026-08-22": 14542,
+          "2026-08-23": 14542,
+          "2026-08-24": 0,
+          "2026-08-25": 0
+        }
+      },
+      "ecmwf.anomaly_sigm": {
+        "today": {
+          "status": 200,
+          "ms": 258,
+          "bytes": 9340,
+          "acao": "*",
+          "contentType": "image/png",
+          "error": null,
+          "isPng": true,
+          "width": 512,
+          "height": 512,
+          "colorType": 6,
+          "visible": 232102,
+          "visibleShare": 0.885,
+          "distinctColors": 6,
+          "topColors": [
+            [
+              "58,0,21",
+              178945
+            ],
+            [
+              "173,6,14",
+              28116
+            ],
+            [
+              "217,112,16",
+              8584
+            ],
+            [
+              "230,172,0",
+              6843
+            ],
+            [
+              "156,255,192",
+              5518
+            ],
+            [
+              "205,226,78",
+              4096
+            ]
+          ]
+        },
+        "legend": {
+          "url": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=ecmwf.anomaly_sigm&format=image/png&STYLE=default",
+          "status": 200,
+          "ms": 110,
+          "bytes": 5994,
+          "acao": "*",
+          "contentType": "image/png",
+          "error": null,
+          "width": 137,
+          "height": 95
+        }
+      },
+      "ecmwf.anomaly_day": {
+        "today": {
+          "status": 200,
+          "ms": 68,
+          "bytes": 675,
+          "acao": "*",
+          "contentType": "text/xml; charset=UTF-8",
+          "error": null,
+          "isPng": false
+        },
+        "legend": {
+          "url": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=ecmwf.anomaly_day&format=image/png&STYLE=default",
+          "status": 200,
+          "ms": 108,
+          "bytes": 5994,
+          "acao": "*",
+          "contentType": "image/png",
+          "error": null,
+          "width": 137,
+          "height": 95
+        }
+      },
+      "mf025.fwi": {
+        "today": {
+          "status": 200,
+          "ms": 156,
+          "bytes": 11597,
+          "acao": "*",
+          "contentType": "image/png",
+          "error": null,
+          "isPng": true,
+          "width": 512,
+          "height": 512,
+          "colorType": 6,
+          "visible": 238243,
+          "visibleShare": 0.909,
+          "distinctColors": 6,
+          "topColors": [
+            [
+              "217,112,16",
+              85734
+            ],
+            [
+              "230,172,0",
+              71274
+            ],
+            [
+              "173,6,14",
+              44846
+            ],
+            [
+              "205,226,78",
+              18105
+            ],
+            [
+              "156,255,192",
+              17243
+            ],
+            [
+              "58,0,21",
+              1041
+            ]
+          ]
+        },
+        "legend": {
+          "url": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=mf025.fwi&format=image/png&STYLE=default",
+          "status": 200,
+          "ms": 100,
+          "bytes": 6442,
+          "acao": "*",
+          "contentType": "image/png",
+          "error": null,
+          "width": 146,
+          "height": 95
+        },
+        "horizon": {
+          "2026-08-13": 14893,
+          "2026-08-14": 14893,
+          "2026-08-15": 14893,
+          "2026-08-16": 14893,
+          "2026-08-17": 14893,
+          "2026-08-18": 0,
+          "2026-08-19": 0,
+          "2026-08-20": 0,
+          "2026-08-21": 0,
+          "2026-08-22": 0,
+          "2026-08-23": 0,
+          "2026-08-24": 0,
+          "2026-08-25": 0
+        }
+      },
+      "nasa_geos5.fwi": {
+        "today": {
+          "status": 200,
+          "ms": 187,
+          "bytes": 7886,
+          "acao": "*",
+          "contentType": "image/png",
+          "error": null,
+          "isPng": true,
+          "width": 512,
+          "height": 512,
+          "colorType": 6,
+          "visible": 235518,
+          "visibleShare": 0.898,
+          "distinctColors": 5,
+          "topColors": [
+            [
+              "230,172,0",
+              106810
+            ],
+            [
+              "205,226,78",
+              69319
+            ],
+            [
+              "156,255,192",
+              36386
+            ],
+            [
+              "217,112,16",
+              15923
+            ],
+            [
+              "173,6,14",
+              7080
+            ]
+          ]
+        },
+        "legend": {
+          "url": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=nasa_geos5.fwi&format=image/png&STYLE=default",
+          "status": 200,
+          "ms": 101,
+          "bytes": 6442,
+          "acao": "*",
+          "contentType": "image/png",
+          "error": null,
+          "width": 146,
+          "height": 95
+        },
+        "horizon": {
+          "2026-08-13": 14734,
+          "2026-08-14": 14734,
+          "2026-08-15": 14734,
+          "2026-08-16": 14734,
+          "2026-08-17": 14734,
+          "2026-08-18": 14734,
+          "2026-08-19": 14734,
+          "2026-08-20": 14734,
+          "2026-08-21": 14734,
+          "2026-08-22": 0,
+          "2026-08-23": 0,
+          "2026-08-24": 0,
+          "2026-08-25": 0
+        }
+      },
+      "ecmwf.dmc": {
+        "today": {
+          "status": 200,
+          "ms": 273,
+          "bytes": 12152,
+          "acao": "*",
+          "contentType": "image/png",
+          "error": null,
+          "isPng": true,
+          "width": 512,
+          "height": 512,
+          "colorType": 6,
+          "visible": 232630,
+          "visibleShare": 0.887,
+          "distinctColors": 6,
+          "topColors": [
+            [
+              "173,6,14",
+              78292
+            ],
+            [
+              "217,112,16",
+              64223
+            ],
+            [
+              "230,172,0",
+              47915
+            ],
+            [
+              "205,226,78",
+              26282
+            ],
+            [
+              "156,255,192",
+              9530
+            ],
+            [
+              "58,0,21",
+              6388
+            ]
+          ]
+        },
+        "legend": {
+          "url": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=ecmwf.dmc&format=image/png&STYLE=default",
+          "status": 200,
+          "ms": 102,
+          "bytes": 6620,
+          "acao": "*",
+          "contentType": "image/png",
+          "error": null,
+          "width": 149,
+          "height": 95
+        }
+      },
+      "ecmwf.bui": {
+        "today": {
+          "status": 200,
+          "ms": 279,
+          "bytes": 11715,
+          "acao": "*",
+          "contentType": "image/png",
+          "error": null,
+          "isPng": true,
+          "width": 512,
+          "height": 512,
+          "colorType": 6,
+          "visible": 232630,
+          "visibleShare": 0.887,
+          "distinctColors": 6,
+          "topColors": [
+            [
+              "217,112,16",
+              94721
+            ],
+            [
+              "173,6,14",
+              56135
+            ],
+            [
+              "230,172,0",
+              40981
+            ],
+            [
+              "205,226,78",
+              20798
+            ],
+            [
+              "58,0,21",
+              11266
+            ],
+            [
+              "156,255,192",
+              8729
+            ]
+          ]
+        },
+        "legend": {
+          "url": "http://maps.effis.emergency.copernicus.eu/gwis?language=eng&version=1.3.0&service=WMS&request=GetLegendGraphic&sld_version=1.1.0&layer=ecmwf.bui&format=image/png&STYLE=default",
+          "status": 200,
+          "ms": 109,
+          "bytes": 6665,
+          "acao": "*",
+          "contentType": "image/png",
+          "error": null,
+          "width": 152,
+          "height": 95
+        }
+      }
+    },
+    "getFeatureInfo": {
+      "ecmwf.fwi": {
+        "text/plain": {
+          "status": 200,
+          "ms": 62,
+          "bytes": 503,
+          "acao": "*",
+          "contentType": "text/xml; charset=UTF-8",
+          "error": null,
+          "body": "<?xml version='1.0' encoding=\"UTF-8\" standalone=\"no\" ?> <ServiceExceptionReport version=\"1.3.0\" xmlns=\"http://www.opengis.net/ogc\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://www.opengis.net/ogc http://schemas.opengis.net/wms/1.3.0/exceptions_1_3_0.xsd\"> <Service"
+        },
+        "application/json": {
+          "status": 200,
+          "ms": 67,
+          "bytes": 503,
+          "acao": "*",
+          "contentType": "text/xml; charset=UTF-8",
+          "error": null,
+          "body": "<?xml version='1.0' encoding=\"UTF-8\" standalone=\"no\" ?> <ServiceExceptionReport version=\"1.3.0\" xmlns=\"http://www.opengis.net/ogc\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://www.opengis.net/ogc http://schemas.opengis.net/wms/1.3.0/exceptions_1_3_0.xsd\"> <Service"
+        },
+        "text/html": {
+          "status": 200,
+          "ms": 64,
+          "bytes": 503,
+          "acao": "*",
+          "contentType": "text/xml; charset=UTF-8",
+          "error": null,
+          "body": "<?xml version='1.0' encoding=\"UTF-8\" standalone=\"no\" ?> <ServiceExceptionReport version=\"1.3.0\" xmlns=\"http://www.opengis.net/ogc\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://www.opengis.net/ogc http://schemas.opengis.net/wms/1.3.0/exceptions_1_3_0.xsd\"> <Service"
+        },
+        "application/vnd.ogc.gml": {
+          "status": 200,
+          "ms": 69,
+          "bytes": 503,
+          "acao": "*",
+          "contentType": "text/xml; charset=UTF-8",
+          "error": null,
+          "body": "<?xml version='1.0' encoding=\"UTF-8\" standalone=\"no\" ?> <ServiceExceptionReport version=\"1.3.0\" xmlns=\"http://www.opengis.net/ogc\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://www.opengis.net/ogc http://schemas.opengis.net/wms/1.3.0/exceptions_1_3_0.xsd\"> <Service"
+        }
+      },
+      "ecmwf.ranking": {
+        "text/plain": {
+          "status": 200,
+          "ms": 61,
+          "bytes": 503,
+          "acao": "*",
+          "contentType": "text/xml; charset=UTF-8",
+          "error": null,
+          "body": "<?xml version='1.0' encoding=\"UTF-8\" standalone=\"no\" ?> <ServiceExceptionReport version=\"1.3.0\" xmlns=\"http://www.opengis.net/ogc\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://www.opengis.net/ogc http://schemas.opengis.net/wms/1.3.0/exceptions_1_3_0.xsd\"> <Service"
+        },
+        "application/json": {
+          "status": 200,
+          "ms": 62,
+          "bytes": 503,
+          "acao": "*",
+          "contentType": "text/xml; charset=UTF-8",
+          "error": null,
+          "body": "<?xml version='1.0' encoding=\"UTF-8\" standalone=\"no\" ?> <ServiceExceptionReport version=\"1.3.0\" xmlns=\"http://www.opengis.net/ogc\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://www.opengis.net/ogc http://schemas.opengis.net/wms/1.3.0/exceptions_1_3_0.xsd\"> <Service"
+        },
+        "text/html": {
+          "status": 200,
+          "ms": 59,
+          "bytes": 503,
+          "acao": "*",
+          "contentType": "text/xml; charset=UTF-8",
+          "error": null,
+          "body": "<?xml version='1.0' encoding=\"UTF-8\" standalone=\"no\" ?> <ServiceExceptionReport version=\"1.3.0\" xmlns=\"http://www.opengis.net/ogc\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://www.opengis.net/ogc http://schemas.opengis.net/wms/1.3.0/exceptions_1_3_0.xsd\"> <Service"
+        },
+        "application/vnd.ogc.gml": {
+          "status": 200,
+          "ms": 59,
+          "bytes": 503,
+          "acao": "*",
+          "contentType": "text/xml; charset=UTF-8",
+          "error": null,
+          "body": "<?xml version='1.0' encoding=\"UTF-8\" standalone=\"no\" ?> <ServiceExceptionReport version=\"1.3.0\" xmlns=\"http://www.opengis.net/ogc\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://www.opengis.net/ogc http://schemas.opengis.net/wms/1.3.0/exceptions_1_3_0.xsd\"> <Service"
+        }
+      },
+      "ecmwf.dc": {
+        "text/plain": {
+          "status": 200,
+          "ms": 60,
+          "bytes": 503,
+          "acao": "*",
+          "contentType": "text/xml; charset=UTF-8",
+          "error": null,
+          "body": "<?xml version='1.0' encoding=\"UTF-8\" standalone=\"no\" ?> <ServiceExceptionReport version=\"1.3.0\" xmlns=\"http://www.opengis.net/ogc\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://www.opengis.net/ogc http://schemas.opengis.net/wms/1.3.0/exceptions_1_3_0.xsd\"> <Service"
+        },
+        "application/json": {
+          "status": 200,
+          "ms": 62,
+          "bytes": 503,
+          "acao": "*",
+          "contentType": "text/xml; charset=UTF-8",
+          "error": null,
+          "body": "<?xml version='1.0' encoding=\"UTF-8\" standalone=\"no\" ?> <ServiceExceptionReport version=\"1.3.0\" xmlns=\"http://www.opengis.net/ogc\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://www.opengis.net/ogc http://schemas.opengis.net/wms/1.3.0/exceptions_1_3_0.xsd\"> <Service"
+        },
+        "text/html": {
+          "status": 200,
+          "ms": 58,
+          "bytes": 503,
+          "acao": "*",
+          "contentType": "text/xml; charset=UTF-8",
+          "error": null,
+          "body": "<?xml version='1.0' encoding=\"UTF-8\" standalone=\"no\" ?> <ServiceExceptionReport version=\"1.3.0\" xmlns=\"http://www.opengis.net/ogc\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://www.opengis.net/ogc http://schemas.opengis.net/wms/1.3.0/exceptions_1_3_0.xsd\"> <Service"
+        },
+        "application/vnd.ogc.gml": {
+          "status": 200,
+          "ms": 71,
+          "bytes": 503,
+          "acao": "*",
+          "contentType": "text/xml; charset=UTF-8",
+          "error": null,
+          "body": "<?xml version='1.0' encoding=\"UTF-8\" standalone=\"no\" ?> <ServiceExceptionReport version=\"1.3.0\" xmlns=\"http://www.opengis.net/ogc\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://www.opengis.net/ogc http://schemas.opengis.net/wms/1.3.0/exceptions_1_3_0.xsd\"> <Service"
+        }
+      },
+      "ecmwf.isi": {
+        "text/plain": {
+          "status": 200,
+          "ms": 59,
+          "bytes": 503,
+          "acao": "*",
+          "contentType": "text/xml; charset=UTF-8",
+          "error": null,
+          "body": "<?xml version='1.0' encoding=\"UTF-8\" standalone=\"no\" ?> <ServiceExceptionReport version=\"1.3.0\" xmlns=\"http://www.opengis.net/ogc\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://www.opengis.net/ogc http://schemas.opengis.net/wms/1.3.0/exceptions_1_3_0.xsd\"> <Service"
+        },
+        "application/json": {
+          "status": 200,
+          "ms": 59,
+          "bytes": 503,
+          "acao": "*",
+          "contentType": "text/xml; charset=UTF-8",
+          "error": null,
+          "body": "<?xml version='1.0' encoding=\"UTF-8\" standalone=\"no\" ?> <ServiceExceptionReport version=\"1.3.0\" xmlns=\"http://www.opengis.net/ogc\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://www.opengis.net/ogc http://schemas.opengis.net/wms/1.3.0/exceptions_1_3_0.xsd\"> <Service"
+        },
+        "text/html": {
+          "status": 200,
+          "ms": 72,
+          "bytes": 503,
+          "acao": "*",
+          "contentType": "text/xml; charset=UTF-8",
+          "error": null,
+          "body": "<?xml version='1.0' encoding=\"UTF-8\" standalone=\"no\" ?> <ServiceExceptionReport version=\"1.3.0\" xmlns=\"http://www.opengis.net/ogc\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://www.opengis.net/ogc http://schemas.opengis.net/wms/1.3.0/exceptions_1_3_0.xsd\"> <Service"
+        },
+        "application/vnd.ogc.gml": {
+          "status": 200,
+          "ms": 60,
+          "bytes": 503,
+          "acao": "*",
+          "contentType": "text/xml; charset=UTF-8",
+          "error": null,
+          "body": "<?xml version='1.0' encoding=\"UTF-8\" standalone=\"no\" ?> <ServiceExceptionReport version=\"1.3.0\" xmlns=\"http://www.opengis.net/ogc\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://www.opengis.net/ogc http://schemas.opengis.net/wms/1.3.0/exceptions_1_3_0.xsd\"> <Service"
+        }
+      },
+      "ecmwf.ffmc": {
+        "text/plain": {
+          "status": 200,
+          "ms": 63,
+          "bytes": 503,
+          "acao": "*",
+          "contentType": "text/xml; charset=UTF-8",
+          "error": null,
+          "body": "<?xml version='1.0' encoding=\"UTF-8\" standalone=\"no\" ?> <ServiceExceptionReport version=\"1.3.0\" xmlns=\"http://www.opengis.net/ogc\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://www.opengis.net/ogc http://schemas.opengis.net/wms/1.3.0/exceptions_1_3_0.xsd\"> <Service"
+        },
+        "application/json": {
+          "status": 200,
+          "ms": 65,
+          "bytes": 503,
+          "acao": "*",
+          "contentType": "text/xml; charset=UTF-8",
+          "error": null,
+          "body": "<?xml version='1.0' encoding=\"UTF-8\" standalone=\"no\" ?> <ServiceExceptionReport version=\"1.3.0\" xmlns=\"http://www.opengis.net/ogc\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://www.opengis.net/ogc http://schemas.opengis.net/wms/1.3.0/exceptions_1_3_0.xsd\"> <Service"
+        },
+        "text/html": {
+          "status": 200,
+          "ms": 64,
+          "bytes": 503,
+          "acao": "*",
+          "contentType": "text/xml; charset=UTF-8",
+          "error": null,
+          "body": "<?xml version='1.0' encoding=\"UTF-8\" standalone=\"no\" ?> <ServiceExceptionReport version=\"1.3.0\" xmlns=\"http://www.opengis.net/ogc\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://www.opengis.net/ogc http://schemas.opengis.net/wms/1.3.0/exceptions_1_3_0.xsd\"> <Service"
+        },
+        "application/vnd.ogc.gml": {
+          "status": 200,
+          "ms": 61,
+          "bytes": 503,
+          "acao": "*",
+          "contentType": "text/xml; charset=UTF-8",
+          "error": null,
+          "body": "<?xml version='1.0' encoding=\"UTF-8\" standalone=\"no\" ?> <ServiceExceptionReport version=\"1.3.0\" xmlns=\"http://www.opengis.net/ogc\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://www.opengis.net/ogc http://schemas.opengis.net/wms/1.3.0/exceptions_1_3_0.xsd\"> <Service"
+        }
+      },
+      "ecmwf.anomaly": {
+        "text/plain": {
+          "status": 200,
+          "ms": 57,
+          "bytes": 503,
+          "acao": "*",
+          "contentType": "text/xml; charset=UTF-8",
+          "error": null,
+          "body": "<?xml version='1.0' encoding=\"UTF-8\" standalone=\"no\" ?> <ServiceExceptionReport version=\"1.3.0\" xmlns=\"http://www.opengis.net/ogc\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://www.opengis.net/ogc http://schemas.opengis.net/wms/1.3.0/exceptions_1_3_0.xsd\"> <Service"
+        },
+        "application/json": {
+          "status": 200,
+          "ms": 66,
+          "bytes": 503,
+          "acao": "*",
+          "contentType": "text/xml; charset=UTF-8",
+          "error": null,
+          "body": "<?xml version='1.0' encoding=\"UTF-8\" standalone=\"no\" ?> <ServiceExceptionReport version=\"1.3.0\" xmlns=\"http://www.opengis.net/ogc\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://www.opengis.net/ogc http://schemas.opengis.net/wms/1.3.0/exceptions_1_3_0.xsd\"> <Service"
+        },
+        "text/html": {
+          "status": 200,
+          "ms": 62,
+          "bytes": 503,
+          "acao": "*",
+          "contentType": "text/xml; charset=UTF-8",
+          "error": null,
+          "body": "<?xml version='1.0' encoding=\"UTF-8\" standalone=\"no\" ?> <ServiceExceptionReport version=\"1.3.0\" xmlns=\"http://www.opengis.net/ogc\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://www.opengis.net/ogc http://schemas.opengis.net/wms/1.3.0/exceptions_1_3_0.xsd\"> <Service"
+        },
+        "application/vnd.ogc.gml": {
+          "status": 200,
+          "ms": 64,
+          "bytes": 503,
+          "acao": "*",
+          "contentType": "text/xml; charset=UTF-8",
+          "error": null,
+          "body": "<?xml version='1.0' encoding=\"UTF-8\" standalone=\"no\" ?> <ServiceExceptionReport version=\"1.3.0\" xmlns=\"http://www.opengis.net/ogc\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://www.opengis.net/ogc http://schemas.opengis.net/wms/1.3.0/exceptions_1_3_0.xsd\"> <Service"
+        }
+      },
+      "fuel_map": {
+        "text/plain": {
+          "status": 200,
+          "ms": 63,
+          "bytes": 503,
+          "acao": "*",
+          "contentType": "text/xml; charset=UTF-8",
+          "error": null,
+          "body": "<?xml version='1.0' encoding=\"UTF-8\" standalone=\"no\" ?> <ServiceExceptionReport version=\"1.3.0\" xmlns=\"http://www.opengis.net/ogc\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://www.opengis.net/ogc http://schemas.opengis.net/wms/1.3.0/exceptions_1_3_0.xsd\"> <Service"
+        },
+        "application/json": {
+          "status": 200,
+          "ms": 68,
+          "bytes": 503,
+          "acao": "*",
+          "contentType": "text/xml; charset=UTF-8",
+          "error": null,
+          "body": "<?xml version='1.0' encoding=\"UTF-8\" standalone=\"no\" ?> <ServiceExceptionReport version=\"1.3.0\" xmlns=\"http://www.opengis.net/ogc\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://www.opengis.net/ogc http://schemas.opengis.net/wms/1.3.0/exceptions_1_3_0.xsd\"> <Service"
+        },
+        "text/html": {
+          "status": 200,
+          "ms": 61,
+          "bytes": 503,
+          "acao": "*",
+          "contentType": "text/xml; charset=UTF-8",
+          "error": null,
+          "body": "<?xml version='1.0' encoding=\"UTF-8\" standalone=\"no\" ?> <ServiceExceptionReport version=\"1.3.0\" xmlns=\"http://www.opengis.net/ogc\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://www.opengis.net/ogc http://schemas.opengis.net/wms/1.3.0/exceptions_1_3_0.xsd\"> <Service"
+        },
+        "application/vnd.ogc.gml": {
+          "status": 200,
+          "ms": 66,
+          "bytes": 503,
+          "acao": "*",
+          "contentType": "text/xml; charset=UTF-8",
+          "error": null,
+          "body": "<?xml version='1.0' encoding=\"UTF-8\" standalone=\"no\" ?> <ServiceExceptionReport version=\"1.3.0\" xmlns=\"http://www.opengis.net/ogc\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://www.opengis.net/ogc http://schemas.opengis.net/wms/1.3.0/exceptions_1_3_0.xsd\"> <Service"
+        }
+      }
+    }
+  }
+}

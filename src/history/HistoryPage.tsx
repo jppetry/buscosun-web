@@ -51,7 +51,9 @@ import '../route/tourTheme.css';
 import './history.css';
 import './historyDeck.css';
 
-interface Props { onBack: () => void }
+import { FeatureRail, type RailFeature } from '../nav/featureRail';
+
+interface Props { onBack: () => void; onOpenFeature?: (id: RailFeature) => void }
 
 const HIST_INTRO_CAPS = [
   'Klimastreifen: jedes Jahr ein Streifen — wärmer oder kälter',
@@ -87,13 +89,10 @@ function IconChevronLeft() {
   return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 5 L8 12 L15 19" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }
 /* Rail-Icons (aus historie.dc.html) */
-function RailMap() { return <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M12 3 L21 8 L12 13 L3 8 Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" /><path d="M3 13 L12 18 L21 13" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" /></svg>; }
-function RailClock() { return <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M12 8 V12 L15 14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /><path d="M3.5 12 A8.5 8.5 0 1 0 6 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /><path d="M3 3 V6.5 H6.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>; }
-function RailForecast() { return <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M4 18 L9 11 L13 14 L20 5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>; }
 
 // ============================ Haupt-Container ============================
 
-export default function HistoryPage({ onBack }: Props) {
+export default function HistoryPage({ onBack, onOpenFeature }: Props) {
   const [loc, setLoc] = useState<HistoryLocation | null>(null);
   const [settings, setSettings] = useState<HistorySettings>(DEFAULT_SETTINGS);
   const [days, setDays] = useState<DailyRecord[] | null>(null);
@@ -273,7 +272,7 @@ export default function HistoryPage({ onBack }: Props) {
         proOpen={proOpen} onPro={() => setProOpen((o) => !o)} />
 
       <div className="hd-body">
-        <Rail active={view} onMap={handleBack} />
+        <Rail active={view} onMap={handleBack} onOpenFeature={onOpenFeature} />
 
         {view === 'onboard' && <div className="hd-main"><div className="hd-onboard"><Onboarding onPick={applyLocation} deck /></div></div>}
 
@@ -327,14 +326,18 @@ export default function HistoryPage({ onBack }: Props) {
 
 // ============================ Rail ============================
 
-function Rail({ active, onMap }: { active: 'onboard' | 'modus' | 'change' | 'explore'; onMap: () => void }) {
+function Rail({ active, onMap, onOpenFeature }: { active: 'onboard' | 'modus' | 'change' | 'explore'; onMap: () => void; onOpenFeature?: (id: RailFeature) => void }) {
   const accent = active === 'explore' ? 'steel' : 'amber';
   return (
-    <nav className="hd-rail" aria-label="Bereiche">
-      <button type="button" className="hd-rail-btn" onClick={onMap} title="Zur Übersicht" aria-label="Zur Übersicht"><RailMap /></button>
-      <span className={`hd-rail-btn hd-rail-btn--active hd-rail-btn--${accent}`} title="Historie" aria-current="page"><RailClock /></span>
-      <span className="hd-rail-btn" title="Vorhersage" aria-hidden="true"><RailForecast /></span>
-    </nav>
+    <FeatureRail
+      active="history"
+      onOpenFeature={onOpenFeature}
+      onHome={onMap}
+      navClass="hd-rail"
+      btnClass="hd-rail-btn"
+      activeClass={`hd-rail-btn--active hd-rail-btn--${accent}`}
+      spacerClass="hd-rail-spacer"
+    />
   );
 }
 

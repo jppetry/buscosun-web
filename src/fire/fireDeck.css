@@ -1,0 +1,988 @@
+/*
+ * Waldbrand DACH — Command-Deck in Wetterkarten-Optik (Phase WBU1, D-27).
+ *
+ * Die Werte sind KOPIEN der `.mdk-`-Optik aus `src/map/mapDeck.css` (Dock-
+ * Zeilen `layerRowDeck`, Zeit-Deck `mdk-timedeck`, Readout-Karten
+ * `mdk-ro-lcard`) und der Steckbrief-Optik `.layer-info` aus `MapView.css`
+ * — bewusst als Kopie unter `.fire-`-Präfix, NIE als Import: `mapDeck.css`
+ * gehört der Wetterkarte, und geteilte Klassen würden Pixel-Paritäts-Beweise
+ * unmöglich machen (`audit/waldbrand-ui.md` §4/§6). Geteilte Basis ist
+ * ausschließlich `designTokens.css`.
+ *
+ * ⚠️ Diese Datei wird ausschließlich von `FirePage.tsx` importiert und landet
+ * damit im Lazy-Chunk. Sie darf NIE aus `App.tsx` oder `SearchPage.tsx` heraus
+ * importiert werden: `eagerCss` steht mit 8,5 KB exakt auf der Budget-Grenze
+ * (`audit/waldbrand-geruest.md` §0), jedes eager gewordene Byte bricht sie.
+ *
+ * Breakpoints ausschließlich 767 px (mobil) und 1439 px (Desktop groß) —
+ * keine Ad-hoc-Werte (CLAUDE.md). Alle Selektoren sind unter `.fire-root`
+ * bzw. `.fire-`-Präfix gescoped, damit nichts in andere Decks leakt.
+ */
+
+.fire-root {
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  display: flex;
+  background: var(--sand-100, #EDE6D3);
+  color: var(--ink-900, #2C2A26);
+  font-family: 'League Spartan', var(--font-base, system-ui, sans-serif);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Layer-Akzentfarben — dieselbe Token-Auflösung wie im Wetterkarten-Dock,
+   aber unter `.fire-root` gescoped (kein globales [data-accent]). */
+.fire-root [data-accent='steel'] { --fd-accent: var(--steel-600, #3A6FA8); }
+.fire-root [data-accent='sage'] { --fd-accent: var(--sage-600, #7A9466); }
+.fire-root [data-accent='terracotta'] { --fd-accent: var(--terracotta-500, #C97B47); }
+.fire-root [data-accent='violet'] { --fd-accent: var(--violet-600, #7C6BC4); }
+.fire-root [data-accent='amber'] { --fd-accent: var(--amber-500, #D4A373); }
+.fire-root [data-accent='slate'] { --fd-accent: var(--slate-500, #6B7A8F); }
+
+.fire-eyebrow {
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--stone-400, #A89A7A);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.fire-glass {
+  background: rgba(250, 246, 234, 0.94);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--sand-200, #E0D6BE);
+  border-radius: 12px;
+}
+
+/* --- Rail (Ink-dunkel, Muster .mdk-rail) ---------------------------------- */
+.fire-rail {
+  width: 58px;
+  flex: 0 0 auto;
+  background: var(--ink-900, #2C2A26);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 14px 0 calc(14px + env(safe-area-inset-bottom));
+  gap: 8px;
+}
+.fire-rail-btn {
+  width: 42px; height: 42px; border-radius: 11px;
+  display: flex; align-items: center; justify-content: center;
+  color: #8B7355; background: transparent; border: 0; cursor: pointer; position: relative;
+}
+.fire-rail-btn:hover { color: #C4B896; }
+.fire-rail-btn:focus-visible { outline: 2px solid var(--terracotta-500, #C97B47); outline-offset: 2px; }
+.fire-rail-btn.is-active { background: #3A3833; color: #E0A870; cursor: default; }
+.fire-rail-btn.is-active::before {
+  content: ''; position: absolute; left: -8px; top: 9px; bottom: 9px;
+  width: 3px; border-radius: 2px; background: var(--terracotta-500, #C97B47);
+}
+.fire-rail-spacer { flex: 1 1 auto; }
+
+/* --- Deck ------------------------------------------------------------------ */
+.fire-deck { flex: 1 1 auto; display: flex; flex-direction: column; min-width: 0; }
+
+/* --- Topbar (Muster .mdk-topbar) ------------------------------------------- */
+.fire-topbar {
+  height: 64px;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 0 20px;
+  background: var(--cream-50, #FAF6EA);
+  border-bottom: 1px solid var(--sand-200, #E0D6BE);
+}
+.fire-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: inherit; }
+.fire-brand-mark {
+  width: 26px; height: 26px; border-radius: 8px; display: block;
+  background: linear-gradient(135deg, var(--terracotta-500, #C97B47), #E8A33C);
+}
+.fire-brand-name { font-size: 19px; font-weight: 700; letter-spacing: -0.4px; color: var(--ink-900, #2C2A26); }
+.fire-topdiv { width: 1px; height: 26px; background: var(--sand-200, #E0D6BE); flex: 0 0 auto; }
+.fire-topbar-mid { flex: 1 1 auto; min-width: 0; }
+.fire-title { margin: 2px 0 0; font-size: 17px; font-weight: 700; letter-spacing: -0.3px; }
+
+/* Basiskarten-Segment (Muster .mdk-countries) */
+.fire-basemap {
+  display: flex; align-items: center; gap: 2px;
+  background: #fff; border: 1px solid var(--border-medium, #D9D0B8);
+  border-radius: 12px; padding: 3px; flex: 0 0 auto;
+}
+.fire-basemap button {
+  border: 0; background: transparent; cursor: pointer; font: inherit;
+  font-size: 12.5px; font-weight: 600; letter-spacing: 0.06em;
+  color: var(--stone-500, #8B7355); border-radius: 9px; padding: 7px 12px;
+}
+.fire-basemap button.is-active { background: var(--ink-900, #2C2A26); color: var(--cream-50, #FAF6EA); }
+
+.fire-body { flex: 1 1 auto; display: flex; min-height: 0; }
+
+/* --- Dock (Muster .mdk-dock + layerRowDeck) -------------------------------- */
+.fire-dock {
+  width: 240px; flex: 0 0 auto;
+  background: var(--cream-50, #FAF6EA);
+  border-right: 1px solid var(--sand-200, #E0D6BE);
+  overflow-y: auto;
+  padding: 16px 12px 20px;
+}
+.fire-dock-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.fire-dock-count {
+  font-size: 10px; color: var(--stone-600, #5C5447); font-weight: 600;
+  background: var(--sand-100, #EDE6D3); border-radius: 6px; padding: 3px 8px;
+}
+.fire-dock-presets { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.fire-preset {
+  border: 1px solid var(--sand-200, #E0D6BE); background: #fff; cursor: pointer; font: inherit;
+  font-size: 12px; font-weight: 600; color: var(--stone-600, #5C5447);
+  border-radius: 999px; padding: 7px 13px; min-height: 32px;
+}
+.fire-preset.is-active { background: var(--terracotta-500, #C97B47); border-color: var(--terracotta-500, #C97B47); color: #fff; }
+
+.fire-group { margin-bottom: 14px; }
+.fire-group-head {
+  font-size: 10px; letter-spacing: 2px; font-weight: 700; text-transform: uppercase;
+  color: var(--fd-accent, var(--stone-400, #A89A7A));
+  margin: 0 2px 7px;
+}
+.fire-layers { display: flex; flex-direction: column; gap: 6px; }
+/* E2/E3: Zeile + ihr Untersegment als Einheit — derselbe Abstand wie zwischen
+   den Zeilen, damit die Optik gegenüber WBU1 unverändert bleibt. */
+.fire-layerslot { display: flex; flex-direction: column; gap: 6px; }
+.fire-layerwrap { display: flex; flex-direction: column; gap: 4px; }
+
+.fire-layer {
+  display: flex; align-items: center; gap: 9px; width: 100%; text-align: left;
+  background: #fff; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 10px;
+  padding: 8px 10px; min-height: 40px; cursor: pointer; font: inherit;
+}
+.fire-layer.is-on { border-color: var(--fd-accent, #3A6FA8); }
+.fire-layer:focus-visible { outline: 2px solid var(--fd-accent, #C97B47); outline-offset: 1px; }
+.fire-layer-ic { flex: 0 0 auto; display: flex; color: var(--fd-accent, #3A6FA8); }
+.fire-layer.is-off .fire-layer-ic { color: var(--stone-500, #8B7355); }
+.fire-layer-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.fire-layer-label { font-size: 13px; font-weight: 600; color: var(--ink-900, #2C2A26); }
+.fire-layer.is-off .fire-layer-label { font-weight: 500; color: var(--stone-500, #8B7355); }
+.fire-layer-sub { font-size: 10.5px; color: var(--stone-400, #A89A7A); line-height: 1.35; }
+.fire-switch {
+  width: 34px; height: 19px; border-radius: 10px; background: var(--sand-200, #E0D6BE);
+  position: relative; flex: 0 0 auto; transition: background .15s;
+}
+.fire-layer.is-on .fire-switch { background: var(--fd-accent, #3A6FA8); }
+.fire-switch-knob {
+  position: absolute; top: 2px; left: 2px; width: 15px; height: 15px; border-radius: 50%;
+  background: #fff; transition: transform .15s; box-shadow: 0 1px 2px rgba(44,42,38,.25);
+}
+.fire-layer.is-on .fire-switch-knob { transform: translateX(15px); }
+/* Blockierte Quellen (Ausbaustufe 2, EDO-CORS) bleiben SICHTBAR, aber
+   erkennbar nicht schaltbar — verstecken wäre bequemer und unehrlicher. */
+.fire-layer.is-blocked { border-style: dashed; opacity: .6; cursor: not-allowed; }
+
+/* Untersegment im Dock (Rückblick 24 h / 7 Tage — Muster .mdk-subseg) */
+.fire-subseg { display: flex; gap: 4px; margin: 0 2px; }
+.fire-subseg button {
+  flex: 1; border: 1px solid var(--sand-200, #E0D6BE); background: #fff; cursor: pointer;
+  font: inherit; font-size: 11px; font-weight: 600; color: var(--stone-500, #8B7355);
+  border-radius: 7px; padding: 5px 0;
+}
+.fire-subseg button.is-active { background: var(--fd-accent, #C97B47); border-color: var(--fd-accent, #C97B47); color: #fff; }
+/* E3: fünf Sub-Ansichten des Index — dürfen umbrechen, statt zu quetschen. */
+.fire-subseg-wrap { flex-wrap: wrap; }
+.fire-subseg-wrap button { flex: 1 1 30%; padding: 5px 4px; }
+/* BF4: die eigene Zeitachse der 7-Tage-Historie. Sie steht UNTER dem Korb, den
+   sie steuert, und trägt ihre beiden Zeitangaben getrennt: Branddatum und
+   Stand der Kartierung. */
+.fire-burnt-history { display: flex; flex-direction: column; gap: 4px; margin: 6px 2px 0; }
+.fire-burnt-history-row { display: flex; align-items: center; gap: 8px; }
+.fire-burnt-history-label {
+  flex: 0 0 62px; font-size: 11px; font-weight: 700; color: var(--stone-600, #5C5447);
+  font-variant-numeric: tabular-nums;
+}
+.fire-burnt-history-row input[type="range"] {
+  flex: 1; min-width: 0; accent-color: var(--fd-accent, #C97B47);
+  /* Touch-Target: die Bahn ist dünn, die Trefferfläche darf es nicht sein. */
+  height: 24px;
+}
+.fire-burnt-history-note { margin: 0; font-size: 0.68rem; line-height: 1.35; color: var(--stone-500, #8B7355); }
+.fire-burnt-history-note.is-caveat { color: var(--stone-400, #A99B85); }
+
+/* E1/E2: die Bestätigungszeile — ruhig, nicht alarmierend (Sage). */
+.fire-layer-mapped {
+  padding: 5px 9px; border-radius: 0 8px 8px 0;
+  border-left: 2px solid var(--sage-600, #7A9466); background: var(--sage-50, #F0F4EA);
+  color: #45613A;
+}
+
+/* GWBA1 A3: Deep-Links zur Ereignisbestätigung je Land — Stein, ruhig, kein Alarm. */
+.fire-layer-incidents { font-size: 0.7rem; color: var(--stone-500, #8B7355); }
+.fire-layer-incidents a { color: var(--stone-600, #5C5447); text-decoration: underline dotted; }
+
+/* Statuszeilen unter der Dock-Zeile (Datenalter-Zusatz, Lag, Fehlerfall).
+   Der Fehlerfall ist bewusst auffälliger als das Datenalter: „keine Daten"
+   darf nicht wie „keine Gefahr" aussehen (D-04). */
+.fire-layer-status { margin: 0 2px; font-size: 10.5px; color: var(--stone-500, #8B7355); line-height: 1.45; }
+.fire-layer-status.is-error {
+  padding: 6px 9px; border-radius: 0 8px 8px 0;
+  border-left: 2px solid #A32B1E; background: #F7E7E2; color: #6B1410;
+  font-size: 11.5px;
+}
+.fire-layer-status a { color: inherit; }
+.fire-layer-lag {
+  margin: 0 2px; padding: 5px 9px; border-radius: 0 8px 8px 0;
+  border-left: 2px solid var(--terracotta-500, #C97B47); background: var(--terracotta-50, #FAEEDA);
+  font-size: 11px; color: var(--terracotta-700, #A85E2E);
+}
+
+/* Steckbrief-Knopf gibt es nur im mobilen Sheet (Desktop: Hover/Fokus →
+   Readout-Vorschau, das Wetterkarten-Muster). */
+.fire-layer-infobtn {
+  width: 44px; height: 44px; border-radius: 50%; flex: 0 0 44px;
+  border: 1px solid var(--sand-200, #E0D6BE); background: #fff;
+  color: var(--stone-500, #8B7355); font: inherit; font-size: .8rem; line-height: 1; cursor: pointer;
+}
+
+/* --- Bühne (Muster .mdk-stage) --------------------------------------------- */
+.fire-center { flex: 1 1 auto; position: relative; min-width: 0; overflow: hidden; background: #0B0E12; }
+.fire-map { position: absolute; inset: 0; }
+.fire-center .maplibregl-map { font-family: inherit; }
+.fire-center .maplibregl-ctrl-attrib,
+.fire-center details.maplibregl-ctrl-attrib.maplibregl-compact,
+.fire-center details.maplibregl-ctrl-attrib.maplibregl-compact-show {
+  background: rgba(11, 14, 18, 0.6); color: #8B95A3; font-size: 10px;
+  border-radius: 6px; padding: 1px 6px;
+}
+.fire-center .maplibregl-ctrl-attrib a { color: #A8B2C0; }
+.fire-center .maplibregl-ctrl-attrib-button { filter: invert(0.7); }
+/* Der Zoom kommt aus FireMap (NavigationControl, bottom-right) und teilt sich
+   den Container mit der Attributionszeile — deshalb bleibt der Container
+   unten rechts und wird nur ÜBER das Zeit-Deck gehoben (Muster
+   `.mdk-stage .maplibregl-ctrl-bottom-right`); Glass-Optik wie .mdk-zoom.
+   Kein Eingriff in FireMap.tsx (Datenpfad-Datei). */
+.fire-center .maplibregl-ctrl-bottom-right { bottom: 96px; right: 12px; }
+.fire-center .maplibregl-ctrl-bottom-left { bottom: 96px; left: 12px; }
+.fire-center .maplibregl-ctrl-group {
+  background: rgba(250, 246, 234, 0.94);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--sand-200, #E0D6BE); border-radius: 12px; box-shadow: none;
+  overflow: hidden;
+}
+.fire-center .maplibregl-ctrl-group button { width: 38px; height: 38px; }
+.fire-center .maplibregl-ctrl-group button + button { border-top: 1px solid var(--sand-200, #E0D6BE); }
+.fire-center .maplibregl-ctrl-group button:hover { background: rgba(224, 214, 190, 0.5); }
+
+/* Ehrlichkeits-Notiz des Treiber-Layers — Status-Chip-Optik (oben links). */
+.fire-scaffold-note {
+  position: absolute; left: 16px; top: 16px; z-index: 5;
+  max-width: min(340px, calc(100% - 32px));
+  padding: 8px 11px;
+  font-size: 10.5px; color: var(--stone-500, #8B7355); line-height: 1.45;
+  background: rgba(250, 246, 234, 0.9);
+}
+.fire-scaffold-note strong { color: var(--ink-900, #2C2A26); }
+/* E3: die Begleit-Notiz des EU-Index — rechts oben, damit sie der Treiber-
+   Notiz links oben nicht ins Gehege kommt, wenn beide Layer an sind. */
+.fire-danger-note { left: auto; right: 16px; }
+.fire-danger-note-switch {
+  border: 0; background: none; padding: 0; font: inherit; font-size: inherit;
+  color: var(--terracotta-700, #A85E2E); text-decoration: underline; cursor: pointer;
+}
+
+/* --- Zeit-Deck (Muster .mdk-timedeck) -------------------------------------- */
+.fire-timedeck {
+  position: absolute; left: 24px; right: 24px; bottom: 18px; z-index: 6;
+  border-radius: 16px; padding: 12px 16px 10px;
+}
+.fire-td-row { display: flex; align-items: center; gap: 14px; }
+.fire-td-play {
+  width: 44px; height: 44px; flex: 0 0 auto; border: 0; border-radius: 12px;
+  background: var(--terracotta-500, #C97B47); color: #fff; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.fire-td-play:hover { background: var(--terracotta-700, #A85E2E); }
+.fire-td-track { flex: 1; min-width: 0; }
+.fire-td-ticks {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-size: 11px; color: var(--stone-400, #A89A7A); font-weight: 600; margin-bottom: 5px;
+}
+.fire-td-now {
+  border: 0; background: none; cursor: pointer; padding: 0; font: inherit;
+  font-size: 12px; letter-spacing: 1px; font-weight: 700; text-transform: uppercase;
+  color: var(--terracotta-500, #C97B47);
+}
+.fire-td-now:disabled { cursor: default; }
+.fire-timedeck input[type='range'] {
+  width: 100%; height: 20px; margin: 0; appearance: none; -webkit-appearance: none;
+  background: transparent; cursor: pointer; display: block;
+}
+.fire-timedeck input[type='range']::-webkit-slider-runnable-track {
+  height: 6px; border-radius: 3px;
+  background: linear-gradient(90deg, var(--terracotta-500, #C97B47) 0 var(--tl-fill, 0%), var(--sand-200, #E0D6BE) var(--tl-fill, 0%) 100%);
+}
+.fire-timedeck input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none; width: 16px; height: 16px; border-radius: 50%;
+  background: var(--terracotta-500, #C97B47); border: 3px solid #fff;
+  box-shadow: 0 1px 3px rgba(44,42,38,.4); margin-top: -5px;
+}
+.fire-timedeck input[type='range']::-moz-range-track {
+  height: 6px; border-radius: 3px; background: var(--sand-200, #E0D6BE);
+}
+.fire-timedeck input[type='range']::-moz-range-progress {
+  height: 6px; border-radius: 3px; background: var(--terracotta-500, #C97B47);
+}
+.fire-timedeck input[type='range']::-moz-range-thumb {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--terracotta-500, #C97B47); border: 3px solid #fff;
+  box-shadow: 0 1px 3px rgba(44,42,38,.4);
+}
+.fire-td-stand {
+  flex: 0 0 auto; font-size: 11.5px; color: var(--stone-500, #8B7355);
+  font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+/* „lädt …" beim entprellten Tageswechsel: der Regler ist schon weiter, die
+   Kacheln noch nicht. Das zu verschweigen sähe aus, als hinge die Karte. */
+.fire-td-pending { color: var(--terracotta-500, #C97B47); font-style: italic; }
+.fire-time-none { margin: 0; font-size: 12px; color: var(--stone-600, #5C5447); line-height: 1.5; }
+
+/* --- Readout (Muster .mdk-readout + mdk-ro-lcard + .layer-info) ------------ */
+.fire-readout {
+  width: 348px; flex: 0 0 auto;
+  background: var(--cream-50, #FAF6EA);
+  border-left: 1px solid var(--sand-200, #E0D6BE);
+  overflow-y: auto;
+  padding: 16px 16px 24px;
+}
+.fire-ro-section-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  margin: 18px 0 10px;
+}
+.fire-ro-section-head:first-child { margin-top: 0; }
+.fire-ro-layerinfo { margin-bottom: 4px; padding-bottom: 14px; border-bottom: 1px solid var(--sand-200, #E0D6BE); }
+.fire-ro-layerinfo .fire-ro-section-head { margin: 0 0 10px; }
+.fire-ro-lstack { display: flex; flex-direction: column; gap: 10px; }
+
+/* --- BC1: Umschalter „Layer | Brände" + Cluster-Liste ----------------------
+   Der Umschalter übernimmt die Optik des Dock-Untersegments (.fire-subseg),
+   steht aber im Readout und trägt deshalb einen eigenen Namen — die beiden
+   dürfen sich unabhängig entwickeln. Das Panel darunter bleibt unverändert. */
+.fire-ro-tabs { display: flex; gap: 4px; margin: 0 0 14px; }
+.fire-ro-tabs button {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+  border: 1px solid var(--sand-200, #E0D6BE); background: #fff; cursor: pointer;
+  font: inherit; font-size: 12.5px; font-weight: 600; color: var(--stone-500, #8B7355);
+  border-radius: 9px; padding: 8px 0; min-height: 34px;
+}
+.fire-ro-tabs button.is-active {
+  background: var(--ink-900, #2C2A26); border-color: var(--ink-900, #2C2A26);
+  color: var(--cream-50, #FAF6EA);
+}
+.fire-ro-tabs button:focus-visible { outline: 2px solid var(--terracotta-500, #C97B47); outline-offset: 1px; }
+.fire-ro-tabcount {
+  font-size: 10px; font-weight: 700; font-variant-numeric: tabular-nums;
+  background: var(--sand-100, #EDE6D3); color: var(--stone-600, #5C5447);
+  border-radius: 6px; padding: 2px 6px;
+}
+.fire-ro-tabs button.is-active .fire-ro-tabcount { background: #4A463F; color: var(--cream-50, #FAF6EA); }
+
+.fire-clist-window { margin: 0 0 8px; font-size: 11.5px; line-height: 1.5; color: var(--stone-500, #8B7355); }
+/* Leerzustände nennen immer ihren Grund — „keine Liste" darf nie wie
+   „keine Brände" aussehen (D-04). Deshalb Kasten statt Kleingedrucktes. */
+.fire-clist-empty {
+  margin: 0; padding: 10px 12px; border-radius: 12px;
+  background: #fff; border: 1px dashed var(--sand-200, #E0D6BE);
+  font-size: 12px; line-height: 1.55; color: var(--stone-600, #5C5447);
+}
+.fire-clist-empty strong { color: var(--ink-900, #2C2A26); }
+
+.fire-clist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+.fire-crow {
+  display: flex; align-items: center; gap: 9px; width: 100%; text-align: left;
+  background: #fff; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 11px;
+  padding: 8px 10px; min-height: 44px; cursor: pointer; font: inherit;
+}
+.fire-crow:hover { border-color: var(--sand-300, #D9CEB0); }
+.fire-crow:focus-visible { outline: 2px solid var(--terracotta-500, #C97B47); outline-offset: 1px; }
+/* Markiert = dieselbe dunkle Kontur, die die Karte um die Hülle zeichnet. */
+.fire-crow.is-sel { border-color: var(--ink-900, #2C2A26); border-width: 1.5px; background: var(--sand-50, #F5F1E8); }
+.fire-crow-rank {
+  flex: 0 0 22px; text-align: center; font-size: 12px; font-weight: 700;
+  font-variant-numeric: tabular-nums; color: var(--stone-400, #A89A7A);
+}
+.fire-crow.is-sel .fire-crow-rank { color: var(--ink-900, #2C2A26); }
+.fire-crow-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.fire-crow-top { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.fire-crow-dot { width: 10px; height: 10px; border-radius: 3px; flex: 0 0 auto; }
+.fire-crow-top b {
+  font-size: 13px; font-weight: 700; color: var(--ink-900, #2C2A26);
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.fire-crow-count { font-size: 11px; color: var(--stone-500, #8B7355); white-space: nowrap; }
+/* F2-Vorbehalt: neutral (Stein), nie Alarm — es ist eine Einordnung, und zwar
+   unsere. Dieselbe Sprache wie der Steckbrief-Kasten `.fire-pop-stat`. */
+.fire-crow-chip {
+  font-size: 9.5px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 700;
+  color: #5E574E; background: rgba(154, 145, 134, 0.22);
+  border: 1px solid rgba(154, 145, 134, 0.5); border-radius: 5px; padding: 1px 5px;
+  white-space: nowrap; flex: 0 0 auto;
+}
+.fire-crow-meta {
+  font-size: 10.5px; line-height: 1.35; color: var(--stone-400, #A89A7A);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* Der ausgesprochene Deckel (Leistungsgrenze, s. CLUSTER_PAGE). Er steht unter
+   der Liste, nennt die gezeigte Zahl und holt auf Knopfdruck die nächsten. */
+.fire-clist-more {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  margin-top: 8px; font-size: 11px; color: var(--stone-500, #8B7355);
+}
+.fire-clist-more button {
+  flex: 0 0 auto; border: 1px solid var(--sand-200, #E0D6BE); background: #fff;
+  cursor: pointer; font: inherit; font-size: 11.5px; font-weight: 600;
+  color: var(--stone-600, #5C5447); border-radius: 8px; padding: 7px 11px; min-height: 32px;
+}
+.fire-clist-more button:hover { border-color: var(--sand-300, #D9CEB0); }
+
+/* Legende der Stärke — EIGENE Grenzen, weil ΣFRP über Pixel und Überflüge
+   summiert; dieselbe Farbe meint am Einzelpunkt etwas anderes. */
+.fire-clist-legend { margin: 10px 0 0; }
+.fire-clist-legend ol {
+  list-style: none; margin: 4px 0 0; padding: 0;
+  display: flex; flex-wrap: wrap; gap: 3px 10px;
+}
+.fire-clist-legend li { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--stone-500, #8B7355); }
+.fire-clist-note {
+  margin: 10px 0 0; padding-top: 8px; border-top: 1px solid var(--sand-100, #EDE6D3);
+  font-size: 10.5px; line-height: 1.5; color: var(--stone-500, #8B7355);
+}
+
+.fire-ro-lcard {
+  flex: 0 0 auto;
+  position: relative; overflow: hidden;
+  background: #fff;
+  border: 1px solid var(--sand-200, #E0D6BE);
+  border-radius: 14px;
+}
+.fire-ro-lcard::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+  background: var(--fd-accent, var(--terracotta-500, #C97B47));
+}
+.fire-ro-lcard.is-preview { border-style: dashed; background: var(--sand-50, #F5F1E8); }
+.fire-ro-lchip {
+  position: absolute; right: 10px; top: 10px; z-index: 1;
+  font-size: 9px; letter-spacing: 1.4px; text-transform: uppercase; font-weight: 700;
+  color: var(--stone-500, #8B7355); background: var(--sand-100, #EDE6D3);
+  border-radius: 6px; padding: 3px 7px;
+}
+
+/* Steckbrief-Inneres — Kopie der `.layer-info`-Typo (MapView.css:204-302),
+   eingebettet wie in `.mdk-ro-lcard` (mapDeck.css:463-474). */
+.fire-info { padding: 11px 13px 12px 15px; }
+.fire-info-eyebrow {
+  font-size: 0.64rem; letter-spacing: 0.18em; text-transform: uppercase;
+  font-weight: 600; color: var(--fd-accent, var(--stone-500, #8B7355));
+}
+.fire-info-title {
+  margin: 0.2rem 0 0; font-size: 1rem; font-weight: 500;
+  letter-spacing: -0.01em; color: var(--ink-900, #2C2A26);
+}
+.fire-info-desc { margin: 0.35rem 0 0; font-size: 0.78rem; line-height: 1.5; color: var(--stone-600, #5C5447); }
+.fire-info-legend { margin-top: 0.6rem; }
+.fire-li-bar { height: 13px; border-radius: 6px; border: 1px solid rgba(44, 42, 38, 0.08); }
+.fire-li-scale {
+  display: flex; justify-content: space-between; margin-top: 0.35rem;
+  font-size: 0.72rem; color: var(--stone-500, #8B7355);
+}
+.fire-li-row { display: flex; align-items: center; gap: 0.55rem; font-size: 0.82rem; color: var(--stone-600, #5C5447); }
+.fire-li-hotspot { width: 11px; height: 11px; flex: none; border-radius: 50%; background: #C2542B; box-shadow: 0 0 0 3px rgba(194, 84, 43, 0.25); }
+/* Konfidenz-Varianten des Hotspot-Punkts (F1). Sie bilden die beiden Kanäle der
+   Karte nach: Deckkraft UND Ringstärke — high kräftig, low blass und dünn. */
+.fire-li-conf-h { box-shadow: 0 0 0 3px rgba(194, 84, 43, 0.55); opacity: 1; }
+.fire-li-conf-l { box-shadow: 0 0 0 1.5px rgba(194, 84, 43, 0.2); opacity: 0.45; }
+/* F2: ortsfest eingestuft — ausgegraut, aber unverändert groß und sichtbar. */
+.fire-li-static { background: #9A9186; box-shadow: 0 0 0 3px rgba(154, 145, 134, 0.28); }
+/* Footprint-Rechteck: gestrichelt wie der Nachtumriss auf der Karte. */
+.fire-li-foot {
+  width: 13px; height: 11px; flex: none; border-radius: 2px;
+  border: 1px dashed #C2542B; background: rgba(194, 84, 43, 0.14);
+}
+/* BA3: das Detektionsraster — dieselbe gestrichelte Kante wie auf der Karte,
+   aber als zusammenhängende Fläche statt als einzelnes Pixel. */
+.fire-li-zone {
+  width: 16px; height: 11px; flex: none; border-radius: 3px;
+  border: 1.2px dashed rgba(194, 84, 43, 0.55); background: rgba(194, 84, 43, 0.1);
+}
+.fire-li-ban {
+  width: 12px; height: 12px; flex: none; border-radius: 3px;
+  background: repeating-linear-gradient(45deg, rgba(107, 122, 143, 0.7) 0 2px, transparent 2px 5px);
+  border: 1px solid var(--slate-500, #6B7A8F);
+}
+.fire-li-fuel { width: 12px; height: 12px; flex: none; border-radius: 3px; background: var(--sage-600, #7A9466); }
+/* E2: Brandflächen — kein Rot mehr (Rot bleibt Gefahr und Detektion). Saison
+   kräftige Kontur, Archiv gestrichelt und blasser — wie auf der Karte. */
+.fire-li-burnt { width: 13px; height: 12px; flex: none; border-radius: 3px; background: rgba(72, 115, 73, 0.55); }
+.fire-li-burnt-season { border: 1.5px solid #2A2119; }
+.fire-li-burnt-archive { border: 1px dashed #5A4A3C; background: rgba(72, 115, 73, 0.3); }
+/* Landbedeckungs-Legende: neun Klassen, zweispaltig, kompakt. */
+.fire-li-lc {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 3px 10px; margin-bottom: 0.45rem;
+  font-size: 0.74rem; color: var(--stone-600, #5C5447);
+}
+.fire-li-lc-item { display: flex; align-items: center; gap: 0.4rem; min-width: 0; }
+.fire-li-lc-item .fire-swatch { width: 11px; height: 11px; }
+/* E3: Klassenlegende je Sub-Ansicht — eigene Grenzen, eigene Einheit, eigener
+   Bezug. Die kompakte Fassung ist der Begleiter (Index ↔ Einordnung). */
+.fire-li-classes { margin-bottom: 0.4rem; }
+.fire-li-classes ol { list-style: none; margin: 0.25rem 0 0; padding: 0; }
+.fire-li-classes li { display: flex; align-items: center; gap: 7px; font-size: 0.76rem; padding: 1.5px 0; color: var(--stone-600, #5C5447); }
+.fire-li-cls-name { min-width: 84px; font-weight: 600; color: var(--ink-900, #2C2A26); }
+.fire-li-cls-range { font-variant-numeric: tabular-nums; }
+.fire-li-unit { display: block; font-size: 0.72rem; font-weight: 600; color: var(--ink-900, #2C2A26); }
+.fire-li-ref { display: block; margin-top: 0.3rem; font-size: 0.68rem; line-height: 1.45; color: var(--stone-500, #8B7355); }
+.fire-li-partner {
+  display: block; margin: 0.55rem 0 0.2rem; padding-top: 0.45rem;
+  border-top: 1px dashed var(--sand-200, #E0D6BE);
+  font-size: 0.7rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--stone-500, #8B7355);
+}
+.fire-li-classes.is-compact li { font-size: 0.7rem; padding: 0.5px 0; }
+.fire-li-classes.is-compact .fire-swatch { width: 10px; height: 10px; }
+.fire-li-classes.is-compact .fire-li-cls-name { min-width: 76px; }
+.fire-li-classes.is-compact .fire-li-ref { font-size: 0.64rem; }
+.fire-li-context { width: 12px; height: 12px; flex: none; border-radius: 3px; border: 1.5px solid var(--sage-600, #7A9466); background: var(--sage-50, #F0F4EA); }
+.fire-info-src {
+  display: block; margin-top: 0.6rem; padding-top: 0.45rem;
+  border-top: 1px solid var(--sand-100, #EDE6D3);
+  font-size: 0.66rem; letter-spacing: 0.04em; text-transform: uppercase;
+  font-weight: 500; color: var(--stone-500, #8B7355);
+}
+
+/* Hinweis „Layer folgt dem Regler nicht" — Terracotta-Hinweiszeile. */
+.fire-lag-hint {
+  padding: 8px 11px; border-radius: 0 10px 10px 0;
+  background: var(--terracotta-50, #FAEEDA); border-left: 2px solid var(--terracotta-500, #C97B47);
+  font-size: 12px; line-height: 1.5; color: var(--terracotta-700, #A85E2E);
+  margin: 0 0 4px;
+}
+
+/* Skalen-Trio — weiße Karten in Readout-Optik; bewusst NEBENEINANDER, nie
+   ineinander umgerechnet (docs/DATA_SOURCES.md §W.1). */
+.fire-scales { margin: 0 0 14px; }
+.fire-scale {
+  margin-bottom: 10px; padding: 11px 13px;
+  border: 1px solid var(--sand-200, #E0D6BE); border-radius: 14px; background: #fff;
+}
+.fire-scale-head { display: block; font-weight: 700; font-size: 13px; }
+.fire-scale-cov { display: block; font-size: 10.5px; color: var(--stone-500, #8B7355); margin: 1px 0 7px; }
+.fire-scale-steps { list-style: none; margin: 0; padding: 0; }
+.fire-scale-steps li { display: flex; align-items: center; gap: 7px; font-size: 11.5px; padding: 1.5px 0; }
+.fire-swatch { width: 13px; height: 13px; border-radius: 3px; flex: 0 0 auto; }
+.fire-scale-num { width: 12px; color: var(--stone-500, #8B7355); }
+.fire-scale-derived {
+  display: block; margin-top: 7px; font-size: 10px;
+  color: var(--stone-500, #8B7355); font-style: italic;
+}
+
+/* AT-Lücke: bleibt permanent sichtbar (nie in einen Steckbrief versteckt). */
+.fire-at-gap {
+  font-size: 12px; color: var(--stone-600, #5C5447); line-height: 1.55;
+  background: #fff; border: 1px dashed var(--sand-200, #E0D6BE);
+  border-radius: 12px; padding: 12px; margin: 0 0 10px;
+}
+.fire-at-gap strong { color: var(--ink-900, #2C2A26); }
+.fire-at-marker { display: none; }
+.fire-season { font-size: 11.5px; color: var(--stone-500, #8B7355); line-height: 1.55; margin: 0 2px; }
+
+/* --- Mobile Sheet-Optik (Muster .mdk-sheet) — BottomSheet.css bleibt
+   unangetastet (geteilt); Overrides nur unter .fire-root. ------------------- */
+.fire-root .bs-root {
+  background: var(--cream-50, #FAF6EA);
+  border: 1px solid var(--sand-200, #E0D6BE); border-bottom: 0;
+  border-radius: 22px 22px 0 0;
+  box-shadow: 0 -12px 40px -18px rgba(44, 38, 38, 0.5);
+}
+.fire-root .bs-handle { width: 44px; height: 5px; border-radius: 3px; background: var(--sand-300, #D9CEB0); }
+.fire-sheet-title { font-size: 19px; font-weight: 700; letter-spacing: -0.4px; }
+.fire-sheet-body { padding: 0 16px calc(20px + env(safe-area-inset-bottom)); }
+.fire-sheet-body .fire-dock,
+.fire-sheet-body .fire-readout {
+  width: auto; flex: none; padding: 0; border: 0; overflow: visible; background: transparent;
+}
+.fire-sheet-body .fire-readout { margin-top: 18px; }
+
+/* --- Tablet / kleiner Desktop 768–1439 px (Muster mapDeck.css:741-757) ----- */
+@media (max-width: 1439px) and (min-width: 768px) {
+  .fire-topbar { gap: 12px; padding: 0 14px; }
+  .fire-dock { width: 206px; padding: 14px 10px 18px; }
+  .fire-readout { width: 300px; padding: 14px 13px 22px; }
+  .fire-timedeck { left: 16px; right: 16px; }
+}
+
+/* --- Mobil ≤767 px --------------------------------------------------------- */
+@media (max-width: 767px) {
+  .fire-root { flex-direction: column; }
+  /* Rail wird zur waagerechten Ink-Leiste oben. */
+  .fire-rail {
+    width: 100%; flex: 0 0 auto; flex-direction: row; justify-content: flex-start;
+    overflow-x: auto; gap: 2px; padding: 6px 8px;
+  }
+  .fire-rail-spacer { display: none; }
+  /* Touch-Targets ≥ 44 px (mobile-design-guidelines §3). */
+  .fire-rail-btn { width: 44px; height: 44px; flex: 0 0 44px; }
+  .fire-preset { min-height: 44px; padding: 0 14px; }
+  .fire-subseg button { min-height: 44px; }
+  /* BC1: Umschalter und Listenzeilen als Touch-Targets (≥ 44 px). Die Zeile
+     bringt die Höhe schon im Desktop mit; hier fällt nur die Typo größer aus. */
+  .fire-ro-tabs button { min-height: 44px; font-size: 14px; }
+  .fire-clist-more { flex-wrap: wrap; }
+  .fire-clist-more button { min-height: 44px; flex: 1 1 100%; }
+  .fire-sheet-body .fire-crow { min-height: 52px; border-radius: 14px; padding: 10px 12px; }
+  .fire-sheet-body .fire-crow-top b { font-size: 14.5px; }
+  .fire-sheet-body .fire-crow-meta { font-size: 11.5px; white-space: normal; }
+  /* BF4: der Tagesregler der Historie — die Bahn bleibt dünn, die Trefferfläche
+     wird auf 44 px gebracht (mobile-design-guidelines §3). */
+  .fire-burnt-history-row { min-height: 44px; }
+  .fire-burnt-history-row input[type="range"] { height: 44px; }
+  /* E3: der Wechsel-Knopf in der Begleit-Notiz — als Fläche, nicht als Textlink. */
+  .fire-danger-note-switch {
+    display: inline-flex; align-items: center; min-height: 44px; padding: 0 8px;
+    margin: -6px 0; border-radius: 8px;
+  }
+  .fire-topbar { height: auto; flex-wrap: wrap; gap: 10px; padding: 10px 14px; }
+  .fire-topdiv { display: none; }
+  .fire-basemap { width: 100%; }
+  .fire-basemap button { flex: 1 1 0; min-height: 44px; }
+
+  /* Karte vollflächig; Dock + Readout wandern ins Sheet. */
+  .fire-body.is-mobile { display: block; position: relative; flex: 1 1 auto; min-height: 0; }
+  .fire-body.is-mobile .fire-center { position: absolute; inset: 0; }
+
+  /* Zeit-Deck schwebt über der Karte, aber ÜBER dem eingeklappten Sheet (64 px). */
+  .fire-mobile-time {
+    position: absolute; left: 12px; right: 12px;
+    bottom: calc(72px + env(safe-area-inset-bottom));
+    z-index: 3;
+  }
+  .fire-mobile-time .fire-timedeck { position: static; left: auto; right: auto; bottom: auto; }
+  /* Der Stand-Text trägt das Pending-„lädt …" — mobil nur verkleinern, nie
+     ausblenden (der Ladehinweis ist Ehrlichkeitsinhalt, kein Beiwerk). */
+  .fire-mobile-time .fire-td-stand { font-size: 10.5px; }
+  /* Scrubber-Grifffläche ≥ 44 px (mobile-design-guidelines §2). */
+  .fire-timedeck input[type='range'] { height: 44px; }
+  .fire-timedeck input[type='range']::-webkit-slider-thumb { width: 20px; height: 20px; margin-top: -7px; }
+  .fire-td-now { padding: 13px 8px; margin: -13px -8px; }
+  .fire-td-play { width: 46px; height: 46px; }
+
+  /* Die Attributionszeile von MapLibre sitzt am unteren Kartenrand und läge
+     sonst unter der Zeitleiste. Sie ist eine Lizenzpflicht (GWIS, BAFU, DWD,
+     OpenFreeMap) und muss lesbar bleiben — also über die Leiste heben. */
+  .fire-body.is-mobile .maplibregl-ctrl-bottom-left,
+  .fire-body.is-mobile .maplibregl-ctrl-bottom-right {
+    bottom: calc(240px + env(safe-area-inset-bottom));
+  }
+  .fire-body.is-mobile .fire-scaffold-note { top: 10px; }
+
+  /* Sheet-Zeilen in der großen Layer-Screen-Optik (Muster .mdk-m-layer). */
+  .fire-sheet-body .fire-layerwrap {
+    flex-direction: row; flex-wrap: wrap; align-items: center; gap: 6px;
+  }
+  .fire-sheet-body .fire-layer { flex: 1 1 0; min-width: 0; border-width: 1.5px; border-radius: 15px; padding: 13px 14px; min-height: 56px; gap: 12px; }
+  .fire-sheet-body .fire-layer-ic { transform: scale(1.25); transform-origin: left center; }
+  .fire-sheet-body .fire-layer-label { font-size: 15.5px; }
+  .fire-sheet-body .fire-layer-sub { font-size: 12px; }
+  .fire-sheet-body .fire-switch { width: 46px; height: 26px; border-radius: 13px; }
+  .fire-sheet-body .fire-switch-knob { width: 20px; height: 20px; top: 3px; left: 3px; }
+  .fire-sheet-body .fire-layer.is-on .fire-switch-knob { transform: translateX(20px); }
+  .fire-sheet-body .fire-ro-lcard,
+  .fire-sheet-body .fire-layer-status,
+  .fire-sheet-body .fire-layer-lag { flex: 1 1 100%; }
+}
+
+/* ---------------------------------------------------------------------------
+   Detektions-Steckbrief im Kartenpopup (F1).
+
+   Bewusst NUR die eigenen `.fire-pop*`-Klassen: `.maplibregl-popup-content` zu
+   stylen würde global wirken und in Regenradar, Wetterkarte und 3D-Globus
+   zurückleaken — dieselbe Begründung wie für die Kopie in `FireLayerCard.tsx`
+   (`audit/waldbrand-ui.md` §4).
+   --------------------------------------------------------------------------- */
+.fire-pop {
+  font-family: 'League Spartan', system-ui, sans-serif;
+  color: var(--stone-700, #443E35);
+  font-size: 0.8rem;
+  line-height: 1.4;
+  /* Der Steckbrief trägt acht Messwerte plus zwei Pflichthinweise und wurde
+     dadurch höher als der Platz unter dem Anker — auf 900 px Höhe war die
+     letzte Zeile abgeschnitten. Deckeln statt kürzen: die Hinweise sind
+     Pflicht und dürfen nicht der Höhe zum Opfer fallen. */
+  max-height: min(58vh, 430px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.fire-pop-head {
+  font-weight: 700; font-size: 0.95rem; letter-spacing: 0.01em;
+  color: var(--stone-800, #2C2A26); margin-bottom: 0.15rem;
+}
+.fire-pop-lead {
+  margin: 0 0 0.5rem; font-size: 0.76rem; color: var(--stone-600, #5C5447);
+}
+.fire-pop-stack {
+  margin: 0 0 0.5rem; padding: 0.3rem 0.45rem; border-radius: 6px;
+  background: rgba(139, 115, 85, 0.12); font-size: 0.73rem;
+  color: var(--stone-600, #5C5447);
+}
+.fire-pop-row {
+  display: flex; justify-content: space-between; gap: 0.75rem;
+  padding: 2.5px 0; border-top: 1px solid rgba(44, 42, 38, 0.07);
+}
+.fire-pop-row span { color: var(--stone-500, #8B7355); }
+.fire-pop-row b { font-weight: 600; text-align: right; white-space: nowrap; }
+/* Der Sonnenreflexions-Hinweis erscheint nur bei geringer Konfidenz und darf
+   dann nicht wie Beiwerk aussehen. */
+.fire-pop-warn {
+  margin: 0.5rem 0 0; padding: 0.4rem 0.5rem; border-radius: 7px;
+  background: rgba(194, 84, 43, 0.1); border: 1px solid rgba(194, 84, 43, 0.25);
+  font-size: 0.73rem; color: #8E3A1E;
+}
+/* F2: Erklärung der Ausgrauung. Neutral gehalten (Stein statt Terrakotta) —
+   es ist kein Alarm, sondern eine Einordnung, und zwar unsere. */
+.fire-pop-stat {
+  margin: 0.5rem 0 0; padding: 0.4rem 0.5rem; border-radius: 7px;
+  background: rgba(154, 145, 134, 0.16); border: 1px solid rgba(154, 145, 134, 0.4);
+  font-size: 0.73rem; color: var(--stone-600, #5C5447);
+}
+.fire-pop-note {
+  margin: 0.5rem 0 0; padding-top: 0.4rem;
+  border-top: 1px solid rgba(44, 42, 38, 0.07);
+  font-size: 0.71rem; color: var(--stone-500, #8B7355);
+}
+/* GWBA1 A4: die drei Beschriftungen — eine Zeile, Gründe mit Quelle. Sage nur
+   bei „bestätigt" (Quelle im Satz), Sand bei „plausibel", Stein bei „unbestätigt".
+   Kein Rot: Rot bleibt Gefahrenstufe und Detektion vorbehalten. */
+.fire-pop-assess {
+  margin: 0 0 0.5rem; padding: 0.4rem 0.5rem; border-radius: 7px;
+  font-size: 0.74rem; line-height: 1.35; color: var(--stone-600, #5C5447);
+  background: rgba(154, 145, 134, 0.14); border: 1px solid rgba(154, 145, 134, 0.4);
+}
+.fire-pop-links { margin: 0 0 0.5rem; font-size: 0.7rem; color: var(--stone-500, #8B7355); }
+.fire-pop-links a { color: var(--stone-600, #5C5447); text-decoration: underline dotted; }
+.fire-pop-assess b { text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.68rem; }
+.fire-pop-assess-bestaetigt { background: var(--sage-50, #F0F4EA); border-color: rgba(122, 148, 102, 0.55); color: #45613A; }
+.fire-pop-assess-plausibel { background: rgba(201, 168, 74, 0.14); border-color: rgba(201, 168, 74, 0.5); color: #6B5A22; }
+/* E1/E2: die Bestätigung durch die EFFIS-Kartierung — Sage, ruhig, mit Quelle.
+   Der einzige Ort der Ansicht, an dem „bestätigt" steht. */
+.fire-pop-mapped {
+  margin: 0 0 0.5rem; padding: 0.4rem 0.5rem; border-radius: 7px;
+  background: var(--sage-50, #F0F4EA); border: 1px solid rgba(122, 148, 102, 0.5);
+  font-size: 0.74rem; color: #45613A;
+}
+/* BA3: die Größenangabe des Detektionsrasters. Bewusst NICHT in Sage wie die
+   Bestätigung und nicht in Rot wie die Gefahr — Sand/Stone, denn es ist eine
+   Eigenschaft der Messung, keine Aussage über die Lage. Zahl und Hinweis stehen
+   in EINEM Kasten: getrennt läse man die Hektarzahl als Brandfläche. */
+.fire-pop-zone {
+  margin: 0 0 0.5rem; padding: 0.4rem 0.5rem; border-radius: 7px;
+  background: var(--sand-100, #F5F1E8); border: 1px dashed rgba(194, 84, 43, 0.45);
+  font-size: 0.72rem; line-height: 1.35; color: var(--stone-600, #5C5447);
+}
+.fire-pop-zone b { color: var(--ink-900, #2B2823); }
+/* E2: Steckbrief einer kartierten Fläche — Landbedeckung als Balken aus den
+   Feature-Anteilen (Summe 100 %), keine Schätzung. */
+.fire-pop-sub {
+  margin: 0.55rem 0 0.2rem; font-size: 0.68rem; font-weight: 600;
+  letter-spacing: 0.05em; text-transform: uppercase; color: var(--stone-500, #8B7355);
+}
+.fire-pop-lc { display: grid; grid-template-columns: 1fr 64px 36px; align-items: center; gap: 0.45rem; padding: 1.5px 0; font-size: 0.74rem; }
+.fire-pop-lc-name { color: var(--stone-600, #5C5447); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fire-pop-lc-bar { height: 8px; border-radius: 4px; background: rgba(44, 42, 38, 0.08); overflow: hidden; }
+.fire-pop-lc-bar i { display: block; height: 100%; border-radius: 4px; }
+.fire-pop-lc b { font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+
+/* ---------------------------------------------------------------------------
+   BP2 — Brandflächen-Panel (Registry): Overlay links über der Karte.
+
+   Keine vierte Flex-Spalte: `.fire-body` bleibt byte-gleich, die Karte behält
+   ihre Breite, und ein Auf-/Zuklappen löst kein `trackResize` der Custom-Layer
+   aus (audit/brandflaechen-panel.md §3). `bottom: 96px` hält Zeit-Deck und die
+   MapLibre-Attribution frei. Tokens `--fp-*` nur hier.
+   --------------------------------------------------------------------------- */
+.fire-root {
+  --fp-w: 300px;
+  --fp-bg: rgba(250, 246, 234, 0.96);
+}
+.fire-fpanel {
+  position: absolute; left: 0; top: 0; bottom: 96px; z-index: 5;
+  width: var(--fp-w); max-width: calc(100% - 24px);
+  overflow-y: auto; overscroll-behavior: contain;
+  background: var(--fp-bg);
+  border-right: 1px solid var(--sand-200, #E0D6BE);
+  box-shadow: 12px 0 40px -24px rgba(44, 38, 38, 0.45);
+  padding: 14px 14px 20px;
+  font-family: 'League Spartan', system-ui, sans-serif;
+}
+/* Ist das Panel offen, rückt die Treiber-Notiz links oben aus dem Weg. */
+.fire-center:has(.fire-fpanel) .fire-scaffold-note:not(.fire-danger-note) { left: calc(var(--fp-w) + 16px); }
+/* Der Reiter an der Kartenkante (zu): 44 px breit, senkrechte Beschriftung. */
+.fire-fpanel-tab {
+  position: absolute; left: 0; top: 16px; z-index: 5;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  width: 44px; min-height: 96px; padding: 12px 0;
+  border: 1px solid var(--sand-200, #E0D6BE); border-left: 0; border-radius: 0 12px 12px 0;
+  background: var(--fp-bg); cursor: pointer; font: inherit;
+  color: var(--ink-900, #2C2A26);
+}
+.fire-fpanel-tab span {
+  writing-mode: vertical-rl; transform: rotate(180deg);
+  font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--stone-500, #8B7355);
+}
+.fire-fpanel-tab b {
+  font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums;
+  background: var(--terracotta-500, #C97B47); color: #fff; border-radius: 6px; padding: 2px 6px;
+}
+.fire-fpanel-tab:hover { border-color: var(--sand-300, #D9CEB0); }
+.fire-fpanel-tab:focus-visible,
+.fire-fp-toggle:focus-visible,
+.fire-fp-close:focus-visible,
+.fire-fp-chip:focus-visible,
+.fire-fprow:focus-visible { outline: 2px solid var(--terracotta-500, #C97B47); outline-offset: 1px; }
+
+/* Schaltzeile im Dock unter der Layer-Zeile. */
+.fire-fp-toggle {
+  margin-top: 4px; width: 100%; min-height: 32px;
+  border: 1px solid var(--sand-200, #E0D6BE); border-radius: 9px; background: #fff;
+  cursor: pointer; font: inherit; font-size: 11.5px; font-weight: 600; color: var(--stone-600, #5C5447);
+}
+.fire-fp-toggle.is-on { background: var(--ink-900, #2C2A26); border-color: var(--ink-900, #2C2A26); color: var(--cream-50, #FAF6EA); }
+
+/* --- Inhalt ---------------------------------------------------------------- */
+.fire-fp .fire-ro-section-head { align-items: center; }
+.fire-fp-close {
+  margin-left: auto; width: 32px; height: 32px; border-radius: 8px;
+  border: 1px solid var(--sand-200, #E0D6BE); background: #fff; cursor: pointer;
+  font: inherit; font-size: 18px; line-height: 1; color: var(--stone-600, #5C5447);
+}
+.fire-fp-scope { display: flex; flex-direction: column; gap: 6px; margin: 0 0 8px; }
+.fire-fp-scope-row, .fire-fp-ctl { display: flex; align-items: center; gap: 8px; }
+.fire-fp-scope-row .fire-subseg, .fire-fp-ctl .fire-subseg { flex: 1; margin: 0; }
+.fire-fp-lbl {
+  flex: 0 0 82px; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--stone-400, #A89A7A);
+}
+.fire-fp-val { font-size: 12px; font-weight: 600; color: var(--ink-900, #2C2A26); }
+.fire-fp-stale {
+  margin: 0 0 8px; padding: 7px 10px; border-radius: 9px;
+  background: rgba(201, 154, 60, 0.14); border: 1px solid rgba(201, 154, 60, 0.45);
+  font-size: 11px; line-height: 1.45; color: #6E4E12;
+}
+.fire-fp-controls { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; }
+.fire-fp-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; flex: 1; }
+.fire-fp-chip {
+  display: inline-flex; align-items: center; gap: 5px; min-height: 28px; padding: 0 9px;
+  border: 1px solid var(--sand-200, #E0D6BE); border-radius: 8px; background: #fff;
+  cursor: pointer; font: inherit; font-size: 11px; font-weight: 600; color: var(--stone-400, #A89A7A);
+}
+.fire-fp-chip.is-on { color: var(--ink-900, #2C2A26); border-color: var(--sand-300, #D9CEB0); background: var(--sand-50, #F5F1E8); }
+.fire-fp-chip-note { font-size: 10px; color: var(--stone-400, #A89A7A); text-decoration: underline dotted; }
+.fire-fp-inline-btn {
+  border: 1px solid var(--sand-200, #E0D6BE); border-radius: 8px; background: #fff; cursor: pointer;
+  font: inherit; font-size: 11.5px; font-weight: 600; color: var(--terracotta-700, #A85E2E); padding: 4px 8px; min-height: 28px;
+}
+.fire-fp-legend { display: flex; flex-wrap: wrap; gap: 4px 10px; margin: 6px 0 8px; }
+.fire-fp-lg { display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; color: var(--stone-500, #8B7355); }
+.fire-fp-dot { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto; }
+/* Legenden-Swatches (Steckbrief + Panel) */
+.fire-li-fp { width: 14px; height: 11px; flex: none; border-radius: 3px; border: 2px solid var(--stone-500, #8B7355); background: rgba(139, 115, 85, 0.25); }
+.fire-li-fp.is-mapped { border-color: #2C2A26; background: rgba(194, 84, 43, 0.35); }
+.fire-li-fp.is-raster { border-style: dashed; border-color: #C2542B; background: rgba(194, 84, 43, 0.15); }
+.fire-li-fp.is-static { border-color: #9A9186; background: rgba(154, 145, 134, 0.35); }
+
+/* Liste — Zeilen wie .fire-crow, aber dreizeilig (Titel/Fläche · Status/Meta · Chips). */
+.fire-fplist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+.fire-fprow {
+  display: flex; align-items: flex-start; gap: 8px; width: 100%; text-align: left;
+  background: #fff; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 11px;
+  padding: 8px 10px; min-height: 44px; cursor: pointer; font: inherit;
+}
+.fire-fprow:hover { border-color: var(--sand-300, #D9CEB0); }
+.fire-fprow.is-sel { border-color: var(--ink-900, #2C2A26); border-width: 1.5px; background: var(--sand-50, #F5F1E8); }
+.fire-fprow.is-static .fire-fprow-title { color: var(--stone-500, #8B7355); }
+.fire-fprow .fire-crow-rank { margin-top: 2px; }
+.fire-fprow-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.fire-fprow-top { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.fire-fprow-title {
+  flex: 1; min-width: 0; font-size: 12.5px; font-weight: 700; color: var(--ink-900, #2C2A26);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.fire-fp-area {
+  flex: 0 0 auto; font-size: 11.5px; font-weight: 700; font-variant-numeric: tabular-nums;
+  color: var(--ink-900, #2C2A26); white-space: nowrap;
+}
+.fire-fp-area.is-upper { color: var(--stone-500, #8B7355); font-weight: 600; }
+.fire-fprow-meta { font-size: 10.5px; line-height: 1.35; color: var(--stone-500, #8B7355); }
+.fire-fprow-chips { display: flex; flex-wrap: wrap; gap: 3px 4px; }
+.fire-fp-src, .fire-fp-assess {
+  font-size: 9.5px; letter-spacing: 0.04em; text-transform: uppercase; font-weight: 700;
+  border-radius: 5px; padding: 1px 5px; white-space: nowrap;
+  border: 1px solid var(--sand-200, #E0D6BE); color: var(--stone-500, #8B7355); background: #fff;
+}
+.fire-fp-src.is-effis-rda { border-color: rgba(44, 42, 38, 0.5); color: var(--ink-900, #2C2A26); }
+.fire-fp-src.is-ems-activation { border-color: rgba(58, 111, 168, 0.5); color: var(--steel-600, #3A6FA8); }
+.fire-fp-assess.is-bestaetigt { border-color: rgba(122, 148, 102, 0.6); color: #4F6A3F; background: rgba(122, 148, 102, 0.12); }
+.fire-fp-assess.is-plausibel { border-color: rgba(201, 154, 60, 0.6); color: #6E4E12; background: rgba(201, 154, 60, 0.12); }
+
+/* Detailkarte im Panel — kein Popup. */
+.fire-fp-detail {
+  margin: 10px 0 0; padding: 10px 12px; border-radius: 12px;
+  background: #fff; border: 1.5px solid var(--ink-900, #2C2A26);
+}
+.fire-fp-detail-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.fire-fp-detail-head b { flex: 1; min-width: 0; font-size: 13px; color: var(--ink-900, #2C2A26); }
+.fire-fp-dl { margin: 0; display: grid; grid-template-columns: 92px 1fr; gap: 4px 8px; font-size: 11px; line-height: 1.45; }
+.fire-fp-dl dt { color: var(--stone-400, #A89A7A); font-weight: 700; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; padding-top: 1px; }
+.fire-fp-dl dd { margin: 0; color: var(--stone-700, #443E35); min-width: 0; overflow-wrap: anywhere; }
+.fire-fp-dl code { font-size: 10px; background: var(--sand-100, #EDE6D3); border-radius: 4px; padding: 0 4px; }
+.fire-fp-muted { color: var(--stone-400, #A89A7A); }
+.fire-fp-reasons { margin: 3px 0 0; padding-left: 14px; }
+.fire-fp-passes { list-style: none; margin: 0 0 3px; padding: 0; display: flex; flex-direction: column; gap: 1px; }
+.fire-fp-passes li { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; font-variant-numeric: tabular-nums; }
+.fire-fp-lc { display: inline-flex; flex-wrap: wrap; gap: 3px 8px; }
+.fire-fp-lc .fire-li-lc-item { font-size: 11px; }
+
+/* --- Tablet / kleiner Desktop 768–1439 px ---------------------------------- */
+@media (max-width: 1439px) and (min-width: 768px) {
+  .fire-root { --fp-w: 264px; }
+  .fire-fpanel { padding: 12px 12px 18px; }
+}
+/* --- Mobil ≤767 px: kein Overlay, das Panel lebt im Sheet (drittes Segment). - */
+@media (max-width: 767px) {
+  .fire-fpanel, .fire-fpanel-tab { display: none; }
+  .fire-fp.is-sheet .fire-fprow { min-height: 52px; border-radius: 14px; padding: 10px 12px; }
+  .fire-fp.is-sheet .fire-fprow-title { font-size: 14px; white-space: normal; }
+  .fire-fp.is-sheet .fire-fprow-meta { font-size: 11.5px; }
+  .fire-fp.is-sheet .fire-fp-chip { min-height: 44px; padding: 0 12px; font-size: 12.5px; }
+  .fire-fp.is-sheet .fire-fp-close, .fire-fp.is-sheet .fire-fp-inline-btn { min-height: 44px; min-width: 44px; }
+  .fire-fp.is-sheet .fire-fp-lbl { flex-basis: 96px; }
+  .fire-fp.is-sheet .fire-fp-dl { grid-template-columns: 1fr; }
+}
+
+/* AF1: Überflug-Tabelle mit Satellit/Tag-Nacht — vier Spalten statt drei (additiv). */
+.fire-fp-passes--af li { grid-template-columns: 1fr auto auto auto; }
+/* AF1: die Überflug-Tabelle braucht die ganze Kartenbreite (vier Spalten) — dd über beide Grid-Spalten. */
+.fire-fp-dl dd.fire-fp-dd-wide { grid-column: 1 / -1; }
+/* AF2: Tendenz-/Beobachtungs-/Wind-Chips — Farben aus dem Fire-Namensraum, additiv. */
+.fire-fp-trend, .fire-fp-obs, .fire-fp-wind { font-weight: 700; }
+.fire-fp-trend.is-growing { color: #B93C1E; }
+.fire-fp-trend.is-declining { color: #6B7A8F; }
+.fire-fp-trend.is-stable { color: #7A6E5A; }
+.fire-fp-obs.is-unobserved { color: #C99A3C; }
+.fire-fp-obs.is-confirmed { color: #6B7A8F; }
+.fire-fp-wind.is-disagree { color: #B93C1E; }
+.fire-fp-wind.is-agree { color: #5B7A5A; }
+/* AF3: Merkmalsatz in der Detailkarte — einspaltig (das Panel ist schmal), additiv. */
+.fire-fp-features { list-style: none; margin: 0 0 6px; padding: 0; display: grid; grid-template-columns: 1fr; gap: 1px 0; }
+.fire-fp-features li { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; line-height: 1.35; border-bottom: 1px dotted var(--sand-200, #E0D6BE); padding: 1px 0; }
+.fire-fp-features li span:first-child { color: var(--stone-500, #8B7355); white-space: nowrap; }
+.fire-fp-features li span:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+.fire-fp-features-foot { display: flex; align-items: flex-start; gap: 8px; }
+.fire-fp-features-foot .fire-fp-inline-btn { flex: 0 0 auto; }

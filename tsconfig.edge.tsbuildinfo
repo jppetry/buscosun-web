@@ -1,0 +1,1 @@
+{"root":["./netlify/edge-functions/dwd-grib.ts","./netlify/edge-functions/dwd-wind.ts","./netlify/edge-functions/firms.ts"],"version":"5.7.3"}

@@ -4,6 +4,11 @@ import type { Location } from './types';
 import type { LayerKey, MapDeckFeature } from './MapView';
 import { decodeMapState } from './mapState';
 import { hasEventHash } from './event/eventState';
+// Kein Import aus `src/fire/` an dieser Stelle: `App.tsx` ist eager, und ein
+// Wert-Import zöge `fireState` samt `fireModel` in den Startseiten-Chunk
+// (gemessen: +1,3 KB eagerJs). Der Hash-Test steht deshalb inline wie bei
+// `#3d=`, `#h=`, `#g=` — `hasFireHash()` bleibt für die Feature-Seite da.
+import './fonts.css';
 import './designTokens.css';
 
 // Code-Splitting: nur die Startseite (Default-Landing) wird eager geladen. Alle
@@ -21,12 +26,15 @@ const HistoryPage = lazy(() => import('./history/HistoryPage'));
 const GlobePage = lazy(() => import('./globe/GlobePage'));
 const AtmospherePage = lazy(() => import('./atmosphere/AtmospherePage'));
 const FeedbackPage = lazy(() => import('./feedback/FeedbackPage'));
+// Waldbrand DACH (Phase WB1): eigene Kartenansicht mit eigener MapLibre-Instanz,
+// lazy wie alle Feature-Seiten — zieht maplibre-gl NICHT in den Startseiten-Chunk.
+const FirePage = lazy(() => import('./fire/FirePage'));
 const ValidationPage = lazy(() => import('./validation/ValidationPage'));
 // Phase-0-Scaffold (Mobile-Optimierung): nur über #mobiletest erreichbar, keine UI-Verlinkung,
 // kein Einfluss auf Produktions-Layout. Wird entfernt, sobald Phase 1 die Primitives direkt nutzt.
 const MobilePrimitivesTestPage = lazy(() => import('./mobile/MobilePrimitivesTestPage'));
 
-export type FeatureId = 'route' | 'event' | 'dayflow' | 'forecast' | 'nowcast' | 'atmosphere' | 'history' | 'globe' | 'map2d' | 'feedback' | 'validation' | 'mobiletest';
+export type FeatureId = 'route' | 'event' | 'dayflow' | 'forecast' | 'nowcast' | 'atmosphere' | 'history' | 'globe' | 'map2d' | 'fire' | 'feedback' | 'validation' | 'mobiletest';
 
 /** Standort-Default für die 2D-Karten-Kachel (ohne Ortssuche): DACH-Überblick,
  *  zentriert auf Mitteleuropa. Marker/Punktpanel sind im overview-Modus aus. */
@@ -84,6 +92,7 @@ export default function App() {
     if (h.startsWith('#val')) return { kind: 'feature', feature: { id: 'validation', eyebrow: 'Validierung', title: 'Wie gut ist der KI-Nowcast wirklich?' } };
     if (h.startsWith('#g=')) return { kind: 'feature', feature: { id: 'globe', eyebrow: 'Globale Wetter-Visualisierung', title: 'Das Wetter der ganzen Erde' } };
     if (h.startsWith('#mobiletest')) return { kind: 'feature', feature: { id: 'mobiletest', eyebrow: 'Mobile-Primitives', title: 'Testroute' } };
+    if (h.startsWith('#wb=')) return { kind: 'feature', feature: { id: 'fire', eyebrow: 'Waldbrand', title: 'Wie trocken ist der Wald?' } };
     if (hasEventHash(h)) return { kind: 'feature', feature: { id: 'event', eyebrow: 'Event-Planung', title: 'Welcher Tag passt am besten?' } };
     const m = decodeMapState(h);
     if (m) return { kind: 'map', location: m.location, mapInit: { layers: m.layers, hour: m.hour } };
@@ -100,12 +109,31 @@ export default function App() {
 
   // Deck-Rail/Bottom-Bar der Kartenseite: Navigation zu anderen Werkzeugen
   // (gleiche FeatureInfo-Texte wie die Startseiten-Kacheln).
-  const DECK_FEATURES: Record<MapDeckFeature, FeatureInfo> = {
+  // Die Kartenseite nutzt jetzt dieselbe vollständige Werkzeug-Rail wie die
+  // übrigen Decks — also auch dieselbe Zieltabelle (RAIL_FEATURES, s. u.).
+  const openDeckFeature = (id: MapDeckFeature) => openRailFeature(id);
+
+  // Werkzeug-Rail des Routenplaners: gleiche Ziele/Texte wie die Kacheln der
+  // Startseite, damit man von dort direkt in jedes Werkzeug springt.
+  const RAIL_FEATURES: Record<string, FeatureInfo> = {
+    map2d: { id: 'map2d', eyebrow: 'Wetterkarte', title: 'Die ganze DACH-Wetterkarte' },
     nowcast: { id: 'nowcast', eyebrow: 'Regenradar', title: 'Regnet es in 40 Minuten?' },
-    forecast: { id: 'forecast', eyebrow: 'Vorhersage', title: 'Konfidenz & Modelle' },
+    route: { id: 'route', eyebrow: 'Tourenplanung', title: 'Wetter entlang deiner Route' },
     event: { id: 'event', eyebrow: 'Event-Planung', title: 'Welcher Tag passt am besten?' },
+    forecast: { id: 'forecast', eyebrow: 'Vorhersage', title: 'Konfidenz & Modelle' },
+    history: { id: 'history', eyebrow: 'Historie', title: 'Klima seit 1940' },
+    atmosphere: { id: 'atmosphere', eyebrow: 'Atmosphäre', title: 'Die Atmosphäre über dir' },
+    globe: { id: 'globe', eyebrow: 'Globale Wetter-Visualisierung', title: 'Das Wetter der ganzen Erde' },
+    // Ohne diesen Eintrag wäre der Rail-Knopf sichtbar und täte nichts:
+    // openRailFeature() schlägt hier nach und schweigt bei einem Fehltreffer
+    // (audit/waldbrand-geruest.md §1, achte Verdrahtungsstelle).
+    fire: { id: 'fire', eyebrow: 'Waldbrand', title: 'Wie trocken ist der Wald?' },
+    feedback: { id: 'feedback', eyebrow: 'Feedback', title: 'Ideen & Vorschläge' },
   };
-  const openDeckFeature = (id: MapDeckFeature) => setView({ kind: 'feature', feature: DECK_FEATURES[id] });
+  const openRailFeature = (id: string) => {
+    const f = RAIL_FEATURES[id];
+    if (f) setView({ kind: 'feature', feature: f });
+  };
   const selectMapLocation = (location: Location) => setView({ kind: 'map', location });
 
   // Aktuelle Ansicht als Element bestimmen; Lazy-Komponenten werden vom
@@ -118,13 +146,14 @@ export default function App() {
     const f = view.feature;
     content =
       f.id === 'map2d' ? <MapView location={DACH_OVERVIEW_LOCATION} overview onBack={back} onOpenFeature={openDeckFeature} onSelectLocation={selectMapLocation} /> :
-      f.id === 'route' ? <RoutePage onBack={back} /> :
-      f.id === 'event' ? <EventPage onBack={back} /> :
-      f.id === 'nowcast' ? <NowcastPage onBack={back} /> :
-      f.id === 'atmosphere' ? <AtmospherePage onBack={back} /> :
-      f.id === 'forecast' ? <ForecastPage onBack={back} /> :
-      f.id === 'history' ? <HistoryPage onBack={back} /> :
+      f.id === 'route' ? <RoutePage onBack={back} onOpenFeature={openRailFeature} /> :
+      f.id === 'event' ? <EventPage onBack={back} onOpenFeature={openRailFeature} /> :
+      f.id === 'nowcast' ? <NowcastPage onBack={back} onOpenFeature={openRailFeature} /> :
+      f.id === 'atmosphere' ? <AtmospherePage onBack={back} onOpenFeature={openRailFeature} /> :
+      f.id === 'forecast' ? <ForecastPage onBack={back} onOpenFeature={openRailFeature} /> :
+      f.id === 'history' ? <HistoryPage onBack={back} onOpenFeature={openRailFeature} /> :
       f.id === 'globe' ? <GlobePage onBack={back} /> :
+      f.id === 'fire' ? <FirePage onBack={back} onOpenFeature={openRailFeature} /> :
       f.id === 'feedback' ? <FeedbackPage onBack={back} /> :
       f.id === 'validation' ? <ValidationPage onBack={back} /> :
       f.id === 'mobiletest' ? <MobilePrimitivesTestPage onBack={back} /> :

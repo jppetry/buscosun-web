@@ -10,7 +10,11 @@ import { nearestPlaces } from './places.mjs';
 
 export const SITE = {
   name: 'buscosun',
-  url: 'https://buscosun.app', // kanonische Origin (anpassen bei abweichender Domain)
+  // Kanonische Origin. Entscheidung O-03 (Jan, 2026-08-01): buscosun.com —
+  // der Betrieb (Warm-Crons, Edge-Cache, Manifeste, Repo-Variable SITE_URL) und
+  // die Kontaktadresse liegen bereits dort. Einzige Quelle für Canonicals,
+  // JSON-LD, OG-URLs und Sitemaps; bei Änderung hier UND in robots.txt/llms.txt.
+  url: 'https://buscosun.com',
   tagline: 'Wetter für Deutschland, Österreich & die Schweiz',
   description: 'DACH-Wetter aus amtlichen Quellen (DWD · GeoSphere · MeteoSwiss), höhenkorrigiert und ohne Tracker: interaktive Karte, Tourenplanung, bester Event-Tag, 6-Stunden-Nowcast, Modellvergleich, Lawinen-Deeplinks und mehr.',
 };
@@ -633,6 +637,67 @@ ${sections}
 ${relExplainers ? `      <section>\n        <h2>Passendes Wetterwissen</h2>\n        <div class="links">\n        ${relExplainers}\n        </div>\n      </section>` : ''}
       <footer>
         ${escapeHtml(SITE.name)} — ${escapeHtml(SITE.tagline)}. Datenbasis: Deutscher Wetterdienst (DWD, CC BY 4.0) · GeoSphere Austria · MeteoSwiss. Kostenlos, ohne Tracker.
+      </footer>
+    </div>
+  </body>
+</html>
+`;
+}
+
+/**
+ * Rechtsseiten (/impressum/, /datenschutz/, /kontakt/) — V-103.
+ *
+ * Bewusst OHNE `noindex`: ein Impressum muss auffindbar sein. Bewusst ohne
+ * OG-Bild und ohne CTA — das sind Pflicht- und Informationsseiten, keine
+ * Marketingflächen. Seiteninhalte liegen in `legal.mjs`.
+ */
+export function renderLegalPage(page) {
+  const canonicalPath = `/${page.slug}/`;
+  const head = headBlock({
+    title: `${page.title} | ${SITE.name}`,
+    description: page.description,
+    canonicalPath,
+    locale: 'de-DE',
+    jsonLd: [{
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Start', item: `${SITE.url}/` },
+        { '@type': 'ListItem', position: 2, name: page.title, item: SITE.url + canonicalPath },
+      ],
+      // V-104: /lizenzen/ ergänzt einen CreativeWork-Block mit sourceOrganization,
+      // damit auch KI-Assistenten die Frage „woher hat die App ihre Daten?"
+      // strukturiert beantwortet bekommen.
+    }, ...(page.extraJsonLd ? [page.extraJsonLd] : [])],
+  });
+  const sections = page.sections
+    .map((s) => `      <section>\n        <h2>${escapeHtml(s.h2)}</h2>\n        ${s.html}\n      </section>`)
+    .join('\n');
+
+  return `<!doctype html>
+<html lang="de">
+  <head>
+${head}
+    <style>${PAGE_CSS}
+h3{font-size:1rem;margin:1.1rem 0 .3rem}
+address{font-style:normal;line-height:1.7}
+code{font-size:.82em;background:#fff;border:1px solid var(--border);border-radius:4px;padding:.05rem .3rem}
+section ul{padding-left:1.1rem}
+mark.todo{background:#FDECEC;color:#9B2C2C;font-weight:600;padding:.05rem .35rem;border-radius:4px}
+table{border-collapse:collapse;width:100%;font-size:.86rem;margin:.4rem 0}
+th,td{text-align:left;vertical-align:top;padding:.4rem .55rem;border-bottom:1px solid var(--border)}
+th{font-weight:600;white-space:nowrap}
+section li{margin-bottom:.5rem}</style>
+  </head>
+  <body>
+    <div class="wrap">
+      <nav class="bc" aria-label="Brotkrumen"><a href="/">Start</a> › ${escapeHtml(page.title)}</nav>
+      <h1>${escapeHtml(page.h1)}</h1>
+      <p class="lead">${escapeHtml(page.lead)}</p>
+${sections}
+      <footer>
+        ${escapeHtml(SITE.name)} — ${escapeHtml(SITE.tagline)}.
+        <a href="/impressum/">Impressum</a> · <a href="/datenschutz/">Datenschutz</a> · <a href="/lizenzen/">Quellen &amp; Lizenzen</a> · <a href="/kontakt/">Kontakt</a>
       </footer>
     </div>
   </body>

@@ -1,7 +1,7 @@
 {
   "name": "buscosun — Wetter DE · AT · CH",
   "short_name": "buscosun",
-  "description": "DACH-Wetter: Karte, Tourenplanung, Event-Tag, Nowcast, Vorhersage, Arbeitsfenster — höhenkorrigiert, ohne Tracker.",
+  "description": "DACH-Wetter: Karte, Regenradar, Tourenplanung, Event-Tag, Vorhersage, Historie — höhenkorrigiert, ohne Tracker.",
   "lang": "de",
   "start_url": "/",
   "scope": "/",

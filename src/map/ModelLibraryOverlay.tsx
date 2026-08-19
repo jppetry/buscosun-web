@@ -368,6 +368,8 @@ export default function ModelLibraryOverlay({
         <div className="mlo-foot">
           {modelEntry(activeModelId(state))?.attribution}
           {state.radar ? ` · ${RADAR_SOURCE[state.country].attribution}` : ''}
+          {/* V-104: von der Einzel-Nennung zum vollständigen Verzeichnis. */}
+          {' · '}<a href="/lizenzen/" className="mlo-foot-link">Alle Quellen &amp; Lizenzen</a>
         </div>
       </div>
     </div>

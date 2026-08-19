@@ -98,8 +98,8 @@
 /* Chart */
 .td-chart-card { padding: 0.8rem 0.9rem 1rem; }
 .td-chart { width: 100%; height: auto; cursor: crosshair; display: block; }
-.td-axislabel { font-size: 9px; fill: #8B7355; }
-.td-axistitle { font-size: 10px; font-weight: 600; fill: #5C5447; }
+.td-axislabel { font-size: 13px; fill: #7A6A52; }
+.td-axistitle { font-size: 13.5px; font-weight: 600; fill: #5C5447; }
 
 /* Legende */
 .td-legend { margin-top: 0.7rem; display: flex; flex-direction: column; gap: 0.4rem; }

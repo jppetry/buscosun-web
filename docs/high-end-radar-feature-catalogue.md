@@ -3,11 +3,35 @@
 Reference specification for the buscosun / WeatherHub radar view.
 Organized by capability area, not by UI layout — priority and screen-placement are downstream decisions.
 
-> **Umgesetzt:** Die vereinheitlichte 2D-Karten-Ansicht **„Niederschlag · jetzt–12 h"**
-> (Radar → Modell nahtlos, Konsolidierung N1) ist in
-> [`niederschlag-architektur.md`](./niederschlag-architektur.md) dokumentiert
-> (`PrecipSource`-Abstraktion, RainLayer/ScalarLayer, Quellen DE/AT/CH, Seam@2 h + Fallback,
-> 0–12-h-Abdeckung). Spec: [`../audit/niederschlag-vereinheitlichung.md`](../audit/niederschlag-vereinheitlichung.md).
+> ⚠️ **Korrektur 2026-08-05:** Der frühere Hinweis an dieser Stelle beschrieb eine Ansicht
+> „Niederschlag · jetzt–**12 h**" mit nahtlosem Übergang Radar → Modell. **Das ist überholt.**
+> Mit **D-14** (Jan, 2026-07-24) wurde die Modellhälfte 2–12 h entfernt; die Ansicht heißt
+> **„Niederschlag · jetzt–2 h"** und zeigt ausschließlich gemessenes Radar/Nowcast, per Land bis zum
+> jeweiligen Horizont (DE 2 h · AT 3 h · CH ~0,5 h). Jenseits davon blendet der Layer aus —
+> **keine Modellverlängerung**. Der separate Sim-Radar-Layer wurde mit **D-15** entfernt.
+>
+> **Umgesetzt:** [`niederschlag-architektur.md`](./niederschlag-architektur.md)
+> (`PrecipSource`-Abstraktion, `RainLayer`, Quellen DE/AT/CH, Land-Horizonte).
+> Spec: [`../audit/niederschlag-vereinheitlichung.md`](../audit/niederschlag-vereinheitlichung.md).
+>
+> **Dieser Katalog bleibt gültig als Referenzspezifikation** — die Funktionen aus §2 (Zeitachse,
+> Playback, **harter Bruch Messung ↔ Vorhersage**), §3 (Layer-Katalog), §7 (Zellverfolgung) und §10
+> (Datenqualität) sind in der Analyse vom 2026-08-05 als Ist/Soll gegenübergestellt und in einen
+> Umsetzungsplan überführt: siehe [`2d-layer-erweiterung.md`](./2d-layer-erweiterung.md) und
+> [`MAP.md`](./MAP.md) §7. Wo dieser Katalog eine 6- oder 12-Stunden-Radarextrapolation nahelegt,
+> gilt D-14 — §16 „Anti-Features" führt genau das ohnehin selbst als Fehler.
+>
+> ▶ **Ergänzung 2026-08-05:** §2 (Zeitachse/Playback), §7 (Zellverfolgung) und die Punkte 1 und 4
+> der Differenzierungs-Shortlist §15 sind jetzt **umsetzungsreif spezifiziert** in
+> [`zuglinien-radar-spec.md`](./zuglinien-radar-spec.md) — Zeitmodell und Player in Teil II (Phase
+> L5), Zugvektoren in §10 (Phase L6), Zellbahnen mit **amtlichem** Unsicherheitstrichter aus
+> KONRAD3D in §11 (Phase L11).
+> ⚠️ Korrektur zum Ist-Stand: §2 ist **nicht** unimplementiert. Der harte Mess-/Vorhersage-Bruch,
+> Geschwindigkeitswahl, Frame-Schritt, „Jetzt"-Sprung, Loop und das Konfidenz-Abklingen existieren
+> im Regenradar bereits (`src/radar/RadarTimeline.tsx:148-192`); Play/Pause, Loop und „Jetzt"
+> zusätzlich in der 2D-Karte (`src/MapView.tsx:2985-2994, :3321-3340`). Was fehlt, ist die
+> **Wiederverwendbarkeit** — die Abspiel-Engine liegt in einer React-Komponente statt in einem
+> reinen Modul (V-145). L5 ist deshalb überwiegend Konsolidierung.
 
 Legend: **[Core]** ship-blocking · **[Diff]** differentiator vs. WetterOnline/Windy/RainViewer · **[Expert]** behind a toggle · **[Trap]** looks good in screenshots, low real value.
 

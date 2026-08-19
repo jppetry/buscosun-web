@@ -1,0 +1,252 @@
+{
+  "at": "2026-08-15T11:01:44.460Z",
+  "part": "geosphere,ems,geocat",
+  "steps": {
+    "geosphere": {
+      "hosts": {
+        "https://warnungen.zamg.at/wsapp/api/getWarnstatus": {
+          "status": 200,
+          "ms": 231,
+          "bytes": 213770,
+          "acao": "*",
+          "contentType": "application/json; charset=utf-8",
+          "rateLimitHeaders": {},
+          "error": null,
+          "topKeys": [
+            "type",
+            "features"
+          ],
+          "coordRange": {
+            "n": 9767,
+            "x": [
+              112553,
+              685409
+            ],
+            "y": [
+              275487,
+              570407
+            ]
+          },
+          "crsGuess": "projiziert (EPSG:31287?) ⚠️",
+          "sample": "{\"type\":\"FeatureCollection\",\"features\":[{\"type\":\"Feature\",\"geometry\":{\"type\":\"MultiPolygon\",\"coordinates\":[[[[183528,410278],[183276,410165],[182882,411575],[181991,411861],[181709,412771],[182178,413422],[183743,413256],[185006,413685],[185719,413387],[184821,412695],[184995,411814],[184541,411574],[183528,410278]]],[[[164775,341587],[164760,340223],[164364,339849],[164004,338282],[163421,337747],[163520,337030],[164046,336395],[163799,334359],[162726,334504],[161595,334261],[160829,334495],[159618,333165],[158857,332815],[157049,332932],[156683,332563],[155405,332677],[155059,332261],[153971,331937],[153015,333146],[153095,333893],[152715,334245],[150591,334288],[149948,334721],[150117,335989],[148635,337399],[148237,338284],[147606,338958],[146687,338684],[144935,339582],[144634,340673],[143495,340334],[143205,340750],[142202,340385],[140416,341148],[139683,342023],[138769,342202],[138397,342685],[137278,343128],[137052,343766],[137300,345522],[136758,346270],[137066,347253],[138459,349068],[138276,350389],[137125,351064],[136998,351816],[137723,352327],[137425,352706],[136182,352982],[135616,352251],[134335,351877],[133460,352705],[132231,353198],[131167,354103],[130580,354935]"
+        },
+        "https://warnungen.zamg.at/wsapp/api/getWarningsForCoords?lon=13.04&lat=47.80&lang=de": {
+          "status": 200,
+          "ms": 139,
+          "bytes": 5560,
+          "acao": "*",
+          "contentType": "application/json; charset=utf-8",
+          "rateLimitHeaders": {},
+          "error": null,
+          "topKeys": [
+            "type",
+            "geometry",
+            "properties"
+          ],
+          "coordRange": {
+            "n": 38,
+            "x": [
+              374018,
+              384587
+            ],
+            "y": [
+              428022,
+              439497
+            ]
+          },
+          "crsGuess": "projiziert (EPSG:31287?) ⚠️",
+          "sample": "{\"type\":\"Feature\",\"geometry\":{\"type\":\"MultiPolygon\",\"coordinates\":[[[[375207,429165],[375159,430061],[375481,430771],[375285,431390],[374018,432969],[375565,435644],[374294,437008],[375305,438068],[375227,439497],[376007,438501],[376330,438776],[376814,437595],[377757,436728],[379437,437207],[379602,438181],[380051,437458],[380932,437524],[381174,436827],[381717,436472],[381142,435721],[381745,434513],[382733,434770],[382829,434293],[384587,433656],[383954,433268],[383685,431682],[383200,431199],[381697,431079],[381314,430232],[380700,430216],[381002,428434],[380394,428022],[379530,429213],[378736,428972],[377421,428199],[376840,428518],[376247,428025],[375207,429165]]]]},\"properties\":{\"location\":{\"type\":\"Municipal\",\"properties\":{\"gemeindenr\":50101,\"name\":\"Salzburg\",\"urlname\":\"salzburg\"}},\"warnings\":[{\"type\":\"Warning\",\"properties\":{\"warnid\":10,\"chgid\":202608150,\"verlaufid\":11,\"warntypid\":6,\"begin\":\"15.08.2026 00:00\",\"end\":\"15.08.2026 23:59\",\"create\":\"2026-08-15 08:00:00+00\",\"text\":\"Es ist mit erhöhter Hitzebelastung zu rechnen.\",\"auswirkungen\":\"* Erhöhte Körpertemperatur\\n* Erhöhter Puls\\n* Schwäche/Müdigkeit\\n* Kopfschmerzen\\n* Muskelkrämpfe\\n* Trockener Mund und Hals\\n* Verwirrth"
+        },
+        "https://warnungen.zamg.at/wsapp/api/getBBoxForCoords?lon=13.04&lat=47.80&lang=de": {
+          "status": 200,
+          "ms": 96,
+          "bytes": 175,
+          "acao": "*",
+          "contentType": "application/json; charset=utf-8",
+          "rateLimitHeaders": {},
+          "error": null,
+          "topKeys": [
+            "type",
+            "geometry",
+            "properties"
+          ],
+          "coordRange": {
+            "n": 5,
+            "x": [
+              374018,
+              384587
+            ],
+            "y": [
+              428022,
+              439497
+            ]
+          },
+          "crsGuess": "projiziert (EPSG:31287?) ⚠️",
+          "sample": "{\"type\":\"Feature\",\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[374018,428022],[374018,439497],[384587,439497],[384587,428022],[374018,428022]]]},\"properties\":{\"type\":\"BBox\"}}"
+        },
+        "https://warnapi.hub.geosphere.at/warnapi/v1/getWarnstatus": {
+          "status": null,
+          "ms": 90,
+          "bytes": 0,
+          "rateLimitHeaders": {},
+          "error": "fetch failed"
+        },
+        "https://openapi.hub.geosphere.at/warnapi/v1/getWarnstatus": {
+          "status": 404,
+          "ms": 29,
+          "bytes": 146,
+          "acao": "*",
+          "contentType": "text/html; charset=UTF-8",
+          "rateLimitHeaders": {},
+          "error": null
+        },
+        "https://warnungen.geosphere.at/wsapp/api/getWarnstatus": {
+          "status": null,
+          "ms": 26,
+          "bytes": 0,
+          "rateLimitHeaders": {},
+          "error": "fetch failed"
+        }
+      },
+      "openapi": {
+        "status": 200,
+        "acao": "*",
+        "servers": [
+          {
+            "url": "https://warnungen.zamg.at/wsapp/api"
+          }
+        ],
+        "paths": [
+          "/getWarningsForCoords",
+          "/getBBoxForCoords",
+          "/getWarnstatus",
+          "/getGewitterAuto"
+        ],
+        "security": null
+      }
+    },
+    "ems": {
+      "url": "https://rapidmapping.emergency.copernicus.eu/backend/dashboard-api/public-activations-info/",
+      "status": 200,
+      "ms": 157,
+      "bytes": 3519,
+      "acao": "*",
+      "contentType": "application/json",
+      "count": 10,
+      "error": null,
+      "fields": [
+        "code",
+        "countries",
+        "eventTime",
+        "name",
+        "centroid",
+        "activationTime",
+        "category",
+        "lastUpdate",
+        "closed",
+        "gdacsId",
+        "n_aois",
+        "n_products"
+      ],
+      "sample": {
+        "code": "EMSR921",
+        "countries": [
+          "Spain"
+        ],
+        "eventTime": "2026-08-10T10:08:00",
+        "name": "Wildfire in Spain",
+        "centroid": "POINT (-0.693036057514768 42.47825244999649)",
+        "activationTime": "2026-08-15T08:52:00",
+        "category": "Wildfire",
+        "lastUpdate": "2026-08-15T10:04:44.603551",
+        "closed": false,
+        "gdacsId": null,
+        "n_aois": 1,
+        "n_products": 0
+      },
+      "categories": {
+        "Wildfire": 8,
+        "Earthquake": 1,
+        "Volcanic activity": 1
+      },
+      "dachCount": 1,
+      "dach": [
+        {
+          "code": "EMSR920",
+          "countries": [
+            "Germany"
+          ],
+          "eventTime": "2026-08-13T12:55:00",
+          "category": "Wildfire",
+          "centroid": "POINT (6.376188560649222 50.75359532631122)",
+          "closed": false,
+          "name": "Forest fire in Huertgen Forest, Germany"
+        }
+      ],
+      "fireDachCount": 1,
+      "fireDach": [
+        {
+          "code": "EMSR920",
+          "countries": [
+            "Germany"
+          ],
+          "eventTime": "2026-08-13T12:55:00",
+          "name": "Forest fire in Huertgen Forest, Germany",
+          "centroid": "POINT (6.376188560649222 50.75359532631122)",
+          "activationTime": "2026-08-14T09:37:00",
+          "category": "Wildfire",
+          "lastUpdate": "2026-08-14T22:52:15.104135",
+          "closed": false,
+          "gdacsId": null,
+          "n_aois": 2,
+          "n_products": 2
+        }
+      ]
+    },
+    "geocat": {
+      "records": {
+        "ch.bafu.gefahren-waldbrand_warnung": {
+          "stac": {
+            "status": 200,
+            "license": "proprietary",
+            "links": [
+              {
+                "rel": "describedby",
+                "href": "https://www.geocat.ch/geonetwork/srv/eng/catalog.search#/metadata/3f8bc20d-db07-4008-8465-4cc8efa6c84f"
+              }
+            ]
+          },
+          "geocatSearchStatus": 400
+        },
+        "ch.bafu.gefahren-waldbrand_massnahmen": {
+          "stac": {
+            "status": 404,
+            "license": null,
+            "links": []
+          },
+          "geocatSearchStatus": 400
+        },
+        "ch.bafu.gefahren-waldbrand-warnung": {
+          "stac": {
+            "status": 404,
+            "license": null,
+            "links": []
+          },
+          "geocatSearchStatus": 400
+        },
+        "ch.bafu.gefahren-waldbrand-massnahmen": {
+          "stac": {
+            "status": 404,
+            "license": null,
+            "links": []
+          },
+          "geocatSearchStatus": 400
+        }
+      },
+      "geocatSearch": {
+        "status": 400,
+        "hits": []
+      }
+    }
+  }
+}

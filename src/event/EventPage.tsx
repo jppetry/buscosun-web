@@ -25,7 +25,6 @@ import { activityFactorPriorities, defaultTuningFor, candidateDays } from './eve
 import { encodeEventState, decodeEventState, hasEventHash } from './eventState';
 import {
   DeckActivityIcon,
-  IconDeckMap, IconDeckRadar, IconDeckEvent, IconDeckTour, IconDeckGear,
   IconDeckSearch, IconDeckPin, IconDeckArrowRight, IconDeckChevLeft, IconDeckPlus,
   IconDeckCalendar, IconRing, IconSliders, IconReset,
 } from './eventIcons';
@@ -34,8 +33,9 @@ import { NotificationProvider } from '../notifications/useNotifications';
 import { useIsMobile } from '../mobile/useIsMobile';
 import '../mobile/safeArea.css';
 import './eventDeck.css';
+import { FeatureRail, type RailFeature } from '../nav/featureRail';
 
-interface Props { onBack: () => void; }
+interface Props { onBack: () => void; onOpenFeature?: (id: RailFeature) => void; }
 
 const STEP_META: Array<{ eyebrow: string; title: string; sub: string; optional?: boolean }> = [
   { eyebrow: 'Schritt 1 von 3 · Ort & Anlass', title: 'Welcher Tag passt am besten?', sub: 'Sag uns zuerst, wo dein Event stattfindet und um welchen Anlass es geht — danach Zeitfenster & Plan B.' },
@@ -43,15 +43,15 @@ const STEP_META: Array<{ eyebrow: string; title: string; sub: string; optional?:
   { eyebrow: 'Schritt 3 von 3 · Plan B', title: 'Falls es doch nicht hält', sub: 'Lege eine klare Schwelle fest, ab der dir ein Plan B (z. B. Zelt oder Innenraum) empfohlen wird — plus Ausweichtag und -ort, falls dein Wunschtermin nicht hält.', optional: true },
 ];
 
-export default function EventPage({ onBack }: Props) {
+export default function EventPage({ onBack, onOpenFeature }: Props) {
   return (
     <NotificationProvider>
-      <EventPageInner onBack={onBack} />
+      <EventPageInner onBack={onBack} onOpenFeature={onOpenFeature} />
     </NotificationProvider>
   );
 }
 
-function EventPageInner({ onBack }: Props) {
+function EventPageInner({ onBack, onOpenFeature }: Props) {
   const isMobile = useIsMobile();
   const [activity, setActivity] = useState<EventActivity | null>(null);
   const [location, setLocation] = useState<Location | null>(null);
@@ -104,7 +104,7 @@ function EventPageInner({ onBack }: Props) {
   const back = () => { if (step > 0) setStep(step - 1); };
 
   if (submitted) {
-    return <EventResult query={submitted} onEdit={() => setSubmitted(null)} onBack={onBack} />;
+    return <EventResult query={submitted} onEdit={() => setSubmitted(null)} onBack={onBack} onOpenFeature={onOpenFeature} />;
   }
 
   const meta = STEP_META[step];
@@ -190,14 +190,15 @@ function EventPageInner({ onBack }: Props) {
         </div>
       </div>
       <div className="evd-body">
-        <nav className="evd-rail" aria-label="Werkzeuge">
-          <button className="evd-rail-btn" title="Wetterkarte" onClick={onBack}><IconDeckMap /></button>
-          <button className="evd-rail-btn" title="Regenradar" onClick={onBack}><IconDeckRadar /></button>
-          <button className="evd-rail-btn evd-rail-btn--active" title="Event-Planung" aria-current="page"><IconDeckEvent /></button>
-          <button className="evd-rail-btn" title="Tourenplanung" onClick={onBack}><IconDeckTour /></button>
-          <span className="evd-rail-spacer" />
-          <button className="evd-rail-btn" title="Einstellungen" onClick={onBack}><IconDeckGear /></button>
-        </nav>
+        <FeatureRail
+          active="event"
+          onOpenFeature={onOpenFeature}
+          onHome={onBack}
+          navClass="evd-rail"
+          btnClass="evd-rail-btn"
+          activeClass="evd-rail-btn--active"
+          spacerClass="evd-rail-spacer"
+        />
         <div className="evd-wiz evd-scroll">
           <div className={step === 2 ? 'evd-wiz-inner evd-wiz-inner--narrow' : 'evd-wiz-inner'}>
             <div className="evd-eyebrow">{meta.eyebrow}{meta.optional ? <span className="evd-eyebrow-mut"> · Optional</span> : null}</div>

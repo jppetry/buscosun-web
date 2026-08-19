@@ -83,13 +83,21 @@ console.log(`\nbackground fit (${synthetic ? 'SYNTHETIC — inspection only' : '
 console.log(`  sessions=${fixtures.length}  models=[${art.models.join(', ')}]\n`);
 console.log(`  ${pad('variable', 10)} ${pad('weights (min-var, eq 2)', 28)} ${pad('effN', 6)}`);
 console.log(`  ${'-'.repeat(10)} ${'-'.repeat(28)} ${'-'.repeat(6)}`);
+// Variables with NO station truth (cloud — BrightSky current carries no cloud)
+// can never gain effN and must not drag the archive-maturity verdict down.
+// Before V-29 they did: cloud's effN=0 printed "SHORT ARCHIVE (effN=0)" while
+// every other variable sat at 305. Same defect class as phase3-gate.mjs had.
 let minEff = Infinity;
+const noTruth = [];
 for (const [v, pv] of Object.entries(art.perVariable)) {
   const w = pv.weights['0'].map((x) => x.toFixed(3)).join(', ');
-  console.log(`  ${pad(v, 10)} ${pad('[' + w + ']', 28)} ${pad(pv.effectiveSampleSize, 6)}`);
-  minEff = Math.min(minEff, pv.effectiveSampleSize);
+  const eff = pv.effectiveSampleSize;
+  console.log(`  ${pad(v, 10)} ${pad('[' + w + ']', 28)} ${pad(eff, 6)}${eff === 0 ? '  (no station truth — model-only)' : ''}`);
+  if (eff === 0) { noTruth.push(v); continue; }
+  minEff = Math.min(minEff, eff);
 }
-if (minEff < 10) {
+if (noTruth.length) console.log(`\n  excluded from the maturity verdict (no station truth): ${noTruth.join(', ')}`);
+if (minEff !== Infinity && minEff < 10) {
   console.log(`\n  ⚠  C2 SHORT ARCHIVE (effN=${minEff} < 10): weights are heavily prior-shrunk.`);
   console.log('     Early LOSO gains are expected to be small / non-significant. Do NOT re-tune to');
   console.log('     force a pass — keep collecting sessions (radiation night / mixed / frontal).');

@@ -277,8 +277,8 @@
    Einspaltige Copy: Eyebrow → Headline → Body → Möglichkeiten → Suche → „So
    geht's". Füllt die zuvor leere Sandfläche mit markentreuem Inhalt; Caps/Howto
    erben die Intro-Klassen (intro.css), --intro-accent = Regenradar-Blau. */
-.nc-intro { margin-top: 1.8rem; }
-.nc-intro-copy { display: flex; flex-direction: column; gap: 0.55rem; max-width: 640px; }
+.nc-intro { margin-top: 1.8rem; display: flex; justify-content: center; }
+.nc-intro-copy { display: flex; flex-direction: column; gap: 0.55rem; max-width: 640px; margin: 0 auto; }
 .nc-intro-title {
   margin: 0.1rem 0 0;
   font-size: clamp(2.1rem, 5.2vw, 3.1rem);
@@ -359,3 +359,31 @@
 /* neutrale Zeit-Buttons auf dem Sand-Panel → Cream; Play + aktiver Loop behalten
    ihr Blau (ausgenommen). */
 .nc-page .rdr-tl-btn:not(.rdr-tl-play):not(.is-active) { background: var(--cream-50, #FAF6EA); }
+
+/* ---------------------------------------------------------------------------
+   Idle-/Standortseite: Werkzeug-Rail links (Optik wie im Regenradar-Deck),
+   damit man auch ohne gewählten Ort direkt in ein anderes Werkzeug springt.
+   Nur Desktop/Tablet — die Mobile-Idle-Ansicht (rm-idle) rendert vorher.
+   --------------------------------------------------------------------------- */
+.nc-idle-shell { display: flex; min-height: 100vh; }
+.nc-idle-shell > .rt-page { flex: 1; min-width: 0; }
+.nc-idle-rail {
+  width: 62px; flex: 0 0 auto;
+  background: var(--ink-900, #2C2A26);
+  display: flex; flex-direction: column; align-items: center;
+  padding: 14px 0; gap: 6px;
+  position: sticky; top: 0; height: 100vh;
+}
+.nc-idle-rail-btn {
+  width: 42px; height: 42px; border-radius: 11px;
+  display: flex; align-items: center; justify-content: center;
+  color: #8B7355; background: transparent; border: 0; cursor: pointer; position: relative;
+}
+.nc-idle-rail-btn:hover { color: #C4B896; }
+.nc-idle-rail-btn.is-active { background: #3A3833; color: #5B9BD5; cursor: default; }
+.nc-idle-rail-btn.is-active::before {
+  content: ''; position: absolute; left: -14px; top: 9px; bottom: 9px;
+  width: 3px; border-radius: 2px; background: var(--steel-600, #3A6FA8);
+}
+.nc-idle-rail-btn:focus-visible { outline: 2px solid var(--sand-50, #F5F1E8); outline-offset: 2px; }
+.nc-idle-rail-spacer { margin-top: auto; }

@@ -1,0 +1,129 @@
+{
+  "erzeugt": "2026-08-15T17:20:47.112Z",
+  "befunde": {
+    "lauf": {
+      "hh": "15",
+      "runStr": "2026081515"
+    },
+    "bodenarten": {
+      "1 Eis": 170,
+      "2 Fels": 70,
+      "3 Sand": 68817,
+      "4 sandiger Lehm": 74964,
+      "5 Lehm": 293672,
+      "6 toniger Lehm": 93402,
+      "7 Ton": 5936,
+      "8 Torf": 5096,
+      "9 Wasser": 212735,
+      "NaN": 151528
+    },
+    "verteilungProEbene": {
+      "0": {
+        "zellenGesamt": 754862,
+        "zellenEchterBoden": 541887,
+        "exakt0": 0,
+        "anteilExakt0": 0,
+        "p1": -0.6626,
+        "p5": -0.6174,
+        "p25": -0.2954,
+        "p50": -0.1934,
+        "p75": 0.0012,
+        "p95": 0.5022,
+        "p99": 1.0584,
+        "unter0": 403934,
+        "ueber1": 6401
+      },
+      "1": {
+        "zellenGesamt": 754862,
+        "zellenEchterBoden": 541887,
+        "exakt0": 0,
+        "anteilExakt0": 0,
+        "p1": -0.4264,
+        "p5": -0.3432,
+        "p25": -0.1924,
+        "p50": -0.1031,
+        "p75": 0.0648,
+        "p95": 0.5238,
+        "p99": 1.016,
+        "unter0": 369276,
+        "ueber1": 5755
+      },
+      "3": {
+        "zellenGesamt": 754862,
+        "zellenEchterBoden": 541887,
+        "exakt0": 0,
+        "anteilExakt0": 0,
+        "p1": -0.1561,
+        "p5": -0.0974,
+        "p25": -0.0322,
+        "p50": 0,
+        "p75": 0.1477,
+        "p95": 0.5561,
+        "p99": 0.9074,
+        "unter0": 264226,
+        "ueber1": 4139
+      },
+      "9": {
+        "zellenGesamt": 754862,
+        "zellenEchterBoden": 541887,
+        "exakt0": 0,
+        "anteilExakt0": 0,
+        "p1": -0.0033,
+        "p5": 0,
+        "p25": 0.0302,
+        "p50": 0.126,
+        "p75": 0.2897,
+        "p95": 0.626,
+        "p99": 0.8691,
+        "unter0": 34608,
+        "ueber1": 2277
+      },
+      "27": {
+        "zellenGesamt": 754862,
+        "zellenEchterBoden": 541887,
+        "exakt0": 0,
+        "anteilExakt0": 0,
+        "p1": 0.0343,
+        "p5": 0.1257,
+        "p25": 0.2685,
+        "p50": 0.467,
+        "p75": 0.6213,
+        "p95": 0.8691,
+        "p99": 0.9972,
+        "unter0": 546,
+        "ueber1": 5107
+      },
+      "81": {
+        "zellenGesamt": 754862,
+        "zellenEchterBoden": 541887,
+        "exakt0": 0,
+        "anteilExakt0": 0,
+        "p1": 0.5098,
+        "p5": 0.6244,
+        "p25": 0.7733,
+        "p50": 0.8471,
+        "p75": 0.9672,
+        "p95": 1.1915,
+        "p99": 1.3369,
+        "unter0": 650,
+        "ueber1": 106371
+      },
+      "243": {
+        "zellenGesamt": 754862,
+        "zellenEchterBoden": 541887,
+        "exakt0": 0,
+        "anteilExakt0": 0,
+        "p1": 0.5098,
+        "p5": 0.6244,
+        "p25": 0.7733,
+        "p50": 0.8471,
+        "p75": 0.9672,
+        "p95": 1.1915,
+        "p99": 1.3369,
+        "unter0": 650,
+        "ueber1": 106371
+      }
+    },
+    "exakt0NachBodenart": {}
+  }
+}

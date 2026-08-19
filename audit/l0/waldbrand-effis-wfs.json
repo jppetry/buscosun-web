@@ -1,0 +1,962 @@
+{
+  "at": "2026-08-15T08:33:21.806Z",
+  "part": "wfs",
+  "steps": {
+    "gwisLayers": {
+      "ms:viirs.hs.today": {
+        "typename": "ms:viirs.hs.today",
+        "status": 200,
+        "ms": 421,
+        "bytes": 510026,
+        "acao": "*",
+        "contentType": "application/json; subtype=geojson",
+        "error": null,
+        "count": 2736,
+        "properties": [
+          "id",
+          "acq_at",
+          "CLASS"
+        ],
+        "acqMin": "2026-08-14T00:33:00Z",
+        "acqMax": "2026-08-15T03:00:00Z",
+        "featureSample": [
+          {
+            "id": "62052235588",
+            "lon": 10.58873,
+            "lat": 49.54728,
+            "ms": 1786708920000,
+            "cls": "1DAY_N"
+          },
+          {
+            "id": "62052226646",
+            "lon": 8.09674,
+            "lat": 45.52481,
+            "ms": 1786708800000,
+            "cls": "1DAY_N"
+          },
+          {
+            "id": "62052226812",
+            "lon": 11.48168,
+            "lat": 45.63367,
+            "ms": 1786708800000,
+            "cls": "1DAY_N"
+          }
+        ]
+      },
+      "ms:viirs.hs.week": {
+        "typename": "ms:viirs.hs.week",
+        "status": 200,
+        "ms": 905,
+        "bytes": 1369545,
+        "acao": "*",
+        "contentType": "application/json; subtype=geojson",
+        "error": null,
+        "count": 7352,
+        "properties": [
+          "id",
+          "acq_at",
+          "CLASS"
+        ],
+        "acqMin": "2026-08-08T00:07:00Z",
+        "acqMax": "2026-08-15T03:00:00Z",
+        "featureSample": [
+          {
+            "id": "61690340439",
+            "lon": 11.4779,
+            "lat": 50.12543,
+            "ms": 1786362900000,
+            "cls": "7DAYS_1"
+          },
+          {
+            "id": "61690340478",
+            "lon": 11.78456,
+            "lat": 50.14597,
+            "ms": 1786362900000,
+            "cls": "7DAYS_1"
+          },
+          {
+            "id": "61690340580",
+            "lon": 11.33748,
+            "lat": 50.18874,
+            "ms": 1786362900000,
+            "cls": "7DAYS_1"
+          }
+        ]
+      },
+      "ms:viirs.suomi.hs.today": {
+        "typename": "ms:viirs.suomi.hs.today",
+        "status": null,
+        "ms": 63,
+        "bytes": 0,
+        "acao": null,
+        "contentType": null,
+        "error": "terminated"
+      },
+      "ms:viirs.n20.hs.today": {
+        "typename": "ms:viirs.n20.hs.today",
+        "status": null,
+        "ms": 500,
+        "bytes": 0,
+        "acao": null,
+        "contentType": null,
+        "error": "terminated"
+      },
+      "ms:viirs.n21.hs.today": {
+        "typename": "ms:viirs.n21.hs.today",
+        "status": null,
+        "ms": 625,
+        "bytes": 0,
+        "acao": null,
+        "contentType": null,
+        "error": "terminated"
+      },
+      "ms:viirs.hs.suomi.today": {
+        "typename": "ms:viirs.hs.suomi.today",
+        "status": 200,
+        "ms": 277,
+        "bytes": 210905,
+        "acao": "*",
+        "contentType": "application/json; subtype=geojson",
+        "error": null,
+        "count": 1133,
+        "properties": [
+          "id",
+          "acq_at",
+          "CLASS"
+        ],
+        "acqMin": "2026-08-14T00:33:00Z",
+        "acqMax": "2026-08-15T01:56:00Z",
+        "featureSample": [
+          {
+            "id": "62052235588",
+            "lon": 10.58873,
+            "lat": 49.54728,
+            "ms": 1786708920000,
+            "cls": "1DAY_N"
+          },
+          {
+            "id": "62052226602",
+            "lon": 12.62606,
+            "lat": 45.50718,
+            "ms": 1786708800000,
+            "cls": "1DAY_N"
+          },
+          {
+            "id": "62052226646",
+            "lon": 8.09674,
+            "lat": 45.52481,
+            "ms": 1786708800000,
+            "cls": "1DAY_N"
+          }
+        ]
+      },
+      "ms:viirs.hs.n20.today": {
+        "typename": "ms:viirs.hs.n20.today",
+        "status": 200,
+        "ms": 54,
+        "bytes": 161295,
+        "acao": "*",
+        "contentType": "application/json; subtype=geojson",
+        "error": null,
+        "count": 864,
+        "properties": [
+          "id",
+          "acq_at",
+          "CLASS"
+        ],
+        "acqMin": "2026-08-14T00:52:00Z",
+        "acqMax": "2026-08-15T02:15:00Z",
+        "featureSample": [
+          {
+            "id": "62088354080",
+            "lon": 13.27939,
+            "lat": 46.43515,
+            "ms": 1786754100000,
+            "cls": "12HOURS_1"
+          },
+          {
+            "id": "62088355276",
+            "lon": 7.56034,
+            "lat": 47.17659,
+            "ms": 1786754100000,
+            "cls": "12HOURS_1"
+          },
+          {
+            "id": "62088356662",
+            "lon": 14.34228,
+            "lat": 48.27509,
+            "ms": 1786754100000,
+            "cls": "12HOURS_1"
+          }
+        ]
+      },
+      "ms:viirs.hs.n21.today": {
+        "typename": "ms:viirs.hs.n21.today",
+        "status": 200,
+        "ms": 74,
+        "bytes": 137988,
+        "acao": "*",
+        "contentType": "application/json; subtype=geojson",
+        "error": null,
+        "count": 739,
+        "properties": [
+          "id",
+          "acq_at",
+          "CLASS"
+        ],
+        "acqMin": "2026-08-14T01:37:00Z",
+        "acqMax": "2026-08-15T03:00:00Z",
+        "featureSample": [
+          {
+            "id": "62088378151",
+            "lon": 15.56668,
+            "lat": 52.27926,
+            "ms": 1786756620000,
+            "cls": "12HOURS_2"
+          },
+          {
+            "id": "62088378289",
+            "lon": 8.67878,
+            "lat": 53.13506,
+            "ms": 1786756620000,
+            "cls": "12HOURS_2"
+          },
+          {
+            "id": "62090395021",
+            "lon": 10.41441,
+            "lat": 52.16536,
+            "ms": 1786762680000,
+            "cls": "6HOURS_2"
+          }
+        ]
+      },
+      "ms:viirs.suomi.hs.week": {
+        "typename": "ms:viirs.suomi.hs.week",
+        "status": null,
+        "ms": 57,
+        "bytes": 0,
+        "acao": null,
+        "contentType": null,
+        "error": "terminated"
+      },
+      "ms:viirs.n20.hs.week": {
+        "typename": "ms:viirs.n20.hs.week",
+        "status": null,
+        "ms": 60,
+        "bytes": 0,
+        "acao": null,
+        "contentType": null,
+        "error": "terminated"
+      },
+      "ms:viirs.n21.hs.week": {
+        "typename": "ms:viirs.n21.hs.week",
+        "status": null,
+        "ms": 130,
+        "bytes": 0,
+        "acao": null,
+        "contentType": null,
+        "error": "terminated"
+      },
+      "ms:modis.hs.today": {
+        "typename": "ms:modis.hs.today",
+        "status": 200,
+        "ms": 461,
+        "bytes": 28084,
+        "acao": "*",
+        "contentType": "application/json; subtype=geojson",
+        "error": null,
+        "count": 151,
+        "properties": [
+          "id",
+          "acq_at",
+          "CLASS"
+        ],
+        "acqMin": "2026-08-14T04:00:00Z",
+        "acqMax": "2026-08-15T04:36:00Z",
+        "featureSample": [
+          {
+            "id": "62030708927",
+            "lon": 10.98987,
+            "lat": 48.10245,
+            "ms": 1786698120000,
+            "cls": "1DAY_T"
+          },
+          {
+            "id": "62030709113",
+            "lon": 6.38179,
+            "lat": 50.74852,
+            "ms": 1786698120000,
+            "cls": "1DAY_T"
+          },
+          {
+            "id": "62030708831",
+            "lon": 13.07472,
+            "lat": 46.36943,
+            "ms": 1786698120000,
+            "cls": "1DAY_T"
+          }
+        ]
+      },
+      "ms:all.hs.today": {
+        "typename": "ms:all.hs.today",
+        "status": 200,
+        "ms": 729,
+        "bytes": 566149,
+        "acao": "*",
+        "contentType": "application/json; subtype=geojson",
+        "error": null,
+        "count": 3037,
+        "properties": [
+          "id",
+          "acq_at",
+          "CLASS"
+        ],
+        "acqMin": "2026-08-14T00:33:00Z",
+        "acqMax": "2026-08-15T04:36:00Z",
+        "featureSample": [
+          {
+            "id": "62052235588",
+            "lon": 10.58873,
+            "lat": 49.54728,
+            "ms": 1786708920000,
+            "cls": "1DAY_N"
+          },
+          {
+            "id": "62052226858",
+            "lon": 11.93042,
+            "lat": 45.66211,
+            "ms": 1786708800000,
+            "cls": "1DAY_N"
+          },
+          {
+            "id": "62052227131",
+            "lon": 8.15835,
+            "lat": 45.73629,
+            "ms": 1786708800000,
+            "cls": "1DAY_N"
+          }
+        ]
+      },
+      "ms:s3.hs.today": {
+        "typename": "ms:s3.hs.today",
+        "status": 200,
+        "ms": 902,
+        "bytes": 28186,
+        "acao": "*",
+        "contentType": "application/json; subtype=geojson",
+        "error": null,
+        "count": 150,
+        "properties": [
+          "id",
+          "acq_at",
+          "CLASS"
+        ],
+        "acqMin": "2026-08-14T19:53:00Z",
+        "acqMax": "2026-08-14T21:33:00Z",
+        "featureSample": [
+          {
+            "id": "62087514099",
+            "lon": 13.066209,
+            "lat": 46.3902,
+            "ms": 1786739400000,
+            "cls": "1DAY_S"
+          },
+          {
+            "id": "62087514451",
+            "lon": 6.097582,
+            "lat": 50.509546,
+            "ms": 1786739460000,
+            "cls": "1DAY_S"
+          },
+          {
+            "id": "62087514356",
+            "lon": 10.437659,
+            "lat": 50.396666,
+            "ms": 1786739460000,
+            "cls": "1DAY_S"
+          }
+        ]
+      }
+    },
+    "decomposition": {
+      "platformTypenames": {
+        "suomi": "ms:viirs.hs.suomi.today",
+        "n20": "ms:viirs.hs.n20.today",
+        "n21": "ms:viirs.hs.n21.today"
+      },
+      "suomi": {
+        "typename": "ms:viirs.hs.suomi.today",
+        "count": 1133,
+        "containedInViirsHs": 1133
+      },
+      "n20": {
+        "typename": "ms:viirs.hs.n20.today",
+        "count": 864,
+        "containedInViirsHs": 864
+      },
+      "n21": {
+        "typename": "ms:viirs.hs.n21.today",
+        "count": 739,
+        "containedInViirsHs": 739
+      },
+      "sumOfPlatforms": 2736,
+      "viirsHsCount": 2736
+    },
+    "firms": {
+      "calls": [
+        {
+          "path": "/_firms/VIIRS_SNPP_NRT/5.5,45.5,17.5,55.5/5",
+          "status": 200,
+          "ms": 1072,
+          "bytes": 155008,
+          "rows": 1937,
+          "skipped": 0
+        },
+        {
+          "path": "/_firms/VIIRS_SNPP_NRT/5.5,45.5,17.5,55.5/3/2026-08-08",
+          "status": 200,
+          "ms": 921,
+          "bytes": 69384,
+          "rows": 865,
+          "skipped": 0
+        },
+        {
+          "path": "/_firms/VIIRS_NOAA20_NRT/5.5,45.5,17.5,55.5/5",
+          "status": 200,
+          "ms": 647,
+          "bytes": 129439,
+          "rows": 1587,
+          "skipped": 0
+        },
+        {
+          "path": "/_firms/VIIRS_NOAA20_NRT/5.5,45.5,17.5,55.5/3/2026-08-08",
+          "status": 200,
+          "ms": 528,
+          "bytes": 61853,
+          "rows": 752,
+          "skipped": 0
+        },
+        {
+          "path": "/_firms/VIIRS_NOAA21_NRT/5.5,45.5,17.5,55.5/5",
+          "status": 200,
+          "ms": 616,
+          "bytes": 152934,
+          "rows": 1868,
+          "skipped": 0
+        },
+        {
+          "path": "/_firms/VIIRS_NOAA21_NRT/5.5,45.5,17.5,55.5/3/2026-08-08",
+          "status": 200,
+          "ms": 413,
+          "bytes": 46773,
+          "rows": 568,
+          "skipped": 0
+        }
+      ],
+      "total": 7577,
+      "bySatellite": {
+        "N": 2802,
+        "N20": 2339,
+        "N21": 2436
+      },
+      "acqMin": "2026-08-08T00:07:00Z",
+      "acqMax": "2026-08-15T03:00:00Z"
+    },
+    "match": {
+      "ms:viirs.hs.today": {
+        "gwisWindow": [
+          "2026-08-14T00:33:00Z",
+          "2026-08-15T03:00:00Z"
+        ],
+        "gwisCount": 2736,
+        "perSatellite": {
+          "N": {
+            "firmsInWindow": 1185,
+            "matched": 1176,
+            "matchRate": 0.992,
+            "sameMinute": 1176,
+            "distP50": "0",
+            "distP90": "0",
+            "distP99": "379",
+            "distMax": "1191",
+            "dtP90s": "0",
+            "dtMaxS": "0"
+          },
+          "N20": {
+            "firmsInWindow": 866,
+            "matched": 865,
+            "matchRate": 0.999,
+            "sameMinute": 865,
+            "distP50": "0",
+            "distP90": "0",
+            "distP99": "0",
+            "distMax": "371",
+            "dtP90s": "0",
+            "dtMaxS": "0"
+          },
+          "N21": {
+            "firmsInWindow": 752,
+            "matched": 747,
+            "matchRate": 0.993,
+            "sameMinute": 747,
+            "distP50": "0",
+            "distP90": "0",
+            "distP99": "372",
+            "distMax": "540",
+            "dtP90s": "0",
+            "dtMaxS": "0"
+          }
+        },
+        "gwisInFirmsWindow": 2736,
+        "gwisUnmatched": 0,
+        "gwisUnmatchedSample": [],
+        "hourly": {
+          "2026-08-13T23": {
+            "gwis": 0,
+            "firms": 20
+          },
+          "2026-08-14T00": {
+            "gwis": 251,
+            "firms": 251
+          },
+          "2026-08-14T01": {
+            "gwis": 170,
+            "firms": 179
+          },
+          "2026-08-14T02": {
+            "gwis": 266,
+            "firms": 267
+          },
+          "2026-08-14T03": {
+            "gwis": 11,
+            "firms": 11
+          },
+          "2026-08-14T10": {
+            "gwis": 12,
+            "firms": 12
+          },
+          "2026-08-14T11": {
+            "gwis": 78,
+            "firms": 79
+          },
+          "2026-08-14T12": {
+            "gwis": 659,
+            "firms": 693
+          },
+          "2026-08-14T13": {
+            "gwis": 71,
+            "firms": 71
+          },
+          "2026-08-14T23": {
+            "gwis": 0,
+            "firms": 2
+          },
+          "2026-08-15T00": {
+            "gwis": 252,
+            "firms": 252
+          },
+          "2026-08-15T01": {
+            "gwis": 628,
+            "firms": 648
+          },
+          "2026-08-15T02": {
+            "gwis": 254,
+            "firms": 254
+          },
+          "2026-08-15T03": {
+            "gwis": 84,
+            "firms": 84
+          }
+        },
+        "deltaP50": 0,
+        "deltaP90": 0,
+        "deltaP99": 374.3946932149055
+      },
+      "ms:viirs.hs.week": {
+        "gwisWindow": [
+          "2026-08-08T00:07:00Z",
+          "2026-08-15T03:00:00Z"
+        ],
+        "gwisCount": 7352,
+        "perSatellite": {
+          "N": {
+            "firmsInWindow": 2802,
+            "matched": 2782,
+            "matchRate": 0.993,
+            "sameMinute": 2782,
+            "distP50": "0",
+            "distP90": "0",
+            "distP99": "379",
+            "distMax": "1191",
+            "dtP90s": "0",
+            "dtMaxS": "0"
+          },
+          "N20": {
+            "firmsInWindow": 2339,
+            "matched": 2318,
+            "matchRate": 0.991,
+            "sameMinute": 2318,
+            "distP50": "0",
+            "distP90": "0",
+            "distP99": "114",
+            "distMax": "1226",
+            "dtP90s": "0",
+            "dtMaxS": "0"
+          },
+          "N21": {
+            "firmsInWindow": 2436,
+            "matched": 2382,
+            "matchRate": 0.978,
+            "sameMinute": 2382,
+            "distP50": "0",
+            "distP90": "0",
+            "distP99": "373",
+            "distMax": "836",
+            "dtP90s": "0",
+            "dtMaxS": "0"
+          }
+        },
+        "gwisInFirmsWindow": 7352,
+        "gwisUnmatched": 0,
+        "gwisUnmatchedSample": [],
+        "hourly": {
+          "2026-08-08T00": {
+            "gwis": 110,
+            "firms": 110
+          },
+          "2026-08-08T01": {
+            "gwis": 176,
+            "firms": 180
+          },
+          "2026-08-08T02": {
+            "gwis": 113,
+            "firms": 113
+          },
+          "2026-08-08T10": {
+            "gwis": 24,
+            "firms": 24
+          },
+          "2026-08-08T11": {
+            "gwis": 142,
+            "firms": 148
+          },
+          "2026-08-08T12": {
+            "gwis": 242,
+            "firms": 253
+          },
+          "2026-08-08T13": {
+            "gwis": 12,
+            "firms": 12
+          },
+          "2026-08-08T23": {
+            "gwis": 0,
+            "firms": 12
+          },
+          "2026-08-09T00": {
+            "gwis": 153,
+            "firms": 153
+          },
+          "2026-08-09T01": {
+            "gwis": 104,
+            "firms": 109
+          },
+          "2026-08-09T02": {
+            "gwis": 160,
+            "firms": 163
+          },
+          "2026-08-09T03": {
+            "gwis": 15,
+            "firms": 15
+          },
+          "2026-08-09T10": {
+            "gwis": 4,
+            "firms": 4
+          },
+          "2026-08-09T11": {
+            "gwis": 253,
+            "firms": 264
+          },
+          "2026-08-09T12": {
+            "gwis": 57,
+            "firms": 59
+          },
+          "2026-08-09T13": {
+            "gwis": 11,
+            "firms": 11
+          },
+          "2026-08-10T00": {
+            "gwis": 38,
+            "firms": 38
+          },
+          "2026-08-10T01": {
+            "gwis": 112,
+            "firms": 115
+          },
+          "2026-08-10T02": {
+            "gwis": 79,
+            "firms": 80
+          },
+          "2026-08-10T03": {
+            "gwis": 7,
+            "firms": 7
+          },
+          "2026-08-10T11": {
+            "gwis": 271,
+            "firms": 284
+          },
+          "2026-08-10T12": {
+            "gwis": 24,
+            "firms": 24
+          },
+          "2026-08-10T13": {
+            "gwis": 7,
+            "firms": 7
+          },
+          "2026-08-11T00": {
+            "gwis": 94,
+            "firms": 97
+          },
+          "2026-08-11T01": {
+            "gwis": 178,
+            "firms": 187
+          },
+          "2026-08-11T02": {
+            "gwis": 49,
+            "firms": 49
+          },
+          "2026-08-11T03": {
+            "gwis": 28,
+            "firms": 28
+          },
+          "2026-08-11T10": {
+            "gwis": 9,
+            "firms": 9
+          },
+          "2026-08-11T11": {
+            "gwis": 97,
+            "firms": 97
+          },
+          "2026-08-11T12": {
+            "gwis": 47,
+            "firms": 47
+          },
+          "2026-08-11T13": {
+            "gwis": 14,
+            "firms": 14
+          },
+          "2026-08-11T23": {
+            "gwis": 0,
+            "firms": 4
+          },
+          "2026-08-12T00": {
+            "gwis": 130,
+            "firms": 130
+          },
+          "2026-08-12T01": {
+            "gwis": 251,
+            "firms": 262
+          },
+          "2026-08-12T02": {
+            "gwis": 144,
+            "firms": 144
+          },
+          "2026-08-12T03": {
+            "gwis": 17,
+            "firms": 17
+          },
+          "2026-08-12T10": {
+            "gwis": 3,
+            "firms": 3
+          },
+          "2026-08-12T11": {
+            "gwis": 36,
+            "firms": 36
+          },
+          "2026-08-12T12": {
+            "gwis": 237,
+            "firms": 243
+          },
+          "2026-08-13T00": {
+            "gwis": 243,
+            "firms": 243
+          },
+          "2026-08-13T01": {
+            "gwis": 217,
+            "firms": 224
+          },
+          "2026-08-13T02": {
+            "gwis": 166,
+            "firms": 166
+          },
+          "2026-08-13T10": {
+            "gwis": 37,
+            "firms": 37
+          },
+          "2026-08-13T11": {
+            "gwis": 305,
+            "firms": 323
+          },
+          "2026-08-13T12": {
+            "gwis": 180,
+            "firms": 189
+          },
+          "2026-08-13T13": {
+            "gwis": 20,
+            "firms": 20
+          },
+          "2026-08-13T23": {
+            "gwis": 0,
+            "firms": 20
+          },
+          "2026-08-14T00": {
+            "gwis": 251,
+            "firms": 251
+          },
+          "2026-08-14T01": {
+            "gwis": 170,
+            "firms": 179
+          },
+          "2026-08-14T02": {
+            "gwis": 266,
+            "firms": 267
+          },
+          "2026-08-14T03": {
+            "gwis": 11,
+            "firms": 11
+          },
+          "2026-08-14T10": {
+            "gwis": 12,
+            "firms": 12
+          },
+          "2026-08-14T11": {
+            "gwis": 78,
+            "firms": 79
+          },
+          "2026-08-14T12": {
+            "gwis": 659,
+            "firms": 693
+          },
+          "2026-08-14T13": {
+            "gwis": 71,
+            "firms": 71
+          },
+          "2026-08-14T23": {
+            "gwis": 0,
+            "firms": 2
+          },
+          "2026-08-15T00": {
+            "gwis": 252,
+            "firms": 252
+          },
+          "2026-08-15T01": {
+            "gwis": 628,
+            "firms": 648
+          },
+          "2026-08-15T02": {
+            "gwis": 254,
+            "firms": 254
+          },
+          "2026-08-15T03": {
+            "gwis": 84,
+            "firms": 84
+          }
+        },
+        "deltaP50": 0,
+        "deltaP90": 0,
+        "deltaP99": 376.8465982526889
+      }
+    },
+    "richAttributes": {
+      "ms:viirs.hs.today": {
+        "ndvi": false,
+        "cci_class": false,
+        "flag_lc": false,
+        "mask_flag": false,
+        "checked": false,
+        "frp": false,
+        "confidence": false,
+        "satellite": false
+      },
+      "ms:viirs.hs.week": {
+        "ndvi": false,
+        "cci_class": false,
+        "flag_lc": false,
+        "mask_flag": false,
+        "checked": false,
+        "frp": false,
+        "confidence": false,
+        "satellite": false
+      },
+      "ms:viirs.hs.suomi.today": {
+        "ndvi": false,
+        "cci_class": false,
+        "flag_lc": false,
+        "mask_flag": false,
+        "checked": false,
+        "frp": false,
+        "confidence": false,
+        "satellite": false
+      },
+      "ms:viirs.hs.n20.today": {
+        "ndvi": false,
+        "cci_class": false,
+        "flag_lc": false,
+        "mask_flag": false,
+        "checked": false,
+        "frp": false,
+        "confidence": false,
+        "satellite": false
+      },
+      "ms:viirs.hs.n21.today": {
+        "ndvi": false,
+        "cci_class": false,
+        "flag_lc": false,
+        "mask_flag": false,
+        "checked": false,
+        "frp": false,
+        "confidence": false,
+        "satellite": false
+      },
+      "ms:modis.hs.today": {
+        "ndvi": false,
+        "cci_class": false,
+        "flag_lc": false,
+        "mask_flag": false,
+        "checked": false,
+        "frp": false,
+        "confidence": false,
+        "satellite": false
+      },
+      "ms:all.hs.today": {
+        "ndvi": false,
+        "cci_class": false,
+        "flag_lc": false,
+        "mask_flag": false,
+        "checked": false,
+        "frp": false,
+        "confidence": false,
+        "satellite": false
+      },
+      "ms:s3.hs.today": {
+        "ndvi": false,
+        "cci_class": false,
+        "flag_lc": false,
+        "mask_flag": false,
+        "checked": false,
+        "frp": false,
+        "confidence": false,
+        "satellite": false
+      },
+      "ms:viirs.hs.today.query": {
+        "status": null,
+        "error": "terminated",
+        "properties": null
+      },
+      "ms:viirs.hs.week.query": {
+        "status": null,
+        "error": "terminated",
+        "properties": null
+      }
+    }
+  }
+}

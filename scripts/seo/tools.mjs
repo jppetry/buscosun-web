@@ -61,6 +61,102 @@ export const TOOLS = [
     datePublished: PUBLISHED, dateModified: MODIFIED,
   },
 
+  // ---------------------------------------------------------------- PILOT 3
+  // Waldbrand DACH (Phase WB, 2026-08-14). Bewusst `full`: Die Ansicht ist die
+  // einzige im deutschsprachigen Raum, die den EU-Index und die amtlichen
+  // Landesstufen NEBENEINANDER zeigt, ohne sie ineinander umzurechnen — und
+  // die Österreich-Lücke ausspricht, statt sie zu überdecken. Genau das ist
+  // der Grund, warum sich die Seite zu verlinken lohnt.
+  {
+    slug: 'waldbrandgefahr',
+    title: 'Waldbrandgefahr DACH',
+    h1: 'Waldbrandgefahr in Deutschland, Österreich und der Schweiz',
+    status: 'full',
+    deepLink: '/#wb=',
+    answer:
+      'Die Waldbrand-Ansicht von buscosun zeigt den europäischen Gefahrenindex als durchgehende Fläche über '
+      + 'Deutschland, Österreich und die Schweiz — und daneben die amtlichen Landesstufen von DWD und BAFU, '
+      + 'jede mit ihrer eigenen Skala. Dazu aktive Brände aus Satellitendaten, die Feuchte der Luft als '
+      + 'Feuerwetter-Treiber und die kantonalen Feuerverbote der Schweiz. Für Österreich gibt es keinen '
+      + 'offenen amtlichen Index; das steht auf der Karte, statt kaschiert zu werden.',
+    bullets: [
+      'EU-Gefahrenindex (Copernicus GWIS, ECMWF-FWI) bis +9 Tage, durchgehend über alle drei Länder',
+      'Amtliche Stufen: DWD-Waldbrandgefahrenindex (484 Stationen) und BAFU-Warnregionen — getrennte Skalen, keine Umrechnung',
+      'Aktive Brände als Satelliten-Thermalanomalien (VIIRS), 24 Stunden oder 7 Tage',
+      'Feuerwetter-Treiber aus ICON-D2: je trockener die Luft, desto leichter entzündet sich Streu',
+      'Kantonale Feuerverbote der Schweiz · Datenalter je Layer sichtbar',
+    ],
+    sections: [
+      {
+        id: 'skalen',
+        h2: 'Warum die nationalen Stufen nicht vergleichbar sind',
+        html:
+          '<p>„Geringe Gefahr" bedeutet in Deutschland <strong>Stufe 2</strong> und in der Schweiz '
+          + '<strong>Stufe 1</strong>. Dahinter stehen verschiedene Modelle — der DWD rechnet ein eigenes '
+          + 'Bestandsmodell aus Streu- und Bodenfeuchte, die Schweiz den kanadischen Fire Weather Index, den '
+          + 'die Kantone anschließend anpassen können. Eine Zuordnung nach Beschriftung würde die gesamte '
+          + 'Schweizer Skala um eine Stufe verschieben.</p>'
+          + '<p>buscosun rechnet die Skalen deshalb <strong>nicht</strong> ineinander um. Sie stehen '
+          + 'nebeneinander, jede mit eigener Legende und eigenem Quellenlabel. An der Grenze endet die '
+          + 'deutsche Stufe und die Schweizer beginnt — sichtbar und gewollt, während der EU-Index '
+          + 'darunter durchläuft.</p>',
+      },
+      {
+        id: 'oesterreich',
+        h2: 'Warum Österreich anders behandelt wird',
+        html:
+          '<p>Für Österreich gibt es <strong>keinen offenen amtlichen Waldbrandindex</strong>. GeoSphere '
+          + 'Austria führt weder einen entsprechenden Datensatz noch einen Waldbrand-Warntyp; die '
+          + 'Risikokarte des Ministeriums und die Waldbrand-Datenbank der BOKU stehen ohne Lizenz und ohne '
+          + 'Download bereit. Auf der Karte erscheint für Österreich deshalb nur der EU-Modellwert — und '
+          + 'der ist ausdrücklich <em>keine</em> amtliche Stufe. Verbindlich sind die Verordnungen der '
+          + 'Bezirkshauptmannschaften, auf die die Ansicht verlinkt.</p>',
+      },
+      {
+        id: 'grenzen',
+        h2: 'Was diese Ansicht ausdrücklich nicht ist',
+        html:
+          '<p>Sie ist <strong>kein amtliches Warnprodukt</strong>. Maßgeblich bleiben der DWD, die '
+          + 'Landesforstverwaltungen, die Bezirkshauptmannschaften und die Kantone; jeder Layer sagt das in '
+          + 'seinem Steckbrief.</p>'
+          + '<p>Die Satelliten-Hotspots sind <strong>Thermalanomalien, keine Einsatzmeldungen</strong>: '
+          + 'Kleine Bodenfeuer unterhalb der Pixelgröße bleiben unsichtbar, Überflüge sind lückenhaft, und '
+          + 'Erntefeuer erscheinen wie Waldbrände. Der Feuerwetter-Treiber ist ein <strong>Treiber, kein '
+          + 'Index</strong> — die kumulativen Codes des Fire Weather Index brauchen Wochen an Vorgeschichte '
+          + 'und lassen sich in einer reinen Browser-Anwendung nicht berechnen; sie kommen fertig aus dem '
+          + 'europäischen Modell.</p>',
+      },
+    ],
+    faqs: [
+      {
+        q: 'Ist die Waldbrandgefahr auf buscosun eine amtliche Warnung?',
+        a: 'Nein. Die Ansicht gibt amtliche Stufen wieder und ergänzt sie um Modell- und Satellitendaten, '
+          + 'ist selbst aber kein Warnprodukt. Verbindlich sind DWD, Landesforstverwaltungen, '
+          + 'Bezirkshauptmannschaften und Kantone.',
+      },
+      {
+        q: 'Warum sehe ich für Österreich keine amtliche Stufe?',
+        a: 'Weil es keine offen verfügbare gibt. GeoSphere Austria veröffentlicht keinen Waldbrandindex, '
+          + 'und die vorhandenen Karten stehen ohne Lizenz und ohne Download bereit. Gezeigt wird dort nur '
+          + 'der europäische Modellwert.',
+      },
+      {
+        q: 'Lassen sich die deutsche und die Schweizer Stufe vergleichen?',
+        a: 'Nicht direkt. „Geringe Gefahr" ist in Deutschland Stufe 2 und in der Schweiz Stufe 1, und die '
+          + 'Modelle dahinter sind verschieden. buscosun zeigt beide Skalen getrennt, statt sie umzurechnen.',
+      },
+      {
+        q: 'Woher kommen die Daten?',
+        a: 'Der EU-Index vom Copernicus Global Wildfire Information System (ECMWF-FWI), die deutschen '
+          + 'Stationswerte vom Deutschen Wetterdienst, die Schweizer Warnregionen und Feuerverbote vom BAFU, '
+          + 'die Brandpunkte aus VIIRS-Satellitendaten und der Feuerwetter-Treiber aus ICON-D2. Alle Quellen '
+          + 'sind offen und ohne Schlüssel nutzbar.',
+      },
+    ],
+    relatedExplainers: ['gewitter-unwetter', 'thermik'],
+    datePublished: '2026-08-14', dateModified: '2026-08-14',
+  },
+
   // ---------------------------------------------------------------- PILOT 2
   {
     slug: 'atmosphaere',

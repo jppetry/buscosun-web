@@ -67,17 +67,66 @@ const WARM_MAX_STEP = process.env.WARM_MAX_STEP != null ? Number(process.env.WAR
 const FAIL_STEP = process.env.FAIL_STEP != null ? Number(process.env.FAIL_STEP) : null;
 const FORCE = process.env.FORCE === '1';
 
-/** T2-Params mit ihren Karten-Step-Caps (= was der jeweilige Layer maximal lädt:
- *  Temp/Gust 24, Precip 27, Clouds 12 — s. audit/layer-transport.md §C T2-4). */
-const PARAMS = [
-  { name: 't_2m', maxStep: 24 },
-  { name: 'vmax_10m', maxStep: 24 },
-  { name: 'tot_prec', maxStep: 27 },
-  { name: 'clcl', maxStep: 12 },
-  { name: 'clcm', maxStep: 12 },
-  { name: 'clch', maxStep: 12 },
-  { name: 'clct', maxStep: 12 },
+/**
+ * T2-Params mit ihren Karten-Step-Caps (= was der jeweilige Layer maximal lädt).
+ *
+ * ── V-80 (2026-08-03): an die tatsächlich sichtbaren Layer gekoppelt ────────
+ * Vorher wärmte diese Liste die VIER WOLKEN-Params für einen Layer, dessen
+ * Toggle auskommentiert ist (`MapView.tsx:4049`, Jans Vorgabe 2026-07-23) —
+ * und ließ zugleich vier SICHTBARE Layer außen vor, die dadurch immer kalt
+ * luden (Directory-Scan-Fallback, `iconD2Precip.ts:112-116`): Gewitter, Blitz-
+ * Prognose, Schnee und Rotation. Also ausgerechnet das, was Nutzer in
+ * Unwetterlagen und im Winter anschalten.
+ *
+ * Die Caps stammen NICHT aus einer Schätzung, sondern aus dem jeweiligen
+ * Quellmodul (`MAX_STEP`): iconD2Thunder 12 · iconD2Lpi 12 · iconD2Snow 24 ·
+ * iconD2Rotation 12. Temp/Gust 24, Precip 27 wie bisher.
+ *
+ * Step 0 wird auch für die Params gewärmt, deren Layer ihn per `minStepHours=1`
+ * überspringt (lpi_max, uh_*, snow_gsp): am 2026-08-03 an DWD geprüft — alle
+ * liefern Step 0, und das Auslassen spräche gegen die Lückenlosigkeit, die der
+ * Betriebs-Wächter (V-79, H5) prüft. Ersparnis wäre ~2,8 MB/Lauf, also ~3 % —
+ * den Sonderfall nicht wert.
+ *
+ * ⚠ KOSTEN — am 2026-08-03 an echten DWD-Dateigrößen gemessen, nicht geschätzt:
+ *   entfernt (Wolken)         25,4 MB/Lauf
+ *   neu (9 Feature-Params +2) 90,8 MB/Lauf
+ *   NETTO                    +65,4 MB/Lauf  ≈ +0,5 GB/Tag ≈ +15 GB/Monat
+ * Der Katalogeintrag V-80 stellte nur die Ersparnis in Aussicht („~12 GB/Monat
+ * werden frei"); die stimmt für sich, wird aber vom Zuwachs deutlich übertroffen.
+ * Treiber sind cape_ml (25,2), cin_ml (23,3), sdi_2 (17,7) und snow_gsp (17,3).
+ * Wer das drücken will: V-84 (Delta statt Vollauf) ist der richtige Hebel, nicht
+ * das Weglassen sichtbarer Layer. Mit WARM_FEATURE_LAYERS=0 lässt sich der neue
+ * Teil ohne Code-Änderung zurücknehmen.
+ */
+const WARM_FEATURE_LAYERS = process.env.WARM_FEATURE_LAYERS !== '0';
+
+/** Basis: die Layer, die seit T2 gewärmt werden und sichtbar sind. */
+const BASE_PARAMS = [
+  { name: 't_2m', maxStep: 24 },        // Layer „Temperatur"
+  { name: 'vmax_10m', maxStep: 24 },    // Layer „Böen"
+  { name: 'tot_prec', maxStep: 27 },    // Niederschlag (Modellanteil/Fallback)
 ];
+
+/** Feature-Layer F1/F2/F4/F5 — sichtbar im Dock, bislang ungewärmt. */
+const FEATURE_PARAMS = [
+  { name: 'cape_ml', maxStep: 12 },     // F1 Gewitterpotenzial (iconD2Thunder MAX_STEP=12)
+  { name: 'cin_ml', maxStep: 12 },      // F1
+  { name: 'lpi', maxStep: 12 },         // F1
+  { name: 'lpi_max', maxStep: 12 },     // F2 Blitz-Prognose (iconD2Lpi MAX_STEP=12)
+  { name: 'h_snow', maxStep: 24 },      // F4 Schneedecke (iconD2Snow MAX_STEP=24)
+  { name: 'snow_gsp', maxStep: 24 },    // F4 Neuschnee
+  { name: 'snow_con', maxStep: 24 },    // F4 Neuschnee, optionaler Zusatzterm
+  { name: 'rho_snow', maxStep: 24 },    // F4 Neuschnee, optionale Dichte
+  { name: 'uh_max', maxStep: 12 },      // F5 Rotation (iconD2Rotation MAX_STEP=12)
+  { name: 'uh_max_low', maxStep: 12 },  // F5
+  { name: 'sdi_2', maxStep: 12 },       // F5
+];
+
+// Wolken-Params (clcl/clcm/clch/clct, je ≤ 12) sind BEWUSST entfernt: der Layer
+// ist ausgeblendet. Zum Zurückholen genügt es, sie hier wieder einzureihen —
+// gemeinsam mit dem Toggle in MapView.tsx:4049.
+const PARAMS = WARM_FEATURE_LAYERS ? [...BASE_PARAMS, ...FEATURE_PARAMS] : BASE_PARAMS;
 
 const EPS_DWD_BASE = (process.env.EPS_DWD_BASE || 'https://opendata.dwd.de/weather/nwp/icon-d2-eps/grib').replace(/\/+$/, '');
 /** EPS-Variablen + Step-Menge, die `fetchIconD2EpsGrid` tatsächlich zieht

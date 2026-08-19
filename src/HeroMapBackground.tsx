@@ -28,7 +28,10 @@ export default function HeroMapBackground() {
       minZoom: 3,
       maxZoom: 7,
       interactive: false,
-      attributionControl: false,
+      // Auch die dekorative Hero-Karte zeigt echte OpenFreeMap/OSM-Kacheln —
+      // die Attributionspflicht (ODbL) hängt an der Anzeige, nicht an der
+      // Bedienbarkeit (V-105).
+      attributionControl: { compact: true },
     });
     map.on('load', () => setReady(true));
     return () => map.remove();

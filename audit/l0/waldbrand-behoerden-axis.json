@@ -1,0 +1,130 @@
+{
+  "at": "2026-08-15T10:50:32.934Z",
+  "part": "axis",
+  "steps": {
+    "axis": [
+      {
+        "endpoint": "gwis",
+        "typename": "ms:viirs.hs.today",
+        "order": "latlon",
+        "status": 200,
+        "ms": 1117,
+        "count": 2736,
+        "first": [
+          10.58873,
+          49.54728
+        ],
+        "shareLonLat": 1,
+        "shareLatLon": 0,
+        "verdict": "[lon,lat] ✅ RFC 7946",
+        "error": null
+      },
+      {
+        "endpoint": "gwis",
+        "typename": "ms:viirs.hs.today",
+        "order": "lonlat",
+        "status": 200,
+        "ms": 1183,
+        "count": 5,
+        "first": [
+          49.13099,
+          15.59377
+        ],
+        "shareLonLat": 0,
+        "shareLatLon": 1,
+        "verdict": "[lat,lon] ⚠️ GESPIEGELT",
+        "error": null
+      },
+      {
+        "endpoint": "gwis",
+        "typename": "ms:viirs.hs.week",
+        "order": "latlon",
+        "status": 200,
+        "ms": 1070,
+        "count": 7352,
+        "first": [
+          11.4779,
+          50.12543
+        ],
+        "shareLonLat": 1,
+        "shareLatLon": 0,
+        "verdict": "[lon,lat] ✅ RFC 7946",
+        "error": null
+      },
+      {
+        "endpoint": "gwis",
+        "typename": "ms:viirs.hs.week",
+        "order": "lonlat",
+        "status": 200,
+        "ms": 268,
+        "count": 20,
+        "first": [
+          47.27874,
+          14.42028
+        ],
+        "shareLonLat": 0,
+        "shareLatLon": 1,
+        "verdict": "[lat,lon] ⚠️ GESPIEGELT",
+        "error": null
+      },
+      {
+        "endpoint": "effis",
+        "typename": "ms:modis.ba.poly.week",
+        "order": "latlon",
+        "status": 200,
+        "ms": 193,
+        "count": 26,
+        "first": [
+          12.0470653,
+          49.7092455
+        ],
+        "shareLonLat": 1,
+        "shareLatLon": 0,
+        "verdict": "[lon,lat] ✅ RFC 7946",
+        "error": null
+      },
+      {
+        "endpoint": "effis",
+        "typename": "ms:modis.ba.poly.week",
+        "order": "lonlat",
+        "status": 200,
+        "ms": 155,
+        "count": 0,
+        "first": null,
+        "shareLonLat": null,
+        "shareLatLon": null,
+        "verdict": "leer/fehler",
+        "error": null
+      },
+      {
+        "endpoint": "effis",
+        "typename": "ms:modis.ba.poly.season",
+        "order": "latlon",
+        "status": 200,
+        "ms": 468,
+        "count": 293,
+        "first": [
+          12.9665629,
+          46.4503746
+        ],
+        "shareLonLat": 1,
+        "shareLatLon": 0,
+        "verdict": "[lon,lat] ✅ RFC 7946",
+        "error": null
+      },
+      {
+        "endpoint": "effis",
+        "typename": "ms:modis.ba.poly.season",
+        "order": "lonlat",
+        "status": 200,
+        "ms": 153,
+        "count": 0,
+        "first": null,
+        "shareLonLat": null,
+        "shareLatLon": null,
+        "verdict": "leer/fehler",
+        "error": null
+      }
+    ]
+  }
+}

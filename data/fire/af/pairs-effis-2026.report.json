@@ -1,0 +1,56 @@
+{
+  "years": {
+    "2026": {
+      "polygons": 308,
+      "noDetection": 175,
+      "noMatch": 46,
+      "pairs": 87,
+      "eligible": 85,
+      "firmsRows": 4510,
+      "droppedByArea": {
+        "0–2 ha": {
+          "total": 60,
+          "noDetection": 44,
+          "noMatch": 16
+        },
+        "2–10 ha": {
+          "total": 83,
+          "noDetection": 63,
+          "noMatch": 20
+        },
+        "10–50 ha": {
+          "total": 44,
+          "noDetection": 35,
+          "noMatch": 9
+        },
+        "50–200 ha": {
+          "total": 19,
+          "noDetection": 18,
+          "noMatch": 1
+        },
+        "200–∞ ha": {
+          "total": 15,
+          "noDetection": 15,
+          "noMatch": 0
+        }
+      }
+    }
+  },
+  "requests": 32,
+  "cached": 1,
+  "retries": 0,
+  "firmsRows": 4510,
+  "typeDropped": 10741,
+  "availability": {
+    "VIIRS_SNPP_SP": {
+      "min": "2012-01-20",
+      "max": "2026-04-27"
+    },
+    "VIIRS_NOAA20_SP": {
+      "min": "2018-04-01",
+      "max": "2026-05-31"
+    }
+  },
+  "out": "public/fire/af/pairs-effis-2026.jsonl",
+  "dryRun": false
+}

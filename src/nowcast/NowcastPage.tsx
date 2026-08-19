@@ -65,8 +65,11 @@ function IconHowTo() {
   );
 }
 
+import { FeatureRail, type RailFeature } from '../nav/featureRail';
+
 interface Props {
   onBack: () => void;
+  onOpenFeature?: (id: RailFeature) => void;
 }
 
 type State =
@@ -75,7 +78,7 @@ type State =
   | { kind: 'ready'; nowcast: Nowcast }
   | { kind: 'error'; message: string };
 
-export default function NowcastPage({ onBack }: Props) {
+export default function NowcastPage({ onBack, onOpenFeature }: Props) {
   const [location, setLocation] = useState<Location | null>(null);
   const [state, setState] = useState<State>({ kind: 'idle' });
   const [reloadNonce, setReloadNonce] = useState(0);
@@ -125,6 +128,7 @@ export default function NowcastPage({ onBack }: Props) {
         reloadNonce={reloadNonce}
         onReload={() => setReloadNonce((n) => n + 1)}
         onBack={onBack}
+        onOpenFeature={onOpenFeature}
       />
     );
   }
@@ -163,8 +167,19 @@ export default function NowcastPage({ onBack }: Props) {
   }
 
   // Idle-Startbild: gecraftete Intro-Komposition (Line-Art + Möglichkeiten +
-  // „So geht's" + Suche) in der „Entdecke buscosun"-Designsprache.
+  // „So geht's" + Suche) in der „Entdecke buscosun"-Designsprache. Die
+  // Werkzeug-Rail steht wie im Deck links, damit man auch ohne Ort springen kann.
   return (
+    <div className="nc-idle-shell">
+      <FeatureRail
+        active="nowcast"
+        onOpenFeature={onOpenFeature}
+        onHome={onBack}
+        navClass="nc-idle-rail"
+        btnClass="nc-idle-rail-btn"
+        activeClass="is-active"
+        spacerClass="nc-idle-rail-spacer"
+      />
     <div className="rt-page nc-page">
       <div className="rt-grain" />
       <nav className="rt-nav">
@@ -206,6 +221,7 @@ export default function NowcastPage({ onBack }: Props) {
           <span className="dot nc-dot-static">●</span> DWD RADOLAN-RV (Radar-Nowcast) · ICON-D2 (2,2 km) · keine Tracker
         </div>
       </main>
+    </div>
     </div>
   );
 }

@@ -30,6 +30,21 @@
   status = 200
   force  = true
 
+# MeteoAlarm (EUMETNET) — amtliche Schweizer Warnungen von MeteoSchweiz
+# (`src/sources/meteoAlarmCh.ts`, Phase W2). `feeds.meteoalarm.org` sendet KEIN
+# `Access-Control-Allow-Origin` — am 2026-08-08 mit echtem
+# `Origin: https://buscosun.com` gegengeprüft, auf Atom- UND CAP-Endpunkt.
+#
+# Bewusst ein **einfacher Rewrite** wie `/_dwd_opendata` und ausdrücklich KEINE
+# Edge Function: `docs/API.md` §7 schließt einen Durable-Cache für Warnungen aus
+# („veraltete Warnungen sind gefährlicher als keine"). Die Frische regeln der
+# 60-s-Speichercache und der 5-Minuten-Takt im Client.
+[[redirects]]
+  from   = "/_meteoalarm/*"
+  to     = "https://feeds.meteoalarm.org/:splat"
+  status = 200
+  force  = true
+
 # NOAA GFS (AWS Open Data, S3) — 3D-Globus (`src/globe/gfs.ts`). S3 unterstützt
 # HTTP-Range; Netlifys Edge-Proxy reicht Range/Query weiter und liefert die
 # Antwort same-origin (kein Browser-CORS). Public Domain, kein Key/Limit.
@@ -39,11 +54,47 @@
   status = 200
   force  = true
 
-# SPA-Fallback: unbekannte Pfade laden die App. NICHT erzwungen (kein `!`) →
-# existierende statische Dateien (Geo-Seiten /wetter/<ort>/index.html,
-# sitemap.xml, robots.txt, llms.txt, /assets/*) werden weiterhin direkt
-# ausgeliefert; nur Pfade ohne Datei fallen auf index.html (Hash-Permalinks).
+# MeteoSchweiz OGD (ICON-CH1/CH2-EPS). Der STAC-Katalog (data.geo.admin.ch)
+# erlaubt Browser-CORS, der pre-signed S3-Objektspeicher rgw.cscs.ch NICHT.
+# ⚠️ Die S3-v2-Signatur wird über Host + Pfad + Query gebildet — Netlify reicht
+# den Query-String beim Proxy-Rewrite durch, das ist aber an einem
+# Preview-Deploy zu VERIFIZIEREN, bevor V-01 als erledigt gilt.
+[[redirects]]
+  from   = "/_cscs/*"
+  to     = "https://rgw.cscs.ch/:splat"
+  status = 200
+  force  = true
+
+# Météo-France PNT (AROME-France, ARPEGE): key-freie GRIB2-Pakete auf OVH-S3,
+# ohne Browser-CORS. Range-fähig (selektives Nachladen einzelner Nachrichten).
+[[redirects]]
+  from   = "/_mf/*"
+  to     = "https://meteofrance-pnt.s3.rbx.io.cloud.ovh.net/:splat"
+  status = 200
+  force  = true
+
+# ECMWF Open Data (IFS, AIFS, AIFS-ENS): GRIB2 + .index-Sidecars, CC-BY-4.0,
+# kein Key. Browser-CORS blockiert → Proxy.
+[[redirects]]
+  from   = "/_ecmwf/*"
+  to     = "https://data.ecmwf.int/:splat"
+  status = 200
+  force  = true
+
+# 404 für unbekannte Pfade (V-101). Vorher lieferte diese Regel `/index.html`
+# mit Status **200**, wodurch jede Fantasie-Adresse als gültige Seite zählte
+# (Soft-404) und die erzeugte `404.html` nie ausgeliefert wurde.
+#
+# Warum das ohne SPA-Fallback funktioniert: Die App routet ausschließlich über
+# Hash-Fragmente (`/#m=…`), der Pfad ist dabei immer `/` — und `/` wird von der
+# real existierenden `dist/index.html` bedient. Die Regel ist NICHT erzwungen
+# (kein `force`), also gewinnen weiterhin alle vorhandenen Dateien: Geo-Seiten
+# /wetter/<ort>/index.html, /wissen/, /funktionen/, /impressum/, sitemap.xml,
+# robots.txt, llms.txt, /assets/*.
+#
+# ⚠️ Wird später eine PFADBASIERTE Route eingeführt (V-05/V-51), muss sie hier
+# als 200-Rewrite oberhalb dieser Regel eingetragen werden.
 [[redirects]]
   from   = "/*"
-  to     = "/index.html"
-  status = 200
+  to     = "/404.html"
+  status = 404

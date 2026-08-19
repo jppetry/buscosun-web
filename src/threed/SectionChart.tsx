@@ -21,6 +21,9 @@ export const BAND_LABELS = ['< 15', '15–30', '30–45', '45–60', '> 60'];
 // Querformat (Desktop) vs Hochformat (schmale Screens) — letzteres gibt dem
 // Vertikalschnitt mehr Höhe statt ihn zu stauchen.
 const LANDSCAPE = { W: 960, H: 540 };
+// Deck-Variante: flacher, damit der Schnitt im Command-Deck die volle Breite
+// nutzt und trotzdem ohne Scrollen auf eine Bildschirmhöhe passt.
+const LANDSCAPE_WIDE = { W: 1200, H: 430 };
 const PORTRAIT = { W: 560, H: 600 };
 const PAD_L = 54, PAD_R = 16, PAD_T = 16, PAD_B = 42;
 
@@ -43,6 +46,8 @@ interface Props {
   overlay?: (geo: SectionGeo) => React.ReactNode;
   /** Hochformat (schmale Screens) → höheres Seitenverhältnis. */
   portrait?: boolean;
+  /** Flaches Deck-Format (volle Breite, geringere Höhe). */
+  wide?: boolean;
 }
 
 export interface SectionGeo {
@@ -53,9 +58,9 @@ export interface SectionGeo {
   plot: { left: number; top: number; width: number; height: number };
 }
 
-export default function SectionChart({ section, layers, picked, onPick, overlay, portrait }: Props) {
+export default function SectionChart({ section, layers, picked, onPick, overlay, portrait, wide }: Props) {
   const svgRef = useRef<SVGSVGElement | null>(null);
-  const { W, H } = portrait ? PORTRAIT : LANDSCAPE;
+  const { W, H } = portrait ? PORTRAIT : wide ? LANDSCAPE_WIDE : LANDSCAPE;
   const PLOT_W = W - PAD_L - PAD_R;
   const PLOT_H = H - PAD_T - PAD_B;
   const maxDistanceM = section.columns[section.columns.length - 1].distanceM || 1;

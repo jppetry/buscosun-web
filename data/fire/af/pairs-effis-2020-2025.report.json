@@ -1,0 +1,201 @@
+{
+  "years": {
+    "2020": {
+      "polygons": 48,
+      "noDetection": 12,
+      "noMatch": 2,
+      "pairs": 34,
+      "eligible": 33,
+      "firmsRows": 10628,
+      "droppedByArea": {
+        "10–50 ha": {
+          "total": 9,
+          "noDetection": 7,
+          "noMatch": 2
+        },
+        "50–200 ha": {
+          "total": 4,
+          "noDetection": 4,
+          "noMatch": 0
+        },
+        "200–∞ ha": {
+          "total": 1,
+          "noDetection": 1,
+          "noMatch": 0
+        }
+      }
+    },
+    "2021": {
+      "polygons": 54,
+      "noDetection": 5,
+      "noMatch": 4,
+      "pairs": 45,
+      "eligible": 44,
+      "firmsRows": 8598,
+      "droppedByArea": {
+        "0–2 ha": {
+          "total": 1,
+          "noDetection": 0,
+          "noMatch": 1
+        },
+        "2–10 ha": {
+          "total": 3,
+          "noDetection": 1,
+          "noMatch": 2
+        },
+        "10–50 ha": {
+          "total": 3,
+          "noDetection": 3,
+          "noMatch": 0
+        },
+        "50–200 ha": {
+          "total": 2,
+          "noDetection": 1,
+          "noMatch": 1
+        }
+      }
+    },
+    "2022": {
+      "polygons": 239,
+      "noDetection": 32,
+      "noMatch": 33,
+      "pairs": 174,
+      "eligible": 174,
+      "firmsRows": 13380,
+      "droppedByArea": {
+        "0–2 ha": {
+          "total": 2,
+          "noDetection": 0,
+          "noMatch": 2
+        },
+        "2–10 ha": {
+          "total": 21,
+          "noDetection": 9,
+          "noMatch": 12
+        },
+        "10–50 ha": {
+          "total": 28,
+          "noDetection": 12,
+          "noMatch": 16
+        },
+        "50–200 ha": {
+          "total": 11,
+          "noDetection": 8,
+          "noMatch": 3
+        },
+        "200–∞ ha": {
+          "total": 3,
+          "noDetection": 3,
+          "noMatch": 0
+        }
+      }
+    },
+    "2023": {
+      "polygons": 71,
+      "noDetection": 7,
+      "noMatch": 5,
+      "pairs": 59,
+      "eligible": 58,
+      "firmsRows": 10710,
+      "droppedByArea": {
+        "2–10 ha": {
+          "total": 4,
+          "noDetection": 2,
+          "noMatch": 2
+        },
+        "10–50 ha": {
+          "total": 5,
+          "noDetection": 3,
+          "noMatch": 2
+        },
+        "50–200 ha": {
+          "total": 3,
+          "noDetection": 2,
+          "noMatch": 1
+        }
+      }
+    },
+    "2024": {
+      "polygons": 73,
+      "noDetection": 9,
+      "noMatch": 7,
+      "pairs": 57,
+      "eligible": 54,
+      "firmsRows": 9435,
+      "droppedByArea": {
+        "0–2 ha": {
+          "total": 3,
+          "noDetection": 1,
+          "noMatch": 2
+        },
+        "2–10 ha": {
+          "total": 9,
+          "noDetection": 5,
+          "noMatch": 4
+        },
+        "10–50 ha": {
+          "total": 2,
+          "noDetection": 1,
+          "noMatch": 1
+        },
+        "50–200 ha": {
+          "total": 2,
+          "noDetection": 2,
+          "noMatch": 0
+        }
+      }
+    },
+    "2025": {
+      "polygons": 376,
+      "noDetection": 90,
+      "noMatch": 124,
+      "pairs": 162,
+      "eligible": 156,
+      "firmsRows": 13889,
+      "droppedByArea": {
+        "0–2 ha": {
+          "total": 59,
+          "noDetection": 20,
+          "noMatch": 39
+        },
+        "2–10 ha": {
+          "total": 96,
+          "noDetection": 41,
+          "noMatch": 55
+        },
+        "10–50 ha": {
+          "total": 48,
+          "noDetection": 22,
+          "noMatch": 26
+        },
+        "50–200 ha": {
+          "total": 7,
+          "noDetection": 5,
+          "noMatch": 2
+        },
+        "200–∞ ha": {
+          "total": 4,
+          "noDetection": 2,
+          "noMatch": 2
+        }
+      }
+    }
+  },
+  "requests": 0,
+  "cached": 595,
+  "retries": 0,
+  "firmsRows": 66640,
+  "typeDropped": 206252,
+  "availability": {
+    "VIIRS_SNPP_SP": {
+      "min": "2012-01-20",
+      "max": "2026-04-27"
+    },
+    "VIIRS_NOAA20_SP": {
+      "min": "2018-04-01",
+      "max": "2026-05-31"
+    }
+  },
+  "out": "public/fire/af/pairs-effis-2020-2025.jsonl",
+  "dryRun": false
+}

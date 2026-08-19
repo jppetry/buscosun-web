@@ -13,7 +13,7 @@ import SpeedProfileConfig from './SpeedProfileConfig';
 import StartTimeConfig from './StartTimeConfig';
 import BreaksConfig from './BreaksConfig';
 import { getMovementType, MOVEMENT_TYPES, type MovementId } from './movementTypes';
-import RouteDeckShell, { DeckLive, IconChevLeft } from './RouteDeck';
+import RouteDeckShell, { DeckLive, IconChevLeft, type RailFeature } from './RouteDeck';
 import { MODELS } from './movementModels';
 import { formatHM, type SpeedProfile } from './speedModel';
 import { BREAK_DEFAULTS, defaultBreakConfig, type BreakConfig } from './breaks';
@@ -49,7 +49,7 @@ type WeatherState =
   | { kind: 'ready'; samples: SampleETA[]; meta: EnrichmentMeta }
   | { kind: 'error'; message: string };
 
-export default function TourView({ track, fileLabel, onBack, onHome, isMobile: isMobileProp }: { track: TourTrack; fileLabel?: string; onBack?: () => void; onHome?: () => void; isMobile?: boolean }) {
+export default function TourView({ track, fileLabel, onBack, onHome, onOpenFeature, isMobile: isMobileProp }: { track: TourTrack; fileLabel?: string; onBack?: () => void; onHome?: () => void; onOpenFeature?: (id: RailFeature) => void; isMobile?: boolean }) {
   const isMobileHook = useIsMobile();
   const isMobile = isMobileProp ?? isMobileHook;
   const loop = useMemo(() => isLoop(track), [track]);
@@ -393,6 +393,7 @@ export default function TourView({ track, fileLabel, onBack, onHome, isMobile: i
     <RouteDeckShell
       isMobile={isMobile}
       onHome={homeFn}
+      onOpenFeature={onOpenFeature}
       crumb={crumb}
       right={showResult ? <DeckLive /> : undefined}
       mobileHeader={mobileHeader}

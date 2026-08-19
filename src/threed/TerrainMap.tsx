@@ -72,7 +72,8 @@ export default function TerrainMap({ center, points, section, layers, onChange }
       zoom: 10,
       pitch: 60,
       maxPitch: 80,
-      attributionControl: false,
+      // ODbL-Pflichtattribution der Kartenkacheln (V-105).
+      attributionControl: { compact: true },
     });
     mapRef.current = map;
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');

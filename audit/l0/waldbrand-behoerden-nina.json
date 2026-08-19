@@ -1,0 +1,2213 @@
+{
+  "at": "2026-08-15T10:59:49.083Z",
+  "part": "nina",
+  "steps": {
+    "nina": {
+      "base": "https://warnung.bund.de/api31",
+      "channels": {
+        "mowas": {
+          "status": 200,
+          "ms": 243,
+          "bytes": 22146,
+          "acao": null,
+          "count": 44,
+          "error": null,
+          "fields": [
+            "id",
+            "version",
+            "startDate",
+            "severity",
+            "urgency",
+            "type",
+            "i18nTitle",
+            "transKeys"
+          ],
+          "sample": {
+            "id": "mow.DE-HE-KS-SE106-20260304-106-000",
+            "version": 12,
+            "startDate": "2026-03-04T10:32:16+01:00",
+            "severity": "Minor",
+            "urgency": "Immediate",
+            "type": "Alert",
+            "i18nTitle": {
+              "de": "Einrichtung von Schutzzonen zur Bekämpfung der Afrikanischen Schweinepest (ASP) - Süd-westlicher Bereich des Landkreises Waldeck-Frankenberg",
+              "en": "Epizootic",
+              "ar": "وباء حيواني",
+              "es": "Epizootia",
+              "fr": "Épizootie",
+              "pl": "Pomór zwierząt",
+              "ru": "Эпизоотия",
+              "tr": "Hayvan hastalıkları"
+            },
+            "transKeys": {
+              "event": "BBK-EVC-067"
+            }
+          },
+          "eventCodes": {},
+          "severities": {
+            "Minor": 41,
+            "Severe": 2,
+            "Extreme": 1
+          }
+        },
+        "katwarn": {
+          "status": 200,
+          "ms": 30,
+          "bytes": 298,
+          "acao": null,
+          "count": 1,
+          "error": null,
+          "fields": [
+            "id",
+            "version",
+            "startDate",
+            "expiresDate",
+            "severity",
+            "urgency",
+            "type",
+            "i18nTitle"
+          ],
+          "sample": {
+            "id": "kat.6a802c67995efd5eae1208e6_public_topics",
+            "version": 19,
+            "startDate": "2026-08-15T11:07:56+02:00",
+            "expiresDate": "2026-08-15T19:00:00+02:00",
+            "severity": "Severe",
+            "urgency": "Unknown",
+            "type": "Alert",
+            "i18nTitle": {
+              "de": "Burgenlandkreis meldet: Warnung Sonderfall. Gültig ab 15.08.2026, 11:08."
+            }
+          },
+          "eventCodes": {},
+          "severities": {
+            "Severe": 1
+          }
+        },
+        "biwapp": {
+          "status": 200,
+          "ms": 30,
+          "bytes": 2,
+          "acao": null,
+          "count": 0,
+          "error": null
+        },
+        "dwd": {
+          "status": 200,
+          "ms": 27,
+          "bytes": 1627,
+          "acao": null,
+          "count": 2,
+          "error": null,
+          "fields": [
+            "id",
+            "version",
+            "startDate",
+            "expiresDate",
+            "severity",
+            "urgency",
+            "type",
+            "i18nTitle"
+          ],
+          "sample": {
+            "id": "dwdmap.2.49.0.0.276.0.DWD.PVW.1786789860000.d341499a-535a-459e-8dab-04fb4d4e3340.MUL",
+            "version": 19,
+            "startDate": "2026-08-15T12:31:00+02:00",
+            "expiresDate": "2026-08-15T13:00:00+02:00",
+            "severity": "Moderate",
+            "urgency": "Immediate",
+            "type": "Alert",
+            "i18nTitle": {
+              "de": "Amtliche WARNUNG vor STARKEM GEWITTER",
+              "en": "Official WARNING of HEAVY THUNDERSTORMS",
+              "ar": "تحذير رسمي من عاصفة رعدية قوية",
+              "es": "AVISO oficial de TORMENTA FUERTE",
+              "fr": "ALERTE officielle INTEMPÉRIES PRONONCÉES pour FORTS ORAGES",
+              "pl": "Oficjalne OSTRZEŻENIE METEOROLOGICZNE (2. STOPNIA) przed SILNĄ BURZĄ",
+              "ru": "Официальное предупреждение о значительных погодных явлениях: Сильная гроза",
+              "tr": "GÜÇLÜ KÖTÜ HAVA KOŞULLARINA karşı resmi UYARI"
+            }
+          },
+          "eventCodes": {},
+          "severities": {
+            "Moderate": 2
+          }
+        },
+        "lhp": {
+          "status": 200,
+          "ms": 33,
+          "bytes": 2,
+          "acao": null,
+          "count": 0,
+          "error": null
+        },
+        "police": {
+          "status": 200,
+          "ms": 20,
+          "bytes": 2,
+          "acao": null,
+          "count": 0,
+          "error": null
+        }
+      },
+      "detailsProbed": 40,
+      "fireByCode": 0,
+      "fireByRx": 31,
+      "withGeometry": 40,
+      "geometryTypes": {
+        "Polygon": 83,
+        "MultiPolygon": 2
+      },
+      "geocodeShapes": [
+        "AreaId:1"
+      ],
+      "senders": {
+        "DE-HE-KB-W195": 1,
+        "DE-BY-PA-W160": 1,
+        "DE-HE-GI-W182": 1,
+        "DE-BW-FR-W022": 1,
+        "DE-HE-MKK-W220": 1,
+        "DE-BY-RO-W136": 1,
+        "DE-BW-TUE-W126": 1,
+        "DE-NW-DN-SE054": 7,
+        "DE-NW-AC-SE090": 4,
+        "DE-SH-KI-SE099": 1,
+        "DE-NW-SU-SE057": 1,
+        "DE-NW-BN-SE060": 2,
+        "DE-SN-BNA-W234": 1,
+        "DE-NW-WES-SE097": 2,
+        "DE-NW-BM-SE042": 1,
+        "DE-RP-KO-SE113": 1,
+        "DE-NW-RS-SE072": 1,
+        "DE-NW-OE-SE086": 1,
+        "DE-RP-TR-SE004": 4,
+        "DE-NW-GM-SE088": 1,
+        "DE-NW-EU-SE091": 1,
+        "DE-NW-ERK-SE056": 1,
+        "DE-NI-STD-SE029": 1,
+        "DE-NW-GL-SE063": 1,
+        "DE-SN-Z-SE122": 1,
+        "DE-TH-HIG-W111": 1
+      },
+      "details": [
+        {
+          "id": "mow.DE-HE-KS-SE106-20260304-106-000",
+          "statusJson": 200,
+          "statusGeo": 200,
+          "acaoJson": null,
+          "acaoGeo": null,
+          "sender": "DE-HE-KB-W195",
+          "sent": "2026-03-04T10:32:16+01:00",
+          "msgType": "Alert",
+          "status": "Actual",
+          "headline": "Einrichtung von Schutzzonen zur Bekämpfung der Afrikanischen Schweinepest (ASP) - Süd-westlicher Bereich des Landkreises Waldeck-Frankenberg",
+          "event": "Gefahreninformation",
+          "severity": "Minor",
+          "eventCodes": [
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-067",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-067",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-067",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-067",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-067",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-067",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-067",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-067",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-067"
+          ],
+          "evcs": [],
+          "fireByCode": false,
+          "fireByRx": false,
+          "areaDesc": "Süd-westlicher Bereich des Landkreises Waldeck-Frankenberg",
+          "geocodeSample": [
+            {
+              "valueName": "AreaId",
+              "value": "0"
+            }
+          ],
+          "geomFeatures": 1,
+          "geomTypes": [
+            "Polygon"
+          ],
+          "geomBbox": [
+            8.4734,
+            50.9487,
+            8.7713,
+            51.1097
+          ]
+        },
+        {
+          "id": "mow.DE-BY-PA-W160-20260728-000",
+          "statusJson": 200,
+          "statusGeo": 200,
+          "acaoJson": null,
+          "acaoGeo": null,
+          "sender": "DE-BY-PA-W160",
+          "sent": "2026-07-28T09:01:26+02:00",
+          "msgType": "Update",
+          "status": "Actual",
+          "headline": "2.04 Verkeimtes Trinkwasser - Abkochanordnung für den Markt Obernzell - Markt Obernzell - Landkreis Passau",
+          "event": "Gefahreninformation",
+          "severity": "Minor",
+          "eventCodes": [
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-069",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-069",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-069",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-069",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-069",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-069",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-069",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-069",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-069"
+          ],
+          "evcs": [],
+          "fireByCode": false,
+          "fireByRx": false,
+          "areaDesc": "Markt Obernzell - Landkreis Passau",
+          "geocodeSample": [],
+          "geomFeatures": 1,
+          "geomTypes": [
+            "Polygon"
+          ],
+          "geomBbox": [
+            13.552,
+            48.5459,
+            13.6586,
+            48.5932
+          ]
+        },
+        {
+          "id": "mow.DE-HE-GI-W182-20260804-000",
+          "statusJson": 200,
+          "statusGeo": 200,
+          "acaoJson": null,
+          "acaoGeo": null,
+          "sender": "DE-HE-GI-W182",
+          "sent": "2026-08-04T10:02:01+02:00",
+          "msgType": "Alert",
+          "status": "Actual",
+          "headline": "Trinkwasser in den Ortsteilen Winnen und Nordeck muss abgekocht werden - Stadt Allendorf/Lda - Ortsteile Winnen und Nordeck",
+          "event": "Gefahreninformation",
+          "severity": "Minor",
+          "eventCodes": [
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-069",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-069",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-069",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-069",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-069",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-069",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-069",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-069",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-069"
+          ],
+          "evcs": [],
+          "fireByCode": false,
+          "fireByRx": false,
+          "areaDesc": "Stadt Allendorf/Lda - Ortsteile Winnen und Nordeck",
+          "geocodeSample": [],
+          "geomFeatures": 1,
+          "geomTypes": [
+            "Polygon"
+          ],
+          "geomBbox": [
+            8.8255,
+            50.6867,
+            8.8503,
+            50.6984
+          ]
+        },
+        {
+          "id": "mow.DE-BW-FR-W022-20260807-000",
+          "statusJson": 200,
+          "statusGeo": 200,
+          "acaoJson": null,
+          "acaoGeo": null,
+          "sender": "DE-BW-FR-W022",
+          "sent": "2026-08-07T13:13:09+02:00",
+          "msgType": "Alert",
+          "status": "Actual",
+          "headline": "Abkochgebot - Teile der Kernstadt Bad Krozingen",
+          "event": "Gefahreninformation",
+          "severity": "Minor",
+          "eventCodes": [
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-069",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-069",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-069",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-069",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-069",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-069",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-069",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-069",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-069"
+          ],
+          "evcs": [],
+          "fireByCode": false,
+          "fireByRx": false,
+          "areaDesc": "Teile der Kernstadt Bad Krozingen",
+          "geocodeSample": [],
+          "geomFeatures": 1,
+          "geomTypes": [
+            "Polygon"
+          ],
+          "geomBbox": [
+            7.6812,
+            47.909,
+            7.7097,
+            47.9313
+          ]
+        },
+        {
+          "id": "mow.DE-HE-MKK-W220-20260811-001",
+          "statusJson": 200,
+          "statusGeo": 200,
+          "acaoJson": null,
+          "acaoGeo": null,
+          "sender": "DE-HE-MKK-W220",
+          "sent": "2026-08-11T08:30:54+02:00",
+          "msgType": "Alert",
+          "status": "Actual",
+          "headline": "Waldbrand im Bereich Nieder- und Oberrodenbach - Rodenbach",
+          "event": "Gefahreninformation",
+          "severity": "Minor",
+          "eventCodes": [
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077"
+          ],
+          "evcs": [],
+          "fireByCode": false,
+          "fireByRx": true,
+          "areaDesc": "Rodenbach",
+          "geocodeSample": [],
+          "geomFeatures": 1,
+          "geomTypes": [
+            "Polygon"
+          ],
+          "geomBbox": [
+            9.0015,
+            50.1127,
+            9.0736,
+            50.1616
+          ]
+        },
+        {
+          "id": "mow.DE-BY-RO-W136-20260811-000",
+          "statusJson": 200,
+          "statusGeo": 200,
+          "acaoJson": null,
+          "acaoGeo": null,
+          "sender": "DE-BY-RO-W136",
+          "sent": "2026-08-11T15:16:31+02:00",
+          "msgType": "Alert",
+          "status": "Actual",
+          "headline": "Warnung vor hoher Waldbrandgefahr - Landkreis Rosenheim, Stadt Rosenheim und Landkreis Miesbach",
+          "event": "Gefahreninformation",
+          "severity": "Minor",
+          "eventCodes": [
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-011",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-011",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-011",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-011",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-011",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-011",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-011",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-011",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-011"
+          ],
+          "evcs": [],
+          "fireByCode": false,
+          "fireByRx": true,
+          "areaDesc": "Landkreis Rosenheim, Stadt Rosenheim und Landkreis Miesbach",
+          "geocodeSample": [],
+          "geomFeatures": 3,
+          "geomTypes": [
+            "Polygon",
+            "MultiPolygon"
+          ],
+          "geomBbox": [
+            11.5981,
+            47.5813,
+            12.4445,
+            48.1354
+          ]
+        },
+        {
+          "id": "mow.DE-BW-TUE-W126-20260812-000",
+          "statusJson": 200,
+          "statusGeo": 200,
+          "acaoJson": null,
+          "acaoGeo": null,
+          "sender": "DE-BW-TUE-W126",
+          "sent": "2026-08-12T10:53:13+02:00",
+          "msgType": "Alert",
+          "status": "Actual",
+          "headline": "Hitzewelle - Stadt und Landkreis Tübingen",
+          "event": "Gefahreninformation",
+          "severity": "Minor",
+          "eventCodes": [
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-037",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-037",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-037",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-037",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-037",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-037",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-037",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-037",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-037"
+          ],
+          "evcs": [],
+          "fireByCode": false,
+          "fireByRx": false,
+          "areaDesc": "Stadt und Landkreis Tübingen",
+          "geocodeSample": [],
+          "geomFeatures": 1,
+          "geomTypes": [
+            "Polygon"
+          ],
+          "geomBbox": [
+            8.7562,
+            48.3625,
+            9.1759,
+            48.6227
+          ]
+        },
+        {
+          "id": "mow.DE-NW-DN-SE054-20260813-54-000",
+          "statusJson": 200,
+          "statusGeo": 200,
+          "acaoJson": null,
+          "acaoGeo": null,
+          "sender": "DE-NW-DN-SE054",
+          "sent": "2026-08-13T15:25:52+02:00",
+          "msgType": "Alert",
+          "status": "Actual",
+          "headline": "Geruchsbelästigung in den Kommunen Merzenich und Niederzier - Merzenich und Niederzier",
+          "event": "Gefahreninformation",
+          "severity": "Minor",
+          "eventCodes": [
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030"
+          ],
+          "evcs": [],
+          "fireByCode": false,
+          "fireByRx": false,
+          "areaDesc": "Merzenich und Niederzier",
+          "geocodeSample": [],
+          "geomFeatures": 2,
+          "geomTypes": [
+            "Polygon"
+          ],
+          "geomBbox": [
+            6.4137,
+            50.8016,
+            6.6142,
+            50.9527
+          ]
+        },
+        {
+          "id": "mow.DE-NW-DN-SE054-20260813-54-001",
+          "statusJson": 200,
+          "statusGeo": 200,
+          "acaoJson": null,
+          "acaoGeo": null,
+          "sender": "DE-NW-DN-SE054",
+          "sent": "2026-08-13T16:22:01+02:00",
+          "msgType": "Alert",
+          "status": "Actual",
+          "headline": "Geruchsbelästigung durch einen Waldbrand - Gemeinde Hürtgenwald",
+          "event": "Gefahreninformation",
+          "severity": "Minor",
+          "eventCodes": [
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077"
+          ],
+          "evcs": [],
+          "fireByCode": false,
+          "fireByRx": true,
+          "areaDesc": "Gemeinde Hürtgenwald",
+          "geocodeSample": [],
+          "geomFeatures": 1,
+          "geomTypes": [
+            "Polygon"
+          ],
+          "geomBbox": [
+            6.2843,
+            50.6508,
+            6.4578,
+            50.7739
+          ]
+        },
+        {
+          "id": "mow.DE-NW-AC-SE090-20260813-90-000",
+          "statusJson": 200,
+          "statusGeo": 200,
+          "acaoJson": null,
+          "acaoGeo": null,
+          "sender": "DE-NW-AC-SE090",
+          "sent": "2026-08-13T17:06:25+02:00",
+          "msgType": "Alert",
+          "status": "Actual",
+          "headline": "Geruchsbelästigung durch einen Waldbrand - Gemeinde Hürtgenwald / Kreis Düren",
+          "event": "Gefahreninformation",
+          "severity": "Minor",
+          "eventCodes": [
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077"
+          ],
+          "evcs": [],
+          "fireByCode": false,
+          "fireByRx": true,
+          "areaDesc": "Gemeinde Hürtgenwald / Kreis Düren",
+          "geocodeSample": [],
+          "geomFeatures": 1,
+          "geomTypes": [
+            "Polygon"
+          ],
+          "geomBbox": [
+            6.1754,
+            50.6849,
+            6.3656,
+            50.8056
+          ]
+        },
+        {
+          "id": "mow.DE-NW-DN-SE054-20260813-54-002",
+          "statusJson": 200,
+          "statusGeo": 200,
+          "acaoJson": null,
+          "acaoGeo": null,
+          "sender": "DE-NW-DN-SE054",
+          "sent": "2026-08-13T18:00:18+02:00",
+          "msgType": "Alert",
+          "status": "Actual",
+          "headline": "Waldbrand in der Gemeinde Hürtgenwald - Gemeindegebiet Hürtgendwald",
+          "event": "Gefahrenmitteilung",
+          "severity": "Severe",
+          "eventCodes": [
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077"
+          ],
+          "evcs": [],
+          "fireByCode": false,
+          "fireByRx": true,
+          "areaDesc": "Gemeindegebiet Hürtgendwald",
+          "geocodeSample": [],
+          "geomFeatures": 1,
+          "geomTypes": [
+            "Polygon"
+          ],
+          "geomBbox": [
+            6.2843,
+            50.6508,
+            6.4578,
+            50.7739
+          ]
+        },
+        {
+          "id": "mow.DE-NW-K-SE031-20260813-31-000",
+          "statusJson": 200,
+          "statusGeo": 200,
+          "acaoJson": null,
+          "acaoGeo": null,
+          "sender": "DE-NW-AC-SE090",
+          "sent": "2026-08-13T18:56:24+02:00",
+          "msgType": "Alert",
+          "status": "Actual",
+          "headline": "Geruchsbelästigung durch einen Waldbrand - Gemeinde Hürtgenwald / Kreis Düren",
+          "event": "Gefahreninformation",
+          "severity": "Minor",
+          "eventCodes": [
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077"
+          ],
+          "evcs": [],
+          "fireByCode": false,
+          "fireByRx": true,
+          "areaDesc": "Gemeinde Hürtgenwald / Kreis Düren",
+          "geocodeSample": [],
+          "geomFeatures": 2,
+          "geomTypes": [
+            "Polygon"
+          ],
+          "geomBbox": [
+            5.9751,
+            50.497,
+            6.4196,
+            50.9501
+          ]
+        },
+        {
+          "id": "mow.DE-NW-K-SE031-20260813-31-001",
+          "statusJson": 200,
+          "statusGeo": 200,
+          "acaoJson": null,
+          "acaoGeo": null,
+          "sender": "DE-NW-AC-SE090",
+          "sent": "2026-08-13T19:01:17+02:00",
+          "msgType": "Alert",
+          "status": "Actual",
+          "headline": "Geruchsbelästigung durch einen Waldbrand - Gemeinde Hürtgenwald / Kreis Düren",
+          "event": "Gefahreninformation",
+          "severity": "Minor",
+          "eventCodes": [
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077"
+          ],
+          "evcs": [],
+          "fireByCode": false,
+          "fireByRx": true,
+          "areaDesc": "Gemeinde Hürtgenwald / Kreis Düren",
+          "geocodeSample": [],
+          "geomFeatures": 1,
+          "geomTypes": [
+            "Polygon"
+          ],
+          "geomBbox": [
+            5.9751,
+            50.497,
+            6.4196,
+            50.9501
+          ]
+        },
+        {
+          "id": "mow.DE-NW-DN-SE054-20260814-54-000",
+          "statusJson": 200,
+          "statusGeo": 200,
+          "acaoJson": null,
+          "acaoGeo": null,
+          "sender": "DE-NW-DN-SE054",
+          "sent": "2026-08-14T04:01:54+02:00",
+          "msgType": "Alert",
+          "status": "Actual",
+          "headline": "Ausbreitung Waldbrand in die Ortslage Hürtgenwald-Gey - Hürtgenwald-Gey",
+          "event": "Gefahrendurchsage",
+          "severity": "Extreme",
+          "eventCodes": [
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077"
+          ],
+          "evcs": [],
+          "fireByCode": false,
+          "fireByRx": true,
+          "areaDesc": "Hürtgenwald-Gey",
+          "geocodeSample": [],
+          "geomFeatures": 1,
+          "geomTypes": [
+            "Polygon"
+          ],
+          "geomBbox": [
+            6.4074,
+            50.7404,
+            6.4294,
+            50.7565
+          ]
+        },
+        {
+          "id": "mow.DE-NW-DN-SE054-20260814-54-003",
+          "statusJson": 200,
+          "statusGeo": 200,
+          "acaoJson": null,
+          "acaoGeo": null,
+          "sender": "DE-NW-DN-SE054",
+          "sent": "2026-08-14T10:49:20+02:00",
+          "msgType": "Alert",
+          "status": "Actual",
+          "headline": "Geruchsbelästigung und Rußniederschlag durch Brandrauch - Kreis Düren",
+          "event": "Gefahreninformation",
+          "severity": "Minor",
+          "eventCodes": [
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030"
+          ],
+          "evcs": [],
+          "fireByCode": false,
+          "fireByRx": true,
+          "areaDesc": "Kreis Düren",
+          "geocodeSample": [],
+          "geomFeatures": 1,
+          "geomTypes": [
+            "Polygon"
+          ],
+          "geomBbox": [
+            6.1949,
+            50.5987,
+            6.7127,
+            51.0456
+          ]
+        },
+        {
+          "id": "mow.DE-SH-KI-SE099-20260814-99-000",
+          "statusJson": 200,
+          "statusGeo": 200,
+          "acaoJson": null,
+          "acaoGeo": null,
+          "sender": "DE-SH-KI-SE099",
+          "sent": "2026-08-14T12:13:04+02:00",
+          "msgType": "Alert",
+          "status": "Actual",
+          "headline": "Kampfmittelentschärfung in Flüggendorf - Flüggendorf",
+          "event": "Gefahreninformation",
+          "severity": "Minor",
+          "eventCodes": [
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-079",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-079",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-079",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-079",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-079",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-079",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-079",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-079",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-079"
+          ],
+          "evcs": [],
+          "fireByCode": false,
+          "fireByRx": false,
+          "areaDesc": "Flüggendorf",
+          "geocodeSample": [],
+          "geomFeatures": 1,
+          "geomTypes": [
+            "Polygon"
+          ],
+          "geomBbox": [
+            10.22,
+            54.3041,
+            10.2489,
+            54.321
+          ]
+        },
+        {
+          "id": "mow.DE-NW-SU-SE057-20260814-57-001",
+          "statusJson": 200,
+          "statusGeo": 200,
+          "acaoJson": null,
+          "acaoGeo": null,
+          "sender": "DE-NW-SU-SE057",
+          "sent": "2026-08-14T12:34:21+02:00",
+          "msgType": "Update",
+          "status": "Actual",
+          "headline": "Brandereignis (Ausbreitung von Brandrauch) - Gesamter Rhein-Sieg-Kreis, ausgehend aus Düren",
+          "event": "Gefahreninformation",
+          "severity": "Minor",
+          "eventCodes": [
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077"
+          ],
+          "evcs": [],
+          "fireByCode": false,
+          "fireByRx": true,
+          "areaDesc": "Gesamter Rhein-Sieg-Kreis, ausgehend aus Düren",
+          "geocodeSample": [],
+          "geomFeatures": 7,
+          "geomTypes": [
+            "Polygon"
+          ],
+          "geomBbox": [
+            6.8543,
+            50.5556,
+            7.682,
+            50.9488
+          ]
+        },
+        {
+          "id": "mow.DE-NW-BN-SE060-20260814-60-000",
+          "statusJson": 200,
+          "statusGeo": 200,
+          "acaoJson": null,
+          "acaoGeo": null,
+          "sender": "DE-NW-BN-SE060",
+          "sent": "2026-08-14T12:37:11+02:00",
+          "msgType": "Alert",
+          "status": "Actual",
+          "headline": "Brandereignis (Ausbreitung von Brandrauch) - Stadtgebiet Bonn, ausgehend aus Düren - Stadtgebiet Bonn",
+          "event": "Gefahreninformation",
+          "severity": "Minor",
+          "eventCodes": [
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-010",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-010",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-010",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-010",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-010",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-010",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-010",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-010",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-010"
+          ],
+          "evcs": [],
+          "fireByCode": false,
+          "fireByRx": true,
+          "areaDesc": "Stadtgebiet Bonn",
+          "geocodeSample": [],
+          "geomFeatures": 1,
+          "geomTypes": [
+            "Polygon"
+          ],
+          "geomBbox": [
+            7.0247,
+            50.6307,
+            7.2119,
+            50.7744
+          ]
+        },
+        {
+          "id": "mow.DE-SN-BNA-W234-20260814-000",
+          "statusJson": 200,
+          "statusGeo": 200,
+          "acaoJson": null,
+          "acaoGeo": null,
+          "sender": "DE-SN-BNA-W234",
+          "sent": "2026-08-14T14:24:15+02:00",
+          "msgType": "Alert",
+          "status": "Actual",
+          "headline": "Großbrand in Kitzen - Pegau",
+          "event": "Gefahreninformation",
+          "severity": "Minor",
+          "eventCodes": [
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-034",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-034",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-034",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-034",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-034",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-034",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-034",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-034",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-034"
+          ],
+          "evcs": [],
+          "fireByCode": false,
+          "fireByRx": true,
+          "areaDesc": "Pegau",
+          "geocodeSample": [],
+          "geomFeatures": 1,
+          "geomTypes": [
+            "Polygon"
+          ],
+          "geomBbox": [
+            12.1972,
+            51.2062,
+            12.2546,
+            51.2423
+          ]
+        },
+        {
+          "id": "mow.DE-NW-WES-SE097-20260814-97-000",
+          "statusJson": 200,
+          "statusGeo": 200,
+          "acaoJson": null,
+          "acaoGeo": null,
+          "sender": "DE-NW-WES-SE097",
+          "sent": "2026-08-14T19:34:30+02:00",
+          "msgType": "Alert",
+          "status": "Actual",
+          "headline": "Rauchentwicklung - Sonsbeck-Labbeck",
+          "event": "Gefahreninformation",
+          "severity": "Minor",
+          "eventCodes": [
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-010",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-010",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-010",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-010",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-010",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-010",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-010",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-010",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-010"
+          ],
+          "evcs": [],
+          "fireByCode": false,
+          "fireByRx": true,
+          "areaDesc": "Sonsbeck-Labbeck",
+          "geocodeSample": [],
+          "geomFeatures": 1,
+          "geomTypes": [
+            "Polygon"
+          ],
+          "geomBbox": [
+            6.3711,
+            51.6338,
+            6.3922,
+            51.647
+          ]
+        },
+        {
+          "id": "mow.DE-NW-DN-SE054-20260814-54-005",
+          "statusJson": 200,
+          "statusGeo": 200,
+          "acaoJson": null,
+          "acaoGeo": null,
+          "sender": "DE-NW-DN-SE054",
+          "sent": "2026-08-14T19:43:45+02:00",
+          "msgType": "Update",
+          "status": "Actual",
+          "headline": "Geruchsbelästigung im südwestlichen Stadtgebiet - Stadt Düren",
+          "event": "Gefahreninformation",
+          "severity": "Minor",
+          "eventCodes": [
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030"
+          ],
+          "evcs": [],
+          "fireByCode": false,
+          "fireByRx": true,
+          "areaDesc": "Stadt Düren",
+          "geocodeSample": [],
+          "geomFeatures": 1,
+          "geomTypes": [
+            "Polygon"
+          ],
+          "geomBbox": [
+            6.3882,
+            50.7538,
+            6.4864,
+            50.8578
+          ]
+        },
+        {
+          "id": "mow.DE-NW-WES-SE097-20260814-97-037",
+          "statusJson": 200,
+          "statusGeo": 200,
+          "acaoJson": null,
+          "acaoGeo": null,
+          "sender": "DE-NW-WES-SE097",
+          "sent": "2026-08-14T21:07:22+02:00",
+          "msgType": "Alert",
+          "status": "Actual",
+          "headline": "Rauchentwicklung - Sonsbeck, Ortsteil Labbeck",
+          "event": "Gefahreninformation",
+          "severity": "Minor",
+          "eventCodes": [
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-010",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-010",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-010",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-010",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-010",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-010",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-010",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-010",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-010"
+          ],
+          "evcs": [],
+          "fireByCode": false,
+          "fireByRx": true,
+          "areaDesc": "Sonsbeck, Ortsteil Labbeck",
+          "geocodeSample": [],
+          "geomFeatures": 3,
+          "geomTypes": [
+            "Polygon"
+          ],
+          "geomBbox": [
+            6.2929,
+            51.5547,
+            6.5631,
+            51.7551
+          ]
+        },
+        {
+          "id": "mow.DE-NW-BM-SE042-20260814-42-001",
+          "statusJson": 200,
+          "statusGeo": 200,
+          "acaoJson": null,
+          "acaoGeo": null,
+          "sender": "DE-NW-BM-SE042",
+          "sent": "2026-08-14T21:54:23+02:00",
+          "msgType": "Update",
+          "status": "Actual",
+          "headline": "Geruchsbelästigung durch Brandrauch - Stadtgebiet Erftstadt / Stadtgebiet Kerpen",
+          "event": "Gefahreninformation",
+          "severity": "Minor",
+          "eventCodes": [
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030"
+          ],
+          "evcs": [],
+          "fireByCode": false,
+          "fireByRx": true,
+          "areaDesc": "Stadtgebiet Erftstadt / Stadtgebiet Kerpen",
+          "geocodeSample": [],
+          "geomFeatures": 2,
+          "geomTypes": [
+            "Polygon"
+          ],
+          "geomBbox": [
+            6.548,
+            50.7178,
+            6.852,
+            50.9262
+          ]
+        },
+        {
+          "id": "mow.DE-RP-KO-SE113-20260814-113-005",
+          "statusJson": 200,
+          "statusGeo": 200,
+          "acaoJson": null,
+          "acaoGeo": null,
+          "sender": "DE-RP-KO-SE113",
+          "sent": "2026-08-15T00:20:01+02:00",
+          "msgType": "Alert",
+          "status": "Actual",
+          "headline": "Rauchausbreitung, großräumig durch Waldbrand - Bereich Büchel",
+          "event": "Gefahreninformation",
+          "severity": "Minor",
+          "eventCodes": [
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030"
+          ],
+          "evcs": [],
+          "fireByCode": false,
+          "fireByRx": true,
+          "areaDesc": "Bereich Büchel",
+          "geocodeSample": [],
+          "geomFeatures": 1,
+          "geomTypes": [
+            "Polygon"
+          ],
+          "geomBbox": [
+            7.0707,
+            50.1223,
+            7.2427,
+            50.1912
+          ]
+        },
+        {
+          "id": "mow.DE-NW-RS-SE072-20260815-72-000",
+          "statusJson": 200,
+          "statusGeo": 200,
+          "acaoJson": null,
+          "acaoGeo": null,
+          "sender": "DE-NW-RS-SE072",
+          "sent": "2026-08-15T05:32:01+02:00",
+          "msgType": "Alert",
+          "status": "Actual",
+          "headline": "Geruchsbelästigung in Remscheid - Remscheid, gesamtes Stadtgebiet",
+          "event": "Gefahreninformation",
+          "severity": "Minor",
+          "eventCodes": [
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030"
+          ],
+          "evcs": [],
+          "fireByCode": false,
+          "fireByRx": true,
+          "areaDesc": "Remscheid, gesamtes Stadtgebiet",
+          "geocodeSample": [],
+          "geomFeatures": 1,
+          "geomTypes": [
+            "Polygon"
+          ],
+          "geomBbox": [
+            7.1356,
+            51.144,
+            7.3077,
+            51.2228
+          ]
+        },
+        {
+          "id": "mow.DE-NW-OE-SE086-20260815-86-000",
+          "statusJson": 200,
+          "statusGeo": 200,
+          "acaoJson": null,
+          "acaoGeo": null,
+          "sender": "DE-NW-OE-SE086",
+          "sent": "2026-08-15T08:13:32+02:00",
+          "msgType": "Cancel",
+          "status": "Actual",
+          "headline": "Entwarnung: Rauchniederschlag und Geruchsbelästigung durch Waldbrände in Nachbarkr - Drolshagen",
+          "event": "Gefahreninformation",
+          "severity": "Minor",
+          "eventCodes": [
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030"
+          ],
+          "evcs": [],
+          "fireByCode": false,
+          "fireByRx": true,
+          "areaDesc": "Drolshagen",
+          "geocodeSample": [],
+          "geomFeatures": 1,
+          "geomTypes": [
+            "Polygon"
+          ],
+          "geomBbox": [
+            7.7019,
+            50.9776,
+            7.831,
+            51.0795
+          ]
+        },
+        {
+          "id": "mow.DE-RP-TR-SE004-20260815-4-000",
+          "statusJson": 200,
+          "statusGeo": 200,
+          "acaoJson": null,
+          "acaoGeo": null,
+          "sender": "DE-RP-TR-SE004",
+          "sent": "2026-08-15T08:29:51+02:00",
+          "msgType": "Cancel",
+          "status": "Actual",
+          "headline": "Entwarnung: Brandgeruch in Teilgebieten des Landkreis Vulkaneifel - Landkreis Vulkaneifel",
+          "event": "Gefahreninformation",
+          "severity": "Minor",
+          "eventCodes": [
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-010",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-010",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-010",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-010",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-010",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-010",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-010",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-010",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-010"
+          ],
+          "evcs": [],
+          "fireByCode": false,
+          "fireByRx": true,
+          "areaDesc": "Landkreis Vulkaneifel",
+          "geocodeSample": [],
+          "geomFeatures": 1,
+          "geomTypes": [
+            "Polygon"
+          ],
+          "geomBbox": [
+            6.3852,
+            50.0736,
+            7.0708,
+            50.3889
+          ]
+        },
+        {
+          "id": "mow.DE-RP-TR-SE004-20260815-4-001",
+          "statusJson": 200,
+          "statusGeo": 200,
+          "acaoJson": null,
+          "acaoGeo": null,
+          "sender": "DE-RP-TR-SE004",
+          "sent": "2026-08-15T08:52:39+02:00",
+          "msgType": "Cancel",
+          "status": "Actual",
+          "headline": "Entwarnung: Brandgeruch in Teilgebieten des Eifelkreis Bitburg-Prüm - Eifelkreis Bitburg-Prüm",
+          "event": "Gefahreninformation",
+          "severity": "Minor",
+          "eventCodes": [
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-010",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-010",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-010",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-010",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-010",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-010",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-010",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-010",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-010"
+          ],
+          "evcs": [],
+          "fireByCode": false,
+          "fireByRx": true,
+          "areaDesc": "Eifelkreis Bitburg-Prüm",
+          "geocodeSample": [],
+          "geomFeatures": 1,
+          "geomTypes": [
+            "Polygon"
+          ],
+          "geomBbox": [
+            6.1174,
+            49.8113,
+            6.7285,
+            50.324
+          ]
+        },
+        {
+          "id": "mow.DE-NW-GM-SE088-20260815-88-000",
+          "statusJson": 200,
+          "statusGeo": 200,
+          "acaoJson": null,
+          "acaoGeo": null,
+          "sender": "DE-NW-GM-SE088",
+          "sent": "2026-08-15T10:13:28+02:00",
+          "msgType": "Cancel",
+          "status": "Actual",
+          "headline": "Entwarnung: Ausbreitung von Rauchgasen - Oberbergischer Kreis",
+          "event": "Gefahreninformation",
+          "severity": "Minor",
+          "eventCodes": [
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-010",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-010",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-010",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-010",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-010",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-010",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-010",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-010",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-010"
+          ],
+          "evcs": [],
+          "fireByCode": false,
+          "fireByRx": true,
+          "areaDesc": "Oberbergischer Kreis",
+          "geocodeSample": [],
+          "geomFeatures": 13,
+          "geomTypes": [
+            "Polygon"
+          ],
+          "geomBbox": [
+            7.2526,
+            50.819,
+            7.7921,
+            51.2503
+          ]
+        },
+        {
+          "id": "mow.DE-NW-EU-SE091-20260815-109-000",
+          "statusJson": 200,
+          "statusGeo": 200,
+          "acaoJson": null,
+          "acaoGeo": null,
+          "sender": "DE-NW-EU-SE091",
+          "sent": "2026-08-15T10:15:11+02:00",
+          "msgType": "Update",
+          "status": "Actual",
+          "headline": "Waldbrand / Vegetationsbrand Kreis Düren - Hürtgenwald / Hohes Venn - Teilgebiete des Kreises Euskirchen",
+          "event": "Gefahreninformation",
+          "severity": "Minor",
+          "eventCodes": [
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077"
+          ],
+          "evcs": [],
+          "fireByCode": false,
+          "fireByRx": true,
+          "areaDesc": "Teilgebiete des Kreises Euskirchen",
+          "geocodeSample": [],
+          "geomFeatures": 1,
+          "geomTypes": [
+            "Polygon"
+          ],
+          "geomBbox": [
+            6.3154,
+            50.3227,
+            6.9275,
+            50.7888
+          ]
+        },
+        {
+          "id": "mow.DE-NW-DN-SE054-20260815-54-000",
+          "statusJson": 200,
+          "statusGeo": 200,
+          "acaoJson": null,
+          "acaoGeo": null,
+          "sender": "DE-NW-DN-SE054",
+          "sent": "2026-08-15T10:41:18+02:00",
+          "msgType": "Alert",
+          "status": "Actual",
+          "headline": "Geruchsbelästigung und Rauchüberzug durch Waldbrand - Stadt Heimbach",
+          "event": "Gefahreninformation",
+          "severity": "Minor",
+          "eventCodes": [
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030"
+          ],
+          "evcs": [],
+          "fireByCode": false,
+          "fireByRx": true,
+          "areaDesc": "Stadt Heimbach",
+          "geocodeSample": [],
+          "geomFeatures": 1,
+          "geomTypes": [
+            "Polygon"
+          ],
+          "geomBbox": [
+            6.3815,
+            50.5982,
+            6.5769,
+            50.6638
+          ]
+        },
+        {
+          "id": "mow.DE-NW-ERK-SE056-20260815-56-001",
+          "statusJson": 200,
+          "statusGeo": 200,
+          "acaoJson": null,
+          "acaoGeo": null,
+          "sender": "DE-NW-ERK-SE056",
+          "sent": "2026-08-15T10:52:48+02:00",
+          "msgType": "Cancel",
+          "status": "Actual",
+          "headline": "Entwarnung: Geruchsbelästigung durch Brandrauch - Kreis Heinsberg",
+          "event": "Gefahreninformation",
+          "severity": "Minor",
+          "eventCodes": [
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030"
+          ],
+          "evcs": [],
+          "fireByCode": false,
+          "fireByRx": true,
+          "areaDesc": "Kreis Heinsberg",
+          "geocodeSample": [],
+          "geomFeatures": 1,
+          "geomTypes": [
+            "Polygon"
+          ],
+          "geomBbox": [
+            5.866,
+            50.8988,
+            6.4771,
+            51.1894
+          ]
+        },
+        {
+          "id": "mow.DE-NI-STD-SE029-20260815-29-000",
+          "statusJson": 200,
+          "statusGeo": 200,
+          "acaoJson": null,
+          "acaoGeo": null,
+          "sender": "DE-NI-STD-SE029",
+          "sent": "2026-08-15T10:55:37+02:00",
+          "msgType": "Cancel",
+          "status": "Actual",
+          "headline": "Entwarnung: Geruchsbelästigung - Osterholz-Scharmbeck",
+          "event": "Gefahreninformation",
+          "severity": "Minor",
+          "eventCodes": [
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030"
+          ],
+          "evcs": [],
+          "fireByCode": false,
+          "fireByRx": true,
+          "areaDesc": "Osterholz-Scharmbeck",
+          "geocodeSample": [],
+          "geomFeatures": 1,
+          "geomTypes": [
+            "Polygon"
+          ],
+          "geomBbox": [
+            8.6606,
+            53.1835,
+            8.9504,
+            53.3269
+          ]
+        },
+        {
+          "id": "mow.DE-NW-GL-SE063-20260815-63-000",
+          "statusJson": 200,
+          "statusGeo": 200,
+          "acaoJson": null,
+          "acaoGeo": null,
+          "sender": "DE-NW-GL-SE063",
+          "sent": "2026-08-15T10:58:00+02:00",
+          "msgType": "Cancel",
+          "status": "Actual",
+          "headline": "Entwarnung: Geruchsbelästigung durch Brandereignis Düren - Hürtgenwald - Rheinisch Bergischer Kreis",
+          "event": "Gefahreninformation",
+          "severity": "Minor",
+          "eventCodes": [
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030"
+          ],
+          "evcs": [],
+          "fireByCode": false,
+          "fireByRx": true,
+          "areaDesc": "Rheinisch Bergischer Kreis",
+          "geocodeSample": [],
+          "geomFeatures": 1,
+          "geomTypes": [
+            "Polygon"
+          ],
+          "geomBbox": [
+            6.9938,
+            50.8685,
+            7.3997,
+            51.1613
+          ]
+        },
+        {
+          "id": "mow.DE-SN-Z-SE122-20260815-154-000",
+          "statusJson": 200,
+          "statusGeo": 200,
+          "acaoJson": null,
+          "acaoGeo": null,
+          "sender": "DE-SN-Z-SE122",
+          "sent": "2026-08-15T11:33:36+02:00",
+          "msgType": "Cancel",
+          "status": "Actual",
+          "headline": "Entwarnung: Rauchentwicklung durch Brand - Landkreis Vogtlandkreis",
+          "event": "Gefahreninformation",
+          "severity": "Minor",
+          "eventCodes": [
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077"
+          ],
+          "evcs": [],
+          "fireByCode": false,
+          "fireByRx": true,
+          "areaDesc": "Landkreis Vogtlandkreis",
+          "geocodeSample": [],
+          "geomFeatures": 1,
+          "geomTypes": [
+            "Polygon"
+          ],
+          "geomBbox": [
+            12.0995,
+            50.4506,
+            12.1569,
+            50.4872
+          ]
+        },
+        {
+          "id": "mow.DE-TH-HIG-W111-20260815-001",
+          "statusJson": 200,
+          "statusGeo": 200,
+          "acaoJson": null,
+          "acaoGeo": null,
+          "sender": "DE-TH-HIG-W111",
+          "sent": "2026-08-15T12:05:17+02:00",
+          "msgType": "Cancel",
+          "status": "Actual",
+          "headline": "Entwarnung: Sirenen-Funktionsprobe - Landgemeinde Dingelstädt und VG Hanstein-Rusteberg",
+          "event": "Gefahreninformation",
+          "severity": "Minor",
+          "eventCodes": [
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-060",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-060",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-060",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-060",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-060",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-060",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-060",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-060",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-060"
+          ],
+          "evcs": [],
+          "fireByCode": false,
+          "fireByRx": false,
+          "areaDesc": "Landgemeinde Dingelstädt und VG Hanstein-Rusteberg",
+          "geocodeSample": [],
+          "geomFeatures": 15,
+          "geomTypes": [
+            "Polygon",
+            "MultiPolygon"
+          ],
+          "geomBbox": [
+            9.9233,
+            51.1992,
+            10.481,
+            51.4367
+          ]
+        },
+        {
+          "id": "mow.DE-NW-BN-SE060-20260815-60-001",
+          "statusJson": 200,
+          "statusGeo": 200,
+          "acaoJson": null,
+          "acaoGeo": null,
+          "sender": "DE-NW-BN-SE060",
+          "sent": "2026-08-15T12:08:15+02:00",
+          "msgType": "Update",
+          "status": "Actual",
+          "headline": "Kampfmittelfund - Bonn-Gronau",
+          "event": "Gefahreninformation",
+          "severity": "Minor",
+          "eventCodes": [
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-078",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-078",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-078",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-078",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-078",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-078",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-078",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-078",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-078"
+          ],
+          "evcs": [],
+          "fireByCode": false,
+          "fireByRx": false,
+          "areaDesc": "Bonn-Gronau",
+          "geocodeSample": [],
+          "geomFeatures": 1,
+          "geomTypes": [
+            "Polygon"
+          ],
+          "geomBbox": [
+            7.128,
+            50.7177,
+            7.1323,
+            50.7205
+          ]
+        },
+        {
+          "id": "mow.DE-RP-TR-SE004-20260815-4-002",
+          "statusJson": 200,
+          "statusGeo": 200,
+          "acaoJson": null,
+          "acaoGeo": null,
+          "sender": "DE-RP-TR-SE004",
+          "sent": "2026-08-15T12:25:20+02:00",
+          "msgType": "Alert",
+          "status": "Actual",
+          "headline": "Rauchentwicklung durch Waldbrand - Umgebung Landkreis Vulkaneifel",
+          "event": "Gefahrenmitteilung",
+          "severity": "Severe",
+          "eventCodes": [
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077"
+          ],
+          "evcs": [],
+          "fireByCode": false,
+          "fireByRx": true,
+          "areaDesc": "Umgebung Landkreis Vulkaneifel",
+          "geocodeSample": [],
+          "geomFeatures": 7,
+          "geomTypes": [
+            "Polygon"
+          ],
+          "geomBbox": [
+            6.5737,
+            50.2862,
+            6.8188,
+            50.3882
+          ]
+        },
+        {
+          "id": "mow.DE-RP-TR-SE004-20260815-4-003",
+          "statusJson": 200,
+          "statusGeo": 200,
+          "acaoJson": null,
+          "acaoGeo": null,
+          "sender": "DE-RP-TR-SE004",
+          "sent": "2026-08-15T12:34:02+02:00",
+          "msgType": "Alert",
+          "status": "Actual",
+          "headline": "Rauchentwicklung durch Waldbrand - Umgebung Landkreis Vulkaneifel",
+          "event": "Gefahreninformation",
+          "severity": "Minor",
+          "eventCodes": [
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-077"
+          ],
+          "evcs": [],
+          "fireByCode": false,
+          "fireByRx": true,
+          "areaDesc": "Umgebung Landkreis Vulkaneifel",
+          "geocodeSample": [],
+          "geomFeatures": 1,
+          "geomTypes": [
+            "Polygon"
+          ],
+          "geomBbox": [
+            6.3852,
+            50.0736,
+            7.0708,
+            50.3889
+          ]
+        },
+        {
+          "id": "mow.DE-NW-AC-SE090-20260815-90-000",
+          "statusJson": 200,
+          "statusGeo": 200,
+          "acaoJson": null,
+          "acaoGeo": null,
+          "sender": "DE-NW-AC-SE090",
+          "sent": "2026-08-15T12:34:29+02:00",
+          "msgType": "Update",
+          "status": "Actual",
+          "headline": "Geruchsbelästigung - Städteregion Aachen",
+          "event": "Gefahreninformation",
+          "severity": "Minor",
+          "eventCodes": [
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030",
+            "profile:DE-BBK-EVENTCODE:BBK-EVC-030"
+          ],
+          "evcs": [],
+          "fireByCode": false,
+          "fireByRx": true,
+          "areaDesc": "Städteregion Aachen",
+          "geocodeSample": [],
+          "geomFeatures": 1,
+          "geomTypes": [
+            "Polygon"
+          ],
+          "geomBbox": [
+            5.9751,
+            50.497,
+            6.4196,
+            50.9501
+          ]
+        }
+      ],
+      "detailSample": {
+        "identifier": "mow.DE-HE-KS-SE106-20260304-106-000",
+        "sender": "DE-HE-KB-W195",
+        "sent": "2026-03-04T10:32:16+01:00",
+        "status": "Actual",
+        "msgType": "Alert",
+        "scope": "Public",
+        "code": [
+          "DVN:12"
+        ],
+        "references": "DE-HE-KB-W195,mow.DE-HE-KB-W195-20260304-000,2026-03-04T09:30:49-00:00",
+        "info": [
+          {
+            "language": "de",
+            "category": [
+              "Health"
+            ],
+            "event": "Gefahreninformation",
+            "urgency": "Immediate",
+            "severity": "Minor",
+            "certainty": "Observed",
+            "eventCode": [
+              {
+                "valueName": "profile:DE-BBK-EVENTCODE",
+                "value": "BBK-EVC-067"
+              }
+            ],
+            "headline": "Einrichtung von Schutzzonen zur Bekämpfung der Afrikanischen Schweinepest (ASP) - Süd-westlicher Bereich des Landkreises Waldeck-Frankenberg",
+            "description": "Informationen über die Afrikanische Schweinepest und der Schutzzonen finden Sie unter https://www.landkreis-waldeck-frankenberg.de/schweinepest/",
+            "instruction": "Berühren Sie keine toten Tiere. Melden Sie Funde von toten Wildtieren den Behörden.",
+            "parameter": [
+              {
+                "valueName": "sender_signature",
+                "value": "Leitstelle Waldeck-Frankenberg\nSüdring 2\n34497 Korbach"
+              },
+              {
+                "valueName": "sender_langname",
+                "value": "Leitstelle Waldeck-Frankenberg"
+              },
+              {
+                "valueName": "instructionCode",
+                "value": "BBK-ISC-131"
+              },
+              {
+                "valueName": "warnVerwaltungsbereiche",
+                "value": "066350001001,066350004004,066350005005,066350006006,066350011011,066350014014"
+              },
+              {
+                "valueName": "PHGEM",
+                "value": "6369+1,6372,6375,6377,100001"
+              },
+              {
+                "valueName": "GRID",
+                "value": "242315+4,242323+5,242926+15,243538+17,244151+16,244765+16,245378+16,245990+17,246603+15,247218+12,247830+13,248442+14,249054+14,249666+12,250279+12,250892+11,251507+8,252125,500001"
+              },
+              {
+                "valueName": "cellBroadcastId",
+                "value": "PX7fGMAO5QD3"
+              }
+            ],
+            "area": [
+              {
+                "areaDesc": "Süd-westlicher Bereich des Landkreises Waldeck-Frankenberg",
+                "geocode": [
+                  {
+                    "valueName": "AreaId",
+                    "value": "0"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "language": "DE-LS",
+            "category": [
+              "Health"
+            ],
+            "event": "Gefahreninformation",
+            "urgency": "Immediate",
+            "severity": "Minor",
+            "certainty": "Observed",
+            "eventCode": [
+              {
+                "valueName": "profile:DE-BBK-EVENTCODE",
+                "value": "BBK-EVC-067"
+              }
+            ],
+            "headline": "Tierseuche",
+            "description": "Informationen über die Afrikanische Schweinepest und der Schutzzonen finden Sie unter https://www.landkreis-waldeck-frankenberg.de/schweinepest/",
+            "instruction": "Berühren Sie keine toten Tiere. Melden Sie Funde von toten Wildtieren den Behörden.",
+            "parameter": [
+              {
+                "valueName": "sender_signature",
+                "value": "Leitstelle Waldeck-Frankenberg\nSüdring 2\n34497 Korbach"
+              },
+              {
+                "valueName": "sender_langname",
+                "value": "Leitstelle Waldeck-Frankenberg"
+              },
+              {
+                "valueName": "instructionCode",
+                "value": "BBK-ISC-131 shortCode:BBK-ISC-011"
+              },
+              {
+                "valueName": "warnVerwaltungsbereiche",
+                "value": "066350001001,066350004004,066350005005,066350006006,066350011011,066350014014"
+              }
+            ],
+            "area": [
+              {
+                "areaDesc": "Süd-westlicher Bereich des Landkreises Waldeck-Frankenberg"
+              }
+            ]
+          },
+          {
+            "language": "EN",
+            "category": [
+              "Health"
+            ],
+            "event": "Gefahreninformation",
+            "urgency": "Immediate",
+            "severity": "Minor",
+            "certainty": "Observed",
+            "eventCode": [
+              {
+                "valueName": "profile:DE-BBK-EVENTCODE",
+                "value": "BBK-EVC-067"
+              }
+            ],
+            "headline": "Epizootic",
+            "description": "Informationen über die Afrikanische Schweinepest und der Schutzzonen finden Sie unter https://www.landkreis-waldeck-frankenberg.de/schweinepest/",
+            "instruction": "Do not touch any dead animals. Report any findings of dead wild animals to the authorities.",
+            "parameter": [
+              {
+                "valueName": "sender_signature",
+                "value": "Leitstelle Waldeck-Frankenberg\nSüdring 2\n34497 Korbach"
+              },
+              {
+                "valueName": "sender_langname",
+                "value": "Leitstelle Waldeck-Frankenberg"
+              },
+              {
+                "valueName": "instructionCode",
+                "value": "BBK-ISC-131 shortCode:BBK-ISC-011"
+              },
+              {
+                "valueName": "warnVerwaltungsbereiche",
+                "value": "066350001001,066350004004,066350005005,066350006006,066350011011,066350014014"
+              }
+            ],
+            "area": [
+              {
+                "areaDesc": "Süd-westlicher Bereich des Landkreises Waldeck-Frankenberg"
+              }
+            ]
+          },
+          {
+            "language": "AR",
+            "category": [
+              "Health"
+            ],
+            "event": "Gefahreninformation",
+            "urgency": "Immediate",
+            "severity": "Minor",
+            "certainty": "Observed",
+            "eventCode": [
+              {
+                "valueName": "profile:DE-BBK-EVENTCODE",
+                "value": "BBK-EVC-067"
+              }
+            ],
+            "headline": "وباء حيواني",
+            "description": "Informationen über die Afrikanische Schweinepest und der Schutzzonen finden Sie unter https://www.landkreis-waldeck-frankenberg.de/schweinepest/",
+            "instruction": "لا تلمس حيوانات ميتة. أبلغ السُلطات عند العثور على حيوانات برية ميتة.",
+            "parameter": [
+              {
+                "valueName": "sender_signature",
+                "value": "Leitstelle Waldeck-Frankenberg\nSüdring 2\n34497 Korbach"
+              },
+              {
+                "valueName": "sender_langname",
+                "value": "Leitstelle Waldeck-Frankenberg"
+              },
+              {
+                "valueName": "instructionCode",
+                "value": "BBK-ISC-131 shortCode:BBK-ISC-011"
+              },
+              {
+                "valueName": "warnVerwaltungsbereiche",
+                "value": "066350001001,066350004004,066350005005,066350006006,066350011011,066350014014"
+              }
+            ],
+            "area": [
+              {
+                "areaDesc": "Süd-westlicher Bereich des Landkreises Waldeck-Frankenberg"
+              }
+            ]
+          },
+          {
+            "language": "ES",
+            "category": [
+              "Health"
+            ],
+            "event": "Gefahreninformation",
+            "urgency": "Immediate",
+            "severity": "Minor",
+            "certainty": "Observed",
+            "eventCode": [
+              {
+                "valueName": "profile:DE-BBK-EVENTCODE",
+                "value": "BBK-EVC-067"
+              }
+            ],
+            "headline": "Epizootia",
+            "description": "Informationen über die Afrikanische Schweinepest und der Schutzzonen finden Sie unter https://www.landkreis-waldeck-frankenberg.de/schweinepest/",
+            "instruction": "No toque animales muertos. Informe a las autoridades si encuentra animales silvestres muertos.",
+            "parameter": [
+              {
+                "valueName": "sender_signature",
+                "value": "Leitstelle Waldeck-Frankenberg\nSüdring 2\n34497 Korbach"
+              },
+              {
+                "valueName": "sender_langname",
+                "value": "Leitstelle Waldeck-Frankenberg"
+              },
+              {
+                "valueName": "instructionCode",
+                "value": "BBK-ISC-131 shortCode:BBK-ISC-011"
+              },
+              {
+                "valueName": "warnVerwaltungsbereiche",
+                "value": "066350001001,066350004004,066350005005,066350006006,066350011011,066350014014"
+              }
+            ],
+            "area": [
+              {
+                "areaDesc": "Süd-westlicher Bereich des Landkreises Waldeck-Frankenberg"
+              }
+            ]
+          },
+          {
+            "language": "FR",
+            "category": [
+              "Health"
+            ],
+            "event": "Gefahreninformation",
+            "urgency": "Immediate",
+            "severity": "Minor",
+            "certainty": "Observed",
+            "eventCode": [
+              {
+                "valueName": "profile:DE-BBK-EVENTCODE",
+                "value": "BBK-EVC-067"
+              }
+            ],
+            "headline": "Épizootie",
+            "description": "Informationen über die Afrikanische Schweinepest und der Schutzzonen finden Sie unter https://www.landkreis-waldeck-frankenberg.de/schweinepest/",
+            "instruction": "Ne touchez aucun animal mort. Signalez la découverte d&apos;animaux morts aux autorités publiques.",
+            "parameter": [
+              {
+                "valueName": "sender_signature",
+                "value": "Leitstelle Waldeck-Frankenberg\nSüdring 2\n34497 Korbach"
+              },
+              {
+                "valueName": "sender_langname",
+                "value": "Leitstelle Waldeck-Frankenberg"
+              },
+              {
+                "valueName": "instructionCode",
+                "value": "BBK-ISC-131 shortCode:BBK-ISC-011"
+              },
+              {
+                "valueName": "warnVerwaltungsbereiche",
+                "value": "066350001001,066350004004,066350005005,066350006006,066350011011,066350014014"
+              }
+            ],
+            "area": [
+              {
+                "areaDesc": "Süd-westlicher Bereich des Landkreises Waldeck-Frankenberg"
+              }
+            ]
+          },
+          {
+            "language": "PL",
+            "category": [
+              "Health"
+            ],
+            "event": "Gefahreninformation",
+            "urgency": "Immediate",
+            "severity": "Minor",
+            "certainty": "Observed",
+            "eventCode": [
+              {
+                "valueName": "profile:DE-BBK-EVENTCODE",
+                "value": "BBK-EVC-067"
+              }
+            ],
+            "headline": "Pomór zwierząt",
+            "description": "Informationen über die Afrikanische Schweinepest und der Schutzzonen finden Sie unter https://www.landkreis-waldeck-frankenberg.de/schweinepest/",
+            "instruction": "Nie dotykać martwych zwierząt. Powiadomić władze o znalezieniu martwych dzikich zwierząt.",
+            "parameter": [
+              {
+                "valueName": "sender_signature",
+                "value": "Leitstelle Waldeck-Frankenberg\nSüdring 2\n34497 Korbach"
+              },
+              {
+                "valueName": "sender_langname",
+                "value": "Leitstelle Waldeck-Frankenberg"
+              },
+              {
+                "valueName": "instructionCode",
+                "value": "BBK-ISC-131 shortCode:BBK-ISC-011"
+              },
+              {
+                "valueName": "warnVerwaltungsbereiche",
+                "value": "066350001001,066350004004,066350005005,066350006006,066350011011,066350014014"
+              }
+            ],
+            "area": [
+              {
+                "areaDesc": "Süd-westlicher Bereich des Landkreises Waldeck-Frankenberg"
+              }
+            ]
+          },
+          {
+            "language": "RU",
+            "category": [
+              "Health"
+            ],
+            "event": "Gefahreninformation",
+            "urgency": "Immediate",
+            "severity": "Minor",
+            "certainty": "Observed",
+            "eventCode": [
+              {
+                "valueName": "profile:DE-BBK-EVENTCODE",
+                "value": "BBK-EVC-067"
+              }
+            ],
+            "headline": "Эпизоотия",
+            "description": "Informationen über die Afrikanische Schweinepest und der Schutzzonen finden Sie unter https://www.landkreis-waldeck-frankenberg.de/schweinepest/",
+            "instruction": "Не прикасайтесь к мертвым животным. Сообщайте органам власти обо всех случаях обнаружения вами трупов диких животных.",
+            "parameter": [
+              {
+                "valueName": "sender_signature",
+                "value": "Leitstelle Waldeck-Frankenberg\nSüdring 2\n34497 Korbach"
+              },
+              {
+                "valueName": "sender_langname",
+                "value": "Leitstelle Waldeck-Frankenberg"
+              },
+              {
+                "valueName": "instructionCode",
+                "value": "BBK-ISC-131 shortCode:BBK-ISC-011"
+              },
+              {
+                "valueName": "warnVerwaltungsbereiche",
+                "value": "066350001001,066350004004,066350005005,066350006006,066350011011,066350014014"
+              }
+            ],
+            "area": [
+              {
+                "areaDesc": "Süd-westlicher Bereich des Landkreises Waldeck-Frankenberg"
+              }
+            ]
+          },
+          {
+            "language": "TR",
+            "category": [
+              "Health"
+            ],
+            "event": "Gefahreninformation",
+            "urgency": "Immediate",
+            "severity": "Minor",
+            "certainty": "Observed",
+            "eventCode": [
+              {
+                "valueName": "profile:DE-BBK-EVENTCODE",
+                "value": "BBK-EVC-067"
+              }
+            ],
+            "headline": "Hayvan hastalıkları",
+            "description": "Informationen über die Afrikanische Schweinepest und der Schutzzonen finden Sie unter https://www.landkreis-waldeck-frankenberg.de/schweinepest/",
+            "instruction": "Hiç bir şekilde ölü hayvanlara dokunmayın. Ölü yabani hayvanları yetkili makamlara bildirin.",
+            "parameter": [
+              {
+                "valueName": "sender_signature",
+                "value": "Leitstelle Waldeck-Frankenberg\nSüdring 2\n34497 Korbach"
+              },
+              {
+                "valueName": "sender_langname",
+                "value": "Leitstelle Waldeck-Frankenberg"
+              },
+              {
+                "valueName": "instructionCode",
+                "value": "BBK-ISC-131 shortCode:BBK-ISC-011"
+              },
+              {
+                "valueName": "warnVerwaltungsbereiche",
+                "value": "066350001001,066350004004,066350005005,066350006006,066350011011,066350014014"
+              }
+            ],
+            "area": [
+              {
+                "areaDesc": "Süd-westlicher Bereich des Landkreises Waldeck-Frankenberg"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

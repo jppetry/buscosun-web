@@ -143,6 +143,39 @@ export function LayerIcon({ layer, size = 14 }: Props) {
           <circle cx="7" cy="7" r="0.7" fill="currentColor" stroke="none" />
         </svg>
       );
+    case 'hail':
+      // Hagel — Wolke mit fallenden Körnern (gefüllte Kreise): klar anders als
+      // die Schneeflocke („snow"/„snowline") und als Wolke+Blitz („thunder").
+      return (
+        <svg {...common}>
+          <path d="M 3 6.6 Q 1.7 4.2 3.7 3.7 Q 4.7 2.1 6.7 2.8 Q 8.7 1.9 9.9 3.9 Q 12 4.3 11 6.4 Z" />
+          <circle cx="4.6" cy="9.2" r="0.85" fill="currentColor" stroke="none" />
+          <circle cx="7.2" cy="11" r="1" fill="currentColor" stroke="none" />
+          <circle cx="9.8" cy="9" r="0.85" fill="currentColor" stroke="none" />
+        </svg>
+      );
+    case 'warnings':
+      // Amtliche Warnungen — Warndreieck mit Ausrufezeichen: das etablierte
+      // Zeichen für eine amtliche Warnung, klar anders als Wolke+Blitz
+      // („thunder") oder der Zell-Umriss („cells").
+      return (
+        <svg {...common}>
+          <path d="M 7 2.4 L 12.2 11.4 L 1.8 11.4 Z" />
+          <path d="M 7 5.6 L 7 8.4" />
+          <circle cx="7" cy="9.9" r="0.55" fill="currentColor" stroke="none" />
+        </svg>
+      );
+    case 'cells':
+      // Zellbahnen — Zell-Umriss (geschlossen = gemessen) mit gestrichelter
+      // Zugspur und Pfeilspitze: klar anders als Wolke+Blitz („thunder") und
+      // als die Advektionspfeile von „flownowcast".
+      return (
+        <svg {...common}>
+          <path d="M 2.2 5.6 Q 2 3.4 4 3.2 Q 5.4 2 6.9 3 Q 8.2 3.4 8.1 5 Q 8.4 6.8 6.3 7 Q 4.2 7.6 2.8 6.6 Z" />
+          <path d="M 7.6 8 L 10.2 10.4" strokeDasharray="2 1.4" />
+          <polyline points="8.6,10.9 10.8,11 10.7,8.8" />
+        </svg>
+      );
     case 'confidence':
       // Vertrauens-Schleier — schraffiertes Feld (je dichter, desto unsicherer)
       return (

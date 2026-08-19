@@ -1,0 +1,122 @@
+/**
+ * Headless-Verifikation „Waldbrand: Layer-Modell & Permalink" (Phase WB1, Gate GWB1).
+ *
+ *   npm run verify:fire-model
+ *
+ * Prüft die ECHTEN App-Module (kein Nachbau — V-94-Lehre):
+ *   • `src/fire/fireModel.ts`  — Layer-Union, Z-Bänder, Presets, Skalentrennung, Kaskade
+ *   • `src/fire/fireState.ts`  — `#wb=`-Round-Trip, Bit-Stabilität, Robustheit
+ *
+ * und ergänzt QUELL-SONDEN, die die drei Zusicherungen dieser Phase gegen ein
+ * späteres Aufweichen sichern:
+ *   (a) keine Umrechnungsfunktion zwischen den nationalen Skalen,
+ *   (b) `src/fire/` importiert nichts aus `MapView.tsx`,
+ *   (c) die `#wb=`-Bitmaske wird abgeleitet, nicht handgeschrieben (V-191).
+ *
+ * Netzfrei, dependency-frei.
+ */
+import { readFileSync, readdirSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+
+import {
+  verifyFireModel, FIRE_LAYER_ORDER, FIRE_MVP_LAYERS, FIRE_Z_BAND,
+  FIRE_SOURCE_DE, FIRE_SOURCE_CH, FIRE_SOURCE_EU,
+  hasOfficialFireIndex, nationalSourceFor, sortByZBand,
+} from '../src/fire/fireModel.ts';
+import { verifyFireState, encodeFireState, decodeFireState } from '../src/fire/fireState.ts';
+
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
+const FIRE_DIR = join(ROOT, 'src', 'fire');
+const checks = [];
+const add = (name, ok, detail) => checks.push({ name, ok, detail });
+
+// --- (1) Die in den Modulen eingebetteten Selbstverifikationen --------------
+for (const c of verifyFireModel().checks) add(`[fireModel] ${c.name}`, c.ok, c.detail);
+for (const c of verifyFireState().checks) add(`[fireState] ${c.name}`, c.ok, c.detail);
+
+// --- (2) Unabhängige Kontrollen gegen die exportierten Helfer ---------------
+
+// Die Kernaussage der Phase, noch einmal von außen: DE-2 und CH-1 tragen
+// dieselbe Beschriftung und dürfen trotzdem nie ineinander übersetzt werden.
+add('DE-Stufe 2 = CH-Stufe 1 im Wortlaut — der Grund für getrennte Tabellen',
+  FIRE_SOURCE_DE.scale[1].label === FIRE_SOURCE_CH.scale[0].label,
+  `"${FIRE_SOURCE_DE.scale[1].label}"`);
+add('… und bei gleicher Stufennummer verschiedene Bedeutung',
+  FIRE_SOURCE_DE.scale[0].label !== FIRE_SOURCE_CH.scale[0].label);
+add('EU-Skala hat eine Klasse mehr als beide nationalen',
+  FIRE_SOURCE_EU.scale.length === 6 && FIRE_SOURCE_DE.scale.length === 5);
+
+// Länder-Asymmetrie (D-04): AT bekommt nichts vorgetäuscht.
+add('AT hat keine amtliche Stufe und keinen Ersatz',
+  hasOfficialFireIndex('AT') === false && nationalSourceFor('AT') === null);
+
+// Z-Ordnung: Punkte über Flächen, sonst sind die Stützstellen unsichtbar.
+add('Z-Ordnung: Hotspots über amtlicher Stufe über EU-Fläche',
+  FIRE_Z_BAND.fireHotspots > FIRE_Z_BAND.fireIndexNational
+  && FIRE_Z_BAND.fireIndexNational > FIRE_Z_BAND.fireDanger);
+add('sortByZBand ist stabil und vollständig',
+  sortByZBand(FIRE_LAYER_ORDER).length === FIRE_LAYER_ORDER.length);
+
+// Permalink: der Round-Trip über ALLE Layer, unabhängig nachgerechnet.
+const rt = decodeFireState(encodeFireState({
+  location: { name: 'Wien', lat: 48.2082, lon: 16.3738, country: 'AT' },
+  layers: [...FIRE_LAYER_ORDER], day: 4, windowH: 168,
+}));
+add('Round-Trip: alle Layer + Ort + Tag + Fenster',
+  rt && rt.layers.length === FIRE_LAYER_ORDER.length && rt.day === 4
+  && rt.windowH === 168 && rt.location?.country === 'AT',
+  `${rt?.layers.length} Layer`);
+
+// --- (3) Quell-Sonden -------------------------------------------------------
+const files = readdirSync(FIRE_DIR).filter((f) => /\.tsx?$/.test(f));
+const sources = Object.fromEntries(files.map((f) => [f, readFileSync(join(FIRE_DIR, f), 'utf8')]));
+add('Sonde findet die fire-Module', files.length >= 3, files.join(', '));
+
+// (a) Es darf keine Funktion geben, die eine nationale Stufe in eine andere
+//     übersetzt. Das ist die Regel, die am leichtesten aus Bequemlichkeit
+//     bricht („ein kleiner Mapper reicht doch") und am teuersten ist.
+const converters = [];
+for (const [f, src] of Object.entries(sources)) {
+  if (/function\s+\w*(?:deToCh|chToDe|toCommonLevel|normali[sz]eLevel|harmoni[sz]e)\w*/i.test(src)) {
+    converters.push(f);
+  }
+  // Auch die stille Variante: eine Tabelle, die DE- auf CH-Stufen abbildet.
+  if (/FIRE_SOURCE_DE[\s\S]{0,120}=>[\s\S]{0,60}FIRE_SOURCE_CH/.test(src)) converters.push(`${f} (Tabelle)`);
+}
+add('keine Umrechnung zwischen nationalen Skalen im Code',
+  converters.length === 0, converters.length ? converters.join(', ') : 'keine gefunden');
+
+// (b) Die Waldbrand-Ansicht muss von MapView.tsx unabhängig bleiben — sonst
+//     hängt der neue Chunk an der 5.724-Zeilen-Datei (architecture.md §14.1).
+const mapViewImporters = Object.entries(sources)
+  .filter(([, src]) => /from\s+['"]\.\.\/MapView['"]/.test(src))
+  .map(([f]) => f);
+add('kein Modul in src/fire importiert aus MapView.tsx',
+  mapViewImporters.length === 0, mapViewImporters.join(', ') || 'keiner');
+
+// (c) Die Bitmaske wird abgeleitet, nicht danebengeschrieben. Genau das ist der
+//     Unterschied zu mapState.ts:24, wo eine handgepflegte Liste 7 Layer verlor.
+const stateSrc = sources['fireState.ts'] ?? '';
+add('fireState.ts leitet die Bit-Reihenfolge aus FIRE_LAYER_ORDER ab',
+  /FIRE_LAYER_ORDER\.indexOf/.test(stateSrc) && /FIRE_LAYER_ORDER\.filter/.test(stateSrc));
+add('fireState.ts pflegt KEINE eigene Layer-Liste',
+  !/const\s+\w*(?:LAYER_ORDER|ORDER)\s*(?::[^=]+)?=\s*\[/.test(stateSrc));
+
+// (d) Gegenprobe am Bestand: der Befund, der die Regel überhaupt begründet.
+//     Bricht der irgendwann weg (weil jemand mapState repariert), soll das
+//     auffallen — dann kann dieser Check entfallen.
+const mapState = readFileSync(join(ROOT, 'src', 'mapState.ts'), 'utf8');
+const orderLine = mapState.match(/const LAYER_ORDER: LayerKey\[\] = \[([^\]]+)\]/);
+const orderCount = orderLine ? orderLine[1].split(',').length : -1;
+add('Bestandsbefund V-191 unverändert: mapState.ts führt 12 von 19 Layern',
+  orderCount === 12, `${orderCount} Einträge`);
+
+// --- Ausgabe ----------------------------------------------------------------
+let failed = 0;
+for (const c of checks) {
+  if (!c.ok) failed++;
+  console.log(`${c.ok ? 'OK  ' : 'FAIL'}  ${c.name}${c.detail ? `  — ${c.detail}` : ''}`);
+}
+console.log(`\n${checks.length - failed}/${checks.length} Prüfungen bestanden.`);
+process.exit(failed === 0 ? 0 : 1);

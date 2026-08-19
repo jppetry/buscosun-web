@@ -24,6 +24,11 @@ uniform highp sampler2D u_particles;
 uniform float u_particles_res;
 uniform mat4 u_matrix;
 uniform float u_point_size;
+// Bezugsrechteck der Positionskodierung (equirect x0,y0,x1,y1). Die 2 Byte je
+// Achse spannen NICHT mehr die ganze Welt, sondern genau dieses Rechteck — s.
+// updateFrag. Hier steht das Rechteck, mit dem der LETZTE Update-Pass kodiert
+// hat (der Draw läuft vor dem Update, s. WindLayer.render).
+uniform vec4 u_bounds;
 
 varying vec2 v_particle_pos;
 
@@ -35,10 +40,11 @@ void main() {
       fract(a_index / u_particles_res),
       floor(a_index / u_particles_res) / u_particles_res));
 
-  // equirectangular position in [0,1]
-  v_particle_pos = vec2(
+  // bounds-relative Position [0,1]² → absolute equirect-Position [0,1]²
+  vec2 local = vec2(
       color.r / 255.0 + color.b,
       color.g / 255.0 + color.a);
+  v_particle_pos = u_bounds.xy + local * (u_bounds.zw - u_bounds.xy);
 
   float lng = v_particle_pos.x * 360.0 - 180.0;
   float lat = 90.0 - v_particle_pos.y * 180.0;
@@ -71,6 +77,8 @@ attribute float a_index;
 uniform highp sampler2D u_particles;
 uniform float u_particles_res;
 uniform float u_point_size;
+// Bezugsrechteck der Positionskodierung — s. drawVert/updateFrag.
+uniform vec4 u_bounds;
 
 varying vec2 v_particle_pos;
 
@@ -81,9 +89,10 @@ void main() {
       fract(a_index / u_particles_res),
       floor(a_index / u_particles_res) / u_particles_res));
 
-  v_particle_pos = vec2(
+  vec2 local = vec2(
       color.r / 255.0 + color.b,
       color.g / 255.0 + color.a);
+  v_particle_pos = u_bounds.xy + local * (u_bounds.zw - u_bounds.xy);
 
   float lng = v_particle_pos.x * 360.0 - 180.0;
   float lat = 90.0 - v_particle_pos.y * 180.0;
@@ -155,6 +164,268 @@ void main() {
 }
 `;
 
+// ---- Segment style (Phase WP1, windy.com parity) ---------------------------
+// Each particle is a QUAD: head = its position in the CURRENT state texture,
+// tail = head advected BACKWARDS by one 60-fps step of the exact same
+// display-velocity math the update pass uses. The accumulated chain of these
+// per-frame segments forms the windy-style streak.
+//
+// Deliberately NOT read from the second (previous) state texture: the two
+// ping-pong textures do not reliably hold adjacent time steps on every
+// GL stack (measured on ANGLE/D3D11: the pair decorrelates into two
+// independent populations — viewport-long garbage segments). Deriving the
+// tail from the wind field keeps every vertex self-contained and makes
+// respawn jumps structurally impossible to draw.
+
+export const segDrawVert = `
+// highp + the exact 2-byte RGBA8 position decode are REQUIRED and copied
+// verbatim from drawVert — see the rationale there (mediump snaps particles to
+// a coarse grid on mobile; default-lowp sampler coords fetch the WRONG texel).
+precision highp float;
+
+// (particleIndex, end, side): end 0 = head / 1 = tail (one step upwind);
+// side ±1 = across-track extrusion direction.
+attribute vec3 a_vert;
+
+uniform highp sampler2D u_particles;
+// highp on the shared sampler — the mediump fragment shader declares it highp
+// too (linker rejects mismatched uniform precision; updateFrag ships fragment
+// highp samplers already, so device support is proven).
+uniform highp sampler2D u_wind;
+uniform float u_particles_res;
+uniform mat4 u_matrix;
+uniform vec2 u_viewport;     // trail-buffer size in px (extrusion pixel space)
+// mediump on uniforms SHARED with the (mediump) fragment shader — the linker
+// rejects mismatched uniform precision, and fragment-side highp floats are not
+// guaranteed on older mobile GPUs. All these values fit mediump comfortably.
+uniform mediump float u_half_width;  // half stroke width in trail-buffer px
+uniform mediump float u_aa_edge;     // soft across-track margin per side in px
+uniform mediump vec2 u_wind_min;
+uniform mediump vec2 u_wind_max;
+uniform mediump vec4 u_data_uv_bounds;
+uniform float u_length_ex;   // minimum along-track length in px (calm areas)
+// Equirect-X-Schritt je 1 m/s für die Länge des Kopfsegments (headFrames
+// 60-fps-Schritte) — JS-seitig aus advectionStepScale(), s. advection.ts.
+uniform float u_step_scale;
+uniform float u_speed_gamma;
+uniform float u_speed_ref;
+uniform float u_speed_min;
+// Bezugsrechteck der Positionskodierung — s. drawVert/updateFrag.
+uniform vec4 u_bounds;
+
+varying vec2 v_particle_pos;
+varying float v_cross;
+
+const float PI = 3.14159265358979323846;
+const float MERC_MAX_LAT = 85.05112878;
+// equirect Y spannt 180°, X spannt 360° → die N-S-Komponente braucht den
+// Faktor 2, sonst ist die Advektion anisotrop (s. advection.ts, NS_ASPECT).
+const float NS_ASPECT = 2.0;
+
+vec2 decodePos(vec4 color) {
+  vec2 local = vec2(color.r / 255.0 + color.b, color.g / 255.0 + color.a);
+  return u_bounds.xy + local * (u_bounds.zw - u_bounds.xy);
+}
+
+vec4 projectEqui(vec2 equi) {
+  float lng = equi.x * 360.0 - 180.0;
+  float lat = clamp(90.0 - equi.y * 180.0, -MERC_MAX_LAT, MERC_MAX_LAT);
+  float lat_rad = lat * PI / 180.0;
+  float merc_x = (lng + 180.0) / 360.0;
+  float merc_y = 0.5 - log(tan(PI * 0.25 + lat_rad * 0.5)) / (2.0 * PI);
+  return u_matrix * vec4(merc_x, merc_y, 0.0, 1.0);
+}
+
+// One 60-fps advection step at this position — the SAME math as updateFrag's
+// dispVelocity, so head→tail is exactly the last frame's travel: linear in the
+// GRIB speed (γ/floor are the neutral legacy knobs) and isotropic via NS_ASPECT.
+vec2 advectStep(vec2 p) {
+  vec2 wind_uv = (p - u_data_uv_bounds.xy) /
+                 (u_data_uv_bounds.zw - u_data_uv_bounds.xy);
+  bool in_data = wind_uv.x >= 0.0 && wind_uv.x <= 1.0 &&
+                 wind_uv.y >= 0.0 && wind_uv.y <= 1.0;
+  vec2 raw = in_data ? texture2D(u_wind, wind_uv).rg : vec2(0.5);
+  vec2 velocity = mix(vec2(u_wind_min), vec2(u_wind_max), raw);
+  if (!in_data) velocity = vec2(0.0);
+  float speed = length(velocity);
+  if (speed < 0.001) return vec2(0.0);
+  float dispSpeed = speed;
+  if (u_speed_gamma != 1.0) dispSpeed = pow(speed / u_speed_ref, u_speed_gamma) * u_speed_ref;
+  dispSpeed = max(u_speed_min, dispSpeed);
+  vec2 dispVel = velocity / speed * dispSpeed;
+  float distortion = max(0.05, cos(radians(p.y * 180.0 - 90.0)));
+  return vec2(dispVel.x / distortion, -NS_ASPECT * dispVel.y) * u_step_scale;
+}
+
+void main() {
+  vec2 tc = vec2(
+      fract(a_vert.x / u_particles_res),
+      floor(a_vert.x / u_particles_res) / u_particles_res);
+  vec2 posA = decodePos(texture2D(u_particles, tc));
+  v_particle_pos = posA;
+  v_cross = a_vert.z * (u_half_width + u_aa_edge);
+
+  vec2 posB = posA - advectStep(posA);
+  vec4 clipA = projectEqui(posA);
+  vec4 clipB = projectEqui(posB);
+  if (clipA.w <= 0.0 || clipB.w <= 0.0) {
+    gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
+    return;
+  }
+
+  // Screen-space segment vector in trail-buffer px (NDC spans 2 → ×0.5).
+  vec2 dirPx = (clipA.xy / clipA.w - clipB.xy / clipB.w) * u_viewport * 0.5;
+  float len = length(dirPx);
+  // Near-zero motion falls back to a fixed direction so calm-area particles
+  // still rasterize as a tiny dash (never NaN).
+  vec2 dirN = len > 0.0001 ? dirPx / len : vec2(1.0, 0.0);
+  vec2 perpN = vec2(-dirN.y, dirN.x);
+
+  float head = 1.0 - a_vert.y;          // 1 at the head end
+  vec4 clip = mix(clipB, clipA, head);
+  float endSign = head * 2.0 - 1.0;     // +1 head, −1 tail
+  vec2 offsetPx = perpN * v_cross + dirN * (endSign * u_length_ex * 0.5);
+  clip.xy += offsetPx * 2.0 / u_viewport * clip.w;
+  gl_Position = clip;
+}
+`;
+
+// Projection-aware segment variant (MapLibre prelude prepended at compile
+// time — provides PI, u_projection_* and projectTile(); see drawVertProjected).
+export const segDrawVertProjected = `
+// highp + verbatim RGBA8 decode — see drawVert/segDrawVert.
+precision highp float;
+
+attribute vec3 a_vert;
+
+uniform highp sampler2D u_particles;
+uniform highp sampler2D u_wind;
+uniform float u_particles_res;
+uniform vec2 u_viewport;
+// mediump/highp split mirrors segDrawVert (shared-uniform precision contract).
+uniform mediump float u_half_width;
+uniform mediump float u_aa_edge;
+uniform mediump vec2 u_wind_min;
+uniform mediump vec2 u_wind_max;
+uniform mediump vec4 u_data_uv_bounds;
+uniform float u_length_ex;
+uniform float u_step_scale;
+uniform float u_speed_gamma;
+uniform float u_speed_ref;
+uniform float u_speed_min;
+uniform vec4 u_bounds;
+
+varying vec2 v_particle_pos;
+varying float v_cross;
+
+const float MERC_MAX_LAT = 85.05112878;
+const float NS_ASPECT = 2.0;
+
+vec2 decodePos(vec4 color) {
+  vec2 local = vec2(color.r / 255.0 + color.b, color.g / 255.0 + color.a);
+  return u_bounds.xy + local * (u_bounds.zw - u_bounds.xy);
+}
+
+vec4 projectEqui(vec2 equi) {
+  float lng = equi.x * 360.0 - 180.0;
+  float lat = clamp(90.0 - equi.y * 180.0, -MERC_MAX_LAT, MERC_MAX_LAT);
+  float lat_rad = lat * PI / 180.0;
+  float merc_x = (lng + 180.0) / 360.0;
+  float merc_y = 0.5 - log(tan(PI * 0.25 + lat_rad * 0.5)) / (2.0 * PI);
+  return projectTile(vec2(merc_x, merc_y));
+}
+
+vec2 advectStep(vec2 p) {
+  vec2 wind_uv = (p - u_data_uv_bounds.xy) /
+                 (u_data_uv_bounds.zw - u_data_uv_bounds.xy);
+  bool in_data = wind_uv.x >= 0.0 && wind_uv.x <= 1.0 &&
+                 wind_uv.y >= 0.0 && wind_uv.y <= 1.0;
+  vec2 raw = in_data ? texture2D(u_wind, wind_uv).rg : vec2(0.5);
+  vec2 velocity = mix(vec2(u_wind_min), vec2(u_wind_max), raw);
+  if (!in_data) velocity = vec2(0.0);
+  float speed = length(velocity);
+  if (speed < 0.001) return vec2(0.0);
+  float dispSpeed = speed;
+  if (u_speed_gamma != 1.0) dispSpeed = pow(speed / u_speed_ref, u_speed_gamma) * u_speed_ref;
+  dispSpeed = max(u_speed_min, dispSpeed);
+  vec2 dispVel = velocity / speed * dispSpeed;
+  float distortion = max(0.05, cos(radians(p.y * 180.0 - 90.0)));
+  return vec2(dispVel.x / distortion, -NS_ASPECT * dispVel.y) * u_step_scale;
+}
+
+void main() {
+  vec2 tc = vec2(
+      fract(a_vert.x / u_particles_res),
+      floor(a_vert.x / u_particles_res) / u_particles_res);
+  vec2 posA = decodePos(texture2D(u_particles, tc));
+  v_particle_pos = posA;
+  v_cross = a_vert.z * (u_half_width + u_aa_edge);
+
+  vec2 posB = posA - advectStep(posA);
+  vec4 clipA = projectEqui(posA);
+  vec4 clipB = projectEqui(posB);
+  if (clipA.w <= 0.0 || clipB.w <= 0.0) {
+    gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
+    return;
+  }
+
+  vec2 dirPx = (clipA.xy / clipA.w - clipB.xy / clipB.w) * u_viewport * 0.5;
+  float len = length(dirPx);
+  vec2 dirN = len > 0.0001 ? dirPx / len : vec2(1.0, 0.0);
+  vec2 perpN = vec2(-dirN.y, dirN.x);
+
+  float head = 1.0 - a_vert.y;
+  vec4 clip = mix(clipB, clipA, head);
+  float endSign = head * 2.0 - 1.0;
+  vec2 offsetPx = perpN * v_cross + dirN * (endSign * u_length_ex * 0.5);
+  clip.xy += offsetPx * 2.0 / u_viewport * clip.w;
+  gl_Position = clip;
+}
+`;
+
+export const segDrawFrag = `
+precision mediump float;
+
+// highp: shared with the vertex shader, which samples the wind field for the
+// tail advection — uniform precision must match across stages (see segDrawVert).
+uniform highp sampler2D u_wind;
+uniform sampler2D u_color_ramp;
+uniform vec2 u_wind_min;
+uniform vec2 u_wind_max;
+uniform vec4 u_particle_color;
+uniform vec4 u_data_uv_bounds;
+uniform float u_speed_tint;    // 0 = pure particleColor, 1 = pure ramp color
+uniform float u_half_width;
+uniform float u_aa_edge;
+uniform float u_global_alpha;  // zoomend fade-in ramp (1 in steady state)
+
+varying vec2 v_particle_pos;
+varying float v_cross;
+
+void main() {
+  // Soft across-track edge: full opacity in the core, u_aa_edge px falloff.
+  float aa = clamp((u_half_width + u_aa_edge - abs(v_cross)) / max(u_aa_edge, 0.0001), 0.0, 1.0);
+  if (aa <= 0.0) discard;
+
+  // Speed sampling + coloring identical to drawFrag (keeps the two styles'
+  // color behavior interchangeable).
+  vec2 wind_uv = (v_particle_pos - u_data_uv_bounds.xy) /
+                 (u_data_uv_bounds.zw - u_data_uv_bounds.xy);
+  bool inside = wind_uv.x >= 0.0 && wind_uv.x <= 1.0 &&
+                wind_uv.y >= 0.0 && wind_uv.y <= 1.0;
+  vec2 sampleUV = inside ? wind_uv : vec2(0.5);
+  vec2 velocity = mix(u_wind_min, u_wind_max, texture2D(u_wind, sampleUV).rg);
+  float speed_t = inside ? clamp(length(velocity) / length(u_wind_max), 0.0, 1.0) : 0.0;
+
+  vec2 ramp_pos = vec2(fract(16.0 * speed_t), floor(16.0 * speed_t) / 16.0);
+  vec3 rampColor = texture2D(u_color_ramp, ramp_pos).rgb;
+  vec3 rgb = mix(u_particle_color.rgb, rampColor, u_speed_tint);
+
+  float alpha = u_particle_color.a * clamp(0.7 + speed_t * 0.4, 0.7, 1.0) * aa * u_global_alpha;
+  gl_FragColor = vec4(rgb, alpha);
+}
+`;
+
 export const heatmapVert = `
 precision mediump float;
 
@@ -220,12 +491,44 @@ precision mediump float;
 
 uniform sampler2D u_screen;
 uniform float u_opacity;
+// Kamera-Nachführung des Trail-Puffers (Phase WZ1 / ZA-1). Der Puffer liegt im
+// BILDSCHIRMRAUM; bewegt sich die Kamera, passt der aufgezeichnete Schweif nicht
+// mehr zur Karte darunter. Statt ihn zu verwerfen (bis 2026-08-08: 173
+// Löschungen in 189 Bildern je Zoomfahrt — der Layer brach während jeder Geste
+// auf ein Punktfeld zusammen) wird er hier um die Kamerabewegung seit dem
+// letzten Bild verschoben und skaliert. Für Schwenken + Zoomen ohne Drehung und
+// Neigung ist das im Bildschirmraum eine exakte affine Abbildung (Mercator);
+// sonst setzt WindLayer die Identität und löscht weiterhin.
+// (1,1)/(0,0) = Identität ⇒ byte-identisch zum Alt-Verhalten. Der Komposit-Pass
+// benutzt IMMER die Identität.
+uniform vec2 u_uv_scale;
+uniform vec2 u_uv_offset;
 
 varying vec2 v_tex_pos;
 
 void main() {
-  vec4 color = texture2D(u_screen, 1.0 - v_tex_pos);
-  gl_FragColor = vec4(floor(255.0 * color * u_opacity) / 255.0);
+  vec2 src = (1.0 - v_tex_pos) * u_uv_scale + u_uv_offset;
+  // Neu ins Bild gekommene Fläche hat keine Schweif-Historie — dort transparent
+  // statt CLAMP_TO_EDGE-Schlieren vom Rand.
+  if (src.x < 0.0 || src.x > 1.0 || src.y < 0.0 || src.y > 1.0) {
+    gl_FragColor = vec4(0.0);
+    return;
+  }
+  vec4 color = texture2D(u_screen, src);
+  // Fade ONLY the alpha channel. The trail buffer holds STRAIGHT (un-premultiplied)
+  // color: heads are written with BLEND off as rgb = particleColor.rgb, a = 0.85·soft.
+  // Fading all four channels dimmed the colour as well — and since the composite pass
+  // (drawScreen → drawTexture(screenTexture, 1.0), blendFunc SRC_ALPHA/ONE_MINUS_SRC_ALPHA)
+  // multiplies the colour by that same faded alpha a SECOND time, the visible trail decayed
+  // with fadeOpacity² per frame: 0.972 behaved like 0.9448, i.e. HALF the documented
+  // lifetime (~10 px instead of ~19 px at the DACH median of 2.2 m/s → a dot, no readable
+  // direction). Measured and belegt in audit/windpartikel-schweif.md.
+  // Keeping rgb and decaying only alpha makes the visible decay exactly fadeOpacity per
+  // frame — what WindLayerOptions.fadeOpacity and MapView's comment have always claimed.
+  // The composite pass (u_opacity = 1.0) is unaffected: rgb passes through and
+  // floor(255·a)/255 is the identity on a value that already came from an 8-bit texture.
+  // The floor() stays on alpha so the trail still terminates instead of decaying forever.
+  gl_FragColor = vec4(color.rgb, floor(255.0 * color.a * u_opacity) / 255.0);
 }
 `;
 
@@ -242,19 +545,36 @@ uniform vec2 u_wind_res;
 uniform vec2 u_wind_min;
 uniform vec2 u_wind_max;
 uniform float u_rand_seed;
-uniform float u_speed_factor;
-uniform float u_dt_scale;
-uniform float u_zoom_speed;
-uniform float u_speed_gamma;   // <1 hebt schwache Winde an (Anzeige-Kennlinie)
-uniform float u_speed_ref;     // Anker-Windgeschwindigkeit (m/s), dort unverändert
-uniform float u_speed_min;     // Mindest-Anzeigetempo (m/s) für JEDEN vorhandenen Wind
+// DER Umrechnungsfaktor: equirect-X-Schritt je 1 m/s Wind und Frame.
+// JS-seitig aus advectionStepScale() (s. advection.ts) — enthält Zoomgesetz,
+// Weltbreite und dt-Normierung. Es gibt KEINEN weiteren Geschwindigkeits-
+// Skalar mehr im Shader (früher: u_speed_factor · u_dt_scale · u_zoom_speed).
+uniform float u_step_scale;
+// Alt-Kennlinie („Rule 2"-Fallback), standardmäßig NEUTRAL: gamma 1 + min 0
+// ⇒ dispSpeed == speed, also strikt proportional zum GRIB-Wert. Nur wer die
+// frühere Stauchung zurückwill, setzt sie wieder (WindLayerOptions).
+uniform float u_speed_gamma;
+uniform float u_speed_ref;
+uniform float u_speed_min;
 uniform float u_drop_rate;
 uniform float u_drop_rate_bump;
 uniform float u_sub_steps;     // Advektions-Sub-Schritte (gekrümmte, glatte Pfade)
+// Z3 — Umverteilung bei Rechteckwechsel (audit/windpartikel-rauszoom.md), 0/1.
+// Bei 0 ist dieser Shader rechnerisch identisch zum Stand vor Z3 (Rule 2).
+uniform float u_redistribute;
+// Bezugsrechteck der Positionskodierung, equirect (x0,y0,x1,y1):
+//   u_bounds_prev = Rechteck, mit dem der EINGEHENDE Zustand kodiert wurde
+//   u_bounds      = Rechteck, mit dem der AUSGEHENDE Zustand kodiert wird
+// Beim Schwenken/Zoomen unterscheiden sie sich; die Position wird exakt
+// umgerechnet (dekodieren mit prev → advektieren absolut → kodieren mit neu).
 uniform vec4 u_bounds;
+uniform vec4 u_bounds_prev;
 uniform vec4 u_data_uv_bounds;
 
 varying vec2 v_tex_pos;
+
+// equirect Y spannt 180°, X spannt 360° → N-S braucht Faktor 2 (s. advection.ts).
+const float NS_ASPECT = 2.0;
 
 const vec3 rand_constants = vec3(12.9898, 78.233, 4375.85453);
 float rand(const vec2 co) {
@@ -273,9 +593,15 @@ vec2 lookup_wind(const vec2 uv) {
   return mix(mix(tl, tr, f.x), mix(bl, br, f.x), f.y);
 }
 
-// Wertet Wind an einer Position aus → Anzeige-Geschwindigkeit + „hat Wind?".
-// (Anzeige-Kennlinie γ + Mindesttempo: schwache Winde anheben, damit JEDER Wind
-//  sichtbar driftet; echte Flaute bleibt 0.)
+// Wertet den Wind an einer Position aus → Anzeige-Geschwindigkeitsvektor in m/s.
+//
+// EHRLICHKEITS-VERTRAG: der zurückgegebene Betrag IST die GRIB-Geschwindigkeit
+// (u_speed_gamma = 1, u_speed_min = 0). Es findet hier keine Stauchung, kein
+// Anheben und kein Mindesttempo statt — die einzige Umrechnung nach Pixeln
+// steckt in u_step_scale und ist strikt linear.
+//
+// hasWind steuert AUSSCHLIESSLICH die Lebensdauer (Recycling), nicht das
+// Tempo: in echter Flaute stauen sich Partikel sonst zu Klumpen.
 vec2 dispVelocity(const vec2 p, out float speed_t, out float hasWind) {
   vec2 wind_uv = (p - u_data_uv_bounds.xy) /
                  (u_data_uv_bounds.zw - u_data_uv_bounds.xy);
@@ -287,24 +613,59 @@ vec2 dispVelocity(const vec2 p, out float speed_t, out float hasWind) {
   float speed = length(velocity);
   speed_t = speed / length(u_wind_max);
   hasWind = step(0.05, speed);
-  float dispSpeed = hasWind > 0.5
-      ? max(u_speed_min, pow(speed / u_speed_ref, u_speed_gamma) * u_speed_ref)
-      : 0.0;
-  return speed > 0.001 ? (velocity / speed) * dispSpeed : vec2(0.0);
+  if (speed < 0.001) return vec2(0.0);
+  float dispSpeed = speed;
+  if (u_speed_gamma != 1.0) dispSpeed = pow(speed / u_speed_ref, u_speed_gamma) * u_speed_ref;
+  dispSpeed = max(u_speed_min, dispSpeed);
+  return (velocity / speed) * dispSpeed;
 }
 
 const int MAX_SUB_STEPS = 4;
 
+// Z3 — gleichverteilte Zufallsposition in new ohne (prev ∩ new), also in dem Ring
+// bzw. Streifen des NEUEN Rechtecks, der im alten noch nicht enthalten war.
+// o0/o1 = Überlappung prev∩new in lokalen Koordinaten des neuen Rechtecks.
+// Der Rest zerfällt in vier Rechtecke (oben, unten, links, rechts der
+// Überlappungszeilen); flächengewichtet eines wählen, darin gleichverteilt.
+// Ist der Rest (praktisch) leer — Reinzoomen, unverändertes Rechteck — wird
+// fallback (gleichverteilt im ganzen Rechteck) zurückgegeben.
+vec2 ring_sample(const vec2 o0, const vec2 o1, const vec2 seed, const vec2 fallback) {
+  float aTop = o0.y;
+  float aBot = 1.0 - o1.y;
+  float h = max(o1.y - o0.y, 0.0);
+  float aLeft = o0.x * h;
+  float aRight = (1.0 - o1.x) * h;
+  float total = aTop + aBot + aLeft + aRight;
+  if (total < 1e-4) return fallback;
+  float r = rand(seed + 4.9) * total;
+  vec2 u = vec2(rand(seed + 5.3), rand(seed + 6.1));
+  if (r < aTop) return vec2(u.x, u.y * o0.y);
+  r -= aTop;
+  if (r < aBot) return vec2(u.x, o1.y + u.y * (1.0 - o1.y));
+  r -= aBot;
+  if (r < aLeft) return vec2(u.x * o0.x, o0.y + u.y * h);
+  return vec2(o1.x + u.x * (1.0 - o1.x), o0.y + u.y * h);
+}
+
 void main() {
   vec4 color = texture2D(u_particles, v_tex_pos);
-  vec2 pos = vec2(
-      color.r / 255.0 + color.b,
-      color.g / 255.0 + color.a);
+
+  // Dekodieren: bounds-relativ [0,1]² → absolute equirect-Position.
+  vec2 spanPrev = max(u_bounds_prev.zw - u_bounds_prev.xy, vec2(1e-9));
+  vec2 pos = u_bounds_prev.xy
+      + vec2(color.r / 255.0 + color.b, color.g / 255.0 + color.a) * spanPrev;
 
   // Advektion in Sub-Schritten: der Gesamt-Schritt wird auf N Teilschritte
   // verteilt, der Wind bei jedem Teilschritt NEU abgetastet. So folgen die
   // Partikel gekrümmten Bahnen statt geraden Sprüngen → keine „gestrichelten"
-  // Trails mehr, auch bei hohem speedFactor. u_dt_scale/u_zoom_speed wie gehabt.
+  // Trails. Die Schrittweite selbst kommt vollständig aus u_step_scale.
+  //
+  // Zwei Achsenkorrekturen, beide geometrisch zwingend:
+  //   /distortion  — Meridiankonvergenz: ein Ost-Wind legt bei hoher Breite
+  //                  mehr Längengrade zurück (cos φ).
+  //   ·NS_ASPECT   — equirect Y spannt 180°, X spannt 360°. OHNE diesen
+  //                  Faktor läuft Nord-Süd nur halb so schnell wie Ost-West
+  //                  (Richtungsfehler bis 19,47°; s. audit/wind-partikel-grib-treue.md).
   float steps = max(1.0, u_sub_steps);
   float speed_t = 0.0;
   float hasWind = 0.0;
@@ -313,36 +674,64 @@ void main() {
     if (float(i) >= steps) break;
     vec2 dispVel = dispVelocity(pos, speed_t, hasWind);
     hasWindAny = max(hasWindAny, hasWind);
-    float distortion = cos(radians(pos.y * 180.0 - 90.0));
-    vec2 offset = vec2(dispVel.x / distortion, -dispVel.y)
-        * 0.0001 * u_speed_factor * u_dt_scale * u_zoom_speed / steps;
-    pos = fract(1.0 + pos + offset);
+    float distortion = max(0.05, cos(radians(pos.y * 180.0 - 90.0)));
+    vec2 offset = vec2(dispVel.x / distortion, -NS_ASPECT * dispVel.y)
+        * u_step_scale / steps;
+    pos = pos + offset;
   }
   hasWind = hasWindAny;
 
+  // Kodieren: absolute equirect-Position → bounds-relativ [0,1]².
+  vec2 span = max(u_bounds.zw - u_bounds.xy, vec2(1e-9));
+  vec2 local = (pos - u_bounds.xy) / span;
+
   vec2 seed = (pos + v_tex_pos) * u_rand_seed;
 
-  // Lebensdauer/Recycling. Zellen MIT Wind sollen lange leben, damit sie sichtbare
-  // Streifen ziehen (vorher wurden schon schwach-windige Partikel in ~0,6 s neu
-  // gewürfelt → wirkte wie Stillstand). Nur ECHTE Flaute (hasWind=0) wird aggressiv
-  // recycelt, damit sich dort nichts staut (Pile-up). Da jeder Wind jetzt mit
-  // mindestens u_speed_min driftet, verklumpen langsame Zellen ohnehin kaum.
+  // Lebensdauer/Recycling. Zellen MIT Wind sollen lange leben, damit sie
+  // sichtbare Streifen ziehen. Nur ECHTE Flaute (hasWind = 0) wird aggressiv
+  // recycelt, damit sich dort nichts staut (Pile-up).
+  //
+  // Ausserhalb des Bezugsrechtecks ist ZWINGEND sofortiges Recycling nötig:
+  // Werte ausserhalb [0,1] lassen sich in der bounds-relativen Kodierung nicht
+  // darstellen. Das Rechteck ist Sichtfeld + 10 % — recycelt wird also erst,
+  // wenn das Partikel deutlich ausserhalb des Bildes ist (früher: drop_rate
+  // 0,07/Frame ≈ 14 Frames, ebenfalls unsichtbar).
   bool out_of_bounds =
-      pos.x < u_bounds.x || pos.x > u_bounds.z ||
-      pos.y < u_bounds.y || pos.y > u_bounds.w;
+      local.x < 0.0 || local.x > 1.0 || local.y < 0.0 || local.y > 1.0;
   float calm_boost = (1.0 - hasWind) * u_drop_rate_bump * 4.0;
   float drop_rate = u_drop_rate + speed_t * u_drop_rate_bump + calm_boost;
-  if (out_of_bounds) drop_rate = max(drop_rate, 0.07);
   float drop = step(1.0 - drop_rate, rand(seed));
+  if (out_of_bounds) drop = 1.0;
 
-  // random position within the visible bounds (equirectangular space)
-  vec2 random_pos = vec2(
-      mix(u_bounds.x, u_bounds.z, rand(seed + 1.3)),
-      mix(u_bounds.y, u_bounds.w, rand(seed + 2.1)));
-  pos = mix(pos, random_pos, drop);
+  // Neustart-Position: gleichverteilt IM Bezugsrechteck (also direkt in
+  // lokalen Koordinaten — kein Umweg über equirect nötig).
+  vec2 random_local = vec2(rand(seed + 1.3), rand(seed + 2.1));
+
+  // Z3 — Umverteilung bei Rechteckwechsel (audit/windpartikel-rauszoom.md).
+  // Wächst das Rechteck (Rauszoomen) um den Faktor A = area(new)/area(prev),
+  // liegen ALLE Partikel im alten Ausschnitt und würden nur über die normale
+  // Lebensdauer (Sekunden) auslaufen. Stattdessen: Überschuss-Anteil 1 − 1/A
+  // sofort recyceln — und Überschuss WIE Out-of-bounds-Partikel gleichverteilt
+  // in new ohne (prev ∩ new) neu setzen (Ring beim Rauszoomen, nachrückender
+  // Streifen beim Schwenken). Die Dichte ist damit nach JEDEM Frame gleich;
+  // die verbleibenden Partikel behalten ihre Bahn. Bei u_redistribute = 0
+  // bleibt exakt das Alt-Verhalten (excess 0, Spawn im ganzen Rechteck).
+  vec2 o0 = clamp((u_bounds_prev.xy - u_bounds.xy) / span, 0.0, 1.0);
+  vec2 o1 = clamp((u_bounds_prev.zw - u_bounds.xy) / span, 0.0, 1.0);
+  float areaPrev = spanPrev.x * spanPrev.y;
+  float areaNew = span.x * span.y;
+  float excess = u_redistribute * clamp(1.0 - areaPrev / areaNew, 0.0, 1.0);
+  float redrop = step(1.0 - excess, rand(seed + 3.7));
+  float ring_drop = u_redistribute * max(redrop, out_of_bounds ? 1.0 : 0.0);
+  vec2 spawn_local = random_local;
+  if (ring_drop > 0.5) spawn_local = ring_sample(o0, o1, seed, random_local);
+  drop = max(drop, redrop);
+
+  local = mix(local, spawn_local, drop);
+  local = clamp(local, 0.0, 1.0);
 
   gl_FragColor = vec4(
-      fract(pos * 255.0),
-      floor(pos * 255.0) / 255.0);
+      fract(local * 255.0),
+      floor(local * 255.0) / 255.0);
 }
 `;

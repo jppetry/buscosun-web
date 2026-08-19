@@ -5,6 +5,7 @@ import {
   bindTexture,
   createBuffer,
   createDataTexture,
+  createIndexBuffer,
   createProgram,
   createTexture,
   getColorRamp,
@@ -14,9 +15,20 @@ import {
   type PackedTexture,
   type ProgramWrapper,
 } from './glUtil';
-import { drawFrag, drawVert, drawVertProjected, heatmapFrag, heatmapVert, heatmapVertProjected, quadVert, screenFrag, updateFrag } from './shaders';
+import { drawFrag, drawVert, drawVertProjected, heatmapFrag, heatmapVert, heatmapVertProjected, quadVert, screenFrag, segDrawFrag, segDrawVert, segDrawVertProjected, updateFrag } from './shaders';
 import { FrameGovernor, readDeviceCaps, initialTier, tierToLevelIndex, type DeviceCaps } from './perfGovernor';
 import { refineNormalizedUV } from './windRefine';
+import { lookupZoomTable, makeSegmentPreset, type SegmentPreset, type WindParticleStyle } from './particlePreset';
+import {
+  advectionStepScale,
+  deadBandStep,
+  screenSpeedPxPerSec,
+  screenTempoGain,
+  LAT_REF_DEG,
+  NS_ASPECT,
+  TILE_SIZE_CSS,
+  type ScreenTempoOptions,
+} from './advection';
 
 /** MapLibre v5 projection data passed to custom layers (subset we use). */
 interface ProjectionUniforms {
@@ -64,13 +76,19 @@ function latToEquiY(lat: number): number {
   return (90 - lat) / 180;
 }
 
+/** Dauer des Auffrisch-Pulses nach einem Zoomwechsel (ms). */
+const ZOOM_SETTLE_MS = 1100;
+/** Spitzen-Zuschlag auf die Drop-Rate zu Beginn des Pulses (×(1+gain)). */
+const ZOOM_SETTLE_GAIN = 4;
+
 export interface WindLayerOptions {
   id?: string;
   /** Feste Partikelzahl. Wenn gesetzt, wird die viewport-Skalierung DEAKTIVIERT
    *  (Override für Tests/Sonderfälle). Default: nicht gesetzt → Auto-Skalierung. */
   numParticles?: number;
-  /** Partikel pro 1 Mio. CSS-Pixel bei densityMultiplier = 1 (Auto-Skalierung).
-   *  Default 3600 → ~4–5k auf einem Laptop, ~9k auf 4K. */
+  /** Partikel pro 1 Mio. CSS-Pixel **sichtbarer Datenfläche** bei
+   *  densityMultiplier = 1 (Auto-Skalierung). Default 2200 → mittlerer
+   *  Partikelabstand ~21 px, passend zu 19–45 px langen Schweifen. */
   baseDensity?: number;
   /** Dichte-Regler (UI): multipliziert die viewport-skalierte Partikelzahl.
    *  Default 1. „Intensiv" ≈ 2.x. */
@@ -78,21 +96,73 @@ export interface WindLayerOptions {
   /** Untere/obere Klammer der Auto-Partikelzahl. Default 1800 / 22000. */
   minParticles?: number;
   maxParticles?: number;
+  /** ALT-Zoomausdünnung („Rule 2"-Fallback, seit 2026-08-08 **default-off**).
+   *  Bis dahin dünnte der points-Pfad oberhalb z6 um diesen Teiler je Zoomstufe
+   *  aus und unterhalb z6 über eine lineare Rampe — zusammen eine Zeltkurve mit
+   *  Scheitel bei z6 und Faktor 3,3 Schwankung der gezeichneten Zahl
+   *  (audit/windpartikel-zoom.md §2). Ersetzt durch konstante Dichte je
+   *  sichtbarer Datenfläche (s. getEffectiveParticleCount). Wird dieser Wert
+   *  **ausdrücklich gesetzt**, kommt die Alt-Kurve zusätzlich zur Anwendung. */
+  zoomThinBase?: number;
+  /** Untergrenze der ALT-Zoomausdünnung als Anteil der Vollzahl. Wirkt nur,
+   *  wenn `zoomThinBase` ausdrücklich gesetzt ist. Default 0.3. */
+  zoomThinFloor?: number;
+  /** Zulässige Belegung des Positions-Rasters (s. `latticeParticleCap`): Anteil
+   *  der auflösbaren Rasterzellen, der höchstens besetzt sein darf. Dünn besetzt
+   *  liest sich das Raster als Streuung, dicht besetzt als Gitter-Muster.
+   *  Default 0.06. */
+  latticeOccupancy?: number;
   fadeOpacity?: number;
+  /**
+   * TEMPO-REGLER: CSS-px/s je 1 m/s GRIB-Wind, bei 51°N (`LAT_REF_DEG`).
+   * Die Abbildung ist strikt linear — doppelter Wind = doppeltes Tempo.
+   * Default 6 (10 m/s ⇒ 60 px/s ⇒ ~25 px Schweif bei fadeOpacity 0.972,
+   * die Referenzoptik aus `audit/windkarte-vorbild-wetteronline.md`).
+   */
+  speedPxPerMs?: number;
+  /** Dimensionsloser Gesamt-Multiplikator auf `speedPxPerMs`. Default 1. */
   speedFactor?: number;
-  /** Referenz-Zoom, bei dem speedFactor exakt gilt (Übersicht). Default 5.5. */
+  /** Referenz-Zoom für `screenTempoZoomExp`. Default 5.5. */
   speedRefZoom?: number;
-  /** Zoom-Dämpfung k: 0 = roh (beschleunigt beim Reinzoomen), 1 = konstantes
-   *  Bildschirmtempo, >1 = wird beim Reinzoomen langsamer (windy-artig). Default 1.15. */
-  speedZoomDamping?: number;
-  /** Anzeige-Kennlinie γ (<1 hebt schwache Winde an, damit sie nicht einfrieren). Default 0.5. */
+  /**
+   * Zoomgesetz-Exponent — die EINZIGE Stelle, an der der Zoom das Tempo
+   * beeinflusst (der Windwert bleibt in jedem Fall unangetastet):
+   *   0    = Bildschirmtempo konstant über alle Zoomstufen (Default, windy-artig)
+   *   0.75 = Alt-Verhalten von buscosun (früher `speedZoomDamping: 0.25`)
+   *   1    = rein geografisch, konstanter Zeitraffer
+   */
+  screenTempoZoomExp?: number;
+  /**
+   * ALT-Kennlinie, standardmäßig NEUTRAL (γ = 1 ⇒ aus). Nur setzen, wer die
+   * frühere Stauchung des Dynamikumfangs zurückwill — sie bricht die
+   * Proportionalität zum GRIB-Wert („Rule 2"-Fallback, s.
+   * `audit/wind-partikel-grib-treue.md` §3). Default 1.
+   */
   speedGamma?: number;
-  /** Anker-Windgeschwindigkeit (m/s), bei der γ nichts ändert. Default 5. */
+  /** Anker-Windgeschwindigkeit (m/s) der Alt-Kennlinie. Wirkungslos bei γ = 1. Default 5. */
   speedRef?: number;
-  /** Mindest-Anzeigetempo (m/s) für JEDEN vorhandenen Wind → nie Stillstand. Default 2. */
+  /** ALT: Mindest-Anzeigetempo (m/s). Default 0 = aus (jeder Wind zeigt seinen echten Wert). */
   speedMin?: number;
+  /**
+   * ALT: Tempo-Dämpfung nach Kartenbreite. Default 0 = AUS — ein
+   * gerätespezifischer Faktor auf der Geschwindigkeit widerspricht dem
+   * Ehrlichkeitsvertrag (dieselben m/s müssen überall dieselben px/s ergeben).
+   */
+  viewportSpeedRefPx?: number;
   dropRate?: number;
   dropRateBump?: number;
+  /** Zoom-Zuschlag auf die Auffrischrate: je Zoomstufe UNTER `speedRefZoom`
+   *  steigt die Drop-Rate um diesen Anteil (gedeckelt bei 2,6×). Löst die
+   *  Partikel-Klumpen auf, die weit draußen in Konvergenzzonen entstehen —
+   *  0 = altes Verhalten (Default). */
+  zoomDropBoost?: number;
+  /** Z3 (2026-08-15): Umverteilung der Partikel bei Rechteckwechsel im Update-
+   *  Pass — beim Rauszoomen wird der Überschuss-Anteil 1 − 1/A (A = Flächen-
+   *  faktor) sofort recycelt und wie Out-of-bounds-Partikel gleichverteilt in
+   *  den neu sichtbaren Ring/Streifen gesetzt (audit/windpartikel-rauszoom.md).
+   *  Default true. `false` = Alt-Verhalten (Shader rechnerisch identisch,
+   *  Auffrisch-Puls nach zoomend springt wieder ein) — Rule-2-Fallback. */
+  zoomRedistribute?: boolean;
   pointSize?: number;
   windPngUrl?: string;
   windJsonUrl?: string;
@@ -128,6 +198,14 @@ export interface WindLayerOptions {
    *  bleiben und starke die volle Dichte behalten. Oberstes Tier = ×1.0 = keine
    *  Änderung (Desktop bleibt identisch). Default true; für Globus/Tests abschaltbar. */
   adaptiveQuality?: boolean;
+  /** Partikel-Stil (Phase WP1): 'segments' = windy-artige Strich-Quads zwischen
+   *  zwei Zeitschritt-Positionen mit zoomgestaffelter Dichte/Breite und
+   *  bildschirmkonstantem Tempo (Parameter: particlePreset.ts); 'points' =
+   *  der unveränderte Alt-Pfad (weiche Punkte). Default 'points' (Rule 2:
+   *  benannter Fallback — die 2D-Karte aktiviert 'segments' explizit). */
+  particleStyle?: WindParticleStyle;
+  /** Abschnittsweise Overrides für das Segment-Preset (Tests/Varianten). */
+  segmentPreset?: Partial<SegmentPreset>;
 }
 
 // Saubere, perzeptuell gleichmäßige Wind-Rampe im nullschool-Charakter:
@@ -170,14 +248,18 @@ export class WindLayer implements CustomLayerInterface {
   readonly renderingMode = '2d' as const;
 
   fadeOpacity: number;
+  speedPxPerMs: number;
   speedFactor: number;
   speedRefZoom: number;
-  speedZoomDamping: number;
+  screenTempoZoomExp: number;
   speedGamma: number;
   speedRef: number;
   speedMin: number;
+  viewportSpeedRefPx: number;
   dropRate: number;
   dropRateBump: number;
+  zoomDropBoost: number;
+  private zoomRedistribute: boolean;
   pointSize: number;
   showHeatmap: boolean;
   heatmapOpacity: number;
@@ -185,6 +267,40 @@ export class WindLayer implements CustomLayerInterface {
   speedTint: number;
   subSteps: number;
   private upsample: number;
+
+  // ---- Segment style (Phase WP1) — inert on the 'points' fallback ----------
+  /** Aktiver Partikel-Stil; fix pro Instanz (steuert Shader-Wahl + Buffer). */
+  readonly particleStyle: WindParticleStyle;
+  /** Laufzeit-tunbare Kopie des Segment-Presets (Dev-Handle:
+   *  `__map.style._layers.wind.implementation.segPreset`). */
+  segPreset: SegmentPreset;
+  /** Quad-Vertexbuffer (index, end, side) ×4 je Partikel + Index-Buffer. */
+  private segVertexBuffer: WebGLBuffer | null = null;
+  private segIndexBuffer: WebGLBuffer | null = null;
+  /** Globales Layer-Alpha: 0→1-Rampe nach zoomend (windy-artiges Fade-in). */
+  private layerAlpha = 1;
+  /** zoomend (nur Segments): Dichte-Staffel neu ableiten + weicher Neustart. */
+  /** Bis zu diesem Zeitstempel läuft der Auffrisch-Puls nach einem Zoomwechsel
+   *  (s. zoomDropScale). 0 = inaktiv. */
+  private zoomSettleUntil = 0;
+
+  /** Points-Pfad: nach jedem Zoomwechsel kurz kräftiger nachsäen, damit sich das
+   *  Partikelfeld auf die neue Fläche verteilt, statt langsam „auszufransen"
+   *  (Jans Befund 2026-08-09: beim Rauszoomen normalisiert es sich zu träge). */
+  private onZoomSettle = () => {
+    // Z3: mit aktiver Umverteilung ist die Dichte nach jedem Frame bereits
+    // gleichverteilt — der Puls wäre nur noch globale Schweif-Verkürzung.
+    if (this.zoomDropBoost <= 0 || this.zoomRedistribute) return;
+    this.zoomSettleUntil = (typeof performance !== 'undefined' ? performance.now() : 0) + ZOOM_SETTLE_MS;
+    this.map?.triggerRepaint();
+  };
+
+  private onZoomEnd = () => {
+    this.applyTargetParticleCount();
+    this.layerAlpha = 0;
+    this.clearOnNextFrame = true;
+    this.map?.triggerRepaint();
+  };
 
   /** Partikel-Animation an/aus (Heatmap bleibt). UI „Aus". */
   showParticles = true;
@@ -200,6 +316,12 @@ export class WindLayer implements CustomLayerInterface {
   private densityMultiplier: number;
   private minParticles: number;
   private maxParticles: number;
+  // ALT-Zoomausdünnung („Rule 2"-Fallback, s. getEffectiveParticleCount).
+  // Nur aktiv, wenn der Aufrufer `zoomThinBase` ausdrücklich setzt.
+  private zoomThinBase: number;
+  private zoomThinFloor: number;
+  private legacyZoomThinning: boolean;
+  private latticeOccupancy: number;
 
   private windPngUrl: string;
   private windJsonUrl: string;
@@ -259,6 +381,23 @@ export class WindLayer implements CustomLayerInterface {
   private _texDrawW = 0;
   private _texDrawH = 0;
   private _texTrailScale = 1;
+  // Bezugsrechteck (equirect x0,y0,x1,y1), mit dem die AKTUELLE Partikel-
+  // Zustandstextur kodiert ist. Die 2 Byte je Achse spannen dieses Rechteck
+  // statt der ganzen Welt — dadurch wächst die Positionsauflösung mit dem Zoom
+  // mit und die frühere Totzone (Schritt < ½ Quantum ⇒ Partikel friert ein)
+  // verschwindet; erst DAS erlaubt eine strikt lineare Anzeige ohne γ-Kennlinie
+  // und Mindesttempo (s. audit/wind-partikel-grib-treue.md §4).
+  //
+  // Der Draw-Pass läuft VOR dem Update (s. render), liest also das Rechteck des
+  // letzten Updates. null = noch nie advektiert; der Initialzustand ist
+  // gleichverteiltes [0,1]² und damit für jedes Rechteck gültig.
+  private encodeBounds: [number, number, number, number] | null = null;
+  // Summe der TATSÄCHLICH advektierten Simulationszeit (Sekunden, 60-fps-Basis).
+  // Nur die Dev-Probe liest das: die Advektion ist dt-normiert und auf 66 ms je
+  // Frame geklemmt, unter starker rAF-Drosselung (Automations-Browser!) fällt die
+  // Wanduhr-Geschwindigkeit deshalb ab, OBWOHL die Physik stimmt. Gegen diese
+  // Zeitbasis gemessen ist px/s frameraten- und drosselungs-immun.
+  private advectedSeconds = 0;
   // Zeitstempel des letzten Update-Schritts für die delta-time-Normierung der
   // Advektion (entkoppelt die Partikelgeschwindigkeit von der Bildwiederholrate).
   private lastFrameTime = 0;
@@ -298,8 +437,30 @@ export class WindLayer implements CustomLayerInterface {
   private _diagLogged = false;
 
   private clearOnNextFrame = true;
+  // Phase WZ1 / ZA-1 — Kamera-Nachführung des Trail-Puffers.
+  //
+  // Der Trail-Puffer liegt im BILDSCHIRMRAUM. Bis 2026-08-08 wurde er bei jedem
+  // Kamerabild verworfen (gemessen: 173 Löschungen in 189 Bildern über eine
+  // 3-s-Zoomfahrt), weil ein stehengelassener Schweif als Geisterbild am Schirm
+  // klebt. Folge: Während JEDER Geste — auch beim bloßen Schieben — brach der
+  // Layer auf ein nacktes Punktfeld zusammen, danach ~1,4 s Wiederaufbau.
+  //
+  // Statt zu verwerfen wird der Puffer jetzt beim Abblenden um die
+  // Kamerabewegung seit dem letzten gezeichneten Bild verschoben und skaliert.
+  // Ohne Drehung und Neigung ist das im Bildschirmraum eine exakte affine
+  // Abbildung; die Bezugspunkte sind die beiden Bildecken des LETZTEN Bildes
+  // (dort per Konstruktion (0,0) und (W,H)), heute neu projiziert.
+  // Geht das nicht (Drehung/Neigung, Globus, Projektionswechsel, entartete
+  // Zahlen), fällt der Layer auf das alte Verhalten zurück: löschen.
+  private cameraMoved = false;
+  private trailUvScale: [number, number] | null = null;
+  private trailUvOffset: [number, number] = [0, 0];
+  private _trailAnchorTL: { lng: number; lat: number } | null = null;
+  private _trailAnchorBR: { lng: number; lat: number } | null = null;
+  private _trailAnchorW = 0;
+  private _trailAnchorH = 0;
   private onMove = () => {
-    this.clearOnNextFrame = true;
+    this.cameraMoved = true;
   };
   // Skip the per-frame particle passes while the camera is actively moving
   // (mobile/coarse-pointer only — see reduceMotionOnMove). MapLibre repaints the
@@ -372,9 +533,44 @@ export class WindLayer implements CustomLayerInterface {
     // clientWidth/Height = CSS-Pixel (DPR-unabhängig → kein Explodieren auf Retina).
     const cssW = canvas?.clientWidth || 1280;
     const cssH = canvas?.clientHeight || 720;
+    if (this.particleStyle === 'segments') {
+      // Windy-Dichte-Staffel: Fläche ÷ (divisor · zoomBase^(zWindy − refZoom)) —
+      // ÷1,6 pro Zoomstufe rein (dichtes Filament-Feld in der Übersicht, wenige
+      // breite Striche in der Detail-Ansicht). Windy-z = MapLibre-z + 1.
+      // BEWUSST ohne Mobile-Halbierung (CSS-Flächen-Parität, Phase P).
+      // × dataViewFraction: windy hat globale Daten, wir nur die D2-Region —
+      // die Partikel spawnen NUR in Sicht∩Daten. Ohne den Faktor würde die
+      // volle Viewport-Zahl in die kleine Datenfläche gestopft (Übersicht =
+      // weißer Klumpen über DACH).
+      const d = this.segPreset.density;
+      const zWindy = (this.map?.getZoom() ?? 4) + 1;
+      const raw = ((cssW * cssH * this.dataViewFraction())
+        / (d.divisor * Math.pow(d.zoomBase, zWindy - d.refZoom))) * this.densityMultiplier;
+      const clamped = Math.max(d.min, Math.min(d.max, Math.round(raw)));
+      return Math.min(clamped, this.segPreset.maxParticles);
+    }
     const megapixels = (cssW * cssH) / 1_000_000;
     const raw = this.baseDensity * megapixels * this.densityMultiplier;
     return Math.round(Math.max(this.minParticles, Math.min(this.maxParticles, raw)));
+  }
+
+  /** Anteil des Viewports, der von der Wind-Datenregion abgedeckt ist (0..1,
+   *  Equirect-Näherung ohne Mercator-y-Korrektur — für die Dichte-Skalierung
+   *  ausreichend). 1 solange keine Daten/Karte da sind oder im Globus. */
+  private dataViewFraction(): number {
+    const map = this.map;
+    const wd = this.windData;
+    if (!map || !wd || this.globeMode) return 1;
+    const b = map.getBounds();
+    const vx0 = lngToEquiX(b.getWest());
+    const vx1 = lngToEquiX(b.getEast());
+    const vy0 = latToEquiY(b.getNorth());
+    const vy1 = latToEquiY(b.getSouth());
+    const viewArea = Math.max(1e-9, (vx1 - vx0) * (vy1 - vy0));
+    const [dx0, dy0, dx1, dy1] = wd.uvBounds;
+    const ox = Math.max(0, Math.min(vx1, dx1) - Math.max(vx0, dx0));
+    const oy = Math.max(0, Math.min(vy1, dy1) - Math.max(vy0, dy0));
+    return Math.max(0, Math.min(1, (ox * oy) / viewArea));
   }
 
   /** Re-init nur, wenn sich die Partikel-Textur-Auflösung tatsächlich ändert
@@ -549,15 +745,22 @@ export class WindLayer implements CustomLayerInterface {
     return buf;
   }
 
-  /** Decode particle `i`'s equirectangular position from a readback buffer using
-   *  the EXACT packing of drawVert/updateFrag: pos = hiByte/255 + loByte/65025.
+  /** Decode particle `i`'s BOUNDS-RELATIVE position from a readback buffer using
+   *  the EXACT packing of drawVert/updateFrag: local = hiByte/255 + loByte/65025.
    *  Particle i lives at texel (i%res, floor(i/res)); readPixels is row-major from
-   *  the lower-left, which matches the un-flipped upload order → linear index i. */
-  private decodeParticle(buf: Uint8Array, i: number): { x: number; y: number } {
+   *  the lower-left, which matches the un-flipped upload order → linear index i.
+   *  `bounds` maps it back to absolute equirect — the same step the shaders do. */
+  private decodeParticle(
+    buf: Uint8Array,
+    i: number,
+    bounds: [number, number, number, number],
+  ): { x: number; y: number } {
     const o = i * 4;
+    const lx = buf[o + 2] / 255 + buf[o] / 65025;
+    const ly = buf[o + 3] / 255 + buf[o + 1] / 65025;
     return {
-      x: buf[o + 2] / 255 + buf[o] / 65025,
-      y: buf[o + 3] / 255 + buf[o + 1] / 65025,
+      x: bounds[0] + lx * (bounds[2] - bounds[0]),
+      y: bounds[1] + ly * (bounds[3] - bounds[1]),
     };
   }
 
@@ -596,60 +799,124 @@ export class WindLayer implements CustomLayerInterface {
   }
 
   /**
-   * Record N particle trajectories over `ms` and report the two symptoms
-   * separately. Run it identically on desktop and mobile and compare:
-   *   • DIRECTION — `dirSign` = [sign(median Δlng/s), sign(median Δlat/s)] must be
-   *     IDENTICAL across devices. `windSignAtStart` is the sign of the sampled
-   *     (u, v); `advectionMatchesWind` is true when the drift agrees with the wind
-   *     (Δlng↔u, Δlat↔ +v = northward). A mismatch on ONE device = a platform flip.
-   *   • SPEED — `cssPxPerSec` (median) is DPR-independent screen speed; it must
-   *     match within tolerance. `degPerSec` is the raw geographic rate.
-   * Recycled/wrapped particles are filtered out (Δ unwrapped at the 0/1 seam,
-   * jumps > 0.02 equirect dropped as respawns).
+   * Misst N Partikel-Trajektorien über `ms` und vergleicht sie mit dem
+   * ZUGRUNDELIEGENDEN WINDFELD. Deckt zwei Fragestellungen ab:
+   *
+   * A) GRIB-TREUE (Auftrag „Partikel = GRIB-Werte", `audit/wind-partikel-grib-treue.md`)
+   *    • `bearingErrDeg`    Winkel zwischen gemessener Schirmbewegung und der aus
+   *                         (u, −v) erwarteten Richtung. Mercator ist konform, die
+   *                         Erwartung ist also direkt der Windvektor. Vor der
+   *                         Korrektur lag der Median hier bei ~15–19°, jetzt ~0°.
+   *    • `pxPerSecPerMs`    gemessene Verstärkung px/s je m/s, gegen
+   *                         `expectedPxPerSecPerMs` aus `advection.ts`. Muss über
+   *                         ALLE Zoomstufen und für JEDE Windstärke gleich sein.
+   *    • `nsEwGainRatio`    Verstärkung meridionaler ÷ zonaler Partikel. 1,00 = isotrop;
+   *                         **0,50 war der Faktor-2-Fehler**.
+   *    • `linearityR2`      Bestimmtheitsmaß der Ursprungsgeraden px/s = k·|V|.
+   *                         1,00 = strikt proportional (γ-Kennlinie ⇒ deutlich < 1).
+   *    • `stalledPct`       Anteil Partikel mit Schritt unter der Rundungsschwelle
+   *                         der Positionskodierung (Totzone). Muss 0 sein.
+   *
+   * B) GERÄTE-PARITÄT (Phase P, unverändert): `cssPxPerSec`, `degPerSec`,
+   *    `dirSign`, `windSignAtStart`, `advectionMatchesWind`, `measuredFps`.
+   *
+   * Windwahrheit: entweder der optionale `sampler` (empfohlen — die GRIB-Werte
+   * direkt aus der Quelle) oder ersatzweise `sampleSourceWind` aus der
+   * Textur-Quelle. Aus der Konsole:
+   *
+   *   const w = __map.style._layers.wind.implementation;
+   *   await w.windMotionDiag({ sampler: (lon, lat) => __bsSample.wind(lon, lat) });
+   *
+   * Recycelte Partikel werden verworfen (Sprünge > 0,02 equirect).
    */
-  async windMotionDiag(opts: { count?: number; ms?: number } = {}): Promise<Record<string, unknown>> {
+  async windMotionDiag(opts: {
+    count?: number;
+    /** Messfenster in ANGEZEIGTEN Frames. MUSS GERADE sein (s. u.). Default 4. */
+    frames?: number;
+    /** GRIB-Wahrheit am Punkt (m/s). Ohne ihn greift `sampleSourceWind`. */
+    sampler?: (lon: number, lat: number) => { u: number; v: number } | null;
+  } = {}): Promise<Record<string, unknown>> {
     const gl = this.gl;
     const map = this.map;
     if (!gl || !map || !this.windData) return { error: 'layer not ready' };
-    const ms = opts.ms ?? 1000;
+    // Das Messfenster wird in FRAMES abgesteckt, nicht in Millisekunden, und ist
+    // zwingend GERADE. Grund (gemessen auf ANGLE/D3D11 und in headless Chromium,
+    // vorbestehend — s. den Kommentar über segDrawVert in shaders.ts): das
+    // Ping-Pong-Paar zerfällt auf manchen GL-Stacks in ZWEI unabhängige
+    // Populationen, die sich frameweise abwechseln. Zwei aufeinanderfolgende
+    // Frames zeigen dann verschiedene Partikel und jede Differenz daraus ist
+    // Rauschen; über eine GERADE Frame-Zahl ist die Population dieselbe und die
+    // Messung sauber. Die Physik ist davon unberührt — jede Population advektiert
+    // mit der vollen, korrekten Schrittweite.
+    const frameGap = Math.max(2, 2 * Math.round((opts.frames ?? 4) / 2));
     const n = this._numParticles;
     const count = Math.max(1, Math.min(opts.count ?? 32, n));
     const step = Math.max(1, Math.floor(n / count));
     const idxs: number[] = [];
     for (let i = 0; i < n && idxs.length < count; i += step) idxs.push(i);
 
+    const boundsA = this.encodeBounds ?? this.getEquirectangularBounds();
+    const simA = this.advectedSeconds;
     const bufA = this.readParticleState();
     if (!bufA) return { error: 'readback failed' };
     const tA = performance.now();
-    const posA = idxs.map((i) => this.decodeParticle(bufA, i));
+    const posA = idxs.map((i) => this.decodeParticle(bufA, i, boundsA));
 
-    // Count display frames over the window (fps ground truth) while the layer
-    // keeps animating; then snapshot again.
+    // Genau `frameGap` angezeigte Frames abwarten (gerade Zahl, s. oben).
     map.triggerRepaint();
     let frames = 0;
     await new Promise<void>((resolve) => {
       const tick = () => {
-        if (performance.now() - tA >= ms) { resolve(); return; }
         frames++;
+        if (frames >= frameGap) { resolve(); return; }
         requestAnimationFrame(tick);
       };
       requestAnimationFrame(tick);
     });
     const tB = performance.now();
+    const boundsB = this.encodeBounds ?? boundsA;
     const bufB = this.readParticleState();
     if (!bufB) return { error: 'readback failed (B)' };
     const dtSec = (tB - tA) / 1000;
+    // Simulierte Zeit für die GRIB-Treue-Metriken (s. advectedSeconds). Fällt bei
+    // ungedrosseltem Lauf mit dtSec zusammen.
+    const simSec = Math.max(1e-6, this.advectedSeconds - simA);
 
     const unwrap = (d: number) => (d > 0.5 ? d - 1 : d < -0.5 ? d + 1 : d);
     const dLng: number[] = [], dLat: number[] = [], pxs: number[] = [];
     let windAgree = 0, windTotal = 0;
     const uSigns: number[] = [], vSigns: number[] = [];
+    // GRIB-Treue-Statistik
+    const gains: number[] = [];            // px/s je m/s (roh, inkl. Mercator-Dehnung)
+    const gainsNorm: number[] = [];        // dito, Breiteneinfluss herausgerechnet
+    const cosRef = Math.cos((LAT_REF_DEG * Math.PI) / 180);
+    const gainsNS: number[] = [], gainsEW: number[] = [];
+    const bearingErr: number[] = [];
+    const fitXY: Array<[number, number]> = []; // (|V|, px/s)
+    const lats: number[] = [];
+    const speedsMs: number[] = [];
+    let stalled = 0, stalledTotal = 0, respawned = 0;
+    // Rundungsschwelle der Positionskodierung im AKTUELLEN Bezugsrechteck.
+    const quantX = deadBandStep(Math.max(1e-9, boundsA[2] - boundsA[0]));
+    // Respawn-Erkennung aus der PHYSIK statt per Pauschalwert: mehr als das
+    // Vierfache dessen, was der stärkste Wind im Feld in dieser Zeit schafft,
+    // kann kein advektiertes Partikel zurücklegen — das war ein Neustart.
+    const worldCss = TILE_SIZE_CSS * Math.pow(2, this.tempoZoom());
+    const vMaxField = Math.hypot(
+      Math.max(Math.abs(this.windData.uMin), Math.abs(this.windData.uMax)),
+      Math.max(Math.abs(this.windData.vMin), Math.abs(this.windData.vMax)),
+    );
+    const maxStep = 4 * NS_ASPECT
+      * (screenTempoGain(this.tempoZoom(), this.tempoOptions()) * vMaxField / worldCss) * simSec;
+    const sampleWind = (lon: number, lat: number, ex: number, ey: number) =>
+      (opts.sampler ? opts.sampler(lon, lat) : null) ?? this.sampleSourceWind(ex, ey);
+
     for (let k = 0; k < idxs.length; k++) {
       const a = posA[k];
-      const b = this.decodeParticle(bufB, idxs[k]);
+      const b = this.decodeParticle(bufB, idxs[k], boundsB);
       const dxe = unwrap(b.x - a.x);
       const dye = unwrap(b.y - a.y);
-      if (Math.abs(dxe) > 0.02 || Math.abs(dye) > 0.02) continue; // respawn/drop
+      if (Math.abs(dxe) > maxStep || Math.abs(dye) > maxStep) { respawned++; continue; }
       // equirect → geographic; Δlat = -Δy (equirect y grows southward)
       const dLngK = dxe * 360;
       const dLatK = -dye * 180;
@@ -659,14 +926,45 @@ export class WindLayer implements CustomLayerInterface {
       const lngB = b.x * 360 - 180, latB = 90 - b.y * 180;
       const pA = map.project([lngA, latA]);
       const pB = map.project([lngB, latB]);
-      pxs.push(Math.hypot(pB.x - pA.x, pB.y - pA.y) / dtSec);
-      const w = this.sampleSourceWind(a.x, a.y);
+      const mx = (pB.x - pA.x) / dtSec;      // Schirm-px/s, x nach rechts (Ost)
+      const my = (pB.y - pA.y) / dtSec;      // Schirm-px/s, y nach unten (Süd)
+      pxs.push(Math.hypot(mx, my));
+      // Für die GRIB-Treue gegen SIMULIERTE Zeit — drosselungs-immun.
+      const mLen = Math.hypot(pB.x - pA.x, pB.y - pA.y) / simSec;
+      const w = sampleWind(lngA, latA, a.x, a.y);
       if (w) {
         windTotal++;
         uSigns.push(Math.sign(w.u));
         vSigns.push(Math.sign(w.v));
         // drift east ↔ u>0 ; drift north (Δlat>0) ↔ v>0
         if (Math.sign(dLngK) === Math.sign(w.u) && Math.sign(dLatK) === Math.sign(w.v)) windAgree++;
+
+        const speedMs = Math.hypot(w.u, w.v);
+        // Totzonen-Prüfung: bewegt sich das Partikel überhaupt, obwohl Wind da ist?
+        if (speedMs > 0.05) {
+          stalledTotal++;
+          if (Math.abs(dxe) < quantX && Math.abs(dye) < quantX) stalled++;
+        }
+        if (speedMs > 0.2 && mLen > 0) {
+          gains.push(mLen / speedMs);
+          // Breiten-NORMIERTE Verstärkung: die Mercator-Dehnung (cos φ_ref/cos φ)
+          // ist ein Eigenschaft der KARTE und in der Rohverstärkung enthalten.
+          // Herausgerechnet muss hier auf jeder Breite und bei jeder Windstärke
+          // exakt `speedPxPerMs` stehen — das ist der eigentliche Linearitätstest.
+          gainsNorm.push((mLen / speedMs) * (Math.cos((latA * Math.PI) / 180) / cosRef));
+          fitXY.push([speedMs, mLen]);
+          lats.push(latA);
+          // Erwartete Schirmrichtung: Mercator ist konform ⇒ (u, −v).
+          const ex = w.u, ey = -w.v;
+          const cross = mx * ey - my * ex;
+          const dot = mx * ex + my * ey;
+          bearingErr.push(Math.abs((Math.atan2(cross, dot) * 180) / Math.PI));
+          speedsMs.push(speedMs);
+          // Achsen-Isotropie: rein meridionale gegen rein zonale Partikel.
+          const frac = Math.abs(w.v) / speedMs;      // 1 = Nord/Süd, 0 = Ost/West
+          if (frac > 0.9) gainsNS.push(mLen / speedMs);
+          else if (frac < 0.1) gainsEW.push(mLen / speedMs);
+        }
       }
     }
     const median = (arr: number[]) => {
@@ -674,23 +972,86 @@ export class WindLayer implements CustomLayerInterface {
       const s = [...arr].sort((p, q) => p - q);
       return s[Math.floor(s.length / 2)];
     };
+    const pct = (arr: number[], q: number) => {
+      if (!arr.length) return 0;
+      const s = [...arr].sort((p, r) => p - r);
+      return s[Math.min(s.length - 1, Math.floor(q * s.length))];
+    };
+    // R² einer URSPRUNGSgeraden px/s = k·|V| — misst die Proportionalität.
+    const r2Origin = (): number => {
+      if (fitXY.length < 3) return NaN;
+      let sxy = 0, sxx = 0;
+      for (const [x, y] of fitXY) { sxy += x * y; sxx += x * x; }
+      const k = sxx > 0 ? sxy / sxx : 0;
+      let ssRes = 0, ssTot = 0;
+      const mean = fitXY.reduce((s, [, y]) => s + y, 0) / fitXY.length;
+      for (const [x, y] of fitXY) { ssRes += (y - k * x) ** 2; ssTot += (y - mean) ** 2; }
+      return ssTot > 0 ? 1 - ssRes / ssTot : NaN;
+    };
     const mLng = median(dLng), mLat = median(dLat);
+    const zoomNow = map.getZoom() ?? 0;
+    const latMed = lats.length ? median(lats) : LAT_REF_DEG;
+    const r3 = (x: number) => Math.round(x * 1000) / 1000;
     const report = {
-      // --- SPEED (must match desktop↔mobile within tolerance) ---
+      // --- A) GRIB-TREUE ---
+      pxPerSecPerMs: r3(median(gains)),
+      expectedPxPerSecPerMs: r3(screenSpeedPxPerSec(1, this.tempoZoom(), latMed, this.tempoOptions())),
+      // Breiten-normiert; Soll = speedPxPerMs · speedFactor, unabhängig von
+      // Zoom, Breite UND Windstärke.
+      gainNorm: r3(median(gainsNorm)),
+      gainNormSoll: r3(screenTempoGain(this.tempoZoom(), this.tempoOptions())),
+      bearingErrDeg: { median: r3(median(bearingErr)), p90: r3(pct(bearingErr, 0.9)) },
+      // Nach Windstärke aufgeschlüsselt. Ein RICHTUNGSFEHLER wäre stärkeunabhängig;
+      // fällt der Wert mit steigender Windstärke, ist der Rest die Quantisierung
+      // des Feldes (8 Bit je Komponente + 3×3-Glättung), nicht die Advektion.
+      ...(() => {
+        const bands: Array<[string, number, number]> = [
+          ['<1 m/s', 0, 1], ['1-2', 1, 2], ['2-4', 2, 4], ['4-8', 4, 8], ['>8', 8, Infinity],
+        ];
+        const ang: Record<string, string> = {};
+        const gain: Record<string, string> = {};
+        for (const [label, lo, hi] of bands) {
+          const pick = (arr: number[]) => arr.filter((_, i) => speedsMs[i] >= lo && speedsMs[i] < hi);
+          const a = pick(bearingErr), g = pick(gainsNorm);
+          ang[label] = a.length >= 5 ? `${r3(median(a))}° (n=${a.length})` : `n=${a.length}`;
+          gain[label] = g.length >= 5 ? `${r3(median(g))} (n=${g.length})` : `n=${g.length}`;
+        }
+        // LINEARITÄT: die breiten-normierte Verstärkung muss in JEDEM Band
+        // denselben Wert (= speedPxPerMs) haben. Unter der alten γ-Kennlinie fiel
+        // sie über diese Bänder um rund das Sechsfache.
+        return { bearingErrBySpeed: ang, gainNormBySpeed: gain };
+      })(),
+      nsEwGainRatio: gainsNS.length && gainsEW.length
+        ? r3(median(gainsNS) / median(gainsEW))
+        : `n/a (NS ${gainsNS.length} / EW ${gainsEW.length})`,
+      linearityR2: r3(r2Origin()),
+      stalledPct: stalledTotal ? r3((100 * stalled) / stalledTotal) : 0,
+      nsAspectApplied: NS_ASPECT,
+      // --- B) GERÄTE-PARITÄT (unverändert) ---
       cssPxPerSec: Math.round(median(pxs) * 10) / 10,
-      degPerSec: { lng: Math.round(mLng * 1000) / 1000, lat: Math.round(mLat * 1000) / 1000 },
-      // --- DIRECTION (sign vector must be IDENTICAL across devices) ---
+      degPerSec: { lng: r3(mLng), lat: r3(mLat) },
       dirSign: [Math.sign(mLng), Math.sign(mLat)] as [number, number],
       windSignAtStart: [Math.sign(median(uSigns)), Math.sign(median(vSigns))] as [number, number],
       advectionMatchesWind: windTotal ? `${windAgree}/${windTotal}` : 'n/a',
-      // --- context for correlating the two ---
+      // --- Kontext ---
       sampled: dLng.length,
+      respawned,
+      windSamples: gains.length,
+      frameGap,
+      windSource: opts.sampler ? 'sampler (GRIB)' : (this.windData.image ? 'texture image' : 'none'),
+      screenTempoGain: r3(screenTempoGain(this.tempoZoom(), this.tempoOptions())),
+      encodeSpanDeg: r3((boundsA[2] - boundsA[0]) * 360),
+      positionQuantumM: r3(quantX * 2 * 40075016.686 * Math.cos((latMed * Math.PI) / 180)),
       measuredFps: Math.round((frames / dtSec) * 10) / 10,
+      // < 1 heißt: die Advektion lief langsamer als die Wanduhr (rAF gedrosselt
+      // und/oder dt auf 66 ms geklemmt). Die GRIB-Treue-Metriken oben sind
+      // gegen die simulierte Zeit gemessen und davon unberührt.
+      simTimeRatio: r3(simSec / dtSec),
       frameDtScale: Math.round(this.frameDtScale * 100) / 100,
       windTexFormat: this._windTexFormat.kind,
       epr: Math.round(this._epr * 100) / 100,
       upsample: this.upsample,
-      zoom: Math.round((map.getZoom() ?? 0) * 100) / 100,
+      zoom: Math.round(zoomNow * 100) / 100,
     };
     // eslint-disable-next-line no-console
     console.table(report);
@@ -724,25 +1085,45 @@ export class WindLayer implements CustomLayerInterface {
     this.id = options.id ?? 'wind';
     // Auto-Skalierung nach Viewport, außer numParticles ist explizit fix gesetzt.
     this.autoScale = options.numParticles == null;
-    this.baseDensity = options.baseDensity ?? 3600;
+    // Partikel je 1 Mio. CSS-Pixel DATENFLÄCHE (nicht Viewport — s.
+    // getEffectiveParticleCount). 2200 ⇒ mittlerer Partikelabstand ~21 px, was
+    // zu den 19–45 px langen Schweifen passt: Striche bleiben unterscheidbar,
+    // die Fläche bleibt gefüllt. Vorher 3600 (Abstand 16,6 px) — zusammen mit
+    // der alten Zoom-Zeltkurve schwankte die gezeichnete Zahl über den Zoom um
+    // Faktor 3,3 (2 025 bei z6 gegen 607 ab z11); Messreihe in
+    // audit/windpartikel-zoom.md §2.
+    this.baseDensity = options.baseDensity ?? 2200;
     this.densityMultiplier = options.densityMultiplier ?? 1;
     // Floor kept low enough that typical phone viewports (~0.33 CSS-MP) still
     // resolve to the AREA-PROPORTIONAL count (~baseDensity × area) instead of
     // being clamped up — the old 1800 floor over-densified small screens to
     // ~1.5× desktop, a key cause of the mobile↔desktop particle mismatch.
-    this.minParticles = options.minParticles ?? 1200;
+    this.minParticles = options.minParticles ?? 400;
     this.maxParticles = options.maxParticles ?? 22000;
+    this.zoomThinBase = Math.max(1, options.zoomThinBase ?? 1.3);
+    this.zoomThinFloor = Math.max(0.05, Math.min(1, options.zoomThinFloor ?? 0.3));
+    // Rule 2: die alte Zoom-Zeltkurve wird nicht gelöscht, sondern default-off
+    // gestellt. Wer sie zurückwill, setzt `zoomThinBase` ausdrücklich.
+    this.legacyZoomThinning = options.zoomThinBase != null;
+    this.latticeOccupancy = Math.max(0.005, Math.min(1, options.latticeOccupancy ?? 0.06));
     // Startwert; bei autoScale in onAdd aus der echten Canvas-Größe ersetzt.
     this._numParticles = options.numParticles ?? 4500;
     this.fadeOpacity = options.fadeOpacity ?? 0.955;
-    this.speedFactor = options.speedFactor ?? 0.12;
+    // Ehrlichkeits-Defaults: ein Tempo-Faktor, sonst nichts. Die drei Alt-Regler
+    // (γ / Mindesttempo / Gerätedämpfung) stehen neutral und sind nur noch als
+    // benannter Fallback erreichbar — s. WindLayerOptions und advection.ts.
+    this.speedPxPerMs = Math.max(0, options.speedPxPerMs ?? 6);
+    this.speedFactor = options.speedFactor ?? 1;
     this.speedRefZoom = options.speedRefZoom ?? 5.5;
-    this.speedZoomDamping = options.speedZoomDamping ?? 1.15;
-    this.speedGamma = options.speedGamma ?? 0.5;
+    this.screenTempoZoomExp = options.screenTempoZoomExp ?? 0;
+    this.speedGamma = options.speedGamma ?? 1;
     this.speedRef = options.speedRef ?? 5;
-    this.speedMin = options.speedMin ?? 2;
+    this.speedMin = Math.max(0, options.speedMin ?? 0);
+    this.viewportSpeedRefPx = Math.max(0, options.viewportSpeedRefPx ?? 0);
     this.dropRate = options.dropRate ?? 0.003;
     this.dropRateBump = options.dropRateBump ?? 0.01;
+    this.zoomDropBoost = Math.max(0, options.zoomDropBoost ?? 0);
+    this.zoomRedistribute = options.zoomRedistribute ?? true;
     this.pointSize = options.pointSize ?? 1.5;
     this.showHeatmap = options.showHeatmap ?? true;
     this.heatmapOpacity = options.heatmapOpacity ?? 0.85;
@@ -756,6 +1137,10 @@ export class WindLayer implements CustomLayerInterface {
     this.windPngUrl = options.windPngUrl ?? '/wind/wind.png';
     this.windJsonUrl = options.windJsonUrl ?? '/wind/wind.json';
     this.colorRampStops = options.colorRamp ?? defaultColorRamp;
+    this.particleStyle = options.particleStyle ?? 'points';
+    this.segPreset = makeSegmentPreset(options.segmentPreset);
+    // Segments: auch der allererste Aufbau blendet weich ein (windy-artig).
+    if (this.particleStyle === 'segments') this.layerAlpha = 0;
   }
 
   onAdd(map: MapLibreMap, gl: WebGLRenderingContext) {
@@ -791,7 +1176,9 @@ export class WindLayer implements CustomLayerInterface {
       }
     }
 
-    this.drawProgram = createProgram(gl, drawVert, drawFrag);
+    this.drawProgram = this.particleStyle === 'segments'
+      ? createProgram(gl, segDrawVert, segDrawFrag)
+      : createProgram(gl, drawVert, drawFrag);
     this.screenProgram = createProgram(gl, quadVert, screenFrag);
     this.updateProgram = createProgram(gl, quadVert, updateFrag);
     this.heatmapProgram = createProgram(gl, heatmapVert, heatmapFrag);
@@ -816,6 +1203,10 @@ export class WindLayer implements CustomLayerInterface {
     map.on('resize', this.onResize);
     map.on('movestart', this.onMoveStart);
     map.on('moveend', this.onMoveEnd);
+    // Segments: Dichte-Staffel + weicher Neustart hängen am Zoom-ENDE (der
+    // Points-Pfad registriert den Listener bewusst nicht — byte-identisch).
+    if (this.particleStyle === 'segments') map.on('zoomend', this.onZoomEnd);
+    map.on('zoomend', this.onZoomSettle);
 
     // Phase P3 — Repaint-Disziplin: den Dauerloop pausieren, wenn nichts sichtbar
     // ist. Haupt-Win = visibilitychange (Hintergrund-Tab); Offscreen-Scroll über
@@ -854,6 +1245,8 @@ export class WindLayer implements CustomLayerInterface {
     map.off('resize', this.onResize);
     map.off('movestart', this.onMoveStart);
     map.off('moveend', this.onMoveEnd);
+    if (this.particleStyle === 'segments') map.off('zoomend', this.onZoomEnd);
+    map.off('zoomend', this.onZoomSettle);
     if (this.repaintCapTimer != null) { clearTimeout(this.repaintCapTimer); this.repaintCapTimer = null; }
 
     // Phase P3 — Listener/Observer sauber abmelden (keine Leaks) und den Pause-
@@ -872,6 +1265,8 @@ export class WindLayer implements CustomLayerInterface {
     gl.deleteProgram(this.heatmapProgram.program);
     gl.deleteBuffer(this.quadBuffer);
     gl.deleteBuffer(this.particleIndexBuffer);
+    if (this.segVertexBuffer) { gl.deleteBuffer(this.segVertexBuffer); this.segVertexBuffer = null; }
+    if (this.segIndexBuffer) { gl.deleteBuffer(this.segIndexBuffer); this.segIndexBuffer = null; }
     gl.deleteBuffer(this.heatmapBuffer);
     gl.deleteFramebuffer(this.framebuffer);
     gl.deleteTexture(this.particleStateTexture0);
@@ -937,6 +1332,9 @@ export class WindLayer implements CustomLayerInterface {
     };
     this._lastWindImage = image;
     this._lastWindMetaKey = metaKey;
+    // Segments: die Dichte hängt am Sichtanteil der Datenregion (uvBounds) —
+    // jetzt, wo die Bounds bekannt sind, einmal nachziehen (res-gedämpft).
+    if (this.particleStyle === 'segments') this.applyTargetParticleCount();
     this.clearOnNextFrame = true;
     this.map?.triggerRepaint();
   }
@@ -984,6 +1382,7 @@ export class WindLayer implements CustomLayerInterface {
     // setWindData darf nicht versehentlich auf einen alten Treffer laufen.
     this._lastWindImage = null;
     this._lastWindMetaKey = metaKey;
+    if (this.particleStyle === 'segments') this.applyTargetParticleCount();
     this.clearOnNextFrame = true;
     this.map?.triggerRepaint();
   }
@@ -1044,12 +1443,21 @@ export class WindLayer implements CustomLayerInterface {
 
   private initParticles(n: number) {
     const gl = this.gl!;
+    // Segments: harte Obergrenze aus dem Uint16-Index-Budget (4 Verts/Partikel
+    // → res ≤ 127 → res² ≤ 16 129 ≤ 16 383). Die Preset-Dichte (Cap 15 000)
+    // bleibt darunter; das hier ist der Guard gegen fixe numParticles-Overrides.
+    if (this.particleStyle === 'segments') n = Math.min(n, this.segPreset.maxParticles);
     const res = Math.ceil(Math.sqrt(n));
     this.particleStateResolution = res;
     this._numParticles = res * res;
 
+    // Zufälliger Startzustand. Die Bytes dekodieren zu gleichverteilten
+    // BOUNDS-RELATIVEN Positionen in [0,1]² — also direkt im Spawn-Rechteck,
+    // unabhängig davon, welches gerade gilt. Deshalb hat er kein Bezugsrechteck:
+    // `encodeBounds = null` lässt den ersten Update-Pass prev = bounds setzen.
     const state = new Uint8Array(this._numParticles * 4);
     for (let i = 0; i < state.length; i++) state[i] = Math.floor(Math.random() * 256);
+    this.encodeBounds = null;
 
     this.particleStateTexture0 = createTexture(gl, gl.NEAREST, state, res, res);
     this.particleStateTexture1 = createTexture(gl, gl.NEAREST, state, res, res);
@@ -1057,6 +1465,35 @@ export class WindLayer implements CustomLayerInterface {
     const indices = new Float32Array(this._numParticles);
     for (let i = 0; i < this._numParticles; i++) indices[i] = i;
     this.particleIndexBuffer = createBuffer(gl, indices);
+
+    if (this.particleStyle === 'segments') this.buildSegmentBuffers();
+  }
+
+  /** Quad-Geometrie des Segment-Stils: 4 Vertices (index, end, side) + 6
+   *  Indizes je Partikel. end 0 = Kopf (Zustand t), 1 = Ende (Zustand t−1);
+   *  side ±1 = Quer-Extrusionsrichtung im Vertex-Shader. */
+  private buildSegmentBuffers(): void {
+    const gl = this.gl!;
+    if (this.segVertexBuffer) gl.deleteBuffer(this.segVertexBuffer);
+    if (this.segIndexBuffer) gl.deleteBuffer(this.segIndexBuffer);
+    const n = this._numParticles;
+    const verts = new Float32Array(n * 4 * 3);
+    let o = 0;
+    for (let i = 0; i < n; i++) {
+      verts[o++] = i; verts[o++] = 0; verts[o++] = -1;
+      verts[o++] = i; verts[o++] = 0; verts[o++] = 1;
+      verts[o++] = i; verts[o++] = 1; verts[o++] = 1;
+      verts[o++] = i; verts[o++] = 1; verts[o++] = -1;
+    }
+    const indices = new Uint16Array(n * 6);
+    for (let i = 0; i < n; i++) {
+      const b = i * 4;
+      const j = i * 6;
+      indices[j] = b; indices[j + 1] = b + 1; indices[j + 2] = b + 2;
+      indices[j + 3] = b; indices[j + 4] = b + 2; indices[j + 5] = b + 3;
+    }
+    this.segVertexBuffer = createBuffer(gl, verts);
+    this.segIndexBuffer = createIndexBuffer(gl, indices);
   }
 
   /** Partikelzahl zur Laufzeit ändern (Resize/Dichte): alte Textur/Buffer
@@ -1137,8 +1574,16 @@ export class WindLayer implements CustomLayerInterface {
     let xMax = lngToEquiX(east);
     let yMin = latToEquiY(north);
     let yMax = latToEquiY(south);
-    const padX = Math.max((xMax - xMin) * 0.1, 0.02);
-    const padY = Math.max((yMax - yMin) * 0.1, 0.02);
+    // Rand um das Sichtfeld, damit Partikel von außen HEREINwehen statt an der
+    // Kante zu entstehen — bewusst RELATIV zur Sichtfeldgröße. Der frühere
+    // absolute Boden (0.02 Equirect ≈ 7° Länge / 3,6° Breite) war beim
+    // Reinzoomen der dominante Term: ab z6 streute er die Partikel über ein
+    // Vielfaches des Sichtfelds, sodass fast nichts mehr im Bild landete
+    // (gemessen z7 6,2 % · z9 0,55 % · z11 0,04 % der Partikel im Sichtfeld —
+    // die Karte lief beim Reinzoomen leer). Der verbleibende Mini-Boden ist ein
+    // reiner Numerik-Schutz gegen eine entartete Null-Fläche.
+    const padX = Math.max((xMax - xMin) * 0.1, 1e-5);
+    const padY = Math.max((yMax - yMin) * 0.1, 1e-5);
     xMin = Math.max(0, xMin - padX);
     xMax = Math.min(1, xMax + padX);
     yMin = Math.max(0, yMin - padY);
@@ -1161,24 +1606,126 @@ export class WindLayer implements CustomLayerInterface {
     return [xMin, yMin, xMax, yMax];
   }
 
-  private getEffectiveParticleCount(): number {
+  /**
+   * Obergrenze aus der Positions-AUFLÖSUNG. Die Partikelposition steckt in einer
+   * RGBA8-Textur: 2 Byte je Achse → 1/65 025 der Welt (Kodierung in `updateFrag`,
+   * unantastbar — sie ist der Fix für die bekannten Mobil-GPU-Probleme). Dieser
+   * Raster-Schritt ist bei Übersichtszoom weit unter einem Pixel, wächst beim
+   * Reinzoomen aber mit 2^zoom: ~1 px bei z7, ~4 px bei z9, ~23 px bei z11,5.
+   * Sobald er sichtbar wird, sitzen ALLE Partikel auf denselben Gitterpunkten —
+   * dicht besetzt liest sich das als Punktraster statt als Strömung (gemessen bei
+   * z11,5: 1 138 Zellen im Bild). Deshalb die Zahl auf einen kleinen Anteil der
+   * auflösbaren Zellen deckeln: dünn besetzt wirkt dasselbe Gitter wie Streuung.
+   * Läuft mit steigendem Zoom gegen null — die Detailansicht wird also bewusst
+   * partikelarm statt gemustert (Ist-Zustand dort ohnehin: vor dem Rand-Fix war
+   * bei z11 rechnerisch EIN Partikel im Bild). Unterhalb ~z7 ohne Wirkung.
+   */
+  private latticeParticleCap(): number {
+    if (this.globeMode) return Infinity;
     const zoom = this.map?.getZoom() ?? 5;
+    // Raster-Schritt in CSS-px. Seit der Umstellung auf eine BOUNDS-RELATIVE
+    // Positionskodierung spannen die 2 Byte je Achse nur noch das Spawn-Rechteck
+    // (Sichtfeld + 10 %) statt der ganzen Welt — der Schritt bleibt damit auf
+    // JEDER Zoomstufe bei ~1,2·Kartenbreite/65 025 ≈ 0,02 px und ist nie
+    // sichtbar. Die Klammer bleibt als Schutz stehen (sie greift nur, falls das
+    // Rechteck einmal auf die ganze Datenregion zurückfällt), wird im Normalfall
+    // aber nicht mehr aktiv — die Detailansicht läuft dadurch nicht mehr leer.
+    const b = this.encodeBounds ?? this.getEquirectangularBounds();
+    const spanX = Math.max(1e-9, b[2] - b[0]);
+    const gridPx = (spanX * 512 * Math.pow(2, zoom)) / 65025;
+    if (gridPx <= 1) return Infinity;
+    // CSS-Größe aus den GECACHTEN Puffermaßen (÷ _epr) statt clientWidth —
+    // dieser Pfad läuft pro Frame, ein DOM-Reflow hätte hier nichts zu suchen.
+    const cssW = (this._texDrawW || 1280) / (this._epr || 1);
+    const cssH = (this._texDrawH || 720) / (this._epr || 1);
+    return Math.max(0, Math.floor(((cssW / gridPx) * (cssH / gridPx)) * this.latticeOccupancy));
+  }
+
+  /**
+   * Geräte-Anpassung des Partikeltempos an die KARTENBREITE.
+   *
+   * Die Advektion ist bereits bildwiederholraten-normiert (`u_dt_scale`), das
+   * Tempo ist also über Geräte hinweg in px/s identisch — und genau das ist das
+   * Problem: Eine Telefonkarte ist ~390 CSS-px breit, die Desktop-Kartenfläche
+   * ~800. Dieselben 36 px/s queren das Telefon in 11 s und den Desktop in 22 s,
+   * das Telefonbild wirkt dadurch hektisch. Gedämpft mit der WURZEL des
+   * Breitenverhältnisses (nicht linear): Ein linear skaliertes Tempo fiele auf
+   * dem Telefon unter die Auflösung der Positionskodierung, dort stünden die
+   * Partikel dann wieder (V-174). Geklemmt, damit sehr breite oder sehr schmale
+   * Flächen nicht ausreißen.
+   */
+  /** Faktor auf Drop-Rate/Bump: 1 ab `speedRefZoom`, darunter linear steigend
+   *  (gedeckelt bei 2,6×). Bei zoomDropBoost 0 exakt 1 = Alt-Verhalten. */
+  private zoomDropScale(): number {
+    if (this.zoomDropBoost <= 0) return 1;
+    const z = this.map?.getZoom?.() ?? this.speedRefZoom;
+    const below = Math.max(0, this.speedRefZoom - z);
+    const base = Math.min(2.6, 1 + this.zoomDropBoost * below);
+    // Auffrisch-Puls direkt nach einem Zoomwechsel: linear auslaufend über
+    // ZOOM_SETTLE_MS, damit das Feld in ~1 s wieder gleichmäßig steht.
+    const now = typeof performance !== 'undefined' ? performance.now() : 0;
+    if (now < this.zoomSettleUntil) {
+      const t = (this.zoomSettleUntil - now) / ZOOM_SETTLE_MS;
+      this.map?.triggerRepaint();
+      return base * (1 + ZOOM_SETTLE_GAIN * t);
+    }
+    return base;
+  }
+
+  private viewportSpeedFactor(): number {
+    if (!this.viewportSpeedRefPx) return 1;
+    // CSS-Breite aus den GECACHTEN Puffermaßen (÷ _epr) — dieser Pfad läuft pro
+    // Frame, ein DOM-Reflow hätte hier nichts zu suchen (wie latticeParticleCap).
+    const cssW = (this._texDrawW || this.viewportSpeedRefPx) / (this._epr || 1);
+    return Math.max(0.72, Math.min(1.15, Math.sqrt(cssW / this.viewportSpeedRefPx)));
+  }
+
+  /**
+   * Gezeichnete Partikelzahl. Ziel: die *wahrgenommene Dichte* ist auf JEDER
+   * Zoomstufe gleich — nie zu voll, nie zu leer (Jans Auftrag 2026-08-08).
+   *
+   * Bezugsgröße ist die sichtbare **Datenfläche**, nicht der Viewport: die
+   * Partikel entstehen ausschließlich in Sicht ∩ Datenregion
+   * (`getEquirectangularBounds`). Beim Herauszoomen schrumpft dieser Anteil
+   * (bei z4 nur noch 53 % des Bildes) — dieselbe Zahl in eine kleinere Fläche
+   * gestopft ergäbe genau den „Klumpen über DACH", den die alte Rampe umgehen
+   * wollte. `dataViewFraction()` (bisher nur vom Segment-Stil benutzt) leistet
+   * das direkt und ohne Zoom-Sonderfälle.
+   *
+   * VORHER (bis 2026-08-08) waren es zwei ad-hoc-Rampen mit Scheitel bei z6:
+   * unterhalb linear hoch (0,05 → 1,0), oberhalb ÷1,3 je Stufe bis zum Boden
+   * 0,3. Gemessen ergab das eine Zeltkurve mit Faktor **3,3** Schwankung —
+   * 2 025 Partikel bei z6 gegen 607 ab z11, also gleichzeitig „zu viel" in der
+   * Regionalansicht und „zu wenig" in der Detailansicht
+   * (audit/windpartikel-zoom.md §2). Die Begründung der oberen Rampe („die
+   * Punktgröße wächst mit dem Zoom, also muss die Zahl fallen") ist mit der
+   * abgeflachten Punktgrößen-Kennlinie in `drawParticles` entfallen.
+   *
+   * Cross-device PARITY (Phase P) bleibt gewahrt: die Zahl ist rein aus
+   * CSS-Fläche und Kartenausschnitt abgeleitet, also geräteunabhängig; geregelt
+   * wird weiterhin ausschließlich über den partikel-NEUTRALEN FPS-Hebel.
+   */
+  private getEffectiveParticleCount(): number {
     // Globus zeigt die ganze Erde bei niedrigem Zoom — dort volle Dichte (die
     // Mercator-Ausdünnung würde den Globus fast leer machen).
     if (this.globeMode) return this._numParticles;
-    // Heavily thin out particles when zoomed out so the map stays readable;
-    // ramps from ~5 % at world-view to full count at zoom 6.
-    let frac = 1.0;
-    if (zoom < 6) {
-      frac = Math.max(0.05, Math.min(1.0, 0.05 + Math.max(0, zoom - 1) * 0.19));
+    // Segments: die Zoom-Staffel steckt bereits in targetParticleCount (÷1,6
+    // pro Stufe) — die zusätzliche Ausdünnung des Points-Pfads entfällt.
+    if (this.particleStyle === 'segments') return this._numParticles;
+    let frac = Math.max(0.05, Math.min(1, this.dataViewFraction()));
+    if (this.legacyZoomThinning) {
+      // Alt-Verhalten, nur auf ausdrückliche Anforderung (s. Konstruktor).
+      const zoom = this.map?.getZoom() ?? 5;
+      const legacy = zoom < 6
+        ? Math.max(0.05, Math.min(1, 0.05 + Math.max(0, zoom - 1) * 0.19))
+        : Math.max(this.zoomThinFloor, Math.pow(this.zoomThinBase, 6 - zoom));
+      frac = Math.min(frac, legacy);
     }
-    // Cross-device PARITY (Phase P): the particle count is DELIBERATELY NOT
-    // governed. Every device draws the full, CSS-area-scaled count so the
-    // *density* is identical desktop↔mobile. `frac(zoom)` is device-independent
-    // (zoom-only thinning) and therefore does not break parity. Performance is
-    // regulated by the particle-NEUTRAL FPS lever instead (see the governor →
-    // maxParticleFps mapping in render()), never by dropping particles.
-    return Math.min(this._numParticles, Math.floor(this._numParticles * frac));
+    return Math.max(0, Math.min(
+      this._numParticles,
+      Math.floor(this._numParticles * frac),
+      this.latticeParticleCap(),
+    ));
   }
 
   render(gl: WebGLRenderingContext, args: CustomRenderMethodInput | number[] | Float32Array) {
@@ -1217,7 +1764,9 @@ export class WindLayer implements CustomLayerInterface {
         const prelude = `${sd.define}\n${sd.vertexShaderPrelude}\n`;
         gl.deleteProgram(this.drawProgram.program);
         gl.deleteProgram(this.heatmapProgram.program);
-        this.drawProgram = createProgram(gl, prelude + drawVertProjected, drawFrag);
+        this.drawProgram = this.particleStyle === 'segments'
+          ? createProgram(gl, prelude + segDrawVertProjected, segDrawFrag)
+          : createProgram(gl, prelude + drawVertProjected, drawFrag);
         this.heatmapProgram = createProgram(gl, prelude + heatmapVertProjected, heatmapFrag);
         this.projVariant = sd.variantName;
       }
@@ -1241,6 +1790,15 @@ export class WindLayer implements CustomLayerInterface {
     this.lastFrameTime = now;
     this.frameDtScale = Math.min(Math.max(dtMs, 1), 66) / 16.667;
 
+    // Segments: globale Fade-in-Rampe (0→1) nach zoomend/Erstaufbau — maskiert
+    // den harten Dichte-/Positions-Neustart, windy-artig ~0,55 s bis voll.
+    if (this.particleStyle === 'segments' && this.layerAlpha < 1) {
+      this.layerAlpha = Math.min(
+        1,
+        this.layerAlpha + this.frameDtScale * (16.667 / 1000) * this.segPreset.transition.fadeInPerSec,
+      );
+    }
+
     // Decide once whether to skip the expensive particle passes this frame. Only
     // skip when a coarse-pointer device is actively moving AND the governor has
     // throttled it to the FLOOR tier — i.e. it genuinely can't afford particles
@@ -1258,9 +1816,28 @@ export class WindLayer implements CustomLayerInterface {
     // the governor to the floor forever (self-sabotage). See the feed() call after
     // the particle passes.
 
+    // ZA-1 — Kamerabewegung: nachführen statt verwerfen, wo es exakt geht.
+    // Nur auswerten, wenn der Trail-Pass gleich auch WIRKLICH läuft; sonst
+    // bleibt `cameraMoved` stehen und wird im nächsten gezeichneten Bild gegen
+    // den dann noch gültigen (älteren) Bezug abgearbeitet.
+    const willDrawTrail = this.showParticles && !skipParticlesDuringMove;
+    this.trailUvScale = null;
+    if (willDrawTrail && this.cameraMoved) {
+      this.cameraMoved = false;
+      const x = this.computeTrailReprojection();
+      if (x) {
+        this.trailUvScale = x.scale;
+        this.trailUvOffset = x.offset;
+      } else {
+        // Drehung/Neigung/Globus/entartet → Alt-Verhalten: verwerfen.
+        this.clearOnNextFrame = true;
+      }
+    }
+
     if (this.clearOnNextFrame) {
       this.clearScreen();
       this.clearOnNextFrame = false;
+      this.trailUvScale = null;
     }
 
     const prevFB = gl.getParameter(gl.FRAMEBUFFER_BINDING);
@@ -1409,7 +1986,15 @@ export class WindLayer implements CustomLayerInterface {
     // instead of per frame, so trail length matches across frame rates
     // (desktop↔mobile parity). At 60 fps dtScale≈1 → unchanged.
     const fade = Math.pow(this.fadeOpacity, this.frameDtScale);
-    this.drawTexture(this.backgroundTexture, fade);
+    // ZA-1: bei bewegter Kamera den Vorframe um die Bewegung versetzt/skaliert
+    // abtasten, damit der Schweif an der Karte klebt statt am Bildschirm.
+    // Ohne Bewegung ist das die Identität → byte-identisch zum Alt-Verhalten.
+    this.drawTexture(
+      this.backgroundTexture,
+      fade,
+      this.trailUvScale ?? [1, 1],
+      this.trailUvScale ? this.trailUvOffset : [0, 0],
+    );
 
     // draw new particle positions on top
     this.drawParticles(matrix);
@@ -1426,9 +2011,22 @@ export class WindLayer implements CustomLayerInterface {
     const temp = this.backgroundTexture;
     this.backgroundTexture = this.screenTexture;
     this.screenTexture = temp;
+
+    // Bezugsecken für die Nachführung im nächsten Bild (ZA-1). Bewusst HIER,
+    // nach einem tatsächlich gezeichneten Pass: wird der Pass ausgelassen
+    // (skipParticlesDuringMove), bleibt der ältere Bezug gültig.
+    this.captureTrailAnchors();
   }
 
-  private drawTexture(texture: WebGLTexture, opacity: number) {
+  /** `uvScale`/`uvOffset` verschieben die Quelle des Vollbild-Passes (ZA-1,
+   *  s. `computeTrailReprojection`). Ohne Angabe: Identität — der Komposit-Pass
+   *  benutzt sie IMMER. */
+  private drawTexture(
+    texture: WebGLTexture,
+    opacity: number,
+    uvScale: [number, number] = [1, 1],
+    uvOffset: [number, number] = [0, 0],
+  ) {
     const gl = this.gl!;
     const p = this.screenProgram;
     gl.useProgram(p.program);
@@ -1436,10 +2034,81 @@ export class WindLayer implements CustomLayerInterface {
     bindTexture(gl, texture, 2);
     gl.uniform1i(p.u_screen as WebGLUniformLocation, 2);
     gl.uniform1f(p.u_opacity as WebGLUniformLocation, opacity);
+    gl.uniform2f(p.u_uv_scale as WebGLUniformLocation, uvScale[0], uvScale[1]);
+    gl.uniform2f(p.u_uv_offset as WebGLUniformLocation, uvOffset[0], uvOffset[1]);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
   }
 
+  /**
+   * ZA-1: UV-Transformation, die den Trail-Puffer des letzten Bildes auf die
+   * AKTUELLE Kamera abbildet. `null` = nicht möglich ⇒ Aufrufer löscht.
+   *
+   * Bezugspunkte sind die beiden Bildecken des letzten gezeichneten Bildes:
+   * Deren geografische Lage wurde damals gemerkt, ihre Bildschirmposition war
+   * per Konstruktion (0,0) und (W,H). Heute neu projiziert liefern sie
+   * unmittelbar Maßstab und Versatz — ohne Annahme über Mercator-Interna.
+   *
+   * Voraussetzung: keine Drehung, keine Neigung, kein Globus/Projektionswechsel
+   * (dort ist die Abbildung im Bildschirmraum nicht mehr affin).
+   */
+  private computeTrailReprojection(): { scale: [number, number]; offset: [number, number] } | null {
+    const map = this.map;
+    const tl = this._trailAnchorTL;
+    const br = this._trailAnchorBR;
+    if (!map || !tl || !br || this.globeMode) return null;
+    if (map.getBearing() !== 0 || map.getPitch() !== 0) return null;
+    if (this.projData && this.projData.projectionTransition !== 0) return null;
+    const w = this._trailAnchorW;
+    const h = this._trailAnchorH;
+    if (w <= 0 || h <= 0) return null;
+    // Puffergröße darf sich zwischen den Bildern nicht geändert haben — sonst
+    // ist der gemerkte Bezug ungültig (Resize löscht ohnehin separat).
+    const cssW = (this._texDrawW || 0) / (this._epr || 1);
+    const cssH = (this._texDrawH || 0) / (this._epr || 1);
+    if (Math.abs(cssW - w) > 0.5 || Math.abs(cssH - h) > 0.5) return null;
+
+    const p1 = map.project([tl.lng, tl.lat]);
+    const p2 = map.project([br.lng, br.lat]);
+    const dx = p2.x - p1.x;
+    const dy = p2.y - p1.y;
+    if (!Number.isFinite(dx) || !Number.isFinite(dy) || Math.abs(dx) < 1 || Math.abs(dy) < 1) return null;
+    const sx = w / dx;
+    const sy = h / dy;
+    // Plausibilitätsklammer: mehr als Faktor 5 Maßstabsänderung in EINEM Bild
+    // ist kein Zoomen, sondern ein Sprung (oder eine entartete Projektion) —
+    // dann lieber löschen als etwas Falsches stehenlassen.
+    if (!(sx > 0.2 && sx < 5 && sy > 0.2 && sy < 5)) return null;
+    // Bildschirm→UV: uv.x = px/W (rechts = 1), uv.y = 1 − py/H (oben = 1).
+    // Quelle q = (p − p1) · s, daher uv_src = uv · s + t.
+    const tx = (-p1.x * sx) / w;
+    const ty = 1 - sy + (p1.y * sy) / h;
+    if (!Number.isFinite(tx) || !Number.isFinite(ty)) return null;
+    return { scale: [sx, sy], offset: [tx, ty] };
+  }
+
+  /** Merkt sich die geografische Lage der beiden Bildecken des gerade
+   *  gezeichneten Bildes — der Bezug für die Nachführung im nächsten Bild.
+   *  Nur nach einem TATSÄCHLICH gezeichneten Trail-Pass aufrufen (wird der Pass
+   *  ausgelassen, gilt weiter der ältere Bezug). */
+  private captureTrailAnchors(): void {
+    const map = this.map;
+    if (!map || this.globeMode) { this._trailAnchorTL = null; return; }
+    const w = (this._texDrawW || 0) / (this._epr || 1);
+    const h = (this._texDrawH || 0) / (this._epr || 1);
+    if (w <= 0 || h <= 0) { this._trailAnchorTL = null; return; }
+    const a = map.unproject([0, 0]);
+    const b = map.unproject([w, h]);
+    this._trailAnchorTL = { lng: a.lng, lat: a.lat };
+    this._trailAnchorBR = { lng: b.lng, lat: b.lat };
+    this._trailAnchorW = w;
+    this._trailAnchorH = h;
+  }
+
   private drawParticles(matrix: Float32List) {
+    if (this.particleStyle === 'segments') {
+      this.drawParticleSegments(matrix);
+      return;
+    }
     const gl = this.gl!;
     const p = this.drawProgram;
     gl.useProgram(p.program);
@@ -1455,9 +2124,20 @@ export class WindLayer implements CustomLayerInterface {
     gl.uniform1f(p.u_particles_res as WebGLUniformLocation, this.particleStateResolution);
     gl.uniform2f(p.u_wind_min as WebGLUniformLocation, this.windData!.uMin, this.windData!.vMin);
     gl.uniform2f(p.u_wind_max as WebGLUniformLocation, this.windData!.uMax, this.windData!.vMax);
-    // scale point size with zoom so particles stay readable when zoomed in
+    // Punktgröße über den Zoom — bewusst FAST FLACH.
+    //
+    // Der gezeichnete Punkt ist der KOPF eines Kometen; die Länge des Schweifs
+    // ist zoom-unabhängig (screenTempoZoomExp 0 ⇒ px/s hängt nur vom Wind ab),
+    // sie liegt je nach Windstärke bei 19–45 px. Die alte Kennlinie
+    // (1 + (z−5)·0,3, gedeckelt bei 3,4) blies den Kopf beim Reinzoomen auf
+    // 8,5 px auf, während der Schweif gleich lang blieb — das Verhältnis
+    // Schweif : Kopf fiel von 9 : 1 (z4) auf 2,2 : 1 (z13), und aus dem Strich
+    // wurde wieder ein fetter Klecks (gemessen: audit/windpartikel-zoom.md §3).
+    // 0,08 je Stufe, gedeckelt bei 1,5, hält den Kopf bei 2,3–3,8 px: sichtbar,
+    // aber nie breiter als der Schweif. Untergrenze 0,85 unverändert, damit der
+    // Globus (Zoom ~0–2, ohnehin geklemmt) exakt gleich bleibt.
     const zoom = this.map?.getZoom() ?? 5;
-    const zoomFactor = Math.max(0.85, Math.min(3.4, 1.0 + (zoom - 5) * 0.3));
+    const zoomFactor = Math.max(0.85, Math.min(1.5, 1.0 + (zoom - 5) * 0.08));
     // gl_PointSize is in FRAMEBUFFER pixels, so apparent CSS thickness would be
     // pointSize / effectivePixelRatio — i.e. thinner on high-DPR desktops and on
     // the DPR-capped mobile buffer (a key cause of the mobile↔desktop mismatch).
@@ -1473,9 +2153,114 @@ export class WindLayer implements CustomLayerInterface {
     gl.uniform4f(p.u_particle_color as WebGLUniformLocation, c[0], c[1], c[2], c[3]);
     const [dx0, dy0, dx1, dy1] = this.windData!.uvBounds;
     gl.uniform4f(p.u_data_uv_bounds as WebGLUniformLocation, dx0, dy0, dx1, dy1);
+    this.setEncodeBoundsUniform(p);
     this.setPositionUniforms(p, matrix);
 
     gl.drawArrays(gl.POINTS, 0, this.getEffectiveParticleCount());
+  }
+
+  /** `u_bounds` für die DRAW-Pässe: das Rechteck, mit dem die aktuelle
+   *  Zustandstextur kodiert ist. Der Draw läuft vor dem Update, also das des
+   *  letzten Updates (beim ersten Frame das aktuelle — der Initialzustand ist
+   *  gleichverteilt und damit unter jedem Rechteck gültig). */
+  private setEncodeBoundsUniform(p: ProgramWrapper): void {
+    const b = this.encodeBounds ?? this.getEquirectangularBounds();
+    this.gl!.uniform4f(p.u_bounds as WebGLUniformLocation, b[0], b[1], b[2], b[3]);
+  }
+
+  /** Der aktuell wirksame Zoom für alle Tempo-/Auflösungsrechnungen. Im
+   *  Globus-Modus ist `getZoom()` kein Mercator-Zoom → fester Referenzwert. */
+  private tempoZoom(): number {
+    return this.globeMode ? this.speedRefZoom : (this.map?.getZoom() ?? this.speedRefZoom);
+  }
+
+  /** Die Tempo-Parameter dieses Layers als reines Datenobjekt (s. advection.ts).
+   *  `viewportSpeedFactor()` ist die abgeschaltete Alt-Gerätedämpfung und steckt
+   *  hier im Multiplikator — bei `viewportSpeedRefPx: 0` (Default) exakt 1. */
+  private tempoOptions(): ScreenTempoOptions {
+    return {
+      speedPxPerMs: this.speedPxPerMs,
+      speedFactor: this.speedFactor * this.viewportSpeedFactor(),
+      speedRefZoom: this.speedRefZoom,
+      screenTempoZoomExp: this.screenTempoZoomExp,
+    };
+  }
+
+  /**
+   * `u_step_scale`: equirect-X-Schritt je 1 m/s Wind. Der EINZIGE
+   * Geschwindigkeits-Skalar der Engine — Herleitung und Vertrag in
+   * `advection.ts`. Von Update-Pass UND Segment-Draw benutzt (der Draw
+   * advektiert das Schwanzende rückwärts mit derselben Skala).
+   *
+   * `dtScale60` = Schrittlänge in 60-fps-Frames: im Update-Pass die
+   * dt-Normierung des Layers, im Segment-Draw `headFrames`.
+   */
+  private advectionStepScale(dtScale60: number): number {
+    return advectionStepScale(this.tempoZoom(), dtScale60, this.tempoOptions());
+  }
+
+  /** Segment-Stil (WP1): ein Quad je Partikel — Kopf = Position aus der
+   *  Zustandstextur, Schwanzende = im Vertex-Shader um einen 60-fps-Schritt
+   *  RÜCKWÄRTS advektiert (bewusst NICHT aus der zweiten Ping-Pong-Textur:
+   *  die zwei Texturen halten auf manchen GL-Stacks nachweislich keine
+   *  benachbarten Zeitschritte, s. Shader-Kommentar). Breite aus der
+   *  Windy-Tabelle, Quer-AA im Fragment-Shader, echtes Alpha-Blending in den
+   *  Trail-Buffer (Köpfe malen ÜBER die Spur statt sie zu ersetzen — bei
+   *  POINTS bewusst nicht angefasst). */
+  private drawParticleSegments(matrix: Float32List) {
+    const gl = this.gl!;
+    const p = this.drawProgram;
+    gl.useProgram(p.program);
+
+    bindAttribute(gl, this.segVertexBuffer!, p.a_vert as number, 3);
+
+    bindTexture(gl, this.colorRampTexture, 2);
+    gl.uniform1i(p.u_wind as WebGLUniformLocation, 0);
+    gl.uniform1i(p.u_particles as WebGLUniformLocation, 1);
+    gl.uniform1i(p.u_color_ramp as WebGLUniformLocation, 2);
+    gl.uniform1f(p.u_speed_tint as WebGLUniformLocation, this.speedTint);
+    gl.uniform1f(p.u_particles_res as WebGLUniformLocation, this.particleStateResolution);
+    gl.uniform2f(p.u_wind_min as WebGLUniformLocation, this.windData!.uMin, this.windData!.vMin);
+    gl.uniform2f(p.u_wind_max as WebGLUniformLocation, this.windData!.uMax, this.windData!.vMax);
+
+    // Strichbreite aus der Windy-Tabelle (Windy-z = MapLibre-z + 1), in
+    // Trail-Buffer-px: × effektive Pixel-Ratio und trailScale (wie die
+    // Punktgröße im Points-Pfad). pointSize/2.5 = UI-„Intensiv"-Faktor
+    // (Standard 2.5 → ×1, Intensiv 2.9 → ×1.16) — die UI-API bleibt gleich.
+    const w = this.segPreset.width;
+    const s = this.segPreset.speed;
+    const zWindy = (this.map?.getZoom() ?? 4) + 1;
+    const widthPx = Math.max(1, lookupZoomTable(w.lineWidth, zWindy) * w.scale * (this.pointSize / 2.5))
+      * this._epr * this.trailScale;
+    gl.uniform1f(p.u_half_width as WebGLUniformLocation, widthPx * 0.5);
+    gl.uniform1f(p.u_aa_edge as WebGLUniformLocation, w.aaEdgePx);
+    gl.uniform1f(p.u_length_ex as WebGLUniformLocation, w.lengthExPx * this._epr * this.trailScale);
+    // Rückwärts-Advektion des Schwanzendes: EXAKT dieselbe Skala + Kennlinie wie
+    // der Update-Pass, nur über `headFrames` 60-fps-Schritte statt über den
+    // aktuellen dt (1 ≙ windy). Das Tempo-Preset (`s.pxPerSec`, `s.zoom2speed`,
+    // `s.gamma/refMs/minMs`) ist damit stillgelegt — Tempo kommt für BEIDE Stile
+    // aus speedPxPerMs, sonst würden Kopf und Schweif auseinanderlaufen.
+    gl.uniform1f(p.u_step_scale as WebGLUniformLocation, this.advectionStepScale(s.headFrames));
+    gl.uniform1f(p.u_speed_gamma as WebGLUniformLocation, this.speedGamma);
+    gl.uniform1f(p.u_speed_ref as WebGLUniformLocation, this.speedRef);
+    gl.uniform1f(p.u_speed_min as WebGLUniformLocation, this.speedMin);
+    gl.uniform2f(p.u_viewport as WebGLUniformLocation, this.screenWidth, this.screenHeight);
+    gl.uniform1f(p.u_global_alpha as WebGLUniformLocation, this.layerAlpha);
+    const c = this.particleColor;
+    gl.uniform4f(p.u_particle_color as WebGLUniformLocation, c[0], c[1], c[2], c[3]);
+    const [dx0, dy0, dx1, dy1] = this.windData!.uvBounds;
+    gl.uniform4f(p.u_data_uv_bounds as WebGLUniformLocation, dx0, dy0, dx1, dy1);
+    this.setEncodeBoundsUniform(p);
+    this.setPositionUniforms(p, matrix);
+
+    // Straight-alpha „over" (separate Alpha-Funktion, damit der Ziel-Alpha
+    // korrekt Richtung 1 akkumuliert) — Köpfe übermalen die Fade-Spur weich.
+    gl.enable(gl.BLEND);
+    gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.segIndexBuffer);
+    gl.drawElements(gl.TRIANGLES, this.getEffectiveParticleCount() * 6, gl.UNSIGNED_SHORT, 0);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+    gl.disable(gl.BLEND);
   }
 
   private updateParticles() {
@@ -1493,26 +2278,26 @@ export class WindLayer implements CustomLayerInterface {
     gl.uniform2f(p.u_wind_res as WebGLUniformLocation, this.windData!.width, this.windData!.height);
     gl.uniform2f(p.u_wind_min as WebGLUniformLocation, this.windData!.uMin, this.windData!.vMin);
     gl.uniform2f(p.u_wind_max as WebGLUniformLocation, this.windData!.uMax, this.windData!.vMax);
-    gl.uniform1f(p.u_speed_factor as WebGLUniformLocation, this.speedFactor);
-    // delta-time scale (relative to 60 fps) computed once per frame in render();
-    // keeps the advection speed independent of the frame rate.
-    gl.uniform1f(p.u_dt_scale as WebGLUniformLocation, this.frameDtScale);
-    // Zoom-Dämpfung: 2^(-(zoom - Z0)·k). Beim Reinzoomen wird der geografische
-    // Schritt kleiner, damit die Bildschirmgeschwindigkeit nicht mit 2^zoom
-    // hochschießt. Geklemmt, damit Extrem-Zoomstufen nicht ausreißen.
-    // Globus: gleichmäßiges Bildschirmtempo (kein 2^zoom-Ausreißen beim
-    // niedrigen Globus-Zoom) — referenziert auf einen mittleren Zoom.
-    const z = this.globeMode ? this.speedRefZoom : (this.map?.getZoom() ?? this.speedRefZoom);
-    let zoomSpeed = Math.pow(2, -(z - this.speedRefZoom) * this.speedZoomDamping);
-    // Floor nur sehr tief gegen komplettes Einfrieren bei Extrem-Zoom — höher
-    // gesetzt würde er die gewünschte Verlangsamung beim Reinzoomen aufheben.
-    zoomSpeed = Math.min(4, Math.max(0.002, zoomSpeed));
-    gl.uniform1f(p.u_zoom_speed as WebGLUniformLocation, zoomSpeed);
+    // DER Geschwindigkeits-Skalar: equirect-X-Schritt je 1 m/s Wind, inklusive
+    // Zoomgesetz und dt-Normierung (relativ zu 60 fps, einmal pro Frame in
+    // render() bestimmt → Tempo bleibt bildratenunabhängig). Es gibt keinen
+    // weiteren versteckten Faktor mehr: `px/s = A(z) · |V|`, s. advection.ts.
+    // Der Segment-Stil benutzt dieselbe Skala — sein Preset steuert nur noch
+    // Dichte/Breite/Schweif, nicht mehr das Tempo.
+    gl.uniform1f(p.u_step_scale as WebGLUniformLocation, this.advectionStepScale(this.frameDtScale));
+    // Alt-Kennlinie, per Default neutral (γ = 1, Boden 0) → dispSpeed == speed.
     gl.uniform1f(p.u_speed_gamma as WebGLUniformLocation, this.speedGamma);
     gl.uniform1f(p.u_speed_ref as WebGLUniformLocation, this.speedRef);
     gl.uniform1f(p.u_speed_min as WebGLUniformLocation, this.speedMin);
-    gl.uniform1f(p.u_drop_rate as WebGLUniformLocation, this.dropRate);
-    gl.uniform1f(p.u_drop_rate_bump as WebGLUniformLocation, this.dropRateBump);
+    // Weit draußen sammeln sich die Partikel in Konvergenzzonen zu Klumpen:
+    // dort deckt ein Pixel viel mehr Fläche ab, also laufen mehr Bahnen in
+    // dieselben Zellen. Die Auffrischrate steigt deshalb mit dem Rauszoomen
+    // (zoomDropScale) — die Bahn selbst bleibt unverändert.
+    const dropScale = this.zoomDropScale();
+    gl.uniform1f(p.u_drop_rate as WebGLUniformLocation, this.dropRate * dropScale);
+    gl.uniform1f(p.u_drop_rate_bump as WebGLUniformLocation, this.dropRateBump * dropScale);
+    // Z3 — Umverteilung bei Rechteckwechsel (s. zoomRedistribute).
+    gl.uniform1f(p.u_redistribute as WebGLUniformLocation, this.zoomRedistribute ? 1 : 0);
     // Frame-rate-DETERMINISTIC advection (cross-device parity of speed AND
     // direction). u_dt_scale already normalizes the AVERAGE speed, but a single
     // Euler step of size ∝ dt makes a low-fps device take big steps that cut
@@ -1529,12 +2314,22 @@ export class WindLayer implements CustomLayerInterface {
     const simSubSteps = Math.max(1, Math.min(4, Math.round(this.frameDtScale * this.subSteps)));
     gl.uniform1f(p.u_sub_steps as WebGLUniformLocation, simSubSteps);
 
+    // Bezugsrechteck der Positionskodierung. `prev` ist das Rechteck, mit dem
+    // die EINGEHENDE Zustandstextur kodiert wurde — beim Schwenken/Zoomen
+    // unterscheiden sich beide, der Shader rechnet die Position exakt um
+    // (dekodieren mit prev → advektieren absolut → kodieren mit bounds).
+    // Beim allerersten Pass gibt es kein prev: der Initialzustand ist
+    // gleichverteiltes [0,1]² und damit unter jedem Rechteck gültig.
     const bounds = this.getEquirectangularBounds();
+    const prev = this.encodeBounds ?? bounds;
     gl.uniform4f(p.u_bounds as WebGLUniformLocation, bounds[0], bounds[1], bounds[2], bounds[3]);
+    gl.uniform4f(p.u_bounds_prev as WebGLUniformLocation, prev[0], prev[1], prev[2], prev[3]);
     const [dx0, dy0, dx1, dy1] = this.windData!.uvBounds;
     gl.uniform4f(p.u_data_uv_bounds as WebGLUniformLocation, dx0, dy0, dx1, dy1);
 
     gl.drawArrays(gl.TRIANGLES, 0, 6);
+    this.encodeBounds = bounds;
+    this.advectedSeconds += this.frameDtScale / 60;
 
     const tmp = this.particleStateTexture0;
     this.particleStateTexture0 = this.particleStateTexture1;

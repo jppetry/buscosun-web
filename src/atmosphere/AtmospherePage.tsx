@@ -15,26 +15,37 @@ import { tourFileToCutLine } from '../threed/tourImport';
 import { pickCountry } from '../pointForecast/clustering';
 import { AtmosphereProvider, useAtmosphere } from './atmosphereStore';
 import AtmosphereDeck from './AtmosphereDeck';
+import { FeatureRail, type RailFeature } from '../nav/featureRail';
 import '../threed/threed.css';
 import '../route/tourTheme.css';
 import '../intro/intro.css';
 import './atmosphere.css';
 
-interface Props { onBack: () => void }
+interface Props { onBack: () => void; onOpenFeature?: (id: RailFeature) => void }
 
-export default function AtmospherePage({ onBack }: Props) {
+export default function AtmospherePage({ onBack, onOpenFeature }: Props) {
   return (
     <AtmosphereProvider>
-      <AtmosphereShell onBack={onBack} />
+      <AtmosphereShell onBack={onBack} onOpenFeature={onOpenFeature} />
     </AtmosphereProvider>
   );
 }
 
-function AtmosphereShell({ onBack }: Props) {
+function AtmosphereShell({ onBack, onOpenFeature }: Props) {
   const { location } = useAtmosphere();
-  if (location) return <AtmosphereDeck onBack={onBack} />;
+  if (location) return <AtmosphereDeck onBack={onBack} onOpenFeature={onOpenFeature} />;
 
   return (
+    <div className="atm-idle-shell">
+      <FeatureRail
+        active="atmosphere"
+        onOpenFeature={onOpenFeature}
+        onHome={onBack}
+        navClass="atm-idle-rail"
+        btnClass="atm-idle-rail-btn"
+        activeClass="is-active"
+        spacerClass="atm-idle-rail-spacer"
+      />
     <div className="rt-page atm-page">
       <div className="rt-grain" />
       <nav className="rt-nav">
@@ -49,6 +60,7 @@ function AtmosphereShell({ onBack }: Props) {
       <main className="rt-container">
         <AtmosphereIntro />
       </main>
+    </div>
     </div>
   );
 }

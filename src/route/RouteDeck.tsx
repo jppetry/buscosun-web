@@ -6,6 +6,9 @@
  */
 
 import type { ReactNode } from 'react';
+import { FeatureRail, type RailFeature } from '../nav/featureRail';
+
+export type { RailFeature };
 
 /* ============================ Rail-/Deck-Icons (SVG-Pfade aus der Vorlage) ============================ */
 export function IconRailMap({ size = 21 }: { size?: number }) {
@@ -67,8 +70,11 @@ function Mark({ className }: { className?: string }) {
 
 interface ShellProps {
   isMobile: boolean;
-  /** Marke + Rail-Icons → zurück in die App. */
+  /** Marke → zurück in die App. */
   onHome: () => void;
+  /** Rail: direkt in ein anderes Werkzeug springen. Fehlt der Handler,
+      führen die Rail-Knöpfe wie bisher zur Startseite zurück. */
+  onOpenFeature?: (id: RailFeature) => void;
   /** Topbar-Mitte (nach dem Trenner): Zurück-Link + Kontext-Text. */
   crumb?: ReactNode;
   /** Topbar rechts (DATEN LIVE / Avatar). */
@@ -80,7 +86,7 @@ interface ShellProps {
   children: ReactNode;
 }
 
-export default function RouteDeckShell({ isMobile, onHome, crumb, right, mobileHeader, contentClass, children }: ShellProps) {
+export default function RouteDeckShell({ isMobile, onHome, onOpenFeature, crumb, right, mobileHeader, contentClass, children }: ShellProps) {
   if (isMobile) {
     return (
       <div className="rd-m-root">
@@ -101,13 +107,15 @@ export default function RouteDeckShell({ isMobile, onHome, crumb, right, mobileH
         <div className="rd-topright">{right}</div>
       </header>
       <div className="rd-body">
-        <nav className="rd-rail" aria-label="Werkzeuge">
-          <button type="button" className="rd-rail-btn" title="Wetterkarte" onClick={onHome}><IconRailMap /></button>
-          <button type="button" className="rd-rail-btn" title="Regenradar" onClick={onHome}><IconRailRadar /></button>
-          <button type="button" className="rd-rail-btn rd-rail-btn--active" title="Tourenplanung" aria-current="page"><IconRailTour /></button>
-          <span className="rd-rail-spacer" />
-          <button type="button" className="rd-rail-btn" title="Einstellungen" onClick={onHome}><IconRailGear /></button>
-        </nav>
+        <FeatureRail
+          active="route"
+          onOpenFeature={onOpenFeature}
+          onHome={onHome}
+          navClass="rd-rail"
+          btnClass="rd-rail-btn"
+          activeClass="rd-rail-btn--active"
+          spacerClass="rd-rail-spacer"
+        />
         <div className={`rd-content rd-scroll${contentClass ? ` ${contentClass}` : ''}`}>{children}</div>
       </div>
     </div>

@@ -1,7 +1,12 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["ES2023"],
+    // "DOM" seit F0: `vite.config.ts` importiert den FIRMS-Edge-Handler, damit
+    // der Dev-Pfad dieselbe Prüflogik fährt wie die Produktion. Der Handler
+    // benutzt ausschließlich Web-Standard-Globals (fetch/Request/Response/
+    // Headers/URL) — deren Typen stehen in lib.dom, genau wie in
+    // tsconfig.edge.json. Es kommt KEINE Abhängigkeit hinzu (D-06).
+    "lib": ["ES2023", "DOM"],
     "module": "ESNext",
     "skipLibCheck": true,
     "moduleResolution": "bundler",

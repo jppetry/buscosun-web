@@ -87,7 +87,19 @@ const LAYER_META: Record<RadarLayerId, { label: string }> = {
   snowline:  { label: 'Schneefallgrenze' },
   wind:      { label: 'Wind' },
 };
-const LAYER_ORDER: RadarLayerId[] = ['precip', 'rain', 'snow', 'graupel', 'hail', 'snowline', 'accum', 'cells', 'lightning', 'warnings', 'coverage'];
+/**
+ * V-22 (2026-08-03): `warnings` ist hier ENTFERNT. Der Schalter existierte, aber
+ * `radar/RadarMap.tsx` kennt die Ebene überhaupt nicht (null Referenzen) — es
+ * wurden nie Warnpolygone gezeichnet. DWD-Warnungen werden zwar geholt, aber nur
+ * zu einem Skalar `warnLevel` reduziert. Ein Schalter, der nichts tut, beschädigt
+ * das Vertrauen mehr als ein fehlendes Feature — bei Warnungen besonders.
+ *
+ * Formal ist das ein Funktions-Entzug (Oberste Direktive), deshalb mit Jans
+ * ausdrücklicher Freigabe vom 2026-08-03 entfernt. `LAYER_META.warnings` bleibt
+ * absichtlich stehen: sobald V-24 (GeoSphere/DWD-CAP mit Geometrien) echte
+ * Polygone liefert, genügt es, die Kennung hier wieder einzureihen.
+ */
+const LAYER_ORDER: RadarLayerId[] = ['precip', 'rain', 'snow', 'graupel', 'hail', 'snowline', 'accum', 'cells', 'lightning', 'coverage'];
 /** Phasen, die rein heuristisch sind (kein Mess-Produkt) → Kennzeichnung. */
 const HEURISTIC_PHASES = new Set<RadarLayerId>(['graupel', 'hail']);
 
@@ -485,14 +497,25 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
         );
         if (compact) {
           return (
-            <details className="nc-radar-morebox">
-              <summary><IconRadarSignal size={15} /> Zeitachse, Punktabfrage &amp; Datenqualität</summary>
+            <>
+              {/* Zeitachse steht immer offen — sie ist die Hauptbedienung des
+                  Radars, nicht ein Detail. Punktabfrage und Methodik bleiben
+                  eingeklappt darunter. */}
+              {scrubber}
+              <details className="nc-radar-morebox">
+              <summary><IconRadarSignal size={15} /> Punktabfrage &amp; Datenqualität</summary>
               <div className="nc-radar-morebox-body">
-                {scrubber}
                 {pointStrip}
-                <div className="nc-radar-quality nc-radar-quality-inline">{qualityList}</div>
+                {/* Methodik als eigene, zugeklappte Kachel: Herkunft, Skill-Horizont,
+                    Radarsicht und Raster-Sättigung bleiben vollständig erreichbar
+                    (Funktionserhalt), kosten aber nur noch eine Zeile Platz. */}
+                <details className="nc-radar-quality nc-radar-quality-inline nc-methodik">
+                  <summary><IconRadarSignal size={14} /> Methodik &amp; Datenqualität</summary>
+                  {qualityList}
+                </details>
               </div>
-            </details>
+              </details>
+            </>
           );
         }
         return (

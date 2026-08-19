@@ -57,7 +57,9 @@ export default function ThermalMap() {
     const map = new maplibregl.Map({
       container: containerRef.current,
       style: 'https://tiles.openfreemap.org/styles/liberty',
-      center: [lon, lat], zoom: 9.5, pitch: 55, maxPitch: 80, attributionControl: false,
+      // OpenFreeMap/OpenMapTiles/OSM verlangen zwingend eine sichtbare
+      // Attribution (ODbL) — compact wie in radar/RadarMap.tsx (V-105).
+      center: [lon, lat], zoom: 9.5, pitch: 55, maxPitch: 80, attributionControl: { compact: true },
     });
     mapRef.current = map;
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');

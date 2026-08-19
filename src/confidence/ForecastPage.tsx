@@ -38,7 +38,9 @@ function IconHowTo() {
   );
 }
 
-interface Props { onBack: () => void }
+import { FeatureRail, type RailFeature } from '../nav/featureRail';
+
+interface Props { onBack: () => void; onOpenFeature?: (id: RailFeature) => void }
 
 /**
  * Orchestriert nur noch Idle-/Standortschritt vs. das Command-Deck: ohne Ort der
@@ -46,12 +48,22 @@ interface Props { onBack: () => void }
  * „So geht's"), mit Ort das vollflächige `ForecastDeck` (Topbar · Rail · Dock ·
  * Center · Readout). Der gesamte Datenlebenszyklus liegt im Deck.
  */
-export default function ForecastPage({ onBack }: Props) {
+export default function ForecastPage({ onBack, onOpenFeature }: Props) {
   const [location, setLocation] = useState<Location | null>(null);
 
-  if (location) return <ForecastDeck location={location} setLocation={setLocation} onBack={onBack} />;
+  if (location) return <ForecastDeck location={location} setLocation={setLocation} onBack={onBack} onOpenFeature={onOpenFeature} />;
 
   return (
+    <div className="fc-idle-shell">
+      <FeatureRail
+        active="forecast"
+        onOpenFeature={onOpenFeature}
+        onHome={onBack}
+        navClass="fc-idle-rail"
+        btnClass="fc-idle-rail-btn"
+        activeClass="is-active"
+        spacerClass="fc-idle-rail-spacer"
+      />
     <div className="rt-page fc-page">
       <div className="rt-grain" />
       <nav className="rt-nav">
@@ -91,6 +103,7 @@ export default function ForecastPage({ onBack }: Props) {
           </div>
         </section>
       </main>
+    </div>
     </div>
   );
 }

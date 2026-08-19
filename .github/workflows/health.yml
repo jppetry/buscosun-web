@@ -1,0 +1,61 @@
+# ============================================================================
+# Betriebs-Wächter für die Warm-Manifeste (V-79)
+# ============================================================================
+# WARUM: Die Warm-Crons melden Erfolg, auch wenn sie nichts ausgerichtet haben —
+# bei unvollständiger Wärmung wird das Manifest bewusst nicht umgelegt und der
+# Job endet mit Exit 0. Ein dauerhaft blockierter Advance erzeugt deshalb lauter
+# GRÜNE Runs. Diese Lücke hat am 2026-07-22 eine Merge-Regression zwei Tage lang
+# verborgen und in der Strategie-Session vom 2026-07-31 drei unabhängige
+# Analysen zu einer Fehldiagnose verleitet.
+#
+# Dieser Workflow prüft deshalb NICHT die Crons, sondern das AUSGELIEFERTE
+# Ergebnis — von außen, über HTTPS, wie ein Besucher. Er ist bewusst unabhängig
+# und fasst warm-grib.yml / warm-wind.yml NICHT an: Cron-Semantik ist STOPP-Zone
+# (`CLAUDE.md`). Jan hat am 2026-08-03 ausdrücklich diese Variante gewählt.
+#
+# WIRKUNG BEI ROT: Der Job schlägt fehl ⇒ GitHub verschickt seine Standard-
+# Fehlermail an den Repo-Owner. Kein zusätzlicher Dienst, keine laufenden Kosten,
+# keine Secrets, keine Nutzerdaten (D-02 unberührt).
+#
+# VORAUSSETZUNG: Repo-Variable SITE_URL (dieselbe wie bei den Warm-Crons).
+# Ohne sie endet der Wächter mit Exit 2 = "nicht lauffähig", nicht mit "grün".
+#
+# Die Schwellen sind absichtlich großzügig: ICON-D2 läuft alle 3 h, ein einzelner
+# verpasster Lauf soll nicht sofort alarmieren — ein blockierter Advance schon.
+# ============================================================================
+
+name: health
+
+on:
+  schedule:
+    - cron: '25 * * * *'      # stündlich, versetzt zu den Warm-Ticks (2,17,32,47 / */15)
+  workflow_dispatch: {}
+
+concurrency:
+  group: health
+  cancel-in-progress: true
+
+permissions:
+  contents: read              # liest nur — committet nichts
+
+jobs:
+  manifests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # Der Wächter muss selbst rot werden können — sonst wiederholt er genau
+      # den Fehler, den er aufdecken soll (V-91). Läuft netzfrei in Sekunden.
+      - name: Self-test des Wächters
+        run: npm run verify:health
+
+      - name: Warm-Manifeste in Produktion prüfen
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+          MAX_RUN_AGE_H: '9'
+          MAX_UPDATE_AGE_H: '6'
+        run: npm run health
