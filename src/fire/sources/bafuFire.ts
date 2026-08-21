@@ -1,6 +1,12 @@
 /**
- * `fireIndexNational` (CH) und `fireBans` — die beiden Schweizer BAFU-Produkte
- * von `data.geo.admin.ch`.
+ * Die Schweizer BAFU-Produkte der Karte, von `data.geo.admin.ch`.
+ *
+ * ⚠️ Dieses Modul ist seit dem 2026-08-19 **nicht mehr verdrahtet**:
+ * `fetchBafuDanger` (Gefahrenstufen) fiel mit dem Rückzug des Layers
+ * „Amtliche Stufe", `fetchBafuBans` (kantonale Präventionsmassnahmen) mit dem
+ * Rückzug des Layers „Feuerverbote (CH)" — beide auf Jans Auftrag. Modul und
+ * Verifikation bleiben erhalten (wiederverwendbar); die App ruft sie nicht auf,
+ * sie landen also auch nicht im Bundle.
  *
  * ── Fair Use ist hier eine Auflage, keine Empfehlung ─────────────────────────
  * `geo.admin.ch` begrenzt die „maximum number of requests per time unit". Bei

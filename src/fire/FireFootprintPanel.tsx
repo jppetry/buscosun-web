@@ -2,11 +2,14 @@
  * **Brandflächen-Panel** (Phase BP2, Gate GBP1) — die Liste der Brand-Registry.
  *
  * Rein präsentational: Props hinein, Rückrufe hinaus. Zustand (Auswahl, Filter,
- * Sortierung, offen/zu) lebt in `FirePage.tsx`, weil dort der Permalink-Effekt
- * und das Geschwister `FireMap` sitzen. Desktop: absolutes Overlay am linken
- * Kartenrand (`.fire-fpanel`, s. `fireDeck.css`); mobil: drittes Segment der
- * Readout-Tabs im Bottom-Sheet — derselbe Bau, zwei Einbauorte
- * (Muster `dockContent(inSheet)`).
+ * Sortierung) lebt in `FirePage.tsx`, weil dort der Permalink-Effekt und das
+ * Geschwister `FireMap` sitzen.
+ *
+ * **BP5:** Diese Liste ist die EINZIGE Brandliste. Sie steht auf beiden Größen
+ * im Readout unter dem Reiter „Brände" (Desktop rechts, mobil im Bottom-Sheet)
+ * und hat die frühere Cluster-Seite aufgenommen: Stärke (ΣFRP) mit Skala,
+ * Ausdehnung der Hülle, Rangfolge nach Stärke und deren Pflichthinweis. Das
+ * Overlay am linken Kartenrand ist damit entfallen (audit/… §11).
  *
  * Regeln, die hier gelten (audit/brandflaechen-panel.md §3, BF5):
  *  • Jeder Leerzustand nennt seinen GRUND — „keine Liste" darf nie wie
@@ -21,13 +24,20 @@ import { useState, type ReactNode } from 'react';
 import {
   type FireRecord, type RecordSort, type RecordFilter, type FireStatusKind,
   STATUS_LABEL, STATUS_COLOR, METHOD_LABEL, statusLabel, areaLabel, confidenceLabel,
-  missingReason, registryNote,
+  missingReason, registryNote, provisionalArea,
 } from './footprint/fireRegistry';
-import { CLUSTER_PAGE, STATIC_GREY, countryLabel } from './fireClusters';
+import {
+  CLUSTER_PAGE, STATIC_GREY, countryLabel,
+  // BP5: die Leistungsangaben der früheren Cluster-Liste — dieselben Funktionen,
+  // nur an einer anderen Zeile. Nichts davon wird hier neu gerechnet.
+  strengthLabel, extentLabel, clusterColorOf, CLUSTER_FRP_STOPS, CLUSTER_NOTE,
+} from './fireClusters';
 // AF1: Intensität je Überflug — Labels aus den reinen Modulen, nichts wird hier gerechnet.
 import { freLabel, DAYNIGHT_LABEL } from './activity/intensity';
 import { activitySummary } from './activity/fireActivity';
 import { STATE_LABEL, compassLabel } from './activity/dynamics';
+import type { SpreadRun } from './spread/spreadRun';
+import { SPREAD_CAVEAT, gapText, observedCompareText, spreadChip, spreadHint } from './spread/spreadText';
 import { OBSERVATION_LABEL } from './activity/observation';
 import { featuresOf, featuresJson, featuresSummary, FEATURE_VERSION } from './activity/features';
 import { estimateLabel } from './activity/estimate';
@@ -87,6 +97,8 @@ export interface FootprintPanelProps {
   windowSeg?: ReactNode;
   /** BP3: Ortsverzeichnis geladen? Dann trägt das Panel die GeoNames-Zeile (CC BY). */
   placesLoaded?: boolean;
+  /** SF1: der Ausbreitungslauf — dieselbe Quelle wie die Pfeile auf der Karte. */
+  spread?: SpreadRun | null;
 }
 
 /** 6 h ohne neuen Überflug bzw. 4 d ohne EFFIS-Bearbeitung ⇒ „veraltet" (gemessene Takte). */
@@ -163,7 +175,8 @@ export function FireFootprintPanel(p: FootprintPanelProps) {
       <p className="fire-clist-empty">
         <strong>Notbetrieb:</strong> NASA FIRMS ist nicht erreichbar; die Rückfallquelle (Copernicus GWIS)
         liefert weder Pixelgeometrie noch Konfidenz noch Leistung — daraus lassen sich keine Flächen und
-        keine Einträge bilden. Kartierte Flächen (EFFIS) werden weiter gezeigt.
+        keine Einträge bilden. Eine Rangfolge „nach Stärke" wäre in diesem Zustand erfunden; deshalb
+        gibt es sie nicht. Kartierte Flächen (EFFIS) werden weiter gezeigt.
       </p>
     );
   } else if (state.detections > 0 && !state.clustersReady) {
@@ -233,9 +246,13 @@ export function FireFootprintPanel(p: FootprintPanelProps) {
         <div className="fire-fp-ctl">
           <span className="fire-fp-lbl">Sortieren</span>
           <div className="fire-subseg" data-accent="terracotta" role="group" aria-label="Sortierung">
-            {(['area', 'recency', 'status'] as RecordSort[]).map((s) => (
-              <button key={s} type="button" className={p.sort === s ? 'is-active' : ''} onClick={() => p.onSort(s)}>
-                {s === 'area' ? 'Fläche' : s === 'recency' ? 'Aktualität' : 'Status'}
+            {(['area', 'strength', 'recency', 'status'] as RecordSort[]).map((s) => (
+              <button
+                key={s} type="button" className={p.sort === s ? 'is-active' : ''}
+                title={s === 'strength' ? 'Summe der Feuerstrahlungsleistung — die Rangfolge der früheren Cluster-Liste. Einträge ohne Detektion stehen hinten.' : undefined}
+                onClick={() => p.onSort(s)}
+              >
+                {s === 'area' ? 'Fläche' : s === 'strength' ? 'Stärke' : s === 'recency' ? 'Aktualität' : 'Status'}
               </button>
             ))}
           </div>
@@ -287,6 +304,38 @@ export function FireFootprintPanel(p: FootprintPanelProps) {
         </div>
       </div>
 
+      {/* BP5 — Ersatz für „N Cluster aus M Detektionen": dieselbe Aussage über
+          dieselbe Datenmenge, aber in der Bezugsgröße dieser Liste. Die
+          Verschmelzung wird benannt, damit die Zahl nicht als Widerspruch zur
+          Detektionszahl gelesen wird. */}
+      {anySource && list.length > 0 && state.detections > 0 && (
+        <p className="fire-clist-window">
+          {p.total === 1 ? 'Ein Brand' : `${p.total.toLocaleString('de-DE')} Brände`} aus{' '}
+          {state.detections.toLocaleString('de-DE')} Detektionen der letzten {windowLabel(p.windowH)} —
+          dem Fenster, das auch die Karte zeigt. Detektionsgruppen, die dieselbe kartierte Fläche
+          treffen, zählen als EIN Brand; kartierte Flächen ohne Überflug zählen mit.
+        </p>
+      )}
+
+      {/* BP5 — aus der Cluster-Ansicht mitgenommen: der Pflichthinweis steht ÜBER
+          der Liste, nicht unter ihr. Bei mehreren hundert Zeilen läge er sonst
+          hinter dem gesamten Scrollweg, die Zahlen stünden faktisch ohne ihn. */}
+      <p className="fire-clist-note">{CLUSTER_NOTE}</p>
+      {/* Die Stärke-Skala: dieselben Stopps, die den Punkt in der Zeile färben. */}
+      <div className="fire-clist-legend">
+        <span className="fire-li-unit">Stärke: Summe der Feuerstrahlungsleistung</span>
+        <ol>
+          {CLUSTER_FRP_STOPS.map(([mw, col], i) => (
+            <li key={mw}>
+              <span className="fire-swatch" style={{ background: col }} aria-hidden="true" />
+              <span className="fire-li-cls-range">
+                {i === CLUSTER_FRP_STOPS.length - 1 ? `ab ${mw} MW` : `${mw}–${CLUSTER_FRP_STOPS[i + 1][0]} MW`}
+              </span>
+            </li>
+          ))}
+        </ol>
+      </div>
+
       {/* Legende */}
       <div className="fire-fp-legend" aria-label="Legende">
         {(['active', 'no-signal', 'out'] as FireStatusKind[]).map((k) => (
@@ -320,10 +369,40 @@ export function FireFootprintPanel(p: FootprintPanelProps) {
                       <b className="fire-fprow-title">{recordTitle(r)}</b>
                       <span
                         className={`fire-fp-area${r.areaHa.kind === 'upper-bound' ? ' is-upper' : ''}`}
-                        title={missingReason(r, 'area') ?? (r.areaHa.kind === 'mapped' ? 'von EFFIS kartierte Fläche' : 'vom Satelliten abgedeckte Fläche — Obergrenze, keine Brandfläche')}
+                        title={missingReason(r, 'area') ?? (r.areaHa.kind === 'mapped'
+                          ? 'von EFFIS kartierte Fläche'
+                          : `vom Satelliten abgedeckte Fläche — Obergrenze, keine Brandfläche${
+                            provisionalArea(r) ? `. Vorläufige Brandfläche (geschätzt): ${provisionalArea(r)?.value}` : ''}`)}
                       >
                         {areaLabel(r)}
                       </span>
+                    </span>
+                    {/* BP5 — die Leistungszeile: Stärke (ΣFRP) mit ihrem
+                        Skalenpunkt und die Ausdehnung der Hülle. Ohne Detektion
+                        gibt es beides nicht; dann steht „—" MIT Grund, nie 0. */}
+                    <span className="fire-fprow-power">
+                      {r.sources.cluster ? (
+                        <>
+                          <span
+                            className="fire-crow-dot"
+                            style={{ background: r.suspectedStatic ? STATIC_GREY : clusterColorOf(r.sources.cluster) }}
+                            aria-hidden="true"
+                          />
+                          <b title="Summe der Feuerstrahlungsleistung über Pixel UND Überflüge — eine Leistung, keine Fläche und keine Energie.">
+                            {strengthLabel(r.sources.cluster)}
+                          </b>
+                          <span
+                            className="fire-crow-count"
+                            title="Ausdehnung der konvexen Hülle über die Detektionsorte — nicht die verbrannte Fläche."
+                          >
+                            {extentLabel(r.sources.cluster)} Ausdehnung
+                          </span>
+                        </>
+                      ) : (
+                        <span className="fire-crow-count" title={missingReason(r, 'hotspots') ?? ''}>
+                          — keine Leistung (keine Detektion im Fenster)
+                        </span>
+                      )}
                     </span>
                     <span className="fire-fprow-meta">
                       {statusLabel(r, nowMs)}
@@ -339,6 +418,13 @@ export function FireFootprintPanel(p: FootprintPanelProps) {
                         : <span title={missingReason(r, 'hotspots') ?? ''}>— Hotspots</span>}
                       {' · '}
                       <span title={missingReason(r, 'country') ?? ''}>{countryLabel(r.country)}</span>
+                      {/* SF1: nur die Richtung, und nur wenn es eine gibt — eine
+                          Platzhalterrichtung wäre schlimmer als keine Angabe. */}
+                      {(() => {
+                        const sp = p.spread?.byId.get(r.id) ?? null;
+                        const chip = sp ? spreadChip(sp) : null;
+                        return chip ? <> · <span className="fire-fp-spread-chip">{chip}</span></> : null;
+                      })()}
                     </span>
                     <span className="fire-fprow-chips">
                       {r.method.map((m) => (
@@ -370,7 +456,12 @@ export function FireFootprintPanel(p: FootprintPanelProps) {
         </div>
       )}
 
-      {anySource && p.detail && <FootprintDetail r={p.detail} nowMs={nowMs} onClose={p.onClearSelect} />}
+      {anySource && p.detail && (
+        <FootprintDetail
+          r={p.detail} nowMs={nowMs} onClose={p.onClearSelect}
+          spreadRun={p.spread ?? null}
+        />
+      )}
 
       <p className="fire-clist-note">{registryNote(p.windowH, HISTORY_DAYS)}</p>
       {p.placesLoaded && (
@@ -416,9 +507,19 @@ function FeaturesRow({ r, nowMs }: { r: FireRecord; nowMs: number }) {
 }
 
 /** Die Detailkarte eines Eintrags — im Panel, kein Popup. Jede Zahl mit Art und Quelle. */
-export function FootprintDetail({ r, nowMs, onClose }: { r: FireRecord; nowMs: number; onClose: () => void }) {
+export function FootprintDetail(
+  { r, nowMs, onClose, spreadRun = null }:
+  { r: FireRecord; nowMs: number; onClose: () => void; spreadRun?: SpreadRun | null },
+) {
+  // Der GANZE Lauf, nicht nur der Eintrag: nur so lässt sich „der Lauf kennt
+  // diesen Brand nicht" von „der Lauf hat für ihn keine Aussage" unterscheiden.
+  // Beides muss dastehen — ein stilles Fehlen der Zeile wäre die eine Variante,
+  // die der Nutzer nicht deuten kann (gemessen am 2026-08-19).
+  const spread = spreadRun?.byId.get(r.id) ?? null;
   const eff = r.sources.effis;
   const conf = r.confidence;
+  // VB3: die vorläufige Brandfläche — `null`, sobald eine Kartierung vorliegt.
+  const prov = provisionalArea(r);
   return (
     <section className="fire-fp-detail" aria-label={`Details ${recordTitle(r)}`}>
       <div className="fire-fp-detail-head">
@@ -433,13 +534,26 @@ export function FootprintDetail({ r, nowMs, onClose }: { r: FireRecord; nowMs: n
         <dt>Status</dt><dd>{statusLabel(r, nowMs)}</dd>
         <dt>Fläche</dt>
         <dd>
-          {areaLabel(r)}
-          {r.areaHa.kind === 'upper-bound' && ' — vom Satelliten abgedeckt (ein Pixel deckt 14–60 ha), Obergrenze, keine Brandfläche'}
-          {r.areaHa.kind === 'mapped' && ' — von EFFIS gemessen'}
-          {r.areaHa.value == null && ` (${missingReason(r, 'area')})`}
-          {r.sources.effisExtra > 0 && ` · ${r.sources.effisExtra} weitere Kartierung${r.sources.effisExtra === 1 ? '' : 'en'} im selben Cluster`}
+          {/* VB3: Ohne Kartierung steht hier die vorläufige Brandfläche — EINE
+              Aussage statt zweier Zeilen („bis 59 ha" oben, „≈ 8,9 ha" unten),
+              und exakt derselbe Text wie im Karten-Steckbrief. Mit Kartierung
+              bleibt alles wie bisher: dann misst EFFIS. */}
+          {prov ? (
+            <>
+              {prov.head}: <b>{prov.value}</b>
+              <span className="fire-fp-muted"> — {prov.note} {prov.source}</span>
+            </>
+          ) : (
+            <>
+              {areaLabel(r)}
+              {r.areaHa.kind === 'upper-bound' && ' — vom Satelliten abgedeckt (ein Pixel deckt 14–60 ha), Obergrenze, keine Brandfläche'}
+              {r.areaHa.kind === 'mapped' && ' — von EFFIS gemessen'}
+              {r.areaHa.value == null && ` (${missingReason(r, 'area')})`}
+              {r.sources.effisExtra > 0 && ` · ${r.sources.effisExtra} weitere Kartierung${r.sources.effisExtra === 1 ? '' : 'en'} im selben Cluster`}
+            </>
+          )}
         </dd>
-        {r.activity && (r.activity.areaEst || r.activity.areaEstReason) && (
+        {!prov && r.activity && (r.activity.areaEst || r.activity.areaEstReason) && (
           <>
             <dt>Schätzung</dt>
             <dd>
@@ -448,9 +562,6 @@ export function FootprintDetail({ r, nowMs, onClose }: { r: FireRecord; nowMs: n
                 : <span className="fire-fp-muted">— {r.activity.areaEstReason}</span>}
               {r.activity.areaEst && r.areaHa.kind === 'mapped' && r.areaHa.value != null && (
                 <span className="fire-fp-muted"> · zum Vergleich kartiert: {r.areaHa.value.toLocaleString('de-DE')} ha (die Kartierung gilt)</span>
-              )}
-              {r.activity.areaEst && r.areaHa.kind === 'upper-bound' && (
-                <span className="fire-fp-muted"> · das Raster oben ist die Abdeckung, nicht die Fläche</span>
               )}
             </dd>
           </>
@@ -501,7 +612,10 @@ export function FootprintDetail({ r, nowMs, onClose }: { r: FireRecord; nowMs: n
             )}
             {r.activity.spreadBearingDeg != null && (
               <>
-                <dt>Ausbreitung</dt>
+                {/* SF1: umbenannt, damit BEOBACHTUNG und RECHNUNG nicht
+                    verwechselt werden — die gerechnete Richtung steht direkt
+                    darunter in einer eigenen Zeile. */}
+                <dt>Ausbreitung bisher (beobachtet)</dt>
                 <dd>
                   Schwerpunkt wandert nach <b>{compassLabel(r.activity.spreadBearingDeg)}</b> ({r.activity.spreadBearingDeg}°, {r.activity.spreadDistanceM} m zwischen den Überflügen)
                   {r.activity.windAgreement === 'agree' && <> · <span className="fire-fp-wind is-agree">mit dem ICON-D2-Wind ({r.activity.windFromDeg}° aus)</span></>}
@@ -517,6 +631,35 @@ export function FootprintDetail({ r, nowMs, onClose }: { r: FireRecord; nowMs: n
             <dd>
               {r.activity.daynightMix ? DAYNIGHT_LABEL[r.activity.daynightMix] : '—'}
               {r.activity.meanScanKm != null && <> · mittlere Pixelbreite {r.activity.meanScanKm.toLocaleString('de-DE')} km{r.activity.meanScanKm > 0.6 ? ' (Schwadrand — größere Pixel, andere Detektionswahrscheinlichkeit)' : ''}</>}
+            </dd>
+          </>
+        )}
+        {/* SF1 — die GERECHNETE Richtung. Steht bewusst außerhalb des
+            Aktivitätsblocks: sie braucht keine drei Überflüge, sondern Wind,
+            Feuerwetter und Gelände. Sie ist nie leer — entweder ein Satz oder
+            ein benannter Grund. */}
+        {spreadRun && (
+          <>
+            <dt>Ausbreitungsrichtung (gerechnet, nächste Stunden)</dt>
+            <dd className="fire-fp-pred">
+              {spread
+                ? (
+                  <>
+                    {spreadHint(spread) ?? (
+                      <span className="fire-fp-muted">— {spread.reason ? gapText(spread.reason) : 'nicht bestimmbar'}</span>
+                    )}
+                    {observedCompareText(spread) && (
+                      <span className="fire-fp-muted"> · {observedCompareText(spread)}</span>
+                    )}
+                  </>
+                )
+                : (
+                  <span className="fire-fp-muted">
+                    — dieser Brand war beim letzten Lauf nicht dabei: gerechnet wird nur für Brände
+                    mit aktuellem Satellitensignal, und der Bestand kann sich seither geändert haben.
+                  </span>
+                )}
+              <span className="fire-fp-muted"> · {SPREAD_CAVEAT}</span>
             </dd>
           </>
         )}

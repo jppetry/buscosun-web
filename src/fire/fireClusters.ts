@@ -45,7 +45,7 @@ import { spatialClusters } from './fireEvents';
 import { detectionKey, type FirmsRow, type FirmsConfidence } from './sources/firmsHotspots';
 // AF1: die EINE Überflug-Regel (10 min je Satellit) — geteilt mit `fireEvents.ts` (V-AF-2).
 import { groupPasses, type FirePass } from './activity/overpasses';
-import { ageText, clockLabel } from '../dataAge';
+import { ageText, stampLabel } from '../dataAge';
 import type { Country } from '../types';
 
 /**
@@ -390,9 +390,14 @@ export function extentLabel(c: FireCluster): string {
   return `${c.hullKm2.toLocaleString('de-DE', { maximumFractionDigits: 1 })} km²`;
 }
 
-/** Letzte Detektion: Uhrzeit + Alter — dieselbe Alterssprache wie überall (D-04). */
+/**
+ * Letzte Detektion: Zeitpunkt + Alter — dieselbe Zeit- und Alterssprache wie in
+ * der Brandflächen-Liste (`stampLabel`, D-04). Liegt der Überflug nicht mehr im
+ * heutigen Kalendertag, trägt der Zeitpunkt das Datum: im 7-Tage-Fenster wäre
+ * eine nackte Uhrzeit sonst eine Falschaussage über die Aktualität.
+ */
 export function lastSeenLabel(c: FireCluster, nowMs: number): string {
-  return `${clockLabel(c.lastMs)} · ${ageText(Math.max(0, nowMs - c.lastMs))}`;
+  return `${stampLabel(c.lastMs, nowMs)} · ${ageText(Math.max(0, nowMs - c.lastMs))}`;
 }
 
 /**
@@ -614,9 +619,14 @@ export function verifyFireClusters(): { checks: ClusterCheck[]; passed: number; 
   add('keine Cluster-Beschriftung behauptet „bestätigt"',
     ![strengthLabel(box), extentLabel(box), countryLabel('DE'), CLUSTER_NOTE]
       .some((s) => /bestätigt/i.test(s)));
-  add('„letzte Detektion" nennt Uhrzeit UND Alter',
+  add('„letzte Detektion" nennt Zeitpunkt UND Alter',
     /·/.test(lastSeenLabel(box, now + HOUR)) && /vor 1 h/.test(lastSeenLabel(box, now + HOUR)),
     lastSeenLabel(box, now + HOUR));
+  // Im 7-Tage-Fenster liegt die letzte Detektion oft nicht mehr heute — dann
+  // trägt der Zeitpunkt das Datum, sonst läse sich „03:43" wie heute Nacht.
+  add('… und trägt bei einem Überflug vor Tagen das Datum',
+    /^\d{2}\.\d{2}\., \d{2}:\d{2} · vor 3 T/.test(lastSeenLabel(box, now + 3 * 24 * HOUR)),
+    lastSeenLabel(box, now + 3 * 24 * HOUR));
 
   // --- GeoJSON -------------------------------------------------------------------
   const fc = clustersToGeoJSON([box, one[0]]);

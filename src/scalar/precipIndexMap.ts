@@ -8,7 +8,9 @@
  * zuschaltet.
  */
 
-import { psFwd } from '../sources/radolan';
+import { psFwd } from '../sources/radolanGeo';
+import { incaFwd } from '../sources/geosphereIncaGeo';
+import { rzcFwd } from '../sources/meteoSwissGeo';
 import type { QuadCorners } from './RainLayer';
 
 /** DACH-Komposit-Gitter (reguläres lat/lon, ~0,02° ≈ 2 km). */
@@ -36,25 +38,44 @@ function invBilinear(nw: XY, ne: XY, se: XY, sw: XY, px: number, py: number): [n
   return [u, v];
 }
 
-/** Baut die Zelle→Quellgitter-Index-Map (−1 = außerhalb des Quellgitters).
- *  `ps`=true → Verortung im polar-stereografischen Raum (RADOLAN). */
+/**
+ * Quellgitter-Kennung — bestimmt Projektion UND Eck-Konvention. Ein String (kein
+ * Funktions-Handle), damit der Wert strukturiert klonbar über die Worker-Grenze
+ * geht. Die Zuordnung ist dieselbe wie in `pointForecast/radarSample.ts`, damit
+ * Karte, Komposit und Punktabfrage EINE Verortung teilen (RP1/RP2, s.
+ * `audit/radar-punktverortung.md`).
+ */
+export type GridKind = 'radolan' | 'inca' | 'rzc' | 'lonlat';
+
+interface GridGeo { project: ((lon: number, lat: number) => XY) | null; edge: boolean }
+const GRID_GEO: Record<GridKind, GridGeo> = {
+  radolan: { project: psFwd,   edge: true },   // DE1200, polar-stereografisch, Ecken = Außenkanten
+  inca:    { project: incaFwd, edge: true },   // AT, Lambert, Ecken = Außenkanten (s. geosphereIncaGrid)
+  rzc:     { project: rzcFwd,  edge: true },   // CH, LV95/somerc, Ecken = Außenkanten
+  lonlat:  { project: null,    edge: false },  // ICON-D2 `regular-lat-lon`: schon regulär
+};
+
+/** Baut die Zelle→Quellgitter-Index-Map (−1 = außerhalb des Quellgitters). */
 export function buildIndexMap(
   corners: QuadCorners, sCols: number, sRows: number,
-  lat: Float32Array, lon: Float32Array, ps: boolean,
+  lat: Float32Array, lon: Float32Array, grid: GridKind,
 ): Int32Array {
+  const { project, edge } = GRID_GEO[grid];
   const [NW, NE, SE, SW] = corners;
-  const cNW: XY = ps ? psFwd(NW[0], NW[1]) : [NW[0], NW[1]];
-  const cNE: XY = ps ? psFwd(NE[0], NE[1]) : [NE[0], NE[1]];
-  const cSE: XY = ps ? psFwd(SE[0], SE[1]) : [SE[0], SE[1]];
-  const cSW: XY = ps ? psFwd(SW[0], SW[1]) : [SW[0], SW[1]];
+  const pc = (c: [number, number]): XY => (project ? project(c[0], c[1]) : [c[0], c[1]]);
+  const cNW = pc(NW), cNE = pc(NE), cSE = pc(SE), cSW = pc(SW);
   const out = new Int32Array(lat.length);
   for (let i = 0; i < out.length; i++) {
     let px = lon[i], py = lat[i];
-    if (ps) { const p = psFwd(lon[i], lat[i]); px = p[0]; py = p[1]; }
+    if (project) { const p = project(lon[i], lat[i]); px = p[0]; py = p[1]; }
     const [u, v] = invBilinear(cNW, cNE, cSE, cSW, px, py);
     if (u < -0.001 || u > 1.001 || v < -0.001 || v > 1.001) { out[i] = -1; continue; }
-    const col = Math.min(sCols - 1, Math.max(0, Math.round(u * (sCols - 1))));
-    const row = Math.min(sRows - 1, Math.max(0, Math.round(v * (sRows - 1))));
+    const col = edge
+      ? Math.min(sCols - 1, Math.max(0, Math.floor(u * sCols)))
+      : Math.min(sCols - 1, Math.max(0, Math.round(u * (sCols - 1))));
+    const row = edge
+      ? Math.min(sRows - 1, Math.max(0, Math.floor(v * sRows)))
+      : Math.min(sRows - 1, Math.max(0, Math.round(v * (sRows - 1))));
     out[i] = row * sCols + col;
   }
   return out;
@@ -81,10 +102,10 @@ export function gridLatLon(): { lat: Float32Array; lon: Float32Array } {
 
 /** Worker-taugliche Fassade von buildIndexMap: baut lat/lon lokal neu statt sie
  *  entgegenzunehmen (s. gridLatLon) — der Aufruf braucht nur
- *  `corners`/`sCols`/`sRows`/`ps` (klein, strukturiert klonbar). */
+ *  `corners`/`sCols`/`sRows`/`grid` (klein, strukturiert klonbar). */
 export function buildCompositeIndexMap(
-  corners: QuadCorners, sCols: number, sRows: number, ps: boolean,
+  corners: QuadCorners, sCols: number, sRows: number, grid: GridKind,
 ): Int32Array {
   const { lat, lon } = gridLatLon();
-  return buildIndexMap(corners, sCols, sRows, lat, lon, ps);
+  return buildIndexMap(corners, sCols, sRows, lat, lon, grid);
 }

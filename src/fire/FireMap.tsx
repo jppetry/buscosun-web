@@ -25,7 +25,7 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { loadDachMask } from '../countryMask';
 import {
-  FIRE_LAYER_ORDER, sortByZBand, FIRE_SOURCE_CH, FIRE_SOURCE_DE, type FireLayerId,
+  FIRE_LAYER_ORDER, sortByZBand, type FireLayerId,
 } from './fireModel';
 import { ScalarLayer } from '../scalar/ScalarLayer';
 import { readDeviceCaps, initialTier, type PerfTier } from '../wind/perfGovernor';
@@ -35,15 +35,16 @@ import {
 } from '../wind/iconD2WindSource';
 import { soilDrynessRamp, ICON_D2_SMI_ATTRIBUTION } from '../sources/iconD2Smi';
 import { drynessRamp, RELHUM_DRY_FROM, RELHUM_MAX } from '../sources/iconD2Relhum';
-import { ICON_D2_FIRE_WEATHER_ATTRIBUTION } from '../sources/iconD2FireWeather';
-import { isiRamp } from './fwi/isiRamp';
+import {
+  FIRE_SPREAD_ATTRIBUTION, SPREAD_ARROW_IMAGE_ID, SPREAD_ARROW_IMAGE_IDS,
+  SPREAD_ARROW_LAYER_ID, SPREAD_ARROW_UNSURE_SUFFIX, SPREAD_FAN_LAYER_ID,
+  SPREAD_FAN_LINE_LAYER_ID, SPREAD_SOURCE_ID, makeSpreadArrowImage,
+} from './spread/spreadLayer';
 import { gwisRasterSource, gwisPrefetchUrls, GWIS_FWI_ATTRIBUTION } from './sources/gwisFwi';
 import { GWIS_HOTSPOT_ATTRIBUTION } from './sources/gwisHotspots';
 import {
   FIRMS_ATTRIBUTION, FRP_STOPS, FOOTPRINT_MIN_ZOOM, type FirmsProps,
 } from './sources/firmsHotspots';
-import { BAFU_ATTRIBUTION } from './sources/bafuFire';
-import { DWD_FIRE_ATTRIBUTION } from './sources/dwdFireIndex';
 import {
   fuelMapSource, natura2000Source, clc2018Source, EFFIS_BURNT_ATTRIBUTION, type BurntBucket,
 } from './sources/euContext';
@@ -51,7 +52,8 @@ import { DANGER_VIEWS, type DangerView } from './dangerViews';
 import { assess, type Assessment } from './fireAssessment';
 import { LINK_RADIUS_M, type FireEvent } from './fireEvents';
 import { clustersToGeoJSON, STATIC_GREY, type FireCluster } from './fireClusters';
-import { STATUS_COLOR } from './footprint/fireRegistry';
+import { STATUS_COLOR, provisionalAreaText } from './footprint/fireRegistry';
+import type { AreaEstimate } from './activity/estimate';
 import { emsActivationFor, type EmsActivation } from './sources/emsActivations';
 import {
   zonesToGeoJSON, zoneAt, zoneForDetection, zoneAreaLabel, zoneAreaNote,
@@ -66,8 +68,10 @@ import {
   corroborationLabel, NO_MAPPING_NOTE, type BurntPolygon,
 } from './fireCorroboration';
 
-/** Vektor-Basiskarte wie im Regenradar (`radar/RadarMap.tsx:26`). */
-const STREETS = 'https://tiles.openfreemap.org/styles/liberty';
+/** Vektor-Basiskarte wie in der Wetterkarte (`MapView.tsx:1222`): der helle
+ *  Positron-Stil, nicht der bunte Liberty-Stil. Zusammen mit dem Ink-Schleier
+ *  und der sandfarbenen DACH-Maske ergibt das dieselbe Kartenoptik wie dort. */
+const STREETS = 'https://tiles.openfreemap.org/styles/positron';
 
 /** DACH-Überblick: der Ausschnitt, in dem die Ansicht startet. */
 const DACH_BOUNDS: [number, number, number, number] = [5.5, 45.5, 17.5, 55.5];
@@ -100,7 +104,6 @@ function basemapStyle(b: FireBasemap): string | maplibregl.StyleSpecification {
  *  brauchen (Fläche + Kontur) — deshalb eine Liste, keine 1:1-Zuordnung. */
 const GL_LAYERS: Record<FireLayerId, string[]> = {
   fireDanger: ['fire-danger-raster'],
-  fireIndexNational: ['fire-national-fill', 'fire-national-line', 'fire-national-points'],
   // F1: Footprint-Rechteck (Pixelausdehnung) UNTER dem Mittelpunkt — die Fläche
   // ist die räumliche Unsicherheit, der Punkt die Pixelmitte. Reihenfolge zählt:
   // MapLibre zeichnet in Einfügereihenfolge, der Punkt muss oben liegen.
@@ -118,7 +121,6 @@ const GL_LAYERS: Record<FireLayerId, string[]> = {
   // Custom-Layer (ScalarLayer), kein GeoJSON-Layer — deshalb kein Platzhalter
   // in installLayers; er wird in applyState eingehängt, sobald Daten da sind.
   fireWeather: ['fire-weather-scalar'],
-  fireBans: ['fire-bans-fill', 'fire-bans-line'],
   // WB4: blockiert (EDO sendet ungueltiges CORS) — Platzhalter bleiben, damit
   // die Z-Ordnung steht, falls Jan den Rewrite freigibt.
   fireDrought: ['fire-drought-fill'],
@@ -147,9 +149,12 @@ const GL_LAYERS: Record<FireLayerId, string[]> = {
   fireFootprints: [
     'fire-footprints-fill', 'fire-footprints-line', 'fire-footprints-hover-line', 'fire-footprints-sel-line',
   ],
-  // WF4: WebGL-Custom-Layer (ScalarLayer) wie `fireWeather`/`fireSoilDryness` —
-  // kein Platzhalter in installLayers, plus der leere Lizenzträger.
-  fireForecast: ['fire-forecast-attrib', 'fire-forecast-scalar'],
+  // SF1: ein echter Symbol-Layer (kein Custom-GL-Layer) plus der Fächer und
+  // der leere Lizenzträger. Reihenfolge = Zeichenreihenfolge im selben Z-Band:
+  // Fächerfläche, Fächerkontur, dann die Pfeile obenauf.
+  fireSpread: [
+    'fire-spread-attrib', SPREAD_FAN_LAYER_ID, SPREAD_FAN_LINE_LAYER_ID, SPREAD_ARROW_LAYER_ID,
+  ],
 };
 
 /**
@@ -169,9 +174,10 @@ const GL_LAYERS: Record<FireLayerId, string[]> = {
 const ATTRIB_CARRIERS: readonly { layerId: string; sourceId: string; attribution: string }[] = [
   { layerId: 'fire-wind-attrib', sourceId: 'fire-wind-attr', attribution: ICON_D2_WIND_ATTRIBUTION },
   { layerId: 'fire-soil-attrib', sourceId: 'fire-soil-attr', attribution: ICON_D2_SMI_ATTRIBUTION },
-  // WF4: die Zeile nennt die sechs ICON-D2-Felder UND sagt „kein amtliches
-  // Produkt" — der Layer ist eine buscosun-Rechnung auf DWD-Daten.
-  { layerId: 'fire-forecast-attrib', sourceId: 'fire-forecast-attr', attribution: ICON_D2_FIRE_WEATHER_ATTRIBUTION },
+  // SF1: der Symbol-Layer trägt zwar eine Source, aber sein Fächer und seine
+  // Pfeile stammen aus EINER eigenen Rechnung über zwei Fremdquellen (ICON-D2
+  // und Höhenmodell) — die Zeile nennt beide und den Modellvorbehalt.
+  { layerId: 'fire-spread-attrib', sourceId: 'fire-spread-attr', attribution: FIRE_SPREAD_ATTRIBUTION },
 ];
 
 /**
@@ -184,7 +190,7 @@ const ATTRIB_CARRIERS: readonly { layerId: string; sourceId: string; attribution
  * ersten Verdrahten des Treibers passiert: Werte korrekt geladen, nichts sichtbar.
  */
 const CUSTOM_GL_LAYERS = new Set([
-  'fire-weather-scalar', 'fire-wind-particles', 'fire-soil-scalar', 'fire-forecast-scalar',
+  'fire-weather-scalar', 'fire-wind-particles', 'fire-soil-scalar',
 ]);
 
 const BURNT_GL: Record<BurntBucket, string[]> = {
@@ -201,12 +207,6 @@ interface Props {
   day: number;
   /** Tag als `YYYY-MM-DD` (UTC) aus `fireTime.dayToIsoDate()` — eine Datumsquelle. */
   isoDate: string;
-  /** CH-Gefahrenstufen (BAFU), bereits geladen. `null` = noch nicht da. */
-  chDanger: GeoJSON.FeatureCollection | null;
-  /** CH-Feuerverbote (BAFU). */
-  chBans: GeoJSON.FeatureCollection | null;
-  /** DE-Stationspunkte mit der Stufe des gewählten Tages als `level`. */
-  deStations: GeoJSON.FeatureCollection | null;
   /** Satelliten-Hotspots im gewählten Fenster — die Pixelmitten. */
   hotspots: GeoJSON.FeatureCollection | null;
   /** Footprint-Rechtecke derselben Detektionen (aus `scan`×`track`). */
@@ -260,6 +260,12 @@ interface Props {
   burntLookup: ReadonlyMap<string, BurntPolygon>;
   /** Flächen der letzten 7 Tage — Bestätigung im Detektions-Steckbrief (E1/E2). */
   burntWeek: readonly BurntPolygon[];
+  /**
+   * VB3: Flächenschätzung je Zone (`zone.id` → Schätzung), damit der
+   * Karten-Steckbrief dieselbe Aussage trägt wie das Panel. Leer, solange das
+   * Kalibriermodell nicht geladen ist — dann bleibt der Rasterkopf stehen.
+   */
+  zoneEstimates?: ReadonlyMap<string, AreaEstimate>;
   /** GWBA1 A4: Ereignisse (für Überflüge/Ortsfestigkeit je Detektion), EMS-Abzeichen (A2), AT-Kontext (A3). */
   fireEvents?: readonly FireEvent[];
   emsActs?: readonly EmsActivation[];
@@ -290,12 +296,11 @@ interface Props {
   soil: { image: HTMLCanvasElement; width: number; height: number;
     uvBounds: [number, number, number, number] } | null;
   /**
-   * WF4 — Feuerwetter stündlich: der fertige ISI-Frame des passenden Schritts.
-   * Wie beim Treiber trifft `FirePage` die Zeitwahl (`frameAtValidTime`), die
-   * Karte zeichnet nur. Der R-Kanal trägt bereits `ISI/ISI_VMAX` (0..1).
+   * SF1 — die Ausbreitungspfeile und -fächer als GeoJSON (`spreadToGeoJSON`),
+   * **memoisiert** vom Aufrufer (V-220). Ein Brand ohne Aussage liefert hier
+   * KEIN Feature; sein Grund steht im Panel, nicht als Platzhalter auf der Karte.
    */
-  forecast: { image: HTMLCanvasElement; width: number; height: number;
-    uvBounds: [number, number, number, number] } | null;
+  spreadFc?: GeoJSON.FeatureCollection | null;
   /**
    * WF4 — Klick auf die Karte bei aktivem Forecast-Layer: die Stelle, für die
    * die Punktkurve aus dem Punkt-Forecast der Fusion geholt wird. Läuft VOR der
@@ -313,6 +318,8 @@ const EMPTY_FC: GeoJSON.FeatureCollection = { type: 'FeatureCollection', feature
 const EMPTY_EVENTS: readonly FireEvent[] = [];
 const EMPTY_EMS: readonly EmsActivation[] = [];
 const EMPTY_CTX: ReadonlyMap<string, AtWarnContext> = new Map();
+/** VB3: stabile Leer-Referenz — sonst wechselt die Prop bei jedem Render (V-220). */
+const EMPTY_ZONE_EST: ReadonlyMap<string, AreaEstimate> = new Map();
 const EMPTY_ZONES: readonly FireZone[] = [];
 const EMPTY_CLUSTERS: readonly FireCluster[] = [];
 
@@ -336,21 +343,6 @@ export function eventForDetection(lat: number, lon: number, acqMs: number, event
 /** Zuletzt gesetzte Daten je GeoJSON-Quellinstanz — s. Kommentar in `applyState`. */
 const LAST_SET_DATA = new WeakMap<object, GeoJSON.FeatureCollection>();
 
-/**
- * Farbausdruck aus einer **quellenreinen** Stufentabelle.
- *
- * Die Farbe kommt aus `FIRE_SOURCE_*`, nicht aus dem Feature: Die BAFU-Features
- * tragen kein Farbfeld (WB0 gemessen), und der DWD liefert überhaupt keine
- * Hexwerte. Beide Tabellen werden hier **getrennt** ausgewertet — es gibt
- * bewusst keine gemeinsame Funktion „Stufe → Farbe", die beide bedient, denn
- * genau die wäre die verbotene Umrechnung („geringe Gefahr" ist DE 2 und CH 1).
- */
-function levelColorExpression(scale: readonly { level: number; color: string }[]) {
-  const stops: (string | number)[] = [];
-  for (const s of scale) stops.push(s.level, s.color);
-  return ['match', ['get', 'level'], ...stops, '#B9B2A2'] as unknown as maplibregl.ExpressionSpecification;
-}
-
 /** Füllfarbe der Brandflächen nach dominanter Landbedeckung — aus EINER Tabelle
  *  (`LANDCOVER_COLOR`), die auch die Legende speist. */
 /** BP2: Statusfarbe aus `STATUS_COLOR` — eine Quelle für Karte, Liste, Legende. */
@@ -367,15 +359,15 @@ function landcoverColorExpression() {
 }
 
 export default function FireMap({
-  active, basemap, day, isoDate, chDanger, chBans, deStations, hotspots, hotspotFootprints,
+  active, basemap, day, isoDate, hotspots, hotspotFootprints,
   fireZones = EMPTY_ZONES,
   clusters = EMPTY_CLUSTERS, selectedClusterId = null, focusNonce = 0, onSelectCluster,
   footprintFc = null, hoverFootprintId = null, selectedFootprintId = null, focusBbox = null, onSelectFootprint,
   hotspotProvider, dangerView, burntSeason, burntArchive, burntWeekFc = null,
-  burntBuckets, burntLookup, burntWeek,
+  burntBuckets, burntLookup, burntWeek, zoneEstimates = EMPTY_ZONE_EST,
   fireEvents = EMPTY_EVENTS, emsActs = EMPTY_EMS, atContexts = EMPTY_CTX, clcMask = null,
   weather, wind, soil, prefetchIsoDate, onTier, onMapRef, windTargetMs = null,
-  forecast = null, onPointForecast,
+  spreadFc = null, onPointForecast,
 }: Props) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -411,16 +403,16 @@ export default function FireMap({
     [clusters],
   );
   const stateRef = useRef({
-    active, isoDate, chDanger, chBans, deStations, hotspots, hotspotFootprints, fireZones, zoneFc,
+    active, isoDate, hotspots, hotspotFootprints, fireZones, zoneFc,
     clusters, clusterFc, selectedClusterId, footprintFc, hoverFootprintId, selectedFootprintId,
-    hotspotProvider, dangerView, burntSeason, burntArchive, burntWeekFc, burntBuckets, burntLookup, burntWeek, weather,
-    wind, soil, forecast, fireEvents, emsActs, atContexts, clcMask,
+    hotspotProvider, dangerView, burntSeason, burntArchive, burntWeekFc, burntBuckets, burntLookup, burntWeek, zoneEstimates, weather,
+    wind, soil, spreadFc, fireEvents, emsActs, atContexts, clcMask,
   });
   stateRef.current = {
-    active, isoDate, chDanger, chBans, deStations, hotspots, hotspotFootprints, fireZones, zoneFc,
+    active, isoDate, hotspots, hotspotFootprints, fireZones, zoneFc,
     clusters, clusterFc, selectedClusterId, footprintFc, hoverFootprintId, selectedFootprintId,
-    hotspotProvider, dangerView, burntSeason, burntArchive, burntWeekFc, burntBuckets, burntLookup, burntWeek, weather,
-    wind, soil, forecast, fireEvents, emsActs, atContexts, clcMask,
+    hotspotProvider, dangerView, burntSeason, burntArchive, burntWeekFc, burntBuckets, burntLookup, burntWeek, zoneEstimates, weather,
+    wind, soil, spreadFc, fireEvents, emsActs, atContexts, clcMask,
   };
   /** Der Auswahl-Rückruf, so wie er JETZT ist — der Klick-Handler wird einmal
    *  registriert und dürfte sonst für immer den ersten Rückruf halten. */
@@ -436,7 +428,6 @@ export default function FireMap({
    *  hinweg, genau wie der Treiber (MapLibre verwirft Custom-Layer beim setStyle). */
   const soilLayerRef = useRef<ScalarLayer | null>(null);
   /** WF4 — der ScalarLayer des stündlichen ISI. Eine Instanz über Stilwechsel. */
-  const forecastLayerRef = useRef<ScalarLayer | null>(null);
   /** WF4 — der Klick-Haken für die Punktkurve (einmal registriert, s. onSelectCluster). */
   const onPointForecastRef = useRef(onPointForecast);
   onPointForecastRef.current = onPointForecast;
@@ -472,7 +463,7 @@ export default function FireMap({
     if (!m.getStyle() || !m.isStyleLoaded()) return;
     const s = stateRef.current;
 
-    installLayers(m);
+    installLayers(m, basemapRef.current);
 
     // EU-Raster: Die Kachel-URL trägt den Tag UND den Layer der Sub-Ansicht (E3),
     // also muss die Quelle bei einem Wechsel ersetzt werden — eine `raster`-
@@ -495,13 +486,13 @@ export default function FireMap({
     // Daten. Ohne Daten ausdrücklich die LEERE Sammlung — ein Layer, der beim
     // Tageswechsel den Vortagesstand weiterzeigt, wäre die stille Falschaussage.
     const data: Array<[string, GeoJSON.FeatureCollection | null]> = [
-      ['fire-ch-danger', s.chDanger], ['fire-ch-bans', s.chBans],
-      ['fire-de-stations', s.deStations], ['fire-hotspots', s.hotspots],
+      ['fire-hotspots', s.hotspots],
       ['fire-hotspots-foot', s.hotspotFootprints], ['fire-hotspots-zone', s.zoneFc],
       ['fire-clusters', s.clusterFc],
       ['fire-burnt-season', s.burntSeason], ['fire-burnt-archive', s.burntArchive],
       ['fire-burnt-week', s.burntWeekFc],
       ['fire-footprints', s.footprintFc],
+      [SPREAD_SOURCE_ID, s.spreadFc],
     ];
     for (const [id, fc] of data) {
       const src = m.getSource(id) as maplibregl.GeoJSONSource | undefined;
@@ -634,43 +625,6 @@ export default function FireMap({
     }
 
     /**
-     * WF4 — Feuerwetter stündlich (`ScalarLayer`), Muster wie die beiden Treiber
-     * darüber: idempotent einhängen, weil `setStyle` Custom-Layer verwirft.
-     *
-     * `visRange` bleibt bei 0: die Ausblendung sitzt in der Rampe selbst — die
-     * unterste EFFIS-Klasse („Low") ist halbtransparent. Eine zweite, frei
-     * gewählte Sichtbarkeitsschwelle daneben würde die Klassengrenzen der
-     * Legende gegenüber der Fläche verschieben.
-     */
-    if (s.forecast) {
-      if (!forecastLayerRef.current) {
-        forecastLayerRef.current = new ScalarLayer({
-          id: 'fire-forecast-scalar',
-          colorRamp: isiRamp,
-          visRange: { start: 0, end: 0 },
-          opacity: 0.75,
-          zoomAttenuation: { from: 11, perStep: 0.08, floor: 0.7 },
-        });
-      }
-      if (!m.getLayer('fire-forecast-scalar')) {
-        m.addLayer(
-          forecastLayerRef.current as unknown as maplibregl.LayerSpecification,
-          firstLayerAbove(m, 'fireForecast'),
-        );
-      }
-      if (import.meta.env.DEV) {
-        (window as unknown as { __fireForecastLayer?: ScalarLayer }).__fireForecastLayer = forecastLayerRef.current;
-      }
-      forecastLayerRef.current.setData(s.forecast.image, {
-        width: s.forecast.width, height: s.forecast.height,
-        // Der R-Kanal trägt bereits ISI/ISI_VMAX (Normierung im Producer) —
-        // die Rampe erwartet genau diese 0..1 (s. `isiRamp`).
-        vMin: 0, vMax: 1,
-        uvBounds: s.forecast.uvBounds,
-      });
-    }
-
-    /**
      * WW1 — Windpartikel (`WindLayer`), wertgleich zur Wetterkarte.
      *
      * Dieselbe Falle wie beim Treiber: KEIN Platzhalter in `installLayers`,
@@ -754,6 +708,9 @@ export default function FireMap({
       dragRotate: false,
     });
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
+    if (import.meta.env.DEV) {
+      (window as unknown as { __fireMap?: maplibregl.Map }).__fireMap = map;
+    }
     // Beide Ereignisse: LOAD einmal beim Start, STYLEDATA nach jedem
     // Basiskarten-Wechsel — MapLibre verwirft dabei alle eigenen Layer. IDLE
     // fängt den Rest ab. applyState ist idempotent, mehrfaches Auslösen ist folgenlos.
@@ -797,13 +754,26 @@ export default function FireMap({
        * Ausschluss zur Cluster-Auswahl regelt die Seite in ihren Settern.
        */
       /**
-       * WF4 — die Punktkurve: derselbe Platz und dieselbe Regel wie die beiden
-       * Auswahl-Blöcke — vor der Popup-Kette, ohne `return`, ohne Popup. Ein
-       * Klick auf die Karte holt den Punkt-Forecast der Fusion für DIESE Stelle;
-       * alles darunter (Detektions-Steckbrief, Flächen-Popup) bleibt unberührt.
+       * WF4/SF1 — die Punktkurve: derselbe Platz und dieselbe Regel wie die
+       * beiden Auswahl-Blöcke — vor der Popup-Kette, ohne `return`, ohne Popup.
+       * Ein Klick auf die Karte holt den Punkt-Forecast der Fusion für DIESE
+       * Stelle; alles darunter bleibt unberührt. Sie hing an der zurückgezogenen
+       * Rasterfläche und hängt jetzt am Ausbreitungslayer — sie ist ein Hinweis,
+       * keine Fläche, und geht mit dem Rückzug NICHT verloren.
        */
-      if (onPointForecastRef.current && s.active.has('fireForecast')) {
+      if (onPointForecastRef.current && s.active.has('fireSpread')) {
         onPointForecastRef.current(ev.lngLat.lng, ev.lngLat.lat);
+      }
+
+      /**
+       * SF1 — Klick auf einen Pfeil wählt seinen Brand aus. Kein vierter
+       * Popup-Dialekt: die Auswahl führt in DIESELBE Detailkarte im Panel wie
+       * ein Klick auf die Brandfläche.
+       */
+      if (onSelectFootprintRef.current && map.getLayer(SPREAD_ARROW_LAYER_ID)) {
+        const arrows = map.queryRenderedFeatures(ev.point, { layers: [SPREAD_ARROW_LAYER_ID] });
+        const id = arrows.length > 0 ? String(arrows[0].properties?.id ?? '') : null;
+        if (id && id !== s.selectedFootprintId) onSelectFootprintRef.current(id);
       }
       if (onSelectFootprintRef.current && map.getLayer('fire-footprints-fill')) {
         const fps = map.queryRenderedFeatures(ev.point, { layers: ['fire-footprints-fill'] });
@@ -878,7 +848,7 @@ export default function FireMap({
             .setLngLat(ev.lngLat)
             .setHTML(hotspotPopupHtml(p, hits.length, mapped, assessment,
               Array.isArray(geom?.coordinates) ? countryGuess(geom.coordinates[1], geom.coordinates[0]) : null,
-              zone))
+              zone, zone ? s.zoneEstimates.get(zone.id) ?? null : null))
             .addTo(map);
           return;
         }
@@ -910,12 +880,15 @@ export default function FireMap({
       popupRef.current?.remove();
       popupRef.current = new maplibregl.Popup({ closeButton: true, maxWidth: '300px' })
         .setLngLat(ev.lngLat)
-        .setHTML(zonePopupHtml(zone, mappedAreaFor(
-          { lon: zone.lon, lat: zone.lat, acqMs: zone.lastMs }, s.burntWeek)))
+        .setHTML(zonePopupHtml(
+          zone,
+          mappedAreaFor({ lon: zone.lon, lat: zone.lat, acqMs: zone.lastMs }, s.burntWeek),
+          s.zoneEstimates.get(zone.id) ?? null,
+        ))
         .addTo(map);
     });
     map.on('mousemove', (ev) => {
-      const layers = present(['fire-hotspots-points', 'fire-hotspots-zone-fill', 'fire-clusters-fill', 'fire-footprints-fill', ...BURNT_FILLS]);
+      const layers = present(['fire-hotspots-points', 'fire-hotspots-zone-fill', 'fire-clusters-fill', 'fire-footprints-fill', SPREAD_ARROW_LAYER_ID, ...BURNT_FILLS]);
       if (layers.length === 0) return;
       const over = map.queryRenderedFeatures(ev.point, { layers }).length > 0;
       map.getCanvas().style.cursor = over ? 'pointer' : '';
@@ -1039,8 +1012,8 @@ export default function FireMap({
   useEffect(() => {
     const m = mapRef.current;
     if (m) applyState(m);
-  }, [active, isoDate, chDanger, chBans, deStations, hotspots, dangerView,
-    burntSeason, burntArchive, burntBuckets, weather, wind, soil, forecast, day,
+  }, [active, isoDate, hotspots, dangerView,
+    burntSeason, burntArchive, burntBuckets, weather, wind, soil, spreadFc, day,
     // BP2: neue Referenzen der Registry sofort, nicht erst beim nächsten `idle`.
     footprintFc, selectedFootprintId]);
 
@@ -1140,7 +1113,7 @@ export function countryGuess(lat: number, lon: number): Country {
   return 'DE';
 }
 
-export function hotspotPopupHtml(p: FirmsProps, hitCount = 1, mapped: BurntPolygon | null = null, assessment: Assessment | null = null, country: Country | null = null, zone: FireZone | null = null): string {
+export function hotspotPopupHtml(p: FirmsProps, hitCount = 1, mapped: BurntPolygon | null = null, assessment: Assessment | null = null, country: Country | null = null, zone: FireZone | null = null, est: AreaEstimate | null = null): string {
   const t = typeof p.acqMs === 'number' ? new Date(p.acqMs) : null;
   const utc = t ? `${t.toISOString().slice(0, 16).replace('T', ' ')} UTC` : '—';
   const local = t
@@ -1197,6 +1170,18 @@ export function hotspotPopupHtml(p: FirmsProps, hitCount = 1, mapped: BurntPolyg
     ? `<p class="fire-pop-zone"><b>${esc(zoneAreaLabel(zone))}</b><br>${esc(zoneAreaNote(zone))}</p>`
     : '';
 
+  // VB3: die vorläufige Brandfläche — dieselbe Aussage wie im Panel, aus derselben
+  // Funktion (`provisionalAreaText`). Sie steht VOR dem Raster: die Frage lautet
+  // „wie groß ist der Brand", das Raster ist die Auflösung der Messung, nicht die
+  // Antwort. Mit Kartierung entfällt sie — dann misst EFFIS, statt zu schätzen.
+  const provHtml = est && !mapped && zone
+    ? (() => {
+      const prov = provisionalAreaText(est, zone.areaHa);
+      return `<p class="fire-pop-prov"><b>${esc(prov.head)}: ${esc(prov.value)}</b><br>
+        ${esc(prov.note)}<br><span class="fire-pop-prov-src">${esc(prov.source)}</span></p>`;
+    })()
+    : '';
+
   // GWBA1 A4: eine Zeile Beschriftung + Gründe mit Quelle. „bestätigt" nur mit
   // Quelle im selben Satz; die Kartierungszeile darunter bleibt (Fläche, Datum).
   const assessHtml = assessment
@@ -1219,6 +1204,7 @@ export function hotspotPopupHtml(p: FirmsProps, hitCount = 1, mapped: BurntPolyg
     ${linksHtml}
     ${stack}
     ${mappedHtml}
+    ${provHtml}
     ${zoneHtml}
     ${row('Feuerstrahlungsleistung', frp)}
     ${row('Konfidenz', conf)}
@@ -1241,7 +1227,11 @@ export function hotspotPopupHtml(p: FirmsProps, hitCount = 1, mapped: BurntPolyg
  * Punkt). Er sagt zuerst, was die Fläche **nicht** ist, und nennt die Zahl erst
  * danach: die Reihenfolge ist die Aussage.
  */
-export function zonePopupHtml(z: FireZone, mapped: BurntPolygon | null = null): string {
+export function zonePopupHtml(
+  z: FireZone,
+  mapped: BurntPolygon | null = null,
+  est: AreaEstimate | null = null,
+): string {
   const span = (a: number, b: number) => {
     const f = (ms: number) => new Date(ms).toLocaleString('de-DE', {
       day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'UTC',
@@ -1254,10 +1244,21 @@ export function zonePopupHtml(z: FireZone, mapped: BurntPolygon | null = null): 
     ? `<p class="fire-pop-mapped">${esc(corroborationLabel(mapped))} — das ist die Fläche, die
        zählt; das Raster darüber zeigt nur, wie grob der Satellit auflöst.</p>`
     : '';
+  // VB3: Ohne Kartierung, aber MIT Schätzung führt der Steckbrief die vorläufige
+  // Brandfläche — dieselbe Aussage wie im Panel, aus derselben Funktion. Vorher
+  // stand die Schätzung nur im Panel: derselbe Brand hatte auf der Karte und in
+  // der Liste zwei verschiedene Auskünfte (V-VB-1). Liegt eine Kartierung vor,
+  // bleibt es beim Rasterkopf — die Kartierung misst, statt zu schätzen.
+  const prov = est && !mapped ? provisionalAreaText(est, z.areaHa) : null;
+  const headHtml = prov
+    ? `<div class="fire-pop-head">${esc(prov.head)}</div>
+       <p class="fire-pop-lead"><b>${esc(prov.value)}</b><br>${esc(prov.note)}</p>
+       <p class="fire-pop-note">${esc(prov.source)}</p>`
+    : `<div class="fire-pop-head">Detektionsraster</div>
+       <p class="fire-pop-lead">Die zusammengefassten Satellitenpixel, in denen es heiß war —
+         <b>keine Brandfläche</b> und kein amtliches Warnprodukt.</p>`;
   return `<div class="fire-pop">
-    <div class="fire-pop-head">Detektionsraster</div>
-    <p class="fire-pop-lead">Die zusammengefassten Satellitenpixel, in denen es heiß war —
-      <b>keine Brandfläche</b> und kein amtliches Warnprodukt.</p>
+    ${headHtml}
     ${mappedHtml}
     ${row('Abgedeckte Fläche', `${z.areaHa.toLocaleString('de-DE')} ha`)}
     ${row('Pixel', `${z.pixels.toLocaleString('de-DE')} · je ~${z.meanPixelHa.toLocaleString('de-DE')} ha`)}
@@ -1342,13 +1343,14 @@ function firstLayerAbove(map: maplibregl.Map, id: FireLayerId): string | undefin
  * eingehängt: EU-Fläche unten, Landesstufen darüber, Punkte oben. Sonst
  * verdeckt die EU-Rasterfläche genau die Stationspunkte, die sie erklären soll.
  */
-function installLayers(map: maplibregl.Map) {
+function installLayers(map: maplibregl.Map, basemap: FireBasemap = 'streets') {
   if (!map.getSource('fire-empty')) {
     map.addSource('fire-empty', { type: 'geojson', data: EMPTY_FC });
   }
-  for (const id of ['fire-ch-danger', 'fire-ch-bans', 'fire-de-stations', 'fire-hotspots',
+  for (const id of ['fire-hotspots',
     'fire-hotspots-foot', 'fire-hotspots-zone', 'fire-clusters',
-    'fire-burnt-season', 'fire-burnt-archive', 'fire-burnt-week', 'fire-footprints']) {
+    'fire-burnt-season', 'fire-burnt-archive', 'fire-burnt-week', 'fire-footprints',
+    SPREAD_SOURCE_ID]) {
     if (!map.getSource(id)) map.addSource(id, { type: 'geojson', data: EMPTY_FC });
   }
   // Lizenzträger der Custom-Layer (Wind, Boden) — s. ATTRIB_CARRIERS.
@@ -1358,7 +1360,45 @@ function installLayers(map: maplibregl.Map) {
     }
   }
 
-  // Die DACH-Maske: alles außerhalb der drei Länder wird gedimmt. Asynchron,
+  // Ink-Schleier über der Basiskarte, ABER unter den Fachlayern und (im
+  // Vektorstil) unter den Grenz-/Beschriftungslayern — 1:1 die Wetterkarte
+  // (`MapView.tsx:1282`, ink-900 #2C2A26 bei 0,8). Er verdunkelt die Karte,
+  // damit Hotspots, Hüllen und die Treiber-Raster auf dunklem Grund stehen
+  // statt auf der hellen Basiskarte auszubleichen. Er wird als ERSTES
+  // eingehängt, damit jeder später ergänzte Fachlayer über ihm liegt.
+  if (!map.getSource('fire-world')) {
+    map.addSource('fire-world', {
+      type: 'geojson',
+      data: {
+        type: 'Feature',
+        geometry: {
+          type: 'Polygon',
+          coordinates: [[[-180, -85], [180, -85], [180, 85], [-180, 85], [-180, -85]]],
+        },
+        properties: {},
+      },
+    });
+  }
+  if (!map.getLayer('fire-dim-fill')) {
+    map.addLayer(
+      {
+        id: 'fire-dim-fill',
+        type: 'fill',
+        source: 'fire-world',
+        // Vektorkarte: eine Spur heller als die Wetterkarte (0,7 statt 0,8 —
+        // Jans Wunsch 2026-08-19), Ortsnamen und Straßen treten damit wieder
+        // etwas hervor. Luft-/Geländebild: schwächer, sonst wäre genau das
+        // Bild weg, wegen dem man umschaltet.
+        paint: { 'fill-color': '#2C2A26', 'fill-opacity': basemap === 'streets' ? 0.7 : 0.3 },
+      },
+      map.getLayer('boundary_3') ? 'boundary_3' : undefined,
+    );
+  }
+
+  // Die DACH-Maske: alles außerhalb der drei Länder wird ausgeblendet —
+  // DECKEND sandfarben wie in der Wetterkarte (`MapView.tsx:1338`, sand-200
+  // #E0D6BE), nicht mehr als halbdurchsichtiger dunkler Schleier. Damit zeigt
+  // die Brandkarte nur noch DE/AT/CH auf buscosun-farbenem Grund. Asynchron,
   // deshalb defensiv — die Karte darf inzwischen abgeräumt worden sein.
   void loadDachMask().then((mask) => {
     if (!map.getStyle()) return;
@@ -1368,35 +1408,13 @@ function installLayers(map: maplibregl.Map) {
         id: 'fire-dach-mask-fill',
         type: 'fill',
         source: 'fire-dach-mask',
-        paint: { 'fill-color': '#0F1113', 'fill-opacity': 0.34 },
+        paint: { 'fill-color': '#E0D6BE', 'fill-opacity': 1.0 },
       });
     }
   }).catch(() => { /* Maske ist Beiwerk — ihr Ausfall darf die Karte nicht kippen */ });
 
   /** Jeder GL-Layer mit seiner echten Quelle und Darstellung. */
   const SPECS: Record<string, maplibregl.LayerSpecification> = {
-    // CH-Gefahrenstufe: Fläche + Kontur, Farbe AUS DER CH-TABELLE.
-    'fire-national-fill': {
-      id: 'fire-national-fill', type: 'fill', source: 'fire-ch-danger',
-      paint: { 'fill-color': levelColorExpression(FIRE_SOURCE_CH.scale), 'fill-opacity': 0.5 },
-    },
-    'fire-national-line': {
-      id: 'fire-national-line', type: 'line', source: 'fire-ch-danger',
-      paint: { 'line-color': '#6B5E48', 'line-width': 0.8, 'line-opacity': 0.7 },
-    },
-    // DE-Stationen: Punkte, Farbe AUS DER DE-TABELLE — getrennt gehalten.
-    'fire-national-points': {
-      id: 'fire-national-points', type: 'circle', source: 'fire-de-stations',
-      paint: {
-        'circle-radius': ['interpolate', ['linear'], ['zoom'], 5, 3.5, 9, 7],
-        'circle-color': levelColorExpression(FIRE_SOURCE_DE.scale),
-        'circle-stroke-color': '#3B342A',
-        'circle-stroke-width': 1,
-        // Stationen ohne Wert für diesen Tag: als Stützstelle sichtbar, aber
-        // erkennbar ohne Aussage — nicht heimlich weglassen (D-04).
-        'circle-opacity': ['case', ['has', 'level'], 0.95, 0.35],
-      },
-    },
     /**
      * Hotspots — seit F1 datengetrieben aus der NASA-FIRMS-Area-API.
      *
@@ -1607,15 +1625,51 @@ function installLayers(map: maplibregl.Map) {
       filter: ['==', ['get', 'id'], ''],
       paint: { 'line-color': '#2C2A26', 'line-width': 3, 'line-opacity': 0.98 },
     },
-    // Feuerverbote: schraffur-artig über eine gepunktete Kontur + blasse Fläche,
-    // damit sie sich von den Gefahrenstufen unterscheiden.
-    'fire-bans-fill': {
-      id: 'fire-bans-fill', type: 'fill', source: 'fire-ch-bans',
-      paint: { 'fill-color': '#5C5447', 'fill-opacity': 0.22 },
+    /**
+     * SF1 — der Unsicherheitsfächer: offener Sektor am Brandpunkt, Öffnung =
+     * Richtungsunsicherheit, Radius = obere Kante der Reichweiten-Spanne.
+     *
+     * Sehr schwache Füllung und eine GESTRICHELTE Kontur: eine satte Fläche auf
+     * einer Karte liest sich als „das brennt dann", und genau das behauptet der
+     * Fächer nicht (`FAN_CAVEAT` steht in Panel und Kartennotiz).
+     */
+    [SPREAD_FAN_LAYER_ID]: {
+      id: SPREAD_FAN_LAYER_ID, type: 'fill', source: SPREAD_SOURCE_ID,
+      filter: ['==', ['get', 'kind'], 'fan'],
+      paint: { 'fill-color': '#C2542B', 'fill-opacity': 0.1 },
     },
-    'fire-bans-line': {
-      id: 'fire-bans-line', type: 'line', source: 'fire-ch-bans',
-      paint: { 'line-color': '#2E2A22', 'line-width': 1.6, 'line-dasharray': [2, 2] },
+    [SPREAD_FAN_LINE_LAYER_ID]: {
+      id: SPREAD_FAN_LINE_LAYER_ID, type: 'line', source: SPREAD_SOURCE_ID,
+      filter: ['==', ['get', 'kind'], 'fan'],
+      paint: {
+        'line-color': '#C2542B', 'line-width': 1.1, 'line-opacity': 0.7,
+        'line-dasharray': [3, 3],
+      },
+    },
+    /**
+     * SF1 — der Pfeil. `icon-size` interpoliert AUSSCHLIESSLICH über den Zoom:
+     * jeder datengetriebene Größenkanal läse sich als Entfernung, und die
+     * Entfernung ist eine Spanne, die in den Text gehört, nicht in eine Länge.
+     * Der Verifier prüft, dass hier kein `['get'` steht.
+     */
+    [SPREAD_ARROW_LAYER_ID]: {
+      id: SPREAD_ARROW_LAYER_ID, type: 'symbol', source: SPREAD_SOURCE_ID,
+      filter: ['==', ['get', 'kind'], 'arrow'],
+      layout: {
+        'icon-image': ['concat', SPREAD_ARROW_IMAGE_ID, ['coalesce', ['get', 'variant'], '']],
+        'icon-rotate': ['coalesce', ['get', 'bearing'], 0],
+        'icon-rotation-alignment': 'map',
+        // Der Pfeil LÄUFT AUS dem Brand heraus, er liegt nicht auf ihm: der
+        // Anker sitzt am Fuß, die Spitze zeigt nach der Drehung in die
+        // Ausbreitungsrichtung. Auf dem Punkt zentriert verdeckte er die
+        // Detektion, die er erklärt.
+        'icon-anchor': 'bottom',
+        'icon-allow-overlap': true,
+        'icon-ignore-placement': true,
+        'symbol-sort-key': ['-', 0, ['coalesce', ['get', 'rank'], 0]],
+        'icon-size': ['interpolate', ['linear'], ['zoom'], 4, 0.7, 11, 1.25],
+      },
+      paint: { 'icon-opacity': 0.95 },
     },
     // Die Lizenzträger: zeichnen nichts (Quelle dauerhaft leer) und existieren
     // allein, damit die DWD-Zeile der Custom-Layer in der Leiste erscheint.
@@ -1635,14 +1689,46 @@ function installLayers(map: maplibregl.Map) {
     if (!map.getSource(srcId)) map.addSource(srcId, spec);
   }
 
+  /**
+   * SF1 — die Pfeil-Sprites. Technik kopiert aus `MapView.tsx:253` (Zellbahnen);
+   * `src/fire/*` darf `../MapView` nicht importieren, deshalb liegt der Zeichner
+   * in `spread/spreadLayer.ts`.
+   *
+   * Warum das hier steht und nicht einmalig beim Kartenaufbau: `installLayers`
+   * läuft aus `applyState`, also auch nach `load`, `styledata` und `idle` — nach
+   * einem Basemap-Wechsel (`setStyle`) sind die Sprites weg, `hasImage` meldet
+   * das, und sie werden neu registriert. Fehlt ein Sprite trotzdem, wird der
+   * Layer NICHT angelegt und die Konsole sagt es — ein unsichtbarer Layer wäre
+   * schlimmer als keiner.
+   */
+  for (const imageId of SPREAD_ARROW_IMAGE_IDS) {
+    if (map.hasImage(imageId)) continue;
+    const img = makeSpreadArrowImage(imageId.endsWith(SPREAD_ARROW_UNSURE_SUFFIX));
+    if (img) map.addImage(imageId, img, { pixelRatio: 2 });
+  }
+  const spritesReady = SPREAD_ARROW_IMAGE_IDS.every((i) => map.hasImage(i));
+  if (!spritesReady) {
+    console.warn('[buscosun] Ausbreitung: Pfeil-Sprite fehlt — der Layer wird nicht angelegt.');
+  }
+
   for (const id of sortByZBand(FIRE_LAYER_ORDER)) {
     for (const gl of GL_LAYERS[id]) {
+      // Ohne Sprite kein Pfeil-Layer (s. oben) — der Fächer darf bleiben.
+      if (gl === SPREAD_ARROW_LAYER_ID && !spritesReady) continue;
       // Custom-Layer (Treiber, Wind) bekommen hier bewusst nichts — s. CUSTOM_GL_LAYERS.
       if (CUSTOM_GL_LAYERS.has(gl)) continue;
       if (map.getLayer(gl)) continue;
       const spec = SPECS[gl];
       if (spec) {
-        map.addLayer({ ...spec, layout: { visibility: 'none' } } as maplibregl.LayerSpecification);
+        // SF1: das `layout` der Spec MUSS erhalten bleiben. Vor dieser Phase
+        // wurde es hier vollständig durch `{ visibility: 'none' }` ersetzt —
+        // unauffällig, solange kein Spec ein `layout` hatte, aber ein
+        // Symbol-Layer verlöre so `icon-image`/`icon-rotate` und wäre stumm
+        // unsichtbar (audit/waldbrand-ausbreitung.md §2.1 B3).
+        map.addLayer({
+          ...spec,
+          layout: { ...((spec as { layout?: Record<string, unknown> }).layout ?? {}), visibility: 'none' },
+        } as maplibregl.LayerSpecification);
         continue;
       }
       // WB4-Raster: Layer-Id → Quelle. Deckkraft bewusst niedrig, es sind
@@ -1678,9 +1764,6 @@ function installLayers(map: maplibregl.Map) {
   // Attributionen aller aktiven Fremdquellen an die Karte hängen — Lizenzpflicht,
   // unabhängig davon, ob der Layer gerade sichtbar ist.
   for (const [srcId, attr] of [
-    ['fire-ch-danger', BAFU_ATTRIBUTION],
-    ['fire-ch-bans', BAFU_ATTRIBUTION],
-    ['fire-de-stations', DWD_FIRE_ATTRIBUTION],
     ['fire-burnt-season', EFFIS_BURNT_ATTRIBUTION],
     ['fire-burnt-archive', EFFIS_BURNT_ATTRIBUTION],
     ['fire-burnt-week', EFFIS_BURNT_ATTRIBUTION],

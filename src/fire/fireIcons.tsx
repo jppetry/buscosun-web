@@ -40,14 +40,6 @@ export function FireIcon({ layer, size = 14 }: Props) {
           <line x1="8.7" y1="12.4" x2="8.7" y2="11.4" opacity="0.55" />
         </svg>
       );
-    case 'fireIndexNational':
-      // Amtliche Stufe — Siegel/Schild mit Haken: Wiedergabe einer Behördenstufe.
-      return (
-        <svg {...common}>
-          <path d="M 7 1.6 L 11.6 3.2 V 7 C 11.6 9.8, 9.6 11.8, 7 12.8 C 4.4 11.8, 2.4 9.8, 2.4 7 V 3.2 Z" />
-          <path d="M 5 6.9 L 6.6 8.5 L 9.3 5.4" />
-        </svg>
-      );
     case 'fireHotspots':
       // Aktive Brände — Thermalpunkt mit Detektions-Ringen (Satellit).
       return (
@@ -65,15 +57,6 @@ export function FireIcon({ layer, size = 14 }: Props) {
         <svg {...common}>
           <path d="M 7 1.8 C 5.2 4.9, 3.9 6.4, 3.9 8.3 A 3.1 3.1 0 0 0 10.1 8.3 C 10.1 6.4, 8.8 4.9, 7 1.8 Z" />
           <line x1="2.4" y1="11.9" x2="11.6" y2="2.7" />
-        </svg>
-      );
-    case 'fireBans':
-      // Feuerverbote — Flamme im Verbotskreis.
-      return (
-        <svg {...common}>
-          <circle cx="7" cy="7" r="5.4" />
-          <path d="M 7 4.2 C 7.9 5.3, 8.9 6.1, 8.9 7.7 A 1.9 1.9 0 0 1 5.1 7.7 C 5.1 6.6, 5.8 6, 6.2 5.2 C 6.6 5.8, 7.1 6.1, 7 4.2 Z" strokeWidth="1.15" />
-          <line x1="3.2" y1="10.8" x2="10.8" y2="3.2" />
         </svg>
       );
     case 'fireDrought':
@@ -154,14 +137,16 @@ export function FireIcon({ layer, size = 14 }: Props) {
           <path d="M 10.4 4 H 12.6 M 10.4 6.6 H 12.6 M 10.4 9.2 H 12.6" strokeWidth="1.2" />
         </svg>
       );
-    case 'fireForecast':
-      // WF4: Feuerwetter stündlich — eine kleine Flamme auf einer Stundenkurve:
-      // es ist ein Zeitverlauf (Stunden), kein Tageswert und keine Stufe.
+    case 'fireSpread':
+      // SF1: Ausbreitungsrichtung — eine Flamme mit einem Pfeil, der aus ihr
+      // herausläuft, und einem angedeuteten Fächer: eine Richtung je Brand,
+      // keine Fläche und keine Stufe.
       return (
         <svg {...common}>
-          <path d="M 1.6 11.6 C 3.2 11.2, 4.2 9.4, 5.6 8.6 C 7 7.8, 8.2 9.8, 9.6 9 C 10.8 8.3, 11.4 6.4, 12.4 5.4" />
-          <path d="M 4.6 6.2 C 3.9 5.2, 3.6 4.4, 3.6 3.7 A 1.3 1.3 0 0 0 6.2 3.7 C 6.2 4.4, 5.9 5.2, 5.2 6.2" strokeWidth="1.2" />
-          <path d="M 1.6 13 H 12.4" opacity="0.45" strokeWidth="1.1" />
+          <path d="M 3.6 10.4 C 2.7 9.2, 2.3 8.1, 2.3 7.1 A 1.9 1.9 0 0 1 5.9 7.1 C 5.9 8.1, 5.5 9.2, 4.6 10.4 Z" strokeWidth="1.2" />
+          <path d="M 6.6 7.4 H 12.2" />
+          <path d="M 10.2 5.2 L 12.6 7.4 L 10.2 9.6" />
+          <path d="M 7 4.4 L 12.2 2.8 M 7 10.4 L 12.2 12" opacity="0.4" strokeWidth="1.1" />
         </svg>
       );
     default:

@@ -1,6 +1,11 @@
 /**
- * `fireIndexNational` (DE) — DWD-Waldbrandgefahrenindex (WBI) und
- * Graslandfeuerindex (GLFI) über den bestehenden Rewrite `/_dwd_opendata`.
+ * DWD-Waldbrandgefahrenindex (WBI) und Graslandfeuerindex (GLFI) über den
+ * bestehenden Rewrite `/_dwd_opendata`.
+ *
+ * ⚠️ Seit 2026-08-19 NICHT MEHR VERDRAHTET: der Layer „Amtliche Stufe"
+ * (`fireIndexNational`) ist auf Jans Auftrag zurückgezogen. Modul und
+ * Verifier bleiben erhalten und grün — die App ruft sie nicht mehr auf, das
+ * Modul landet damit auch nicht mehr im Bundle.
  *
  * ── Warum das kein Einzeiler ist ─────────────────────────────────────────────
  * Der DWD veröffentlicht **kein** offenes Raster (`grids_germany/daily/

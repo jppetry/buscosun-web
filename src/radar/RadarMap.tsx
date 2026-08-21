@@ -13,7 +13,7 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { RainLayer } from '../scalar/RainLayer';
 import { lightningTileTemplate } from '../sources/dwdLightning';
-import { sampleRadarQuad } from '../pointForecast/quadSampler';
+import { sampleRadarPoint } from '../pointForecast/radarSample';
 import { PALETTES, type PaletteId, type RadarLayerId, RADAR_VMAX } from './radarModel';
 import { accumRamp } from './accumulation';
 import { coverageRamp } from './coverageMask';
@@ -127,7 +127,7 @@ export default function RadarMap(props: Props) {
       const idx = Math.round(latest.current.framePos);
       const fr = st.frames[Math.max(0, Math.min(st.frames.length - 1, idx))];
       if (!fr) { onHover(null, e.lngLat.lat, e.lngLat.lng); return; }
-      const v = sampleRadarQuad(fr.values, fr.width, fr.height, st.corners, e.lngLat.lat, e.lngLat.lng, RADAR_VMAX);
+      const v = sampleRadarPoint(st.source, fr.values, fr.width, fr.height, st.corners, e.lngLat.lat, e.lngLat.lng, RADAR_VMAX);
       onHover(v, e.lngLat.lat, e.lngLat.lng);
     });
 

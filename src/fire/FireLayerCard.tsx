@@ -25,6 +25,7 @@ import {
 } from '../sources/iconD2Smi';
 import { STATUS_COLOR, STATUS_LABEL } from './footprint/fireRegistry';
 import { FIRE_WEATHER_AHEAD_H } from '../sources/iconD2FireWeather';
+import { FAN_CAVEAT, FUEL_ASSUMPTION_NOTE, SPREAD_CAVEAT } from './spread/spreadText';
 
 export interface FireLayerInfo {
   eyebrow: string;
@@ -49,7 +50,6 @@ function Row({ swatch, label }: { swatch: ReactNode; label: string }) {
 
 /* Repräsentative Skalen — gespiegelt aus den Stufenfarben in `fireModel.ts`
  * (EU/DE/CH teilen die abgeleitete Farbreihe) bzw. der Layer-Einfärbung. */
-const NATIONAL = 'linear-gradient(90deg,#8FBF6B,#D6D24E,#E9A33C,#D4632E,#A32B1E)';
 const DRYAIR = 'linear-gradient(90deg,#F2EAD8,#D9B87A,#A9743C,#6B4A1E)';
 /** WW1: die Windskala — Werte-Kopie aus `components/LayerInfoPanel.tsx:39`,
  *  damit derselbe Layer in beiden Ansichten dieselbe Legende trägt. */
@@ -172,13 +172,6 @@ export function soilDrynessInfoFor(mode: SoilDrynessMode): FireLayerInfo {
 
 export const FIRE_LAYER_INFO: Record<FireLayerId, FireLayerInfo> = {
   fireDanger: dangerInfoFor('fwi'),
-  fireIndexNational: {
-    eyebrow: 'Gefahrenlage · Amtlich',
-    label: 'Amtliche Stufe',
-    short: 'DWD (DE, 484 Stationen) · BAFU (CH, Warnregionen) · AT: keine offene Quelle',
-    note: 'Wiedergabe amtlicher Stufen, selbst kein amtliches Warnprodukt. Die deutsche und die Schweizer Skala werden NICHT ineinander umgerechnet — „geringe Gefahr" ist in DE Stufe 2 und in CH Stufe 1.',
-    legend: <><Bar css={NATIONAL} /><Scale from="Stufe 1" to="Stufe 5" /></>,
-  },
   fireHotspots: {
     eyebrow: 'Aktuelle Lage · Satellit',
     label: 'Aktive Brände',
@@ -200,13 +193,6 @@ export const FIRE_LAYER_INFO: Record<FireLayerId, FireLayerInfo> = {
     short: 'ICON-D2 · relative Feuchte 2 m, 2,2 km, bis +24 h',
     note: 'Eingefärbt ist die Trockenheit der Luft: je dunkler, desto trockener — denn trockene Luft lässt Streu schneller abtrocknen. Ein Treiber, kein Index und kein amtliches Warnprodukt. Die kumulativen FWI-Codes (FFMC, DMC, DC) sind NICHT enthalten; sie brauchen einen Tagesübertrag über Wochen, den eine reine Browser-App nicht leisten kann. Das Modellgebiet von ICON-D2 reicht über DACH hinaus — außerhalb von DE, AT und CH ist die Fläche abgedunkelt, weil diese Ansicht dort nichts aussagt.',
     legend: <><Bar css={DRYAIR} /><Scale from="feucht" to="trocken" /></>,
-  },
-  fireBans: {
-    eyebrow: 'Aktuelle Lage · Prävention',
-    label: 'Feuerverbote (CH)',
-    short: 'BAFU · kantonale Präventionsmassnahmen',
-    note: 'Wiedergabe kantonaler Massnahmen, kein amtliches Warnprodukt. Für DE und AT gibt es keine maschinenlesbare Quelle — dort wird verlinkt, nicht geraten.',
-    legend: <Row swatch={<i className="fire-li-ban" />} label="kantonales Verbot / Massnahme" />,
   },
   fireDrought: {
     eyebrow: 'Ausbaustufe 2',
@@ -285,35 +271,21 @@ export const FIRE_LAYER_INFO: Record<FireLayerId, FireLayerInfo> = {
     ),
   },
   /**
-   * WF4 — Feuerwetter stündlich (Stufe 1). Die Pflichtsätze aus
-   * `audit/waldbrand-forecast.md` §9/§16 stehen hier wörtlich: kein amtliches
-   * Produkt · Fläche ICON-D2 2,2 km · Punkt buscosun-Fusion · Stufe 1 = ISI ohne
-   * Vortagsgedächtnis · Klassengrenzen EFFIS. Die Legende sind die EFFIS-ISI-
-   * Klassen (`DANGER_VIEWS.isi`) — dieselben Grenzen wie in der Sub-Ansicht
-   * „Ausbreitung" des EU-Index, damit beide Flächen mit einer Skala lesbar sind.
+   * SF1 — Ausbreitungsrichtung aktiver Brände. Der Steckbrief trägt den
+   * Pflichtsatz `SPREAD_CAVEAT` WORTGLEICH mit Panel und Kartennotiz: eine
+   * Aussage, die an nur einer von zwei Stellen steht, ist ein Widerspruch.
    */
-  fireForecast: {
-    eyebrow: 'Feuerwetter stündlich · Modell',
-    label: 'Feuerwetter stündlich (ISI)',
-    short: `DWD ICON-D2 · 2,2 km · FWI-Gleichungen (Van Wagner 1977/1987) · jetzt bis +${FIRE_WEATHER_AHEAD_H} h`,
-    note: `Stündlicher Initial Spread Index (ISI): wie schnell sich ein Feuer unmittelbar nach der Zündung ausbreiten würde — Feinstoff-Feuchte (stündlicher FFMC nach Van Wagner 1977) mal Wind. Gerechnet von buscosun mit den veröffentlichten Gleichungen des kanadischen FWI-Systems, keine eigenen Gewichte — und kein amtliches Produkt: der Waldbrandgefahrenindex des DWD und die Stufen der Länder sind etwas anderes und stehen im Layer „Amtliche Stufe". Die FLÄCHE kommt aus ICON-D2 (2,2 km, relhum_2m · t_2m · u/v_10m · tot_prec · h_snow desselben Laufs); der PUNKT auf Klick aus dem buscosun-Punkt-Forecast (Fusion aus Stationen, MOSMIX, AROME/INCA) — am selben Ort stimmen beide deshalb nicht exakt überein, und das ist kein Fehler, sondern zwei Datengrundlagen. Stufe 1: OHNE Vortagsgedächtnis — die Kette startet bei der Gleichgewichtsfeuchte der ersten Stunde, die tiefen Codes (DMC, DC, BUI) fehlen, deshalb ISI und nicht FWI; in den ersten Stunden ist der Verlauf dadurch glatter als die Wirklichkeit. Klassengrenzen nach EFFIS (wie in der Sub-Ansicht „Ausbreitung" des EU-Index). Unter Schnee, außerhalb des Modellgebiets und ohne Windfeld bleibt die Fläche leer, statt eine Null zu zeigen. Außerhalb von DE, AT und CH ist die Fläche abgedunkelt.`,
+  fireSpread: {
+    eyebrow: 'Ausbreitung · Modell',
+    label: 'Ausbreitungsrichtung',
+    short: `ICON-D2-Wind + stündlicher ISI + Höhenmodell · FBP (Forestry Canada 1992 / Wotton u. a. 2009) · jetzt bis +${FIRE_WEATHER_AHEAD_H} h`,
+    note: `${SPREAD_CAVEAT} ${FAN_CAVEAT} ${FUEL_ASSUMPTION_NOTE} Gerechnet wird nur für Brände mit aktuellem Satellitensignal, und nur bis zu einem Deckel — Brände ohne Pfeil tragen ihren Grund in der Brandliste. Klick auf die Karte: Punktkurve aus dem buscosun-Punkt-Forecast.`,
     legend: (
       <>
-        <div className="fire-li-classes">
-          <span className="fire-li-unit">{DANGER_VIEWS.isi.unit} · stündlich</span>
-          <ol>
-            {DANGER_VIEWS.isi.classes.map((c, i) => (
-              <li key={c.name}>
-                <span className="fire-swatch" style={{ background: DANGER_STEPS[i] }} aria-hidden="true" />
-                <span className="fire-li-cls-name">{c.name}</span>
-                <span className="fire-li-cls-range">{c.range}</span>
-              </li>
-            ))}
-          </ol>
-          <span className="fire-li-ref">
-            Klassengrenzen EFFIS · Rechnung buscosun aus ICON-D2, Stufe 1 ohne Vortagsgedächtnis · kein amtliches Produkt
-          </span>
-        </div>
+        <Row swatch={<i className="fire-li-spread-arrow" />} label="Richtung des Kopffeuers (Wind + Hang)" />
+        <Row swatch={<i className="fire-li-spread-arrow is-unsure" />} label="Richtung unsicher — der Wind dreht oder der Hang streut" />
+        <Row swatch={<i className="fire-li-spread-fan" />} label="Fächer: mögliche Richtung und Reichweite — keine Brandfläche" />
+        <Row swatch={<i className="fire-li-spread-none" />} label="kein Pfeil = keine Aussage; der Grund steht in der Brandliste" />
       </>
     ),
   },

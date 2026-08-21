@@ -2,11 +2,10 @@
  * Waldbrand DACH — Zeitmodell (pur, DOM-frei, headless verifizierbar nach D-12).
  *
  * ── Das Problem, das dieses Modul löst ───────────────────────────────────────
- * Die Waldbrand-Layer haben **fünf verschiedene Zeitsemantiken** — mehr als
+ * Die Waldbrand-Layer haben **vier verschiedene Zeitsemantiken** — mehr als
  * jede bisherige Phase (`architecture.md` §14.3):
  *
  *   EU-Gefahrenindex   `forecast`  Tag 0 … +9   (GWIS, WMS-TIME-Dimension)
- *   DWD WBI/GLFI       `forecast`  Tag 0 … +6   (Spalten wbi_0…wbi_6)
  *   BAFU CH-Stufe      `instant`   nur jetzt    (Mo–Fr nach Mittag)
  *   Hotspots           `window`    rückwärts    (24 h bzw. 7 d)
  *   ICON-D2-Treiber    `forecast`  Tag 0 … +1   (0…+24 h in Tagesschritten)
@@ -81,16 +80,11 @@ export type FireTimeUnit = 'days' | 'hours';
 export const FIRE_LAYER_TIME: Record<FireLayerId, FireLayerTime> = {
   // GWIS liefert ECMWF-FWI bis +9 Tage (TIME-Dimension 2018-01-01/2099-12-31).
   fireDanger: { mode: 'forecast', maxDay: 9 },
-  // DE: wbi_0…wbi_6 ⇒ +6. CH ist `instant` — der gemeinsame Nenner ist der
-  // kleinere; deshalb steht hier 6 und die CH-Fläche friert ab Tag 1 sichtbar ein.
-  fireIndexNational: { mode: 'forecast', maxDay: 6 },
   // Rückblick statt Vorhersage: .today = 24 h, .week = 7 d (GWIS-Typenamen).
   fireHotspots: { mode: 'window', maxDay: 0, windowsH: [24, 168] },
   // ICON-D2 reicht ~+24 h ⇒ heute und morgen. WF3: die Frames sind stündlich
   // (MIN_STEP 0 … MAX_STEP 24) — auf der Stundenachse folgt der Layer bis +6 h.
   fireWeather: { mode: 'forecast', maxDay: 1, maxHour: HOUR_AXIS_MAX },
-  // Feuerverbote gelten, bis sie geändert werden — kein Vorhersageprodukt.
-  fireBans: { mode: 'instant', maxDay: 0 },
   // WB4 — Werte vorbelegt, damit der Regler beim Zuschalten nicht springt.
   fireDrought: { mode: 'instant', maxDay: 0 },
   fireVegetation: { mode: 'instant', maxDay: 0 },
@@ -110,7 +104,7 @@ export const FIRE_LAYER_TIME: Record<FireLayerId, FireLayerTime> = {
    * 2. Als `forecast` mit `maxDay: 0` würde der Wind über `sharedMaxDay()` den
    *    GEMEINSAMEN Regler auf 0 ziehen — Zuschalten des Windes ließe den
    *    Tagesregler des EU-Index verschwinden. `instant`-Layer werden von
-   *    `sharedMaxDay` übergangen, genau wie die Feuerverbote.
+   *    `sharedMaxDay` übergangen, genau wie die übrigen `instant`-Layer.
    *
    * Die Ehrlichkeit trägt damit `followsSlider`/`laggingLayers`: ab Tag 1 steht
    * an der Zeile „gilt für heute — folgt dem Tagesregler nicht".
@@ -144,11 +138,12 @@ export const FIRE_LAYER_TIME: Record<FireLayerId, FireLayerTime> = {
    */
   fireFootprints: { mode: 'window', maxDay: 0, windowsH: [24, 168] },
   /**
-   * WF4 — Feuerwetter stündlich (ISI, Stufe 1): der erste `hourly`-Layer. Er
-   * ERZWINGT die Stundenachse (`timeUnit`), klemmt die Tagesachse aber nicht —
+   * SF1 — Ausbreitungsrichtung aktiver Brände: der einzige `hourly`-Layer (er
+   * hat die Rolle vom zurückgezogenen `fireForecast` übernommen). Er ERZWINGT
+   * die Stundenachse (`timeUnit`), klemmt die Tagesachse aber nicht —
    * `sharedMaxDay` zählt nur `forecast`. Horizont = die eine Achse, 0…+6 h.
    */
-  fireForecast: { mode: 'hourly', maxDay: 0, maxHour: HOUR_AXIS_MAX },
+  fireSpread: { mode: 'hourly', maxDay: 0, maxHour: HOUR_AXIS_MAX },
 };
 
 /** Millisekunden eines Tages — als Konstante, damit die Zahl nur einmal dasteht. */
@@ -176,8 +171,8 @@ export function defaultFireTimeState(): FireTimeState {
  * Der kleinste gemeinsame Horizont der aktiven Layer.
  *
  * Reine `instant`- und `window`-Layer werden **übergangen**, nicht mitgezählt:
- * sonst klemmte ein zugeschalteter Feuerverbots-Layer den ganzen Regler auf
- * Tag 0 und der EU-Index verlöre seine neun Tage, obwohl er sie hat.
+ * sonst klemmte ein zugeschalteter `instant`-Layer (z. B. der Wind) den ganzen
+ * Regler auf Tag 0 und der EU-Index verlöre seine neun Tage, obwohl er sie hat.
  * Sind ausschließlich solche Layer aktiv, gibt es keinen Vorhersage-Regler —
  * dann ist der Horizont 0 und die UI blendet ihn aus, statt einen toten
  * Schieber anzubieten.
@@ -335,8 +330,8 @@ export function windowLabel(hours: number): string {
 /**
  * Sagt für einen Layer, ob er dem Regler auf diesen Tag **wirklich** folgt.
  *
- * Das ist die Ehrlichkeitsfunktion des Moduls: Ein `instant`-Layer (CH-Stufe,
- * Feuerverbote) bleibt stehen, während die EU-Fläche weiterläuft. Die UI muss
+ * Das ist die Ehrlichkeitsfunktion des Moduls: Ein `instant`-Layer (Wind,
+ * Schutzgebiete) bleibt stehen, während die EU-Fläche weiterläuft. Die UI muss
  * das sagen können — „gilt für heute, folgt dem Regler nicht" — statt eine
  * eingefrorene Fläche als Vorhersage aussehen zu lassen (D-04).
  */
@@ -394,16 +389,13 @@ export function verifyFireTime(): { checks: FireTimeCheck[]; passed: number; tot
 
   // --- Horizonte
   add('EU-Index allein: 9 Tage', sharedMaxDay(['fireDanger']) === 9);
-  add('amtliche Stufe allein: 6 Tage', sharedMaxDay(['fireIndexNational']) === 6);
   add('ICON-Treiber allein: 1 Tag', sharedMaxDay(['fireWeather']) === 1);
-  add('EU + amtlich ⇒ kleinster gemeinsamer Horizont 6',
-    sharedMaxDay(['fireDanger', 'fireIndexNational']) === 6);
   add('EU + Treiber ⇒ 1', sharedMaxDay(['fireDanger', 'fireWeather']) === 1);
 
   // Der Fall, für den die Filterung da ist: instant/window dürfen den Regler
   // nicht auf 0 ziehen, sonst verliert der EU-Index seine neun Tage.
-  add('Feuerverbote (instant) klemmen den Regler NICHT auf 0',
-    sharedMaxDay(['fireDanger', 'fireBans']) === 9);
+  add('Schutzgebiete (instant) klemmen den Regler NICHT auf 0',
+    sharedMaxDay(['fireDanger', 'fireContext']) === 9);
   add('Hotspots (window) klemmen den Regler NICHT auf 0',
     sharedMaxDay(['fireDanger', 'fireHotspots']) === 9);
   // WW1-Regressionsanker: Wind zuschalten darf dem EU-Index seine neun Tage
@@ -424,8 +416,8 @@ export function verifyFireTime(): { checks: FireTimeCheck[]; passed: number; tot
   add('Boden + Wind: der Boden behält seinen Tagesregler (Wind ist instant)',
     sharedMaxDay(['fireSoilDryness', 'fireWind']) === 1);
   add('nur instant/window ⇒ kein Vorhersage-Regler',
-    sharedMaxDay(['fireBans', 'fireHotspots']) === 0
-      && hasForecastSlider(['fireBans', 'fireHotspots']) === false);
+    sharedMaxDay(['fireContext', 'fireHotspots']) === 0
+      && hasForecastSlider(['fireContext', 'fireHotspots']) === false);
   add('leere Auswahl ⇒ Horizont 0', sharedMaxDay([]) === 0);
 
   // --- Klemmung
@@ -436,9 +428,9 @@ export function verifyFireTime(): { checks: FireTimeCheck[]; passed: number; tot
 
   // DER Regressionsanker: Zuschalten eines kürzeren Layers zieht den Regler nach.
   const at8: FireTimeState = { day: 8, windowH: 24, hour: 0, unit: 'days' };
-  add('Tag 8 + amtliche Stufe zugeschaltet ⇒ auf 6 nachgezogen',
-    reconcileFireTime(at8, ['fireDanger', 'fireIndexNational']).day === 6,
-    String(reconcileFireTime(at8, ['fireDanger', 'fireIndexNational']).day));
+  add('Tag 8 + ICON-Treiber zugeschaltet ⇒ auf 1 nachgezogen',
+    reconcileFireTime(at8, ['fireDanger', 'fireWeather']).day === 1,
+    String(reconcileFireTime(at8, ['fireDanger', 'fireWeather']).day));
   add('unveränderter Zustand wird identisch zurückgegeben (kein Render-Sturm)',
     reconcileFireTime(at8, ['fireDanger']) === at8);
 
@@ -464,18 +456,18 @@ export function verifyFireTime(): { checks: FireTimeCheck[]; passed: number; tot
   // --- Ehrlichkeit: wer folgt dem Regler, wer nicht?
   add('EU-Index folgt bis Tag 9', followsSlider('fireDanger', 9) === true);
   add('EU-Index folgt NICHT auf Tag 10', followsSlider('fireDanger', 10) === false);
-  add('Feuerverbote folgen nur auf Tag 0',
-    followsSlider('fireBans', 0) === true && followsSlider('fireBans', 1) === false);
+  add('Schutzgebiete folgen nur auf Tag 0',
+    followsSlider('fireContext', 0) === true && followsSlider('fireContext', 1) === false);
   add('Hotspots folgen nur auf Tag 0',
     followsSlider('fireHotspots', 0) === true && followsSlider('fireHotspots', 3) === false);
   add('Wind folgt nur auf Tag 0 und sagt das ab Tag 1',
     followsSlider('fireWind', 0) === true && followsSlider('fireWind', 1) === false
       && laggingLayers(['fireDanger', 'fireWind'], 1).join(',') === 'fireWind');
   add('laggingLayers nennt auf Tag 0 niemanden',
-    laggingLayers(['fireDanger', 'fireBans', 'fireHotspots'], 0).length === 0);
+    laggingLayers(['fireDanger', 'fireContext', 'fireHotspots'], 0).length === 0);
   add('laggingLayers nennt auf Tag 2 genau die stehenden Layer',
-    laggingLayers(['fireDanger', 'fireBans', 'fireHotspots'], 2).join(',') === 'fireBans,fireHotspots',
-    laggingLayers(['fireDanger', 'fireBans', 'fireHotspots'], 2).join(','));
+    laggingLayers(['fireDanger', 'fireContext', 'fireHotspots'], 2).join(',') === 'fireContext,fireHotspots',
+    laggingLayers(['fireDanger', 'fireContext', 'fireHotspots'], 2).join(','));
 
   // --- WF3: Stundenachse ---------------------------------------------------
   add('Stundenachse ist 6 h (eine Zahl, einmal definiert — Jans Entscheidung §15.5)', HOUR_AXIS_MAX === 6);
@@ -495,17 +487,17 @@ export function verifyFireTime(): { checks: FireTimeCheck[]; passed: number; tot
       && timeUnit({ unit: 'hours' }, ['fireDanger']) === 'days');
   add('ohne den Stundenlayer erzwingt kein Layer die Stundenachse (Wahl bleibt beim Nutzer)',
     hourlyForced(['fireDanger', 'fireWeather', 'fireSoilDryness', 'fireWind']) === false);
-  // WF4: der Forecast ist der erste `hourly`-Layer — Stunden erzwungen, Tagesachse unberührt.
-  add('WF4: fireForecast erzwingt die Stundenachse',
-    hourlyForced(['fireForecast']) === true && timeUnit({ unit: 'days' }, ['fireForecast']) === 'hours');
-  add('WF4: fireForecast klemmt die Tagesachse NICHT (EU-Index behält 9 Tage)',
-    sharedMaxDay(['fireDanger', 'fireForecast']) === 9);
-  add('WF4: Forecast + Wind teilen die 6-h-Achse; Forecast allein ebenso',
-    sharedMaxHour(['fireForecast', 'fireWind']) === HOUR_AXIS_MAX && sharedMaxHour(['fireForecast']) === HOUR_AXIS_MAX);
-  add('WF4: mit Forecast folgt der EU-Index als Tageswert, der Forecast stündlich',
-    hourFollow('fireDanger', 3) === 'daily' && hourFollow('fireForecast', 6) === 'hourly');
-  add('WF4: reconcile behält die Stundenachse, solange der Forecast aktiv ist',
-    reconcileFireTime({ day: 0, windowH: 24, hour: 4, unit: 'hours' }, ['fireForecast']).unit === 'hours');
+  // SF1: die Ausbreitung ist der `hourly`-Layer — Stunden erzwungen, Tagesachse unberührt.
+  add('SF1: fireSpread erzwingt die Stundenachse',
+    hourlyForced(['fireSpread']) === true && timeUnit({ unit: 'days' }, ['fireSpread']) === 'hours');
+  add('SF1: fireSpread klemmt die Tagesachse NICHT (EU-Index behält 9 Tage)',
+    sharedMaxDay(['fireDanger', 'fireSpread']) === 9);
+  add('SF1: Ausbreitung + Wind teilen die 6-h-Achse; Ausbreitung allein ebenso',
+    sharedMaxHour(['fireSpread', 'fireWind']) === HOUR_AXIS_MAX && sharedMaxHour(['fireSpread']) === HOUR_AXIS_MAX);
+  add('SF1: mit der Ausbreitung folgt der EU-Index als Tageswert, die Ausbreitung stündlich',
+    hourFollow('fireDanger', 3) === 'daily' && hourFollow('fireSpread', 6) === 'hourly');
+  add('SF1: reconcile behält die Stundenachse, solange die Ausbreitung aktiv ist',
+    reconcileFireTime({ day: 0, windowH: 24, hour: 4, unit: 'hours' }, ['fireSpread']).unit === 'hours');
   add('clampHour klemmt auf den gemeinsamen Stundenhorizont',
     clampHour(20, ['fireWeather']) === 6 && clampHour(-2, ['fireWeather']) === 0
       && clampHour(Number.NaN, ['fireWeather']) === 0 && clampHour(4.4, ['fireWeather']) === 4);
@@ -528,21 +520,21 @@ export function verifyFireTime(): { checks: FireTimeCheck[]; passed: number; tot
   add('dayOfHour: Stunde 0 ist immer heute', dayOfHour(0, Date.UTC(2026, 7, 14, 23, 59)) === 0);
   add('hourLabel: jetzt / +3 h', hourLabel(0) === 'jetzt' && hourLabel(3) === '+3 h');
   // Ehrlichkeit dreistufig: folgt stündlich / als Tageswert / gar nicht.
-  add('hourFollow: RH-Treiber und Wind stündlich bis 6, EU-Index Tageswert, Verbote gar nicht',
+  add('hourFollow: RH-Treiber und Wind stündlich bis 6, EU-Index Tageswert, Schutzgebiete gar nicht',
     hourFollow('fireWeather', 6) === 'hourly' && hourFollow('fireWind', 6) === 'hourly'
-      && hourFollow('fireDanger', 3) === 'daily' && hourFollow('fireBans', 3) === 'none'
+      && hourFollow('fireDanger', 3) === 'daily' && hourFollow('fireContext', 3) === 'none'
       && hourFollow('fireHotspots', 1) === 'none');
   add('hourFollow: auf Stunde 0 folgt alles (gilt für jetzt)',
-    hourFollow('fireBans', 0) === 'hourly' && hourFollow('fireDanger', 0) === 'hourly');
+    hourFollow('fireContext', 0) === 'hourly' && hourFollow('fireDanger', 0) === 'hourly');
   add('laggingLayers auf der Stundenachse nennt nur die stehenden Layer (Wind läuft mit)',
-    laggingLayers(['fireDanger', 'fireWeather', 'fireWind', 'fireHotspots', 'fireBans'], 4, 'hours').join(',') === 'fireHotspots,fireBans'
+    laggingLayers(['fireDanger', 'fireWeather', 'fireWind', 'fireHotspots', 'fireContext'], 4, 'hours').join(',') === 'fireHotspots,fireContext'
       && dailyOnlyLayers(['fireDanger', 'fireWeather', 'fireWind'], 4).join(',') === 'fireDanger');
   add('laggingLayers ohne Einheit = Tagesachse (Verhalten vor WF3)',
     laggingLayers(['fireDanger', 'fireWind'], 1).join(',') === laggingLayers(['fireDanger', 'fireWind'], 1, 'days').join(','));
 
   // --- Vollständigkeit: kein Layer ohne Zeitmodell.
   const all: FireLayerId[] = [
-    'fireDanger', 'fireIndexNational', 'fireHotspots', 'fireWeather', 'fireBans',
+    'fireDanger', 'fireHotspots', 'fireWeather',
     'fireDrought', 'fireVegetation', 'fireFuel', 'fireBurnt', 'fireContext',
     'fireWind', 'fireSoilDryness', 'fireFootprints',
   ];

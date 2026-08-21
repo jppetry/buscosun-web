@@ -80,13 +80,27 @@ export function estimateArea(f: FireFeatures, model: AreaModel | null | undefine
   return { estimate: null, reason: `kein Modell mit mindestens ${MIN_PAIRS_FOR_FIT} Paaren für diesen Prädiktor` };
 }
 
-/** Text fürs Panel — Punktwert NIE ohne Intervall. */
-export function estimateLabel(e: AreaEstimate): string {
+/**
+ * Der Zahlenwert — **nie ohne Intervall**. Eigene Funktion, seit VB3 zwei Orte
+ * denselben Wert zeigen (Panel und Karten-Steckbrief): zwei Formatierungen
+ * derselben Zahl liefen unweigerlich auseinander.
+ */
+export function estimateValueText(e: AreaEstimate): string {
   const fmt = (v: number) => v.toLocaleString('de-DE', { maximumFractionDigits: v < 10 ? 1 : 0 });
+  return `≈ ${fmt(e.ha)} ha (${fmt(e.lowHa)}–${fmt(e.highHa)} ha, ${Math.round(e.level * 100)} %)`;
+}
+
+/** Woher der Wert kommt — Modellversion, Labelquelle, Paarzahl, Prädiktor. */
+export function estimateSourceText(e: AreaEstimate): string {
   const src = e.labelSource === 'effis-rda' ? 'EFFIS-kalibriert' : 'BA-kalibriert';
   const yrs = e.yearFrom != null && e.yearTo != null ? ` ${e.yearFrom}–${e.yearTo}` : '';
   const pred = e.predictor === 'fre' ? 'aus FRE' : 'aus der Zahl der Detektionen';
-  return `≈ ${fmt(e.ha)} ha (${fmt(e.lowHa)}–${fmt(e.highHa)} ha, ${Math.round(e.level * 100)} %) — Modell v${e.modelVersion}, ${src} (${e.n} Paare${yrs}), ${pred}; kein Ersatz für eine Kartierung`;
+  return `Modell v${e.modelVersion}, ${src} (${e.n} Paare${yrs}), ${pred}`;
+}
+
+/** Text fürs Panel — Punktwert NIE ohne Intervall. */
+export function estimateLabel(e: AreaEstimate): string {
+  return `${estimateValueText(e)} — ${estimateSourceText(e)}; kein Ersatz für eine Kartierung`;
 }
 
 // ---------------------------------------------------------------------------

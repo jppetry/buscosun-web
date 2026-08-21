@@ -38,6 +38,9 @@ export async function fetchCapeSeriesAtPoint(
   return grid.frames.map((f) => ({
     stepHours: f.stepHours,
     validAtMs: f.validAt.getTime(),
+    // Kein `project`-Argument: ICON-D2 kommt als `regular-lat-lon` (achsparalleles
+    // lon/lat-Gitter) — dort IST die Bilinear-Inverse exakt. Projizierte Gitter
+    // (RADOLAN) gehen über `pointForecast/radarSample.ts` (s. audit/radar-punktverortung.md).
     capeJkg: sampleRadarQuad(f.values, f.width, f.height, grid.corners, lat, lon, CAPE_MAX),
   }));
 }

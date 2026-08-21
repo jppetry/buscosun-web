@@ -708,3 +708,46 @@ kein Treffer.
 | **V-220** | Die Waldbrandseite verletzt die 200-ms-Long-Task-Grenze **ohne jeden aktiven Layer** (3 Tasks > 200 ms, schlechtester 352 ms, am Prod-Build gemessen). Vorbestehend, nicht aus dieser Phase. Ursache noch unbestimmt — Verdacht auf Stil-/Kachelaufbau. Eigene Messphase nötig, sonst bleibt die Grenze für jede künftige Waldbrand-Phase unerreichbar und damit bedeutungslos. |
 | **V-221** | Die DACH-BBox `45,5–55,5 N / 5,5–17,5 O` umfasst große Teile Polens, Tschechiens, Norditaliens und Ostfrankreichs; „Aktive Brände" zeigt dort Detektionen, obwohl die Seite DACH heißt. **Vorbestehend** (GWIS nutzte dieselbe Box), fällt mit FIRMS nur stärker auf, weil es mehr Punkte sind. Optionen: auf die DACH-Ländergeometrie filtern (die Maske existiert bereits als `fire-dach-mask`) oder den Umgriff im Steckbrief benennen. |
 | **V-222** | Die Ortsfestigkeits-Einordnung braucht ≥5 verschiedene Tage und ist deshalb im 24-h-Fenster **prinzipiell** nicht möglich — dort ist kein Punkt grau. Der Steckbrief sagt es, aber ein Nutzer, der nur die Voreinstellung sieht, bekommt die Einordnung nie zu sehen. Denkbar: das 7-Tage-Fenster im Hintergrund mitziehen (kostet 42 von 5.000 Transaktionen je Cache-Fenster, also praktisch nichts) und die Einordnung auch in der 24-h-Ansicht anwenden. Widerspräche „kein zusätzlicher Abruf" aus dem F2-Auftrag — deshalb Jans Entscheidung, nicht meine. |
+
+## 17. FIRMS auf localhost — Diagnose und Härtung (2026-08-19, Jans Befund „NASA FIRMS nicht erreichbar")
+
+**Ausgangslage:** Dev-Server auf `:5174`, Ansicht `#wb={"b":12,…}` (Hotspots + Treiber). Gemeldet: „NASA FIRMS ist nicht erreichbar".
+
+### 17.1 Was gemessen wurde — der Mechanismus war intakt
+
+| Prüfung | Ergebnis |
+|---|---|
+| `curl /_firms/VIIRS_SNPP_NRT/<DACH>/1` gegen `:5174` | HTTP 200, echtes CSV (1,4 KB) |
+| Schlüssel-Status bei NASA (`mapkey_status`) | gültig, **70 von 5000** Transaktionen im 10-Minuten-Fenster |
+| `.env.local` | `FIRMS_MAP_KEY` vorhanden, 32 Zeichen, passt auf `KEY_SHAPE` (BOM am Dateianfang schadet nicht — `\s*` in dotenv deckt ihn ab) |
+| Headless-Browser gegen `:5174`, dieselbe URL | **53 Detektionen**, kein Notbetrieb, alle `/_firms`-Antworten 200, Konsole rein |
+| Prozesse | `:5174` = PID 12636 (heute gestartet) — also derselbe Server, den Jan benutzt |
+
+Der Dev-Pfad (Vite-Plugin ruft **den echten Edge-Handler** auf) funktioniert also. Was fehlte, war Ausfallsicherheit — und zwar an einer Stelle, die auf localhost besonders oft trifft.
+
+### 17.2 Der Defekt: ein Abruf reißt neun mit
+
+`fetchFirmsHotspots` holte Satellit × Zeitabschnitt über **`Promise.all`** (24 h: 3 Abrufe, 7 Tage: 9). Eine einzige abgelehnte Zusage — 5xx von FIRMS, Timeout, Netzaussetzer — verwarf damit den **gesamten** Lauf; `FirePage` fing das ab und fiel auf die keylose GWIS-Rückfallebene: „Notbetrieb: NASA FIRMS nicht erreichbar, Anzeige ohne Intensität". Acht gelieferte Antworten wurden weggeworfen, um eine fehlende zu bestrafen.
+
+Warum das auf localhost häufiger trifft als in Produktion: dort liegt der Edge-Cache (30 min) vor dem Proxy und fängt Wackler ab; in Dev geht **jeder** Reload direkt an FIRMS, und React StrictMode feuert die Effekte doppelt.
+
+Zweiter Befund: Ein **fehlender Schlüssel** sah im Produkt exakt so aus wie ein Ausfall der NASA — der Handler antwortet 503, die Seite fällt still zurück, dieselbe Meldung. Zwei sehr verschiedene Ursachen, eine Anzeige.
+
+### 17.3 Behoben
+
+| Datei | Änderung |
+|---|---|
+| `src/fire/sources/firmsHotspots.ts` | `Promise.allSettled` statt `Promise.all`: **alles, was geantwortet hat, wird gezeigt**. Geworfen wird nur, wenn **kein** Abruf durchkam — dann greift der GWIS-Rückfall wie bisher. Abbruch (`signal.aborted`) wirft weiterhin sofort. Neu im `HotspotRun`: `failedFetches` / `plannedFetches`. |
+| `src/fire/FirePage.tsx` | Die Statuszeile **sagt** den Teilausfall: „N von M Abrufen ohne Antwort — die Anzeige kann Lücken haben" — an **beiden** Stellen, auch nach der Einordnung (die zweite Zeile ersetzt die erste; im ersten Smoke verschwand der Hinweis genau dort wieder). Eine Teilmenge ohne Hinweis wäre eine Falschaussage über den Bestand (D-04). |
+| `vite.config.ts` | Der Dev-Proxy meldet beim Start, ob der Schlüssel geladen wurde — **nie den Wert, nur die Länge**: `[firms] MAP_KEY aus .env.local geladen (32 Zeichen)` bzw. `[firms] KEIN FIRMS_MAP_KEY gefunden … fällt auf die keylose GWIS-Ebene zurück`. Damit ist „kein Schlüssel" auf localhost nicht mehr von „NASA down" ununterscheidbar. |
+| `scripts/verify-fire-firms.mjs` | +6 Sonden: `allSettled` statt `all`, Wurf nur bei null Antworten, Zählfelder im `HotspotRun`, Statuszeile nennt den Teilausfall, Dev-Start meldet den Schlüsselzustand, und der Schlüsselwert wird dabei **nicht** ausgegeben. |
+| `scripts/verify-fire-clusters.mjs` | Die Sonde „Liste und Karte lesen dieselbe Schlüsselmenge" hing an der vollständigen Argumentliste von `toRun` und schlug bei der Erweiterung fehl. Jetzt prüft sie das Präfix — ihre Absicht (dieselbe `keys`-Menge speist Punkte und Zeilen), nicht die Stelligkeit. |
+
+**Beleg am laufenden System** (`scratchpad/cdp-firms-partial.mjs`, Dev-Server `:5174`, ein Satellit per CDP blockiert = erzwungener Teilausfall):
+
+> `39 Detektionen, davon 19 ortsfest (grau) · Einordnung aus 7 Tagen Vorgeschichte · **1 von 3 Abrufen ohne Antwort — die Anzeige kann Lücken haben**`
+> `degradedVisible: false` · `notbetrieb: false`
+
+Vorher wäre an dieser Stelle der Notbetrieb gestanden — mit weniger Daten, ohne Intensität und ohne Einordnung. Verifier: `verify:fire-firms` **92/92**, `verify:fire-clusters` **105/105**, `fire-model` 123/123, `fire-time` 127/127, `typecheck` grün.
+
+**Was das nicht behebt:** Ist FIRMS wirklich vollständig aus, bleibt es beim Notbetrieb über GWIS — richtig so. Und der Vorbehalt bleibt: „keine Hotspots" heißt nie „keine Brände".

@@ -25,7 +25,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 import { verifyDangerViews, DANGER_VIEWS, DANGER_VIEW_ORDER } from '../src/fire/dangerViews.ts';
-import { FIRE_LAYER_ORDER } from '../src/fire/fireModel.ts';
+import { FIRE_BIT_ORDER, FIRE_LAYER_ORDER } from '../src/fire/fireModel.ts';
 import { encodeFireState, decodeFireState } from '../src/fire/fireState.ts';
 import { gwisTileUrl, gwisPrefetchUrls } from '../src/fire/sources/gwisFwi.ts';
 
@@ -92,18 +92,21 @@ add('Steckbrief des Index trägt die Einordnung als zweite Legende (und umgekehr
 // Geprüft wird jetzt, was E3 wirklich zugesichert hat:
 //   1. Keine der fünf Sub-Ansichten ist ein eigener Layer geworden — aus
 //      DANGER_VIEW_ORDER abgeleitet, nicht als handgeschriebene Regex daneben.
-//   2. Die zehn Layer, die es zum Zeitpunkt von E3 gab, stehen unverändert
+//   2. Die zehn BIT-PLÄTZE, die es zum Zeitpunkt von E3 gab, stehen unverändert
 //      VORNE (Bit-Stabilität, V-191). Neue Layer dürfen nur angehängt werden.
-const E3_LAYERS = [
-  'fireDanger', 'fireIndexNational', 'fireHotspots', 'fireWeather', 'fireBans',
+//      2026-08-19: `fireIndexNational` (Bit 1) und `fireBans` (Bit 4) sind
+//      zurückgezogen; ihre Plätze bleiben als `null` besetzt, damit geteilte
+//      Links weiter dieselben Layer öffnen.
+const E3_SLOTS = [
+  'fireDanger', null, 'fireHotspots', 'fireWeather', null,
   'fireDrought', 'fireVegetation', 'fireFuel', 'fireBurnt', 'fireContext',
 ];
 add('keine Sub-Ansicht des Index ist ein eigener Layer geworden',
   !FIRE_LAYER_ORDER.some((l) => DANGER_VIEW_ORDER.some((v) => l.toLowerCase().includes(v.toLowerCase()))),
   FIRE_LAYER_ORDER.filter((l) => DANGER_VIEW_ORDER.some((v) => l.toLowerCase().includes(v.toLowerCase()))).join(',') || 'keine');
-add('die zehn Layer aus E3 stehen unverändert vorne — Späteres wurde nur ANGEHÄNGT',
-  FIRE_LAYER_ORDER.slice(0, 10).join(',') === E3_LAYERS.join(','),
-  FIRE_LAYER_ORDER.slice(0, 10).join(','));
+add('die zehn Bit-Plätze aus E3 stehen unverändert vorne — Späteres wurde nur ANGEHÄNGT',
+  FIRE_BIT_ORDER.slice(0, 10).join(',') === E3_SLOTS.join(','),
+  FIRE_BIT_ORDER.slice(0, 10).join(','));
 add('Untersegment mit 5 Ansichten unter der fireDanger-Zeile',
   /DANGER_VIEW_ORDER\.map/.test(page) && DANGER_VIEW_ORDER.length === 5
     && /l\.id === 'fireDanger' && active\.has\('fireDanger'\) && dangerSeg/.test(page));

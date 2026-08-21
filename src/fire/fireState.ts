@@ -22,7 +22,7 @@
  */
 
 import type { Country, Location } from '../types';
-import { FIRE_LAYER_ORDER, type FireLayerId } from './fireModel';
+import { FIRE_BIT_ORDER, FIRE_LAYER_ORDER, type FireLayerId } from './fireModel';
 import { DEFAULT_DANGER_VIEW, isDangerView, type DangerView } from './dangerViews';
 import type { BurntBucket } from './sources/euContext';
 import { HISTORY_DAYS } from './footprint/history';
@@ -76,17 +76,23 @@ const bucketsToBits = (b: readonly BurntBucket[]) => b.reduce((m, x) => m | (BUC
 const bitsToBuckets = (bits: number): BurntBucket[] =>
   (['week', 'season', 'archive'] as const).filter((x) => !!(bits & BUCKET_BIT[x]));
 
+/**
+ * Bit-Platz je Layer — aus `FIRE_BIT_ORDER`, NICHT aus `FIRE_LAYER_ORDER`:
+ * zurückgezogene Layer halten ihren Platz besetzt (`null`), damit ein geteilter
+ * Link nach ihrer Entfernung nicht plötzlich andere Layer öffnet.
+ */
 function layersToBits(ls: readonly FireLayerId[]): number {
   let bits = 0;
   for (const l of ls) {
-    const i = FIRE_LAYER_ORDER.indexOf(l);
+    const i = FIRE_BIT_ORDER.indexOf(l);
     if (i >= 0) bits |= 1 << i;
   }
   return bits;
 }
 
+/** Ein Bit eines zurückgezogenen Layers wird still übergangen — nicht geraten. */
 function bitsToLayers(bits: number): FireLayerId[] {
-  return FIRE_LAYER_ORDER.filter((_, i) => !!(bits & (1 << i)));
+  return FIRE_BIT_ORDER.filter((l, i): l is FireLayerId => l !== null && !!(bits & (1 << i)));
 }
 
 /** Kodiert den Zustand in einen Hash-String (inkl. `#wb=`-Präfix). */
@@ -210,6 +216,15 @@ export function verifyFireState(): { checks: FireStateCheck[]; passed: number; t
   const onlyFirst = decodeFireState(`${FIRE_HASH_PREFIX}${encodeURIComponent('{"b":1}')}`);
   add('Bit 0 ⇒ fireDanger (Bit-Stabilität bestehender Links)',
     onlyFirst?.layers.join(',') === 'fireDanger', onlyFirst?.layers.join(','));
+  // 2026-08-19: Bit 1 gehörte der zurückgezogenen amtlichen Stufe. Der Platz
+  // bleibt reserviert — ein alter Link öffnet sie nicht mehr, aber er
+  // verschiebt auch nichts: Bit 2 ist weiterhin fireHotspots.
+  const retired = decodeFireState(`${FIRE_HASH_PREFIX}${encodeURIComponent('{"b":2}')}`);
+  add('Bit 1 (zurückgezogen) öffnet keinen Layer und verschiebt keinen',
+    retired?.layers.length === 0, retired?.layers.join(','));
+  const thirdBit = decodeFireState(`${FIRE_HASH_PREFIX}${encodeURIComponent('{"b":4}')}`);
+  add('Bit 2 ⇒ fireHotspots — unverändert wie vor dem Rückzug',
+    thirdBit?.layers.join(',') === 'fireHotspots', thirdBit?.layers.join(','));
 
   // --- Der Gegentest zu mapState.ts: unbekannte Bits werden ignoriert, aber
   //     bekannte Layer gehen nie verloren.

@@ -441,9 +441,14 @@
   border: 1px solid rgba(154, 145, 134, 0.5); border-radius: 5px; padding: 1px 5px;
   white-space: nowrap; flex: 0 0 auto;
 }
+/* Zwei Zeilen statt einer abgeschnittenen: seit die letzte Detektion ihren
+   Zeitpunkt MIT Datum nennt (7-Tage-Fenster), passte „· vor 2 T 1 h" nicht mehr
+   in eine Zeile — und ausgerechnet das Alter fiel der Ellipse zum Opfer. Der
+   Deckel bleibt (zwei Zeilen), damit die Zeilenhöhe berechenbar bleibt. */
 .fire-crow-meta {
   font-size: 10.5px; line-height: 1.35; color: var(--stone-400, #A89A7A);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; white-space: normal;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
 }
 
 /* Der ausgesprochene Deckel (Leistungsgrenze, s. CLUSTER_PAGE). Er steht unter
@@ -528,11 +533,6 @@
   width: 16px; height: 11px; flex: none; border-radius: 3px;
   border: 1.2px dashed rgba(194, 84, 43, 0.55); background: rgba(194, 84, 43, 0.1);
 }
-.fire-li-ban {
-  width: 12px; height: 12px; flex: none; border-radius: 3px;
-  background: repeating-linear-gradient(45deg, rgba(107, 122, 143, 0.7) 0 2px, transparent 2px 5px);
-  border: 1px solid var(--slate-500, #6B7A8F);
-}
 .fire-li-fuel { width: 12px; height: 12px; flex: none; border-radius: 3px; background: var(--sage-600, #7A9466); }
 /* E2: Brandflächen — kein Rot mehr (Rot bleibt Gefahr und Detektion). Saison
    kräftige Kontur, Archiv gestrichelt und blasser — wie auf der Karte. */
@@ -606,7 +606,6 @@
   border-radius: 12px; padding: 12px; margin: 0 0 10px;
 }
 .fire-at-gap strong { color: var(--ink-900, #2C2A26); }
-.fire-at-marker { display: none; }
 .fire-season { font-size: 11.5px; color: var(--stone-500, #8B7355); line-height: 1.55; margin: 0 2px; }
 
 /* --- Mobile Sheet-Optik (Muster .mdk-sheet) — BottomSheet.css bleibt
@@ -654,7 +653,9 @@
   .fire-clist-more button { min-height: 44px; flex: 1 1 100%; }
   .fire-sheet-body .fire-crow { min-height: 52px; border-radius: 14px; padding: 10px 12px; }
   .fire-sheet-body .fire-crow-top b { font-size: 14.5px; }
-  .fire-sheet-body .fire-crow-meta { font-size: 11.5px; white-space: normal; }
+  /* Im Sheet ist die Spalte schmaler — dort darf die Zeile so hoch werden,
+     wie sie muss (der Zwei-Zeilen-Deckel des Desktops wird aufgehoben). */
+  .fire-sheet-body .fire-crow-meta { font-size: 11.5px; white-space: normal; display: block; -webkit-line-clamp: none; }
   /* BF4: der Tagesregler der Historie — die Bahn bleibt dünn, die Trefferfläche
      wird auf 44 px gebracht (mobile-design-guidelines §3). */
   .fire-burnt-history-row { min-height: 44px; }
@@ -809,6 +810,17 @@
   font-size: 0.72rem; line-height: 1.35; color: var(--stone-600, #5C5447);
 }
 .fire-pop-zone b { color: var(--ink-900, #2B2823); }
+/* VB3: die vorläufige Brandfläche. Kräftiger als der Rasterkasten darunter (sie
+   ist die Antwort auf „wie groß", das Raster nur die Auflösung), aber ohne die
+   harte Kontur der EFFIS-Bestätigung in Sage — geschätzt bleibt geschätzt.
+   Durchgezogener Rand statt gestrichelt, damit sich beide Kästen unterscheiden. */
+.fire-pop-prov {
+  margin: 0 0 0.5rem; padding: 0.45rem 0.5rem; border-radius: 7px;
+  background: var(--sand-100, #F5F1E8); border: 1px solid rgba(194, 84, 43, 0.55);
+  font-size: 0.74rem; line-height: 1.4; color: var(--stone-600, #5C5447);
+}
+.fire-pop-prov b { color: var(--ink-900, #2B2823); }
+.fire-pop-prov-src { font-size: 0.68rem; color: var(--stone-500, #8B7355); }
 /* E2: Steckbrief einer kartierten Fläche — Landbedeckung als Balken aus den
    Feature-Anteilen (Summe 100 %), keine Schätzung. */
 .fire-pop-sub {
@@ -833,38 +845,9 @@
   --fp-w: 300px;
   --fp-bg: rgba(250, 246, 234, 0.96);
 }
-.fire-fpanel {
-  position: absolute; left: 0; top: 0; bottom: 96px; z-index: 5;
-  width: var(--fp-w); max-width: calc(100% - 24px);
-  overflow-y: auto; overscroll-behavior: contain;
-  background: var(--fp-bg);
-  border-right: 1px solid var(--sand-200, #E0D6BE);
-  box-shadow: 12px 0 40px -24px rgba(44, 38, 38, 0.45);
-  padding: 14px 14px 20px;
-  font-family: 'League Spartan', system-ui, sans-serif;
-}
-/* Ist das Panel offen, rückt die Treiber-Notiz links oben aus dem Weg. */
-.fire-center:has(.fire-fpanel) .fire-scaffold-note:not(.fire-danger-note) { left: calc(var(--fp-w) + 16px); }
-/* Der Reiter an der Kartenkante (zu): 44 px breit, senkrechte Beschriftung. */
-.fire-fpanel-tab {
-  position: absolute; left: 0; top: 16px; z-index: 5;
-  display: flex; flex-direction: column; align-items: center; gap: 6px;
-  width: 44px; min-height: 96px; padding: 12px 0;
-  border: 1px solid var(--sand-200, #E0D6BE); border-left: 0; border-radius: 0 12px 12px 0;
-  background: var(--fp-bg); cursor: pointer; font: inherit;
-  color: var(--ink-900, #2C2A26);
-}
-.fire-fpanel-tab span {
-  writing-mode: vertical-rl; transform: rotate(180deg);
-  font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
-  color: var(--stone-500, #8B7355);
-}
-.fire-fpanel-tab b {
-  font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums;
-  background: var(--terracotta-500, #C97B47); color: #fff; border-radius: 6px; padding: 2px 6px;
-}
-.fire-fpanel-tab:hover { border-color: var(--sand-300, #D9CEB0); }
-.fire-fpanel-tab:focus-visible,
+/* BP5: das Overlay am linken Kartenrand (.fire-fpanel) und sein 44-px-Reiter
+   sind entfallen — die Liste steht jetzt rechts im Readout unter „Brände".
+   Die Regel, die der Treiber-Notiz auswich, wird damit gegenstandslos. */
 .fire-fp-toggle:focus-visible,
 .fire-fp-close:focus-visible,
 .fire-fp-chip:focus-visible,
@@ -942,6 +925,16 @@
   color: var(--ink-900, #2C2A26); white-space: nowrap;
 }
 .fire-fp-area.is-upper { color: var(--stone-500, #8B7355); font-weight: 600; }
+/* BP5 — die Leistungszeile (Stärke + Ausdehnung). Sie steht zwischen Titel und
+   Status, weil sie die Größe ist, nach der die frühere Cluster-Liste rankte;
+   der Punkt trägt dieselbe Farbe wie die Skala darüber. */
+.fire-fprow-power { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.fire-fprow-power b {
+  font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums;
+  color: var(--ink-900, #2C2A26); white-space: nowrap;
+}
+.fire-fprow.is-static .fire-fprow-power b { color: var(--stone-500, #8B7355); }
+.fire-fprow-power .fire-crow-count { overflow: hidden; text-overflow: ellipsis; }
 .fire-fprow-meta { font-size: 10.5px; line-height: 1.35; color: var(--stone-500, #8B7355); }
 .fire-fprow-chips { display: flex; flex-wrap: wrap; gap: 3px 4px; }
 .fire-fp-src, .fire-fp-assess {
@@ -975,11 +968,9 @@
 /* --- Tablet / kleiner Desktop 768–1439 px ---------------------------------- */
 @media (max-width: 1439px) and (min-width: 768px) {
   .fire-root { --fp-w: 264px; }
-  .fire-fpanel { padding: 12px 12px 18px; }
 }
-/* --- Mobil ≤767 px: kein Overlay, das Panel lebt im Sheet (drittes Segment). - */
+/* --- Mobil ≤767 px: das Panel lebt im Sheet (Reiter „Brände"). -------------- */
 @media (max-width: 767px) {
-  .fire-fpanel, .fire-fpanel-tab { display: none; }
   .fire-fp.is-sheet .fire-fprow { min-height: 52px; border-radius: 14px; padding: 10px 12px; }
   .fire-fp.is-sheet .fire-fprow-title { font-size: 14px; white-space: normal; }
   .fire-fp.is-sheet .fire-fprow-meta { font-size: 11.5px; }
@@ -1081,4 +1072,34 @@
   }
   .fire-pc-bars { height: 84px; }
   .fire-pc-h { font-size: 10px; }
+}
+
+/* ── SF1: Ausbreitungsrichtung (Modell) ──────────────────────────────────────
+   Die GERECHNETE Zeile hebt sich von der BEOBACHTETEN ab: Terrakotta-Kante
+   links, damit im Fließtext der Detailkarte sofort sichtbar ist, dass hier ein
+   Modell spricht und keine Messung. */
+.fire-fp-pred {
+  border-left: 2px solid var(--terracotta-500, #C2542B);
+  padding-left: 8px;
+}
+.fire-fp-spread-chip { color: var(--terracotta-600, #A8431F); font-weight: 700; white-space: nowrap; }
+
+/* Legenden-Kacheln des Steckbriefs. Der Pfeil ist als CSS-Dreieck gebaut (kein
+   zweites Sprite), der Fächer als Sektor mit gestrichelter Kante — dieselbe
+   Aussage wie auf der Karte: offene Form, keine satte Fläche. */
+.fire-li-spread-arrow {
+  width: 12px; height: 12px; flex: none;
+  background: var(--terracotta-500, #C2542B);
+  clip-path: polygon(50% 0%, 100% 100%, 50% 78%, 0% 100%);
+}
+.fire-li-spread-arrow.is-unsure { background: var(--stone-400, #A3937A); opacity: 0.75; }
+.fire-li-spread-fan {
+  width: 12px; height: 12px; flex: none;
+  border-radius: 0 0 12px 12px;
+  border: 1px dashed var(--terracotta-500, #C2542B);
+  background: rgba(194, 84, 43, 0.12);
+}
+.fire-li-spread-none {
+  width: 12px; height: 12px; flex: none; border-radius: 3px;
+  border: 1px dotted var(--stone-400, #A3937A); background: transparent;
 }

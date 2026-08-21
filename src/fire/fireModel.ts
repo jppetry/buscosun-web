@@ -43,10 +43,8 @@ import type { Country } from '../types';
  */
 export type FireLayerId =
   | 'fireDanger'          // EU-Gefahrenindex (GWIS ecmwf.fwi) — die durchgehende Fläche
-  | 'fireIndexNational'   // amtliche Landesstufe: DE Stationspunkte, CH Polygone, AT Lücke
   | 'fireHotspots'        // Satelliten-Thermalanomalien (GWIS viirs.hs.today/.week)
   | 'fireWeather'         // ICON-D2-Treiber (relhum_2m, t_2m, vmax_10m, tot_prec)
-  | 'fireBans'            // Feuerverbote CH (BAFU)
   | 'fireDrought'         // WB4: EDO smian/smand
   | 'fireVegetation'      // WB4: EDO fpanv
   | 'fireFuel'            // WB4: EFFIS fuel_map (Brennmaterial)
@@ -55,11 +53,20 @@ export type FireLayerId =
   | 'fireWind'            // WW1: ICON-D2 u/v 10 m — der Windlayer der Wetterkarte, 1:1
   | 'fireSoilDryness'     // WT1: ICON-D2 smi — Bodentrockenheit, zwei Tiefen
   | 'fireFootprints'      // BP2: Brandflächen je Brand (Registry) — Polygone + Panel links
-  | 'fireForecast';       // WF4: Feuerwetter stündlich (ISI, Stufe 1) — ICON-D2-Raster, FWI-Gleichungen
+  | 'fireSpread';         // SF1: Ausbreitungsrichtung aktiver Brände — Pfeil + Fächer (FBP)
 
-/** Die im MVP (WB2) tatsächlich gebauten Layer. */
+/**
+ * Die im MVP (WB2) tatsächlich gebauten Layer.
+ *
+ * 2026-08-19: `fireIndexNational` („Amtliche Stufe", DWD-Stationen + BAFU-
+ * Warnregionen) ist auf Jans Auftrag ZURÜCKGEZOGEN — die Funktion wird nicht
+ * mehr gebraucht. Sein Bit-Platz bleibt in `FIRE_BIT_ORDER` reserviert, damit
+ * geteilte `#wb=`-Links nicht auf andere Layer zeigen. Ebenso zurückgezogen
+ * (Jans Auftrag, gleicher Tag): `fireBans` („Feuerverbote (CH)", BAFU-
+ * Präventionsmassnahmen) — Bit 4 bleibt reserviert.
+ */
 export const FIRE_MVP_LAYERS: readonly FireLayerId[] = [
-  'fireDanger', 'fireIndexNational', 'fireHotspots', 'fireWeather', 'fireBans',
+  'fireDanger', 'fireHotspots', 'fireWeather',
 ] as const;
 
 /** Erst nach Jans Freigabe (WB4). Sichtbar, aber nicht schaltbar. */
@@ -89,13 +96,17 @@ export const FIRE_WEATHER_MAP_LAYERS: readonly FireLayerId[] = [
 export const FIRE_FOOTPRINT_LAYERS: readonly FireLayerId[] = ['fireFootprints'] as const;
 
 /**
- * WF4 — der Waldbrand-Forecast (Stufe 1): stündlicher ISI aus der hFFMC-Kette
- * (Van Wagner 1977/1987) auf dem nativen ICON-D2-Raster (`iconD2FireWeather.ts`),
- * Punktkurve aus dem Punkt-Forecast der Fusion (§13 d). Eigene Herkunft: kein
- * Fremdraster, kein Wetterkarten-Layer, sondern eine buscosun-Rechnung mit
- * publizierten Gleichungen — deshalb eigene Liste, HINTEN angehängt: Bit 13.
+ * SF1 — die Ausbreitungsrichtung aktiver Brände: ein Pfeil je Brand (FBP-Vektor
+ * aus ICON-D2-Wind, stündlichem ISI und Hangneigung) plus Unsicherheitsfächer.
+ * Eigene Herkunft: keine Fremdfläche, kein Wetterkarten-Layer, sondern eine
+ * Aussage JE BRAND — deshalb eigene Liste, HINTEN angehängt: Bit 14.
+ *
+ * Bit 13 (`fireForecast`, WF4-Rasterfläche „Feuerwetter stündlich") wurde am
+ * 2026-08-19 auf Jans Entscheidung zurückgezogen: die Fläche beantwortete nicht
+ * die Frage „wohin läuft dieser Brand". Die DATENQUELLE bleibt in Betrieb —
+ * `iconD2FireWeather.ts` liefert den ISI, aus dem die Pfeile rechnen.
  */
-export const FIRE_FORECAST_LAYERS: readonly FireLayerId[] = ['fireForecast'] as const;
+export const FIRE_SPREAD_LAYERS: readonly FireLayerId[] = ['fireSpread'] as const;
 
 /**
  * **Die** Reihenfolge — Quelle der Permalink-Bitmaske und der Legendensortierung.
@@ -109,10 +120,30 @@ export const FIRE_FORECAST_LAYERS: readonly FireLayerId[] = ['fireForecast'] as 
  * `FIRE_WEATHER_MAP_LAYERS` steht deshalb HINTEN: `fireWind` bekommt Bit 10,
  * die Bits 0…9 aller bestehenden Links bleiben unangetastet.
  */
-export const FIRE_LAYER_ORDER: readonly FireLayerId[] = [
-  ...FIRE_MVP_LAYERS, ...FIRE_EXTENDED_LAYERS, ...FIRE_WEATHER_MAP_LAYERS, ...FIRE_FOOTPRINT_LAYERS,
-  ...FIRE_FORECAST_LAYERS,
+export const FIRE_BIT_ORDER: readonly (FireLayerId | null)[] = [
+  'fireDanger',
+  // Bit 1 — „Amtliche Stufe" (`fireIndexNational`), 2026-08-19 zurückgezogen.
+  // Der Platz bleibt LEER statt zu verschwinden: sonst rutschte jedes folgende
+  // Bit um eins, und ein geteilter Link würde andere Layer öffnen als beim
+  // Teilen. `null` heißt „dieses Bit gehörte einmal einem Layer" — beim
+  // Dekodieren fällt es einfach weg.
+  null,
+  'fireHotspots', 'fireWeather',
+  // Bit 4 — „Feuerverbote (CH)" (`fireBans`), 2026-08-19 zurückgezogen. Wie
+  // Bit 1 bleibt der Platz LEER, damit geteilte Links keine anderen Layer
+  // öffnen.
+  null,
+  ...FIRE_EXTENDED_LAYERS, ...FIRE_WEATHER_MAP_LAYERS, ...FIRE_FOOTPRINT_LAYERS,
+  // Bit 13 — „Feuerwetter stündlich" (`fireForecast`), 2026-08-19 zurückgezogen
+  // (Jans Entscheidung, s. audit/waldbrand-ausbreitung.md §5). Wie bei Bit 1
+  // bleibt der Platz LEER, damit geteilte Links keine anderen Layer öffnen.
+  null,
+  ...FIRE_SPREAD_LAYERS,
 ] as const;
+
+/** Die lebenden Layer in Bit-Reihenfolge — ohne die zurückgezogenen Plätze. */
+export const FIRE_LAYER_ORDER: readonly FireLayerId[] =
+  FIRE_BIT_ORDER.filter((l): l is FireLayerId => l !== null);
 
 /**
  * Z-Bänder: kleinere Zahl liegt weiter unten. Absichtlich grob gestuft, damit
@@ -130,18 +161,12 @@ export const FIRE_Z_BAND: Record<FireLayerId, number> = {
   fireFuel: 40,
   fireBurnt: 45,           // fruehere Brandflaechen ueber dem Brennmaterial
   fireWeather: 50,         // ICON-D2-ScalarLayer über den Fremdrastern
-  // WF4: der stündliche ISI ist eine RASTERFLÄCHE wie der RH-Treiber und liegt
-  // direkt über ihm (beide ICON-D2, beide Treiber-Nähe) und unter dem Boden —
-  // Flächen bleiben unten, Partikel und Punkte darüber.
-  fireForecast: 52,
   // Bodentrockenheit ist eine FLÄCHE und gehört zu den Rastern, nicht nach oben
   // zu den Partikeln: sie liegt direkt über dem Luft-Treiber, damit beide
   // Treiber zusammen und unter den Gefahrenangaben stehen. Im Dock steht sie
   // trotzdem UNTER dem Wind (Jans Auftrag) — Dock-Reihenfolge und Z-Ordnung
   // sind zwei verschiedene Dinge, s. FIRE_DECK_GROUPS.
   fireSoilDryness: 55,
-  fireBans: 60,            // CH-Verbotsflächen (schraffiert)
-  fireIndexNational: 70,   // amtliche Landesstufe — muss über der EU-Fläche liegen
   // Windpartikel als Bewegungsschicht ÜBER den Flächen, aber UNTER den
   // Detektionspunkten: die Hotspots müssen anklickbar und auffindbar bleiben.
   fireWind: 75,
@@ -150,6 +175,9 @@ export const FIRE_Z_BAND: Record<FireLayerId, number> = {
   // anklickbar, und die Fläche erklärt sie, statt sie zu verdecken.
   fireFootprints: 78,
   fireHotspots: 80,        // Punkte ganz oben, sonst unauffindbar
+  // SF1: der Ausbreitungspfeil ist die AUSSAGE der Ansicht und liegt über allem
+  // — ein Pfeil hinter einem Detektionspunkt wäre unlesbar.
+  fireSpread: 82,
 };
 
 export interface FirePreset {
@@ -160,13 +188,16 @@ export interface FirePreset {
 
 /**
  * Presets — nie mehr als drei Layer gleichzeitig (Muster `RADAR_PRESETS`,
- * `radar/radarModel.ts:320-324`). Der Default zeigt bewusst die EU-Fläche
- * **und** die amtliche Landesstufe: erst das Nebeneinander macht sichtbar,
- * dass die beiden verschiedene Aussagen sind.
+ * `radar/radarModel.ts:320-324`).
+ *
+ * 2026-08-19: Mit dem Rückzug der amtlichen Stufe zeigt „Überblick" die
+ * EU-Fläche und die Detektionen — Modellwert und Beobachtung nebeneinander,
+ * das bleibt der Sinn des Presets. „Amtliche Stufe" ist ersatzlos entfallen,
+ * und mit dem Rückzug der Feuerverbote (gleicher Tag) auch deren
+ * Schnellzugriff „Feuerverbote".
  */
 export const FIRE_PRESETS: readonly FirePreset[] = [
-  { id: 'standard', label: 'Überblick', layers: ['fireDanger', 'fireIndexNational'] },
-  { id: 'amtlich', label: 'Amtliche Stufe', layers: ['fireIndexNational', 'fireBans'] },
+  { id: 'standard', label: 'Überblick', layers: ['fireDanger', 'fireHotspots'] },
   { id: 'lage', label: 'Aktuelle Lage', layers: ['fireDanger', 'fireHotspots', 'fireWeather'] },
 ] as const;
 
@@ -202,13 +233,12 @@ export interface FireDeckGroup {
 
 export const FIRE_DECK_GROUPS: readonly FireDeckGroup[] = [
   {
-    // Die beiden Gefahren-Flächen stehen oben und zusammen: erst das
-    // Nebeneinander von EU-Modellwert und amtlicher Stufe macht sichtbar,
-    // dass es zwei verschiedene Aussagen sind (s. Preset „Überblick").
+    // Die Gefahrenfläche steht oben. Bis 2026-08-19 stand die amtliche
+    // Landesstufe daneben; sie ist zurückgezogen (Jans Auftrag), die EU-Fläche
+    // bleibt als einzige durchgehende Gefahrenangabe.
     title: 'Gefahrenlage', accent: 'terracotta',
     layers: [
       { id: 'fireDanger', accent: 'amber' },
-      { id: 'fireIndexNational', accent: 'terracotta' },
     ],
   },
   {
@@ -219,7 +249,6 @@ export const FIRE_DECK_GROUPS: readonly FireDeckGroup[] = [
       // plus die kartierten Flächen. Eigener Schalter, eigenes Panel.
       { id: 'fireFootprints', accent: 'terracotta' },
       { id: 'fireWeather', accent: 'steel' },
-      { id: 'fireBans', accent: 'slate' },
     ],
   },
   {
@@ -236,12 +265,12 @@ export const FIRE_DECK_GROUPS: readonly FireDeckGroup[] = [
     ],
   },
   {
-    // WF4: eigene Gruppe (Plan §9) — weder Fremdraster noch Wetterkarten-Layer,
-    // sondern die eigene Rechnung mit publizierten FWI-Gleichungen. Sichtbar
-    // getrennt, damit niemand sie für eine amtliche Stufe hält.
-    title: 'Feuerwetter stündlich', accent: 'amber',
+    // SF1: eigene Gruppe — weder Fremdraster noch Wetterkarten-Layer, sondern
+    // eine Aussage je Brand. Sichtbar getrennt, damit niemand sie für eine
+    // amtliche Warnung hält.
+    title: 'Ausbreitung (Modell)', accent: 'terracotta',
     layers: [
-      { id: 'fireForecast', accent: 'amber' },
+      { id: 'fireSpread', accent: 'terracotta' },
     ],
   },
   {
@@ -441,9 +470,9 @@ export function verifyFireModel(): { checks: FireModelCheck[]; passed: number; t
   const add = (name: string, ok: boolean, detail?: string) => checks.push({ name, ok, detail });
 
   const all: FireLayerId[] = [
-    'fireDanger', 'fireIndexNational', 'fireHotspots', 'fireWeather', 'fireBans',
+    'fireDanger', 'fireHotspots', 'fireWeather',
     'fireDrought', 'fireVegetation', 'fireFuel', 'fireBurnt', 'fireContext',
-    'fireWind', 'fireSoilDryness', 'fireFootprints', 'fireForecast',
+    'fireWind', 'fireSoilDryness', 'fireFootprints', 'fireSpread',
   ];
 
   // --- Vollständigkeit: der Fehler von LAYER_ORDER darf sich nicht wiederholen.
@@ -452,40 +481,54 @@ export function verifyFireModel(): { checks: FireModelCheck[]; passed: number; t
     `${FIRE_LAYER_ORDER.length}/${all.length}`);
   add('FIRE_LAYER_ORDER enthält keine Dubletten',
     new Set(FIRE_LAYER_ORDER).size === FIRE_LAYER_ORDER.length);
-  add('FIRE_LAYER_ORDER ist genau MVP + Ausbau + Wetterkarte + Registry + Forecast, nichts Sechstes',
+  add('FIRE_LAYER_ORDER ist genau MVP + Ausbau + Wetterkarte + Registry + Ausbreitung, nichts Sechstes',
     FIRE_LAYER_ORDER.length
       === FIRE_MVP_LAYERS.length + FIRE_EXTENDED_LAYERS.length + FIRE_WEATHER_MAP_LAYERS.length
-        + FIRE_FOOTPRINT_LAYERS.length + FIRE_FORECAST_LAYERS.length);
+        + FIRE_FOOTPRINT_LAYERS.length + FIRE_SPREAD_LAYERS.length);
+  // 2026-08-19: drei Layer sind zurückgezogen (Bit 1 amtliche Stufe, Bit 4
+  // Feuerverbote, Bit 13 Feuerwetter stündlich); alle Plätze bleiben reserviert.
+  add('FIRE_BIT_ORDER hält die Plätze der zurückgezogenen Layer frei',
+    FIRE_BIT_ORDER.length === FIRE_LAYER_ORDER.length + 3
+      && FIRE_BIT_ORDER[1] === null && FIRE_BIT_ORDER[4] === null && FIRE_BIT_ORDER[13] === null,
+    `${FIRE_BIT_ORDER.length} Plätze, ${FIRE_LAYER_ORDER.length} Layer`);
   add('die fünf Herkunftslisten überschneiden sich nicht',
     !FIRE_MVP_LAYERS.some((l) => FIRE_EXTENDED_LAYERS.includes(l))
       && !FIRE_WEATHER_MAP_LAYERS.some((l) => FIRE_MVP_LAYERS.includes(l) || FIRE_EXTENDED_LAYERS.includes(l))
       && !FIRE_FOOTPRINT_LAYERS.some((l) => FIRE_MVP_LAYERS.includes(l) || FIRE_EXTENDED_LAYERS.includes(l) || FIRE_WEATHER_MAP_LAYERS.includes(l))
-      && !FIRE_FORECAST_LAYERS.some((l) => FIRE_MVP_LAYERS.includes(l) || FIRE_EXTENDED_LAYERS.includes(l)
+      && !FIRE_SPREAD_LAYERS.some((l) => FIRE_MVP_LAYERS.includes(l) || FIRE_EXTENDED_LAYERS.includes(l)
         || FIRE_WEATHER_MAP_LAYERS.includes(l) || FIRE_FOOTPRINT_LAYERS.includes(l)));
 
-  // Bit-Stabilität: die ersten fünf Plätze sind der MVP und bleiben dort.
-  add('Bit 0..4 sind die MVP-Layer in fester Reihenfolge',
-    FIRE_LAYER_ORDER.slice(0, 5).join(',') === FIRE_MVP_LAYERS.join(','),
-    FIRE_LAYER_ORDER.slice(0, 5).join(','));
+  // Bit-Stabilität: gemessen wird jetzt an FIRE_BIT_ORDER — dort steht auch der
+  // reservierte Platz der zurückgezogenen amtlichen Stufe (Bit 1).
+  add('Bit 0..4 sind unverändert die MVP-Plätze (Bit 1 und Bit 4 zurückgezogen)',
+    FIRE_BIT_ORDER.slice(0, 5).join(',') === 'fireDanger,,fireHotspots,fireWeather,',
+    FIRE_BIT_ORDER.slice(0, 5).join(','));
   // WW1: der neue Layer wurde ANGEHÄNGT, nicht eingeschoben — sonst öffnete ein
   // geteilter `#wb=`-Link plötzlich andere Layer (V-191).
   add('Bit 5..9 sind unverändert die Ausbau-Layer (bestehende Links bleiben gültig)',
-    FIRE_LAYER_ORDER.slice(5, 10).join(',') === FIRE_EXTENDED_LAYERS.join(','),
-    FIRE_LAYER_ORDER.slice(5, 10).join(','));
+    FIRE_BIT_ORDER.slice(5, 10).join(',') === FIRE_EXTENDED_LAYERS.join(','),
+    FIRE_BIT_ORDER.slice(5, 10).join(','));
   add('fireWind steht an Bit 10 — hinter allem Bestehenden',
-    FIRE_LAYER_ORDER.indexOf('fireWind') === 10,
-    String(FIRE_LAYER_ORDER.indexOf('fireWind')));
+    FIRE_BIT_ORDER.indexOf('fireWind') === 10,
+    String(FIRE_BIT_ORDER.indexOf('fireWind')));
   add('fireSoilDryness steht an Bit 11 — angehängt, nicht eingeschoben',
-    FIRE_LAYER_ORDER.indexOf('fireSoilDryness') === 11,
-    String(FIRE_LAYER_ORDER.indexOf('fireSoilDryness')));
+    FIRE_BIT_ORDER.indexOf('fireSoilDryness') === 11,
+    String(FIRE_BIT_ORDER.indexOf('fireSoilDryness')));
   // BP2: die Registry ist Bit 12 — hinter allem Bestehenden, bestehende Links bleiben gültig.
   add('fireFootprints steht an Bit 12 — angehängt, nicht eingeschoben',
-    FIRE_LAYER_ORDER.indexOf('fireFootprints') === 12,
-    String(FIRE_LAYER_ORDER.indexOf('fireFootprints')));
-  // WF4: der Forecast ist Bit 13 — hinter allem Bestehenden.
-  add('fireForecast steht an Bit 13 — angehängt, nicht eingeschoben',
-    FIRE_LAYER_ORDER.indexOf('fireForecast') === 13,
-    String(FIRE_LAYER_ORDER.indexOf('fireForecast')));
+    FIRE_BIT_ORDER.indexOf('fireFootprints') === 12,
+    String(FIRE_BIT_ORDER.indexOf('fireFootprints')));
+  // SF1: die Ausbreitung ist Bit 14 — hinter allem Bestehenden; Bit 13 ist der
+  // reservierte Platz der zurückgezogenen Rasterfläche.
+  add('fireSpread steht an Bit 14 — angehängt, nicht eingeschoben',
+    FIRE_BIT_ORDER.indexOf('fireSpread') === 14,
+    String(FIRE_BIT_ORDER.indexOf('fireSpread')));
+  add('Bit 13 ist frei — der zurückgezogene Forecast rutscht niemandem in den Platz',
+    FIRE_BIT_ORDER[13] === null);
+  add('Bit 0..12 tragen unverändert dieselben Layer wie vor dem Rückzug',
+    FIRE_BIT_ORDER.slice(0, 13).map((l) => l ?? '').join(',')
+      === 'fireDanger,,fireHotspots,fireWeather,,fireDrought,fireVegetation,'
+        + 'fireFuel,fireBurnt,fireContext,fireWind,fireSoilDryness,fireFootprints');
 
   // --- Z-Bänder
   add('jeder Layer hat ein Z-Band', all.every((l) => Number.isFinite(FIRE_Z_BAND[l])));
@@ -493,12 +536,10 @@ export function verifyFireModel(): { checks: FireModelCheck[]; passed: number; t
     new Set(all.map((l) => FIRE_Z_BAND[l])).size === all.length);
   add('Hotspots liegen über der EU-Fläche',
     FIRE_Z_BAND.fireHotspots > FIRE_Z_BAND.fireDanger);
-  add('amtliche Landesstufe liegt über der EU-Fläche',
-    FIRE_Z_BAND.fireIndexNational > FIRE_Z_BAND.fireDanger);
   // WW1: Partikel über den Flächen, aber UNTER den Detektionspunkten — sonst
   // liegt eine Bewegungsschicht auf den Hotspots, die anklickbar bleiben müssen.
   add('Windpartikel liegen über den Flächen, aber unter den Hotspots',
-    FIRE_Z_BAND.fireWind > FIRE_Z_BAND.fireIndexNational
+    FIRE_Z_BAND.fireWind > FIRE_Z_BAND.fireSoilDryness
       && FIRE_Z_BAND.fireWind < FIRE_Z_BAND.fireHotspots);
   // WT1: Dock-Reihenfolge und Z-Ordnung sind getrennt — im Dock steht der Boden
   // unter dem Wind, auf der Karte liegt er als Fläche viel tiefer.
@@ -512,19 +553,19 @@ export function verifyFireModel(): { checks: FireModelCheck[]; passed: number; t
       const ids = g?.layers.map((l) => l.id) ?? [];
       return ids.indexOf('fireFootprints') === ids.indexOf('fireHotspots') + 1;
     })());
-  // WF4: der stündliche ISI ist eine Rasterfläche — über dem RH-Treiber, unter dem Boden.
-  add('Feuerwetter stündlich liegt als Fläche über dem RH-Treiber und unter dem Boden',
-    FIRE_Z_BAND.fireForecast > FIRE_Z_BAND.fireWeather && FIRE_Z_BAND.fireForecast < FIRE_Z_BAND.fireSoilDryness);
-  add('Feuerwetter stündlich hat eine eigene Dock-Gruppe (kein Fremdraster, kein Wetterkarten-Layer)',
+  // SF1: der Ausbreitungspfeil ist die Aussage der Ansicht und liegt über allem.
+  add('Ausbreitungspfeile liegen über den Detektionspunkten',
+    FIRE_Z_BAND.fireSpread > FIRE_Z_BAND.fireHotspots);
+  add('Ausbreitung hat eine eigene Dock-Gruppe (keine Fläche, keine amtliche Stufe)',
     (() => {
-      const g = FIRE_DECK_GROUPS.find((x) => x.layers.some((l) => l.id === 'fireForecast'));
-      return !!g && g.layers.length === 1 && g.title === 'Feuerwetter stündlich';
+      const g = FIRE_DECK_GROUPS.find((x) => x.layers.some((l) => l.id === 'fireSpread'));
+      return !!g && g.layers.length === 1 && g.title === 'Ausbreitung (Modell)';
     })());
   add('Bodentrockenheit liegt als Fläche UNTER den Windpartikeln',
     FIRE_Z_BAND.fireSoilDryness < FIRE_Z_BAND.fireWind);
   add('Bodentrockenheit liegt direkt über dem Luft-Treiber (beide sind Treiber)',
     FIRE_Z_BAND.fireSoilDryness > FIRE_Z_BAND.fireWeather
-      && FIRE_Z_BAND.fireSoilDryness < FIRE_Z_BAND.fireBans);
+      && FIRE_Z_BAND.fireSoilDryness < FIRE_Z_BAND.fireWind);
   add('im Dock steht der Boden UNTER dem Wind',
     (() => {
       const g = FIRE_DECK_GROUPS.find((x) => x.layers.some((l) => l.id === 'fireWind'));
@@ -532,8 +573,8 @@ export function verifyFireModel(): { checks: FireModelCheck[]; passed: number; t
       return ids.indexOf('fireSoilDryness') === ids.indexOf('fireWind') + 1;
     })());
   add('sortByZBand sortiert aufsteigend',
-    sortByZBand(['fireHotspots', 'fireDanger', 'fireBans']).join(',')
-      === 'fireDanger,fireBans,fireHotspots');
+    sortByZBand(['fireHotspots', 'fireDanger', 'fireWeather']).join(',')
+      === 'fireDanger,fireWeather,fireHotspots');
 
   // --- Presets
   add('jedes Preset nennt nur bekannte Layer',
@@ -543,9 +584,13 @@ export function verifyFireModel(): { checks: FireModelCheck[]; passed: number; t
   add('kein Preset enthält Ausbau-Layer (die gibt es erst nach WB4)',
     FIRE_PRESETS.every((p) => p.layers.every((l) => FIRE_MVP_LAYERS.includes(l))));
   add('activeFirePresetId erkennt das Standard-Set',
-    activeFirePresetId(['fireIndexNational', 'fireDanger']) === 'standard');
+    activeFirePresetId(['fireHotspots', 'fireDanger']) === 'standard');
   add('activeFirePresetId meldet null bei fremder Kombination',
-    activeFirePresetId(['fireDanger', 'fireBans']) === null);
+    activeFirePresetId(['fireDanger', 'fireWeather']) === null);
+  // 2026-08-19: die zurückgezogenen Layer tauchen in keinem Preset mehr auf.
+  add('kein Preset nennt einen zurückgezogenen Layer',
+    !FIRE_PRESETS.some((p) => (p.layers as readonly string[])
+      .some((l) => l === 'fireIndexNational' || l === 'fireBans')));
 
   // --- DIE Kernregel: keine Umrechnung zwischen den Skalen.
   add('DE-Stufe 2 und CH-Stufe 1 heißen beide „geringe Gefahr"',
@@ -579,17 +624,19 @@ export function verifyFireModel(): { checks: FireModelCheck[]; passed: number; t
     nationalSourceFor('DE') === FIRE_SOURCE_DE && nationalSourceFor('CH') === FIRE_SOURCE_CH);
 
   // --- Kaskade
+  // 2026-08-19: die Kaskade wird am EU-Layer geprüft — sie ist layerunabhängig,
+  // und der frühere Prüfling `fireIndexNational` ist zurückgezogen.
   const st = defaultFireSourceState('DE');
-  add('Kaskade: ohne alles greift global', resolveFireIndexChoice('fireIndexNational', st) === 'national');
+  add('Kaskade: ohne alles greift global', resolveFireIndexChoice('fireDanger', st) === 'national');
   const st2: FireSourceState = { ...st, perCountry: { DE: 'eu' } };
-  add('Kaskade: perCountry schlägt global', resolveFireIndexChoice('fireIndexNational', st2) === 'eu');
-  const st3: FireSourceState = { ...st2, overrides: { fireIndexNational: 'national' } };
-  add('Kaskade: override schlägt perCountry', resolveFireIndexChoice('fireIndexNational', st3) === 'national');
+  add('Kaskade: perCountry schlägt global', resolveFireIndexChoice('fireDanger', st2) === 'eu');
+  const st3: FireSourceState = { ...st2, overrides: { fireDanger: 'national' } };
+  add('Kaskade: override schlägt perCountry', resolveFireIndexChoice('fireDanger', st3) === 'national');
   const stAt: FireSourceState = { ...defaultFireSourceState('AT') };
-  const fb = resolveFireIndexWithFallback('fireIndexNational', stAt);
+  const fb = resolveFireIndexWithFallback('fireDanger', stAt);
   add('AT: „amtlich" fällt auf EU zurück UND meldet das',
     fb.choice === 'eu' && fb.requested === 'national' && fb.fellBack === true);
-  const fbDe = resolveFireIndexWithFallback('fireIndexNational', st);
+  const fbDe = resolveFireIndexWithFallback('fireDanger', st);
   add('DE: kein Rückfall, kein falsches Signal',
     fbDe.choice === 'national' && fbDe.fellBack === false);
 

@@ -76,15 +76,15 @@ export const TOOLS = [
     answer:
       'Die Waldbrand-Ansicht von buscosun zeigt den europäischen Gefahrenindex als durchgehende Fläche über '
       + 'Deutschland, Österreich und die Schweiz — und daneben die amtlichen Landesstufen von DWD und BAFU, '
-      + 'jede mit ihrer eigenen Skala. Dazu aktive Brände aus Satellitendaten, die Feuchte der Luft als '
-      + 'Feuerwetter-Treiber und die kantonalen Feuerverbote der Schweiz. Für Österreich gibt es keinen '
+      + 'jede mit ihrer eigenen Skala. Dazu aktive Brände aus Satellitendaten und die Feuchte der Luft als '
+      + 'Feuerwetter-Treiber. Für Österreich gibt es keinen '
       + 'offenen amtlichen Index; das steht auf der Karte, statt kaschiert zu werden.',
     bullets: [
       'EU-Gefahrenindex (Copernicus GWIS, ECMWF-FWI) bis +9 Tage, durchgehend über alle drei Länder',
       'Amtliche Stufen: DWD-Waldbrandgefahrenindex (484 Stationen) und BAFU-Warnregionen — getrennte Skalen, keine Umrechnung',
       'Aktive Brände als Satelliten-Thermalanomalien (VIIRS), 24 Stunden oder 7 Tage',
       'Feuerwetter-Treiber aus ICON-D2: je trockener die Luft, desto leichter entzündet sich Streu',
-      'Kantonale Feuerverbote der Schweiz · Datenalter je Layer sichtbar',
+      'Datenalter je Layer sichtbar',
     ],
     sections: [
       {
@@ -148,7 +148,7 @@ export const TOOLS = [
       {
         q: 'Woher kommen die Daten?',
         a: 'Der EU-Index vom Copernicus Global Wildfire Information System (ECMWF-FWI), die deutschen '
-          + 'Stationswerte vom Deutschen Wetterdienst, die Schweizer Warnregionen und Feuerverbote vom BAFU, '
+          + 'Stationswerte vom Deutschen Wetterdienst, die Schweizer Warnregionen vom BAFU, '
           + 'die Brandpunkte aus VIIRS-Satellitendaten und der Feuerwetter-Treiber aus ICON-D2. Alle Quellen '
           + 'sind offen und ohne Schlüssel nutzbar.',
       },

@@ -451,6 +451,19 @@ export interface HotspotRun {
   rows: readonly FirmsRow[];
   /** Wie viele Detektionen als ortsfest eingestuft wurden (F2). */
   staticCount: number;
+  /**
+   * Wie viele der geplanten Einzelabrufe (Satellit × Zeitabschnitt) NICHT
+   * geantwortet haben — und wie viele es insgesamt waren.
+   *
+   * Warum das sichtbar sein muss: bis 2026-08-19 verwarf ein `Promise.all` den
+   * GANZEN Lauf, sobald **ein** Abruf scheiterte; die Ansicht fiel dann auf die
+   * ärmere GWIS-Ebene zurück und meldete „NASA FIRMS nicht erreichbar",
+   * obwohl acht von neun Abrufen Daten geliefert hatten. Jetzt zählt der Lauf,
+   * was fehlt, statt alles wegzuwerfen — und die Statuszeile sagt es, denn
+   * eine Teilmenge ohne Hinweis wäre eine Falschaussage über den Bestand (D-04).
+   */
+  failedFetches: number;
+  plannedFetches: number;
 }
 
 export function toRun(
@@ -460,6 +473,9 @@ export function toRun(
   skipped: number,
   /** Detektionen, die zu einem als ortsfest eingestuften Ereignis gehören (F2). */
   staticKeys?: ReadonlySet<string>,
+  /** Nicht beantwortete bzw. geplante Einzelabrufe (s. `HotspotRun`). */
+  failedFetches = 0,
+  plannedFetches = 0,
 ): HotspotRun {
   const capped = rows.length > MAX_FEATURES
     ? [...rows].sort((a, b) => b.acqMs - a.acqMs).slice(0, MAX_FEATURES)
@@ -511,6 +527,8 @@ export function toRun(
     provider: 'firms',
     rows: capped,
     staticCount,
+    failedFetches,
+    plannedFetches,
   };
 }
 
@@ -569,7 +587,29 @@ export async function fetchFirmsHotspots(
   for (const source of FIRMS_SOURCES) {
     for (const chunk of plan) jobs.push(fetchChunk(source, chunk, signal, nowMs));
   }
-  const parts = await Promise.all(jobs);
+  /**
+   * `allSettled`, NICHT `all`: Der Lauf besteht aus Satellit × Zeitabschnitt
+   * (bei 7 Tagen neun Einzelabrufe). Mit `Promise.all` riss **ein** Ausfall —
+   * eine 5xx-Antwort von FIRMS, ein Timeout, ein Netz-Aussetzer — den ganzen
+   * Lauf mit, und die Seite fiel auf die keylose GWIS-Ebene zurück („NASA FIRMS
+   * nicht erreichbar"), obwohl die übrigen Abrufe Daten hatten. Das traf
+   * besonders die Entwicklung auf localhost: dort liegt kein Edge-Cache vor dem
+   * Proxy, jeder Reload geht direkt an FIRMS.
+   *
+   * Jetzt gilt: **alles, was geantwortet hat, wird gezeigt** — und was fehlt,
+   * wird gezählt und in der Statuszeile gesagt. Nur wenn KEIN einziger Abruf
+   * durchkam, wird geworfen; dann greift der GWIS-Rückfall wie bisher.
+   */
+  const settled = await Promise.allSettled(jobs);
+  if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+  const parts = settled
+    .filter((r): r is PromiseFulfilledResult<{ rows: FirmsRow[]; skipped: number }> => r.status === 'fulfilled')
+    .map((r) => r.value);
+  const failures = settled.filter((r) => r.status === 'rejected') as PromiseRejectedResult[];
+  if (parts.length === 0) {
+    const first = failures[0]?.reason;
+    throw new Error(first instanceof Error ? first.message : 'FIRMS: kein Abruf beantwortet');
+  }
 
   const cutoff = nowMs - windowH * 3_600_000;
   let skipped = 0;
@@ -593,7 +633,7 @@ export async function fetchFirmsHotspots(
   await yieldToBrowser();
   const keys = await classify?.(deduped);
   await yieldToBrowser();
-  return toRun(deduped, windowH, nowMs, skipped, keys);
+  return toRun(deduped, windowH, nowMs, skipped, keys, failures.length, jobs.length);
 }
 
 /** Gibt den Hauptthread frei, damit eine lange Rechnung in Häppchen zerfällt. */

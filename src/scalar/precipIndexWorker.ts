@@ -9,7 +9,7 @@
  */
 /// <reference lib="webworker" />
 
-import { buildCompositeIndexMap } from './precipIndexMap';
+import { buildCompositeIndexMap, type GridKind } from './precipIndexMap';
 import type { QuadCorners } from './RainLayer';
 
 interface Req {
@@ -17,13 +17,13 @@ interface Req {
   corners: QuadCorners;
   sCols: number;
   sRows: number;
-  ps: boolean;
+  grid: GridKind;
 }
 
 self.onmessage = (e: MessageEvent<Req>) => {
-  const { id, corners, sCols, sRows, ps } = e.data;
+  const { id, corners, sCols, sRows, grid } = e.data;
   try {
-    const idx = buildCompositeIndexMap(corners, sCols, sRows, ps);
+    const idx = buildCompositeIndexMap(corners, sCols, sRows, grid);
     (self as unknown as { postMessage: (m: unknown, t: Transferable[]) => void }).postMessage(
       { id, ok: true, idxBuf: idx.buffer },
       [idx.buffer],

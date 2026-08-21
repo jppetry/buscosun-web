@@ -8,7 +8,7 @@
  * fallgrenze/Höhe kommen aus dem bestehenden Punktforecast (buildNowcast).
  */
 
-import { sampleRadarQuad } from '../pointForecast/quadSampler';
+import { sampleRadarPoint } from '../pointForecast/radarSample';
 import { flagForCountry } from '../geocode';
 import {
   generatePlainNowcast, radarBand, radarBandLabel, fmtDbz,
@@ -27,7 +27,7 @@ export function stripSamples(stack: RadarStack, lat: number, lon: number): Plain
   const out: PlainSample[] = [];
   for (const f of stack.frames) {
     if (f.leadMinutes < 0) continue;
-    const v = sampleRadarQuad(f.values, f.width, f.height, stack.corners, lat, lon, RADAR_VMAX);
+    const v = sampleRadarPoint(stack.source, f.values, f.width, f.height, stack.corners, lat, lon, RADAR_VMAX);
     out.push({ min: f.leadMinutes, mmH: v ?? 0 });
   }
   return out;
@@ -37,7 +37,7 @@ export function stripSamples(stack: RadarStack, lat: number, lon: number): Plain
  *  Vergangenheit), index-gleich zu `stack.frames`. Speist das Leisten-Profil. */
 export function frameIntensities(stack: RadarStack, lat: number, lon: number): number[] {
   return stack.frames.map(
-    (f) => sampleRadarQuad(f.values, f.width, f.height, stack.corners, lat, lon, RADAR_VMAX) ?? 0,
+    (f) => sampleRadarPoint(stack.source, f.values, f.width, f.height, stack.corners, lat, lon, RADAR_VMAX) ?? 0,
   );
 }
 

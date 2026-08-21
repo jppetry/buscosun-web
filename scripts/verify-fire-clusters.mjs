@@ -93,15 +93,18 @@ add('der Pflichthinweis grenzt gegen die verbrannte UND die abgedeckte Fläche a
   /nicht die verbrannte Fläche/.test(CLUSTER_NOTE) && /abgedeckte/.test(CLUSTER_NOTE));
 add('der Pflichthinweis nennt FRP als Leistung, nicht als Fläche',
   /Leistung, keine Fläche/.test(CLUSTER_NOTE));
+// BP5: die Liste ist in `FireFootprintPanel` aufgegangen (je Brand statt je
+// Detektionsgruppe). Die Sonden prüfen dieselbe ABSICHT am neuen Ort — sie
+// wurden nachgezogen, nicht gestrichen.
 add('die Liste zeigt den Hinweis IMMER (auch im Leerzustand)', (() => {
-  const page = code['FirePage.tsx'] ?? '';
-  const panel = page.slice(page.indexOf('const clusterPanel'), page.indexOf('const readoutContent'));
-  // Der Hinweis steht VOR der Fallunterscheidung — also außerhalb JEDES
-  // Zweigs (der erste Zweig beginnt mit dem ersten Leerzustand) und zugleich
-  // vor der Liste, statt hinter 232 Zeilen Scrollweg.
-  const note = panel.indexOf('CLUSTER_NOTE');
-  return note > 0 && note < panel.indexOf('fire-clist-empty')
-    && note < panel.indexOf('fire-crow');
+  const panel = code['FireFootprintPanel.tsx'] ?? '';
+  // Der Hinweis muss UNBEDINGT gerendert werden — auch wenn keine Zeile
+  // existiert. Geprüft an der Einrückung: sechs Leerzeichen heißt direktes Kind
+  // des Panel-Wurzelelements, also außerhalb jedes `&&`- oder Ternär-Zweigs.
+  // Und er steht VOR der Liste, statt hinter mehreren hundert Zeilen Scrollweg.
+  const line = '      <p className="fire-clist-note">{CLUSTER_NOTE}</p>';
+  const note = panel.indexOf(line);
+  return note > 0 && note < panel.indexOf('fire-fplist');
 })());
 
 // ---------------------------------------------------------------------------
@@ -179,23 +182,25 @@ add('Skalen-Trio, AT-Lücke und Saison-Hinweis sind unverändert vorhanden',
 add('der Layer-Steckbrief (FireLayerCard) wurde für diese Phase nicht angefasst',
   !/[Cc]luster/.test(code['FireLayerCard.tsx'] ?? ''));
 add('das Readout startet auf „Layer" — der Bestand ist der Startzustand',
-  // BP2 hängt ein drittes Segment ('footprints', nur im Sheet) an — der Start bleibt „Layer".
-  /useState<'layers' \| 'fires'(?: \| 'footprints')?>\('layers'\)/.test(pageSrc));
+  // BP5: der Startwert ist „layers", sofern kein Permalink (`fp=1`) die Liste verlangt.
+  /useState<'layers' \| 'fires'>\([\s\S]{0,400}?initial\?\.footprintPanel \? 'fires' : 'layers',/.test(pageSrc));
 add('die Liste sitzt im Readout und nicht in der Karte',
-  /fire-ro-clusters/.test(pageSrc) && !/fire-ro-clusters/.test(mapSrc));
+  /readoutTab === 'fires' \? footprintPanel\(inSheet\)/.test(pageSrc)
+  && !/fire-fplist|fire-fprow/.test(mapSrc));
 
 // Der Deckel ist eine Leistungsgrenze — und er wird AUSGESPROCHEN (kein stiller Schnitt).
-add('die Kopfzeile nennt immer die VOLLE Clusterzahl, nicht die gezeigte',
-  /clusterList\.length === 1 \? '1 Cluster' : `\$\{clusterList\.length\} Cluster`/.test(pageSrc));
-add('die Liste sagt, wie viele der Cluster sie zeigt, und bietet die nächsten an',
-  /gezeigt: die \{shownClusters\} stärksten von \{clusterList\.length\} Clustern/.test(pageSrc)
-  && /weitere anzeigen/.test(pageSrc));
+add('die Kopfzeile nennt immer die VOLLE Zahl, nicht die gezeigte',
+  /p\.total === records\.length \? `\$\{p\.total\}` : `\$\{records\.length\} von \$\{p\.total\}`/
+    .test(code['FireFootprintPanel.tsx'] ?? ''));
+add('die Liste sagt, wie viele Einträge sie zeigt, und bietet die nächsten an',
+  /gezeigt: \{p\.shown\} von \{records\.length\} Einträgen/.test(code['FireFootprintPanel.tsx'] ?? '')
+  && /weitere anzeigen/.test(code['FireFootprintPanel.tsx'] ?? ''));
 add('der Deckel ist begründet und benannt (CLUSTER_PAGE)',
   CLUSTER_PAGE === 50 && /253 ms/.test(readFileSync(join(ROOT, 'src/fire/fireClusters.ts'), 'utf8')));
-add('ein von der Karte markierter Cluster wird aufgeklappt, statt unsichtbar zu bleiben',
-  /const rank = clusterList\.findIndex/.test(pageSrc) && /Math\.max\(n, Math\.ceil/.test(pageSrc));
+add('ein von der Karte markierter Eintrag wird aufgeklappt, statt unsichtbar zu bleiben',
+  /const rank = panelRecordsRef\.current\.findIndex/.test(pageSrc) && /Math\.max\(n, Math\.ceil/.test(pageSrc));
 add('der Deckel wird bei einer neuen Liste zurückgesetzt',
-  /setShownClusters\(CLUSTER_PAGE\); \}, \[clusters\]\)/.test(pageSrc));
+  /setShownFootprints\(CLUSTER_PAGE\); \}, \[records\]\)/.test(pageSrc));
 
 // ---------------------------------------------------------------------------
 // (g) Reinheit, Abhängigkeiten, Mengengerüst
@@ -224,17 +229,49 @@ add('die Einordnung kommt in einem ZWEITEN Lauf, nach der Klassifikation (V-222)
 add('Liste und Karte lesen DIESELBE Schlüsselmenge (kein zweiter Zustand)', (() => {
   const page = code['FirePage.tsx'] ?? '';
   // `keys` speist `toRun` (die grauen Punkte) und `computeFireClusters` (die Zeilen).
-  const grey = page.indexOf('toRun(displayed.rows, displayed.windowH, at, displayed.skipped, keys)');
+  // Prefix statt voller Argumentliste: die Absicht ist „dieselbe `keys`-Menge",
+  // nicht die Stelligkeit von `toRun` (die wuchs 2026-08-19 um die Zählung der
+  // fehlgeschlagenen Abrufe). Am Klammerende zu prüfen machte den Check zu einem
+  // Signatur-Test, der bei einer harmlosen Erweiterung fehlschlägt.
+  const grey = page.indexOf('toRun(displayed.rows, displayed.windowH, at, displayed.skipped, keys');
   const list = page.indexOf('computeFireClusters(displayed.rows, keys');
   return grey > 0 && list > grey && list - grey < 600;
 })());
 add('die Zeile wird grau, wo die Karte grau zeichnet',
-  /clusterColorOf/.test(code['FirePage.tsx'] ?? '')
+  /clusterColorOf/.test(code['FireFootprintPanel.tsx'] ?? '')
+  && /STATIC_GREY/.test(code['FireFootprintPanel.tsx'] ?? '')
   && /STATIC_GREY = '#9A9186'/.test(src)
   && /'#9A9186'/.test(mapSrc));
-add('ein ortsfester Cluster wird markiert, nicht entfernt',
+add('ein ortsfester Eintrag wird markiert, nicht entfernt',
   !/filter\([^)]*mostlyStatic/.test(code['FirePage.tsx'] ?? '')
-  && /staticChipLabel/.test(code['FirePage.tsx'] ?? ''));
+  && !/filter\([^)]*suspectedStatic/.test(code['FireFootprintPanel.tsx'] ?? '')
+  && /ortsfest/.test(code['FireFootprintPanel.tsx'] ?? ''));
+
+// BP5 — die Verschmelzung: alles, was die Cluster-Seite trug, ist in der
+// Brand-Liste angekommen. Jede Zeile hier ist eine Funktion, die sonst still
+// verschwunden wäre (Funktionserhalt, oberste Direktive).
+{
+  const panel = code['FireFootprintPanel.tsx'] ?? '';
+  add('[BP5] Stärke (ΣFRP) steht in der Brand-Zeile', /strengthLabel\(r\.sources\.cluster\)/.test(panel));
+  add('[BP5] die Ausdehnung der Hülle steht dort ebenfalls', /extentLabel\(r\.sources\.cluster\)/.test(panel));
+  add('[BP5] die Stärke-Skala (CLUSTER_FRP_STOPS) liegt über der Liste', /CLUSTER_FRP_STOPS\.map/.test(panel));
+  add('[BP5] die Rangfolge „nach Stärke" ist wählbar', /'area', 'strength', 'recency', 'status'/.test(panel));
+  add('[BP5] ohne Detektion gibt es KEINE erfundene Leistung, sondern „—" mit Grund',
+    /keine Leistung/.test(panel) && /missingReason\(r, 'hotspots'\)/.test(panel));
+  add('[BP5] der Notbetrieb sagt, dass eine Rangfolge nach Stärke erfunden wäre',
+    /Rangfolge „nach Stärke" wäre in diesem Zustand erfunden/.test(panel));
+  add('[BP5] die Auswahl einer Zeile markiert auch die Hülle ihrer Detektionsgruppe',
+    /setSelectedCluster\(r\?\.sources\.cluster\?\.id \?\? null\)/.test(pageSrc));
+  add('[BP5] ein Klick auf eine Hülle markiert den Brand, der sie enthält',
+    /r\.sources\.cluster\?\.id === id/.test(pageSrc));
+  add('[BP5] es gibt nur noch ZWEI Reiter, und der zweite heißt „Brände"',
+    /\[\['layers', 'Layer'\], \['fires', 'Brände'\]\] as const/.test(pageSrc));
+  add('[BP5] das Overlay am linken Kartenrand ist entfallen',
+    !/className="fire-fpanel"/.test(pageSrc) && !/fire-fpanel-tab/.test(pageSrc));
+  add('[BP5] der alte Permalink `fp=1` zeigt weiterhin die Liste',
+    /initial\?\.footprintPanel \? 'fires' : 'layers'/.test(pageSrc)
+    && /footprintPanel: readoutTab === 'fires'/.test(pageSrc));
+}
 
 // Land: die Grobzuordnung der Karte (countryGuess) darf hier NICHT benutzt werden.
 add('die Landeszuordnung nutzt Umrisse, nicht die DE-Rückfall-Heuristik',

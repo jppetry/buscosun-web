@@ -18,7 +18,9 @@ import type { Country } from '../types';
 import type { QuadCorners } from '../scalar/RainLayer';
 import { fetchRvNowcast, fetchRvAnalysisSequence, de1200WarpMesh, DE1200_WARP_N } from '../sources/radolan';
 import { fetchIncaGrid } from '../sources/geosphereIncaGrid';
+import { incaWarpMesh, INCA_WARP_N } from '../sources/geosphereIncaGeo';
 import { fetchRzcLatest } from '../sources/meteoSwissRadar';
+import { rzcWarpMesh, RZC_WARP_N } from '../sources/meteoSwissGeo';
 
 export type RadarSourceId = 'radolan_rv' | 'inca_grid' | 'meteoswiss_rzc';
 
@@ -49,9 +51,10 @@ export interface RadarStack {
   stepMin: number;
   /** Skill-Horizont (min) — bis hierhin minutengenaue Extrapolation. */
   skillMin: number;
-  /** Optionales projektionskorrektes Warp-Mesh (nur DE/RADOLAN DE1200, polar-
-   *  stereografisch). Wenn gesetzt, rendert der RainLayer ein gekrümmtes Mesh
-   *  statt des linearen 4-Eck-Quads (sonst bis ~40 km Versatz im Inneren). */
+  /** Projektionskorrektes Warp-Mesh des Quellgitters (DE polar-stereografisch,
+   *  AT Lambert, CH LV95/somerc — seit RP2 für alle drei). Wenn gesetzt, rendert
+   *  der RainLayer ein gekrümmtes Mesh statt des linearen 4-Eck-Quads (sonst bis
+   *  ~40 km Versatz im Inneren; AT/CH einige km). */
   warpLnglat?: Float32Array;
   warpN?: number;
 }
@@ -166,7 +169,12 @@ async function loadAt(signal?: AbortSignal): Promise<RadarStack> {
     return { values: f.values, width: f.width, height: f.height, timeMs: anchor + leadMinutes * 60_000, leadMinutes, measured: false };
   });
   // INCA hat keine eigene Analyse → der jüngste Frame dient nur dem Nowcast.
-  return assemble('AT', 'inca_grid', grid.corners, nowcast, anchor, 15, 120);
+  // Lambert-Gitter → projektionskorrektes Warp-Mesh mitgeben (RP2; ohne wäre das
+  // Raster gegenüber der Punktabfrage um Kilometer versetzt gezeichnet).
+  return {
+    ...assemble('AT', 'inca_grid', grid.corners, nowcast, anchor, 15, 120),
+    warpLnglat: incaWarpMesh(grid.corners), warpN: INCA_WARP_N,
+  };
 }
 
 async function loadCh(signal?: AbortSignal): Promise<RadarStack> {
@@ -175,7 +183,11 @@ async function loadCh(signal?: AbortSignal): Promise<RadarStack> {
   rememberMeasured('meteoswiss_rzc', { timeMs: t, values: fr.values, width: fr.width, height: fr.height });
   const analysis: RadarFrame = { values: fr.values, width: fr.width, height: fr.height, timeMs: t, leadMinutes: 0, measured: true };
   const past = pastFrames('meteoswiss_rzc', t);
-  return assemble('CH', 'meteoswiss_rzc', fr.corners, [...past, analysis], t, 5, 0);
+  // LV95/somerc-Gitter → projektionskorrektes Warp-Mesh (RP2, s. loadAt).
+  return {
+    ...assemble('CH', 'meteoswiss_rzc', fr.corners, [...past, analysis], t, 5, 0),
+    warpLnglat: rzcWarpMesh(fr.corners), warpN: RZC_WARP_N,
+  };
 }
 
 function assemble(

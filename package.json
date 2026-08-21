@@ -21,6 +21,7 @@
     "health": "node scripts/health-manifests.mjs",
     "verify:aec": "node --experimental-strip-types scripts/verify-aec.mjs",
     "verify:precip-source": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-precip-source.mjs",
+    "verify:radar-sampling": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-radar-sampling.mjs",
     "seo:logs": "node scripts/seo/parse-crawler-logs.mjs",
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
@@ -69,6 +70,7 @@
     "verify:fire-footprint": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-fire-footprint.mjs",
     "verify:fire-registry": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-fire-registry.mjs",
     "verify:fire-activity": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-fire-activity.mjs",
+    "verify:fire-spread": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-fire-spread.mjs",
     "fire:pairs-archive": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/fire/pairs-from-archive.mjs",
     "fire:calibrate": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/fire/calibrate.mjs"
   },

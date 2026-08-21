@@ -37,14 +37,19 @@ for (const c of verifyFirePlayback().checks) add(`[playback] ${c.name}`, c.ok, c
 const now = Date.UTC(2026, 7, 14, 12, 0);
 
 // Die Horizonte stimmen mit dem überein, was WB0 an den Quellen gemessen hat.
-add('Horizonte entsprechen den gemessenen Quellen (9 / 6 / 1)',
+add('Horizonte entsprechen den gemessenen Quellen (9 / 1)',
   FIRE_LAYER_TIME.fireDanger.maxDay === 9
-  && FIRE_LAYER_TIME.fireIndexNational.maxDay === 6
   && FIRE_LAYER_TIME.fireWeather.maxDay === 1);
+// 2026-08-19: die Layer „Amtliche Stufe" und „Feuerverbote (CH)" sind
+// zurückgezogen — sie dürfen in keinem Zeitmodell mehr auftauchen, sonst hinge
+// ein Regler an einem toten Layer.
+add('die zurückgezogenen Layer haben kein Zeitmodell mehr',
+  FIRE_LAYER_TIME.fireIndexNational === undefined
+  && FIRE_LAYER_TIME.fireBans === undefined);
 add('Hotspots sind ein Rückblick, keine Vorhersage',
   FIRE_LAYER_TIME.fireHotspots.mode === 'window'
   && FIRE_LAYER_TIME.fireHotspots.windowsH?.join(',') === '24,168');
-add('CH-Feuerverbote sind ein Zeitpunkt', FIRE_LAYER_TIME.fireBans.mode === 'instant');
+add('Schutzgebiete sind ein Zeitpunkt', FIRE_LAYER_TIME.fireContext.mode === 'instant');
 
 // Vollständige Kreuzprobe: JEDE Kombination aus zwei Layern klemmt korrekt.
 const ids = Object.keys(FIRE_LAYER_TIME);
@@ -64,21 +69,21 @@ add('alle Layer-Paare klemmen korrekt (Kreuzprobe)', pairFails === 0, `${ids.len
 // Der Regressionsanker aus dem Alltag: EU allein auf Tag 8, dann DE zuschalten.
 const step1 = reconcileFireTime({ ...defaultFireTimeState(), day: 8 }, ['fireDanger']);
 add('EU allein: Tag 8 bleibt erlaubt', step1.day === 8);
-const step2 = reconcileFireTime(step1, ['fireDanger', 'fireIndexNational']);
-add('DE zugeschaltet: Regler springt auf 6, nicht ins Leere', step2.day === 6);
-const step3 = reconcileFireTime(step2, ['fireDanger', 'fireIndexNational', 'fireWeather']);
+const step2 = reconcileFireTime(step1, ['fireDanger', 'fireContext']);
+add('Schutzgebiete zugeschaltet: Regler bleibt auf 8 (instant klemmt nicht)', step2.day === 8);
+const step3 = reconcileFireTime(step2, ['fireDanger', 'fireContext', 'fireWeather']);
 add('Treiber zugeschaltet: Regler springt auf 1', step3.day === 1);
 const step4 = reconcileFireTime(step3, ['fireDanger']);
 add('zurück auf EU allein: Tag bleibt 1 (springt NICHT von selbst hoch)', step4.day === 1);
 
 // Ehrlichkeit: welche Layer stehen still, während der Regler läuft?
-add('auf Tag 3 stehen Verbote und Hotspots still — und das ist benennbar',
-  laggingLayers(['fireDanger', 'fireBans', 'fireHotspots'], 3).length === 2
+add('auf Tag 3 stehen Schutzgebiete und Hotspots still — und das ist benennbar',
+  laggingLayers(['fireDanger', 'fireContext', 'fireHotspots'], 3).length === 2
   && followsSlider('fireDanger', 3) === true);
 add('hasForecastSlider ist false, wenn nur Zeitpunkt-Layer aktiv sind',
-  hasForecastSlider(['fireBans']) === false && hasForecastSlider(['fireDanger']) === true);
+  hasForecastSlider(['fireContext']) === false && hasForecastSlider(['fireDanger']) === true);
 add('windowChoices meldet nur, was ein aktiver Layer anbietet',
-  windowChoices(['fireBans']).length === 0 && windowChoices(['fireHotspots']).length === 2);
+  windowChoices(['fireContext']).length === 0 && windowChoices(['fireHotspots']).length === 2);
 
 // Datumsrechnung: UTC-treu, weil der String als WMS-TIME-Parameter rausgeht.
 add('dayToIsoDate ist UTC-treu über den Tageswechsel',
@@ -119,8 +124,11 @@ add('FirePage: die Einheit kommt aus timeUnit (erzwungen > gewählt > Tage), nic
   /timeUnit\(time,\s*activeList\)/.test(page) && /hasTimeSlider\(activeList,\s*unit\)/.test(page));
 add('FirePage: Tages-Layer zeigen auf der Stundenachse den Kalendertag von jetzt + h (dayOfHour)',
   /dayOfHour\(time\.hour,\s*nowMs\)/.test(page)
-  && /stationLevels\.get\(s\.id\)\?\.\[dayForLayers\]/.test(page)
   && /setCommittedDay\(dayForLayers\)/.test(page));
+// 2026-08-19: die amtliche Stufe hat keinen Tagesregler mehr — die Stationsfarbe
+// ist wbi_0 und darf NICHT still mit dem Regler der anderen Layer mitlaufen.
+add('FirePage: der zurückgezogene Layer ist restlos raus (kein toter Ladeweg)',
+  !/fireIndexNational/.test(page) && !/stationLevels/.test(page));
 add('FirePage: Wind bekommt auf der Stundenachse die Zielzeit jetzt + h (windTargetMs), sonst null',
   /const windTargetMs = hourly \? frameTargetMs : null/.test(page) && /windTargetMs=\{windTargetMs\}/.test(page));
 add('FirePage: ein zu kurzer Windlauf wird gesagt, nicht still geklemmt (windClamped)',
@@ -157,19 +165,22 @@ add('fireDeck.css: Einheiten-Umschalter mobil ≥ 44 px',
 // --- (5) WF4: der Forecast-Layer in Seite und Karte --------------------------
 // Der Layer ist der erste `hourly`-Layer; die Sonden sichern die drei Stellen,
 // an denen ein Custom-GL-Layer in diesem Projekt erfahrungsgemäß still bricht.
-add('FireMap: `fire-forecast-scalar` steht in CUSTOM_GL_LAYERS (sonst Platzhalter ⇒ nie sichtbar)',
-  /const CUSTOM_GL_LAYERS = new Set\(\[[^\]]*'fire-forecast-scalar'/.test(fmap));
-add('FireMap: der Forecast hat einen Lizenzträger (Custom-Layer tragen keine Source-Attribution)',
-  /ATTRIB_CARRIERS[\s\S]{0,600}fire-forecast-attrib[\s\S]{0,120}ICON_D2_FIRE_WEATHER_ATTRIBUTION/.test(fmap));
-add('FireMap: der Forecast-Frame wird mit vMin 0 / vMax 1 gesetzt (R = ISI/ISI_VMAX kommt aus dem Producer)',
-  /forecastLayerRef\.current\.setData\([\s\S]{0,240}vMin:\s*0,\s*vMax:\s*1/.test(fmap));
-add('FireMap: der Forecast-Zustand steht in stateRef UND in den applyState-Deps',
-  (fmap.match(/wind, soil, forecast, fireEvents/g) ?? []).length === 2
-    && /weather, wind, soil, forecast, day,/.test(fmap));
+// SF1 (2026-08-19): die Rasterfläche `fireForecast` ist zurückgezogen; an ihrer
+// Stelle steht der Pfeil-Layer `fireSpread`. Die Prüfungen wandern mit — was
+// bleibt, ist die Frage „ist der Stundenlayer vollständig verdrahtet".
+add('FireMap: der Ausbreitungs-Layer ist KEIN Custom-GL-Layer (er ist ein echter Symbol-Layer)',
+  !/fire-spread-arrows/.test((fmap.match(/const CUSTOM_GL_LAYERS = new Set\(\[[^\]]*/) ?? [''])[0]));
+add('FireMap: die Ausbreitung hat einen Lizenzträger (die Rechnung nennt beide Fremdquellen)',
+  /ATTRIB_CARRIERS[\s\S]{0,900}fire-spread-attrib[\s\S]{0,120}FIRE_SPREAD_ATTRIBUTION/.test(fmap));
+add('FireMap: die zurückgezogene Rasterfläche ist restlos entfernt (kein toter ScalarLayer)',
+  !/fire-forecast-scalar|forecastLayerRef/.test(fmap));
+add('FireMap: der Ausbreitungs-Zustand steht in stateRef UND in den applyState-Deps',
+  (fmap.match(/wind, soil, spreadFc, fireEvents/g) ?? []).length === 2
+    && /weather, wind, soil, spreadFc, day,/.test(fmap));
 add('FirePage: der Forecast lädt über den WF2-Producer',
   /fetchIconD2FireWeather\(\{/.test(page) && /aheadHours:\s*FIRE_WEATHER_AHEAD_H/.test(page));
-add('FirePage: der Forecast-Frame kommt aus frameAtValidTime (eine Zeitregel für alle ICON-Layer)',
-  /const forecast = useMemo\([\s\S]{0,200}frameAtValidTime\(fireWx\.frames, frameTargetMs\)/.test(page));
+add('FirePage: der Ausbreitungslauf folgt der Stundenachse (shownHour aus dem Regler)',
+  /computeSpreadRun\([\s\S]{0,200}shownHour: hourly \? time\.hour : 0/.test(page));
 // Der Punkt-Forecast zieht die Fusions-Quellenschicht nach. Statisch importiert
 // läge sie im FirePage-Chunk und jeder Waldbrand-Kaltstart bezahlte sie mit.
 add('FirePage: der Punkt-Forecast wird NUR dynamisch importiert (eigener Chunk)',

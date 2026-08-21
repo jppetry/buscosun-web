@@ -445,3 +445,179 @@ Cluster-Lauf braucht (BC1-Lehre: **ein** Clustering im Projekt).
 | 5 | **Keine Long Tasks > 200 ms** (Prod-Build, `vite preview`, PerformanceObserver `longtask`) | Laden: max 172 ms (Baseline-Bereich, 7-Tage-Klassifikation) · Panel öffnen + Zeile klicken + Fenster 24 h → 7 d (983 Einträge): max **130 ms** · `npm run budget`: totalJs 898 KB (Grenze 926,1), eagerJs 124 KB (130,2), größter Chunk 278,4 KB — alle Budgets eingehalten |
 
 **Offen / nächste Schritte:** BA-Linie (Sentinel-2-Batch) weiter gesperrt bis zu Jans drei Entscheidungen (§7 g); `context.md`/`checklist.md` existieren nicht (§7 h) — dieses Gate-Protokoll steht deshalb hier; V-Kandidaten §8 unverändert plus **neu**: „Cluster in einer Kartierung verschmelzen" (umgesetzt, s. o.) und „Vertretung der Raster durch Registry-Flächen" (umgesetzt).
+
+
+## 10. Nachtrag 2026-08-19 — „wann wurde dieser Brand zuletzt detektiert?"
+
+**Anlass (Jan, im Betrieb gefragt):** Die Zeile eines Brands sagte nicht, WANN er
+zuletzt gesehen wurde — nur, wie alt das ist. Im 7-Tage-Fenster ist das zu wenig.
+
+**Befund (am Code, nicht geraten).** Drei getrennte Mängel:
+
+1. **`statusLabel` nannte nur das Alter** („aktiv · letzte Detektion vor 12 h").
+   Der Zeitpunkt fehlte — obwohl die Cluster-Liste ihn seit BC1 führt
+   (`lastSeenLabel`). Zwei Listen über dieselben Brände, zwei Zeitsprachen.
+2. **`status.sinceMs` ist nicht immer eine Detektion.** `statusOf` füllt das Feld
+   je nach Fall mit der letzten Detektion, mit EFFIS `FINALDATE` **oder mit dem
+   EFFIS-Branddatum**. Die alte Zeile „kein Signal seit vor 5 T 2 h" beschriftete
+   damit bei kartierten Einträgen ohne Überflug ein **fremdes** Datum als wäre es
+   ein Signal — genau die Sorte stiller Falschaussage, die §0 verbietet.
+3. **Zwei Zustände sagten gar nichts:** ein Eintrag, der nur wegen einer offenen
+   EMS-Aktivierung „aktiv" ist, und ein „erloschen"-Eintrag trugen keinen
+   Detektionsbezug. Live sichtbar an Amaro · Udine: „aktiv · Copernicus EMS
+   EMSR924 (offen)" bei **null** Detektionen im 24-h-Fenster.
+
+**Umsetzung (additiv, eine Quelle).**
+
+- `src/dataAge.ts` → **`stampLabel(atMs, nowMs)`**: heute nur die Uhrzeit, sonst
+  Datum + Uhrzeit. Die Grenze ist der **Kalendertag**, keine Stundenschwelle —
+  „03:43" liest sich sonst wie heute Nacht.
+- `fireRegistry.ts` → **`lastDetectionLabel(r, nowMs)`** liest **`r.lastMs`**,
+  nie `status.sinceMs`. Ohne Detektion: „keine Detektion im Fenster".
+  `statusLabel` hängt die Zeile an **jeden** der drei Zustände; bei einem
+  kartierten Eintrag ohne Überflug wird das Branddatum getrennt als
+  „EFFIS-Brandbeginn …" benannt, statt als Detektion durchzugehen.
+- `fireClusters.ts` → `lastSeenLabel` nutzt dasselbe `stampLabel`. **Eine**
+  Zeitsprache in beiden Listen.
+- `fireDeck.css` → `.fire-crow-meta` darf **zwei** Zeilen hoch werden. Grund
+  gemessen, nicht vermutet: mit dem Datum passte „· vor 2 T 1 h" nicht mehr in
+  eine Zeile, und ausgerechnet das Alter fiel der Ellipse zum Opfer (Beleg:
+  `rows7d-shot.png` vor / `rows7db-shot.png` nach). Das ist eine **bewusste**
+  Desktop-Änderung an genau dieser Zeile, keine Regression an anderer Stelle;
+  im Sheet (≤ 767 px) wird der Zwei-Zeilen-Deckel aufgehoben, dort ist die
+  Spalte schmaler.
+
+**Lehre für alles Weitere:** ein Zeitfeld, das je nach Zustand etwas anderes
+bedeutet (`status.sinceMs`), darf nie mit einer festen Beschriftung gerendert
+werden. Entweder die Beschriftung folgt dem Zustand — oder man liest das Feld,
+das immer dasselbe bedeutet (`lastMs`). Hier wurde Letzteres gewählt.
+
+**Belege.** `npm run typecheck` grün · `verify:fire-registry` **79/79** (+5 neue
+Sätze: Zeitpunkt bei „aktiv", Datum bei älteren Detektionen, nur Uhrzeit bei
+heutigen, EFFIS-Eintrag ohne Detektion, „erloschen" mit Detektionsbezug) ·
+`verify:fire-clusters` **106/106** (+1: Datum ab dem Vortag) · `fire-model`
+123/123 · `fire-time` 127/127 · `fire-firms` 92/92 · `fire-activity` 171/171 ·
+`npm run build && npm run budget`: totalJs **914,5 / 926,1 KB** (+0,4 KB) ·
+Browser-Smoke Desktop 1440×900 und Mobil 390×844 (DPR 3) am Dev-Server, 24-h-
+und 7-Tage-Fenster, Konsole ohne Fehler; Sheet-Zeilen 85–130 px hoch (≥ 44 px).
+
+**Gelesen wird jetzt z. B.:**
+`aktiv · Copernicus EMS EMSR924 (offen) · letzte Detektion 17.08., 15:04 · vor 2 T 1 h · abklingend · 203 Hotspots`
+
+
+## 11. Phase BP5 — Brände und Cluster zu EINER Liste (Diagnose + Plan, 2026-08-19)
+
+**Auftrag (Jan):** „Brände · je Brand" und die Cluster-Ansicht rechts verschmelzen.
+Die Brand-Liste führt, die **Leistungsangaben der Cluster kommen hinzu**, und das
+Ergebnis steht dort, wo bisher die Cluster-Liste stand: **rechts im Readout**.
+
+### 11.1 Warum das überhaupt zwei Listen waren
+
+Nicht aus Versehen, sondern weil sie **verschiedene Bezugsgrößen** zählen — der
+Hinweistext im Readout sagt das heute selbst: die Registry führt einen Eintrag
+**je Brand**, das Clustering eine Zeile **je Detektionsgruppe**. Der Unterschied
+ist messbar und lag live bei 871 Bränden gegen 867 Cluster:
+
+1. **Verschmelzung:** mehrere Cluster in EINER EFFIS-Kartierung sind EIN Brand
+   (`buildFireRegistry`, `units`) — der Grund, aus dem BP1 die Registry überhaupt
+   bekam (Hohes Venn, drei Zeilen „2 825 ha").
+2. **Kartierungen ohne Detektion** haben gar keinen Cluster (`effis:`-Einträge).
+
+Ein Merge darf diese beiden Tatsachen nicht einebnen. Er ist trotzdem möglich,
+**weil die Registry den Cluster mitführt**: `FireRecord.sources.cluster` trägt
+`sumFrp`, `count`, `hullKm2`, `mostlyStatic` — alles, was die Cluster-Zeile
+zeigt. Die Brand-Liste ist also die **Obermenge**; die Cluster-Liste war eine
+Projektion davon mit anderer Sortierung.
+
+### 11.2 Was aus der Cluster-Ansicht mitkommen MUSS (Funktionserhalt, einzeln)
+
+| Funktion | Wohin |
+|---|---|
+| Stärke ΣFRP (`strengthLabel`) + Farbpunkt (`clusterColorOf`) | neue Leistungszeile der Brand-Zeile |
+| Stärke-Legende (`CLUSTER_FRP_STOPS`) | über die Liste, wie bisher |
+| Ausdehnung der Hülle (`extentLabel`) | Leistungszeile |
+| Rangfolge **nach Stärke** | neue Sortierung „Stärke" (`RecordSort`) |
+| Pflichthinweis `CLUSTER_NOTE` (MW ist Leistung, Hülle ist keine Brandfläche) | über die Liste |
+| Ortsfest-Chip | ist in der Brand-Zeile bereits vorhanden (`is-static`) |
+| Leerzustände mit Grund, **inkl. GWIS-Notbetrieb ⇒ keine Rangfolge nach Stärke** | Panel-Leerzustände |
+| Auswahl ⇒ Hülle auf der Karte hervorheben | `focusFootprint` setzt zusätzlich `selectedCluster` |
+| Klick auf eine Hülle ⇒ Zeile markieren | Karten-Rückruf bildet Cluster-Kennung auf die Brand-Kennung ab |
+| Ausgesprochener Deckel | im Panel bereits vorhanden (`shown`/`onShowMore`) |
+
+**Nicht mitkommen kann** die Zeile „N Cluster aus M Detektionen": sie zählt die
+alte Bezugsgröße. Ersatz: „N Brände aus M Detektionen im Fenster" — dieselbe
+Aussage über dieselbe Datenmenge, nur in der Bezugsgröße der neuen Liste; die
+Verschmelzung wird dort ausdrücklich benannt, damit die Zahl nicht als
+Widerspruch zur Detektionszahl gelesen wird.
+
+### 11.3 Umbau
+
+- **Readout-Reiter** werden auf beiden Größen `Layer | Brände`; der dritte
+  (mobile) Reiter entfällt, weil er dasselbe zeigte.
+- **Das Overlay am linken Kartenrand entfällt** samt 44-px-Reiter. Das ist ein
+  Umzug, kein Wegfall (oberste Direktive): derselbe Bau, ein Einbauort weniger.
+- **Permalink `fp`** bleibt gültig: `fp=1` öffnet jetzt den Reiter „Brände",
+  geschrieben wird es, solange dieser Reiter offen ist. Alte Links behalten ihre
+  Bedeutung („Liste zeigen"), nur der Ort der Liste hat sich geändert.
+- **Der Knopf im Dock** („Liste öffnen · n") schaltet künftig den Reiter statt
+  des Overlays.
+
+### 11.4 Gate GBP5
+
+Typecheck · `verify:fire-registry` (neue Sortierung, Grenzfälle ohne Cluster) ·
+`verify:fire-state` (`fp` bildet auf den Reiter ab) · übrige Fire-Verifier
+unverändert grün · Build + Budget · Browser-Smoke Desktop 1440×900 und Mobil
+390×844: beide Reiter, Sortierung „Stärke" rankt wie die alte Cluster-Liste,
+Auswahl aus der Liste hebt die Hülle hervor, Klick auf eine Hülle markiert die
+Zeile, Konsole sauber, Touch-Ziele ≥ 44 px.
+
+
+### 11.5 Gate GBP5 — umgesetzt (2026-08-19)
+
+**Was gebaut wurde.** Eine Liste statt zweier: `FireFootprintPanel` trägt jetzt
+die Leistungszeile (Stärke ΣFRP mit Skalenpunkt · Ausdehnung der Hülle), die
+Stärke-Skala, den Pflichthinweis der Cluster-Seite und die Rangfolge „Stärke"
+(`RecordSort` += `'strength'`). Sie steht auf beiden Größen im Readout unter
+`Layer | Brände`; das Overlay am linken Kartenrand und sein 44-px-Reiter sind
+entfallen, `clusterPanel` (131 Zeilen) ist aufgelöst.
+
+**Selbstverifikation (fünf Fragen).**
+
+1. **Funktionserhalt, einzeln geprüft:** die zwölf Funktionen der Tabelle in
+   §11.2 sind je durch eine eigene Verifier-Sonde `[BP5] …` belegt
+   (`verify:fire-clusters`). Die neun BC1-Quellsonden wurden auf den neuen Ort
+   **nachgezogen, nicht gestrichen** — sie prüfen dieselbe Absicht (Hinweis
+   unbedingt und vor der Liste, volle Zahl in der Kopfzeile, ausgesprochener
+   Deckel, Grau-Markierung statt Filter, Start auf „Layer").
+2. **Desktop:** absichtliche Änderung, kein Nebeneffekt — die Karte gewinnt die
+   300 px des Overlays, die Liste zieht ins Readout. Alles andere unverändert.
+3. **Touch-Ziele:** mobil 390×844 **0** Elemente < 44 px (Zeilen, Chips, Reiter,
+   Sortierknöpfe gemessen). Desktop naturgemäß kleiner (Zeigergerät).
+4. **Konsole:** Desktop und Mobil ohne Fehler und ohne Ausnahmen.
+5. **Long Tasks:** keine neue Rechenlast — dieselbe Registry, dieselben
+   Beschriftungen, nur ein anderer Einbauort; der Perf-Anker der Registry bleibt
+   (3 000 Detektionen + 300 Flächen: 86 ms, Grenze 150 ms).
+
+**Belege.** `npm run typecheck` grün · `verify:fire-clusters` **117/117** (+11
+BP5-Sonden) · `fire-registry` **81/81** (+2: Rangfolge nach Stärke, Eintrag ohne
+Leistung hinten) · `fire-footprint` 73/73 · `fire-model` 123/123 · `fire-time`
+130/130 · `fire-firms` 92/92 · `fire-activity` 171/171 · `fire-events` 42/42 ·
+`fire-sources` 151/151 · `fire-zones` 52/52 · Build + Budget **totalJs 914 /
+926,1 KB** (−0,5 KB) · Browser-Smoke gegen den Dev-Server, Desktop 1440×900 und
+Mobil 390×844 (DPR 3), 24-h- und 7-Tage-Fenster:
+
+- Reiter `Layer | Brände 871`, Overlay und Kartenreiter nachweislich weg.
+- `fp=1` aus einem alten Permalink öffnet die Liste (Reiter „Brände" aktiv).
+- Leistungszeile: `25,3 MW · 1,9 km² Ausdehnung`; ohne Detektion
+  `— keine Leistung (keine Detektion im Fenster)`.
+- Sortierung „Stärke": 53,8 · 32,4 · 32,2 · 30,1 · 25,3 MW — absteigend wie die
+  frühere Cluster-Liste.
+- Auswahl einer Zeile setzt den Hüllenfilter der Karte auf die Detektionsgruppe
+  des Brands (`["==",["get","id"],"48.182,10.174@1787141280000"]`, 1 Fläche
+  gezeichnet) — die Hervorhebung aus BC1 lebt weiter.
+
+**Anmerkung zu den Screenshots:** in den letzten Headless-Läufen fehlt die
+Basiskarte (keine Straßen, kein Grün) — die OpenFreeMap-Kacheln kamen nach rund
+einem Dutzend Smoke-Läufen nicht mehr. Die App-eigenen Ebenen (Detektionen,
+Hüllen, Flächen) zeichnen normal; ein früherer Lauf desselben Codes zeigt die
+Basiskarte vollständig. Das ist eine Grenze der Messumgebung, kein Befund.

@@ -20,20 +20,19 @@ import { FeatureRail, type RailFeature } from '../nav/featureRail';
 import FireMap, { type FireBasemap } from './FireMap';
 import {
   FIRE_DECK_GROUPS, FIRE_LAYER_ORDER, FIRE_MVP_LAYERS, FIRE_PRESETS,
-  FIRE_WEATHER_MAP_LAYERS, FIRE_FOOTPRINT_LAYERS, FIRE_FORECAST_LAYERS,
-  activeFirePresetId, fireSource, nationalSourceFor, type FireLayerId,
+  FIRE_WEATHER_MAP_LAYERS, FIRE_FOOTPRINT_LAYERS, FIRE_SPREAD_LAYERS,
+  activeFirePresetId, fireSource, type FireLayerId,
 } from './fireModel';
 import {
   defaultFireTimeState, reconcileFireTime, sharedMaxDay,
   dayLabel, windowChoices, windowLabel, laggingLayers, FIRE_LAYER_TIME, dayToIsoDate,
   // WF3: eine Achse, zwei Einheiten.
   timeUnit, sharedMaxHour, hourlyAvailable, hourlyForced, hasTimeSlider, dayOfHour, hourLabel,
-  dailyOnlyLayers, type FireTimeState,
+  dailyOnlyLayers, HOUR_AXIS_MAX, type FireTimeState,
 } from './fireTime';
 import {
   decodeFireState, encodeFireState, FIRE_HASH_PREFIX, DEFAULT_BURNT_BUCKETS, DEFAULT_SOIL_MODE,
 } from './fireState';
-import { fetchBafuDanger, fetchBafuBans } from './sources/bafuFire';
 import { fetchHotspots } from './sources/gwisHotspots';
 import {
   fetchFirmsHotspots, toRun, detectionKey, type HotspotRun, type FirmsRow,
@@ -42,8 +41,9 @@ import { type FireEvent } from './fireEvents';
 import { classifyHotspots, computeZonesAndClusters, computeFireClusters } from './fireEventsClient';
 import type { FireZone } from './fireZones';
 import {
-  withCountries, countryLabel, strengthLabel, extentLabel, lastSeenLabel, clusterColorOf,
-  staticChipLabel, CLUSTER_NOTE, CLUSTER_FRP_STOPS, CLUSTER_PAGE,
+  // BP5: die Stärke-Beschriftungen sind mit der Liste ins Panel gezogen
+  // (`FireFootprintPanel`); hier bleibt, was die Seite selbst braucht.
+  withCountries, CLUSTER_PAGE,
   type FireCluster, type CountryRings,
 } from './fireClusters';
 import { loadCountryRings } from '../countryMask';
@@ -61,6 +61,7 @@ import { FireFootprintPanel, type EffisScope } from './FireFootprintPanel';
 import { loadPlaces, nearestPlace, type PlaceIndex } from './footprint/places';
 import { featuresOf } from './activity/features';
 import { areaEstEnabled, estimateArea, loadAreaModel } from './activity/estimate';
+import type { AreaEstimate } from './activity/estimate';
 import type { AreaModel } from './activity/calibration';
 // AF2: Beobachtungsgelegenheit (regionale Aktivität) und Windabgleich — beides aus Daten, die schon da sind.
 import { buildObservationIndex, observationFor } from './activity/observation';
@@ -68,7 +69,6 @@ import { sampleWindAt } from '../wind/windPointSample';
 import { fetchEmsActivations, type EmsActivation } from './sources/emsActivations';
 import { fetchWarnContextsFor, type AtWarnContext } from './sources/geosphereWarnContext';
 import { loadClcMask, landcoverAt, toAssessmentLandcover, type ClcMask } from './clcMask';
-import { fetchStations, fetchStationValues, type FireStation } from './sources/dwdFireIndex';
 import { fetchIconD2Relhum, type IconD2Relhum } from '../sources/iconD2Relhum';
 // WF4: der stündliche ISI aus ICON-D2 (WF2-Producer) — Fläche des Forecast-Layers.
 import {
@@ -91,6 +91,9 @@ import { DANGER_VIEWS, DANGER_VIEW_ORDER, DEFAULT_DANGER_VIEW, companionView, ty
 import { countMapped, mappedAreaFor, type BurntPolygon } from './fireCorroboration';
 import { defaultPlayback, stepPlayback, prefetchTarget, daysPerSecondForTier, hoursPerSecondForTier } from './firePlayback';
 import { frameAtValidTime } from '../sources/frameAtValidTime';
+import { computeSpreadRun, type SpreadRun } from './spread/spreadRun';
+import { spreadToGeoJSON } from './spread/spreadLayer';
+import { FAN_CAVEAT, SPREAD_CAVEAT_SHORT, capNote } from './spread/spreadText';
 import { BottomSheet, type BottomSheetSnap } from '../mobile/BottomSheet';
 import { useMediaQuery } from '../mobile/useIsMobile';
 import type { PerfTier } from '../wind/perfGovernor';
@@ -148,7 +151,7 @@ const BUILT_EXTENDED = new Set<FireLayerId>(['fireFuel', 'fireBurnt', 'fireConte
  *  immer, Ausbaustufe 2 nur, wo die Quelle wirklich erreichbar ist. */
 const isBuilt = (id: FireLayerId) =>
   FIRE_MVP_LAYERS.includes(id) || FIRE_WEATHER_MAP_LAYERS.includes(id) || FIRE_FOOTPRINT_LAYERS.includes(id)
-  || FIRE_FORECAST_LAYERS.includes(id) || BUILT_EXTENDED.has(id);
+  || FIRE_SPREAD_LAYERS.includes(id) || BUILT_EXTENDED.has(id);
 
 interface Props { onBack: () => void; onOpenFeature?: (id: RailFeature) => void }
 
@@ -156,7 +159,7 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
   const initial = typeof window !== 'undefined' ? decodeFireState(window.location.hash) : null;
 
   const [active, setActive] = useState<Set<FireLayerId>>(
-    () => new Set(initial?.layers.length ? initial.layers : ['fireDanger', 'fireIndexNational']),
+    () => new Set(initial?.layers.length ? initial.layers : ['fireDanger', 'fireHotspots']),
   );
   const [time, setTime] = useState<FireTimeState>(() => {
     const base = defaultFireTimeState();
@@ -184,16 +187,14 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
   const [layerHover, setLayerHover] = useState<FireLayerId | null>(null);
 
   // --- Daten ---------------------------------------------------------------
-  const [chDanger, setChDanger] = useState<GeoJSON.FeatureCollection | null>(null);
-  const [chBans, setChBans] = useState<GeoJSON.FeatureCollection | null>(null);
   const [hotspots, setHotspots] = useState<GeoJSON.FeatureCollection | null>(null);
   const [hotspotFootprints, setHotspotFootprints] = useState<GeoJSON.FeatureCollection | null>(null);
   const [hotspotProvider, setHotspotProvider] = useState<'firms' | 'gwis'>('firms');
-  const [stations, setStations] = useState<FireStation[] | null>(null);
-  const [stationLevels, setStationLevels] = useState<Map<number, (number | null)[]>>(new Map());
   const [relhum, setRelhum] = useState<IconD2Relhum | null>(null);
   /** WW1 — das native ICON-D2-Windgitter, identisch zu dem der Wetterkarte. */
   const [wind, setWind] = useState<IconD2Wind | null>(null);
+  /** SF1: der letzte Ausbreitungslauf — Karte und Panel lesen aus demselben Objekt. */
+  const [spread, setSpread] = useState<SpreadRun | null>(null);
   /** WT1 — Bodentrockenheit (ICON-D2 smi) der gewählten Tiefe. */
   const [smi, setSmi] = useState<IconD2Smi | null>(null);
   /** WF4 — Feuerwetter stündlich: die ISI-Frames des jüngsten ICON-D2-Laufs. */
@@ -221,10 +222,13 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
   const [selectedCluster, setSelectedCluster] = useState<string | null>(null);
   const [focusNonce, setFocusNonce] = useState(0);
   /** BC1: welche Seite das Readout zeigt — „Layer" ist der Bestand. */
-  const [readoutTab, setReadoutTab] = useState<'layers' | 'fires' | 'footprints'>('layers');
+  const [readoutTab, setReadoutTab] = useState<'layers' | 'fires'>(
+    // BP5: `fp=1` aus einem alten Permalink hiess „Liste zeigen" — die Liste ist
+    // jetzt der Reiter „Braende". Die Bedeutung bleibt, nur ihr Ort hat sich geaendert.
+    initial?.footprintPanel ? 'fires' : 'layers',
+  );
   // --- BP2: das Brandflächen-Panel (Registry) ------------------------------
   /** Panel links offen? (Permalink-Feld `fp`; unabhängig vom Layer-Schalter.) */
-  const [fpOpen, setFpOpen] = useState<boolean>(initial?.footprintPanel ?? false);
   const [fpSort, setFpSort] = useState<RecordSort>('area');
   const [fpFilter, setFpFilter] = useState<RecordFilter>(DEFAULT_FILTER);
   /** Umfang der EFFIS-Einträge: Historie (7 d) oder die ganze Saison (nur wenn geladen). */
@@ -249,7 +253,6 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
    * Kürzung: die Kopfzeile nennt die volle Zahl, die Liste sagt, wie viele davon
    * sie zeigt, und ein Knopf holt die nächsten.
    */
-  const [shownClusters, setShownClusters] = useState(CLUSTER_PAGE);
   /** GWBA1: Ereignisse des Laufs (A4-Bewertung im Steckbrief), EMS-Aktivierungen
    *  (A2, still geladen, nie blockierend) und GeoSphere-Kontext je AT-Ereignis (A3). */
   const [fireEvents, setFireEvents] = useState<readonly FireEvent[]>([]);
@@ -267,8 +270,10 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
   /**
    * WF3 — EINE Achse, zwei Einheiten: erzwungen (Stundenlayer) > gewählt > Tage.
    * `pos`/`sliderMax` sind der Reglerstand und -horizont in der geltenden Einheit;
-   * `dayForLayers` ist der Tagesschritt, den die Tages-Layer (EU-Index, DWD-Stufe,
-   * Stationsfarben) zeigen — auf der Stundenachse der Kalendertag von „jetzt + h".
+   * `dayForLayers` ist der Tagesschritt, den die Tages-Layer (EU-Index, Boden)
+   * zeigen — auf der Stundenachse der Kalendertag von „jetzt + h". Die amtliche
+   * Stufe gehört seit 2026-08-19 NICHT mehr dazu: sie ist `instant` und zeigt
+   * immer heute.
    */
   const unit = timeUnit(time, activeList);
   const hourly = unit === 'hours';
@@ -293,75 +298,14 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
 
   // --- Laden: strikt LAZY, erst beim Aktivieren des jeweiligen Layers -------
   // Das ist keine Optimierung, sondern eine Auflage: `geo.admin.ch` verlangt
-  // Fair Use (ein Abruf je Sitzung), und die 484 DWD-Stationsdateien dürfen
-  // nicht angefasst werden, solange niemand die Landesstufe sehen will.
-  useEffect(() => {
-    if (!active.has('fireIndexNational')) return;
-    const ac = new AbortController();
-    setLayerLoad('fireIndexNational', { kind: 'loading' });
-    void (async () => {
-      try {
-        const [ch, st] = await Promise.all([
-          fetchBafuDanger(),
-          stations ? Promise.resolve(stations) : fetchStations('woodland'),
-        ]);
-        if (ac.signal.aborted) return;
-        setChDanger(ch.features);
-        setStations(st);
-        setLayerLoad('fireIndexNational', {
-          kind: 'ok', ref: ch.ref,
-          note: `${st.length} DWD-Stationen · ${ch.count} Schweizer Warnregionen`,
-        });
-      } catch (e) {
-        if (ac.signal.aborted) return;
-        setChDanger(null);
-        setLayerLoad('fireIndexNational', { kind: 'error', message: (e as Error).message });
-      }
-    })();
-    return () => ac.abort();
-    // `stations` absichtlich nicht in den Abhängigkeiten: sonst lädt der Effekt
-    // sich selbst nach, sobald er die Liste gesetzt hat.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active, setLayerLoad]);
-
-  // DE-Stationswerte für den GEWÄHLTEN Tag — gedeckelt auf 60 Stationen (V-200).
-  useEffect(() => {
-    if (!active.has('fireIndexNational') || !stations?.length) return;
-    const ac = new AbortController();
-    void (async () => {
-      try {
-        // Ohne Viewport-Bindung in dieser Phase: die 60 Stationen mit der
-        // größten Streuung über die Fläche wären die bessere Wahl, brauchen
-        // aber den Kartenausschnitt. Bis dahin die ersten 60 der Liste —
-        // sichtbar gemacht durch den Hinweis „Ausschnitt" im Steckbrief.
-        const ids = stations.slice(0, 60).map((s) => s.id);
-        const res = await fetchStationValues('woodland', ids, ac.signal);
-        if (ac.signal.aborted) return;
-        const m = new Map<number, (number | null)[]>();
-        for (const [id, idx] of res.values) m.set(id, idx.days);
-        setStationLevels(m);
-      } catch { /* eine fehlende Station ist kein Layer-Fehler */ }
-    })();
-    return () => ac.abort();
-  }, [active, stations]);
-
-  useEffect(() => {
-    if (!active.has('fireBans')) return;
-    const ac = new AbortController();
-    setLayerLoad('fireBans', { kind: 'loading' });
-    void fetchBafuBans()
-      .then((r) => {
-        if (ac.signal.aborted) return;
-        setChBans(r.features);
-        setLayerLoad('fireBans', { kind: 'ok', ref: r.ref, note: `${r.count} Gebiete` });
-      })
-      .catch((e) => {
-        if (ac.signal.aborted) return;
-        setChBans(null);
-        setLayerLoad('fireBans', { kind: 'error', message: (e as Error).message });
-      });
-    return () => ac.abort();
-  }, [active, setLayerLoad]);
+  // Fair Use (ein Abruf je Sitzung).
+  //
+  // 2026-08-19: Der Ladeweg der amtlichen Stufe (BAFU-Gefahrenstufen + die 484
+  // DWD-Stationsdateien) ist mit dem Layer entfallen, und mit dem Rückzug der
+  // Feuerverbote (gleicher Tag) auch der BAFU-Abruf der Präventionsmassnahmen.
+  // Die Quellmodule `sources/dwdFireIndex.ts` und `sources/bafuFire.ts` bleiben
+  // im Repo — sie sind verifiziert und wiederverwendbar —, werden aber von der
+  // App nicht mehr aufgerufen und landen damit auch nicht mehr im Bundle.
 
   /**
    * Hotspots: **NASA FIRMS zuerst, GWIS als Rückfallebene** (Phase F1).
@@ -426,6 +370,10 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
             // Einordnung nicht, und der Steckbrief behauptet sie auch nicht.
             rows: [],
             staticCount: 0,
+            // Im Notbetrieb gibt es keine FIRMS-Einzelabrufe mehr, über die man
+            // etwas aussagen könnte — der Grund steht in `degradedReason`.
+            failedFetches: 0,
+            plannedFetches: 0,
           };
         } catch (fallback) {
           if (ac.signal.aborted) return;
@@ -494,7 +442,8 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
               }
               if (ac.signal.aborted) return;
               // Anwenden auf die ANGEZEIGTEN Zeilen (24 h oder 7 d) — jetzt erst grau.
-              const refined = toRun(displayed.rows, displayed.windowH, at, displayed.skipped, keys);
+              const refined = toRun(displayed.rows, displayed.windowH, at, displayed.skipped, keys,
+                displayed.failedFetches, displayed.plannedFetches);
               setHotspots(refined.points);
               setHotspotFootprints(refined.footprints);
               setFireEvents(cls.events);
@@ -513,7 +462,13 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
               const counted = `${displayed.count} Detektionen${displayed.truncated ? ' (Anzeige begrenzt)' : ''}`
                 + (refined.staticCount > 0 ? `, davon ${refined.staticCount} ortsfest (grau)` : '')
                 + (time.windowH < 168 ? ' · Einordnung aus 7 Tagen Vorgeschichte' : '')
-                + (cls.where === 'main' ? ' · Einordnung im Hauptthread (kein Worker)' : '');
+                + (cls.where === 'main' ? ' · Einordnung im Hauptthread (kein Worker)' : '')
+                // Der Teilausfall-Hinweis muss auch NACH der Einordnung stehen:
+                // diese Zeile ersetzt die erste, und ohne ihn verschwände die
+                // Lücke wieder aus der Anzeige (im Smoke genau so passiert).
+                + (displayed.failedFetches > 0
+                  ? ` · ${displayed.failedFetches} von ${displayed.plannedFetches} Abrufen ohne Antwort — die Anzeige kann Lücken haben`
+                  : '');
               setDetLoad({
                 kind: 'ok',
                 ref: displayed.latestAcqMs != null ? { atMs: displayed.latestAcqMs, kind: 'measured' } : null,
@@ -558,12 +513,18 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
         ? 'keine Detektion im Fenster'
         : `${run.count} Detektionen${run.truncated ? ' (Anzeige begrenzt)' : ''}`
           + (run.provider === 'firms' ? ' · Einordnung läuft …' : '');
+      // Ein Teilausfall wird GESAGT: die Anzeige stimmt für die Abrufe, die
+      // geantwortet haben, und kann dort Lücken haben, wo einer fehlt. Ohne
+      // diesen Satz sähe eine unvollständige Liste wie eine vollständige aus.
+      const partial = run.failedFetches > 0
+        ? ` · ${run.failedFetches} von ${run.plannedFetches} Abrufen ohne Antwort — die Anzeige kann Lücken haben`
+        : '';
       setDetLoad({
         kind: 'ok',
         ref: run.latestAcqMs != null ? { atMs: run.latestAcqMs, kind: 'measured' } : null,
         note: run.provider === 'gwis'
           ? `${counted} · Notbetrieb: NASA FIRMS nicht erreichbar, Anzeige ohne Intensität`
-          : counted,
+          : counted + partial,
       });
     })();
     return () => ac.abort();
@@ -592,20 +553,13 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
     [clusters, countryRings],
   );
 
-  /** BC1: der Deckel wird bei jeder neuen Liste zurückgesetzt (neues Fenster,
-   *  neuer Lauf) — sonst stünden nach einem Fensterwechsel 500 Zeilen im DOM,
-   *  die niemand aufgeklappt hat. */
-  useEffect(() => { setShownClusters(CLUSTER_PAGE); }, [clusters]);
-
-  /** Auswahl aus der LISTE: markieren **und** hinfahren. */
-  const focusCluster = useCallback((id: string) => {
-    setSelectedCluster(id);
-    // BP2: gegenseitiger Ausschluss — eine Auswahl nullt die andere, und die
-    // Cluster-Bbox gilt (kein altes Registry-Ziel).
-    setSelectedFootprint(null);
-    setFocusBbox(null);
-    setFocusNonce((n) => n + 1);
-  }, []);
+  /**
+   * BP5: Refs auf die Liste, weil der Karten-Rückruf weiter oben registriert
+   * wird als die Registry gebaut ist. Derselbe Grund wie bei `stateRef` in
+   * `FireMap` — der Handler soll nicht auf dem ersten Bestand einfrieren.
+   */
+  const recordsRef = useRef<readonly FireRecord[]>([]);
+  const panelRecordsRef = useRef<readonly FireRecord[]>([]);
 
   /**
    * Auswahl von der KARTE: nur markieren. Die Karte bewegt sich nicht — man hat
@@ -615,16 +569,19 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
   const selectFromMap = useCallback((id: string | null) => {
     setSelectedCluster(id);
     if (!id) return;
-    setSelectedFootprint(null);
     setReadoutTab('fires');
-    // Liegt der Cluster hinter dem Deckel, wird so weit aufgeklappt, dass seine
-    // Zeile wirklich existiert. Sonst zeigte der Klick auf der Karte auf eine
-    // Markierung, die es im DOM nicht gibt — der Nutzer sähe gar nichts.
-    const rank = clusterList.findIndex((c) => c.id === id);
-    if (rank >= 0) {
-      setShownClusters((n) => Math.max(n, Math.ceil((rank + 1) / CLUSTER_PAGE) * CLUSTER_PAGE));
-    }
-  }, [clusterList]);
+    // BP5: die Hülle gehört zu einer Detektionsgruppe, die Liste führt Brände.
+    // Der Klick markiert deshalb den Brand, der diese Gruppe enthält — sonst
+    // wäre er seit der Verschmelzung folgenlos. Frühere Kennungen zählen mit
+    // (Verschmelzung mehrerer Gruppen zu einem Brand, `previousIds`).
+    const rec = recordsRef.current.find(
+      (r) => r.sources.cluster?.id === id || r.previousIds.includes(`fire:${id.split('@')[0]}`),
+    );
+    if (!rec) return;
+    setSelectedFootprint(rec.id);
+    const rank = panelRecordsRef.current.findIndex((r) => r.id === rec.id);
+    if (rank >= 0) setShownFootprints((n) => Math.max(n, Math.ceil((rank + 1) / CLUSTER_PAGE) * CLUSTER_PAGE));
+  }, []);
 
   /** Wie viele Detektionen liegen in einer kartierten Fläche der letzten Woche? */
   const mappedCount = useMemo(
@@ -673,9 +630,13 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
    * und am Warm-Cron, eine fest eingetragene Zahl wäre irgendwann eine Behauptung.
    */
   useEffect(() => {
-    if (!active.has('fireWind')) return;
+    // SF1: der Ausbreitungslayer rechnet auf DEMSELBEN Windgitter. Kein zweiter
+    // Loader, keine zweite Quelle — dieselben Bytes, derselbe Browser-Cache
+    // (Regel WW1: importieren statt kopieren). Dass der Layer damit ~26
+    // GRIB-Dateien auslöst, auch wenn der Windlayer aus ist, steht im Ladehinweis.
+    if (!active.has('fireWind') && !active.has('fireSpread')) return;
     const ac = new AbortController();
-    setLayerLoad('fireWind', { kind: 'loading' });
+    if (active.has('fireWind')) setLayerLoad('fireWind', { kind: 'loading' });
     void fetchIconD2Wind(ac.signal, (partial) => {
       // Das Partial teilt sich das wachsende `frames`-Array mit dem Endergebnis
       // (s. fetchIconD2Wind) — eine neue Objekthülle je Fortschritt sorgt dafür,
@@ -752,9 +713,11 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
    * „N Stundenschritte" allein ließe den Layer wie einen fertigen Index aussehen.
    */
   useEffect(() => {
-    if (!active.has('fireForecast')) return;
+    // SF1: die Rasterfläche ist zurückgezogen, die QUELLE bleibt — der ISI (und
+    // der ISZ im G-Kanal) ist die Grundlage der Pfeile.
+    if (!active.has('fireSpread')) return;
     const ac = new AbortController();
-    setLayerLoad('fireForecast', { kind: 'loading' });
+    setLayerLoad('fireSpread', { kind: 'loading' });
     void fetchIconD2FireWeather({
       signal: ac.signal,
       aheadHours: FIRE_WEATHER_AHEAD_H,
@@ -767,16 +730,13 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
       .then((r) => {
         if (ac.signal.aborted) return;
         setFireWx(r);
-        setLayerLoad('fireForecast', {
-          kind: 'ok',
-          ref: { atMs: r.runAt.getTime(), kind: 'run' },
-          note: `${r.frames.length} Stundenschritte · ${r.mode === 'isi' ? 'ISI ohne Vortagsgedächtnis' : 'FWI mit Tages-Codes'}`,
-        });
+        // Die abschließende Notiz setzt der Ausbreitungslauf (er kennt Deckel
+        // und Geländezellen) — hier bleibt nur der Lauf-Zeitstempel stehen.
       })
       .catch((e) => {
         if (ac.signal.aborted) return;
         setFireWx(null);
-        setLayerLoad('fireForecast', { kind: 'error', message: (e as Error).message });
+        setLayerLoad('fireSpread', { kind: 'error', message: (e as Error).message });
       });
     return () => ac.abort();
   }, [active, setLayerLoad]);
@@ -911,19 +871,6 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
       image: best.image, width: best.width, height: best.height, uvBounds: relhum.uvBounds,
     };
   }, [relhum, frameTargetMs]);
-
-  /**
-   * WF4 — der ISI-Frame zur Zielzeit. Dieselbe eine Regel wie bei den beiden
-   * Treibern (`frameAtValidTime`): der Layer erzwingt die Stundenachse, also ist
-   * die Zielzeit „jetzt + h" — auf der Tagesachse käme er gar nicht vor.
-   */
-  const forecast = useMemo(() => {
-    if (!fireWx?.frames.length) return null;
-    const best = frameAtValidTime(fireWx.frames, frameTargetMs);
-    return {
-      image: best.image, width: best.width, height: best.height, uvBounds: fireWx.uvBounds,
-    };
-  }, [fireWx, frameTargetMs]);
 
   /**
    * WF3 (§15.5) — der Wind folgt der Stundenachse: Zielzeit „jetzt + h" statt
@@ -1079,19 +1026,26 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
   );
   // BP3: Ortsverzeichnis laden, sobald die Liste irgendwo sichtbar wird (Overlay
   // oder Sheet-Segment). Fehlschlag ⇒ Orte bleiben „—" mit Grund; kein Fehlerlayer.
-  const wantPlaces = fpOpen || readoutTab === 'footprints';
+  const wantPlaces = readoutTab === 'fires';
   useEffect(() => {
     if (!wantPlaces || places) return;
     const ac = new AbortController();
     void loadPlaces().then((idx) => { if (!ac.signal.aborted) setPlaces(idx); }).catch(() => { /* still: „—" */ });
     return () => ac.abort();
   }, [wantPlaces, places]);
+  /**
+   * Das Kalibriermodell (2,5 KB) hing bis VB3 allein am Panel-Reiter. Seit der
+   * Karten-Steckbrief dieselbe Schätzung trägt, muss es auch dann geladen sein,
+   * wenn nur die Karte offen ist — sonst zeigte ein Klick ins Raster weniger als
+   * die Liste daneben. Das Ortsverzeichnis (324 KB) bleibt bewusst am Reiter.
+   */
+  const wantAreaModel = wantPlaces || active.has('fireHotspots');
   useEffect(() => {
-    if (!wantPlaces || areaModel || !areaEstEnabled()) return;
+    if (!wantAreaModel || areaModel || !areaEstEnabled()) return;
     let alive = true;
     void loadAreaModel().then((m) => { if (alive && m) setAreaModel(m); });
     return () => { alive = false; };
-  }, [wantPlaces, areaModel]);
+  }, [wantAreaModel, areaModel]);
   const prevRecordsRef = useRef<FireRecord[]>([]);
   // AF2: Index über die angezeigten Zeilen — einmal je Zeilensatz, für „kein Signal"-Einträge.
   const observationIndex = useMemo(() => (hotspotRows.length > 0 ? buildObservationIndex(hotspotRows) : null), [hotspotRows]);
@@ -1126,10 +1080,87 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
     return carried;
   }, [clusterList, fireZones, registryReconciled, registryPolys, emsActs, fpEffisScope, burntSeason, clcMask, places, observationIndex, wind, areaModel]);
   const recordsById = useMemo(() => new Map(records.map((r) => [r.id, r])), [records]);
+
+  /**
+   * SF1 — der Ausbreitungslauf: je aktivem Brand ein Vektor je Stunde.
+   *
+   * Drei Dinge, die hier bewusst so stehen:
+   *
+   *  • **Entprellt (300 ms).** `records` leitet sich bei JEDEM fortschreitenden
+   *    Wind-Frame neu ab (die Registry hängt an `wind`) — ohne Entprellung liefe
+   *    der Lauf während der Ladephase rund zwei Dutzend Mal.
+   *  • **Abbruch + Generationszähler.** Der Lauf ist asynchron (DEM-Kacheln);
+   *    ein überholtes Ergebnis darf den neueren Stand nicht überschreiben.
+   *  • **Die Notiz nennt den Deckel.** Still zu kürzen wäre eine Falschaussage
+   *    über den Bestand (V-246) — `capNote` schreibt Zahl, Grund und den Satz
+   *    gegen die Fehllesart „keine Ausbreitung".
+   */
+  const spreadGenRef = useRef(0);
+  useEffect(() => {
+    if (!active.has('fireSpread')) { setSpread(null); return; }
+    // Kein Lauf ohne Eingangsdaten — und vor allem kein ALTER Lauf: `records`
+    // wird bei jedem Wind-Frame neu abgeleitet, die Kennungen wandern dabei
+    // (`carryIds`). Ein stehen gelassener Lauf beschriebe dann einen Bestand,
+    // den es nicht mehr gibt, und die Detailkarte fände ihren Brand nicht wieder.
+    if (!wind || !fireWx) { setSpread(null); return; }
+    const gen = ++spreadGenRef.current;
+    const ac = new AbortController();
+    const timer = window.setTimeout(() => {
+      void computeSpreadRun({
+        records, wind, fireWx, nowMs: Date.now(),
+        maxHour: HOUR_AXIS_MAX, shownHour: hourly ? time.hour : 0,
+        signal: ac.signal,
+      })
+        .then((run) => {
+          if (ac.signal.aborted || gen !== spreadGenRef.current) return;
+          setSpread(run);
+          // Nur im DEV-Build: der Lauf für die Verifikation über MCP/DevTools
+          // (Muster window.__fireMap). Ohne ihn ist „warum kein Pfeil" nur
+          // über die Oberfläche zu erraten.
+          if (import.meta.env.DEV) {
+            (window as unknown as { __fireSpreadRun?: SpreadRun }).__fireSpreadRun = run;
+          }
+          setLayerLoad('fireSpread', {
+            kind: 'ok',
+            ref: run.fwRunAtMs != null ? { atMs: run.fwRunAtMs, kind: 'run' } : null,
+            note: capNote({
+              computed: run.computed, considered: run.considered, cap: run.cap, demCells: run.demCells,
+              horizonHour: run.horizonHour, maxHour: run.maxHour,
+            }),
+          });
+        })
+        .catch((e) => {
+          if (ac.signal.aborted || gen !== spreadGenRef.current) return;
+          setSpread(null);
+          setLayerLoad('fireSpread', { kind: 'error', message: (e as Error).message });
+        });
+    }, 300);
+    return () => { window.clearTimeout(timer); ac.abort(); };
+  }, [active, records, wind, fireWx, hourly, time.hour, setLayerLoad]);
+
+  /** SF1: Pfeile und Fächer als GeoJSON — memoisiert, sonst setzt `setData` auf `idle` endlos (V-220). */
+  const spreadFc = useMemo(() => (spread ? spreadToGeoJSON(spread) : null), [spread]);
+  /**
+   * VB3: Schätzung je Zone (`zone.id` → Schätzung) für den Karten-Steckbrief.
+   * Ein Eintrag kann mehrere Zonen tragen — alle erben seine Schätzung. Einträge
+   * MIT Kartierung bleiben außen vor: dort misst EFFIS, und der Steckbrief zeigt
+   * die Kartierung (`audit/brandflaeche-vorlaeufig.md` §5).
+   */
+  const zoneEstimates = useMemo(() => {
+    const m = new Map<string, AreaEstimate>();
+    for (const r of records) {
+      const e = r.activity?.areaEst;
+      if (!e || r.sources.effis) continue;
+      for (const z of r.sources.zones) m.set(z.id, e);
+    }
+    return m;
+  }, [records]);
   const panelRecords = useMemo(
     () => sortRecords(filterRecords(records, fpFilter), fpSort),
     [records, fpFilter, fpSort],
   );
+  recordsRef.current = records;
+  panelRecordsRef.current = panelRecords;
   useEffect(() => { setShownFootprints(CLUSTER_PAGE); }, [records]);
   // Fällt die Auswahl aus dem Bestand (Fensterwechsel), fällt sie ganz — kein Geist.
   useEffect(() => {
@@ -1168,41 +1199,25 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
   const focusFootprint = useCallback((id: string) => {
     const r = recordsById.get(id);
     setSelectedFootprint(id);
-    setSelectedCluster(null);
+    // BP5: seit die Listen EINE sind, markiert eine Brand-Auswahl auch die Hülle
+    // seiner Detektionsgruppe — die Hervorhebung der früheren Cluster-Liste
+    // bleibt damit erhalten, statt mit ihr zu verschwinden. Ohne Cluster (reine
+    // Kartierung) wird ausdrücklich nichts markiert.
+    setSelectedCluster(r?.sources.cluster?.id ?? null);
     setFocusBbox(r ? r.bbox : null);
     setFocusNonce((n) => n + 1);
   }, [recordsById]);
-  /** Auswahl von der KARTE: markieren, Panel zeigen — Karte bewegt sich nicht. */
+  /** Auswahl von der KARTE: markieren, Liste zeigen — Karte bewegt sich nicht. */
   const selectFootprintFromMap = useCallback((id: string | null) => {
     setSelectedFootprint(id);
     if (!id) return;
-    setSelectedCluster(null);
-    setFpOpen(true);
+    setSelectedCluster(recordsById.get(id)?.sources.cluster?.id ?? null);
+    setReadoutTab('fires');
     const rank = panelRecords.findIndex((r) => r.id === id);
     if (rank >= 0) setShownFootprints((n) => Math.max(n, Math.ceil((rank + 1) / CLUSTER_PAGE) * CLUSTER_PAGE));
-  }, [panelRecords]);
+  }, [panelRecords, recordsById]);
   const clearFootprint = useCallback(() => { setSelectedFootprint(null); setFocusBbox(null); }, []);
 
-  /** DE-Stationen als GeoJSON — `level` ist die Stufe des GEWÄHLTEN Tages. */
-  const deStations = useMemo<GeoJSON.FeatureCollection | null>(() => {
-    if (!stations?.length) return null;
-    return {
-      type: 'FeatureCollection',
-      features: stations.slice(0, 60).map((s) => {
-        const lv = stationLevels.get(s.id)?.[dayForLayers] ?? null;
-        return {
-          type: 'Feature' as const,
-          geometry: { type: 'Point' as const, coordinates: [s.lon, s.lat] },
-          // `level` nur setzen, wenn es einen gibt — der Paint-Ausdruck
-          // unterscheidet über `['has','level']` zwischen „Stufe" und
-          // „Stützstelle ohne Wert". Ein 0 wäre eine erfundene Stufe.
-          properties: lv != null
-            ? { id: s.id, name: s.name, state: s.state, level: lv }
-            : { id: s.id, name: s.name, state: s.state },
-        };
-      }),
-    };
-  }, [stations, stationLevels, dayForLayers]);
 
   // Breakpoint 767 px — die Projekt-Konvention, kein Ad-hoc-Wert (CLAUDE.md).
   const isMobile = useMediaQuery('(max-width: 767px)');
@@ -1210,9 +1225,8 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
   const [sheetSnap, setSheetSnap] = useState<BottomSheetSnap>('collapsed');
   // BP2: das dritte Readout-Segment gibt es nur im Sheet — beim Wechsel auf
   // Desktop fällt es auf „Cluster" zurück, sonst wäre das Readout leer.
-  useEffect(() => { if (!isMobile && readoutTab === 'footprints') setReadoutTab('fires'); }, [isMobile, readoutTab]);
   // Mobil: eine Kartenauswahl macht das Panel-Segment sichtbar — sonst wäre der Klick folgenlos.
-  useEffect(() => { if (isMobile && selectedFootprint) setReadoutTab('footprints'); }, [isMobile, selectedFootprint]);
+  useEffect(() => { if (selectedFootprint) setReadoutTab('fires'); }, [selectedFootprint]);
 
   // --- Playback (WB3) --------------------------------------------------------
   // rAF wie `NowcastRadarMap.tsx:269-279`, aber mit ganzzahliger Tagesausgabe:
@@ -1301,22 +1315,22 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
    * eine bereits sichtbare Zeile springt nicht.
    */
   useEffect(() => {
-    if (!selectedCluster || readoutTab !== 'fires') return;
-    const el = document.querySelector<HTMLElement>(`.fire-crow[data-cluster="${CSS.escape(selectedCluster)}"]`);
+    if (!selectedFootprint || readoutTab !== 'fires') return;
+    const el = document.querySelector<HTMLElement>(`.fire-fprow[data-fire="${CSS.escape(selectedFootprint)}"]`);
     el?.scrollIntoView({ block: 'nearest' });
-  }, [selectedCluster, readoutTab]);
+  }, [selectedFootprint, readoutTab]);
 
   // Permalink mitführen (replaceState, damit der Zurück-Knopf nicht zumüllt).
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const hash = encodeFireState({
       location: null, layers: activeList, day: time.day, windowH: time.windowH,
-      dangerView, burntBuckets: [...burntBuckets], soilMode, burntDay, footprintPanel: fpOpen,
+      dangerView, burntBuckets: [...burntBuckets], soilMode, burntDay, footprintPanel: readoutTab === 'fires',
       // WF3: `h` nur auf der Stundenachse — Links der Tagesachse bleiben byte-gleich.
       hour: hourly ? time.hour : null,
     });
     if (window.location.hash !== hash) window.history.replaceState(null, '', hash);
-  }, [activeList, time.day, time.windowH, dangerView, burntBuckets, soilMode, burntDay, fpOpen, hourly, time.hour]);
+  }, [activeList, time.day, time.windowH, dangerView, burntBuckets, soilMode, burntDay, readoutTab, hourly, time.hour]);
 
   const toggle = useCallback((id: FireLayerId) => {
     setActive((prev) => {
@@ -1590,14 +1604,14 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
                 {l.id === 'fireDanger' && active.has('fireDanger') && dangerSeg}
                 {l.id === 'fireHotspots' && active.has('fireHotspots') && windowSeg}
                 {l.id === 'fireFootprints' && active.has('fireFootprints') && !active.has('fireHotspots') && windowSeg}
-                {l.id === 'fireFootprints' && !inSheet && (
+                {l.id === 'fireFootprints' && (
                   <button
                     type="button"
-                    className={`fire-fp-toggle${fpOpen ? ' is-on' : ''}`}
-                    aria-pressed={fpOpen}
-                    onClick={() => setFpOpen((o) => !o)}
+                    className={`fire-fp-toggle${readoutTab === 'fires' ? ' is-on' : ''}`}
+                    aria-pressed={readoutTab === 'fires'}
+                    onClick={() => setReadoutTab(readoutTab === 'fires' ? 'layers' : 'fires')}
                   >
-                    {fpOpen ? 'Liste schließen' : `Liste öffnen${records.length ? ` · ${records.length}` : ''}`}
+                    {readoutTab === 'fires' ? 'Liste schließen' : `Liste öffnen${records.length ? ` · ${records.length}` : ''}`}
                   </button>
                 )}
                 {l.id === 'fireBurnt' && active.has('fireBurnt') && burntSeg}
@@ -1616,134 +1630,12 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
   const readoutLayers = FIRE_LAYER_ORDER.filter((id) => active.has(id) || layerHover === id);
 
   /**
-   * BC1 — die Cluster-Liste (zweite Seite des Readouts).
-   *
-   * Sie ersetzt nichts: der Steckbrief-Stapel bleibt vollständig auf der Seite
-   * „Layer". Jeder Leerzustand nennt seinen GRUND — eine leere Liste ohne
-   * Begründung sähe aus wie „nichts brennt", und das wäre die eine Aussage, die
-   * dieser Layer nie treffen darf.
+   * BC1/BP5 — die frühere Cluster-Liste stand hier. Sie ist seit BP5 in die
+   * Brand-Liste aufgegangen (`footprintPanel`): Stärke, Skala, Ausdehnung,
+   * Pflichthinweis, Rangfolge und die Leerzustände sind dort — je Brand statt
+   * je Detektionsgruppe. Belege und die einzeln geprüfte Übernahme:
+   * audit/brandflaechen-panel.md §11.
    */
-  const clusterPanel = (
-    <section className="fire-ro-clusters" aria-label="Brand-Cluster im gewählten Fenster">
-      <div className="fire-ro-section-head">
-        <span className="fire-eyebrow">Brände</span>
-        <span className="fire-dock-count">
-          {clusterList.length === 1 ? '1 Cluster' : `${clusterList.length} Cluster`}
-        </span>
-      </div>
-
-      {/* Der Pflichthinweis steht ÜBER der Liste, nicht unter ihr: bei 232
-          Einträgen läge er sonst hinter zweihundert Zeilen Scrollweg — die Zahl
-          stünde faktisch ohne ihren Hinweis da. */}
-      <p className="fire-clist-note">{CLUSTER_NOTE}</p>
-      <p className="fire-clist-note">
-        Dieselben Detektionen, andere Bezugsgröße: die Liste <strong>„Brände"</strong> (links bzw.
-        im dritten Reiter) führt einen Eintrag je Brand — nach Fläche, mit kartierten Flächen und
-        Status; diese Liste hier rankt die Detektionsgruppen nach Stärke.
-      </p>
-
-      {!active.has('fireHotspots') && !active.has('fireFootprints') ? (
-        <p className="fire-clist-empty">
-          Weder <strong>Aktive Brände</strong> noch <strong>Brandflächen (Übersicht)</strong> ist
-          eingeschaltet — ohne einen der beiden gibt es keine Detektionen, aus denen sich Cluster bilden ließen.
-        </p>
-      ) : load.fireHotspots?.kind === 'error' ? (
-        <p className="fire-clist-empty">
-          Die Satellitendetektion ist gerade nicht abrufbar. Keine Liste heißt hier
-          <strong> keine Daten</strong>, nicht „keine Brände".
-        </p>
-      ) : hotspotProvider === 'gwis' ? (
-        <p className="fire-clist-empty">
-          <strong>Notbetrieb:</strong> NASA FIRMS ist nicht erreichbar, die Rückfallquelle
-          (Copernicus GWIS) liefert weder Feuerstrahlungsleistung noch Einzelwerte. Eine Rangfolge
-          „nach Stärke" wäre in diesem Zustand erfunden — deshalb gibt es sie nicht.
-        </p>
-      ) : hotspotRows.length === 0 ? (
-        <p className="fire-clist-empty">
-          {load.fireHotspots?.kind === 'loading' ? 'lädt …' : 'Keine Detektion im gewählten Fenster.'}
-        </p>
-      ) : clusterList.length === 0 ? (
-        <p className="fire-clist-empty">Cluster werden gebildet …</p>
-      ) : (
-        <>
-          <p className="fire-clist-window">
-            {clusterList.length === 1 ? 'Ein Cluster' : `${clusterList.length} Cluster`} aus{' '}
-            {hotspotRows.length.toLocaleString('de-DE')} Detektionen der letzten{' '}
-            {windowLabel(time.windowH)} — dem Fenster, das auch die Karte zeigt.
-          </p>
-          <div className="fire-clist-legend">
-            <span className="fire-li-unit">Stärke: Summe der Feuerstrahlungsleistung</span>
-            <ol>
-              {CLUSTER_FRP_STOPS.map(([mw, col], i) => (
-                <li key={mw}>
-                  <span className="fire-swatch" style={{ background: col }} aria-hidden="true" />
-                  <span className="fire-li-cls-range">
-                    {i === CLUSTER_FRP_STOPS.length - 1
-                      ? `ab ${mw} MW`
-                      : `${mw}–${CLUSTER_FRP_STOPS[i + 1][0]} MW`}
-                  </span>
-                </li>
-              ))}
-            </ol>
-          </div>
-          <ol className="fire-clist">
-            {clusterList.slice(0, shownClusters).map((c, i) => (
-              <li key={c.id}>
-                <button
-                  type="button"
-                  data-cluster={c.id}
-                  className={`fire-crow${selectedCluster === c.id ? ' is-sel' : ''}`}
-                  aria-pressed={selectedCluster === c.id}
-                  onClick={() => focusCluster(c.id)}
-                >
-                  <span className="fire-crow-rank">{i + 1}</span>
-                  <span className="fire-crow-main">
-                    <span className="fire-crow-top">
-                      <span
-                        className="fire-crow-dot"
-                        style={{ background: clusterColorOf(c) }}
-                        aria-hidden="true"
-                      />
-                      <b>{strengthLabel(c)}</b>
-                      <span className="fire-crow-count">
-                        {c.count === 1 ? '1 Detektion' : `${c.count} Detektionen`}
-                      </span>
-                      {/* F2-Vorbehalt: dieselbe Einordnung, die die Karte grau
-                          zeichnet. Ohne ihn stünde ein Industriestandort hier
-                          als Brand — ausgegraut, aber nie ausgeblendet. */}
-                      {staticChipLabel(c) && (
-                        <span className="fire-crow-chip" title="Seit mindestens fünf Tagen ortsfest und ohne Ausdehnung — häufig eine dauerhafte Wärmequelle. Eigene Einordnung aus dem Detektionsmuster, kein Nachweis.">
-                          {staticChipLabel(c)}
-                        </span>
-                      )}
-                    </span>
-                    <span className="fire-crow-meta">
-                      {extentLabel(c)} · {countryLabel(c.country)} · {lastSeenLabel(c, nowMs)}
-                    </span>
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ol>
-          {/* Der Deckel wird AUSGESPROCHEN, nicht still gezogen: die Kopfzeile
-              nennt die volle Zahl, diese Zeile die gezeigte. */}
-          {clusterList.length > shownClusters && (
-            <div className="fire-clist-more">
-              <span>
-                gezeigt: die {shownClusters} stärksten von {clusterList.length} Clustern
-              </span>
-              <button
-                type="button"
-                onClick={() => setShownClusters((n) => n + CLUSTER_PAGE)}
-              >
-                {Math.min(CLUSTER_PAGE, clusterList.length - shownClusters)} weitere anzeigen
-              </button>
-            </div>
-          )}
-        </>
-      )}
-    </section>
-  );
 
   /**
    * BP2 — das Brandflächen-Panel: Desktop als Overlay links über der Karte,
@@ -1764,8 +1656,9 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
       hoverId={hoverFootprint} onHover={setHoverFootprint}
       selectedId={selectedFootprint} onSelect={focusFootprint} onClearSelect={clearFootprint}
       onEnableLayer={() => setActive((prev) => new Set([...prev, 'fireFootprints']))}
-      onClose={inSheet ? undefined : () => setFpOpen(false)}
+      onClose={() => setReadoutTab('layers')}
       windowSeg={(active.has('fireHotspots') || active.has('fireFootprints')) ? windowSeg : undefined}
+      spread={spread}
       placesLoaded={!!places}
       state={{
         footprintsOn: active.has('fireFootprints'),
@@ -1898,8 +1791,11 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
     <>
       {/* BC1: der Umschalter steht ÜBER dem bestehenden Panel und ändert an ihm
           nichts — „Layer" ist Zeile für Zeile der Bestand. */}
+      {/* BP5: zwei Reiter auf beiden Groessen. „Braende" ist die verschmolzene
+          Liste — je Brand, mit den Leistungsangaben der frueheren Cluster-Seite.
+          „Layer" ist Zeile fuer Zeile der Bestand. */}
       <div className="fire-ro-tabs" role="group" aria-label="Inhalt des Readouts">
-        {([['layers', 'Layer'], ['fires', 'Cluster'], ...(inSheet ? [['footprints', 'Brände']] as const : [])] as const).map(([id, label]) => (
+        {([['layers', 'Layer'], ['fires', 'Brände']] as const).map(([id, label]) => (
           <button
             key={id} type="button"
             className={readoutTab === id ? 'is-active' : ''}
@@ -1907,16 +1803,13 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
             onClick={() => setReadoutTab(id)}
           >
             {label}
-            {id === 'fires' && clusterList.length > 0 && (
-              <span className="fire-ro-tabcount">{clusterList.length}</span>
-            )}
-            {id === 'footprints' && records.length > 0 && (
+            {id === 'fires' && records.length > 0 && (
               <span className="fire-ro-tabcount">{records.length}</span>
             )}
           </button>
         ))}
       </div>
-      {readoutTab === 'footprints' && inSheet ? footprintPanel(true) : readoutTab === 'fires' ? clusterPanel : (
+      {readoutTab === 'fires' ? footprintPanel(inSheet) : (
       <>
       {/* WF4: die Antwort auf den letzten Klick steht oben — vor den Steckbriefen. */}
       {pointCurveCard}
@@ -1945,10 +1838,14 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
         <div className="fire-ro-section-head">
           <span className="fire-eyebrow">Skalen</span>
         </div>
-        {/* Die drei Skalen stehen bewusst NEBENEINANDER, nie ineinander
-            umgerechnet — „geringe Gefahr" ist in DE Stufe 2 und in CH
-            Stufe 1 (docs/DATA_SOURCES.md §W.1). */}
-        {(['DE', 'CH', 'EU'] as const).map((k) => {
+        {/* 2026-08-19: Hier standen drei Skalen nebeneinander (DWD, BAFU, EU)
+            — solange die amtliche Stufe ein Layer war. Sie ist zurückgezogen;
+            eine Behördenskala zu zeigen, zu der die Karte nichts mehr zeichnet,
+            wäre eine Aussage über Daten, die es hier nicht gibt. Übrig bleibt
+            die Skala des einen Gefahrenlayers. Die Regel, dass nationale Skalen
+            NIE ineinander umgerechnet werden, steht unverändert in
+            `fireModel.ts` (docs/DATA_SOURCES.md §W.1). */}
+        {(['EU'] as const).map((k) => {
           const s = fireSource(k);
           return (
             <div key={k} className="fire-scale">
@@ -1971,14 +1868,24 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
         })}
       </div>
 
+      {/* Die amtlichen Stufen sind seit 2026-08-19 nicht mehr Teil dieser
+          Ansicht. Das wird gesagt und verlinkt, statt es unerwähnt zu lassen:
+          der EU-Wert ist ein Modellwert und ersetzt keine Behördenstufe — und
+          in Österreich gibt es ohnehin keine offene. */}
       <p className="fire-at-gap">
-        <strong>Österreich:</strong> Es gibt keinen offenen amtlichen Waldbrandindex.
-        Gezeigt wird dort nur der EU-Modellwert — der ist <em>keine</em> amtliche Stufe.
-        Zuständig sind die Bezirkshauptmannschaften.
+        <strong>Amtliche Stufen zeigt diese Karte nicht.</strong> Der EU-Wert ist
+        ein Modellwert, <em>keine</em> amtliche Stufe. Maßgeblich sind{' '}
+        {(['DE', 'CH', 'AT'] as const).map((c, i) => {
+          const src = fireSourceFor(c);
+          return (
+            <span key={c}>
+              {i > 0 ? ' · ' : ''}
+              <a href={src.url} target="_blank" rel="noopener">{src.name}</a> ({c})
+            </span>
+          );
+        })}. Für Österreich gibt es keinen offenen amtlichen Waldbrandindex;
+        zuständig sind die Bezirkshauptmannschaften.
       </p>
-      {nationalSourceFor('AT') === null && (
-        <span className="fire-at-marker" aria-hidden="true" />
-      )}
 
       <p className="fire-season">
         Im Winterhalbjahr ist die Waldbrandgefahr strukturell niedrig; einzelne
@@ -2147,9 +2054,9 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
             <FireMap
               active={active} basemap={basemap} day={committedDay} isoDate={committedIso}
               windTargetMs={windTargetMs}
-              chDanger={chDanger} chBans={chBans} deStations={deStations} hotspots={hotspots}
+              hotspots={hotspots}
               hotspotFootprints={hotspotFootprints} hotspotProvider={hotspotProvider}
-              fireZones={mapZones}
+              fireZones={mapZones} zoneEstimates={zoneEstimates}
               clusters={clusterList} selectedClusterId={selectedCluster}
               focusNonce={focusNonce} onSelectCluster={selectFromMap}
               footprintFc={footprintFc} hoverFootprintId={hoverFootprint} selectedFootprintId={selectedFootprint}
@@ -2159,7 +2066,7 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
               burntWeekFc={burntSplit.weekFc}
               burntBuckets={burntBuckets} burntLookup={burntLookup} burntWeek={burntWeek}
               fireEvents={fireEvents} emsActs={emsActs} atContexts={atContexts} clcMask={clcMask}
-              weather={weather} wind={wind} soil={soil} forecast={forecast}
+              weather={weather} wind={wind} soil={soil} spreadFc={spreadFc}
               onPointForecast={requestPointCurve}
               prefetchIsoDate={prefetchIso} onTier={setTier}
             />
@@ -2190,32 +2097,25 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
                 FWI-Codes sind nicht enthalten.
               </div>
             )}
-            {active.has('fireForecast') && forecast && (
+            {active.has('fireSpread') && (
               <div className="fire-scaffold-note fire-glass" role="status">
-                <strong>Feuerwetter stündlich (ISI)</strong> — eingefärbt ist die erwartete
-                Ausbreitungsgeschwindigkeit nach der Zündung (Feinstoff-Feuchte × Wind), gerechnet
-                aus ICON-D2 mit den FWI-Gleichungen. Modellwert, kein amtliches Produkt · Stufe 1:
-                ohne Vortagsgedächtnis. Klick auf die Karte: Punktkurve aus dem buscosun-Punkt-Forecast.
+                <strong>Ausbreitungsrichtung (Modell)</strong> — {SPREAD_CAVEAT_SHORT}
+                {' '}{FAN_CAVEAT}
+                {spread && (
+                  <> · {capNote({
+                    computed: spread.computed, considered: spread.considered, cap: spread.cap,
+                    demCells: spread.demCells, horizonHour: spread.horizonHour, maxHour: spread.maxHour,
+                  })}</>
+                )}
+                {' '}Klick auf die Karte: Punktkurve aus dem buscosun-Punkt-Forecast.
               </div>
             )}
             {!isMobile && timeDeck}
-            {/* BP2: das Brandflächen-Panel — Overlay am linken Kartenrand, keine
-                vierte Flex-Spalte (audit/brandflaechen-panel.md §3). Zu: ein
-                44-px-Reiter an der Kartenkante. */}
-            {!isMobile && (fpOpen ? (
-              <aside className="fire-fpanel" aria-label="Brände im gewählten Zeitraum">
-                {footprintPanel(false)}
-              </aside>
-            ) : (
-              <button
-                type="button" className="fire-fpanel-tab" aria-expanded={false}
-                aria-label="Brandflächen-Liste öffnen"
-                onClick={() => setFpOpen(true)}
-              >
-                <span>Brände</span>
-                {records.length > 0 && <b>{records.length}</b>}
-              </button>
-            ))}
+            {/* BP5: das Overlay am linken Kartenrand ist entfallen — die Liste
+                steht jetzt rechts im Readout unter „Brände", zusammen mit den
+                Leistungsangaben der früheren Cluster-Seite
+                (audit/brandflaechen-panel.md §11). Die Karte behält dadurch
+                ihre volle Breite. */}
           </main>
 
           {!isMobile && (
@@ -2264,11 +2164,7 @@ function LayerStatus(
   if (state.kind === 'loading') return <p className="fire-layer-status">lädt …</p>;
 
   if (state.kind === 'error') {
-    const src =
-      id === 'fireBans' ? fireSourceFor('CH')
-      : id === 'fireIndexNational' ? fireSourceFor('DE')
-      : id === 'fireWeather' ? fireSourceFor('DE')
-      : null;
+    const src = id === 'fireWeather' ? fireSourceFor('DE') : null;
 
     return (
       <p className="fire-layer-status is-error">

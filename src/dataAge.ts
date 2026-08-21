@@ -57,6 +57,23 @@ export function clockLabel(atMs: number): string {
 }
 
 /**
+ * Zeitpunkt in Alltagsform: heute nur die Uhrzeit, sonst mit Datum davor.
+ *
+ * Warum nicht immer nur die Uhrzeit: „03:43" liest sich wie heute Nacht. Bei
+ * einem fünf Tage alten Bezug wäre das eine Falschaussage über die Aktualität.
+ * Umgekehrt ist das Datum bei einem Bezug von heute nur Rauschen — deshalb die
+ * Fallunterscheidung an der KALENDERGRENZE, nicht an einer Stundenschwelle.
+ */
+export function stampLabel(atMs: number, nowMs: number): string {
+  const d = new Date(atMs);
+  const n = new Date(nowMs);
+  const sameDay = d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth() && d.getDate() === n.getDate();
+  return sameDay
+    ? clockLabel(atMs)
+    : d.toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+}
+
+/**
  * Alter in Alltagssprache. Negative Werte (Referenz in der Zukunft — ein Lauf
  * kann durch Uhr-Drift minimal voraus liegen) werden als „gerade eben" geführt,
  * statt „vor -1 min" zu behaupten.

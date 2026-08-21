@@ -22,7 +22,7 @@
 import { fetchRvNowcast, type RvNowcast } from '../sources/radolan';
 import { fetchIncaGrid, type IncaGrid } from '../sources/geosphereIncaGrid';
 import { fetchRzcLatest, type RadarFrame } from '../sources/meteoSwissRadar';
-import { sampleRadarQuad } from './quadSampler';
+import { sampleRadarPoint } from './radarSample';
 import type { Country } from '../types';
 
 export interface RadarNowcastSampler {
@@ -100,7 +100,7 @@ function makeRvSampler(rv: RvNowcast): RadarNowcastSampler {
       }
       if (best < 0 || bestDelta > SLOT_TOLERANCE_MS_DE) return null;
       const f = frames[best];
-      return sampleRadarQuad(f.values, f.width, f.height, rv.corners, lat, lon, VMAX);
+      return sampleRadarPoint('radolan_rv', f.values, f.width, f.height, rv.corners, lat, lon, VMAX);
     },
     meta: { source: 'radolan_rv', country: 'DE', frameCount: frames.length, validFromMs, validUntilMs },
   };
@@ -132,7 +132,7 @@ function makeIncaSampler(grid: IncaGrid): RadarNowcastSampler {
       }
       if (best < 0 || bestDelta > SLOT_TOLERANCE_MS_AT) return null;
       const f = grid.frames[best];
-      return sampleRadarQuad(f.values, f.width, f.height, grid.corners, lat, lon, VMAX);
+      return sampleRadarPoint('inca_grid', f.values, f.width, f.height, grid.corners, lat, lon, VMAX);
     },
     meta: { source: 'inca_grid', country: 'AT', frameCount: grid.frames.length, validFromMs, validUntilMs },
   };
@@ -147,7 +147,7 @@ function makeRzcSampler(rzc: RadarFrame): RadarNowcastSampler {
   return {
     sample(lat, lon, etaMs) {
       if (Math.abs(etaMs - t) > SLOT_TOLERANCE_MS_CH) return null;
-      return sampleRadarQuad(rzc.values, rzc.width, rzc.height, rzc.corners, lat, lon, VMAX);
+      return sampleRadarPoint('meteoswiss_rzc', rzc.values, rzc.width, rzc.height, rzc.corners, lat, lon, VMAX);
     },
     meta: { source: 'meteoswiss_rzc', country: 'CH', frameCount: 1, validFromMs: t, validUntilMs: t },
   };

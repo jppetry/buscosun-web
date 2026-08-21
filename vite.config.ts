@@ -107,6 +107,16 @@ function firmsDevProxy(): Plugin {
       if (command !== 'serve') return;
       const key = loadEnv(mode, process.cwd(), '').FIRMS_MAP_KEY?.trim();
       if (key) process.env.FIRMS_MAP_KEY = key;
+      // Beim Start SAGEN, woran man ist — nie den Wert, nur ob und wie lang.
+      // Ohne diese Zeile ist ein fehlender Schlüssel auf localhost unsichtbar:
+      // der Handler antwortet 503, die Seite fällt still auf GWIS zurück und
+      // meldet „NASA FIRMS nicht erreichbar" — dieselbe Meldung wie bei einem
+      // echten Ausfall der NASA. Zwei sehr verschiedene Ursachen, eine Anzeige.
+      // eslint-disable-next-line no-console
+      console.log(key
+        ? `[firms] MAP_KEY aus .env.local geladen (${key.length} Zeichen) — /_firms/* ist scharf`
+        : '[firms] KEIN FIRMS_MAP_KEY gefunden (.env.local) — /_firms/* antwortet 503, '
+          + 'die Waldbrand-Ansicht fällt auf die keylose GWIS-Ebene zurück');
     },
     configureServer(server) {
       server.middlewares.use(firmsDevMiddleware);

@@ -18,14 +18,16 @@
  *     scale_factor (0.01) und _FillValue (-999) als stabile Produktkonstanten
  *     hartkodiert. mm/h = Rohwert · 0.01 · 4.
  *   - `lat`/`lon` (ny, nx) float32 — Zellkoordinaten (Gitter ist Lambert
- *     EPSG:31287, also nicht achsparallel). Wir entnehmen die 4 Eckkoordinaten
- *     direkt (keine eigene Reprojektion nötig).
+ *     EPSG:31287, also nicht achsparallel). Wir entnehmen die 4 Eckzellen und
+ *     geben ihre AUSSENKANTEN aus (`cellCentersToEdges`, halbe Zelle) — die
+ *     Projektion selbst steht in `geosphereIncaGeo.ts`.
  *   - `leadtime` (12,) in Stunden [0.25 … 3.0].
  *   - Zeile 0 = Süden ⇒ wir flippen für north-up (RainLayer-Konvention).
  */
 
 import { File as H5File } from 'jsfive';
 import { precipToU8, type QuadCorners } from '../scalar/RainLayer';
+import { cellCentersToEdges } from './geosphereIncaGeo';
 
 const GRID_URL =
   'https://dataset.api.hub.geosphere.at/v1/grid/forecast/nowcast-v1-15min-1km';
@@ -70,12 +72,18 @@ export async function fetchIncaGrid(signal?: AbortSignal): Promise<IncaGrid> {
 
   const at = (r: number, c: number) => r * nx + c;
   // north-up Ecken [NW, NE, SE, SW]; Datenzeile 0 = Süden ⇒ Nord = Zeile ny-1.
-  const corners: QuadCorners = [
+  // `lat`/`lon` sind ZELLMITTELPUNKTE. Ausgegeben werden die AUSSENKANTEN des
+  // Gitters (je halbe Zelle nach außen, in Lambert gerechnet) — dieselbe
+  // Konvention wie RADOLAN und rzc. Nur so meinen Kartenraster, Komposit und
+  // Punktabfrage dieselbe Zelle; vorher wichen sie um eine halbe Zelle ab
+  // (RP2, s. `audit/radar-punktverortung.md` §11).
+  const centers: QuadCorners = [
     [lon[at(ny - 1, 0)], lat[at(ny - 1, 0)]],
     [lon[at(ny - 1, nx - 1)], lat[at(ny - 1, nx - 1)]],
     [lon[at(0, nx - 1)], lat[at(0, nx - 1)]],
     [lon[at(0, 0)], lat[at(0, 0)]],
   ];
+  const corners: QuadCorners = cellCentersToEdges(centers, nx, ny);
 
   const frames: IncaFrame[] = [];
   for (let t = 0; t < nt; t++) {

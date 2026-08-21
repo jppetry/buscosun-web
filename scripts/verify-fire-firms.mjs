@@ -187,6 +187,32 @@ function stripComments(s) {
   return i < 0 ? c : c.slice(0, i);
 }
 
+// --- (f) Teilausfall: ein fehlgeschlagener Abruf darf nicht den ganzen Lauf kippen
+// Gemessener Anlass (2026-08-19): `Promise.all` über Satellit × Zeitabschnitt warf
+// bei EINEM 5xx den kompletten FIRMS-Lauf weg; die Seite fiel auf die keylose
+// GWIS-Ebene zurück und meldete „NASA FIRMS nicht erreichbar", obwohl acht von
+// neun Abrufen Daten hatten. Auf localhost (kein Edge-Cache davor) traf das am häufigsten.
+const firmsSrc = readFileSync(join(ROOT, 'src', 'fire', 'sources', 'firmsHotspots.ts'), 'utf8');
+add('Abrufe laufen über allSettled — ein Ausfall verwirft nicht den ganzen Lauf',
+  /const settled = await Promise\.allSettled\(jobs\)/.test(firmsSrc)
+    && !/await Promise\.all\(jobs\)/.test(firmsSrc));
+add('… und wenn KEIN Abruf durchkam, wird geworfen (GWIS-Rückfall bleibt erhalten)',
+  /if \(parts\.length === 0\)[\s\S]{0,200}throw new Error/.test(firmsSrc));
+add('der Lauf zählt, was gefehlt hat (failedFetches/plannedFetches im HotspotRun)',
+  /failedFetches: number;/.test(firmsSrc) && /plannedFetches: number;/.test(firmsSrc)
+    && /toRun\(deduped, windowH, nowMs, skipped, keys, failures\.length, jobs\.length\)/.test(firmsSrc));
+const pageSrc = readFileSync(join(ROOT, 'src', 'fire', 'FirePage.tsx'), 'utf8');
+add('die Statuszeile SAGT den Teilausfall (eine Teilmenge ohne Hinweis wäre eine Falschaussage)',
+  /run\.failedFetches > 0/.test(pageSrc) && /Abrufen ohne Antwort/.test(pageSrc));
+// Der Dev-Pfad muss beim Start sagen, ob der Schlüssel da ist — sonst sieht ein
+// fehlender Schlüssel auf localhost aus wie ein Ausfall der NASA.
+const viteCfg = readFileSync(join(ROOT, 'vite.config.ts'), 'utf8');
+add('Dev-Proxy meldet beim Start, ob FIRMS_MAP_KEY geladen wurde',
+  /\[firms\] MAP_KEY aus \.env\.local geladen/.test(viteCfg)
+    && /KEIN FIRMS_MAP_KEY gefunden/.test(viteCfg));
+add('… und gibt den Schlüsselwert dabei NICHT aus (nur Länge)',
+  !/console\.log\([^)]*\$\{key\}/.test(viteCfg) && /key\.length/.test(viteCfg));
+
 // --- Ausgabe --------------------------------------------------------------------
 let failed = 0;
 for (const c of checks) {

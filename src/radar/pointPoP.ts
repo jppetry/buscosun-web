@@ -14,7 +14,7 @@
 import { coarsenFrameU8 } from '../ml/nowcasterInference';
 import { estimateFlowHS } from '../ml/opticalFlowNowcast';
 import { advectEnsembleProb } from '../ml/flowEnsemble';
-import { sampleRadarQuad } from '../pointForecast/quadSampler';
+import { sampleRadarPoint } from '../pointForecast/radarSample';
 import type { RadarStack } from './radarFrames';
 
 const FLOW_FACTOR = 8;          // wie MapView: RADOLAN ~1100×1200 → ~140×150
@@ -51,7 +51,7 @@ export function pointPoPSeries(stack: RadarStack, lat: number, lon: number): Poi
       const p = prob[i] < 0 ? 0 : prob[i] > 1 ? 1 : prob[i];
       u8[i] = Math.round(p * 255);
     }
-    const v = sampleRadarQuad(u8, flow.w, flow.h, stack.corners, lat, lon, 1);
+    const v = sampleRadarPoint(stack.source, u8, flow.w, flow.h, stack.corners, lat, lon, 1);
     out.push({ leadMinutes: lead, prob: v == null ? 0 : Math.max(0, Math.min(1, v)) });
   }
   return out;

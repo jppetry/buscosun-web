@@ -24,7 +24,7 @@
  */
 
 import { pickCountry } from '../pointForecast/clustering';
-import { G, buildIndexMap, buildCompositeIndexMap, gridLatLon } from './precipIndexMap';
+import { G, buildIndexMap, buildCompositeIndexMap, gridLatLon, type GridKind } from './precipIndexMap';
 import type { QuadCorners } from './RainLayer';
 import type { RvNowcast } from '../sources/radolan';
 import type { IncaGrid } from '../sources/geosphereIncaGrid';
@@ -95,19 +95,19 @@ function piInit(): void {
   }
 }
 
-async function buildIndexMapOffMain(corners: QuadCorners, sCols: number, sRows: number, ps: boolean): Promise<Int32Array> {
+async function buildIndexMapOffMain(corners: QuadCorners, sCols: number, sRows: number, grid: GridKind): Promise<Int32Array> {
   piInit();
-  if (!piUsable || piWorkers.length === 0) return buildCompositeIndexMap(corners, sCols, sRows, ps);
+  if (!piUsable || piWorkers.length === 0) return buildCompositeIndexMap(corners, sCols, sRows, grid);
   const w = piWorkers[piRr++ % piWorkers.length];
   const id = piNextId++;
   try {
     return await new Promise<Int32Array>((resolve, reject) => {
       piPending.set(id, { resolve, reject });
-      w.postMessage({ id, corners, sCols, sRows, ps });
+      w.postMessage({ id, corners, sCols, sRows, grid });
     });
   } catch {
     piPending.delete(id);
-    return buildCompositeIndexMap(corners, sCols, sRows, ps);
+    return buildCompositeIndexMap(corners, sCols, sRows, grid);
   }
 }
 
@@ -139,25 +139,25 @@ export class PrecipCompositor {
   private ensureDe(rv: RvNowcast) {
     const f = rv.frames[0]; const key = `${f.width}x${f.height}`;
     if (key === this.deKey && this.deIdx) return;
-    this.deIdx = buildIndexMap(rv.corners, f.width, f.height, this.lat, this.lon, true);
+    this.deIdx = buildIndexMap(rv.corners, f.width, f.height, this.lat, this.lon, 'radolan');
     this.deKey = key;
   }
   private ensureAt(inca: IncaGrid) {
     const f = inca.frames[0]; const key = `${f.width}x${f.height}:${inca.corners[0][0]}`;
     if (key === this.atKey && this.atIdx) return;
-    this.atIdx = buildIndexMap(inca.corners, f.width, f.height, this.lat, this.lon, false);
+    this.atIdx = buildIndexMap(inca.corners, f.width, f.height, this.lat, this.lon, 'inca');
     this.atKey = key;
   }
   private ensureCh(rzc: RadarFrame) {
     const key = `${rzc.width}x${rzc.height}:${rzc.corners[0][0]}`;
     if (key === this.chKey && this.chIdx) return;
-    this.chIdx = buildIndexMap(rzc.corners, rzc.width, rzc.height, this.lat, this.lon, false);
+    this.chIdx = buildIndexMap(rzc.corners, rzc.width, rzc.height, this.lat, this.lon, 'rzc');
     this.chKey = key;
   }
   private ensureD2(d2: IconD2Precip) {
     const f = d2.frames[0]; const key = `${f.width}x${f.height}`;
     if (key === this.d2Key && this.d2Idx) return;
-    this.d2Idx = buildIndexMap(d2.corners, f.width, f.height, this.lat, this.lon, false);
+    this.d2Idx = buildIndexMap(d2.corners, f.width, f.height, this.lat, this.lon, 'lonlat');
     this.d2Key = key;
   }
 
@@ -170,25 +170,25 @@ export class PrecipCompositor {
   async primeDe(rv: RvNowcast): Promise<void> {
     const f = rv.frames[0]; const key = `${f.width}x${f.height}`;
     if (key === this.deKey && this.deIdx) return;
-    const idx = await buildIndexMapOffMain(rv.corners, f.width, f.height, true);
+    const idx = await buildIndexMapOffMain(rv.corners, f.width, f.height, 'radolan');
     this.deIdx = idx; this.deKey = key;
   }
   async primeAt(inca: IncaGrid): Promise<void> {
     const f = inca.frames[0]; const key = `${f.width}x${f.height}:${inca.corners[0][0]}`;
     if (key === this.atKey && this.atIdx) return;
-    const idx = await buildIndexMapOffMain(inca.corners, f.width, f.height, false);
+    const idx = await buildIndexMapOffMain(inca.corners, f.width, f.height, 'inca');
     this.atIdx = idx; this.atKey = key;
   }
   async primeCh(rzc: RadarFrame): Promise<void> {
     const key = `${rzc.width}x${rzc.height}:${rzc.corners[0][0]}`;
     if (key === this.chKey && this.chIdx) return;
-    const idx = await buildIndexMapOffMain(rzc.corners, rzc.width, rzc.height, false);
+    const idx = await buildIndexMapOffMain(rzc.corners, rzc.width, rzc.height, 'rzc');
     this.chIdx = idx; this.chKey = key;
   }
   async primeD2(d2: IconD2Precip): Promise<void> {
     const f = d2.frames[0]; const key = `${f.width}x${f.height}`;
     if (key === this.d2Key && this.d2Idx) return;
-    const idx = await buildIndexMapOffMain(d2.corners, f.width, f.height, false);
+    const idx = await buildIndexMapOffMain(d2.corners, f.width, f.height, 'lonlat');
     this.d2Idx = idx; this.d2Key = key;
   }
 

@@ -41,6 +41,7 @@ import {
   initFfmcState, stepFireWeather, allocFireWeatherBuffers,
   type FireWeatherStepFields, type FireWeatherNote,
 } from '../fire/fwi/fireWeatherGrid';
+import { isi as isiOf } from '../fire/fwi/fwi';
 
 export const ICON_D2_FIRE_WEATHER_ATTRIBUTION =
   'Datenbasis: <a href="https://www.dwd.de/DE/leistungen/opendata/opendata.html" '
@@ -61,6 +62,18 @@ export const FWI_VMIN = 0;
 export const FWI_VMAX = 80;
 export const ISI_VMIN = 0;
 export const ISI_VMAX = 30;
+/**
+ * Range of the G channel: ISZ, the ISI this cell would have at zero wind.
+ * ISZ = 0,208·f(F) and f(F) ≤ 91,9, so ISZ never exceeds 19,2 — 20 covers it
+ * with a quantisation of 20/255 ≈ 0,08 ISZ.
+ *
+ * Why the frame carries it at all (SF1, audit/waldbrand-ausbreitung.md §5): the
+ * FBP slope correction needs the ZERO-WIND ISI, and recovering it from the
+ * wind-loaded ISI would require the exact wind that produced it — which lives
+ * on a different grid. Writing it here costs one byte per cell that was unused,
+ * no extra request, and stays consistent with the FFMC state of the same cell.
+ */
+export const ISZ_VMAX = 20;
 /** Target width after subsampling (native 1215 columns are overkill for a raster). */
 const TARGET_WIDTH = 700;
 /** Parallel steps in flight (6 fields each). */
@@ -136,10 +149,11 @@ interface StepRaw {
 }
 
 /**
- * Rasterise ISI or FWI of one step: R = value/vMax, A = 255·mask; rows flipped
- * to north-up (`iconD2Relhum.ts` pattern). Values are clamped to [vMin, vMax].
+ * Rasterise ISI or FWI of one step: R = value/vMax, **G = ISZ/ISZ_VMAX**,
+ * A = 255·mask; rows flipped to north-up (`iconD2Relhum.ts` pattern). Values are
+ * clamped to [vMin, vMax].
  */
-function buildFrameImage(values: Float32Array, mask: Uint8Array, w: number, h: number, vMin: number, vMax: number): HTMLCanvasElement {
+function buildFrameImage(values: Float32Array, ffmc: Float32Array, mask: Uint8Array, w: number, h: number, vMin: number, vMax: number): HTMLCanvasElement {
   const canvas = document.createElement('canvas');
   canvas.width = w; canvas.height = h;
   const ctx = canvas.getContext('2d')!;
@@ -154,6 +168,9 @@ function buildFrameImage(values: Float32Array, mask: Uint8Array, w: number, h: n
       if (!mask[k] || !Number.isFinite(v)) { img.data[idx + 3] = 0; continue; }
       const t = (v - vMin) / span;
       img.data[idx] = Math.round((t < 0 ? 0 : t > 1 ? 1 : t) * 255);
+      // G: zero-wind ISI of the same cell, from the same FFMC state.
+      const z = isiOf(ffmc[k], 0) / ISZ_VMAX;
+      img.data[idx + 1] = Number.isFinite(z) ? Math.round((z < 0 ? 0 : z > 1 ? 1 : z) * 255) : 0;
       img.data[idx + 3] = 255;
     }
   }
@@ -266,7 +283,7 @@ export async function fetchIconD2FireWeather(opts: FetchFireWeatherOptions = {})
         const values = mode === 'fwi' ? result.fwi! : result.isi;
         frames.push({
           validAt: new Date(fields.validAtMs), stepHours: step,
-          image: buildFrameImage(values, result.mask, w, h, vMin, vMax),
+          image: buildFrameImage(values, result.ffmc, result.mask, w, h, vMin, vMax),
           width: w, height: h, notes: result.notes,
         });
         lastAcc = r.tp;

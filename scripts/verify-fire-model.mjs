@@ -57,10 +57,12 @@ add('EU-Skala hat eine Klasse mehr als beide nationalen',
 add('AT hat keine amtliche Stufe und keinen Ersatz',
   hasOfficialFireIndex('AT') === false && nationalSourceFor('AT') === null);
 
-// Z-Ordnung: Punkte über Flächen, sonst sind die Stützstellen unsichtbar.
-add('Z-Ordnung: Hotspots über amtlicher Stufe über EU-Fläche',
-  FIRE_Z_BAND.fireHotspots > FIRE_Z_BAND.fireIndexNational
-  && FIRE_Z_BAND.fireIndexNational > FIRE_Z_BAND.fireDanger);
+// Z-Ordnung: Punkte über Flächen, sonst sind die Detektionen unsichtbar.
+// (Bis 2026-08-19 lagen hier die amtliche Stufe und die Verbotsflächen
+// dazwischen — beide Layer zurückgezogen.)
+add('Z-Ordnung: Hotspots über dem Treiber über EU-Fläche',
+  FIRE_Z_BAND.fireHotspots > FIRE_Z_BAND.fireWeather
+  && FIRE_Z_BAND.fireWeather > FIRE_Z_BAND.fireDanger);
 add('sortByZBand ist stabil und vollständig',
   sortByZBand(FIRE_LAYER_ORDER).length === FIRE_LAYER_ORDER.length);
 
@@ -91,9 +93,22 @@ add('Round-Trip: alle Layer + Ort + Tag + Fenster',
 }
 
 // --- (3) Quell-Sonden -------------------------------------------------------
-const files = readdirSync(FIRE_DIR).filter((f) => /\.tsx?$/.test(f));
+// SF1 (2026-08-19): die Sonde las `src/fire/` mit `readdirSync` OHNE Rekursion —
+// die Unterordner (`activity/`, `footprint/`, `fwi/`, `sources/`, `spread/`)
+// waren seit ihrer Anlage ungeprüft, insbesondere gegen den MapView-Import.
+// Jetzt rekursiv; die Dateinamen tragen ihren Pfad, damit ein Treffer auffindbar ist.
+const walk = (dir, prefix = '') => {
+  const out = [];
+  for (const e of readdirSync(dir, { withFileTypes: true })) {
+    if (e.isDirectory()) out.push(...walk(join(dir, e.name), `${prefix}${e.name}/`));
+    else if (/\.tsx?$/.test(e.name)) out.push(`${prefix}${e.name}`);
+  }
+  return out;
+};
+const files = walk(FIRE_DIR);
 const sources = Object.fromEntries(files.map((f) => [f, readFileSync(join(FIRE_DIR, f), 'utf8')]));
-add('Sonde findet die fire-Module', files.length >= 3, files.join(', '));
+add('Sonde findet die fire-Module rekursiv (auch die Unterordner)',
+  files.length >= 3 && files.some((f) => f.includes('/')), `${files.length} Dateien`);
 
 // (a) Es darf keine Funktion geben, die eine nationale Stufe in eine andere
 //     übersetzt. Das ist die Regel, die am leichtesten aus Bequemlichkeit
@@ -112,16 +127,16 @@ add('keine Umrechnung zwischen nationalen Skalen im Code',
 // (b) Die Waldbrand-Ansicht muss von MapView.tsx unabhängig bleiben — sonst
 //     hängt der neue Chunk an der 5.724-Zeilen-Datei (architecture.md §14.1).
 const mapViewImporters = Object.entries(sources)
-  .filter(([, src]) => /from\s+['"]\.\.\/MapView['"]/.test(src))
+  .filter(([, src]) => /from\s+['"](?:\.\.\/)+MapView['"]/.test(src))
   .map(([f]) => f);
-add('kein Modul in src/fire importiert aus MapView.tsx',
+add('kein Modul in src/fire (inkl. Unterordner) importiert aus MapView.tsx',
   mapViewImporters.length === 0, mapViewImporters.join(', ') || 'keiner');
 
 // (c) Die Bitmaske wird abgeleitet, nicht danebengeschrieben. Genau das ist der
 //     Unterschied zu mapState.ts:24, wo eine handgepflegte Liste 7 Layer verlor.
 const stateSrc = sources['fireState.ts'] ?? '';
-add('fireState.ts leitet die Bit-Reihenfolge aus FIRE_LAYER_ORDER ab',
-  /FIRE_LAYER_ORDER\.indexOf/.test(stateSrc) && /FIRE_LAYER_ORDER\.filter/.test(stateSrc));
+add('fireState.ts leitet die Bit-Reihenfolge aus FIRE_BIT_ORDER ab',
+  /FIRE_BIT_ORDER\.indexOf/.test(stateSrc) && /FIRE_BIT_ORDER\.filter/.test(stateSrc));
 add('fireState.ts pflegt KEINE eigene Layer-Liste',
   !/const\s+\w*(?:LAYER_ORDER|ORDER)\s*(?::[^=]+)?=\s*\[/.test(stateSrc));
 

@@ -46,11 +46,13 @@ import { reconcileZones, fixturePoly } from './reconcile';
 import { assess, type AssessmentLevel } from '../fireAssessment';
 import { emsActivationFor, type EmsActivation } from '../sources/emsActivations';
 import { metersBetween, detectionKey, type FirmsConfidence, type FirmsRow } from '../sources/firmsHotspots';
-import { ageText } from '../../dataAge';
+import { ageText, stampLabel } from '../../dataAge';
 // AF1: Überflüge und Aktivität — additiv, dieselbe Regel wie in den Clustern.
 import { mergePasses, type FirePass } from '../activity/overpasses';
 import { activityOf, type FireActivity } from '../activity/fireActivity';
-import type { AreaEstimate } from '../activity/estimate';
+// VB3: die Flächenaussage eines Eintrags ohne Kartierung — Wert und Herkunft
+// kommen aus DERSELBEN Formatierung wie die Panel-Zeile (`estimate.ts`).
+import { estimateValueText, estimateSourceText, type AreaEstimate } from '../activity/estimate';
 import type { Observation } from '../activity/observation';
 import type { Country } from '../../types';
 
@@ -557,7 +559,13 @@ export function carryIds(next: readonly FireRecord[], previous: readonly FireRec
 // Sortierung und Filter (fürs Panel — pur, damit prüfbar)
 // ---------------------------------------------------------------------------
 
-export type RecordSort = 'area' | 'recency' | 'status';
+/**
+ * BP5: „Stärke" kam aus der Cluster-Liste mit — sie rankt nach der Summe der
+ * Feuerstrahlungsleistung. Einträge ohne Detektion (reine EFFIS-Kartierungen)
+ * haben keine Leistung; sie fallen ans Ende, statt mit einer erfundenen 0 in
+ * der Rangfolge mitzulaufen.
+ */
+export type RecordSort = 'area' | 'recency' | 'status' | 'strength';
 
 const STATUS_RANK: Record<FireStatusKind, number> = { active: 0, 'no-signal': 1, out: 2 };
 
@@ -565,8 +573,10 @@ export function sortRecords(records: readonly FireRecord[], by: RecordSort): Fir
   const arr = [...records];
   const recency = (r: FireRecord) => r.lastMs ?? r.status.sinceMs ?? -Infinity;
   const area = (r: FireRecord) => r.areaHa.value ?? -1;
+  const strength = (r: FireRecord) => r.frpSumMw ?? -1;
   if (by === 'area') arr.sort((a, b) => area(b) - area(a) || recency(b) - recency(a) || a.id.localeCompare(b.id));
   else if (by === 'recency') arr.sort((a, b) => recency(b) - recency(a) || area(b) - area(a) || a.id.localeCompare(b.id));
+  else if (by === 'strength') arr.sort((a, b) => strength(b) - strength(a) || recency(b) - recency(a) || a.id.localeCompare(b.id));
   else arr.sort((a, b) => STATUS_RANK[a.status.kind] - STATUS_RANK[b.status.kind] || recency(b) - recency(a) || a.id.localeCompare(b.id));
   return arr;
 }
@@ -618,18 +628,42 @@ export const STATUS_COLOR: Record<FireStatusKind, string> = {
   out: '#6B7A8F',
 };
 
-/** Statuszeile mit Zeitbezug — „erloschen" nennt immer die Quelle. */
+/**
+ * Wann der Brand zuletzt DETEKTIERT wurde — Zeitpunkt und Alter.
+ *
+ * Bewusst aus `r.lastMs` und nicht aus `status.sinceMs`: `sinceMs` trägt je
+ * nach Status verschiedene Dinge (Detektion, EFFIS-`FINALDATE`, EFFIS-Branddatum).
+ * Als „letzte Detektion" darf nur eine echte Detektion beschriftet werden;
+ * gibt es keine, wird genau das gesagt statt einer fremden Zahl.
+ */
+export function lastDetectionLabel(r: FireRecord, nowMs: number): string {
+  if (r.lastMs == null) return 'keine Detektion im Fenster';
+  return `letzte Detektion ${stampLabel(r.lastMs, nowMs)} · ${ageText(Math.max(0, nowMs - r.lastMs))}`;
+}
+
+/**
+ * Statuszeile mit Zeitbezug — „erloschen" nennt immer die Quelle, und JEDE
+ * Zeile sagt, wann zuletzt detektiert wurde (oder dass es keine Detektion gab).
+ */
 export function statusLabel(r: FireRecord, nowMs: number): string {
   const s = r.status;
+  const det = lastDetectionLabel(r, nowMs);
   if (s.kind === 'active') {
-    return s.sinceMs != null && s.source === 'Satellitendetektion'
-      ? `aktiv · letzte Detektion ${ageText(Math.max(0, nowMs - s.sinceMs))}`
-      : `aktiv · ${s.source ?? ''}`.trim();
+    // Die Satellitenquelle steht schon im Detektionssatz; eine EMS-Aktivierung
+    // ist eine ZWEITE Quelle und wird deshalb zusätzlich genannt.
+    return s.source && s.source !== 'Satellitendetektion'
+      ? `aktiv · ${s.source} · ${det}`
+      : `aktiv · ${det}`;
   }
   if (s.kind === 'no-signal') {
-    return s.sinceMs != null ? `kein Signal seit ${ageText(Math.max(0, nowMs - s.sinceMs))}` : 'kein Signal im Fenster';
+    // Ohne eigene Detektion bleibt nur das Branddatum der Kartierung — es wird
+    // benannt, statt als „letzte Detektion" ausgegeben zu werden.
+    if (r.lastMs == null && s.sinceMs != null) {
+      return `kein Signal · ${det} · EFFIS-Brandbeginn ${stampLabel(s.sinceMs, nowMs)} · ${ageText(Math.max(0, nowMs - s.sinceMs))}`;
+    }
+    return `kein Signal · ${det}`;
   }
-  return `erloschen · ${s.source ?? 'Quelle fehlt'}`;
+  return `erloschen · ${s.source ?? 'Quelle fehlt'} · ${det}`;
 }
 
 /** Fläche mit ihrer Art — nie eine nackte Zahl. */
@@ -639,6 +673,51 @@ export function areaLabel(r: FireRecord): string {
   const n = a.value.toLocaleString('de-DE', { maximumFractionDigits: 0 });
   if (a.kind === 'mapped') return `${n} ha kartiert`;
   return `bis ${n} ha${a.capped ? ' (unvollständig)' : ''}`;
+}
+
+/**
+ * **VB3 — die vorläufige Brandfläche.** Die Flächenaussage eines Eintrags, der
+ * (noch) keine Kartierung hat, in einem Stück statt in zwei Zeilen.
+ *
+ * Warum der Text so und nicht anders steht — gemessen in `audit/brandflaeche-vorlaeufig.md`
+ * an 618 Paaren (EFFIS-Kartierung × FIRMS-Detektionen, 2020–2026):
+ *
+ *  • **Die Zahl ist die Schätzung, die Form bleibt das Raster.** Zeichnet man die
+ *    geschätzte Größe als eigene Kontur (Erosion, FRP-Kern, Kreis), sinkt die
+ *    Übereinstimmung mit der späteren Kartierung (IoU-Median 0,095 → 0,092/0,088/0,090),
+ *    und der Anteil der Formen, die die echte Brandfläche gar nicht mehr berühren,
+ *    steigt von 1 % auf 24–36 %. Die Größe stimmt dann (Flächenverhältnis 1,03 statt
+ *    6,10) — und genau dabei geht die Lage verloren.
+ *  • **Deshalb der Einschluss-Satz.** In 99 % der Fälle liegt die kartierte Fläche
+ *    IM Raster; der Schwerpunkt weicht aber im Median um ~261 m ab (rund eine
+ *    Pixelbreite: VIIRS sieht die Flammenfront zum Überflug, EFFIS kartiert die Narbe
+ *    danach). „Liegt darin, Lage darin unbekannt" ist genau das, was die Daten hergeben.
+ *  • **Nie ohne Intervall**, nie ohne das Wort „geschätzt", nie ohne den Vorrang der
+ *    Kartierung: bei 0–2 ha liegt der Punktwert im Median 7,45-fach zu hoch, bei
+ *    > 200 ha 0,17-fach zu tief (Regression zur Mitte eines log-log-Fits mit σ 1,33).
+ *
+ * `null`, sobald eine Kartierung vorliegt — die misst, statt zu schätzen.
+ */
+export interface ProvisionalArea { head: string; value: string; note: string; source: string }
+
+export function provisionalAreaText(e: AreaEstimate, coverageHa: number | null): ProvisionalArea {
+  const cover = coverageHa != null && coverageHa > 0
+    ? ` (${Math.round(coverageHa).toLocaleString('de-DE')} ha Satellitenabdeckung)`
+    : '';
+  return {
+    head: 'Vorläufige Brandfläche (geschätzt)',
+    value: estimateValueText(e),
+    note: `Der Brand liegt in der gezeichneten Fläche${cover}; seine genaue Lage darin ist `
+      + 'unbekannt. Kein Ersatz für eine Kartierung.',
+    source: estimateSourceText(e),
+  };
+}
+
+/** Dieselbe Aussage aus einem Eintrag — `null` bei Kartierung oder ohne Schätzung. */
+export function provisionalArea(r: FireRecord): ProvisionalArea | null {
+  if (r.areaHa.kind === 'mapped' || r.sources.effis) return null;
+  const e = r.activity?.areaEst;
+  return e ? provisionalAreaText(e, r.areaHa.kind === 'upper-bound' ? r.areaHa.value : null) : null;
 }
 
 /** Warum eine Zelle „—" zeigt — als `title`, damit die Lücke einen Grund hat. */
@@ -798,6 +877,9 @@ export function verifyFireRegistry(): { checks: RegistryCheck[]; passed: number;
   add('Detektion vor 1 h ⇒ Status aktiv mit Satellitenquelle',
     r2[0].status.kind === 'active' && r2[0].status.source === 'Satellitendetektion'
     && /aktiv/.test(statusLabel(r2[0], now)) && /vor 1 h/.test(statusLabel(r2[0], now)), statusLabel(r2[0], now));
+  // Jede Zeile sagt, WANN zuletzt detektiert wurde — Zeitpunkt UND Alter.
+  add('… und nennt den Zeitpunkt der letzten Detektion, nicht nur ihr Alter',
+    /letzte Detektion \d{2}:\d{2} · vor 1 h/.test(statusLabel(r2[0], now)), statusLabel(r2[0], now));
   add('ohne Kartierung: Fläche = Obergrenze aus dem Raster, mit Art',
     r2[0].areaHa.kind === 'upper-bound' && (r2[0].areaHa.value ?? 0) > 0 && /^bis \d+ ha$/.test(areaLabel(r2[0])), areaLabel(r2[0]));
   add('Geometrie ist das Raster (nicht die Hülle), solange nichts kartiert ist', r2[0].geometry.kind === 'raster');
@@ -859,9 +941,27 @@ export function verifyFireRegistry(): { checks: RegistryCheck[]; passed: number;
   const r5 = build([], [ended]);
   add('EFFIS FINALDATE ⇒ erloschen mit Quelle im Label',
     r5[0]?.status.kind === 'out' && /EFFIS/.test(statusLabel(r5[0], now)), statusLabel(r5[0], now));
+  add('… und auch „erloschen" sagt, ob es eine Detektion gab',
+    /keine Detektion im Fenster/.test(statusLabel(r5[0], now)), statusLabel(r5[0], now));
   const stale = build([fixtureRow(50, 10, now - 3 * D, 10)]);
-  add('Detektion vor 3 Tagen ohne Quelle ⇒ „kein Signal seit 3 T", NIE erloschen',
-    stale[0].status.kind === 'no-signal' && /kein Signal seit vor 3 T/.test(statusLabel(stale[0], now)), statusLabel(stale[0], now));
+  add('Detektion vor 3 Tagen ohne Quelle ⇒ „kein Signal · letzte Detektion … vor 3 T", NIE erloschen',
+    stale[0].status.kind === 'no-signal' && /^kein Signal · letzte Detektion /.test(statusLabel(stale[0], now))
+    && /vor 3 T/.test(statusLabel(stale[0], now)), statusLabel(stale[0], now));
+  // Ein Zeitstempel, der älter als heute ist, trägt das Datum — sonst läse sich
+  // „03:43" wie heute Nacht.
+  add('… und der Zeitpunkt trägt bei älteren Detektionen das Datum',
+    /letzte Detektion \d{2}\.\d{2}\., \d{2}:\d{2}/.test(statusLabel(stale[0], now)), statusLabel(stale[0], now));
+  add('heute detektiert ⇒ nur die Uhrzeit, kein Datum',
+    /^\d{2}:\d{2}$/.test(stampLabel(now - 3_600_000, now)), stampLabel(now - 3_600_000, now));
+  // „letzte Detektion" darf NIE ein fremdes Datum beschriften: ein EFFIS-Eintrag
+  // ohne Überflug im Fenster sagt das ausdrücklich (statt das Branddatum als
+  // Detektion auszugeben).
+  const effisOnly = build([], [fixturePoly('pd', 12, 52, 0.004, now - 5 * D, 5)]);
+  add('EFFIS-Eintrag ohne Detektion ⇒ „keine Detektion im Fenster", Branddatum getrennt benannt',
+    effisOnly.length === 1 && effisOnly[0].lastMs == null
+    && /keine Detektion im Fenster/.test(statusLabel(effisOnly[0], now))
+    && /EFFIS-Brandbeginn/.test(statusLabel(effisOnly[0], now))
+    && !/letzte Detektion/.test(statusLabel(effisOnly[0], now)), statusLabel(effisOnly[0], now));
   const emsOpen: EmsActivation = { code: 'EMSR920', name: 'x', countries: ['DE'], category: 'Wildfire', isFire: true, lat: 50, lon: 10, eventMs: now - 4 * D, activationMs: null, closed: false };
   const r6 = build([fixtureRow(50, 10, now - 3 * D, 10)], [], [emsOpen]);
   add('offene EMS-Aktivierung hält den Status aktiv — mit EMS-Kennung als Quelle',
@@ -913,6 +1013,15 @@ export function verifyFireRegistry(): { checks: RegistryCheck[]; passed: number;
   add('Sortierung nach Aktualität: die aktive Detektion zuerst',
     sortRecords(mix, 'recency')[0].id.startsWith('fire:'));
   add('Sortierung nach Status: aktiv vor kein Signal', sortRecords(mix, 'status')[0].status.kind === 'active');
+  // BP5: die Rangfolge der früheren Cluster-Liste — stärkste Leistung zuerst,
+  // Einträge ohne Detektion (reine Kartierung) ans Ende statt mit 0 nach vorn.
+  add('Sortierung nach Stärke: die stärkste Detektionsgruppe zuerst',
+    sortRecords(mix, 'strength')[0].frpSumMw != null
+    && sortRecords(mix, 'strength')[0].frpSumMw === Math.max(...mix.map((r) => r.frpSumMw ?? -1)),
+    String(sortRecords(mix, 'strength')[0].frpSumMw));
+  add('… und ein Eintrag ohne Leistung steht hinten, nicht bei 0 MW',
+    sortRecords(mix, 'strength').at(-1)?.frpSumMw == null,
+    String(sortRecords(mix, 'strength').at(-1)?.frpSumMw));
   add('Filter Mindestfläche 100 ha behält nur die 300 ha (die 2-ha-Fläche und die Obergrenze fallen)',
     filterRecords(mix, { ...DEFAULT_FILTER, minAreaHa: 100 }).length === 1);
   add('Filter Status „aktiv" behält den Cluster',
