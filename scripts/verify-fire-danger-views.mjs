@@ -76,8 +76,9 @@ add('ranking: die Referenzperiode steht IN der Bezugsangabe der Legende (nicht n
   /40-jährig/.test(DANGER_VIEWS.ranking.reference) && /Vitolo/.test(DANGER_VIEWS.ranking.reference));
 
 // (d) Index nie allein — Karte (Begleit-Notiz) und Steckbrief (zweite Legende).
-add('Karte: Begleit-Notiz mit Ein-Klick-Wechsel Index ↔ Einordnung',
-  /fire-danger-note/.test(page) && /companionView\(dangerView\)/.test(page));
+// Brandradar Command-Deck (2026-08-22): der Ein-Klick-Wechsel steht als Verweis im Steckbrief (Vorlage).
+add('Steckbrief: Ein-Klick-Wechsel Index ↔ Einordnung',
+  /br-link/.test(page) && /companionView\(dangerView\)/.test(page));
 add('Steckbrief des Index trägt die Einordnung als zweite Legende (und umgekehrt)',
   /partner && \(/.test(card) && /Dazu gehört die Einordnung/.test(card) && /Dazu gehört der Index/.test(card));
 
@@ -107,9 +108,10 @@ add('keine Sub-Ansicht des Index ist ein eigener Layer geworden',
 add('die zehn Bit-Plätze aus E3 stehen unverändert vorne — Späteres wurde nur ANGEHÄNGT',
   FIRE_BIT_ORDER.slice(0, 10).join(',') === E3_SLOTS.join(','),
   FIRE_BIT_ORDER.slice(0, 10).join(','));
-add('Untersegment mit 5 Ansichten unter der fireDanger-Zeile',
+// Brandradar Command-Deck (2026-08-22): die 5 Ansichten sind Chips auf der Karte, nur bei aktivem Index.
+add('Sub-Ansichten-Umschalter mit 5 Ansichten auf der Karte (nur bei aktivem Index)',
   /DANGER_VIEW_ORDER\.map/.test(page) && DANGER_VIEW_ORDER.length === 5
-    && /l\.id === 'fireDanger' && active\.has\('fireDanger'\) && dangerSeg/.test(page));
+    && /viewChips = active\.has\('fireDanger'\) && \(/.test(page));
 
 // (f) Permalink
 const base = { location: null, layers: ['fireDanger'], day: 0, windowH: 24 };

@@ -55,7 +55,7 @@ import {
 } from './footprint/history';
 import {
   buildFireRegistry, carryIds, sortRecords, filterRecords, footprintsToGeoJSON, DEFAULT_FILTER,
-  type FireRecord, type RecordSort, type RecordFilter,
+  type FireRecord, type RecordFilter,
 } from './footprint/fireRegistry';
 import { FireFootprintPanel, type EffisScope } from './FireFootprintPanel';
 import { loadPlaces, nearestPlace, type PlaceIndex } from './footprint/places';
@@ -99,11 +99,19 @@ import { useMediaQuery } from '../mobile/useIsMobile';
 import type { PerfTier } from '../wind/perfGovernor';
 import { dataAgeText, type DataRef } from '../dataAge';
 import { fireSourceFor, fireIncidentSourcesFor, hasOfficialFireConfirmation } from '../officialSources';
-import { FireIcon, IcoFirePlay, IcoFirePause } from './fireIcons';
+import {
+  FireIcon, IcoFirePlay, IcoFirePause, IcoBarMap, IcoBarLayers, IcoBarFire, IcoBarTime,
+} from './fireIcons';
 import {
   FireLayerCard, FIRE_LAYER_INFO, HOTSPOTS_DEGRADED_INFO, dangerInfoFor, soilDrynessInfoFor,
 } from './FireLayerCard';
+import { BR_LAYER, BR_GROUP_COLOR, dangerCardMeta, DANGER_VIEW_CODE, FWI_STEPS } from './brandradarMeta';
+import { recordTitle, type PanelSort } from './FireFootprintPanel';
+import { ageText } from '../dataAge';
 import './fireDeck.css';
+
+/** Mobil: die vier Bereiche der Bottom-Bar (Vorlage B4–B6). */
+type MobileTab = 'map' | 'layers' | 'fires' | 'time';
 
 /** Ladezustand je Layer — „Fehler" schaltet den Layer AB und verlinkt die
  *  amtliche Quelle, statt eine leere Fläche zu zeigen (Gate-Punkt WB-T2-6). */
@@ -227,9 +235,11 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
     // jetzt der Reiter „Braende". Die Bedeutung bleibt, nur ihr Ort hat sich geaendert.
     initial?.footprintPanel ? 'fires' : 'layers',
   );
+  /** Mobil: der Bereich der Bottom-Bar — Karte · Layer · Brände · Zeit. */
+  const [mobileTab, setMobileTab] = useState<MobileTab>(initial?.footprintPanel ? 'fires' : 'map');
   // --- BP2: das Brandflächen-Panel (Registry) ------------------------------
   /** Panel links offen? (Permalink-Feld `fp`; unabhängig vom Layer-Schalter.) */
-  const [fpSort, setFpSort] = useState<RecordSort>('area');
+  const [fpSort, setFpSort] = useState<PanelSort>('area');
   const [fpFilter, setFpFilter] = useState<RecordFilter>(DEFAULT_FILTER);
   /** Umfang der EFFIS-Einträge: Historie (7 d) oder die ganze Saison (nur wenn geladen). */
   const [fpEffisScope, setFpEffisScope] = useState<EffisScope>('week');
@@ -1026,7 +1036,7 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
   );
   // BP3: Ortsverzeichnis laden, sobald die Liste irgendwo sichtbar wird (Overlay
   // oder Sheet-Segment). Fehlschlag ⇒ Orte bleiben „—" mit Grund; kein Fehlerlayer.
-  const wantPlaces = readoutTab === 'fires';
+  const wantPlaces = readoutTab === 'fires' || mobileTab === 'fires';
   useEffect(() => {
     if (!wantPlaces || places) return;
     const ac = new AbortController();
@@ -1155,10 +1165,15 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
     }
     return m;
   }, [records]);
-  const panelRecords = useMemo(
-    () => sortRecords(filterRecords(records, fpFilter), fpSort),
-    [records, fpFilter, fpSort],
-  );
+  const panelRecords = useMemo(() => {
+    const filtered = filterRecords(records, fpFilter);
+    // „Detektionen" (Vorlage) sortiert lokal nach der Zahl im Fenster — Einträge
+    // ohne Detektion hinten; die Registry-Sorten bleiben unverändert.
+    if (fpSort === 'hotspots') {
+      return [...filtered].sort((a, b) => (b.hotspots ?? -1) - (a.hotspots ?? -1) || a.id.localeCompare(b.id));
+    }
+    return sortRecords(filtered, fpSort);
+  }, [records, fpFilter, fpSort]);
   recordsRef.current = records;
   panelRecordsRef.current = panelRecords;
   useEffect(() => { setShownFootprints(CLUSTER_PAGE); }, [records]);
@@ -1221,12 +1236,15 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
 
   // Breakpoint 767 px — die Projekt-Konvention, kein Ad-hoc-Wert (CLAUDE.md).
   const isMobile = useMediaQuery('(max-width: 767px)');
-  // Startwert `collapsed`: Wer die Ansicht öffnet, will zuerst die Fläche sehen.
-  const [sheetSnap, setSheetSnap] = useState<BottomSheetSnap>('collapsed');
-  // BP2: das dritte Readout-Segment gibt es nur im Sheet — beim Wechsel auf
-  // Desktop fällt es auf „Cluster" zurück, sonst wäre das Readout leer.
-  // Mobil: eine Kartenauswahl macht das Panel-Segment sichtbar — sonst wäre der Klick folgenlos.
-  useEffect(() => { if (selectedFootprint) setReadoutTab('fires'); }, [selectedFootprint]);
+  // Startwert `half` (Vorlage B4): Karte oben, Zeit-Deck und Legende im Sheet sichtbar.
+  const [sheetSnap, setSheetSnap] = useState<BottomSheetSnap>('half');
+  // Eine Kartenauswahl macht die Brandliste sichtbar — sonst wäre der Klick
+  // folgenlos: Desktop der Reiter „Brände", mobil der gleichnamige Bereich.
+  useEffect(() => {
+    if (!selectedFootprint) return;
+    setReadoutTab('fires');
+    if (isMobile) setMobileTab('fires');
+  }, [selectedFootprint, isMobile]);
 
   // --- Playback (WB3) --------------------------------------------------------
   // rAF wie `NowcastRadarMap.tsx:269-279`, aber mit ganzzahliger Tagesausgabe:
@@ -1302,7 +1320,7 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
   // steht. Nur hier gelöst, nicht in `FeatureRail`: die Rail rendern sechs
   // weitere Decks, und deren Verhalten wird von dieser Phase nicht angefasst.
   useEffect(() => {
-    const btn = document.querySelector<HTMLElement>('.fire-rail .is-active');
+    const btn = document.querySelector<HTMLElement>('.br-rail .is-active');
     btn?.scrollIntoView({ block: 'nearest', inline: 'center' });
   }, []);
 
@@ -1344,13 +1362,18 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
     setActive(new Set(layers));
   }, []);
 
-  // ---- Deck-Bausteine (WBU1) ----------------------------------------------
+  // ---- Deck-Bausteine (Brandradar Command-Deck, Vorlage references/brandradar.dc.html) ----
+  //
+  // Drei Viewports, EIN Bau: Desktop ≥ 1440 (B1/B2), Tablet 768–1439 (B3) und
+  // Mobil < 768 (B4–B6). Die Datenpfade oben kennen die Größe nicht; hier wird
+  // nur angeordnet. `isTablet` steuert die wenigen Textvarianten der Vorlage
+  // (kürzere Labels, „Std." statt „Stunden"), alles Übrige ist CSS.
+  const isTablet = useMediaQuery('(max-width: 1439px)');
 
   /**
-   * Kurz-Stempel für die Sub-Zeile einer Dock-Zeile — das `statusStamp`-Muster
-   * der Wetterkarte: „⚠ Fehler" / „lädt…" / Datenalter. Der AUSFÜHRLICHE
-   * Fehlertext mit amtlichem Link bleibt zusätzlich unter der Zeile stehen
-   * (D-04/WB-T2-6 — der Stempel ersetzt ihn nicht).
+   * Kurz-Stempel für die Sub-Zeile einer Dock-Zeile: „lädt…" / „⚠ Fehler" /
+   * Datenalter. Der AUSFÜHRLICHE Fehlertext mit amtlichem Link bleibt zusätzlich
+   * unter der Zeile stehen (D-04/WB-T2-6 — der Stempel ersetzt ihn nicht).
    */
   const rowStamp = (id: FireLayerId): string => {
     const st = load[id];
@@ -1360,34 +1383,131 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
     return dataAgeText(st.ref, nowMs, nowMs);
   };
 
-  /** Layer-Zeile in `layerRowDeck`-Optik: Icon + Label + Sub/Stempel + Switch.
-   *  `inSheet` (mobil): kein Hover-Preview, dafür ein „i" mit Inline-Steckbrief. */
-  /**
-   * Der Steckbrief eines Layers — im Notbetrieb der Hotspots die degradierte
-   * Fassung. Sonst zeigte die Karte eine FRP-Skala für Daten ohne FRP.
-   */
+  /** Der Steckbrief eines Layers — im Notbetrieb der Hotspots die degradierte Fassung. */
   const infoFor = (id: FireLayerId) =>
     (id === 'fireHotspots' && hotspotProvider === 'gwis' ? HOTSPOTS_DEGRADED_INFO
       : id === 'fireDanger' ? dangerInfoFor(dangerView)
       : id === 'fireSoilDryness' ? soilDrynessInfoFor(soilMode)
       : FIRE_LAYER_INFO[id]);
+  /** Die Vorlagen-Felder des Steckbriefs (EINHEIT/BEZUG/GRENZE/RÜCKFALL) je Layer. */
+  const metaFor = (id: FireLayerId) => (id === 'fireDanger' ? dangerCardMeta(dangerView) : BR_LAYER[id]);
+  /** STAND: Datenalter aus dem Ladezustand — der EU-Index nennt seinen Tag und Bezug. */
+  const standFor = (id: FireLayerId): string | undefined => {
+    if (id === 'fireDanger') return `Tageswert · ${dayLabel(dayForLayers, nowMs)} · Bezug 12 UTC`;
+    const st = load[id];
+    if (!st || st.kind === 'idle') return undefined;
+    if (st.kind === 'loading') return 'lädt …';
+    if (st.kind === 'error') return 'Ausfall — keine Daten';
+    return dataAgeText(st.ref, nowMs, nowMs);
+  };
 
-  const layerRow = (id: FireLayerId, accent: string, inSheet: boolean) => {
+  /** Topbar: der FIRMS-Status — live, lädt, Notbetrieb oder Ausfall. Nie „live" ohne Daten. */
+  const detSt = load.fireHotspots;
+  const detOn = active.has('fireHotspots') || active.has('fireFootprints');
+  const firms = !detOn ? { label: 'FIRMS · aus', tone: 'off' }
+    : detSt?.kind === 'loading' ? { label: 'FIRMS · lädt', tone: 'off' }
+    : detSt?.kind === 'error' ? { label: 'FIRMS · Ausfall', tone: 'err' }
+    : hotspotProvider === 'gwis' ? { label: 'GWIS · Notbetrieb', tone: 'warn' }
+    : detSt?.kind === 'ok' ? { label: 'FIRMS LIVE', tone: 'live' }
+    : { label: 'FIRMS', tone: 'off' };
+
+  /** Kennzahlen der Detektionen: im Fenster, ortsfest (grau), in kartierter Fläche. */
+  const detCount = hotspots?.features.length ?? 0;
+  const staticCount = useMemo(
+    () => (hotspots ? hotspots.features.filter((f) => f.properties?.stat === 1).length : 0),
+    [hotspots],
+  );
+  const latestAge = detSt?.kind === 'ok' && detSt.ref ? ageText(Math.max(0, nowMs - detSt.ref.atMs)) : null;
+
+  // --- Dock ------------------------------------------------------------------
+
+  // WT1: die zwei Tiefen der Bodentrockenheit — EIN Umschalter (genau eine Tiefe).
+  const soilSeg = (
+    <div className="br-seg" role="group" aria-label="Tiefe der Bodentrockenheit">
+      {(['topsoil', 'rootzone'] as SoilDrynessMode[]).map((m) => (
+        <button
+          key={m} type="button"
+          className={soilMode === m ? 'is-active' : ''}
+          aria-pressed={soilMode === m}
+          title={SOIL_MODE_FULL_LABEL[m]}
+          onClick={() => setSoilMode(m)}
+        >
+          {SOIL_MODE_LABEL[m]}
+        </button>
+      ))}
+    </div>
+  );
+
+  // E2/BF4: die drei Zeitkörbe der Brandflächen — je für sich schaltbar. Sie
+  // ÜBERLAPPEN SICH NICHT: „7 Tage" nimmt der Saison ihre frischen Flächen ab.
+  const BURNT_SEG: readonly { id: BurntBucket; label: string; title: string }[] = [
+    { id: 'week', label: '7 Tage', title: 'Die frischesten Kartierungen — gefiltert aus der Saison, kein zusätzlicher Abruf' },
+    { id: 'season', label: 'Saison', title: 'Laufende Saison, live' },
+    { id: 'archive', label: 'Archiv', title: 'Frühere Saisons — rund 5 MB, nur auf Wunsch' },
+  ];
+  const burntSeg = (
+    <>
+      <div className="br-seg" role="group" aria-label="Zeitkörbe der Brandflächen">
+        {BURNT_SEG.map((b) => (
+          <button
+            key={b.id} type="button"
+            className={burntBuckets.has(b.id) ? 'is-active' : ''}
+            aria-pressed={burntBuckets.has(b.id)}
+            title={b.title}
+            onClick={() => setBurntBuckets((prev) => {
+              const next = new Set(prev);
+              if (next.has(b.id)) next.delete(b.id); else next.add(b.id);
+              return next;
+            })}
+          >
+            {b.label}
+          </button>
+        ))}
+      </div>
+      {/* BF4: die eigene Zeitachse der Historie — über das BRANDDATUM. */}
+      {burntBuckets.has('week') && (
+        <div className="br-burnt-history">
+          <label className="br-burnt-history-row">
+            <span className="br-burnt-history-label">{historyDayLabel(Date.now(), burntDay)}</span>
+            <input
+              type="range" min={-HISTORY_DAYS} max={0} step={1}
+              value={burntDay ?? -HISTORY_DAYS}
+              aria-label="Branddatum innerhalb der letzten sieben Tage"
+              onChange={(e) => {
+                const v = Number(e.target.value);
+                setBurntDay(v <= -HISTORY_DAYS ? null : v);
+              }}
+            />
+          </label>
+          <p className="br-layer-note">{historyNote(burntSplit.weekCount, Date.now(), burntDay, burntSplit.weekUpdate)}</p>
+          <p className="br-layer-note is-muted">{HISTORY_LATENCY_NOTE}</p>
+        </div>
+      )}
+    </>
+  );
+
+  /** Eine Dock-Zeile der Vorlage: Icon · Label/Sub · Switch; blockiert = Schloss, gestrichelt. */
+  const layerRow = (id: FireLayerId, inSheet: boolean) => {
+    const meta = BR_LAYER[id];
     const info = infoFor(id);
     const gebaut = isBuilt(id);
     const on = active.has(id);
     const stamp = rowStamp(id);
     const st = load[id];
     const stands = on && FIRE_LAYER_TIME[id] ? lagging.includes(id) : false;
+    const label = !inSheet && isTablet && meta.shortLabel ? meta.shortLabel : meta.label;
+    const sub = [meta.sub, stamp].filter(Boolean).join(' · ');
+    // Tablet (B3): Zeilen ohne Sub-Zeile — nur blockierte nennen ihren Grund.
+    const showSub = !!sub && (inSheet || !isTablet || !gebaut);
+    const hasSeg = (id === 'fireSoilDryness' || id === 'fireBurnt') && on;
     return (
-      <div key={id} className="fire-layerwrap">
+      <div key={id} className={`br-layerwrap${hasSeg ? ' has-seg' : ''}`} data-br={meta.color}>
         <button
           type="button"
-          className={`fire-layer${on ? ' is-on' : ' is-off'}${gebaut ? '' : ' is-blocked'}`}
-          data-accent={accent}
+          className={`br-layer${on ? ' is-on' : ' is-off'}${gebaut ? '' : ' is-blocked'}`}
           role="switch"
           aria-checked={on}
-          disabled={!gebaut}
+          aria-disabled={!gebaut}
           title={gebaut ? info.label : 'Quelle derzeit nicht abrufbar'}
           onClick={() => gebaut && toggle(id)}
           onMouseEnter={inSheet ? undefined : () => setLayerHover(id)}
@@ -1395,61 +1515,57 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
           onFocus={inSheet ? undefined : () => setLayerHover(id)}
           onBlur={inSheet ? undefined : () => setLayerHover(null)}
         >
-          <span className="fire-layer-ic"><FireIcon layer={id} size={inSheet ? 16 : 14} /></span>
-          <span className="fire-layer-tx">
-            <span className="fire-layer-label">{info.label}</span>
-            <span className="fire-layer-sub">
-              {[gebaut ? info.short : 'Quelle derzeit nicht abrufbar', stamp].filter(Boolean).join(' · ')}
-            </span>
+          <span className="br-layer-ic"><FireIcon layer={id} size={inSheet ? 19 : isTablet ? 14 : 15} /></span>
+          <span className="br-layer-tx">
+            <span className="br-layer-label">{label}</span>
+            {showSub && <span className="br-layer-sub">{sub}</span>}
           </span>
-          <span className="fire-switch" aria-hidden="true"><span className="fire-switch-knob" /></span>
+          {gebaut && <span className="br-switch" aria-hidden="true"><span className="br-switch-knob" /></span>}
         </button>
+        {/* Mobil: Steckbrief je Zeile auf Tipp (Hover gibt es dort nicht). */}
         {inSheet && (
           <button
-            type="button" className="fire-layer-infobtn"
-            aria-label={`Steckbrief ${info.label}`}
+            type="button" className="br-layer-info"
+            aria-label={`Steckbrief ${meta.label}`}
             aria-expanded={openInfo === id}
             onClick={() => setOpenInfo((cur) => (cur === id ? null : id))}
           >
             i
           </button>
         )}
-        {inSheet && openInfo === id && <FireLayerCard layer={id} info={infoFor(id)} />}
+        {inSheet && openInfo === id && (
+          <FireLayerCard layer={id} info={info} meta={metaFor(id)} stand={standFor(id)} compact />
+        )}
+        {id === 'fireSoilDryness' && on && soilSeg}
+        {id === 'fireBurnt' && on && burntSeg}
         {on && stands && (
-          <p className="fire-layer-lag">
+          <p className="br-layer-lag">
             {hourly ? 'gilt für jetzt — folgt dem Stundenregler nicht' : 'gilt für heute — folgt dem Tagesregler nicht'}
           </p>
         )}
-        {/* WF3: Tages-Layer auf der Stundenachse — weder „folgt" noch „steht":
-            ein Tageswert für den Kalendertag, in den jetzt + h fällt. */}
+        {/* WF3: Tages-Layer auf der Stundenachse — ein Tageswert für den Kalendertag von jetzt + h. */}
         {on && hourly && time.hour > 0 && dailyOnly.includes(id) && (
-          <p className="fire-layer-lag">
+          <p className="br-layer-lag">
             Tageswert · gilt für {dayLabel(dayForLayers, nowMs)} — keine Stundenauflösung
           </p>
         )}
-        {/* WF3 §15.5: der geladene Windlauf reicht nicht bis zur Zielzeit — gesagt,
-            nicht geklemmt. Im Normalfall (Lauf ≤ 6 h alt) erscheint das nie. */}
+        {/* WF3 §15.5: der geladene Windlauf reicht nicht bis zur Zielzeit — gesagt, nicht geklemmt. */}
         {on && id === 'fireWind' && windClamped && (
-          <p className="fire-layer-lag">
+          <p className="br-layer-lag">
             Modellfeld reicht bis +{Math.max(0, windHorizonH ?? 0)} h — zeigt den letzten verfügbaren Schritt
           </p>
         )}
-        {on && st?.kind === 'ok' && st.note && (
-          <p className="fire-layer-status">{st.note}</p>
-        )}
-        {/* E1/E2: die Bestätigung durch die EFFIS-Kartierung — nur, wenn es sie
-            gibt. Ohne Treffer steht hier nichts: Fehlen ist kein Gegenbeleg. */}
+        {on && st?.kind === 'ok' && st.note && <p className="br-layer-note">{st.note}</p>}
+        {/* E1/E2: die Bestätigung durch die EFFIS-Kartierung — nur, wenn es sie gibt. */}
         {on && id === 'fireHotspots' && st?.kind === 'ok' && mappedCount > 0 && (
-          <p className="fire-layer-status fire-layer-mapped">
+          <p className="br-layer-note is-mapped">
             {mappedCount === 1 ? 'Eine Detektion liegt' : `${mappedCount} Detektionen liegen`} in einer von
             EFFIS kartierten Brandfläche der letzten 7 Tage (bestätigt) — Details im Klick-Steckbrief.
           </p>
         )}
-        {/* GWBA1 A3: Ereignisbestätigung je Land — ehrlich statt Lücke. AT hat keine
-            lizenzierbare Live-Einsatzquelle ⇒ nur Deep-Links (kein Scraping, kein
-            Proxy); DE folgt mit MoWaS nach Freigabe. Verifikation beim Nutzer. */}
+        {/* GWBA1 A3: Ereignisbestätigung je Land — Deep-Links, kein Scraping. */}
         {on && id === 'fireHotspots' && st?.kind === 'ok' && (
-          <p className="fire-layer-status fire-layer-incidents">
+          <p className="br-layer-note is-links">
             Einsatz-/Ereignisbestätigung selbst nachsehen:{' '}
             {(['DE', 'AT', 'CH'] as const).map((c, i) => (
               <span key={c}>
@@ -1471,179 +1587,521 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
     );
   };
 
-  // Rückblick-Fenster (24 h / 7 Tage) der Hotspots — als Untersegment IM Dock
-  // unter der Layer-Zeile, das Muster der Sat-/Schnee-/Hagel-Unterwahl.
-  const windowSeg = windows.length > 0 ? (
-    <div className="fire-subseg" data-accent="terracotta" role="group" aria-label="Rückblick-Fenster">
-      {windows.map((h) => (
+  /** Presets — Desktop in der Topbar, Tablet ebenfalls, mobil oben im Layer-Tab. */
+  const presetSeg = (big: boolean) => (
+    <div className={big ? 'br-presets-big' : 'br-presets'} role="group" aria-label="Preset">
+      {FIRE_PRESETS.map((p) => (
         <button
-          key={h} type="button"
-          className={time.windowH === h ? 'is-active' : ''}
-          onClick={() => setTime((t) => ({ ...t, windowH: h }))}
+          key={p.id} type="button"
+          className={presetId === p.id ? 'is-active' : ''}
+          aria-pressed={presetId === p.id}
+          onClick={() => applyPreset(p.layers)}
         >
-          {windowLabel(h)}
+          {p.label}
         </button>
       ))}
     </div>
-  ) : null;
+  );
 
-  // E3: Sub-Ansichten des EU-Index — Untersegment unter der Layer-Zeile, dasselbe
-  // Muster wie das Rückblick-Fenster der Hotspots. Fünf Einträge, kein neuer
-  // Top-Level-Layer: das Dock bleibt lesbar.
-  const dangerSeg = (
-    <div className="fire-subseg fire-subseg-wrap" data-accent="amber" role="group" aria-label="Ansicht des EU-Index">
+  /** Die fünf Layer-Gruppen — Dock (Desktop/Tablet) und Layer-Tab (mobil) teilen den Bau. */
+  const dockGroups = (inSheet: boolean) => FIRE_DECK_GROUPS.map((g) => (
+    <div key={g.title} className="br-group" data-br={BR_GROUP_COLOR[g.title] ?? 'stone'}>
+      <div className="br-group-head">{g.title}</div>
+      <div className="br-layers">
+        {g.layers.map((l) => layerRow(l.id, inSheet))}
+      </div>
+    </div>
+  ));
+
+  // --- Karte: Overlays -----------------------------------------------------------
+
+  /** Welcher Layer die Quellen-Pille trägt: der Index zuerst, sonst die oberste Fläche. */
+  const primary: FireLayerId | null = active.has('fireDanger') ? 'fireDanger'
+    : (['fireSpread', 'fireWeather', 'fireSoilDryness', 'fireWind', 'fireFootprints', 'fireHotspots', 'fireBurnt', 'fireFuel', 'fireContext'] as FireLayerId[])
+      .find((l) => active.has(l)) ?? null;
+  const pillTitle = primary === 'fireDanger'
+    ? (isTablet && !isMobile ? `${DANGER_VIEW_CODE[dangerView]} · GWIS ~8 km` : DANGER_VIEWS[dangerView].title)
+    : primary ? BR_LAYER[primary].title : '';
+  const pillSrc = primary === 'fireDanger' ? 'Copernicus EMS · GWIS (ECMWF) · ~8 km · Bezug 12 UTC'
+    : primary ? BR_LAYER[primary].reference : '';
+  const sourcePill = primary && (
+    <div className="br-pill" data-br={BR_LAYER[primary].color} role="status">
+      <span className="br-dot" aria-hidden="true" />
+      <span className="br-pill-title">{pillTitle}</span>
+      {isMobile
+        ? <span className="br-pill-src">{primary === 'fireDanger' ? '~8 km' : ''}</span>
+        : (!isTablet && <span className="br-pill-src">{pillSrc}</span>)}
+    </div>
+  );
+
+  // E3: die fünf Sub-Ansichten des EU-Index — Chips auf der Karte (Vorlage).
+  const viewChips = active.has('fireDanger') && (
+    <div className="br-views br-chips" role="group" aria-label="Ansicht des EU-Index">
       {DANGER_VIEW_ORDER.map((v) => (
         <button
           key={v} type="button"
           className={dangerView === v ? 'is-active' : ''}
+          aria-pressed={dangerView === v}
           title={DANGER_VIEWS[v].title}
           onClick={() => setDangerView(v)}
         >
-          {DANGER_VIEWS[v].label}
+          {(isTablet || isMobile) && v === 'ffmc' ? 'Zündung' : DANGER_VIEWS[v].label}
         </button>
       ))}
     </div>
   );
 
-  // WT1: die zwei Tiefen der Bodentrockenheit — dasselbe Untersegment-Muster.
-  // Bewusst ein Umschalter (genau eine Tiefe) und keine zwei Schalter wie bei den
-  // Zeitkörben: zwei Tiefen übereinander wären zwei Flächen, die dieselbe Farbe
-  // sprechen und Verschiedenes meinen. Der Titel nennt die volle Bedeutung —
-  // „Oberboden" allein sagt nicht, dass er in Tagen und nicht in Wochen reagiert.
-  const soilSeg = (
-    <div className="fire-subseg" data-accent="sage" role="group" aria-label="Tiefe der Bodentrockenheit">
-      {(['topsoil', 'rootzone'] as SoilDrynessMode[]).map((m) => (
-        <button
-          key={m} type="button"
-          className={soilMode === m ? 'is-active' : ''}
-          aria-pressed={soilMode === m}
-          title={SOIL_MODE_FULL_LABEL[m]}
-          onClick={() => setSoilMode(m)}
-        >
-          {SOIL_MODE_LABEL[m]}
-        </button>
-      ))}
-    </div>
-  );
-
-  // E2/BF4: die drei Zeitkörbe der Brandflächen — je für sich schaltbar, damit
-  // sie nebeneinander, aber nie ununterscheidbar liegen. Sie ÜBERLAPPEN SICH
-  // NICHT: „7 Tage" nimmt der Saison ihre frischen Flächen ab, das Archiv sind
-  // die Vorjahre.
-  const BURNT_SEG: readonly { id: BurntBucket; label: string; title: string }[] = [
-    { id: 'week', label: '7 Tage', title: 'Die frischesten Kartierungen — gefiltert aus der Saison, kein zusätzlicher Abruf' },
-    { id: 'season', label: 'Saison', title: 'Laufende Saison, live' },
-    { id: 'archive', label: 'Archiv', title: 'Frühere Saisons — rund 5 MB, nur auf Wunsch' },
-  ];
-  const burntSeg = (
+  /** Ehrlichkeits-Notizen der Treiber/Ausbreitung — Glass-Kästen unter den Chips. */
+  const mapNotes = (
     <>
-      <div className="fire-subseg" data-accent="terracotta" role="group" aria-label="Zeitkörbe der Brandflächen">
-        {BURNT_SEG.map((b) => (
-          <button
-            key={b.id} type="button"
-            className={burntBuckets.has(b.id) ? 'is-active' : ''}
-            aria-pressed={burntBuckets.has(b.id)}
-            title={b.title}
-            onClick={() => setBurntBuckets((prev) => {
-              const next = new Set(prev);
-              if (next.has(b.id)) next.delete(b.id); else next.add(b.id);
-              return next;
-            })}
-          >
-            {b.label}
-          </button>
-        ))}
-      </div>
-      {/* BF4: die eigene Zeitachse der Historie. Sie läuft über das BRANDDATUM
-          (`FIREDATE`) — der Nutzer fragt, wann es gebrannt hat, nicht wann
-          Copernicus verarbeitet hat. Der Stand der Kartierung steht daneben. */}
-      {burntBuckets.has('week') && (
-        <div className="fire-burnt-history">
-          <label className="fire-burnt-history-row">
-            <span className="fire-burnt-history-label">{historyDayLabel(Date.now(), burntDay)}</span>
-            <input
-              type="range" min={-HISTORY_DAYS} max={0} step={1}
-              value={burntDay ?? -HISTORY_DAYS}
-              aria-label="Branddatum innerhalb der letzten sieben Tage"
-              onChange={(e) => {
-                const v = Number(e.target.value);
-                setBurntDay(v <= -HISTORY_DAYS ? null : v);
-              }}
-            />
-          </label>
-          <p className="fire-burnt-history-note">
-            {historyNote(burntSplit.weekCount, Date.now(), burntDay, burntSplit.weekUpdate)}
-          </p>
-          <p className="fire-burnt-history-note is-caveat">{HISTORY_LATENCY_NOTE}</p>
+      {active.has('fireWeather') && weather && (
+        <div className="br-mapnote" role="status">
+          Feuerwetter-Treiber: eingefärbt ist die <strong>Trockenheit der Luft</strong>
+          {' '}(je dunkler, desto trockener). Ein Treiber, kein Index — die kumulativen
+          FWI-Codes sind nicht enthalten.
+        </div>
+      )}
+      {active.has('fireSpread') && (
+        <div className="br-mapnote" role="status">
+          <strong>Ausbreitungsrichtung (Modell)</strong> — {SPREAD_CAVEAT_SHORT}
+          {' '}{FAN_CAVEAT}
+          {spread && (
+            <> · {capNote({
+              computed: spread.computed, considered: spread.considered, cap: spread.cap,
+              demCells: spread.demCells, horizonHour: spread.horizonHour, maxHour: spread.maxHour,
+            })}</>
+          )}
+          {' '}Klick auf die Karte: Punktkurve aus dem buscosun-Punkt-Forecast.
         </div>
       )}
     </>
   );
 
-  /** Presets + Layer-Gruppen — Dock (Desktop) und Sheet (mobil) teilen den Bau. */
-  const dockContent = (inSheet: boolean) => (
-    <>
-      <div className="fire-dock-presets">
-        {FIRE_PRESETS.map((p) => (
+  const basemapSeg = (
+    <div className="br-basemap" role="group" aria-label="Basiskarte">
+      {(['streets', 'terrain', 'satellite'] as FireBasemap[]).map((b) => (
+        <button
+          key={b} type="button"
+          className={basemap === b ? 'is-active' : ''}
+          aria-pressed={basemap === b}
+          onClick={() => setBasemap(b)}
+        >
+          {b === 'streets' ? 'Straßen' : b === 'terrain' ? 'Gelände' : 'Satellit'}
+        </button>
+      ))}
+    </div>
+  );
+  const basemapLabel = basemap === 'streets' ? 'Straßen' : basemap === 'terrain' ? 'Gelände' : 'Satellit';
+
+  /**
+   * WF4 — die Punktkurve (Vorlage: Kästchen rechts auf der Karte): Koordinate,
+   * Linie mit Stützpunkten, Stundenachse, der Pflichtsatz „Punkt (Fusion) ≠
+   * Fläche (ICON-D2)". Leerzustände nennen IMMER ihren Grund.
+   */
+  const pointCurveCard = pointCurve ? (() => {
+    const posTxt = `${Math.abs(pointCurve.lat).toFixed(2).replace('.', ',')}° ${pointCurve.lat >= 0 ? 'N' : 'S'} · `
+      + `${Math.abs(pointCurve.lng).toFixed(2).replace('.', ',')}° ${pointCurve.lng >= 0 ? 'O' : 'W'}`;
+    const head = (right: string) => (
+      <div className="br-pc-head">
+        <span className="br-eyebrow">Punktkurve · ISI</span>
+        <span className="br-pc-right">{right}</span>
+        <button type="button" className="br-close" aria-label="Punktkurve schließen" onClick={() => setPointCurve(null)}>×</button>
+      </div>
+    );
+    if (pointCurve.kind === 'loading') {
+      return (
+        <section className="br-pc" aria-label="Feuerwetter am Punkt">
+          {head('')}
+          <p className="br-pc-pos">{posTxt}</p>
+          <p className="br-pc-note">Punkt-Forecast wird geholt …</p>
+        </section>
+      );
+    }
+    if (pointCurve.kind === 'error') {
+      return (
+        <section className="br-pc" aria-label="Feuerwetter am Punkt">
+          {head('')}
+          <p className="br-pc-pos">{posTxt}</p>
+          <p className="br-box is-gap">
+            Der Punkt-Forecast ist gerade nicht abrufbar — <strong>keine Daten</strong>, nicht
+            „keine Gefahr". ({pointCurve.message})
+          </p>
+        </section>
+      );
+    }
+    if (pointCurve.kind === 'gap') {
+      return (
+        <section className="br-pc" aria-label="Feuerwetter am Punkt">
+          {head(pointCurve.country)}
+          <p className="br-pc-pos">{posTxt}</p>
+          <p className="br-box is-gap">{pointCurve.reason}</p>
+          {pointCurve.sources.length > 0 && (
+            <p className="br-pc-src">Antwortende Quellen: {pointCurve.sources.join(', ')}</p>
+          )}
+        </section>
+      );
+    }
+    const pts = pointCurve.points;
+    const max = Math.max(7.5, ...pts.map((pt) => pt.isi));
+    const W = 220; const H = 70;
+    const x = (i: number) => (pts.length === 1 ? W / 2 : 4 + (i / (pts.length - 1)) * (W - 8));
+    const y = (v: number) => 64 - (v / max) * 56;
+    const path = pts.map((pt, i) => `${i === 0 ? 'M' : 'L'}${x(i).toFixed(1)} ${y(pt.isi).toFixed(1)}`).join(' ');
+    const cls = (v: number) => {
+      const i = isiClassIndex(v);
+      return { color: ISI_CLASS_COLORS[Math.max(0, i)], name: DANGER_VIEWS.isi.classes[Math.max(0, i)]?.name ?? '' };
+    };
+    const now = pts[0];
+    return (
+      <section className="br-pc" aria-label="Feuerwetter am Punkt">
+        {head(`${pointCurve.country} · ${Math.round(pointCurve.elevation)} m`)}
+        <p className="br-pc-pos">{posTxt}</p>
+        <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="br-pc-chart" aria-hidden="true">
+          <g stroke="#E0D6BE" strokeWidth="1"><line x1="0" y1="23" x2={W} y2="23" /><line x1="0" y1="46" x2={W} y2="46" /></g>
+          <path d={path} fill="none" stroke="#D4632E" strokeWidth="2" />
+          <g fill="#FAF6EA" stroke="#D4632E" strokeWidth="1.4">
+            {pts.map((pt, i) => (
+              <circle key={pt.atMs} cx={x(i).toFixed(1)} cy={y(pt.isi).toFixed(1)} r="2.8">
+                <title>{`+${pt.hour} h · ISI ${pt.isi.toFixed(1)} (${cls(pt.isi).name}) · ${pt.t.toFixed(0)} °C · ${pt.rh.toFixed(0)} % rF · ${pt.w.toFixed(0)} km/h`}</title>
+              </circle>
+            ))}
+          </g>
+        </svg>
+        <div className="br-pc-axis">
+          {pts.map((pt, i) => (
+            <span key={pt.atMs} className={i % 2 === 1 && pts.length > 4 ? 'is-hidden' : ''}>
+              {pt.hour === 0 ? 'jetzt' : `+${pt.hour} h`}
+            </span>
+          ))}
+        </div>
+        <p className="br-pc-now">
+          <span className="fire-swatch" style={{ background: cls(now.isi).color }} aria-hidden="true" />
+          <strong>ISI {now.isi.toFixed(1).replace('.', ',')}</strong> · {cls(now.isi).name} · jetzt
+        </p>
+        <p className="br-pc-note">
+          <strong>Punkt (Fusion) ≠ Fläche (ICON-D2).</strong> Punkt aus der <strong>buscosun-Fusion</strong>
+          {' '}(Stationen, MOSMIX, AROME/INCA), Fläche aus ICON-D2 — dieselben FWI-Gleichungen, zwei
+          Datengrundlagen: sie stimmen am selben Ort nicht exakt überein. Stufe 1: ohne Vortagsgedächtnis,
+          Start bei der Gleichgewichtsfeuchte der ersten Stunde. Kein amtliches Produkt.
+        </p>
+        {pointCurve.skipped > 0 && (
+          <p className="br-box is-gap">
+            {pointCurve.skipped === 1 ? 'Eine Stunde wurde' : `${pointCurve.skipped} Stunden wurden`} übersprungen
+            — dort fehlten Wind oder Feuchte.
+          </p>
+        )}
+        <p className="br-pc-src">Quellen: {pointCurve.sources.join(', ')}</p>
+      </section>
+    );
+  })() : null;
+
+  // --- Zeit-Deck: EINE Achse, ZWEI Einheiten --------------------------------------
+
+  /** Einheiten-Umschalter (Tage | Stunden): immer sichtbar; was nicht wählbar ist, sagt warum. */
+  const unitSeg = (
+    <div className="br-seg is-ink br-td-unit" role="group" aria-label="Einheit des Zeitreglers">
+      {(['days', 'hours'] as const).map((u) => {
+        const enabled = unitChoice || unit === u;
+        const why = u === 'hours'
+          ? (hourlyForced(activeList) ? 'Ein aktiver Layer erzwingt die Stundenachse' : 'Kein aktiver Layer hat Stundenframes')
+          : 'Ein aktiver Layer erzwingt die Stundenachse';
+        return (
           <button
-            key={p.id} type="button"
-            className={`fire-preset${presetId === p.id ? ' is-active' : ''}`}
-            onClick={() => applyPreset(p.layers)}
+            key={u} type="button"
+            className={unit === u ? 'is-active' : ''}
+            aria-pressed={unit === u}
+            disabled={!enabled}
+            title={enabled ? undefined : why}
+            onClick={() => {
+              if (unit === u || !enabled) return;
+              setPlay((p) => (p.playing ? { ...p, playing: false } : p));
+              setTime((t) => ({ ...t, unit: u }));
+            }}
           >
-            {p.label}
+            {u === 'days' ? 'Tage' : (isTablet || isMobile) ? 'Std.' : 'Stunden'}
+          </button>
+        );
+      })}
+    </div>
+  );
+
+  // Rückblick-Fenster (24 h / 7 d) der Detektionen — im Zeit-Deck (Vorlage).
+  const windowSeg = windows.length > 0 ? (
+    <div className="br-seg is-red br-td-window" role="group" aria-label="Rückblick-Fenster">
+      {windows.map((h) => (
+        <button
+          key={h} type="button"
+          className={time.windowH === h ? 'is-active' : ''}
+          aria-pressed={time.windowH === h}
+          onClick={() => setTime((t) => ({ ...t, windowH: h }))}
+        >
+          {windowLabel(h).replace('Stunden', 'h').replace('Tage', 'd')}
+        </button>
+      ))}
+    </div>
+  ) : null;
+
+  /** Uhrzeit zu „jetzt + h" — lokal, damit sie zur Uhr des Nutzers passt. */
+  const hourClock = (h: number) => new Date(nowMs + h * 3_600_000)
+    .toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+  const standText = hourly ? `${hourLabel(time.hour)} · ${hourClock(time.hour)}` : dayLabel(time.day, nowMs);
+  const tickEvery = isMobile ? 3 : isTablet ? 2 : 1;
+  const ticks: number[] = [];
+  for (let i = 0; i <= sliderMax; i += 1) if (i === 0 || i === sliderMax || i % tickEvery === 0) ticks.push(i);
+
+  const playBtn = (
+    <button
+      type="button"
+      className="br-play"
+      aria-label={play.playing ? 'Abspielen pausieren' : (hourly ? 'Stunden abspielen' : 'Tage abspielen')}
+      aria-pressed={play.playing}
+      disabled={!showSlider}
+      onClick={() => setPlay((p) => ({ ...p, playing: !p.playing }))}
+    >
+      {play.playing ? <IcoFirePause /> : <IcoFirePlay />}
+    </button>
+  );
+
+  const track = showSlider ? (
+    <div className="br-track">
+      <div className="br-ticks" aria-hidden="false">
+        {ticks.map((i) => (
+          <button
+            key={i} type="button"
+            className={`br-tick${i === pos ? ' is-active' : ''}`}
+            onClick={() => { setPlay((p) => (p.playing ? { ...p, playing: false } : p)); setPos(i); }}
+            title={i === 0 ? (hourly ? 'Auf jetzt zurücksetzen' : 'Auf heute zurücksetzen') : undefined}
+          >
+            {i === 0 ? (hourly ? 'JETZT' : 'HEUTE') : `+${i} ${hourly ? 'h' : 'd'}`}
           </button>
         ))}
       </div>
-      {FIRE_DECK_GROUPS.map((g) => (
-        <div key={g.title} className="fire-group" data-accent={g.accent}>
-          <div className="fire-group-head">{g.title}</div>
-          <div className="fire-layers">
-            {g.layers.map((l) => (
-              <div key={l.id} className="fire-layerslot">
-                {layerRow(l.id, l.accent ?? g.accent, inSheet)}
-                {l.id === 'fireDanger' && active.has('fireDanger') && dangerSeg}
-                {l.id === 'fireHotspots' && active.has('fireHotspots') && windowSeg}
-                {l.id === 'fireFootprints' && active.has('fireFootprints') && !active.has('fireHotspots') && windowSeg}
-                {l.id === 'fireFootprints' && (
-                  <button
-                    type="button"
-                    className={`fire-fp-toggle${readoutTab === 'fires' ? ' is-on' : ''}`}
-                    aria-pressed={readoutTab === 'fires'}
-                    onClick={() => setReadoutTab(readoutTab === 'fires' ? 'layers' : 'fires')}
-                  >
-                    {readoutTab === 'fires' ? 'Liste schließen' : `Liste öffnen${records.length ? ` · ${records.length}` : ''}`}
-                  </button>
-                )}
-                {l.id === 'fireBurnt' && active.has('fireBurnt') && burntSeg}
-                {l.id === 'fireSoilDryness' && active.has('fireSoilDryness') && soilSeg}
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
-    </>
+      <input
+        type="range" min={0} max={sliderMax} step={1} value={pos}
+        aria-label={hourly ? 'Stundenschritt' : 'Tagesschritt'}
+        aria-valuetext={standText}
+        onChange={(e) => {
+          // Von Hand ziehen beendet das Abspielen — sonst kämpfen zwei Quellen um den Regler.
+          setPlay((p) => (p.playing ? { ...p, playing: false } : p));
+          setPos(Number(e.target.value));
+        }}
+        style={{ '--tl-fill': `${(pos / Math.max(sliderMax, 1)) * 100}%` } as React.CSSProperties}
+      />
+    </div>
+  ) : (
+    <p className="br-time-none">
+      {unitChoice
+        ? 'Die aktiven Layer zeigen auf der Tagesachse genau einen Zeitpunkt — Stundenachse wählbar.'
+        : 'Die aktiven Layer zeigen genau einen Zeitpunkt — kein Regler.'}
+    </p>
   );
 
-  // Steckbriefe rechts: aktive Layer in fester Ordnung, gehoverte inaktive als
-  // „Vorschau" (Wetterkarten-Muster). Mobil laufen die Steckbriefe über die
-  // „i"-Knöpfe der Zeilen — Hover gibt es dort nicht.
+  /** Die Legende des Zeit-Decks: alle 6 Klassen der gewählten Sub-Ansicht + Detektion/ortsfest. */
+  const viewMeta = DANGER_VIEWS[dangerView];
+  const legendRow = (compact: boolean) => (
+    <div className="br-legend">
+      <span className="br-eyebrow">{compact ? DANGER_VIEW_CODE[dangerView] : `Legende · ${DANGER_VIEW_CODE[dangerView]}`}</span>
+      {active.has('fireDanger') && (compact ? (
+        <span className="br-legend-compact">
+          {FWI_STEPS.map((c, i) => <i key={c} style={{ background: c }} title={`${viewMeta.classes[i].name} ${viewMeta.classes[i].range}`} />)}
+          <span>{viewMeta.classes[0].name} → {viewMeta.classes[5].name}</span>
+        </span>
+      ) : (
+        <span className="br-legend-classes">
+          {viewMeta.classes.map((c, i) => (
+            <span key={c.name} className="br-legend-cls" title={`${c.name} ${c.range} · ${viewMeta.unit}`}>
+              <i style={{ background: FWI_STEPS[i] }} />
+              <span>{i === 0 || i === 5 ? `${c.name} ${c.range}` : c.name}</span>
+            </span>
+          ))}
+        </span>
+      ))}
+      {!active.has('fireDanger') && <span className="br-legend-none">EU-Gefahrenindex aus — keine Klassenlegende</span>}
+      {(active.has('fireHotspots') || active.has('fireFootprints')) && (
+        <>
+          <span className="br-legend-dot"><i style={{ background: 'var(--br-det)' }} />Detektion</span>
+          <span className="br-legend-dot"><i style={{ background: 'var(--br-grey-dot)' }} />ortsfest{compact ? '' : ' (grau)'}</span>
+        </>
+      )}
+      {active.has('fireSpread') && <span className="br-legend-dot"><i className="is-line" />Ausbreitung</span>}
+      {/* Der Stand steht auf der Tagesachse schon im roten Tick (HEUTE / +n d);
+          hier nur die Uhrzeit der Stundenachse und das Pending-„lädt …". */}
+      {(hourly || committedDay !== dayForLayers) && (
+        <span className="br-legend-stand">
+          {standText}
+          {committedDay !== dayForLayers && <span className="br-td-pending"> · lädt …</span>}
+        </span>
+      )}
+      <span className="br-legend-derived">{compact ? 'Farben abgeleitet' : 'Farben abgeleitet — nicht amtlich'}</span>
+    </div>
+  );
+
+  /** Zeit-Deck der Karte (Desktop/Tablet). Im Brände-Modus (B2) die kompakte Zeile. */
+  const firesMode = !isMobile && readoutTab === 'fires';
+  const timeDeck = (
+    <div className={`br-timedeck${firesMode ? ' is-compact' : ''}${hourly ? ' is-hourly' : ''}`}>
+      <div className="br-td-row">
+        {playBtn}
+        {!firesMode && unitSeg}
+        {track}
+        {firesMode
+          ? (windowSeg ?? <span className="br-td-window-text">Rückblick {windowLabel(time.windowH)}</span>)
+          : windowSeg}
+      </div>
+      {!firesMode && legendRow(isTablet)}
+    </div>
+  );
+
+  /** Mobil (B4): Zeit-Deck als Karte im Sheet — Play, Einheit, Regler; darunter RÜCKBLICK. */
+  const timeCardMobile = (
+    <div className="br-mcard br-mtime">
+      <div className="br-td-row">
+        {playBtn}
+        {unitSeg}
+        {track}
+      </div>
+      <div className="br-mtime-foot">
+        <span className="br-eyebrow">Rückblick</span>
+        {windowSeg ?? <span className="br-muted">Detektionen aus — kein Rückblickfenster</span>}
+        {(hourly || committedDay !== dayForLayers) && (
+          <span className="br-legend-stand">
+            {standText}
+            {committedDay !== dayForLayers && <span className="br-td-pending"> · lädt …</span>}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+
+  /** Mobil (B4): Legende als Karte — Farbbalken, Endpunkte, Punkte. */
+  const legendCardMobile = (
+    <div className="br-mcard">
+      <div className="br-mcard-head">
+        <span className="br-eyebrow">Legende · {DANGER_VIEW_CODE[dangerView]}</span>
+        <span className="br-legend-derived">Farben abgeleitet</span>
+      </div>
+      {active.has('fireDanger') ? (
+        <>
+          <div className="br-mbar">{FWI_STEPS.map((c) => <span key={c} style={{ background: c }} />)}</div>
+          <div className="br-mbar-labels">
+            <span>{viewMeta.classes[0].name} {viewMeta.classes[0].range}</span>
+            <span>{viewMeta.classes[2].name}</span>
+            <span>{viewMeta.classes[5].name} {viewMeta.classes[5].range}</span>
+          </div>
+        </>
+      ) : <p className="br-legend-none">EU-Gefahrenindex aus — keine Klassenlegende</p>}
+      <div className="br-mlegend-dots">
+        <span className="br-legend-dot"><i style={{ background: 'var(--br-det)' }} />Detektion</span>
+        <span className="br-legend-dot"><i style={{ background: 'var(--br-grey-dot)' }} />ortsfest</span>
+        <span className="br-legend-dot"><i className="is-line" />Ausbreitung</span>
+      </div>
+      <p className="br-note">Farben abgeleitet — nicht amtlich.</p>
+    </div>
+  );
+
+  // --- Readout ----------------------------------------------------------------
+
   const readoutLayers = FIRE_LAYER_ORDER.filter((id) => active.has(id) || layerHover === id);
 
-  /**
-   * BC1/BP5 — die frühere Cluster-Liste stand hier. Sie ist seit BP5 in die
-   * Brand-Liste aufgegangen (`footprintPanel`): Stärke, Skala, Ausdehnung,
-   * Pflichthinweis, Rangfolge und die Leerzustände sind dort — je Brand statt
-   * je Detektionsgruppe. Belege und die einzeln geprüfte Übernahme:
-   * audit/brandflaechen-panel.md §11.
-   */
+  /** Kennzahl-Kacheln der Detektionen (Steckbrief + Mobile-Sheet). */
+  const detTiles = (withFires: boolean) => (
+    <div className="br-tiles">
+      <div className="br-tile"><span className="br-tile-lbl">{withFires ? 'Detektionen' : 'Im Fenster'}</span><span className="br-tile-val">{detOn ? detCount : '—'}</span></div>
+      <div className="br-tile"><span className="br-tile-lbl">Ortsfest</span><span className="br-tile-val is-grey">{detOn ? staticCount : '—'}</span></div>
+      {withFires
+        ? <div className="br-tile"><span className="br-tile-lbl">Brände</span><span className="br-tile-val is-red">{detOn ? records.length : '—'}</span></div>
+        : <div className="br-tile"><span className="br-tile-lbl">Kartiert</span><span className="br-tile-val is-sage">{detOn ? mappedCount : '—'}</span></div>}
+    </div>
+  );
+  const detLead = (
+    <p className="br-card-lead">
+      NASA FIRMS · VIIRS{time.windowH < 168 ? ' · Einordnung aus 7 Tagen Vorgeschichte' : ''}
+      {latestAge ? ` · jüngste Aufnahme ${latestAge}` : ''}. Ortsfeste Quellen (Industrie, Fackeln)
+      sind grau — die EFFIS-Kartierung hebt das Grau auf.
+      {detSt?.kind === 'ok' && detSt.note ? ` ${detSt.note}.` : ''}
+    </p>
+  );
 
-  /**
-   * BP2 — das Brandflächen-Panel: Desktop als Overlay links über der Karte,
-   * mobil als drittes Readout-Segment. Ein Bau, zwei Einbauorte.
-   */
+  const layerCard = (id: FireLayerId, compact: boolean) => (
+    <FireLayerCard
+      key={id} layer={id} preview={!active.has(id)} info={infoFor(id)} meta={metaFor(id)}
+      stand={standFor(id)} compact={compact}
+      tiles={id === 'fireHotspots' ? detTiles(false) : undefined}
+      lead={id === 'fireHotspots' ? detLead : undefined}
+      link={id === 'fireDanger' && companionView(dangerView) ? (
+        <button type="button" className="br-link" onClick={() => setDangerView(companionView(dangerView)!)}>
+          → {dangerView === 'fwi' ? 'Einordnung (Perzentil) öffnen' : 'Index (FWI) öffnen'}
+        </button>
+      ) : undefined}
+    />
+  );
+
+  /** Nationale Skalen — quellenrein, NIE umgerechnet; AT-Lücke ausgewiesen. */
+  const scalesCard = (compact: boolean) => (
+    <div className="br-card br-scales">
+      <div className="br-card-eyebrow">Nationale Skalen{compact ? '' : ' · nie umgerechnet'}</div>
+      {!compact && (
+        <div className="br-scales-cols">
+          {(['DE', 'CH'] as const).map((k) => {
+            const s = fireSource(k);
+            return (
+              <div key={k} className="br-scale">
+                <div className="br-scale-head">{k} · {k === 'DE' ? 'DWD' : 'BAFU'}</div>
+                <div className="br-scale-cov">{s.scale.length} Stufen · {s.coverage.split(' · ')[1] ?? s.coverage}</div>
+                <ol>
+                  {s.scale.map((st) => (
+                    <li key={st.level}><i style={{ background: st.color }} aria-hidden="true" />{st.level} {st.label}</li>
+                  ))}
+                </ol>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      <p className="br-scales-note">
+        {compact ? (
+          <>DE · DWD (5 Stufen) und CH · BAFU (5 Stufen) werden <strong>nie umgerechnet</strong> — „geringe Gefahr" ist DE Stufe 2, CH Stufe 1. <strong>AT hat keine offene amtliche Stufe.</strong></>
+        ) : (
+          <>„Geringe Gefahr" ist in DE Stufe 2 und in CH Stufe 1 — die Skalen werden nicht ineinander umgerechnet. <strong>AT hat keine offene amtliche Stufe</strong>; die Lücke wird ausgewiesen, nicht mit dem EU-Modellwert kaschiert.</>
+        )}
+      </p>
+      <p className="br-scales-note">
+        Amtliche Stufen zeigt diese Karte nicht — der EU-Wert ist ein Modellwert. Maßgeblich:{' '}
+        {(['DE', 'CH', 'AT'] as const).map((c, i) => {
+          const src = fireSourceFor(c);
+          return (
+            <span key={c}>
+              {i > 0 ? ' · ' : ''}
+              <a href={src.url} target="_blank" rel="noopener">{src.name}</a> ({c})
+            </span>
+          );
+        })}. Im Winterhalbjahr ist die Waldbrandgefahr strukturell niedrig; einzelne Landesstellen
+        schreiben ihre Stufen dann nicht täglich fort.
+      </p>
+    </div>
+  );
+
+  const sourcesLine = (compact: boolean) => (
+    <p className="br-sources">● {compact ? 'GWIS · FIRMS · ICON-D2 · EFFIS · BAFU' : 'Copernicus EMS GWIS · NASA FIRMS · DWD ICON-D2 · EFFIS · BAFU · keine Tracker'}</p>
+  );
+
+  /** GeoSphere-Kontext je Brand: das nächste AT-Ereignis (≤ 10 km) — Kontext, nie Bestätigung. */
+  const atContextFor = useCallback((r: FireRecord): AtWarnContext | null => {
+    if (atContexts.size === 0) return null;
+    let best: { d: number; ctx: AtWarnContext } | null = null;
+    for (const ev of fireEvents) {
+      const ctx = atContexts.get(ev.id);
+      if (!ctx) continue;
+      const d = Math.hypot((ev.lat - r.lat) * 111, (ev.lon - r.lon) * 111 * Math.cos((r.lat * Math.PI) / 180));
+      if (d <= 10 && (!best || d < best.d)) best = { d, ctx };
+    }
+    return best?.ctx ?? null;
+  }, [atContexts, fireEvents]);
+
   const footprintPanel = (inSheet: boolean) => (
     <FireFootprintPanel
       inSheet={inSheet}
+      compact={isTablet}
       records={panelRecords}
       total={records.length}
       detail={selectedFootprint ? recordsById.get(selectedFootprint) ?? null : null}
@@ -1657,9 +2115,9 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
       selectedId={selectedFootprint} onSelect={focusFootprint} onClearSelect={clearFootprint}
       onEnableLayer={() => setActive((prev) => new Set([...prev, 'fireFootprints']))}
       onClose={() => setReadoutTab('layers')}
-      windowSeg={(active.has('fireHotspots') || active.has('fireFootprints')) ? windowSeg : undefined}
       spread={spread}
       placesLoaded={!!places}
+      atContextFor={atContextFor}
       state={{
         footprintsOn: active.has('fireFootprints'),
         hotspotsOn: active.has('fireHotspots'),
@@ -1676,377 +2134,140 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
     />
   );
 
-  /** Readout-Inhalte: Steckbrief-Stapel (nur Desktop), Skalen, AT-Lücke, Saison. */
-  /**
-   * WF4 — die Punktkurve als Readout-Karte (Optik der Steckbriefe, `fire-ro-lcard`).
-   *
-   * Sie steht ÜBER den Steckbriefen, weil sie die Antwort auf die letzte Handlung
-   * ist. Die Balken tragen die EFFIS-Klassenfarbe des jeweiligen Stundenwerts —
-   * dieselbe Reihe wie die Fläche (`ISI_CLASS_COLORS`), damit Karte und Kurve
-   * dieselbe Sprache sprechen. Die Höhe der Balken ist auf den größten Wert der
-   * Kurve normiert (mindestens die dritte Klassengrenze), sonst wäre ein ruhiger
-   * Tag eine flache Linie ohne Kontur — und die Klassenfarbe sagt ohnehin, was gilt.
-   */
-  const pointCurveCard = pointCurve ? (() => {
-    const pos = `${Math.abs(pointCurve.lat).toFixed(3)}° ${pointCurve.lat >= 0 ? 'N' : 'S'} · `
-      + `${Math.abs(pointCurve.lng).toFixed(3)}° ${pointCurve.lng >= 0 ? 'O' : 'W'}`;
-    const head = (
-      <div className="fire-ro-section-head">
-        <span className="fire-eyebrow">Punkt · Fusion</span>
+  const readoutTabs = (
+    <div className="br-tabs" role="group" aria-label="Inhalt des Readouts">
+      {([['layers', 'Layer'], ['fires', records.length > 0 ? `Brände · ${records.length}` : 'Brände']] as const).map(([id, label]) => (
         <button
-          type="button" className="fire-pc-close"
-          aria-label="Punktkurve schließen" onClick={() => setPointCurve(null)}
+          key={id} type="button"
+          className={readoutTab === id ? 'is-active' : ''}
+          aria-pressed={readoutTab === id}
+          onClick={() => setReadoutTab(id)}
         >
-          ×
+          {label}
         </button>
-      </div>
-    );
-    if (pointCurve.kind === 'loading') {
-      return (
-        <section className="fire-pc" aria-label="Feuerwetter am Punkt">
-          {head}
-          <p className="fire-pc-pos">{pos}</p>
-          <p className="fire-pc-note">Punkt-Forecast wird geholt …</p>
-        </section>
-      );
-    }
-    if (pointCurve.kind === 'error') {
-      return (
-        <section className="fire-pc" aria-label="Feuerwetter am Punkt">
-          {head}
-          <p className="fire-pc-pos">{pos}</p>
-          <p className="fire-pc-note is-gap">
-            Der Punkt-Forecast ist gerade nicht abrufbar — <strong>keine Daten</strong>, nicht
-            „keine Gefahr". ({pointCurve.message})
-          </p>
-        </section>
-      );
-    }
-    if (pointCurve.kind === 'gap') {
-      return (
-        <section className="fire-pc" aria-label="Feuerwetter am Punkt">
-          {head}
-          <p className="fire-pc-pos">{pos} · {pointCurve.country}</p>
-          <p className="fire-pc-note is-gap">{pointCurve.reason}</p>
-          {pointCurve.sources.length > 0 && (
-            <p className="fire-pc-src">Antwortende Quellen: {pointCurve.sources.join(', ')}</p>
-          )}
-        </section>
-      );
-    }
-    const max = Math.max(7.5, ...pointCurve.points.map((pt) => pt.isi));
-    const cls = (v: number) => {
-      const i = isiClassIndex(v);
-      return { color: ISI_CLASS_COLORS[Math.max(0, i)], name: DANGER_VIEWS.isi.classes[Math.max(0, i)]?.name ?? '' };
-    };
-    const now = pointCurve.points[0];
-    return (
-      <section className="fire-pc" aria-label="Feuerwetter am Punkt">
-        {head}
-        <p className="fire-pc-pos">
-          {pos} · {pointCurve.country} · {Math.round(pointCurve.elevation)} m
-        </p>
-        <p className="fire-pc-now">
-          <span className="fire-swatch" style={{ background: cls(now.isi).color }} aria-hidden="true" />
-          <strong>ISI {now.isi.toFixed(1).replace('.', ',')}</strong>
-          {' · '}{cls(now.isi).name}
-          {' · '}jetzt
-        </p>
-        <ol className="fire-pc-bars">
-          {pointCurve.points.map((pt) => (
-            <li key={pt.atMs}>
-              <span
-                className="fire-pc-bar"
-                style={{
-                  height: `${Math.max(4, Math.round((pt.isi / max) * 100))}%`,
-                  background: cls(pt.isi).color,
-                }}
-                title={`+${pt.hour} h · ISI ${pt.isi.toFixed(1)} (${cls(pt.isi).name}) · `
-                  + `${pt.t.toFixed(0)} °C · ${pt.rh.toFixed(0)} % rF · ${pt.w.toFixed(0)} km/h`}
-              />
-              <span className="fire-pc-h">{pt.hour === 0 ? 'jetzt' : `+${pt.hour}`}</span>
-            </li>
-          ))}
-        </ol>
-        <p className="fire-pc-note">
-          <strong>Punkt (Fusion) ≠ Fläche (ICON-D2).</strong> Die Kurve rechnet mit denselben
-          FWI-Gleichungen wie die Fläche, aber auf den Daten des buscosun-Punkt-Forecasts
-          (Stationen, MOSMIX, AROME/INCA); die Fläche kommt nativ aus ICON-D2. Am selben Ort
-          stimmen beide deshalb nicht exakt überein — das sind zwei Datengrundlagen, kein Fehler.
-          Stufe 1: ohne Vortagsgedächtnis, Start bei der Gleichgewichtsfeuchte der ersten Stunde.
-          Kein amtliches Produkt.
-        </p>
-        {pointCurve.skipped > 0 && (
-          <p className="fire-pc-note is-gap">
-            {pointCurve.skipped === 1 ? 'Eine Stunde wurde' : `${pointCurve.skipped} Stunden wurden`} übersprungen
-            — dort fehlten Wind oder Feuchte.
-          </p>
-        )}
-        <p className="fire-pc-src">Quellen: {pointCurve.sources.join(', ')}</p>
-      </section>
-    );
-  })() : null;
+      ))}
+    </div>
+  );
 
-  const readoutContent = (inSheet: boolean) => (
+  const readoutLayersContent = (compact: boolean) => (
     <>
-      {/* BC1: der Umschalter steht ÜBER dem bestehenden Panel und ändert an ihm
-          nichts — „Layer" ist Zeile für Zeile der Bestand. */}
-      {/* BP5: zwei Reiter auf beiden Groessen. „Braende" ist die verschmolzene
-          Liste — je Brand, mit den Leistungsangaben der frueheren Cluster-Seite.
-          „Layer" ist Zeile fuer Zeile der Bestand. */}
-      <div className="fire-ro-tabs" role="group" aria-label="Inhalt des Readouts">
-        {([['layers', 'Layer'], ['fires', 'Brände']] as const).map(([id, label]) => (
-          <button
-            key={id} type="button"
-            className={readoutTab === id ? 'is-active' : ''}
-            aria-pressed={readoutTab === id}
-            onClick={() => setReadoutTab(id)}
-          >
-            {label}
-            {id === 'fires' && records.length > 0 && (
-              <span className="fire-ro-tabcount">{records.length}</span>
-            )}
-          </button>
-        ))}
-      </div>
-      {readoutTab === 'fires' ? footprintPanel(inSheet) : (
-      <>
-      {/* WF4: die Antwort auf den letzten Klick steht oben — vor den Steckbriefen. */}
-      {pointCurveCard}
-      {!inSheet && readoutLayers.length > 0 && (
-        <section className="fire-ro-layerinfo" aria-label="Steckbriefe der aktiven Layer">
-          <div className="fire-ro-section-head">
-            <span className="fire-eyebrow">Aktive Layer</span>
-            <span className="fire-dock-count">{active.size} aktiv</span>
-          </div>
-          <div className="fire-ro-lstack">
-            {readoutLayers.map((id) => (
-              <FireLayerCard key={id} layer={id} preview={!active.has(id)} info={infoFor(id)} />
-            ))}
-          </div>
-        </section>
-      )}
-
       {lagging.length > 0 && (
-        <p className="fire-lag-hint">
+        <p className="br-box is-lag">
           {lagging.length === 1 ? 'Ein Layer folgt' : `${lagging.length} Layer folgen`} dem
           Regler nicht und {lagging.length === 1 ? 'zeigt' : 'zeigen'} weiter den {hourly ? 'jetzigen' : 'heutigen'} Stand.
         </p>
       )}
-
-      <div className="fire-scales">
-        <div className="fire-ro-section-head">
-          <span className="fire-eyebrow">Skalen</span>
-        </div>
-        {/* 2026-08-19: Hier standen drei Skalen nebeneinander (DWD, BAFU, EU)
-            — solange die amtliche Stufe ein Layer war. Sie ist zurückgezogen;
-            eine Behördenskala zu zeigen, zu der die Karte nichts mehr zeichnet,
-            wäre eine Aussage über Daten, die es hier nicht gibt. Übrig bleibt
-            die Skala des einen Gefahrenlayers. Die Regel, dass nationale Skalen
-            NIE ineinander umgerechnet werden, steht unverändert in
-            `fireModel.ts` (docs/DATA_SOURCES.md §W.1). */}
-        {(['EU'] as const).map((k) => {
-          const s = fireSource(k);
-          return (
-            <div key={k} className="fire-scale">
-              <span className="fire-scale-head">{s.issuer}</span>
-              <span className="fire-scale-cov">{s.coverage}</span>
-              <ol className="fire-scale-steps">
-                {s.scale.map((st) => (
-                  <li key={st.level}>
-                    <span className="fire-swatch" style={{ background: st.color }} aria-hidden="true" />
-                    <span className="fire-scale-num">{st.level}</span>
-                    <span className="fire-scale-label">{st.label}</span>
-                  </li>
-                ))}
-              </ol>
-              <span className="fire-scale-derived">
-                Farbwerte sind unsere Wahl, nicht amtlich — die Quellen geben keine vor.
-              </span>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Die amtlichen Stufen sind seit 2026-08-19 nicht mehr Teil dieser
-          Ansicht. Das wird gesagt und verlinkt, statt es unerwähnt zu lassen:
-          der EU-Wert ist ein Modellwert und ersetzt keine Behördenstufe — und
-          in Österreich gibt es ohnehin keine offene. */}
-      <p className="fire-at-gap">
-        <strong>Amtliche Stufen zeigt diese Karte nicht.</strong> Der EU-Wert ist
-        ein Modellwert, <em>keine</em> amtliche Stufe. Maßgeblich sind{' '}
-        {(['DE', 'CH', 'AT'] as const).map((c, i) => {
-          const src = fireSourceFor(c);
-          return (
-            <span key={c}>
-              {i > 0 ? ' · ' : ''}
-              <a href={src.url} target="_blank" rel="noopener">{src.name}</a> ({c})
-            </span>
-          );
-        })}. Für Österreich gibt es keinen offenen amtlichen Waldbrandindex;
-        zuständig sind die Bezirkshauptmannschaften.
-      </p>
-
-      <p className="fire-season">
-        Im Winterhalbjahr ist die Waldbrandgefahr strukturell niedrig; einzelne
-        Landesstellen schreiben ihre Stufen dann nicht täglich fort.
-      </p>
-      </>
-      )}
+      {readoutLayers.map((id) => layerCard(id, compact))}
+      {scalesCard(compact)}
+      {sourcesLine(compact)}
     </>
   );
 
-  /**
-   * Zeit-Deck in Wetterkarten-Optik (`mdk-timedeck`): Play-Kachel, Ticks-Zeile
-   * mit „heute"-Rücksetzer und Tagesmarken, gefüllte Range-Spur, Tageslabel
-   * rechts — inkl. des „lädt …"-Pending beim entprellten Tageswechsel.
-   * Desktop unten mittig ÜBER der Karte, mobil schwebend über dem Sheet.
-   */
-  // WF3: der Einheiten-Umschalter (Tage | Stunden) — nur, wenn ein aktiver Layer
-  // Stundenframes hat und kein Stundenlayer die Einheit erzwingt. Standard Tage.
-  const unitSeg = unitChoice ? (
-    <div className="fire-td-unit" role="group" aria-label="Einheit des Zeitreglers">
-      {(['days', 'hours'] as const).map((u) => (
+  // --- Mobil: Bottom-Bar + Seiten --------------------------------------------------
+  const openTab = (t: MobileTab) => {
+    setMobileTab(t);
+    if (t === 'fires') setReadoutTab('fires');
+    if (t === 'layers' || t === 'map') setReadoutTab('layers');
+    if (t === 'time' || t === 'map') setSheetSnap('half');
+  };
+  const bottomBar = (
+    <nav className="br-bar safe-pad-bottom" aria-label="Brandradar-Bereiche">
+      {([
+        ['map', 'Karte', <IcoBarMap key="i" />],
+        ['layers', 'Layer', <IcoBarLayers key="i" />],
+        ['fires', 'Brände', <IcoBarFire key="i" />],
+        ['time', 'Zeit', <IcoBarTime key="i" />],
+      ] as const).map(([id, label, icon]) => (
         <button
-          key={u} type="button"
-          className={unit === u ? 'is-active' : ''}
-          aria-pressed={unit === u}
-          onClick={() => {
-            if (unit === u) return;
-            setPlay((p) => (p.playing ? { ...p, playing: false } : p));
-            setTime((t) => ({ ...t, unit: u }));
-          }}
+          key={id} type="button"
+          className={`br-bar-btn${mobileTab === id ? ' is-active' : ''}`}
+          aria-current={mobileTab === id ? 'page' : undefined}
+          onClick={() => openTab(id)}
         >
-          {u === 'days' ? 'Tage' : 'Stunden'}
+          {icon}<span>{label}</span>
         </button>
       ))}
-    </div>
-  ) : null;
+    </nav>
+  );
 
-  /** Uhrzeit zu „jetzt + h" — lokal, damit sie zur Uhr des Nutzers passt. */
-  const hourClock = (h: number) => new Date(nowMs + h * 3_600_000)
-    .toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
-
-  const timeDeck = showSlider ? (
-    <div className={`fire-timedeck fire-glass${hourly ? ' is-hourly' : ''}`}>
-      <div className="fire-td-row">
-        <button
-          type="button"
-          className="fire-td-play"
-          aria-label={play.playing ? 'Abspielen pausieren' : (hourly ? 'Stunden abspielen' : 'Tage abspielen')}
-          aria-pressed={play.playing}
-          onClick={() => setPlay((p) => ({ ...p, playing: !p.playing }))}
-        >
-          {play.playing ? <IcoFirePause /> : <IcoFirePlay />}
-        </button>
-        <div className="fire-td-track">
-          <div className="fire-td-ticks">
-            <button
-              type="button"
-              className="fire-td-now"
-              disabled={pos === 0}
-              onClick={() => {
-                setPlay((p) => (p.playing ? { ...p, playing: false } : p));
-                setPos(0);
-              }}
-              title={hourly ? 'Auf jetzt zurücksetzen' : 'Auf heute zurücksetzen'}
-            >
-              {hourly ? 'jetzt' : 'heute'}
-            </button>
-            {sliderMax >= 4 && (
-              <>
-                <span>+{Math.round(sliderMax / 4)} {hourly ? 'h' : 'T'}</span>
-                <span>+{Math.round(sliderMax / 2)} {hourly ? 'h' : 'T'}</span>
-                <span>+{Math.round((sliderMax * 3) / 4)} {hourly ? 'h' : 'T'}</span>
-              </>
-            )}
-            <span>+{sliderMax} {hourly ? 'h' : 'Tage'}</span>
-          </div>
-          <input
-            type="range" min={0} max={sliderMax} step={1} value={pos}
-            aria-label={hourly ? 'Stundenschritt' : 'Tagesschritt'}
-            onChange={(e) => {
-              // Von Hand ziehen beendet das Abspielen — sonst kämpfen zwei
-              // Quellen um denselben Regler und er zuckt.
-              setPlay((p) => (p.playing ? { ...p, playing: false } : p));
-              setPos(Number(e.target.value));
-            }}
-            style={{ '--tl-fill': `${(pos / Math.max(sliderMax, 1)) * 100}%` } as React.CSSProperties}
-          />
-        </div>
-        <span className="fire-td-stand">
-          {hourly ? `${hourLabel(time.hour)} · ${hourClock(time.hour)}` : dayLabel(time.day, nowMs)}
-          {committedDay !== dayForLayers && <span className="fire-td-pending"> · lädt …</span>}
-        </span>
-        {unitSeg}
-      </div>
-    </div>
-  ) : (
-    <div className="fire-timedeck fire-glass">
-      <div className="fire-td-row">
-        <p className="fire-time-none">
-          {unitChoice
-            ? 'Die aktiven Layer zeigen auf der Tagesachse genau einen Zeitpunkt — Stundenachse wählbar.'
-            : 'Die aktiven Layer zeigen genau einen Zeitpunkt — kein Tagesregler.'}
+  const sheetContent = mobileTab === 'time' ? (
+    <>
+      {timeCardMobile}
+      {legendCardMobile}
+      {lagging.length > 0 && (
+        <p className="br-box is-lag">
+          {lagging.length === 1 ? 'Ein Layer folgt' : `${lagging.length} Layer folgen`} dem Regler nicht.
         </p>
-        {/* WF3 §15.5: Wind allein hat keine Tagesachse (WW1), aber eine Stundenachse —
-            der Umschalter muss auch hier erreichbar sein, sonst gäbe es sie nicht. */}
-        {unitSeg}
-      </div>
-    </div>
+      )}
+      {dailyOnly.length > 0 && hourly && time.hour > 0 && (
+        <p className="br-note">Tages-Layer zeigen auf der Stundenachse den Tageswert für {dayLabel(dayForLayers, nowMs)}.</p>
+      )}
+    </>
+  ) : (
+    <>
+      {timeCardMobile}
+      {legendCardMobile}
+      {detTiles(true)}
+      {pointCurveCard}
+      {readoutLayers.map((id) => layerCard(id, true))}
+      {scalesCard(true)}
+      {sourcesLine(true)}
+    </>
   );
 
   return (
-    <div className="fire-root">
-      <FeatureRail
-        active={'fire' as RailFeature}
-        onOpenFeature={onOpenFeature}
-        onHome={onBack}
-        navClass="fire-rail"
-        btnClass="fire-rail-btn"
-        activeClass="is-active"
-        spacerClass="fire-rail-spacer"
-      />
+    <div className={`fire-root${isMobile ? ' is-mobile' : ''}${firesMode ? ' is-fires' : ''}`} data-tab={mobileTab}>
+      {!isMobile && (
+        <FeatureRail
+          active={'fire' as RailFeature}
+          onOpenFeature={onOpenFeature}
+          onHome={onBack}
+          navClass="br-rail"
+          btnClass="br-rail-btn"
+          activeClass="is-active"
+          spacerClass="br-rail-spacer"
+        />
+      )}
 
       <div className="fire-deck">
-        <header className="fire-topbar">
-          <a
-            className="fire-brand" href="#"
-            onClick={(e) => { e.preventDefault(); onBack(); }}
-          >
-            <span className="fire-brand-mark" /><span className="fire-brand-name">buscosun</span>
-          </a>
-          <span className="fire-topdiv" aria-hidden="true" />
-          <div className="fire-topbar-mid">
-            <span className="fire-eyebrow">Waldbrand</span>
-            <h1 className="fire-title">Wie trocken ist der Wald?</h1>
-          </div>
-          <div className="fire-basemap" role="group" aria-label="Basiskarte">
-            {(['streets', 'terrain', 'satellite'] as FireBasemap[]).map((b) => (
-              <button
-                key={b} type="button"
-                className={basemap === b ? 'is-active' : ''}
-                onClick={() => setBasemap(b)}
-              >
-                {b === 'streets' ? 'Straße' : b === 'terrain' ? 'Gelände' : 'Satellit'}
-              </button>
-            ))}
-          </div>
-        </header>
+        {!isMobile && (
+          <header className="br-topbar">
+            <a className="br-brand" href="#" onClick={(e) => { e.preventDefault(); onBack(); }} aria-label="Zur Startseite">
+              <img src="/buscosun-mark.svg" width={isTablet ? 24 : 26} height={isTablet ? 24 : 26} alt="" />
+              <span className="br-brand-name">buscosun</span>
+            </a>
+            {!isTablet && <span className="br-topdiv" aria-hidden="true" />}
+            {firesMode ? (
+              <>
+                <button type="button" className="br-link br-topback" onClick={() => setReadoutTab('layers')}>← Layer-Steckbriefe</button>
+                <span className="br-topbar-sub">· Brandradar · Brände</span>
+              </>
+            ) : (
+              <>
+                {!isTablet && <span className="br-topbar-sub">Brandradar · DACH-Flächenblick</span>}
+                {presetSeg(false)}
+              </>
+            )}
+            <div className="br-topbar-right">
+              {!isTablet && !firesMode && <span className="br-topbar-map">Karte: <strong>{basemapLabel}</strong></span>}
+              {!firesMode && (
+                <span className={`br-live is-${firms.tone}`} role="status">
+                  <span className="br-live-dot" aria-hidden="true"><span /><span /></span>
+                  {firms.label}
+                </span>
+              )}
+            </div>
+          </header>
+        )}
 
-        {/* Desktop und Mobil ordnen dieselben Blöcke VERSCHIEDEN an: Desktop
-            dreispaltig (Dock · Karte · Readout) mit dem Zeit-Deck unten mittig
-            über der Karte, mobil Karte vollflächig mit Bottom-Sheet und dem
-            Zeit-Deck darüber. Die Blöcke entstehen deshalb in Bau-Funktionen
-            und werden über den Breakpoint verteilt. */}
-        <div className={isMobile ? 'fire-body is-mobile' : 'fire-body'}>
-          {!isMobile && (
-            <aside className="fire-dock" aria-label="Layer">
-              <div className="fire-dock-head">
-                <span className="fire-eyebrow">Waldbrand-Layer</span>
-                <span className="fire-dock-count">{active.size} aktiv</span>
+        <div className="fire-body">
+          {!isMobile && !firesMode && (
+            <aside className="br-dock" aria-label="Layer">
+              <div className="br-dock-head">
+                <span className="br-eyebrow">Layer</span>
+                {!isTablet && <span className="br-count">{active.size} aktiv</span>}
               </div>
-              {dockContent(false)}
+              {dockGroups(false)}
             </aside>
           )}
 
@@ -2070,77 +2291,87 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
               onPointForecast={requestPointCurve}
               prefetchIsoDate={prefetchIso} onTier={setTier}
             />
-            {/* E3: Der Index steht nie allein — auf der Karte hängt seine
-                Einordnung als Begleiter daneben (und umgekehrt), mit dem
-                Ein-Klick-Wechsel. Bei den drei Codes: Titel + Einheit. */}
-            {active.has('fireDanger') && (
-              <div className="fire-scaffold-note fire-danger-note fire-glass" role="status">
-                <strong>{DANGER_VIEWS[dangerView].title}</strong>
-                {' · '}{DANGER_VIEWS[dangerView].unit}
-                {companionView(dangerView) && (
-                  <>
-                    {' — '}
-                    <button
-                      type="button" className="fire-danger-note-switch"
-                      onClick={() => setDangerView(companionView(dangerView)!)}
-                    >
-                      {dangerView === 'fwi' ? 'Einordnung (Perzentil) ansehen' : 'Index (FWI) ansehen'}
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
-            {active.has('fireWeather') && weather && (
-              <div className="fire-scaffold-note fire-glass" role="status">
-                Feuerwetter-Treiber: eingefärbt ist die <strong>Trockenheit der Luft</strong>
-                {' '}(je dunkler, desto trockener). Ein Treiber, kein Index — die kumulativen
-                FWI-Codes sind nicht enthalten.
-              </div>
-            )}
-            {active.has('fireSpread') && (
-              <div className="fire-scaffold-note fire-glass" role="status">
-                <strong>Ausbreitungsrichtung (Modell)</strong> — {SPREAD_CAVEAT_SHORT}
-                {' '}{FAN_CAVEAT}
-                {spread && (
-                  <> · {capNote({
-                    computed: spread.computed, considered: spread.considered, cap: spread.cap,
-                    demCells: spread.demCells, horizonHour: spread.horizonHour, maxHour: spread.maxHour,
-                  })}</>
-                )}
-                {' '}Klick auf die Karte: Punktkurve aus dem buscosun-Punkt-Forecast.
-              </div>
-            )}
+
+            {/* Oben links: Quellen-Pille, Sub-Ansichten, Ehrlichkeits-Notizen. Im
+                Brände-Modus (B2) stattdessen die Markierung. */}
+            <div className="br-map-tl">
+              {isMobile && (
+                <div className="br-m-maprow">
+                  <button type="button" className="br-m-brand" aria-label="Zur Startseite" onClick={onBack}>
+                    <img src="/buscosun-mark.svg" width={22} height={22} alt="" />
+                  </button>
+                  {sourcePill}
+                </div>
+              )}
+              {!isMobile && (firesMode ? (
+                selectedFootprint && recordsById.get(selectedFootprint) && (
+                  <div className="br-pill is-mark" role="status">
+                    <span className="br-dot" aria-hidden="true" />
+                    <span className="br-pill-title">Markiert: {recordTitle(recordsById.get(selectedFootprint)!)}</span>
+                  </div>
+                )
+              ) : sourcePill)}
+              {!firesMode && viewChips}
+              {!firesMode && mapNotes}
+            </div>
+
+            {/* Oben rechts: Basemap (Desktop) — der Zoom von MapLibre sitzt per CSS darunter. */}
+            {!isMobile && !firesMode && <div className="br-map-tr">{basemapSeg}</div>}
+            {!isMobile && !firesMode && pointCurveCard && <div className="br-map-pc">{pointCurveCard}</div>}
+
             {!isMobile && timeDeck}
-            {/* BP5: das Overlay am linken Kartenrand ist entfallen — die Liste
-                steht jetzt rechts im Readout unter „Brände", zusammen mit den
-                Leistungsangaben der früheren Cluster-Seite
-                (audit/brandflaechen-panel.md §11). Die Karte behält dadurch
-                ihre volle Breite. */}
           </main>
 
           {!isMobile && (
-            <aside className="fire-readout" aria-label="Zeit und Quellen">
-              {readoutContent(false)}
+            <aside className="br-readout" aria-label="Steckbriefe und Brände">
+              {readoutTabs}
+              {readoutTab === 'fires' ? footprintPanel(false) : readoutLayersContent(isTablet)}
             </aside>
           )}
 
           {isMobile && (
             <>
-              {/* Der Zeitregler gehört NICHT ins Sheet: Er muss bedienbar sein,
-                  während man die Karte sieht. Sonst müsste man das Sheet
-                  aufziehen, um den Tag zu wechseln — und sähe dabei die Karte
-                  nicht mehr, die man gerade beurteilen will. */}
-              <div className="fire-mobile-time">{timeDeck}</div>
-              <BottomSheet
-                snap={sheetSnap}
-                onSnapChange={setSheetSnap}
-                header={<span className="fire-sheet-title">Layer und Quellen</span>}
-              >
-                <div className="fire-sheet-body">
-                  <div className="fire-dock">{dockContent(true)}</div>
-                  <div className="fire-readout">{readoutContent(true)}</div>
-                </div>
-              </BottomSheet>
+              {mobileTab === 'layers' && (
+                <section className="br-m-page" aria-label="Layer & Presets">
+                  <header className="br-m-head">
+                    <div>
+                      <div className="br-eyebrow">Brandradar · Layer</div>
+                      <h1 className="br-m-title">Layer &amp; Presets</h1>
+                    </div>
+                    <span className="br-count is-bordered">{active.size} aktiv</span>
+                  </header>
+                  <div className="br-m-scroll">
+                    {presetSeg(true)}
+                    {dockGroups(true)}
+                    <p className="br-note">Blockierte Layer bleiben sichtbar: die Größe existiert, nur die Quelle ist nicht erreichbar.</p>
+                    <div className="br-m-basemap">
+                      <span className="br-eyebrow">Basiskarte</span>
+                      {basemapSeg}
+                    </div>
+                  </div>
+                </section>
+              )}
+              {mobileTab === 'fires' && (
+                <section className="br-m-page" aria-label="Brände">
+                  <header className="br-m-head">
+                    <div>
+                      <div className="br-eyebrow">Registry · {time.windowH >= 168 ? '7-Tage' : '24-h'}-Fenster</div>
+                      <h1 className="br-m-title">Brände{records.length > 0 ? ` · ${records.length}` : ''}</h1>
+                    </div>
+                    <span className="br-muted">{Math.min(shownFootprints, panelRecords.length)} gezeigt</span>
+                  </header>
+                  <div className="br-m-scroll">{footprintPanel(true)}</div>
+                </section>
+              )}
+              {(mobileTab === 'map' || mobileTab === 'time') && (
+                <BottomSheet
+                  snap={sheetSnap}
+                  onSnapChange={setSheetSnap}
+                >
+                  <div className="br-sheet">{sheetContent}</div>
+                </BottomSheet>
+              )}
+              {bottomBar}
             </>
           )}
         </div>

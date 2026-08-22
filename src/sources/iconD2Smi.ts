@@ -44,7 +44,7 @@
  */
 
 import {
-  resolveLatestSoilRun, fetchSoilStepField, fetchInvariantField, gribCorners,
+  resolveLatestSoilRun, fetchSoilStepField, fetchInvariantField, subsampledCorners,
   D2_GRIB_PROXY_BASE, type GribField,
 } from './iconD2Precip';
 
@@ -224,11 +224,15 @@ export async function fetchIconD2Smi(
   if (wanted.length === 0) throw new Error('ICON-D2 smi: keine Schritte im Horizont');
 
   const gridRef = await fetchSoilStepField(runStr, 'smi', wanted[0], level, signal, D2_GRIB_PROXY_BASE);
-  const c = gribCorners(gridRef);
+  const ss = Math.max(1, Math.ceil(gridRef.ni / TARGET_WIDTH));
+  // Ecken der ABGETASTETEN Punkte statt des nativen Gitters (KL3): der Bau
+  // nimmt `min(n-1, k*ss)`, also den ERSTEN Punkt jedes Blocks — ueber
+  // `gribCorners` gespannt landete jeder Wert eine halbe Nativzelle zu weit
+  // noerdlich (audit/karten-layer-verortung.md, B3).
+  const c = subsampledCorners(gridRef, ss); // [NW, NE, SE, SW] in [lon,lat]
   const uvBounds: [number, number, number, number] = [
     lngToEquiX(c[0][0]), latToEquiY(c[0][1]), lngToEquiX(c[1][0]), latToEquiY(c[2][1]),
   ];
-  const ss = Math.max(1, Math.ceil(gridRef.ni / TARGET_WIDTH));
 
   // Bodenart EINMAL je Lauf. Fällt sie aus, wird ohne Maske gezeichnet — dann
   // ist die Karte über Wasser falsch, aber nicht leer; die Statuszeile sagt es.

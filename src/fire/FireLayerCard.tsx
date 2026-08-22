@@ -17,6 +17,7 @@
 
 import type { ReactNode } from 'react';
 import { FIRE_LAYER_ACCENT, type FireLayerId } from './fireModel';
+import type { BrLayerMeta } from './brandradarMeta';
 import { FRP_STOPS } from './sources/firmsHotspots';
 import { DANGER_VIEWS, companionView, type DangerView } from './dangerViews';
 import { LANDCOVER_KEYS, LANDCOVER_LABEL, LANDCOVER_COLOR } from './fireCorroboration';
@@ -317,32 +318,63 @@ export const HOTSPOTS_DEGRADED_INFO: FireLayerInfo = {
 };
 
 /**
- * Eine Steckbrief-Karte in Readout-Optik: Akzentbalken links, Eyebrow →
- * leichter Titel → Beschreibung → Legende → Quellenzeile; inaktive Layer
- * tragen bei Hover/Fokus den „Vorschau"-Chip (Muster `mdk-ro-lcard`).
+ * Eine Steckbrief-Karte im Brandradar Command-Deck (Vorlage B1, Readout):
+ * Eyebrow mit Farbpunkt („STECKBRIEF · GEFAHRENLAGE") → Titel → die Frage, die
+ * der Layer beantwortet → EINHEIT / BEZUG / STAND → Kasten „Grenze" → Kasten
+ * „Rückfall" → optional ein Verweis → die Legende → der ausführliche
+ * Ehrlichkeitstext (einklappbar, wortgleich erhalten) → Quellenzeile.
  *
- * `info` überschreibt den statischen Steckbrief — gebraucht für den
- * Notbetrieb der Hotspots (s. `HOTSPOTS_DEGRADED_INFO`).
+ * `info` überschreibt den statischen Steckbrief — gebraucht für den Notbetrieb
+ * der Hotspots (s. `HOTSPOTS_DEGRADED_INFO`). `meta` liefert die Vorlagen-Felder
+ * (`brandradarMeta.ts`); `stand` ist der Datenstand aus dem Ladezustand.
+ * `compact` ist die Tablet-/Mobile-Fassung (Bezug + Stand in EINER Zeile).
  */
 export function FireLayerCard(
-  { layer, preview, info: override }:
-  { layer: FireLayerId; preview?: boolean; info?: FireLayerInfo },
+  { layer, preview, info: override, meta, stand, link, tiles, lead, compact }:
+  {
+    layer: FireLayerId; preview?: boolean; info?: FireLayerInfo; meta: BrLayerMeta;
+    stand?: string; link?: ReactNode; tiles?: ReactNode; lead?: ReactNode; compact?: boolean;
+  },
 ) {
   const info = override ?? FIRE_LAYER_INFO[layer];
   if (!info) return null;
+  const blocked = meta.group.includes('blockiert');
   return (
     <article
-      className={`fire-ro-lcard${preview ? ' is-preview' : ''}`}
+      className={`br-card${preview ? ' is-preview' : ''}${blocked ? ' is-blocked' : ''}`}
+      data-br={meta.color}
       data-accent={FIRE_LAYER_ACCENT.get(layer) ?? 'terracotta'}
     >
-      {preview && <span className="fire-ro-lchip">Vorschau</span>}
-      <div className="fire-info" role="note">
-        <span className="fire-info-eyebrow">{info.eyebrow}</span>
-        <h3 className="fire-info-title">{info.label}</h3>
+      {preview && <span className="br-card-chip">Vorschau</span>}
+      <div className="br-card-eyebrow"><span className="br-dot" aria-hidden="true" />Steckbrief · {meta.group}</div>
+      <h3 className="br-card-title">{meta.title}</h3>
+      <p className="br-card-q">{meta.question}</p>
+      {tiles}
+      {lead}
+      {compact ? (
+        <p className="br-card-ref">{meta.reference}{stand ? ` · ${stand}` : ''}</p>
+      ) : (
+        <dl className="br-card-rows">
+          <dt>Einheit</dt><dd>{meta.unit}</dd>
+          <dt>Bezug</dt><dd>{meta.reference}</dd>
+          {stand && <><dt>Stand</dt><dd>{stand}</dd></>}
+        </dl>
+      )}
+      <p className="br-box"><strong>Grenze:</strong> {meta.limit}</p>
+      {!compact && <p className="br-box"><strong>Rückfall:</strong> {meta.fallback}</p>}
+      {link}
+      {info.legend && !compact && (
+        <div className="br-card-legend">
+          <span className="br-card-legend-head">Legende</span>
+          <div className="fire-info-legend">{info.legend}</div>
+        </div>
+      )}
+      <details className="br-card-more">
+        <summary>Ausführlich</summary>
         <p className="fire-info-desc">{info.note}</p>
-        {info.legend && <div className="fire-info-legend">{info.legend}</div>}
+        {compact && info.legend && <div className="fire-info-legend">{info.legend}</div>}
         <span className="fire-info-src">{info.short}</span>
-      </div>
+      </details>
     </article>
   );
 }

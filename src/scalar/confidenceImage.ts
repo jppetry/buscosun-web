@@ -16,6 +16,7 @@ import type { ScalarMeta } from './ScalarLayer';
 import type { ClimaField } from '../ml/climaField';
 import { cellConfidence, type ClimaCell } from '../ml/confidenceField';
 import { leadWeight } from '../ml/mosModel';
+import { buildIndexMap } from './precipIndexMap';
 
 const DEM_MAX = 4500; // muss zur Kodierung in iconD2TempSource passen
 const OUT_WIDTH = 220; // Zielbreite des Schleiers
@@ -268,6 +269,69 @@ export function buildPrecipConfidenceImage(
   return { image: out, meta: { width: ow, height: oh, vMin: 0, vMax: 1, uvBounds } };
 }
 
+// ---------------------------------------------------------------------------
+// Ziel-Gitter des PoP-Schleiers (KL1, `audit/karten-layer-verortung.md` §4).
+//
+// Die Flow-/PoP-Felder liegen auf DE1200 — einem POLAR-STEREOGRAFISCHEN Gitter,
+// dessen WGS84-Umriss ein Trapez ist. Bis 2026-08-22 nahm diese Datei davon nur
+// NW und SE, machte daraus ein achsparalleles lon/lat-Rechteck und gab es dem
+// `ConfidenceLayer` — der genau so rendert. Die Schraffur landete dadurch
+// **im Median 76,7 km** neben der Unsicherheit, die sie beschreibt (max 93,7 km
+// über 700 DE-Orte).
+//
+// Statt den Layer um einen Warp-Mesh-Pfad zu erweitern (Shader-Änderung), wird
+// der Schleier hier auf ein **reguläres lon/lat-Gitter umgetastet** — mit
+// derselben `buildIndexMap`, die seit RP1/RP2 schon das Niederschlags-Komposit
+// richtig verortet. Der Layer bekommt danach ein echtes Rechteck und bleibt
+// unverändert. Zellen außerhalb der Radar-Domäne liefern `-1` → Alpha 0, der
+// Schleier hört also am Radarrand auf, statt (wie vorher) das ganze Rechteck
+// zu schraffieren.
+//
+// Auflösung ~8 km, also etwa die des Flow-Gitters (FLOW_FACTOR 8) — feiner wäre
+// erfundene Schärfe. Die Index-Map hängt nur an der Geometrie ⇒ einmal bauen.
+// ---------------------------------------------------------------------------
+const CONF_CELL_KM = 8;
+
+export interface EnsembleGrid {
+  w: number; h: number; idx: Int32Array;
+  uvBounds: [number, number, number, number];
+}
+let ensembleGridCache: { key: string; g: EnsembleGrid } | null = null;
+
+/** Exportiert fuer die Headless-Verifikation (verify:layer-geometry) — rein,
+ *  ohne DOM. Der Rest der Datei braucht Canvas, diese Funktion nicht. */
+export function ensembleGrid(corners: QuadCornersLite, sCols: number, sRows: number): EnsembleGrid {
+  const key = `${corners.map((c) => c.join(',')).join('|')}|${sCols}x${sRows}`;
+  if (ensembleGridCache?.key === key) return ensembleGridCache.g;
+
+  // Umschließendes lon/lat-Rechteck ALLER VIER Ecken (nicht nur NW/SE).
+  const lons = corners.map((c) => c[0]), lats = corners.map((c) => c[1]);
+  const lonMin = Math.min(...lons), lonMax = Math.max(...lons);
+  const latMin = Math.min(...lats), latMax = Math.max(...lats);
+  const midLat = (latMin + latMax) / 2;
+  const w = Math.max(16, Math.round(((lonMax - lonMin) * 111.32 * Math.cos((midLat * Math.PI) / 180)) / CONF_CELL_KM));
+  const h = Math.max(16, Math.round(((latMax - latMin) * 111.13) / CONF_CELL_KM));
+
+  // Zellmitten (Außenkanten-Konvention — der Layer spannt das Bild über das
+  // ganze Rechteck, `texture2D` legt die Texelmitten auf (i+0,5)/n).
+  const lat = new Float32Array(w * h), lon = new Float32Array(w * h);
+  for (let r = 0; r < h; r++) {
+    const la = latMax - ((r + 0.5) / h) * (latMax - latMin);
+    for (let c = 0; c < w; c++) {
+      const i = r * w + c;
+      lat[i] = la;
+      lon[i] = lonMin + ((c + 0.5) / w) * (lonMax - lonMin);
+    }
+  }
+  const idx = buildIndexMap(corners, sCols, sRows, lat, lon, 'radolan');
+  const g: EnsembleGrid = {
+    w, h, idx,
+    uvBounds: [(lonMin + 180) / 360, (90 - latMax) / 180, (lonMax + 180) / 360, (90 - latMin) / 180],
+  };
+  ensembleGridCache = { key, g };
+  return g;
+}
+
 /**
  * Confidence-Textur aus einer ECHTEN Ensemble-Regenwahrscheinlichkeit (Flow-
  * Ensemble, {@link advectEnsembleProb}): je Zelle Confidence = Übereinstimmung
@@ -279,23 +343,22 @@ export function buildEnsembleConfidenceImage(
   prob: Float32Array, w: number, h: number, corners: QuadCornersLite, leadDays: number,
 ): ConfidenceImageResult | null {
   if (prob.length < w * h) return null;
-  const [nw, , se] = corners;
-  const uvBounds: [number, number, number, number] = [
-    (nw[0] + 180) / 360, (90 - nw[1]) / 180, (se[0] + 180) / 360, (90 - se[1]) / 180,
-  ];
+  const g = ensembleGrid(corners, w, h);
   const out = document.createElement('canvas');
-  out.width = w; out.height = h;
+  out.width = g.w; out.height = g.h;
   const octx = out.getContext('2d');
   if (!octx) return null;
-  const img = octx.createImageData(w, h);
-  for (let i = 0; i < w * h; i++) {
-    const conf = cellConfidence({ value: prob[i], clima: { mean: 0, std: 1 }, leadDays, kind: 'prob' }).confidence;
-    const idx = i * 4;
-    img.data[idx] = Math.round(Math.max(0, Math.min(1, conf)) * 255);
-    img.data[idx + 3] = 255;
+  const img = octx.createImageData(g.w, g.h);
+  for (let i = 0; i < g.w * g.h; i++) {
+    const src = g.idx[i];
+    const o = i * 4;
+    if (src < 0) { img.data[o + 3] = 0; continue; }   // außerhalb der Radar-Domäne
+    const conf = cellConfidence({ value: prob[src], clima: { mean: 0, std: 1 }, leadDays, kind: 'prob' }).confidence;
+    img.data[o] = Math.round(Math.max(0, Math.min(1, conf)) * 255);
+    img.data[o + 3] = 255;
   }
   octx.putImageData(img, 0, 0);
-  return { image: out, meta: { width: w, height: h, vMin: 0, vMax: 1, uvBounds } };
+  return { image: out, meta: { width: g.w, height: g.h, vMin: 0, vMax: 1, uvBounds: g.uvBounds } };
 }
 
 /**

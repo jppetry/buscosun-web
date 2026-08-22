@@ -11,15 +11,11 @@
 # wieder) sind am 2026-08-03 abgeschlossen — sonst hätte die CI 18 blinde
 # Prüfmittel als „grün" zementiert.
 #
-# HIER LÄUFT NUR NETZFREIES. Die 14 unten aufgeführten Verifier wurden am
+# HIER LÄUFT NUR NETZFREIES. Die unten aufgeführten Verifier wurden am
 # 2026-08-03 empirisch auf Netzfreiheit geprüft (Lauf mit gesperrtem globalem
 # `fetch` — alle grün). Alles Netzabhängige läuft in nightly.yml: Upstream-Churn
 # bei DWD/ECMWF/MeteoSchweiz darf `main` niemals rot färben, sonst gewöhnt man
 # sich an rote Gates und das Gate ist wertlos (die Lehre aus V-91).
-#
-# NICHT hier: `fusion:gate`. Es ist zwar netzfrei, trainiert aber für die
-# stationsblockierte Kreuzvalidierung fünfmal über 300+ Sessions — das gehört
-# in den Nightly, nicht in ein Gate, das unter 4 min bleiben soll.
 # ============================================================================
 
 name: ci
@@ -87,9 +83,5 @@ jobs:
         run: npm run verify:warm-budget
       - name: Verifier — Betriebs-Wächter (V-79)
         run: npm run verify:health
-      - name: Fusion — LOSO (synthetisch, Phase-2-Gate)
-        run: npm run fusion:loso
-      - name: Fusion — OI/Background/Phase45/ModelSource
-        run: npm run fusion:verify
-      - name: Fusion — Desroziers
-        run: npm run fusion:desroziers
+      - name: Verifier — Modellquellen-Resolver
+        run: npm run verify:model-source

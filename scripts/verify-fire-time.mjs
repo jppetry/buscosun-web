@@ -159,8 +159,9 @@ add('FirePage: Lag-Texte kennen beide Regler (Tages-/Stundenregler) und den Tage
 // Mobil: der Umschalter wird zur eigenen Zeile mit 44-px-Knöpfen (mobile-design-guidelines §3).
 const css = readFileSync(join(ROOT, 'src', 'fire', 'fireDeck.css'), 'utf8');
 const mobileBlock = css.slice(css.indexOf('@media (max-width: 767px)'));
+// Brandradar Command-Deck (2026-08-22): Klassen .br-td-unit / .br-close.
 add('fireDeck.css: Einheiten-Umschalter mobil ≥ 44 px',
-  /\.fire-td-unit button\s*\{[^}]*min-height:\s*44px/.test(mobileBlock));
+  /\.br-td-unit button\s*\{[^}]*min-height:\s*44px/.test(mobileBlock));
 
 // --- (5) WF4: der Forecast-Layer in Seite und Karte --------------------------
 // Der Layer ist der erste `hourly`-Layer; die Sonden sichern die drei Stellen,
@@ -194,7 +195,7 @@ add('FirePage: die Punktkurve kennt einen Leerzustand MIT Grund (`gap` + reason)
 add('FirePage: die Punktkurve sagt „Punkt (Fusion) ≠ Fläche (ICON-D2)"',
   /Punkt \(Fusion\) ≠ Fläche \(ICON-D2\)/.test(page));
 add('fireDeck.css: der Schließen-Knopf der Punktkurve ist mobil ≥ 44 px',
-  /\.fire-pc-close\s*\{[^}]*width:\s*44px[^}]*height:\s*44px/.test(mobileBlock));
+  /\.br-close\s*\{[^}]*width:\s*44px[^}]*height:\s*44px/.test(mobileBlock));
 
 // --- Ausgabe ----------------------------------------------------------------
 let failed = 0;

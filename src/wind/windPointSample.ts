@@ -29,10 +29,23 @@ export function decodeImage(img: HTMLCanvasElement | HTMLImageElement): Decoded 
   rgCache.set(img, d); return d;
 }
 
+/**
+ * Texel-Koordinate aus einer normierten uv — **Außenkanten-Konvention**, also
+ * exakt das, was `texture2D` im Shader tut: Texelmitten liegen bei `(i+0,5)/n`,
+ * die Ränder werden geklemmt (CLAMP_TO_EDGE).
+ *
+ * Vorher rechnete diese Datei `u·(n−1)`, unterstellte also **Zellmitten** an den
+ * uv-Rändern. Zusammen mit den Außenkanten-Bounds der Quellen lasen Karte und
+ * Punktabfrage dadurch bis zu eine halbe Ausgabezelle auseinander
+ * (audit/karten-layer-verortung.md, B3). EINE Konvention, hier definiert.
+ */
+export function texelCoord(uv: number, n: number): number {
+  return Math.min(n - 1, Math.max(0, uv * n - 0.5));
+}
+
 export function bilinear(d: Decoded, u: number, v: number, ch: 0 | 1 | 2 | 3): number {
-  const x = u * (d.w - 1), y = v * (d.h - 1);
-  const x0 = Math.max(0, Math.min(d.w - 1, Math.floor(x)));
-  const y0 = Math.max(0, Math.min(d.h - 1, Math.floor(y)));
+  const x = texelCoord(u, d.w), y = texelCoord(v, d.h);
+  const x0 = Math.floor(x), y0 = Math.floor(y);
   const x1 = Math.min(d.w - 1, x0 + 1), y1 = Math.min(d.h - 1, y0 + 1);
   const fx = x - x0, fy = y - y0;
   const at = (xx: number, yy: number) => d.data[(yy * d.w + xx) * 4 + ch];

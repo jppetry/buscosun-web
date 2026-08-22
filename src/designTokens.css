@@ -218,3 +218,39 @@
   0% { transform: scale(0.6); opacity: 0.6; }
   100% { transform: scale(2.2); opacity: 0; }
 }
+
+/* === Brandradar „Command-Deck" (hell) — Farbwerte aus references/brandradar.dc.html.
+   Additiv; nur vom Fire-Deck (fireDeck.css) genutzt. Sand/Ink + Feuer-Rampe
+   (Low→Very Extreme), Brandrot als Akzent, Steel/Sage/Slate für die Treiber. === */
+:root {
+  --br-red:          #A32B1E;  /* Brandradar-Akzent: Presets, Detektionen, Play, Slider, Markierung */
+  --br-red-deep:     #6B1410;  /* FWI-Klasse „Very Extreme" */
+  --br-amber:        #E9A33C;  /* EU-Gefahrenindex (Akzent) / FWI-Klasse „High" */
+  --br-terra:        #C97B47;  /* Gruppen „Gefahrenlage"/„Ausbreitung", Links, Ausbreitungs-Icon */
+  --br-terra-hover:  #D98E5A;
+  --br-steel:        #3A6FA8;  /* Gruppen „Aktuelle Lage"/„Aus der Wetterkarte" */
+  --br-slate:        #6B7A8F;  /* Treiber-Icons (Feuerwetter, Wind) */
+  --br-sage:         #7A9466;  /* Boden, Brennmaterial, Schutzgebiete */
+  --br-sage-text:    #5F7A4C;  /* „EFFIS kartiert", „kartiert", ABGEKLUNGEN */
+  --br-sage-tint:    #EFF3E8;
+  --br-sage-border:  #C3D2AF;
+  --br-stone:        #A89A7A;  /* Gruppe „Ausbaustufe 2", blockierte Layer */
+  --br-warn-tint:    #FBF3E7;  /* Grenze/Rückfall/Vorbehalt-Kasten */
+  --br-warn-border:  #E3C39A;
+  --br-warn-ink:     #9A5A2A;
+  --br-blocked-bg:   #F4F0E4;  /* blockierte EDO-Zeilen */
+  --br-grey-dot:     #8B8474;  /* ortsfeste Detektion (grau) */
+  --br-det:          #FF6B3D;  /* Detektion (Legende) */
+  --br-det-2:        #FF8A3D;
+  --br-mark:         #FFB03D;  /* markierter Brand (Kontur) */
+  --br-fwi-1:        #8FBF6B;  /* Low */
+  --br-fwi-2:        #D6D24E;  /* Moderate */
+  --br-fwi-3:        #E9A33C;  /* High */
+  --br-fwi-4:        #D4632E;  /* Very High */
+  --br-fwi-5:        #A32B1E;  /* Extreme */
+  --br-fwi-6:        #6B1410;  /* Very Extreme */
+  --br-glass:        rgba(250, 246, 234, 0.94);
+  --br-glass-strong: rgba(250, 246, 234, 0.96);
+  --br-map-bg:       #0B0E12;
+  --br-home-ind:     #C4B896;
+}

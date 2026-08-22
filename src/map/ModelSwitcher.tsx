@@ -118,7 +118,6 @@ export default function ModelSwitcher({
   const country = state.country;
   const chosenId = activeModelId(state);
   const native = modelEntry('native')!;
-  const fusion = modelEntry('fusion')!;
   const groups: ModelGroup[] = ['local', 'regional', 'global'];
   // Kartenliste einklappbar: auf der schmalen Desktop-Rail startet sie zu (nur
   // Status + Radar sichtbar), im Mobile-Sheet offen. Land-Tabs, Statuszeile und
@@ -190,22 +189,7 @@ export default function ModelSwitcher({
         <span className="mc-good mc-good-sub">{gutFuerSatz('native')}</span>
       </button>
 
-      {/* Kombiniert: Fusion (hauseigen) */}
-      <button
-        type="button"
-        className={`mc-card mc-fusion${chosenId === 'fusion' ? ' is-selected' : ''}`}
-        aria-pressed={chosenId === 'fusion'}
-        onClick={() => onSelectModel(country, 'fusion')}
-      >
-        <span className="mc-head">
-          <span className="mc-name">{fusion.name}</span>
-          <span className="mc-tag-house">Kombiniert · hauseigen</span>
-        </span>
-        <span className="mc-good">{gutFuerSatz('fusion')}</span>
-        <span className="mc-warn">⚠ {qualityNote('fusion')}</span>
-      </button>
-
-      {fusionError && (chosenId === 'fusion' || modelEntry(chosenId)?.engineGridded) && (
+      {fusionError && modelEntry(chosenId)?.engineGridded && (
         <div className="ms-offline" role="status">⚠ Quelle offline — Karte rendert nativ</div>
       )}
 

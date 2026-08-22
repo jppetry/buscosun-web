@@ -28,7 +28,7 @@ import { stepsForNowWindow } from './frameAtValidTime';
 // Reiner GRIB2-Decoder lebt jetzt in ./gribDecode (browser-unabhängig, headless
 // gegen eccodes verifizierbar). Re-Export hält bestehende Importpfade stabil
 // (iconD2GustSource, iconD2WindSource, iconEuPressureWind importieren von hier).
-export { decodeGrib2, gribCorners, aecDecode } from './gribDecode';
+export { decodeGrib2, gribCorners, subsampledCorners, aecDecode } from './gribDecode';
 export type { GribField } from './gribDecode';
 
 const D2_GRIB_BASE = '/_dwd_opendata/weather/nwp/icon-d2/grib';

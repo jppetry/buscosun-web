@@ -9,12 +9,13 @@ import type { ExpressionSpecification } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { Location, Country } from './types';
 import { WindLayer } from './wind/WindLayer';
+import { GLOBE_PARTICLE_RAMP as PARTICLE_RAMP } from './wind/particlePreset';
 import type { DwdForecastResult } from './wind/brightSkySource';
 import type { ScalarGridResult } from './wind/openMeteoSource';
 import { ScalarLayer, temperatureRamp } from './scalar/ScalarLayer';
 import { RainLayer, precipRainRamp } from './scalar/RainLayer';
 import { CloudLayer } from './scalar/CloudLayer';
-import { loadFusedForecast, prefetchSecondarySources, type ModelChoice } from './fusion/loadFusedForecast';
+import { loadFusedForecast, type ModelChoice } from './fusion/loadFusedForecast';
 import {
   initialModelSourceState, isFusionCapable, resolveModel, activeModelId,
   setGlobalSource, setLayerOverride, clearLayerOverride,
@@ -702,7 +703,7 @@ const LAYER_OPTIONS: { key: LayerKey; label: string; title: string }[] = [
 // Nur engine-gerasterte Modelle; alles andere fällt auf 'fusion' (nur Temp-Fallback,
 // nicht gerendert solange fusionFor=false) bzw. den nativen Pfad zurück.
 const MODEL_ID_TO_CHOICE: Partial<Record<ModelId, ModelChoice>> = {
-  fusion: 'fusion', 'arome-at': 'arome', inca: 'inca', 'icon-d2-eps': 'icon-d2-eps',
+  'arome-at': 'arome', inca: 'inca', 'icon-d2-eps': 'icon-d2-eps',
   'icon-ch1-eps': 'icon-ch1-eps', 'icon-ch2-eps': 'icon-ch2-eps', 'arome-fr': 'arome-fr',
   'icon-eu': 'icon-eu', gfs: 'gfs', ifs: 'ifs', aifs: 'aifs', 'aifs-ens': 'aifs-ens',
   'icon-global': 'icon-global', aicon: 'aicon', arpege: 'arpege',
@@ -952,7 +953,10 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
   };
   // Aktives Per-Land-Modell → ModelChoice fürs Grid-Loading. Ändert sich die Wahl,
   // reagieren die bestehenden [modelChoice]-Effects (Ref-Update + Grid-Reload).
-  const modelChoice: ModelChoice = MODEL_ID_TO_CHOICE[activeModelId(modelSource)] ?? 'fusion';
+  // null = die gewählte Quelle rendert NATIV (native/icon-d2) und braucht den
+  // IDW-Rasterer nicht. Seit dem Rückbau der Raster-Fusion gibt es keinen
+  // Blend-Default mehr, auf den man sonst zurückfiele.
+  const modelChoice: ModelChoice | null = MODEL_ID_TO_CHOICE[activeModelId(modelSource)] ?? null;
   // Per-Land-Modell-Switcher (Phase 3): Land-Wahl · Modellwahl je Land · Radar-Toggle.
   // Die Modellwahl koppelt Raster + Punkt über den Resolver (resolvePointSource).
   const onSelectCountry = (c: Country) => setModelSource((s) => setActiveCountry(s, c));
@@ -986,11 +990,13 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
     const w = window as unknown as Record<string, unknown>;
     // layer==='point' steuert die zweite Engine (Punkt-Panel); sonst Raster-Layer
     // bzw. (ohne layer) der globale Raster-Default.
-    w.__setFusion2d = (src: ModelSource, layer?: string) =>
+    // Punkt-Domäne nimmt 'fusion'|'native' (der Blend lebt nur dort), die
+    // Raster-Achse nimmt Katalog-IDs.
+    w.__setFusion2d = (src: ModelSource | ModelId, layer?: string) =>
       setModelSource((s) =>
-        layer === 'point' ? setPointSource(s, src)
-        : layer ? setLayerOverride(s, layer, src)
-        : setGlobalSource(s, src));
+        layer === 'point' ? setPointSource(s, src as ModelSource)
+        : layer ? setLayerOverride(s, layer, src as ModelId)
+        : setGlobalSource(s, src as ModelId));
     w.__clearFusion2d = (layer: string) => setModelSource((s) => clearLayerOverride(s, layer));
     w.__getFusion2d = () => modelSourceRef.current;
     // Fallback-Indikator simulieren (Phase-5-Verifikation): Fusion-Ladefehler an/aus.
@@ -1139,7 +1145,7 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
   const reloadForecastRef = useRef<(() => Promise<void>) | null>(null);
   // Latest model choice picked up by `loadOpenMeteo` — keeps the closure
   // current without a re-mount when the selector changes.
-  const modelChoiceRef = useRef<ModelChoice>('fusion');
+  const modelChoiceRef = useRef<ModelChoice | null>(null);
   useEffect(() => { modelChoiceRef.current = modelChoice; }, [modelChoice]);
 
   function updateStatus(key: LayerKey, patch: { ok?: { model: string; fetchedAt: number; ref?: DataRef }; err?: string }) {
@@ -1389,6 +1395,23 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
     // frühere `speedZoomDamping: 0.25` entspräche exp 0.75.)
     const wind = new WindLayer({
       windPngUrl: '', windJsonUrl: '',
+      // WG-1 (2026-08-22, Jans Auftrag „nach dem Vorbild des Globus"): die
+      // Wetterkarte zeichnete ~2 850 dicke Punkte, der Globus ~23 300 feine —
+      // dieselbe Klasse, nur andere Parameter (Diagnose:
+      // `audit/windpartikel-globus-vorbild.md`). Angeglichen wird NUR die Optik;
+      // Tempo/GRIB-Treue (speedPxPerMs 6, speedRefZoom 5,5,
+      // screenTempoZoomExp 0,35) bleiben unangetastet — Jans Entscheid
+      // 2026-08-09 gilt weiter. EINE Dichte fuer alle Geraete (Jans Entscheid
+      // 2026-08-22); wo sie nicht traegt, regelt der FrameGovernor.
+      baseDensity: 18000, minParticles: 2500, maxParticles: 48000,
+      // Glatte, gekruemmte Bahnen statt Polygonzug. Kostet Advektionsarbeit im
+      // Update-Pass, aber KEINEN zusaetzlichen Draw-Pass.
+      subSteps: 3,
+      // Tempo als Farbe lesbar (nullschool-/Globus-Optik). Die Partikel bekommen
+      // eine EIGENE Rampe: die Heatmap-Rampe beginnt bei rgb(20,30,55) und wuerde
+      // langsame Faeden verschlucken — die Heatmap selbst bleibt farbgleich.
+      particleColor: [0.86, 0.92, 1.0, 0.84], speedTint: 0.62,
+      particleColorRamp: PARTICLE_RAMP,
       // Partikel-Stil: 'points' (Bestand). Der WP1-Segment-Stil (windy-artige
       // Striche, src/wind/particlePreset.ts) wurde am 2026-08-08 auf Jans
       // Auftrag wieder DEAKTIVIERT — Optik gefiel nicht; der Code bleibt
@@ -1924,47 +1947,34 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
 
     const abort = new AbortController();
 
-    // Two-phase progressive forecast load:
-    //   Phase A — fast first paint: 6 hours @ 80 × 64 grid (~ 4× less IDW
-    //     work, ~ 4× less hours) → user sees real data in ~ 1 s after
-    //     source-fetches return.
-    //   Phase B — full quality: 24 hours @ 160 × 128 grid (production
-    //     fidelity), runs in background. Sources are already warm in cache
-    //     from Phase A, so this is pure compute + encode (~ 2-4 s).
-    //
-    // Both phases use the same source-cache and produce comparable temp/
-    // wind/cloud/precip frames — the second just supersedes the first
-    // smoothly via `setForecast`. The user never sees a blank map.
+    // Zweistufiges Laden des IDW-Rasterers (Phase A grob/schnell, Phase B voll).
+    // Läuft NUR für Modelle ohne nativen GRIB2-Pfad (`MODEL_ID_TO_CHOICE`);
+    // native/ICON-D2 rendern direkt und brauchen ihn nicht — dann ist
+    // `modelChoiceRef.current` null und die Funktion kehrt sofort zurück.
     const loadOpenMeteo = async () => {
+      const choice = modelChoiceRef.current;
+      if (!choice) return;
       const applyForecast = (r: DwdForecastResult, tempLayerRef: ScalarLayer) => {
         forecastRef.current = r;
-        setFusionError(false);          // Fusion da → etwaigen Fallback-Indikator löschen
+        setFusionError(false);          // Raster da → etwaigen Fallback-Indikator löschen
         setForecast(r);
         const h0 = r.hours[0]?.layers;
-        // Wind kommt ausschließlich nativ aus ICON-D2 (installWind) — die Fusion
-        // speist den Wind-Layer nicht mehr, daher hier kein Wind-Status/-Setup.
-        // Temp-Status + Fusion-DEM nur als Fallback, solange das native ICON-D2-
-        // Temp noch nicht geladen ist (sonst überschriebe das DACH-DEM der Fusion
-        // das ICON-Bounds-DEM → uv-Versatz im Lapse-Shader).
-        // keine Referenzzeit: das Fusionsergebnis mischt mehrere Modelle mit
-        // unterschiedlichen Läufen — es GIBT keinen einen Lauf, den man ehrlich
-        // nennen könnte. Die Anzeige beschriftet daher die Abrufzeit (V-19).
+        // Wind kommt ausschließlich nativ aus ICON-D2 (installWind) — der
+        // Rasterer speist den Wind-Layer nicht, daher hier kein Wind-Status.
+        // Temp-Status + DEM nur, solange das native ICON-D2-Temp noch nicht
+        // geladen ist (sonst überschriebe das DACH-DEM das ICON-Bounds-DEM →
+        // uv-Versatz im Lapse-Shader).
+        // keine Referenzzeit: der IDW-Rasterer reicht den Lauf der Quelle nicht
+        // durch (die Adapter kennen ihn, `FusedForecast` trägt ihn nicht) → die
+        // Anzeige beschriftet die Abrufzeit (V-19); ein `runAt` gehört in `ref:`.
         if (h0?.temperature && !iconD2TempRef.current) updateStatus('temp', { ok: { model: r.model, fetchedAt: r.fetchedAt } });
         if (r.demImage && !iconD2TempRef.current) tempLayerRef.setDem(r.demImage);
       };
 
       try {
-        // Fire off the secondary alpine sources (AROME / INCA / TAWES / SMN)
-        // in the background BEFORE we await Phase A — by the time Phase B
-        // fires those fetches are already populating sourceCache, so Phase
-        // B's wall-clock drops from "max of all 6 cold fetches" to just
-        // "FusionEngine.run() compute". Saves ~ 1-2 s on Phase B cold load.
-        prefetchSecondarySources(FORECAST_HOURS);
-
-        // Phase A — fast preview: skips secondary alpine sources (AROME,
-        // INCA, TAWES, SMN) AND disables Gaussian smoothing for non-temp
-        // variables AND skips the temporal-median pass. Total saving on
-        // top of the smaller grid/hour count: another ~ 300-500 ms.
+        // Phase A — schnelle Vorschau: kleineres Gitter, weniger Stunden und
+        // ohne Gauß-Glättung der Nicht-Temp-Variablen. Phase B legt danach die
+        // volle Auflösung nach.
         const fast = await loadFusedForecast({
           signal: abort.signal,
           temperatureRange: TEMP_RANGE,
@@ -1973,7 +1983,7 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
           denseRows: 64,
           quickMode: true,
           country: location.country,
-          modelChoice: modelChoiceRef.current,
+          modelChoice: choice,
         });
         if (abort.signal.aborted) return;
         applyForecast(fast, tempLayer);
@@ -2000,7 +2010,7 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
             denseRows: 80,
             quickMode: true,
             country: location.country,
-            modelChoice: modelChoiceRef.current,
+            modelChoice: choice,
           }).then((full) => {
             if (abort.signal.aborted) return;
             applyForecast(full, tempLayer);
@@ -2859,19 +2869,13 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
         ric(() => { if (!iconD2TempRef.current) void installTempRef.current?.(); });
       }
     }
-    // Testmodus „Nur-Jetzt-Start": Temp allein fordert die Fusion NICHT mehr an
-    // (die zöge MOSMIX/Obs/AROME/INCA + 24 Zukunftsstunden). Der Temp-Layer
-    // rendert rein nativ; explizite Fusion-Modellwahl (Effekt unten) bleibt.
-    if (active.has('temp') && !fusionRequestedRef.current && !(START_NOW_ONLY && !embedded)) {
-      fusionRequestedRef.current = true;
-      void reloadForecastRef.current?.();
-    }
   }, [active]);
 
-  // Fusion-Load auslösen, sobald IRGENDEIN fusion-fähiger, aktiver Layer per
-  // Resolver auf Fusion aufgelöst wird (nicht mehr nur Temp). Native bleibt lazy —
-  // die gridded Fusion lädt nur, wenn der Switch sie für einen sichtbaren Layer
-  // anfordert. Idempotent via fusionRequestedRef (der 10-min-Refresh übernimmt danach).
+  // Rasterer laden, sobald ein aktiver Layer auf ein Modell OHNE nativen
+  // GRIB2-Pfad auflöst. Der Temperatur-Layer allein fordert ihn NICHT mehr an —
+  // er rendert nativ (der frühere Fusions-Erstpaint-Fallback ist mit dem
+  // Blend entfallen, Jans Entscheidung 2026-08-22).
+  // Idempotent via fusionRequestedRef (der 10-min-Refresh übernimmt danach).
   useEffect(() => {
     if (fusionRequestedRef.current) return;
     const anyFusion = [...active].some((l) => isFusionCapable(l) && fusionFor(l));
@@ -3695,7 +3699,9 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
     if (!wind) return;
     wind.setShowParticles(windCfg.on);
     wind.setDensityMultiplier(windCfg.density * (windCfg.intensive ? 2.1 : 1));
-    wind.setPointSize(windCfg.intensive ? 2.9 : 2.5);
+    // WG-1: feine Filamente statt fetter Punkte — die hohe Dichte und die kleine
+    // Punktgroesse sind EIN Paar, einzeln kippt die Optik (Globus: 1,7).
+    wind.setPointSize(windCfg.intensive ? 2.0 : 1.7);
     // Schweiflänge = Tempo × Lebensdauer der Spur. 0,972 ⇒ ~36 Frames ⇒ bei den
     // ~0,6 px/Frame der Übersicht ein ~22-px-Strich mit weichem Auslauf — die
     // Kometenform der Vorlage (WetterOnline: ~25 px). Vorher 0,955 ⇒ 22 Frames
@@ -5252,7 +5258,7 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
                 <span className="mdk-src-dot" aria-hidden="true" />
                 <span className="mdk-src-label">Modell · {activeModelName}</span>
                 <span className="mdk-src-meta">{modelMetaLine}</span>
-                {fusionError && (activeEntry?.engineGridded || activeEntry?.special === 'fusion') && (
+                {fusionError && activeEntry?.engineGridded && (
                   <span className="mdk-src-warn">⚠ Quelle offline — rendert nativ</span>
                 )}
                 <span className="mdk-src-cta">wählen →</span>

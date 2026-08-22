@@ -306,10 +306,14 @@ function bilinearChannel(img: DecodedImage, u: number, v: number, channel: 0 | 1
   // PNG is encoded with PNG-y growing south (y=0 = north in equirect). Caller
   // supplies u,v in equirect [0,1] (matches the shader's UV space). We don't
   // flip here — the encode function already did.
-  const x = u * (img.width - 1);
-  const y = v * (img.height - 1);
-  const x0 = Math.max(0, Math.min(img.width - 1, Math.floor(x)));
-  const y0 = Math.max(0, Math.min(img.height - 1, Math.floor(y)));
+  // Außenkanten-Konvention wie `texture2D` im Shader: Texelmitten bei (i+0,5)/n,
+  // Ränder geklemmt. Mit dem früheren `u·(n−1)` las das Label eine halbe
+  // Ausgabezelle neben dem Pixel, dessen Farbe es beschriften soll
+  // (audit/karten-layer-verortung.md, B3).
+  const x = Math.min(img.width - 1, Math.max(0, u * img.width - 0.5));
+  const y = Math.min(img.height - 1, Math.max(0, v * img.height - 0.5));
+  const x0 = Math.floor(x);
+  const y0 = Math.floor(y);
   const x1 = Math.min(img.width - 1, x0 + 1);
   const y1 = Math.min(img.height - 1, y0 + 1);
   const fx = x - x0;

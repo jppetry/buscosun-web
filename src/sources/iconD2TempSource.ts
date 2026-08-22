@@ -16,7 +16,7 @@
  */
 
 import {
-  resolveLatestRun, fetchStepField, fetchInvariantField, gribCorners,
+  resolveLatestRun, fetchStepField, fetchInvariantField, subsampledCorners,
   D2_GRIB_PROXY_BASE,
   type GribField,
 } from './iconD2Precip';
@@ -92,7 +92,12 @@ async function buildDemImage(bounds: ForecastBounds, signal?: AbortSignal): Prom
   const lonSpan = bounds.lngMax - bounds.lngMin;
   const latSpan = Math.max(0.01, bounds.latMax - bounds.latMin);
   const cols = Math.max(64, Math.round(rows * (lonSpan / latSpan)));
-  const dLat = latSpan / Math.max(1, rows - 1), dLng = lonSpan / Math.max(1, cols - 1);
+  // Zellmitten, NICHT Randpunkte (KL6): der ScalarLayer liest das DEM mit derselben
+  // `uv` wie die Werte-Textur, und `texture2D` legt die Texelmitten auf (i+0,5)/n.
+  // Mit `span/(n−1)` und Start auf `latMin` lag das DEM eine halbe DEM-Zelle
+  // (1,2 km) neben seiner Zeichenfläche — die Höhenkorrektur je Pixel rechnete
+  // damit mit Gelände aus der Nachbarschaft (audit/karten-layer-verortung.md, B6).
+  const dLat = latSpan / rows, dLng = lonSpan / cols;
   const grid = new Float32Array(cols * rows); // j=0 = Süden (latMin)
   // Max über ein 3×3-Subraster INNERHALB der Zelle (±0,3 Zellbreite). Bewusst
   // kein Übergriff in Nachbarzellen (vorher ±0,4) — das hob Gipfel an, verzerrte
@@ -100,9 +105,9 @@ async function buildDemImage(bounds: ForecastBounds, signal?: AbortSignal): Prom
   // Gipfelhöhe erhalten, ohne entfernte Hügel einzufangen.
   const subs = [-0.3, 0, 0.3];
   for (let j = 0; j < rows; j++) {
-    const lat0 = bounds.latMin + j * dLat;
+    const lat0 = bounds.latMin + (j + 0.5) * dLat;
     for (let i = 0; i < cols; i++) {
-      const lng0 = bounds.lngMin + i * dLng;
+      const lng0 = bounds.lngMin + (i + 0.5) * dLng;
       let peak = -Infinity;
       for (const sj of subs) for (const si of subs) {
         const e = lookup.sample(lng0 + si * dLng, lat0 + sj * dLat);
@@ -188,15 +193,21 @@ export async function fetchIconD2Temp(
   // Ein Feld für Bounds/Grid brauchen wir sicher: hsurf hat dasselbe Gitter,
   // sonst das erste t_2m-Feld holen.
   const gridRef = hsurf ?? await fetchStepField(runStr, 't_2m', wanted[0], signal, D2_GRIB_PROXY_BASE);
-  const c = gribCorners(gridRef); // [NW, NE, SE, SW] in [lon,lat]
+  const ss = Math.max(1, Math.ceil(gridRef.ni / TARGET_WIDTH));
+  // Ecken der ABGETASTETEN Punkte statt des nativen Gitters (KL3): `buildTempImage`
+  // nimmt `min(n−1, k·ss)`, also den ERSTEN Punkt jedes Blocks — über `gribCorners`
+  // gespannt landete jeder Wert eine halbe Nativzelle zu weit nördlich
+  // (audit/karten-layer-verortung.md, B3).
+  const c = subsampledCorners(gridRef, ss); // [NW, NE, SE, SW] in [lon,lat]
   const uvBounds: [number, number, number, number] = [
     lngToEquiX(c[0][0]), latToEquiY(c[0][1]), lngToEquiX(c[1][0]), latToEquiY(c[2][1]),
   ];
+  // DEM über DIESELBEN Ecken — der Shader liest Werte- und DEM-Textur mit
+  // derselben `uv`; verschiedene Bounds wären ein Versatz in der Höhenkorrektur.
   const bounds: ForecastBounds = {
     lngMin: c[0][0], lngMax: c[1][0], latMin: c[2][1], latMax: c[0][1],
   };
   const demImage = await buildDemImage(bounds, signal);
-  const ss = Math.max(1, Math.ceil(gridRef.ni / TARGET_WIDTH));
 
   const frames: IconD2TempFrame[] = [];
 
@@ -307,9 +318,9 @@ export async function fetchTempRunSpread(signal?: AbortSignal): Promise<IconD2Te
     } catch { continue; } // Schritt im Vorlauf fehlt → überspringen
     if (cur.ni !== prev.ni || cur.nj !== prev.nj) continue;
     if (!uvBounds) {
-      const c = gribCorners(cur);
-      uvBounds = [lngToEquiX(c[0][0]), latToEquiY(c[0][1]), lngToEquiX(c[1][0]), latToEquiY(c[2][1])];
       ss = Math.max(1, Math.ceil(cur.ni / SPREAD_TARGET_WIDTH));
+      const c = subsampledCorners(cur, ss);   // abgetastete Punkte, nicht Nativgitter (KL3)
+      uvBounds = [lngToEquiX(c[0][0]), latToEquiY(c[0][1]), lngToEquiX(c[1][0]), latToEquiY(c[2][1])];
     }
     frames.push({
       validAt: new Date(latest.runAt.getTime() + s * 3_600_000),

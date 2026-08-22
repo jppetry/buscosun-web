@@ -30,6 +30,7 @@ import {
 import { ScalarLayer } from '../scalar/ScalarLayer';
 import { readDeviceCaps, initialTier, type PerfTier } from '../wind/perfGovernor';
 import { WindLayer } from '../wind/WindLayer';
+import { GLOBE_PARTICLE_RAMP } from '../wind/particlePreset';
 import {
   windFrameAtValidTimeAsync, ICON_D2_WIND_ATTRIBUTION, type IconD2Wind,
 } from '../wind/iconD2WindSource';
@@ -646,6 +647,13 @@ export default function FireMap({
           windPngUrl: '', windJsonUrl: '',
           speedPxPerMs: 6, speedRefZoom: 5.5,
           screenTempoZoomExp: 0.35,
+          // WG-1 (2026-08-22): der Brandradar-Wind ist laut GWW1 der Windlayer
+          // der Wetterkarte 1:1 — die Globus-Optik wird deshalb mitgezogen,
+          // sonst entstuenden zwei Bilder desselben GRIB-Werts.
+          baseDensity: 18000, minParticles: 2500, maxParticles: 48000,
+          subSteps: 3,
+          particleColor: [0.86, 0.92, 1.0, 0.84], speedTint: 0.62,
+          particleColorRamp: GLOBE_PARTICLE_RAMP,
           zoomDropBoost: 0.42,
           reduceMotionOnMove: coarsePointer,
           upsample: coarsePointer ? 1 : 2,
@@ -707,7 +715,9 @@ export default function FireMap({
       pitchWithRotate: false,
       dragRotate: false,
     });
-    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
+    // Brandradar Command-Deck: Zoom oben rechts unter dem Basemap-Umschalter
+    // (Vorlage references/brandradar.dc.html) — die Attribution bleibt unten.
+    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
     if (import.meta.env.DEV) {
       (window as unknown as { __fireMap?: maplibregl.Map }).__fireMap = map;
     }

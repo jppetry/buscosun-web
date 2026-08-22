@@ -14,7 +14,7 @@
  * CC BY 4.0, kein API-Key.
  */
 
-import { resolveLatestRun, fetchStepBytes, gribCorners, decodeGrib2, D2_WIND_PROXY_BASE, type GribField } from '../sources/iconD2Precip';
+import { resolveLatestRun, fetchStepBytes, subsampledCorners, decodeGrib2, D2_WIND_PROXY_BASE, type GribField } from '../sources/iconD2Precip';
 import { reportManifest, stateFromUpdatedAt } from '../sources/manifestHealth';
 import { stepsForNowWindow } from '../sources/frameAtValidTime';
 import { buildWindRgba } from './windFrameBuild';
@@ -146,6 +146,13 @@ function rgbaToCanvas(rgba: Uint8ClampedArray, w: number, h: number): HTMLCanvas
  *  Modell-unabhängig (ICON-D2-Surface wie ICON-EU-Druckfläche) → exportiert. Der
  *  teure Kern (`buildWindRgba`) ist DOM-frei und läuft für Wind off-main im Worker;
  *  hier wird das Ergebnis nur noch ins Canvas gelegt (z. B. ICON-EU-Druckwind). */
+/** Ecken des Wind-Rasters — EINE Stelle fuer die Subsampling-Regel, die
+ *  `buildWindFrame`/`buildWindRgba` benutzen (KL3). Auch ICON-EU-Druckwind
+ *  laeuft hierueber, damit die 700 nicht zweimal im Repo steht. */
+export function windGridCorners(u: GribField): ReturnType<typeof subsampledCorners> {
+  return subsampledCorners(u, Math.max(1, Math.ceil(u.ni / TARGET_WIDTH)));
+}
+
 export function buildWindFrame(u: GribField, v: GribField): Omit<IconD2WindFrame, 'validAt' | 'stepHours'> {
   const b = buildWindRgba(u, v, TARGET_WIDTH);
   return { image: rgbaToCanvas(b.rgba, b.width, b.height), width: b.width, height: b.height, uMin: b.uMin, uMax: b.uMax, vMin: b.vMin, vMax: b.vMax };
@@ -216,7 +223,7 @@ function buildWindOnMain(uBytes: Uint8Array, vBytes: Uint8Array): WindBuilt {
   const u = decodeGrib2(uBytes);
   const v = decodeGrib2(vBytes);
   const b = buildWindRgba(u, v, TARGET_WIDTH);
-  return { ...b, corners: gribCorners(u) };
+  return { ...b, corners: windGridCorners(u) };
 }
 
 /** Decodiert u+v (entpackte GRIB-Bytes) + baut den RGBA-Frame OFF-MAIN. Die

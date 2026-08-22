@@ -39,7 +39,7 @@
  */
 
 import {
-  resolveLatestRun, fetchStepField, gribCorners,
+  resolveLatestRun, fetchStepField, subsampledCorners,
   D2_GRIB_PROXY_BASE, type GribField,
 } from './iconD2Precip';
 
@@ -155,11 +155,15 @@ export async function fetchIconD2Relhum(
   if (wanted.length === 0) throw new Error('ICON-D2 relhum_2m: keine Schritte im Horizont');
 
   const gridRef = await fetchStepField(runStr, 'relhum_2m', wanted[0], signal, D2_GRIB_PROXY_BASE);
-  const c = gribCorners(gridRef);
+  const ss = Math.max(1, Math.ceil(gridRef.ni / TARGET_WIDTH));
+  // Ecken der ABGETASTETEN Punkte statt des nativen Gitters (KL3): der Bau
+  // nimmt `min(n-1, k*ss)`, also den ERSTEN Punkt jedes Blocks — ueber
+  // `gribCorners` gespannt landete jeder Wert eine halbe Nativzelle zu weit
+  // noerdlich (audit/karten-layer-verortung.md, B3).
+  const c = subsampledCorners(gridRef, ss); // [NW, NE, SE, SW] in [lon,lat]
   const uvBounds: [number, number, number, number] = [
     lngToEquiX(c[0][0]), latToEquiY(c[0][1]), lngToEquiX(c[1][0]), latToEquiY(c[2][1]),
   ];
-  const ss = Math.max(1, Math.ceil(gridRef.ni / TARGET_WIDTH));
 
   const frames: IconD2RelhumFrame[] = [];
   const loadStep = async (step: number): Promise<void> => {

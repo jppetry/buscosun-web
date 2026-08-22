@@ -52,7 +52,12 @@ const GRID_GEO: Record<GridKind, GridGeo> = {
   radolan: { project: psFwd,   edge: true },   // DE1200, polar-stereografisch, Ecken = Außenkanten
   inca:    { project: incaFwd, edge: true },   // AT, Lambert, Ecken = Außenkanten (s. geosphereIncaGrid)
   rzc:     { project: rzcFwd,  edge: true },   // CH, LV95/somerc, Ecken = Außenkanten
-  lonlat:  { project: null,    edge: false },  // ICON-D2 `regular-lat-lon`: schon regulär
+  // ICON-D2 `regular-lat-lon`: braucht KEINE Projektion — aber seine Ecken kommen
+  // aus `gribCorners` und sind damit ebenfalls **Außenkanten**. Bis 2026-08-22 stand
+  // hier `edge: false`; der Kommentar beantwortete nur die Projektionsfrage und
+  // überging die Eck-Frage, wodurch bei 17 % der Orte die Nachbarzelle gelesen wurde
+  // (bis 2,7 km, `audit/karten-layer-verortung.md` §7c).
+  lonlat:  { project: null,    edge: true },
 };
 
 /** Baut die Zelle→Quellgitter-Index-Map (−1 = außerhalb des Quellgitters). */
@@ -89,12 +94,17 @@ export function buildIndexMap(
 export function gridLatLon(): { lat: Float32Array; lon: Float32Array } {
   const lat = new Float32Array(G.w * G.h);
   const lon = new Float32Array(G.w * G.h);
+  // Zellmitten, nicht Randpunkte: `COMPOSITE_CORNERS` gehen als AUSSENKANTEN in
+  // den RainLayer, dessen Shader die Texelmitten auf (i+0,5)/n legt. Mit dem
+  // früheren `c/(w−1)` wurde jede Komposit-Zelle an einem Ort befüllt, der eine
+  // halbe Zelle neben ihrer Zeichenfläche lag (0,5 km Median, bis 1,14 km —
+  // `audit/karten-layer-verortung.md` §7).
   for (let r = 0; r < G.h; r++) {
-    const latV = G.latMax - (r / (G.h - 1)) * (G.latMax - G.latMin);
+    const latV = G.latMax - ((r + 0.5) / G.h) * (G.latMax - G.latMin);
     for (let c = 0; c < G.w; c++) {
       const i = r * G.w + c;
       lat[i] = latV;
-      lon[i] = G.lonMin + (c / (G.w - 1)) * (G.lonMax - G.lonMin);
+      lon[i] = G.lonMin + ((c + 0.5) / G.w) * (G.lonMax - G.lonMin);
     }
   }
   return { lat, lon };

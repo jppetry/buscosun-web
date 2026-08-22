@@ -17,8 +17,8 @@
  *   CC BY 4.0, kein API-Key. Lauf alle 3 h.
  */
 
-import { fetchDecodeCached, gribCorners, type GribField } from '../sources/iconD2Precip';
-import { buildWindFrame, type IconD2Wind, type IconD2WindFrame } from './iconD2WindSource';
+import { fetchDecodeCached, type GribField } from '../sources/iconD2Precip';
+import { buildWindFrame, windGridCorners, type IconD2Wind, type IconD2WindFrame } from './iconD2WindSource';
 
 export const ICON_EU_PRESSURE_ATTRIBUTION =
   'Höhenwind: <a href="https://www.dwd.de/EN/ourservices/opendata/opendata.html" ' +
@@ -108,7 +108,9 @@ export async function fetchIconEuPressureWind(
         fetchDecodeCached(euUrl(run, step, level, 'V'), signal),
       ]);
       if (!uvBounds) {
-        const c = gribCorners(u);             // [NW, NE, SE, SW] in [lon,lat]
+        // Abgetastete Punkte, nicht Nativgitter (KL3) — dieselbe Regel wie
+        // buildWindFrame, aus EINER Stelle (windGridCorners).
+        const c = windGridCorners(u);
         uvBounds = [lngToEquiX(c[0][0]), latToEquiY(c[0][1]), lngToEquiX(c[1][0]), latToEquiY(c[2][1])];
       }
       const built = buildWindFrame(u as GribField, v as GribField);

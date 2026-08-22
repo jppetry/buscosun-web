@@ -64,7 +64,10 @@ export function sampleCloudsAt(cl: IconD2CloudStack | null, targetMs: number, lo
   const w = cl.corners[0][0], e = cl.corners[1][0], n = cl.corners[0][1], s = cl.corners[2][1];
   const fu = (lon - w) / (e - w), fv = (n - lat) / (n - s); // north-up
   if (fu < 0 || fu > 1 || fv < 0 || fv > 1) return null;
-  const x = Math.round(fu * (f.width - 1)), y = Math.round(fv * (f.height - 1));
+  // Außenkanten-Konvention wie der CloudLayer-Shader (KL3): die nächste Texel-
+  // Mitte zu `fu` ist `floor(fu·n)`, nicht `round(fu·(n−1))`.
+  const x = Math.min(f.width - 1, Math.max(0, Math.floor(fu * f.width)));
+  const y = Math.min(f.height - 1, Math.max(0, Math.floor(fv * f.height)));
   const i = (y * f.width + x) * 4;
   return {
     low: Math.round((f.values[i] / 255) * 100),

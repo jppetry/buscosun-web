@@ -22,10 +22,10 @@
 
 import type { Country } from '../types';
 
-/** Abgeschlossene Menge aller wählbaren Quellen. `native`/`fusion` = Spezialwerte. */
+/** Abgeschlossene Menge aller wählbaren Quellen. `native` = Spezialwert. */
 export type ModelId =
-  // Spezialwerte derselben Achse (Bestand):
-  | 'native' | 'fusion'
+  // Spezialwert derselben Achse:
+  | 'native'
   // Heute ingestiert (Switcher geht damit live):
   | 'icon-d2' | 'mosmix' | 'inca' | 'arome-at' | 'obs'
   // Regional/teilw. — Phase 4:
@@ -95,8 +95,8 @@ export interface ModelEntry {
   coverage: Record<Country, Coverage>;
   /** UI-Gruppe. */
   group: ModelGroup;
-  /** Spezialwert der Achse (Bestand): eigener Render-Pfad. */
-  special?: 'native' | 'fusion';
+  /** Spezialwert der Achse: eigener Render-Pfad. */
+  special?: 'native';
 }
 
 const full3: Record<Country, Coverage> = { DE: 'full', AT: 'full', CH: 'full' };
@@ -104,11 +104,11 @@ const coarse3: Record<Country, Coverage> = { DE: 'coarse', AT: 'coarse', CH: 'co
 
 /**
  * DER Katalog. Reihenfolge innerhalb einer Gruppe = feiner→gröber (Auflösung),
- * die UI sortiert zusätzlich. `native`/`fusion` werden in der UI gesondert oben
- * geführt und sind hier der Vollständigkeit halber als Spezialwerte gelistet.
+ * die UI sortiert zusätzlich. `native` wird in der UI gesondert oben geführt und
+ * ist hier der Vollständigkeit halber als Spezialwert gelistet.
  */
 export const MODEL_CATALOG: readonly ModelEntry[] = [
-  // ---- Spezialwerte (eigener Render-Pfad, oben in der UI) --------------------
+  // ---- Spezialwert (eigener Render-Pfad, oben in der UI) --------------------
   {
     id: 'native', name: 'Native', operator: 'Buscosun-Komposit', kind: 'raster',
     horizonH: 48, license: 'CC-BY-4.0',
@@ -116,14 +116,6 @@ export const MODEL_CATALOG: readonly ModelEntry[] = [
     ingested: true, rasterCapable: true, coverage: full3, group: 'local', special: 'native',
     resolutionKm: 2.2,
   },
-  {
-    id: 'fusion', name: 'Buscosun Fusion', operator: 'Buscosun (hauseigen)', kind: 'raster',
-    horizonH: 48, license: 'CC-BY-4.0',
-    attribution: 'Kombiniert aus DWD/GeoSphere/MeteoSchweiz · CC BY 4.0',
-    ingested: true, rasterCapable: true, engineGridded: true, coverage: full3,
-    group: 'local', special: 'fusion', resolutionKm: 2,
-  },
-
   // ---- Lokal & fein (≤ 2,5 km) ----------------------------------------------
   {
     id: 'inca', name: 'INCA', operator: 'GeoSphere Austria', kind: 'raster', nowcast: true,
@@ -360,7 +352,6 @@ export function gutFuerSatz(id: ModelId): string {
   const e = modelEntry(id);
   if (!e) return '';
   if (e.special === 'native') return 'Gut für: den zuverlässigen Alltag — je Region das beste Modell automatisch';
-  if (e.special === 'fusion') return 'Gut für: ein geglättetes Gesamtbild aus allen Quellen';
   if (e.nowcast) return `Gut für: Regen in den nächsten ${e.horizonH} Stunden`;
   if (e.kind === 'analysis') return 'Gut für: die aktuelle Lage aus echten Messungen';
   if (e.kind === 'point') return `Gut für: Ortsvorhersage bis ${dayStr(e.horizonH)} an Stationen`;

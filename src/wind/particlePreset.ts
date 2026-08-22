@@ -14,6 +14,20 @@
  * original constructor options untouched (Rule-2 fallback).
  */
 
+/**
+ * Speed ramp for the PARTICLES (not the heatmap).
+ *
+ * Originally the globe's local ramp (`src/globe/GlobeMap.tsx`); lifted here in
+ * WG-1 (2026-08-22) so the weather map can adopt the globe look from ONE
+ * definition instead of a copy. Deliberately bright at the low end — the map's
+ * heatmap ramp starts at rgb(20,30,55) and would swallow slow filaments; the
+ * heatmap keeps its own ramp (see `WindLayer` option `particleColorRamp`).
+ */
+export const GLOBE_PARTICLE_RAMP: Record<number, string> = {
+  0.0: 'rgb(120,150,200)', 0.2: 'rgb(90,180,180)', 0.4: 'rgb(150,205,120)',
+  0.55: 'rgb(235,210,110)', 0.72: 'rgb(238,150,80)', 0.86: 'rgb(225,95,95)', 1.0: 'rgb(228,170,222)',
+};
+
 export type WindParticleStyle = 'points' | 'segments';
 
 export interface SegmentPreset {

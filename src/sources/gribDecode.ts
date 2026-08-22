@@ -361,3 +361,40 @@ export function gribCorners(f: GribField): [
   const n = Math.max(f.lat1, f.lat2) + f.dj / 2;
   return [[w, n], [e, n], [e, s], [w, s]];
 }
+
+/**
+ * Bildecken eines **subsampelten** Rasters — und damit die zweite Hälfte der
+ * Frage, die `gribCorners` allein nicht beantwortet: *wo liegen die Werte, die
+ * tatsächlich im Bild stehen?*
+ *
+ * Alle Raster-Quellen bauen ihr Bild mit `si = min(ni−1, ii·ss)` — sie nehmen
+ * also den **ersten** Punkt jedes ss-Blocks, nicht dessen Mitte. Spannt man das
+ * Bild dann über `gribCorners` (die Außenkanten des NATIVEN Gitters), zeichnet
+ * der Shader jeden Wert in der Blockmitte — eine halbe Nativzelle daneben.
+ * Bei ICON-D2 ist `nj = 746 = 373·2` glatt teilbar, der Fehler war deshalb keine
+ * Unschärfe, sondern ein **konstanter Versatz von 0,01° (1,11 km) nach Norden**
+ * über alle Flächen-Layer (gemessen, `audit/karten-layer-verortung.md` §6).
+ *
+ * Diese Funktion liefert stattdessen die Außenkanten der **abgetasteten** Punkte:
+ * erster/letzter Abtastpunkt ∓ eine halbe AUSGABE-Zelle. Damit fällt die
+ * Texel-Mitte des Shaders (`(i+0,5)/w`) exakt auf den Wert, der dort steht.
+ * `iLast`/`jLast` berücksichtigen die Klemmung `Math.min(n−1, k·ss)`, sonst
+ * würde ein dupliziertes Randtexel das Bild dehnen.
+ *
+ * Setzt +i/+j-Abtastung voraus (scanMode 64) — dieselbe Annahme, unter der die
+ * Bildbauer `y = h−1−jj` für north-up rechnen. `ss = 1` gibt exakt `gribCorners`.
+ */
+export function subsampledCorners(f: GribField, ss: number): [
+  [number, number], [number, number], [number, number], [number, number],
+] {
+  const w = Math.ceil(f.ni / ss), h = Math.ceil(f.nj / ss);
+  const lonFirst = Math.min(f.lon1, f.lon2), latFirst = Math.min(f.lat1, f.lat2);
+  const iLast = Math.min(f.ni - 1, (w - 1) * ss);
+  const jLast = Math.min(f.nj - 1, (h - 1) * ss);
+  const halfLon = (ss * f.di) / 2, halfLat = (ss * f.dj) / 2;
+  const west = lonFirst - halfLon;
+  const east = lonFirst + iLast * f.di + halfLon;
+  const south = latFirst - halfLat;
+  const north = latFirst + jLast * f.dj + halfLat;
+  return [[west, north], [east, north], [east, south], [west, south]];
+}

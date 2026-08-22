@@ -1,23 +1,22 @@
 /**
- * Orchestrates the full data-source → fusion-engine → layer-ready PNGs flow.
+ * Orchestriert: EINE gewählte Modellquelle → IDW-Gitterung → Layer-fertige PNGs.
  *
- * **Default path is DWD-only, no Open-Meteo.** Open-Meteo Free Tier is
- *   - hard-limited (10 000/day, 5 000/hour, 600/min)
- *   - explicitly **non-commercial** ("operating websites or apps that have
- *     subscriptions or display advertisements" counts as commercial → paid)
- * For a public DACH web-app we therefore lean on the CC-BY 4.0 / unlimited
- * stack: DWD MOSMIX via BrightSky (forecast) + DWD RADOLAN (live radar).
+ * **Der Multi-Quellen-Blend ist entfallen** (2026-08-22, `audit/rasterfusion-
+ * rueckbau.md`, Jans Entscheidung): „Buscosun Fusion" als *Mischung* gibt es nur
+ * noch im **Punktforecast** (`src/pointForecast/`) und im **Nowcast**
+ * (`src/nowcast/`). Auf der Karte rendert immer genau **ein** Modell — entweder
+ * nativ aus GRIB2 (`native`, `icon-d2`) oder, für die 19 Katalogmodelle ohne
+ * eigenen Raster-Pfad, über die IDW-Gitterung dieses Moduls.
  *
- * Open-Meteo is available as an **opt-in boost** (`useOpenMeteo: true`) for
- * private/dev use, in which case it auto-routes ICON-D2 / ICON-CH1 / AROME-AT.
- * On 429 it silently degrades back to DWD-only.
+ * Dieses Modul ist damit reine **Darstellungs-Infrastruktur**: Punkt-Stichproben
+ * einer Quelle → dichtes Gitter → PNG. Keine Gewichtung zwischen Quellen, keine
+ * Analyse, keine Kalibrierung.
+ *
+ * Lizenzlage bleibt: CC-BY-4.0-Stack (DWD/GeoSphere/MeteoSchweiz/ECMWF/NOAA),
+ * kein Open-Meteo.
  */
 
-import {
-  fetchForecastGrid,
-  DACH_BOUNDS,
-  type ForecastBounds,
-} from '../sources/openMeteoForecast';
+import { DACH_BOUNDS, type ForecastBounds } from '../sources/openMeteoForecast';
 import { fetchBrightSkyGrid } from '../sources/brightSkyForecast';
 import { fetchBrightSkyCurrentGrid } from '../sources/brightSkyCurrent';
 import { fetchGeoSphereIncaGrid } from '../sources/geosphereInca';
@@ -33,13 +32,7 @@ import { fetchAiconGrid } from '../sources/aiconSource';
 import { fetchArpegeGrid } from '../sources/arpegeSource';
 import { fetchTawesCurrentGrid } from '../sources/geosphereTawes';
 import { fetchSmnCurrentGrid } from '../sources/meteoSwissSmn';
-import { fetchSmhiCurrentGrid } from '../sources/smhiStations';
-import { fetchDmiCurrentGrid } from '../sources/dmiStations';
-import { fetchIpmaCurrentGrid } from '../sources/ipmaStations';
-import { FusionEngine, type FusionV2Flags } from './fusionEngine';
-// Dev-only: registers window.__captureFusionFixture for recording verification
-// fixtures from real sources. Self-guards to DEV; no-op in production.
-import './captureFixture';
+import { FusionEngine } from './fusionEngine';
 import { loadElevationLookup, type ElevationGrid } from './elevation';
 import type { DwdForecastResult } from '../wind/brightSkySource';
 import { COUNTRY_PROFILES, DACH_VIEW, type CountryProfile } from '../countryProfiles';
@@ -75,45 +68,6 @@ export function prefetchElevation(): void {
   // Resolve against the canonical DACH bounds — same as loadFusedForecast.
   // Failure is silent; the actual forecast load will retry if needed.
   void getElevation(DACH_VIEW.bounds).catch(() => {});
-}
-
-/**
- * Background-prefetch the secondary alpine sources (AROME, INCA, TAWES, SMN)
- * so Phase B's full-quality fusion can read them from cache instead of
- * waiting for cold network fetches. Called from MapView right after Phase A
- * kicks off — the requests run on separate connections, parallel to the
- * Phase-A computation, and are populated in `sourceCache` by the time
- * Phase B starts ~ 80-1500 ms later.
- */
-export function prefetchSecondarySources(hours = 24): void {
-  // Fire-and-forget. Errors silently fall back to live fetch in loadFusedForecast.
-  const fireSafe = (key: string, fn: () => Promise<unknown>) => {
-    const k = sourceKey(key, hours);
-    if (sourceCache.has(k)) return;
-    void fn().then((v) => { if (v != null) sourceCache.set(k, { value: v, fetchedAt: Date.now() }); }).catch(() => {});
-  };
-  fireSafe('arome', () => fetchGeoSphereAromeGrid({ cols: 12, rows: 7, hours }));
-  fireSafe('inca',  () => fetchGeoSphereIncaGrid({ cols: 12, rows: 8, hours: Math.min(hours, 4) }));
-  fireSafe('tawes', () => fetchTawesCurrentGrid());
-  fireSafe('smn',   () => fetchSmnCurrentGrid({ maxStations: 80 }));
-}
-
-/**
- * Prefetch the primary German backbone (DWD-Obs live stations + MOSMIX
- * forecast). These are the two sources that the default Fusion mode for
- * DE ingests with the highest weight; warming them on the landing page
- * means MapView's Phase A only has to run the fusion compute (~ 500 ms).
- */
-export function prefetchPrimarySources(hours = 6): void {
-  const fireSafe = (key: string, fn: () => Promise<unknown>) => {
-    const k = sourceKey(key, hours);
-    if (sourceCache.has(k)) return;
-    void fn().then((v) => { if (v != null) sourceCache.set(k, { value: v, fetchedAt: Date.now() }); }).catch(() => {});
-  };
-  // DWD-Obs is hour=0 only — the `hours` cache-key is informational.
-  fireSafe('dwd_obs', () => fetchBrightSkyCurrentGrid({ cols: 10, rows: 8 }));
-  // MOSMIX bias-corrected ICON-EU — the bulk of Phase A's data.
-  fireSafe('mosmix',  () => fetchBrightSkyGrid({ bounds: DACH_VIEW.bounds, cols: 16, rows: 13, hours }));
 }
 
 /**
@@ -200,12 +154,9 @@ async function getCachedSource<T>(
 }
 
 /**
- * Single-source choices that restrict the fusion to a specific model. When
- * `modelChoice` is undefined or 'fusion' (default), all sources matching the
- * country profile contribute. Any other value isolates that source — useful
- * for transparency (users can compare AROME vs MOSMIX vs the fused view).
+ * Die Modellquelle, die gerastert werden soll — **genau eine**. Es gibt keinen
+ * Blend-Wert mehr; jeder Aufruf isoliert die genannte Quelle.
  *
- *  'fusion'   → default Buscosun fusion across all sources
  *  'mosmix'   → DWD MOSMIX only (DE forecast backbone, CC-BY 4.0)
  *  'arome'    → GeoSphere AROME-AT only (2.5 km, AT/CH/sDE coverage)
  *  'inca'     → GeoSphere INCA nowcast only (AT, 1 km, ~3 h horizon)
@@ -221,7 +172,7 @@ async function getCachedSource<T>(
  *  'arpege' → Météo-France ARPEGE global 2D raster only (temp/wind; all DACH)
  */
 export type ModelChoice =
-  | 'fusion' | 'mosmix' | 'arome' | 'inca' | 'obs'
+  | 'mosmix' | 'arome' | 'inca' | 'obs'
   | 'icon-d2-eps' | 'icon-ch1-eps' | 'icon-ch2-eps' | 'arome-fr' | 'icon-eu' | 'gfs'
   | 'ifs' | 'aifs' | 'aifs-ens' | 'icon-global' | 'aicon' | 'arpege';
 
@@ -237,10 +188,10 @@ export interface FusedLoadOptions {
    */
   country?: Country;
   /**
-   * Restrict the fusion to a single model — see `ModelChoice`. Used by the
-   * UI "Modell" selector for transparency. Default 'fusion' (all sources).
+   * Welche Quelle gerastert wird — siehe `ModelChoice`. **Pflicht**: es gibt
+   * keinen Blend-Default mehr, die Karte rendert immer genau ein Modell.
    */
-  modelChoice?: ModelChoice;
+  modelChoice: ModelChoice;
   /**
    * Dense grid resolution for the IDW output. Default 160 × 128 — the
    * full-quality production grid. For a fast first-paint use 80 × 64 (4×
@@ -249,30 +200,14 @@ export interface FusedLoadOptions {
   denseCols?: number;
   denseRows?: number;
   /**
-   * Quick-mode: skips secondary alpine/national sources (AROME, INCA, TAWES,
-   * SMN) and disables the per-variable Gaussian smoothing for non-temperature
-   * grids. Used by the Phase-A first-paint to get user-visible weather data
-   * within ~ 500 ms after sources warm; Phase B re-fires WITHOUT quickMode
-   * to fill in the full-fidelity field.
+   * Quick-mode: schaltet die Gauß-Glättung für alle Variablen außer Temperatur
+   * ab und überspringt den temporalen Median. Quellen werden **nicht** mehr
+   * unterdrückt — bei Einzelmodell-Rasterung wäre der Frame sonst leer.
    */
   quickMode?: boolean;
-  /**
-   * Opt in to Open-Meteo as an additional source. Default **false** because
-   * the Free Tier is non-commercial and rate-limited. Set to true only for
-   * private/dev use, or after acquiring a Standard/Professional subscription.
-   */
-  useOpenMeteo?: boolean;
-  /** When `useOpenMeteo` is true, also add a dedicated ICON-D2 DACH call. */
-  useDachBias?: boolean;
-  /**
-   * fusion engine v2 staged sub-flags (all default off). When unset in dev, the
-   * engine also honours `window.__fusionV2` so a build can be A/B-tested from
-   * the console without a rebuild. See `docs/fusionV2-plan.md`.
-   */
-  fusionV2?: FusionV2Flags;
 }
 
-export async function loadFusedForecast(options: FusedLoadOptions = {}): Promise<DwdForecastResult> {
+export async function loadFusedForecast(options: FusedLoadOptions): Promise<DwdForecastResult> {
   // Resolve the country profile (default DE for backwards-compat).
   const profile: CountryProfile = options.country
     ? COUNTRY_PROFILES[options.country]
@@ -280,23 +215,12 @@ export async function loadFusedForecast(options: FusedLoadOptions = {}): Promise
   const hours = options.hours ?? profile.forecastHours;
   const _denseCols = options.denseCols ?? 160;
   const _denseRows = options.denseRows ?? 128;
-  const _modelChoice: ModelChoice = options.modelChoice ?? 'fusion';
+  const _modelChoice: ModelChoice = options.modelChoice;
   const _quickMode = options.quickMode ?? false;
-  // fusionV2 sub-flags: explicit option wins; otherwise a dev-only console
-  // override (`window.__fusionV2 = { oi: true }`) enables A/B testing without a
-  // rebuild. Prod ships with the flags off unless a caller opts in.
-  const fusionV2: FusionV2Flags | undefined = options.fusionV2
-    ?? ((import.meta.env?.DEV && typeof window !== 'undefined')
-      ? (window as unknown as { __fusionV2?: FusionV2Flags }).__fusionV2
-      : undefined);
   // Cache hit? Sub-100 ms response for already-computed combinations. The
   // quick-mode flag is part of the cache key — Phase A and Phase B never
-  // share a cache slot (different visual fidelity). ALL fusionV2 sub-flags join
-  // the key so toggling any of them (oi / incrementPersist / uncertainty /
-  // bgMinVar / bgOffDiag) recomputes instead of returning a stale result.
-  const v2Key = `${fusionV2?.oi ? 'o' : ''}${fusionV2?.incrementPersist ? 'p' : ''}${fusionV2?.uncertainty ? 'u' : ''}${fusionV2?.bgMinVar ? 'b' : ''}${fusionV2?.bgOffDiag ? 'd' : ''}`;
-  const cKey = resultKey(options.country, hours, _modelChoice, _denseCols, _denseRows, _quickMode)
-    + `|v2${v2Key}`;
+  // share a cache slot (different visual fidelity).
+  const cKey = resultKey(options.country, hours, _modelChoice, _denseCols, _denseRows, _quickMode);
   const cachedResult = fusedResultCache.get(cKey);
   if (cachedResult && Date.now() - cachedResult.fetchedAt < RESULT_TTL_MS) {
     return cachedResult.value;
@@ -306,53 +230,28 @@ export async function loadFusedForecast(options: FusedLoadOptions = {}): Promise
   // across DE/AT/CH. profile.bounds is kept for callers that explicitly
   // want a country-specific extent.
   const bounds = options.bounds ?? DACH_VIEW.bounds;
-  const useOpenMeteo = options.useOpenMeteo ?? false;
-  const useDachBias = options.useDachBias ?? false;
   const tempRange = options.temperatureRange ?? { min: -20, max: 40 };
-  const modelChoice: ModelChoice = options.modelChoice ?? 'fusion';
-  // Per-source gates that combine the country profile flag with the model
-  // choice. When the user picks a single model, only that source fires.
-  // Observations (DWD-Obs + TAWES + SMN) are treated as one group under 'obs'.
-  const allow = (m: ModelChoice) => modelChoice === 'fusion' || modelChoice === m;
-  const isFusion = modelChoice === 'fusion';
+  const modelChoice: ModelChoice = options.modelChoice;
+  // Genau EINE Quelle feuert — die gewählte. Beobachtungen (DWD-Obs + TAWES +
+  // SMN) sind eine Gruppe unter 'obs'. Kein Blend, keine Sekundärquellen-
+  // Unterdrückung im quickMode (das würde den Frame leer lassen).
+  const allow = (m: ModelChoice) => modelChoice === m;
   const useObs = allow('obs');
   const useMosmix = allow('mosmix');
-  // Quick-mode (Phase A first-paint) suppresses secondary alpine sources
-  // (AROME / INCA / TAWES / SMN) to shave ~ 1.5 s off the first paint — BUT
-  // only in 'fusion' mode, where MOSMIX + DWD-Obs already deliver a usable
-  // preview. When the user has explicitly picked AROME or INCA as the sole
-  // model, suppressing them in Phase A would yield an EMPTY Phase A render
-  // (nothing else fires), so we keep them in regardless of quickMode.
-  const skipSecondary = isFusion && _quickMode;
-  const useInca   = allow('inca')  && !skipSecondary;
-  const useArome  = allow('arome') && !skipSecondary;
-  // ICON-D2-EPS deckt ganz DACH (icosahedral) → unabhängig vom Länderprofil.
-  // Nicht in quickMode's skipSecondary, weil es bei expliziter Wahl die einzige
-  // Quelle ist (sonst leerer Phase-A-Render).
+  const useInca = allow('inca');
+  const useArome = allow('arome');
   const useEps = allow('icon-d2-eps');
-  // ICON-CH1/CH2-EPS-Kontrolllauf: CH-only → NUR bei expliziter Einzelwahl, nie
-  // in der DACH-weiten 'fusion'-Mischung (sonst CH-Daten für DE/AT + ungewollte
-  // Änderung der Hausmischung). `allow` schließt 'fusion' ein, daher direkt.
-  const useCh1 = modelChoice === 'icon-ch1-eps';
-  const useCh2 = modelChoice === 'icon-ch2-eps';
-  // AROME-France (0,01°): nur bei expliziter Einzelwahl (großes GRIB, CH-/DE-/
-  // West-AT-Domäne) — nie in der 'fusion'-Mischung.
-  const useAromeFr = modelChoice === 'arome-fr';
-  // ICON-EU (single-level 2D): nur bei expliziter Einzelwahl.
-  const useIconEu = modelChoice === 'icon-eu';
-  // GFS (global, coarse): nur bei expliziter Einzelwahl.
-  const useGfs = modelChoice === 'gfs';
-  // ECMWF IFS / AIFS (global, coarse): nur bei expliziter Einzelwahl.
-  const useIfs = modelChoice === 'ifs';
-  const useAifs = modelChoice === 'aifs';
-  const useAifsEns = modelChoice === 'aifs-ens';
-  // ICON global (DWD, icosahedral): nur bei expliziter Einzelwahl.
-  const useIconGlobal = modelChoice === 'icon-global';
-  // AICON (DWD KI): nur bei expliziter Einzelwahl.
-  const useAicon = modelChoice === 'aicon';
-  // ARPEGE (Météo-France global): nur bei expliziter Einzelwahl.
-  const useArpege = modelChoice === 'arpege';
-  const useTawesOrSmnInQuick = !skipSecondary;
+  const useCh1 = allow('icon-ch1-eps');
+  const useCh2 = allow('icon-ch2-eps');
+  const useAromeFr = allow('arome-fr');
+  const useIconEu = allow('icon-eu');
+  const useGfs = allow('gfs');
+  const useIfs = allow('ifs');
+  const useAifs = allow('aifs');
+  const useAifsEns = allow('aifs-ens');
+  const useIconGlobal = allow('icon-global');
+  const useAicon = allow('aicon');
+  const useArpege = allow('arpege');
 
   const engine = new FusionEngine({
     bounds,
@@ -365,7 +264,6 @@ export async function loadFusedForecast(options: FusedLoadOptions = {}): Promise
     temperatureRange: tempRange,
     precipitationRange: { min: 0, max: 10 },
     quickMode: _quickMode,
-    fusionV2,
   });
   const modelTags: string[] = [];
 
@@ -376,51 +274,6 @@ export async function loadFusedForecast(options: FusedLoadOptions = {}): Promise
     engine.setElevation(elev);
   } catch {
     if (options.signal?.aborted) throw new DOMException('aborted', 'AbortError');
-  }
-
-  // --- Source A (opt-in): Open-Meteo best_match (ICON-D2/CH1/AROME auto) ----
-  let openMeteoOk = false;
-  if (useOpenMeteo && !options.signal?.aborted) {
-    try {
-      const primary = await fetchForecastGrid({
-        bounds,
-        cols: 20,
-        rows: 16,
-        hours,
-        model: 'best_match',
-        signal: options.signal,
-      });
-      engine.ingest(primary, { temperature: 1, wind: 1, clouds: 1, precipitation: 1 });
-      openMeteoOk = true;
-      modelTags.push('best_match');
-    } catch {
-      if (options.signal?.aborted) throw new DOMException('aborted', 'AbortError');
-      // Throttled / unreachable — silently degrade to DWD-only.
-    }
-  }
-
-  // --- Source B (opt-in): ICON-D2 explicit DACH bias (Open-Meteo) ----------
-  if (useOpenMeteo && useDachBias && openMeteoOk && !options.signal?.aborted) {
-    try {
-      const dachBounds: ForecastBounds = {
-        lngMin: 5.0,
-        lngMax: 17.0,
-        latMin: 45.5,
-        latMax: 55.5,
-      };
-      const dach = await fetchForecastGrid({
-        bounds: dachBounds,
-        cols: 12,
-        rows: 10,
-        hours,
-        model: 'icon_d2',
-        signal: options.signal,
-      });
-      engine.ingest(dach, { temperature: 1.6, wind: 1.4, clouds: 1.3, precipitation: 1.8 });
-      modelTags.push('icon_d2');
-    } catch {
-      // best_match-only fallback
-    }
   }
 
   // -----------------------------------------------------------------
@@ -442,8 +295,8 @@ export async function loadFusedForecast(options: FusedLoadOptions = {}): Promise
   const wantMosmix = profile.useMosmix && useMosmix;
   const wantInca   = profile.useInca   && useInca;
   const wantArome  = profile.useArome  && useArome;
-  const wantTawes  = profile.useTawes  && useObs && useTawesOrSmnInQuick;
-  const wantSmn    = profile.useSmn    && useObs && useTawesOrSmnInQuick;
+  const wantTawes  = profile.useTawes  && useObs;
+  const wantSmn    = profile.useSmn    && useObs;
   const wantEps    = useEps;
   const wantCh1    = useCh1;
   const wantCh2    = useCh2;
@@ -503,8 +356,7 @@ export async function loadFusedForecast(options: FusedLoadOptions = {}): Promise
   }
   // MOSMIX — DE forecast backbone.
   if (bs) {
-    const weight = openMeteoOk ? 0.6 : 1.4;
-    engine.ingest(bs, { temperature: weight, wind: weight, clouds: weight * 0.7, precipitation: weight });
+    engine.ingest(bs, { temperature: 1.4, wind: 1.4, clouds: 1.0, precipitation: 1.4 });
     modelTags.push('mosmix');
   }
   // INCA — AT nowcast.
@@ -588,73 +440,11 @@ export async function loadFusedForecast(options: FusedLoadOptions = {}): Promise
     modelTags.push('arpege');
   }
 
-  // --- Source I (SE live stations, hour 0 only): SMHI ------------------------
-  // SMHI is geographically out of scope for the DE/AT/CH country pages.
-  // Kept here behind a hard-off so it can be re-enabled if a pan-EU mode is
-  // reintroduced.
-  if (false && !options.signal?.aborted) {
-    try {
-      const smhi = await fetchSmhiCurrentGrid();
-      if (smhi.points[0]?.length) {
-        engine.ingest(smhi, {
-          temperature: 5.0,
-          wind: 3.0,
-          clouds: 0,
-          precipitation: 4.0,
-        });
-        modelTags.push('smhi');
-      }
-    } catch {
-      if (options.signal?.aborted) throw new DOMException('aborted', 'AbortError');
-    }
-  }
-
-  // --- Source J (DK live stations, hour 0 only): DMI -------------------------
-  // Out of scope for the DE/AT/CH country pages — see SMHI note.
-  if (false && !options.signal?.aborted) {
-    try {
-      const dmi = await fetchDmiCurrentGrid();
-      if (dmi.points[0]?.length) {
-        engine.ingest(dmi, {
-          temperature: 5.0,
-          wind: 3.0,
-          clouds: 0,
-          precipitation: 4.0,
-        });
-        modelTags.push('dmi');
-      }
-    } catch {
-      if (options.signal?.aborted) throw new DOMException('aborted', 'AbortError');
-    }
-  }
-
-  // --- Source K (PT live stations, hour 0 only): IPMA ------------------------
-  // Out of scope for the DE/AT/CH country pages — see SMHI note.
-  if (false && !options.signal?.aborted) {
-    try {
-      const ipma = await fetchIpmaCurrentGrid();
-      if (ipma.points[0]?.length) {
-        engine.ingest(ipma, {
-          temperature: 5.0,
-          wind: 3.0,
-          clouds: 0,
-          precipitation: 4.0,
-        });
-        modelTags.push('ipma');
-      }
-    } catch {
-      if (options.signal?.aborted) throw new DOMException('aborted', 'AbortError');
-    }
-  }
-
   const fused = await engine.run();
 
-  // Model attribution: when a single model was selected explicitly, surface
-  // its name plainly (without "fused" prefix) so the UI badge reads e.g.
-  // "MOSMIX" instead of "fused (mosmix)". Default 'fusion' choice keeps the
-  // fused-tag for transparency about combined sources.
+  // Modell-Attribution: es rendert immer genau eine Quelle, also nennt das Badge
+  // sie schlicht beim Namen (kein „fused"-Präfix mehr — es wird nichts gemischt).
   const SINGLE_MODEL_LABEL: Record<ModelChoice, string> = {
-    fusion: 'Buscosun Fusion',
     mosmix: 'DWD MOSMIX',
     arome:  'GeoSphere AROME',
     inca:   'GeoSphere INCA',
@@ -672,11 +462,7 @@ export async function loadFusedForecast(options: FusedLoadOptions = {}): Promise
     'aicon': 'DWD AICON',
     'arpege': 'Météo-France ARPEGE',
   };
-  const model = modelChoice !== 'fusion'
-    ? `${SINGLE_MODEL_LABEL[modelChoice]} (${modelTags.join(', ') || 'no data'})`
-    : modelTags.length
-      ? `Buscosun Fusion (${modelTags.join(' + ')})`
-      : fused.model;
+  const model = `${SINGLE_MODEL_LABEL[modelChoice]} (${modelTags.join(', ') || 'no data'})`;
 
   const result: DwdForecastResult = {
     hours: fused.hours.map((h) => ({

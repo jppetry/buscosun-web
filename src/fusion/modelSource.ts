@@ -3,10 +3,11 @@
  *
  * Reiner, DOM-/React-freier Zustand + Resolver: pro Kartenlayer entscheidet er,
  * **welches Modell** rendert. Ursprünglich eine binäre Achse (`'fusion'` ⇄
- * `'native'`); jetzt zu einer **Modell-ID-Achse** erweitert, in der `'native'`
- * und `'fusion'` **Spezialwerte** neben konkreten Katalog-Modellen sind
- * (ICON-D2, AROME-AT, INCA …). Es bleibt **eine** State-Maschine — `global` ist
- * nur der Fallback-Default, wenn ein Land keine explizite Wahl hat.
+ * `'native'`), heute eine **Modell-ID-Achse** mit `'native'` als einzigem
+ * Spezialwert neben den konkreten Katalog-Modellen (ICON-D2, AROME-AT, INCA …).
+ * `'fusion'` ist auf der Karte entfallen (Rückbau 2026-08-22) und lebt nur noch
+ * in der Punkt-Domäne (`point`). Es bleibt **eine** State-Maschine — `global`
+ * ist nur der Fallback-Default, wenn ein Land keine explizite Wahl hat.
  *
  * Der native Pfad ist das eingefrorene Referenzverhalten und der garantierte
  * Fallback — der Resolver kann ihn nie „verlieren".
@@ -20,14 +21,20 @@
 import type { Country } from '../types';
 import { canRasterIn, isWhitelisted, modelEntry, type ModelId } from './modelCatalog';
 
-/** Binäre Ur-Achse; bleibt als Punkt-Domänen-Typ + Teilmenge von `ModelId`. */
+/**
+ * Binäre Ur-Achse. Seit dem Rückbau der Raster-Fusion (2026-08-22) NUR noch die
+ * **Punkt-Domäne**: `'fusion'` = Multi-Quellen-Blend des Punktforecasts,
+ * `'native'` = Einzelmodell-Isolation. Auf der Karte gibt es `'fusion'` nicht
+ * mehr — dort rendert immer genau ein Katalogmodell (`ModelId`).
+ */
 export type ModelSource = 'fusion' | 'native';
 
 /**
  * Kartenlayer (LayerKey-Teilmenge) mit einem umschaltbaren Raster-Produkt.
  * Bewusst als lokale String-Literale gehalten (kein Import von `MapView`), damit
  * dieses Modul pur und importzyklusfrei bleibt. Konkrete Modelle (ICON-D2/AROME/
- * INCA) speisen exakt dieselben Layer wie die Fusion — daher dieselbe Menge.
+ * INCA) speisen exakt dieselben Layer — daher dieselbe Menge. Der Name
+ * `FUSION_CAPABLE_*` ist historisch: gemeint ist „hat ein umschaltbares Raster".
  *
  *  - `wind`   → `…layers.wind`          - `temp`   → `…layers.temperature`
  *  - `clouds` → `…layers.clouds`        - `nowcast`→ `…layers.precipitation`
@@ -54,7 +61,7 @@ export function isFusionCapable(layer: string): layer is FusionCapableLayer {
  *  - `radar`      — **orthogonaler** Radar-Toggle (RADOLAN/INCA/rzc). Unabhängig
  *                   von der Modellwahl. Default `true` (= heutiges Verhalten).
  *  - `point`      — Quelle der zweiten Engine (Punkt-Panel). Eigener eingefrorener
- *                   Default `'fusion'` (Blend), invertiert zum Raster-`native`.
+ *                   Default `'fusion'` (Blend) — der Blend lebt NUR hier.
  */
 export interface ModelSourceState {
   country: Country;
@@ -66,24 +73,12 @@ export interface ModelSourceState {
 }
 
 /**
- * Feature-Flag-getriebener Start-Default des GLOBALEN Raster-Werts. Konvention
- * wie `fusionV2`: `?fusion2d=fusion|native` bzw. `window.__fusion2d`, sonst
- * `localStorage['fusion2d.default']`, sonst `'native'` (eingefroren).
+ * Start-Default des GLOBALEN Raster-Werts. Seit dem Rückbau der Raster-Fusion
+ * gibt es hier nichts mehr zu wählen: die Karte startet immer nativ. (Der
+ * frühere `?fusion2d=`-Schalter hatte nur den Blend gegen Nativ gestellt und ist
+ * damit gegenstandslos; eine konkrete Modellwahl läuft über den Switcher.)
  */
-export function defaultModelSource(): ModelSource {
-  try {
-    if (typeof window !== 'undefined') {
-      const w = window as unknown as { __fusion2d?: unknown };
-      if (w.__fusion2d === 'fusion' || w.__fusion2d === 'native') return w.__fusion2d;
-      const q = new URLSearchParams(window.location.search).get('fusion2d')
-        ?? (window.location.hash.includes('fusion2d=')
-          ? new URLSearchParams(window.location.hash.replace(/^[^?]*\??/, '')).get('fusion2d')
-          : null);
-      if (q === 'fusion' || q === 'native') return q;
-      const cfg = window.localStorage?.getItem('fusion2d.default');
-      if (cfg === 'fusion' || cfg === 'native') return cfg;
-    }
-  } catch { /* SSR / gesperrter Storage → Default unten */ }
+export function defaultModelSource(): ModelId {
   return 'native';
 }
 
@@ -115,10 +110,8 @@ export function activeModelId(state: ModelSourceState, country: Country = state.
 }
 
 /**
- * DER binäre Resolver (Bestand, unverändert im Verhalten): welche **Quelle**
- * rendert Layer `layer`?  Nicht-fähig → immer `'native'`; sonst Override,
- * sonst Per-Land-Wahl, sonst global. Rückgabetyp jetzt `ModelId` (umfasst
- * `'fusion'|'native'`), damit bestehende `=== 'fusion'`-Vergleiche weiter gelten.
+ * DER Resolver: welche **Quelle** rendert Layer `layer`? Nicht-fähig → immer
+ * `'native'`; sonst Override, sonst Per-Land-Wahl, sonst global.
  */
 export function resolveModelSource(layer: string, state: ModelSourceState): ModelId {
   if (!isFusionCapable(layer)) return 'native';
@@ -129,14 +122,14 @@ export function resolveModelSource(layer: string, state: ModelSourceState): Mode
  * DER erweiterte Resolver mit **Fähigkeits-/Abdeckungs-Fallback**: welche
  * Modell-ID rendert Layer `layer` tatsächlich?
  *  - Nicht-fähiger Layer → `'native'` (native-by-design, unverlierbar).
- *  - Gewählt `'native'`/`'fusion'` → unverändert (Spezialwerte).
+ *  - Gewählt `'native'` → unverändert (Spezialwert).
  *  - Gewählt konkretes Modell, das im aktiven Land **kein Raster** liefert
  *    (Punkt-only wie MOSMIX, außerhalb der Abdeckung, oder nicht ingestiert)
  *    → `'native'` (stiller Fallback, Deliverable e/f). Nie leerer Layer.
  */
 export function resolveModel(layer: string, state: ModelSourceState): ModelId {
   const chosen = resolveModelSource(layer, state);
-  if (chosen === 'native' || chosen === 'fusion') return chosen;
+  if (chosen === 'native') return chosen;
   return canRasterIn(chosen, state.country) ? chosen : 'native';
 }
 
@@ -159,17 +152,16 @@ export function resolveModelWithFallback(
  * Quelle der Punkt-Engine (`getPointForecast`). `'fusion'` = Multi-Quellen-
  * Blend, `'native'` = Einzelmodell-Isolation. Gekoppelt an die Raster-Wahl
  * (Brief: R+P koppeln): wählt der Nutzer im aktiven Land ein **konkretes**
- * Modell, isoliert auch das Punkt-Panel (→ `'native'`); bei `'fusion'`/`'native'`
- * gilt der eigene `point`-Default.
+ * Modell, isoliert auch das Punkt-Panel (→ `'native'`); bei `'native'` gilt der
+ * eigene `point`-Default (= der Blend).
  */
 export function resolvePointSource(state: ModelSourceState): ModelSource {
   const chosen = activeModelId(state, state.country);
-  if (chosen === 'fusion') return 'fusion';
   if (chosen === 'native') return state.point;
   return 'native';
 }
 
-/** Die konkrete Punkt-Modell-ID (für Attribution/Kopplung); `native`/`fusion` als Spezialwerte. */
+/** Die konkrete Punkt-Modell-ID (für Attribution/Kopplung); `native` als Spezialwert. */
 export function resolvePointModel(state: ModelSourceState): ModelId {
   return activeModelId(state, state.country);
 }
@@ -256,13 +248,6 @@ export function clearLayerOverride(state: ModelSourceState, layer: string): Mode
   return next;
 }
 
-/** Override pro Layer togglen (Fusion↔Native), relativ zum aktuell resolvten Wert. */
-export function toggleLayerOverride(state: ModelSourceState, layer: string): ModelSourceState {
-  if (!isFusionCapable(layer)) return state;
-  const current = resolveModelSource(layer, state);
-  return setLayerOverride(state, layer, current === 'fusion' ? 'native' : 'fusion');
-}
-
 /** Quelle der Punkt-Engine setzen (unabhängig von `global`/Overrides). */
 export function setPointSource(state: ModelSourceState, src: ModelSource): ModelSourceState {
   const next = clone(state);
@@ -287,20 +272,20 @@ export function verifyModelSource(): { checks: string[]; passed: number; failed:
     if (cond) passed++; else failed++;
   };
   const mk = (p: Partial<ModelSourceState> = {}): ModelSourceState => ({
-    country: 'DE', perCountry: {}, global: 'fusion', overrides: {}, radar: true, point: 'fusion', ...p,
+    country: 'DE', perCountry: {}, global: 'icon-eu', overrides: {}, radar: true, point: 'fusion', ...p,
   });
 
   const base = mk();
 
   // (c) Native-by-design ist unverlierbar: nicht-fähige Layer bleiben IMMER native.
   for (const l of ['gust', 'sat', 'lightning', 'stations', 'confidence', 'snowline', 'flownowcast', 'poprob']) {
-    ok(resolveModelSource(l, base) === 'native', `nicht-fähiger Layer "${l}" bleibt native bei global=fusion`);
-    ok(resolveModel(l, setLayerOverride(base, l, 'fusion')) === 'native', `Override auf "${l}" wird ignoriert (native-by-design)`);
+    ok(resolveModelSource(l, base) === 'native', `nicht-fähiger Layer "${l}" bleibt native bei global=icon-eu`);
+    ok(resolveModel(l, setLayerOverride(base, l, 'icon-eu')) === 'native', `Override auf "${l}" wird ignoriert (native-by-design)`);
   }
 
-  // Fusion-fähige Layer folgen dem globalen Default (Spezialwerte, kein Fallback).
+  // Umschaltbare Layer folgen dem globalen Default.
   for (const l of FUSION_CAPABLE_LAYERS) {
-    ok(resolveModelSource(l, base) === 'fusion', `fähiger Layer "${l}" folgt global=fusion`);
+    ok(resolveModelSource(l, base) === 'icon-eu', `fähiger Layer "${l}" folgt global=icon-eu`);
     ok(resolveModelSource(l, mk({ global: 'native' })) === 'native', `fähiger Layer "${l}" folgt global=native`);
   }
 
@@ -330,14 +315,18 @@ export function verifyModelSource(): { checks: string[]; passed: number; failed:
   ok(!resolveModelWithFallback('temp', mk({ global: 'icon-d2' })).fellBack, '(e) ICON-D2 kein Fallback (voll)');
 
   // (e) Per-Layer schlägt Land/global — in beide Richtungen.
-  ok(resolveModelSource('wind', mk({ global: 'native', overrides: { wind: 'fusion' } })) === 'fusion', 'Override fusion schlägt global=native');
-  ok(resolveModelSource('temp', mk({ global: 'fusion', overrides: { temp: 'native' } })) === 'native', 'Override native schlägt global=fusion');
+  ok(resolveModelSource('wind', mk({ global: 'native', overrides: { wind: 'icon-eu' } })) === 'icon-eu', 'Override Modell schlägt global=native');
+  ok(resolveModelSource('temp', mk({ global: 'icon-eu', overrides: { temp: 'native' } })) === 'native', 'Override native schlägt global=icon-eu');
   ok(resolveModel('wind', mk({ country: 'DE', global: 'native', overrides: { wind: 'icon-d2' } })) === 'icon-d2', 'Override konkretes Modell greift');
 
   // (h) Whitelist-Gate: keine Nicht-Katalog-ID gelangt in den State.
   ok(setGlobalSource(base, 'not-a-model' as ModelId) === base, '(h) setGlobalSource weist Nicht-Whitelist-ID ab');
   ok(setCountryModel(base, 'DE', 'gpt-weather' as ModelId) === base, '(h) setCountryModel weist Nicht-Whitelist-ID ab');
   ok(modelEntry('icon-d2') != null && modelEntry('not-a-model' as ModelId) == null, '(h) Katalog kennt nur Whitelist-IDs');
+  // Rückbau-Anker: 'fusion' ist auf der Karte KEINE Quelle mehr (nur noch Punkt-Domäne).
+  ok(modelEntry('fusion' as ModelId) == null, 'Rückbau: Katalog kennt kein "fusion" mehr');
+  ok(setGlobalSource(base, 'fusion' as ModelId) === base, 'Rückbau: setGlobalSource weist "fusion" ab');
+  ok(resolveModel('temp', mk({ global: 'fusion' as ModelId })) === 'native', 'Rückbau: ein Alt-State mit "fusion" rendert nativ');
 
   // Radar-Orthogonalität (d): Toggle ändert NUR `radar`, nie die Modell-Resolution.
   const radarOff = setRadar(base, false);
@@ -351,15 +340,12 @@ export function verifyModelSource(): { checks: string[]; passed: number; failed:
   ok(withOverride.overrides.clouds === 'native', 'setLayerOverride setzt Override');
   ok(setGlobalSource(withOverride, 'native').overrides.clouds === 'native', 'setGlobalSource bewahrt Overrides');
   ok(!('clouds' in clearLayerOverride(withOverride, 'clouds').overrides), 'clearLayerOverride entfernt Override');
-  ok(resolveModelSource('nowcast', toggleLayerOverride(base, 'nowcast')) === 'native', 'toggle fusion→native');
-  ok(resolveModelSource('nowcast', toggleLayerOverride(mk({ global: 'native' }), 'nowcast')) === 'fusion', 'toggle native→fusion');
   ok(!('AT' in clearCountryModel(perAt, 'AT').perCountry), 'clearCountryModel entfernt Land-Wahl');
   ok(setActiveCountry(base, 'CH').country === 'CH', 'setActiveCountry setzt Land');
 
   // Punkt-Engine: eigener Default 'fusion'; konkretes Modell koppelt Punkt→native (Isolation).
   ok(resolvePointSource(mk({ global: 'native' })) === 'fusion', 'Punkt behält Blend-Default bei global=native (invertiert)');
   ok(resolvePointSource(mk({ global: 'native', point: 'native' })) === 'native', 'Punkt=native wenn explizit isoliert');
-  ok(resolvePointSource(mk({ global: 'fusion' })) === 'fusion', 'Punkt=Blend bei global=fusion');
   ok(resolvePointSource(mk({ global: 'arome-at', country: 'AT' })) === 'native', 'konkretes Modell koppelt Punkt→Isolation');
   ok(resolvePointModel(mk({ global: 'arome-at', country: 'AT' })) === 'arome-at', 'resolvePointModel liefert gekoppelte ID');
   ok(setLayerOverride(base, 'wind', 'native').point === 'fusion', 'Layer-Override lässt point unangetastet');

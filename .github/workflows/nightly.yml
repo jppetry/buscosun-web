@@ -61,31 +61,8 @@ jobs:
       - name: ${{ matrix.check }}
         run: npm run ${{ matrix.check }}
 
-  # Netzfrei, aber zu langsam fürs PR-Gate: die stationsblockierte 5-fache
-  # Kreuzvalidierung trainiert fünfmal über das gesamte Archiv (V-29).
-  fusion-gate:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: '.nvmrc'
-          cache: npm
-      - run: npm ci
-      - name: Archiv-Reife
-        run: npm run fusion:status
-      # Exit 1 = fachlicher Fehlschlag (heute der Fall: t2m/windSpeed sind
-      # out-of-sample schlechter als Gleichgewichtung). Exit 2 = Archiv zu kurz.
-      # Beides ist ein BEFUND, kein Build-Fehler — deshalb wird der Schritt
-      # protokolliert statt den Nightly rot zu färben. Constraint C2: NICHT
-      # nachjustieren, bis es passt. Die Cutover-Entscheidung liegt bei Jan (V-31).
-      - name: Fusions-Gate (Befund, nicht blockierend)
-        continue-on-error: true
-        run: npm run fusion:gate
-
   report:
-    needs: [upstream, fusion-gate]
+    needs: [upstream]
     if: failure()
     runs-on: ubuntu-latest
     permissions:

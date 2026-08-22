@@ -16,7 +16,7 @@
 
 import { frameAtValidTime } from '../../sources/frameAtValidTime';
 import { ISZ_VMAX, type IconD2FireWeather } from '../../sources/iconD2FireWeather';
-import { bilinear, decodeImage, type Decoded } from '../../wind/windPointSample';
+import { bilinear, decodeImage, texelCoord, type Decoded } from '../../wind/windPointSample';
 
 export interface IsiSample {
   /** Zero-wind ISI at the point. */
@@ -32,9 +32,10 @@ export function iszFromChannel(byte: number): number {
 
 /** True when every one of the four surrounding cells carries data (alpha 255). */
 export function maskIntact(d: Decoded, u: number, v: number): boolean {
-  const x = u * (d.w - 1), y = v * (d.h - 1);
-  const x0 = Math.max(0, Math.min(d.w - 1, Math.floor(x)));
-  const y0 = Math.max(0, Math.min(d.h - 1, Math.floor(y)));
+  // MUSS dieselbe Texel-Konvention benutzen wie `bilinear` — sonst prüft die
+  // Maske andere Zellen, als der Wert gemischt wird (KL3, `texelCoord`).
+  const x = texelCoord(u, d.w), y = texelCoord(v, d.h);
+  const x0 = Math.floor(x), y0 = Math.floor(y);
   const x1 = Math.min(d.w - 1, x0 + 1), y1 = Math.min(d.h - 1, y0 + 1);
   const a = (xx: number, yy: number) => d.data[(yy * d.w + xx) * 4 + 3];
   return a(x0, y0) === 255 && a(x1, y0) === 255 && a(x0, y1) === 255 && a(x1, y1) === 255;

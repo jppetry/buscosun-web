@@ -1,13 +1,11 @@
 /**
- * Waldbrand-Icon-Set (Phase WBU1) — handgezeichnete SVGs im Zeichenstil von
- * `components/LayerIcon.tsx`: 14×14 viewBox, strokeWidth 1.4, rounded caps,
- * currentColor. Bewusst eine EIGENE Datei statt einer Erweiterung des
- * LayerIcon-Switch: die Waldbrand-Layer sind keine `LayerKey`s, und die
- * Wetterkarte bleibt unangetastet (Kickoff-Auflage).
+ * Brandradar-Icon-Set — die SVG-Pfade der Vorlage `references/brandradar.dc.html`
+ * (24×24 viewBox, currentColor). Eine EIGENE Datei statt einer Erweiterung des
+ * LayerIcon-Switch der Wetterkarte: die Waldbrand-Layer sind keine `LayerKey`s,
+ * und die Wetterkarte bleibt unangetastet.
  *
- * Zusätzlich die Play-/Pause-Glyphen des Zeit-Decks — Werte-Kopien aus
- * `map/deckIcons.tsx` (IcoPlay/IcoPause), damit das Feuer-Deck keinen
- * Import aus dem Karten-Deck braucht.
+ * Die Layer-Glyphen tragen die Farbe ihres Layers über `currentColor` — die
+ * Zeile setzt sie (`--br-acc`), nicht das Icon.
  */
 
 import type { FireLayerId } from './fireModel';
@@ -17,136 +15,93 @@ interface Props {
   size?: number;
 }
 
-export function FireIcon({ layer, size = 14 }: Props) {
+export function FireIcon({ layer, size = 15 }: Props) {
   const common = {
     width: size,
     height: size,
-    viewBox: '0 0 14 14',
+    viewBox: '0 0 24 24',
     fill: 'none',
-    stroke: 'currentColor',
-    strokeWidth: 1.4,
-    strokeLinecap: 'round' as const,
-    strokeLinejoin: 'round' as const,
     'aria-hidden': true,
+    style: { flex: '0 0 auto' } as const,
   };
+  const s = { stroke: 'currentColor' } as const;
   switch (layer) {
     case 'fireDanger':
-      // EU-Gefahrenindex — Flammen-Kontur über einer Skalenlinie (Modellwert).
       return (
         <svg {...common}>
-          <path d="M 7 1.6 C 8.4 3.4, 10.2 4.8, 10.2 7.6 A 3.2 3.2 0 0 1 3.8 7.6 C 3.8 5.9, 4.8 4.9, 5.3 3.8 C 5.9 4.6, 6.4 5, 6.5 5.9 C 7.3 4.9, 7.3 3.2, 7 1.6 Z" />
-          <line x1="2" y1="12.4" x2="12" y2="12.4" />
-          <line x1="5.3" y1="12.4" x2="5.3" y2="11.4" opacity="0.55" />
-          <line x1="8.7" y1="12.4" x2="8.7" y2="11.4" opacity="0.55" />
+          <path d="M12 3 L21.5 20 H2.5 Z" {...s} strokeWidth="1.6" strokeLinejoin="round" />
+          <path d="M12 9.5 V14" {...s} strokeWidth="1.7" strokeLinecap="round" />
+          <circle cx="12" cy="17" r="1" fill="currentColor" />
         </svg>
       );
     case 'fireHotspots':
-      // Aktive Brände — Thermalpunkt mit Detektions-Ringen (Satellit).
       return (
         <svg {...common}>
-          <circle cx="7" cy="7" r="1.4" fill="currentColor" stroke="none" />
-          <path d="M 3.9 4.2 A 4.2 4.2 0 0 0 3.9 9.8" opacity="0.75" />
-          <path d="M 10.1 4.2 A 4.2 4.2 0 0 1 10.1 9.8" opacity="0.75" />
-          <path d="M 2 2.4 A 6.4 6.4 0 0 0 2 11.6" opacity="0.4" />
-          <path d="M 12 2.4 A 6.4 6.4 0 0 1 12 11.6" opacity="0.4" />
-        </svg>
-      );
-    case 'fireWeather':
-      // Feuerwetter-Treiber — durchgestrichener Tropfen: die TROCKENHEIT der Luft.
-      return (
-        <svg {...common}>
-          <path d="M 7 1.8 C 5.2 4.9, 3.9 6.4, 3.9 8.3 A 3.1 3.1 0 0 0 10.1 8.3 C 10.1 6.4, 8.8 4.9, 7 1.8 Z" />
-          <line x1="2.4" y1="11.9" x2="11.6" y2="2.7" />
-        </svg>
-      );
-    case 'fireDrought':
-      // Trockenheit — Boden mit Trockenrissen.
-      return (
-        <svg {...common}>
-          <path d="M 1.8 9.4 Q 4 8.4 7 9 T 12.2 9.2" />
-          <path d="M 5 9 L 4.2 11.6" opacity="0.8" />
-          <path d="M 7.4 9.1 L 7.9 12" opacity="0.8" />
-          <path d="M 9.8 9.2 L 9.1 11.3" opacity="0.8" />
-        </svg>
-      );
-    case 'fireVegetation':
-      // Vegetationsstress — Blatt mit Mittelrippe.
-      return (
-        <svg {...common}>
-          <path d="M 3 11 C 3 5.5, 6.5 2.6, 11.2 2.4 C 11.4 7.2, 8.6 11, 3 11 Z" />
-          <path d="M 3.6 10.4 C 5.6 8.2, 7.6 6.4, 10 4.4" opacity="0.7" />
-        </svg>
-      );
-    case 'fireFuel':
-      // Brennmaterial — Nadelbaum über dem Boden (Vegetationskomplexe).
-      return (
-        <svg {...common}>
-          <path d="M 7 1.8 L 9.6 5.4 L 8.2 5.4 L 10.4 8.6 L 3.6 8.6 L 5.8 5.4 L 4.4 5.4 Z" />
-          <line x1="7" y1="8.6" x2="7" y2="11" />
-          <line x1="2.2" y1="12.2" x2="11.8" y2="12.2" opacity="0.6" />
-        </svg>
-      );
-    case 'fireBurnt':
-      // Frühere Brandflächen — gestrichelter Flächenumriss mit Restglut-Punkt.
-      return (
-        <svg {...common}>
-          <path d="M 2.6 5.2 Q 2.2 2.8 4.6 2.8 Q 6.6 1.8 8.4 3 Q 11.4 2.8 11.4 5.4 Q 12.2 8 9.8 8.8 Q 8 10.2 5.8 9.4 Q 2.8 9.6 2.6 7.2 Z" strokeDasharray="2.2 1.6" />
-          <circle cx="7" cy="6" r="0.9" fill="currentColor" stroke="none" />
-        </svg>
-      );
-    case 'fireContext':
-      // Schutzgebiete & Landbedeckung — Gebietsgrenze mit Blatt-Marke.
-      return (
-        <svg {...common}>
-          <path d="M 2.4 3.6 L 6 2.2 L 9.4 3.4 L 11.6 2.6 V 10.4 L 8 11.8 L 4.6 10.6 L 2.4 11.4 Z" />
-          <path d="M 5.6 8.6 C 5.6 6.4, 7 5.2, 8.9 5.1 C 9 7.1, 7.9 8.6, 5.6 8.6 Z" strokeWidth="1.1" />
-        </svg>
-      );
-    case 'fireWind':
-      // Wind — drei ausschwingende Strömungslinien. WERTE-KOPIE der `wind`-
-      // Glyphe aus `components/LayerIcon.tsx:31-33`: derselbe Layer, dieselbe
-      // Zeichnung. Kopie statt Import, weil das Feuer-Deck kein Icon-Set der
-      // Wetterkarte lädt (Muster dieser Datei, s. Kopfkommentar).
-      return (
-        <svg {...common}>
-          <path d="M 1 4 Q 4 3, 7 4 T 12.5 4" />
-          <path d="M 1 7 Q 4 6, 7 7 T 13 7" />
-          <path d="M 1 10 Q 3.5 9, 6 10 T 10.5 10" />
-        </svg>
-      );
-    case 'fireSoilDryness':
-      // Bodentrockenheit — Bodenschichten im Profil mit einem versickernden
-      // Tropfen: es geht um Wasser IM Boden, nicht um Regen darauf. Bewusst
-      // anders als `fireDrought` (Trockenrisse an der Oberfläche) und als
-      // `fireWeather` (durchgestrichener Tropfen = Luft).
-      return (
-        <svg {...common}>
-          <path d="M 1.8 5.2 H 12.2" />
-          <path d="M 1.8 8.4 H 12.2" opacity="0.7" />
-          <path d="M 1.8 11.4 H 12.2" opacity="0.45" />
-          <path d="M 7 1.4 C 6.1 2.7, 5.4 3.4, 5.4 4.3 A 1.6 1.6 0 0 0 8.6 4.3 C 8.6 3.4, 7.9 2.7, 7 1.4 Z" />
+          <circle cx="12" cy="12" r="3.4" fill="currentColor" />
+          <circle cx="12" cy="12" r="7.6" {...s} strokeWidth="1.4" strokeOpacity=".55" />
+          <circle cx="12" cy="12" r="11" {...s} strokeWidth="1.2" strokeOpacity=".28" />
         </svg>
       );
     case 'fireFootprints':
-      // Brandflächen der Registry — ein Umriss je Brand mit Listenlinien
-      // daneben: die Fläche UND ihr Eintrag im Panel. Bewusst nicht die
-      // Glut des Kartierungs-Layers und nicht der Punkt der Hotspots.
       return (
         <svg {...common}>
-          <path d="M 1.8 5 Q 1.6 2.6 4 2.8 Q 5.8 1.9 7 3.2 Q 8.6 2.4 8.6 4.6 Q 9.2 7.2 7.2 8 Q 5.6 9.4 3.8 8.4 Q 1.8 8.6 1.8 6.6 Z" />
-          <path d="M 10.4 4 H 12.6 M 10.4 6.6 H 12.6 M 10.4 9.2 H 12.6" strokeWidth="1.2" />
+          <path d="M4 15 L8 7 L13 12 L17 6 L20 15 Z" {...s} strokeWidth="1.5" strokeLinejoin="round" />
+        </svg>
+      );
+    case 'fireWeather':
+      return (
+        <svg {...common}>
+          <path d="M7 14 A4.4 4.4 0 0 1 8 6 A5.6 5.6 0 0 1 18.4 8.6 A3.6 3.6 0 0 1 17.6 15 H8 Z" {...s} strokeWidth="1.5" strokeLinejoin="round" />
+          <path d="M9.5 18.5 H16.5" {...s} strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
+      );
+    case 'fireWind':
+      return (
+        <svg {...common}>
+          <path d="M3 9 H14 A2.5 2.5 0 1 0 11.5 6.5 M3 14 H18 A2.5 2.5 0 1 1 15.5 16.5" {...s} strokeWidth="1.6" strokeLinecap="round" />
+        </svg>
+      );
+    case 'fireSoilDryness':
+      return (
+        <svg {...common}>
+          <path d="M4 17 H20 M4 20.5 H20" {...s} strokeWidth="1.4" strokeLinecap="round" />
+          <path d="M12 3 C12 3 7.5 8.5 7.5 12 A4.5 4.5 0 0 0 16.5 12 C16.5 8.5 12 3 12 3 Z" {...s} strokeWidth="1.5" strokeLinejoin="round" />
         </svg>
       );
     case 'fireSpread':
-      // SF1: Ausbreitungsrichtung — eine Flamme mit einem Pfeil, der aus ihr
-      // herausläuft, und einem angedeuteten Fächer: eine Richtung je Brand,
-      // keine Fläche und keine Stufe.
       return (
         <svg {...common}>
-          <path d="M 3.6 10.4 C 2.7 9.2, 2.3 8.1, 2.3 7.1 A 1.9 1.9 0 0 1 5.9 7.1 C 5.9 8.1, 5.5 9.2, 4.6 10.4 Z" strokeWidth="1.2" />
-          <path d="M 6.6 7.4 H 12.2" />
-          <path d="M 10.2 5.2 L 12.6 7.4 L 10.2 9.6" />
-          <path d="M 7 4.4 L 12.2 2.8 M 7 10.4 L 12.2 12" opacity="0.4" strokeWidth="1.1" />
+          <path d="M4 18 L17 7" {...s} strokeWidth="1.7" strokeLinecap="round" />
+          <path d="M11 6 H18 V13" {...s} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M4 18 L9 20 M4 18 L2.5 13" {...s} strokeWidth="1.3" strokeLinecap="round" strokeOpacity=".6" />
+        </svg>
+      );
+    case 'fireFuel':
+      return (
+        <svg {...common}>
+          <path d="M12 21 V13 M12 13 C12 9 9 7 6 6 C6 10 8.6 12.4 12 13 Z M12 13 C12 9 15 7 18 6 C18 10 15.4 12.4 12 13 Z" {...s} strokeWidth="1.4" strokeLinejoin="round" />
+        </svg>
+      );
+    case 'fireBurnt':
+      return (
+        <svg {...common}>
+          <path d="M4 16 Q8 11 12 14 Q16 17 20 9" {...s} strokeWidth="1.5" strokeLinecap="round" />
+          <path d="M4 20 H20" {...s} strokeWidth="1.3" strokeLinecap="round" />
+        </svg>
+      );
+    case 'fireContext':
+      return (
+        <svg {...common}>
+          <path d="M12 3 L20 7 V13 C20 17.5 16.4 20.4 12 21.5 C7.6 20.4 4 17.5 4 13 V7 Z" {...s} strokeWidth="1.4" strokeLinejoin="round" />
+        </svg>
+      );
+    case 'fireDrought':
+    case 'fireVegetation':
+      // Blockierte EDO-Quellen — das Schloss der Vorlage.
+      return (
+        <svg {...common}>
+          <rect x="5" y="10" width="14" height="10" rx="2" {...s} strokeWidth="1.4" />
+          <path d="M8.5 10 V7.5 A3.5 3.5 0 0 1 15.5 7.5 V10" {...s} strokeWidth="1.4" />
         </svg>
       );
     default:
@@ -156,20 +111,61 @@ export function FireIcon({ layer, size = 14 }: Props) {
 
 interface IcoProps { size?: number }
 
-/** Play-Glyphe des Zeit-Decks — Werte-Kopie aus `map/deckIcons.tsx:128`. */
-export function IcoFirePlay({ size = 16 }: IcoProps) {
+/** Play-Glyphe des Zeit-Decks (Vorlage). */
+export function IcoFirePlay({ size = 15 }: IcoProps) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M8 5.5 L18.5 12 L8 18.5 Z" fill="currentColor" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M7 5 L19 12 L7 19 Z" />
     </svg>
   );
 }
 
-/** Pause-Glyphe des Zeit-Decks — Werte-Kopie aus `map/deckIcons.tsx:136`. */
-export function IcoFirePause({ size = 16 }: IcoProps) {
+/** Pause-Glyphe des Zeit-Decks. */
+export function IcoFirePause({ size = 15 }: IcoProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path d="M8.5 5.5 V18.5 M15.5 5.5 V18.5" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+/** Mobile Bottom-Bar: Karte (Ebenen). */
+export function IcoBarMap({ size = 20 }: IcoProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M12 3 L21 8 L12 13 L3 8 Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+      <path d="M3 13 L12 18 L21 13" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/** Mobile Bottom-Bar: Layer (zwei Zeilen mit Schaltpunkt). */
+export function IcoBarLayers({ size = 20 }: IcoProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="3" y="4" width="18" height="5" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+      <rect x="3" y="11" width="18" height="5" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+      <circle cx="8" cy="6.5" r="1.3" fill="currentColor" />
+      <circle cx="16" cy="13.5" r="1.3" fill="currentColor" />
+    </svg>
+  );
+}
+
+/** Mobile Bottom-Bar / Rail: Brände (Flamme). */
+export function IcoBarFire({ size = 20 }: IcoProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M12 21 C8 21 5.5 18.2 5.5 15 C5.5 11.4 8.6 9.6 9.2 6 C11.4 8.4 11 10.4 11.4 11.6 C12 8.8 13.6 7.2 13 3 C16.6 5.6 18.5 10 18.5 15 C18.5 18.2 16 21 12 21 Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/** Mobile Bottom-Bar: Zeit (Uhr). */
+export function IcoBarTime({ size = 20 }: IcoProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M12 8 V12 L15 14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

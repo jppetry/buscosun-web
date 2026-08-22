@@ -15,6 +15,7 @@ import { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { WindLayer } from '../wind/WindLayer';
+import { GLOBE_PARTICLE_RAMP } from '../wind/particlePreset';
 import { globeStyle, TEMP_BEFORE_ID } from './globeStyle';
 import { sampleTempC, type RecoloredTemp } from './tempRecolor';
 import { sampleWind, type WindGrid, type WindSample } from './windSample';
@@ -26,10 +27,8 @@ const MERC_LAT = 85.05112878;
 const WORLD: [[number, number], [number, number], [number, number], [number, number]] =
   [[-180, MERC_LAT], [180, MERC_LAT], [180, -MERC_LAT], [-180, -MERC_LAT]];
 
-const PARTICLE_RAMP: Record<number, string> = {
-  0.0: 'rgb(120,150,200)', 0.2: 'rgb(90,180,180)', 0.4: 'rgb(150,205,120)',
-  0.55: 'rgb(235,210,110)', 0.72: 'rgb(238,150,80)', 0.86: 'rgb(225,95,95)', 1.0: 'rgb(228,170,222)',
-};
+// WG-1: EINE Definition, geteilt mit der Wetterkarte (Werte unveraendert).
+const PARTICLE_RAMP = GLOBE_PARTICLE_RAMP;
 
 export type Projection = 'globe' | 'flat';
 export interface PickInfo { lat: number; lng: number; tempC: number | null; wind: WindSample | null; }

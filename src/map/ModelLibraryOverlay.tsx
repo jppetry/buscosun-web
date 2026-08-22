@@ -24,7 +24,6 @@ const COUNTRIES: Country[] = ['DE', 'AT', 'CH'];
 /** Laienfreundliche Kurzbeschreibungen (UI-Text der Modellseite, Vorlagen-Ton). */
 const MODEL_DESC: Record<ModelId, string> = {
   native: 'Je Region automatisch das beste Modell — ICON-D2, Radar & Stationen fusioniert.',
-  fusion: 'Hauseigene Fusion aller Quellen zu einem geglätteten Gesamtbild — mit ehrlicher Unsicherheit.',
   'icon-d2': 'Hochaufgelöstes Kurzfristmodell für Mitteleuropa, ideal für die nächsten zwei Tage.',
   'icon-d2-eps': 'Ensemble-Variante des ICON-D2 — Kurzfrist mit Unsicherheitsspanne.',
   inca: 'Analyse-Nowcast auf 1 km — die aktuelle Lage und die nächsten Stunden für Österreich.',
@@ -51,7 +50,7 @@ const MODEL_DESC: Record<ModelId, string> = {
 
 /** Typischer Lauf-/Aktualisierungstakt (UI-Angabe „Update"). */
 const MODEL_UPDATE: Record<ModelId, string> = {
-  native: 'alle 3 h', fusion: 'alle 3 h',
+  native: 'alle 3 h',
   'icon-d2': 'alle 3 h', 'icon-d2-eps': 'alle 3 h', inca: 'stündlich',
   'arome-at': 'alle 3 h', 'icon-ch1-eps': 'alle 3 h', 'icon-ch2-eps': 'alle 6 h',
   'arome-fr': 'alle 3 h', 'icon-eu': 'alle 3 h', mosmix: 'alle 6 h', obs: 'alle 10 min',
@@ -63,7 +62,6 @@ const MODEL_UPDATE: Record<ModelId, string> = {
 /** Herkunfts-/Typ-Zeile („Komposit", „KI-Modell", „Ensemble" …). */
 function kindLabel(e: ModelEntry): string {
   if (e.special === 'native') return 'Komposit';
-  if (e.special === 'fusion') return 'Kombiniert · hauseigen';
   if (e.nowcast) return 'Nowcast';
   if (e.kind === 'point') return 'Punkt / Stationen';
   if (e.kind === 'analysis') return 'Analyse / Messung';
@@ -178,7 +176,7 @@ export default function ModelLibraryOverlay({
 
   const list = useMemo(() => {
     const order = (e: ModelEntry) =>
-      e.special === 'native' ? 0 : e.special === 'fusion' ? 1
+      e.special === 'native' ? 0
       : e.group === 'local' ? 2 : e.group === 'regional' ? 3 : 4;
     return MODEL_CATALOG
       .filter((e) => {

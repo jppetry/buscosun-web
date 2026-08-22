@@ -1,22 +1,18 @@
 /*
- * Waldbrand DACH — Command-Deck in Wetterkarten-Optik (Phase WBU1, D-27).
+ * Brandradar DACH — Command-Deck (D-27), Vorlage `references/brandradar.dc.html`.
  *
- * Die Werte sind KOPIEN der `.mdk-`-Optik aus `src/map/mapDeck.css` (Dock-
- * Zeilen `layerRowDeck`, Zeit-Deck `mdk-timedeck`, Readout-Karten
- * `mdk-ro-lcard`) und der Steckbrief-Optik `.layer-info` aus `MapView.css`
- * — bewusst als Kopie unter `.fire-`-Präfix, NIE als Import: `mapDeck.css`
- * gehört der Wetterkarte, und geteilte Klassen würden Pixel-Paritäts-Beweise
- * unmöglich machen (`audit/waldbrand-ui.md` §4/§6). Geteilte Basis ist
- * ausschließlich `designTokens.css`.
+ * Sand/Ink · League Spartan · Feuer-Rampe. Maße, Radien, Abstände und Farbwerte
+ * sind die der Vorlage (B1 Desktop Karte, B2 Desktop Brände, B3 Tablet,
+ * B4–B6 Mobile). Farben ausschließlich über Tokens (`designTokens.css`,
+ * Namensraum `--br-*`); keine Ad-hoc-Hex im JSX.
  *
  * ⚠️ Diese Datei wird ausschließlich von `FirePage.tsx` importiert und landet
  * damit im Lazy-Chunk. Sie darf NIE aus `App.tsx` oder `SearchPage.tsx` heraus
- * importiert werden: `eagerCss` steht mit 8,5 KB exakt auf der Budget-Grenze
- * (`audit/waldbrand-geruest.md` §0), jedes eager gewordene Byte bricht sie.
+ * importiert werden (eager-CSS-Budget, `audit/waldbrand-geruest.md` §0).
  *
  * Breakpoints ausschließlich 767 px (mobil) und 1439 px (Desktop groß) —
- * keine Ad-hoc-Werte (CLAUDE.md). Alle Selektoren sind unter `.fire-root`
- * bzw. `.fire-`-Präfix gescoped, damit nichts in andere Decks leakt.
+ * keine Ad-hoc-Werte (CLAUDE.md). Alle Selektoren unter `.fire-root` bzw.
+ * `.br-`/`.fire-`-Präfix, damit nichts in andere Decks leakt.
  */
 
 .fire-root {
@@ -28,1078 +24,748 @@
   color: var(--ink-900, #2C2A26);
   font-family: 'League Spartan', var(--font-base, system-ui, sans-serif);
   -webkit-font-smoothing: antialiased;
+  --br-bar-h: 0px;
+}
+.fire-root a { color: var(--br-terra); text-decoration: none; }
+.fire-root a:hover { color: var(--br-terra-hover); }
+.fire-root button { font-family: inherit; }
+.fire-root ::-webkit-scrollbar { width: 7px; height: 7px; }
+.fire-root ::-webkit-scrollbar-thumb { background: var(--border-medium, #D9D0B8); border-radius: 4px; }
+
+/* Farbfamilien der Vorlage — als `--br-acc` je Zeile/Karte/Gruppe aufgelöst. */
+.fire-root [data-br='red'] { --br-acc: var(--br-red); }
+.fire-root [data-br='amber'] { --br-acc: var(--br-amber); }
+.fire-root [data-br='terra'] { --br-acc: var(--br-terra); }
+.fire-root [data-br='steel'] { --br-acc: var(--br-steel); }
+.fire-root [data-br='slate'] { --br-acc: var(--br-slate); }
+.fire-root [data-br='sage'] { --br-acc: var(--br-sage); }
+.fire-root [data-br='stone'] { --br-acc: var(--br-stone); }
+
+.br-eyebrow {
+  font-size: 9px; letter-spacing: 1.5px; color: var(--stone-400, #A89A7A);
+  font-weight: 700; text-transform: uppercase;
+}
+.br-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--br-acc, var(--br-amber)); flex: 0 0 auto; display: inline-block; }
+.br-muted { color: var(--stone-400, #A89A7A); }
+.br-count {
+  font-size: 10px; color: var(--stone-600, #5C5447); font-weight: 500;
+  background: var(--sand-100, #EDE6D3); border-radius: 6px; padding: 2px 7px;
+}
+.br-count.is-bordered { font-size: 10.5px; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 7px; padding: 5px 10px; }
+.br-link {
+  display: inline-block; border: 0; background: none; padding: 0; cursor: pointer;
+  font: inherit; font-size: 11px; font-weight: 600; color: var(--br-terra); margin-top: 9px;
+}
+.br-link:hover { color: var(--br-terra-hover); }
+.br-close {
+  width: 26px; height: 26px; padding: 0; margin-left: auto; flex: 0 0 auto;
+  border: 1px solid var(--sand-200, #E0D6BE); border-radius: 8px; background: #fff;
+  color: var(--stone-500, #8B7355); font-size: 15px; line-height: 1; cursor: pointer;
+}
+.br-inline-btn {
+  border: 1px solid var(--sand-200, #E0D6BE); border-radius: 8px; background: #fff; cursor: pointer;
+  font: inherit; font-size: 11.5px; font-weight: 600; color: var(--br-terra); padding: 4px 8px; min-height: 28px;
+}
+/* Hinweis-Kasten der Vorlage (Grenze / Rückfall / Vorbehalt). */
+.br-box {
+  margin: 11px 0 0; padding: 10px 11px; border-radius: 9px;
+  background: var(--br-warn-tint); border: 1px solid var(--br-warn-border);
+  font-size: 10.5px; color: var(--stone-600, #5C5447); line-height: 1.55;
+}
+.br-box strong { color: var(--br-warn-ink); }
+.br-box.is-gap, .br-box.is-lag { margin: 0 0 10px; }
+.br-box.is-stale { margin: 0 0 8px; }
+.br-note { margin: 10px 0 0; font-size: 10.5px; line-height: 1.5; color: var(--stone-500, #8B7355); }
+.br-sources { margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--sand-200, #E0D6BE); font-size: 10px; color: var(--stone-400, #A89A7A); line-height: 1.7; }
+.br-empty {
+  margin: 0 0 10px; padding: 10px 12px; border-radius: 12px;
+  background: #fff; border: 1px dashed var(--sand-200, #E0D6BE);
+  font-size: 12px; line-height: 1.55; color: var(--stone-600, #5C5447);
+}
+.br-empty strong { color: var(--ink-900, #2C2A26); }
+
+/* Fokus-States (Tastatur) — einheitlich, dezent. */
+.fire-root button:focus-visible, .fire-root a:focus-visible, .fire-root input:focus-visible, .fire-root summary:focus-visible {
+  outline: 2px solid var(--br-terra); outline-offset: 2px;
 }
 
-/* Layer-Akzentfarben — dieselbe Token-Auflösung wie im Wetterkarten-Dock,
-   aber unter `.fire-root` gescoped (kein globales [data-accent]). */
-.fire-root [data-accent='steel'] { --fd-accent: var(--steel-600, #3A6FA8); }
-.fire-root [data-accent='sage'] { --fd-accent: var(--sage-600, #7A9466); }
-.fire-root [data-accent='terracotta'] { --fd-accent: var(--terracotta-500, #C97B47); }
-.fire-root [data-accent='violet'] { --fd-accent: var(--violet-600, #7C6BC4); }
-.fire-root [data-accent='amber'] { --fd-accent: var(--amber-500, #D4A373); }
-.fire-root [data-accent='slate'] { --fd-accent: var(--slate-500, #6B7A8F); }
-
-.fire-eyebrow {
-  font-size: 11px;
-  letter-spacing: 2px;
-  color: var(--stone-400, #A89A7A);
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-.fire-glass {
-  background: rgba(250, 246, 234, 0.94);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid var(--sand-200, #E0D6BE);
-  border-radius: 12px;
-}
-
-/* --- Rail (Ink-dunkel, Muster .mdk-rail) ---------------------------------- */
-.fire-rail {
-  width: 58px;
-  flex: 0 0 auto;
-  background: var(--ink-900, #2C2A26);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 14px 0 calc(14px + env(safe-area-inset-bottom));
-  gap: 8px;
-}
-.fire-rail-btn {
-  width: 42px; height: 42px; border-radius: 11px;
-  display: flex; align-items: center; justify-content: center;
-  color: #8B7355; background: transparent; border: 0; cursor: pointer; position: relative;
-}
-.fire-rail-btn:hover { color: #C4B896; }
-.fire-rail-btn:focus-visible { outline: 2px solid var(--terracotta-500, #C97B47); outline-offset: 2px; }
-.fire-rail-btn.is-active { background: #3A3833; color: #E0A870; cursor: default; }
-.fire-rail-btn.is-active::before {
-  content: ''; position: absolute; left: -8px; top: 9px; bottom: 9px;
-  width: 3px; border-radius: 2px; background: var(--terracotta-500, #C97B47);
-}
-.fire-rail-spacer { flex: 1 1 auto; }
-
-/* --- Deck ------------------------------------------------------------------ */
-.fire-deck { flex: 1 1 auto; display: flex; flex-direction: column; min-width: 0; }
-
-/* --- Topbar (Muster .mdk-topbar) ------------------------------------------- */
-.fire-topbar {
-  height: 64px;
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  padding: 0 20px;
-  background: var(--cream-50, #FAF6EA);
-  border-bottom: 1px solid var(--sand-200, #E0D6BE);
-}
-.fire-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: inherit; }
-.fire-brand-mark {
-  width: 26px; height: 26px; border-radius: 8px; display: block;
-  background: linear-gradient(135deg, var(--terracotta-500, #C97B47), #E8A33C);
-}
-.fire-brand-name { font-size: 19px; font-weight: 700; letter-spacing: -0.4px; color: var(--ink-900, #2C2A26); }
-.fire-topdiv { width: 1px; height: 26px; background: var(--sand-200, #E0D6BE); flex: 0 0 auto; }
-.fire-topbar-mid { flex: 1 1 auto; min-width: 0; }
-.fire-title { margin: 2px 0 0; font-size: 17px; font-weight: 700; letter-spacing: -0.3px; }
-
-/* Basiskarten-Segment (Muster .mdk-countries) */
-.fire-basemap {
-  display: flex; align-items: center; gap: 2px;
-  background: #fff; border: 1px solid var(--border-medium, #D9D0B8);
-  border-radius: 12px; padding: 3px; flex: 0 0 auto;
-}
-.fire-basemap button {
+/* Segment-Umschalter der Vorlage (weiß, 1px Rahmen, Radius 8/9, aktiv = Ink oder Rot). */
+.br-seg { display: flex; gap: 3px; background: #fff; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 8px; padding: 3px; flex: 0 0 auto; }
+.br-seg button {
   border: 0; background: transparent; cursor: pointer; font: inherit;
-  font-size: 12.5px; font-weight: 600; letter-spacing: 0.06em;
-  color: var(--stone-500, #8B7355); border-radius: 9px; padding: 7px 12px;
+  font-size: 11px; font-weight: 500; color: var(--stone-500, #8B7355); border-radius: 5px; padding: 5px 10px;
+  white-space: nowrap;
 }
-.fire-basemap button.is-active { background: var(--ink-900, #2C2A26); color: var(--cream-50, #FAF6EA); }
+.br-seg button:hover { color: var(--ink-900, #2C2A26); }
+.br-seg button.is-active { font-weight: 600; color: var(--cream-50, #FAF6EA); background: var(--br-red); }
+.br-seg.is-ink button.is-active { background: var(--ink-900, #2C2A26); }
+.br-seg button:disabled { cursor: not-allowed; opacity: .5; }
+.br-seg button:disabled.is-active { opacity: 1; }
+/* Untersegmente im Dock (Tiefe, Zeitkörbe): volle Breite, je Knopf gleich breit. */
+.br-layerwrap > .br-seg { margin-top: 6px; background: var(--cream-50, #FAF6EA); }
+.br-layerwrap > .br-seg button { flex: 1; text-align: center; }
+.br-layerwrap > .br-seg button.is-active { background: var(--sand-100, #EDE6D3); color: var(--stone-600, #5C5447); font-weight: 600; }
 
-.fire-body { flex: 1 1 auto; display: flex; min-height: 0; }
+/* --- Rail (Ink, 62 px) ---------------------------------------------------- */
+.br-rail {
+  width: 62px; flex: 0 0 auto; background: var(--ink-900, #2C2A26);
+  display: flex; flex-direction: column; align-items: center; padding: 14px 0; gap: 6px;
+}
+.br-rail-btn {
+  width: 42px; height: 42px; border-radius: 11px; display: flex; align-items: center; justify-content: center;
+  color: var(--stone-500, #8B7355); background: transparent; border: 0; cursor: pointer; position: relative;
+}
+.br-rail-btn:hover { color: var(--border-strong, #C4B896); }
+.br-rail-btn.is-active { background: var(--ink-800, #3A3833); color: var(--br-amber); cursor: default; }
+.br-rail-btn.is-active::before {
+  content: ''; position: absolute; left: -14px; top: 9px; bottom: 9px; width: 3px; border-radius: 2px; background: var(--br-red);
+}
+.br-rail-spacer { flex: 1 1 auto; }
 
-/* --- Dock (Muster .mdk-dock + layerRowDeck) -------------------------------- */
-.fire-dock {
-  width: 240px; flex: 0 0 auto;
-  background: var(--cream-50, #FAF6EA);
-  border-right: 1px solid var(--sand-200, #E0D6BE);
-  overflow-y: auto;
-  padding: 16px 12px 20px;
-}
-.fire-dock-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-.fire-dock-count {
-  font-size: 10px; color: var(--stone-600, #5C5447); font-weight: 600;
-  background: var(--sand-100, #EDE6D3); border-radius: 6px; padding: 3px 8px;
-}
-.fire-dock-presets { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
-.fire-preset {
-  border: 1px solid var(--sand-200, #E0D6BE); background: #fff; cursor: pointer; font: inherit;
-  font-size: 12px; font-weight: 600; color: var(--stone-600, #5C5447);
-  border-radius: 999px; padding: 7px 13px; min-height: 32px;
-}
-.fire-preset.is-active { background: var(--terracotta-500, #C97B47); border-color: var(--terracotta-500, #C97B47); color: #fff; }
+/* --- Deck ----------------------------------------------------------------- */
+.fire-deck { flex: 1 1 auto; display: flex; flex-direction: column; min-width: 0; }
+.fire-body { flex: 1 1 auto; display: flex; min-height: 0; position: relative; }
 
-.fire-group { margin-bottom: 14px; }
-.fire-group-head {
-  font-size: 10px; letter-spacing: 2px; font-weight: 700; text-transform: uppercase;
-  color: var(--fd-accent, var(--stone-400, #A89A7A));
-  margin: 0 2px 7px;
+/* --- Topbar (60 px) ------------------------------------------------------- */
+.br-topbar {
+  height: 60px; flex: 0 0 auto; display: flex; align-items: center; gap: 18px; padding: 0 20px;
+  background: var(--cream-50, #FAF6EA); border-bottom: 1px solid var(--sand-200, #E0D6BE);
 }
-.fire-layers { display: flex; flex-direction: column; gap: 6px; }
-/* E2/E3: Zeile + ihr Untersegment als Einheit — derselbe Abstand wie zwischen
-   den Zeilen, damit die Optik gegenüber WBU1 unverändert bleibt. */
-.fire-layerslot { display: flex; flex-direction: column; gap: 6px; }
-.fire-layerwrap { display: flex; flex-direction: column; gap: 4px; }
+.br-brand { display: flex; align-items: center; gap: 10px; color: inherit; }
+.br-brand img { display: block; }
+.br-brand-name { font-size: 19px; font-weight: 700; color: var(--ink-900, #2C2A26); letter-spacing: -0.4px; }
+.br-topdiv { width: 1px; height: 26px; background: var(--sand-200, #E0D6BE); flex: 0 0 auto; }
+.br-topbar-sub { font-size: 13px; color: var(--stone-500, #8B7355); font-weight: 500; }
+.br-topback { margin: 0; font-size: 12px; }
+.br-presets { display: flex; gap: 4px; margin-left: 8px; background: #fff; border: 1px solid var(--border-medium, #D9D0B8); border-radius: 9px; padding: 3px; }
+.br-presets button {
+  border: 0; background: transparent; cursor: pointer; font: inherit;
+  font-size: 12px; font-weight: 500; color: var(--stone-500, #8B7355); border-radius: 6px; padding: 6px 12px;
+}
+.br-presets button.is-active { font-weight: 600; color: var(--cream-50, #FAF6EA); background: var(--br-red); }
+.br-presets button:not(.is-active):hover { color: var(--ink-900, #2C2A26); }
+.br-topbar-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+.br-topbar-map { font-size: 11px; color: var(--stone-500, #8B7355); }
+.br-topbar-map strong { color: var(--ink-900, #2C2A26); font-weight: 600; }
+.br-live { display: flex; align-items: center; gap: 8px; font-size: 11px; letter-spacing: 1.5px; font-weight: 600; text-transform: uppercase; color: var(--br-red); }
+.br-live-dot { position: relative; width: 8px; height: 8px; display: inline-block; }
+.br-live-dot span { position: absolute; inset: 0; border-radius: 50%; background: currentColor; }
+.br-live.is-live .br-live-dot span + span { animation: brPulse 2.4s ease-out infinite; }
+.br-live.is-off { color: var(--stone-400, #A89A7A); }
+.br-live.is-warn { color: var(--br-warn-ink); }
+.br-live.is-err { color: var(--stone-600, #5C5447); }
+@keyframes brPulse { 0% { transform: scale(.6); opacity: .75; } 100% { transform: scale(2.3); opacity: 0; } }
 
-.fire-layer {
+/* --- Layer-Dock (250 px) --------------------------------------------------- */
+.br-dock {
+  width: 250px; flex: 0 0 auto; background: var(--cream-50, #FAF6EA);
+  border-right: 1px solid var(--sand-200, #E0D6BE); overflow-y: auto; padding: 16px 12px;
+}
+.br-dock-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.br-dock-head .br-eyebrow { font-size: 11px; letter-spacing: 2px; }
+.br-group + .br-group { margin-top: 14px; }
+.br-group-head { font-size: 10px; letter-spacing: 1.5px; color: var(--br-acc); font-weight: 700; margin: 0 0 7px; text-transform: uppercase; }
+.br-layers { display: flex; flex-direction: column; gap: 5px; }
+.br-layerwrap { display: flex; flex-direction: column; position: relative; }
+.br-layerwrap.has-seg { background: #fff; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 9px; padding: 0 10px 8px; }
+.br-layerwrap.has-seg > .br-layer { border: 0; padding-left: 0; padding-right: 0; }
+.br-layer {
   display: flex; align-items: center; gap: 9px; width: 100%; text-align: left;
-  background: #fff; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 10px;
-  padding: 8px 10px; min-height: 40px; cursor: pointer; font: inherit;
+  background: #fff; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 9px; padding: 8px 10px;
+  cursor: pointer; font: inherit; color: inherit;
 }
-.fire-layer.is-on { border-color: var(--fd-accent, #3A6FA8); }
-.fire-layer:focus-visible { outline: 2px solid var(--fd-accent, #C97B47); outline-offset: 1px; }
-.fire-layer-ic { flex: 0 0 auto; display: flex; color: var(--fd-accent, #3A6FA8); }
-.fire-layer.is-off .fire-layer-ic { color: var(--stone-500, #8B7355); }
-.fire-layer-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
-.fire-layer-label { font-size: 13px; font-weight: 600; color: var(--ink-900, #2C2A26); }
-.fire-layer.is-off .fire-layer-label { font-weight: 500; color: var(--stone-500, #8B7355); }
-.fire-layer-sub { font-size: 10.5px; color: var(--stone-400, #A89A7A); line-height: 1.35; }
-.fire-switch {
-  width: 34px; height: 19px; border-radius: 10px; background: var(--sand-200, #E0D6BE);
-  position: relative; flex: 0 0 auto; transition: background .15s;
+.br-layer:hover { border-color: var(--border-medium, #D9D0B8); }
+.br-layer.is-on { border-color: var(--br-acc); }
+.br-layer-ic { display: flex; color: var(--br-acc); flex: 0 0 auto; }
+.br-layer-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.br-layer-label { font-size: 12.5px; font-weight: 600; color: var(--ink-900, #2C2A26); }
+.br-layer-sub { font-size: 9.5px; color: var(--stone-500, #8B7355); }
+.br-layer.is-off .br-layer-label { font-weight: 500; color: var(--stone-500, #8B7355); }
+.br-layer.is-off .br-layer-sub { color: var(--stone-400, #A89A7A); }
+.br-switch { width: 30px; height: 17px; border-radius: 9px; background: var(--sand-200, #E0D6BE); position: relative; flex: 0 0 auto; transition: background .15s; }
+.br-switch-knob { position: absolute; top: 2px; left: 2px; width: 13px; height: 13px; border-radius: 50%; background: #fff; transition: transform .15s; }
+.br-layer.is-on .br-switch { background: var(--br-acc); }
+.br-layer.is-on .br-switch-knob { transform: translateX(13px); }
+/* Blockierte Quellen (EDO, ungültiges CORS) bleiben SICHTBAR: gestrichelt, Schloss, Grund. */
+.br-layer.is-blocked { background: var(--br-blocked-bg); border: 1px dashed var(--border-medium, #D9D0B8); opacity: .75; cursor: not-allowed; }
+.br-layer.is-blocked .br-layer-ic { color: var(--br-stone); }
+.br-layer.is-blocked .br-layer-label, .br-layer.is-blocked .br-layer-sub { color: var(--br-stone); font-weight: 500; }
+.br-layer-info { display: none; }
+/* Status-/Hinweiszeilen unter der Zeile — „keine Daten" darf nie wie „keine Gefahr" aussehen (D-04). */
+.br-layer-note { margin: 4px 2px 0; font-size: 10px; color: var(--stone-500, #8B7355); line-height: 1.45; }
+.br-layer-note.is-muted { color: var(--stone-400, #A89A7A); }
+.br-layer-note.is-mapped { padding: 5px 9px; border-radius: 0 8px 8px 0; border-left: 2px solid var(--br-sage); background: var(--br-sage-tint); color: var(--br-sage-text); }
+.br-layer-note.is-links a { color: var(--stone-600, #5C5447); text-decoration: underline dotted; }
+.br-layer-lag {
+  margin: 4px 2px 0; padding: 5px 9px; border-radius: 0 8px 8px 0;
+  border-left: 2px solid var(--br-terra); background: var(--br-warn-tint); font-size: 10.5px; color: var(--br-warn-ink);
 }
-.fire-layer.is-on .fire-switch { background: var(--fd-accent, #3A6FA8); }
-.fire-switch-knob {
-  position: absolute; top: 2px; left: 2px; width: 15px; height: 15px; border-radius: 50%;
-  background: #fff; transition: transform .15s; box-shadow: 0 1px 2px rgba(44,42,38,.25);
-}
-.fire-layer.is-on .fire-switch-knob { transform: translateX(15px); }
-/* Blockierte Quellen (Ausbaustufe 2, EDO-CORS) bleiben SICHTBAR, aber
-   erkennbar nicht schaltbar — verstecken wäre bequemer und unehrlicher. */
-.fire-layer.is-blocked { border-style: dashed; opacity: .6; cursor: not-allowed; }
-
-/* Untersegment im Dock (Rückblick 24 h / 7 Tage — Muster .mdk-subseg) */
-.fire-subseg { display: flex; gap: 4px; margin: 0 2px; }
-.fire-subseg button {
-  flex: 1; border: 1px solid var(--sand-200, #E0D6BE); background: #fff; cursor: pointer;
-  font: inherit; font-size: 11px; font-weight: 600; color: var(--stone-500, #8B7355);
-  border-radius: 7px; padding: 5px 0;
-}
-.fire-subseg button.is-active { background: var(--fd-accent, #C97B47); border-color: var(--fd-accent, #C97B47); color: #fff; }
-/* E3: fünf Sub-Ansichten des Index — dürfen umbrechen, statt zu quetschen. */
-.fire-subseg-wrap { flex-wrap: wrap; }
-.fire-subseg-wrap button { flex: 1 1 30%; padding: 5px 4px; }
-/* BF4: die eigene Zeitachse der 7-Tage-Historie. Sie steht UNTER dem Korb, den
-   sie steuert, und trägt ihre beiden Zeitangaben getrennt: Branddatum und
-   Stand der Kartierung. */
-.fire-burnt-history { display: flex; flex-direction: column; gap: 4px; margin: 6px 2px 0; }
-.fire-burnt-history-row { display: flex; align-items: center; gap: 8px; }
-.fire-burnt-history-label {
-  flex: 0 0 62px; font-size: 11px; font-weight: 700; color: var(--stone-600, #5C5447);
-  font-variant-numeric: tabular-nums;
-}
-.fire-burnt-history-row input[type="range"] {
-  flex: 1; min-width: 0; accent-color: var(--fd-accent, #C97B47);
-  /* Touch-Target: die Bahn ist dünn, die Trefferfläche darf es nicht sein. */
-  height: 24px;
-}
-.fire-burnt-history-note { margin: 0; font-size: 0.68rem; line-height: 1.35; color: var(--stone-500, #8B7355); }
-.fire-burnt-history-note.is-caveat { color: var(--stone-400, #A99B85); }
-
-/* E1/E2: die Bestätigungszeile — ruhig, nicht alarmierend (Sage). */
-.fire-layer-mapped {
-  padding: 5px 9px; border-radius: 0 8px 8px 0;
-  border-left: 2px solid var(--sage-600, #7A9466); background: var(--sage-50, #F0F4EA);
-  color: #45613A;
-}
-
-/* GWBA1 A3: Deep-Links zur Ereignisbestätigung je Land — Stein, ruhig, kein Alarm. */
-.fire-layer-incidents { font-size: 0.7rem; color: var(--stone-500, #8B7355); }
-.fire-layer-incidents a { color: var(--stone-600, #5C5447); text-decoration: underline dotted; }
-
-/* Statuszeilen unter der Dock-Zeile (Datenalter-Zusatz, Lag, Fehlerfall).
-   Der Fehlerfall ist bewusst auffälliger als das Datenalter: „keine Daten"
-   darf nicht wie „keine Gefahr" aussehen (D-04). */
-.fire-layer-status { margin: 0 2px; font-size: 10.5px; color: var(--stone-500, #8B7355); line-height: 1.45; }
-.fire-layer-status.is-error {
-  padding: 6px 9px; border-radius: 0 8px 8px 0;
-  border-left: 2px solid #A32B1E; background: #F7E7E2; color: #6B1410;
-  font-size: 11.5px;
-}
+.fire-layer-status { margin: 4px 2px 0; font-size: 10px; color: var(--stone-500, #8B7355); line-height: 1.45; }
+.fire-layer-status.is-error { padding: 6px 9px; border-radius: 0 8px 8px 0; border-left: 2px solid var(--br-red); background: #F7E7E2; color: var(--br-red-deep); font-size: 11px; }
 .fire-layer-status a { color: inherit; }
-.fire-layer-lag {
-  margin: 0 2px; padding: 5px 9px; border-radius: 0 8px 8px 0;
-  border-left: 2px solid var(--terracotta-500, #C97B47); background: var(--terracotta-50, #FAEEDA);
-  font-size: 11px; color: var(--terracotta-700, #A85E2E);
-}
+.br-burnt-history { display: flex; flex-direction: column; gap: 3px; margin-top: 6px; }
+.br-burnt-history-row { display: flex; align-items: center; gap: 8px; }
+.br-burnt-history-label { flex: 0 0 62px; font-size: 11px; font-weight: 700; color: var(--stone-600, #5C5447); font-variant-numeric: tabular-nums; }
+.br-burnt-history-row input[type='range'] { flex: 1; min-width: 0; accent-color: var(--br-terra); height: 24px; }
 
-/* Steckbrief-Knopf gibt es nur im mobilen Sheet (Desktop: Hover/Fokus →
-   Readout-Vorschau, das Wetterkarten-Muster). */
-.fire-layer-infobtn {
-  width: 44px; height: 44px; border-radius: 50%; flex: 0 0 44px;
-  border: 1px solid var(--sand-200, #E0D6BE); background: #fff;
-  color: var(--stone-500, #8B7355); font: inherit; font-size: .8rem; line-height: 1; cursor: pointer;
-}
-
-/* --- Bühne (Muster .mdk-stage) --------------------------------------------- */
-.fire-center { flex: 1 1 auto; position: relative; min-width: 0; overflow: hidden; background: #0B0E12; }
+/* --- Karte ---------------------------------------------------------------- */
+.fire-center { flex: 1 1 auto; position: relative; min-width: 0; overflow: hidden; background: var(--br-map-bg); }
 .fire-map { position: absolute; inset: 0; }
 .fire-center .maplibregl-map { font-family: inherit; }
 .fire-center .maplibregl-ctrl-attrib,
 .fire-center details.maplibregl-ctrl-attrib.maplibregl-compact,
 .fire-center details.maplibregl-ctrl-attrib.maplibregl-compact-show {
-  background: rgba(11, 14, 18, 0.6); color: #8B95A3; font-size: 10px;
-  border-radius: 6px; padding: 1px 6px;
+  background: rgba(11, 14, 18, 0.6); color: #8B95A3; font-size: 10px; border-radius: 6px; padding: 1px 6px;
 }
 .fire-center .maplibregl-ctrl-attrib a { color: #A8B2C0; }
 .fire-center .maplibregl-ctrl-attrib-button { filter: invert(0.7); }
-/* Der Zoom kommt aus FireMap (NavigationControl, bottom-right) und teilt sich
-   den Container mit der Attributionszeile — deshalb bleibt der Container
-   unten rechts und wird nur ÜBER das Zeit-Deck gehoben (Muster
-   `.mdk-stage .maplibregl-ctrl-bottom-right`); Glass-Optik wie .mdk-zoom.
-   Kein Eingriff in FireMap.tsx (Datenpfad-Datei). */
-.fire-center .maplibregl-ctrl-bottom-right { bottom: 96px; right: 12px; }
-.fire-center .maplibregl-ctrl-bottom-left { bottom: 96px; left: 12px; }
+.fire-center .maplibregl-ctrl-bottom-right { bottom: 128px; right: 16px; }
+.fire-center .maplibregl-ctrl-bottom-left { bottom: 128px; left: 16px; }
+/* Zoom (NavigationControl, top-right) — Glass-Kasten unter dem Basemap-Umschalter. */
+.fire-center .maplibregl-ctrl-top-right { top: 58px; right: 16px; }
 .fire-center .maplibregl-ctrl-group {
-  background: rgba(250, 246, 234, 0.94);
-  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-  border: 1px solid var(--sand-200, #E0D6BE); border-radius: 12px; box-shadow: none;
-  overflow: hidden;
+  background: var(--br-glass); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--sand-200, #E0D6BE); border-radius: 10px; box-shadow: none; overflow: hidden; margin: 0;
 }
 .fire-center .maplibregl-ctrl-group button { width: 38px; height: 38px; }
 .fire-center .maplibregl-ctrl-group button + button { border-top: 1px solid var(--sand-200, #E0D6BE); }
 .fire-center .maplibregl-ctrl-group button:hover { background: rgba(224, 214, 190, 0.5); }
 
-/* Ehrlichkeits-Notiz des Treiber-Layers — Status-Chip-Optik (oben links). */
-.fire-scaffold-note {
-  position: absolute; left: 16px; top: 16px; z-index: 5;
-  max-width: min(340px, calc(100% - 32px));
-  padding: 8px 11px;
-  font-size: 10.5px; color: var(--stone-500, #8B7355); line-height: 1.45;
-  background: rgba(250, 246, 234, 0.9);
+.br-map-tl { position: absolute; left: 16px; top: 16px; z-index: 5; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; max-width: calc(100% - 330px); }
+.br-map-tr { position: absolute; right: 16px; top: 16px; z-index: 5; display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
+.br-map-pc { position: absolute; right: 16px; top: 150px; z-index: 5; width: 250px; }
+.br-pill {
+  display: flex; align-items: center; gap: 9px; background: var(--br-glass); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--sand-200, #E0D6BE); border-radius: 10px; padding: 8px 13px; max-width: 100%;
 }
-.fire-scaffold-note strong { color: var(--ink-900, #2C2A26); }
-/* E3: die Begleit-Notiz des EU-Index — rechts oben, damit sie der Treiber-
-   Notiz links oben nicht ins Gehege kommt, wenn beide Layer an sind. */
-.fire-danger-note { left: auto; right: 16px; }
-.fire-danger-note-switch {
-  border: 0; background: none; padding: 0; font: inherit; font-size: inherit;
-  color: var(--terracotta-700, #A85E2E); text-decoration: underline; cursor: pointer;
+.br-pill-title { font-size: 12px; color: var(--ink-900, #2C2A26); font-weight: 600; white-space: nowrap; }
+.br-pill-src { font-size: 11px; color: var(--stone-500, #8B7355); }
+.br-pill.is-mark { --br-acc: var(--br-mark); padding: 7px 11px; border-radius: 9px; }
+.br-pill.is-mark .br-dot { width: 7px; height: 7px; }
+.br-pill.is-mark .br-pill-title { font-size: 11.5px; }
+.br-views { display: flex; gap: 3px; background: var(--br-glass); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid var(--sand-200, #E0D6BE); border-radius: 10px; padding: 3px; max-width: 100%; overflow-x: auto; }
+.br-chips { overflow-y: hidden; scrollbar-width: none; -ms-overflow-style: none; }
+.br-chips::-webkit-scrollbar { display: none; height: 0; }
+.br-views button {
+  flex: 0 0 auto; border: 0; background: transparent; cursor: pointer; font: inherit;
+  font-size: 11.5px; font-weight: 500; color: var(--stone-500, #8B7355); border-radius: 7px; padding: 6px 11px;
 }
+.br-views button:hover { color: var(--ink-900, #2C2A26); }
+.br-views button.is-active { font-weight: 600; color: var(--cream-50, #FAF6EA); background: var(--br-red); }
+.br-mapnote {
+  max-width: 420px; padding: 8px 11px; font-size: 10.5px; color: var(--stone-500, #8B7355); line-height: 1.45;
+  background: var(--br-glass); border: 1px solid var(--sand-200, #E0D6BE); border-radius: 10px;
+}
+.br-mapnote strong { color: var(--ink-900, #2C2A26); }
+.br-basemap { display: flex; background: var(--br-glass); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid var(--sand-200, #E0D6BE); border-radius: 10px; padding: 3px; }
+.br-basemap button { border: 0; background: transparent; cursor: pointer; font: inherit; font-size: 11.5px; font-weight: 500; color: var(--stone-500, #8B7355); border-radius: 7px; padding: 6px 11px; }
+.br-basemap button.is-active { font-weight: 600; color: var(--cream-50, #FAF6EA); background: var(--ink-900, #2C2A26); }
 
-/* --- Zeit-Deck (Muster .mdk-timedeck) -------------------------------------- */
-.fire-timedeck {
-  position: absolute; left: 24px; right: 24px; bottom: 18px; z-index: 6;
-  border-radius: 16px; padding: 12px 16px 10px;
-}
-.fire-td-row { display: flex; align-items: center; gap: 14px; }
-.fire-td-play {
-  width: 44px; height: 44px; flex: 0 0 auto; border: 0; border-radius: 12px;
-  background: var(--terracotta-500, #C97B47); color: #fff; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-}
-.fire-td-play:hover { background: var(--terracotta-700, #A85E2E); }
-.fire-td-track { flex: 1; min-width: 0; }
-.fire-td-ticks {
-  display: flex; justify-content: space-between; align-items: baseline;
-  font-size: 11px; color: var(--stone-400, #A89A7A); font-weight: 600; margin-bottom: 5px;
-}
-.fire-td-now {
-  border: 0; background: none; cursor: pointer; padding: 0; font: inherit;
-  font-size: 12px; letter-spacing: 1px; font-weight: 700; text-transform: uppercase;
-  color: var(--terracotta-500, #C97B47);
-}
-.fire-td-now:disabled { cursor: default; }
-.fire-timedeck input[type='range'] {
-  width: 100%; height: 20px; margin: 0; appearance: none; -webkit-appearance: none;
-  background: transparent; cursor: pointer; display: block;
-}
-.fire-timedeck input[type='range']::-webkit-slider-runnable-track {
-  height: 6px; border-radius: 3px;
-  background: linear-gradient(90deg, var(--terracotta-500, #C97B47) 0 var(--tl-fill, 0%), var(--sand-200, #E0D6BE) var(--tl-fill, 0%) 100%);
-}
-.fire-timedeck input[type='range']::-webkit-slider-thumb {
-  -webkit-appearance: none; appearance: none; width: 16px; height: 16px; border-radius: 50%;
-  background: var(--terracotta-500, #C97B47); border: 3px solid #fff;
-  box-shadow: 0 1px 3px rgba(44,42,38,.4); margin-top: -5px;
-}
-.fire-timedeck input[type='range']::-moz-range-track {
-  height: 6px; border-radius: 3px; background: var(--sand-200, #E0D6BE);
-}
-.fire-timedeck input[type='range']::-moz-range-progress {
-  height: 6px; border-radius: 3px; background: var(--terracotta-500, #C97B47);
-}
-.fire-timedeck input[type='range']::-moz-range-thumb {
-  width: 10px; height: 10px; border-radius: 50%;
-  background: var(--terracotta-500, #C97B47); border: 3px solid #fff;
-  box-shadow: 0 1px 3px rgba(44,42,38,.4);
-}
-.fire-td-stand {
-  flex: 0 0 auto; font-size: 11.5px; color: var(--stone-500, #8B7355);
-  font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap;
-}
-/* „lädt …" beim entprellten Tageswechsel: der Regler ist schon weiter, die
-   Kacheln noch nicht. Das zu verschweigen sähe aus, als hinge die Karte. */
-.fire-td-pending { color: var(--terracotta-500, #C97B47); font-style: italic; }
-.fire-time-none { margin: 0; font-size: 12px; color: var(--stone-600, #5C5447); line-height: 1.5; }
-/* WF3 §15.5: ohne Tagesachse (Wind allein) steht der Hinweis in der Zeile — der
-   Umschalter rückt wie beim Regler ans rechte Ende. */
-.fire-td-row > .fire-time-none { flex: 1 1 auto; }
-/* WF3: Einheiten-Umschalter „Tage | Stunden" am rechten Ende der Zeile — Optik
-   des Dock-Untersegments (.fire-subseg), eigener Name, weil er im Zeit-Deck
-   steht. Er erscheint nur, wenn ein aktiver Layer Stundenframes hat; ohne ihn
-   ist die Zeile pixelgleich zum Stand vor WF3. */
-.fire-td-unit { display: flex; gap: 4px; flex: 0 0 auto; }
-.fire-td-unit button {
-  border: 1px solid var(--sand-200, #E0D6BE); background: #fff; cursor: pointer;
-  font: inherit; font-size: 11px; font-weight: 600; color: var(--stone-500, #8B7355);
-  border-radius: 7px; padding: 5px 9px; min-height: 26px;
-}
-.fire-td-unit button.is-active {
-  background: var(--terracotta-500, #C97B47); border-color: var(--terracotta-500, #C97B47); color: #fff;
-}
+/* Punktkurve */
+.br-pc { background: var(--br-glass-strong); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid var(--sand-200, #E0D6BE); border-radius: 12px; padding: 13px; }
+.br-pc-head { display: flex; align-items: baseline; gap: 8px; }
+.br-pc-right { margin-left: auto; font-size: 10px; color: var(--stone-500, #8B7355); }
+.br-pc-head .br-close { margin-left: 0; width: 22px; height: 22px; font-size: 13px; align-self: center; }
+.br-pc-pos { margin: 6px 0 0; font-size: 12.5px; font-weight: 600; color: var(--ink-900, #2C2A26); font-variant-numeric: tabular-nums; }
+.br-pc-chart { width: 100%; height: 60px; margin-top: 8px; display: block; }
+.br-pc-axis { display: flex; justify-content: space-between; font-size: 9px; color: var(--stone-400, #A89A7A); }
+.br-pc-axis .is-hidden { visibility: hidden; }
+.br-pc-now { display: flex; align-items: center; gap: 6px; margin: 8px 0 0; font-size: 11px; color: var(--stone-600, #5C5447); }
+.br-pc-now .fire-swatch { width: 11px; height: 11px; }
+.br-pc-note { font-size: 10px; color: var(--stone-600, #5C5447); margin: 8px 0 0; line-height: 1.5; }
+.br-pc-note strong { color: var(--ink-900, #2C2A26); }
+.br-pc-src { margin: 6px 0 0; font-size: 9.5px; color: var(--stone-400, #A89A7A); }
+.br-pc .br-box.is-gap { margin: 8px 0 0; }
 
-/* --- Readout (Muster .mdk-readout + mdk-ro-lcard + .layer-info) ------------ */
-.fire-readout {
-  width: 348px; flex: 0 0 auto;
-  background: var(--cream-50, #FAF6EA);
-  border-left: 1px solid var(--sand-200, #E0D6BE);
-  overflow-y: auto;
-  padding: 16px 16px 24px;
+/* --- Zeit-Deck ------------------------------------------------------------ */
+.br-timedeck {
+  position: absolute; left: 16px; right: 16px; bottom: 16px; z-index: 6;
+  background: var(--br-glass-strong); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--sand-200, #E0D6BE); border-radius: 14px; padding: 13px 18px;
 }
-.fire-ro-section-head {
-  display: flex; align-items: center; justify-content: space-between; gap: 8px;
-  margin: 18px 0 10px;
+.br-td-row { display: flex; align-items: center; gap: 16px; }
+.br-play {
+  width: 36px; height: 36px; border-radius: 9px; border: 0; background: var(--br-red); color: var(--cream-50, #FAF6EA);
+  display: flex; align-items: center; justify-content: center; cursor: pointer; flex: 0 0 auto;
 }
-.fire-ro-section-head:first-child { margin-top: 0; }
-.fire-ro-layerinfo { margin-bottom: 4px; padding-bottom: 14px; border-bottom: 1px solid var(--sand-200, #E0D6BE); }
-.fire-ro-layerinfo .fire-ro-section-head { margin: 0 0 10px; }
-.fire-ro-lstack { display: flex; flex-direction: column; gap: 10px; }
+.br-play:hover { background: #8F2419; }
+.br-play:disabled { opacity: .45; cursor: default; }
+.br-track { flex: 1; min-width: 0; }
+.br-ticks { display: flex; justify-content: space-between; font-size: 11px; color: var(--stone-400, #A89A7A); font-weight: 500; margin-bottom: 7px; }
+.br-tick { border: 0; background: none; padding: 0; cursor: pointer; font: inherit; font-size: 11px; font-weight: 500; color: var(--stone-400, #A89A7A); }
+.br-tick:hover { color: var(--ink-900, #2C2A26); }
+.br-tick.is-active { color: var(--br-red); font-weight: 600; }
+.br-track input[type='range'] { width: 100%; height: 18px; margin: 0; appearance: none; -webkit-appearance: none; background: transparent; cursor: pointer; display: block; }
+.br-track input[type='range']::-webkit-slider-runnable-track {
+  height: 8px; border-radius: 4px;
+  background: linear-gradient(90deg, var(--br-red) 0 var(--tl-fill, 0%), var(--sand-200, #E0D6BE) var(--tl-fill, 0%) 100%);
+}
+.br-track input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%;
+  background: var(--br-red); border: 4px solid var(--cream-50, #FAF6EA); box-shadow: 0 2px 6px rgba(0,0,0,.2); margin-top: -5px;
+}
+.br-track input[type='range']::-moz-range-track { height: 8px; border-radius: 4px; background: var(--sand-200, #E0D6BE); }
+.br-track input[type='range']::-moz-range-progress { height: 8px; border-radius: 4px; background: var(--br-red); }
+.br-track input[type='range']::-moz-range-thumb { width: 10px; height: 10px; border-radius: 50%; background: var(--br-red); border: 4px solid var(--cream-50, #FAF6EA); box-shadow: 0 2px 6px rgba(0,0,0,.2); }
+.br-time-none { flex: 1; margin: 0; font-size: 12px; color: var(--stone-600, #5C5447); line-height: 1.5; }
+.br-td-window-text { font-size: 10.5px; color: var(--stone-500, #8B7355); }
+.br-legend { display: flex; align-items: center; gap: 16px; margin-top: 11px; padding-top: 11px; border-top: 1px solid var(--sand-200, #E0D6BE); flex-wrap: wrap; }
+.br-legend-classes { display: flex; align-items: center; }
+.br-legend-cls { display: flex; align-items: center; gap: 5px; padding-right: 9px; font-size: 10.5px; color: var(--stone-600, #5C5447); }
+.br-legend-cls i, .br-legend-compact i { width: 14px; height: 9px; border-radius: 2px; display: inline-block; }
+.br-legend-compact { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--stone-500, #8B7355); }
+.br-legend-compact i { width: 9px; height: 8px; }
+.br-legend-dot { display: flex; align-items: center; gap: 5px; font-size: 10.5px; color: var(--stone-600, #5C5447); }
+.br-legend-dot i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+.br-legend-dot i.is-line { width: 11px; height: 3px; border-radius: 0; background: var(--br-amber); }
+.br-legend-none { font-size: 10.5px; color: var(--stone-400, #A89A7A); }
+.br-legend-stand { font-size: 10.5px; color: var(--stone-500, #8B7355); font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.br-legend-derived { font-size: 10px; color: var(--stone-400, #A89A7A); margin-left: auto; }
+.br-td-pending { color: var(--br-red); font-style: italic; }
+/* B2 — Brände-Modus: kompakte Zeile (32-px-Play, 6-px-Spur, Rückblick als Text). */
+.br-timedeck.is-compact { padding: 11px 15px; border-radius: 12px; left: 14px; right: 14px; bottom: 14px; }
+.br-timedeck.is-compact .br-td-row { gap: 14px; }
+.br-timedeck.is-compact .br-play { width: 32px; height: 32px; border-radius: 8px; }
+.br-timedeck.is-compact .br-ticks { font-size: 10px; margin-bottom: 6px; }
+.br-timedeck.is-compact .br-track input[type='range']::-webkit-slider-runnable-track { height: 6px; }
+.br-timedeck.is-compact .br-track input[type='range']::-webkit-slider-thumb { width: 15px; height: 15px; border: 3px solid var(--cream-50, #FAF6EA); margin-top: -4.5px; }
 
-/* --- BC1: Umschalter „Layer | Brände" + Cluster-Liste ----------------------
-   Der Umschalter übernimmt die Optik des Dock-Untersegments (.fire-subseg),
-   steht aber im Readout und trägt deshalb einen eigenen Namen — die beiden
-   dürfen sich unabhängig entwickeln. Das Panel darunter bleibt unverändert. */
-.fire-ro-tabs { display: flex; gap: 4px; margin: 0 0 14px; }
-.fire-ro-tabs button {
-  flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
-  border: 1px solid var(--sand-200, #E0D6BE); background: #fff; cursor: pointer;
-  font: inherit; font-size: 12.5px; font-weight: 600; color: var(--stone-500, #8B7355);
-  border-radius: 9px; padding: 8px 0; min-height: 34px;
+/* --- Readout (340 px) ----------------------------------------------------- */
+.br-readout {
+  width: 340px; flex: 0 0 auto; background: var(--cream-50, #FAF6EA);
+  border-left: 1px solid var(--sand-200, #E0D6BE); overflow-y: auto; padding: 16px;
 }
-.fire-ro-tabs button.is-active {
-  background: var(--ink-900, #2C2A26); border-color: var(--ink-900, #2C2A26);
-  color: var(--cream-50, #FAF6EA);
-}
-.fire-ro-tabs button:focus-visible { outline: 2px solid var(--terracotta-500, #C97B47); outline-offset: 1px; }
-.fire-ro-tabcount {
-  font-size: 10px; font-weight: 700; font-variant-numeric: tabular-nums;
-  background: var(--sand-100, #EDE6D3); color: var(--stone-600, #5C5447);
-  border-radius: 6px; padding: 2px 6px;
-}
-.fire-ro-tabs button.is-active .fire-ro-tabcount { background: #4A463F; color: var(--cream-50, #FAF6EA); }
+.fire-root.is-fires .br-readout { width: 400px; }
+.br-tabs { display: flex; gap: 3px; background: #fff; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 9px; padding: 3px; }
+.br-tabs button { flex: 1; text-align: center; border: 0; background: transparent; cursor: pointer; font: inherit; font-size: 12.5px; font-weight: 500; color: var(--stone-500, #8B7355); border-radius: 6px; padding: 7px 0; }
+.br-tabs button:hover { color: var(--ink-900, #2C2A26); }
+.br-tabs button.is-active { font-weight: 600; color: var(--cream-50, #FAF6EA); background: var(--br-red); }
+.br-readout > .br-box.is-lag { margin: 14px 0 0; }
 
-.fire-clist-window { margin: 0 0 8px; font-size: 11.5px; line-height: 1.5; color: var(--stone-500, #8B7355); }
-/* Leerzustände nennen immer ihren Grund — „keine Liste" darf nie wie
-   „keine Brände" aussehen (D-04). Deshalb Kasten statt Kleingedrucktes. */
-.fire-clist-empty {
-  margin: 0; padding: 10px 12px; border-radius: 12px;
-  background: #fff; border: 1px dashed var(--sand-200, #E0D6BE);
-  font-size: 12px; line-height: 1.55; color: var(--stone-600, #5C5447);
-}
-.fire-clist-empty strong { color: var(--ink-900, #2C2A26); }
+/* Steckbrief-Karte */
+.br-card { position: relative; background: #fff; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 13px; padding: 14px; margin-top: 10px; }
+.br-tabs + .br-card, .br-tabs + .br-box + .br-card { margin-top: 14px; }
+.br-card[data-br='amber'], .br-card[data-br='red'] { border-color: var(--br-acc); }
+.br-card.is-preview { border-style: dashed; background: var(--sand-50, #F5F1E8); }
+.br-card.is-blocked { background: var(--br-blocked-bg); border-style: dashed; }
+.br-card-chip { position: absolute; right: 10px; top: 10px; font-size: 9px; letter-spacing: 1.4px; text-transform: uppercase; font-weight: 700; color: var(--stone-500, #8B7355); background: var(--sand-100, #EDE6D3); border-radius: 6px; padding: 3px 7px; }
+.br-card-eyebrow { display: flex; align-items: center; gap: 8px; font-size: 9px; letter-spacing: 1.5px; color: var(--br-acc, var(--stone-400)); font-weight: 700; text-transform: uppercase; }
+.br-card[data-br='amber'] .br-card-eyebrow { color: var(--br-terra); }
+.br-card[data-br='stone'] .br-card-eyebrow, .br-card[data-br='slate'] .br-card-eyebrow, .br-card[data-br='sage'] .br-card-eyebrow, .br-card[data-br='steel'] .br-card-eyebrow { color: var(--stone-400, #A89A7A); }
+.br-card-title { margin: 8px 0 0; font-size: 16px; font-weight: 700; color: var(--ink-900, #2C2A26); }
+.br-card-q { margin: 6px 0 0; font-size: 11.5px; color: var(--stone-600, #5C5447); line-height: 1.5; }
+.br-card-rows { display: grid; grid-template-columns: 66px 1fr; gap: 7px 9px; margin: 11px 0 0; }
+.br-card-rows dt { font-size: 9.5px; letter-spacing: .5px; color: var(--stone-400, #A89A7A); font-weight: 700; text-transform: uppercase; }
+.br-card-rows dd { margin: 0; font-size: 11px; color: var(--ink-900, #2C2A26); line-height: 1.4; }
+.br-card-ref { margin: 9px 0 0; font-size: 10.5px; color: var(--ink-900, #2C2A26); line-height: 1.55; }
+.br-card-lead { margin: 10px 0 0; font-size: 10.5px; color: var(--stone-600, #5C5447); line-height: 1.55; }
+.br-card .br-box + .br-box { margin-top: 8px; }
+.br-card-legend { margin-top: 11px; padding-top: 9px; border-top: 1px solid var(--sand-100, #EDE6D3); }
+.br-card-legend-head { display: block; font-size: 9px; letter-spacing: 1.5px; color: var(--stone-400, #A89A7A); font-weight: 700; text-transform: uppercase; margin-bottom: 6px; }
+.br-card-more { margin-top: 9px; }
+.br-card-more summary { cursor: pointer; font-size: 11px; font-weight: 600; color: var(--br-terra); list-style: none; }
+.br-card-more summary::-webkit-details-marker { display: none; }
+.br-card-more summary::before { content: '→ '; }
+.br-card-more[open] summary::before { content: '↓ '; }
+.br-tiles { display: flex; gap: 10px; margin-top: 10px; }
+.br-tile { flex: 1; background: var(--cream-50, #FAF6EA); border: 1px solid var(--sand-200, #E0D6BE); border-radius: 9px; padding: 9px; display: flex; flex-direction: column; }
+.br-tile-lbl { font-size: 9px; color: var(--stone-400, #A89A7A); text-transform: uppercase; }
+.br-tile-val { font-size: 17px; font-weight: 700; color: var(--ink-900, #2C2A26); margin-top: 2px; font-variant-numeric: tabular-nums; }
+.br-tile-val.is-grey { color: var(--br-grey-dot); }
+.br-tile-val.is-sage { color: var(--br-sage-text); }
+.br-tile-val.is-red { color: var(--br-red); }
 
-.fire-clist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
-.fire-crow {
-  display: flex; align-items: center; gap: 9px; width: 100%; text-align: left;
-  background: #fff; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 11px;
-  padding: 8px 10px; min-height: 44px; cursor: pointer; font: inherit;
-}
-.fire-crow:hover { border-color: var(--sand-300, #D9CEB0); }
-.fire-crow:focus-visible { outline: 2px solid var(--terracotta-500, #C97B47); outline-offset: 1px; }
-/* Markiert = dieselbe dunkle Kontur, die die Karte um die Hülle zeichnet. */
-.fire-crow.is-sel { border-color: var(--ink-900, #2C2A26); border-width: 1.5px; background: var(--sand-50, #F5F1E8); }
-.fire-crow-rank {
-  flex: 0 0 22px; text-align: center; font-size: 12px; font-weight: 700;
-  font-variant-numeric: tabular-nums; color: var(--stone-400, #A89A7A);
-}
-.fire-crow.is-sel .fire-crow-rank { color: var(--ink-900, #2C2A26); }
-.fire-crow-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.fire-crow-top { display: flex; align-items: center; gap: 6px; min-width: 0; }
-.fire-crow-dot { width: 10px; height: 10px; border-radius: 3px; flex: 0 0 auto; }
-.fire-crow-top b {
-  font-size: 13px; font-weight: 700; color: var(--ink-900, #2C2A26);
-  font-variant-numeric: tabular-nums; white-space: nowrap;
-}
-.fire-crow-count { font-size: 11px; color: var(--stone-500, #8B7355); white-space: nowrap; }
-/* F2-Vorbehalt: neutral (Stein), nie Alarm — es ist eine Einordnung, und zwar
-   unsere. Dieselbe Sprache wie der Steckbrief-Kasten `.fire-pop-stat`. */
-.fire-crow-chip {
-  font-size: 9.5px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 700;
-  color: #5E574E; background: rgba(154, 145, 134, 0.22);
-  border: 1px solid rgba(154, 145, 134, 0.5); border-radius: 5px; padding: 1px 5px;
-  white-space: nowrap; flex: 0 0 auto;
-}
-/* Zwei Zeilen statt einer abgeschnittenen: seit die letzte Detektion ihren
-   Zeitpunkt MIT Datum nennt (7-Tage-Fenster), passte „· vor 2 T 1 h" nicht mehr
-   in eine Zeile — und ausgerechnet das Alter fiel der Ellipse zum Opfer. Der
-   Deckel bleibt (zwei Zeilen), damit die Zeilenhöhe berechenbar bleibt. */
-.fire-crow-meta {
-  font-size: 10.5px; line-height: 1.35; color: var(--stone-400, #A89A7A);
-  overflow: hidden; text-overflow: ellipsis; white-space: normal;
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
-}
-
-/* Der ausgesprochene Deckel (Leistungsgrenze, s. CLUSTER_PAGE). Er steht unter
-   der Liste, nennt die gezeigte Zahl und holt auf Knopfdruck die nächsten. */
-.fire-clist-more {
-  display: flex; align-items: center; justify-content: space-between; gap: 8px;
-  margin-top: 8px; font-size: 11px; color: var(--stone-500, #8B7355);
-}
-.fire-clist-more button {
-  flex: 0 0 auto; border: 1px solid var(--sand-200, #E0D6BE); background: #fff;
-  cursor: pointer; font: inherit; font-size: 11.5px; font-weight: 600;
-  color: var(--stone-600, #5C5447); border-radius: 8px; padding: 7px 11px; min-height: 32px;
-}
-.fire-clist-more button:hover { border-color: var(--sand-300, #D9CEB0); }
-
-/* Legende der Stärke — EIGENE Grenzen, weil ΣFRP über Pixel und Überflüge
-   summiert; dieselbe Farbe meint am Einzelpunkt etwas anderes. */
-.fire-clist-legend { margin: 10px 0 0; }
-.fire-clist-legend ol {
-  list-style: none; margin: 4px 0 0; padding: 0;
-  display: flex; flex-wrap: wrap; gap: 3px 10px;
-}
-.fire-clist-legend li { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--stone-500, #8B7355); }
-.fire-clist-note {
-  margin: 10px 0 0; padding-top: 8px; border-top: 1px solid var(--sand-100, #EDE6D3);
-  font-size: 10.5px; line-height: 1.5; color: var(--stone-500, #8B7355);
-}
-
-.fire-ro-lcard {
-  flex: 0 0 auto;
-  position: relative; overflow: hidden;
-  background: #fff;
-  border: 1px solid var(--sand-200, #E0D6BE);
-  border-radius: 14px;
-}
-.fire-ro-lcard::before {
-  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
-  background: var(--fd-accent, var(--terracotta-500, #C97B47));
-}
-.fire-ro-lcard.is-preview { border-style: dashed; background: var(--sand-50, #F5F1E8); }
-.fire-ro-lchip {
-  position: absolute; right: 10px; top: 10px; z-index: 1;
-  font-size: 9px; letter-spacing: 1.4px; text-transform: uppercase; font-weight: 700;
-  color: var(--stone-500, #8B7355); background: var(--sand-100, #EDE6D3);
-  border-radius: 6px; padding: 3px 7px;
-}
-
-/* Steckbrief-Inneres — Kopie der `.layer-info`-Typo (MapView.css:204-302),
-   eingebettet wie in `.mdk-ro-lcard` (mapDeck.css:463-474). */
-.fire-info { padding: 11px 13px 12px 15px; }
-.fire-info-eyebrow {
-  font-size: 0.64rem; letter-spacing: 0.18em; text-transform: uppercase;
-  font-weight: 600; color: var(--fd-accent, var(--stone-500, #8B7355));
-}
-.fire-info-title {
-  margin: 0.2rem 0 0; font-size: 1rem; font-weight: 500;
-  letter-spacing: -0.01em; color: var(--ink-900, #2C2A26);
-}
-.fire-info-desc { margin: 0.35rem 0 0; font-size: 0.78rem; line-height: 1.5; color: var(--stone-600, #5C5447); }
-.fire-info-legend { margin-top: 0.6rem; }
-.fire-li-bar { height: 13px; border-radius: 6px; border: 1px solid rgba(44, 42, 38, 0.08); }
-.fire-li-scale {
-  display: flex; justify-content: space-between; margin-top: 0.35rem;
-  font-size: 0.72rem; color: var(--stone-500, #8B7355);
-}
-.fire-li-row { display: flex; align-items: center; gap: 0.55rem; font-size: 0.82rem; color: var(--stone-600, #5C5447); }
+/* Legenden-Inneres (Bestand aus FireLayerCard) */
+.fire-info-legend { margin-top: .2rem; }
+.fire-info-desc { margin: .35rem 0 0; font-size: .76rem; line-height: 1.5; color: var(--stone-600, #5C5447); }
+.fire-info-src { display: block; margin-top: .5rem; padding-top: .4rem; border-top: 1px solid var(--sand-100, #EDE6D3); font-size: .64rem; letter-spacing: .04em; text-transform: uppercase; font-weight: 500; color: var(--stone-500, #8B7355); }
+.fire-li-bar { height: 11px; border-radius: 6px; border: 1px solid rgba(44, 42, 38, 0.08); }
+.fire-li-scale { display: flex; justify-content: space-between; margin-top: .3rem; font-size: .68rem; color: var(--stone-500, #8B7355); }
+.fire-li-row { display: flex; align-items: center; gap: .5rem; font-size: .72rem; color: var(--stone-600, #5C5447); padding: 1px 0; }
 .fire-li-hotspot { width: 11px; height: 11px; flex: none; border-radius: 50%; background: #C2542B; box-shadow: 0 0 0 3px rgba(194, 84, 43, 0.25); }
-/* Konfidenz-Varianten des Hotspot-Punkts (F1). Sie bilden die beiden Kanäle der
-   Karte nach: Deckkraft UND Ringstärke — high kräftig, low blass und dünn. */
-.fire-li-conf-h { box-shadow: 0 0 0 3px rgba(194, 84, 43, 0.55); opacity: 1; }
-.fire-li-conf-l { box-shadow: 0 0 0 1.5px rgba(194, 84, 43, 0.2); opacity: 0.45; }
-/* F2: ortsfest eingestuft — ausgegraut, aber unverändert groß und sichtbar. */
-.fire-li-static { background: #9A9186; box-shadow: 0 0 0 3px rgba(154, 145, 134, 0.28); }
-/* Footprint-Rechteck: gestrichelt wie der Nachtumriss auf der Karte. */
-.fire-li-foot {
-  width: 13px; height: 11px; flex: none; border-radius: 2px;
-  border: 1px dashed #C2542B; background: rgba(194, 84, 43, 0.14);
-}
-/* BA3: das Detektionsraster — dieselbe gestrichelte Kante wie auf der Karte,
-   aber als zusammenhängende Fläche statt als einzelnes Pixel. */
-.fire-li-zone {
-  width: 16px; height: 11px; flex: none; border-radius: 3px;
-  border: 1.2px dashed rgba(194, 84, 43, 0.55); background: rgba(194, 84, 43, 0.1);
-}
-.fire-li-fuel { width: 12px; height: 12px; flex: none; border-radius: 3px; background: var(--sage-600, #7A9466); }
-/* E2: Brandflächen — kein Rot mehr (Rot bleibt Gefahr und Detektion). Saison
-   kräftige Kontur, Archiv gestrichelt und blasser — wie auf der Karte. */
+.fire-li-conf-h { box-shadow: 0 0 0 3px rgba(194, 84, 43, 0.55); }
+.fire-li-conf-l { box-shadow: 0 0 0 1.5px rgba(194, 84, 43, 0.2); opacity: .45; }
+.fire-li-static { background: var(--br-grey-dot); box-shadow: 0 0 0 3px rgba(139, 132, 116, 0.28); }
+.fire-li-foot { width: 13px; height: 11px; flex: none; border-radius: 2px; border: 1px dashed #C2542B; background: rgba(194, 84, 43, 0.14); }
+.fire-li-zone { width: 16px; height: 11px; flex: none; border-radius: 3px; border: 1.2px dashed rgba(194, 84, 43, 0.55); background: rgba(194, 84, 43, 0.1); }
+.fire-li-fuel { width: 12px; height: 12px; flex: none; border-radius: 3px; background: var(--br-sage); }
 .fire-li-burnt { width: 13px; height: 12px; flex: none; border-radius: 3px; background: rgba(72, 115, 73, 0.55); }
 .fire-li-burnt-season { border: 1.5px solid #2A2119; }
 .fire-li-burnt-archive { border: 1px dashed #5A4A3C; background: rgba(72, 115, 73, 0.3); }
-/* Landbedeckungs-Legende: neun Klassen, zweispaltig, kompakt. */
-.fire-li-lc {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 3px 10px; margin-bottom: 0.45rem;
-  font-size: 0.74rem; color: var(--stone-600, #5C5447);
-}
-.fire-li-lc-item { display: flex; align-items: center; gap: 0.4rem; min-width: 0; }
+.fire-li-lc { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 10px; margin-bottom: .4rem; font-size: .7rem; color: var(--stone-600, #5C5447); }
+.fire-li-lc-item { display: flex; align-items: center; gap: .4rem; min-width: 0; }
 .fire-li-lc-item .fire-swatch { width: 11px; height: 11px; }
-/* E3: Klassenlegende je Sub-Ansicht — eigene Grenzen, eigene Einheit, eigener
-   Bezug. Die kompakte Fassung ist der Begleiter (Index ↔ Einordnung). */
-.fire-li-classes { margin-bottom: 0.4rem; }
-.fire-li-classes ol { list-style: none; margin: 0.25rem 0 0; padding: 0; }
-.fire-li-classes li { display: flex; align-items: center; gap: 7px; font-size: 0.76rem; padding: 1.5px 0; color: var(--stone-600, #5C5447); }
+.fire-li-classes { margin-bottom: .4rem; }
+.fire-li-classes ol { list-style: none; margin: .25rem 0 0; padding: 0; }
+.fire-li-classes li { display: flex; align-items: center; gap: 7px; font-size: .72rem; padding: 1.5px 0; color: var(--stone-600, #5C5447); }
 .fire-li-cls-name { min-width: 84px; font-weight: 600; color: var(--ink-900, #2C2A26); }
 .fire-li-cls-range { font-variant-numeric: tabular-nums; }
-.fire-li-unit { display: block; font-size: 0.72rem; font-weight: 600; color: var(--ink-900, #2C2A26); }
-.fire-li-ref { display: block; margin-top: 0.3rem; font-size: 0.68rem; line-height: 1.45; color: var(--stone-500, #8B7355); }
-.fire-li-partner {
-  display: block; margin: 0.55rem 0 0.2rem; padding-top: 0.45rem;
-  border-top: 1px dashed var(--sand-200, #E0D6BE);
-  font-size: 0.7rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
-  color: var(--stone-500, #8B7355);
-}
-.fire-li-classes.is-compact li { font-size: 0.7rem; padding: 0.5px 0; }
+.fire-li-unit { display: block; font-size: .7rem; font-weight: 600; color: var(--ink-900, #2C2A26); }
+.fire-li-ref { display: block; margin-top: .3rem; font-size: .66rem; line-height: 1.45; color: var(--stone-500, #8B7355); }
+.fire-li-partner { display: block; margin: .5rem 0 .2rem; padding-top: .4rem; border-top: 1px dashed var(--sand-200, #E0D6BE); font-size: .66rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--stone-500, #8B7355); }
+.fire-li-classes.is-compact li { font-size: .68rem; padding: .5px 0; }
 .fire-li-classes.is-compact .fire-swatch { width: 10px; height: 10px; }
-.fire-li-classes.is-compact .fire-li-cls-name { min-width: 76px; }
-.fire-li-classes.is-compact .fire-li-ref { font-size: 0.64rem; }
-.fire-li-context { width: 12px; height: 12px; flex: none; border-radius: 3px; border: 1.5px solid var(--sage-600, #7A9466); background: var(--sage-50, #F0F4EA); }
-.fire-info-src {
-  display: block; margin-top: 0.6rem; padding-top: 0.45rem;
-  border-top: 1px solid var(--sand-100, #EDE6D3);
-  font-size: 0.66rem; letter-spacing: 0.04em; text-transform: uppercase;
-  font-weight: 500; color: var(--stone-500, #8B7355);
-}
-
-/* Hinweis „Layer folgt dem Regler nicht" — Terracotta-Hinweiszeile. */
-.fire-lag-hint {
-  padding: 8px 11px; border-radius: 0 10px 10px 0;
-  background: var(--terracotta-50, #FAEEDA); border-left: 2px solid var(--terracotta-500, #C97B47);
-  font-size: 12px; line-height: 1.5; color: var(--terracotta-700, #A85E2E);
-  margin: 0 0 4px;
-}
-
-/* Skalen-Trio — weiße Karten in Readout-Optik; bewusst NEBENEINANDER, nie
-   ineinander umgerechnet (docs/DATA_SOURCES.md §W.1). */
-.fire-scales { margin: 0 0 14px; }
-.fire-scale {
-  margin-bottom: 10px; padding: 11px 13px;
-  border: 1px solid var(--sand-200, #E0D6BE); border-radius: 14px; background: #fff;
-}
-.fire-scale-head { display: block; font-weight: 700; font-size: 13px; }
-.fire-scale-cov { display: block; font-size: 10.5px; color: var(--stone-500, #8B7355); margin: 1px 0 7px; }
-.fire-scale-steps { list-style: none; margin: 0; padding: 0; }
-.fire-scale-steps li { display: flex; align-items: center; gap: 7px; font-size: 11.5px; padding: 1.5px 0; }
-.fire-swatch { width: 13px; height: 13px; border-radius: 3px; flex: 0 0 auto; }
-.fire-scale-num { width: 12px; color: var(--stone-500, #8B7355); }
-.fire-scale-derived {
-  display: block; margin-top: 7px; font-size: 10px;
-  color: var(--stone-500, #8B7355); font-style: italic;
-}
-
-/* AT-Lücke: bleibt permanent sichtbar (nie in einen Steckbrief versteckt). */
-.fire-at-gap {
-  font-size: 12px; color: var(--stone-600, #5C5447); line-height: 1.55;
-  background: #fff; border: 1px dashed var(--sand-200, #E0D6BE);
-  border-radius: 12px; padding: 12px; margin: 0 0 10px;
-}
-.fire-at-gap strong { color: var(--ink-900, #2C2A26); }
-.fire-season { font-size: 11.5px; color: var(--stone-500, #8B7355); line-height: 1.55; margin: 0 2px; }
-
-/* --- Mobile Sheet-Optik (Muster .mdk-sheet) — BottomSheet.css bleibt
-   unangetastet (geteilt); Overrides nur unter .fire-root. ------------------- */
-.fire-root .bs-root {
-  background: var(--cream-50, #FAF6EA);
-  border: 1px solid var(--sand-200, #E0D6BE); border-bottom: 0;
-  border-radius: 22px 22px 0 0;
-  box-shadow: 0 -12px 40px -18px rgba(44, 38, 38, 0.5);
-}
-.fire-root .bs-handle { width: 44px; height: 5px; border-radius: 3px; background: var(--sand-300, #D9CEB0); }
-.fire-sheet-title { font-size: 19px; font-weight: 700; letter-spacing: -0.4px; }
-.fire-sheet-body { padding: 0 16px calc(20px + env(safe-area-inset-bottom)); }
-.fire-sheet-body .fire-dock,
-.fire-sheet-body .fire-readout {
-  width: auto; flex: none; padding: 0; border: 0; overflow: visible; background: transparent;
-}
-.fire-sheet-body .fire-readout { margin-top: 18px; }
-
-/* --- Tablet / kleiner Desktop 768–1439 px (Muster mapDeck.css:741-757) ----- */
-@media (max-width: 1439px) and (min-width: 768px) {
-  .fire-topbar { gap: 12px; padding: 0 14px; }
-  .fire-dock { width: 206px; padding: 14px 10px 18px; }
-  .fire-readout { width: 300px; padding: 14px 13px 22px; }
-  .fire-timedeck { left: 16px; right: 16px; }
-}
-
-/* --- Mobil ≤767 px --------------------------------------------------------- */
-@media (max-width: 767px) {
-  .fire-root { flex-direction: column; }
-  /* Rail wird zur waagerechten Ink-Leiste oben. */
-  .fire-rail {
-    width: 100%; flex: 0 0 auto; flex-direction: row; justify-content: flex-start;
-    overflow-x: auto; gap: 2px; padding: 6px 8px;
-  }
-  .fire-rail-spacer { display: none; }
-  /* Touch-Targets ≥ 44 px (mobile-design-guidelines §3). */
-  .fire-rail-btn { width: 44px; height: 44px; flex: 0 0 44px; }
-  .fire-preset { min-height: 44px; padding: 0 14px; }
-  .fire-subseg button { min-height: 44px; }
-  /* BC1: Umschalter und Listenzeilen als Touch-Targets (≥ 44 px). Die Zeile
-     bringt die Höhe schon im Desktop mit; hier fällt nur die Typo größer aus. */
-  .fire-ro-tabs button { min-height: 44px; font-size: 14px; }
-  .fire-clist-more { flex-wrap: wrap; }
-  .fire-clist-more button { min-height: 44px; flex: 1 1 100%; }
-  .fire-sheet-body .fire-crow { min-height: 52px; border-radius: 14px; padding: 10px 12px; }
-  .fire-sheet-body .fire-crow-top b { font-size: 14.5px; }
-  /* Im Sheet ist die Spalte schmaler — dort darf die Zeile so hoch werden,
-     wie sie muss (der Zwei-Zeilen-Deckel des Desktops wird aufgehoben). */
-  .fire-sheet-body .fire-crow-meta { font-size: 11.5px; white-space: normal; display: block; -webkit-line-clamp: none; }
-  /* BF4: der Tagesregler der Historie — die Bahn bleibt dünn, die Trefferfläche
-     wird auf 44 px gebracht (mobile-design-guidelines §3). */
-  .fire-burnt-history-row { min-height: 44px; }
-  .fire-burnt-history-row input[type="range"] { height: 44px; }
-  /* E3: der Wechsel-Knopf in der Begleit-Notiz — als Fläche, nicht als Textlink. */
-  .fire-danger-note-switch {
-    display: inline-flex; align-items: center; min-height: 44px; padding: 0 8px;
-    margin: -6px 0; border-radius: 8px;
-  }
-  .fire-topbar { height: auto; flex-wrap: wrap; gap: 10px; padding: 10px 14px; }
-  .fire-topdiv { display: none; }
-  .fire-basemap { width: 100%; }
-  .fire-basemap button { flex: 1 1 0; min-height: 44px; }
-
-  /* Karte vollflächig; Dock + Readout wandern ins Sheet. */
-  .fire-body.is-mobile { display: block; position: relative; flex: 1 1 auto; min-height: 0; }
-  .fire-body.is-mobile .fire-center { position: absolute; inset: 0; }
-
-  /* Zeit-Deck schwebt über der Karte, aber ÜBER dem eingeklappten Sheet (64 px). */
-  .fire-mobile-time {
-    position: absolute; left: 12px; right: 12px;
-    bottom: calc(72px + env(safe-area-inset-bottom));
-    z-index: 3;
-  }
-  .fire-mobile-time .fire-timedeck { position: static; left: auto; right: auto; bottom: auto; }
-  /* Der Stand-Text trägt das Pending-„lädt …" — mobil nur verkleinern, nie
-     ausblenden (der Ladehinweis ist Ehrlichkeitsinhalt, kein Beiwerk). */
-  .fire-mobile-time .fire-td-stand { font-size: 10.5px; }
-  /* Scrubber-Grifffläche ≥ 44 px (mobile-design-guidelines §2). */
-  .fire-timedeck input[type='range'] { height: 44px; }
-  .fire-timedeck input[type='range']::-webkit-slider-thumb { width: 20px; height: 20px; margin-top: -7px; }
-  .fire-td-now { padding: 13px 8px; margin: -13px -8px; }
-  .fire-td-play { width: 46px; height: 46px; }
-  /* WF3: der Einheiten-Umschalter passt mobil nicht mehr neben Stand und Spur —
-     er wird zur eigenen Zeile unter dem Regler, beide Knöpfe je 44 px hoch.
-     Ohne Umschalter (kein Stundenlayer aktiv) ändert das Wrap nichts: Spur
-     (flex-basis 0) und Stand passen wie zuvor in eine Zeile. */
-  .fire-td-row { flex-wrap: wrap; }
-  .fire-td-unit { flex: 1 1 100%; }
-  .fire-td-unit button { flex: 1; min-height: 44px; font-size: 12.5px; }
-
-  /* Die Attributionszeile von MapLibre sitzt am unteren Kartenrand und läge
-     sonst unter der Zeitleiste. Sie ist eine Lizenzpflicht (GWIS, BAFU, DWD,
-     OpenFreeMap) und muss lesbar bleiben — also über die Leiste heben. */
-  .fire-body.is-mobile .maplibregl-ctrl-bottom-left,
-  .fire-body.is-mobile .maplibregl-ctrl-bottom-right {
-    bottom: calc(240px + env(safe-area-inset-bottom));
-  }
-  .fire-body.is-mobile .fire-scaffold-note { top: 10px; }
-
-  /* Sheet-Zeilen in der großen Layer-Screen-Optik (Muster .mdk-m-layer). */
-  .fire-sheet-body .fire-layerwrap {
-    flex-direction: row; flex-wrap: wrap; align-items: center; gap: 6px;
-  }
-  .fire-sheet-body .fire-layer { flex: 1 1 0; min-width: 0; border-width: 1.5px; border-radius: 15px; padding: 13px 14px; min-height: 56px; gap: 12px; }
-  .fire-sheet-body .fire-layer-ic { transform: scale(1.25); transform-origin: left center; }
-  .fire-sheet-body .fire-layer-label { font-size: 15.5px; }
-  .fire-sheet-body .fire-layer-sub { font-size: 12px; }
-  .fire-sheet-body .fire-switch { width: 46px; height: 26px; border-radius: 13px; }
-  .fire-sheet-body .fire-switch-knob { width: 20px; height: 20px; top: 3px; left: 3px; }
-  .fire-sheet-body .fire-layer.is-on .fire-switch-knob { transform: translateX(20px); }
-  .fire-sheet-body .fire-ro-lcard,
-  .fire-sheet-body .fire-layer-status,
-  .fire-sheet-body .fire-layer-lag { flex: 1 1 100%; }
-}
-
-/* ---------------------------------------------------------------------------
-   Detektions-Steckbrief im Kartenpopup (F1).
-
-   Bewusst NUR die eigenen `.fire-pop*`-Klassen: `.maplibregl-popup-content` zu
-   stylen würde global wirken und in Regenradar, Wetterkarte und 3D-Globus
-   zurückleaken — dieselbe Begründung wie für die Kopie in `FireLayerCard.tsx`
-   (`audit/waldbrand-ui.md` §4).
-   --------------------------------------------------------------------------- */
-.fire-pop {
-  font-family: 'League Spartan', system-ui, sans-serif;
-  color: var(--stone-700, #443E35);
-  font-size: 0.8rem;
-  line-height: 1.4;
-  /* Der Steckbrief trägt acht Messwerte plus zwei Pflichthinweise und wurde
-     dadurch höher als der Platz unter dem Anker — auf 900 px Höhe war die
-     letzte Zeile abgeschnitten. Deckeln statt kürzen: die Hinweise sind
-     Pflicht und dürfen nicht der Höhe zum Opfer fallen. */
-  max-height: min(58vh, 430px);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-}
-.fire-pop-head {
-  font-weight: 700; font-size: 0.95rem; letter-spacing: 0.01em;
-  color: var(--stone-800, #2C2A26); margin-bottom: 0.15rem;
-}
-.fire-pop-lead {
-  margin: 0 0 0.5rem; font-size: 0.76rem; color: var(--stone-600, #5C5447);
-}
-.fire-pop-stack {
-  margin: 0 0 0.5rem; padding: 0.3rem 0.45rem; border-radius: 6px;
-  background: rgba(139, 115, 85, 0.12); font-size: 0.73rem;
-  color: var(--stone-600, #5C5447);
-}
-.fire-pop-row {
-  display: flex; justify-content: space-between; gap: 0.75rem;
-  padding: 2.5px 0; border-top: 1px solid rgba(44, 42, 38, 0.07);
-}
-.fire-pop-row span { color: var(--stone-500, #8B7355); }
-.fire-pop-row b { font-weight: 600; text-align: right; white-space: nowrap; }
-/* Der Sonnenreflexions-Hinweis erscheint nur bei geringer Konfidenz und darf
-   dann nicht wie Beiwerk aussehen. */
-.fire-pop-warn {
-  margin: 0.5rem 0 0; padding: 0.4rem 0.5rem; border-radius: 7px;
-  background: rgba(194, 84, 43, 0.1); border: 1px solid rgba(194, 84, 43, 0.25);
-  font-size: 0.73rem; color: #8E3A1E;
-}
-/* F2: Erklärung der Ausgrauung. Neutral gehalten (Stein statt Terrakotta) —
-   es ist kein Alarm, sondern eine Einordnung, und zwar unsere. */
-.fire-pop-stat {
-  margin: 0.5rem 0 0; padding: 0.4rem 0.5rem; border-radius: 7px;
-  background: rgba(154, 145, 134, 0.16); border: 1px solid rgba(154, 145, 134, 0.4);
-  font-size: 0.73rem; color: var(--stone-600, #5C5447);
-}
-.fire-pop-note {
-  margin: 0.5rem 0 0; padding-top: 0.4rem;
-  border-top: 1px solid rgba(44, 42, 38, 0.07);
-  font-size: 0.71rem; color: var(--stone-500, #8B7355);
-}
-/* GWBA1 A4: die drei Beschriftungen — eine Zeile, Gründe mit Quelle. Sage nur
-   bei „bestätigt" (Quelle im Satz), Sand bei „plausibel", Stein bei „unbestätigt".
-   Kein Rot: Rot bleibt Gefahrenstufe und Detektion vorbehalten. */
-.fire-pop-assess {
-  margin: 0 0 0.5rem; padding: 0.4rem 0.5rem; border-radius: 7px;
-  font-size: 0.74rem; line-height: 1.35; color: var(--stone-600, #5C5447);
-  background: rgba(154, 145, 134, 0.14); border: 1px solid rgba(154, 145, 134, 0.4);
-}
-.fire-pop-links { margin: 0 0 0.5rem; font-size: 0.7rem; color: var(--stone-500, #8B7355); }
-.fire-pop-links a { color: var(--stone-600, #5C5447); text-decoration: underline dotted; }
-.fire-pop-assess b { text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.68rem; }
-.fire-pop-assess-bestaetigt { background: var(--sage-50, #F0F4EA); border-color: rgba(122, 148, 102, 0.55); color: #45613A; }
-.fire-pop-assess-plausibel { background: rgba(201, 168, 74, 0.14); border-color: rgba(201, 168, 74, 0.5); color: #6B5A22; }
-/* E1/E2: die Bestätigung durch die EFFIS-Kartierung — Sage, ruhig, mit Quelle.
-   Der einzige Ort der Ansicht, an dem „bestätigt" steht. */
-.fire-pop-mapped {
-  margin: 0 0 0.5rem; padding: 0.4rem 0.5rem; border-radius: 7px;
-  background: var(--sage-50, #F0F4EA); border: 1px solid rgba(122, 148, 102, 0.5);
-  font-size: 0.74rem; color: #45613A;
-}
-/* BA3: die Größenangabe des Detektionsrasters. Bewusst NICHT in Sage wie die
-   Bestätigung und nicht in Rot wie die Gefahr — Sand/Stone, denn es ist eine
-   Eigenschaft der Messung, keine Aussage über die Lage. Zahl und Hinweis stehen
-   in EINEM Kasten: getrennt läse man die Hektarzahl als Brandfläche. */
-.fire-pop-zone {
-  margin: 0 0 0.5rem; padding: 0.4rem 0.5rem; border-radius: 7px;
-  background: var(--sand-100, #F5F1E8); border: 1px dashed rgba(194, 84, 43, 0.45);
-  font-size: 0.72rem; line-height: 1.35; color: var(--stone-600, #5C5447);
-}
-.fire-pop-zone b { color: var(--ink-900, #2B2823); }
-/* VB3: die vorläufige Brandfläche. Kräftiger als der Rasterkasten darunter (sie
-   ist die Antwort auf „wie groß", das Raster nur die Auflösung), aber ohne die
-   harte Kontur der EFFIS-Bestätigung in Sage — geschätzt bleibt geschätzt.
-   Durchgezogener Rand statt gestrichelt, damit sich beide Kästen unterscheiden. */
-.fire-pop-prov {
-  margin: 0 0 0.5rem; padding: 0.45rem 0.5rem; border-radius: 7px;
-  background: var(--sand-100, #F5F1E8); border: 1px solid rgba(194, 84, 43, 0.55);
-  font-size: 0.74rem; line-height: 1.4; color: var(--stone-600, #5C5447);
-}
-.fire-pop-prov b { color: var(--ink-900, #2B2823); }
-.fire-pop-prov-src { font-size: 0.68rem; color: var(--stone-500, #8B7355); }
-/* E2: Steckbrief einer kartierten Fläche — Landbedeckung als Balken aus den
-   Feature-Anteilen (Summe 100 %), keine Schätzung. */
-.fire-pop-sub {
-  margin: 0.55rem 0 0.2rem; font-size: 0.68rem; font-weight: 600;
-  letter-spacing: 0.05em; text-transform: uppercase; color: var(--stone-500, #8B7355);
-}
-.fire-pop-lc { display: grid; grid-template-columns: 1fr 64px 36px; align-items: center; gap: 0.45rem; padding: 1.5px 0; font-size: 0.74rem; }
-.fire-pop-lc-name { color: var(--stone-600, #5C5447); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.fire-pop-lc-bar { height: 8px; border-radius: 4px; background: rgba(44, 42, 38, 0.08); overflow: hidden; }
-.fire-pop-lc-bar i { display: block; height: 100%; border-radius: 4px; }
-.fire-pop-lc b { font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
-
-/* ---------------------------------------------------------------------------
-   BP2 — Brandflächen-Panel (Registry): Overlay links über der Karte.
-
-   Keine vierte Flex-Spalte: `.fire-body` bleibt byte-gleich, die Karte behält
-   ihre Breite, und ein Auf-/Zuklappen löst kein `trackResize` der Custom-Layer
-   aus (audit/brandflaechen-panel.md §3). `bottom: 96px` hält Zeit-Deck und die
-   MapLibre-Attribution frei. Tokens `--fp-*` nur hier.
-   --------------------------------------------------------------------------- */
-.fire-root {
-  --fp-w: 300px;
-  --fp-bg: rgba(250, 246, 234, 0.96);
-}
-/* BP5: das Overlay am linken Kartenrand (.fire-fpanel) und sein 44-px-Reiter
-   sind entfallen — die Liste steht jetzt rechts im Readout unter „Brände".
-   Die Regel, die der Treiber-Notiz auswich, wird damit gegenstandslos. */
-.fire-fp-toggle:focus-visible,
-.fire-fp-close:focus-visible,
-.fire-fp-chip:focus-visible,
-.fire-fprow:focus-visible { outline: 2px solid var(--terracotta-500, #C97B47); outline-offset: 1px; }
-
-/* Schaltzeile im Dock unter der Layer-Zeile. */
-.fire-fp-toggle {
-  margin-top: 4px; width: 100%; min-height: 32px;
-  border: 1px solid var(--sand-200, #E0D6BE); border-radius: 9px; background: #fff;
-  cursor: pointer; font: inherit; font-size: 11.5px; font-weight: 600; color: var(--stone-600, #5C5447);
-}
-.fire-fp-toggle.is-on { background: var(--ink-900, #2C2A26); border-color: var(--ink-900, #2C2A26); color: var(--cream-50, #FAF6EA); }
-
-/* --- Inhalt ---------------------------------------------------------------- */
-.fire-fp .fire-ro-section-head { align-items: center; }
-.fire-fp-close {
-  margin-left: auto; width: 32px; height: 32px; border-radius: 8px;
-  border: 1px solid var(--sand-200, #E0D6BE); background: #fff; cursor: pointer;
-  font: inherit; font-size: 18px; line-height: 1; color: var(--stone-600, #5C5447);
-}
-.fire-fp-scope { display: flex; flex-direction: column; gap: 6px; margin: 0 0 8px; }
-.fire-fp-scope-row, .fire-fp-ctl { display: flex; align-items: center; gap: 8px; }
-.fire-fp-scope-row .fire-subseg, .fire-fp-ctl .fire-subseg { flex: 1; margin: 0; }
-.fire-fp-lbl {
-  flex: 0 0 82px; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
-  color: var(--stone-400, #A89A7A);
-}
-.fire-fp-val { font-size: 12px; font-weight: 600; color: var(--ink-900, #2C2A26); }
-.fire-fp-stale {
-  margin: 0 0 8px; padding: 7px 10px; border-radius: 9px;
-  background: rgba(201, 154, 60, 0.14); border: 1px solid rgba(201, 154, 60, 0.45);
-  font-size: 11px; line-height: 1.45; color: #6E4E12;
-}
-.fire-fp-controls { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; }
-.fire-fp-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; flex: 1; }
-.fire-fp-chip {
-  display: inline-flex; align-items: center; gap: 5px; min-height: 28px; padding: 0 9px;
-  border: 1px solid var(--sand-200, #E0D6BE); border-radius: 8px; background: #fff;
-  cursor: pointer; font: inherit; font-size: 11px; font-weight: 600; color: var(--stone-400, #A89A7A);
-}
-.fire-fp-chip.is-on { color: var(--ink-900, #2C2A26); border-color: var(--sand-300, #D9CEB0); background: var(--sand-50, #F5F1E8); }
-.fire-fp-chip-note { font-size: 10px; color: var(--stone-400, #A89A7A); text-decoration: underline dotted; }
-.fire-fp-inline-btn {
-  border: 1px solid var(--sand-200, #E0D6BE); border-radius: 8px; background: #fff; cursor: pointer;
-  font: inherit; font-size: 11.5px; font-weight: 600; color: var(--terracotta-700, #A85E2E); padding: 4px 8px; min-height: 28px;
-}
-.fire-fp-legend { display: flex; flex-wrap: wrap; gap: 4px 10px; margin: 6px 0 8px; }
-.fire-fp-lg { display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; color: var(--stone-500, #8B7355); }
-.fire-fp-dot { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto; }
-/* Legenden-Swatches (Steckbrief + Panel) */
+.fire-li-context { width: 12px; height: 12px; flex: none; border-radius: 3px; border: 1.5px solid var(--br-sage); background: var(--br-sage-tint); }
 .fire-li-fp { width: 14px; height: 11px; flex: none; border-radius: 3px; border: 2px solid var(--stone-500, #8B7355); background: rgba(139, 115, 85, 0.25); }
 .fire-li-fp.is-mapped { border-color: #2C2A26; background: rgba(194, 84, 43, 0.35); }
 .fire-li-fp.is-raster { border-style: dashed; border-color: #C2542B; background: rgba(194, 84, 43, 0.15); }
-.fire-li-fp.is-static { border-color: #9A9186; background: rgba(154, 145, 134, 0.35); }
+.fire-li-fp.is-static { border-color: var(--br-grey-dot); background: rgba(139, 132, 116, 0.35); }
+.fire-li-spread-arrow { width: 12px; height: 12px; flex: none; background: var(--br-terra); clip-path: polygon(50% 0%, 100% 100%, 50% 78%, 0% 100%); }
+.fire-li-spread-arrow.is-unsure { background: var(--br-stone); opacity: .75; }
+.fire-li-spread-fan { width: 12px; height: 12px; flex: none; border-radius: 0 0 12px 12px; border: 1px dashed var(--br-terra); background: rgba(201, 123, 71, 0.12); }
+.fire-li-spread-none { width: 12px; height: 12px; flex: none; border-radius: 3px; border: 1px dotted var(--br-stone); }
+.fire-swatch { width: 13px; height: 13px; border-radius: 3px; flex: 0 0 auto; display: inline-block; }
 
-/* Liste — Zeilen wie .fire-crow, aber dreizeilig (Titel/Fläche · Status/Meta · Chips). */
-.fire-fplist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
-.fire-fprow {
-  display: flex; align-items: flex-start; gap: 8px; width: 100%; text-align: left;
-  background: #fff; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 11px;
-  padding: 8px 10px; min-height: 44px; cursor: pointer; font: inherit;
+/* Nationale Skalen — quellenrein, NIE umgerechnet. */
+.br-scales .br-card-eyebrow { color: var(--stone-400, #A89A7A); }
+.br-scales-cols { display: flex; gap: 10px; margin-top: 10px; }
+.br-scale { flex: 1; }
+.br-scale-head { font-size: 11.5px; font-weight: 700; color: var(--ink-900, #2C2A26); }
+.br-scale-cov { font-size: 9.5px; color: var(--stone-400, #A89A7A); margin-bottom: 6px; }
+.br-scale ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
+.br-scale li { display: flex; align-items: center; gap: 6px; font-size: 10px; color: var(--stone-600, #5C5447); }
+.br-scale li i { width: 12px; height: 8px; border-radius: 2px; display: inline-block; flex: 0 0 auto; }
+.br-scales-note { font-size: 10px; color: var(--stone-600, #5C5447); margin: 10px 0 0; line-height: 1.55; padding-top: 9px; border-top: 1px solid var(--sand-100, #EDE6D3); }
+.br-scales-note strong { color: var(--ink-900, #2C2A26); }
+
+/* --- Brände (Registry) ----------------------------------------------------- */
+.br-fires-head { display: flex; align-items: baseline; justify-content: space-between; margin-top: 14px; }
+.br-fires-head .br-eyebrow { font-size: 11px; letter-spacing: 2px; }
+.br-fires-count { font-size: 10px; color: var(--stone-500, #8B7355); }
+.br-chiprow { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
+.br-chiprow + .br-chiprow { margin-top: 7px; }
+.br-chiprow-lbl { font-size: 11px; color: var(--stone-400, #A89A7A); }
+.br-chip {
+  display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 500; color: var(--stone-600, #5C5447);
+  background: #fff; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 7px; padding: 4px 9px; cursor: pointer; font-family: inherit;
 }
-.fire-fprow:hover { border-color: var(--sand-300, #D9CEB0); }
-.fire-fprow.is-sel { border-color: var(--ink-900, #2C2A26); border-width: 1.5px; background: var(--sand-50, #F5F1E8); }
-.fire-fprow.is-static .fire-fprow-title { color: var(--stone-500, #8B7355); }
-.fire-fprow .fire-crow-rank { margin-top: 2px; }
-.fire-fprow-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
-.fire-fprow-top { display: flex; align-items: center; gap: 6px; min-width: 0; }
-.fire-fprow-title {
-  flex: 1; min-width: 0; font-size: 12.5px; font-weight: 700; color: var(--ink-900, #2C2A26);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.fire-fp-area {
-  flex: 0 0 auto; font-size: 11.5px; font-weight: 700; font-variant-numeric: tabular-nums;
-  color: var(--ink-900, #2C2A26); white-space: nowrap;
-}
-.fire-fp-area.is-upper { color: var(--stone-500, #8B7355); font-weight: 600; }
-/* BP5 — die Leistungszeile (Stärke + Ausdehnung). Sie steht zwischen Titel und
-   Status, weil sie die Größe ist, nach der die frühere Cluster-Liste rankte;
-   der Punkt trägt dieselbe Farbe wie die Skala darüber. */
-.fire-fprow-power { display: flex; align-items: center; gap: 6px; min-width: 0; }
-.fire-fprow-power b {
-  font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums;
-  color: var(--ink-900, #2C2A26); white-space: nowrap;
-}
-.fire-fprow.is-static .fire-fprow-power b { color: var(--stone-500, #8B7355); }
-.fire-fprow-power .fire-crow-count { overflow: hidden; text-overflow: ellipsis; }
-.fire-fprow-meta { font-size: 10.5px; line-height: 1.35; color: var(--stone-500, #8B7355); }
-.fire-fprow-chips { display: flex; flex-wrap: wrap; gap: 3px 4px; }
+.br-chip:hover { border-color: var(--border-medium, #D9D0B8); }
+.br-chip.is-active { font-weight: 600; color: var(--cream-50, #FAF6EA); }
+.br-chip.is-red.is-active { background: var(--br-red); border-color: var(--br-red); }
+.br-chip.is-ink.is-active { background: var(--ink-900, #2C2A26); border-color: var(--ink-900, #2C2A26); }
+.br-chip.is-ghost { color: var(--stone-400, #A89A7A); border-style: dashed; }
+.br-chip.is-ghost.is-active { color: var(--ink-900, #2C2A26); background: var(--sand-50, #F5F1E8); border-style: solid; }
+.br-chip:disabled { opacity: .5; cursor: not-allowed; }
+.br-filters { margin-top: 4px; padding: 2px 0 6px; border-bottom: 1px dashed var(--sand-200, #E0D6BE); }
+.br-filters .br-chip.is-ink.is-active .fire-fp-dot { outline: 1px solid rgba(255,255,255,.6); }
+.br-fires > .br-box.is-stale, .br-fires > .br-empty { margin-top: 12px; }
+.br-firelist { list-style: none; margin: 14px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.br-fire { background: #fff; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 12px; }
+.br-fire:hover { border-color: var(--border-medium, #D9D0B8); }
+.br-fire.is-sel { border: 1.5px solid var(--br-red); }
+.br-fire.is-static { opacity: .72; }
+.br-fire-btn { display: flex; flex-direction: column; gap: 7px; width: 100%; text-align: left; background: none; border: 0; padding: 11px; cursor: pointer; font: inherit; color: inherit; border-radius: 12px; }
+.br-fire.is-sel .br-fire-btn { padding: 12px; gap: 9px; }
+.br-fire-top { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.br-fire-name { font-size: 13.5px; font-weight: 700; color: var(--ink-900, #2C2A26); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.br-fire.is-sel .br-fire-name { font-size: 14px; }
+.br-fire.is-static .br-fire-name { color: var(--stone-600, #5C5447); }
+.br-fire-region { margin-left: auto; font-size: 10.5px; color: var(--stone-500, #8B7355); white-space: nowrap; flex: 0 0 auto; }
+.br-badge { font-size: 9px; font-weight: 700; border-radius: 5px; padding: 2px 6px; white-space: nowrap; flex: 0 0 auto; letter-spacing: .2px; }
+.br-badge.is-active { color: var(--cream-50, #FAF6EA); background: var(--br-red); padding: 2px 7px; }
+.br-badge.is-no-signal { color: var(--br-warn-ink); background: var(--br-warn-tint); border: 1px solid var(--br-warn-border); }
+.br-badge.is-static { color: var(--stone-600, #5C5447); background: var(--sand-100, #EDE6D3); border: 1px solid var(--border-medium, #D9D0B8); }
+.br-badge.is-out { color: var(--br-sage-text); background: var(--br-sage-tint); border: 1px solid var(--br-sage-border); }
+.br-fire-stats { display: flex; gap: 14px; }
+.br-stat { display: flex; flex-direction: column; }
+.br-stat-lbl { font-size: 9px; color: var(--stone-400, #A89A7A); text-transform: uppercase; }
+.br-stat-val { font-size: 15px; font-weight: 700; color: var(--ink-900, #2C2A26); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.br-stat-val.is-spread { color: #D4632E; }
+.br-stat-sub { font-size: 9px; color: var(--stone-500, #8B7355); }
+.br-stat-sub.is-mapped { color: var(--br-sage-text); }
+.br-fire-line { font-size: 11.5px; color: var(--ink-900, #2C2A26); }
+.br-fire-line em { font-style: normal; color: var(--stone-500, #8B7355); }
+.br-fire-line em.is-mapped { color: var(--br-sage-text); }
+.br-fire.is-static .br-fire-line { color: var(--stone-600, #5C5447); }
+.br-fire-vec { color: #D4632E; font-weight: 600; }
+.br-fire-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; font-size: 10px; color: var(--stone-500, #8B7355); line-height: 1.4; }
+.br-fire-ctx { font-size: 10.5px; color: var(--stone-600, #5C5447); line-height: 1.5; }
+.br-fire.is-static .br-fire-ctx { color: var(--stone-500, #8B7355); }
+.br-fire-chips { display: flex; flex-wrap: wrap; gap: 3px 4px; }
+.fire-crow-dot { width: 9px; height: 9px; border-radius: 3px; flex: 0 0 auto; display: inline-block; }
+.fire-fp-dot { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; display: inline-block; }
 .fire-fp-src, .fire-fp-assess {
-  font-size: 9.5px; letter-spacing: 0.04em; text-transform: uppercase; font-weight: 700;
-  border-radius: 5px; padding: 1px 5px; white-space: nowrap;
+  font-size: 9px; letter-spacing: .04em; text-transform: uppercase; font-weight: 700; border-radius: 5px; padding: 1px 5px; white-space: nowrap;
   border: 1px solid var(--sand-200, #E0D6BE); color: var(--stone-500, #8B7355); background: #fff;
 }
 .fire-fp-src.is-effis-rda { border-color: rgba(44, 42, 38, 0.5); color: var(--ink-900, #2C2A26); }
-.fire-fp-src.is-ems-activation { border-color: rgba(58, 111, 168, 0.5); color: var(--steel-600, #3A6FA8); }
-.fire-fp-assess.is-bestaetigt { border-color: rgba(122, 148, 102, 0.6); color: #4F6A3F; background: rgba(122, 148, 102, 0.12); }
-.fire-fp-assess.is-plausibel { border-color: rgba(201, 154, 60, 0.6); color: #6E4E12; background: rgba(201, 154, 60, 0.12); }
-
-/* Detailkarte im Panel — kein Popup. */
-.fire-fp-detail {
-  margin: 10px 0 0; padding: 10px 12px; border-radius: 12px;
-  background: #fff; border: 1.5px solid var(--ink-900, #2C2A26);
-}
-.fire-fp-detail-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-.fire-fp-detail-head b { flex: 1; min-width: 0; font-size: 13px; color: var(--ink-900, #2C2A26); }
-.fire-fp-dl { margin: 0; display: grid; grid-template-columns: 92px 1fr; gap: 4px 8px; font-size: 11px; line-height: 1.45; }
-.fire-fp-dl dt { color: var(--stone-400, #A89A7A); font-weight: 700; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; padding-top: 1px; }
-.fire-fp-dl dd { margin: 0; color: var(--stone-700, #443E35); min-width: 0; overflow-wrap: anywhere; }
-.fire-fp-dl code { font-size: 10px; background: var(--sand-100, #EDE6D3); border-radius: 4px; padding: 0 4px; }
-.fire-fp-muted { color: var(--stone-400, #A89A7A); }
-.fire-fp-reasons { margin: 3px 0 0; padding-left: 14px; }
-.fire-fp-passes { list-style: none; margin: 0 0 3px; padding: 0; display: flex; flex-direction: column; gap: 1px; }
-.fire-fp-passes li { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; font-variant-numeric: tabular-nums; }
-.fire-fp-lc { display: inline-flex; flex-wrap: wrap; gap: 3px 8px; }
-.fire-fp-lc .fire-li-lc-item { font-size: 11px; }
-
-/* --- Tablet / kleiner Desktop 768–1439 px ---------------------------------- */
-@media (max-width: 1439px) and (min-width: 768px) {
-  .fire-root { --fp-w: 264px; }
-}
-/* --- Mobil ≤767 px: das Panel lebt im Sheet (Reiter „Brände"). -------------- */
-@media (max-width: 767px) {
-  .fire-fp.is-sheet .fire-fprow { min-height: 52px; border-radius: 14px; padding: 10px 12px; }
-  .fire-fp.is-sheet .fire-fprow-title { font-size: 14px; white-space: normal; }
-  .fire-fp.is-sheet .fire-fprow-meta { font-size: 11.5px; }
-  .fire-fp.is-sheet .fire-fp-chip { min-height: 44px; padding: 0 12px; font-size: 12.5px; }
-  .fire-fp.is-sheet .fire-fp-close, .fire-fp.is-sheet .fire-fp-inline-btn { min-height: 44px; min-width: 44px; }
-  .fire-fp.is-sheet .fire-fp-lbl { flex-basis: 96px; }
-  .fire-fp.is-sheet .fire-fp-dl { grid-template-columns: 1fr; }
-}
-
-/* AF1: Überflug-Tabelle mit Satellit/Tag-Nacht — vier Spalten statt drei (additiv). */
-.fire-fp-passes--af li { grid-template-columns: 1fr auto auto auto; }
-/* AF1: die Überflug-Tabelle braucht die ganze Kartenbreite (vier Spalten) — dd über beide Grid-Spalten. */
-.fire-fp-dl dd.fire-fp-dd-wide { grid-column: 1 / -1; }
-/* AF2: Tendenz-/Beobachtungs-/Wind-Chips — Farben aus dem Fire-Namensraum, additiv. */
+.fire-fp-src.is-ems-activation { border-color: rgba(58, 111, 168, 0.5); color: var(--br-steel); }
+.fire-fp-assess.is-bestaetigt { border-color: var(--br-sage-border); color: var(--br-sage-text); background: var(--br-sage-tint); }
+.fire-fp-assess.is-plausibel { border-color: var(--br-warn-border); color: var(--br-warn-ink); background: var(--br-warn-tint); }
 .fire-fp-trend, .fire-fp-obs, .fire-fp-wind { font-weight: 700; }
 .fire-fp-trend.is-growing { color: #B93C1E; }
-.fire-fp-trend.is-declining { color: #6B7A8F; }
+.fire-fp-trend.is-declining { color: var(--br-slate); }
 .fire-fp-trend.is-stable { color: #7A6E5A; }
 .fire-fp-obs.is-unobserved { color: #C99A3C; }
-.fire-fp-obs.is-confirmed { color: #6B7A8F; }
+.fire-fp-obs.is-confirmed { color: var(--br-slate); }
 .fire-fp-wind.is-disagree { color: #B93C1E; }
 .fire-fp-wind.is-agree { color: #5B7A5A; }
-/* AF3: Merkmalsatz in der Detailkarte — einspaltig (das Panel ist schmal), additiv. */
+.br-more {
+  width: 100%; margin-top: 12px; font-size: 12.5px; font-weight: 600; color: var(--br-terra); background: none;
+  border: 1px dashed var(--br-warn-border); border-radius: 11px; padding: 11px; cursor: pointer; font-family: inherit;
+}
+.br-more:hover { background: var(--br-warn-tint); }
+.br-more-sub { font-weight: 500; color: var(--stone-400, #A89A7A); font-size: 10.5px; }
+.br-fires > .br-box { margin-top: 12px; }
+.br-strength { margin-top: 12px; }
+.br-strength-head { display: block; font-size: 9px; letter-spacing: 1.5px; color: var(--stone-400, #A89A7A); font-weight: 700; text-transform: uppercase; }
+.br-strength ol { list-style: none; margin: 5px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 3px 10px; }
+.br-strength li { display: flex; align-items: center; gap: 5px; font-size: 10.5px; color: var(--stone-500, #8B7355); }
+.br-strength .fire-swatch { width: 11px; height: 11px; }
+
+/* Detailkarte innerhalb der markierten Brandkarte */
+.br-detail { margin: 0 12px 12px; padding: 10px 12px; border-radius: 9px; background: var(--cream-50, #FAF6EA); border: 1px solid var(--sand-200, #E0D6BE); }
+.br-detail-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.fire-fp-dl { margin: 0; display: grid; grid-template-columns: 92px 1fr; gap: 4px 8px; font-size: 11px; line-height: 1.45; }
+.fire-fp-dl dt { color: var(--stone-400, #A89A7A); font-weight: 700; font-size: 9.5px; letter-spacing: .06em; text-transform: uppercase; padding-top: 1px; }
+.fire-fp-dl dd { margin: 0; color: var(--stone-600, #5C5447); min-width: 0; overflow-wrap: anywhere; }
+.fire-fp-dl dd.fire-fp-dd-wide { grid-column: 1 / -1; }
+.fire-fp-dl code { font-size: 10px; background: var(--sand-100, #EDE6D3); border-radius: 4px; padding: 0 4px; }
+.fire-fp-dl q { font-style: italic; }
+.fire-fp-reasons { margin: 3px 0 0; padding-left: 14px; }
+.fire-fp-passes { list-style: none; margin: 0 0 3px; padding: 0; display: flex; flex-direction: column; gap: 1px; }
+.fire-fp-passes li { display: grid; grid-template-columns: 1fr auto auto auto; gap: 8px; font-variant-numeric: tabular-nums; }
+.fire-fp-lc { display: inline-flex; flex-wrap: wrap; gap: 3px 8px; }
+.fire-fp-lc .fire-li-lc-item { font-size: 11px; }
+.fire-fp-pred { border-left: 2px solid var(--br-terra); padding-left: 8px; }
 .fire-fp-features { list-style: none; margin: 0 0 6px; padding: 0; display: grid; grid-template-columns: 1fr; gap: 1px 0; }
 .fire-fp-features li { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; line-height: 1.35; border-bottom: 1px dotted var(--sand-200, #E0D6BE); padding: 1px 0; }
 .fire-fp-features li span:first-child { color: var(--stone-500, #8B7355); white-space: nowrap; }
 .fire-fp-features li span:last-child { text-align: right; font-variant-numeric: tabular-nums; }
 .fire-fp-features-foot { display: flex; align-items: flex-start; gap: 8px; }
-.fire-fp-features-foot .fire-fp-inline-btn { flex: 0 0 auto; }
+.fire-fp-features-foot .br-inline-btn { flex: 0 0 auto; }
 
+/* --- Detektions-Steckbrief im Kartenpopup (Bestand, nur .fire-pop*) -------- */
+.fire-pop { font-family: 'League Spartan', system-ui, sans-serif; color: #443E35; font-size: .8rem; line-height: 1.4; max-height: min(58vh, 430px); overflow-y: auto; overscroll-behavior: contain; }
+.fire-pop-head { font-weight: 700; font-size: .95rem; letter-spacing: .01em; color: var(--ink-900, #2C2A26); margin-bottom: .15rem; }
+.fire-pop-lead { margin: 0 0 .5rem; font-size: .76rem; color: var(--stone-600, #5C5447); }
+.fire-pop-stack { margin: 0 0 .5rem; padding: .3rem .45rem; border-radius: 6px; background: rgba(139, 115, 85, 0.12); font-size: .73rem; color: var(--stone-600, #5C5447); }
+.fire-pop-row { display: flex; justify-content: space-between; gap: .75rem; padding: 2.5px 0; border-top: 1px solid rgba(44, 42, 38, 0.07); }
+.fire-pop-row span { color: var(--stone-500, #8B7355); }
+.fire-pop-row b { font-weight: 600; text-align: right; white-space: nowrap; }
+.fire-pop-warn { margin: .5rem 0 0; padding: .4rem .5rem; border-radius: 7px; background: rgba(194, 84, 43, 0.1); border: 1px solid rgba(194, 84, 43, 0.25); font-size: .73rem; color: #8E3A1E; }
+.fire-pop-stat { margin: .5rem 0 0; padding: .4rem .5rem; border-radius: 7px; background: rgba(154, 145, 134, 0.16); border: 1px solid rgba(154, 145, 134, 0.4); font-size: .73rem; color: var(--stone-600, #5C5447); }
+.fire-pop-note { margin: .5rem 0 0; padding-top: .4rem; border-top: 1px solid rgba(44, 42, 38, 0.07); font-size: .71rem; color: var(--stone-500, #8B7355); }
+.fire-pop-assess { margin: 0 0 .5rem; padding: .4rem .5rem; border-radius: 7px; font-size: .74rem; line-height: 1.35; color: var(--stone-600, #5C5447); background: rgba(154, 145, 134, 0.14); border: 1px solid rgba(154, 145, 134, 0.4); }
+.fire-pop-links { margin: 0 0 .5rem; font-size: .7rem; color: var(--stone-500, #8B7355); }
+.fire-pop-links a { color: var(--stone-600, #5C5447); text-decoration: underline dotted; }
+.fire-pop-assess b { text-transform: uppercase; letter-spacing: .04em; font-size: .68rem; }
+.fire-pop-assess-bestaetigt { background: var(--br-sage-tint); border-color: var(--br-sage-border); color: #45613A; }
+.fire-pop-assess-plausibel { background: rgba(201, 168, 74, 0.14); border-color: rgba(201, 168, 74, 0.5); color: #6B5A22; }
+.fire-pop-mapped { margin: 0 0 .5rem; padding: .4rem .5rem; border-radius: 7px; background: var(--br-sage-tint); border: 1px solid var(--br-sage-border); font-size: .74rem; color: #45613A; }
+.fire-pop-zone { margin: 0 0 .5rem; padding: .4rem .5rem; border-radius: 7px; background: var(--sand-50, #F5F1E8); border: 1px dashed rgba(194, 84, 43, 0.45); font-size: .72rem; line-height: 1.35; color: var(--stone-600, #5C5447); }
+.fire-pop-zone b { color: var(--ink-900, #2C2A26); }
+.fire-pop-prov { margin: 0 0 .5rem; padding: .45rem .5rem; border-radius: 7px; background: var(--sand-50, #F5F1E8); border: 1px solid rgba(194, 84, 43, 0.55); font-size: .74rem; line-height: 1.4; color: var(--stone-600, #5C5447); }
+.fire-pop-prov b { color: var(--ink-900, #2C2A26); }
+.fire-pop-prov-src { font-size: .68rem; color: var(--stone-500, #8B7355); }
+.fire-pop-sub { margin: .55rem 0 .2rem; font-size: .68rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--stone-500, #8B7355); }
+.fire-pop-lc { display: grid; grid-template-columns: 1fr 64px 36px; align-items: center; gap: .45rem; padding: 1.5px 0; font-size: .74rem; }
+.fire-pop-lc-name { color: var(--stone-600, #5C5447); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fire-pop-lc-bar { height: 8px; border-radius: 4px; background: rgba(44, 42, 38, 0.08); overflow: hidden; }
+.fire-pop-lc-bar i { display: block; height: 100%; border-radius: 4px; }
+.fire-pop-lc b { font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
 
-/* ── WF4: Punktkurve (Feuerwetter stündlich am angeklickten Ort) ──────────────
-   Optik der Readout-Karten (`fire-ro-lcard`), aber eigene Klassen: die Karte ist
-   kein Layer-Steckbrief, sondern die Antwort auf die letzte Handlung. Die
-   Balkenfarbe kommt aus `isiRamp.ts` (dieselbe Reihe wie die Fläche) und steht
-   deshalb im Markup, nicht hier. */
-.fire-pc {
-  position: relative;
-  margin: 0 0 12px; padding: 11px 12px 10px;
-  background: #fff; border: 1px solid var(--sand-200, #E3DAC5); border-radius: 12px;
-}
-.fire-pc .fire-ro-section-head { display: flex; align-items: center; justify-content: space-between; }
-.fire-pc-close {
-  width: 26px; height: 26px; padding: 0;
-  border: 1px solid var(--sand-200, #E3DAC5); border-radius: 8px; background: #fff;
-  color: var(--stone-500, #8B7355); font-size: 15px; line-height: 1; cursor: pointer;
-}
-.fire-pc-close:hover { background: var(--sand-50, #F5F1E8); color: var(--ink-700, #3B342A); }
-.fire-pc-pos {
-  margin: 2px 0 6px; font-size: 10.5px; letter-spacing: 0.02em;
-  color: var(--stone-500, #8B7355); font-variant-numeric: tabular-nums;
-}
-.fire-pc-now {
-  display: flex; align-items: center; gap: 6px;
-  margin: 0 0 8px; font-size: 13px; color: var(--ink-700, #3B342A);
-}
-.fire-pc-now .fire-swatch { width: 12px; height: 12px; border-radius: 3px; flex: 0 0 auto; }
+/* --- Mobil-only-Bausteine (ausgeblendet auf Desktop/Tablet) ---------------- */
+.br-m-maprow, .br-bar, .br-m-page, .br-presets-big, .br-mcard, .br-m-basemap { display: none; }
 
-/* Die Balken: eine Stunde je Spalte, Höhe auf das Maximum der Kurve normiert.
-   Feste Höhe, damit die Karte beim Stundenwechsel nicht springt. */
-.fire-pc-bars {
-  display: flex; align-items: flex-end; gap: 4px;
-  height: 74px; margin: 0 0 8px; padding: 0; list-style: none;
-}
-.fire-pc-bars li {
-  flex: 1 1 0; display: flex; flex-direction: column; align-items: center;
-  justify-content: flex-end; height: 100%; gap: 3px;
-}
-.fire-pc-bar {
-  width: 100%; min-height: 3px; border-radius: 3px 3px 0 0;
-  border: 1px solid rgba(59, 52, 42, 0.12); border-bottom: 0;
-}
-.fire-pc-h {
-  font-size: 9.5px; color: var(--stone-500, #8B7355);
-  font-variant-numeric: tabular-nums; white-space: nowrap;
-}
-.fire-pc-note {
-  margin: 0 0 6px; font-size: 10.5px; line-height: 1.5; color: var(--stone-500, #8B7355);
-}
-.fire-pc-note strong { color: var(--ink-700, #3B342A); }
-/* Ein Leerzustand ist kein Nebensatz: er bekommt dieselbe Aufmerksamkeit wie
-   der Hinweis „folgt dem Regler nicht" (`fire-lag-hint`). */
-.fire-pc-note.is-gap {
-  padding: 7px 9px; border-radius: 0 8px 8px 0;
-  background: var(--terracotta-50, #FAEEDA); border-left: 2px solid var(--terracotta-500, #C97B47);
-  color: var(--terracotta-700, #A85E2E);
-}
-.fire-pc-src {
-  margin: 0; padding-top: 6px; border-top: 1px solid var(--sand-100, #EDE6D3);
-  font-size: 9.5px; color: var(--stone-400, #A89578);
+/* ==========================================================================
+   Tablet 768–1439 px (Vorlage B3): Topbar 54, Rail 54, Dock 214, Readout 266.
+   ========================================================================== */
+@media (max-width: 1439px) and (min-width: 768px) {
+  .br-topbar { height: 54px; gap: 14px; padding: 0 16px; }
+  .br-brand-name { font-size: 17px; }
+  .br-presets { margin-left: 0; border-radius: 8px; gap: 3px; }
+  .br-presets button { font-size: 11.5px; padding: 5px 10px; border-radius: 5px; }
+  .br-live { gap: 7px; letter-spacing: 1px; }
+  .br-live-dot { width: 7px; height: 7px; }
+  .br-rail { width: 54px; padding: 12px 0; }
+  .br-rail-btn { width: 38px; height: 38px; border-radius: 10px; }
+  .br-rail-btn.is-active::before { left: -8px; }
+  .br-rail-btn svg { width: 19px; height: 19px; }
+  .br-dock { width: 214px; padding: 14px 11px; }
+  .br-dock-head { margin-bottom: 0; }
+  .br-dock-head .br-eyebrow { font-size: 10px; }
+  .br-group + .br-group { margin-top: 12px; }
+  .br-dock-head + .br-group { margin-top: 12px; }
+  .br-group-head { font-size: 9.5px; margin-bottom: 6px; }
+  .br-layer { gap: 8px; }
+  .br-layer-label { font-size: 12px; }
+  .br-layer-sub { font-size: 9px; }
+  .br-group[data-br='stone'] .br-layer { padding: 7px 10px; }
+  .br-group[data-br='stone'] .br-layer-label { font-size: 11.5px; }
+  .br-switch { width: 28px; height: 16px; }
+  .br-switch-knob { width: 12px; height: 12px; }
+  .br-layer.is-on .br-switch-knob { transform: translateX(12px); }
+  .br-map-tl { left: 12px; top: 12px; gap: 7px; max-width: calc(100% - 24px); }
+  .br-map-tr { right: 12px; top: 12px; }
+  .br-map-pc { right: 12px; top: 104px; width: 230px; }
+  .fire-center .maplibregl-ctrl-top-right { top: 50px; right: 12px; }
+  .br-pill { gap: 8px; border-radius: 9px; padding: 7px 11px; }
+  .br-pill .br-dot { width: 7px; height: 7px; }
+  .br-pill-title { font-size: 11px; }
+  .br-views { max-width: 330px; border-radius: 9px; }
+  .br-views button { font-size: 11px; padding: 5px 9px; border-radius: 6px; }
+  .br-basemap button { font-size: 11px; padding: 5px 9px; }
+  .br-timedeck { left: 12px; right: 12px; bottom: 12px; border-radius: 12px; padding: 11px 14px; }
+  .br-td-row { gap: 11px; }
+  .br-play { width: 32px; height: 32px; border-radius: 8px; }
+  .br-seg { border-radius: 7px; padding: 2px; }
+  .br-seg button { font-size: 10.5px; padding: 4px 8px; }
+  .br-ticks { font-size: 9.5px; margin-bottom: 5px; }
+  .br-tick { font-size: 9.5px; }
+  .br-track input[type='range'] { height: 15px; }
+  .br-track input[type='range']::-webkit-slider-runnable-track { height: 6px; }
+  .br-track input[type='range']::-webkit-slider-thumb { width: 15px; height: 15px; border: 3px solid var(--cream-50, #FAF6EA); margin-top: -4.5px; }
+  .br-legend { gap: 12px; margin-top: 9px; padding-top: 9px; }
+  .br-legend-dot { font-size: 10px; color: var(--stone-500, #8B7355); }
+  .br-legend-dot i { width: 8px; height: 8px; }
+  .br-legend-derived { font-size: 9.5px; }
+  .br-legend-stand { font-size: 9.5px; }
+  .br-readout { width: 266px; padding: 14px 12px; }
+  .fire-root.is-fires .br-readout { width: 300px; }
+  .br-tabs button { font-size: 12px; padding: 6px 0; }
+  .br-card { border-radius: 12px; padding: 12px; margin-top: 10px; }
+  .br-tabs + .br-card { margin-top: 12px; }
+  .br-card-title { font-size: 15px; margin-top: 6px; }
+  .br-card-q { font-size: 11px; margin-top: 5px; }
+  .br-box { margin-top: 9px; padding: 9px 10px; font-size: 10px; line-height: 1.5; }
+  .br-tiles { gap: 8px; margin-top: 9px; }
+  .br-tile { padding: 8px; }
+  .br-tile-lbl { font-size: 8.5px; }
+  .br-tile-val { font-size: 15px; }
+  .br-card-lead { font-size: 10px; margin-top: 9px; }
+  .br-sources { font-size: 9.5px; margin-top: 12px; padding-top: 0; border-top: 0; }
+  .br-fire-btn { padding: 10px; }
+  .br-fire-stats { flex-wrap: wrap; gap: 10px 14px; }
 }
 
+/* ==========================================================================
+   Mobil ≤ 767 px (Vorlage B4–B6): Karte + Bottom-Sheet, Layer-Tab, Brände-Tab,
+   sticky Bottom-Bar Karte · Layer · Brände · Zeit.
+   ========================================================================== */
 @media (max-width: 767px) {
-  /* Touch: der Schließen-Knopf ist ein echtes Ziel (44 px), ohne die Karte
-     auseinanderzuziehen — Padding-Trick wie bei `.fire-td-now`. */
-  .fire-pc-close {
-    width: 44px; height: 44px; margin: -9px -9px -9px 0;
-    background: transparent; border-color: transparent; font-size: 20px;
-  }
-  .fire-pc-bars { height: 84px; }
-  .fire-pc-h { font-size: 10px; }
-}
+  .fire-root { --br-bar-h: calc(64px + var(--safe-bottom, 0px)); }
+  .fire-body { display: block; }
+  .fire-body .fire-center { position: absolute; inset: 0; bottom: var(--br-bar-h); }
 
-/* ── SF1: Ausbreitungsrichtung (Modell) ──────────────────────────────────────
-   Die GERECHNETE Zeile hebt sich von der BEOBACHTETEN ab: Terrakotta-Kante
-   links, damit im Fließtext der Detailkarte sofort sichtbar ist, dass hier ein
-   Modell spricht und keine Messung. */
-.fire-fp-pred {
-  border-left: 2px solid var(--terracotta-500, #C2542B);
-  padding-left: 8px;
-}
-.fire-fp-spread-chip { color: var(--terracotta-600, #A8431F); font-weight: 700; white-space: nowrap; }
+  /* Karte: Logo + Quellen-Pille (+ Zoom rechts), darunter scrollbare Sub-Ansichten. */
+  .br-map-tl { left: 12px; right: 12px; top: 12px; max-width: none; gap: 8px; align-items: stretch; }
+  .br-m-maprow { display: flex; align-items: center; gap: 9px; padding-right: 49px; }
+  .br-m-brand { width: 40px; height: 40px; flex: 0 0 auto; border-radius: 11px; background: var(--br-glass); border: 1px solid var(--sand-200, #E0D6BE); display: flex; align-items: center; justify-content: center; padding: 0; cursor: pointer; }
+  .br-pill { flex: 1; min-width: 0; border-radius: 11px; padding: 9px 12px; }
+  .br-pill .br-dot { width: 7px; height: 7px; }
+  .br-pill-title { flex: 1; font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; }
+  .br-pill-src { font-size: 10px; }
+  .fire-center .maplibregl-ctrl-top-right { top: 12px; right: 12px; }
+  .fire-center .maplibregl-ctrl-group { border-radius: 11px; }
+  .fire-center .maplibregl-ctrl-group button { width: 40px; height: 40px; }
+  .fire-center .maplibregl-ctrl-bottom-left, .fire-center .maplibregl-ctrl-bottom-right { bottom: calc(46vh + 8px); }
+  .br-views { background: none; border: 0; padding: 0 0 2px; gap: 5px; border-radius: 0; max-width: none; }
+  .br-views button { font-size: 11.5px; font-weight: 500; color: var(--stone-600, #5C5447); background: var(--br-glass); border: 1px solid var(--sand-200, #E0D6BE); border-radius: 9px; padding: 7px 12px; min-height: 44px; }
+  .br-views button.is-active { color: var(--cream-50, #FAF6EA); background: var(--br-red); border-color: var(--br-red); }
+  .br-mapnote { max-width: none; font-size: 10px; }
 
-/* Legenden-Kacheln des Steckbriefs. Der Pfeil ist als CSS-Dreieck gebaut (kein
-   zweites Sprite), der Fächer als Sektor mit gestrichelter Kante — dieselbe
-   Aussage wie auf der Karte: offene Form, keine satte Fläche. */
-.fire-li-spread-arrow {
-  width: 12px; height: 12px; flex: none;
-  background: var(--terracotta-500, #C2542B);
-  clip-path: polygon(50% 0%, 100% 100%, 50% 78%, 0% 100%);
-}
-.fire-li-spread-arrow.is-unsure { background: var(--stone-400, #A3937A); opacity: 0.75; }
-.fire-li-spread-fan {
-  width: 12px; height: 12px; flex: none;
-  border-radius: 0 0 12px 12px;
-  border: 1px dashed var(--terracotta-500, #C2542B);
-  background: rgba(194, 84, 43, 0.12);
-}
-.fire-li-spread-none {
-  width: 12px; height: 12px; flex: none; border-radius: 3px;
-  border: 1px dotted var(--stone-400, #A3937A); background: transparent;
+  /* Bottom-Sheet (geteilte Primitive) über der Bottom-Bar, Optik der Vorlage. */
+  .fire-root .bs-root { bottom: var(--br-bar-h); background: var(--cream-50, #FAF6EA); border-top: 1px solid var(--sand-200, #E0D6BE); border-radius: 22px 22px 0 0; box-shadow: 0 -20px 50px -20px rgba(44, 42, 38, .25); backdrop-filter: none; }
+  .fire-root .bs-handle-row { padding: 10px 16px 6px; gap: 0; }
+  .fire-root .bs-handle { width: 38px; height: 4px; background: var(--border-medium, #D9D0B8); }
+  .fire-root .bs-content { padding: 0 16px 16px; }
+  .br-sheet { display: flex; flex-direction: column; gap: 10px; }
+  .br-mcard { display: block; background: #fff; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 12px; padding: 12px; }
+  .br-mcard-head { display: flex; align-items: baseline; justify-content: space-between; }
+  .br-mcard-head .br-eyebrow { font-size: 10px; }
+  .br-mtime .br-td-row { gap: 10px; }
+  .br-mtime .br-play { width: 34px; height: 34px; }
+  .br-mtime .br-seg { background: var(--cream-50, #FAF6EA); padding: 2px; }
+  /* Touch-Ziele ≥ 44 px (mobile-design-guidelines §3): sichtbar 30 px, Trefffläche
+     44 px über negative Ränder — der Padding-Trick der früheren Zeitleiste. */
+  .br-mtime .br-seg button { font-size: 11px; padding: 5px 9px; min-height: 30px; }
+  .br-td-unit button { min-height: 44px; margin: -7px 0; }
+  .br-td-window button { min-height: 44px; margin: -7px 0; }
+  .br-mtime .br-seg { overflow: visible; }
+  .br-mtime .br-ticks { font-size: 9.5px; margin-bottom: 5px; }
+  .br-mtime .br-tick { font-size: 9.5px; min-height: 24px; }
+  .br-track input[type='range'] { height: 44px; }
+  .br-track input[type='range']::-webkit-slider-runnable-track { height: 6px; }
+  .br-track input[type='range']::-webkit-slider-thumb { width: 16px; height: 16px; border: 4px solid #fff; margin-top: -5px; }
+  .br-mtime-foot { display: flex; align-items: center; gap: 10px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--sand-100, #EDE6D3); flex-wrap: wrap; }
+  .br-mtime-foot .br-eyebrow { font-size: 10px; letter-spacing: .5px; }
+  .br-mtime-foot .br-seg button { padding: 5px 11px; }
+  .br-mtime-foot .br-legend-stand { margin-left: auto; font-size: 10px; }
+  .br-time-none { font-size: 11.5px; }
+  .br-mbar { display: flex; margin-top: 9px; border-radius: 5px; overflow: hidden; }
+  .br-mbar span { flex: 1; height: 11px; }
+  .br-mbar-labels { display: flex; justify-content: space-between; font-size: 9.5px; color: var(--stone-500, #8B7355); margin-top: 5px; }
+  .br-mlegend-dots { display: flex; gap: 14px; margin-top: 10px; flex-wrap: wrap; }
+  .br-mcard > .br-note { margin-top: 8px; font-size: 9.5px; }
+  .br-sheet .br-tiles { margin-top: 0; gap: 8px; }
+  .br-sheet .br-tile { background: #fff; border-radius: 11px; padding: 11px; }
+  .br-sheet .br-tile-val { font-size: 18px; }
+  .br-sheet .br-card { margin-top: 0; border-radius: 12px; padding: 12px; }
+  .br-sheet .br-card-title { font-size: 15px; margin-top: 6px; }
+  .br-sheet .br-card-q { font-size: 11px; }
+  .br-sheet .br-card-ref { font-size: 11px; }
+  .br-sheet .br-box { margin-top: 9px; padding: 9px 10px; font-size: 10px; }
+  .br-sheet .br-pc { background: #fff; }
+  .br-sheet .br-sources { text-align: center; font-size: 9.5px; border-top: 0; padding-top: 0; margin-top: 2px; }
+  .br-sheet .br-box.is-lag { margin: 0; }
+
+  /* Layer-/Brände-Seite: Kopf + Scrollbereich, über der Karte. */
+  .br-m-page { display: flex; flex-direction: column; position: absolute; inset: 0; bottom: var(--br-bar-h); z-index: 45; background: var(--sand-100, #EDE6D3); }
+  .br-m-head { flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; padding: calc(10px + var(--safe-top, 0px)) 18px 12px; border-bottom: 1px solid var(--sand-200, #E0D6BE); }
+  .br-m-head .br-eyebrow { letter-spacing: 2px; }
+  .br-m-title { margin: 3px 0 0; font-size: 19px; line-height: 1.15; font-weight: 700; color: var(--ink-900, #2C2A26); letter-spacing: -0.4px; }
+  .br-m-scroll { flex: 1; overflow-y: auto; padding: 14px 16px 24px; -webkit-overflow-scrolling: touch; }
+  .br-presets-big { display: flex; gap: 8px; }
+  .br-presets-big button { flex: 1; text-align: center; font: inherit; font-size: 12.5px; font-weight: 500; color: var(--stone-600, #5C5447); background: var(--cream-50, #FAF6EA); border: 1px solid var(--sand-200, #E0D6BE); border-radius: 10px; padding: 10px 0; min-height: 44px; cursor: pointer; }
+  .br-presets-big button.is-active { font-weight: 600; color: var(--cream-50, #FAF6EA); background: var(--br-red); border-color: var(--br-red); }
+  .br-m-scroll .br-group { margin-top: 16px; }
+  .br-m-scroll .br-group-head { letter-spacing: 2px; margin: 0 2px 8px; }
+  .br-m-scroll .br-layers { gap: 7px; }
+  .br-m-scroll .br-layer { gap: 11px; border-radius: 12px; padding: 12px 13px; min-height: 56px; }
+  .br-m-scroll .br-layerwrap.has-seg { border-radius: 12px; padding: 0 13px 12px; }
+  .br-m-scroll .br-layer-label { font-size: 14px; }
+  .br-m-scroll .br-layer-sub { font-size: 10.5px; }
+  .br-m-scroll .br-group[data-br='stone'] .br-layer { padding: 11px 13px; }
+  .br-m-scroll .br-group[data-br='stone'] .br-layer-label { font-size: 13.5px; }
+  .br-m-scroll .br-switch { width: 44px; height: 26px; border-radius: 13px; }
+  .br-m-scroll .br-switch-knob { width: 20px; height: 20px; top: 3px; left: 3px; }
+  .br-m-scroll .br-layer.is-on .br-switch-knob { transform: translateX(18px); }
+  .br-m-scroll .br-layerwrap > .br-seg { margin-top: 10px; gap: 6px; background: none; border: 0; padding: 0; }
+  .br-m-scroll .br-layerwrap > .br-seg button { font-size: 11px; padding: 7px 0; min-height: 44px; border-radius: 7px; background: var(--cream-50, #FAF6EA); border: 1px solid var(--sand-200, #E0D6BE); }
+  .br-m-scroll .br-layerwrap > .br-seg button.is-active { background: var(--sand-100, #EDE6D3); border-color: var(--sand-100, #EDE6D3); color: var(--stone-600, #5C5447); font-weight: 600; }
+  .br-layer-info { display: flex; align-items: center; justify-content: center; position: absolute; right: 64px; top: 6px; width: 44px; height: 44px; border: 0; background: transparent; color: var(--stone-400, #A89A7A); font-size: 0; cursor: pointer; }
+  .br-layer-info::before { content: 'i'; width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--sand-200, #E0D6BE); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; font-family: inherit; }
+  .br-m-scroll .br-layer-tx { padding-right: 40px; }
+  .br-m-scroll .br-card { margin-top: 7px; }
+  .br-m-basemap { display: flex; align-items: center; gap: 10px; margin-top: 16px; }
+  .br-m-basemap .br-basemap { background: #fff; }
+  .br-m-basemap .br-basemap button { min-height: 38px; }
+  .br-layer-lag, .br-layer-note { font-size: 11px; }
+
+  /* Brände-Seite (B6) */
+  .br-m-scroll .br-chiprow { margin-top: 0; gap: 6px; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 3px; scrollbar-width: none; }
+  .br-m-scroll .br-chiprow::-webkit-scrollbar { display: none; }
+  .br-m-scroll .br-chiprow + .br-chiprow { margin-top: 8px; }
+  .br-m-scroll .br-chip { flex: 0 0 auto; font-size: 11.5px; border-radius: 9px; padding: 7px 12px; min-height: 36px; background: var(--cream-50, #FAF6EA); }
+  .br-m-scroll .br-chip.is-ink { font-size: 11px; border-radius: 8px; padding: 6px 11px; }
+  .br-m-scroll .br-filters .br-chiprow { flex-wrap: wrap; }
+  .br-firelist { gap: 9px; }
+  .br-fire { border-radius: 13px; }
+  .br-fire-btn { padding: 12px; }
+  .br-fire.is-sel .br-fire-btn { padding: 13px; }
+  .br-fire-name { font-size: 14px; }
+  .br-fire.is-sel .br-fire-name { font-size: 15px; }
+  .br-fire-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+  .br-stat { background: var(--cream-50, #FAF6EA); border: 1px solid var(--sand-200, #E0D6BE); border-radius: 9px; padding: 9px; }
+  .br-stat-val { font-size: 16px; }
+  .br-more { min-height: 44px; }
+  .br-detail { margin: 0 13px 13px; }
+  .fire-fp-dl { grid-template-columns: 1fr; }
+  .br-close { width: 44px; height: 44px; }
+
+  /* Bottom-Bar */
+  .br-bar { display: flex; position: absolute; left: 0; right: 0; bottom: 0; z-index: 50; justify-content: space-around; padding: 10px 0 24px; --pad: 24px; background: var(--cream-50, #FAF6EA); border-top: 1px solid var(--sand-200, #E0D6BE); }
+  .br-bar-btn { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--stone-400, #A89A7A); background: none; border: 0; padding: 0 10px; min-width: 64px; min-height: 44px; cursor: pointer; font: inherit; font-size: 9.5px; }
+  .br-bar-btn.is-active { color: var(--br-red); font-weight: 600; }
 }

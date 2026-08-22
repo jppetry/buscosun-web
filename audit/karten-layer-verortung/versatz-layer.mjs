@@ -59,6 +59,26 @@ const FAMILIEN = [];
   });
 }
 
+// (A2) ICON-EU nativ, subsampled ss=2 — der Wind auf DRUCKFLÄCHEN (`buildWindFrame`
+//      benutzt dasselbe TARGET_WIDTH 700). Gitterzahlen aus probe-d2grid.mjs.
+//      Anders als bei ICON-D2 sind ni−1 und nj−1 hier BEIDE gerade, das Subsampling
+//      deckt also die volle Spanne ab — der Versatz ist deshalb keine konstante
+//      Verschiebung, sondern eine Dehnung um ±½ Nativzelle.
+{
+  const EU = { ni: 1377, nj: 657, lon1: -23.5, lat1: 29.5, di: 0.0625, dj: 0.0625 };
+  const ss = Math.max(1, Math.ceil(EU.ni / 700));
+  const W = Math.ceil(EU.ni / ss), H = Math.ceil(EU.nj / ss);
+  const wE = EU.lon1 - EU.di / 2, eE = EU.lon1 + (EU.ni - 1) * EU.di + EU.di / 2;
+  const sE = EU.lat1 - EU.dj / 2, nE = EU.lat1 + (EU.nj - 1) * EU.dj + EU.dj / 2;
+  FAMILIEN.push({
+    name: `ICON-EU nativ, subsampled ss=${ss} (${W}×${H})`,
+    layer: 'wind auf Druckflächen (700/850/500 hPa)',
+    zelleLon: ss * EU.di, zelleLat: ss * EU.dj,
+    x: axis(wE, eE, W, (t) => EU.lon1 + t * ss * EU.di),
+    y: axis(nE, sE, H, (t) => EU.lat1 + (H - 1 - t) * ss * EU.dj),
+  });
+}
+
 // (B) ICON-D2 nativ, NICHT subsampled — Wolken (CloudLayer, sampleCloudsAt).
 FAMILIEN.push({
   name: `ICON-D2 nativ, voll (${D2.ni}×${D2.nj})`,
@@ -68,15 +88,18 @@ FAMILIEN.push({
   y: axis(D2_N, D2_S, D2.nj, (t) => D2.lat1 + (D2.nj - 1) * D2.dj - t * D2.dj),
 });
 
-// (C) Fusion/Open-Meteo-IDW-Gitter — greift, sobald im Modell-Switcher ein
-//     gerastertes Modell gewählt ist (fusionFor(...) === true). Bounds =
-//     DACH_VIEW (countryProfiles.ts), Auflösung 100×80 (MapView Phase B).
+// (C) IDW-Rasterer — greift, sobald im Modell-Switcher eines der 13 EXTERNEN
+//     gerasterten Modelle gewählt ist (AROME-AT/FR · INCA · ICON-D2-EPS ·
+//     ICON-CH1/2-EPS · ICON-EU · GFS · IFS · AIFS · AIFS-ENS · ICON-global ·
+//     AICON · ARPEGE). Das hauseigene Modell „Buscosun Fusion" ist am 2026-08-22
+//     aus dem Katalog entfernt; der Rasterer selbst ist es NICHT.
+//     Bounds = DACH_VIEW (countryProfiles.ts), Auflösung 100×80 (MapView Phase B).
 for (const [cols, rows, tag] of [[100, 80, 'Phase B'], [80, 64, 'Phase A']]) {
   const b = { lngMin: 5.5, lngMax: 17.5, latMin: 45.5, latMax: 55.5 };
   const dx = (b.lngMax - b.lngMin) / (cols - 1), dy = (b.latMax - b.latMin) / (rows - 1);
   FAMILIEN.push({
-    name: `Fusion-IDW ${cols}×${rows} (${tag}) — Zellmitten als Bounds`,
-    layer: 'temp · wind · clouds · precip bei gewähltem Raster-Modell',
+    name: `IDW-Rasterer ${cols}×${rows} (${tag}) — Zellmitten als Bounds`,
+    layer: 'temp · wind · clouds · precip bei gewähltem externem Raster-Modell',
     zelleLon: dx, zelleLat: dy,
     x: axis(b.lngMin, b.lngMax, cols, (t) => b.lngMin + t * dx),
     y: axis(b.latMax, b.latMin, rows, (t) => b.latMax - t * dy),
@@ -97,6 +120,30 @@ for (const [cols, rows, tag] of [[100, 80, 'Phase B'], [80, 64, 'Phase A']]) {
     keineAbfrage: true,   // die Punktabfrage geht an den Quellgittern vorbei
   });
 }
+
+// (F) Der ICON-D2-Anteil des Niederschlags-Komposits (`nowcast` jenseits des
+//     Nowcast-Horizonts). `precipIndexMap.GRID_GEO.lonlat` steht auf
+//     `edge: false`, greift also mit `round(u·(sCols−1))` zu — die Ecken kommen
+//     aber aus `gribCorners`, sind also AUSSENKANTEN. ICON-D2-Niederschlag wird
+//     NICHT subsampled (`decodeGridStep` gibt ni×nj), also volle 1215×746.
+FAMILIEN.push({
+  name: 'Komposit-Zugriff auf ICON-D2 (nowcast jenseits 2/3 h)',
+  layer: 'nowcast, Modell-Hälfte',
+  zelleLon: D2.di, zelleLat: D2.dj,
+  // „render" = die Zelle, die der Zugriff nehmen SOLLTE (Außenkanten, floor);
+  // „query"  = die Zelle, die er nimmt (Zellmitten, round) — beides als Ort.
+  x: {
+    render: (lon) => D2.lon1 + Math.min(D2.ni - 1, Math.floor(((lon - D2_W) / (D2_E - D2_W)) * D2.ni)) * D2.di,
+    query: (lon) => D2.lon1 + Math.min(D2.ni - 1, Math.round(((lon - D2_W) / (D2_E - D2_W)) * (D2.ni - 1))) * D2.di,
+    inside: (lon) => lon >= D2_W && lon <= D2_E,
+  },
+  y: {
+    render: (lat) => D2_N - D2.dj / 2 - Math.min(D2.nj - 1, Math.floor(((D2_N - lat) / (D2_N - D2_S)) * D2.nj)) * D2.dj,
+    query: (lat) => D2_N - D2.dj / 2 - Math.min(D2.nj - 1, Math.round(((D2_N - lat) / (D2_N - D2_S)) * (D2.nj - 1))) * D2.dj,
+    inside: (lat) => lat >= D2_S && lat <= D2_N,
+  },
+  sollIstLabels: ['Soll-Zelle (Außenkanten)', 'genommene Zelle (Zellmitten)'],
+});
 
 const med = (a) => a.slice().sort((p, q) => p - q)[Math.floor(a.length / 2)];
 
@@ -126,7 +173,9 @@ for (const F of FAMILIEN) {
     + ` ≈ ${(F.zelleLon * 111.32 * Math.cos(50 * P)).toFixed(2)} × ${(F.zelleLat * 111.13).toFixed(2)} km`);
   console.log(`    ${rows.length} Orte ≥ 20 000 EW im Gitter`);
   if (!F.keineAbfrage) {
-    console.log(`    Karte ↔ Punktabfrage : Median ${med(rows.map(r => r.rq)).toFixed(2)} km · max ${rows[0].rq.toFixed(2)} km (${rows[0].ort})`);
+    const abw = rows.filter((r) => r.rq > 0.001).length;
+    console.log(`    Karte ↔ Punktabfrage : Median ${med(rows.map(r => r.rq)).toFixed(2)} km · max ${rows[0].rq.toFixed(2)} km (${rows[0].ort})`
+      + `  · betroffen ${abw}/${rows.length} = ${(100 * abw / rows.length).toFixed(0)} %`);
     console.log(`    Punktabfrage ↔ Wirklichkeit: Median ${med(rows.map(r => r.qt)).toFixed(2)} km · max ${Math.max(...rows.map(r => r.qt)).toFixed(2)} km`);
   } else {
     console.log(`    (keine Punktabfrage auf diesem Gitter — die Slider-Abfrage liest die Quellgitter)`);

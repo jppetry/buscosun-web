@@ -12,7 +12,7 @@
  * Orografie bereits enthält). CC BY 4.0, kein API-Key.
  */
 
-import { resolveLatestRun, fetchStepField, gribCorners, D2_GRIB_PROXY_BASE, type GribField } from './iconD2Precip';
+import { resolveLatestRun, fetchStepField, subsampledCorners, D2_GRIB_PROXY_BASE, type GribField } from './iconD2Precip';
 import { stepsForNowWindow } from './frameAtValidTime';
 
 export const ICON_D2_GUST_ATTRIBUTION =
@@ -95,11 +95,15 @@ export async function fetchIconD2Gust(
 
   // Phase T2-2: durch den durable-gecachten Edge-Pfad (statt /_dwd_opendata).
   const gridRef = await fetchStepField(runStr, 'vmax_10m', wanted[0], signal, D2_GRIB_PROXY_BASE);
-  const c = gribCorners(gridRef); // [NW, NE, SE, SW] in [lon,lat]
+  const ss = Math.max(1, Math.ceil(gridRef.ni / TARGET_WIDTH));
+  // Ecken der ABGETASTETEN Punkte statt des nativen Gitters (KL3): der Bau
+  // nimmt `min(n-1, k*ss)`, also den ERSTEN Punkt jedes Blocks — ueber
+  // `gribCorners` gespannt landete jeder Wert eine halbe Nativzelle zu weit
+  // noerdlich (audit/karten-layer-verortung.md, B3).
+  const c = subsampledCorners(gridRef, ss); // [NW, NE, SE, SW] in [lon,lat]
   const uvBounds: [number, number, number, number] = [
     lngToEquiX(c[0][0]), latToEquiY(c[0][1]), lngToEquiX(c[1][0]), latToEquiY(c[2][1]),
   ];
-  const ss = Math.max(1, Math.ceil(gridRef.ni / TARGET_WIDTH));
 
   const frames: IconD2GustFrame[] = [];
 

@@ -9,7 +9,7 @@
  */
 /// <reference lib="webworker" />
 
-import { decodeGrib2, gribCorners } from '../sources/gribDecode';
+import { decodeGrib2, subsampledCorners } from '../sources/gribDecode';
 import { buildWindRgba } from './windFrameBuild';
 
 interface Req { id: number; uBuf: ArrayBuffer; vBuf: ArrayBuffer; targetWidth: number }
@@ -20,7 +20,10 @@ self.onmessage = (e: MessageEvent<Req>) => {
     const u = decodeGrib2(new Uint8Array(uBuf));
     const v = decodeGrib2(new Uint8Array(vBuf));
     const built = buildWindRgba(u, v, targetWidth);
-    const corners = gribCorners(u);
+    // Ecken der ABGETASTETEN Punkte (KL3) — buildWindRgba nimmt den ersten
+    // Punkt jedes ss-Blocks; ueber gribCorners gespannt laege der Wind eine
+    // halbe Nativzelle zu weit noerdlich.
+    const corners = subsampledCorners(u, Math.max(1, Math.ceil(u.ni / targetWidth)));
     (self as unknown as { postMessage: (m: unknown, t: Transferable[]) => void }).postMessage(
       {
         id, ok: true,

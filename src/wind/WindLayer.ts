@@ -167,6 +167,12 @@ export interface WindLayerOptions {
   windPngUrl?: string;
   windJsonUrl?: string;
   colorRamp?: Record<number, string>;
+  /** Eigene Color-Ramp NUR fuer die Partikel (`speedTint`). Ohne diese Option
+   *  benutzen Partikel und Heatmap dieselbe `colorRamp` — genau das Altverhalten.
+   *  Die Wetterkarte braucht die Trennung: ihre Heatmap-Rampe beginnt bei
+   *  rgb(20,30,55) und wuerde langsame Partikel im Dunkeln verschlucken, waehrend
+   *  die Heatmap-Farben selbst unveraendert bleiben muessen (Funktionserhalt). */
+  particleColorRamp?: Record<number, string>;
   showHeatmap?: boolean;
   heatmapOpacity?: number;
   particleColor?: [number, number, number, number];
@@ -326,6 +332,8 @@ export class WindLayer implements CustomLayerInterface {
   private windPngUrl: string;
   private windJsonUrl: string;
   private colorRampStops: Record<number, string>;
+  /** null = Partikel teilen sich die Heatmap-Rampe (Altverhalten). */
+  private particleRampStops: Record<number, string> | null;
 
   private map: MapLibreMap | null = null;
   private gl: WebGLRenderingContext | null = null;
@@ -360,6 +368,8 @@ export class WindLayer implements CustomLayerInterface {
   private particleStateTexture1!: WebGLTexture;
   private windTexture: WebGLTexture | null = null;
   private colorRampTexture!: WebGLTexture;
+  /** null ⇒ die Partikel-Passes binden `colorRampTexture` (byte-gleich zu vorher). */
+  private particleRampTexture: WebGLTexture | null = null;
   private backgroundTexture!: WebGLTexture;
   private screenTexture!: WebGLTexture;
 
@@ -1137,6 +1147,7 @@ export class WindLayer implements CustomLayerInterface {
     this.windPngUrl = options.windPngUrl ?? '/wind/wind.png';
     this.windJsonUrl = options.windJsonUrl ?? '/wind/wind.json';
     this.colorRampStops = options.colorRamp ?? defaultColorRamp;
+    this.particleRampStops = options.particleColorRamp ?? null;
     this.particleStyle = options.particleStyle ?? 'points';
     this.segPreset = makeSegmentPreset(options.segmentPreset);
     // Segments: auch der allererste Aufbau blendet weich ein (windy-artig).
@@ -1192,6 +1203,9 @@ export class WindLayer implements CustomLayerInterface {
     this.buildHeatmapMesh();
 
     this.colorRampTexture = createTexture(gl, gl.LINEAR, getColorRamp(this.colorRampStops), 16, 16);
+    this.particleRampTexture = this.particleRampStops
+      ? createTexture(gl, gl.LINEAR, getColorRamp(this.particleRampStops), 16, 16)
+      : null;
 
     this.initParticles(this.targetParticleCount());
     this.allocScreenTextures();
@@ -1273,6 +1287,7 @@ export class WindLayer implements CustomLayerInterface {
     gl.deleteTexture(this.particleStateTexture1);
     if (this.windTexture) gl.deleteTexture(this.windTexture);
     gl.deleteTexture(this.colorRampTexture);
+    if (this.particleRampTexture) { gl.deleteTexture(this.particleRampTexture); this.particleRampTexture = null; }
     gl.deleteTexture(this.backgroundTexture);
     gl.deleteTexture(this.screenTexture);
   }
@@ -2115,7 +2130,8 @@ export class WindLayer implements CustomLayerInterface {
 
     bindAttribute(gl, this.particleIndexBuffer, p.a_index as number, 1);
 
-    bindTexture(gl, this.colorRampTexture, 2);
+    // Partikel-Rampe, falls gesetzt — sonst die Heatmap-Rampe (Altverhalten).
+    bindTexture(gl, this.particleRampTexture ?? this.colorRampTexture, 2);
     gl.uniform1i(p.u_wind as WebGLUniformLocation, 0);
     gl.uniform1i(p.u_particles as WebGLUniformLocation, 1);
     gl.uniform1i(p.u_color_ramp as WebGLUniformLocation, 2);
@@ -2214,7 +2230,8 @@ export class WindLayer implements CustomLayerInterface {
 
     bindAttribute(gl, this.segVertexBuffer!, p.a_vert as number, 3);
 
-    bindTexture(gl, this.colorRampTexture, 2);
+    // Partikel-Rampe, falls gesetzt — sonst die Heatmap-Rampe (Altverhalten).
+    bindTexture(gl, this.particleRampTexture ?? this.colorRampTexture, 2);
     gl.uniform1i(p.u_wind as WebGLUniformLocation, 0);
     gl.uniform1i(p.u_particles as WebGLUniformLocation, 1);
     gl.uniform1i(p.u_color_ramp as WebGLUniformLocation, 2);

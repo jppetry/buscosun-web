@@ -37,9 +37,17 @@ export function loadNowcaster(): Promise<LoadedNowcaster | null> {
   return modelP;
 }
 
-/** RADOLAN-u8-Frame → gröberes, normalisiertes Feld [1,H',W'] in [0,1] (Avg-Pool). */
+/**
+ * RADOLAN-u8-Frame → gröberes, normalisiertes Feld [1,H',W'] in [0,1] (Avg-Pool).
+ *
+ * `ceil`, nicht `floor` (KL5): das Ergebnis wird über die VOLLEN DE1200-Ecken
+ * gezeichnet. Mit `floor` deckten 137 Spalten nur 1096 der 1100 km ab, das Bild
+ * wurde aber über 1100 gespannt — eine Dehnung, die nach Osten auf 4 km anwuchs
+ * (`audit/karten-layer-verortung.md` §7a). Der letzte Block ist dann teilweise
+ * gefüllt; die `break`-Wächter unten und der Zähler `n` rechnen ihn korrekt.
+ */
 export function coarsenFrameU8(values: Uint8Array, w: number, h: number, factor: number): Tensor {
-  const W = Math.max(1, Math.floor(w / factor)), H = Math.max(1, Math.floor(h / factor));
+  const W = Math.max(1, Math.ceil(w / factor)), H = Math.max(1, Math.ceil(h / factor));
   const t = zeros(1, H, W);
   for (let cy = 0; cy < H; cy++) {
     for (let cx = 0; cx < W; cx++) {

@@ -119,11 +119,14 @@ export function buildSnowLine(
   const field = new Float32Array(W * H);
   for (let j = 0; j < H; j++) {
     const tv = j / (H - 1);
-    const tj = Math.min(frame.height - 1, Math.round(tv * (frame.height - 1)));
+    // Aussenkanten-Konvention wie der Shader (KL3): die Texelmitte zu `tv` ist
+    // `floor(tv*n)`, nicht `round(tv*(n-1))`. Sonst liegt die Iso-Linie eine
+    // halbe Zelle neben dem Farbfeld, das sie teilt.
+    const tj = Math.min(frame.height - 1, Math.max(0, Math.floor(tv * frame.height)));
     for (let i = 0; i < W; i++) {
       const o = j * W + i;
       const tu = i / (W - 1);
-      const ti = Math.min(frame.width - 1, Math.round(tu * (frame.width - 1)));
+      const ti = Math.min(frame.width - 1, Math.max(0, Math.floor(tu * frame.width)));
       const k = (tj * frame.width + ti) * 4;
       if (td[k + 3] < 13) { field[o] = NaN; continue; }
       const tHsurf = TEMP_VMIN + (td[k] / 255) * span;
@@ -131,9 +134,10 @@ export function buildSnowLine(
       // Peak-erhaltende DEM-Höhe: Max über die DEM-Pixel, die diese (gröbere)
       // Kontur-Zelle abdeckt — sonst verfehlt das Nearest-Sampling scharfe Gipfel.
       // hsurf (Modell-Referenzhöhe) bleibt bewusst Nearest → korrekter Lapse-Term.
-      const diC = tu * (demW - 1), djC = tv * (demH - 1);
-      const halfI = Math.max(0.5, (demW - 1) / Math.max(1, W - 1) / 2);
-      const halfJ = Math.max(0.5, (demH - 1) / Math.max(1, H - 1) / 2);
+      const diC = Math.min(demW - 1, Math.max(0, tu * demW - 0.5));
+      const djC = Math.min(demH - 1, Math.max(0, tv * demH - 0.5));
+      const halfI = Math.max(0.5, demW / Math.max(1, W) / 2);
+      const halfJ = Math.max(0.5, demH / Math.max(1, H) / 2);
       const di0 = Math.max(0, Math.floor(diC - halfI)), di1 = Math.min(demW - 1, Math.ceil(diC + halfI));
       const dj0 = Math.max(0, Math.floor(djC - halfJ)), dj1 = Math.min(demH - 1, Math.ceil(djC + halfJ));
       let demByte = 0;
