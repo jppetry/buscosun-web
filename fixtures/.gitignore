@@ -1,7 +1,0 @@
-# The verification archive seed — session-*.json — IS committed (constraint C3).
-# Everything below is machine-local or regenerable; keep it out of git.
-capture.log
-.equivalence-passed
-background-provisional.json
-*-synthetic.json
-desroziers-*.json
