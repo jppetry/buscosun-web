@@ -1,8 +1,8 @@
 {
   "run": "2026082312",
   "runAt": "2026-08-23T12:00:00.000Z",
-  "updatedAt": "2026-08-23T13:17:05.856Z",
-  "warmedThroughProxy": "https://buscosun.com/_dwd_grib",
+  "updatedAt": "2026-08-23T13:43:46.520Z",
+  "publishedFor": "https://buscosun.com",
   "params": {
     "t_2m": [
       0,
@@ -303,8 +303,8 @@
     ]
   },
   "eps": {
-    "run": "2026082309",
-    "runAt": "2026-08-23T09:00:00.000Z",
+    "run": "2026082312",
+    "runAt": "2026-08-23T12:00:00.000Z",
     "params": {
       "t_2m": [
         0,
