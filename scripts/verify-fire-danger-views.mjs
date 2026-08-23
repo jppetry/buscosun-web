@@ -60,16 +60,15 @@ add('dc: „Bodenfeuchte" kommt in Label, Titel, Antwort, Einheit und Bezug nich
   !/bodenfeucht/i.test(dcShown), dcShown.slice(0, 120));
 // In der Grenze darf das Wort nur als NAME des blockierten EDO-Layers stehen —
 // und nur zusammen mit der Verneinung, dass DC dessen Größe sei.
-const limitWithoutName = dc.limitation.replace(/Layer „Bodenfeuchte-Anomalie"/g, '');
-add('dc: in der Grenze steht „Bodenfeuchte" NUR als Name des blockierten EDO-Layers',
+const limitWithoutName = dc.limitation.replace(/\(Bodenfeuchte-Anomalie\)/g, '');
+add('dc: in der Grenze steht „Bodenfeuchte" NUR als Name der EDO-Größe',
   !/bodenfeucht/i.test(limitWithoutName) && /keine gemessene oder modellierte Feuchte des Erdbodens/.test(dc.limitation)
     && /ersetzt sie nicht/.test(dc.limitation), dc.limitation);
 add('dc: Titel ist wörtlich „Trockenheit der Streuauflage (Modellwert)"',
   DANGER_VIEWS.dc.title === 'Trockenheit der Streuauflage (Modellwert)');
-add('die blockierte EDO-Bodenfeuchte bleibt im Steckbrief als blockiert benannt (nicht durch DC ersetzt)',
-  /fireDrought:[\s\S]{0,900}nicht abrufbar/.test(card) && /KEIN Ersatz dafür/.test(card));
-add('der blockierte EDO-Layer heißt nicht mehr bloß „Trockenheit" (Verwechslung mit der DC-Ansicht)',
-  /fireDrought:[\s\S]{0,900}label: 'Bodenfeuchte-Anomalie'/.test(card));
+// 2026-08-22: die EDO-Layer sind zurückgezogen — der Steckbrief führt sie nicht mehr.
+add('die EDO-Layer sind zurückgezogen: kein fireDrought/fireVegetation im Steckbrief',
+  !/fireDrought:/.test(card) && !/fireVegetation:/.test(card));
 
 // (c) ranking-Baseline
 add('ranking: die Referenzperiode steht IN der Bezugsangabe der Legende (nicht nur im Kommentar)',
@@ -98,9 +97,11 @@ add('Steckbrief des Index trägt die Einordnung als zweite Legende (und umgekehr
 //      2026-08-19: `fireIndexNational` (Bit 1) und `fireBans` (Bit 4) sind
 //      zurückgezogen; ihre Plätze bleiben als `null` besetzt, damit geteilte
 //      Links weiter dieselben Layer öffnen.
+//      2026-08-22: auch `fireDrought` (Bit 5) und `fireVegetation` (Bit 6)
+//      sind zurückgezogen — Plätze bleiben `null`.
 const E3_SLOTS = [
   'fireDanger', null, 'fireHotspots', 'fireWeather', null,
-  'fireDrought', 'fireVegetation', 'fireFuel', 'fireBurnt', 'fireContext',
+  null, null, 'fireFuel', 'fireBurnt', 'fireContext',
 ];
 add('keine Sub-Ansicht des Index ist ein eigener Layer geworden',
   !FIRE_LAYER_ORDER.some((l) => DANGER_VIEW_ORDER.some((v) => l.toLowerCase().includes(v.toLowerCase()))),

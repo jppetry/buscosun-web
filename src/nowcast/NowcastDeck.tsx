@@ -40,6 +40,9 @@ interface Props {
   onReload: () => void;
   onBack: () => void;
   onOpenFeature?: (id: RailFeature) => void;
+  /** Router (RT1): Startkamera aus der Query + Kamera-Meldung. Additiv. */
+  initialView?: { lat: number; lon: number; zoom: number } | null;
+  onViewChange?: (v: { lat: number; lon: number; zoom: number }) => void;
 }
 
 /** Dock-Layer, die das ECHTE Radar steuern (Teilmenge der Radar-Layer). */
@@ -64,7 +67,7 @@ const comma = (n: number) => n.toString().replace('.', ',');
 /** Mobile-Bereiche der Bottom-Tab-Bar — jeder als Sheet-Panel im Schnellblick-Stil. */
 type MobileTab = 'glance' | 'timeline' | 'chart' | 'layer' | 'detail';
 
-export default function NowcastDeck({ location, state, onChangeLocation, reloadNonce, onReload, onBack, onOpenFeature }: Props) {
+export default function NowcastDeck({ location, state, onChangeLocation, reloadNonce, onReload, onBack, onOpenFeature, initialView, onViewChange }: Props) {
   const isMobile = useIsMobile();
   const [layers, setLayers] = useState<RadarLayerId[]>(() => {
     const saved = loadLastView()?.layers as RadarLayerId[] | undefined;
@@ -90,7 +93,8 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
       {view === 'map' ? (
         <div className="rr-stage">
           <NowcastRadarMap location={location} nowcast={nowcast} reloadKey={reloadNonce}
-            layers={layers} onLayersChange={setLayers} hideLayerbar compact />
+            layers={layers} onLayersChange={setLayers} hideLayerbar compact
+            initialView={initialView} onViewChange={onViewChange} />
         </div>
       ) : (
         <div className="rr-chart">
@@ -152,6 +156,7 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
           <div className="rm-map">
             <NowcastRadarMap location={location} nowcast={nowcast} reloadKey={reloadNonce}
               layers={layers} onLayersChange={setLayers} hideLayerbar compact
+              initialView={initialView} onViewChange={onViewChange}
               onMapReady={(m) => { mapRef.current = m; }} />
           </div>
           <div className="rm-topfloat">

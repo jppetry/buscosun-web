@@ -63,6 +63,13 @@ const MAX_MANIFEST_RUN_AGE_H = 24;
 /** Rückgabeform der Lauf-Auflösung — deckungsgleich mit `resolveLatestRun`. */
 interface WindRunInfo { runStr: string; runAt: Date; steps: number[]; }
 
+/** True, wenn der letzte Schritt des Laufs nicht vor `nowMs` liegt (Horizont-Guard). Rein, fuer den Verifier. */
+export function manifestCoversNow(runAtMs: number, steps: readonly number[], nowMs: number): boolean {
+  if (steps.length === 0) return false;
+  const lastMs = runAtMs + Math.max(...steps) * 3_600_000;
+  return lastMs >= nowMs;
+}
+
 /** `YYYYMMDDHH` → UTC-Date. */
 function parseRunStr(run: string): Date {
   return new Date(Date.UTC(
@@ -102,6 +109,13 @@ async function resolveWindRunFromManifest(signal?: AbortSignal): Promise<WindRun
     // auf einen toten Lauf, u. a. gegen ein versehentlich committetes Altmanifest).
     const ageH = (Date.now() - runAt.getTime()) / 3_600_000;
     if (ageH > MAX_MANIFEST_RUN_AGE_H || ageH < -2) return absent();
+    // Horizont-Guard (2026-08-22): ein eingefrorenes Manifest (Warmer steht, z. B.
+    // Prod 503) kann jung genug sein und trotzdem KEINEN Schritt mehr fuer „jetzt"
+    // tragen — 00z mit 0…12 h endet um 12 UTC. Der Wind-Layer zeigte dann den
+    // letzten Frame als „jetzt", und der Ausbreitungslayer (30-min-Schranke) fand
+    // fuer keine Stunde ein Windfeld. Liegt der letzte Schritt vor jetzt, ist das
+    // Manifest fuer die Gegenwart unbrauchbar → Directory-Scan holt den aktuellen Lauf.
+    if (!manifestCoversNow(runAt.getTime(), steps, Date.now())) return absent();
     const upd = typeof m.updatedAt === 'string' ? new Date(m.updatedAt) : null;
     const updatedAtMs = upd && !Number.isNaN(upd.getTime()) ? upd.getTime() : null;
     reportManifest(WIND_MANIFEST_URL, stateFromUpdatedAt(updatedAtMs, Date.now()), updatedAtMs);

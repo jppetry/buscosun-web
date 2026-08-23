@@ -40,7 +40,15 @@ const NerdPanel = lazy(() => import('./NerdPanel'));
 /** Deck-Linse: die drei Schnitt-Seiten + die erhaltenen Föhn/Thermik-Linsen. */
 type DeckLens = 'hoehenwind' | 'inversion' | 'gonogo' | 'foehn' | 'thermik';
 
-interface Props { onBack: () => void; onOpenFeature?: (id: RailFeature) => void }
+/** Unteransichten der Querschnitt-Linse (Router RT1: `?ansicht=`; `hoehenwind` = Default, wird nicht geschrieben). */
+export type DeckSub = 'hoehenwind' | 'inversion' | 'gonogo';
+
+interface Props {
+  onBack: () => void;
+  onOpenFeature?: (id: RailFeature) => void;
+  initialSub?: DeckSub | null;
+  onSubChange?: (sub: DeckSub) => void;
+}
 
 // ----------------------------------------------------------------------------
 // Vertikalschnitt-Daten (aus der gezeichneten Schnittlinie) — geteilt von allen
@@ -95,10 +103,14 @@ function useSectionData() {
 // ----------------------------------------------------------------------------
 // Deck
 // ----------------------------------------------------------------------------
-export default function AtmosphereDeck({ onBack, onOpenFeature }: Props) {
+export default function AtmosphereDeck({ onBack, onOpenFeature, initialSub, onSubChange }: Props) {
   const isMobile = useIsMobile();
   const { lens, setLens, location } = useAtmosphere();
-  const [sub, setSub] = useState<'hoehenwind' | 'inversion' | 'gonogo'>('hoehenwind');
+  const [sub, setSub] = useState<DeckSub>(initialSub ?? 'hoehenwind');
+  // Router (RT1): Unterlinse ⇒ `?ansicht=` (replace, kein History-Eintrag).
+  const onSubChangeRef = useRef(onSubChange);
+  onSubChangeRef.current = onSubChange;
+  useEffect(() => { onSubChangeRef.current?.(sub); }, [sub]);
   const deckLens: DeckLens = lens === 'mountain' ? 'foehn' : lens === 'fly' ? 'thermik' : sub;
   const setDeckLens = (l: DeckLens) => {
     if (l === 'foehn') setLens('mountain');

@@ -55,12 +55,6 @@ export function FireIcon({ layer, size = 15 }: Props) {
           <path d="M9.5 18.5 H16.5" {...s} strokeWidth="1.5" strokeLinecap="round" />
         </svg>
       );
-    case 'fireWind':
-      return (
-        <svg {...common}>
-          <path d="M3 9 H14 A2.5 2.5 0 1 0 11.5 6.5 M3 14 H18 A2.5 2.5 0 1 1 15.5 16.5" {...s} strokeWidth="1.6" strokeLinecap="round" />
-        </svg>
-      );
     case 'fireSoilDryness':
       return (
         <svg {...common}>
@@ -74,6 +68,14 @@ export function FireIcon({ layer, size = 15 }: Props) {
           <path d="M4 18 L17 7" {...s} strokeWidth="1.7" strokeLinecap="round" />
           <path d="M11 6 H18 V13" {...s} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
           <path d="M4 18 L9 20 M4 18 L2.5 13" {...s} strokeWidth="1.3" strokeLinecap="round" strokeOpacity=".6" />
+        </svg>
+      );
+    case 'fireAnomalies':
+      // TA5: Raute (Standort) mit Kamin — keine Flamme, keine Welle.
+      return (
+        <svg {...common}>
+          <path d="M12 4 L20 12 L12 20 L4 12 Z" {...s} strokeWidth="1.6" strokeLinejoin="round" />
+          <path d="M10.5 14.5 V9.5 H13.5 V14.5" {...s} strokeWidth="1.4" strokeLinejoin="round" />
         </svg>
       );
     case 'fireFuel':
@@ -93,15 +95,6 @@ export function FireIcon({ layer, size = 15 }: Props) {
       return (
         <svg {...common}>
           <path d="M12 3 L20 7 V13 C20 17.5 16.4 20.4 12 21.5 C7.6 20.4 4 17.5 4 13 V7 Z" {...s} strokeWidth="1.4" strokeLinejoin="round" />
-        </svg>
-      );
-    case 'fireDrought':
-    case 'fireVegetation':
-      // Blockierte EDO-Quellen — das Schloss der Vorlage.
-      return (
-        <svg {...common}>
-          <rect x="5" y="10" width="14" height="10" rx="2" {...s} strokeWidth="1.4" />
-          <path d="M8.5 10 V7.5 A3.5 3.5 0 0 1 15.5 7.5 V10" {...s} strokeWidth="1.4" />
         </svg>
       );
     default:

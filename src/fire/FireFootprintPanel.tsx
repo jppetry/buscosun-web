@@ -48,6 +48,7 @@ import { windowLabel } from './fireTime';
 import type { Country } from '../types';
 import type { AtWarnContext } from './sources/geosphereWarnContext';
 import { BR_BADGE_LABEL, badgeOf } from './brandradarMeta';
+import { siteLabel } from './anomaly/classify';
 
 export type EffisScope = 'week' | 'season';
 /** Sortierung der Liste — die Registry-Sorten plus „Detektionen" (Vorlage), lokal sortiert. */
@@ -165,7 +166,7 @@ function areaValue(r: FireRecord): string {
 }
 
 function Badge({ r }: { r: FireRecord }) {
-  const b = badgeOf(r.status.kind, r.suspectedStatic);
+  const b = badgeOf(r.status.kind, r.suspectedStatic, r.anomaly?.kind ?? null);
   return <span className={`br-badge is-${b}`}>{BR_BADGE_LABEL[b]}</span>;
 }
 
@@ -366,6 +367,10 @@ export function FireFootprintPanel(p: FootprintPanelProps) {
             if (lc) ctx.push(`Landbedeckung: ${LANDCOVER_LABEL[lc.key]} (CORINE, Plausibilität)`);
             if (r.sources.ems) ctx.push(`Copernicus-EMS-Aktivierung ${r.sources.ems.closed === false ? 'offen' : r.sources.ems.closed === true ? 'geschlossen' : 'vorhanden'} (${r.sources.ems.code})`);
             if (r.suspectedStatic) ctx.push('Vermutlich Industrieanlage — an ≥ 5 Tagen am selben Ort (eigene Einordnung, kein Nachweis).');
+            // TA3: Standort-Einordnung — mit Quelle und Abstand im selben Satz; Abweichung bleibt Brand.
+            if (r.anomaly) ctx.push(r.anomaly.kind === 'site'
+              ? `Bekannter Standort: ${siteLabel(r.anomaly.site)} — eigene Ableitung, kein Nachweis.`
+              : `Nahe bekanntem Standort (${siteLabel(r.anomaly.site)}), Signal weicht vom Anlagenmuster ab — als Brand behandelt.`);
             return (
               <li key={r.id}>
                 <div

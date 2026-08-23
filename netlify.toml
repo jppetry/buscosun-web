@@ -81,19 +81,198 @@
   status = 200
   force  = true
 
+# ── App-Routen (Phase RT1, 2026-08-22: React Router 7, pfadbasiert) ──────────
+#
+# Quelle der Wahrheit ist `src/router/routes.ts`; `scripts/verify-routing.mjs`
+# prüft, dass JEDE Route hier genau ein 200-Rewrite und JEDER Alias eine 301
+# hat und dass `/* → /404.html` die letzte Regel bleibt (V-101: KEIN
+# `/* → /index.html 200`, Fantasie-Adressen bleiben echte 404).
+#
+# Ziel der Rewrites ist die je Route erzeugte Shell `dist/<route>.html`
+# (`scripts/generate-seo.mjs`: eigener Title/Canonical/JSON-LD im Roh-HTML —
+# `index.html` trägt den Home-Canonical und wäre Duplicate Content). Flache
+# Dateien, nicht `<route>/index.html`: „Pretty URLs" würde sonst auf den
+# End-Slash umleiten. Nicht erzwungen — echte Dateien (/assets, /wetter/…,
+# sitemap.xml) gewinnen weiterhin.
+#
+# Netlify matcht `from` OHNE Rücksicht auf den End-Slash; `/x/*` deckt damit
+# auch `/x/` ab. Eine Regel `/x/ → /x 301` wäre eine Endlosschleife — die
+# Slash-Normalisierung macht der Client (`App.tsx`, replace), der Canonical
+# zeigt ohnehin auf den Pfad ohne Slash. Query-Strings reicht Netlify bei 301
+# durch (am Deploy-Preview per curl belegen, `audit/routing.md`).
+
+# 301-Aliase → kanonische Route. Der Cross-Alias /wetterkarte/warnungen muss
+# VOR /wetterkarte/* stehen.
+[[redirects]]
+  from   = "/wetterkarte/warnungen"
+  to     = "/warnungen"
+  status = 301
+  force  = true
+[[redirects]]
+  from   = "/karte"
+  to     = "/wetterkarte"
+  status = 301
+[[redirects]]
+  from   = "/map"
+  to     = "/wetterkarte"
+  status = 301
+[[redirects]]
+  from   = "/unwetterwarnungen"
+  to     = "/warnungen"
+  status = 301
+[[redirects]]
+  from   = "/warnung"
+  to     = "/warnungen"
+  status = 301
+[[redirects]]
+  from   = "/niederschlagsradar"
+  to     = "/regenradar"
+  status = 301
+[[redirects]]
+  from   = "/radar"
+  to     = "/regenradar"
+  status = 301
+[[redirects]]
+  from   = "/regen"
+  to     = "/regenradar"
+  status = 301
+[[redirects]]
+  from   = "/wettervorhersage"
+  to     = "/vorhersage"
+  status = 301
+[[redirects]]
+  from   = "/forecast"
+  to     = "/vorhersage"
+  status = 301
+[[redirects]]
+  from   = "/touren"
+  to     = "/tourenplanung"
+  status = 301
+[[redirects]]
+  from   = "/tour"
+  to     = "/tourenplanung"
+  status = 301
+[[redirects]]
+  from   = "/events"
+  to     = "/eventplanung"
+  status = 301
+[[redirects]]
+  from   = "/event"
+  to     = "/eventplanung"
+  status = 301
+[[redirects]]
+  from   = "/historie"
+  to     = "/wetterarchiv"
+  status = 301
+[[redirects]]
+  from   = "/rueckblick"
+  to     = "/wetterarchiv"
+  status = 301
+# Umlaut-Alias: prozentkodiert UND roh (je nachdem, wie der Client die Anfrage sendet).
+[[redirects]]
+  from   = "/atmosph%C3%A4re"
+  to     = "/atmosphaere"
+  status = 301
+[[redirects]]
+  from   = "/atmosphäre"
+  to     = "/atmosphaere"
+  status = 301
+[[redirects]]
+  from   = "/atmosphere"
+  to     = "/atmosphaere"
+  status = 301
+[[redirects]]
+  from   = "/3d-globus"
+  to     = "/globus"
+  status = 301
+[[redirects]]
+  from   = "/3d"
+  to     = "/globus"
+  status = 301
+[[redirects]]
+  from   = "/waldbraende"
+  to     = "/waldbrand"
+  status = 301
+[[redirects]]
+  from   = "/feuer"
+  to     = "/waldbrand"
+  status = 301
+
+# 200-Rewrites je App-Route auf ihre Shell (Sub-Routen teilen die Eltern-Shell).
+[[redirects]]
+  from   = "/wetterkarte"
+  to     = "/wetterkarte.html"
+  status = 200
+[[redirects]]
+  from   = "/wetterkarte/*"
+  to     = "/wetterkarte.html"
+  status = 200
+[[redirects]]
+  from   = "/warnungen"
+  to     = "/warnungen.html"
+  status = 200
+[[redirects]]
+  from   = "/regenradar"
+  to     = "/regenradar.html"
+  status = 200
+[[redirects]]
+  from   = "/vorhersage"
+  to     = "/vorhersage.html"
+  status = 200
+[[redirects]]
+  from   = "/tourenplanung"
+  to     = "/tourenplanung.html"
+  status = 200
+[[redirects]]
+  from   = "/eventplanung"
+  to     = "/eventplanung.html"
+  status = 200
+[[redirects]]
+  from   = "/wetterarchiv"
+  to     = "/wetterarchiv.html"
+  status = 200
+[[redirects]]
+  from   = "/atmosphaere"
+  to     = "/atmosphaere.html"
+  status = 200
+[[redirects]]
+  from   = "/atmosphaere/*"
+  to     = "/atmosphaere.html"
+  status = 200
+[[redirects]]
+  from   = "/globus"
+  to     = "/globus.html"
+  status = 200
+[[redirects]]
+  from   = "/waldbrand"
+  to     = "/waldbrand.html"
+  status = 200
+[[redirects]]
+  from   = "/waldbrand/*"
+  to     = "/waldbrand.html"
+  status = 200
+[[redirects]]
+  from   = "/feedback"
+  to     = "/feedback.html"
+  status = 200
+[[redirects]]
+  from   = "/validierung"
+  to     = "/validierung.html"
+  status = 200
+[[redirects]]
+  from   = "/mobiletest"
+  to     = "/mobiletest.html"
+  status = 200
+
 # 404 für unbekannte Pfade (V-101). Vorher lieferte diese Regel `/index.html`
 # mit Status **200**, wodurch jede Fantasie-Adresse als gültige Seite zählte
 # (Soft-404) und die erzeugte `404.html` nie ausgeliefert wurde.
 #
-# Warum das ohne SPA-Fallback funktioniert: Die App routet ausschließlich über
-# Hash-Fragmente (`/#m=…`), der Pfad ist dabei immer `/` — und `/` wird von der
-# real existierenden `dist/index.html` bedient. Die Regel ist NICHT erzwungen
-# (kein `force`), also gewinnen weiterhin alle vorhandenen Dateien: Geo-Seiten
-# /wetter/<ort>/index.html, /wissen/, /funktionen/, /impressum/, sitemap.xml,
-# robots.txt, llms.txt, /assets/*.
-#
-# ⚠️ Wird später eine PFADBASIERTE Route eingeführt (V-05/V-51), muss sie hier
-# als 200-Rewrite oberhalb dieser Regel eingetragen werden.
+# Die Regel ist NICHT erzwungen (kein `force`), also gewinnen weiterhin alle
+# vorhandenen Dateien: Geo-Seiten /wetter/<ort>/index.html, /wissen/,
+# /funktionen/, /impressum/, sitemap.xml, robots.txt, llms.txt, /assets/*.
+# App-Routen stehen als 200-Rewrites oberhalb (Phase RT1); jede neue Route
+# braucht dort einen Eintrag — `verify:routing` erzwingt das.
 [[redirects]]
   from   = "/*"
   to     = "/404.html"

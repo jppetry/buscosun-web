@@ -1,0 +1,50 @@
+{
+  "generatedAt": "2026-08-23T12:15:14.730Z",
+  "evaluatedAt": 1787443200000,
+  "index": {
+    "month": {
+      "events": 1231,
+      "bytes": 260398,
+      "gzip": 54884,
+      "counts": {
+        "total": 1231,
+        "byCountry": {
+          "DE": 1138,
+          "AT": 82,
+          "CH": 11
+        },
+        "sites": 133,
+        "deviating": 9,
+        "effisOnly": 14,
+        "withNrt": 1217,
+        "outsideDropped": 503
+      },
+      "window": "August 2026"
+    },
+    "season": {
+      "events": 5881,
+      "bytes": 1235941,
+      "gzip": 262757,
+      "counts": {
+        "total": 5881,
+        "byCountry": {
+          "DE": 5349,
+          "AT": 368,
+          "CH": 164
+        },
+        "sites": 1195,
+        "deviating": 37,
+        "effisOnly": 120,
+        "withNrt": 3844,
+        "outsideDropped": 2802
+      },
+      "window": "Saison 2026 (1.3.–31.10.)"
+    }
+  },
+  "shards": {
+    "files": 434,
+    "bytes": 13291131,
+    "gzip": 1671958,
+    "maxGzip": 46906
+  }
+}

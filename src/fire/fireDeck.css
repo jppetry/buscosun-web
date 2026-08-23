@@ -769,3 +769,37 @@
   .br-bar-btn { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--stone-400, #A89A7A); background: none; border: 0; padding: 0 10px; min-width: 64px; min-height: 44px; cursor: pointer; font: inherit; font-size: 9.5px; }
   .br-bar-btn.is-active { color: var(--br-red); font-weight: 600; }
 }
+
+/* --- TA4/TA5: Thermalanomalien — Reiter, Abzeichen, Kartenlegende (additiv) --- */
+.br-badge.is-site { color: var(--stone-600, #5C5447); background: var(--sand-100, #EDE6D3); border: 1px solid var(--stone-400, #A89A7A); }
+.br-badge.is-site-deviating { color: var(--cream-50, #FAF6EA); background: var(--br-red); border: 1px solid var(--br-red); }
+.br-badge.is-cls { color: var(--stone-600, #5C5447); background: transparent; border: 1px solid var(--border-medium, #D9D0B8); min-width: 18px; text-align: center; }
+.br-badge.is-cls-C { border-style: dashed; }
+.br-fire.is-site-row.is-cls-C .br-fire-name { font-style: italic; }
+.br-fires-seg { margin: 0 0 10px; }
+.br-fires-seg button { flex: 1 1 auto; min-height: 36px; }
+.br-anomaly-foot { margin-top: 12px; }
+.fire-li-site { display: inline-block; width: 11px; height: 11px; transform: rotate(45deg); background: var(--stone-600, #5C5447); border: 1.5px solid var(--cream-50, #FAF6EA); box-shadow: 0 0 0 1px var(--stone-600, #5C5447); }
+.fire-li-site.is-B { background: #9A9186; box-shadow: 0 0 0 1px #9A9186; }
+.fire-li-site.is-C { background: transparent; box-shadow: 0 0 0 1px var(--stone-400, #A89A7A); }
+.fire-li-site.is-dev { background: var(--br-red); box-shadow: 0 0 0 1px var(--br-red); }
+@media (max-width: 767px) {
+  .br-fires-seg button { min-height: 44px; }
+}
+@media (max-width: 767px) {
+  /* TA4: die beiden Textlinks der Standortliste als echte Touch-Ziele (≥ 44 px). */
+  .br-anomalies .br-link { display: inline-block; min-height: 44px; line-height: 44px; padding: 0 6px; }
+}
+
+/* BH3 — Brand-Historie (Monat/Saison) im Brände-Reiter: nutzt die Listenklassen, ergänzt nur die Detailkarte. */
+.br-history .br-detail-title { margin: 0 0 8px; font-size: 15px; font-weight: 600; color: var(--ink-900, #2C2A26); }
+.br-history .br-detail-dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; margin: 0; font-size: 12.5px; }
+.br-history .br-detail-dl dt { color: var(--stone-500, #8B7355); white-space: nowrap; }
+.br-history .br-detail-dl dd { margin: 0; color: var(--ink-900, #2C2A26); }
+.br-history .br-fire-meta .br-chip { margin-left: 6px; padding: 1px 7px; font-size: 10px; }
+.br-history-foot { line-height: 1.5; }
+.br-td-window.is-history button.is-history { font-variant: small-caps; }
+.br-history-detail h4.br-eyebrow { margin: 12px 0 6px; }
+.br-history-detail .br-reasons { margin: 6px 0 0; padding-left: 18px; font-size: 12px; color: var(--stone-600, #5C5447); }
+.br-history-features { margin-top: 8px; font-size: 12px; }
+.br-history-features summary { cursor: pointer; color: var(--ink-900, #2C2A26); }

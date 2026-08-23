@@ -1,58 +1,93 @@
 /**
- * warm-grib.mjs — Warm-Cron für die ICON-D2-Kartenlayer Temp/Gust/Precip/Clouds
+ * warm-grib.mjs — Manifest-Publisher für die ICON-D2-Kartenlayer
  * (Phase T2-4, Generalisierung von warm-wind.mjs / Phase T1.2).
  *
- * Rolle: füllt den Durable-Edge-Cache (`/_dwd_grib/*`, s. netlify/edge-functions/
- * dwd-grib.ts) mit den immutablen (Lauf,Step)-GRIB-Dateien ALLER T2-Params und
- * legt DANACH das kombinierte Manifest `latest-grib.json` um. Der Client
- * (resolveLatestRun → resolveRunFromManifest) liest nur dieses Manifest →
- * praktisch kein Besucher trifft den kalten DWD-Pfad oder ein Directory-Listing.
+ * ⚠️ Der Dateiname ist historisch: seit 2026-08-23 wird hier NICHTS mehr
+ * gewärmt (s. u.). Umbenennen würde `verify-warm-budget.mjs` (liest diese Datei
+ * per Pfad) und `verify-warm-wind.mjs` (importiert das Schwesterskript) treffen
+ * — bewusst zurückgestellt, damit der Rückzug ein reiner Verhaltens-Diff bleibt.
+ *
+ * Rolle: findet den neuesten vollständigen ICON-D2-Lauf und legt das kombinierte
+ * Manifest `latest-grib.json` um. Der Client (resolveLatestRun →
+ * resolveRunFromManifest) liest nur dieses Manifest und spart dadurch den
+ * ~1,9-s-Directory-Scan.
+ *
+ * ── DAS CACHE-WÄRMEN IST ENTFERNT (Jans Auftrag 2026-08-23) ─────────────────
+ * ⚠️ **Ausdrückliche Ausnahme vom Funktionserhalt** (CLAUDE.md), Muster wie die
+ * Layer-Rückzüge vom 2026-08-22. Bis 2026-08-22 hat dieses Skript zusätzlich
+ * JEDE Datei durch `SITE_URL/_dwd_grib` geholt, um den Netlify-Edge-Cache zu
+ * füllen. Dieser Pfad existiert nicht mehr — nicht abgeschaltet, gelöscht.
+ * Gemessene Begründung (`audit/bandbreite.md` §5, §14, §16):
+ *
+ *   (1) Ein voller Durchlauf kostete **372 MiB Netlify-Egress** — 171,6 MiB für
+ *       die 14 2D-Params + hsurf, 200,6 MiB für die 15 EPS-Dateien (12–17 MB
+ *       das Stück). Über beide Warm-Crons ~123 GB/Monat; das Konto lief am
+ *       2026-08-22 in `usage_exceeded`, die Seite war offline.
+ *   (2) Der `durable`-Direktiv in `netlify/edge-functions/dwd-grib.ts` ist auf
+ *       Edge Functions WIRKUNGSLOS — der `Cache-Status`-Header führt immer nur
+ *       `"Netlify Edge"`, nie `"Netlify Durable"` (§14.1). Der Edge-Cache ist
+ *       der LOKALE Cache eines CDN-Knotens: gewärmt wurde der PoP des
+ *       GitHub-Runners, nicht der, auf dem DACH-Besucher landen.
+ *   (3) Der EPS-Abschnitt (50 % der Kosten) bedient einen Pfad, der nur feuert,
+ *       wenn ein Nutzer im Modell-Umschalter ausdrücklich „ICON-D2-EPS" wählt
+ *       (`loadFusedForecast.ts:243`).
+ *   (4) Der Warmer erzeugte MEHR DWD-Last, als er einsparte: ~5 700 Abrufe/Tag
+ *       gegen 7 Dateien je Besuchersitzung.
+ *
+ * Die Step-Listen des Manifests kamen noch nie aus den geladenen Bytes, sondern
+ * IMMER aus den DWD-Directory-Listings (`listSteps`/`listEpsSteps`) — das
+ * Löschen kostet deshalb keine Information. Was sich ändert: das Manifest nennt
+ * jetzt die Steps, die das DWD LISTET, statt der Steps, die wir erfolgreich
+ * heruntergeladen haben. Der Client verträgt das (fehlender Step wird pro
+ * Schritt abgefangen; ein unbrauchbares Manifest fällt komplett auf den
+ * Directory-Scan zurück, `iconD2Precip.ts:112-116`).
+ *
+ * Der Edge-Cache selbst bleibt bestehen und wirkt weiter — er füllt sich jetzt
+ * ausschließlich durch echte Besucher (gemessen: `fwd=miss; stored` →
+ * `hit; ttl=21599`, 6 h Haltbarkeit). `netlify/edge-functions/dwd-grib.ts` ist
+ * UNBERÜHRT.
  *
  * Ablauf (idempotent, self-healing, atomar):
  *   1. Neuesten Lauf finden, dessen Near-Horizon (0…NEAR_REQUIRED) für ALLE
  *      Params publiziert ist (DWD-Directory-Listings, Rückwärtssuche).
  *   2. Early-Exit, wenn das Manifest bereits auf diesem Lauf steht UND alle
- *      aktuell warmbaren Steps schon enthält. Der Steps-Vergleich (ggü. T1 neu)
- *      ist nötig, weil ICON-D2 progressiv publiziert: der erste Warm-Lauf eines
- *      frischen Laufs erwischt sonst nur einen Teil des Horizonts und ein reiner
- *      Lauf-Vergleich würde den Rest bis zum nächsten Lauf (~3 h) nie nachwärmen.
- *      Nachwärmen bereits gewärmter Steps ist billig (Edge-Cache-Hit, kein DWD-Load).
- *   3. Alle URLs (Param × Steps bis zum jeweiligen Karten-Cap + hsurf) DURCH DEN
- *      PROXY (`SITE_URL/_dwd_grib`) holen → füllt den Edge-Cache (parallelisiert,
- *      WARM_CONCURRENCY). Fehlt eine Near-Horizon-Datei → Manifest NICHT umlegen.
- *   4. ERST DANACH das Manifest atomar schreiben (temp + rename, zuletzt).
+ *      aktuell publizierten Steps schon enthält. Der Steps-Vergleich ist nötig,
+ *      weil ICON-D2 progressiv publiziert: ein reiner Lauf-Vergleich würde den
+ *      Rest des Horizonts bis zum nächsten Lauf (~3 h) nie nachtragen.
+ *   3. Manifest atomar schreiben (temp + rename, zuletzt).
  *
- * Graceful degrade wie T1: schlägt 1/3 fehl, bleibt das alte Manifest stehen →
- * der Client serviert den letzten gewärmten Lauf (stale, nie kalt) bzw. fällt
- * nach dem 24h-Staleness-Guard auf den Directory-Scan zurück. Nächster Tick heilt.
+ * Graceful degrade wie T1: schlägt die Discovery fehl, bleibt das alte Manifest
+ * stehen → der Client serviert den letzten bekannten Lauf (stale, nie kalt) bzw.
+ * fällt nach dem 24h-Staleness-Guard auf den Directory-Scan zurück. Nächster
+ * Tick heilt.
  *
- * Phase T2b-3: zusätzlich werden die ICON-D2-**EPS**-Dateien gewärmt (icosahedral,
- * Fusion-Engine via src/sources/iconD2EpsSource.ts — die 4–15-s-Kaltload-Sünder):
- * eigener EPS-Lauf (eigene Discovery, Spiegel von resolveLatestEpsRun), exakt die
- * Client-Menge (5 Variablen × Steps 0/3/6 + clat/clon-Invarianten) durch
- * `/_dwd_grib/weather/nwp/icon-d2-eps/grib`. Das Manifest bekommt einen
- * sekundären `eps`-Abschnitt (Doku/Ops — der Client liest ihn NICHT, seine
- * EPS-Lauf-Discovery bleibt der Directory-Scan). EPS-Fehler blockieren NIE das
- * Umlegen des 2D-Manifests (und umgekehrt hält ein 2D-Fehler den EPS-Byte-Warm
- * nicht auf); Early-Exit prüft beide Abschnitte getrennt.
+ * Phase T2b-3: das Manifest führt einen sekundären `eps`-Abschnitt (ICON-D2-EPS,
+ * icosahedral, Fusion-Engine via src/sources/iconD2EpsSource.ts). Eigene
+ * Discovery (Spiegel von resolveLatestEpsRun), exakt die Client-Menge
+ * (5 Variablen × Steps 0/3/6). Der Abschnitt ist Doku/Ops — der Client liest ihn
+ * NICHT, seine EPS-Lauf-Discovery bleibt der Directory-Scan. EPS-Fehler
+ * blockieren NIE das Umlegen des 2D-Abschnitts (und umgekehrt); Early-Exit prüft
+ * beide getrennt. Das frühere Wärmen der EPS-Dateien war mit 200,6 MiB je
+ * Durchlauf der teuerste Einzelposten des Projekts — es ist mit entfallen.
  *
- * Kein eccodes, kein Decode, kein bz2 — reines Cache-Wärmen + Manifest.
- * Wind (T1, latest-wind.json + /_dwd_wind) bleibt unberührt.
+ * Kein eccodes, kein Decode, kein bz2, kein Byte durch Netlify.
+ * Wind (T1, latest-wind.json + /_dwd_wind) hat sein eigenes Skript.
  *
  * ENV:
- *   SITE_URL            Basis, durch die gewärmt wird (Edge-Cache-Fill).
- *                       Default http://localhost:5196 (vite dev / netlify dev).
+ *   SITE_URL            Site, FÜR die das Manifest publiziert wird (Feld
+ *                       `publishedFor`, Herkunfts-Anker des Wächters H4).
+ *                       Default http://localhost:5196 — ein lokal geschriebenes
+ *                       Manifest fällt damit in Prod sofort auf.
  *   MANIFEST_PATH       Zielpfad des Manifests. Default public/latest-grib.json.
  *   DWD_BASE            DWD-Origin für die Lauf-Discovery.
  *                       Default https://opendata.dwd.de/weather/nwp/icon-d2/grib.
  *   EPS_DWD_BASE        DWD-Origin für die EPS-Lauf-Discovery. Default
  *                       https://opendata.dwd.de/weather/nwp/icon-d2-eps/grib.
- *   NEAR_REQUIRED       Steps 0…N müssen je Param gewärmt sein, um umzulegen. Default 4.
- *   WARM_CONCURRENCY    Parallele Warm-Fetches. Default 4.
+ *   NEAR_REQUIRED       Steps 0…N müssen je Param vorliegen, um umzulegen. Default 4.
  *   WARM_MAX_STEP       TEST: globaler Step-Cap, der die per-Param-Caps zusätzlich
  *                       deckelt (kleiner Probelauf). Default: unbegrenzt.
- *   FAIL_STEP           TEST: erzwingt Warm-Fehler für diesen Step (Fail-Safe-Probe).
- *   FORCE               '1' überspringt den Early-Exit (erneut wärmen).
+ *   FAIL_STEP           TEST: nimmt diesen Step aus den Listen (Fail-Safe-Probe).
+ *   FORCE               '1' überspringt den Early-Exit.
  */
 
 import { writeFileSync, renameSync, readFileSync, mkdirSync } from 'node:fs';
@@ -62,7 +97,6 @@ const SITE_URL = (process.env.SITE_URL || 'http://localhost:5196').replace(/\/+$
 const MANIFEST_PATH = resolve(process.env.MANIFEST_PATH || 'public/latest-grib.json');
 const DWD_BASE = (process.env.DWD_BASE || 'https://opendata.dwd.de/weather/nwp/icon-d2/grib').replace(/\/+$/, '');
 const NEAR_REQUIRED = Number(process.env.NEAR_REQUIRED ?? 4);
-const WARM_CONCURRENCY = Math.max(1, Number(process.env.WARM_CONCURRENCY ?? 4));
 const WARM_MAX_STEP = process.env.WARM_MAX_STEP != null ? Number(process.env.WARM_MAX_STEP) : null;
 const FAIL_STEP = process.env.FAIL_STEP != null ? Number(process.env.FAIL_STEP) : null;
 const FORCE = process.env.FORCE === '1';
@@ -139,7 +173,6 @@ const epsWanted = (steps) => steps.filter((s) =>
   s <= EPS_MAX_STEP && s % 3 === 0 && (WARM_MAX_STEP == null || s <= WARM_MAX_STEP));
 
 const pad2 = (n) => String(n).padStart(2, '0');
-const pad3 = (n) => String(n).padStart(3, '0');
 const log = (...a) => console.log('[warm-grib]', ...a);
 
 const capOf = (p) => (WARM_MAX_STEP != null ? Math.min(p.maxStep, WARM_MAX_STEP) : p.maxStep);
@@ -150,19 +183,6 @@ function runStrOf(date) {
 function parseRunStr(run) {
   return new Date(Date.UTC(+run.slice(0, 4), +run.slice(4, 6) - 1, +run.slice(6, 8), +run.slice(8, 10)));
 }
-function stepFile(run, param, step) {
-  return `icon-d2_germany_regular-lat-lon_single-level_${run}_${pad3(step)}_2d_${param}.grib2.bz2`;
-}
-function invariantFile(run, param) {
-  return `icon-d2_germany_regular-lat-lon_time-invariant_${run}_000_0_${param}.grib2.bz2`;
-}
-function epsStepFile(run, param, step) {
-  return `icon-d2-eps_germany_icosahedral_single-level_${run}_${pad3(step)}_2d_${param}.grib2.bz2`;
-}
-function epsInvariantFile(run, param) {
-  return `icon-d2-eps_germany_icosahedral_time-invariant_${run}_000_0_${param}.grib2.bz2`;
-}
-
 /** DWD-Directory-Listing eines (Lauf,Param) parsen → verfügbare Steps (regular-lat-lon). */
 async function listSteps(run, param) {
   const hh = run.slice(8, 10);
@@ -243,49 +263,6 @@ async function findLatestCompleteRun() {
   return null;
 }
 
-/** Eine URL DURCH DEN PROXY holen (füllt den Edge-Cache). true bei 2xx.
- *  Phase T2c: transiente Fehler (undici "fetch failed"/"terminated", 5xx)
- *  werden bis zu 2× wiederholt (1 s / 3 s Backoff) — die Prod-Logs (Audit §J)
- *  zeigten, dass sonst schon 1 Ausfall unter ~130 Dateien via Near-Horizon-
- *  Fail-Safe den gesamten Manifest-Advance blockiert. 4xx (unpublizierter
- *  Step) wird bewusst NICHT wiederholt. */
-async function warmUrl(url, label, failStepMatch) {
-  if (failStepMatch) {
-    log(`  ✗ FAIL_STEP → simulierter Warm-Fehler ${label}`);
-    return false;
-  }
-  for (let attempt = 0; attempt < 3; attempt++) {
-    if (attempt > 0) await new Promise((r) => setTimeout(r, attempt === 1 ? 1000 : 3000));
-    try {
-      const res = await fetch(url);
-      if (!res.ok) {
-        if (res.status >= 500 && attempt < 2) { log(`  … ${res.status} ${label} — Retry ${attempt + 1}`); continue; }
-        log(`  ✗ ${res.status} ${label}`);
-        return false;
-      }
-      // Body konsumieren (schließt die Verbindung; Bytes werden vom Edge gecacht).
-      const buf = await res.arrayBuffer();
-      const cacheHdr = res.headers.get('netlify-cdn-cache-control') || res.headers.get('cache-control') || '';
-      log(`  ✓ ${label} ${(buf.byteLength / 1024).toFixed(0)} KB ${cacheHdr ? `[${cacheHdr}]` : ''}`);
-      return true;
-    } catch (e) {
-      if (attempt < 2) { log(`  … ${label} ${e?.message || e} — Retry ${attempt + 1}`); continue; }
-      log(`  ✗ ${label} Fehler ${e?.message || e}`);
-      return false;
-    }
-  }
-  return false;
-}
-
-function warmStepUrl(run, param, step) {
-  const hh = run.slice(8, 10);
-  return `${SITE_URL}/_dwd_grib/weather/nwp/icon-d2/grib/${hh}/${param}/${stepFile(run, param, step)}`;
-}
-function warmEpsStepUrl(run, param, step) {
-  const hh = run.slice(8, 10);
-  return `${SITE_URL}/_dwd_grib/weather/nwp/icon-d2-eps/grib/${hh}/${param}/${epsStepFile(run, param, step)}`;
-}
-
 function readManifest() {
   try { return JSON.parse(readFileSync(MANIFEST_PATH, 'utf8')); } catch { return null; }
 }
@@ -323,7 +300,7 @@ function writeManifestAtomic(obj) {
 }
 
 async function main() {
-  log(`Start · SITE_URL=${SITE_URL} · Manifest=${MANIFEST_PATH} · Params=${PARAMS.map((p) => `${p.name}≤${capOf(p)}`).join(',')} · EPS=${EPS_PARAMS.join(',')}≤${EPS_MAX_STEP}`);
+  log(`Start · publishedFor=${SITE_URL} · Manifest=${MANIFEST_PATH} · Params=${PARAMS.map((p) => `${p.name}≤${capOf(p)}`).join(',')} · EPS=${EPS_PARAMS.join(',')}≤${EPS_MAX_STEP}`);
 
   const existing = readManifest();
 
@@ -344,56 +321,39 @@ async function main() {
   if (!needMain && latest) log(`2D bereits abgedeckt (Lauf ${latest.run}) → nur EPS wärmen.`);
   if (!needEps && latestEps) log(`EPS bereits abgedeckt (Lauf ${latestEps.run}) → nur 2D wärmen.`);
 
-  // Cache füllen — ERST wärmen, DANN umlegen. Flache Task-Liste BEIDER Familien
-  // (Param × Step), Pool mit WARM_CONCURRENCY; nur nicht-abgedeckte Familien.
-  const tasks = [];
-  if (needMain) for (const p of PARAMS) for (const step of latest.stepsByParam[p.name]) tasks.push({ fam: '2d', param: p.name, step });
-  if (needEps) for (const p of EPS_PARAMS) for (const step of latestEps.stepsByParam[p]) tasks.push({ fam: 'eps', param: p, step });
-  log(`Wärme ${tasks.length} Step-Dateien (+ Invarianten) durch ${SITE_URL}/_dwd_grib …`);
+  // Bestätigte Steps je Param — aus den DWD-Directory-Listings, die die
+  // Discovery ohnehin geholt hat. Null zusätzliche Requests, null Netlify-Bytes.
+  const confirmed = Object.fromEntries(PARAMS.map((p) => [p.name, []]));
+  const confirmedEps = Object.fromEntries(EPS_PARAMS.map((p) => [p, []]));
+  const failed = (step) => FAIL_STEP != null && step === FAIL_STEP;
 
-  const warmed = Object.fromEntries(PARAMS.map((p) => [p.name, []]));
-  const warmedEps = Object.fromEntries(EPS_PARAMS.map((p) => [p, []]));
-  let ptr = 0;
-  const workers = Array.from({ length: Math.min(WARM_CONCURRENCY, Math.max(tasks.length, 1)) }, async () => {
-    while (ptr < tasks.length) {
-      const t = tasks[ptr++];
-      const url = t.fam === 'eps'
-        ? warmEpsStepUrl(latestEps.run, t.param, t.step)
-        : warmStepUrl(latest.run, t.param, t.step);
-      const ok = await warmUrl(url, `${t.fam === 'eps' ? 'eps:' : ''}${t.param}/${t.step}`, FAIL_STEP != null && t.step === FAIL_STEP);
-      if (ok) (t.fam === 'eps' ? warmedEps : warmed)[t.param].push(t.step);
-    }
-  });
-  await Promise.all(workers);
-
-  // Invarianten best-effort (kein Gate: der Client holt sie notfalls ungewärmt
-  // durch den Proxy): hsurf (Temp-Layer), clat/clon (EPS-Zellkoordinaten).
-  if (needMain) {
-    const hh = latest.run.slice(8, 10);
-    await warmUrl(`${SITE_URL}/_dwd_grib/weather/nwp/icon-d2/grib/${hh}/hsurf/${invariantFile(latest.run, 'hsurf')}`, 'hsurf', false);
+  let nSteps = 0;
+  if (needMain) for (const p of PARAMS) {
+    confirmed[p.name] = latest.stepsByParam[p.name].filter((s) => !failed(s));
+    nSteps += confirmed[p.name].length;
   }
-  if (needEps) {
-    const hh = latestEps.run.slice(8, 10);
-    for (const p of ['clat', 'clon']) {
-      await warmUrl(`${SITE_URL}/_dwd_grib/weather/nwp/icon-d2-eps/grib/${hh}/${p}/${epsInvariantFile(latestEps.run, p)}`, `eps:${p}`, false);
-    }
+  if (needEps) for (const p of EPS_PARAMS) {
+    confirmedEps[p] = latestEps.stepsByParam[p].filter((s) => !failed(s));
+    nSteps += confirmedEps[p].length;
   }
+  if (FAIL_STEP != null) log(`  FAIL_STEP=${FAIL_STEP} → Step aus allen Listen entfernt (Fail-Safe-Probe)`);
+  log(`${nSteps} Steps aus den DWD-Listings bestätigt — 0 Bytes durch ${SITE_URL}.`);
 
   // Fail-Safes je Familie, UNABHÄNGIG — ein EPS-Fehlschlag blockiert nie das
   // Umlegen des 2D-Manifests (und umgekehrt). Nächster Tick heilt die andere Seite.
   let advanceMain = false;
   if (needMain) {
     const near = Array.from({ length: NEAR_REQUIRED + 1 }, (_, i) => i);
-    const nearBad = PARAMS.filter((p) => !near.every((s) => warmed[p.name].includes(s)));
+    const nearBad = PARAMS.filter((p) => !near.every((s) => confirmed[p.name].includes(s)));
     if (nearBad.length > 0) {
-      log(`2D-Near-Horizon nicht vollständig gewärmt (${nearBad.map((p) => `${p.name}:[${warmed[p.name].join(',')}]`).join(' ')}) → 2D-Abschnitt UNVERÄNDERT (Fail-Safe).`);
+      log(`2D-Near-Horizon unvollständig (${nearBad.map((p) => `${p.name}:[${confirmed[p.name].join(',')}]`).join(' ')}) → 2D-Abschnitt UNVERÄNDERT (Fail-Safe).`);
     } else advanceMain = true;
   }
   let advanceEps = false;
   if (needEps) {
-    const epsBad = EPS_PARAMS.filter((p) => !latestEps.stepsByParam[p].every((s) => warmedEps[p].includes(s)));
+    const epsBad = EPS_PARAMS.filter((p) => !latestEps.stepsByParam[p].every((s) => confirmedEps[p].includes(s)));
     if (epsBad.length > 0 || latestEps.stepsByParam.t_2m.length === 0) {
-      log(`EPS nicht vollständig gewärmt (${epsBad.map((p) => `${p}:[${warmedEps[p].join(',')}]`).join(' ')}) → eps-Abschnitt UNVERÄNDERT (Fail-Safe).`);
+      log(`EPS unvollständig (${epsBad.map((p) => `${p}:[${confirmedEps[p].join(',')}]`).join(' ')}) → eps-Abschnitt UNVERÄNDERT (Fail-Safe).`);
     } else advanceEps = true;
   }
   if (!advanceMain && !advanceEps) {
@@ -404,20 +364,20 @@ async function main() {
   // Manifest komponieren: nicht-avancierte Abschnitte 1:1 aus dem Bestand.
   const mainRun = advanceMain ? latest.run : existing?.run;
   const mainParams = advanceMain
-    ? Object.fromEntries(PARAMS.map((p) => [p.name, warmed[p.name].sort((a, b) => a - b)]))
+    ? Object.fromEntries(PARAMS.map((p) => [p.name, confirmed[p.name].sort((a, b) => a - b)]))
     : existing?.params;
   if (typeof mainRun !== 'string' || mainParams == null || typeof mainParams !== 'object') {
     // Ohne gültigen 2D-Abschnitt wäre das Manifest für den Client unbrauchbar
-    // (gribManifest.ts verlangt run+params) → nicht schreiben; EPS-Bytes sind
-    // trotzdem gewärmt (der Client findet sie über seinen Directory-Scan).
-    log('Kein gültiger 2D-Abschnitt verfügbar → Manifest NICHT geschrieben (EPS-Bytes sind gewärmt). Exit 0.');
+    // (gribManifest.ts verlangt run+params) → nicht schreiben. Der Client findet
+    // EPS ohnehin über seinen eigenen Directory-Scan.
+    log('Kein gültiger 2D-Abschnitt verfügbar → Manifest NICHT geschrieben. Exit 0.');
     return 0;
   }
   const epsSection = advanceEps
     ? {
         run: latestEps.run,
         runAt: parseRunStr(latestEps.run).toISOString(),
-        params: Object.fromEntries(EPS_PARAMS.map((p) => [p, warmedEps[p].sort((a, b) => a - b)])),
+        params: Object.fromEntries(EPS_PARAMS.map((p) => [p, confirmedEps[p].sort((a, b) => a - b)])),
       }
     : existing?.eps;
 
@@ -425,7 +385,10 @@ async function main() {
     run: mainRun,
     runAt: advanceMain ? parseRunStr(latest.run).toISOString() : (existing?.runAt ?? parseRunStr(mainRun).toISOString()),
     updatedAt: new Date().toISOString(),
-    warmedThroughProxy: `${SITE_URL}/_dwd_grib`,
+    // Site, FÜR die publiziert wird — Herkunfts-Anker des Wächters H4. Ersetzt
+    // das frühere `warmedThroughProxy`: dieses Skript wärmt nichts mehr, das
+    // Feld hätte etwas behauptet, das nicht passiert.
+    publishedFor: SITE_URL,
     params: mainParams,
     ...(epsSection ? { eps: epsSection } : {}),
   };

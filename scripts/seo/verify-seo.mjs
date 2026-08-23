@@ -138,5 +138,21 @@ for (const [label, prefix, type] of [
   }
 }
 
+// 4) App-Routen-Shells (Phase RT1): eigener Canonical/Title/WebPage je Route;
+// Home behält GENAU eine WebApplication (kein doppeltes JSON-LD durch den Client).
+console.log('\nApp-Routen-Shells:');
+for (const rel of ['wetterkarte.html', 'regenradar.html', 'waldbrand.html', 'atmosphaere.html', 'warnungen.html']) {
+  if (!existsSync(join(DIST, rel))) { fail(rel, 'Route-Shell fehlt (generate-seo.mjs 4a)'); continue; }
+  const html = read(rel);
+  checkCommon(rel, html, { type: 'WebPage' });
+  const canon = html.match(/rel=["']canonical["'][^>]*href=["']([^"']+)["']/i);
+  const want = `https://buscosun.com/${rel.replace(/\.html$/, '')}`;
+  if (!canon || canon[1] !== want) fail(rel, `canonical ist ${canon ? canon[1] : 'leer'}, erwartet ${want}`);
+  else ok(rel, 'canonical = eigener Pfad (ohne Query)');
+}
+const homeApps = jsonLdBlocks(read('index.html')).filter((b) => /"@type":"WebApplication"/.test(b)).length;
+if (homeApps !== 1) fail('index.html', `erwartet genau 1× WebApplication, gefunden ${homeApps}`);
+else ok('index.html', 'genau eine WebApplication');
+
 console.log(`\n[verify-seo] ${checks} Checks ok, ${failures} Fehler.`);
 process.exit(failures > 0 ? 1 : 0);

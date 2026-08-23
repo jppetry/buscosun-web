@@ -1,0 +1,867 @@
+{
+  "built": "2026-08-22",
+  "cells": 469,
+  "sites": 218,
+  "joinM": 1500,
+  "byClass": {
+    "A": 145,
+    "B": 8,
+    "C": 65
+  },
+  "byKind": {
+    "steel": 33,
+    "power": 17,
+    "metals": 7,
+    "refinery": 12,
+    "pulp": 4,
+    "cement": 35,
+    "chemical": 14,
+    "waste": 14,
+    "biomass": 3,
+    "other": 1,
+    "ceramics": 1,
+    "glass": 4
+  },
+  "bySource": {
+    "eprtr": 141,
+    "mastr": 2,
+    "bfe": 2
+  },
+  "byCountry": {
+    "DE": 92,
+    "AT": 12,
+    "outside": 106,
+    "CH": 8
+  },
+  "withOperator": 0,
+  "landcoverIndustrial": 190,
+  "pairsTotal": 618,
+  "pairsNearSite": 1,
+  "nearPairs": [
+    {
+      "pairId": "fire:51.28959,12.03153,1695513780000",
+      "effisId": "222210",
+      "effisMappedHa": 7,
+      "lat": 51.28978,
+      "lon": 12.02987,
+      "site": "ta:420,651",
+      "siteName": "TOTALEnergies Raffinerie Mitteldeutschland GmbH (Raffinerie, BB01)",
+      "cls": "A",
+      "distanceM": 1467
+    }
+  ],
+  "top30": [
+    {
+      "id": "ta:401,120",
+      "cls": "A",
+      "name": "thyssenkrupp Steel Europe AG Werk Beeckerwerth",
+      "kind": "steel",
+      "place": "Duisburg",
+      "country": "DE",
+      "det": 74657,
+      "days": 1764,
+      "night": 0.808,
+      "dist": 152
+    },
+    {
+      "id": "ta:334,490",
+      "cls": "A",
+      "name": "Salzgitter Flachstahl GmbH",
+      "kind": "steel",
+      "place": "Salzgitter",
+      "country": "DE",
+      "det": 52764,
+      "days": 1750,
+      "night": 0.783,
+      "dist": 134
+    },
+    {
+      "id": "ta:722,883",
+      "cls": "A",
+      "name": "voestalpine Stahl GmbH",
+      "kind": "steel",
+      "place": "Steyregg",
+      "country": "AT",
+      "det": 46170,
+      "days": 1726,
+      "night": 0.748,
+      "dist": 387
+    },
+    {
+      "id": "ta:236,317",
+      "cls": "A",
+      "name": "ArcelorMittal Bremen GmbH",
+      "kind": "steel",
+      "place": "Lemwerder",
+      "country": "DE",
+      "det": 27478,
+      "days": 1586,
+      "night": 0.855,
+      "dist": 116
+    },
+    {
+      "id": "ta:413,120",
+      "cls": "A",
+      "name": "Hüttenwerke Krupp Mannesmann GmbH KW Huckingen",
+      "kind": "power",
+      "place": "Duisburg",
+      "country": "DE",
+      "det": 25464,
+      "days": 1669,
+      "night": 0.792,
+      "dist": 539
+    },
+    {
+      "id": "ta:614,124",
+      "cls": "A",
+      "name": "ROGESA Roheisengesellschaft Saar mbH",
+      "kind": "steel",
+      "place": "Dillingen",
+      "country": "DE",
+      "det": 15392,
+      "days": 1451,
+      "night": 0.777,
+      "dist": 333
+    },
+    {
+      "id": "ta:381,1048",
+      "cls": "A",
+      "name": "Oddział Huta Miedzi \"Głogów\"",
+      "kind": "metals",
+      "place": null,
+      "country": "outside",
+      "det": 11429,
+      "days": 1486,
+      "night": 0.854,
+      "dist": 276
+    },
+    {
+      "id": "ta:332,911",
+      "cls": "A",
+      "name": "VEO Vulkan-Energiewirtschaft - Oderbrücke GmbH",
+      "kind": "power",
+      "place": "Eisenhüttenstadt",
+      "country": "DE",
+      "det": 9130,
+      "days": 1245,
+      "night": 0.942,
+      "dist": 267
+    },
+    {
+      "id": "ta:197,440",
+      "cls": "A",
+      "name": "ArcelorMittal Hamburg GmbH",
+      "kind": "steel",
+      "place": "Hamburg",
+      "country": "DE",
+      "det": 7588,
+      "days": 1163,
+      "night": 0.872,
+      "dist": 320
+    },
+    {
+      "id": "ta:625,134",
+      "cls": "A",
+      "name": "Saarschmiede GmbH Freiformschmiede Schmiedezentrum Saarstahl",
+      "kind": "steel",
+      "place": "Völklingen",
+      "country": "DE",
+      "det": 7036,
+      "days": 1171,
+      "night": 0.752,
+      "dist": 737
+    },
+    {
+      "id": "ta:473,17",
+      "cls": "B",
+      "name": null,
+      "kind": null,
+      "place": null,
+      "country": "outside",
+      "det": 5173,
+      "days": 1065,
+      "night": 0.99,
+      "dist": null
+    },
+    {
+      "id": "ta:599,45",
+      "cls": "A",
+      "name": "Twinerg",
+      "kind": "refinery",
+      "place": null,
+      "country": "outside",
+      "det": 5046,
+      "days": 970,
+      "night": 0.853,
+      "dist": 672
+    },
+    {
+      "id": "ta:420,151",
+      "cls": "B",
+      "name": null,
+      "kind": null,
+      "place": "Wülfrath",
+      "country": "DE",
+      "det": 4889,
+      "days": 1051,
+      "night": 0.945,
+      "dist": null
+    },
+    {
+      "id": "ta:832,206",
+      "cls": "A",
+      "name": "Stahl Gerlafingen AG",
+      "kind": "steel",
+      "place": "Biberist",
+      "country": "CH",
+      "det": 4880,
+      "days": 973,
+      "night": 0.727,
+      "dist": 83
+    },
+    {
+      "id": "ta:432,1061",
+      "cls": "A",
+      "name": "Huta Miedzi \"Legnica\"",
+      "kind": "metals",
+      "place": null,
+      "country": "outside",
+      "det": 4479,
+      "days": 1142,
+      "night": 0.847,
+      "dist": 344
+    },
+    {
+      "id": "ta:690,232",
+      "cls": "A",
+      "name": "Kesselanlage",
+      "kind": "pulp",
+      "place": "Kehl",
+      "country": "DE",
+      "det": 4372,
+      "days": 988,
+      "night": 0.873,
+      "dist": 193
+    },
+    {
+      "id": "ta:198,453",
+      "cls": "A",
+      "name": "Aurubis AG",
+      "kind": "metals",
+      "place": "Hamburg",
+      "country": "DE",
+      "det": 4320,
+      "days": 938,
+      "night": 0.825,
+      "dist": 333
+    },
+    {
+      "id": "ta:704,1169",
+      "cls": "A",
+      "name": "Danucem Slovensko a.s. - Výroba cementu",
+      "kind": "cement",
+      "place": null,
+      "country": "outside",
+      "det": 4262,
+      "days": 1037,
+      "night": 0.999,
+      "dist": 495
+    },
+    {
+      "id": "ta:843,276",
+      "cls": "A",
+      "name": "Steeltec AG Walzwerk",
+      "kind": "steel",
+      "place": "Emmen",
+      "country": "CH",
+      "det": 4093,
+      "days": 810,
+      "night": 0.706,
+      "dist": 507
+    },
+    {
+      "id": "ta:597,40",
+      "cls": "A",
+      "name": "ArcelorMittal Belval & Differdange S.A.",
+      "kind": "steel",
+      "place": null,
+      "country": "outside",
+      "det": 4045,
+      "days": 730,
+      "night": 0.844,
+      "dist": 212
+    },
+    {
+      "id": "ta:329,254",
+      "cls": "A",
+      "name": "Georgsmarienhütte GmbH",
+      "kind": "steel",
+      "place": "Georgsmarienhütte",
+      "country": "DE",
+      "det": 3851,
+      "days": 863,
+      "night": 0.904,
+      "dist": 554
+    },
+    {
+      "id": "ta:943,812",
+      "cls": "A",
+      "name": "Alpacem Cement Anhovo",
+      "kind": "cement",
+      "place": null,
+      "country": "outside",
+      "det": 3810,
+      "days": 1046,
+      "night": 1,
+      "dist": 469
+    },
+    {
+      "id": "ta:999,474",
+      "cls": "B",
+      "name": null,
+      "kind": null,
+      "place": null,
+      "country": "outside",
+      "det": 3228,
+      "days": 838,
+      "night": 0.897,
+      "dist": null
+    },
+    {
+      "id": "ta:422,616",
+      "cls": "A",
+      "name": "thomas zement GmbH",
+      "kind": "cement",
+      "place": "Karsdorf",
+      "country": "DE",
+      "det": 3145,
+      "days": 870,
+      "night": 0.999,
+      "dist": 623
+    },
+    {
+      "id": "ta:688,61",
+      "cls": "A",
+      "name": "SAM SOCIETE DES ACIERS D'ARMATURE POUR LE BETON",
+      "kind": "steel",
+      "place": null,
+      "country": "outside",
+      "det": 3143,
+      "days": 707,
+      "night": 0.931,
+      "dist": 594
+    },
+    {
+      "id": "ta:998,599",
+      "cls": "A",
+      "name": "ACCIAIERIE VALBRUNA S.P.A. STABILIMENTO DI VICENZA",
+      "kind": "steel",
+      "place": null,
+      "country": "outside",
+      "det": 3033,
+      "days": 806,
+      "night": 0.75,
+      "dist": 377
+    },
+    {
+      "id": "ta:314,438",
+      "cls": "A",
+      "name": "Holcim (Deutschland) GmbH Werk Höver",
+      "kind": "cement",
+      "place": "Heideviertel",
+      "country": "DE",
+      "det": 2993,
+      "days": 840,
+      "night": 1,
+      "dist": 579
+    },
+    {
+      "id": "ta:373,255",
+      "cls": "A",
+      "name": "Holcim WestZement GmbH Werk: Kollenbach",
+      "kind": "cement",
+      "place": "Beckum",
+      "country": "DE",
+      "det": 2911,
+      "days": 733,
+      "night": 0.99,
+      "dist": 69
+    },
+    {
+      "id": "ta:927,757",
+      "cls": "A",
+      "name": "FANTONI SPA - Divisione Pannelli e Colla",
+      "kind": "chemical",
+      "place": null,
+      "country": "outside",
+      "det": 2824,
+      "days": 977,
+      "night": 0.93,
+      "dist": 291
+    },
+    {
+      "id": "ta:309,699",
+      "cls": "A",
+      "name": "Aufbereitung \"Weiße Ware\"",
+      "kind": "waste",
+      "place": "Brandenburg an der Havel",
+      "country": "DE",
+      "det": 2715,
+      "days": 799,
+      "night": 0.879,
+      "dist": 445
+    }
+  ],
+  "classC": [
+    {
+      "id": "ta:994,470",
+      "lat": 45.55171,
+      "lon": 10.20747,
+      "place": null,
+      "country": "outside",
+      "det": 354,
+      "days": 134
+    },
+    {
+      "id": "ta:952,712",
+      "lat": 45.97264,
+      "lon": 12.62271,
+      "place": null,
+      "country": "outside",
+      "det": 191,
+      "days": 61
+    },
+    {
+      "id": "ta:186,686",
+      "lat": 53.63864,
+      "lon": 12.36505,
+      "place": "Krakow am See",
+      "country": "DE",
+      "det": 158,
+      "days": 33
+    },
+    {
+      "id": "ta:957,714",
+      "lat": 45.92889,
+      "lon": 12.64875,
+      "place": null,
+      "country": "outside",
+      "det": 138,
+      "days": 66
+    },
+    {
+      "id": "ta:981,598",
+      "lat": 45.68587,
+      "lon": 11.48316,
+      "place": null,
+      "country": "outside",
+      "det": 129,
+      "days": 66
+    },
+    {
+      "id": "ta:970,320",
+      "lat": 45.78955,
+      "lon": 8.70369,
+      "place": "Stabio",
+      "country": "outside",
+      "det": 127,
+      "days": 63
+    },
+    {
+      "id": "ta:993,379",
+      "lat": 45.56203,
+      "lon": 9.29582,
+      "place": null,
+      "country": "outside",
+      "det": 124,
+      "days": 56
+    },
+    {
+      "id": "ta:24,448",
+      "lat": 55.25761,
+      "lon": 9.99002,
+      "place": null,
+      "country": "outside",
+      "det": 123,
+      "days": 25
+    },
+    {
+      "id": "ta:706,783",
+      "lat": 48.43344,
+      "lon": 13.33313,
+      "place": "Pocking",
+      "country": "DE",
+      "det": 122,
+      "days": 57
+    },
+    {
+      "id": "ta:954,681",
+      "lat": 45.95482,
+      "lon": 12.31349,
+      "place": null,
+      "country": "outside",
+      "det": 116,
+      "days": 58
+    },
+    {
+      "id": "ta:997,430",
+      "lat": 45.52833,
+      "lon": 9.80119,
+      "place": null,
+      "country": "outside",
+      "det": 116,
+      "days": 64
+    },
+    {
+      "id": "ta:729,93",
+      "lat": 48.2099,
+      "lon": 6.43416,
+      "place": null,
+      "country": "outside",
+      "det": 114,
+      "days": 52
+    },
+    {
+      "id": "ta:727,753",
+      "lat": 48.22751,
+      "lon": 13.03334,
+      "place": "Ranshofen",
+      "country": "AT",
+      "det": 107,
+      "days": 56
+    },
+    {
+      "id": "ta:568,352",
+      "lat": 49.817,
+      "lon": 9.02721,
+      "place": "Höchst im Odenwald",
+      "country": "DE",
+      "det": 106,
+      "days": 58
+    },
+    {
+      "id": "ta:197,615",
+      "lat": 53.5247,
+      "lon": 11.6554,
+      "place": "Crivitz",
+      "country": "DE",
+      "det": 101,
+      "days": 21
+    },
+    {
+      "id": "ta:434,127",
+      "lat": 51.15141,
+      "lon": 6.77465,
+      "place": "Zons",
+      "country": "DE",
+      "det": 98,
+      "days": 53
+    },
+    {
+      "id": "ta:993,385",
+      "lat": 45.56975,
+      "lon": 9.35399,
+      "place": null,
+      "country": "outside",
+      "det": 98,
+      "days": 48
+    },
+    {
+      "id": "ta:681,347",
+      "lat": 48.68565,
+      "lon": 8.97399,
+      "place": "Böblingen",
+      "country": "DE",
+      "det": 97,
+      "days": 46
+    },
+    {
+      "id": "ta:985,616",
+      "lat": 45.64781,
+      "lon": 11.66012,
+      "place": null,
+      "country": "outside",
+      "det": 93,
+      "days": 49
+    },
+    {
+      "id": "ta:823,267",
+      "lat": 47.26581,
+      "lon": 8.17409,
+      "place": "Reinach",
+      "country": "CH",
+      "det": 89,
+      "days": 46
+    },
+    {
+      "id": "ta:973,356",
+      "lat": 45.765,
+      "lon": 9.06287,
+      "place": "Chiasso",
+      "country": "outside",
+      "det": 86,
+      "days": 42
+    },
+    {
+      "id": "ta:978,410",
+      "lat": 45.71634,
+      "lon": 9.60822,
+      "place": null,
+      "country": "outside",
+      "det": 82,
+      "days": 46
+    },
+    {
+      "id": "ta:737,1105",
+      "lat": 48.12271,
+      "lon": 16.55251,
+      "place": "Mannswörth",
+      "country": "AT",
+      "det": 79,
+      "days": 41
+    },
+    {
+      "id": "ta:987,709",
+      "lat": 45.62882,
+      "lon": 12.59655,
+      "place": null,
+      "country": "outside",
+      "det": 77,
+      "days": 44
+    },
+    {
+      "id": "ta:980,593",
+      "lat": 45.69246,
+      "lon": 11.43473,
+      "place": null,
+      "country": "outside",
+      "det": 75,
+      "days": 43
+    },
+    {
+      "id": "ta:973,691",
+      "lat": 45.76735,
+      "lon": 12.41786,
+      "place": null,
+      "country": "outside",
+      "det": 74,
+      "days": 41
+    },
+    {
+      "id": "ta:955,721",
+      "lat": 45.94328,
+      "lon": 12.71779,
+      "place": null,
+      "country": "outside",
+      "det": 71,
+      "days": 36
+    },
+    {
+      "id": "ta:996,633",
+      "lat": 45.53182,
+      "lon": 11.83603,
+      "place": null,
+      "country": "outside",
+      "det": 68,
+      "days": 37
+    },
+    {
+      "id": "ta:286,121",
+      "lat": 52.63635,
+      "lon": 6.71398,
+      "place": "Emlichheim",
+      "country": "outside",
+      "det": 67,
+      "days": 18
+    },
+    {
+      "id": "ta:724,414",
+      "lat": 48.25697,
+      "lon": 9.645,
+      "place": "Munderkingen",
+      "country": "DE",
+      "det": 66,
+      "days": 17
+    },
+    {
+      "id": "ta:758,1154",
+      "lat": 47.91414,
+      "lon": 17.0456,
+      "place": "Nickelsdorf",
+      "country": "AT",
+      "det": 66,
+      "days": 17
+    },
+    {
+      "id": "ta:981,409",
+      "lat": 45.68485,
+      "lon": 9.59761,
+      "place": null,
+      "country": "outside",
+      "det": 65,
+      "days": 30
+    },
+    {
+      "id": "ta:602,310",
+      "lat": 49.47711,
+      "lon": 8.60376,
+      "place": "Ladenburg",
+      "country": "DE",
+      "det": 65,
+      "days": 34
+    },
+    {
+      "id": "ta:953,744",
+      "lat": 45.96495,
+      "lon": 12.94161,
+      "place": null,
+      "country": "outside",
+      "det": 65,
+      "days": 36
+    },
+    {
+      "id": "ta:710,454",
+      "lat": 48.39275,
+      "lon": 10.04158,
+      "place": "Neu-Ulm",
+      "country": "DE",
+      "det": 64,
+      "days": 35
+    },
+    {
+      "id": "ta:292,844",
+      "lat": 52.57501,
+      "lon": 13.94653,
+      "place": "Strausberg",
+      "country": "DE",
+      "det": 61,
+      "days": 15
+    },
+    {
+      "id": "ta:775,482",
+      "lat": 47.74436,
+      "lon": 10.32219,
+      "place": "Kempten (Allgäu)",
+      "country": "DE",
+      "det": 60,
+      "days": 35
+    },
+    {
+      "id": "ta:459,125",
+      "lat": 50.90599,
+      "lon": 6.75445,
+      "place": "Frechen",
+      "country": "DE",
+      "det": 60,
+      "days": 30
+    },
+    {
+      "id": "ta:974,711",
+      "lat": 45.75376,
+      "lon": 12.61401,
+      "place": null,
+      "country": "outside",
+      "det": 59,
+      "days": 31
+    },
+    {
+      "id": "ta:211,677",
+      "lat": 53.38283,
+      "lon": 12.2732,
+      "place": "Plau am See",
+      "country": "DE",
+      "det": 58,
+      "days": 24
+    }
+  ],
+  "classB": [
+    {
+      "id": "ta:473,17",
+      "lat": 50.76457,
+      "lon": 5.67154,
+      "place": null,
+      "country": "outside",
+      "det": 5173,
+      "days": 1065,
+      "night": 0.99,
+      "landcover": "industrial"
+    },
+    {
+      "id": "ta:420,151",
+      "lat": 51.29764,
+      "lon": 7.0104,
+      "place": "Wülfrath",
+      "country": "DE",
+      "det": 4889,
+      "days": 1051,
+      "night": 0.945,
+      "landcover": "industrial"
+    },
+    {
+      "id": "ta:999,474",
+      "lat": 45.50965,
+      "lon": 10.24547,
+      "place": null,
+      "country": "outside",
+      "det": 3228,
+      "days": 838,
+      "night": 0.897,
+      "landcover": "industrial"
+    },
+    {
+      "id": "ta:678,18",
+      "lat": 48.71663,
+      "lon": 5.68223,
+      "place": null,
+      "country": "outside",
+      "det": 1014,
+      "days": 453,
+      "night": 1,
+      "landcover": "industrial"
+    },
+    {
+      "id": "ta:945,1186",
+      "lat": 46.0413,
+      "lon": 17.3639,
+      "place": null,
+      "country": "outside",
+      "det": 179,
+      "days": 97,
+      "night": 1,
+      "landcover": "other"
+    },
+    {
+      "id": "ta:536,840",
+      "lat": 50.13681,
+      "lon": 13.90556,
+      "place": null,
+      "country": "outside",
+      "det": 125,
+      "days": 61,
+      "night": 1,
+      "landcover": "industrial"
+    },
+    {
+      "id": "ta:945,593",
+      "lat": 46.04825,
+      "lon": 11.43749,
+      "place": null,
+      "country": "outside",
+      "det": 93,
+      "days": 63,
+      "night": 0.882,
+      "landcover": "other"
+    },
+    {
+      "id": "ta:409,634",
+      "lat": 51.40159,
+      "lon": 11.84441,
+      "place": "Bad Lauchstädt",
+      "country": "DE",
+      "det": 53,
+      "days": 14,
+      "night": 0.792,
+      "landcover": "other"
+    }
+  ]
+}

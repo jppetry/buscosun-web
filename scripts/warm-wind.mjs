@@ -1,35 +1,73 @@
 /**
- * warm-wind.mjs — Warm-Cron für den ICON-D2-Wind-Layer (Phase T1.2).
+ * warm-wind.mjs — Manifest-Publisher für den ICON-D2-Wind-Layer (Phase T1.2).
  *
- * Rolle: füllt den Durable-Edge-Cache (`/_dwd_wind/*`, s. netlify/edge-functions/
- * dwd-wind.ts) mit den immutablen (Lauf,Step)-Wind-GRIB-Dateien und legt DANACH
- * das Manifest `latest-wind.json` um. Der Client (T1.3) liest nur dieses Manifest
- * → praktisch kein Besucher trifft den kalten DWD-Pfad.
+ * ⚠️ Der Dateiname ist historisch: seit 2026-08-23 wird hier NICHTS mehr
+ * gewärmt (s. u.). Umbenennen würde `verify-warm-wind.mjs` (importiert
+ * `manifestCovers`/`mergeSteps` von hier) treffen — bewusst zurückgestellt,
+ * damit der Rückzug ein reiner Verhaltens-Diff bleibt.
+ *
+ * Rolle: findet den neuesten vollständigen ICON-D2-Lauf und legt das Manifest
+ * `latest-wind.json` um. Der Client (T1.3) liest nur dieses Manifest und spart
+ * dadurch den ~1,9-s-Directory-Scan.
+ *
+ * ── DAS CACHE-WÄRMEN IST ENTFERNT (Jans Auftrag 2026-08-23) ─────────────────
+ * ⚠️ **Ausdrückliche Ausnahme vom Funktionserhalt** (CLAUDE.md), Muster wie die
+ * Layer-Rückzüge vom 2026-08-22. Bis 2026-08-22 hat dieses Skript zusätzlich
+ * JEDE Datei durch `SITE_URL/_dwd_wind` geholt, um den Netlify-Edge-Cache zu
+ * füllen. Dieser Pfad existiert nicht mehr — nicht abgeschaltet, gelöscht.
+ * Drei Messungen aus `audit/bandbreite.md` begründen das:
+ *
+ *   (1) Der `durable`-Direktiv in `netlify/edge-functions/dwd-wind.ts` ist auf
+ *       Edge Functions WIRKUNGSLOS — der `Cache-Status`-Header führt immer nur
+ *       `"Netlify Edge"`, nie `"Netlify Durable"` (§14.1). Der Edge-Cache ist
+ *       damit der LOKALE Cache eines einzelnen CDN-Knotens: eine Wärmung
+ *       erreicht genau den PoP des GitHub-Runners — und GitHub-Runner stehen
+ *       nicht im DACH-Raum. Der wärmende Fetch kam also nie dort an, wo die
+ *       Besucher landen.
+ *   (2) Besucher wärmen sich ohnehin gegenseitig (gemessen: `fwd=miss; stored`
+ *       → `hit; ttl=21598`, TTL 6 h bei 3-h-Laufrotation). Der Cron konnte
+ *       bestenfalls den ERSTEN Besucher pro Knoten pro Lauf entlasten.
+ *   (3) Preis dafür: ~123 GB/Monat Netlify-Egress über beide Warm-Crons — das
+ *       Konto lief am 2026-08-22 in `usage_exceeded`, die Seite war offline.
+ *
+ * Die Step-Liste des Manifests kam noch nie aus den geladenen Bytes, sondern
+ * IMMER aus den DWD-Directory-Listings (`listSteps`) — das Löschen kostet
+ * deshalb keine Information. Was sich ändert: das Manifest nennt jetzt die
+ * Steps, die das DWD LISTET, statt der Steps, die wir erfolgreich
+ * heruntergeladen haben. Der Client verträgt das — ein fehlender Step wird pro
+ * Schritt abgefangen (`iconD2WindSource.ts:317-320`), ein unbrauchbares
+ * Manifest fällt komplett auf den Directory-Scan zurück
+ * (`iconD2WindSource.ts:385-393`).
+ *
+ * Der Edge-Cache selbst bleibt bestehen und wirkt weiter — er füllt sich jetzt
+ * ausschließlich durch echte Besucher (gemessen: `fwd=miss; stored` →
+ * `hit; ttl=21598`, 6 h Haltbarkeit). `netlify/edge-functions/dwd-wind.ts` ist
+ * UNBERÜHRT.
  *
  * Ablauf (idempotent, self-healing, atomar):
  *   1. Neuesten VOLLSTÄNDIGEN Lauf finden (DWD-Directory-Listing, Rückwärtssuche).
  *   2. Early-Exit nur, wenn das Manifest auf diesem Lauf steht UND bereits alle
- *      aktuell warmbaren Steps führt (ICON-D2 publiziert progressiv, s. V-81).
- *   3. Alle Wind-URLs (0…WARM_MAX_STEP × u/v) DURCH DEN PROXY (`SITE_URL/_dwd_wind`)
- *      curlen → füllt den Edge-Cache. Fehlt eine Near-Horizon-Datei → NICHT umlegen.
- *   4. ERST DANACH das Manifest atomar schreiben (temp + rename, zuletzt).
+ *      aktuell publizierten Steps führt (ICON-D2 publiziert progressiv, s. V-81).
+ *   3. Manifest atomar schreiben (temp + rename, zuletzt).
  *
- * Graceful degrade: schlägt Schritt 1/3 fehl, bleibt das alte Manifest stehen →
- * der Client serviert den letzten gewärmten Lauf (stale, nie kalt). Der nächste
- * Tick heilt selbst.
+ * Graceful degrade: schlägt Schritt 1 fehl, bleibt das alte Manifest stehen →
+ * der Client serviert den letzten Lauf (stale, nie kalt) bzw. fällt nach dem
+ * 24-h-Staleness-Guard auf den Directory-Scan zurück. Nächster Tick heilt selbst.
  *
- * Kein eccodes, kein Decode, kein bz2 — reines Cache-Wärmen + Manifest.
+ * Kein eccodes, kein Decode, kein bz2, kein Byte durch Netlify.
  *
  * ENV:
- *   SITE_URL            Basis, durch die gewärmt wird (Edge-Cache-Fill).
- *                       Default http://localhost:5178 (vite dev / netlify dev).
+ *   SITE_URL            Site, FÜR die das Manifest publiziert wird (Feld
+ *                       `publishedFor`, Herkunfts-Anker des Wächters H4).
+ *                       Default http://localhost:5178 — ein lokal geschriebenes
+ *                       Manifest fällt damit in Prod sofort auf.
  *   MANIFEST_PATH       Zielpfad des Manifests. Default public/latest-wind.json.
  *   DWD_BASE            DWD-Origin für die Lauf-Discovery.
  *                       Default https://opendata.dwd.de/weather/nwp/icon-d2/grib.
- *   WARM_MAX_STEP       Höchster zu wärmender Vorlaufschritt. Default 12.
- *   NEAR_REQUIRED       Steps 0…N müssen (u+v) gewärmt sein, um umzulegen. Default 4.
- *   FAIL_STEP           TEST: erzwingt Warm-Fehler für diesen Step (Fail-Safe-Probe).
- *   FORCE               '1' überspringt den Early-Exit (erneut wärmen).
+ *   WARM_MAX_STEP       Höchster ins Manifest aufgenommener Vorlaufschritt. Default 12.
+ *   NEAR_REQUIRED       Steps 0…N müssen (u+v) vorhanden sein, um umzulegen. Default 4.
+ *   FAIL_STEP           TEST: nimmt diesen Step aus den Listen (Fail-Safe-Probe).
+ *   FORCE               '1' überspringt den Early-Exit.
  */
 
 import { writeFileSync, renameSync, readFileSync, mkdirSync } from 'node:fs';
@@ -45,7 +83,6 @@ const FORCE = process.env.FORCE === '1';
 const PARAMS = ['u_10m', 'v_10m'];
 
 const pad2 = (n) => String(n).padStart(2, '0');
-const pad3 = (n) => String(n).padStart(3, '0');
 const log = (...a) => console.log('[warm-wind]', ...a);
 
 function runStrOf(date) {
@@ -54,10 +91,6 @@ function runStrOf(date) {
 function parseRunStr(run) {
   return new Date(Date.UTC(+run.slice(0, 4), +run.slice(4, 6) - 1, +run.slice(6, 8), +run.slice(8, 10)));
 }
-function stepFile(run, param, step) {
-  return `icon-d2_germany_regular-lat-lon_single-level_${run}_${pad3(step)}_2d_${param}.grib2.bz2`;
-}
-
 /** DWD-Directory-Listing eines (Lauf,Param) parsen → verfügbare Steps (regular-lat-lon). */
 async function listSteps(run, param) {
   const hh = run.slice(8, 10);
@@ -98,28 +131,6 @@ async function findLatestCompleteRun() {
   return null;
 }
 
-/** Eine Datei DURCH DEN PROXY holen (füllt den Edge-Cache). true bei 2xx. */
-async function warmOne(run, param, step) {
-  if (FAIL_STEP != null && step === FAIL_STEP) {
-    log(`  ✗ FAIL_STEP=${step} → simulierter Warm-Fehler ${param}/${step}`);
-    return false;
-  }
-  const hh = run.slice(8, 10);
-  const url = `${SITE_URL}/_dwd_wind/weather/nwp/icon-d2/grib/${hh}/${param}/${stepFile(run, param, step)}`;
-  try {
-    const res = await fetch(url);
-    if (!res.ok) { log(`  ✗ ${res.status} ${param}/${step}`); return false; }
-    // Body konsumieren (schließt die Verbindung; Bytes werden vom Edge gecacht).
-    const buf = await res.arrayBuffer();
-    const cacheHdr = res.headers.get('netlify-cdn-cache-control') || res.headers.get('cache-control') || '';
-    log(`  ✓ ${param}/${step} ${(buf.byteLength / 1024).toFixed(0)} KB ${cacheHdr ? `[${cacheHdr}]` : ''}`);
-    return true;
-  } catch (e) {
-    log(`  ✗ ${param}/${step} Fehler ${e?.message || e}`);
-    return false;
-  }
-}
-
 function readManifest() {
   try { return JSON.parse(readFileSync(MANIFEST_PATH, 'utf8')); } catch { return null; }
 }
@@ -156,7 +167,7 @@ function writeManifestAtomic(obj) {
 }
 
 async function main() {
-  log(`Start · SITE_URL=${SITE_URL} · Manifest=${MANIFEST_PATH} · WARM_MAX_STEP=${WARM_MAX_STEP}`);
+  log(`Start · publishedFor=${SITE_URL} · Manifest=${MANIFEST_PATH} · WARM_MAX_STEP=${WARM_MAX_STEP}`);
 
   const latest = await findLatestCompleteRun();
   if (!latest) {
@@ -175,42 +186,45 @@ async function main() {
     if (missing.length) log(`Gleicher Lauf ${latest.run}, aber neu publizierte Steps [${missing.join(',')}] fehlen im Manifest → nachwärmen (V-81).`);
   }
 
-  // Cache füllen — ERST wärmen, DANN umlegen.
-  log(`Wärme Lauf ${latest.run} (${latest.steps.length} Steps × ${PARAMS.length} Params) durch ${SITE_URL}/_dwd_wind …`);
-  const warmed = { u_10m: [], v_10m: [] };
-  for (const step of latest.steps) {
-    for (const param of PARAMS) {
-      const ok = await warmOne(latest.run, param, step);
-      if (ok) warmed[param].push(step);
-    }
+  // Bestätigte Steps je Param. `latest.steps` stammt aus den DWD-Listings und
+  // enthält per Konstruktion nur Steps, die in u UND v publiziert sind
+  // (`findLatestCompleteRun`).
+  const confirmed = { u_10m: [], v_10m: [] };
+  for (const param of PARAMS) {
+    confirmed[param] = latest.steps.filter((s) => !(FAIL_STEP != null && s === FAIL_STEP));
   }
+  if (FAIL_STEP != null) log(`  FAIL_STEP=${FAIL_STEP} → Step aus beiden Listen entfernt (Fail-Safe-Probe)`);
+  log(`${latest.steps.length} Steps aus dem DWD-Listing bestätigt — 0 Bytes durch ${SITE_URL}.`);
 
-  // Fail-Safe: Near-Horizon (0…NEAR_REQUIRED) muss für u UND v gewärmt sein.
+  // Fail-Safe: Near-Horizon (0…NEAR_REQUIRED) muss für u UND v vorliegen.
   const near = Array.from({ length: NEAR_REQUIRED + 1 }, (_, i) => i);
-  const nearOk = near.every((s) => warmed.u_10m.includes(s) && warmed.v_10m.includes(s));
+  const nearOk = near.every((s) => confirmed.u_10m.includes(s) && confirmed.v_10m.includes(s));
   if (!nearOk) {
-    log(`Near-Horizon nicht vollständig gewärmt (u:[${warmed.u_10m.join(',')}] v:[${warmed.v_10m.join(',')}]).`);
+    log(`Near-Horizon unvollständig (u:[${confirmed.u_10m.join(',')}] v:[${confirmed.v_10m.join(',')}]).`);
     log('→ Manifest UNVERÄNDERT (Fail-Safe: letzter guter Lauf bleibt, nächster Tick heilt). Exit 0.');
     return 0;
   }
 
-  // In beiden Params gewärmte Steps → das sind die, die der Client sicher findet.
-  const fresh = warmed.u_10m.filter((s) => warmed.v_10m.includes(s));
-  // V-81-Sicherung: innerhalb DESSELBEN Laufs nie Steps verlieren. Seit dem
-  // Nachwärmen läuft dieser Pfad auch bei bereits manifestiertem Lauf — schlüge
-  // dabei ein einzelner Fetch fehl, würde ein reines Überschreiben das Manifest
-  // SCHRUMPFEN und dem Client Steps wegnehmen, die er vorher hatte. (Lauf,Step)
-  // ist unveränderlich und liegt bereits im Durable-Cache, also bleibt es gültig.
+  // In beiden Params vorhandene Steps → das sind die, die der Client sicher findet.
+  const fresh = confirmed.u_10m.filter((s) => confirmed.v_10m.includes(s));
+  // V-81-Sicherung: innerhalb DESSELBEN Laufs nie Steps verlieren. Dieser Pfad
+  // läuft auch bei bereits manifestiertem Lauf — fiele dabei ein einzelner Step
+  // aus (Listing-Aussetzer), würde ein reines Überschreiben das Manifest
+  // SCHRUMPFEN und dem Client Steps wegnehmen, die er vorher hatte.
+  // (Lauf,Step) ist unveränderlich, also bleibt der Alteintrag gültig.
   const steps = mergeSteps(existing, latest.run, fresh);
   const carried = existing && existing.run === latest.run && Array.isArray(existing.steps) ? existing.steps : [];
   const lost = carried.filter((s) => !fresh.includes(s));
-  if (lost.length) log(`Hinweis: Steps [${lost.join(',')}] diesmal nicht (neu) gewärmt, bleiben aus dem Vorlauf erhalten.`);
+  if (lost.length) log(`Hinweis: Steps [${lost.join(',')}] diesmal nicht bestätigt, bleiben aus dem Vorlauf erhalten.`);
   const manifest = {
     run: latest.run,
     runAt: parseRunStr(latest.run).toISOString(),
     steps,
     updatedAt: new Date().toISOString(),
-    warmedThroughProxy: `${SITE_URL}/_dwd_wind`,
+    // Site, FÜR die publiziert wird — Herkunfts-Anker des Wächters H4. Ersetzt
+    // das frühere `warmedThroughProxy`: dieses Skript wärmt nichts mehr, das
+    // Feld hätte etwas behauptet, das nicht passiert.
+    publishedFor: SITE_URL,
   };
   writeManifestAtomic(manifest);
   log(`Manifest umgelegt → Lauf ${manifest.run}, Steps [${steps.join(',')}]. Fertig.`);

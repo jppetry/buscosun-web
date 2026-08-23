@@ -28,6 +28,12 @@ export interface DailyRecord {
   windDirDeg: number | null;
   humidityPct: number | null;
   snowCm: number | null;
+  /**
+   * Welche Felder NICHT gemessen, sondern vom Anbieter mit Modellwerten gefüllt sind
+   * (Meteostat `*_source` = `metno_forecast` o. ä.). Fehlt ⇒ alles gemessen bzw. unbekannt
+   * (ERA5-Quelle setzt es nicht — dort ist ohnehin alles Reanalyse). Additiv, optional.
+   */
+  modelFilled?: ('tMeanC' | 'tMinC' | 'tMaxC' | 'humidityPct' | 'precipMm' | 'windMaxKmh')[];
 }
 
 export type VariableKey = 'tmean' | 'tmax' | 'tmin' | 'precip' | 'sunshine' | 'wind' | 'humidity';

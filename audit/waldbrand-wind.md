@@ -148,3 +148,23 @@ zwischen beiden Ansichten.
 4. Der Tagesregler des EU-Index behält bei aktivem Wind seine 9 Tage.
 5. Ab Tag 1 steht an der Wind-Zeile „gilt für heute — folgt dem Tagesregler nicht".
 6. Konsole sauber, Attribution DWD sichtbar.
+
+## Rückzug 2026-08-22 — Layer `fireWind` entfernt
+
+Jan hat den Windlayer des Brandradars am 2026-08-22 **vollständig zurückgezogen**
+(ausdrückliche Ausnahme vom Funktionserhalt). Entfernt: `FireLayerId` `fireWind`,
+Dock-Zeile in „Aus der Wetterkarte", Steckbrief, Icon, Meta, Zeitmodell, die
+`WindLayer`-Instanz samt Frame-Effekt und Lizenzträger in `FireMap.tsx`, die
+`windTargetMs`/`windClamped`-Zeile in `FirePage.tsx`. **Bit 10 bleibt als `null`
+reserviert** (Muster Bit 1/4/13), geteilte `#wb=`-Links öffnen weiter dieselben Layer.
+
+**Was bleibt:** `fetchIconD2Wind` läuft weiter, jetzt nur noch für die Ausbreitung
+`fireSpread` (SF1) und das Windflag der Dynamik (AF2) — die Winddaten sind nicht
+entfernt, nur ihre Partikeldarstellung. Die Begründung der 6-h-Stundenachse
+(§15.5) hängt damit an `fireSpread`. Regeln (1) und (2) oben gelten für künftige
+Layer unverändert.
+
+Belege: `npm run typecheck` grün; `verify:fire-model` 126/126, `verify:fire-time`
+124/124, `verify:fire-spread` 203/203, `verify:fire-danger-views` 43/43,
+`verify:fire-anomalies` 56/56; Budget eingehalten. Die Sonden in
+`verify-fire-time.mjs`/`verify-fire-spread.mjs` prüfen jetzt die Abwesenheit.

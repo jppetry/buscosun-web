@@ -212,7 +212,7 @@ function ExportBar({ loc, buckets, meta, chartsRef }: { loc: HistoryLocation; bu
     svgToPng(svg, { title: `${meta.label} · ${loc.name}`, subtitle: `${buckets[0]?.year ?? ''}–${buckets[buckets.length - 1]?.year ?? ''}`, source: 'Quelle: ERA5 / Open-Meteo Archive (Reanalyse)', filename: `historie-${loc.name}-${meta.label}.png` });
   }
   function exportCsv() {
-    const csv = bucketsToCSV(buckets, meta, loc.name);
+    const csv = bucketsToCSV(buckets, meta, loc.name, defaultHistorySource.label);
     downloadBlob(new Blob([csv], { type: 'text/csv;charset=utf-8' }), `historie-${loc.name}-${meta.label}.csv`);
   }
   async function copy(text: string, tag: string) { try { await navigator.clipboard.writeText(text); setCopied(tag); setTimeout(() => setCopied(''), 1500); } catch { /* ignore */ } }

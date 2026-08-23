@@ -71,6 +71,8 @@
 
 **D-28 Verbesserungskatalog als Pflichtprozess (2026-07-31).** Jede von Agenten gefundene Verbesserung wird als `V-NN`-Eintrag in `improvements.md` dokumentiert — zwingend mit **Mehrwert** (verständlich für Jan) und **Umsetzungsskizze**. Kein Befund verschwindet in Session-Logs. · **Aktiv.**
 
+**D-30 Pfadbasiertes Client-Routing mit React Router (2026-08-22, Jan).** Jedes Feature bekommt eine sprechende, indexierbare Pfad-URL (`/wetterkarte/wind`, `/regenradar`, …); Kartenzustand liegt in der Query, Canonical ist immer der Pfad ohne Query. `react-router` 7.18 ist die **7. Runtime-Dependency — bewusste Ausnahme von D-06** (v8 hätte einen React-Bump verlangt, abgelehnt). Hebt die Leitentscheidung „Hash bleibt" (V-05, `audit/strategie-2026-07-31/ux-designsystem.md` §4) auf; die Feature-Codecs `#wb=`/`#ev=`/`#h=`/`#atm=`/`#g=` bleiben als Fragment unter dem neuen Pfad, Alt-Links werden clientseitig migriert. Server: explizite 200-Rewrites je Route in `netlify.toml` (KEIN `/*`-Catch-all — V-101 bleibt), 301-Aliase; Trailing-Slash-Normalisierung nur clientseitig (Netlify-Loop), Route-Shells als flache `dist/<route>.html`. Beleg: `audit/routing.md`, Verifier `verify:routing`. · **Aktiv.**
+
 ## Offene Entscheidungen (für die Planungsphase)
 
 - **O-01 Backend-Frage:** Bleibt D-01 (client-only) bestehen, oder kommt ein minimales Backend für Push/Accounts/B2B? Berührt D-03, Zielgruppen-Lücken 2/4 (`docs/zielgruppen-dach.md`).

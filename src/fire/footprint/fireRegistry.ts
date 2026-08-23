@@ -54,6 +54,8 @@ import { activityOf, type FireActivity } from '../activity/fireActivity';
 // kommen aus DERSELBEN Formatierung wie die Panel-Zeile (`estimate.ts`).
 import { estimateValueText, estimateSourceText, type AreaEstimate } from '../activity/estimate';
 import type { Observation } from '../activity/observation';
+import type { ThermalSite } from '../anomaly/thermalSites';
+import { anomalyOf, siteLabel, type FireAnomaly } from '../anomaly/classify';
 import type { Country } from '../../types';
 
 // ---------------------------------------------------------------------------
@@ -106,6 +108,14 @@ export interface FireRecord {
   place: { name: string | null; district: string | null; source: 'effis' | 'gazetteer' | null; distanceKm?: number };
   landcover: { key: LandcoverKey; pct: number }[] | null;
   suspectedStatic: boolean;
+  /**
+   * TA3: bekannter Standort einer Dauerquelle (statische Liste aus dem FIRMS-Archiv +
+   * Anlagenverzeichnis) und der Signaturvergleich dagegen. `'site'` = passt zum Anlagenmuster
+   * (grau, im Reiter „Thermalanomalien"); `'site-deviating'` = Standort getroffen, aber das
+   * Signal weicht ab ⇒ bleibt Brand UND zeigt die Abweichung. `null` = kein Standort.
+   * Unabhängig von `suspectedStatic` (F2 läuft unverändert weiter).
+   */
+  anomaly: FireAnomaly | null;
   passes: FirePass[];
   /**
    * AF1: Intensität und (ab AF2) Dynamik aus den Überflügen — `activity/fireActivity.ts`.
@@ -127,6 +137,12 @@ export interface RegistryInput {
   nowMs: number;
   /** Optional: Landbedeckung an der Stelle (statische CLC-Maske) — Plausibilität, nie Ausschluss. */
   landcoverAt?: (lat: number, lon: number) => 'natural' | 'artificial' | null;
+  /**
+   * TA3: bekannter Standort einer Dauerquelle an der Stelle (`anomaly/thermalSites.ts`,
+   * Zelle ± 1). Fehlt die Funktion (Liste nicht geladen, Kill-Switch `?ta=0`), bleibt
+   * `anomaly` überall `null` — exakt das Verhalten vor TA.
+   */
+  siteAt?: (lat: number, lon: number) => ThermalSite | null;
   /**
    * BP3: nächster Ort aus dem statischen Verzeichnis (`places.ts`) — nur für
    * Einträge OHNE EFFIS-Ortsangabe; `null` = kein Ort im Umkreis, es wird nichts
@@ -358,10 +374,14 @@ export function buildFireRegistry(input: RegistryInput): FireRecord[] {
     let upper = 0; let capped = false;
     for (const z of estimatedZones) { upper += z.areaHa; if (z.capped) capped = true; }
 
+    // TA3: Standort-Einordnung VOR der Bewertung — sie liefert der Bewertung den Satz mit Quelle.
+    const site = input.siteAt ? input.siteAt(c.lat, c.lon) : null;
+    const anomaly = site ? anomalyOf({ passes: c.passes, bbox: c.bbox, maxPixelFrp: c.maxFrp > 0 ? c.maxFrp : null }, site, { mapped: !!effis, ems: !!ems }) : null;
     const assessment = assess({
       mapped: effis, official: null, ems,
       overpasses: c.overpasses, suspectedStatic: c.mostlyStatic, atContext: null,
       landcover: input.landcoverAt ? input.landcoverAt(c.lat, c.lon) : null,
+      site: anomaly ? { label: siteLabel(anomaly.site), deviating: anomaly.kind === 'site-deviating' } : null,
     });
 
     const geometry: FireRecord['geometry'] = effis
@@ -410,6 +430,7 @@ export function buildFireRegistry(input: RegistryInput): FireRecord[] {
         : placeFrom(input.placeAt, c.lat, c.lon),
       landcover: effis ? landcoverBreakdown(effis).map(({ key, pct }) => ({ key, pct })) : null,
       suspectedStatic: c.mostlyStatic,
+      anomaly,
       passes: c.passes,
       activity: activityOf(c.passes, activityCtx),
     });
@@ -449,6 +470,7 @@ export function buildFireRegistry(input: RegistryInput): FireRecord[] {
           : placeFrom(input.placeAt, lat, lon),
         landcover: landcoverBreakdown(p).map(({ key, pct }) => ({ key, pct })),
         suspectedStatic: false,
+        anomaly: null,
         passes: [],
         activity: null,
       });
@@ -585,9 +607,20 @@ export interface RecordFilter {
   minAreaHa: number;
   status: ReadonlySet<FireStatusKind> | null;
   countries: ReadonlySet<Country | 'outside'> | null;
+  /**
+   * TA4: Einträge, die zum Anlagenmuster passen (`anomaly.kind === 'site'`), stehen im Reiter
+   * „Thermalanomalien"; `'hide'` nimmt sie aus der Brandliste (Default, Jans Entscheidung #4
+   * `audit/thermalanomalien.md` §6), `'show'` zeigt sie grau dazu. `'site-deviating'` bleibt IMMER.
+   */
+  sites: 'show' | 'hide';
 }
 
-export const DEFAULT_FILTER: RecordFilter = { minAreaHa: 0, status: null, countries: null };
+export const DEFAULT_FILTER: RecordFilter = { minAreaHa: 0, status: null, countries: null, sites: 'hide' };
+
+/** TA4: wie viele Einträge der Standort-Filter gerade aus der Brandliste nimmt — für den sichtbaren Zähler. */
+export function hiddenSiteCount(records: readonly FireRecord[], f: RecordFilter): number {
+  return f.sites === 'hide' ? records.filter((r) => r.anomaly?.kind === 'site').length : 0;
+}
 
 /**
  * Filtert. Die Mindestfläche gilt für **beide** Flächenarten — ein Eintrag ohne
@@ -596,6 +629,7 @@ export const DEFAULT_FILTER: RecordFilter = { minAreaHa: 0, status: null, countr
  */
 export function filterRecords(records: readonly FireRecord[], f: RecordFilter): FireRecord[] {
   return records.filter((r) => {
+    if (f.sites === 'hide' && r.anomaly?.kind === 'site') return false;
     if (f.minAreaHa > 0 && !(r.areaHa.value != null && r.areaHa.value >= f.minAreaHa)) return false;
     if (f.status && f.status.size > 0 && !f.status.has(r.status.kind)) return false;
     if (f.countries && f.countries.size > 0) {
@@ -777,7 +811,10 @@ export interface FootprintFeatureProps extends Record<string, unknown> {
   dup: 0 | 1;
   areaHa: number | null;
   areaKind: 'mapped' | 'upper-bound' | null;
+  /** 1 = Dauerquellen-Vorbehalt (F2 ortsfest ODER bekannter Standort) ⇒ grau. */
   static: 0 | 1;
+  /** TA3: `'site'` passt zum Anlagenmuster, `'site-deviating'` weicht ab (bleibt Brand), `''` kein Standort. */
+  anomaly: 'site' | 'site-deviating' | '';
 }
 
 /**
@@ -814,7 +851,8 @@ export function footprintsToGeoJSON(
     }
     const props: FootprintFeatureProps = {
       id: r.id, status: r.status.kind, kind: r.geometry.kind, dup,
-      areaHa: r.areaHa.value, areaKind: r.areaHa.kind, static: r.suspectedStatic ? 1 : 0,
+      areaHa: r.areaHa.value, areaKind: r.areaHa.kind, static: r.suspectedStatic || r.anomaly?.kind === 'site' ? 1 : 0,
+      anomaly: r.anomaly?.kind ?? '',
     };
     features.push({ type: 'Feature', geometry, properties: props });
   }

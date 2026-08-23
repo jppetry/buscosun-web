@@ -175,7 +175,18 @@ export default defineConfig({
         // maplibre-gl (~500 KB) in einen eigenen, von allen Lazy-Karten-Seiten
         // geteilten Chunk auslagern → einmal laden + langfristig cachebar,
         // statt in mehrere Seiten-Chunks dupliziert zu werden.
-        manualChunks: { maplibre: ['maplibre-gl'] },
+        //
+        // Phase RT1 (2026-08-22): als Funktion, damit Rollups CommonJS-Helfer
+        // (`getDefaultExportFromCjs` für react/react-dom) NICHT im maplibre-Chunk
+        // landen — sonst importiert der Start-Chunk sie von dort, maplibre wird
+        // statisch geladen + modulepreloaded und das eager-Budget springt von
+        // ~104 auf ~380 KB gzip (gemessen). Die Helfer bekommen einen eigenen,
+        // winzigen Chunk.
+        manualChunks(id) {
+          if (id.includes('commonjsHelpers')) return 'cjs-helpers';
+          if (id.includes('node_modules/maplibre-gl/')) return 'maplibre';
+          return undefined;
+        },
       },
     },
   },

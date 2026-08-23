@@ -3,12 +3,16 @@
 > Kostenlose, tracker-freie Wetter-Web-App für die DACH-Region (Deutschland, Österreich, Schweiz). Daten ausschließlich aus amtlichen Quellen (DWD, GeoSphere Austria, MeteoSwiss), höhenkorrigiert über ein digitales Geländemodell. Läuft vollständig im Browser, ohne Konto.
 
 ## Funktionen
-- [Interaktive 2D-Wetterkarte](https://buscosun.com/): Wind (ICON-D2), Niederschlag (RADOLAN-RV/INCA/MeteoSwiss-Radar), Temperatur (höhenkorrigiert), Wolken, Satellit, Blitze, Stationen.
-- [Tourenplanung](https://buscosun.com/): Wetter entlang einer hochgeladenen Route (GPX/TCX/FIT/KML/KMZ) zur Ankunftszeit je Kilometer, inkl. E-Bike-Reichweite.
-- [Event-Planung](https://buscosun.com/): vergleicht die nächsten 7 Tage und nennt den besten Tag für ein Vorhaben (Phasen, Plan B, Foto-Licht, Astro-Nacht).
-- [6-Stunden-Nowcast](https://buscosun.com/): minutengenaue Niederschlagsprognose aus Radar-Extrapolation + ICON-D2, Blitz-/Sturm-Alerts.
-- [Modellvergleich](https://buscosun.com/): ICON-D2, MOSMIX und ICON-EU mit ehrlichem Unsicherheits-Spread und Trefferquoten-Rückblick.
-- [Arbeitsfenster (Go/No-Go)](https://buscosun.com/): Wind-/Böen-/Regen-/Frost-Schwellen für Drohne, Kran, Höhenarbeit, Anstrich, Event-Aufbau als 48-Stunden-Ampel.
+- [Interaktive 2D-Wetterkarte](https://buscosun.com/wetterkarte): Wind (ICON-D2), Niederschlag (RADOLAN-RV/INCA/MeteoSwiss-Radar), Temperatur (höhenkorrigiert), Wolken, Satellit, Blitze, Stationen — je Layer eine eigene URL, z. B. https://buscosun.com/wetterkarte/temperatur.
+- [Amtliche Unwetterwarnungen](https://buscosun.com/warnungen): DWD und MeteoSchweiz wortwörtlich auf der Karte (Österreich folgt).
+- [Regenradar](https://buscosun.com/regenradar): gemessenes Landesradar DE/AT/CH mit Nowcast bis 2 Stunden.
+- [Tourenplanung](https://buscosun.com/tourenplanung): Wetter entlang einer hochgeladenen Route (GPX/TCX/FIT/KML/KMZ) zur Ankunftszeit je Kilometer, inkl. E-Bike-Reichweite.
+- [Event-Planung](https://buscosun.com/eventplanung): vergleicht die nächsten 7 Tage und nennt den besten Tag für ein Vorhaben (Phasen, Plan B, Foto-Licht, Astro-Nacht).
+- [Vorhersage mit Konfidenz & Modellvergleich](https://buscosun.com/vorhersage): ICON-D2, MOSMIX und ICON-EU mit ehrlichem Unsicherheits-Spread und Trefferquoten-Rückblick.
+- [Wetterarchiv & Klima seit 1940](https://buscosun.com/wetterarchiv): Rückblick und Veränderung je Ort.
+- [Atmosphäre](https://buscosun.com/atmosphaere): Vertikalschnitt, Föhn, Thermik; [Arbeitsfenster (Go/No-Go)](https://buscosun.com/atmosphaere/querschnitt?ansicht=gonogo) für Drohne, Kran, Höhenarbeit.
+- [Waldbrandgefahr DACH](https://buscosun.com/waldbrand): EU-Index + amtliche Landesstufen, aktive Brände aus Satellitendaten, Trockenheit.
+- [3D-Globus](https://buscosun.com/globus): globales Windfeld (GFS) auf der drehbaren Erde.
 
 ## Wetter nach Ort
 - [Übersicht aller Orte](https://buscosun.com/wetter/): Geo-Landingpages für ~140 Orte in DACH.

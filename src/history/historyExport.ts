@@ -15,8 +15,10 @@ export function downloadBlob(blob: Blob, filename: string) {
 }
 
 /** Aktuelle Reihe als CSV (US-10.2). */
-export function bucketsToCSV(buckets: Bucket[], meta: { label: string; unit: string }, loc: string): string {
-  const head = `# ${meta.label} (${meta.unit}) · ${loc} · Quelle: ERA5 / Open-Meteo Archive\nPeriode;Jahr;Wert (${meta.unit});Tage`;
+// BH4-Nebenbefund: die Quelle kommt vom Aufrufer — Standardquelle ist seit dem Meteostat-Wechsel die
+// Station, nicht ERA5; der feste Text hier nannte in jedem Export die falsche Quelle.
+export function bucketsToCSV(buckets: Bucket[], meta: { label: string; unit: string }, loc: string, source = 'ERA5 / Open-Meteo Archive'): string {
+  const head = `# ${meta.label} (${meta.unit}) · ${loc} · Quelle: ${source}\nPeriode;Jahr;Wert (${meta.unit});Tage`;
   const rows = buckets.map((b) => `${b.label};${b.year};${b.value == null ? '' : String(b.value).replace('.', ',')};${b.n}`);
   return [head, ...rows].join('\n');
 }

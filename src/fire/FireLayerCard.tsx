@@ -54,7 +54,6 @@ function Row({ swatch, label }: { swatch: ReactNode; label: string }) {
 const DRYAIR = 'linear-gradient(90deg,#F2EAD8,#D9B87A,#A9743C,#6B4A1E)';
 /** WW1: die Windskala — Werte-Kopie aus `components/LayerInfoPanel.tsx:39`,
  *  damit derselbe Layer in beiden Ansichten dieselbe Legende trägt. */
-const WIND = 'linear-gradient(90deg,#e8f0fa,#9ec5e5,#7A9466,#e0c85c,#d77a3b,#b5483d)';
 
 /**
  * Die FRP-Skala des Hotspot-Layers — **aus derselben Konstante wie die Karte**
@@ -195,22 +194,6 @@ export const FIRE_LAYER_INFO: Record<FireLayerId, FireLayerInfo> = {
     note: 'Eingefärbt ist die Trockenheit der Luft: je dunkler, desto trockener — denn trockene Luft lässt Streu schneller abtrocknen. Ein Treiber, kein Index und kein amtliches Warnprodukt. Die kumulativen FWI-Codes (FFMC, DMC, DC) sind NICHT enthalten; sie brauchen einen Tagesübertrag über Wochen, den eine reine Browser-App nicht leisten kann. Das Modellgebiet von ICON-D2 reicht über DACH hinaus — außerhalb von DE, AT und CH ist die Fläche abgedunkelt, weil diese Ansicht dort nichts aussagt.',
     legend: <><Bar css={DRYAIR} /><Scale from="feucht" to="trocken" /></>,
   },
-  fireDrought: {
-    eyebrow: 'Ausbaustufe 2',
-    // E3: heißt jetzt beim Namen — sonst stünde „Trockenheit" zweimal im Dock,
-    // einmal als blockierte EDO-Bodenfeuchte, einmal als DC-Sub-Ansicht des
-    // Index. Genau diese Verwechslung („DC an Stelle der Bodenfeuchte") soll
-    // nicht passieren. Blockiert bleibt blockiert.
-    label: 'Bodenfeuchte-Anomalie',
-    short: 'Copernicus EDO · derzeit nicht abrufbar',
-    note: 'Bodenfeuchte-Anomalie (SMA) des Europäischen Dürre-Observatoriums — nicht gebaut, und zwar aus einem benennbaren Grund: Der EDO-Dienst sendet einen fehlerhaften CORS-Header (doppeltes Access-Control-Allow-Origin). Der Server läuft, aber der Browser darf die Kacheln nicht lesen. Die Lösung wäre ein Server-seitiger Umweg — das ist eine Infrastruktur-Entscheidung und keine, die diese Ansicht allein treffen kann. Die Sub-Ansicht „Trockenheit" des EU-Index (Drought Code) ist KEIN Ersatz dafür: ein Feuerwetter-Code, keine Bodenfeuchte.',
-  },
-  fireVegetation: {
-    eyebrow: 'Ausbaustufe 2',
-    label: 'Vegetationsstress',
-    short: 'Copernicus EDO · derzeit nicht abrufbar',
-    note: 'Wie Trockenheit: derselbe Dienst, derselbe fehlerhafte CORS-Header. Wäre er erreichbar, zeigte der Layer die fAPAR-Anomalie — Vegetationsstress ist dabei allerdings NICHT gleich Trockenheit: auch Schädlinge, Hitze oder Sturmschäden schlagen darauf durch.',
-  },
   fireFuel: {
     eyebrow: 'Ausbaustufe 2',
     label: 'Brennmaterial',
@@ -237,16 +220,6 @@ export const FIRE_LAYER_INFO: Record<FireLayerId, FireLayerInfo> = {
         <Row swatch={<i className="fire-li-burnt fire-li-burnt-archive" />} label="Archiv: gestrichelt, blasser" />
       </>
     ),
-  },
-  fireWind: {
-    eyebrow: 'Aus der Wetterkarte · Treiber',
-    label: 'Wind',
-    short: 'DWD ICON-D2 · u/v 10 m, 2,2 km · gilt für jetzt',
-    // Der erste Satz ist die wortgleiche Beschreibung aus der Wetterkarte
-    // (`components/LayerInfoPanel.tsx:60`) — derselbe Layer, dieselbe Aussage.
-    // Danach das, was NUR hier gilt: Zeitbezug und Waldbrand-Einordnung.
-    note: 'Windrichtung und -geschwindigkeit in 10 m Höhe als animierte Partikel über einer Geschwindigkeits-Heatmap. Es ist derselbe Layer wie auf der Wetterkarte — dieselbe Quelle, dieselbe Geschwindigkeit, dieselben Farben. Auf der Tagesachse gilt er für JETZT und folgt dem Tagesregler nicht; auf der Stundenachse folgt er bis +6 h — und genau deshalb endet die Stundenachse dort: das Modellfeld reicht rund 12 Stunden ab Modelllauf voraus, und der Lauf ist beim Abruf schon einige Stunden alt. Reicht der geladene Lauf einmal kürzer, zeigt der Layer den letzten verfügbaren Schritt und sagt das in seiner Zeile — kein stilles Klemmen. Für die Brandlage ist Wind ein Treiber, kein Index und kein amtliches Warnprodukt — er sagt, wohin ein Feuer laufen würde und wie schnell, nicht ob eines brennt. 10 m über Grund ist die Messhöhe der Meteorologie, nicht die Windgeschwindigkeit in einem Bestand; im Wald und in Bodennähe ist es deutlich schwächer, in Tälern und über Kämmen kann es örtlich stark davon abweichen. Böenspitzen sind NICHT enthalten — die zeigt die Wetterkarte als eigenen Layer. Das Modellgebiet reicht über DACH hinaus; außerhalb von DE, AT und CH ist die Fläche abgedunkelt, weil diese Ansicht dort nichts aussagt.',
-    legend: <><Bar css={WIND} /><Scale from="schwach" to="Sturm" /></>,
   },
   fireSoilDryness: soilDrynessInfoFor('topsoil'),
   fireFootprints: {
@@ -287,6 +260,20 @@ export const FIRE_LAYER_INFO: Record<FireLayerId, FireLayerInfo> = {
         <Row swatch={<i className="fire-li-spread-arrow is-unsure" />} label="Richtung unsicher — der Wind dreht oder der Hang streut" />
         <Row swatch={<i className="fire-li-spread-fan" />} label="Fächer: mögliche Richtung und Reichweite — keine Brandfläche" />
         <Row swatch={<i className="fire-li-spread-none" />} label="kein Pfeil = keine Aussage; der Grund steht in der Brandliste" />
+      </>
+    ),
+  },
+  fireAnomalies: {
+    eyebrow: 'Thermalanomalien · Standorte',
+    label: 'Thermalanomalien',
+    short: 'FIRMS-Archiv 2020–2026 (≥ 2 Jahre mit je ≥ 5 Detektionstagen) · Anlagen aus E-PRTR (EEA, CC-BY 4.0), MaStR (DL-DE/BY-2.0), BFE (OPEN BY) · Zuordnung ≤ 1,5 km',
+    note: 'Eigene Ableitung, kein Nachweis und kein Feld der Quelle. Die Rauten sind KEINE Brände — sie erklären, warum Detektionen dort grau sind. Ein Eintrag des Fensters, der vom Anlagenmuster abweicht (außerhalb des Standortrasters, wächst, stärker als das Archiv, kartiert), bleibt Brand und trägt „Abweichung". Anlagen nach 2026-05 fehlen; stillgelegte bleiben bis zum nächsten Bau gelistet. Klasse C ist ein Tagessignal über Jahre — Reflexion, keine Wärme.',
+    legend: (
+      <>
+        <Row swatch={<i className="fire-li-site" />} label="A · benannte Anlage (Quelle und Abstand im Steckbrief)" />
+        <Row swatch={<i className="fire-li-site is-B" />} label="B · Dauerquelle ohne Anlagentreffer ≤ 1,5 km" />
+        <Row swatch={<i className="fire-li-site is-C" />} label="C · Tagessignal (nur Tagdetektionen) — keine Wärmequelle" />
+        <Row swatch={<i className="fire-li-site is-dev" />} label="Abweichung: Signal im Fenster passt nicht zum Anlagenmuster — bleibt Brand" />
       </>
     ),
   },

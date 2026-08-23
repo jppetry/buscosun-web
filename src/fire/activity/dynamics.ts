@@ -37,7 +37,7 @@
  * `agree`; weicht sie mehr als `WIND_DISAGREE_DEG` ab, `disagree` — dann ist
  * entweder der Schwerpunkt durch einen Detektionsausfall verzerrt oder es sind
  * zwei Feuer. Dazwischen `null`. Der Wind kommt vom Aufrufer (ICON-D2 des
- * geladenen `fireWind`-Layers, nur wenn ein Frame ±3 h um den Überflug liegt).
+ * Windgitters der Ausbreitung `fireSpread`, nur wenn ein Frame ±3 h um den Überflug liegt).
  *
  * Pur, DOM-frei, ohne `Date.now()` — `npm run verify:fire-activity`.
  */

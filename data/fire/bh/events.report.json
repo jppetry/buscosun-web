@@ -1,0 +1,332 @@
+{
+  "version": 1,
+  "evaluatedAt": 1787443200000,
+  "today": "2026-08-22",
+  "years": {
+    "2020": {
+      "events": 9590,
+      "withDetections": 9576,
+      "effisOnly": 14,
+      "effisMatched": 37,
+      "detections": 53121,
+      "provenance": {
+        "sp": 53121,
+        "nrt": 0
+      },
+      "inSeason": 8340,
+      "singleDetection": 5868,
+      "singleOverpass": 6805,
+      "medianDurationH": 0,
+      "medianDistinctDays": 1,
+      "anomaly": {
+        "site": 4056,
+        "siteDeviating": 97,
+        "shareSite": 0.424,
+        "shareDeviating": 0.01
+      },
+      "suspectedStatic": 0,
+      "nasaType2Events": 2820,
+      "withAreaEst": 9576,
+      "byCountry": {
+        "outside": 4333,
+        "DE": 4715,
+        "AT": 270,
+        "CH": 272
+      }
+    },
+    "2021": {
+      "events": 8197,
+      "withDetections": 8186,
+      "effisOnly": 11,
+      "effisMatched": 45,
+      "detections": 47648,
+      "provenance": {
+        "sp": 47648,
+        "nrt": 0
+      },
+      "inSeason": 7200,
+      "singleDetection": 4898,
+      "singleOverpass": 5604,
+      "medianDurationH": 0,
+      "medianDistinctDays": 1,
+      "anomaly": {
+        "site": 4032,
+        "siteDeviating": 104,
+        "shareSite": 0.493,
+        "shareDeviating": 0.013
+      },
+      "suspectedStatic": 0,
+      "nasaType2Events": 2804,
+      "withAreaEst": 8186,
+      "byCountry": {
+        "outside": 3783,
+        "DE": 3854,
+        "CH": 226,
+        "AT": 334
+      }
+    },
+    "2022": {
+      "events": 10207,
+      "withDetections": 10126,
+      "effisOnly": 81,
+      "effisMatched": 170,
+      "detections": 57033,
+      "provenance": {
+        "sp": 57033,
+        "nrt": 0
+      },
+      "inSeason": 9094,
+      "singleDetection": 6204,
+      "singleOverpass": 7243,
+      "medianDurationH": 0,
+      "medianDistinctDays": 1,
+      "anomaly": {
+        "site": 4145,
+        "siteDeviating": 76,
+        "shareSite": 0.409,
+        "shareDeviating": 0.008
+      },
+      "suspectedStatic": 0,
+      "nasaType2Events": 2783,
+      "withAreaEst": 10125,
+      "byCountry": {
+        "outside": 4525,
+        "AT": 433,
+        "CH": 263,
+        "DE": 4986
+      }
+    },
+    "2023": {
+      "events": 8968,
+      "withDetections": 8949,
+      "effisOnly": 19,
+      "effisMatched": 53,
+      "detections": 47665,
+      "provenance": {
+        "sp": 47665,
+        "nrt": 0
+      },
+      "inSeason": 8011,
+      "singleDetection": 5432,
+      "singleOverpass": 6602,
+      "medianDurationH": 0,
+      "medianDistinctDays": 1,
+      "anomaly": {
+        "site": 3821,
+        "siteDeviating": 84,
+        "shareSite": 0.427,
+        "shareDeviating": 0.009
+      },
+      "suspectedStatic": 0,
+      "nasaType2Events": 2560,
+      "withAreaEst": 8949,
+      "byCountry": {
+        "outside": 3647,
+        "DE": 4739,
+        "CH": 229,
+        "AT": 353
+      }
+    },
+    "2024": {
+      "events": 8016,
+      "withDetections": 7991,
+      "effisOnly": 25,
+      "effisMatched": 50,
+      "detections": 42469,
+      "provenance": {
+        "sp": 42469,
+        "nrt": 0
+      },
+      "inSeason": 7193,
+      "singleDetection": 4614,
+      "singleOverpass": 5618,
+      "medianDurationH": 0,
+      "medianDistinctDays": 1,
+      "anomaly": {
+        "site": 3468,
+        "siteDeviating": 86,
+        "shareSite": 0.434,
+        "shareDeviating": 0.011
+      },
+      "suspectedStatic": 0,
+      "nasaType2Events": 2395,
+      "withAreaEst": 7991,
+      "byCountry": {
+        "DE": 4380,
+        "outside": 3098,
+        "AT": 323,
+        "CH": 215
+      }
+    },
+    "2025": {
+      "events": 10512,
+      "withDetections": 10251,
+      "effisOnly": 261,
+      "effisMatched": 120,
+      "detections": 52991,
+      "provenance": {
+        "sp": 52991,
+        "nrt": 0
+      },
+      "inSeason": 9604,
+      "singleDetection": 6041,
+      "singleOverpass": 7423,
+      "medianDurationH": 0,
+      "medianDistinctDays": 1,
+      "anomaly": {
+        "site": 3509,
+        "siteDeviating": 114,
+        "shareSite": 0.342,
+        "shareDeviating": 0.011
+      },
+      "suspectedStatic": 0,
+      "nasaType2Events": 2369,
+      "withAreaEst": 10251,
+      "byCountry": {
+        "outside": 3765,
+        "AT": 465,
+        "DE": 6072,
+        "CH": 210
+      }
+    },
+    "2026": {
+      "events": 9055,
+      "withDetections": 8901,
+      "effisOnly": 154,
+      "effisMatched": 171,
+      "detections": 42970,
+      "provenance": {
+        "sp": 17120,
+        "nrt": 25850
+      },
+      "inSeason": 8683,
+      "singleDetection": 5368,
+      "singleOverpass": 6853,
+      "medianDurationH": 0,
+      "medianDistinctDays": 1,
+      "anomaly": {
+        "site": 2369,
+        "siteDeviating": 73,
+        "shareSite": 0.266,
+        "shareDeviating": 0.008
+      },
+      "suspectedStatic": 0,
+      "nasaType2Events": 907,
+      "withAreaEst": 8900,
+      "byCountry": {
+        "CH": 180,
+        "outside": 2959,
+        "DE": 5526,
+        "AT": 390
+      }
+    }
+  },
+  "out": "data/fire/bh/events.jsonl",
+  "sha256": "40a98428b2045b3ffef3c5a500a796b768649e3048953a324420cb68cbee552a",
+  "rule": {
+    "clusterRadiusM": 2000,
+    "gapH": 48,
+    "season": "03-01..10-31",
+    "sources": {
+      "sp": [
+        "VIIRS_SNPP_SP",
+        "VIIRS_NOAA20_SP"
+      ],
+      "nrt": [
+        "VIIRS_SNPP_NRT",
+        "VIIRS_NOAA20_NRT"
+      ]
+    },
+    "noaa21": "ausgeschlossen (nur NRT — Reihe bliebe sensorungleich)"
+  },
+  "input": {
+    "spChunks": 1358,
+    "spRows": 538145,
+    "nrtRows": 27193,
+    "rowsAfterDedupe": 343897,
+    "effis": {
+      "2020": {
+        "polys": 48,
+        "stamp": "effis-2020.geojson"
+      },
+      "2021": {
+        "polys": 54,
+        "stamp": "effis-2021.geojson"
+      },
+      "2022": {
+        "polys": 239,
+        "stamp": "effis-2022.geojson"
+      },
+      "2023": {
+        "polys": 71,
+        "stamp": "effis-2023.geojson"
+      },
+      "2024": {
+        "polys": 73,
+        "stamp": "effis-2024.geojson"
+      },
+      "2025": {
+        "polys": 376,
+        "stamp": "effis-2025.geojson"
+      },
+      "2026": {
+        "polys": 316,
+        "stamp": "effis-season-2026-08-22.geojson"
+      }
+    },
+    "availability": {
+      "VIIRS_SNPP_SP": {
+        "min": "2012-01-20",
+        "max": "2026-04-27"
+      },
+      "VIIRS_NOAA20_SP": {
+        "min": "2018-04-01",
+        "max": "2026-05-31"
+      },
+      "VIIRS_SNPP_NRT": {
+        "min": "2026-04-28",
+        "max": "2026-08-22"
+      },
+      "VIIRS_NOAA20_NRT": {
+        "min": "2026-06-01",
+        "max": "2026-08-22"
+      }
+    },
+    "nrtRim": {
+      "VIIRS_SNPP_NRT": {
+        "from": "2026-04-28",
+        "to": "2026-08-22",
+        "chunks": 24
+      },
+      "VIIRS_NOAA20_NRT": {
+        "from": "2026-06-01",
+        "to": "2026-08-22",
+        "chunks": 17
+      }
+    }
+  },
+  "clusterRadiusSensitivity": {
+    "1000 m": 65922,
+    "1500 m": 64815,
+    "2000 m": 63980,
+    "3000 m": 61742
+  },
+  "link": {
+    "linked": 0,
+    "superseded": 0,
+    "supersededIds": []
+  },
+  "lostInRegistry": 0,
+  "net": {
+    "requests": 43,
+    "cached": 6,
+    "retries": 0,
+    "nrtSkippedNoKey": 0
+  },
+  "durationS": 2883.9,
+  "limits": [
+    "keine CLC-Maske (landcoverAt) und kein Windflag im Batch — Felder null wie im Client ohne Quelle",
+    "keine Beobachtungsqualifikation (AF2) — im Archiv eine andere Frage; Lücken stehen als freMaxGapH im Merkmalsatz",
+    "NRT-Rand nur SNPP + NOAA-20; der Live-Client nutzt zusätzlich NOAA-21"
+  ]
+}

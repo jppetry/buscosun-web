@@ -20,7 +20,7 @@ import { FeatureRail, type RailFeature } from '../nav/featureRail';
 import FireMap, { type FireBasemap } from './FireMap';
 import {
   FIRE_DECK_GROUPS, FIRE_LAYER_ORDER, FIRE_MVP_LAYERS, FIRE_PRESETS,
-  FIRE_WEATHER_MAP_LAYERS, FIRE_FOOTPRINT_LAYERS, FIRE_SPREAD_LAYERS,
+  FIRE_WEATHER_MAP_LAYERS, FIRE_FOOTPRINT_LAYERS, FIRE_SPREAD_LAYERS, FIRE_ANOMALY_LAYERS,
   activeFirePresetId, fireSource, type FireLayerId,
 } from './fireModel';
 import {
@@ -58,6 +58,7 @@ import {
   type FireRecord, type RecordFilter,
 } from './footprint/fireRegistry';
 import { FireFootprintPanel, type EffisScope } from './FireFootprintPanel';
+import { applyFireView, fireViewFromState, type FireRouteView } from './fireRouteView';
 import { loadPlaces, nearestPlace, type PlaceIndex } from './footprint/places';
 import { featuresOf } from './activity/features';
 import { areaEstEnabled, estimateArea, loadAreaModel } from './activity/estimate';
@@ -69,6 +70,14 @@ import { sampleWindAt } from '../wind/windPointSample';
 import { fetchEmsActivations, type EmsActivation } from './sources/emsActivations';
 import { fetchWarnContextsFor, type AtWarnContext } from './sources/geosphereWarnContext';
 import { loadClcMask, landcoverAt, toAssessmentLandcover, type ClcMask } from './clcMask';
+// TA3/TA4: statische Standortliste persistenter Wärmequellen + Reiter „Thermalanomalien".
+import { loadThermalSites, siteAt, thermalSitesEnabled, type ThermalSitesIndex } from './anomaly/thermalSites';
+import { FireAnomalyPanel } from './FireAnomalyPanel';
+import { FireHistoryPanel } from './FireHistoryPanel';
+import { historyEnabled, loadHistoryIndex, historyToGeoJSON, type HistoryLoad } from './history/historyLoad';
+import type { HistoryIndexEntry, HistoryWindowKind } from './history/historyArtifacts';
+import { anomaliesToGeoJSON } from './anomaly/anomalyLayer';
+import { hiddenSiteCount } from './footprint/fireRegistry';
 import { fetchIconD2Relhum, type IconD2Relhum } from '../sources/iconD2Relhum';
 // WF4: der stündliche ISI aus ICON-D2 (WF2-Producer) — Fläche des Forecast-Layers.
 import {
@@ -112,6 +121,9 @@ import './fireDeck.css';
 
 /** Mobil: die vier Bereiche der Bottom-Bar (Vorlage B4–B6). */
 type MobileTab = 'map' | 'layers' | 'fires' | 'time';
+/** BH3: stabile leere Referenzen für die Karte im Historie-Modus (setData vergleicht Referenzen, V-220). */
+const EMPTY_ZONES: FireZone[] = [];
+const EMPTY_CLUSTER_LIST: FireCluster[] = [];
 
 /** Ladezustand je Layer — „Fehler" schaltet den Layer AB und verlinkt die
  *  amtliche Quelle, statt eine leere Fläche zu zeigen (Gate-Punkt WB-T2-6). */
@@ -143,15 +155,11 @@ type PointCurve =
 /**
  * Welche Ausbau-Layer sind tatsächlich gebaut?
  *
- * `fireDrought` und `fireVegetation` fehlen bewusst: Der EDO-Dienst sendet
- * `access-control-allow-origin` **doppelt**, was ungültiges CORS ist — MapLibre
- * scheitert daran mit `AJAXError: Failed to fetch (0)` und lädt null Kacheln.
- * In Node war davon nichts zu sehen, dort kam HTTP 200.
- *
- * Sie bleiben in der Liste **sichtbar und deaktiviert**, statt zu verschwinden:
- * Der Steckbrief nennt den Grund, und damit sieht man, dass es die Größe gibt
- * und woran es hängt (`audit/waldbrand-ausbau.md` §1). Sie wegzulassen wäre
- * bequemer und würde eine Lücke in eine Nicht-Existenz verwandeln.
+ * Die zwei EDO-Layer (`fireDrought`, `fireVegetation`) standen hier als
+ * „sichtbar und deaktiviert" (ungültiges EDO-CORS, `audit/waldbrand-ausbau.md`
+ * §1) und sind am 2026-08-22 auf Jans Auftrag zurückgezogen — seitdem ist die
+ * Ausbaustufe 2 vollständig gebaut und diese Menge deckungsgleich mit
+ * `FIRE_EXTENDED_LAYERS`.
  */
 const BUILT_EXTENDED = new Set<FireLayerId>(['fireFuel', 'fireBurnt', 'fireContext']);
 
@@ -159,15 +167,27 @@ const BUILT_EXTENDED = new Set<FireLayerId>(['fireFuel', 'fireBurnt', 'fireConte
  *  immer, Ausbaustufe 2 nur, wo die Quelle wirklich erreichbar ist. */
 const isBuilt = (id: FireLayerId) =>
   FIRE_MVP_LAYERS.includes(id) || FIRE_WEATHER_MAP_LAYERS.includes(id) || FIRE_FOOTPRINT_LAYERS.includes(id)
-  || FIRE_SPREAD_LAYERS.includes(id) || BUILT_EXTENDED.has(id);
+  || FIRE_SPREAD_LAYERS.includes(id) || FIRE_ANOMALY_LAYERS.includes(id) || BUILT_EXTENDED.has(id);
 
-interface Props { onBack: () => void; onOpenFeature?: (id: RailFeature) => void }
+interface Props {
+  onBack: () => void;
+  onOpenFeature?: (id: RailFeature) => void;
+  // --- Router (RT1), additiv: Sub-Route `/waldbrand/<view>` als Preset; der
+  // vollständige Zustand bleibt im Fragment `#wb=` (Codec unangetastet). ---
+  initialView?: FireRouteView | null;
+  /** Sub-Route von außen (nur Zurück/Vorwärts). */
+  routeView?: FireRouteView | null;
+  /** Zustand ⇒ passender Pfad (erster Lauf = replace, danach push). */
+  onViewChange?: (view: FireRouteView, initial: boolean) => void;
+}
 
-export default function FirePage({ onBack, onOpenFeature }: Props) {
+export default function FirePage({ onBack, onOpenFeature, initialView, routeView, onViewChange }: Props) {
   const initial = typeof window !== 'undefined' ? decodeFireState(window.location.hash) : null;
+  // RT1: das Preset der Sub-Route greift NUR ohne Hash — der Hash ist der ganze Zustand und gewinnt.
+  const routePreset = !initial && initialView ? applyFireView(initialView, new Set<FireLayerId>(['fireDanger', 'fireHotspots'])) : null;
 
   const [active, setActive] = useState<Set<FireLayerId>>(
-    () => new Set(initial?.layers.length ? initial.layers : ['fireDanger', 'fireHotspots']),
+    () => new Set(initial?.layers.length ? initial.layers : routePreset ? routePreset.layers : ['fireDanger', 'fireHotspots']),
   );
   const [time, setTime] = useState<FireTimeState>(() => {
     const base = defaultFireTimeState();
@@ -230,13 +250,51 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
   const [selectedCluster, setSelectedCluster] = useState<string | null>(null);
   const [focusNonce, setFocusNonce] = useState(0);
   /** BC1: welche Seite das Readout zeigt — „Layer" ist der Bestand. */
-  const [readoutTab, setReadoutTab] = useState<'layers' | 'fires'>(
+  const [readoutTab, setReadoutTab] = useState<'layers' | 'fires' | 'anomalies'>(
     // BP5: `fp=1` aus einem alten Permalink hiess „Liste zeigen" — die Liste ist
     // jetzt der Reiter „Braende". Die Bedeutung bleibt, nur ihr Ort hat sich geaendert.
-    initial?.footprintPanel ? 'fires' : 'layers',
+    // TA4: `ta=1` öffnet den dritten Reiter „Thermalanomalien"; er gewinnt gegen `fp`.
+    initial?.anomalyPanel ? 'anomalies' : initial?.footprintPanel ? 'fires' : routePreset ? routePreset.readoutTab : 'layers',
   );
-  /** Mobil: der Bereich der Bottom-Bar — Karte · Layer · Brände · Zeit. */
-  const [mobileTab, setMobileTab] = useState<MobileTab>(initial?.footprintPanel ? 'fires' : 'map');
+  /** Mobil: der Bereich der Bottom-Bar — Karte · Layer · Brände · Zeit. Die Thermalanomalien sind dort ein Segment in „Brände". */
+  const [mobileTab, setMobileTab] = useState<MobileTab>(initial?.footprintPanel || initial?.anomalyPanel || routePreset?.readoutTab === 'fires' ? 'fires' : 'map');
+  /** TA4: markierter Standort (auch ohne Eintrag im Fenster) — die Karte hebt ihn hervor. */
+  const [selectedSite, setSelectedSite] = useState<string | null>(null);
+  /**
+   * BH3 — Historie-Fenster (Monat/Saison) statt des Live-Fensters. `null` = Live (24 h / 7 d,
+   * unverändert). Im Historie-Modus bekommt die Karte KEINE Live-Daten (Hotspots, Raster, Hüllen,
+   * Flächen, Pfeile — alles leer), sondern die Ereignispunkte der statischen Datei; die
+   * Standort-Rauten bleiben, sie sind zeitlos. Kill-Switch `?bh=0` ⇒ die Fenster gibt es nicht.
+   */
+  const [history, setHistory] = useState<HistoryWindowKind | null>(() => (historyEnabled() && initial?.historyWindow) || null);
+  const [historyLoad, setHistoryLoad] = useState<HistoryLoad>({ kind: 'idle' });
+  const [selectedHistory, setSelectedHistory] = useState<string | null>(null);
+  useEffect(() => {
+    if (!history) { setHistoryLoad({ kind: 'idle' }); setSelectedHistory(null); return; }
+    let alive = true;
+    setHistoryLoad({ kind: 'loading' });
+    void loadHistoryIndex(history).then((res) => { if (alive) setHistoryLoad(res); });
+    return () => { alive = false; };
+  }, [history]);
+  const historyFc = useMemo(
+    () => (history && historyLoad.kind === 'ok' ? historyToGeoJSON(historyLoad.entries) : null),
+    [history, historyLoad],
+  );
+  const historyEntriesById = useMemo(
+    () => (historyLoad.kind === 'ok' ? new Map(historyLoad.entries.map((e) => [e.id, e])) : null),
+    [historyLoad],
+  );
+  const selectHistory = useCallback((id: string) => {
+    const e = historyEntriesById?.get(id);
+    if (!e) return;
+    setSelectedHistory(id);
+    setSelectedFootprint(null); setSelectedSite(null);
+    // Ein Punkt hat keine Fläche — ein kleiner Kasten um ihn, damit der Zoom nicht ins Leere fährt.
+    const d = 0.08;
+    setFocusBbox([e.lon - d, e.lat - d, e.lon + d, e.lat + d]);
+    setFocusNonce((n) => n + 1);
+    setReadoutTab('fires'); setMobileTab('fires');
+  }, [historyEntriesById]);
   // --- BP2: das Brandflächen-Panel (Registry) ------------------------------
   /** Panel links offen? (Permalink-Feld `fp`; unabhängig vom Layer-Schalter.) */
   const [fpSort, setFpSort] = useState<PanelSort>('area');
@@ -270,6 +328,8 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
   const [atContexts, setAtContexts] = useState<ReadonlyMap<string, AtWarnContext>>(new Map());
   /** A4: statische CORINE-Maske (25 KB PNG, einmal lazy im Leerlauf) — Plausibilität, nie Ausschluss. */
   const [clcMask, setClcMask] = useState<ClcMask | null>(null);
+  /** TA3: die Standortliste persistenter Wärmequellen (≈ 40 KB gzip, einmal lazy im Leerlauf). */
+  const [thermalSites, setThermalSites] = useState<ThermalSitesIndex | null>(null);
   const [load, setLoad] = useState<Partial<Record<FireLayerId, LoadState>>>({});
   const setLayerLoad = useCallback((id: FireLayerId, s: LoadState) => {
     setLoad((prev) => ({ ...prev, [id]: s }));
@@ -504,6 +564,12 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
         const idle = (cb: () => void) => (typeof requestIdleCallback === 'function' ? requestIdleCallback(cb) : setTimeout(cb, 300));
         idle(() => { void loadClcMask().then((m) => { if (m && !ac.signal.aborted) setClcMask(m); }); });
       }
+      // TA3: die Standortliste persistenter Wärmequellen — ebenso statisch, ebenso im
+      // Leerlauf; ohne sie (Fehler, `?ta=0`) bleibt `anomaly` überall null.
+      if (!thermalSites) {
+        const idle = (cb: () => void) => (typeof requestIdleCallback === 'function' ? requestIdleCallback(cb) : setTimeout(cb, 350));
+        idle(() => { void loadThermalSites().then((s) => { if (s && !ac.signal.aborted) setThermalSites(s); }); });
+      }
       // BC1: die drei Landesumrisse für die Spalte „Land" der Cluster-Liste.
       // Ebenfalls im Leerlauf, und die Karte hat sie für ihre DACH-Maske
       // ohnehin schon geholt — der Cache in `countryMask.ts` teilt den Abruf.
@@ -640,13 +706,13 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
    * und am Warm-Cron, eine fest eingetragene Zahl wäre irgendwann eine Behauptung.
    */
   useEffect(() => {
-    // SF1: der Ausbreitungslayer rechnet auf DEMSELBEN Windgitter. Kein zweiter
-    // Loader, keine zweite Quelle — dieselben Bytes, derselbe Browser-Cache
-    // (Regel WW1: importieren statt kopieren). Dass der Layer damit ~26
-    // GRIB-Dateien auslöst, auch wenn der Windlayer aus ist, steht im Ladehinweis.
-    if (!active.has('fireWind') && !active.has('fireSpread')) return;
+    // SF1: der Ausbreitungslayer rechnet auf dem ICON-D2-Windgitter der
+    // Wetterkarte. Kein zweiter Loader, keine zweite Quelle — dieselben Bytes,
+    // derselbe Browser-Cache (Regel WW1: importieren statt kopieren). Der
+    // Partikel-Layer `fireWind` ist seit 2026-08-22 zurückgezogen; die Daten
+    // laufen für die Ausbreitung und das Windflag (AF2) weiter.
+    if (!active.has('fireSpread')) return;
     const ac = new AbortController();
-    if (active.has('fireWind')) setLayerLoad('fireWind', { kind: 'loading' });
     void fetchIconD2Wind(ac.signal, (partial) => {
       // Das Partial teilt sich das wachsende `frames`-Array mit dem Endergebnis
       // (s. fetchIconD2Wind) — eine neue Objekthülle je Fortschritt sorgt dafür,
@@ -656,19 +722,13 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
       .then((w) => {
         if (ac.signal.aborted) return;
         setWind(w);
-        setLayerLoad('fireWind', {
-          kind: 'ok',
-          ref: { atMs: w.runAt.getTime(), kind: 'run' },
-          note: `${w.frames.length} Stundenschritte · gezeigt wird der aktuelle`,
-        });
       })
-      .catch((e) => {
+      .catch(() => {
         if (ac.signal.aborted) return;
         setWind(null);
-        setLayerLoad('fireWind', { kind: 'error', message: (e as Error).message });
       });
     return () => ac.abort();
-  }, [active, setLayerLoad]);
+  }, [active]);
 
   /**
    * WT1 — Bodentrockenheit (ICON-D2 `smi`). Lazy wie alle Layer hier, und
@@ -882,22 +942,6 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
     };
   }, [relhum, frameTargetMs]);
 
-  /**
-   * WF3 (§15.5) — der Wind folgt der Stundenachse: Zielzeit „jetzt + h" statt
-   * `Date.now()`. Die Achse ist 6 h lang, weil das Windgitter +12 h ab Lauf reicht
-   * und der Lauf bis ~5,5 h alt ist — reicht der geladene Lauf doch einmal kürzer
-   * (alter Warm-Stand, Ladephase), klemmt der Loader auf den letzten Frame und
-   * `windClamped` sagt es in der Zeile. Erst nach Ladeende bewertet: während die
-   * fernen Schritte noch nachkommen, wäre die Zeile ein Flackern.
-   */
-  const windTargetMs = hourly ? frameTargetMs : null;
-  const windHorizonH = useMemo(() => {
-    if (!wind?.frames.length) return null;
-    const lastMs = wind.runAt.getTime() + Math.max(...wind.frames.map((f) => f.stepHours)) * 3_600_000;
-    return Math.floor((lastMs - Date.now()) / 3_600_000);
-  }, [wind]);
-  const windClamped = hourly && time.hour > 0 && load.fireWind?.kind === 'ok'
-    && windHorizonH != null && windHorizonH < time.hour;
 
   /**
    * E2 — kartierte Brandflächen in zwei Zeitkörben. Jeder eingeblendete Korb
@@ -1068,6 +1112,8 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
       clusters: clusterList, zones: fireZones, reconciled: registryReconciled, polys: registryPolys,
       effisWindow: win, emsActs, nowMs: now,
       landcoverAt: clcMask ? (lat, lon) => toAssessmentLandcover(landcoverAt(clcMask, lat, lon)) : undefined,
+      // TA3: Standort-Einordnung — nur mit geladener Liste (Kill-Switch `?ta=0`).
+      siteAt: thermalSites ? (lat, lon) => siteAt(thermalSites, lat, lon) : undefined,
       placeAt: places ? (lat, lon) => {
         const h = nearestPlace(places, lat, lon);
         return h ? { name: h.name, district: h.district, distanceKm: h.distanceKm } : null;
@@ -1088,8 +1134,15 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
     const carried = carryIds(built, prevRecordsRef.current);
     prevRecordsRef.current = carried;
     return carried;
-  }, [clusterList, fireZones, registryReconciled, registryPolys, emsActs, fpEffisScope, burntSeason, clcMask, places, observationIndex, wind, areaModel]);
+  }, [clusterList, fireZones, registryReconciled, registryPolys, emsActs, fpEffisScope, burntSeason, clcMask, thermalSites, places, observationIndex, wind, areaModel]);
   const recordsById = useMemo(() => new Map(records.map((r) => [r.id, r])), [records]);
+  /** TA4: Einträge des Fensters auf einem bekannten Standort — Zähler des Reiters. */
+  const liveSiteCount = useMemo(() => records.filter((r) => r.anomaly).length, [records]);
+  /** TA5: die Rauten — nur gebaut, wenn der Layer an ist (sonst `null`, die Quelle bleibt leer). */
+  const anomalyFc = useMemo(
+    () => (active.has('fireAnomalies') ? anomaliesToGeoJSON(thermalSites, records) : null),
+    [active, thermalSites, records],
+  );
 
   /**
    * SF1 — der Ausbreitungslauf: je aktivem Brand ein Vektor je Stunde.
@@ -1225,13 +1278,33 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
   /** Auswahl von der KARTE: markieren, Liste zeigen — Karte bewegt sich nicht. */
   const selectFootprintFromMap = useCallback((id: string | null) => {
     setSelectedFootprint(id);
-    if (!id) return;
-    setSelectedCluster(recordsById.get(id)?.sources.cluster?.id ?? null);
+    if (!id) { setSelectedSite(null); return; }
+    const rec = recordsById.get(id);
+    setSelectedCluster(rec?.sources.cluster?.id ?? null);
+    // TA4: ein Eintrag, der zum Anlagenmuster passt, steht im Reiter „Thermalanomalien" —
+    // der Klick führt dorthin; Abweichungen bleiben Brände.
+    if (rec?.anomaly?.kind === 'site') { setSelectedSite(rec.anomaly.siteId); setReadoutTab('anomalies'); return; }
+    setSelectedSite(null);
     setReadoutTab('fires');
     const rank = panelRecords.findIndex((r) => r.id === id);
     if (rank >= 0) setShownFootprints((n) => Math.max(n, Math.ceil((rank + 1) / CLUSTER_PAGE) * CLUSTER_PAGE));
   }, [panelRecords, recordsById]);
-  const clearFootprint = useCallback(() => { setSelectedFootprint(null); setFocusBbox(null); }, []);
+  const clearFootprint = useCallback(() => { setSelectedFootprint(null); setSelectedSite(null); setFocusBbox(null); }, []);
+  /** TA5: Klick auf eine Standort-Raute — Reiter öffnen, Karte bleibt stehen. */
+  const selectSiteFromMap = useCallback((siteId: string, recordId: string | null) => {
+    setSelectedSite(siteId);
+    if (recordId) { selectFootprintFromMap(recordId); setReadoutTab('anomalies'); return; }
+    setSelectedFootprint(null); setSelectedCluster(null);
+    setReadoutTab('anomalies');
+  }, [selectFootprintFromMap]);
+  /** TA4: Auswahl aus der Standortliste — mit Eintrag im Fenster wie ein Brand, sonst nur der Standort. */
+  const focusSite = useCallback((siteId: string, recordId: string | null) => {
+    setSelectedSite(siteId);
+    if (recordId) { focusFootprint(recordId); return; }
+    setSelectedFootprint(null); setSelectedCluster(null);
+    const s = thermalSites?.sites.find((x) => x.id === siteId);
+    if (s) { setFocusBbox(s.bbox); setFocusNonce((n) => n + 1); }
+  }, [focusFootprint, thermalSites]);
 
 
   // Breakpoint 767 px — die Projekt-Konvention, kein Ad-hoc-Wert (CLAUDE.md).
@@ -1242,7 +1315,8 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
   // folgenlos: Desktop der Reiter „Brände", mobil der gleichnamige Bereich.
   useEffect(() => {
     if (!selectedFootprint) return;
-    setReadoutTab('fires');
+    // TA4: Einträge mit Anlagenmuster gehören zum Reiter „Thermalanomalien".
+    setReadoutTab(recordsRef.current.find((r) => r.id === selectedFootprint)?.anomaly?.kind === 'site' ? 'anomalies' : 'fires');
     if (isMobile) setMobileTab('fires');
   }, [selectedFootprint, isMobile]);
 
@@ -1344,11 +1418,33 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
     const hash = encodeFireState({
       location: null, layers: activeList, day: time.day, windowH: time.windowH,
       dangerView, burntBuckets: [...burntBuckets], soilMode, burntDay, footprintPanel: readoutTab === 'fires',
+      anomalyPanel: readoutTab === 'anomalies',
       // WF3: `h` nur auf der Stundenachse — Links der Tagesachse bleiben byte-gleich.
       hour: hourly ? time.hour : null,
+      // BH3: nur im Historie-Modus.
+      historyWindow: history,
     });
     if (window.location.hash !== hash) window.history.replaceState(null, '', hash);
-  }, [activeList, time.day, time.windowH, dangerView, burntBuckets, soilMode, burntDay, readoutTab, hourly, time.hour]);
+  }, [activeList, time.day, time.windowH, dangerView, burntBuckets, soilMode, burntDay, readoutTab, hourly, time.hour, history]);
+
+  // Router (RT1): Zustand ⇒ Sub-Route (läuft NACH dem Hash-Schreiber, damit der
+  // Wrapper den frischen Hash mitnimmt). Erster Lauf = replace (URL nachziehen).
+  const viewReportedRef = useRef(false);
+  const onViewChangeRef = useRef(onViewChange);
+  onViewChangeRef.current = onViewChange;
+  useEffect(() => {
+    onViewChangeRef.current?.(fireViewFromState(active, readoutTab), !viewReportedRef.current);
+    viewReportedRef.current = true;
+  }, [active, readoutTab]);
+  // Zurück/Vorwärts: Preset der Sub-Route aus der URL übernehmen.
+  useEffect(() => {
+    if (!routeView) return;
+    const r = applyFireView(routeView, active);
+    setActive(new Set(r.layers));
+    setReadoutTab(r.readoutTab);
+    if (r.readoutTab === 'fires') setMobileTab('fires');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeView]);
 
   const toggle = useCallback((id: FireLayerId) => {
     setActive((prev) => {
@@ -1549,12 +1645,6 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
             Tageswert · gilt für {dayLabel(dayForLayers, nowMs)} — keine Stundenauflösung
           </p>
         )}
-        {/* WF3 §15.5: der geladene Windlauf reicht nicht bis zur Zielzeit — gesagt, nicht geklemmt. */}
-        {on && id === 'fireWind' && windClamped && (
-          <p className="br-layer-lag">
-            Modellfeld reicht bis +{Math.max(0, windHorizonH ?? 0)} h — zeigt den letzten verfügbaren Schritt
-          </p>
-        )}
         {on && st?.kind === 'ok' && st.note && <p className="br-layer-note">{st.note}</p>}
         {/* E1/E2: die Bestätigung durch die EFFIS-Kartierung — nur, wenn es sie gibt. */}
         {on && id === 'fireHotspots' && st?.kind === 'ok' && mappedCount > 0 && (
@@ -1617,7 +1707,7 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
 
   /** Welcher Layer die Quellen-Pille trägt: der Index zuerst, sonst die oberste Fläche. */
   const primary: FireLayerId | null = active.has('fireDanger') ? 'fireDanger'
-    : (['fireSpread', 'fireWeather', 'fireSoilDryness', 'fireWind', 'fireFootprints', 'fireHotspots', 'fireBurnt', 'fireFuel', 'fireContext'] as FireLayerId[])
+    : (['fireSpread', 'fireWeather', 'fireSoilDryness', 'fireFootprints', 'fireHotspots', 'fireBurnt', 'fireFuel', 'fireContext'] as FireLayerId[])
       .find((l) => active.has(l)) ?? null;
   const pillTitle = primary === 'fireDanger'
     ? (isTablet && !isMobile ? `${DANGER_VIEW_CODE[dangerView]} · GWIS ~8 km` : DANGER_VIEWS[dangerView].title)
@@ -1826,16 +1916,28 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
   );
 
   // Rückblick-Fenster (24 h / 7 d) der Detektionen — im Zeit-Deck (Vorlage).
+  // BH3: dazu die Historie-Fenster Monat | Saison (statische Artefakte) — nur mit Kill-Switch an.
   const windowSeg = windows.length > 0 ? (
-    <div className="br-seg is-red br-td-window" role="group" aria-label="Rückblick-Fenster">
+    <div className={`br-seg is-red br-td-window${history ? ' is-history' : ''}`} role="group" aria-label="Rückblick-Fenster">
       {windows.map((h) => (
         <button
           key={h} type="button"
-          className={time.windowH === h ? 'is-active' : ''}
-          aria-pressed={time.windowH === h}
-          onClick={() => setTime((t) => ({ ...t, windowH: h }))}
+          className={!history && time.windowH === h ? 'is-active' : ''}
+          aria-pressed={!history && time.windowH === h}
+          onClick={() => { setHistory(null); setTime((t) => ({ ...t, windowH: h })); }}
         >
           {windowLabel(h).replace('Stunden', 'h').replace('Tage', 'd')}
+        </button>
+      ))}
+      {historyEnabled() && ([['month', 'Monat'], ['season', 'Saison']] as const).map(([k, l]) => (
+        <button
+          key={k} type="button"
+          className={`is-history${history === k ? ' is-active' : ''}`}
+          aria-pressed={history === k}
+          title={k === 'month' ? 'Laufender Kalendermonat aus dem Archiv (Stand in der Liste)' : 'Laufende Saison 1.3.–31.10. aus dem Archiv (Stand in der Liste)'}
+          onClick={() => { setHistory(k); setReadoutTab('fires'); }}
+        >
+          {l}
         </button>
       ))}
     </div>
@@ -1937,7 +2039,7 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
   );
 
   /** Zeit-Deck der Karte (Desktop/Tablet). Im Brände-Modus (B2) die kompakte Zeile. */
-  const firesMode = !isMobile && readoutTab === 'fires';
+  const firesMode = !isMobile && (readoutTab === 'fires' || readoutTab === 'anomalies');
   const timeDeck = (
     <div className={`br-timedeck${firesMode ? ' is-compact' : ''}${hourly ? ' is-hourly' : ''}`}>
       <div className="br-td-row">
@@ -2098,6 +2200,49 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
     return best?.ctx ?? null;
   }, [atContexts, fireEvents]);
 
+  /** TA4: der Reiter „Thermalanomalien" — dieselbe Registry, verbunden über `anomaly.siteId`. */
+  const anomalyPanel = (inSheet: boolean) => (
+    <FireAnomalyPanel
+      inSheet={inSheet}
+      compact={isTablet}
+      sites={thermalSites}
+      records={records}
+      nowMs={nowMs}
+      windowH={time.windowH}
+      selectedSiteId={selectedSite}
+      onSelectSite={focusSite}
+      onClearSelect={clearFootprint}
+      onHover={setHoverFootprint}
+      hiddenFromFires={hiddenSiteCount(records, { ...fpFilter, sites: 'hide' })}
+      sitesShownInFires={fpFilter.sites === 'show'}
+      onToggleSitesInFires={() => setFpFilter((f) => ({ ...f, sites: f.sites === 'hide' ? 'show' : 'hide' }))}
+      onClose={() => setReadoutTab('layers')}
+      disabled={!thermalSitesEnabled()}
+    />
+  );
+  /** BH3: der Brände-Reiter im Historie-Modus — Liste aus der statischen Datei, mit Stand. */
+  const historyPanel = (inSheet: boolean) => (
+    <FireHistoryPanel
+      inSheet={inSheet}
+      compact={isTablet}
+      kind={history ?? 'month'}
+      load={historyLoad}
+      selectedId={selectedHistory}
+      onSelect={(e: HistoryIndexEntry) => selectHistory(e.id)}
+      onClearSelect={() => { setSelectedHistory(null); setFocusBbox(null); }}
+      onClose={() => setReadoutTab('layers')}
+      onLeave={() => setHistory(null)}
+    />
+  );
+  /** TA4 (mobil): Segment Brände | Thermalanomalien in der Seite „Brände". */
+  const firesSeg = (
+    <div className="br-seg is-ink br-fires-seg" role="group" aria-label="Brände oder Thermalanomalien">
+      {([['fires', history ? (historyLoad.kind === 'ok' ? `Brände · ${historyLoad.file.counts.total.toLocaleString('de-DE')}` : 'Brände') : panelRecords.length > 0 ? `Brände · ${panelRecords.length}` : 'Brände'], ['anomalies', liveSiteCount > 0 ? `Thermalanomalien · ${liveSiteCount}` : 'Thermalanomalien']] as const).map(([id, label]) => (
+        <button key={id} type="button" className={readoutTab === id ? 'is-active' : ''} aria-pressed={readoutTab === id} onClick={() => setReadoutTab(id)}>{label}</button>
+      ))}
+    </div>
+  );
+
   const footprintPanel = (inSheet: boolean) => (
     <FireFootprintPanel
       inSheet={inSheet}
@@ -2136,7 +2281,13 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
 
   const readoutTabs = (
     <div className="br-tabs" role="group" aria-label="Inhalt des Readouts">
-      {([['layers', 'Layer'], ['fires', records.length > 0 ? `Brände · ${records.length}` : 'Brände']] as const).map(([id, label]) => (
+      {([
+        ['layers', 'Layer'],
+        // BH3: im Historie-Modus zählt der Reiter die Ereignisse der Datei, nicht die Live-Registry.
+        ['fires', history ? (historyLoad.kind === 'ok' ? `Brände · ${historyLoad.file.counts.total.toLocaleString('de-DE')}` : 'Brände') : panelRecords.length > 0 ? `Brände · ${panelRecords.length}` : 'Brände'],
+        // TA4: Zähler = Einträge des Fensters auf bekannten Standorten (nicht die 200+ Standorte der Liste).
+        ['anomalies', liveSiteCount > 0 ? `Thermalanomalien · ${liveSiteCount}` : 'Thermalanomalien'],
+      ] as const).map(([id, label]) => (
         <button
           key={id} type="button"
           className={readoutTab === id ? 'is-active' : ''}
@@ -2166,7 +2317,8 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
   // --- Mobil: Bottom-Bar + Seiten --------------------------------------------------
   const openTab = (t: MobileTab) => {
     setMobileTab(t);
-    if (t === 'fires') setReadoutTab('fires');
+    // TA4: mobil ist „Thermalanomalien" ein Segment der Seite „Brände" — ein offenes Segment bleibt.
+    if (t === 'fires' && readoutTab !== 'anomalies') setReadoutTab('fires');
     if (t === 'layers' || t === 'map') setReadoutTab('layers');
     if (t === 'time' || t === 'map') setSheetSnap('half');
   };
@@ -2240,7 +2392,7 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
             {firesMode ? (
               <>
                 <button type="button" className="br-link br-topback" onClick={() => setReadoutTab('layers')}>← Layer-Steckbriefe</button>
-                <span className="br-topbar-sub">· Brandradar · Brände</span>
+                <span className="br-topbar-sub">· Brandradar · {readoutTab === 'anomalies' ? 'Thermalanomalien' : 'Brände'}</span>
               </>
             ) : (
               <>
@@ -2274,20 +2426,21 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
           <main className="fire-center">
             <FireMap
               active={active} basemap={basemap} day={committedDay} isoDate={committedIso}
-              windTargetMs={windTargetMs}
-              hotspots={hotspots}
-              hotspotFootprints={hotspotFootprints} hotspotProvider={hotspotProvider}
-              fireZones={mapZones} zoneEstimates={zoneEstimates}
-              clusters={clusterList} selectedClusterId={selectedCluster}
+              hotspots={history ? null : hotspots}
+              hotspotFootprints={history ? null : hotspotFootprints} hotspotProvider={hotspotProvider}
+              fireZones={history ? EMPTY_ZONES : mapZones} zoneEstimates={zoneEstimates}
+              clusters={history ? EMPTY_CLUSTER_LIST : clusterList} selectedClusterId={selectedCluster}
               focusNonce={focusNonce} onSelectCluster={selectFromMap}
-              footprintFc={footprintFc} hoverFootprintId={hoverFootprint} selectedFootprintId={selectedFootprint}
+              footprintFc={history ? null : footprintFc} hoverFootprintId={hoverFootprint} selectedFootprintId={selectedFootprint}
+              anomalyFc={anomalyFc} selectedSiteId={selectedSite} onSelectSite={selectSiteFromMap}
+              historyFc={historyFc} selectedHistoryId={selectedHistory} onSelectHistory={selectHistory}
               focusBbox={focusBbox} onSelectFootprint={selectFootprintFromMap}
               dangerView={dangerView}
               burntSeason={burntSplit.seasonFc} burntArchive={burntArchive?.features ?? null}
               burntWeekFc={burntSplit.weekFc}
               burntBuckets={burntBuckets} burntLookup={burntLookup} burntWeek={burntWeek}
               fireEvents={fireEvents} emsActs={emsActs} atContexts={atContexts} clcMask={clcMask}
-              weather={weather} wind={wind} soil={soil} spreadFc={spreadFc}
+              weather={weather} soil={soil} spreadFc={history ? null : spreadFc}
               onPointForecast={requestPointCurve}
               prefetchIsoDate={prefetchIso} onTier={setTier}
             />
@@ -2325,7 +2478,7 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
           {!isMobile && (
             <aside className="br-readout" aria-label="Steckbriefe und Brände">
               {readoutTabs}
-              {readoutTab === 'fires' ? footprintPanel(false) : readoutLayersContent(isTablet)}
+              {readoutTab === 'fires' ? (history ? historyPanel(false) : footprintPanel(false)) : readoutTab === 'anomalies' ? anomalyPanel(false) : readoutLayersContent(isTablet)}
             </aside>
           )}
 
@@ -2355,12 +2508,15 @@ export default function FirePage({ onBack, onOpenFeature }: Props) {
                 <section className="br-m-page" aria-label="Brände">
                   <header className="br-m-head">
                     <div>
-                      <div className="br-eyebrow">Registry · {time.windowH >= 168 ? '7-Tage' : '24-h'}-Fenster</div>
-                      <h1 className="br-m-title">Brände{records.length > 0 ? ` · ${records.length}` : ''}</h1>
+                      <div className="br-eyebrow">{readoutTab === 'anomalies' ? 'Archiv 2020–2026 · ' : history ? 'Historie · ' : 'Registry · '}{history ? (history === 'month' ? 'Monat' : 'Saison') : `${time.windowH >= 168 ? '7-Tage' : '24-h'}-Fenster`}</div>
+                      <h1 className="br-m-title">{readoutTab === 'anomalies' ? `Thermalanomalien${liveSiteCount > 0 ? ` · ${liveSiteCount}` : ''}` : history ? `Brände${historyLoad.kind === 'ok' ? ` · ${historyLoad.file.counts.total.toLocaleString('de-DE')}` : ''}` : `Brände${panelRecords.length > 0 ? ` · ${panelRecords.length}` : ''}`}</h1>
                     </div>
-                    <span className="br-muted">{Math.min(shownFootprints, panelRecords.length)} gezeigt</span>
+                    {readoutTab !== 'anomalies' && !history && <span className="br-muted">{Math.min(shownFootprints, panelRecords.length)} gezeigt</span>}
                   </header>
-                  <div className="br-m-scroll">{footprintPanel(true)}</div>
+                  <div className="br-m-scroll">
+                    {firesSeg}
+                    {readoutTab === 'anomalies' ? anomalyPanel(true) : history ? historyPanel(true) : footprintPanel(true)}
+                  </div>
                 </section>
               )}
               {(mobileTab === 'map' || mobileTab === 'time') && (

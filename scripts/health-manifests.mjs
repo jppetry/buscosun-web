@@ -23,8 +23,9 @@
  *   H1  erreichbar und valides JSON
  *   H2  runAt-Alter < MAX_RUN_AGE_H (Default 9 h — ICON-D2 läuft alle 3 h)
  *   H3  updatedAt-Alter < MAX_UPDATE_AGE_H (Default 6 h) — der Advance selbst
- *   H4  warmedThroughProxy zeigt auf die geprüfte Origin (nicht auf localhost
- *       oder eine Alt-Domain — sonst wärmt der Cron einen fremden Edge-Cache)
+ *   H4  Herkunft: `publishedFor` (bzw. das Alt-Feld `warmedThroughProxy`) zeigt
+ *       auf die geprüfte Origin — nicht auf localhost oder eine Alt-Domain,
+ *       sonst stammt das ausgelieferte Manifest aus einem fremden Lauf
  *   H5  Step-Vollständigkeit: je Param lückenlos ab 0 bis zum jeweiligen Maximum
  *
  * Exit 0 = alles grün · 1 = mindestens eine Prüfung rot (GitHub schickt dann
@@ -73,9 +74,18 @@ export function checkManifest(name, m, { origin, nowMs, maxRunAgeH, maxUpdateAge
     Number.isFinite(upAgeH) ? `zuletzt umgelegt vor ${upAgeH.toFixed(1)} h (Grenze ${maxUpdateAgeH} h)` : 'updatedAt fehlt/ungültig');
 
   if (origin) {
+    // Zwei Schreibweisen, gleicher Zweck: das Manifest muss FÜR die geprüfte
+    // Domain publiziert sein. Ein mit SITE_URL=localhost geschriebenes Manifest
+    // darf nie in Prod landen (V-02/V-100).
+    //   • `publishedFor` (ab 2026-08-23): nur die Origin.
+    //   • `warmedThroughProxy`: Alt-Feld aus der Warm-Cron-Zeit (Origin + Proxy-
+    //     Pfad). Wird nicht mehr geschrieben; die Toleranz hält den Wächter grün,
+    //     solange in Prod noch ein Manifest von vor dem Rückzug liegt, und kann
+    //     entfallen, sobald ein neues Manifest deployt ist.
     const want = `${origin}${proxyPath}`;
-    ok('H4 Warm-Proxy', m.warmedThroughProxy === want,
-      `${m.warmedThroughProxy ?? '(fehlt)'} — erwartet ${want}`);
+    const seen = m.publishedFor ?? m.warmedThroughProxy;
+    ok('H4 Warm-Proxy', m.publishedFor === origin || m.warmedThroughProxy === want,
+      `${seen ?? '(fehlt)'} — erwartet ${origin} (publishedFor) bzw. ${want} (warmedThroughProxy)`);
   }
 
   // H5: Step-Vollständigkeit. Der Client übernimmt die Liste als autoritativ,

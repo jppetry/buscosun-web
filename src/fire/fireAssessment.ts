@@ -54,6 +54,11 @@ export interface AssessmentInput {
   atContext: AtWarnContext | null;
   /** Reserviert für die statische Landbedeckungsmaske (A4, noch nicht gebaut). */
   landcover: 'natural' | 'artificial' | null;
+  /**
+   * TA3: bekannter Standort einer Dauerquelle (`anomaly/classify.ts`). `deviating` = das
+   * Signal weicht vom Anlagenmuster ab ⇒ bleibt Brand, nicht grau. Fehlt ⇒ keine Aussage.
+   */
+  site?: { label: string; deviating: boolean } | null;
 }
 
 export interface Assessment {
@@ -84,6 +89,7 @@ export function assess(i: AssessmentInput): Assessment {
   if (reasons.length) {
     // Bestätigung schlägt die Statik-Graustufe — nie umgekehrt.
     if (i.suspectedStatic) reasons.push('Die Ortsfest-Vermutung ist damit aufgehoben.');
+    if (i.site) reasons.push(`Standort einer Dauerquelle (${i.site.label}) — die Standort-Einordnung ist damit aufgehoben.`);
     return { level: 'bestaetigt', label: LEVEL_LABEL.bestaetigt, reasons, greyed: false };
   }
 
@@ -98,9 +104,16 @@ export function assess(i: AssessmentInput): Assessment {
     reasons.push('Landbedeckung CORINE 2018: Industrie-/Abbau-/Deponiefläche — spricht für eine Dauerquelle (Plausibilität, kein Ausschluss)');
   }
 
-  const greyed = i.suspectedStatic;
-  if (greyed) {
+  // TA3: ein bekannter Standort macht grau — außer das Signal weicht vom Anlagenmuster ab.
+  const siteGrey = !!i.site && !i.site.deviating;
+  const greyed = i.suspectedStatic || siteGrey;
+  if (i.suspectedStatic) {
     reasons.push('wahrscheinlich statisch: seit ≥ 5 Tagen ortsfest ohne Ausdehnung — eigene Einordnung, kein Datenfeld');
+  }
+  if (i.site) {
+    reasons.push(siteGrey
+      ? `Standort einer bekannten Dauerquelle: ${i.site.label} — eigene Ableitung aus dem FIRMS-Archiv, kein Nachweis`
+      : `Bekannter Standort einer Dauerquelle in der Nähe (${i.site.label}), aber das Signal weicht vom Anlagenmuster ab — als Brand behandelt`);
   }
   const plausible = !greyed && reasons.some((r) => !/Dauerquelle/.test(r));
   return {
@@ -165,6 +178,11 @@ export function verifyFireAssessment(): { checks: AssessCheck[]; passed: number;
   add('Beschriftungen sind genau die drei Wörter', Object.values(LEVEL_LABEL).join('|') === 'bestätigt|plausibel|unbestätigt');
   add('Hinweis nennt die AT-Lücke und den Normalfall', /Österreich/.test(ASSESSMENT_NOTE) && /Normalfall/.test(ASSESSMENT_NOTE));
   add('kein „zwei Quellen"/„verifiziert"-Vokabular', ![ASSESSMENT_NOTE, ...Object.values(LEVEL_LABEL)].some((s) => /verifiziert|zwei Quellen/i.test(s)));
+  // TA3: Standort-Einordnung — grau, überstimmbar, und Abweichung bleibt Brand.
+  const site = { label: 'Fixture-Stahlwerk (Eisen/Stahl, E-PRTR, 300 m)', deviating: false };
+  add('bekannter Standort ⇒ grau und unbestätigt, mit Quelle im Satz', (() => { const a = assess({ ...base, overpasses: 3, site }); return a.greyed && a.level === 'unbestaetigt' && a.reasons.some((r) => /E-PRTR/.test(r) && /kein Nachweis/.test(r)); })());
+  add('Standort + Abweichung ⇒ NICHT grau, „als Brand behandelt"', (() => { const a = assess({ ...base, overpasses: 3, site: { ...site, deviating: true } }); return !a.greyed && a.level === 'plausibel' && a.reasons.some((r) => /als Brand behandelt/.test(r)); })());
+  add('Standort + Kartierung ⇒ bestätigt, Einordnung aufgehoben', (() => { const a = assess({ ...base, mapped: poly, site }); return a.level === 'bestaetigt' && !a.greyed && a.reasons.some((r) => /Standort-Einordnung ist damit aufgehoben/.test(r)); })());
 
   const passed = checks.filter((c) => c.ok).length;
   return { checks, passed, total: checks.length };

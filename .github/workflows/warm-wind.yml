@@ -8,9 +8,8 @@
 # Prod-URL setzen (öffentlich, KEIN Secret) — Repo → Settings → Secrets and
 # variables → Actions → Variables → New variable: SITE_URL = https://<site>.
 #
-# Ablauf: DWD pollen → neuesten vollständigen Lauf → Wind-URLs durch
-# SITE_URL/_dwd_wind curlen (füllt den Durable-Edge-Cache) → erst DANN
-# public/latest-wind.json atomar schreiben und zurück-committen. Der Commit
+# Ablauf: DWD pollen → neuesten vollständigen Lauf → public/latest-wind.json
+# atomar schreiben und zurück-committen. Der Commit
 # löst einen Netlify-Rebuild aus, der das neue Manifest statisch ausliefert
 # (deshalb KEIN [skip ci]). Early-Exit bei unverändertem Lauf → nur bei einem
 # neuen DWD-Lauf (~alle 3 h) wird committet/deployt; die 15-min-Ticks dazwischen
@@ -49,7 +48,7 @@ jobs:
 
       - name: Warm edge cache + update manifest
         env:
-          SITE_URL: ${{ vars.SITE_URL }}            # öffentliche Prod-URL (Edge-Cache-Fill)
+          SITE_URL: ${{ vars.SITE_URL }}            # Site, FÜR die publiziert wird (Feld publishedFor)
           MANIFEST_PATH: public/latest-wind.json
           WARM_MAX_STEP: '12'
           NEAR_REQUIRED: '4'

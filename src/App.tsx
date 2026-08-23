@@ -1,44 +1,25 @@
-import { lazy, Suspense, useState } from 'react';
-import SearchPage from './SearchPage';
+import { Suspense, useEffect } from 'react';
+import { Outlet, ScrollRestoration, useLocation, useNavigate } from 'react-router';
 import type { Location } from './types';
-import type { LayerKey, MapDeckFeature } from './MapView';
-import { decodeMapState } from './mapState';
-import { hasEventHash } from './event/eventState';
-// Kein Import aus `src/fire/` an dieser Stelle: `App.tsx` ist eager, und ein
-// Wert-Import zöge `fireState` samt `fireModel` in den Startseiten-Chunk
-// (gemessen: +1,3 KB eagerJs). Der Hash-Test steht deshalb inline wie bei
-// `#3d=`, `#h=`, `#g=` — `hasFireHash()` bleibt für die Feature-Seite da.
+import AppLoader from './router/AppLoader';
+import RouteMeta from './router/RouteMeta';
+import RouteAnnouncer from './router/RouteAnnouncer';
+import { normalizePath } from './router/routes';
 import './fonts.css';
 import './designTokens.css';
 
-// Code-Splitting: nur die Startseite (Default-Landing) wird eager geladen. Alle
-// Feature-Seiten — inkl. der schweren MapView (zieht maplibre-gl) und des
-// WebGL-Globus — laden lazy als eigener Chunk, erst wenn der Nutzer sie öffnet.
-// Das hält den Initial-Bundle der Startseite klein (vorher: ein 2,3-MB-Monolith
-// für ALLE Routen). Suspense-Fallback überbrückt den Chunk-Download.
-const MapView = lazy(() => import('./MapView'));
-const FeaturePage = lazy(() => import('./feature/FeaturePage'));
-const RoutePage = lazy(() => import('./route/RoutePage'));
-const EventPage = lazy(() => import('./event/EventPage'));
-const NowcastPage = lazy(() => import('./nowcast/NowcastPage'));
-const ForecastPage = lazy(() => import('./confidence/ForecastPage'));
-const HistoryPage = lazy(() => import('./history/HistoryPage'));
-const GlobePage = lazy(() => import('./globe/GlobePage'));
-const AtmospherePage = lazy(() => import('./atmosphere/AtmospherePage'));
-const FeedbackPage = lazy(() => import('./feedback/FeedbackPage'));
-// Waldbrand DACH (Phase WB1): eigene Kartenansicht mit eigener MapLibre-Instanz,
-// lazy wie alle Feature-Seiten — zieht maplibre-gl NICHT in den Startseiten-Chunk.
-const FirePage = lazy(() => import('./fire/FirePage'));
-const ValidationPage = lazy(() => import('./validation/ValidationPage'));
-// Phase-0-Scaffold (Mobile-Optimierung): nur über #mobiletest erreichbar, keine UI-Verlinkung,
-// kein Einfluss auf Produktions-Layout. Wird entfernt, sobald Phase 1 die Primitives direkt nutzt.
-const MobilePrimitivesTestPage = lazy(() => import('./mobile/MobilePrimitivesTestPage'));
+// Seit Phase RT1 (2026-08-22) ist App das ROOT-LAYOUT des Routers: die Seiten
+// sind Routen (`src/router/router.tsx`, je Seite ein Lazy-Chunk — auch die
+// Startseite), der Zustand lebt in Pfad + Query (`src/router/urlState.ts`) bzw.
+// weiterhin im Fragment der Feature-Codecs. Die frühere View-Maschine
+// (`useState<View>`, Hash-Lesen beim Mount) ist ersetzt; Alt-Links migriert
+// `src/router/legacyHash.ts` in `main.tsx`, bevor der Router die URL liest.
 
 export type FeatureId = 'route' | 'event' | 'dayflow' | 'forecast' | 'nowcast' | 'atmosphere' | 'history' | 'globe' | 'map2d' | 'fire' | 'feedback' | 'validation' | 'mobiletest';
 
 /** Standort-Default für die 2D-Karten-Kachel (ohne Ortssuche): DACH-Überblick,
  *  zentriert auf Mitteleuropa. Marker/Punktpanel sind im overview-Modus aus. */
-const DACH_OVERVIEW_LOCATION: Location = { name: 'Deutschland · Österreich · Schweiz', lat: 50.2, lon: 10.5, country: 'DE' };
+export const DACH_OVERVIEW_LOCATION: Location = { name: 'Deutschland · Österreich · Schweiz', lat: 50.2, lon: 10.5, country: 'DE' };
 
 export interface FeatureInfo {
   id: FeatureId;
@@ -46,126 +27,27 @@ export interface FeatureInfo {
   title: string;
 }
 
-type View =
-  | { kind: 'search' }
-  | { kind: 'map'; location: Location; mapInit?: { layers: LayerKey[]; hour: number } }
-  | { kind: 'feature'; feature: FeatureInfo };
-
-/** Leichter, marken-getönter Fallback während ein Lazy-Seiten-Chunk lädt.
- *  Selbsttragend gestylt (designTokens.css ist eager geladen), damit kein
- *  seiten-spezifisches CSS nötig ist, das ja erst mit dem Chunk käme. */
-function AppLoader() {
-  return (
-    <div
-      style={{
-        minHeight: '100vh', display: 'grid', placeItems: 'center',
-        background: 'var(--cream-50, #FAF6EA)', color: 'var(--stone-600, #5C5447)',
-        fontFamily: 'var(--font-base, ui-sans-serif, system-ui, -apple-system, sans-serif)',
-      }}
-    >
-      <style>{'@keyframes app-spin{to{transform:rotate(360deg)}}'}</style>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.85rem' }}>
-        <div
-          style={{
-            width: 34, height: 34, borderRadius: '50%',
-            border: '3px solid var(--sand-200, #E0D6BE)',
-            borderTopColor: 'var(--terracotta-500, #C97B47)',
-            animation: 'app-spin 0.8s linear infinite',
-          }}
-          aria-hidden="true"
-        />
-        <span style={{ fontSize: '0.9rem' }}>lädt …</span>
-      </div>
-    </div>
-  );
-}
-
 export default function App() {
-  // Permalink: mit dem passenden Hash direkt in die jeweilige Ansicht starten —
-  // #3d= 3D-Wetter · #h= Historie · #ev= Event-Planung · #m= 2D-Karte.
-  const [view, setView] = useState<View>(() => {
-    if (typeof window === 'undefined') return { kind: 'search' };
-    const h = window.location.hash;
-    // #3d= = alter threed-Permalink → in die Atmosphäre (Schnitt-Linse) migriert.
-    if (h.startsWith('#3d=') || h.startsWith('#atm=')) return { kind: 'feature', feature: { id: 'atmosphere', eyebrow: 'Atmosphäre', title: 'Die Atmosphäre über dir' } };
-    if (h.startsWith('#h=')) return { kind: 'feature', feature: { id: 'history', eyebrow: 'Historie', title: 'Wie hat sich das Wetter bei dir verändert?' } };
-    if (h.startsWith('#val')) return { kind: 'feature', feature: { id: 'validation', eyebrow: 'Validierung', title: 'Wie gut ist der KI-Nowcast wirklich?' } };
-    if (h.startsWith('#g=')) return { kind: 'feature', feature: { id: 'globe', eyebrow: 'Globale Wetter-Visualisierung', title: 'Das Wetter der ganzen Erde' } };
-    if (h.startsWith('#mobiletest')) return { kind: 'feature', feature: { id: 'mobiletest', eyebrow: 'Mobile-Primitives', title: 'Testroute' } };
-    if (h.startsWith('#wb=')) return { kind: 'feature', feature: { id: 'fire', eyebrow: 'Waldbrand', title: 'Wie trocken ist der Wald?' } };
-    if (hasEventHash(h)) return { kind: 'feature', feature: { id: 'event', eyebrow: 'Event-Planung', title: 'Welcher Tag passt am besten?' } };
-    const m = decodeMapState(h);
-    if (m) return { kind: 'map', location: m.location, mapInit: { layers: m.layers, hour: m.hour } };
-    return { kind: 'search' };
-  });
+  const { pathname, search, hash } = useLocation();
+  const navigate = useNavigate();
 
-  // Zurück zur Startseite — räumt einen evtl. gesetzten Permalink-Hash auf.
-  const goSearch = () => {
-    if (typeof window !== 'undefined' && window.location.hash) {
-      window.history.replaceState(null, '', window.location.pathname);
-    }
-    setView({ kind: 'search' });
-  };
+  // Kanonischer Pfad: End-Slash, Großschreibung und Aliase werden per `replace`
+  // bereinigt. Netlify kann den Slash-Fall nicht (Regel `/x/ → /x` ist dort eine
+  // Endlosschleife), darum hier — der Canonical-Link zeigt ohnehin auf den Pfad ohne Slash.
+  useEffect(() => {
+    const n = normalizePath(pathname);
+    if (n) void navigate(n + search + hash, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
 
-  // Deck-Rail/Bottom-Bar der Kartenseite: Navigation zu anderen Werkzeugen
-  // (gleiche FeatureInfo-Texte wie die Startseiten-Kacheln).
-  // Die Kartenseite nutzt jetzt dieselbe vollständige Werkzeug-Rail wie die
-  // übrigen Decks — also auch dieselbe Zieltabelle (RAIL_FEATURES, s. u.).
-  const openDeckFeature = (id: MapDeckFeature) => openRailFeature(id);
-
-  // Werkzeug-Rail des Routenplaners: gleiche Ziele/Texte wie die Kacheln der
-  // Startseite, damit man von dort direkt in jedes Werkzeug springt.
-  const RAIL_FEATURES: Record<string, FeatureInfo> = {
-    map2d: { id: 'map2d', eyebrow: 'Wetterkarte', title: 'Die ganze DACH-Wetterkarte' },
-    nowcast: { id: 'nowcast', eyebrow: 'Regenradar', title: 'Regnet es in 40 Minuten?' },
-    route: { id: 'route', eyebrow: 'Tourenplanung', title: 'Wetter entlang deiner Route' },
-    event: { id: 'event', eyebrow: 'Event-Planung', title: 'Welcher Tag passt am besten?' },
-    forecast: { id: 'forecast', eyebrow: 'Vorhersage', title: 'Konfidenz & Modelle' },
-    history: { id: 'history', eyebrow: 'Historie', title: 'Klima seit 1940' },
-    atmosphere: { id: 'atmosphere', eyebrow: 'Atmosphäre', title: 'Die Atmosphäre über dir' },
-    globe: { id: 'globe', eyebrow: 'Globale Wetter-Visualisierung', title: 'Das Wetter der ganzen Erde' },
-    // Ohne diesen Eintrag wäre der Rail-Knopf sichtbar und täte nichts:
-    // openRailFeature() schlägt hier nach und schweigt bei einem Fehltreffer
-    // (audit/waldbrand-geruest.md §1, achte Verdrahtungsstelle).
-    fire: { id: 'fire', eyebrow: 'Waldbrand', title: 'Wie trocken ist der Wald?' },
-    feedback: { id: 'feedback', eyebrow: 'Feedback', title: 'Ideen & Vorschläge' },
-  };
-  const openRailFeature = (id: string) => {
-    const f = RAIL_FEATURES[id];
-    if (f) setView({ kind: 'feature', feature: f });
-  };
-  const selectMapLocation = (location: Location) => setView({ kind: 'map', location });
-
-  // Aktuelle Ansicht als Element bestimmen; Lazy-Komponenten werden vom
-  // umschließenden <Suspense> abgefedert.
-  let content: React.ReactNode;
-  if (view.kind === 'map') {
-    content = <MapView location={view.location} initialActive={view.mapInit?.layers} initialHour={view.mapInit?.hour} onBack={goSearch} onOpenFeature={openDeckFeature} onSelectLocation={selectMapLocation} />;
-  } else if (view.kind === 'feature') {
-    const back = goSearch;
-    const f = view.feature;
-    content =
-      f.id === 'map2d' ? <MapView location={DACH_OVERVIEW_LOCATION} overview onBack={back} onOpenFeature={openDeckFeature} onSelectLocation={selectMapLocation} /> :
-      f.id === 'route' ? <RoutePage onBack={back} onOpenFeature={openRailFeature} /> :
-      f.id === 'event' ? <EventPage onBack={back} onOpenFeature={openRailFeature} /> :
-      f.id === 'nowcast' ? <NowcastPage onBack={back} onOpenFeature={openRailFeature} /> :
-      f.id === 'atmosphere' ? <AtmospherePage onBack={back} onOpenFeature={openRailFeature} /> :
-      f.id === 'forecast' ? <ForecastPage onBack={back} onOpenFeature={openRailFeature} /> :
-      f.id === 'history' ? <HistoryPage onBack={back} onOpenFeature={openRailFeature} /> :
-      f.id === 'globe' ? <GlobePage onBack={back} /> :
-      f.id === 'fire' ? <FirePage onBack={back} onOpenFeature={openRailFeature} /> :
-      f.id === 'feedback' ? <FeedbackPage onBack={back} /> :
-      f.id === 'validation' ? <ValidationPage onBack={back} /> :
-      f.id === 'mobiletest' ? <MobilePrimitivesTestPage onBack={back} /> :
-      <FeaturePage eyebrow={f.eyebrow} title={f.title} onBack={back} />;
-  } else {
-    content = (
-      <SearchPage
-        onSelect={(location) => setView({ kind: 'map', location })}
-        onOpenFeature={(feature) => setView({ kind: 'feature', feature })}
-      />
-    );
-  }
-
-  return <Suspense fallback={<AppLoader />}>{content}</Suspense>;
+  return (
+    <>
+      <RouteMeta />
+      <RouteAnnouncer />
+      <ScrollRestoration />
+      <Suspense fallback={<AppLoader />}>
+        <Outlet />
+      </Suspense>
+    </>
+  );
 }

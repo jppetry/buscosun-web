@@ -67,6 +67,9 @@ interface Props {
   onPick: (lat: number, lon: number) => void;
   onHover: (mmH: number | null, lat: number, lon: number) => void;
   onMapRef?: (map: maplibregl.Map | null) => void;
+  /** Router (RT1): Startkamera (statt Ort + Zoom 8) und Kamera-Meldung nach `moveend`. Additiv. */
+  initialView?: { lat: number; lon: number; zoom: number } | null;
+  onViewChange?: (v: { lat: number; lon: number; zoom: number }) => void;
 }
 
 /** Lineare Interpolation zweier u8-Werte-Grids (Frame-Morphing). */
@@ -106,13 +109,18 @@ export default function RadarMap(props: Props) {
     const map = new maplibregl.Map({
       container: containerRef.current,
       style: basemapStyle(latest.current.basemap),
-      center: [point.lon, point.lat],
-      zoom: 8,
+      center: latest.current.initialView ? [latest.current.initialView.lon, latest.current.initialView.lat] : [point.lon, point.lat],
+      zoom: latest.current.initialView ? latest.current.initialView.zoom : 8,
       attributionControl: { compact: true },
       canvasContextAttributes: { preserveDrawingBuffer: true }, // PNG-Export des Frames (§6)
     });
     mapRef.current = map;
     onMapRef?.(map);
+    // Router (RT1): Kamera melden (Wrapper schreibt sie debounced in die Query).
+    map.on('moveend', () => {
+      const c = map.getCenter();
+      latest.current.onViewChange?.({ lat: c.lat, lon: c.lng, zoom: map.getZoom() });
+    });
     if (import.meta.env.DEV) (window as unknown as { __radarMap: maplibregl.Map }).__radarMap = map;
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
     map.addControl(new maplibregl.GeolocateControl({ positionOptions: { enableHighAccuracy: true }, trackUserLocation: false }), 'bottom-right');

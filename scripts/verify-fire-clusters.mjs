@@ -183,7 +183,8 @@ add('der Layer-Steckbrief (FireLayerCard) wurde für diese Phase nicht angefasst
   !/[Cc]luster/.test(code['FireLayerCard.tsx'] ?? ''));
 add('das Readout startet auf „Layer" — der Bestand ist der Startzustand',
   // BP5: der Startwert ist „layers", sofern kein Permalink (`fp=1`) die Liste verlangt.
-  /useState<'layers' \| 'fires'>\([\s\S]{0,400}?initial\?\.footprintPanel \? 'fires' : 'layers',/.test(pageSrc));
+  // TA4: dritter Reiter „Thermalanomalien" (`ta=1`) — die Union wuchs, der Startwert blieb.
+  /useState<'layers' \| 'fires' \| 'anomalies'>\([\s\S]{0,500}?initial\?\.footprintPanel \? 'fires' : 'layers',/.test(pageSrc));
 add('die Liste sitzt im Readout und nicht in der Karte',
   /readoutTab === 'fires' \? footprintPanel\(inSheet\)/.test(pageSrc)
   && !/fire-fplist|fire-fprow/.test(mapSrc));
@@ -264,8 +265,10 @@ add('ein ortsfester Eintrag wird markiert, nicht entfernt',
     /setSelectedCluster\(r\?\.sources\.cluster\?\.id \?\? null\)/.test(pageSrc));
   add('[BP5] ein Klick auf eine Hülle markiert den Brand, der sie enthält',
     /r\.sources\.cluster\?\.id === id/.test(pageSrc));
-  add('[BP5] es gibt nur noch ZWEI Reiter, und der zweite heißt „Brände"',
-    /\[\['layers', 'Layer'\], \['fires', 'Brände'\]\] as const/.test(pageSrc));
+  // TA4 (2026-08-22): DREI Reiter — Layer, Brände, Thermalanomalien; der zweite heißt weiter „Brände".
+  add('[BP5/TA4] drei Reiter: Layer, Brände, Thermalanomalien — der zweite heißt „Brände"',
+    /\['layers', 'Layer'\],[\s\S]{0,120}\['fires', panelRecords\.length > 0 \? `Brände · /.test(pageSrc)
+    && /\['anomalies', liveSiteCount > 0 \? `Thermalanomalien · /.test(pageSrc));
   add('[BP5] das Overlay am linken Kartenrand ist entfallen',
     !/className="fire-fpanel"/.test(pageSrc) && !/fire-fpanel-tab/.test(pageSrc));
   add('[BP5] der alte Permalink `fp=1` zeigt weiterhin die Liste',

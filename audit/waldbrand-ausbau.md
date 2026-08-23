@@ -117,3 +117,17 @@ Caching. `docs/API.md` §7 spräche ohnehin gegen einen Durable-Cache auf Gefahr
 | A2 | Natura 2000 endet an der CH-Grenze und liest sich als „keine Schutzgebiete" | Hinweis im Steckbrief **und** im Readout, analog zur AT-Lücke |
 | A3 | Fünf zusätzliche Raster über der EU-Fläche ⇒ Kachelflut | Ausbau-Layer bleiben **default-off**, keiner ist in einem Preset |
 | A4 | `totalJs` reißt erneut die Grenze | Die neuen Layer sind Quellen-Konfiguration, kein neuer Rechenpfad — Zuwachs klein halten, Budget messen |
+
+## Rückzug 2026-08-22 — `fireDrought` und `fireVegetation` entfernt
+
+Die zwei seit WB4 **EDO-blockierten** Layer „Bodenfeuchte-Anomalie" (`fireDrought`,
+Bit 5) und „Vegetationszustand" (`fireVegetation`, Bit 6) standen bis heute als
+„sichtbar und deaktiviert" im Dock. Jan hat sie am 2026-08-22 **vollständig
+zurückgezogen**. Entfernt: `FireLayerId`, Dock-Zeilen, Steckbriefe, Schloss-Icon,
+Meta, Zeitmodelle, Platzhalter-IDs in `FireMap.tsx`. **Bit 5 und 6 bleiben als
+`null` reserviert**. `FIRE_EXTENDED_LAYERS` ist damit deckungsgleich mit
+`BUILT_EXTENDED` (`fireFuel`, `fireBurnt`, `fireContext`).
+
+Die Sprachregel „DC ≠ Bodenfeuchte" in `dangerViews.ts` bleibt; die Grenze nennt die
+EDO-Größe weiter als „nicht abrufbar", nur nicht mehr als Layer. EDO-Endpunkte stehen
+weiterhin nirgends in den Quellen (`euContext.ts`-Selbstcheck).

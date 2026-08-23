@@ -13,7 +13,10 @@
  * Es wird gecacht, was beim ersten Online-Besuch tatsächlich geladen wurde.
  */
 
-const VERSION = 'v1';
+// v2 (2026-08-22, Phase RT1): Pfad-Routing — die Navigations-Antwort wird nur
+// noch dann als Offline-Shell gespeichert, wenn sie die App-Shell IST (enthält
+// `id="root"`); vorher überschrieb jede statische SEO-Seite (/wetter/…) die Shell.
+const VERSION = 'v2';
 const SHELL = `bsc-shell-${VERSION}`;
 const ASSETS = `bsc-assets-${VERSION}`;
 const DATA = `bsc-data-${VERSION}`;
@@ -57,8 +60,16 @@ self.addEventListener('fetch', (event) => {
     event.respondWith((async () => {
       try {
         const net = await fetch(req);
-        const cache = await caches.open(SHELL);
-        cache.put('/index.html', net.clone()).catch(() => {});
+        // Nur die App-Shell (index.html bzw. die Route-Shells /<route>.html, alle
+        // mit `id="root"`) als Offline-Fallback merken — nicht die statischen
+        // SEO-Seiten, die sonst jede App-Route offline ersetzen würden.
+        if (net && net.ok) {
+          net.clone().text().then(async (html) => {
+            if (!html.includes('id="root"')) return;
+            const cache = await caches.open(SHELL);
+            await cache.put('/index.html', new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8' } }));
+          }).catch(() => {});
+        }
         return net;
       } catch {
         const cache = await caches.open(SHELL);

@@ -20,7 +20,7 @@
  * — und der Sichtbarkeits-Effekt wird nach dem Stil-Load erneut angewandt.
  */
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { loadDachMask } from '../countryMask';
@@ -29,10 +29,7 @@ import {
 } from './fireModel';
 import { ScalarLayer } from '../scalar/ScalarLayer';
 import { readDeviceCaps, initialTier, type PerfTier } from '../wind/perfGovernor';
-import { WindLayer } from '../wind/WindLayer';
-import { GLOBE_PARTICLE_RAMP } from '../wind/particlePreset';
 import {
-  windFrameAtValidTimeAsync, ICON_D2_WIND_ATTRIBUTION, type IconD2Wind,
 } from '../wind/iconD2WindSource';
 import { soilDrynessRamp, ICON_D2_SMI_ATTRIBUTION } from '../sources/iconD2Smi';
 import { drynessRamp, RELHUM_DRY_FROM, RELHUM_MAX } from '../sources/iconD2Relhum';
@@ -41,6 +38,12 @@ import {
   SPREAD_ARROW_LAYER_ID, SPREAD_ARROW_UNSURE_SUFFIX, SPREAD_FAN_LAYER_ID,
   SPREAD_FAN_LINE_LAYER_ID, SPREAD_SOURCE_ID, makeSpreadArrowImage,
 } from './spread/spreadLayer';
+// TA5: Standort-Rauten (Symbol-Layer mit gezeichneten Sprites, Muster Ausbreitungspfeil).
+import {
+  ANOMALY_SOURCE_ID, ANOMALY_LAYER_ID, ANOMALY_SEL_LAYER_ID, ANOMALY_IMAGE_ID, ANOMALY_IMAGE_IDS, ANOMALY_VARIANTS,
+  ANOMALY_ATTRIBUTION, makeSiteDiamondImage,
+} from './anomaly/anomalyLayer';
+import { HISTORY_SOURCE_ID, HISTORY_LAYER_ID, HISTORY_SEL_LAYER_ID } from './history/historyLoad';
 import { gwisRasterSource, gwisPrefetchUrls, GWIS_FWI_ATTRIBUTION } from './sources/gwisFwi';
 import { GWIS_HOTSPOT_ATTRIBUTION } from './sources/gwisHotspots';
 import {
@@ -122,10 +125,6 @@ const GL_LAYERS: Record<FireLayerId, string[]> = {
   // Custom-Layer (ScalarLayer), kein GeoJSON-Layer — deshalb kein Platzhalter
   // in installLayers; er wird in applyState eingehängt, sobald Daten da sind.
   fireWeather: ['fire-weather-scalar'],
-  // WB4: blockiert (EDO sendet ungueltiges CORS) — Platzhalter bleiben, damit
-  // die Z-Ordnung steht, falls Jan den Rewrite freigibt.
-  fireDrought: ['fire-drought-fill'],
-  fireVegetation: ['fire-vegetation-fill'],
   // WB4 gebaut: Raster-Layer (Brennmaterial, Schutzgebiete) und die WFS-Flaechen.
   fireFuel: ['fire-fuel-raster'],
   // E2: zwei Zeitkörbe als ZWEI Quellen mit eigener Darstellung — Saison (live)
@@ -138,10 +137,6 @@ const GL_LAYERS: Record<FireLayerId, string[]> = {
     'fire-burnt-week-fill', 'fire-burnt-week-line',
   ],
   fireContext: ['fire-context-raster', 'fire-clc-raster'],
-  // WW1: WebGL-Custom-Layer (WindLayer) wie `fireWeather` — kein Platzhalter in
-  // installLayers, Einhängen in applyState. Dazu ein zweiter, LEERER GeoJSON-
-  // Layer, der nichts zeichnet und nur die Lizenzzeile trägt: s. `fire-wind-attr`.
-  fireWind: ['fire-wind-attrib', 'fire-wind-particles'],
   // WT1: WebGL-Custom-Layer (ScalarLayer) wie `fireWeather` — kein Platzhalter,
   // plus der leere Lizenzträger (s. ATTRIB_CARRIERS).
   fireSoilDryness: ['fire-soil-attrib', 'fire-soil-scalar'],
@@ -156,6 +151,8 @@ const GL_LAYERS: Record<FireLayerId, string[]> = {
   fireSpread: [
     'fire-spread-attrib', SPREAD_FAN_LAYER_ID, SPREAD_FAN_LINE_LAYER_ID, SPREAD_ARROW_LAYER_ID,
   ],
+  // TA5: Symbol-Layer (Raute je Standort) + Auswahlring als Filter-Layer.
+  fireAnomalies: [ANOMALY_LAYER_ID, ANOMALY_SEL_LAYER_ID],
 };
 
 /**
@@ -173,7 +170,6 @@ const GL_LAYERS: Record<FireLayerId, string[]> = {
  * ist als eigener Punkt notiert, statt sie hier nebenbei mitzuändern.
  */
 const ATTRIB_CARRIERS: readonly { layerId: string; sourceId: string; attribution: string }[] = [
-  { layerId: 'fire-wind-attrib', sourceId: 'fire-wind-attr', attribution: ICON_D2_WIND_ATTRIBUTION },
   { layerId: 'fire-soil-attrib', sourceId: 'fire-soil-attr', attribution: ICON_D2_SMI_ATTRIBUTION },
   // SF1: der Symbol-Layer trägt zwar eine Source, aber sein Fächer und seine
   // Pfeile stammen aus EINER eigenen Rechnung über zwei Fremdquellen (ICON-D2
@@ -191,7 +187,7 @@ const ATTRIB_CARRIERS: readonly { layerId: string; sourceId: string; attribution
  * ersten Verdrahten des Treibers passiert: Werte korrekt geladen, nichts sichtbar.
  */
 const CUSTOM_GL_LAYERS = new Set([
-  'fire-weather-scalar', 'fire-wind-particles', 'fire-soil-scalar',
+  'fire-weather-scalar', 'fire-soil-scalar',
 ]);
 
 const BURNT_GL: Record<BurntBucket, string[]> = {
@@ -276,20 +272,6 @@ interface Props {
   weather: { image: HTMLCanvasElement; width: number; height: number;
     uvBounds: [number, number, number, number] } | null;
   /**
-   * WW1 — das native ICON-D2-Windgitter (u/v 10 m), **unverändert** so, wie es
-   * die Wetterkarte lädt. Anders als beim Treiber wird hier das GANZE Objekt
-   * hereingereicht und nicht ein fertiger Frame: die Frame-Auswahl braucht den
-   * Upsample-Faktor und das Texturformat des Layers (`windFrameAtValidTimeAsync`),
-   * und beides kennt nur die Layer-Instanz. `null` = nicht geladen/abgewählt.
-   */
-  wind: IconD2Wind | null;
-  /**
-   * WF3 — Zielzeit des Windframes in ms, oder `null` = jetzt. Auf der Stundenachse
-   * reicht `FirePage` „jetzt + h" herein (bis +6 h, `HOUR_AXIS_MAX`); auf der
-   * Tagesachse bleibt es bei `null`, weil der Wind dort `instant` ist (WW1).
-   */
-  windTargetMs?: number | null;
-  /**
    * WT1 — Bodentrockenheit: das `dryness`-Bild des passenden ICON-D2-Schritts,
    * bereits für die gewählte Tiefe. Wie beim Treiber reicht der fertige Frame —
    * die Tiefen- und Zeitwahl trifft `FirePage`, die Karte zeichnet nur.
@@ -302,6 +284,18 @@ interface Props {
    * KEIN Feature; sein Grund steht im Panel, nicht als Platzhalter auf der Karte.
    */
   spreadFc?: GeoJSON.FeatureCollection | null;
+  /** TA5: die Standorte persistenter Wärmequellen (eine Raute je Standort) + Auswahl + Klick. */
+  anomalyFc?: GeoJSON.FeatureCollection | null;
+  selectedSiteId?: string | null;
+  onSelectSite?: (siteId: string, recordId: string | null) => void;
+  /**
+   * BH3: die Ereignisse der Brand-Historie (Monat/Saison) als Punkte — `historyToGeoJSON`,
+   * memoisiert vom Aufrufer (V-220). `null` = Live-Modus, der Layer ist dann unsichtbar.
+   * Kein `FireLayerId` und kein Bit: ein Anzeigemodus des Fensters, kein Layer im Dock.
+   */
+  historyFc?: GeoJSON.FeatureCollection | null;
+  selectedHistoryId?: string | null;
+  onSelectHistory?: (id: string) => void;
   /**
    * WF4 — Klick auf die Karte bei aktivem Forecast-Layer: die Stelle, für die
    * die Punktkurve aus dem Punkt-Forecast der Fusion geholt wird. Läuft VOR der
@@ -367,8 +361,10 @@ export default function FireMap({
   hotspotProvider, dangerView, burntSeason, burntArchive, burntWeekFc = null,
   burntBuckets, burntLookup, burntWeek, zoneEstimates = EMPTY_ZONE_EST,
   fireEvents = EMPTY_EVENTS, emsActs = EMPTY_EMS, atContexts = EMPTY_CTX, clcMask = null,
-  weather, wind, soil, prefetchIsoDate, onTier, onMapRef, windTargetMs = null,
+  weather, soil, prefetchIsoDate, onTier, onMapRef,
   spreadFc = null, onPointForecast,
+  anomalyFc = null, selectedSiteId = null, onSelectSite,
+  historyFc = null, selectedHistoryId = null, onSelectHistory,
 }: Props) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -407,13 +403,15 @@ export default function FireMap({
     active, isoDate, hotspots, hotspotFootprints, fireZones, zoneFc,
     clusters, clusterFc, selectedClusterId, footprintFc, hoverFootprintId, selectedFootprintId,
     hotspotProvider, dangerView, burntSeason, burntArchive, burntWeekFc, burntBuckets, burntLookup, burntWeek, zoneEstimates, weather,
-    wind, soil, spreadFc, fireEvents, emsActs, atContexts, clcMask,
+    soil, spreadFc, fireEvents, emsActs, atContexts, clcMask,
+    anomalyFc, selectedSiteId, historyFc, selectedHistoryId,
   });
   stateRef.current = {
     active, isoDate, hotspots, hotspotFootprints, fireZones, zoneFc,
     clusters, clusterFc, selectedClusterId, footprintFc, hoverFootprintId, selectedFootprintId,
     hotspotProvider, dangerView, burntSeason, burntArchive, burntWeekFc, burntBuckets, burntLookup, burntWeek, zoneEstimates, weather,
-    wind, soil, spreadFc, fireEvents, emsActs, atContexts, clcMask,
+    soil, spreadFc, fireEvents, emsActs, atContexts, clcMask,
+    anomalyFc, selectedSiteId, historyFc, selectedHistoryId,
   };
   /** Der Auswahl-Rückruf, so wie er JETZT ist — der Klick-Handler wird einmal
    *  registriert und dürfte sonst für immer den ersten Rückruf halten. */
@@ -422,6 +420,12 @@ export default function FireMap({
   /** BP2: dasselbe für die Brandflächen — der Handler ist einmal registriert. */
   const onSelectFootprintRef = useRef(onSelectFootprint);
   onSelectFootprintRef.current = onSelectFootprint;
+  /** TA5: dasselbe für die Standort-Rauten. */
+  const onSelectSiteRef = useRef(onSelectSite);
+  onSelectSiteRef.current = onSelectSite;
+  /** BH3: dasselbe für die Historie-Punkte. */
+  const onSelectHistoryRef = useRef(onSelectHistory);
+  onSelectHistoryRef.current = onSelectHistory;
   /** Der ScalarLayer des Treibers — eine Instanz, die über Stilwechsel hinweg
    *  neu eingehängt wird. MapLibre verwirft Custom-Layer beim setStyle. */
   const weatherLayerRef = useRef<ScalarLayer | null>(null);
@@ -432,28 +436,6 @@ export default function FireMap({
   /** WF4 — der Klick-Haken für die Punktkurve (einmal registriert, s. onSelectCluster). */
   const onPointForecastRef = useRef(onPointForecast);
   onPointForecastRef.current = onPointForecast;
-  /**
-   * WW1 — die eine `WindLayer`-Instanz. Wie beim Treiber: EINE Instanz über
-   * Stilwechsel hinweg, weil MapLibre Custom-Layer beim `setStyle` verwirft.
-   * Ein Toggle erzeugt hier **keine** neue Instanz (Muster `MapView.tsx:3692`),
-   * sonst ginge bei jedem Ein-/Ausschalten der Partikelzustand verloren.
-   */
-  const windLayerRef = useRef<WindLayer | null>(null);
-  /** Generation der laufenden Frame-Anfrage — s. `windReqGenRef` in MapView:3623. */
-  const windReqGenRef = useRef(0);
-  /**
-   * Zählt, wie oft die Wind-Instanz in die Karte gehängt wurde.
-   *
-   * Gebraucht wegen des Basiskarten-Wechsels: `setStyle` verwirft alle
-   * Custom-Layer und ruft `onRemove` — dabei werden die GL-Ressourcen inklusive
-   * der Windtextur gelöscht. `applyState` hängt die Instanz zwar wieder ein und
-   * `onAdd` baut die Programme neu, aber der zuletzt gesetzte Frame ist weg;
-   * ohne erneutes Setzen bliebe die Fläche nach einem Wechsel auf „Satellit"
-   * partikellos. Der Zähler ist die Abhängigkeit, über die der Frame-Effekt
-   * genau dann noch einmal läuft — und `onAdd` hat das Texturformat da bereits
-   * frisch bestimmt.
-   */
-  const [windEpoch, setWindEpoch] = useState(0);
   /** Für welchen Tag UND welche Sub-Ansicht hängt die Raster-Quelle gerade? */
   const rasterDayRef = useRef<string | null>(null);
   /** Der offene Detektions-Steckbrief — höchstens einer gleichzeitig. */
@@ -494,6 +476,8 @@ export default function FireMap({
       ['fire-burnt-week', s.burntWeekFc],
       ['fire-footprints', s.footprintFc],
       [SPREAD_SOURCE_ID, s.spreadFc],
+      [ANOMALY_SOURCE_ID, s.anomalyFc],
+      [HISTORY_SOURCE_ID, s.historyFc],
     ];
     for (const [id, fc] of data) {
       const src = m.getSource(id) as maplibregl.GeoJSONSource | undefined;
@@ -547,6 +531,17 @@ export default function FireMap({
     }
     if (m.getLayer('fire-footprints-sel-line')) {
       m.setFilter('fire-footprints-sel-line', ['==', ['get', 'id'], s.selectedFootprintId ?? '']);
+    }
+    // TA5: Auswahlring der Standort-Raute — dieselbe Filter-Regel.
+    if (m.getLayer(ANOMALY_SEL_LAYER_ID)) {
+      m.setFilter(ANOMALY_SEL_LAYER_ID, ['==', ['get', 'id'], s.selectedSiteId ?? '']);
+    }
+    // BH3: Historie-Punkte sichtbar genau dann, wenn ein Historie-Fenster gewählt ist.
+    for (const id of [HISTORY_LAYER_ID, HISTORY_SEL_LAYER_ID]) {
+      if (m.getLayer(id)) m.setLayoutProperty(id, 'visibility', s.historyFc ? 'visible' : 'none');
+    }
+    if (m.getLayer(HISTORY_SEL_LAYER_ID)) {
+      m.setFilter(HISTORY_SEL_LAYER_ID, ['==', ['get', 'id'], s.selectedHistoryId ?? '']);
     }
 
     // Feuerwetter-Treiber als ScalarLayer (WebGL-Custom-Layer, kein GeoJSON).
@@ -624,60 +619,6 @@ export default function FireMap({
         uvBounds: s.soil.uvBounds,
       });
     }
-
-    /**
-     * WW1 — Windpartikel (`WindLayer`), wertgleich zur Wetterkarte.
-     *
-     * Dieselbe Falle wie beim Treiber: KEIN Platzhalter in `installLayers`,
-     * Einhängen erst hier — und idempotent, weil `setStyle` Custom-Layer
-     * verwirft. Der Layer wird angelegt, sobald der Nutzer ihn einschaltet
-     * (nicht erst, wenn Daten da sind): so laufen `onAdd` und die
-     * Textur-Format-Bestimmung, bevor der erste Frame ankommt — genau das
-     * braucht `windFrameAtValidTimeAsync` als Eingabe.
-     */
-    if (s.active.has('fireWind')) {
-      if (!windLayerRef.current) {
-        // Wertgleich zu MapView.tsx:1390-1425 — dieselben m/s ergeben in beiden
-        // Ansichten dieselben px/s. Abweichende Werte wären eine zweite Wahrheit
-        // über denselben GRIB-Wert (audit/wind-partikel-grib-treue.md).
-        const coarsePointer = typeof window.matchMedia === 'function'
-          && window.matchMedia('(pointer: coarse)').matches;
-        windLayerRef.current = new WindLayer({
-          id: 'fire-wind-particles',
-          windPngUrl: '', windJsonUrl: '',
-          speedPxPerMs: 6, speedRefZoom: 5.5,
-          screenTempoZoomExp: 0.35,
-          // WG-1 (2026-08-22): der Brandradar-Wind ist laut GWW1 der Windlayer
-          // der Wetterkarte 1:1 — die Globus-Optik wird deshalb mitgezogen,
-          // sonst entstuenden zwei Bilder desselben GRIB-Werts.
-          baseDensity: 18000, minParticles: 2500, maxParticles: 48000,
-          subSteps: 3,
-          particleColor: [0.86, 0.92, 1.0, 0.84], speedTint: 0.62,
-          particleColorRamp: GLOBE_PARTICLE_RAMP,
-          zoomDropBoost: 0.42,
-          reduceMotionOnMove: coarsePointer,
-          upsample: coarsePointer ? 1 : 2,
-          maxParticleFps: coarsePointer ? 30 : 0,
-        });
-      }
-      if (!m.getLayer('fire-wind-particles')) {
-        m.addLayer(
-          windLayerRef.current as unknown as maplibregl.LayerSpecification,
-          firstLayerAbove(m, 'fireWind'),
-        );
-        // Neu eingehängt ⇒ Frame neu setzen (s. `windEpoch`). Kein Kreislauf:
-        // beim nächsten Durchlauf existiert der Layer und der Zweig bleibt aus.
-        setWindEpoch((n) => n + 1);
-      }
-      if (import.meta.env.DEV) {
-        (window as unknown as { __fireWindLayer?: WindLayer }).__fireWindLayer = windLayerRef.current;
-      }
-    }
-    // Partikel-Loop hart stoppen, wenn der Layer aus ist. `visibility: none`
-    // allein genügte optisch, aber `WindLayer` stößt seinen nächsten Frame nur
-    // an, solange `showParticles` gilt (WindLayer.ts:1912) — beides zusammen
-    // ist der Beleg, dass kein Loop weiterläuft (Muster MapView.tsx:3696).
-    windLayerRef.current?.setShowParticles(s.active.has('fireWind'));
 
     // Die DACH-Maske gehört ÜBER alle Fachlayer, nicht darunter.
     // Sonst färbt der Treiber-Layer die ICON-D2-Domäne bis nach Polen und
@@ -784,6 +725,23 @@ export default function FireMap({
         const arrows = map.queryRenderedFeatures(ev.point, { layers: [SPREAD_ARROW_LAYER_ID] });
         const id = arrows.length > 0 ? String(arrows[0].properties?.id ?? '') : null;
         if (id && id !== s.selectedFootprintId) onSelectFootprintRef.current(id);
+      }
+      // BH3: ein Historie-Punkt — nur im Historie-Modus sichtbar und damit klickbar.
+      if (onSelectHistoryRef.current && s.historyFc && map.getLayer(HISTORY_LAYER_ID)) {
+        const hs = map.queryRenderedFeatures(ev.point, { layers: [HISTORY_LAYER_ID] });
+        const id = hs.length > 0 ? String(hs[0].properties?.id ?? '') : '';
+        if (id) { onSelectHistoryRef.current(id); return; }
+      }
+      // TA5: eine Standort-Raute vor den Flächen — sie ist die spezifischere Aussage. Mit
+      // Eintrag im Fenster springt die Auswahl auf ihn, sonst nur auf den Standort.
+      if (onSelectSiteRef.current && map.getLayer(ANOMALY_LAYER_ID)) {
+        const sites = map.queryRenderedFeatures(ev.point, { layers: [ANOMALY_LAYER_ID] });
+        const siteId = sites.length > 0 ? String(sites[0].properties?.id ?? '') : null;
+        if (siteId) {
+          const recordId = String(sites[0].properties?.recordId ?? '');
+          onSelectSiteRef.current(siteId, recordId || null);
+          return;
+        }
       }
       if (onSelectFootprintRef.current && map.getLayer('fire-footprints-fill')) {
         const fps = map.queryRenderedFeatures(ev.point, { layers: ['fire-footprints-fill'] });
@@ -898,7 +856,7 @@ export default function FireMap({
         .addTo(map);
     });
     map.on('mousemove', (ev) => {
-      const layers = present(['fire-hotspots-points', 'fire-hotspots-zone-fill', 'fire-clusters-fill', 'fire-footprints-fill', SPREAD_ARROW_LAYER_ID, ...BURNT_FILLS]);
+      const layers = present(['fire-hotspots-points', 'fire-hotspots-zone-fill', 'fire-clusters-fill', 'fire-footprints-fill', SPREAD_ARROW_LAYER_ID, ANOMALY_LAYER_ID, ...BURNT_FILLS]);
       if (layers.length === 0) return;
       const over = map.queryRenderedFeatures(ev.point, { layers }).length > 0;
       map.getCanvas().style.cursor = over ? 'pointer' : '';
@@ -912,14 +870,6 @@ export default function FireMap({
       onMapRef?.(null);
       popupRef.current?.remove();
       popupRef.current = null;
-      // WW1: den Partikel-Loop VOR `map.remove()` stillegen und die Instanz
-      // freigeben. `map.remove()` ruft zwar `onRemove` und gibt die GL-Ressourcen
-      // frei, aber eine behaltene Instanz gehörte danach zu einem toten Kontext —
-      // ein Remount muss eine frische bauen (die Refs überleben React-Remounts
-      // dieser Komponente nicht, die Karte selbst aber schon).
-      windLayerRef.current?.setShowParticles(false);
-      windLayerRef.current = null;
-      windReqGenRef.current++;
       map.remove();
       mapRef.current = null;
       rasterDayRef.current = null;
@@ -1023,9 +973,11 @@ export default function FireMap({
     const m = mapRef.current;
     if (m) applyState(m);
   }, [active, isoDate, hotspots, dangerView,
-    burntSeason, burntArchive, burntBuckets, weather, wind, soil, spreadFc, day,
+    burntSeason, burntArchive, burntBuckets, weather, soil, spreadFc, day,
     // BP2: neue Referenzen der Registry sofort, nicht erst beim nächsten `idle`.
-    footprintFc, selectedFootprintId]);
+    footprintFc, selectedFootprintId,
+    // TA5: Standorte und ihre Auswahl.
+    anomalyFc, selectedSiteId]);
 
   /**
    * BP2 — Hover-Kontur der Brandflächen als eigener Mini-Effekt: nur ein
@@ -1037,57 +989,6 @@ export default function FireMap({
     if (!m || !m.getStyle() || !m.getLayer('fire-footprints-hover-line')) return;
     m.setFilter('fire-footprints-hover-line', ['==', ['get', 'id'], hoverFootprintId ?? '']);
   }, [hoverFootprintId]);
-
-  /**
-   * WW1 — den Windframe setzen. NACH dem `applyState`-Effekt deklariert, damit
-   * die Layer-Instanz beim ersten Einschalten schon in der Karte hängt: erst
-   * `onAdd` bestimmt das GPU-Texturformat (`windTextureKind`), und genau das
-   * geht als Eingabe in die Frame-Aufbereitung.
-   *
-   * ── Zielzeit ist „jetzt" — oder auf der Stundenachse „jetzt + h" ───────────
-   * `windFrameAtValidTimeAsync` klemmt eine zu große Zielzeit stillschweigend auf
-   * den letzten Frame. Das ICON-D2-Gitter reicht +12 h ab Lauf, der Tagesregler
-   * zählt in Tagen — auf Tag +3 gefüttert zeigte die Karte den +12-h-Wind und
-   * behauptete, es sei Donnerstag. Deshalb hängt hier bewusst KEIN `day` in den
-   * Abhängigkeiten: auf der Tagesachse gilt der Wind für jetzt, und die Dock-Zeile
-   * sagt das ab Tag 1 über `laggingLayers` (`audit/waldbrand-wind.md` §2).
-   * WF3 (§15.5): auf der Stundenachse kommt `windTargetMs` = jetzt + h herein
-   * (höchstens +6 h — aus jedem Lauf innerhalb der +12 h); liegt die Zielzeit
-   * doch jenseits des geladenen Horizonts, klemmt der Loader wie zuvor auf den
-   * letzten Frame, und `FirePage` sagt es in der Zeile (`windClamped`).
-   */
-  useEffect(() => {
-    const layer = windLayerRef.current;
-    if (!layer || !active.has('fireWind') || !wind?.frames.length) return;
-    // Generation-Guard wie in der Wetterkarte: die Aufbereitung läuft off-main,
-    // ein späteres Ergebnis darf ein früheres nicht überholen.
-    const myGen = ++windReqGenRef.current;
-    void windFrameAtValidTimeAsync(wind, windTargetMs ?? Date.now(), layer.upsampleFactor, layer.windTextureKind)
-      .then((res) => {
-        if (windReqGenRef.current !== myGen || windLayerRef.current !== layer) return;
-        if (res.kind === 'image') {
-          layer.setWindData(res.frame.image, {
-            width: res.frame.width, height: res.frame.height,
-            uMin: res.frame.uMin, uMax: res.frame.uMax,
-            vMin: res.frame.vMin, vMax: res.frame.vMax,
-            uvBounds: wind.uvBounds,
-          });
-        } else {
-          layer.setWindDataPacked(
-            res.packed, res.width, res.height,
-            {
-              width: res.width, height: res.height,
-              uMin: res.uMin, uMax: res.uMax, vMin: res.vMin, vMax: res.vMax,
-              uvBounds: wind.uvBounds,
-            },
-            res.key,
-          );
-        }
-      })
-      .catch(() => {
-        // Worker-Fehler o. Ä. — der vorige Frame bleibt stehen, keine Meldung.
-      });
-  }, [wind, active, windEpoch, windTargetMs]);
 
   return <div className="fire-map" ref={hostRef} aria-label="Waldbrandkarte DACH" />;
 }
@@ -1362,6 +1263,14 @@ function installLayers(map: maplibregl.Map, basemap: FireBasemap = 'streets') {
     'fire-burnt-season', 'fire-burnt-archive', 'fire-burnt-week', 'fire-footprints',
     SPREAD_SOURCE_ID]) {
     if (!map.getSource(id)) map.addSource(id, { type: 'geojson', data: EMPTY_FC });
+  }
+  // TA5: die Standortquelle trägt ihre Lizenzzeilen selbst (echte Quelle, kein Lizenzträger).
+  if (!map.getSource(ANOMALY_SOURCE_ID)) {
+    map.addSource(ANOMALY_SOURCE_ID, { type: 'geojson', data: EMPTY_FC, attribution: ANOMALY_ATTRIBUTION });
+  }
+  // BH3: die Historie-Quelle — Lizenz wie die Hotspots (FIRMS), die Datei nennt sie selbst.
+  if (!map.getSource(HISTORY_SOURCE_ID)) {
+    map.addSource(HISTORY_SOURCE_ID, { type: 'geojson', data: EMPTY_FC, attribution: FIRMS_ATTRIBUTION });
   }
   // Lizenzträger der Custom-Layer (Wind, Boden) — s. ATTRIB_CARRIERS.
   for (const c of ATTRIB_CARRIERS) {
@@ -1662,6 +1571,26 @@ function installLayers(map: maplibregl.Map, basemap: FireBasemap = 'streets') {
      * Entfernung ist eine Spanne, die in den Text gehört, nicht in eine Länge.
      * Der Verifier prüft, dass hier kein `['get'` steht.
      */
+    /**
+     * TA5: eine Raute je Standort persistenter Wärmequellen. Symbol-Layer mit
+     * gezeichneten Sprites (A/B/C/dev), `icon-size` nur über den Zoom (Regel wie
+     * beim Pfeil). Der Auswahlring ist ein Filter-Layer (Muster `-sel-line`).
+     */
+    [ANOMALY_LAYER_ID]: {
+      id: ANOMALY_LAYER_ID, type: 'symbol', source: ANOMALY_SOURCE_ID,
+      layout: {
+        'icon-image': ['concat', ANOMALY_IMAGE_ID, ['coalesce', ['get', 'variant'], 'B']],
+        'icon-allow-overlap': true,
+        'icon-ignore-placement': true,
+        'icon-size': ['interpolate', ['linear'], ['zoom'], 4, 0.5, 8, 0.8, 11, 1.1],
+      },
+      paint: { 'icon-opacity': ['case', ['==', ['get', 'live'], ''], 0.78, 1] },
+    },
+    [ANOMALY_SEL_LAYER_ID]: {
+      id: ANOMALY_SEL_LAYER_ID, type: 'circle', source: ANOMALY_SOURCE_ID,
+      filter: ['==', ['get', 'id'], ''],
+      paint: { 'circle-radius': 15, 'circle-color': 'rgba(0,0,0,0)', 'circle-stroke-color': '#2C2A26', 'circle-stroke-width': 2.5, 'circle-stroke-opacity': 0.95 },
+    },
     [SPREAD_ARROW_LAYER_ID]: {
       id: SPREAD_ARROW_LAYER_ID, type: 'symbol', source: SPREAD_SOURCE_ID,
       filter: ['==', ['get', 'kind'], 'arrow'],
@@ -1720,11 +1649,23 @@ function installLayers(map: maplibregl.Map, basemap: FireBasemap = 'streets') {
   if (!spritesReady) {
     console.warn('[buscosun] Ausbreitung: Pfeil-Sprite fehlt — der Layer wird nicht angelegt.');
   }
+  // TA5: die vier Rauten-Sprites — derselbe Vertrag (fehlt eines, kein Layer, Konsole sagt es).
+  for (const variant of ANOMALY_VARIANTS) {
+    const imageId = `${ANOMALY_IMAGE_ID}${variant}`;
+    if (map.hasImage(imageId)) continue;
+    const img = makeSiteDiamondImage(variant);
+    if (img) map.addImage(imageId, img, { pixelRatio: 2 });
+  }
+  const siteSpritesReady = ANOMALY_IMAGE_IDS.every((i) => map.hasImage(i));
+  if (!siteSpritesReady) {
+    console.warn('[buscosun] Thermalanomalien: Rauten-Sprite fehlt — der Layer wird nicht angelegt.');
+  }
 
   for (const id of sortByZBand(FIRE_LAYER_ORDER)) {
     for (const gl of GL_LAYERS[id]) {
       // Ohne Sprite kein Pfeil-Layer (s. oben) — der Fächer darf bleiben.
       if (gl === SPREAD_ARROW_LAYER_ID && !spritesReady) continue;
+      if (gl === ANOMALY_LAYER_ID && !siteSpritesReady) continue;
       // Custom-Layer (Treiber, Wind) bekommen hier bewusst nichts — s. CUSTOM_GL_LAYERS.
       if (CUSTOM_GL_LAYERS.has(gl)) continue;
       if (map.getLayer(gl)) continue;
@@ -1769,6 +1710,28 @@ function installLayers(map: maplibregl.Map, basemap: FireBasemap = 'streets') {
           : { 'fill-color': '#E9A33C', 'fill-opacity': 0.45 },
       } as maplibregl.LayerSpecification);
     }
+  }
+
+  // BH3: Historie-Punkte — kein `FireLayerId`, deshalb außerhalb der Z-Band-Schleife, ganz oben
+  // (ein Anzeigemodus, in dem die Live-Layer ohnehin leer sind). Unsichtbar bis `historyFc` da ist.
+  if (!map.getLayer(HISTORY_LAYER_ID)) {
+    map.addLayer({
+      id: HISTORY_LAYER_ID, type: 'circle', source: HISTORY_SOURCE_ID,
+      layout: { visibility: 'none' },
+      paint: {
+        'circle-radius': ['interpolate', ['linear'], ['zoom'], 4, ['*', ['get', 'r'], 0.55], 8, ['get', 'r'], 11, ['*', ['get', 'r'], 1.4]],
+        'circle-color': ['get', 'color'],
+        'circle-opacity': ['case', ['==', ['get', 'site'], 1], 0.55, 0.85],
+        'circle-stroke-color': '#FAF6EA', 'circle-stroke-width': 0.8,
+      },
+    } as maplibregl.LayerSpecification);
+  }
+  if (!map.getLayer(HISTORY_SEL_LAYER_ID)) {
+    map.addLayer({
+      id: HISTORY_SEL_LAYER_ID, type: 'circle', source: HISTORY_SOURCE_ID,
+      filter: ['==', ['get', 'id'], ''], layout: { visibility: 'none' },
+      paint: { 'circle-radius': 15, 'circle-color': 'rgba(0,0,0,0)', 'circle-stroke-color': '#2C2A26', 'circle-stroke-width': 2.5, 'circle-stroke-opacity': 0.95 },
+    } as maplibregl.LayerSpecification);
   }
 
   // Attributionen aller aktiven Fremdquellen an die Karte hängen — Lizenzpflicht,

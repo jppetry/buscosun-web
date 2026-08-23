@@ -103,6 +103,10 @@ export class MeteostatSource implements HistorySource {
         return perYear.flat().sort((a, b) => a.dateISO.localeCompare(b.dateISO));
       })();
       this.dailyCache.set(st.id, p);
+      // Ein Fehlschlag (auch ein AbortError des ERSTEN Aufrufers) darf die Station nicht für die
+      // Sitzung vergiften — sonst bekommt jeder spätere Aufruf „signal is aborted" aus dem Cache
+      // (BH4-Nebenbefund im Browser; Lehre GBP1 (3): geteilter Cache ≠ Signal des ersten Aufrufers).
+      p.catch(() => { if (this.dailyCache.get(st.id) === p) this.dailyCache.delete(st.id); });
     }
     const all = await p;
     if (!all.length) throw new Error('Für diesen Ort liegen keine Stationsdaten vor.');
@@ -136,26 +140,53 @@ export class MeteostatSource implements HistorySource {
  * Einheiten: °C · % · mm · mm(Schneehöhe) · km/h · km/h(Böe) · hPa · min(Sonne).
  * Keine Windrichtung in dieser Variante → windDirDeg bleibt null.
  */
+/**
+ * Spalten **aus dem Header**, nicht aus festen Indizes: die Dateien haben je Station einen
+ * anderen Spaltensatz (Nideggen-Schmidt führt weder `wpgt` noch `tsun` — mit festem Index 17
+ * stand dort der Luftdruck 1017,5 hPa als „Wind max 1.018 km/h", BH4-Browserbefund 2026-08-23).
+ * Dazu je Wert die `*_source`-Spalte: Meteostat füllt Lücken mit Modellwerten
+ * (`metno_forecast`, `model`) — die stehen in `modelFilled`, damit eine Karte, die „gemessen"
+ * sagt, es nur für Messwerte sagt.
+ */
+const DAILY_FALLBACK_HEADER = 'year,month,day,temp,temp_source,tmin,tmin_source,tmax,tmax_source,rhum,rhum_source,prcp,prcp_source,snwd,snwd_source,wspd,wspd_source,wpgt,wpgt_source,pres,pres_source,tsun,tsun_source,cldc,cldc_source';
+
 export function parseDailyCsv(text: string): DailyRecord[] {
   const out: DailyRecord[] = [];
-  for (const line of text.split('\n')) {
+  const lines = text.split('\n');
+  const headerLine = lines.find((l) => /^year,month,day/.test(l)) ?? DAILY_FALLBACK_HEADER;
+  const col = new Map(headerLine.split(',').map((h, i) => [h.trim(), i]));
+  const idx = (name: string) => col.get(name) ?? -1;
+  const I = { temp: idx('temp'), tmin: idx('tmin'), tmax: idx('tmax'), rhum: idx('rhum'), prcp: idx('prcp'), snwd: idx('snwd'), wspd: idx('wspd'), wpgt: idx('wpgt'), tsun: idx('tsun') };
+  const isModel = (src: string | undefined) => !!src && /forecast|model|era5/i.test(src);
+  for (const line of lines) {
     if (!line) continue;
     const c = line.split(',');
     const y = Number(c[0]);
     if (!Number.isInteger(y) || y < 1700) continue; // Header/leere Zeilen
     const m = Number(c[1]), day = Number(c[2]);
     if (!m || !day) continue;
-    const snwd = num(c[13]);
-    const tsun = num(c[21]);
-    const gust = num(c[17]), wspd = num(c[15]);
+    const at = (i: number) => (i >= 0 ? num(c[i]) : null);
+    const srcAt = (i: number) => (i >= 0 ? c[i + 1] : undefined);
+    const snwd = at(I.snwd);
+    const tsun = at(I.tsun);
+    const gust = at(I.wpgt), wspd = at(I.wspd);
+    const windMaxKmh = gust ?? wspd;
+    const modelFilled: NonNullable<DailyRecord['modelFilled']> = [];
+    if (at(I.tmax) != null && isModel(srcAt(I.tmax))) modelFilled.push('tMaxC');
+    if (at(I.temp) != null && isModel(srcAt(I.temp))) modelFilled.push('tMeanC');
+    if (at(I.tmin) != null && isModel(srcAt(I.tmin))) modelFilled.push('tMinC');
+    if (at(I.rhum) != null && isModel(srcAt(I.rhum))) modelFilled.push('humidityPct');
+    if (at(I.prcp) != null && isModel(srcAt(I.prcp))) modelFilled.push('precipMm');
+    if (windMaxKmh != null && isModel(gust != null ? srcAt(I.wpgt) : srcAt(I.wspd))) modelFilled.push('windMaxKmh');
     out.push({
       dateISO: `${c[0]}-${String(m).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
       year: y, month: m, day, doy: doyOf(y, m, day),
-      tMeanC: num(c[3]), tMinC: num(c[5]), tMaxC: num(c[7]),
-      humidityPct: num(c[9]), precipMm: num(c[11]),
+      tMeanC: at(I.temp), tMinC: at(I.tmin), tMaxC: at(I.tmax),
+      humidityPct: at(I.rhum), precipMm: at(I.prcp),
       snowCm: snwd == null ? null : snwd / 10,
-      windMaxKmh: gust ?? wspd, windDirDeg: null,
+      windMaxKmh, windDirDeg: null,
       sunshineH: tsun == null ? null : tsun / 60,
+      ...(modelFilled.length ? { modelFilled } : {}),
     });
   }
   return out;

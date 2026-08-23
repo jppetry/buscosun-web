@@ -3,17 +3,17 @@
   "updated": "2026-08-15",
   "budgets": {
     "eagerJs": {
-      "limitKb": 130.2,
+      "limitKb": 106.6,
       "targetKb": 90
     },
     "eagerCss": {
-      "limitKb": 8.9
+      "limitKb": 2.5
     },
     "largestChunk": {
       "limitKb": 292.3
     },
     "totalJs": {
-      "limitKb": 926.1
+      "limitKb": 1024.5
     }
   }
 }

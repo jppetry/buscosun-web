@@ -19,9 +19,9 @@
  * ── Zwei Sprachregeln, die der Verifier erzwingt ─────────────────────────────
  *  • **`dc` heißt nie „Bodenfeuchte".** Der Drought Code ist ein Feuerwetter-
  *    Code (Modellwert für tiefe, verdichtete organische Auflagen, ~52-Tage-
- *    Gedächtnis), keine gemessene oder modellierte Bodenfeuchte. Die blockierte
- *    EDO-Bodenfeuchte (`fireDrought`) bleibt als blockiert benannt; DC ersetzt
- *    sie nicht und tritt nicht an ihre Stelle.
+ *    Gedächtnis), keine gemessene oder modellierte Bodenfeuchte. Die EDO-
+ *    Bodenfeuchte (ehemals Layer `fireDrought`, zurückgezogen 2026-08-22)
+ *    bleibt als nicht abrufbar benannt; DC ersetzt sie nicht.
  *  • **`ranking` nennt seine Baseline.** Die Quelle sagt „a historical series of
  *    approximately 40 years" — und nennt keine Jahre. Genau das steht in der
  *    Legende: benannt, mit benannter Unschärfe (§4.5 der Diagnose).
@@ -117,7 +117,7 @@ export const DANGER_VIEWS: Record<DangerView, DangerViewMeta> = {
     answers: 'Wie ausgetrocknet sind tiefe, verdichtete organische Auflagen — die Größe mit dem längsten Gedächtnis (~52 Tage)?',
     unit: 'Drought Code (DC), dimensionslos',
     reference: 'ECMWF-Vorhersage, Tageswert (Bezug 12 UTC), ~8 km · Copernicus EMS GWIS',
-    limitation: 'Ein Feuerwetter-Code, keine gemessene oder modellierte Feuchte des Erdbodens. Die Copernicus-EDO-Größe dazu bleibt blockiert (Layer „Bodenfeuchte-Anomalie" in Ausbaustufe 2) — dieser Code ersetzt sie nicht. Modellwert, kein amtliches Warnprodukt.',
+    limitation: 'Ein Feuerwetter-Code, keine gemessene oder modellierte Feuchte des Erdbodens. Die Copernicus-EDO-Größe dazu (Bodenfeuchte-Anomalie) ist wegen ungültigem CORS nicht abrufbar und seit 2026-08-22 kein Layer mehr — dieser Code ersetzt sie nicht. Modellwert, kein amtliches Warnprodukt.',
     classes: CLS(['< 256,1', '256,1–334,1', '334,1–450,6', '450,6–600,0', '600,0–749,4', '> 749,4']),
   },
   isi: {
@@ -186,8 +186,8 @@ export function verifyDangerViews(): { checks: DangerViewCheck[]; passed: number
   add('dc: kein „Bodenfeuchte" in Label/Titel/Antwort/Einheit/Bezug', !/bodenfeucht/i.test(dcText), dcText);
   add('dc: die Grenze sagt ausdrücklich, dass es KEINE Feuchte des Erdbodens ist',
     /keine gemessene oder modellierte Feuchte des Erdbodens/.test(dc.limitation));
-  add('dc: EDO bleibt als blockiert benannt, DC ersetzt sie nicht',
-    /EDO/.test(dc.limitation) && /blockiert/.test(dc.limitation) && /ersetzt sie nicht/.test(dc.limitation));
+  add('dc: EDO bleibt als nicht abrufbar benannt, DC ersetzt sie nicht',
+    /EDO/.test(dc.limitation) && /nicht abrufbar/.test(dc.limitation) && /ersetzt sie nicht/.test(dc.limitation));
 
   // --- Sprachregel 2: ranking nennt seine Baseline ----------------------------
   const rk = DANGER_VIEWS.ranking;

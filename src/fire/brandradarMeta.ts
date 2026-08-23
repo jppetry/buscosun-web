@@ -90,15 +90,6 @@ export const BR_LAYER: Record<FireLayerId, BrLayerMeta> = {
     limit: 'Ein Treiber, kein Index und kein amtliches Warnprodukt. Die kumulativen FWI-Codes (FFMC, DMC, DC) sind nicht enthalten. Außerhalb von DE, AT und CH ist die Fläche abgedunkelt.',
     fallback: NO_DATA,
   },
-  fireWind: {
-    label: 'Wind', sub: 'ICON-D2 u/v 10 m · 1:1', color: 'slate',
-    group: 'Aus der Wetterkarte', title: 'Wind (10 m)',
-    question: 'Wohin würde ein Feuer laufen, und wie schnell — nach dem Wind in 10 m Höhe?',
-    unit: 'Windrichtung und -geschwindigkeit 10 m, Partikel über Geschwindigkeits-Heatmap',
-    reference: 'DWD ICON-D2 u/v 10 m · 2,2 km · derselbe Layer wie auf der Wetterkarte (1:1) · Stundenachse bis +6 h',
-    limit: 'Ein Treiber, kein Index und kein amtliches Warnprodukt. 10 m über Grund ist die Messhöhe der Meteorologie, nicht der Wind im Bestand; Böen sind nicht enthalten.',
-    fallback: 'Reicht der geladene Lauf nicht bis zur Zielzeit, zeigt der Layer den letzten verfügbaren Schritt und sagt das in seiner Zeile — kein stilles Klemmen.',
-  },
   fireSoilDryness: {
     label: 'Bodentrockenheit', sub: 'ICON-D2 smi · 2 Tiefen', color: 'sage',
     group: 'Aus der Wetterkarte', title: 'Bodentrockenheit (SMI)',
@@ -116,6 +107,15 @@ export const BR_LAYER: Record<FireLayerId, BrLayerMeta> = {
     reference: `ICON-D2-Wind + stündlicher ISI + Höhenmodell · FBP (Forestry Canada 1992 / Wotton u. a. 2009) · jetzt bis +${FIRE_WEATHER_AHEAD_H} h`,
     limit: 'Modellrechnung — keine Brandfront, keine gefährdete Fläche, keine Warnung, kein amtliches Produkt. Der Bewuchs ist eine Annahme; ohne Vortagsgedächtnis ist die Reichweite eine Untergrenze.',
     fallback: 'Ohne Wind-Frame, Gelände oder Satellitensignal gibt es keinen Pfeil — und die Brandliste nennt den Grund. Kein Pfeil heißt nie „keine Ausbreitung".',
+  },
+  fireAnomalies: {
+    label: 'Thermalanomalien', shortLabel: 'Anlagen', sub: 'Standorte persistenter Wärmequellen · Archiv 2020–2026', color: 'stone',
+    group: 'Aktuelle Lage', title: 'Thermalanomalien (Standorte)',
+    question: 'Welche Detektionen sind keine Brände, sondern Stahlwerke, Zementwerke, Raffinerien, Müllverbrennung — und welche weichen davon ab?',
+    unit: 'Raute je Standort: A benannte Anlage, B unbenannte Dauerquelle, C Tagessignal; Terracotta-Ring = Signal im Fenster weicht vom Anlagenmuster ab (bleibt Brand)',
+    reference: 'NASA FIRMS VIIRS-Archiv 2020–2026 (≥ 2 Jahre mit je ≥ 5 Detektionstagen) · EEA Industrial Reporting (E-PRTR/IED) CC-BY 4.0 · MaStR DL-DE/BY-2.0 · BFE OPEN BY · CORINE 2018',
+    limit: 'Eigene Ableitung, kein Nachweis: Anlagenzuordnung per Abstand ≤ 1,5 km, Anlagen nach 2026-05 fehlen, stillgelegte bleiben bis zum nächsten Bau gelistet. Ein Brand auf oder neben einem Standort wird NICHT weggefiltert — er trägt „Abweichung" und bleibt in der Brandliste.',
+    fallback: 'Ohne Standortliste (Ladefehler, ?ta=0) verhält sich das Brandradar wie zuvor: die Ortsfest-Heuristik aus 7 Tagen Vorgeschichte bleibt.',
   },
   fireFuel: {
     label: 'Brennmaterial', sub: '', color: 'sage',
@@ -143,24 +143,6 @@ export const BR_LAYER: Record<FireLayerId, BrLayerMeta> = {
     reference: 'EEA · Natura 2000 und CORINE Land Cover 2018',
     limit: 'Natura 2000 deckt die SCHWEIZ NICHT ab — eine leere Schweiz heißt „nicht erfasst", nicht „keine Schutzgebiete". Kein amtliches Warnprodukt.',
     fallback: NO_DATA,
-  },
-  fireDrought: {
-    label: 'Bodenfeuchte-Anomalie', sub: 'EDO blockiert · ungültiges CORS', color: 'stone',
-    group: 'Ausbaustufe 2 · blockiert', title: 'Bodenfeuchte-Anomalie (EDO)',
-    question: 'Wie weicht die Bodenfeuchte vom langjährigen Mittel ab?',
-    unit: 'Soil Moisture Anomaly (SMA), standardisiert',
-    reference: 'Copernicus EDO · derzeit nicht abrufbar',
-    limit: 'Blockiert: Der EDO-Dienst sendet einen fehlerhaften CORS-Header (doppeltes Access-Control-Allow-Origin) — der Browser darf die Kacheln nicht lesen. Die Sub-Ansicht „Trockenheit" des EU-Index (Drought Code) ist KEIN Ersatz: ein Feuerwetter-Code, keine Bodenfeuchte.',
-    fallback: 'Der Layer bleibt sichtbar und deaktiviert: die Größe existiert, nur die Quelle ist nicht erreichbar.',
-  },
-  fireVegetation: {
-    label: 'Vegetationszustand', sub: 'EDO blockiert · ungültiges CORS', color: 'stone',
-    group: 'Ausbaustufe 2 · blockiert', title: 'Vegetationszustand (EDO)',
-    question: 'Steht die Vegetation unter Stress?',
-    unit: 'fAPAR-Anomalie',
-    reference: 'Copernicus EDO · derzeit nicht abrufbar',
-    limit: 'Blockiert: derselbe Dienst, derselbe fehlerhafte CORS-Header. Vegetationsstress ist nicht gleich Trockenheit — auch Schädlinge, Hitze oder Sturmschäden schlagen durch.',
-    fallback: 'Der Layer bleibt sichtbar und deaktiviert: die Größe existiert, nur die Quelle ist nicht erreichbar.',
   },
 };
 
@@ -190,10 +172,14 @@ export const FWI_STEPS = ['#8FBF6B', '#D6D24E', '#E9A33C', '#D4632E', '#A32B1E',
  * (`STATUS_LABEL`: aktiv / kein Signal / erloschen) — „beobachtet" der Vorlage
  * wäre eine Umdeutung von „kein Signal" und steht deshalb NICHT hier.
  */
-export type BrBadge = 'active' | 'no-signal' | 'out' | 'static';
+export type BrBadge = 'active' | 'no-signal' | 'out' | 'static' | 'site' | 'site-deviating';
 export const BR_BADGE_LABEL: Record<BrBadge, string> = {
   active: 'AKTIV', 'no-signal': 'KEIN SIGNAL', out: 'ERLOSCHEN', static: 'ORTSFEST',
+  // TA3: bekannter Standort einer Dauerquelle — „Abweichung" heißt: Signal passt nicht zum Anlagenmuster, bleibt Brand.
+  site: 'ANLAGE', 'site-deviating': 'ABWEICHUNG',
 };
-export function badgeOf(kind: FireStatusKind, suspectedStatic: boolean): BrBadge {
+export function badgeOf(kind: FireStatusKind, suspectedStatic: boolean, anomaly: 'site' | 'site-deviating' | null = null): BrBadge {
+  if (anomaly === 'site-deviating') return 'site-deviating';
+  if (anomaly === 'site') return 'site';
   return suspectedStatic ? 'static' : kind;
 }

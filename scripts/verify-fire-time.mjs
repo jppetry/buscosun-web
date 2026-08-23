@@ -129,14 +129,16 @@ add('FirePage: Tages-Layer zeigen auf der Stundenachse den Kalendertag von jetzt
 // ist wbi_0 und darf NICHT still mit dem Regler der anderen Layer mitlaufen.
 add('FirePage: der zurückgezogene Layer ist restlos raus (kein toter Ladeweg)',
   !/fireIndexNational/.test(page) && !/stationLevels/.test(page));
-add('FirePage: Wind bekommt auf der Stundenachse die Zielzeit jetzt + h (windTargetMs), sonst null',
-  /const windTargetMs = hourly \? frameTargetMs : null/.test(page) && /windTargetMs=\{windTargetMs\}/.test(page));
-add('FirePage: ein zu kurzer Windlauf wird gesagt, nicht still geklemmt (windClamped)',
-  /windClamped/.test(page) && /Modellfeld reicht bis \+/.test(page));
+// 2026-08-22: der Windlayer `fireWind` ist zurückgezogen (Jans Auftrag) — kein
+// Windframe, keine Zielzeit, keine Klemm-Zeile mehr; das Windgitter lädt nur
+// noch für die Ausbreitung (SF1).
+add('FirePage: der zurückgezogene Windlayer ist restlos raus (kein toter Ladeweg, keine Klemm-Zeile)',
+  !/'fireWind'/.test(page) && !/windClamped|windTargetMs/.test(page));
+add('FirePage: das Windgitter lädt NUR noch für die Ausbreitung',
+  /if \(!active\.has\('fireSpread'\)\) return;\s*const ac = new AbortController\(\);\s*void fetchIconD2Wind\(/.test(page));
 const fmap = readFileSync(join(ROOT, 'src', 'fire', 'FireMap.tsx'), 'utf8');
-add('FireMap: Windframe-Zielzeit = windTargetMs ?? Date.now() — Tagesachse bleibt „jetzt"',
-  /windFrameAtValidTimeAsync\(wind,\s*windTargetMs\s*\?\?\s*Date\.now\(\)/.test(fmap)
-  && /\[wind,\s*active,\s*windEpoch,\s*windTargetMs\]/.test(fmap));
+add('FireMap: kein Windpartikel-Layer mehr (keine WindLayer-Instanz, kein Windframe)',
+  !/WindLayer|windFrameAtValidTimeAsync|fire-wind-particles|'fireWind'/.test(fmap));
 // Die Achse ist so lang, wie der Wind aus jedem Lauf reicht: 12 h ab Lauf minus Laufalter.
 const windSrc = readFileSync(join(ROOT, 'src', 'wind', 'iconD2WindSource.ts'), 'utf8');
 const windMax = Number(/const MAX_STEP = (\d+);/.exec(windSrc)?.[1]);
@@ -176,8 +178,8 @@ add('FireMap: die Ausbreitung hat einen Lizenzträger (die Rechnung nennt beide 
 add('FireMap: die zurückgezogene Rasterfläche ist restlos entfernt (kein toter ScalarLayer)',
   !/fire-forecast-scalar|forecastLayerRef/.test(fmap));
 add('FireMap: der Ausbreitungs-Zustand steht in stateRef UND in den applyState-Deps',
-  (fmap.match(/wind, soil, spreadFc, fireEvents/g) ?? []).length === 2
-    && /weather, wind, soil, spreadFc, day,/.test(fmap));
+  (fmap.match(/soil, spreadFc, fireEvents/g) ?? []).length === 2
+    && /weather, soil, spreadFc, day,/.test(fmap));
 add('FirePage: der Forecast lädt über den WF2-Producer',
   /fetchIconD2FireWeather\(\{/.test(page) && /aheadHours:\s*FIRE_WEATHER_AHEAD_H/.test(page));
 add('FirePage: der Ausbreitungslauf folgt der Stundenachse (shownHour aus dem Regler)',

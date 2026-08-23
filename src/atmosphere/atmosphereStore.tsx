@@ -68,9 +68,20 @@ function readLensFromStorage(): Lens | null {
   } catch { return null; }
 }
 
-export function AtmosphereProvider({ children }: { children: ReactNode }) {
-  // Initial state: hash wins; else last lens from localStorage; else first-time
-  // default lens = "Föhn" (mountain) — the broadest everyday lens.
+interface ProviderProps {
+  children: ReactNode;
+  /** Router (RT1): Linse aus dem Pfad — nach dem Hash, vor localStorage. */
+  initialLens?: Lens | null;
+  /** Linse von außen (nur Zurück/Vorwärts). */
+  routeLens?: Lens | null;
+  /** Linse ⇒ Pfad (erster Lauf = replace, danach push). */
+  onLensChange?: (lens: Lens, initial: boolean) => void;
+}
+
+export function AtmosphereProvider({ children, initialLens, routeLens, onLensChange }: ProviderProps) {
+  // Initial state: hash wins; else the route's lens; else last lens from
+  // localStorage; else first-time default lens = "Föhn" (mountain) — the
+  // broadest everyday lens.
   const initial = useMemo(() => {
     const hash = typeof window !== 'undefined' ? window.location.hash : '';
     const st = decodeState(hash);
@@ -86,7 +97,8 @@ export function AtmosphereProvider({ children }: { children: ReactNode }) {
       return { lens: 'section' as Lens, hour: 0, nerd: false, loc,
         marker: loc ? { lat: loc.lat, lon: loc.lon } : null, cut: td.points };
     }
-    return { lens: readLensFromStorage() ?? 'mountain', hour: 0, nerd: false, loc: null, marker: null, cut: [] as GeoPoint[] };
+    return { lens: initialLens ?? readLensFromStorage() ?? 'mountain', hour: 0, nerd: false, loc: null, marker: null, cut: [] as GeoPoint[] };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const [lens, setLensState] = useState<Lens>(initial.lens);
@@ -119,6 +131,20 @@ export function AtmosphereProvider({ children }: { children: ReactNode }) {
     });
     if (window.location.hash !== hash) window.history.replaceState(null, '', hash);
   }, [location, hour, lens, nerdOpen, marker, cutPoints]);
+
+  // Router (RT1): Linse ⇒ Pfad `/atmosphaere/<lens>` (nach dem Hash-Schreiber,
+  // damit der Wrapper den frischen Hash mitnimmt); Zurück/Vorwärts ⇒ Linse aus dem Pfad.
+  const lensReportedRef = useRef(false);
+  const onLensChangeRef = useRef(onLensChange);
+  onLensChangeRef.current = onLensChange;
+  useEffect(() => {
+    onLensChangeRef.current?.(lens, !lensReportedRef.current);
+    lensReportedRef.current = true;
+  }, [lens]);
+  useEffect(() => {
+    if (routeLens && routeLens !== lens) setLensState(routeLens);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeLens]);
 
   // When the location changes, reset the marker to the new location.
   const locKey = location ? `${location.lat},${location.lon}` : null;

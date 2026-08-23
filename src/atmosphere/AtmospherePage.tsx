@@ -14,26 +14,39 @@ import { geocodeDACH, flagForCountry } from '../geocode';
 import { tourFileToCutLine } from '../threed/tourImport';
 import { pickCountry } from '../pointForecast/clustering';
 import { AtmosphereProvider, useAtmosphere } from './atmosphereStore';
-import AtmosphereDeck from './AtmosphereDeck';
+import AtmosphereDeck, { type DeckSub } from './AtmosphereDeck';
+import type { Lens } from './atmosphereState';
 import { FeatureRail, type RailFeature } from '../nav/featureRail';
 import '../threed/threed.css';
 import '../route/tourTheme.css';
 import '../intro/intro.css';
 import './atmosphere.css';
 
-interface Props { onBack: () => void; onOpenFeature?: (id: RailFeature) => void }
+export type { DeckSub } from './AtmosphereDeck';
 
-export default function AtmospherePage({ onBack, onOpenFeature }: Props) {
+interface Props {
+  onBack: () => void;
+  onOpenFeature?: (id: RailFeature) => void;
+  // --- Router (RT1), additiv: Linse aus `/atmosphaere/<lens>`, Unterlinse aus `?ansicht=` ---
+  initialLens?: Lens | null;
+  /** Linse von außen (nur Zurück/Vorwärts). */
+  routeLens?: Lens | null;
+  initialSub?: DeckSub | null;
+  onLensChange?: (lens: Lens, initial: boolean) => void;
+  onSubChange?: (sub: DeckSub) => void;
+}
+
+export default function AtmospherePage({ onBack, onOpenFeature, initialLens, routeLens, initialSub, onLensChange, onSubChange }: Props) {
   return (
-    <AtmosphereProvider>
-      <AtmosphereShell onBack={onBack} onOpenFeature={onOpenFeature} />
+    <AtmosphereProvider initialLens={initialLens} routeLens={routeLens} onLensChange={onLensChange}>
+      <AtmosphereShell onBack={onBack} onOpenFeature={onOpenFeature} initialSub={initialSub} onSubChange={onSubChange} />
     </AtmosphereProvider>
   );
 }
 
-function AtmosphereShell({ onBack, onOpenFeature }: Props) {
+function AtmosphereShell({ onBack, onOpenFeature, initialSub, onSubChange }: Props) {
   const { location } = useAtmosphere();
-  if (location) return <AtmosphereDeck onBack={onBack} onOpenFeature={onOpenFeature} />;
+  if (location) return <AtmosphereDeck onBack={onBack} onOpenFeature={onOpenFeature} initialSub={initialSub} onSubChange={onSubChange} />;
 
   return (
     <div className="atm-idle-shell">

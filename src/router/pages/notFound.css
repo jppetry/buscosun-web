@@ -1,0 +1,60 @@
+/* 404 — Command-Deck (hell). Tokens aus designTokens.css, League Spartan aus fonts.css. */
+.nf-root {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: calc(1.5rem + env(safe-area-inset-top)) 1.25rem calc(1.5rem + env(safe-area-inset-bottom));
+  background: var(--cream-50, #FAF6EA);
+  color: var(--ink-900, #2C2A26);
+  font-family: var(--font-base, ui-sans-serif, system-ui, sans-serif);
+}
+.nf-card {
+  width: min(100%, 640px);
+  background: #fff;
+  border: 1px solid var(--sand-200, #E0D6BE);
+  border-radius: 18px;
+  padding: 2rem 1.75rem;
+  box-shadow: 0 10px 30px rgba(44, 42, 38, 0.06);
+}
+.nf-eyebrow {
+  margin: 0 0 0.6rem;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--stone-600, #5C5447);
+}
+.nf-title {
+  margin: 0 0 0.75rem;
+  font-family: 'League Spartan', var(--font-display, var(--font-base, sans-serif));
+  font-weight: 600;
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+}
+.nf-title:focus { outline: none; }
+.nf-lead { margin: 0 0 1.25rem; line-height: 1.55; color: var(--stone-600, #5C5447); }
+.nf-ctas { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-bottom: 1.5rem; }
+.nf-cta {
+  display: inline-flex; align-items: center; min-height: 44px; padding: 0 1.1rem;
+  border-radius: 999px; border: 1px solid var(--sand-200, #E0D6BE);
+  color: var(--ink-900, #2C2A26); text-decoration: none; font-weight: 600; font-size: 0.95rem;
+  background: var(--sand-50, #F5F1E8);
+}
+.nf-cta:hover { border-color: var(--terracotta-500, #C97B47); }
+.nf-cta-primary { background: var(--ink-900, #2C2A26); color: #fff; border-color: var(--ink-900, #2C2A26); }
+.nf-cta-primary:hover { background: var(--terracotta-500, #C97B47); border-color: var(--terracotta-500, #C97B47); }
+.nf-tools {
+  list-style: none; margin: 0; padding: 1rem 0 0;
+  border-top: 1px solid var(--sand-200, #E0D6BE);
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.25rem 1rem;
+}
+.nf-tools a {
+  display: inline-flex; align-items: center; min-height: 44px;
+  color: var(--terracotta-700, #A85E2E); text-decoration: none; font-size: 0.92rem;
+}
+.nf-tools a:hover { text-decoration: underline; }
+@media (max-width: 767px) {
+  .nf-card { padding: 1.5rem 1.25rem; border-radius: 14px; }
+}

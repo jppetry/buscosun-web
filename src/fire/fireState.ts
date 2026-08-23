@@ -57,6 +57,14 @@ export interface FireState {
   soilMode?: SoilDrynessMode;
   /** BP2: ist das Brandflächen-Panel links geöffnet? Fehlt ⇒ zu (Standard). */
   footprintPanel?: boolean;
+  /** TA4: Reiter „Thermalanomalien" offen? Fehlt ⇒ zu (Standard). Schließt `fp` nicht aus; `ta` gewinnt. */
+  anomalyPanel?: boolean;
+  /**
+   * BH3: Historie-Fenster (`month` | `season`) statt des Live-Fensters `w`. Fehlt ⇒ Live
+   * (Standard, Hash byte-gleich). `w` bleibt daneben erhalten — beim Verlassen der Historie
+   * gilt wieder das gemerkte Live-Fenster.
+   */
+  historyWindow?: 'month' | 'season' | null;
   /**
    * WF3: Stundenschritt ab jetzt auf der Stundenachse. **Vorhanden ⇔ die
    * Stundenachse ist aktiv** (auch bei 0 — „jetzt" ist ein Wert, kein Fehlen);
@@ -114,6 +122,10 @@ export function encodeFireState(s: FireState): string {
   if (s.soilMode && s.soilMode !== DEFAULT_SOIL_MODE) payload.sm = s.soilMode;
   // BP2: nur schreiben, wenn offen — der Standard (zu) verlängert den Hash nicht.
   if (s.footprintPanel) payload.fp = 1;
+  // TA4: analog `fp` — nur wenn der Reiter offen ist.
+  if (s.anomalyPanel) payload.ta = 1;
+  // BH3: nur im Historie-Modus — Live-Links bleiben byte-gleich.
+  if (s.historyWindow === 'month' || s.historyWindow === 'season') payload.bh = s.historyWindow;
   // BF4: nur schreiben, wenn ein einzelner Tag gewählt ist. Der Standard („alle
   // sieben Tage") ist `null` und verlängert den Hash nicht.
   if (typeof s.burntDay === 'number' && s.burntDay <= 0 && s.burntDay > -HISTORY_DAYS) payload.bd = s.burntDay;
@@ -128,7 +140,7 @@ export function decodeFireState(hash: string): FireState | null {
   try {
     const o = JSON.parse(decodeURIComponent(hash.slice(FIRE_HASH_PREFIX.length))) as {
       l?: [number, number, string, string]; b?: number; d?: number; w?: number;
-      v?: unknown; bb?: unknown; sm?: unknown; bd?: unknown; fp?: unknown; h?: unknown;
+      v?: unknown; bb?: unknown; sm?: unknown; bd?: unknown; fp?: unknown; ta?: unknown; h?: unknown; bh?: unknown;
     };
     let location: Location | null = null;
     if (Array.isArray(o.l) && Number.isFinite(o.l[0]) && Number.isFinite(o.l[1])) {
@@ -153,6 +165,9 @@ export function decodeFireState(hash: string): FireState | null {
       burntDay: typeof o.bd === 'number' && Number.isFinite(o.bd)
         && Math.round(o.bd) <= 0 && Math.round(o.bd) > -HISTORY_DAYS ? Math.round(o.bd) : null,
       footprintPanel: o.fp === 1,
+      anomalyPanel: o.ta === 1,
+      // BH3: unbekannter Wert ⇒ Live, nie ein Absturz.
+      historyWindow: o.bh === 'month' || o.bh === 'season' ? o.bh : null,
       // WF3: `h` vorhanden ⇒ Stundenachse; Klemmung auf den Horizont macht `reconcileFireTime`.
       hour: typeof o.h === 'number' && Number.isFinite(o.h) ? Math.max(0, Math.round(o.h)) : null,
     };
@@ -281,6 +296,13 @@ export function verifyFireState(): { checks: FireStateCheck[]; passed: number; t
   add('offenes Panel überlebt den Round-Trip',
     decodeFireState(encodeFireState({ ...base, footprintPanel: true }))?.footprintPanel === true);
   add('alter Hash ohne fp ⇒ Panel zu', decodeFireState(encodeFireState(base))?.footprintPanel === false);
+  // TA4: Reiter „Thermalanomalien" — `ta` nur, wenn offen; alte Links bleiben byte-gleich.
+  add('TA4: Reiter zu ⇒ kein ta im Hash (byte-gleich)', encodeFireState(base) === encodeFireState({ ...base, anomalyPanel: false }));
+  add('TA4: Reiter offen ⇒ ta=1 und zurück', decodeFireState(encodeFireState({ ...base, anomalyPanel: true }))?.anomalyPanel === true && /%22ta%22%3A1|"ta":1/.test(decodeURIComponent(encodeFireState({ ...base, anomalyPanel: true }))));
+  add('TA4: alter Hash ohne ta ⇒ Reiter zu', decodeFireState(encodeFireState(base))?.anomalyPanel === false);
+  add('BH3: Live ⇒ kein bh im Hash (byte-gleich)', encodeFireState(base) === encodeFireState({ ...base, historyWindow: null }));
+  add('BH3: Saison ⇒ bh=season und zurück, w bleibt', decodeFireState(encodeFireState({ ...base, windowH: 168, historyWindow: 'season' }))?.historyWindow === 'season' && decodeFireState(encodeFireState({ ...base, windowH: 168, historyWindow: 'season' }))?.windowH === 168);
+  add('BH3: unbekanntes bh ⇒ Live', decodeFireState(`${FIRE_HASH_PREFIX}${encodeURIComponent('{"b":1,"bh":"decade"}')}`)?.historyWindow === null);
   add('Layer fireFootprints ist permalink-fähig (Bit 12)',
     decodeFireState(encodeFireState({ ...base, layers: ['fireFootprints'] }))?.layers.join(',') === 'fireFootprints');
 

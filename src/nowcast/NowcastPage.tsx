@@ -70,6 +70,11 @@ import { FeatureRail, type RailFeature } from '../nav/featureRail';
 interface Props {
   onBack: () => void;
   onOpenFeature?: (id: RailFeature) => void;
+  // --- Router (RT1), additiv: Ort + Kamera aus der Query `/regenradar?ort=…&lat=…` ---
+  initialLocation?: Location | null;
+  onLocationChange?: (l: Location | null) => void;
+  initialView?: { lat: number; lon: number; zoom: number } | null;
+  onViewChange?: (v: { lat: number; lon: number; zoom: number }) => void;
 }
 
 type State =
@@ -78,8 +83,16 @@ type State =
   | { kind: 'ready'; nowcast: Nowcast }
   | { kind: 'error'; message: string };
 
-export default function NowcastPage({ onBack, onOpenFeature }: Props) {
-  const [location, setLocation] = useState<Location | null>(null);
+export default function NowcastPage({ onBack, onOpenFeature, initialLocation, onLocationChange, initialView, onViewChange }: Props) {
+  const [location, setLocation] = useState<Location | null>(initialLocation ?? null);
+  // Router (RT1): Ortswechsel nach außen melden (nicht beim Mount).
+  const prevLocRef = useRef(location);
+  useEffect(() => {
+    if (prevLocRef.current === location) return;
+    prevLocRef.current = location;
+    onLocationChange?.(location);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location]);
   const [state, setState] = useState<State>({ kind: 'idle' });
   const [reloadNonce, setReloadNonce] = useState(0);
   const acRef = useRef<AbortController | null>(null);
@@ -129,6 +142,8 @@ export default function NowcastPage({ onBack, onOpenFeature }: Props) {
         onReload={() => setReloadNonce((n) => n + 1)}
         onBack={onBack}
         onOpenFeature={onOpenFeature}
+        initialView={initialView}
+        onViewChange={onViewChange}
       />
     );
   }

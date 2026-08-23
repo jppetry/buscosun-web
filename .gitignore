@@ -29,3 +29,5 @@ perf-artifacts/
 deno.lock
 # AF4: Roh-CSV/GeoJSON des Archivabrufs (FIRMS-SP, EFFIS) — nie committen
 .cache/
+# BH1: Ereignisdatei der Brand-Historie (188 MB, reproduzierbar aus .cache/) — nur der Report wird committet
+data/fire/bh/events.jsonl

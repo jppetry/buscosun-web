@@ -29,14 +29,23 @@ export function escapeHtml(s) {
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-const r5 = (n) => Math.round(n * 1e5) / 1e5;
+/** 4 Nachkommastellen ohne Nachlauf-Nullen — identisch zu `fmt(r4(…), 4)` in src/router/urlState.ts. */
+const coord4 = (n) => {
+  const s = (Math.round(n * 1e4) / 1e4).toFixed(4);
+  return s.includes('.') ? s.replace(/0+$/, '').replace(/\.$/, '') : s;
+};
 
-/** Repliziert encodeMapState (#m=) aus src/mapState.ts → CTA öffnet die App am Ort.
- *  Layer-Bitmaske: ['wind','nowcast','temp','clouds','sat','lightning','stations'];
- *  Default 'temp' = Bit 4. */
+/**
+ * Deep-Link in die App am Ort (Phase RT1: Pfad + Query statt `#m=`). Muss
+ * byte-gleich zu `mapPathForPlace(place, 'temp')` aus src/router/urlState.ts
+ * sein — `scripts/verify-routing.mjs` prüft die Parität (Lehre V-80: eine
+ * abgetippte Zweitfassung driftet). Alte `/#m=`-Links migriert der Client.
+ */
 export function mapPermalink(place) {
-  const payload = { l: [r5(place.lat), r5(place.lon), place.name, place.country], b: 4, h: 0 };
-  return '/#m=' + encodeURIComponent(JSON.stringify(payload));
+  const q = new URLSearchParams([
+    ['ort', place.name], ['olat', coord4(place.lat)], ['olon', coord4(place.lon)], ['land', String(place.country).toLowerCase()],
+  ]);
+  return '/wetterkarte/temperatur?' + q.toString();
 }
 
 /** Höhenband (Richtwert) aus der Höhe. */
@@ -880,6 +889,77 @@ ${head}
   </body>
 </html>
 `;
+}
+
+// --- App-Routen-Shells (Phase RT1) -------------------------------------------
+//
+// Je Pfad-Route (`src/router/routes.ts`) eine flache Datei dist/<route>.html:
+// dieselbe Vite-Shell wie index.html, aber mit EIGENEM Title/Description/
+// Canonical/OG/JSON-LD und crawlbarem #root-Inhalt (H1 + Lead + Links), weil
+// `index.html` den Home-Canonical trägt und für jede App-Route Duplicate
+// Content wäre. Die Werte kommen aus derselben Tabelle wie im Client
+// (`RouteMeta.tsx`) — Roh-HTML und App sagen dasselbe.
+
+function routeJsonLd(route, url) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    name: route.meta.title,
+    description: route.meta.description,
+    url,
+    inLanguage: 'de',
+    isPartOf: { '@type': 'WebSite', name: SITE.name, url: `${SITE.url}/` },
+  };
+}
+
+function routeBreadcrumbJsonLd(route, url) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Start', item: `${SITE.url}/` },
+      { '@type': 'ListItem', position: 2, name: route.meta.title, item: url },
+    ],
+  };
+}
+
+/** Head-Ergänzungen einer Route-Shell (Canonical = Pfad ohne Query). */
+export function routeHeadExtras(route) {
+  const url = SITE.url + route.path;
+  const title = `${route.meta.title} | ${SITE.name}`;
+  const og = route.meta.ogImage || DEFAULT_OG_IMAGE;
+  return `<link rel="canonical" href="${url}" />
+    ${hreflangLinks(route.path)}${route.meta.noindex ? '\n    <meta name="robots" content="noindex, follow" />' : ''}
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="${SITE.name}" />
+    <meta property="og:title" content="${escapeHtml(title)}" />
+    <meta property="og:description" content="${escapeHtml(route.meta.description)}" />
+    <meta property="og:url" content="${url}" />
+    <meta property="og:locale" content="de_DE" />
+    <meta property="og:image" content="${SITE.url}${og}" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="${escapeHtml(title)}" />
+    <meta name="twitter:description" content="${escapeHtml(route.meta.description)}" />
+    <meta name="twitter:image" content="${SITE.url}${og}" />
+    ${jsonLdScript(routeJsonLd(route, url))}
+    ${jsonLdScript(routeBreadcrumbJsonLd(route, url))}`;
+}
+
+/** Crawlbarer #root-Inhalt einer Route-Shell (wird von der App beim Mount ersetzt). */
+export function renderRouteRootContent(route) {
+  const subs = (route.subs || []).filter((s) => !(route.id === 'wetterkarte' && s.slug === 'warnungen'));
+  const subList = subs.length
+    ? `<h2>Ansichten</h2>\n      <ul>\n        ${subs.map((s) => `<li><a href="${route.path}/${s.slug}">${escapeHtml(s.title)}</a> — ${escapeHtml(s.description)}</li>`).join('\n        ')}\n      </ul>`
+    : '';
+  return `<div id="seo-fallback">
+      <nav aria-label="Brotkrumen"><a href="/">Start</a> › ${escapeHtml(route.meta.title)}</nav>
+      <h1>${escapeHtml(route.meta.h1)}</h1>
+      <p>${escapeHtml(route.meta.lead)}</p>
+      ${subList}
+      <h2>Mehr auf buscosun</h2>
+      <p><a href="/wetter/">Wetter nach Ort</a> · <a href="/funktionen/">Alle Funktionen</a> · <a href="/wissen/">Wetterwissen</a> · <a href="/wetterkarte">Wetterkarte</a> · <a href="/regenradar">Regenradar</a></p>
+      <p>Datenquellen: DWD · GeoSphere · MeteoSwiss — höhenkorrigiert, ohne Tracker.</p>
+    </div>`;
 }
 
 /** Head-Ergänzungen für die Home (OG/Twitter/canonical/hreflang/JSON-LD). */

@@ -59,6 +59,24 @@ add('H1 rot bei nicht lesbarem Manifest', idOf(checkManifest('m', null, OPTS), '
   add('H4 rot bei Alt-Domain (V-02/V-100)', idOf(checkManifest('m', altDomain, OPTS), 'H4 Warm-Proxy')?.pass === false);
   add('H4 entfällt ohne Origin (Datei-Modus)',
     checkManifest('m', { ...healthy, warmedThroughProxy: 'egal' }, { ...OPTS, origin: null }).every((x) => x.id !== 'H4 Warm-Proxy'));
+
+  // Ab 2026-08-23 (audit/bandbreite.md §16) ist das Cache-Wärmen entfernt:
+  // kein `warmedThroughProxy` mehr — die Herkunft steht in `publishedFor`.
+  const publishedOnly = { ...healthy, warmedThroughProxy: undefined, publishedFor: 'https://buscosun.com' };
+  add('H4 grün im Manifest-Betrieb (publishedFor statt warmedThroughProxy)',
+    idOf(checkManifest('m', publishedOnly, OPTS), 'H4 Warm-Proxy')?.pass === true);
+  const publishedLocalhost = { ...publishedOnly, publishedFor: 'http://localhost:5196' };
+  add('H4 rot bei localhost in publishedFor (lokal geschriebenes Manifest)',
+    idOf(checkManifest('m', publishedLocalhost, OPTS), 'H4 Warm-Proxy')?.pass === false);
+  const publishedAlt = { ...publishedOnly, publishedFor: 'https://buscosun.app' };
+  add('H4 rot bei Alt-Domain in publishedFor (V-02/V-100)',
+    idOf(checkManifest('m', publishedAlt, OPTS), 'H4 Warm-Proxy')?.pass === false);
+  add('H4 rot, wenn beide Herkunftsfelder fehlen',
+    idOf(checkManifest('m', { ...healthy, warmedThroughProxy: undefined }, OPTS), 'H4 Warm-Proxy')?.pass === false);
+  // Der Proxy-Pfad darf NICHT als publishedFor durchgehen (sonst hebelt ein
+  // Alt-Manifest die Wind/Grib-Unterscheidung aus).
+  add('H4 rot, wenn publishedFor den Proxy-Pfad mitträgt',
+    idOf(checkManifest('m', { ...publishedOnly, publishedFor: 'https://buscosun.com/_dwd_grib' }, OPTS), 'H4 Warm-Proxy')?.pass === false);
 }
 
 // ── H5 Step-Vollständigkeit ──────────────────────────────────────────────────

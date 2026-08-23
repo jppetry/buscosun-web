@@ -190,8 +190,12 @@ export function spatialClusters(
   return [...byRoot.values()];
 }
 
-/** Zerlegt einen räumlichen Cluster an Zeitlücken > `GAP_MS`. */
-function splitByTimeGap(rows: readonly FirmsRow[]): FirmsRow[][] {
+/**
+ * Zerlegt einen räumlichen Cluster an Zeitlücken > `GAP_MS`.
+ * **Exportiert seit BH1** (`history/historyEvents.ts`): die Brand-Historie bildet ihre
+ * Ereignisse mit DERSELBEN Lücke — keine zweite Definition, was ein Ereignis ist.
+ */
+export function splitByTimeGap(rows: readonly FirmsRow[]): FirmsRow[][] {
   const sorted = [...rows].sort((a, b) => a.acqMs - b.acqMs);
   const out: FirmsRow[][] = [];
   let cur: FirmsRow[] = [];

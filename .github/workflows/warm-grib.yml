@@ -10,12 +10,10 @@
 # variables → Actions → Variables. Dieselbe Variable wie beim Wind-Warmer.
 #
 # Ablauf: DWD pollen → neuesten Lauf mit vollständigem Near-Horizon für ALLE
-# T2-Params → alle GRIB-URLs (t_2m/vmax_10m/tot_prec/clcl/clcm/clch/clct bis
-# zum jeweiligen Karten-Cap + hsurf) durch SITE_URL/_dwd_grib holen (füllt den
-# Durable-Edge-Cache) → erst DANN public/latest-grib.json atomar schreiben und
+# T2-Params → public/latest-grib.json atomar schreiben und
 # zurück-committen. Der Commit löst einen Netlify-Rebuild aus, der das neue
 # Manifest statisch ausliefert (deshalb KEIN [skip ci]). Early-Exit, wenn das
-# Manifest den Lauf UND alle aktuell warmbaren Steps schon abdeckt → committet
+# Manifest den Lauf UND alle aktuell publizierten Steps schon abdeckt → committet
 # wird nur bei einem neuen Lauf bzw. neu publizierten Steps; die 15-min-Ticks
 # dazwischen sind Sekunden-No-ops.
 # ============================================================================
@@ -47,10 +45,9 @@ jobs:
 
       - name: Warm edge cache + update manifest
         env:
-          SITE_URL: ${{ vars.SITE_URL }}            # öffentliche Prod-URL (Edge-Cache-Fill)
+          SITE_URL: ${{ vars.SITE_URL }}            # Site, FÜR die publiziert wird (Feld publishedFor)
           MANIFEST_PATH: public/latest-grib.json
           NEAR_REQUIRED: '4'
-          WARM_CONCURRENCY: '4'
         run: node scripts/warm-grib.mjs
 
       # T2c-2: Race-sicherer Commit-back. main kann sich seit dem Checkout bewegt

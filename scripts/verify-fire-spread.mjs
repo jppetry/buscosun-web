@@ -114,10 +114,10 @@ add('[verdrahtung] die Quelle steht in der Liste der leeren GeoJSON-Quellen',
 add('[verdrahtung] die Quelle wird in applyState gefüttert',
   /\[SPREAD_SOURCE_ID, s\.spreadFc\]/.test(fmap));
 add('[verdrahtung] spreadFc steht in BEIDEN stateRef-Literalen',
-  (fmap.match(/wind, soil, spreadFc, fireEvents/g) ?? []).length === 2,
-  String((fmap.match(/wind, soil, spreadFc, fireEvents/g) ?? []).length));
+  (fmap.match(/soil, spreadFc, fireEvents/g) ?? []).length === 2,
+  String((fmap.match(/soil, spreadFc, fireEvents/g) ?? []).length));
 add('[verdrahtung] spreadFc steht in der applyState-Dep-Liste',
-  /weather, wind, soil, spreadFc, day,/.test(fmap));
+  /weather, soil, spreadFc, day,/.test(fmap));
 add('[verdrahtung] die Pfeile sind anklickbar und zeigen den Zeigefinger',
   /queryRenderedFeatures\(ev\.point, \{ layers: \[SPREAD_ARROW_LAYER_ID\] \}\)/.test(fmap)
     && /'fire-footprints-fill', SPREAD_ARROW_LAYER_ID/.test(fmap));
@@ -126,9 +126,9 @@ add('[verdrahtung] icon-size hängt NUR am Zoom — kein Kanal, der eine Entfern
   /\['zoom'\]/.test(iconSizeExpr) && !/\['get'/.test(iconSizeExpr), iconSizeExpr.trim());
 add('[verdrahtung] die Punktkurve hängt am Ausbreitungslayer und geht mit dem Rückzug nicht verloren',
   /onPointForecastRef\.current && s\.active\.has\('fireSpread'\)/.test(fmap));
-add('[verdrahtung] beide Ladeschranken kennen fireSpread',
-  /!active\.has\('fireWind'\) && !active\.has\('fireSpread'\)/.test(page)
-    && /if \(!active\.has\('fireSpread'\)\) return;/.test(page));
+add('[verdrahtung] beide Ladeschranken hängen am Ausbreitungslayer (Windlayer zurückgezogen 2026-08-22)',
+  (page.match(/if \(!active\.has\('fireSpread'\)\) return;/g) ?? []).length >= 2
+    && !/active\.has\('fireWind'\)/.test(page));
 add('[verdrahtung] der Lauf ist entprellt, abbrechbar und generationsgesichert',
   /window\.setTimeout\(/.test(page) && /gen !== spreadGenRef\.current/.test(page) && /ac\.abort\(\)/.test(page));
 add('[verdrahtung] die GeoJSON-Sammlung ist memoisiert (V-220: setData nur bei neuer Referenz)',

@@ -285,3 +285,25 @@ Mobile 390, Long-Task-Trace, Desktop-Diff.
 Belege: `audit/screenshots/waldbrand-ausbreitung/desktop-1440-uebersicht.png`,
 `…/desktop-1440-pfeil-nah.png` (Pfeil bei Oberroth, Richtung ~8°),
 `…/desktop-1440-keine-aussage.png` (kein Pfeil, Grund im Satz).
+
+## Nachtrag 2026-08-22 — „Layer blockiert, nichts wird angezeigt" (Jans Meldung)
+
+**Befund, im Browser reproduziert (Dev :5199 und Prod-Preview :4175, SW abgemeldet):**
+
+1. **Blockade = Dev-Build.** Dev: 79 Long Tasks, 15,4 s in ~23 s, längste 1,24 s (unminifiziert, React-Dev, 44 Feuerwetter-GRIB
+   auf dem Hauptthread dekodiert — V-WF-13). Prod-Build derselbe Klick: **662 ms gesamt, längste 94 ms**, 300/300 Timer-Ticks
+   in 30 s — keine Blockade. Der Hauptthread-Dekode der Feuerwetter-Felder (`fetchStepField`) bleibt als eigene Phase offen.
+2. **Leere Karte = eingefrorenes Wind-Manifest.** `public/latest-wind.json` stand auf **00z, Schritte 0–12** (gültig bis 12 UTC),
+   Test 14:22 UTC ⇒ keine Stunde der Achse innerhalb `FRAME_MAX_GAP_MS` ⇒ `no-wind-frame` an allen 25 Bränden; das Feuerwetter
+   kam per Directory-Scan als 12z. Ursache des Stillstands: **buscosun.com antwortete HTTP 503 `usage_exceeded`** (Netlify-Kontingent),
+   der Warm-Cron wärmt durch Prod und rückt seit 01:33 UTC nicht vor (origin/main bestätigt). Der Client nahm das Manifest, weil es
+   jünger als 24 h war — das Alter des Laufs war nie die richtige Frage, sondern **ob sein letzter Schritt die Gegenwart erreicht**.
+
+**Umgesetzt (Jans „teste im localhost"):** Horizont-Guard `manifestCoversNow(runAtMs, steps, nowMs)` in
+`src/wind/iconD2WindSource.ts` — liegt der letzte Schritt vor jetzt, gilt das Manifest als unbrauchbar und der bestehende
+Directory-Scan holt den aktuellen Lauf (derselbe Fallback wie bei leerem Manifest; Cron/Edge/Manifest-Schreibweg unberührt).
+Ergebnis Dev: Windlauf **12z**, 7/7 Stunden, **13 Pfeile** von 25 gerechneten, Konsole nur das vorbestehende 404;
+Screenshot `audit/screenshots/sf1-spread-manifest-guard-dev.png`. Typecheck grün, `verify:health` 15/15, `verify:wind-transport` grün.
+Nebenwirkung erwünscht: der Windlayer der Wetterkarte zeigte mit dem eingefrorenen Manifest den 12-UTC-Frame als „jetzt"; er
+bekommt jetzt ebenfalls den aktuellen Lauf. Lehre: **ein Manifest ist nicht „stale oder kalt", sondern deckt die Gegenwart oder nicht.**
+Offen (Jans Gate): Netlify-Kontingent — die Produktionsseite war zum Testzeitpunkt offline.

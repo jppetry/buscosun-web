@@ -7,8 +7,8 @@
  * nur Enhancement. Deep-Link öffnet das Tool in der App.
  *
  * status: 'full' = indexierter Pilot. 'stub' = Scaffold (noindex).
- * deepLink: Hash-Permalink in die SPA (präfix-only Hashes sind sicher: #atm=,
- *           #h=, #g=). Tools ohne sauberen Hash verlinken auf '/'.
+ * deepLink: Pfad-Route in die SPA (Phase RT1, `src/router/routes.ts`) — kein
+ *           Hash mehr; `scripts/verify-routing.mjs` prüft jeden Link gegen die Tabelle.
  */
 
 const PUBLISHED = '2026-06-26';
@@ -21,7 +21,7 @@ export const TOOLS = [
     title: 'Interaktive Wetterkarte',
     h1: 'Interaktive Wetterkarte für DACH',
     status: 'full',
-    deepLink: '/',
+    deepLink: '/wetterkarte',
     answer:
       'Die interaktive Wetterkarte von buscosun zeigt Wind, Niederschlag, Temperatur, Wolken, Satellit, ' +
       'Blitze und Messstationen für Deutschland, Österreich und die Schweiz auf einer flüssigen Vektorkarte. ' +
@@ -72,7 +72,7 @@ export const TOOLS = [
     title: 'Waldbrandgefahr DACH',
     h1: 'Waldbrandgefahr in Deutschland, Österreich und der Schweiz',
     status: 'full',
-    deepLink: '/#wb=',
+    deepLink: '/waldbrand',
     answer:
       'Die Waldbrand-Ansicht von buscosun zeigt den europäischen Gefahrenindex als durchgehende Fläche über '
       + 'Deutschland, Österreich und die Schweiz — und daneben die amtlichen Landesstufen von DWD und BAFU, '
@@ -163,7 +163,7 @@ export const TOOLS = [
     title: 'Atmosphäre & 3D-Querschnitt',
     h1: 'Atmosphäre: die Luftschichten über dir in 3D',
     status: 'full',
-    deepLink: '/#atm=',
+    deepLink: '/atmosphaere',
     answer:
       'Die Atmosphäre-Ansicht zeigt die vertikale Schichtung der Luft über einem Ort als interaktiven ' +
       '3D-Querschnitt: Temperatur, Wind und Feuchte mit der Höhe. So werden Föhnlagen, Temperaturinversionen ' +
@@ -206,7 +206,7 @@ export const TOOLS = [
   // ------------------------------------------------------------- SCAFFOLDS
   {
     slug: 'tourenplanung', title: 'Tourenplanung', h1: 'Tourenplanung mit Wetter entlang der Route',
-    status: 'stub', deepLink: '/',
+    status: 'stub', deepLink: '/tourenplanung',
     answer:
       'Die Tourenplanung zeigt das Wetter entlang einer hochgeladenen Route (GPX, TCX, FIT, KML/KMZ) zur ' +
       'voraussichtlichen Ankunftszeit an jedem Kilometer. So lässt sich erkennen, wo unterwegs Regen, Wind ' +
@@ -224,7 +224,7 @@ export const TOOLS = [
   },
   {
     slug: 'event-tag', title: 'Bester Event-Tag', h1: 'Event-Planung: der beste Tag der Woche',
-    status: 'stub', deepLink: '/',
+    status: 'stub', deepLink: '/eventplanung',
     answer:
       'Die Event-Planung vergleicht die nächsten sieben Tage und nennt den besten Tag für ein Vorhaben im ' +
       'Freien — mit Phasen, Plan-B-Tag, Foto-Licht und Astro-Nacht. Statt nur einer Tagesübersicht bewertet ' +
@@ -238,7 +238,7 @@ export const TOOLS = [
   },
   {
     slug: 'nowcast', title: '6-Stunden-Nowcast', h1: 'Nowcast: Regenvorhersage für die nächsten 6 Stunden',
-    status: 'stub', deepLink: '/',
+    status: 'stub', deepLink: '/regenradar',
     answer:
       'Der Nowcast liefert eine Niederschlagsvorhersage für die nächsten sechs Stunden im 15-Minuten-Raster: ' +
       'Radar-Extrapolation für die ersten rund zwei Stunden, danach ein ehrlicher Übergang zu ICON-D2. Bis zum ' +
@@ -253,7 +253,7 @@ export const TOOLS = [
   },
   {
     slug: 'modellvergleich', title: 'Modellvergleich', h1: 'Modellvergleich: Vorhersagen ehrlich gegenübergestellt',
-    status: 'stub', deepLink: '/',
+    status: 'stub', deepLink: '/vorhersage',
     answer:
       'Der Modellvergleich stellt fünf unabhängige Wettermodelle — ICON (DWD), ECMWF, GFS (NOAA), GEM (Kanada) ' +
       'und Météo-France — nebeneinander und zeigt den Unsicherheits-Spread sowie einen Trefferquoten-Rückblick. ' +
@@ -269,7 +269,7 @@ export const TOOLS = [
   },
   {
     slug: 'globus', title: '3D-Wetterglobus', h1: '3D-Wetterglobus: das Wetter der ganzen Erde',
-    status: 'stub', deepLink: '/#g=',
+    status: 'stub', deepLink: '/globus',
     answer:
       'Der 3D-Wetterglobus visualisiert globale Wetterfelder — Wind, Temperatur, Feuchte und Luftdruck — auf ' +
       'einer drehbaren Kugel mit animierten Wind-Partikeln. Datenbasis ist der jeweils neueste, live geladene ' +
@@ -284,7 +284,7 @@ export const TOOLS = [
   },
   {
     slug: 'historie', title: 'Wetterhistorie', h1: 'Wetterhistorie: wie sich das Wetter verändert hat',
-    status: 'stub', deepLink: '/#h=',
+    status: 'stub', deepLink: '/wetterarchiv',
     answer:
       'Die Wetterhistorie zeigt, wie sich Temperatur, Niederschlag, Wind und weitere Größen an einem Ort über ' +
       'die Jahre verändert haben. Sie ordnet das aktuelle Wetter gegen Normal und Rekord ein und macht Trends, ' +
@@ -300,7 +300,7 @@ export const TOOLS = [
   },
   {
     slug: 'arbeitsfenster', title: 'Arbeitsfenster (Go/No-Go)', h1: 'Arbeitsfenster: Go/No-Go für Böen auf Arbeitshöhe',
-    status: 'stub', deepLink: '/',
+    status: 'stub', deepLink: '/atmosphaere/querschnitt?ansicht=gonogo',
     answer:
       'Das Arbeitsfenster prüft, ob die Böen auf einer frei wählbaren Arbeits- oder Flughöhe einen Grenzwert ' +
       'überschreiten, und liefert über die nächsten 36 Stunden einen eindeutigen Go/No-Go-Status mit ' +

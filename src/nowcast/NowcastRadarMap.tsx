@@ -71,6 +71,9 @@ interface Props {
   onPlayingChange?: (playing: boolean) => void;
   /** MapLibre-Instanz nach außen reichen (Mobile-Zoom-Buttons im Deck). Additiv. */
   onMapReady?: (m: maplibregl.Map | null) => void;
+  /** Router (RT1): Startkamera aus der Query + Kamera-Meldung nach `moveend`. Additiv. */
+  initialView?: { lat: number; lon: number; zoom: number } | null;
+  onViewChange?: (v: { lat: number; lon: number; zoom: number }) => void;
 }
 
 const LAYER_META: Record<RadarLayerId, { label: string }> = {
@@ -105,7 +108,7 @@ const HEURISTIC_PHASES = new Set<RadarLayerId>(['graupel', 'hail']);
 
 type PointInfo = { lat: number; lon: number; name: string; country: 'DE' | 'AT' | 'CH' };
 
-export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, layers: controlledLayers, onLayersChange, hideLayerbar = false, compact = false, playing: controlledPlaying, onPlayingChange, onMapReady }: Props) {
+export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, layers: controlledLayers, onLayersChange, hideLayerbar = false, compact = false, playing: controlledPlaying, onPlayingChange, onMapReady, initialView, onViewChange }: Props) {
   const last = useMemo(() => loadLastView(), []);
   const [layersUnc, setLayersUnc] = useState<RadarLayerId[]>((last?.layers as RadarLayerId[]) ?? ['precip']);
   // Controlled/uncontrolled-Hybrid: steuert das Dock die Layer, gewinnt dessen
@@ -419,6 +422,7 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
             elevFull={terrain?.elevFull ?? null} snowLineM={snowLineM} snowLineFeatures={snowLineFeatures}
             point={{ lat: point.lat, lon: point.lon }} comparePoint={null}
             onPick={onPick} onHover={(mmH) => setHover(mmH)} onMapRef={(m) => { mapRef.current = m; onMapReady?.(m); }}
+            initialView={initialView} onViewChange={onViewChange}
           />
         ) : (
           <div className="nc-radar-loading">{loadErr ? `⚠ ${loadErr}` : <><span className="ev-spinner" /> Radar wird geladen … (RADOLAN-Komposit)</>}</div>

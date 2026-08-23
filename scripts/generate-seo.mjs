@@ -18,8 +18,11 @@ import { buildLicensePage } from './seo/licenses.mjs';
 import {
   SITE, renderPlacePage, renderHomeRootContent, homeHeadExtras, escapeHtml, metaFor,
   renderExplainerPage, renderWissenHub, renderToolPage, renderFunktionenHub,
-  renderEventPage, renderWetterlageHub, renderLegalPage,
+  renderEventPage, renderWetterlageHub, renderLegalPage, routeHeadExtras, renderRouteRootContent,
 } from './seo/content.mjs';
+// Phase RT1: die App-Routen-Tabelle (echtes TS-Modul, via --experimental-strip-types
+// + register-ts.mjs wie die Verifier) — Route-Shells + Sitemap aus EINER Quelle.
+import { ROUTES, sitemapPaths } from '../src/router/routes.ts';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = join(ROOT, 'dist');
@@ -175,6 +178,8 @@ writeFileSync(join(DIST, '404.html'), notFoundPage(), 'utf8');
 function sitemap() {
   const urls = [
     { loc: `${SITE.url}/`, pri: '1.0' },
+    // App-Routen (Phase RT1): Top-Routen 0.8, Sub-Routen (Layer/Linsen/Ansichten) 0.5 — ohne Query.
+    ...sitemapPaths().map((p) => ({ loc: `${SITE.url}${p.path}`, pri: p.priority })),
     { loc: `${SITE.url}/wetter/`, pri: '0.8' },
     ...PLACES.map((p) => ({ loc: `${SITE.url}/wetter/${p.slug}/`, pri: '0.6' })),
     { loc: `${SITE.url}/wissen/`, pri: '0.7' },
@@ -253,9 +258,27 @@ ${body}
 }
 writeFileSync(join(DIST, 'sitemap-news.xml'), newsSitemap(), 'utf8');
 
-// 4) Home anreichern: Head-Meta/JSON-LD + crawlbarer #root-Inhalt
+// 4a) App-Routen-Shells (Phase RT1): je Pfad-Route eine FLACHE Datei
+// dist/<route>.html aus der unangereicherten Vite-Shell, mit eigenem Title/
+// Description/Canonical/OG/JSON-LD und crawlbarem #root-Inhalt. netlify.toml
+// schreibt /<route> und /<route>/* darauf um (200). Flach statt <route>/index.html,
+// weil „Pretty URLs" sonst auf den End-Slash umleiten würde.
 const indexPath = join(DIST, 'index.html');
-let html = readFileSync(indexPath, 'utf8');
+const rawShell = readFileSync(indexPath, 'utf8');
+let routeShells = 0;
+for (const route of ROUTES) {
+  if (route.id === 'home') continue;
+  let shell = rawShell
+    .replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml(route.meta.title)} | ${SITE.name}</title>`)
+    .replace(/<meta name="description" content="[^"]*" \/>/, `<meta name="description" content="${escapeHtml(route.meta.description)}" />`);
+  if (!shell.includes('og:site_name')) shell = shell.replace('</head>', `    ${routeHeadExtras(route)}\n  </head>`);
+  shell = shell.replace('<div id="root"></div>', `<div id="root">${renderRouteRootContent(route)}</div>`);
+  writeFileSync(join(DIST, `${route.id}.html`), shell, 'utf8');
+  routeShells++;
+}
+
+// 4) Home anreichern: Head-Meta/JSON-LD + crawlbarer #root-Inhalt
+let html = rawShell;
 if (!html.includes('og:site_name')) {
   html = html.replace('</head>', `    ${homeHeadExtras()}\n  </head>`);
 }
@@ -265,5 +288,6 @@ writeFileSync(indexPath, html, 'utf8');
 const fullExplainers = EXPLAINERS.filter((e) => e.status === 'full').length;
 const fullTools = TOOLS.filter((t) => t.status === 'full').length;
 const fullEvents = EVENTS.filter((e) => e.status === 'full').length;
-const urlCount = PLACES.length + 5 + fullExplainers + fullTools + fullEvents + LEGAL_PAGES.length + 1; // +1 = /lizenzen/ (V-104)
-console.log(`[seo] ${pages} Geo, ${explainerPages} Explainer (${fullExplainers} idx), ${toolPages} Tools (${fullTools} idx), ${eventPages} Wetterlage (${fullEvents} idx), ${LEGAL_PAGES.length} Rechtsseiten + Hubs, sitemap.xml (${urlCount} URLs), feed.xml, sitemap-news.xml, Home angereichert. Build ${BUILD_DATE}.`);
+const appUrls = sitemapPaths().length;
+const urlCount = PLACES.length + 5 + appUrls + fullExplainers + fullTools + fullEvents + LEGAL_PAGES.length + 1; // +1 = /lizenzen/ (V-104)
+console.log(`[seo] ${pages} Geo, ${explainerPages} Explainer (${fullExplainers} idx), ${toolPages} Tools (${fullTools} idx), ${eventPages} Wetterlage (${fullEvents} idx), ${LEGAL_PAGES.length} Rechtsseiten + Hubs, ${routeShells} App-Routen-Shells (${appUrls} URLs), sitemap.xml (${urlCount} URLs), feed.xml, sitemap-news.xml, Home angereichert. Build ${BUILD_DATE}.`);

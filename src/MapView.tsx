@@ -1,6 +1,5 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { LayerKey } from './map/layerTypes';
-import { encodeMapState } from './mapState';
 // V-19/V-20: Datenalter statt Abrufzeit + Sichtbarkeit des Warm-Manifests.
 import { dataAgeText, isStale, oldestRef, ageText, type DataRef } from './dataAge';
 import { getManifestHealth, subscribeManifestHealth, type ManifestHealth } from './sources/manifestHealth';
@@ -19,11 +18,11 @@ import { loadFusedForecast, type ModelChoice } from './fusion/loadFusedForecast'
 import {
   initialModelSourceState, isFusionCapable, resolveModel, activeModelId,
   setGlobalSource, setLayerOverride, clearLayerOverride,
-  setActiveCountry, setCountryModel, clearCountryModel, toggleRadar,
+  setActiveCountry, setCountryModel, clearCountryModel, toggleRadar, setRadar,
   resolvePointSource, setPointSource,
   type ModelSource, type ModelSourceState,
 } from './fusion/modelSource';
-import { modelEntry, RADAR_SOURCE, type ModelId } from './fusion/modelCatalog';
+import { modelEntry, isWhitelisted, RADAR_SOURCE, type ModelId } from './fusion/modelCatalog';
 import { lerpFrameImage } from './fusion/frameInterp';
 import { COUNTRY_PROFILES, DACH_VIEW } from './countryProfiles';
 import { loadDachMask } from './countryMask';
@@ -651,6 +650,23 @@ export type { LayerKey };
 // Werkzeugen navigieren — nicht mehr nur zu Nowcast/Forecast/Event.
 export type MapDeckFeature = RailFeature;
 
+/** Router (RT1): Kamera der Karte — Mitte + Zoom (Query `lat`/`lon`/`z`). */
+export interface MapCameraView { lat: number; lon: number; zoom: number }
+/** Router (RT1): Startwerte des Modell-Switchers aus der Query (`land`, `modell`, `mode`, `radar`). */
+export interface MapModelInit { country?: Country | null; model?: string | null; point?: ModelSource; radar?: boolean }
+
+/** Query-Werte über die BESTEHENDEN Reducer anwenden (Whitelist-gated, ungültige Werte verfallen still). */
+function applyModelSourceInit(s: ModelSourceState, init?: MapModelInit | null): ModelSourceState {
+  if (!init) return s;
+  let n = s;
+  if (init.country) n = setActiveCountry(n, init.country);
+  if (init.model && isWhitelisted(init.model)) n = setCountryModel(n, n.country, init.model);
+  else if (init.model === null) n = clearCountryModel(n, n.country);
+  if (init.point) n = setPointSource(n, init.point);
+  if (typeof init.radar === 'boolean') n = setRadar(n, init.radar);
+  return n;
+}
+
 interface Props {
   location: Location;
   onBack?: () => void;
@@ -675,6 +691,22 @@ interface Props {
   /** Übersichts-Modus (Kachel „2D-Karte" ohne gewählten Ort): kein Orts-Marker,
    *  kein Punktforecast-Panel — nur die DACH-Karte mit den Wetter-Layern. */
   overview?: boolean;
+  // --- Router (Phase RT1) — alle additiv, MapView bleibt router-agnostisch ---------
+  /** Extern gesteuertes Layer-Set (URL). Wird nur gespiegelt, wenn es sich vom
+   *  internen Set unterscheidet (Muster `embeddedLayer`) — schleifenfrei. */
+  routeLayers?: readonly LayerKey[];
+  /** Nutzer hat Layer umgeschaltet: neues Set + der eingeschaltete Layer (null = ausgeschaltet). */
+  onLayersChange?: (layers: LayerKey[], added: LayerKey | null) => void;
+  /** Slider-Stunde von außen (nur Zurück/Vorwärts); undefined = nicht steuern. */
+  routeHour?: number;
+  onHourChange?: (hour: number) => void;
+  /** Startkamera (überstimmt DACH-Fit/Default); danach führt die Karte. */
+  initialView?: MapCameraView | null;
+  onViewChange?: (view: MapCameraView) => void;
+  initialModelSource?: MapModelInit | null;
+  /** Modellquelle von außen (nur Zurück/Vorwärts). */
+  routeModelSource?: MapModelInit;
+  onModelSourceChange?: (state: ModelSourceState) => void;
 }
 
 const LAYER_OPTIONS: { key: LayerKey; label: string; title: string }[] = [
@@ -812,16 +844,27 @@ function visiblePlaceLabels(map: maplibregl.Map, skip: Set<string>): PlaceLabel[
   return out;
 }
 
-export default function MapView({ location, onBack, onOpenFeature, onSelectLocation, embedded = false, initialActive, initialHour, embedHourRange, embeddedLayer, overview = false }: Props) {
+export default function MapView({
+  location, onBack, onOpenFeature, onSelectLocation, embedded = false, initialActive, initialHour, embedHourRange, embeddedLayer, overview = false,
+  routeLayers, onLayersChange, routeHour, onHourChange, initialView, onViewChange, initialModelSource, routeModelSource, onModelSourceChange,
+}: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const markerRef = useRef<Marker | null>(null);
 
   // Start-Layer: im Nur-Jetzt-Testmodus AUSSCHLIESSLICH Wind (Jans Vorgabe:
   // beim Start nur der DWD-Windlayer fürs Jetzt, sonst keine Daten). Sonst
-  // ebenfalls Wind. Permalinks (#m=) bleiben unangetastet (initialActive).
+  // ebenfalls Wind. Permalinks bleiben unangetastet (initialActive aus der URL).
   const [active, setActive] = useState<Set<LayerKey>>(() =>
     new Set<LayerKey>(initialActive ?? ['wind']));
+  // Router (RT1): Rückkanäle als Ref (die []-Effekte lesen sie ohne Stale-Closure),
+  // der zuletzt EINgeschaltete Layer (= Hauptlayer im Pfad) und das Spiegel-Flag,
+  // das einen von außen (URL/Zurück) gesetzten Layerwechsel nicht wieder nach
+  // außen meldet — sonst entstünde auf „Zurück" ein neuer History-Eintrag.
+  const routeCbRef = useRef({ onLayersChange, onHourChange, onViewChange, onModelSourceChange });
+  routeCbRef.current = { onLayersChange, onHourChange, onViewChange, onModelSourceChange };
+  const lastAddedRef = useRef<LayerKey | null>(null);
+  const mirrorRef = useRef(false);
   // Hover/Fokus auf einer Dock-Zeile. Seit Phase KD-R (audit/karten-readout.md)
   // öffnet das kein Overlay mehr über der Karte: Ist der Layer inaktiv, blendet
   // die Readout-Spalte seine Beschreibung an ihrer Ordnungsposition als Vorschau
@@ -940,7 +983,7 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
   const [playing, setPlaying] = useState(false);
   // Fusion⇄Native/Per-Land-Modellquelle je Kartenlayer (docs/model-switcher-gate0.md).
   // Globaler Default (Start `native`), Per-Land-Wahl (`perCountry`) + Per-Layer-Override.
-  const [modelSource, setModelSource] = useState<ModelSourceState>(() => initialModelSourceState());
+  const [modelSource, setModelSource] = useState<ModelSourceState>(() => applyModelSourceInit(initialModelSourceState(), initialModelSource));
   const modelSourceRef = useRef(modelSource);
   modelSourceRef.current = modelSource;
   // „Engine-Raster aktiv für Layer X?" = das resolvte Modell ist engine-gerastert
@@ -1160,6 +1203,7 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
     atMs != null && Number.isFinite(atMs) ? { atMs, kind: 'measured' } : undefined;
 
   function toggle(key: LayerKey) {
+    lastAddedRef.current = active.has(key) ? null : key;
     setActive(prev => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
@@ -1226,8 +1270,9 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
       // addDimOverlay) — Liberty-Detail (Gebäude, POI-Icons) geht darunter
       // optisch sowieso unter, kostet aber trotzdem Rechenzeit.
       style: 'https://tiles.openfreemap.org/styles/positron',
-      center: embedded ? [location.lon, location.lat] : DACH_VIEW.defaultCenter,
-      zoom: embedded ? 7.4 : DACH_VIEW.defaultZoom,
+      // Router (RT1): eine Kamera aus der URL (`lat`/`lon`/`z`) gewinnt gegen Default und DACH-Fit.
+      center: initialView ? [initialView.lon, initialView.lat] : embedded ? [location.lon, location.lat] : DACH_VIEW.defaultCenter,
+      zoom: initialView ? initialView.zoom : embedded ? 7.4 : DACH_VIEW.defaultZoom,
       pixelRatio: coarsePointer ? Math.min(dpr, 1.5) : dpr,
       // Load tuning. The OpenFreeMap basemap is effectively static, so don't
       // spend requests re-fetching expired tiles in the background. fadeDuration
@@ -1241,6 +1286,14 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
 
     map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-left');
 
+    // Router (RT1): Kamera nach jeder Bewegung melden — der Wrapper schreibt sie
+    // debounced (≥ 300 ms) per replaceState in die Query, nie als History-Eintrag.
+    // `map.remove()` im Cleanup löst den Listener mit auf.
+    map.on('moveend', () => {
+      const c = map.getCenter();
+      routeCbRef.current.onViewChange?.({ lat: c.lat, lon: c.lng, zoom: map.getZoom() });
+    });
+
     // Startansicht: DACH exakt einpassen statt fester Zoomstufe (Jans Auftrag
     // 2026-08-09). Ein fester Zoom passt nur zu EINEM Seitenverhältnis — auf
     // schmalen/hohen Handy-Feldern schnitt er DE/AT/CH an, auf breiten Desktops
@@ -1248,7 +1301,7 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
     // Feldgröße; das Padding hält die Ränder frei von Deck-Chrome (Dock/Sheet).
     // Der Permalink-/Standort-Fall (embedded, initialHour, gewählter Ort) bleibt
     // unberührt — hier greift nur der Übersichts-Start.
-    if (!embedded && overview) {
+    if (!embedded && overview && !initialView) {
       const fitDach = () => {
         const c = map.getContainer();
         const narrowField = c.clientWidth < 768;
@@ -4247,9 +4300,11 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
   }, [forecast, active, nowcastTick]);
 
   // Wenn der Horizont schrumpft (Niederschlag deaktiviert), Slider zurückholen.
+  // Erst wenn der Forecast da ist: vorher ist `sliderMax` 0 und würde eine aus
+  // der URL (`t`) wiederhergestellte Stunde noch vor dem ersten Frame auf 0 klemmen (V-R-07).
   useEffect(() => {
-    if (forecastHour > sliderMax) setForecastHour(sliderMax);
-  }, [sliderMax, forecastHour]);
+    if (forecast && forecastHour > sliderMax) setForecastHour(sliderMax);
+  }, [forecast, sliderMax, forecastHour]);
 
   // Testmodus „Nur-Jetzt": Forecast-Frames (bis +NOWONLY_AHEAD_H) NACH BEDARF —
   // erst wenn der Nutzer den Slider das erste Mal von „jetzt" wegbewegt, das
@@ -4309,14 +4364,52 @@ export default function MapView({ location, onBack, onOpenFeature, onSelectLocat
     return () => { cancelAnimationFrame(raf); clearTimeout(t); ro.disconnect(); };
   }, [embedded]);
 
-  // Permalink: aktuellen Kartenzustand (Ort · Layer · Stunde) in den Hash
-  // schreiben — nur in der Vollansicht; eingebettet gehört der Hash dem
-  // umgebenden Feature (z. B. der Event-Ergebnisseite).
+  // Router (RT1): Permalink ist jetzt Pfad + Query (`src/router/urlState.ts`) und
+  // wird vom Route-Wrapper geschrieben — MapView MELDET nur. Der frühere
+  // `#m=`-Schreiber ist damit ersetzt; `decodeMapState` bleibt für Alt-Links.
+  //
+  // (1) Layer-Set von außen spiegeln (URL / Zurück), nur bei echter Differenz.
+  const routeLayersKey = routeLayers ? [...routeLayers].sort().join(',') : null;
   useEffect(() => {
+    if (routeLayersKey == null || !routeLayers) return;
+    if ([...active].sort().join(',') === routeLayersKey) return;
+    mirrorRef.current = true;
+    setActive(new Set<LayerKey>(routeLayers));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeLayersKey]);
+  // (2) Nutzer-Layerwechsel melden (nicht beim Mount, nicht nach einem Spiegel-Lauf).
+  const prevActiveRef = useRef(active);
+  useEffect(() => {
+    if (prevActiveRef.current === active) return;
+    prevActiveRef.current = active;
+    if (mirrorRef.current) { mirrorRef.current = false; return; }
     if (embedded) return;
-    const hash = encodeMapState({ location, layers: [...active], hour: forecastHour });
-    if (window.location.hash !== hash) window.history.replaceState(null, '', hash);
-  }, [embedded, location, active, forecastHour]);
+    routeCbRef.current.onLayersChange?.([...active], lastAddedRef.current);
+  }, [active, embedded]);
+  // (3) Stunde: melden + von außen (Zurück) übernehmen.
+  const prevHourRef = useRef(forecastHour);
+  useEffect(() => {
+    if (prevHourRef.current === forecastHour) return;
+    prevHourRef.current = forecastHour;
+    if (!embedded) routeCbRef.current.onHourChange?.(forecastHour);
+  }, [forecastHour, embedded]);
+  useEffect(() => {
+    if (routeHour == null) return;
+    if (Math.abs(routeHour - forecastHourRef.current) > 0.05) setForecastHour(routeHour);
+  }, [routeHour]);
+  // (4) Modellquelle: melden + von außen (Zurück) übernehmen.
+  const prevModelRef = useRef(modelSource);
+  useEffect(() => {
+    if (prevModelRef.current === modelSource) return;
+    prevModelRef.current = modelSource;
+    if (!embedded) routeCbRef.current.onModelSourceChange?.(modelSource);
+  }, [modelSource, embedded]);
+  const routeModelKey = routeModelSource ? JSON.stringify(routeModelSource) : null;
+  useEffect(() => {
+    if (!routeModelSource) return;
+    setModelSource((s) => applyModelSourceInit(s, routeModelSource));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeModelKey]);
 
 
   // Mobile (<768px / kurzes Landscape): EIN persistentes Bottom-Sheet mit
