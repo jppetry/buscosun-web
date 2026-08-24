@@ -31,3 +31,5 @@ deno.lock
 .cache/
 # BH1: Ereignisdatei der Brand-Historie (188 MB, reproduzierbar aus .cache/) — nur der Report wird committet
 data/fire/bh/events.jsonl
+# BW-1: Repack-Ausgabe (5,4 MiB je Lauf, reproduzierbar aus .cache/repack/)
+data/repack/

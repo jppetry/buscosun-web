@@ -36,8 +36,13 @@
  * `WIND_AGREE_DEG` um die Windrichtung („wohin" = met. Richtung + 180°), gilt
  * `agree`; weicht sie mehr als `WIND_DISAGREE_DEG` ab, `disagree` — dann ist
  * entweder der Schwerpunkt durch einen Detektionsausfall verzerrt oder es sind
- * zwei Feuer. Dazwischen `null`. Der Wind kommt vom Aufrufer (ICON-D2 des
- * Windgitters der Ausbreitung `fireSpread`, nur wenn ein Frame ±3 h um den Überflug liegt).
+ * zwei Feuer. Dazwischen `null`. Der Wind kommt vom Aufrufer (nur wenn ein
+ * Frame ±3 h um den Überflug liegt).
+ *
+ * ⚠️ Seit dem Rückzug von Feuerwetter + Ausbreitung (2026-08-23) lädt die
+ * Waldbrandseite KEIN Windgitter mehr — `windAt` bleibt dort undefiniert und
+ * das Windflag damit dauerhaft `null` (mit seinem benannten Grund, nie 0).
+ * Diese Funktion bleibt unverändert nutzbar, sobald ein Aufrufer wieder Wind liefert.
  *
  * Pur, DOM-frei, ohne `Date.now()` — `npm run verify:fire-activity`.
  */

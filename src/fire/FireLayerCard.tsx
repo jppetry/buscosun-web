@@ -25,8 +25,6 @@ import {
   SOIL_DRYNESS_CLASSES, SOIL_MODE_FULL_LABEL, type SoilDrynessMode,
 } from '../sources/iconD2Smi';
 import { STATUS_COLOR, STATUS_LABEL } from './footprint/fireRegistry';
-import { FIRE_WEATHER_AHEAD_H } from '../sources/iconD2FireWeather';
-import { FAN_CAVEAT, FUEL_ASSUMPTION_NOTE, SPREAD_CAVEAT } from './spread/spreadText';
 
 export interface FireLayerInfo {
   eyebrow: string;
@@ -241,25 +239,6 @@ export const FIRE_LAYER_INFO: Record<FireLayerId, FireLayerInfo> = {
         <Row swatch={<i className="fire-li-fp is-mapped" />} label="harte Kontur: von EFFIS kartiert (ha gemessen)" />
         <Row swatch={<i className="fire-li-fp is-raster" />} label="gestrichelt: Detektionsraster — „bis … ha“, eine Obergrenze" />
         <Row swatch={<i className="fire-li-fp is-static" />} label="grau: überwiegend ortsfest — Vorbehalt, kein Ausschluss" />
-      </>
-    ),
-  },
-  /**
-   * SF1 — Ausbreitungsrichtung aktiver Brände. Der Steckbrief trägt den
-   * Pflichtsatz `SPREAD_CAVEAT` WORTGLEICH mit Panel und Kartennotiz: eine
-   * Aussage, die an nur einer von zwei Stellen steht, ist ein Widerspruch.
-   */
-  fireSpread: {
-    eyebrow: 'Ausbreitung · Modell',
-    label: 'Ausbreitungsrichtung',
-    short: `ICON-D2-Wind + stündlicher ISI + Höhenmodell · FBP (Forestry Canada 1992 / Wotton u. a. 2009) · jetzt bis +${FIRE_WEATHER_AHEAD_H} h`,
-    note: `${SPREAD_CAVEAT} ${FAN_CAVEAT} ${FUEL_ASSUMPTION_NOTE} Gerechnet wird nur für Brände mit aktuellem Satellitensignal, und nur bis zu einem Deckel — Brände ohne Pfeil tragen ihren Grund in der Brandliste. Klick auf die Karte: Punktkurve aus dem buscosun-Punkt-Forecast.`,
-    legend: (
-      <>
-        <Row swatch={<i className="fire-li-spread-arrow" />} label="Richtung des Kopffeuers (Wind + Hang)" />
-        <Row swatch={<i className="fire-li-spread-arrow is-unsure" />} label="Richtung unsicher — der Wind dreht oder der Hang streut" />
-        <Row swatch={<i className="fire-li-spread-fan" />} label="Fächer: mögliche Richtung und Reichweite — keine Brandfläche" />
-        <Row swatch={<i className="fire-li-spread-none" />} label="kein Pfeil = keine Aussage; der Grund steht in der Brandliste" />
       </>
     ),
   },

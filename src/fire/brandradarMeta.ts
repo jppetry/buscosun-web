@@ -14,7 +14,6 @@
 import type { FireLayerId } from './fireModel';
 import type { DangerView } from './dangerViews';
 import { DANGER_VIEWS } from './dangerViews';
-import { FIRE_WEATHER_AHEAD_H } from '../sources/iconD2FireWeather';
 import type { FireStatusKind } from './footprint/fireRegistry';
 
 /** Farbfamilien der Vorlage — als Token-Namen, aufgelöst in `fireDeck.css`. */
@@ -98,15 +97,6 @@ export const BR_LAYER: Record<FireLayerId, BrLayerMeta> = {
     reference: 'DWD ICON-D2 smi · Oberboden bis 9 cm / Wurzelzone bis 81 cm · 2,2 km · bis +24 h',
     limit: 'Modellwert, keine Messung — es gibt kein flächendeckendes Bodenfeuchte-Messnetz. Ein Treiber, kein Index und kein amtliches Warnprodukt; Wasser, Fels und Eis bleiben leer.',
     fallback: NO_DATA,
-  },
-  fireSpread: {
-    label: 'Ausbreitungsrichtung', shortLabel: 'Ausbreitung', sub: 'FBP · Pfeil + Unsicherheitsfächer', color: 'terra',
-    group: 'Ausbreitung (Modell)', title: 'Ausbreitungsrichtung (FBP)',
-    question: 'In welche Richtung würde sich ein aktiver Brand bei diesem Wetter und Gelände am schnellsten ausbreiten?',
-    unit: 'Richtung (Pfeil), Fächer = Unsicherheit, Reichweite als Spanne über vier Brennstofftypen',
-    reference: `ICON-D2-Wind + stündlicher ISI + Höhenmodell · FBP (Forestry Canada 1992 / Wotton u. a. 2009) · jetzt bis +${FIRE_WEATHER_AHEAD_H} h`,
-    limit: 'Modellrechnung — keine Brandfront, keine gefährdete Fläche, keine Warnung, kein amtliches Produkt. Der Bewuchs ist eine Annahme; ohne Vortagsgedächtnis ist die Reichweite eine Untergrenze.',
-    fallback: 'Ohne Wind-Frame, Gelände oder Satellitensignal gibt es keinen Pfeil — und die Brandliste nennt den Grund. Kein Pfeil heißt nie „keine Ausbreitung".',
   },
   fireAnomalies: {
     label: 'Thermalanomalien', shortLabel: 'Anlagen', sub: 'Standorte persistenter Wärmequellen · Archiv 2020–2026', color: 'stone',

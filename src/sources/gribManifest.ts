@@ -42,7 +42,13 @@ const MAX_MANIFEST_RUN_AGE_H = 24;
  *  30-min-Refresh-Tick einen neuen Warm-Lauf zeitnah sieht. */
 const MANIFEST_TTL_MS = 60 * 1000;
 
-interface ParsedManifest { run: string; runAt: Date; params: Record<string, number[]>; updatedAt: Date | null }
+interface ParsedManifest {
+  run: string; runAt: Date; params: Record<string, number[]>; updatedAt: Date | null;
+  /** BW-3: der `repack`-Abschnitt, ROH durchgereicht. Geprüft wird er dort, wo
+   *  er gebraucht wird (`repackSource.parseRepackSection`) — dieser Resolver
+   *  kennt weder CDN noch Bildformat und soll es auch nicht. */
+  repack: unknown;
+}
 const manifestCache = new Map<string, { at: number; p: Promise<ParsedManifest | null> }>();
 
 /** `YYYYMMDDHH` → UTC-Date. */
@@ -61,7 +67,7 @@ async function fetchManifest(url: string): Promise<ParsedManifest | null> {
     // Fetch ist ~1 KB same-origin).
     const res = await fetch(url, { cache: 'no-store' });
     if (!res.ok) return null;
-    const m = await res.json() as { run?: unknown; runAt?: unknown; updatedAt?: unknown; params?: unknown };
+    const m = await res.json() as { run?: unknown; runAt?: unknown; updatedAt?: unknown; params?: unknown; repack?: unknown };
     if (typeof m.run !== 'string' || !/^\d{10}$/.test(m.run)) return null;
     if (m.params == null || typeof m.params !== 'object' || Array.isArray(m.params)) return null;
     const runAt = typeof m.runAt === 'string' ? new Date(m.runAt) : parseRunStr(m.run);
@@ -84,10 +90,38 @@ async function fetchManifest(url: string): Promise<ParsedManifest | null> {
     // Guard oben (der hängt an der Lauf-Referenzzeit, nicht am Schreibzeitpunkt).
     const upd = typeof m.updatedAt === 'string' ? new Date(m.updatedAt) : null;
     const updatedAt = upd && !Number.isNaN(upd.getTime()) ? upd : null;
-    return { run: m.run, runAt, params, updatedAt };
+    return { run: m.run, runAt, params, updatedAt, repack: m.repack ?? null };
   } catch {
     return null;   // Netzfehler / JSON-Parse → Fallback auf Directory-Scan
   }
+}
+
+/** Geteilter Zugang zum Cache — beide Leser (Lauf und `repack`-Abschnitt)
+ *  teilen sich EIN Fetch-Promise je TTL-Fenster. */
+async function getManifest(url: string): Promise<ParsedManifest | null> {
+  const now = Date.now();
+  let entry = manifestCache.get(url);
+  if (!entry || now - entry.at > MANIFEST_TTL_MS) {
+    entry = { at: now, p: fetchManifest(url) };
+    manifestCache.set(url, entry);
+  }
+  const manifest = await entry.p;
+  // Fehlversuch nicht bis zum TTL-Ende festhalten — nächster Aufrufer probiert neu.
+  if (!manifest && manifestCache.get(url) === entry) manifestCache.delete(url);
+  return manifest;
+}
+
+/**
+ * BW-3: der rohe `repack`-Abschnitt desselben Manifests — über DENSELBEN
+ * 60-s-Cache, also ohne zweiten Abruf. `null` heißt „kein Abschnitt", und das
+ * ist zwischen DWD-Veröffentlichung und Producer-Lauf der Normalfall
+ * (`audit/bandbreite.md` §22.4), kein Defekt. Der Manifest-Zustand wird hier
+ * bewusst NICHT gemeldet — das tut `resolveRunFromManifest` bereits, und ein
+ * zweiter Melder derselben Datei würde die Gesundheitsanzeige doppelt zählen.
+ */
+export async function readManifestRepack(url: string): Promise<unknown> {
+  const manifest = await getManifest(url);
+  return manifest?.repack ?? null;
 }
 
 /**
@@ -102,16 +136,8 @@ export async function resolveRunFromManifest(
   signal?: AbortSignal,
 ): Promise<ManifestRun | null> {
   if (signal?.aborted) return null;
-  const now = Date.now();
-  let entry = manifestCache.get(url);
-  if (!entry || now - entry.at > MANIFEST_TTL_MS) {
-    entry = { at: now, p: fetchManifest(url) };
-    manifestCache.set(url, entry);
-  }
-  const manifest = await entry.p;
+  const manifest = await getManifest(url);
   if (!manifest) {
-    // Fehlversuch nicht bis zum TTL-Ende festhalten — nächster Aufrufer probiert neu.
-    if (manifestCache.get(url) === entry) manifestCache.delete(url);
     reportManifest(url, 'absent');   // V-20: der Aufrufer fällt auf den Directory-Scan
     return null;
   }

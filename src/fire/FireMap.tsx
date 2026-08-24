@@ -33,11 +33,6 @@ import {
 } from '../wind/iconD2WindSource';
 import { soilDrynessRamp, ICON_D2_SMI_ATTRIBUTION } from '../sources/iconD2Smi';
 import { drynessRamp, RELHUM_DRY_FROM, RELHUM_MAX } from '../sources/iconD2Relhum';
-import {
-  FIRE_SPREAD_ATTRIBUTION, SPREAD_ARROW_IMAGE_ID, SPREAD_ARROW_IMAGE_IDS,
-  SPREAD_ARROW_LAYER_ID, SPREAD_ARROW_UNSURE_SUFFIX, SPREAD_FAN_LAYER_ID,
-  SPREAD_FAN_LINE_LAYER_ID, SPREAD_SOURCE_ID, makeSpreadArrowImage,
-} from './spread/spreadLayer';
 // TA5: Standort-Rauten (Symbol-Layer mit gezeichneten Sprites, Muster Ausbreitungspfeil).
 import {
   ANOMALY_SOURCE_ID, ANOMALY_LAYER_ID, ANOMALY_SEL_LAYER_ID, ANOMALY_IMAGE_ID, ANOMALY_IMAGE_IDS, ANOMALY_VARIANTS,
@@ -145,12 +140,6 @@ const GL_LAYERS: Record<FireLayerId, string[]> = {
   fireFootprints: [
     'fire-footprints-fill', 'fire-footprints-line', 'fire-footprints-hover-line', 'fire-footprints-sel-line',
   ],
-  // SF1: ein echter Symbol-Layer (kein Custom-GL-Layer) plus der Fächer und
-  // der leere Lizenzträger. Reihenfolge = Zeichenreihenfolge im selben Z-Band:
-  // Fächerfläche, Fächerkontur, dann die Pfeile obenauf.
-  fireSpread: [
-    'fire-spread-attrib', SPREAD_FAN_LAYER_ID, SPREAD_FAN_LINE_LAYER_ID, SPREAD_ARROW_LAYER_ID,
-  ],
   // TA5: Symbol-Layer (Raute je Standort) + Auswahlring als Filter-Layer.
   fireAnomalies: [ANOMALY_LAYER_ID, ANOMALY_SEL_LAYER_ID],
 };
@@ -171,10 +160,6 @@ const GL_LAYERS: Record<FireLayerId, string[]> = {
  */
 const ATTRIB_CARRIERS: readonly { layerId: string; sourceId: string; attribution: string }[] = [
   { layerId: 'fire-soil-attrib', sourceId: 'fire-soil-attr', attribution: ICON_D2_SMI_ATTRIBUTION },
-  // SF1: der Symbol-Layer trägt zwar eine Source, aber sein Fächer und seine
-  // Pfeile stammen aus EINER eigenen Rechnung über zwei Fremdquellen (ICON-D2
-  // und Höhenmodell) — die Zeile nennt beide und den Modellvorbehalt.
-  { layerId: 'fire-spread-attrib', sourceId: 'fire-spread-attr', attribution: FIRE_SPREAD_ATTRIBUTION },
 ];
 
 /**
@@ -278,12 +263,6 @@ interface Props {
    */
   soil: { image: HTMLCanvasElement; width: number; height: number;
     uvBounds: [number, number, number, number] } | null;
-  /**
-   * SF1 — die Ausbreitungspfeile und -fächer als GeoJSON (`spreadToGeoJSON`),
-   * **memoisiert** vom Aufrufer (V-220). Ein Brand ohne Aussage liefert hier
-   * KEIN Feature; sein Grund steht im Panel, nicht als Platzhalter auf der Karte.
-   */
-  spreadFc?: GeoJSON.FeatureCollection | null;
   /** TA5: die Standorte persistenter Wärmequellen (eine Raute je Standort) + Auswahl + Klick. */
   anomalyFc?: GeoJSON.FeatureCollection | null;
   selectedSiteId?: string | null;
@@ -296,12 +275,6 @@ interface Props {
   historyFc?: GeoJSON.FeatureCollection | null;
   selectedHistoryId?: string | null;
   onSelectHistory?: (id: string) => void;
-  /**
-   * WF4 — Klick auf die Karte bei aktivem Forecast-Layer: die Stelle, für die
-   * die Punktkurve aus dem Punkt-Forecast der Fusion geholt wird. Läuft VOR der
-   * Popup-Kette und greift nicht in sie ein (Muster `onSelectCluster`).
-   */
-  onPointForecast?: (lng: number, lat: number) => void;
   /** Tag, der als Nächstes gebraucht wird — wird im Leerlauf vorgeladen. */
   prefetchIsoDate?: string | null;
   /** Meldet die Geräteklasse, sobald der GL-Kontext steht (fuer die Abspielrate). */
@@ -362,7 +335,6 @@ export default function FireMap({
   burntBuckets, burntLookup, burntWeek, zoneEstimates = EMPTY_ZONE_EST,
   fireEvents = EMPTY_EVENTS, emsActs = EMPTY_EMS, atContexts = EMPTY_CTX, clcMask = null,
   weather, soil, prefetchIsoDate, onTier, onMapRef,
-  spreadFc = null, onPointForecast,
   anomalyFc = null, selectedSiteId = null, onSelectSite,
   historyFc = null, selectedHistoryId = null, onSelectHistory,
 }: Props) {
@@ -403,14 +375,14 @@ export default function FireMap({
     active, isoDate, hotspots, hotspotFootprints, fireZones, zoneFc,
     clusters, clusterFc, selectedClusterId, footprintFc, hoverFootprintId, selectedFootprintId,
     hotspotProvider, dangerView, burntSeason, burntArchive, burntWeekFc, burntBuckets, burntLookup, burntWeek, zoneEstimates, weather,
-    soil, spreadFc, fireEvents, emsActs, atContexts, clcMask,
+    soil, fireEvents, emsActs, atContexts, clcMask,
     anomalyFc, selectedSiteId, historyFc, selectedHistoryId,
   });
   stateRef.current = {
     active, isoDate, hotspots, hotspotFootprints, fireZones, zoneFc,
     clusters, clusterFc, selectedClusterId, footprintFc, hoverFootprintId, selectedFootprintId,
     hotspotProvider, dangerView, burntSeason, burntArchive, burntWeekFc, burntBuckets, burntLookup, burntWeek, zoneEstimates, weather,
-    soil, spreadFc, fireEvents, emsActs, atContexts, clcMask,
+    soil, fireEvents, emsActs, atContexts, clcMask,
     anomalyFc, selectedSiteId, historyFc, selectedHistoryId,
   };
   /** Der Auswahl-Rückruf, so wie er JETZT ist — der Klick-Handler wird einmal
@@ -432,10 +404,6 @@ export default function FireMap({
   /** WT1 — der ScalarLayer der Bodentrockenheit. Eine Instanz über Stilwechsel
    *  hinweg, genau wie der Treiber (MapLibre verwirft Custom-Layer beim setStyle). */
   const soilLayerRef = useRef<ScalarLayer | null>(null);
-  /** WF4 — der ScalarLayer des stündlichen ISI. Eine Instanz über Stilwechsel. */
-  /** WF4 — der Klick-Haken für die Punktkurve (einmal registriert, s. onSelectCluster). */
-  const onPointForecastRef = useRef(onPointForecast);
-  onPointForecastRef.current = onPointForecast;
   /** Für welchen Tag UND welche Sub-Ansicht hängt die Raster-Quelle gerade? */
   const rasterDayRef = useRef<string | null>(null);
   /** Der offene Detektions-Steckbrief — höchstens einer gleichzeitig. */
@@ -475,7 +443,6 @@ export default function FireMap({
       ['fire-burnt-season', s.burntSeason], ['fire-burnt-archive', s.burntArchive],
       ['fire-burnt-week', s.burntWeekFc],
       ['fire-footprints', s.footprintFc],
-      [SPREAD_SOURCE_ID, s.spreadFc],
       [ANOMALY_SOURCE_ID, s.anomalyFc],
       [HISTORY_SOURCE_ID, s.historyFc],
     ];
@@ -704,28 +671,6 @@ export default function FireMap({
        * der Klick eine Brandfläche, wird sie gemeldet; den gegenseitigen
        * Ausschluss zur Cluster-Auswahl regelt die Seite in ihren Settern.
        */
-      /**
-       * WF4/SF1 — die Punktkurve: derselbe Platz und dieselbe Regel wie die
-       * beiden Auswahl-Blöcke — vor der Popup-Kette, ohne `return`, ohne Popup.
-       * Ein Klick auf die Karte holt den Punkt-Forecast der Fusion für DIESE
-       * Stelle; alles darunter bleibt unberührt. Sie hing an der zurückgezogenen
-       * Rasterfläche und hängt jetzt am Ausbreitungslayer — sie ist ein Hinweis,
-       * keine Fläche, und geht mit dem Rückzug NICHT verloren.
-       */
-      if (onPointForecastRef.current && s.active.has('fireSpread')) {
-        onPointForecastRef.current(ev.lngLat.lng, ev.lngLat.lat);
-      }
-
-      /**
-       * SF1 — Klick auf einen Pfeil wählt seinen Brand aus. Kein vierter
-       * Popup-Dialekt: die Auswahl führt in DIESELBE Detailkarte im Panel wie
-       * ein Klick auf die Brandfläche.
-       */
-      if (onSelectFootprintRef.current && map.getLayer(SPREAD_ARROW_LAYER_ID)) {
-        const arrows = map.queryRenderedFeatures(ev.point, { layers: [SPREAD_ARROW_LAYER_ID] });
-        const id = arrows.length > 0 ? String(arrows[0].properties?.id ?? '') : null;
-        if (id && id !== s.selectedFootprintId) onSelectFootprintRef.current(id);
-      }
       // BH3: ein Historie-Punkt — nur im Historie-Modus sichtbar und damit klickbar.
       if (onSelectHistoryRef.current && s.historyFc && map.getLayer(HISTORY_LAYER_ID)) {
         const hs = map.queryRenderedFeatures(ev.point, { layers: [HISTORY_LAYER_ID] });
@@ -856,7 +801,7 @@ export default function FireMap({
         .addTo(map);
     });
     map.on('mousemove', (ev) => {
-      const layers = present(['fire-hotspots-points', 'fire-hotspots-zone-fill', 'fire-clusters-fill', 'fire-footprints-fill', SPREAD_ARROW_LAYER_ID, ANOMALY_LAYER_ID, ...BURNT_FILLS]);
+      const layers = present(['fire-hotspots-points', 'fire-hotspots-zone-fill', 'fire-clusters-fill', 'fire-footprints-fill', ANOMALY_LAYER_ID, ...BURNT_FILLS]);
       if (layers.length === 0) return;
       const over = map.queryRenderedFeatures(ev.point, { layers }).length > 0;
       map.getCanvas().style.cursor = over ? 'pointer' : '';
@@ -973,7 +918,7 @@ export default function FireMap({
     const m = mapRef.current;
     if (m) applyState(m);
   }, [active, isoDate, hotspots, dangerView,
-    burntSeason, burntArchive, burntBuckets, weather, soil, spreadFc, day,
+    burntSeason, burntArchive, burntBuckets, weather, soil, day,
     // BP2: neue Referenzen der Registry sofort, nicht erst beim nächsten `idle`.
     footprintFc, selectedFootprintId,
     // TA5: Standorte und ihre Auswahl.
@@ -1261,7 +1206,7 @@ function installLayers(map: maplibregl.Map, basemap: FireBasemap = 'streets') {
   for (const id of ['fire-hotspots',
     'fire-hotspots-foot', 'fire-hotspots-zone', 'fire-clusters',
     'fire-burnt-season', 'fire-burnt-archive', 'fire-burnt-week', 'fire-footprints',
-    SPREAD_SOURCE_ID]) {
+    ]) {
     if (!map.getSource(id)) map.addSource(id, { type: 'geojson', data: EMPTY_FC });
   }
   // TA5: die Standortquelle trägt ihre Lizenzzeilen selbst (echte Quelle, kein Lizenzträger).
@@ -1552,25 +1497,6 @@ function installLayers(map: maplibregl.Map, basemap: FireBasemap = 'streets') {
      * einer Karte liest sich als „das brennt dann", und genau das behauptet der
      * Fächer nicht (`FAN_CAVEAT` steht in Panel und Kartennotiz).
      */
-    [SPREAD_FAN_LAYER_ID]: {
-      id: SPREAD_FAN_LAYER_ID, type: 'fill', source: SPREAD_SOURCE_ID,
-      filter: ['==', ['get', 'kind'], 'fan'],
-      paint: { 'fill-color': '#C2542B', 'fill-opacity': 0.1 },
-    },
-    [SPREAD_FAN_LINE_LAYER_ID]: {
-      id: SPREAD_FAN_LINE_LAYER_ID, type: 'line', source: SPREAD_SOURCE_ID,
-      filter: ['==', ['get', 'kind'], 'fan'],
-      paint: {
-        'line-color': '#C2542B', 'line-width': 1.1, 'line-opacity': 0.7,
-        'line-dasharray': [3, 3],
-      },
-    },
-    /**
-     * SF1 — der Pfeil. `icon-size` interpoliert AUSSCHLIESSLICH über den Zoom:
-     * jeder datengetriebene Größenkanal läse sich als Entfernung, und die
-     * Entfernung ist eine Spanne, die in den Text gehört, nicht in eine Länge.
-     * Der Verifier prüft, dass hier kein `['get'` steht.
-     */
     /**
      * TA5: eine Raute je Standort persistenter Wärmequellen. Symbol-Layer mit
      * gezeichneten Sprites (A/B/C/dev), `icon-size` nur über den Zoom (Regel wie
@@ -1590,25 +1516,6 @@ function installLayers(map: maplibregl.Map, basemap: FireBasemap = 'streets') {
       id: ANOMALY_SEL_LAYER_ID, type: 'circle', source: ANOMALY_SOURCE_ID,
       filter: ['==', ['get', 'id'], ''],
       paint: { 'circle-radius': 15, 'circle-color': 'rgba(0,0,0,0)', 'circle-stroke-color': '#2C2A26', 'circle-stroke-width': 2.5, 'circle-stroke-opacity': 0.95 },
-    },
-    [SPREAD_ARROW_LAYER_ID]: {
-      id: SPREAD_ARROW_LAYER_ID, type: 'symbol', source: SPREAD_SOURCE_ID,
-      filter: ['==', ['get', 'kind'], 'arrow'],
-      layout: {
-        'icon-image': ['concat', SPREAD_ARROW_IMAGE_ID, ['coalesce', ['get', 'variant'], '']],
-        'icon-rotate': ['coalesce', ['get', 'bearing'], 0],
-        'icon-rotation-alignment': 'map',
-        // Der Pfeil LÄUFT AUS dem Brand heraus, er liegt nicht auf ihm: der
-        // Anker sitzt am Fuß, die Spitze zeigt nach der Drehung in die
-        // Ausbreitungsrichtung. Auf dem Punkt zentriert verdeckte er die
-        // Detektion, die er erklärt.
-        'icon-anchor': 'bottom',
-        'icon-allow-overlap': true,
-        'icon-ignore-placement': true,
-        'symbol-sort-key': ['-', 0, ['coalesce', ['get', 'rank'], 0]],
-        'icon-size': ['interpolate', ['linear'], ['zoom'], 4, 0.7, 11, 1.25],
-      },
-      paint: { 'icon-opacity': 0.95 },
     },
     // Die Lizenzträger: zeichnen nichts (Quelle dauerhaft leer) und existieren
     // allein, damit die DWD-Zeile der Custom-Layer in der Leiste erscheint.
@@ -1640,15 +1547,6 @@ function installLayers(map: maplibregl.Map, basemap: FireBasemap = 'streets') {
    * Layer NICHT angelegt und die Konsole sagt es — ein unsichtbarer Layer wäre
    * schlimmer als keiner.
    */
-  for (const imageId of SPREAD_ARROW_IMAGE_IDS) {
-    if (map.hasImage(imageId)) continue;
-    const img = makeSpreadArrowImage(imageId.endsWith(SPREAD_ARROW_UNSURE_SUFFIX));
-    if (img) map.addImage(imageId, img, { pixelRatio: 2 });
-  }
-  const spritesReady = SPREAD_ARROW_IMAGE_IDS.every((i) => map.hasImage(i));
-  if (!spritesReady) {
-    console.warn('[buscosun] Ausbreitung: Pfeil-Sprite fehlt — der Layer wird nicht angelegt.');
-  }
   // TA5: die vier Rauten-Sprites — derselbe Vertrag (fehlt eines, kein Layer, Konsole sagt es).
   for (const variant of ANOMALY_VARIANTS) {
     const imageId = `${ANOMALY_IMAGE_ID}${variant}`;
@@ -1663,8 +1561,6 @@ function installLayers(map: maplibregl.Map, basemap: FireBasemap = 'streets') {
 
   for (const id of sortByZBand(FIRE_LAYER_ORDER)) {
     for (const gl of GL_LAYERS[id]) {
-      // Ohne Sprite kein Pfeil-Layer (s. oben) — der Fächer darf bleiben.
-      if (gl === SPREAD_ARROW_LAYER_ID && !spritesReady) continue;
       if (gl === ANOMALY_LAYER_ID && !siteSpritesReady) continue;
       // Custom-Layer (Treiber, Wind) bekommen hier bewusst nichts — s. CUSTOM_GL_LAYERS.
       if (CUSTOM_GL_LAYERS.has(gl)) continue;

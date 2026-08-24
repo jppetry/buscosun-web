@@ -16,6 +16,7 @@ import { dirname, join } from 'node:path';
 import { gzipSync } from 'node:zlib';
 
 import { HISTORY_ARTIFACT_VERSION, INDEX_FIELDS, DETECTION_FIELDS, monthWindow, currentSeasonWindow, selectWindow, countsOf, rowOf, shardPath, shardEventOf } from '../../../src/fire/history/historyArtifacts.ts';
+import { buildSeasonSeries, compareToReference } from '../../../src/fire/history/historySeries.ts';
 import { CLUSTER_RADIUS_M } from '../../../src/fire/fireClusters.ts';
 import { FIRMS_ATTRIBUTION } from '../../../src/fire/sources/firmsHotspots.ts';
 import { PLACES_ATTRIBUTION } from '../../../src/fire/footprint/places.ts';
@@ -45,7 +46,11 @@ const LIMITS = [
 const ATTRIB = [FIRMS_ATTRIBUTION, 'Brandflächen: EFFIS Rapid Damage Assessment (Copernicus EMS)', PLACES_ATTRIBUTION, 'Anlagenstandorte: E-PRTR (EEA, CC-BY 4.0), MaStR (DL-DE/BY-2.0), BFE (OPEN BY)'];
 
 mkdirSync(OUT, { recursive: true });
-if (CLEAN && existsSync(join(OUT, 'ev'))) rmSync(join(OUT, 'ev'), { recursive: true });
+// Jans Entscheidung 2026-08-23 („nur die Saison"): `ev/` wird IMMER neu aufgebaut — es enthält
+// danach genau die Shards der laufenden Saison und des laufenden Monats. Beim Saisonwechsel fallen
+// die alten Shards damit von selbst aus dem Repo; die Rohdaten bleiben im lokalen Cache reproduzierbar.
+if (existsSync(join(OUT, 'ev'))) rmSync(join(OUT, 'ev'), { recursive: true });
+void CLEAN; // bleibt als Flag akzeptiert (jetzt Standardverhalten)
 
 const inShards = new Map();
 const sizes = {};
@@ -78,6 +83,14 @@ for (const [p, list] of inShards) {
   shardBytes += body.length; const g = gzipSync(body).length; shardGz += g; if (g > maxShard) maxShard = g;
 }
 
-const summary = { generatedAt, evaluatedAt, index: sizes, shards: { files: inShards.size, bytes: shardBytes, gzip: shardGz, maxGzip: maxShard } };
+// BH5: Saisonverlauf — dieselben Ereignisse, dieselbe Zählregel wie der Index (Modul `historySeries.ts`).
+const years = [...new Set(events.map((e) => e.year))].sort();
+const series = buildSeasonSeries(events, years, evaluatedAt, generatedAt);
+const seriesBody = JSON.stringify(series);
+writeFileSync(join(OUT, 'season-series-v1.json'), seriesBody);
+const cmp = compareToReference(series);
+const seriesSize = { years, bytes: seriesBody.length, gzip: gzipSync(seriesBody).length, today: cmp ? { year: cmp.year, day: cmp.day, value: cmp.value, mean: cmp.mean, min: cmp.min, max: cmp.max } : null, seasonEnd: Object.fromEntries(series.seasons.map((s) => [s.year, s.cumulative.DACH[s.lastDay] ?? null])) };
+
+const summary = { generatedAt, evaluatedAt, index: sizes, shards: { files: inShards.size, bytes: shardBytes, gzip: shardGz, maxGzip: maxShard }, series: seriesSize };
 writeFileSync(join(OUT, 'build-report.json'), JSON.stringify(summary, null, 2) + '\n');
 console.log(JSON.stringify(summary, null, 2));

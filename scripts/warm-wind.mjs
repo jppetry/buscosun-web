@@ -68,10 +68,14 @@
  *   NEAR_REQUIRED       Steps 0…N müssen (u+v) vorhanden sein, um umzulegen. Default 4.
  *   FAIL_STEP           TEST: nimmt diesen Step aus den Listen (Fail-Safe-Probe).
  *   FORCE               '1' überspringt den Early-Exit.
+ *   REPACK_INDEX_URL    index.json des Daten-Repos (BW-2). Leer = Repack-Abschnitt
+ *                       abgeschaltet. Default s. scripts/lib/repackManifest.mjs.
+ *   REPACK_CDN_BASE     CDN-Basis für die Bild-URLs. Default ebenda.
  */
 
 import { writeFileSync, renameSync, readFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
+import { fetchSection, carryRepack, sameSection } from './lib/repackManifest.mjs';
 
 const SITE_URL = (process.env.SITE_URL || 'http://localhost:5178').replace(/\/+$/, '');
 const MANIFEST_PATH = resolve(process.env.MANIFEST_PATH || 'public/latest-wind.json');
@@ -176,9 +180,31 @@ async function main() {
   }
 
   const existing = readManifest();
-  if (!FORCE && manifestCovers(existing, latest)) {
+
+  // ── BW-2: additiver `repack`-Abschnitt ────────────────────────────────────
+  // Der Producer (Daten-Repo `buscosun-data`) tickt unabhängig von diesem Cron.
+  // Was hier passiert, ist nur: nachsehen, ob er DIESEN Lauf schon abgelegt hat,
+  // und die Fundstelle ins Manifest schreiben. Der Abschnitt ist additiv — ein
+  // Client, der ihn nicht kennt, liest das Manifest unverändert.
+  //
+  // ⚠️ Es wird NICHTS geladen und NICHTS gewärmt: `index.json` ist ein paar KB
+  // von raw.githubusercontent.com, kein Byte durch Netlify.
+  const repack = await fetchSection(latest.run, 'wind');
+  if (repack.note) log(repack.note);
+  const nextRepack = carryRepack(existing, latest.run, repack);
+
+  // Der Early-Exit muss den Abschnitt mitprüfen: kommt der Producer erst NACH
+  // dem Manifest-Advance zum Zug (Normalfall — er braucht ~2 min je Lauf),
+  // stünde der Abschnitt sonst bis zum nächsten DWD-Lauf nicht drin. Exakt das
+  // V-81-Muster: „gleicher Lauf" heißt nicht „nichts Neues".
+  const repackSettled = sameSection(existing?.repack ?? null, nextRepack);
+  if (!FORCE && manifestCovers(existing, latest) && repackSettled) {
     log(`Early-Exit: Manifest steht auf Lauf ${latest.run} und führt alle warmbaren Steps [${latest.steps.join(',')}].`);
     return 0;
+  }
+  if (manifestCovers(existing, latest) && !repackSettled) {
+    log(`Gleicher Lauf ${latest.run}, aber der Repack-Abschnitt hat sich geändert `
+      + `(${existing?.repack?.commit?.slice(0, 7) ?? '—'} → ${nextRepack?.commit?.slice(0, 7) ?? '—'}) → umlegen.`);
   }
   if (existing && existing.run === latest.run) {
     const have = Array.isArray(existing.steps) ? existing.steps : [];
@@ -226,8 +252,13 @@ async function main() {
     // Feld hätte etwas behauptet, das nicht passiert.
     publishedFor: SITE_URL,
   };
+  // Additiv und zuletzt: fehlt der Abschnitt, ist das Manifest exakt das von
+  // vorher — der Client nimmt dann den GRIB-Pfad (BW-3 hat ihn als benannten
+  // Fallback, nicht als Notnagel).
+  if (nextRepack) manifest.repack = nextRepack;
   writeManifestAtomic(manifest);
-  log(`Manifest umgelegt → Lauf ${manifest.run}, Steps [${steps.join(',')}]. Fertig.`);
+  log(`Manifest umgelegt → Lauf ${manifest.run}, Steps [${steps.join(',')}]`
+    + `${nextRepack ? `, Repack-Commit ${nextRepack.commit.slice(0, 7)}` : ', ohne Repack'}. Fertig.`);
   return 0;
 }
 

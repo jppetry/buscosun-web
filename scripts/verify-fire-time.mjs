@@ -14,7 +14,7 @@
  *
  * Netzfrei, dependency-frei.
  */
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
@@ -24,6 +24,7 @@ import {
   followsSlider, laggingLayers, defaultFireTimeState, HOUR_AXIS_MAX,
 } from '../src/fire/fireTime.ts';
 import { verifyFirePlayback } from '../src/fire/firePlayback.ts';
+import { FIRE_BIT_ORDER } from '../src/fire/fireModel.ts';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const checks = [];
@@ -134,8 +135,10 @@ add('FirePage: der zurückgezogene Layer ist restlos raus (kein toter Ladeweg)',
 // noch für die Ausbreitung (SF1).
 add('FirePage: der zurückgezogene Windlayer ist restlos raus (kein toter Ladeweg, keine Klemm-Zeile)',
   !/'fireWind'/.test(page) && !/windClamped|windTargetMs/.test(page));
-add('FirePage: das Windgitter lädt NUR noch für die Ausbreitung',
-  /if \(!active\.has\('fireSpread'\)\) return;\s*const ac = new AbortController\(\);\s*void fetchIconD2Wind\(/.test(page));
+// Mit dem Rückzug der Ausbreitung (2026-08-23) hat das Windgitter auf der
+// Waldbrandseite keinen Verbraucher mehr — es wird gar nicht mehr geladen.
+add('FirePage: das Windgitter wird nicht mehr geladen (kein Verbraucher übrig)',
+  !/fetchIconD2Wind|sampleWindAt/.test(page));
 const fmap = readFileSync(join(ROOT, 'src', 'fire', 'FireMap.tsx'), 'utf8');
 add('FireMap: kein Windpartikel-Layer mehr (keine WindLayer-Instanz, kein Windframe)',
   !/WindLayer|windFrameAtValidTimeAsync|fire-wind-particles|'fireWind'/.test(fmap));
@@ -144,10 +147,6 @@ const windSrc = readFileSync(join(ROOT, 'src', 'wind', 'iconD2WindSource.ts'), '
 const windMax = Number(/const MAX_STEP = (\d+);/.exec(windSrc)?.[1]);
 add('HOUR_AXIS_MAX (6) + maximales Laufalter (~5,5 h) ≤ Wind-MAX_STEP (12) — Wind folgt aus jedem Lauf',
   HOUR_AXIS_MAX + 5.5 <= windMax, `axis ${HOUR_AXIS_MAX}, MAX_STEP ${windMax}`);
-// Producer (WF2) lädt nicht mehr, als die Achse zeigt.
-const producer = readFileSync(join(ROOT, 'src', 'sources', 'iconD2FireWeather.ts'), 'utf8');
-add('FIRE_WEATHER_AHEAD_H == HOUR_AXIS_MAX (Producer-Horizont = Stundenachse)',
-  Number(/export const FIRE_WEATHER_AHEAD_H = (\d+);/.exec(producer)?.[1]) === HOUR_AXIS_MAX);
 add('FirePage: Permalink schreibt h nur auf der Stundenachse',
   /hour:\s*hourly\s*\?\s*time\.hour\s*:\s*null/.test(page));
 add('FirePage: Abspielen läuft in der geltenden Einheit (stepPlayback einheitenfrei, Stunden/s)',
@@ -165,40 +164,24 @@ const mobileBlock = css.slice(css.indexOf('@media (max-width: 767px)'));
 add('fireDeck.css: Einheiten-Umschalter mobil ≥ 44 px',
   /\.br-td-unit button\s*\{[^}]*min-height:\s*44px/.test(mobileBlock));
 
-// --- (5) WF4: der Forecast-Layer in Seite und Karte --------------------------
-// Der Layer ist der erste `hourly`-Layer; die Sonden sichern die drei Stellen,
-// an denen ein Custom-GL-Layer in diesem Projekt erfahrungsgemäß still bricht.
-// SF1 (2026-08-19): die Rasterfläche `fireForecast` ist zurückgezogen; an ihrer
-// Stelle steht der Pfeil-Layer `fireSpread`. Die Prüfungen wandern mit — was
-// bleibt, ist die Frage „ist der Stundenlayer vollständig verdrahtet".
-add('FireMap: der Ausbreitungs-Layer ist KEIN Custom-GL-Layer (er ist ein echter Symbol-Layer)',
-  !/fire-spread-arrows/.test((fmap.match(/const CUSTOM_GL_LAYERS = new Set\(\[[^\]]*/) ?? [''])[0]));
-add('FireMap: die Ausbreitung hat einen Lizenzträger (die Rechnung nennt beide Fremdquellen)',
-  /ATTRIB_CARRIERS[\s\S]{0,900}fire-spread-attrib[\s\S]{0,120}FIRE_SPREAD_ATTRIBUTION/.test(fmap));
+// --- (5) Der Rückzug von Feuerwetter + Ausbreitung (2026-08-23) --------------
+// Jans Auftrag, ausdrückliche Ausnahme vom Funktionserhalt: der Producer
+// `iconD2FireWeather.ts` zog ~35 MiB je Aktivierung durch den Netlify-Proxy
+// (audit/bandbreite.md §18). Mit ihm gingen der Pfeil-Layer `fireSpread` und
+// die Punktkurve, die beide daran hingen. Diese Sonden halten den Rückzug
+// RESTLOS — ein halb entfernter Layer ist schlimmer als keiner.
+add('FireMap: kein Ausbreitungs-Layer mehr (kein Pfeil, kein Fächer, kein Lizenzträger)',
+  !/SPREAD_|fire-spread-|spreadFc/.test(fmap));
 add('FireMap: die zurückgezogene Rasterfläche ist restlos entfernt (kein toter ScalarLayer)',
   !/fire-forecast-scalar|forecastLayerRef/.test(fmap));
-add('FireMap: der Ausbreitungs-Zustand steht in stateRef UND in den applyState-Deps',
-  (fmap.match(/soil, spreadFc, fireEvents/g) ?? []).length === 2
-    && /weather, soil, spreadFc, day,/.test(fmap));
-add('FirePage: der Forecast lädt über den WF2-Producer',
-  /fetchIconD2FireWeather\(\{/.test(page) && /aheadHours:\s*FIRE_WEATHER_AHEAD_H/.test(page));
-add('FirePage: der Ausbreitungslauf folgt der Stundenachse (shownHour aus dem Regler)',
-  /computeSpreadRun\([\s\S]{0,200}shownHour: hourly \? time\.hour : 0/.test(page));
-// Der Punkt-Forecast zieht die Fusions-Quellenschicht nach. Statisch importiert
-// läge sie im FirePage-Chunk und jeder Waldbrand-Kaltstart bezahlte sie mit.
-add('FirePage: der Punkt-Forecast wird NUR dynamisch importiert (eigener Chunk)',
-  /await Promise[.]all[(][[][\s\S]{0,200}import[(]'[.][.][/]pointForecast[/]pointForecast'[)]/.test(page)
-    && !pageLines.some((l) => /^import\s/.test(l) && /pointForecast[/]pointForecast/.test(l)));
-add('FirePage: die Punktkurve rechnet mit DEMSELBEN Kern wie die Fläche (hffmcChain + isi)',
-  /hffmcChain\(start,/.test(page) && /ffmcEquilibrium\(/.test(page) && /isiOf\(chain\[i\]/.test(page));
-// Ehrlichkeit: ein Leerzustand ohne Grund läse sich wie „keine Gefahr".
-add('FirePage: die Punktkurve kennt einen Leerzustand MIT Grund (`gap` + reason)',
-  /kind:\s*'gap'[\s\S]{0,200}reason:/.test(page));
-add('FirePage: die Punktkurve sagt „Punkt (Fusion) ≠ Fläche (ICON-D2)"',
-  /Punkt \(Fusion\) ≠ Fläche \(ICON-D2\)/.test(page));
-add('fireDeck.css: der Schließen-Knopf der Punktkurve ist mobil ≥ 44 px',
-  /\.br-close\s*\{[^}]*width:\s*44px[^}]*height:\s*44px/.test(mobileBlock));
-
+add('FirePage: kein Feuerwetter-Producer, keine Punktkurve, kein Ausbreitungslauf',
+  !/fetchIconD2FireWeather|computeSpreadRun|pointCurve|hffmcChain/.test(page));
+add('Bit 14 bleibt reserviert — geteilte #wb=-Links zeigen nicht auf andere Layer',
+  FIRE_BIT_ORDER[14] === null && FIRE_BIT_ORDER.indexOf('fireAnomalies') === 15);
+add('die Module des Rückzugs sind wirklich weg (kein toter Import-Pfad)',
+  !existsSync(join(ROOT, 'src', 'sources', 'iconD2FireWeather.ts'))
+    && !existsSync(join(ROOT, 'src', 'fire', 'spread'))
+    && !existsSync(join(ROOT, 'src', 'fire', 'fwi')));
 // --- Ausgabe ----------------------------------------------------------------
 let failed = 0;
 for (const c of checks) {

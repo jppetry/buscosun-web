@@ -24,6 +24,7 @@
  */
 
 import { decompress } from './decompress';
+import { shareInFlight } from './shareInFlight';
 import type { QuadCorners } from '../scalar/RainLayer';
 import { decodeRadolanRaw, decodeRvTar, type RadolanGrid, type DecodedRvFrame } from './radolanDecode';
 
@@ -78,6 +79,53 @@ export interface RvNowcast {
 
 let _runCache: { ts: string; at: number } | null = null;
 const RUN_CACHE_TTL = 60_000;
+
+// ---------------------------------------------------------------------------
+// Lauf-Zeitstempel: gerechnet statt gelistet (BW-5)
+// ---------------------------------------------------------------------------
+// Das RV-Verzeichnis ist ein lückenloses 5-Minuten-Raster — gemessen am
+// 2026-08-24: 577 Läufe über 48 h, keine einzige Abweichung vom Takt. Für diese
+// Auskunft lud die App ein 154-KiB-HTML, und zwar ohne jeden Cache-Header
+// (§14.4), dreimal je DE-Kaltsitzung plus einmal je 5-Minuten-Refresh.
+//
+// Der Veröffentlichungsverzug ist die Größe, an der ein Rat scheitert oder
+// gelingt. Über zwölf aufeinanderfolgende Läufe (Last-Modified gegen Slot-Zeit):
+// 3,28 / 3,33 / 3,43 min als min/median/max — 9 Sekunden Streuung in einer
+// Stunde.
+//
+// Wir raten deshalb AGGRESSIV, beim frühestmöglichen Slot, und lassen einen 404
+// den Rest erledigen. Der umgekehrte Weg (sicherheitshalber 4 min zurück) träfe
+// immer, zeigte aber in ~11 % der Aufrufe still einen 5 Minuten alten Stand.
+// Ein Fehlgriff, der sich selbst korrigiert, ist besser als ein stiller
+// Rückstand — und er kostet nur einen leeren Rundlauf.
+//
+// Das Listing bleibt der benannte Fallback (Muster „Rule 2"): schlagen alle
+// gerechneten Kandidaten fehl, wird es geladen. Ändert der DWD Takt oder
+// Namensschema, funktioniert die Seite weiter, nur wieder mit 154 KB.
+const RV_STEP_MIN = 5;
+const RV_PUBLISH_LAG_MIN = 3.3;
+/** Kandidaten, die vor dem Listing-Fallback durchprobiert werden. */
+const RV_GUESS_TRIES = 3;
+
+/** Zeitstempel `YYMMDDHHMM` (UTC) eines RV-Laufs. */
+function rvStamp(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, '0');
+  return p(d.getUTCFullYear() % 100) + p(d.getUTCMonth() + 1) + p(d.getUTCDate())
+    + p(d.getUTCHours()) + p(d.getUTCMinutes());
+}
+
+/**
+ * Die `count` jüngsten plausiblen Lauf-Zeitstempel, absteigend — GERECHNET,
+ * ohne Netz. Exportiert, weil der Verifier sie gegen das echte Verzeichnis
+ * prüft (`verify:radar-runs`).
+ */
+export function guessRvRuns(count: number, nowMs: number = Date.now()): string[] {
+  const stepMs = RV_STEP_MIN * 60_000;
+  const newest = Math.floor((nowMs - RV_PUBLISH_LAG_MIN * 60_000) / stepMs) * stepMs;
+  const out: string[] = [];
+  for (let i = 0; i < count; i++) out.push(rvStamp(new Date(newest - i * stepMs)));
+  return out;
+}
 
 /** Listet das RV-Verzeichnis und liefert die Zeitstempel (absteigend). */
 async function listRvRuns(signal?: AbortSignal): Promise<string[]> {
@@ -215,29 +263,43 @@ async function fetchRvTar(ts: string, signal?: AbortSignal): Promise<RvNowcast> 
  * vorherige Zeitstempel versucht.
  */
 export async function fetchRvNowcast(signal?: AbortSignal): Promise<RvNowcast> {
-  let runs: string[];
-  if (_runCache && Date.now() - _runCache.at < RUN_CACHE_TTL) {
-    runs = [_runCache.ts];
-  } else {
-    runs = await listRvRuns(signal);
-  }
-  if (!runs.length) throw new Error('RADOLAN-RV: keine Läufe gefunden');
+  // Entdopplung: Karte und Punktforecast fragen beim Mount gleichzeitig (§24.3).
+  return shareInFlight('radolan-rv-nowcast', () => loadRvNowcast(), signal);
+}
 
+/**
+ * Der eigentliche Lauf hinter der Entdopplung. Bekommt bewusst KEIN
+ * Aufrufer-Signal (s. `shareInFlight`): er gehört allen Wartenden gemeinsam,
+ * also darf ihn keiner allein abbrechen. Die Kandidatenliste ist dafür kurz
+ * gehalten — 3 gerechnete Läufe, dann einmal das Listing.
+ */
+async function loadRvNowcast(): Promise<RvNowcast> {
   let lastErr: unknown;
-  for (const ts of runs.slice(0, 2)) {
-    try {
-      const result = await fetchRvTar(ts, signal);
-      _runCache = { ts, at: Date.now() };
-      // Welche RADOLAN-RV-Datei wird gerade auf die Karte gerendert?
-      console.log(
-        `[buscosun] Niederschlag-Layer → RADOLAN-RV-Datei: DE1200_RV${ts}.tar.bz2` +
-        ` · Lauf ${result.runAt.toLocaleString('de-DE')} · ${result.frames.length} Frames (0…+120 min)`,
-      );
-      return result;
-    } catch (err) {
-      lastErr = err;
+  const attempt = async (runs: string[]): Promise<RvNowcast | null> => {
+    for (const ts of runs) {
+      try {
+        const result = await fetchRvTar(ts);
+        _runCache = { ts, at: Date.now() };
+        // Welche RADOLAN-RV-Datei wird gerade auf die Karte gerendert?
+        console.log(
+          `[buscosun] Niederschlag-Layer → RADOLAN-RV-Datei: DE1200_RV${ts}.tar.bz2` +
+          ` · Lauf ${result.runAt.toLocaleString('de-DE')} · ${result.frames.length} Frames (0…+120 min)`,
+        );
+        return result;
+      } catch (err) {
+        lastErr = err;
+      }
     }
-  }
+    return null;
+  };
+
+  // 1) bekannter Lauf aus der letzten Minute · 2) gerechnete Kandidaten ·
+  // 3) das Verzeichnis-Listing als benannter Fallback.
+  const known = _runCache && Date.now() - _runCache.at < RUN_CACHE_TTL ? [_runCache.ts] : [];
+  const result = (known.length ? await attempt(known) : null)
+    ?? await attempt(guessRvRuns(RV_GUESS_TRIES))
+    ?? await attempt((await listRvRuns()).slice(0, 2));
+  if (result) return result;
   throw lastErr ?? new Error('RADOLAN-RV: Lauf konnte nicht geladen werden');
 }
 
@@ -252,17 +314,26 @@ export interface RvAnalysisFrame { validAt: Date; values: Uint8Array; width: num
  * Wahrheit genutzt). Reuset den RV-Tar-Cache.
  */
 export async function fetchRvAnalysisSequence(count: number, signal?: AbortSignal): Promise<{ frames: RvAnalysisFrame[]; corners: QuadCorners }> {
-  const runs = await listRvRuns(signal);
-  if (runs.length < count) throw new Error(`RADOLAN-RV: nur ${runs.length} Läufe verfügbar (brauche ${count})`);
-  const chosen = runs.slice(0, count); // jüngste zuerst
   const frames: RvAnalysisFrame[] = [];
-  for (const ts of chosen) {
-    try {
-      const nc = await fetchRvTar(ts, signal); // Tar-Cache greift; _000 = Analyse
-      const a = nc.frames.find((f) => f.leadMinutes === 0);
-      if (a) frames.push({ validAt: a.validAt, values: a.values, width: a.width, height: a.height });
-    } catch { /* Lauf evtl. noch im Upload → überspringen */ }
-  }
+  const take = async (runs: string[]): Promise<void> => {
+    for (const ts of runs) {
+      if (frames.length >= count) return;
+      try {
+        const nc = await fetchRvTar(ts, signal); // Tar-Cache greift; _000 = Analyse
+        const a = nc.frames.find((f) => f.leadMinutes === 0);
+        if (a) frames.push({ validAt: a.validAt, values: a.values, width: a.width, height: a.height });
+      } catch (err) {
+        if (signal?.aborted) throw err;         // Abbruch beendet die Reihe sofort
+        /* Lauf evtl. noch im Upload → überspringen */
+      }
+    }
+  };
+
+  // Gerechnete Zeitstempel statt Listing (BW-5, s. `guessRvRuns`); ein Kandidat
+  // mehr als gebraucht, damit ein noch nicht veröffentlichter jüngster Lauf die
+  // Reihe nicht verkürzt. Das Listing bleibt der benannte Fallback.
+  await take(guessRvRuns(count + 1));
+  if (frames.length < 3) await take((await listRvRuns(signal)).slice(0, count + 1));
   if (frames.length < 3) throw new Error('RADOLAN-RV: zu wenige Analysen für ein Hindcast');
   frames.sort((a, b) => a.validAt.getTime() - b.validAt.getTime()); // aufsteigend
   return { frames, corners: DE1200_CORNERS };

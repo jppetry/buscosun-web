@@ -62,14 +62,6 @@ export function FireIcon({ layer, size = 15 }: Props) {
           <path d="M12 3 C12 3 7.5 8.5 7.5 12 A4.5 4.5 0 0 0 16.5 12 C16.5 8.5 12 3 12 3 Z" {...s} strokeWidth="1.5" strokeLinejoin="round" />
         </svg>
       );
-    case 'fireSpread':
-      return (
-        <svg {...common}>
-          <path d="M4 18 L17 7" {...s} strokeWidth="1.7" strokeLinecap="round" />
-          <path d="M11 6 H18 V13" {...s} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M4 18 L9 20 M4 18 L2.5 13" {...s} strokeWidth="1.3" strokeLinecap="round" strokeOpacity=".6" />
-        </svg>
-      );
     case 'fireAnomalies':
       // TA5: Raute (Standort) mit Kamin — keine Flamme, keine Welle.
       return (

@@ -42,9 +42,10 @@ const D2_GRIB_BASE = '/_dwd_opendata/weather/nwp/icon-d2/grib';
 export const D2_GRIB_PROXY_BASE = '/_dwd_grib/weather/nwp/icon-d2/grib';
 /** Durable-gecachter Edge-Pfad der Wind-Dateien (`u_10m`/`v_10m`/`hsurf`, Phase T1,
  *  `netlify/edge-functions/dwd-wind.ts`, gewärmt bis Step 12 über `latest-wind.json`).
- *  Einzige Quelle des Strings — `src/wind/iconD2WindSource.ts` importiert ihn; der
- *  Feuerwetter-Producer (`iconD2FireWeather.ts`) holt u/v über DENSELBEN Pfad, damit
- *  der dekomprimierte GRIB-Cache je URL zwischen Windlayer und Feuerwetter geteilt wird. */
+ *  Einzige Quelle des Strings — `src/wind/iconD2WindSource.ts` importiert ihn.
+ *  Der Feuerwetter-Producer teilte sich diesen Pfad, damit der dekomprimierte
+ *  GRIB-Cache je URL geteilt wird; er ist am 2026-08-23 entfallen, der Windlayer
+ *  ist seither der einzige Nutzer. */
 export const D2_WIND_PROXY_BASE = '/_dwd_wind/weather/nwp/icon-d2/grib';
 
 export const ICON_D2_ATTRIBUTION =

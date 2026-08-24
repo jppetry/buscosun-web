@@ -20,7 +20,7 @@ import { FeatureRail, type RailFeature } from '../nav/featureRail';
 import FireMap, { type FireBasemap } from './FireMap';
 import {
   FIRE_DECK_GROUPS, FIRE_LAYER_ORDER, FIRE_MVP_LAYERS, FIRE_PRESETS,
-  FIRE_WEATHER_MAP_LAYERS, FIRE_FOOTPRINT_LAYERS, FIRE_SPREAD_LAYERS, FIRE_ANOMALY_LAYERS,
+  FIRE_WEATHER_MAP_LAYERS, FIRE_FOOTPRINT_LAYERS, FIRE_ANOMALY_LAYERS,
   activeFirePresetId, fireSource, type FireLayerId,
 } from './fireModel';
 import {
@@ -28,7 +28,7 @@ import {
   dayLabel, windowChoices, windowLabel, laggingLayers, FIRE_LAYER_TIME, dayToIsoDate,
   // WF3: eine Achse, zwei Einheiten.
   timeUnit, sharedMaxHour, hourlyAvailable, hourlyForced, hasTimeSlider, dayOfHour, hourLabel,
-  dailyOnlyLayers, HOUR_AXIS_MAX, type FireTimeState,
+  dailyOnlyLayers, type FireTimeState,
 } from './fireTime';
 import {
   decodeFireState, encodeFireState, FIRE_HASH_PREFIX, DEFAULT_BURNT_BUCKETS, DEFAULT_SOIL_MODE,
@@ -66,7 +66,6 @@ import type { AreaEstimate } from './activity/estimate';
 import type { AreaModel } from './activity/calibration';
 // AF2: Beobachtungsgelegenheit (regionale Aktivität) und Windabgleich — beides aus Daten, die schon da sind.
 import { buildObservationIndex, observationFor } from './activity/observation';
-import { sampleWindAt } from '../wind/windPointSample';
 import { fetchEmsActivations, type EmsActivation } from './sources/emsActivations';
 import { fetchWarnContextsFor, type AtWarnContext } from './sources/geosphereWarnContext';
 import { loadClcMask, landcoverAt, toAssessmentLandcover, type ClcMask } from './clcMask';
@@ -79,15 +78,6 @@ import type { HistoryIndexEntry, HistoryWindowKind } from './history/historyArti
 import { anomaliesToGeoJSON } from './anomaly/anomalyLayer';
 import { hiddenSiteCount } from './footprint/fireRegistry';
 import { fetchIconD2Relhum, type IconD2Relhum } from '../sources/iconD2Relhum';
-// WF4: der stündliche ISI aus ICON-D2 (WF2-Producer) — Fläche des Forecast-Layers.
-import {
-  fetchIconD2FireWeather, FIRE_WEATHER_AHEAD_H, type IconD2FireWeather,
-} from '../sources/iconD2FireWeather';
-// WF4: die Punktkurve rechnet mit DENSELBEN Gleichungen wie die Fläche (ein Kern,
-// zwei Datengrundlagen — §13 d). `pointForecast` selbst wird dynamisch geladen.
-import { ffmcEquilibrium, hffmcChain, isi as isiOf } from './fwi/fwi';
-import { isiClassIndex, ISI_CLASS_COLORS } from './fwi/isiRamp';
-import { fetchIconD2Wind, type IconD2Wind } from '../wind/iconD2WindSource';
 import {
   fetchIconD2Smi, SOIL_MODE_LABEL, SOIL_MODE_FULL_LABEL,
   type IconD2Smi, type SoilDrynessMode,
@@ -100,9 +90,6 @@ import { DANGER_VIEWS, DANGER_VIEW_ORDER, DEFAULT_DANGER_VIEW, companionView, ty
 import { countMapped, mappedAreaFor, type BurntPolygon } from './fireCorroboration';
 import { defaultPlayback, stepPlayback, prefetchTarget, daysPerSecondForTier, hoursPerSecondForTier } from './firePlayback';
 import { frameAtValidTime } from '../sources/frameAtValidTime';
-import { computeSpreadRun, type SpreadRun } from './spread/spreadRun';
-import { spreadToGeoJSON } from './spread/spreadLayer';
-import { FAN_CAVEAT, SPREAD_CAVEAT_SHORT, capNote } from './spread/spreadText';
 import { BottomSheet, type BottomSheetSnap } from '../mobile/BottomSheet';
 import { useMediaQuery } from '../mobile/useIsMobile';
 import type { PerfTier } from '../wind/perfGovernor';
@@ -133,24 +120,6 @@ type LoadState =
   | { kind: 'ok'; ref: DataRef | null; note?: string }
   | { kind: 'error'; message: string };
 
-/**
- * WF4 — die Punktkurve am angeklickten Ort.
- *
- * Vier Zustände statt „Daten oder nichts": `gap` trägt einen GRUND (fehlender
- * Wind, keine Stunden im Horizont), weil eine leere Kurve sonst wie „keine
- * Ausbreitung" gelesen würde — die eine Aussage, die dieser Layer nie treffen darf.
- */
-type PointCurvePoint = {
-  atMs: number; hour: number; isi: number; ffmc: number; t: number; rh: number; w: number;
-};
-type PointCurve =
-  | { kind: 'loading'; lat: number; lng: number }
-  | { kind: 'error'; lat: number; lng: number; message: string }
-  | { kind: 'gap'; lat: number; lng: number; country: Country; reason: string; sources: string[] }
-  | {
-      kind: 'ok'; lat: number; lng: number; country: Country;
-      points: PointCurvePoint[]; elevation: number; sources: string[]; skipped: number;
-    };
 
 /**
  * Welche Ausbau-Layer sind tatsächlich gebaut?
@@ -167,7 +136,7 @@ const BUILT_EXTENDED = new Set<FireLayerId>(['fireFuel', 'fireBurnt', 'fireConte
  *  immer, Ausbaustufe 2 nur, wo die Quelle wirklich erreichbar ist. */
 const isBuilt = (id: FireLayerId) =>
   FIRE_MVP_LAYERS.includes(id) || FIRE_WEATHER_MAP_LAYERS.includes(id) || FIRE_FOOTPRINT_LAYERS.includes(id)
-  || FIRE_SPREAD_LAYERS.includes(id) || FIRE_ANOMALY_LAYERS.includes(id) || BUILT_EXTENDED.has(id);
+  || FIRE_ANOMALY_LAYERS.includes(id) || BUILT_EXTENDED.has(id);
 
 interface Props {
   onBack: () => void;
@@ -219,21 +188,8 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
   const [hotspotFootprints, setHotspotFootprints] = useState<GeoJSON.FeatureCollection | null>(null);
   const [hotspotProvider, setHotspotProvider] = useState<'firms' | 'gwis'>('firms');
   const [relhum, setRelhum] = useState<IconD2Relhum | null>(null);
-  /** WW1 — das native ICON-D2-Windgitter, identisch zu dem der Wetterkarte. */
-  const [wind, setWind] = useState<IconD2Wind | null>(null);
-  /** SF1: der letzte Ausbreitungslauf — Karte und Panel lesen aus demselben Objekt. */
-  const [spread, setSpread] = useState<SpreadRun | null>(null);
   /** WT1 — Bodentrockenheit (ICON-D2 smi) der gewählten Tiefe. */
   const [smi, setSmi] = useState<IconD2Smi | null>(null);
-  /** WF4 — Feuerwetter stündlich: die ISI-Frames des jüngsten ICON-D2-Laufs. */
-  const [fireWx, setFireWx] = useState<IconD2FireWeather | null>(null);
-  /**
-   * WF4 — die Punktkurve am angeklickten Ort (Punkt-Forecast der Fusion durch
-   * dieselbe hFFMC-Kette). `null` = nie geklickt; `kind` sagt, was gerade gilt —
-   * ein Leerzustand nennt IMMER seinen Grund, sonst läse sich „keine Kurve" wie
-   * „keine Gefahr".
-   */
-  const [pointCurve, setPointCurve] = useState<PointCurve | null>(null);
   const [burntSeason, setBurntSeason] = useState<BurntRun | null>(null);
   const [burntArchive, setBurntArchive] = useState<BurntRun | null>(null);
   /** Flächen der letzten 7 Tage — Bestätigung der Detektionen (E1/E2). */
@@ -694,43 +650,6 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
   }, [active, setLayerLoad]);
 
   /**
-   * WW1 — Windpartikel (ICON-D2 u/v 10 m). Derselbe Loader, den die Wetterkarte
-   * benutzt: kein neuer Transportpfad, keine zusätzliche Quelle, und der
-   * Browser-Cache trägt die Bytes zwischen beiden Ansichten.
-   *
-   * Lazy wie alle anderen Layer hier — die ~26 GRIB-Dateien werden erst geholt,
-   * wenn jemand den Wind sehen will. `onProgress` liefert jeden fertigen Schritt,
-   * damit die ersten Partikel laufen, bevor der ferne Horizont da ist.
-   *
-   * `frames.length` als Notiz und nicht „bis +X h": der Horizont hängt am Lauf
-   * und am Warm-Cron, eine fest eingetragene Zahl wäre irgendwann eine Behauptung.
-   */
-  useEffect(() => {
-    // SF1: der Ausbreitungslayer rechnet auf dem ICON-D2-Windgitter der
-    // Wetterkarte. Kein zweiter Loader, keine zweite Quelle — dieselben Bytes,
-    // derselbe Browser-Cache (Regel WW1: importieren statt kopieren). Der
-    // Partikel-Layer `fireWind` ist seit 2026-08-22 zurückgezogen; die Daten
-    // laufen für die Ausbreitung und das Windflag (AF2) weiter.
-    if (!active.has('fireSpread')) return;
-    const ac = new AbortController();
-    void fetchIconD2Wind(ac.signal, (partial) => {
-      // Das Partial teilt sich das wachsende `frames`-Array mit dem Endergebnis
-      // (s. fetchIconD2Wind) — eine neue Objekthülle je Fortschritt sorgt dafür,
-      // dass React die Änderung überhaupt sieht.
-      if (!ac.signal.aborted) setWind({ ...partial });
-    })
-      .then((w) => {
-        if (ac.signal.aborted) return;
-        setWind(w);
-      })
-      .catch(() => {
-        if (ac.signal.aborted) return;
-        setWind(null);
-      });
-    return () => ac.abort();
-  }, [active]);
-
-  /**
    * WT1 — Bodentrockenheit (ICON-D2 `smi`). Lazy wie alle Layer hier, und
    * zusätzlich **modus-lazy**: ein Tiefenwechsel lädt neu, weil jede Ebene eine
    * eigene Datei ist (Muster Schnee-Layer, `MapView.tsx` installSnow).
@@ -770,139 +689,6 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
       });
     return () => ac.abort();
   }, [active, soilMode, setLayerLoad]);
-
-  /**
-   * WF4 — Feuerwetter stündlich (ISI). Lazy und progressiv wie der RH-Treiber:
-   * `onProgress` liefert jeden fertigen Stundenschritt, damit die nächste Stunde
-   * steht, bevor der ferne Horizont da ist — die Kette rechnet ohnehin der Reihe
-   * nach. Sechs ICON-D2-Felder je Schritt (`iconD2FireWeather.ts`), Lauf per
-   * Verzeichnis-Scan über `relhum_2m` (nicht gewärmt, Q11) ⇒ der erste Abruf
-   * dauert spürbar länger.
-   *
-   * Die Notiz sagt beides: wie viele Schritte da sind UND dass es Stufe 1 ist.
-   * „N Stundenschritte" allein ließe den Layer wie einen fertigen Index aussehen.
-   */
-  useEffect(() => {
-    // SF1: die Rasterfläche ist zurückgezogen, die QUELLE bleibt — der ISI (und
-    // der ISZ im G-Kanal) ist die Grundlage der Pfeile.
-    if (!active.has('fireSpread')) return;
-    const ac = new AbortController();
-    setLayerLoad('fireSpread', { kind: 'loading' });
-    void fetchIconD2FireWeather({
-      signal: ac.signal,
-      aheadHours: FIRE_WEATHER_AHEAD_H,
-      onProgress: (partial) => {
-        // Wie beim Wind teilt sich das Partial das wachsende `frames`-Array mit
-        // dem Endergebnis — eine neue Objekthülle, damit React die Änderung sieht.
-        if (!ac.signal.aborted) setFireWx({ ...partial });
-      },
-    })
-      .then((r) => {
-        if (ac.signal.aborted) return;
-        setFireWx(r);
-        // Die abschließende Notiz setzt der Ausbreitungslauf (er kennt Deckel
-        // und Geländezellen) — hier bleibt nur der Lauf-Zeitstempel stehen.
-      })
-      .catch((e) => {
-        if (ac.signal.aborted) return;
-        setFireWx(null);
-        setLayerLoad('fireSpread', { kind: 'error', message: (e as Error).message });
-      });
-    return () => ac.abort();
-  }, [active, setLayerLoad]);
-
-  /**
-   * WF4 — die Punktkurve: Klick auf die Karte ⇒ Punkt-Forecast der Fusion für
-   * genau diese Stelle, durch dieselbe stündliche FFMC-Kette wie die Fläche.
-   *
-   * Drei Entscheidungen, die hier sichtbar sind:
-   *  • **Dynamischer Import.** `pointForecast` zieht die halbe Fusions-Quellen-
-   *    schicht nach (Stationen, MOSMIX, AROME, INCA, DEM). Statisch importiert
-   *    läge das im FirePage-Chunk und würde den Waldbrand-Kaltstart bezahlen
-   *    lassen, ohne dass jemand geklickt hat. Erst der Klick lädt.
-   *  • **Fusion ≠ Fläche.** Der Punkt kommt aus der Fusion, die Fläche aus
-   *    ICON-D2 (§13 d). Sie werden am selben Ort nicht identisch sein; die Karte
-   *    sagt das, statt eine Übereinstimmung zu suggerieren.
-   *  • **Kein Wind ⇒ kein ISI.** Der ISI ist Feinstoff-Feuchte MAL Wind. Fehlt
-   *    der Wind in den Punktdaten, gibt es keine Kurve und einen Grund dazu —
-   *    keine 0, die wie „keine Ausbreitung" aussähe.
-   */
-  const pointReqRef = useRef(0);
-  const requestPointCurve = useCallback((lng: number, lat: number) => {
-    const gen = ++pointReqRef.current;
-    setPointCurve({ kind: 'loading', lat, lng });
-    void (async () => {
-      try {
-        const [{ getPointForecast }, { pickCountry }] = await Promise.all([
-          import('../pointForecast/pointForecast'),
-          import('../pointForecast/clustering'),
-        ]);
-        const country = pickCountry(lat, lng);
-        const pf = await getPointForecast({
-          lat, lng, country, hours: FIRE_WEATHER_AHEAD_H + 2, includeRadarNowcast: false,
-        });
-        if (gen !== pointReqRef.current) return;
-        const nowH = Date.now();
-        // Die Stützstellen des Punkt-Forecasts sind VOLLE Stunden. Gegen
-        // `Date.now()` gerundet fielen die laufende und die nächste Stunde auf
-        // denselben Schritt („jetzt" zweimal, gemessen um 13:31). Bezug ist
-        // deshalb der Beginn der laufenden Stunde: 13:00 ⇒ „jetzt", 14:00 ⇒ „+1".
-        const hourAnchor = Math.floor(nowH / 3_600_000) * 3_600_000;
-        // Nur die Stunden der Achse: jetzt … jetzt + Horizont. Die Kette braucht
-        // sie lückenlos und in Reihenfolge — eine fehlende Stunde bricht sie ab.
-        const rows = pf.hours
-          .filter((h) => h.timestamp.getTime() >= nowH - 3_600_000)
-          .slice(0, FIRE_WEATHER_AHEAD_H + 1)
-          .map((h) => ({
-            atMs: h.timestamp.getTime(),
-            t: h.temperature,
-            rh: h.relativeHumidity,
-            // FWI rechnet in km/h; der Punkt-Forecast liefert m/s.
-            w: h.windSpeed == null ? null : h.windSpeed * 3.6,
-            r1h: h.precipitation ?? 0,
-          }));
-        const usable = rows.filter((r) => r.t != null && r.rh != null && r.w != null);
-        if (usable.length < 2) {
-          setPointCurve({
-            kind: 'gap', lat, lng, country,
-            reason: rows.length === 0
-              ? 'Der Punkt-Forecast liefert für diese Stelle keine Stunden im Horizont.'
-              : 'Dem Punkt-Forecast fehlt hier Wind oder Feuchte — der ISI ist Feinstoff-Feuchte mal Wind und wäre ohne beides keine Zahl, sondern eine Behauptung.',
-            sources: pf.sourcesAvailable,
-          });
-          return;
-        }
-        const start = ffmcEquilibrium(usable[0].t as number, usable[0].rh as number);
-        const chain = hffmcChain(start, usable.map((r) => ({
-          t: r.t as number, rh: r.rh as number, w: r.w as number, r1h: r.r1h,
-        })));
-        const points = usable.map((r, i) => ({
-          atMs: r.atMs,
-          hour: Math.max(0, Math.round((r.atMs - hourAnchor) / 3_600_000)),
-          isi: isiOf(chain[i], r.w as number),
-          ffmc: chain[i],
-          t: r.t as number, rh: r.rh as number, w: r.w as number,
-        })).filter((pt) => Number.isFinite(pt.isi));
-        if (points.length === 0) {
-          setPointCurve({
-            kind: 'gap', lat, lng, country,
-            reason: 'Die Kette liefert für diese Stelle keinen gültigen Wert.',
-            sources: pf.sourcesAvailable,
-          });
-          return;
-        }
-        setPointCurve({
-          kind: 'ok', lat, lng, country, points,
-          elevation: pf.query.elevation,
-          sources: pf.sourcesAvailable,
-          skipped: rows.length - usable.length,
-        });
-      } catch (e) {
-        if (gen !== pointReqRef.current) return;
-        setPointCurve({ kind: 'error', lat, lng, message: (e as Error).message });
-      }
-    })();
-  }, []);
 
   /**
    * Zielzeit der ICON-D2-Frames (RH-Treiber, Boden) — EINE Regel für beide:
@@ -1119,14 +905,6 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
         return h ? { name: h.name, district: h.district, distanceKm: h.distanceKm } : null;
       } : undefined,
       observationAt: observationIndex ? (lat, lon, lastMs) => observationFor(observationIndex, lat, lon, lastMs) : undefined,
-      // Wind nur, wenn der Windlayer geladen ist UND ein Frame nahe am Überflug liegt (±3 h):
-      // die Frames sind die Vorhersage des aktuellen Laufs, ein Überflug vor dem Lauf klemmt
-      // sonst still auf den ersten Frame.
-      windAt: wind ? (lat, lon, atMs) => {
-        const w = sampleWindAt(wind, atMs, lon, lat);
-        if (!w || Math.abs(w.validAtMs - atMs) > 3 * 3_600_000) return null;
-        return Math.round(w.dir);
-      } : undefined,
       // AF4: Flächenschätzung aus Merkmalsatz + Modell — nur mit geladenem Modell (Kill-Switch `?afEst=0`).
       estimateFor: areaModel ? (rec) => estimateArea(featuresOf(rec, now), areaModel) : undefined,
     });
@@ -1134,7 +912,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
     const carried = carryIds(built, prevRecordsRef.current);
     prevRecordsRef.current = carried;
     return carried;
-  }, [clusterList, fireZones, registryReconciled, registryPolys, emsActs, fpEffisScope, burntSeason, clcMask, thermalSites, places, observationIndex, wind, areaModel]);
+  }, [clusterList, fireZones, registryReconciled, registryPolys, emsActs, fpEffisScope, burntSeason, clcMask, thermalSites, places, observationIndex, areaModel]);
   const recordsById = useMemo(() => new Map(records.map((r) => [r.id, r])), [records]);
   /** TA4: Einträge des Fensters auf einem bekannten Standort — Zähler des Reiters. */
   const liveSiteCount = useMemo(() => records.filter((r) => r.anomaly).length, [records]);
@@ -1144,65 +922,6 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
     [active, thermalSites, records],
   );
 
-  /**
-   * SF1 — der Ausbreitungslauf: je aktivem Brand ein Vektor je Stunde.
-   *
-   * Drei Dinge, die hier bewusst so stehen:
-   *
-   *  • **Entprellt (300 ms).** `records` leitet sich bei JEDEM fortschreitenden
-   *    Wind-Frame neu ab (die Registry hängt an `wind`) — ohne Entprellung liefe
-   *    der Lauf während der Ladephase rund zwei Dutzend Mal.
-   *  • **Abbruch + Generationszähler.** Der Lauf ist asynchron (DEM-Kacheln);
-   *    ein überholtes Ergebnis darf den neueren Stand nicht überschreiben.
-   *  • **Die Notiz nennt den Deckel.** Still zu kürzen wäre eine Falschaussage
-   *    über den Bestand (V-246) — `capNote` schreibt Zahl, Grund und den Satz
-   *    gegen die Fehllesart „keine Ausbreitung".
-   */
-  const spreadGenRef = useRef(0);
-  useEffect(() => {
-    if (!active.has('fireSpread')) { setSpread(null); return; }
-    // Kein Lauf ohne Eingangsdaten — und vor allem kein ALTER Lauf: `records`
-    // wird bei jedem Wind-Frame neu abgeleitet, die Kennungen wandern dabei
-    // (`carryIds`). Ein stehen gelassener Lauf beschriebe dann einen Bestand,
-    // den es nicht mehr gibt, und die Detailkarte fände ihren Brand nicht wieder.
-    if (!wind || !fireWx) { setSpread(null); return; }
-    const gen = ++spreadGenRef.current;
-    const ac = new AbortController();
-    const timer = window.setTimeout(() => {
-      void computeSpreadRun({
-        records, wind, fireWx, nowMs: Date.now(),
-        maxHour: HOUR_AXIS_MAX, shownHour: hourly ? time.hour : 0,
-        signal: ac.signal,
-      })
-        .then((run) => {
-          if (ac.signal.aborted || gen !== spreadGenRef.current) return;
-          setSpread(run);
-          // Nur im DEV-Build: der Lauf für die Verifikation über MCP/DevTools
-          // (Muster window.__fireMap). Ohne ihn ist „warum kein Pfeil" nur
-          // über die Oberfläche zu erraten.
-          if (import.meta.env.DEV) {
-            (window as unknown as { __fireSpreadRun?: SpreadRun }).__fireSpreadRun = run;
-          }
-          setLayerLoad('fireSpread', {
-            kind: 'ok',
-            ref: run.fwRunAtMs != null ? { atMs: run.fwRunAtMs, kind: 'run' } : null,
-            note: capNote({
-              computed: run.computed, considered: run.considered, cap: run.cap, demCells: run.demCells,
-              horizonHour: run.horizonHour, maxHour: run.maxHour,
-            }),
-          });
-        })
-        .catch((e) => {
-          if (ac.signal.aborted || gen !== spreadGenRef.current) return;
-          setSpread(null);
-          setLayerLoad('fireSpread', { kind: 'error', message: (e as Error).message });
-        });
-    }, 300);
-    return () => { window.clearTimeout(timer); ac.abort(); };
-  }, [active, records, wind, fireWx, hourly, time.hour, setLayerLoad]);
-
-  /** SF1: Pfeile und Fächer als GeoJSON — memoisiert, sonst setzt `setData` auf `idle` endlos (V-220). */
-  const spreadFc = useMemo(() => (spread ? spreadToGeoJSON(spread) : null), [spread]);
   /**
    * VB3: Schätzung je Zone (`zone.id` → Schätzung) für den Karten-Steckbrief.
    * Ein Eintrag kann mehrere Zonen tragen — alle erben seine Schätzung. Einträge
@@ -1707,7 +1426,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
 
   /** Welcher Layer die Quellen-Pille trägt: der Index zuerst, sonst die oberste Fläche. */
   const primary: FireLayerId | null = active.has('fireDanger') ? 'fireDanger'
-    : (['fireSpread', 'fireWeather', 'fireSoilDryness', 'fireFootprints', 'fireHotspots', 'fireBurnt', 'fireFuel', 'fireContext'] as FireLayerId[])
+    : (['fireWeather', 'fireSoilDryness', 'fireFootprints', 'fireHotspots', 'fireBurnt', 'fireFuel', 'fireContext'] as FireLayerId[])
       .find((l) => active.has(l)) ?? null;
   const pillTitle = primary === 'fireDanger'
     ? (isTablet && !isMobile ? `${DANGER_VIEW_CODE[dangerView]} · GWIS ~8 km` : DANGER_VIEWS[dangerView].title)
@@ -1751,19 +1470,6 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
           FWI-Codes sind nicht enthalten.
         </div>
       )}
-      {active.has('fireSpread') && (
-        <div className="br-mapnote" role="status">
-          <strong>Ausbreitungsrichtung (Modell)</strong> — {SPREAD_CAVEAT_SHORT}
-          {' '}{FAN_CAVEAT}
-          {spread && (
-            <> · {capNote({
-              computed: spread.computed, considered: spread.considered, cap: spread.cap,
-              demCells: spread.demCells, horizonHour: spread.horizonHour, maxHour: spread.maxHour,
-            })}</>
-          )}
-          {' '}Klick auf die Karte: Punktkurve aus dem buscosun-Punkt-Forecast.
-        </div>
-      )}
     </>
   );
 
@@ -1788,102 +1494,6 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
    * Linie mit Stützpunkten, Stundenachse, der Pflichtsatz „Punkt (Fusion) ≠
    * Fläche (ICON-D2)". Leerzustände nennen IMMER ihren Grund.
    */
-  const pointCurveCard = pointCurve ? (() => {
-    const posTxt = `${Math.abs(pointCurve.lat).toFixed(2).replace('.', ',')}° ${pointCurve.lat >= 0 ? 'N' : 'S'} · `
-      + `${Math.abs(pointCurve.lng).toFixed(2).replace('.', ',')}° ${pointCurve.lng >= 0 ? 'O' : 'W'}`;
-    const head = (right: string) => (
-      <div className="br-pc-head">
-        <span className="br-eyebrow">Punktkurve · ISI</span>
-        <span className="br-pc-right">{right}</span>
-        <button type="button" className="br-close" aria-label="Punktkurve schließen" onClick={() => setPointCurve(null)}>×</button>
-      </div>
-    );
-    if (pointCurve.kind === 'loading') {
-      return (
-        <section className="br-pc" aria-label="Feuerwetter am Punkt">
-          {head('')}
-          <p className="br-pc-pos">{posTxt}</p>
-          <p className="br-pc-note">Punkt-Forecast wird geholt …</p>
-        </section>
-      );
-    }
-    if (pointCurve.kind === 'error') {
-      return (
-        <section className="br-pc" aria-label="Feuerwetter am Punkt">
-          {head('')}
-          <p className="br-pc-pos">{posTxt}</p>
-          <p className="br-box is-gap">
-            Der Punkt-Forecast ist gerade nicht abrufbar — <strong>keine Daten</strong>, nicht
-            „keine Gefahr". ({pointCurve.message})
-          </p>
-        </section>
-      );
-    }
-    if (pointCurve.kind === 'gap') {
-      return (
-        <section className="br-pc" aria-label="Feuerwetter am Punkt">
-          {head(pointCurve.country)}
-          <p className="br-pc-pos">{posTxt}</p>
-          <p className="br-box is-gap">{pointCurve.reason}</p>
-          {pointCurve.sources.length > 0 && (
-            <p className="br-pc-src">Antwortende Quellen: {pointCurve.sources.join(', ')}</p>
-          )}
-        </section>
-      );
-    }
-    const pts = pointCurve.points;
-    const max = Math.max(7.5, ...pts.map((pt) => pt.isi));
-    const W = 220; const H = 70;
-    const x = (i: number) => (pts.length === 1 ? W / 2 : 4 + (i / (pts.length - 1)) * (W - 8));
-    const y = (v: number) => 64 - (v / max) * 56;
-    const path = pts.map((pt, i) => `${i === 0 ? 'M' : 'L'}${x(i).toFixed(1)} ${y(pt.isi).toFixed(1)}`).join(' ');
-    const cls = (v: number) => {
-      const i = isiClassIndex(v);
-      return { color: ISI_CLASS_COLORS[Math.max(0, i)], name: DANGER_VIEWS.isi.classes[Math.max(0, i)]?.name ?? '' };
-    };
-    const now = pts[0];
-    return (
-      <section className="br-pc" aria-label="Feuerwetter am Punkt">
-        {head(`${pointCurve.country} · ${Math.round(pointCurve.elevation)} m`)}
-        <p className="br-pc-pos">{posTxt}</p>
-        <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="br-pc-chart" aria-hidden="true">
-          <g stroke="#E0D6BE" strokeWidth="1"><line x1="0" y1="23" x2={W} y2="23" /><line x1="0" y1="46" x2={W} y2="46" /></g>
-          <path d={path} fill="none" stroke="#D4632E" strokeWidth="2" />
-          <g fill="#FAF6EA" stroke="#D4632E" strokeWidth="1.4">
-            {pts.map((pt, i) => (
-              <circle key={pt.atMs} cx={x(i).toFixed(1)} cy={y(pt.isi).toFixed(1)} r="2.8">
-                <title>{`+${pt.hour} h · ISI ${pt.isi.toFixed(1)} (${cls(pt.isi).name}) · ${pt.t.toFixed(0)} °C · ${pt.rh.toFixed(0)} % rF · ${pt.w.toFixed(0)} km/h`}</title>
-              </circle>
-            ))}
-          </g>
-        </svg>
-        <div className="br-pc-axis">
-          {pts.map((pt, i) => (
-            <span key={pt.atMs} className={i % 2 === 1 && pts.length > 4 ? 'is-hidden' : ''}>
-              {pt.hour === 0 ? 'jetzt' : `+${pt.hour} h`}
-            </span>
-          ))}
-        </div>
-        <p className="br-pc-now">
-          <span className="fire-swatch" style={{ background: cls(now.isi).color }} aria-hidden="true" />
-          <strong>ISI {now.isi.toFixed(1).replace('.', ',')}</strong> · {cls(now.isi).name} · jetzt
-        </p>
-        <p className="br-pc-note">
-          <strong>Punkt (Fusion) ≠ Fläche (ICON-D2).</strong> Punkt aus der <strong>buscosun-Fusion</strong>
-          {' '}(Stationen, MOSMIX, AROME/INCA), Fläche aus ICON-D2 — dieselben FWI-Gleichungen, zwei
-          Datengrundlagen: sie stimmen am selben Ort nicht exakt überein. Stufe 1: ohne Vortagsgedächtnis,
-          Start bei der Gleichgewichtsfeuchte der ersten Stunde. Kein amtliches Produkt.
-        </p>
-        {pointCurve.skipped > 0 && (
-          <p className="br-box is-gap">
-            {pointCurve.skipped === 1 ? 'Eine Stunde wurde' : `${pointCurve.skipped} Stunden wurden`} übersprungen
-            — dort fehlten Wind oder Feuchte.
-          </p>
-        )}
-        <p className="br-pc-src">Quellen: {pointCurve.sources.join(', ')}</p>
-      </section>
-    );
-  })() : null;
 
   // --- Zeit-Deck: EINE Achse, ZWEI Einheiten --------------------------------------
 
@@ -2025,7 +1635,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
           <span className="br-legend-dot"><i style={{ background: 'var(--br-grey-dot)' }} />ortsfest{compact ? '' : ' (grau)'}</span>
         </>
       )}
-      {active.has('fireSpread') && <span className="br-legend-dot"><i className="is-line" />Ausbreitung</span>}
+
       {/* Der Stand steht auf der Tagesachse schon im roten Tick (HEUTE / +n d);
           hier nur die Uhrzeit der Stundenachse und das Pending-„lädt …". */}
       {(hourly || committedDay !== dayForLayers) && (
@@ -2260,7 +1870,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
       selectedId={selectedFootprint} onSelect={focusFootprint} onClearSelect={clearFootprint}
       onEnableLayer={() => setActive((prev) => new Set([...prev, 'fireFootprints']))}
       onClose={() => setReadoutTab('layers')}
-      spread={spread}
+
       placesLoaded={!!places}
       atContextFor={atContextFor}
       state={{
@@ -2360,7 +1970,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
       {timeCardMobile}
       {legendCardMobile}
       {detTiles(true)}
-      {pointCurveCard}
+
       {readoutLayers.map((id) => layerCard(id, true))}
       {scalesCard(true)}
       {sourcesLine(true)}
@@ -2440,8 +2050,8 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
               burntWeekFc={burntSplit.weekFc}
               burntBuckets={burntBuckets} burntLookup={burntLookup} burntWeek={burntWeek}
               fireEvents={fireEvents} emsActs={emsActs} atContexts={atContexts} clcMask={clcMask}
-              weather={weather} soil={soil} spreadFc={history ? null : spreadFc}
-              onPointForecast={requestPointCurve}
+              weather={weather} soil={soil}
+
               prefetchIsoDate={prefetchIso} onTier={setTier}
             />
 
@@ -2470,7 +2080,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
 
             {/* Oben rechts: Basemap (Desktop) — der Zoom von MapLibre sitzt per CSS darunter. */}
             {!isMobile && !firesMode && <div className="br-map-tr">{basemapSeg}</div>}
-            {!isMobile && !firesMode && pointCurveCard && <div className="br-map-pc">{pointCurveCard}</div>}
+
 
             {!isMobile && timeDeck}
           </main>

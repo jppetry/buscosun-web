@@ -1,0 +1,100 @@
+# ============================================================================
+# Producer-Batch des Daten-Repos (Phase BW-2, buscosun-web/audit/bandbreite.md)
+# ============================================================================
+# ⚠️ Diese Datei wird in `buscosun-web/scripts/repack-repo/workflow-build.yml`
+# GEPFLEGT und von `scripts/publish-repack.mjs` hierher ausgelegt. Änderungen
+# gehören dorthin, sonst überschreibt der nächste Publish sie.
+#
+# ── Warum der Batch HIER läuft und nicht in buscosun-web ────────────────────
+# Der `GITHUB_TOKEN` einer Action schreibt nur in ihr EIGENES Repo. Ein Batch in
+# `buscosun-web`, der hierher pusht, bräuchte einen PAT als Secret — und der Plan
+# schließt Secrets aus. Hier läuft er mit dem Standard-Token, ohne Geheimnis.
+# `buscosun-web` bekommt dadurch KEINE neue Workflow-Datei; seine Warm-Crons
+# lesen nur `index.json` und hängen den Manifest-Abschnitt an.
+#
+# Der Producer selbst wird aus `buscosun-web` geklont (öffentlich, kein Token) —
+# er MUSS dieselben Module benutzen wie der Client, sonst zeichnet die Karte
+# andere Werte als die Punktabfrage nennt. Eine Kopie hier wäre genau der
+# Drift, den BW-1 strukturell ausgeschlossen hat.
+# ============================================================================
+
+name: build
+
+on:
+  schedule:
+    - cron: '25 */1 * * *'    # stündlich; steigt sofort aus, wenn der Lauf schon liegt
+  workflow_dispatch: {}
+
+concurrency:
+  group: repack-build
+  cancel-in-progress: false
+
+permissions:
+  contents: write             # force-pusht die frische Historie
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout data repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Checkout producer (public, no token)
+        run: git clone --depth=1 --quiet https://github.com/jppetry/buscosun-web.git app
+
+      # Der Producer hängt an genau EINER Laufzeit-Abhängigkeit: `bz2`.
+      # `gribDecode.ts` ist importfrei (handgeschriebener Decoder inkl. CCSDS-AEC),
+      # `windFrameBuild.ts`/`tempFrameBuild.ts` importieren nur Typen. Ein volles
+      # `npm ci` wäre hier reine Wartezeit.
+      - name: Install producer dependency
+        working-directory: app
+        run: npm install --no-save --no-audit --no-fund bz2
+
+      # Nicht nur WELCHER Lauf abliegt, sondern mit WIE VIELEN Schritten: fängt
+      # der Producer einen Lauf, den das DWD noch hochschiebt, fehlen einzelne
+      # Schritte (am 2026-08-23 real: Wind 4 und 5). Ein Ausstieg allein auf die
+      # Lauf-Kennung schriebe diese Lücke für drei Stunden fest.
+      - name: Which run do we already have — and how complete?
+        id: have
+        run: |
+          node -e "
+            let r = {};
+            try { r = require('./index.json').runs?.[0] ?? {}; } catch {}
+            const out = [
+              'run=' + (r.run ?? ''),
+              'wind=' + (r.wind?.steps?.length ?? -1),
+              'temp=' + (r.temp?.steps?.length ?? -1),
+            ];
+            console.log(out.join('\n'));
+          " | tee -a "$GITHUB_OUTPUT"
+
+      - name: Repack
+        working-directory: app
+        env:
+          REPACK_SKIP_IF_RUN: ${{ steps.have.outputs.run }}
+          REPACK_HAVE_WIND: ${{ steps.have.outputs.wind }}
+          REPACK_HAVE_TEMP: ${{ steps.have.outputs.temp }}
+          REPACK_OUT: ${{ github.workspace }}/app/data/repack
+        run: |
+          node --experimental-strip-types --import ./scripts/lib/register-ts.mjs \
+               scripts/repack-icon-d2.mjs
+
+      - name: Publish
+        working-directory: app
+        env:
+          REPACK_OUT: ${{ github.workspace }}/app/data/repack
+          REPACK_REPO: https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git
+          REPACK_WORK: ${{ github.workspace }}/publish
+        run: |
+          if [ "$(node -e "console.log(require('$REPACK_OUT/state.json').skipped)")" = "true" ]; then
+            echo "Nichts Neues beim DWD — kein Publish."
+            exit 0
+          fi
+          node scripts/publish-repack.mjs --push

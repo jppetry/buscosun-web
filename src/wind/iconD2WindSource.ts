@@ -19,6 +19,9 @@ import { reportManifest, stateFromUpdatedAt } from '../sources/manifestHealth';
 import { stepsForNowWindow } from '../sources/frameAtValidTime';
 import { buildWindRgba } from './windFrameBuild';
 import { blendAndRefine, type FrameNorm } from './windBlendRefine';
+import {
+  parseRepackSection, loadWindStep, uvBoundsOf, repackUsable, type RepackSection,
+} from '../sources/repackSource';
 import type { DataTextureFormat, PackedTexture } from './glUtil';
 
 export const ICON_D2_WIND_ATTRIBUTION =
@@ -60,8 +63,10 @@ const WIND_MANIFEST_URL = '/latest-wind.json';
  *  lässt reichlich Luft für einen kurz ausgefallenen Warmer (stale, nie kalt). */
 const MAX_MANIFEST_RUN_AGE_H = 24;
 
-/** Rückgabeform der Lauf-Auflösung — deckungsgleich mit `resolveLatestRun`. */
-interface WindRunInfo { runStr: string; runAt: Date; steps: number[]; }
+/** Rückgabeform der Lauf-Auflösung — deckungsgleich mit `resolveLatestRun`.
+ *  `repack` (BW-3) ist additiv: der geprüfte CDN-Abschnitt DIESES Laufs, sonst
+ *  `null`. Der Scan-Fallback hat nie einen — er löst am Manifest vorbei auf. */
+interface WindRunInfo { runStr: string; runAt: Date; steps: number[]; repack: RepackSection | null }
 
 /** True, wenn der letzte Schritt des Laufs nicht vor `nowMs` liegt (Horizont-Guard). Rein, fuer den Verifier. */
 export function manifestCoversNow(runAtMs: number, steps: readonly number[], nowMs: number): boolean {
@@ -95,7 +100,7 @@ async function resolveWindRunFromManifest(signal?: AbortSignal): Promise<WindRun
   try {
     const res = await fetch(WIND_MANIFEST_URL, { signal, cache: 'no-store' });
     if (!res.ok) return absent();
-    const m = await res.json() as { run?: unknown; runAt?: unknown; updatedAt?: unknown; steps?: unknown };
+    const m = await res.json() as { run?: unknown; runAt?: unknown; updatedAt?: unknown; steps?: unknown; repack?: unknown };
     if (typeof m.run !== 'string' || !/^\d{10}$/.test(m.run)) return absent();
     if (!Array.isArray(m.steps)) return absent();
     const steps = (m.steps as unknown[])
@@ -119,7 +124,11 @@ async function resolveWindRunFromManifest(signal?: AbortSignal): Promise<WindRun
     const upd = typeof m.updatedAt === 'string' ? new Date(m.updatedAt) : null;
     const updatedAtMs = upd && !Number.isNaN(upd.getTime()) ? upd.getTime() : null;
     reportManifest(WIND_MANIFEST_URL, stateFromUpdatedAt(updatedAtMs, Date.now()), updatedAtMs);
-    return { runStr: m.run, runAt, steps };
+    // BW-3: der Abschnitt wird gegen den Lauf geprüft, den DIESE Auflösung
+    // liefert — nicht gegen den, den das Manifest nennt. Beides ist hier
+    // dasselbe; im Scan-Fallback unten wäre es das nicht (§22.4).
+    const repack = repackUsable() ? parseRepackSection(m.repack, 'wind', m.run) : null;
+    return { runStr: m.run, runAt, steps, repack };
   } catch {
     return absent();   // Netzfehler / JSON-Parse → Fallback auf Directory-Scan
   }
@@ -179,10 +188,14 @@ export function buildWindFrame(u: GribField, v: GribField): Omit<IconD2WindFrame
 // bz2-Worker-Pool; hier gehen nur die ENTPACKTEN Bytes rein, ein RGBA-Puffer raus.
 // Fällt transparent auf Main-Thread-Decode zurück, wenn Worker nicht verfügbar.
 // ---------------------------------------------------------------------------
-export interface WindBuilt {
+/** Was ein fertiger Wind-Frame an Bytes und Normierung braucht — die zwei Wege
+ *  (GRIB-Decode und CDN-Bild) liefern genau das, nur auf verschiedenem Weg. */
+export interface WindFrameBytes {
   rgba: Uint8ClampedArray;
   width: number; height: number;
   uMin: number; uMax: number; vMin: number; vMax: number;
+}
+export interface WindBuilt extends WindFrameBytes {
   corners: [[number, number], [number, number], [number, number], [number, number]];
 }
 interface WfMsg {
@@ -291,19 +304,38 @@ export async function fetchIconD2Wind(
   const aheadH = opts?.aheadHours ?? 0;
   const frames: IconD2WindFrame[] = [];
   let uvBounds: [number, number, number, number] | null = null;
+  /** BW-3: der geprüfte CDN-Abschnitt, solange er zum AUFGELÖSTEN Lauf gehört.
+   *  Der Scan-Fallback setzt ihn zurück — dort stimmt der Lauf nicht mehr. */
+  let section: RepackSection | null = null;
 
   const loadStep = async (rs: string, ra: Date, step: number): Promise<boolean> => {
     try {
-      // Nur fetch + bz2 (bz2-Worker-Pool) auf dem Aufrufer-Pfad; decodeGrib2 + der
-      // RGBA-Bau laufen off-main im Wind-Frame-Worker.
-      const [uBytes, vBytes] = await Promise.all([
-        fetchStepBytes(rs, 'u_10m', step, signal, WIND_GRIB_BASE),
-        fetchStepBytes(rs, 'v_10m', step, signal, WIND_GRIB_BASE),
-      ]);
-      const b = await decodeWindFrameOffMain(uBytes, vBytes);
-      if (!uvBounds) {
-        const c = b.corners;                    // [NW, NE, SE, SW] in [lon,lat]
-        uvBounds = [lngToEquiX(c[0][0]), latToEquiY(c[0][1]), lngToEquiX(c[1][0]), latToEquiY(c[2][1])];
+      // BW-3: liegt das fertige Bild im Daten-CDN, ist es der kurze Weg — 242 KB
+      // statt 2 042 KB, kein bz2, kein GRIB-Decode. Die Bytes sind dieselben, die
+      // der GRIB-Zweig unten rechnen würde (`verify:repack` beweist es je Lauf).
+      // `null` heißt hier IMMER „nimm GRIB": Schritt (noch) nicht abgelegt,
+      // Frist abgelaufen, Weg abgeschaltet — der Aufrufer merkt keinen Unterschied.
+      const png = section ? await loadWindStep(section, step, signal) : null;
+      let b: WindFrameBytes;
+      if (png) {
+        b = png;
+        // Die Ecken stehen im Abschnitt — der Producer hat sie mit derselben
+        // `subsampledCorners()` gefüllt, die der GRIB-Zweig unten benutzt. Der
+        // Repack-Pfad braucht also kein GRIB mehr, nur um zu wissen, wo das Bild liegt.
+        if (!uvBounds) uvBounds = uvBoundsOf(section!);
+      } else {
+        // Nur fetch + bz2 (bz2-Worker-Pool) auf dem Aufrufer-Pfad; decodeGrib2 + der
+        // RGBA-Bau laufen off-main im Wind-Frame-Worker.
+        const [uBytes, vBytes] = await Promise.all([
+          fetchStepBytes(rs, 'u_10m', step, signal, WIND_GRIB_BASE),
+          fetchStepBytes(rs, 'v_10m', step, signal, WIND_GRIB_BASE),
+        ]);
+        const g = await decodeWindFrameOffMain(uBytes, vBytes);
+        b = g;
+        if (!uvBounds) {
+          const c = g.corners;                  // [NW, NE, SE, SW] in [lon,lat]
+          uvBounds = [lngToEquiX(c[0][0]), latToEquiY(c[0][1]), lngToEquiX(c[1][0]), latToEquiY(c[2][1])];
+        }
       }
       const image = rgbaToCanvas(b.rgba, b.width, b.height);
       frames.push({
@@ -357,6 +389,9 @@ export async function fetchIconD2Wind(
     // Nur ERFOLGREICH spekulierte Schritte überspringen (ein fehlender Schritt darf
     // nicht als „geladen" gelten, sonst bliebe er im nahen Horizont leer).
     const specLoaded = new Set<number>(guessHit ? specSteps.filter((_, i) => specResults[i]) : []);
+    // BW-3: der Scan löst AM MANIFEST VORBEI auf — sein Lauf kann ein anderer
+    // sein als der des Abschnitts. Deshalb hier keiner (§22.4).
+    section = null;
     return { runStr: resolved.runStr, runAt: resolved.runAt, wanted: resolved.steps.filter((s) => s <= MAX_STEP), specLoaded };
   };
 
@@ -366,6 +401,7 @@ export async function fetchIconD2Wind(
   // der Client fragt ausschließlich gewärmte (Lauf,Step)-URLs an.
   const manifest = await resolveWindRunFromManifest(signal);
   let usedManifest = manifest != null;
+  section = manifest?.repack ?? null;
   let { runStr, runAt, wanted, specLoaded } = manifest
     ? { runStr: manifest.runStr, runAt: manifest.runAt, wanted: manifest.steps.filter((s) => s <= MAX_STEP), specLoaded: new Set<number>() }
     : await resolveViaScan();

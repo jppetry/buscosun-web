@@ -133,7 +133,13 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
   // hier (braucht `stack`), liest aber `playing` und meldet Stopp via applyPlaying.
   const [playingUnc, setPlayingUnc] = useState(false);
   const playing = controlledPlaying ?? playingUnc;
+  // Rückblick-Archiv auf Abruf (BW-5/Q7): der Lade-Effekt hinterlegt hier die
+  // Nachlade-Funktion, die Bedienelemente rufen sie beim ersten Griff in die
+  // Vergangenheit. Bewusst ein Ref und keine Dependency — der Auslöser darf
+  // die Abspielschleife nicht neu aufsetzen.
+  const requestPastSeedRef = useRef<(() => void) | null>(null);
   const applyPlaying = useCallback((next: boolean) => {
+    if (next) requestPastSeedRef.current?.();
     if (onPlayingChange) onPlayingChange(next); else setPlayingUnc(next);
   }, [onPlayingChange]);
   const [speed, setSpeed] = useState(1);
@@ -196,6 +202,7 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
     const isLocChange = prevLocRef.current !== locKey;
     prevLocRef.current = locKey;
     const ac = new AbortController();
+    requestPastSeedRef.current = null;   // Closure des vorigen Laufs fallen lassen
     if (isLocChange) { setStack(null); setTerrain(null); setLoadErr(null); }
 
     // Sichtbaren Zeitpunkt + „war am jetzt?" aus dem ALTEN Stack lesen (für Remap).
@@ -214,24 +221,36 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
       .then((st) => {
         if (ac.signal.aborted) return;
         setStack(st); setLoadErr(null); repin(st);
-        // DE-Rückblick-Archiv einmal je Location nachladen (schwer); beim
-        // Soft-Refresh genügt der mitwachsende Session-Past-Cache. Gate über
-        // seededLocRef (nicht isLocChange) → StrictMode-fest (s. Ref-Kommentar).
-        if (location.country !== 'DE' || seededLocRef.current === locKey) return;
-        void seedDePastArchive(DE_PAST_SEED_FRAMES, ac.signal).then((added) => {
-          if (!added || ac.signal.aborted) return;
-          seededLocRef.current = locKey;   // erst NACH Erfolg markieren
-          const shownMs = st.frames[idxOf(st)]?.timeMs;
-          getRadarStack('DE', ac.signal).then((st2) => {
-            if (ac.signal.aborted) return;
-            setStack(st2);
-            if (shownMs == null) return;
-            // sichtbaren Zeitpunkt auf den nächstgelegenen Frame des neuen Stacks remappen
-            let best = st2.nowIndex, bestD = Infinity;
-            st2.frames.forEach((f, k) => { const d = Math.abs(f.timeMs - shownMs); if (d < bestD) { bestD = d; best = k; } });
-            setFramePos(best);
-          }).catch(() => { /* Reload best-effort */ });
-        });
+        // DE-Rückblick-Archiv einmal je Location nachladen (schwer): acht
+        // zusätzliche RV-Tars, gemessen 2,28 MiB und 27 s (audit/bandbreite.md
+        // §24.3). Seit BW-5 NICHT mehr beim Öffnen, sondern beim ersten Griff in
+        // die Vergangenheit — Abspielen, Rückwärts-Schritt, Scrubben an den
+        // Anfang. Bewusste Verhaltensänderung (Jans Entscheidung): der Rückblick
+        // hat beim ersten Mal eine kurze Ladezeit. Unabhängig davon wächst der
+        // Session-Past-Cache mit jedem 5-Minuten-Refresh weiter.
+        if (location.country !== 'DE') return;
+        // `started` lebt je Effektlauf; StrictMode-Mount 2 überschreibt die
+        // Closure und bringt sein eigenes mit. `seededLocRef` wird weiterhin erst
+        // NACH Erfolg gesetzt (s. Ref-Kommentar), ein Fehlschlag bleibt wiederholbar.
+        let started = false;
+        requestPastSeedRef.current = () => {
+          if (started || seededLocRef.current === locKey || ac.signal.aborted) return;
+          started = true;
+          void seedDePastArchive(DE_PAST_SEED_FRAMES, ac.signal).then((added) => {
+            if (!added || ac.signal.aborted) { started = false; return; }
+            seededLocRef.current = locKey;   // erst NACH Erfolg markieren
+            const shownMs = st.frames[idxOf(st)]?.timeMs;
+            getRadarStack('DE', ac.signal).then((st2) => {
+              if (ac.signal.aborted) return;
+              setStack(st2);
+              if (shownMs == null) return;
+              // sichtbaren Zeitpunkt auf den nächstgelegenen Frame des neuen Stacks remappen
+              let best = st2.nowIndex, bestD = Infinity;
+              st2.frames.forEach((f, k) => { const d = Math.abs(f.timeMs - shownMs); if (d < bestD) { bestD = d; best = k; } });
+              setFramePos(best);
+            }).catch(() => { /* Reload best-effort */ });
+          });
+        };
       })
       // Fehler-Overlay nur beim Ortswechsel zeigen; ein fehlgeschlagener
       // Soft-Refresh behält still das bisherige Bild.
@@ -358,7 +377,7 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
   }, [point.country]);
 
   const toggleLayer = (id: RadarLayerId) => applyLayers(layers.includes(id) ? layers.filter((l) => l !== id) : [...layers, id]);
-  const step = (d: number) => { applyPlaying(false); setFramePos((p) => Math.max(0, Math.min((stack?.frames.length ?? 1) - 1, Math.round(p) + d))); };
+  const step = (d: number) => { if (d < 0) requestPastSeedRef.current?.(); applyPlaying(false); setFramePos((p) => Math.max(0, Math.min((stack?.frames.length ?? 1) - 1, Math.round(p) + d))); };
   const jumpNow = () => { applyPlaying(false); if (stack) setFramePos(stack.nowIndex); };
 
   return (
@@ -479,7 +498,7 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
         const scrubber = stack ? (
           <RadarTimeline
             stack={stack} framePos={framePos} playing={playing} speed={speed} loop={loop} intensities={frameMmH}
-            onScrub={(p) => { applyPlaying(false); setFramePos(p); }}
+            onScrub={(p) => { if (p <= 0) requestPastSeedRef.current?.(); applyPlaying(false); setFramePos(p); }}
             onTogglePlay={() => applyPlaying(!playing)} onStep={step} onJumpNow={jumpNow}
             onSpeed={setSpeed} onToggleLoop={() => setLoop((l) => !l)}
           />

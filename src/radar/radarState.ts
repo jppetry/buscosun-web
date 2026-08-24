@@ -115,7 +115,15 @@ export function verifyRadarState(): RsVerifyResult {
   add('hasRadarHash', hasRadarHash('#r=abc') && !hasRadarHash('#x='));
   // sanity: Modelldaten konsistent
   add('PALETTES vollständig', PAL_IDX.every((p) => !!PALETTES[p]));
-  add('Presets vorhanden', RADAR_PRESETS.length >= 4);
+  // Absicht statt eingefrorener Zahl (Familie V-BW-19): die Sonde verlangte
+  // `>= 4`, seit einem Preset-Rückbau gibt es 3 — sie meldete damit einen
+  // planmäßigen Schritt als Fehler. Geprüft wird jetzt, was das Modell zusagt:
+  // es gibt Presets, jedes hat eine eindeutige id und ein nicht leeres Layer-Set.
+  add('Presets vorhanden und wohlgeformt',
+    RADAR_PRESETS.length > 0
+    && RADAR_PRESETS.every((p) => !!p.id && !!p.label && p.layers.length > 0)
+    && new Set(RADAR_PRESETS.map((p) => p.id)).size === RADAR_PRESETS.length,
+    `${RADAR_PRESETS.length} Presets`);
 
   const passed = checks.filter((c) => c.ok).length;
   return { checks, passed, failed: checks.length - passed };

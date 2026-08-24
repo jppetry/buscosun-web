@@ -16,6 +16,7 @@
 
 import { clusterColor, STATIC_GREY } from '../fireClusters';
 import { entryOf, INDEX_URL, HISTORY_ARTIFACT_VERSION, type HistoryIndexEntry, type HistoryIndexFile, type HistoryWindowKind } from './historyArtifacts';
+import { SEASON_SERIES_URL, SEASON_SERIES_VERSION, type SeasonSeriesFile } from './historySeries';
 
 export const HISTORY_SOURCE_ID = 'fire-history';
 export const HISTORY_LAYER_ID = 'fire-history-points';
@@ -56,7 +57,34 @@ export function loadHistoryIndex(kind: HistoryWindowKind): Promise<HistoryLoad> 
   return p;
 }
 
-export function resetHistoryCache(): void { _cache.clear(); }
+export function resetHistoryCache(): void { _cache.clear(); _series = null; }
+
+// ---------------------------------------------------------------------------
+// BH5 — Saisonverlauf (eine Datei, einmal je Sitzung; Fehler ist ein Ergebnis)
+// ---------------------------------------------------------------------------
+
+export type SeriesLoad =
+  | { kind: 'loading' }
+  | { kind: 'ok'; file: SeasonSeriesFile }
+  | { kind: 'error'; message: string };
+
+let _series: Promise<SeriesLoad> | null = null;
+
+export function loadSeasonSeries(): Promise<SeriesLoad> {
+  if (!historyEnabled()) return Promise.resolve({ kind: 'error', message: 'Historie abgeschaltet (?bh=0)' });
+  if (!_series) {
+    _series = fetch(SEASON_SERIES_URL, { cache: 'no-store' })
+      .then(async (r): Promise<SeriesLoad> => {
+        if (!r.ok) return { kind: 'error', message: `HTTP ${r.status}` };
+        const file = (await r.json()) as SeasonSeriesFile;
+        if (file.version !== SEASON_SERIES_VERSION || !Array.isArray(file.seasons)) return { kind: 'error', message: 'unbekanntes Dateiformat' };
+        return { kind: 'ok', file };
+      })
+      .catch((e: unknown) => ({ kind: 'error', message: e instanceof Error ? e.message : String(e) } as SeriesLoad));
+    _series.then((res) => { if (res.kind === 'error') _series = null; });
+  }
+  return _series;
+}
 
 export interface HistoryFeatureProps extends Record<string, unknown> {
   id: string;

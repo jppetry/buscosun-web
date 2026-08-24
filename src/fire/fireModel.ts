@@ -50,7 +50,6 @@ export type FireLayerId =
   | 'fireContext'         // WB4: EEA Natura 2000 (Schutzgebiete, CH fehlt)
   | 'fireSoilDryness'     // WT1: ICON-D2 smi — Bodentrockenheit, zwei Tiefen
   | 'fireFootprints'      // BP2: Brandflächen je Brand (Registry) — Polygone + Panel links
-  | 'fireSpread'          // SF1: Ausbreitungsrichtung aktiver Brände — Pfeil + Fächer (FBP)
   | 'fireAnomalies';      // TA5: Standorte persistenter Wärmequellen (Archivliste) — Rauten + Reiter
 
 /**
@@ -103,19 +102,6 @@ export const FIRE_WEATHER_MAP_LAYERS: readonly FireLayerId[] = [
 export const FIRE_FOOTPRINT_LAYERS: readonly FireLayerId[] = ['fireFootprints'] as const;
 
 /**
- * SF1 — die Ausbreitungsrichtung aktiver Brände: ein Pfeil je Brand (FBP-Vektor
- * aus ICON-D2-Wind, stündlichem ISI und Hangneigung) plus Unsicherheitsfächer.
- * Eigene Herkunft: keine Fremdfläche, kein Wetterkarten-Layer, sondern eine
- * Aussage JE BRAND — deshalb eigene Liste, HINTEN angehängt: Bit 14.
- *
- * Bit 13 (`fireForecast`, WF4-Rasterfläche „Feuerwetter stündlich") wurde am
- * 2026-08-19 auf Jans Entscheidung zurückgezogen: die Fläche beantwortete nicht
- * die Frage „wohin läuft dieser Brand". Die DATENQUELLE bleibt in Betrieb —
- * `iconD2FireWeather.ts` liefert den ISI, aus dem die Pfeile rechnen.
- */
-export const FIRE_SPREAD_LAYERS: readonly FireLayerId[] = ['fireSpread'] as const;
-
-/**
  * TA5 — die Standorte persistenter Wärmequellen (statische Liste aus dem FIRMS-
  * Archiv 2020–2026 + Anlagenverzeichnis): eine Raute je Standort, der Reiter
  * „Thermalanomalien" dazu. Eigene Herkunft (Archiv, nicht Fenster), eigene
@@ -161,7 +147,13 @@ export const FIRE_BIT_ORDER: readonly (FireLayerId | null)[] = [
   // (Jans Entscheidung, s. audit/waldbrand-ausbreitung.md §5). Wie bei Bit 1
   // bleibt der Platz LEER, damit geteilte Links keine anderen Layer öffnen.
   null,
-  ...FIRE_SPREAD_LAYERS,
+  // Bit 14 — „Ausbreitung (Modell)" (`fireSpread`, SF1: Pfeil + Fächer nach dem
+  // kanadischen FBP-System), 2026-08-23 zurückgezogen (Jans Auftrag, Ausnahme
+  // vom Funktionserhalt). Er hing an `iconD2FireWeather.ts`, das mit gelöscht
+  // wurde — der Producer zog ~35 MiB je Aktivierung durch den Netlify-Proxy
+  // (audit/bandbreite.md §18). Wie bei Bit 1/4/5/6/10/13 bleibt der Platz LEER,
+  // damit geteilte `#wb=`-Links keine anderen Layer öffnen.
+  null,
   // TA5: angehängt — Bit 15.
   ...FIRE_ANOMALY_LAYERS,
 ] as const;
@@ -200,9 +192,6 @@ export const FIRE_Z_BAND: Record<FireLayerId, number> = {
   // Punkte bleiben obenauf und anklickbar; die Raute erklärt sie.
   fireAnomalies: 79,
   fireHotspots: 80,        // Punkte ganz oben, sonst unauffindbar
-  // SF1: der Ausbreitungspfeil ist die AUSSAGE der Ansicht und liegt über allem
-  // — ein Pfeil hinter einem Detektionspunkt wäre unlesbar.
-  fireSpread: 82,
 };
 
 export interface FirePreset {
@@ -288,15 +277,6 @@ export const FIRE_DECK_GROUPS: readonly FireDeckGroup[] = [
     layers: [
       // Der Wind (`fireWind`) stand hier obenan — zurückgezogen 2026-08-22.
       { id: 'fireSoilDryness', accent: 'sage' },
-    ],
-  },
-  {
-    // SF1: eigene Gruppe — weder Fremdraster noch Wetterkarten-Layer, sondern
-    // eine Aussage je Brand. Sichtbar getrennt, damit niemand sie für eine
-    // amtliche Warnung hält.
-    title: 'Ausbreitung (Modell)', accent: 'terracotta',
-    layers: [
-      { id: 'fireSpread', accent: 'terracotta' },
     ],
   },
   {
@@ -497,7 +477,7 @@ export function verifyFireModel(): { checks: FireModelCheck[]; passed: number; t
   const all: FireLayerId[] = [
     'fireDanger', 'fireHotspots', 'fireWeather',
     'fireFuel', 'fireBurnt', 'fireContext',
-    'fireSoilDryness', 'fireFootprints', 'fireSpread',
+    'fireSoilDryness', 'fireFootprints',
   ];
 
   // --- Vollständigkeit: der Fehler von LAYER_ORDER darf sich nicht wiederholen.
@@ -506,24 +486,25 @@ export function verifyFireModel(): { checks: FireModelCheck[]; passed: number; t
     `${FIRE_LAYER_ORDER.length}/${all.length}`);
   add('FIRE_LAYER_ORDER enthält keine Dubletten',
     new Set(FIRE_LAYER_ORDER).size === FIRE_LAYER_ORDER.length);
-  add('FIRE_LAYER_ORDER ist genau MVP + Ausbau + Wetterkarte + Registry + Ausbreitung + Thermalanomalien, nichts Siebtes',
+  add('FIRE_LAYER_ORDER ist genau MVP + Ausbau + Wetterkarte + Registry + Thermalanomalien, nichts Sechstes',
     FIRE_LAYER_ORDER.length
       === FIRE_MVP_LAYERS.length + FIRE_EXTENDED_LAYERS.length + FIRE_WEATHER_MAP_LAYERS.length
-        + FIRE_FOOTPRINT_LAYERS.length + FIRE_SPREAD_LAYERS.length + FIRE_ANOMALY_LAYERS.length);
-  // Sechs Layer sind zurückgezogen (Bit 1 amtliche Stufe, Bit 4 Feuerverbote,
+        + FIRE_FOOTPRINT_LAYERS.length + FIRE_ANOMALY_LAYERS.length);
+  // Sieben Layer sind zurückgezogen (Bit 1 amtliche Stufe, Bit 4 Feuerverbote,
   // Bit 5/6 EDO Bodenfeuchte/Vegetation, Bit 10 Wind, Bit 13 Feuerwetter
-  // stündlich); alle Plätze bleiben reserviert.
+  // stündlich, Bit 14 Ausbreitung); alle Plätze bleiben reserviert.
   add('FIRE_BIT_ORDER hält die Plätze der zurückgezogenen Layer frei',
-    FIRE_BIT_ORDER.length === FIRE_LAYER_ORDER.length + 6
+    FIRE_BIT_ORDER.length === FIRE_LAYER_ORDER.length + 7
       && FIRE_BIT_ORDER[1] === null && FIRE_BIT_ORDER[4] === null
       && FIRE_BIT_ORDER[5] === null && FIRE_BIT_ORDER[6] === null
-      && FIRE_BIT_ORDER[10] === null && FIRE_BIT_ORDER[13] === null,
+      && FIRE_BIT_ORDER[10] === null && FIRE_BIT_ORDER[13] === null
+      && FIRE_BIT_ORDER[14] === null,
     `${FIRE_BIT_ORDER.length} Plätze, ${FIRE_LAYER_ORDER.length} Layer`);
-  add('die fünf Herkunftslisten überschneiden sich nicht',
+  add('die vier Herkunftslisten überschneiden sich nicht',
     !FIRE_MVP_LAYERS.some((l) => FIRE_EXTENDED_LAYERS.includes(l))
       && !FIRE_WEATHER_MAP_LAYERS.some((l) => FIRE_MVP_LAYERS.includes(l) || FIRE_EXTENDED_LAYERS.includes(l))
       && !FIRE_FOOTPRINT_LAYERS.some((l) => FIRE_MVP_LAYERS.includes(l) || FIRE_EXTENDED_LAYERS.includes(l) || FIRE_WEATHER_MAP_LAYERS.includes(l))
-      && !FIRE_SPREAD_LAYERS.some((l) => FIRE_MVP_LAYERS.includes(l) || FIRE_EXTENDED_LAYERS.includes(l)
+      && !FIRE_ANOMALY_LAYERS.some((l) => FIRE_MVP_LAYERS.includes(l) || FIRE_EXTENDED_LAYERS.includes(l)
         || FIRE_WEATHER_MAP_LAYERS.includes(l) || FIRE_FOOTPRINT_LAYERS.includes(l)));
 
   // Bit-Stabilität: gemessen wird jetzt an FIRE_BIT_ORDER — dort steht auch der
@@ -545,13 +526,8 @@ export function verifyFireModel(): { checks: FireModelCheck[]; passed: number; t
   add('fireFootprints steht an Bit 12 — angehängt, nicht eingeschoben',
     FIRE_BIT_ORDER.indexOf('fireFootprints') === 12,
     String(FIRE_BIT_ORDER.indexOf('fireFootprints')));
-  // SF1: die Ausbreitung ist Bit 14 — hinter allem Bestehenden; Bit 13 ist der
-  // reservierte Platz der zurückgezogenen Rasterfläche.
-  add('fireSpread steht an Bit 14 — angehängt, nicht eingeschoben',
-    FIRE_BIT_ORDER.indexOf('fireSpread') === 14,
-    String(FIRE_BIT_ORDER.indexOf('fireSpread')));
-  add('Bit 13 ist frei — der zurückgezogene Forecast rutscht niemandem in den Platz',
-    FIRE_BIT_ORDER[13] === null);
+  add('Bit 13 + 14 sind frei — die zurückgezogene Rasterfläche und die Ausbreitung',
+    FIRE_BIT_ORDER[13] === null && FIRE_BIT_ORDER[14] === null);
   // TA5: die Standorte sind Bit 15 — hinter allem Bestehenden.
   add('fireAnomalies steht an Bit 15 — angehängt, nicht eingeschoben',
     FIRE_BIT_ORDER.indexOf('fireAnomalies') === 15,
@@ -578,14 +554,6 @@ export function verifyFireModel(): { checks: FireModelCheck[]; passed: number; t
       const g = FIRE_DECK_GROUPS.find((x) => x.layers.some((l) => l.id === 'fireHotspots'));
       const ids = g?.layers.map((l) => l.id) ?? [];
       return ids.indexOf('fireFootprints') === ids.indexOf('fireHotspots') + 1;
-    })());
-  // SF1: der Ausbreitungspfeil ist die Aussage der Ansicht und liegt über allem.
-  add('Ausbreitungspfeile liegen über den Detektionspunkten',
-    FIRE_Z_BAND.fireSpread > FIRE_Z_BAND.fireHotspots);
-  add('Ausbreitung hat eine eigene Dock-Gruppe (keine Fläche, keine amtliche Stufe)',
-    (() => {
-      const g = FIRE_DECK_GROUPS.find((x) => x.layers.some((l) => l.id === 'fireSpread'));
-      return !!g && g.layers.length === 1 && g.title === 'Ausbreitung (Modell)';
     })());
   add('Bodentrockenheit liegt direkt über dem Luft-Treiber (beide sind Treiber)',
     FIRE_Z_BAND.fireSoilDryness > FIRE_Z_BAND.fireWeather

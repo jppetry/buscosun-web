@@ -20,7 +20,7 @@ import {
   VARIABLES, variableMeta, KENNTAGE, kenntagDef, NORMAL_PERIODS, yearSpan,
   aggregate, yearly, anomalies, linearTrend, normalValue, countKenntageByYear, records,
   dayClimatology, daySeries, calendarYear, monthlyDistribution, tempBandShares, windRose,
-  monthName, type NormalPeriod,
+  monthName, type NormalPeriod, modelFilledSummary, MODEL_FILLED_LABEL,
 } from './historyModel';
 import {
   DEFAULT_SETTINGS, resolveYearRange,
@@ -187,7 +187,7 @@ export default function HistoryPage({ onBack, onOpenFeature }: Props) {
                     ? <ExploreView days={days} lat={loc.lat} lon={loc.lon} settings={settings} patch={patch} available={available} normalPeriod={normalPeriod} />
                     : <EmbedChange settings={settings} workDays={workDays} meta={meta} normal={normal} />}
                   <a className="hi-embed-link" href={typeof window !== 'undefined' ? window.location.href.replace(/[#&]embed=1/, '') : '#'} target="_blank" rel="noopener">Auf buscosun ansehen →</a>
-                  <Provenance kind={defaultHistorySource.kind} label={defaultHistorySource.label} compact station={defaultHistorySource.lastStation} />
+                  <Provenance kind={defaultHistorySource.kind} label={defaultHistorySource.label} compact station={defaultHistorySource.lastStation} modelFilled={modelFilledSummary(days)} />
                 </>
               )}
             </>
@@ -255,7 +255,7 @@ export default function HistoryPage({ onBack, onOpenFeature }: Props) {
             <MobileHeader eyebrow={`Rückblick · ${shortLoc(loc!.name)}`} title="Wie war das Wetter?" accent="steel" onBack={backToMode} />
             <div className="hd-m-scroll hd-m-explore">
               <ExploreView days={days} lat={loc!.lat} lon={loc!.lon} settings={settings} patch={patch} available={available} normalPeriod={normalPeriod} />
-              <Provenance kind={defaultHistorySource.kind} label={defaultHistorySource.label} compact station={defaultHistorySource.lastStation} />
+              <Provenance kind={defaultHistorySource.kind} label={defaultHistorySource.label} compact station={defaultHistorySource.lastStation} modelFilled={modelFilledSummary(days)} />
             </div>
           </>
         )}
@@ -314,7 +314,7 @@ export default function HistoryPage({ onBack, onOpenFeature }: Props) {
           <>
             <div className="hd-explore hd-scroll">
               <ExploreView days={days} lat={loc!.lat} lon={loc!.lon} settings={settings} patch={patch} available={available} normalPeriod={normalPeriod} />
-              <Provenance kind={defaultHistorySource.kind} label={defaultHistorySource.label} station={defaultHistorySource.lastStation} />
+              <Provenance kind={defaultHistorySource.kind} label={defaultHistorySource.label} station={defaultHistorySource.lastStation} modelFilled={modelFilledSummary(days)} />
             </div>
             <ExploreDrill days={days} settings={settings} patch={patch} available={available} normalPeriod={normalPeriod} />
           </>
@@ -612,7 +612,7 @@ function ChangeCenter({ settings, patch, days, workDays, meta, normal, normalPer
       )}
 
       {summary && settings.chart !== 'records' && settings.chart !== 'dateLookup' && <p className="hd-summary" dangerouslySetInnerHTML={{ __html: summary.replace(/(\+?\d+[.,]\d+\s?°C)/, '<strong>$1</strong>') }} />}
-      <Provenance kind={defaultHistorySource.kind} label={defaultHistorySource.label} station={defaultHistorySource.lastStation} deck />
+      <Provenance kind={defaultHistorySource.kind} label={defaultHistorySource.label} station={defaultHistorySource.lastStation} modelFilled={modelFilledSummary(days)} deck />
     </section>
   );
 }
@@ -1011,16 +1011,20 @@ function HowTo({ type }: { type: string }) {
   );
 }
 
-function Provenance({ kind, label, compact, station, deck }: { kind: 'measured' | 'reanalysis'; label: string; compact?: boolean; station?: { name: string; distanceKm: number; elevation: number | null } | null; deck?: boolean }) {
+function Provenance({ kind, label, compact, station, deck, modelFilled }: { kind: 'measured' | 'reanalysis'; label: string; compact?: boolean; station?: { name: string; distanceKm: number; elevation: number | null } | null; deck?: boolean; modelFilled?: ReturnType<typeof modelFilledSummary> }) {
   const badge = kind === 'reanalysis' ? 'Reanalyse' : 'Messung';
-  if (compact) return <p className={`hi-provenance hi-provenance-compact${deck ? ' hd-prov' : ''}`}><span className={deck ? 'hd-prov-badge' : 'hi-prov-badge'}>{badge}</span>Quelle: {label}{station ? ` · ${station.name}` : ''}</p>;
+  // V-BH-3: „Messung" gilt nicht für Werte, die der Anbieter mit Modellwerten gefüllt hat.
+  const filledTxt = modelFilled
+    ? ` ${modelFilled.pct.toLocaleString('de-DE')} % der Tage tragen Modellwerte statt Messungen (${modelFilled.fields.map((f) => MODEL_FILLED_LABEL[f]).join(', ')}) — vom Anbieter gefüllt, hier nicht als Messung gezählt.`
+    : '';
+  if (compact) return <p className={`hi-provenance hi-provenance-compact${deck ? ' hd-prov' : ''}`}><span className={deck ? 'hd-prov-badge' : 'hi-prov-badge'}>{badge}</span>Quelle: {label}{station ? ` · ${station.name}` : ''}{modelFilled ? ` · ${modelFilled.pct.toLocaleString('de-DE')} % Modellwerte (${modelFilled.fields.map((f) => MODEL_FILLED_LABEL[f]).join(', ')})` : ''}</p>;
   const stationTxt = station ? ` Nächste Station: ${station.name} (${station.distanceKm} km${station.elevation != null ? `, ${station.elevation} m` : ''}).` : '';
   return (
     <p className={deck ? 'hd-prov' : 'hi-provenance'}>
       <span className={deck ? 'hd-prov-badge' : 'hi-prov-badge'}>{badge}</span>
       Datenquelle: {label}.{stationTxt} {kind === 'reanalysis'
         ? 'ERA5 ist eine modellierte Reanalyse (mit Beobachtungen assimiliert), keine reine Stationsmessung — in Berglagen können lokale Abweichungen auftreten.'
-        : 'Tageswerte aus Stationsmessungen (für DE überwiegend DWD). Die Werte stammen von der nächstgelegenen Station.'} Lücken werden nicht stillschweigend interpoliert.
+        : 'Tageswerte aus Stationsmessungen (für DE überwiegend DWD). Die Werte stammen von der nächstgelegenen Station.'} Lücken werden nicht stillschweigend interpoliert.{filledTxt}
     </p>
   );
 }

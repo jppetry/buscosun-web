@@ -34,9 +34,6 @@ import {
 import { freLabel, DAYNIGHT_LABEL } from './activity/intensity';
 import { activitySummary } from './activity/fireActivity';
 import { STATE_LABEL, compassLabel } from './activity/dynamics';
-import type { SpreadRun } from './spread/spreadRun';
-import type { FireSpread } from './spread/spreadForecast';
-import { SPREAD_CAVEAT, gapText, observedCompareText, spreadHint } from './spread/spreadText';
 import { OBSERVATION_LABEL } from './activity/observation';
 import { featuresOf, featuresJson, featuresSummary, FEATURE_VERSION } from './activity/features';
 import { estimateLabel } from './activity/estimate';
@@ -101,8 +98,6 @@ export interface FootprintPanelProps {
   state: FootprintPanelState;
   /** BP3: Ortsverzeichnis geladen? Dann trägt das Panel die GeoNames-Zeile (CC BY). */
   placesLoaded?: boolean;
-  /** SF1: der Ausbreitungslauf — dieselbe Quelle wie die Pfeile auf der Karte. */
-  spread?: SpreadRun | null;
   /** GWBA1 A3: GeoSphere-Warnkontext je AT-Brand — Zitat, nie Bestätigung. */
   atContextFor?: (r: FireRecord) => AtWarnContext | null;
 }
@@ -115,7 +110,6 @@ const fmtStamp = (ms: number | null): string =>
   ms == null ? '—' : new Date(ms).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 const fmtDate = (ms: number | null): string =>
   ms == null ? '—' : new Date(ms).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
-const de = (n: number, frac = 1) => n.toLocaleString('de-DE', { maximumFractionDigits: frac });
 
 /** Bezeichnung einer Zeile: Ort › Kreis, sonst Koordinate — nie ein geratener Name. */
 export function recordTitle(r: FireRecord): string {
@@ -140,13 +134,6 @@ function recordName(r: FireRecord): string {
 function regionLabel(r: FireRecord): string {
   const c = r.country == null ? '—' : r.country === 'outside' ? 'außerhalb' : r.country;
   return r.place.district ? `${c} · ${r.place.district}` : c;
-}
-
-/** Der Ausbreitungsvektor der Vorlage: „NO · 1,4 km/h" aus dem FBP-Lauf (m/min → km/h). */
-function spreadVectorLabel(sp: FireSpread | null): { dir: string; kmh: string } | null {
-  const v = sp?.shown?.vector;
-  if (!v) return null;
-  return { dir: compassLabel(v.razDeg), kmh: de(v.rosMmin * 0.06, 1) };
 }
 
 /** Herkunft der Flächenangabe — Vorlage: „EFFIS kartiert" (Sage) vs. „geschätzt". */
@@ -357,8 +344,6 @@ export function FireFootprintPanel(p: FootprintPanelProps) {
         <ol className="br-firelist" onMouseLeave={() => p.onHover(null)}>
           {list.map((r) => {
             const sel = p.selectedId === r.id;
-            const sp = p.spread?.byId.get(r.id) ?? null;
-            const vec = spreadVectorLabel(sp);
             const origin = areaOrigin(r);
             const at = p.atContextFor?.(r) ?? null;
             const atFire = at?.warnings.filter((w) => w.fireContext) ?? [];
@@ -403,11 +388,6 @@ export function FireFootprintPanel(p: FootprintPanelProps) {
                           <span className="br-stat-val">{r.hotspots ?? '—'}</span>
                           <span className="br-stat-sub">{r.lastMs != null ? `letzte ${ageText(Math.max(0, nowMs - r.lastMs))}` : 'keine im Fenster'}</span>
                         </span>
-                        <span className="br-stat">
-                          <span className="br-stat-lbl">Ausbreitung</span>
-                          <span className={`br-stat-val${vec ? ' is-spread' : ''}`}>{vec ? `${vec.dir} · ${vec.kmh} km/h` : '—'}</span>
-                          <span className="br-stat-sub">{vec ? 'FBP-Modell' : sp?.reason ? 'kein Pfeil' : 'nicht gerechnet'}</span>
-                        </span>
                       </span>
                     ) : (
                       <span className="br-fire-line">
@@ -419,7 +399,6 @@ export function FireFootprintPanel(p: FootprintPanelProps) {
                           ? <><strong>{r.hotspots}</strong> Detektionen</>
                           : <span className="br-muted" title={missingReason(r, 'hotspots') ?? ''}>— Detektionen</span>}
                         {r.lastMs != null && <> · <span className="br-muted">{ageText(Math.max(0, nowMs - r.lastMs))}</span></>}
-                        {vec && <> · <span className="br-fire-vec">→ {vec.dir} · {vec.kmh} km/h</span></>}
                       </span>
                     )}
                     {/* BP5 — Stärke (ΣFRP) und Ausdehnung der Hülle; ohne Detektion „—" mit Grund, nie 0. */}
@@ -460,7 +439,7 @@ export function FireFootprintPanel(p: FootprintPanelProps) {
                     </span>
                   </button>
                   {sel && p.detail && p.detail.id === r.id && (
-                    <FootprintDetail r={p.detail} nowMs={nowMs} onClose={p.onClearSelect} spreadRun={p.spread ?? null} atContext={at} />
+                    <FootprintDetail r={p.detail} nowMs={nowMs} onClose={p.onClearSelect} atContext={at} />
                   )}
                 </div>
               </li>
@@ -550,12 +529,11 @@ function FeaturesRow({ r, nowMs }: { r: FireRecord; nowMs: number }) {
 
 /** Die Detailkarte eines Eintrags — in der Brandkarte, kein Popup. Jede Zahl mit Art und Quelle. */
 export function FootprintDetail(
-  { r, nowMs, onClose, spreadRun = null, atContext = null }:
-  { r: FireRecord; nowMs: number; onClose: () => void; spreadRun?: SpreadRun | null; atContext?: AtWarnContext | null },
+  { r, nowMs, onClose, atContext = null }:
+  { r: FireRecord; nowMs: number; onClose: () => void; atContext?: AtWarnContext | null },
 ) {
   // Der GANZE Lauf, nicht nur der Eintrag: nur so lässt sich „der Lauf kennt
   // diesen Brand nicht" von „der Lauf hat für ihn keine Aussage" unterscheiden.
-  const spread = spreadRun?.byId.get(r.id) ?? null;
   const eff = r.sources.effis;
   const conf = r.confidence;
   // VB3: die vorläufige Brandfläche — `null`, sobald eine Kartierung vorliegt.
@@ -663,32 +641,6 @@ export function FootprintDetail(
             <dd>
               {r.activity.daynightMix ? DAYNIGHT_LABEL[r.activity.daynightMix] : '—'}
               {r.activity.meanScanKm != null && <> · mittlere Pixelbreite {r.activity.meanScanKm.toLocaleString('de-DE')} km{r.activity.meanScanKm > 0.6 ? ' (Schwadrand — größere Pixel, andere Detektionswahrscheinlichkeit)' : ''}</>}
-            </dd>
-          </>
-        )}
-        {/* SF1 — die GERECHNETE Richtung: nie leer — entweder ein Satz oder ein benannter Grund. */}
-        {spreadRun && (
-          <>
-            <dt>Ausbreitungsrichtung (gerechnet, nächste Stunden)</dt>
-            <dd className="fire-fp-pred">
-              {spread
-                ? (
-                  <>
-                    {spreadHint(spread) ?? (
-                      <span className="br-muted">— {spread.reason ? gapText(spread.reason) : 'nicht bestimmbar'}</span>
-                    )}
-                    {observedCompareText(spread) && (
-                      <span className="br-muted"> · {observedCompareText(spread)}</span>
-                    )}
-                  </>
-                )
-                : (
-                  <span className="br-muted">
-                    — dieser Brand war beim letzten Lauf nicht dabei: gerechnet wird nur für Brände
-                    mit aktuellem Satellitensignal, und der Bestand kann sich seither geändert haben.
-                  </span>
-                )}
-              <span className="br-muted"> · {SPREAD_CAVEAT}</span>
             </dd>
           </>
         )}

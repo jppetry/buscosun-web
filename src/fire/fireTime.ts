@@ -34,7 +34,7 @@
  * jede Funktion bekommt „jetzt" hereingereicht und ist damit prüfbar.
  */
 
-import type { FireLayerId } from './fireModel';
+import { FIRE_LAYER_ORDER, type FireLayerId } from './fireModel';
 
 /** Wie ein Layer Zeit versteht. */
 export type FireTimeMode =
@@ -94,9 +94,14 @@ export const FIRE_LAYER_TIME: Record<FireLayerId, FireLayerTime> = {
   /**
    * WW1 — der Windlayer `fireWind` (instant, maxHour 6) stand hier; am
    * 2026-08-22 zurückgezogen. Die Begründung, warum +6 h die Stundenachse ist,
-   * gilt weiter und hängt jetzt an `fireSpread`: das Windgitter reicht +12 h ab
-   * Lauf, der Lauf ist beim Abruf bis ~5,5 h alt (`audit/waldbrand-wind.md` §2,
+   * gilt weiter: das Windgitter reicht +12 h ab Lauf, der Lauf ist beim Abruf
+   * bis ~5,5 h alt (`audit/waldbrand-wind.md` §2,
    * `audit/waldbrand-forecast.md` §15.5).
+   *
+   * Seit dem Rückzug von `fireSpread` (Bit 14, 2026-08-23) gibt es KEINEN Layer
+   * mit `mode: 'hourly'` mehr — die Stundenachse wird also nicht mehr erzwungen.
+   * Sie bleibt aber WÄHLBAR, weil `fireWeather` und `fireSoilDryness` weiterhin
+   * ein `maxHour` tragen und `hourlyAvailable()` genau darauf zählt.
    */
   /**
    * WT1 — Bodentrockenheit. Ein **echter**
@@ -119,13 +124,6 @@ export const FIRE_LAYER_TIME: Record<FireLayerId, FireLayerTime> = {
    * trägt dieser Layer den Fensterschalter allein.
    */
   fireFootprints: { mode: 'window', maxDay: 0, windowsH: [24, 168] },
-  /**
-   * SF1 — Ausbreitungsrichtung aktiver Brände: der einzige `hourly`-Layer (er
-   * hat die Rolle vom zurückgezogenen `fireForecast` übernommen). Er ERZWINGT
-   * die Stundenachse (`timeUnit`), klemmt die Tagesachse aber nicht —
-   * `sharedMaxDay` zählt nur `forecast`. Horizont = die eine Achse, 0…+6 h.
-   */
-  fireSpread: { mode: 'hourly', maxDay: 0, maxHour: HOUR_AXIS_MAX },
   /**
    * TA5 — Standorte persistenter Wärmequellen: eine statische Archivliste, kein
    * Zeitbezug; der Regler bewegt daran nichts (`instant`, WW1-Lehre: nicht
@@ -453,28 +451,25 @@ export function verifyFireTime(): { checks: FireTimeCheck[]; passed: number; tot
       && sharedMaxHour(['fireDanger']) === 0);
   add('Tages-Layer ziehen die Stundenachse NICHT auf 0 (wie instant bei Tagen)',
     sharedMaxHour(['fireDanger', 'fireWeather']) === 6);
-  // Der Grund für die 6: das Windgitter (SF1) reicht +12 h ab Lauf, der Lauf ist bis ~5,5 h alt.
-  add('Ausbreitung allein: Tagesachse nein, Stundenachse ja (§15.5)',
-    hasForecastSlider(['fireSpread']) === false && hourlyAvailable(['fireSpread']) === true
-      && hasTimeSlider(['fireSpread'], 'hours') === true);
+  // Der Grund für die 6: das Windgitter reicht +12 h ab Lauf, der Lauf ist bis ~5,5 h alt.
   add('Standard ist die Tagesachse — auch mit stundenfähigem Layer (Funktionserhalt)',
     timeUnit(defaultFireTimeState(), ['fireWeather', 'fireDanger']) === 'days');
   add('gewählte Stunden gelten nur mit stundenfähigem Layer',
     timeUnit({ unit: 'hours' }, ['fireWeather']) === 'hours'
       && timeUnit({ unit: 'hours' }, ['fireDanger']) === 'days');
-  add('ohne den Stundenlayer erzwingt kein Layer die Stundenachse (Wahl bleibt beim Nutzer)',
-    hourlyForced(['fireDanger', 'fireWeather', 'fireSoilDryness', 'fireContext']) === false);
-  // SF1: die Ausbreitung ist der `hourly`-Layer — Stunden erzwungen, Tagesachse unberührt.
-  add('SF1: fireSpread erzwingt die Stundenachse',
-    hourlyForced(['fireSpread']) === true && timeUnit({ unit: 'days' }, ['fireSpread']) === 'hours');
-  add('SF1: fireSpread klemmt die Tagesachse NICHT (EU-Index behält 9 Tage)',
-    sharedMaxDay(['fireDanger', 'fireSpread']) === 9);
-  add('SF1: Ausbreitung + RH-Treiber teilen die 6-h-Achse; Ausbreitung allein ebenso',
-    sharedMaxHour(['fireSpread', 'fireWeather']) === HOUR_AXIS_MAX && sharedMaxHour(['fireSpread']) === HOUR_AXIS_MAX);
-  add('SF1: mit der Ausbreitung folgt der EU-Index als Tageswert, die Ausbreitung stündlich',
-    hourFollow('fireDanger', 3) === 'daily' && hourFollow('fireSpread', 6) === 'hourly');
-  add('SF1: reconcile behält die Stundenachse, solange die Ausbreitung aktiv ist',
-    reconcileFireTime({ day: 0, windowH: 24, hour: 4, unit: 'hours' }, ['fireSpread']).unit === 'hours');
+  // Seit dem Rückzug von `fireSpread` (2026-08-23) gibt es keinen `hourly`-Layer
+  // mehr: NIEMAND erzwingt die Stundenachse. Sie bleibt wählbar, weil die
+  // Treiber ein `maxHour` tragen — genau das prüfen die beiden folgenden Fälle.
+  add('kein Layer erzwingt die Stundenachse mehr (Wahl liegt beim Nutzer)',
+    hourlyForced(['fireDanger', 'fireWeather', 'fireSoilDryness', 'fireContext']) === false
+      && hourlyForced(FIRE_LAYER_ORDER) === false);
+  add('die Stundenachse bleibt trotzdem WÄHLBAR (Treiber tragen maxHour)',
+    hourlyAvailable(['fireWeather']) === true && hourlyAvailable(['fireSoilDryness']) === true
+      && hasTimeSlider(['fireWeather'], 'hours') === true);
+  add('RH-Treiber + Boden teilen die 6-h-Achse',
+    sharedMaxHour(['fireWeather', 'fireSoilDryness']) === HOUR_AXIS_MAX);
+  add('reconcile behält die Stundenachse, solange ein stundenfähiger Layer aktiv ist',
+    reconcileFireTime({ day: 0, windowH: 24, hour: 4, unit: 'hours' }, ['fireWeather']).unit === 'hours');
   add('clampHour klemmt auf den gemeinsamen Stundenhorizont',
     clampHour(20, ['fireWeather']) === 6 && clampHour(-2, ['fireWeather']) === 0
       && clampHour(Number.NaN, ['fireWeather']) === 0 && clampHour(4.4, ['fireWeather']) === 4);
@@ -487,7 +482,7 @@ export function verifyFireTime(): { checks: FireTimeCheck[]; passed: number; tot
     reconcileFireTime(hrs, ['fireDanger']).unit === 'days');
   add('hasTimeSlider: Stunden nur mit Stundenframes, Tage wie gehabt',
     hasTimeSlider(['fireWeather'], 'hours') === true && hasTimeSlider(['fireDanger'], 'hours') === false
-      && hasTimeSlider(['fireDanger'], 'days') === true && hasTimeSlider(['fireSpread'], 'days') === false);
+      && hasTimeSlider(['fireDanger'], 'days') === true && hasTimeSlider(['fireFootprints'], 'days') === false);
   // Der Tag, in den „jetzt + h" fällt — UTC, wie dayToIsoDate.
   add('dayOfHour: mittags + 6 h ist noch heute, 18:00 + 6 h (Mitternacht) ist morgen — wie dayToIsoDate',
     dayOfHour(6, now) === 0 && dayOfHour(6, Date.UTC(2026, 7, 14, 18, 0)) === 1
@@ -497,15 +492,15 @@ export function verifyFireTime(): { checks: FireTimeCheck[]; passed: number; tot
   add('dayOfHour: Stunde 0 ist immer heute', dayOfHour(0, Date.UTC(2026, 7, 14, 23, 59)) === 0);
   add('hourLabel: jetzt / +3 h', hourLabel(0) === 'jetzt' && hourLabel(3) === '+3 h');
   // Ehrlichkeit dreistufig: folgt stündlich / als Tageswert / gar nicht.
-  add('hourFollow: RH-Treiber und Ausbreitung stündlich bis 6, EU-Index Tageswert, Schutzgebiete gar nicht',
-    hourFollow('fireWeather', 6) === 'hourly' && hourFollow('fireSpread', 6) === 'hourly'
+  add('hourFollow: RH-Treiber und Boden stündlich bis 6, EU-Index Tageswert, Schutzgebiete gar nicht',
+    hourFollow('fireWeather', 6) === 'hourly' && hourFollow('fireSoilDryness', 6) === 'hourly'
       && hourFollow('fireDanger', 3) === 'daily' && hourFollow('fireContext', 3) === 'none'
       && hourFollow('fireHotspots', 1) === 'none');
   add('hourFollow: auf Stunde 0 folgt alles (gilt für jetzt)',
     hourFollow('fireContext', 0) === 'hourly' && hourFollow('fireDanger', 0) === 'hourly');
   add('laggingLayers auf der Stundenachse nennt nur die stehenden Layer (Ausbreitung läuft mit)',
-    laggingLayers(['fireDanger', 'fireWeather', 'fireSpread', 'fireHotspots', 'fireContext'], 4, 'hours').join(',') === 'fireHotspots,fireContext'
-      && dailyOnlyLayers(['fireDanger', 'fireWeather', 'fireSpread'], 4).join(',') === 'fireDanger');
+    laggingLayers(['fireDanger', 'fireWeather', 'fireSoilDryness', 'fireHotspots', 'fireContext'], 4, 'hours').join(',') === 'fireHotspots,fireContext'
+      && dailyOnlyLayers(['fireDanger', 'fireWeather', 'fireSoilDryness'], 4).join(',') === 'fireDanger');
   add('laggingLayers ohne Einheit = Tagesachse (Verhalten vor WF3)',
     laggingLayers(['fireDanger', 'fireContext'], 1).join(',') === laggingLayers(['fireDanger', 'fireContext'], 1, 'days').join(','));
 

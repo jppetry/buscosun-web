@@ -21,6 +21,7 @@
 
 import { File as H5File } from 'jsfive';
 import { precipToU8, type QuadCorners } from '../scalar/RainLayer';
+import { shareInFlight } from './shareInFlight';
 
 const STAC_ITEM = (day: string) =>
   `https://data.geo.admin.ch/api/stac/v1/collections/ch.meteoschweiz.ogd-radar-precip/items/${day}-ch`;
@@ -62,8 +63,16 @@ async function resolveLatestRzcHref(signal?: AbortSignal): Promise<string> {
 
 /** Lädt den jüngsten rzc-Frame, dekodiert das HDF5 und baut das Uint8-Werte-Grid. */
 export async function fetchRzcLatest(signal?: AbortSignal): Promise<RadarFrame> {
-  const href = await resolveLatestRzcHref(signal);
-  const res = await fetch(href, { signal });
+  // Entdopplung: Karte und Punktforecast fragen beim Mount gleichzeitig (§24.3).
+  // Anders als DE/AT senden beide CH-Endpunkte `max-age`, ein warmer HTTP-Cache
+  // fängt die Wiederholung also ab — die Byte-Ersparnis wird hier NICHT
+  // behauptet. Sicher gespart wird das zweite Dekodieren des HDF5.
+  return shareInFlight('meteoswiss-rzc-latest', () => loadRzcLatest(), signal);
+}
+
+async function loadRzcLatest(): Promise<RadarFrame> {
+  const href = await resolveLatestRzcHref();
+  const res = await fetch(href);
   if (!res.ok) throw new Error(`MeteoSwiss rzc fetch: ${res.status}`);
   const buf = await res.arrayBuffer();
 

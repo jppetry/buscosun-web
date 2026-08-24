@@ -90,7 +90,14 @@ add('[netlify] Proxys stehen VOR den App-Regeln', idx((x) => x.from === '/_ecmwf
 
 // --- (4) Service Worker ---------------------------------------------------------
 const sw = readFileSync(join(ROOT, 'public', 'sw.js'), 'utf8');
-add('[sw] VERSION ist v2 (Caches der Hash-Ära werden verworfen)', /const VERSION = 'v2'/.test(sw));
+// Die Zahl selbst ist nicht die Zusage — sie steigt bei jeder SW-Änderung (BW-3 hat
+// auf v3 gebumpt, weil `cdn.jsdelivr.net` durchgereicht wird). Zugesagt ist zweierlei:
+// sie liegt HINTER der Hash-Ära (v1), und ALLE drei Cache-Namen hängen an ihr — sonst
+// verwirft ein Bump nichts, und genau das ist der Zweck des Bumps.
+const swVersion = /const VERSION = '(v\d+)'/.exec(sw)?.[1] ?? null;
+add('[sw] VERSION liegt hinter der Hash-Ära (≥ v2) und trägt alle drei Cache-Namen',
+  !!swVersion && Number(swVersion.slice(1)) >= 2
+  && ['shell', 'assets', 'data'].every((n) => sw.includes('`bsc-' + n + '-${VERSION}`')), swVersion ?? '—');
 add('[sw] Shell-Cache nur für App-HTML (id="root"), nicht für statische SEO-Seiten', sw.includes('id="root"'));
 
 // --- (5) Router-Datei deckt alle Routen ab (Textsonde auf Werte, nicht Zeilen) -------

@@ -399,6 +399,53 @@ neuen Bedienelemente außer `details`/`JSON kopieren` (Textlinks wie im Bestand)
 vorbestehenden GeoSphere-404. (5) Keine neuen Long Tasks — die Arbeit ist Netz (Meteostat 16–33
 gzip-CSV im Worker-freien Hauptthread entpackt via `DecompressionStream`, kein Block gemessen).
 
+### GBH5 — BH5 umgesetzt (2026-08-23) · **grün**
+
+**Gebaut:**
+- `src/fire/history/historySeries.ts` (pur): je Saison eine Tagesreihe **kumulierter Ereignisse**
+  (DACH, DE, AT, CH) aus DENSELBEN Ereignissen und DERSELBEN Zählregel wie die Liste
+  (`countsInSeries` = DACH + Beginn + `indexAnomalyKind ≠ site`); laufende Saison endet am
+  Auswertetag (`null` danach, nie 0); Referenz = Mittel/min/max **nur über vollständige Saisons**
+  (2020–2025); `compareToReference` für „bis heute". Selbstverifikation 8/8.
+- Batch `build-index.mjs` schreibt `public/fire/bh/season-series-v1.json` (**40 KB roh / 11 KB gz**),
+  Build-Report trägt `today` und `seasonEnd` je Jahr.
+- `historyLoad.ts` → `loadSeasonSeries` (no-store, einmal je Sitzung, Fehler nicht gemerkt);
+  `FireHistoryChart.tsx` — **reines SVG** (D-06), rote Linie = laufende Saison, gestrichelt = Mittel,
+  Band = Spanne der Vorjahre, Monatsmarken, Bildunterschrift mit dem Vergleich am selben Saisontag
+  und den beiden Grenzen der Datei; im Saison-Readout über der Liste (`SeasonChartBlock`), Ausfall
+  benannt.
+- Verifier `verify:fire-history` **110/110** (+17: Modul 8, Datei 7 — darunter **Chart-Endwert =
+  Brände im Saison-Index ohne Anlagen: 4 686 / 4 686** —, Chart/Panel 2).
+
+**Gemessen (Stand 22.08.2026):** Saisonende 2020 2 792 · 2021 1 980 · 2022 3 171 · 2023 2 992 ·
+2024 2 814 · 2025 4 528; **2026 am Saisontag 174 (22.08.): 4 686** gegen Vorjahresmittel **2 476**
+(Spanne 1 544–4 045) am selben Tag — die laufende Saison liegt über jedem Vorjahr, **mit zwei
+Vorbehalten, die in der Bildunterschrift stehen:** die Referenz ist kein langjähriges Mittel (sechs
+Saisons), und 2026 trägt ab Ende April/Juni den NRT-Rand (SP-Nachlieferung kann Detektionen
+verschieben oder streichen; die Vorjahre sind reine SP-Reihen). Ein Sensor-Unterschied ist es nicht
+(beide Reihen SNPP + NOAA-20).
+
+**Ein Dev-Befund:** beim ersten Aufruf nach dem Batch-Lauf lieferte der Dev-Server für die neue
+Datei einmalig HTML (Vite hatte den Pfad noch nicht) — die Karte zeigte korrekt „Saisonverlauf nicht
+verfügbar (Unexpected token '<') — Ausfall der Datei, kein leerer Verlauf", nach Reload JSON. Prod
+betrifft das nicht (statisches Asset).
+
+**Fünf Fragen:** (1) Funktionserhalt: Bestandsverifier grün (`fire-model` 129, `fire-time` 124,
+`fire-spread` 203, `fire-anomalies` 56), Typecheck grün, Budget totalJs 985,4 / 1 024,5 KB
+(`FireRoute` +1,3 KB gz für das Chart). (2) Desktop `audit/screenshots/bh5-desktop-1440-saisonchart.png`.
+(3) Keine Bedienelemente im Chart. (4) Konsole: nur die vorbestehenden GeoSphere-404. (5) Chart =
+drei SVG-Pfade aus 245 Punkten, kein Long Task (Dev gemessen, Render < 16 ms).
+
+## 6a. Jans Entscheidungen zu den offenen Punkten (2026-08-23) — umgesetzt
+
+| # | Entscheidung | Umsetzung · Beleg |
+|---|---|---|
+| Repo | **„nur die Saison"** | `build-index.mjs` baut `ev/` IMMER neu ⇒ im Repo liegen genau die Shards der laufenden Saison + des Monats; beim Saisonwechsel fallen alte Shards von selbst heraus. 438 Dateien, 14,8 MB (Saison 2026) — das ist die Obergrenze je Saison. Noch nicht committed. |
+| V-BH-2 | „mache, wie du meinst" | **Klassifizierer bleibt unangetastet.** Begründung: im Live-Fenster (max. 7 Tage) kann die Regel „> 7 Signaltage" nie greifen — sie wäre dort toter Code; sie gehört in den Index, wo die Saison sie braucht. |
+| V-BH-3 | **ja** | `historyModel.ts` `modelFilledSummary` + `MODEL_FILLED_LABEL`; `HistoryPage.tsx` `Provenance` bekommt an allen vier Stellen die Quote. Browser (Düren, Station Nörvenich 13 km): „0,2 % der Tage tragen Modellwerte statt Messungen (Temperatur max, …, Wind) — vom Anbieter gefüllt, hier nicht als Messung gezählt." Verifier 2 Prüfungen. |
+| BH6 | „ich weiß nicht" | Default bleibt: **kein Workflow**. Bis zur Entscheidung ist Monat/Saison ein manuell nachgezogener Stand (`npm run fire:history-archive` ≈ 10 min mit Schlüssel, dann `fire:history-index`); der Stand steht in jeder Liste. Die Entscheidung braucht drei Antworten: Secret `FIRMS_MAP_KEY` im Repo-Actions-Store (ja/nein), Commit-back von ~15 MB je Nacht (Repo-Wachstum ~1 MB/Tag im Pack) und Prod-Dispatch als Jans Gate. |
+| V-BH-4 | **„hochperformant"** | `MeteostatSource.fetchDailyRange` cacht je **Station und Jahr** und lädt nur den angefragten Bereich — die Detailkarte holt **eine** Datei: **1,3 s statt ~15 s** (Browser, Hürtgenwald). Historie-Seite unverändert (fragt die volle Reihe, Düren: 58 Dateien, dieselben wie vorher). Verifier 1 Prüfung; `verify:fire-history` **113/113**, Typecheck grün, Budget 985,8 / 1 024,5 KB. |
+
 ## 7. Nicht in diesem Plan
 
 Sentinel-2-dNBR (§4, W9) · Klasse „Unklar" (Q7) ·

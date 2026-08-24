@@ -21,6 +21,8 @@ import { fixtureRow } from '../src/fire/fireClusters.ts';
 import { verifyHistoryLoad } from '../src/fire/history/historyLoad.ts';
 import { verifyHistoryDetail } from '../src/fire/history/historyDetail.ts';
 import { parseDailyCsv } from '../src/history/meteostatSource.ts';
+import { modelFilledSummary } from '../src/history/historyModel.ts';
+import { verifyHistorySeries, SEASON_SERIES_VERSION } from '../src/fire/history/historySeries.ts';
 import { parseFirmsCsv, dedupe } from '../src/fire/sources/firmsHotspots.ts';
 import { buildFireClusters } from '../src/fire/fireClusters.ts';
 import { readdirSync } from 'node:fs';
@@ -174,6 +176,42 @@ if (!existsSync(file)) {
   add('[nebenbefund] Meteostat-Parser: ohne wpgt/tsun-Spalten ist der Wind die Windgeschwindigkeit, nicht der Luftdruck', n?.windMaxKmh === 12.1 && n.sunshineH === null && n.tMaxC === 35.1 && n.humidityPct === 26, JSON.stringify(n));
   add('[nebenbefund] Meteostat-Parser: voller Spaltensatz unverändert (Böe, Sonnenstunden)', f?.windMaxKmh === 29.5 && f.sunshineH != null && Math.abs(f.sunshineH - 13.05) < 0.01 && f.tMaxC === 37.6);
   add('[nebenbefund] Meteostat-Parser: modellgefüllte Werte sind markiert (metno_forecast ⇒ windMaxKmh), Messwerte nicht', JSON.stringify(n?.modelFilled) === '["windMaxKmh"]' && f?.modelFilled === undefined);
+  // V-BH-3 (Jan: ja): die Historie-Seite zählt gefüllte Werte nicht als Messung.
+  const mf = modelFilledSummary([n, f, f, f]);
+  add('[V-BH-3] modelFilledSummary: 1 von 4 Tagen ⇒ 25 %, Feld Wind; ohne Füllung null', mf?.pct === 25 && JSON.stringify(mf.fields) === '["windMaxKmh"]' && modelFilledSummary([f]) === null);
+  const hp = readFileSync(join(ROOT, 'src', 'history', 'HistoryPage.tsx'), 'utf8');
+  add('[V-BH-3] Historie-Seite: jede Provenance-Zeile bekommt die Modellwert-Quote', (hp.match(/modelFilled=\{modelFilledSummary\(days\)\}/g) ?? []).length === 4 && /nicht als Messung gezählt/.test(hp));
+  const ms = readFileSync(join(ROOT, 'src', 'history', 'meteostatSource.ts'), 'utf8');
+  add('[V-BH-4] Meteostat lädt nur die angefragten Jahre (Cache je Station und Jahr)', /const yStart = Math\.max\(this\.minYear, st\.startYear, startYear\)/.test(ms) && /const key = `\$\{st\.id\}:\$\{year\}`/.test(ms));
+}
+
+// (g) BH5 — Saisonverlauf: Modul + Datei (Chart-Endwert = Brände im Saison-Index ohne Anlagen).
+{
+  const fx = eventsFromRows([fixtureRow(48.0, 11.0, Date.UTC(2026, 7, 10, 12), 5)], { nowMs: Date.UTC(2026, 7, 23), polys: [], rings: null });
+  for (const c of verifyHistorySeries(fx.events[0]).checks) add(`[serie] ${c.name}`, c.ok, c.detail);
+  const pub = join(ROOT, 'public', 'fire', 'bh');
+  const sf = join(pub, 'season-series-v1.json');
+  const idxf = join(pub, 'index-season-v1.json');
+  if (!existsSync(sf) || !existsSync(idxf)) {
+    add('[serie] season-series-v1.json vorhanden', false);
+  } else {
+    const series = JSON.parse(readFileSync(sf, 'utf8'));
+    const idx = JSON.parse(readFileSync(idxf, 'utf8'));
+    const entries = idx.events.map((r) => entryOf(r, idx.fields));
+    const cur = series.seasons.find((s) => !s.complete);
+    const firesInIndex = entries.filter((e) => e.anomalyKind !== 'site').length;
+    add('[serie] Version, Stand = Index-Stand, Referenzjahre vollständig', series.version === SEASON_SERIES_VERSION && series.evaluatedAt === idx.evaluatedAt && Array.isArray(series.reference?.years) && series.reference.years.every((y) => series.seasons.find((s) => s.year === y)?.complete));
+    add('[serie] laufende Saison = Saison des Index', !!cur && idx.window.label.includes(String(cur.year)));
+    add('[serie] Chart-Endwert = Brände im Saison-Index ohne Anlagen (dieselbe Zählgrundlage)', !!cur && cur.cumulative.DACH[cur.lastDay] === firesInIndex, `${cur?.cumulative.DACH[cur.lastDay]} / ${firesInIndex}`);
+    add('[serie] Länder summieren auf DACH am Saisonende', series.seasons.every((s) => { const d = s.lastDay; return d < 0 || s.cumulative.DE[d] + s.cumulative.AT[d] + s.cumulative.CH[d] === s.cumulative.DACH[d]; }));
+    add('[serie] nach dem Stand null, nie 0', !!cur && (cur.lastDay === series.days - 1 || cur.cumulative.DACH[cur.lastDay + 1] === null));
+    add('[serie] kumulativ monoton', series.seasons.every((s) => s.cumulative.DACH.every((v, i, a) => i === 0 || v == null || (a[i - 1] != null && v >= a[i - 1]))));
+    add('[serie] Größe gemessen', true, `${(readFileSync(sf, 'utf8').length / 1024).toFixed(0)} KB roh / ${(gzipSync(readFileSync(sf, 'utf8')).length / 1024).toFixed(0)} KB gz`);
+    const chart = readFileSync(join(ROOT, 'src', 'fire', 'FireHistoryChart.tsx'), 'utf8');
+    add('[serie] Chart: reines SVG, Bildunterschrift mit Vorjahresvergleich und „ohne Anlagen"', /<svg viewBox/.test(chart) && !/from 'recharts'|from 'd3'|from 'chart\.js'/.test(chart) && /Ohne Anlagen-Ereignisse/.test(chart) && /am selben Saisontag im Mittel/.test(chart));
+    const pnl = readFileSync(join(ROOT, 'src', 'fire', 'FireHistoryPanel.tsx'), 'utf8');
+    add('[serie] Chart nur im Saison-Fenster, Ausfall benannt', /p\.kind === 'season' && <SeasonChartBlock/.test(pnl) && /Ausfall der Datei, kein leerer Verlauf/.test(pnl));
+  }
 }
 
 const passed = checks.filter((c) => c.ok).length;

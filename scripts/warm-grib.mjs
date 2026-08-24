@@ -88,10 +88,14 @@
  *                       deckelt (kleiner Probelauf). Default: unbegrenzt.
  *   FAIL_STEP           TEST: nimmt diesen Step aus den Listen (Fail-Safe-Probe).
  *   FORCE               '1' überspringt den Early-Exit.
+ *   REPACK_INDEX_URL    index.json des Daten-Repos (BW-2). Leer = Repack-Abschnitt
+ *                       abgeschaltet. Default s. scripts/lib/repackManifest.mjs.
+ *   REPACK_CDN_BASE     CDN-Basis für die Bild-URLs. Default ebenda.
  */
 
 import { writeFileSync, renameSync, readFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
+import { fetchIndex, pickForRun, carryRepack, sameSection, CDN_BASE } from './lib/repackManifest.mjs';
 
 const SITE_URL = (process.env.SITE_URL || 'http://localhost:5196').replace(/\/+$/, '');
 const MANIFEST_PATH = resolve(process.env.MANIFEST_PATH || 'public/latest-grib.json');
@@ -312,12 +316,28 @@ async function main() {
   try { latestEps = await findLatestEpsRun(); } catch (e) { log(`EPS-Discovery-Fehler (${e?.message || e}).`); }
   if (!latestEps) log('Kein EPS-Lauf gefunden → eps-Abschnitt UNVERÄNDERT (graceful degrade).');
 
+  // ── BW-2: additiver `repack`-Abschnitt (Temperatur) ───────────────────────
+  // Nur ein Blick in `index.json` des Daten-Repos (ein paar KB von
+  // raw.githubusercontent.com) — es wird nichts geladen und nichts gewärmt.
+  // Der Abschnitt hängt am Lauf, der am Ende WIRKLICH im Manifest steht; hier
+  // kann das der übernommene Bestandslauf sein, nicht der frisch gefundene.
+  const idx = await fetchIndex();
+  if (idx.note) log(idx.note);
+  const repackFor = (run) => carryRepack(existing, run, {
+    ok: idx.ok, section: idx.ok ? pickForRun(idx.index, run, 'temp', process.env.REPACK_CDN_BASE || CDN_BASE) : null,
+  });
+
   const needMain = latest != null && (FORCE || !manifestCovers(existing, latest));
   const needEps = latestEps != null && (FORCE || !manifestCoversEps(existing, latestEps));
-  if (!needMain && !needEps) {
+  // Der Producer kommt typischerweise NACH dem Manifest-Advance zum Zug (er
+  // braucht ~2 min je Lauf). Ohne diese Prüfung stünde sein Abschnitt bis zum
+  // nächsten DWD-Lauf nicht im Manifest — dasselbe Muster wie V-81.
+  const repackSettled = sameSection(existing?.repack ?? null, existing?.run ? repackFor(existing.run) : null);
+  if (!needMain && !needEps && repackSettled) {
     log('Early-Exit: Manifest deckt 2D und EPS bereits vollständig ab.');
     return 0;
   }
+  if (!needMain && !needEps) log('2D und EPS abgedeckt, aber der Repack-Abschnitt hat sich geändert → umlegen.');
   if (!needMain && latest) log(`2D bereits abgedeckt (Lauf ${latest.run}) → nur EPS wärmen.`);
   if (!needEps && latestEps) log(`EPS bereits abgedeckt (Lauf ${latestEps.run}) → nur 2D wärmen.`);
 
@@ -356,7 +376,10 @@ async function main() {
       log(`EPS unvollständig (${epsBad.map((p) => `${p}:[${confirmedEps[p].join(',')}]`).join(' ')}) → eps-Abschnitt UNVERÄNDERT (Fail-Safe).`);
     } else advanceEps = true;
   }
-  if (!advanceMain && !advanceEps) {
+  // Dritter Grund umzulegen: nur der Repack-Abschnitt hat sich bewegt. Dann
+  // bleiben 2D und EPS 1:1 aus dem Bestand — es ändert sich genau ein Feld.
+  const repackOnly = !advanceMain && !advanceEps && !repackSettled && typeof existing?.run === 'string';
+  if (!advanceMain && !advanceEps && !repackOnly) {
     log('Nichts umzulegen (Fail-Safes). Exit 0.');
     return 0;
   }
@@ -392,8 +415,13 @@ async function main() {
     params: mainParams,
     ...(epsSection ? { eps: epsSection } : {}),
   };
+  // Additiv und zuletzt, am Lauf, der wirklich im Manifest steht. Fehlt er,
+  // ist das Manifest exakt das von vorher — der Client nimmt dann GRIB.
+  const nextRepack = repackFor(mainRun);
+  if (nextRepack) manifest.repack = nextRepack;
   writeManifestAtomic(manifest);
-  log(`Manifest umgelegt → 2D-Lauf ${manifest.run}${advanceMain ? ' (neu)' : ' (übernommen)'}${epsSection ? ` · EPS-Lauf ${epsSection.run}${advanceEps ? ' (neu)' : ' (übernommen)'}` : ''}. Fertig.`);
+  log(`Manifest umgelegt → 2D-Lauf ${manifest.run}${advanceMain ? ' (neu)' : ' (übernommen)'}${epsSection ? ` · EPS-Lauf ${epsSection.run}${advanceEps ? ' (neu)' : ' (übernommen)'}` : ''}`
+    + `${nextRepack ? ` · Repack-Commit ${nextRepack.commit.slice(0, 7)}` : ' · ohne Repack'}. Fertig.`);
   return 0;
 }
 

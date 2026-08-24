@@ -83,32 +83,36 @@ export class MeteostatSource implements HistorySource {
   async fetchDailyRange(lat: number, lon: number, startYear: number, endYear: number, signal?: AbortSignal): Promise<DailyRecord[]> {
     const st = await this.nearestStation(lat, lon);
     this.lastStation = { name: st.name, distanceKm: st.distanceKm, elevation: st.elevation };
-    let p = this.dailyCache.get(st.id);
-    if (!p) {
-      const yStart = Math.max(this.minYear, st.startYear);
-      const yEnd = Math.min(new Date().getFullYear(), st.endYear);
-      const years: number[] = [];
-      for (let y = yStart; y <= yEnd; y++) years.push(y);
-      p = (async () => {
-        const perYear = await pMap(years, 6, async (year) => {
+    // Cache je Station UND Jahr (V-BH-4, Jans Vorgabe „hochperformant"): vorher lud JEDER Aufruf
+    // das ganze Stationsinventar (bis 33 Jahresdateien, ~15 s) — die Brandradar-Detailkarte braucht
+    // ein bis zwei Jahre. Die Historie-Seite fragt weiter die volle Reihe und bekommt dieselben Dateien.
+    const yStart = Math.max(this.minYear, st.startYear, startYear);
+    const yEnd = Math.min(new Date().getFullYear(), st.endYear, endYear);
+    const years: number[] = [];
+    for (let y = yStart; y <= yEnd; y++) years.push(y);
+    const perYear = await pMap(years, 6, async (year) => {
+      const key = `${st.id}:${year}`;
+      let p = this.dailyCache.get(key);
+      if (!p) {
+        // OHNE das Signal des Aufrufers: ein geteilter Cache darf nicht am Abbruch des ERSTEN
+        // Aufrufers hängen — sonst bekommt jeder spätere „signal is aborted" (BH4-Browserbefund;
+        // Lehre GBP1 (3)). Abgebrochen wird unten, nach dem Warten, über das eigene Signal.
+        p = (async () => {
           try {
-            const res = await fetch(DAILY_URL(year, st.id), { signal });
+            const res = await fetch(DAILY_URL(year, st.id));
             if (!res.ok) return [] as DailyRecord[];
             return parseDailyCsv(await gunzipText(res));
-          } catch (e) {
-            if ((e as { name?: string })?.name === 'AbortError') throw e;
+          } catch {
             return [] as DailyRecord[];
           }
-        });
-        return perYear.flat().sort((a, b) => a.dateISO.localeCompare(b.dateISO));
-      })();
-      this.dailyCache.set(st.id, p);
-      // Ein Fehlschlag (auch ein AbortError des ERSTEN Aufrufers) darf die Station nicht für die
-      // Sitzung vergiften — sonst bekommt jeder spätere Aufruf „signal is aborted" aus dem Cache
-      // (BH4-Nebenbefund im Browser; Lehre GBP1 (3): geteilter Cache ≠ Signal des ersten Aufrufers).
-      p.catch(() => { if (this.dailyCache.get(st.id) === p) this.dailyCache.delete(st.id); });
-    }
-    const all = await p;
+        })();
+        this.dailyCache.set(key, p);
+        p.catch(() => { if (this.dailyCache.get(key) === p) this.dailyCache.delete(key); });
+      }
+      return p;
+    });
+    if (signal?.aborted) throw new DOMException('aborted', 'AbortError');
+    const all = perYear.flat().sort((a, b) => a.dateISO.localeCompare(b.dateISO));
     if (!all.length) throw new Error('Für diesen Ort liegen keine Stationsdaten vor.');
     return all.filter((d) => d.year >= startYear && d.year <= endYear);
   }

@@ -10,7 +10,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { CLUSTER_PAGE, clusterColor, STATIC_GREY } from './fireClusters';
 import type { HistoryIndexEntry, HistoryIndexFile, HistoryWindowKind } from './history/historyArtifacts';
-import { historyStandLabel, type HistoryLoad } from './history/historyLoad';
+import { historyStandLabel, loadSeasonSeries, type HistoryLoad, type SeriesLoad } from './history/historyLoad';
+import { FireHistoryChart } from './FireHistoryChart';
 import { loadHistoryShard, eventFromShard, fireDayWeather, rainLabel, type ShardLoad, type FireDayWeather } from './history/historyDetail';
 import type { HistoryEvent } from './history/historyEvents';
 import { featuresSummary, featuresJson } from './activity/features';
@@ -99,6 +100,7 @@ export function FireHistoryPanel(p: HistoryPanelProps) {
             {file.counts.withNrt > 0 && <>, {de(file.counts.withNrt)} mit vorläufigen (NRT-)Detektionen</>}.
             {file.counts.outsideDropped > 0 && <> {de(file.counts.outsideDropped)} Ereignisse jenseits der Grenzen sind gezählt, nicht gezeigt.</>}
           </p>
+          {p.kind === 'season' && <SeasonChartBlock compact={p.compact} />}
           <div className="br-chiprow" role="group" aria-label="Sortierung">
             {!p.inSheet && <span className="br-chiprow-lbl">Sortieren:</span>}
             {([['strength', 'Stärke'], ['recency', 'Zuletzt'], ['area', 'Fläche']] as const).map(([id, l]) => (
@@ -268,4 +270,16 @@ function HistoryEventDetail({ entry }: { entry: HistoryIndexEntry }) {
       )}
     </div>
   );
+}
+
+// ---------------------------------------------------------------------------
+// BH5 — Saisonverlauf im Saison-Readout (Datei einmal je Sitzung; Ausfall wird gesagt)
+// ---------------------------------------------------------------------------
+
+function SeasonChartBlock({ compact }: { compact?: boolean }) {
+  const [series, setSeries] = useState<SeriesLoad>({ kind: 'loading' });
+  useEffect(() => { let alive = true; void loadSeasonSeries().then((r) => { if (alive) setSeries(r); }); return () => { alive = false; }; }, []);
+  if (series.kind === 'loading') return <p className="br-note">Saisonverlauf wird geladen …</p>;
+  if (series.kind === 'error') return <p className="br-note">Saisonverlauf nicht verfügbar ({series.message}) — Ausfall der Datei, kein leerer Verlauf.</p>;
+  return <FireHistoryChart file={series.file} compact={compact} />;
 }

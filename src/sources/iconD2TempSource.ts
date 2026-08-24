@@ -22,7 +22,17 @@ import {
 } from './iconD2Precip';
 import { loadElevationLookup } from '../fusion/elevation';
 import { stepsForNowWindow } from './frameAtValidTime';
+import { buildTempRgba, TEMP_DEM_MAX, TEMP_VMIN, TEMP_VMAX } from './tempFrameBuild';
+import {
+  resolveRepackForRun, loadHsurfGrey, loadTempStep, uvBoundsOf, repackUsable,
+  type RepackSection,
+} from './repackSource';
 import type { ForecastBounds } from './openMeteoForecast';
+
+// Die Normierung lebt in `tempFrameBuild.ts` (DOM-frei, von Client UND
+// Repack-Producer importiert). Hier nur weitergereicht, damit die bisherigen
+// Importeure (`scalar/confidenceImage.ts`) unverändert bleiben.
+export { TEMP_VMIN, TEMP_VMAX } from './tempFrameBuild';
 
 export const ICON_D2_TEMP_ATTRIBUTION =
   'Temperatur: <a href="https://www.dwd.de/EN/ourservices/opendata/opendata.html" ' +
@@ -34,17 +44,15 @@ const MAX_STEP = 24;
 const TARGET_WIDTH = 700;
 /** Parallele Fetches (bz2-Decompress läuft im Worker-Pool). */
 const CONCURRENCY = 6;
-/** Max-Höhe (m), die als 1.0 in Grün-Kanal & DEM kodiert wird (= ScalarLayer demMax). */
-const DEM_MAX = 4500;
+/** Max-Höhe (m), die als 1.0 in Grün-Kanal & DEM kodiert wird (= ScalarLayer demMax).
+ *  EINE Quelle mit dem Werte-Bild — das DEM und der Grün-Kanal müssen dieselbe
+ *  Skala benutzen, sonst rechnet der Shader die Höhendifferenz falsch. */
+const DEM_MAX = TEMP_DEM_MAX;
 /** Terrarium-Zoom der DEM-Quelle (QA-Knopf D2). z7 ≈ 1,2 km — gute Balance
  *  (~50 Tiles über die ICON-Domäne, einmalig pro Bounds gecacht). z8 (~0,6 km)
  *  löst scharfe 3000er (Sonnblick/Zugspitze) besser auf, kostet aber ~4× Tiles/
  *  Bandbreite beim Erststart → bewusst nicht Default. */
 const DEM_ZOOM = 7;
-const KELVIN = 273.15;
-/** Physikalischer Temperaturbereich der Normierung (muss zu MapView TEMP_RANGE passen). */
-export const TEMP_VMIN = -20;
-export const TEMP_VMAX = 40;
 
 export interface IconD2TempFrame {
   validAt: Date;
@@ -137,37 +145,21 @@ async function buildDemImage(bounds: ForecastBounds, signal?: AbortSignal): Prom
   return canvas;
 }
 
-/** Baut das RGBA-Werte-Bild eines Schritts: R = norm. °C, G = norm. hsurf, A = Maske. */
-function buildTempImage(t2m: GribField, hsurf: GribField | null, ss: number): Omit<IconD2TempFrame, 'validAt' | 'stepHours'> {
-  const { ni, nj } = t2m;
-  const w = Math.ceil(ni / ss);
-  const h = Math.ceil(nj / ss);
-  const sameGrid = !!hsurf && hsurf.ni === ni && hsurf.nj === nj;
-
+/** RGBA-Bytes → Canvas. Der einzige DOM-Schritt, den beide Wege teilen: der
+ *  GRIB-Weg rechnet die Bytes (`buildTempRgba`), der CDN-Weg lädt sie fertig. */
+function rgbaToCanvas(rgba: Uint8ClampedArray, width: number, height: number): HTMLCanvasElement {
   const canvas = document.createElement('canvas');
-  canvas.width = w; canvas.height = h;
-  const ctx = canvas.getContext('2d')!;
-  const img = ctx.createImageData(w, h);
-  const span = TEMP_VMAX - TEMP_VMIN;
-  for (let jj = 0; jj < h; jj++) {
-    const sj = Math.min(nj - 1, jj * ss);
-    const y = h - 1 - jj; // S→N → north-up (deckt sich mit dem DEM-Bild)
-    for (let ii = 0; ii < w; ii++) {
-      const si = Math.min(ni - 1, ii * ss);
-      const k = sj * ni + si;
-      const idx = (y * w + ii) * 4;
-      const kelvin = t2m.values[k];
-      if (!Number.isFinite(kelvin)) { img.data[idx + 3] = 0; continue; }
-      const celsius = kelvin - KELVIN;
-      img.data[idx] = Math.round(clamp01((celsius - TEMP_VMIN) / span) * 255);
-      const hs = sameGrid ? hsurf!.values[k] : 0;
-      img.data[idx + 1] = Number.isFinite(hs) ? Math.round(clamp01(hs / DEM_MAX) * 255) : 0;
-      img.data[idx + 2] = 0;
-      img.data[idx + 3] = 255;
-    }
-  }
-  ctx.putImageData(img, 0, 0);
-  return { image: canvas, width: w, height: h };
+  canvas.width = width; canvas.height = height;
+  canvas.getContext('2d')!.putImageData(new ImageData(rgba, width, height), 0, 0);
+  return canvas;
+}
+
+/** Baut das RGBA-Werte-Bild eines Schritts: R = norm. °C, G = norm. hsurf, A = Maske.
+ *  Die Rechnung selbst steht DOM-frei in `tempFrameBuild.ts` (geteilt mit dem
+ *  Repack-Producer); hier bleibt nur der Canvas-Transport. */
+function buildTempImage(t2m: GribField, hsurf: GribField | null, ss: number): Omit<IconD2TempFrame, 'validAt' | 'stepHours'> {
+  const { rgba, width, height } = buildTempRgba(t2m, hsurf, ss);
+  return { image: rgbaToCanvas(rgba, width, height), width, height };
 }
 
 /**
@@ -186,35 +178,64 @@ export async function fetchIconD2Temp(
   const capped = steps.filter((s) => s <= MAX_STEP);
   const wanted = opts?.nowOnly ? stepsForNowWindow(capped, runAt, opts.aheadHours ?? 0) : capped;
 
-  // hsurf (Referenzhöhe) einmalig laden — fehlt sie, läuft es ohne Refinement.
-  // Phase T2-2: wie die Schritt-Felder über den durable-gecachten Edge-Pfad.
-  const hsurf = await fetchInvariantField(runStr, 'hsurf', signal, D2_GRIB_PROXY_BASE).catch(() => null);
+  // BW-3: liegen die Bilder für GENAU DIESEN Lauf im Daten-CDN? Geprüft wird
+  // gegen `runStr`, also gegen den Lauf, den die Auflösung wirklich geliefert
+  // hat — der Directory-Scan kann am Manifest vorbeigehen (§22.4).
+  let section: RepackSection | null = await resolveRepackForRun(runStr, 'temp');
+  // Orographie: EINE Datei je Commit statt 647 KB GRIB je Lauf. Scheitert sie,
+  // ist der ganze Weg als kaputt vermerkt → sauber auf GRIB zurückfallen,
+  // statt 25 Schritte ohne Höhenkorrektur zu zeichnen.
+  const hsurfGrey = section ? await loadHsurfGrey(section, signal) : null;
+  if (section && !repackUsable()) section = null;
 
-  // Ein Feld für Bounds/Grid brauchen wir sicher: hsurf hat dasselbe Gitter,
-  // sonst das erste t_2m-Feld holen.
-  const gridRef = hsurf ?? await fetchStepField(runStr, 't_2m', wanted[0], signal, D2_GRIB_PROXY_BASE);
-  const ss = Math.max(1, Math.ceil(gridRef.ni / TARGET_WIDTH));
-  // Ecken der ABGETASTETEN Punkte statt des nativen Gitters (KL3): `buildTempImage`
-  // nimmt `min(n−1, k·ss)`, also den ERSTEN Punkt jedes Blocks — über `gribCorners`
-  // gespannt landete jeder Wert eine halbe Nativzelle zu weit nördlich
-  // (audit/karten-layer-verortung.md, B3).
-  const c = subsampledCorners(gridRef, ss); // [NW, NE, SE, SW] in [lon,lat]
-  const uvBounds: [number, number, number, number] = [
-    lngToEquiX(c[0][0]), latToEquiY(c[0][1]), lngToEquiX(c[1][0]), latToEquiY(c[2][1]),
-  ];
-  // DEM über DIESELBEN Ecken — der Shader liest Werte- und DEM-Textur mit
-  // derselben `uv`; verschiedene Bounds wären ein Versatz in der Höhenkorrektur.
-  const bounds: ForecastBounds = {
-    lngMin: c[0][0], lngMax: c[1][0], latMin: c[2][1], latMax: c[0][1],
+  // hsurf als GRIB-Feld: im Repack-Pfad gar nicht, sonst einmalig — und dort
+  // erst, wenn ein Schritt den Fallback wirklich braucht. Phase T2-2: wie die
+  // Schritt-Felder über den durable-gecachten Edge-Pfad.
+  let hsurfGribP: Promise<GribField | null> | null = null;
+  const hsurfGrib = (): Promise<GribField | null> => {
+    if (!hsurfGribP) hsurfGribP = fetchInvariantField(runStr, 'hsurf', signal, D2_GRIB_PROXY_BASE).catch(() => null);
+    return hsurfGribP;
   };
+
+  let uvBounds: [number, number, number, number];
+  let bounds: ForecastBounds;
+  if (section) {
+    // Die Ecken stehen im Abschnitt; der Producer hat sie mit derselben
+    // `subsampledCorners()` gefüllt, die der GRIB-Zweig unten rechnet. Das
+    // spart hier den einzigen GRIB-Abruf, der sonst allein der Geometrie diente.
+    uvBounds = uvBoundsOf(section);
+    const g = section.grid.corners;
+    bounds = { lngMin: g.nw[0], lngMax: g.ne[0], latMin: g.se[1], latMax: g.nw[1] };
+  } else {
+    // Ein Feld für Bounds/Grid brauchen wir sicher: hsurf hat dasselbe Gitter,
+    // sonst das erste t_2m-Feld holen.
+    const gridRef = (await hsurfGrib()) ?? await fetchStepField(runStr, 't_2m', wanted[0], signal, D2_GRIB_PROXY_BASE);
+    const ss = Math.max(1, Math.ceil(gridRef.ni / TARGET_WIDTH));
+    // Ecken der ABGETASTETEN Punkte statt des nativen Gitters (KL3): `buildTempImage`
+    // nimmt `min(n−1, k·ss)`, also den ERSTEN Punkt jedes Blocks — über `gribCorners`
+    // gespannt landete jeder Wert eine halbe Nativzelle zu weit nördlich
+    // (audit/karten-layer-verortung.md, B3).
+    const c = subsampledCorners(gridRef, ss); // [NW, NE, SE, SW] in [lon,lat]
+    uvBounds = [lngToEquiX(c[0][0]), latToEquiY(c[0][1]), lngToEquiX(c[1][0]), latToEquiY(c[2][1])];
+    // DEM über DIESELBEN Ecken — der Shader liest Werte- und DEM-Textur mit
+    // derselben `uv`; verschiedene Bounds wären ein Versatz in der Höhenkorrektur.
+    bounds = { lngMin: c[0][0], lngMax: c[1][0], latMin: c[2][1], latMax: c[0][1] };
+  }
   const demImage = await buildDemImage(bounds, signal);
 
   const frames: IconD2TempFrame[] = [];
 
   const loadStep = async (step: number): Promise<void> => {
     try {
-      const t2m = await fetchStepField(runStr, 't_2m', step, signal, D2_GRIB_PROXY_BASE);
-      const built = buildTempImage(t2m, hsurf, ss);
+      // BW-3: 98 KB fertiges Bild statt 1 050 KB GRIB + Decode. `null` heißt
+      // immer „nimm GRIB“ — Schritt nicht abgelegt, Frist abgelaufen, Weg aus.
+      const png = section ? await loadTempStep(section, step, hsurfGrey, signal) : null;
+      const built = png
+        ? { image: rgbaToCanvas(png.rgba, png.width, png.height), width: png.width, height: png.height }
+        : await (async () => {
+          const t2m = await fetchStepField(runStr, 't_2m', step, signal, D2_GRIB_PROXY_BASE);
+          return buildTempImage(t2m, await hsurfGrib(), Math.max(1, Math.ceil(t2m.ni / TARGET_WIDTH)));
+        })();
       frames.push({ validAt: new Date(runAt.getTime() + step * 3_600_000), stepHours: step, ...built });
       frames.sort((a, b) => a.stepHours - b.stepHours);
       if (onProgress) onProgress({ runAt, frames: [...frames], uvBounds, vMin: TEMP_VMIN, vMax: TEMP_VMAX, demImage });

@@ -33,9 +33,10 @@
  * Gewichte wären frei gewählt und damit eine Modellaussage, die niemand
  * kalibriert hat (die Lehre aus dem Rotations-Layer F5). **Entschieden 2026-08-19
  * (Jan, `audit/waldbrand-forecast.md` §13 (a)):** publizierte Gleichungssysteme
- * sind zugelassen — der stündliche FWI nach Van Wagner lebt in `src/fire/fwi/`
- * (WF1) und wird als eigener Layer „Feuerwetter stündlich" gebaut (WF2 ff.);
- * er ersetzt diesen Treiber-Layer nicht. Eigene Gewichte bleiben tabu.
+ * sind zugelassen — der stündliche FWI nach Van Wagner wurde als eigener Layer
+ * gebaut (WF1/WF2) und am 2026-08-23 samt Rechenkern zurückgezogen
+ * (`audit/bandbreite.md` §18). Dieser Treiber-Layer war davon nie abhängig und
+ * bleibt unverändert. Eigene Gewichte bleiben tabu.
  */
 
 import {

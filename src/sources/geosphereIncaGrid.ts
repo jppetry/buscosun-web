@@ -28,6 +28,7 @@
 import { File as H5File } from 'jsfive';
 import { precipToU8, type QuadCorners } from '../scalar/RainLayer';
 import { cellCentersToEdges } from './geosphereIncaGeo';
+import { shareInFlight } from './shareInFlight';
 
 const GRID_URL =
   'https://dataset.api.hub.geosphere.at/v1/grid/forecast/nowcast-v1-15min-1km';
@@ -57,8 +58,15 @@ export const GEOSPHERE_INCA_ATTRIBUTION =
 
 /** Lädt den jüngsten INCA-Nowcast-Lauf und baut Uint8-Werte-Grids (0.25–3 h). */
 export async function fetchIncaGrid(signal?: AbortSignal): Promise<IncaGrid> {
+  // Entdopplung: Karte und Punktforecast fragen beim Mount gleichzeitig, und die
+  // GeoSphere-API sendet keinen Cache-Header — gemessen 2 × 721 713 B, also 34 %
+  // der gesamten AT-Kaltsitzung (`audit/bandbreite.md` §24.3).
+  return shareInFlight('geosphere-inca-grid', () => loadIncaGrid(), signal);
+}
+
+async function loadIncaGrid(): Promise<IncaGrid> {
   const url = `${GRID_URL}?parameters=rr&output_format=netcdf&bbox=${BBOX}`;
-  const res = await fetch(url, { signal });
+  const res = await fetch(url);
   if (!res.ok) throw new Error(`GeoSphere INCA grid: ${res.status}`);
   const buf = await res.arrayBuffer();
 

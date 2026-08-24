@@ -36,6 +36,25 @@ export interface DailyRecord {
   modelFilled?: ('tMeanC' | 'tMinC' | 'tMaxC' | 'humidityPct' | 'precipMm' | 'windMaxKmh')[];
 }
 
+export type ModelFilledField = NonNullable<DailyRecord['modelFilled']>[number];
+
+export const MODEL_FILLED_LABEL: Record<ModelFilledField, string> = {
+  tMeanC: 'Temperatur Ø', tMinC: 'Temperatur min', tMaxC: 'Temperatur max', humidityPct: 'Luftfeuchte', precipMm: 'Niederschlag', windMaxKmh: 'Wind',
+};
+
+/**
+ * V-BH-3 (Jan 2026-08-23): Anteil der Tage, an denen der Anbieter mindestens einen Wert mit einem
+ * Modell gefüllt hat, und welche Felder — damit „Messung" auf der Seite nicht für Werte steht, die
+ * keine sind. `null`, wenn nichts gefüllt ist oder die Quelle es nicht meldet (ERA5).
+ */
+export function modelFilledSummary(days: readonly DailyRecord[]): { pct: number; fields: ModelFilledField[]; days: number } | null {
+  let n = 0; const fields = new Set<ModelFilledField>();
+  for (const d of days) if (d.modelFilled?.length) { n++; for (const f of d.modelFilled) fields.add(f); }
+  if (!n || !days.length) return null;
+  const order: ModelFilledField[] = ['tMaxC', 'tMeanC', 'tMinC', 'humidityPct', 'precipMm', 'windMaxKmh'];
+  return { pct: Math.round((n / days.length) * 1000) / 10, fields: order.filter((f) => fields.has(f)), days: n };
+}
+
 export type VariableKey = 'tmean' | 'tmax' | 'tmin' | 'precip' | 'sunshine' | 'wind' | 'humidity';
 
 export interface VariableMeta {

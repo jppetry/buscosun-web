@@ -13,10 +13,11 @@
  * Es wird gecacht, was beim ersten Online-Besuch tatsächlich geladen wurde.
  */
 
+// v3 (2026-08-24, Phase BW-3): das Daten-CDN wird DURCHGEREICHT, s. u.
 // v2 (2026-08-22, Phase RT1): Pfad-Routing — die Navigations-Antwort wird nur
 // noch dann als Offline-Shell gespeichert, wenn sie die App-Shell IST (enthält
 // `id="root"`); vorher überschrieb jede statische SEO-Seite (/wetter/…) die Shell.
-const VERSION = 'v2';
+const VERSION = 'v3';
 const SHELL = `bsc-shell-${VERSION}`;
 const ASSETS = `bsc-assets-${VERSION}`;
 const DATA = `bsc-data-${VERSION}`;
@@ -37,6 +38,14 @@ self.addEventListener('activate', (event) => {
   })());
 });
 
+/** Host des Daten-CDNs (Phase BW-3). Seine URLs tragen einen Commit-SHA und
+ *  antworten mit `immutable, max-age=31536000` — der HTTP-Cache des Browsers
+ *  macht die Arbeit besser als wir. Würden wir sie zusätzlich in `bsc-data`
+ *  legen, lägen dieselben ~5 MB je Lauf ein zweites Mal im Speicher und
+ *  verdrängten per FIFO (350 Einträge) genau die Wetterdaten, für die der
+ *  Cache gedacht ist — dieselbe Falle wie V-BW-7 bei den GRIB-Dateien. */
+const DATA_CDN_HOST = 'cdn.jsdelivr.net';
+
 const ASSET_RE = /\.(?:js|mjs|css|woff2?|ttf|otf|wasm|png|svg|jpe?g|webp|gif|json|geojson)$/i;
 function isHashedAsset(url) {
   return url.origin === self.location.origin && ASSET_RE.test(url.pathname);
@@ -54,6 +63,8 @@ self.addEventListener('fetch', (event) => {
   let url;
   try { url = new URL(req.url); } catch { return; }
   if (url.protocol !== 'http:' && url.protocol !== 'https:') return;
+  // Daten-CDN: unangetastet an das Netz durchreichen (kein respondWith).
+  if (url.hostname === DATA_CDN_HOST) return;
 
   // App-Navigation → network-first, Offline-Fallback auf gecachte Shell.
   if (req.mode === 'navigate') {

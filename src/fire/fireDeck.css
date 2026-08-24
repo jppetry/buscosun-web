@@ -803,3 +803,6 @@
 .br-history-detail .br-reasons { margin: 6px 0 0; padding-left: 18px; font-size: 12px; color: var(--stone-600, #5C5447); }
 .br-history-features { margin-top: 8px; font-size: 12px; }
 .br-history-features summary { cursor: pointer; color: var(--ink-900, #2C2A26); }
+.br-history-chart { margin: 10px 0 4px; }
+.br-history-chart svg { display: block; max-width: 100%; height: auto; }
+.br-history-chart figcaption { margin-top: 4px; }
