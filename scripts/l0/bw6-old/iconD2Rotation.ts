@@ -32,10 +32,8 @@
 import {
   resolveLatestRun, fetchStepField, subsampledCorners,
   D2_GRIB_PROXY_BASE, type GribField,
-} from './iconD2Precip';
-import { buildRotationRgba, ROTATION_VMIN, ROTATION_VMAX } from './scalarFrameBuild';
-export { ROTATION_VMIN, ROTATION_VMAX } from './scalarFrameBuild';
-import { resolveRepackForRun, loadScalarStep, uvBoundsOf } from './repackSource';
+} from '../../../src/sources/iconD2Precip';
+import { rotationScore, smoothScores } from '../../../src/radar/rotationPotential';
 
 export const ICON_D2_ROTATION_ATTRIBUTION =
   'Rotationspotenzial: <a href="https://www.dwd.de/EN/ourservices/opendata/opendata.html" ' +
@@ -49,7 +47,8 @@ const TARGET_WIDTH = 700;
 /** Parallele Schritte (je Schritt 3 Felder; bz2-Decompress läuft im Worker-Pool). */
 const CONCURRENCY = 3;
 /** Physikalischer Wertebereich des Index (0..100) — Normierung des Werte-Canvas. */
-// ROTATION_VMIN/ROTATION_VMAX leben seit BW-6a in `scalarFrameBuild.ts` (geteilt mit dem Producer).
+export const ROTATION_VMIN = 0;
+export const ROTATION_VMAX = 100;
 
 export interface IconD2RotationFrame {
   validAt: Date;
@@ -71,16 +70,7 @@ export interface IconD2Rotation {
 
 function lngToEquiX(lng: number): number { return (lng + 180) / 360; }
 function latToEquiY(lat: number): number { return (90 - lat) / 180; }
-
-
-/** RGBA-Bytes → Canvas (billiges `putImageData`; die Mathematik lebt in `scalarFrameBuild.ts`). */
-function rgbaToCanvas(rgba: Uint8ClampedArray, width: number, height: number): HTMLCanvasElement {
-  const canvas = document.createElement('canvas');
-  canvas.width = width; canvas.height = height;
-  const ctx = canvas.getContext('2d')!;
-  ctx.putImageData(new ImageData(rgba, width, height), 0, 0);
-  return canvas;
-}
+function clamp01(v: number): number { return v < 0 ? 0 : v > 1 ? 1 : v; }
 
 let sdiSignLogged = false;
 
@@ -91,10 +81,16 @@ let sdiSignLogged = false;
  * Grid-Mismatch eines Nebenfeldes → dieses Feld als 0 behandeln (keine Korroboration).
  */
 function buildRotationImage(uh: GribField, uhLow: GribField | null, sdi: GribField | null, ss: number): Omit<IconD2RotationFrame, 'validAt' | 'stepHours'> {
+  const { ni, nj } = uh;
+  const w = Math.ceil(ni / ss);
+  const h = Math.ceil(nj / ss);
+  const lowOk = !!uhLow && uhLow.ni === ni && uhLow.nj === nj;
+  const sdiOk = !!sdi && sdi.ni === ni && sdi.nj === nj;
+
   // Dev-Diagnose (einmalig): Vorzeichen/Bereich des dekodierten sdi_2 belegen
-  // (audit §8.2). Bleibt HIER (Client), nicht im geteilten Modul (kein `import.meta.env` in Node).
-  const sdiOk = !!sdi && sdi.ni === uh.ni && sdi.nj === uh.nj;
-  if (import.meta.env.DEV && !sdiSignLogged && sdiOk && sdi) {
+  // (audit §8.2 — |sdi_2| ist betragsmäßig winzig; die Fusion ist per Math.abs
+  // vorzeichen-invariant, dies ist nur Beleg für §7.3).
+  if (false && !sdiSignLogged && sdiOk && sdi) {
     let mn = Infinity, mx = -Infinity;
     for (let k = 0; k < sdi.values.length; k++) {
       const v = sdi.values[k];
@@ -104,8 +100,41 @@ function buildRotationImage(uh: GribField, uhLow: GribField | null, sdi: GribFie
     console.debug(`[rotation] sdi_2 decode min=${mn.toExponential(2)} max=${mx.toExponential(2)} (|·|-Signatur, vorzeichen-invariant)`);
     sdiSignLogged = true;
   }
-  const { rgba, width, height } = buildRotationRgba(uh, uhLow, sdi, ss);
-  return { image: rgbaToCanvas(rgba, width, height), width, height };
+
+  // 1) Score-Grid (north-up) — NaN außerhalb der Domäne (Anker uh_max).
+  const scores = new Float32Array(w * h);
+  for (let jj = 0; jj < h; jj++) {
+    const sj = Math.min(nj - 1, jj * ss);
+    const y = h - 1 - jj; // S→N → north-up
+    for (let ii = 0; ii < w; ii++) {
+      const si = Math.min(ni - 1, ii * ss);
+      const k = sj * ni + si;
+      scores[y * w + ii] = rotationScore(
+        uh.values[k],
+        lowOk ? uhLow!.values[k] : 0,
+        sdiOk ? sdi!.values[k] : 0,
+      );
+    }
+  }
+
+  // 2) Nachbarschafts-Glättung (§0.3) — dämpft Einzelpixel, erhält Flächen + NaN-Maske.
+  const smooth = smoothScores(scores, w, h);
+
+  // 3) Rasterisieren: R = Score/100, A = Maske.
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d')!;
+  const img = ctx.createImageData(w, h);
+  const span = ROTATION_VMAX - ROTATION_VMIN; // 100
+  for (let p = 0; p < w * h; p++) {
+    const s = smooth[p];
+    const idx = p * 4;
+    if (!Number.isFinite(s)) { img.data[idx + 3] = 0; continue; } // außerhalb Domäne → transparent
+    img.data[idx] = Math.round(clamp01((s - ROTATION_VMIN) / span) * 255);
+    img.data[idx + 3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+  return { image: canvas, width: w, height: h };
 }
 
 /**
@@ -122,24 +151,17 @@ export async function fetchIconD2Rotation(
   const wanted = steps.filter((s) => s >= 1 && s <= MAX_STEP);
   if (wanted.length === 0) throw new Error('ICON-D2 Rotation: keine Schritte im Horizont');
 
-  // BW-6c: liegen die Bilder für GENAU DIESEN Lauf im Daten-CDN? Geprüft
-  // gegen `runStr`, den Lauf, den die Auflösung wirklich geliefert hat (§22.4).
-  // Mit Abschnitt entfällt der GRIB-Abruf, der sonst nur der Geometrie diente.
-  const section = await resolveRepackForRun(runStr, 'rotation');
-  let uvBounds: [number, number, number, number];
-  if (section) {
-    uvBounds = uvBoundsOf(section);
-  } else {
-    const gridRef = await fetchStepField(runStr, 'uh_max', wanted[0], signal, D2_GRIB_PROXY_BASE);
-    const ss = Math.max(1, Math.ceil(gridRef.ni / TARGET_WIDTH));
-    // Ecken der ABGETASTETEN Punkte statt des nativen Gitters (KL3): der Bau
-    // nimmt `min(n-1, k*ss)`, also den ERSTEN Punkt jedes Blocks — über
-    // `gribCorners` gespannt landete jeder Wert eine halbe Nativzelle zu weit
-    // nördlich (audit/karten-layer-verortung.md, B3).
-    const c = subsampledCorners(gridRef, ss); // [NW, NE, SE, SW] in [lon,lat]
-    uvBounds = [lngToEquiX(c[0][0]), latToEquiY(c[0][1]), lngToEquiX(c[1][0]), latToEquiY(c[2][1])];
-  }
-  const ssOf = (g: GribField) => Math.max(1, Math.ceil(g.ni / TARGET_WIDTH));
+  // Ein uh_max-Feld für Bounds/Grid/Subsampling sicher holen.
+  const gridRef = await fetchStepField(runStr, 'uh_max', wanted[0], signal, D2_GRIB_PROXY_BASE);
+  const ss = Math.max(1, Math.ceil(gridRef.ni / TARGET_WIDTH));
+  // Ecken der ABGETASTETEN Punkte statt des nativen Gitters (KL3): der Bau
+  // nimmt `min(n-1, k*ss)`, also den ERSTEN Punkt jedes Blocks — ueber
+  // `gribCorners` gespannt landete jeder Wert eine halbe Nativzelle zu weit
+  // noerdlich (audit/karten-layer-verortung.md, B3).
+  const c = subsampledCorners(gridRef, ss); // [NW, NE, SE, SW] in [lon,lat]
+  const uvBounds: [number, number, number, number] = [
+    lngToEquiX(c[0][0]), latToEquiY(c[0][1]), lngToEquiX(c[1][0]), latToEquiY(c[2][1]),
+  ];
 
   const frames: IconD2RotationFrame[] = [];
 
@@ -147,19 +169,15 @@ export async function fetchIconD2Rotation(
     try {
       // Die drei Felder desselben Laufs/Schritts parallel. uh_max_low/sdi_2 dürfen
       // fehlen (→ als 0 behandelt); uh_max ist Pflicht (Rotations-/Domänenanker).
-      // BW-6c: EIN fertiges, geglättetes Score-Bild statt DREI GRIBs (s. Gewitter).
-      const png = section ? await loadScalarStep(section, 'rotation', step, signal) : null;
-      const built = png
-        ? { image: rgbaToCanvas(png.rgba, png.width, png.height), width: png.width, height: png.height }
-        : await (async () => {
-          const [uh, uhLow, sdi] = await Promise.all([
-            fetchStepField(runStr, 'uh_max', step, signal, D2_GRIB_PROXY_BASE),
-            fetchStepField(runStr, 'uh_max_low', step, signal, D2_GRIB_PROXY_BASE).catch(() => null),
-            fetchStepField(runStr, 'sdi_2', step, signal, D2_GRIB_PROXY_BASE).catch(() => null),
-          ]);
-          return buildRotationImage(uh, uhLow, sdi, ssOf(uh));
-        })();
-      frames.push({ validAt: new Date(runAt.getTime() + step * 3_600_000), stepHours: step, ...built });
+      const [uh, uhLow, sdi] = await Promise.all([
+        fetchStepField(runStr, 'uh_max', step, signal, D2_GRIB_PROXY_BASE),
+        fetchStepField(runStr, 'uh_max_low', step, signal, D2_GRIB_PROXY_BASE).catch(() => null),
+        fetchStepField(runStr, 'sdi_2', step, signal, D2_GRIB_PROXY_BASE).catch(() => null),
+      ]);
+      frames.push({
+        validAt: new Date(runAt.getTime() + step * 3_600_000), stepHours: step,
+        ...buildRotationImage(uh, uhLow, sdi, ss),
+      });
       frames.sort((a, b) => a.stepHours - b.stepHours);
       if (onProgress) onProgress({ runAt, frames: [...frames], uvBounds, vMin: ROTATION_VMIN, vMax: ROTATION_VMAX });
     } catch {
@@ -180,3 +198,5 @@ export async function fetchIconD2Rotation(
   if (frames.length === 0) throw new Error('ICON-D2 Rotation: keine Frames erzeugt');
   return { runAt, frames, uvBounds, vMin: ROTATION_VMIN, vMax: ROTATION_VMAX };
 }
+
+export { buildRotationImage };

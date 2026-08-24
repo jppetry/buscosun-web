@@ -69,12 +69,18 @@ import { fetchIconD2Rotation, type IconD2Rotation } from './sources/iconD2Rotati
 // Zellbahnen (Phase Z1, E3): DWD KONRAD3D — amtlich erkannte Konvektionszellen
 // mit amtlicher Zugspur und amtlicher Unsicherheitsellipse. Lazy beim Aktivieren,
 // Polling nur bei aktivem Layer UND sichtbarem Tab (~0,6 MB je 5 min).
-import { fetchKonrad3d, KONRAD3D_ATTRIBUTION, KONRAD3D_HAIL_ATTRIBUTION } from './sources/dwdKonrad3d';
+import { fetchKonrad3d, KONRAD3D_HAIL_ATTRIBUTION } from './sources/dwdKonrad3d';
 import {
   buildCellFeatures, cellFeatureCounts, cellLocationRelevance, cellRelevanceText,
-  CELL_TIME_MARK_LEADS, type CellFeatureProperties,
+  type CellFeatureProperties,
 } from './radar/cellPolygons';
 import type { Konrad3dRun } from './radar/konrad3d';
+import {
+  installCellLayers, renderCellPopup,
+  CELLS_SOURCE_ID, CELLS_LAYER_IDS, CELLS_DOT_LAYER_ID,
+  CELLS_CONE_STEP_MINZOOM, CELLS_MARK_MINZOOM, CELLS_ARROW_MINZOOM, CELLS_CONE_STEP_MIN_SEV,
+  CELLS_HORIZON_MIN, CELLS_POLL_MS,
+} from './radar/cellLayers';
 // Hagel (Phase HA1): CH = MeteoSchweiz MESHS/POH (amtliche Korngröße bzw.
 // Wahrscheinlichkeit), DE = KONRAD3D-Zellen mit Hagelsignal. AT hat keine offene
 // Quelle — das sagt der Layer ausdrücklich (audit/hagel.md §7).
@@ -174,134 +180,7 @@ function renderStationPopup(p: StationFeatureProperties, loading = false, errorM
       ${stamp}
     </div>`;
 }
-/**
- * Steckbrief einer KONRAD3D-Zelle (Klick auf den Schwerpunkt).
- *
- * Wortwahl ist hier **gate-blockierend** (D-19): „Zelle", „Hinweis auf Hagel in
- * der Zelle", „geschätzte Spitzenböe". NIE „Tornado", „Warnung", „Gefahr",
- * „Unwetter", „trifft". Amtliche Warnungen kommen aus dem Warn-Layer, nicht von
- * hier — der Hinweis darauf steht fest im Fuß des Steckbriefs.
- */
-function renderCellPopup(p: CellFeatureProperties): string {
-  const row = (label: string, value: string | null | undefined) =>
-    value == null ? '' : `<div class="sp-row"><span class="sp-l">${label}</span><span class="sp-v">${value}</span></div>`;
-  const n = (v: number | null | undefined) => (v == null || !Number.isFinite(v) ? null : v);
-  // Z2-6: EINE Zuggeschwindigkeit — die aus der gezeichneten Spur abgeleitete,
-  // auf 5er gerundete Zahl (`displaySpeedKmh`, als Property mitgeliefert).
-  // `cell_speed` bleibt geparst und im Verifier, beschriftet aber nicht mehr:
-  // sonst widersprächen sich Zahl und gezeichnete Geometrie (Diagnose §2.5).
-  const zug = n(p.trackSpeedKmh) != null
-    ? `~${p.trackSpeedKmh} km/h${p.compass ? ` nach ${p.compass}` : ''}`
-    : null;
-  const top = n(p.echoTopM) != null
-    ? `${(Math.round((p.echoTopM as number) / 100) / 10).toFixed(1).replace('.', ',')} km`
-    : null;
-  const dbz = n(p.dbzMax) != null ? `${Math.round(p.dbzMax as number)} dBZ` : null;
-  const area = n(p.areaKm2) != null ? `${Math.round(p.areaKm2 as number)} km²` : null;
-  const blitz = n(p.lightningRate) != null && (p.lightningRate as number) > 0
-    ? `${Math.round(p.lightningRate as number)} / 5 min` : null;
-  // Begleiterscheinungen: bewusst als HINWEIS formuliert, nicht als Zusage.
-  const hints: string[] = [];
-  if (n(p.hailFlag) != null && (p.hailFlag as number) > 0) {
-    hints.push((p.hailFlag as number) >= 2 ? 'Hinweis auf größeren Hagel in der Zelle' : 'Hinweis auf Hagel in der Zelle');
-  }
-  if (n(p.gustFlag) != null && (p.gustFlag as number) > 0) {
-    hints.push(n(p.gustKmh) != null
-      ? `Hinweis auf Böen — geschätzte Spitze ~${Math.round(p.gustKmh as number)} km/h`
-      : 'Hinweis auf Böen in der Zelle');
-  }
-  if (n(p.heavyRainFlag) != null && (p.heavyRainFlag as number) > 0 && n(p.heavyRainMm) != null) {
-    hints.push(`Hinweis auf Starkregen — ~${Math.round(p.heavyRainMm as number)} mm${
-      n(p.heavyRainMinutes) != null ? ` in ~${Math.round(p.heavyRainMinutes as number)} min` : ''}`);
-  }
-  if (n(p.mesocyclones) != null && (p.mesocyclones as number) > 0) {
-    hints.push('rotierende Struktur in der Zelle erkannt');
-  }
-  const hintBlock = hints.length
-    ? `<div class="sp-row" style="display:block;line-height:1.35;">${hints.map((h) => `⚑ ${escapeHtml(h)}`).join('<br>')}</div>`
-    : '';
-  const stamp = n(p.refMs) != null
-    ? `Messzeit ${new Date(p.refMs as number).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr`
-    : '';
-  return `
-    <div class="sp">
-      <div class="sp-name">${escapeHtml(p.headline ?? `Zelle ${p.id}`)}</div>
-      <div class="sp-meta">DWD KONRAD3D · Umriss gemessen, Spur prognostiziert (bis +${p.leadMinutes ?? 60} Min)</div>
-      ${row('Zuggeschwindigkeit', zug)}
-      ${row('Radarintensität', dbz)}
-      ${row('Obergrenze (Echotop)', top)}
-      ${row('Fläche', area)}
-      ${row('Blitzrate', blitz)}
-      ${hintBlock}
-      <div class="sp-stamp">${stamp}${stamp ? ' · ' : ''}kein amtliches Warnprodukt — maßgeblich sind die DWD-Warnungen</div>
-    </div>`;
-}
-// ---------------------------------------------------------------------------
-// Zellbahnen · Phase Z2 — Sprites für Pfeilkopf und Zeitmarken.
-//
-// Programmatisch aus einem Canvas, kein externes Asset und KEINE Glyphenquelle
-// (Muster `RouteMap.tsx:363`, Vorgabe `docs/zuglinien-radar-spec.md` §10.5).
-// Beide tragen bewusst die OPTIK DER PROGNOSE (Z2-E1): der Pfeil ist eine
-// hohle Kontur statt eines Vollkörpers, die Zeitmarke hat einen gestrichelten
-// Rand. Nichts Prognostiziertes darf solider wirken als die gestrichelte Spur,
-// an der es hängt.
-// ---------------------------------------------------------------------------
-const CELLS_SPRITE_INK = '#2C2A26';   // --ink-900
-const CELLS_SPRITE_CREAM = '#FAF6EA'; // --cream-50
-
-/** Hohler Chevron, Spitze nach Norden — `icon-rotate` dreht ihn auf die Peilung. */
-function makeCellArrowImage(): ImageData | null {
-  if (typeof document === 'undefined') return null;
-  const S = 44;
-  const c = document.createElement('canvas');
-  c.width = S; c.height = S;
-  const ctx = c.getContext('2d');
-  if (!ctx) return null;
-  ctx.translate(S / 2, S / 2);
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  const chevron = () => {
-    ctx.beginPath();
-    ctx.moveTo(-10, 6);
-    ctx.lineTo(0, -9);
-    ctx.lineTo(10, 6);
-  };
-  // Dunkle Fassung zuerst, damit die helle Kontur auf der hellen Trichterfläche
-  // wie auf der dunklen Kartenbühne gleichermaßen liest.
-  chevron(); ctx.lineWidth = 6; ctx.strokeStyle = CELLS_SPRITE_INK; ctx.stroke();
-  chevron(); ctx.lineWidth = 3; ctx.strokeStyle = CELLS_SPRITE_CREAM; ctx.stroke();
-  return ctx.getImageData(0, 0, S, S);
-}
-
-/** Zeitmarke „15"/„30"/„60" als Pille mit gestricheltem Rand (= prognostiziert). */
-function makeCellMarkImage(label: string): ImageData | null {
-  if (typeof document === 'undefined') return null;
-  const W = 52, H = 34;
-  const c = document.createElement('canvas');
-  c.width = W; c.height = H;
-  const ctx = c.getContext('2d');
-  if (!ctx) return null;
-  const r = 12, pad = 3;
-  const pill = () => {
-    ctx.beginPath();
-    ctx.roundRect(pad, pad, W - 2 * pad, H - 2 * pad, r);
-  };
-  pill();
-  ctx.fillStyle = 'rgba(44,42,38,0.86)';
-  ctx.fill();
-  pill();
-  ctx.setLineDash([4, 3]);
-  ctx.lineWidth = 2;
-  ctx.strokeStyle = CELLS_SPRITE_CREAM;
-  ctx.stroke();
-  ctx.setLineDash([]);
-  ctx.font = '700 17px "League Spartan", system-ui, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillStyle = CELLS_SPRITE_CREAM;
-  ctx.fillText(label, W / 2, H / 2 + 1);
-  return ctx.getImageData(0, 0, W, H);
-}
+// Zellen-Steckbrief + Z2-Sprites: seit RL1 in `src/radar/cellLayers.ts` (geteilt mit dem Regenradar).
 
 /**
  * Steckbrief einer Hagelzelle (DE, KONRAD3D). Wortwahl nach D-19: „Radar erkennt
@@ -434,59 +313,8 @@ const CONFIDENCE_LAYER_ID = 'confidence-hatch';
 const SNOWLINE_SOURCE_ID = 'snowline';
 const SNOWLINE_CASING_ID = 'snowline-casing';
 const SNOWLINE_LAYER_ID = 'snowline-line';
-// Zellbahnen (Phase Z1, E3) — DWD KONRAD3D als native GeoJSON-Vektoren:
-// amtlicher Unsicherheits-Trichter (fill), beobachteter Zellumriss (fill+line),
-// Prognosespur (gestrichelte line) und Schwerpunkt (circle, Klickziel).
-//
-// Bewusst OHNE `text-field`: die Glyphen des Basemap-Stils kommen von einem
-// Fremd-CDN (`tiles.openfreemap.org/fonts/…`), auf das wir uns nicht verlassen.
-// (Die Z1-Notiz „garantiert keine Glyphen" war zu absolut — der Stil LÄDT
-// welche; die Regel bleibt, ihre Begründung ist korrigiert.) Phase Z2
-// ergänzt `symbol`-Layer mit `icon-image` — die brauchen KEINE Glyphenquelle,
-// weil die Sprites per `map.addImage()` aus einem Canvas registriert werden
-// (Muster `RouteMap.tsx:363`, so vorgesehen in `docs/zuglinien-radar-spec.md`
-// §10.5). Jans Entscheidung S-Z2-1 vom 2026-08-07; der glyphenfreie Rückfallweg
-// bleibt in `audit/zellbahnen-karte.md` §3 dokumentiert.
-const CELLS_SOURCE_ID = 'storm-cells';
-const CELLS_CONE_LAYER_ID = 'storm-cells-cone';
-const CELLS_CONE_STEP_LAYER_ID = 'storm-cells-cone-step';
-const CELLS_HULL_LAYER_ID = 'storm-cells-hull';
-const CELLS_HULL_LINE_ID = 'storm-cells-hull-line';
-const CELLS_PATH_LAYER_ID = 'storm-cells-path';
-const CELLS_MARK_LAYER_ID = 'storm-cells-mark';
-const CELLS_ARROW_LAYER_ID = 'storm-cells-arrow';
-const CELLS_DOT_LAYER_ID = 'storm-cells-dot';
-/** Alle Zell-Layer in Zeichenreihenfolge (unten → oben). */
-const CELLS_LAYER_IDS = [
-  CELLS_CONE_LAYER_ID, CELLS_CONE_STEP_LAYER_ID, CELLS_HULL_LAYER_ID, CELLS_HULL_LINE_ID,
-  CELLS_PATH_LAYER_ID, CELLS_MARK_LAYER_ID, CELLS_ARROW_LAYER_ID, CELLS_DOT_LAYER_ID,
-] as const;
-/** Sprite-IDs der Z2-Symbole (per `map.addImage` aus einem Canvas). */
-const CELLS_ARROW_IMAGE_ID = 'storm-cells-arrow-sprite';
-const cellsMarkImageId = (leadMin: number) => `storm-cells-mark-${leadMin}`;
-/** Ausdünnung (Z2-5) — ausschließlich native Mittel, kein JS im Repaint.
- *  Ausgedünnt wird NUR Zusatzgeometrie; Umriss, Umrisslinie und Punkt sind
- *  ausgenommen (Funktionserhalt). Was entfällt, wird geloggt, nicht verschwiegen. */
-const CELLS_CONE_STEP_MINZOOM = 6;
-const CELLS_MARK_MINZOOM = 8;
-const CELLS_ARROW_MINZOOM = 5;
-/** Trichterstufen erst ab dieser Severity — unterhalb bleibt die Z1-Hülle stehen.
- *  Schwelle an der gemessenen Verteilung gesetzt (Fixture: 0,77 / 0,19 / 0,17). */
-const CELLS_CONE_STEP_MIN_SEV = 0.5;
-/** Prognosehorizont der Zellbahnen (min) — jenseits davon ist der Layer AUS,
- *  statt eine Zelle zu zeigen, die für die eingestellte Stunde nichts aussagt
- *  (D-14-Muster: lieber nichts als eine unbelegte Verlängerung). */
-const CELLS_HORIZON_MIN = 60;
-/** Abrufabstand (ms) — KONRAD3D erscheint alle 5 min, ~0,6 MB je Datei. */
-const CELLS_POLL_MS = 5 * 60_000;
-/** Farbe nach severity_decimal (0…3): Sand → Amber → Terracotta → Bordeaux. */
-const CELLS_SEVERITY_COLOR: ExpressionSpecification = [
-  'interpolate', ['linear'], ['coalesce', ['get', 'sev'], 0],
-  0, '#c9a227',
-  1, '#e08a2e',
-  2, '#c9522e',
-  3, '#8f2140',
-];
+// Zellbahnen (Phase Z1/Z2, E3) — Layer-IDs, Schwellen, Farbe und Sprites liegen seit RL1
+// in `src/radar/cellLayers.ts` (EINE Definition für Wetterkarte und Regenradar).
 // Hagel (Phase HA1, `audit/hagel.md`) — zwei belegte Quellen, bewusst getrennt
 // gehalten und nie ineinander interpoliert (D-04):
 //   CH: MeteoSchweiz MESHS (mm) / POH (0…1) als MapLibre-`image`-Source. Die
@@ -1671,171 +1499,9 @@ export default function MapView({
           paint: { 'line-color': '#1f4fd0', 'line-width': 2 },
         });
       }
-      // Zellbahnen (Phase Z1) — EINE Quelle, fünf gefilterte Layer. Die optische
-      // Trennung gemessen ↔ prognostiziert ist gate-blockierend (D-04): Umriss
-      // durchgezogen und kräftig, Spur gestrichelt, Trichter nur angedeutet.
-      // Daten kommen aus dem Poll-Effekt; initial leer/unsichtbar.
-      if (!map.getSource(CELLS_SOURCE_ID)) {
-        map.addSource(CELLS_SOURCE_ID, {
-          type: 'geojson',
-          data: { type: 'FeatureCollection', features: [] },
-          attribution: KONRAD3D_ATTRIBUTION,
-        });
-      }
-      if (!map.getLayer(CELLS_CONE_LAYER_ID)) {
-        map.addLayer({
-          id: CELLS_CONE_LAYER_ID, type: 'fill', source: CELLS_SOURCE_ID,
-          filter: ['==', ['get', 'kind'], 'cone'],
-          layout: { visibility: 'none' },
-          // Sehr zurückhaltend: der Trichter ist eine Unsicherheits-, keine
-          // Ereignisfläche — er darf das Kartenbild nicht dominieren.
-          paint: { 'fill-color': CELLS_SEVERITY_COLOR, 'fill-opacity': 0.1 },
-        });
-      }
-      // Z2: der Verlauf. Der Z1-Layer darüber bleibt UNVERÄNDERT und liefert die
-      // Grundtönung — dadurch ist `coneRing()` weiterhin gezeichnet (benannter
-      // Rückfall) und die Hülle deckt auch die Zwickel, die die Ellipsen
-      // freilassen. Die Stufen legen den Verlauf darauf: vorn dicht, hinten
-      // fast durchsichtig — genau die Aussage, die die eine Fläche verschluckt.
-      if (!map.getLayer(CELLS_CONE_STEP_LAYER_ID)) {
-        map.addLayer({
-          id: CELLS_CONE_STEP_LAYER_ID, type: 'fill', source: CELLS_SOURCE_ID,
-          minzoom: CELLS_CONE_STEP_MINZOOM,
-          filter: ['all',
-            ['==', ['get', 'kind'], 'cone-step'],
-            ['>=', ['coalesce', ['get', 'sev'], 0], CELLS_CONE_STEP_MIN_SEV],
-          ],
-          layout: { visibility: 'none' },
-          paint: {
-            'fill-color': CELLS_SEVERITY_COLOR,
-            'fill-opacity': ['interpolate', ['linear'], ['coalesce', ['get', 'leadMin'], 60],
-              5, 0.2,
-              30, 0.1,
-              60, 0.04,
-            ],
-          },
-        });
-      }
-      if (!map.getLayer(CELLS_HULL_LAYER_ID)) {
-        map.addLayer({
-          id: CELLS_HULL_LAYER_ID, type: 'fill', source: CELLS_SOURCE_ID,
-          filter: ['==', ['get', 'kind'], 'hull'],
-          layout: { visibility: 'none' },
-          paint: { 'fill-color': CELLS_SEVERITY_COLOR, 'fill-opacity': 0.22 },
-        });
-      }
-      if (!map.getLayer(CELLS_HULL_LINE_ID)) {
-        map.addLayer({
-          id: CELLS_HULL_LINE_ID, type: 'line', source: CELLS_SOURCE_ID,
-          filter: ['==', ['get', 'kind'], 'hull'],
-          layout: { visibility: 'none', 'line-join': 'round' },
-          // DURCHGEZOGEN = gemessen (Referenzzeit der Datei).
-          // Z2: die für den gewählten Ort relevante Zelle bekommt eine kräftigere
-          // Linie — über eine `case`-Expression, NICHT über einen zweiten Layer.
-          paint: {
-            'line-color': CELLS_SEVERITY_COLOR,
-            'line-width': ['case', ['==', ['get', 'affects'], 1], 2.8, 1.6],
-            'line-opacity': 0.95,
-          },
-        });
-      }
-      if (!map.getLayer(CELLS_PATH_LAYER_ID)) {
-        map.addLayer({
-          id: CELLS_PATH_LAYER_ID, type: 'line', source: CELLS_SOURCE_ID,
-          filter: ['==', ['get', 'kind'], 'path'],
-          layout: { visibility: 'none', 'line-cap': 'round', 'line-join': 'round' },
-          // GESTRICHELT = prognostiziert (+5 … +60 min).
-          paint: {
-            'line-color': CELLS_SEVERITY_COLOR,
-            'line-width': ['case', ['==', ['get', 'affects'], 1], 3.2, 2],
-            'line-opacity': 0.9,
-            'line-dasharray': [2, 1.6],
-          },
-        });
-      }
-      // Z2: Zeitmarken +15/+30/+60 auf der Spur. Ein fehlendes Sprite darf NICHT
-      // still einen unsichtbaren Layer erzeugen (Z2-11) — deshalb erst
-      // registrieren, dann `hasImage()` prüfen, sonst laut sein.
-      for (const lead of CELL_TIME_MARK_LEADS) {
-        const imgId = cellsMarkImageId(lead);
-        if (!map.hasImage(imgId)) {
-          const img = makeCellMarkImage(String(lead));
-          if (img) map.addImage(imgId, img, { pixelRatio: 2 });
-        }
-      }
-      const marksReady = CELL_TIME_MARK_LEADS.every((l) => map.hasImage(cellsMarkImageId(l)));
-      if (!marksReady) {
-        console.warn('[buscosun] Zellbahnen: Zeitmarken-Sprites fehlen — Layer wird nicht angelegt.');
-      } else if (!map.getLayer(CELLS_MARK_LAYER_ID)) {
-        map.addLayer({
-          id: CELLS_MARK_LAYER_ID, type: 'symbol', source: CELLS_SOURCE_ID,
-          minzoom: CELLS_MARK_MINZOOM,
-          filter: ['==', ['get', 'kind'], 'mark'],
-          layout: {
-            visibility: 'none',
-            'icon-image': ['concat', 'storm-cells-mark-', ['to-string', ['get', 'leadMin']]],
-            // Die Pille sitzt ÜBER der Spur, nicht auf ihr: die +60-Marke und der
-            // Pfeilkopf hängen beide an der letzten Stützstelle und lagen sonst
-            // exakt aufeinander (auf dem Bildschirm gemessen: beide bei px
-            // 523/372) — der Pfeil war damit unlesbar.
-            'icon-anchor': 'bottom',
-            'icon-offset': [0, -5],
-            // `allow-overlap: false` wäre hier eine Falle: MapLibre platziert
-            // die Basemap-Labels zuerst, unser Layer liegt oben und wird als
-            // letzter platziert — am Bildschirm gemessen verschwanden dadurch
-            // ALLE drei Marken (0 von 3 gerendert), ohne dass wir es hätten
-            // loggen können. Ein stilles Weglassen ist schlimmer als eine
-            // Überlagerung, deshalb sind die Marken platzierungsfest.
-            'icon-allow-overlap': true,
-            'icon-ignore-placement': true,
-            // Bei einer langsamen Zelle liegen +15/+30/+60 nur 4,5/9/18 km
-            // auseinander. Überlagern sie sich, liegt die KLEINERE Vorlaufzeit
-            // oben — die nähere Aussage ist die belastbarere.
-            'symbol-sort-key': ['coalesce', ['get', 'leadMin'], 60],
-            'icon-size': ['interpolate', ['linear'], ['zoom'], 8, 0.6, 11, 0.95],
-          },
-          paint: { 'icon-opacity': 0.9 },
-        });
-      }
-      // Z2: Pfeilkopf am Spurende — die Zugrichtung ohne Klick.
-      if (!map.hasImage(CELLS_ARROW_IMAGE_ID)) {
-        const img = makeCellArrowImage();
-        if (img) map.addImage(CELLS_ARROW_IMAGE_ID, img, { pixelRatio: 2 });
-      }
-      if (!map.hasImage(CELLS_ARROW_IMAGE_ID)) {
-        console.warn('[buscosun] Zellbahnen: Pfeil-Sprite fehlt — Layer wird nicht angelegt.');
-      } else if (!map.getLayer(CELLS_ARROW_LAYER_ID)) {
-        map.addLayer({
-          id: CELLS_ARROW_LAYER_ID, type: 'symbol', source: CELLS_SOURCE_ID,
-          minzoom: CELLS_ARROW_MINZOOM,
-          filter: ['==', ['get', 'kind'], 'arrow'],
-          layout: {
-            visibility: 'none',
-            'icon-image': CELLS_ARROW_IMAGE_ID,
-            'icon-rotate': ['coalesce', ['get', 'bearing'], 0],
-            'icon-rotation-alignment': 'map',
-            // Eine Marke je Zelle — sie IST die Aussage und darf nicht wegfallen.
-            'icon-allow-overlap': true,
-            'icon-ignore-placement': true,
-            'icon-size': ['interpolate', ['linear'], ['zoom'], 5, 0.55, 11, 1],
-          },
-          // Dieselbe Deckkraft wie die gestrichelte Spur (Z2-E1).
-          paint: { 'icon-opacity': ['case', ['==', ['get', 'affects'], 1], 1, 0.9] },
-        });
-      }
-      if (!map.getLayer(CELLS_DOT_LAYER_ID)) {
-        map.addLayer({
-          id: CELLS_DOT_LAYER_ID, type: 'circle', source: CELLS_SOURCE_ID,
-          filter: ['==', ['get', 'kind'], 'dot'],
-          layout: { visibility: 'none' },
-          paint: {
-            'circle-color': CELLS_SEVERITY_COLOR,
-            'circle-radius': ['interpolate', ['linear'], ['zoom'], 4, 3.5, 8, 5.5, 11, 7.5],
-            'circle-stroke-color': '#ffffff',
-            'circle-stroke-width': 1.4,
-          },
-        });
-      }
+      // Zellbahnen (Phase Z1/Z2) — Quelle, Sprites und acht Layer aus dem geteilten
+      // Modul (RL1). Daten kommen aus dem Poll-Effekt; initial leer/unsichtbar.
+      installCellLayers(map);
       // Hagel DE (Phase HA1) — Zellen mit Hagelsignal aus KONRAD3D. Bewusst OHNE
       // Zugspur/Trichter: das ist der Zellbahnen-Layer. Die CH-Rasterquelle
       // entsteht erst mit dem ersten Frame (sie braucht Ecken + Bild).

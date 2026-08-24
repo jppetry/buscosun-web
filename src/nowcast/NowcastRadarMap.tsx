@@ -8,7 +8,9 @@
  *     Basemap-Umschaltung, Deckkraft, Frame-Morphing
  *   - Zeitachse mit ehrlichem Messung↔Vorhersage-Bruch (RadarTimeline)
  *   - Layer-Presets (Standard/Gewitter/Winter/Wandern) + Einzel-Layer
- *   - Sturmzellen + ETA-Trichter (client-seitig aus den Radar-Frames)
+ *   - Zellbahnen: DWD KONRAD3D — DIESELBEN Layer wie die Wetterkarte (RL1,
+ *     `audit/regenradar-layer-angleich.md`); Niederschlag als DACH-Komposit,
+ *     Schnee als ICON-D2 Schneedecke/Neuschnee — ebenfalls 1:1 die Wetterkarte
  *   - Blitze (DWD-WMS), Akkumulation, Coverage/Qualität
  *   - Punkt-Streifen „Regen in X min" am angetippten Punkt + Datenqualität
  *
@@ -31,7 +33,15 @@ import { pointPoPSeries } from '../radar/pointPoP';
 import { convectiveIndex, type ConvectiveIndex } from '../radar/convectiveIndex';
 import { fetchPeakCapeAtPoint } from '../sources/iconD2Cape';
 import { fetchDwdAlerts } from '../sources/dwdAlerts';
-import { detectAndTrackCells, etaToPoint, type StormCell } from '../radar/cellTracking';
+import { fetchKonrad3d } from '../sources/dwdKonrad3d';
+import type { Konrad3dRun } from '../radar/konrad3d';
+import { buildCellFeatures, cellLocationRelevance, cellRelevanceText } from '../radar/cellPolygons';
+import { CELLS_POLL_MS } from '../radar/cellLayers';
+import { fetchIconD2Snow, type IconD2Snow, type SnowMode } from '../sources/iconD2Snow';
+import type { CompositeSources } from '../scalar/precipComposite';
+import { fetchRvNowcast } from '../sources/radolan';
+import { fetchIncaGrid } from '../sources/geosphereIncaGrid';
+import { fetchRzcLatest } from '../sources/meteoSwissRadar';
 import { accumulate, ACCUM_WINDOWS } from '../radar/accumulation';
 import { buildEdgeFalloffMask, coverageNote, sourceAgeBadge } from '../radar/coverageMask';
 import {
@@ -74,16 +84,18 @@ interface Props {
   /** Router (RT1): Startkamera aus der Query + Kamera-Meldung nach `moveend`. Additiv. */
   initialView?: { lat: number; lon: number; zoom: number } | null;
   onViewChange?: (v: { lat: number; lon: number; zoom: number }) => void;
+  /** RL1: Schnee-Modus des ICON-D2-Layers (Deck-Umschalter). Default Schneedecke. */
+  snowMode?: SnowMode;
 }
 
 const LAYER_META: Record<RadarLayerId, { label: string }> = {
   precip:    { label: 'Niederschlag' },
   rain:      { label: 'Regen' },
-  snow:      { label: 'Schnee' },
+  snow:      { label: 'Schnee (ICON-D2)' },
   graupel:   { label: 'Graupel' },
   hail:      { label: 'Hagel' },
   accum:     { label: 'Summe' },
-  cells:     { label: 'Sturmzellen + ETA' },
+  cells:     { label: 'Zellbahnen (KONRAD3D)' },
   lightning: { label: 'Blitze' },
   warnings:  { label: 'Warnungen' },
   coverage:  { label: 'Radarsicht' },
@@ -108,7 +120,7 @@ const HEURISTIC_PHASES = new Set<RadarLayerId>(['graupel', 'hail']);
 
 type PointInfo = { lat: number; lon: number; name: string; country: 'DE' | 'AT' | 'CH' };
 
-export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, layers: controlledLayers, onLayersChange, hideLayerbar = false, compact = false, playing: controlledPlaying, onPlayingChange, onMapReady, initialView, onViewChange }: Props) {
+export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, layers: controlledLayers, onLayersChange, hideLayerbar = false, compact = false, playing: controlledPlaying, onPlayingChange, onMapReady, initialView, onViewChange, snowMode = 'depth' }: Props) {
   const last = useMemo(() => loadLastView(), []);
   const [layersUnc, setLayersUnc] = useState<RadarLayerId[]>((last?.layers as RadarLayerId[]) ?? ['precip']);
   // Controlled/uncontrolled-Hybrid: steuert das Dock die Layer, gewinnt dessen
@@ -153,6 +165,10 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
   const [hover, setHover] = useState<number | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const layerSet = useMemo(() => new Set(layers), [layers]);
+  // RL1: Nachbarquellen des DACH-Komposits, KONRAD3D-Lauf, ICON-D2-Schnee.
+  const [neighbors, setNeighbors] = useState<CompositeSources | null>(null);
+  const [cellsRun, setCellsRun] = useState<Konrad3dRun | null>(null);
+  const [snowData, setSnowData] = useState<IconD2Snow | null>(null);
 
   // Punkt zurücksetzen, wenn die Seite den Ort wechselt.
   useEffect(() => {
@@ -285,6 +301,75 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
     return () => ac.abort();
   }, [point.lat, point.lon, point.country]);
 
+  // RL1 — Nachbarquellen des DACH-Komposits (best-effort, entdoppelt über
+  // `shareInFlight` wie in der Wetterkarte). Das eigene Land kommt aus dem Stack;
+  // die beiden anderen werden parallel geholt. Schlägt alles fehl, bleibt
+  // `neighbors` null und die Karte zeichnet das Landesradar wie bisher.
+  useEffect(() => {
+    const ac = new AbortController();
+    const c = location.country;
+    const jobs: Array<Promise<Partial<CompositeSources>>> = [];
+    if (c !== 'DE') jobs.push(fetchRvNowcast(ac.signal).then((rv) => ({ rv })));
+    if (c !== 'AT') jobs.push(fetchIncaGrid(ac.signal).then((inca) => ({ inca })));
+    if (c !== 'CH') jobs.push(fetchRzcLatest(ac.signal).then((rzc) => ({ rzc })));
+    void Promise.allSettled(jobs).then((rs) => {
+      if (ac.signal.aborted) return;
+      const merged: CompositeSources = {};
+      for (const r of rs) {
+        if (r.status === 'fulfilled') Object.assign(merged, r.value);
+        else console.warn('[buscosun] Regenradar-Komposit: Nachbarquelle nicht geladen —', r.reason instanceof Error ? r.reason.message : r.reason);
+      }
+      const got = Object.keys(merged).length;
+      console.log(`[buscosun] Regenradar-Komposit: ${got}/${jobs.length} Nachbarquellen geladen (${Object.keys(merged).join(', ') || '—'})`);
+      setNeighbors(got ? merged : null);
+    });
+    return () => ac.abort();
+  }, [location.country, reloadKey, autoTick]);
+
+  // RL1 — Zellbahnen (DWD KONRAD3D): Abruf nur bei aktivem Layer UND sichtbarem
+  // Tab, alle 5 min (~0,6 MB je Datei) — dasselbe Muster wie `MapView.tsx`.
+  const cellsOn = layerSet.has('cells');
+  useEffect(() => {
+    if (!cellsOn) { setCellsRun(null); return; }
+    const abort = new AbortController();
+    let stopped = false;
+    const load = async () => {
+      if (stopped || document.visibilityState !== 'visible') return;
+      try {
+        const run = await fetchKonrad3d(abort.signal);
+        if (stopped) return;
+        console.log(`[buscosun] Regenradar Zellbahnen → KONRAD3D-Datei: ${run.file} · Messzeit ${new Date(run.refMs).toLocaleString('de-DE')} · ${run.cells.length} Zellen`);
+        setCellsRun(run);
+      } catch {
+        if (stopped || abort.signal.aborted) return;
+        console.warn('[buscosun] Zellbahnen (DWD KONRAD3D) konnten nicht geladen werden');
+      }
+    };
+    void load();
+    const timer = window.setInterval(() => { void load(); }, CELLS_POLL_MS);
+    const onVisible = () => { if (document.visibilityState === 'visible') void load(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      stopped = true; abort.abort(); window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+      setCellsRun(null);
+    };
+  }, [cellsOn]);
+
+  // RL1 — ICON-D2 Schnee (h_snow bzw. snow_gsp+snow_con), lazy beim Aktivieren und
+  // bei Modus-Wechsel, progressiv (Muster `installSnow` in MapView; der Abort des
+  // Effekts ersetzt den Seq-Guard). Über den Repack seit BW-6 vom CDN.
+  const snowOn = layerSet.has('snow');
+  useEffect(() => {
+    if (!snowOn) { setSnowData(null); return; }
+    const ac = new AbortController();
+    setSnowData(null);
+    fetchIconD2Snow(snowMode, ac.signal, (partial) => { if (!ac.signal.aborted) setSnowData(partial); })
+      .then((sd) => { if (!ac.signal.aborted) setSnowData(sd); })
+      .catch(() => { if (!ac.signal.aborted) console.warn('[buscosun] ICON-D2 Schnee nicht erreichbar'); });
+    return () => ac.abort();
+  }, [snowOn, snowMode]);
+
   // Persist + Abspiel-Engine.
   useEffect(() => { saveLastView({ layers, palette, basemap, opacity }); }, [layers, palette, basemap, opacity]);
   useEffect(() => {
@@ -300,39 +385,27 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
     return () => cancelAnimationFrame(raf);
   }, [playing, speed, loop, stack]);
 
-  // Abgeleitet: Sturmzellen, ETA, Akkumulation, Coverage.
-  const cells: StormCell[] = useMemo(() => {
-    if (!stack || !layerSet.has('cells')) return [];
-    const i = Math.max(0, Math.min(stack.frames.length - 1, Math.round(framePos)));
-    const cur = stack.frames[i]; const prev = stack.frames[i - 1] ?? null;
-    if (!cur) return [];
-    return detectAndTrackCells(
-      prev ? { values: prev.values, width: prev.width, height: prev.height, timeMs: prev.timeMs } : null,
-      { values: cur.values, width: cur.width, height: cur.height, timeMs: cur.timeMs },
-      stack.corners,
-    ).cells;
-  }, [stack, framePos, layerSet]);
+  // Abgeleitet: Zellbahnen mit Standortbezug (EINE Entscheidung, `cellLocationRelevance`),
+  // Akkumulation, Coverage.
+  const cellRel = useMemo(() => (cellsRun ? cellLocationRelevance(cellsRun, [point.lon, point.lat]) : null), [cellsRun, point.lon, point.lat]);
+  const cellFeatures = useMemo(() => (cellsRun ? buildCellFeatures(cellsRun, { affectsCellId: cellRel?.cellId ?? null }) : null), [cellsRun, cellRel]);
+  const relCell = useMemo(() => (cellsRun && cellRel ? cellsRun.cells.find((c) => c.id === cellRel.cellId) ?? null : null), [cellsRun, cellRel]);
 
-  const eta = useMemo(() => {
-    if (cells.length === 0) return null;
-    let best: { cell: StormCell; etaMin: number; missKm: number } | null = null;
-    for (const c of cells) { const e = etaToPoint(c, point.lat, point.lon, 2); if (e && (!best || e.etaMin < best.etaMin)) best = { cell: c, ...e }; }
-    return best;
-  }, [cells, point.lat, point.lon]);
-
-  // Gewittergefahr-Index am Punkt: fusioniert CAPE (Potenzial), Zellintensität/-trend
+  // Gewittergefahr-Index am Punkt: fusioniert CAPE (Potenzial), Zellintensität
   // (Realisierung) und amtliche Warnung zu EINER Aussage. cellPeak aus dem
-  // Punktforecast (layer-unabhängig); „verstärkend" nur, wenn die Zell-ETA vorliegt.
+  // Punktforecast (layer-unabhängig); „verstärkend" seit RL1 = die für den Ort
+  // relevante KONRAD3D-Zelle hat Severity ≥ 1 (KONRAD3D kennt keinen Trend —
+  // die Eigenverfolgung, die ihn lieferte, ist ersetzt; benannt, nicht kaschiert).
   const convective: ConvectiveIndex | null = useMemo(() => {
     if (!pointNowcast) return null;
     return convectiveIndex({
       capeJkg: capePeak,
       cellPeakMmH: pointNowcast.summary.peakMmH ?? null,
-      cellIntensifying: eta?.cell.trend === 'intensifying',
+      cellIntensifying: relCell != null && cellRel?.kind === 'eta' && (relCell.severityDecimal ?? relCell.severity ?? 0) >= 1,
       warningLevel: warnLevel,
       fallbackRiskPct: pointNowcast.summary.thunderRiskPct ?? 0,
     });
-  }, [capePeak, warnLevel, pointNowcast, eta]);
+  }, [capePeak, warnLevel, pointNowcast, relCell, cellRel]);
 
   const accumValues = useMemo(() => {
     if (!stack || !layerSet.has('accum')) return null;
@@ -352,7 +425,7 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
   const frameMmH = useMemo(() => (stack ? frameIntensities(stack, point.lat, point.lon) : []), [stack, point.lat, point.lon]);
 
   // Phasen/Schneefallgrenze: Gelände-DEM lazy laden (nur wenn aktiv).
-  const needTerrain = layerSet.has('rain') || layerSet.has('snow') || layerSet.has('graupel') || layerSet.has('hail') || layerSet.has('snowline');
+  const needTerrain = layerSet.has('rain') || layerSet.has('graupel') || layerSet.has('hail') || layerSet.has('snowline');
   useEffect(() => {
     if (!needTerrain || !stack || terrain) return;
     const fr = stack.frames[stack.nowIndex] ?? stack.frames[0];
@@ -437,7 +510,8 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
         {stack ? (
           <RadarMap
             stack={stack} framePos={framePos} palette={palette} opacity={opacity} basemap={basemap}
-            layers={layerSet} accumValues={accumValues} cells={cells} coverageValues={coverageValues}
+            layers={layerSet} accumValues={accumValues} coverageValues={coverageValues}
+            composite={neighbors} cellFeatures={cellFeatures} snow={snowData}
             elevFull={terrain?.elevFull ?? null} snowLineM={snowLineM} snowLineFeatures={snowLineFeatures}
             point={{ lat: point.lat, lon: point.lon }} comparePoint={null}
             onPick={onPick} onHover={(mmH) => setHover(mmH)} onMapRef={(m) => { mapRef.current = m; onMapReady?.(m); }}
@@ -448,14 +522,17 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
         )}
 
         {/* Quelle/Alter */}
-        {stack && <div className="nc-radar-source"><IconRadarSignal size={13} /> {sourceAgeBadge(stack.sourceLabel, stack.runAtMs)}</div>}
+        {stack && <div className="nc-radar-source"><IconRadarSignal size={13} /> {sourceAgeBadge(neighbors ? `${stack.sourceLabel} + Komposit DACH` : stack.sourceLabel, stack.runAtMs)}</div>}
 
-        {/* ETA-zu-mir */}
-        {eta && (
+        {/* Standortbezug der Zellbahnen (Wortlaut S-Z2-3b, wie die Wetterkarte) */}
+        {cellsOn && cellRel && (
           <div className="nc-radar-eta">
-            {eta.cell.peakMmH >= 10 ? <IconBolt size={15} /> : <IconStormCloud size={15} />}
-            <span>{eta.cell.trend === 'intensifying' ? 'Verstärkende ' : ''}Zelle ({Math.round(eta.cell.peakMmH)} mm/h) erreicht dich in <strong>~{eta.etaMin} min</strong> · {Math.round(eta.cell.speedKmh)} km/h {eta.cell.compass}</span>
+            {(relCell?.lightningRate ?? 0) > 0 ? <IconBolt size={15} /> : <IconStormCloud size={15} />}
+            <span>{cellRelevanceText(cellRel)} <em>DWD KONRAD3D</em></span>
           </div>
+        )}
+        {cellsOn && cellsRun && cellsRun.cells.length === 0 && (
+          <div className="nc-radar-eta nc-radar-eta--quiet"><IconStormCloud size={15} /><span>KONRAD3D: aktuell keine konvektiven Zellen erkannt (DE).</span></div>
         )}
 
         {/* Hover-Readout */}
@@ -469,7 +546,7 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
             <span key={b.band} className="nc-radar-leg-item"><i style={{ background: PALETTES[palette].bandColors[b.band] }} /> {b.label}</span>
           ))}
           {layerSet.has('snow') && (
-            <span className="nc-radar-leg-item"><i style={{ background: 'linear-gradient(90deg,#dcecfc,#78a6e6,#4660be)' }} /> Schnee</span>
+            <span className="nc-radar-leg-item"><i style={{ background: 'linear-gradient(90deg,#d6e8fa,#78a6e6,#4660be)' }} /> {snowMode === 'fresh' ? 'Neuschnee 0–50 cm' : 'Schneedecke 0–150 cm'} · ICON-D2</span>
           )}
           {layerSet.has('graupel') && (
             <span className="nc-radar-leg-item"><i style={{ background: 'linear-gradient(90deg,#dcaaee,#ba6ed2,#9630a0)' }} /> Graupel</span>

@@ -443,21 +443,27 @@ if (hsurfGreys.length >= 2) {
     // für die vollen drei Stunden festgeschrieben.
     {
       const PROD = await import('./repack-icon-d2.mjs');
-      const d = (o) => PROD.skipDecision({ run: '2026082321', wind: 13, temp: 25, ...o });
+      // BW-6b: generisch über Familien — `have`/`want` sind `{ familie: schrittzahl }`.
+      const want = { wind: 13, temp: 25, gust: 25, thunder: 13, precip: 28 };
+      const d = (haveRun, have) => PROD.skipDecision({ run: '2026082321', haveRun, have, want });
       add('Neuer Lauf → rechnen',
-        d({ haveRun: '2026082318', haveWind: 13, haveTemp: 25 }).skip === false);
+        d('2026082318', { ...want }).skip === false);
       add('Derselbe Lauf, vollständig abgelegt → aussteigen',
-        d({ haveRun: '2026082321', haveWind: 13, haveTemp: 25 }).skip === true);
-      const partial = d({ haveRun: '2026082321', haveWind: 11, haveTemp: 25 });
+        d('2026082321', { ...want }).skip === true);
+      const partial = d('2026082321', { ...want, wind: 11 });
       add('Derselbe Lauf, aber UNVOLLSTÄNDIG → nachrechnen statt Lücke festschreiben',
         partial.skip === false, partial.reason);
-      add('Unbekannter Bestand (-1) zählt nie als vollständig',
-        d({ haveRun: '2026082321', haveWind: -1, haveTemp: -1 }).skip === false);
+      add('Unbekannter Bestand (-1 oder fehlend) zählt nie als vollständig',
+        d('2026082321', { ...want, gust: -1 }).skip === false
+        && d('2026082321', { wind: 13, temp: 25 }).skip === false);
+      const newFam = d('2026082321', { ...want, precip: 0 });
+      add('Eine NEUE Familie, die im Bestand fehlt, erzwingt das Nachrechnen (BW-6b-Übergang)',
+        newFam.skip === false && /precip 0\/28/.test(newFam.reason), newFam.reason);
       // Und der Workflow muss die Zahlen auch wirklich durchreichen — sonst ist
       // die Regel im Producer richtig und im Betrieb wirkungslos.
       const wf = rf('scripts/repack-repo/workflow-build.yml', 'utf8');
-      add('Der Batch reicht Lauf UND Schrittzahlen an den Producer durch',
-        /REPACK_SKIP_IF_RUN:/.test(wf) && /REPACK_HAVE_WIND:/.test(wf) && /REPACK_HAVE_TEMP:/.test(wf),
+      add('Der Batch reicht Lauf UND Schrittzahlen JEDER Familie an den Producer durch',
+        /REPACK_SKIP_IF_RUN:/.test(wf) && /REPACK_HAVE_STEPS:/.test(wf) && /steps\[k\] = v\.steps\.length/.test(wf),
         'workflow-build.yml');
     }
 
@@ -599,13 +605,29 @@ if (hsurfGreys.length >= 2) {
   // Quellen liest. Hier zählt der SACHVERHALT dahinter: publiziert der Producer
   // weniger Schritte, als der Client anfragt, fällt der Rest still auf GRIB
   // zurück — die Ersparnis wäre kleiner als behauptet, ohne dass etwas bricht.
-  const prodSrc = rf('scripts/repack-icon-d2.mjs', 'utf8');
-  const caps = (prodSrc.match(/const MAX_STEP = \{ wind: (\d+), temp: (\d+) \};/) ?? []).slice(1).map(Number);
-  const clientWind = Number((rf('src/wind/iconD2WindSource.ts', 'utf8').match(/const MAX_STEP = (\d+);/) ?? [])[1]);
-  const clientTemp = Number((rf('src/sources/iconD2TempSource.ts', 'utf8').match(/const MAX_STEP = (\d+);/) ?? [])[1]);
-  add('Producer-Caps == Client-Caps (Wind/Temperatur)',
-    caps[0] === clientWind && caps[1] === clientTemp,
-    `Producer ${caps.join('/')} · Client ${clientWind}/${clientTemp}`);
+  // BW-6b: die Caps stehen in EINER Liste (`FAMILIES`), der Client hält sie je
+  // Modul als Literal — hier gegeneinander, für JEDE Familie.
+  const lit = (file, re) => Number((rf(file, 'utf8').match(re) ?? [])[1]);
+  const clientCaps = {
+    wind: lit('src/wind/iconD2WindSource.ts', /const MAX_STEP = (\d+);/),
+    temp: lit('src/sources/iconD2TempSource.ts', /const MAX_STEP = (\d+);/),
+    gust: lit('src/sources/iconD2GustSource.ts', /const MAX_STEP = (\d+);/),
+    thunder: lit('src/sources/iconD2Thunder.ts', /const MAX_STEP = (\d+);/),
+    rotation: lit('src/sources/iconD2Rotation.ts', /const MAX_STEP = (\d+);/),
+    lightningfc: lit('src/sources/iconD2Lpi.ts', /const MAX_STEP = (\d+);/),
+    snowDepth: lit('src/sources/iconD2Snow.ts', /const MAX_STEP = (\d+);/),
+    snowFresh: lit('src/sources/iconD2Snow.ts', /const MAX_STEP = (\d+);/),
+    precip: lit('src/sources/iconD2Precip.ts', /const PRECIP_MAX_STEP = (\d+);/),
+    cape: lit('src/event/EventResult.tsx', /Math\.min\((\d+), Math\.max\(3, Math\.ceil\(hoursToEnd\)/),
+  };
+  const capDiff = Object.keys(RM.FAMILIES).filter((f) => RM.FAMILIES[f].maxStep !== clientCaps[f]);
+  add('Producer-Caps == Client-Caps (alle Familien)',
+    capDiff.length === 0,
+    capDiff.length ? capDiff.map((f) => `${f}: Liste ${RM.FAMILIES[f].maxStep} ≠ Client ${clientCaps[f]}`).join(' · ')
+      : Object.keys(RM.FAMILIES).map((f) => `${f} ${RM.FAMILIES[f].maxStep}`).join(' · '));
+  // Der GRIB-Pfad des Niederschlags kappt an derselben Stelle (Literal im Aufruf).
+  add('Niederschlag: Repack-Cap == Cap des GRIB-Pfads',
+    lit('src/sources/iconD2Precip.ts', /maxStep: (\d+), nowOnly/) === RM.FAMILIES.precip.maxStep);
 }
 
 // ---------------------------------------------------------------------------
@@ -759,6 +781,228 @@ if (hsurfGreys.length >= 2) {
     add('Client lehnt ab: Abschnitt ohne die angefragte Familie',
       RS.parseRepackSection(wSec, 'temp', entry.run) === null
       && RS.parseRepackSection(tSec, 'wind', entry.run) === null);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// (9) BW-6 — ALLE Wetterkarten-Layer (`audit/bandbreite.md` §25). Dieselbe
+//     Beweiskette wie (3)/(7)/(8), je Familie: die Bytes, die Ablage, der Client.
+//     Neu ist die Familie `precip`: volle Auflösung, kein Alpha, SEQUENZIELL —
+//     ein Bild ist nur derselbe Wert, wenn seine Referenz (`ref`) der Schritt
+//     ist, gegen den auch der GRIB-Pfad differenziert hätte.
+// ---------------------------------------------------------------------------
+{
+  const { existsSync, readFileSync: rf } = await import('node:fs');
+  const { join } = await import('node:path');
+  const RM = await import('./lib/repackManifest.mjs');
+  const PROD = await import('./repack-icon-d2.mjs');
+  const SB = await import('../src/sources/scalarFrameBuild.ts');
+  const { decodeGridStep } = await import('../src/sources/gribGridDecode.ts');
+  const { decodeGrib2, gribCorners, subsampledCorners } = await import('../src/sources/gribDecode.ts');
+
+  // ── EINE Familienliste ───────────────────────────────────────────────────
+  const pf = Object.keys(RM.FAMILIES), cf = Object.keys(RS.REPACK_FAMILIES);
+  add('Familienliste Producer == Familienliste Client (Schlüssel und Kanäle)',
+    pf.length === cf.length && pf.every((f) => cf.includes(f) && RM.FAMILIES[f].channels === RS.REPACK_FAMILIES[f].channels),
+    `${pf.length} Familien: ${pf.join(', ')}`);
+  add('`latest-grib.json` bekommt alle Familien außer Wind, `latest-wind.json` nur Wind',
+    RM.GRIB_FAMILIES.length === pf.length - 1 && !RM.GRIB_FAMILIES.includes('wind') && RM.familiesOf('wind').join() === 'wind');
+
+  // ── Producer und Clients benutzen die GETEILTEN Bauschleifen ────────────
+  const prodSrc = rf('scripts/repack-icon-d2.mjs', 'utf8');
+  add('Producer importiert `scalarFrameBuild.ts` und `gribGridDecode.ts` (keine zweite Mathematik)',
+    /from '\.\.\/src\/sources\/scalarFrameBuild\.ts'/.test(prodSrc) && /from '\.\.\/src\/sources\/gribGridDecode\.ts'/.test(prodSrc));
+  const CLIENTS = {
+    gust: ['src/sources/iconD2GustSource.ts', 'buildGustRgba'],
+    thunder: ['src/sources/iconD2Thunder.ts', 'buildThunderRgba'],
+    rotation: ['src/sources/iconD2Rotation.ts', 'buildRotationRgba'],
+    lightningfc: ['src/sources/iconD2Lpi.ts', 'buildLpiRgba'],
+    snowDepth: ['src/sources/iconD2Snow.ts', 'buildSnowDepthRgba'],
+    snowFresh: ['src/sources/iconD2Snow.ts', 'buildSnowFreshRgba'],
+  };
+  for (const [f, [file, fn]] of Object.entries(CLIENTS)) {
+    const src = rf(file, 'utf8');
+    add(`Client ${f}: baut über \`${fn}\` und lädt über \`loadScalarStep(…, '${f}')\``,
+      new RegExp(`\\b${fn}\\(`).test(src) && !/Math\.round\(clamp01/.test(src)
+      && new RegExp(`loadScalarStep\\(section, (?:'${f}'|mode === 'depth' \\? 'snowDepth' : 'snowFresh'), step, signal\\)`).test(src),
+      file);
+  }
+  {
+    const src = rf('src/sources/iconD2Precip.ts', 'utf8');
+    add('Client cape: nimmt die Familie über `loadGridStep(section, \'cape\', …)` und fällt als GANZES zurück',
+      /loadGridStep\(section, 'cape', step, signal\)/.test(rf('src/sources/iconD2Cape.ts', 'utf8'))
+      && /if \(!wanted\.every\(\(s\) => have\.has\(s\)\)\) return null;/.test(rf('src/sources/iconD2Cape.ts', 'utf8')));
+    add('Client precip: prüft die Schrittfolge (`precipStepsUsable`) und fällt als GANZES auf GRIB zurück',
+      /precipStepsUsable\(section, steps\)/.test(src) && /loadPrecipStep\(section, step, signal\)/.test(src)
+      && /if \(failed \|\| signal\?\.aborted \|\| frames\.length === 0\) return null;/.test(src));
+  }
+
+  // ── Die Bytes, je Familie, über die Läufe aus (3) ────────────────────────
+  const BUILD = {
+    gust: (F, ss) => SB.buildGustRgba(F[0], ss),
+    thunder: (F, ss) => SB.buildThunderRgba(F[0], F[1], F[2], ss),
+    rotation: (F, ss) => SB.buildRotationRgba(F[0], F[1], F[2], ss),
+    lightningfc: (F, ss) => SB.buildLpiRgba(F[0], ss),
+    snowDepth: (F, ss) => SB.buildSnowDepthRgba(F[0], ss),
+    snowFresh: (F, ss) => SB.buildSnowFreshRgba(F[0], F[1], F[2], ss),
+  };
+  let naiveScalarShown = false;
+  for (const run of runs) {
+    for (const f of Object.keys(BUILD)) {
+      const fam = RM.FAMILIES[f];
+      const steps = [...new Set(STEPS.map((s) => Math.max(s, fam.minStep)))];
+      for (const step of steps) {
+        let ok = false, detail = '';
+        try {
+          const prod = await PROD.repackScalarStep(f, run, step);
+          const fields = await Promise.all(fam.params.map((p) => fetchField(urls.step(run, p, step))));
+          const ss = Math.max(1, Math.ceil(fields[0].ni / TARGET_WIDTH));
+          const ref = BUILD[f](fields, ss);
+          add(`${f} ${run}+${step}: Producer-Bytes == geteilter Builder (G = B = 0)`,
+            eq(prod.rgba, ref.rgba), firstDiff(prod.rgba, ref.rgba) ?? '');
+          // Der Weg des BROWSERS: Grau expandiert auf R = G = B, dann `composeScalarRgba`.
+          const dec = decodePng(prod.png);
+          const browser = toRgba(dec);
+          const hasValue = ref.rgba.some((v, i) => i % 4 === 0 && v !== 0);
+          if (!naiveScalarShown && hasValue) {
+            naiveScalarShown = true;
+            add('Gegenprobe: ein Ein-Kanal-PNG ungefiltert durchreichen wäre NICHT byte-gleich',
+              !eq(browser, ref.rgba), `${f} ${run}+${step}: Grau steht auch in G und B`);
+          }
+          const back = RS.composeScalarRgba(browser);
+          ok = dec.channels === 2 && dec.width === ref.width && dec.height === ref.height && eq(back, ref.rgba);
+          detail = firstDiff(back, ref.rgba) ?? `${ref.width}×${ref.height} = ${ref.rgba.length} Bytes identisch, ${(prod.png.length / 1024).toFixed(0)} KB`;
+        } catch (e) { detail = e.message; }
+        add(`${f} ${run}+${step}: PNG → Browser-Bytes → Client-Zusammensetzen ist BYTE-identisch`, ok, detail);
+      }
+    }
+
+    // ── CAPE (BW-7a): instantan, volle Auflösung, `capeToU8` ────────────────
+    for (const step of [0, 3]) {
+      try {
+        const prod = await PROD.repackGridStep('cape', run, step, null);
+        const bytes = await PROD.fetchGrib(urls.step(run, 'cape_ml', step));
+        const ref = decodeGridStep(bytes, null, false, 'cape');
+        const dec = decodePng(prod.png);
+        const browser = toRgba(dec);
+        const back = new Uint8Array(dec.width * dec.height);
+        for (let i = 0; i < back.length; i++) back[i] = browser[i * 4];
+        add(`cape ${run}+${step}: PNG (1 Kanal, ${dec.width}×${dec.height}) → Browser-Bytes → values ist BYTE-identisch (kein ref)`,
+          dec.channels === 1 && eq(back, ref.values) && prod.ref === undefined,
+          firstDiff(back, ref.values) ?? `${back.length} Zellen, ${(prod.png.length / 1024).toFixed(0)} KB`);
+      } catch (e) { add(`cape ${run}+${step}: Rundlauf`, false, e.message); }
+    }
+
+    // ── Niederschlag: die Kette 0 → 1 → 2 ───────────────────────────────────
+    try {
+      let prev = null, prevRaw = null;
+      const chain = [];
+      for (const step of [0, 1, 2]) {
+        const prod = await PROD.repackPrecipStep(run, step, prev);
+        const bytes = await PROD.fetchGrib(urls.step(run, 'tot_prec', step));
+        const ref = decodeGridStep(bytes, prevRaw, true, 'precip');
+        const dec = decodePng(prod.png);
+        const browser = toRgba(dec);
+        const back = new Uint8Array(dec.width * dec.height);
+        for (let i = 0; i < back.length; i++) back[i] = browser[i * 4];
+        add(`precip ${run}+${step}: PNG (1 Kanal, ${dec.width}×${dec.height}) → Browser-Bytes → values ist BYTE-identisch, ref = ${prod.ref}`,
+          dec.channels === 1 && dec.width === 1215 && eq(back, ref.values) && prod.ref === (prev ? prev.step : null),
+          firstDiff(back, ref.values) ?? `${back.length} Zellen, ${(prod.png.length / 1024).toFixed(0)} KB`);
+        chain.push({ step, ref: prod.ref });
+        prev = { step, rawValues: prod.rawValues };
+        prevRaw = ref.rawValues;
+        if (step === 0) {
+          // Die Ecken im Abschnitt müssen BIT-gleich zu `gribCorners` sein — genau
+          // die Funktion, die der GRIB-Pfad benutzt. `subsampledCorners(f, 1)` wäre
+          // rechnerisch dasselbe und um Gleitkomma-Rauschen daneben (gemessen:
+          // −3.9499999999999975 vs −3.95) — deshalb nimmt der Producer `gribCorners`.
+          const field = decodeGrib2(bytes);
+          const b = gribCorners(field);
+          const sub = subsampledCorners(field, 1);
+          const pg = PROD.precipGridOf(field);
+          const g = pg.corners;
+          add(`precip ${run}: Gitter des Producers == \`gribCorners\` des GRIB-Pfads (bit-gleich, ss = 1, ${pg.width}×${pg.height})`,
+            pg.ss === 1 && pg.width === field.ni && pg.height === field.nj
+            && [g.nw, g.ne, g.se, g.sw].every((c, i) => c[0] === b[i][0] && c[1] === b[i][1]),
+            `${g.nw.join('/')} … ${g.se.join('/')}`);
+          add(`precip ${run}: \`subsampledCorners(f, 1)\` wäre nur „gleich genug" (Gleitkomma-Rauschen)`,
+            sub.every((c, i) => Math.abs(c[0] - b[i][0]) < 1e-9 && Math.abs(c[1] - b[i][1]) < 1e-9),
+            `max Δ ${Math.max(...sub.flatMap((c, i) => [Math.abs(c[0] - b[i][0]), Math.abs(c[1] - b[i][1])])).toExponential(1)}°`);
+        }
+      }
+      // Die Regel, an der der Client entscheidet — gegen genau diese Kette.
+      const sec = { precip: { steps: chain.map((c) => ({ step: c.step, file: `precip-${String(c.step).padStart(3, '0')}.png`, bytes: 1, ref: c.ref })) } };
+      add('precipStepsUsable: zusammenhängendes Fenster → Frames ab dem ZWEITEN Schritt (wie der GRIB-Pfad)',
+        JSON.stringify(RS.precipStepsUsable(sec, [0, 1, 2])) === '[1,2]'
+        && JSON.stringify(RS.precipStepsUsable(sec, [1, 2])) === '[2]');
+      add('precipStepsUsable: Lücke im Fenster ⇒ KEIN Repack (die Rate wäre gegen den falschen Vorschritt)',
+        RS.precipStepsUsable(sec, [0, 2]) === null);
+      add('precipStepsUsable: fehlender Schritt in der Ablage ⇒ KEIN Repack',
+        RS.precipStepsUsable(sec, [1, 2, 3]) === null);
+      add('precipStepsUsable: ein einzelner Schritt ergibt kein Frame ⇒ null',
+        RS.precipStepsUsable(sec, [1]) === null);
+    } catch (e) {
+      add(`precip ${run}: Kette 0 → 1 → 2 geprüft`, false, e.message);
+    }
+  }
+
+  // ── Die Ablage und der Client — am Publisher-Baum ────────────────────────
+  const WORK = process.env.REPACK_WORK || '.cache/repack-repo';
+  const indexPath = join(WORK, 'index.json');
+  if (!existsSync(indexPath)) {
+    add('BW-6: Publisher-Baum für die Familien-Prüfungen vorhanden', false, `${indexPath} fehlt`);
+  } else {
+    const index = JSON.parse(rf(indexPath, 'utf8'));
+    // Den Lauf nehmen, den DIESER Producer gerechnet hat — der Baum trägt auch
+    // die Läufe des stündlichen Batches, und die kennen (bis BW-6 auf `main`
+    // liegt) nur Wind und Temperatur. Gemessen: `runs[0]` war 2026082421 (Batch).
+    const stateFile = join(process.env.REPACK_OUT || 'data/repack', 'state.json');
+    const localRun = existsSync(stateFile) ? JSON.parse(rf(stateFile, 'utf8')).run : null;
+    const entry = index.runs.find((r) => r.run === localRun) ?? index.runs[0];
+    add('BW-6: Index führt den lokal produzierten Lauf', !!localRun && entry.run === localRun,
+      `lokal ${localRun ?? '—'} · Baum [${index.runs.map((r) => r.run).join(', ')}]`);
+    const present = RM.GRIB_FAMILIES.filter((f) => entry[f]?.steps?.length);
+    add('Index-Eintrag führt die neuen Familien (BW-6b)',
+      present.length === RM.GRIB_FAMILIES.length,
+      `${present.length}/${RM.GRIB_FAMILIES.length}: ${present.join(', ')}`);
+    const gSec = RM.sectionFor(entry, RM.GRIB_FAMILIES, index.commit);
+    add('GRIB-Abschnitt trägt alle vorhandenen Familien und KEINEN Wind',
+      !!gSec && present.every((f) => gSec[f]) && gSec.wind == null);
+    add('sameSection erkennt eine Schrittzahl-Änderung in einer NEUEN Familie',
+      !!gSec && !RM.sameSection(gSec, { ...gSec, gust: { ...gSec.gust, steps: gSec.gust.steps.slice(1) } }));
+    for (const f of present) {
+      const parsed = RS.parseRepackSection(gSec, f, entry.run);
+      add(`Client nimmt den echten Abschnitt an: ${f}`,
+        !!parsed && parsed[f].steps.length === entry[f].steps.length,
+        `${entry[f].steps.length} Schritte`);
+      if (parsed) {
+        const file = parsed[f].steps[0].file;
+        add(`Schritt-URL des Clients == die des Producers: ${f}`,
+          RS.stepUrl(parsed, file) === RM.stepUrl(gSec, file) && /^https:\/\/cdn\.jsdelivr\.net\/gh\//.test(RS.stepUrl(parsed, file)));
+        // Das Bild aus dem Baum dekodiert auf die Maße, gegen die der Client prüft.
+        const grid = f === 'precip' ? parsed.precip.grid : f === 'cape' ? parsed.cape.grid : parsed.grid;
+        const dec = decodePng(rf(join(WORK, entry.path, file)));
+        add(`Bild im Baum hat die Maße des Abschnitts: ${f}`,
+          dec.width === grid.width && dec.height === grid.height && dec.channels === RM.FAMILIES[f].channels,
+          `${dec.width}×${dec.height}, ${dec.channels} Kanal/Kanäle`);
+      }
+    }
+    // Was der Client ABLEHNEN muss — je eine Zeile, die sonst ein stiller Wertfehler wäre.
+    const clone = () => JSON.parse(JSON.stringify(gSec));
+    if (gSec?.gust) {
+      add('Client lehnt ab: Skalen-Drift (Manifest nennt eine andere vMax als der Code)',
+        RS.parseRepackSection((() => { const x = clone(); x.gust.vMax = x.gust.vMax + 1; return x; })(), 'gust', entry.run) === null);
+      add('Client lehnt ab: falsche Kanalzahl einer Ein-Kanal-Familie',
+        RS.parseRepackSection((() => { const x = clone(); x.gust.channels = 3; return x; })(), 'gust', entry.run) === null);
+    }
+    if (gSec?.precip) {
+      add('Client lehnt ab: Niederschlag-Schritt ohne `ref` (Rate gegen unbekannten Vorschritt)',
+        RS.parseRepackSection((() => { const x = clone(); x.precip.steps = x.precip.steps.map(({ ref, ...r }) => r); return x; })(), 'precip', entry.run) === null);
+      add('Client lehnt ab: Niederschlag mit abgetastetem Gitter (ss ≠ 1)',
+        RS.parseRepackSection((() => { const x = clone(); x.precip.grid.ss = 2; return x; })(), 'precip', entry.run) === null);
+      add('Client lehnt ab: `ref` zeigt nach vorn oder auf sich selbst',
+        (() => { const x = clone(); x.precip.steps = [{ ...x.precip.steps[1], ref: x.precip.steps[1].step }]; return RS.parseRepackSection(x, 'precip', entry.run) === null; })());
+    }
   }
 }
 

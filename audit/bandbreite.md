@@ -568,6 +568,10 @@ nicht erhebbar, solange die Seite 503 liefert. Nachzuholen (V-BW-9).
 | **V-BW-23** | **CH lädt 81 Stations-CSVs einzeln** (`ogd-smn_<stn>_t_now.csv`, ~8,5 KB je Datei) plus ein 151-KB-Stationsverzeichnis: gemessen **861 862 B und 8 Sekunden** = 40 % der CH-Sitzung, mehr als das CH-Radar selbst | größter Posten der CH-Sitzung, und der langsamste | nur die Stationen im Umkreis des Punktes abrufen statt aller; sonst wie bei Meteostat (BH4) je Station cachen |
 | **V-BW-24** | **`maps.dwd.de/geoserver/dwd/wms` wird viermal mit identischer URL geholt** (je 5 622 B) | klein, aber dieselbe Ursache wie §24.3 | `shareInFlight` (BW-5) auch auf diesen Abruf ziehen |
 | **V-BW-25** | **Verifier-Sonden auf eingefrorenen Zahlen** melden den nächsten planmäßigen Schritt als Fehler. Zwei Fälle in zwei Phasen: `verify:routing` prüfte `const VERSION = 'v2'` wörtlich und fiel über den SW-Bump aus BW-3; `src/radar/_verify.ts` verlangte `RADAR_PRESETS.length >= 4`, seit einem Rückbau gibt es drei — der Harnisch stand seither auf 66/67, ohne dass etwas kaputt war | ein Verifier, der ohne Defekt rot ist, wird irgendwann nicht mehr gelesen | beide behoben (Absicht statt Zahl). Offen: ein Durchgang durch die übrigen Harnische mit derselben Frage |
+| **V-BW-26** | **Zwei Funktionen für dieselben Ecken** (`gribCorners` vs `subsampledCorners(f, 1)`) liefern Gleitkomma-verschiedene Werte (Δ ~1e-15°) | kein Ortsfehler, aber ein „bit-gleich"-Beweis kippt daran (§25.11) | wo Ecken für einen Leser geschrieben werden, die Funktion DES LESERS nehmen — so gemacht für `precip` |
+| **V-BW-27** | **Producer-Laufzeit 6,4 min je Lauf** mit pure-JS-bz2 (165 MiB Download) | unter dem 30-min-Timeout, aber Dreifaches von BW-2 | `bzip2`-Binary auf `ubuntu-latest` (Plan-Option), erst messen |
+| **V-BW-28** | Der Niederschlag-PNG-Weg kennt die Rate des ERSTEN Fensterschritts, der GRIB-Pfad nicht (er ist dort nur Referenz) | eine Stunde mehr Deckung möglich | bewusst nicht genutzt (gleiche Frames = Funktionserhalt); als Entscheidung offen |
+| **V-BW-29** | **RADOLAN-RV nach jsDelivr** wäre ein 5-Minuten-Batch: 288 Force-Pushes und 288 Manifest-Commits/Netlify-Builds je Tag, Actions-`schedule` unpünktlich, Verzug 5–10 min statt 3,3 (§26.3) | spart 0,36 MiB je DE-Sitzung — kleinster Posten gegen größte Betriebsänderung | **nicht bauen**; bei Bedarf Edge-Proxy an einen anderen Ort, nicht ein 5-Minuten-Batch. Jans Entscheidung |
 
 ---
 
@@ -2611,3 +2615,392 @@ und ein nicht leeres Layer-Set. → **V-BW-25**.
   ein Durchgang durch die übrigen Harnische mit derselben Frage.
 - Die Quick Wins **Q4** (`GRIB_CACHE_MAX` 140 → 400) und **Q5** (`/_dwd_*` aus dem
   SW-Datencache) sind unverändert offen und unabhängig.
+
+---
+
+# 25. BW-6 — alle Wetterkarten-Layer ohne Netlify-Traffic (Diagnose, 2026-08-24)
+
+**Auftrag (Jan, 2026-08-24):** „alle Wetterlayer der Wetterkarte so gestalten, dass sie keinen
+Netlify-Traffic erzeugen, genauso wie wir es für Wind und Temperatur gemacht haben." Das hebt
+Plan-Entscheidung 2 („Repack-Umfang nur Wind + Temperatur") auf. Diese Diagnose steht **vor**
+der ersten Zeile Code (Diagnose-First) und beantwortet drei Fragen: Was zieht die Karte heute
+über Netlify? Was davon lässt sich mit dem BW-1…BW-4-Muster verlustfrei umpacken? Was bleibt —
+und warum?
+
+## 25.1 Inventar — alle 19 Layer-Keys, am Code geprüft
+
+`src/map/layerTypes.ts:33-36` führt 19 Keys. Je Layer: Transportweg, Quelle, und die
+entscheidende Spalte — **wie das Feld zur Textur wird**. Denn das Repack-Muster funktioniert nur,
+weil der Client die Daten heute schon selbst auf 608 × 373 × 8 bit reduziert; der Producer macht
+diesen Schritt einmal statt je Browser. Wo der Client Float behält, wäre ein PNG eine
+Formatentscheidung mit Verlust — das ist ein anderes Vorhaben.
+
+| Layer | Weg | Quelle / Felder | Feld → Textur | Netlify? | Befund |
+|---|---|---|---|---|---|
+| `wind` | jsDelivr (BW-3) · Fallback `/_dwd_wind` | `u_10m`,`v_10m`, 13 Schritte | `buildWindRgba` 608×373 RGB, Norm je Frame | **nein** (seit BW-4) | erledigt |
+| `temp` | jsDelivr (BW-3) · Fallback `/_dwd_grib` | `t_2m` + `hsurf`, 25 | `buildTempRgba` Grau+Alpha + G = hsurf | **nein** | erledigt |
+| `wind` **Druckfläche** 850/700/500 hPa | **`/_dwd_opendata`** (ungecacht, `iconEuPressureWind.ts:27`) | ICON-EU `U`,`V` je Level, 13 Schritte | derselbe Windbau, ICON-EU-Gitter 1377×657 | **ja — 26 × 1,10 MB = 28,6 MB je Umschaltung** (HEAD gemessen: 1 099 828 B) | **A2** eigene Familie je Level |
+| `gust` | `/_dwd_grib` | `vmax_10m`, 25 | `buildGustImage` (`iconD2GustSource.ts:55`) 608×373, R = m/s ÷ 40, A = Maske | ja | **A1** 1:1 wie Temperatur |
+| `thunder` | `/_dwd_grib` | `cape_ml`+`cin_ml`+`lpi`, 13 | `buildThunderImage` (`iconD2Thunder.ts:75`): `thunderScore` auf Float **vor** der Quantisierung, dann R = Score/100 | ja — **3 GRIB je Schritt, 2,7–3,2 MB** | **A1** — 3 GRIB → 1 PNG |
+| `rotation` | `/_dwd_grib` | `uh_max`+`uh_max_low`+`sdi_2`, 12 | `buildRotationImage` (`iconD2Rotation.ts:83`): `rotationScore` → `smoothScores` → R | ja — 3 GRIB, 1,8–2,3 MB | **A1** — 3 GRIB → 1 PNG |
+| `snow` | `/_dwd_grib` | Decke `h_snow` · Neuschnee `snow_gsp`+`snow_con`+`rho_snow`, 25 | `buildDepthImage`/`buildFreshImage` (`iconD2Snow.ts:85/118`): `freshSnowCmFromSwe` → R | ja (GRIB winzig, 4–23 KB) | **A1**, zwei Unterfamilien |
+| `lightningfc` | `/_dwd_grib` | `lpi_max`, 1…12 | `buildLpiImage` (`iconD2Lpi.ts:84`): R = J/kg ÷ 30 | ja (9–32 KB) | **A1** |
+| `nowcast` (Niederschlag-Toggle) | Radar DE `/_dwd_opendata` (BW-5) · AT/CH direkt · **plus** `/_dwd_grib` | Radar **und** ICON-D2 `tot_prec` 0…27 (`installIconD2`, `MapView.tsx:2388`, `:4324`) als Lückenfüller jenseits des Radarhorizonts (`precipComposite.ts:202-215`) | `decodeGridStep` (`gribGridDecode.ts:43`): **volle 1215×746**, deakkumuliert gegen den Vorschritt, `precipToU8` (mm/h ÷ 20) → `Uint8Array`, kein Canvas | ja — `tot_prec` 0,25–1,6 MB je Schritt | **A1**, aber volle Auflösung und Grau **ohne** Alpha (0 = transparent, `RainLayer.ts:318`) |
+| `clouds` | `/_dwd_grib` (nicht gewärmt) | `clcl`,`clcm`,`clch`, 13 | `packCloudRGBA` (`iconD2Clouds.ts:72`) **volle 1215×746 RGBA**, CPU-Lerp auf dem Rohpuffer | ja, **aber im Dock auskommentiert** (`MapView.tsx` DECK_GROUPS) | **C** nicht erreichbar → nicht jetzt |
+| `confidence` | `/_dwd_grib` (Lauf-Spread `t_2m`) + `/climaGrid.json` | vorheriger Lauf `t_2m` %6 | liest die 8-bit-Temp-Leinwand zurück | ja, **Dock auskommentiert** | **C** |
+| `snowline` | abgeleitet | Temp-Leinwand + DEM | Marching Squares | nein (Ableitung) | — |
+| `flownowcast` / `poprob` | RADOLAN (BW-5) | — | Optical Flow auf RV-Frames | RADOLAN bleibt (D-14, §24) | **B** |
+| `sat` / `lightning` | `maps.dwd.de/geoserver` WMS direkt | — | MapLibre-Raster | **nein** (nie) | — |
+| `hail` | CH STAC direkt · DE Konrad3D `/_dwd_opendata` | XML/Polygone, klein | GeoJSON + Palettenraster | ja, klein (kein ICON) | **B** |
+| `cells` | Konrad3D `/_dwd_opendata` | XML, klein | GeoJSON | ja, klein | **B** |
+| `warnings` | DE CAP-Zip `/_dwd_opendata` · CH `/_meteoalarm` | amtliche Warnungen | GeoJSON | ja | **B — Lizenz:** `docs/API.md` §7, kein Durable-Cache; außerdem amtliches Produkt (Zitatregel) |
+| `stations` | `api.brightsky.dev` direkt | — | GeoJSON | nein | — |
+| Basiskarte · DEM | openfreemap · S3 Terrarium | — | — | nein | — |
+| Modell-Umschalter (EPS/GFS/IFS/AROME/ICON-CH) | `/_dwd_grib` (EPS) · `/_gfs` · `/_ecmwf` · `/_mf` · `/_cscs` | 5 Var × 3 Schritte EPS ≈ 240 MB dekomprimiert | **Float**, 14×9-Gitter, Fusion-Engine | ja, nur bei ausdrücklicher Wahl | **C — Fusion-Engine = STOPP & FRAGEN**, kein 8-bit-Konsument |
+
+**A** = umpackbar mit dem bestehenden Muster · **B** = bleibt auf Netlify aus Sachgrund ·
+**C** = nicht Teil dieser Linie (nicht erreichbar bzw. Float-Konsument).
+
+Hinweise, damit spätere Leser nicht suchen: `docs/LAYER_SYSTEM.md` nennt 16 Keys — es fehlen
+`cells`, `hail`, `warnings`. Und der Niederschlag-Toggle der Wetterkarte ist **nicht**
+ICON-D2-frei (der Plan-Fallstrick hat sich bestätigt): `active.has('nowcast')` startet
+`installIconD2` und zieht bis zu 28 `tot_prec`-Schritte über `/_dwd_grib`.
+
+## 25.2 Der Befund, der die Linie trägt: kein Konsument braucht mehr als 8 bit
+
+Die Frage „verliert ein PNG Präzision?" ist am Code beantwortet, nicht angenommen. Jede
+Punktabfrage der Wetterkarte liest heute **dieselbe 8-bit-Leinwand**, die der Shader abtastet:
+
+| Konsument | liest | Datei |
+|---|---|---|
+| Stadt-Labels | Temp-Leinwand R/G/A bilinear, Lapse-Korrektur nachgerechnet | `temperatureLabels.ts:353-383` |
+| Windpfeile/Klick | Wind-Leinwand bilinear | `wind/windPointSample.ts:66` |
+| Schneegrenze | Temp- + DEM-Leinwand | `scalar/snowLine.ts:82-96` |
+| Vertrauens-Schleier | Temp-Leinwand per `getImageData` | `confidenceImage.ts:107-121` |
+| QA-Sampler | Böen/Temp/Wolken-Leinwand | `qa/layerSampler.ts` |
+| Niederschlag-Komposit | `IconD2Precip.values` = `Uint8Array` | `precipComposite.ts:215` |
+
+Kein Layer auf der Karte trägt ein Float-Feld über den Bau hinaus. Der Repack ändert also
+**nirgends** einen angezeigten oder abgefragten Wert — genau die Eigenschaft, die `verify:repack`
+für Wind und Temperatur byte-genau beweist, und die für jede neue Familie ebenso bewiesen wird.
+
+Die einzige echte Ausnahme ist die Fusion (EPS-Familie, 14×9-Float-Gitter) — sie ist kein
+Kartenlayer, sondern der Modell-Umschalter, und ihre Änderung fällt unter STOPP & FRAGEN.
+
+## 25.3 Gemessen, bevor gebaut wird: PNG-Größen je Familie
+
+Sonde `scripts/l0/probe-bw6-repack-sizes.mjs`, Lauf **2026082418**, dieselben Module wie der
+Client (`thunderScore`, `rotationScore`+`smoothScores`, `freshSnowCmFromSwe`, `decodeGridStep`),
+Encoder `scripts/lib/png.mjs`:
+
+| Familie | Schritt | GRIB (bz2) | PNG | Faktor |
+|---|---:|---:|---:|---:|
+| `gust` (Grau+Alpha 608×373) | 0 / 12 / 24 | 26 / 1 096 / 1 079 KB | 8 / 130 / 120 KB | **8,5×** |
+| `thunder` (3 Felder → 1 Score) | 0 / 6 / 12 | 3 206 / 2 781 / 2 731 KB | 34 / 20 / 16 KB | **94–170×** |
+| `rotation` (3 Felder → 1 Score, geglättet) | 1 / 6 / 12 | 1 808 / 2 058 / 2 274 KB | 32 / 25 / 25 KB | **56–90×** |
+| `precipD2` (`tot_prec`, **volle** 1215×746, Grau) | 1 / 6 / 12 / 24 | 410 / 708 / 1 115 / 1 546 KB | 35 / 60 / 85 / 129 KB | **12–13×** |
+| `lightningfc` | 1 / 6 / 12 | 32 / 12 / 9 KB | 9 / 4 / 3 KB | 3× |
+| `snowDepth` | 0 / 12 / 24 | 4 KB | 3 KB | ~1× |
+| `snowFresh` (3 Felder) | 1 / 12 / 24 | 20–23 KB | 2 KB | 10× |
+
+Zwei Lesarten: Bei **Gewitter und Rotation** ist der Repack nicht nur Transport, sondern
+beseitigt zwei Drittel der Abrufe — drei Felder werden zu einem Bild, und das Bild ist
+zwei Größenordnungen kleiner als **eines** der drei GRIBs. Bei **Schnee und Blitzprognose**
+spart der Repack keine nennenswerten Bytes (die GRIBs sind selbst nur Kilobytes) — hier geht es
+nur um „nicht mehr über Netlify". Das ist der Auftrag, also gehören sie dazu, aber sie
+rechtfertigen keinen eigenen Aufwand jenseits der Familie.
+
+**Mengengerüst je Lauf** (Schrittzahlen aus dem Code, Größen aus der Tabelle, Median):
+
+| Familie | Schritte | ≈ je Lauf |
+|---|---:|---:|
+| `gust` | 25 | 3,0 MB |
+| `precipD2` | 28 | 2,0 MB |
+| `thunder` | 13 | 0,3 MB |
+| `rotation` | 12 | 0,3 MB |
+| `lightningfc` | 12 | 0,05 MB |
+| `snowDepth` + `snowFresh` | 25 + 24 | 0,12 MB |
+| **neu zusammen** | **139 Bilder** | **≈ 5,8 MB** |
+| bisher (`wind` + `temp` + `hsurf`) | 38 | 5,41 MB |
+| **je Lauf gesamt** | **177** | **≈ 11,2 MB** |
+
+Bei 4 Läufen Retention ≈ 45 MB im Daten-Repo (jsDelivr: 20 MB **je Datei**, die größte Datei
+hier ist 130 KB; ob jsDelivr zusätzlich eine Repo-Größe deckelt, ist **am Gate nachzusehen**, nicht
+anzunehmen). Download je Producer-Lauf steigt von 49,9 MB auf ≈ **135 MB** GRIB (Böen 25 × 1,1,
+Gewitter 13 × 2,9, Rotation 12 × 2,0, `tot_prec` 28 × 1,1); mit dem pure-JS-bz2 (~1,5 s je Datei,
+§20) sind das **≈ 6–7 min je Lauf** statt 2 — unter dem 30-min-Timeout des Workflows, aber die
+im Plan genannte `bzip2`-Binary-Option wird damit relevant (**V-BW-27**).
+
+**ICON-EU-Druckflächen-Wind (A2)** ist nicht mitgemessen — der Bau ist derselbe wie Surface-Wind
+(`buildWindRgba`), also ≈ 250 KB je Schritt, **3 Level × 13 Schritte ≈ 10 MB je Lauf**. Das
+verdoppelt das Mengengerüst fast; ICON-EU hat ein eigenes Gitter (1377×657 → `ss = 2` → 689×329)
+und einen eigenen Lauf-Rhythmus, also eigene Discovery. Dafür ist es der **größte** Netlify-Posten
+der Karte, sobald ein Nutzer ein Level wählt: 28,6 MB, ungecacht (`/_dwd_opendata`, kein Edge-Cache).
+
+## 25.4 Vier fachliche Fallen (am Code gefunden, bevor sie zuschlagen)
+
+1. **Der Grünkanal.** Alle neuen Familien sind Ein-Kanal (Grau+Alpha wie `temp`). Der Browser
+   expandiert Grau auf R = G = B — bei `temp` musste `composeTempRgba` deshalb G durch `hsurf`
+   ersetzen (§22.2). Für die neuen Familien ist das **unschädlich**: nur `tempLayer` hat
+   `demRefine` (`MapView.tsx:1514`), alle anderen `ScalarLayer` (`:1519-1596`) lesen ausschließlich
+   R und A. Trotzdem wird es im Verifier festgehalten, damit ein späteres `demRefine` an einem
+   anderen Layer nicht still die Bezugshöhe aus dem Wert liest.
+2. **Nebenfelder dürfen im Client fehlen.** `thunder`, `rotation` und `snowFresh` behandeln ein
+   fehlendes Nebenfeld als 0 (`.catch(() => null)`, Grid-Mismatch → 0). Ein Producer, der dasselbe
+   täte, legte ein Bild ab, das **anders aussieht als der Client mit vollständigen Feldern** — und
+   niemand sähe es. Regel: der Producer packt einen Schritt nur mit **allen** Feldern, sonst
+   `missing`; der Client fällt für diesen Schritt auf GRIB zurück und verhält sich wie heute.
+3. **`tot_prec` ist sequenziell.** Die Deakkumulation braucht den Vorschritt (`decodeGridStep`,
+   `refRawValues`); die Reihenfolge 0…27 ist im Producer trivial, aber ein **einzelner fehlender
+   Schritt** macht alle folgenden falsch (Differenz gegen den falschen Vorschritt). Regel: ab dem
+   ersten fehlenden Schritt keine weiteren packen. Außerdem hat die Familie **kein Alpha** —
+   `precipToU8` kodiert „transparent" als 0 und die Domänenmaske nicht (der Kompositor liest die
+   Index-Map, nicht die Maske); ein Grau-PNG ohne Alpha ist byte-gleich zum heutigen `Uint8Array`.
+4. **Die Score-Module tragen Dev-Selbsttests** (`if (typeof window !== 'undefined' && import.meta.env.DEV)`,
+   `thunderPotential.ts:169`, `rotationPotential.ts:198`, `alpineSplit.ts:166`) — sie sind schon
+   Node-sicher (Sonde lief). Die Dev-Diagnosen in `buildThunderImage`/`buildRotationImage`
+   (`import.meta.env.DEV && !cinSignLogged`) sind es **nicht** und bleiben im Client-Modul; das
+   geteilte DOM-freie Modul bekommt nur die Schleife.
+
+## 25.5 Was auf Netlify bleibt — Sachgrund je Posten
+
+| Bleibt | Grund |
+|---|---|
+| RADOLAN-RV (`nowcast`, `flownowcast`, `poprob`) | Radar, kein ICON-D2; seit BW-5 −89,9 % (§24). Ein Repack von 5-Minuten-Messdaten wäre eine eigene Linie mit eigener Latenzfrage |
+| Amtliche Warnungen (`warnings`) | Lizenz (`docs/API.md` §7): kein Durable-Cache, Datenalter sichtbar — ein CDN am Commit-SHA wäre genau das verbotene Durable-Caching |
+| Konrad3D (`cells`, `hail` DE) | Radar-Zellprodukt, 5-Minuten-Takt, Kilobytes |
+| App-Shell | 0,53 MiB gz, danach gecacht |
+| Modell-Umschalter (EPS/GFS/IFS/AROME/ICON-CH) | Float-Konsument (Fusion), opt-in, STOPP & FRAGEN |
+| `cape_ml` auf `/regenradar` (V-BW-22) | nicht die Wetterkarte — **aber** eine `cape`-Familie (4 Schritte, volle Auflösung, `capeToU8`) wäre mit demselben Producer ≈ 4 × ~100 KB statt 12,65 MB. Weg (d) zu §24.6, Jans Entscheidung |
+
+Und was Netlify **nie** berührt hat: Basiskarte, DEM, Satellit/Blitze (WMS), Stationen, AT/CH-Radar.
+
+## 25.6 Plan BW-6 — Phasen, Gate, Rücknahme
+
+Das Muster ist BW-1…BW-4, je Familie. Was sich gegenüber BW-2 **strukturell** ändert: Producer,
+`index.json`, Manifest-Abschnitt und Workflow kennen heute genau zwei Familien (`wind`/`temp`
+hart in `indexEntry`, `sectionFor`, `findLatestRun`, `skipDecision`, im Workflow-Schritt „have").
+Das wird eine **Familienliste** — eine Stelle, aus der alles andere folgt.
+
+| Phase | Inhalt | Gate |
+|---|---|---|
+| **BW-6a** Geteilte Bauschleifen | je Familie ein DOM-freies `build*Rgba` (Muster `tempFrameBuild.ts`): `scalarFrameBuild.ts` mit `gust`/`lpi`/`snowDepth`/`snowFresh`/`thunder`/`rotation` (alle „R + Maske"), `precipD2` = `decodeGridStep` (existiert schon DOM-frei). Client-Module rufen sie; Bild bleibt Canvas | `typecheck`, Karte pixelgleich (die Schleife ist dieselbe) |
+| **BW-6b** Producer + Ablage | Familienliste in `repack-icon-d2.mjs`, `repackManifest.mjs` (`indexEntry`/`sectionFor` generisch), `publish-repack.mjs` unverändert, Workflow-Schritt „have" generisch; Regel 2 + 3 aus §25.4; `hsurf` bleibt Wurzel | `verify:repack` erweitert: **Byte-Identität je neuer Familie** über ≥ 3 Läufe |
+| **BW-6c** Client | je Loader `resolveRepackForRun(runStr, family)` + `load*Step` in `repackSource.ts` (Grau+Alpha → RGBA, Maße gegen `grid`, Fristen und Sitzungsgedächtnis **geteilt**), GRIB als benannter Fallback je Schritt; `precipD2` liefert `Uint8Array` statt Canvas | Karte pixelgleich je Layer (Screenshot-Diff), Fallback belegt, Konsole sauber, keine Long Tasks |
+| **BW-6d** Nachmessen | je Layer Kaltsitzung vorher/nachher nach Origin, Desktop + Mobil | Tabelle wie §23.2 |
+| **BW-6e** ICON-EU-Druckflächen (A2) | eigene Discovery (ICON-EU-Lauf), Familien `wind850/700/500`, sonst wie Wind | eigenes Gate; **Jans Wahl**, ob dabei (+10 MB je Lauf) |
+
+**Manifest:** `latest-grib.json` trägt heute `repack` = **ein** Abschnitt mit `temp`. Die neuen
+Familien kommen als weitere Schlüssel **in denselben Abschnitt** (`repack.gust`, `repack.thunder`, …),
+weil sie am selben Lauf und demselben Commit hängen; `parseRepackSection(raw, family, run)` liest
+heute schon nur die angeforderte Familie. Der Cron-Code ändert sich damit in **einer** Zeile
+(`pickForRun(…, 'temp')` → alle Familien des GRIB-Manifests). Das berührt die Warm-Crons — sie
+sind ohnehin uncommitted, und der Prod-Dispatch bleibt Jans Gate (§23.6). **Annahme, unter der
+gebaut wird:** die Erweiterung des additiven Abschnitts ist vom Auftrag gedeckt; ein neuer
+Mechanismus wird nicht eingeführt.
+
+**Rücknahme:** jede Familie ist einzeln abschaltbar — fehlt ihr Schlüssel im Abschnitt, nimmt der
+Loader GRIB („kein Abschnitt" als Normalfall, §22.4). `?repack=0` schaltet weiter alles.
+
+## 25.7 Entscheidungen — mit Default, unter dem gebaut wird
+
+| # | Frage | Default |
+|---|---|---|
+| E1 | Dock-verborgene Layer `clouds`/`confidence` mitpacken? | **Nein.** Nicht erreichbar, `clouds` wäre eine Auflösungsentscheidung (volle 1215×746 RGBA). Bleibt GRIB, kein Funktionsverlust |
+| E2 | ICON-EU-Druckflächen (BW-6e)? | **Ja, als letzte Phase** — größter Posten (28,6 MB ungecacht), aber eigene Discovery und +10 MB je Lauf |
+| E3 | `cape`-Familie für `/regenradar` (V-BW-22, Weg d)? | **offen** — nicht Wetterkarte; wird hier nur vorbereitet, wenn Jan es sagt |
+| E4 | `bzip2`-Binary im Workflow statt pure-JS (V-BW-27)? | **erst messen** (BW-6b protokolliert die Laufzeit), dann entscheiden |
+| E5 | Retention 4 Läufe bei 11 MB je Lauf? | **unverändert** — 45 MB, Force-Push-Historie wächst nicht |
+
+## 25.8 Risiken
+
+| Risiko | Umgang |
+|---|---|
+| Producer-Laufzeit × 3 (135 MB Download, pure-JS-bz2) | gemessen in BW-6b; `timeout-minutes: 30` hat Luft; V-BW-27 als Ausweg |
+| Ein Bild sieht anders aus als der Client-Bau (Nebenfeld fehlt, Vorschritt fehlt) | Regeln 2 + 3 in §25.4, im Verifier als Ablehnungsfall |
+| Familienliste driftet zwischen Producer, Manifest, Client, Verifier | **eine** Liste (`scripts/lib/repackManifest.mjs` exportiert sie, `repackSource.ts` spiegelt sie typisiert — der Verifier prüft Gleichheit) |
+| `precipD2` mit 28 Schritten × 6-s-Frist = bis 168 s worst case im Fallback | Fristen greifen je Datei nur bei CDN-Hänger; ein Fehlschlag gilt für die Sitzung (§22.3) |
+| Daten-Repo 45 MB, jsDelivr-Grenzen | am Gate nachsehen, nicht annehmen (§25.3) |
+
+## 25.9 Umgesetzt (2026-08-24, BW-6a–6c)
+
+**BW-6a — geteilte Bauschleifen.** `src/sources/scalarFrameBuild.ts` (neu): `buildGustRgba`,
+`buildLpiRgba`, `buildSnowDepthRgba`, `buildSnowFreshRgba`, `buildThunderRgba`, `buildRotationRgba`
+plus die Skalen-Konstanten (aus den fünf Client-Modulen dorthin gezogen, dort re-exportiert). Die
+Client-Module (`iconD2GustSource/Lpi/Snow/Thunder/Rotation.ts`) bauen ihr Canvas nur noch per
+`putImageData` aus diesem Ergebnis; die Dev-Diagnosen (`import.meta.env.DEV`) bleiben im Client.
+**Beweis** `scripts/l0/probe-bw6a-equality.mjs` gegen die HEAD-Fassungen (`scripts/l0/bw6-old/`,
+`document`-Shim): **27/27 byte-gleich** an echten Feldern des Laufs 2026082418, auch „ohne Nebenfelder".
+
+**BW-6b — Producer, Ablage, Manifest.** EINE Familienliste `FAMILIES` in
+`scripts/lib/repackManifest.mjs` (`manifest`, `file`, `channels`, `params`, `minStep`/`maxStep`,
+`fullRes`, `sequential`); `indexEntry`/`sectionFor`/`pickForRun`/`sameSection` generisch,
+`GRIB_FAMILIES` = alle außer Wind. `scripts/repack-icon-d2.mjs`: `familySteps` (Schnitt über alle
+Felder der Familie, gedeckelte Listing-Parallelität mit Wiederholung — 15 gleichzeitige Listings
+liefen in `UND_ERR_CONNECT_TIMEOUT`), `repackScalarStep` (ALLE Felder oder `missing`),
+`repackPrecipStep` (sequenziell, `ref` je Schritt, Gitter aus `precipGridOf` = `gribCorners`),
+`skipDecision` über `{ familie: schrittzahl }`, ENV `REPACK_HAVE_STEPS` (JSON) neben den zwei
+Alt-Variablen. `scripts/warm-grib.mjs`: **eine Zeile** — `pickForRun(…, GRIB_FAMILIES)`; die
+neuen Familien liegen als weitere Schlüssel im **selben** `repack`-Abschnitt von `latest-grib.json`.
+Workflow-Vorlage `scripts/repack-repo/workflow-build.yml`: `steps=<JSON>` **und** weiterhin
+`wind=`/`temp=` — damit ein Producer-Stand vor BW-6b mit der neuen Datei noch aussteigt (sonst
+stündlich Neurechnen + Manifest-Commit + Netlify-Build, V-BW-4-Muster). README des Daten-Repos ergänzt.
+
+**BW-6c — Client.** `src/sources/repackSource.ts`: `REPACK_FAMILIES` (typisierter Spiegel, mit
+Skala je Familie), `parseRepackSection` für alle Familien (Skalen- oder Kanal-Drift ⇒ **ablehnen**;
+`precip`: eigenes Gitter `ss = 1`, `ref` Pflicht, `ref < step`), `composeScalarRgba` (G = B = 0 —
+Browser-Expansion zurückgenommen, byte-gleich zum Builder), `loadScalarStep`, `loadPrecipStep`,
+`precipStepsUsable`. Fünf Loader: `resolveRepackForRun(runStr, fam)` → ohne GRIB-Abruf für die
+Geometrie, je Schritt PNG oder GRIB-Fallback. `iconD2Precip.ts`: `fetchPrecipRepack` **alles oder
+nichts** (gemischt ginge nicht: der GRIB-Pfad braucht die Rohwerte des Vorschritts, die ein PNG
+nicht hat) — jeder Fehlschlag ⇒ `null` ⇒ die Familie über GRIB wie bisher.
+
+**Nicht angefasst:** `MapView.tsx`, `ScalarLayer`, `RainLayer`, Shader, Warm-Cron-Mechanik jenseits
+der einen Zeile, `wind`/`temp`-Pfade, Fristen und Sitzungsgedächtnis (geteilt).
+
+## 25.10 Gemessen
+
+| | |
+|---|---|
+| Vollauf Producer, Lauf 2026082418, alle 9 Familien, 178 Bilder | **383,7 s** (6,4 min; zweiter Lauf aus dem Plattencache 290,7 s) |
+| GRIB (bz2) → PNG | **165,14 MiB → 10,06 MiB, Faktor 16,4×** |
+| Publisher-Baum, 4 Läufe (3 davon nur Wind/Temp) | 25,95 MiB |
+| Bundle | totalJs **972,1 → 973,1 KB** gz (Grenze 1 017,7), eager 101,5 KB unverändert |
+| `verify:repack` | **230/230** (vorher 106) — je neuer Familie über **drei** Läufe: Producer-Bytes == Builder, PNG → Browser-Bytes (`toRgba`) → `composeScalarRgba` == Builder, Gegenprobe „ungefiltert wäre NICHT gleich"; Niederschlag-Kette 0 → 1 → 2 mit `ref`, Gitter bit-gleich `gribCorners`, vier `precipStepsUsable`-Fälle; Familienliste Producer == Client; Caps aller Familien; Ablage/Abschnitt/Client-URLs je Familie; fünf Ablehnungsfälle |
+| `verify:layer-geometry` 15/15 · `verify:warm-budget` 30/30 · `typecheck` grün | |
+| Prod-Preview, sechs Layer gleichzeitig (Böen · Gewitter · Rotation · Blitzprognose · Schnee · Niederschlag), **GRIB-Fallback** (kein Abschnitt für die neuen Familien) | Karte rendert Desktop 1440 und iPhone 12 Pro; **63 `/_dwd_grib`-Abrufe, 31,9 MB in 25 s** — genau der Posten, den der Batch künftig wegnimmt; Konsole: zwei transiente HTTP 500 des Vite-Proxys gegen den DWD (Listing + ein `lpi_max`-Schritt des Laufs 12 UTC), vom Loader wie bisher übersprungen |
+
+Screenshots: `audit/screenshots/bw6-desktop-1440-sechs-layer-grib-fallback.png`,
+`bw6-mobile-390-sechs-layer-grib-fallback.png`.
+
+**Was NICHT gemessen ist — und warum.** Der Browser-Beleg des **CDN-Wegs** (Bilder wirklich von
+jsDelivr, Bytes je Origin vorher/nachher je Layer) braucht einen Baum im Daten-Repo, der die neuen
+Familien führt. Der Push (`REPACK_OUT=data/repack-full node scripts/publish-repack.mjs --push`) wurde
+vom Freigabe-Klassifizierer dieser Sitzung **blockiert**; ich habe ihn nicht umgangen. Ein lokaler
+Ersatz scheitert an der `https://`-Pflicht des Abschnitts (bewusst, §22). Damit ist Gate GBW6
+**offen an genau dieser einen Zeile** — alles davor (Bytes, Ablage, Client-Parser, Fallback) ist belegt.
+
+## 25.11 Zwei Befunde nebenbei
+
+1. **Der Prod-Kreis ist geschlossen** — seit heute 19:44 UTC tragen `buscosun.com/latest-grib.json`
+   und `latest-wind.json` einen `repack`-Abschnitt (Lauf 2026082418, Commit `1e840bb`, Familien
+   `temp` bzw. `wind`); das Daten-Repo führt vier Läufe, sein Workflow läuft stündlich (`schedule`,
+   success 18:37 / 19:35 / 20:36 UTC), `origin/main` von buscosun-web trägt die Repack-Skripte.
+   **Wind und Temperatur laufen in Produktion über jsDelivr.** §23.6 ist damit erledigt; meine
+   Aussage vom Nachmittag („nichts davon wirksam") war bis 19:44 UTC richtig und ist es seither nicht mehr.
+2. **`subsampledCorners(f, 1)` ≠ `gribCorners(f)` um Gleitkomma-Rauschen** (−3.9499999999999975 vs
+   −3.95, max Δ ~1e-15°). Rechnerisch dasselbe, kein Ortsfehler — aber der Client soll aus dem
+   Abschnitt **bit-gleiche** Ecken bekommen, deshalb nimmt die Niederschlag-Familie `gribCorners`
+   (V-BW-26 im Katalog: an jeder Stelle, die Ecken zweimal rechnet, die Funktion des Lesers nehmen).
+
+## 25.12 Gate GBW6 — Stand
+
+| Frage | Beleg |
+|---|---|
+| 1 Funktionserhalt je Layer | GRIB-Fallback aller sechs Layer im Prod-Preview (Screenshots), Bytes byte-gleich (27/27, 230/230) |
+| 2 Desktop pixelgleich | **nicht als Diff belegt** — der CDN-Weg ist ohne Push nicht zu laden; die Bytes, die er liefert, sind byte-gleich bewiesen (230/230), also gibt es nichts, was anders aussehen könnte |
+| 3 Touch-Targets | keine UI-Änderung |
+| 4 Konsole sauber | ja bis auf zwei transiente 500 des Proxys (vorbestehend, Schritt wird übersprungen) |
+| 5 Long Tasks | nicht neu gemessen — der neue Weg dekodiert PNG statt GRIB (BW-4: weniger, nicht mehr) |
+
+**Nächster Schritt (Jans Hand, ein Befehl):** `REPACK_OUT=data/repack-full node scripts/publish-repack.mjs --push`,
+dann `node scripts/l0/probe-bw6-manifest.mjs` (schreibt das Prod-Manifest mit dem Abschnitt nach `public/`,
+`--restore` stellt es zurück) und die Messung wie §23.2 je Layer. **Für Produktion** reicht der Commit:
+der stündliche Batch klont `buscosun-web` `main` und rechnet ab dann alle Familien; die Crons hängen
+den Abschnitt an.
+
+**Offen:** E2 ICON-EU-Druckflächen (BW-6e, eigene Discovery) · E3 `cape`-Familie (V-BW-22) · V-BW-27
+`bzip2`-Binary (6,4 min je Lauf sind unter dem Timeout, aber dreifache Laufzeit) · die Alt-Ausgaben
+`wind=`/`temp=` im Workflow können fallen, sobald `main` BW-6b trägt · V-BW-28: der PNG-Weg könnte
+für den ersten Schritt des Niederschlag-Fensters ein Frame liefern, das der GRIB-Pfad nicht hat
+(bewusst NICHT genutzt — Funktionserhalt heißt hier gleiche Frames).
+
+---
+
+# 26. BW-7 — Regenradar ohne Netlify-Traffic (2026-08-25)
+
+**Auftrag (Jan):** „alle Layer des Regenradars so umsetzen, dass sie ohne Netlify-Traffic auskommen."
+
+## 26.1 Was `/regenradar` über Netlify zieht (Stand nach BW-5/BW-6, §24.1/§24.2)
+
+| Posten | Weg | je DE-Sitzung | Befund |
+|---|---|---:|---|
+| `cape_ml` für den Gewitter-Index (`fetchPeakCapeAtPoint`, 0…3 h) | `/_dwd_grib` | **12,65 MiB** (76 %) | **A** — Familie `cape` (BW-7a, umgesetzt) |
+| RADOLAN-RV-Tar (Nowcast) | `/_dwd_opendata` | 0,36 MiB (seit BW-5) | **B** — 5-Minuten-Produkt, s. §26.3 |
+| Rückblick-Archiv (nur auf Abruf, BW-5) | `/_dwd_opendata` | 0 bis 2,28 MiB | **B** |
+| RADOLAN-RY latest | `/_dwd_opendata` | 15 KB | B |
+| Amtliche Warnungen am Punkt (`fetchDwdAlerts`) | `/_dwd_opendata` | KB | bleibt — Lizenz (§25.5) |
+| Konrad3D-Zellen | `/_dwd_opendata` | KB | bleibt — 5-Minuten-Radarprodukt |
+| Schnee (DE, `fetchIconD2Snow`) | `/_dwd_grib` → jsDelivr | — | **erledigt mit BW-6** |
+| App-Shell | — | 0,52 MiB | bleibt |
+| AT INCA · CH rzc/STAC · CH Stations-CSV · `maps.dwd.de` WMS | direkt | — | nie Netlify |
+
+Das Regenradar hat damit **einen** großen Posten, und der ist kein Radar: ein Modellfeld
+für eine Zahl. Nach BW-7a bleiben je DE-Sitzung ≈ 0,36 MiB RADOLAN + Kilobytes.
+
+## 26.2 BW-7a — Familie `cape` (umgesetzt)
+
+Gemessen (Sonde `scripts/l0/probe-bw7-cape-sizes.mjs`, Lauf 2026082418): PNG **49–125 KB je
+Schritt** (volle Auflösung 1215×746, `capeToU8`, 1 Kanal) gegen 2,0–3,2 MB GRIB — **≈ 2,4 MiB je
+Lauf bei 28 Schritten**, Faktor ~27×. Schritte 0…27, weil `EventResult.tsx:1101` bis 27 anfragt
+(das Regenradar nur 0…3); die Familie trägt beide.
+
+Auf der BW-6-Mechanik ohne neue Regel: `FAMILIES.cape` (`fullRes`, `kind: 'cape'`, nicht
+sequenziell — also **kein `ref`**), Producer `repackGridStep` (verallgemeinert aus
+`repackPrecipStep`; `decodeGridStep(bytes, null, false, 'cape')` — dieselben Bytes, die der
+Client sonst selbst rechnet), Manifest-Eintrag mit eigenem Gitter (`ss = 1`, Ecken aus
+`gribCorners`) und Skala `CAPE_MAX`; Client `REPACK_FAMILIES.cape`, Parser (Skalen-Drift ⇒
+Ablehnung), `loadGridStep(section, 'cape' | 'precip', …)`; `iconD2Cape.ts` `fetchCapeRepack`
+**alles oder nichts** je Aufruf (fehlt ein gewünschter Schritt, geht die Reihe wie bisher über
+GRIB). Punktabfrage unverändert `sampleRadarQuad` auf demselben `Uint8Array` — der Wert ist
+bit-gleich, nicht „gleich genug".
+
+## 26.3 RADOLAN — warum das nicht dieselbe Bewegung ist
+
+Das Format wäre kein Problem: der Client hält RV heute schon als 8-bit-Frames (`precipToU8`,
+§25.1), ein Tar mit 25 Frames à 1100×1200 würde zu 25 Grau-PNGs von je ~20–40 KB. **Der Takt ist
+das Problem.** RV erscheint alle **5 Minuten** mit 3,3 min Verzug (§24.3). Ein Producer, der ihn
+nach jsDelivr legt, müsste:
+
+1. **alle 5 Minuten laufen** — der GitHub-Actions-`schedule` hat 5 min als kleinsten Takt und
+   ist dort **nicht pünktlich** (gemessen an diesem Repo: die stündlichen Batches liefen 18:37,
+   19:35, 20:36 — Streuung ±2 min bei stündlichem Takt; bei 5-Minuten-Takt fallen Läufe aus, wenn
+   die Warteschlange voll ist);
+2. **288 Force-Pushes je Tag** ins Daten-Repo (Retention über Läufe hinweg, jeder Push ein neuer
+   Commit-SHA) und 288 Manifest-Umlagen — jede davon heute ein Commit in `buscosun-web` und ein
+   **Netlify-Build** (V-BW-4: die Rechnung, die wir gerade kleiner gemacht haben);
+3. den **Veröffentlichungsverzug verdoppeln**: 3,3 min DWD + Action-Start (gemessen 30–90 s) +
+   Repack + Push + jsDelivr-Erstabruf. Das Regenradar zeigte dann systematisch einen **5 bis
+   10 min älteren Stand** — genau die stille Falschaussage, die BW-5 mit dem 404-Rat vermieden hat.
+
+Dagegen steht der Gewinn: **0,36 MiB je DE-Sitzung** (nach BW-5), bei AT/CH null, weil deren
+Radar nie über Netlify lief. Das ist der kleinste Posten der Seite gegen die größte betriebliche
+Änderung der Linie. **Empfehlung: nicht bauen.** Wenn das RADOLAN-Volumen je auf der Rechnung
+sichtbar wird, ist der billigere Weg ein anderer Ort für den Edge-Proxy, nicht ein
+5-Minuten-Batch. Deine Entscheidung — bis dahin bleibt RV der EINE Radar-Posten auf Netlify,
+benannt in §25.5.
+
+## 26.4 Was das Regenradar nach BW-7a auf Netlify kostet
+
+| | DE | AT | CH |
+|---|---:|---:|---:|
+| Modell (ICON-D2) | **0** (war 12,65 MiB) | 0 | 0 |
+| Radar | 0,36 MiB (RV) | 0 (direkt) | 0 (direkt) |
+| Warnungen/Zellen | KB (Lizenz/Takt) | — | — |
+| Shell | 0,52 MiB (gecacht) | 0,52 | 0,52 |
+
+## 26.5 Gemessen und geprüft
+
+| | |
+|---|---|
+| Producer, Lauf 2026082418, 10 Familien, 206 Bilder | **539,5 s**, **218,34 MiB GRIB → 12,51 MiB PNG (17,5×)** — `cape` allein 28 × 49–125 KB |
+| Publisher-Baum, 4 Läufe | 28,40 MiB |
+| `verify:repack` | ****241/241**** — neu: `cape` Rundlauf PNG → Browser-Bytes → `values` byte-gleich (2 Schritte × 3 Läufe, kein `ref`), Familienliste 10/10, Cap `cape` gegen `EventResult.tsx` (27), Client-Quelltext `loadGridStep(…, 'cape')` + alles-oder-nichts, Abschnitt/URL/Maße je Familie |
+| `typecheck` grün · Budget unverändert (Änderung nur in `iconD2Cape.ts`) | |
+
+Lehre aus dem Lauf: der Publisher-Baum trägt inzwischen auch Läufe des **stündlichen Batches**
+(2026082421, nur Wind/Temp) — ein Verifier, der `runs[0]` nimmt, prüft dann den falschen Lauf.
+Er wählt jetzt den Lauf aus `state.json` des Producers.
+
+**Gate GBW7:** wie GBW6 offen an derselben Zeile (Push ins Daten-Repo, §25.12); Browser-Beleg für
+`/regenradar` danach: DE-Sitzung erwartet **16,6 → ≈ 1,4 MiB**, davon Netlify ≈ 0,9 MiB (Shell + RV).

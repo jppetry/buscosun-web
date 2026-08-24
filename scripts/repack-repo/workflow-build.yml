@@ -61,24 +61,31 @@ jobs:
       # der Producer einen Lauf, den das DWD noch hochschiebt, fehlen einzelne
       # Schritte (am 2026-08-23 real: Wind 4 und 5). Ein Ausstieg allein auf die
       # Lauf-Kennung schriebe diese Lücke für drei Stunden fest.
+      # BW-6b: die Schrittzahl JEDER Familie als EIN JSON — die Familienliste
+      # lebt in `scripts/lib/repackManifest.mjs`, nicht hier.
       - name: Which run do we already have — and how complete?
         id: have
         run: |
           node -e "
             let r = {};
             try { r = require('./index.json').runs?.[0] ?? {}; } catch {}
-            const out = [
-              'run=' + (r.run ?? ''),
-              'wind=' + (r.wind?.steps?.length ?? -1),
-              'temp=' + (r.temp?.steps?.length ?? -1),
-            ];
-            console.log(out.join('\n'));
+            const steps = {};
+            for (const [k, v] of Object.entries(r)) if (v && Array.isArray(v.steps)) steps[k] = v.steps.length;
+            console.log('run=' + (r.run ?? ''));
+            console.log('steps=' + JSON.stringify(steps));
+            // Die zwei Alt-Ausgaben bleiben, damit ein Producer-Stand VOR BW-6b
+            // (der nur REPACK_HAVE_WIND/TEMP liest) mit dieser Datei weiter
+            // aussteigen kann — sonst rechnete er stündlich neu und löste
+            // stündlich Manifest-Commits + Netlify-Builds aus (V-BW-4-Muster).
+            console.log('wind=' + (r.wind?.steps?.length ?? -1));
+            console.log('temp=' + (r.temp?.steps?.length ?? -1));
           " | tee -a "$GITHUB_OUTPUT"
 
       - name: Repack
         working-directory: app
         env:
           REPACK_SKIP_IF_RUN: ${{ steps.have.outputs.run }}
+          REPACK_HAVE_STEPS: ${{ steps.have.outputs.steps }}
           REPACK_HAVE_WIND: ${{ steps.have.outputs.wind }}
           REPACK_HAVE_TEMP: ${{ steps.have.outputs.temp }}
           REPACK_OUT: ${{ github.workspace }}/app/data/repack

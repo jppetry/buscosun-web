@@ -1,0 +1,94 @@
+/*
+ * Steckbrief-Popup (`.sp*`) — geteilt von Wetterkarte (Stationen, Zellbahnen,
+ * Hagel, Warnungen) und Regenradar (Zellbahnen). Aus `MapView.css` herausgelöst
+ * (RL1, `audit/regenradar-layer-angleich.md`), damit `src/radar/cellLayers.ts`
+ * den Zellen-Steckbrief auf beiden Karten identisch zeichnet.
+ */
+/* ============ STATION POPUP ============ */
+.maplibregl-popup-content:has(.sp) {
+  padding: 0.65rem 0.85rem;
+  border-radius: 12px;
+  font-family: var(--font-base);
+  font-size: 0.78rem;
+  border: 1px solid var(--border-default);
+  /* cream-Glas statt maplibre-Standardweiß (v1.8) */
+  background: var(--surface-glass-strong);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  box-shadow: var(--shadow-float);
+}
+/* Popup-Spitze in derselben cream-Fläche (sonst bleibt sie weiß) */
+.maplibregl-popup-anchor-top:has(.sp) .maplibregl-popup-tip,
+.maplibregl-popup-anchor-top-left:has(.sp) .maplibregl-popup-tip,
+.maplibregl-popup-anchor-top-right:has(.sp) .maplibregl-popup-tip { border-bottom-color: var(--surface-glass-strong); }
+.maplibregl-popup-anchor-bottom:has(.sp) .maplibregl-popup-tip,
+.maplibregl-popup-anchor-bottom-left:has(.sp) .maplibregl-popup-tip,
+.maplibregl-popup-anchor-bottom-right:has(.sp) .maplibregl-popup-tip { border-top-color: var(--surface-glass-strong); }
+.maplibregl-popup-anchor-left:has(.sp) .maplibregl-popup-tip { border-right-color: var(--surface-glass-strong); }
+.maplibregl-popup-anchor-right:has(.sp) .maplibregl-popup-tip { border-left-color: var(--surface-glass-strong); }
+.sp-name {
+  font-weight: 500;
+  font-size: 0.88rem;
+  color: var(--ink-900);
+  letter-spacing: -0.01em;
+  margin-bottom: 0.12rem;
+}
+.sp-meta {
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--stone-400);
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid var(--border-default);
+}
+.sp-row {
+  display: flex;
+  justify-content: space-between;
+  margin: 0.18rem 0;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.78rem;
+}
+.sp-l { color: var(--stone-500); }
+.sp-v { color: var(--ink-900); font-weight: 500; }
+.sp-loading {
+  color: var(--stone-400);
+  font-style: italic;
+  font-size: 0.72rem;
+}
+.sp-err {
+  color: var(--terracotta-700);
+  font-size: 0.72rem;
+}
+.sp-stamp {
+  margin-top: 0.55rem;
+  padding-top: 0.4rem;
+  border-top: 1px solid var(--sand-100);
+  font-size: 0.58rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--stone-400);
+}
+/* Amtliche Warnungen (Phase W1) — der Steckbrief kann MEHRERE Warnungen für
+   denselben Ort enthalten (keine darf verschwiegen werden). Er bekommt daher
+   eine eigene Höhenbegrenzung mit Scroll statt Kürzung: amtlicher Text wird
+   nicht beschnitten, nur gerollt. */
+.sp-warn {
+  max-height: min(60vh, 26rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.sp-warn .sp-name {
+  /* Amtliche Überschriften sind lang („Amtliche WARNUNG vor STURMBÖEN") —
+     umbrechen statt abschneiden. */
+  white-space: normal;
+  line-height: 1.25;
+}
+.sp-warn-sep {
+  height: 1px;
+  margin: 0.7rem 0;
+  background: var(--border-default);
+}
+

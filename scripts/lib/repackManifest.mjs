@@ -47,6 +47,45 @@ export const HSURF_FILE = 'hsurf-v1.png';
 
 export const SCHEMA = 1;
 
+/**
+ * DIE Familienliste (BW-6b). Producer, Publisher, Warm-Crons und Verifier lesen
+ * sie hier; der Client spiegelt sie typisiert in `src/sources/repackSource.ts`
+ * (`REPACK_FAMILIES`) — `verify:repack` prüft, dass beide Listen gleich sind.
+ *
+ *   manifest   welches Manifest den Abschnitt trägt: `wind` → `latest-wind.json`,
+ *              `grib` → `latest-grib.json` (dort ALLE Familien in EINEM Abschnitt,
+ *              weil sie am selben Lauf und Commit hängen)
+ *   file       Dateipräfix im Lauf-Verzeichnis: `<file>-<SSS>.png`
+ *   channels   PNG-Kanäle: 3 = RGB (Wind), 2 = Grau+Alpha (Wert + Maske),
+ *              1 = Grau (Niederschlag: 0 ist dort „transparent", keine Maske)
+ *   params     ICON-D2-Felder je Schritt — der Producer packt einen Schritt NUR mit
+ *              ALLEN Feldern (§25.4 (2)); der Client behandelt fehlende Nebenfelder
+ *              als 0, und ein so gebautes Bild sähe anders aus als seines
+ *   minStep/maxStep  Horizont wie im jeweiligen Client-Loader
+ *   fullRes    keine Abtastung (ss = 1): der Niederschlag-Kompositor liest das
+ *              volle 1215×746-Raster (`decodeGridStep`)
+ *   sequential Deakkumulation gegen den VORHERIGEN Schritt — jeder Schritt nennt
+ *              seine Referenz (`ref`), der Client prüft sie (§25.4 (3))
+ *   kind       Quantisierer von `decodeGridStep` (`precipToU8` / `capeToU8`) bei fullRes
+ */
+export const FAMILIES = Object.freeze({
+  wind:        { manifest: 'wind', file: 'wind',      channels: 3, params: ['u_10m', 'v_10m'],                 minStep: 0, maxStep: 12 },
+  temp:        { manifest: 'grib', file: 'temp',      channels: 2, params: ['t_2m'],                           minStep: 0, maxStep: 24 },
+  gust:        { manifest: 'grib', file: 'gust',      channels: 2, params: ['vmax_10m'],                       minStep: 0, maxStep: 24 },
+  thunder:     { manifest: 'grib', file: 'thunder',   channels: 2, params: ['cape_ml', 'cin_ml', 'lpi'],       minStep: 0, maxStep: 12 },
+  rotation:    { manifest: 'grib', file: 'rotation',  channels: 2, params: ['uh_max', 'uh_max_low', 'sdi_2'],  minStep: 1, maxStep: 12 },
+  lightningfc: { manifest: 'grib', file: 'lpi',       channels: 2, params: ['lpi_max'],                        minStep: 1, maxStep: 12 },
+  snowDepth:   { manifest: 'grib', file: 'snowdepth', channels: 2, params: ['h_snow'],                         minStep: 0, maxStep: 24 },
+  snowFresh:   { manifest: 'grib', file: 'snowfresh', channels: 2, params: ['snow_gsp', 'snow_con', 'rho_snow'], minStep: 1, maxStep: 24 },
+  precip:      { manifest: 'grib', file: 'precip',    channels: 1, params: ['tot_prec'],                       minStep: 0, maxStep: 27, fullRes: true, sequential: true, kind: 'precip' },
+  // BW-7a: CAPE am Punkt (`/regenradar`, Event) — 12,65 MiB GRIB für EINE Zahl (V-BW-22).
+  cape:        { manifest: 'grib', file: 'cape',      channels: 1, params: ['cape_ml'],                        minStep: 0, maxStep: 27, fullRes: true, kind: 'cape' },
+});
+export const FAMILY_KEYS = Object.freeze(Object.keys(FAMILIES));
+/** Familien je Manifest — `latest-wind.json` trägt nur Wind, `latest-grib.json` den Rest. */
+export const familiesOf = (manifest) => FAMILY_KEYS.filter((f) => FAMILIES[f].manifest === manifest);
+export const GRIB_FAMILIES = Object.freeze(familiesOf('grib'));
+
 /** URL einer Schritt-Datei. DIE Regel — nirgends sonst zusammensetzen. */
 export function stepUrl(section, file) {
   return `${section.base}@${section.commit}/${section.path}/${file}`;
@@ -62,31 +101,42 @@ export function repoUrl(section, file) {
  */
 export function indexEntry(runManifest) {
   const m = runManifest;
-  return {
+  const entry = {
     run: m.run,
     runAt: m.runAt,
     path: `${RUNS_DIR}/${m.run}`,
     targetWidth: m.targetWidth,
     grid: m.grid,
-    wind: m.wind,
-    temp: m.temp,
-    ...(m.missing ? { missing: m.missing } : {}),
   };
+  // Jede Familie, die der Producer abgelegt hat — und nur die (BW-6b: generisch
+  // über FAMILY_KEYS statt `wind`/`temp` wörtlich).
+  for (const f of FAMILY_KEYS) if (m[f]) entry[f] = m[f];
+  if (m.missing) entry.missing = m.missing;
+  return entry;
 }
 
 /**
- * Baut den Manifest-Abschnitt für EINE Familie aus einem Index-Eintrag.
+ * Baut den Manifest-Abschnitt für eine Familie ODER eine Liste von Familien aus
+ * einem Index-Eintrag.
  *
- * `family` ist `'wind'` (→ `latest-wind.json`) oder `'temp'` (→ `latest-grib.json`).
- * Jede Familie bekommt nur ihre eigenen Felder: das Wind-Manifest trägt keine
+ * `'wind'` → `latest-wind.json`; `GRIB_FAMILIES` → `latest-grib.json`, dort alle
+ * in EINEM Abschnitt (gleicher Lauf, gleicher Commit, gleiches Gitter). Jedes
+ * Manifest bekommt nur seine eigenen Familien: das Wind-Manifest trägt keine
  * Temperatur-Normierung und umgekehrt. Die vier Wind-Normierungswerte stehen JE
  * SCHRITT — ohne sie ist das Bild bedeutungslos, und sie ändern sich mit jedem
  * Schritt (`buildWindRgba` normiert je Frame).
+ *
+ * Fehlt eine der gewünschten Familien im Eintrag, fehlt sie im Abschnitt — der
+ * Client nimmt für sie GRIB. Kein Abschnitt gibt es erst, wenn KEINE da ist.
  */
 export function sectionFor(entry, family, commit, base = CDN_BASE) {
   if (!entry || !commit) return null;
-  const fam = entry[family];
-  if (!fam || !Array.isArray(fam.steps) || fam.steps.length === 0) return null;
+  const wanted = Array.isArray(family) ? family : [family];
+  const present = wanted.filter((f) => {
+    const fam = entry[f];
+    return fam && Array.isArray(fam.steps) && fam.steps.length > 0;
+  });
+  if (present.length === 0) return null;
   const section = {
     schema: SCHEMA,
     base,
@@ -96,8 +146,8 @@ export function sectionFor(entry, family, commit, base = CDN_BASE) {
     path: entry.path,
     targetWidth: entry.targetWidth,
     grid: entry.grid,
-    [family]: fam,
   };
+  for (const f of present) section[f] = entry[f];
   return section;
 }
 
@@ -163,11 +213,12 @@ export async function fetchSection(run, family, opts = {}) {
   const r = await fetchIndex(opts);
   if (!r.ok) return { ok: false, section: null, note: r.note };
   const section = pickForRun(r.index, run, family, base);
+  const fams = Array.isArray(family) ? family : [family];
   return {
     ok: true,
     section,
     note: section
-      ? `Lauf ${run} im Daten-Repo (${section[family].steps.length} Schritte, Commit ${r.index.commit.slice(0, 7)})`
+      ? `Lauf ${run} im Daten-Repo (${fams.filter((f) => section[f]).map((f) => `${f} ${section[f].steps.length}`).join(' · ')}, Commit ${r.index.commit.slice(0, 7)})`
       : `Daten-Repo führt Lauf ${run} noch nicht — ${r.note}`,
   };
 }
@@ -194,10 +245,10 @@ export function carryRepack(existing, run, fetched) {
   return prev && prev.run === run ? prev : null;
 }
 
-/** Gleichheit zweier Abschnitte — Commit und Schrittzahl reichen als Anker. */
+/** Gleichheit zweier Abschnitte — Commit und Schrittzahl JEDER Familie reichen als Anker. */
 export function sameSection(a, b) {
   if (!a && !b) return true;
   if (!a || !b) return false;
-  const n = (s) => ['wind', 'temp'].map((f) => s[f]?.steps?.length ?? 0).join('/');
+  const n = (s) => FAMILY_KEYS.map((f) => s[f]?.steps?.length ?? 0).join('/');
   return a.commit === b.commit && a.run === b.run && n(a) === n(b);
 }

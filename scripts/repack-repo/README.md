@@ -14,7 +14,8 @@ Daten ohnehin: das native 1215×746-Gleitkommagitter wird auf 608×373 × 8 bit
 abgetastet, bevor irgendetwas gezeichnet wird. Dieser Schritt passiert jetzt
 **einmal** hier statt einmal pro Besucher.
 
-Gemessen: 49,88 MiB GRIB (bz2) → 5,41 MiB PNG je Lauf, Faktor 9,2×.
+Gemessen: 49,88 MiB GRIB (bz2) → 5,41 MiB PNG je Lauf (Wind + Temperatur, Faktor 9,2×);
+mit allen Familien 165,14 MiB → 10,06 MiB (Faktor 16,4×, BW-6).
 
 Die Bilder sind **byte-identisch** zu dem, was der bisherige Pfad im Browser
 erzeugt hat — bewiesen über drei Läufe im Verifier `verify:repack` des
@@ -26,13 +27,25 @@ Anwendungs-Repos.
 index.json              welcher Commit welche Läufe trägt (von den Crons gelesen)
 hsurf-v1.png            Modell-Orographie — zeit- UND lauf-invariant, deshalb einmal
 runs/<YYYYMMDDHH>/
-  repack.json           Gitter, Ecken, Normierung, Dateigrößen
+  repack.json           Gitter, Ecken, Normierung, Dateigrößen, je Familie
   wind-<SSS>.png        RGB: R = normierte u-Komponente, G = normierte v-Komponente
   temp-<SSS>.png        Grau + Alpha: Grau = normierte 2-m-Temperatur, Alpha = Maske
+  gust-<SSS>.png        Grau + Alpha: Böe 0…40 m/s
+  thunder-<SSS>.png     Grau + Alpha: Gewitterpotenzial-Score 0…100 (aus cape_ml, cin_ml, lpi)
+  rotation-<SSS>.png    Grau + Alpha: Rotationspotenzial-Score 0…100 (uh_max, uh_max_low, sdi_2), geglättet
+  lpi-<SSS>.png         Grau + Alpha: Blitzpotenzial lpi_max 0…30 J/kg
+  snowdepth-<SSS>.png   Grau + Alpha: Schneedecke 0…150 cm
+  snowfresh-<SSS>.png   Grau + Alpha: Neuschnee 0…50 cm (snow_gsp + snow_con, rho_snow)
+  precip-<SSS>.png      Grau, VOLLE Auflösung 1215×746: Stundenrate 0…20 mm/h, deakkumuliert
+                        gegen den in `repack.json` genannten Vorschritt (`ref`)
 ```
 
+Alle Familien außer Wind/Temperatur seit BW-6 (2026-08-24). Die Familienliste
+lebt an EINER Stelle im Anwendungs-Repo (`scripts/lib/repackManifest.mjs`).
+
 Ein Bild ohne seinen Eintrag in `index.json` ist bedeutungslos: die
-Wind-Normierung (`uMin`/`uMax`/`vMin`/`vMax`) wird **je Schritt** neu bestimmt.
+Wind-Normierung (`uMin`/`uMax`/`vMin`/`vMax`) wird **je Schritt** neu bestimmt,
+und ein Niederschlagsbild ist nur mit seiner Referenz (`ref`) eine Rate.
 
 Adressiert wird immer über den **Commit-SHA**, nie über `main` — jsDelivr liefert
 unveränderliche Refs mit `max-age=31536000, immutable`, Branch-Refs dagegen mit

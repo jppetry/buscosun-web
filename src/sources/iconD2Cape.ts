@@ -14,7 +14,9 @@
  * Quelle: opendata.dwd.de … /icon-d2/grib/<HH>/cape_ml/  · CC BY 4.0.
  */
 
-import { fetchIconD2Grid } from './iconD2Precip';
+import { fetchIconD2Grid, resolveLatestRun, type IconD2Precip, type IconD2Frame } from './iconD2Precip';
+import { repackUsable, resolveRepackForRun, loadGridStep } from './repackSource';
+import type { QuadCorners } from '../scalar/RainLayer';
 import { sampleRadarQuad } from '../pointForecast/quadSampler';
 import { CAPE_MAX } from '../scalar/RainLayer';
 
@@ -34,7 +36,11 @@ export interface CapeStep {
 export async function fetchCapeSeriesAtPoint(
   lat: number, lon: number, maxStepHours = 24, signal?: AbortSignal,
 ): Promise<CapeStep[]> {
-  const grid = await fetchIconD2Grid('cape_ml', { accumulate: false, kind: 'cape', maxStep: maxStepHours }, signal);
+  // BW-7a: fertige 8-bit-Raster aus dem Daten-CDN (≈ 50–125 KB je Schritt statt
+  // 2–3 MB GRIB — für EINE Zahl, V-BW-22). Alles oder nichts: fehlt ein gewünschter
+  // Schritt, geht die Reihe wie bisher über GRIB. Dieselben Bytes (`capeToU8`).
+  const grid = (await fetchCapeRepack(maxStepHours, signal).catch(() => null))
+    ?? await fetchIconD2Grid('cape_ml', { accumulate: false, kind: 'cape', maxStep: maxStepHours }, signal);
   return grid.frames.map((f) => ({
     stepHours: f.stepHours,
     validAtMs: f.validAt.getTime(),
@@ -43,6 +49,32 @@ export async function fetchCapeSeriesAtPoint(
     // (RADOLAN) gehen über `pointForecast/radarSample.ts` (s. audit/radar-punktverortung.md).
     capeJkg: sampleRadarQuad(f.values, f.width, f.height, grid.corners, lat, lon, CAPE_MAX),
   }));
+}
+
+async function fetchCapeRepack(maxStepHours: number, signal?: AbortSignal): Promise<IconD2Precip | null> {
+  if (!repackUsable()) return null;
+  const { runStr, runAt, steps } = await resolveLatestRun('cape_ml', signal);
+  const wanted = steps.filter((s) => s <= maxStepHours);
+  const section = await resolveRepackForRun(runStr, 'cape');
+  if (!section?.cape || wanted.length === 0) return null;
+  const have = new Set(section.cape.steps.map((s) => s.step));
+  if (!wanted.every((s) => have.has(s))) return null;
+  const c = section.cape.grid.corners;
+  const corners: QuadCorners = [c.nw, c.ne, c.se, c.sw];
+  const frames: IconD2Frame[] = [];
+  let failed = false;
+  let ptr = 0;
+  await Promise.all(Array.from({ length: Math.min(3, wanted.length) }, async () => {
+    while (ptr < wanted.length && !failed) {
+      const step = wanted[ptr++];
+      const png = await loadGridStep(section, 'cape', step, signal);
+      if (!png) { failed = true; return; }
+      frames.push({ validAt: new Date(runAt.getTime() + step * 3600_000), stepHours: step, values: png.values, width: png.width, height: png.height });
+    }
+  }));
+  if (failed || signal?.aborted || frames.length === 0) return null;
+  frames.sort((a, b) => a.stepHours - b.stepHours);
+  return { runAt, frames, corners };
 }
 
 /**

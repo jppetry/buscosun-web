@@ -95,7 +95,7 @@
 
 import { writeFileSync, renameSync, readFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import { fetchIndex, pickForRun, carryRepack, sameSection, CDN_BASE } from './lib/repackManifest.mjs';
+import { fetchIndex, pickForRun, carryRepack, sameSection, CDN_BASE, GRIB_FAMILIES } from './lib/repackManifest.mjs';
 
 const SITE_URL = (process.env.SITE_URL || 'http://localhost:5196').replace(/\/+$/, '');
 const MANIFEST_PATH = resolve(process.env.MANIFEST_PATH || 'public/latest-grib.json');
@@ -316,7 +316,7 @@ async function main() {
   try { latestEps = await findLatestEpsRun(); } catch (e) { log(`EPS-Discovery-Fehler (${e?.message || e}).`); }
   if (!latestEps) log('Kein EPS-Lauf gefunden → eps-Abschnitt UNVERÄNDERT (graceful degrade).');
 
-  // ── BW-2: additiver `repack`-Abschnitt (Temperatur) ───────────────────────
+  // ── BW-2: additiver `repack`-Abschnitt (BW-6b: alle GRIB-Familien, eine Liste) ──
   // Nur ein Blick in `index.json` des Daten-Repos (ein paar KB von
   // raw.githubusercontent.com) — es wird nichts geladen und nichts gewärmt.
   // Der Abschnitt hängt am Lauf, der am Ende WIRKLICH im Manifest steht; hier
@@ -324,7 +324,7 @@ async function main() {
   const idx = await fetchIndex();
   if (idx.note) log(idx.note);
   const repackFor = (run) => carryRepack(existing, run, {
-    ok: idx.ok, section: idx.ok ? pickForRun(idx.index, run, 'temp', process.env.REPACK_CDN_BASE || CDN_BASE) : null,
+    ok: idx.ok, section: idx.ok ? pickForRun(idx.index, run, GRIB_FAMILIES, process.env.REPACK_CDN_BASE || CDN_BASE) : null,
   });
 
   const needMain = latest != null && (FORCE || !manifestCovers(existing, latest));

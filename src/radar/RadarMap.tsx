@@ -3,15 +3,28 @@
  *
  * Rendert das Niederschlags-Raster als WebGL-`RainLayer` (Textur-Upload statt
  * DOM-Tiles → Recoloring & Frame-Wechsel ohne Re-Fetch), plus Overlays:
- * Sturmzellen + ETA-Trichter (GeoJSON), Blitze (DWD-WMS-Tile), Coverage-
- * Maske und die Punkt-Marker. Frame-Morphing zwischen 5-min-Frames per
- * Werte-Lerp (nur während des Abspielens, sonst idle — §12 RepaintScheduler).
+ * Zellbahnen (DWD KONRAD3D, geteilte Layer-Definition mit der Wetterkarte),
+ * ICON-D2-Schnee (`ScalarLayer`), Blitze (DWD-WMS-Tile), Coverage-Maske und
+ * die Punkt-Marker. Frame-Morphing zwischen 5-min-Frames per Werte-Lerp (nur
+ * während des Abspielens, sonst idle — §12 RepaintScheduler).
+ *
+ * RL1 (`audit/regenradar-layer-angleich.md`): Niederschlag, Zellbahnen und
+ * Schnee sind seitdem DIESELBEN Layer wie in der Wetterkarte —
+ *   • Niederschlag: `PrecipCompositor` (DACH-Komposit, je Zelle die landesrichtige
+ *     Quelle). Das eigene Land liefert der Frame-Stack der Seite (inkl. Rückblick
+ *     und Morph), die Nachbarländer der zeitnächste Frame ihrer Quelle. Fehlen die
+ *     Nachbarquellen (`composite == null`), bleibt der bisherige Einzelland-Weg
+ *     mit Warp-Mesh der benannte Fallback.
+ *   • Zellbahnen: `installCellLayers()` aus `cellLayers.ts` (byte-gleiche Specs).
+ *   • Schnee: `ScalarLayer` mit `snowRamp`, dieselben Optionen wie `MapView.tsx`.
  */
 
 import { useEffect, useRef } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { RainLayer } from '../scalar/RainLayer';
+import { ScalarLayer } from '../scalar/ScalarLayer';
+import { PrecipCompositor, type CompositeSources } from '../scalar/precipComposite';
 import { lightningTileTemplate } from '../sources/dwdLightning';
 import { sampleRadarPoint } from '../pointForecast/radarSample';
 import { PALETTES, type PaletteId, type RadarLayerId, RADAR_VMAX } from './radarModel';
@@ -19,9 +32,12 @@ import { accumRamp } from './accumulation';
 import { coverageRamp } from './coverageMask';
 import { snowRamp, graupelRamp, hailRamp, classifyPhases, type PhaseBuffers } from './precipPhase';
 import type { RadarStack } from './radarFrames';
-import type { StormCell } from './cellTracking';
 import type { Basemap } from './radarState';
 import { loadDachMask } from '../countryMask';
+import { installCellLayers, setCellLayersVisible, bindCellPopup, CELLS_SOURCE_ID, CELLS_HORIZON_MIN } from './cellLayers';
+import type { IconD2Snow, SnowMode } from '../sources/iconD2Snow';
+import { bracketAtValidTime } from '../sources/frameAtValidTime';
+import { lerpFrameImage } from '../fusion/frameInterp';
 
 const STREETS = 'https://tiles.openfreemap.org/styles/liberty';
 
@@ -43,6 +59,43 @@ function basemapStyle(b: Basemap): string | maplibregl.StyleSpecification {
   return STREETS;
 }
 
+/** Schnee-Layer: Sichtbarkeits-Fade je Modus — identisch zu `MapView.tsx`
+ *  (`SNOW_VIS_RANGE`): < ~1 cm transparent, „kein Schnee" nicht einfärben. */
+const SNOW_VIS_RANGE: Record<SnowMode, { start: number; end: number }> = {
+  depth: { start: 0.007, end: 0.02 },
+  fresh: { start: 0.02, end: 0.05 },
+};
+const SNOW_LAYER_ID = 'radar-snow-amount';
+const SNOW_OPACITY = 0.9;
+/** Nachbarquellen nur für Zeitpunkte ab „jetzt" (halber 5-min-Schritt Toleranz):
+ *  für den Rückblick hält nur der eigene Stack gemessene Vergangenheit; die
+ *  Nachbarländer würden sonst still ihre Analyse für eine frühere Zeit zeigen. */
+const NEIGHBOR_PAST_TOL_H = 2.5 / 60;
+
+/**
+ * V-RL-3 (2026-08-25): der OpenFreeMap-Stil „liberty" filtert seine US-Shield-
+ * Layer mit `["<=", ["get", "ref_length"], 6]` — für Straßen ohne `ref` ist das
+ * `null`, und der MapLibre-Worker warnt je Kachel „Expected value to be of type
+ * number, but found null" (per Bisect auf `highway-shield-us-interstate` /
+ * `road_shield_us` eingegrenzt). Die Layer haben in DACH keine Treffer; ihr
+ * Filter bekommt ein `coalesce`, damit echte Warnungen nicht darin untergehen.
+ * Kein anderer Stil-Eingriff.
+ */
+function patchLibertyRefLength(map: maplibregl.Map): void {
+  const style = map.getStyle();
+  if (!style?.layers) return;
+  const patch = (e: unknown): unknown => {
+    if (!Array.isArray(e)) return e;
+    if (e.length === 2 && e[0] === 'get' && e[1] === 'ref_length') return ['coalesce', e, 99];
+    return e.map(patch);
+  };
+  for (const l of style.layers) {
+    const f = (l as { filter?: unknown }).filter;
+    if (!f || !JSON.stringify(f).includes('"ref_length"')) continue;
+    map.setFilter(l.id, patch(f) as maplibregl.FilterSpecification);
+  }
+}
+
 export interface RadarMapHandle { map: maplibregl.Map | null }
 
 interface Props {
@@ -54,11 +107,18 @@ interface Props {
   basemap: Basemap;
   layers: Set<RadarLayerId>;
   accumValues: Uint8Array | null;   // wenn 'accum' aktiv
-  cells: StormCell[];
   coverageValues: Uint8Array | null;
+  /** RL1: Nachbarquellen des DACH-Komposits (das eigene Land kommt aus `stack`).
+   *  `null` = Einzelland-Fallback mit Warp-Mesh. */
+  composite: CompositeSources | null;
+  /** RL1: Zellbahnen (DWD KONRAD3D) als fertige FeatureCollection — gebaut in
+   *  `NowcastRadarMap` mit Standortbezug; `null` = nichts zu zeichnen. */
+  cellFeatures: GeoJSON.FeatureCollection | null;
+  /** RL1: ICON-D2 Schneedecke/Neuschnee — wenn 'snow' aktiv. */
+  snow: IconD2Snow | null;
   /** Geländehöhe je Radar-Pixel (full-res) — für die Phasen-Aufteilung. */
   elevFull: Float32Array | null;
-  /** Regionale Schneefallgrenze (m) — Regen/Schnee/Graupel-Trennung. */
+  /** Regionale Schneefallgrenze (m) — Regen/Graupel-Trennung. */
   snowLineM: number | null;
   /** Schneefallgrenzen-Höhenlinie (GeoJSON) — wenn 'snowline' aktiv. */
   snowLineFeatures: GeoJSON.Feature[];
@@ -80,24 +140,72 @@ function lerpU8(a: Uint8Array, b: Uint8Array, frac: number, out: Uint8Array): Ui
   return out;
 }
 
+/** Der sichtbare Frame des Stacks (ggf. gemorpht) samt interpolierter Gültigkeitszeit. */
+function shownFrame(st: RadarStack, pos: number, morphBuf: { current: Uint8Array | null }):
+  { values: Uint8Array; width: number; height: number; timeMs: number } | null {
+  const i0 = Math.max(0, Math.min(st.frames.length - 1, Math.floor(pos)));
+  const i1 = Math.min(st.frames.length - 1, i0 + 1);
+  const frac = pos - i0;
+  const a = st.frames[i0];
+  if (!a) return null;
+  const b = st.frames[i1];
+  if (frac > 0.01 && i1 !== i0 && b && b.width === a.width) {
+    if (!morphBuf.current || morphBuf.current.length !== a.values.length) morphBuf.current = new Uint8Array(a.values.length);
+    const m = lerpU8(a.values, b.values, frac, morphBuf.current);
+    return { values: m, width: a.width, height: a.height, timeMs: a.timeMs + frac * (b.timeMs - a.timeMs) };
+  }
+  return { values: a.values, width: a.width, height: a.height, timeMs: a.timeMs };
+}
+
+/**
+ * Komposit-Quellen für EINEN Zeitpunkt: das eigene Land als Ein-Frame-Quelle
+ * aus dem Stack (so trifft `nearestBy` im Compositor genau diesen Frame —
+ * Rückblick und Morph inklusive), die Nachbarn aus den geladenen Läufen.
+ */
+function sourcesFor(st: RadarStack, fr: { values: Uint8Array; width: number; height: number; timeMs: number },
+  h: number, neighbors: CompositeSources): CompositeSources {
+  const own: CompositeSources = {};
+  if (st.source === 'radolan_rv') {
+    own.rv = { runAt: new Date(st.runAtMs), corners: st.corners,
+      frames: [{ leadMinutes: h * 60, validAt: new Date(fr.timeMs), values: fr.values, width: fr.width, height: fr.height }] };
+  } else if (st.source === 'inca_grid') {
+    own.inca = { corners: st.corners, frames: [{ leadHours: h, values: fr.values, width: fr.width, height: fr.height }] };
+  } else {
+    own.rzc = { corners: st.corners, validAt: new Date(fr.timeMs), values: fr.values, width: fr.width, height: fr.height };
+  }
+  const past = h < -NEIGHBOR_PAST_TOL_H;
+  return {
+    rv: own.rv ?? (past ? null : neighbors.rv ?? null),
+    inca: own.inca ?? (past ? null : neighbors.inca ?? null),
+    rzc: own.rzc ?? (past ? null : neighbors.rzc ?? null),
+  };
+}
+
 export default function RadarMap(props: Props) {
   const {
     stack, framePos, palette, opacity, basemap, layers,
-    accumValues, cells, coverageValues, elevFull, snowLineM, snowLineFeatures, point, comparePoint, onPick, onHover, onMapRef,
+    accumValues, coverageValues, composite, cellFeatures, snow,
+    elevFull, snowLineM, snowLineFeatures, point, comparePoint, onPick, onHover, onMapRef,
   } = props;
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const rainRef = useRef<RainLayer | null>(null);
   const covRef = useRef<RainLayer | null>(null);
-  // Phasen-Layer (Regen/Schnee/Graupel/Hagel) — je ein RainLayer + Wertepuffer.
-  const phaseRefs = useRef<Record<'rain' | 'snow' | 'graupel' | 'hail', RainLayer | null>>({ rain: null, snow: null, graupel: null, hail: null });
+  const snowRef = useRef<ScalarLayer | null>(null);
+  // Phasen-Layer (Regen/Graupel/Hagel) — je ein RainLayer + Wertepuffer. Die
+  // Phase „Schnee" ist seit RL1 der ICON-D2-Layer (s. o.), nicht mehr die Heuristik.
+  const phaseRefs = useRef<Record<'rain' | 'graupel' | 'hail', RainLayer | null>>({ rain: null, graupel: null, hail: null });
   const phaseBuf = useRef<PhaseBuffers | null>(null);
   const markerRef = useRef<maplibregl.Marker | null>(null);
   const cmpMarkerRef = useRef<maplibregl.Marker | null>(null);
   const morphBuf = useRef<Uint8Array | null>(null);
   const styleReady = useRef(false);
   const dachMaskRef = useRef<GeoJSON.Feature | null>(null);
+  const compositorRef = useRef<PrecipCompositor | null>(null);
+  const unbindCellsRef = useRef<(() => void) | null>(null);
+  const cellFcRef = useRef<GeoJSON.FeatureCollection | null | undefined>(undefined);
+  const snowKeyRef = useRef('');
 
   // Letzte Props in Refs, damit der einmalige Map-Init-Effect sie ohne Re-Init liest.
   const latest = useRef(props);
@@ -139,9 +247,13 @@ export default function RadarMap(props: Props) {
       onHover(v, e.lngLat.lat, e.lngLat.lng);
     });
 
-    map.on('style.load', () => { styleReady.current = true; addRadarLayers(map); });
+    map.on('style.load', () => { styleReady.current = true; patchLibertyRefLength(map); addRadarLayers(map); });
 
-    return () => { onMapRef?.(null); map.remove(); mapRef.current = null; rainRef.current = null; covRef.current = null; phaseRefs.current = { rain: null, snow: null, graupel: null, hail: null }; styleReady.current = false; };
+    return () => {
+      onMapRef?.(null); unbindCellsRef.current?.(); unbindCellsRef.current = null;
+      map.remove(); mapRef.current = null; rainRef.current = null; covRef.current = null; snowRef.current = null;
+      phaseRefs.current = { rain: null, graupel: null, hail: null }; styleReady.current = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -151,8 +263,8 @@ export default function RadarMap(props: Props) {
     if (!rainRef.current) rainRef.current = new RainLayer({ id: 'radar-precip', colorRamp: PALETTES[latest.current.palette].ramp, opacity: latest.current.opacity });
     if (!map.getLayer('radar-precip')) map.addLayer(rainRef.current);
     // Phasen-Layer (Niederschlagsart) über dem Basis-Raster.
-    const phaseRamps = { rain: PALETTES[latest.current.palette].ramp, snow: snowRamp, graupel: graupelRamp, hail: hailRamp } as const;
-    for (const key of ['rain', 'snow', 'graupel', 'hail'] as const) {
+    const phaseRamps = { rain: PALETTES[latest.current.palette].ramp, graupel: graupelRamp, hail: hailRamp } as const;
+    for (const key of ['rain', 'graupel', 'hail'] as const) {
       if (!phaseRefs.current[key]) phaseRefs.current[key] = new RainLayer({ id: `radar-${key}`, colorRamp: phaseRamps[key], opacity: latest.current.opacity });
       if (!map.getLayer(`radar-${key}`)) map.addLayer(phaseRefs.current[key]!);
     }
@@ -168,24 +280,10 @@ export default function RadarMap(props: Props) {
       map.addLayer({ id: 'radar-lightning', type: 'raster', source: 'radar-lightning-src', paint: { 'raster-opacity': 0.75 }, layout: { visibility: 'none' } });
     }
 
-    // Zellen-Quellen (Hülle, Bewegungspfeil, ETA-Trichter)
-    for (const id of ['radar-cone', 'radar-cells', 'radar-vectors']) {
-      if (!map.getSource(id)) map.addSource(id, { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
-    }
-    if (!map.getLayer('radar-cone-fill')) {
-      map.addLayer({ id: 'radar-cone-fill', type: 'fill', source: 'radar-cone', paint: { 'fill-color': '#e0451c', 'fill-opacity': 0.12 } });
-    }
-    if (!map.getLayer('radar-cells-line')) {
-      map.addLayer({ id: 'radar-cells-line', type: 'line', source: 'radar-cells', paint: { 'line-color': '#e0451c', 'line-width': 2 } });
-    }
-    if (!map.getLayer('radar-cells-label')) {
-      map.addLayer({ id: 'radar-cells-label', type: 'symbol', source: 'radar-cells',
-        layout: { 'text-field': ['get', 'label'], 'text-size': 11, 'text-offset': [0, -1.4], 'text-anchor': 'bottom' },
-        paint: { 'text-color': '#7e0028', 'text-halo-color': '#fff', 'text-halo-width': 1.5 } });
-    }
-    if (!map.getLayer('radar-vectors-line')) {
-      map.addLayer({ id: 'radar-vectors-line', type: 'line', source: 'radar-vectors', paint: { 'line-color': '#7e0028', 'line-width': 2.5 } });
-    }
+    // Zellbahnen (DWD KONRAD3D) — dieselben acht Layer wie die Wetterkarte.
+    installCellLayers(map);
+    unbindCellsRef.current?.();
+    unbindCellsRef.current = bindCellPopup(map);
 
     // Schneefallgrenzen-Höhenlinie
     if (!map.getSource('radar-snowline')) map.addSource('radar-snowline', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
@@ -197,8 +295,19 @@ export default function RadarMap(props: Props) {
 
     addDimAndMask(map);
 
+    // ICON-D2-Schnee UNTER dem Regen (Reihenfolge wie `MapView.tsx`: snow vor
+    // nowcast), über dem Ink-Schleier. Optionen 1:1 aus MapView.
+    if (!snowRef.current) {
+      snowRef.current = new ScalarLayer({
+        id: SNOW_LAYER_ID, colorRamp: snowRamp, visRange: SNOW_VIS_RANGE.depth, opacity: SNOW_OPACITY,
+        zoomAttenuation: { from: 10, perStep: 0.08, floor: 0.6 },
+      });
+    }
+    if (!map.getLayer(SNOW_LAYER_ID)) map.addLayer(snowRef.current, 'radar-precip');
+
     syncFrame();
     syncPhases();
+    syncSnow();
     syncSnowline();
     syncOverlays();
     syncCoverage();
@@ -252,13 +361,15 @@ export default function RadarMap(props: Props) {
   useEffect(() => {
     const map = mapRef.current; if (!map) return;
     styleReady.current = false;
-    rainRef.current = null; covRef.current = null; // werden nach style.load neu erzeugt
-    phaseRefs.current = { rain: null, snow: null, graupel: null, hail: null };
+    unbindCellsRef.current?.(); unbindCellsRef.current = null;
+    cellFcRef.current = undefined; snowKeyRef.current = '';
+    rainRef.current = null; covRef.current = null; snowRef.current = null; // werden nach style.load neu erzeugt
+    phaseRefs.current = { rain: null, graupel: null, hail: null };
     map.setStyle(basemapStyle(basemap));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [basemap]);
 
-  // --- Frame setzen (mit Morph) --------------------------------------------
+  // --- Frame setzen (mit Morph; Komposit oder Einzelland) --------------------
   function syncFrame() {
     const map = mapRef.current; const layer = rainRef.current;
     if (!map || !layer || !styleReady.current) return;
@@ -268,21 +379,44 @@ export default function RadarMap(props: Props) {
       layer.setFrame({ values: accum, width: st.frames[st.nowIndex]?.width ?? 1, height: st.frames[st.nowIndex]?.height ?? 1, corners: st.corners, warpLnglat: st.warpLnglat, warpN: st.warpN });
       return;
     }
-    const pos = latest.current.framePos;
-    const i0 = Math.max(0, Math.min(st.frames.length - 1, Math.floor(pos)));
-    const i1 = Math.min(st.frames.length - 1, i0 + 1);
-    const frac = pos - i0;
-    const a = st.frames[i0];
-    if (!a) return;
-    if (frac > 0.01 && i1 !== i0 && st.frames[i1] && st.frames[i1].width === a.width) {
-      if (!morphBuf.current || morphBuf.current.length !== a.values.length) morphBuf.current = new Uint8Array(a.values.length);
-      const m = lerpU8(a.values, st.frames[i1].values, frac, morphBuf.current);
-      layer.setFrame({ values: m, width: a.width, height: a.height, corners: st.corners, warpLnglat: st.warpLnglat, warpN: st.warpN });
-    } else {
-      layer.setFrame({ values: a.values, width: a.width, height: a.height, corners: st.corners, warpLnglat: st.warpLnglat, warpN: st.warpN });
+    const fr = shownFrame(st, latest.current.framePos, morphBuf);
+    if (!fr) return;
+    const neighbors = latest.current.composite;
+    if (neighbors) {
+      // DACH-Komposit (RL1): reguläres lon/lat-Gitter, kein Warp-Mesh — genau
+      // der Frame, den auch die Wetterkarte zeichnet (`MapView.tsx` Frame-Effekt).
+      const now = Date.now();
+      const h = (fr.timeMs - now) / 3_600_000;
+      const compositor = (compositorRef.current ??= new PrecipCompositor());
+      const cf = compositor.build(h, sourcesFor(st, fr, h, neighbors), now);
+      layer.setFrame({ values: cf.values, width: cf.width, height: cf.height, corners: cf.corners });
+      return;
     }
+    // Benannter Fallback: nur das Landesradar auf seinem nativen Gitter.
+    layer.setFrame({ values: fr.values, width: fr.width, height: fr.height, corners: st.corners, warpLnglat: st.warpLnglat, warpN: st.warpN });
   }
-  useEffect(() => { syncFrame(); /* eslint-disable-next-line */ }, [framePos, accumValues, stack]);
+  useEffect(() => { syncFrame(); /* eslint-disable-next-line */ }, [framePos, accumValues, stack, composite]);
+
+  // Index-Maps der Nachbarquellen off-main vorwärmen (Muster `primeXx` in MapView),
+  // damit `build()` im Frame-Pfad nur den warmen Cache trifft.
+  useEffect(() => {
+    if (!composite) return;
+    const compositor = (compositorRef.current ??= new PrecipCompositor());
+    const jobs: Promise<void>[] = [];
+    if (composite.rv) jobs.push(compositor.primeDe(composite.rv));
+    if (composite.inca) jobs.push(compositor.primeAt(composite.inca));
+    if (composite.rzc) jobs.push(compositor.primeCh(composite.rzc));
+    const fr = stack.frames[stack.nowIndex] ?? stack.frames[0];
+    if (fr) {
+      if (stack.source === 'radolan_rv') jobs.push(compositor.primeDe({ runAt: new Date(stack.runAtMs), corners: stack.corners, frames: [{ leadMinutes: 0, validAt: new Date(fr.timeMs), values: fr.values, width: fr.width, height: fr.height }] }));
+      else if (stack.source === 'inca_grid') jobs.push(compositor.primeAt({ corners: stack.corners, frames: [{ leadHours: 0, values: fr.values, width: fr.width, height: fr.height }] }));
+      else jobs.push(compositor.primeCh({ corners: stack.corners, validAt: new Date(fr.timeMs), values: fr.values, width: fr.width, height: fr.height }));
+    }
+    let alive = true;
+    void Promise.all(jobs).then(() => { if (alive) syncFrame(); }).catch(() => {});
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [composite, stack]);
 
   // --- Palette / Opazität ---------------------------------------------------
   useEffect(() => {
@@ -309,12 +443,12 @@ export default function RadarMap(props: Props) {
   }
   useEffect(() => { syncCoverage(); /* eslint-disable-next-line */ }, [coverageValues, layers]);
 
-  // --- Phasen (Regen/Schnee/Graupel/Hagel) ---------------------------------
+  // --- Phasen (Regen/Graupel/Hagel — Heuristik auf dem Landesradar) ----------
   function syncPhases() {
     const map = mapRef.current; if (!map || !styleReady.current) return;
     const refs = phaseRefs.current; const ls = latest.current.layers; const st = latest.current.stack;
-    const anyOn = ls.has('rain') || ls.has('snow') || ls.has('graupel') || ls.has('hail');
-    const hide = () => { for (const k of ['rain', 'snow', 'graupel', 'hail'] as const) { if (refs[k]) refs[k]!.opacity = 0; } map.triggerRepaint(); };
+    const anyOn = ls.has('rain') || ls.has('graupel') || ls.has('hail');
+    const hide = () => { for (const k of ['rain', 'graupel', 'hail'] as const) { if (refs[k]) refs[k]!.opacity = 0; } map.triggerRepaint(); };
     if (!anyOn) return hide();
     const i = Math.max(0, Math.min(st.frames.length - 1, Math.round(latest.current.framePos)));
     const fr = st.frames[i] ?? st.frames[st.nowIndex];
@@ -325,7 +459,7 @@ export default function RadarMap(props: Props) {
     }
     const buf = phaseBuf.current;
     classifyPhases(fr.values, latest.current.elevFull, latest.current.snowLineM, RADAR_VMAX, buf);
-    for (const k of ['rain', 'snow', 'graupel', 'hail'] as const) {
+    for (const k of ['rain', 'graupel', 'hail'] as const) {
       const layer = refs[k]; if (!layer) continue;
       if (ls.has(k)) { layer.opacity = latest.current.opacity; layer.setFrame({ values: buf[k], width: fr.width, height: fr.height, corners: st.corners, warpLnglat: st.warpLnglat, warpN: st.warpN }); }
       else layer.opacity = 0;
@@ -336,6 +470,33 @@ export default function RadarMap(props: Props) {
   // Regen-Phase folgt der gewählten Palette (wie das Basis-Raster).
   useEffect(() => { phaseRefs.current.rain?.setColorRamp(PALETTES[palette].ramp); }, [palette]);
 
+  // --- Schnee (ICON-D2, RL1) — Frame zur Gültigkeitszeit des Radarframes -----
+  function syncSnow() {
+    const map = mapRef.current; const layer = snowRef.current; if (!map || !layer || !styleReady.current) return;
+    const sd = latest.current.snow;
+    const on = latest.current.layers.has('snow') && sd && sd.frames.length > 0;
+    if (!on || !sd) { layer.opacity = 0; snowKeyRef.current = ''; map.triggerRepaint(); return; }
+    const fr = shownFrame(latest.current.stack, latest.current.framePos, morphBuf);
+    const targetMs = fr ? fr.timeMs : Date.now();
+    // Schneedecke (h_snow) ist instantan → t+0 gültig; Neuschnee (snow_gsp) ist
+    // akkumuliert → am Analyse-Schritt strukturell 0 → minStepHours = 1 (wie MapView).
+    layer.visRange = SNOW_VIS_RANGE[sd.mode];
+    layer.opacity = SNOW_OPACITY;
+    const minStep = sd.mode === 'fresh' ? 1 : 0;
+    const { a, b, frac } = bracketAtValidTime(sd.frames, targetMs, minStep);
+    // Der Pixel-Lerp liest zwei Canvases (~700×450) zurück — im Abspielen läuft
+    // dieser Effekt je rAF. Auf 5-%-Schritte quantisiert (ICON-D2-Frames liegen
+    // 1 h auseinander, das Radar schreitet 5 min = 8 % je Frame) genügen wenige
+    // Lerps je Sekunde; gleiche Stützen + gleicher Schritt = kein Upload.
+    const q = Math.round(frac * 20) / 20;
+    const key = `${sd.mode}|${a.validAt.getTime()}|${b.validAt.getTime()}|${q}`;
+    if (key === snowKeyRef.current) return;
+    snowKeyRef.current = key;
+    const image = q > 0.001 && a !== b ? lerpFrameImage(a.image, b.image, q, 'radar-snow') : a.image;
+    layer.setData(image, { width: a.width, height: a.height, vMin: sd.vMin, vMax: sd.vMax, uvBounds: sd.uvBounds });
+  }
+  useEffect(() => { syncSnow(); /* eslint-disable-next-line */ }, [snow, layers, framePos, stack]);
+
   // --- Schneefallgrenzen-Linie ---------------------------------------------
   function syncSnowline() {
     const map = mapRef.current; if (!map || !styleReady.current) return;
@@ -345,35 +506,26 @@ export default function RadarMap(props: Props) {
   }
   useEffect(() => { syncSnowline(); /* eslint-disable-next-line */ }, [snowLineFeatures, layers]);
 
-  // --- Overlays (Layer-Sichtbarkeit + Zellen-GeoJSON) -----------------------
+  // --- Overlays (Blitze + Zellbahnen) ----------------------------------------
   function syncOverlays() {
     const map = mapRef.current; if (!map || !styleReady.current) return;
     const ls = latest.current.layers;
-    const vis = (id: string, on: boolean) => { if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none'); };
-    vis('radar-lightning', ls.has('lightning'));
-    const showCells = ls.has('cells');
-    for (const id of ['radar-cone-fill', 'radar-cells-line', 'radar-cells-label', 'radar-vectors-line']) vis(id, showCells);
-
-    // Zellen-Geometrie aktualisieren.
-    const cs = latest.current.cells;
-    const cellFeats: GeoJSON.Feature[] = [];
-    const coneFeats: GeoJSON.Feature[] = [];
-    const vecFeats: GeoJSON.Feature[] = [];
-    for (const c of cs) {
-      cellFeats.push({ type: 'Feature', properties: { label: `${Math.round(c.peakMmH)} mm/h · ${Math.round(c.speedKmh)} km/h ${c.compass}` }, geometry: circlePolygon(c.lon, c.lat, c.radiusKm) });
-      // Trichter: Polygon um die prognostizierten Schwerpunkte (Hüllkreise verbunden).
-      coneFeats.push({ type: 'Feature', properties: {}, geometry: conePolygon(c) });
-      // Bewegungsvektor.
-      if (c.speedKmh > 1) {
-        const tip = c.cone[1] ?? c.cone[0];
-        vecFeats.push({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [[c.lon, c.lat], [tip.lon, tip.lat]] } });
-      }
+    if (map.getLayer('radar-lightning')) map.setLayoutProperty('radar-lightning', 'visibility', ls.has('lightning') ? 'visible' : 'none');
+    // Zellbahnen: Prognosehorizont wie in der Wetterkarte — jenseits von +60 min
+    // ist der Layer AUS statt eine Zelle zu zeigen, die für diese Zeit nichts
+    // aussagt (`CELLS_HORIZON_MIN`).
+    const fr = shownFrame(latest.current.stack, latest.current.framePos, morphBuf);
+    const leadMin = fr ? (fr.timeMs - Date.now()) / 60_000 : 0;
+    const fc = latest.current.cellFeatures;
+    setCellLayersVisible(map, ls.has('cells') && !!fc && leadMin <= CELLS_HORIZON_MIN);
+    // setData nur bei geänderter Referenz — der Effekt läuft je rAF mit (V-220-Muster).
+    if (cellFcRef.current !== fc) {
+      cellFcRef.current = fc;
+      (map.getSource(CELLS_SOURCE_ID) as maplibregl.GeoJSONSource | undefined)
+        ?.setData(fc ?? { type: 'FeatureCollection', features: [] });
     }
-    (map.getSource('radar-cells') as maplibregl.GeoJSONSource | undefined)?.setData({ type: 'FeatureCollection', features: cellFeats });
-    (map.getSource('radar-cone') as maplibregl.GeoJSONSource | undefined)?.setData({ type: 'FeatureCollection', features: coneFeats });
-    (map.getSource('radar-vectors') as maplibregl.GeoJSONSource | undefined)?.setData({ type: 'FeatureCollection', features: vecFeats });
   }
-  useEffect(() => { syncOverlays(); /* eslint-disable-next-line */ }, [layers, cells]);
+  useEffect(() => { syncOverlays(); /* eslint-disable-next-line */ }, [layers, cellFeatures, framePos]);
 
   // --- Punkt-Marker ---------------------------------------------------------
   useEffect(() => {
@@ -388,24 +540,4 @@ export default function RadarMap(props: Props) {
   }, [comparePoint]);
 
   return <div ref={containerRef} className="rdr-map" />;
-}
-
-// --- Geometrie-Helfer (GeoJSON) ---------------------------------------------
-
-function circlePolygon(lon: number, lat: number, radiusKm: number, steps = 48): GeoJSON.Polygon {
-  const coords: [number, number][] = [];
-  const latR = lat * Math.PI / 180;
-  for (let i = 0; i <= steps; i++) {
-    const a = (i / steps) * 2 * Math.PI;
-    const dLat = (radiusKm * Math.cos(a)) / 110.57;
-    const dLon = (radiusKm * Math.sin(a)) / (111.32 * Math.cos(latR) || 1e-6);
-    coords.push([lon + dLon, lat + dLat]);
-  }
-  return { type: 'Polygon', coordinates: [coords] };
-}
-
-/** Trichter: konvexe-ish Hülle aus jetzt-Kreis + den Prognosekreisen. */
-function conePolygon(c: StormCell): GeoJSON.Polygon {
-  const last = c.cone[c.cone.length - 1];
-  return circlePolygon(last.lon, last.lat, last.radiusKm);
 }

@@ -13,10 +13,13 @@
  * Deshalb gibt es hier keine zweite Mathematik, die driften könnte; `verify:repack`
  * prüft je Lauf, dass beide Wege byte-gleich enden.
  *
- * ── Die zwei Familien sind nicht symmetrisch ───────────────────────────────
- *   wind-NNN.png   Farbtyp 2 (RGB)          → R = u, G = v, B = 0, A = 255
- *   temp-NNN.png   Farbtyp 4 (Grau + Alpha) → R = G = B = °C, A = Maske
- *   hsurf-v1.png   Farbtyp 0 (Grau)         → R = G = B = Orographie
+ * ── Die Familien sind nicht symmetrisch ────────────────────────────────────
+ *   wind-NNN.png      Farbtyp 2 (RGB)          → R = u, G = v, B = 0, A = 255
+ *   temp-NNN.png      Farbtyp 4 (Grau + Alpha) → R = G = B = °C, A = Maske
+ *   hsurf-v1.png      Farbtyp 0 (Grau)         → R = G = B = Orographie
+ *   gust/thunder/rotation/lpi/snowdepth/snowfresh-NNN.png (BW-6, §25)
+ *                     Farbtyp 4 (Grau + Alpha) → R = G = B = Wert, A = Maske
+ *   precip-NNN.png    Farbtyp 0 (Grau), VOLLE Auflösung → R = G = B = mm/h ÷ 20
  *
  * Wind ist damit fertig, sobald das Bild dekodiert ist. Temperatur NICHT: der
  * Browser expandiert Grau auf alle drei Farbkanäle, also stünde die Temperatur
@@ -26,6 +29,14 @@
  * rechnet. `composeTempRgba()` setzt die zwei Dateien deshalb zusammen — nach
  * derselben Regel wie der Producer (`scripts/repack-icon-d2.mjs`).
  *
+ * Die Ein-Kanal-Familien lesen nur R und A (kein `demRefine`, §25.4 (1)); der
+ * expandierte Grünkanal wird trotzdem genullt (`composeScalarRgba`), damit das
+ * Bild BYTE-gleich zu `scalarFrameBuild.ts` ist — nicht nur „gleich genug".
+ * Niederschlag ist kein Canvas, sondern das `Uint8Array`, das der Kompositor
+ * liest; und er ist SEQUENZIELL: jedes Bild nennt den Schritt, gegen den es
+ * deakkumuliert wurde (`ref`). Der Client nimmt den Weg nur, wenn das genau die
+ * Referenz ist, die sein GRIB-Pfad wählen würde (§25.4 (3)).
+ *
  * ── Fallback ist der Normalfall, nicht der Störfall ────────────────────────
  * Zwischen DWD-Veröffentlichung und Producer-Lauf nennt das Manifest einen Lauf,
  * den das Daten-Repo noch nicht führt. Dann fehlt der Abschnitt und der Aufrufer
@@ -33,9 +44,39 @@
  */
 
 import { GRIB_MANIFEST_URL, readManifestRepack } from './gribManifest';
+import {
+  GUST_VMIN, GUST_VMAX, LPI_VMIN, LPI_VMAX, SNOW_DEPTH_VMAX_CM, SNOW_FRESH_VMAX_CM,
+  THUNDER_VMIN, THUNDER_VMAX, ROTATION_VMIN, ROTATION_VMAX,
+} from './scalarFrameBuild';
+import { PRECIP_VMAX, CAPE_MAX } from '../scalar/RainLayer';
 
 /** Schema-Version des Manifest-Abschnitts. Muss zu `scripts/lib/repackManifest.mjs` passen. */
 export const REPACK_SCHEMA = 1;
+
+/**
+ * Die Familien, die dieser Client kennt — SPIEGEL von `FAMILIES` in
+ * `scripts/lib/repackManifest.mjs` (`verify:repack` prüft die Gleichheit der
+ * Schlüssel und Kanäle). Hier steht nur, was der Leser braucht: Kanalzahl,
+ * ob das Bild in voller Auflösung liegt, ob es sequenziell ist — und die
+ * Skala, gegen die der Abschnitt geprüft wird. Sie ist KEIN Zubehör: nennt
+ * das Manifest eine andere Skala als der Code hier, sind Producer und Client
+ * auseinandergelaufen, und der Abschnitt wird abgelehnt statt falsch gelesen.
+ */
+export const REPACK_FAMILIES = {
+  wind:        { channels: 3 },
+  temp:        { channels: 2 },
+  gust:        { channels: 2, vMin: GUST_VMIN,     vMax: GUST_VMAX },
+  thunder:     { channels: 2, vMin: THUNDER_VMIN,  vMax: THUNDER_VMAX },
+  rotation:    { channels: 2, vMin: ROTATION_VMIN, vMax: ROTATION_VMAX },
+  lightningfc: { channels: 2, vMin: LPI_VMIN,      vMax: LPI_VMAX },
+  snowDepth:   { channels: 2, vMin: 0,             vMax: SNOW_DEPTH_VMAX_CM },
+  snowFresh:   { channels: 2, vMin: 0,             vMax: SNOW_FRESH_VMAX_CM },
+  precip:      { channels: 1, vMin: 0,             vMax: PRECIP_VMAX, fullRes: true, sequential: true },
+  cape:        { channels: 1, vMin: 0,             vMax: CAPE_MAX,    fullRes: true },
+} as const;
+export type RepackFamily = keyof typeof REPACK_FAMILIES;
+/** Die Ein-Kanal-Familien auf dem Anzeigeraster (Grau+Alpha, `ScalarLayer`). */
+export type RepackScalarFamily = 'gust' | 'thunder' | 'rotation' | 'lightningfc' | 'snowDepth' | 'snowFresh';
 
 /**
  * Frist des ERSTEN Abrufs einer Sitzung (ms). Er beantwortet nur eine Frage —
@@ -65,6 +106,10 @@ export interface RepackWindStep {
 }
 export interface RepackTempStep { step: number; file: string; bytes: number }
 export interface RepackHsurf { url: string; scope: string; channels: number; bytes: number }
+export interface RepackScalarStep { step: number; file: string; bytes: number }
+/** `ref` = der Schritt, gegen den deakkumuliert wurde; `null` = gegen 0 (erster Schritt). */
+export interface RepackPrecipStep { step: number; file: string; bytes: number; ref: number | null }
+export interface RepackScalarFamilySection { channels: number; vMin: number; vMax: number; steps: RepackScalarStep[] }
 
 export interface RepackSection {
   schema: number;
@@ -81,6 +126,16 @@ export interface RepackSection {
     hsurf: RepackHsurf | null;
     steps: RepackTempStep[];
   };
+  gust?: RepackScalarFamilySection;
+  thunder?: RepackScalarFamilySection;
+  rotation?: RepackScalarFamilySection;
+  lightningfc?: RepackScalarFamilySection;
+  snowDepth?: RepackScalarFamilySection;
+  snowFresh?: RepackScalarFamilySection;
+  /** Volle Auflösung — eigenes Gitter (ss = 1), nicht das des Abschnitts. */
+  precip?: { channels: number; vMin: number; vMax: number; grid: RepackGrid; steps: RepackPrecipStep[] };
+  /** BW-7a: CAPE am Punkt, volle Auflösung, instantan (kein `ref`). */
+  cape?: { channels: number; vMin: number; vMax: number; grid: RepackGrid; steps: RepackScalarStep[] };
 }
 
 // ---------------------------------------------------------------------------
@@ -130,7 +185,7 @@ function parseGrid(raw: unknown): RepackGrid | null {
  */
 export function parseRepackSection(
   raw: unknown,
-  family: 'wind' | 'temp',
+  family: RepackFamily,
   run: string,
 ): RepackSection | null {
   if (!raw || typeof raw !== 'object') return null;
@@ -176,7 +231,7 @@ export function parseRepackSection(
     }
     if (steps.length === 0) return null;
     out.wind = { channels: num((fam as Record<string, unknown>).channels) ?? 3, steps };
-  } else {
+  } else if (family === 'temp') {
     const vMin = num(fam.vMin), vMax = num(fam.vMax), demMax = num(fam.demMax);
     if (vMin === null || vMax === null || demMax === null || !(vMax > vMin) || demMax <= 0) return null;
     const steps: RepackTempStep[] = [];
@@ -195,6 +250,101 @@ export function parseRepackSection(
       hsurf = { url: h.url, scope: String(h.scope ?? 'repo'), channels: num(h.channels) ?? 1, bytes: num(h.bytes) ?? 0 };
     }
     out.temp = { channels: num(fam.channels) ?? 2, vMin, vMax, demMax, hsurf, steps };
+  } else if (family === 'precip') {
+    // Eigenes Gitter (volle Auflösung) — das Abschnitts-Gitter ist das abgetastete.
+    const grid = parseGrid(fam.grid);
+    if (!grid || grid.ss !== 1) return null;
+    const vMin = num(fam.vMin), vMax = num(fam.vMax);
+    const want = REPACK_FAMILIES.precip;
+    if (vMin !== want.vMin || vMax !== want.vMax) return null;   // Skalen-Drift → ablehnen
+    const steps: RepackPrecipStep[] = [];
+    for (const e of fam.steps as unknown[]) {
+      if (!e || typeof e !== 'object') continue;
+      const x = e as Record<string, unknown>;
+      const step = num(x.step);
+      if (step === null || !Number.isInteger(step) || step < 0) continue;
+      if (typeof x.file !== 'string' || !FILE_RE.test(x.file)) continue;
+      // `ref` MUSS genannt sein (auch als null) — ein Schritt ohne Referenz-Angabe
+      // wäre eine Rate gegen einen unbekannten Vorschritt.
+      if (!('ref' in x)) continue;
+      const ref = x.ref === null ? null : num(x.ref);
+      if (ref !== null && (!Number.isInteger(ref) || ref < 0 || ref >= step)) continue;
+      steps.push({ step, file: x.file, bytes: num(x.bytes) ?? 0, ref });
+    }
+    if (steps.length === 0) return null;
+    out.precip = { channels: num(fam.channels) ?? 1, vMin, vMax, grid, steps };
+  } else if (family === 'cape') {
+    const grid = parseGrid(fam.grid);
+    if (!grid || grid.ss !== 1) return null;
+    const vMin = num(fam.vMin), vMax = num(fam.vMax);
+    const want = REPACK_FAMILIES.cape;
+    if (vMin !== want.vMin || vMax !== want.vMax) return null;   // Skalen-Drift → ablehnen
+    if ((num(fam.channels) ?? 1) !== 1) return null;
+    const steps: RepackScalarStep[] = [];
+    for (const e of fam.steps as unknown[]) {
+      if (!e || typeof e !== 'object') continue;
+      const x = e as Record<string, unknown>;
+      const step = num(x.step);
+      if (step === null || !Number.isInteger(step) || step < 0) continue;
+      if (typeof x.file !== 'string' || !FILE_RE.test(x.file)) continue;
+      steps.push({ step, file: x.file, bytes: num(x.bytes) ?? 0 });
+    }
+    if (steps.length === 0) return null;
+    out.cape = { channels: 1, vMin, vMax, grid, steps };
+  } else {
+    const want = REPACK_FAMILIES[family] as { channels: number; vMin: number; vMax: number };
+    const vMin = num(fam.vMin), vMax = num(fam.vMax);
+    if (vMin !== want.vMin || vMax !== want.vMax) return null;   // Skalen-Drift → ablehnen
+    const channels = num(fam.channels) ?? 2;
+    if (channels !== want.channels) return null;
+    const steps: RepackScalarStep[] = [];
+    for (const e of fam.steps as unknown[]) {
+      if (!e || typeof e !== 'object') continue;
+      const x = e as Record<string, unknown>;
+      const step = num(x.step);
+      if (step === null || !Number.isInteger(step) || step < 0) continue;
+      if (typeof x.file !== 'string' || !FILE_RE.test(x.file)) continue;
+      steps.push({ step, file: x.file, bytes: num(x.bytes) ?? 0 });
+    }
+    if (steps.length === 0) return null;
+    out[family] = { channels, vMin, vMax, steps };
+  }
+  return out;
+}
+
+/**
+ * Ein Ein-Kanal-Bild aus dem Browser (Grau expandiert auf R = G = B, A = Maske)
+ * → exakt das RGBA aus `scalarFrameBuild.ts`: R = Wert, G = B = 0, A = Maske;
+ * wo die Maske 0 ist, ist der ganze Pixel 0. In place, keine Kopie.
+ */
+export function composeScalarRgba(rgba: Uint8ClampedArray): Uint8ClampedArray {
+  for (let i = 0, n = rgba.length; i < n; i += 4) {
+    if (!rgba[i + 3]) { rgba[i] = 0; rgba[i + 1] = 0; rgba[i + 2] = 0; continue; }
+    rgba[i + 1] = 0; rgba[i + 2] = 0;
+  }
+  return rgba;
+}
+
+/**
+ * Darf der Niederschlag-Weg für GENAU diese Schrittfolge genommen werden?
+ *
+ * Der GRIB-Pfad (`iconD2Precip.ts`) baut aus dem ERSTEN Schritt seines Fensters
+ * kein Frame (er ist nur Referenz) und differenziert jeden weiteren gegen den
+ * zuvor geladenen. Ein PNG ist nur dann derselbe Wert, wenn sein `ref` genau
+ * dieser Vorgänger ist. Sonst — Lücke in der Ablage, anderes Fenster — geht die
+ * GANZE Familie über GRIB: gemischt ginge es nicht, weil der GRIB-Pfad für den
+ * nächsten Schritt die Rohwerte des vorigen braucht, die ein PNG nicht hat.
+ * Rückgabe: die Schritte, für die ein Frame entsteht (alle außer dem ersten).
+ */
+export function precipStepsUsable(section: RepackSection, wanted: number[]): number[] | null {
+  const fam = section.precip;
+  if (!fam || wanted.length < 2) return null;
+  const byStep = new Map(fam.steps.map((s) => [s.step, s]));
+  const out: number[] = [];
+  for (let i = 1; i < wanted.length; i++) {
+    const e = byStep.get(wanted[i]);
+    if (!e || e.ref !== wanted[i - 1]) return null;
+    out.push(wanted[i]);
   }
   return out;
 }
@@ -467,8 +617,60 @@ export async function loadTempStep(
   return { rgba: composeTempRgba(img.data, hsurfGrey, img.width, img.height), width: img.width, height: img.height };
 }
 
+/**
+ * Ein-Kanal-Bild eines Schritts (Böen, Gewitter, Rotation, Blitzprognose,
+ * Schnee). Rückgabe ist bereits das RGBA aus `scalarFrameBuild.ts`. `null` =
+ * dieser Schritt geht über GRIB.
+ */
+export async function loadScalarStep(
+  section: RepackSection,
+  family: RepackScalarFamily,
+  step: number,
+  signal?: AbortSignal,
+): Promise<{ rgba: Uint8ClampedArray; width: number; height: number } | null> {
+  const fam = section[family];
+  if (state.broken || !fam) return null;
+  const entry = fam.steps.find((s) => s.step === step);
+  if (!entry) return null;
+  const img = await loadRgba(stepUrl(section, entry.file), signal, section.grid);
+  if (!img) return null;
+  return { rgba: composeScalarRgba(img.data), width: img.width, height: img.height };
+}
+
+/**
+ * Niederschlag eines Schritts — das `Uint8Array`, das `decodeGridStep` liefert
+ * (1 Byte je Zelle, north-up, volle Auflösung). Maße gegen das EIGENE Gitter
+ * der Familie. `null` = die Familie geht über GRIB.
+ */
+export async function loadPrecipStep(
+  section: RepackSection,
+  step: number,
+  signal?: AbortSignal,
+): Promise<{ values: Uint8Array; width: number; height: number } | null> {
+  return loadGridStep(section, 'precip', step, signal);
+}
+
+/** Voll aufgelöste Familie (`precip`, `cape`) → das `Uint8Array` von `decodeGridStep`. */
+export async function loadGridStep(
+  section: RepackSection,
+  family: 'precip' | 'cape',
+  step: number,
+  signal?: AbortSignal,
+): Promise<{ values: Uint8Array; width: number; height: number } | null> {
+  const fam = section[family];
+  if (state.broken || !fam) return null;
+  const entry = fam.steps.find((s) => s.step === step);
+  if (!entry) return null;
+  const img = await loadRgba(stepUrl(section, entry.file), signal, fam.grid);
+  if (!img) return null;
+  const n = img.width * img.height;
+  const values = new Uint8Array(n);
+  for (let i = 0; i < n; i++) values[i] = img.data[i * 4];   // Grau steht in R
+  return { values, width: img.width, height: img.height };
+}
+
 // ---------------------------------------------------------------------------
-// Abschnitt aus dem GRIB-Manifest (Temperatur-Seite)
+// Abschnitt aus dem GRIB-Manifest (alle Familien außer Wind)
 // ---------------------------------------------------------------------------
 
 /**
@@ -479,7 +681,7 @@ export async function loadTempStep(
  */
 export async function resolveRepackForRun(
   run: string,
-  family: 'wind' | 'temp',
+  family: RepackFamily,
   url: string = GRIB_MANIFEST_URL,
 ): Promise<RepackSection | null> {
   if (!repackUsable()) return null;

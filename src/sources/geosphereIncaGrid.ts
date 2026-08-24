@@ -50,18 +50,45 @@ export interface IncaFrame {
 export interface IncaGrid {
   frames: IncaFrame[];
   corners: QuadCorners;
+  /** V-RL-2: gesetzt, wenn dies der letzte gute Lauf ist, weil der frische
+   *  Abruf fehlschlug (Zeitpunkt des guten Abrufs, ms). */
+  staleFromMs?: number;
 }
 
 export const GEOSPHERE_INCA_ATTRIBUTION =
   'Nowcast: <a href="https://www.geosphere.at" target="_blank" rel="noopener">GeoSphere Austria</a> ' +
   'INCA (RR) · CC BY 4.0';
 
+/**
+ * V-RL-2 (2026-08-25): die Grid-API antwortet zeitweise mit HTTP 200 und NULL
+ * Lead-Frames (gemessen 2026-08-25 00:20 lokal, „keine Frames"). Der letzte gute
+ * Lauf dieser Sitzung wird deshalb vorgehalten und für höchstens
+ * `INCA_STALE_MAX_MS` als benannter Rückfall geliefert — laut in der Konsole,
+ * mit `staleFromMs` am Ergebnis, damit ein Aufrufer das Alter zeigen kann.
+ * Danach fällt die Quelle wie bisher aus (kein stilles Uraltbild).
+ */
+export const INCA_STALE_MAX_MS = 45 * 60_000;
+let lastGood: { grid: IncaGrid; atMs: number } | null = null;
+
 /** Lädt den jüngsten INCA-Nowcast-Lauf und baut Uint8-Werte-Grids (0.25–3 h). */
 export async function fetchIncaGrid(signal?: AbortSignal): Promise<IncaGrid> {
   // Entdopplung: Karte und Punktforecast fragen beim Mount gleichzeitig, und die
   // GeoSphere-API sendet keinen Cache-Header — gemessen 2 × 721 713 B, also 34 %
   // der gesamten AT-Kaltsitzung (`audit/bandbreite.md` §24.3).
-  return shareInFlight('geosphere-inca-grid', () => loadIncaGrid(), signal);
+  return shareInFlight('geosphere-inca-grid', async () => {
+    try {
+      const grid = await loadIncaGrid();
+      lastGood = { grid, atMs: Date.now() };
+      return grid;
+    } catch (err) {
+      const age = lastGood ? Date.now() - lastGood.atMs : Infinity;
+      if (lastGood && age <= INCA_STALE_MAX_MS) {
+        console.warn(`[buscosun] GeoSphere INCA: ${err instanceof Error ? err.message : err} — letzter guter Lauf dieser Sitzung (${Math.round(age / 60_000)} min alt) wird weiterverwendet`);
+        return { ...lastGood.grid, staleFromMs: lastGood.atMs };
+      }
+      throw err;
+    }
+  }, signal);
 }
 
 async function loadIncaGrid(): Promise<IncaGrid> {

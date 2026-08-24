@@ -15,6 +15,7 @@ import type { Location } from '../types';
 import { flagForCountry } from '../geocode';
 import { phaseLabelStep, intensityBand, intensityColor, NOWCAST_STEP_MIN, NOWCAST_HORIZON_MIN, type EventTone } from './nowcastModel';
 import type { RadarLayerId } from '../radar/radarModel';
+import type { SnowMode } from '../sources/iconD2Snow';
 import { loadLastView } from '../radar/radarState';
 import { heroState, leadLabel, fmtDuration, fmtClock, fmtMmH, sourceLabel, freshness, type Nowcast } from './nowcastView';
 import NowcastLocationField from './NowcastLocationField';
@@ -47,14 +48,17 @@ interface Props {
 
 /** Dock-Layer, die das ECHTE Radar steuern (Teilmenge der Radar-Layer). */
 const DECK_LAYERS: Array<{ id: RadarLayerId; label: string; sub: string; color: string; icon: ReactNode }> = [
-  { id: 'precip', label: 'Niederschlag', sub: 'Radar-Nowcast + Modell', color: '#3A6FA8', icon: (
+  { id: 'precip', label: 'Niederschlag', sub: 'DACH-Komposit: RADOLAN · INCA · rzc', color: '#3A6FA8', icon: (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M7 13 A3.6 3.6 0 0 1 8 5.6 A5.4 5.4 0 0 1 18.2 8 A3.4 3.4 0 0 1 17.6 14 H8 A3.6 3.6 0 0 1 7 13 Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/><path d="M9 17 L8 20 M13 17 L12 20 M16.5 17 L15.5 20" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
   ) },
-  { id: 'cells', label: 'Zellen-Zugbahn', sub: 'Woher & wohin ziehen die Zellen', color: '#C97B47', icon: (
+  { id: 'cells', label: 'Zellbahnen', sub: 'DWD KONRAD3D · amtliche Zugbahn (DE)', color: '#C97B47', icon: (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M6 12 A3 3 0 0 1 7 6 A4.4 4.4 0 0 1 15 8 A2.8 2.8 0 0 1 14.4 13 H8 A3 3 0 0 1 6 12 Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/><path d="M10.5 17 H19 M16 14 L20 17 L16 20" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
   ) },
   { id: 'lightning', label: 'Blitze', sub: 'Live-Blitzortung', color: '#C79A3A', icon: (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M13 2.5 L5.5 13 H11 L10 21.5 L18.5 10.5 H12 Z" fill="currentColor" fillOpacity=".14" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/></svg>
+  ) },
+  { id: 'snow', label: 'Schnee', sub: 'ICON-D2 Schneedecke / Neuschnee', color: '#4660BE', icon: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 3v18M4.2 7.5l15.6 9M4.2 16.5l15.6-9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/><path d="M12 3l-2.2 2.2M12 3l2.2 2.2M12 21l-2.2-2.2M12 21l2.2-2.2M4.2 7.5l3 .3M4.2 7.5l.3 3M19.8 16.5l-3-.3M19.8 16.5l-.3-3M4.2 16.5l.3-3M4.2 16.5l3-.3M19.8 7.5l-.3 3M19.8 7.5l-3 .3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>
   ) },
   { id: 'snowline', label: 'Schneegrenze', sub: 'Schneefallgrenze', color: '#6B7A8F', icon: (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3 18.5 L9 8 L12 12.5 L15 7.5 L21 18.5 Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/><path d="M8.4 9 L15.2 9" stroke="currentColor" strokeWidth="1.3" strokeDasharray="2 2"/></svg>
@@ -75,6 +79,8 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
   });
   const [view, setView] = useState<'map' | 'chart'>('map');
   const [mode, setMode] = useState<'standard' | 'detail'>('detail');
+  // RL1: Modus des ICON-D2-Schneelayers (Decke | Neuschnee) — wie die Wetterkarte.
+  const [snowMode, setSnowMode] = useState<SnowMode>('depth');
   const [mTab, setMTab] = useState<MobileTab>('glance');
   const [mSnap, setMSnap] = useState<'peek' | 'full'>('peek');
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -93,7 +99,7 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
       {view === 'map' ? (
         <div className="rr-stage">
           <NowcastRadarMap location={location} nowcast={nowcast} reloadKey={reloadNonce}
-            layers={layers} onLayersChange={setLayers} hideLayerbar compact
+            layers={layers} onLayersChange={setLayers} hideLayerbar compact snowMode={snowMode}
             initialView={initialView} onViewChange={onViewChange} />
         </div>
       ) : (
@@ -155,7 +161,7 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
         <div className="rm-root">
           <div className="rm-map">
             <NowcastRadarMap location={location} nowcast={nowcast} reloadKey={reloadNonce}
-              layers={layers} onLayersChange={setLayers} hideLayerbar compact
+              layers={layers} onLayersChange={setLayers} hideLayerbar compact snowMode={snowMode}
               initialView={initialView} onViewChange={onViewChange}
               onMapReady={(m) => { mapRef.current = m; }} />
           </div>
@@ -174,7 +180,8 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
           )}
           <MobileTabSheet tab={mTab} snap={mSnap} onSnapChange={setMSnap}
             nowcast={nowcast} state={state} mode={mode} setMode={setMode}
-            layers={layers} toggleLayer={toggleLayer} location={location} />
+            layers={layers} toggleLayer={toggleLayer} location={location}
+            snowMode={snowMode} setSnowMode={setSnowMode} />
           <MobileTabBar tab={mTab} onSelect={selectMTab} />
         </div>
       ) : (
@@ -183,7 +190,7 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
           <Dock
             layers={layers} toggleLayer={toggleLayer} activeLayerCount={activeLayerCount}
             view={view} setView={setView} mode={mode} setMode={setMode}
-            nowcast={nowcast} onReload={onReload}
+            nowcast={nowcast} onReload={onReload} snowMode={snowMode} setSnowMode={setSnowMode}
           />
           {center}
           <div className="rr-readout">
@@ -196,6 +203,21 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
         </div>
       )}
     </div>
+  );
+}
+
+/** Schnee-Modus (RL1): Decke (h_snow) | Neuschnee (snow_gsp) — Wortlaut wie die Wetterkarte. */
+function SnowModeSeg({ snowMode, setSnowMode, segClass, btnClass, eyebrowClass }: {
+  snowMode: SnowMode; setSnowMode: (m: SnowMode) => void; segClass: string; btnClass: string; eyebrowClass: string;
+}) {
+  return (
+    <>
+      <span className={eyebrowClass}>Schnee · ICON-D2</span>
+      <div className={segClass} role="tablist" aria-label="Schnee-Modus">
+        <button type="button" role="tab" aria-selected={snowMode === 'depth'} className={`${btnClass}${snowMode === 'depth' ? ' is-active' : ''}`} onClick={() => setSnowMode('depth')} title="Schneedecke (h_snow, cm)">Decke</button>
+        <button type="button" role="tab" aria-selected={snowMode === 'fresh'} className={`${btnClass}${snowMode === 'fresh' ? ' is-active' : ''}`} onClick={() => setSnowMode('fresh')} title="Neuschnee (snow_gsp + snow_con, cm)">Neuschnee</button>
+      </div>
+    </>
   );
 }
 
@@ -219,11 +241,12 @@ function Rail({ onBack, onOpenFeature }: { onBack: () => void; onOpenFeature?: (
 // ============================================================================
 // Dock (Layer / Ansicht / Modus / Datenlage)
 // ============================================================================
-function Dock({ layers, toggleLayer, activeLayerCount, view, setView, mode, setMode, nowcast, onReload }: {
+function Dock({ layers, toggleLayer, activeLayerCount, view, setView, mode, setMode, nowcast, onReload, snowMode, setSnowMode }: {
   layers: RadarLayerId[]; toggleLayer: (id: RadarLayerId) => void; activeLayerCount: number;
   view: 'map' | 'chart'; setView: (v: 'map' | 'chart') => void;
   mode: 'standard' | 'detail'; setMode: (m: 'standard' | 'detail') => void;
   nowcast: Nowcast | null; onReload: () => void;
+  snowMode: SnowMode; setSnowMode: (m: SnowMode) => void;
 }) {
   const fresh = nowcast ? freshness(nowcast) : null;
   return (
@@ -246,6 +269,7 @@ function Dock({ layers, toggleLayer, activeLayerCount, view, setView, mode, setM
           );
         })}
       </div>
+      {layers.includes('snow') && <SnowModeSeg snowMode={snowMode} setSnowMode={setSnowMode} segClass="rr-seg" btnClass="rr-seg-btn" eyebrowClass="rr-eyebrow" />}
 
       <span className="rr-eyebrow">Ansicht</span>
       <div className="rr-seg">
@@ -554,10 +578,11 @@ function MobileTabBar({ tab, onSelect }: { tab: MobileTab; onSelect: (t: MobileT
 }
 
 // --- Panel-Sheet (ziehbar peek ↔ full); Inhalt nach aktivem Tab -------------
-function MobileTabSheet({ tab, snap, onSnapChange, nowcast, state, mode, setMode, layers, toggleLayer, location }: {
+function MobileTabSheet({ tab, snap, onSnapChange, nowcast, state, mode, setMode, layers, toggleLayer, location, snowMode, setSnowMode }: {
   tab: MobileTab; snap: 'peek' | 'full'; onSnapChange: (s: 'peek' | 'full') => void;
   nowcast: Nowcast | null; state: DeckState; mode: 'standard' | 'detail'; setMode: (m: 'standard' | 'detail') => void;
   layers: RadarLayerId[]; toggleLayer: (id: RadarLayerId) => void; location: Location;
+  snowMode: SnowMode; setSnowMode: (m: SnowMode) => void;
 }) {
   const PEEK = 34, FULL = 92; // vh
   const [dragVh, setDragVh] = useState(0);
@@ -585,7 +610,7 @@ function MobileTabSheet({ tab, snap, onSnapChange, nowcast, state, mode, setMode
         {tab === 'glance' && <GlancePanel nowcast={nowcast} state={state} place={place} />}
         {tab === 'timeline' && <TimelinePanel nowcast={nowcast} state={state} place={place} />}
         {tab === 'chart' && <ChartPanel nowcast={nowcast} state={state} place={place} />}
-        {tab === 'layer' && <LayerPanel layers={layers} toggleLayer={toggleLayer} mode={mode} setMode={setMode} nowcast={nowcast} place={place} />}
+        {tab === 'layer' && <LayerPanel layers={layers} toggleLayer={toggleLayer} mode={mode} setMode={setMode} nowcast={nowcast} place={place} snowMode={snowMode} setSnowMode={setSnowMode} />}
         {tab === 'detail' && <DetailPanel nowcast={nowcast} state={state} mode={mode} place={place} />}
       </div>
     </div>
@@ -681,10 +706,11 @@ function ChartPanel({ nowcast, state, place }: { nowcast: Nowcast | null; state:
 }
 
 // --- Panel: Layer -----------------------------------------------------------
-function LayerPanel({ layers, toggleLayer, mode, setMode, nowcast, place }: {
+function LayerPanel({ layers, toggleLayer, mode, setMode, nowcast, place, snowMode, setSnowMode }: {
   layers: RadarLayerId[]; toggleLayer: (id: RadarLayerId) => void;
   mode: 'standard' | 'detail'; setMode: (m: 'standard' | 'detail') => void;
   nowcast: Nowcast | null; place: string;
+  snowMode: SnowMode; setSnowMode: (m: SnowMode) => void;
 }) {
   const activeCount = DECK_LAYERS.filter((l) => layers.includes(l.id)).length;
   const snowSub = nowcast?.summary?.snowLineM != null
@@ -710,6 +736,7 @@ function LayerPanel({ layers, toggleLayer, mode, setMode, nowcast, place }: {
           );
         })}
       </div>
+      {layers.includes('snow') && <SnowModeSeg snowMode={snowMode} setSnowMode={setSnowMode} segClass="rm-seg" btnClass="" eyebrowClass="rm-seclabel" />}
       <div className="rm-seclabel">Modus</div>
       <div className="rm-seg rm-seg--modus" role="tablist" aria-label="Modus">
         <button type="button" role="tab" aria-selected={mode === 'standard'} className={mode === 'standard' ? 'is-active' : ''} onClick={() => setMode('standard')}>Standard</button>

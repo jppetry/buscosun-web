@@ -24,6 +24,7 @@ import { decodeGrib2, type GribField } from './gribDecode';
 import { decodeGridStep, type GridToU8Kind, type DecodedGridStep } from './gribGridDecode';
 import { resolveRunFromManifest, GRIB_MANIFEST_URL } from './gribManifest';
 import { stepsForNowWindow } from './frameAtValidTime';
+import { repackUsable, resolveRepackForRun, loadPrecipStep, precipStepsUsable } from './repackSource';
 
 // Reiner GRIB2-Decoder lebt jetzt in ./gribDecode (browser-unabhängig, headless
 // gegen eccodes verifizierbar). Re-Export hält bestehende Importpfade stabil
@@ -554,11 +555,68 @@ export async function fetchIconD2Grid(
  * Auf +27 h gekappt (Spec-Standardhorizont; die seltene +45-h-Reichweite des
  * 03-UTC-Laufs ist bewusst weggelassen, halbiert die Frame-Zahl/Ladezeit).
  */
-export function fetchIconD2Precip(
+export async function fetchIconD2Precip(
   signal?: AbortSignal,
   onProgress?: (partial: IconD2Precip) => void,
   /** `nowOnly` (Testmodus „startnow", MapView): nur das Fenster „jetzt" … „+ahead". */
   opts?: { nowOnly?: boolean; aheadHours?: number },
 ): Promise<IconD2Precip> {
+  // BW-6c: fertige Raten-Bilder aus dem Daten-CDN — ALLES ODER NICHTS (s. u.).
+  // `null` heißt „nimm GRIB": kein Abschnitt, Schrittfolge passt nicht, Weg aus.
+  const viaCdn = await fetchPrecipRepack(signal, onProgress, opts).catch(() => null);
+  if (viaCdn) return viaCdn;
   return fetchIconD2Grid('tot_prec', { accumulate: true, kind: 'precip', maxStep: 27, nowOnly: opts?.nowOnly, aheadHours: opts?.aheadHours }, signal, onProgress);
+}
+
+const PRECIP_MAX_STEP = 27;
+const PRECIP_CDN_CONCURRENCY = 3;
+
+/**
+ * Niederschlag aus dem Daten-CDN (BW-6c, `audit/bandbreite.md` §25.4 (3)).
+ *
+ * Anders als die Ein-Kanal-Layer ist diese Familie SEQUENZIELL: `decodeGridStep`
+ * differenziert jeden Schritt gegen den zuvor geladenen, und aus dem ERSTEN
+ * Schritt des Fensters entsteht kein Frame (er ist nur Referenz). Ein PNG ist
+ * deshalb nur dann derselbe Wert, wenn sein `ref` genau der Schritt ist, den
+ * dieser Aufruf als Vorgänger hätte — `precipStepsUsable` prüft das für die
+ * ganze Folge. Und gemischt geht es nicht: fiele Schritt k+1 auf GRIB zurück,
+ * bräuchte er die ROHEN Werte von Schritt k, die ein PNG nicht hat. Also: jeder
+ * Fehlschlag ⇒ `null` ⇒ die ganze Familie über GRIB, wie vor BW-6.
+ */
+async function fetchPrecipRepack(
+  signal?: AbortSignal,
+  onProgress?: (partial: IconD2Precip) => void,
+  opts?: { nowOnly?: boolean; aheadHours?: number },
+): Promise<IconD2Precip | null> {
+  if (!repackUsable()) return null;
+  const resolved = await resolveLatestRun('tot_prec', signal);
+  const { runStr, runAt } = resolved;
+  const capped = resolved.steps.filter((s) => s <= PRECIP_MAX_STEP);
+  const steps = opts?.nowOnly ? stepsForNowWindow(capped, runAt, opts.aheadHours ?? 0) : capped;
+  const section = await resolveRepackForRun(runStr, 'precip');
+  if (!section?.precip) return null;
+  const usable = precipStepsUsable(section, steps);
+  if (!usable) return null;
+
+  const c = section.precip.grid.corners;
+  const corners: QuadCorners = [c.nw, c.ne, c.se, c.sw];
+  const frames: IconD2Frame[] = [];
+  let failed = false;
+  let ptr = 0;
+  const workers = Array.from({ length: Math.min(PRECIP_CDN_CONCURRENCY, usable.length) }, async () => {
+    while (ptr < usable.length && !failed) {
+      const step = usable[ptr++];
+      const png = await loadPrecipStep(section, step, signal);
+      if (!png) { failed = true; return; }
+      frames.push({
+        validAt: new Date(runAt.getTime() + step * 3600_000),
+        stepHours: step, values: png.values, width: png.width, height: png.height,
+      });
+      frames.sort((a, b) => a.stepHours - b.stepHours);
+      if (onProgress) onProgress({ runAt, frames: [...frames], corners });
+    }
+  });
+  await Promise.all(workers);
+  if (failed || signal?.aborted || frames.length === 0) return null;
+  return { runAt, frames, corners };
 }

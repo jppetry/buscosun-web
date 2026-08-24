@@ -33,3 +33,4 @@ deno.lock
 data/fire/bh/events.jsonl
 # BW-1: Repack-Ausgabe (5,4 MiB je Lauf, reproduzierbar aus .cache/repack/)
 data/repack/
+data/repack-full/

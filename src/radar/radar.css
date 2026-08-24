@@ -141,6 +141,13 @@
   box-shadow: 0 4px 16px rgba(20,30,50,0.22); text-align: left;
 }
 .nc-radar-eta svg { color: #fff; }
+.nc-radar-eta em { font-style: normal; opacity: 0.72; font-size: 0.7em; letter-spacing: 0.08em; text-transform: uppercase; margin-left: 0.2rem; }
+/* Ruhe-Hinweis der Zellbahnen (kein Ereignis): Ink statt Bordeaux. */
+.nc-radar-eta--quiet { background: rgba(44,42,38,0.82); }
+/* Im Command-Deck sitzt oben die Quellen-Pille (`rr-source-pill`) — der
+   Standortbezug rückt darunter, statt sie zu überlagern. */
+.rr-stage .nc-radar-eta { top: 3.1rem; }
+.rm-map .nc-radar-eta { top: 6.7rem; font-size: 0.74rem; }
 .nc-radar-hover {
   position: absolute; bottom: 0.65rem; right: 0.65rem; z-index: 4;
   background: rgba(44,42,38,0.82); color: #fff; padding: 0.3rem 0.6rem; border-radius: 8px; font-size: 0.82rem;

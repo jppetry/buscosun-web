@@ -31,10 +31,8 @@
 import {
   resolveLatestRun, fetchStepField, subsampledCorners,
   D2_GRIB_PROXY_BASE, type GribField,
-} from './iconD2Precip';
-import { buildSnowDepthRgba, buildSnowFreshRgba, SNOW_DEPTH_VMAX_CM, SNOW_FRESH_VMAX_CM } from './scalarFrameBuild';
-export { SNOW_DEPTH_VMAX_CM, SNOW_FRESH_VMAX_CM } from './scalarFrameBuild';
-import { resolveRepackForRun, loadScalarStep, uvBoundsOf } from './repackSource';
+} from '../../../src/sources/iconD2Precip';
+import { freshSnowCmFromSwe } from '../../../src/nowcast/alpineSplit';
 
 export type SnowMode = 'depth' | 'fresh';
 
@@ -52,7 +50,8 @@ const CONCURRENCY = 3;
 /** Normierung (cm) je Modus — R-Kanal = clamp01(cm / VMAX). Schneedecke bis 150 cm
  *  (Gletscher sättigen), Neuschnee bis 50 cm (Stufen 1/5/10/25/50). vMin/vMax im
  *  Frame sind rein informativ (der Shader nutzt sie nur bei DEM-Refine = AUS). */
-// SNOW_*_VMAX_CM leben seit BW-6a in `scalarFrameBuild.ts` (geteilt mit dem Producer).
+export const SNOW_DEPTH_VMAX_CM = 150;
+export const SNOW_FRESH_VMAX_CM = 50;
 
 export interface IconD2SnowFrame {
   validAt: Date;
@@ -76,15 +75,7 @@ export interface IconD2Snow {
 
 function lngToEquiX(lng: number): number { return (lng + 180) / 360; }
 function latToEquiY(lat: number): number { return (90 - lat) / 180; }
-
-/** RGBA-Bytes → Canvas (billiges `putImageData`; die Mathematik lebt in `scalarFrameBuild.ts`). */
-function rgbaToCanvas(rgba: Uint8ClampedArray, width: number, height: number): HTMLCanvasElement {
-  const canvas = document.createElement('canvas');
-  canvas.width = width; canvas.height = height;
-  const ctx = canvas.getContext('2d')!;
-  ctx.putImageData(new ImageData(rgba, width, height), 0, 0);
-  return canvas;
-}
+function clamp01(v: number): number { return v < 0 ? 0 : v > 1 ? 1 : v; }
 
 /**
  * Schneedecke: `h_snow` (m) → R = clamp01(cm / 150). NaN (außerhalb Domäne,
@@ -92,8 +83,29 @@ function rgbaToCanvas(rgba: Uint8ClampedArray, width: number, height: number): H
  * endlich → R=0 → durch `snowRamp`-0-Stop + `visRange` (< ~1 cm) ausgeblendet.
  */
 function buildDepthImage(hsnow: GribField, ss: number): Omit<IconD2SnowFrame, 'validAt' | 'stepHours'> {
-  const { rgba, width, height } = buildSnowDepthRgba(hsnow, ss);
-  return { image: rgbaToCanvas(rgba, width, height), width, height };
+  const { ni, nj } = hsnow;
+  const w = Math.ceil(ni / ss);
+  const h = Math.ceil(nj / ss);
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d')!;
+  const img = ctx.createImageData(w, h);
+  for (let jj = 0; jj < h; jj++) {
+    const sj = Math.min(nj - 1, jj * ss);
+    const y = h - 1 - jj; // S→N → north-up
+    for (let ii = 0; ii < w; ii++) {
+      const si = Math.min(ni - 1, ii * ss);
+      const k = sj * ni + si;
+      const idx = (y * w + ii) * 4;
+      const v = hsnow.values[k];
+      if (!Number.isFinite(v)) { img.data[idx + 3] = 0; continue; } // außerhalb Domäne → transparent
+      const cm = v * 100; // m → cm
+      img.data[idx] = Math.round(clamp01(cm / SNOW_DEPTH_VMAX_CM) * 255);
+      img.data[idx + 3] = 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  return { image: canvas, width: w, height: h };
 }
 
 /**
@@ -104,8 +116,34 @@ function buildDepthImage(hsnow: GribField, ss: number): Omit<IconD2SnowFrame, 'v
  * Nebenfelds → dieses Feld als „nicht vorhanden" behandeln.
  */
 function buildFreshImage(gsp: GribField, con: GribField | null, rho: GribField | null, ss: number): Omit<IconD2SnowFrame, 'validAt' | 'stepHours'> {
-  const { rgba, width, height } = buildSnowFreshRgba(gsp, con, rho, ss);
-  return { image: rgbaToCanvas(rgba, width, height), width, height };
+  const { ni, nj } = gsp;
+  const w = Math.ceil(ni / ss);
+  const h = Math.ceil(nj / ss);
+  const conOk = !!con && con.ni === ni && con.nj === nj;
+  const rhoOk = !!rho && rho.ni === ni && rho.nj === nj;
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d')!;
+  const img = ctx.createImageData(w, h);
+  for (let jj = 0; jj < h; jj++) {
+    const sj = Math.min(nj - 1, jj * ss);
+    const y = h - 1 - jj; // S→N → north-up
+    for (let ii = 0; ii < w; ii++) {
+      const si = Math.min(ni - 1, ii * ss);
+      const k = sj * ni + si;
+      const idx = (y * w + ii) * 4;
+      const g = gsp.values[k];
+      if (!Number.isFinite(g)) { img.data[idx + 3] = 0; continue; } // außerhalb Domäne → transparent
+      const c = conOk ? con!.values[k] : 0;
+      const sweMm = g + (Number.isFinite(c) ? c : 0); // kg/m² = mm SWE (akkumuliert)
+      const rhoV = rhoOk ? rho!.values[k] : undefined;
+      const cm = freshSnowCmFromSwe(sweMm, Number.isFinite(rhoV as number) ? (rhoV as number) : undefined);
+      img.data[idx] = Math.round(clamp01(cm / SNOW_FRESH_VMAX_CM) * 255);
+      img.data[idx + 3] = 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  return { image: canvas, width: w, height: h };
 }
 
 /**
@@ -125,37 +163,26 @@ export async function fetchIconD2Snow(
   const wanted = steps.filter((s) => s <= MAX_STEP && (mode === 'depth' || s >= 1));
   if (wanted.length === 0) throw new Error('ICON-D2 Schnee: keine Schritte im Horizont');
 
-  // BW-6c: liegen die Bilder für GENAU DIESEN Lauf im Daten-CDN? Geprüft
-  // gegen `runStr`, den Lauf, den die Auflösung wirklich geliefert hat (§22.4).
-  // Mit Abschnitt entfällt der GRIB-Abruf, der sonst nur der Geometrie diente.
-  const section = await resolveRepackForRun(runStr, mode === 'depth' ? 'snowDepth' : 'snowFresh');
-  let uvBounds: [number, number, number, number];
-  if (section) {
-    uvBounds = uvBoundsOf(section);
-  } else {
-    const gridRef = await fetchStepField(runStr, anchorParam, wanted[0], signal, D2_GRIB_PROXY_BASE);
-    const ss = Math.max(1, Math.ceil(gridRef.ni / TARGET_WIDTH));
-    // Ecken der ABGETASTETEN Punkte statt des nativen Gitters (KL3): der Bau
-    // nimmt `min(n-1, k*ss)`, also den ERSTEN Punkt jedes Blocks — über
-    // `gribCorners` gespannt landete jeder Wert eine halbe Nativzelle zu weit
-    // nördlich (audit/karten-layer-verortung.md, B3).
-    const c = subsampledCorners(gridRef, ss); // [NW, NE, SE, SW] in [lon,lat]
-    uvBounds = [lngToEquiX(c[0][0]), latToEquiY(c[0][1]), lngToEquiX(c[1][0]), latToEquiY(c[2][1])];
-  }
-  const ssOf = (g: GribField) => Math.max(1, Math.ceil(g.ni / TARGET_WIDTH));
+  // Ein Anker-Feld für Bounds/Grid/Subsampling sicher holen.
+  const gridRef = await fetchStepField(runStr, anchorParam, wanted[0], signal, D2_GRIB_PROXY_BASE);
+  const ss = Math.max(1, Math.ceil(gridRef.ni / TARGET_WIDTH));
+  // Ecken der ABGETASTETEN Punkte statt des nativen Gitters (KL3): der Bau
+  // nimmt `min(n-1, k*ss)`, also den ERSTEN Punkt jedes Blocks — ueber
+  // `gribCorners` gespannt landete jeder Wert eine halbe Nativzelle zu weit
+  // noerdlich (audit/karten-layer-verortung.md, B3).
+  const c = subsampledCorners(gridRef, ss); // [NW, NE, SE, SW] in [lon,lat]
+  const uvBounds: [number, number, number, number] = [
+    lngToEquiX(c[0][0]), latToEquiY(c[0][1]), lngToEquiX(c[1][0]), latToEquiY(c[2][1]),
+  ];
 
   const frames: IconD2SnowFrame[] = [];
 
   const loadStep = async (step: number): Promise<void> => {
     try {
       let built: Omit<IconD2SnowFrame, 'validAt' | 'stepHours'>;
-      // BW-6c: fertiges Bild aus dem Daten-CDN (je Modus eigene Familie), sonst GRIB.
-      const png = section ? await loadScalarStep(section, mode === 'depth' ? 'snowDepth' : 'snowFresh', step, signal) : null;
-      if (png) {
-        built = { image: rgbaToCanvas(png.rgba, png.width, png.height), width: png.width, height: png.height };
-      } else if (mode === 'depth') {
+      if (mode === 'depth') {
         const hsnow = await fetchStepField(runStr, 'h_snow', step, signal, D2_GRIB_PROXY_BASE);
-        built = buildDepthImage(hsnow, ssOf(hsnow));
+        built = buildDepthImage(hsnow, ss);
       } else {
         // snow_gsp Pflicht (Domänenanker); snow_con/rho_snow optional.
         const [gsp, con, rho] = await Promise.all([
@@ -163,7 +190,7 @@ export async function fetchIconD2Snow(
           fetchStepField(runStr, 'snow_con', step, signal, D2_GRIB_PROXY_BASE).catch(() => null),
           fetchStepField(runStr, 'rho_snow', step, signal, D2_GRIB_PROXY_BASE).catch(() => null),
         ]);
-        built = buildFreshImage(gsp, con, rho, ssOf(gsp));
+        built = buildFreshImage(gsp, con, rho, ss);
       }
       frames.push({ validAt: new Date(runAt.getTime() + step * 3_600_000), stepHours: step, ...built });
       frames.sort((a, b) => a.stepHours - b.stepHours);
@@ -186,3 +213,5 @@ export async function fetchIconD2Snow(
   if (frames.length === 0) throw new Error('ICON-D2 Schnee: keine Frames erzeugt');
   return { runAt, mode, frames, uvBounds, vMin: 0, vMax };
 }
+
+export { buildDepthImage, buildFreshImage };

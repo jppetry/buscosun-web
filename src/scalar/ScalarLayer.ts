@@ -271,6 +271,20 @@ export class ScalarLayer implements CustomLayerInterface {
     const p = this.program;
     gl.useProgram(p.program);
     bindAttribute(gl, this.mesh, p.a_lnglat as number, 2);
+    // V-RL-1 (2026-08-25): Vertex-Attribut-Arrays sind globaler GL-Zustand. Ein
+    // zuvor gezeichneter RainLayer lässt sein `a_uv` (Index 1) aktiviert; baut er
+    // seine Puffer neu (Geometriewechsel, Stilwechsel), zeigt das Attribut auf
+    // einen GELÖSCHTEN Puffer — beim nächsten `drawArrays` dieses Layers warnt
+    // WebGL „no buffer is bound to enabled attribute". Dieser Layer nutzt genau
+    // ein Attribut; alle anderen werden deaktiviert (MapLibre löst vor
+    // Custom-Layern das VAO, `drawCustom` → `unbindVAO`, wir ändern also nur den
+    // Default-Zustand). Kein Shader-Eingriff.
+    const maxAttribs = gl.getParameter(gl.MAX_VERTEX_ATTRIBS) as number;
+    for (let i = 0; i < maxAttribs; i++) {
+      if (i !== (p.a_lnglat as number) && gl.getVertexAttrib(i, gl.VERTEX_ATTRIB_ARRAY_ENABLED)) {
+        gl.disableVertexAttribArray(i);
+      }
+    }
     bindTexture(gl, this.valueTexture, 0);
     bindTexture(gl, this.colorRampTexture, 1);
     // Bind DEM to texture unit 2 (or use the value texture as a benign

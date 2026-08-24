@@ -31,10 +31,7 @@
 import {
   resolveLatestRun, fetchStepField, subsampledCorners,
   D2_GRIB_PROXY_BASE, type GribField,
-} from './iconD2Precip';
-import { buildLpiRgba, LPI_VMIN, LPI_VMAX } from './scalarFrameBuild';
-export { LPI_VMIN, LPI_VMAX } from './scalarFrameBuild';
-import { resolveRepackForRun, loadScalarStep, uvBoundsOf } from './repackSource';
+} from '../../../src/sources/iconD2Precip';
 
 export const ICON_D2_LPI_ATTRIBUTION =
   'Blitz-Vorhersage: <a href="https://www.dwd.de/EN/ourservices/opendata/opendata.html" ' +
@@ -52,7 +49,8 @@ const TARGET_WIDTH = 700;
 const CONCURRENCY = 4;
 /** Physikalischer Wertebereich der Normierung (J/kg). LPI liegt typ. 0..~30+;
  *  30 als Deckel („extrem") kalibriert die Rampe (§3), höhere Werte klemmen. */
-// LPI_VMIN/LPI_VMAX leben seit BW-6a in `scalarFrameBuild.ts` (geteilt mit dem Producer).
+export const LPI_VMIN = 0;
+export const LPI_VMAX = 30;
 
 export interface IconD2LpiFrame {
   validAt: Date;
@@ -74,15 +72,7 @@ export interface IconD2Lpi {
 
 function lngToEquiX(lng: number): number { return (lng + 180) / 360; }
 function latToEquiY(lat: number): number { return (90 - lat) / 180; }
-
-/** RGBA-Bytes → Canvas (billiges `putImageData`; die Mathematik lebt in `scalarFrameBuild.ts`). */
-function rgbaToCanvas(rgba: Uint8ClampedArray, width: number, height: number): HTMLCanvasElement {
-  const canvas = document.createElement('canvas');
-  canvas.width = width; canvas.height = height;
-  const ctx = canvas.getContext('2d')!;
-  ctx.putImageData(new ImageData(rgba, width, height), 0, 0);
-  return canvas;
-}
+function clamp01(v: number): number { return v < 0 ? 0 : v > 1 ? 1 : v; }
 
 /**
  * Baut das RGBA-Werte-Bild eines Schritts aus dem rohen `lpi_max`-Feld:
@@ -92,8 +82,30 @@ function rgbaToCanvas(rgba: Uint8ClampedArray, width: number, height: number): H
  * → gerendert, aber vom ScalarLayer-`visRange` unter ~1 J/kg ausgeblendet.
  */
 function buildLpiImage(lpi: GribField, ss: number): Omit<IconD2LpiFrame, 'validAt' | 'stepHours'> {
-  const { rgba, width, height } = buildLpiRgba(lpi, ss);
-  return { image: rgbaToCanvas(rgba, width, height), width, height };
+  const { ni, nj } = lpi;
+  const w = Math.ceil(ni / ss);
+  const h = Math.ceil(nj / ss);
+
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d')!;
+  const img = ctx.createImageData(w, h);
+  const span = LPI_VMAX - LPI_VMIN; // 30
+  for (let jj = 0; jj < h; jj++) {
+    const sj = Math.min(nj - 1, jj * ss);
+    const y = h - 1 - jj; // S→N → north-up
+    for (let ii = 0; ii < w; ii++) {
+      const si = Math.min(ni - 1, ii * ss);
+      const k = sj * ni + si;
+      const idx = (y * w + ii) * 4;
+      const v = lpi.values[k];
+      if (!Number.isFinite(v)) { img.data[idx + 3] = 0; continue; } // außerhalb Domäne → transparent
+      img.data[idx] = Math.round(clamp01((v - LPI_VMIN) / span) * 255);
+      img.data[idx + 3] = 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  return { image: canvas, width: w, height: h };
 }
 
 /**
@@ -109,38 +121,27 @@ export async function fetchIconD2Lpi(
   const wanted = steps.filter((s) => s >= MIN_STEP && s <= MAX_STEP);
   if (wanted.length === 0) throw new Error('ICON-D2 Blitz-Vorhersage: keine Schritte im Horizont');
 
-  // BW-6c: liegen die Bilder für GENAU DIESEN Lauf im Daten-CDN? Geprüft
-  // gegen `runStr`, den Lauf, den die Auflösung wirklich geliefert hat (§22.4).
-  // Mit Abschnitt entfällt der GRIB-Abruf, der sonst nur der Geometrie diente.
-  const section = await resolveRepackForRun(runStr, 'lightningfc');
-  let uvBounds: [number, number, number, number];
-  if (section) {
-    uvBounds = uvBoundsOf(section);
-  } else {
-    const gridRef = await fetchStepField(runStr, 'lpi_max', wanted[0], signal, D2_GRIB_PROXY_BASE);
-    const ss = Math.max(1, Math.ceil(gridRef.ni / TARGET_WIDTH));
-    // Ecken der ABGETASTETEN Punkte statt des nativen Gitters (KL3): der Bau
-    // nimmt `min(n-1, k*ss)`, also den ERSTEN Punkt jedes Blocks — über
-    // `gribCorners` gespannt landete jeder Wert eine halbe Nativzelle zu weit
-    // nördlich (audit/karten-layer-verortung.md, B3).
-    const c = subsampledCorners(gridRef, ss); // [NW, NE, SE, SW] in [lon,lat]
-    uvBounds = [lngToEquiX(c[0][0]), latToEquiY(c[0][1]), lngToEquiX(c[1][0]), latToEquiY(c[2][1])];
-  }
-  const ssOf = (g: GribField) => Math.max(1, Math.ceil(g.ni / TARGET_WIDTH));
+  // Ein Feld für Bounds/Grid/Subsampling sicher holen.
+  const gridRef = await fetchStepField(runStr, 'lpi_max', wanted[0], signal, D2_GRIB_PROXY_BASE);
+  const ss = Math.max(1, Math.ceil(gridRef.ni / TARGET_WIDTH));
+  // Ecken der ABGETASTETEN Punkte statt des nativen Gitters (KL3): der Bau
+  // nimmt `min(n-1, k*ss)`, also den ERSTEN Punkt jedes Blocks — ueber
+  // `gribCorners` gespannt landete jeder Wert eine halbe Nativzelle zu weit
+  // noerdlich (audit/karten-layer-verortung.md, B3).
+  const c = subsampledCorners(gridRef, ss); // [NW, NE, SE, SW] in [lon,lat]
+  const uvBounds: [number, number, number, number] = [
+    lngToEquiX(c[0][0]), latToEquiY(c[0][1]), lngToEquiX(c[1][0]), latToEquiY(c[2][1]),
+  ];
 
   const frames: IconD2LpiFrame[] = [];
 
   const loadStep = async (step: number): Promise<void> => {
     try {
-      // BW-6c: fertiges Bild aus dem Daten-CDN, sonst GRIB (s. Böen).
-      const png = section ? await loadScalarStep(section, 'lightningfc', step, signal) : null;
-      const built = png
-        ? { image: rgbaToCanvas(png.rgba, png.width, png.height), width: png.width, height: png.height }
-        : await (async () => {
-          const lpi = await fetchStepField(runStr, 'lpi_max', step, signal, D2_GRIB_PROXY_BASE);
-          return buildLpiImage(lpi, ssOf(lpi));
-        })();
-      frames.push({ validAt: new Date(runAt.getTime() + step * 3_600_000), stepHours: step, ...built });
+      const lpi = await fetchStepField(runStr, 'lpi_max', step, signal, D2_GRIB_PROXY_BASE);
+      frames.push({
+        validAt: new Date(runAt.getTime() + step * 3_600_000), stepHours: step,
+        ...buildLpiImage(lpi, ss),
+      });
       frames.sort((a, b) => a.stepHours - b.stepHours);
       if (onProgress) onProgress({ runAt, frames: [...frames], uvBounds, vMin: LPI_VMIN, vMax: LPI_VMAX });
     } catch {
@@ -161,3 +162,5 @@ export async function fetchIconD2Lpi(
   if (frames.length === 0) throw new Error('ICON-D2 Blitz-Vorhersage: keine Frames erzeugt');
   return { runAt, frames, uvBounds, vMin: LPI_VMIN, vMax: LPI_VMAX };
 }
+
+export { buildLpiImage };
