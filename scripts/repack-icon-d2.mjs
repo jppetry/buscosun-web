@@ -93,7 +93,7 @@ import {
 } from '../src/sources/scalarFrameBuild.ts';
 import { decodeGridStep } from '../src/sources/gribGridDecode.ts';
 import { PRECIP_VMAX, CAPE_MAX } from '../src/scalar/RainLayer.ts';
-import { encodePng } from './lib/png.mjs';
+import { encodePng, decodePng } from './lib/png.mjs';
 import { RUNS_DIR, HSURF_FILE, FAMILIES, FAMILY_KEYS } from './lib/repackManifest.mjs';
 
 const bz2 = bz2mod.decompress ? bz2mod : (bz2mod.default ?? bz2mod);
@@ -739,7 +739,12 @@ async function main() {
       const hsurfPath = join(OUT_DIR, HSURF_FILE);
       // Die gemessene Invarianz ist eine BEHAUPTUNG über künftige Läufe. Wenn
       // sie je bricht, soll es auffallen statt still überschrieben zu werden.
-      if (existsSync(hsurfPath) && !readFileSync(hsurfPath).equals(r.png)) {
+      // Verglichen werden die PIXEL, nicht die Dateibytes: nach der Deflate-
+      // Umstellung (BW-9 B, Z_RLE) schlug der Byte-Vergleich am 2026-08-25 an,
+      // obwohl alle 226 784 Werte identisch waren — ein Encoder-Wechsel ist
+      // keine Geländeänderung.
+      const sameHsurf = (buf) => { try { return Buffer.from(decodePng(buf).data).equals(Buffer.from(r.grey)); } catch { return false; } };
+      if (existsSync(hsurfPath) && !sameHsurf(readFileSync(hsurfPath))) {
         log(`  ⚠ hsurf WEICHT AB vom bisherigen ${HSURF_FILE} — die Lauf-Invarianz `
           + `(§20.2) gilt nicht mehr; Datei wird ersetzt, Befund gehört ins Audit.`);
       }

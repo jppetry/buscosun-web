@@ -3353,7 +3353,7 @@ einen älteren Lauf, den die Anti-Drift-Regel verwirft. `REPACK_NO_PURGE=1` für
 | Pool live (thunder, 39 Dateien, 45 MB, ungecacht) | ≈ 10 s im Lauf statt ≈ 90 s seriell |
 | Wind-Lauf aus dem Cache, ganzer Producer inkl. Start + DWD-Listing | 6,0 s (nach V1) → **3,7 s** (nach A + B + D); 13/13 dekodiert identisch, Dateien −3,0 % |
 | `typecheck` | grün |
-| `verify:repack` | **273/273** (nach A + B + D; neu: Pool-Grenze/Dedupe/Nachbestellung/Fehlschlag, `planUrls`-Schrittfolge, `inHorizon`, PNG-Encoder == Referenz byte-gleich; davor 267/267 nach der Slot-Änderung, neu `expectedRunOf`) — die Zeile „bzip2-Binary == pure-JS" steht unter PowerShell als ⊘ (kein `bzip2` im PATH), unter Git-Bash direkt geprüft: IDENTISCH 1623229 (neu: Konstanten-Spiegel, `sectionFromIndex` == `pickForRun`, fremder Lauf, Index-Abschnitt besteht dieselbe Prüfung, `chooseSection`-Wahl, Publisher purgt NACH dem Push, Purge-Wiederholung, `stepsMissing`/`waitDecision`, Workflow-Vorlage, bzip2 == JS) |
+| `verify:repack` | **276/276** (nach S1b — Zeiger-URL-Spiegel, Publisher purgt Zeiger vor Index, Zeiger je Lauf im Baum == Index; davor 273/273 nach A + B + D; neu: Pool-Grenze/Dedupe/Nachbestellung/Fehlschlag, `planUrls`-Schrittfolge, `inHorizon`, PNG-Encoder == Referenz byte-gleich; davor 267/267 nach der Slot-Änderung, neu `expectedRunOf`) — die Zeile „bzip2-Binary == pure-JS" steht unter PowerShell als ⊘ (kein `bzip2` im PATH), unter Git-Bash direkt geprüft: IDENTISCH 1623229 (neu: Konstanten-Spiegel, `sectionFromIndex` == `pickForRun`, fremder Lauf, Index-Abschnitt besteht dieselbe Prüfung, `chooseSection`-Wahl, Publisher purgt NACH dem Push, Purge-Wiederholung, `stepsMissing`/`waitDecision`, Workflow-Vorlage, bzip2 == JS) |
 | Build + Budget | totalJs **980,9/1017,7 KB** (vorher 975,5), eagerJs 101,5/106,5, alle Budgets eingehalten |
 
 **Erwartung nach A + B + D:** Rechnen je Schritt ≈ 0,3–0,5 s (bz2 parallel im Pool, Decode, Bild, PNG ≈ 30 ms), d. h. während der DWD alle ~46 s einen Schritt ablegt, ist der Producer je Schritt in unter einer Sekunde fertig; nach Schritt 27 bleiben Push (5–10 s) + Purge/CDN (≈ 1 min) ⇒ **Versatz DWD → CDN ≈ 1,5–2 min**. Ein Lauf, der schon vollständig liegt (Sicherheitsnetz, Nachrechnen), braucht statt 8–10 min ≈ 1 min (Download 218 MB im Pool ≈ 50 s + Rechnen ≈ 30 s, überlappend).
@@ -3420,7 +3420,14 @@ Der Publisher purgt den Zeiger des jüngsten Laufs zuerst und prüft ihn nach, d
 Frische-Garantie, ehrlich geloggt). Ein gecachter Zeiger eines älteren Laufs nennt einen älteren Daten-Commit —
 dessen Objekte liegen bis zur Räumung (BW-2-Regel: 404 ⇒ GRIB).
 
-**Origin-TTL:** __ORIGINTTL__
+**Voller Lauf lokal, erste echte Zahl (16:10 UTC, Lauf 15z frisch vom DWD, alle 10 Familien, 206 Dateien,
+233,56 MiB → 12,21 MiB): **67,3 s** — Download über den Pool, bzip2-Binary, Z_RLE, Schrittfolge (vorher auf dem Runner
+456–606 s; #42 ohne Binary 393 s). Der Publisher-Probelauf schrieb die vier Zeiger. Nebenbefund: die
+hsurf-Invarianzprüfung schlug an („WEICHT AB"), weil sie DATEIBYTES verglich — nach der Deflate-Umstellung anders,
+obwohl alle 226 784 Pixel identisch sind (geprüft: alt 61 244 B, neu 61 244 B, Pixel gleich). Die Prüfung vergleicht
+jetzt die dekodierten Werte; ein Encoder-Wechsel ist keine Geländeänderung (nachgestellt: kein Alarm mehr).
+
+**Origin-TTL, gemessen:** Push 15:48:08 → `@main/index.json` um 16:36:20 **immer noch alt** (Purge jede Minute, danach `MISS, HIT`/`MISS, MISS`) ⇒ **≥ 48 min**; die 12-h-`s-maxage` gilt offenbar auch am Origin. Für den Client ist der CDN-Index damit nur eine Reserve, der Zeiger die Quelle.
 
 **Was noch aussteht:** der erste Lauf mit der neuen Vorlage (Slot Lauf + 40, Warteschleife, bzip2, Sparse-Klon) —
 sobald Jan `scripts/repack-repo/workflow-build.yml` als `.github/workflows/build.yml` ins Daten-Repo pusht. Der
