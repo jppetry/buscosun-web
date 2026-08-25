@@ -36,6 +36,7 @@ import {
 import { buildRotationRgba, ROTATION_VMIN, ROTATION_VMAX } from './scalarFrameBuild';
 export { ROTATION_VMIN, ROTATION_VMAX } from './scalarFrameBuild';
 import { resolveRepackForRun, loadScalarStep, uvBoundsOf } from './repackSource';
+import { stepsForNowWindow } from './frameAtValidTime';
 
 export const ICON_D2_ROTATION_ATTRIBUTION =
   'Rotationspotenzial: <a href="https://www.dwd.de/EN/ourservices/opendata/opendata.html" ' +
@@ -115,11 +116,16 @@ function buildRotationImage(uh: GribField, uhLow: GribField | null, sdi: GribFie
 export async function fetchIconD2Rotation(
   signal?: AbortSignal,
   onProgress?: (partial: IconD2Rotation) => void,
+  /** H13 (BW-8): im Nur-Jetzt-Modus der Karte (`START_NOW_ONLY`) NUR das Fenster
+   *  „jetzt" … „jetzt + aheadHours" laden (`stepsForNowWindow`), wie Wind/Temp/Böen —
+   *  ohne die Option alle Schritte, wie bisher. */
+  opts?: { nowOnly?: boolean; aheadHours?: number },
 ): Promise<IconD2Rotation> {
   // uh_max ist der Rotations-/Domänenanker & immer publizierter Param → löst Lauf/Steps auf.
   const { runStr, runAt, steps } = await resolveLatestRun('uh_max', signal);
   // Intervall-Maximum → Analyse-Schritt 0 degeneriert überspringen (minStepHours=1).
-  const wanted = steps.filter((s) => s >= 1 && s <= MAX_STEP);
+  const capped = steps.filter((s) => s >= 1 && s <= MAX_STEP);
+  const wanted = opts?.nowOnly ? stepsForNowWindow(capped, runAt, opts.aheadHours ?? 0) : capped;
   if (wanted.length === 0) throw new Error('ICON-D2 Rotation: keine Schritte im Horizont');
 
   // BW-6c: liegen die Bilder für GENAU DIESEN Lauf im Daten-CDN? Geprüft

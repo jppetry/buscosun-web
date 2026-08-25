@@ -826,6 +826,20 @@ if (hsurfGreys.length >= 2) {
       new RegExp(`\\b${fn}\\(`).test(src) && !/Math\.round\(clamp01/.test(src)
       && new RegExp(`loadScalarStep\\(section, (?:'${f}'|mode === 'depth' \\? 'snowDepth' : 'snowFresh'), step, signal\\)`).test(src),
       file);
+    // H13 (BW-8): Nur-Jetzt-Fenster wie Wind/Temp/Böen — der Loader nimmt `nowOnly`
+    // über `stepsForNowWindow`, sonst lädt jede Aktivierung alle 13/25 Schritte.
+    add(`Client ${f}: Nur-Jetzt-Fenster über \`stepsForNowWindow\` (H13)`,
+      /opts\?\.nowOnly \? stepsForNowWindow\(capped, runAt, opts\.aheadHours \?\? 0\) : capped/.test(src)
+      && /import \{ stepsForNowWindow \} from '\.\/frameAtValidTime'/.test(src),
+      file);
+  }
+  {
+    const mv = rf('src/MapView.tsx', 'utf8');
+    const passes = (mv.match(/\{ nowOnly: START_NOW_ONLY && !embedded, aheadHours: forecastAheadHRef\.current \}\); \/\/ H13/g) ?? []).length;
+    add('MapView reicht `nowOnly` an Gewitter/Blitz/Schnee/Rotation durch (4 Aufrufstellen, H13)', passes === 4, `${passes}/4`);
+    const widen = ['thunder', 'lightningfc', 'snow', 'rotation']
+      .every((k) => new RegExp(`if \\(active\\.has\\('${k}'\\)\\) void install\\w+Ref\\.current\\?\\.\\(\\);`).test(mv));
+    add('MapView erweitert das Fenster der vier Layer beim ersten Slider-Zug (H13)', widen);
   }
   {
     const src = rf('src/sources/iconD2Precip.ts', 'utf8');

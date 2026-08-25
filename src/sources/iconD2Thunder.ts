@@ -28,6 +28,7 @@ import {
 import { buildThunderRgba, THUNDER_VMIN, THUNDER_VMAX } from './scalarFrameBuild';
 export { THUNDER_VMIN, THUNDER_VMAX } from './scalarFrameBuild';
 import { resolveRepackForRun, loadScalarStep, uvBoundsOf } from './repackSource';
+import { stepsForNowWindow } from './frameAtValidTime';
 
 export const ICON_D2_THUNDER_ATTRIBUTION =
   'Gewitterpotenzial: <a href="https://www.dwd.de/EN/ourservices/opendata/opendata.html" ' +
@@ -110,10 +111,15 @@ function buildThunderImage(cape: GribField, cin: GribField | null, lpi: GribFiel
 export async function fetchIconD2Thunder(
   signal?: AbortSignal,
   onProgress?: (partial: IconD2Thunder) => void,
+  /** H13 (BW-8): im Nur-Jetzt-Modus der Karte (`START_NOW_ONLY`) NUR das Fenster
+   *  „jetzt" … „jetzt + aheadHours" laden (`stepsForNowWindow`), wie Wind/Temp/Böen —
+   *  ohne die Option alle Schritte, wie bisher. */
+  opts?: { nowOnly?: boolean; aheadHours?: number },
 ): Promise<IconD2Thunder> {
   // cape_ml ist der Energieanker & immer publizierte Param → löst Lauf/Steps auf.
   const { runStr, runAt, steps } = await resolveLatestRun('cape_ml', signal);
-  const wanted = steps.filter((s) => s <= MAX_STEP);
+  const capped = steps.filter((s) => s <= MAX_STEP);
+  const wanted = opts?.nowOnly ? stepsForNowWindow(capped, runAt, opts.aheadHours ?? 0) : capped;
   if (wanted.length === 0) throw new Error('ICON-D2 Gewitter: keine Schritte im Horizont');
 
   // BW-6c: liegen die Bilder für GENAU DIESEN Lauf im Daten-CDN? Geprüft

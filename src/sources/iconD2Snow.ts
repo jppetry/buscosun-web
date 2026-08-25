@@ -35,6 +35,7 @@ import {
 import { buildSnowDepthRgba, buildSnowFreshRgba, SNOW_DEPTH_VMAX_CM, SNOW_FRESH_VMAX_CM } from './scalarFrameBuild';
 export { SNOW_DEPTH_VMAX_CM, SNOW_FRESH_VMAX_CM } from './scalarFrameBuild';
 import { resolveRepackForRun, loadScalarStep, uvBoundsOf } from './repackSource';
+import { stepsForNowWindow } from './frameAtValidTime';
 
 export type SnowMode = 'depth' | 'fresh';
 
@@ -116,13 +117,18 @@ export async function fetchIconD2Snow(
   mode: SnowMode,
   signal?: AbortSignal,
   onProgress?: (partial: IconD2Snow) => void,
+  /** H13 (BW-8): im Nur-Jetzt-Modus der Karte (`START_NOW_ONLY`) NUR das Fenster
+   *  „jetzt" … „jetzt + aheadHours" laden (`stepsForNowWindow`), wie Wind/Temp/Böen —
+   *  ohne die Option alle Schritte, wie bisher. */
+  opts?: { nowOnly?: boolean; aheadHours?: number },
 ): Promise<IconD2Snow> {
   const vMax = mode === 'depth' ? SNOW_DEPTH_VMAX_CM : SNOW_FRESH_VMAX_CM;
   // Lauf/Steps über den jeweils Pflicht-Param auflösen (immer publiziert).
   const anchorParam = mode === 'depth' ? 'h_snow' : 'snow_gsp';
   const { runStr, runAt, steps } = await resolveLatestRun(anchorParam, signal);
   // Neuschnee: Step 0 ist als Akkumulation strukturell 0 → auslassen (minStepHours=1).
-  const wanted = steps.filter((s) => s <= MAX_STEP && (mode === 'depth' || s >= 1));
+  const capped = steps.filter((s) => s <= MAX_STEP && (mode === 'depth' || s >= 1));
+  const wanted = opts?.nowOnly ? stepsForNowWindow(capped, runAt, opts.aheadHours ?? 0) : capped;
   if (wanted.length === 0) throw new Error('ICON-D2 Schnee: keine Schritte im Horizont');
 
   // BW-6c: liegen die Bilder für GENAU DIESEN Lauf im Daten-CDN? Geprüft

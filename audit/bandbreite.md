@@ -3004,3 +3004,161 @@ Er wählt jetzt den Lauf aus `state.json` des Producers.
 
 **Gate GBW7:** wie GBW6 offen an derselben Zeile (Push ins Daten-Repo, §25.12); Browser-Beleg für
 `/regenradar` danach: DE-Sitzung erwartet **16,6 → ≈ 1,4 MiB**, davon Netlify ≈ 0,9 MiB (Shell + RV).
+
+---
+
+# 27. BW-8 — Plattform-Inventar: was noch über Netlify läuft (Diagnose, 2026-08-25)
+
+**Auftrag (Jan):** „die Plattform analysieren und schauen, wo wir noch die Bandbreite über Netlify
+reduzieren oder vermeiden — ohne die Qualität zu beeinflussen." Reine Diagnose, kein Code.
+Methode: alle 13 Routen am Code durchgezogen (Trigger, Deckel, Requests je Aufruf), Dateigrößen
+per HEAD gegen die echten Upstreams gemessen (Läufe 2026082418/2026082400), Prod-Header per HEAD
+gegen `buscosun.com`. Vier parallele Prüfläufe, hier zusammengeführt.
+
+## 27.1 Transportwege — was Netlify je Weg kostet
+
+| Weg | Mechanik | Cache | Egress zählt? |
+|---|---|---|---|
+| `cdn.jsdelivr.net` (Repack) | extern | immutable | **nein** |
+| `/_dwd_grib`, `/_dwd_wind` | Edge Function | durable 6 h | ja (Cache spart Upstream, nicht Egress, §4.1) |
+| `/_firms` | Edge Function | durable 30 min | ja — **liefert in Prod derzeit 503** (`FIRMS_MAP_KEY` fehlt im Deploy) |
+| `/_dwd_opendata`, `/_meteoalarm`, `/_gfs`, `/_cscs`, `/_mf`, `/_ecmwf` | einfacher Rewrite | **keiner** | ja, jedes Byte |
+| `dist/*` (Shell, `public/`) | statisch | **kein `_headers`, kein `[[headers]]`** → alles `max-age=0, must-revalidate`, live belegt auch für `/assets/maplibre-*.js` | ja |
+
+## 27.2 Inventar nach Volumen je Aufruf (gemessen)
+
+| # | Posten | Weg | je Aufruf | Auslöser | Datei |
+|---|---|---|---:|---|---|
+| 1 | **ICON-EU-Sondierung** (10 Druckflächen × T/RH/U/V + 5 Bodenfelder = 45 Dateien à ~1,08 MB) | `/_dwd_opendata` | **48,5 MB** | `/atmosphaere` mit Marker (URL-Hash oder Wiederkehr ⇒ **beim Öffnen**), jeder Marker- **und jeder Stunden-Schritt** des Scrubbers (`[lat, lon, hour]`-Deps, 500 ms Debounce); auch `/globus` → Sondierung | `iconEuSounding.ts:141-199`, `AtmosphereProfile.tsx:73` |
+| 2 | **ICON-EU-Höhenwind** 850/700/500 (13 Schritte × U+V) | `/_dwd_opendata` | **28,9 MB je Ebene** (500 hPa 26,4), alle drei 83 MB | Wetterkarte, Wind-Dock „Höhe" | `iconEuPressureWind.ts:29-35`, `MapView.tsx:3374-3410` |
+| 3 | **Modell-Umschalter** (Fusion): ICON-D2-EPS ~200 MB (`/_dwd_grib`) · ICON-CH1-EPS 69 MB (34,4 MB `horizontal_constants` einmalig) · ICON global 50–55 MB · AROME-FR 49 MB · AICON 42 MB · ICON-CH2 17 MB · ICON-EU 15 MB · IFS/AIFS 9 MB · ARPEGE 5 MB, aber **≤ 700 sequenzielle 768-B-Ranges** | `/_dwd_opendata`, `/_cscs`, `/_mf`, `/_ecmwf` | s. links | nur auf Modellwahl — **oder Deep-Link `?modell=…` beim Öffnen**. **Jede Wahl lädt doppelt**: Phase A `hours: 6`, Phase B `hours: 24`, `sourceKey` enthält `hours` ⇒ zweiter Netzlauf für ECMWF/ARPEGE/AICON (kein Cache-API-Layer) | `loadFusedForecast.ts:138-141`, `MapView.tsx:1700/1719` |
+| 4 | **Waldbrand-Treiber**: `relhum_2m` 25 × 1,1 MB = 27,5 MB (**in der Default-Ansicht**), `smi` 25 × 0,8 MB = 20,4 MB je Tiefe | `/_dwd_grib` (Daten) + **`/_dwd_opendata`-Listing** (`smi` **143 KB** ungecacht ×1–6, je Tiefenwechsel erneut; `relhum` 19 KB) | 27,5 / 20,4 MB | `/waldbrand` öffnen bzw. Bodenlayer | `iconD2Relhum.ts:55`, `iconD2Smi.ts:86`, `iconD2Precip.ts:381-437` (kein Manifest-Gate für `smi`) |
+| 5 | **Globus**: `/_gfs`-Ranges ~1 MB je Kaltsitzung (mit 3 Prefetch-Frames), **Animation ≈ 9,9 MB je 0…120-h-Schleife, läuft endlos**, `GRID_CACHE_MAX 72 < 123` Frames ⇒ zweite Schleife lädt neu; dazu `coastline-50m.geojson` 1,64 MB + `borders-50m.geojson` 0,76 MB ungehasht von Netlify | `/_gfs`, `public/globe` | 3,4 MB kalt, +9,9 MB je Schleife | `/globus` öffnen, ▶ | `gfs.ts:108`, `GlobePage.tsx:22,95-113`, `globeStyle.ts:60-61` |
+| 6 | **Dock-verborgene Layer** `clouds` 14,8 MB, `confidence` ~4,7 MB (Vorlauf), nur per `#m=` erreichbar | `/_dwd_grib` + Listing `clcl` 18 KB | s. links | Permalink | `MapView.tsx:5356-5386` |
+| 7 | **Warnungen**: CH-Atom-Index **265 KB roh / 82 KB gz** je Abruf + DE-CAP-Zip 13 KB (ruhig) … ~110 KB (Unwetter) + je CH-Warnung ein CAP-Dokument | `/_meteoalarm`, `/_dwd_opendata` | ~0,1–0,4 MB | `/warnungen` beim Öffnen, **alle 5 min** + jeder `visibilitychange`, Speicher-TTL nur 60 s | `MapView.tsx:359,3014`, `meteoAlarmCh.ts:84` |
+| 8 | **Regenradar DE**: RV-Tar 0,36 MB je 5 min; Konrad3D-Listing **78,5 KB** + XML ~0,6 MB je 5 min | `/_dwd_opendata` | ~1 MB je 5 min | Layer aktiv | `dwdKonrad3d.ts:20`, `radolan.ts` |
+| 9 | **Statik ohne Cache-Header**: JS/CSS (975 KB gz, hash-benannt, trotzdem `must-revalidate` ⇒ ~20 bedingte Requests je Warmstart), Fonts 516 KB, `fire/bh/index-season` 1,21 MB + `thermal-sites` 199 KB + `places-dach` 328 KB **mit `cache: 'no-store'`** (Umgehung der SW-Falle, s. 27.3) ⇒ je Sitzung voll neu; `params/background-v1.json` **164 KB ohne einen Aufrufer** | Netlify | — | jede Sitzung | `historyLoad.ts:45`, `thermalSites.ts:186`, `sw.js:49` |
+| 10 | Manifeste: `/latest-grib.json` 7 KB `no-store` mit 60-s-TTL; `/latest-wind.json` `no-store` **ohne jede TTL** ⇒ jeder `resolveWindRunFromManifest` ein Request | Netlify | 7 KB | je Auflösung | `iconD2WindSource.ts:101` |
+
+**Nie Netlify (belegt):** `/vorhersage` (Open-Meteo-Familie direkt), `/wetterarchiv` (Meteostat direkt),
+`/tourenplanung` (nur UV-JSON 3 KB nach Upload), EFFIS/GWIS/EMS/EEA/GeoSphere direkt, Basemap, DEM.
+Tote Pfade: `dwdFireIndex.ts`, `fetchRyLatest`, `gfsSounding.ts`, `public/globe/temp.png`.
+
+## 27.3 Drei strukturelle Befunde (betreffen alle Posten)
+
+**S1 — Kein einziger Cache-Header.** `netlify.toml` hat keinen `[[headers]]`-Block, `public/_headers`
+fehlt. Netlify liefert daher auch die hash-benannten Vite-Chunks mit `max-age=0, must-revalidate`:
+jeder Warmstart revalidiert ~20 Chunks (304, aber je ein Round-Trip). Ein `_headers` mit
+`/assets/*` und `/fonts/*` → `immutable`, `/fire/bh/ev/*` lang (versioniert) kostet nichts an Qualität.
+
+**S2 — Der Service Worker (`public/sw.js:49-52,104-118`) kennt die Proxys nicht.** `ASSET_RE` matcht
+nach **Endung**, nicht nach Hash: `/_dwd_opendata/**/uvi.json`, `s31fg.json`, `/latest-*.json`,
+`/fire/bh/*.json`, `/globe/*.geojson` laufen als „gehashte Assets" mit Stale-While-Revalidate —
+das `cache: 'no-store'` der App wird vom SW überstimmt (**der erste Paint nach Reload zeigt UV/Pollen
+vom Vortag**), und SWR feuert den Netzabruf ohnehin immer ⇒ null Ersparnis, `bsc-assets` wird **nie
+getrimmt**. Alles andere (`.grib2.bz2`, `.tar.bz2`, `.zip`, `.xml`, `/_firms`, `/_meteoalarm`) landet
+network-first in `bsc-data` — **jede GRIB-Datei liegt zweimal** (komprimiert im SW, dekomprimiert in
+`icon-d2-grib-decompressed-v1`), jeder RV-Tar zweimal, ein 16-MB-AROME-File zweimal. Die V-BW-7-Ausnahme
+wurde nur für `cdn.jsdelivr.net` gebaut, nie für `/_dwd_*`. 206-Antworten (GFS/ECMWF/ARPEGE-Ranges)
+fliegen still raus (`cache.put` wirft, wird geschluckt). Sechs Dateien tragen deshalb heute ein
+`no-store` als Umgehung (`historyLoad.ts:45,76`, `historyDetail.ts:40`, `thermalSites.ts:186`,
+`estimate.ts:141`, `gribManifest.ts:67`, `iconD2WindSource.ts:101`) — und bezahlen es mit vollen
+Downloads je Sitzung (1,21 MB Saison-Index, 328 KB Orte, 199 KB Standorte).
+
+**S3 — Die Edge Functions können ICON-EU strukturell nicht** (`dwd-grib.ts:32` Whitelist `icon-d2`,
+`icon-d2-eps`; `dwd-wind.ts:29`). Posten 1, 2 und 3 (ICON global, AICON, ICON-EU) laufen deshalb über
+den **ungecachten** Rewrite — ein Edge-Cache würde den Egress ohnehin nicht senken (§4.1), ein Repack
+könnte es. Beide Änderungswege (Whitelist, Repack-Familie) sind STOPP & FRAGEN.
+
+## 27.4 Hebel, gereiht nach Wirkung ÷ Aufwand — alle ohne Qualitätsverlust
+
+| # | Hebel | spart | Aufwand | Qualität | Zone |
+|---|---|---|---|---|---|
+| H1 | **`public/_headers`**: `/assets/*`, `/fonts/*`, `/fire/bh/ev/*`, `/globe/*` immutable/lang; Shells + `latest-*.json` bleiben revalidate | ~20 Requests je Warmstart auf jeder Route; Globus 2,4 MB je Wiederbesuch | 1 Datei | keine — Hash/Version im Namen | frei |
+| H2 | **SW-Deny-Liste** für `/_dwd_*`, `/_gfs`, `/_mf`, `/_ecmwf`, `/_cscs`, `/_firms`, `/_meteoalarm` (Durchreichen wie jsDelivr) + `isHashedAsset` auf `/assets/` bzw. Vite-Hash begrenzen; danach die sechs `no-store` fallen lassen ⇒ ETag/304 für die Fire-Artefakte | Doppelspeicherung weg, UV/Pollen aktuell, 1,7 MB Fire-Statik je Sitzung → 304 | SW-Datei (Cache-Bump v3 → v4, eigener Gate-Punkt) | **besser** (kein Vortags-UV) | SW = STOPP & FRAGEN |
+| H3 | **Sondierung: `hour` aus den Effekt-Deps nehmen** — alle 48 Schritte liegen im selben Lauf; je Marker einmal laden und die Stunde aus dem Cache-API-Treffer bedienen, statt je Scrubber-Halt 45 neue Dateien | 48,5 MB je Stundenschritt (Sitzung mit 4 Halts: 190 → 48 MB) | mittel | keine — dieselben Dateien | Client |
+| H4 | **Repack-Familien für ICON-EU** — Sondierung (Producer legt je Lauf die 10 Druckflächen × 4 Felder als PNG ab) und Höhenwind (Muster `wind`, 3 Ebenen × 13 Schritte) | 48,5 MB → ~3 MB je Sondierung; 28,9 MB → ~2 MB je Ebene | groß (eigenes Gitter 1377×657; BW-6-Mechanik trägt es) | Sondierung: **prüfen** — 8-bit-Quantisierung T 0,2 K / RH 0,4 % liegt unter der Modellunsicherheit, muss aber am Profil belegt werden (BW-P-Muster); Höhenwind: wie `wind`, verlustfrei bewiesen | Repack |
+| H5 | **Fusion Phase A/B**: `sourceKey` ohne `hours` bzw. Phase B aus Phase-A-Bytes | ECMWF 9 MB, AICON 42 MB, ARPEGE 700 Round-Trips je Modellwahl | klein | keine | **Fusion = STOPP & FRAGEN** |
+| H6 | **`smi`/`relhum`/`clcl` ins Manifest-Gate** (Warm-Cron-Liste) statt HTML-Listing; `smi`-Run-Cache ohne Ebenen-Schlüssel | 143 KB je Bodenlayer-Aktivierung/Tiefenwechsel, 19 KB je Waldbrand-Öffnung | klein | keine | Warm-Cron-Liste = STOPP & FRAGEN |
+| H7 | **Globus**: `GRID_CACHE_MAX` 72 → ≥ 130 (RAM ~34 MB) oder Schleife nach einem Durchlauf anhalten; GeoJSON per H1 | 9,9 MB je weiterer Schleife | klein | keine | Client |
+| H8 | **Warnungen**: CH-Atom-Index bedingt (`If-None-Match`) oder Speicher-TTL 60 s → 5 min (Takt ist ohnehin 5 min) | 265 KB je 5 min je offener Warnseite | klein | keine — Takt bleibt 5 min, Lizenz §7 unberührt | Client |
+| H9 | **`FIRMS_MAP_KEY` im Deploy setzen** | 3–6 Fehl-Invocations je Waldbrand-Sitzung; **Hotspots laufen heute nur über den GWIS-Fallback** | Netlify-UI | **besser** (Primärquelle zurück) | Jan |
+| H10 | `public/params/background-v1.json` löschen (kein Aufrufer), `globe/temp.png` löschen | 344 KB Deploy | trivial | keine | Löschen = fragen |
+| H11 | `/latest-wind.json` mit 60-s-TTL wie `gribManifest.ts` | 7 KB je Auflösung | trivial | keine | Client |
+| H12 | Konrad3D: Listing (78,5 KB je 5 min) durch berechneten Zeitstempel ersetzen (BW-5-Muster `guessRvRuns`) | 78 KB je 5 min | klein | keine (404-Rat wie RV) | Client |
+
+**Nicht empfohlen:** RADOLAN-Repack (V-BW-29) · Modell-Umschalter-Repack für ICON global/AICON/
+AROME/CH-EPS (Opt-in, selten, je Modell eine eigene Gitter-Familie — Volumen je Klick hoch, je Monat
+vermutlich klein; erst Netlify-Analytics lesen, **welche** Modelle überhaupt gewählt werden) ·
+Edge-Cache für `/_dwd_opendata` (senkt Egress nicht, §4.1).
+
+## 27.5 Was ich nicht weiß — und was die Reihenfolge entscheidet
+
+Alle Zahlen sind **je Aufruf**. Was auf der Rechnung steht, ist Aufruf × Häufigkeit, und die
+Häufigkeit kennt nur das Netlify-Analytics-Panel (Top-Pfade nach Bytes). Ohne diese Zahl ist H1/H2
+sicher richtig (trifft jede Sitzung) und H3/H4 wahrscheinlich richtig (ein Atmosphären-Nutzer =
+50–200 MB, das sind 7–28 Wetterkarten-Sitzungen vor BW-4). Vorschlag: **Jan liest die Top-20-Pfade
+nach Bytes der letzten 30 Tage ab**, dann wird aus der Reihung ein Plan.
+
+**V-Katalog-Nachtrag (§12):** V-BW-30 kein Cache-Header auf Netlify (S1) · V-BW-31 SW-Endungsregel und Doppelspeicherung der Proxys (S2) · V-BW-32 Sondierung lädt je Stundenschritt 45 Dateien (H3) · V-BW-33 Fusion Phase A/B doppelter Netzlauf (H5) · V-BW-34 `smi` ohne Manifest-Gate (H6) · V-BW-35 Globus-Schleife > Grid-Cache (H7) · V-BW-36 `FIRMS_MAP_KEY` fehlt im Prod-Deploy (H9).
+
+## 27.6 Jans Netlify-Log vom 2026-08-25, 01:17–01:21 (Nachtrag)
+
+Eine Sitzung der Wetterkarte mit Gewitter · Rotation · Blitzprognose · Schnee · Böen, Lauf
+2026082421, alles über `/_dwd_grib` (Antwortzeiten 6–45 s je `cape_ml`/`cin_ml` = Edge-Miss,
+frischer Lauf). Drei Befunde:
+
+1. **Das ist exakt der BW-6-Posten** (§25.10: 63 Abrufe, 31,9 MB) — er verschwindet, sobald der
+   Batch die neuen Familien rechnet (Commit von `main` genügt, Gate GBW6).
+2. **Gewitter, Rotation, Blitzprognose und Schnee kennen `nowOnly` nicht.** Wind/Temp/Böen laden
+   im Nur-Jetzt-Modus das Jetzt-Bracket (`stepsForNowWindow`, `iconD2GustSource.ts:82`,
+   `iconD2TempSource.ts:179`); `fetchIconD2Thunder/Rotation/Lpi/Snow` (`MapView.tsx:2234-2298`)
+   bekommen keine `opts` und laden **alle** Schritte (13 bzw. 25) — im Log sichtbar `cape_ml` 5…12
+   und `h_snow` 7…24. **Hebel H13**: dieselbe Option an die vier Loader, spart heute ~85 % je
+   Aktivierung (Gewitter 9,4 MB je Stunde × 13 → × 2) und nach BW-6 die entsprechenden PNG-Abrufe
+   vom CDN. Keine Qualitätsänderung: der Slider lädt nach (Muster Wind/Temp seit 2026-07-23).
+3. **RV-Listing trotz BW-5** (01:20:05, 1,1 s, danach Tar 2315): der Rat (`guessRvRuns`, 3 Kandidaten)
+   greift nur, wenn der jüngste Lauf schon veröffentlicht ist; bei > 5 min Verzug fällt er auf das
+   Listing (benannter Fallback, `radolan.ts:301`). Billiger: `RV_GUESS_TRIES` 3 → 4 (ein 404 ≈ 0 B
+   gegen 154 KB HTML). Kleinposten, H14.
+4. `/sw.js` sechsmal in 20 s (304, ~0 B) — Update-Check je Registrierung; Requests, keine Bytes.
+
+## 27.7 H13 umgesetzt — Nur-Jetzt-Fenster für Gewitter · Blitzprognose · Schnee · Rotation (Gate GH13, 2026-08-25)
+
+**Auftrag (Jan): „dann baue nur H13."** Reiner Client, kein STOPP-Bereich.
+
+**Was gebaut wurde.** `fetchIconD2Thunder/Lpi/Snow/Rotation` nehmen dieselbe Option wie Wind/Temp/Böen
+(`opts?: { nowOnly, aheadHours }` → `stepsForNowWindow(capped, runAt, aheadHours)`), ohne Option
+unverändert alle Schritte. `MapView.tsx` reicht `{ nowOnly: START_NOW_ONLY && !embedded, aheadHours:
+forecastAheadHRef.current }` an den vier Aufrufstellen durch und nimmt die vier Layer in den
+Slider-Effekt auf, der beim ersten Zug das Fenster erweitert. Kill-Switch unverändert `?startnow=0`
+(dann alle Schritte). Eingebettete Karten (Event-Tagesablauf) laden wie bisher vollständig.
+
+**Verifier.** `verify:repack` **249/249** (neu: je Familie der `stepsForNowWindow`-Anker, 4/4
+Aufrufstellen, Slider-Effekt); `typecheck` grün; Budget totalJs 975,5/1017,7 KB.
+
+**Browser, Prod-Preview :5199, isolierter Kontext, Lauf 2026082421, 23:56 UTC (nowH ≈ 2,9):**
+
+| | Abrufe `/_dwd_grib` | Schritte je Param |
+|---|---:|---|
+| vorher (Jans Log 01:17, §27.6) | 13 × 3 + 12 + 25 = **76** je Aktivierung | Gewitter 0…12, Schnee 0…24 |
+| **nachher, Öffnen mit vier Layern** | 8 Params × 2 Schritte = **16** (gezählt 33, s. u.) | **[2, 3]** — das Jetzt-Bracket |
+| **nachher, Slider auf +1 h** | +16 | **[2, 3, 4, 5]** = jetzt … +2 h (`NOWONLY_AHEAD_H`), identisch zu Wind/Temp |
+
+Konsole leer. Screenshots `audit/screenshots/h13-desktop-1440-vier-layer-jetzt-fenster.png`,
+`h13-mobile-390-vier-layer-jetzt-fenster.png`. Nach BW-6 gelten dieselben Zahlen für die PNG-Abrufe
+vom CDN (16 statt 76 Bilder je Aktivierung).
+
+**Nebenbefund V-BW-37 (vorbestehend, nicht gebaut):** beim Mount mit aktiven Layern aus der URL feuert
+jeder Install **zweimal** (Schnee dreimal: Lazy-Effekt + Modus-Effekt) — Resource Timing zeigt
+`cape_ml` Schritt 2 zweimal mit Start 792/797 ms und gleicher Dauer, `transferSize 0`. Der Guard
+`!iconD2ThunderRef.current` schützt nicht, solange der erste Abruf läuft; `fetchDecompressedCached`
+entdoppelt In-Flight nicht (`shareInFlight` aus BW-5 wird dort nicht benutzt). Ob der zweite Abruf den
+Origin trifft oder Chromes Cache-Lock ihn koalesziert, ist am Preview nicht entscheidbar (SW liefert
+`transferSize 0`) — am Netlify-Log prüfbar: erscheint dieselbe Datei zweimal in derselben Sekunde?
+Jans Log vom 01:17 zeigt **keine** Doppel-Zeilen ⇒ vermutlich koalesziert, Kosten = 0 Bytes.
+Fix wäre `shareInFlight` in `fetchDecompressedCached` (eine Zeile). Getrennt entscheiden.
+
+**Fünf Fragen:** (1) Funktionserhalt — Layer zeichnen unverändert, Slider lädt nach (belegt);
+(2) Desktop pixelgleich — kein UI-Code berührt; (3) Touch — keine UI-Änderung; (4) Konsole leer;
+(5) Long Tasks — weniger Dekodes als vorher, nicht neu gemessen.

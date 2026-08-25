@@ -35,6 +35,7 @@ import {
 import { buildLpiRgba, LPI_VMIN, LPI_VMAX } from './scalarFrameBuild';
 export { LPI_VMIN, LPI_VMAX } from './scalarFrameBuild';
 import { resolveRepackForRun, loadScalarStep, uvBoundsOf } from './repackSource';
+import { stepsForNowWindow } from './frameAtValidTime';
 
 export const ICON_D2_LPI_ATTRIBUTION =
   'Blitz-Vorhersage: <a href="https://www.dwd.de/EN/ourservices/opendata/opendata.html" ' +
@@ -103,10 +104,15 @@ function buildLpiImage(lpi: GribField, ss: number): Omit<IconD2LpiFrame, 'validA
 export async function fetchIconD2Lpi(
   signal?: AbortSignal,
   onProgress?: (partial: IconD2Lpi) => void,
+  /** H13 (BW-8): im Nur-Jetzt-Modus der Karte (`START_NOW_ONLY`) NUR das Fenster
+   *  „jetzt" … „jetzt + aheadHours" laden (`stepsForNowWindow`), wie Wind/Temp/Böen —
+   *  ohne die Option alle Schritte, wie bisher. */
+  opts?: { nowOnly?: boolean; aheadHours?: number },
 ): Promise<IconD2Lpi> {
   const { runStr, runAt, steps } = await resolveLatestRun('lpi_max', signal);
   // t+0 auslassen: `lpi_max` ist dort als Intervall-Maximum strukturell 0.
-  const wanted = steps.filter((s) => s >= MIN_STEP && s <= MAX_STEP);
+  const capped = steps.filter((s) => s >= MIN_STEP && s <= MAX_STEP);
+  const wanted = opts?.nowOnly ? stepsForNowWindow(capped, runAt, opts.aheadHours ?? 0) : capped;
   if (wanted.length === 0) throw new Error('ICON-D2 Blitz-Vorhersage: keine Schritte im Horizont');
 
   // BW-6c: liegen die Bilder für GENAU DIESEN Lauf im Daten-CDN? Geprüft

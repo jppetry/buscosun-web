@@ -2234,7 +2234,7 @@ export default function MapView({
         const td = await fetchIconD2Thunder(abort.signal, (partial) => {
           iconD2ThunderRef.current = partial;
           if (firstThunder) { firstThunder = false; setNowcastTick((t) => t + 1); } // Tick-Coalescing (s. Wind/Böen)
-        });
+        }, { nowOnly: START_NOW_ONLY && !embedded, aheadHours: forecastAheadHRef.current }); // H13: Jetzt-Fenster wie Wind/Temp/Böen
         iconD2ThunderRef.current = td;
         setNowcastTick((t) => t + 1);
         updateStatus('thunder', { ok: { model: 'DWD ICON-D2 cape_ml·cin_ml·lpi · 2,2 km', fetchedAt: Date.now(), ref: runRef(td.runAt) } });
@@ -2253,7 +2253,7 @@ export default function MapView({
         const ld = await fetchIconD2Lpi(abort.signal, (partial) => {
           iconD2LightningFcRef.current = partial;
           if (firstLpi) { firstLpi = false; setNowcastTick((t) => t + 1); } // Tick-Coalescing (s. Wind/Böen)
-        });
+        }, { nowOnly: START_NOW_ONLY && !embedded, aheadHours: forecastAheadHRef.current }); // H13: Jetzt-Fenster wie Wind/Temp/Böen
         iconD2LightningFcRef.current = ld;
         setNowcastTick((t) => t + 1);
         updateStatus('lightningfc', { ok: { model: 'DWD ICON-D2 lpi_max · 2,2 km', fetchedAt: Date.now(), ref: runRef(ld.runAt) } });
@@ -2277,7 +2277,7 @@ export default function MapView({
           if (seq !== snowSeqRef.current) return; // abgelöst (Modus gewechselt)
           iconD2SnowRef.current = partial;
           if (firstSnow) { firstSnow = false; setNowcastTick((t) => t + 1); } // Tick-Coalescing
-        });
+        }, { nowOnly: START_NOW_ONLY && !embedded, aheadHours: forecastAheadHRef.current }); // H13: Jetzt-Fenster wie Wind/Temp/Böen
         if (seq !== snowSeqRef.current) return;
         iconD2SnowRef.current = sd;
         setNowcastTick((t) => t + 1);
@@ -2298,7 +2298,7 @@ export default function MapView({
         const rd = await fetchIconD2Rotation(abort.signal, (partial) => {
           iconD2RotationRef.current = partial;
           if (firstRot) { firstRot = false; setNowcastTick((t) => t + 1); } // Tick-Coalescing (s. Wind/Böen)
-        });
+        }, { nowOnly: START_NOW_ONLY && !embedded, aheadHours: forecastAheadHRef.current }); // H13: Jetzt-Fenster wie Wind/Temp/Böen
         iconD2RotationRef.current = rd;
         setNowcastTick((t) => t + 1);
         updateStatus('rotation', { ok: { model: 'DWD ICON-D2 uh_max·uh_max_low·sdi_2 · 2,2 km', fetchedAt: Date.now(), ref: runRef(rd.runAt) } });
@@ -3986,6 +3986,11 @@ export default function MapView({
     if (active.has('wind')) void installWindRef.current?.();
     if (active.has('temp')) void installTempRef.current?.();
     if (active.has('gust')) void installGustRef.current?.();
+    // H13 (BW-8): die vier Score-/Schnee-Layer erweitern ihr Fenster genauso.
+    if (active.has('thunder')) void installThunderRef.current?.();
+    if (active.has('lightningfc')) void installLightningFcRef.current?.();
+    if (active.has('snow')) void installSnowRef.current?.();
+    if (active.has('rotation')) void installRotationRef.current?.();
     if (active.has('clouds')) void installCloudsRef.current?.();
     if (active.has('nowcast')) void installIconD2Ref.current?.();
   }, [forecastHour, active]);
