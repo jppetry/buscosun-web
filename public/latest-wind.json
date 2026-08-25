@@ -16,12 +16,12 @@
     11,
     12
   ],
-  "updatedAt": "2026-08-25T02:13:02.217Z",
+  "updatedAt": "2026-08-25T03:08:20.387Z",
   "publishedFor": "https://buscosun.com",
   "repack": {
     "schema": 1,
     "base": "https://cdn.jsdelivr.net/gh/jppetry/buscosun-data",
-    "commit": "98faec5f707829df5790b8cfee67469c1bb3b6ba",
+    "commit": "54d4f0731e4b99f3c77becf3fec8ee45b58800f9",
     "run": "2026082500",
     "runAt": "2026-08-25T00:00:00.000Z",
     "path": "runs/2026082500",
