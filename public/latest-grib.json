@@ -1,7 +1,7 @@
 {
   "run": "2026082503",
   "runAt": "2026-08-25T03:00:00.000Z",
-  "updatedAt": "2026-08-25T05:57:37.780Z",
+  "updatedAt": "2026-08-25T06:49:24.663Z",
   "publishedFor": "https://buscosun.com",
   "params": {
     "t_2m": [
@@ -336,7 +336,7 @@
   "repack": {
     "schema": 1,
     "base": "https://cdn.jsdelivr.net/gh/jppetry/buscosun-data",
-    "commit": "07f5547cd15ed0ca8d1f5621a88587114e38a15a",
+    "commit": "5f952f3ae70eea56cc5f1ccf7dd45a6d3be01c2d",
     "run": "2026082503",
     "runAt": "2026-08-25T03:00:00.000Z",
     "path": "runs/2026082503",
