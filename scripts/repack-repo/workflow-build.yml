@@ -25,12 +25,16 @@ on:
     # BW-9 (§28.5 B1): am DWD-Takt statt stündlich. ICON-D2 läuft alle 3 h; der
     # DWD legt Schritt 000 bei Lauf + 44 min ab und die 48 Schritte bei + 81 min,
     # alles bis Schritt 27 (der Repack-Horizont) bei ≈ + 66 min — gemessen an
-    # 8 Läufen auf die Minute gleich (audit/bandbreite.md §28.1). Der Slot liegt
-    # bei Lauf + 40 — also VOR den Daten: GitHub startet 7–31 min später
-    # (+47…+71), der Producer wartet dann selbst auf den Lauf und seine
-    # Schritte (REPACK_WAIT_SEC). So liegt der Jitter in der Wartezeit statt auf
-    # dem kritischen Pfad: Versatz DWD → CDN ≈ Poll-Pause + Rechnen + Purge.
-    - cron: '40 0,3,6,9,12,15,18,21 * * *'
+    # 8 Läufen auf die Minute gleich (audit/bandbreite.md §28.1; §28.10: das
+    # icosahedral-Gitter liegt ~7 min früher, zählt aber nicht — der Producer
+    # liest regular-lat-lon). Der Slot liegt bei Lauf + 20 —
+    # also sicher VOR den Daten: GitHub startet 7–31 min später (+27…+51), der
+    # Producer wartet dann selbst auf den Lauf und seine Schritte
+    # (REPACK_WAIT_SEC, Budget 40 min reicht bis +67…+91). So liegt der Jitter
+    # in der Wartezeit statt auf dem kritischen Pfad: Versatz DWD → CDN ≈
+    # Poll-Pause + Rechnen + Push + CDN. Ein Slot bei + 40 (erste Fassung) hätte
+    # bei spätem Start (+71) die Daten (+59) schon 12 min liegen lassen.
+    - cron: '20 0,3,6,9,12,15,18,21 * * *'
     # Sicherheitsnetz bei Lauf + 150 min (DWD spät, Slot ausgefallen): steigt bei
     # vollständigem Lauf in ~0,5 min aus — sofern diese Datei den `steps=`-Stand
     # trägt (§28.3: der alte Stand rechnete stündlich neu).

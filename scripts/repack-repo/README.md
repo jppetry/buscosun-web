@@ -63,8 +63,8 @@ GRIB-Pfad zurück.
 
 ## Takt und Frische (BW-9)
 
-Der Batch startet zu den acht ICON-D2-Laufstunden bei Lauf + 40 min — vor den
-Daten — und wartet im Job erst auf den Lauf, dann auf die fehlenden Schritte
+Der Batch startet zu den acht ICON-D2-Laufstunden bei Lauf + 20 min — sicher vor
+den Daten — und wartet im Job erst auf den Lauf, dann auf die fehlenden Schritte
 (DWD: Schritt 000 bei + 44 min, Schritt 027 bei ≈ + 66 min, gemessen an acht
 Läufen), statt stündlich einen zufällig liegenden Slot zu treffen. GitHubs
 Startverzögerung (7–31 min) fällt so in die Wartezeit. Ein zweiter Slot bei

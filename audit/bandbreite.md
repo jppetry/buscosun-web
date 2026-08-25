@@ -3429,6 +3429,47 @@ jetzt die dekodierten Werte; ein Encoder-Wechsel ist keine Geländeänderung (na
 
 **Origin-TTL, gemessen:** Push 15:48:08 → `@main/index.json` um 16:36:20 **immer noch alt** (Purge jede Minute, danach `MISS, HIT`/`MISS, MISS`) ⇒ **≥ 48 min**; die 12-h-`s-maxage` gilt offenbar auch am Origin. Für den Client ist der CDN-Index damit nur eine Reserve, der Zeiger die Quelle.
 
+**Lauf #43 (16:37:14–16:47:12 UTC, Lauf 15z, alter Slot, neuer Producer inkl. Zeiger, ohne bzip2/Sparse-Klon):**
+
+| | |
+|---|---|
+| Klon buscosun-web | **16 s** (in #42: 188 s — GitHub-seitig stark schwankend; der Sparse-Klon bleibt als Deckel drin) |
+| Repack (JS-bz2, Pool 6, Z_RLE, Schrittfolge) | 361 s |
+| Push | 16:43:54 |
+| **Zeiger `runs/2026082515/index.json` erstes 200 auf jsDelivr** | 16:46:10–16:46:25 (Sonde alle 15 s) ⇒ **2,3–2,5 min nach dem Push** |
+| `runs/2026082515/repack.json` erstes 200 (Monitor alle 20 s, seit 15:22 angefragt) | 16:47:17–16:47:37 ⇒ 3,4–3,7 min |
+| Publish-Schritt | 210 s — die Purge-Nachprüfungen (3 × 20 s je Pfad) liefen alle ins Leere, weil jsDelivr ein vorher angefragtes 404 am Origin eine Weile festhält |
+| Versatz DWD (Schritt 27 ≈ 16:05) → CDN | **≈ 41 min** — der alte Slot, wie erwartet |
+
+Lehre zur Frische neuer Pfade: 13:50 waren es 35–57 s, jetzt 2,3–3,7 min — **die ehrliche Spanne ist 1–4 min**, und
+sie hängt daran, ob der Pfad VOR dem Push schon angefragt wurde (die Sonden tun das, ein Client nach Manifest-Sprung
+meist nicht). Der Publisher prüft den Zeiger jetzt bis zu 4 × im Abstand von 45 s nach (nur Protokoll, keine
+Sichtbarkeit) und purgt den Index nur noch einmal ohne Nachprüfung (Origin ≥ 48 min alt, gemessen).
+
 **Was noch aussteht:** der erste Lauf mit der neuen Vorlage (Slot Lauf + 40, Warteschleife, bzip2, Sparse-Klon) —
 sobald Jan `scripts/repack-repo/workflow-build.yml` als `.github/workflows/build.yml` ins Daten-Repo pusht. Der
 Monitor dieser Session misst Lauf 15z weiter (Actions-API, erstes 200 des Zeigers/`repack.json`, CDN-Index).
+
+## 28.10 Versatz DWD-Verzeichnis → GitHub → jsDelivr, je Lauf (Jans Frage, 2026-08-25 19:20 UTC)
+
+Zeitstempel aus `opendata.dwd.de/weather/nwp/icon-d2/grib/<HH>/tot_prec/` (Sekunden im Listing), Push aus der
+Actions-API bzw. dem Commit des Daten-Repos, jsDelivr aus den Sonden. **Das Verzeichnis führt je Schritt ZWEI
+Dateien:** `icosahedral` (natives Gitter, ~7 min früher) und `regular-lat-lon` (das, was Producer und Client
+lesen). Meine erste Messung (§28.1) hatte per Regex beide gemischt und je Lauf das Maximum genommen — das Ergebnis
+(+44/+66/+81) stimmt für `regular-lat-lon`; die Zwischenmessung „027 bei + 59" war das icosahedral-Gitter.
+
+| Lauf | DWD 000 (regular) | DWD 027 (letzter nötiger) | DWD 048 | Push ins Daten-Repo | **Versatz 027 → GitHub** | jsDelivr |
+|---|---|---|---|---|---|---|
+| 09z | 09:44:26 | 10:06:45 | 10:21:11 | ≈ 10:44 (#37, Slot 10:36) | ≈ 38 min | — |
+| 12z | 12:44:20 | 13:06:45 | 13:21:05 | 13:49:13 (#40, Slot 13:39) | 42,5 min | `repack.json` 13:50:10 |
+| 15z | 15:44:26 | 16:06:47 | 16:21:16 | 16:43:54 (#43, Slot 16:37) | 37 min | Zeiger 16:46:10–25 ⇒ **≈ 39–40 min** |
+| 18z | 18:44:31 | 19:06:48 | (Upload lief um 19:20) | **noch nicht** — #45 startete 18:37, VOR dem Lauf, und rechnete 10 min lang 15z nach; 18z kommt erst mit #46 (Slot 19:25 → Start ≈ 19:37, Push ≈ 19:47) | ≈ 40 min (erwartet) |
+
+**Heute also ≈ 37–43 min zwischen „liegt beim DWD" und „liegt auf GitHub", plus 1–4 min bis jsDelivr.** Der Grund ist
+unverändert der stündliche Slot `:25` mit +7…+31 min Jitter, der zufällig zum DWD-Takt liegt — 18z zeigt die
+Pathologie live: der Batch lief, als der Lauf noch nicht existierte, und der nächste Slot ist eine Stunde später.
+
+**Konsequenz für die Vorlage:** Slot von Lauf + 40 auf **Lauf + 20** vorgezogen (`20 0,3,6,9,12,15,18,21`). Bei + 40
+hätte ein später Start (+71) die Daten (+66) schon 5 min liegen lassen; bei + 20 startet der Job bei +27…+51,
+also sicher vor den Daten, und die Warteschleife (Budget 40 min ⇒ bis +67…+91) trägt den Rest. Erwarteter Versatz
+027 → GitHub danach: Rechnen des letzten Schritts (Sekunden) + Push (5–10 s) ⇒ **< 1 min**, bis jsDelivr **1–4 min**.

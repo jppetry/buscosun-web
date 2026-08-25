@@ -784,8 +784,8 @@ if (hsurfGreys.length >= 2) {
       PROD.expectedRunOf(Date.UTC(2026, 7, 25, 13, 47)) === '2026082512'
       && PROD.expectedRunOf(Date.UTC(2026, 7, 25, 2, 59)) === '2026082500'
       && PROD.expectedRunOf(Date.UTC(2026, 7, 25, 3, 0)) === '2026082503');
-    add('Workflow-Vorlage: Slots an den 8 Laufstunden (Lauf + 40 min, VOR den Daten) + Sicherheitsnetz, Warte- und bzip2-Flag gesetzt',
-      /cron: '40 0,3,6,9,12,15,18,21 \* \* \*'/.test(wf) && /cron: '30 2,5,8,11,14,17,20,23 \* \* \*'/.test(wf)
+    add('Workflow-Vorlage: Slots an den 8 Laufstunden (Lauf + 20 min, sicher VOR den Daten) + Sicherheitsnetz, Warte- und bzip2-Flag gesetzt',
+      /cron: '20 0,3,6,9,12,15,18,21 \* \* \*'/.test(wf) && /cron: '30 2,5,8,11,14,17,20,23 \* \* \*'/.test(wf)
       && /REPACK_WAIT_SEC: '2400'/.test(wf) && /REPACK_BZIP2: '1'/.test(wf) && /REPACK_HAVE_STEPS:/.test(wf));
 
     // ── BW-9 A/D: Prefetch-Pool und Schrittfolge ─────────────────────────────

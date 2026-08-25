@@ -271,8 +271,14 @@ async function main() {
   let cdn = { fresh: false, attempts: 0, note: 'Purge übersprungen (REPACK_NO_PURGE=1)' };
   if (process.env.REPACK_NO_PURGE !== '1') {
     // Zuerst der Zeiger des jüngsten Laufs (neuer Pfad ⇒ frisch), dann der Index.
-    const ptr = await purgeIndexUntilFresh({ commit: dataSha, url: runPointerUrl(kept[0]), log: (m) => log(`  CDN Zeiger ${kept[0]}: ${m}`) });
-    cdn = await purgeIndexUntilFresh({ commit: dataSha, firstWaitMs: 0, log: (m) => log(`  CDN Index: ${m}`) });
+    // Gemessen (§28.9): ein neuer Pfad erscheint 1–4 min nach dem Push (jsDelivr
+    // hält ein 404 am Origin eine Weile fest, wenn der Pfad vorher gefragt wurde);
+    // deshalb bis zu 4 Versuche im Abstand von 45 s — das Warten kostet nur
+    // Runner-Zeit, nicht Sichtbarkeit (der Push ist längst durch). Der Index wird
+    // einmal gepurgt und nur noch protokolliert: am Origin ist er ≥ 48 min alt
+    // (gemessen), eine Nachprüfung dort wäre Zeremonie.
+    const ptr = await purgeIndexUntilFresh({ commit: dataSha, url: runPointerUrl(kept[0]), attempts: 4, waitMs: 45_000, log: (m) => log(`  CDN Zeiger ${kept[0]}: ${m}`) });
+    cdn = await purgeIndexUntilFresh({ commit: dataSha, firstWaitMs: 0, attempts: 1, log: (m) => log(`  CDN Index: ${m}`) });
     cdn = { ...cdn, pointer: ptr };
     log(ptr.fresh ? `CDN-Zeiger ${kept[0]} frisch nach ${ptr.attempts} Versuch(en)` : `⚠ CDN-Zeiger NICHT frisch — ${ptr.note}`);
     log(cdn.fresh ? `CDN-Index frisch nach ${cdn.attempts} Purge(s)` : `⚠ CDN-Index NICHT frisch (Origin-Cache, §28.9) — ${cdn.note}`);
