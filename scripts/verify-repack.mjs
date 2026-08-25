@@ -682,6 +682,183 @@ if (hsurfGreys.length >= 2) {
     RS.FIRST_TIMEOUT_MS > 0 && RS.FIRST_TIMEOUT_MS < RS.STEP_TIMEOUT_MS && RS.STEP_TIMEOUT_MS < 19_900,
     `${RS.FIRST_TIMEOUT_MS} ms → ${RS.STEP_TIMEOUT_MS} ms`);
 
+  // ── BW-9: der Index vom CDN (§28.4/§28.5 S1) ─────────────────────────────
+  // Der Client baut den Abschnitt jetzt SELBST aus `index.json`. Das ist genau
+  // die Stelle, an der zwei Kopien derselben Regel auseinanderlaufen könnten
+  // (Cron: `sectionFor`/`pickForRun`; Client: `sectionFromIndex`). Geprüft
+  // wird deshalb Gleichheit — und dass die Konstanten dieselben sind.
+  {
+    const PROD = await import('./repack-icon-d2.mjs');
+    add('Client-Konstante CDN-Basis == die des Cron-Moduls', RS.REPACK_CDN_BASE === RM.CDN_BASE, RS.REPACK_CDN_BASE);
+    add('Client-Konstante Index-URL == `INDEX_CDN_URL` (Branch-Ref, gepurgt)',
+      RS.REPACK_INDEX_CDN_URL === RM.INDEX_CDN_URL && /@main\/index\.json$/.test(RM.INDEX_CDN_URL), RM.INDEX_CDN_URL);
+    add('Purge-URL zeigt auf purge.jsdelivr.net mit demselben Pfad',
+      RM.purgeUrlOf(RM.INDEX_CDN_URL) === 'https://purge.jsdelivr.net/gh/jppetry/buscosun-data@main/index.json');
+    add('Index-Schalter ist default-on; `?repackidx=0` schlägt den Speicher in beide Richtungen',
+      RS.repackIndexFlagFrom('', null) === true && RS.repackIndexFlagFrom('?repackidx=0', '1') === false
+      && RS.repackIndexFlagFrom('?repackidx=1', '0') === true && RS.repackIndexFlagFrom('', '0') === false
+      && RS.repackIndexFlagFrom('?repack=0', null) === true /* der andere Schalter */);
+    add('ohne `window` ist der Index-Weg aus', RS.repackIndexEnabled() === false);
+    if (existsSync(indexPath)) {
+      const index = JSON.parse(rf(indexPath, 'utf8'));
+      const fams = ['wind', ...RM.GRIB_FAMILIES].filter((f) => index.runs.some((r) => r[f]?.steps?.length));
+      const diff = [];
+      for (const r of index.runs) {
+        for (const f of fams) {
+          if (!r[f]?.steps?.length) continue;
+          const a = JSON.stringify(RM.pickForRun(index, r.run, f));
+          const b = JSON.stringify(RS.sectionFromIndex(index, r.run, f));
+          if (a !== b) diff.push(`${r.run}/${f}`);
+        }
+      }
+      add('`sectionFromIndex` (Client) == `pickForRun` (Cron) — jeder Lauf, jede Familie, byte-gleich als JSON',
+        diff.length === 0, diff.length ? diff.join(' · ') : `${index.runs.length} Läufe × ${fams.length} Familien`);
+      add('… und beide kennen einen fremden Lauf nicht',
+        RS.sectionFromIndex(index, '1970010100', 'wind') === null && RM.pickForRun(index, '1970010100', 'wind') === null);
+      const e0 = index.runs[0];
+      const sec = RS.parseRepackSection(RS.sectionFromIndex(index, e0.run, 'wind'), 'wind', e0.run);
+      add('Der Index-Abschnitt besteht dieselbe Prüfung wie der Manifest-Abschnitt',
+        !!sec && sec.commit === index.commit && RS.stepUrl(sec, sec.wind.steps[0].file) === RM.stepUrl(RM.pickForRun(index, e0.run, 'wind'), sec.wind.steps[0].file));
+      if (sec) {
+        const fewer = { ...sec, wind: { ...sec.wind, steps: sec.wind.steps.slice(0, 1) } };
+        add('Wahl: mehr Schritte gewinnen, bei Gleichstand der Index, fehlt einer der andere',
+          RS.chooseSection(fewer, sec, 'wind') === sec && RS.chooseSection(sec, fewer, 'wind') === sec
+          && RS.chooseSection(sec, { ...sec }, 'wind') === sec
+          && RS.chooseSection(null, sec, 'wind') === sec && RS.chooseSection(sec, null, 'wind') === sec
+          && RS.chooseSection(null, null, 'wind') === null);
+      }
+    }
+    // Der Publisher purgt NACH dem Push und prüft die Frische nach (kein Purge = 12 h alter Index).
+    const pub = rf('scripts/publish-repack.mjs', 'utf8');
+    const iPush = pub.indexOf("'--force', 'origin', 'HEAD:main'");
+    const iPurge = pub.indexOf('purgeIndexUntilFresh(');
+    add('Publisher purgt den CDN-Index NACH dem Force-Push und prüft nach',
+      iPush > 0 && iPurge > iPush, `push@${iPush} < purge@${iPurge}`);
+    // Purge-Nachprüfung netzfrei: eine Attrappe, die erst beim zweiten Mal den erwarteten Commit liefert.
+    {
+      let calls = 0;
+      const fake = async (url) => {
+        if (/purge\.jsdelivr\.net/.test(url)) return { ok: true, status: 200, json: async () => ({ status: 'finished' }) };
+        calls++;
+        return { ok: true, status: 200, json: async () => ({ commit: calls >= 2 ? 'a'.repeat(40) : 'b'.repeat(40) }) };
+      };
+      const r = await RM.purgeIndexUntilFresh({ commit: 'a'.repeat(40), attempts: 3, waitMs: 1, firstWaitMs: 0, fetchImpl: fake });
+      const r2 = await RM.purgeIndexUntilFresh({ commit: 'c'.repeat(40), attempts: 2, waitMs: 1, firstWaitMs: 0, fetchImpl: fake });
+      add('Purge wiederholt, bis das CDN den erwarteten Commit liefert — und gibt danach ehrlich auf',
+        r.fresh === true && r.attempts === 2 && r2.fresh === false && r2.attempts === 2 && /erwartet ccccccc/.test(r2.note));
+    }
+
+    // ── BW-9: der Producer wartet auf den Horizont (§28.5 B1) ───────────────
+    const full = Object.fromEntries(RM.FAMILY_KEYS.map((f) => [f, Array.from({ length: RM.FAMILIES[f].maxStep - RM.FAMILIES[f].minStep + 1 }, (_, i) => RM.FAMILIES[f].minStep + i)]));
+    add('stepsMissing: vollständiger Horizont → nichts fehlt', Object.keys(PROD.stepsMissing(full)).length === 0);
+    const half = { ...full, wind: full.wind.filter((s) => s !== 4 && s !== 5), precip: full.precip.slice(0, 20) };
+    const miss = PROD.stepsMissing(half);
+    add('stepsMissing nennt genau die Lücken (Wind 4/5, Niederschlag 20…27)',
+      JSON.stringify(miss.wind) === '[4,5]' && JSON.stringify(miss.precip) === JSON.stringify([20, 21, 22, 23, 24, 25, 26, 27]) && Object.keys(miss).length === 2);
+    add('waitDecision: warten solange Lücke UND Budget; danach rechnen mit dem, was liegt',
+      PROD.waitDecision({ missing: miss, elapsedSec: 10, budgetSec: 2400 }).wait === true
+      && PROD.waitDecision({ missing: miss, elapsedSec: 2400, budgetSec: 2400 }).wait === false
+      && PROD.waitDecision({ missing: {}, elapsedSec: 0, budgetSec: 2400 }).wait === false);
+    const wf = rf('scripts/repack-repo/workflow-build.yml', 'utf8');
+    add('expectedRunOf: der Lauf des laufenden 3-h-Slots (13:47 UTC → 12z, 02:59 → 00z, 03:00 → 03z)',
+      PROD.expectedRunOf(Date.UTC(2026, 7, 25, 13, 47)) === '2026082512'
+      && PROD.expectedRunOf(Date.UTC(2026, 7, 25, 2, 59)) === '2026082500'
+      && PROD.expectedRunOf(Date.UTC(2026, 7, 25, 3, 0)) === '2026082503');
+    add('Workflow-Vorlage: Slots an den 8 Laufstunden (Lauf + 40 min, VOR den Daten) + Sicherheitsnetz, Warte- und bzip2-Flag gesetzt',
+      /cron: '40 0,3,6,9,12,15,18,21 \* \* \*'/.test(wf) && /cron: '30 2,5,8,11,14,17,20,23 \* \* \*'/.test(wf)
+      && /REPACK_WAIT_SEC: '2400'/.test(wf) && /REPACK_BZIP2: '1'/.test(wf) && /REPACK_HAVE_STEPS:/.test(wf));
+
+    // ── BW-9 A/D: Prefetch-Pool und Schrittfolge ─────────────────────────────
+    {
+      let active = 0, maxActive = 0, calls = 0;
+      const fake = (url) => new Promise((res) => { calls++; active++; maxActive = Math.max(maxActive, active); setTimeout(() => { active--; res(Buffer.from(url)); }, 5); });
+      const pool = PROD.createFetchPool({ limit: 6, fetchOne: fake });
+      const urls = Array.from({ length: 20 }, (_, i) => `u${i}`);
+      pool.add(urls); pool.add(urls.slice(0, 5));         // doppelt bestellt = einmal geholt
+      const got = await Promise.all(urls.map((u) => pool.get(u)));
+      const extra = await pool.get('u99');                 // unbekannt → wird nachbestellt
+      add('Prefetch-Pool: höchstens `limit` parallel, jede URL genau einmal, Unbekanntes wird nachbestellt',
+        maxActive === 6 && calls === 21 && got.every((b, i) => b.toString() === `u${i}`) && extra.toString() === 'u99',
+        `maxActive ${maxActive}, Abrufe ${calls}/21`);
+      const pool2 = PROD.createFetchPool({ limit: 2, fetchOne: () => Promise.reject(new Error('down')) });
+      let failed = false; try { await pool2.get('x'); } catch { failed = true; }
+      add('Prefetch-Pool reicht einen Fehlschlag an den Aufrufer durch (kein stiller Hänger)', failed);
+    }
+    {
+      const sb = { wind: [0, 1, 2], temp: [0, 1], precip: [0, 1, 2], cape: [] };
+      const plan = PROD.planUrls('2026082512', sb, ['wind', 'temp', 'precip', 'cape']);
+      const stepOf = (u) => Number(/_(\d{3})_2d_/.exec(u)?.[1] ?? -1);
+      const steps = plan.filter((u) => /_2d_/.test(u)).map(stepOf);
+      // wind = 2 Felder, temp = 1, precip = 1: Schritt 0 → 4 URLs, Schritt 1 → 4, Schritt 2 → 3 (temp endet bei 1), cape leer.
+      add('planUrls: hsurf zuerst, dann Schrittfolge 0,0,0,0,1,1,1,1,2,2,2 über die Familien (nie Familie für Familie)',
+        /hsurf/.test(plan[0]) && JSON.stringify(steps) === JSON.stringify([0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2]) && plan.length === 12,
+        steps.join(','));
+      add('inHorizon: rotation beginnt bei 1, precip endet bei 27',
+        !PROD.inHorizon('rotation', 0) && PROD.inHorizon('rotation', 1) && PROD.inHorizon('precip', 27) && !PROD.inHorizon('precip', 28));
+    }
+
+    // ── BW-9 B: der schnelle PNG-Encoder schreibt DIESELBE Datei wie die Referenz ──
+    {
+      const { encodePng, encodePngReference } = await import('./lib/png.mjs');
+      const imgs = [];
+      // echtes Windbild (3 Kanäle) aus einer Cache-Datei, wenn vorhanden
+      const { readdirSync } = await import('node:fs');
+      const cacheDir = '.cache/repack';
+      const uFile = existsSync(cacheDir) ? readdirSync(cacheDir).find((n) => /_000_2d_u_10m\.grib2\.bz2$/.test(n)) : null;
+      const vFile = uFile ? uFile.replace('u_10m', 'v_10m') : null;
+      if (uFile && vFile && existsSync(join(cacheDir, vFile))) {
+        const { decodeGrib2 } = await import('../src/sources/gribDecode.ts');
+        const u = decodeGrib2(await PROD.decompressBz2(rf(join(cacheDir, uFile)), { binary: false }));
+        const v = decodeGrib2(await PROD.decompressBz2(rf(join(cacheDir, vFile)), { binary: false }));
+        const b = buildWindRgba(u, v, PROD.TARGET_WIDTH);
+        const rgb = new Uint8Array(b.width * b.height * 3);
+        for (let p = 0, s = 0, d = 0; p < b.width * b.height; p++, s += 4, d += 3) { rgb[d] = b.rgba[s]; rgb[d + 1] = b.rgba[s + 1]; rgb[d + 2] = b.rgba[s + 2]; }
+        imgs.push(['Wind 608×373 RGB', b.width, b.height, rgb, 3]);
+      }
+      // deterministisches Pseudo-Rauschen + glatte Verläufe je Kanalzahl (1/2/4)
+      let seed = 12345; const rnd = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) >> 16 & 0xff;
+      for (const [w, h, ch] of [[1215, 746, 1], [301, 97, 2], [64, 48, 4], [7, 5, 3]]) {
+        const d = new Uint8Array(w * h * ch);
+        for (let i = 0; i < d.length; i++) d[i] = i % 3 ? rnd() : (i / ch) % w;   // Mischung: Rauschen + Verlauf
+        imgs.push([`${w}×${h}×${ch}`, w, h, d, ch]);
+      }
+      const bad = [];
+      let tFast = 0, tRef = 0;
+      for (const [name, w, h, d, ch] of imgs) {
+        const t0 = process.hrtime.bigint(); const a = encodePng(w, h, d, ch);
+        const t1 = process.hrtime.bigint(); const b = encodePngReference(w, h, d, ch);
+        const t2 = process.hrtime.bigint();
+        tFast += Number(t1 - t0) / 1e6; tRef += Number(t2 - t1) / 1e6;
+        if (!a.equals(b)) bad.push(name);
+      }
+      add('Schneller PNG-Encoder == Referenz-Encoder, Byte für Byte (Windbild + 4 synthetische, Kanäle 1/2/3/4)',
+        imgs.length >= 4 && bad.length === 0, bad.length ? `ABWEICHEND: ${bad.join(', ')}` : `${imgs.length} Bilder · schnell ${tFast.toFixed(0)} ms, Referenz ${tRef.toFixed(0)} ms`);
+      // Die Deflate-Strategie ist die eigentliche Einsparung (21,2 → 0,46 s je Lauf) — und sie
+      // ist verlustfrei: jedes Bild muss auf dieselben Bytes zurückdekodieren.
+      const { decodePng } = await import('./lib/png.mjs');
+      const { constants: zc, deflateSync } = await import('node:zlib');
+      const roundtrip = imgs.every(([, w, h, d, ch]) => Buffer.from(decodePng(encodePng(w, h, d, ch)).data).equals(Buffer.from(d.buffer ?? d, d.byteOffset ?? 0, d.length)));
+      add('PNG-Encoder nutzt Z_RLE und jedes Bild dekodiert auf exakt seine Eingabe zurück',
+        /strategy: constants\.Z_RLE/.test(rf('scripts/lib/png.mjs', 'utf8')) && roundtrip && typeof zc.Z_RLE === 'number' && typeof deflateSync === 'function');
+    }
+
+    // ── BW-9 (V-BW-27): bzip2-Binary == pure-JS, Byte für Byte ──────────────
+    {
+      const { readdirSync } = await import('node:fs');
+      const cacheDir = '.cache/repack';
+      const sample = existsSync(cacheDir) ? readdirSync(cacheDir).find((n) => n.endsWith('.grib2.bz2')) : null;
+      const hasBin = !(await import('node:child_process')).spawnSync('bzip2', ['--help'], { stdio: 'ignore' }).error;
+      if (!sample) console.log('⊘ bzip2-Vergleich nicht geprüft: keine Datei in .cache/repack');
+      else if (!hasBin) console.log('⊘ bzip2-Vergleich nicht geprüft: kein `bzip2` im PATH');
+      else {
+        const raw = rf(join(cacheDir, sample));
+        const a = Buffer.from(await PROD.decompressBz2(raw, { binary: true }));
+        const b = Buffer.from(await PROD.decompressBz2(raw, { binary: false }));
+        add('bzip2-Binary liefert dieselben Bytes wie pure-JS', a.length > 0 && a.equals(b), `${sample.slice(-40)} · ${a.length} B`);
+      }
+    }
+  }
+
   // ── Der Service Worker ───────────────────────────────────────────────────
   // Die PNGs tragen einen Commit-SHA und `immutable` — der HTTP-Cache genügt.
   // Landeten sie zusätzlich im gedeckelten `bsc-data`, verdrängten sie per FIFO

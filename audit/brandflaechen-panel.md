@@ -621,3 +621,61 @@ Basiskarte (keine Straßen, kein Grün) — die OpenFreeMap-Kacheln kamen nach r
 einem Dutzend Smoke-Läufen nicht mehr. Die App-eigenen Ebenen (Detektionen,
 Hüllen, Flächen) zeichnen normal; ein früherer Lauf desselben Codes zeigt die
 Basiskarte vollständig. Das ist eine Grenze der Messumgebung, kein Befund.
+
+## 12. Nachtrag 2026-08-25 — „Frühere Brandflächen" default-on, Dock bleibt im Brände-Modus (Jans Auftrag)
+
+**Anlass.** Jan konnte auf localhost „ganze Saison" nicht antippen. Befund: es gibt
+zwei gleichlautende Schalter — der Historie-Schalter `Monat | Saison` im Zeit-Deck
+(BH3, funktionierte: 5 881 Ereignisse Saison 2026) und der Chip **„Umfang: ganze
+Saison"** der Brände-Liste (BF4, EFFIS-Saison-Korb), der per Bauart `disabled`
+bleibt, solange der Layer `fireBurnt` nicht aktiv ist (`FirePage.tsx` Lade-Effekt
+`if (!active.has('fireBurnt')) return`). Der Tooltip sagte es, sichtbar war es nicht.
+
+**Umsetzung (zwei Zeilen Wirkung, kein neuer Datenpfad):**
+
+1. `fireModel.ts`: neue Konstante `FIRE_DEFAULT_LAYERS = ['fireDanger', 'fireHotspots', 'fireBurnt']`;
+   Preset „Überblick" zeigt darauf, `FirePage.tsx` nimmt sie an beiden Default-Stellen
+   (ohne Hash und als Basis der Sub-Routen-Presets). Der EFFIS-Saison-Korb (WFS, direkt
+   von effis.jrc.ec.europa.eu, **kein Netlify-Traffic**) lädt damit beim Öffnen; der
+   Chip „ganze Saison" ist sofort wählbar. Ein bestehender `#wb=`-Link gewinnt weiter
+   über den Default (Hash = ganzer Zustand, RT1) — alte Permalinks ändern sich nicht.
+2. `FirePage.tsx`: das Dock (`.br-dock`) wird nicht mehr mit `firesMode` ausgeblendet —
+   nur noch auf Mobil. Die übrigen B2-Kompaktierungen (Topbar „← Layer-Steckbriefe",
+   kompaktes Zeit-Deck, Readout 400 px, keine Basemap-Wahl) bleiben. Gemessen 1568 px:
+   Dock 250 · Karte 888 · Readout 400.
+
+**Verifier.** `verify:fire-model` 113/113 (Anker „kein Preset enthält Ausbau-Layer (die
+gibt es erst nach WB4)" war überholt — jetzt „nur MVP + Ausbau" und „Default-Set =
+Preset Überblick inkl. `fireBurnt`"), `verify:fire-time` 114/114, `verify:routing` 70/70,
+`typecheck` grün. `verify:fire-clusters` steht auf 105/117 — alle zwölf Fehlschläge sind
+Textsonden auf Code, der seit RT1/TA/BH anders heißt (`initial?.footprintPanel ? 'fires'
+: 'layers'`, `react-router` in den Dependencies u. a.); Altbestand, nicht diese Änderung.
+
+**Browser-Beleg** (Chrome, `/waldbrand/aktive-braende` ohne Hash): Dock sichtbar mit
+„4 aktiv", Layer „Frühere Brandflächen" an (322 Flächen · Saison 2026), Chip „ganze
+Saison" `disabled: false`, Klick ⇒ Brände · 364, Karte rendert, Konsole ohne Fehler.
+
+**Nachtrag (gleicher Tag, Jans Nachfrage „frühere Brandfläche defaultmäßig aktiv").**
+Der Default griff nur ohne Hash — der Hash ist der ganze Zustand (RT1), und Jans Tab
+trug `b: 4` aus der Zeit vor der Änderung; jeder Reload schrieb den alten Layersatz
+zurück. Deshalb jetzt im Codec (`fireState.ts`), nach dem Muster „nur die Abweichung
+schreiben": **`fb: 0`** steht im Hash, wenn `fireBurnt` bewusst aus ist; ein Link
+**ohne** `fb` (alle vor dem 2026-08-25) bekommt den Layer beim Dekodieren dazu; `b: 0`
+bleibt leer, damit die Seite den vollen Standard nimmt. Live-Links mit dem Layer bleiben
+byte-gleich. **Folge, ausgesprochen:** geteilte Alt-Links mit kuratiertem Layersatz
+(z. B. nur Bodentrockenheit) zeigen künftig zusätzlich die früheren Brandflächen — das
+ist der Preis von „Standard auch rückwirkend". Vier neue Checks in `verifyFireState`
+(Alt-Link mit `b: 4` ⇒ Hotspots + Brandflächen, `fb: 0` bleibt aus, kein `fb` im
+Standard, `b: 0` leer).
+Browser-Beleg mit Jans Alt-Link (`b: 4`, `fp: 1`): nach dem Laden „3 aktiv" inkl. Frühere
+Brandflächen (324 Flächen · Saison 2026), Chip „ganze Saison" wählbar, Hash zu `b: 4356`
+umgeschrieben; Layer per Schalter aus ⇒ Hash trägt `fb: 0`, Reload ⇒ „2 aktiv", Chip
+gesperrt — die bewusste Abwahl überlebt. Konsole beide Male ohne Fehler.
+`verify:fire-model` 118/118 · `verify:fire-time` 114/114 · `verify:routing` 70/70 · typecheck grün.
+
+**Nachtrag (gleicher Tag, Jans Auftrag „Kartenfenster etwas verkleinern, Sidebar rechts breiter").**
+`fireDeck.css`: `.br-readout` 340 → **400 px**, `.fire-root.is-fires .br-readout` 400 → **480 px** —
+nur der Desktop-Tier (≥ 1440 px). Das Tablet-Tier (768–1439) behält 266/300 px, weil dort seit
+heute auch das Dock (214 px) steht und die Karte bei 768 px sonst unter 200 px fiele. Gemessen
+bei 1600 px: Brände-Modus Dock 250 · Karte 808 · Readout 480; Layer-Modus Readout 400. Die
+Sortier-Chips der Brände-Liste passen damit in eine Zeile. Kein Verifier verankert die Breiten.

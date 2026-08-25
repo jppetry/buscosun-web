@@ -37,8 +37,23 @@
 /** Basis des Daten-CDNs. Bewusst eine Konstante: ein Wechsel (R2, eigene
  *  Domain) ist damit ein Ein-Zeilen-Diff, kein Umbau — s. Risiko-Tabelle. */
 export const CDN_BASE = 'https://cdn.jsdelivr.net/gh/jppetry/buscosun-data';
-/** Index des Daten-Repos, gelesen SERVERSEITIG (Cron), nie vom Browser. */
+/** Index des Daten-Repos, gelesen SERVERSEITIG (Cron) — `raw.githubusercontent.com`
+ *  cacht 5 min (`max-age=300`) und war zeitweise unlesbar (§21.7); für den Cron reicht das. */
 export const INDEX_URL = 'https://raw.githubusercontent.com/jppetry/buscosun-data/main/index.json';
+/**
+ * Derselbe Index über das CDN — der Weg des BROWSERS (BW-9, §28.4). `@main` ist
+ * ein Branch-Ref (`s-maxage=43200`); frisch ist er trotzdem, weil der Publisher
+ * den Pfad nach jedem Push purgt (`purgeIndexUntilFresh`) und die Frische
+ * nachprüft. Damit erfährt der Client einen neuen Lauf ≈ 1 min nach dem Push
+ * statt nach Warm-Cron-Slot + Netlify-Build (gemessen 5–21 min, §28.2). Der
+ * Client spiegelt die Konstante (`REPACK_INDEX_CDN_URL`), `verify:repack` prüft
+ * die Gleichheit. Der Manifest-Abschnitt bleibt als benannter Fallback.
+ */
+export const INDEX_CDN_URL = `${CDN_BASE}@main/index.json`;
+/** Purge-Endpunkt von jsDelivr für einen CDN-Pfad (gemessen 2026-08-25: `finished`, nicht gedrosselt). */
+export function purgeUrlOf(cdnUrl) {
+  return cdnUrl.replace(/^https:\/\/cdn\.jsdelivr\.net\//, 'https://purge.jsdelivr.net/');
+}
 /** Verzeichnis der Läufe im Daten-Repo. */
 export const RUNS_DIR = 'runs';
 /** Lauf-unabhängige Orographie: an drei Läufen gemessen identisch (BW-1, §20.2),
@@ -205,6 +220,43 @@ export async function fetchIndex(opts = {}) {
     await new Promise((r) => setTimeout(r, opts.retryMs ?? 1500));
   }
   return { ok: false, index: null, note };
+}
+
+/**
+ * Purgt `index.json` auf jsDelivr und prüft nach, ob das CDN danach den
+ * erwarteten Commit liefert — bis zu `attempts` Mal (BW-9, §28.4).
+ *
+ * Warum nachprüfen statt nur purgen: 4 s nach einem Push löste jsDelivr `main`
+ * noch auf den alten HEAD auf (GitHub-Propagation), nach 2:39 min auf den
+ * neuen. Ein Purge zur falschen Sekunde wäre wirkungslos und niemand sähe es —
+ * der Client läse bis zu 12 h den alten Index. Deshalb: purgen, lesen,
+ * vergleichen, notfalls warten und wiederholen. Wirft nie: ein missglückter
+ * Purge kostet Frische, keine Korrektheit (der Cron-Weg trägt den Abschnitt
+ * weiterhin, und ein alter Index nennt höchstens einen älteren Lauf, den die
+ * Anti-Drift-Regel im Client verwirft).
+ */
+export async function purgeIndexUntilFresh({ commit, attempts = 3, waitMs = 20_000, firstWaitMs = 8_000, fetchImpl = fetch, log = () => {} } = {}) {
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  let note = '';
+  if (firstWaitMs > 0) await sleep(firstWaitMs);
+  for (let i = 1; i <= attempts; i++) {
+    try {
+      const p = await fetchImpl(purgeUrlOf(INDEX_CDN_URL), { cache: 'no-store' });
+      const body = p.ok ? await p.json().catch(() => null) : null;
+      const status = body?.status ?? `HTTP ${p.status}`;
+      const res = await fetchImpl(INDEX_CDN_URL, { cache: 'no-store' });
+      const idx = res.ok ? await res.json().catch(() => null) : null;
+      const got = idx?.commit ?? null;
+      note = `Purge ${i}/${attempts}: ${status} · CDN-Index @ ${got ? got.slice(0, 7) : '—'}`;
+      log(note);
+      if (got === commit) return { fresh: true, attempts: i, note };
+    } catch (e) {
+      note = `Purge ${i}/${attempts} fehlgeschlagen: ${e.message}`;
+      log(note);
+    }
+    if (i < attempts) await sleep(waitMs);
+  }
+  return { fresh: false, attempts, note: `${note} — erwartet ${commit.slice(0, 7)}; der Cron-Weg trägt den Abschnitt weiter` };
 }
 
 /** Index holen und gleich den Abschnitt für EINEN Lauf ziehen. */

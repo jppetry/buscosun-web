@@ -666,6 +666,26 @@ https://api.brightsky.dev/alerts?lat=<lat>&lon=<lon>
 Privat betrieben, MIT-Code, Daten unter DWD-Bedingungen · kein Key · CORS `*` ✅ · kein
 veröffentlichtes Rate-Limit. Liefert **Text**, keine Geometrie. Bilingual DE/EN.
 
+### 8.1a jsDelivr — Daten-CDN des Repack (`buscosun-data`, in Betrieb seit BW-4)
+```
+https://cdn.jsdelivr.net/gh/jppetry/buscosun-data@<commit-sha>/runs/<YYYYMMDDHH>/<familie>-<SSS>.png
+https://cdn.jsdelivr.net/gh/jppetry/buscosun-data@main/index.json          (BW-9: der Browser liest ihn)
+https://purge.jsdelivr.net/gh/jppetry/buscosun-data@main/index.json        (Publisher, nach jedem Push)
+```
+CORS `*` ✅ · kein Key · Egress zählt nicht auf Netlify (D-31). **Gemessen 2026-08-23/25:**
+
+| Ref / Fall | `Cache-Control` | Bedeutung |
+|---|---|---|
+| `@<sha>/…` | `max-age=31536000, immutable` | unveränderlich — der Weg der Bilder |
+| `@main/…` (vorhanden) | `max-age=604800, s-maxage=43200` | 12 h am Edge, 7 d im Browser ⇒ im Client nur mit `cache: 'no-store'` UND Purge nach dem Push |
+| `@main/…` (**nicht** vorhanden) | `no-cache, no-store, must-revalidate` | ein 404 wird **nicht** festgehalten — ein neuer Pfad je Lauf ist beim ersten Abruf frisch |
+| Push → neuer Pfad sichtbar | — | **≈ 35–57 s** (Poll-Raster 21 s, `audit/bandbreite.md` §28.4) |
+| Push → `@main/index.json` nach Purge | — | 4 s nach dem Push noch alt (GitHub-Propagation), nach 2:39 min neu; der Publisher purgt deshalb nach 8 s, prüft nach und wiederholt bis 3× |
+| Purge-API | JSON `status: finished`, `throttled: false` | ohne Freigabe nutzbar; README nennt Rate-Limits „für alle" — 8–24 je Tag sind unauffällig |
+
+Grenzen (jsDelivr-README): **20 MB je Datei, 150 MB je Repo** — Retention 4 Läufe ≈ 45 MB. Lizenzträger
+bleibt der DWD (CC BY 4.0, „Daten verändert" steht im README des Daten-Repos).
+
 ### 8.2 MeteoAlarm — ⚠️ **korrigiert 2026-08-08**
 ```
 Atom (offizieller Vertrag):
@@ -828,3 +848,17 @@ Vor jedem neuen Adapter abzuarbeiten und in `docs/DATA_SOURCES.md` §13 zu verme
 - [ ] Fehlerverhalten bei fehlenden Daten geklärt (leer ≠ null ≠ 404 ≠ außerhalb der Saison)
 - [ ] Kontrakt-Sonde für das Monitoring definiert
 - [ ] Beispiel-URL in dieses Dokument aufgenommen
+
+### 8.7 Open-Meteo Forecast-API mit `past_days` — *✅ IN BENUTZUNG (BD1 2026-08-25, `src/fire/detail/fireWeatherAtPoint.ts`)*
+```
+GET https://api.open-meteo.com/v1/forecast?latitude=…&longitude=…&models=icon_seamless
+    &hourly=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation
+    &past_days=7&forecast_days=1&timezone=UTC                                   ✅ 200, ≈ 9,4 KB
+GET …&daily=precipitation_sum&models=icon_seamless&past_days=31&forecast_days=1  ✅ 200, ≈ 0,8 KB
+```
+Derselbe Host wie `openMeteoForecast.ts` (Punkt-Vorhersage), Lizenz wie dort (`scripts/seo/licenses.mjs`:
+CC BY 4.0, nicht-kommerzielle Nutzung). `models=icon_seamless` = DWD ICON-D2/EU/global, `past_days` liefert die
+**Analyse-/Kurzfristwerte der vergangenen Tage** — der Weg zur „Wetterlage zum Zeitpunkt des Brands", für den der
+Brandradar selbst keine Vergangenheit hat (ICON-D2 läuft ab jetzt). Zeiten kommen **ohne `Z`** („2026-08-18T00:00")
+und sind UTC. Nur auf Klick (Detailkarte), einmal je Brand und Sitzung (30 min); kein Netlify-Traffic. Modellwerte,
+keine Messung — so beschriftet (`FIRE_WEATHER_SOURCE_LABEL`).

@@ -113,6 +113,11 @@ export function encodeFireState(s: FireState): string {
   if (s.location) {
     payload.l = [r5(s.location.lat), r5(s.location.lon), s.location.name, s.location.country];
   }
+  // 2026-08-25 (Jans Auftrag): „Frühere Brandflächen" ist Standard — auch für
+  // Links, die vor diesem Tag geschrieben wurden und den Layer deshalb nicht in
+  // `b` tragen. Nach dem Codec-Muster wird nur die ABWEICHUNG geschrieben:
+  // `fb: 0` heißt „bewusst aus". Ohne `fb` ergänzt der Decoder den Layer.
+  if (!s.layers.includes('fireBurnt')) payload.fb = 0;
   // Nur schreiben, was vom Standard abweicht — bestehende Links bleiben
   // byte-gleich, und ein Standard-Zustand erzeugt keinen längeren Hash.
   if (s.dangerView && s.dangerView !== DEFAULT_DANGER_VIEW) payload.v = s.dangerView;
@@ -141,7 +146,15 @@ export function decodeFireState(hash: string): FireState | null {
     const o = JSON.parse(decodeURIComponent(hash.slice(FIRE_HASH_PREFIX.length))) as {
       l?: [number, number, string, string]; b?: number; d?: number; w?: number;
       v?: unknown; bb?: unknown; sm?: unknown; bd?: unknown; fp?: unknown; ta?: unknown; h?: unknown; bh?: unknown;
+      fb?: unknown;
     };
+    const bits = typeof o.b === 'number' && Number.isFinite(o.b) ? o.b : 0;
+    // Frühere Brandflächen sind Standard: ein Link ohne `fb` (alle vor 2026-08-25)
+    // meint den Layer nicht „aus", sondern kennt ihn nicht — ergänzen. Nur `fb: 0`
+    // ist die bewusste Abwahl. Ein Link, der KEINEN Layer öffnet (`b: 0` oder nur
+    // zurückgezogene Bits), bleibt leer, damit die Seite ihren vollen Standard
+    // nimmt statt nur diesen einen Layer.
+    const layerBits = o.fb !== 0 && bitsToLayers(bits).length > 0 ? bits | layersToBits(['fireBurnt']) : bits;
     let location: Location | null = null;
     if (Array.isArray(o.l) && Number.isFinite(o.l[0]) && Number.isFinite(o.l[1])) {
       location = {
@@ -151,7 +164,7 @@ export function decodeFireState(hash: string): FireState | null {
     }
     return {
       location,
-      layers: bitsToLayers(typeof o.b === 'number' ? o.b : 0),
+      layers: bitsToLayers(layerBits),
       day: typeof o.d === 'number' && Number.isFinite(o.d) ? Math.max(0, Math.round(o.d)) : 0,
       windowH: typeof o.w === 'number' && Number.isFinite(o.w) ? Math.round(o.w) : 24,
       // Unbekannte Sub-Ansicht ⇒ Standard, nie ein Absturz und nie ein leerer Layer.
@@ -216,6 +229,19 @@ export function verifyFireState(): { checks: FireStateCheck[]; passed: number; t
   const noLoc = decodeFireState(encodeFireState({ location: null, layers: [], day: 0, windowH: 24 }));
   add('ohne Ort bleibt es ohne Ort (DACH-Überblick)', noLoc?.location === null);
 
+  // --- 2026-08-25: „Frühere Brandflächen" ist Standard — auch in Alt-Links.
+  const legacy = decodeFireState(`${FIRE_HASH_PREFIX}${encodeURIComponent('{"b":4,"d":0,"w":24,"fp":1}')}`);
+  add('Alt-Link ohne `fb` öffnet frühere Brandflächen mit (Jans Link vom 2026-08-25)',
+    !!legacy && legacy.layers.includes('fireBurnt') && legacy.layers.includes('fireHotspots') && legacy.layers.length === 2,
+    legacy?.layers.join(','));
+  const offHash = encodeFireState({ location: null, layers: ['fireDanger'], day: 0, windowH: 24 });
+  add('`fb: 0` heißt bewusst aus — der Layer kommt NICHT zurück',
+    /%22fb%22%3A0/.test(offHash) && decodeFireState(offHash)?.layers.join(',') === 'fireDanger');
+  const onHash = encodeFireState({ location: null, layers: ['fireDanger', 'fireHotspots', 'fireBurnt'], day: 0, windowH: 24 });
+  add('mit Brandflächen wird kein `fb` geschrieben (Standard verlängert den Hash nicht)', !/fb/.test(onHash));
+  add('`b: 0` bleibt leer — die Seite nimmt den vollen Standard, nicht nur diesen Layer',
+    decodeFireState(`${FIRE_HASH_PREFIX}${encodeURIComponent('{"b":0}')}`)?.layers.length === 0);
+
   // --- Robustheit gegen kaputte Hashes: nie werfen, immer null oder Default.
   add('fremder Präfix ⇒ null', decodeFireState('#m=abc') === null);
   add('leerer Hash ⇒ null', decodeFireState('') === null);
@@ -228,16 +254,19 @@ export function verifyFireState(): { checks: FireStateCheck[]; passed: number; t
     hasFireHash('#wb=x') && !hasFireHash('#m=x') && !hasFireHash(''));
 
   // --- Bit-Stabilität: Bit 0 ist und bleibt fireDanger.
-  const onlyFirst = decodeFireState(`${FIRE_HASH_PREFIX}${encodeURIComponent('{"b":1}')}`);
+  // 2026-08-25: die Anker tragen `"fb":0`, damit sie die REINE Bit-Zuordnung
+  // prüfen — ohne `fb` ergänzt der Decoder absichtlich die früheren Brandflächen
+  // (eigener Check oben).
+  const onlyFirst = decodeFireState(`${FIRE_HASH_PREFIX}${encodeURIComponent('{"b":1,"fb":0}')}`);
   add('Bit 0 ⇒ fireDanger (Bit-Stabilität bestehender Links)',
     onlyFirst?.layers.join(',') === 'fireDanger', onlyFirst?.layers.join(','));
   // 2026-08-19: Bit 1 gehörte der zurückgezogenen amtlichen Stufe. Der Platz
   // bleibt reserviert — ein alter Link öffnet sie nicht mehr, aber er
   // verschiebt auch nichts: Bit 2 ist weiterhin fireHotspots.
   const retired = decodeFireState(`${FIRE_HASH_PREFIX}${encodeURIComponent('{"b":2}')}`);
-  add('Bit 1 (zurückgezogen) öffnet keinen Layer und verschiebt keinen',
+  add('Bit 1 (zurückgezogen) öffnet keinen Layer und verschiebt keinen — auch keine Brandflächen',
     retired?.layers.length === 0, retired?.layers.join(','));
-  const thirdBit = decodeFireState(`${FIRE_HASH_PREFIX}${encodeURIComponent('{"b":4}')}`);
+  const thirdBit = decodeFireState(`${FIRE_HASH_PREFIX}${encodeURIComponent('{"b":4,"fb":0}')}`);
   add('Bit 2 ⇒ fireHotspots — unverändert wie vor dem Rückzug',
     thirdBit?.layers.join(',') === 'fireHotspots', thirdBit?.layers.join(','));
 
@@ -309,9 +338,15 @@ export function verifyFireState(): { checks: FireStateCheck[]; passed: number; t
   // --- WF3: die Stundenachse — additiv; Tagesachse bleibt byte-gleich ---------
   // DER Anker: ein Link von vor WF3, als Literal. Ändert sich diese Zeile, sind
   // alle geteilten Links anders — und genau das verbietet GWF3.
-  add('Tagesachse: Hash ist byte-identisch zum Stand vor WF3 (Literal-Anker)',
-    encodeFireState(base) === `${FIRE_HASH_PREFIX}${encodeURIComponent('{"b":1,"d":0,"w":24}')}`,
+  // 2026-08-25: der Anker trägt seither `"fb":0` — `base` hat die früheren
+  // Brandflächen nicht, und genau das schreibt der Codec jetzt aus (Standard
+  // rückwirkend, s. `encodeFireState`). Die Achsen-Aussage bleibt: `h` fehlt.
+  add('Tagesachse: Hash ist byte-identisch zum Stand vor WF3 (Literal-Anker, seit 2026-08-25 mit fb:0)',
+    encodeFireState(base) === `${FIRE_HASH_PREFIX}${encodeURIComponent('{"b":1,"d":0,"w":24,"fb":0}')}`,
     encodeFireState(base));
+  add('Standard-Set mit Brandflächen: Hash ohne `fb`, ohne `h` — Live-Links byte-gleich zu vor 2026-08-25',
+    encodeFireState({ ...base, layers: ['fireDanger', 'fireBurnt'] })
+      === `${FIRE_HASH_PREFIX}${encodeURIComponent(`{"b":${1 | (1 << FIRE_BIT_ORDER.indexOf('fireBurnt'))},"d":0,"w":24}`)}`);
   add('Tagesachse (hour fehlt/null) verlängert den Hash NICHT',
     encodeFireState(base) === encodeFireState({ ...base, hour: null })
       && encodeFireState(base) === encodeFireState({ ...base, hour: undefined }));

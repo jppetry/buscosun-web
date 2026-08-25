@@ -210,8 +210,17 @@ export interface FirePreset {
  * und mit dem Rückzug der Feuerverbote (gleicher Tag) auch deren
  * Schnellzugriff „Feuerverbote".
  */
+/**
+ * Default-Layer beim Öffnen ohne Hash — identisch mit dem Preset „Überblick",
+ * damit der Schnellzugriff beim Start hervorgehoben ist. 2026-08-25 (Jans
+ * Auftrag): die früheren Brandflächen (EFFIS, Saison-Korb) sind von Anfang an
+ * dabei — damit ist auch der Umfang „ganze Saison" der Brände-Liste sofort
+ * wählbar, der sonst gesperrt bleibt, bis der Layer eingeschaltet wird.
+ */
+export const FIRE_DEFAULT_LAYERS: readonly FireLayerId[] = ['fireDanger', 'fireHotspots', 'fireBurnt'] as const;
+
 export const FIRE_PRESETS: readonly FirePreset[] = [
-  { id: 'standard', label: 'Überblick', layers: ['fireDanger', 'fireHotspots'] },
+  { id: 'standard', label: 'Überblick', layers: FIRE_DEFAULT_LAYERS },
   { id: 'lage', label: 'Aktuelle Lage', layers: ['fireDanger', 'fireHotspots', 'fireWeather'] },
 ] as const;
 
@@ -572,10 +581,15 @@ export function verifyFireModel(): { checks: FireModelCheck[]; passed: number; t
     FIRE_PRESETS.every((p) => p.layers.every((l) => all.includes(l))));
   add('kein Preset schaltet mehr als 3 Layer',
     FIRE_PRESETS.every((p) => p.layers.length <= 3));
-  add('kein Preset enthält Ausbau-Layer (die gibt es erst nach WB4)',
-    FIRE_PRESETS.every((p) => p.layers.every((l) => FIRE_MVP_LAYERS.includes(l))));
-  add('activeFirePresetId erkennt das Standard-Set',
-    activeFirePresetId(['fireHotspots', 'fireDanger']) === 'standard');
+  // 2026-08-25: „Überblick" trägt die früheren Brandflächen (Ausbau-Layer WB4);
+  // Presets bleiben auf MVP + Ausbau beschränkt — keine Wetterkarten-, Registry-
+  // oder Anomalie-Layer im Schnellzugriff.
+  add('kein Preset enthält Layer außerhalb MVP + Ausbau',
+    FIRE_PRESETS.every((p) => p.layers.every((l) => FIRE_MVP_LAYERS.includes(l) || FIRE_EXTENDED_LAYERS.includes(l))));
+  add('Default-Set = Preset „Überblick" (inkl. frühere Brandflächen)',
+    activeFirePresetId([...FIRE_DEFAULT_LAYERS]) === 'standard' && FIRE_DEFAULT_LAYERS.includes('fireBurnt'));
+  add('activeFirePresetId erkennt das Standard-Set unabhängig von der Reihenfolge',
+    activeFirePresetId(['fireBurnt', 'fireHotspots', 'fireDanger']) === 'standard');
   add('activeFirePresetId meldet null bei fremder Kombination',
     activeFirePresetId(['fireDanger', 'fireWeather']) === null);
   // 2026-08-19: die zurückgezogenen Layer tauchen in keinem Preset mehr auf.

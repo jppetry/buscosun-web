@@ -61,6 +61,12 @@
  *                  je Familie davon abliegen. Nur wenn das für JEDE Familie
  *                  reicht, wird ausgestiegen (s. `skipDecision`).
  *                  (`REPACK_HAVE_WIND`/`REPACK_HAVE_TEMP` werden weiter gelesen.)
+ *   REPACK_WAIT_SEC   BW-9 D: > 0 ⇒ auf den Lauf des laufenden 3-h-Slots warten und
+ *                  dann Schritt für Schritt rechnen, sobald die Dateien liegen —
+ *                  Listing alle REPACK_POLL_SEC (30), höchstens REPACK_WAIT_SEC.
+ *                  Default 0 = alles rechnen, was jetzt gelistet ist.
+ *   REPACK_BZIP2   BW-9 V1: `1` ⇒ `bzip2`-Binary statt pure-JS (JS bleibt Fallback).
+ *   REPACK_FETCH_PAR  BW-9 A: parallele DWD-Abrufe des Prefetch-Pools. Default 6.
  *   DWD_BASE       Default https://opendata.dwd.de/weather/nwp/icon-d2/grib
  *
  * Ausgabe-Layout (spiegelt das Daten-Repo):
@@ -75,6 +81,7 @@
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { execFile, spawnSync } from 'node:child_process';
 import bz2mod from 'bz2';
 import { decodeGrib2, subsampledCorners, gribCorners } from '../src/sources/gribDecode.ts';
 import { buildWindRgba } from '../src/wind/windFrameBuild.ts';
@@ -90,6 +97,47 @@ import { encodePng } from './lib/png.mjs';
 import { RUNS_DIR, HSURF_FILE, FAMILIES, FAMILY_KEYS } from './lib/repackManifest.mjs';
 
 const bz2 = bz2mod.decompress ? bz2mod : (bz2mod.default ?? bz2mod);
+
+// ---------------------------------------------------------------------------
+// BW-9 (V-BW-27): `bzip2`-Binary statt pure-JS. Lokal gemessen an t_2m 000
+// (913 KB → 1,62 MB): JS 1,26–1,49 s, Binary 0,47–0,59 s inkl. Prozessstart —
+// Faktor ≈ 2,6; und weil je Familie mehrere Felder per `Promise.all` geholt
+// werden, laufen die Prozesse zusätzlich nebeneinander auf mehreren Kernen,
+// wo das JS-Modul nacheinander auf EINEM Thread rechnet. Byte-gleich per
+// Definition (derselbe Datenstrom), und `verify:repack` prüft es trotzdem.
+//
+// Flag-gated (Rule 2): nur mit `REPACK_BZIP2=1`; der Workflow setzt es, lokal
+// bleibt JS der Standard. Fehlt das Binary oder scheitert ein Aufruf, fällt
+// die DATEI auf JS zurück — nie der Lauf.
+// ---------------------------------------------------------------------------
+const BZIP2_WANTED = process.env.REPACK_BZIP2 === '1';
+let bzip2Ok = null;   // null = noch nicht geprüft
+function bzip2Available() {
+  if (bzip2Ok === null) {
+    const r = spawnSync('bzip2', ['--help'], { stdio: 'ignore' });
+    bzip2Ok = !r.error;
+    if (BZIP2_WANTED) log(bzip2Ok ? 'bz2: bzip2-Binary (REPACK_BZIP2=1)' : 'bz2: REPACK_BZIP2=1, aber kein `bzip2` im PATH → pure-JS');
+  }
+  return bzip2Ok;
+}
+function bzip2Spawn(buf) {
+  return new Promise((res, rej) => {
+    const child = execFile('bzip2', ['-dc'], { encoding: 'buffer', maxBuffer: 256 * 1024 * 1024 },
+      (err, stdout) => (err ? rej(err) : res(new Uint8Array(stdout.buffer, stdout.byteOffset, stdout.length))));
+    child.stdin.on('error', rej);
+    child.stdin.end(buf);
+  });
+}
+let bzip2Warned = false;
+/** bz2-Bytes → entpackte Bytes. Exportiert, damit der Verifier beide Wege gegeneinander hält. */
+export async function decompressBz2(buf, { binary = BZIP2_WANTED } = {}) {
+  if (binary && bzip2Available()) {
+    try { return await bzip2Spawn(buf); } catch (e) {
+      if (!bzip2Warned) { bzip2Warned = true; log(`bz2: Binary scheiterte (${e.message}) → pure-JS für diese Datei`); }
+    }
+  }
+  return bz2.decompress(new Uint8Array(buf));
+}
 
 const DWD_BASE = (process.env.DWD_BASE || 'https://opendata.dwd.de/weather/nwp/icon-d2/grib').replace(/\/+$/, '');
 const OUT_DIR = resolve(process.env.REPACK_OUT || 'data/repack');
@@ -134,7 +182,7 @@ function invariantUrl(run, param) {
  * sauber dekodierten — die Leitung brauchte 3,5–6,3 s je Datei. Ein Fehlschlag
  * kostet hier nicht den Lauf, sondern legt ihn UNVOLLSTÄNDIG ab (s. `skipDecision`).
  */
-async function fetchRaw(url, tries = 4) {
+async function fetchRawDirect(url, tries = 4) {
   const name = url.slice(url.lastIndexOf('/') + 1);
   const cached = join(CACHE_DIR, name);
   if (existsSync(cached)) return readFileSync(cached);
@@ -157,9 +205,55 @@ async function fetchRaw(url, tries = 4) {
   throw new Error(`${last?.message || last} — ${url}`);
 }
 
+// ---------------------------------------------------------------------------
+// BW-9 A: Prefetch-Pool. Gemessen: ein Abruf vom DWD dauert 1–3 s je 1-MB-Datei,
+// und die Ein-Feld-Familien (Temperatur, Böen, Schnee, Niederschlag, CAPE) holten
+// eine Datei nach der anderen — bei 206 Dateien war das die Hälfte der 8–10 min.
+// Sechs parallele Verbindungen brachten 6 Dateien in 4,5 s statt 3 in 7,4 s.
+// Der Pool holt alle bekannten Dateien des Laufs in Schrittfolge VORAUS, während
+// der Hauptthread rechnet; `fetchRaw` bekommt die Bytes aus dem Pool (oder
+// stellt sie hinten an, wenn sie noch niemand bestellt hat). Dieselbe URL wird
+// nie zweimal geholt. Rein gehalten (fetchOne injizierbar) für den Verifier.
+// ---------------------------------------------------------------------------
+const FETCH_PAR = Math.max(1, Number(process.env.REPACK_FETCH_PAR ?? 6));
+export function createFetchPool({ limit = FETCH_PAR, fetchOne = fetchRawDirect } = {}) {
+  const entries = new Map();   // url → { promise, resolve, reject, started }
+  const queue = [];
+  let active = 0, maxActive = 0;
+  const pump = () => {
+    while (active < limit && queue.length) {
+      const url = queue.shift();
+      const e = entries.get(url);
+      e.started = true;
+      active++; maxActive = Math.max(maxActive, active);
+      fetchOne(url).then(e.resolve, e.reject).finally(() => { active--; pump(); });
+    }
+  };
+  return {
+    add(urls) {
+      for (const url of urls) {
+        if (entries.has(url)) continue;
+        const e = { started: false };
+        e.promise = new Promise((resolve, reject) => { e.resolve = resolve; e.reject = reject; });
+        e.promise.catch(() => {});   // unbeobachtete Ablehnung ist kein Absturz — der Aufrufer sieht sie in `get`
+        entries.set(url, e);
+        queue.push(url);
+      }
+      pump();
+    },
+    get(url) { if (!entries.has(url)) this.add([url]); return entries.get(url).promise; },
+    stats() { return { known: entries.size, queued: queue.length, active, maxActive }; },
+  };
+}
+let pool = null;
+async function fetchRaw(url) {
+  if (!pool) pool = createFetchPool();
+  return pool.get(url);
+}
+
 /** bz2 → entpackte GRIB2-Bytes (das, was `decodeGridStep` im Browser bekommt). */
 export async function fetchGrib(url) {
-  return bz2.decompress(new Uint8Array(await fetchRaw(url)));
+  return decompressBz2(await fetchRaw(url));
 }
 
 /** bz2 → GRIB2 → decodiertes Feld, über denselben Decoder wie der Browser. */
@@ -222,6 +316,14 @@ export async function familySteps(run, families = FAMILY_KEYS) {
       .filter((s) => lists.every((l) => l.includes(s)));
   }
   return out;
+}
+
+/** Der Lauf des laufenden 3-h-Slots (`HH` ∈ 00,03,…,21) — der, den der DWD als nächstes ablegt bzw. gerade ablegt. */
+export function expectedRunOf(nowMs = Date.now()) {
+  const now = new Date(nowMs);
+  now.setUTCMinutes(0, 0, 0);
+  now.setUTCHours(now.getUTCHours() - (now.getUTCHours() % 3));
+  return runStrOf(now);
 }
 
 /** Neuester Lauf, der u_10m, v_10m UND t_2m mindestens bis Schritt 2 führt. */
@@ -423,6 +525,60 @@ export function skipDecision({ run, haveRun, have = {}, want = {} }) {
   return { skip: false, reason: `Lauf ${run} liegt schon, aber unvollständig (${short.map(fmt).join(', ')}) → nachrechnen.` };
 }
 
+/**
+ * BW-9 (§28.5 B1): welche Schritte des Horizonts `minStep…maxStep` einer Familie
+ * der DWD NOCH NICHT abgelegt hat. Rein, damit der Verifier es netzfrei prüft.
+ * Leeres Objekt = vollständig.
+ */
+export function stepsMissing(stepsBy, families = FAMILY_KEYS) {
+  const out = {};
+  for (const f of families) {
+    const fam = FAMILIES[f];
+    const have = new Set(stepsBy[f] ?? []);
+    const miss = [];
+    for (let s = fam.minStep; s <= fam.maxStep; s++) if (!have.has(s)) miss.push(s);
+    if (miss.length) out[f] = miss;
+  }
+  return out;
+}
+
+/** Liegt `step` im Horizont der Familie (`minStep…maxStep`)? */
+export function inHorizon(family, step) {
+  const fam = FAMILIES[family];
+  return step >= fam.minStep && step <= fam.maxStep;
+}
+
+/**
+ * BW-9 A/D: alle Dateien eines Laufs in SCHRITTFOLGE — erst alle Familien des
+ * Schritts 0, dann 1, … So holt der Pool genau in der Reihenfolge voraus, in der
+ * der DWD ablegt und der Producer rechnet. Rein, für den Verifier.
+ */
+export function planUrls(run, stepsBy, families = FAMILY_KEYS) {
+  const urls = [];
+  if (families.includes('temp')) urls.push(invariantUrl(run, 'hsurf'));
+  const maxStep = Math.max(0, ...families.map((f) => FAMILIES[f].maxStep));
+  for (let s = 0; s <= maxStep; s++) {
+    for (const f of families) {
+      if (!(stepsBy[f] ?? []).includes(s)) continue;
+      for (const p of FAMILIES[f].params) urls.push(stepUrl(run, p, s));
+    }
+  }
+  return urls;
+}
+
+/**
+ * Warten oder rechnen? Gewartet wird nur, solange etwas fehlt UND Budget ist.
+ * Ist das Budget erschöpft, wird mit dem gerechnet, was liegt — exakt das
+ * bisherige Verhalten (der nächste Slot holt den Rest über `skipDecision`).
+ */
+export function waitDecision({ missing, elapsedSec, budgetSec }) {
+  const fams = Object.keys(missing);
+  if (fams.length === 0) return { wait: false, reason: 'Horizont vollständig → rechnen.' };
+  const what = fams.map((f) => `${f} −${missing[f].length}`).join(', ');
+  if (elapsedSec >= budgetSec) return { wait: false, reason: `Wartebudget ${budgetSec} s erschöpft (${what}) → mit dem rechnen, was liegt.` };
+  return { wait: true, reason: `warte auf ${what} (${Math.round(elapsedSec)}/${budgetSec} s)` };
+}
+
 /** Bestand aus der Umgebung: JSON `REPACK_HAVE_STEPS` (BW-6b) plus die zwei Alt-Variablen. */
 function haveFromEnv(env = process.env) {
   let have = {};
@@ -437,6 +593,21 @@ function haveFromEnv(env = process.env) {
 async function main() {
   const t0 = Date.now();
   const families = ONLY ? FAMILY_KEYS.filter((f) => ONLY.includes(f)) : [...FAMILY_KEYS];
+  // BW-9: Warten statt Slot-Lotterie (nur mit REPACK_WAIT_SEC > 0, §28.5 B1).
+  // Der DWD legt Schritt 000 bei Lauf + 44 min ab und schiebt ~37 min hoch. Ein
+  // Job, der VOR den Daten startet (Slot Lauf + 40, GitHub-Jitter +7…+31), muss
+  // zweierlei abwarten: (1) dass der Lauf des laufenden 3-h-Slots überhaupt
+  // erscheint — sonst nähme `findLatestRun` den vorigen, vollständigen Lauf,
+  // `skipDecision` sagte „nichts zu tun", und erst das Sicherheitsnetz 70 min
+  // später fände den neuen; (2) dass jede Familie ihren Horizont hat — ein
+  // halber Lauf wurde bisher so abgelegt (Wind 4/5 fehlten am 23.08.). Beides
+  // aus EINEM Budget, Listing alle REPACK_POLL_SEC, Log nur bei Änderung.
+  const WAIT_SEC = Number(process.env.REPACK_WAIT_SEC ?? 0);
+  const POLL_SEC = Math.max(5, Number(process.env.REPACK_POLL_SEC ?? 30));
+  const tw = Date.now();
+  const waitLeft = () => WAIT_SEC - (Date.now() - tw) / 1000;
+  const sleep = () => new Promise((r) => setTimeout(r, POLL_SEC * 1000));
+
   let run, runAt, stepsBy;
   if (process.env.REPACK_RUN) {
     run = process.env.REPACK_RUN;
@@ -444,12 +615,31 @@ async function main() {
     stepsBy = await familySteps(run, families);
   } else {
     ({ run, runAt, steps: stepsBy } = await findLatestRun(families));
+    if (WAIT_SEC > 0) {
+      const expected = expectedRunOf();
+      let said = false;
+      while (run !== expected && waitLeft() > 0) {
+        if (!said) { said = true; log(`Lauf ${expected} noch nicht beim DWD (jüngster: ${run}) — warte bis zu ${WAIT_SEC} s`); }
+        await sleep();
+        ({ run, runAt, steps: stepsBy } = await findLatestRun(families));
+      }
+      if (run !== expected) log(`Lauf ${expected} nicht erschienen — weiter mit ${run}`);
+    }
   }
+  // BW-9 D: NICHT mehr auf den ganzen Horizont warten, bevor gerechnet wird —
+  // gerechnet wird Schritt für Schritt, sobald die Dateien liegen (s. Schleife
+  // unten). Hier nur: wer im Wartemodus läuft, will den VOLLEN Horizont, also
+  // ist das auch das Soll für `skipDecision` (sonst hielte ein halber Bestand
+  // einen halben Lauf für vollständig).
+  const WAITING = WAIT_SEC > 0 && !process.env.REPACK_STEPS;
   if (process.env.REPACK_STEPS) {
     const only = process.env.REPACK_STEPS.split(',').map(Number);
     for (const f of families) stepsBy[f] = (stepsBy[f] ?? []).filter((s) => only.includes(s));
   }
   for (const f of FAMILY_KEYS) if (!families.includes(f)) stepsBy[f] = [];
+  // BW-9 A: alles, was schon gelistet ist, ab jetzt vorausholen.
+  if (!pool) pool = createFetchPool();
+  pool.add(planUrls(run, stepsBy, families));
 
   // BW-2: Der Batch im Daten-Repo tickt häufiger als das DWD publiziert (~3 h).
   // Ohne diesen Ausstieg würde jeder Tick denselben Lauf neu rechnen und einen
@@ -461,7 +651,7 @@ async function main() {
     run,
     haveRun: process.env.REPACK_SKIP_IF_RUN || '',
     have: haveFromEnv(),
-    want: Object.fromEntries(families.map((f) => [f, stepsBy[f].length])),
+    want: Object.fromEntries(families.map((f) => [f, WAITING ? FAMILIES[f].maxStep - FAMILIES[f].minStep + 1 : stepsBy[f].length])),
   });
   writeFileSync(stateFile, JSON.stringify(
     { run, skipped: decision.skip, reason: decision.reason, at: new Date().toISOString() }, null, 2) + '\n');
@@ -534,18 +724,10 @@ async function main() {
     return { step, file, bytes: png.length };
   };
 
-  // ── Wind ─────────────────────────────────────────────────────────────────
-  for (const step of stepsBy.wind) {
-    try {
-      const r = await repackWindStep(run, step);
-      noteGrid(r.field);
-      famEntry('wind').steps.push({ ...wrote('wind', step, r.png, FAMILIES.wind.params), ...r.norm });
-    } catch (e) { miss('wind', step, e); }
-  }
-
-  // ── Temperatur (+ hsurf an der Wurzel) ───────────────────────────────────
-  if (stepsBy.temp.length) {
-    const hsurf = await fetchField(invariantUrl(run, 'hsurf')).catch((e) => {
+  // ── hsurf an der Wurzel (einmal je Lauf, vor dem ersten Temperaturschritt) ──
+  let hsurf = null;
+  if (families.includes('temp') && (WAITING || stepsBy.temp.length)) {
+    hsurf = await fetchField(invariantUrl(run, 'hsurf')).catch((e) => {
       log(`  hsurf fehlt (${e.message}) → Grün-Kanal bleibt 0, keine Höhenkorrektur`);
       return null;
     });
@@ -566,45 +748,73 @@ async function main() {
       famEntry('temp').hsurf = { url: HSURF_FILE, scope: 'repo', channels: 1, bytes: r.png.length };
       log(`  hsurf     → ${(r.png.length / 1024).toFixed(0)} KB (lauf-unabhängig, an der Wurzel)`);
     }
-    for (const step of stepsBy.temp) {
-      try {
-        const r = await repackTempStep(run, step, hsurf);
-        noteGrid(r.field);
-        famEntry('temp').steps.push(wrote('temp', step, r.png, FAMILIES.temp.params));
-      } catch (e) { miss('temp', step, e); }
-    }
   }
 
-  // ── Ein-Kanal-Familien (BW-6b) ───────────────────────────────────────────
-  for (const f of Object.keys(SCALAR_BUILDERS)) {
-    for (const step of stepsBy[f] ?? []) {
-      try {
-        const r = await repackScalarStep(f, run, step);
-        noteGrid(r.field);
-        famEntry(f).steps.push(wrote(f, step, r.png, FAMILIES[f].params));
-      } catch (e) { miss(f, step, e); }
+  // ── BW-9 D: Schritt für Schritt, in der Reihenfolge, in der der DWD ablegt ──
+  // Bis BW-8 lief Familie für Familie (erst 13 Windschritte, dann 25 Temperatur-
+  // schritte, …): der Producer konnte erst starten, wenn der Lauf VOLLSTÄNDIG
+  // lag, und rechnete dann ~1 min am Stück. Jetzt ist Schritt n dran, sobald
+  // seine Dateien in ALLEN Familien liegen — der DWD legt alle ~46 s einen ab,
+  // die Arbeit je Schritt sind 2–4 s. Nach dem letzten Schritt bleibt nichts
+  // mehr zu tun. Je Familie laufen DIESELBEN Funktionen wie bisher; die
+  // Reihenfolge der Schritte innerhalb einer Familie ist unverändert aufsteigend,
+  // die Bilder sind byte-gleich (Verifier), `repack.json` hat dieselben Schlüssel
+  // in derselben Reihenfolge (die Einträge werden vorab angelegt).
+  //
+  // Niederschlag bleibt sequenziell (§25.4 (3)): `prevBy` hält je Familie den
+  // zuletzt GEPACKTEN Schritt — fehlt einer, zeigt `ref` des nächsten auf den
+  // letzten gepackten, genau wie bisher.
+  const prevBy = {};
+  const handle = async (f, step) => {
+    if (f === 'wind') {
+      const r = await repackWindStep(run, step);
+      noteGrid(r.field);
+      famEntry('wind').steps.push({ ...wrote('wind', step, r.png, FAMILIES.wind.params), ...r.norm });
+    } else if (f === 'temp') {
+      const r = await repackTempStep(run, step, hsurf);
+      noteGrid(r.field);
+      famEntry('temp').steps.push(wrote('temp', step, r.png, FAMILIES.temp.params));
+    } else if (FAMILIES[f].fullRes) {
+      const r = await repackGridStep(f, run, step, prevBy[f] ?? null);
+      const entry = famEntry(f);
+      if (!entry.grid) entry.grid = precipGridOf(r.field());
+      entry.steps.push({ ...wrote(f, step, r.png, FAMILIES[f].params), ...(FAMILIES[f].sequential ? { ref: r.ref } : {}) });
+      prevBy[f] = { step, rawValues: r.rawValues };
+    } else {
+      const r = await repackScalarStep(f, run, step);
+      noteGrid(r.field);
+      famEntry(f).steps.push(wrote(f, step, r.png, FAMILIES[f].params));
     }
-  }
+  };
+  // Einträge vorab in Familienreihenfolge anlegen (Schlüsselreihenfolge wie bisher).
+  for (const f of families) if (WAITING || stepsBy[f].length) famEntry(f);
 
-  // ── Voll aufgelöste Familien: Niederschlag sequenziell mit genannter
-  //    Referenz (§25.4 (3)), CAPE instantan (BW-7a) ─────────────────────────
-  for (const f of FAMILY_KEYS.filter((k) => FAMILIES[k].fullRes)) {
-    let prev = null;
-    for (const step of stepsBy[f] ?? []) {
-      try {
-        const r = await repackGridStep(f, run, step, prev);
-        const entry = famEntry(f);
-        if (!entry.grid) entry.grid = precipGridOf(r.field());
-        entry.steps.push({ ...wrote(f, step, r.png, FAMILIES[f].params), ...(FAMILIES[f].sequential ? { ref: r.ref } : {}) });
-        prev = { step, rawValues: r.rawValues };
-      } catch (e) {
-        // Sequenziell: der nächste Schritt würde gegen den FALSCHEN Vorschritt
-        // differenzieren (2-h-Summe als 1-h-Rate). Genau das täte der Client
-        // auch, wenn ihm ein Schritt fehlt — er nennt es aber nicht. Wir nennen
-        // es: `ref` zeigt dann auf den letzten gepackten Schritt, der Client prüft.
-        miss(f, step, e);
+  const maxStepAll = Math.max(0, ...families.map((f) => FAMILIES[f].maxStep));
+  for (let step = 0; step <= maxStepAll; step++) {
+    if (WAITING) {
+      // Auf die Dateien DIESES Schritts warten — nicht auf den ganzen Lauf.
+      let said = false;
+      for (;;) {
+        const pending = families.filter((f) => inHorizon(f, step) && !stepsBy[f].includes(step));
+        if (!pending.length) break;
+        if (waitLeft() <= 0) { log(`Wartebudget ${WAIT_SEC} s erschöpft — Schritt ${pad3(step)} ohne ${pending.join(', ')}`); break; }
+        if (!said) { said = true; log(`warte auf Schritt ${pad3(step)}: ${pending.join(', ')}`); }
+        await sleep();
+        stepsBy = await familySteps(run, families);
+        for (const f of FAMILY_KEYS) if (!families.includes(f)) stepsBy[f] = [];
+        pool.add(planUrls(run, stepsBy, families));
       }
     }
+    for (const f of families) {
+      if (!stepsBy[f].includes(step)) continue;
+      try { await handle(f, step); } catch (e) { miss(f, step, e); }
+    }
+  }
+  // Einträge ohne einen einzigen Schritt gab es bisher nicht — auch jetzt nicht.
+  for (const f of families) if (manifest[f] && manifest[f].steps.length === 0) delete manifest[f];
+  if (WAITING) {
+    const still = stepsMissing(stepsBy, families);
+    for (const f of Object.keys(still)) log(`nicht erschienen — ${f} [${still[f].join(',')}] (nächster Slot holt nach)`);
   }
 
   // Weggelassenes wird benannt, nicht stillschweigend gekürzt — eine kürzere

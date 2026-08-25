@@ -331,11 +331,14 @@
 .br-timedeck.is-compact .br-track input[type='range']::-webkit-slider-thumb { width: 15px; height: 15px; border: 3px solid var(--cream-50, #FAF6EA); margin-top: -4.5px; }
 
 /* --- Readout (340 px) ----------------------------------------------------- */
+/* 2026-08-25 (Jans Auftrag): Readout breiter, Karte gibt ab — 340 → 400 px im
+   Layer-Modus, 400 → 480 px im Brände-/Anomalien-Modus (nur Desktop ≥ 1440 px;
+   das Tablet-Tier behält 266/300, weil dort seit heute auch das Dock steht). */
 .br-readout {
-  width: 340px; flex: 0 0 auto; background: var(--cream-50, #FAF6EA);
+  width: 400px; flex: 0 0 auto; background: var(--cream-50, #FAF6EA);
   border-left: 1px solid var(--sand-200, #E0D6BE); overflow-y: auto; padding: 16px;
 }
-.fire-root.is-fires .br-readout { width: 400px; }
+.fire-root.is-fires .br-readout { width: 480px; }
 .br-tabs { display: flex; gap: 3px; background: #fff; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 9px; padding: 3px; }
 .br-tabs button { flex: 1; text-align: center; border: 0; background: transparent; cursor: pointer; font: inherit; font-size: 12.5px; font-weight: 500; color: var(--stone-500, #8B7355); border-radius: 6px; padding: 7px 0; }
 .br-tabs button:hover { color: var(--ink-900, #2C2A26); }
@@ -466,10 +469,31 @@
 .br-badge.is-no-signal { color: var(--br-warn-ink); background: var(--br-warn-tint); border: 1px solid var(--br-warn-border); }
 .br-badge.is-static { color: var(--stone-600, #5C5447); background: var(--sand-100, #EDE6D3); border: 1px solid var(--border-medium, #D9D0B8); }
 .br-badge.is-out { color: var(--br-sage-text); background: var(--br-sage-tint); border: 1px solid var(--br-sage-border); }
-.br-fire-stats { display: flex; gap: 14px; }
-.br-stat { display: flex; flex-direction: column; }
+/* BD1: vier Kennzahlen je Kachel, immer sichtbar (Desktop 4 Spalten, Tablet/Sheet 2). */
+.br-fire-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px 10px; }
+.br-stat { display: flex; flex-direction: column; min-width: 0; }
 .br-stat-lbl { font-size: 9px; color: var(--stone-400, #A89A7A); text-transform: uppercase; }
-.br-stat-val { font-size: 15px; font-weight: 700; color: var(--ink-900, #2C2A26); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.br-stat-val { font-size: 15px; font-weight: 700; color: var(--ink-900, #2C2A26); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 5px; }
+.br-fire.is-sel .br-stat-val { font-size: 16px; }
+.br-stat-val.is-growing { color: #B93C1E; }
+.br-stat-val.is-declining { color: var(--br-slate); }
+.br-stat-val.is-stable { color: #7A6E5A; }
+.br-stat-val.is-no-signal { color: var(--br-warn-ink); }
+.br-stat-sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* BD1: Detailkarte — Kopf, Abschnitte, Verlauf, Wetterlage */
+.br-detail-title { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 7px; font-size: 13.5px; font-weight: 700; color: var(--ink-900, #2C2A26); overflow: hidden; }
+.br-detail-sub { margin: 0; font-size: 10.5px; color: var(--stone-500, #8B7355); line-height: 1.5; overflow-wrap: anywhere; }
+.br-detail-sec { margin: 12px 0 6px; padding-top: 8px; border-top: 1px dashed var(--sand-200, #E0D6BE); font-size: 9.5px; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 700; color: var(--br-red); }
+.br-detail-empty { font-size: 11px; margin: 0; }
+.br-pass-chart { margin: 0 0 8px; }
+.br-pass-chart svg { display: block; }
+.br-pass-chart figcaption { margin-top: 3px; }
+.br-wx { display: flex; flex-direction: column; gap: 5px; }
+.br-wx-summary { margin: 0; font-size: 11.5px; font-weight: 600; color: var(--ink-900, #2C2A26); line-height: 1.45; }
+.br-wx-tile { background: #fff; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 8px; padding: 6px 8px; font-size: 11px; line-height: 1.45; color: var(--stone-600, #5C5447); font-variant-numeric: tabular-nums; }
+.br-wx-lbl { display: block; font-size: 9px; letter-spacing: .06em; text-transform: uppercase; font-weight: 700; color: var(--stone-400, #A89A7A); margin-bottom: 1px; }
+.br-wx-loading { font-size: 11px; margin: 0; }
+.br-wx .fire-fp-reasons { font-size: 10.5px; }
 .br-stat-val.is-spread { color: #D4632E; }
 .br-stat-sub { font-size: 9px; color: var(--stone-500, #8B7355); }
 .br-stat-sub.is-mapped { color: var(--br-sage-text); }
@@ -636,7 +660,7 @@
   .br-card-lead { font-size: 10px; margin-top: 9px; }
   .br-sources { font-size: 9.5px; margin-top: 12px; padding-top: 0; border-top: 0; }
   .br-fire-btn { padding: 10px; }
-  .br-fire-stats { flex-wrap: wrap; gap: 10px 14px; }
+  .br-fire-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 12px; }
 }
 
 /* ==========================================================================
@@ -806,3 +830,9 @@
 .br-history-chart { margin: 10px 0 4px; }
 .br-history-chart svg { display: block; max-width: 100%; height: auto; }
 .br-history-chart figcaption { margin-top: 4px; }
+
+/* BD1: im Sheet (mobil) zwei Kennzahl-Spalten, Chart auf Sheet-Breite */
+@media (max-width: 767px) {
+  .br-fires.is-sheet .br-fire-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 12px; }
+  .br-fires.is-sheet .br-detail { margin: 0 8px 10px; }
+}

@@ -20,7 +20,7 @@ import { stepsForNowWindow } from '../sources/frameAtValidTime';
 import { buildWindRgba } from './windFrameBuild';
 import { blendAndRefine, type FrameNorm } from './windBlendRefine';
 import {
-  parseRepackSection, loadWindStep, uvBoundsOf, repackUsable, type RepackSection,
+  resolveRepackSection, loadWindStep, uvBoundsOf, repackUsable, type RepackSection,
 } from '../sources/repackSource';
 import type { DataTextureFormat, PackedTexture } from './glUtil';
 
@@ -127,7 +127,9 @@ async function resolveWindRunFromManifest(signal?: AbortSignal): Promise<WindRun
     // BW-3: der Abschnitt wird gegen den Lauf geprüft, den DIESE Auflösung
     // liefert — nicht gegen den, den das Manifest nennt. Beides ist hier
     // dasselbe; im Scan-Fallback unten wäre es das nicht (§22.4).
-    const repack = repackUsable() ? parseRepackSection(m.repack, 'wind', m.run) : null;
+    // BW-9: zuerst der CDN-Index (frisch ≈ 1 min nach dem Publish), der
+    // Manifest-Abschnitt bleibt der benannte Fallback (§28.5 S1).
+    const repack = repackUsable() ? await resolveRepackSection(m.run, 'wind', m.repack) : null;
     return { runStr: m.run, runAt, steps, repack };
   } catch {
     return absent();   // Netzfehler / JSON-Parse → Fallback auf Directory-Scan

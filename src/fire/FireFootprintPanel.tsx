@@ -21,7 +21,12 @@
  *    Karte und Verifier. „Bestätigt" fällt nur mit Quelle (EFFIS, EMS).
  */
 
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { FirePassChart } from './FirePassChart';
+import {
+  fetchFireWeatherAtPoint, hourLine, rainLabelLive, weatherSummary,
+  FIRE_WEATHER_SOURCE_LABEL, FIRE_WEATHER_ATTRIBUTION, type FireWeatherAtPoint,
+} from './detail/fireWeatherAtPoint';
 import {
   type FireRecord, type RecordSort, type RecordFilter, type FireStatusKind,
   STATUS_LABEL, STATUS_COLOR, METHOD_LABEL, statusLabel, areaLabel, confidenceLabel,
@@ -155,6 +160,27 @@ function areaValue(r: FireRecord): string {
 function Badge({ r }: { r: FireRecord }) {
   const b = badgeOf(r.status.kind, r.suspectedStatic, r.anomaly?.kind ?? null);
   return <span className={`br-badge is-${b}`}>{BR_BADGE_LABEL[b]}</span>;
+}
+
+/** Eine Kennzahl der Kachel: Wert, Untertitel, optional Farbpunkt — Herkunft/Grund im `title`. */
+function Stat({ lbl, val, sub, tone, valClass, title, dot }: {
+  lbl: string; val: ReactNode; sub?: ReactNode; tone?: string; valClass?: string; title?: string; dot?: string;
+}) {
+  return (
+    <span className="br-stat" title={title || undefined}>
+      <span className="br-stat-lbl">{lbl}</span>
+      <span className={`br-stat-val${valClass ? ` ${valClass}` : ''}`}>
+        {dot && <span className="fire-crow-dot" style={{ background: dot }} aria-hidden="true" />}
+        {val}
+      </span>
+      {sub != null && <span className={`br-stat-sub${tone ? ` is-${tone}` : ''}`}>{sub}</span>}
+    </span>
+  );
+}
+
+/** Abschnittskopf der Detailkarte (BD1). */
+function Sec({ children }: { children: ReactNode }) {
+  return <h4 className="br-detail-sec">{children}</h4>;
 }
 
 function StatusDot({ status, isStatic }: { status: FireStatusKind; isStatic: boolean }) {
@@ -376,51 +402,38 @@ export function FireFootprintPanel(p: FootprintPanelProps) {
                       <Badge r={r} />
                       <span className="br-fire-region" title={missingReason(r, 'country') ?? undefined}>{regionLabel(r)}</span>
                     </span>
-                    {sel ? (
-                      <span className="br-fire-stats">
-                        <span className="br-stat">
-                          <span className="br-stat-lbl">Fläche</span>
-                          <span className="br-stat-val" title={provisionalArea(r)?.value ?? areaLabel(r)}>{areaValue(r)}</span>
-                          <span className={`br-stat-sub is-${origin.tone}`}>{origin.text}</span>
-                        </span>
-                        <span className="br-stat">
-                          <span className="br-stat-lbl">Detektionen</span>
-                          <span className="br-stat-val">{r.hotspots ?? '—'}</span>
-                          <span className="br-stat-sub">{r.lastMs != null ? `letzte ${ageText(Math.max(0, nowMs - r.lastMs))}` : 'keine im Fenster'}</span>
-                        </span>
-                      </span>
-                    ) : (
-                      <span className="br-fire-line">
-                        {origin.tone === 'none'
-                          ? <span className="br-muted">keine Fläche</span>
-                          : <><strong>{areaValue(r)}</strong> <em className={`is-${origin.tone}`}>{origin.tone === 'mapped' ? 'EFFIS' : 'geschätzt'}</em></>}
-                        {' · '}
-                        {r.hotspots != null
-                          ? <><strong>{r.hotspots}</strong> Detektionen</>
-                          : <span className="br-muted" title={missingReason(r, 'hotspots') ?? ''}>— Detektionen</span>}
-                        {r.lastMs != null && <> · <span className="br-muted">{ageText(Math.max(0, nowMs - r.lastMs))}</span></>}
-                      </span>
-                    )}
-                    {/* BP5 — Stärke (ΣFRP) und Ausdehnung der Hülle; ohne Detektion „—" mit Grund, nie 0. */}
-                    <span className="br-fire-meta">
-                      {r.sources.cluster ? (
-                        <>
-                          <span className="fire-crow-dot" style={{ background: r.suspectedStatic ? STATIC_GREY : clusterColorOf(r.sources.cluster) }} aria-hidden="true" />
-                          <span title="Summe der Feuerstrahlungsleistung über Pixel UND Überflüge — eine Leistung, keine Fläche und keine Energie.">ΣFRP {strengthLabel(r.sources.cluster)}</span>
-                          {' · '}
-                          <span title="Ausdehnung der konvexen Hülle über die Detektionsorte — nicht die verbrannte Fläche.">{extentLabel(r.sources.cluster)} Ausdehnung</span>
-                        </>
-                      ) : (
-                        <span title={missingReason(r, 'hotspots') ?? ''}>— keine Leistung (keine Detektion im Fenster)</span>
-                      )}
-                      {' · '}{statusLabel(r, nowMs)}
-                      {r.activity?.state && r.activity.state !== 'no-signal' && (
-                        <> · <span className={`fire-fp-trend is-${r.activity.state}`} title={r.activity.stateNote ?? ''}>{STATE_LABEL[r.activity.state]}</span></>
-                      )}
-                      {r.activity?.state === 'no-signal' && r.activity.observation && (
-                        <> · <span className={`fire-fp-obs is-${r.activity.observation}`} title={r.activity.observationNote ?? ''}>{r.activity.observation === 'confirmed' ? 'Sicht gegeben' : 'nicht beobachtbar'}</span></>
-                      )}
+                    {/* BD1 — vier Kennzahlen IMMER (nicht erst markiert): Fläche · Detektionen · Stärke · Tendenz.
+                        Jeder Wert mit Untertitel (Herkunft / letzte vor X / Ausdehnung / Beobachtung); ohne
+                        Detektion „—" mit Grund im title, nie 0. */}
+                    <span className="br-fire-stats">
+                      <Stat
+                        lbl="Fläche" val={origin.tone === 'none' ? '—' : areaValue(r)} sub={origin.text} tone={origin.tone}
+                        title={provisionalArea(r)?.value ?? areaLabel(r)}
+                      />
+                      <Stat
+                        lbl="Detektionen" val={r.hotspots ?? '—'}
+                        sub={r.lastMs != null ? `letzte ${ageText(Math.max(0, nowMs - r.lastMs))}` : 'keine im Fenster'}
+                        title={r.hotspots == null ? (missingReason(r, 'hotspots') ?? '') : `${r.overpasses ?? 0} Überflüge · Satelliten ${r.satellites?.join(', ') || '—'}`}
+                      />
+                      <Stat
+                        lbl="Stärke" val={r.sources.cluster ? strengthLabel(r.sources.cluster) : '—'}
+                        sub={r.sources.cluster ? `${extentLabel(r.sources.cluster)} Ausdehnung` : 'keine Leistung (keine Detektion)'}
+                        title={r.sources.cluster
+                          ? 'Summe der Feuerstrahlungsleistung über Pixel UND Überflüge — eine Leistung, keine Fläche und keine Energie. Ausdehnung = konvexe Hülle der Detektionsorte, nicht die verbrannte Fläche.'
+                          : (missingReason(r, 'hotspots') ?? '')}
+                        dot={r.sources.cluster ? (r.suspectedStatic ? STATIC_GREY : clusterColorOf(r.sources.cluster)) : undefined}
+                      />
+                      <Stat
+                        lbl="Tendenz"
+                        val={r.activity?.state && r.activity.state !== 'no-signal' ? STATE_LABEL[r.activity.state] : r.activity?.state === 'no-signal' ? 'kein Signal' : '—'}
+                        valClass={r.activity?.state ? `is-${r.activity.state}` : undefined}
+                        sub={r.activity?.state === 'no-signal'
+                          ? (r.activity.observation ? (r.activity.observation === 'confirmed' ? 'Sicht gegeben' : 'nicht beobachtbar') : 'Beobachtung unbestimmt')
+                          : r.activity?.state ? `${r.activity.passCount} Überflüge` : (r.activity?.stateNote ?? 'nicht bestimmbar')}
+                        title={r.activity?.state === 'no-signal' ? (r.activity.observationNote ?? '') : (r.activity?.stateNote ?? '')}
+                      />
                     </span>
+                    <span className="br-fire-meta">{statusLabel(r, nowMs)}</span>
                     {ctx.length > 0 && <span className="br-fire-ctx">{ctx.join(' · ')}</span>}
                     {atFire.length > 0 && (
                       <span className="br-fire-ctx">
@@ -439,7 +452,7 @@ export function FireFootprintPanel(p: FootprintPanelProps) {
                     </span>
                   </button>
                   {sel && p.detail && p.detail.id === r.id && (
-                    <FootprintDetail r={p.detail} nowMs={nowMs} onClose={p.onClearSelect} atContext={at} />
+                    <FootprintDetail r={p.detail} nowMs={nowMs} onClose={p.onClearSelect} atContext={at} compact={p.inSheet || !!p.compact} />
                   )}
                 </div>
               </li>
@@ -513,7 +526,7 @@ function FeaturesRow({ r, nowMs }: { r: FireRecord; nowMs: number }) {
   };
   return (
     <>
-      <dt>Merkmale</dt>
+      <dt>Merkmalsatz</dt>
       <dd className="fire-fp-dd-wide">
         <ul className="fire-fp-features" aria-label={`Merkmalsatz Version ${FEATURE_VERSION}`}>
           {rows.map((x) => <li key={x.key}><span>{x.key}</span><span>{x.value}</span></li>)}
@@ -527,10 +540,82 @@ function FeaturesRow({ r, nowMs }: { r: FireRecord; nowMs: number }) {
   );
 }
 
-/** Die Detailkarte eines Eintrags — in der Brandkarte, kein Popup. Jede Zahl mit Art und Quelle. */
+/**
+ * BD1 — Wetterlage am Brandort: lädt erst, wenn die Detailkarte offen ist (ein Abruf je Brand
+ * und Sitzung, `detail/fireWeatherAtPoint.ts`). Modellwerte, keine Messung — steht in jeder
+ * Zeile; was fehlt, steht als Satz darunter, nie als Lücke.
+ */
+function WeatherBlock({ r, nowMs }: { r: FireRecord; nowMs: number }) {
+  const [wx, setWx] = useState<{ kind: 'loading' } | { kind: 'ok'; data: FireWeatherAtPoint }>({ kind: 'loading' });
+  useEffect(() => {
+    let alive = true;
+    setWx({ kind: 'loading' });
+    void fetchFireWeatherAtPoint(r.lat, r.lon, r.firstMs, r.lastMs, nowMs).then((data) => { if (alive) setWx({ kind: 'ok', data }); });
+    return () => { alive = false; };
+    // nowMs ändert sich je Minute — der Abruf hängt am Brand, nicht an der Uhr.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [r.id, r.lat, r.lon, r.firstMs, r.lastMs]);
+  if (wx.kind === 'loading') return <p className="br-muted br-wx-loading">Modellwerte für den Brandort werden geladen …</p>;
+  const w = wx.data;
+  const summary = weatherSummary(w);
+  const stampH = (ms: number) => new Date(ms).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  const de = (n: number, frac = 0) => n.toLocaleString('de-DE', { maximumFractionDigits: frac });
+  return (
+    <div className="br-wx">
+      {summary && <p className="br-wx-summary">{summary}</p>}
+      {w.atFirst && (
+        <div className="br-wx-tile">
+          <span className="br-wx-lbl">Bei Erstdetektion · {stampH(w.atFirst.atMs)}</span>
+          {hourLine(w.atFirst)}
+        </div>
+      )}
+      {w.atLast && (
+        <div className="br-wx-tile">
+          <span className="br-wx-lbl">Bei letzter Detektion · {stampH(w.atLast.atMs)}</span>
+          {hourLine(w.atLast)}
+        </div>
+      )}
+      {w.fireDay && (
+        <div className="br-wx-tile">
+          <span className="br-wx-lbl">Brandtag {new Date(`${w.fireDay.dateISO}T12:00:00Z`).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}{w.fireDay.partial ? ' · bis jetzt' : ''}</span>
+          {w.fireDay.tMaxC != null ? `Tmax ${de(w.fireDay.tMaxC, 1)} °C` : 'Tmax —'}
+          {' · '}{w.fireDay.rhMinPct != null ? `RHmin ${de(w.fireDay.rhMinPct)} %` : 'RHmin —'}
+          {' · '}{w.fireDay.gustMaxKmh != null ? `Böen max ${de(w.fireDay.gustMaxKmh)} km/h` : 'Böen —'}
+          {' · '}{w.fireDay.precipMm != null ? `${de(w.fireDay.precipMm, 1)} mm` : '— mm'}
+        </div>
+      )}
+      <div className="br-wx-tile">
+        <span className="br-wx-lbl">Vortage</span>
+        {w.precip24hBeforeMm != null ? `${de(w.precip24hBeforeMm, 1)} mm in den 24 h vor der Erstdetektion` : 'Niederschlag der 24 h davor nicht bestimmbar'}
+        {' · '}{rainLabelLive(w)}
+      </div>
+      {w.now && (
+        <div className="br-wx-tile">
+          <span className="br-wx-lbl">Jetzt · {stampH(w.now.atMs)}</span>
+          {hourLine(w.now)}
+        </div>
+      )}
+      {w.notes.length > 0 && (
+        <ul className="fire-fp-reasons br-muted">
+          {w.notes.map((n) => <li key={n}>{n}</li>)}
+        </ul>
+      )}
+      <p className="br-note">
+        {FIRE_WEATHER_SOURCE_LABEL} · Werte für den Brandort ({r.lat.toFixed(2)}° N, {r.lon.toFixed(2)}° E) aus dem Modellgitter — das Modell
+        kennt den Brand nicht; sie beschreiben die Umgebung, nicht die Flamme. {FIRE_WEATHER_ATTRIBUTION}.
+      </p>
+    </div>
+  );
+}
+
+/**
+ * Die Detailkarte eines Eintrags — in der Brandkarte, kein Popup. Jede Zahl mit Art und Quelle.
+ * BD1: gegliedert in Kennzahlen · Verlauf · Wetterlage · Einordnung & Bestätigung · Merkmale
+ * (`audit/brand-detail.md` §2 D6); jede Zeile von vorher steht weiter drin, nur sortiert.
+ */
 export function FootprintDetail(
-  { r, nowMs, onClose, atContext = null }:
-  { r: FireRecord; nowMs: number; onClose: () => void; atContext?: AtWarnContext | null },
+  { r, nowMs, onClose, atContext = null, compact = false }:
+  { r: FireRecord; nowMs: number; onClose: () => void; atContext?: AtWarnContext | null; compact?: boolean },
 ) {
   // Der GANZE Lauf, nicht nur der Eintrag: nur so lässt sich „der Lauf kennt
   // diesen Brand nicht" von „der Lauf hat für ihn keine Aussage" unterscheiden.
@@ -538,16 +623,32 @@ export function FootprintDetail(
   const conf = r.confidence;
   // VB3: die vorläufige Brandfläche — `null`, sobald eine Kartierung vorliegt.
   const prov = provisionalArea(r);
+  const act = r.activity;
+  // Ursache: es gibt keine Quelle — aber Einordnungshilfen, jede mit Herkunft.
+  const causeHints: string[] = [];
+  if (r.anomaly) causeHints.push(r.anomaly.kind === 'site'
+    ? `bekannter Standort einer Dauerquelle (${siteLabel(r.anomaly.site)}, eigene Ableitung)`
+    : `nahe bekanntem Standort (${siteLabel(r.anomaly.site)}), Signal weicht vom Anlagenmuster ab`);
+  else if (r.suspectedStatic) causeHints.push('an ≥ 5 Tagen am selben Ort — vermutlich Anlage (eigene Einordnung, kein Nachweis)');
+  if (r.landcover?.[0]) causeHints.push(`Landbedeckung ${LANDCOVER_LABEL[r.landcover[0].key]} (CORINE)`);
+  if (r.sources.ems?.name) causeHints.push(`Copernicus-EMS-Aktivierung „${r.sources.ems.name}"`);
+  if (eff?.firedateMs != null) causeHints.push(`Brandbeginn laut EFFIS ${fmtDate(eff.firedateMs)}`);
   return (
     <section className="br-detail" aria-label={`Details ${recordTitle(r)}`}>
       <div className="br-detail-head">
         <span className="br-eyebrow">Details</span>
+        <span className="br-detail-title">{recordName(r)} <Badge r={r} /></span>
         <button type="button" className="br-close" aria-label="Details schließen" onClick={onClose}>×</button>
       </div>
+      <p className="br-detail-sub">
+        {regionLabel(r)} · {r.lat.toFixed(3)}° N, {r.lon.toFixed(3)}° E · <code>{r.id}</code>
+        {r.previousIds.length > 0 && <span className="br-muted"> · zuvor {r.previousIds.length}×</span>}
+        {r.mergedFrom.length > 0 && <span className="br-muted"> · zusammengewachsen aus {r.mergedFrom.length + 1} Detektionsgruppen dieser Sitzung</span>}
+        {r.splitFrom && <span className="br-muted"> · aus <code>{r.splitFrom}</code> hervorgegangen (Verbindung aus dem Fenster gefallen)</span>}
+      </p>
+
+      <Sec>Kennzahlen</Sec>
       <dl className="fire-fp-dl">
-        <dt>Kennung</dt><dd><code>{r.id}</code>{r.previousIds.length > 0 && <span className="br-muted"> · zuvor {r.previousIds.length}×</span>}</dd>
-        {r.mergedFrom.length > 0 && <><dt>Merge</dt><dd>zusammengewachsen aus {r.mergedFrom.length + 1} Detektionsgruppen dieser Sitzung</dd></>}
-        {r.splitFrom && <><dt>Split</dt><dd>aus <code>{r.splitFrom}</code> hervorgegangen (Verbindung aus dem Fenster gefallen)</dd></>}
         <dt>Status</dt><dd>{statusLabel(r, nowMs)}</dd>
         <dt>Fläche</dt>
         <dd>
@@ -566,14 +667,14 @@ export function FootprintDetail(
             </>
           )}
         </dd>
-        {!prov && r.activity && (r.activity.areaEst || r.activity.areaEstReason) && (
+        {!prov && act && (act.areaEst || act.areaEstReason) && (
           <>
             <dt>Schätzung</dt>
             <dd>
-              {r.activity.areaEst
-                ? <>Fläche <b>{estimateLabel(r.activity.areaEst).split(' — ')[0]}</b>{' — '}{estimateLabel(r.activity.areaEst).split(' — ').slice(1).join(' — ')}</>
-                : <span className="br-muted">— {r.activity.areaEstReason}</span>}
-              {r.activity.areaEst && r.areaHa.kind === 'mapped' && r.areaHa.value != null && (
+              {act.areaEst
+                ? <>Fläche <b>{estimateLabel(act.areaEst).split(' — ')[0]}</b>{' — '}{estimateLabel(act.areaEst).split(' — ').slice(1).join(' — ')}</>
+                : <span className="br-muted">— {act.areaEstReason}</span>}
+              {act.areaEst && r.areaHa.kind === 'mapped' && r.areaHa.value != null && (
                 <span className="br-muted"> · zum Vergleich kartiert: {r.areaHa.value.toLocaleString('de-DE')} ha (die Kartierung gilt)</span>
               )}
             </dd>
@@ -599,52 +700,83 @@ export function FootprintDetail(
         </dd>
         <dt>Methode</dt><dd>{r.method.map((m) => METHOD_LABEL[m]).join(' · ')}</dd>
         {r.frpSumMw != null && <><dt>ΣFRP</dt><dd>{r.frpSumMw.toLocaleString('de-DE', { maximumFractionDigits: 1 })} MW — Leistung, summiert über Pixel und Überflüge, keine Fläche</dd></>}
-        {r.activity && r.activity.frpLastPassMw != null && (
-          <><dt>FRP je Überflug</dt><dd>{activitySummary(r.activity)} — ΣFRP des jüngsten bzw. stärksten Überflugs (nicht die Fenstersumme oben)</dd></>
+        {act && act.frpLastPassMw != null && (
+          <><dt>FRP je Überflug</dt><dd>{activitySummary(act)} — ΣFRP des jüngsten bzw. stärksten Überflugs (nicht die Fenstersumme oben)</dd></>
         )}
-        {r.activity && r.activity.passCount > 0 && (
-          <>
-            <dt>Tendenz</dt>
-            <dd>
-              {r.activity.state && r.activity.state !== 'no-signal'
-                ? <><b>{STATE_LABEL[r.activity.state]}</b>{r.activity.stateNote ? ` — ${r.activity.stateNote}` : ''}</>
-                : r.activity.state === 'no-signal'
-                  ? <>kein Signal{r.activity.stateNote ? ` — ${r.activity.stateNote}` : ''}</>
-                  : <span className="br-muted">— {r.activity.stateNote ?? 'nicht bestimmbar'}</span>}
-              <span className="br-muted"> · FRP-Verlauf der letzten Überflüge derselben Tageshälfte; nicht die Tendenz der Ereignis-Einordnung</span>
-            </dd>
-            {r.activity.state === 'no-signal' && (
+      </dl>
+
+      <Sec>Verlauf</Sec>
+      {r.passes.length > 0
+        ? <FirePassChart passes={r.passes} nowMs={nowMs} compact={compact} />
+        : <p className="br-muted br-detail-empty">Kein Überflug im Fenster — es gibt keinen zeitlichen Verlauf, nur die Kartierung.</p>}
+      {act && act.passCount > 0 && (
+        <dl className="fire-fp-dl">
+          <dt>Tendenz</dt>
+          <dd>
+            {act.state && act.state !== 'no-signal'
+              ? <><b className={`fire-fp-trend is-${act.state}`}>{STATE_LABEL[act.state]}</b>{act.stateNote ? ` — ${act.stateNote}` : ''}</>
+              : act.state === 'no-signal'
+                ? <>kein Signal{act.stateNote ? ` — ${act.stateNote}` : ''}</>
+                : <span className="br-muted">— {act.stateNote ?? 'nicht bestimmbar'}</span>}
+            <span className="br-muted"> · FRP-Verlauf der letzten Überflüge derselben Tageshälfte; nicht die Tendenz der Ereignis-Einordnung</span>
+          </dd>
+          {act.state === 'no-signal' && (
+            <>
+              <dt>Beobachtung</dt>
+              <dd>
+                {act.observation
+                  ? <><b>{OBSERVATION_LABEL[act.observation]}</b>{act.observationNote ? ` — ${act.observationNote}` : ''}</>
+                  : <span className="br-muted">— nicht bestimmt (keine Zeilen für den Umkreis)</span>}
+              </dd>
+            </>
+          )}
+          <dt>Ausbreitung</dt>
+          <dd>
+            {act.spreadBearingDeg != null ? (
               <>
-                <dt>Beobachtung</dt>
-                <dd>
-                  {r.activity.observation
-                    ? <><b>{OBSERVATION_LABEL[r.activity.observation]}</b>{r.activity.observationNote ? ` — ${r.activity.observationNote}` : ''}</>
-                    : <span className="br-muted">— nicht bestimmt (keine Zeilen für den Umkreis)</span>}
-                </dd>
+                Schwerpunkt wandert nach <b>{compassLabel(act.spreadBearingDeg)}</b> ({act.spreadBearingDeg}°, {act.spreadDistanceM} m zwischen den Überflügen)
+                {act.windAgreement === 'agree' && <> · <span className="fire-fp-wind is-agree">mit dem ICON-D2-Wind ({act.windFromDeg}° aus)</span></>}
+                {act.windAgreement === 'disagree' && <> · <span className="fire-fp-wind is-disagree">gegen den ICON-D2-Wind ({act.windFromDeg}° aus) — Schwerpunkt verzerrt oder zwei Feuer?</span></>}
+                {act.windAgreement === null && act.windFromDeg != null && <> · <span className="br-muted">Wind ({act.windFromDeg}° aus) weder klar dafür noch dagegen</span></>}
+                {act.windFromDeg == null && <> · <span className="br-muted">kein Windabgleich (Windlayer aus oder kein Frame nahe genug)</span></>}
+                <span className="br-muted"> · Verschiebung des FRP-Schwerpunkts, kein Frontverlauf</span>
               </>
+            ) : (
+              <span className="br-muted">— keine Richtung bestimmbar (unter 3 Überflügen mit FRP oder Verschiebung unter einer halben Pixelbreite); die Ausdehnung der Hülle steht in der Kachel</span>
             )}
-            {r.activity.spreadBearingDeg != null && (
-              <>
-                <dt>Ausbreitung bisher (beobachtet)</dt>
-                <dd>
-                  Schwerpunkt wandert nach <b>{compassLabel(r.activity.spreadBearingDeg)}</b> ({r.activity.spreadBearingDeg}°, {r.activity.spreadDistanceM} m zwischen den Überflügen)
-                  {r.activity.windAgreement === 'agree' && <> · <span className="fire-fp-wind is-agree">mit dem ICON-D2-Wind ({r.activity.windFromDeg}° aus)</span></>}
-                  {r.activity.windAgreement === 'disagree' && <> · <span className="fire-fp-wind is-disagree">gegen den ICON-D2-Wind ({r.activity.windFromDeg}° aus) — Schwerpunkt verzerrt oder zwei Feuer?</span></>}
-                  {r.activity.windAgreement === null && r.activity.windFromDeg != null && <> · <span className="br-muted">Wind ({r.activity.windFromDeg}° aus) weder klar dafür noch dagegen</span></>}
-                  {r.activity.windFromDeg == null && <> · <span className="br-muted">kein Windabgleich (Windlayer aus oder kein Frame nahe genug)</span></>}
-                  <span className="br-muted"> · Verschiebung des FRP-Schwerpunkts, kein Frontverlauf</span>
-                </dd>
-              </>
-            )}
-            <dt>FRE</dt><dd>{freLabel(r.activity)}</dd>
-            <dt>Überflüge</dt>
-            <dd>
-              {r.activity.daynightMix ? DAYNIGHT_LABEL[r.activity.daynightMix] : '—'}
-              {r.activity.meanScanKm != null && <> · mittlere Pixelbreite {r.activity.meanScanKm.toLocaleString('de-DE')} km{r.activity.meanScanKm > 0.6 ? ' (Schwadrand — größere Pixel, andere Detektionswahrscheinlichkeit)' : ''}</>}
-            </dd>
-          </>
-        )}
-        <FeaturesRow r={r} nowMs={nowMs} />
+          </dd>
+          <dt>FRE</dt><dd>{freLabel(act)}</dd>
+          <dt>Überflüge</dt>
+          <dd>
+            {act.daynightMix ? DAYNIGHT_LABEL[act.daynightMix] : '—'}
+            {act.meanScanKm != null && <> · mittlere Pixelbreite {act.meanScanKm.toLocaleString('de-DE')} km{act.meanScanKm > 0.6 ? ' (Schwadrand — größere Pixel, andere Detektionswahrscheinlichkeit)' : ''}</>}
+          </dd>
+          {r.passes.length > 0 && (
+            <>
+              <dt>Je Überflug</dt>
+              <dd className="fire-fp-dd-wide">
+                <ul className="fire-fp-passes fire-fp-passes--af">
+                  {r.passes.slice(-8).map((ps) => (
+                    <li key={ps.key}>
+                      <span>{fmtStamp(ps.atMs)}</span>
+                      <span title={ps.satellite}>{ps.satellite || '—'} {ps.day === true ? '☀' : ps.day === false ? '☾' : ''}</span>
+                      <span>{ps.pixels} Px</span>
+                      <span>{ps.frpPixels > 0 ? `${ps.sumFrp.toLocaleString('de-DE', { maximumFractionDigits: 1 })} MW` : '—'}</span>
+                    </li>
+                  ))}
+                </ul>
+                <span className="br-muted">{r.passes.length > 8 ? `die letzten 8 von ${r.passes.length} Überflügen` : 'je Überflug'} ({clockLabel(r.passes[0].atMs)} … {clockLabel(r.passes[r.passes.length - 1].atMs)}) — je Satellit, 10-min-Regel; ☀ Tag, ☾ Nacht; nur innerhalb des Fensters, kein Speicher über Sitzungen</span>
+              </dd>
+            </>
+          )}
+        </dl>
+      )}
+
+      <Sec>Wetterlage</Sec>
+      <WeatherBlock r={r} nowMs={nowMs} />
+
+      <Sec>Einordnung &amp; Bestätigung</Sec>
+      <dl className="fire-fp-dl">
         <dt>Ort</dt>
         <dd>
           {r.place.name || r.place.district
@@ -668,6 +800,18 @@ export function FootprintDetail(
             )
             : <span title="Landbedeckungsanteile liefert nur die EFFIS-Kartierung">—</span>}
         </dd>
+        {(r.anomaly || r.suspectedStatic) && (
+          <>
+            <dt>Anlage?</dt>
+            <dd>
+              {r.anomaly
+                ? (r.anomaly.kind === 'site'
+                  ? <>Bekannter Standort: {siteLabel(r.anomaly.site)} — eigene Ableitung aus dem FIRMS-Archiv und Anlagenverzeichnissen, kein Nachweis.</>
+                  : <>Nahe bekanntem Standort ({siteLabel(r.anomaly.site)}), das Signal weicht vom Anlagenmuster ab — als Brand behandelt.</>)
+                : 'Vermutlich Industrieanlage — an ≥ 5 Tagen am selben Ort (eigene Einordnung, kein Nachweis).'}
+            </dd>
+          </>
+        )}
         {eff && (
           <>
             <dt>Kartierung</dt>
@@ -699,24 +843,18 @@ export function FootprintDetail(
             </dd>
           </>
         )}
-        {r.passes.length > 0 && (
-          <>
-            <dt>Verlauf</dt>
-            <dd className="fire-fp-dd-wide">
-              <ul className="fire-fp-passes fire-fp-passes--af">
-                {r.passes.slice(-8).map((ps) => (
-                  <li key={ps.key}>
-                    <span>{fmtStamp(ps.atMs)}</span>
-                    <span title={ps.satellite}>{ps.satellite || '—'} {ps.day === true ? '☀' : ps.day === false ? '☾' : ''}</span>
-                    <span>{ps.pixels} Px</span>
-                    <span>{ps.frpPixels > 0 ? `${ps.sumFrp.toLocaleString('de-DE', { maximumFractionDigits: 1 })} MW` : '—'}</span>
-                  </li>
-                ))}
-              </ul>
-              <span className="br-muted">je Überflug ({clockLabel(r.passes[0].atMs)} … {clockLabel(r.passes[r.passes.length - 1].atMs)}) — je Satellit, 10-min-Regel; ☀ Tag, ☾ Nacht; nur innerhalb des Fensters, kein Speicher über Sitzungen</span>
-            </dd>
-          </>
-        )}
+        <dt>Ursache</dt>
+        <dd>
+          <b>keine Quelle</b> — Brandursachen ermitteln Polizei und Forstbehörden; kein Anbieter dieser Karte (NASA FIRMS, EFFIS, GWIS, Copernicus EMS) liefert sie je Brand.
+          {causeHints.length > 0
+            ? <> Was eine Einordnung erlaubt, ohne eine Ursache zu sein: {causeHints.join(' · ')}.</>
+            : ' Für diesen Eintrag gibt es auch keine Einordnungshilfe.'}
+        </dd>
+      </dl>
+
+      <Sec>Merkmale</Sec>
+      <dl className="fire-fp-dl">
+        <FeaturesRow r={r} nowMs={nowMs} />
       </dl>
     </section>
   );

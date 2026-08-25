@@ -673,9 +673,143 @@ export async function loadGridStep(
 // Abschnitt aus dem GRIB-Manifest (alle Familien außer Wind)
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// BW-9 (§28.4/§28.5 S1): der Index des Daten-Repos, direkt vom CDN
+//
+// Bis BW-8 erfuhr der Browser einen neuen Repack-Lauf nur über den Abschnitt
+// in `/latest-grib.json` — den ein Warm-Cron (15-min-Slot + Jitter) committet
+// und Netlify baut: gemessen 5–21 min nach dem Publish, bei Lauf + 105…135 min
+// insgesamt. jsDelivr löst `@main` bei einem Cache-MISS frisch auf, und der
+// Publisher purgt `index.json` nach jedem Push (und prüft es nach). Der Client
+// liest den Index deshalb selbst: gemessen ≈ 1 min nach dem Push.
+//
+// Der Manifest-Abschnitt bleibt der benannte Fallback (Rule 2): Index nicht
+// lesbar, Lauf nicht drin, Schalter aus — dann gilt, was bisher galt. Und die
+// Anti-Drift-Regel gilt per Konstruktion: gebaut wird nur der Eintrag für den
+// Lauf, den der Aufrufer TATSÄCHLICH auflösen konnte.
+// ---------------------------------------------------------------------------
+
+/** Spiegel von `CDN_BASE` in `scripts/lib/repackManifest.mjs` — `verify:repack` prüft die Gleichheit. */
+export const REPACK_CDN_BASE = 'https://cdn.jsdelivr.net/gh/jppetry/buscosun-data';
+/** Spiegel von `INDEX_CDN_URL` dort. Branch-Ref, vom Publisher nach jedem Push gepurgt. */
+export const REPACK_INDEX_CDN_URL = `${REPACK_CDN_BASE}@main/index.json`;
+/** Sitzungs-Cache des Index: EIN geteiltes Promise je TTL-Fenster — zehn Quellen
+ *  fragen denselben Lauf, nicht zehn Abrufe (dasselbe Muster wie `gribManifest.ts`). */
+export const INDEX_TTL_MS = 60_000;
+
+/**
+ * Schalter NUR für den Index-Weg (`?repackidx=0` bzw. `localStorage.repackidx = '0'`),
+ * dieselbe Semantik wie `repackFlagFrom`: die Query schlägt den Speicher in beide
+ * Richtungen. `?repack=0` schaltet weiterhin den ganzen Repack ab.
+ */
+export function repackIndexFlagFrom(search: string, stored: string | null): boolean {
+  const q = new URLSearchParams(search.startsWith('?') ? search.slice(1) : search).get('repackidx');
+  if (q === '1') return true;
+  if (q === '0') return false;
+  return stored !== '0';
+}
+export function repackIndexEnabled(): boolean {
+  if (typeof window === 'undefined') return false;
+  let stored: string | null = null;
+  try { stored = window.localStorage?.getItem('repackidx') ?? null; } catch { /* wie repackEnabled */ }
+  try { return repackIndexFlagFrom(window.location.search, stored); } catch { return false; }
+}
+
+/**
+ * Der Abschnitt für GENAU diesen Lauf aus dem Index — DIESELBE Regel wie
+ * `sectionFor`/`pickForRun` im Cron (`repackManifest.mjs`), für EINE Familie.
+ * `verify:repack` prüft beide gegeneinander am Publisher-Baum. Rein, DOM-frei;
+ * die Prüfung des Ergebnisses übernimmt `parseRepackSection` — es gibt keine
+ * zweite Validierung.
+ */
+export function sectionFromIndex(index: unknown, run: string, family: RepackFamily, base: string = REPACK_CDN_BASE): unknown {
+  if (!index || typeof index !== 'object') return null;
+  const ix = index as { commit?: unknown; runs?: unknown };
+  if (typeof ix.commit !== 'string' || !Array.isArray(ix.runs)) return null;
+  const entry = (ix.runs as unknown[]).find((r) => !!r && typeof r === 'object' && (r as { run?: unknown }).run === run) as
+    Record<string, unknown> | undefined;
+  if (!entry) return null;
+  const fam = entry[family] as { steps?: unknown } | undefined;
+  if (!fam || typeof fam !== 'object' || !Array.isArray(fam.steps) || fam.steps.length === 0) return null;
+  return {
+    schema: REPACK_SCHEMA,
+    base,
+    commit: ix.commit,
+    run: entry.run,
+    runAt: entry.runAt,
+    path: entry.path,
+    targetWidth: entry.targetWidth,
+    grid: entry.grid,
+    [family]: fam,
+  };
+}
+
+/**
+ * Zwei geprüfte Abschnitte desselben Laufs — welcher gilt? Der mit MEHR
+ * Schritten der Familie (ein Re-Publish ergänzt Schritte, nimmt keine weg);
+ * bei Gleichstand der Index, weil er der frischere Weg ist. Fehlt einer, der andere.
+ */
+export function chooseSection(
+  fromIndex: RepackSection | null,
+  fromManifest: RepackSection | null,
+  family: RepackFamily,
+): RepackSection | null {
+  if (!fromIndex) return fromManifest;
+  if (!fromManifest) return fromIndex;
+  const n = (s: RepackSection) => (s[family] as { steps?: unknown[] } | undefined)?.steps?.length ?? 0;
+  return n(fromManifest) > n(fromIndex) ? fromManifest : fromIndex;
+}
+
+let indexCache: { at: number; p: Promise<unknown> } | null = null;
+/** Nur für Tests/Verifier. */
+export function resetRepackIndexCache(): void { indexCache = null; }
+
+/**
+ * Der Index vom CDN, `null` bei JEDEM Problem — und das ist kein Defekt des
+ * Repack-Wegs (`markBroken` bleibt unberührt): die Bilder können trotzdem
+ * liegen, der Manifest-Abschnitt sagt dann, wo. Frist wie der erste Bildabruf.
+ */
+async function fetchCdnIndex(): Promise<unknown> {
+  const now = Date.now();
+  if (indexCache && now - indexCache.at < INDEX_TTL_MS) return indexCache.p;
+  const p = (async () => {
+    const { signal, done } = withDeadline(FIRST_TIMEOUT_MS);
+    try {
+      const res = await fetch(REPACK_INDEX_CDN_URL, { signal, cache: 'no-store' });
+      if (!res.ok) return null;
+      return await res.json() as unknown;
+    } catch {
+      return null;
+    } finally {
+      done();
+    }
+  })();
+  indexCache = { at: now, p };
+  return p;
+}
+
+/**
+ * Der geprüfte Abschnitt für `run` und `family`: zuerst der CDN-Index, sonst der
+ * rohe `repack`-Abschnitt des Manifests (`manifestRaw`), den der Aufrufer schon
+ * in der Hand hat — kein zweiter Manifest-Abruf.
+ */
+export async function resolveRepackSection(
+  run: string,
+  family: RepackFamily,
+  manifestRaw: unknown,
+): Promise<RepackSection | null> {
+  if (!repackUsable()) return null;
+  const fromManifest = manifestRaw ? parseRepackSection(manifestRaw, family, run) : null;
+  if (!repackIndexEnabled()) return fromManifest;
+  const index = await fetchCdnIndex();
+  const fromIndex = index ? parseRepackSection(sectionFromIndex(index, run, family), family, run) : null;
+  return chooseSection(fromIndex, fromManifest, family);
+}
+
 /**
  * Liest den `repack`-Abschnitt aus `/latest-grib.json` — über DENSELBEN
- * 60-s-Cache, den `resolveRunFromManifest` benutzt, also ohne zweiten Abruf.
+ * 60-s-Cache, den `resolveRunFromManifest` benutzt, also ohne zweiten Abruf —
+ * und zieht seit BW-9 zuerst den CDN-Index heran (`resolveRepackSection`).
  * `run` ist der Lauf, den der Aufrufer TATSÄCHLICH auflösen konnte (nicht der
  * des Manifests): passt er nicht, gibt es keinen Abschnitt.
  */
@@ -686,5 +820,5 @@ export async function resolveRepackForRun(
 ): Promise<RepackSection | null> {
   if (!repackUsable()) return null;
   const raw = await readManifestRepack(url);
-  return raw ? parseRepackSection(raw, family, run) : null;
+  return resolveRepackSection(run, family, raw);
 }

@@ -54,7 +54,7 @@ import {
 } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { RUNS_DIR, HSURF_FILE, CDN_BASE, indexEntry, SCHEMA } from './lib/repackManifest.mjs';
+import { RUNS_DIR, HSURF_FILE, CDN_BASE, indexEntry, SCHEMA, purgeIndexUntilFresh } from './lib/repackManifest.mjs';
 
 const OUT_DIR = resolve(process.env.REPACK_OUT || 'data/repack');
 const REPO = process.env.REPACK_REPO || 'https://github.com/jppetry/buscosun-data.git';
@@ -254,8 +254,17 @@ async function main() {
   git(['push', '--quiet', '--force', 'origin', 'HEAD:main']);
   log(`Abgelegt → ${REPO} (main = ${headSha.slice(0, 7)})`);
 
+  // ── 7. BW-9: den CDN-Index frisch machen, damit der Browser den Lauf JETZT
+  //    sieht — nicht erst nach Warm-Cron-Slot und Netlify-Build (§28.4/§28.5 S1).
+  //    `REPACK_NO_PURGE=1` lässt es aus (Tests gegen ein fremdes Remote).
+  let cdn = { fresh: false, attempts: 0, note: 'Purge übersprungen (REPACK_NO_PURGE=1)' };
+  if (process.env.REPACK_NO_PURGE !== '1') {
+    cdn = await purgeIndexUntilFresh({ commit: dataSha, log: (m) => log(`  CDN: ${m}`) });
+    log(cdn.fresh ? `CDN-Index frisch nach ${cdn.attempts} Purge(s)` : `⚠ CDN-Index NICHT frisch — ${cdn.note}`);
+  }
+
   writeFileSync(join(OUT_DIR, 'published.json'),
-    JSON.stringify({ commit: dataSha, head: headSha, base: CDN_BASE, runs: kept, publishedAt: index.publishedAt }, null, 2) + '\n');
+    JSON.stringify({ commit: dataSha, head: headSha, base: CDN_BASE, runs: kept, publishedAt: index.publishedAt, cdn }, null, 2) + '\n');
   log(`Notiert → ${join(OUT_DIR, 'published.json')}`);
   return 0;
 }

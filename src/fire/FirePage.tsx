@@ -19,7 +19,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FeatureRail, type RailFeature } from '../nav/featureRail';
 import FireMap, { type FireBasemap } from './FireMap';
 import {
-  FIRE_DECK_GROUPS, FIRE_LAYER_ORDER, FIRE_MVP_LAYERS, FIRE_PRESETS,
+  FIRE_DECK_GROUPS, FIRE_DEFAULT_LAYERS, FIRE_LAYER_ORDER, FIRE_MVP_LAYERS, FIRE_PRESETS,
   FIRE_WEATHER_MAP_LAYERS, FIRE_FOOTPRINT_LAYERS, FIRE_ANOMALY_LAYERS,
   activeFirePresetId, fireSource, type FireLayerId,
 } from './fireModel';
@@ -153,10 +153,10 @@ interface Props {
 export default function FirePage({ onBack, onOpenFeature, initialView, routeView, onViewChange }: Props) {
   const initial = typeof window !== 'undefined' ? decodeFireState(window.location.hash) : null;
   // RT1: das Preset der Sub-Route greift NUR ohne Hash — der Hash ist der ganze Zustand und gewinnt.
-  const routePreset = !initial && initialView ? applyFireView(initialView, new Set<FireLayerId>(['fireDanger', 'fireHotspots'])) : null;
+  const routePreset = !initial && initialView ? applyFireView(initialView, new Set<FireLayerId>(FIRE_DEFAULT_LAYERS)) : null;
 
   const [active, setActive] = useState<Set<FireLayerId>>(
-    () => new Set(initial?.layers.length ? initial.layers : routePreset ? routePreset.layers : ['fireDanger', 'fireHotspots']),
+    () => new Set(initial?.layers.length ? initial.layers : routePreset ? routePreset.layers : FIRE_DEFAULT_LAYERS),
   );
   const [time, setTime] = useState<FireTimeState>(() => {
     const base = defaultFireTimeState();
@@ -2023,7 +2023,10 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
         )}
 
         <div className="fire-body">
-          {!isMobile && !firesMode && (
+          {/* 2026-08-25 (Jans Auftrag): das Dock bleibt auch im Brände-/Anomalien-Modus stehen —
+              vorher verschwand es mit dem Reiterwechsel (B2-Vorlage), jetzt bleibt der
+              Layer-Zugriff immer erreichbar. Die übrigen B2-Kompaktierungen bleiben. */}
+          {!isMobile && (
             <aside className="br-dock" aria-label="Layer">
               <div className="br-dock-head">
                 <span className="br-eyebrow">Layer</span>

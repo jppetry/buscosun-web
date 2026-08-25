@@ -61,6 +61,26 @@ Es geht dabei nichts verloren: alle Dateien sind aus den DWD-Rohdaten
 reproduzierbar, und die Anwendung fällt bei jedem Fehlgriff auf den direkten
 GRIB-Pfad zurück.
 
+## Takt und Frische (BW-9)
+
+Der Batch startet zu den acht ICON-D2-Laufstunden bei Lauf + 40 min — vor den
+Daten — und wartet im Job erst auf den Lauf, dann auf die fehlenden Schritte
+(DWD: Schritt 000 bei + 44 min, Schritt 027 bei ≈ + 66 min, gemessen an acht
+Läufen), statt stündlich einen zufällig liegenden Slot zu treffen. GitHubs
+Startverzögerung (7–31 min) fällt so in die Wartezeit. Ein zweiter Slot bei
+Lauf + 150 min ist das Sicherheitsnetz.
+
+Nach jedem Push purgt der Publisher `index.json` auf jsDelivr und prüft nach,
+dass das CDN den neuen Commit liefert. Der Browser liest `index.json` deshalb
+direkt vom CDN (`…@main/index.json`) — ein neuer Lauf ist dort ≈ 1 min nach dem
+Push sichtbar, statt nach Warm-Cron-Slot und Netlify-Build. Der Abschnitt im
+Manifest der Anwendung bleibt als Fallback.
+
+⚠️ `.github/workflows/build.yml` kann der Batch **nicht selbst** aktualisieren
+(eine Action darf ohne `workflows`-Scope keine Workflow-Datei pushen). Weicht die
+Vorlage `buscosun-web/scripts/repack-repo/workflow-build.yml` ab, ist ein
+manueller Commit dieser Datei nötig — sonst läuft der alte Stand weiter.
+
 ## Daten und Lizenz
 
 Quelle: **Deutscher Wetterdienst**, ICON-D2, <https://opendata.dwd.de> —

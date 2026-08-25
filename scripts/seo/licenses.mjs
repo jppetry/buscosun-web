@@ -91,7 +91,7 @@ export const NON_MODEL_SOURCES = [
       { name: 'Meteostat', operator: 'Meteostat', license: 'CC BY-NC 4.0',
         note: 'Historische Stationsreihen im Klima-Rückblick.', ref: 'src/history/meteostatSource.ts' },
       { name: 'Open-Meteo', operator: 'Open-Meteo', license: 'CC BY 4.0, nicht-kommerzielle Nutzung',
-        note: 'Zusatzquelle für Punkt-Vorhersage, Ensemble und Pollen (CAMS). Nutzung siehe D-18 bzw. V-28.', ref: 'src/sources/openMeteo*.ts' },
+        note: 'Zusatzquelle für Punkt-Vorhersage, Ensemble und Pollen (CAMS); seit BD1 auch Wetterlage am Brandort (DWD ICON, past_days). Nutzung siehe D-18 bzw. V-28.', ref: 'src/sources/openMeteo*.ts, src/fire/detail/fireWeatherAtPoint.ts' },
     ],
   },
   {

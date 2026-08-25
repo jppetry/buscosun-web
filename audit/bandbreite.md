@@ -3162,3 +3162,223 @@ Fix wäre `shareInFlight` in `fetchDecompressedCached` (eine Zeile). Getrennt en
 **Fünf Fragen:** (1) Funktionserhalt — Layer zeichnen unverändert, Slider lädt nach (belegt);
 (2) Desktop pixelgleich — kein UI-Code berührt; (3) Touch — keine UI-Änderung; (4) Konsole leer;
 (5) Long Tasks — weniger Dekodes als vorher, nicht neu gemessen.
+
+---
+
+# 28. BW-9 — Die Repack-Kette schneller: von Lauf + 105…135 min auf Lauf + 70…80 min (Diagnose + Umsetzung, 2026-08-25)
+
+**Auftrag (Jan):** „prüfe die allgemeine Möglichkeit, die Spiegelzeit zu minimieren — vor allem das
+Bemerken ist ein großer Punkt." Anlass war die Hop-Tabelle aus der RV-Diskussion (§26.3 bleibt: RADOLAN
+bleibt auf Netlify, Jans Entscheidung 2026-08-25). Gegenstand ist die **bestehende** ICON-D2-Kette
+DWD → Producer → Daten-Repo → jsDelivr → Manifest → Client. Reine Messung zuerst, dann Hebel je Hop.
+
+## 28.1 Was der DWD wann veröffentlicht (Listing-Zeitstempel, alle 8 Läufe der letzten 24 h)
+
+Gemessen am 2026-08-25 13:1x UTC an `opendata.dwd.de/weather/nwp/icon-d2/grib/<HH>/{u_10m,tot_prec}/`
+(`Last-Modified` je Datei, Schritt 000 und Schritt 048 des jeweils neuesten Laufs):
+
+| Lauf | Schritt 000 | Schritt 048 | Dauer des Uploads |
+|---|---|---|---|
+| 24.08 15 | 15:44 | 16:20 | 36 min |
+| 24.08 18 | 18:44 | 19:20 | 36 |
+| 24.08 21 | 21:44 | 22:20 | 36 |
+| 25.08 00 | 00:44 | 01:22 | 38 |
+| 25.08 03 | 03:44 | 04:21 | 37 |
+| 25.08 06 | 06:44 | 07:21 | 37 |
+| 25.08 09 | 09:44 | 10:21 | 37 |
+| 25.08 12 | 12:44 | (13:13 bei Schritt 38, Upload lief) | — |
+
+**Auf die Minute regelmäßig:** Schritt 000 bei **Lauf + 44 min**, 48 Schritte bei **Lauf + 81 min**, ≈ 0,77 min
+je Schritt. Der Repack braucht höchstens Schritt 27 (`precip`/`cape`, `FAMILIES.maxStep`) ⇒ **alles Nötige liegt
+bei ≈ Lauf + 66 min**. Die „1,5–2 h" aus der Hop-Tabelle in der Session waren eine Schätzung und zu pessimistisch.
+
+## 28.2 Was die Kette daraus macht (Actions-API des Daten-Repos + Git-Log der Manifest-Commits)
+
+| Lauf | DWD komplett | Batch-Start (Cron `25 * * * *`) | Batch-Dauer | `repack` im Manifest-Commit | = nach Lauf | Wartezeit nach DWD |
+|---|---|---|---|---|---|---|
+| 24.08 12 | 13:20 | 13:39 | 3,3 min | 14:03 | +125 min | 43 min |
+| 24.08 15 | 16:20 | 16:37 | 2,6 | 17:00 | +122 | 40 |
+| 24.08 18 | 19:20 | 19:35 | 4,3 | 19:44 | +106 | 24 |
+| 24.08 21 | 22:20 | 22:35 | 1,9 | 22:43 | +105 | 23 |
+| 25.08 00 | 01:22 | **01:56** | 8,0 | 02:13 | +135 | 53 |
+
+Dazu je ≈ 2 min Netlify-Build, bevor der Browser das Manifest sieht. **Heute: Lauf + 105…135 min.**
+
+Die Hops, aus den Zahlen:
+
+| Hop | gemessen | Ursache |
+|---|---|---|
+| Bemerken | Cron `:25` startet tatsächlich **:32…:56** (39 Läufe: Jitter +7 min typisch, +19…+31 min nachts) — und die Phase liegt zufällig zum DWD-Takt: alles Nötige liegt bei HH+1:06, der nächste Slot ist HH+1:25 nominal ⇒ HH+1:32…1:56 | GitHub-`schedule` ist unpünktlich (bekannt, §26.3), und die Cron-Phase ist nicht am DWD ausgerichtet |
+| Verarbeiten | 7,6–10,1 min je Lauf (10 Familien) | pure-JS-bz2 (V-BW-27), 4-fach paralleler Download, sequenzielle Familien |
+| Ablegen | ≈ 5–10 s | — |
+| Sichtbar werden | Warm-Cron-Slot (`*/15`) + Jitter + Commit + Netlify-Build ⇒ **5–21 min nach Batch-Ende** (02:04 → 02:13; 16:40 → 17:00; 13:42 → 14:03) | der Client erfährt den Repack nur über `public/latest-grib.json`, das ein Cron committet und Netlify baut |
+
+Und das Manifest springt schon bei ≈ Lauf + 50 min auf den neuen Lauf (`NEAR_REQUIRED 4`): in den folgenden
+**55–85 min je Lauf** lädt jede Kartensitzung den neuen Lauf als GRIB über Netlify. 8 Läufe × ~1 h ⇒
+**7–11 h am Tag ohne CDN** — das ist der Bandbreiten-Posten hinter der Verzögerung, nicht die Minute selbst.
+
+## 28.3 Befund nebenbei: der Ausstieg greift nicht — der Batch rechnet jede Stunde neu (V-BW-38)
+
+Seit 24.08 23:32 dauert **jeder** stündliche Lauf 7,6–10,1 min (Actions-API: #26…#39), vorher 0,4–0,6 min bei
+„nichts zu tun". Um 12:38 rechnete #39 den Lauf 2026082509 neu, der seit 10:36 (#37) vollständig lag, und
+force-pushte ihn mit neuem SHA (`188cf1e`, Index-Commit `3fdc987` um 12:48:02).
+
+Ursache, per Diff belegt (`scripts/repack-repo/workflow-build.yml` gegen
+`raw.githubusercontent.com/jppetry/buscosun-data/main/.github/workflows/build.yml`): **die live liegende
+`build.yml` ist der Stand vor BW-6b** — sie gibt nur `wind=`/`temp=` aus, nicht `steps=`. Der Producer sieht die
+acht anderen Familien als „unbekannt" (−1), `skipDecision` sagt „liegt schon, aber unvollständig → nachrechnen".
+Folge je Stunde: 218 MB vom DWD, 8–10 min Rechenzeit, Force-Push mit neuem SHA ⇒ `index.json` ändert sich ⇒
+`carryRepack` trägt den neuen Commit ins Manifest ⇒ **stündlicher Manifest-Commit + Netlify-Build** — im
+Git-Log als 22:43 → 23:40 (derselbe Lauf 21 mit zwei SHAs) sichtbar. Genau das V-BW-4-Muster, vor dem der
+Kommentar im Workflow warnt.
+
+Warum die Datei alt ist: eine Action darf ohne `workflows`-Scope keine Workflow-Datei pushen; der Publisher
+entfernt `.github/` deshalb bei Abweichung und warnt nur (`publish-repack.mjs:200-206`). **Das kann nur Jans
+Hand fixen** — einmal `scripts/repack-repo/workflow-build.yml` als `.github/workflows/build.yml` ins Daten-Repo
+committen (Web-UI oder lokaler Push mit eigenen Rechten). Wirkung: 8 statt 24 Producer-Läufe je Tag,
+≈ 16 statt ≈ 24 Netlify-Builds je Tag, ohne Codeänderung. Bis dahin sind alle Zahlen dieser Phase mit diesem
+Defekt gemessen.
+
+## 28.4 Drei Messungen an jsDelivr, die den Weg öffnen
+
+| Messung | Ergebnis | Folge |
+|---|---|---|
+| 404 auf `@main` für einen nicht existierenden Pfad | `Cache-Control: no-cache, no-store, must-revalidate` | ein noch nicht abgelegter Pfad wird nicht als 404 festgehalten |
+| Branch-Auflösung nach Push (`@main/index.json`) | 4 s nach dem Push noch alter Inhalt; nach `purge.jsdelivr.net` bei +2:39 min der neue HEAD, während `raw.githubusercontent.com` (`max-age=300`) noch alt war | die 12-h-Sperre (`s-maxage=43200`) gilt für einen **gecachten** Pfad; ein Purge oder ein neuer Pfad löst den Branch frisch auf |
+| Neuer Pfad `runs/2026082512/repack.json` auf `@main` | Publisher `publishedAt` 13:49:13, erstes 200 auf jsDelivr **13:50:10** (Poll-Raster 21 s) | **≈ 35–57 s** vom Push bis zur Sichtbarkeit |
+| Purge-API | `status: finished`, `throttled: false`, ohne Freigabe | 8–24 Purges je Tag sind kein Thema |
+
+Damit braucht die Frische des Repack-Abschnitts **keinen Manifest-Commit und keinen Netlify-Build**: der Client
+kann `index.json` direkt vom CDN lesen, wenn der Publisher den Pfad nach jedem Push purgt.
+
+## 28.5 Hebel je Hop
+
+| Hop | Hebel | Gewinn | Zone |
+|---|---|---|---|
+| Bemerken | **B1** `schedule` nur zu den 8 Laufstunden bei HH+0:40 — **vor** den Daten —, im Job eine **DWD-Warteschleife** (erst auf den Lauf des Slots, dann Listing alle 30 s, bis jede Familie ihren Horizont `minStep…maxStep` hat, Budget 40 min); zweiter Slot HH+2:30 als Sicherheitsnetz (steigt bei vollständigem Lauf in 0,5 min aus). Der GitHub-Jitter (+7…+31) fällt damit in die Wartezeit statt auf den kritischen Pfad | Bemerken ≈ Poll-Pause (≤ 30 s) statt 26–50 min; die „Lauf halb hochgeschoben"-Falle (Wind 4/5 fehlten am 23.08.) entfällt, weil gewartet statt übersprungen wird | YAML des Daten-Repos = Jans Commit (STOPP & FRAGEN) |
+| Verarbeiten | **V1** `bzip2`-Binary statt pure-JS (V-BW-27): lokal gemessen **1,26–1,49 s → 0,47–0,59 s je Datei** (t_2m 000, 913 KB → 1,62 MB, fünf Wiederholungen, Binary inkl. Prozessstart), Faktor ≈ 2,6; mit `Promise.all` je Familie laufen die Prozesse zusätzlich auf mehreren Kernen | ≈ 206 Dateien × 0,8 s ≈ **3 min weniger je Lauf** | Producer, flag-gated `REPACK_BZIP2=1`, JS bleibt Fallback |
+| Ablegen | — | — | — |
+| Sichtbar werden | **S1** Client liest `@main/index.json` vom CDN (`cache: 'no-store'`, Sitzungs-Cache 60 s), baut daraus den Abschnitt für **seinen** Lauf mit derselben Regel wie der Cron (`sectionFor`/`pickForRun`), prüft ihn mit derselben `parseRepackSection`; Publisher purgt `index.json` nach jedem Push und **prüft die Frische nach** (bis 3 Purges). Manifest-Abschnitt bleibt als benannter Fallback | 15-min-Slot + Build entfallen ⇒ **≈ 1–2 min** nach Batch-Ende; der Abschnitt im Manifest wird überflüssig ⇒ halb so viele Manifest-Commits/Builds, sobald Jan ihn abschaltet (`REPACK_INDEX_URL=''` im Cron) | Client + Publisher (frei), Cron-Abschaltung später (STOPP) |
+
+**Summe:** Lauf + 66 (DWD) + ≤ 0,5 (Poll) + 2–5 (Rechnen) + 1–2 (Push/Purge/CDN) ≈ **Lauf + 70…74 min** statt
+105…135 — Versatz DWD → CDN **≈ 4–8 min**, bei Jitter > 26 min (selten, nachts gemessen) bis ≈ 12. Das GRIB-Fenster
+je Lauf schrumpft von 55–85 auf ≈ 20–25 min.
+
+**Produktfrage (Jan, nicht entschieden):** das GRIB-Fenster gibt es nur, weil das Manifest bei Lauf + 50 springt,
+bevor der Repack da ist. Alternative wäre, den Sprung an den Repack zu binden — Fenster null, dafür zeigt die
+Karte den 3 h älteren Lauf ≈ 20–30 min länger (Laufzeit steht im Deck). Frische gegen Bytes.
+
+**Nicht gebaut, bewusst:** ein Actions-`repository_dispatch` aus den Warm-Crons ins Daten-Repo (bräuchte einen
+PAT — der Plan schließt Secrets aus, §21) · ein 5-Minuten-Batch (§26.3) · schrittweises Publizieren je Familie
+(zweiter Force-Push = zweiter Manifest-Wechsel, solange der Cron den Abschnitt trägt).
+
+## 28.6 Umsetzung (2026-08-25, Jans „ja setze das um")
+
+**S1 — der Client liest den Index vom CDN** (`src/sources/repackSource.ts`, additiv):
+- `REPACK_CDN_BASE` / `REPACK_INDEX_CDN_URL` spiegeln `CDN_BASE` / `INDEX_CDN_URL` aus
+  `scripts/lib/repackManifest.mjs` (Verifier prüft Gleichheit).
+- `sectionFromIndex(index, run, family)` baut den Abschnitt für GENAU den Lauf des Aufrufers — dieselbe Regel
+  wie `sectionFor`/`pickForRun` im Cron; der Verifier hält beide am Publisher-Baum als JSON byte-gleich
+  gegeneinander (jeder Lauf, jede Familie) und prüft, dass beide einen fremden Lauf nicht kennen.
+- `resolveRepackSection(run, family, manifestRaw)`: Index vom CDN (`cache: 'no-store'`, Sitzungs-Cache
+  60 s als EIN geteiltes Promise — zehn Quellen, ein Abruf; Frist `FIRST_TIMEOUT_MS`), Ergebnis durch
+  **dieselbe** `parseRepackSection`; dann `chooseSection` (mehr Schritte gewinnen — ein Re-Publish ergänzt
+  Schritte —, bei Gleichstand der Index). Index nicht lesbar/Lauf nicht drin/Schalter aus ⇒ der
+  Manifest-Abschnitt wie bisher. Ein Index-Fehler ruft **nie** `markBroken` — die Bilder können liegen.
+- `resolveRepackForRun` (neun Quellen) ruft es mit dem rohen Manifest-Abschnitt; der Wind-Pfad
+  (`iconD2WindSource.ts:130`) übergibt `m.repack` aus `latest-wind.json` — kein zweiter Manifest-Abruf.
+- Kill-Switch `?repackidx=0` / `localStorage.repackidx = '0'` (Query schlägt Speicher in beide
+  Richtungen, Muster D-31); `?repack=0` schaltet weiter alles ab. Ohne `window` ist der Weg aus.
+
+**Publisher** (`scripts/publish-repack.mjs`, `purgeIndexUntilFresh` in `repackManifest.mjs`): nach dem
+Force-Push 8 s warten (Propagation), `index.json` purgen, vom CDN mit `no-store` lesen, `commit`
+vergleichen — bis zu 3× im Abstand von 20 s. Ergebnis in `published.json` (`cdn.fresh`). Scheitert es,
+wird es gesagt, nicht geworfen: der Cron-Weg trägt den Abschnitt weiter, ein alter Index nennt höchstens
+einen älteren Lauf, den die Anti-Drift-Regel verwirft. `REPACK_NO_PURGE=1` für Tests gegen fremde Remotes.
+
+**B1 — Takt und Warteschleife** (`scripts/repack-icon-d2.mjs`, Vorlage `scripts/repack-repo/workflow-build.yml`):
+- Producer: `REPACK_WAIT_SEC` (Default 0 = bisheriges Verhalten) / `REPACK_POLL_SEC` (30). Nach
+  `findLatestRun` wird gelistet, bis `stepsMissing(stepsBy, families)` leer ist oder das Budget aus —
+  dann wird mit dem gerechnet, was liegt (`waitDecision`, beides rein und im Verifier). Log nur bei Änderung.
+- Producer wartet zuerst auf den **Lauf des laufenden 3-h-Slots** (`expectedRunOf`) — ohne das nähme ein Job,
+  der vor Lauf + 46 startet, den vorigen vollständigen Lauf und stiege aus; erst das Sicherheitsnetz fände den neuen.
+- Vorlage: `schedule` `40 0,3,6,9,12,15,18,21 * * *` (Lauf + 40, vor den Daten) + Sicherheitsnetz `30 2,5,…,23 * * *`,
+  `timeout-minutes` 60, `REPACK_WAIT_SEC: '2400'`, `REPACK_POLL_SEC: '30'`, `REPACK_BZIP2: '1'`.
+  **Die Vorlage wird erst wirksam, wenn Jan sie als `.github/workflows/build.yml` ins Daten-Repo
+  committet** (§28.3) — derselbe Commit, der V-BW-38 behebt.
+
+**V1 — `bzip2`-Binary** (`decompressBz2`, flag-gated `REPACK_BZIP2=1`, Default pure-JS): `execFile('bzip2',
+['-dc'])` je Datei, Binary-Erkennung einmal je Lauf, Fehlschlag fällt **je Datei** auf JS zurück.
+
+**Zweite Runde (Jans „baue genau das": A + B + D), nach Profil je Stufe (§28.7):**
+
+- **A — Prefetch-Pool** (`createFetchPool`, `REPACK_FETCH_PAR` Default 6): alle Dateien des Laufs in Schrittfolge
+  (`planUrls`: hsurf, dann Schritt 0 aller Familien, dann 1, …) werden über 6 parallele Verbindungen vorausgeholt,
+  während der Hauptthread rechnet; `fetchRaw` bezieht die Bytes aus dem Pool, Unbestelltes wird nachbestellt, keine
+  URL zweimal, Fehlschläge gehen an den Aufrufer (kein stiller Hänger). Im Wartemodus wird nach jedem Listing
+  nachbestellt. Gemessen: 39 Gewitter-Dateien (45 MB) in ≈ 10 s über den Pool — vorher 2–3 s **je** Datei seriell.
+- **B — PNG-Encoder — mit Korrektur der Diagnose.** Die Filterwahl (`filterRows`) ist jetzt ein Durchlauf ohne
+  `switch` je Byte (dieselbe Heuristik, kleinster Typ gewinnt bei Gleichstand; `encodePngReference` bleibt NUR
+  für den Verifier, der byte-gleiche Dateien verlangt) — **aber das brachte nichts messbar** (169 vs 172 ms am
+  Windbild). Die 190 ms saßen im `deflateSync` Stufe 9 auf den *gefilterten* Zeilen (meine 24 ms waren am
+  ungefilterten Bild gemessen — falscher Eingang). Nachgemessen an allen 205 Bildern eines Laufs: Standard-Deflate
+  **21,2 s je Lauf**, `Z_FILTERED` gleich teuer, **`Z_RLE` 0,46 s** — und in Summe 0,9 % **kleiner** (Wind −3 %,
+  Niederschlag −11 %, CAPE −6 %; Temperatur +4,6 %, Böen +3 %, Rotation +11 % bei 0,31 MiB). Für eine Kaltsitzung
+  (Wind + Temp) ändert das ≈ +0,3 % Bytes. Der Encoder nutzt jetzt `{ level: 9, strategy: Z_RLE }`; verlustfrei —
+  der Verifier dekodiert jedes Bild auf seine Eingabe zurück, die BW-1-Rundläufe prüfen weiter die Werte. Die
+  PNG-DATEIEN ändern sich damit gegenüber dem Bestand (andere Deflate-Bytes), die dekodierten Werte nicht.
+- **D — Schritt für Schritt, sobald die Dateien liegen** (Producer-Hauptschleife): statt Familie für Familie läuft
+  jetzt Schritt 0 aller Familien, dann 1, … — die Reihenfolge, in der der DWD ablegt. Im Wartemodus wartet der
+  Producer je Schritt nur auf die Familien, deren Horizont ihn enthält (Listing alle 30 s, Nachbestellung an den
+  Pool), rechnet ihn und geht weiter; das Wartebudget ist EIN Budget ab Jobstart. `want` für `skipDecision` ist
+  im Wartemodus der volle Horizont (ein halber Bestand hielte sonst einen halben Lauf für fertig). Je Familie laufen
+  DIESELBEN Schrittfunktionen wie vorher, die Einträge in `repack.json` werden vorab in Familienreihenfolge angelegt
+  (Schlüsselreihenfolge unverändert), Niederschlag bleibt sequenziell über `prevBy` (fehlt ein Schritt, zeigt `ref`
+  des nächsten auf den letzten gepackten — wie bisher). Belegt (vor der Deflate-Umstellung): Wind 13/13 PNGs byte-gleich zum alten
+  Schleifen-Lauf; danach dekodiert-gleich (Datei −3 %), `repack.json`-Schlüssel und Wind-Einträge identisch, Niederschlag `ref` 0:null 1:0 2:1, Gitter
+  1215×746; Wartemodus live (Lauf 12 vollständig: kein Warten, wind + thunder 14,6 s inkl. 45 MB Download);
+  `skipDecision` im Wartemodus: 13/13 → aussteigen, 11/13 → nachrechnen.
+
+## 28.7 Gemessen und geprüft
+
+| | |
+|---|---|
+| Wind-Familie, Lauf 2026082512, 13 Schritte, alles im Cache (reine Dekodier-/Bauzeit) | pure-JS **87,3 s** → bzip2-Binary **6,4 s** (13,6×; mehr als die 2,6× je Datei, weil `Promise.all` der Felder jetzt echte Prozesse auf mehreren Kernen sind, während das JS-Modul nacheinander auf EINEM Thread rechnet) |
+| Byte-Identität Binary-Lauf ↔ JS-Lauf | **13/13 PNGs identisch** (`cmp`); Verifier-Zeile „bzip2-Binary liefert dieselben Bytes wie pure-JS" zusätzlich an einer Cache-Datei |
+| Warteschleife, live gegen den DWD (`REPACK_WAIT_SEC=20`, Lauf 12 vollständig, 14:14 UTC) | erwarteter Lauf 2026082512 = jüngster, „Horizont vollständig → rechnen." sofort; Lauf mit Download 22,2 s, aus dem Cache 5,8 s |
+| Purge-Nachprüfung netzfrei | Attrappe liefert erst beim 2. Lesen den erwarteten Commit ⇒ `fresh` nach 2 Versuchen; unerreichbarer Commit ⇒ ehrlich `fresh: false` |
+| **Profil je Wind-Schritt** (2 Dateien, Cache, bzip2-Binary) | bz2 166 ms · GRIB-Decode 30 ms · Bild 17 ms · **PNG 212 ms** (davon Deflate 24 ms — der Rest war die Filterwahl) · JS-bz2 zum Vergleich 4 097 ms |
+| Download DWD → hier | seriell 2–3 s je 1-MB-Datei; 6 parallel: 6 Dateien in 4,5 s (3,3×) |
+| PNG-Encoder nach B | Filterwahl allein: 172 → 169 ms je Windbild (nichts); Deflate L9 → `Z_RLE`: **21,2 s → 0,46 s je Lauf** (205 Bilder), Summe 12,43 → 12,31 MiB; Filter-Rewrite byte-gleich zur Referenz (Verifier, 5 Bilder), Rundlauf decode == Eingabe |
+| Pool live (thunder, 39 Dateien, 45 MB, ungecacht) | ≈ 10 s im Lauf statt ≈ 90 s seriell |
+| Wind-Lauf aus dem Cache, ganzer Producer inkl. Start + DWD-Listing | 6,0 s (nach V1) → **3,7 s** (nach A + B + D); 13/13 dekodiert identisch, Dateien −3,0 % |
+| `typecheck` | grün |
+| `verify:repack` | **273/273** (nach A + B + D; neu: Pool-Grenze/Dedupe/Nachbestellung/Fehlschlag, `planUrls`-Schrittfolge, `inHorizon`, PNG-Encoder == Referenz byte-gleich; davor 267/267 nach der Slot-Änderung, neu `expectedRunOf`) — die Zeile „bzip2-Binary == pure-JS" steht unter PowerShell als ⊘ (kein `bzip2` im PATH), unter Git-Bash direkt geprüft: IDENTISCH 1623229 (neu: Konstanten-Spiegel, `sectionFromIndex` == `pickForRun`, fremder Lauf, Index-Abschnitt besteht dieselbe Prüfung, `chooseSection`-Wahl, Publisher purgt NACH dem Push, Purge-Wiederholung, `stepsMissing`/`waitDecision`, Workflow-Vorlage, bzip2 == JS) |
+| Build + Budget | totalJs **980,9/1017,7 KB** (vorher 975,5), eagerJs 101,5/106,5, alle Budgets eingehalten |
+
+**Erwartung nach A + B + D:** Rechnen je Schritt ≈ 0,3–0,5 s (bz2 parallel im Pool, Decode, Bild, PNG ≈ 30 ms), d. h. während der DWD alle ~46 s einen Schritt ablegt, ist der Producer je Schritt in unter einer Sekunde fertig; nach Schritt 27 bleiben Push (5–10 s) + Purge/CDN (≈ 1 min) ⇒ **Versatz DWD → CDN ≈ 1,5–2 min**. Ein Lauf, der schon vollständig liegt (Sicherheitsnetz, Nachrechnen), braucht statt 8–10 min ≈ 1 min (Download 218 MB im Pool ≈ 50 s + Rechnen ≈ 30 s, überlappend).
+
+**Was hier NICHT gemessen ist:** die Kette in Produktion — sie braucht Jans Commit der Vorlage ins Daten-Repo.
+Erwartung aus §28.1/§28.4: Lauf + 66 (DWD) + Poll ≤ 0,5 + Rechnen 2–5 + Push/Purge/CDN 1–2 ⇒ **Lauf + 70…74 min**
+(Versatz DWD → CDN ≈ 4–8 min; Jitter > 26 min schiebt es auf ≈ 12);
+Nachmessung wie §28.2 (Actions-API + Purge-Zeilen im Log) nach dem ersten Tag.
+
+## 28.8 Gate GBW9
+
+| Frage | Beleg |
+|---|---|
+| 1 Funktionserhalt | Kein Layer berührt; der neue Weg liefert denselben Abschnitt (JSON byte-gleich zum Cron-Weg, Verifier) oder fällt auf ihn zurück; GRIB-Fallback unverändert |
+| 2 Desktop pixelgleich | kein UI-Code berührt |
+| 3 Touch-Targets | keine UI-Änderung |
+| 4 Konsole sauber | der Index-Weg meldet nichts — auch nicht beim Fehlschlag (Fallback ist der Normalfall) |
+| 5 Long Tasks | ein zusätzlicher ~10-KB-JSON-Abruf je 60 s, kein Dekodieren |
+
+**Jans Hand, in dieser Reihenfolge:** (1) `scripts/repack-repo/workflow-build.yml` als
+`.github/workflows/build.yml` ins Daten-Repo committen (behebt V-BW-38 und schaltet B1/V1 scharf);
+(2) nach dem ersten Tag §28.2 nachmessen; (3) danach optional `REPACK_INDEX_URL=''` in den Warm-Crons —
+der Manifest-Abschnitt entfällt, die Manifest-Commits halbieren sich (STOPP & FRAGEN, Cron-Mechanik);
+(4) die Produktfrage aus §28.5 (Manifest-Sprung an den Repack binden?).
+
+**V-Katalog-Nachtrag (§12):** V-BW-38 live `build.yml` im Daten-Repo veraltet ⇒ stündliches Neurechnen +
+Build (§28.3, Jans Commit) · V-BW-39 Cron-Phase lag zufällig zum DWD-Takt (§28.2, B1 gebaut) · V-BW-40 der
+Client erfuhr den Repack nur über Manifest-Commit + Netlify-Build (§28.2, S1 gebaut) · V-BW-27 erledigt (V1).
