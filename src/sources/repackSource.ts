@@ -760,22 +760,34 @@ export function chooseSection(
   return n(fromManifest) > n(fromIndex) ? fromManifest : fromIndex;
 }
 
-let indexCache: { at: number; p: Promise<unknown> } | null = null;
+/**
+ * Zeiger je Lauf — Spiegel von `runPointerUrl` in `repackManifest.mjs`. Für einen
+ * NEUEN Lauf ist das ein Pfad, den jsDelivr nie gesehen hat und deshalb frisch
+ * holt (gemessen 35–57 s nach dem Push), während `@main/index.json` am
+ * jsDelivr-Origin trotz Purge minutenlang alt bleiben kann (§28.9). Der Zeiger
+ * hat dieselbe Form wie der Index (`commit` + `runs: [entry]`), also derselbe Leser.
+ */
+export function repackRunPointerUrl(run: string): string {
+  return `${REPACK_CDN_BASE}@main/runs/${run}/index.json`;
+}
+
+let indexCache: { at: number; run: string; p: Promise<[unknown, unknown]> } | null = null;
 /** Nur für Tests/Verifier. */
 export function resetRepackIndexCache(): void { indexCache = null; }
 
 /**
- * Der Index vom CDN, `null` bei JEDEM Problem — und das ist kein Defekt des
- * Repack-Wegs (`markBroken` bleibt unberührt): die Bilder können trotzdem
- * liegen, der Manifest-Abschnitt sagt dann, wo. Frist wie der erste Bildabruf.
+ * Zeiger des Laufs und Index vom CDN, je `null` bei JEDEM Problem — und das ist
+ * kein Defekt des Repack-Wegs (`markBroken` bleibt unberührt): die Bilder können
+ * trotzdem liegen, der Manifest-Abschnitt sagt dann, wo. Frist wie der erste
+ * Bildabruf; EIN geteiltes Promise je Lauf und TTL-Fenster.
  */
-async function fetchCdnIndex(): Promise<unknown> {
+async function fetchCdnSources(run: string): Promise<[unknown, unknown]> {
   const now = Date.now();
-  if (indexCache && now - indexCache.at < INDEX_TTL_MS) return indexCache.p;
-  const p = (async () => {
+  if (indexCache && indexCache.run === run && now - indexCache.at < INDEX_TTL_MS) return indexCache.p;
+  const one = async (url: string): Promise<unknown> => {
     const { signal, done } = withDeadline(FIRST_TIMEOUT_MS);
     try {
-      const res = await fetch(REPACK_INDEX_CDN_URL, { signal, cache: 'no-store' });
+      const res = await fetch(url, { signal, cache: 'no-store' });
       if (!res.ok) return null;
       return await res.json() as unknown;
     } catch {
@@ -783,15 +795,18 @@ async function fetchCdnIndex(): Promise<unknown> {
     } finally {
       done();
     }
-  })();
-  indexCache = { at: now, p };
+  };
+  const p = Promise.all([one(repackRunPointerUrl(run)), one(REPACK_INDEX_CDN_URL)]);
+  indexCache = { at: now, run, p };
   return p;
 }
 
 /**
- * Der geprüfte Abschnitt für `run` und `family`: zuerst der CDN-Index, sonst der
- * rohe `repack`-Abschnitt des Manifests (`manifestRaw`), den der Aufrufer schon
- * in der Hand hat — kein zweiter Manifest-Abruf.
+ * Der geprüfte Abschnitt für `run` und `family` aus drei Quellen — Zeiger des
+ * Laufs, CDN-Index, roher `repack`-Abschnitt des Manifests (`manifestRaw`, den
+ * der Aufrufer schon in der Hand hat — kein zweiter Manifest-Abruf). Alle drei
+ * gehen durch DIESELBE Prüfung; es gilt der mit den meisten Schritten, bei
+ * Gleichstand die frischere Quelle (Zeiger vor Index vor Manifest).
  */
 export async function resolveRepackSection(
   run: string,
@@ -801,9 +816,10 @@ export async function resolveRepackSection(
   if (!repackUsable()) return null;
   const fromManifest = manifestRaw ? parseRepackSection(manifestRaw, family, run) : null;
   if (!repackIndexEnabled()) return fromManifest;
-  const index = await fetchCdnIndex();
+  const [pointer, index] = await fetchCdnSources(run);
+  const fromPointer = pointer ? parseRepackSection(sectionFromIndex(pointer, run, family), family, run) : null;
   const fromIndex = index ? parseRepackSection(sectionFromIndex(index, run, family), family, run) : null;
-  return chooseSection(fromIndex, fromManifest, family);
+  return chooseSection(fromPointer, chooseSection(fromIndex, fromManifest, family), family);
 }
 
 /**

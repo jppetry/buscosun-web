@@ -3382,3 +3382,46 @@ der Manifest-Abschnitt entfällt, die Manifest-Commits halbieren sich (STOPP & F
 **V-Katalog-Nachtrag (§12):** V-BW-38 live `build.yml` im Daten-Repo veraltet ⇒ stündliches Neurechnen +
 Build (§28.3, Jans Commit) · V-BW-39 Cron-Phase lag zufällig zum DWD-Takt (§28.2, B1 gebaut) · V-BW-40 der
 Client erfuhr den Repack nur über Manifest-Commit + Netlify-Build (§28.2, S1 gebaut) · V-BW-27 erledigt (V1).
+
+## 28.9 Produktionsmessung, erste Runde (2026-08-25, 15:38–15:55 UTC) — und eine Korrektur an S1
+
+**Stand beim Messen:** `buscosun-web` `main` trägt den neuen Producer (Jans Push), die `build.yml` im Daten-Repo
+ist **noch die alte** (`25 */1`, kein `steps=`, kein `REPACK_WAIT_SEC`/`REPACK_BZIP2`) — der Publisher behält sie in
+der Action bewusst (Token-Grenze, `publish-repack.mjs:195-203`), sie landet dort nur durch Jans eigenen Push. Lauf #42
+(Slot `:25`, Start 15:37:56 = +13 min Jitter) ist damit: **neuer Producer, alte Vorlage** — Pool, Z_RLE und
+Schrittfolge aktiv, aber pure-JS-bz2, kein Warten, und wegen des fehlenden `steps=` erneut ein Nachrechnen von
+Lauf 12.
+
+| Schritt (#42, Actions-Jobs-API) | Dauer |
+|---|---|
+| Checkout data repo | 20 s |
+| **Checkout producer (`git clone --depth=1` von buscosun-web)** | **188 s** — vorher nie einzeln gesehen; der Klon holt public/, Fire-Artefakte, Doku |
+| Install producer dependency | 3 s |
+| **Repack** (206 Dateien, JS-bz2, Pool 6, Z_RLE, Schrittfolge) | **393 s** (vorher 456–606 s) — JS-bz2 ≈ 4–7 min davon; das Binary kommt erst mit der Vorlage |
+| Publish (Klon, Commits, Force-Push, Purge + Nachprüfung) | 56 s |
+| gesamt | 11,1 min (Start 15:37:56, Push 15:48:08) |
+
+**Hebel aus der Messung, in die Vorlage aufgenommen:** blob-loser Klon mit Sparse-Checkout (`scripts`, `src`,
+`package.json`) — lokal gemessen **5 s statt 188 s**, 12 MB statt des ganzen Baums; Producer-Dateien vollständig.
+
+**Befund an jsDelivr (widerlegt §28.4 teilweise):** nach dem Push 15:48:08 zeigte `@main/index.json` um 15:52–15:55
+weiter den Stand von 13:49 — auch nach Purge und mit `X-Cache: MISS, MISS` (beide Fastly-Schichten leer), während
+`data.jsdelivr.com` im Listing bereits den neuen Hash führte und `@91bab88/index.json` (Commit-Pfad) frisch war.
+**Der jsDelivr-Origin hält den Inhalt eines Branch-Pfads selbst; ein Purge erreicht ihn nicht.** Die Messung um
+12:50 (+2:39 frisch) war ein Glückstreffer der Origin-TTL, keine Regel. Was gemessen frisch ist: ein Pfad, der noch
+nie abgerufen wurde (13:50:10, 35–57 s nach dem Push).
+
+**Korrektur S1 → S1b, gebaut:** der Publisher schreibt je Lauf einen **Zeiger** `runs/<run>/index.json`
+(`schema`, `commit`, `base`, `publishedAt`, `runs: [Eintrag]` — dieselbe Form wie der Index, derselbe Leser). Für einen
+neuen Lauf ist das ein neuer Pfad; der Client kennt ihn, weil er den Lauf aus dem Manifest kennt
+(`repackRunPointerUrl`). Reihenfolge im Client: **Zeiger → CDN-Index → Manifest-Abschnitt**, alle durch dieselbe
+Prüfung, es gilt der mit den meisten Schritten (Re-Publish ergänzt Schritte), bei Gleichstand die frischere Quelle.
+Der Publisher purgt den Zeiger des jüngsten Laufs zuerst und prüft ihn nach, dann den Index (dort ohne
+Frische-Garantie, ehrlich geloggt). Ein gecachter Zeiger eines älteren Laufs nennt einen älteren Daten-Commit —
+dessen Objekte liegen bis zur Räumung (BW-2-Regel: 404 ⇒ GRIB).
+
+**Origin-TTL:** __ORIGINTTL__
+
+**Was noch aussteht:** der erste Lauf mit der neuen Vorlage (Slot Lauf + 40, Warteschleife, bzip2, Sparse-Klon) —
+sobald Jan `scripts/repack-repo/workflow-build.yml` als `.github/workflows/build.yml` ins Daten-Repo pusht. Der
+Monitor dieser Session misst Lauf 15z weiter (Actions-API, erstes 200 des Zeigers/`repack.json`, CDN-Index).

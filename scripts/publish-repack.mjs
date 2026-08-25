@@ -54,7 +54,7 @@ import {
 } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { RUNS_DIR, HSURF_FILE, CDN_BASE, indexEntry, SCHEMA, purgeIndexUntilFresh } from './lib/repackManifest.mjs';
+import { RUNS_DIR, HSURF_FILE, CDN_BASE, indexEntry, SCHEMA, purgeIndexUntilFresh, RUN_POINTER_FILE, runPointerUrl } from './lib/repackManifest.mjs';
 
 const OUT_DIR = resolve(process.env.REPACK_OUT || 'data/repack');
 const REPO = process.env.REPACK_REPO || 'https://github.com/jppetry/buscosun-data.git';
@@ -234,7 +234,18 @@ async function main() {
     runs: kept.map((run) => indexEntry(JSON.parse(readFileSync(join(WORK, RUNS_DIR, run, 'repack.json'), 'utf8')))),
   };
   writeFileSync(join(WORK, 'index.json'), JSON.stringify(index, null, 2) + '\n');
-  git(['add', 'index.json']);
+  // BW-9: je Lauf ein ZEIGER `runs/<run>/index.json` = Commit + der Index-Eintrag
+  // dieses Laufs. Für einen neuen Lauf ist das ein Pfad, den jsDelivr nie gesehen
+  // hat — und den holt es frisch (§28.4), während `@main/index.json` am Origin
+  // Minuten alt sein kann (§28.9). Der Client kennt den Lauf aus dem Manifest
+  // und damit den Pfad. Für ältere Läufe ändert sich der Zeiger mit jedem
+  // Force-Push (neuer Daten-SHA) — ein gecachter alter Zeiger nennt dann einen
+  // älteren Commit, dessen Objekte bis zur Räumung liegen (BW-2-Regel: 404 ⇒ GRIB).
+  for (const entry of index.runs) {
+    writeFileSync(join(WORK, RUNS_DIR, entry.run, RUN_POINTER_FILE),
+      JSON.stringify({ schema: SCHEMA, commit: dataSha, base: CDN_BASE, publishedAt: index.publishedAt, runs: [entry] }, null, 2) + '\n');
+  }
+  git(['add', '-A']);
   git(['commit', '--quiet', '-m', `index: ${kept[0]} → ${dataSha.slice(0, 7)}`]);
   const headSha = git(['rev-parse', 'HEAD']);
 
@@ -259,8 +270,12 @@ async function main() {
   //    `REPACK_NO_PURGE=1` lässt es aus (Tests gegen ein fremdes Remote).
   let cdn = { fresh: false, attempts: 0, note: 'Purge übersprungen (REPACK_NO_PURGE=1)' };
   if (process.env.REPACK_NO_PURGE !== '1') {
-    cdn = await purgeIndexUntilFresh({ commit: dataSha, log: (m) => log(`  CDN: ${m}`) });
-    log(cdn.fresh ? `CDN-Index frisch nach ${cdn.attempts} Purge(s)` : `⚠ CDN-Index NICHT frisch — ${cdn.note}`);
+    // Zuerst der Zeiger des jüngsten Laufs (neuer Pfad ⇒ frisch), dann der Index.
+    const ptr = await purgeIndexUntilFresh({ commit: dataSha, url: runPointerUrl(kept[0]), log: (m) => log(`  CDN Zeiger ${kept[0]}: ${m}`) });
+    cdn = await purgeIndexUntilFresh({ commit: dataSha, firstWaitMs: 0, log: (m) => log(`  CDN Index: ${m}`) });
+    cdn = { ...cdn, pointer: ptr };
+    log(ptr.fresh ? `CDN-Zeiger ${kept[0]} frisch nach ${ptr.attempts} Versuch(en)` : `⚠ CDN-Zeiger NICHT frisch — ${ptr.note}`);
+    log(cdn.fresh ? `CDN-Index frisch nach ${cdn.attempts} Purge(s)` : `⚠ CDN-Index NICHT frisch (Origin-Cache, §28.9) — ${cdn.note}`);
   }
 
   writeFileSync(join(OUT_DIR, 'published.json'),

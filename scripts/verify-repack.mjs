@@ -734,6 +734,26 @@ if (hsurfGreys.length >= 2) {
     const iPurge = pub.indexOf('purgeIndexUntilFresh(');
     add('Publisher purgt den CDN-Index NACH dem Force-Push und prüft nach',
       iPush > 0 && iPurge > iPush, `push@${iPush} < purge@${iPurge}`);
+    // ── BW-9 §28.9: der Zeiger je Lauf — neuer Pfad, den jsDelivr frisch holt ──
+    add('Zeiger-URL des Clients == die des Publishers (`runs/<run>/index.json` auf @main)',
+      RS.repackRunPointerUrl('2026082512') === RM.runPointerUrl('2026082512')
+      && RM.runPointerUrl('2026082512') === `${RM.CDN_BASE}@main/runs/2026082512/index.json`);
+    add('Publisher purgt den Zeiger des jüngsten Laufs VOR dem Index (der Zeiger ist die Quelle, die frisch sein kann)',
+      pub.indexOf('url: runPointerUrl(kept[0])') > iPush && pub.indexOf('url: runPointerUrl(kept[0])') < pub.lastIndexOf('purgeIndexUntilFresh({ commit: dataSha, firstWaitMs: 0'));
+    if (existsSync(indexPath)) {
+      const index = JSON.parse(rf(indexPath, 'utf8'));
+      const badPtr = [];
+      for (const r of index.runs) {
+        const pPath = join(WORK, RM.RUNS_DIR, r.run, RM.RUN_POINTER_FILE);
+        if (!existsSync(pPath)) { badPtr.push(`${r.run}: fehlt`); continue; }
+        const ptr = JSON.parse(rf(pPath, 'utf8'));
+        if (ptr.commit !== index.commit || ptr.schema !== index.schema || ptr.base !== index.base) badPtr.push(`${r.run}: Kopf`);
+        else if (JSON.stringify(ptr.runs) !== JSON.stringify([r])) badPtr.push(`${r.run}: Eintrag`);
+        else if (JSON.stringify(RS.sectionFromIndex(ptr, r.run, 'wind')) !== JSON.stringify(RM.pickForRun(index, r.run, 'wind'))) badPtr.push(`${r.run}: Abschnitt`);
+      }
+      add('Publisher-Baum: jeder Lauf hat seinen Zeiger — Commit, Kopf und Eintrag wie im Index, Abschnitt daraus == aus dem Index',
+        badPtr.length === 0, badPtr.length ? badPtr.join(' · ') : `${index.runs.length} Zeiger`);
+    }
     // Purge-Nachprüfung netzfrei: eine Attrappe, die erst beim zweiten Mal den erwarteten Commit liefert.
     {
       let calls = 0;

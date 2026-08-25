@@ -2,8 +2,8 @@
  * Event-Planung — „Welcher Tag passt am besten?" · Command-Deck (hell).
  *
  * Redesign nach verbindlicher Vorlage (audit/screenshots/kartenseite/
- * eventplaner.dc.html + desktop/tablet/mobile-1..4.png): dreistufiger Wizard
- * (Ort & Anlass · Zeitfenster & Phasen · Plan B) VOR der Resultatseite, danach
+ * eventplaner.dc.html + desktop/tablet/mobile-1..4.png): vierstufiger Wizard
+ * (Ort · Anlass · Zeitfenster & Phasen · Plan B) VOR der Resultatseite, danach
  * das bester-Tag-Deck (EventResult). Funktionserhalt: Anlass/Profil, Geocode,
  * Zeitfenster (Zeitraum/Einzeltermine), Phasen (Vorlagen/Stundenfenster/Hochzeit),
  * Feinjustierung, Plan-B (Schwelle/Metrik/Ausweich/Venue), Permalink — alles bleibt
@@ -38,10 +38,13 @@ import { FeatureRail, type RailFeature } from '../nav/featureRail';
 interface Props { onBack: () => void; onOpenFeature?: (id: RailFeature) => void; }
 
 const STEP_META: Array<{ eyebrow: string; title: string; sub: string; optional?: boolean }> = [
-  { eyebrow: 'Schritt 1 von 3 · Ort & Anlass', title: 'Welcher Tag passt am besten?', sub: 'Sag uns zuerst, wo dein Event stattfindet und um welchen Anlass es geht — danach Zeitfenster & Plan B.' },
-  { eyebrow: 'Schritt 2 von 3 · Zeitfenster & Phasen', title: 'Wann hast du Zeit?', sub: 'Wähle Zeitraum oder konkrete Termine und lege Phasen wie Trauung & Empfang mit eigenen Zeiten an — jede wird einzeln bewertet.' },
-  { eyebrow: 'Schritt 3 von 3 · Plan B', title: 'Falls es doch nicht hält', sub: 'Lege eine klare Schwelle fest, ab der dir ein Plan B (z. B. Zelt oder Innenraum) empfohlen wird — plus Ausweichtag und -ort, falls dein Wunschtermin nicht hält.', optional: true },
+  { eyebrow: 'Schritt 1 von 4 · Ort', title: 'Wo findet dein Event statt?', sub: 'Such den Ort in Deutschland, Österreich oder der Schweiz — wir rechnen höhenkorrigiert an genau diesem Punkt.' },
+  { eyebrow: 'Schritt 2 von 4 · Anlass', title: 'Um welchen Anlass geht es?', sub: 'Der Anlass setzt die Bewertungsgewichte (Trockenheit, Temperatur, Wind, Licht) — du kannst sie danach feinjustieren.' },
+  { eyebrow: 'Schritt 3 von 4 · Zeitfenster & Phasen', title: 'Wann hast du Zeit?', sub: 'Wähle Zeitraum oder konkrete Termine und lege Phasen wie Trauung & Empfang mit eigenen Zeiten an — jede wird einzeln bewertet.' },
+  { eyebrow: 'Schritt 4 von 4 · Plan B', title: 'Falls es doch nicht hält', sub: 'Lege eine klare Schwelle fest, ab der dir ein Plan B (z. B. Zelt oder Innenraum) empfohlen wird — plus Ausweichtag und -ort, falls dein Wunschtermin nicht hält.', optional: true },
 ];
+
+const LAST_STEP = STEP_META.length - 1;
 
 export default function EventPage({ onBack, onOpenFeature }: Props) {
   return (
@@ -97,10 +100,10 @@ function EventPageInner({ onBack, onOpenFeature }: Props) {
   };
   const complete = isQueryComplete(partial);
   const phasesValid = phases.every((p) => p.hours[0] !== p.hours[1]);
-  const stepValid = [!!activity && !!location, isWindowValid(windowSel) && phasesValid, true];
+  const stepValid = [!!location, !!activity, isWindowValid(windowSel) && phasesValid, true];
 
   const submit = () => { if (complete) setSubmitted(partial as EventQuery); };
-  const next = () => { if (step < 2) { if (stepValid[step]) setStep(step + 1); } else submit(); };
+  const next = () => { if (step < LAST_STEP) { if (stepValid[step]) setStep(step + 1); } else submit(); };
   const back = () => { if (step > 0) setStep(step - 1); };
 
   if (submitted) {
@@ -114,19 +117,24 @@ function EventPageInner({ onBack, onOpenFeature }: Props) {
   const stepBody = (
     <>
       {step === 0 && (
-        <div className={isMobile ? undefined : 'evd-grid-2'}>
-          <div>
-            <span className={isMobile ? 'evd-m-section-lab' : 'evd-field-label'}>Ort</span>
-            <LocationField value={location} onChange={setLocation} />
+        <div className={isMobile ? undefined : 'evd-step-single'}>
+          {isMobile && <p className="evd-sub" style={{ marginTop: 0 }}>{meta.sub}</p>}
+          <span className={isMobile ? 'evd-m-section-lab' : 'evd-field-label'}>Ort</span>
+          <LocationField value={location} onChange={setLocation} />
+          <div className="evd-hint" style={{ marginTop: 18 }}>
+            <b>Hinweis:</b> Der Ort bestimmt die Datenquelle — DWD (DE) · GeoSphere (AT) · MeteoSwiss (CH). Den Anlass wählst du im nächsten Schritt.
           </div>
-          <div>
-            <span className={isMobile ? 'evd-m-section-lab' : 'evd-field-label'}>Anlass</span>
-            <ActivityGrid value={activity} onChange={handleActivity} isMobile={isMobile} />
-          </div>
-          {activity && <TuningPanel activity={activity} tuning={tuning} onChange={setTuning} />}
         </div>
       )}
       {step === 1 && (
+        <div className={isMobile ? undefined : 'evd-step-single'}>
+          {isMobile && <p className="evd-sub" style={{ marginTop: 0 }}>{meta.sub}</p>}
+          <span className={isMobile ? 'evd-m-section-lab' : 'evd-field-label'}>Anlass</span>
+          <ActivityGrid value={activity} onChange={handleActivity} isMobile={isMobile} />
+          {activity && <TuningPanel activity={activity} tuning={tuning} onChange={setTuning} />}
+        </div>
+      )}
+      {step === 2 && (
         <div className={isMobile ? undefined : 'evd-grid-2 evd-grid-2--time'}>
           <div>
             <span className={isMobile ? 'evd-m-section-lab' : 'evd-field-label'}>Zeitraum</span>
@@ -138,7 +146,7 @@ function EventPageInner({ onBack, onOpenFeature }: Props) {
           </div>
         </div>
       )}
-      {step === 2 && (
+      {step === 3 && (
         <div>
           {isMobile && <p className="evd-sub" style={{ marginTop: 0 }}>{meta.sub}</p>}
           <PlanBFields value={planB} window={windowSel} onChange={setPlanB} />
@@ -147,7 +155,7 @@ function EventPageInner({ onBack, onOpenFeature }: Props) {
     </>
   );
 
-  const primaryLabel = step < 2 ? 'Weiter' : 'Beste Tage finden';
+  const primaryLabel = step < LAST_STEP ? 'Weiter' : 'Beste Tage finden';
   const leftLabel = step === 0 ? 'Überspringen' : 'Zurück';
   const onLeft = step === 0 ? submit : back;
   const leftDisabled = step === 0 && !complete;
@@ -164,7 +172,7 @@ function EventPageInner({ onBack, onOpenFeature }: Props) {
           </div>
         </div>
         <div className="evd-m-progress">
-          {[0, 1, 2].map((i) => <span key={i} className={i <= step ? 'on' : undefined} />)}
+          {STEP_META.map((_, i) => <span key={i} className={i <= step ? 'on' : undefined} />)}
         </div>
         <div className="evd-m-scroll">{stepBody}</div>
         <div className="evd-m-footer">
@@ -200,12 +208,12 @@ function EventPageInner({ onBack, onOpenFeature }: Props) {
           spacerClass="evd-rail-spacer"
         />
         <div className="evd-wiz evd-scroll">
-          <div className={step === 2 ? 'evd-wiz-inner evd-wiz-inner--narrow' : 'evd-wiz-inner'}>
+          <div className={step === 2 ? 'evd-wiz-inner' : 'evd-wiz-inner evd-wiz-inner--narrow'}>
             <div className="evd-eyebrow">{meta.eyebrow}{meta.optional ? <span className="evd-eyebrow-mut"> · Optional</span> : null}</div>
             <h2 className="evd-h2">{meta.title}</h2>
             <p className="evd-sub">{meta.sub}</p>
             <div className="evd-progress">
-              {[0, 1, 2].map((i) => <span key={i} className={i <= step ? 'on' : undefined} />)}
+              {STEP_META.map((_, i) => <span key={i} className={i <= step ? 'on' : undefined} />)}
             </div>
             {stepBody}
           </div>

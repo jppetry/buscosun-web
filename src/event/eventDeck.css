@@ -103,6 +103,12 @@
 .evd-grid-2 { display: grid; grid-template-columns: 1fr 1.4fr; gap: 28px; margin-top: 26px; align-items: start; }
 .evd-grid-2--time { grid-template-columns: 1fr 1.2fr; }
 
+/* Einspaltige Schritte (Ort · Anlass) — je ein Thema je Seite */
+.evd-step-single { margin-top: 26px; }
+.evd-step-single > .evd-ort { max-width: 560px; }
+.evd-step-single > .evd-ort-results { max-width: 560px; }
+.evd-step-single > .evd-hint { max-width: 560px; }
+
 /* Ort */
 .evd-ort { margin-top: 10px; display: flex; align-items: center; gap: 10px; background: #fff; border: 1px solid var(--border-medium); border-radius: 12px; padding: 12px 15px; }
 .evd-ort svg { flex: 0 0 auto; }
@@ -332,6 +338,7 @@
   .evd-rail-btn { width: 38px; height: 38px; border-radius: 10px; }
   .evd-wiz { padding: 26px 30px; }
   .evd-h2 { font-size: 28px; letter-spacing: -0.8px; }
+  .evd-anlass-grid { grid-template-columns: repeat(2, 1fr); }
   .evd-footer { padding: 14px 30px; }
   .evd-dock { width: 224px; padding: 14px 11px; }
   .evd-readout { width: 250px; padding: 14px 12px; }

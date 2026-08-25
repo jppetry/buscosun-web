@@ -50,6 +50,24 @@ export const INDEX_URL = 'https://raw.githubusercontent.com/jppetry/buscosun-dat
  * die Gleichheit. Der Manifest-Abschnitt bleibt als benannter Fallback.
  */
 export const INDEX_CDN_URL = `${CDN_BASE}@main/index.json`;
+/**
+ * BW-9, zweite Messung (2026-08-25 15:48–15:55): der jsDelivr-**Origin** hält den
+ * Inhalt eines Branch-Pfads eigenständig — nach Purge kamen beide Fastly-Schichten
+ * mit `MISS, MISS` zurück und lieferten TROTZDEM den Stand von 13:49, während das
+ * Listing (`data.jsdelivr.com`) den neuen Hash längst kannte. Ein Purge erreicht
+ * den Origin also nicht; `@main/index.json` kann Minuten alt sein.
+ *
+ * Was nachweislich frisch ist: ein Pfad, der noch NIE abgerufen wurde (13:50:10:
+ * 35–57 s nach dem Push). Deshalb schreibt der Publisher je Lauf einen ZEIGER
+ * `runs/<run>/index.json` (Commit + Index-Eintrag des Laufs): für einen neuen Lauf
+ * ist das ein neuer Pfad — und der Client kennt ihn, weil er den Lauf aus dem
+ * Manifest kennt. `@main/index.json` bleibt zweite Quelle, der Manifest-Abschnitt
+ * dritte; die Wahl trifft der Client nach Schrittzahl.
+ */
+export const RUN_POINTER_FILE = 'index.json';
+export function runPointerUrl(run, base = CDN_BASE) {
+  return `${base}@main/${RUNS_DIR}/${run}/${RUN_POINTER_FILE}`;
+}
 /** Purge-Endpunkt von jsDelivr für einen CDN-Pfad (gemessen 2026-08-25: `finished`, nicht gedrosselt). */
 export function purgeUrlOf(cdnUrl) {
   return cdnUrl.replace(/^https:\/\/cdn\.jsdelivr\.net\//, 'https://purge.jsdelivr.net/');
@@ -235,16 +253,16 @@ export async function fetchIndex(opts = {}) {
  * weiterhin, und ein alter Index nennt höchstens einen älteren Lauf, den die
  * Anti-Drift-Regel im Client verwirft).
  */
-export async function purgeIndexUntilFresh({ commit, attempts = 3, waitMs = 20_000, firstWaitMs = 8_000, fetchImpl = fetch, log = () => {} } = {}) {
+export async function purgeIndexUntilFresh({ commit, url = INDEX_CDN_URL, attempts = 3, waitMs = 20_000, firstWaitMs = 8_000, fetchImpl = fetch, log = () => {} } = {}) {
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   let note = '';
   if (firstWaitMs > 0) await sleep(firstWaitMs);
   for (let i = 1; i <= attempts; i++) {
     try {
-      const p = await fetchImpl(purgeUrlOf(INDEX_CDN_URL), { cache: 'no-store' });
+      const p = await fetchImpl(purgeUrlOf(url), { cache: 'no-store' });
       const body = p.ok ? await p.json().catch(() => null) : null;
       const status = body?.status ?? `HTTP ${p.status}`;
-      const res = await fetchImpl(INDEX_CDN_URL, { cache: 'no-store' });
+      const res = await fetchImpl(url, { cache: 'no-store' });
       const idx = res.ok ? await res.json().catch(() => null) : null;
       const got = idx?.commit ?? null;
       note = `Purge ${i}/${attempts}: ${status} · CDN-Index @ ${got ? got.slice(0, 7) : '—'}`;

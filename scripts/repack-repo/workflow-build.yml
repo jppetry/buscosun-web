@@ -58,8 +58,17 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Checkout producer (public, no token)
-        run: git clone --depth=1 --quiet https://github.com/jppetry/buscosun-web.git app
+      # BW-9: gemessen am 2026-08-25 (#42): der volle Klon von buscosun-web dauerte
+      # 188 s — mehr als Publish + Purge zusammen. Der Producer braucht nur
+      # `scripts/` und `src/` (plus package.json für `npm install`); alles andere
+      # (public/, Fire-Artefakte, Doku) bleibt draußen: blob-loser Klon + Sparse-
+      # Checkout. Bleibt es beim vollen Klon, ist es kein Fehler, nur langsam.
+      - name: Checkout producer (public, no token, sparse)
+        run: |
+          git clone --depth=1 --quiet --filter=blob:none --no-checkout https://github.com/jppetry/buscosun-web.git app
+          cd app
+          git sparse-checkout set --no-cone scripts src package.json
+          git checkout --quiet
 
       # Der Producer hängt an genau EINER Laufzeit-Abhängigkeit: `bz2`.
       # `gribDecode.ts` ist importfrei (handgeschriebener Decoder inkl. CCSDS-AEC),
