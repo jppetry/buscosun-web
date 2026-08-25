@@ -18,6 +18,8 @@ import {
   type EventRecommendation, type DayResult, type Factor, type PhaseResult, type WindowRisk, type PlanBAssessment,
 } from './eventScoring';
 import { findBetterLocation, ALT_RADIUS_KM, type AltLocationCandidate } from './eventAltLocation';
+import { scanZone, type ZoneScan } from './eventZoneScan';
+import { isDrawnZone, zoneSizeText } from './eventZone';
 import { fetchCapeSeriesAtPoint } from '../sources/iconD2Cape';
 import { fetchDwdAlerts } from '../sources/dwdAlerts';
 import { convectiveOutlook, type ConvectiveOutlook } from '../radar/convectiveIndex';
@@ -334,6 +336,7 @@ function Recommendation({ rec, query, forecast, activityLabel, datesMode, onEdit
         const hazard = coldest ? coldHazardFor(coldest.summary!) : null;
         return hazard && coldest ? <EveningColdCard phase={coldest} hazard={hazard} /> : null;
       })()}
+      {isDrawnZone(query.zone) && <ZoneSection query={query} best={best} />}
       <PlanBSection query={query} rec={rec} />
       {best.phases.length > 1 && (
         <>
@@ -1595,6 +1598,85 @@ type AltLocState =
   | { kind: 'error'; message: string };
 
 /** PLANB-US5 — besser geeigneten Ort in der Nähe suchen (gezielte Aktion). */
+/* ============================ Zone am besten Tag (EZ3) ============================ */
+/**
+ * Tastet die aufgezogene Fläche am empfohlenen Tag ab und sagt, wie weit sie
+ * auseinanderliegt. Der Hauptwert des Tages bleibt der Punkt am gewählten Ort
+ * (E3) — hier steht nur die Spanne, samt dem ehrlichen Satz für den Fall, dass
+ * die Quellen eine Fläche dieser Größe gar nicht auflösen.
+ */
+function ZoneSection({ query, best }: { query: EventQuery; best: DayResult }) {
+  const [scan, setScan] = useState<ZoneScan | null>(null);
+  const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading');
+  const zone = query.zone;
+
+  useEffect(() => {
+    if (!isDrawnZone(zone)) return;
+    let alive = true;
+    const ac = new AbortController();
+    setState('loading'); setScan(null);
+    (async () => {
+      try {
+        const r = await scanZone({
+          query, zone, targetDate: best.date,
+          centerScore: best.score, centerDownside: best.downside, centerReason: best.reason,
+          signal: ac.signal,
+        });
+        if (!alive) return;
+        setScan(r);
+        setState(r.spread ? 'ready' : 'error');
+      } catch {
+        if (alive && !ac.signal.aborted) setState('error');
+      }
+    })();
+    return () => { alive = false; ac.abort(); };
+  }, [query, zone, best.date, best.score, best.downside, best.reason]);
+
+  if (!isDrawnZone(zone)) return null;
+
+  return (
+    <>
+      <div className="evd-sec-head">
+        <span className="evd-sec-lab">Zone am besten Tag</span>
+        <span className="evd-sec-note">{zoneSizeText(zone)}</span>
+      </div>
+      <div className="evd-panel">
+        {state === 'loading' && (
+          <p className="evd-zone-scan-note"><span className="ev-spinner" aria-hidden="true" /> Wir bewerten die Ecken deiner Fläche …</p>
+        )}
+        {state === 'error' && (
+          <p className="evd-zone-scan-note">
+            Für die Fläche kam keine vergleichbare Auswertung zustande — es bleibt bei der Bewertung am gewählten Ort.
+          </p>
+        )}
+        {state === 'ready' && scan?.spread && (
+          <>
+            <div className={`evd-zone-verdict evd-zone-verdict--${scan.spread.band}`}>
+              <span className="evd-zone-range">{Math.round(scan.spread.min)}–{Math.round(scan.spread.max)}</span>
+              <span className="evd-zone-range-unit">Punkte über die Fläche</span>
+            </div>
+            <p className="evd-zone-text">{scan.spread.text}</p>
+            <div className="evd-zone-points">
+              {scan.points.map((p) => (
+                <div key={p.id} className={`evd-zone-point${p.id === scan.spread!.worst.id ? ' evd-zone-point--worst' : ''}`}>
+                  <span className="evd-zone-point-lab">{p.label}</span>
+                  <span className="evd-zone-point-score">{Math.round(p.score)}</span>
+                  <span className="evd-zone-point-note">{p.downside || p.reason}</span>
+                </div>
+              ))}
+            </div>
+            <p className="evd-panel-cap" style={{ marginTop: 12 }}>
+              Mitte und Ecken laufen durch dieselbe Punktforecast-Pipeline und dasselbe Anlass-Profil wie der gewählte Ort.
+              Unterschiede kommen aus Geländehöhe und Stationsnähe — nicht aus aufgelösten Schauern.
+              {scan.failed > 0 && ` ${scan.failed} Messpunkt${scan.failed === 1 ? '' : 'e'} lieferte${scan.failed === 1 ? '' : 'n'} keine Wertung und fehlt${scan.failed === 1 ? '' : 'en'} in der Spanne.`}
+            </p>
+          </>
+        )}
+      </div>
+    </>
+  );
+}
+
 function AltLocationFinder({ query, targetDate, homeScore, triggered }: { query: EventQuery; targetDate: string; homeScore: number; triggered: boolean }) {
   const [state, setState] = useState<AltLocState>({ kind: 'idle' });
   const acRef = useRef<AbortController | null>(null);

@@ -10,7 +10,7 @@
  * verdrahtet, nur nach Vorlage angeordnet.
  */
 
-import { useState, useRef, useEffect, type KeyboardEvent } from 'react';
+import { useState, useRef, useEffect, lazy, Suspense, type KeyboardEvent } from 'react';
 import type { Location } from '../types';
 import { geocodeDACH, flagForCountry } from '../geocode';
 import {
@@ -29,6 +29,7 @@ import {
   IconDeckCalendar, IconRing, IconSliders, IconReset,
 } from './eventIcons';
 import EventResult from './EventResult';
+import { zoneSizeText, type EventZone } from './eventZone';
 import { NotificationProvider } from '../notifications/useNotifications';
 import { useIsMobile } from '../mobile/useIsMobile';
 import '../mobile/safeArea.css';
@@ -36,6 +37,10 @@ import './eventDeck.css';
 import { FeatureRail, type RailFeature } from '../nav/featureRail';
 
 interface Props { onBack: () => void; onOpenFeature?: (id: RailFeature) => void; }
+
+// Karte erst laden, wenn der Nutzer sie öffnet — maplibre bleibt aus dem
+// Wizard-Chunk (EZ, Entscheidung E7).
+const EventZoneMap = lazy(() => import('./EventZoneMap'));
 
 const STEP_META: Array<{ eyebrow: string; title: string; sub: string; optional?: boolean }> = [
   { eyebrow: 'Schritt 1 von 4 · Ort', title: 'Wo findet dein Event statt?', sub: 'Such den Ort in Deutschland, Österreich oder der Schweiz — wir rechnen höhenkorrigiert an genau diesem Punkt.' },
@@ -58,6 +63,7 @@ function EventPageInner({ onBack, onOpenFeature }: Props) {
   const isMobile = useIsMobile();
   const [activity, setActivity] = useState<EventActivity | null>(null);
   const [location, setLocation] = useState<Location | null>(null);
+  const [zone, setZone] = useState<EventZone | null>(null);
   const [windowSel, setWindowSel] = useState<TimeWindow>({ mode: 'range', from: todayISO(), to: horizonEndISO() });
   const [phases, setPhases] = useState<EventPhase[]>(defaultPhasesFor(''));
   const [tuning, setTuning] = useState<PresetTuning>(defaultTuningFor(''));
@@ -75,7 +81,7 @@ function EventPageInner({ onBack, onOpenFeature }: Props) {
     if (typeof window === 'undefined') return;
     const q = decodeEventState(window.location.hash);
     if (!q) return;
-    setActivity(q.activity); setLocation(q.location); setWindowSel(q.window);
+    setActivity(q.activity); setLocation(q.location); setZone(q.zone ?? null); setWindowSel(q.window);
     setPhases(q.phases); setTuning(q.tuning); setPlanB(q.planB); setSubmitted(q);
   }, []);
 
@@ -95,7 +101,7 @@ function EventPageInner({ onBack, onOpenFeature }: Props) {
   };
 
   const partial: Partial<EventQuery> = {
-    activity: activity ?? undefined, location: location ?? undefined,
+    activity: activity ?? undefined, location: location ?? undefined, zone,
     window: windowSel, phases, tuning, planB,
   };
   const complete = isQueryComplete(partial);
@@ -120,7 +126,8 @@ function EventPageInner({ onBack, onOpenFeature }: Props) {
         <div className={isMobile ? undefined : 'evd-step-single'}>
           {isMobile && <p className="evd-sub" style={{ marginTop: 0 }}>{meta.sub}</p>}
           <span className={isMobile ? 'evd-m-section-lab' : 'evd-field-label'}>Ort</span>
-          <LocationField value={location} onChange={setLocation} />
+          <LocationField value={location} onChange={(l) => { setLocation(l); if (!l) setZone(null); }} />
+          <ZoneField location={location} zone={zone} onChange={setZone} isMobile={isMobile} />
           <div className="evd-hint" style={{ marginTop: 18 }}>
             <b>Hinweis:</b> Der Ort bestimmt die Datenquelle — DWD (DE) · GeoSphere (AT) · MeteoSwiss (CH). Den Anlass wählst du im nächsten Schritt.
           </div>
@@ -295,6 +302,40 @@ function LocationField({ value, onChange }: { value: Location | null; onChange: 
         </div>
       )}
     </>
+  );
+}
+
+/* ============================ Zone (optional) ============================ */
+/**
+ * EZ2 — die Fläche wird erst angeboten, wenn ein Ort steht (ohne Anker gäbe es
+ * keinen Kartenausschnitt) und die Karte erst geladen, wenn sie geöffnet wird.
+ */
+function ZoneField({ location, zone, onChange, isMobile }: { location: Location | null; zone: EventZone | null; onChange: (z: EventZone | null) => void; isMobile: boolean }) {
+  const [open, setOpen] = useState(false);
+  if (!location) return null;
+  return (
+    <div className="evd-zone-field">
+      <div className="evd-zone-head">
+        <span className={isMobile ? 'evd-m-section-lab' : 'evd-field-label'} style={isMobile ? undefined : { marginTop: 18 }}>
+          Zone · optional
+        </span>
+        <button type="button" className="evd-link" onClick={() => setOpen((v) => !v)}>
+          {open ? 'Karte schließen' : zone ? 'Zone ändern' : 'Auf Karte aufziehen'}
+        </button>
+      </div>
+      {!open && (
+        <div className="evd-zone-summary">
+          {zone
+            ? <><IconDeckPin />Fläche gesetzt · {zoneSizeText(zone)}</>
+            : <><IconDeckPin />Keine Fläche — bewertet wird der Punkt am Ort.</>}
+        </div>
+      )}
+      {open && (
+        <Suspense fallback={<div className="evd-zone-loading">Karte wird geladen …</div>}>
+          <EventZoneMap location={location} zone={zone} onChange={onChange} />
+        </Suspense>
+      )}
+    </div>
   );
 }
 

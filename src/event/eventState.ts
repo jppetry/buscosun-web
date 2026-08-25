@@ -13,6 +13,7 @@ import {
   type EventQuery, type EventActivity, type TimeWindow, type EventPhase,
 } from './eventModel';
 import { defaultTuningFor } from './eventScoring';
+import { isDrawnZone, type EventZone } from './eventZone';
 
 export const EVENT_HASH_PREFIX = '#ev=';
 
@@ -25,6 +26,9 @@ export function encodeEventState(q: EventQuery): string {
     l: [r5(q.location.lat), r5(q.location.lon), q.location.name, q.location.country],
     w: q.window.mode === 'range' ? ['r', q.window.from, q.window.to] : ['d', ...q.window.dates],
     p: q.phases.map((p) => [p.label, p.hours[0], p.hours[1]]),
+    // Zone additiv (E6): nur wenn eine Fläche aufgezogen wurde. Alte Links
+    // ohne `z` bleiben gültig und laden als „keine Zone".
+    ...(isDrawnZone(q.zone) ? { z: [r5(q.zone.west), r5(q.zone.south), r5(q.zone.east), r5(q.zone.north)] } : {}),
   };
   return EVENT_HASH_PREFIX + encodeURIComponent(JSON.stringify(payload));
 }
@@ -34,7 +38,7 @@ export function decodeEventState(hash: string): EventQuery | null {
   if (!hash || !hash.startsWith(EVENT_HASH_PREFIX)) return null;
   try {
     const o = JSON.parse(decodeURIComponent(hash.slice(EVENT_HASH_PREFIX.length))) as
-      { a: [string, string]; l: [number, number, string, string]; w: string[]; p: [string, number, number][] };
+      { a: [string, string]; l: [number, number, string, string]; w: string[]; p: [string, number, number][]; z?: number[] };
 
     // Anlass: bekanntes Preset per id, sonst freier Anlass aus dem Label.
     const aid = o.a?.[0];
@@ -54,7 +58,14 @@ export function decodeEventState(hash: string): EventQuery | null {
       : [];
     if (!phases.length) return null;
 
-    return { activity, location, window, phases, tuning: defaultTuningFor(activity.id), planB: defaultPlanB() };
+    // Zone: fehlend oder unplausibel ⇒ keine Zone (nie eine erfundene Fläche).
+    let zone: EventZone | null = null;
+    if (Array.isArray(o.z) && o.z.length === 4 && o.z.every((n) => Number.isFinite(n))) {
+      const cand: EventZone = { west: o.z[0], south: o.z[1], east: o.z[2], north: o.z[3] };
+      if (isDrawnZone(cand)) zone = cand;
+    }
+
+    return { activity, location, zone, window, phases, tuning: defaultTuningFor(activity.id), planB: defaultPlanB() };
   } catch { return null; }
 }
 

@@ -3446,9 +3446,40 @@ sie hängt daran, ob der Pfad VOR dem Push schon angefragt wurde (die Sonden tun
 meist nicht). Der Publisher prüft den Zeiger jetzt bis zu 4 × im Abstand von 45 s nach (nur Protokoll, keine
 Sichtbarkeit) und purgt den Index nur noch einmal ohne Nachprüfung (Origin ≥ 48 min alt, gemessen).
 
-**Was noch aussteht:** der erste Lauf mit der neuen Vorlage (Slot Lauf + 40, Warteschleife, bzip2, Sparse-Klon) —
-sobald Jan `scripts/repack-repo/workflow-build.yml` als `.github/workflows/build.yml` ins Daten-Repo pusht. Der
-Monitor dieser Session misst Lauf 15z weiter (Actions-API, erstes 200 des Zeigers/`repack.json`, CDN-Index).
+**Erledigt 20:20 UTC (Jans Go):** die Vorlage liegt als `.github/workflows/build.yml` im Daten-Repo (Commit
+`3faf09b`, gepusht aus dieser Session per blob-losem Sparse-Klon — der volle Klon scheiterte zweimal mit
+`fetch-pack: invalid index-pack output`). Erste Slots der neuen Vorlage: Sicherheitsnetz 20:30 UTC (soll bei
+vollständigem 18z in ~0,5 min aussteigen — der erste Beleg für `steps=`), Hauptslot 21:20 UTC für Lauf 21z.
+
+**Sicherheitsnetz #47 (20:40:24–20:42:35 UTC, erster Lauf der neuen Vorlage):** Sparse-Klon **2 s** (statt 16–188 s),
+`Repack` 108 s bis „Lauf 2026082518 liegt vollständig → nichts zu tun", `Publish` 0 s — **kein Push, kein
+Manifest-Wechsel, kein Netlify-Build**: V-BW-38 ist damit belegt behoben (`steps=` kommt an). Die 108 s sind nicht
+der Producer (lokal derselbe Ausstiegspfad 2,3–4,1 s, einmal 45,9 s), sondern die 15 DWD-Listings, die um diese
+Zeit langsam antworteten — V-BW-41: im Ausstiegspfad genügt EIN Listing je Familie (10 statt 15), noch besser die
+Lauf-Erkennung über `index.json`-Vergleich vor jedem Listing.
+
+**Hauptslot #48 — der erste vollständige Lauf der neuen Vorlage (Lauf 21z, 2026-08-25):**
+
+| | |
+|---|---|
+| Slot / Start | 21:20 nominal, gestartet **21:31:03** (+11 min Jitter) — 13 min BEVOR der DWD Schritt 000 ablegt |
+| Sparse-Klon | 1 s |
+| Repack-Schritt | 21:31:27 – 22:07:07: Warten auf den Lauf (Schritt 000 um 21:44:21), dann Schritt für Schritt hinter dem Upload her (012 um 21:55:38, 024 um 22:04:26) |
+| DWD Schritt 027 (`regular-lat-lon`, letzter nötiger) | **22:06:42–22:06:44** |
+| Producer fertig / Commit + Push | 22:07:07 / **22:07:10** ⇒ **Versatz DWD → GitHub: 26–28 s** |
+| Publish-Schritt | 18 s — der Zeiger war beim ersten Nachlesen frisch (nie zuvor angefragter Pfad) |
+| Zeiger `runs/2026082521/index.json` auf jsDelivr | 200 spätestens **22:08:10** (Handabfrage; Monitor-Zyklus meldete 22:08:28) ⇒ **≤ 60 s nach dem Push** |
+| **Versatz DWD → jsDelivr** | **≈ 1,5 min** (22:06:43 → ≤ 22:08:10) — vorher am selben Tag 39–43 min (§28.10) |
+| Nebenwirkung | Index trägt 21/18/15/12 mit vollem Horizont (13/25/25/13/12/12/25/24/28/28); kein Zwischen-Publish, kein Nachrechnen |
+
+Damit ist das Ziel der Phase erreicht und gemessen: **Lauf + 67 min** auf dem CDN (DWD-Grenze + 1,5 min) statt
+Lauf + 105…135. Was bleibt, ist der DWD selbst (Schritt 027 bei + 66) und der jsDelivr-Erstabruf (≤ 1 min).
+
+**Gate GBW9 — Nachtrag Produktion:** (1) Funktionserhalt — Index und Zeiger tragen dieselben Familien und
+Schrittzahlen wie vor der Phase; Sicherheitsnetz #47 steigt ohne Push aus; (2)–(3) keine UI; (4) Konsole —
+der Zeiger-Weg meldet nichts; (5) Long Tasks — ein 10-KB-JSON mehr je 60 s, kein Dekodieren. **Offen (Jans
+Entscheidung):** `REPACK_INDEX_URL=''` in den Warm-Crons (Manifest-Abschnitt entfällt, Manifest-Commits halbieren
+sich — die Zeiger tragen jetzt die Frische) · V-BW-41 (Listings im Ausstiegspfad) · die Produktfrage aus §28.5.
 
 ## 28.10 Versatz DWD-Verzeichnis → GitHub → jsDelivr, je Lauf (Jans Frage, 2026-08-25 19:20 UTC)
 

@@ -7,6 +7,7 @@
  */
 
 import type { Location } from '../types';
+import { isDrawnZone, type EventZone } from './eventZone';
 
 /** Vordefinierter Anlass. `id: 'custom'` = frei beschriebener Anlass. */
 export interface EventActivity {
@@ -217,6 +218,11 @@ export function defaultPlanB(): PlanBConfig {
 export interface EventQuery {
   activity: EventActivity;
   location: Location;
+  /**
+   * Optionale Event-Fläche (EZ). Der `location`-Punkt bleibt der Anker der
+   * Bewertung; die Zone ergänzt eine Spanne über das Gelände (`eventZone.ts`).
+   */
+  zone?: EventZone | null;
   window: TimeWindow;
   /** Eine oder mehrere Phasen mit je eigenem Zeitfenster. */
   phases: EventPhase[];
@@ -273,6 +279,7 @@ export function isQueryComplete(q: Partial<EventQuery>): q is EventQuery {
     !!q.window && isWindowValid(q.window) &&
     !!q.phases && q.phases.length >= 1 && q.phases.every(phaseValid) &&
     !!q.tuning &&
-    !!q.planB
+    !!q.planB &&
+    (q.zone == null || isDrawnZone(q.zone))
   );
 }

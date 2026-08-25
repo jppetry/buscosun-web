@@ -120,6 +120,47 @@
 .evd-ort-result:hover { border-color: var(--terracotta-500); }
 .evd-ort-err { margin-top: 8px; font-size: 12px; color: var(--evd-critical); }
 
+/* Zone (EZ2) — Fläche auf der Karte aufziehen */
+.evd-zone-field { margin-top: 4px; }
+.evd-zone-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.evd-zone-summary { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 12px; color: var(--stone-500); }
+.evd-zone-loading { margin-top: 10px; padding: 24px; text-align: center; font-size: 12.5px; color: var(--stone-500); background: #fff; border: 1px solid var(--border-default); border-radius: 12px; }
+.evd-zone { margin-top: 10px; }
+.evd-zone-mapwrap { position: relative; border: 1px solid var(--border-medium); border-radius: 12px; overflow: hidden; }
+.evd-zone-map { height: 300px; width: 100%; }
+.evd-zone-hintbar {
+  position: absolute; left: 10px; right: 10px; bottom: 10px; z-index: 2;
+  background: rgba(28, 25, 23, .86); color: #fff; border-radius: 9px;
+  padding: 9px 12px; font-size: 12px; text-align: center; pointer-events: none;
+}
+.evd-zone-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 9px; flex-wrap: wrap; }
+.evd-zone-size { font-size: 12.5px; color: var(--stone-600); font-weight: 600; }
+.evd-zone-btns { display: flex; gap: 8px; }
+.evd-zone-btn {
+  background: #fff; border: 1px solid var(--border-default); border-radius: 9px;
+  padding: 9px 14px; font-family: inherit; font-size: 12px; font-weight: 600;
+  color: var(--stone-500); cursor: pointer; min-height: 40px;
+}
+.evd-zone-btn--go { border-color: var(--terracotta-500); color: var(--terracotta-500); }
+.evd-zone-note { margin-top: 8px; font-size: 11.5px; color: var(--stone-500); line-height: 1.5; }
+
+/* Zone im Resultat (EZ3) */
+.evd-zone-scan-note { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--stone-600); margin: 0; }
+.evd-zone-verdict { display: flex; align-items: baseline; gap: 10px; }
+.evd-zone-range { font-size: 30px; font-weight: 700; letter-spacing: -1px; color: var(--ink-900); }
+.evd-zone-verdict--strong .evd-zone-range { color: var(--terracotta-500); }
+.evd-zone-range-unit { font-size: 12px; color: var(--stone-500); font-weight: 600; }
+.evd-zone-text { font-size: 13px; color: var(--stone-600); line-height: 1.55; margin: 8px 0 0; }
+.evd-zone-points { margin-top: 14px; display: flex; flex-direction: column; gap: 6px; }
+.evd-zone-point {
+  display: grid; grid-template-columns: 130px 40px 1fr; align-items: center; gap: 10px;
+  background: var(--cream-50); border: 1px solid var(--border-default); border-radius: 10px; padding: 9px 12px;
+}
+.evd-zone-point--worst { border-color: var(--terracotta-500); background: var(--evd-terra-tint); }
+.evd-zone-point-lab { font-size: 12px; font-weight: 700; color: var(--ink-900); }
+.evd-zone-point-score { font-size: 16px; font-weight: 700; color: var(--ink-900); text-align: right; }
+.evd-zone-point-note { font-size: 11.5px; color: var(--stone-500); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 /* Anlass-Grid */
 .evd-anlass-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
 .evd-anlass {
@@ -407,6 +448,11 @@
 
 /* Touch targets: ensure interactive chips ≥ 40px tall on mobile */
 @media (max-width: 767px) {
+  .evd-zone-map { height: 240px; }
+  .evd-zone-point { grid-template-columns: 1fr 42px; row-gap: 2px; }
+  .evd-zone-point-note { grid-column: 1 / -1; white-space: normal; }
+  .evd-zone-btn { min-height: 44px; }
+  .evd-zone-bar { align-items: flex-start; }
   .evd-chip, .evd-seg-btn, .evd-metric-chip { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
   .evd-tab { min-height: 40px; }
   .evd-m-back, .evd-m-changed { min-height: 44px; }
