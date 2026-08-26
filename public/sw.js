@@ -37,6 +37,16 @@ self.addEventListener('install', (event) => {
   );
 });
 
+// Übernahme auf Zuruf (BW-11). `skipWaiting()` im `install` allein genügt in der
+// Praxis NICHT: gemessen am 2026-08-26 stand der v4-Worker in einem
+// Bestandsbrowser als `installed` (waiting), während der ALTE Worker weiter
+// bediente — mitsamt seiner `bsc-assets-v2`-Einträge für
+// `/latest-{grib,wind}.json`. Die BW-10-Korrektur erreichte solche Browser damit
+// nie. `main.tsx` schickt diese Nachricht, sobald ein neuer Worker bereitsteht.
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
+});
+
 self.addEventListener('activate', (event) => {
   event.waitUntil((async () => {
     const keys = await caches.keys();

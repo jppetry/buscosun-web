@@ -703,7 +703,7 @@ if (hsurfGreys.length >= 2) {
       (() => { try { RS.preconnectDataCdn(); return true; } catch { return false; } })());
     const wind = rf('src/wind/iconD2WindSource.ts', 'utf8');
     const precip = rf('src/sources/iconD2Precip.ts', 'utf8');
-    const w1 = wind.indexOf('preconnectDataCdn();'), w2 = wind.indexOf('await fetch(WIND_MANIFEST_URL');
+    const w1 = wind.indexOf('preconnectDataCdn();'), w2 = wind.indexOf('await fetch(liveManifestUrl(WIND_MANIFEST_URL');
     const p1 = precip.indexOf('preconnectDataCdn();'), p2 = precip.indexOf('resolveRunFromManifest(');
     add('Beide Manifest-Resolver bauen die CDN-Verbindung VOR dem Manifest-Abruf auf',
       w1 > 0 && w2 > w1 && p1 > 0 && p2 > p1, `wind ${w1} < ${w2} · grib ${p1} < ${p2}`);
@@ -713,6 +713,30 @@ if (hsurfGreys.length >= 2) {
     add('Alle acht GRIB-Manifest-Loader reichen `wanted`/`steps` an `resolveRepackForRun` durch',
       missing.length === 0 && /resolveRepackSection\(runStr, 'wind', manifest\.repackRaw, wanted\)/.test(wind),
       missing.length ? missing.join(' · ') : `${loaders.length} + Wind`);
+  }
+
+  // ── BW-11: die Live-Manifeste hängen an keinem Service Worker mehr (§30) ──
+  // Gemessen am 2026-08-26: ein Bestandsbrowser bediente `/latest-wind.json`
+  // weiter aus dem Cache eines ALTEN Workers (v4 stand als `installed`), also
+  // den Lauf der vorigen Sitzung. Zwei Naht­stellen, beide hier geprüft.
+  {
+    const GM = await import('../src/sources/gribManifest.ts');
+    const u = GM.liveManifestUrl('/latest-wind.json', 1_756_170_000_000);
+    add('Abruf-URL trägt einen Stempel, der Pfad bleibt unverändert',
+      u.startsWith('/latest-wind.json?') && new URL(u, 'https://x').pathname === '/latest-wind.json', u);
+    add('Stempel wechselt im Takt des Manifest-Caches (60 s), nicht je Abruf',
+      GM.liveManifestUrl('/latest-wind.json', 1_756_170_000_000) === GM.liveManifestUrl('/latest-wind.json', 1_756_170_059_999)
+      && GM.liveManifestUrl('/latest-wind.json', 1_756_170_000_000) !== GM.liveManifestUrl('/latest-wind.json', 1_756_170_060_001));
+    add('bestehende Query bleibt erhalten (der Stempel hängt an, ersetzt nicht)',
+      GM.liveManifestUrl('/x.json?a=1', 0) === '/x.json?a=1&t=0');
+    const sw = rf('public/sw.js', 'utf8');
+    add('`LIVE_RE` prüft den PFAD — der Stempel hebelt die network-first-Regel nicht aus',
+      /LIVE_RE\.test\(url\.pathname\)/.test(sw));
+    add('Service Worker kann die Übernahme auf Zuruf vollziehen (`SKIP_WAITING`)',
+      /'SKIP_WAITING'/.test(sw) && /addEventListener\('message'/.test(sw));
+    const main = rf('src/main.tsx', 'utf8');
+    add('Der Client stößt die Übernahme an und lädt danach genau einmal neu',
+      /SKIP_WAITING/.test(main) && /controllerchange/.test(main) && /hadController/.test(main));
   }
 
   // ── BW-9: der Index vom CDN (§28.4/§28.5 S1) ─────────────────────────────

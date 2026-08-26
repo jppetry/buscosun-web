@@ -58,6 +58,29 @@ function parseRunStr(run: string): Date {
   ));
 }
 
+/**
+ * BW-11 (2026-08-26): der Abruf-URL der LIVE-Manifeste bekommt einen
+ * Minuten-Stempel — derselbe Takt wie `MANIFEST_TTL_MS`, also höchstens ein
+ * zusätzlicher Eintrag je Minute und Datei.
+ *
+ * Warum: `cache: 'no-store'` wirkt erst im HTTP-Layer, ein Service Worker greift
+ * DAVOR. Bestandsbrowser bedienen `/latest-{grib,wind}.json` weiterhin aus einem
+ * alten Worker (vor BW-10 fielen sie unter dessen Asset-Regel: erst der Treffer,
+ * dann die Auffrischung — jede Sitzung sah den Lauf der VORIGEN), und der neue
+ * Worker übernimmt erst, wenn er darf. Der Stempel ändert den Cache-Schlüssel,
+ * nicht den Pfad: der alte Worker findet nichts und geht ans Netz, der neue
+ * (`LIVE_RE` prüft `pathname`) bleibt unverändert network-first, und der Server
+ * liefert dieselbe Datei — die Frische hängt damit an keinem Worker mehr.
+ *
+ * Der IDENTITÄTS-Schlüssel bleibt der Pfad ohne Stempel: Manifest-Cache
+ * (`getManifest`) und Gesundheitsmeldung (`reportManifest`) sollen nicht je
+ * Minute eine neue Datei zu sehen glauben.
+ */
+export function liveManifestUrl(url: string, nowMs: number = Date.now()): string {
+  const sep = url.includes('?') ? '&' : '?';
+  return `${url}${sep}t=${Math.floor(nowMs / MANIFEST_TTL_MS)}`;
+}
+
 /** Fetch + Parse + Validierung (inkl. Staleness-Guard). `null` = unbrauchbar. */
 async function fetchManifest(url: string): Promise<ParsedManifest | null> {
   try {
@@ -65,7 +88,7 @@ async function fetchManifest(url: string): Promise<ParsedManifest | null> {
     // AbortSignal: das Promise ist über nebenläufige Layer-Loader geteilt — der
     // Abort EINES Layers darf die Auflösung der übrigen nicht mitreißen (der
     // Fetch ist ~1 KB same-origin).
-    const res = await fetch(url, { cache: 'no-store' });
+    const res = await fetch(liveManifestUrl(url), { cache: 'no-store' });
     if (!res.ok) return null;
     const m = await res.json() as { run?: unknown; runAt?: unknown; updatedAt?: unknown; params?: unknown; repack?: unknown };
     if (typeof m.run !== 'string' || !/^\d{10}$/.test(m.run)) return null;

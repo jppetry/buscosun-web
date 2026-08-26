@@ -20,8 +20,34 @@ createRoot(document.getElementById('root')!).render(
 
 // PWA: Service Worker nur in Produktion registrieren (im Dev stört er das
 // Vite-HMR). Offline-Shell + Runtime-Cache siehe public/sw.js.
+// BW-11 (2026-08-26): Registrieren allein reicht nicht. Ein neuer Worker bleibt
+// in `waiting`, solange ein Tab der Herkunft offen ist — gemessen stand v4 als
+// `installed`, während der ALTE Worker weiter bediente und `/latest-wind.json`
+// aus seinem nie ablaufenden Asset-Cache lieferte (der Lauf der VORIGEN Sitzung,
+// `audit/bandbreite.md` §30). Deshalb: den wartenden Worker ausdrücklich
+// übernehmen lassen und die Seite danach GENAU EINMAL neu laden.
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => { /* SW optional — App läuft auch ohne */ });
+    // Ob die Seite beim Laden schon bedient wurde, entscheidet über das Neuladen:
+    // bei der ERSTregistrierung feuert `controllerchange` durch `clients.claim()`
+    // — dort wäre ein Reload eine sinnlose zweite Ladung.
+    const hadController = !!navigator.serviceWorker.controller;
+    let reloaded = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!hadController || reloaded) return;
+      reloaded = true;
+      window.location.reload();
+    });
+    navigator.serviceWorker.register('/sw.js').then((reg) => {
+      const takeOver = (sw: ServiceWorker | null) => sw?.postMessage({ type: 'SKIP_WAITING' });
+      takeOver(reg.waiting);                       // steht schon einer bereit?
+      reg.addEventListener('updatefound', () => {
+        const sw = reg.installing;
+        sw?.addEventListener('statechange', () => {
+          if (sw.state === 'installed' && navigator.serviceWorker.controller) takeOver(sw);
+        });
+      });
+      void reg.update().catch(() => { /* Netzfehler — beim nächsten Laden erneut */ });
+    }).catch(() => { /* SW optional — App läuft auch ohne */ });
   });
 }

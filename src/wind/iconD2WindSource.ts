@@ -16,6 +16,8 @@
 
 import { resolveLatestRun, fetchStepBytes, subsampledCorners, decodeGrib2, D2_WIND_PROXY_BASE, type GribField } from '../sources/iconD2Precip';
 import { reportManifest, stateFromUpdatedAt } from '../sources/manifestHealth';
+// BW-11: EINE Regel für den Abruf-URL der Live-Manifeste (Begründung dort).
+import { liveManifestUrl } from '../sources/gribManifest';
 import { stepsForNowWindow } from '../sources/frameAtValidTime';
 import { buildWindRgba } from './windFrameBuild';
 import { blendAndRefine, type FrameNorm } from './windBlendRefine';
@@ -105,7 +107,7 @@ async function resolveWindRunFromManifest(signal?: AbortSignal): Promise<WindRun
   // BW-10: Verbindung zum Daten-CDN parallel zum Manifest aufbauen (§29.3 Hebel 2).
   preconnectDataCdn();
   try {
-    const res = await fetch(WIND_MANIFEST_URL, { signal, cache: 'no-store' });
+    const res = await fetch(liveManifestUrl(WIND_MANIFEST_URL), { signal, cache: 'no-store' });
     if (!res.ok) return absent();
     const m = await res.json() as { run?: unknown; runAt?: unknown; updatedAt?: unknown; steps?: unknown; repack?: unknown };
     if (typeof m.run !== 'string' || !/^\d{10}$/.test(m.run)) return absent();
