@@ -108,6 +108,7 @@
 .evd-step-single > .evd-ort { max-width: 560px; }
 .evd-step-single > .evd-ort-results { max-width: 560px; }
 .evd-step-single > .evd-hint { max-width: 560px; }
+.evd-step-single > .evd-zone-field { max-width: 560px; }
 
 /* Ort */
 .evd-ort { margin-top: 10px; display: flex; align-items: center; gap: 10px; background: #fff; border: 1px solid var(--border-medium); border-radius: 12px; padding: 12px 15px; }

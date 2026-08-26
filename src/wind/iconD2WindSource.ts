@@ -20,7 +20,8 @@ import { stepsForNowWindow } from '../sources/frameAtValidTime';
 import { buildWindRgba } from './windFrameBuild';
 import { blendAndRefine, type FrameNorm } from './windBlendRefine';
 import {
-  resolveRepackSection, loadWindStep, uvBoundsOf, repackUsable, type RepackSection,
+  resolveRepackSection, loadWindStep, uvBoundsOf, repackUsable, preconnectDataCdn, REPACK_CONCURRENCY,
+  type RepackSection,
 } from '../sources/repackSource';
 import type { DataTextureFormat, PackedTexture } from './glUtil';
 
@@ -64,9 +65,11 @@ const WIND_MANIFEST_URL = '/latest-wind.json';
 const MAX_MANIFEST_RUN_AGE_H = 24;
 
 /** Rückgabeform der Lauf-Auflösung — deckungsgleich mit `resolveLatestRun`.
- *  `repack` (BW-3) ist additiv: der geprüfte CDN-Abschnitt DIESES Laufs, sonst
- *  `null`. Der Scan-Fallback hat nie einen — er löst am Manifest vorbei auf. */
-interface WindRunInfo { runStr: string; runAt: Date; steps: number[]; repack: RepackSection | null }
+ *  `repackRaw` (BW-3/BW-10) ist additiv: der ROHE `repack`-Abschnitt des
+ *  Manifests; geprüft wird er im Aufrufer gegen Lauf UND gewünschte Schritte
+ *  (`resolveRepackSection`). Der Scan-Fallback hat nie einen — er löst am
+ *  Manifest vorbei auf. */
+interface WindRunInfo { runStr: string; runAt: Date; steps: number[]; repackRaw: unknown }
 
 /** True, wenn der letzte Schritt des Laufs nicht vor `nowMs` liegt (Horizont-Guard). Rein, fuer den Verifier. */
 export function manifestCoversNow(runAtMs: number, steps: readonly number[], nowMs: number): boolean {
@@ -89,14 +92,18 @@ function parseRunStr(run: string): Date {
  * Spekulation) zurück. Das ist die Graceful-Degrade-Naht in beide Richtungen:
  *  • kein Manifest (Dev vor dem ersten Warm-Lauf / Netz-Fehler) → alter Pfad;
  *  • eingefrorenes Manifest (Warmer aus) → letzter gewärmter Lauf (stale, nie kalt).
- * `cache: 'no-store'` hält den HTTP-Layer frisch; ein evtl. Service-Worker
- * (stale-while-revalidate für `.json`) serviert höchstens den letzten Lauf und
- * revalidiert — konsistent mit „stale statt slow".
+ * `cache: 'no-store'` hält den HTTP-Layer frisch. Der Service Worker reicht die
+ * Live-Manifeste seit BW-10 network-first durch (`LIVE_RE`, `public/sw.js`):
+ * unter seiner Asset-Regel servierte er den Lauf der VORIGEN Sitzung — gemessen
+ * 9 h alt —, und `cache: 'no-store'` konnte daran nichts ändern, weil der Worker
+ * VOR dem HTTP-Cache greift (audit/bandbreite.md §29.1 B).
  */
 async function resolveWindRunFromManifest(signal?: AbortSignal): Promise<WindRunInfo | null> {
   // V-20: jeder Rückgabepfad `null` bedeutet „Manifest unbrauchbar → Directory-Scan";
   // genau das meldet `absent`. Rein additiv: die Auflösungslogik bleibt unverändert.
   const absent = (): null => { reportManifest(WIND_MANIFEST_URL, 'absent'); return null; };
+  // BW-10: Verbindung zum Daten-CDN parallel zum Manifest aufbauen (§29.3 Hebel 2).
+  preconnectDataCdn();
   try {
     const res = await fetch(WIND_MANIFEST_URL, { signal, cache: 'no-store' });
     if (!res.ok) return absent();
@@ -124,13 +131,11 @@ async function resolveWindRunFromManifest(signal?: AbortSignal): Promise<WindRun
     const upd = typeof m.updatedAt === 'string' ? new Date(m.updatedAt) : null;
     const updatedAtMs = upd && !Number.isNaN(upd.getTime()) ? upd.getTime() : null;
     reportManifest(WIND_MANIFEST_URL, stateFromUpdatedAt(updatedAtMs, Date.now()), updatedAtMs);
-    // BW-3: der Abschnitt wird gegen den Lauf geprüft, den DIESE Auflösung
-    // liefert — nicht gegen den, den das Manifest nennt. Beides ist hier
-    // dasselbe; im Scan-Fallback unten wäre es das nicht (§22.4).
-    // BW-9: zuerst der CDN-Index (frisch ≈ 1 min nach dem Publish), der
-    // Manifest-Abschnitt bleibt der benannte Fallback (§28.5 S1).
-    const repack = repackUsable() ? await resolveRepackSection(m.run, 'wind', m.repack) : null;
-    return { runStr: m.run, runAt, steps, repack };
+    // BW-3/BW-10: der Abschnitt wird erst im Aufrufer geprüft — gegen den Lauf,
+    // den DIESE Auflösung liefert (§22.4), und gegen die Schritte, die er
+    // wirklich laden will (Nur-Jetzt-Fenster): erst dann ist klar, ob das CDN
+    // überhaupt gefragt werden muss (§29.3 Hebel 1). Hier nur der rohe Abschnitt.
+    return { runStr: m.run, runAt, steps, repackRaw: m.repack ?? null };
   } catch {
     return absent();   // Netzfehler / JSON-Parse → Fallback auf Directory-Scan
   }
@@ -403,7 +408,6 @@ export async function fetchIconD2Wind(
   // der Client fragt ausschließlich gewärmte (Lauf,Step)-URLs an.
   const manifest = await resolveWindRunFromManifest(signal);
   let usedManifest = manifest != null;
-  section = manifest?.repack ?? null;
   let { runStr, runAt, wanted, specLoaded } = manifest
     ? { runStr: manifest.runStr, runAt: manifest.runAt, wanted: manifest.steps.filter((s) => s <= MAX_STEP), specLoaded: new Set<number>() }
     : await resolveViaScan();
@@ -411,9 +415,13 @@ export async function fetchIconD2Wind(
   // Nahen Horizont auf dem kritischen Pfad laden → Wind sofort nutzbar.
   // Nur-Jetzt-Modus: ausschließlich die zwei Schritte um die aktuelle Uhrzeit.
   if (nowOnly) wanted = stepsForNowWindow(wanted, runAt, aheadH);
+  // BW-3/BW-10: der CDN-Abschnitt — gegen den Lauf, den die Auflösung wirklich
+  // geliefert hat (§22.4), und gegen GENAU die Schritte, die gleich geladen
+  // werden: deckt der Manifest-Abschnitt sie, wird das CDN nicht gefragt (§29.3).
+  if (manifest && repackUsable()) section = await resolveRepackSection(runStr, 'wind', manifest.repackRaw, wanted);
   let near = nowOnly ? wanted : wanted.filter((s) => s <= NEAR_STEP);
   let far = nowOnly ? [] : wanted.filter((s) => s > NEAR_STEP);
-  await pump(near, runStr, runAt, CONCURRENCY, specLoaded);
+  await pump(near, runStr, runAt, section ? REPACK_CONCURRENCY : CONCURRENCY, specLoaded);
 
   // Robustheit / Graceful-Degrade: liefert ein (veraltetes/aus dem Cache
   // evakuiertes/auf DWD gelöschtes) Manifest KEINE Frames, ist das Manifest nur
@@ -432,12 +440,12 @@ export async function fetchIconD2Wind(
 
   if (!uvBounds || frames.length === 0) throw new Error('ICON-D2 Wind: keine Frames erzeugt');
 
-  // Fernen Horizont im Hintergrund nachfüllen (reduzierte Concurrency, damit er
-  // nicht mit Erstpaint/Basemap konkurriert). Aktualisiert die Ref via onProgress;
+  // Fernen Horizont im Hintergrund nachfüllen (halbe Concurrency des nahen, damit
+  // er nicht mit Erstpaint/Basemap konkurriert). Aktualisiert die Ref via onProgress;
   // die Promise wartet NICHT darauf. `frames` ist geteilt → das zurückgegebene
   // Objekt wächst mit, der Slider findet ferne Frames sobald sie da sind.
   if (far.length && !signal?.aborted) {
-    void pump(far, runStr, runAt, Math.min(CONCURRENCY, 3), specLoaded)
+    void pump(far, runStr, runAt, Math.ceil((section ? REPACK_CONCURRENCY : CONCURRENCY) / 2), specLoaded)
       .then(() => { if (!signal?.aborted) onSettled?.(); })
       .catch(() => {});
   } else {

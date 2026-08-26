@@ -90,6 +90,24 @@ export const FIRST_TIMEOUT_MS = 3_000;
  * TCP-Timeout: ein weggedrückter Commit antwortete gemessen erst nach 19,9 s.
  */
 export const STEP_TIMEOUT_MS = 6_000;
+/**
+ * Frist für den KÖRPER einer Datei, nachdem die Kopfzeilen da sind (BW-10, §29.2).
+ * Die beiden Fristen oben messen „antwortet das CDN?" — die Zeit bis zu den
+ * Kopfzeilen, unabhängig von Bandbreite und Parallelität. Der Körper hängt an
+ * beidem: 12 parallele Abrufe à 247 KB sind 3 MB in der Luft, und 30 s dafür
+ * sind 0,8 Mbit/s — darunter hilft auch der GRIB-Weg (8× die Bytes) nicht mehr.
+ * Mit EINER 6-s-Frist über beides galt der Weg schon auf 3G (≈ 2 Mbit/s) als
+ * kaputt, und die Sitzung fiel ausgerechnet dort auf GRIB.
+ */
+export const BODY_TIMEOUT_MS = 30_000;
+/**
+ * Parallele Bildabrufe je Familie auf dem CDN-Weg (BW-10, §29.2): 13 Dateien
+ * kalt in 1,0 s statt 4,2 s bei 6. Der GRIB-Weg behält seine 6 — dort hält der
+ * bz2-Worker-Pool die Kette, nicht das Netz. Im Nur-Jetzt-Modus (2 Dateien)
+ * ist die Zahl ohne Wirkung; sie zählt für Slider-Fenster, volle Listen und das
+ * Nachfüllen des fernen Horizonts.
+ */
+export const REPACK_CONCURRENCY = 12;
 
 export interface RepackGrid {
   ni: number; nj: number; ss: number;
@@ -349,6 +367,21 @@ export function precipStepsUsable(section: RepackSection, wanted: number[]): num
   return out;
 }
 
+/**
+ * Trägt der Abschnitt JEDEN gewünschten Schritt? Reine Mengenfrage — die
+ * `ref`-Kette des Niederschlags prüft `precipStepsUsable` danach wie bisher.
+ * BW-10 (§29.3 Hebel 1): ein Abschnitt, der alle gewünschten Schritte deckt,
+ * kann von keiner weiteren Quelle verbessert werden — dann kostet der CDN-Index
+ * nur Zeit auf dem kritischen Pfad.
+ */
+export function sectionCovers(section: RepackSection | null, family: RepackFamily, wanted: readonly number[]): boolean {
+  if (!section) return false;
+  const steps = (section[family] as { steps?: { step: number }[] } | undefined)?.steps;
+  if (!steps) return false;
+  const have = new Set(steps.map((s) => s.step));
+  return wanted.every((s) => have.has(s));
+}
+
 /** URL einer Schritt-Datei. DIE Regel — Spiegel von `scripts/lib/repackManifest.mjs`. */
 export function stepUrl(section: RepackSection, file: string): string {
   return `${section.base}@${section.commit}/${section.path}/${file}`;
@@ -482,10 +515,14 @@ function markBroken(reason: string): void {
   }
 }
 
-/** Frist + Abbruch des Aufrufers zu EINEM Signal verbinden (ohne `AbortSignal.any`). */
-function withDeadline(ms: number, signal?: AbortSignal): { signal: AbortSignal; done: () => void } {
+/** Frist + Abbruch des Aufrufers zu EINEM Signal verbinden (ohne `AbortSignal.any`).
+ *  `rearm(ms)` setzt eine NEUE Frist ab jetzt — für den Körper, sobald die
+ *  Kopfzeilen da sind (BW-10, §29.2); das Signal bleibt dasselbe, der Abbruch
+ *  des Aufrufers wird weiter durchgereicht. */
+function withDeadline(ms: number, signal?: AbortSignal): { signal: AbortSignal; rearm: (ms: number) => void; done: () => void } {
   const ac = new AbortController();
-  const timer = setTimeout(() => ac.abort(new DOMException('Frist abgelaufen', 'TimeoutError')), ms);
+  const expire = () => ac.abort(new DOMException('Frist abgelaufen', 'TimeoutError'));
+  let timer = setTimeout(expire, ms);
   const onAbort = () => ac.abort(signal?.reason);
   if (signal) {
     if (signal.aborted) ac.abort(signal.reason);
@@ -493,6 +530,7 @@ function withDeadline(ms: number, signal?: AbortSignal): { signal: AbortSignal; 
   }
   return {
     signal: ac.signal,
+    rearm: (next: number) => { clearTimeout(timer); timer = setTimeout(expire, next); },
     done: () => { clearTimeout(timer); signal?.removeEventListener('abort', onAbort); },
   };
 }
@@ -507,11 +545,16 @@ interface DecodedImage { data: Uint8ClampedArray; width: number; height: number 
  */
 async function loadRgba(url: string, signal: AbortSignal | undefined, expect: RepackGrid): Promise<DecodedImage | null> {
   const first = !state.firstDone;
-  const { signal: sig, done } = withDeadline(first ? FIRST_TIMEOUT_MS : STEP_TIMEOUT_MS, signal);
+  const { signal: sig, rearm, done } = withDeadline(first ? FIRST_TIMEOUT_MS : STEP_TIMEOUT_MS, signal);
   let blob: Blob;
   try {
     const res = await fetch(url, { signal: sig, cache: 'default' });
     if (!res.ok) { markBroken(`HTTP ${res.status}`); return null; }
+    // BW-10: die Kopfzeilen sind da — die Frist hat ihre Frage beantwortet
+    // („antwortet das CDN?"). Der Körper bekommt seine eigene, bandbreiten-
+    // tolerante Frist: bei 12 parallelen Abrufen teilen sich 3 MB die Leitung,
+    // und eine 6-s-Frist darauf hieße auf 3G „CDN kaputt" (§29.2).
+    rearm(BODY_TIMEOUT_MS);
     blob = await res.blob();
   } catch (e) {
     // Abbruch DURCH DEN AUFRUFER (Layer abgewählt, Seite verlassen) ist kein
@@ -550,6 +593,26 @@ async function loadRgba(url: string, signal: AbortSignal | undefined, expect: Re
 
 /** True, solange der Weg in dieser Sitzung nutzbar ist. */
 export function repackUsable(): boolean { return repackEnabled() && !state.broken; }
+
+/**
+ * BW-10 (§29.3 Hebel 2): die Verbindung zum Daten-CDN aufbauen, WÄHREND das
+ * Manifest noch unterwegs ist (0,55 s) — DNS + TCP + TLS fallen dann nicht mehr
+ * vor das erste Bild. Einmal je Dokument, nur wenn der Weg an ist; ohne DOM
+ * (Node, Verifier) ein No-op. Bewusst nicht in `index.html`: die Startseite
+ * bräuchte die Verbindung nie. `crossorigin` = anonym, wie `fetch()` sie nutzt.
+ */
+let preconnected = false;
+export function preconnectDataCdn(): void {
+  if (preconnected || typeof document === 'undefined' || !repackEnabled()) return;
+  preconnected = true;
+  try {
+    const link = document.createElement('link');
+    link.rel = 'preconnect';
+    link.href = new URL(REPACK_CDN_BASE).origin;
+    link.crossOrigin = 'anonymous';
+    document.head.appendChild(link);
+  } catch { /* nur ein Hinweis an den Browser — ohne ihn ist nichts kaputt */ }
+}
 
 /**
  * Windbild eines Schritts. Rückgabe ist bereits das, was `buildWindRgba`
@@ -687,6 +750,10 @@ export async function loadGridStep(
 // lesbar, Lauf nicht drin, Schalter aus — dann gilt, was bisher galt. Und die
 // Anti-Drift-Regel gilt per Konstruktion: gebaut wird nur der Eintrag für den
 // Lauf, den der Aufrufer TATSÄCHLICH auflösen konnte.
+//
+// BW-10 (§29.3): der Index steht nicht mehr auf dem kritischen Pfad — er wird
+// nur befragt, wenn Manifest-Abschnitt und Zeiger die gewünschten Schritte
+// nicht decken; im Normalfall (vollständiger Abschnitt) 0 CDN-Abrufe.
 // ---------------------------------------------------------------------------
 
 /** Spiegel von `CDN_BASE` in `scripts/lib/repackManifest.mjs` — `verify:repack` prüft die Gleichheit. */
@@ -771,70 +838,95 @@ export function repackRunPointerUrl(run: string): string {
   return `${REPACK_CDN_BASE}@main/runs/${run}/index.json`;
 }
 
-let indexCache: { at: number; run: string; p: Promise<[unknown, unknown]> } | null = null;
+let pointerCache: { at: number; run: string; p: Promise<unknown> } | null = null;
+let indexCache: { at: number; p: Promise<unknown> } | null = null;
 /** Nur für Tests/Verifier. */
-export function resetRepackIndexCache(): void { indexCache = null; }
+export function resetRepackIndexCache(): void { pointerCache = null; indexCache = null; }
 
 /**
- * Zeiger des Laufs und Index vom CDN, je `null` bei JEDEM Problem — und das ist
- * kein Defekt des Repack-Wegs (`markBroken` bleibt unberührt): die Bilder können
- * trotzdem liegen, der Manifest-Abschnitt sagt dann, wo. Frist wie der erste
- * Bildabruf; EIN geteiltes Promise je Lauf und TTL-Fenster.
+ * Ein CDN-JSON, `null` bei JEDEM Problem — und das ist kein Defekt des
+ * Repack-Wegs (`markBroken` bleibt unberührt): die Bilder können trotzdem
+ * liegen, der Manifest-Abschnitt sagt dann, wo. Frist wie der erste Bildabruf.
  */
-async function fetchCdnSources(run: string): Promise<[unknown, unknown]> {
+async function fetchCdnJson(url: string): Promise<unknown> {
+  const { signal, done } = withDeadline(FIRST_TIMEOUT_MS);
+  try {
+    const res = await fetch(url, { signal, cache: 'no-store' });
+    if (!res.ok) return null;
+    return await res.json() as unknown;
+  } catch {
+    return null;
+  } finally {
+    done();
+  }
+}
+/** Zeiger des Laufs — EIN geteiltes Promise je Lauf und TTL-Fenster. */
+function cdnPointer(run: string): Promise<unknown> {
   const now = Date.now();
-  if (indexCache && indexCache.run === run && now - indexCache.at < INDEX_TTL_MS) return indexCache.p;
-  const one = async (url: string): Promise<unknown> => {
-    const { signal, done } = withDeadline(FIRST_TIMEOUT_MS);
-    try {
-      const res = await fetch(url, { signal, cache: 'no-store' });
-      if (!res.ok) return null;
-      return await res.json() as unknown;
-    } catch {
-      return null;
-    } finally {
-      done();
-    }
-  };
-  const p = Promise.all([one(repackRunPointerUrl(run)), one(REPACK_INDEX_CDN_URL)]);
-  indexCache = { at: now, run, p };
-  return p;
+  if (!pointerCache || pointerCache.run !== run || now - pointerCache.at >= INDEX_TTL_MS) {
+    pointerCache = { at: now, run, p: fetchCdnJson(repackRunPointerUrl(run)) };
+  }
+  return pointerCache.p;
+}
+/** Der Index — EIN geteiltes Promise je TTL-Fenster (lauf-unabhängig). */
+function cdnIndex(): Promise<unknown> {
+  const now = Date.now();
+  if (!indexCache || now - indexCache.at >= INDEX_TTL_MS) indexCache = { at: now, p: fetchCdnJson(REPACK_INDEX_CDN_URL) };
+  return indexCache.p;
 }
 
 /**
- * Der geprüfte Abschnitt für `run` und `family` aus drei Quellen — Zeiger des
- * Laufs, CDN-Index, roher `repack`-Abschnitt des Manifests (`manifestRaw`, den
- * der Aufrufer schon in der Hand hat — kein zweiter Manifest-Abruf). Alle drei
- * gehen durch DIESELBE Prüfung; es gilt der mit den meisten Schritten, bei
+ * Der geprüfte Abschnitt für `run` und `family` aus drei Quellen — roher
+ * `repack`-Abschnitt des Manifests (`manifestRaw`, den der Aufrufer schon in
+ * der Hand hat — kein zweiter Manifest-Abruf), Zeiger des Laufs, CDN-Index.
+ * Alle drei gehen durch DIESELBE Prüfung.
+ *
+ * BW-10 (§29.3 Hebel 1): die Quellen werden in Kostenreihenfolge befragt —
+ * Manifest (0 Abrufe) → Zeiger (29 KB) → Index (116 KB) —, und sobald eine
+ * jeden GEWÜNSCHTEN Schritt trägt, ist Schluss: mehr kann keine Quelle bieten,
+ * die weiteren Abrufe stünden nur vor dem ersten Bild (gemessen 0,94 s). Ohne
+ * `wanted` (Verifier, kein Aufrufer im Repo) gilt die BW-9-Regel unverändert:
+ * beide CDN-Quellen parallel, es gilt der mit den meisten Schritten, bei
  * Gleichstand die frischere Quelle (Zeiger vor Index vor Manifest).
  */
 export async function resolveRepackSection(
   run: string,
   family: RepackFamily,
   manifestRaw: unknown,
+  wanted?: readonly number[],
 ): Promise<RepackSection | null> {
   if (!repackUsable()) return null;
   const fromManifest = manifestRaw ? parseRepackSection(manifestRaw, family, run) : null;
   if (!repackIndexEnabled()) return fromManifest;
-  const [pointer, index] = await fetchCdnSources(run);
-  const fromPointer = pointer ? parseRepackSection(sectionFromIndex(pointer, run, family), family, run) : null;
-  const fromIndex = index ? parseRepackSection(sectionFromIndex(index, run, family), family, run) : null;
+  const parse = (raw: unknown): RepackSection | null =>
+    (raw ? parseRepackSection(sectionFromIndex(raw, run, family), family, run) : null);
+  if (!wanted) {
+    const [pointer, index] = await Promise.all([cdnPointer(run), cdnIndex()]);
+    return chooseSection(parse(pointer), chooseSection(parse(index), fromManifest, family), family);
+  }
+  if (sectionCovers(fromManifest, family, wanted)) return fromManifest;
+  const fromPointer = parse(await cdnPointer(run));
+  const best = chooseSection(fromPointer, fromManifest, family);
+  if (sectionCovers(best, family, wanted)) return best;
+  const fromIndex = parse(await cdnIndex());
   return chooseSection(fromPointer, chooseSection(fromIndex, fromManifest, family), family);
 }
 
 /**
  * Liest den `repack`-Abschnitt aus `/latest-grib.json` — über DENSELBEN
  * 60-s-Cache, den `resolveRunFromManifest` benutzt, also ohne zweiten Abruf —
- * und zieht seit BW-9 zuerst den CDN-Index heran (`resolveRepackSection`).
+ * und zieht bei Bedarf Zeiger und Index des CDN heran (`resolveRepackSection`).
  * `run` ist der Lauf, den der Aufrufer TATSÄCHLICH auflösen konnte (nicht der
- * des Manifests): passt er nicht, gibt es keinen Abschnitt.
+ * des Manifests): passt er nicht, gibt es keinen Abschnitt. `wanted` sind die
+ * Schritte, die der Aufrufer gleich laden will (BW-10).
  */
 export async function resolveRepackForRun(
   run: string,
   family: RepackFamily,
+  wanted?: readonly number[],
   url: string = GRIB_MANIFEST_URL,
 ): Promise<RepackSection | null> {
   if (!repackUsable()) return null;
   const raw = await readManifestRepack(url);
-  return resolveRepackSection(run, family, raw);
+  return resolveRepackSection(run, family, raw, wanted);
 }

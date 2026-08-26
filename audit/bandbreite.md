@@ -3504,3 +3504,165 @@ Pathologie live: der Batch lief, als der Lauf noch nicht existierte, und der nä
 hätte ein später Start (+71) die Daten (+66) schon 5 min liegen lassen; bei + 20 startet der Job bei +27…+51,
 also sicher vor den Daten, und die Warteschleife (Budget 40 min ⇒ bis +67…+91) trägt den Rest. Erwarteter Versatz
 027 → GitHub danach: Rechnen des letzten Schritts (Sekunden) + Push (5–10 s) ⇒ **< 1 min**, bis jsDelivr **1–4 min**.
+
+---
+
+# 29 BW-10 — Erstbild schneller: Service-Worker-Falle, kritischer Pfad, Concurrency (2026-08-26)
+
+> **Phase:** BW-10. **Auftrag (Jan, 2026-08-25 spät):** „Die Wetterkarte lädt jetzt nur noch PNGs statt erst
+> die GRIBs zu dekodieren — dadurch erwarte ich eine schnellere Bereitstellung, die bleibt aber aus. Woran
+> liegt es?" Danach Jans Bildschirm beim Laden des Windlayers: **„Lauf 12z · vor 10 h · Schnellzugriff zuletzt
+> vor 9 h aufgefrischt"**, während die Manifeste live Lauf 21z trugen. Freigabe: „mache es mit den 3
+> Latenz-Hebeln zusammen." Alle Zahlen gemessen (curl/Node gegen Prod und jsDelivr, 2026-08-25 22:40–23:10 UTC).
+
+## 29.1 Zwei Befunde, die nichts miteinander zu tun haben
+
+**A — Der Repack war nie eine Geschwindigkeitsmaßnahme, und das steht schon in §22/§23.** GBW4 hat Weg A
+(Temperatur-PNG) gegen Weg B (`?repack=0`, GRIB) je dreimal gemessen: bester Lauf **2 573 gegen 2 591 ms**, Median
+2 595 gegen 2 668 — 18 ms Unterschied bei 83–113 ms Streuung innerhalb desselben Wegs; GBW3 davor 3 198 gegen
+2 857 ms, ebenso Rauschen. Vier Gründe, alle heute nachgemessen:
+
+1. **Der GRIB-Decode lag nie auf dem kritischen Pfad.** bz2 im `bz2Worker`, Decode + RGBA im
+   `windFrameWorker`-Pool; das Producer-Profil (§28.7) nennt 30 ms Decode + 17 ms Bild je Schritt — parallel
+   zum Netz, gegen 300–1 600 ms Wartezeit je Datei.
+2. **Die Kette ist länger geworden.** `resolveRepackSection` (`repackSource.ts:811`) wartet seit BW-9 auf
+   `Promise.all([Zeiger, Index])`, bevor das erste Bild angefragt wird: Manifest **0,55 s** (Netlify,
+   `no-store`) → Zeiger 29 KB **0,46 s** ‖ Index 116 KB **0,94 s** → erstes PNG. Rund **1 s vor dem ersten
+   Datenbyte**, bei jedem Aufruf neu (`cache: 'no-store'` auf beiden CDN-Abrufen), und der Index ist nur der
+   Fallback hinter dem Zeiger — gewartet wird trotzdem auf ihn.
+3. **Die Latenz je Datei ist nicht kleiner, nur die Bytes.** jsDelivr am Commit-SHA, `wind-004…006.png`:
+   kalt TTFB **0,93 / 1,12 / 1,63 s** bei `X-Cache: MISS, MISS`; zweiter Abruf **0,32 / 0,34 / 0,37 s** bei
+   `MISS, HIT`. Die Dateien eines neuen Laufs hat noch niemand angefragt — der Edge holt sie vom Shield, der
+   Shield vom Origin. Der Netlify-Durable-Cache war dagegen von den Warm-Crons vorgewärmt: **wir sind von
+   einem warmen auf einen kalten Cache umgezogen.**
+4. **Die Zahl der Round-Trips ist gleich geblieben.** Bei 247 KB besteht die Wartezeit zu ~⅔ aus TTFB;
+   Bytes achteln senkt die Zeit je Datei um ~⅓, und das fressen 2. und 3. auf.
+
+Dazu die Pointe aus §23.5: die größte Aufgabe der Kaltsitzung ist `buildDemImage` (2,5 s Hauptthread,
+Terrarium/S3) — sie hat mit ICON-D2 nichts zu tun, der Repack macht sie nur sichtbarer.
+
+**B — Jans Bildschirm zeigt ein 9 h altes Manifest, und das ist der Service Worker.** Live um 22:57 UTC:
+
+| | live (`curl`) | Jans Seite |
+|---|---|---|
+| `latest-wind.json` `run` | **2026082521**, 2,0 h alt | **12z, „vor 10 h"** |
+| `updatedAt` | 22:08 UTC, **0,8 h** alt | **„vor 9 h"** |
+
+`public/sw.js:49` führt `json` in `ASSET_RE`; `isHashedAsset()` prüft nur Origin + Endung. `/latest-wind.json`
+und `/latest-grib.json` sind same-origin und enden auf `.json` ⇒ sie gelten als **gehashte Assets** und laufen
+durch `hit || (await net)` (`sw.js:99`): der Cache antwortet sofort, das Netz revalidiert im Hintergrund — die
+Antwort ist das Manifest der **vorigen** Sitzung. Der `ASSETS`-Cache wird nie getrimmt und nur beim
+`VERSION`-Bump gelöscht (seit BW-3 `v3`). Ein `cache: 'no-store'` im App-Code (`iconD2WindSource.ts:101`,
+`gribManifest.ts:63`) ändert daran nichts — der SW greift VOR dem HTTP-Cache; die Cache-API ignoriert den
+Cache-Modus der Anfrage. Der Kommentar am Wind-Resolver („serviert höchstens den letzten Lauf und revalidiert —
+konsistent mit ‚stale statt slow‘") beschreibt den Mechanismus richtig und die Folge falsch: bei einem
+Besuch alle paar Stunden ist „der letzte Lauf" 3–9 h alt, und `manifestCoversNow` schlägt erst an, wenn der
+letzte Schritt vor „jetzt" liegt (12z mit 0…12 h deckt bis 00z). Das ist V-BW-31 (§27.3 S2), bisher nur
+katalogisiert.
+
+**Folge für den Repack, die niemand sieht:** das CDN hält `keep: 4` Läufe (Zeiger 09z → 404, 12z…21z → 200).
+Das Stand-Manifest nennt 12z, den ältesten der vier; nach dem nächsten Publish fällt er heraus,
+`resolveRepackSection` findet keinen Abschnitt, und die Sitzung läuft **vollständig auf GRIB** — ohne
+Konsolenzeile, weil ein fehlender Abschnitt laut §22.4 der Normalfall ist. Zeitweise misst man also gar nicht
+den PNG-Weg.
+
+## 29.2 Was Concurrency bringt — und was nicht
+
+13 Bilder eines Laufs vom CDN, je Messung eine andere, noch nie angefragte Familie (`gust`/`thunder`/`rotation`):
+
+| parallel | kalt (Wand) | je Datei Median / max | warm (Wand) |
+|---:|---:|---:|---:|
+| 6 | **4,16 s** | 1,37 / 2,73 s | 0,43 s |
+| 12 | 3,29 s | 0,60 / 3,29 s | 0,21 s |
+| 13 | **1,01 s** | 0,60 / 1,01 s | 0,11 s |
+
+Die Zeit je Datei steigt mit der Parallelität NICHT (Median 0,60 bei 12–13 gegen 1,37 bei 6) — der Shield
+holt parallel vom Origin. **Aber:** im Standard-Kaltstart (`START_NOW_ONLY`, `MapView.tsx:287`) will jede
+Familie nur das Jetzt-Bracket, **2 Dateien**; Concurrency ändert dort nichts. Sie wirkt beim Slider-Fenster
+(3–4 Dateien), im eingebetteten/`?startnow=0`-Modus (13 Wind + 25 Temperatur) und beim Nachfüllen des fernen
+Horizonts (`Math.min(CONCURRENCY, 3)` — 8 Dateien in 3 Runden).
+
+**Wechselwirkung mit der Frist (BW-3, §22.3).** `STEP_TIMEOUT_MS = 6 s` deckt heute Kopfzeilen UND Körper
+einer Datei. Bei N parallelen Abrufen teilen sich N × 247 KB die Leitung; die Frist fällt, sobald
+Bytes-in-der-Luft ÷ Bandbreite > 6 s — und ein Fehlschlag gilt für die Sitzung (`markBroken`), die dann auf GRIB
+mit **8× so vielen Bytes** wechselt, ausgerechnet auf der langsamen Leitung:
+
+| parallel | Bytes in der Luft | Frist fällt unter |
+|---:|---:|---:|
+| 6 (heute) | 1,5 MB | **≈ 2 Mbit/s** |
+| 12 | 3,0 MB | ≈ 4 Mbit/s |
+
+Das ist schon heute ein Defekt (2 Mbit/s ist 3G) und würde durch mehr Parallelität schlimmer. Die Frist muss
+deshalb messen, wofür sie gebaut wurde: „antwortet das CDN?" (§21.6: ein force-weggedrückter Commit antwortete
+nach 19,9 s mit 200) — das ist die Zeit bis zu den **Kopfzeilen**, unabhängig von Bandbreite und Parallelität.
+Der **Körper** bekommt eine eigene, bandbreitentolerante Frist (30 s: 12 × 247 KB in 30 s sind 0,8 Mbit/s —
+darunter hilft auch GRIB nicht mehr), die nur noch einen abgerissenen Strom fängt.
+
+## 29.3 Hebel
+
+| # | Hebel | Wirkung (gemessen/hergeleitet) | Eingriff |
+|---|---|---|---|
+| **S** | **SW: Live-Manifeste am Asset-Zweig vorbei** — `LIVE_RE` für `/latest-{grib,wind}.json` vor `ASSET_RE`, Cache-Namen `v3` → `v4` (sonst behält jeder Bestandsbrowser den vergifteten Eintrag) | frisches Manifest je Aufruf statt 3–9 h alt; der Repack-Weg bleibt am aktuellen Lauf | `public/sw.js`, ein Regex + Bump — **Manifest-Mechanik, Jans Freigabe liegt vor** |
+| **1** | **Index vom kritischen Pfad**: Quellen in Kostenreihenfolge, Abbruch sobald eine die GEWÜNSCHTEN Schritte deckt — Manifest-Abschnitt (0 Abrufe) → Zeiger (29 KB) → Index (116 KB) | −0,94 s im Normalfall (vollständiger Abschnitt im Manifest); −0,48 s, wenn der Zeiger reicht; verlustfrei: ein Abschnitt, der jeden gewünschten Schritt trägt, kann von keiner Quelle mehr verbessert werden | `repackSource.ts` (`sectionCovers`, `resolveRepackSection(…, wanted)`), 9 Loader reichen `wanted` durch |
+| **2** | **Preconnect** auf `cdn.jsdelivr.net`, sobald ein ICON-D2-Loader das Manifest anfragt — DNS + TCP + TLS laufen parallel zu den 0,55 s Manifest | −100…300 ms vor dem ersten Bild; nur auf Seiten, die ICON-D2 laden (nicht in `index.html` — die Startseite bräuchte die Verbindung nie) | `preconnectDataCdn()` in `repackSource.ts`, je ein Aufruf in den zwei Manifest-Resolvern |
+| **3** | **Concurrency auf dem PNG-Weg** `REPACK_CONCURRENCY = 12` (GRIB-Weg unverändert 6); ferner Horizont die Hälfte (6 statt 3) — **zusammen mit** der Fristen-Trennung Kopfzeilen (3/6 s) / Körper (30 s) | volle Listen 4,2 → ~1 s kalt; Standard-Kaltstart unverändert (2 Dateien); Frist fällt jetzt erst unter ≈ 0,8 Mbit/s statt 2 | `repackSource.ts` (`BODY_TIMEOUT_MS`, `withDeadline.rearm`), Pumpen in Wind/Temp/Böen/Gewitter/Rotation/Blitz/Schnee; Niederschlag (`ref`-Kette, 3) und CAPE (3) bleiben |
+
+**Nicht in dieser Phase, als V-Einträge:** **V-BW-42** — `fetchIconD2Temp` wartet auf `buildDemImage` (2,5 s
+Hauptthread, §23.5), BEVOR es den ersten Temperaturschritt anfragt (`iconD2TempSource.ts:225`); Bilder und DEM
+sind unabhängig, die 2,5 s könnten parallel zum Netz laufen — der größte verbleibende Posten des
+Temperatur-Erstbilds. **V-BW-43** — Pollen (`s31fg.json`) und UV (`uvi.json`) über `/_dwd_opendata/` laufen
+weiter unter der Asset-Regel des SW (Rest von V-BW-31); die Modelldateien `/fire/**-v1.json` sind versioniert
+und dort richtig aufgehoben. Die amtlichen Warnungen (`.zip`) sind nicht betroffen — die Lizenzauflage „kein
+Durable-Cache" (`docs/API.md` §7) war nie verletzt.
+
+## 29.4 Umgesetzt (2026-08-26, Jans „mache es mit den 3 Latenz-Hebeln zusammen")
+
+| Datei | Änderung |
+|---|---|
+| `public/sw.js` | **`LIVE_RE = /^\/latest-(?:grib\|wind)\.json$/`**, in `isHashedAsset()` ausgenommen ⇒ die Manifeste laufen durch den network-first-Zweig (Cache nur als Offline-Fallback). Cache-Namen **`v3` → `v4`** — `activate` löscht `bsc-assets-v3` samt vergiftetem Eintrag in jedem Bestandsbrowser. Kopfkommentar benennt die Ausnahme |
+| `src/sources/repackSource.ts` | **Hebel 1:** `sectionCovers(section, family, wanted)`; `resolveRepackSection(run, family, manifestRaw, wanted?)` befragt Manifest → Zeiger → Index und bricht ab, sobald eine Quelle jeden gewünschten Schritt trägt (ohne `wanted`: BW-9-Regel unverändert, beide CDN-Quellen parallel). Zeiger und Index haben getrennte Sitzungs-Caches (`cdnPointer`/`cdnIndex`, je EIN geteiltes Promise je TTL-Fenster). `resolveRepackForRun(run, family, wanted?, url?)`. **Hebel 2:** `preconnectDataCdn()` — `<link rel="preconnect" crossorigin="anonymous">` auf den CDN-Origin, einmal je Dokument, nur mit eingeschaltetem Weg, ohne DOM ein No-op. **Hebel 3:** `REPACK_CONCURRENCY = 12`; Fristen getrennt — `withDeadline(…).rearm(ms)`, `loadRgba` misst die Kopfzeilen unter `FIRST/STEP_TIMEOUT_MS` (3/6 s) und den Körper unter **`BODY_TIMEOUT_MS = 30 s`**; `markBroken`-Semantik unverändert (ein Fehlschlag gilt für die Sitzung) |
+| `src/wind/iconD2WindSource.ts` | Resolver gibt den ROHEN Abschnitt (`repackRaw`) zurück; geprüft wird er im Loader **nach** dem Nur-Jetzt-Fenster gegen `wanted`; `preconnectDataCdn()` vor dem Manifest-Abruf; nahe Pumpe `section ? 12 : 6`, ferne die Hälfte (6 statt 3 auf dem CDN-Weg). Der Resolver-Kommentar „stale statt slow" ist korrigiert — er beschrieb die Folge falsch |
+| `src/sources/iconD2Precip.ts` | `preconnectDataCdn()` am Anfang von `resolveLatestRun` (deckt alle GRIB-Manifest-Familien); `steps` an `resolveRepackForRun` |
+| `iconD2TempSource` · `iconD2GustSource` · `iconD2Lpi` · `iconD2Rotation` · `iconD2Snow` · `iconD2Thunder` · `iconD2Cape` | `wanted` an `resolveRepackForRun`; Pumpen `section ? REPACK_CONCURRENCY : CONCURRENCY` (CAPE bleibt 3, Niederschlag 3 — `ref`-Kette) |
+| `scripts/verify-repack.mjs` | +19 Prüfungen: Fristen-Trennung (Körper-Frist ⇒ ≤ 1 Mbit/s bei 12 × 247 KB, `rearm` zwischen `fetch` und `blob`), Concurrency-Spanne, Preconnect ohne DOM, beide Resolver preconnecten VOR dem Manifest, alle acht Loader + Wind reichen `wanted` durch; `sectionCovers`-Fälle; **Attrappe mit `window` + zählendem `fetch` am Publisher-Baum** — Manifest deckt ⇒ 0 Abrufe · Zeiger deckt ⇒ 1 · keine Quelle ⇒ 2 (Gleichstand: Zeiger) · ohne `wanted` ⇒ 2 · kein Manifest-Abschnitt ⇒ 1 · Zeiger je TTL-Fenster EINMAL · Zeiger 404 ⇒ Index trägt, Weg nicht kaputt; SW: `LIVE_RE` trifft beide Manifeste und nichts sonst, `isHashedAsset` nimmt sie aus, `VERSION ≥ v4` |
+
+Nicht angefasst: Shader, GRIB-Weg (Concurrency 6, keine Frist), `?repack=0`/`?repackidx=0`, Warm-Crons, Publisher.
+`npm run typecheck` grün, Budget totalJs 986,2/1017,7 KB (alle Budgets eingehalten), Build 56,8 s.
+
+## 29.5 Gemessen (Chrome DevTools MCP, Desktop, 2026-08-25 23:27–23:40 UTC)
+
+**Prod, alter Code (v3-Worker), `https://buscosun.com/wetterkarte/wind`** — Resource Timing, ms ab Navigationsstart:
+
+| Abruf | Start | Ende | Bemerkung |
+|---|---:|---:|---|
+| `/latest-wind.json` | 2 575 | 2 688 | über SW |
+| `runs/2026082521/index.json` (Zeiger) ‖ `@main/index.json` | 2 691 | 3 184 ‖ 3 203 | **515 ms Wartezeit vor dem ersten Bild** (Edge warm; kalt per curl 0,94 s) |
+| `wind-002.png` · `wind-003.png` | 3 206 | 3 891 | erste Bilder |
+| `temp-002.png` · `temp-003.png` | **13 922** | 14 442 | **10,7 s nach dem Manifest** — dazwischen `hsurf` (3 207→3 649), Terrarium-Kacheln, `buildDemImage` |
+
+**Lokal, neuer Build (`vite preview :5199`, v4-Worker, Manifeste = Prod-Stand 21z), Kaltstart (HTTP-Cache dieses Origins leer):**
+
+| Abruf | Start | Ende | Bemerkung |
+|---|---:|---:|---|
+| `/latest-grib.json` · `/latest-wind.json` | 1 140 · 1 150 | 1 277 · 1 276 | über SW, **network-first** — Eintrag liegt in `bsc-data-v4`, NICHT in `bsc-assets-v4` |
+| Zeiger / Index | — | — | **kein Abruf** (Manifest-Abschnitt deckt die zwei Bracket-Schritte) |
+| `wind-002.png` · `wind-003.png` | **1 279** | 2 236 · 2 251 | **3 ms nach dem Manifest**; `dns 0 · connect 0 · tls 0` — `<link rel="preconnect" href="https://cdn.jsdelivr.net/" crossorigin="anonymous">` steht im `<head>`, und Chrome partitioniert Verbindungen je Top-Level-Site, also war es keine Restverbindung vom Prod-Besuch |
+| `temp-002.png` · `temp-003.png` | 11 329 | 11 497 | 10,2 s nach dem Manifest — dieselbe DEM-Wartezeit wie in Prod (V-BW-42) |
+
+**Warm-Reload lokal:** Manifest 894 → 906 (12 ms, Netz), Bilder ab 910. Long Tasks ≥ 50 ms: 5; **> 200 ms: 534 ms @ 2 162 und 3 392 ms @ 3 228** — die Temperaturbilder starten bei **6 620 = 3 228 + 3 392**, auf die Millisekunde das Ende von `buildDemImage`. Beide Aufgaben sind der vorbestehende DEM-Bau (§23.5: 2 573 ms best-of-3, unabhängig vom Datenweg); diese Phase fügt dem Hauptthread nichts hinzu, sie nimmt Wartezeit weg. **Konsole: 0 Fehler, 0 Warnungen.**
+
+**Live-Beleg des SW-Mechanismus (Prod, v3-Worker, Automations-Profil):** in `bsc-assets-v3` einen Eintrag `/latest-wind.json` mit Lauf **12z** gelegt (Kopie des Live-Manifests, `run`/`runAt`/`updatedAt` 9 h zurückgesetzt), Seite neu geladen. Die Karte lud daraufhin **`runs/2026082512/wind-011.png` und `wind-012.png`** (Lauf 12z, Jetzt-Bracket um 23:35 UTC) und den Zeiger `runs/2026082512/index.json` — während der Server `2026082521` lieferte (Bypass-Abruf im selben Skript). Der Worker revalidierte den Eintrag im Hintergrund: ein Abruf NACH dem Seitenaufbau bekam schon 21z — genau die SWR-Mechanik, mit der jede Sitzung den Stand der **vorigen** sieht (Jans 9 h = Abstand zu seinem vorigen Besuch). Eintrag danach entfernt (`cache.delete` → `true`).
+
+**Was die Messung nicht deckt:** Mobile (Emulation für WebGL nicht repräsentativ, Real-Device offen); Concurrency 12 im Browser (der Standard-Kaltstart lädt 2 Dateien — die Wirkung bei vollen Listen steht in §29.2 aus Node); die Körper-Frist auf einer echten 3G-Leitung (hergeleitet, nicht gemessen).
+
+## 29.6 Gate GBW10
+
+`npm run verify:repack` **295/295** (276 + 19 neue, keine ✗; Laufzeit ~45 min, weil ohne `bzip2` im PATH der JS-bz2 jede GRIB-Datei der Familienprüfung in ~4 s entpackt — V-BW-27 gilt auch für den Verifier). `npm run typecheck` grün. Budget 986,2/1017,7 KB.
+
+1. **Funktionserhalt** — jeder Layer, jede Familie, derselbe Lauf, dieselben Bytes: der PNG-Loader ist bis auf die Fristen-Trennung unverändert, `sectionCovers` ist verlustfrei (ein Abschnitt mit allen gewünschten Schritten ist durch keine Quelle zu verbessern), ohne `wanted` gilt die BW-9-Regel wörtlich (Verifier: „beide CDN-Quellen, parallel"), der GRIB-Weg (Concurrency 6, keine Frist) und beide Kill-Switches sind unangetastet; `markBroken` hat dieselbe Semantik. Offline liefert der Worker die Manifeste weiter aus `bsc-data-v4` (Cache-Fallback des network-first-Zweigs).
+2. **Desktop pixelgleich** — keine UI-Änderung; dieselben Bilder aus denselben URLs (lokal `wind-002/003`, `hsurf-v1`, `temp-002/003` wie in Prod).
+3. **Touch-Targets** — nicht berührt.
+4. **Konsole** — 0 Fehler, 0 Warnungen (Kaltstart und Warm-Reload, §29.5).
+5. **Long Tasks** — 534 und 3 392 ms, beide der vorbestehende DEM-Bau (§23.5), auf die Millisekunde belegt (Temperaturbilder starten bei 3 228 + 3 392 = 6 620); die Phase legt keine Arbeit auf den Hauptthread.
+
+**Offen (Jans Hand):** Deploy = Commit + Netlify-Build; danach holt jeder Bestandsbrowser den v4-Worker beim nächsten Aufruf (`skipWaiting` + `clients.claim`) — **der erste Aufruf nach dem Deploy kann noch das alte Manifest zeigen**, weil der Wechsel während des Ladens passiert; ab dem zweiten ist es frisch. Mobile Real-Device (§29.5 Vorbehalt). **V-BW-42** (Temperatur wartet 10 s auf das DEM) ist der nächste messbare Hebel für das Erstbild; **V-BW-43** Pollen/UV unter der SW-Asset-Regel. Die Fristen-Trennung ändert den BW-3-Vertrag „zwei Fristen" zu „zwei Kopfzeilen-Fristen + eine Körper-Frist" (§22.3 gilt mit diesem Zusatz).

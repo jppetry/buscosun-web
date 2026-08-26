@@ -10,6 +10,13 @@
  * Kosten: 4 Abrufe (die Ecken) — plus einen fünften nur dann, wenn der gewählte
  * Ort außerhalb der aufgezogenen Fläche liegt und die Mitte deshalb nicht schon
  * durch ihn vertreten ist.
+ *
+ * **V-EZ-3 (gemessen 2026-08-25):** die Ecken laufen NACHEINANDER, nicht parallel.
+ * Ein `Promise.all` über vier Ecken feuert je Ecke AROME + INCA gegen
+ * `dataset.api.hub.geosphere.at` — im Kaltstart quittiert GeoSphere das mit
+ * **HTTP 429** und die halbe Zone fällt aus der Spanne. Mit Reihenfolge + Pause
+ * ist der Abschnitt langsamer (er liegt unter der Falte) und vollständig.
+ * `eventAltLocation.ts` hat dasselbe Muster parallel — dort auf Knopfdruck.
  */
 
 import type { Location } from '../types';
@@ -28,6 +35,20 @@ export interface ZoneScanPoint extends ZoneScoredPoint {
   downside: string;
   /** Kurzbegründung der Bedingungen an diesem Punkt. */
   reason: string;
+}
+
+/** Pause zwischen zwei Ecken — hält die Abrufe unter der Ratengrenze (V-EZ-3). */
+const STEP_PAUSE_MS = 300;
+/** Wartezeit vor dem einen Wiederholungsversuch einer Ecke. */
+const RETRY_PAUSE_MS = 1500;
+
+function pause(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve) => {
+    if (signal?.aborted) { resolve(); return; }
+    const t = setTimeout(done, ms);
+    function done() { signal?.removeEventListener('abort', done); clearTimeout(t); resolve(); }
+    signal?.addEventListener('abort', done, { once: true });
+  });
 }
 
 export interface ZoneScan {
@@ -83,11 +104,20 @@ export async function scanZone(args: {
     toFetch.unshift({ id: 'center', label: 'Zonen-Mitte', lat: c.lat, lon: c.lon });
   }
 
-  const settled = await Promise.all(
-    toFetch.map(async (p) => {
-      try { return await scorePoint(query, p, targetDate, signal); } catch { return null; }
-    }),
-  );
+  // Nacheinander mit Pause (V-EZ-3): die Quellen der Ecken sind dieselben
+  // ratenbegrenzten Endpunkte, die der Hauptabruf gerade benutzt hat.
+  const settled: Array<ZoneScanPoint | null> = [];
+  for (const p of toFetch) {
+    if (signal?.aborted) { settled.push(null); continue; }
+    let got: ZoneScanPoint | null = null;
+    for (let attempt = 0; attempt < 2 && got == null; attempt++) {
+      if (attempt > 0) await pause(RETRY_PAUSE_MS, signal);
+      try { got = await scorePoint(query, p, targetDate, signal); } catch { got = null; }
+      if (signal?.aborted) break;
+    }
+    settled.push(got);
+    await pause(STEP_PAUSE_MS, signal);
+  }
 
   const points: ZoneScanPoint[] = [];
   if (anchorInside) {

@@ -76,16 +76,64 @@ Spannen sind damit die **untere** Schranke; im Browser kommt die Höhenkorrektur
   über die Zone, schwächste Ecke mit Grund, und bei zu kleiner Spanne der ehrliche Satz.
 * **Verifikation** `npm run verify:event-zone` (netzfrei, DOM-frei).
 
+## 4a · Was der Bau zusätzlich zutage gefördert hat
+
+**V-EZ-3 — vier Ecken parallel sind ein HTTP 429.** Der erste Entwurf holte die
+Eckpunkte mit `Promise.all`. Im Kaltstart (Zell am See, AT) quittierte
+`dataset.api.hub.geosphere.at` das mit **sechs 429ern** (AROME + INCA je Ecke,
+unmittelbar nach dem Hauptabruf desselben Endpunkts) — die halbe Zone wäre still
+aus der Spanne gefallen. Die Ecken laufen jetzt **nacheinander** mit 300 ms Pause
+und einem Wiederholungsversuch nach 1,5 s; die Nachmessung am kalten Permalink
+ergibt **5/5 Messpunkte, Konsole ohne Fehler**. `eventAltLocation.ts` trägt
+dasselbe Parallel-Muster (8 Abrufe) — dort auf Knopfdruck, deshalb hier nur
+vermerkt, nicht mitgeändert.
+
+**V-EZ-4 — das Loslassen darf die Fläche nicht neu rechnen.** `touchend` trägt
+keinen Finger mehr; seine `lngLat` ist nicht die zuletzt gezeichnete Position.
+Gemessen: Vorschau 2,4 × 1,7 km, aus dem Ereignis gerechnet 3,7 × 2,6 km.
+Übernommen wird jetzt das zuletzt gezeichnete Rechteck (`dragRef.last`) — was
+der Nutzer sieht, ist was gesetzt wird. Am Bild geprüft: das übernommene
+Rechteck deckt sich mit der Fingerbahn (Zug 101→243 px / 67→168 px auf einer
+337 × 240-px-Karte).
+
 ## 5 · Gate GEZ1
 
 | Frage | Beleg |
 |---|---|
 | 1 Funktionserhalt | Wizard ohne Zone unverändert (4 Schritte, gleiche Pflichtfelder); Alt-Permalinks ohne `z` laden |
-| 2 Desktop | s. §6 |
-| 3 Touch ≥ 44 px | Zonen-Knöpfe im Deck-Raster |
-| 4 Konsole | s. §6 |
-| 5 Long Tasks | s. §6 |
+| 2 Desktop | s. §6 — Schritt 1 ohne Zone unverändert, der Block liegt darunter |
+| 3 Touch ≥ 44 px | Zonen-Knöpfe `min-height: 44px` unter 767 px, Finger-Zug am 390er belegt |
+| 4 Konsole | fehlerfrei (nach V-EZ-3) |
+| 5 Long Tasks | **offen — in dieser Umgebung nicht entscheidbar**, s. §6 (V-EZ-5) |
 
 ## 6 · Belege
 
-(wird beim Gate gefüllt)
+| Prüfung | Ergebnis |
+|---|---|
+| `npm run verify:event-zone` | **41/41** (Geometrie, Deckel, Messpunkte, Spannen-Einordnung inkl. des gemessenen Flachland-Falls, Permalink additiv + tolerant, Validierung) |
+| `npm run typecheck` | grün |
+| `npm run budget` | eagerJs **101,5 KB** unverändert (maplibre bleibt lazy), totalJs 980,9 → **985,8 / 1017,7 KB**, größter Chunk maplibre 278,4 KB — alle Budgets eingehalten |
+| Desktop 1440 × 900 | Maus drücken + ziehen zieht das Rechteck live auf (Zwischenstand 5,2 × 3,3 km · 17 km²), Loslassen setzt es; Knöpfe wechseln auf *Neu aufziehen* / *Entfernen* |
+| Mobile 390 × 844 | Finger-Zug über CDP-Touch-Ereignisse: Rechteck gezeichnet und übernommen (3,3 × 2,3 km · 7,7 km²), Knöpfe ≥ 44 px, Karte 240 px hoch |
+| Tablet 1024 × 768 | Karte öffnen, Fläche mit der Maus aufziehen und übernehmen (5,0 × 3,1 km · 16 km²); Zonenblock auf 560 px begrenzt wie das Ortsfeld |
+| Karte öffnen (Prod-Preview) | **0 Long Tasks** im Fenster „Knopf → Karte steht" |
+| Ergebnisseite | Abschnitt „Zone am besten Tag" mit Spanne, Satz und fünf Messpunkten; Zell am See 5,2 × 3,3 km ⇒ **94–94 Punkte**, Band `uniform` — der Satz sagt ausdrücklich, dass die Quellen die Fläche nicht auflösen |
+| Permalink | `z`-Feld im Hash, kalt geladen ⇒ Zone kommt zurück und wird neu abgetastet; Links ohne `z` laden unverändert |
+| Konsole | nach V-EZ-3 fehlerfrei (vorher 6 × HTTP 429) |
+
+**V-EZ-5 — Long Tasks beim Ziehen sind hier nicht messbar.** Im Automations-Browser
+läuft `requestAnimationFrame` mit **1004 ms Takt** (gemessen im Prod-Preview,
+5 Bilder) — die bekannte Drosselung dieses Repos (`perf-2d-rendering.md`,
+„MCP drosselt rAF"). Werte aus dem Zug-Fenster (einmal bis 1060 ms, in der
+Wiederholung 115 ms) schwanken entsprechend und taugen weder als Freispruch noch
+als Befund. Was messbar war: das **Öffnen** der Karte erzeugt 0 Long Tasks.
+Unabhängig davon wurde die Zeichenschleife entlastet: die Vorschau wird auf
+**ein Bild zusammengefasst** (rAF-Koaleszierung), statt je `mousemove` zu rendern —
+belegt mit 40 Ereignissen in EINEM Task, die kein einziges Zwischen-Neuzeichnen
+auslösen, während die übernommene Fläche unverändert korrekt bleibt. Eine
+belastbare Long-Task-Aussage zum Ziehen braucht ein echtes Gerät (Jan informieren).
+
+**Offen:** ein Fall mit tatsächlich `strong`-Spanne ist am Live-Wetter noch nicht
+begegnet (die Sonde belegt 3,82 K Temperaturspanne alpin, an diesem Tag ergab das
+trotzdem dieselbe Punktzahl). Die Bänder `slight`/`strong` sind im Verifier
+abgedeckt, in der Live-Ansicht bislang nicht gesehen.

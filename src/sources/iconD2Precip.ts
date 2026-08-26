@@ -24,7 +24,7 @@ import { decodeGrib2, type GribField } from './gribDecode';
 import { decodeGridStep, type GridToU8Kind, type DecodedGridStep } from './gribGridDecode';
 import { resolveRunFromManifest, GRIB_MANIFEST_URL } from './gribManifest';
 import { stepsForNowWindow } from './frameAtValidTime';
-import { repackUsable, resolveRepackForRun, loadPrecipStep, precipStepsUsable } from './repackSource';
+import { repackUsable, resolveRepackForRun, loadPrecipStep, precipStepsUsable, preconnectDataCdn } from './repackSource';
 
 // Reiner GRIB2-Decoder lebt jetzt in ./gribDecode (browser-unabhängig, headless
 // gegen eccodes verifizierbar). Re-Export hält bestehende Importpfade stabil
@@ -110,6 +110,9 @@ export async function resolveLatestRun(
   param: string,
   signal?: AbortSignal,
 ): Promise<RunInfo> {
+  // BW-10: Verbindung zum Daten-CDN parallel zum Manifest aufbauen (§29.3 Hebel 2) —
+  // einmal je Dokument, ohne Wirkung, wenn der Repack-Weg aus ist.
+  preconnectDataCdn();
   const t = Date.now();
   const cached = runCache.get(param);
   if (cached && t - cached.at < RUN_CACHE_TTL_MS) return cached.info;
@@ -593,7 +596,7 @@ async function fetchPrecipRepack(
   const { runStr, runAt } = resolved;
   const capped = resolved.steps.filter((s) => s <= PRECIP_MAX_STEP);
   const steps = opts?.nowOnly ? stepsForNowWindow(capped, runAt, opts.aheadHours ?? 0) : capped;
-  const section = await resolveRepackForRun(runStr, 'precip');
+  const section = await resolveRepackForRun(runStr, 'precip', steps);
   if (!section?.precip) return null;
   const usable = precipStepsUsable(section, steps);
   if (!usable) return null;

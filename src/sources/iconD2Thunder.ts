@@ -27,7 +27,7 @@ import {
 } from './iconD2Precip';
 import { buildThunderRgba, THUNDER_VMIN, THUNDER_VMAX } from './scalarFrameBuild';
 export { THUNDER_VMIN, THUNDER_VMAX } from './scalarFrameBuild';
-import { resolveRepackForRun, loadScalarStep, uvBoundsOf } from './repackSource';
+import { resolveRepackForRun, loadScalarStep, uvBoundsOf, REPACK_CONCURRENCY } from './repackSource';
 import { stepsForNowWindow } from './frameAtValidTime';
 
 export const ICON_D2_THUNDER_ATTRIBUTION =
@@ -125,7 +125,7 @@ export async function fetchIconD2Thunder(
   // BW-6c: liegen die Bilder für GENAU DIESEN Lauf im Daten-CDN? Geprüft
   // gegen `runStr`, den Lauf, den die Auflösung wirklich geliefert hat (§22.4).
   // Mit Abschnitt entfällt der GRIB-Abruf, der sonst nur der Geometrie diente.
-  const section = await resolveRepackForRun(runStr, 'thunder');
+  const section = await resolveRepackForRun(runStr, 'thunder', wanted);
   let uvBounds: [number, number, number, number];
   if (section) {
     uvBounds = uvBoundsOf(section);
@@ -170,7 +170,7 @@ export async function fetchIconD2Thunder(
 
   // Bounded-Concurrency-Pump über die Schritte (je Schritt 3 Felder).
   let ptr = 0;
-  const workers = Array.from({ length: Math.min(CONCURRENCY, wanted.length) }, async () => {
+  const workers = Array.from({ length: Math.min(section ? REPACK_CONCURRENCY : CONCURRENCY, wanted.length) }, async () => {
     while (ptr < wanted.length) {
       if (signal?.aborted) return;
       await loadStep(wanted[ptr++]);

@@ -682,6 +682,39 @@ if (hsurfGreys.length >= 2) {
     RS.FIRST_TIMEOUT_MS > 0 && RS.FIRST_TIMEOUT_MS < RS.STEP_TIMEOUT_MS && RS.STEP_TIMEOUT_MS < 19_900,
     `${RS.FIRST_TIMEOUT_MS} ms → ${RS.STEP_TIMEOUT_MS} ms`);
 
+  // ── BW-10 (§29.2): die Fristen oben messen die KOPFZEILEN; der Körper bekommt
+  //    seine eigene, bandbreitentolerante — sonst gälte der Weg bei 12 parallelen
+  //    Abrufen auf 3G als „kaputt", und die Sitzung fiele dort auf GRIB (8× Bytes).
+  {
+    const inFlightBits = 12 * 247_000 * 8;
+    const mbps = inFlightBits / (RS.BODY_TIMEOUT_MS / 1000) / 1e6;
+    add('Körper-Frist eigenständig und bandbreitentolerant (12 × 247 KB innerhalb der Frist ⇒ ≤ 1 Mbit/s)',
+      RS.BODY_TIMEOUT_MS >= 5 * RS.STEP_TIMEOUT_MS && mbps <= 1, `${RS.BODY_TIMEOUT_MS} ms ⇒ ${mbps.toFixed(2)} Mbit/s`);
+    add('CDN-Concurrency über den 6 des GRIB-Wegs, unter der HTTP/2-Vernunft',
+      RS.REPACK_CONCURRENCY > 6 && RS.REPACK_CONCURRENCY <= 16, String(RS.REPACK_CONCURRENCY));
+    // Die Frist wird nach den Kopfzeilen NEU gesetzt — sonst wäre die Körper-Frist ein Wunsch im Kommentar.
+    const src = rf('src/sources/repackSource.ts', 'utf8');
+    const iFetch = src.indexOf("await fetch(url, { signal: sig, cache: 'default' })");
+    const iRearm = src.indexOf('rearm(BODY_TIMEOUT_MS)');
+    const iBlob = src.indexOf('blob = await res.blob()');
+    add('Bildabruf: Kopfzeilen unter der Schritt-Frist, dann `rearm(BODY_TIMEOUT_MS)`, dann der Körper',
+      iFetch > 0 && iRearm > iFetch && iBlob > iRearm, `fetch@${iFetch} < rearm@${iRearm} < blob@${iBlob}`);
+    add('Preconnect ist ohne DOM ein No-op (wirft nicht)',
+      (() => { try { RS.preconnectDataCdn(); return true; } catch { return false; } })());
+    const wind = rf('src/wind/iconD2WindSource.ts', 'utf8');
+    const precip = rf('src/sources/iconD2Precip.ts', 'utf8');
+    const w1 = wind.indexOf('preconnectDataCdn();'), w2 = wind.indexOf('await fetch(WIND_MANIFEST_URL');
+    const p1 = precip.indexOf('preconnectDataCdn();'), p2 = precip.indexOf('resolveRunFromManifest(');
+    add('Beide Manifest-Resolver bauen die CDN-Verbindung VOR dem Manifest-Abruf auf',
+      w1 > 0 && w2 > w1 && p1 > 0 && p2 > p1, `wind ${w1} < ${w2} · grib ${p1} < ${p2}`);
+    // Jeder Loader reicht seine Wunschliste durch — ohne sie wartete er wieder auf den Index.
+    const loaders = ['iconD2TempSource', 'iconD2GustSource', 'iconD2Lpi', 'iconD2Rotation', 'iconD2Snow', 'iconD2Thunder', 'iconD2Precip', 'iconD2Cape'];
+    const missing = loaders.filter((f) => !/resolveRepackForRun\([^)]*,\s*(wanted|steps)\)/.test(rf(`src/sources/${f}.ts`, 'utf8')));
+    add('Alle acht GRIB-Manifest-Loader reichen `wanted`/`steps` an `resolveRepackForRun` durch',
+      missing.length === 0 && /resolveRepackSection\(runStr, 'wind', manifest\.repackRaw, wanted\)/.test(wind),
+      missing.length ? missing.join(' · ') : `${loaders.length} + Wind`);
+  }
+
   // ── BW-9: der Index vom CDN (§28.4/§28.5 S1) ─────────────────────────────
   // Der Client baut den Abschnitt jetzt SELBST aus `index.json`. Das ist genau
   // die Stelle, an der zwei Kopien derselben Regel auseinanderlaufen könnten
@@ -726,6 +759,68 @@ if (hsurfGreys.length >= 2) {
           && RS.chooseSection(sec, { ...sec }, 'wind') === sec
           && RS.chooseSection(null, sec, 'wind') === sec && RS.chooseSection(sec, null, 'wind') === sec
           && RS.chooseSection(null, null, 'wind') === null);
+      }
+      // ── BW-10 (§29.3 Hebel 1): Quellen in Kostenreihenfolge, Schluss sobald eine deckt ──
+      // Gemessen 0,94 s je Kaltstart für einen Index, der im Normalfall nichts
+      // beiträgt. Attrappe: ein Browser-Fenster (der Weg ist nur mit `window` an)
+      // und ein zählender `fetch`, der Zeiger und Index aus dem Publisher-Baum serviert.
+      const rawFull = RS.sectionFromIndex(index, e0.run, 'wind');
+      if (sec && sec.wind.steps.length >= 2 && rawFull) {
+        const allSteps = sec.wind.steps.map((s) => s.step);
+        const rawFewer = { ...rawFull, wind: { ...rawFull.wind, steps: rawFull.wind.steps.slice(0, 1) } };
+        add('sectionCovers: alle Schritte da / einer fehlt / leere Wunschliste / kein Abschnitt / fremde Familie',
+          RS.sectionCovers(sec, 'wind', allSteps) && !RS.sectionCovers(sec, 'wind', [...allSteps, 999])
+          && RS.sectionCovers(sec, 'wind', []) && !RS.sectionCovers(null, 'wind', []) && !RS.sectionCovers(sec, 'temp', [0]));
+        const pointerUrl = RS.repackRunPointerUrl(e0.run);
+        const ptrDoc = { commit: index.commit, schema: index.schema, base: index.base, runs: [e0] };
+        const hadWindow = 'window' in globalThis, realWindow = globalThis.window, realFetch = globalThis.fetch;
+        const calls = [];
+        const serve = (url, body) => (body ? { ok: true, status: 200, json: async () => body } : { ok: false, status: 404, json: async () => null });
+        globalThis.window = { location: { search: '' }, localStorage: null };
+        globalThis.fetch = async (url) => {
+          calls.push(String(url));
+          return serve(url, String(url) === pointerUrl ? ptrDoc : String(url) === RS.REPACK_INDEX_CDN_URL ? index : null);
+        };
+        const reset = () => { calls.length = 0; RS.resetRepackState(); RS.resetRepackIndexCache(); };
+        try {
+          reset();
+          add('Attrappe: mit `window` ist der Weg an', RS.repackUsable() === true && RS.repackIndexEnabled() === true);
+          const a = await RS.resolveRepackSection(e0.run, 'wind', rawFull, allSteps);
+          add('Manifest-Abschnitt deckt die Wunschliste → 0 CDN-Abrufe, der Manifest-Abschnitt gilt',
+            calls.length === 0 && !!a && a.commit === rawFull.commit && a.wind.steps.length === allSteps.length, `${calls.length} Abrufe`);
+          reset();
+          const b = await RS.resolveRepackSection(e0.run, 'wind', rawFewer, allSteps);
+          add('Manifest-Abschnitt deckt sie NICHT, der Zeiger schon → genau 1 Abruf (der Zeiger), kein Index',
+            calls.length === 1 && calls[0] === pointerUrl && !!b && b.wind.steps.length === allSteps.length, calls.join(' · '));
+          reset();
+          const c = await RS.resolveRepackSection(e0.run, 'wind', rawFewer, [...allSteps, 999]);
+          add('Keine Quelle deckt alles → Zeiger UND Index, es gilt der mit den meisten Schritten (Gleichstand: Zeiger)',
+            calls.length === 2 && calls[0] === pointerUrl && calls[1] === RS.REPACK_INDEX_CDN_URL
+            && !!c && c.wind.steps.length === allSteps.length, `${calls.length} Abrufe`);
+          reset();
+          const d = await RS.resolveRepackSection(e0.run, 'wind', rawFewer);
+          add('Ohne Wunschliste gilt die BW-9-Regel unverändert: beide CDN-Quellen, parallel',
+            calls.length === 2 && !!d && d.wind.steps.length === allSteps.length);
+          reset();
+          const e = await RS.resolveRepackSection(e0.run, 'wind', null, allSteps);
+          add('Kein Manifest-Abschnitt (Normalfall zwischen Publish und Netlify-Build) → der Zeiger reicht, der Index bleibt unangefragt',
+            calls.length === 1 && calls[0] === pointerUrl && !!e && e.wind.steps.length === allSteps.length);
+          reset();
+          const f1 = await RS.resolveRepackSection(e0.run, 'wind', null, allSteps);
+          const f2 = await RS.resolveRepackSection(e0.run, 'wind', null, allSteps);
+          add('Zehn Familien, ein Lauf: der Zeiger wird je TTL-Fenster EINMAL geholt (geteiltes Promise)',
+            calls.length === 1 && !!f1 && !!f2);
+          reset();
+          globalThis.fetch = async (url) => { calls.push(String(url)); return serve(url, String(url) === RS.REPACK_INDEX_CDN_URL ? index : null); };
+          const g = await RS.resolveRepackSection(e0.run, 'wind', null, allSteps);
+          add('Zeiger 404 (jsDelivr hält ein früheres 404 fest, §28.9) → der Index trägt; der Weg gilt NICHT als kaputt',
+            calls.length === 2 && !!g && g.wind.steps.length === allSteps.length && RS.repackStatus().broken === false);
+        } finally {
+          if (hadWindow) globalThis.window = realWindow; else delete globalThis.window;
+          globalThis.fetch = realFetch;
+          RS.resetRepackState(); RS.resetRepackIndexCache();
+        }
+        add('… und ohne `window` ist der Weg danach wieder aus', RS.repackUsable() === false);
       }
     }
     // Der Publisher purgt NACH dem Push und prüft die Frische nach (kein Purge = 12 h alter Index).
@@ -891,6 +986,26 @@ if (hsurfGreys.length >= 2) {
   const iResp = sw.indexOf('event.respondWith');
   add('… und reicht ihn durch, BEVOR irgendein Cache-Zweig greift',
     iPass > 0 && iResp > 0 && iPass < iResp, `Durchreichen@${iPass} < respondWith@${iResp}`);
+  // ── BW-10 (§29.1 B): die Live-Manifeste gehen am Asset-Zweig VORBEI ──────
+  // `ASSET_RE` matcht nach Endung; `/latest-*.json` ist same-origin und `.json`,
+  // aber nicht gehasht — als „Asset" bekam es stale-while-revalidate aus einem
+  // Cache, der nie abläuft: Jans Karte zeigte den Lauf der VORIGEN Sitzung (9 h).
+  {
+    const liveSrc = /const LIVE_RE = (\/.+\/[a-z]*);/.exec(sw)?.[1];
+    const liveRe = liveSrc ? new Function(`return ${liveSrc}`)() : null;
+    add('Service Worker kennt die Live-Manifeste (`LIVE_RE`) — beide, und nur die',
+      !!liveRe && liveRe.test('/latest-wind.json') && liveRe.test('/latest-grib.json')
+      && !liveRe.test('/fire/af/area-estimate-v1.json') && !liveRe.test('/latest-wind.json.bak')
+      && !liveRe.test('/x/latest-wind.json') && !liveRe.test('/assets/index-abc123.js'), liveSrc);
+    const iHashed = sw.indexOf('function isHashedAsset');
+    const iLiveUse = sw.indexOf('!LIVE_RE.test(url.pathname)');
+    const iAssetBranch = sw.indexOf('if (isHashedAsset(url))');
+    add('… und nimmt sie in `isHashedAsset` aus ⇒ sie landen im network-first-Zweig',
+      iHashed > 0 && iLiveUse > iHashed && iAssetBranch > iLiveUse);
+    const swVer = Number(/const VERSION = 'v(\d+)'/.exec(sw)?.[1]);
+    add('Cache-Namen gebumpt (≥ v4) — sonst behielte jeder Bestandsbrowser den vergifteten Manifest-Eintrag',
+      swVer >= 4, `v${swVer}`);
+  }
 
   if (!existsSync(indexPath)) {
     add('Publisher-Baum für die Client-Prüfungen vorhanden', false,

@@ -1658,7 +1658,9 @@ function ZoneSection({ query, best }: { query: EventQuery; best: DayResult }) {
             <p className="evd-zone-text">{scan.spread.text}</p>
             <div className="evd-zone-points">
               {scan.points.map((p) => (
-                <div key={p.id} className={`evd-zone-point${p.id === scan.spread!.worst.id ? ' evd-zone-point--worst' : ''}`}>
+                // Bei „uniform" gibt es keinen schwächsten Punkt — dann wäre die
+                // Hervorhebung eine Aussage über einen Unterschied, den es nicht gibt.
+                <div key={p.id} className={`evd-zone-point${scan.spread!.band !== 'uniform' && p.id === scan.spread!.worst.id ? ' evd-zone-point--worst' : ''}`}>
                   <span className="evd-zone-point-lab">{p.label}</span>
                   <span className="evd-zone-point-score">{Math.round(p.score)}</span>
                   <span className="evd-zone-point-note">{p.downside || p.reason}</span>

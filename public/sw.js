@@ -5,7 +5,9 @@
  *  - Navigationen: network-first → bei Offline gecachte index.html (App lädt
  *    auch ohne Empfang, z. B. am Berg, sofern einmal online geladen).
  *  - Same-Origin gehashte Assets (js/css/wasm/…): cache-first /
- *    stale-while-revalidate (Vite-Hashes sind immutable).
+ *    stale-while-revalidate (Vite-Hashes sind immutable). AUSGENOMMEN die
+ *    Live-Manifeste `/latest-{grib,wind}.json` (`LIVE_RE`, BW-10) — sie sind
+ *    nicht gehasht, ihr Inhalt ist die Frische → network-first wie Wetterdaten.
  *  - Übriges GET (Wetter-APIs, Kartenkacheln): network-first → Cache-Fallback,
  *    Cache gedeckelt (FIFO), damit zuletzt geladene Daten offline verfügbar sind.
  *
@@ -13,11 +15,16 @@
  * Es wird gecacht, was beim ersten Online-Besuch tatsächlich geladen wurde.
  */
 
+// v4 (2026-08-26, Phase BW-10): die Live-Manifeste `/latest-{grib,wind}.json`
+// gehen am Asset-Zweig VORBEI (network-first) — unter `ASSET_RE` bekamen sie
+// stale-while-revalidate aus einem Cache, der nie abläuft, und jede Sitzung sah
+// den Lauf der VORIGEN (gemessen 12z statt 21z, 9 h alt; audit/bandbreite.md §29).
+// Der Bump löscht den vergifteten `bsc-assets-v3` in jedem Bestandsbrowser.
 // v3 (2026-08-24, Phase BW-3): das Daten-CDN wird DURCHGEREICHT, s. u.
 // v2 (2026-08-22, Phase RT1): Pfad-Routing — die Navigations-Antwort wird nur
 // noch dann als Offline-Shell gespeichert, wenn sie die App-Shell IST (enthält
 // `id="root"`); vorher überschrieb jede statische SEO-Seite (/wetter/…) die Shell.
-const VERSION = 'v3';
+const VERSION = 'v4';
 const SHELL = `bsc-shell-${VERSION}`;
 const ASSETS = `bsc-assets-${VERSION}`;
 const DATA = `bsc-data-${VERSION}`;
@@ -47,8 +54,13 @@ self.addEventListener('activate', (event) => {
 const DATA_CDN_HOST = 'cdn.jsdelivr.net';
 
 const ASSET_RE = /\.(?:js|mjs|css|woff2?|ttf|otf|wasm|png|svg|jpe?g|webp|gif|json|geojson)$/i;
+/** Live-Manifeste der Warm-Crons: same-origin und `.json`, aber NICHT gehasht —
+ *  ihr Inhalt IST die Frische. Sie gehören in den network-first-Zweig unten; ein
+ *  `cache: 'no-store'` der App hilft hier nicht, der Worker greift VOR dem
+ *  HTTP-Cache (BW-10, audit/bandbreite.md §29.1 B). */
+const LIVE_RE = /^\/latest-(?:grib|wind)\.json$/;
 function isHashedAsset(url) {
-  return url.origin === self.location.origin && ASSET_RE.test(url.pathname);
+  return url.origin === self.location.origin && ASSET_RE.test(url.pathname) && !LIVE_RE.test(url.pathname);
 }
 
 async function trim(cacheName, max) {

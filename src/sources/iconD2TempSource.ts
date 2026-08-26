@@ -24,7 +24,7 @@ import { loadElevationLookup } from '../fusion/elevation';
 import { stepsForNowWindow } from './frameAtValidTime';
 import { buildTempRgba, TEMP_DEM_MAX, TEMP_VMIN, TEMP_VMAX } from './tempFrameBuild';
 import {
-  resolveRepackForRun, loadHsurfGrey, loadTempStep, uvBoundsOf, repackUsable,
+  resolveRepackForRun, loadHsurfGrey, loadTempStep, uvBoundsOf, repackUsable, REPACK_CONCURRENCY,
   type RepackSection,
 } from './repackSource';
 import type { ForecastBounds } from './openMeteoForecast';
@@ -181,7 +181,7 @@ export async function fetchIconD2Temp(
   // BW-3: liegen die Bilder für GENAU DIESEN Lauf im Daten-CDN? Geprüft wird
   // gegen `runStr`, also gegen den Lauf, den die Auflösung wirklich geliefert
   // hat — der Directory-Scan kann am Manifest vorbeigehen (§22.4).
-  let section: RepackSection | null = await resolveRepackForRun(runStr, 'temp');
+  let section: RepackSection | null = await resolveRepackForRun(runStr, 'temp', wanted);
   // Orographie: EINE Datei je Commit statt 647 KB GRIB je Lauf. Scheitert sie,
   // ist der ganze Weg als kaputt vermerkt → sauber auf GRIB zurückfallen,
   // statt 25 Schritte ohne Höhenkorrektur zu zeichnen.
@@ -246,7 +246,7 @@ export async function fetchIconD2Temp(
 
   // Bounded-Concurrency-Pump über die Schritte.
   let ptr = 0;
-  const workers = Array.from({ length: Math.min(CONCURRENCY, wanted.length) }, async () => {
+  const workers = Array.from({ length: Math.min(section ? REPACK_CONCURRENCY : CONCURRENCY, wanted.length) }, async () => {
     while (ptr < wanted.length) {
       if (signal?.aborted) return;
       await loadStep(wanted[ptr++]);

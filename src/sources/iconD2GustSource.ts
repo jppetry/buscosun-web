@@ -16,7 +16,7 @@ import { resolveLatestRun, fetchStepField, subsampledCorners, D2_GRIB_PROXY_BASE
 import { stepsForNowWindow } from './frameAtValidTime';
 import { buildGustRgba, GUST_VMIN, GUST_VMAX } from './scalarFrameBuild';
 export { GUST_VMIN, GUST_VMAX } from './scalarFrameBuild';
-import { resolveRepackForRun, loadScalarStep, uvBoundsOf } from './repackSource';
+import { resolveRepackForRun, loadScalarStep, uvBoundsOf, REPACK_CONCURRENCY } from './repackSource';
 
 export const ICON_D2_GUST_ATTRIBUTION =
   'Windböen: <a href="https://www.dwd.de/EN/ourservices/opendata/opendata.html" ' +
@@ -84,7 +84,7 @@ export async function fetchIconD2Gust(
   // BW-6c: liegen die Bilder für GENAU DIESEN Lauf im Daten-CDN? Geprüft
   // gegen `runStr`, den Lauf, den die Auflösung wirklich geliefert hat (§22.4).
   // Mit Abschnitt entfällt der GRIB-Abruf, der sonst nur der Geometrie diente.
-  const section = await resolveRepackForRun(runStr, 'gust');
+  const section = await resolveRepackForRun(runStr, 'gust', wanted);
   let uvBounds: [number, number, number, number];
   if (section) {
     uvBounds = uvBoundsOf(section);
@@ -122,7 +122,7 @@ export async function fetchIconD2Gust(
   };
 
   let ptr = 0;
-  const workers = Array.from({ length: Math.min(CONCURRENCY, wanted.length) }, async () => {
+  const workers = Array.from({ length: Math.min(section ? REPACK_CONCURRENCY : CONCURRENCY, wanted.length) }, async () => {
     while (ptr < wanted.length) {
       if (signal?.aborted) return;
       await loadStep(wanted[ptr++]);

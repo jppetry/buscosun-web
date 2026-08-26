@@ -46,7 +46,7 @@ export default function EventZoneMap({ location, zone, onChange }: Props) {
   const [drawing, setDrawing] = useState(false);
   // Der laufende Zug: Startpunkt + das Rechteck, das gerade unter dem Zeiger
   // entsteht. Beides in einem Ref, damit die Karten-Handler stabil bleiben.
-  const dragRef = useRef<{ start: { lat: number; lon: number } | null }>({ start: null });
+  const dragRef = useRef<{ start: { lat: number; lon: number } | null; last: EventZone | null; raf: number }>({ start: null, last: null, raf: 0 });
   const drawingRef = useRef(false);
   const [preview, setPreview] = useState<EventZone | null>(null);
 
@@ -80,18 +80,35 @@ export default function EventZoneMap({ location, zone, onChange }: Props) {
     const begin = (lngLat: maplibregl.LngLat) => {
       if (!drawingRef.current) return;
       dragRef.current.start = { lat: lngLat.lat, lon: lngLat.lng };
+      dragRef.current.last = null;
       setPreview(null);
     };
+    // Ein Zeigerlauf feuert mehrere `mousemove` je Bild. Das Rechteck wird
+    // deshalb sofort im Ref fortgeschrieben (das Loslassen liest es), die
+    // Neuzeichnung aber auf EIN Bild zusammengefasst — sonst hängt an jedem
+    // Ereignis ein React-Rendering samt `setData` auf der Karte.
     const move = (lngLat: maplibregl.LngLat) => {
       const s = dragRef.current.start;
       if (!drawingRef.current || !s) return;
-      setPreview(clampZone(zoneFromDrag(s, { lat: lngLat.lat, lon: lngLat.lng })));
+      dragRef.current.last = clampZone(zoneFromDrag(s, { lat: lngLat.lat, lon: lngLat.lng }));
+      if (dragRef.current.raf) return;
+      dragRef.current.raf = requestAnimationFrame(() => {
+        dragRef.current.raf = 0;
+        if (dragRef.current.start) setPreview(dragRef.current.last);
+      });
     };
-    const end = (lngLat: maplibregl.LngLat) => {
+    const end = (lngLat: maplibregl.LngLat | null) => {
       const s = dragRef.current.start;
+      const last = dragRef.current.last;
+      if (dragRef.current.raf) { cancelAnimationFrame(dragRef.current.raf); dragRef.current.raf = 0; }
       dragRef.current.start = null;
+      dragRef.current.last = null;
       if (!drawingRef.current || !s) return;
-      const z = clampZone(zoneFromDrag(s, { lat: lngLat.lat, lon: lngLat.lng }));
+      // Übernommen wird die zuletzt GEZEICHNETE Fläche, nicht eine aus dem
+      // Loslass-Ereignis neu gerechnete: `touchend` trägt keinen Finger mehr,
+      // seine Position ist nicht die, die der Nutzer zuletzt gesehen hat
+      // (gemessen 2026-08-25: Vorschau 2,4 × 1,7 km, Ereignis 3,7 × 2,6 km).
+      const z = last ?? (lngLat ? clampZone(zoneFromDrag(s, { lat: lngLat.lat, lon: lngLat.lng })) : null);
       setPreview(null);
       exitDraw();
       // Ein zu kleiner Zug war ein Klick, keine Fläche — dann bleibt alles, wie es war.
@@ -103,7 +120,7 @@ export default function EventZoneMap({ location, zone, onChange }: Props) {
     const onUp = (e: maplibregl.MapMouseEvent) => end(e.lngLat);
     const onTDown = (e: maplibregl.MapTouchEvent) => { if (drawingRef.current) { e.preventDefault(); begin(e.lngLat); } };
     const onTMove = (e: maplibregl.MapTouchEvent) => { if (drawingRef.current) { e.preventDefault(); move(e.lngLat); } };
-    const onTUp = (e: maplibregl.MapTouchEvent) => end(e.lngLat);
+    const onTUp = () => end(null);
 
     map.on('mousedown', onDown);
     map.on('mousemove', onMove);
@@ -112,7 +129,13 @@ export default function EventZoneMap({ location, zone, onChange }: Props) {
     map.on('touchmove', onTMove);
     map.on('touchend', onTUp);
 
-    return () => { readyRef.current = false; map.remove(); mapRef.current = null; };
+    return () => {
+      readyRef.current = false;
+      if (dragRef.current.raf) cancelAnimationFrame(dragRef.current.raf);
+      dragRef.current = { start: null, last: null, raf: 0 };
+      map.remove();
+      mapRef.current = null;
+    };
     // Ort/Zone bewusst nicht in den Deps: die Karte wird nicht neu gebaut,
     // beides wird unten nachgeführt.
     // eslint-disable-next-line react-hooks/exhaustive-deps

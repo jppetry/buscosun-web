@@ -55,7 +55,7 @@ async function fetchCapeRepack(maxStepHours: number, signal?: AbortSignal): Prom
   if (!repackUsable()) return null;
   const { runStr, runAt, steps } = await resolveLatestRun('cape_ml', signal);
   const wanted = steps.filter((s) => s <= maxStepHours);
-  const section = await resolveRepackForRun(runStr, 'cape');
+  const section = await resolveRepackForRun(runStr, 'cape', wanted);
   if (!section?.cape || wanted.length === 0) return null;
   const have = new Set(section.cape.steps.map((s) => s.step));
   if (!wanted.every((s) => have.has(s))) return null;
