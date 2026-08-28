@@ -1,7 +1,7 @@
 {
-  "run": "2026082815",
-  "runAt": "2026-08-28T15:00:00.000Z",
-  "updatedAt": "2026-08-28T18:41:38.596Z",
+  "run": "2026082818",
+  "runAt": "2026-08-28T18:00:00.000Z",
+  "updatedAt": "2026-08-28T21:49:03.780Z",
   "publishedFor": "https://buscosun.com",
   "params": {
     "t_2m": [
@@ -303,8 +303,8 @@
     ]
   },
   "eps": {
-    "run": "2026082815",
-    "runAt": "2026-08-28T15:00:00.000Z",
+    "run": "2026082818",
+    "runAt": "2026-08-28T18:00:00.000Z",
     "params": {
       "t_2m": [
         0,
@@ -336,10 +336,10 @@
   "repack": {
     "schema": 1,
     "base": "https://cdn.jsdelivr.net/gh/jppetry/buscosun-data",
-    "commit": "b5b72686783d369a23dfe1dfb1d726c1e9971e2e",
-    "run": "2026082815",
-    "runAt": "2026-08-28T15:00:00.000Z",
-    "path": "runs/2026082815",
+    "commit": "07bbb0b8631b695acc6d03ff9ee1be62df769fa9",
+    "run": "2026082818",
+    "runAt": "2026-08-28T18:00:00.000Z",
+    "path": "runs/2026082818",
     "targetWidth": 700,
     "grid": {
       "ni": 1215,
@@ -381,127 +381,127 @@
         {
           "step": 0,
           "file": "temp-000.png",
-          "bytes": 93070
+          "bytes": 91793
         },
         {
           "step": 1,
           "file": "temp-001.png",
-          "bytes": 91628
+          "bytes": 91650
         },
         {
           "step": 2,
           "file": "temp-002.png",
-          "bytes": 91207
+          "bytes": 91153
         },
         {
           "step": 3,
           "file": "temp-003.png",
-          "bytes": 91348
+          "bytes": 91701
         },
         {
           "step": 4,
           "file": "temp-004.png",
-          "bytes": 91248
+          "bytes": 91447
         },
         {
           "step": 5,
           "file": "temp-005.png",
-          "bytes": 91125
+          "bytes": 90956
         },
         {
           "step": 6,
           "file": "temp-006.png",
-          "bytes": 91641
+          "bytes": 90827
         },
         {
           "step": 7,
           "file": "temp-007.png",
-          "bytes": 91401
+          "bytes": 90505
         },
         {
           "step": 8,
           "file": "temp-008.png",
-          "bytes": 91357
+          "bytes": 90409
         },
         {
           "step": 9,
           "file": "temp-009.png",
-          "bytes": 90908
+          "bytes": 90257
         },
         {
           "step": 10,
           "file": "temp-010.png",
-          "bytes": 90686
+          "bytes": 90080
         },
         {
           "step": 11,
           "file": "temp-011.png",
-          "bytes": 90368
+          "bytes": 88976
         },
         {
           "step": 12,
           "file": "temp-012.png",
-          "bytes": 90304
+          "bytes": 86733
         },
         {
           "step": 13,
           "file": "temp-013.png",
-          "bytes": 89934
+          "bytes": 86465
         },
         {
           "step": 14,
           "file": "temp-014.png",
-          "bytes": 88895
+          "bytes": 87708
         },
         {
           "step": 15,
           "file": "temp-015.png",
-          "bytes": 86873
+          "bytes": 89720
         },
         {
           "step": 16,
           "file": "temp-016.png",
-          "bytes": 86242
+          "bytes": 91699
         },
         {
           "step": 17,
           "file": "temp-017.png",
-          "bytes": 87610
+          "bytes": 92868
         },
         {
           "step": 18,
           "file": "temp-018.png",
-          "bytes": 89666
+          "bytes": 93532
         },
         {
           "step": 19,
           "file": "temp-019.png",
-          "bytes": 91681
+          "bytes": 93229
         },
         {
           "step": 20,
           "file": "temp-020.png",
-          "bytes": 92805
+          "bytes": 92325
         },
         {
           "step": 21,
           "file": "temp-021.png",
-          "bytes": 93621
+          "bytes": 91093
         },
         {
           "step": 22,
           "file": "temp-022.png",
-          "bytes": 93354
+          "bytes": 89746
         },
         {
           "step": 23,
           "file": "temp-023.png",
-          "bytes": 92410
+          "bytes": 89922
         },
         {
           "step": 24,
           "file": "temp-024.png",
-          "bytes": 91323
+          "bytes": 93552
         }
       ]
     },
@@ -513,127 +513,127 @@
         {
           "step": 0,
           "file": "gust-000.png",
-          "bytes": 16640
+          "bytes": 11921
         },
         {
           "step": 1,
           "file": "gust-001.png",
-          "bytes": 144142
+          "bytes": 143610
         },
         {
           "step": 2,
           "file": "gust-002.png",
-          "bytes": 143663
+          "bytes": 143806
         },
         {
           "step": 3,
           "file": "gust-003.png",
-          "bytes": 143957
+          "bytes": 144162
         },
         {
           "step": 4,
           "file": "gust-004.png",
-          "bytes": 143992
+          "bytes": 143788
         },
         {
           "step": 5,
           "file": "gust-005.png",
-          "bytes": 143865
+          "bytes": 143334
         },
         {
           "step": 6,
           "file": "gust-006.png",
-          "bytes": 143698
+          "bytes": 142773
         },
         {
           "step": 7,
           "file": "gust-007.png",
-          "bytes": 143063
+          "bytes": 142776
         },
         {
           "step": 8,
           "file": "gust-008.png",
-          "bytes": 142818
+          "bytes": 142320
         },
         {
           "step": 9,
           "file": "gust-009.png",
-          "bytes": 142533
+          "bytes": 141596
         },
         {
           "step": 10,
           "file": "gust-010.png",
-          "bytes": 142212
+          "bytes": 141333
         },
         {
           "step": 11,
           "file": "gust-011.png",
-          "bytes": 142095
+          "bytes": 140742
         },
         {
           "step": 12,
           "file": "gust-012.png",
-          "bytes": 141831
+          "bytes": 139833
         },
         {
           "step": 13,
           "file": "gust-013.png",
-          "bytes": 141435
+          "bytes": 137639
         },
         {
           "step": 14,
           "file": "gust-014.png",
-          "bytes": 140997
+          "bytes": 136167
         },
         {
           "step": 15,
           "file": "gust-015.png",
-          "bytes": 140116
+          "bytes": 136189
         },
         {
           "step": 16,
           "file": "gust-016.png",
-          "bytes": 137874
+          "bytes": 136393
         },
         {
           "step": 17,
           "file": "gust-017.png",
-          "bytes": 136283
+          "bytes": 136293
         },
         {
           "step": 18,
           "file": "gust-018.png",
-          "bytes": 135968
+          "bytes": 136479
         },
         {
           "step": 19,
           "file": "gust-019.png",
-          "bytes": 136020
+          "bytes": 136846
         },
         {
           "step": 20,
           "file": "gust-020.png",
-          "bytes": 136209
+          "bytes": 136387
         },
         {
           "step": 21,
           "file": "gust-021.png",
-          "bytes": 136401
+          "bytes": 135757
         },
         {
           "step": 22,
           "file": "gust-022.png",
-          "bytes": 136661
+          "bytes": 134613
         },
         {
           "step": 23,
           "file": "gust-023.png",
-          "bytes": 136228
+          "bytes": 132755
         },
         {
           "step": 24,
           "file": "gust-024.png",
-          "bytes": 135972
+          "bytes": 131278
         }
       ]
     },
@@ -645,67 +645,67 @@
         {
           "step": 0,
           "file": "thunder-000.png",
-          "bytes": 74792
+          "bytes": 64927
         },
         {
           "step": 1,
           "file": "thunder-001.png",
-          "bytes": 70870
+          "bytes": 57653
         },
         {
           "step": 2,
           "file": "thunder-002.png",
-          "bytes": 66718
+          "bytes": 53554
         },
         {
           "step": 3,
           "file": "thunder-003.png",
-          "bytes": 61554
+          "bytes": 50991
         },
         {
           "step": 4,
           "file": "thunder-004.png",
-          "bytes": 56242
+          "bytes": 48473
         },
         {
           "step": 5,
           "file": "thunder-005.png",
-          "bytes": 52031
+          "bytes": 46217
         },
         {
           "step": 6,
           "file": "thunder-006.png",
-          "bytes": 49753
+          "bytes": 42892
         },
         {
           "step": 7,
           "file": "thunder-007.png",
-          "bytes": 48347
+          "bytes": 39259
         },
         {
           "step": 8,
           "file": "thunder-008.png",
-          "bytes": 46362
+          "bytes": 35462
         },
         {
           "step": 9,
           "file": "thunder-009.png",
-          "bytes": 43515
+          "bytes": 31734
         },
         {
           "step": 10,
           "file": "thunder-010.png",
-          "bytes": 39870
+          "bytes": 28102
         },
         {
           "step": 11,
           "file": "thunder-011.png",
-          "bytes": 35652
+          "bytes": 25886
         },
         {
           "step": 12,
           "file": "thunder-012.png",
-          "bytes": 32523
+          "bytes": 25312
         }
       ]
     },
@@ -717,62 +717,62 @@
         {
           "step": 1,
           "file": "rotation-001.png",
-          "bytes": 64829
+          "bytes": 61736
         },
         {
           "step": 2,
           "file": "rotation-002.png",
-          "bytes": 65541
+          "bytes": 57867
         },
         {
           "step": 3,
           "file": "rotation-003.png",
-          "bytes": 64660
+          "bytes": 54396
         },
         {
           "step": 4,
           "file": "rotation-004.png",
-          "bytes": 61591
+          "bytes": 50475
         },
         {
           "step": 5,
           "file": "rotation-005.png",
-          "bytes": 56512
+          "bytes": 49201
         },
         {
           "step": 6,
           "file": "rotation-006.png",
-          "bytes": 52233
+          "bytes": 45399
         },
         {
           "step": 7,
           "file": "rotation-007.png",
-          "bytes": 48597
+          "bytes": 42948
         },
         {
           "step": 8,
           "file": "rotation-008.png",
-          "bytes": 46284
+          "bytes": 40642
         },
         {
           "step": 9,
           "file": "rotation-009.png",
-          "bytes": 43249
+          "bytes": 39878
         },
         {
           "step": 10,
           "file": "rotation-010.png",
-          "bytes": 42035
+          "bytes": 38686
         },
         {
           "step": 11,
           "file": "rotation-011.png",
-          "bytes": 40291
+          "bytes": 36974
         },
         {
           "step": 12,
           "file": "rotation-012.png",
-          "bytes": 38800
+          "bytes": 35990
         }
       ]
     },
@@ -784,62 +784,62 @@
         {
           "step": 1,
           "file": "lpi-001.png",
-          "bytes": 11980
+          "bytes": 11574
         },
         {
           "step": 2,
           "file": "lpi-002.png",
-          "bytes": 12510
+          "bytes": 10137
         },
         {
           "step": 3,
           "file": "lpi-003.png",
-          "bytes": 12780
+          "bytes": 9665
         },
         {
           "step": 4,
           "file": "lpi-004.png",
-          "bytes": 11613
+          "bytes": 8499
         },
         {
           "step": 5,
           "file": "lpi-005.png",
-          "bytes": 9631
+          "bytes": 7440
         },
         {
           "step": 6,
           "file": "lpi-006.png",
-          "bytes": 8384
+          "bytes": 6211
         },
         {
           "step": 7,
           "file": "lpi-007.png",
-          "bytes": 7221
+          "bytes": 5731
         },
         {
           "step": 8,
           "file": "lpi-008.png",
-          "bytes": 6782
+          "bytes": 5186
         },
         {
           "step": 9,
           "file": "lpi-009.png",
-          "bytes": 5888
+          "bytes": 4483
         },
         {
           "step": 10,
           "file": "lpi-010.png",
-          "bytes": 5552
+          "bytes": 3537
         },
         {
           "step": 11,
           "file": "lpi-011.png",
-          "bytes": 4847
+          "bytes": 3429
         },
         {
           "step": 12,
           "file": "lpi-012.png",
-          "bytes": 3994
+          "bytes": 3411
         }
       ]
     },
@@ -851,42 +851,42 @@
         {
           "step": 0,
           "file": "snowdepth-000.png",
-          "bytes": 3138
+          "bytes": 3140
         },
         {
           "step": 1,
           "file": "snowdepth-001.png",
-          "bytes": 3138
+          "bytes": 3140
         },
         {
           "step": 2,
           "file": "snowdepth-002.png",
-          "bytes": 3138
+          "bytes": 3140
         },
         {
           "step": 3,
           "file": "snowdepth-003.png",
-          "bytes": 3138
+          "bytes": 3140
         },
         {
           "step": 4,
           "file": "snowdepth-004.png",
-          "bytes": 3139
+          "bytes": 3140
         },
         {
           "step": 5,
           "file": "snowdepth-005.png",
-          "bytes": 3139
+          "bytes": 3140
         },
         {
           "step": 6,
           "file": "snowdepth-006.png",
-          "bytes": 3139
+          "bytes": 3140
         },
         {
           "step": 7,
           "file": "snowdepth-007.png",
-          "bytes": 3139
+          "bytes": 3140
         },
         {
           "step": 8,
@@ -896,7 +896,7 @@
         {
           "step": 9,
           "file": "snowdepth-009.png",
-          "bytes": 3139
+          "bytes": 3140
         },
         {
           "step": 10,
@@ -921,7 +921,7 @@
         {
           "step": 14,
           "file": "snowdepth-014.png",
-          "bytes": 3139
+          "bytes": 3138
         },
         {
           "step": 15,
@@ -931,27 +931,27 @@
         {
           "step": 16,
           "file": "snowdepth-016.png",
-          "bytes": 3139
+          "bytes": 3138
         },
         {
           "step": 17,
           "file": "snowdepth-017.png",
-          "bytes": 3139
+          "bytes": 3138
         },
         {
           "step": 18,
           "file": "snowdepth-018.png",
-          "bytes": 3139
+          "bytes": 3138
         },
         {
           "step": 19,
           "file": "snowdepth-019.png",
-          "bytes": 3139
+          "bytes": 3138
         },
         {
           "step": 20,
           "file": "snowdepth-020.png",
-          "bytes": 3139
+          "bytes": 3138
         },
         {
           "step": 21,
@@ -983,122 +983,122 @@
         {
           "step": 1,
           "file": "snowfresh-001.png",
-          "bytes": 2475
+          "bytes": 2512
         },
         {
           "step": 2,
           "file": "snowfresh-002.png",
-          "bytes": 2475
+          "bytes": 2512
         },
         {
           "step": 3,
           "file": "snowfresh-003.png",
-          "bytes": 2482
+          "bytes": 2512
         },
         {
           "step": 4,
           "file": "snowfresh-004.png",
-          "bytes": 2488
+          "bytes": 2512
         },
         {
           "step": 5,
           "file": "snowfresh-005.png",
-          "bytes": 2488
+          "bytes": 2512
         },
         {
           "step": 6,
           "file": "snowfresh-006.png",
-          "bytes": 2488
+          "bytes": 2512
         },
         {
           "step": 7,
           "file": "snowfresh-007.png",
-          "bytes": 2488
+          "bytes": 2512
         },
         {
           "step": 8,
           "file": "snowfresh-008.png",
-          "bytes": 2494
+          "bytes": 2512
         },
         {
           "step": 9,
           "file": "snowfresh-009.png",
-          "bytes": 2501
+          "bytes": 2512
         },
         {
           "step": 10,
           "file": "snowfresh-010.png",
-          "bytes": 2501
+          "bytes": 2512
         },
         {
           "step": 11,
           "file": "snowfresh-011.png",
-          "bytes": 2501
+          "bytes": 2512
         },
         {
           "step": 12,
           "file": "snowfresh-012.png",
-          "bytes": 2501
+          "bytes": 2512
         },
         {
           "step": 13,
           "file": "snowfresh-013.png",
-          "bytes": 2501
+          "bytes": 2512
         },
         {
           "step": 14,
           "file": "snowfresh-014.png",
-          "bytes": 2501
+          "bytes": 2512
         },
         {
           "step": 15,
           "file": "snowfresh-015.png",
-          "bytes": 2501
+          "bytes": 2512
         },
         {
           "step": 16,
           "file": "snowfresh-016.png",
-          "bytes": 2501
+          "bytes": 2512
         },
         {
           "step": 17,
           "file": "snowfresh-017.png",
-          "bytes": 2501
+          "bytes": 2512
         },
         {
           "step": 18,
           "file": "snowfresh-018.png",
-          "bytes": 2501
+          "bytes": 2512
         },
         {
           "step": 19,
           "file": "snowfresh-019.png",
-          "bytes": 2501
+          "bytes": 2512
         },
         {
           "step": 20,
           "file": "snowfresh-020.png",
-          "bytes": 2501
+          "bytes": 2512
         },
         {
           "step": 21,
           "file": "snowfresh-021.png",
-          "bytes": 2501
+          "bytes": 2512
         },
         {
           "step": 22,
           "file": "snowfresh-022.png",
-          "bytes": 2501
+          "bytes": 2512
         },
         {
           "step": 23,
           "file": "snowfresh-023.png",
-          "bytes": 2501
+          "bytes": 2512
         },
         {
           "step": 24,
           "file": "snowfresh-024.png",
-          "bytes": 2501
+          "bytes": 2512
         }
       ]
     },
@@ -1141,163 +1141,163 @@
         {
           "step": 1,
           "file": "precip-001.png",
-          "bytes": 94507,
+          "bytes": 82704,
           "ref": 0
         },
         {
           "step": 2,
           "file": "precip-002.png",
-          "bytes": 94918,
+          "bytes": 80118,
           "ref": 1
         },
         {
           "step": 3,
           "file": "precip-003.png",
-          "bytes": 93763,
+          "bytes": 79444,
           "ref": 2
         },
         {
           "step": 4,
           "file": "precip-004.png",
-          "bytes": 84794,
+          "bytes": 74878,
           "ref": 3
         },
         {
           "step": 5,
           "file": "precip-005.png",
-          "bytes": 78201,
+          "bytes": 71662,
           "ref": 4
         },
         {
           "step": 6,
           "file": "precip-006.png",
-          "bytes": 71268,
+          "bytes": 64703,
           "ref": 5
         },
         {
           "step": 7,
           "file": "precip-007.png",
-          "bytes": 67995,
+          "bytes": 60198,
           "ref": 6
         },
         {
           "step": 8,
           "file": "precip-008.png",
-          "bytes": 67111,
+          "bytes": 56273,
           "ref": 7
         },
         {
           "step": 9,
           "file": "precip-009.png",
-          "bytes": 62714,
+          "bytes": 56905,
           "ref": 8
         },
         {
           "step": 10,
           "file": "precip-010.png",
-          "bytes": 59583,
+          "bytes": 55170,
           "ref": 9
         },
         {
           "step": 11,
           "file": "precip-011.png",
-          "bytes": 55181,
+          "bytes": 52065,
           "ref": 10
         },
         {
           "step": 12,
           "file": "precip-012.png",
-          "bytes": 54331,
+          "bytes": 48091,
           "ref": 11
         },
         {
           "step": 13,
           "file": "precip-013.png",
-          "bytes": 53629,
+          "bytes": 43127,
           "ref": 12
         },
         {
           "step": 14,
           "file": "precip-014.png",
-          "bytes": 49225,
+          "bytes": 41418,
           "ref": 13
         },
         {
           "step": 15,
           "file": "precip-015.png",
-          "bytes": 45867,
+          "bytes": 40400,
           "ref": 14
         },
         {
           "step": 16,
           "file": "precip-016.png",
-          "bytes": 41873,
+          "bytes": 38053,
           "ref": 15
         },
         {
           "step": 17,
           "file": "precip-017.png",
-          "bytes": 38951,
+          "bytes": 36223,
           "ref": 16
         },
         {
           "step": 18,
           "file": "precip-018.png",
-          "bytes": 37078,
+          "bytes": 37613,
           "ref": 17
         },
         {
           "step": 19,
           "file": "precip-019.png",
-          "bytes": 37190,
+          "bytes": 42187,
           "ref": 18
         },
         {
           "step": 20,
           "file": "precip-020.png",
-          "bytes": 37196,
+          "bytes": 45006,
           "ref": 19
         },
         {
           "step": 21,
           "file": "precip-021.png",
-          "bytes": 38468,
+          "bytes": 47630,
           "ref": 20
         },
         {
           "step": 22,
           "file": "precip-022.png",
-          "bytes": 41440,
+          "bytes": 49458,
           "ref": 21
         },
         {
           "step": 23,
           "file": "precip-023.png",
-          "bytes": 43685,
+          "bytes": 47162,
           "ref": 22
         },
         {
           "step": 24,
           "file": "precip-024.png",
-          "bytes": 47412,
+          "bytes": 45831,
           "ref": 23
         },
         {
           "step": 25,
           "file": "precip-025.png",
-          "bytes": 48879,
+          "bytes": 44238,
           "ref": 24
         },
         {
           "step": 26,
           "file": "precip-026.png",
-          "bytes": 49734,
+          "bytes": 41032,
           "ref": 25
         },
         {
           "step": 27,
           "file": "precip-027.png",
-          "bytes": 47397,
+          "bytes": 37584,
           "ref": 26
         }
       ]
@@ -1335,142 +1335,142 @@
         {
           "step": 0,
           "file": "cape-000.png",
-          "bytes": 201000
+          "bytes": 173716
         },
         {
           "step": 1,
           "file": "cape-001.png",
-          "bytes": 190135
+          "bytes": 157396
         },
         {
           "step": 2,
           "file": "cape-002.png",
-          "bytes": 176785
+          "bytes": 146381
         },
         {
           "step": 3,
           "file": "cape-003.png",
-          "bytes": 165327
+          "bytes": 139546
         },
         {
           "step": 4,
           "file": "cape-004.png",
-          "bytes": 154053
+          "bytes": 132058
         },
         {
           "step": 5,
           "file": "cape-005.png",
-          "bytes": 144574
+          "bytes": 124921
         },
         {
           "step": 6,
           "file": "cape-006.png",
-          "bytes": 138008
+          "bytes": 116775
         },
         {
           "step": 7,
           "file": "cape-007.png",
-          "bytes": 131535
+          "bytes": 107653
         },
         {
           "step": 8,
           "file": "cape-008.png",
-          "bytes": 125409
+          "bytes": 98009
         },
         {
           "step": 9,
           "file": "cape-009.png",
-          "bytes": 117316
+          "bytes": 88253
         },
         {
           "step": 10,
           "file": "cape-010.png",
-          "bytes": 108346
+          "bytes": 80590
         },
         {
           "step": 11,
           "file": "cape-011.png",
-          "bytes": 99403
+          "bytes": 74411
         },
         {
           "step": 12,
           "file": "cape-012.png",
-          "bytes": 91736
+          "bytes": 73005
         },
         {
           "step": 13,
           "file": "cape-013.png",
-          "bytes": 83215
+          "bytes": 79678
         },
         {
           "step": 14,
           "file": "cape-014.png",
-          "bytes": 77456
+          "bytes": 94328
         },
         {
           "step": 15,
           "file": "cape-015.png",
-          "bytes": 73767
+          "bytes": 109743
         },
         {
           "step": 16,
           "file": "cape-016.png",
-          "bytes": 78246
+          "bytes": 123057
         },
         {
           "step": 17,
           "file": "cape-017.png",
-          "bytes": 92174
+          "bytes": 133407
         },
         {
           "step": 18,
           "file": "cape-018.png",
-          "bytes": 111377
+          "bytes": 139224
         },
         {
           "step": 19,
           "file": "cape-019.png",
-          "bytes": 124289
+          "bytes": 141187
         },
         {
           "step": 20,
           "file": "cape-020.png",
-          "bytes": 132215
+          "bytes": 138644
         },
         {
           "step": 21,
           "file": "cape-021.png",
-          "bytes": 138291
+          "bytes": 130331
         },
         {
           "step": 22,
           "file": "cape-022.png",
-          "bytes": 140267
+          "bytes": 118818
         },
         {
           "step": 23,
           "file": "cape-023.png",
-          "bytes": 137430
+          "bytes": 107828
         },
         {
           "step": 24,
           "file": "cape-024.png",
-          "bytes": 129165
+          "bytes": 96448
         },
         {
           "step": 25,
           "file": "cape-025.png",
-          "bytes": 118234
+          "bytes": 86120
         },
         {
           "step": 26,
           "file": "cape-026.png",
-          "bytes": 105482
+          "bytes": 77552
         },
         {
           "step": 27,
           "file": "cape-027.png",
-          "bytes": 93955
+          "bytes": 70413
         }
       ]
     }
