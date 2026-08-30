@@ -1,7 +1,7 @@
 {
   "run": "2026083009",
   "runAt": "2026-08-30T09:00:00.000Z",
-  "updatedAt": "2026-08-30T10:37:56.800Z",
+  "updatedAt": "2026-08-30T11:37:48.094Z",
   "publishedFor": "https://buscosun.com",
   "params": {
     "t_2m": [
@@ -336,7 +336,7 @@
   "repack": {
     "schema": 1,
     "base": "https://cdn.jsdelivr.net/gh/jppetry/buscosun-data",
-    "commit": "8ba511b0ab5189082e33f0bdbd4d0b60fb214bdf",
+    "commit": "fa19de38ebb5e0e95739881b2d139b6a537f4fd1",
     "run": "2026083009",
     "runAt": "2026-08-30T09:00:00.000Z",
     "path": "runs/2026083009",
@@ -1293,6 +1293,12 @@
           "file": "precip-026.png",
           "bytes": 49084,
           "ref": 25
+        },
+        {
+          "step": 27,
+          "file": "precip-027.png",
+          "bytes": 52600,
+          "ref": 26
         }
       ]
     },
@@ -1460,6 +1466,11 @@
           "step": 26,
           "file": "cape-026.png",
           "bytes": 224512
+        },
+        {
+          "step": 27,
+          "file": "cape-027.png",
+          "bytes": 233517
         }
       ]
     }
