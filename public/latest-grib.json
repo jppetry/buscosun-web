@@ -1,7 +1,7 @@
 {
   "run": "2026083015",
   "runAt": "2026-08-30T15:00:00.000Z",
-  "updatedAt": "2026-08-30T16:49:46.005Z",
+  "updatedAt": "2026-08-30T17:37:33.598Z",
   "publishedFor": "https://buscosun.com",
   "params": {
     "t_2m": [
@@ -336,7 +336,7 @@
   "repack": {
     "schema": 1,
     "base": "https://cdn.jsdelivr.net/gh/jppetry/buscosun-data",
-    "commit": "fe55fc9bd8effacbffd391528da952bc1fcb7070",
+    "commit": "1c8d6403c743fe015d83b85fdde63231db17c46d",
     "run": "2026083015",
     "runAt": "2026-08-30T15:00:00.000Z",
     "path": "runs/2026083015",
@@ -497,6 +497,11 @@
           "step": 23,
           "file": "temp-023.png",
           "bytes": 96018
+        },
+        {
+          "step": 24,
+          "file": "temp-024.png",
+          "bytes": 94680
         }
       ]
     },
@@ -624,6 +629,11 @@
           "step": 23,
           "file": "gust-023.png",
           "bytes": 141351
+        },
+        {
+          "step": 24,
+          "file": "gust-024.png",
+          "bytes": 141340
         }
       ]
     },
@@ -957,6 +967,11 @@
           "step": 23,
           "file": "snowdepth-023.png",
           "bytes": 3138
+        },
+        {
+          "step": 24,
+          "file": "snowdepth-024.png",
+          "bytes": 3138
         }
       ]
     },
@@ -1078,6 +1093,11 @@
         {
           "step": 23,
           "file": "snowfresh-023.png",
+          "bytes": 2475
+        },
+        {
+          "step": 24,
+          "file": "snowfresh-024.png",
           "bytes": 2475
         }
       ]
@@ -1255,6 +1275,30 @@
           "file": "precip-023.png",
           "bytes": 61788,
           "ref": 22
+        },
+        {
+          "step": 24,
+          "file": "precip-024.png",
+          "bytes": 63435,
+          "ref": 23
+        },
+        {
+          "step": 25,
+          "file": "precip-025.png",
+          "bytes": 64762,
+          "ref": 24
+        },
+        {
+          "step": 26,
+          "file": "precip-026.png",
+          "bytes": 62552,
+          "ref": 25
+        },
+        {
+          "step": 27,
+          "file": "precip-027.png",
+          "bytes": 54660,
+          "ref": 26
         }
       ]
     },
@@ -1407,6 +1451,26 @@
           "step": 23,
           "file": "cape-023.png",
           "bytes": 229691
+        },
+        {
+          "step": 24,
+          "file": "cape-024.png",
+          "bytes": 222861
+        },
+        {
+          "step": 25,
+          "file": "cape-025.png",
+          "bytes": 208732
+        },
+        {
+          "step": 26,
+          "file": "cape-026.png",
+          "bytes": 190077
+        },
+        {
+          "step": 27,
+          "file": "cape-027.png",
+          "bytes": 171264
         }
       ]
     }
