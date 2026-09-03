@@ -66,6 +66,12 @@ export interface FireState {
    */
   historyWindow?: 'month' | 'season' | null;
   /**
+   * BD2: Bühne „Dossier" offen (die Mitte zeigt das Brand-Dossier statt der Karte)?
+   * Fehlt ⇒ Karte (Standard, Hash byte-gleich). Welcher Brand markiert ist, steht
+   * nicht im Hash — die Registry-Kennung ist sitzungsgebunden.
+   */
+  dossier?: boolean;
+  /**
    * WF3: Stundenschritt ab jetzt auf der Stundenachse. **Vorhanden ⇔ die
    * Stundenachse ist aktiv** (auch bei 0 — „jetzt" ist ein Wert, kein Fehlen);
    * `null`/fehlend ⇒ Tagesachse (Standard). Bestehende Links tragen kein `h`
@@ -131,6 +137,8 @@ export function encodeFireState(s: FireState): string {
   if (s.anomalyPanel) payload.ta = 1;
   // BH3: nur im Historie-Modus — Live-Links bleiben byte-gleich.
   if (s.historyWindow === 'month' || s.historyWindow === 'season') payload.bh = s.historyWindow;
+  // BD2: nur wenn das Dossier offen ist — Links der Karten-Bühne bleiben byte-gleich.
+  if (s.dossier) payload.ds = 1;
   // BF4: nur schreiben, wenn ein einzelner Tag gewählt ist. Der Standard („alle
   // sieben Tage") ist `null` und verlängert den Hash nicht.
   if (typeof s.burntDay === 'number' && s.burntDay <= 0 && s.burntDay > -HISTORY_DAYS) payload.bd = s.burntDay;
@@ -146,7 +154,7 @@ export function decodeFireState(hash: string): FireState | null {
     const o = JSON.parse(decodeURIComponent(hash.slice(FIRE_HASH_PREFIX.length))) as {
       l?: [number, number, string, string]; b?: number; d?: number; w?: number;
       v?: unknown; bb?: unknown; sm?: unknown; bd?: unknown; fp?: unknown; ta?: unknown; h?: unknown; bh?: unknown;
-      fb?: unknown;
+      fb?: unknown; ds?: unknown;
     };
     const bits = typeof o.b === 'number' && Number.isFinite(o.b) ? o.b : 0;
     // Frühere Brandflächen sind Standard: ein Link ohne `fb` (alle vor 2026-08-25)
@@ -181,6 +189,8 @@ export function decodeFireState(hash: string): FireState | null {
       anomalyPanel: o.ta === 1,
       // BH3: unbekannter Wert ⇒ Live, nie ein Absturz.
       historyWindow: o.bh === 'month' || o.bh === 'season' ? o.bh : null,
+      // BD2: nur die 1 öffnet das Dossier; jeder andere Wert ⇒ Karte.
+      dossier: o.ds === 1,
       // WF3: `h` vorhanden ⇒ Stundenachse; Klemmung auf den Horizont macht `reconcileFireTime`.
       hour: typeof o.h === 'number' && Number.isFinite(o.h) ? Math.max(0, Math.round(o.h)) : null,
     };
@@ -331,6 +341,11 @@ export function verifyFireState(): { checks: FireStateCheck[]; passed: number; t
   add('TA4: alter Hash ohne ta ⇒ Reiter zu', decodeFireState(encodeFireState(base))?.anomalyPanel === false);
   add('BH3: Live ⇒ kein bh im Hash (byte-gleich)', encodeFireState(base) === encodeFireState({ ...base, historyWindow: null }));
   add('BH3: Saison ⇒ bh=season und zurück, w bleibt', decodeFireState(encodeFireState({ ...base, windowH: 168, historyWindow: 'season' }))?.historyWindow === 'season' && decodeFireState(encodeFireState({ ...base, windowH: 168, historyWindow: 'season' }))?.windowH === 168);
+  // BD2: Bühne „Dossier" — `ds` nur, wenn offen; alte Links bleiben byte-gleich.
+  add('BD2: Karten-Bühne ⇒ kein ds im Hash (byte-gleich)', encodeFireState(base) === encodeFireState({ ...base, dossier: false }));
+  add('BD2: Dossier offen ⇒ ds=1 und zurück', decodeFireState(encodeFireState({ ...base, dossier: true }))?.dossier === true && /"ds":1/.test(decodeURIComponent(encodeFireState({ ...base, dossier: true }))));
+  add('BD2: alter Hash ohne ds ⇒ Karte', decodeFireState(encodeFireState(base))?.dossier === false);
+  add('BD2: Fremdwert ds ⇒ Karte, nie ein Absturz', decodeFireState(`${FIRE_HASH_PREFIX}${encodeURIComponent('{"b":1,"ds":"x"}')}`)?.dossier === false);
   add('BH3: unbekanntes bh ⇒ Live', decodeFireState(`${FIRE_HASH_PREFIX}${encodeURIComponent('{"b":1,"bh":"decade"}')}`)?.historyWindow === null);
   add('Layer fireFootprints ist permalink-fähig (Bit 12)',
     decodeFireState(encodeFireState({ ...base, layers: ['fireFootprints'] }))?.layers.join(',') === 'fireFootprints');

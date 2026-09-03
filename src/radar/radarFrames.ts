@@ -57,6 +57,8 @@ export interface RadarStack {
    *  ~40 km Versatz im Inneren; AT/CH einige km). */
   warpLnglat?: Float32Array;
   warpN?: number;
+  /** Zeilen des Meshs, falls ≠ warpN (lat/lon-Quads unterteilen nur in Breite, §15). */
+  warpRows?: number;
 }
 
 const SRC_LABEL: Record<RadarSourceId, string> = {

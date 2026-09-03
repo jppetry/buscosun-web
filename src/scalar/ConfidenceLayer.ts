@@ -6,8 +6,8 @@
  * nicht als neue Messung, und überlagert den Regen-/Temperatur-Layer, ohne
  * dessen Farben zu verfälschen.
  *
- * Geometrie/Projektion wie {@link ScalarLayer} (lat-lng-Mesh → Mercator im
- * Vertex-Shader). Die Werte-Textur trägt im R-Kanal die Confidence (0..1) und
+ * Geometrie/Projektion wie {@link ScalarLayer} (Footprint-Mesh, Mercator auf der
+ * CPU als Attribut `a_merc` — KL9). Die Werte-Textur trägt im R-Kanal die Confidence (0..1) und
  * im A-Kanal die Datenmaske. Das Schraffurmuster entsteht aus `gl_FragCoord`
  * (Bildschirm-Pixel) → bildschirmstabil, zoom-unabhängig dicht.
  */
@@ -15,23 +15,21 @@
 import type { CustomLayerInterface, CustomRenderMethodInput, Map as MapLibreMap } from 'maplibre-gl';
 import { bindAttribute, bindTexture, createBuffer, createProgram, createTexture, type ProgramWrapper } from '../wind/glUtil';
 import type { ScalarMeta } from './ScalarLayer';
+import { equiFootprintMesh, mercatorOf } from './quadWarpMesh';
 
-const MERC_MAX_LAT = 85.05112878;
-
+// KL9/V-KL-3 (2026-08-27, Jans Go): Position aus `a_merc` (CPU-double,
+// `mercatorOf`) statt log(tan()) im Shader — GPU-Transzendente lagen bis 280 m
+// daneben (`audit/karten-layer-verortung.md` §15.6). `a_lnglat` bleibt für die
+// Textur-uv (exakt in Float32: 0,2 m). `highp` gegen fp16-mediump (V-KL-4).
 const vert = `
-precision mediump float;
+precision highp float;
 attribute vec2 a_lnglat;
+attribute vec2 a_merc;
 uniform mat4 u_matrix;
 varying vec2 v_equi_uv;
-const float PI = 3.14159265358979323846;
 void main() {
-  float lng = a_lnglat.x;
-  float lat = a_lnglat.y;
-  v_equi_uv = vec2((lng + 180.0) / 360.0, (90.0 - lat) / 180.0);
-  float lat_rad = lat * PI / 180.0;
-  float mx = (lng + 180.0) / 360.0;
-  float my = 0.5 - log(tan(PI * 0.25 + lat_rad * 0.5)) / (2.0 * PI);
-  gl_Position = u_matrix * vec4(mx, my, 0.0, 1.0);
+  v_equi_uv = vec2((a_lnglat.x + 180.0) / 360.0, (90.0 - a_lnglat.y) / 180.0);
+  gl_Position = u_matrix * vec4(a_merc, 0.0, 1.0);
 }
 `;
 
@@ -99,8 +97,12 @@ export class ConfidenceLayer implements CustomLayerInterface {
   private map: MapLibreMap | null = null;
   private gl: WebGLRenderingContext | null = null;
   private program!: ProgramWrapper;
-  private mesh!: WebGLBuffer;
+  /** Footprint-Mesh über die Daten-uvBounds (`equiFootprintMesh`, ≤ 1 m) — s. ScalarLayer. */
+  private mesh: WebGLBuffer | null = null;
+  /** Dieselben Knoten als Mercator-Paare (Attribut a_merc, `mercatorOf`). */
+  private mercBuf: WebGLBuffer | null = null;
   private meshVertexCount = 0;
+  private meshKey = '';
   private valueTexture: WebGLTexture | null = null;
   private data: ConfData | null = null;
   private _pending: { image: HTMLCanvasElement | HTMLImageElement; meta: ScalarMeta } | null = null;
@@ -117,32 +119,29 @@ export class ConfidenceLayer implements CustomLayerInterface {
     this.map = map;
     this.gl = gl;
     this.program = createProgram(gl, vert, frag);
-    this.buildMesh();
     if (this._pending) { const { image, meta } = this._pending; this._pending = null; this.setData(image, meta); }
   }
 
   onRemove(_map: MapLibreMap, gl: WebGLRenderingContext) {
     gl.deleteProgram(this.program.program);
-    gl.deleteBuffer(this.mesh);
+    if (this.mesh) gl.deleteBuffer(this.mesh);
+    if (this.mercBuf) gl.deleteBuffer(this.mercBuf);
+    this.mesh = null; this.mercBuf = null; this.meshKey = '';
     if (this.valueTexture) gl.deleteTexture(this.valueTexture);
   }
 
-  private buildMesh() {
+  /** Footprint-Mesh statt Weltmesh (Mercator-Rest ≤ 1 m statt 2 km) — s. ScalarLayer.ensureMesh. */
+  private ensureMesh(uvBounds: ScalarMeta['uvBounds']) {
     const gl = this.gl!;
-    const cols = 128, rows = 64;
-    const verts: number[] = [];
-    const lngStep = 360 / cols;
-    const latRange = 2 * MERC_MAX_LAT;
-    const latStep = latRange / rows;
-    for (let j = 0; j < rows; j++) {
-      for (let i = 0; i < cols; i++) {
-        const lng0 = -180 + i * lngStep, lng1 = -180 + (i + 1) * lngStep;
-        const lat0 = -MERC_MAX_LAT + j * latStep, lat1 = -MERC_MAX_LAT + (j + 1) * latStep;
-        verts.push(lng0, lat0, lng1, lat0, lng0, lat1, lng0, lat1, lng1, lat0, lng1, lat1);
-      }
-    }
-    this.mesh = createBuffer(gl, new Float32Array(verts));
+    const key = uvBounds.join(',');
+    if (this.mesh && key === this.meshKey) return;
+    const verts = equiFootprintMesh(uvBounds);
+    if (this.mesh) gl.deleteBuffer(this.mesh);
+    this.mesh = createBuffer(gl, verts);
+    if (this.mercBuf) gl.deleteBuffer(this.mercBuf);
+    this.mercBuf = createBuffer(gl, mercatorOf(verts));
     this.meshVertexCount = verts.length / 2;
+    this.meshKey = key;
   }
 
   setData(image: HTMLCanvasElement | HTMLImageElement, meta: ScalarMeta) {
@@ -151,11 +150,12 @@ export class ConfidenceLayer implements CustomLayerInterface {
     if (this.valueTexture) gl.deleteTexture(this.valueTexture);
     this.valueTexture = createTexture(gl, gl.LINEAR, image);
     this.data = { ...meta, image };
+    this.ensureMesh(meta.uvBounds);
     this.map?.triggerRepaint();
   }
 
   render(gl: WebGLRenderingContext, args: CustomRenderMethodInput | number[] | Float32Array) {
-    if (!this.data || !this.valueTexture) return;
+    if (!this.data || !this.valueTexture || !this.mesh || !this.mercBuf) return;
     const matrix: Float32List = Array.isArray(args) || args instanceof Float32Array
       ? (args as Float32List)
       : (args.defaultProjectionData.mainMatrix as unknown as Float32List);
@@ -175,6 +175,7 @@ export class ConfidenceLayer implements CustomLayerInterface {
     const p = this.program;
     gl.useProgram(p.program);
     bindAttribute(gl, this.mesh, p.a_lnglat as number, 2);
+    bindAttribute(gl, this.mercBuf, p.a_merc as number, 2);
     bindTexture(gl, this.valueTexture, 0);
     gl.uniform1i(p.u_value as WebGLUniformLocation, 0);
     const [dx0, dy0, dx1, dy1] = this.data.uvBounds;

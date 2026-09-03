@@ -3,7 +3,8 @@
  *
  * Pipeline:
  *   1. Normalisierung   – Stationär-/Spike-Glitches raus, kumulierte Distanz
- *   2. Höhen-Anreicherung – fehlende/kaputte Höhen aus DEM (Terrarium) ergänzen
+ *   2. Höhen-Anreicherung – fehlende/kaputte Höhen aus DEM (Terrarium) ergänzen,
+ *      UND: mitgebrachte Höhen gegen das Gelände gegenprüfen (R3D-4/G2)
  *   3. Glättung          – 5-Punkt-Median, topographie-abhängig zusätzlich
  *   4. Punkt-Reduktion   – RDP + Schlüsselpunkte + max. Sample-Abstand
  *
@@ -13,7 +14,7 @@
 
 import { haversine, type ParsedRoute } from './routeModel';
 import { projectMeters, rdpIndices } from './rdp';
-import { sampleElevations } from './enrichElevation';
+import { compareToDem, demCheckEnabled, sampleElevations } from './enrichElevation';
 import type { RouteFormatId } from './routeFormats';
 
 export interface TourPoint {
@@ -43,6 +44,18 @@ export interface TourMeta {
   sampleCount: number;
   elevationEnriched: boolean;
   elevationAvailable: boolean;
+  /**
+   * Woher die Höhen stammen. `file` = wie geliefert (und, wenn geprüft, vom
+   * Gelände bestätigt); `dem-filled` = die Datei hatte keine brauchbaren;
+   * `dem-replaced` = sie hatte welche, aber sie beschreiben dieses Gelände
+   * nicht (`audit/route-3d.md` §19.2).
+   */
+  elevationSource: 'file' | 'dem-filled' | 'dem-replaced';
+  /**
+   * Median-Betrag der Abweichung der Datei-Höhen zum Geländemodell (m).
+   * `null` heißt **nicht geprüft** — nicht „stimmt".
+   */
+  elevationDeltaM: number | null;
   hasTime: boolean;
   startTime: number | null;
   endTime: number | null;
@@ -72,6 +85,29 @@ const SPIKE_DETOUR = 3;      // (d_in+d_out)/d_skip-Schwelle für GPS-Springer
 const SPIKE_MIN_M = 25;      // Mindest-Sprungweite, ab der gefiltert wird
 const ELE_THRESHOLD_M = 3;   // Höhenmeter-Schwelle gegen Rauschen
 const ELE_PROMINENCE_M = 20; // Mindest-Prominenz für Gipfel/Sattel
+/**
+ * Ab dieser MEDIAN-Abweichung zum Geländemodell beschreiben die Höhen der Datei
+ * nicht dieses Gelände und werden ersetzt. GPS-/Barometerfehler und die
+ * DEM-Streuung im Steilgelände liegen zusammen bei ~10–30 m; 50 m ist
+ * bewusst darüber, damit eine ordentliche Aufzeichnung nie angefasst wird.
+ */
+const ELE_TRUST_M = 50;
+/**
+ * Fristen der Gegenprobe. Sie läuft im Upload-Pfad, also **vor** dem ersten
+ * Bild — ohne Frist würde ein hängendes DEM die Vorschau blockieren. Läuft sie
+ * ab, bleibt `elevationDeltaM` auf `null`: „nicht geprüft" ist eine gültige
+ * Auskunft, Warten ist keine. (Muster `withDeadline` aus dem Repack-Transport:
+ * erster Abruf kurz, Folgeabruf länger, weil die Kacheln dann schon liegen.)
+ */
+const DEM_CHECK_MS = 4_000;
+const DEM_REPLACE_MS = 8_000;
+
+function withDeadline<T>(p: Promise<T>, ms: number): Promise<T | null> {
+  return Promise.race([
+    p.catch(() => null),
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), ms)),
+  ]);
+}
 const MAX_SAMPLES = 300;
 
 const ASCENT_FLAT = 8;       // m/km — darunter „flach"
@@ -96,12 +132,33 @@ export async function buildTourTrack(
   // 2) Höhen-Anreicherung, falls keine brauchbaren Höhen vorhanden.
   let elevationEnriched = false;
   let elevationAvailable = elevationUsable(ele, totalDistanceM);
+  let elevationSource: TourMeta['elevationSource'] = 'file';
+  let elevationDeltaM: number | null = null;
   if (!elevationAvailable) {
     const dem = await sampleElevations(clean, signal).catch(() => null);
     if (dem && dem.some((e) => Number.isFinite(e))) {
       ele = dem.map((e) => (Number.isFinite(e) ? e : NaN));
       elevationEnriched = true;
       elevationAvailable = true;
+      elevationSource = 'dem-filled';
+    }
+  } else if (demCheckEnabled()) {
+    // Gegenprobe: `elevationUsable` prüft Lücken, Nullen und „unplausibel
+    // flach" — nie das Gelände. Eine Datei mit erfundenen oder um 100 m
+    // versetzten Höhen ging bisher unbemerkt durch und verschob damit nicht nur
+    // das Bild, sondern über `correctForElevation` auch Temperatur und Wind.
+    const probe = clean.map((p, i) => ({ lat: p.lat, lon: p.lon, ele: ele[i] }));
+    const cmp = await withDeadline(compareToDem(probe, 120, signal), DEM_CHECK_MS);
+    if (cmp) {
+      elevationDeltaM = Math.round(cmp.medianAbsM * 10) / 10;
+      if (cmp.medianAbsM > ELE_TRUST_M) {
+        const dem = await withDeadline(sampleElevations(clean, signal), DEM_REPLACE_MS);
+        if (dem && dem.some((e) => Number.isFinite(e))) {
+          ele = dem.map((e) => (Number.isFinite(e) ? e : NaN));
+          elevationEnriched = true;
+          elevationSource = 'dem-replaced';
+        }
+      }
     }
   }
 
@@ -159,6 +216,8 @@ export async function buildTourTrack(
       sampleCount: samples.length,
       elevationEnriched,
       elevationAvailable,
+      elevationSource,
+      elevationDeltaM,
       hasTime: times.length > 0,
       startTime,
       endTime,

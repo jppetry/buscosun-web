@@ -265,6 +265,55 @@ writeFileSync(join(DIST, 'sitemap-news.xml'), newsSitemap(), 'utf8');
 // weil „Pretty URLs" sonst auf den End-Slash umleiten würde.
 const indexPath = join(DIST, 'index.html');
 const rawShell = readFileSync(indexPath, 'utf8');
+
+// 4b) LE1/H2 (audit/layer-erstbild.md §4): Vorlade-Hinweise je Route-Shell.
+// Gemessen: nach `index.js` holt der Browser Route-Chunk, MapView/NowcastRoute
+// und maplibre erst in einer ZWEITEN Runde, und die erste Datenanfrage ging
+// 2,4 s nach dem Aufruf raus. Vite legt die Abhängigkeiten jedes dynamischen
+// Imports in `index-*.js` ab (`__vite__mapDeps`: Dateiliste + Indizes je
+// `import()`) — genau diese Liste wird hier zu `<link rel="modulepreload">`
+// (JS) und `<link rel="preload" as="style">` (CSS), sodass alles parallel zum
+// index-Chunk lädt. Vites Laufzeithelfer erkennt vorhandene Links (JS: jeder
+// `link[href]`, CSS: nur `rel="stylesheet"`) und legt nichts doppelt an.
+// Dazu `preconnect` zu den Origins, die die Seite beim Start sicher braucht.
+// Kein Treffer ⇒ Shell ohne Hinweise — nie ein Fehler, die Seite lädt dann
+// wie bisher. Der Verifier (`verify:routing` §6) prüft die erzeugten Shells.
+const PRECONNECT_BY_ROUTE = {
+  wetterkarte: ['https://tiles.openfreemap.org', 'https://cdn.jsdelivr.net', 'https://s3.amazonaws.com'],
+  warnungen: ['https://tiles.openfreemap.org', 'https://cdn.jsdelivr.net', 'https://s3.amazonaws.com'],
+  regenradar: ['https://tiles.openfreemap.org', 'https://dataset.api.hub.geosphere.at', 'https://data.geo.admin.ch', 'https://cdn.jsdelivr.net'],
+};
+const routerSrc = readFileSync(join(ROOT, 'src', 'router', 'router.tsx'), 'utf8');
+const indexJsName = (rawShell.match(/src="\/(assets\/index-[\w-]+\.js)"/) || [])[1];
+const indexJs = indexJsName && existsSync(join(DIST, indexJsName)) ? readFileSync(join(DIST, indexJsName), 'utf8') : '';
+const depFiles = (() => {
+  const m = indexJs.match(/m\.f=\[((?:"[^"]*",?)*)\]/);
+  return m ? m[1].split(',').filter(Boolean).map((s) => s.replace(/^"|"$/g, '')) : [];
+})();
+export function routePreloadFiles(routeId) {
+  const chunk = (new RegExp(`sub\\('${routeId}'\\)[^\\n]*?import\\('\\./pages/(\\w+)'\\)`).exec(routerSrc) || [])[1];
+  if (!chunk || depFiles.length === 0) return [];
+  const m = new RegExp(`import\\("\\./${chunk}-[\\w-]+\\.js"\\),__vite__mapDeps\\(\\[([\\d,]*)\\]\\)`).exec(indexJs);
+  if (!m) return [];
+  return m[1].split(',').filter(Boolean).map((i) => depFiles[Number(i)]).filter(Boolean);
+}
+function routePreloadLinks(routeId) {
+  const seen = new Set();
+  const links = [];
+  for (const origin of PRECONNECT_BY_ROUTE[routeId] ?? []) links.push(`<link rel="preconnect" href="${origin}" crossorigin />`);
+  for (const f of routePreloadFiles(routeId)) {
+    const href = `/${f}`;
+    if (seen.has(href) || rawShell.includes(`href="${href}"`)) continue;   // index.html lädt ihn schon vor
+    seen.add(href);
+    // `crossorigin` auf BEIDEN: Vites Helfer setzt `link.crossOrigin = ''` auch auf
+    // die Stylesheet-Links — ohne gleiche Credentials-Art ignoriert der Browser den
+    // Preload und lädt doppelt (Konsole: „preloaded … but not used").
+    if (f.endsWith('.js')) links.push(`<link rel="modulepreload" crossorigin href="${href}" />`);
+    else if (f.endsWith('.css')) links.push(`<link rel="preload" as="style" crossorigin href="${href}" />`);
+  }
+  return links;
+}
+
 let routeShells = 0;
 for (const route of ROUTES) {
   if (route.id === 'home') continue;
@@ -272,6 +321,8 @@ for (const route of ROUTES) {
     .replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml(route.meta.title)} | ${SITE.name}</title>`)
     .replace(/<meta name="description" content="[^"]*" \/>/, `<meta name="description" content="${escapeHtml(route.meta.description)}" />`);
   if (!shell.includes('og:site_name')) shell = shell.replace('</head>', `    ${routeHeadExtras(route)}\n  </head>`);
+  const preload = routePreloadLinks(route.id);
+  if (preload.length) shell = shell.replace('</head>', `    ${preload.join('\n    ')}\n  </head>`);
   shell = shell.replace('<div id="root"></div>', `<div id="root">${renderRouteRootContent(route)}</div>`);
   writeFileSync(join(DIST, `${route.id}.html`), shell, 'utf8');
   routeShells++;

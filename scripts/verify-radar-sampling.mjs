@@ -6,7 +6,7 @@
  *   node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-radar-sampling.mjs
  *
  * Hintergrund (`audit/radar-punktverortung.md`): die Karte rendert RADOLAN
- * DE1200 projektionskorrekt (`de1200WarpMesh`, Restfehler ~40 m), die
+ * DE1200 projektionskorrekt (`de1200WarpMesh`, seit KL9 bikubisch verfeinert, Mercator-Rest ≤ 1 m), die
  * Punktabfrage interpolierte dagegen linear in lon/lat zwischen den 4 Ecken und
  * griff dadurch 13–36 km zu weit nördlich ins Gitter — Slider und Karte
  * beschrieben verschiedene Orte. Seit RP1 geht jede Punktabfrage über

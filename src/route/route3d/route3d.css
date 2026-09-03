@@ -1,0 +1,695 @@
+/*
+ * R3D · 3D-Ansicht der Tourenplanung. Prefix `r3-`.
+ *
+ * Speist sich aus `designTokens.css` und den `--rd-*`-Tokens des
+ * Routen-Decks — `tourTheme.css` wird nicht angefasst (geteilt).
+ * Breakpoints wie im Projekt: 767 px (mobil) / 1439 px (Desktop groß).
+ */
+
+.r3-root { display: flex; flex-direction: column; gap: 14px; }
+
+/* ===== Kopf ===== */
+.r3-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
+.r3-head-main { min-width: 0; }
+.r3-eyebrow {
+  display: block; font-size: 11px; font-weight: 700; letter-spacing: 1.6px;
+  text-transform: uppercase; color: var(--terracotta-500);
+}
+.r3-title { margin: 6px 0 0; font-size: 30px; line-height: 1.12; letter-spacing: -0.9px; color: var(--ink-900); font-weight: 700; }
+.r3-sub { margin: 7px 0 0; font-size: 13.5px; color: var(--stone-600); }
+.r3-head-side { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; max-width: 260px; }
+.r3-head-hint { font-size: 11.5px; color: var(--stone-500); text-align: right; line-height: 1.45; }
+
+/* Der Umschalter `.r3-toggle` steht in `routeDeck.css` — er wird auch in der
+   2D-Ansicht gerendert, wo diese (lazy geladene) Datei noch fehlt. */
+
+/* ===== Chips ===== */
+.r3-chiprow { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.r3-chips { display: flex; gap: 8px; flex-wrap: wrap; min-width: 0; }
+.r3-chip {
+  display: inline-flex; align-items: center; gap: 8px; min-height: 38px; padding: 0 15px;
+  border-radius: 999px; border: 1px solid var(--border-default); background: var(--cream-50);
+  font-family: inherit; font-size: 13px; font-weight: 600; color: var(--stone-600); cursor: pointer;
+}
+.r3-chip.is-on { background: var(--ink-900); border-color: var(--ink-900); color: #fff; }
+.r3-chip.is-empty { opacity: .62; }
+.r3-chip-dot { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; }
+.r3-chip-empty { font-size: 10.5px; font-weight: 600; letter-spacing: .3px; text-transform: uppercase; opacity: .8; }
+.r3-res {
+  display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px; border-radius: 999px;
+  border: 1px solid var(--evd-amber-border); background: var(--evd-amber-tint);
+  font-size: 12.5px; color: var(--stone-600); cursor: help;
+}
+
+/* ===== Bühne + rechte Spalte ===== */
+.r3-main { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 16px; align-items: start; }
+.r3-stage { position: relative; border-radius: 14px; overflow: hidden; background: var(--rd-map-bg, #0B0E12); }
+.r3-scene { display: block; width: 100%; height: auto; }
+.r3-scene--empty { padding: 40px; text-align: center; color: var(--stone-500); font-size: 13px; }
+
+.r3-viewcard {
+  position: absolute; top: 12px; left: 12px; padding: 8px 12px; border-radius: 10px;
+  background: rgba(250, 246, 234, .93); border: 1px solid var(--border-default); max-width: 60%;
+}
+.r3-viewcard-lab { display: block; font-size: 10px; font-weight: 700; letter-spacing: 1.3px; text-transform: uppercase; color: var(--stone-500); }
+.r3-viewcard-val { font-size: 12.5px; font-weight: 600; color: var(--ink-900); }
+
+.r3-zoom { position: absolute; right: 12px; bottom: 12px; display: flex; gap: 6px; }
+.r3-zoom button {
+  width: 34px; height: 34px; border-radius: 9px; border: 1px solid var(--border-default);
+  background: rgba(250, 246, 234, .93); color: var(--ink-900); font-size: 15px; cursor: pointer; font-family: inherit;
+}
+
+/* ===== Szenen-Innereien ===== */
+.r3-axis-line { fill: none; stroke: rgba(255, 255, 255, .13); stroke-width: 1; }
+.r3-axis-lab, .r3-axis-unit { fill: rgba(255, 255, 255, .55); font-size: 11px; font-weight: 600; }
+.r3-axis-unit { font-size: 9.5px; letter-spacing: .6px; }
+
+.r3-terrain { fill: #6B5A45; stroke: #1B1712; stroke-width: 1.5; }
+.r3-terrain-cap { fill: #8A7458; opacity: .85; }
+
+/* Gemessenes Gelaende NEBEN der Strecke (R3D-4/G3). Es steht hinter allem und
+   traegt bewusst keine Kontur: eine Silhouette soll Tiefe zeigen, nicht eine
+   Kammlinie behaupten, die aus 30-m-Kacheln nicht kommt. Die Deckkraft setzt
+   die Szene je Abstand — weiter hinten heisst blasser. */
+.r3-relief-band { fill: #47504F; stroke: none; }
+
+.r3-cloudplane { fill: rgba(255, 255, 255, .07); stroke: rgba(255, 255, 255, .8); stroke-width: 1.2; stroke-dasharray: 7 5; }
+.r3-snowplane { fill: none; stroke: rgba(200, 226, 255, .85); stroke-width: 1.2; stroke-dasharray: 3 5; }
+/* Schrift auf der Szene: dunkler Kontur-Rand, damit gestrichelte Linien und
+   Höhenlinien nicht mitten durch das Wort laufen (auf 390 px gesehen). */
+.r3-plane-lab, .r3-ends text, .r3-peakcloud text, .r3-legend text {
+  paint-order: stroke; stroke: #0B0E12; stroke-width: 3px; stroke-linejoin: round;
+}
+.r3-plane-lab { fill: rgba(255, 255, 255, .88); font-size: 11.5px; font-weight: 600; }
+
+.r3-warnzone { fill: rgba(215, 38, 61, .17); stroke: rgba(215, 38, 61, .8); stroke-width: 1.2; stroke-dasharray: 6 4; }
+.r3-warnzone--l4, .r3-warnzone--l5 { fill: rgba(138, 28, 28, .3); }
+
+.r3-rain line { stroke: #9DC3E6; stroke-width: 1.3; }
+/* Schnee faellt nicht schraeg und nicht durchgezogen: die Neigung setzt die
+   Szene (0 fuer Schnee, halb fuer Schneeregen), der Strich wird hier
+   unterbrochen. Die Art ist damit auch ohne Farbvergleich zu erkennen. */
+.r3-rain--snow line { stroke: #E8F0FA; stroke-dasharray: 2 5; stroke-linecap: round; }
+.r3-rain--sleet line { stroke: #C8DDF0; stroke-dasharray: 5 4; }
+
+.r3-ribbon-base { fill: none; stroke: #1B1712; stroke-width: 7; stroke-linejoin: round; stroke-linecap: round; }
+.r3-ends text { fill: #fff; font-size: 11.5px; font-weight: 700; }
+.r3-end--start { fill: var(--sage-600); stroke: #fff; stroke-width: 1.5; }
+.r3-end--goal { fill: var(--terracotta-500); stroke: #fff; stroke-width: 1.5; }
+
+.r3-marker line { stroke: var(--terracotta-500); stroke-width: 1.6; stroke-dasharray: 4 4; }
+.r3-marker circle { fill: var(--terracotta-500); stroke: #fff; stroke-width: 2.5; }
+
+.r3-peakcloud circle { fill: #fff; }
+.r3-peakcloud text { fill: #fff; font-size: 11px; font-weight: 700; }
+
+.r3-legend text { fill: rgba(255, 255, 255, .8); font-size: 10.5px; font-weight: 600; }
+.r3-legend-unit { fill: rgba(255, 255, 255, .55) !important; }
+
+/* ===== Punkt-Abfrage ===== */
+.r3-side { background: var(--cream-50); border: 1px solid var(--border-default); border-radius: 14px; padding: 16px; }
+.r3-side-empty { font-size: 13px; color: var(--stone-500); }
+.r3-readout-eyebrow { display: block; font-size: 10.5px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; color: var(--stone-500); }
+.r3-readout-temp { display: flex; align-items: baseline; gap: 10px; margin-top: 8px; }
+.r3-temp-big { font-size: 40px; font-weight: 700; letter-spacing: -1.6px; color: var(--ink-900); line-height: 1; }
+.r3-temp-app { font-size: 14px; color: var(--stone-600); }
+.r3-readout-meta { margin: 8px 0 0; font-size: 12.5px; color: var(--stone-600); }
+
+.r3-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 14px; }
+.r3-card { border: 1px solid var(--border-default); border-radius: 11px; padding: 10px 11px; background: #fff; min-width: 0; }
+.r3-card-lab { display: block; font-size: 10px; font-weight: 700; letter-spacing: 1.1px; text-transform: uppercase; color: var(--stone-500); }
+.r3-card-val { display: block; font-size: 19px; font-weight: 700; color: var(--ink-900); margin-top: 3px; }
+.r3-card-sub { display: block; font-size: 11px; color: var(--stone-500); margin-top: 3px; line-height: 1.35; }
+.r3-card--warn .r3-card-val { color: var(--terracotta-700); }
+.r3-card--crit .r3-card-val { color: #8A1C1C; }
+.r3-card--steel .r3-card-val { color: var(--steel-600); }
+
+.r3-warnbox, .r3-confbox {
+  display: flex; gap: 9px; margin-top: 12px; padding: 11px 12px; border-radius: 11px;
+  font-size: 12.5px; line-height: 1.5;
+}
+.r3-warnbox { background: var(--evd-amber-tint); border: 1px solid var(--evd-amber-border); color: var(--stone-600); }
+.r3-warnbox b { color: var(--terracotta-700); }
+.r3-warnbox-src { display: block; margin-top: 4px; color: var(--stone-500); font-size: 11.5px; }
+.r3-confbox { background: var(--steel-50); border: 1px solid #C6D9EE; color: var(--stone-600); }
+.r3-confbox svg, .r3-warnbox svg { flex: 0 0 auto; margin-top: 2px; }
+
+.r3-mini { margin-top: 14px; }
+.r3-mini-lab { display: block; font-size: 10.5px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; color: var(--stone-500); margin-bottom: 6px; }
+.r3-mini-svg { width: 100%; max-width: 340px; height: auto; background: #fff; border: 1px solid var(--border-default); border-radius: 10px; }
+.r3-mini-grid { stroke: var(--border-default); stroke-width: 1; }
+.r3-mini-tick { fill: var(--stone-500); font-size: 9px; }
+.r3-mini-mean { fill: none; stroke: var(--steel-600); stroke-width: 2; }
+.r3-mini-gust { fill: none; stroke: var(--terracotta-500); stroke-width: 2; stroke-dasharray: 5 4; }
+.r3-mini-legend { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 11px; color: var(--stone-500); }
+.r3-mini-key { width: 14px; height: 0; border-top: 2px solid; display: inline-block; }
+.r3-mini-key--mean { border-color: var(--steel-600); }
+.r3-mini-key--gust { border-color: var(--terracotta-500); border-top-style: dashed; margin-left: 8px; }
+
+/* ===== Lücken-Hinweise ===== */
+.r3-gaps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.r3-gaps li {
+  display: flex; align-items: flex-start; gap: 8px; padding: 9px 12px; border-radius: 10px;
+  background: var(--evd-amber-tint2); border: 1px solid var(--evd-amber-border2);
+  font-size: 12.5px; color: var(--stone-600); line-height: 1.45;
+}
+.r3-gaps svg { flex: 0 0 auto; margin-top: 1px; }
+
+/* ===== Regler ===== */
+.r3-sliders { background: var(--cream-50); border: 1px solid var(--border-default); border-radius: 14px; padding: 16px 18px; }
+.r3-sliders-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.r3-sliders-title { font-size: 10.5px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; color: var(--stone-500); }
+.r3-couple {
+  min-height: 30px; padding: 0 12px; border-radius: 999px; cursor: pointer; font-family: inherit;
+  font-size: 12px; font-weight: 600; border: 1px solid var(--evd-sage-border);
+  background: var(--evd-sage-tint); color: var(--evd-sage-text);
+}
+.r3-couple:not(.is-on) { border-color: var(--border-medium); background: #fff; color: var(--stone-600); }
+.r3-sliders-note { font-size: 12px; color: var(--stone-500); flex: 1 1 240px; min-width: 0; }
+.r3-sliders-live { font-size: 13px; font-weight: 700; color: var(--ink-900); margin-left: auto; }
+
+.r3-track { display: grid; grid-template-columns: 92px 1fr; gap: 12px; align-items: center; margin-top: 14px; }
+.r3-track-lab { font-size: 10.5px; font-weight: 700; letter-spacing: 1.3px; text-transform: uppercase; color: var(--stone-500); }
+.r3-track-body { position: relative; min-width: 0; }
+.r3-track-rail { position: relative; height: 8px; border-radius: 999px; background: var(--sand-200); overflow: hidden; }
+.r3-track-fill { position: absolute; inset: 0 auto 0 0; background: var(--terracotta-500); border-radius: 999px; }
+.r3-track--time .r3-track-fill { background: var(--steel-600); }
+.r3-track-rain { position: absolute; top: 0; bottom: 0; background: rgba(58, 111, 168, .45); }
+.r3-track-warn { position: absolute; top: 0; bottom: 0; background: rgba(215, 38, 61, .55); }
+.r3-track-input {
+  position: absolute; left: 0; right: 0; top: -13px; width: 100%; height: 34px;
+  margin: 0; background: transparent; -webkit-appearance: none; appearance: none; cursor: pointer;
+}
+.r3-track-input::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%;
+  background: var(--terracotta-500); border: 3px solid #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, .28);
+}
+.r3-track--time .r3-track-input::-webkit-slider-thumb { background: var(--steel-600); }
+.r3-track-input::-moz-range-thumb {
+  width: 20px; height: 20px; border-radius: 50%; border: 3px solid #fff;
+  background: var(--terracotta-500); box-shadow: 0 1px 4px rgba(0, 0, 0, .28);
+}
+.r3-track--time .r3-track-input::-moz-range-thumb { background: var(--steel-600); }
+.r3-track-ends { display: flex; justify-content: space-between; gap: 12px; margin-top: 8px; font-size: 11px; color: var(--stone-500); }
+.r3-track-zonelab { color: var(--terracotta-700); font-weight: 600; }
+
+.r3-shift { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 14px; }
+.r3-shift-lab { font-size: 10.5px; font-weight: 700; letter-spacing: 1.3px; text-transform: uppercase; color: var(--stone-500); }
+.r3-shift input { flex: 1 1 200px; min-width: 140px; }
+.r3-shift-val { font-size: 12.5px; color: var(--stone-600); }
+.r3-shift-apply {
+  min-height: 38px; padding: 0 15px; border-radius: 10px; cursor: pointer; font-family: inherit;
+  font-size: 13px; font-weight: 700; border: 1px solid var(--terracotta-500);
+  background: #fff; color: var(--terracotta-700);
+}
+.r3-shift-apply:disabled { opacity: .45; cursor: default; }
+
+.r3-playrow { display: flex; align-items: center; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
+.r3-play {
+  display: inline-flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 18px 0 14px;
+  border-radius: 999px; border: none; cursor: pointer; font-family: inherit; font-size: 13.5px; font-weight: 600;
+  background: var(--terracotta-500); color: #fff;
+}
+.r3-play-off { font-size: 12.5px; color: var(--stone-500); }
+.r3-steps { display: flex; gap: 6px; }
+.r3-steps button {
+  width: 40px; height: 40px; border-radius: 10px; cursor: pointer;
+  border: 1px solid var(--border-default); background: #fff; color: var(--ink-900);
+}
+
+.r3-foot { margin: 0; font-size: 11.5px; color: var(--stone-500); line-height: 1.55; }
+.r3-foot .dot { color: var(--terracotta-500); margin-right: 6px; }
+
+
+/* ===================== Zeitkorridor (1b) ===================== */
+
+.r3-question { margin: 6px 0 0; font-size: 14px; color: var(--ink-900); font-weight: 600; }
+
+.r3-moderow { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.r3-modes {
+  display: inline-flex; gap: 2px; padding: 3px; border-radius: 11px;
+  background: var(--sand-200, #E4DBC4); border: 1px solid var(--border-default);
+}
+.r3-modes button {
+  min-height: 34px; padding: 0 14px; border: 0; border-radius: 9px; background: transparent; cursor: pointer;
+  font-family: inherit; font-size: 12.5px; font-weight: 600; color: var(--stone-600); white-space: nowrap;
+}
+.r3-modes button.is-on { background: var(--cream-50); color: var(--ink-900); box-shadow: 0 1px 2px rgba(44, 42, 38, .12); }
+
+/* Darstellung: Schnitt oder Gelaende. Bewusst dieselbe Pillen-Optik wie die
+   Modus-Zeile, aber rechts und getrennt — der Modus ist die FRAGE, die Buehne
+   die DARSTELLUNG (audit/route-3d.md §21.4, T4). */
+.r3-stagesw {
+  display: inline-flex; gap: 2px; padding: 3px; border-radius: 11px;
+  background: var(--cream-50); border: 1px solid var(--border-default);
+}
+.r3-stagesw button {
+  min-height: 34px; padding: 0 14px; border: 0; border-radius: 9px; background: transparent; cursor: pointer;
+  font-family: inherit; font-size: 12.5px; font-weight: 600; color: var(--stone-600); white-space: nowrap;
+}
+.r3-stagesw button.is-on { background: var(--terracotta-500, #C97B47); color: #fff; }
+.r3-modehint { font-size: 12.5px; color: var(--stone-600); max-width: 60ch; }
+
+/* Gruppenmarke in der Chip-Zeile der Gelaende-Buehne. „Am Boden" steht zuerst,
+   weil eine Tour danach fragt; „In der Luft" ist der Zusatz. */
+.r3-chipgrp {
+  align-self: center; padding: 0 4px 0 2px;
+  font-size: 10px; font-weight: 700; letter-spacing: 1.3px; text-transform: uppercase;
+  color: var(--stone-500); white-space: nowrap;
+}
+.r3-chipgrp + .r3-chip { margin-left: 0; }
+
+/* --- Gelaende-Buehne --- */
+.r3-stage--terrain { min-height: 320px; }
+.r3-tmap-shell { position: relative; width: 100%; height: 520px; }
+.r3-tmap { position: absolute; inset: 0; }
+.r3-tmap-fit {
+  position: absolute; right: 12px; bottom: 12px; z-index: 2;
+  width: 36px; height: 36px; border-radius: 9px; cursor: pointer;
+  background: rgba(250, 246, 234, .94); border: 1px solid var(--border-default);
+  font-size: 15px; color: var(--ink-900);
+}
+.r3-tmap-wait, .r3-tmap-fallback {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  min-height: 320px; padding: 32px; text-align: center; color: var(--cream-50); font-size: 13px; line-height: 1.5;
+}
+.r3-tmap-fallback b { color: #fff; }
+/* Positionsmarke und Enden — dieselben Farben wie im Schnitt, damit ein Wechsel
+   der Buehne nicht wie ein Wechsel der Daten aussieht. */
+.r3-tmap-pos {
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--terracotta-500, #C97B47); border: 3px solid #fff;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, .45);
+}
+.r3-tmap-end { width: 12px; height: 12px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, .4); }
+.r3-tmap-end.is-start { background: var(--sage-600, #7A9466); }
+.r3-tmap-end.is-goal { background: var(--terracotta-500, #C97B47); }
+
+.r3-radarchip {
+  display: inline-flex; align-items: center; min-height: 32px; padding: 0 13px; border-radius: 999px;
+  background: rgba(58, 111, 168, .1); border: 1px solid rgba(58, 111, 168, .35);
+  color: var(--steel-600, #3A6FA8); font-size: 12px; font-weight: 600;
+}
+
+/* --- Aufsätze auf der Bühne --- */
+.r3-axisnote {
+  position: absolute; top: 12px; left: 12px; padding: 8px 12px; border-radius: 10px;
+  background: rgba(250, 246, 234, .93); border: 1px solid var(--border-default); max-width: 62%;
+}
+.r3-axisnote-lab { display: block; font-size: 10px; font-weight: 700; letter-spacing: 1.3px; text-transform: uppercase; color: var(--stone-500); }
+.r3-axisnote-val { font-size: 12.5px; font-weight: 600; color: var(--ink-900); }
+.r3-axisnote-sub { display: block; margin-top: 2px; font-size: 11px; color: var(--stone-500); }
+/* Im Zeitkorridor belegt die Zeitachsen-Notiz die obere linke Ecke. */
+.r3-stage--time .r3-viewcard { top: auto; bottom: 12px; left: 12px; }
+
+.r3-hit {
+  position: absolute; top: 12px; right: 12px; max-width: 58%; padding: 8px 13px; border-radius: 10px;
+  background: rgba(58, 111, 168, .92); border: 1px solid rgba(255, 255, 255, .3); color: #fff;
+}
+.r3-hit.is-now { background: rgba(215, 38, 61, .92); }
+.r3-hit-lab { display: block; font-size: 10px; font-weight: 700; letter-spacing: 1.3px; text-transform: uppercase; opacity: .85; }
+.r3-hit-val { display: block; font-size: 13px; font-weight: 700; }
+.r3-hit-src { display: block; font-size: 10.5px; opacity: .85; }
+
+/* --- Szenen-Innereien des Korridors --- */
+.r3-wetseg { fill: none; stroke: #3A6FA8; stroke-linecap: round; stroke-linejoin: round; opacity: .85; }
+.r3-wetseg.is-active { stroke: #6FA8DC; opacity: 1; }
+
+.r3-pearl-lead { stroke: rgba(255, 255, 255, .5); stroke-width: 1; stroke-dasharray: 3 3; }
+.r3-pearl-box { fill: rgba(250, 246, 234, .96); stroke: var(--border-default); stroke-width: 1; }
+.r3-pearl.is-wet .r3-pearl-box { fill: #EAF2FB; stroke: #3A6FA8; }
+.r3-pearl-when { fill: var(--stone-600); font-size: 10.5px; font-weight: 600; }
+.r3-pearl-temp { fill: var(--ink-900); font-size: 16px; font-weight: 700; }
+.r3-pearl-rel { font-size: 10.5px; font-weight: 700; }
+
+/* --- rechte Spalte: drei Karten statt einer --- */
+.r3-side--time { background: none; border: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.r3-side--time > section {
+  background: var(--cream-50); border: 1px solid var(--border-default); border-radius: 14px; padding: 14px 16px;
+}
+.r3-side-h {
+  margin: 0 0 10px; font-size: 10.5px; font-weight: 700; letter-spacing: 1.4px;
+  text-transform: uppercase; color: var(--stone-500);
+}
+
+.r3-timeline ul { list-style: none; margin: 0; padding: 0; }
+.r3-tl-row {
+  display: grid; grid-template-columns: 46px minmax(0, 1fr) 10px; align-items: center; gap: 10px;
+  padding: 8px 0; border-top: 1px solid var(--border-subtle, #EFE7D6);
+}
+.r3-tl-row:first-child { border-top: 0; }
+.r3-tl-time { font-size: 12.5px; font-weight: 700; color: var(--ink-900); font-variant-numeric: tabular-nums; }
+.r3-tl-text { font-size: 12.5px; color: var(--stone-700, #55503F); line-height: 1.35; }
+.r3-tl-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--sage-600); }
+.r3-tl-row--watch .r3-tl-dot { background: var(--terracotta-500); }
+.r3-tl-row--alert .r3-tl-dot { background: #D7263D; }
+.r3-tl-row.is-now { background: rgba(58, 111, 168, .08); border-radius: 8px; }
+.r3-tl-row.is-now .r3-tl-time { color: var(--steel-600, #3A6FA8); }
+.r3-tl-row.is-now .r3-tl-text { font-weight: 700; color: var(--ink-900); }
+
+.r3-advice { background: rgba(122, 148, 102, .1) !important; border-color: rgba(122, 148, 102, .45) !important; }
+.r3-advice .r3-side-h { color: var(--sage-700, #5E7A4C); }
+.r3-advice-big { margin: 0; font-size: 22px; font-weight: 700; color: var(--ink-900); letter-spacing: -.4px; }
+.r3-advice-txt { margin: 6px 0 10px; font-size: 12.5px; line-height: 1.5; color: var(--stone-700, #55503F); }
+.r3-advice-apply {
+  min-height: 38px; padding: 0 16px; border-radius: 10px; cursor: pointer; font-family: inherit;
+  font-size: 12.5px; font-weight: 600; color: var(--ink-900);
+  background: var(--cream-50); border: 1px solid var(--sage-600);
+}
+.r3-advice-apply[disabled] { opacity: .5; cursor: default; }
+.r3-advice--none p { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--stone-600); }
+
+.r3-swchart svg { display: block; width: 100%; height: auto; }
+.r3-swbar { fill: rgba(58, 111, 168, .42); }
+.r3-swbar.is-now { fill: var(--terracotta-500); }
+.r3-swaxis { stroke: var(--border-default); stroke-width: 1; }
+.r3-swtick { fill: var(--stone-500); font-size: 9.5px; font-weight: 600; }
+.r3-swnote { margin: 8px 0 0; font-size: 11px; line-height: 1.5; color: var(--stone-500); }
+
+
+/* ===== Grenzwerte / Go-No-Go (1c) ===== */
+
+/* Die vier Zustände. Sie sind Tokens, damit Chip, Karte, Liste, Bahn und
+   Szene garantiert dasselbe Rot meinen — und `STATUS_COLORS` in `Scene3D.tsx`
+   trägt dieselben Werte für das SVG. */
+.r3-root {
+  --go-ok: #7A9466;
+  --go-near: #C99A5B;
+  --go-unclear: #8C9AA8;
+  --go-bad: #D7263D;
+}
+
+.r3-limitrow { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.r3-limits { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
+.r3-limits-lab {
+  font-size: 10.5px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; color: var(--stone-500);
+}
+.r3-limit {
+  display: inline-flex; align-items: baseline; gap: 8px; min-height: 38px; padding: 0 15px;
+  border-radius: 999px; border: 1px solid var(--border-default); background: var(--cream-50);
+  font-family: inherit; font-size: 13px; font-weight: 600; color: var(--ink-900); cursor: pointer;
+}
+.r3-limit-now { font-size: 11px; font-weight: 700; color: var(--stone-500); }
+.r3-limit--ok { border-color: rgba(122, 148, 102, .5); background: rgba(122, 148, 102, .1); }
+.r3-limit--ok .r3-limit-now { color: var(--go-ok); }
+.r3-limit--near { border-color: rgba(201, 154, 91, .6); background: rgba(201, 154, 91, .13); }
+.r3-limit--near .r3-limit-now { color: #9A6C24; }
+.r3-limit--over { border-color: rgba(215, 38, 61, .5); background: rgba(215, 38, 61, .1); color: var(--go-bad); }
+.r3-limit--over .r3-limit-now { color: var(--go-bad); }
+.r3-limit--missing { opacity: .62; }
+.r3-limit--add { border-style: dashed; color: var(--stone-500); }
+.r3-limits-profile { font-size: 11.5px; color: var(--stone-500); }
+.r3-limits-profile.is-fresh { color: #9A6C24; font-weight: 600; }
+
+/* Editor */
+.r3-limited {
+  flex: 1 1 100%; margin-top: 4px; padding: 14px 16px; border-radius: 14px;
+  border: 1px solid var(--border-default); background: var(--cream-50);
+}
+.r3-limited-note { margin: 0 0 10px; font-size: 12px; line-height: 1.5; color: var(--stone-600); }
+.r3-limited-row {
+  display: grid; grid-template-columns: 190px minmax(0, 1fr) 150px auto; align-items: center;
+  gap: 12px; padding: 7px 0; border-top: 1px solid var(--border-subtle, var(--border-default));
+}
+.r3-limited-name { font-size: 13px; font-weight: 600; color: var(--stone-600); }
+.r3-limited-row.is-on .r3-limited-name { color: var(--ink-900); }
+.r3-limited-hint { display: block; font-size: 10.5px; font-weight: 600; color: #9A6C24; }
+.r3-limited-val { font-size: 13px; font-weight: 700; color: var(--ink-900); }
+.r3-limited-off, .r3-limited-on, .r3-limited-done {
+  min-height: 34px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--border-default);
+  background: var(--cream-50); font-family: inherit; font-size: 12px; font-weight: 600;
+  color: var(--stone-600); cursor: pointer;
+}
+.r3-limited-on { grid-column: 2 / -1; justify-self: start; }
+.r3-limited-done { margin-top: 12px; background: var(--ink-900); border-color: var(--ink-900); color: #fff; }
+
+/* Szene: Zone + Fahne */
+.r3-gozone { stroke-width: 1.5; stroke-dasharray: 6 5; }
+.r3-gozone--no-go { fill: rgba(215, 38, 61, .17); stroke: rgba(215, 38, 61, .8); }
+.r3-gozone--knapp { fill: rgba(201, 154, 91, .14); stroke: rgba(201, 154, 91, .7); }
+.r3-gozone--unklar { fill: rgba(140, 154, 168, .13); stroke: rgba(140, 154, 168, .7); }
+.r3-goflag line { stroke-width: 1.5; stroke-dasharray: 6 5; }
+.r3-goflag text { fill: #fff; font-size: 11.5px; font-weight: 700; letter-spacing: .4px; }
+.r3-goflag--no-go rect { fill: #8E1220; }
+.r3-goflag--no-go line { stroke: rgba(215, 38, 61, .9); }
+.r3-goflag--knapp rect { fill: #7A5417; }
+.r3-goflag--knapp line { stroke: rgba(201, 154, 91, .9); }
+.r3-goflag--unklar rect { fill: #46525E; }
+.r3-goflag--unklar line { stroke: rgba(140, 154, 168, .9); }
+.r3-viewcard--go { max-width: 260px; }
+.r3-viewcard-sub { display: block; margin-top: 2px; font-size: 11px; color: var(--stone-500); }
+
+/* Statuskarte */
+.r3-status { border-radius: 14px; padding: 14px 16px; border: 1px solid var(--border-default); background: var(--cream-50); }
+.r3-status-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.r3-status-word { font-size: 21px; font-weight: 700; letter-spacing: -0.3px; }
+.r3-status-when { font-size: 12.5px; font-weight: 600; color: var(--stone-500); }
+.r3-status-text { margin: 8px 0 0; font-size: 13px; line-height: 1.55; color: var(--stone-600); }
+.r3-status--go { border-color: rgba(122, 148, 102, .5); background: rgba(122, 148, 102, .1); }
+.r3-status--go .r3-status-word { color: #4F6B3C; }
+.r3-status--knapp { border-color: rgba(201, 154, 91, .6); background: rgba(201, 154, 91, .13); }
+.r3-status--knapp .r3-status-word { color: #9A6C24; }
+.r3-status--unklar { border-color: rgba(140, 154, 168, .6); background: rgba(140, 154, 168, .12); }
+.r3-status--unklar .r3-status-word { color: #55636F; }
+.r3-status--no-go { border-color: rgba(215, 38, 61, .5); background: rgba(215, 38, 61, .09); }
+.r3-status--no-go .r3-status-word { color: var(--go-bad); }
+
+/* Abschnittsliste */
+.r3-secs { margin-top: 14px; }
+.r3-secs-lab { display: block; font-size: 10.5px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; color: var(--stone-500); }
+.r3-secs ul { list-style: none; margin: 8px 0 0; padding: 0; }
+.r3-sec { border-top: 1px solid var(--border-default); }
+.r3-sec:first-child { border-top: 0; }
+.r3-sec button {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; width: 100%;
+  padding: 9px 8px 9px 12px; border: 0; background: none; text-align: left; cursor: pointer;
+  font-family: inherit; border-left: 3px solid transparent;
+}
+.r3-sec.is-active button { background: var(--sand-100); }
+.r3-sec--go button { border-left-color: var(--go-ok); }
+.r3-sec--knapp button { border-left-color: var(--go-near); }
+.r3-sec--unklar button { border-left-color: var(--go-unclear); }
+.r3-sec--no-go button { border-left-color: var(--go-bad); }
+.r3-sec-km { font-size: 13px; font-weight: 700; color: var(--ink-900); }
+.r3-sec--no-go .r3-sec-km { color: var(--go-bad); }
+.r3-sec-val { grid-column: 2; grid-row: 1; font-size: 12.5px; font-weight: 600; color: var(--stone-600); text-align: right; }
+.r3-sec-time { grid-column: 1 / -1; font-size: 11.5px; color: var(--stone-500); }
+.r3-secs-why {
+  margin-top: 10px; min-height: 38px; padding: 0 15px; border-radius: 999px;
+  border: 1px solid var(--border-default); background: var(--cream-50);
+  font-family: inherit; font-size: 12.5px; font-weight: 600; color: var(--ink-900); cursor: pointer;
+}
+
+/* „Warum" — auf der Bühne schwebend, mobil in der Liste */
+.r3-why {
+  background: var(--cream-50); border: 1px solid var(--border-default); border-radius: 14px;
+  padding: 12px 14px; box-shadow: 0 10px 28px rgba(20, 16, 12, .22);
+}
+.r3-stage .r3-why { position: absolute; top: 14px; right: 14px; width: 316px; z-index: 3; }
+.r3-why--no-go { border-color: rgba(215, 38, 61, .45); }
+.r3-why-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.r3-why-lab { font-size: 10.5px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; color: var(--stone-500); }
+.r3-why-x { border: 0; background: none; font-size: 18px; line-height: 1; color: var(--stone-500); cursor: pointer; min-width: 32px; min-height: 32px; }
+.r3-why-when { display: block; font-size: 13px; font-weight: 600; color: var(--ink-900); }
+.r3-why-val { display: block; margin-top: 6px; font-size: 13px; font-weight: 700; color: var(--go-bad); }
+.r3-why-svg { display: block; width: 100%; height: auto; margin-top: 8px; }
+.r3-why-over { fill: rgba(215, 38, 61, .1); }
+.r3-why-limit { stroke: var(--go-bad); stroke-width: 1.5; stroke-dasharray: 4 3; }
+.r3-why-limitlab { fill: var(--go-bad); font-size: 10px; font-weight: 700; }
+.r3-why-dot { fill: var(--go-bad); }
+.r3-why-dotlab { fill: var(--ink-900); font-size: 10px; font-weight: 700; }
+.r3-why-plane line { stroke-width: 1; stroke-dasharray: 5 4; }
+.r3-why-plane text { font-size: 9px; font-weight: 600; }
+.r3-why-plane--cloud line { stroke: #93A7B8; }
+.r3-why-plane--cloud text { fill: #6C7F8E; }
+.r3-why-plane--snow line { stroke: #A9BACB; }
+.r3-why-plane--snow text { fill: #7C8C9B; }
+.r3-why-hint { display: block; margin-top: 4px; font-size: 10.5px; line-height: 1.45; color: var(--stone-500); }
+.r3-why-text { margin: 8px 0 0; font-size: 12px; line-height: 1.5; color: var(--stone-600); }
+
+/* Go-Fenster */
+.r3-gowin {
+  margin-top: 14px; border-radius: 14px; padding: 13px 15px;
+  border: 1px solid var(--border-default); background: var(--cream-50);
+}
+.r3-gowin.is-ok { border-color: rgba(122, 148, 102, .5); background: rgba(122, 148, 102, .1); }
+.r3-gowin-lab { display: block; font-size: 10.5px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; color: var(--stone-500); }
+.r3-gowin-val { display: block; margin-top: 4px; font-size: 16px; font-weight: 700; color: var(--ink-900); }
+.r3-gowin-val--none { font-size: 13.5px; color: var(--stone-600); }
+.r3-gowin-note { margin: 7px 0 0; font-size: 11.5px; line-height: 1.5; color: var(--stone-500); }
+.r3-gowin-apply {
+  margin-top: 10px; min-height: 36px; padding: 0 16px; border-radius: 999px; border: 0;
+  background: var(--ink-900); color: #fff; font-family: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer;
+}
+
+/* Bericht */
+.r3-report { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 8px; }
+.r3-report-main, .r3-report-print {
+  min-height: 38px; padding: 0 16px; border-radius: 999px; font-family: inherit;
+  font-size: 12.5px; font-weight: 700; cursor: pointer;
+}
+.r3-report-main { border: 0; background: var(--ink-900); color: #fff; }
+.r3-report-print { border: 1px solid var(--border-default); background: var(--cream-50); color: var(--ink-900); }
+.r3-report-note { flex: 1 1 100%; margin: 2px 0 0; font-size: 11px; line-height: 1.5; color: var(--stone-500); }
+
+/* Regler-Bahnen nach Status */
+.r3-track-rail.has-bands { background: var(--sand-200); }
+.r3-track-band { position: absolute; top: 0; bottom: 0; opacity: .9; }
+.r3-sliders-badge {
+  margin-left: 8px; font-size: 10.5px; font-weight: 700; letter-spacing: .6px;
+  text-transform: uppercase; color: var(--stone-500);
+}
+.r3-live--no-go { color: var(--go-bad); font-weight: 700; }
+.r3-live--knapp { color: #9A6C24; font-weight: 700; }
+.r3-live--unklar { color: #55636F; font-weight: 700; }
+
+/*
+ * Druck (C6): kein PDF-Paket, sondern das Muster der Historie-Linie
+ * (`HistoryPro` + `history.css`). Gedruckt wird die Auswertung, nicht die
+ * Bedienung — die Szene ist ein dunkles Vollflächenbild und bleibt draußen.
+ */
+@media print {
+  .r3-moderow, .r3-stage, .r3-sliders, .r3-limited, .r3-report, .r3-zoom, .r3-head-side,
+  .r3-tmap-shell, .r3-stagesw { display: none !important; }
+  .r3-main { display: block; }
+  .r3-side { border: 0; padding: 0; background: none; }
+  .r3-why { box-shadow: none; }
+  /* Der Zeitplan ist im Druck die Hauptsache: er bleibt, bekommt Kontur statt
+     Farbe und wird nicht mitten in einer Zeile umbrochen. */
+  .r3-plan { border: 0; padding: 0; background: none; break-inside: auto; }
+  .r3-plan-copy { display: none !important; }
+  .r3-plan-row { break-inside: avoid; }
+  .r3-plan-row button { border-left-width: 2px; }
+  .r3-plan-row--watch button, .r3-plan-row--alert button { border-left-color: #000; }
+}
+
+
+/* ===== Gelaende im Ergebnis (R3D-8) =====
+   Dieselben Chips wie die 3D-Buehne, nur untereinander statt neben Reglern. */
+.r3-tpanel { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.r3-tpanel-chips { gap: 10px; }
+.r3-tpanel-map { position: relative; border-radius: 14px; overflow: hidden; background: var(--rd-map-bg, #0B0E12); }
+.r3-tpanel-map .r3-tmap-shell { height: 420px; }
+.r3-tpanel-note { margin: 0; font-size: 11.5px; color: var(--stone-500); line-height: 1.5; }
+.r3-tpanel-empty { border-radius: 14px; background: var(--rd-map-bg, #0B0E12); }
+
+/* ===== Zeitplan (R3D-7) =====
+   Er ist die Schriftform der Ansicht: eine Zeile je Änderung, nach Uhrzeit.
+   Der Ton faerbt nur den Rand — jeder Satz traegt allein, auch im Druck. */
+.r3-plan {
+  background: var(--cream-50); border: 1px solid var(--border-default);
+  border-radius: 14px; padding: 16px 18px;
+}
+.r3-plan-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.r3-plan-title { margin: 0; font-size: 15px; font-weight: 700; color: var(--ink-900); }
+.r3-plan-sub { font-size: 12px; color: var(--stone-500); flex: 1 1 auto; min-width: 0; }
+.r3-plan-copy {
+  min-height: 34px; padding: 0 14px; border-radius: 9px; cursor: pointer;
+  border: 1px solid var(--border-default); background: #fff;
+  font-family: inherit; font-size: 12.5px; font-weight: 600; color: var(--ink-900);
+}
+.r3-plan-list { list-style: none; margin: 12px 0 0; padding: 0; }
+.r3-plan-row { border-top: 1px solid var(--border-subtle, rgba(44, 42, 38, .1)); }
+.r3-plan-row:first-child { border-top: 0; }
+.r3-plan-row button {
+  display: grid; grid-template-columns: 58px 74px minmax(0, 1fr); gap: 10px; align-items: baseline;
+  width: 100%; min-height: 38px; padding: 8px 10px 8px 12px; text-align: left; cursor: pointer;
+  border: 0; border-left: 3px solid transparent; background: none; font-family: inherit;
+}
+.r3-plan-row button:hover { background: rgba(44, 42, 38, .04); }
+.r3-plan-row--watch button { border-left-color: var(--terracotta-500, #C97B47); }
+.r3-plan-row--alert button { border-left-color: #D7263D; }
+.r3-plan-row.is-here button { background: rgba(201, 123, 71, .1); }
+.r3-plan-time { font-size: 13.5px; font-weight: 700; color: var(--ink-900); font-variant-numeric: tabular-nums; }
+.r3-plan-km { font-size: 12px; color: var(--stone-500); font-variant-numeric: tabular-nums; }
+.r3-plan-text { font-size: 13px; color: var(--stone-700, #4A4234); line-height: 1.4; }
+.r3-plan-empty, .r3-plan-more { margin: 12px 0 0; font-size: 12.5px; color: var(--stone-600); }
+.r3-plan-note { margin: 12px 0 0; font-size: 11.5px; color: var(--stone-500); line-height: 1.5; }
+.r3-plan-gap {
+  display: flex; align-items: flex-start; gap: 6px;
+  margin: 6px 0 0; font-size: 11.5px; color: var(--stone-500); line-height: 1.45;
+}
+
+/* ===== Mobil: Karte niedriger, Bedienelemente 44 px ===== */
+@media (max-width: 767px) {
+  .r3-tmap-shell { height: 340px; }
+  .r3-tmap-fit { width: 44px; height: 44px; }
+  .r3-stagesw button { min-height: 44px; padding: 0 16px; }
+  .r3-plan-copy { min-height: 44px; }
+  .r3-tpanel-map .r3-tmap-shell { height: 300px; }
+  /* Zwei Zeilen statt drei Spalten: km rueckt unter die Uhrzeit. */
+  .r3-plan-row button { grid-template-columns: 54px minmax(0, 1fr); row-gap: 2px; min-height: 44px; }
+  .r3-plan-km { grid-column: 1; grid-row: 2; }
+  .r3-plan-text { grid-column: 2; grid-row: 1 / span 2; }
+}
+
+/* ===== Tablet ===== */
+@media (max-width: 1439px) {
+  .r3-title { font-size: 26px; }
+  .r3-main { grid-template-columns: minmax(0, 1fr); }
+  .r3-side { order: 2; }
+  .r3-cards { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  /* Die drei Korridor-Karten stehen nebeneinander, sobald die Spalte fällt. */
+  .r3-side--time { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); align-items: start; }
+  .r3-swchart { grid-column: 1 / -1; }
+  .r3-swchart svg { max-width: 420px; }
+  .r3-stage .r3-why { width: 280px; }
+  .r3-limited-row { grid-template-columns: 150px minmax(0, 1fr) auto; }
+  .r3-limited-off { grid-column: 3; }
+}
+
+/* ===== Mobil ===== */
+@media (max-width: 767px) {
+  .r3-root--m { gap: 12px; }
+  .r3-head { flex-direction: column; gap: 10px; }
+  .r3-head-side { align-items: flex-start; max-width: none; }
+  .r3-head-hint { text-align: left; }
+  .r3-title { font-size: 22px; }
+  /* Szene als oberes Drittel, mit Verlauf in den Sand-Hintergrund. */
+  .r3-stage { border-radius: 0; margin: 0 -16px; }
+  .r3-stage::after {
+    content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 56px; pointer-events: none;
+    background: linear-gradient(180deg, rgba(11, 14, 18, 0), var(--sand-100));
+  }
+  .r3-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+  .r3-chips::-webkit-scrollbar { display: none; }
+  .r3-chip { min-height: 44px; flex: 0 0 auto; }
+  .r3-res { min-height: 44px; }
+  .r3-cards { grid-template-columns: 1fr 1fr; }
+  .r3-track { grid-template-columns: 1fr; gap: 6px; }
+  /* Der Regler ist das Touch-Ziel, nicht nur sein Knopf: 34 px sind zu wenig. */
+  .r3-track-input { height: 44px; top: -18px; }
+  .r3-sliders-live { margin-left: 0; width: 100%; }
+  .r3-zoom button { width: 44px; height: 44px; }
+  .r3-steps button { width: 44px; height: 44px; }
+  .r3-couple { min-height: 44px; }
+  .r3-shift-apply { min-height: 44px; }
+  .r3-moderow { gap: 10px; }
+  .r3-question { font-size: 13px; }
+  /* Die Perlenkarte ist auf 390 px schmaler — sonst deckt sie die halbe Szene. */
+  .r3-pearl-temp { font-size: 14px; }
+  .r3-modes { width: 100%; }
+  .r3-modes button { flex: 1 1 0; min-height: 44px; padding: 0 8px; font-size: 12px; }
+  .r3-radarchip { min-height: 36px; }
+  .r3-side--time { display: flex; }
+  .r3-hit { max-width: 64%; }
+  .r3-advice-apply { min-height: 44px; width: 100%; }
+  .r3-tl-row { padding: 10px 0; }
+  /* 1c: alles, was gedrückt wird, misst 44 px. */
+  .r3-limits { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+  .r3-limits::-webkit-scrollbar { display: none; }
+  .r3-limit { min-height: 44px; flex: 0 0 auto; }
+  /* Nebeneinander frisst die Ueberschrift die halbe Breite — die Chips
+     bekamen dann keine 200 px mehr. */
+  .r3-limitrow { flex-direction: column; align-items: stretch; gap: 8px; }
+  .r3-limits { flex-wrap: nowrap; }
+  .r3-limits-lab { flex: 0 0 auto; order: -1; }
+  .r3-limited-row { grid-template-columns: 1fr; gap: 6px; }
+  .r3-limited-off, .r3-limited-on, .r3-limited-done { min-height: 44px; justify-self: start; }
+  .r3-sec button { padding: 12px 8px 12px 12px; }
+  .r3-secs-why { min-height: 44px; width: 100%; }
+  .r3-gowin-apply { min-height: 44px; width: 100%; }
+  .r3-report-main, .r3-report-print { min-height: 44px; flex: 1 1 auto; }
+  .r3-status-word { font-size: 19px; }
+}

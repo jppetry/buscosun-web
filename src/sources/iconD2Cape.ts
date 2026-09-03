@@ -67,7 +67,7 @@ async function fetchCapeRepack(maxStepHours: number, signal?: AbortSignal): Prom
   await Promise.all(Array.from({ length: Math.min(3, wanted.length) }, async () => {
     while (ptr < wanted.length && !failed) {
       const step = wanted[ptr++];
-      const png = await loadGridStep(section, 'cape', step, signal);
+      const png = await loadGridStep(section, 'cape', step, signal, 'low');   // LE2/H7: eine Zahl, kein Erstbild
       if (!png) { failed = true; return; }
       frames.push({ validAt: new Date(runAt.getTime() + step * 3600_000), stepHours: step, values: png.values, width: png.width, height: png.height });
     }

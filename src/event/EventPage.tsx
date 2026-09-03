@@ -2,8 +2,8 @@
  * Event-Planung — „Welcher Tag passt am besten?" · Command-Deck (hell).
  *
  * Redesign nach verbindlicher Vorlage (audit/screenshots/kartenseite/
- * eventplaner.dc.html + desktop/tablet/mobile-1..4.png): vierstufiger Wizard
- * (Ort · Anlass · Zeitfenster & Phasen · Plan B) VOR der Resultatseite, danach
+ * eventplaner.dc.html + desktop/tablet/mobile-1..4.png): fünfstufiger Wizard
+ * (Ort · Fläche · Anlass · Zeitfenster & Phasen · Plan B) VOR der Resultatseite, danach
  * das bester-Tag-Deck (EventResult). Funktionserhalt: Anlass/Profil, Geocode,
  * Zeitfenster (Zeitraum/Einzeltermine), Phasen (Vorlagen/Stundenfenster/Hochzeit),
  * Feinjustierung, Plan-B (Schwelle/Metrik/Ausweich/Venue), Permalink — alles bleibt
@@ -29,7 +29,7 @@ import {
   IconDeckCalendar, IconRing, IconSliders, IconReset,
 } from './eventIcons';
 import EventResult from './EventResult';
-import { zoneSizeText, type EventZone } from './eventZone';
+import { isDrawnZone, type EventZone } from './eventZone';
 import { NotificationProvider } from '../notifications/useNotifications';
 import { useIsMobile } from '../mobile/useIsMobile';
 import '../mobile/safeArea.css';
@@ -38,15 +38,16 @@ import { FeatureRail, type RailFeature } from '../nav/featureRail';
 
 interface Props { onBack: () => void; onOpenFeature?: (id: RailFeature) => void; }
 
-// Karte erst laden, wenn der Nutzer sie öffnet — maplibre bleibt aus dem
-// Wizard-Chunk (EZ, Entscheidung E7).
+// Karte erst laden, wenn der Flächen-Schritt erreicht wird — maplibre bleibt
+// aus dem Wizard-Chunk (EZ, Entscheidung E7).
 const EventZoneMap = lazy(() => import('./EventZoneMap'));
 
 const STEP_META: Array<{ eyebrow: string; title: string; sub: string; optional?: boolean }> = [
-  { eyebrow: 'Schritt 1 von 4 · Ort', title: 'Wo findet dein Event statt?', sub: 'Such den Ort in Deutschland, Österreich oder der Schweiz — wir rechnen höhenkorrigiert an genau diesem Punkt.' },
-  { eyebrow: 'Schritt 2 von 4 · Anlass', title: 'Um welchen Anlass geht es?', sub: 'Der Anlass setzt die Bewertungsgewichte (Trockenheit, Temperatur, Wind, Licht) — du kannst sie danach feinjustieren.' },
-  { eyebrow: 'Schritt 3 von 4 · Zeitfenster & Phasen', title: 'Wann hast du Zeit?', sub: 'Wähle Zeitraum oder konkrete Termine und lege Phasen wie Trauung & Empfang mit eigenen Zeiten an — jede wird einzeln bewertet.' },
-  { eyebrow: 'Schritt 4 von 4 · Plan B', title: 'Falls es doch nicht hält', sub: 'Lege eine klare Schwelle fest, ab der dir ein Plan B (z. B. Zelt oder Innenraum) empfohlen wird — plus Ausweichtag und -ort, falls dein Wunschtermin nicht hält.', optional: true },
+  { eyebrow: 'Schritt 1 von 5 · Ort', title: 'Wo findet dein Event statt?', sub: 'Such den Ort in Deutschland, Österreich oder der Schweiz — wir rechnen höhenkorrigiert an genau diesem Punkt.' },
+  { eyebrow: 'Schritt 2 von 5 · Fläche', title: 'Zieh die Fläche deines Events auf', sub: 'Such auf der Karte dein Gelände, drück „Fläche aufziehen“ und zieh mit gedrückter Maus — am Handy mit dem Finger — ein Rechteck darüber. Aus den vier Ecken und der Mitte rechnen wir die Spanne über das Gelände.' },
+  { eyebrow: 'Schritt 3 von 5 · Anlass', title: 'Um welchen Anlass geht es?', sub: 'Der Anlass setzt die Bewertungsgewichte (Trockenheit, Temperatur, Wind, Licht) — du kannst sie danach feinjustieren.' },
+  { eyebrow: 'Schritt 4 von 5 · Zeitfenster & Phasen', title: 'Wann hast du Zeit?', sub: 'Wähle Zeitraum oder konkrete Termine und lege Phasen wie Trauung & Empfang mit eigenen Zeiten an — jede wird einzeln bewertet.' },
+  { eyebrow: 'Schritt 5 von 5 · Plan B', title: 'Falls es doch nicht hält', sub: 'Lege eine klare Schwelle fest, ab der dir ein Plan B (z. B. Zelt oder Innenraum) empfohlen wird — plus Ausweichtag und -ort, falls dein Wunschtermin nicht hält.', optional: true },
 ];
 
 const LAST_STEP = STEP_META.length - 1;
@@ -95,6 +96,12 @@ function EventPageInner({ onBack, onOpenFeature }: Props) {
     }
   }, [submitted]);
 
+  // Eine Fläche gehört zu genau einem Ort — wechselt der Ort, ist sie hinfällig.
+  const setLocationAndResetZone = (l: Location | null) => {
+    setLocation(l);
+    setZone((z) => (z && l && location && l.lat === location.lat && l.lon === location.lon ? z : null));
+  };
+
   const handleActivity = (a: EventActivity | null) => {
     setActivity(a);
     if (a) { setPhases(defaultPhasesFor(a.id)); setTuning(defaultTuningFor(a.id)); }
@@ -106,9 +113,11 @@ function EventPageInner({ onBack, onOpenFeature }: Props) {
   };
   const complete = isQueryComplete(partial);
   const phasesValid = phases.every((p) => p.hours[0] !== p.hours[1]);
-  const stepValid = [!!location, !!activity, isWindowValid(windowSel) && phasesValid, true];
+  // Der Flächen-Schritt (1) ist Pflicht: ohne aufgezogene Fläche geht es nicht
+  // weiter (ein zu kurzer Zug ist ein Klick und ergibt keine Fläche — isDrawnZone).
+  const stepValid = [!!location, isDrawnZone(zone), !!activity, isWindowValid(windowSel) && phasesValid, true];
 
-  const submit = () => { if (complete) setSubmitted(partial as EventQuery); };
+  const submit = () => { if (complete && isDrawnZone(zone)) setSubmitted(partial as EventQuery); };
   const next = () => { if (step < LAST_STEP) { if (stepValid[step]) setStep(step + 1); } else submit(); };
   const back = () => { if (step > 0) setStep(step - 1); };
 
@@ -126,14 +135,20 @@ function EventPageInner({ onBack, onOpenFeature }: Props) {
         <div className={isMobile ? undefined : 'evd-step-single'}>
           {isMobile && <p className="evd-sub" style={{ marginTop: 0 }}>{meta.sub}</p>}
           <span className={isMobile ? 'evd-m-section-lab' : 'evd-field-label'}>Ort</span>
-          <LocationField value={location} onChange={(l) => { setLocation(l); if (!l) setZone(null); }} />
-          <ZoneField location={location} zone={zone} onChange={setZone} isMobile={isMobile} />
+          <LocationField value={location} onChange={setLocationAndResetZone} />
           <div className="evd-hint" style={{ marginTop: 18 }}>
-            <b>Hinweis:</b> Der Ort bestimmt die Datenquelle — DWD (DE) · GeoSphere (AT) · MeteoSwiss (CH). Den Anlass wählst du im nächsten Schritt.
+            <b>Hinweis:</b> Der Ort bestimmt die Datenquelle — DWD (DE) · GeoSphere (AT) · MeteoSwiss (CH). Im nächsten Schritt ziehst du die Fläche deines Events auf der Karte auf.
           </div>
         </div>
       )}
       {step === 1 && (
+        <div className={isMobile ? undefined : 'evd-step-single'}>
+          {isMobile && <p className="evd-sub" style={{ marginTop: 0 }}>{meta.sub}</p>}
+          <span className={isMobile ? 'evd-m-section-lab' : 'evd-field-label'}>Fläche des Events</span>
+          <ZoneStep location={location} zone={zone} onChange={setZone} />
+        </div>
+      )}
+      {step === 2 && (
         <div className={isMobile ? undefined : 'evd-step-single'}>
           {isMobile && <p className="evd-sub" style={{ marginTop: 0 }}>{meta.sub}</p>}
           <span className={isMobile ? 'evd-m-section-lab' : 'evd-field-label'}>Anlass</span>
@@ -141,7 +156,7 @@ function EventPageInner({ onBack, onOpenFeature }: Props) {
           {activity && <TuningPanel activity={activity} tuning={tuning} onChange={setTuning} />}
         </div>
       )}
-      {step === 2 && (
+      {step === 3 && (
         <div className={isMobile ? undefined : 'evd-grid-2 evd-grid-2--time'}>
           <div>
             <span className={isMobile ? 'evd-m-section-lab' : 'evd-field-label'}>Zeitraum</span>
@@ -153,7 +168,7 @@ function EventPageInner({ onBack, onOpenFeature }: Props) {
           </div>
         </div>
       )}
-      {step === 3 && (
+      {step === 4 && (
         <div>
           {isMobile && <p className="evd-sub" style={{ marginTop: 0 }}>{meta.sub}</p>}
           <PlanBFields value={planB} window={windowSel} onChange={setPlanB} />
@@ -165,7 +180,8 @@ function EventPageInner({ onBack, onOpenFeature }: Props) {
   const primaryLabel = step < LAST_STEP ? 'Weiter' : 'Beste Tage finden';
   const leftLabel = step === 0 ? 'Überspringen' : 'Zurück';
   const onLeft = step === 0 ? submit : back;
-  const leftDisabled = step === 0 && !complete;
+  // Der Sprung ins Ergebnis darf die Pflichtfläche aus Schritt 2 nicht umgehen.
+  const leftDisabled = step === 0 && !(complete && isDrawnZone(zone));
 
   // ------- Mobile -------
   if (isMobile) {
@@ -215,7 +231,7 @@ function EventPageInner({ onBack, onOpenFeature }: Props) {
           spacerClass="evd-rail-spacer"
         />
         <div className="evd-wiz evd-scroll">
-          <div className={step === 2 ? 'evd-wiz-inner' : 'evd-wiz-inner evd-wiz-inner--narrow'}>
+          <div className={step === 3 ? 'evd-wiz-inner' : 'evd-wiz-inner evd-wiz-inner--narrow'}>
             <div className="evd-eyebrow">{meta.eyebrow}{meta.optional ? <span className="evd-eyebrow-mut"> · Optional</span> : null}</div>
             <h2 className="evd-h2">{meta.title}</h2>
             <p className="evd-sub">{meta.sub}</p>
@@ -305,36 +321,23 @@ function LocationField({ value, onChange }: { value: Location | null; onChange: 
   );
 }
 
-/* ============================ Zone (optional) ============================ */
+/* ============================ Fläche (Pflicht) ============================ */
 /**
- * EZ2 — die Fläche wird erst angeboten, wenn ein Ort steht (ohne Anker gäbe es
- * keinen Kartenausschnitt) und die Karte erst geladen, wenn sie geöffnet wird.
+ * EZ2 — eigener Wizard-Schritt: die Fläche braucht einen Ort als Anker, deshalb
+ * steht sie hinter der Ortswahl. Die Karte ist hier der Schritt selbst und wird
+ * ohne Aufklapper gezeigt; `EventZoneMap` bleibt `lazy`, maplibre kommt also
+ * erst mit diesem Schritt. Die Anleitung steht im Kartenmodul, weil sie den
+ * Zeichenzustand mitführt (welcher Handgriff gerade dran ist).
  */
-function ZoneField({ location, zone, onChange, isMobile }: { location: Location | null; zone: EventZone | null; onChange: (z: EventZone | null) => void; isMobile: boolean }) {
-  const [open, setOpen] = useState(false);
-  if (!location) return null;
+function ZoneStep({ location, zone, onChange }: { location: Location | null; zone: EventZone | null; onChange: (z: EventZone | null) => void }) {
+  if (!location) {
+    return <div className="evd-zone-summary"><IconDeckPin />Wähle zuerst einen Ort — ohne Anker gibt es keinen Kartenausschnitt.</div>;
+  }
   return (
     <div className="evd-zone-field">
-      <div className="evd-zone-head">
-        <span className={isMobile ? 'evd-m-section-lab' : 'evd-field-label'} style={isMobile ? undefined : { marginTop: 18 }}>
-          Zone · optional
-        </span>
-        <button type="button" className="evd-link" onClick={() => setOpen((v) => !v)}>
-          {open ? 'Karte schließen' : zone ? 'Zone ändern' : 'Auf Karte aufziehen'}
-        </button>
-      </div>
-      {!open && (
-        <div className="evd-zone-summary">
-          {zone
-            ? <><IconDeckPin />Fläche gesetzt · {zoneSizeText(zone)}</>
-            : <><IconDeckPin />Keine Fläche — bewertet wird der Punkt am Ort.</>}
-        </div>
-      )}
-      {open && (
-        <Suspense fallback={<div className="evd-zone-loading">Karte wird geladen …</div>}>
-          <EventZoneMap location={location} zone={zone} onChange={onChange} />
-        </Suspense>
-      )}
+      <Suspense fallback={<div className="evd-zone-loading">Karte wird geladen …</div>}>
+        <EventZoneMap location={location} zone={zone} onChange={onChange} />
+      </Suspense>
     </div>
   );
 }

@@ -79,7 +79,7 @@ export class CurtainLayer implements CustomLayerInterface {
   private lineVertexCount = 0;
 
   /** Bis onAdd den GL-Kontext gesetzt hat zwischengespeicherte Vorhang-Daten. */
-  private pending: { columns: CurtainColumn[]; topM: number; image: HTMLCanvasElement } | null = null;
+  private pending: { columns: CurtainColumn[]; topM: number; image: HTMLCanvasElement; bandAglM?: number } | null = null;
   private pendingLines: LineVertex[] | null = null;
 
   constructor(opts: { id?: string; exaggeration?: number; opacity?: number } = {}) {
@@ -94,9 +94,9 @@ export class CurtainLayer implements CustomLayerInterface {
     this.program = createProgram(gl, curtainVert, curtainFrag);
     this.lineProgram = createProgram(gl, lineVert, lineFrag);
     if (this.pending) {
-      const { columns, topM, image } = this.pending;
+      const { columns, topM, image, bandAglM } = this.pending;
       this.pending = null;
-      this.setCurtain(columns, topM, image);
+      this.setCurtain(columns, topM, image, bandAglM);
     }
     if (this.pendingLines) { const l = this.pendingLines; this.pendingLines = null; this.setStreamlines(l); }
   }
@@ -134,15 +134,20 @@ export class CurtainLayer implements CustomLayerInterface {
    * Vorhang aktualisieren: Geometrie wird nur bei strukturellen Änderungen
    * (Höhe/Decke der Schnittlinie) neu gebaut, die Heatmap-Textur jedes Mal
    * (Zeit-/Layer-Wechsel). `image` ist ein Canvas aus `sectionImage`.
+   *
+   * `bandAglM` reicht die bodenfolgende Bahn an `buildCurtain` durch (R3D-6).
+   * Das ist **keine Pipeline-Änderung**: Shader, Attribut-Layout, Textur-Format
+   * und Zeichenaufruf bleiben Zeile für Zeile stehen — es ändern sich nur die
+   * Zahlen im Positionspuffer, wie bei jeder anderen Schnittlinie auch.
    */
-  setCurtain(columns: CurtainColumn[], topM: number, image: HTMLCanvasElement) {
+  setCurtain(columns: CurtainColumn[], topM: number, image: HTMLCanvasElement, bandAglM?: number) {
     const gl = this.gl;
-    if (!gl || !this.program) { this.pending = { columns, topM, image }; return; }
+    if (!gl || !this.program) { this.pending = { columns, topM, image, bandAglM }; return; }
 
-    // Geometrie nur neu bauen, wenn sich Decke/Spalten/Gelände geändert haben.
-    const key = geometryKey(columns, topM);
+    // Geometrie nur neu bauen, wenn sich Decke/Spalten/Gelände/Bahn geändert haben.
+    const key = geometryKey(columns, topM, bandAglM);
     if (key !== this.geomKey) {
-      const verts = buildCurtain(columns, topM);
+      const verts = buildCurtain(columns, topM, bandAglM);
       const pos = new Float32Array(verts.length * 3);
       const uv = new Float32Array(verts.length * 2);
       for (let i = 0; i < verts.length; i++) {
@@ -231,8 +236,8 @@ export class CurtainLayer implements CustomLayerInterface {
 }
 
 /** Signatur über Decke + Geländeprofil — Geometrie nur bei Änderung neu bauen. */
-function geometryKey(columns: CurtainColumn[], topM: number): string {
+function geometryKey(columns: CurtainColumn[], topM: number, bandAglM?: number): string {
   let sum = 0;
   for (const c of columns) sum += c.terrainM;
-  return `${topM}:${columns.length}:${Math.round(sum)}`;
+  return `${topM}:${bandAglM ?? 'full'}:${columns.length}:${Math.round(sum)}`;
 }

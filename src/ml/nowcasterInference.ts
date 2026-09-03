@@ -9,7 +9,7 @@
 
 import { buildNowcaster, predictSequence } from './radarNowcastNet';
 import type { Sequential, Tensor } from './convNet';
-import { zeros } from './convNet';
+import { coarsenFrameU8, blockSpans } from './coarsen';
 
 export interface LoadedNowcaster {
   model: Sequential;
@@ -38,33 +38,11 @@ export function loadNowcaster(): Promise<LoadedNowcaster | null> {
 }
 
 /**
- * RADOLAN-u8-Frame → gröberes, normalisiertes Feld [1,H',W'] in [0,1] (Avg-Pool).
- *
- * `ceil`, nicht `floor` (KL5): das Ergebnis wird über die VOLLEN DE1200-Ecken
- * gezeichnet. Mit `floor` deckten 137 Spalten nur 1096 der 1100 km ab, das Bild
- * wurde aber über 1100 gespannt — eine Dehnung, die nach Osten auf 4 km anwuchs
- * (`audit/karten-layer-verortung.md` §7a). Der letzte Block ist dann teilweise
- * gefüllt; die `break`-Wächter unten und der Zähler `n` rechnen ihn korrekt.
+ * RADOLAN-u8-Frame → gröberes, normalisiertes Feld [1,H',W'] in [0,1].
+ * Seit KL11 (B5) flächengewichtet und in `./coarsen.ts` (rein, headless prüfbar)
+ * — hier nur re-exportiert, bestehende Importpfade bleiben gültig.
  */
-export function coarsenFrameU8(values: Uint8Array, w: number, h: number, factor: number): Tensor {
-  const W = Math.max(1, Math.ceil(w / factor)), H = Math.max(1, Math.ceil(h / factor));
-  const t = zeros(1, H, W);
-  for (let cy = 0; cy < H; cy++) {
-    for (let cx = 0; cx < W; cx++) {
-      let sum = 0, n = 0;
-      for (let dy = 0; dy < factor; dy++) {
-        const yy = cy * factor + dy; if (yy >= h) break;
-        const base = yy * w;
-        for (let dx = 0; dx < factor; dx++) {
-          const xx = cx * factor + dx; if (xx >= w) break;
-          sum += values[base + xx]; n++;
-        }
-      }
-      t.data[cy * W + cx] = n ? (sum / n) / 255 : 0;
-    }
-  }
-  return t;
-}
+export { coarsenFrameU8, blockSpans };
 
 export interface NowcastInferenceInput { values: Uint8Array; width: number; height: number }
 

@@ -14,6 +14,7 @@
 import { useEffect, useRef } from 'react';
 import maplibregl, { Map as MapLibreMap } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import { patchLibertyRefLength } from '../map/libertyStyle';
 import { haversine } from './routeModel';
 
 interface LngLat { lat: number; lon: number; dist?: number }
@@ -87,6 +88,12 @@ export default function RouteMap({ points, samples = [], breaks = [], waypoints 
     }
 
     const emptyFC: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] };
+
+    // Derselbe Stil wie Regenradar und Gelände-Ansicht, dieselbe Warnung
+    // (V-RL-3) — jetzt dieselbe Korrektur. Auf `style.load`, nicht auf `load`:
+    // die Kacheln werden schon geparst, während `load` noch aufs erste Bild
+    // wartet (R3D-6, im Browser gemessen).
+    map.on('style.load', () => patchLibertyRefLength(map));
 
     map.on('load', () => {
       map.addSource('route', {

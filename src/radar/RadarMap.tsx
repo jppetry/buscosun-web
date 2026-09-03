@@ -21,6 +21,7 @@
 
 import { useEffect, useRef } from 'react';
 import maplibregl from 'maplibre-gl';
+import { patchLibertyRefLength } from '../map/libertyStyle';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { RainLayer } from '../scalar/RainLayer';
 import { ScalarLayer } from '../scalar/ScalarLayer';
@@ -71,30 +72,6 @@ const SNOW_OPACITY = 0.9;
  *  für den Rückblick hält nur der eigene Stack gemessene Vergangenheit; die
  *  Nachbarländer würden sonst still ihre Analyse für eine frühere Zeit zeigen. */
 const NEIGHBOR_PAST_TOL_H = 2.5 / 60;
-
-/**
- * V-RL-3 (2026-08-25): der OpenFreeMap-Stil „liberty" filtert seine US-Shield-
- * Layer mit `["<=", ["get", "ref_length"], 6]` — für Straßen ohne `ref` ist das
- * `null`, und der MapLibre-Worker warnt je Kachel „Expected value to be of type
- * number, but found null" (per Bisect auf `highway-shield-us-interstate` /
- * `road_shield_us` eingegrenzt). Die Layer haben in DACH keine Treffer; ihr
- * Filter bekommt ein `coalesce`, damit echte Warnungen nicht darin untergehen.
- * Kein anderer Stil-Eingriff.
- */
-function patchLibertyRefLength(map: maplibregl.Map): void {
-  const style = map.getStyle();
-  if (!style?.layers) return;
-  const patch = (e: unknown): unknown => {
-    if (!Array.isArray(e)) return e;
-    if (e.length === 2 && e[0] === 'get' && e[1] === 'ref_length') return ['coalesce', e, 99];
-    return e.map(patch);
-  };
-  for (const l of style.layers) {
-    const f = (l as { filter?: unknown }).filter;
-    if (!f || !JSON.stringify(f).includes('"ref_length"')) continue;
-    map.setFilter(l.id, patch(f) as maplibregl.FilterSpecification);
-  }
-}
 
 export interface RadarMapHandle { map: maplibregl.Map | null }
 
@@ -376,24 +353,29 @@ export default function RadarMap(props: Props) {
     const accum = latest.current.accumValues;
     const st = latest.current.stack;
     if (accum) {
-      layer.setFrame({ values: accum, width: st.frames[st.nowIndex]?.width ?? 1, height: st.frames[st.nowIndex]?.height ?? 1, corners: st.corners, warpLnglat: st.warpLnglat, warpN: st.warpN });
+      layer.setFrame({ values: accum, width: st.frames[st.nowIndex]?.width ?? 1, height: st.frames[st.nowIndex]?.height ?? 1, corners: st.corners, warpLnglat: st.warpLnglat, warpN: st.warpN, warpRows: st.warpRows });
       return;
     }
     const fr = shownFrame(st, latest.current.framePos, morphBuf);
     if (!fr) return;
     const neighbors = latest.current.composite;
     if (neighbors) {
-      // DACH-Komposit (RL1): reguläres lon/lat-Gitter, kein Warp-Mesh — genau
-      // der Frame, den auch die Wetterkarte zeichnet (`MapView.tsx` Frame-Effekt).
+      // DACH-Komposit (RL1): genau der Frame, den auch die Wetterkarte zeichnet
+      // (`MapView.tsx` Frame-Effekt) — MIT dem Warp-Mesh des Komposits: ohne es
+      // interpoliert der RainLayer das Quad linear in Mercator, der Regen lag
+      // bis 30 km zu weit nördlich (§14 `audit/karten-layer-verortung.md`).
       const now = Date.now();
       const h = (fr.timeMs - now) / 3_600_000;
       const compositor = (compositorRef.current ??= new PrecipCompositor());
       const cf = compositor.build(h, sourcesFor(st, fr, h, neighbors), now);
-      layer.setFrame({ values: cf.values, width: cf.width, height: cf.height, corners: cf.corners });
+      layer.setFrame({
+        values: cf.values, width: cf.width, height: cf.height, corners: cf.corners,
+        warpLnglat: cf.warpLnglat, warpN: cf.warpN, warpRows: cf.warpRows,
+      });
       return;
     }
     // Benannter Fallback: nur das Landesradar auf seinem nativen Gitter.
-    layer.setFrame({ values: fr.values, width: fr.width, height: fr.height, corners: st.corners, warpLnglat: st.warpLnglat, warpN: st.warpN });
+    layer.setFrame({ values: fr.values, width: fr.width, height: fr.height, corners: st.corners, warpLnglat: st.warpLnglat, warpN: st.warpN, warpRows: st.warpRows });
   }
   useEffect(() => { syncFrame(); /* eslint-disable-next-line */ }, [framePos, accumValues, stack, composite]);
 
@@ -436,7 +418,7 @@ export default function RadarMap(props: Props) {
     if (show && cov) {
       const fr = st.frames[st.nowIndex] ?? st.frames[0];
       layer.opacity = 1;
-      layer.setFrame({ values: cov, width: fr.width, height: fr.height, corners: st.corners, warpLnglat: st.warpLnglat, warpN: st.warpN });
+      layer.setFrame({ values: cov, width: fr.width, height: fr.height, corners: st.corners, warpLnglat: st.warpLnglat, warpN: st.warpN, warpRows: st.warpRows });
     } else {
       layer.opacity = 0; map.triggerRepaint();
     }
@@ -461,7 +443,7 @@ export default function RadarMap(props: Props) {
     classifyPhases(fr.values, latest.current.elevFull, latest.current.snowLineM, RADAR_VMAX, buf);
     for (const k of ['rain', 'graupel', 'hail'] as const) {
       const layer = refs[k]; if (!layer) continue;
-      if (ls.has(k)) { layer.opacity = latest.current.opacity; layer.setFrame({ values: buf[k], width: fr.width, height: fr.height, corners: st.corners, warpLnglat: st.warpLnglat, warpN: st.warpN }); }
+      if (ls.has(k)) { layer.opacity = latest.current.opacity; layer.setFrame({ values: buf[k], width: fr.width, height: fr.height, corners: st.corners, warpLnglat: st.warpLnglat, warpN: st.warpN, warpRows: st.warpRows }); }
       else layer.opacity = 0;
     }
     map.triggerRepaint();

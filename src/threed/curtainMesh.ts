@@ -36,17 +36,30 @@ export interface CurtainVertex {
 /**
  * Baut die Vorhang-Stützpunkte (2 je Spalte, unten dann oben) für einen
  * Triangle-Strip. `topM` ist die Schnitt-Decke (m ü. NN).
+ *
+ * `bandAglM` macht daraus eine **bodenfolgende Bahn**: die Oberkante liegt dann
+ * nicht an der Decke, sondern so viele Meter über dem Gelände DIESER Spalte.
+ * Die Textur bleibt dieselbe — `v` wird an der tatsächlichen Oberkante
+ * ausgewertet, es wird also nur ein Ausschnitt gezeigt, nichts umgerechnet.
+ *
+ * Der Grund ist eine Produktfrage, keine technische: über einer Tour interessiert
+ * die Luft, durch die man geht, nicht die freie Atmosphäre darüber — eine Wand
+ * bis zur Decke erzählt Atmosphäre statt Wetterlage am Boden
+ * (`audit/route-3d.md` §23).
  */
-export function buildCurtain(columns: CurtainColumn[], topM: number): CurtainVertex[] {
+export function buildCurtain(columns: CurtainColumn[], topM: number, bandAglM?: number): CurtainVertex[] {
   const out: CurtainVertex[] = [];
   if (columns.length < 2 || topM <= 0) return out;
   const maxDistanceM = columns[columns.length - 1].distanceM || 1;
   for (const col of columns) {
     const u = clamp01(col.distanceM / maxDistanceM);
     const terrainM = Math.max(0, Math.min(col.terrainM, topM));
-    // unten: am Gelände; oben: an der Decke.
+    // Oben: an der Decke — oder, mit Bahn, so hoch über DIESEM Gelände.
+    const upperM = bandAglM != null && bandAglM > 0
+      ? Math.min(topM, terrainM + bandAglM)
+      : topM;
     out.push({ lon: col.lon, lat: col.lat, altM: terrainM, u, v: 1 - terrainM / topM });
-    out.push({ lon: col.lon, lat: col.lat, altM: topM, u, v: 0 });
+    out.push({ lon: col.lon, lat: col.lat, altM: upperM, u, v: 1 - upperM / topM });
   }
   return out;
 }
@@ -137,6 +150,20 @@ export function verifyCurtainMesh(): { checks: CurtainCheck[]; passed: number; f
   // Gelände über Decke wird geklemmt.
   const clamped = buildCurtain([{ lon: 0, lat: 0, distanceM: 0, terrainM: 9999 }, cols[1]], topM);
   add('Gelände > topM geklemmt', clamped[0].altM === topM && clamped[0].v === 0, String(clamped[0].altM));
+
+  // Bodenfolgende Bahn (R3D-6): Oberkante je Spalte über IHREM Gelände.
+  const band = buildCurtain(cols, topM, 300);
+  add('Bahn: Oberkante 300 m über dem Gelände der Spalte',
+    band[1].altM === 900 && band[3].altM === 1700, `${band[1].altM}/${band[3].altM}`);
+  add('Bahn: Unterkante bleibt das Gelände', band[0].altM === 600 && band[2].altM === 1400);
+  add('Bahn: v folgt der echten Oberkante (kein Umrechnen der Textur)',
+    Math.abs(band[1].v - (1 - 900 / topM)) < 1e-9, band[1].v.toFixed(3));
+  add('Bahn: die Decke bleibt die Grenze', (() => {
+    const high = buildCurtain([{ lon: 0, lat: 0, distanceM: 0, terrainM: 3900 }, cols[1]], topM, 300);
+    return high[1].altM === topM && high[1].v === 0;
+  })());
+  add('ohne Bahn ist alles wie bisher',
+    JSON.stringify(buildCurtain(cols, topM)) === JSON.stringify(buildCurtain(cols, topM, undefined)));
 
   // Streamlines: gerade Anzahl Vertices (Segment-Paare), alle Höhen in [0,topM].
   const sl = buildStreamlineSegments(cols, topM, 600, 1, 4);

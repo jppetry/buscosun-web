@@ -26,6 +26,7 @@
 import { pickCountry } from '../pointForecast/clustering';
 import { G, buildIndexMap, buildCompositeIndexMap, gridLatLon, type GridKind } from './precipIndexMap';
 import type { QuadCorners } from './RainLayer';
+import { quadWarpMesh, quadWarpRows, QUAD_WARP_COLS } from './quadWarpMesh';
 import type { RvNowcast } from '../sources/radolan';
 import type { IncaGrid } from '../sources/geosphereIncaGrid';
 import type { RadarFrame } from '../sources/meteoSwissRadar';
@@ -35,6 +36,24 @@ import type { IconD2Precip } from '../sources/iconD2Precip';
 export const COMPOSITE_CORNERS: QuadCorners = [
   [G.lonMin, G.latMax], [G.lonMax, G.latMax], [G.lonMax, G.latMin], [G.lonMin, G.latMin],
 ];
+
+/**
+ * Warp-Mesh des Komposit-Gitters für `RainLayer.setFrame` — PFLICHT, kein
+ * Zusatz. Das Gitter ist zwar regulär in lon/lat (keine Projektion aufzuheben),
+ * aber der RainLayer interpoliert ein nacktes 4-Eck-Quad linear in Mercator,
+ * während die Texturzeilen breiten-linear liegen: über die 10,2° von
+ * `G.latMin…G.latMax` lag der Niederschlag dadurch bis **30,5 km zu weit
+ * nördlich** (bei 49 N ≈ 29 km — live gemessen, `audit/karten-layer-verortung.md`
+ * §14; an den Rändern 0, deshalb nie als Versprung sichtbar). Die Zeilenzahl
+ * kommt aus der Zeilenregel in `quadWarpMesh.ts` (§15: ≤ 1 m Rest — 213 Zeilen
+ * über 10,2°, gemessen 0,9 m; Spalten tragen bei lat/lon-Gittern nichts zur
+ * Verortung bei).
+ */
+export const COMPOSITE_WARP_N = QUAD_WARP_COLS;
+export const COMPOSITE_WARP_ROWS = quadWarpRows(COMPOSITE_CORNERS);
+export function compositeWarpMesh(): Float32Array {
+  return quadWarpMesh(COMPOSITE_CORNERS, COMPOSITE_WARP_N, COMPOSITE_WARP_ROWS);
+}
 
 /** Nowcast-Horizonte je Land (Stunden) — jenseits davon ICON-D2. */
 export const RV_MAX_H = 2;     // DE RADOLAN-RV
@@ -53,6 +72,11 @@ export interface CompositeFrame {
   width: number;
   height: number;
   corners: QuadCorners;
+  /** Immer gesetzt (s. `compositeWarpMesh`) — Aufrufer reichen beide an
+   *  `RainLayer.setFrame` durch; ohne sie zeichnet der Layer das Quad. */
+  warpLnglat: Float32Array;
+  warpN: number;
+  warpRows: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -215,7 +239,10 @@ export class PrecipCompositor {
       if (!filled && d2 && this.d2Idx) { const j = this.d2Idx[i]; if (j >= 0) v = d2.values[j]; }
       out[i] = v;
     }
-    return { values: out, width: G.w, height: G.h, corners: COMPOSITE_CORNERS };
+    return {
+      values: out, width: G.w, height: G.h, corners: COMPOSITE_CORNERS,
+      warpLnglat: compositeWarpMesh(), warpN: COMPOSITE_WARP_N, warpRows: COMPOSITE_WARP_ROWS,
+    };
   }
 }
 

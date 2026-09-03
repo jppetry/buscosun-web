@@ -117,7 +117,7 @@ export async function fetchBrightSkyCurrentGrid(
         try {
           const res = await fetch(
             `https://api.brightsky.dev/current_weather?lat=${lat.toFixed(3)}&lon=${lng.toFixed(3)}`,
-            { signal: options.signal },
+            { signal: options.signal, priority: 'low' },   // LE2/H7
           );
           if (res.ok) return (await res.json()) as CurrentWeatherResponse;
           if (res.status === 404) return null; // outside DE coverage

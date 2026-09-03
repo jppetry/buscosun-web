@@ -25,6 +25,8 @@
  * INCA (Zellmitten).
  */
 
+import { warpMeshFromProjection } from '../scalar/quadWarpMesh';
+
 const D = Math.PI / 180;
 
 // Bessel-Ellipsoid + LV95-Konstanten (aus /where.projdef, s. Kopfkommentar).
@@ -107,30 +109,30 @@ export function rzcInv(east: number, north: number): [number, number] {
   return besselToWgs84(lam, phi);
 }
 
-/** Unterteilungen des Warp-Mesh je Achse ((N+1)² Knoten). */
-export const RZC_WARP_N = 16;
+/** Unterteilungen des Warp-Mesh je Achse ((N+1)² Knoten). 160 → Mercator-Rest
+ *  0,78 m (`audit/karten-layer-verortung.md` §15.3; 16 waren 78 m). */
+export const RZC_WARP_N = 160;
 
 /**
  * Warp-Mesh des rzc-Gitters aus seinen vier WGS84-Ecken: (N+1)² lon/lat-Paare,
  * Index `(j*(N+1)+i)*2`, i = u (West→Ost), j = v (Nord→Süd) — uv-Konvention des
  * RainLayer. Die Ecken sind bereits Außenkanten, es wird nicht extrapoliert.
  */
-export function rzcWarpMesh(
-  corners: [[number, number], [number, number], [number, number], [number, number]],
-): Float32Array {
+export function rzcWarpMesh(corners: RzcCorners): Float32Array {
+  const hit = _rzcMesh.get(corners);
+  if (hit) return hit;
+  const out = warpMeshFromProjection(rzcNodeFn(corners), RZC_WARP_N);
+  _rzcMesh.set(corners, out);
+  return out;
+}
+type RzcCorners = [[number, number], [number, number], [number, number], [number, number]];
+/** Memoisiert je Ecken-Referenz (der RainLayer baut den GL-Puffer nur bei neuer Referenz). */
+const _rzcMesh = new WeakMap<RzcCorners, Float32Array>();
+
+/** Exakte lon/lat-Lage des rzc-Gitterpunkts (u, v) — auch knapp außerhalb [0,1]. */
+export function rzcNodeFn(corners: RzcCorners): (u: number, v: number) => [number, number] {
   const [nw, ne, se, sw] = corners.map(([lo, la]) => rzcFwd(lo, la));
   const west = (nw[0] + sw[0]) / 2, ost = (ne[0] + se[0]) / 2;
   const nord = (nw[1] + ne[1]) / 2, sued = (sw[1] + se[1]) / 2;
-  const N = RZC_WARP_N;
-  const out = new Float32Array((N + 1) * (N + 1) * 2);
-  for (let j = 0; j <= N; j++) {
-    const v = j / N;
-    for (let i = 0; i <= N; i++) {
-      const u = i / N;
-      const [lon, lat] = rzcInv(west + u * (ost - west), nord + v * (sued - nord));
-      const k = (j * (N + 1) + i) * 2;
-      out[k] = lon; out[k + 1] = lat;
-    }
-  }
-  return out;
+  return (u, v) => rzcInv(west + u * (ost - west), nord + v * (sued - nord));
 }

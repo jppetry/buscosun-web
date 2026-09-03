@@ -41,7 +41,15 @@ export default function RouteSummary({ track }: Props) {
         {meta.maxEleM != null && <span className="rd-chip-info">Höchster Punkt: {meta.maxEleM} m</span>}
         {meta.minEleM != null && <span className="rd-chip-info">Tiefster Punkt: {meta.minEleM} m</span>}
         <span className="rd-chip-info">{meta.sampleCount.toLocaleString('de-DE')} Wetter-Punkte</span>
-        {meta.elevationEnriched && <span className="rd-chip-info">Höhen aus DEM ergänzt</span>}
+        {/* „ergänzt" und „ersetzt" sind zwei verschiedene Auskünfte: einmal
+            brachte die Datei keine Höhen mit, einmal brachte sie welche, die
+            dieses Gelände nicht beschreiben (`audit/route-3d.md` §19.2). */}
+        {meta.elevationSource === 'dem-filled' && <span className="rd-chip-info">Höhen aus DEM ergänzt</span>}
+        {meta.elevationSource === 'dem-replaced' && (
+          <span className="rd-chip-info">
+            Höhen aus DEM ersetzt{meta.elevationDeltaM != null ? ` — Datei wich ${Math.round(meta.elevationDeltaM)} m ab` : ''}
+          </span>
+        )}
         <span className="rd-chip-info">{meta.pointCount.toLocaleString('de-DE')} → {meta.sampleCount} Punkte</span>
       </div>
 

@@ -309,9 +309,12 @@ export default function NowcastRadarMap({ location, nowcast, reloadKey = 0, laye
     const ac = new AbortController();
     const c = location.country;
     const jobs: Array<Promise<Partial<CompositeSources>>> = [];
-    if (c !== 'DE') jobs.push(fetchRvNowcast(ac.signal).then((rv) => ({ rv })));
-    if (c !== 'AT') jobs.push(fetchIncaGrid(ac.signal).then((inca) => ({ inca })));
-    if (c !== 'CH') jobs.push(fetchRzcLatest(ac.signal).then((rzc) => ({ rzc })));
+    // LE2/H7: Nachbarquellen mit `priority: 'low'` — sie teilten sich bisher die
+    // Leitung mit dem eigenen Stack (INCA 1,3 MB + rzc 0,2 MB neben dem RV-Tar).
+    const low = { priority: 'low' as const };
+    if (c !== 'DE') jobs.push(fetchRvNowcast(ac.signal, low).then((rv) => ({ rv })));
+    if (c !== 'AT') jobs.push(fetchIncaGrid(ac.signal, low).then((inca) => ({ inca })));
+    if (c !== 'CH') jobs.push(fetchRzcLatest(ac.signal, low).then((rzc) => ({ rzc })));
     void Promise.allSettled(jobs).then((rs) => {
       if (ac.signal.aborted) return;
       const merged: CompositeSources = {};

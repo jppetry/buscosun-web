@@ -31,6 +31,18 @@ export function bearingDeg(latA: number, lonA: number, latB: number, lonB: numbe
 }
 
 /**
+ * Kompass-Peilung des Segments, das die Distanz `dist` (m) enthält. Geteilt von
+ * der Ergebnis-Karte (Wind-Marker) und der 3D-Ansicht — beide müssen dieselbe
+ * Fahrtrichtung annehmen, sonst widersprechen sich „Gegenwind" und Pfeilrichtung.
+ */
+export function bearingAtDist(points: Array<{ lat: number; lon: number; dist: number }>, dist: number): number {
+  if (points.length < 2) return 0;
+  let i = 1;
+  while (i < points.length - 1 && points[i].dist < dist) i++;
+  return bearingDeg(points[i - 1].lat, points[i - 1].lon, points[i].lat, points[i].lon);
+}
+
+/**
  * Komponente des Winds entlang der Travel-Richtung (m/s).
  * Positiv = Rückenwind (schiebt), Negativ = Gegenwind.
  */

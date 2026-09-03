@@ -1,0 +1,79 @@
+# ============================================================================
+# RD1+RD3 — Radar-Spiegel (buscosun-web/audit/radar-datenrepo.md §11, §14)
+# ============================================================================
+# ⚠️ Diese Datei wird in `buscosun-web/scripts/radar-mirror/workflow-radar.yml`
+# GEPFLEGT und liegt im Daten-Repo als `.github/workflows/radar.yml`; das Skript
+# `scripts/radar-mirror.mjs` ebenso (Quelle: buscosun-web/scripts/radar-mirror/).
+# Der ICON-Publisher (`publish-repack.mjs`) trägt beide unverändert weiter.
+# Änderungen an Workflow-Dateien kann nur ein Nutzer-Token pushen (Jan).
+#
+# Betrieb: EIN Job spiegelt ≈ 5 h 45 lang RADOLAN-RV + KONRAD3D Slot für Slot nach
+# `radar/` auf `main` (Abtastung 10 s, Retention 12) und legt seit RD3 zusätzlich
+# die FERTIG AUFBEREITETEN Dateien unter `radar/img/v1/` ab (RV/INCA/rzc als
+# Graustufen-PNG, KONRAD als JSON) — dafür klont er buscosun-web SPARSE und spawnt
+# `radar-derive.mjs` je Slot als Kindprozess (die Decoder des Clients erzeugen die
+# Bytes; `verify:radar-repack`). Quelle ist der Zweig `rd3-producer` — main hinkt
+# dem Arbeitsbaum hinterher; nach dem nächsten main-Deploy von buscosun-web auf
+# `main` zurückstellen (V-RD-12). Scheitert Klon/Install, spiegelt der Job ROH
+# weiter (das Skript prüft APP_DIR selbst). Am Ende — direkt nach einem Push —
+# löst der Job seinen NACHFOLGER selbst aus (`ensureSuccessor`, `actions: write`).
+# Absicherung: `radar-watchdog.yml` prüft stündlich, ob ein Lauf aktiv ist, und
+# startet sonst einen. KEIN eigener Cron (§11.4: ersetzte wartende Läufe lasen
+# sich als „cancelled"-Ausfälle).
+# ============================================================================
+
+name: radar
+
+on:
+  workflow_dispatch: {}
+
+concurrency:
+  group: radar-mirror
+  cancel-in-progress: false
+
+permissions:
+  contents: write             # pusht radar/ auf main
+  actions: write              # Selbst-Dispatch als Reserve für die Naht
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    timeout-minutes: 358        # Job-Grenze 360; RUN_MINUTES 345 + Naht
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Git identity
+        run: |
+          git config user.name 'buscosun-radar[bot]'
+          git config user.email 'radar@users.noreply.github.com'
+
+      # RD3: Decoder-Quelle für den Derive-Schritt — sparse (Vollklon maß 188 s, §28.6),
+      # nur scripts/ + src/ + package.json; dazu die zwei Laufzeit-Pakete der Parser.
+      # `continue-on-error`: ohne APP_DIR läuft der Spiegel roh weiter, kein Ausfall.
+      - name: Checkout buscosun-web (sparse, für derive)
+        continue-on-error: true
+        run: |
+          git clone --depth=1 --filter=blob:none --no-checkout --branch rd3-producer https://github.com/jppetry/buscosun-web.git app
+          cd app
+          git sparse-checkout set --no-cone scripts src package.json
+          git checkout
+          npm install --no-save --no-audit --no-fund bz2@1 jsfive@0.4
+
+      - name: Mirror
+        env:
+          RUN_MINUTES: '345'
+          POLL_SEC: '10'
+          KEEP: '12'
+          BRANCH: main
+          APP_DIR: ${{ github.workspace }}/app
+          REPACK_BZIP2: '1'
+          GITHUB_TOKEN: ${{ github.token }}
+          WORKFLOW_FILE: radar.yml
+        run: node scripts/radar-mirror.mjs

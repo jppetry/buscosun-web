@@ -143,6 +143,7 @@ if (!existsSync(file)) {
   add('[client] Kill-Switch: Fenster Monat/Saison nur mit historyEnabled()', /historyEnabled\(\) && \(\[\['month', 'Monat'\], \['season', 'Saison'\]\]/.test(page) && /historyEnabled\(\) && initial\?\.historyWindow/.test(page));
   add('[client] Live-Fenster-Klick verlässt die Historie', /setHistory\(null\); setTime\(\(t\) => \(\{ \.\.\.t, windowH: h \}\)\)/.test(page));
   add('[client] Permalink führt historyWindow mit (nur im Modus)', /historyWindow: history,/.test(page));
+  // BD2d (2026-08-31): die Dossier-Registry ist wieder entfallen (Sidebars bleiben Bestand) — zwei Orte.
   add('[client] Brände-Reiter zeigt im Modus das Historie-Panel (Desktop + mobil)', (page.match(/history \? historyPanel\((false|true)\)/g) ?? []).length === 2);
   add('[client] FireMap: Historie-Quelle, Layer unsichtbar bis Daten, Auswahlring, Klick vor der Popup-Kette',
     /addSource\(HISTORY_SOURCE_ID/.test(fmap) && /\[HISTORY_SOURCE_ID, s\.historyFc\]/.test(fmap) && /s\.historyFc \? 'visible' : 'none'/.test(fmap) && /setFilter\(HISTORY_SEL_LAYER_ID/.test(fmap) && /layers: \[HISTORY_LAYER_ID\]/.test(fmap));

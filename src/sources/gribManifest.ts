@@ -21,6 +21,11 @@
  */
 
 import { reportManifest, stateFromUpdatedAt } from './manifestHealth';
+// LE1/H2: Abruf-URL (BW-11) und Frühstart der Live-Manifeste leben abhängigkeits-
+// frei in `liveManifest.ts`, damit der Router sie aus dem index-Chunk anstoßen
+// kann. Re-Export, damit bestehende Importeure (Wind-Resolver, Verifier) bleiben.
+import { liveManifestUrl, takeWarmManifest, MANIFEST_TTL_MS } from './liveManifest';
+export { liveManifestUrl, MANIFEST_TTL_MS } from './liveManifest';
 
 /** Rückgabeform — deckungsgleich mit `resolveLatestRun`/`RunInfo`.
  *  `updatedAt` (V-20) ist additiv: der Zeitpunkt, zu dem der Warm-Cron das
@@ -39,8 +44,8 @@ const MAX_MANIFEST_RUN_AGE_H = 24;
 /** Kurzer In-Memory-Cache des geparsten Manifests: beim Kaltstart lösen bis zu
  *  sieben Params (t_2m, vmax_10m, tot_prec, clcl/clcm/clch/clct) nebenläufig auf
  *  — ein geteiltes Fetch-Promise statt sieben Requests. TTL kurz, damit der
- *  30-min-Refresh-Tick einen neuen Warm-Lauf zeitnah sieht. */
-const MANIFEST_TTL_MS = 60 * 1000;
+ *  30-min-Refresh-Tick einen neuen Warm-Lauf zeitnah sieht (`MANIFEST_TTL_MS`,
+ *  eine Zahl mit Stempel und Frühstart in `liveManifest.ts`). */
 
 interface ParsedManifest {
   run: string; runAt: Date; params: Record<string, number[]>; updatedAt: Date | null;
@@ -58,28 +63,13 @@ function parseRunStr(run: string): Date {
   ));
 }
 
-/**
- * BW-11 (2026-08-26): der Abruf-URL der LIVE-Manifeste bekommt einen
- * Minuten-Stempel — derselbe Takt wie `MANIFEST_TTL_MS`, also höchstens ein
- * zusätzlicher Eintrag je Minute und Datei.
- *
- * Warum: `cache: 'no-store'` wirkt erst im HTTP-Layer, ein Service Worker greift
- * DAVOR. Bestandsbrowser bedienen `/latest-{grib,wind}.json` weiterhin aus einem
- * alten Worker (vor BW-10 fielen sie unter dessen Asset-Regel: erst der Treffer,
- * dann die Auffrischung — jede Sitzung sah den Lauf der VORIGEN), und der neue
- * Worker übernimmt erst, wenn er darf. Der Stempel ändert den Cache-Schlüssel,
- * nicht den Pfad: der alte Worker findet nichts und geht ans Netz, der neue
- * (`LIVE_RE` prüft `pathname`) bleibt unverändert network-first, und der Server
- * liefert dieselbe Datei — die Frische hängt damit an keinem Worker mehr.
- *
- * Der IDENTITÄTS-Schlüssel bleibt der Pfad ohne Stempel: Manifest-Cache
- * (`getManifest`) und Gesundheitsmeldung (`reportManifest`) sollen nicht je
- * Minute eine neue Datei zu sehen glauben.
- */
-export function liveManifestUrl(url: string, nowMs: number = Date.now()): string {
-  const sep = url.includes('?') ? '&' : '?';
-  return `${url}${sep}t=${Math.floor(nowMs / MANIFEST_TTL_MS)}`;
-}
+// BW-11 (2026-08-26): der Abruf-URL der LIVE-Manifeste bekommt einen Minuten-
+// Stempel (`liveManifestUrl`, seit LE1 in `liveManifest.ts` — Begründung dort:
+// `cache: 'no-store'` wirkt erst im HTTP-Layer, ein Service Worker greift DAVOR;
+// der Stempel ändert den Cache-Schlüssel, nicht den Pfad). Der IDENTITÄTS-
+// Schlüssel bleibt der Pfad ohne Stempel: Manifest-Cache (`getManifest`) und
+// Gesundheitsmeldung (`reportManifest`) sollen nicht je Minute eine neue Datei
+// zu sehen glauben.
 
 /** Fetch + Parse + Validierung (inkl. Staleness-Guard). `null` = unbrauchbar. */
 async function fetchManifest(url: string): Promise<ParsedManifest | null> {
@@ -88,7 +78,10 @@ async function fetchManifest(url: string): Promise<ParsedManifest | null> {
     // AbortSignal: das Promise ist über nebenläufige Layer-Loader geteilt — der
     // Abort EINES Layers darf die Auflösung der übrigen nicht mitreißen (der
     // Fetch ist ~1 KB same-origin).
-    const res = await fetch(liveManifestUrl(url), { cache: 'no-store' });
+    // LE1/H2: hat der Router den Abruf schon vorgestartet (beim Laden des
+    // Seiten-Chunks, ~1,5 s vor dem Mount), nehmen wir dessen Antwort — Fehler
+    // landen wie bisher im `catch` (→ Directory-Scan).
+    const res = await (takeWarmManifest(url) ?? fetch(liveManifestUrl(url), { cache: 'no-store' }));
     if (!res.ok) return null;
     const m = await res.json() as { run?: unknown; runAt?: unknown; updatedAt?: unknown; params?: unknown; repack?: unknown };
     if (typeof m.run !== 'string' || !/^\d{10}$/.test(m.run)) return null;

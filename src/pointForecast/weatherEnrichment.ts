@@ -50,6 +50,74 @@ const HOUR_MS = 3_600_000;
 /** Standard-Lapse-Rate (°C/m) als Fallback, wenn der Forecast keine liefert. */
 const STD_LAPSE_PER_M = 0.0065;
 
+/**
+ * Radar-Vorlauf, wie er fuer dieses Land tatsaechlich geladen wurde. Traegt den
+ * Satz "Radar-Nowcast bis HH:MM, danach Modell" (audit/route-3d.md B9) — die
+ * drei Laender haben verschiedene Horizonte, CH hat gar keinen (ein Snapshot).
+ */
+export interface RadarHorizon {
+  country: Country;
+  source: 'radolan_rv' | 'inca_grid' | 'meteoswiss_rzc';
+  frameCount: number;
+  validFromMs: number;
+  validUntilMs: number;
+}
+
+/**
+ * Bewertung EINER alternativen Startzeit. Entsteht nur, wenn `startOffsetsMin`
+ * gesetzt ist, und ausschliesslich HIER — denn nur waehrend der Anreicherung
+ * sind die Cluster-Forecasts und der Radar-Sampler am Leben (B11). Ausserhalb
+ * kostete dieselbe Frage einen kompletten zweiten Satz Punktabfragen.
+ *
+ * Die Fahrzeiten bleiben dabei fest: alle ETAs wandern um denselben Betrag
+ * (B12). Das ist eine Naeherung, weil der Wind das Tempo beeinflusst — sie
+ * traegt eine Empfehlung, keine Zusage, und "Startzeit uebernehmen" rechnet
+ * anschliessend echt neu.
+ */
+export interface StartWindowEntry {
+  /** Verschiebung gegenueber der aktuellen Startzeit (min, negativ = frueher). */
+  offsetMin: number;
+  /** Minuten der Tour mit Niederschlag ueber der Nass-Schwelle. */
+  wetMin: number;
+  /** Hoechste Rate entlang der Tour (mm/h). */
+  peakMmH: number;
+  /** Summe ueber die Tour (mm). */
+  totalMm: number;
+  /**
+   * Hoechste Boee entlang der Tour (m/s), **hoehenkorrigiert wie der
+   * Hauptweg** (`correctForElevation`) — damit vergleichbar UND als absolute
+   * Zahl belastbar. Vor 1c stand hier der unkorrigierte Ankerwert; ein
+   * Grenzwert-Vergleich haette dann eine andere Zahl benutzt als die
+   * Abschnittsliste fuer denselben Ort (audit/route-3d.md §17.3 C4).
+   */
+  peakGustMps: number;
+  /** Hoechster Mittelwind entlang der Tour (m/s), ebenso hoehenkorrigiert. */
+  peakWindMps: number;
+  /**
+   * Tiefste gefuehlte Temperatur entlang der Tour (Grad C) — null, wenn sie
+   * an keinem Sample bestimmbar war.
+   */
+  minApparentC: number | null;
+  /** Anteil der Werte, die aus dem Radar kamen (0..1). */
+  radarShare: number;
+  /**
+   * Anteil der Samples, fuer die ueberhaupt ein Wert vorlag (0..1). Am Ende
+   * langer Touren reicht der Forecast-Horizont nicht immer bis zur
+   * verschobenen ETA — dann fehlt der Wert, statt 0 zu sein.
+   */
+  coverage: number;
+  /** Genug Abdeckung, um mit anderen Startzeiten verglichen zu werden. */
+  complete: boolean;
+}
+
+/**
+ * Ab dieser Abdeckung ist ein Eintrag vergleichbar. Ein einzelnes fehlendes
+ * Sample am Tourende darf die Frage „waere spaeter besser?" nicht kippen —
+ * im Browser gesehen: eine 9-h-Tour lieferte gar keine Empfehlung mehr, weil
+ * der letzte Punkt aus dem Horizont fiel.
+ */
+export const START_COVERAGE_MIN = 0.9;
+
 export interface EnrichmentMeta {
   clusterCount: number;
   pointForecastCalls: number;
@@ -70,6 +138,10 @@ export interface EnrichmentMeta {
    *   – uvIndex:  nur die DWD-UV-Quelle (DE) liefert einen UV-Index.
    */
   coverage: { snowLine: boolean; uvIndex: boolean };
+  /** Radar-Vorlauf je abgefragtem Land — leer, wenn keiner geladen werden konnte. */
+  radar: RadarHorizon[];
+  /** Alternative Startzeiten — leer, wenn `startOffsetsMin` nicht gesetzt war. */
+  startWindow: StartWindowEntry[];
   elapsedMs: number;
 }
 
@@ -80,6 +152,13 @@ export interface EnrichmentOptions {
   clusterRadiusM?: number;
   /** Gelände der Tour — bestimmt den Cluster-Radius, wenn `clusterRadiusM` fehlt. */
   terrain?: Terrain;
+  /**
+   * Alternative Startzeiten (Minuten relativ zur aktuellen), die mitbewertet
+   * werden sollen. Kostet **keinen zusaetzlichen Abruf**: der Horizont traegt
+   * schon zwei Stunden Reserve (`neededHours` unten), und die Bewertung ist
+   * reine Rechnung auf bereits geladenen Daten (audit/route-3d.md B11).
+   */
+  startOffsetsMin?: number[];
 }
 
 /** Hauptzugang: nimmt Samples (mit ETA) entgegen, liefert sie mit weather angereichert. */
@@ -263,6 +342,17 @@ export async function enrichSampleWeather(
     }
   }));
 
+  // Radar-Vorlauf durchreichen: der Sampler ist gleich weg, seine Aussage nicht.
+  const radarHorizons: RadarHorizon[] = [];
+  for (const s of radarByCountry.values()) {
+    if (s && s.meta.frameCount > 0) radarHorizons.push({ ...s.meta });
+  }
+
+  // Alternative Startzeiten — nur hier moeglich (B11).
+  const startWindow = opts.startOffsetsMin?.length
+    ? evaluateStartOffsets(opts.startOffsetsMin, out, clusterMeta, forecasts, radarByCountry)
+    : [];
+
   return {
     samples: out,
     meta: {
@@ -279,9 +369,130 @@ export async function enrichSampleWeather(
         snowLine: countries.some((c) => c === 'AT' || c === 'CH'),
         uvIndex: countries.includes('DE'),
       },
+      radar: radarHorizons,
+      startWindow,
       elapsedMs: Math.round(performance.now() - t0),
     },
   };
+}
+
+/** Schwelle, ab der ein Sample als "nass" zaehlt (mm/h) — dieselbe wie in der Szene. */
+const WET_MIN_MMH = 0.1;
+
+/**
+ * Standard-Kandidatenfenster fuer alternative Startzeiten: +-2 h im
+ * 15-Minuten-Raster. Die Obergrenze ist kein Geschmack, sondern die Reserve,
+ * die `neededHours` ohnehin holt (+2 h) — so kostet das Fenster keinen
+ * zusaetzlichen Abruf (audit/route-3d.md B11).
+ */
+export const START_OFFSETS_MIN: number[] = (() => {
+  const out: number[] = [];
+  for (let m = -120; m <= 120; m += 15) out.push(m);
+  return out;
+})();
+
+/**
+ * Bewertet die uebergebenen Verschiebungen auf den bereits geladenen Daten.
+ *
+ * Zwei Klemmungen, beide fachlich:
+ *   – ein Start in der Vergangenheit wird verworfen;
+ *   – Samples, fuer die weder Radar noch Forecast einen Wert haben, machen den
+ *     Eintrag `complete: false` — er wird dann nicht empfohlen, statt so zu tun,
+ *     als waere er trocken.
+ */
+function evaluateStartOffsets(
+  offsetsMin: number[],
+  samples: SampleETA[],
+  clusterMeta: Array<{ country: Country; sampleIndices: number[] }>,
+  forecasts: Array<PointForecast | null>,
+  radarByCountry: Map<Country, RadarNowcastSampler | null>,
+): StartWindowEntry[] {
+  if (samples.length === 0) return [];
+  const durMin = sampleDurationsMin(samples);
+  const now = Date.now();
+  const startEta = samples[0].etaMs;
+  const out: StartWindowEntry[] = [];
+
+  for (const offMin of offsetsMin) {
+    const shift = offMin * 60_000;
+    if (startEta + shift < now - 60_000) continue;
+    let wet = 0, peak = 0, total = 0, gust = 0, wind = 0, radarHits = 0, evaluated = 0, missing = 0;
+    let apparent: number | null = null;
+
+    for (let ci = 0; ci < clusterMeta.length; ci++) {
+      const pf = forecasts[ci];
+      const radar = radarByCountry.get(clusterMeta[ci].country) ?? null;
+      for (const sIdx of clusterMeta[ci].sampleIndices) {
+        const s = samples[sIdx];
+        const t = s.etaMs + shift;
+        const interp = pf ? interpolateForecastAt(pf, t) : null;
+        const radarMmH = radar?.sample(s.lat, s.lon, t) ?? null;
+        const mmH = radarMmH ?? interp?.precipitationMmH ?? null;
+        if (mmH == null) { missing++; continue; }
+        evaluated++;
+        if (radarMmH != null) radarHits++;
+        if (mmH >= WET_MIN_MMH) wet += durMin[sIdx];
+        if (mmH > peak) peak = mmH;
+        total += mmH * (durMin[sIdx] / 60);
+
+        // Denselben Weg gehen wie der Hauptweg oben: der Cluster-Forecast gilt
+        // fuer die Ankerhoehe, der Grenzwert des Nutzers fuer die Hoehe, auf
+        // der er steht. Ohne die Korrektur truege die Startsuche fuer denselben
+        // Ort eine andere Zahl als die Abschnittsliste (§17.3 C4).
+        const corr = correctForElevation(
+          interp?.windSpeedMps ?? null,
+          interp?.gustMps ?? null,
+          interp?.relativeHumidityPct ?? null,
+          interp?.temperatureC ?? null,
+          mmH,
+          pf?.query.elevation ?? null,
+          s.ele,
+          pf?.lapseRatePerM ?? STD_LAPSE_PER_M,
+        );
+        if (corr.gustMps != null && corr.gustMps > gust) gust = corr.gustMps;
+        if (corr.windSpeedMps != null && corr.windSpeedMps > wind) wind = corr.windSpeedMps;
+        if (corr.apparentTempC != null && (apparent == null || corr.apparentTempC < apparent)) {
+          apparent = corr.apparentTempC;
+        }
+      }
+    }
+
+    const coverage = evaluated + missing > 0 ? evaluated / (evaluated + missing) : 0;
+    out.push({
+      offsetMin: offMin,
+      wetMin: Math.round(wet),
+      peakMmH: round1(peak),
+      totalMm: round1(total),
+      peakGustMps: round1(gust),
+      peakWindMps: round1(wind),
+      minApparentC: apparent == null ? null : round1(apparent),
+      radarShare: evaluated > 0 ? radarHits / evaluated : 0,
+      coverage,
+      complete: evaluated > 0 && coverage >= START_COVERAGE_MIN,
+    });
+  }
+  return out.sort((a, b) => a.offsetMin - b.offsetMin);
+}
+
+/**
+ * Zeitanteil je Sample (min) — die halbe Spanne zu den Nachbarn. Er haengt
+ * NICHT von der Verschiebung ab, weil alle ETAs um denselben Betrag wandern.
+ */
+export function sampleDurationsMin(samples: Array<{ etaMs: number }>): number[] {
+  const n = samples.length;
+  if (n === 0) return [];
+  if (n === 1) return [0];
+  const out = new Array<number>(n);
+  for (let i = 0; i < n; i++) {
+    const prev = samples[Math.max(0, i - 1)].etaMs;
+    const next = samples[Math.min(n - 1, i + 1)].etaMs;
+    out[i] = Math.max(0, (next - prev) / 2 / 60_000);
+  }
+  return out;
+}
+
+function round1(v: number): number {
+  return Math.round(v * 10) / 10;
 }
 
 // ---------------------------------------------------------------------------
@@ -472,6 +683,7 @@ function emptyMeta(elapsedMs: number): EnrichmentMeta {
     clusterCount: 0, pointForecastCalls: 0, pointForecastFailed: 0,
     radarOverrides: 0, warningHits: 0, beyondHorizonCount: 0,
     elevationCorrected: 0, uvEstimated: 0, countries: [], coverage: { snowLine: false, uvIndex: false },
+    radar: [], startWindow: [],
     elapsedMs,
   };
 }

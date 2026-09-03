@@ -14,6 +14,7 @@ import type { ScalarGridResult } from './wind/openMeteoSource';
 import { ScalarLayer, temperatureRamp } from './scalar/ScalarLayer';
 import { RainLayer, precipRainRamp } from './scalar/RainLayer';
 import { CloudLayer } from './scalar/CloudLayer';
+import { uvBoundsToCorners } from './scalar/quadWarpMesh';
 import { loadFusedForecast, type ModelChoice } from './fusion/loadFusedForecast';
 import {
   initialModelSourceState, isFusionCapable, resolveModel, activeModelId,
@@ -618,15 +619,6 @@ const precipRamp: Record<number, string> = {
   0.75:  'rgb(200, 50, 50)',          // 7.5 mm/h very heavy — red
   1.0:   'rgb(170, 50, 130)',         // 10 mm/h extreme — purple
 };
-
-/** Äquirektangular-UV-Bounds (x0,y0,x1,y1) → QuadCorners [NW,NE,SE,SW] in [lng,lat].
- *  Adapter für den Fusion→CloudLayer-Transport (Fusion liefert uvBounds, der
- *  CloudLayer erwartet 4 Geo-Ecken). x=(lng+180)/360, y=(90−lat)/180 invertiert. */
-function uvBoundsToCorners(uv: [number, number, number, number]): QuadCorners {
-  const west = uv[0] * 360 - 180, north = 90 - uv[1] * 180;
-  const east = uv[2] * 360 - 180, south = 90 - uv[3] * 180;
-  return [[west, north], [east, north], [east, south], [west, south]];
-}
 
 /** Ab dieser Zoomstufe bekommen auch die Orte der Basiskarte (Kleinstädte,
  *  Gemeinden, Dörfer) eine Temperatur — davor genügt die kuratierte Liste. */
@@ -1968,9 +1960,14 @@ export default function MapView({
       if (map.getLayer(STATIONS_LAYER_ID)) map.moveLayer(STATIONS_LAYER_ID);
     };
     // CH-„jetzt": MeteoSwiss-Radar rzc.
+    // LE2/H7: das Landesradar des gesuchten Orts lädt mit Standardpriorität,
+    // die beiden Nachbarn mit `'low'` — das Komposit bleibt vollständig, nur
+    // der Wettlauf um die Leitung im Startfenster entfällt (LE0 §3 D).
+    const prioFor = (country: 'DE' | 'AT' | 'CH') =>
+      (countryRef.current === country ? undefined : { priority: 'low' as const });
     const loadRzc = async () => {
       try {
-        meteoRadarRef.current = await fetchRzcLatest(abort.signal);
+        meteoRadarRef.current = await fetchRzcLatest(abort.signal, prioFor('CH'));
         // Index-Map off-main vorwärmen (s. PrecipCompositor.primeCh) — VOR dem
         // Tick, damit build() im Render-Pfad gleich den warmen Cache trifft statt
         // den Newton-Solver synchron nachzuholen.
@@ -1985,7 +1982,7 @@ export default function MapView({
     // DE-Nowcast: DWD RADOLAN-RV (0–2 h).
     const loadRv = async () => {
       try {
-        nowcastRef.current = await fetchRvNowcast(abort.signal);
+        nowcastRef.current = await fetchRvNowcast(abort.signal, prioFor('DE'));
         if (compositorRef.current) await compositorRef.current.primeDe(nowcastRef.current);
         hoistRain();
         setNowcastTick((t) => t + 1);
@@ -1997,7 +1994,7 @@ export default function MapView({
     // AT-Nowcast: GeoSphere INCA-Grid (0–3 h, 15-min, 1 km).
     const loadInca = async () => {
       try {
-        incaGridRef.current = await fetchIncaGrid(abort.signal);
+        incaGridRef.current = await fetchIncaGrid(abort.signal, prioFor('AT'));
         if (compositorRef.current) await compositorRef.current.primeAt(incaGridRef.current);
         hoistRain();
         setNowcastTick((t) => t + 1);
@@ -3288,12 +3285,17 @@ export default function MapView({
     if (!compositorRef.current) compositorRef.current = new PrecipCompositor();
     // DACH-Komposit: pro Zelle das richtige Landesradar (DE RADOLAN / AT INCA /
     // CH rzc) im jeweiligen Nowcast-Horizont. Bewusst OHNE `d2` → jenseits des
-    // Land-Horizonts bleiben Zellen leer (keine ICON-D2-Verlängerung). Reguläres
-    // lat/lon-Gitter → kein Warp-Mesh nötig.
+    // Land-Horizonts bleiben Zellen leer (keine ICON-D2-Verlängerung).
+    // Das Warp-Mesh ist auch für dieses reguläre lat/lon-Gitter PFLICHT: ohne
+    // es interpoliert der RainLayer das Quad linear in Mercator und der Regen
+    // lag bis 30 km zu weit nördlich (§14 `audit/karten-layer-verortung.md`).
     const frame = compositorRef.current.build(forecastHour, {
       rv: nowcastRef.current, inca: incaGridRef.current, rzc: meteoRadarRef.current,
     }, Date.now());
-    rain.setFrame({ values: frame.values, width: frame.width, height: frame.height, corners: frame.corners });
+    rain.setFrame({
+      values: frame.values, width: frame.width, height: frame.height, corners: frame.corners,
+      warpLnglat: frame.warpLnglat, warpN: frame.warpN, warpRows: frame.warpRows,
+    });
   }, [forecastHour, nowcastTick, active, modelSource, forecast]);
 
   // Wolken-Layer (ICON-D2 CLCT): bei jeder Slider-Bewegung den Frame mit der

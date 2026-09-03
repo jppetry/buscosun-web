@@ -16,8 +16,80 @@
  */
 
 import { parseKonrad3d, type Konrad3dRun } from '../radar/konrad3d';
+import {
+  RADAR_CDN_BASE, radarCdnEnabled, radarCdnUsable, noteRadarCdnFailure, radarCdnDeadline,
+  radarImgEnabled,
+} from './radolanRuns';
+import { konradImgUrl, parseKonradImgJson } from './radarImg';
 
 const KONRAD3D_DIR = '/_dwd_opendata/weather/radar/konrad3d/';
+
+// ---------------------------------------------------------------------------
+// RD2 — Datenweg über das Daten-Repo-CDN (audit/radar-datenrepo.md §13)
+// ---------------------------------------------------------------------------
+// Der Radar-Spiegel legt jede KONRAD3D-XML byte-identisch nach `radar/konrad3d/`
+// auf `main`; die Zeitstempel sind rechenbar (5-Minuten-Raster, Verzug beim DWD
+// gemessen ≈ 4:45–4:57 min, §1.2/§10.3) — damit entfällt auf dem CDN-Weg auch
+// das 78,5-KB-Verzeichnislisting (H12/V-RD-3). Wie beim RV-Tar gilt ein
+// ZEIT-GATE (zu frühe Anfragen hielte jsDelivr als 404 fest): ein Lauf wird
+// frühestens bei Slot + KONRAD_CDN_GATE_MS angefragt. Existiert beim DWD schon
+// ein Lauf, den das Gate noch sperrt (≈ 45 s je 5 min), übernimmt der bisherige
+// Listing-Weg — die Karte bleibt exakt so frisch wie vor RD2.
+export const KONRAD_PUBLISH_LAG_MIN = 4.75;
+export const KONRAD_CDN_GATE_MS = 330_000;   // Slot + 5:30 (Ablage ≈ 4:57 + Push ≤ 17 s + Reserve)
+
+/** Zeitstempel `YYYYMMDDTHHMM00` (UTC) eines KONRAD3D-Laufs. */
+export function konradStamp(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${d.getUTCFullYear()}${p(d.getUTCMonth() + 1)}${p(d.getUTCDate())}T${p(d.getUTCHours())}${p(d.getUTCMinutes())}00`;
+}
+
+/** Die `count` jüngsten Läufe, die bei `lagMs` Verzug sicher vorliegen — gerechnet, ohne Listing. */
+export function guessKonradStamps(count: number, nowMs: number = Date.now(), lagMs: number = KONRAD_CDN_GATE_MS): string[] {
+  const stepMs = 5 * 60_000;
+  const newest = Math.floor((nowMs - lagMs) / stepMs) * stepMs;
+  const out: string[] = [];
+  for (let i = 0; i < count; i++) out.push(konradStamp(new Date(newest - i * stepMs)));
+  return out;
+}
+
+export function konradCdnUrl(stamp: string): string {
+  return `${RADAR_CDN_BASE}/konrad3d/KONRAD3D_${stamp}.xml`;
+}
+
+/** CDN-Versuch; `null` heißt: der Listing-Weg (unten) übernimmt — wie bisher. */
+async function fetchKonrad3dFromCdn(signal?: AbortSignal): Promise<Konrad3dRun | null> {
+  if (!radarCdnEnabled() || !radarCdnUsable()) return null;
+  const now = Date.now();
+  // Frische-Fenster: der DWD hat schon einen Lauf, den das Gate noch sperrt.
+  if (guessKonradStamps(1, now, KONRAD_PUBLISH_LAG_MIN * 60_000)[0] !== guessKonradStamps(1, now)[0]) return null;
+  for (const stamp of guessKonradStamps(2, now)) {
+    const file = `KONRAD3D_${stamp}.xml`;
+    const dl = radarCdnDeadline(signal);
+    try {
+      // RD3 (audit §14): erst das kompakte cells.json des Spiegels (10–30 KB statt
+      // ~255 KB XML — dieselbe `parseKonrad3d`-Ausgabe, deep-equal im Verifier);
+      // 404/Schema-Drift fällt still auf das XML DESSELBEN Stempels zurück.
+      if (radarImgEnabled()) {
+        const jr = await fetch(konradImgUrl(stamp), { signal: dl.signal, priority: 'low' });
+        if (jr.ok) {
+          const run = parseKonradImgJson(await jr.json());
+          if (run && run.refMs > 0) return run as Konrad3dRun;
+        }
+      }
+      const res = await fetch(konradCdnUrl(stamp), { signal: dl.signal, priority: 'low' });
+      if (!res.ok) continue;                    // 404: Spiegel hinkt ⇒ älterer Kandidat, dann Listing
+      const run = parseKonrad3d(await res.text(), file);
+      if (run.refMs === 0) continue;            // unvollständige Datei ⇒ weiterprobieren
+      return run;
+    } catch (err) {
+      if (signal?.aborted) throw err;
+      noteRadarCdnFailure();                    // Netz/Timeout: Sitzungs-Latch, Listing übernimmt
+      return null;
+    } finally { dl.done(); }
+  }
+  return null;
+}
 
 export const KONRAD3D_ATTRIBUTION =
   'Zellbahnen: <a href="https://www.dwd.de/EN/ourservices/opendata/opendata.html" ' +
@@ -40,7 +112,9 @@ const RUN_CACHE_TTL = 60_000;
 
 /** Listet das KONRAD3D-Verzeichnis und liefert die Dateinamen, jüngster zuerst. */
 async function listKonrad3dFiles(signal?: AbortSignal): Promise<string[]> {
-  const res = await fetch(KONRAD3D_DIR, { signal });
+  // LE2/H7: Zellbahnen sind Beiwerk zum Radarbild — Listing (79 KB) und XML
+  // (≈ 0,8 MB) liefen bisher im selben Startfenster wie der RV-Tar (V-LE-8).
+  const res = await fetch(KONRAD3D_DIR, { signal, priority: 'low' });
   if (!res.ok) throw new Error(`KONRAD3D Verzeichnis: ${res.status}`);
   const html = await res.text();
   const set = new Set<string>();
@@ -53,7 +127,7 @@ async function listKonrad3dFiles(signal?: AbortSignal): Promise<string[]> {
 }
 
 async function fetchOne(file: string, signal?: AbortSignal): Promise<Konrad3dRun> {
-  const res = await fetch(KONRAD3D_DIR + file, { signal });
+  const res = await fetch(KONRAD3D_DIR + file, { signal, priority: 'low' });
   if (!res.ok) throw new Error(`KONRAD3D ${file}: ${res.status}`);
   const xml = await res.text();
   const run = parseKonrad3d(xml, file);
@@ -73,6 +147,12 @@ async function fetchOne(file: string, signal?: AbortSignal): Promise<Konrad3dRun
  */
 export async function fetchKonrad3d(signal?: AbortSignal): Promise<Konrad3dRun> {
   if (_runCache && Date.now() - _runCache.at < RUN_CACHE_TTL) return _runCache.run;
+  // RD2: erst der gerechnete CDN-Weg (ohne Listing); `null` ⇒ Listing + Proxy wie bisher.
+  const viaCdn = await fetchKonrad3dFromCdn(signal);
+  if (viaCdn) {
+    _runCache = { run: viaCdn, at: Date.now() };
+    return viaCdn;
+  }
   let files: string[];
   if (_listCache && Date.now() - _listCache.at < LIST_CACHE_TTL) {
     files = [_listCache.file];

@@ -19,24 +19,28 @@ import {
   bindAttribute,
   bindTexture,
   createBuffer,
+  createIndexBuffer,
   createProgram,
   getColorRamp,
   type ProgramWrapper,
 } from '../wind/glUtil';
+import { warpMeshGeometry, mercatorOf } from './quadWarpMesh';
 
+// KL9/V-KL-3 (2026-08-27, Jans Go): die Knoten kommen als fertige Mercator-
+// Koordinaten (`a_merc`, auf der CPU in double — `mercatorOf`). Vorher rechnete
+// der Shader log(tan(π/4 + φ/2)) selbst: GPU-Transzendente in Float32 haben
+// ~1e-6 relativen Fehler, auf 40 075 km Weltumfang bis 280 m (gemessen,
+// `audit/karten-layer-verortung.md` §15.6). `highp`: ein fp16-mediump würde
+// a_merc auf 20 km quantisieren (V-KL-4).
 const vert = `
-precision mediump float;
-attribute vec2 a_lnglat;
+precision highp float;
+attribute vec2 a_merc;
 attribute vec2 a_uv;
 uniform mat4 u_matrix;
 varying vec2 v_uv;
-const float PI = 3.14159265358979323846;
 void main() {
   v_uv = a_uv;
-  float lat_rad = a_lnglat.y * PI / 180.0;
-  float mx = (a_lnglat.x + 180.0) / 360.0;
-  float my = 0.5 - log(tan(PI * 0.25 + lat_rad * 0.5)) / (2.0 * PI);
-  gl_Position = u_matrix * vec4(mx, my, 0.0, 1.0);
+  gl_Position = u_matrix * vec4(a_merc, 0.0, 1.0);
 }
 `;
 
@@ -107,14 +111,18 @@ export interface RainFrameData {
   height: number;
   corners: QuadCorners;
   /**
-   * Optionales fein unterteiltes Warp-Mesh: (warpN+1)² lon/lat-Paare, Index
-   * `(j*(warpN+1)+i)*2`, i = u (West→Ost), j = v (Nord→Süd). Wenn gesetzt, rendert
-   * der Layer ein gekrümmtes Mesh statt des linearen 4-Eck-Quads — nötig für
-   * projektionskorrekte Verortung gekrümmter Gitter (z. B. polar-stereografisches
-   * RADOLAN DE1200, sonst bis ~40 km Versatz). Ohne Mesh: 4-Eck-Quad wie bisher.
+   * Optionales fein unterteiltes Warp-Mesh: (warpN+1)·(warpRows+1) lon/lat-Paare,
+   * Index `(j*(warpN+1)+i)*2`, i = u (West→Ost), j = v (Nord→Süd). Wenn gesetzt,
+   * rendert der Layer ein Mesh statt des linearen 4-Eck-Quads — nötig für
+   * projektionskorrekte Verortung gekrümmter Gitter (RADOLAN DE1200, sonst bis
+   * ~40 km) UND für jedes lat/lon-Gitter mit Breitenspanne (Mercator-Interpolation,
+   * `quadWarpMesh.ts`; das Komposit-Quad lag 29 km daneben). Ohne Mesh: Quad.
    */
   warpLnglat?: Float32Array;
+  /** Spalten des Meshs. */
   warpN?: number;
+  /** Zeilen des Meshs; Default = `warpN` (quadratisch — projizierte Gitter). */
+  warpRows?: number;
 }
 
 export interface RainLayerOptions {
@@ -133,7 +141,8 @@ export class RainLayer implements CustomLayerInterface {
   private map: MapLibreMap | null = null;
   private gl: WebGLRenderingContext | null = null;
   private program!: ProgramWrapper;
-  private lnglatBuf: WebGLBuffer | null = null;
+  /** Knoten als Mercator-Paare (`mercatorOf`), Attribut a_merc. */
+  private mercBuf: WebGLBuffer | null = null;
   private uvBuf: WebGLBuffer | null = null;
   private valueTex: WebGLTexture | null = null;
   private colorRampTex!: WebGLTexture;
@@ -142,8 +151,11 @@ export class RainLayer implements CustomLayerInterface {
   /** Dimensionen der aktuellen Werte-Textur (für die bikubische Abtastung). */
   private texW = 1;
   private texH = 1;
-  /** Anzahl der zu zeichnenden Vertices (6 für das Quad, N·N·6 für das Warp-Mesh). */
-  private vertexCount = 6;
+  /** Index-Puffer (Dreiecksliste über die Knoten — 6 Indizes für das Quad,
+   *  nx·ny·6 für das Warp-Mesh; Uint32 ab 65 537 Knoten, WebGL2-Kern). */
+  private indexBuf: WebGLBuffer | null = null;
+  private indexCount = 0;
+  private indexType: number = 0;
   /** Geometrie nur neu bauen, wenn sich das Gitter ändert (Mesh-/Ecken-Referenz). */
   private lastGeomKey: unknown = null;
 
@@ -157,7 +169,7 @@ export class RainLayer implements CustomLayerInterface {
     this.map = map;
     this.gl = gl;
     this.program = createProgram(gl, vert, frag);
-    // Geometrie (lnglat + uv) wird in setFrame gebaut — Quad oder Warp-Mesh.
+    // Geometrie (merc + uv + Indizes) wird in setFrame gebaut — Quad oder Warp-Mesh.
     const ramp = getColorRamp(this.colorRampStops);
     this.colorRampTex = gl.createTexture()!;
     gl.bindTexture(gl.TEXTURE_2D, this.colorRampTex);
@@ -172,9 +184,12 @@ export class RainLayer implements CustomLayerInterface {
 
   onRemove(_map: MapLibreMap, gl: WebGLRenderingContext) {
     gl.deleteProgram(this.program.program);
-    if (this.lnglatBuf) gl.deleteBuffer(this.lnglatBuf);
+    if (this.mercBuf) gl.deleteBuffer(this.mercBuf);
     if (this.uvBuf) gl.deleteBuffer(this.uvBuf);
+    if (this.indexBuf) gl.deleteBuffer(this.indexBuf);
+    this.mercBuf = null; this.uvBuf = null; this.indexBuf = null; this.lastGeomKey = null;
     if (this.valueTex) gl.deleteTexture(this.valueTex);
+    this.valueTex = null;
     gl.deleteTexture(this.colorRampTex);
     this.ready = false;
   }
@@ -202,36 +217,33 @@ export class RainLayer implements CustomLayerInterface {
     // Nur neu bauen, wenn sich das Gitter ändert (Mesh-/Ecken-Referenz); reine
     // Frame-Wechsel (neue Werte, gleiches Gitter) tauschen nur die Textur unten.
     const geomKey = frame.warpLnglat ?? frame.corners;
-    if (geomKey !== this.lastGeomKey || !this.lnglatBuf) {
+    if (geomKey !== this.lastGeomKey || !this.mercBuf) {
       this.lastGeomKey = geomKey;
-      let lnglat: Float32Array, uv: Float32Array;
+      let lnglat: Float32Array, uv: Float32Array, indices: Uint16Array | Uint32Array;
       if (frame.warpLnglat && frame.warpN) {
-        const N = frame.warpN, V = frame.warpLnglat, stride = N + 1;
-        lnglat = new Float32Array(N * N * 6 * 2);
-        uv = new Float32Array(N * N * 6 * 2);
-        let p = 0;
-        const put = (i: number, j: number) => {
-          const k = (j * stride + i) * 2;
-          lnglat[p] = V[k]; lnglat[p + 1] = V[k + 1];
-          uv[p] = i / N; uv[p + 1] = j / N;
-          p += 2;
-        };
-        // je Gitterzelle 2 Dreiecke (NW,NE,SE / NW,SE,SW) — uv-Konvention wie das Quad.
-        for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
-          put(i, j); put(i + 1, j); put(i + 1, j + 1);
-          put(i, j); put(i + 1, j + 1); put(i, j + 1);
+        // Knoten = das Mesh selbst (indiziert, nicht expandiert: 320² expandiert
+        // wären 9,8 MB); uv + Dreiecksliste (NW,NE,SE / NW,SE,SW) aus der EINEN
+        // Stelle `warpMeshGeometry` — Konvention wie das Quad, uv(0,0) = NW.
+        const nx = frame.warpN, ny = frame.warpRows ?? frame.warpN;
+        if (frame.warpLnglat.length !== (nx + 1) * (ny + 1) * 2) {
+          throw new Error(`RainLayer: warpLnglat hat ${frame.warpLnglat.length / 2} Knoten, erwartet ${(nx + 1) * (ny + 1)} (${nx}×${ny})`);
         }
-        this.vertexCount = N * N * 6;
+        lnglat = frame.warpLnglat;
+        ({ uv, indices } = warpMeshGeometry(nx, ny));
       } else {
         const [nw, ne, se, sw] = frame.corners;
-        lnglat = new Float32Array([nw[0], nw[1], ne[0], ne[1], se[0], se[1], nw[0], nw[1], se[0], se[1], sw[0], sw[1]]);
-        uv = new Float32Array([0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1]);
-        this.vertexCount = 6;
+        lnglat = new Float32Array([nw[0], nw[1], ne[0], ne[1], se[0], se[1], sw[0], sw[1]]);
+        uv = new Float32Array([0, 0, 1, 0, 1, 1, 0, 1]);
+        indices = new Uint16Array([0, 1, 2, 0, 2, 3]);
       }
-      if (this.lnglatBuf) gl.deleteBuffer(this.lnglatBuf);
-      this.lnglatBuf = createBuffer(gl, lnglat);
+      if (this.mercBuf) gl.deleteBuffer(this.mercBuf);
+      this.mercBuf = createBuffer(gl, mercatorOf(lnglat));
       if (this.uvBuf) gl.deleteBuffer(this.uvBuf);
       this.uvBuf = createBuffer(gl, uv);
+      if (this.indexBuf) gl.deleteBuffer(this.indexBuf);
+      this.indexBuf = createIndexBuffer(gl, indices);
+      this.indexCount = indices.length;
+      this.indexType = indices instanceof Uint32Array ? gl.UNSIGNED_INT : gl.UNSIGNED_SHORT;
     }
 
     // 1-kanalige Werte-Textur (LUMINANCE). UNPACK_ALIGNMENT=1, da Zeilenbreite
@@ -254,7 +266,7 @@ export class RainLayer implements CustomLayerInterface {
   }
 
   render(gl: WebGLRenderingContext, args: CustomRenderMethodInput | number[] | Float32Array) {
-    if (!this.lnglatBuf || !this.uvBuf || !this.valueTex) return;
+    if (!this.mercBuf || !this.uvBuf || !this.valueTex) return;
     const matrix: Float32List = Array.isArray(args) || args instanceof Float32Array
       ? (args as Float32List)
       : (args.defaultProjectionData.mainMatrix as unknown as Float32List);
@@ -275,7 +287,7 @@ export class RainLayer implements CustomLayerInterface {
 
     const p = this.program;
     gl.useProgram(p.program);
-    bindAttribute(gl, this.lnglatBuf, p.a_lnglat as number, 2);
+    bindAttribute(gl, this.mercBuf, p.a_merc as number, 2);
     bindAttribute(gl, this.uvBuf, p.a_uv as number, 2);
     bindTexture(gl, this.valueTex, 0);
     bindTexture(gl, this.colorRampTex, 1);
@@ -285,7 +297,10 @@ export class RainLayer implements CustomLayerInterface {
     gl.uniform2f(p.u_texsize as WebGLUniformLocation, this.texW, this.texH);
     gl.uniformMatrix4fv(p.u_matrix as WebGLUniformLocation, false, matrix);
 
-    gl.drawArrays(gl.TRIANGLES, 0, this.vertexCount);
+    // MapLibre löst vor Custom-Layern sein VAO (`unbindVAO`) und markiert den
+    // Kontext danach als dirty — die ELEMENT_ARRAY_BUFFER-Bindung bleibt lokal.
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuf);
+    gl.drawElements(gl.TRIANGLES, this.indexCount, this.indexType, 0);
 
     if (!prevBlend) gl.disable(gl.BLEND);
     gl.depthMask(prevDepthMask);

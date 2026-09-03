@@ -17,6 +17,7 @@ import { texelCoord } from '../../src/wind/windPointSample.ts';
 import { G, gridLatLon, buildIndexMap } from '../../src/scalar/precipIndexMap.ts';
 import { DE1200_CORNERS, psFwd, psInv } from '../../src/sources/radolanGeo.ts';
 import { ensembleGrid } from '../../src/scalar/confidenceImage.ts';
+import { blockSpans } from '../../src/ml/coarsen.ts';
 
 const P = Math.PI / 180;
 const kmLon = (lat) => 111.32 * Math.cos(lat * P);
@@ -179,24 +180,22 @@ fam.eu = messeRaster('ICON-EU nativ, subsampled ss=2 — wind auf Druckflächen'
 // ===========================================================================
 {
   const NW = 1100, NH = 1200, factor = 8;
-  // `coarsenFrameU8` selbst ist nicht importierbar (convNet.ts benutzt
-  // Parameter-Properties, die `--experimental-strip-types` nicht kann) — also
-  // die Formel am Quelltext BELEGEN statt sie anzunehmen.
-  const src = fs.readFileSync('src/ml/nowcasterInference.ts', 'utf8');
-  const mW = /const W = Math\.max\(1, Math\.(ceil|floor)\(w \/ factor\)\), H = Math\.max\(1, Math\.(ceil|floor)\(h \/ factor\)\)/.exec(src);
-  if (!mW) throw new Error('coarsenFrameU8: Formel nicht gefunden — Skript anpassen');
-  const rund = mW[1] === 'ceil' ? Math.ceil : Math.floor;
-  const W = Math.max(1, rund(NW / factor)), H = Math.max(1, rund(NH / factor));
-  console.log(`    (Formel am Quelltext gelesen: Math.${mW[1]})`);
+  // Seit KL11 (2026-08-27) ist die Blockung in `src/ml/coarsen.ts` (rein,
+  // importierbar): die ECHTE Kachelung `blockSpans` wird gemessen, nicht mehr
+  // eine am Quelltext gelesene Formel.
+  const W = Math.max(1, Math.ceil(NW / factor)), H = Math.max(1, Math.ceil(NH / factor));
+  console.log(`    (Kachelung aus src/ml/coarsen.ts: blockSpans(${NW}, ${W}) — flächengewichtet, KL11)`);
   const spanX = 1100, spanY = 1200; // DE1200: exakt 1100 x 1200 km in PS-Koordinaten
 
-  const messe = (Wb) => {
+  // JETZT: Schwerpunkt des von blockSpans abgedeckten Intervalls je Zelle.
+  const messeSpans = (Wb) => {
+    const spans = blockSpans(NW, Wb);
     let maxErr = 0, errAt = 0;
     const je = [];
     for (let b = 0; b < Wb; b++) {
-      const first = b * factor, last = Math.min(NW - 1, b * factor + factor - 1);
-      if (first > NW - 1) break;
-      const trueX = (first + last) / 2 + 0.5;      // km ab Westkante
+      const s = spans[b];
+      const a = s.idx[0] + 1 - s.wt[0], z = s.idx[s.idx.length - 1] + s.wt[s.wt.length - 1];
+      const trueX = (a + z) / 2;                    // km ab Westkante (1 Spalte = 1 km)
       const drawX = ((b + 0.5) / Wb) * spanX;
       const e = drawX - trueX;
       je.push(e);
@@ -204,8 +203,24 @@ fam.eu = messeRaster('ICON-EU nativ, subsampled ss=2 — wind auf Druckflächen'
     }
     return { maxErr, errAt, je };
   };
-  const jetzt = messe(W);                        // ceil  -> 138
-  const vorher = messe(Math.floor(NW / factor)); // floor -> 137
+  // VORHER (starre 8er-Blöcke, floor 137 / ceil 138): zum Vergleich weiter gerechnet.
+  const messeStarr = (Wb) => {
+    let maxErr = 0, errAt = 0;
+    const je = [];
+    for (let b = 0; b < Wb; b++) {
+      const first = b * factor, last = Math.min(NW - 1, b * factor + factor - 1);
+      if (first > NW - 1) break;
+      const trueX = (first + last) / 2 + 0.5;
+      const drawX = ((b + 0.5) / Wb) * spanX;
+      const e = drawX - trueX;
+      je.push(e);
+      if (Math.abs(e) > Math.abs(maxErr)) { maxErr = e; errAt = b; }
+    }
+    return { maxErr, errAt, je };
+  };
+  const jetzt = messeSpans(W);                        // KL11: flächengewichtet, 138
+  const vorher = messeStarr(Math.floor(NW / factor)); // starr floor -> 137 (KL1-Stand)
+  const kl5 = messeStarr(W);                          // starr ceil  -> 138 (KL5-Stand)
 
   // an echten deutschen Orten: wie weit greift der Shader daneben?
   // psFwd liefert METER ab dem Pol — auf die NW-Ecke des DE1200-Gitters
@@ -229,25 +244,17 @@ fam.eu = messeRaster('ICON-EU nativ, subsampled ss=2 — wind auf Druckflächen'
   console.log(`--- Flow-Nowcast / PoP: DE1200 ${NW}x${NH} -> ${W}x${H} (FLOW_FACTOR ${factor})`);
   console.log(`    1100 / ${factor} = 137,5 -> die Blöcke kacheln die Domäne NICHT glatt.`);
   console.log(`    Blockmitte <-> Zeichenfläche (Ost-West):`);
-  console.log(`      JETZT  (ceil, ${W} Blöcke) : max ${f2(jetzt.maxErr)} km bei Block ${jetzt.errAt}` +
-    ` · an Orten Median ${f2(sJ.medi)} / max ${f2(sJ.max)} km (${sJ.n} Orte in DE1200)`);
-  console.log(`      VORHER (floor, ${Math.floor(NW / factor)} Blöcke): max ${f2(vorher.maxErr)} km bei Block ${vorher.errAt}` +
+  const sK5 = stat(W, kl5.je);
+  console.log(`      JETZT  (KL11 flächengewichtet, ${W} Zellen): max ${jetzt.maxErr.toExponential(2)} km bei Zelle ${jetzt.errAt}` +
+    ` · an Orten Median ${sJ.medi.toExponential(2)} / max ${sJ.max.toExponential(2)} km (${sJ.n} Orte in DE1200)`);
+  console.log(`      KL5    (starr ceil, ${W} Blöcke)  : max ${f2(kl5.maxErr)} km bei Block ${kl5.errAt}` +
+    ` · an Orten Median ${f2(sK5.medi)} / max ${f2(sK5.max)} km`);
+  console.log(`      KL1    (starr floor, ${Math.floor(NW / factor)} Blöcke): max ${f2(vorher.maxErr)} km bei Block ${vorher.errAt}` +
     ` · an Orten Median ${f2(sV.medi)} / max ${f2(sV.max)} km`);
   console.log(`      Nord-Süd: ${NH} / ${factor} = ${NH / factor} glatt -> 0,00 km`);
   const ost = proj.slice().sort((a, b) => b.p[0] - a.p[0])[0];
   console.log(`      östlichster Ort: ${ost.name} (x = ${ost.p[0].toFixed(0)} km)`);
-  fam.flow = { W, H, jetzt, vorher, sJ, sV };
-
-  // Vorschlag: flächentreue Blöcke (Blockbreite 1100/W statt 8)
-  let maxProp = 0;
-  for (let b = 0; b < W; b++) {
-    const trueX = ((b + 0.5) / W) * spanX;
-    const drawX = ((b + 0.5) / W) * spanX;
-    maxProp = Math.max(maxProp, Math.abs(drawX - trueX));
-  }
-  console.log(`      Vorschlag A (flächengewichtete Blöcke der Breite ${(spanX / W).toFixed(3)} km): ${maxProp.toFixed(2)} km`);
-  const f10 = 10;
-  console.log(`      Vorschlag B (FLOW_FACTOR ${f10}: 1100/${f10} = ${NW / f10}, 1200/${f10} = ${NH / f10} — beide glatt): 0,00 km`);
+  fam.flow = { W, H, jetzt, vorher, kl5, sJ, sV, sK5 };
 }
 
 // ===========================================================================

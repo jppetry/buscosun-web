@@ -8,9 +8,12 @@
  * identisch. Vorlage: references/routenplaner.dc.html (T1/T8/T11).
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import RouteUpload from './RouteUpload';
 import RouteResult from './RouteResult';
+import TourView from './TourView';
+import { clearTour, loadTour, restoreStartMs, tourStoreEnabled, unpackTour, type StoredPlan } from './tourStore';
+import type { TourTrack } from './tourTrack';
 import RouteDeckShell, { DeckLive, type RailFeature } from './RouteDeck';
 import { parseRouteFile } from './parseRoute';
 import { getFormat, sniffFormat, type RouteFormat } from './routeFormats';
@@ -20,10 +23,16 @@ import type { ParsedFile } from './routeModel';
 import '../mobile/safeArea.css';
 import './routeDeck.css';
 
+/** Ansichtsmodus des Ergebnis-Screens — `3d` spiegelt sich als `/tourenplanung/3d`. */
+export type TourViewMode = '2d' | '3d';
+
 interface Props {
   onBack: () => void;
   /** Rail-Sprung in ein anderes Werkzeug (optional). */
   onOpenFeature?: (id: RailFeature) => void;
+  /** Sicht aus dem Pfad (`/tourenplanung/3d`). Ohne Strecke bleibt sie folgenlos. */
+  view?: TourViewMode;
+  onView?: (v: TourViewMode) => void;
 }
 
 /** Möglichkeiten-Liste des Idle-Kopfs — was die Tourenplanung dir bietet. */
@@ -53,11 +62,40 @@ type Status =
   | { kind: 'idle' }
   | { kind: 'parsing'; fileName: string }
   | { kind: 'error'; fileName: string; message: string }
-  | { kind: 'ready'; file: File; format: RouteFormat; parsed: ParsedFile };
+  | { kind: 'ready'; file: File; format: RouteFormat; parsed: ParsedFile }
+  // Aus dem Gerätespeicher geholt (V-R3D-1): es gibt keine Datei und keine
+  // Vorschau mehr — die Planung ist der richtige Ort zum Aufsetzen.
+  | { kind: 'restored'; track: TourTrack; plan: StoredPlan; fileLabel?: string; savedMs: number; startMoved: boolean };
 
-export default function RoutePage({ onBack, onOpenFeature }: Props) {
+export default function RoutePage({ onBack, onOpenFeature, view = '2d', onView }: Props) {
   const [status, setStatus] = useState<Status>({ kind: 'idle' });
   const isMobile = useIsMobile();
+
+  // Zuletzt geplante Tour anbieten (V-R3D-1, `audit/route-3d.md` §15.4).
+  // Nur, solange nichts anderes läuft — ein frischer Upload schlägt den Speicher.
+  useEffect(() => {
+    if (!tourStoreEnabled()) return;
+    let cancelled = false;
+    void loadTour().then((packed) => {
+      if (cancelled) return;
+      const entry = unpackTour(packed);
+      if (!entry) return;
+      const { startMs, moved } = restoreStartMs(entry.plan.startMs);
+      setStatus((prev) => (prev.kind === 'idle'
+        ? {
+            kind: 'restored',
+            track: entry.track,
+            plan: { ...entry.plan, startMs },
+            savedMs: entry.savedMs,
+            startMoved: moved,
+            ...(entry.fileLabel ? { fileLabel: entry.fileLabel } : {}),
+          }
+        : prev));
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  const discardTour = () => { void clearTour(); setStatus({ kind: 'idle' }); };
 
   async function handleFile(file: File) {
     // 1) Größenlimit (vor dem Einlesen).
@@ -91,11 +129,30 @@ export default function RoutePage({ onBack, onOpenFeature }: Props) {
     }
   }
 
-  const reset = () => setStatus({ kind: 'idle' });
+  // „Andere Datei" wirft auch den gespeicherten Eintrag weg — sonst käme er
+  // beim nächsten Aufruf zurück, obwohl der Nutzer ihn gerade verlassen hat.
+  const reset = () => { void clearTour(); setStatus({ kind: 'idle' }); };
+
+  // Wiederhergestellte Tour: direkt in die Planung, ohne Datei und Vorschau.
+  if (status.kind === 'restored') {
+    return (
+      <TourView
+        track={status.track}
+        fileLabel={status.fileLabel}
+        onBack={discardTour}
+        onHome={onBack}
+        onOpenFeature={onOpenFeature}
+        isMobile={isMobile}
+        view={view}
+        onView={onView}
+        restore={{ plan: status.plan, savedMs: status.savedMs, startMoved: status.startMoved, onDiscard: discardTour }}
+      />
+    );
+  }
 
   // Planung/Ergebnis bringt seine eigene Shell mit (RouteResult → TourView).
   if (status.kind === 'ready') {
-    return <RouteResult file={status.file} format={status.format} parsed={status.parsed} onReset={reset} onHome={onBack} onOpenFeature={onOpenFeature} isMobile={isMobile} />;
+    return <RouteResult file={status.file} format={status.format} parsed={status.parsed} onReset={reset} onHome={onBack} onOpenFeature={onOpenFeature} isMobile={isMobile} view={view} onView={onView} />;
   }
 
   const crumb = <span className="rd-crumb-txt">Tourenplanung</span>;
@@ -129,6 +186,12 @@ export default function RoutePage({ onBack, onOpenFeature }: Props) {
             ))}
           </ul>
 
+          {view === '3d' && (
+            <p className="rd-note rd-note--warn" style={{ marginTop: 14 }}>
+              Die 3D-Ansicht zeigt das Wetter über deiner Strecke — dafür braucht sie erst eine Strecke.
+              Lade sie unten hoch; nach der Berechnung steht der Umschalter <b>2D / 3D</b> im Ergebnis.
+            </p>
+          )}
           <div className="rd-section-label">Strecke hochladen</div>
           <RouteUpload onFile={handleFile} />
 

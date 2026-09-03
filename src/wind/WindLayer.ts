@@ -15,6 +15,7 @@ import {
   type PackedTexture,
   type ProgramWrapper,
 } from './glUtil';
+import { equiFootprintMesh, mercatorOf, mercYTable, MERC_TABLE_DIM } from '../scalar/quadWarpMesh';
 import { drawFrag, drawVert, drawVertProjected, heatmapFrag, heatmapVert, heatmapVertProjected, quadVert, screenFrag, segDrawFrag, segDrawVert, segDrawVertProjected, updateFrag } from './shaders';
 import { FrameGovernor, readDeviceCaps, initialTier, tierToLevelIndex, type DeviceCaps } from './perfGovernor';
 import { refineNormalizedUV } from './windRefine';
@@ -361,8 +362,16 @@ export class WindLayer implements CustomLayerInterface {
   private quadBuffer!: WebGLBuffer;
   private framebuffer!: WebGLFramebuffer;
   private particleIndexBuffer!: WebGLBuffer;
-  private heatmapBuffer!: WebGLBuffer;
+  /** Footprint-Mesh der Heatmap über die Daten-uvBounds (`equiFootprintMesh`,
+   *  ≤ 1 m Mercator-Rest statt 2 km beim früheren 128 × 64-Weltmesh) — gebaut
+   *  beim Datenwechsel, neu nur bei geänderten Bounds. */
+  private heatmapBuffer: WebGLBuffer | null = null;
+  /** Dieselben Knoten als Mercator-Paare (Attribut a_merc, `mercatorOf`). */
+  private heatmapMercBuffer: WebGLBuffer | null = null;
   private heatmapVertexCount = 0;
+  private heatmapMeshKey = '';
+  /** KL10: Mercator-y-Tabelle der Partikel-Zeichen-Shader (`mercYTable`, 64 × 64 RGBA8, NEAREST). */
+  private mercTableTexture: WebGLTexture | null = null;
 
   private particleStateTexture0!: WebGLTexture;
   private particleStateTexture1!: WebGLTexture;
@@ -1200,9 +1209,8 @@ export class WindLayer implements CustomLayerInterface {
     );
     this.framebuffer = gl.createFramebuffer()!;
 
-    this.buildHeatmapMesh();
-
     this.colorRampTexture = createTexture(gl, gl.LINEAR, getColorRamp(this.colorRampStops), 16, 16);
+    this.mercTableTexture = createTexture(gl, gl.NEAREST, mercYTable(), MERC_TABLE_DIM, MERC_TABLE_DIM);
     this.particleRampTexture = this.particleRampStops
       ? createTexture(gl, gl.LINEAR, getColorRamp(this.particleRampStops), 16, 16)
       : null;
@@ -1281,12 +1289,15 @@ export class WindLayer implements CustomLayerInterface {
     gl.deleteBuffer(this.particleIndexBuffer);
     if (this.segVertexBuffer) { gl.deleteBuffer(this.segVertexBuffer); this.segVertexBuffer = null; }
     if (this.segIndexBuffer) { gl.deleteBuffer(this.segIndexBuffer); this.segIndexBuffer = null; }
-    gl.deleteBuffer(this.heatmapBuffer);
+    if (this.heatmapBuffer) gl.deleteBuffer(this.heatmapBuffer);
+    if (this.heatmapMercBuffer) gl.deleteBuffer(this.heatmapMercBuffer);
+    this.heatmapBuffer = null; this.heatmapMercBuffer = null; this.heatmapMeshKey = '';
     gl.deleteFramebuffer(this.framebuffer);
     gl.deleteTexture(this.particleStateTexture0);
     gl.deleteTexture(this.particleStateTexture1);
     if (this.windTexture) gl.deleteTexture(this.windTexture);
     gl.deleteTexture(this.colorRampTexture);
+    if (this.mercTableTexture) { gl.deleteTexture(this.mercTableTexture); this.mercTableTexture = null; }
     if (this.particleRampTexture) { gl.deleteTexture(this.particleRampTexture); this.particleRampTexture = null; }
     gl.deleteTexture(this.backgroundTexture);
     gl.deleteTexture(this.screenTexture);
@@ -1347,6 +1358,7 @@ export class WindLayer implements CustomLayerInterface {
     };
     this._lastWindImage = image;
     this._lastWindMetaKey = metaKey;
+    this.ensureHeatmapMesh(this.windData.uvBounds);
     // Segments: die Dichte hängt am Sichtanteil der Datenregion (uvBounds) —
     // jetzt, wo die Bounds bekannt sind, einmal nachziehen (res-gedämpft).
     if (this.particleStyle === 'segments') this.applyTargetParticleCount();
@@ -1397,6 +1409,7 @@ export class WindLayer implements CustomLayerInterface {
     // setWindData darf nicht versehentlich auf einen alten Treffer laufen.
     this._lastWindImage = null;
     this._lastWindMetaKey = metaKey;
+    this.ensureHeatmapMesh(this.windData.uvBounds);
     if (this.particleStyle === 'segments') this.applyTargetParticleCount();
     this.clearOnNextFrame = true;
     this.map?.triggerRepaint();
@@ -1432,28 +1445,24 @@ export class WindLayer implements CustomLayerInterface {
     packed: PackedTexture; width: number; height: number; meta: WindMeta; key: string;
   } | null = null;
 
-  private buildHeatmapMesh() {
+  /**
+   * Heatmap-Mesh über den Daten-Footprint statt über die ganze Welt: das
+   * 128 × 64-Weltmesh (Bänder 2,66°) legte jeden Wert bis 2,0 km zu weit
+   * nördlich (Mercator-Interpolation von `v_equi_uv`, `audit/karten-layer-
+   * verortung.md` §15). Zeilen aus der Zeilenregel in `quadWarpMesh.ts` (≤ 1 m);
+   * Welt-Bounds [0,0,1,1] (GFS) sind gedeckelt (2 921 Zeilen).
+   */
+  private ensureHeatmapMesh(uvBounds: [number, number, number, number]) {
     const gl = this.gl!;
-    const cols = 128;
-    const rows = 64;
-    const verts: number[] = [];
-    const lngStep = 360 / cols;
-    const latRange = 2 * MERC_MAX_LAT;
-    const latStep = latRange / rows;
-    for (let j = 0; j < rows; j++) {
-      for (let i = 0; i < cols; i++) {
-        const lng0 = -180 + i * lngStep;
-        const lng1 = -180 + (i + 1) * lngStep;
-        const lat0 = -MERC_MAX_LAT + j * latStep;
-        const lat1 = -MERC_MAX_LAT + (j + 1) * latStep;
-        verts.push(
-          lng0, lat0, lng1, lat0, lng0, lat1,
-          lng0, lat1, lng1, lat0, lng1, lat1,
-        );
-      }
-    }
-    this.heatmapBuffer = createBuffer(gl, new Float32Array(verts));
+    const key = uvBounds.join(',');
+    if (this.heatmapBuffer && key === this.heatmapMeshKey) return;
+    const verts = equiFootprintMesh(uvBounds);
+    if (this.heatmapBuffer) gl.deleteBuffer(this.heatmapBuffer);
+    this.heatmapBuffer = createBuffer(gl, verts);
+    if (this.heatmapMercBuffer) gl.deleteBuffer(this.heatmapMercBuffer);
+    this.heatmapMercBuffer = createBuffer(gl, mercatorOf(verts));
     this.heatmapVertexCount = verts.length / 2;
+    this.heatmapMeshKey = key;
   }
 
   private initParticles(n: number) {
@@ -1962,6 +1971,7 @@ export class WindLayer implements CustomLayerInterface {
 
   private drawHeatmap(matrix: Float32List, mapFB: WebGLFramebuffer | null, mapViewport: Int32Array) {
     const gl = this.gl!;
+    if (!this.heatmapBuffer || !this.heatmapMercBuffer) return;
     gl.bindFramebuffer(gl.FRAMEBUFFER, mapFB);
     gl.viewport(mapViewport[0], mapViewport[1], mapViewport[2], mapViewport[3]);
     gl.enable(gl.BLEND);
@@ -1970,6 +1980,7 @@ export class WindLayer implements CustomLayerInterface {
     const p = this.heatmapProgram;
     gl.useProgram(p.program);
     bindAttribute(gl, this.heatmapBuffer, p.a_lnglat as number, 2);
+    bindAttribute(gl, this.heatmapMercBuffer, p.a_merc as number, 2);
     bindTexture(gl, this.windTexture!, 0);
     bindTexture(gl, this.colorRampTexture, 2);
     gl.uniform1i(p.u_wind as WebGLUniformLocation, 0);
@@ -2132,9 +2143,11 @@ export class WindLayer implements CustomLayerInterface {
 
     // Partikel-Rampe, falls gesetzt — sonst die Heatmap-Rampe (Altverhalten).
     bindTexture(gl, this.particleRampTexture ?? this.colorRampTexture, 2);
+    bindTexture(gl, this.mercTableTexture!, 3);
     gl.uniform1i(p.u_wind as WebGLUniformLocation, 0);
     gl.uniform1i(p.u_particles as WebGLUniformLocation, 1);
     gl.uniform1i(p.u_color_ramp as WebGLUniformLocation, 2);
+    gl.uniform1i(p.u_merc_table as WebGLUniformLocation, 3);
     gl.uniform1f(p.u_speed_tint as WebGLUniformLocation, this.speedTint);
 
     gl.uniform1f(p.u_particles_res as WebGLUniformLocation, this.particleStateResolution);
@@ -2232,9 +2245,11 @@ export class WindLayer implements CustomLayerInterface {
 
     // Partikel-Rampe, falls gesetzt — sonst die Heatmap-Rampe (Altverhalten).
     bindTexture(gl, this.particleRampTexture ?? this.colorRampTexture, 2);
+    bindTexture(gl, this.mercTableTexture!, 3);
     gl.uniform1i(p.u_wind as WebGLUniformLocation, 0);
     gl.uniform1i(p.u_particles as WebGLUniformLocation, 1);
     gl.uniform1i(p.u_color_ramp as WebGLUniformLocation, 2);
+    gl.uniform1i(p.u_merc_table as WebGLUniformLocation, 3);
     gl.uniform1f(p.u_speed_tint as WebGLUniformLocation, this.speedTint);
     gl.uniform1f(p.u_particles_res as WebGLUniformLocation, this.particleStateResolution);
     gl.uniform2f(p.u_wind_min as WebGLUniformLocation, this.windData!.uMin, this.windData!.vMin);

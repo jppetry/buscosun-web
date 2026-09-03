@@ -543,12 +543,14 @@ interface DecodedImage { data: Uint8ClampedArray; width: number; height: number 
  * hat A = 0 außerhalb der Domäne — ohne die Option würden dort R/G genullt).
  * Chrome war auch ohne die Optionen exakt; sie stehen als Absicherung.
  */
-async function loadRgba(url: string, signal: AbortSignal | undefined, expect: RepackGrid): Promise<DecodedImage | null> {
+async function loadRgba(url: string, signal: AbortSignal | undefined, expect: RepackGrid, priority: RequestPriority = 'high'): Promise<DecodedImage | null> {
   const first = !state.firstDone;
   const { signal: sig, rearm, done } = withDeadline(first ? FIRST_TIMEOUT_MS : STEP_TIMEOUT_MS, signal);
   let blob: Blob;
   try {
-    const res = await fetch(url, { signal: sig, cache: 'default' });
+    // LE2/H7: die Repack-Bilder SIND das Erstbild der Wetterkarte ⇒ `'high'`;
+    // wer nur eine Zahl daraus liest (`cape` am Regenradar) reicht `'low'` durch.
+    const res = await fetch(url, { signal: sig, cache: 'default', priority });
     if (!res.ok) { markBroken(`HTTP ${res.status}`); return null; }
     // BW-10: die Kopfzeilen sind da — die Frist hat ihre Frage beantwortet
     // („antwortet das CDN?"). Der Körper bekommt seine eigene, bandbreiten-
@@ -719,12 +721,13 @@ export async function loadGridStep(
   family: 'precip' | 'cape',
   step: number,
   signal?: AbortSignal,
+  priority?: RequestPriority,
 ): Promise<{ values: Uint8Array; width: number; height: number } | null> {
   const fam = section[family];
   if (state.broken || !fam) return null;
   const entry = fam.steps.find((s) => s.step === step);
   if (!entry) return null;
-  const img = await loadRgba(stepUrl(section, entry.file), signal, fam.grid);
+  const img = await loadRgba(stepUrl(section, entry.file), signal, fam.grid, priority);
   if (!img) return null;
   const n = img.width * img.height;
   const values = new Uint8Array(n);

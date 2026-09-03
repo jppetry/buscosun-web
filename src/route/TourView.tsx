@@ -6,7 +6,7 @@
  * Warn-/Föhn-Banner, Zeit-Scrubber, Zeitplan + Zeit-Übersicht, Daten-Herkunft).
  */
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import RouteMap, { type MapBreak, type WeatherMarker } from './RouteMap';
 import MovementPicker from './MovementPicker';
 import SpeedProfileConfig from './SpeedProfileConfig';
@@ -21,15 +21,37 @@ import { computeTimingIterated, type Milestone, type SampleETA, type TourTiming 
 import { isLoop, reverseTourTrack, type TourTrack } from './tourTrack';
 import { formatStart, horizonState } from './startTime';
 import { createWindSampler, type WindSampler } from './windSampling';
-import { bearingDeg, headwindComponentMps } from './windEffect';
+import { bearingAtDist, headwindComponentMps } from './windEffect';
 import EbikeBatteryPanel from './EbikeBatteryPanel';
 import { batterySocAtDist, computeEbikeBattery, DEFAULT_EBIKE_CONFIG, type EbikeConfig } from './ebikeBattery';
-import { enrichSampleWeather, type EnrichmentMeta } from '../pointForecast/weatherEnrichment';
+import { enrichSampleWeather, START_OFFSETS_MIN, type EnrichmentMeta } from '../pointForecast/weatherEnrichment';
+import { packTour, saveTour, tourStoreEnabled, TOUR_SAVE_DEBOUNCE_MS, type StoredPlan } from './tourStore';
 import { computeWeatherAggregate } from './weatherAggregate';
 import { WeatherStatGrid, WarningBanner, FoehnBanner } from './WeatherSummary';
 import WeatherProfile from './WeatherProfile';
 import TourWeatherStrip from './TourWeatherStrip';
 import RouteScrubber from './RouteScrubber';
+// Die 3D-Ansicht lädt erst beim Umschalten (eigener Chunk) — das 2D-Ergebnis
+// zahlt nichts dafür. Muster wie `EventZoneMap` (EZ, Entscheidung E7).
+const Route3DView = lazy(() => import('./route3d/Route3DView'));
+/**
+ * Das Ergebnis öffnet mit dem Relief (Jans Entscheidung, R3D-8). Die Karte kommt
+ * lazy — wer auf die flache Karte umschaltet, lädt Vorhang und Textur nie.
+ */
+const RouteTerrainPanel = lazy(() => import('./route3d/RouteTerrainPanel'));
+
+/** Welche Karte das Ergebnis zeigt. Standard: das Gelände. */
+type ResultMap = 'terrain' | 'flat';
+const RESULT_MAP_KEY = 'bsc.route.resultmap';
+
+function loadResultMap(): ResultMap {
+  try {
+    return localStorage.getItem(RESULT_MAP_KEY) === 'flat' ? 'flat' : 'terrain';
+  } catch {
+    return 'terrain';
+  }
+}
+import type { TourViewMode } from './RoutePage';
 import { clock } from './tourUi';
 import {
   IconLoop, IconWarning, IconCheck, IconArrowRight,
@@ -43,23 +65,39 @@ import './routeDeck.css';
 import '../mobile/safeArea.css';
 
 type Direction = 'forward' | 'reverse';
+
+/**
+ * Tour aus dem Gerätespeicher (V-R3D-1, `audit/route-3d.md` §15.4). Trägt den
+ * gespeicherten Plan, den Zeitpunkt der Ablage und die Frage, ob die Startzeit
+ * dabei auf „jetzt" rücken musste — die Ansicht sagt beides.
+ */
+export interface RestoredTour {
+  plan: StoredPlan;
+  savedMs: number;
+  startMoved: boolean;
+  /** Eintrag löschen und zurück zum Upload. */
+  onDiscard: () => void;
+}
 type WindState = { kind: 'pending' } | { kind: 'ready'; sampler: WindSampler } | { kind: 'unavailable' };
 type WeatherState =
   | { kind: 'idle' } | { kind: 'loading' }
   | { kind: 'ready'; samples: SampleETA[]; meta: EnrichmentMeta }
   | { kind: 'error'; message: string };
 
-export default function TourView({ track, fileLabel, onBack, onHome, onOpenFeature, isMobile: isMobileProp }: { track: TourTrack; fileLabel?: string; onBack?: () => void; onHome?: () => void; onOpenFeature?: (id: RailFeature) => void; isMobile?: boolean }) {
+export default function TourView({ track, fileLabel, onBack, onHome, onOpenFeature, isMobile: isMobileProp, view = '2d', onView, restore }: { track: TourTrack; fileLabel?: string; onBack?: () => void; onHome?: () => void; onOpenFeature?: (id: RailFeature) => void; isMobile?: boolean; view?: TourViewMode; onView?: (v: TourViewMode) => void; restore?: RestoredTour }) {
   const isMobileHook = useIsMobile();
   const isMobile = isMobileProp ?? isMobileHook;
   const loop = useMemo(() => isLoop(track), [track]);
-  const [direction, setDirection] = useState<Direction>('forward');
-  const [typeId, setTypeId] = useState<MovementId | null>(null);
-  const [profile, setProfile] = useState<SpeedProfile | null>(null);
-  const [breakCfg, setBreakCfg] = useState<BreakConfig | null>(null);
-  const [startMs, setStartMs] = useState<number>(() => Date.now());
-  const [ebikeCfg, setEbikeCfg] = useState<EbikeConfig>(() => ({ ...DEFAULT_EBIKE_CONFIG }));
-  const [weatherRequested, setWeatherRequested] = useState(false);
+  // Vorbelegung: entweder frisch oder aus dem gespeicherten Plan (V-R3D-1).
+  // Das Wetter ist NICHT dabei — es waere nach Minuten falsch und wird neu geholt.
+  const [direction, setDirection] = useState<Direction>(restore?.plan.direction ?? 'forward');
+  const [typeId, setTypeId] = useState<MovementId | null>(restore?.plan.typeId ?? null);
+  const [profile, setProfile] = useState<SpeedProfile | null>(restore?.plan.profile ?? null);
+  const [breakCfg, setBreakCfg] = useState<BreakConfig | null>(restore?.plan.breakCfg ?? null);
+  const [startMs, setStartMs] = useState<number>(() => restore?.plan.startMs ?? Date.now());
+  const [ebikeCfg, setEbikeCfg] = useState<EbikeConfig>(() => ({ ...(restore?.plan.ebikeCfg ?? DEFAULT_EBIKE_CONFIG) }));
+  const [weatherRequested, setWeatherRequested] = useState(restore?.plan.weatherRequested ?? false);
+  const [noteOpen, setNoteOpen] = useState(true);
   const [scrubPos, setScrubPos] = useState<{ lat: number; lon: number } | null>(null);
   // Gekoppelte Scrub-Distanz: Wetter-Strip-Klick ↔ Scrubber-Marker (Mockup 03).
   const [scrubDistM, setScrubDistM] = useState<number | null>(null);
@@ -131,12 +169,28 @@ export default function TourView({ track, fileLabel, onBack, onHome, onOpenFeatu
     let cancelled = false;
     const ctrl = new AbortController();
     setWeatherState({ kind: 'loading' });
-    enrichSampleWeather(enrichedSamples, { signal: ctrl.signal, terrain: eff.meta.terrain })
+    // `startOffsetsMin` kostet keinen Abruf (audit/route-3d.md B11) und ist die
+    // einzige Stelle, an der alternative Startzeiten ueberhaupt bewertbar sind:
+    // danach sind Cluster-Forecasts und Radar-Sampler weg.
+    enrichSampleWeather(enrichedSamples, {
+      signal: ctrl.signal,
+      terrain: eff.meta.terrain,
+      startOffsetsMin: START_OFFSETS_MIN,
+    })
       .then(({ samples, meta }) => { if (!cancelled) setWeatherState({ kind: 'ready', samples, meta }); })
       .catch((err) => { if (!cancelled) setWeatherState({ kind: 'error', message: err instanceof Error ? err.message : String(err) }); });
     return () => { cancelled = true; ctrl.abort(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sampleFingerprint, weatherRequested]);
+
+  // Plan im Geraetespeicher halten (V-R3D-1). Entprellt, weil jeder Reglerzug
+  // sonst eine eigene Transaktion auslöst; das Wetter bleibt außen vor.
+  useEffect(() => {
+    if (!tourStoreEnabled()) return;
+    const plan: StoredPlan = { direction, typeId, profile, breakCfg, startMs, ebikeCfg, weatherRequested };
+    const id = setTimeout(() => { void saveTour(packTour(track, plan, fileLabel ? { fileLabel } : {})); }, TOUR_SAVE_DEBOUNCE_MS);
+    return () => clearTimeout(id);
+  }, [track, fileLabel, direction, typeId, profile, breakCfg, startMs, ebikeCfg, weatherRequested]);
 
   const displaySamples: SampleETA[] = weatherState.kind === 'ready' ? weatherState.samples : enrichedSamples;
   const agg = useMemo(() => computeWeatherAggregate(displaySamples), [displaySamples]);
@@ -175,7 +229,41 @@ export default function TourView({ track, fileLabel, onBack, onHome, onOpenFeatu
     });
   }, [weatherState.kind, displaySamples, eff.points]);
 
+  // R3D: die 3D-Ansicht rendert INNERHALB dieser Komponente — kein Router-Wechsel,
+  // deshalb überlebt die hochgeladene Strecke den Moduswechsel (audit/route-3d.md B3).
+  // Ohne berechnetes Wetter zeigt sie nichts; der Pfad bleibt stehen und greift,
+  // sobald das Ergebnis da ist.
+  // V-R3D-3 (§15.3): `show3d` beantwortete ZWEI Fragen mit einem Wert — „ist 3D
+  // die aktive Ansicht?" (Rahmen) und „gibt es Daten zum Zeichnen?" (Szene).
+  // Nur die zweite hängt am Wetterzustand; sonst baut sich während jeder
+  // Neuberechnung das komplette 2D-Ergebnis samt MapLibre-Karte auf und wieder ab.
+  // Karte des Ergebnisses. Ohne berechnetes Wetter gibt es keine Szene — dann
+  // bleibt es bei der flachen Karte, ohne dass der Umschalter etwas verspricht.
+  const [resultMap, setResultMap] = useState<ResultMap>(() => loadResultMap());
+  useEffect(() => { try { localStorage.setItem(RESULT_MAP_KEY, resultMap); } catch { /* privat */ } }, [resultMap]);
+  const canTerrain = weatherState.kind === 'ready';
+  const showTerrain = canTerrain && resultMap === 'terrain';
+
   const showResult = weatherRequested;
+  const in3d = showResult && view === '3d';
+  const show3d = in3d && weatherState.kind === 'ready';
+  const viewToggle = onView ? (
+    <span className="r3-toggle" role="group" aria-label="Ansicht">
+      <button type="button" className={view === '2d' ? 'is-on' : undefined} aria-pressed={view === '2d'} onClick={() => onView('2d')}>2D</button>
+      <button type="button" className={view === '3d' ? 'is-on' : undefined} aria-pressed={view === '3d'} onClick={() => onView('3d')}>3D</button>
+    </span>
+  ) : null;
+  const restoreNote = restore && noteOpen ? (
+    <div className="r3-restore" role="status">
+      <span className="r3-restore-txt">
+        <b>Zuletzt geplante Tour wiederhergestellt</b> — gespeichert auf diesem Gerät, {formatStart(restore.savedMs)}.
+        {restore.startMoved ? ' Die gespeicherte Startzeit lag außerhalb der Vorhersage und steht jetzt auf „jetzt".' : ''}
+        {' '}Das Wetter wird frisch geholt.
+      </span>
+      <button type="button" className="r3-restore-drop" onClick={restore.onDiscard}>verwerfen</button>
+      <button type="button" className="r3-restore-x" aria-label="Hinweis ausblenden" onClick={() => setNoteOpen(false)}>&#10005;</button>
+    </div>
+  ) : null;
   const distKm = (eff.meta.totalDistanceM / 1000).toFixed(1).replace('.', ',');
   const homeFn = onHome ?? onBack ?? (() => {});
   const backToPrev = onBack ?? (() => {});
@@ -237,18 +325,69 @@ export default function TourView({ track, fileLabel, onBack, onHome, onOpenFeatu
         </>
       )}
 
+      {viewToggle && weatherState.kind === 'ready' && (
+        <div className="rd-viewbar">
+          {viewToggle}
+          <span className="rd-viewbar-note">3D zeigt Wind, Regen und Wolkenbasis über dem Höhenprofil — Strecke und Zeit bleiben erhalten.</span>
+        </div>
+      )}
       <div className="rd-result-grid">
-        <div className="rd-mapwrap">
-          <RouteMap
-            points={eff.points}
-            samples={eff.samples}
-            breaks={mapBreaks}
-            waypoints={mapWaypoints}
-            weatherSamples={weatherMarkers}
-            scrubMarker={scrubPos}
-          />
-          {weatherState.kind === 'ready' && <QuellenOverlay meta={weatherState.meta} />}
-          {weatherState.kind === 'ready' && weatherMarkers.some((m) => m.windRel) && <WindLegend />}
+        <div className="rd-mapcol">
+          {canTerrain && (
+            <div className="rd-mapsw" role="group" aria-label="Kartenansicht">
+              <button
+                type="button"
+                className={resultMap === 'terrain' ? 'is-on' : undefined}
+                aria-pressed={resultMap === 'terrain'}
+                onClick={() => setResultMap('terrain')}
+                title="3D-Relief mit der Wetterlage auf der Strecke"
+              >
+                Gelände
+              </button>
+              <button
+                type="button"
+                className={resultMap === 'flat' ? 'is-on' : undefined}
+                aria-pressed={resultMap === 'flat'}
+                onClick={() => setResultMap('flat')}
+                title="Flache Karte mit Pausen, Wegpunkten und Wetter-Markern"
+              >
+                Karte
+              </button>
+              <span className="rd-mapsw-note">
+                {showTerrain
+                  ? 'Relief mit der Wetterlage auf der Strecke'
+                  : 'Flache Karte mit Pausen, Wegpunkten und Wetter-Markern'}
+              </span>
+            </div>
+          )}
+
+          {showTerrain ? (
+            <Suspense fallback={<div className="rd-mapwait">Gelände wird geladen …</div>}>
+              <RouteTerrainPanel
+                samples={displaySamples}
+                points={eff.points}
+                countries={weatherState.meta.countries}
+                coverage={weatherState.meta.coverage}
+                terrain={eff.meta.terrain}
+                markerM={scrubDistM ?? 0}
+                onPickDist={handlePickDist}
+                isMobile={isMobile}
+              />
+            </Suspense>
+          ) : (
+            <div className="rd-mapwrap">
+              <RouteMap
+                points={eff.points}
+                samples={eff.samples}
+                breaks={mapBreaks}
+                waypoints={mapWaypoints}
+                weatherSamples={weatherMarkers}
+                scrubMarker={scrubPos}
+              />
+              {weatherState.kind === 'ready' && <QuellenOverlay meta={weatherState.meta} />}
+              {weatherState.kind === 'ready' && weatherMarkers.some((m) => m.windRel) && <WindLegend />}
+            </div>
+          )}
         </div>
 
         <aside className="rd-fcpanel">
@@ -308,7 +447,32 @@ export default function TourView({ track, fileLabel, onBack, onHome, onOpenFeatu
 
   /* ===== Body je Zustand (Mobile kombiniert Bewegungsart + Konfiguration) ===== */
   let body: ReactNode;
-  if (showResult) {
+  if (show3d && weatherState.kind === 'ready' && timing) {
+    body = (
+      <Suspense fallback={<p className="rd-status">3D-Ansicht wird geladen …</p>}>
+        <Route3DView
+          samples={displaySamples}
+          points={eff.points}
+          terrain={eff.meta.terrain}
+          elevation={{ source: eff.meta.elevationSource, deltaM: eff.meta.elevationDeltaM }}
+          meta={weatherState.meta}
+          tourName={tourName}
+          movementLabel={type?.label ?? null}
+          startMs={startMs}
+          arrivalMs={timing.arrivalMs}
+          isMobile={isMobile}
+          distM={scrubDistM}
+          onDist={setScrubDistM}
+          onPos={handleScrubPos}
+          onStart={setStartMs}
+          toggle={viewToggle}
+        />
+      </Suspense>
+    );
+  } else if (in3d) {
+    // Rahmen bleibt stehen, die Szene wartet — kein Rückfall auf 2D.
+    body = <ThreeDStandby state={weatherState} onBack2d={() => onView?.('2d')} />;
+  } else if (showResult) {
     body = resultBody;
   } else if (isMobile) {
     body = (
@@ -357,7 +521,12 @@ export default function TourView({ track, fileLabel, onBack, onHome, onOpenFeatu
   }
 
   /* ===== Shell-Chrome (Topbar-Crumb / Mobile-Header / Back) je Zustand ===== */
-  const crumb = showResult ? (
+  const crumb = in3d ? (
+    <div className="rd-crumb">
+      <button type="button" className="rd-back" onClick={() => onView?.('2d')}><IconChevLeft size={14} /> Ergebnis</button>
+      <span className="rd-crumb-txt">· 3D-Ansicht{type ? ` · ${type.label}` : ''}</span>
+    </div>
+  ) : showResult ? (
     <div className="rd-crumb">
       <button type="button" className="rd-back" onClick={() => setWeatherRequested(false)}><IconChevLeft size={14} /> Planung anpassen</button>
       <span className="rd-crumb-txt">· Ergebnis{type ? ` · ${type.label}` : ''}</span>
@@ -371,13 +540,23 @@ export default function TourView({ track, fileLabel, onBack, onHome, onOpenFeatu
     </div>
   );
 
-  const mobileHeader = showResult ? (
+  const mobileHeader = in3d ? (
+    <>
+      <button type="button" className="rd-m-back" onClick={() => onView?.('2d')} aria-label="Zurück zum Ergebnis"><IconChevLeft /></button>
+      <div className="rd-m-htext">
+        <div className="rd-m-eyebrow">3D-Ansicht{type ? ` · ${type.label}` : ''}</div>
+        <div className="rd-m-title">{tourName}</div>
+      </div>
+      {viewToggle}
+    </>
+  ) : showResult ? (
     <>
       <button type="button" className="rd-m-back" onClick={() => setWeatherRequested(false)} aria-label="Planung anpassen"><IconChevLeft /></button>
       <div className="rd-m-htext">
         <div className="rd-m-eyebrow">Ergebnis{type ? ` · ${type.label}` : ''}</div>
         <div className="rd-m-title">{tourName}</div>
       </div>
+      {viewToggle}
     </>
   ) : (
     <>
@@ -399,6 +578,7 @@ export default function TourView({ track, fileLabel, onBack, onHome, onOpenFeatu
       mobileHeader={mobileHeader}
       contentClass={showResult ? 'rd-content--result' : undefined}
     >
+      {restoreNote}
       {body}
     </RouteDeckShell>
   );
@@ -428,14 +608,6 @@ function WindLegend() {
       </div>
     </div>
   );
-}
-
-/** Kompass-Peilung des Segments, das die Distanz `dist` enthält. */
-function bearingAtDist(points: Array<{ lat: number; lon: number; dist: number }>, dist: number): number {
-  if (points.length < 2) return 0;
-  let i = 1;
-  while (i < points.length - 1 && points[i].dist < dist) i++;
-  return bearingDeg(points[i - 1].lat, points[i - 1].lon, points[i].lat, points[i].lon);
 }
 
 /* ===== Zeit-Übersicht ===== */
@@ -510,6 +682,40 @@ function QualityRow({ meta, result, windState }: { meta: EnrichmentMeta; result:
         </div>
       </div>
       <div className="rt-quality-note">Quellen: DWD (Deutschland) · GeoSphere (Österreich) · MeteoSwiss (Schweiz) · live, höhenkorrigiert, ohne Tracker.</div>
+    </div>
+  );
+}
+
+/**
+ * Wartefeld INNERHALB der 3D-Ansicht (V-R3D-3). Es trägt bewusst keine
+ * Wetterwerte: während der Neuberechnung gilt der alte Stand für die neue
+ * Startzeit nicht mehr, und ein stehengelassenes Bild wäre eine Falschaussage.
+ */
+function ThreeDStandby({ state, onBack2d }: { state: WeatherState; onBack2d: () => void }) {
+  const error = state.kind === 'error' ? state.message : null;
+  return (
+    <div className="r3-standby">
+      <div className="r3-standby-card">
+        <span className="r3-standby-eyebrow">3D-Ansicht</span>
+        {error ? (
+          <>
+            <p className="r3-standby-title">Das Wetter konnte nicht geladen werden.</p>
+            <p className="r3-standby-sub">{error}</p>
+            <button type="button" className="r3-standby-btn" onClick={onBack2d}>Zum 2D-Ergebnis</button>
+          </>
+        ) : state.kind === 'loading' ? (
+          <>
+            <p className="r3-standby-title">Wetter entlang der Route wird gerechnet …</p>
+            <p className="r3-standby-sub">Die Ansicht bleibt offen — sobald die Werte da sind, zeichnen wir sie an derselben Stelle.</p>
+            <span className="r3-standby-bar" aria-hidden="true" />
+          </>
+        ) : (
+          <>
+            <p className="r3-standby-title">Die 3D-Ansicht braucht das berechnete Wetter.</p>
+            <button type="button" className="r3-standby-btn" onClick={onBack2d}>Zum 2D-Ergebnis</button>
+          </>
+        )}
+      </div>
     </div>
   );
 }

@@ -39,7 +39,8 @@ function syntheticFlat(distKm: number, count = 50): TourTrack {
     meta: {
       sourceFormat: 'gpx', totalDistanceM: distKm * 1000, ascentM: 0, descentM: 0,
       minEleM: 0, maxEleM: 0, pointCount: points.length, sampleCount: samples.length,
-      elevationEnriched: false, elevationAvailable: true, hasTime: false,
+      elevationEnriched: false, elevationAvailable: true,
+      elevationSource: 'file', elevationDeltaM: null, hasTime: false,
       startTime: null, endTime: null, terrain: 'flach', name: 'flat',
     },
   };

@@ -7,17 +7,26 @@
  * über dieselben zwei Handler, weil MapLibre für beide `lngLat` liefert.
  *
  * Das Modul wird `lazy` geladen (EventPage) — maplibre bleibt aus dem
- * Wizard-Chunk, bis der Nutzer die Karte tatsächlich öffnet.
+ * Wizard-Chunk, bis der Nutzer den Flächen-Schritt erreicht.
+ *
+ * Die Fläche ist Pflicht (Schritt 2 von 5). Weil „drücken · ziehen · loslassen"
+ * kein Bedienmuster ist, das man errät, führt das Modul eine dreistufige
+ * Anleitung mit, die den gerade fälligen Handgriff hervorhebt, und sagt es
+ * ausdrücklich, wenn ein Zug zu kurz war (= Klick, keine Fläche).
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import maplibregl, { Map as MapLibreMap, Marker } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { Location } from '../types';
 import {
-  clampZone, isDrawnZone, zoneFromDrag, zoneRing, zoneSizeText, ZONE_MAX_EDGE_KM,
+  clampZone, isDrawnZone, zoneFromDrag, zoneRing, zoneSamplePoints, zoneSizeText, ZONE_MAX_EDGE_KM,
   type EventZone,
 } from './eventZone';
+import { useIsMobile } from '../mobile/useIsMobile';
+
+/** ET5: Gelände-Vorschau der gezeichneten Fläche — geteilter Lazy-Chunk mit dem Ergebnis. */
+const EventTerrainMap = lazy(() => import('./EventTerrainMap'));
 
 const SRC = 'ev-zone-src';
 const FILL = 'ev-zone-fill';
@@ -43,12 +52,22 @@ export default function EventZoneMap({ location, zone, onChange }: Props) {
   const boxRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const readyRef = useRef(false);
+  const isMobile = useIsMobile();
   const [drawing, setDrawing] = useState(false);
+  // ET5: „Karte | Gelände". Die flache Karte bleibt MONTIERT und wird nur per
+  // CSS versteckt — kein Remount der Zeichenkarte (V-R3D-16: Auf-/Abbau einer
+  // MapLibre-Instanz kostet ~184 ms und hier zusätzlich den Zeichenzustand);
+  // nur die Gelände-Instanz wird je Umschalt auf- und abgebaut. Bewusst
+  // komponentenlokal, nicht persistiert (Konvention: kein Scheinzustand).
+  const [view, setView] = useState<'map' | 'terrain'>('map');
   // Der laufende Zug: Startpunkt + das Rechteck, das gerade unter dem Zeiger
   // entsteht. Beides in einem Ref, damit die Karten-Handler stabil bleiben.
   const dragRef = useRef<{ start: { lat: number; lon: number } | null; last: EventZone | null; raf: number }>({ start: null, last: null, raf: 0 });
   const drawingRef = useRef(false);
   const [preview, setPreview] = useState<EventZone | null>(null);
+  // Ein Zug unter der Mindestkante ist ein Klick — ohne Rückmeldung sähe der
+  // Nutzer nur, dass „nichts passiert".
+  const [tooShort, setTooShort] = useState(false);
 
   // Karte einmal aufbauen.
   useEffect(() => {
@@ -62,6 +81,14 @@ export default function EventZoneMap({ location, zone, onChange }: Props) {
     });
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
     mapRef.current = map;
+
+    // MapLibre öffnet die kompakte Attribution beim Start AUSGEKLAPPT — auf einer
+    // Karte, deren untere Hälfte Zeichenfläche ist, schluckt der Block den Zug
+    // (BD2e-Falle, Dreizeiler aus FireMap). ⓘ bleibt.
+    map.once('load', () => {
+      map.getContainer().querySelectorAll('details.maplibregl-ctrl-attrib[open]')
+        .forEach((d) => d.removeAttribute('open'));
+    });
 
     new Marker({ color: TERRACOTTA }).setLngLat([location.lon, location.lat]).addTo(map);
 
@@ -111,8 +138,10 @@ export default function EventZoneMap({ location, zone, onChange }: Props) {
       const z = last ?? (lngLat ? clampZone(zoneFromDrag(s, { lat: lngLat.lat, lon: lngLat.lng })) : null);
       setPreview(null);
       exitDraw();
-      // Ein zu kleiner Zug war ein Klick, keine Fläche — dann bleibt alles, wie es war.
-      if (isDrawnZone(z)) onChange(z);
+      // Ein zu kleiner Zug war ein Klick, keine Fläche — dann bleibt alles, wie
+      // es war, und der Nutzer erfährt warum.
+      if (isDrawnZone(z)) { setTooShort(false); onChange(z); }
+      else setTooShort(true);
     };
 
     const onDown = (e: maplibregl.MapMouseEvent) => { if (drawingRef.current) { e.preventDefault(); begin(e.lngLat); } };
@@ -156,9 +185,16 @@ export default function EventZoneMap({ location, zone, onChange }: Props) {
     src?.setData(ringFeature(preview ?? zone));
   }, [preview, zone]);
 
+  // Zurück zur flachen Karte: der versteckte Container maß 0 × 0 — MapLibre
+  // muss die Maße neu lesen, sonst bleibt das Bild ein Streifen.
+  useEffect(() => {
+    if (view === 'map') mapRef.current?.resize();
+  }, [view]);
+
   function enterDraw() {
     const map = mapRef.current;
     if (!map) return;
+    setTooShort(false);
     drawingRef.current = true;
     setDrawing(true);
     map.dragPan.disable();
@@ -183,39 +219,102 @@ export default function EventZoneMap({ location, zone, onChange }: Props) {
   function clear() {
     exitDraw();
     setPreview(null);
+    setTooShort(false);
     onChange(null);
   }
 
   const shown = preview ?? zone;
+  // Welcher Handgriff ist gerade dran? Genau einer ist hervorgehoben.
+  const activeHint = drawing ? 2 : zone ? 3 : 1;
 
   return (
     <div className="evd-zone">
+      <ol className="evd-zone-steps">
+        <li className={activeHint === 1 ? 'is-now' : undefined}>
+          <span className="evd-zone-step-no">1</span>
+          <span>Karte schieben und zoomen, bis dein Gelände im Bild ist.</span>
+        </li>
+        <li className={activeHint === 2 ? 'is-now' : undefined}>
+          <span className="evd-zone-step-no">2</span>
+          <span><b>Fläche aufziehen</b> drücken — die Karte steht dann fest.</span>
+        </li>
+        <li className={activeHint === 3 ? 'is-now' : undefined}>
+          <span className="evd-zone-step-no">3</span>
+          <span>Gedrückt halten, über das Gelände ziehen, loslassen.</span>
+        </li>
+      </ol>
+      <div className="evd-zone-viewtabs" role="tablist" aria-label="Kartenansicht">
+        <button
+          type="button" role="tab" aria-selected={view === 'map'}
+          className={`evd-zone-viewtab${view === 'map' ? ' is-active' : ''}`}
+          onClick={() => setView('map')}
+        >
+          Karte
+        </button>
+        <button
+          type="button" role="tab" aria-selected={view === 'terrain'}
+          className={`evd-zone-viewtab${view === 'terrain' ? ' is-active' : ''}`}
+          disabled={!zone || drawing}
+          title={!zone ? 'Zieh zuerst eine Fläche auf' : undefined}
+          onClick={() => { if (zone) setView('terrain'); }}
+        >
+          Gelände
+        </button>
+      </div>
       <div className="evd-zone-mapwrap">
-        <div ref={boxRef} className="evd-zone-map" />
-        {drawing && (
+        <div ref={boxRef} className={`evd-zone-map${view === 'terrain' ? ' is-hidden' : ''}`} />
+        {view === 'terrain' && zone && (
+          <Suspense fallback={<div className="evd-zone-loading">Gelände wird geladen …</div>}>
+            <EventTerrainMap
+              zone={zone}
+              mode="preview"
+              isMobile={isMobile}
+              points={zoneSamplePoints(zone).map((p) => ({ ...p, score: null, worst: false, windDirDeg: null }))}
+            />
+          </Suspense>
+        )}
+        {view === 'map' && drawing && (
           <div className="evd-zone-hintbar" role="status">
-            Halte gedrückt und ziehe über das Gelände — loslassen setzt die Fläche.
+            {preview
+              ? `Ziehen … ${zoneSizeText(preview)} — loslassen setzt die Fläche.`
+              : 'Jetzt an einer Ecke gedrückt halten und über das Gelände ziehen.'}
+          </div>
+        )}
+        {view === 'map' && !drawing && !zone && (
+          <div className="evd-zone-hintbar evd-zone-hintbar--idle" role="status">
+            Noch keine Fläche — drück „Fläche aufziehen“, um sie einzuzeichnen.
           </div>
         )}
       </div>
       <div className="evd-zone-bar">
-        <span className="evd-zone-size">
-          {shown ? zoneSizeText(shown) : 'Keine Zone — bewertet wird der Punkt am gewählten Ort.'}
+        <span className={zone ? 'evd-zone-size evd-zone-size--set' : 'evd-zone-size evd-zone-size--todo'}>
+          {shown ? zoneSizeText(shown) : 'Fläche erforderlich — ohne sie geht es nicht weiter.'}
         </span>
         <span className="evd-zone-btns">
           {drawing ? (
             <button type="button" className="evd-zone-btn" onClick={exitDraw}>Abbrechen</button>
           ) : (
-            <button type="button" className="evd-zone-btn evd-zone-btn--go" onClick={enterDraw}>
+            <button type="button" className="evd-zone-btn evd-zone-btn--go" onClick={enterDraw} disabled={view === 'terrain'}>
               {zone ? 'Neu aufziehen' : 'Fläche aufziehen'}
             </button>
           )}
-          {zone && !drawing && <button type="button" className="evd-zone-btn" onClick={clear}>Entfernen</button>}
+          {zone && !drawing && <button type="button" className="evd-zone-btn" onClick={clear} disabled={view === 'terrain'}>Entfernen</button>}
         </span>
       </div>
+      {view === 'terrain' && (
+        <p className="evd-zone-note">
+          Zeichnen geht nur auf der flachen Karte — auf gekipptem Gelände ist ein Rechteck-Zug nicht
+          kontrollierbar. Wechsle zu „Karte“, um die Fläche zu ändern.
+        </p>
+      )}
+      {tooShort && (
+        <p className="evd-zone-err" role="alert">
+          Der Zug war zu kurz — das zählt als Klick. Halte gedrückt und zieh über das Gelände, bis das Rechteck zu sehen ist.
+        </p>
+      )}
       <div className="evd-zone-note">
-        Die Zone ist optional und ersetzt den Ort nicht: bewertet wird weiter der gewählte Punkt,
-        die Fläche ergänzt im Ergebnis die Spanne über das Gelände (max. {ZONE_MAX_EDGE_KM} km Kante).
+        Die Fläche ersetzt den Ort nicht: bewertet wird weiter der gewählte Punkt, die Fläche ergänzt im
+        Ergebnis die Spanne über das Gelände (max. {ZONE_MAX_EDGE_KM} km Kante).
       </div>
     </div>
   );

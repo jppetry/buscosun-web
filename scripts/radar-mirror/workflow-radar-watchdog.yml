@@ -1,0 +1,50 @@
+# ============================================================================
+# RD1b — Wachhund für den Radar-Spiegel (buscosun-web/audit/radar-datenrepo.md §11.4)
+# ============================================================================
+# ⚠️ Gepflegt in `buscosun-web/scripts/radar-mirror/workflow-radar-watchdog.yml`,
+# liegt im Daten-Repo als `.github/workflows/radar-watchdog.yml`.
+#
+# Warum: Die erste Fassung hielt die Kette über einen stündlichen Cron + `concurrency`-
+# Warteschlange am Leben. Das funktionierte (31 h lückenlos gemessen), erzeugte aber
+# jede Stunde einen ERSETZTEN wartenden Lauf — „completed cancelled" in der Actions-
+# Liste plus Abbruch-Mail an den Repo-Inhaber. Das las sich wie ein Ausfall (Jans
+# Rückmeldung 2026-08-31), obwohl keiner war.
+#
+# Jetzt: der Spiegel-Job (`radar.yml`) kettet sich primär SELBST (ensureSuccessor,
+# `workflow_dispatch` am Laufzeitende). Dieser Wachhund prüft stündlich in ~10 s,
+# ob ein Spiegel-Lauf aktiv oder in der Warteschlange ist — nur wenn NICHT (Absturz,
+# Timeout, verschluckter Dispatch), startet er einen. Er hat KEINE concurrency-Gruppe
+# und endet immer `success` ⇒ keine cancelled-Läufe, keine Mails im Normalbetrieb.
+# ============================================================================
+
+name: radar-watchdog
+
+on:
+  schedule:
+    - cron: '7 * * * *'
+  workflow_dispatch: {}
+
+permissions:
+  actions: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Dispatch mirror if none is active
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          active=$(curl -s -H "authorization: Bearer $GH_TOKEN" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/workflows/radar.yml/runs?per_page=10" \
+            | jq '[.workflow_runs[] | select(.status=="in_progress" or .status=="queued"
+                   or .status=="waiting" or .status=="pending" or .status=="requested")] | length')
+          echo "aktive/wartende Spiegel-Läufe: $active"
+          if [ "$active" = "0" ]; then
+            echo "keiner aktiv — Spiegel wird gestartet"
+            curl -s -o /dev/null -w "dispatch: HTTP %{http_code}\n" -X POST \
+              -H "authorization: Bearer $GH_TOKEN" -H "accept: application/vnd.github+json" \
+              "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/workflows/radar.yml/dispatches" \
+              -d '{"ref":"main"}'
+          fi

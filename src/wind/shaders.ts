@@ -1,3 +1,28 @@
+import { MERC_TABLE_DIM, MERC_TABLE_SIZE, MERC_TABLE_Y0, MERC_TABLE_Y1 } from '../scalar/quadWarpMesh';
+
+// KL10 (2026-08-27, Jans Go): Mercator-y der Partikel aus einer 64 × 64-RGBA8-
+// Tabelle (`mercYTable`, CPU-double, 32-bit-Festkomma) — zwei Taps + Mischung
+// statt log(tan()): GPU-Transzendente lagen bis 280 m daneben
+// (`audit/karten-layer-verortung.md` §15.6). Wird in alle vier Zeichen-Shader
+// eingesetzt; die Simulation (updateFrag) bleibt unverändert.
+export const MERC_TABLE_GLSL = `
+uniform highp sampler2D u_merc_table;
+const float MT_Y0 = ${MERC_TABLE_Y0};
+const float MT_Y1 = ${MERC_TABLE_Y1};
+const float MT_N = ${MERC_TABLE_SIZE.toFixed(1)};
+const float MT_DIM = ${MERC_TABLE_DIM.toFixed(1)};
+float mercTableAt(float i) {
+  vec2 tc = vec2((mod(i, MT_DIM) + 0.5) / MT_DIM, (floor(i / MT_DIM) + 0.5) / MT_DIM);
+  vec4 c = texture2D(u_merc_table, tc);
+  return dot(c, vec4(1.0, 1.0 / 256.0, 1.0 / 65536.0, 1.0 / 16777216.0)) * (255.0 / 256.0);
+}
+float mercYOf(float equiY) {
+  float f = clamp((equiY - MT_Y0) / (MT_Y1 - MT_Y0), 0.0, 1.0) * (MT_N - 1.0);
+  float i = floor(min(f, MT_N - 2.0));
+  return mix(mercTableAt(i), mercTableAt(i + 1.0), f - i);
+}
+`;
+
 export const drawVert = `
 // highp is REQUIRED here (and mandatory-supported in vertex shaders per GLSL ES).
 // The particle position is a 16-bit value packed across two bytes and rebuilt as
@@ -31,10 +56,7 @@ uniform float u_point_size;
 uniform vec4 u_bounds;
 
 varying vec2 v_particle_pos;
-
-const float PI = 3.14159265358979323846;
-const float MERC_MAX_LAT = 85.05112878;
-
+${MERC_TABLE_GLSL}
 void main() {
   vec4 color = texture2D(u_particles, vec2(
       fract(a_index / u_particles_res),
@@ -46,13 +68,9 @@ void main() {
       color.g / 255.0 + color.a);
   v_particle_pos = u_bounds.xy + local * (u_bounds.zw - u_bounds.xy);
 
-  float lng = v_particle_pos.x * 360.0 - 180.0;
-  float lat = 90.0 - v_particle_pos.y * 180.0;
-  lat = clamp(lat, -MERC_MAX_LAT, MERC_MAX_LAT);
-
-  float lat_rad = lat * PI / 180.0;
-  float merc_x = (lng + 180.0) / 360.0;
-  float merc_y = 0.5 - log(tan(PI * 0.25 + lat_rad * 0.5)) / (2.0 * PI);
+  // Mercator-x = equirect-x (linear); Mercator-y aus der Tabelle (KL10).
+  float merc_x = v_particle_pos.x;
+  float merc_y = mercYOf(v_particle_pos.y);
 
   gl_PointSize = u_point_size;
   gl_Position = u_matrix * vec4(merc_x, merc_y, 0.0, 1.0);
@@ -81,9 +99,7 @@ uniform float u_point_size;
 uniform vec4 u_bounds;
 
 varying vec2 v_particle_pos;
-
-const float MERC_MAX_LAT = 85.05112878;
-
+${MERC_TABLE_GLSL}
 void main() {
   vec4 color = texture2D(u_particles, vec2(
       fract(a_index / u_particles_res),
@@ -94,13 +110,9 @@ void main() {
       color.g / 255.0 + color.a);
   v_particle_pos = u_bounds.xy + local * (u_bounds.zw - u_bounds.xy);
 
-  float lng = v_particle_pos.x * 360.0 - 180.0;
-  float lat = 90.0 - v_particle_pos.y * 180.0;
-  lat = clamp(lat, -MERC_MAX_LAT, MERC_MAX_LAT);
-
-  float lat_rad = lat * PI / 180.0;
-  float merc_x = (lng + 180.0) / 360.0;
-  float merc_y = 0.5 - log(tan(PI * 0.25 + lat_rad * 0.5)) / (2.0 * PI);
+  // Mercator-x = equirect-x (linear); Mercator-y aus der Tabelle (KL10).
+  float merc_x = v_particle_pos.x;
+  float merc_y = mercYOf(v_particle_pos.y);
 
   gl_PointSize = u_point_size;
   gl_Position = projectTile(vec2(merc_x, merc_y));
@@ -108,20 +120,16 @@ void main() {
 `;
 
 export const heatmapVertProjected = `
-precision mediump float;
+precision highp float;
 
 attribute vec2 a_lnglat;
+attribute vec2 a_merc;
 
 varying vec2 v_equi_uv;
 
 void main() {
-  float lng = a_lnglat.x;
-  float lat = a_lnglat.y;
-  v_equi_uv = vec2((lng + 180.0) / 360.0, (90.0 - lat) / 180.0);
-  float lat_rad = lat * PI / 180.0;
-  float mx = (lng + 180.0) / 360.0;
-  float my = 0.5 - log(tan(PI * 0.25 + lat_rad * 0.5)) / (2.0 * PI);
-  gl_Position = projectTile(vec2(mx, my));
+  v_equi_uv = vec2((a_lnglat.x + 180.0) / 360.0, (90.0 - a_lnglat.y) / 180.0);
+  gl_Position = projectTile(a_merc);
 }
 `;
 
@@ -218,6 +226,7 @@ varying float v_cross;
 
 const float PI = 3.14159265358979323846;
 const float MERC_MAX_LAT = 85.05112878;
+${MERC_TABLE_GLSL}
 // equirect Y spannt 180°, X spannt 360° → die N-S-Komponente braucht den
 // Faktor 2, sonst ist die Advektion anisotrop (s. advection.ts, NS_ASPECT).
 const float NS_ASPECT = 2.0;
@@ -228,12 +237,8 @@ vec2 decodePos(vec4 color) {
 }
 
 vec4 projectEqui(vec2 equi) {
-  float lng = equi.x * 360.0 - 180.0;
-  float lat = clamp(90.0 - equi.y * 180.0, -MERC_MAX_LAT, MERC_MAX_LAT);
-  float lat_rad = lat * PI / 180.0;
-  float merc_x = (lng + 180.0) / 360.0;
-  float merc_y = 0.5 - log(tan(PI * 0.25 + lat_rad * 0.5)) / (2.0 * PI);
-  return u_matrix * vec4(merc_x, merc_y, 0.0, 1.0);
+  // Mercator-x = equirect-x (linear); Mercator-y aus der Tabelle (KL10).
+  return u_matrix * vec4(equi.x, mercYOf(equi.y), 0.0, 1.0);
 }
 
 // One 60-fps advection step at this position — the SAME math as updateFrag's
@@ -319,6 +324,7 @@ varying vec2 v_particle_pos;
 varying float v_cross;
 
 const float MERC_MAX_LAT = 85.05112878;
+${MERC_TABLE_GLSL}
 const float NS_ASPECT = 2.0;
 
 vec2 decodePos(vec4 color) {
@@ -327,12 +333,8 @@ vec2 decodePos(vec4 color) {
 }
 
 vec4 projectEqui(vec2 equi) {
-  float lng = equi.x * 360.0 - 180.0;
-  float lat = clamp(90.0 - equi.y * 180.0, -MERC_MAX_LAT, MERC_MAX_LAT);
-  float lat_rad = lat * PI / 180.0;
-  float merc_x = (lng + 180.0) / 360.0;
-  float merc_y = 0.5 - log(tan(PI * 0.25 + lat_rad * 0.5)) / (2.0 * PI);
-  return projectTile(vec2(merc_x, merc_y));
+  // Mercator-x = equirect-x (linear); Mercator-y aus der Tabelle (KL10).
+  return projectTile(vec2(equi.x, mercYOf(equi.y)));
 }
 
 vec2 advectStep(vec2 p) {
@@ -426,24 +428,23 @@ void main() {
 }
 `;
 
+// KL9/V-KL-3 (2026-08-27): Lage aus `a_merc` (CPU-double, `mercatorOf`) statt
+// log(tan()) im Shader — GPU-Transzendente lagen bis 280 m daneben
+// (`audit/karten-layer-verortung.md` §15.6); `a_lnglat` bleibt für die uv.
+// Die Partikel-Shader (drawVert/segDrawVert) rechnen weiter im Shader: ihre
+// Position entsteht erst auf der GPU (Simulation), dort gibt es keine CPU-Stelle.
 export const heatmapVert = `
-precision mediump float;
+precision highp float;
 
 attribute vec2 a_lnglat;
+attribute vec2 a_merc;
 uniform mat4 u_matrix;
 
 varying vec2 v_equi_uv;
 
-const float PI = 3.14159265358979323846;
-
 void main() {
-  float lng = a_lnglat.x;
-  float lat = a_lnglat.y;
-  v_equi_uv = vec2((lng + 180.0) / 360.0, (90.0 - lat) / 180.0);
-  float lat_rad = lat * PI / 180.0;
-  float mx = (lng + 180.0) / 360.0;
-  float my = 0.5 - log(tan(PI * 0.25 + lat_rad * 0.5)) / (2.0 * PI);
-  gl_Position = u_matrix * vec4(mx, my, 0.0, 1.0);
+  v_equi_uv = vec2((a_lnglat.x + 180.0) / 360.0, (90.0 - a_lnglat.y) / 180.0);
+  gl_Position = u_matrix * vec4(a_merc, 0.0, 1.0);
 }
 `;
 

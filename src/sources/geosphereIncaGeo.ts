@@ -23,6 +23,8 @@
  * Textur aufzieht.
  */
 
+import { warpMeshFromProjection } from '../scalar/quadWarpMesh';
+
 const D = Math.PI / 180;
 
 // EPSG:31287 (Austria Lambert), gerechnet auf WGS84 — s. Kopfkommentar.
@@ -59,8 +61,10 @@ export function incaInv(x: number, y: number): [number, number] {
   return [(theta / N_C + LON_0) / D, phi / D];
 }
 
-/** Unterteilungen des Warp-Mesh je Achse ((N+1)² Knoten). */
-export const INCA_WARP_N = 16;
+/** Unterteilungen des Warp-Mesh je Achse ((N+1)² Knoten). 144 → Mercator-Rest
+ *  ≈ 0,8 m (`audit/karten-layer-verortung.md` §15.3; 16 waren 58 m, 128 lagen
+ *  mit 1,0 m genau auf der Grenze). */
+export const INCA_WARP_N = 144;
 
 type Corners4 = [[number, number], [number, number], [number, number], [number, number]];
 
@@ -89,19 +93,19 @@ export function cellCentersToEdges(centers: Corners4, cols: number, rows: number
  * uv-Konvention des RainLayer. Knoten exakt Lambert-verortet.
  */
 export function incaWarpMesh(corners: Corners4): Float32Array {
+  const hit = _incaMesh.get(corners);
+  if (hit) return hit;
+  const out = warpMeshFromProjection(incaNodeFn(corners), INCA_WARP_N);
+  _incaMesh.set(corners, out);
+  return out;
+}
+/** Memoisiert je Ecken-Referenz (der RainLayer baut den GL-Puffer nur bei neuer Referenz). */
+const _incaMesh = new WeakMap<Corners4, Float32Array>();
+
+/** Exakte lon/lat-Lage des INCA-Gitterpunkts (u, v) — auch knapp außerhalb [0,1]. */
+export function incaNodeFn(corners: Corners4): (u: number, v: number) => [number, number] {
   const [nw, ne, se, sw] = corners.map(([lo, la]) => incaFwd(lo, la));
   const west = (nw[0] + sw[0]) / 2, ost = (ne[0] + se[0]) / 2;
   const nord = (nw[1] + ne[1]) / 2, sued = (sw[1] + se[1]) / 2;
-  const N = INCA_WARP_N;
-  const out = new Float32Array((N + 1) * (N + 1) * 2);
-  for (let j = 0; j <= N; j++) {
-    const v = j / N;
-    for (let i = 0; i <= N; i++) {
-      const u = i / N;
-      const [lon, lat] = incaInv(west + u * (ost - west), nord + v * (sued - nord));
-      const k = (j * (N + 1) + i) * 2;
-      out[k] = lon; out[k + 1] = lat;
-    }
-  }
-  return out;
+  return (u, v) => incaInv(west + u * (ost - west), nord + v * (sued - nord));
 }

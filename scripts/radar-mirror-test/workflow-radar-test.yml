@@ -1,0 +1,65 @@
+# ============================================================================
+# RD-T1 — Messlauf „Radar-Spiegel ins Daten-Repo" (buscosun-web/audit/radar-datenrepo.md §10)
+# ============================================================================
+# ⚠️ Diese Datei wird in `buscosun-web/scripts/radar-mirror-test/` GEPFLEGT und
+# liegt im Daten-Repo NUR auf dem Zweig `radar-test` als `.github/workflows/radar-test.yml`
+# (zusammen mit `scripts/mirror-test.mjs`). Auf `main` darf sie NICHT liegen:
+# `publish-repack.mjs` force-pusht dort den ganzen Baum und würde sie löschen —
+# und ein zweiter Schreiber auf `main` wäre das Rennen aus audit §3.3.
+#
+# Kein Cron: der Lauf wird VON HAND gestartet (Actions → radar-test → Run workflow →
+# Branch `radar-test`). Er spiegelt RADOLAN-RV + KONRAD3D für `minutes` Minuten und
+# stempelt je Slot DWD-Ablage · erster Treffer · Download · Push · CDN-Sichtbarkeit.
+# Ergebnis: Tabelle in der Job-Zusammenfassung + `radar/log.jsonl` auf dem Zweig.
+# Danach den Zweig löschen (Retention 12 Dateien, aber die Historie wächst ~1,7 MB je Slot).
+# ============================================================================
+
+name: radar-test
+
+on:
+  workflow_dispatch:
+    inputs:
+      minutes:
+        description: 'Laufzeit in Minuten (max 340)'
+        default: '120'
+      poll_sec:
+        description: 'Abtastzeit DWD in Sekunden (HEAD auf den erwarteten Pfad)'
+        default: '10'
+      cdn_poll_sec:
+        description: 'Abtastzeit CDN in Sekunden'
+        default: '5'
+
+concurrency:
+  group: radar-test
+  cancel-in-progress: false
+
+permissions:
+  contents: write             # pusht Dateien + Log auf den Zweig radar-test
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350        # Job-Grenze 360; Laufzeit + CDN-Nachlauf (≤ 10 min)
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: radar-test
+          fetch-depth: 1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Git identity
+        run: |
+          git config user.name 'buscosun-radar-test[bot]'
+          git config user.email 'radar-test@users.noreply.github.com'
+
+      - name: Mirror + measure
+        env:
+          TEST_MINUTES: ${{ inputs.minutes }}
+          POLL_SEC: ${{ inputs.poll_sec }}
+          CDN_POLL_SEC: ${{ inputs.cdn_poll_sec }}
+          BRANCH: radar-test
+          REPO: ${{ github.repository }}
+        run: node scripts/mirror-test.mjs

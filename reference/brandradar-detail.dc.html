@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; background: #E6E0D0; font-family: 'League Spartan', ui-sans-serif, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: #A85E2E; text-decoration: none; }
+  a:hover { color: #C97B47; }
+  @keyframes brpulse { 0% { transform: scale(.6); opacity: .6 } 100% { transform: scale(2.2); opacity: 0 } }
+</style>
+</helmet>
+
+<section style="display:flex;flex-direction:column;gap:34px;padding:56px 64px 120px">
+
+  <div style="display:flex;flex-direction:column;gap:10px;max-width:1000px">
+    <span style="font-family:'League Spartan';font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:#8B7355">Turn 1 · Brandradar · Brand-Dossier in der Mitte</span>
+    <h1 style="margin:0;font-size:41px;font-weight:600;letter-spacing:-.02em;color:#2C2A26">Drei Wege, die Detailansicht in die Mitte zu holen</h1>
+    <p style="margin:0;font-size:18px;line-height:1.55;color:#5C5447;text-wrap:pretty">Alle drei nutzen das Command-Deck der Plattform (Rail · Topbar · Dock · Zeit-Deck, Sand/Ink mit Brandrot) und zeigen dieselben BD1-Inhalte: vier Kennzahlen, Verlauf je Überflug, Wetterlage am Brandort, Einordnung mit Ursache, Merkmale. Unterschied ist das Verhältnis von Karte und Dossier: <a href="#1a">1a</a> tauscht die Bühne, <a href="#1b">1b</a> legt das Dossier über die lebende Karte, <a href="#1c">1c</a> blättert zwischen zwei Bühnen und gliedert das Dossier in Register.</p>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:64px;align-items:flex-start">
+
+    <sc-if value="{{ show1a }}" hint-placeholder-val="{{ true }}">
+    <div id="1a" style="display:flex;flex-direction:column;gap:16px;width:1440px">
+      <div style="display:flex;align-items:baseline;gap:14px">
+        <span style="font-family:'League Spartan';font-size:14px;font-weight:500;letter-spacing:.12em;background:#A32B1E;color:#FAF6EA;padding:5px 9px;border-radius:6px">1a</span>
+        <h2 style="margin:0;font-size:26.5px;font-weight:600;color:#2C2A26">Bühnenwechsel — Dossier statt Karte, Karte als Miniatur</h2>
+      </div>
+      <p style="margin:0;max-width:900px;font-size:17px;line-height:1.55;color:#5C5447;text-wrap:pretty">Ein Segment in der Topbar schaltet die Mitte um: <b>Karte ⇄ Dossier</b>. Im Dossier bekommt jede Kennzahl volle Breite, der Verlauf wird ein echtes Diagramm, die Wetterlage eine Kachelzeile. Die Karte verschwindet nicht — sie wird rechts zur Minikarte mit der markierten Brandfläche und holt bei Klick die Bühne zurück. Links bleibt die Registry, unten das Zeit-Deck über die ganze Breite.</p>
+
+      <span style="font-family:'League Spartan';font-size:12px;letter-spacing:.2em;color:#8B7355">DESKTOP 1440 × 1000</span>
+      <div data-ref="1a-desktop" data-screen-label="1a-desktop" style="width:1440px;height:1000px;overflow:hidden;border-radius:14px;box-shadow:0 12px 40px rgba(44,42,38,.14);display:flex;background:#F5F1E8">
+        <!-- rail -->
+        <div style="width:48px;background:#2C2A26;display:flex;flex-direction:column;align-items:center;padding:16px 0;gap:20px;flex-shrink:0">
+          <div style="width:20px;height:20px;border-radius:4px;border:1.5px solid #6E634F"></div>
+          <div style="width:16px;height:16px;border-radius:50%;border:1.5px solid #6E634F"></div>
+          <div style="width:16px;height:16px;border-radius:3px;border:1.5px solid #6E634F"></div>
+          <div style="width:16px;height:16px;border-radius:3px;border:1.5px solid #6E634F"></div>
+          <div style="width:16px;height:16px;border-radius:50%;border:1.5px solid #6E634F"></div>
+          <div style="width:16px;height:16px;border-radius:3px;border:1.5px solid #6E634F"></div>
+          <div style="width:16px;height:16px;border-radius:50%;border:1.5px solid #6E634F"></div>
+          <div style="width:30px;height:30px;border-radius:8px;background:#3A3833;display:flex;align-items:center;justify-content:center"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><path d="M12 21 C8 21 5.5 18.2 5.5 15 C5.5 11.4 8.6 9.6 9.2 6 C11.4 8.4 11 10.4 11.4 11.6 C12 8.8 13.6 7.2 13 3 C16.6 5.6 18.5 10 18.5 15 C18.5 18.2 16 21 12 21 Z" stroke="#E0A567" stroke-width="1.5" stroke-linejoin="round"></path></svg></div>
+          <div style="width:16px;height:16px;border-radius:3px;border:1.5px solid #6E634F"></div>
+          <div style="margin-top:auto;width:16px;height:16px;border-radius:3px;border:1.5px solid #6E634F"></div>
+        </div>
+
+        <div style="flex:1;display:flex;flex-direction:column;min-width:0">
+          <!-- topbar -->
+          <div style="height:56px;background:#FAF6EA;border-bottom:1px solid #E0D6BE;display:flex;align-items:center;gap:16px;padding:0 18px;flex-shrink:0">
+            <span style="font-family:'League Spartan';font-size:15px;color:#A32B1E">b:</span>
+            <span style="font-size:19px;font-weight:600;color:#2C2A26;letter-spacing:-.01em">buscosun</span>
+            <span style="width:1px;height:20px;background:#E0D6BE"></span>
+            <span style="font-size:15px;color:#5C5447">Brandradar · Brände</span>
+            <span style="font-size:15px;color:#8B7355">bei Steyregg</span>
+            <div style="display:flex;background:#F2EEE3;border:1px solid #E0D6BE;border-radius:9px;padding:3px;gap:2px;margin-left:8px">
+              <span style="font-size:14.5px;padding:5px 14px;border-radius:7px;color:#5C5447">Karte</span>
+              <span style="font-size:14.5px;padding:5px 14px;border-radius:7px;background:#A32B1E;color:#FAF6EA;font-weight:500">Dossier</span>
+            </div>
+            <div style="margin-left:auto;display:flex;align-items:center;gap:16px">
+              <span style="font-size:14px;color:#8B7355">Karte: <b style="color:#5C5447">Straßen</b></span>
+              <span style="display:flex;align-items:center;gap:7px;font-family:'League Spartan';font-size:13px;letter-spacing:.14em;color:#A32B1E">
+                <span style="position:relative;width:8px;height:8px;border-radius:50%;background:#A32B1E"><span style="position:absolute;inset:-4px;border-radius:50%;background:#A32B1E;opacity:.3;animation:brpulse 2.4s ease-out infinite"></span></span>FIRMS LIVE</span>
+            </div>
+          </div>
+
+          <div style="flex:1;display:flex;min-height:0">
+            <!-- registry -->
+            <div style="width:250px;background:#FAF6EA;border-right:1px solid #E0D6BE;padding:14px 12px;display:flex;flex-direction:column;gap:9px;flex-shrink:0">
+              <div style="display:flex;justify-content:space-between;align-items:baseline">
+                <span style="font-family:'League Spartan';font-size:12px;letter-spacing:.2em;color:#8B7355">BRÄNDE · 52</span>
+                <span style="font-size:13px;color:#A89A7A">24-h-Fenster</span>
+              </div>
+              <div style="display:flex;gap:4px">
+                <span style="font-size:13px;padding:4px 9px;border-radius:6px;background:#A32B1E;color:#FAF6EA">Stärke</span>
+                <span style="font-size:13px;padding:4px 9px;border-radius:6px;border:1px solid #E0D6BE;color:#5C5447">Detektionen</span>
+                <span style="font-size:13px;padding:4px 9px;border-radius:6px;border:1px solid #E0D6BE;color:#5C5447">Filter</span>
+              </div>
+              <div style="border:1.5px solid #FFB03D;background:#FFFCF3;border-radius:9px;padding:9px 10px;display:flex;flex-direction:column;gap:4px">
+                <div style="display:flex;align-items:center;gap:6px"><span style="font-size:15.5px;font-weight:600;color:#2C2A26">bei Steyregg</span><span style="font-family:'League Spartan';font-size:11px;letter-spacing:.1em;background:#A32B1E;color:#FAF6EA;padding:2px 5px;border-radius:4px">AKTIV</span></div>
+                <span style="font-size:13.5px;color:#5C5447">≈ 29 ha · 17 Detektionen · 13,7 MW</span>
+                <span style="font-size:13px;color:#A89A7A">AT · Urfahr-Umgebung · vor 8 h</span>
+              </div>
+              <div style="border:1px solid #E0D6BE;background:#FDFBF4;border-radius:9px;padding:9px 10px;display:flex;flex-direction:column;gap:4px">
+                <div style="display:flex;align-items:center;gap:6px"><span style="font-size:15.5px;font-weight:500;color:#2C2A26">bei Hammelburg</span><span style="font-family:'League Spartan';font-size:11px;letter-spacing:.1em;background:#F2EEE3;color:#5C5447;padding:2px 5px;border-radius:4px">KEIN SIGNAL</span></div>
+                <span style="font-size:13.5px;color:#5C5447">147 ha · 14 Detektionen · 29,5 MW</span>
+                <span style="font-size:13px;color:#A89A7A">DE · Bayern · vor 9 h</span>
+              </div>
+              <div style="border:1px solid #E0D6BE;background:#FDFBF4;border-radius:9px;padding:9px 10px;display:flex;flex-direction:column;gap:4px">
+                <div style="display:flex;align-items:center;gap:6px"><span style="font-size:15.5px;font-weight:500;color:#2C2A26">bei Aachen</span><span style="font-family:'League Spartan';font-size:11px;letter-spacing:.1em;background:#EFF3E8;color:#5F7A4C;padding:2px 5px;border-radius:4px">ORTSFEST</span></div>
+                <span style="font-size:13.5px;color:#5C5447">— · 6 Detektionen · 4,1 MW</span>
+                <span style="font-size:13px;color:#A89A7A">DE · NRW · vor 3 h</span>
+              </div>
+              <div style="border:1px solid #E0D6BE;background:#FDFBF4;border-radius:9px;padding:9px 10px;display:flex;flex-direction:column;gap:4px">
+                <div style="display:flex;align-items:center;gap:6px"><span style="font-size:15.5px;font-weight:500;color:#2C2A26">bei Głogów</span><span style="font-family:'League Spartan';font-size:11px;letter-spacing:.1em;background:#F2EEE3;color:#5C5447;padding:2px 5px;border-radius:4px">ABGEKLUNGEN</span></div>
+                <span style="font-size:13.5px;color:#5C5447">— · 3 Detektionen · 2,0 MW</span>
+                <span style="font-size:13px;color:#A89A7A">PL · Abweichung · vor 21 h</span>
+              </div>
+              <span style="margin-top:2px;font-size:14px;color:#A85E2E">→ Weitere 48 Brände laden</span>
+              <p style="margin:auto 0 0;font-size:12.5px;line-height:1.5;color:#A89A7A">Detektion ist Wärme aus dem Satelliten, kein Einsatz. „Kein Signal" ist keine Entwarnung.</p>
+            </div>
+
+            <!-- stage: dossier -->
+            <div style="flex:1;display:flex;min-width:0;background:#F5F1E8">
+              <div style="flex:1;padding:16px 16px 12px;min-width:0;display:flex;flex-direction:column;gap:12px">
+                <div style="background:#FAF6EA;border:1px solid #E0D6BE;border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;gap:14px">
+                  <div style="display:flex;align-items:flex-start;gap:14px">
+                    <div style="display:flex;flex-direction:column;gap:5px">
+                      <div style="display:flex;align-items:center;gap:9px">
+                        <span style="font-size:28.5px;font-weight:600;letter-spacing:-.015em;color:#2C2A26">bei Steyregg</span>
+                        <span style="font-family:'League Spartan';font-size:12px;letter-spacing:.12em;background:#A32B1E;color:#FAF6EA;padding:3px 7px;border-radius:5px">AKTIV</span>
+                      </div>
+                      <span style="font-size:15px;color:#5C5447">AT · Politischer Bezirk Urfahr-Umgebung · 48,272° N · 14,343° E</span>
+                    </div>
+                    <div style="margin-left:auto;display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:8px">
+                      <span style="font-family:'League Spartan';font-size:12.5px;background:#F2EEE3;border:1px solid #E0D6BE;color:#5C5447;padding:5px 8px;border-radius:6px;white-space:nowrap;flex-shrink:0">fire:48.27157,14.34241,1787362980000</span>
+                      <span style="font-size:13px;padding:5px 9px;border-radius:6px;border:1px solid #E0D6BE;color:#5C5447;white-space:nowrap;flex-shrink:0">Satellit (VIIRS 375 m)</span>
+                      <span style="font-size:13px;padding:5px 9px;border-radius:6px;border:1px solid #E3C39A;background:#FBF3E7;color:#9A5A2A;white-space:nowrap;flex-shrink:0">unbestätigt</span>
+                    </div>
+                  </div>
+                  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+                    <div style="border:1px solid #E0D6BE;background:#FDFBF4;border-radius:10px;padding:11px 12px;display:flex;flex-direction:column;gap:3px">
+                      <span style="font-family:'League Spartan';font-size:11.5px;letter-spacing:.18em;color:#8B7355">FLÄCHE</span>
+                      <span style="font-size:26.5px;font-weight:600;color:#2C2A26;line-height:1.05">≈ 29 ha</span>
+                      <span style="font-size:13px;color:#8B7355">geschätzt · 5,2–157 ha, 80 % · Modell v1</span>
+                    </div>
+                    <div style="border:1px solid #E0D6BE;background:#FDFBF4;border-radius:10px;padding:11px 12px;display:flex;flex-direction:column;gap:3px">
+                      <span style="font-family:'League Spartan';font-size:11.5px;letter-spacing:.18em;color:#8B7355">DETEKTIONEN</span>
+                      <span style="font-size:26.5px;font-weight:600;color:#2C2A26;line-height:1.05">17</span>
+                      <span style="font-size:13px;color:#8B7355">letzte vor 8 h · 1 Überflug</span>
+                    </div>
+                    <div style="border:1px solid #E0D6BE;background:#FDFBF4;border-radius:10px;padding:11px 12px;display:flex;flex-direction:column;gap:3px">
+                      <span style="font-family:'League Spartan';font-size:11.5px;letter-spacing:.18em;color:#8B7355">STÄRKE</span>
+                      <span style="font-size:26.5px;font-weight:600;color:#2C2A26;line-height:1.05">13,7 MW</span>
+                      <span style="font-size:13px;color:#8B7355">ΣFRP · 1,8 km² Ausdehnung</span>
+                    </div>
+                    <div style="border:1px solid #E0D6BE;background:#FDFBF4;border-radius:10px;padding:11px 12px;display:flex;flex-direction:column;gap:3px">
+                      <span style="font-family:'League Spartan';font-size:11.5px;letter-spacing:.18em;color:#8B7355">TENDENZ</span>
+                      <span style="font-size:26.5px;font-weight:600;color:#A89A7A;line-height:1.05">—</span>
+                      <span style="font-size:13px;color:#8B7355">kein Verlauf — nur ein Überflug</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div style="display:flex;gap:12px;min-height:352px">
+                  <div style="flex:1.25;background:#FAF6EA;border:1px solid #E0D6BE;border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;min-width:0">
+                    <div style="display:flex;align-items:baseline;gap:10px">
+                      <span style="font-family:'League Spartan';font-size:12px;letter-spacing:.2em;color:#A32B1E">VERLAUF</span>
+                      <span style="font-size:13.5px;color:#8B7355">ΣFRP je Überflug · log-Achse · Lücken > 6 h schraffiert</span>
+                    </div>
+                    <svg viewBox="0 0 600 190" style="width:100%;height:auto">
+                      <defs><pattern id="gap1a" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse"><rect width="7" height="7" fill="#F2EEE3"></rect><line x1="0" y1="0" x2="0" y2="7" stroke="#D9CEB0" stroke-width="2"></line></pattern></defs>
+                      <line x1="42" y1="20" x2="42" y2="150" stroke="#E0D6BE"></line>
+                      <line x1="42" y1="150" x2="586" y2="150" stroke="#D9CEB0"></line>
+                      <text x="36" y="24" text-anchor="end" font-family="League Spartan" font-size="10.5" fill="#A89A7A">100</text>
+                      <text x="36" y="70" text-anchor="end" font-family="League Spartan" font-size="10.5" fill="#A89A7A">30</text>
+                      <text x="36" y="116" text-anchor="end" font-family="League Spartan" font-size="10.5" fill="#A89A7A">3</text>
+                      <text x="36" y="153" text-anchor="end" font-family="League Spartan" font-size="10.5" fill="#A89A7A">0</text>
+                      <rect x="42" y="20" width="112" height="130" fill="url(#gap1a)"></rect>
+                      <text x="98" y="88" text-anchor="middle" font-family="League Spartan" font-size="11" fill="#8B7355">keine Beobachtung · 19 h</text>
+                      <rect x="176" y="84" width="34" height="66" rx="2" fill="#A32B1E"></rect>
+                      <text x="193" y="76" text-anchor="middle" font-family="League Spartan" font-size="11" fill="#5C5447">13,7 MW</text>
+                      <text x="193" y="164" text-anchor="middle" font-size="12.5" fill="#5C5447">☾</text>
+                      <text x="193" y="178" text-anchor="middle" font-family="League Spartan" font-size="10.5" fill="#A89A7A">22.08. 03:43</text>
+                      <rect x="228" y="20" width="330" height="130" fill="url(#gap1a)"></rect>
+                      <text x="393" y="88" text-anchor="middle" font-family="League Spartan" font-size="11" fill="#8B7355">keine Beobachtung · 8 h (Nachlauf)</text>
+                      <line x1="558" y1="14" x2="558" y2="156" stroke="#A32B1E" stroke-width="1.5" stroke-dasharray="4 4"></line>
+                      <text x="562" y="20" font-family="League Spartan" font-size="11" fill="#A32B1E">jetzt</text>
+                    </svg>
+                    <p style="margin:0;font-size:13.5px;line-height:1.5;color:#8B7355;text-wrap:pretty">Balken = Leistung, summiert über Pixel eines Überflugs — keine Fläche. Zwischen Überflügen wird nichts interpoliert; wo der Satellit nicht hinsah, steht die Lücke.</p>
+                    <div style="display:flex;gap:14px;border-top:1px solid #E0D6BE;padding-top:9px">
+                      <span style="font-size:13.5px;color:#5C5447"><b style="color:#2C2A26">Ausbreitung</b> — nicht gerechnet</span>
+                      <span style="font-size:13.5px;color:#5C5447"><b style="color:#2C2A26">FRE</b> nicht bestimmbar · 17 Detektionen über 1 Überflug</span>
+                      <span style="font-size:13.5px;color:#5C5447"><b style="color:#2C2A26">Überflüge</b> nur Nacht · 0,4 km Pixelbreite</span>
+                    </div>
+                  </div>
+
+                  <div style="flex:1;background:#FAF6EA;border:1px solid #E0D6BE;border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:9px;min-width:0">
+                    <div style="display:flex;align-items:baseline;gap:10px">
+                      <span style="font-family:'League Spartan';font-size:12px;letter-spacing:.2em;color:#3A6FA8">WETTERLAGE AM BRANDORT</span>
+                    </div>
+                    <p style="margin:0;font-size:16px;line-height:1.45;color:#2C2A26">trockene Luft (RH 41 %) · Böen 23 km/h aus O · kein Regen in den 24 h davor</p>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                      <div style="border:1px solid #C7D6E4;background:#EAF1F7;border-radius:9px;padding:9px 10px;display:flex;flex-direction:column;gap:3px">
+                        <span style="font-family:'League Spartan';font-size:11px;letter-spacing:.14em;color:#3A6FA8">ERSTDETEKTION · 22.08. 03:43</span>
+                        <span style="font-size:14px;line-height:1.45;color:#3A3833">21,1 °C · RH 41 % · Wind O 14 · Böen 23 km/h · 0 mm</span>
+                      </div>
+                      <div style="border:1px solid #E0D6BE;background:#FDFBF4;border-radius:9px;padding:9px 10px;display:flex;flex-direction:column;gap:3px">
+                        <span style="font-family:'League Spartan';font-size:11px;letter-spacing:.14em;color:#8B7355">BRANDTAG 22.08. · BIS JETZT</span>
+                        <span style="font-size:14px;line-height:1.45;color:#3A3833">Tmax 21,7 °C · RHmin 35 % · Böen max 29 km/h · 3,9 mm</span>
+                      </div>
+                      <div style="border:1px solid #E0D6BE;background:#FDFBF4;border-radius:9px;padding:9px 10px;display:flex;flex-direction:column;gap:3px">
+                        <span style="font-family:'League Spartan';font-size:11px;letter-spacing:.14em;color:#8B7355">VORTAGE</span>
+                        <span style="font-size:14px;line-height:1.45;color:#3A3833">0 mm in den 24 h davor · 1 Tag seit Regentag</span>
+                      </div>
+                      <div style="border:1px solid #E0D6BE;background:#FDFBF4;border-radius:9px;padding:9px 10px;display:flex;flex-direction:column;gap:3px">
+                        <span style="font-family:'League Spartan';font-size:11px;letter-spacing:.14em;color:#8B7355">JETZT · 22.08. 11:00</span>
+                        <span style="font-size:14px;line-height:1.45;color:#3A3833">24,6 °C · RH 38 % · Wind O 11 · Böen 19 km/h</span>
+                      </div>
+                    </div>
+                    <p style="margin:0;font-size:13px;line-height:1.5;color:#A89A7A">Modellwerte DWD ICON (Open-Meteo, 2–13 km) — keine Messung.</p>
+                  </div>
+                </div>
+
+                <div style="display:flex;gap:12px">
+                  <div style="flex:1.25;background:#FAF6EA;border:1px solid #E0D6BE;border-radius:12px;padding:13px 16px;display:flex;flex-direction:column;gap:8px">
+                    <span style="font-family:'League Spartan';font-size:12px;letter-spacing:.2em;color:#8B7355">EINORDNUNG &amp; BESTÄTIGUNG</span>
+                    <div style="display:grid;grid-template-columns:96px 1fr;row-gap:6px;column-gap:12px;font-size:14px;line-height:1.45">
+                      <span style="font-family:'League Spartan';font-size:11.5px;letter-spacing:.14em;color:#8B7355;padding-top:2px">KONFIDENZ</span><span style="color:#3A3833">FIRMS alle nominal · Bewertung <b>unbestätigt</b></span>
+                      <span style="font-family:'League Spartan';font-size:11.5px;letter-spacing:.14em;color:#8B7355;padding-top:2px">LANDBED.</span><span style="color:#3A3833">CORINE 2018: Industrie-/Deponiefläche — spricht für eine Dauerquelle</span>
+                      <span style="font-family:'League Spartan';font-size:11.5px;letter-spacing:.14em;color:#8B7355;padding-top:2px">KARTIERUNG</span><span style="color:#3A3833">keine EFFIS-Kartierung — Fläche bleibt geschätzt</span>
+                      <span style="font-family:'League Spartan';font-size:11.5px;letter-spacing:.14em;color:#8B7355;padding-top:2px">EMS</span><span style="color:#3A3833">keine Aktivierung für diesen Ort</span>
+                    </div>
+                    <div style="border:1px solid #E3C39A;background:#FBF3E7;border-radius:9px;padding:10px 12px">
+                      <span style="font-family:'League Spartan';font-size:11.5px;letter-spacing:.14em;color:#9A5A2A">URSACHE</span>
+                      <p style="margin:4px 0 0;font-size:14px;line-height:1.5;color:#3A3833;text-wrap:pretty"><b>keine Quelle</b> — ermitteln Polizei und Forstbehörden; kein Anbieter dieser Karte liefert sie je Brand. Einordnungshilfen: CORINE Industrie-/Deponiefläche · ≥ 5 Tage am selben Ort.</p>
+                    </div>
+                  </div>
+                  <div style="flex:1;background:#FAF6EA;border:1px solid #E0D6BE;border-radius:12px;padding:13px 16px;display:flex;flex-direction:column;gap:8px">
+                    <span style="font-family:'League Spartan';font-size:12px;letter-spacing:.2em;color:#8B7355">MERKMALE</span>
+                    <div style="display:flex;flex-direction:column;gap:5px;font-size:14px">
+                      <div style="display:flex;justify-content:space-between;border-bottom:1px solid #EDE6D3;padding-bottom:4px"><span style="color:#5C5447">Detektionen</span><b style="color:#2C2A26">17</b></div>
+                      <div style="display:flex;justify-content:space-between;border-bottom:1px solid #EDE6D3;padding-bottom:4px"><span style="color:#5C5447">Überflüge</span><b style="color:#2C2A26">1</b></div>
+                      <div style="display:flex;justify-content:space-between;border-bottom:1px solid #EDE6D3;padding-bottom:4px"><span style="color:#5C5447">max ΣFRP / Überflug</span><b style="color:#2C2A26">13,7 MW</b></div>
+                      <div style="display:flex;justify-content:space-between;border-bottom:1px solid #EDE6D3;padding-bottom:4px"><span style="color:#5C5447">Satelliten</span><b style="color:#2C2A26">N20</b></div>
+                      <div style="display:flex;justify-content:space-between;border-bottom:1px solid #EDE6D3;padding-bottom:4px"><span style="color:#5C5447">größte Lücke</span><b style="color:#2C2A26">19 h</b></div>
+                      <div style="display:flex;justify-content:space-between"><span style="color:#5C5447">ortsfest</span><b style="color:#2C2A26">ja · 6 Tage</b></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- mini map column -->
+              <div style="width:300px;padding:16px 16px 12px 0;display:flex;flex-direction:column;gap:10px;flex-shrink:0">
+                <div style="background:#FAF6EA;border:1px solid #E0D6BE;border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:8px">
+                  <div style="display:flex;justify-content:space-between;align-items:center">
+                    <span style="font-family:'League Spartan';font-size:11.5px;letter-spacing:.18em;color:#8B7355">KARTE · MARKIERT</span>
+                    <span style="font-size:13px;color:#A85E2E">↗ Bühne zurück</span>
+                  </div>
+                  <div style="position:relative;height:230px;border-radius:9px;overflow:hidden;background:repeating-linear-gradient(135deg,#C7D6BB 0 8px,#C1D1B5 8px 16px)">
+                    <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:86px;height:52px;border:2px solid #FFB03D;background:rgba(255,176,61,.22);border-radius:4px"></div>
+                    <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:10px;height:10px;border-radius:50%;background:#FF6B3D;box-shadow:0 0 0 3px rgba(255,107,61,.3)"></div>
+                    <span style="position:absolute;left:8px;bottom:7px;font-family:'League Spartan';font-size:11px;color:#5C5447;background:rgba(250,246,234,.86);padding:3px 6px;border-radius:4px">Kartenfläche · MapLibre · Straßen</span>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:3px">
+                    <span style="font-size:14px;color:#3A3833">1,8 km² Ausdehnung der Detektionen</span>
+                    <span style="font-size:13px;color:#A89A7A">Der Brand liegt in der gezeichneten Fläche (288 ha Satellitenabdeckung); seine genaue Lage darin ist unbekannt.</span>
+                  </div>
+                </div>
+                <div style="background:#FAF6EA;border:1px solid #E0D6BE;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:7px">
+                  <span style="font-family:'League Spartan';font-size:11.5px;letter-spacing:.18em;color:#8B7355">LEGENDE · DETEKTION</span>
+                  <div style="display:flex;align-items:center;gap:8px;font-size:13.5px;color:#3A3833"><span style="width:10px;height:10px;border-radius:50%;background:#FF6B3D"></span>Detektion im Fenster</div>
+                  <div style="display:flex;align-items:center;gap:8px;font-size:13.5px;color:#3A3833"><span style="width:10px;height:10px;border-radius:50%;background:#8B8474"></span>ortsfest (grau)</div>
+                  <div style="display:flex;align-items:center;gap:8px;font-size:13.5px;color:#3A3833"><span style="width:10px;height:10px;border-radius:2px;border:2px solid #FFB03D"></span>markierter Brand</div>
+                  <span style="font-size:12.5px;color:#A89A7A">Farben abgeleitet — nicht amtlich</span>
+                </div>
+                <div style="margin-top:auto;background:#FAF6EA;border:1px solid #E0D6BE;border-radius:12px;padding:11px 12px">
+                  <span style="font-size:13.5px;line-height:1.5;color:#8B7355;display:block">Nationale Skalen · nie umgerechnet — DE·DWD 5 Stufen, CH·BAFU 5 Stufen, AT-Lücke.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- time deck -->
+          <div style="height:64px;background:#FAF6EA;border-top:1px solid #E0D6BE;display:flex;align-items:center;gap:14px;padding:0 18px;flex-shrink:0">
+            <div style="width:34px;height:34px;border-radius:9px;background:#A32B1E;display:flex;align-items:center;justify-content:center;color:#FAF6EA;font-size:14px">▶</div>
+            <div style="display:flex;background:#F2EEE3;border:1px solid #E0D6BE;border-radius:8px;padding:2px">
+              <span style="font-size:14px;padding:4px 12px;border-radius:6px;background:#FAF6EA;color:#2C2A26;font-weight:500">Tage</span>
+              <span style="font-size:14px;padding:4px 12px;border-radius:6px;color:#A89A7A">Stunden</span>
+            </div>
+            <span style="font-family:'League Spartan';font-size:12px;letter-spacing:.16em;color:#A32B1E">HEUTE</span>
+            <div style="flex:1;height:3px;background:#E0D6BE;border-radius:2px;position:relative">
+              <span style="position:absolute;left:0;top:-4px;width:11px;height:11px;border-radius:50%;background:#A32B1E"></span>
+            </div>
+            <span style="font-family:'League Spartan';font-size:12.5px;color:#8B7355">+9 d</span>
+            <div style="display:flex;background:#F2EEE3;border:1px solid #E0D6BE;border-radius:8px;padding:2px">
+              <span style="font-size:14px;padding:4px 11px;border-radius:6px;background:#A32B1E;color:#FAF6EA">24 h</span>
+              <span style="font-size:14px;padding:4px 11px;border-radius:6px;color:#5C5447">7 d</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:40px;flex-wrap:wrap;align-items:flex-start">
+        <sc-if value="{{ showTablet }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <span style="font-family:'League Spartan';font-size:12px;letter-spacing:.2em;color:#8B7355">TABLET 1024 × 768</span>
+          <div data-ref="1a-tablet" data-screen-label="1a-tablet" style="width:1024px;height:768px;overflow:hidden;border-radius:14px;box-shadow:0 8px 32px rgba(44,42,38,.12);display:flex;background:#F5F1E8">
+            <div style="width:40px;background:#2C2A26;display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:16px;flex-shrink:0">
+              <div style="width:18px;height:18px;border-radius:4px;border:1.5px solid #6E634F"></div>
+              <div style="width:14px;height:14px;border-radius:50%;border:1.5px solid #6E634F"></div>
+              <div style="width:14px;height:14px;border-radius:3px;border:1.5px solid #6E634F"></div>
+              <div style="width:14px;height:14px;border-radius:50%;border:1.5px solid #6E634F"></div>
+              <div style="width:26px;height:26px;border-radius:7px;background:#3A3833;display:flex;align-items:center;justify-content:center"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><path d="M12 21 C8 21 5.5 18.2 5.5 15 C5.5 11.4 8.6 9.6 9.2 6 C11.4 8.4 11 10.4 11.4 11.6 C12 8.8 13.6 7.2 13 3 C16.6 5.6 18.5 10 18.5 15 C18.5 18.2 16 21 12 21 Z" stroke="#E0A567" stroke-width="1.5" stroke-linejoin="round"></path></svg></div>
+              <div style="width:14px;height:14px;border-radius:3px;border:1.5px solid #6E634F"></div>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;min-width:0">
+              <div style="height:50px;background:#FAF6EA;border-bottom:1px solid #E0D6BE;display:flex;align-items:center;gap:12px;padding:0 14px">
+                <span style="font-size:17px;font-weight:600;color:#2C2A26">buscosun</span>
+                <span style="font-size:14px;color:#5C5447">Brände · bei Steyregg</span>
+                <div style="display:flex;background:#F2EEE3;border:1px solid #E0D6BE;border-radius:8px;padding:3px;margin-left:4px">
+                  <span style="font-size:14px;padding:4px 12px;border-radius:6px;color:#5C5447">Karte</span>
+                  <span style="font-size:14px;padding:4px 12px;border-radius:6px;background:#A32B1E;color:#FAF6EA">Dossier</span>
+                </div>
+                <span style="margin-left:auto;display:flex;align-items:center;gap:6px;font-family:'League Spartan';font-size:12.5px;letter-spacing:.14em;color:#A32B1E"><span style="width:7px;height:7px;border-radius:50%;background:#A32B1E"></span>FIRMS LIVE</span>
+              </div>
+              <div style="flex:1;display:flex;min-height:0">
+                <div style="width:64px;background:#FAF6EA;border-right:1px solid #E0D6BE;display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:12px;flex-shrink:0">
+                  <span style="font-family:'League Spartan';font-size:10px;letter-spacing:.14em;color:#8B7355">LISTE</span>
+                  <div style="width:40px;height:40px;border-radius:9px;border:1.5px solid #FFB03D;background:#FFFCF3"></div>
+                  <div style="width:40px;height:40px;border-radius:9px;border:1px solid #E0D6BE;background:#FDFBF4"></div>
+                  <div style="width:40px;height:40px;border-radius:9px;border:1px solid #E0D6BE;background:#FDFBF4"></div>
+                  <div style="width:40px;height:40px;border-radius:9px;border:1px solid #E0D6BE;background:#FDFBF4"></div>
+                  <span style="font-size:12px;color:#A89A7A">+48</span>
+                </div>
+                <div style="flex:1;padding:12px;display:flex;flex-direction:column;gap:10px;min-width:0">
+                  <div style="background:#FAF6EA;border:1px solid #E0D6BE;border-radius:11px;padding:13px 14px;display:flex;flex-direction:column;gap:11px">
+                    <div style="display:flex;align-items:center;gap:9px">
+                      <span style="font-size:23.5px;font-weight:600;color:#2C2A26">bei Steyregg</span>
+                      <span style="font-family:'League Spartan';font-size:11px;letter-spacing:.12em;background:#A32B1E;color:#FAF6EA;padding:2px 6px;border-radius:4px">AKTIV</span>
+                      <span style="margin-left:auto;font-size:13.5px;color:#5C5447">AT · Urfahr-Umgebung</span>
+                    </div>
+                    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+                      <div style="border:1px solid #E0D6BE;background:#FDFBF4;border-radius:9px;padding:9px 10px"><span style="font-family:'League Spartan';font-size:11px;letter-spacing:.16em;color:#8B7355;display:block">FLÄCHE</span><span style="font-size:22.5px;font-weight:600;color:#2C2A26">≈ 29 ha</span><span style="font-size:12.5px;color:#8B7355;display:block">geschätzt</span></div>
+                      <div style="border:1px solid #E0D6BE;background:#FDFBF4;border-radius:9px;padding:9px 10px"><span style="font-family:'League Spartan';font-size:11px;letter-spacing:.16em;color:#8B7355;display:block">DETEKT.</span><span style="font-size:22.5px;font-weight:600;color:#2C2A26">17</span><span style="font-size:12.5px;color:#8B7355;display:block">letzte vor 8 h</span></div>
+                      <div style="border:1px solid #E0D6BE;background:#FDFBF4;border-radius:9px;padding:9px 10px"><span style="font-family:'League Spartan';font-size:11px;letter-spacing:.16em;color:#8B7355;display:block">STÄRKE</span><span style="font-size:22.5px;font-weight:600;color:#2C2A26">13,7 MW</span><span style="font-size:12.5px;color:#8B7355;display:block">ΣFRP · 1,8 km²</span></div>
+                      <div style="border:1px solid #E0D6BE;background:#FDFBF4;border-radius:9px;padding:9px 10px"><span style="font-family:'League Spartan';font-size:11px;letter-spacing:.16em;color:#8B7355;display:block">TENDENZ</span><span style="font-size:22.5px;font-weight:600;color:#A89A7A">—</span><span style="font-size:12.5px;color:#8B7355;display:block">1 Überflug</span></div>
+                    </div>
+                  </div>
+                  <div style="flex:1;display:flex;gap:10px;min-height:0">
+                    <div style="flex:1;display:flex;flex-direction:column;gap:10px;min-width:0">
+                      <div style="background:#FAF6EA;border:1px solid #E0D6BE;border-radius:11px;padding:12px 14px;display:flex;flex-direction:column;gap:8px">
+                        <span style="font-family:'League Spartan';font-size:11.5px;letter-spacing:.2em;color:#A32B1E">VERLAUF</span>
+                        <svg viewBox="0 0 420 130" style="width:100%;height:auto">
+                          <defs><pattern id="gap1at" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse"><rect width="7" height="7" fill="#F2EEE3"></rect><line x1="0" y1="0" x2="0" y2="7" stroke="#D9CEB0" stroke-width="2"></line></pattern></defs>
+                          <line x1="30" y1="10" x2="30" y2="102" stroke="#E0D6BE"></line>
+                          <line x1="30" y1="102" x2="412" y2="102" stroke="#D9CEB0"></line>
+                          <rect x="30" y="10" width="80" height="92" fill="url(#gap1at)"></rect>
+                          <text x="70" y="60" text-anchor="middle" font-family="League Spartan" font-size="10" fill="#8B7355">Lücke 19 h</text>
+                          <rect x="126" y="56" width="26" height="46" rx="2" fill="#A32B1E"></rect>
+                          <text x="139" y="50" text-anchor="middle" font-family="League Spartan" font-size="10" fill="#5C5447">13,7 MW</text>
+                          <text x="139" y="116" text-anchor="middle" font-size="11.5" fill="#5C5447">☾</text>
+                          <text x="139" y="127" text-anchor="middle" font-family="League Spartan" font-size="9.5" fill="#A89A7A">22.08. 03:43</text>
+                          <rect x="168" y="10" width="216" height="92" fill="url(#gap1at)"></rect>
+                          <text x="276" y="60" text-anchor="middle" font-family="League Spartan" font-size="10" fill="#8B7355">Nachlauf 8 h</text>
+                          <line x1="384" y1="6" x2="384" y2="108" stroke="#A32B1E" stroke-width="1.5" stroke-dasharray="4 4"></line>
+                          <text x="388" y="14" font-family="League Spartan" font-size="10" fill="#A32B1E">jetzt</text>
+                        </svg>
+                        <span style="font-size:13px;color:#8B7355;line-height:1.45">ΣFRP je Überflug, log-Achse — nichts interpoliert.</span>
+                      </div>
+                      <div style="flex:1;background:#FAF6EA;border:1px solid #E0D6BE;border-radius:11px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;min-height:0">
+                        <span style="font-family:'League Spartan';font-size:11.5px;letter-spacing:.2em;color:#3A6FA8">WETTERLAGE</span>
+                        <span style="font-size:15px;line-height:1.4;color:#2C2A26">trockene Luft (RH 41 %) · Böen 23 km/h aus O · kein Regen in den 24 h davor</span>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">
+                          <div style="border:1px solid #C7D6E4;background:#EAF1F7;border-radius:8px;padding:8px"><span style="font-family:'League Spartan';font-size:10.5px;letter-spacing:.14em;color:#3A6FA8;display:block">ERSTDETEKTION</span><span style="font-size:13px;line-height:1.4;color:#3A3833">21,1 °C · RH 41 % · Böen 23 km/h · 0 mm</span></div>
+                          <div style="border:1px solid #E0D6BE;background:#FDFBF4;border-radius:8px;padding:8px"><span style="font-family:'League Spartan';font-size:10.5px;letter-spacing:.14em;color:#8B7355;display:block">BRANDTAG</span><span style="font-size:13px;line-height:1.4;color:#3A3833">Tmax 21,7 · RHmin 35 % · 3,9 mm</span></div>
+                          <div style="border:1px solid #E0D6BE;background:#FDFBF4;border-radius:8px;padding:8px"><span style="font-family:'League Spartan';font-size:10.5px;letter-spacing:.14em;color:#8B7355;display:block">VORTAGE</span><span style="font-size:13px;line-height:1.4;color:#3A3833">0 mm / 1 Tag seit Regentag</span></div>
+                          <div style="border:1px solid #E0D6BE;background:#FDFBF4;border-radius:8px;padding:8px"><span style="font-family:'League Spartan';font-size:10.5px;letter-spacing:.14em;color:#8B7355;display:block">JETZT · 11:00</span><span style="font-size:13px;line-height:1.4;color:#3A3833">24,6 °C · RH 38 % · Böen 19 km/h</span></div>
+                        </div>
+                        <span style="font-size:12px;color:#A89A7A;line-height:1.45">Modellwerte DWD ICON (Open-Meteo) — keine Messung.</span>
+                      </div>
+                    </div>
+                    <div style="width:250px;display:flex;flex-direction:column;gap:10px;flex-shrink:0">
+                      <div style="background:#FAF6EA;border:1px solid #E0D6BE;border-radius:11px;padding:9px;display:flex;flex-direction:column;gap:7px">
+                        <div style="display:flex;justify-content:space-between"><span style="font-family:'League Spartan';font-size:11px;letter-spacing:.16em;color:#8B7355">KARTE · MARKIERT</span><span style="font-size:12.5px;color:#A85E2E">↗</span></div>
+                        <div style="position:relative;height:150px;border-radius:8px;overflow:hidden;background:repeating-linear-gradient(135deg,#C7D6BB 0 8px,#C1D1B5 8px 16px)">
+                          <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:70px;height:44px;border:2px solid #FFB03D;background:rgba(255,176,61,.22);border-radius:4px"></div>
+                          <span style="position:absolute;left:6px;bottom:6px;font-family:'League Spartan';font-size:10px;color:#5C5447;background:rgba(250,246,234,.86);padding:2px 5px;border-radius:3px">Kartenfläche</span>
+                        </div>
+                      </div>
+                      <div style="flex:1;background:#FAF6EA;border:1px solid #E0D6BE;border-radius:11px;padding:11px 12px;display:flex;flex-direction:column;gap:7px;min-height:0;overflow:hidden">
+                        <span style="font-family:'League Spartan';font-size:11px;letter-spacing:.18em;color:#8B7355">EINORDNUNG</span>
+                        <span style="font-size:13px;line-height:1.45;color:#3A3833">FIRMS alle nominal · <b>unbestätigt</b></span>
+                        <span style="font-size:13px;line-height:1.45;color:#3A3833">CORINE 2018: Industrie-/Deponiefläche</span>
+                        <div style="border:1px solid #E3C39A;background:#FBF3E7;border-radius:8px;padding:8px 9px"><span style="font-family:'League Spartan';font-size:10.5px;letter-spacing:.14em;color:#9A5A2A;display:block">URSACHE</span><span style="font-size:12.5px;line-height:1.45;color:#3A3833"><b>keine Quelle</b> — ermitteln Polizei und Forst; kein Anbieter liefert sie je Brand.</span></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div style="height:52px;background:#FAF6EA;border-top:1px solid #E0D6BE;display:flex;align-items:center;gap:12px;padding:0 14px">
+                <div style="width:30px;height:30px;border-radius:8px;background:#A32B1E;display:flex;align-items:center;justify-content:center;color:#FAF6EA;font-size:13px">▶</div>
+                <span style="font-family:'League Spartan';font-size:12px;letter-spacing:.16em;color:#A32B1E">HEUTE</span>
+                <div style="flex:1;height:3px;background:#E0D6BE;border-radius:2px;position:relative"><span style="position:absolute;left:0;top:-4px;width:11px;height:11px;border-radius:50%;background:#A32B1E"></span></div>
+                <div style="display:flex;background:#F2EEE3;border:1px solid #E0D6BE;border-radius:8px;padding:2px"><span style="font-size:13.5px;padding:4px 10px;border-radius:6px;background:#A32B1E;color:#FAF6EA">24 h</span><span style="font-size:13.5px;padding:4px 10px;border-radius:6px;color:#5C5447">7 d</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        </sc-if>
+
+        <sc-if value="{{ showMobile }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <span style="font-family:'League Spartan';font-size:12px;letter-spacing:.2em;color:#8B7355">MOBIL 390 × 844</span>
+          <div data-ref="1a-mobile" data-screen-label="1a-mobile" style="width:390px;height:844px;overflow:hidden;border-radius:26px;box-shadow:0 8px 32px rgba(44,42,38,.14);display:flex;flex-direction:column;background:#F5F1E8">
+            <div style="height:44px;background:#FAF6EA;display:flex;align-items:flex-end;justify-content:space-between;padding:0 18px 6px"><span style="font-family:'League Spartan';font-size:13px;color:#2C2A26">11:04</span><span style="font-family:'League Spartan';font-size:12px;color:#8B7355">▮▮▮</span></div>
+            <div style="background:#FAF6EA;border-bottom:1px solid #E0D6BE;padding:6px 14px 10px;display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;align-items:center;gap:8px">
+                <span style="font-size:15px;color:#A85E2E">← Brände</span>
+                <span style="margin-left:auto;font-family:'League Spartan';font-size:11.5px;letter-spacing:.14em;color:#A32B1E">FIRMS LIVE</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <span style="font-size:22.5px;font-weight:600;color:#2C2A26">bei Steyregg</span>
+                <span style="font-family:'League Spartan';font-size:11px;letter-spacing:.12em;background:#A32B1E;color:#FAF6EA;padding:2px 6px;border-radius:4px">AKTIV</span>
+              </div>
+              <span style="font-size:14px;color:#5C5447">AT · Politischer Bezirk Urfahr-Umgebung</span>
+              <div style="display:flex;background:#F2EEE3;border:1px solid #E0D6BE;border-radius:9px;padding:3px">
+                <span style="flex:1;text-align:center;font-size:15px;padding:8px 0;border-radius:7px;color:#5C5447">Karte</span>
+                <span style="flex:1;text-align:center;font-size:15px;padding:8px 0;border-radius:7px;background:#A32B1E;color:#FAF6EA">Dossier</span>
+              </div>
+            </div>
+            <div style="flex:1;overflow:hidden;padding:12px 14px;display:flex;flex-direction:column;gap:10px">
+              <div style="position:relative;height:88px;border-radius:10px;overflow:hidden;background:repeating-linear-gradient(135deg,#C7D6BB 0 8px,#C1D1B5 8px 16px);flex-shrink:0">
+                <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:76px;height:46px;border:2px solid #FFB03D;background:rgba(255,176,61,.22);border-radius:4px"></div>
+                <span style="position:absolute;left:8px;bottom:7px;font-family:'League Spartan';font-size:10.5px;color:#5C5447;background:rgba(250,246,234,.86);padding:2px 6px;border-radius:3px">Kartenstreifen · tippen für Vollbild</span>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;flex-shrink:0">
+                <div style="border:1px solid #E0D6BE;background:#FAF6EA;border-radius:10px;padding:9px 10px"><span style="font-family:'League Spartan';font-size:11px;letter-spacing:.16em;color:#8B7355;display:block">FLÄCHE</span><span style="font-size:23.5px;font-weight:600;color:#2C2A26">≈ 29 ha</span><span style="font-size:12.5px;color:#8B7355;display:block">geschätzt</span></div>
+                <div style="border:1px solid #E0D6BE;background:#FAF6EA;border-radius:10px;padding:9px 10px"><span style="font-family:'League Spartan';font-size:11px;letter-spacing:.16em;color:#8B7355;display:block">DETEKTIONEN</span><span style="font-size:23.5px;font-weight:600;color:#2C2A26">17</span><span style="font-size:12.5px;color:#8B7355;display:block">letzte vor 8 h</span></div>
+                <div style="border:1px solid #E0D6BE;background:#FAF6EA;border-radius:10px;padding:9px 10px"><span style="font-family:'League Spartan';font-size:11px;letter-spacing:.16em;color:#8B7355;display:block">STÄRKE</span><span style="font-size:23.5px;font-weight:600;color:#2C2A26">13,7 MW</span><span style="font-size:12.5px;color:#8B7355;display:block">ΣFRP · 1,8 km²</span></div>
+                <div style="border:1px solid #E0D6BE;background:#FAF6EA;border-radius:10px;padding:9px 10px"><span style="font-family:'League Spartan';font-size:11px;letter-spacing:.16em;color:#8B7355;display:block">TENDENZ</span><span style="font-size:23.5px;font-weight:600;color:#A89A7A">—</span><span style="font-size:12.5px;color:#8B7355;display:block">1 Überflug</span></div>
+              </div>
+              <div style="background:#FAF6EA;border:1px solid #E0D6BE;border-radius:10px;padding:11px 12px;display:flex;flex-direction:column;gap:7px;flex-shrink:0">
+                <span style="font-family:'League Spartan';font-size:11.5px;letter-spacing:.2em;color:#A32B1E">VERLAUF</span>
+                <svg viewBox="0 0 320 110" style="width:100%;height:100px">
+                  <defs><pattern id="gap1am" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse"><rect width="7" height="7" fill="#F2EEE3"></rect><line x1="0" y1="0" x2="0" y2="7" stroke="#D9CEB0" stroke-width="2"></line></pattern></defs>
+                  <line x1="22" y1="8" x2="22" y2="84" stroke="#E0D6BE"></line>
+                  <line x1="22" y1="84" x2="314" y2="84" stroke="#D9CEB0"></line>
+                  <rect x="22" y="8" width="62" height="76" fill="url(#gap1am)"></rect>
+                  <text x="53" y="49" text-anchor="middle" font-family="League Spartan" font-size="9.5" fill="#8B7355">19 h</text>
+                  <rect x="96" y="46" width="24" height="38" rx="2" fill="#A32B1E"></rect>
+                  <text x="108" y="40" text-anchor="middle" font-family="League Spartan" font-size="9.5" fill="#5C5447">13,7</text>
+                  <text x="108" y="98" text-anchor="middle" font-size="10.5" fill="#5C5447">☾</text>
+                  <text x="108" y="108" text-anchor="middle" font-family="League Spartan" font-size="9" fill="#A89A7A">03:43</text>
+                  <rect x="132" y="8" width="158" height="76" fill="url(#gap1am)"></rect>
+                  <text x="211" y="49" text-anchor="middle" font-family="League Spartan" font-size="9.5" fill="#8B7355">Nachlauf 8 h</text>
+                  <line x1="290" y1="4" x2="290" y2="90" stroke="#A32B1E" stroke-width="1.5" stroke-dasharray="4 4"></line>
+                </svg>
+                
+              </div>
+              <div style="background:#FAF6EA;border:1px solid #E0D6BE;border-radius:10px;padding:11px 12px;display:flex;flex-direction:column;gap:7px">
+                <span style="font-family:'League Spartan';font-size:11.5px;letter-spacing:.2em;color:#3A6FA8">WETTERLAGE</span>
+                <span style="font-size:15px;line-height:1.45;color:#2C2A26">trockene Luft (RH 41 %) · Böen 23 km/h aus O · kein Regen in den 24 h davor</span>
+                <div style="border:1px solid #C7D6E4;background:#EAF1F7;border-radius:9px;padding:9px 10px"><span style="font-family:'League Spartan';font-size:10.5px;letter-spacing:.14em;color:#3A6FA8;display:block">ERSTDETEKTION · 22.08. 03:43</span><span style="font-size:13.5px;line-height:1.45;color:#3A3833">21,1 °C · RH 41 % · Wind O 14 km/h · Böen 23 · 0 mm</span></div>
+                
+              </div>
+            </div>
+            <div style="height:66px;background:#FAF6EA;border-top:1px solid #E0D6BE;display:flex;align-items:center;justify-content:space-around;padding-bottom:6px;flex-shrink:0">
+              <div style="display:flex;flex-direction:column;align-items:center;gap:3px;min-width:44px"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><path d="M12 3 L21 8 L12 13 L3 8 Z" stroke="#8B7355" stroke-width="1.6" stroke-linejoin="round"></path><path d="M3 13 L12 18 L21 13" stroke="#8B7355" stroke-width="1.6" stroke-linejoin="round"></path></svg><span style="font-size:12.5px;color:#8B7355">Karte</span></div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:3px;min-width:44px"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><rect x="3" y="4" width="18" height="5" rx="1.5" stroke="#8B7355" stroke-width="1.5"></rect><rect x="3" y="11" width="18" height="5" rx="1.5" stroke="#8B7355" stroke-width="1.5"></rect><circle cx="8" cy="6.5" r="1.3" fill="#8B7355"></circle><circle cx="16" cy="13.5" r="1.3" fill="#8B7355"></circle></svg><span style="font-size:12.5px;color:#8B7355">Layer</span></div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:3px;min-width:44px"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><path d="M12 21 C8 21 5.5 18.2 5.5 15 C5.5 11.4 8.6 9.6 9.2 6 C11.4 8.4 11 10.4 11.4 11.6 C12 8.8 13.6 7.2 13 3 C16.6 5.6 18.5 10 18.5 15 C18.5 18.2 16 21 12 21 Z" stroke="#A32B1E" stroke-width="1.5" stroke-linejoin="round"></path></svg><span style="font-size:12.5px;color:#A32B1E;font-weight:500">Brände</span></div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:3px;min-width:44px"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><circle cx="12" cy="12" r="9" stroke="#8B7355" stroke-width="1.5"></circle><path d="M12 8 V12 L15 14" stroke="#8B7355" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg><span style="font-size:12.5px;color:#8B7355">Zeit</span></div>
+            </div>
+          </div>
+        </div>
+        </sc-if>
+      </div>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ show1b }}" hint-placeholder-val="{{ true }}">
+    <div id="1b" style="display:flex;flex-direction:column;gap:16px;width:1440px">
+      <div style="display:flex;align-items:baseline;gap:14px">
+        <span style="font-family:'League Spartan';font-size:14px;font-weight:500;letter-spacing:.12em;background:#A32B1E;color:#FAF6EA;padding:5px 9px;border-radius:6px">1b</span>
+        <h2 style="margin:0;font-size:26.5px;font-weight:600;color:#2C2A26">Dossier-Blatt über der lebenden Karte</h2>
+      </div>
+      <p style="margin:0;max-width:900px;font-size:17px;line-height:1.55;color:#5C5447;text-wrap:pretty">Die Karte bleibt die Bühne und läuft weiter — das Dossier fährt als Blatt in die Mitte, 820 px breit, mit sichtbaren Kartenrändern links und rechts. Der Griff oben senkt es auf einen Streifen ab; der Brand bleibt dabei zentriert und markiert. Für den Wechsel Karte ⇄ Detail braucht es keinen Moduswechsel, nur eine Bewegung.</p>
+
+      <span style="font-family:'League Spartan';font-size:12px;letter-spacing:.2em;color:#8B7355">DESKTOP 1440 × 1000</span>
+      <div data-ref="1b-desktop" data-screen-label="1b-desktop" style="width:1440px;height:1000px;overflow:hidden;border-radius:14px;box-shadow:0 12px 40px rgba(44,42,38,.14);display:flex;background:#F5F1E8">
+        <div style="width:48px;background:#2C2A26;display:flex;flex-direction:column;align-items:center;padding:16px 0;gap:20px;flex-shrink:0">
+          <div style="width:20px;height:20px;border-radius:4px;border:1.5px solid #6E634F"></div>
+          <div style="width:16px;height:16px;border-radius:50%;border:1.5px solid #6E634F"></div>
+          <div style="width:16px;height:16px;border-radius:3px;border:1.5px solid #6E634F"></div>
+          <div style="width:16px;height:16px;border-radius:50%;border:1.5px solid #6E634F"></div>
+          <div style="width:16px;height:16px;border-radius:3px;border:1.5px solid #6E634F"></div>
+          <div style="width:30px;height:30px;border-radius:8px;background:#3A3833;display:flex;align-items:center;justify-content:center"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><path d="M12 21 C8 21 5.5 18.2 5.5 15 C5.5 11.4 8.6 9.6 9.2 6 C11.4 8.4 11 10.4 11.4 11.6 C12 8.8 13.6 7.2 13 3 C16.6 5.6 18.5 10 18.5 15 C18.5 18.2 16 21 12 21 Z" stroke="#E0A567" stroke-width="1.5" stroke-linejoin="round"></path></svg></div>
+          <div style="width:16px;height:16px;border-radius:3px;border:1.5px solid #6E634F"></div>
+          <div style="margin-top:auto;width:16px;height:16px;border-radius:3px;border:1.5px solid #6E634F"></div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;min-width:0">
+          <div style="height:56px;background:#FAF6EA;border-bottom:1px solid #E0D6BE;display:flex;align-items:center;gap:16px;padding:0 18px;flex-shrink:0">
+            <span style="font-family:'League Spartan';font-size:15px;color:#A32B1E">b:</span>
+            <span style="font-size:19px;font-weight:600;color:#2C2A26">buscosun</span>
+            <span style="width:1px;height:20px;background:#E0D6BE"></span>
+            <span style="font-size:15px;color:#A85E2E">← Layer-Steckbriefe</span>
+            <span style="font-size:15px;color:#5C5447">· Brandradar · Brände</span>
+            <span style="display:flex;align-items:center;gap:7px;font-size:14.5px;background:#FFFCF3;border:1px solid #FFB03D;border-radius:8px;padding:5px 10px;color:#3A3833"><span style="width:8px;height:8px;border-radius:2px;border:2px solid #FFB03D"></span>Markiert: bei Steyregg (2,4 km)</span>
+            <div style="margin-left:auto;display:flex;align-items:center;gap:16px">
+              <span style="font-size:14px;color:#8B7355">Karte: <b style="color:#5C5447">Straßen</b></span>
+              <span style="display:flex;align-items:center;gap:7px;font-family:'League Spartan';font-size:13px;letter-spacing:.14em;color:#A32B1E"><span style="position:relative;width:8px;height:8px;border-radius:50%;background:#A32B1E"><span style="position:absolute;inset:-4px;border-radius:50%;background:#A32B1E;opacity:.3;animation:brpulse 2.4s ease-out infinite"></span></span>FIRMS LIVE</span>
+            </div>
+          </div>
+          <div style="flex:1;display:flex;min-height:0">
+            <div style="width:250px;background:#FAF6EA;border-right:1px solid #E0D6BE;padding:14px 12px;display:flex;flex-direction:column;gap:8px;flex-shrink:0">
+              <span style="font-family:'League Spartan';font-size:12px;letter-spacing:.2em;color:#8B7355">LAYER<span style="float:right;color:#A89A7A">2 aktiv</span></span>
+              <span style="font-family:'League Spartan';font-size:11.5px;letter-spacing:.18em;color:#C97B47;margin-top:4px">GEFAHRENLAGE</span>
+              <div style="border:1.5px solid #E9A33C;background:#FFFCF3;border-radius:9px;padding:9px 10px;display:flex;align-items:center;gap:8px">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><path d="M12 3 L21.5 20 H2.5 Z" stroke="#E9A33C" stroke-width="1.6" stroke-linejoin="round"></path><path d="M12 9.5 V14" stroke="#E9A33C" stroke-width="1.7" stroke-linecap="round"></path><circle cx="12" cy="17" r="1" fill="#E9A33C"></circle></svg>
+                <span style="flex:1;display:flex;flex-direction:column"><b style="font-size:14.5px;color:#2C2A26">EU-Gefahrenindex</b><span style="font-size:12.5px;color:#8B7355">GWIS · ~8 km · 5 Ansichten</span></span>
+                <span style="width:30px;height:17px;border-radius:9px;background:#E9A33C;position:relative"><span style="position:absolute;right:2px;top:2px;width:13px;height:13px;border-radius:50%;background:#FAF6EA"></span></span>
+              </div>
+              <span style="font-family:'League Spartan';font-size:11.5px;letter-spacing:.18em;color:#3A6FA8;margin-top:4px">AKTUELLE LAGE</span>
+              <div style="border:1.5px solid #A32B1E;background:#FFFBF7;border-radius:9px;padding:9px 10px;display:flex;align-items:center;gap:8px">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><circle cx="12" cy="12" r="3.4" fill="#A32B1E"></circle><circle cx="12" cy="12" r="7.6" stroke="#A32B1E" stroke-width="1.4" stroke-opacity=".55"></circle><circle cx="12" cy="12" r="11" stroke="#A32B1E" stroke-width="1.2" stroke-opacity=".28"></circle></svg>
+                <span style="flex:1;display:flex;flex-direction:column"><b style="font-size:14.5px;color:#2C2A26">Detektionen</b><span style="font-size:12.5px;color:#8B7355">NASA FIRMS · VIIRS · vor 6 h</span></span>
+                <span style="width:30px;height:17px;border-radius:9px;background:#A32B1E;position:relative"><span style="position:absolute;right:2px;top:2px;width:13px;height:13px;border-radius:50%;background:#FAF6EA"></span></span>
+              </div>
+              <span style="font-size:12.5px;line-height:1.5;color:#8B7355">121 Detektionen, davon 12 ortsfest (grau) · Einordnung aus 7 Tagen Vorgeschichte</span>
+              <div style="border:1px solid #E0D6BE;background:#FDFBF4;border-radius:9px;padding:9px 10px;display:flex;align-items:center;gap:8px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><path d="M4 15 L8 7 L13 12 L17 6 L20 15 Z" stroke="#C97B47" stroke-width="1.5" stroke-linejoin="round"></path></svg><span style="flex:1;display:flex;flex-direction:column"><b style="font-size:14.5px;color:#3A3833">Brandflächen je Brand</b><span style="font-size:12.5px;color:#8B7355">Registry · EFFIS-Kartierung</span></span><span style="width:30px;height:17px;border-radius:9px;background:#E0D6BE;position:relative"><span style="position:absolute;left:2px;top:2px;width:13px;height:13px;border-radius:50%;background:#FAF6EA"></span></span></div>
+              <div style="border:1px solid #E0D6BE;background:#FDFBF4;border-radius:9px;padding:9px 10px;display:flex;align-items:center;gap:8px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><path d="M7 14 A4.4 4.4 0 0 1 8 6 A5.6 5.6 0 0 1 18.4 8.6 A3.6 3.6 0 0 1 17.6 15 H8 Z" stroke="#6B7A8F" stroke-width="1.5" stroke-linejoin="round"></path><path d="M9.5 18.5 H16.5" stroke="#6B7A8F" stroke-width="1.5" stroke-linecap="round"></path></svg><span style="flex:1;display:flex;flex-direction:column"><b style="font-size:14.5px;color:#3A3833">Feuerwetter-Treiber</b><span style="font-size:12.5px;color:#8B7355">ICON-D2 rel. Feuchte</span></span><span style="width:30px;height:17px;border-radius:9px;background:#E0D6BE;position:relative"><span style="position:absolute;left:2px;top:2px;width:13px;height:13px;border-radius:50%;background:#FAF6EA"></span></span></div>
+              <span style="font-family:'League Spartan';font-size:11.5px;letter-spacing:.18em;color:#3A6FA8;margin-top:4px">AUS DER WETTERKARTE</span>
+              <div style="border:1px solid #E0D6BE;background:#FDFBF4;border-radius:9px;padding:9px 10px;display:flex;align-items:center;gap:8px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><path d="M3 9 H13 A2.6 2.6 0 1 0 10.4 6.4" stroke="#6B7A8F" stroke-width="1.5" stroke-linecap="round"></path><path d="M3 14 H17 A2.6 2.6 0 1 1 14.4 16.6" stroke="#6B7A8F" stroke-width="1.5" stroke-linecap="round"></path></svg><span style="flex:1;display:flex;flex-direction:column"><b style="font-size:14.5px;color:#3A3833">Wind</b><span style="font-size:12.5px;color:#8B7355">ICON-D2 u/v 10 m · 1:1</span></span><span style="width:30px;height:17px;border-radius:9px;background:#E0D6BE;position:relative"><span style="position:absolute;left:2px;top:2px;width:13px;height:13px;border-radius:50%;background:#FAF6EA"></span></span></div>
+              <div style="border:1px solid #E0D6BE;background:#FDFBF4;border-radius:9px;padding:9px 10px;display:flex;align-items:center;gap:8px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><path d="M4 17 H20 M4 20.5 H20" stroke="#7A9466" stroke-width="1.4" stroke-linecap="round"></path><path d="M12 3 C12 3 7.5 8.5 7.5 12 A4.5 4.5 0 0 0 16.5 12 C16.5 8.5 12 3 12 3 Z" stroke="#7A9466" stroke-width="1.5" stroke-linejoin="round"></path></svg><span style="flex:1;display:flex;flex-direction:column"><b style="font-size:14.5px;color:#3A3833">Bodentrockenheit</b><span style="font-size:12.5px;color:#8B7355">ICON-D2 smi · 2 Tiefen</span></span><span style="width:30px;height:17px;border-radius:9px;background:#E0D6BE;position:relative"><span style="position:absolute;left:2px;top:2px;width:13px;height:13px;border-radius:50%;background:#FAF6EA"></span></span></div>
+              <div style="border:1px dashed #A89A7A;background:#F4F0E4;border-radius:9px;padding:9px 10px;display:flex;align-items:center;gap:8px;opacity:.75"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><rect x="5.5" y="10.5" width="13" height="9.5" rx="1.6" stroke="#A89A7A" stroke-width="1.5"></rect><path d="M8.5 10.5 V8 A3.5 3.5 0 0 1 15.5 8 V10.5" stroke="#A89A7A" stroke-width="1.5" stroke-linecap="round"></path></svg><span style="flex:1;display:flex;flex-direction:column"><b style="font-size:14.5px;color:#8B7355">Bodenfeuchte-Anomalie</b><span style="font-size:12.5px;color:#A89A7A">EDO blockiert · ungültiges CORS</span></span></div>
+            </div>
+
+            <div style="flex:1;position:relative;min-width:0;background:repeating-linear-gradient(135deg,#C7D6BB 0 9px,#C1D1B5 9px 18px)">
+              <span style="position:absolute;left:16px;top:14px;display:flex;align-items:center;gap:8px;background:rgba(250,246,234,.94);border:1px solid #E0D6BE;border-radius:8px;padding:7px 11px;font-size:14px;color:#3A3833"><span style="width:8px;height:8px;border-radius:50%;background:#E9A33C"></span>Gefahrenindex (FWI) <span style="color:#8B7355">Copernicus EMS · GWIS · ~8 km</span></span>
+              <div style="position:absolute;right:16px;top:14px;display:flex;gap:8px">
+                <div style="display:flex;background:rgba(250,246,234,.94);border:1px solid #E0D6BE;border-radius:8px;padding:3px"><span style="font-size:14px;padding:5px 11px;border-radius:6px;background:#2C2A26;color:#FAF6EA">Straßen</span><span style="font-size:14px;padding:5px 11px;color:#5C5447">Gelände</span><span style="font-size:14px;padding:5px 11px;color:#5C5447">Satellit</span></div>
+                <div style="display:flex;flex-direction:column;background:rgba(250,246,234,.94);border:1px solid #E0D6BE;border-radius:8px;overflow:hidden"><span style="width:30px;height:26px;display:flex;align-items:center;justify-content:center;font-size:16px;color:#3A3833;border-bottom:1px solid #E0D6BE">+</span><span style="width:30px;height:26px;display:flex;align-items:center;justify-content:center;font-size:16px;color:#3A3833">−</span></div>
+              </div>
+              <div style="position:absolute;left:50%;top:150px;transform:translateX(-50%);width:120px;height:70px;border:2px solid #FFB03D;background:rgba(255,176,61,.22);border-radius:5px"></div>
+              <span style="position:absolute;left:50%;top:228px;transform:translateX(-50%);font-family:'League Spartan';font-size:12px;color:#3A3833;background:rgba(250,246,234,.9);padding:3px 7px;border-radius:4px">bei Steyregg · 17 Detektionen</span>
+
+              <!-- dossier sheet -->
+              <div style="position:absolute;left:50%;transform:translateX(-50%);bottom:0;width:860px;height:690px;background:rgba(250,246,234,.97);border:1px solid #E0D6BE;border-bottom:none;border-radius:16px 16px 0 0;box-shadow:0 -12px 40px rgba(44,42,38,.18);display:flex;flex-direction:column;overflow:hidden">
+                <div style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:10px 0 6px;border-bottom:1px solid #EDE6D3">
+                  <span style="width:48px;height:4px;border-radius:2px;background:#C4B896"></span>
+                  <span style="font-size:14px;color:#A85E2E">▾ Karte zeigen</span>
+                </div>
+                <div style="padding:14px 22px 0;display:flex;align-items:flex-start;gap:12px">
+                  <div style="display:flex;flex-direction:column;gap:4px">
+                    <div style="display:flex;align-items:center;gap:9px"><span style="font-size:27.5px;font-weight:600;letter-spacing:-.015em;color:#2C2A26">bei Steyregg</span><span style="font-family:'League Spartan';font-size:12px;letter-spacing:.12em;background:#A32B1E;color:#FAF6EA;padding:3px 7px;border-radius:5px">AKTIV</span></div>
+                    <span style="font-size:14.5px;color:#5C5447">AT · Politischer Bezirk Urfahr-Umgebung · Satellit (VIIRS 375 m) · unbestätigt</span>
+                  </div>
+                  <span style="margin-left:auto;width:28px;height:28px;border:1px solid #E0D6BE;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;color:#5C5447">×</span>
+                </div>
+                <div style="padding:12px 22px;display:grid;grid-template-columns:repeat(4,1fr);gap:9px">
+                  <div style="border:1px solid #E0D6BE;background:#FDFBF4;border-radius:9px;padding:9px 10px"><span style="font-family:'League Spartan';font-size:11px;letter-spacing:.16em;color:#8B7355;display:block">FLÄCHE</span><span style="font-size:24.5px;font-weight:600;color:#2C2A26">≈ 29 ha</span><span style="font-size:12.5px;color:#8B7355;display:block">geschätzt · 5,2–157 ha</span></div>
+                  <div style="border:1px solid #E0D6BE;background:#FDFBF4;border-radius:9px;padding:9px 10px"><span style="font-family:'League Spartan';font-size:11px;letter-spacing:.16em;color:#8B7355;display:block">DETEKTIONEN</span><span style="font-size:24.5px;font-weight:600;color:#2C2A26">17</span><span style="font-size:12.5px;color:#8B7355;display:block">letzte vor 8 h</span></div>
+                  <div style="border:1px solid #E0D6BE;background:#FDFBF4;border-radius:9px;padding:9px 10px"><span style="font-family:'League Spartan';font-size:11px;letter-spacing:.16em;color:#8B7355;display:block">STÄRKE</span><span style="font-size:24.5px;font-weight:600;color:#2C2A26">13,7 MW</span><span style="font-size:12.5px;color:#8B7355;display:block">ΣFRP · 1,8 km²</span></div>
+                  <div style="border:1px solid #E0D6BE;background:#FDFBF4;border-radius:9px;padding:9px 10px"><span style="font-family:'League Spartan';font-size:11px;letter-spacing:.16em;color:#8B7355;display:block">TENDENZ</span><span style="font-size:24.5px;font-weight:600;color:#A89A7A">—</span><span style="font-size:12.5px;color:#8B7355;display:block">1 Überflug</span></div>
+                </div>
+                <div style="flex:1;padding:0 22px 18px;display:flex;gap:14px;min-height:0">
+                  <div style="flex:1;display:flex;flex-direction:column;gap:11px;min-width:0">
+                    <div style="display:flex;flex-direction:column;gap:7px">
+                      <span style="font-family:'League Spartan';font-size:12px;letter-spacing:.2em;color:#A32B1E">VERLAUF</span>
+                      <svg viewBox="0 0 380 140" style="width:100%;height:auto">
+                        <defs><pattern id="gap1b" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse"><rect width="7" height="7" fill="#F2EEE3"></rect><line x1="0" y1="0" x2="0" y2="7" stroke="#D9CEB0" stroke-width="2"></line></pattern></defs>
+                        <line x1="30" y1="10" x2="30" y2="106" stroke="#E0D6BE"></line>
+                        <line x1="30" y1="106" x2="374" y2="106" stroke="#D9CEB0"></line>
+                        <text x="25" y="14" text-anchor="end" font-family="League Spartan" font-size="9.5" fill="#A89A7A">100</text>
+                        <text x="25" y="60" text-anchor="end" font-family="League Spartan" font-size="9.5" fill="#A89A7A">10</text>
+                        <text x="25" y="108" text-anchor="end" font-family="League Spartan" font-size="9.5" fill="#A89A7A">0</text>
+                        <rect x="30" y="10" width="72" height="96" fill="url(#gap1b)"></rect>
+                        <text x="66" y="56" text-anchor="middle" font-family="League Spartan" font-size="10" fill="#8B7355">Lücke 19 h</text>
+                        <rect x="116" y="58" width="26" height="48" rx="2" fill="#A32B1E"></rect>
+                        <text x="129" y="52" text-anchor="middle" font-family="League Spartan" font-size="10" fill="#5C5447">13,7 MW</text>
+                        <text x="129" y="120" text-anchor="middle" font-size="11.5" fill="#5C5447">☾</text>
+                        <text x="129" y="132" text-anchor="middle" font-family="League Spartan" font-size="9.5" fill="#A89A7A">22.08. 03:43</text>
+                        <rect x="158" y="10" width="188" height="96" fill="url(#gap1b)"></rect>
+                        <text x="252" y="56" text-anchor="middle" font-family="League Spartan" font-size="10" fill="#8B7355">Nachlauf 8 h</text>
+                        <line x1="346" y1="6" x2="346" y2="112" stroke="#A32B1E" stroke-width="1.5" stroke-dasharray="4 4"></line>
+                        <text x="350" y="14" font-family="League Spartan" font-size="10" fill="#A32B1E">jetzt</text>
+                      </svg>
+                      <span style="font-size:13px;line-height:1.5;color:#8B7355">Balken = ΣFRP je Überflug (log). Zwischen Überflügen wird nichts interpoliert.</span>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:6px;border-top:1px solid #EDE6D3;padding-top:10px">
+                      <span style="font-family:'League Spartan';font-size:12px;letter-spacing:.2em;color:#8B7355">EINORDNUNG &amp; BESTÄTIGUNG</span>
+                      <span style="font-size:13.5px;line-height:1.5;color:#3A3833">FIRMS alle nominal · Bewertung <b>unbestätigt</b> · keine EFFIS-Kartierung · keine EMS-Aktivierung</span>
+                      <div style="border:1px solid #E3C39A;background:#FBF3E7;border-radius:9px;padding:9px 11px"><span style="font-family:'League Spartan';font-size:11px;letter-spacing:.14em;color:#9A5A2A;display:block">URSACHE</span><span style="font-size:13.5px;line-height:1.5;color:#3A3833"><b>keine Quelle</b> — ermitteln Polizei und Forstbehörden. Einordnungshilfen: CORINE Industrie-/Deponiefläche · ≥ 5 Tage am selben Ort.</span></div>
+                    </div>
+                  </div>
+                  <div style="width:300px;display:flex;flex-direction:column;gap:9px;flex-shrink:0">
+                    <span style="font-family:'League Spartan';font-size:12px;letter-spacing:.2em;color:#3A6FA8">WETTERLAGE AM BRANDORT</span>
+                    <span style="font-size:15px;line-height:1.45;color:#2C2A26">trockene Luft (RH 41 %) · Böen 23 km/h aus O · kein Regen in den 24 h davor</span>
+                    <div style="border:1px solid #C7D6E4;background:#EAF1F7;border-radius:9px;padding:9px 10px"><span style="font-family:'League Spartan';font-size:10.5px;letter-spacing:.14em;color:#3A6FA8;display:block">ERSTDETEKTION · 22.08. 03:43</span><span style="font-size:13.5px;line-height:1.45;color:#3A3833">21,1 °C · RH 41 % · Wind O 14 · Böen 23 km/h · 0 mm</span></div>
+                    <div style="border:1px solid #E0D6BE;background:#FDFBF4;border-radius:9px;padding:9px 10px"><span style="font-family:'League Spartan';font-size:10.5px;letter-spacing:.14em;color:#8B7355;display:block">BRANDTAG 22.08. · BIS JETZT</span><span style="font-size:13.5px;line-height:1.45;color:#3A3833">Tmax 21,7 °C · RHmin 35 % · Böen max 29 km/h · 3,9 mm</span></div>
+                    <div style="border:1px solid #E0D6BE;background:#FDFBF4;border-radius:9px;padding:9px 10px"><span style="font-family:'League Spartan';font-size:10.5px;letter-spacing:.14em;color:#8B7355;display:block">VORTAGE</span><span style="font-size:13.5px;line-height:1.45;color:#3A3833">0 mm in den 24 h davor · 1 Tag seit Regentag</span></div>
+                    <div style="border:1px solid #E0D6BE;background:#FDFBF4;border-radius:9px;padding:9px 10px"><span style="font-family:'League Spartan';font-size:10.5px;letter-spacing:.14em;color:#8B7355;display:block">JETZT · 22.08. 11:00</span><span style="font-size:13.5px;line-height:1.45;color:#3A3833">24,6 °C · RH 38 % · Wind aus O 11 km/h · Böen 19 km/h</span></div>
+                    <span style="font-size:12.5px;line-height:1.5;color:#A89A7A">Modellwerte DWD ICON (Open-Meteo, 2–13 km) — keine Messung.</span>
+                    <span style="margin-top:auto;font-size:14px;color:#A85E2E">→ Merkmale &amp; Rohwerte (17 Zeilen)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div style="height:64px;background:#FAF6EA;border-top:1px solid #E0D6BE;display:flex;align-items:center;gap:14px;padding:0 18px;flex-shrink:0">
+            <div style="width:34px;height:34px;border-radius:9px;background:#A32B1E;display:flex;align-items:center;justify-content:center;color:#FAF6EA;font-size:14px">▶</div>
+            <span style="font-family:'League Spartan';font-size:12px;letter-spacing:.16em;color:#A32B1E">HEUTE</span>
+            <div style="flex:1;height:3px;background:#E0D6BE;border-radius:2px;position:relative"><span style="position:absolute;left:0;top:-4px;width:11px;height:11px;border-radius:50%;background:#A32B1E"></span></div>
+            <span style="font-family:'League Spartan';font-size:12.5px;color:#8B7355">+9 d</span>
+            <div style="display:flex;background:#F2EEE3;border:1px solid #E0D6BE;border-radius:8px;padding:2px"><span style="font-size:14px;padding:4px 11px;border-radius:6px;background:#A32B1E;color:#FAF6EA">24 h</span><span style="font-size:14px;padding:4px 11px;border-radius:6px;color:#5C5447">7 d</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:40px;flex-wrap:wrap;align-items:flex-start">
+        <sc-if value="{{ showTablet }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <span style="font-family:'League Spartan';font-size:12px;letter-spacing:.2em;color:#8B7355">TABLET 1024 × 768</span>
+          <div data-ref="1b-tablet" data-screen-label="1b-tablet" style="width:1024px;height:768px;overflow:hidden;border-radius:14px;box-shadow:0 8px 32px rgba(44,42,38,.12);display:flex;background:#F5F1E8">
+            <div style="width:40px;background:#2C2A26;display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:16px;flex-shrink:0">
+              <div style="width:18px;height:18px;border-radius:4px;border:1.5px solid #6E634F"></div>
+              <div style="width:14px;height:14px;border-radius:50%;border:1.5px solid #6E634F"></div>
+              <div style="width:26px;height:26px;border-radius:7px;background:#3A3833;display:flex;align-items:center;justify-content:center"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><path d="M12 21 C8 21 5.5 18.2 5.5 15 C5.5 11.4 8.6 9.6 9.2 6 C11.4 8.4 11 10.4 11.4 11.6 C12 8.8 13.6 7.2 13 3 C16.6 5.6 18.5 10 18.5 15 C18.5 18.2 16 21 12 21 Z" stroke="#E0A567" stroke-width="1.5" stroke-linejoin="round"></path></svg></div>
+              <div style="width:14px;height:14px;border-radius:3px;border:1.5px solid #6E634F"></div>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;min-width:0">
+              <div style="height:50px;background:#FAF6EA;border-bottom:1px solid #E0D6BE;display:flex;align-items:center;gap:12px;padding:0 14px">
+                <span style="font-size:17px;font-weight:600;color:#2C2A26">buscosun</span>
+                <span style="font-size:14px;color:#A85E2E">← Layer</span>
+                <span style="display:flex;align-items:center;gap:6px;font-size:14px;background:#FFFCF3;border:1px solid #FFB03D;border-radius:7px;padding:4px 9px;color:#3A3833">Markiert: bei Steyregg</span>
+                <span style="margin-left:auto;display:flex;align-items:center;gap:6px;font-family:'League Spartan';font-size:12.5px;letter-spacing:.14em;color:#A32B1E"><span style="width:7px;height:7px;border-radius:50%;background:#A32B1E"></span>FIRMS LIVE</span>
+              </div>
+              <div style="flex:1;position:relative;min-height:0;background:repeating-linear-gradient(135deg,#C7D6BB 0 9px,#C1D1B5 9px 18px)">
+                <span style="position:absolute;left:12px;top:12px;font-size:13.5px;background:rgba(250,246,234,.94);border:1px solid #E0D6BE;border-radius:7px;padding:6px 9px;color:#3A3833">FWI · GWIS ~8 km</span>
+                <div style="position:absolute;left:50%;top:74px;transform:translateX(-50%);width:96px;height:58px;border:2px solid #FFB03D;background:rgba(255,176,61,.22);border-radius:5px"></div>
+                <div style="position:absolute;left:50%;transform:translateX(-50%);bottom:0;width:700px;height:470px;background:rgba(250,246,234,.97);border:1px solid #E0D6BE;border-bottom:none;border-radius:14px 14px 0 0;box-shadow:0 -10px 32px rgba(44,42,38,.18);display:flex;flex-direction:column;overflow:hidden">
+                  <div style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:9px 0 5px;border-bottom:1px solid #EDE6D3"><span style="width:44px;height:4px;border-radius:2px;background:#C4B896"></span><span style="font-size:13.5px;color:#A85E2E">▾ Karte zeigen</span></div>
+                  <div style="padding:12px 18px 0;display:flex;align-items:center;gap:9px">
+                    <span style="font-size:23.5px;font-weight:600;color:#2C2A26">bei Steyregg</span>
+                    <span style="font-family:'League Spartan';font-size:11px;letter-spacing:.12em;background:#A32B1E;color:#FAF6EA;padding:2px 6px;border-radius:4px">AKTIV</span>
+                    <span style="margin-left:auto;font-size:13.5px;color:#5C5447">AT · Urfahr-Umgebung</span>
+                  </div>
+                  <div style="padding:11px 18px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+                    <div style="border:1px solid #E0D6BE;background:#FDFBF4;border-radius:9px;padding:8px 9px"><span style="font-family:'League Spartan';font-size:10.5px;letter-spacing:.16em;color:#8B7355;display:block">FLÄCHE</span><span style="font-size:21px;font-weight:600;color:#2C2A26">≈ 29 ha</span></div>
+                    <div style="border:1px solid #E0D6BE;background:#FDFBF4;border-radius:9px;padding:8px 9px"><span style="font-family:'League Spartan';font-size:10.5px;letter-spacing:.16em;color:#8B7355;display:block">DETEKT.</span><span style="font-size:21px;font-weight:600;color:#2C2A26">17</span></div>
+                    <div style="border:1px solid #E0D6BE;background:#FDFBF4;border-radius:9px;padding:8px 9px"><span style="font-family:'League Spartan';font-size:10.5px;letter-spacing:.16em;color:#8B7355;display:block">STÄRKE</span><span style="font-size:21px;font-weight:600;color:#2C2A26">13,7 MW</span></div>
+                    <div style="border:1px solid #E0D6BE;background:#FDFBF4;border-radius:9px;padding:8px 9px"><span style="font-family:'League Spartan';font-size:10.5px;letter-spacing:.16em;color:#8B7355;display:block">TENDENZ</span><span style="font-size:21px;font-weight:600;color:#A89A7A">—</span></div>
+                  </div>
+                  <div style="flex:1;padding:0 18px 16px;display:flex;gap:12px;min-height:0">
+                    <div style="flex:1;display:flex;flex-direction:column;gap:7px;min-width:0">
+                      <span style="font-family:'League Spartan';font-size:11.5px;letter-spacing:.2em;color:#A32B1E">VERLAUF</span>
+                      <svg viewBox="0 0 320 120" style="width:100%;height:auto">
+                        <defs><pattern id="gap1bt" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse"><rect width="7" height="7" fill="#F2EEE3"></rect><line x1="0" y1="0" x2="0" y2="7" stroke="#D9CEB0" stroke-width="2"></line></pattern></defs>
+                        <line x1="24" y1="8" x2="24" y2="92" stroke="#E0D6BE"></line>
+                        <line x1="24" y1="92" x2="314" y2="92" stroke="#D9CEB0"></line>
+                        <rect x="24" y="8" width="62" height="84" fill="url(#gap1bt)"></rect>
+                        <text x="55" y="52" text-anchor="middle" font-family="League Spartan" font-size="9.5" fill="#8B7355">19 h</text>
+                        <rect x="98" y="52" width="24" height="40" rx="2" fill="#A32B1E"></rect>
+                        <text x="110" y="46" text-anchor="middle" font-family="League Spartan" font-size="9.5" fill="#5C5447">13,7</text>
+                        <text x="110" y="106" text-anchor="middle" font-size="10.5" fill="#5C5447">☾</text>
+                        <rect x="134" y="8" width="156" height="84" fill="url(#gap1bt)"></rect>
+                        <text x="212" y="52" text-anchor="middle" font-family="League Spartan" font-size="9.5" fill="#8B7355">Nachlauf 8 h</text>
+                        <line x1="290" y1="4" x2="290" y2="98" stroke="#A32B1E" stroke-width="1.5" stroke-dasharray="4 4"></line>
+                      </svg>
+                      <div style="border:1px solid #E3C39A;background:#FBF3E7;border-radius:8px;padding:8px 9px"><span style="font-family:'League Spartan';font-size:10.5px;letter-spacing:.14em;color:#9A5A2A;display:block">URSACHE</span><span style="font-size:12.5px;line-height:1.45;color:#3A3833"><b>keine Quelle</b> — Einordnungshilfen: CORINE Industriefläche · ≥ 5 Tage am selben Ort.</span></div>
+                    </div>
+                    <div style="width:250px;display:flex;flex-direction:column;gap:7px;flex-shrink:0">
+                      <span style="font-family:'League Spartan';font-size:11.5px;letter-spacing:.2em;color:#3A6FA8">WETTERLAGE</span>
+                      <span style="font-size:14px;line-height:1.4;color:#2C2A26">trockene Luft (RH 41 %) · Böen 23 km/h aus O · kein Regen davor</span>
+                      <div style="border:1px solid #C7D6E4;background:#EAF1F7;border-radius:8px;padding:8px"><span style="font-family:'League Spartan';font-size:10.5px;letter-spacing:.14em;color:#3A6FA8;display:block">ERSTDETEKTION 03:43</span><span style="font-size:13px;line-height:1.4;color:#3A3833">21,1 °C · RH 41 % · Böen 23 · 0 mm</span></div>
+                      <div style="border:1px solid #E0D6BE;background:#FDFBF4;border-radius:8px;padding:8px"><span style="font-family:'League Spartan';font-size:10.5px;letter-spacing:.14em;color:#8B7355;display:block">BRANDTAG</span><span style="font-size:13px;line-height:1.4;color:#3A3833">Tmax 21,7 · RHmin 35 % · 3,9 mm</span></div>
+                      <div style="border:1px solid #E0D6BE;background:#FDFBF4;border-radius:8px;padding:8px"><span style="font-family:'League Spartan';font-size:10.5px;letter-spacing:.14em;color:#8B7355;display:block">VORTAGE</span><span style="font-size:13px;line-height:1.4;color:#3A3833">0 mm / 1 Tag seit Regentag</span></div>
+                      <span style="font-size:12px;color:#A89A7A;line-height:1.4">Modellwerte DWD ICON — keine Messung.</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div style="height:52px;background:#FAF6EA;border-top:1px solid #E0D6BE;display:flex;align-items:center;gap:12px;padding:0 14px">
+                <div style="width:30px;height:30px;border-radius:8px;background:#A32B1E;display:flex;align-items:center;justify-content:center;color:#FAF6EA;font-size:13px">▶</div>
+                <div style="flex:1;height:3px;background:#E0D6BE;border-radius:2px;position:relative"><span style="position:absolute;left:0;top:-4px;width:11px;height:11px;border-radius:50%;background:#A32B1E"></span></div>
+                <div style="display:flex;background:#F2EEE3;border:1px solid #E0D6BE;border-radius:8px;padding:2px"><span style="font-size:13.5px;padding:4px 10px;border-radius:6px;background:#A32B1E;color:#FAF6EA">24 h</span><span style="font-size:13.5px;padding:4px 10px;border-radius:6px;color:#5C5447">7 d</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        </sc-if>
+
+        <sc-if value="{{ showMobile }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <span style="font-family:'League Spartan';font-size:12px;letter-spacing:.2em;color:#8B7355">MOBIL 390 × 844</span>
+          <div data-ref="1b-mobile" data-screen-label="1b-mobile" style="width:390px;height:844px;overflow:hidden;border-radius:26px;box-shadow:0 8px 32px rgba(44,42,38,.14);position:relative;background:repeating-linear-gradient(135deg,#C7D6BB 0 9px,#C1D1B5 9px 18px)">
+            <div style="height:44px;background:rgba(250,246,234,.9);display:flex;align-items:flex-end;justify-content:space-between;padding:0 18px 6px"><span style="font-family:'League Spartan';font-size:13px;color:#2C2A26">11:04</span><span style="font-family:'League Spartan';font-size:12px;color:#8B7355">▮▮▮</span></div>
+            <span style="position:absolute;left:12px;top:54px;font-size:13.5px;background:rgba(250,246,234,.94);border:1px solid #E0D6BE;border-radius:7px;padding:6px 9px;color:#3A3833">Markiert: bei Steyregg</span>
+            <div style="position:absolute;left:50%;top:126px;transform:translateX(-50%);width:84px;height:50px;border:2px solid #FFB03D;background:rgba(255,176,61,.22);border-radius:5px"></div>
+            <div style="position:absolute;left:0;right:0;bottom:0;height:632px;background:rgba(250,246,234,.97);border-top:1px solid #E0D6BE;border-radius:18px 18px 0 0;box-shadow:0 -10px 32px rgba(44,42,38,.18);display:flex;flex-direction:column;overflow:hidden">
+              <div style="display:flex;flex-direction:column;align-items:center;gap:5px;padding:9px 0 6px"><span style="width:44px;height:4px;border-radius:2px;background:#C4B896"></span><span style="font-size:13.5px;color:#A85E2E">▾ Karte zeigen</span></div>
+              <div style="padding:4px 14px 10px;border-bottom:1px solid #EDE6D3;display:flex;flex-direction:column;gap:5px">
+                <div style="display:flex;align-items:center;gap:8px"><span style="font-size:21px;font-weight:600;color:#2C2A26">bei Steyregg</span><span style="font-family:'League Spartan';font-size:11px;letter-spacing:.12em;background:#A32B1E;color:#FAF6EA;padding:2px 6px;border-radius:4px">AKTIV</span></div>
+                <span style="font-size:14px;color:#5C5447">AT · Urfahr-Umgebung · Satellit (VIIRS 375 m)</span>
+              </div>
+              <div style="flex:1;padding:11px 14px;display:flex;flex-direction:column;gap:9px;overflow:hidden">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                  <div style="border:1px solid #E0D6BE;background:#FDFBF4;border-radius:10px;padding:9px 10px"><span style="font-family:'League Spartan';font-size:11px;letter-spacing:.16em;color:#8B7355;display:block">FLÄCHE</span><span style="font-size:22.5px;font-weight:600;color:#2C2A26">≈ 29 ha</span><span style="font-size:12.5px;color:#8B7355;display:block">geschätzt</span></div>
+                  <div style="border:1px solid #E0D6BE;background:#FDFBF4;border-radius:10px;padding:9px 10px"><span style="font-family:'League Spartan';font-size:11px;letter-spacing:.16em;color:#8B7355;display:block">DETEKTIONEN</span><span style="font-size:22.5px;font-weight:600;color:#2C2A26">17</span><span style="font-size:12.5px;color:#8B7355;display:block">letzte vor 8 h</span></div>
+                  <div style="border:1px solid #E0D6BE;background:#FDFBF4;border-radius:10px;padding:9px 10px"><span style="font-family:'League Spartan';font-size:11px;letter-spacing:.16em;color:#8B7355;display:block">STÄRKE</span><span style="font-size:22.5px;font-weight:600;color:#2C2A26">13,7 MW</span><span style="font-size:12.5px;color:#8B7355;display:block">ΣFRP · 1,8 km²</span></div>
+                  <div style="border:1px solid #E0D6BE;background:#FDFBF4;border-radius:10px;padding:9px 10px"><span style="font-family:'League Spartan';font-size:11px;letter-spacing:.16em;color:#8B7355;display:block">TENDENZ</span><span style="font-size:22.5px;font-weight:600;color:#A89A7A">—</span><span style="font-size:12.5px;color:#8B7355;display:block">1 Überflug</span></div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px">
+                  <span style="font-family:'League Spartan';font-size:11.5px;letter-spacing:.2em;color:#A32B1E">VERLAUF</span>
+                  <svg viewBox="0 0 320 104" style="width:100%;height:auto">
+                    <defs><pattern id="gap1bm" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse"><rect width="7" height="7" fill="#F2EEE3"></rect><line x1="0" y1="0" x2="0" y2="7" stroke="#D9CEB0" stroke-width="2"></line></pattern></defs>
+                    <line x1="22" y1="8" x2="22" y2="82" stroke="#E0D6BE"></line>
+                    <line x1="22" y1="82" x2="314" y2="82" stroke="#D9CEB0"></line>
+                    <rect x="22" y="8" width="62" height="74" fill="url(#gap1bm)"></rect>
+                    <text x="53" y="48" text-anchor="middle" font-family="League Spartan" font-size="9.5" fill="#8B7355">19 h</text>
+                    <rect x="96" y="46" width="24" height="36" rx="2" fill="#A32B1E"></rect>
+                    <text x="108" y="40" text-anchor="middle" font-family="League Spartan" font-size="9.5" fill="#5C5447">13,7</text>
+                    <text x="108" y="96" text-anchor="middle" font-size="10.5" fill="#5C5447">☾</text>
+                    <rect x="132" y="8" width="158" height="74" fill="url(#gap1bm)"></rect>
+                    <text x="211" y="48" text-anchor="middle" font-family="League Spartan" font-size="9.5" fill="#8B7355">Nachlauf 8 h</text>
+                    <line x1="290" y1="4" x2="290" y2="88" stroke="#A32B1E" stroke-width="1.5" stroke-dasharray="4 4"></line>
+                  </svg>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:7px">
+                  <span style="font-family:'League Spartan';font-size:11.5px;letter-spacing:.2em;color:#3A6FA8">WETTERLAGE</span>
+                  <span style="font-size:14.5px;line-height:1.45;color:#2C2A26">trockene Luft (RH 41 %) · Böen 23 km/h aus O · kein Regen in den 24 h davor</span>
+                  <div style="border:1px solid #C7D6E4;background:#EAF1F7;border-radius:9px;padding:9px 10px"><span style="font-family:'League Spartan';font-size:10.5px;letter-spacing:.14em;color:#3A6FA8;display:block">ERSTDETEKTION · 22.08. 03:43</span><span style="font-size:13.5px;line-height:1.45;color:#3A3833">21,1 °C · RH 41 % · Böen 23 km/h · 0 mm</span></div>
+                </div>
+                <span style="font-size:13.5px;color:#A85E2E">→ Einordnung, Ursache &amp; Merkmale</span>
+              </div>
+              <div style="height:66px;background:#FAF6EA;border-top:1px solid #E0D6BE;display:flex;align-items:center;justify-content:space-around;padding-bottom:6px;flex-shrink:0">
+                <div style="display:flex;flex-direction:column;align-items:center;gap:3px;min-width:44px"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><path d="M12 3 L21 8 L12 13 L3 8 Z" stroke="#8B7355" stroke-width="1.6" stroke-linejoin="round"></path><path d="M3 13 L12 18 L21 13" stroke="#8B7355" stroke-width="1.6" stroke-linejoin="round"></path></svg><span style="font-size:12.5px;color:#8B7355">Karte</span></div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:3px;min-width:44px"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><rect x="3" y="4" width="18" height="5" rx="1.5" stroke="#8B7355" stroke-width="1.5"></rect><rect x="3" y="11" width="18" height="5" rx="1.5" stroke="#8B7355" stroke-width="1.5"></rect><circle cx="8" cy="6.5" r="1.3" fill="#8B7355"></circle><circle cx="16" cy="13.5" r="1.3" fill="#8B7355"></circle></svg><span style="font-size:12.5px;color:#8B7355">Layer</span></div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:3px;min-width:44px"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><path d="M12 21 C8 21 5.5 18.2 5.5 15 C5.5 11.4 8.6 9.6 9.2 6 C11.4 8.4 11 10.4 11.4 11.6 C12 8.8 13.6 7.2 13 3 C16.6 5.6 18.5 10 18.5 15 C18.5 18.2 16 21 12 21 Z" stroke="#A32B1E" stroke-width="1.5" stroke-linejoin="round"></path></svg><span style="font-size:12.5px;color:#A32B1E;font-weight:500">Brände</span></div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:3px;min-width:44px"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><circle cx="12" cy="12" r="9" stroke="#8B7355" stroke-width="1.5"></circle><path d="M12 8 V12 L15 14" stroke="#8B7355" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg><span style="font-size:12.5px;color:#8B7355">Zeit</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        </sc-if>
+      </div>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ show1c }}" hint-placeholder-val="{{ true }}">
+    <div id="1c" style="display:flex;flex-direction:column;gap:16px;width:1440px">
+      <div style="display:flex;align-items:baseline;gap:14px">
+        <span style="font-family:'League Spartan';font-size:14px;font-weight:500;letter-spacing:.12em;background:#A32B1E;color:#FAF6EA;padding:5px 9px;border-radius:6px">1c</span>
+        <h2 style="margin:0;font-size:26.5px;font-weight:600;color:#2C2A26">Zwei Bühnen, geblättert — Dossier in Registern</h2>
+      </div>
+      <p style="margin:0;max-width:900px;font-size:17px;line-height:1.55;color:#5C5447;text-wrap:pretty">Die Mitte ist ein Blätterfeld mit zwei Bühnen: <b>① Karte</b> und <b>② Dossier</b>, umschaltbar per Pager, Pfeiltasten oder Klick auf die Kartenmarke. Das Dossier selbst wird in Register geteilt — Kennzahlen · Verlauf · Wetterlage · Einordnung · Merkmale — damit nichts scrollt und jedes Thema seine ganze Fläche bekommt. Rechts bleibt die Brandliste stehen, ein Klick wechselt den Brand ohne die Bühne zu verlassen.</p>
+
+      <span style="font-family:'League Spartan';font-size:12px;letter-spacing:.2em;color:#8B7355">DESKTOP 1440 × 1000</span>
+      <div data-ref="1c-desktop" data-screen-label="1c-desktop" style="width:1440px;height:1000px;overflow:hidden;border-radius:14px;box-shadow:0 12px 40px rgba(44,42,38,.14);display:flex;background:#F5F1E8">
+        <div style="width:48px;background:#2C2A26;display:flex;flex-direction:column;align-items:center;padding:16px 0;gap:20px;flex-shrink:0">
+          <div style="width:20px;height:20px;border-radius:4px;border:1.5px solid #6E634F"></div>
+          <div style="width:16px;height:16px;border-radius:50%;border:1.5px solid #6E634F"></div>
+          <div style="width:16px;height:16px;border-radius:3px;border:1.5px solid #6E634F"></div>
+          <div style="width:16px;height:16px;border-radius:50%;border:1.5px solid #6E634F"></div>
+          <div style="width:30px;height:30px;border-radius:8px;background:#3A3833;display:flex;align-items:center;justify-content:center"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><path d="M12 21 C8 21 5.5 18.2 5.5 15 C5.5 11.4 8.6 9.6 9.2 6 C11.4 8.4 11 10.4 11.4 11.6 C12 8.8 13.6 7.2 13 3 C16.6 5.6 18.5 10 18.5 15 C18.5 18.2 16 21 12 21 Z" stroke="#E0A567" stroke-width="1.5" stroke-linejoin="round"></path></svg></div>
+          <div style="width:16px;height:16px;border-radius:3px;border:1.5px solid #6E634F"></div>
+          <div style="margin-top:auto;width:16px;height:16px;border-radius:3px;border:1.5px solid #6E634F"></div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;min-width:0">
+          <div style="height:56px;background:#FAF6EA;border-bottom:1px solid #E0D6BE;display:flex;align-items:center;gap:16px;padding:0 18px;flex-shrink:0">
+            <span style="font-family:'League Spartan';font-size:15px;color:#A32B1E">b:</span>
+            <span style="font-size:19px;font-weight:600;color:#2C2A26">buscosun</span>
+            <span style="width:1px;height:20px;background:#E0D6BE"></span>
+            <span style="font-size:15px;color:#5C5447">Brandradar · DACH-Flächenblick</span>
+            <div style="display:flex;background:#F2EEE3;border:1px solid #E0D6BE;border-radius:9px;padding:3px;gap:2px">
+              <span style="font-size:14.5px;padding:5px 14px;border-radius:7px;background:#A32B1E;color:#FAF6EA;font-weight:500">Überblick</span>
+              <span style="font-size:14.5px;padding:5px 14px;border-radius:7px;color:#5C5447">Aktuelle Lage</span>
+            </div>
+            <div style="margin-left:auto;display:flex;align-items:center;gap:16px">
+              <span style="font-size:14px;color:#8B7355">Karte: <b style="color:#5C5447">Straßen</b></span>
+              <span style="display:flex;align-items:center;gap:7px;font-family:'League Spartan';font-size:13px;letter-spacing:.14em;color:#A32B1E"><span style="position:relative;width:8px;height:8px;border-radius:50%;background:#A32B1E"><span style="position:absolute;inset:-4px;border-radius:50%;background:#A32B1E;opacity:.3;animation:brpulse 2.4s ease-out infinite"></span></span>FIRMS LIVE</span>
+            </div>
+          </div>
+          <div style="flex:1;display:flex;min-height:0">
+            <div style="width:230px;background:#FAF6EA;border-right:1px solid #E0D6BE;padding:14px 12px;display:flex;flex-direction:column;gap:8px;flex-shrink:0">
+              <span style="font-family:'League Spartan';font-size:12px;letter-spacing:.2em;color:#8B7355">LAYER<span style="float:right;color:#A89A7A">2 aktiv</span></span>
+              <span style="font-family:'League Spartan';font-size:11.5px;letter-spacing:.18em;color:#C97B47;margin-top:2px">GEFAHRENLAGE</span>
+              <div style="border:1.5px solid #E9A33C;background:#FFFCF3;border-radius:9px;padding:9px 10px;display:flex;align-items:center;gap:8px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><path d="M12 3 L21.5 20 H2.5 Z" stroke="#E9A33C" stroke-width="1.6" stroke-linejoin="round"></path><path d="M12 9.5 V14" stroke="#E9A33C" stroke-width="1.7" stroke-linecap="round"></path><circle cx="12" cy="17" r="1" fill="#E9A33C"></circle></svg><span style="flex:1;display:flex;flex-direction:column"><b style="font-size:14px;color:#2C2A26">EU-Gefahrenindex</b><span style="font-size:12px;color:#8B7355">GWIS · ~8 km</span></span><span style="width:28px;height:16px;border-radius:8px;background:#E9A33C;position:relative"><span style="position:absolute;right:2px;top:2px;width:12px;height:12px;border-radius:50%;background:#FAF6EA"></span></span></div>
+              <span style="font-family:'League Spartan';font-size:11.5px;letter-spacing:.18em;color:#3A6FA8;margin-top:2px">AKTUELLE LAGE</span>
+              <div style="border:1.5px solid #A32B1E;background:#FFFBF7;border-radius:9px;padding:9px 10px;display:flex;align-items:center;gap:8px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><circle cx="12" cy="12" r="3.4" fill="#A32B1E"></circle><circle cx="12" cy="12" r="7.6" stroke="#A32B1E" stroke-width="1.4" stroke-opacity=".55"></circle><circle cx="12" cy="12" r="11" stroke="#A32B1E" stroke-width="1.2" stroke-opacity=".28"></circle></svg><span style="flex:1;display:flex;flex-direction:column"><b style="font-size:14px;color:#2C2A26">Detektionen</b><span style="font-size:12px;color:#8B7355">FIRMS · VIIRS · vor 6 h</span></span><span style="width:28px;height:16px;border-radius:8px;background:#A32B1E;position:relative"><span style="position:absolute;right:2px;top:2px;width:12px;height:12px;border-radius:50%;background:#FAF6EA"></span></span></div>
+              <div style="border:1px solid #E0D6BE;background:#FDFBF4;border-radius:9px;padding:9px 10px;display:flex;align-items:center;gap:8px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><path d="M4 15 L8 7 L13 12 L17 6 L20 15 Z" stroke="#C97B47" stroke-width="1.5" stroke-linejoin="round"></path></svg><span style="flex:1;display:flex;flex-direction:column"><b style="font-size:14px;color:#3A3833">Brandflächen je Brand</b><span style="font-size:12px;color:#8B7355">Registry · EFFIS</span></span><span style="width:28px;height:16px;border-radius:8px;background:#E0D6BE;position:relative"><span style="position:absolute;left:2px;top:2px;width:12px;height:12px;border-radius:50%;background:#FAF6EA"></span></span></div>
+              <div style="border:1px solid #E0D6BE;background:#FDFBF4;border-radius:9px;padding:9px 10px;display:flex;align-items:center;gap:8px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><path d="M7 14 A4.4 4.4 0 0 1 8 6 A5.6 5.6 0 0 1 18.4 8.6 A3.6 3.6 0 0 1 17.6 15 H8 Z" stroke="#6B7A8F" stroke-width="1.5" stroke-linejoin="round"></path><path d="M9.5 18.5 H16.5" stroke="#6B7A8F" stroke-width="1.5" stroke-linecap="round"></path></svg><span style="flex:1;display:flex;flex-direction:column"><b style="font-size:14px;color:#3A3833">Feuerwetter-Treiber</b><span style="font-size:12px;color:#8B7355">ICON-D2 rel. Feuchte</span></span><span style="width:28px;height:16px;border-radius:8px;background:#E0D6BE;position:relative"><span style="position:absolute;left:2px;top:2px;width:12px;height:12px;border-radius:50%;background:#FAF6EA"></span></span></div>
+              <span style="font-family:'League Spartan';font-size:11.5px;letter-spacing:.18em;color:#C97B47;margin-top:2px">AUSBREITUNG (MODELL)</span>
+              <div style="border:1px solid #E0D6BE;background:#FDFBF4;border-radius:9px;padding:9px 10px;display:flex;align-items:center;gap:8px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><path d="M5 19 L19 5" stroke="#C97B47" stroke-width="1.6" stroke-linecap="round"></path><path d="M12 5 H19 V12" stroke="#C97B47" stroke-width="1.6" stroke-linejoin="round"></path></svg><span style="flex:1;display:flex;flex-direction:column"><b style="font-size:14px;color:#3A3833">Ausbreitungsrichtung</b><span style="font-size:12px;color:#8B7355">FBP · Pfeil + Fächer</span></span><span style="width:28px;height:16px;border-radius:8px;background:#E0D6BE;position:relative"><span style="position:absolute;left:2px;top:2px;width:12px;height:12px;border-radius:50%;background:#FAF6EA"></span></span></div>
+              <div style="border:1px dashed #A89A7A;background:#F4F0E4;border-radius:9px;padding:9px 10px;display:flex;align-items:center;gap:8px;opacity:.75;margin-top:auto"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><rect x="5.5" y="10.5" width="13" height="9.5" rx="1.6" stroke="#A89A7A" stroke-width="1.5"></rect><path d="M8.5 10.5 V8 A3.5 3.5 0 0 1 15.5 8 V10.5" stroke="#A89A7A" stroke-width="1.5" stroke-linecap="round"></path></svg><span style="flex:1;display:flex;flex-direction:column"><b style="font-size:14px;color:#8B7355">Vegetationszustand</b><span style="font-size:12px;color:#A89A7A">EDO blockiert · ungültiges CORS</span></span></div>
+            </div>
+
+            <!-- stage carousel -->
+            <div style="flex:1;padding:14px;display:flex;flex-direction:column;gap:12px;min-width:0">
+              <div style="display:flex;align-items:center;gap:10px">
+                <div style="display:flex;align-items:center;gap:2px;background:#F2EEE3;border:1px solid #E0D6BE;border-radius:9px;padding:3px">
+                  <span style="width:26px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:6px;font-size:15px;color:#5C5447">‹</span>
+                  <span style="font-size:14.5px;padding:5px 12px;border-radius:6px;color:#5C5447">① Karte</span>
+                  <span style="font-size:14.5px;padding:5px 12px;border-radius:6px;background:#A32B1E;color:#FAF6EA;font-weight:500">② Dossier</span>
+                  <span style="width:26px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:6px;font-size:15px;color:#5C5447">›</span>
+                </div>
+                <span style="font-size:14.5px;color:#8B7355">Bühne 2 von 2 · <b style="color:#3A3833">bei Steyregg</b></span>
+                <div style="margin-left:auto;display:flex;gap:6px">
+                  <span style="width:22px;height:5px;border-radius:3px;background:#D9CEB0"></span>
+                  <span style="width:22px;height:5px;border-radius:3px;background:#A32B1E"></span>
+                </div>
+              </div>
+
+              <div style="flex:1;background:#FAF6EA;border:1px solid #E0D6BE;border-radius:13px;display:flex;flex-direction:column;overflow:hidden;min-height:0">
+                <div style="display:flex;align-items:center;gap:14px;padding:14px 18px;border-bottom:1px solid #EDE6D3">
+                  <div style="position:relative;width:132px;height:80px;border-radius:9px;overflow:hidden;background:repeating-linear-gradient(135deg,#C7D6BB 0 8px,#C1D1B5 8px 16px);flex-shrink:0">
+                    <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:56px;height:34px;border:2px solid #FFB03D;background:rgba(255,176,61,.22);border-radius:4px"></div>
+                    <span style="position:absolute;left:0;right:0;bottom:0;text-align:center;font-family:'League Spartan';font-size:10px;color:#3A3833;background:rgba(250,246,234,.86);padding:2px 0">‹ zur Karte</span>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:5px">
+                    <div style="display:flex;align-items:center;gap:9px"><span style="font-size:28.5px;font-weight:600;letter-spacing:-.015em;color:#2C2A26">bei Steyregg</span><span style="font-family:'League Spartan';font-size:12px;letter-spacing:.12em;background:#A32B1E;color:#FAF6EA;padding:3px 7px;border-radius:5px">AKTIV</span></div>
+                    <span style="font-size:15px;color:#5C5447">AT · Politischer Bezirk Urfahr-Umgebung · 48,272° N · 14,343° E · 1,8 km² Ausdehnung</span>
+                  </div>
+                  <div style="margin-left:auto;display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+                    <span style="font-family:'League Spartan';font-size:12.5px;background:#F2EEE3;border:1px solid #E0D6BE;color:#5C5447;padding:5px 8px;border-radius:6px">fire:48.27157,14.34241</span>
+                    <div style="display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px"><span style="font-size:13px;padding:4px 8px;border-radius:6px;border:1px solid #E0D6BE;color:#5C5447;white-space:nowrap;flex-shrink:0">Satellit (VIIRS 375 m)</span><span style="font-size:13px;padding:4px 8px;border-radius:6px;border:1px solid #E3C39A;background:#FBF3E7;color:#9A5A2A;white-space:nowrap;flex-shrink:0">unbestätigt</span></div>
+                  </div>
+                </div>
+
+                <div style="display:flex;gap:4px;padding:11px 18px 0">
+                  <span style="font-size:15px;padding:8px 15px;border-radius:8px 8px 0 0;border:1px solid #E0D6BE;border-bottom-color:#FAF6EA;background:#FAF6EA;color:#2C2A26;font-weight:500">Kennzahlen</span>
+                  <span style="font-size:15px;padding:8px 15px;border-radius:8px 8px 0 0;color:#5C5447">Verlauf</span>
+                  <span style="font-size:15px;padding:8px 15px;border-radius:8px 8px 0 0;color:#5C5447">Wetterlage</span>
+                  <span style="font-size:15px;padding:8px 15px;border-radius:8px 8px 0 0;color:#5C5447">Einordnung</span>
+                  <span style="font-size:15px;padding:8px 15px;border-radius:8px 8px 0 0;color:#5C5447">Merkmale</span>
+                  <span style="margin-left:auto;align-self:center;font-size:13.5px;color:#A89A7A">Register — nichts scrollt</span>
+                </div>
+                <div style="height:1px;background:#E0D6BE"></div>
+
+                <div style="flex:1;padding:16px 18px;display:flex;flex-direction:column;gap:14px;min-height:0">
+                  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:11px">
+                    <div style="border:1px solid #E0D6BE;background:#FDFBF4;border-radius:11px;padding:13px 14px;display:flex;flex-direction:column;gap:4px">
+                      <span style="font-family:'League Spartan';font-size:11.5px;letter-spacing:.18em;color:#8B7355">FLÄCHE</span>
+                      <span style="font-size:37px;font-weight:600;color:#2C2A26;line-height:1.02">≈ 29 ha</span>
+                      <span style="font-size:13.5px;line-height:1.45;color:#8B7355">vorläufig geschätzt · 5,2–157 ha (80 %) · Modell v1, EFFIS-kalibriert</span>
+                    </div>
+                    <div style="border:1px solid #E0D6BE;background:#FDFBF4;border-radius:11px;padding:13px 14px;display:flex;flex-direction:column;gap:4px">
+                      <span style="font-family:'League Spartan';font-size:11.5px;letter-spacing:.18em;color:#8B7355">DETEKTIONEN</span>
+                      <span style="font-size:37px;font-weight:600;color:#2C2A26;line-height:1.02">17</span>
+                      <span style="font-size:13.5px;line-height:1.45;color:#8B7355">letzte vor 8 h · 1 Überflug · Satellit N20</span>
+                    </div>
+                    <div style="border:1px solid #E0D6BE;background:#FDFBF4;border-radius:11px;padding:13px 14px;display:flex;flex-direction:column;gap:4px">
+                      <span style="font-family:'League Spartan';font-size:11.5px;letter-spacing:.18em;color:#8B7355">STÄRKE</span>
+                      <span style="font-size:37px;font-weight:600;color:#2C2A26;line-height:1.02">13,7 MW</span>
+                      <span style="font-size:13.5px;line-height:1.45;color:#8B7355">ΣFRP über Pixel summiert — keine Fläche</span>
+                    </div>
+                    <div style="border:1px solid #E0D6BE;background:#FDFBF4;border-radius:11px;padding:13px 14px;display:flex;flex-direction:column;gap:4px">
+                      <span style="font-family:'League Spartan';font-size:11.5px;letter-spacing:.18em;color:#8B7355">TENDENZ</span>
+                      <span style="font-size:37px;font-weight:600;color:#A89A7A;line-height:1.02">—</span>
+                      <span style="font-size:13.5px;line-height:1.45;color:#8B7355">kein Verlauf — nur ein Überflug dieser Tageshälfte</span>
+                    </div>
+                  </div>
+                  <div style="flex:1;display:flex;gap:12px;min-height:0">
+                    <div style="flex:1;border:1px solid #E0D6BE;background:#FDFBF4;border-radius:11px;padding:13px 15px;display:flex;flex-direction:column;gap:8px;min-width:0">
+                      <span style="font-family:'League Spartan';font-size:11.5px;letter-spacing:.18em;color:#A32B1E">VERLAUF · VORSCHAU</span>
+                      <svg viewBox="0 0 440 128" style="width:100%;height:auto">
+                        <defs><pattern id="gap1c" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse"><rect width="7" height="7" fill="#F2EEE3"></rect><line x1="0" y1="0" x2="0" y2="7" stroke="#D9CEB0" stroke-width="2"></line></pattern></defs>
+                        <line x1="26" y1="8" x2="26" y2="98" stroke="#E0D6BE"></line>
+                        <line x1="26" y1="98" x2="434" y2="98" stroke="#D9CEB0"></line>
+                        <rect x="26" y="8" width="86" height="90" fill="url(#gap1c)"></rect>
+                        <text x="69" y="55" text-anchor="middle" font-family="League Spartan" font-size="10" fill="#8B7355">Lücke 19 h</text>
+                        <rect x="126" y="52" width="28" height="46" rx="2" fill="#A32B1E"></rect>
+                        <text x="140" y="46" text-anchor="middle" font-family="League Spartan" font-size="10" fill="#5C5447">13,7 MW</text>
+                        <text x="140" y="112" text-anchor="middle" font-size="11.5" fill="#5C5447">☾</text>
+                        <text x="140" y="124" text-anchor="middle" font-family="League Spartan" font-size="9.5" fill="#A89A7A">22.08. 03:43</text>
+                        <rect x="170" y="8" width="236" height="90" fill="url(#gap1c)"></rect>
+                        <text x="288" y="55" text-anchor="middle" font-family="League Spartan" font-size="10" fill="#8B7355">Nachlauf 8 h</text>
+                        <line x1="406" y1="4" x2="406" y2="104" stroke="#A32B1E" stroke-width="1.5" stroke-dasharray="4 4"></line>
+                        <text x="410" y="12" font-family="League Spartan" font-size="10" fill="#A32B1E">jetzt</text>
+                      </svg>
+                      <span style="font-size:13.5px;color:#A85E2E">→ Register „Verlauf" öffnen</span>
+                    </div>
+                    <div style="flex:1;border:1px solid #C7D6E4;background:#F7FAFD;border-radius:11px;padding:13px 15px;display:flex;flex-direction:column;gap:8px;min-width:0">
+                      <span style="font-family:'League Spartan';font-size:11.5px;letter-spacing:.18em;color:#3A6FA8">WETTERLAGE · VORSCHAU</span>
+                      <span style="font-size:17px;line-height:1.4;color:#2C2A26">trockene Luft (RH 41 %) · Böen 23 km/h aus O · kein Regen in den 24 h davor</span>
+                      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                        <div style="border:1px solid #C7D6E4;background:#EAF1F7;border-radius:9px;padding:9px 10px"><span style="font-family:'League Spartan';font-size:10.5px;letter-spacing:.14em;color:#3A6FA8;display:block">ERSTDETEKTION 03:43</span><span style="font-size:13.5px;line-height:1.45;color:#3A3833">21,1 °C · RH 41 % · Böen 23 km/h</span></div>
+                        <div style="border:1px solid #E0D6BE;background:#FDFBF4;border-radius:9px;padding:9px 10px"><span style="font-family:'League Spartan';font-size:10.5px;letter-spacing:.14em;color:#8B7355;display:block">VORTAGE</span><span style="font-size:13.5px;line-height:1.45;color:#3A3833">0 mm / 1 Tag seit Regentag</span></div>
+                      </div>
+                      <span style="font-size:13px;color:#A89A7A;line-height:1.45">Modellwerte DWD ICON (Open-Meteo, 2–13 km) — keine Messung.</span>
+                      <span style="font-size:13.5px;color:#A85E2E;margin-top:auto">→ Register „Wetterlage" öffnen</span>
+                    </div>
+                  </div>
+                  <div style="border:1px solid #E3C39A;background:#FBF3E7;border-radius:11px;padding:11px 14px;display:flex;align-items:baseline;gap:12px">
+                    <span style="font-family:'League Spartan';font-size:11.5px;letter-spacing:.14em;color:#9A5A2A;flex-shrink:0">URSACHE</span>
+                    <span style="font-size:14.5px;line-height:1.5;color:#3A3833"><b>keine Quelle</b> — Brandursachen ermitteln Polizei und Forstbehörden; kein Anbieter dieser Karte liefert sie je Brand. Einordnungshilfen: CORINE Industrie-/Deponiefläche · an ≥ 5 Tagen am selben Ort.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style="width:290px;background:#FAF6EA;border-left:1px solid #E0D6BE;padding:14px 12px;display:flex;flex-direction:column;gap:9px;flex-shrink:0">
+              <div style="display:flex;background:#F2EEE3;border:1px solid #E0D6BE;border-radius:9px;padding:3px">
+                <span style="flex:1;text-align:center;font-size:14.5px;padding:6px 0;border-radius:7px;color:#5C5447">Layer</span>
+                <span style="flex:1;text-align:center;font-size:14.5px;padding:6px 0;border-radius:7px;background:#A32B1E;color:#FAF6EA">Brände · 52</span>
+              </div>
+              <div style="display:flex;gap:4px">
+                <span style="font-size:13px;padding:4px 9px;border-radius:6px;background:#A32B1E;color:#FAF6EA">Stärke</span>
+                <span style="font-size:13px;padding:4px 9px;border-radius:6px;border:1px solid #E0D6BE;color:#5C5447">Detektionen</span>
+                <span style="font-size:13px;padding:4px 9px;border-radius:6px;border:1px solid #E0D6BE;color:#5C5447">Filter</span>
+              </div>
+              <div style="border:1.5px solid #FFB03D;background:#FFFCF3;border-radius:10px;padding:10px 11px;display:flex;flex-direction:column;gap:6px">
+                <div style="display:flex;align-items:center;gap:6px"><span style="font-size:16px;font-weight:600;color:#2C2A26">bei Steyregg</span><span style="font-family:'League Spartan';font-size:11px;letter-spacing:.1em;background:#A32B1E;color:#FAF6EA;padding:2px 5px;border-radius:4px">AKTIV</span></div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+                  <div style="background:#FDFBF4;border:1px solid #E0D6BE;border-radius:7px;padding:6px 7px"><span style="font-family:'League Spartan';font-size:10px;letter-spacing:.14em;color:#8B7355;display:block">FLÄCHE</span><b style="font-size:16px;color:#2C2A26">≈ 29 ha</b></div>
+                  <div style="background:#FDFBF4;border:1px solid #E0D6BE;border-radius:7px;padding:6px 7px"><span style="font-family:'League Spartan';font-size:10px;letter-spacing:.14em;color:#8B7355;display:block">DETEKT.</span><b style="font-size:16px;color:#2C2A26">17</b></div>
+                  <div style="background:#FDFBF4;border:1px solid #E0D6BE;border-radius:7px;padding:6px 7px"><span style="font-family:'League Spartan';font-size:10px;letter-spacing:.14em;color:#8B7355;display:block">STÄRKE</span><b style="font-size:16px;color:#2C2A26">13,7 MW</b></div>
+                  <div style="background:#FDFBF4;border:1px solid #E0D6BE;border-radius:7px;padding:6px 7px"><span style="font-family:'League Spartan';font-size:10px;letter-spacing:.14em;color:#8B7355;display:block">TENDENZ</span><b style="font-size:16px;color:#A89A7A">—</b></div>
+                </div>
+                <span style="font-size:13px;color:#8B7355">AT · Urfahr-Umgebung · letzte Detektion 03:43 · vor 8 h</span>
+              </div>
+              <div style="border:1px solid #E0D6BE;background:#FDFBF4;border-radius:10px;padding:10px 11px;display:flex;flex-direction:column;gap:5px">
+                <div style="display:flex;align-items:center;gap:6px"><span style="font-size:16px;font-weight:500;color:#2C2A26">bei Hammelburg</span><span style="font-family:'League Spartan';font-size:11px;letter-spacing:.1em;background:#F2EEE3;color:#5C5447;padding:2px 5px;border-radius:4px">KEIN SIGNAL</span></div>
+                <span style="font-size:13.5px;color:#5C5447">147 ha Obergrenze (Raster) · 14 · 29,5 MW · stabil</span>
+                <span style="font-size:13px;color:#A89A7A">DE · Bayern · 8 Überflüge · vor 9 h</span>
+              </div>
+              <div style="border:1px solid #E0D6BE;background:#FDFBF4;border-radius:10px;padding:10px 11px;display:flex;flex-direction:column;gap:5px">
+                <div style="display:flex;align-items:center;gap:6px"><span style="font-size:16px;font-weight:500;color:#2C2A26">bei Aachen</span><span style="font-family:'League Spartan';font-size:11px;letter-spacing:.1em;background:#EFF3E8;color:#5F7A4C;padding:2px 5px;border-radius:4px">ORTSFEST</span></div>
+                <span style="font-size:13.5px;color:#5C5447">— · 6 Detektionen · 4,1 MW · stabil</span>
+                <span style="font-size:13px;color:#A89A7A">DE · NRW · vor 3 h</span>
+              </div>
+              <div style="border:1px solid #E0D6BE;background:#FDFBF4;border-radius:10px;padding:10px 11px;display:flex;flex-direction:column;gap:5px">
+                <div style="display:flex;align-items:center;gap:6px"><span style="font-size:16px;font-weight:500;color:#2C2A26">bei Głogów</span><span style="font-family:'League Spartan';font-size:11px;letter-spacing:.1em;background:#F2EEE3;color:#5C5447;padding:2px 5px;border-radius:4px">ABGEKLUNGEN</span></div>
+                <span style="font-size:13.5px;color:#5C5447">— · 3 Detektionen · 2,0 MW</span>
+                <span style="font-size:13px;color:#A89A7A">PL · Abweichung · vor 21 h</span>
+              </div>
+              <span style="font-size:14px;color:#A85E2E">→ Weitere 48 Brände laden</span>
+              <p style="margin:auto 0 0;font-size:12.5px;line-height:1.5;color:#A89A7A">Nationale Skalen · nie umgerechnet. Detektion ist Wärme aus dem Satelliten, kein Einsatz.</p>
+            </div>
+          </div>
+          <div style="height:64px;background:#FAF6EA;border-top:1px solid #E0D6BE;display:flex;align-items:center;gap:14px;padding:0 18px;flex-shrink:0">
+            <div style="width:34px;height:34px;border-radius:9px;background:#A32B1E;display:flex;align-items:center;justify-content:center;color:#FAF6EA;font-size:14px">▶</div>
+            <div style="display:flex;background:#F2EEE3;border:1px solid #E0D6BE;border-radius:8px;padding:2px"><span style="font-size:14px;padding:4px 12px;border-radius:6px;background:#FAF6EA;color:#2C2A26;font-weight:500">Tage</span><span style="font-size:14px;padding:4px 12px;border-radius:6px;color:#A89A7A">Stunden</span></div>
+            <span style="font-family:'League Spartan';font-size:12px;letter-spacing:.16em;color:#A32B1E">HEUTE</span>
+            <div style="flex:1;height:3px;background:#E0D6BE;border-radius:2px;position:relative"><span style="position:absolute;left:0;top:-4px;width:11px;height:11px;border-radius:50%;background:#A32B1E"></span></div>
+            <span style="font-family:'League Spartan';font-size:12.5px;color:#8B7355">+9 d</span>
+            <div style="display:flex;background:#F2EEE3;border:1px solid #E0D6BE;border-radius:8px;padding:2px"><span style="font-size:14px;padding:4px 11px;border-radius:6px;background:#A32B1E;color:#FAF6EA">24 h</span><span style="font-size:14px;padding:4px 11px;border-radius:6px;color:#5C5447">7 d</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:40px;flex-wrap:wrap;align-items:flex-start">
+        <sc-if value="{{ showTablet }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <span style="font-family:'League Spartan';font-size:12px;letter-spacing:.2em;color:#8B7355">TABLET 1024 × 768</span>
+          <div data-ref="1c-tablet" data-screen-label="1c-tablet" style="width:1024px;height:768px;overflow:hidden;border-radius:14px;box-shadow:0 8px 32px rgba(44,42,38,.12);display:flex;background:#F5F1E8">
+            <div style="width:40px;background:#2C2A26;display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:16px;flex-shrink:0">
+              <div style="width:18px;height:18px;border-radius:4px;border:1.5px solid #6E634F"></div>
+              <div style="width:14px;height:14px;border-radius:50%;border:1.5px solid #6E634F"></div>
+              <div style="width:26px;height:26px;border-radius:7px;background:#3A3833;display:flex;align-items:center;justify-content:center"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><path d="M12 21 C8 21 5.5 18.2 5.5 15 C5.5 11.4 8.6 9.6 9.2 6 C11.4 8.4 11 10.4 11.4 11.6 C12 8.8 13.6 7.2 13 3 C16.6 5.6 18.5 10 18.5 15 C18.5 18.2 16 21 12 21 Z" stroke="#E0A567" stroke-width="1.5" stroke-linejoin="round"></path></svg></div>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;min-width:0">
+              <div style="height:50px;background:#FAF6EA;border-bottom:1px solid #E0D6BE;display:flex;align-items:center;gap:12px;padding:0 14px">
+                <span style="font-size:17px;font-weight:600;color:#2C2A26">buscosun</span>
+                <span style="font-size:14px;color:#5C5447">Brandradar · Brände</span>
+                <div style="display:flex;align-items:center;gap:2px;background:#F2EEE3;border:1px solid #E0D6BE;border-radius:8px;padding:3px;margin-left:2px">
+                  <span style="font-size:14px;padding:4px 11px;border-radius:6px;color:#5C5447">① Karte</span>
+                  <span style="font-size:14px;padding:4px 11px;border-radius:6px;background:#A32B1E;color:#FAF6EA">② Dossier</span>
+                </div>
+                <span style="margin-left:auto;display:flex;align-items:center;gap:6px;font-family:'League Spartan';font-size:12.5px;letter-spacing:.14em;color:#A32B1E"><span style="width:7px;height:7px;border-radius:50%;background:#A32B1E"></span>FIRMS LIVE</span>
+              </div>
+              <div style="flex:1;padding:12px;display:flex;flex-direction:column;gap:10px;min-height:0">
+                <div style="background:#FAF6EA;border:1px solid #E0D6BE;border-radius:12px;flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0">
+                  <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid #EDE6D3">
+                    <div style="position:relative;width:104px;height:64px;border-radius:8px;overflow:hidden;background:repeating-linear-gradient(135deg,#C7D6BB 0 8px,#C1D1B5 8px 16px);flex-shrink:0">
+                      <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:46px;height:28px;border:2px solid #FFB03D;background:rgba(255,176,61,.22);border-radius:4px"></div>
+                      <span style="position:absolute;left:0;right:0;bottom:0;text-align:center;font-family:'League Spartan';font-size:9.5px;color:#3A3833;background:rgba(250,246,234,.86);padding:2px 0">‹ zur Karte</span>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:4px">
+                      <div style="display:flex;align-items:center;gap:8px"><span style="font-size:23.5px;font-weight:600;color:#2C2A26">bei Steyregg</span><span style="font-family:'League Spartan';font-size:11px;letter-spacing:.12em;background:#A32B1E;color:#FAF6EA;padding:2px 6px;border-radius:4px">AKTIV</span></div>
+                      <span style="font-size:13.5px;color:#5C5447">AT · Urfahr-Umgebung · Satellit (VIIRS 375 m) · unbestätigt</span>
+                    </div>
+                  </div>
+                  <div style="display:flex;gap:3px;padding:10px 14px 0;overflow:hidden">
+                    <span style="font-size:14.5px;padding:8px 13px;border-radius:8px 8px 0 0;border:1px solid #E0D6BE;border-bottom-color:#FAF6EA;background:#FAF6EA;color:#2C2A26;font-weight:500">Kennzahlen</span>
+                    <span style="font-size:14.5px;padding:8px 13px;color:#5C5447">Verlauf</span>
+                    <span style="font-size:14.5px;padding:8px 13px;color:#5C5447">Wetterlage</span>
+                    <span style="font-size:14.5px;padding:8px 13px;color:#5C5447">Einordnung</span>
+                    <span style="font-size:14.5px;padding:8px 13px;color:#5C5447">Merkmale</span>
+                  </div>
+                  <div style="height:1px;background:#E0D6BE"></div>
+                  <div style="flex:1;padding:13px 14px;display:flex;flex-direction:column;gap:11px;min-height:0">
+                    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:9px">
+                      <div style="border:1px solid #E0D6BE;background:#FDFBF4;border-radius:10px;padding:10px 11px"><span style="font-family:'League Spartan';font-size:11px;letter-spacing:.16em;color:#8B7355;display:block">FLÄCHE</span><span style="font-size:26.5px;font-weight:600;color:#2C2A26">≈ 29 ha</span><span style="font-size:12.5px;color:#8B7355;display:block;line-height:1.4">geschätzt · 5,2–157 ha</span></div>
+                      <div style="border:1px solid #E0D6BE;background:#FDFBF4;border-radius:10px;padding:10px 11px"><span style="font-family:'League Spartan';font-size:11px;letter-spacing:.16em;color:#8B7355;display:block">DETEKTIONEN</span><span style="font-size:26.5px;font-weight:600;color:#2C2A26">17</span><span style="font-size:12.5px;color:#8B7355;display:block;line-height:1.4">letzte vor 8 h · 1 Überflug</span></div>
+                      <div style="border:1px solid #E0D6BE;background:#FDFBF4;border-radius:10px;padding:10px 11px"><span style="font-family:'League Spartan';font-size:11px;letter-spacing:.16em;color:#8B7355;display:block">STÄRKE</span><span style="font-size:26.5px;font-weight:600;color:#2C2A26">13,7 MW</span><span style="font-size:12.5px;color:#8B7355;display:block;line-height:1.4">ΣFRP · 1,8 km²</span></div>
+                      <div style="border:1px solid #E0D6BE;background:#FDFBF4;border-radius:10px;padding:10px 11px"><span style="font-family:'League Spartan';font-size:11px;letter-spacing:.16em;color:#8B7355;display:block">TENDENZ</span><span style="font-size:26.5px;font-weight:600;color:#A89A7A">—</span><span style="font-size:12.5px;color:#8B7355;display:block;line-height:1.4">nur ein Überflug</span></div>
+                    </div>
+                    <div style="flex:1;display:flex;gap:10px;min-height:0">
+                      <div style="flex:1;border:1px solid #E0D6BE;background:#FDFBF4;border-radius:10px;padding:11px 12px;display:flex;flex-direction:column;gap:7px;min-width:0">
+                        <span style="font-family:'League Spartan';font-size:11px;letter-spacing:.18em;color:#A32B1E">VERLAUF · VORSCHAU</span>
+                        <svg viewBox="0 0 320 108" style="width:100%;height:auto">
+                          <defs><pattern id="gap1ct" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse"><rect width="7" height="7" fill="#F2EEE3"></rect><line x1="0" y1="0" x2="0" y2="7" stroke="#D9CEB0" stroke-width="2"></line></pattern></defs>
+                          <line x1="22" y1="8" x2="22" y2="84" stroke="#E0D6BE"></line>
+                          <line x1="22" y1="84" x2="314" y2="84" stroke="#D9CEB0"></line>
+                          <rect x="22" y="8" width="64" height="76" fill="url(#gap1ct)"></rect>
+                          <text x="54" y="49" text-anchor="middle" font-family="League Spartan" font-size="9.5" fill="#8B7355">19 h</text>
+                          <rect x="98" y="48" width="24" height="36" rx="2" fill="#A32B1E"></rect>
+                          <text x="110" y="42" text-anchor="middle" font-family="League Spartan" font-size="9.5" fill="#5C5447">13,7</text>
+                          <text x="110" y="98" text-anchor="middle" font-size="10.5" fill="#5C5447">☾</text>
+                          <rect x="134" y="8" width="156" height="76" fill="url(#gap1ct)"></rect>
+                          <text x="212" y="49" text-anchor="middle" font-family="League Spartan" font-size="9.5" fill="#8B7355">Nachlauf 8 h</text>
+                          <line x1="290" y1="4" x2="290" y2="90" stroke="#A32B1E" stroke-width="1.5" stroke-dasharray="4 4"></line>
+                        </svg>
+                      </div>
+                      <div style="flex:1;border:1px solid #C7D6E4;background:#F7FAFD;border-radius:10px;padding:11px 12px;display:flex;flex-direction:column;gap:7px;min-width:0">
+                        <span style="font-family:'League Spartan';font-size:11px;letter-spacing:.18em;color:#3A6FA8">WETTERLAGE · VORSCHAU</span>
+                        <span style="font-size:15px;line-height:1.4;color:#2C2A26">trockene Luft (RH 41 %) · Böen 23 km/h aus O · kein Regen davor</span>
+                        <div style="border:1px solid #C7D6E4;background:#EAF1F7;border-radius:8px;padding:8px"><span style="font-family:'League Spartan';font-size:10.5px;letter-spacing:.14em;color:#3A6FA8;display:block">ERSTDETEKTION 03:43</span><span style="font-size:13px;line-height:1.4;color:#3A3833">21,1 °C · RH 41 % · Böen 23 km/h · 0 mm</span></div>
+                        <span style="font-size:12px;color:#A89A7A;line-height:1.4">Modellwerte DWD ICON — keine Messung.</span>
+                      </div>
+                    </div>
+                    <div style="border:1px solid #E3C39A;background:#FBF3E7;border-radius:10px;padding:9px 12px;display:flex;align-items:baseline;gap:10px">
+                      <span style="font-family:'League Spartan';font-size:11px;letter-spacing:.14em;color:#9A5A2A;flex-shrink:0">URSACHE</span>
+                      <span style="font-size:13.5px;line-height:1.45;color:#3A3833"><b>keine Quelle</b> — Einordnungshilfen: CORINE Industrie-/Deponiefläche · ≥ 5 Tage am selben Ort.</span>
+                    </div>
+                  </div>
+                </div>
+                <div style="height:56px;background:#FAF6EA;border:1px solid #E0D6BE;border-radius:12px;display:flex;align-items:center;gap:10px;padding:0 12px;flex-shrink:0">
+                  <span style="font-family:'League Spartan';font-size:11px;letter-spacing:.16em;color:#8B7355">BRÄNDE · 52</span>
+                  <div style="flex:1;display:flex;gap:8px;overflow:hidden">
+                    <span style="font-size:13.5px;padding:6px 10px;border-radius:8px;border:1.5px solid #FFB03D;background:#FFFCF3;color:#2C2A26">bei Steyregg · ≈ 29 ha</span>
+                    <span style="font-size:13.5px;padding:6px 10px;border-radius:8px;border:1px solid #E0D6BE;color:#5C5447">bei Hammelburg · 147 ha</span>
+                    <span style="font-size:13.5px;padding:6px 10px;border-radius:8px;border:1px solid #E0D6BE;color:#5C5447">bei Aachen · ortsfest</span>
+                    <span style="font-size:13.5px;padding:6px 10px;border-radius:8px;border:1px solid #E0D6BE;color:#5C5447">bei Głogów · abgeklungen</span>
+                  </div>
+                  <span style="font-size:13.5px;color:#A85E2E">+48</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        </sc-if>
+
+        <sc-if value="{{ showMobile }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <span style="font-family:'League Spartan';font-size:12px;letter-spacing:.2em;color:#8B7355">MOBIL 390 × 844</span>
+          <div data-ref="1c-mobile" data-screen-label="1c-mobile" style="width:390px;height:844px;overflow:hidden;border-radius:26px;box-shadow:0 8px 32px rgba(44,42,38,.14);display:flex;flex-direction:column;background:#F5F1E8">
+            <div style="height:44px;background:#FAF6EA;display:flex;align-items:flex-end;justify-content:space-between;padding:0 18px 6px;flex-shrink:0"><span style="font-family:'League Spartan';font-size:13px;color:#2C2A26">11:04</span><span style="font-family:'League Spartan';font-size:12px;color:#8B7355">▮▮▮</span></div>
+            <div style="background:#FAF6EA;border-bottom:1px solid #E0D6BE;padding:4px 14px 10px;display:flex;flex-direction:column;gap:9px;flex-shrink:0">
+              <div style="display:flex;align-items:center;gap:10px">
+                <div style="position:relative;width:76px;height:50px;border-radius:8px;overflow:hidden;background:repeating-linear-gradient(135deg,#C7D6BB 0 8px,#C1D1B5 8px 16px);flex-shrink:0">
+                  <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:34px;height:22px;border:2px solid #FFB03D;background:rgba(255,176,61,.22);border-radius:3px"></div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:3px">
+                  <div style="display:flex;align-items:center;gap:7px"><span style="font-size:20px;font-weight:600;color:#2C2A26">bei Steyregg</span><span style="font-family:'League Spartan';font-size:10.5px;letter-spacing:.12em;background:#A32B1E;color:#FAF6EA;padding:2px 5px;border-radius:4px">AKTIV</span></div>
+                  <span style="font-size:13.5px;color:#5C5447">AT · Urfahr-Umgebung · vor 8 h</span>
+                </div>
+              </div>
+              <div style="display:flex;gap:6px;overflow:hidden">
+                <span style="font-size:14.5px;padding:8px 12px;border-radius:8px;background:#A32B1E;color:#FAF6EA;flex-shrink:0">Kennzahlen</span>
+                <span style="font-size:14.5px;padding:8px 12px;border-radius:8px;border:1px solid #E0D6BE;color:#5C5447;flex-shrink:0">Verlauf</span>
+                <span style="font-size:14.5px;padding:8px 12px;border-radius:8px;border:1px solid #E0D6BE;color:#5C5447;flex-shrink:0">Wetterlage</span>
+                <span style="font-size:14.5px;padding:8px 12px;border-radius:8px;border:1px solid #E0D6BE;color:#5C5447;flex-shrink:0">Ein…</span>
+              </div>
+            </div>
+            <div style="flex:1;padding:12px 14px;display:flex;flex-direction:column;gap:10px;overflow:hidden">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
+                <div style="border:1px solid #E0D6BE;background:#FAF6EA;border-radius:11px;padding:11px 12px"><span style="font-family:'League Spartan';font-size:11px;letter-spacing:.16em;color:#8B7355;display:block">FLÄCHE</span><span style="font-size:25.5px;font-weight:600;color:#2C2A26">≈ 29 ha</span><span style="font-size:12.5px;color:#8B7355;display:block;line-height:1.4">geschätzt · 5,2–157 ha (80 %)</span></div>
+                <div style="border:1px solid #E0D6BE;background:#FAF6EA;border-radius:11px;padding:11px 12px"><span style="font-family:'League Spartan';font-size:11px;letter-spacing:.16em;color:#8B7355;display:block">DETEKTIONEN</span><span style="font-size:25.5px;font-weight:600;color:#2C2A26">17</span><span style="font-size:12.5px;color:#8B7355;display:block;line-height:1.4">letzte vor 8 h · 1 Überflug</span></div>
+                <div style="border:1px solid #E0D6BE;background:#FAF6EA;border-radius:11px;padding:11px 12px"><span style="font-family:'League Spartan';font-size:11px;letter-spacing:.16em;color:#8B7355;display:block">STÄRKE</span><span style="font-size:25.5px;font-weight:600;color:#2C2A26">13,7 MW</span><span style="font-size:12.5px;color:#8B7355;display:block;line-height:1.4">ΣFRP · 1,8 km² Ausdehnung</span></div>
+                <div style="border:1px solid #E0D6BE;background:#FAF6EA;border-radius:11px;padding:11px 12px"><span style="font-family:'League Spartan';font-size:11px;letter-spacing:.16em;color:#8B7355;display:block">TENDENZ</span><span style="font-size:25.5px;font-weight:600;color:#A89A7A">—</span><span style="font-size:12.5px;color:#8B7355;display:block;line-height:1.4">nur ein Überflug</span></div>
+              </div>
+              <div style="background:#FAF6EA;border:1px solid #E0D6BE;border-radius:11px;padding:11px 12px;display:flex;flex-direction:column;gap:6px">
+                <span style="font-family:'League Spartan';font-size:11px;letter-spacing:.18em;color:#A32B1E">VERLAUF · VORSCHAU</span>
+                <svg viewBox="0 0 320 96" style="width:100%;height:auto">
+                  <defs><pattern id="gap1cm" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse"><rect width="7" height="7" fill="#F2EEE3"></rect><line x1="0" y1="0" x2="0" y2="7" stroke="#D9CEB0" stroke-width="2"></line></pattern></defs>
+                  <line x1="20" y1="6" x2="20" y2="76" stroke="#E0D6BE"></line>
+                  <line x1="20" y1="76" x2="314" y2="76" stroke="#D9CEB0"></line>
+                  <rect x="20" y="6" width="64" height="70" fill="url(#gap1cm)"></rect>
+                  <text x="52" y="44" text-anchor="middle" font-family="League Spartan" font-size="9.5" fill="#8B7355">19 h</text>
+                  <rect x="96" y="42" width="24" height="34" rx="2" fill="#A32B1E"></rect>
+                  <text x="108" y="36" text-anchor="middle" font-family="League Spartan" font-size="9.5" fill="#5C5447">13,7</text>
+                  <text x="108" y="90" text-anchor="middle" font-size="10.5" fill="#5C5447">☾</text>
+                  <rect x="132" y="6" width="158" height="70" fill="url(#gap1cm)"></rect>
+                  <text x="211" y="44" text-anchor="middle" font-family="League Spartan" font-size="9.5" fill="#8B7355">Nachlauf 8 h</text>
+                  <line x1="290" y1="3" x2="290" y2="82" stroke="#A32B1E" stroke-width="1.5" stroke-dasharray="4 4"></line>
+                </svg>
+                <span style="font-size:14px;color:#A85E2E">→ Register „Verlauf"</span>
+              </div>
+              <div style="background:#F7FAFD;border:1px solid #C7D6E4;border-radius:11px;padding:11px 12px;display:flex;flex-direction:column;gap:7px">
+                <span style="font-family:'League Spartan';font-size:11px;letter-spacing:.18em;color:#3A6FA8">WETTERLAGE · VORSCHAU</span>
+                <span style="font-size:15px;line-height:1.45;color:#2C2A26">trockene Luft (RH 41 %) · Böen 23 km/h aus O · kein Regen in den 24 h davor</span>
+                <span style="font-size:14px;color:#A85E2E">→ Register „Wetterlage"</span>
+              </div>
+              <div style="border:1px solid #E3C39A;background:#FBF3E7;border-radius:11px;padding:10px 12px"><span style="font-family:'League Spartan';font-size:10.5px;letter-spacing:.14em;color:#9A5A2A;display:block">URSACHE</span><span style="font-size:13.5px;line-height:1.45;color:#3A3833"><b>keine Quelle</b> — ermitteln Polizei und Forstbehörden.</span></div>
+            </div>
+            <div style="height:66px;background:#FAF6EA;border-top:1px solid #E0D6BE;display:flex;align-items:center;justify-content:space-around;padding-bottom:6px;flex-shrink:0">
+              <div style="display:flex;flex-direction:column;align-items:center;gap:3px;min-width:44px"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><path d="M12 3 L21 8 L12 13 L3 8 Z" stroke="#8B7355" stroke-width="1.6" stroke-linejoin="round"></path><path d="M3 13 L12 18 L21 13" stroke="#8B7355" stroke-width="1.6" stroke-linejoin="round"></path></svg><span style="font-size:12.5px;color:#8B7355">Karte</span></div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:3px;min-width:44px"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><rect x="3" y="4" width="18" height="5" rx="1.5" stroke="#8B7355" stroke-width="1.5"></rect><rect x="3" y="11" width="18" height="5" rx="1.5" stroke="#8B7355" stroke-width="1.5"></rect><circle cx="8" cy="6.5" r="1.3" fill="#8B7355"></circle><circle cx="16" cy="13.5" r="1.3" fill="#8B7355"></circle></svg><span style="font-size:12.5px;color:#8B7355">Layer</span></div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:3px;min-width:44px"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><path d="M12 21 C8 21 5.5 18.2 5.5 15 C5.5 11.4 8.6 9.6 9.2 6 C11.4 8.4 11 10.4 11.4 11.6 C12 8.8 13.6 7.2 13 3 C16.6 5.6 18.5 10 18.5 15 C18.5 18.2 16 21 12 21 Z" stroke="#A32B1E" stroke-width="1.5" stroke-linejoin="round"></path></svg><span style="font-size:12.5px;color:#A32B1E;font-weight:500">Brände</span></div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:3px;min-width:44px"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><circle cx="12" cy="12" r="9" stroke="#8B7355" stroke-width="1.5"></circle><path d="M12 8 V12 L15 14" stroke="#8B7355" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg><span style="font-size:12.5px;color:#8B7355">Zeit</span></div>
+            </div>
+          </div>
+        </div>
+        </sc-if>
+      </div>
+    </div>
+    </sc-if>
+
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;focus&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;alle&quot;,&quot;1a&quot;,&quot;1b&quot;,&quot;1c&quot;],&quot;default&quot;:&quot;alle&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;showTablet&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;showMobile&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const f = this.props.focus ?? 'alle';
+    return {
+      show1a: f === 'alle' || f === '1a',
+      show1b: f === 'alle' || f === '1b',
+      show1c: f === 'alle' || f === '1c',
+      showTablet: this.props.showTablet ?? true,
+      showMobile: this.props.showMobile ?? true,
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -108,6 +108,13 @@
   to     = "/warnungen"
   status = 301
   force  = true
+# Cross-Alias: der englische Wunschpfad der 3D-Ansicht zeigt auf die kanonische
+# deutsche Sub-Route (`CROSS_ALIASES` in src/router/routes.ts).
+[[redirects]]
+  from   = "/route/3d"
+  to     = "/tourenplanung/3d"
+  status = 301
+  force  = true
 [[redirects]]
   from   = "/karte"
   to     = "/wetterkarte"
@@ -221,6 +228,10 @@
   status = 200
 [[redirects]]
   from   = "/tourenplanung"
+  to     = "/tourenplanung.html"
+  status = 200
+[[redirects]]
+  from   = "/tourenplanung/*"
   to     = "/tourenplanung.html"
   status = 200
 [[redirects]]

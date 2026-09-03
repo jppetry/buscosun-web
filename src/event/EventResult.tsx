@@ -7,7 +7,7 @@
  * „keine Vorhersage" gezeigt und nicht gewertet.
  */
 
-import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { getPointForecast } from '../pointForecast/pointForecast';
 import type { LayerKey } from '../MapView';
 import { flagForCountry, shortLocationName } from '../geocode';
@@ -19,7 +19,15 @@ import {
 } from './eventScoring';
 import { findBetterLocation, ALT_RADIUS_KM, type AltLocationCandidate } from './eventAltLocation';
 import { scanZone, type ZoneScan } from './eventZoneScan';
-import { isDrawnZone, zoneSizeText } from './eventZone';
+import { isDrawnZone, zoneCenter, zoneContains, zoneSamplePoints, zoneSizeText } from './eventZone';
+import {
+  horizonAt, phaseMidMs, phasesWindow, representativeWindHour, sunBehindRidge, windAtHour,
+  type SunCrossing, type ZoneTerrainMetrics,
+} from './eventTerrain';
+import { loadHorizon, loadZoneTerrain } from './eventTerrainLoad';
+import { solarPosition } from '../pointForecast/terrainPhysics';
+// Nur Typen — zur Laufzeit bleibt EventTerrainMap ein Lazy-Chunk (maplibre!).
+import type { TerrainChipPoint, TerrainExtremePoint } from './EventTerrainMap';
 import { fetchCapeSeriesAtPoint } from '../sources/iconD2Cape';
 import { fetchDwdAlerts } from '../sources/dwdAlerts';
 import { convectiveOutlook, type ConvectiveOutlook } from '../radar/convectiveIndex';
@@ -53,6 +61,8 @@ import './EventPage.css';
 
 /** Echte 2D-Wetterkarte (schwer) nur bei Bedarf laden. */
 const EmbeddedMapView = lazy(() => import('../MapView'));
+/** Gelände-Bühne der Zone (ET1) — eigener Lazy-Chunk, maplibre bleibt aus dem Ergebnis-Chunk. */
+const EventTerrainMap = lazy(() => import('./EventTerrainMap'));
 /** Karten-Umschalter — wie die Tabs im „Ablauf am besten Tag"-Diagramm. */
 const MAP_TABS: Array<{ id: LayerKey; label: string }> = [
   { id: 'temp', label: 'Temperatur' },
@@ -336,7 +346,7 @@ function Recommendation({ rec, query, forecast, activityLabel, datesMode, onEdit
         const hazard = coldest ? coldHazardFor(coldest.summary!) : null;
         return hazard && coldest ? <EveningColdCard phase={coldest} hazard={hazard} /> : null;
       })()}
-      {isDrawnZone(query.zone) && <ZoneSection query={query} best={best} />}
+      {isDrawnZone(query.zone) && <ZoneSection query={query} best={best} forecast={forecast} />}
       <PlanBSection query={query} rec={rec} />
       {best.phases.length > 1 && (
         <>
@@ -1605,21 +1615,46 @@ type AltLocState =
  * (E3) — hier steht nur die Spanne, samt dem ehrlichen Satz für den Fall, dass
  * die Quellen eine Fläche dieser Größe gar nicht auflösen.
  */
-function ZoneSection({ query, best }: { query: EventQuery; best: DayResult }) {
+/** Dezimalzahl mit deutschem Komma, eine Nachkommastelle. */
+const deci = (n: number) => n.toFixed(1).replace('.', ',');
+
+function ZoneSection({ query, best, forecast }: { query: EventQuery; best: DayResult; forecast: PointForecast }) {
+  const isMobile = useIsMobile();
   const [scan, setScan] = useState<ZoneScan | null>(null);
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading');
+  // ET3/ET4 laufen UNABHÄNGIG vom Scan: Gelände und Sonne sind DEM + Astronomie
+  // und gelten auch, wenn der Wetter-Scan scheitert oder der Tag jenseits des
+  // Wetter-Horizonts liegt (V-ET-4).
+  const [terrain, setTerrain] = useState<'loading' | 'none' | ZoneTerrainMetrics>('loading');
+  const [horizon, setHorizon] = useState<'loading' | 'none' | { anglesDeg: number[]; originElevM: number }>('loading');
+  const [sunPhaseIdx, setSunPhaseIdx] = useState(0);
   const zone = query.zone;
+
+  // Anker der Sonnen-/Horizont-Rechnung — dieselbe Konvention wie der Scan:
+  // der gewählte Ort, wenn er in der Fläche liegt, sonst die Zonen-Mitte.
+  const anchor = useMemo(() => {
+    if (!isDrawnZone(zone)) return null;
+    if (zoneContains(zone, { lat: query.location.lat, lon: query.location.lon })) {
+      return { lat: query.location.lat, lon: query.location.lon, label: 'am gewählten Ort' };
+    }
+    return { ...zoneCenter(zone), label: 'an der Zonen-Mitte' };
+  }, [zone, query.location.lat, query.location.lon]);
 
   useEffect(() => {
     if (!isDrawnZone(zone)) return;
     let alive = true;
     const ac = new AbortController();
     setState('loading'); setScan(null);
+    // ET2: der Wind des gewählten Ortes ist mit dem Haupt-Forecast schon da.
+    const centerHour = representativeWindHour(best.summary?.gustPeakHour ?? null, phasesWindow(query.phases));
+    const centerWind = windAtHour(forecast.hours, best.date, centerHour);
     (async () => {
       try {
         const r = await scanZone({
           query, zone, targetDate: best.date,
           centerScore: best.score, centerDownside: best.downside, centerReason: best.reason,
+          centerSummary: best.summary,
+          centerWind: { dirDeg: centerWind.dirDeg, hour: centerWind.dirDeg != null ? centerHour : null },
           signal: ac.signal,
         });
         if (!alive) return;
@@ -1630,9 +1665,55 @@ function ZoneSection({ query, best }: { query: EventQuery; best: DayResult }) {
       }
     })();
     return () => { alive = false; ac.abort(); };
-  }, [query, zone, best.date, best.score, best.downside, best.reason]);
+  }, [query, zone, forecast, best.date, best.score, best.downside, best.reason, best.summary]);
 
-  if (!isDrawnZone(zone)) return null;
+  // ET3: Gelände-Kennzahlen (ein DEM-Batch über das Zonen-Raster).
+  useEffect(() => {
+    if (!isDrawnZone(zone)) return;
+    let alive = true;
+    const ac = new AbortController();
+    setTerrain('loading');
+    loadZoneTerrain(zone, ac.signal)
+      .then((m) => { if (alive) setTerrain(m ?? 'none'); })
+      .catch(() => { if (alive && !ac.signal.aborted) setTerrain('none'); });
+    return () => { alive = false; ac.abort(); };
+  }, [zone]);
+
+  // ET4: Horizontlinie am Anker (ein DEM-Batch über die Strahlen).
+  useEffect(() => {
+    if (!anchor) return;
+    let alive = true;
+    const ac = new AbortController();
+    setHorizon('loading');
+    loadHorizon(anchor, ac.signal)
+      .then((h) => { if (alive) setHorizon(h ?? 'none'); })
+      .catch(() => { if (alive && !ac.signal.aborted) setHorizon('none'); });
+    return () => { alive = false; ac.abort(); };
+  }, [anchor]);
+
+  if (!isDrawnZone(zone) || !anchor) return null;
+
+  // Karte: sobald der Scan da ist mit Scores, davor die nackten Messpunkte —
+  // die Bühne wartet nicht auf das Wetter (V-ET-4: das Gelände ist horizontfrei).
+  const chipPoints: TerrainChipPoint[] = scan?.points?.length
+    ? scan.points.map((p) => ({
+        id: p.id, label: p.label, lat: p.lat, lon: p.lon, score: p.score,
+        // Bei „uniform" gibt es keinen schwächsten Punkt (Uniform-Regel).
+        worst: !!scan.spread && scan.spread.band !== 'uniform' && p.id === scan.spread.worst.id,
+        windDirDeg: p.windDirDeg,
+      }))
+    : zoneSamplePoints(zone).map((p) => ({ ...p, score: null, worst: false, windDirDeg: null }));
+  const extremes: TerrainExtremePoint[] | undefined = typeof terrain === 'object'
+    ? [{ kind: 'lowest', ...terrain.lowest }, { kind: 'highest', ...terrain.highest }]
+    : undefined;
+  const arrowHour = scan?.points?.find((p) => p.windHour != null)?.windHour ?? null;
+
+  // ET4/E5: die gewählte Phase beleuchtet das Relief — nur solange ihre Sonne
+  // über dem Horizont steht, sonst bliebe eine Nachtphase „beleuchtet".
+  const phases = query.phases;
+  const selPhase = phases[Math.min(sunPhaseIdx, phases.length - 1)] ?? null;
+  const selSun = selPhase ? solarPosition(anchor.lat, anchor.lon, phaseMidMs(best.date, selPhase.hours)) : null;
+  const illumination = selSun && selSun.elevationDeg > 0 ? selSun.azimuthDeg : null;
 
   return (
     <>
@@ -1641,6 +1722,22 @@ function ZoneSection({ query, best }: { query: EventQuery; best: DayResult }) {
         <span className="evd-sec-note">{zoneSizeText(zone)}</span>
       </div>
       <div className="evd-panel">
+        <Suspense fallback={<div className="evd-tmap-loading"><span className="ev-spinner" aria-hidden="true" /> Gelände wird geladen …</div>}>
+          <EventTerrainMap
+            zone={zone}
+            points={chipPoints}
+            extremes={extremes}
+            illuminationAzimuthDeg={illumination}
+            mode="result"
+            isMobile={isMobile}
+          />
+        </Suspense>
+        {arrowHour != null && (
+          <p className="evd-tmap-note">
+            Pfeile = Modellwind zur Böen-Spitzenstunde ({arrowHour} Uhr), höhenkorrigiert — keine Umströmung des Geländes.
+          </p>
+        )}
+
         {state === 'loading' && (
           <p className="evd-zone-scan-note"><span className="ev-spinner" aria-hidden="true" /> Wir bewerten die Ecken deiner Fläche …</p>
         )}
@@ -1664,18 +1761,160 @@ function ZoneSection({ query, best }: { query: EventQuery; best: DayResult }) {
                   <span className="evd-zone-point-lab">{p.label}</span>
                   <span className="evd-zone-point-score">{Math.round(p.score)}</span>
                   <span className="evd-zone-point-note">{p.downside || p.reason}</span>
+                  {p.summary && (
+                    <span className="evd-zone-point-stats">
+                      <span>Böen {Math.round(p.summary.gustMaxMs)} m/s</span>
+                      <span>gefühlt min {Math.round(p.summary.apparentMinC)} °C</span>
+                      <span>Regenspitze {deci(p.summary.precipPeakMmH)} mm/h</span>
+                    </span>
+                  )}
                 </div>
               ))}
             </div>
             <p className="evd-panel-cap" style={{ marginTop: 12 }}>
               Mitte und Ecken laufen durch dieselbe Punktforecast-Pipeline und dasselbe Anlass-Profil wie der gewählte Ort.
-              Unterschiede kommen aus Geländehöhe und Stationsnähe — nicht aus aufgelösten Schauern.
+              Unterschiede kommen aus Geländehöhe, Senkenlage (nächtliche Kaltluft), Hangexposition und Stationsnähe — nicht aus aufgelösten Schauern.
               {scan.failed > 0 && ` ${scan.failed} Messpunkt${scan.failed === 1 ? '' : 'e'} lieferte${scan.failed === 1 ? '' : 'n'} keine Wertung und fehlt${scan.failed === 1 ? '' : 'en'} in der Spanne.`}
             </p>
           </>
         )}
+
+        {/* --- ET3: Gelände-Kennzahlen (DEM, unabhängig vom Wetter-Scan) --- */}
+        <div className="evd-zone-subhead"><span>Gelände der Fläche</span></div>
+        {terrain === 'loading' && (
+          <p className="evd-zone-scan-note"><span className="ev-spinner" aria-hidden="true" /> Höhenmodell wird gelesen …</p>
+        )}
+        {terrain === 'none' && (
+          <p className="evd-zone-scan-note">Geländekennzahlen nicht verfügbar — das Höhenmodell war nicht erreichbar.</p>
+        )}
+        {typeof terrain === 'object' && (
+          <>
+            <div className="evd-terrain-facts">
+              <div className="evd-terrain-fact"><div className="evd-terrain-fact-lab">Höhenlage</div><div className="evd-terrain-fact-val">{Math.round(terrain.minM)}–{Math.round(terrain.maxM)} m</div></div>
+              <div className="evd-terrain-fact"><div className="evd-terrain-fact-lab">Höhenunterschied</div><div className="evd-terrain-fact-val">{Math.round(terrain.spreadM)} m</div></div>
+              <div className="evd-terrain-fact"><div className="evd-terrain-fact-lab">Mittlere Neigung</div><div className="evd-terrain-fact-val">{terrain.meanSlopeDeg < 1 ? 'praktisch eben' : `${deci(terrain.meanSlopeDeg)}°`}</div></div>
+              <div className="evd-terrain-fact"><div className="evd-terrain-fact-lab">Steilste Stelle</div><div className="evd-terrain-fact-val">{deci(terrain.maxSlopeDeg)}°</div></div>
+            </div>
+            <p className="evd-zone-terrain-line">
+              Tiefster Rasterpunkt ({Math.round(terrain.lowest.elevM)} m): bei Regen zuerst nass ·
+              Höchster ({Math.round(terrain.highest.elevM)} m): exponierteste Stelle — beide stehen auf der Karte.
+            </p>
+          </>
+        )}
+        <p className="evd-panel-cap">
+          Geländemodell ~30 m Raster — ohne Gebäude und Bewuchs. Ob die Wiese eben genug fürs Zelt ist,
+          zeigt es; einzelne Bäume nicht.
+        </p>
+
+        {/* --- ET4: Sonne über dem Gelände (Astronomie + DEM — gilt auch
+                jenseits des Wetter-Horizonts, wie die Foto-Lichtfenster) --- */}
+        <div className="evd-zone-subhead"><span>Sonne über dem Gelände · {formatDayLong(best.date)}</span></div>
+        <ZoneSunCards
+          phases={phases}
+          dateISO={best.date}
+          anchor={anchor}
+          horizon={horizon}
+          selIdx={Math.min(sunPhaseIdx, phases.length - 1)}
+          onSelect={setSunPhaseIdx}
+        />
+        <p className="evd-panel-cap">
+          Die Schummerung der Karte richtet sich nach dem Sonnenstand der gewählten Phase: sonnenzugewandte Hänge hell,
+          abgewandte dunkel — das ist Beleuchtung, kein Schattenwurf (keine geworfenen Schatten von Graten, Bäumen oder
+          Gebäuden). Horizont aus dem Höhenmodell (~50 m Raster, 30 km Umkreis), {anchor.label} gerechnet.
+        </p>
       </div>
     </>
+  );
+}
+
+/**
+ * ET4 — je Phase eine Sonnen-Karte: Kompass (Azimut zur Phasen-Mitte),
+ * Sonnenhöhe und die Grat-Zeile aus der Horizont-Rechnung. Die gewählte Karte
+ * stellt die Relief-Beleuchtung der Terrain-Bühne (E5).
+ */
+function ZoneSunCards({ phases, dateISO, anchor, horizon, selIdx, onSelect }: {
+  phases: EventQuery['phases'];
+  dateISO: string;
+  anchor: { lat: number; lon: number; label: string };
+  horizon: 'loading' | 'none' | { anglesDeg: number[]; originElevM: number };
+  selIdx: number;
+  onSelect: (i: number) => void;
+}) {
+  const cards = useMemo(() => {
+    const dayStartMs = new Date(`${dateISO}T00:00:00`).getTime();
+    return phases.map((p) => {
+      const midMs = phaseMidMs(dateISO, p.hours);
+      const sun = solarPosition(anchor.lat, anchor.lon, midMs);
+      let crossing: SunCrossing | null = null;
+      if (typeof horizon === 'object') {
+        // Suche ab Phasenstart bis Tagesende — die Frage ist „wann ist das
+        // Licht weg", nicht nur „wie steht es in der Phase".
+        const startMs = dayStartMs + p.hours[0] * 3_600_000;
+        crossing = sunBehindRidge(
+          (az) => horizonAt(horizon.anglesDeg, az),
+          anchor.lat, anchor.lon, dateISO, startMs, dayStartMs + 24 * 3_600_000,
+        );
+      }
+      return { phase: p, sun, crossing };
+    });
+  }, [phases, dateISO, anchor.lat, anchor.lon, horizon]);
+
+  return (
+    <div className="evd-sun-cards">
+      {cards.map((c, i) => (
+        <button
+          key={c.phase.id}
+          type="button"
+          className={`evd-sun-card${i === selIdx ? ' evd-sun-card--active' : ''}`}
+          aria-pressed={i === selIdx}
+          onClick={() => onSelect(i)}
+          title="Beleuchtet die Gelände-Karte mit dem Sonnenstand dieser Phase"
+        >
+          <SunCompass azimuthDeg={c.sun.azimuthDeg} dimmed={c.sun.elevationDeg <= 0} />
+          <span className="evd-sun-card-body">
+            <span className="evd-sun-card-lab">{c.phase.label} · {fmtPhaseHours(c.phase.hours)}</span>
+            <span className="evd-sun-card-alt">
+              {c.sun.elevationDeg > 0 ? `Sonnenhöhe ${Math.round(c.sun.elevationDeg)}°` : 'Sonne unter dem Horizont'}
+            </span>
+            <span className="evd-sun-card-ridge">{ridgeLine(c.crossing, horizon)}</span>
+          </span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function ridgeLine(
+  crossing: SunCrossing | null,
+  horizon: 'loading' | 'none' | { anglesDeg: number[]; originElevM: number },
+): string {
+  if (horizon === 'loading') return 'Horizont wird berechnet …';
+  if (horizon === 'none') return 'Horizontverdeckung nicht berechenbar (Höhenmodell nicht erreichbar).';
+  if (!crossing) return '';
+  switch (crossing.kind) {
+    case 'behind-ridge':
+      return `Hinter dem Grat ab ${fmtClock(new Date(crossing.atMs))} (Grat ${deci(crossing.horizonDeg)}° hoch)`;
+    case 'free-until-sunset':
+      return `Frei bis Sonnenuntergang (${fmtClock(crossing.sunsetMs != null ? new Date(crossing.sunsetMs) : null)})`;
+    case 'below-horizon':
+      return 'Sonne in dieser Phase unter dem Horizont';
+  }
+}
+
+/** Kleiner Kompass: Pfeil zeigt zum Sonnen-Azimut, N ist oben (wie die Karte). */
+function SunCompass({ azimuthDeg, dimmed, size = 44 }: { azimuthDeg: number; dimmed?: boolean; size?: number }) {
+  const c = size / 2;
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true" className="evd-sun-compass">
+      <circle cx={c} cy={c} r={c - 2} fill="var(--cream-50)" stroke="var(--border-medium)" />
+      <text x={c} y={10} textAnchor="middle" fontSize={8} fill="var(--stone-400)" fontFamily="League Spartan">N</text>
+      <g transform={`rotate(${azimuthDeg} ${c} ${c})`} opacity={dimmed ? 0.35 : 1}>
+        <path
+          d={`M ${c} ${c - 15} L ${c + 4.5} ${c + 5} L ${c} ${c + 1.5} L ${c - 4.5} ${c + 5} Z`}
+          fill="var(--evd-okay)"
+        />
+      </g>
+    </svg>
   );
 }
 

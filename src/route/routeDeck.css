@@ -290,6 +290,25 @@
 .rd-result-strip-label { display: block; font-size: 10px; letter-spacing: 2px; color: var(--stone-400); font-weight: 700; margin: 22px 0 9px; text-transform: uppercase; }
 
 .rd-result-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; margin-top: 16px; align-items: stretch; }
+/* Die Kartenspalte des Ergebnisses: Umschalter oben, darunter die gewaehlte
+   Karte. Der Umschalter steht AUSSERHALB von `.rd-mapwrap`, weil die flache
+   Karte eine feste Hoehe mit `overflow: hidden` hat und die Gelaende-Ansicht
+   mitwaechst — ein Kind haette beide Male anders liegen muessen (R3D-8). */
+.rd-mapcol { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.rd-mapsw { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.rd-mapsw button {
+  min-height: 34px; padding: 0 14px; border-radius: 9px; cursor: pointer;
+  border: 1px solid var(--border-default); background: var(--rd-card, #fff);
+  font-family: inherit; font-size: 12.5px; font-weight: 600; color: var(--stone-600);
+}
+.rd-mapsw button.is-on { background: var(--terracotta-500, #C97B47); border-color: var(--terracotta-500, #C97B47); color: #fff; }
+.rd-mapsw-note { font-size: 11.5px; color: var(--stone-500); }
+.rd-mapwait {
+  display: flex; align-items: center; justify-content: center; min-height: 380px;
+  border-radius: 14px; background: var(--rd-map-bg); border: 1px solid var(--rd-map-border);
+  color: var(--cream-50); font-size: 13px;
+}
+
 .rd-mapwrap { position: relative; height: 380px; border-radius: 14px; overflow: hidden; background: var(--rd-map-bg); border: 1px solid var(--rd-map-border); }
 .rd-mapwrap .route-map { position: absolute; inset: 0; height: 100%; }
 
@@ -390,6 +409,8 @@
   .rd-result-grid { grid-template-columns: 1fr; }
   .rd-analysis-grid--lr, .rd-analysis-grid--rl { grid-template-columns: 1fr; }
   .rd-mapwrap { height: 170px; }
+  .rd-mapsw button { min-height: 44px; }
+  .rd-mapwait { min-height: 240px; }
 
   /* Bewegungsart als scrollbare Chips über der Konfiguration */
   .rd-mvchips { display: flex; gap: 8px; overflow-x: auto; margin-top: 10px; padding-bottom: 3px; -webkit-overflow-scrolling: touch; }
@@ -434,4 +455,106 @@
   .rd-intro .rd-formats-note { margin-top: 14px; padding-top: 12px; line-height: 1.55; }
   .rd-intro .rd-howto { margin-top: 10px; padding: 10px 14px; }
   .rd-intro .rd-trust { margin-top: 8px; }
+}
+
+/* ===== R3D · Umschalter 2D/3D über dem Ergebnis ===== */
+.rd-viewbar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 12px; }
+.rd-viewbar-note { font-size: 12px; color: var(--stone-500); flex: 1 1 260px; min-width: 0; }
+@media (max-width: 767px) {
+  .rd-viewbar-note { display: none; }
+}
+
+/* ===== R3D · Umschalter 2D | 3D (auch im 2D-Ergebnis sichtbar) ===== */
+.r3-toggle {
+  display: inline-flex; padding: 3px; gap: 2px; border-radius: 999px;
+  background: var(--sand-200); border: 1px solid var(--border-medium);
+}
+.r3-toggle button {
+  min-height: 32px; padding: 0 18px; border: none; border-radius: 999px;
+  font-family: inherit; font-size: 13px; font-weight: 700; letter-spacing: .3px;
+  color: var(--stone-600); background: transparent; cursor: pointer;
+}
+.r3-toggle button.is-on { background: var(--terracotta-500); color: #fff; }
+@media (max-width: 767px) {
+  .r3-toggle button { min-height: 44px; padding: 0 22px; }
+}
+
+/* ===== R3D · Wiederhergestellte Tour (V-R3D-1) =====
+   Eine GPX ist ein Bewegungsprofil — sie darf nicht heimlich liegen bleiben.
+   Die Zeile sagt Herkunft und Zeitpunkt und trägt „verwerfen". */
+.r3-restore {
+  display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap;
+  margin: 0 0 16px; padding: 10px 12px; border-radius: 12px;
+  background: var(--sand-200); border: 1px solid var(--border-medium);
+}
+.r3-restore-txt { flex: 1 1 320px; min-width: 0; font-size: 12.5px; line-height: 1.5; color: var(--stone-600); }
+.r3-restore-txt b { color: var(--ink-900); font-weight: 700; }
+.r3-restore-drop {
+  border: none; background: none; padding: 0; cursor: pointer;
+  font: inherit; font-size: 12.5px; font-weight: 600; color: var(--terracotta-500);
+  text-decoration: underline; white-space: nowrap;
+}
+.r3-restore-drop:hover { color: var(--terracotta-700); }
+.r3-restore-x {
+  border: none; background: none; padding: 0; cursor: pointer; line-height: 1;
+  font-size: 13px; color: var(--stone-500); flex: 0 0 auto;
+}
+
+/* ===== R3D · Wartefeld INNERHALB der 3D-Ansicht (V-R3D-3) =====
+   Liegt bewusst hier und nicht in route3d.css: die lädt erst mit dem
+   Lazy-Chunk, das Wartefeld steht aber schon davor (Lehre aus §12). */
+.r3-standby {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 440px; padding: 24px 0;
+}
+.r3-standby-card {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
+  max-width: 420px; padding: 22px 24px; border-radius: 16px;
+  background: var(--sand-50); border: 1px solid var(--border-medium);
+}
+.r3-standby-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; color: var(--terracotta-500); }
+.r3-standby-title { margin: 0; font-size: 16px; font-weight: 700; color: var(--ink-900); }
+.r3-standby-sub { margin: 0; font-size: 13px; line-height: 1.5; color: var(--stone-600); }
+.r3-standby-btn {
+  margin-top: 6px; min-height: 40px; padding: 0 18px; border-radius: 999px;
+  border: 1px solid var(--border-medium); background: var(--sand-200);
+  font: inherit; font-size: 13px; font-weight: 600; color: var(--ink-900); cursor: pointer;
+}
+.r3-standby-bar {
+  position: relative; width: 100%; height: 4px; margin-top: 8px;
+  border-radius: 999px; background: var(--sand-200); overflow: hidden;
+}
+.r3-standby-bar::after {
+  content: ''; position: absolute; inset: 0 auto 0 0; width: 38%;
+  border-radius: 999px; background: var(--terracotta-500);
+  animation: r3-standby-slide 1.4s ease-in-out infinite;
+}
+@keyframes r3-standby-slide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(300%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .r3-standby-bar::after { animation: none; width: 100%; opacity: .35; }
+}
+@media (max-width: 767px) {
+  .r3-standby { min-height: 320px; }
+  .r3-standby-btn { min-height: 44px; }
+  /* Auf 390 px kostete die Notiz zwei eigene Zeilen. Das Schliesskreuz sitzt
+     deshalb in der Ecke (Anfassflaeche bleibt 44 px), „verwerfen" laeuft im
+     Text mit — die Szene rueckt dadurch ~40 px nach oben. */
+  .r3-restore { position: relative; padding-right: 48px; row-gap: 0; align-items: center; }
+  .r3-restore-drop { min-height: 44px; display: inline-flex; align-items: center; }
+  .r3-restore-x {
+    position: absolute; top: 2px; right: 2px;
+    min-width: 44px; min-height: 44px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  /* Der Zurück-Knopf der Mobil-Kopfzeile misst 32 px und trägt das Raster aller
+     Route-Screens. Er BLEIBT 32 px — nur seine Anfassfläche wächst auf 44 px
+     (CLAUDE.md, Gate-Frage 3), damit kein Screen sein Bild ändert. */
+  .rd-m-back { position: relative; }
+  .rd-m-back::after {
+    content: ''; position: absolute; left: 50%; top: 50%;
+    width: 44px; height: 44px; transform: translate(-50%, -50%);
+  }
 }

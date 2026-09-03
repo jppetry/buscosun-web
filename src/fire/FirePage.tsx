@@ -58,6 +58,8 @@ import {
   type FireRecord, type RecordFilter,
 } from './footprint/fireRegistry';
 import { FireFootprintPanel, type EffisScope } from './FireFootprintPanel';
+import { FireDossier, DossierLegend, DossierMapNote } from './FireDossier';
+import { FireMiniMap, miniFeatures } from './FireMiniMap';
 import { applyFireView, fireViewFromState, type FireRouteView } from './fireRouteView';
 import { loadPlaces, nearestPlace, type PlaceIndex } from './footprint/places';
 import { featuresOf } from './activity/features';
@@ -72,7 +74,7 @@ import { loadClcMask, landcoverAt, toAssessmentLandcover, type ClcMask } from '.
 // TA3/TA4: statische Standortliste persistenter Wärmequellen + Reiter „Thermalanomalien".
 import { loadThermalSites, siteAt, thermalSitesEnabled, type ThermalSitesIndex } from './anomaly/thermalSites';
 import { FireAnomalyPanel } from './FireAnomalyPanel';
-import { FireHistoryPanel } from './FireHistoryPanel';
+import { FireHistoryPanel, HistoryDossierBody, historyStatTiles, historyEntryName } from './FireHistoryPanel';
 import { historyEnabled, loadHistoryIndex, historyToGeoJSON, type HistoryLoad } from './history/historyLoad';
 import type { HistoryIndexEntry, HistoryWindowKind } from './history/historyArtifacts';
 import { anomaliesToGeoJSON } from './anomaly/anomalyLayer';
@@ -101,8 +103,8 @@ import {
 import {
   FireLayerCard, FIRE_LAYER_INFO, HOTSPOTS_DEGRADED_INFO, dangerInfoFor, soilDrynessInfoFor,
 } from './FireLayerCard';
-import { BR_LAYER, BR_GROUP_COLOR, dangerCardMeta, DANGER_VIEW_CODE, FWI_STEPS } from './brandradarMeta';
-import { recordTitle, type PanelSort } from './FireFootprintPanel';
+import { BR_LAYER, BR_GROUP_COLOR, dangerCardMeta, DANGER_VIEW_CODE, FWI_STEPS, BR_BADGE_LABEL, badgeOf } from './brandradarMeta';
+import { recordTitle, recordName, regionLabel, Stat, type PanelSort } from './FireFootprintPanel';
 import { ageText } from '../dataAge';
 import './fireDeck.css';
 
@@ -212,6 +214,12 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
     // TA4: `ta=1` öffnet den dritten Reiter „Thermalanomalien"; er gewinnt gegen `fp`.
     initial?.anomalyPanel ? 'anomalies' : initial?.footprintPanel ? 'fires' : routePreset ? routePreset.readoutTab : 'layers',
   );
+  /**
+   * BD2: die Bühne der Mitte — Karte (Standard) oder Dossier des markierten Brands. Permalink `ds`.
+   * Ein Klick auf einen Brand (Karte oder Registry) schaltet auf Dossier; zurück über das Segment,
+   * die Minikarte oder mobil „← Brände". Die Hauptkarte bleibt dabei montiert (nur außer Bild).
+   */
+  const [stage, setStage] = useState<'map' | 'dossier'>(initial?.dossier ? 'dossier' : 'map');
   /** Mobil: der Bereich der Bottom-Bar — Karte · Layer · Brände · Zeit. Die Thermalanomalien sind dort ein Segment in „Brände". */
   const [mobileTab, setMobileTab] = useState<MobileTab>(initial?.footprintPanel || initial?.anomalyPanel || routePreset?.readoutTab === 'fires' ? 'fires' : 'map');
   /** TA4: markierter Standort (auch ohne Eintrag im Fenster) — die Karte hebt ihn hervor. */
@@ -250,6 +258,9 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
     setFocusBbox([e.lon - d, e.lat - d, e.lon + d, e.lat + d]);
     setFocusNonce((n) => n + 1);
     setReadoutTab('fires'); setMobileTab('fires');
+    // BD2f (Jans Rückmeldung 2026-08-31): auch im Historie-Modus (Monat/Saison) öffnet
+    // ein Klick auf ein Ereignis — Karte wie Liste — die Detailansicht in der Mitte.
+    setStage('dossier');
   }, [historyEntriesById]);
   // --- BP2: das Brandflächen-Panel (Registry) ------------------------------
   /** Panel links offen? (Permalink-Feld `fp`; unabhängig vom Layer-Schalter.) */
@@ -598,9 +609,9 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
    * gerade auf das geklickt, was man sieht. Damit die Markierung sichtbar wird,
    * schaltet das Readout auf die Liste; sonst wäre der Klick folgenlos.
    */
-  const selectFromMap = useCallback((id: string | null) => {
+  const selectFromMap = useCallback((id: string | null): boolean => {
     setSelectedCluster(id);
-    if (!id) return;
+    if (!id) return false;
     setReadoutTab('fires');
     // BP5: die Hülle gehört zu einer Detektionsgruppe, die Liste führt Brände.
     // Der Klick markiert deshalb den Brand, der diese Gruppe enthält — sonst
@@ -609,10 +620,18 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
     const rec = recordsRef.current.find(
       (r) => r.sources.cluster?.id === id || r.previousIds.includes(`fire:${id.split('@')[0]}`),
     );
-    if (!rec) return;
+    if (!rec) return false;
     setSelectedFootprint(rec.id);
+    // TA4: ein Eintrag mit Anlagenmuster gehört zum Reiter „Thermalanomalien";
+    // BD2b (Jans Auftrag 2026-08-31): auch er öffnet sein Dossier — die Bühne
+    // wechselt mit, der Reiter (und damit die Registry links) bleibt „Thermalanomalien".
+    if (rec.anomaly?.kind === 'site') { setSelectedSite(rec.anomaly.siteId); setReadoutTab('anomalies'); setStage('dossier'); return true; }
     const rank = panelRecordsRef.current.findIndex((r) => r.id === rec.id);
     if (rank >= 0) setShownFootprints((n) => Math.max(n, Math.ceil((rank + 1) / CLUSTER_PAGE) * CLUSTER_PAGE));
+    // BD2a (Jans Auftrag 2026-08-31): ein Brand-Klick auf der Karte öffnet das
+    // Dossier — auch ohne Brandflächen-Layer, wo der Klick nur die Hülle trifft.
+    setStage('dossier');
+    return true;
   }, []);
 
   /** Wie viele Detektionen liegen in einer kartierten Fläche der letzten Woche? */
@@ -948,6 +967,9 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
   }, [records, fpFilter, fpSort]);
   recordsRef.current = records;
   panelRecordsRef.current = panelRecords;
+  // Nur im DEV-Build: Registry für die Verifikation über den Automations-Browser
+  // (Muster window.__fireMap in FireMap.tsx).
+  if (import.meta.env.DEV) (window as unknown as { __fireRecords?: readonly FireRecord[] }).__fireRecords = records;
   useEffect(() => { setShownFootprints(CLUSTER_PAGE); }, [records]);
   // Fällt die Auswahl aus dem Bestand (Fensterwechsel), fällt sie ganz — kein Geist.
   useEffect(() => {
@@ -994,21 +1016,61 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
     setFocusBbox(r ? r.bbox : null);
     setFocusNonce((n) => n + 1);
   }, [recordsById]);
-  /** Auswahl von der KARTE: markieren, Liste zeigen — Karte bewegt sich nicht. */
-  const selectFootprintFromMap = useCallback((id: string | null) => {
+  /**
+   * Auswahl von der KARTE: markieren, Dossier öffnen — Karte bewegt sich nicht.
+   * Gibt zurück, ob der Klick das Dossier geöffnet hat (BD2a): dann unterdrückt
+   * `FireMap` das Popup dieses Klicks, das sonst auf der versteckten Karte stünde.
+   */
+  const selectFootprintFromMap = useCallback((id: string | null): boolean => {
     setSelectedFootprint(id);
-    if (!id) { setSelectedSite(null); return; }
+    if (!id) { setSelectedSite(null); return false; }
     const rec = recordsById.get(id);
     setSelectedCluster(rec?.sources.cluster?.id ?? null);
     // TA4: ein Eintrag, der zum Anlagenmuster passt, steht im Reiter „Thermalanomalien" —
-    // der Klick führt dorthin; Abweichungen bleiben Brände.
-    if (rec?.anomaly?.kind === 'site') { setSelectedSite(rec.anomaly.siteId); setReadoutTab('anomalies'); return; }
+    // der Klick führt dorthin; Abweichungen bleiben Brände. BD2b: auch er öffnet sein Dossier.
+    if (rec?.anomaly?.kind === 'site') { setSelectedSite(rec.anomaly.siteId); setReadoutTab('anomalies'); setStage('dossier'); return true; }
     setSelectedSite(null);
     setReadoutTab('fires');
+    // BD2: ein Brand von der Karte öffnet sein Dossier.
+    setStage('dossier');
     const rank = panelRecords.findIndex((r) => r.id === id);
     if (rank >= 0) setShownFootprints((n) => Math.max(n, Math.ceil((rank + 1) / CLUSTER_PAGE) * CLUSTER_PAGE));
+    return true;
   }, [panelRecords, recordsById]);
   const clearFootprint = useCallback(() => { setSelectedFootprint(null); setSelectedSite(null); setFocusBbox(null); }, []);
+  /**
+   * BD2b: Klick auf eine EFFIS-Fläche — gehört sie einem Brand der Registry
+   * (Kartierung oder Geometrie-Referenz), öffnet sein Dossier; historische
+   * Flächen ohne Eintrag behalten ihren Steckbrief (Popup).
+   */
+  const openDossierForEffis = useCallback((effisId: string): boolean => {
+    const rec = recordsRef.current.find(
+      (r) => String(r.sources.effis?.id ?? '') === effisId || (r.geometry.kind === 'effis' && r.geometry.ref === effisId),
+    );
+    return rec ? selectFootprintFromMap(rec.id) : false;
+  }, [selectFootprintFromMap]);
+  /**
+   * BD2c: Klick auf einen DETEKTIONSPUNKT — der Fall, den Nutzer wirklich treffen:
+   * die Hüllen sind am Übersichts-Zoom oft nur wenige Pixel groß, der sichtbare
+   * Kreis ist der Punkt. Aufgelöst wird über die Bbox der Registry-Einträge
+   * (kleinste zuerst — die spezifischere Aussage), dann öffnet das Dossier.
+   */
+  const openDossierForDetection = useCallback((lon: number, lat: number): boolean => {
+    const pad = 0.02; // ≈ 2 km — der Punkt ist die Pixelmitte, die Bbox das Raster.
+    const hits = recordsRef.current.filter((r) =>
+      lon >= r.bbox[0] - pad && lon <= r.bbox[2] + pad && lat >= r.bbox[1] - pad && lat <= r.bbox[3] + pad);
+    if (hits.length === 0) return false;
+    const area = (r: FireRecord) => (r.bbox[2] - r.bbox[0]) * (r.bbox[3] - r.bbox[1]);
+    const rec = hits.reduce((a, b) => (area(b) < area(a) ? b : a));
+    return selectFootprintFromMap(rec.id);
+  }, [selectFootprintFromMap]);
+  /** BD2b: Klick in ein Detektionsraster — dieselbe Regel über die Zonen des Brands. */
+  const openDossierForZone = useCallback((zoneId: string): boolean => {
+    const rec = recordsRef.current.find((r) => r.sources.zones.some((z) => z.id === zoneId));
+    return rec ? selectFootprintFromMap(rec.id) : false;
+  }, [selectFootprintFromMap]);
+  /** BD2: Auswahl aus der Registry — markieren, hinfahren (unsichtbar) UND das Dossier öffnen. */
+  const openDossier = useCallback((id: string) => { focusFootprint(id); setReadoutTab('fires'); setStage('dossier'); }, [focusFootprint]);
   /** TA5: Klick auf eine Standort-Raute — Reiter öffnen, Karte bleibt stehen. */
   const selectSiteFromMap = useCallback((siteId: string, recordId: string | null) => {
     setSelectedSite(siteId);
@@ -1129,7 +1191,8 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
     if (!selectedFootprint || readoutTab !== 'fires') return;
     const el = document.querySelector<HTMLElement>(`.fire-fprow[data-fire="${CSS.escape(selectedFootprint)}"]`);
     el?.scrollIntoView({ block: 'nearest' });
-  }, [selectedFootprint, readoutTab]);
+    // BD2: auch die Registry links im Dossier (sie montiert mit dem Bühnenwechsel).
+  }, [selectedFootprint, readoutTab, stage]);
 
   // Permalink mitführen (replaceState, damit der Zurück-Knopf nicht zumüllt).
   useEffect(() => {
@@ -1142,9 +1205,11 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
       hour: hourly ? time.hour : null,
       // BH3: nur im Historie-Modus.
       historyWindow: history,
+      // BD2: nur wenn das Dossier offen ist.
+      dossier: stage === 'dossier',
     });
     if (window.location.hash !== hash) window.history.replaceState(null, '', hash);
-  }, [activeList, time.day, time.windowH, dangerView, burntBuckets, soilMode, burntDay, readoutTab, hourly, time.hour, history]);
+  }, [activeList, time.day, time.windowH, dangerView, burntBuckets, soilMode, burntDay, readoutTab, hourly, time.hour, history, stage]);
 
   // Router (RT1): Zustand ⇒ Sub-Route (läuft NACH dem Hash-Schreiber, damit der
   // Wrapper den frischen Hash mitnimmt). Erster Lauf = replace (URL nachziehen).
@@ -1867,7 +1932,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
       effisScope={fpEffisScope} onEffisScope={setFpEffisScope}
       shown={shownFootprints} onShowMore={() => setShownFootprints((n) => n + CLUSTER_PAGE)}
       hoverId={hoverFootprint} onHover={setHoverFootprint}
-      selectedId={selectedFootprint} onSelect={focusFootprint} onClearSelect={clearFootprint}
+      selectedId={selectedFootprint} onSelect={openDossier} onClearSelect={clearFootprint}
       onEnableLayer={() => setActive((prev) => new Set([...prev, 'fireFootprints']))}
       onClose={() => setReadoutTab('layers')}
 
@@ -1924,7 +1989,103 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
     </>
   );
 
-  // --- Mobil: Bottom-Bar + Seiten --------------------------------------------------
+  // --- BD2: Bühne Karte | Dossier --------------------------------------------------
+  const dossierRecord = selectedFootprint ? recordsById.get(selectedFootprint) ?? null : null;
+  const inDossier = stage === 'dossier';
+  /** Topbar-/Kopf-Segment „Karte | Dossier" (Desktop, Tablet, Mobil). */
+  const stageSeg = (big: boolean) => (
+    <div className={`br-seg br-stage-seg${big ? ' is-big' : ''}`} role="group" aria-label="Bühne der Mitte">
+      <button type="button" className={!inDossier ? 'is-active' : ''} aria-pressed={!inDossier} onClick={() => { setStage('map'); if (isMobile) openTab('map'); }}>Karte</button>
+      <button type="button" className={inDossier ? 'is-active' : ''} aria-pressed={inDossier} onClick={() => { setStage('dossier'); if (readoutTab === 'layers') setReadoutTab('fires'); if (isMobile) setMobileTab('fires'); }}>Dossier</button>
+    </div>
+  );
+  const miniFrom = dossierRecord ? miniFeatures(dossierRecord, history ? null : footprintFc).fromRegistry : false;
+  const miniMap = (height: number) => dossierRecord && (
+    <FireMiniMap
+      record={dossierRecord} footprintFc={history ? null : footprintFc} basemap={basemap} height={height}
+      ariaLabel={`Karte: ${recordTitle(dossierRecord)} — zur Kartenbühne wechseln`}
+      onClick={() => { setStage('map'); if (isMobile) openTab('map'); }}
+    />
+  );
+  /** Rechte Spalte des Dossiers (Desktop 300 px, Tablet 250 px in der zweiten Rasterspalte). */
+  const dossierSide = (mapHeight: number) => (
+    <>
+      <div className="br-ds-card br-ds-mapcard">
+        <div className="br-ds-cardhead">
+          <span className="br-ds-eyebrow is-stone">Karte · markiert</span>
+          <button type="button" className="br-link br-ds-back" onClick={() => setStage('map')}>↗ Bühne zurück</button>
+        </div>
+        {dossierRecord
+          ? <>{miniMap(mapHeight)}<DossierMapNote r={dossierRecord} fromRegistry={miniFrom} /></>
+          : <p className="br-ds-mapnote">Kein Brand markiert — die Karte zeigt den DACH-Überblick.</p>}
+      </div>
+      <DossierLegend />
+      {scalesCard(true)}
+    </>
+  );
+
+  /** BD2f: das markierte Historie-Ereignis (Monat/Saison) — für das Dossier der Mitte. */
+  const historyEntry = history && selectedHistory ? historyEntriesById?.get(selectedHistory) ?? null : null;
+  const historyDossier = (
+    <section className={`br-ds${isTablet ? ' is-compact' : ''}`} aria-label="Ereignis-Dossier">
+      {historyEntry ? (
+        <>
+          <header className="br-ds-card br-ds-head">
+            <div className="br-ds-headrow">
+              <div className="br-ds-headtx">
+                <h2 className="br-ds-title">{historyEntryName(historyEntry)}</h2>
+                <p className="br-ds-sub">
+                  {historyEntry.country} · {historyEntry.lat.toFixed(3)}° N, {historyEntry.lon.toFixed(3)}° E · <code>{historyEntry.id}</code>
+                  {' '}· Historie ({history === 'month' ? 'Monat' : 'Saison'}), kein Live-Eintrag
+                </p>
+              </div>
+              <div className="br-ds-chips">
+                {historyEntry.effisId && <span className="fire-fp-src is-effis-rda">EFFIS kartiert</span>}
+                {historyEntry.anomalyKind === 'site' && <span className="br-badge is-site">Anlage</span>}
+                {historyEntry.anomalyKind === 'site-deviating' && <span className="br-badge is-site-deviating">Abweichung</span>}
+                {historyEntry.nrt > 0 && <span className="fire-fp-src">vorläufig (NRT)</span>}
+              </div>
+            </div>
+            {/* BD2g: die vier Kennzahl-Kacheln — dieselbe Form wie das Live-Dossier, nur Index-Felder. */}
+            <span className="br-fire-stats is-wide">
+              {historyStatTiles(historyEntry).map((t) => <Stat key={t.lbl} lbl={t.lbl} val={t.val} sub={t.sub} />)}
+            </span>
+          </header>
+          <HistoryDossierBody
+            entry={historyEntry} chartWidth={isTablet ? 420 : 360}
+            aside={(
+              <div className="br-ds-aside">
+                <div className="br-ds-card br-ds-mapcard">
+                  <div className="br-ds-cardhead">
+                    <span className="br-ds-eyebrow is-stone">Karte · markiert</span>
+                    <button type="button" className="br-link br-ds-back" onClick={() => setStage('map')}>↗ Bühne zurück</button>
+                  </div>
+                  <FireMiniMap
+                    record={{ id: historyEntry.id, lat: historyEntry.lat, lon: historyEntry.lon, bbox: [historyEntry.lon - 0.08, historyEntry.lat - 0.08, historyEntry.lon + 0.08, historyEntry.lat + 0.08] }}
+                    footprintFc={null} basemap={basemap} height={250}
+                    ariaLabel={`Karte: ${historyEntryName(historyEntry)} — zur Kartenbühne wechseln`}
+                    onClick={() => setStage('map')}
+                  />
+                  <p className="br-ds-mapnote">Ein Historie-Ereignis ist ein Punkt aus der statischen Auswertung — der Kasten zeigt die Umgebung, keine Brandfläche.</p>
+                </div>
+                {scalesCard(true)}
+              </div>
+            )}
+          />
+        </>
+      ) : (
+        <div className="br-ds-card br-ds-emptycard">
+          <span className="br-ds-eyebrow is-red">Dossier</span>
+          <p className="br-ds-emptytext">
+            <strong>Kein Ereignis markiert.</strong> Ein Klick auf ein Ereignis in der Liste rechts oder auf der Karte
+            öffnet hier sein Dossier — Kennzahlen, Verlauf je Überflug, Wetterlage am Brandtag, Einordnung und Merkmale.
+          </p>
+        </div>
+      )}
+    </section>
+  );
+
+    // --- Mobil: Bottom-Bar + Seiten --------------------------------------------------
   const openTab = (t: MobileTab) => {
     setMobileTab(t);
     // TA4: mobil ist „Thermalanomalien" ein Segment der Seite „Brände" — ein offenes Segment bleibt.
@@ -2001,18 +2162,21 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
             {!isTablet && <span className="br-topdiv" aria-hidden="true" />}
             {firesMode ? (
               <>
-                <button type="button" className="br-link br-topback" onClick={() => setReadoutTab('layers')}>← Layer-Steckbriefe</button>
-                <span className="br-topbar-sub">· Brandradar · {readoutTab === 'anomalies' ? 'Thermalanomalien' : 'Brände'}</span>
+                {!inDossier && <button type="button" className="br-link br-topback" onClick={() => setReadoutTab('layers')}>← Layer-Steckbriefe</button>}
+                <span className="br-topbar-sub">{inDossier ? '' : '· '}Brandradar · {readoutTab === 'anomalies' ? 'Thermalanomalien' : 'Brände'}</span>
+                {inDossier && dossierRecord && <span className="br-topbar-sub br-topbar-name">{recordName(dossierRecord)}</span>}
+                {stageSeg(false)}
               </>
             ) : (
               <>
                 {!isTablet && <span className="br-topbar-sub">Brandradar · DACH-Flächenblick</span>}
                 {presetSeg(false)}
+                {stageSeg(false)}
               </>
             )}
             <div className="br-topbar-right">
-              {!isTablet && !firesMode && <span className="br-topbar-map">Karte: <strong>{basemapLabel}</strong></span>}
-              {!firesMode && (
+              {!isTablet && (!firesMode || inDossier) && <span className="br-topbar-map">Karte: <strong>{basemapLabel}</strong></span>}
+              {(!firesMode || inDossier) && (
                 <span className={`br-live is-${firms.tone}`} role="status">
                   <span className="br-live-dot" aria-hidden="true"><span /><span /></span>
                   {firms.label}
@@ -2026,6 +2190,8 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
           {/* 2026-08-25 (Jans Auftrag): das Dock bleibt auch im Brände-/Anomalien-Modus stehen —
               vorher verschwand es mit dem Reiterwechsel (B2-Vorlage), jetzt bleibt der
               Layer-Zugriff immer erreichbar. Die übrigen B2-Kompaktierungen bleiben. */}
+          {/* BD2d (Jans Auftrag 2026-08-31): die Sidebars bleiben in JEDER Bühne —
+              das Dossier ersetzt nur die Karte in der Mitte. */}
           {!isMobile && (
             <aside className="br-dock" aria-label="Layer">
               <div className="br-dock-head">
@@ -2036,7 +2202,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
             </aside>
           )}
 
-          <main className="fire-center">
+          <main className={`fire-center${inDossier && !isMobile ? ' is-offstage' : ''}`} aria-hidden={inDossier && !isMobile ? true : undefined}>
             <FireMap
               active={active} basemap={basemap} day={committedDay} isoDate={committedIso}
               hotspots={history ? null : hotspots}
@@ -2048,6 +2214,8 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
               anomalyFc={anomalyFc} selectedSiteId={selectedSite} onSelectSite={selectSiteFromMap}
               historyFc={historyFc} selectedHistoryId={selectedHistory} onSelectHistory={selectHistory}
               focusBbox={focusBbox} onSelectFootprint={selectFootprintFromMap}
+              onSelectBurnt={openDossierForEffis} onSelectZone={openDossierForZone}
+              onSelectDetection={openDossierForDetection}
               dangerView={dangerView}
               burntSeason={burntSplit.seasonFc} burntArchive={burntArchive?.features ?? null}
               burntWeekFc={burntSplit.weekFc}
@@ -2085,8 +2253,26 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
             {!isMobile && !firesMode && <div className="br-map-tr">{basemapSeg}</div>}
 
 
-            {!isMobile && timeDeck}
+            {!isMobile && !inDossier && timeDeck}
           </main>
+
+          {/* BD2d: das Dossier ersetzt NUR die Karte — Minikarte, Legende und Skalen
+              stehen in seiner zweiten Rasterspalte, das Zeit-Deck als Leiste darunter. */}
+          {!isMobile && inDossier && (
+            <main className="br-ds-main" aria-label="Brand-Dossier">
+              <div className="br-ds-scroll">
+                {/* BD2f: im Historie-Modus (Monat/Saison) zeigt die Mitte das Ereignis-Dossier —
+                    derselbe Detailkörper wie die Inline-Karte im Readout (HistoryDetailBody). */}
+                {history ? historyDossier : (
+                  <FireDossier
+                    r={dossierRecord} nowMs={nowMs} atContext={dossierRecord ? atContextFor(dossierRecord) : null}
+                    compact={isTablet} aside={dossierSide(250)}
+                  />
+                )}
+              </div>
+              <div className="br-ds-foot">{timeDeck}</div>
+            </main>
+          )}
 
           {!isMobile && (
             <aside className="br-readout" aria-label="Steckbriefe und Brände">
@@ -2117,7 +2303,36 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
                   </div>
                 </section>
               )}
-              {mobileTab === 'fires' && (
+              {/* BD2 (mobil): das Dossier als eigene Seite des Bereichs „Brände" — Kartenstreifen oben, Segment, Bottom-Bar bleibt. */}
+              {mobileTab === 'fires' && inDossier && dossierRecord && (
+                <section className="br-m-page br-m-dossier" aria-label={`Dossier ${recordTitle(dossierRecord)}`}>
+                  <header className="br-m-head br-m-dshead">
+                    <div className="br-m-dshead-row">
+                      <button type="button" className="br-link br-m-dsback" onClick={() => setStage('map')}>← Brände</button>
+                      <span className={`br-live is-${firms.tone}`} role="status">
+                        <span className="br-live-dot" aria-hidden="true"><span /><span /></span>
+                        {firms.label}
+                      </span>
+                    </div>
+                    <h1 className="br-m-title">{recordName(dossierRecord)} <span className="br-m-dsbadge">{BR_BADGE_LABEL[badgeOf(dossierRecord.status.kind, dossierRecord.suspectedStatic, dossierRecord.anomaly?.kind ?? null)]}</span></h1>
+                    <p className="br-m-dsregion">{regionLabel(dossierRecord)}</p>
+                    {stageSeg(true)}
+                  </header>
+                  <div className="br-m-scroll">
+                    <FireDossier
+                      r={dossierRecord} nowMs={nowMs} atContext={atContextFor(dossierRecord)} mobile
+                      lead={(
+                        <div className="br-ds-mapstrip">
+                          {miniMap(150)}
+                          <span className="br-ds-mapstrip-lbl">Kartenstreifen · tippen für Vollbild</span>
+                        </div>
+                      )}
+                      aside={<><DossierMapNote r={dossierRecord} fromRegistry={miniFrom} /><DossierLegend /></>}
+                    />
+                  </div>
+                </section>
+              )}
+              {mobileTab === 'fires' && !(inDossier && dossierRecord) && (
                 <section className="br-m-page" aria-label="Brände">
                   <header className="br-m-head">
                     <div>

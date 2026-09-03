@@ -2,7 +2,11 @@
  * CloudLayer — Multi-Layer-Bewölkung als MapLibre-Custom-Layer.
  *
  * Wie der `RainLayer` warpt er eine Werte-Textur auf 4 echte Geo-Ecken (Frame-
- * Wechsel = Textur-Upload, kein PNG → flüssiges Slider-Scrubbing). Anders als
+ * Wechsel = Textur-Upload, kein PNG → flüssiges Slider-Scrubbing) — seit KL8
+ * über ein fein unterteiltes Mesh (`quadWarpMesh`), nicht mehr als nacktes
+ * 4-Eck-Quad: das Quad wurde linear in Mercator interpoliert, die Textur liegt
+ * breiten-linear, über die 14,9° des nativen ICON-D2-Gitters ergab das
+ * rechnerisch bis 66 km Versatz (`audit/karten-layer-verortung.md` §14). Anders als
  * der RainLayer ist die Textur aber **3-kanalig**: R = tiefe (CLCL), G = mittlere
  * (CLCM), B = hohe (CLCH) Bewölkung (je 0..1). Der Fragment-Shader komponiert
  * die drei Schichten höhen-bewusst (tief = dicht/grau mit Tiefe, hoch = hell &
@@ -11,22 +15,25 @@
  */
 
 import type { CustomLayerInterface, CustomRenderMethodInput, Map as MapLibreMap } from 'maplibre-gl';
-import { bindAttribute, bindTexture, createBuffer, createProgram, type ProgramWrapper } from '../wind/glUtil';
+import { bindAttribute, bindTexture, createBuffer, createIndexBuffer, createProgram, type ProgramWrapper } from '../wind/glUtil';
 import type { QuadCorners } from './RainLayer';
+import { quadWarpMesh, quadWarpRows, warpMeshGeometry, mercatorOf, QUAD_WARP_COLS } from './quadWarpMesh';
 
+// KL9/V-KL-3 (2026-08-27, Jans Go): die Knoten kommen als fertige Mercator-
+// Koordinaten (`a_merc`, auf der CPU in double — `mercatorOf`). Vorher rechnete
+// der Shader log(tan(π/4 + φ/2)) selbst: GPU-Transzendente in Float32 haben
+// ~1e-6 relativen Fehler, auf 40 075 km Weltumfang bis 280 m (gemessen,
+// `audit/karten-layer-verortung.md` §15.6). `highp`: ein fp16-mediump würde
+// a_merc auf 20 km quantisieren (V-KL-4).
 const vert = `
-precision mediump float;
-attribute vec2 a_lnglat;
+precision highp float;
+attribute vec2 a_merc;
 attribute vec2 a_uv;
 uniform mat4 u_matrix;
 varying vec2 v_uv;
-const float PI = 3.14159265358979323846;
 void main() {
   v_uv = a_uv;
-  float lat_rad = a_lnglat.y * PI / 180.0;
-  float mx = (a_lnglat.x + 180.0) / 360.0;
-  float my = 0.5 - log(tan(PI * 0.25 + lat_rad * 0.5)) / (2.0 * PI);
-  gl_Position = u_matrix * vec4(mx, my, 0.0, 1.0);
+  gl_Position = u_matrix * vec4(a_merc, 0.0, 1.0);
 }
 `;
 
@@ -90,8 +97,14 @@ export class CloudLayer implements CustomLayerInterface {
   private map: MapLibreMap | null = null;
   private gl: WebGLRenderingContext | null = null;
   private program!: ProgramWrapper;
-  private lnglatBuf: WebGLBuffer | null = null;
-  private uvBuf!: WebGLBuffer;
+  /** Knoten als Mercator-Paare (`mercatorOf`), Attribut a_merc. */
+  private mercBuf: WebGLBuffer | null = null;
+  private uvBuf: WebGLBuffer | null = null;
+  private indexBuf: WebGLBuffer | null = null;
+  private indexCount = 0;
+  private indexType: number = 0;
+  /** Ecken-Referenz des aktuellen Meshs — nur bei Wechsel wird es neu gebaut. */
+  private lastCorners: QuadCorners | null = null;
   private valueTex: WebGLTexture | null = null;
   private ready = false;
   private _pending: CloudFrameData | null = null;
@@ -105,19 +118,18 @@ export class CloudLayer implements CustomLayerInterface {
     this.map = map;
     this.gl = gl;
     this.program = createProgram(gl, vert, frag);
-    this.uvBuf = createBuffer(gl, new Float32Array([
-      0, 0, 1, 0, 1, 1,
-      0, 0, 1, 1, 0, 1,
-    ]));
     this.ready = true;
     if (this._pending) { const p = this._pending; this._pending = null; this.setFrame(p); }
   }
 
   onRemove(_map: MapLibreMap, gl: WebGLRenderingContext) {
     gl.deleteProgram(this.program.program);
-    if (this.lnglatBuf) gl.deleteBuffer(this.lnglatBuf);
-    gl.deleteBuffer(this.uvBuf);
+    if (this.mercBuf) gl.deleteBuffer(this.mercBuf);
+    if (this.uvBuf) gl.deleteBuffer(this.uvBuf);
+    if (this.indexBuf) gl.deleteBuffer(this.indexBuf);
+    this.mercBuf = null; this.uvBuf = null; this.indexBuf = null; this.lastCorners = null;
     if (this.valueTex) gl.deleteTexture(this.valueTex);
+    this.valueTex = null;
     this.ready = false;
   }
 
@@ -126,12 +138,27 @@ export class CloudLayer implements CustomLayerInterface {
     const gl = this.gl;
     if (!gl || !this.ready) { this._pending = frame; return; }
 
-    const [nw, ne, se, sw] = frame.corners;
-    if (this.lnglatBuf) gl.deleteBuffer(this.lnglatBuf);
-    this.lnglatBuf = createBuffer(gl, new Float32Array([
-      nw[0], nw[1], ne[0], ne[1], se[0], se[1],
-      nw[0], nw[1], se[0], se[1], sw[0], sw[1],
-    ]));
+    // --- Geometrie: fein unterteiltes Mesh (Konvention wie RainLayer.setFrame).
+    // Nur neu bauen, wenn sich die Ecken-Referenz ändert; reine Frame-Wechsel
+    // (neue Werte, gleiches Gitter) tauschen nur die Textur unten. Der
+    // Fusions-Pfad (`uvBoundsToCorners`) liefert je Aufruf neue Ecken und baut
+    // deshalb je Frame neu — 33² Knoten, wie vorher das Quad je Frame.
+    if (frame.corners !== this.lastCorners || !this.mercBuf || !this.uvBuf) {
+      this.lastCorners = frame.corners;
+      // Zeilen aus der Zeilenregel (≤ 1 m, §15), Spalten QUAD_WARP_COLS; Knoten =
+      // Mesh, uv + Dreiecksliste (NW,NE,SE / NW,SE,SW) indiziert aus der EINEN Stelle.
+      const nx = QUAD_WARP_COLS, ny = quadWarpRows(frame.corners);
+      const lnglat = quadWarpMesh(frame.corners, nx, ny);
+      const { uv, indices } = warpMeshGeometry(nx, ny);
+      if (this.mercBuf) gl.deleteBuffer(this.mercBuf);
+      this.mercBuf = createBuffer(gl, mercatorOf(lnglat));
+      if (this.uvBuf) gl.deleteBuffer(this.uvBuf);
+      this.uvBuf = createBuffer(gl, uv);
+      if (this.indexBuf) gl.deleteBuffer(this.indexBuf);
+      this.indexBuf = createIndexBuffer(gl, indices);
+      this.indexCount = indices.length;
+      this.indexType = indices instanceof Uint32Array ? gl.UNSIGNED_INT : gl.UNSIGNED_SHORT;
+    }
 
     if (!this.valueTex) this.valueTex = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, this.valueTex);
@@ -147,7 +174,7 @@ export class CloudLayer implements CustomLayerInterface {
   }
 
   render(gl: WebGLRenderingContext, args: CustomRenderMethodInput | number[] | Float32Array) {
-    if (!this.lnglatBuf || !this.valueTex) return;
+    if (!this.mercBuf || !this.uvBuf || !this.indexBuf || !this.valueTex) return;
     const matrix: Float32List = Array.isArray(args) || args instanceof Float32Array
       ? (args as Float32List)
       : (args.defaultProjectionData.mainMatrix as unknown as Float32List);
@@ -168,14 +195,15 @@ export class CloudLayer implements CustomLayerInterface {
 
     const p = this.program;
     gl.useProgram(p.program);
-    bindAttribute(gl, this.lnglatBuf, p.a_lnglat as number, 2);
+    bindAttribute(gl, this.mercBuf, p.a_merc as number, 2);
     bindAttribute(gl, this.uvBuf, p.a_uv as number, 2);
     bindTexture(gl, this.valueTex, 0);
     gl.uniform1i(p.u_value as WebGLUniformLocation, 0);
     gl.uniform1f(p.u_opacity as WebGLUniformLocation, this.opacity);
     gl.uniformMatrix4fv(p.u_matrix as WebGLUniformLocation, false, matrix);
 
-    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuf);
+    gl.drawElements(gl.TRIANGLES, this.indexCount, this.indexType, 0);
 
     if (!prevBlend) gl.disable(gl.BLEND);
     gl.depthMask(prevDepthMask);

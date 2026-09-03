@@ -22,9 +22,11 @@
     "verify:aec": "node --experimental-strip-types scripts/verify-aec.mjs",
     "verify:precip-source": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-precip-source.mjs",
     "verify:radar-runs": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-radar-runs.mjs",
+    "verify:radar-repack": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-radar-repack.mjs",
     "verify:radar-sampling": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-radar-sampling.mjs",
     "verify:layer-geometry": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-layer-geometry.mjs",
     "verify:event-zone": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-event-zone.mjs",
+    "verify:route-3d": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-route-3d.mjs",
     "verify:repack": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-repack.mjs",
     "repack": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/repack-icon-d2.mjs",
     "repack:publish": "node scripts/publish-repack.mjs",
@@ -72,10 +74,12 @@
     "fire:calibrate": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/fire/calibrate.mjs",
     "verify:model-source": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-modelsource.mjs",
     "verify:routing": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-routing.mjs",
+    "verify:layer-erstbild": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-layer-erstbild.mjs",
     "verify:fire-detail": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-fire-detail.mjs",
     "verify:fire-history": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-fire-history.mjs",
     "fire:history-archive": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/fire/bh/events-from-archive.mjs",
-    "fire:history-index": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/fire/bh/build-index.mjs"
+    "fire:history-index": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/fire/bh/build-index.mjs",
+    "wc:mirror": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/fire/wc/build-wc-mirror.mjs"
   },
   "dependencies": {
     "bz2": "^1.0.1",

@@ -11,32 +11,23 @@
  *     innen (Boundary-Rejection-Quirk wie beim timeseries-Endpoint).
  *   - Antwort = EIN NetCDF-4 (HDF5) mit allen 12 Lead-Frames (+0.25…+3 h).
  *
- * Format-Eigenheiten (verifiziert 2026-05):
- *   - NetCDF-4 ⇒ HDF5 ⇒ mit `jsfive` lesbar (kein separater NetCDF-Parser).
- *   - `rr` (12, ny, nx) int16, „precipitation sum" je 15-min-Schritt in
- *     kg m-2 (= mm). jsfive liefert KEINE Variablen-Attribute, daher sind
- *     scale_factor (0.01) und _FillValue (-999) als stabile Produktkonstanten
- *     hartkodiert. mm/h = Rohwert · 0.01 · 4.
- *   - `lat`/`lon` (ny, nx) float32 — Zellkoordinaten (Gitter ist Lambert
- *     EPSG:31287, also nicht achsparallel). Wir entnehmen die 4 Eckzellen und
- *     geben ihre AUSSENKANTEN aus (`cellCentersToEdges`, halbe Zelle) — die
- *     Projektion selbst steht in `geosphereIncaGeo.ts`.
- *   - `leadtime` (12,) in Stunden [0.25 … 3.0].
- *   - Zeile 0 = Süden ⇒ wir flippen für north-up (RainLayer-Konvention).
+ * Das Parsen (Format-Eigenheiten, Zellmitten → Außenkanten, Süd→Nord-Flip)
+ * steht seit LE2/H3 in `incaParse.ts` und läuft im `hdf5Worker` — gemessen
+ * 2,5 s Hauptthread je Abruf (LE0 §2.4), hinter denen jeder fertige
+ * Radar-Frame wartete. Rückfall = derselbe Code auf dem Hauptthread.
  */
 
-import { File as H5File } from 'jsfive';
-import { precipToU8, type QuadCorners } from '../scalar/RainLayer';
-import { cellCentersToEdges } from './geosphereIncaGeo';
+import type { QuadCorners } from '../scalar/RainLayer';
+import { parseIncaOffMain, warmHdf5Worker } from './hdf5OffMain';
 import { shareInFlight } from './shareInFlight';
+// RD3 (audit/radar-datenrepo.md §14): fertig aufbereitete Frames vom Daten-Repo-CDN
+import { radarCdnEnabled, radarCdnUsable, radarImgEnabled, noteRadarCdnFailure, radarCdnDeadline } from './radolanRuns';
+import { incaImgDir, parseIncaImgMeta, radarImgStamp, fetchImgRes, loadRadarGrayPng, RadarImg404 } from './radarImg';
 
 const GRID_URL =
   'https://dataset.api.hub.geosphere.at/v1/grid/forecast/nowcast-v1-15min-1km';
 // INCA-Extent [45.503..49.478, 8.098..17.742], ein paar Hundertstel innen.
 const BBOX = '45.51,8.11,49.47,17.73';
-const RR_SCALE = 0.01; // kg m-2 pro int16-Zähler (jsfive liest die Attribute nicht)
-const RR_FILL = -999;
-const PER_STEP_TO_MMH = 4; // 15-min-Summe → mm/h
 
 export interface IncaFrame {
   /** Vorlaufzeit in Stunden (0.25 … 3.0). */
@@ -55,6 +46,9 @@ export interface IncaGrid {
   staleFromMs?: number;
 }
 
+/** LE2/H7: Netzpriorität des Abrufs — `'low'` für die Nachbarquelle. */
+export interface IncaFetchOptions { priority?: RequestPriority }
+
 export const GEOSPHERE_INCA_ATTRIBUTION =
   'Nowcast: <a href="https://www.geosphere.at" target="_blank" rel="noopener">GeoSphere Austria</a> ' +
   'INCA (RR) · CC BY 4.0';
@@ -71,13 +65,13 @@ export const INCA_STALE_MAX_MS = 45 * 60_000;
 let lastGood: { grid: IncaGrid; atMs: number } | null = null;
 
 /** Lädt den jüngsten INCA-Nowcast-Lauf und baut Uint8-Werte-Grids (0.25–3 h). */
-export async function fetchIncaGrid(signal?: AbortSignal): Promise<IncaGrid> {
+export async function fetchIncaGrid(signal?: AbortSignal, opts?: IncaFetchOptions): Promise<IncaGrid> {
   // Entdopplung: Karte und Punktforecast fragen beim Mount gleichzeitig, und die
   // GeoSphere-API sendet keinen Cache-Header — gemessen 2 × 721 713 B, also 34 %
   // der gesamten AT-Kaltsitzung (`audit/bandbreite.md` §24.3).
   return shareInFlight('geosphere-inca-grid', async () => {
     try {
-      const grid = await loadIncaGrid();
+      const grid = await loadIncaGrid(opts?.priority);
       lastGood = { grid, atMs: Date.now() };
       return grid;
     } catch (err) {
@@ -91,50 +85,55 @@ export async function fetchIncaGrid(signal?: AbortSignal): Promise<IncaGrid> {
   }, signal);
 }
 
-async function loadIncaGrid(): Promise<IncaGrid> {
+/** Leichter GeoSphere-Metadaten-Endpunkt: nennt die Referenzzeit des aktuellen Laufs
+ *  (derselbe, den der Spiegel pollt; Rate-Limit 240/h — ein Abruf je Ladevorgang). */
+const META_URL = `${GRID_URL}/metadata`;
+
+/**
+ * RD3: der aktuelle Lauf als fertige PNGs vom Daten-Repo — deterministisch über die
+ * Referenzzeit aus `/metadata` (kein Stempel-Raten: die GeoSphere-reftime hinkt dem
+ * Slot ~15–30 min hinterher, gemessen §14.2). Der Spiegel pusht denselben Lauf
+ * Sekunden nach dem reftime-Wechsel; nur in diesem kurzen Fenster (und bei
+ * Spiegel-Ausfall) antwortet das CDN 404 ⇒ Direkt-API wie bisher — die Frische
+ * der App ändert sich NICHT (beide Wege liefern denselben Lauf).
+ */
+async function loadIncaFromImg(priority?: RequestPriority): Promise<IncaGrid | null> {
+  if (!(radarCdnEnabled() && radarCdnUsable() && radarImgEnabled())) return null;
+  const dl = radarCdnDeadline(undefined);
+  try {
+    const mr = await fetch(META_URL, { signal: dl.signal, ...(priority ? { priority } : {}) } as RequestInit);
+    if (!mr.ok) return null;
+    const ref = Date.parse(String((await mr.json() as { last_forecast_reftime?: string }).last_forecast_reftime ?? ''));
+    if (!Number.isFinite(ref)) return null;
+    const stamp = radarImgStamp(ref);
+    const dir = incaImgDir(stamp);
+    const meta = parseIncaImgMeta(await (await fetchImgRes(`${dir}/meta.json`, dl.signal, priority)).json());
+    if (!meta || meta.stamp !== stamp) return null;
+    const frames: IncaFrame[] = await Promise.all(meta.frames.map(async (f) => ({
+      leadHours: f.lead / 60,
+      values: await loadRadarGrayPng(await fetchImgRes(`${dir}/${f.file}`, dl.signal, priority), meta.width, meta.height),
+      width: meta.width,
+      height: meta.height,
+    })));
+    console.log(`[buscosun] GeoSphere INCA → Lauf ${stamp} · ${frames.length} Frames · Quelle Daten-Repo (PNG)`);
+    return { frames, corners: meta.corners as QuadCorners };
+  } catch (err) {
+    if (!(err instanceof RadarImg404)) noteRadarCdnFailure();
+    return null;
+  } finally { dl.done(); }
+}
+
+async function loadIncaGrid(priority?: RequestPriority): Promise<IncaGrid> {
+  // RD3: erst der Bild-Weg (kein NetCDF-Download 722 KB → ~65 KB, kein HDF5-Parse);
+  // jeder Fehlschlag fällt still auf die Direkt-API zurück (benannter Weg wie bisher).
+  const viaImg = await loadIncaFromImg(priority);
+  if (viaImg) return viaImg;
   const url = `${GRID_URL}?parameters=rr&output_format=netcdf&bbox=${BBOX}`;
-  const res = await fetch(url);
+  warmHdf5Worker();   // Isolate + jsfive laden im Download-Schatten (H3)
+  const res = await fetch(url, priority ? { priority } : undefined);
   if (!res.ok) throw new Error(`GeoSphere INCA grid: ${res.status}`);
   const buf = await res.arrayBuffer();
-
-  const f = new H5File(buf, 'inca.nc');
-  const rr = f.get('rr') as { shape: number[]; value: ArrayLike<number> };
-  const [nt, ny, nx] = rr.shape;
-  const v = rr.value;
-  const lead = (f.get('leadtime') as { value: ArrayLike<number> }).value;
-  const lat = (f.get('lat') as { value: ArrayLike<number> }).value;
-  const lon = (f.get('lon') as { value: ArrayLike<number> }).value;
-
-  const at = (r: number, c: number) => r * nx + c;
-  // north-up Ecken [NW, NE, SE, SW]; Datenzeile 0 = Süden ⇒ Nord = Zeile ny-1.
-  // `lat`/`lon` sind ZELLMITTELPUNKTE. Ausgegeben werden die AUSSENKANTEN des
-  // Gitters (je halbe Zelle nach außen, in Lambert gerechnet) — dieselbe
-  // Konvention wie RADOLAN und rzc. Nur so meinen Kartenraster, Komposit und
-  // Punktabfrage dieselbe Zelle; vorher wichen sie um eine halbe Zelle ab
-  // (RP2, s. `audit/radar-punktverortung.md` §11).
-  const centers: QuadCorners = [
-    [lon[at(ny - 1, 0)], lat[at(ny - 1, 0)]],
-    [lon[at(ny - 1, nx - 1)], lat[at(ny - 1, nx - 1)]],
-    [lon[at(0, nx - 1)], lat[at(0, nx - 1)]],
-    [lon[at(0, 0)], lat[at(0, 0)]],
-  ];
-  const corners: QuadCorners = cellCentersToEdges(centers, nx, ny);
-
-  const frames: IncaFrame[] = [];
-  for (let t = 0; t < nt; t++) {
-    const base = t * ny * nx;
-    const values = new Uint8Array(nx * ny);
-    for (let r = 0; r < ny; r++) {
-      const dstRow = (ny - 1 - r) * nx; // Süd→Nord flippen
-      const srcRow = base + r * nx;
-      for (let c = 0; c < nx; c++) {
-        const raw = v[srcRow + c];
-        const mmph = raw === RR_FILL ? NaN : raw * RR_SCALE * PER_STEP_TO_MMH;
-        values[dstRow + c] = precipToU8(mmph);
-      }
-    }
-    frames.push({ leadHours: lead[t], values, width: nx, height: ny });
-  }
+  const { frames, corners } = await parseIncaOffMain(buf);
   if (frames.length === 0) throw new Error('GeoSphere INCA: keine Frames');
   return { frames, corners };
 }

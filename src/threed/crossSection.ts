@@ -117,6 +117,30 @@ export interface CrossSectionInput {
   anchors: AnchorSurface[]; // ≥ 1, nach distanceM sortiert
   heightLevels?: number[];
   alpha?: number;
+  /**
+   * Woher die Inversion kommt.
+   *
+   * `estimate` (Standard, unverändertes Verhalten) schätzt sie aus den Ankern —
+   * das setzt voraus, dass die Anker **zur selben Zeit** gelten.
+   *
+   * `none` für Schnitte, deren Anker zu VERSCHIEDENEN Zeiten gelten: bei einer
+   * Tour trägt jeder Punkt seine Ankunftszeit, zwischen Tal und Gipfel liegen
+   * Stunden. Dort wäre „oben wärmer als unten" ein Zeitunterschied und keine
+   * Schichtung — und die Folge bliebe nicht beim Etikett, weil eine erkannte
+   * Inversion das Temperaturfeld auf einen isothermen Kaltluftsee umstellt
+   * (`audit/route-3d.md` §21.2, E3).
+   */
+  inversion?: 'estimate' | 'none';
+  /**
+   * Decke des Schnitts (m ü. NN). Ohne Angabe wie bisher „höchster Berg +
+   * 1 500 m, mindestens 3 000" — die Atmosphären-Ansicht bleibt unverändert.
+   *
+   * Für die Tour wird sie tiefer gesetzt: `windAtAGL` sättigt bei
+   * `BOUNDARY_LAYER_M` (1 500 m über Grund), darüber steht in der Wand nur noch
+   * derselbe Wert. Eine 3,7 km hohe Wand über einer Strecke zeigt also keine
+   * zusätzliche Aussage, verdeckt aber das Gelände, um das es geht.
+   */
+  topM?: number;
 }
 
 const clamp = (x: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, x));
@@ -281,6 +305,26 @@ export function estimateInversion(anchors: AnchorSurface[]): InversionInfo {
   return { present: false, heightM: null, valleyTempC: low.tempC, aboveTempC: high.tempC, diffK: null, basis: 'none', stable: false, note: 'Keine Inversion prognostiziert.' };
 }
 
+/**
+ * Inversion **nicht geprüft** — die Anker gelten nicht zur selben Zeit.
+ * `present: false` heißt hier ausdrücklich „nicht beurteilt", nicht „keine";
+ * der Text sagt es, damit die Ansicht nichts anderes behauptet.
+ */
+export function uncheckedInversion(anchors: AnchorSurface[]): InversionInfo {
+  const sorted = [...anchors].sort((a, b) => a.elevM - b.elevM);
+  return {
+    present: false,
+    heightM: null,
+    valleyTempC: sorted.length ? sorted[0].tempC : null,
+    aboveTempC: sorted.length ? sorted[sorted.length - 1].tempC : null,
+    diffK: null,
+    basis: 'none',
+    stable: false,
+    note: 'Nicht geprüft: die Anker dieses Schnitts gelten zu verschiedenen Zeiten — '
+      + 'ein Vergleich Tal/Höhe wäre ein Zeitunterschied, keine Schichtung.',
+  };
+}
+
 /** Baut den kompletten Vertikalschnitt (pur). */
 export function assembleCrossSection(input: CrossSectionInput): CrossSection {
   const { columns, anchors } = input;
@@ -288,10 +332,12 @@ export function assembleCrossSection(input: CrossSectionInput): CrossSection {
   const terrainMin = Math.min(...columns.map((c) => c.terrainM));
   const terrainMax = Math.max(...columns.map((c) => c.terrainM));
   // Schnitt-Decke: höchster Berg + ~1500 m, auf 500 gerundet, min 3000.
-  const topM = Math.max(3000, Math.ceil((terrainMax + 1500) / 500) * 500);
+  const topM = input.topM ?? Math.max(3000, Math.ceil((terrainMax + 1500) / 500) * 500);
   const heightLevels = input.heightLevels ?? defaultLevels(topM);
 
-  const inversion = estimateInversion(anchors);
+  const inversion = (input.inversion ?? 'estimate') === 'none'
+    ? uncheckedInversion(anchors)
+    : estimateInversion(anchors);
 
   let maxWindKmh = 0, maxGustKmh = 0;
   const cols: ColumnProfile[] = columns.map((col) => {

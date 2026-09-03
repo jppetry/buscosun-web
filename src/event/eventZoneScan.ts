@@ -21,8 +21,9 @@
 
 import type { Location } from '../types';
 import { getPointForecast } from '../pointForecast/pointForecast';
-import { recommendBestDay, hoursNeededFor } from './eventScoring';
+import { recommendBestDay, hoursNeededFor, type DaySummary } from './eventScoring';
 import { phasesLatestHour, type EventQuery } from './eventModel';
+import { phasesWindow, representativeWindHour, windAtHour } from './eventTerrain';
 import {
   classifyZoneSpread, zoneContains, zoneCornerPoints, zoneCenter,
   type EventZone, type ZoneSpread, type ZoneScoredPoint, type ZoneSamplePoint,
@@ -35,6 +36,12 @@ export interface ZoneScanPoint extends ZoneScoredPoint {
   downside: string;
   /** Kurzbegründung der Bedingungen an diesem Punkt. */
   reason: string;
+  /** Vollständige Tages-Zusammenfassung dieses Punkts (V-ET-1: bezahlt, vorher verworfen). */
+  summary: DaySummary | null;
+  /** Windrichtung (woher, Grad) zur repräsentativen Stunde; null = Quelle trägt keine. */
+  windDirDeg: number | null;
+  /** Die benutzte Stunde (Böen-Spitze oder Fenster-Mitte) — für die Beschriftung. */
+  windHour: number | null;
 }
 
 /** Pause zwischen zwei Ecken — hält die Abrufe unter der Ratengrenze (V-EZ-3). */
@@ -75,9 +82,15 @@ async function scorePoint(
   const subQuery: EventQuery = { ...query, location, zone: null, window: { mode: 'dates', dates: [targetDate] } };
   const day = recommendBestDay(subQuery, forecast).days[0];
   if (!day || !day.summary) return null; // jenseits des Horizonts ⇒ nicht vergleichbar
+  // ET2 (V-ET-1): die volle Tages-Zusammenfassung und der Wind zur
+  // repräsentativen Stunde werden BEHALTEN — beides ist mit demselben Abruf
+  // bereits bezahlt und ging bisher verloren.
+  const hour = representativeWindHour(day.summary.gustPeakHour, phasesWindow(query.phases));
+  const wind = windAtHour(forecast.hours, targetDate, hour);
   return {
     id: p.id, label: p.label, score: day.score,
     lat: p.lat, lon: p.lon, downside: day.downside, reason: day.reason,
+    summary: day.summary, windDirDeg: wind.dirDeg, windHour: wind.dirDeg != null ? hour : null,
   };
 }
 
@@ -93,9 +106,12 @@ export async function scanZone(args: {
   centerScore: number;
   centerDownside: string;
   centerReason: string;
+  /** ET2 (additiv): schon bekannte Tageswerte + Wind des gewählten Ortes. */
+  centerSummary?: DaySummary | null;
+  centerWind?: { dirDeg: number | null; hour: number | null };
   signal?: AbortSignal;
 }): Promise<ZoneScan> {
-  const { query, zone, targetDate, centerScore, centerDownside, centerReason, signal } = args;
+  const { query, zone, targetDate, centerScore, centerDownside, centerReason, centerSummary, centerWind, signal } = args;
 
   const anchorInside = zoneContains(zone, { lat: query.location.lat, lon: query.location.lon });
   const toFetch: ZoneSamplePoint[] = [...zoneCornerPoints(zone)];
@@ -125,6 +141,9 @@ export async function scanZone(args: {
       id: 'center', label: 'Gewählter Ort', score: centerScore,
       lat: query.location.lat, lon: query.location.lon,
       downside: centerDownside, reason: centerReason,
+      summary: centerSummary ?? null,
+      windDirDeg: centerWind?.dirDeg ?? null,
+      windHour: centerWind?.hour ?? null,
     });
   }
   for (const r of settled) if (r) points.push(r);

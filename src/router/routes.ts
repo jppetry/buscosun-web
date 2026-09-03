@@ -35,7 +35,13 @@ export interface RouteMeta {
   noindex?: boolean;
 }
 
-export interface SubRoute { slug: string; title: string; description: string }
+export interface SubRoute {
+  slug: string;
+  title: string;
+  description: string;
+  /** Sicht, die ohne Nutzereingabe leer ist (3D braucht eine hochgeladene Strecke) ⇒ nicht in die Sitemap. */
+  noindex?: boolean;
+}
 
 export interface RouteDef {
   id: RouteId;
@@ -115,7 +121,16 @@ export const ROUTES: readonly RouteDef[] = [
     },
   },
   {
-    id: 'tourenplanung', path: '/tourenplanung', aliases: ['/touren', '/tour'], featureId: 'route', subs: null,
+    id: 'tourenplanung', path: '/tourenplanung', aliases: ['/touren', '/tour'], featureId: 'route', subParam: 'view',
+    subs: [
+      {
+        slug: '3d',
+        title: '3D-Ansicht — Wetter entlang der Route',
+        description: 'Die Strecke als Geländeschnitt: Windwand, Regen, Wolkenbasis und Warnzonen über dem Höhenprofil, gekoppelt an Kilometer und Ankunftszeit.',
+        // Ohne hochgeladene Strecke zeigt die Sicht nichts — kein sinnvolles Suchergebnis.
+        noindex: true,
+      },
+    ],
     meta: {
       title: 'Tourenplanung — Wetter entlang der Route',
       description: 'GPX hochladen und das Wetter Kilometer für Kilometer entlang deiner Rad-, Wander- oder E-Bike-Tour sehen — mit Zeitplan und Höhenprofil.',
@@ -236,6 +251,7 @@ export function pathForFeature(id: string): string {
 /** Pfad-Aliase, die NICHT auf eine Route, sondern auf eine andere Route zeigen (`/wetterkarte/warnungen` → `/warnungen`). */
 export const CROSS_ALIASES: ReadonlyArray<[from: string, to: string]> = [
   ['/wetterkarte/warnungen', '/warnungen'],
+  ['/route/3d', '/tourenplanung/3d'],
 ];
 
 function stripSlash(p: string): string {
@@ -266,9 +282,13 @@ export function aliasTarget(pathname: string, cross = true): string | null {
 
 export interface RouteMatch { def: RouteDef; sub: SubRoute | null; /** Sub-Slug auch wenn unbekannt (Seite entscheidet über 404). */ subSlug: string | null }
 
-/** Pfad → Route (löst Aliase, ignoriert End-Slash/Groß-Schreibung). null = 404. */
-export function routeForPath(pathname: string): RouteMatch | null {
-  const alias = aliasTarget(pathname);
+/**
+ * Pfad → Route (löst Aliase, ignoriert End-Slash/Groß-Schreibung). null = 404.
+ * `cross = false` lässt die Cross-Aliase (`/route/3d`) unaufgelöst — so lässt
+ * sich prüfen, ob ein Cross-Alias einen echten Pfad verdeckt.
+ */
+export function routeForPath(pathname: string, cross = true): RouteMatch | null {
+  const alias = aliasTarget(pathname, cross);
   const p = alias ?? stripSlash(pathname).toLowerCase();
   for (const r of ROUTES) {
     if (p === r.path) return { def: r, sub: null, subSlug: null };
@@ -312,7 +332,7 @@ export function metaForPath(pathname: string): { title: string; description: str
   return {
     title: m.sub ? m.sub.title : base.title,
     description: m.sub ? m.sub.description : base.description,
-    noindex: !!base.noindex || (!!m.subSlug && !m.sub),
+    noindex: !!base.noindex || !!m.sub?.noindex || (!!m.subSlug && !m.sub),
     ogImage: base.ogImage,
     routeId: m.def.id,
   };
@@ -325,6 +345,7 @@ export function sitemapPaths(): Array<{ path: string; priority: string }> {
     if (r.meta.noindex || r.id === 'home') continue;
     out.push({ path: r.path, priority: '0.8' });
     for (const s of r.subs ?? []) {
+      if (s.noindex) continue;                                                 // z. B. /tourenplanung/3d
       if (r.id === 'wetterkarte' && s.slug === LAYER_SLUGS.warnings) continue; // kanonisch /warnungen
       out.push({ path: `${r.path}/${s.slug}`, priority: '0.5' });
     }
@@ -356,6 +377,12 @@ export function verifyRoutes(): { checks: RouteCheck[]; passed: number; failed: 
   add('unbekannter Pfad ⇒ null', routeForPath('/nope') === null && routeForPath('/wetterkarte/a/b') === null && routeForPath('/regenradar/x') === null);
   add('Sitemap enthält Top- und Sub-Routen ohne noindex und ohne /wetterkarte/warnungen', (() => { const s = sitemapPaths().map((p) => p.path); return s.includes('/regenradar') && s.includes('/wetterkarte/wind') && !s.includes('/validierung') && !s.includes('/wetterkarte/warnungen') && s.includes('/warnungen'); })());
   add('Meta der Sub-Route gewinnt', metaForPath('/wetterkarte/wind').title === 'Windkarte DACH' && metaForPath('/wetterkarte').title === 'Interaktive Wetterkarte DACH');
+  add('/tourenplanung/3d ist eine erkannte Sub-Route', routeForPath('/tourenplanung/3d')?.sub?.slug === '3d');
+  add('/tourenplanung/3d ist noindex und NICHT in der Sitemap (leer ohne Strecke)',
+    metaForPath('/tourenplanung/3d').noindex === true && !sitemapPaths().some((x) => x.path === '/tourenplanung/3d'));
+  add('/route/3d löst auf /tourenplanung/3d auf und verdeckt keinen echten Pfad',
+    aliasTarget('/route/3d') === '/tourenplanung/3d' && routeForPath('/route/3d', false) === null);
+  add('Canonical von /route/3d ist die deutsche Sub-Route', canonicalPath('/route/3d') === '/tourenplanung/3d');
   const failed = checks.filter((c) => !c.ok).length;
   return { checks, passed: checks.length - failed, failed };
 }

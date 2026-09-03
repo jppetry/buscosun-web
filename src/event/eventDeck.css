@@ -103,12 +103,12 @@
 .evd-grid-2 { display: grid; grid-template-columns: 1fr 1.4fr; gap: 28px; margin-top: 26px; align-items: start; }
 .evd-grid-2--time { grid-template-columns: 1fr 1.2fr; }
 
-/* Einspaltige Schritte (Ort · Anlass) — je ein Thema je Seite */
+/* Einspaltige Schritte (Ort · Fläche · Anlass) — je ein Thema je Seite */
 .evd-step-single { margin-top: 26px; }
 .evd-step-single > .evd-ort { max-width: 560px; }
 .evd-step-single > .evd-ort-results { max-width: 560px; }
 .evd-step-single > .evd-hint { max-width: 560px; }
-.evd-step-single > .evd-zone-field { max-width: 560px; }
+.evd-step-single > .evd-zone-field { max-width: 720px; }
 
 /* Ort */
 .evd-ort { margin-top: 10px; display: flex; align-items: center; gap: 10px; background: #fff; border: 1px solid var(--border-medium); border-radius: 12px; padding: 12px 15px; }
@@ -121,19 +121,41 @@
 .evd-ort-result:hover { border-color: var(--terracotta-500); }
 .evd-ort-err { margin-top: 8px; font-size: 12px; color: var(--evd-critical); }
 
-/* Zone (EZ2) — Fläche auf der Karte aufziehen */
+/* Zone (EZ2) — Fläche auf der Karte aufziehen (eigener Wizard-Schritt, Pflicht) */
 .evd-zone-field { margin-top: 4px; }
-.evd-zone-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .evd-zone-summary { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 12px; color: var(--stone-500); }
 .evd-zone-loading { margin-top: 10px; padding: 24px; text-align: center; font-size: 12.5px; color: var(--stone-500); background: #fff; border: 1px solid var(--border-default); border-radius: 12px; }
 .evd-zone { margin-top: 10px; }
+/* Anleitung: drei Handgriffe, der fällige ist hervorgehoben */
+/* Ab Tablet eine Reihe — die ausführliche Fassung steht im Schritt-Untertitel. */
+.evd-zone-steps { list-style: none; margin: 0 0 10px; padding: 0; display: flex; gap: 6px; }
+.evd-zone-steps li { flex: 1 1 0; min-width: 0; }
+.evd-zone-steps li {
+  display: flex; align-items: flex-start; gap: 9px; padding: 7px 10px; border-radius: 10px;
+  font-size: 12.5px; line-height: 1.5; color: var(--stone-600);
+  background: #fff; border: 1px solid var(--border-default);
+}
+.evd-zone-steps li.is-now { border-color: var(--terracotta-500); background: var(--evd-terra-tint); color: var(--ink-900); }
+.evd-zone-steps b { font-weight: 700; color: var(--ink-900); }
+.evd-zone-step-no {
+  flex: 0 0 auto; width: 18px; height: 18px; border-radius: 50%; margin-top: 1px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: var(--stone-500);
+  background: var(--sand-100); border: 1px solid var(--border-default);
+}
+.evd-zone-steps li.is-now .evd-zone-step-no { color: #fff; background: var(--terracotta-500); border-color: var(--terracotta-500); }
+.evd-zone-size--todo { color: var(--evd-critical); }
+.evd-zone-err { margin: 9px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--evd-critical); font-weight: 600; }
 .evd-zone-mapwrap { position: relative; border: 1px solid var(--border-medium); border-radius: 12px; overflow: hidden; }
-.evd-zone-map { height: 300px; width: 100%; }
+.evd-zone-map { height: 280px; width: 100%; }
 .evd-zone-hintbar {
   position: absolute; left: 10px; right: 10px; bottom: 10px; z-index: 2;
   background: rgba(28, 25, 23, .86); color: #fff; border-radius: 9px;
   padding: 9px 12px; font-size: 12px; text-align: center; pointer-events: none;
 }
+
+/* Oben, damit die Kartenattribution frei bleibt — und rechts am Zoom-Control vorbei. */
+.evd-zone-hintbar--idle { top: 10px; bottom: auto; right: 52px; background: rgba(28, 25, 23, .70); font-weight: 600; }
 .evd-zone-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 9px; flex-wrap: wrap; }
 .evd-zone-size { font-size: 12.5px; color: var(--stone-600); font-weight: 600; }
 .evd-zone-btns { display: flex; gap: 8px; }
@@ -161,6 +183,80 @@
 .evd-zone-point-lab { font-size: 12px; font-weight: 700; color: var(--ink-900); }
 .evd-zone-point-score { font-size: 16px; font-weight: 700; color: var(--ink-900); text-align: right; }
 .evd-zone-point-note { font-size: 11.5px; color: var(--stone-500); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* ET2: Ecken-Readout — die bezahlten Tageswerte je Messpunkt (V-ET-1) */
+.evd-zone-point-stats { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 11px; color: var(--stone-600); }
+
+/* ET1: Terrain-Bühne der Zone */
+.evd-tmap-shell { position: relative; border: 1px solid var(--border-medium); border-radius: 12px; overflow: hidden; }
+.evd-tmap { height: 320px; width: 100%; }
+.evd-tmap-loading { padding: 24px; text-align: center; font-size: 12.5px; color: var(--stone-500); display: flex; align-items: center; justify-content: center; gap: 10px; }
+.evd-tmap-fit {
+  position: absolute; right: 10px; bottom: 10px; width: 34px; height: 34px; border-radius: 9px;
+  border: 1px solid var(--border-medium); background: #fff; color: var(--ink-900);
+  font-size: 15px; cursor: pointer; display: grid; place-items: center;
+}
+.evd-tmap-fallback { padding: 4px 2px 10px; font-size: 13px; color: var(--stone-600); line-height: 1.55; }
+.evd-tmap-fallback p { margin: 0 0 6px; }
+.evd-tmap-note { margin: 8px 0 14px; font-size: 11.5px; color: var(--stone-500); line-height: 1.5; }
+.evd-tmap-chip {
+  display: inline-flex; gap: 5px; align-items: baseline; padding: 3px 8px; border-radius: 999px;
+  background: #fff; border: 1px solid var(--border-medium); font-size: 11px; font-weight: 700;
+  color: var(--ink-900); box-shadow: 0 1px 4px rgba(0, 0, 0, .18); white-space: nowrap;
+}
+.evd-tmap-chip b { font-size: 12px; }
+.evd-tmap-chip--worst { border-color: var(--terracotta-500); background: var(--evd-terra-tint); }
+.evd-tmap-extreme { width: 12px; height: 12px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .3); }
+.evd-tmap-extreme.is-lowest { background: #4F7FB5; }
+.evd-tmap-extreme.is-highest { background: var(--terracotta-500); }
+
+/* ET3: Gelände-Kennzahlen */
+.evd-zone-subhead { margin: 16px 0 8px; font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--stone-400); }
+.evd-terrain-facts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.evd-terrain-fact { background: var(--cream-50); border: 1px solid var(--border-default); border-radius: 10px; padding: 9px 11px; }
+.evd-terrain-fact-lab { font-size: 10.5px; letter-spacing: .5px; text-transform: uppercase; color: var(--stone-400); font-weight: 700; }
+.evd-terrain-fact-val { margin-top: 3px; font-size: 15px; font-weight: 700; color: var(--ink-900); }
+.evd-zone-terrain-line { margin: 8px 0 0; font-size: 11.5px; color: var(--stone-500); line-height: 1.5; }
+
+/* ET4: Sonne über dem Gelände */
+.evd-sun-cards { display: flex; gap: 8px; flex-wrap: wrap; }
+.evd-sun-card {
+  flex: 1 1 220px; min-width: 0; display: flex; align-items: center; gap: 10px; text-align: left;
+  background: var(--cream-50); border: 1px solid var(--border-default); border-radius: 12px;
+  padding: 10px 12px; font-family: inherit; cursor: pointer; min-height: 44px;
+}
+.evd-sun-card--active { border-color: var(--terracotta-500); background: var(--evd-terra-tint); }
+.evd-sun-compass { flex: 0 0 auto; }
+.evd-sun-card-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.evd-sun-card-lab { font-size: 12px; font-weight: 700; color: var(--ink-900); }
+.evd-sun-card-alt { font-size: 11.5px; color: var(--stone-600); }
+.evd-sun-card-ridge { font-size: 11.5px; color: var(--stone-500); line-height: 1.4; }
+
+/* ET5: „Karte | Gelände" im Wizard-Schritt Fläche */
+.evd-zone-viewtabs { display: flex; gap: 6px; margin: 0 0 8px; }
+.evd-zone-viewtab {
+  background: #fff; border: 1px solid var(--border-default); border-radius: 9px;
+  padding: 8px 14px; font-family: inherit; font-size: 12px; font-weight: 600;
+  color: var(--stone-500); cursor: pointer; min-height: 40px;
+}
+.evd-zone-viewtab.is-active { border-color: var(--terracotta-500); color: var(--terracotta-500); background: var(--evd-terra-tint); }
+.evd-zone-viewtab:disabled { opacity: .5; cursor: not-allowed; }
+.evd-zone-map.is-hidden { display: none; }
+/* Die Gelände-Vorschau erbt die Maße der Zeichenkarte (der Wrap trägt schon Rahmen + Radius). */
+.evd-zone-mapwrap .evd-tmap-shell { border: 0; border-radius: 0; }
+.evd-zone-mapwrap .evd-tmap { height: 280px; }
+.evd-zone-mapwrap .evd-tmap-loading { padding: 24px; }
+
+@media (max-width: 1439px) {
+  .evd-zone-mapwrap .evd-tmap { height: 260px; }
+  .evd-terrain-facts { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 767px) {
+  .evd-tmap { height: clamp(240px, 40vh, 340px); }
+  .evd-zone-mapwrap .evd-tmap { height: clamp(220px, 34vh, 320px); }
+  .evd-tmap-fit { width: 44px; height: 44px; }
+  .evd-zone-viewtab { min-height: 44px; flex: 1 1 0; }
+  .evd-sun-card { flex: 1 1 100%; }
+}
 
 /* Anlass-Grid */
 .evd-anlass-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
@@ -374,6 +470,7 @@
 
 /* ============================ Tablet (768–1439) ============================ */
 @media (max-width: 1439px) {
+  .evd-zone-map { height: 260px; }
   .evd-topbar { height: 54px; gap: 14px; padding: 0 16px; }
   .evd-brand { font-size: 17px; }
   .evd-rail { width: 54px; padding: 12px 0; }
@@ -449,7 +546,8 @@
 
 /* Touch targets: ensure interactive chips ≥ 40px tall on mobile */
 @media (max-width: 767px) {
-  .evd-zone-map { height: 240px; }
+  .evd-zone-steps { flex-direction: column; }
+  .evd-zone-map { height: clamp(220px, 34vh, 320px); }
   .evd-zone-point { grid-template-columns: 1fr 42px; row-gap: 2px; }
   .evd-zone-point-note { grid-column: 1 / -1; white-space: normal; }
   .evd-zone-btn { min-height: 44px; }

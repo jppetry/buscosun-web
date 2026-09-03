@@ -27,8 +27,20 @@ import { decompress } from './decompress';
 import { shareInFlight } from './shareInFlight';
 import type { QuadCorners } from '../scalar/RainLayer';
 import { decodeRadolanRaw, decodeRvTar, type RadolanGrid, type DecodedRvFrame } from './radolanDecode';
+// LE1/H2: Lauf-Zeitstempel, Tar-URL, Cache-Name und der Frühstart des Tar-Abrufs
+// leben abhängigkeitsfrei in `radolanRuns.ts` (der Router stößt ihn aus dem
+// index-Chunk an). Re-Export, damit `verify:radar-runs` und andere Importeure
+// unverändert bleiben.
+import {
+  RV_DIR, RV_TAR_CACHE, guessRvRuns, rvTarUrl, takeWarmRvTar,
+  // RD2 (audit/radar-datenrepo.md §13): CDN-Weg über das Daten-Repo
+  rvTarCdnUrl, rvCdnEligible, noteRadarCdnFailure, radarCdnDeadline,
+  // RD3 (audit §14): fertig aufbereitete Frame-PNGs vom Daten-Repo
+  rvImgEligible, rvImgDir, rvStampToMs,
+} from './radolanRuns';
+import { parseRvImgMeta, RadarImg404, fetchImgRes, loadRadarGrayPng } from './radarImg';
+export { guessRvRuns } from './radolanRuns';
 
-const RV_DIR = '/_dwd_opendata/weather/radar/composite/rv/';
 const RY_LATEST =
   '/_dwd_opendata/weather/radar/radolan/ry/raa01-ry_10000-latest-dwd---bin.bz2';
 
@@ -102,30 +114,9 @@ const RUN_CACHE_TTL = 60_000;
 // Das Listing bleibt der benannte Fallback (Muster „Rule 2"): schlagen alle
 // gerechneten Kandidaten fehl, wird es geladen. Ändert der DWD Takt oder
 // Namensschema, funktioniert die Seite weiter, nur wieder mit 154 KB.
-const RV_STEP_MIN = 5;
-const RV_PUBLISH_LAG_MIN = 3.3;
+// (Takt, Verzug und `guessRvRuns` selbst: `radolanRuns.ts`.)
 /** Kandidaten, die vor dem Listing-Fallback durchprobiert werden. */
 const RV_GUESS_TRIES = 3;
-
-/** Zeitstempel `YYMMDDHHMM` (UTC) eines RV-Laufs. */
-function rvStamp(d: Date): string {
-  const p = (n: number) => String(n).padStart(2, '0');
-  return p(d.getUTCFullYear() % 100) + p(d.getUTCMonth() + 1) + p(d.getUTCDate())
-    + p(d.getUTCHours()) + p(d.getUTCMinutes());
-}
-
-/**
- * Die `count` jüngsten plausiblen Lauf-Zeitstempel, absteigend — GERECHNET,
- * ohne Netz. Exportiert, weil der Verifier sie gegen das echte Verzeichnis
- * prüft (`verify:radar-runs`).
- */
-export function guessRvRuns(count: number, nowMs: number = Date.now()): string[] {
-  const stepMs = RV_STEP_MIN * 60_000;
-  const newest = Math.floor((nowMs - RV_PUBLISH_LAG_MIN * 60_000) / stepMs) * stepMs;
-  const out: string[] = [];
-  for (let i = 0; i < count; i++) out.push(rvStamp(new Date(newest - i * stepMs)));
-  return out;
-}
 
 /** Listet das RV-Verzeichnis und liefert die Zeitstempel (absteigend). */
 async function listRvRuns(signal?: AbortSignal): Promise<string[]> {
@@ -145,7 +136,7 @@ async function listRvRuns(signal?: AbortSignal): Promise<string[]> {
 // Zeitstempel im Namen). Treffer überspringt den Netz-Download → Warm-Reload
 // lädt nur noch das (mit WASM-bzip2 schnelle) Entpacken. Wenige MB je Lauf.
 // ---------------------------------------------------------------------------
-const RV_TAR_CACHE = 'radolan-rv-tar-v1';
+// (`RV_TAR_CACHE` = 'radolan-rv-tar-v1', in `radolanRuns.ts` — der Frühstart prüft denselben Cache.)
 // Hält neben dem aktuellen Lauf auch die jüngsten Vergangenheits-Läufe warm
 // (Regenradar-Rückblick-Loop seedet ~45 min gemessene Analysen) → Warm-Reload
 // ohne erneuten Netz-Download.
@@ -160,13 +151,64 @@ function rvCache(): Promise<Cache | null> {
 async function pruneRvCache(cache: Cache): Promise<void> {
   try { const keys = await cache.keys(); for (let i = 0; i < keys.length - RV_TAR_CACHE_MAX; i++) await cache.delete(keys[i]); } catch { /* ignore */ }
 }
-async function fetchRvBytesCached(url: string, signal?: AbortSignal): Promise<ArrayBuffer> {
+/** Woher kam der letzte Tar? Nur fürs Log in `loadRvNowcast` (synchron danach gelesen). */
+let _lastRvVia: 'img' | 'cdn' | 'dwd' = 'dwd';
+
+async function fetchRvBytesCached(ts: string, signal?: AbortSignal, priority: RequestPriority = 'high'): Promise<ArrayBuffer> {
+  const netlifyUrl = rvTarUrl(ts);
+  const cdnUrl = rvTarCdnUrl(ts);
   const cache = await rvCache();
-  if (cache) { const hit = await cache.match(url); if (hit) return hit.arrayBuffer(); }
-  const res = await fetch(url, { signal });
-  if (!res.ok) throw new Error(`RADOLAN-RV ${url}: ${res.status}`);
+  // LE1/H2: hat der Router den Tar schon vorgestartet (beim Laden des Seiten-
+  // Chunks), nehmen wir dessen Antwort — sie hat die Cache-API selbst befragt.
+  // RD2: der Frühstart nimmt denselben Resolver; zwischen seinem und unserem
+  // `Date.now()` kann der Slot das Gate passiert haben ⇒ beide Schlüssel probieren.
+  let warmWasCdn = true;
+  let warm = takeWarmRvTar(cdnUrl);
+  if (!warm) { warmWasCdn = false; warm = takeWarmRvTar(netlifyUrl); }
+  if (warm) {
+    const { res, fromCache } = await warm;
+    if (res.ok) {
+      const buf = await res.arrayBuffer();
+      if (cache && !fromCache) { cache.put(warmWasCdn ? cdnUrl : netlifyUrl, new Response(buf.slice(0))).then(() => pruneRvCache(cache)).catch(() => {}); }
+      _lastRvVia = warmWasCdn ? 'cdn' : 'dwd';
+      return buf;
+    }
+    // Ein vorgestarteter CDN-Fehlgriff (Spiegel noch nicht so weit) ist kein
+    // Urteil über den Lauf — unten regulär weiter. Der Netlify-Fehlgriff bleibt
+    // wie bisher das Urteil (404 = Lauf liegt noch nicht beim DWD).
+    if (!warmWasCdn) throw new Error(`RADOLAN-RV ${netlifyUrl}: ${res.status}`);
+  }
+  if (cache) {
+    const cdnHit = await cache.match(cdnUrl);
+    const hit = cdnHit ?? (await cache.match(netlifyUrl));
+    if (hit) { _lastRvVia = cdnHit ? 'cdn' : 'dwd'; return hit.arrayBuffer(); }
+  }
+  // RD2: CDN zuerst — aber nur, wenn der Slot das Zeit-Gate passiert hat
+  // (sonst hielte jsDelivr unser 404 fest und der Slot würde für alle spät).
+  // 404/5xx ⇒ benannter Fallback auf den DWD-Weg; Netz/Timeout zählt auf den
+  // Sitzungs-Latch (`noteRadarCdnFailure`).
+  if (rvCdnEligible(ts)) {
+    const dl = radarCdnDeadline(signal);
+    try {
+      const res = await fetch(cdnUrl, { signal: dl.signal, priority });
+      if (res.ok) {
+        const buf = await res.arrayBuffer();
+        if (cache) { cache.put(cdnUrl, new Response(buf.slice(0))).then(() => pruneRvCache(cache)).catch(() => {}); }
+        _lastRvVia = 'cdn';
+        return buf;
+      }
+    } catch (err) {
+      if (signal?.aborted) throw err;
+      noteRadarCdnFailure();
+    } finally { dl.done(); }
+  }
+  // LE2/H7: der Tar ist das Erstbild (DE) ⇒ `'high'` wie im Frühstart; als
+  // Nachbarquelle (AT/CH-Ort) reicht der Aufrufer `'low'` durch.
+  const res = await fetch(netlifyUrl, { signal, priority });
+  if (!res.ok) throw new Error(`RADOLAN-RV ${netlifyUrl}: ${res.status}`);
   const buf = await res.arrayBuffer();
-  if (cache) { cache.put(url, new Response(buf.slice(0))).then(() => pruneRvCache(cache)).catch(() => {}); }
+  if (cache) { cache.put(netlifyUrl, new Response(buf.slice(0))).then(() => pruneRvCache(cache)).catch(() => {}); }
+  _lastRvVia = 'dwd';
   return buf;
 }
 
@@ -243,9 +285,70 @@ async function decodeRvTarOffMain(tarBytes: Uint8Array): Promise<{ runAtMs: numb
   }
 }
 
-async function fetchRvTar(ts: string, signal?: AbortSignal): Promise<RvNowcast> {
-  const url = `${RV_DIR}DE1200_RV${ts}.tar.bz2`;
-  const tarBytes = await decompress(await fetchRvBytesCached(url, signal));
+// ── RD3: der Bild-Weg — Frames als fertige Graustufen-PNGs vom Daten-Repo (audit §14) ──
+
+/** RD3-Leseweg: geteilte Helfer in `radarImg.ts`; hier nur die Warm-Entgegennahme dazu. */
+async function imgRes(url: string, signal: AbortSignal, priority?: RequestPriority): Promise<Response> {
+  const wf = takeWarmRvTar(url);
+  if (wf) {
+    const res = (await wf).res;
+    if (res.status === 404 || res.status === 403) throw new RadarImg404(`${res.status} ${url}`);
+    if (!res.ok) throw new Error(`${res.status} ${url}`);
+    return res;
+  }
+  return fetchImgRes(url, signal, priority);
+}
+
+/**
+ * Ganzer Slot vom Bild-Weg — ALLES-ODER-NICHTS: fehlt ein Frame oder reißt die
+ * CDN-Frist, übernimmt der Tar-Weg (Verbraucher brauchen den kompletten
+ * 25-Frame-Stapel). `null` = Rückfall; harte Fehler zählen in den Sitzungs-Latch.
+ */
+async function fetchRvFromImg(ts: string, signal?: AbortSignal, priority?: RequestPriority): Promise<RvNowcast | null> {
+  const dir = rvImgDir(ts);
+  const dl = radarCdnDeadline(signal);
+  try {
+    const metaRes = await imgRes(`${dir}/meta.json`, dl.signal, priority);
+    const meta = parseRvImgMeta(await metaRes.json());
+    if (!meta || meta.stamp !== ts) return null; // Drift/fremder Slot ⇒ benannter Rohweg
+    const frames: RvFrame[] = await Promise.all(meta.frames.map(async (f) => ({
+      leadMinutes: f.lead,
+      validAt: new Date(f.validAtMs ?? meta.runAtMs + f.lead * 60_000),
+      values: await loadRadarGrayPng(await imgRes(`${dir}/${f.file}`, dl.signal, priority), meta.width, meta.height),
+      width: meta.width,
+      height: meta.height,
+    })));
+    return { runAt: new Date(meta.runAtMs), frames, corners: DE1200_CORNERS };
+  } catch (err) {
+    if (signal?.aborted) throw err;             // Abbruch des Aufrufers bleibt ein Abbruch
+    if (!(err instanceof RadarImg404)) noteRadarCdnFailure();
+    return null;
+  } finally { dl.done(); }
+}
+
+/** Rückblick/Hindcast: NUR der Analyse-Frame (f000.png ≈ 30 KB statt Voll-Tar ≈ 1,4 MB). */
+async function fetchRvAnalysisFromImg(ts: string, signal?: AbortSignal): Promise<RvAnalysisFrame | null> {
+  const dl = radarCdnDeadline(signal);
+  try {
+    const values = await loadRadarGrayPng(await imgRes(`${rvImgDir(ts)}/f000.png`, dl.signal), 1100, 1200);
+    return { validAt: new Date(rvStampToMs(ts)), values, width: 1100, height: 1200 };
+  } catch (err) {
+    if (signal?.aborted) throw err;
+    if (!(err instanceof RadarImg404)) noteRadarCdnFailure();
+    return null;
+  } finally { dl.done(); }
+}
+
+async function fetchRvTar(ts: string, signal?: AbortSignal, priority?: RequestPriority): Promise<RvNowcast> {
+  // RD3: gegatterte Slots zuerst als fertige Frames (kein bz2, kein Tar-Dekode);
+  // jeder Fehlschlag fällt still auf den Tar-Weg zurück.
+  if (rvImgEligible(ts)) {
+    const viaImg = await fetchRvFromImg(ts, signal, priority);
+    if (viaImg) { _lastRvVia = 'img'; return viaImg; }
+  }
+  // RD2: die Wegwahl (CDN vs. Netlify) liegt in `fetchRvBytesCached`/`rvTarUrlFor`
+  // — der Frühstart in `radolanRuns.ts` nimmt denselben Resolver.
+  const tarBytes = await decompress(await fetchRvBytesCached(ts, signal, priority));
   const { runAtMs, frames: decoded } = await decodeRvTarOffMain(tarBytes);
   const frames: RvFrame[] = decoded.map((f) => ({
     leadMinutes: f.leadMinutes,
@@ -262,10 +365,13 @@ async function fetchRvTar(ts: string, signal?: AbortSignal): Promise<RvNowcast> 
  * Robust gegen einen noch hochladenden jüngsten Lauf: bei Fehler wird der
  * vorherige Zeitstempel versucht.
  */
-export async function fetchRvNowcast(signal?: AbortSignal): Promise<RvNowcast> {
+export async function fetchRvNowcast(signal?: AbortSignal, opts?: RvFetchOptions): Promise<RvNowcast> {
   // Entdopplung: Karte und Punktforecast fragen beim Mount gleichzeitig (§24.3).
-  return shareInFlight('radolan-rv-nowcast', () => loadRvNowcast(), signal);
+  return shareInFlight('radolan-rv-nowcast', () => loadRvNowcast(opts?.priority), signal);
 }
+
+/** LE2/H7: Netzpriorität des Tar-Abrufs — `'low'` für die Nachbarquelle (AT/CH-Ort). */
+export interface RvFetchOptions { priority?: RequestPriority }
 
 /**
  * Der eigentliche Lauf hinter der Entdopplung. Bekommt bewusst KEIN
@@ -273,17 +379,18 @@ export async function fetchRvNowcast(signal?: AbortSignal): Promise<RvNowcast> {
  * also darf ihn keiner allein abbrechen. Die Kandidatenliste ist dafür kurz
  * gehalten — 3 gerechnete Läufe, dann einmal das Listing.
  */
-async function loadRvNowcast(): Promise<RvNowcast> {
+async function loadRvNowcast(priority?: RequestPriority): Promise<RvNowcast> {
   let lastErr: unknown;
   const attempt = async (runs: string[]): Promise<RvNowcast | null> => {
     for (const ts of runs) {
       try {
-        const result = await fetchRvTar(ts);
+        const result = await fetchRvTar(ts, undefined, priority);
         _runCache = { ts, at: Date.now() };
         // Welche RADOLAN-RV-Datei wird gerade auf die Karte gerendert?
         console.log(
           `[buscosun] Niederschlag-Layer → RADOLAN-RV-Datei: DE1200_RV${ts}.tar.bz2` +
-          ` · Lauf ${result.runAt.toLocaleString('de-DE')} · ${result.frames.length} Frames (0…+120 min)`,
+          ` · Lauf ${result.runAt.toLocaleString('de-DE')} · ${result.frames.length} Frames (0…+120 min)` +
+          ` · Quelle ${_lastRvVia === 'img' ? 'Daten-Repo (PNG)' : _lastRvVia === 'cdn' ? 'Daten-Repo (jsDelivr)' : 'DWD (Netlify)'}`,
         );
         return result;
       } catch (err) {
@@ -318,6 +425,12 @@ export async function fetchRvAnalysisSequence(count: number, signal?: AbortSigna
   const take = async (runs: string[]): Promise<void> => {
     for (const ts of runs) {
       if (frames.length >= count) return;
+      // RD3: für den Rückblick reicht der Analyse-Frame — 8–9 × f000.png (~30 KB)
+      // statt 8 Voll-Tars (2,28 MiB gemessen); je Stempel Tar-Fallback.
+      if (rvImgEligible(ts)) {
+        const viaImg = await fetchRvAnalysisFromImg(ts, signal);
+        if (viaImg) { frames.push(viaImg); continue; }
+      }
       try {
         const nc = await fetchRvTar(ts, signal); // Tar-Cache greift; _000 = Analyse
         const a = nc.frames.find((f) => f.leadMinutes === 0);

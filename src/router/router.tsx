@@ -12,10 +12,24 @@ import type { ComponentType } from 'react';
 import { createBrowserRouter, isRouteErrorResponse, Navigate, useLocation, useRouteError, type RouteObject } from 'react-router';
 import App from '../App';
 import AppLoader from './AppLoader';
-import { ROUTES, ROUTE_BY_ID } from './routes';
+import { CROSS_ALIASES, ROUTES, ROUTE_BY_ID, routeForPath, type RouteId } from './routes';
+import { warmRouteData } from './prefetch';
 
-const page = (load: () => Promise<{ default: ComponentType }>) => ({
-  lazy: { Component: async () => (await load()).default },
+/**
+ * `warm`: LE1/H2 — sobald React Router die Route auflöst (beim Erstaufruf: direkt
+ * nach `index.js`, VOR dem Download des Seiten-Chunks), startet der Frühstart
+ * der Datenabrufe dieser Seite (`prefetch.ts`). Fehler dort bleiben ohne Folge
+ * — die Seite lädt dann wie bisher selbst.
+ */
+const page = (load: () => Promise<{ default: ComponentType }>, warm?: RouteId) => ({
+  lazy: {
+    Component: async () => {
+      if (warm && typeof window !== 'undefined') {
+        try { warmRouteData(warm, window.location.pathname, window.location.search); } catch { /* Frühstart ist Bonus */ }
+      }
+      return (await load()).default;
+    },
+  },
 });
 
 function AliasRedirect({ to }: { to: string }) {
@@ -46,6 +60,13 @@ export function createAppRouter() {
   const aliasRoutes: RouteObject[] = ROUTES.flatMap((r) =>
     r.aliases.map((a) => ({ path: decodeURIComponent(a).slice(1), element: <AliasRedirect to={r.path} /> })),
   );
+  // Cross-Aliase, die auf einen ANDEREN Pfad zeigen (`/route/3d` → `/tourenplanung/3d`).
+  // In Prod erledigt das die 301 in `netlify.toml`; clientseitig nur für die, die
+  // keine echte Route treffen — `/wetterkarte/warnungen` ist eine echte Sub-Route
+  // und bleibt bewusst stehen (sonst remountet der Layerwechsel die Karte, RT1).
+  const crossAliasRoutes: RouteObject[] = CROSS_ALIASES
+    .filter(([from]) => !routeForPath(from, false))
+    .map(([from, to]) => ({ path: from.slice(1), element: <AliasRedirect to={to} /> }));
   const routes: RouteObject[] = [
     {
       path: '/',
@@ -54,9 +75,9 @@ export function createAppRouter() {
       ErrorBoundary: RouteError,
       children: [
         { index: true, ...page(() => import('./pages/HomeRoute')) },
-        { path: sub('wetterkarte'), ...page(() => import('./pages/WetterkarteRoute')) },
-        { path: sub('warnungen'), ...page(() => import('./pages/WarnungenRoute')) },
-        { path: sub('regenradar'), ...page(() => import('./pages/NowcastRoute')) },
+        { path: sub('wetterkarte'), ...page(() => import('./pages/WetterkarteRoute'), 'wetterkarte') },
+        { path: sub('warnungen'), ...page(() => import('./pages/WarnungenRoute'), 'warnungen') },
+        { path: sub('regenradar'), ...page(() => import('./pages/NowcastRoute'), 'regenradar') },
         { path: sub('vorhersage'), ...page(() => import('./pages/ForecastRoute')) },
         { path: sub('tourenplanung'), ...page(() => import('./pages/TourRoute')) },
         { path: sub('eventplanung'), ...page(() => import('./pages/EventRoute')) },
@@ -68,6 +89,7 @@ export function createAppRouter() {
         { path: sub('validierung'), ...page(() => import('./pages/ValidationRoute')) },
         { path: sub('mobiletest'), ...page(() => import('./pages/MobileTestRoute')) },
         ...aliasRoutes,
+        ...crossAliasRoutes,
         { path: '*', ...page(() => import('./pages/NotFoundRoute')) },
       ],
     },

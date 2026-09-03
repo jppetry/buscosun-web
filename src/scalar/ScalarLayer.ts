@@ -1,8 +1,9 @@
 /**
  * Generic scalar heatmap as a MapLibre custom layer.
- * Reuses the wind-heatmap mesh approach: a lat/lng grid mesh is projected to
- * Mercator in the vertex shader, fragment shader samples a normalised value
- * from a 1-channel (R) texture and looks it up in a color-ramp gradient.
+ * Reuses the wind-heatmap mesh approach: a footprint mesh over the data bounds
+ * (`equiFootprintMesh`, lon/lat for the texture uv + CPU-projected Mercator for
+ * the position — KL9), fragment shader samples a normalised value from a
+ * 1-channel (R) texture and looks it up in a color-ramp gradient.
  *
  * Used for temperature_2m and cloud_cover layers.
  */
@@ -17,23 +18,21 @@ import {
   getColorRamp,
   type ProgramWrapper,
 } from '../wind/glUtil';
+import { equiFootprintMesh, mercatorOf } from './quadWarpMesh';
 
-const MERC_MAX_LAT = 85.05112878;
-
+// KL9/V-KL-3 (2026-08-27, Jans Go): Position aus `a_merc` (CPU-double,
+// `mercatorOf`) statt log(tan()) im Shader — GPU-Transzendente lagen bis 280 m
+// daneben (`audit/karten-layer-verortung.md` §15.6). `a_lnglat` bleibt für die
+// Textur-uv (exakt in Float32: 0,2 m). `highp` gegen fp16-mediump (V-KL-4).
 const meshVert = `
-precision mediump float;
+precision highp float;
 attribute vec2 a_lnglat;
+attribute vec2 a_merc;
 uniform mat4 u_matrix;
 varying vec2 v_equi_uv;
-const float PI = 3.14159265358979323846;
 void main() {
-  float lng = a_lnglat.x;
-  float lat = a_lnglat.y;
-  v_equi_uv = vec2((lng + 180.0) / 360.0, (90.0 - lat) / 180.0);
-  float lat_rad = lat * PI / 180.0;
-  float mx = (lng + 180.0) / 360.0;
-  float my = 0.5 - log(tan(PI * 0.25 + lat_rad * 0.5)) / (2.0 * PI);
-  gl_Position = u_matrix * vec4(mx, my, 0.0, 1.0);
+  v_equi_uv = vec2((a_lnglat.x + 180.0) / 360.0, (90.0 - a_lnglat.y) / 180.0);
+  gl_Position = u_matrix * vec4(a_merc, 0.0, 1.0);
 }
 `;
 
@@ -137,8 +136,13 @@ export class ScalarLayer implements CustomLayerInterface {
   private map: MapLibreMap | null = null;
   private gl: WebGLRenderingContext | null = null;
   private program!: ProgramWrapper;
-  private mesh!: WebGLBuffer;
+  /** Footprint-Mesh über die Daten-uvBounds (`equiFootprintMesh`, ≤ 1 m Mercator-
+   *  Rest) — gebaut in `setData`, neu nur bei geänderten Bounds. */
+  private mesh: WebGLBuffer | null = null;
+  /** Dieselben Knoten als Mercator-Paare (Attribut a_merc, `mercatorOf`). */
+  private mercBuf: WebGLBuffer | null = null;
   private meshVertexCount = 0;
+  private meshKey = '';
   private valueTexture: WebGLTexture | null = null;
   private demTexture: WebGLTexture | null = null;
   private colorRampTexture!: WebGLTexture;
@@ -160,7 +164,6 @@ export class ScalarLayer implements CustomLayerInterface {
     this.gl = gl;
     this.program = createProgram(gl, meshVert, meshFrag);
     this.colorRampTexture = createTexture(gl, gl.LINEAR, getColorRamp(this.colorRampStops), 16, 16);
-    this.buildMesh();
     if (this._pending) {
       const { image, meta } = this._pending;
       this._pending = null;
@@ -175,34 +178,32 @@ export class ScalarLayer implements CustomLayerInterface {
 
   onRemove(_map: MapLibreMap, gl: WebGLRenderingContext) {
     gl.deleteProgram(this.program.program);
-    gl.deleteBuffer(this.mesh);
+    if (this.mesh) gl.deleteBuffer(this.mesh);
+    if (this.mercBuf) gl.deleteBuffer(this.mercBuf);
+    this.mesh = null; this.mercBuf = null; this.meshKey = '';
     if (this.valueTexture) gl.deleteTexture(this.valueTexture);
     if (this.demTexture) gl.deleteTexture(this.demTexture);
     gl.deleteTexture(this.colorRampTexture);
   }
 
-  private buildMesh() {
+  /**
+   * Mesh über den Daten-Footprint statt über die ganze Welt: das frühere
+   * 128 × 64-Weltmesh (Bänder 2,66°) legte jeden Wert bis 2,0 km zu weit
+   * nördlich — die GPU interpoliert `v_equi_uv` linear in Mercator-y, die Textur
+   * liegt breiten-linear (`audit/karten-layer-verortung.md` §15). Zeilen aus der
+   * Zeilenregel in `quadWarpMesh.ts` (≤ 1 m), neu gebaut nur bei neuen Bounds.
+   */
+  private ensureMesh(uvBounds: ScalarMeta['uvBounds']) {
     const gl = this.gl!;
-    const cols = 128;
-    const rows = 64;
-    const verts: number[] = [];
-    const lngStep = 360 / cols;
-    const latRange = 2 * MERC_MAX_LAT;
-    const latStep = latRange / rows;
-    for (let j = 0; j < rows; j++) {
-      for (let i = 0; i < cols; i++) {
-        const lng0 = -180 + i * lngStep;
-        const lng1 = -180 + (i + 1) * lngStep;
-        const lat0 = -MERC_MAX_LAT + j * latStep;
-        const lat1 = -MERC_MAX_LAT + (j + 1) * latStep;
-        verts.push(
-          lng0, lat0, lng1, lat0, lng0, lat1,
-          lng0, lat1, lng1, lat0, lng1, lat1,
-        );
-      }
-    }
-    this.mesh = createBuffer(gl, new Float32Array(verts));
+    const key = uvBounds.join(',');
+    if (this.mesh && key === this.meshKey) return;
+    const verts = equiFootprintMesh(uvBounds);
+    if (this.mesh) gl.deleteBuffer(this.mesh);
+    this.mesh = createBuffer(gl, verts);
+    if (this.mercBuf) gl.deleteBuffer(this.mercBuf);
+    this.mercBuf = createBuffer(gl, mercatorOf(verts));
     this.meshVertexCount = verts.length / 2;
+    this.meshKey = key;
   }
 
   setData(image: HTMLImageElement | HTMLCanvasElement, meta: ScalarMeta) {
@@ -214,6 +215,7 @@ export class ScalarLayer implements CustomLayerInterface {
     if (this.valueTexture) gl.deleteTexture(this.valueTexture);
     this.valueTexture = createTexture(gl, gl.LINEAR, image);
     this.data = { ...meta, image };
+    this.ensureMesh(meta.uvBounds);
     this.map?.triggerRepaint();
   }
 
@@ -243,7 +245,7 @@ export class ScalarLayer implements CustomLayerInterface {
   }
 
   render(gl: WebGLRenderingContext, args: CustomRenderMethodInput | number[] | Float32Array) {
-    if (!this.data || !this.valueTexture) return;
+    if (!this.data || !this.valueTexture || !this.mesh || !this.mercBuf) return;
     let matrix: Float32List;
     if (Array.isArray(args) || args instanceof Float32Array) {
       matrix = args as Float32List;
@@ -271,6 +273,7 @@ export class ScalarLayer implements CustomLayerInterface {
     const p = this.program;
     gl.useProgram(p.program);
     bindAttribute(gl, this.mesh, p.a_lnglat as number, 2);
+    bindAttribute(gl, this.mercBuf, p.a_merc as number, 2);
     // V-RL-1 (2026-08-25): Vertex-Attribut-Arrays sind globaler GL-Zustand. Ein
     // zuvor gezeichneter RainLayer lässt sein `a_uv` (Index 1) aktiviert; baut er
     // seine Puffer neu (Geometriewechsel, Stilwechsel), zeigt das Attribut auf
@@ -278,10 +281,10 @@ export class ScalarLayer implements CustomLayerInterface {
     // WebGL „no buffer is bound to enabled attribute". Dieser Layer nutzt genau
     // ein Attribut; alle anderen werden deaktiviert (MapLibre löst vor
     // Custom-Layern das VAO, `drawCustom` → `unbindVAO`, wir ändern also nur den
-    // Default-Zustand). Kein Shader-Eingriff.
+    // Default-Zustand). Seit KL9 zwei Attribute (a_lnglat für uv, a_merc für die Lage).
     const maxAttribs = gl.getParameter(gl.MAX_VERTEX_ATTRIBS) as number;
     for (let i = 0; i < maxAttribs; i++) {
-      if (i !== (p.a_lnglat as number) && gl.getVertexAttrib(i, gl.VERTEX_ATTRIB_ARRAY_ENABLED)) {
+      if (i !== (p.a_lnglat as number) && i !== (p.a_merc as number) && gl.getVertexAttrib(i, gl.VERTEX_ATTRIB_ARRAY_ENABLED)) {
         gl.disableVertexAttribArray(i);
       }
     }

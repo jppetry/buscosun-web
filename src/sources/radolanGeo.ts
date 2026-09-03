@@ -3,13 +3,15 @@
  * Eckkoordinaten und Warp-Mesh.
  *
  * Eigenes Modul (aus `radolan.ts` herausgelöst, das die Fetcher/Decoder trägt):
- * reine Mathematik, KEINE Imports, kein DOM, kein Worker, kein Netz. Damit ist
+ * reine Mathematik, als einziger Import das ebenso reine `quadWarpMesh`, kein DOM, kein Worker, kein Netz. Damit ist
  * die Verortung sowohl im Worker (`precipIndexMap`) als auch headless im
  * Verifier (`scripts/verify-radar-sampling.mjs`) importierbar — und vor allem:
  * **Rendering und Punktabfrage rechnen mit denselben Formeln** (RP1, s.
  * `audit/radar-punktverortung.md`). `radolan.ts` re-exportiert alles unverändert,
  * bestehende Importpfade bleiben also gültig.
  */
+
+import { warpMeshFromProjection } from '../scalar/quadWarpMesh';
 
 /**
  * Exakte WGS84-Eckkoordinaten des DE1200-Gitters (aus den ODIM-`/where`-
@@ -61,34 +63,35 @@ export function psInv(x: number, y: number): [number, number] {
   return [(PS_LON0 + Math.atan2(x, -y)) * 180 / Math.PI, phi * 180 / Math.PI];
 }
 
-/** Unterteilungen des Warp-Mesh je Achse ((N+1)² Knoten). 32 → Restfehler < ~50 m. */
-export const DE1200_WARP_N = 32;
+/**
+ * Unterteilungen des Warp-Mesh je Achse ((N+1)² Knoten). 352 → Mercator-Rest
+ * ≈ 0,8 m (`audit/karten-layer-verortung.md` §15.3; 32 waren 87 m, 320 lagen
+ * mit 1,0 m genau auf der Grenze). Projizierte Gitter krümmen sich in BEIDEN
+ * Richtungen, deshalb N² und nicht nur Zeilen.
+ */
+export const DE1200_WARP_N = 352;
 let _de1200Mesh: Float32Array | null = null;
+
+/** Exakte lon/lat-Lage des DE1200-Gitterpunkts (u, v) — auch knapp außerhalb [0,1]. */
+export function de1200Node(u: number, v: number): [number, number] {
+  const [NW, NE, SE, SW] = DE1200_CORNERS;
+  const pNW = psFwd(NW[0], NW[1]), pNE = psFwd(NE[0], NE[1]), pSE = psFwd(SE[0], SE[1]), pSW = psFwd(SW[0], SW[1]);
+  // Gitter ist in PS regulär → Knoten = bilineare Mischung der Eck-PS-Koordinaten.
+  const x = (1 - u) * (1 - v) * pNW[0] + u * (1 - v) * pNE[0] + (1 - u) * v * pSW[0] + u * v * pSE[0];
+  const y = (1 - u) * (1 - v) * pNW[1] + u * (1 - v) * pNE[1] + (1 - u) * v * pSW[1] + u * v * pSE[1];
+  return psInv(x, y);
+}
 
 /**
  * Fein unterteiltes Warp-Mesh des DE1200-Gitters: (N+1)² lon/lat-Paare, Index
  * `(j*(N+1)+i)*2`, mit i = u (0 = West … 1 = Ost) und j = v (0 = Nord … 1 = Süd) —
- * passend zur uv-Konvention des RainLayer (uv(0,0)=NW). Knoten exakt polar-
- * stereografisch verortet. Memoisiert (Gitter ist konstant).
+ * passend zur uv-Konvention des RainLayer (uv(0,0)=NW). Knoten polar-
+ * stereografisch verortet: 64² exakt, dazwischen bikubisch (≤ 18 mm gegen die
+ * direkte Inverse, `warpMeshFromProjection`; direkt wären 320² · psInv = 211 ms).
+ * Memoisiert (Gitter ist konstant).
  */
 export function de1200WarpMesh(): Float32Array {
   if (_de1200Mesh) return _de1200Mesh;
-  const N = DE1200_WARP_N;
-  const [NW, NE, SE, SW] = DE1200_CORNERS;
-  const pNW = psFwd(NW[0], NW[1]), pNE = psFwd(NE[0], NE[1]), pSE = psFwd(SE[0], SE[1]), pSW = psFwd(SW[0], SW[1]);
-  const out = new Float32Array((N + 1) * (N + 1) * 2);
-  for (let j = 0; j <= N; j++) {
-    const v = j / N;
-    for (let i = 0; i <= N; i++) {
-      const u = i / N;
-      // Gitter ist in PS regulär → Knoten = bilineare Mischung der Eck-PS-Koordinaten.
-      const x = (1 - u) * (1 - v) * pNW[0] + u * (1 - v) * pNE[0] + (1 - u) * v * pSW[0] + u * v * pSE[0];
-      const y = (1 - u) * (1 - v) * pNW[1] + u * (1 - v) * pNE[1] + (1 - u) * v * pSW[1] + u * v * pSE[1];
-      const ll = psInv(x, y);
-      const k = (j * (N + 1) + i) * 2;
-      out[k] = ll[0]; out[k + 1] = ll[1];
-    }
-  }
-  _de1200Mesh = out;
-  return out;
+  _de1200Mesh = warpMeshFromProjection(de1200Node, DE1200_WARP_N);
+  return _de1200Mesh;
 }

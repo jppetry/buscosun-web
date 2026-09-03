@@ -99,7 +99,8 @@ export async function fetchBrightSkyGrid(
         `&date=${encodeURIComponent(toIsoHour(start))}` +
         `&last_date=${encodeURIComponent(toIsoHour(end))}`;
       try {
-        const res = await fetch(url, { signal: options.signal });
+        // LE2/H7: der Fächer (bis 22 Abrufe) darf hinter dem Erstbild laufen.
+        const res = await fetch(url, { signal: options.signal, priority: 'low' });
         if (!res.ok) return null;
         const json = (await res.json()) as { weather?: WeatherEntry[] };
         return json.weather ?? null;

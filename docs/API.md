@@ -862,3 +862,97 @@ CC BY 4.0, nicht-kommerzielle Nutzung). `models=icon_seamless` = DWD ICON-D2/EU/
 Brandradar selbst keine Vergangenheit hat (ICON-D2 läuft ab jetzt). Zeiten kommen **ohne `Z`** („2026-08-18T00:00")
 und sind UTC. Nur auf Klick (Detailkarte), einmal je Brand und Sitzung (30 min); kein Netlify-Traffic. Modellwerte,
 keine Messung — so beschriftet (`FIRE_WEATHER_SOURCE_LABEL`).
+
+### 8.8 NASA GIBS / Worldview Snapshots + Earth Search STAC — *✅ IN BENUTZUNG (SAT1 2026-09-01, `src/fire/detail/fireSatImagery.ts`)*
+```
+POST https://earth-search.aws.element84.com/v1/search
+     {"collections":["sentinel-2-l2a","landsat-c2-l2"],"intersects":<Punkt>,"datetime":"<from>/<to>",
+      "limit":100,"fields":{…}}                                                ✅ 200, ACAO: *, eo:cloud_cover je Szene
+GET  https://wvs.earthdata.nasa.gov/api/v1/snapshot?REQUEST=GetSnapshot&TIME=<YYYY-MM-DD>
+      &BBOX=S,W,N,O&CRS=EPSG:4326&LAYERS=HLS_{S30|L30}_Nadir_BRDF_Adjusted_Reflectance
+      &FORMAT=image/jpeg&WIDTH=1200&HEIGHT=960                                 ✅ 200, ACAO: *, ≈ 158 KB (SAT1a: 2×, sonst unterabgetastet)
+      Header: Data-Present: true|false · Acquisition-Time (beide CORS-exponiert)
+GET  https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/<Layer>/default/<Tag>/GoogleMapsCompatible_Level12/{z}/{y}/{x}.png
+                                                                               ✅ 200 nur an Aufnahmetagen, sonst 404; ACAO: *
+```
+Satellitenbilder „Vorher | Während | Nachher" je Brand im Dossier (SAT1, `audit/brandradar-satellitenbilder.md`).
+Kein Schlüssel, kein Netlify-Byte; NASA erbittet die GIBS-Anerkennung (steht als `SAT_ATTRIBUTION` an der Karte).
+HLS = Sentinel-2 + Landsat harmonisiert, 30 m Echtfarbe, ≈ 2–3 Tage Latenz; Kacheln/Bilder existieren nur an
+Aufnahmetagen (DACH ≈ alle 2–3 Tage) — die Tagesliste kommt aus STAC, `Data-Present: false` ist der Wächter für
+STAC-Tage, die HLS (noch) nicht trägt. **Abgrenzung zu §8.6a:** dort steht der Batch-Kontrakt (Collection
+`sentinel-2-c1-l2a`, COG-Bucket ohne CORS, SCL-Fenster statt `eo:cloud_cover`); der Client-Pfad hier nutzt
+`sentinel-2-l2a` und `eo:cloud_cover` bewusst nur als **Vorauswahl** — der Wert gilt je 110-km-Granulat, nicht am
+Brandort (V-SAT-2), die Tagesleiste ist die Korrektur durch den Nutzer. Strikt on-demand (V-SAT-1): eine
+STAC-Anfrage + eine Handvoll Bilder je Dossier-Klick, Sitzungs-Cache 30 min. Randnotiz: §8.7 existiert in dieser
+Datei doppelt (Ausgeschlossene Quellen + Open-Meteo) — dieser Abschnitt heißt deshalb 8.8.
+
+**SAT2a-Nachtrag (2026-09-02, `src/fire/detail/cogTiff.ts` + `FireCogViewer.tsx`):** das `visual`-Asset
+derselben Collection zeigt auf den **CORS-offenen** COG-Bucket — nicht zu verwechseln mit dem CORS-losen
+Batch-Bucket aus §8.6a (zwei Buckets, zwei Collections, beide Messungen stimmen):
+```
+GET  https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/<zone>/<band>/<sq>/<yyyy>/<m>/<item>/TCI.tif
+     Range: bytes=0-16383                            ✅ 206, ACAO: *, Datei 347 134 985 B (14.08.-Item)
+OPTIONS  (Preflight: Access-Control-Request-Headers: range)
+                                                     ✅ 200, Access-Control-Allow-Headers: range
+```
+Ein `fetch` mit Range-Header preflightet im Browser — der Preflight ist deshalb Teil des gemessenen
+Kontrakts. TIFF-Struktur (am echten Objekt): Little-Endian, 10 980², Compression 8 = Deflate
+(zlib ⇒ natives `DecompressionStream('deflate')`), Predictor 2, 1024²-Kacheln + 4 Overview-IFDs
+(512²-Kacheln, 5490/2745/1373/687), alle IFDs in den ersten 16 KB. Die Georeferenz kommt aus STAC
+(`proj:epsg`/`proj:transform` je Asset — der Leser parst KEINE GeoTIFF-Geo-Tags). Gemessene
+Kachelkosten: 20-m-Ebene ~0,5 MB je Kachel (Startfenster ~1–2 MB), 10-m-Ebene ~2 MB je Kachel
+(Brandfenster 1–4 Kacheln ≈ 3–10 MB) — strikt on-demand, nur nach Klick auf „In 10 m ansehen".
+Landsat hat KEINEN Client-Pfad (`landsat-c2-l2`-Assets liegen auf dem USGS-Bucket, requester-pays).
+
+**SAT2b-Nachtrag (2026-09-02, `burnIndex.ts` + Modi SWIR/dNBR im Viewer):** die Band-COGs
+`swir22` = **B12.tif** (20 m, 5490², ~61 MB) und `nir08` = **B8A.tif** (20 m) sowie
+`red` = **B04.tif** (10 m) liegen im selben CORS-offenen Bucket und sind dieselbe Bauart —
+LE, Deflate, aber **uint16 Einband mit Predictor 2 auf den 16-bit-WERTEN** (nicht je Byte);
+eine 20-m-Vollkachel ≈ 0,39 MB. `raster:bands` je Asset trägt die Reflektanz-Skala
+(`scale 0.0001, offset −0.1` seit Baseline 04.00/2022; ältere Archiv-Szenen offset 0 — die
+Skala wird deshalb JE SZENE gelesen). Die Kachelgitter decken sich nur auf der 5490er-Ebene
+(darunter B04 512er- vs. B8A/B12 256er-Kacheln, Grenzen sind exakte Vielfache). Der
+dNBR-Vergleich nutzt die letzte wolkenarme Vorher-Szene DESSELBEN MGRS-Granulats
+(identisches Pixelgitter, 35 Tage Rückschau) — am Hürtgenwald gemessen: 25.07. (0,2 %),
+dNBR am Narbenpixel 0,600.
+
+**SAT2c-Nachtrag (2026-09-02, SCL-Maske am dNBR-Overlay, Audit §11):** das `scl`-Asset
+(**SCL.tif**, Sen2Cor-Szenenklassifikation) ist ein Leser-Zwilling der 20-m-Bänder — derselbe
+Bucket, EXAKT das B8A/B12-Gitter (5490², gleiche Kachelgrößen 512/256, plus eine 344er-Ebene
+ohne dNBR-Partner), **uint8** Einband, Deflate + Predictor 2, nodata 0, Datei ~3–4 MB, eine
+Vollkachel 5–12 KB; kein `classification:classes` im STAC (Klassenbedeutung = Konvention).
+⚠️ **Zwei Messbefunde begrenzen die Nutzung:** (1) am Hürtgenwald-Nachher-Bild (24.08.) lag die
+GESAMTE sichtbare Narbe unter den Wolkenklassen 10/8 — eine binäre Nachher-Maske löscht das
+Signal; deshalb maskiert nur die VORHER-Szene hart, die Nachher-Szene setzt Wolke/Schatten
+(3/8/9) auf halbe Deckkraft und lässt dünnen Zirrus (10) durch. (2) SCL kennt keine Wald-Klasse,
+und die frische Brandfläche selbst wird am klaren Brandtag Klasse 5 „unbewachsen" wie ein
+Stoppelfeld — eine Landbedeckungs-Dämpfung der Ernte-Sprenkel ist mit SCL NICHT möglich.
+
+**SAT2d-Nachtrag (2026-09-02, WorldCover-Landbedeckung, Audit §12):** die Ernte-Sprenkel-Dämpfung
+liest **ESA WorldCover 2021 v200** (10 m, CC BY 4.0) — 3°-Kachel-COGs in der Bauart des eigenen
+Lesers (uint8 · 1 Band · Deflate · **Predictor 1** · 1024²-Kacheln · Pyramide 36000…562 px,
+Kachel N48E006 = 94,2 MB komplett, IFDs in 18 828 B). Gitter EPSG:4326 (3°/36000 ≈ 9,26 m N-S),
+Kachelname = SW-Ecke (`N48E006`), deterministisch ohne STAC. ⚠️ **Der ESA-AWS-Bucket
+`esa-worldcover.s3.eu-central-1.amazonaws.com` ist CORS-los** (ACAO null trotz Origin,
+Preflight 403) — der Browser-Weg läuft über den **Microsoft Planetary Computer**: anonymer
+SAS-Token `GET https://planetarycomputer.microsoft.com/api/sas/v1/token/esa-worldcover`
+(`ACAO *`, ~1 h gültig, Feld `msft:expiry`), dann Range-Reads auf
+`https://ai4edataeuwest.blob.core.windows.net/esa-worldcover/v200/2021/map/ESA_WorldCover_10m_2021_v200_<Kachel>_Map.tif?<token>`
+(byte-identisch zum AWS-Bucket, Range 206 + `ACAO *` + Preflight-OK für `range`; alle
+DACH-Landkacheln vorhanden, offene Nordsee N54E003 = 404 → Fehlertoleranzpfad). Je
+Dossier-Sitzung ~0,1–0,3 MB; jeder Abruf catch ⇒ null — ein Ausfall nimmt nur die Dämpfung,
+nie das dNBR-Overlay. Kill-Switch `?wc=0`. Referenz `src/fire/detail/worldCover.ts`,
+Lizenzeintrag im Register (Pflichttext `WC_ATTRIBUTION`).
+
+**SAT2e-Nachtrag (2026-09-03, V-SAT-15 — eigener Spiegel als benannter Ersatzweg, Audit §12.7):**
+fällt der Planetary Computer aus (Token-Eingangstür oder Blob, 2 harte Netzfehler = Sitzungs-Latch
+nach RD2-Muster; ein 404 zählt nie), liest die Dämpfung denselben Leser-Vertrag vom **eigenen
+statischen Spiegel-Repo `jppetry/buscosun-worldcover`** über jsDelivr am **gepinnten Commit-SHA**
+(`WC_MIRROR_SHA`, nie `@main` — jsDelivr hält vorzeitig angefragte 404 fest): je DACH-3°-Kachel
+EINE Ein-Ebenen-TIFF der **9000-px-Pyramidenebene (≈ 37 m/px)**, Kachel-Nutzlasten byte-identisch
+aus dem Original-COG remuxt (`scripts/fire/wc/build-wc-mirror.mjs`; 17 Kacheln, 115,78 MB —
+die 18 000-px-Ebene wäre mit 22,9 MB über der 20-MB-Dateigrenze von jsDelivr). Der Viewer-Satz
+sagt im Spiegel-Fall ehrlich „37 m statt 10 m"; Schalter `?wcm=1` (erzwingen, Beleg/Debug) bzw.
+`?wcm=0` (Ersatzweg aus), Query schlägt `localStorage.wcm`; erst wenn AUCH der Spiegel ausfällt,
+fällt die Dämpfung (heutiges Verhalten). 0 Netlify-Bytes; PC gesund ⇒ Abrufstrom byte-identisch
+zum SAT2d-Stand.

@@ -3666,3 +3666,117 @@ Nicht angefasst: Shader, GRIB-Weg (Concurrency 6, keine Frist), `?repack=0`/`?re
 5. **Long Tasks** — 534 und 3 392 ms, beide der vorbestehende DEM-Bau (§23.5), auf die Millisekunde belegt (Temperaturbilder starten bei 3 228 + 3 392 = 6 620); die Phase legt keine Arbeit auf den Hauptthread.
 
 **Offen (Jans Hand):** Deploy = Commit + Netlify-Build; danach holt jeder Bestandsbrowser den v4-Worker beim nächsten Aufruf (`skipWaiting` + `clients.claim`) — **der erste Aufruf nach dem Deploy kann noch das alte Manifest zeigen**, weil der Wechsel während des Ladens passiert; ab dem zweiten ist es frisch. Mobile Real-Device (§29.5 Vorbehalt). **V-BW-42** (Temperatur wartet 10 s auf das DEM) ist der nächste messbare Hebel für das Erstbild; **V-BW-43** Pollen/UV unter der SW-Asset-Regel. Die Fristen-Trennung ändert den BW-3-Vertrag „zwei Fristen" zu „zwei Kopfzeilen-Fristen + eine Körper-Frist" (§22.3 gilt mit diesem Zusatz).
+
+
+# 30 BW-11 — Warum die BW-10-Korrektur die Bestandsbrowser nicht erreichte (2026-08-26)
+
+**Jans Meldung:** „Die Wetterkarte nimmt immer noch nicht die letzten Daten der
+Layer" — sein Bildschirm zeigte
+
+    Wind · DWD ICON-D2 U/V 10M · 2,2 KM · Lauf 21z · vor 4 h
+
+um 01:15 UTC, also 21z, obwohl 00z längst lag.
+
+## 30.1 Was wirklich lag
+
+| Stelle | Stand | Zeitpunkt |
+|---|---|---|
+| `buscosun.com/latest-wind.json` | `run 2026082600` | `updatedAt` 00:50 UTC |
+| `buscosun.com/latest-grib.json` | `run 2026082600` | `updatedAt` 00:50 UTC |
+| Daten-Repo `runs/2026082600/` | vorhanden, Index gezogen | ≈ 01:06 UTC |
+| `buscosun.com/sw.js` | `VERSION = 'v4'` (BW-10) | ausgeliefert |
+
+Beide Seiten waren also auf 00z. Der Fehler lag im Browser, nicht in der Kette.
+
+## 30.2 Die Gegenprobe, die den Verdacht auf den Client lenkte
+
+Ein **frischer** Browser auf `https://buscosun.com/wetterkarte/wind` zeigte
+
+    Wind · DWD ICON-D2 U/V 10M · 2,2 KM · Lauf 00z · vor 1 h
+
+— korrekt. Der Unterschied zwischen den beiden Browsern ist der Service Worker.
+
+## 30.3 Der Befund (V-BW-44)
+
+Im **Bestands**browser gemessen:
+
+```
+active:  https://buscosun.com/sw.js   state: activated
+waiting:                              state: installed
+caches:  bsc-shell-v2  bsc-data-v2  bsc-assets-v2  bsc-shell-v4  icon-d2-grib-decompressed-v1
+bsc-assets-v2 enthält:  /latest-grib.json   /latest-wind.json
+```
+
+Zu lesen ist das so: der **alte** Worker bedient, der v4-Worker steht als
+`installed` daneben und kommt nicht dran (`bsc-shell-v4` belegt, dass sein
+`install` lief; dass `bsc-*-v2` **und** `icon-d2-grib-decompressed-v1` noch da
+sind, belegt, dass sein `activate` **nicht** lief — es löscht beides). Und im
+Cache des alten Workers liegen genau die zwei Live-Manifeste.
+
+Damit ist V-BW-31 (§29.1 B) in Bestandsbrowsern **unverändert wirksam**: der alte
+Worker führt `.json` als gehashtes Asset, antwortet erst aus dem Cache und frischt
+danach auf — jede Sitzung sieht den Lauf der **vorigen**. Genau ein Lauf Rückstand,
+genau Jans Bild.
+
+**Die Lehre — und sie gilt über diese Phase hinaus:** `self.skipWaiting()` im
+`install` ist eine **Bitte, kein Vollzug**. Solange ein Tab der Herkunft offen
+ist, kann ein neuer Worker in `waiting` stehen bleiben. Eine Korrektur, die IM
+Service Worker steht, ist deshalb nicht ausgeliefert, wenn sie deployt ist —
+sie ist ausgeliefert, wenn der neue Worker **aktiviert** ist. Der Satz aus §29
+(„der erste Aufruf nach dem Deploy kann noch das alte Manifest zeigen") war zu
+milde: es ist nicht der erste Aufruf, es sind alle, bis der Worker wechselt.
+
+## 30.4 Umgesetzt — zwei Nähte, jede für sich ausreichend
+
+**(1) Die Übernahme wird vollzogen, nicht erbeten.**
+`public/sw.js` bekommt einen `message`-Empfänger für `SKIP_WAITING`;
+`src/main.tsx` registriert wie bisher, ruft zusätzlich `update()`, schickt einem
+wartenden Worker die Nachricht und lädt bei `controllerchange` **genau einmal**
+neu. Das Neuladen hängt an `hadController`: bei der Erstregistrierung feuert
+`controllerchange` durch `clients.claim()` — dort wäre es eine zweite Ladung
+ohne Anlass.
+
+**(2) Die Frische hängt an keinem Worker mehr.**
+`liveManifestUrl()` (in `gribManifest.ts`, EINE Regel, von beiden Resolvern
+benutzt) hängt an den Abruf-URL der Live-Manifeste einen Minutenstempel im Takt
+von `MANIFEST_TTL_MS`. Der **Pfad** bleibt unverändert — `LIVE_RE` prüft
+`url.pathname`, die network-first-Regel des v4-Workers gilt also weiter —, aber
+der **Cache-Schlüssel** ist neu, und ein alter Worker findet nichts und geht ans
+Netz. `cache: 'no-store'` konnte das nie leisten: es wirkt im HTTP-Layer, der
+Worker greift davor.
+
+Der Identitätsschlüssel bleibt der Pfad ohne Stempel: Manifest-Cache
+(`getManifest`) und Gesundheitsmeldung (`reportManifest`) sollen nicht je Minute
+eine neue Datei zu sehen glauben.
+
+**Preis von (2):** im Cache eines alten Workers wächst je Minute und Datei ein
+Eintrag (~1 KB) — bis dessen `activate` ihn ohnehin löscht. Das ist der
+bewusste Tausch: ein paar KB gegen die Gewissheit, dass niemand einen Lauf
+Rückstand sieht.
+
+## 30.5 Gate GBW11
+
+| Frage | Beleg |
+|---|---|
+| 1 Funktionserhalt | Registrierung und Cache-Strategien unverändert; nur additiv (Nachricht, `update()`, Stempel) |
+| 2 Desktop | keine UI berührt |
+| 3 Touch-Targets | keine UI berührt |
+| 4 Konsole | s. u. |
+| 5 Long Tasks | keine Rechenwege berührt |
+
+**Offen:** die Wirkung auf einen echten Bestandsbrowser ist erst nach dem Deploy
+zu sehen — **Deploy ist Jans Gate**. Bis dahin hilft Jan sofort: einmal Worker
+abmelden und Caches leeren (DevTools → Application → Unregister + Clear storage),
+oder `?repackidx=1` … nein — der schnellste ehrliche Weg ist das Abmelden.
+
+## 30.6 V-Einträge
+
+* **V-BW-44** — der Kern dieses Abschnitts: eine Service-Worker-Korrektur ist
+  erst wirksam, wenn der Worker **aktiviert** ist; `skipWaiting()` im `install`
+  garantiert das nicht.
+* **V-BW-45** — `activate` des Workers löscht **jeden** fremden Cache-Namen,
+  also auch `icon-d2-grib-decompressed-v1` (Dekomprimat-Cache der GRIB-Kette).
+  Beim ersten Wechsel auf v4 geht dieser Cache verloren und wird neu aufgebaut:
+  einmalig teurer Kaltstart, kein Datenfehler. Aufgefallen bei der Messung oben;
+  nicht behoben, weil die Aufräumregel sonst eine Liste pflegen müsste — Jans
+  Entscheidung.

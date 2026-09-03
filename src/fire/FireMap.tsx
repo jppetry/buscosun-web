@@ -22,6 +22,7 @@
 
 import { useEffect, useMemo, useRef } from 'react';
 import maplibregl from 'maplibre-gl';
+import { patchLibertyRefLength } from '../map/libertyStyle';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { loadDachMask } from '../countryMask';
 import {
@@ -85,7 +86,7 @@ function rasterStyle(url: string, attribution: string): maplibregl.StyleSpecific
   };
 }
 
-function basemapStyle(b: FireBasemap): string | maplibregl.StyleSpecification {
+export function basemapStyle(b: FireBasemap): string | maplibregl.StyleSpecification {
   if (b === 'satellite') {
     return rasterStyle(
       'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
@@ -209,7 +210,8 @@ interface Props {
    */
   focusNonce?: number;
   /** BC1: Klick auf eine Hülle (oder daneben) — meldet die Auswahl an die Liste. */
-  onSelectCluster?: (id: string | null) => void;
+  /** BD2a: `true` heißt „der Klick hat das Dossier geöffnet" — das Popup dieses Klicks entfällt dann. */
+  onSelectCluster?: (id: string | null) => boolean | void;
   /**
    * BP2 — die Brandflächen der Registry als GeoJSON (`footprintsToGeoJSON`),
    * **memoisiert** vom Aufrufer (V-220). Eine Form je Brand, Statusfarbe aus
@@ -226,7 +228,14 @@ interface Props {
    */
   focusBbox?: [number, number, number, number] | null;
   /** BP2: Klick auf eine Brandfläche — meldet die Kennung an die Liste (kein Popup, keine Bewegung). */
-  onSelectFootprint?: (id: string | null) => void;
+  /** BD2a: Rückgabe wie `onSelectCluster`. */
+  onSelectFootprint?: (id: string | null) => boolean | void;
+  /** BD2b: Klick auf eine EFFIS-Fläche — `true` heißt „Dossier geöffnet", das Popup entfällt dann. */
+  onSelectBurnt?: (effisId: string) => boolean | void;
+  /** BD2b: Klick in ein Detektionsraster — Rückgabe wie `onSelectBurnt`. */
+  onSelectZone?: (zoneId: string) => boolean | void;
+  /** BD2c: Klick auf einen Detektionspunkt (Pixelmitte) — Rückgabe wie `onSelectBurnt`. */
+  onSelectDetection?: (lon: number, lat: number) => boolean | void;
   /** Welche Quelle die Hotspots geliefert hat — steuert die Attribution. */
   hotspotProvider: 'firms' | 'gwis';
   /** E3: welche Sub-Ansicht des EU-Index das Raster zeigt. */
@@ -330,7 +339,7 @@ export default function FireMap({
   active, basemap, day, isoDate, hotspots, hotspotFootprints,
   fireZones = EMPTY_ZONES,
   clusters = EMPTY_CLUSTERS, selectedClusterId = null, focusNonce = 0, onSelectCluster,
-  footprintFc = null, hoverFootprintId = null, selectedFootprintId = null, focusBbox = null, onSelectFootprint,
+  footprintFc = null, hoverFootprintId = null, selectedFootprintId = null, focusBbox = null, onSelectFootprint, onSelectBurnt, onSelectZone, onSelectDetection,
   hotspotProvider, dangerView, burntSeason, burntArchive, burntWeekFc = null,
   burntBuckets, burntLookup, burntWeek, zoneEstimates = EMPTY_ZONE_EST,
   fireEvents = EMPTY_EVENTS, emsActs = EMPTY_EMS, atContexts = EMPTY_CTX, clcMask = null,
@@ -392,6 +401,12 @@ export default function FireMap({
   /** BP2: dasselbe für die Brandflächen — der Handler ist einmal registriert. */
   const onSelectFootprintRef = useRef(onSelectFootprint);
   onSelectFootprintRef.current = onSelectFootprint;
+  const onSelectBurntRef = useRef(onSelectBurnt);
+  onSelectBurntRef.current = onSelectBurnt;
+  const onSelectZoneRef = useRef(onSelectZone);
+  onSelectZoneRef.current = onSelectZone;
+  const onSelectDetectionRef = useRef(onSelectDetection);
+  onSelectDetectionRef.current = onSelectDetection;
   /** TA5: dasselbe für die Standort-Rauten. */
   const onSelectSiteRef = useRef(onSelectSite);
   onSelectSiteRef.current = onSelectSite;
@@ -647,6 +662,18 @@ export default function FireMap({
     });
     map.on('styledata', () => applyState(map));
     map.on('idle', () => applyState(map));
+    // V-RL-3 (BD2, 2026-08-29): derselbe Stil-Eingriff wie Regenradar/Gelände/Minikarte — der
+    // Brandradar lud bis hier nie Zoom-12-Kacheln (DACH-Überblick); seit der Fokus-Zoom auf einen
+    // Brand sie holt, warnte der Worker je Kachel. Auf 'style.load', nicht 'load' (R3D-5 §22.3).
+    map.on('style.load', () => patchLibertyRefLength(map));
+    // BD2e (2026-08-31): MapLibre öffnet die kompakte Attribution beim Start AUSGEKLAPPT
+    // (details[open], gemessen 612 × 62 px über der unteren Kartenhälfte) — sie schluckte
+    // dort jeden Brand-Klick (elementFromPoint zeigte das details-Element, der Karten-
+    // Click-Handler feuerte nie). Zugeklappt bleibt der ⓘ-Knopf; die Quellenangabe ist
+    // einen Klick entfernt, nichts wird entfernt.
+    map.once('load', () => {
+      map.getContainer().querySelectorAll('details.maplibregl-ctrl-attrib[open]').forEach((d) => d.removeAttribute('open'));
+    });
 
     // --- Detektions-Steckbrief (F1) ------------------------------------------
     // Ein Klick auf eine Thermalanomalie öffnet ihre gemessenen Werte. Der
@@ -688,6 +715,12 @@ export default function FireMap({
           return;
         }
       }
+      // BD2a: öffnet dieser Klick das Dossier (Brandfläche oder Hülle trifft einen
+      // Brand), wechselt die Bühne — ein Popup stünde dann auf der versteckten
+      // Karte und wartete dort auf die Rückkehr. Der Klick, der das Dossier
+      // öffnet, öffnet deshalb KEIN Popup; alle übrigen Klicks (ortsfeste
+      // Anlagen, Historie-lose Flächen, Raster) behalten ihre Steckbriefe.
+      let openedDossier = false;
       if (onSelectFootprintRef.current && map.getLayer('fire-footprints-fill')) {
         const fps = map.queryRenderedFeatures(ev.point, { layers: ['fire-footprints-fill'] });
         // Bei überlappenden Flächen die KLEINSTE — sie ist die spezifischere;
@@ -698,8 +731,11 @@ export default function FireMap({
           return bb < aa ? b : a;
         }, null);
         const id = pick ? String(pick.properties?.id ?? '') : null;
-        if (id && id !== s.selectedFootprintId) onSelectFootprintRef.current(id);
-        else if (!id && s.selectedFootprintId) {
+        // BD2a: auch der WIEDERHOLTE Klick auf den markierten Brand öffnet das
+        // Dossier (nach „Bühne zurück" wäre er sonst folgenlos) — die Setter
+        // sind idempotent, der frühere Gleichheits-Wächter entfällt.
+        if (id) openedDossier = onSelectFootprintRef.current(id) === true || openedDossier;
+        else if (s.selectedFootprintId) {
           // Klick daneben hebt die Markierung auf — außer, er trifft eine Hülle
           // (dann übernimmt der Cluster-Block; die Seite nullt die Brandfläche).
           const hulls = map.getLayer('fire-clusters-fill') ? map.queryRenderedFeatures(ev.point, { layers: ['fire-clusters-fill'] }) : [];
@@ -714,8 +750,11 @@ export default function FireMap({
         const pick = hulls.reduce<maplibregl.MapGeoJSONFeature | null>(
           (a, b) => (a && Number(a.properties?.sumFrp ?? 0) >= Number(b.properties?.sumFrp ?? 0) ? a : b), null);
         const id = pick ? String(pick.properties?.id ?? '') : null;
-        if (id !== s.selectedClusterId) onSelectClusterRef.current(id || null);
+        // BD2a: derselbe Grund wie bei der Brandfläche — der wiederholte Klick zählt.
+        if (id) openedDossier = onSelectClusterRef.current(id) === true || openedDossier;
+        else if (id !== s.selectedClusterId) onSelectClusterRef.current(null);
       }
+      if (openedDossier) { popupRef.current?.remove(); popupRef.current = null; return; }
       if (map.getLayer('fire-hotspots-points')) {
         const hits = map.queryRenderedFeatures(ev.point, { layers: ['fire-hotspots-points'] });
         if (hits.length > 0) {
@@ -731,6 +770,14 @@ export default function FireMap({
           // zeitlich passend, sonst nichts. Die Pixelmitte kommt aus der Geometrie,
           // nicht aus dem Klickpunkt.
           const geom = chosen.geometry as GeoJSON.Point;
+          // BD2c: der Punkt ist das, was Nutzer am Übersichts-Zoom wirklich treffen
+          // (die Hülle ist dort oft nur wenige Pixel groß). Gehört er einem Brand
+          // der Registry, öffnet der Klick sein Dossier statt des Steckbriefs —
+          // derselbe Vorrang wie bei Hülle und Brandfläche (BD2a/BD2b).
+          if (Array.isArray(geom?.coordinates)
+            && onSelectDetectionRef.current?.(geom.coordinates[0], geom.coordinates[1]) === true) {
+            popupRef.current?.remove(); popupRef.current = null; return;
+          }
           const mapped = typeof p.acqMs === 'number' && Array.isArray(geom?.coordinates)
             ? mappedAreaFor({ lon: geom.coordinates[0], lat: geom.coordinates[1], acqMs: p.acqMs }, s.burntWeek)
             : null;
@@ -774,6 +821,9 @@ export default function FireMap({
       const bHits = fills.length > 0 ? map.queryRenderedFeatures(ev.point, { layers: fills }) : [];
       const poly = bHits.length > 0 ? s.burntLookup.get(String(bHits[0].properties?.id)) : undefined;
       if (poly) {
+        // BD2b: gehört die Fläche einem Brand der Registry, öffnet der Klick sein
+        // Dossier — das Popup stünde sonst auf der versteckten Karte (BD2a-Regel).
+        if (onSelectBurntRef.current?.(String(poly.id)) === true) { popupRef.current?.remove(); popupRef.current = null; return; }
         const lid = bHits[0].layer.id;
         const bucket: BurntBucket = lid.includes('archive') ? 'archive' : lid.includes('week') ? 'week' : 'season';
         popupRef.current?.remove();
@@ -790,6 +840,8 @@ export default function FireMap({
       if (!s.active.has('fireHotspots') || s.fireZones.length === 0) return;
       const zone = zoneAt(ev.lngLat.lng, ev.lngLat.lat, s.fireZones);
       if (!zone) return;
+      // BD2b: dieselbe Regel für das Raster — mit Brand dahinter öffnet das Dossier.
+      if (onSelectZoneRef.current?.(zone.id) === true) { popupRef.current?.remove(); popupRef.current = null; return; }
       popupRef.current?.remove();
       popupRef.current = new maplibregl.Popup({ closeButton: true, maxWidth: '300px' })
         .setLngLat(ev.lngLat)

@@ -82,7 +82,6 @@ import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { execFile, spawnSync } from 'node:child_process';
-import bz2mod from 'bz2';
 import { decodeGrib2, subsampledCorners, gribCorners } from '../src/sources/gribDecode.ts';
 import { buildWindRgba } from '../src/wind/windFrameBuild.ts';
 import { buildTempRgba, buildHsurfGrey, TEMP_VMIN, TEMP_VMAX, TEMP_DEM_MAX } from '../src/sources/tempFrameBuild.ts';
@@ -96,48 +95,11 @@ import { PRECIP_VMAX, CAPE_MAX } from '../src/scalar/RainLayer.ts';
 import { encodePng, decodePng } from './lib/png.mjs';
 import { RUNS_DIR, HSURF_FILE, FAMILIES, FAMILY_KEYS } from './lib/repackManifest.mjs';
 
-const bz2 = bz2mod.decompress ? bz2mod : (bz2mod.default ?? bz2mod);
-
-// ---------------------------------------------------------------------------
-// BW-9 (V-BW-27): `bzip2`-Binary statt pure-JS. Lokal gemessen an t_2m 000
-// (913 KB → 1,62 MB): JS 1,26–1,49 s, Binary 0,47–0,59 s inkl. Prozessstart —
-// Faktor ≈ 2,6; und weil je Familie mehrere Felder per `Promise.all` geholt
-// werden, laufen die Prozesse zusätzlich nebeneinander auf mehreren Kernen,
-// wo das JS-Modul nacheinander auf EINEM Thread rechnet. Byte-gleich per
-// Definition (derselbe Datenstrom), und `verify:repack` prüft es trotzdem.
-//
-// Flag-gated (Rule 2): nur mit `REPACK_BZIP2=1`; der Workflow setzt es, lokal
-// bleibt JS der Standard. Fehlt das Binary oder scheitert ein Aufruf, fällt
-// die DATEI auf JS zurück — nie der Lauf.
-// ---------------------------------------------------------------------------
-const BZIP2_WANTED = process.env.REPACK_BZIP2 === '1';
-let bzip2Ok = null;   // null = noch nicht geprüft
-function bzip2Available() {
-  if (bzip2Ok === null) {
-    const r = spawnSync('bzip2', ['--help'], { stdio: 'ignore' });
-    bzip2Ok = !r.error;
-    if (BZIP2_WANTED) log(bzip2Ok ? 'bz2: bzip2-Binary (REPACK_BZIP2=1)' : 'bz2: REPACK_BZIP2=1, aber kein `bzip2` im PATH → pure-JS');
-  }
-  return bzip2Ok;
-}
-function bzip2Spawn(buf) {
-  return new Promise((res, rej) => {
-    const child = execFile('bzip2', ['-dc'], { encoding: 'buffer', maxBuffer: 256 * 1024 * 1024 },
-      (err, stdout) => (err ? rej(err) : res(new Uint8Array(stdout.buffer, stdout.byteOffset, stdout.length))));
-    child.stdin.on('error', rej);
-    child.stdin.end(buf);
-  });
-}
-let bzip2Warned = false;
-/** bz2-Bytes → entpackte Bytes. Exportiert, damit der Verifier beide Wege gegeneinander hält. */
-export async function decompressBz2(buf, { binary = BZIP2_WANTED } = {}) {
-  if (binary && bzip2Available()) {
-    try { return await bzip2Spawn(buf); } catch (e) {
-      if (!bzip2Warned) { bzip2Warned = true; log(`bz2: Binary scheiterte (${e.message}) → pure-JS für diese Datei`); }
-    }
-  }
-  return bz2.decompress(new Uint8Array(buf));
-}
+// bz2: geteilter Weg in `scripts/lib/bz2.mjs` (RD3 herausgeloest; Binary-Flag
+// REPACK_BZIP2=1, Datei-weiser JS-Rueckfall). Re-Export, damit `verify:repack`
+// weiter beide Wege ueber dieses Modul gegeneinander halten kann.
+import { decompressBz2 } from './lib/bz2.mjs';
+export { decompressBz2 };
 
 const DWD_BASE = (process.env.DWD_BASE || 'https://opendata.dwd.de/weather/nwp/icon-d2/grib').replace(/\/+$/, '');
 const OUT_DIR = resolve(process.env.REPACK_OUT || 'data/repack');
