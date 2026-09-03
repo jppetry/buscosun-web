@@ -12,9 +12,9 @@
 # die FERTIG AUFBEREITETEN Dateien unter `radar/img/v1/` ab (RV/INCA/rzc als
 # Graustufen-PNG, KONRAD als JSON) — dafür klont er buscosun-web SPARSE und spawnt
 # `radar-derive.mjs` je Slot als Kindprozess (die Decoder des Clients erzeugen die
-# Bytes; `verify:radar-repack`). Quelle ist der Zweig `rd3-producer` — main hinkt
-# dem Arbeitsbaum hinterher; nach dem nächsten main-Deploy von buscosun-web auf
-# `main` zurückstellen (V-RD-12). Scheitert Klon/Install, spiegelt der Job ROH
+# Bytes; `verify:radar-repack`). Quelle ist `main` von buscosun-web — die Decoder
+# sind DIESELBEN Module, die der Browser lädt (BW-1-Regel; V-RD-12 erledigt
+# 2026-09-03 mit Jans Deploy). Scheitert Klon/Install, spiegelt der Job ROH
 # weiter (das Skript prüft APP_DIR selbst). Am Ende — direkt nach einem Push —
 # löst der Job seinen NACHFOLGER selbst aus (`ensureSuccessor`, `actions: write`).
 # Absicherung: `radar-watchdog.yml` prüft stündlich, ob ein Lauf aktiv ist, und
@@ -60,7 +60,7 @@ jobs:
       - name: Checkout buscosun-web (sparse, für derive)
         continue-on-error: true
         run: |
-          git clone --depth=1 --filter=blob:none --no-checkout --branch rd3-producer https://github.com/jppetry/buscosun-web.git app
+          git clone --depth=1 --filter=blob:none --no-checkout https://github.com/jppetry/buscosun-web.git app
           cd app
           git sparse-checkout set --no-cone scripts src package.json
           git checkout

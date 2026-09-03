@@ -58,6 +58,18 @@ export function dnbrRgba(d: number | null): [number, number, number, number] {
   return cls.rgba;
 }
 
+/**
+ * V-SAT-18 (§12.10): dieselben Klassen als typisierte Spalten — **abgeleitet** aus
+ * `DNBR_CLASSES`, nie danebengeschrieben. Die Kachelschleife sucht ihre Klasse damit, ohne je
+ * ein Objekt anzufassen oder ein Tupel zu destrukturieren (letzteres lief über das
+ * Iterator-Protokoll, je Pixel — gemessen 1,0–1,5× der Laufzeit).
+ */
+const CLS_MIN = Float64Array.from(DNBR_CLASSES, (c) => c.min);
+const CLS_R = Uint8Array.from(DNBR_CLASSES, (c) => c.rgba[0]);
+const CLS_G = Uint8Array.from(DNBR_CLASSES, (c) => c.rgba[1]);
+const CLS_B = Uint8Array.from(DNBR_CLASSES, (c) => c.rgba[2]);
+const CLS_A = Uint8Array.from(DNBR_CLASSES, (c) => c.rgba[3]);
+
 // --- SWIR-Falschfarbe (B12 / B8A / B04) --------------------------------------------------------
 
 /**
@@ -124,17 +136,36 @@ export function wcDamped(cls: number): boolean {
 
 // --- Kachel-Kompositoren -----------------------------------------------------------------------
 
+/**
+ * V-SAT-18 (§12.10): die beiden Schleifen rechnen die Regeln oben **inline** statt sie je Pixel
+ * über `boaOf`/`nbrOf`/`swirChannel` aufzurufen. Grund ist nicht der Aufruf, sondern deren
+ * Rückgabetyp `number | null`: V8 kann daraus keinen untagged Double machen, jede Zahl wird
+ * geboxt, und 262 144 Pixel × vier solcher Rückgaben kosteten gemessen das 4,5–8,1-Fache der
+ * eigentlichen Rechnung. Innerhalb der Schleife heißt „kein Wert" deshalb `NaN`, und die
+ * Abfrage lautet `!(d >= …)` — `d < …` täte es NICHT, weil jeder NaN-Vergleich falsch ist.
+ *
+ * Die FACHREGELN stehen unverändert oben und bleiben die lesbare Quelle (Legende,
+ * Selbstverifikation, künftige Aufrufer): Klassenkanten `DNBR_CLASSES` (hier als `CLS_*`
+ * abgeleitet), Maskenregeln `sclPreMasked`/`sclPostMasked`/`sclPostUnsure`/`wcDamped` werden
+ * weiterhin aufgerufen. Der Beleg der Umstellung ist die Byte-Gleichheit gegen die vorherige
+ * Schleife über alle vier Aufrufformen — `audit/brandradar-satellitenbilder/dnbr-loop-bisect.mjs`
+ * führt sie wortgleich als Orakel mit (BW-1-Muster).
+ */
+
 /** SWIR-Falschfarbkachel: R = B12, G = B8A, B = B04; nodata in irgendeinem Band ⇒ transparent. */
 export function swirTileRgba(
   s12: Uint16Array, n8a: Uint16Array, r04: Uint16Array, s: BandScale,
 ): Uint8ClampedArray {
-  const out = new Uint8ClampedArray(s12.length * 4);
-  for (let i = 0, j = 0; i < s12.length; i++, j += 4) {
-    const r = swirChannel(s12[i], s);
-    const g = swirChannel(n8a[i], s);
-    const b = swirChannel(r04[i], s);
-    if (r == null || g == null || b == null) continue; // alpha bleibt 0
-    out[j] = r; out[j + 1] = g; out[j + 2] = b; out[j + 3] = 255;
+  const n = s12.length;
+  const out = new Uint8ClampedArray(n * 4);
+  const sc = s.scale, of = s.offset;
+  for (let i = 0, j = 0; i < n; i++, j += 4) {
+    const a = s12[i], b = n8a[i], c = r04[i];
+    if (a === 0 || b === 0 || c === 0) continue; // nodata in irgendeinem Band ⇒ alpha bleibt 0
+    out[j] = Math.round(Math.min(1, Math.max(0, a * sc + of) * SWIR_GAIN) * 255);
+    out[j + 1] = Math.round(Math.min(1, Math.max(0, b * sc + of) * SWIR_GAIN) * 255);
+    out[j + 2] = Math.round(Math.min(1, Math.max(0, c * sc + of) * SWIR_GAIN) * 255);
+    out[j + 3] = 255;
   }
   return out;
 }
@@ -149,15 +180,37 @@ export function dnbrTileRgba(
   sPre: BandScale, sPost: BandScale,
   preScl?: Uint8Array | null, postScl?: Uint8Array | null, wcCls?: Uint8Array | null,
 ): Uint8ClampedArray {
-  const out = new Uint8ClampedArray(preN.length * 4);
-  for (let i = 0, j = 0; i < preN.length; i++, j += 4) {
+  const n = preN.length;
+  const out = new Uint8ClampedArray(n * 4);
+  const scA = sPre.scale, ofA = sPre.offset, scB = sPost.scale, ofB = sPost.offset;
+  const nc = CLS_MIN.length, min0 = CLS_MIN[0];
+  for (let i = 0, j = 0; i < n; i++, j += 4) {
     if (preScl && sclPreMasked(preScl[i])) continue;
     if (postScl && sclPostMasked(postScl[i])) continue;
-    const a = nbrOf(preN[i], preS[i], sPre);
-    const b = nbrOf(postN[i], postS[i], sPost);
-    const [r, g, bl, al] = dnbrRgba(a == null || b == null ? null : a - b);
-    if (al === 0) continue;
-    out[j] = r; out[j + 1] = g; out[j + 2] = bl;
+    // NBR beider Szenen inline (= `nbrOf`, aber ohne die `number | null`-Union): DN 0 ist
+    // nodata, die Reflektanz wird auf ≥ 0 geklemmt, und eine Summe 0 hat kein Verhältnis.
+    let a = NaN;
+    const an = preN[i], as = preS[i];
+    if (an !== 0 && as !== 0) {
+      const p = Math.max(0, an * scA + ofA), q = Math.max(0, as * scA + ofA);
+      const sum = p + q;
+      if (sum > 0) a = (p - q) / sum;
+    }
+    let b = NaN;
+    const bn = postN[i], bs = postS[i];
+    if (bn !== 0 && bs !== 0) {
+      const p = Math.max(0, bn * scB + ofB), q = Math.max(0, bs * scB + ofB);
+      const sum = p + q;
+      if (sum > 0) b = (p - q) / sum;
+    }
+    const d = a - b;
+    // Fängt nodata (NaN) UND „unter der ersten Kante" in einem Vergleich — s. Kopfkommentar.
+    if (!(d >= min0)) continue;
+    let k = nc - 1;
+    while (CLS_MIN[k] > d) k--; // `d >= min0` ist bewiesen ⇒ k bleibt ≥ 0
+    const al = CLS_A[k];
+    if (al === 0) continue; // trüge eine Klasse je alpha 0, bliebe das Pixel unberührt wie bisher
+    out[j] = CLS_R[k]; out[j + 1] = CLS_G[k]; out[j + 2] = CLS_B[k];
     // SCL-Unsicherheit und Landbedeckungs-Dämpfung halbieren EINMAL, nie zweimal (§12.2 E1).
     const unsure = (postScl != null && sclPostUnsure(postScl[i])) || (wcCls != null && wcDamped(wcCls[i]));
     out[j + 3] = unsure ? al >> 1 : al;

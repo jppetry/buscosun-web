@@ -22,7 +22,7 @@ import { parseIncaOffMain, warmHdf5Worker } from './hdf5OffMain';
 import { shareInFlight } from './shareInFlight';
 // RD3 (audit/radar-datenrepo.md §14): fertig aufbereitete Frames vom Daten-Repo-CDN
 import { radarCdnEnabled, radarCdnUsable, radarImgEnabled, noteRadarCdnFailure, radarCdnDeadline } from './radolanRuns';
-import { incaImgDir, parseIncaImgMeta, radarImgStamp, fetchImgRes, loadRadarGrayPng, RadarImg404 } from './radarImg';
+import { incaImgDir, parseIncaImgMeta, radarImgStamp, radarImgStampToMs, fetchImgRes, loadRadarGrayPng, RadarImg404 } from './radarImg';
 
 const GRID_URL =
   'https://dataset.api.hub.geosphere.at/v1/grid/forecast/nowcast-v1-15min-1km';
@@ -90,6 +90,23 @@ export async function fetchIncaGrid(signal?: AbortSignal, opts?: IncaFetchOption
 const META_URL = `${GRID_URL}/metadata`;
 
 /**
+ * Gate für GERECHNETE Bild-Stempel (RD3c-Nachtrag): der Spiegel pusht einen Lauf
+ * 16,7–22,8 min nach seiner Referenzzeit (Telemetrie 2026-09-03) — plus CDN und
+ * Reserve. Nur für den Ausfall-Rückfall; im Normalbetrieb kommt der Stempel
+ * deterministisch aus `/metadata`, dann gibt es kein 404-Risiko.
+ */
+export const INCA_IMG_GATE_MS = 28 * 60_000;
+const INCA_STEP_MS = 15 * 60_000;
+
+/** Die `count` jüngsten 15-min-Referenzzeiten, die bei `INCA_IMG_GATE_MS` sicher gespiegelt sind. */
+export function guessIncaStamps(count: number, nowMs: number = Date.now()): string[] {
+  const newest = Math.floor((nowMs - INCA_IMG_GATE_MS) / INCA_STEP_MS) * INCA_STEP_MS;
+  const out: string[] = [];
+  for (let i = 0; i < count; i++) out.push(radarImgStamp(newest - i * INCA_STEP_MS));
+  return out;
+}
+
+/**
  * RD3: der aktuelle Lauf als fertige PNGs vom Daten-Repo — deterministisch über die
  * Referenzzeit aus `/metadata` (kein Stempel-Raten: die GeoSphere-reftime hinkt dem
  * Slot ~15–30 min hinterher, gemessen §14.2). Der Spiegel pusht denselben Lauf
@@ -101,26 +118,66 @@ async function loadIncaFromImg(priority?: RequestPriority): Promise<IncaGrid | n
   if (!(radarCdnEnabled() && radarCdnUsable() && radarImgEnabled())) return null;
   const dl = radarCdnDeadline(undefined);
   try {
-    const mr = await fetch(META_URL, { signal: dl.signal, ...(priority ? { priority } : {}) } as RequestInit);
-    if (!mr.ok) return null;
-    const ref = Date.parse(String((await mr.json() as { last_forecast_reftime?: string }).last_forecast_reftime ?? ''));
+    // Der Stempel kommt von GEOSPHERE, die Bilder vom CDN — zwei Hosts, zwei
+    // Fehlerkonten. Das `/metadata` flattert gemessen mit 502/503; solche Fehler
+    // dürfen NICHT den geteilten CDN-Sitzungs-Latch belasten (der schaltet sonst
+    // auch RV/KONRAD/rzc ab). Deshalb hat der Fremd-Abruf sein eigenes catch.
+    let ref = NaN;
+    try {
+      const mr = await fetch(META_URL, { signal: dl.signal, ...(priority ? { priority } : {}) } as RequestInit);
+      if (!mr.ok) return null;
+      ref = Date.parse(String((await mr.json() as { last_forecast_reftime?: string }).last_forecast_reftime ?? ''));
+    } catch {
+      return null;                               // GeoSphere weg ⇒ Direktweg, danach der geratene Bild-Weg
+    }
     if (!Number.isFinite(ref)) return null;
-    const stamp = radarImgStamp(ref);
-    const dir = incaImgDir(stamp);
-    const meta = parseIncaImgMeta(await (await fetchImgRes(`${dir}/meta.json`, dl.signal, priority)).json());
-    if (!meta || meta.stamp !== stamp) return null;
-    const frames: IncaFrame[] = await Promise.all(meta.frames.map(async (f) => ({
-      leadHours: f.lead / 60,
-      values: await loadRadarGrayPng(await fetchImgRes(`${dir}/${f.file}`, dl.signal, priority), meta.width, meta.height),
-      width: meta.width,
-      height: meta.height,
-    })));
-    console.log(`[buscosun] GeoSphere INCA → Lauf ${stamp} · ${frames.length} Frames · Quelle Daten-Repo (PNG)`);
-    return { frames, corners: meta.corners as QuadCorners };
+    const grid = await loadIncaSlot(radarImgStamp(ref), dl.signal, priority);
+    if (grid) console.log(`[buscosun] GeoSphere INCA → Lauf ${radarImgStamp(ref)} · ${grid.frames.length} Frames · Quelle Daten-Repo (PNG)`);
+    return grid;
   } catch (err) {
     if (!(err instanceof RadarImg404)) noteRadarCdnFailure();
     return null;
   } finally { dl.done(); }
+}
+
+/** EIN Bild-Slot vom CDN — meta.json (Ecken!) + alle darin genannten Frames. */
+async function loadIncaSlot(stamp: string, signal: AbortSignal, priority?: RequestPriority): Promise<IncaGrid | null> {
+  const dir = incaImgDir(stamp);
+  const meta = parseIncaImgMeta(await (await fetchImgRes(`${dir}/meta.json`, signal, priority)).json());
+  if (!meta || meta.stamp !== stamp) return null;
+  const frames: IncaFrame[] = await Promise.all(meta.frames.map(async (f) => ({
+    leadHours: f.lead / 60,
+    values: await loadRadarGrayPng(await fetchImgRes(`${dir}/${f.file}`, signal, priority), meta.width, meta.height),
+    width: meta.width,
+    height: meta.height,
+  })));
+  return { frames, corners: meta.corners as QuadCorners };
+}
+
+/**
+ * Ausfall-Rückfall (RD3c-Nachtrag): GeoSphere ist GANZ weg (das `/metadata` flattert
+ * gemessen mit 502/503, und dann liefert oft auch das Grid nichts) — dann trägt der
+ * Spiegel die Lage noch bis zu 3 h (Retention 12 × 15 min). Stempel gerechnet statt
+ * gelesen; NUR gegatterte Slots, damit keine zu frühe Anfrage einen 404 festhält.
+ * Läuft ausdrücklich NACH dem Direktweg, damit die Frische nie schlechter wird.
+ */
+async function loadIncaFromImgGuessed(priority?: RequestPriority): Promise<IncaGrid | null> {
+  if (!(radarCdnEnabled() && radarCdnUsable() && radarImgEnabled())) return null;
+  for (const stamp of guessIncaStamps(2)) {
+    const dl = radarCdnDeadline(undefined);
+    try {
+      const grid = await loadIncaSlot(stamp, dl.signal, priority);
+      if (!grid) continue;
+      const alterMin = Math.round((Date.now() - radarImgStampToMs(stamp)) / 60_000);
+      console.warn(`[buscosun] GeoSphere INCA nicht erreichbar — Daten-Repo (PNG), Lauf ${stamp} (${alterMin} min alt)`);
+      return { ...grid, staleFromMs: radarImgStampToMs(stamp) };
+    } catch (err) {
+      if (err instanceof RadarImg404) continue;   // Slot nicht gespiegelt ⇒ älterer Kandidat
+      noteRadarCdnFailure();
+      return null;
+    } finally { dl.done(); }
+  }
+  return null;
 }
 
 async function loadIncaGrid(priority?: RequestPriority): Promise<IncaGrid> {
@@ -128,12 +185,19 @@ async function loadIncaGrid(priority?: RequestPriority): Promise<IncaGrid> {
   // jeder Fehlschlag fällt still auf die Direkt-API zurück (benannter Weg wie bisher).
   const viaImg = await loadIncaFromImg(priority);
   if (viaImg) return viaImg;
-  const url = `${GRID_URL}?parameters=rr&output_format=netcdf&bbox=${BBOX}`;
-  warmHdf5Worker();   // Isolate + jsfive laden im Download-Schatten (H3)
-  const res = await fetch(url, priority ? { priority } : undefined);
-  if (!res.ok) throw new Error(`GeoSphere INCA grid: ${res.status}`);
-  const buf = await res.arrayBuffer();
-  const { frames, corners } = await parseIncaOffMain(buf);
-  if (frames.length === 0) throw new Error('GeoSphere INCA: keine Frames');
-  return { frames, corners };
+  try {
+    const url = `${GRID_URL}?parameters=rr&output_format=netcdf&bbox=${BBOX}`;
+    warmHdf5Worker();   // Isolate + jsfive laden im Download-Schatten (H3)
+    const res = await fetch(url, priority ? { priority } : undefined);
+    if (!res.ok) throw new Error(`GeoSphere INCA grid: ${res.status}`);
+    const buf = await res.arrayBuffer();
+    const { frames, corners } = await parseIncaOffMain(buf);
+    if (frames.length === 0) throw new Error('GeoSphere INCA: keine Frames');
+    return { frames, corners };
+  } catch (err) {
+    // Quelle ganz weg: der Spiegel trägt die Lage noch (gerechnete Stempel, gegattert).
+    const viaGuess = await loadIncaFromImgGuessed(priority);
+    if (viaGuess) return viaGuess;
+    throw err;
+  }
 }

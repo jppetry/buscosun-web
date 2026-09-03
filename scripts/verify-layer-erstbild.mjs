@@ -91,9 +91,16 @@ async function liveRzc() {
     const item = await r.json();
     const keys = Object.keys(item.assets ?? {}).filter((k) => k.startsWith('rzc')).sort();
     if (!keys.length) continue;
-    const res = await fetch(item.assets[keys[keys.length - 1]].href, { signal: AbortSignal.timeout(20_000) });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return res.arrayBuffer();
+    // MeteoSwiss listet ein Asset, bevor es abrufbar ist (403 am jüngsten gemessen,
+    // audit/radar-datenrepo.md §14.5) — das jüngste ABRUFBARE nehmen, sonst fielen
+    // die fünf rzc-Prüfungen dauerhaft aus.
+    let last = null;
+    for (const k of keys.slice(-4).reverse()) {
+      const res = await fetch(item.assets[k].href, { signal: AbortSignal.timeout(20_000) });
+      if (res.ok) return res.arrayBuffer();
+      last = `HTTP ${res.status}`;
+    }
+    if (last) throw new Error(last);
   }
   throw new Error('kein rzc-Asset');
 }

@@ -66,19 +66,22 @@ export function guessRzcStamps(count: number, nowMs: number = Date.now(), lagMs:
 }
 
 /** CDN-Versuch; `null` heißt: STAC + Direkt-Download wie bisher. */
-async function loadRzcFromImg(priority?: RequestPriority): Promise<RadarFrame | null> {
+async function loadRzcFromImg(priority?: RequestPriority, quelleWeg = false): Promise<RadarFrame | null> {
   if (!(radarCdnEnabled() && radarCdnUsable() && radarImgEnabled())) return null;
   const now = Date.now();
   // Frische-Fenster wie beim KONRAD-Weg: aggressiver Rat ≠ gegatteter Rat ⇒ direkt.
-  if (guessRzcStamps(1, now, RZC_PUBLISH_LAG_MIN * 60_000)[0] !== guessRzcStamps(1, now)[0]) return null;
-  for (const stamp of guessRzcStamps(2, now)) {
+  // Ist die QUELLE weg, gibt es nichts Frischeres — dann gilt das Fenster nicht und
+  // der Spiegel darf tiefer zurückreichen (Retention 12 Slots = 1 h).
+  if (!quelleWeg && guessRzcStamps(1, now, RZC_PUBLISH_LAG_MIN * 60_000)[0] !== guessRzcStamps(1, now)[0]) return null;
+  for (const stamp of guessRzcStamps(quelleWeg ? 6 : 2, now)) {
     const dl = radarCdnDeadline(undefined);
     try {
       const dir = rzcImgDir(stamp);
       const meta = parseRzcImgMeta(await (await fetchImgRes(`${dir}/meta.json`, dl.signal, priority)).json());
       if (!meta || meta.stamp !== stamp) continue;
       const values = await loadRadarGrayPng(await fetchImgRes(`${dir}/frame.png`, dl.signal, priority), meta.width, meta.height);
-      console.log(`[buscosun] MeteoSwiss rzc → Slot ${stamp} · Quelle Daten-Repo (PNG)`);
+      if (quelleWeg) console.warn(`[buscosun] MeteoSwiss rzc nicht erreichbar — Daten-Repo (PNG), Slot ${stamp} (${Math.round((now - radarImgStampToMs(stamp)) / 60_000)} min alt)`);
+      else console.log(`[buscosun] MeteoSwiss rzc → Slot ${stamp} · Quelle Daten-Repo (PNG)`);
       return {
         values, width: meta.width, height: meta.height, corners: meta.corners as QuadCorners,
         validAt: meta.validAtMs != null ? new Date(meta.validAtMs) : new Date(radarImgStampToMs(stamp)),
@@ -92,8 +95,16 @@ async function loadRzcFromImg(priority?: RequestPriority): Promise<RadarFrame | 
   return null;
 }
 
-/** Liefert die href des jüngsten rzc-Assets aus dem STAC-Tagesitem (heute, sonst gestern). */
-async function resolveLatestRzcHref(signal?: AbortSignal, priority?: RequestPriority): Promise<string> {
+/**
+ * Die jüngsten rzc-Assets aus dem STAC-Tagesitem (heute, sonst gestern), JÜNGSTES ZUERST.
+ *
+ * Mehrere Kandidaten, weil MeteoSwiss ein Asset im Item listet, BEVOR die Datei
+ * abrufbar ist: am 2026-09-03 gemessen lieferte das jüngste gelistete Asset **403**,
+ * die drei älteren 200 (Publikations-Race). Vorher nahm der Leser nur das letzte und
+ * warf bei 403 — das CH-Radar fiel in diesem Fenster ganz aus (Altbestand, durch die
+ * RD3-Verifikation aufgedeckt; `audit/radar-datenrepo.md` §14.5).
+ */
+async function resolveRzcHrefs(signal?: AbortSignal, priority?: RequestPriority, count = 3): Promise<string[]> {
   const now = new Date();
   for (const day of [utcDay(now), utcDay(new Date(now.getTime() - 24 * 3600_000))]) {
     let res: Response;
@@ -105,7 +116,7 @@ async function resolveLatestRzcHref(signal?: AbortSignal, priority?: RequestPrio
     if (!res.ok) continue;
     const item = (await res.json()) as { assets?: Record<string, { href: string }> };
     const rzc = Object.keys(item.assets ?? {}).filter((k) => k.startsWith('rzc')).sort();
-    if (rzc.length) return item.assets![rzc[rzc.length - 1]].href;
+    if (rzc.length) return rzc.slice(-count).reverse().map((k) => item.assets![k].href);
   }
   throw new Error('MeteoSwiss rzc: kein Asset gefunden');
 }
@@ -123,14 +134,29 @@ async function loadRzcLatest(priority?: RequestPriority): Promise<RadarFrame> {
   // RD3: erst der Bild-Weg (kein STAC-Item 261 KB, kein HDF5-Parse); Fehlschlag ⇒ STAC wie bisher.
   const viaImg = await loadRzcFromImg(priority);
   if (viaImg) return viaImg;
-  const href = await resolveLatestRzcHref(undefined, priority);
-  warmHdf5Worker();   // Isolate + jsfive laden im Download-Schatten (H3)
-  const res = await fetch(href, priority ? { priority } : undefined);
-  if (!res.ok) throw new Error(`MeteoSwiss rzc fetch: ${res.status}`);
-  const buf = await res.arrayBuffer();
-  const r = await parseRzcOffMain(buf);
-  return {
-    values: r.values, width: r.width, height: r.height, corners: r.corners,
-    validAt: r.validAtMs == null ? new Date() : new Date(r.validAtMs),   // Fallback: jetzt (wie bisher)
-  };
+  try {
+    const hrefs = await resolveRzcHrefs(undefined, priority);
+    warmHdf5Worker();   // Isolate + jsfive laden im Download-Schatten (H3)
+    let lastErr: unknown;
+    for (const href of hrefs) {
+      const res = await fetch(href, priority ? { priority } : undefined);
+      if (!res.ok) {                       // 403/404: noch nicht freigegeben ⇒ nächstälteres Asset
+        lastErr = new Error(`MeteoSwiss rzc fetch: ${res.status}`);
+        continue;
+      }
+      const buf = await res.arrayBuffer();
+      const r = await parseRzcOffMain(buf);
+      return {
+        values: r.values, width: r.width, height: r.height, corners: r.corners,
+        validAt: r.validAtMs == null ? new Date() : new Date(r.validAtMs),   // Fallback: jetzt (wie bisher)
+      };
+    }
+    throw lastErr ?? new Error('MeteoSwiss rzc: kein abrufbares Asset');
+  } catch (err) {
+    // Quelle ganz weg: der Spiegel trägt die Lage noch (gerechnete Stempel, gegattert) —
+    // ausdrücklich NACH dem Direktweg, damit die Frische nie schlechter wird.
+    const viaGuess = await loadRzcFromImg(priority, true);
+    if (viaGuess) return viaGuess;
+    throw err;
+  }
 }

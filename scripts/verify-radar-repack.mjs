@@ -28,11 +28,13 @@ import {
   parseRvImgMeta, parseIncaImgMeta, parseRzcImgMeta, parseKonradImgJson, radarImgFlagFrom,
 } from '../src/sources/radarImg.ts';
 import { RV_CDN_GATE_MS, rvStamp, RADAR_CDN_WINDOW_MS, rvImgEligible, _resetRadarCdn } from '../src/sources/radolanRuns.ts';
+import { guessIncaStamps, INCA_IMG_GATE_MS } from '../src/sources/geosphereIncaGrid.ts';
 import { PRECIP_VMAX } from '../src/scalar/RainLayer.ts';
 import { decodeRvTar } from '../src/sources/radolanDecode.ts';
 import { parseIncaNetcdf } from '../src/sources/incaParse.ts';
 import { parseRzcHdf5 } from '../src/sources/rzcParse.ts';
 import { parseKonrad3d } from '../src/radar/konrad3d.ts';
+import { decodeGrayPng, GrayPngUnsupported } from '../src/sources/grayPng.ts';
 
 let passed = 0, failed = 0, skipped = 0;
 const add = (name, ok, detail) => {
@@ -119,6 +121,57 @@ add('A19 Kill-Switch: Query schlägt Speicher in beide Richtungen; default an',
   }
 }
 
+{
+  // A23–A26: INCA-Ausfall-Rückfall (RD3c-Nachtrag) — gerechnete Stempel, wenn
+  // GeoSphere GANZ weg ist (das `/metadata` flattert gemessen mit 502/503).
+  const stamps = guessIncaStamps(3, Date.UTC(2026, 8, 3, 12, 40));
+  add('A23 guessIncaStamps: 15-min-Raster, absteigend, gegattert',
+    stamps.length === 3 && stamps.every((x) => /^\d{8}T\d{4}$/.test(x))
+    && radarImgStampToMs(stamps[0]) - radarImgStampToMs(stamps[1]) === 15 * 60_000
+    && Date.UTC(2026, 8, 3, 12, 40) - radarImgStampToMs(stamps[0]) >= INCA_IMG_GATE_MS, stamps.join(' '));
+  add('A24 INCA-Gate ≥ gemessener reftime→Push-Spanne (22,8 min) + Reserve',
+    INCA_IMG_GATE_MS >= 23 * 60_000, `${INCA_IMG_GATE_MS / 60_000} min`);
+  add('A25 Kandidaten liegen im Spiegel-Fenster (Retention 12 × 15 min = 3 h)',
+    Date.UTC(2026, 8, 3, 12, 40) - radarImgStampToMs(stamps[2]) < 3 * 3600_000);
+  const src = readFileSync(resolve('src/sources/geosphereIncaGrid.ts'), 'utf8');
+  const iDirect = src.indexOf('output_format=netcdf&bbox=');
+  const iGuess = src.indexOf('loadIncaFromImgGuessed(priority)', iDirect);
+  add('A26 Frische-Regel: der geratene Bild-Weg läuft NACH dem Direktweg',
+    iDirect > 0 && iGuess > iDirect && /catch \(err\) \{[\s\S]{0,300}loadIncaFromImgGuessed/.test(src));
+  // A27: der Fremdhost darf den GETEILTEN CDN-Latch nicht belasten — ein 502 des
+  // GeoSphere-`/metadata` hätte sonst auch RV/KONRAD/rzc auf den Altweg geschaltet.
+  const meta = src.slice(src.indexOf('const mr = await fetch(META_URL'), src.indexOf('const grid = await loadIncaSlot'));
+  add('A27 GeoSphere-Fehler zählt NICHT in den CDN-Latch (eigenes catch, kein noteRadarCdnFailure)',
+    /catch \{[\s\S]{0,200}return null;/.test(meta) && !meta.includes('noteRadarCdnFailure'));
+}
+
+{
+  // A28–A29: CH — MeteoSwiss listet ein Asset, bevor es abrufbar ist (403 am jüngsten
+  // gemessen, §14.5). Der Leser muss mehrere Kandidaten haben und bei Totalausfall
+  // den Spiegel nehmen dürfen — beides NACH dem Direktweg (Frische-Regel).
+  const src = readFileSync(resolve('src/sources/meteoSwissRadar.ts'), 'utf8');
+  add('A28 rzc: mehrere STAC-Kandidaten, jüngstes zuerst, !ok ⇒ nächstälteres',
+    /resolveRzcHrefs\(/.test(src) && /slice\(-count\)\.reverse\(\)/.test(src)
+    && /if \(!res\.ok\) \{[\s\S]{0,200}continue;/.test(src) && !src.includes('resolveLatestRzcHref'));
+  const iDirect = src.indexOf('resolveRzcHrefs(undefined, priority)');
+  const iGuess = src.indexOf('loadRzcFromImg(priority, true)', iDirect);
+  add('A29 rzc: Ausfall-Bildweg läuft NACH dem Direktweg und ignoriert dann das Frische-Fenster',
+    iDirect > 0 && iGuess > iDirect && /!quelleWeg && guessRzcStamps/.test(src));
+}
+
+{
+  // A30/A31: Ladeweg-Mechanik wie beim ICON-Repack — 33 MPixel je Lauf gehören
+  // off-main, und der Worker muss BEIDE Aufträge kennen (Tar wie PNG).
+  const rad = readFileSync(resolve('src/sources/radolan.ts'), 'utf8');
+  const wrk = readFileSync(resolve('src/sources/radolanWorker.ts'), 'utf8');
+  add('A30 RV-Bildweg dekodiert off-main (Worker), mit Hauptthread-Rückfall',
+    /decodeGrayPngsOffMain\(/.test(rad) && /rwInit\(\);[\s\S]{0,200}return onMain\(\)/.test(rad)
+    && /w\.postMessage\(\{ id, pngs \}/.test(rad));
+  add('A31 Worker kennt beide Aufträge (tarBuf und pngs) und transferiert die Werte',
+    /pngs\?:/.test(wrk) && /decodeGrayPng\(/.test(wrk) && /decodeRvTar\(/.test(wrk)
+    && /out\.map\(\(f\) => f\.valuesBuf\)/.test(wrk));
+}
+
 // ── B: Producer-Weg an echten Dateien (Kindprozess wie im Spiegel) ────────────
 
 const APP = resolve('.');
@@ -156,6 +209,25 @@ try {
     if (g.width !== f.width || g.height !== f.height || !eq(g.data, f.values)) { identical = false; break; }
   }
   add('B1 RV: 25 derive-PNGs byte-gleich zu decodeRvTar (Buffer.compare)', identical, stamp);
+  // B1b: der SCHNELLE Client-Dekoder (grayPng.ts, ohne Canvas — 3× schneller, §14.7)
+  // muss dieselben Bytes liefern wie der unabhängige `decodePng` und wie der Tar.
+  let schnellGleich = true, msDirekt = 0;
+  for (const f of ref.frames) {
+    const png = readFileSync(join(outDir, radarImgFrameFile(f.leadMinutes)));
+    const t0 = Date.now();
+    const g = await decodeGrayPng(new Uint8Array(png));
+    msDirekt += Date.now() - t0;
+    if (g.width !== f.width || g.height !== f.height || !eq(g.values, f.values)) { schnellGleich = false; break; }
+  }
+  add('B1b RV: grayPng-Dekoder (ohne Canvas) byte-gleich zu decodeRvTar', schnellGleich, `${msDirekt} ms für 25 Frames`);
+  {
+    // Ablehnungsfälle: fremde Bauart ⇒ benannter Fehler (der Client fällt dann auf Canvas)
+    let rejected = 0;
+    for (const bad of [Buffer.from('kein png'), Buffer.concat([readFileSync(join(outDir, 'f000.png')).subarray(0, 20)])]) {
+      try { await decodeGrayPng(new Uint8Array(bad)); } catch (e) { if (e instanceof GrayPngUnsupported) rejected++; }
+    }
+    add('B1c grayPng: fremde/abgeschnittene Datei ⇒ GrayPngUnsupported (Canvas übernimmt)', rejected === 2);
+  }
   const meta = parseRvImgMeta(JSON.parse(readFileSync(join(outDir, 'meta.json'), 'utf8')));
   add('B2 RV: meta.json besteht den Client-Prüfer, runAtMs = Tar-Lauf', meta !== null && meta.runAtMs === ref.runAtMs && meta.stamp === stamp);
 } catch (e) { skip('B1/B2 RV (Netz)', e.message); }
@@ -183,12 +255,15 @@ try {
   const stamp = radarImgStamp(Date.now());
   const outDir = runDerive('inca', ncPath, stamp);
   const ref = parseIncaNetcdf(nc.buffer.slice(nc.byteOffset, nc.byteOffset + nc.byteLength));
-  let identical = ref.frames.length === 12;
+  // Frame-Zahl ist NICHT fix: die API liefert je nach Lauf-Alter 11 oder 12 (deshalb
+  // trägt das Meta die echten Leads). Geprüft wird, dass JEDER gelieferte Frame
+  // byte-gleich ankommt — nicht, wie viele es sind.
+  let identical = ref.frames.length >= 1 && ref.frames.length <= 12;
   for (const f of ref.frames) {
     const g = grayOf(readFileSync(join(outDir, radarImgFrameFile(Math.round(f.leadHours * 60)))));
     if (!eq(g.data, f.values)) { identical = false; break; }
   }
-  add('B5 INCA: 12 derive-PNGs byte-gleich zu parseIncaNetcdf', identical);
+  add(`B5 INCA: alle ${ref.frames.length} derive-PNGs byte-gleich zu parseIncaNetcdf`, identical);
   const meta = parseIncaImgMeta(JSON.parse(readFileSync(join(outDir, 'meta.json'), 'utf8')));
   add('B6 INCA: meta.json besteht den Prüfer, Ecken = Datei-Ecken',
     meta !== null && JSON.stringify(meta.corners) === JSON.stringify(ref.corners));
@@ -199,8 +274,15 @@ try {
   const now = new Date();
   const day = `${now.getUTCFullYear()}${String(now.getUTCMonth() + 1).padStart(2, '0')}${String(now.getUTCDate()).padStart(2, '0')}`;
   const item = JSON.parse(new TextDecoder().decode(await fetchBuf(`https://data.geo.admin.ch/api/stac/v1/collections/ch.meteoschweiz.ogd-radar-precip/items/${day}-ch`)));
+  // Wie der Client (A28): MeteoSwiss listet ein Asset, bevor es abrufbar ist — das
+  // jüngste kann 403 liefern. Also das jüngste ABRUFBARE nehmen, sonst prüfte diese
+  // Zeile nie etwas (sie wurde dauerhaft übersprungen).
   const keys = Object.keys(item.assets ?? {}).filter((k) => k.startsWith('rzc')).sort();
-  const h5 = await fetchBuf(item.assets[keys[keys.length - 1]].href);
+  let h5 = null, lastErr = null;
+  for (const k of keys.slice(-4).reverse()) {
+    try { h5 = await fetchBuf(item.assets[k].href); break; } catch (e) { lastErr = e; }
+  }
+  if (!h5) throw lastErr ?? new Error('rzc: kein abrufbares Asset');
   const h5Path = join(WORK, 'rzc.h5');
   writeFileSync(h5Path, h5);
   const stamp = radarImgStamp(Date.now());

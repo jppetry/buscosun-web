@@ -20,6 +20,7 @@
  */
 
 import { PRECIP_VMAX, type QuadCorners } from '../scalar/RainLayer';
+import { decodeGrayPng, GrayPngUnsupported } from './grayPng';
 import {
   RADAR_IMG_BASE, RADAR_IMG_VERSION, RV_IMG_GATE_MS,
   radarImgFrameFile, radarImgFlagFrom, radarImgEnabled, rvImgDir, rvImgEligible,
@@ -214,11 +215,30 @@ export async function fetchImgRes(url: string, signal?: AbortSignal, priority?: 
 
 /**
  * Graustufen-PNG des Spiegels → exakt die `precipToU8`-Bytes des jeweiligen Decoders
- * (byte-verlustfrei, `verify:radar-repack` B). `colorSpaceConversion/premultiplyAlpha:
- * 'none'` wie im Repack-Leser — eine Farbraum-Konversion würde still Werte verschieben.
+ * (byte-verlustfrei, `verify:radar-repack` B).
+ *
+ * Zuerst der DIREKTE Dekoder (`grayPng.ts`): er liefert 1 Byte je Pixel, ohne den
+ * RGBA-Umweg des Canvas — am echten 1100×1200-Frame gemessen **206 ms statt 627 ms**
+ * (Faktor 3; über 25 Frames 1,8 s statt 5,4 s Hauptthread). Kann er die Datei nicht
+ * (fremde Bauart), übernimmt der Canvas-Weg als benannter Rückfall — dieselbe
+ * `colorSpaceConversion/premultiplyAlpha: 'none'`-Regel wie im Repack-Leser, weil
+ * eine Farbraum-Konversion still Werte verschöbe.
  */
 export async function loadRadarGrayPng(res: Response, width: number, height: number): Promise<Uint8Array> {
-  const bmp = await createImageBitmap(await res.blob(), { colorSpaceConversion: 'none', premultiplyAlpha: 'none' });
+  const bytes = new Uint8Array(await res.arrayBuffer());
+  try {
+    const g = await decodeGrayPng(bytes);
+    if (g.width !== width || g.height !== height) throw new Error(`PNG-Maße ${g.width}×${g.height} statt ${width}×${height}`);
+    return g.values;
+  } catch (err) {
+    if (!(err instanceof GrayPngUnsupported)) throw err;   // Maß-/Datenfehler bleiben Fehler
+  }
+  return loadRadarGrayPngViaCanvas(bytes, width, height);
+}
+
+/** Benannter Rückfall (Rule 2): der Canvas-Weg des ICON-Repacks. */
+async function loadRadarGrayPngViaCanvas(bytes: Uint8Array, width: number, height: number): Promise<Uint8Array> {
+  const bmp = await createImageBitmap(new Blob([bytes as BlobPart]), { colorSpaceConversion: 'none', premultiplyAlpha: 'none' });
   try {
     if (bmp.width !== width || bmp.height !== height) throw new Error(`PNG-Maße ${bmp.width}×${bmp.height} statt ${width}×${height}`);
     const canvas = typeof OffscreenCanvas !== 'undefined'

@@ -18,7 +18,10 @@ import { verifyFireSatImagery } from '../src/fire/detail/fireSatImagery.ts';
 import { verifyCogTiff, writeTiledTiff, parseCogIfds, decodeTile } from '../src/fire/detail/cogTiff.ts';
 import { remuxWcLevel, assertWcLevelContract } from './fire/wc/wcRemux.mjs';
 import { verifySentinelGeo } from '../src/fire/detail/sentinelGeo.ts';
-import { verifyBurnIndex } from '../src/fire/detail/burnIndex.ts';
+import {
+  verifyBurnIndex, dnbrTileRgba, swirTileRgba, nbrOf, dnbrRgba, swirChannel, DNBR_CLASSES,
+  sclPreMasked, sclPostMasked, sclPostUnsure, wcDamped,
+} from '../src/fire/detail/burnIndex.ts';
 import { verifyWorldCover } from '../src/fire/detail/worldCover.ts';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -228,7 +231,10 @@ add('[dnbr] Modus-Chips nur mit vorhandenen Band-Assets; Echtfarbe bleibt Defaul
 add('[dnbr] uint16-Dekodepfad wird benutzt (decodeTileU16) und B04 über den Ausschnitt (subTileU16)',
   /decodeTileU16/.test(cogv) && /subTileU16/.test(cogv) && /pairSwirLevels/.test(cogv) && /pairDnbrLevels/.test(cogv));
 add('[dnbr] dNBR ist ein Overlay ÜBER der Echtfarbe und zeichnet NUR die gewählte Ebene (Deckkraft)',
-  /chosenOnly/.test(cogv) && /true\);\s*\}\s*const drawCross/.test(cogv.replace(/\r/g, '')));
+  // Die Sonde haelt die AUSSAGE fest (dNBR ist der letzte Aufruf, chosenOnly = true),
+  // nicht den Wortlaut der Argumentliste - V-SAT-17 haengt dort ein viertes Argument an.
+  /chosenOnly/.test(cogv)
+  && /chosen\.ifd\.width, true[^)]*\);\s*\}\s*const drawCross/.test(cogv.replace(/\r/g, '')));
 add('[dnbr] Legende aus DERSELBEN Quelle wie die Canvas-Farben (DNBR_CLASSES, eine Wahrheit)',
   /DNBR_CLASSES\.map/.test(cogv) && /DNBR_CLASSES/.test(burnSrc));
 add('[dnbr] jede Lücke ist ein benannter Satz: kein Band / keine Vorher-Szene / fremdes Format',
@@ -439,6 +445,143 @@ const codeOnly = (src) => src
     && /\} else \{ fac = 0; \}/.test(wcCode));
   add('[v16][doku] Audit führt V-SAT-16 mit Vorher/Nachher und dem Prüfstand',
     /V-SAT-16/.test(audit) && /wc-sampler-bench\.mjs/.test(audit));
+}
+
+/* --------------------------------------------------- V-SAT-17: Frame-Budget des Kachelbaus */
+{
+  add('[v17] es gibt genau EINEN Deckel für teure Kachelstarts, und er ist 1',
+    (cogv.match(/const WC_STARTS_PER_FRAME = 1;/g) || []).length === 1);
+  add('[v17] drawPyramid nimmt das Budget als Parameter mit dem alten Wert als Vorgabe',
+    /chosenW: number, chosenOnly: boolean, maxStarts = 12,/.test(cogv)
+    && /let started = 0;/.test(cogv));
+  add('[v17] der Deckel überspringt den Start und merkt sich das Bild — er verwirft nichts',
+    /if \(started >= maxStarts\) \{ frame\.deferred = true; continue; \}/.test(cogv));
+  add('[v17] der Bild-Deckel 12 bleibt zusätzlich in Kraft (Frame-Budget ersetzt ihn nicht)',
+    /budget\.n < 12\) \{\s*if \(started >= maxStarts\)/.test(cogv)
+    && /budget\.n\+\+; started\+\+;/.test(cogv));
+  add('[v17] das Budget greift NUR beim gedämpften dNBR — sonst unverändert 12',
+    /chosen\.ifd\.width, true, d\.wc \? WC_STARTS_PER_FRAME : 12\);/.test(cogv));
+  add('[v17] Echtfarbe und SWIR rufen drawPyramid weiterhin ohne Budget auf',
+    (cogv.match(/chosen\.ifd\.width, false\);/g) || []).length === 2);
+  add('[v17] ein liegen gebliebener Start fordert das nächste Bild an (kein Stillstand)',
+    /if \(frame\.deferred\) schedule\(\);/.test(cogv));
+  add('[v17] schedule bleibt rAF-koalesziert — der Nachschlag kann keine Schleife werden',
+    /const schedule = \(\) => \{\s*if \(rafRef\.current\) return;/.test(cogv));
+  add('[v17][doku] Audit führt V-SAT-17 mit der gemessenen Kachelzahl und dem Kontrolllauf',
+    /V-SAT-17/.test(audit) && /12\.9\.1/.test(audit) && /262 144/.test(audit));
+}
+
+/* ------------------------------------------ V-SAT-18: die Komposit-Schleifen ohne null-Union */
+{
+  // Die Schleifen rechnen `nbrOf`/`swirChannel` inline (§12.10 E1). Der Beleg ist NICHT der
+  // Wortlaut, sondern die Gleichheit: hier laufen die lesbaren Regelfunktionen als Referenz
+  // gegen die ausgelieferten Kompositoren — über eine Kachel, die JEDEN Sonderfall enthält.
+  const S1 = { scale: 1e-4, offset: -0.1 };   // Baseline 04.00
+  const S2 = { scale: 1e-4, offset: 0 };      // Archiv-Szene ohne Offset — beide Skalen im Spiel
+  const NPX = 64 * 64;
+  const preN = new Uint16Array(NPX), preS = new Uint16Array(NPX);
+  const postN = new Uint16Array(NPX), postS = new Uint16Array(NPX);
+  const preScl = new Uint8Array(NPX), postScl = new Uint8Array(NPX), wcCls = new Uint8Array(NPX);
+  // Deterministisches Muster (kein Zufall — ein Verifier muss reproduzierbar sein), das die
+  // Sonderfälle erzwingt: nodata je Band einzeln, beide Bänder geklemmt (Summe 0), exakte
+  // Klassenkanten, jede SCL-Klasse 0…11 und jede WorldCover-Klasse.
+  const EDGES = [0.1, 0.27, 0.44, 0.66];
+  for (let i = 0; i < NPX; i++) {
+    preN[i] = 3000 + (i * 7) % 900; preS[i] = 520 + (i * 13) % 400;
+    postN[i] = 2600 + (i * 11) % 800; postS[i] = 700 + (i * 17) % 1200;
+    if (i % 23 === 0) preN[i] = 0;
+    if (i % 29 === 0) preS[i] = 0;
+    if (i % 31 === 0) postN[i] = 0;
+    if (i % 37 === 0) postS[i] = 0;
+    if (i % 41 === 0) { preN[i] = 400; preS[i] = 400; }          // beide geklemmt ⇒ Summe 0
+    if (i % 43 === 0) { postN[i] = 300; postS[i] = 300; }
+    if (i % 53 === 0) {
+      // Exakt auf eine Klassenkante: NBR(vorher) = 1 (SWIR geklemmt), NBR(nachher) = 1 − Kante.
+      const e = EDGES[(i / 53 | 0) % EDGES.length];
+      const t = (1 - e);                                          // gewünschtes NBR nachher
+      preN[i] = 3105; preS[i] = 400;
+      postN[i] = 5000; postS[i] = Math.round(((1 - t) / (1 + t)) * 5000);
+    }
+    preScl[i] = i % 12; postScl[i] = (i * 5) % 12;
+    wcCls[i] = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 100][i % 12];
+  }
+  const refDnbr = (pn, ps, qn, qs, sA, sB, pScl, qScl, wc) => {
+    const out = new Uint8ClampedArray(pn.length * 4);
+    for (let i = 0, j = 0; i < pn.length; i++, j += 4) {
+      if (pScl && sclPreMasked(pScl[i])) continue;
+      if (qScl && sclPostMasked(qScl[i])) continue;
+      const a = nbrOf(pn[i], ps[i], sA);
+      const b = nbrOf(qn[i], qs[i], sB);
+      const [r, g, bl, al] = dnbrRgba(a == null || b == null ? null : a - b);
+      if (al === 0) continue;
+      out[j] = r; out[j + 1] = g; out[j + 2] = bl;
+      const unsure = (qScl != null && sclPostUnsure(qScl[i])) || (wc != null && wcDamped(wc[i]));
+      out[j + 3] = unsure ? al >> 1 : al;
+    }
+    return out;
+  };
+  const refSwir = (a, b, c, s) => {
+    const out = new Uint8ClampedArray(a.length * 4);
+    for (let i = 0, j = 0; i < a.length; i++, j += 4) {
+      const r = swirChannel(a[i], s), g = swirChannel(b[i], s), bl = swirChannel(c[i], s);
+      if (r == null || g == null || bl == null) continue;
+      out[j] = r; out[j + 1] = g; out[j + 2] = bl; out[j + 3] = 255;
+    }
+    return out;
+  };
+  const eq = (x, y) => {
+    if (x.length !== y.length) return false;
+    for (let i = 0; i < x.length; i++) if (x[i] !== y[i]) return false;
+    return true;
+  };
+  const SHAPES = [
+    ['ohne SCL/WorldCover (SAT2b)', null, null, null],
+    ['nur SCL (SAT2c)', preScl, postScl, null],
+    ['nur WorldCover (SAT2d)', null, null, wcCls],
+    ['SCL + WorldCover (Betrieb)', preScl, postScl, wcCls],
+  ];
+  for (const [label, a, b, c] of SHAPES) {
+    add(`[v18] dNBR-Kachel byte-gleich zur lesbaren Regelfassung — ${label}`,
+      eq(dnbrTileRgba(preN, preS, postN, postS, S1, S2, a, b, c),
+        refDnbr(preN, preS, postN, postS, S1, S2, a, b, c)));
+  }
+  add('[v18] SWIR-Kachel byte-gleich zur lesbaren Regelfassung (swirChannel)',
+    eq(swirTileRgba(postS, postN, preN, S1), refSwir(postS, postN, preN, S1))
+    && eq(swirTileRgba(preN, preS, postS, S2), refSwir(preN, preS, postS, S2)));
+
+  // Die Sonderfälle einzeln — damit ein Fehlschlag oben sagt, WELCHER Fall gebrochen ist.
+  const one = (pn, ps, qn, qs) => dnbrTileRgba(
+    Uint16Array.of(pn), Uint16Array.of(ps), Uint16Array.of(qn), Uint16Array.of(qs), S1, S1);
+  add('[v18] nodata (DN 0) in irgendeinem der vier Bänder bleibt transparent — NaN, nicht Klasse 1',
+    one(0, 542, 2688, 1723)[3] === 0 && one(3105, 0, 2688, 1723)[3] === 0
+    && one(3105, 542, 0, 1723)[3] === 0 && one(3105, 542, 2688, 0)[3] === 0);
+  add('[v18] beide Bänder geklemmt (Summe 0) bleibt transparent, nie Division durch 0',
+    one(400, 400, 2688, 1723)[3] === 0 && one(3105, 542, 400, 400)[3] === 0);
+  add('[v18] Goldwert 0,600 landet unverändert in der Klasse 0,44–0,66 (§10.1)',
+    one(3105, 542, 2688, 1723)[3] === DNBR_CLASSES[2].rgba[3]
+    && one(3105, 542, 2688, 1723)[0] === DNBR_CLASSES[2].rgba[0]);
+  add('[v18] SWIR: nodata in irgendeinem Band bleibt transparent',
+    swirTileRgba(Uint16Array.of(0), Uint16Array.of(2000), Uint16Array.of(1500), S1)[3] === 0
+    && swirTileRgba(Uint16Array.of(3500), Uint16Array.of(0), Uint16Array.of(1500), S1)[3] === 0
+    && swirTileRgba(Uint16Array.of(3500), Uint16Array.of(2000), Uint16Array.of(0), S1)[3] === 0);
+
+  // Struktur: die Regeln dürfen nicht neben DNBR_CLASSES noch einmal als Zahl im Code stehen.
+  add('[v18] Klassenkanten sind aus DNBR_CLASSES ABGELEITET, nicht daneben geschrieben',
+    /const CLS_MIN = Float64Array\.from\(DNBR_CLASSES/.test(burnSrc)
+    && /const CLS_A = Uint8Array\.from\(DNBR_CLASSES/.test(burnSrc)
+    // Nur der Rumpf des Kompositors — die Selbstverifikation darunter nennt die Kanten zu Recht.
+    && !/0\.27/.test(burnSrc.slice(
+      burnSrc.indexOf('export function dnbrTileRgba'), burnSrc.indexOf('// --- Selbstverifikation'))));
+  add('[v18] die NaN-Abfrage ist `!(d >= …)` — `d < …` wäre bei NaN still falsch',
+    /if \(!\(d >= min0\)\) continue;/.test(burnSrc));
+  add('[v18] die lesbaren Regelfunktionen bleiben exportiert (Legende, Selbstverifikation)',
+    /export function nbrOf/.test(burnSrc) && /export function boaOf/.test(burnSrc)
+    && /export function dnbrRgba/.test(burnSrc) && /export function swirChannel/.test(burnSrc));
+  add('[v18] die Maskenregeln werden weiter AUFGERUFEN, nicht in die Schleife kopiert',
+    /sclPreMasked\(preScl\[i\]\)/.test(burnSrc) && /sclPostMasked\(postScl\[i\]\)/.test(burnSrc)
+    && /wcDamped\(wcCls\[i\]\)/.test(burnSrc));
+  add('[v18][doku] Audit führt V-SAT-18 mit der Browser-Zerlegung (createImageBitmap 1,1 ms)',
+    /V-SAT-18/.test(audit) && /12\.10\.1/.test(audit) && /1,1 ms/.test(audit));
 }
 
 const failed = checks.filter((c) => !c.ok);

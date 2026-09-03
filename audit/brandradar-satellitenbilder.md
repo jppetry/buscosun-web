@@ -1221,3 +1221,427 @@ offstage rendernde) Hauptkarte aus V-BD2-1.
 - **Prüfstands-Lehre:** ein Fall-Etikett ist keine Messung. Der Bench-Fall „51°-Grenze
   (2 Kacheln)" schnitt die Grenze nicht; aufgefallen ist es erst, weil die Verifier-Sonde die
   Kachelzahl **fordert** statt sie zu glauben. Der Prüfstand druckt sie seitdem mit.
+
+---
+
+## 12.9 SAT2g — V-SAT-17: der Kachelbau über Frames (Gate GSAT2g)
+
+Jans Auftrag: „ja starte damit" — auf den Vorschlag, **erst die eine Zahl zu messen** (wie viele
+Kacheln liegen in dem einen Task?) und dann Frame-Budget gegen Worker an ihr zu entscheiden,
+statt an einer Vermutung.
+
+### 12.9.1 Die Messung — und was sie widerlegt
+
+**Messstand.** Prod-Preview (`vite preview`, Port 4187, Build vom selben Quellstand), Hürtgenwald-
+Ereignis 16.08., Kaltstart über `about:blank`. Drei Zähler laufen über einen `initScript`, der
+nichts im Bündel ändert:
+
+| Sonde | was sie markiert |
+|---|---|
+| `PerformanceObserver('longtask')` | Beginn und Dauer jedes Long Task |
+| `Float64Array`-Allokation ≥ 60 000 | **jeder `wcGeoGrid`-Aufruf** — er legt `lat`/`lon` je `nPix` an (512² ⇒ 262 144), also zwei Einträge je Sampler-Aufruf |
+| `createImageBitmap(ImageData)` | das **Ende** des Komposits einer dNBR-Kachel |
+
+Der Umweg über die Allokationsgröße ist nötig, weil der Sampler im Lazy-Chunk minifiziert liegt;
+`262144` ist als Marke eindeutig (512² ist die Kachelkante des Bandgitters).
+
+**Ergebnis, zwei Kaltstarts (A und B) plus Kontrolllauf:**
+
+| Lauf | Long Tasks | Sampler-Aufrufe **im** Task | Komposite **im** Task | Komposite gesamt |
+|---|---|---|---|---|
+| A — WorldCover an | **1 × 245 ms** | **6 von 6** | 0 | 6 (verteilt über 2,2 s) |
+| B — WorldCover an, Kaltstart | **1 × 237 ms** | **6 von 6** | 0 | 6 |
+| C — `?wc=0` (Kontrolle) | 2 × 55 / 51 ms | 0 | je 1 | 6 |
+
+**Damit ist die Frage beantwortet: sechs Kacheln liegen in dem einen Task.** Und der Kontrolllauf
+zeigt zusätzlich, wo sie NICHT liegen — ohne Dämpfung baut dieselbe Ansicht dieselben sechs
+Kacheln, aber jedes Komposit sitzt in seinem **eigenen** Task von rund 50 ms, weil die
+Netzankunft sie ohnehin auseinanderzieht.
+
+**Die Skizze in 12.8.6 war falsch.** Dort stand „ein Komposit je rAF". Das Komposit ist nicht das
+Problem — es ist bereits verteilt. Der Klumpen entsteht am **Start** der Kachelbauten, und der
+Grund steht im Code: `drawPyramid` (`FireCogViewer.tsx:549`) stößt bis zu **12** Bauten in EINER
+`draw()` an, und `prepareWcSampler`s Closure rechnet `wcGeoGrid` **synchron beim Aufruf**, also
+noch im Draw. Ihr erstes `await` liegt vor `wcMapBlock`; weil die IFD-Zusage nach der ersten
+Kachel längst erfüllt ist, läuft die Fortsetzung als **Mikrotask am Ende desselben Tasks**.
+
+Die Sonde belegt genau diesen Ablauf, ohne dass man ihn glauben muss: die Abstände zwischen den
+sechs `wcGeoGrid`-Aufrufen betragen **11,7 · 10,3 · 10,5 · 6,3 · 6,2 ms** (Lauf B). Liefe die
+Zuordnung inline, müssten dort ~37 ms stehen. Sie tut es nicht — sie läuft danach, gebündelt.
+
+**Aufschlüsselung des 237-ms-Tasks** (Lauf A, aus den Zeitstempeln gerechnet):
+
+| Anteil | Dauer | je Kachel |
+|---|---|---|
+| Draw-Vorlauf (Grundbild platzieren) | ~20 ms | — |
+| 6 × `wcGeoGrid` | ~55 ms | ~9 ms |
+| 6 × `wcMapBlock` (Mikrotask-Abfluss) | ~170 ms | **~28 ms** |
+
+Die ~28 ms bestätigen den Prüfstand unabhängig: dort kostet ein **1024²**-Block 102 ms, ein 512²
+hat ein Viertel der Pixel ⇒ 25,5 ms erwartet. Zwei Messwege, dieselbe Zahl.
+
+### 12.9.2 Die Entscheidung fällt an der Zahl
+
+- **E1 — Frame-Budget, kein Worker.** 6 Kacheln × ~37 ms in einem Task. Ein Budget von **einer
+  Kachel je Bild** macht daraus sechs Tasks von ~37 ms; nur das erste trägt zusätzlich den
+  Draw-Vorlauf (~57 ms). Das liegt nicht bloß unter der 200-ms-Gate-Grenze, sondern im Regelfall
+  unter der **50-ms-Definition eines Long Task**. Ein Worker wäre der größere Eingriff (eigener
+  Chunk, Transfer der Klassen-Felder) und ist an dieser Zahl **nicht nötig**. Er bleibt als Weg
+  offen — `wcMapBlock` ist seit SAT2f pur und arbeitet nur auf typisierten Feldern —, aber ihn
+  jetzt zu bauen hieße, eine gemessene 37-ms-Scheibe mit Infrastruktur zu erschlagen.
+- **E2 — der Deckel greift nur, wo der Start teuer ist.** Ohne Dämpfung kostet ein Kachelstart
+  praktisch nichts (Lauf C: kein Task am Start). Der Deckel gilt deshalb **nur** für das
+  dNBR-Overlay mit aktiver Dämpfung; Echtfarbe, SWIR und ungedämpftes dNBR behalten ihre 12.
+  Sonst verlangsamte diese Phase den Normalfall, um einen Sonderfall zu heilen.
+- **E3 — kein Eingriff in `worldCover.ts`.** Der schnellere Weg wäre, den Sampler in „IO anstoßen"
+  und „zuordnen" zu trennen, damit alle Abrufe sofort starten und nur die Rechnung wartet. Das ist
+  eine Änderung an dem Modul, das SAT2f gerade auf Gleichheit festgenagelt hat, und der Gewinn
+  wäre gering: das Bild ist ohnehin nach 2,2 s fertig (Netz), der Versatz durch sechs Frames
+  beträgt ~100 ms. Bewusst nicht gebaut, hier benannt.
+- **E4 — verworfene Arbeit fällt gratis weg.** Heute prüft `sameView()` nur vor dem *Platzieren*
+  (`:556`), nicht vor dem *Bauen*: wer während des Aufbaus zoomt, lässt alle angestoßenen Kacheln
+  zu Ende rechnen und wirft sie weg. Weil jedes Bild die Kachelliste aus der **aktuellen** Sicht
+  neu ableitet, wird eine inzwischen unsichtbare Kachel schlicht nie gestartet. Das ist der
+  einzige Punkt der Phase, der Rechenzeit **spart** statt sie zu verteilen — und er kostet keine
+  eigene Zeile.
+
+### 12.9.3 Umsetzung — vier Zeilen an einer Stelle
+
+Der Eingriff liegt vollständig in `src/fire/FireCogViewer.tsx`; `worldCover.ts`, `burnIndex.ts`
+und `cogTiff.ts` sind **unberührt** (E3).
+
+- `WC_STARTS_PER_FRAME = 1` neben den übrigen Deckeln des Viewers, mit der gemessenen Begründung
+  im Kommentar.
+- `drawPyramid(…, maxStarts = 12)` — die **Vorgabe ist der alte Wert**, damit jeder bestehende
+  Aufruf wortgleich weiterläuft; ein `started`-Zähler je Bild kommt dazu.
+- Der Deckel **überspringt** einen Start und merkt ihn vor (`frame.deferred = true`), er verwirft
+  nichts: `if (started >= maxStarts) { frame.deferred = true; continue; }`. Der bestehende
+  Bild-Deckel `budget.n < 12` bleibt zusätzlich in Kraft.
+- Nur das dNBR-Overlay **mit** Dämpfung bekommt den Deckel: `d.wc ? WC_STARTS_PER_FRAME : 12`
+  (E2). Echtfarbe und SWIR rufen unverändert auf.
+- `if (frame.deferred) schedule();` am Ende von `draw()`. `schedule()` ist rAF-koalesziert
+  (`:641` prüft `rafRef.current`), es entsteht also genau ein weiterer Durchlauf und keine
+  Schleife.
+
+### 12.9.4 Gate GSAT2g — gemessen
+
+Derselbe Messstand wie 12.9.1, zusätzlich ein **Bildlücken-Zähler**: eine rAF-Schleife stempelt
+jedes Bild, die größte Lücke ist die Zeit, die die Seite am Stück nicht zeichnen konnte. Sie ist
+nötig, weil Tasks unter 50 ms gar nicht mehr als Long Task gemeldet werden — ohne sie sähe ein
+Erfolg wie ein Messausfall aus.
+
+| | vorher (SAT2f) | nachher (SAT2g) |
+|---|---|---|
+| Long Tasks beim dNBR-Aufbau | **1 × 237 / 245 ms** | **2–3 × 60 / 62 / 64 / 69 ms** |
+| Sampler-Aufrufe im größten Task | **6** | **1** |
+| größte Bildlücke | ≥ 237 ms | **63,6 ms** (Lauf D) · 83 ms (Lauf E) |
+| Sampler-Aufrufe gesamt | 6 | 6 |
+| gebaute Kacheln | 6 | 6 |
+| erstes Kachelbild nach dem Klick | — | 1 617 ms |
+| letztes Kachelbild nach dem Klick | ~3 290 ms | **3 224 ms** |
+| Kontrolle `?wc=0` | 2 × 55 / 51 ms · 0 Sampler | 1 × 84 ms · **0 Sampler · 0 WC-Anfragen** |
+
+**Das Bild ist nicht später fertig.** Der Versatz über sechs Bilder kostet rechnerisch ~100 ms,
+gemessen liegt der letzte Kachelbau sogar knapp früher (3 224 gegen ~3 290 ms) — die Streuung des
+Netzes ist größer als der Effekt. Der Bau ist netzgebunden, nicht rechengebunden; das war die
+Voraussage aus E3 und sie hält.
+
+**Was jetzt der größte Einzelposten ist, wird ehrlich benannt:** die 83 ms in Lauf E stammen
+**nicht** von einem Sampler-Bild, sondern von einem Komposit — und der Kontrolllauf ohne
+WorldCover zeigt mit 84 ms denselben Wert. Das Komposit einer 512²-Kachel kostet rund 50–85 ms,
+mit und ohne Dämpfung. Es ist damit Bestand, nicht Ergebnis dieser Phase, und es liegt weit unter
+der 200-ms-Grenze; die Netzankunft verteilt es ohnehin von selbst.
+
+**Funktionserhalt am laufenden Bild:** Dämpfungssatz („auf Acker, Siedlung und anderen
+Nicht-Wildvegetationsflächen (ESA WorldCover 2021, CC BY 4.0) blasser") und Legenden-Chip stehen
+unverändert; kein Spiegel-Satz (PC-Weg gesund); `?wc=0` liefert 0 WorldCover-Anfragen und keinen
+Dämpfungssatz.
+
+**Headless:** `typecheck` grün, `verify:fire-detail` **282/282** (+9), Build grün, Budget grün
+(totalJs **1 088,7**/1 109,8 — +0,1 KB gegen SAT2f, keine Ratsche).
+
+**Konsole:** 0 neue Meldungen. Die 20 Fehler sind ausnahmslos Altbestand unter `vite preview`
+(`/_firms/*`, `/gwis`, `/effis`, `/wsapp`, EMS-CORS — Endpunkte, die es nur auf Netlify gibt);
+die 10 WorldCover-Abrufe liefen fehlerfrei.
+
+### 12.9.5 Selbstverifikation
+
+1. **Funktionserhalt:** ✔ — dieselben 6 Kacheln, dieselben 6 Sampler-Läufe, Dämpfungssatz und
+   Chip unverändert, `?wc=0` unverändert; der Deckel **verschiebt** einen Start, er streicht
+   keinen (`continue` statt `break`, `frame.deferred` fordert das nächste Bild an).
+2. **Desktop-Regression:** ✔ — das Endbild ist identisch; es ändert sich allein, in welchem Bild
+   eine Kachel gebaut wird. Echtfarbe und SWIR laufen wortgleich wie vorher (Verifier `[v17]`).
+3. **Touch-Ziele:** ✔ — kein UI-Element berührt.
+4. **Konsole:** ✔ — 0 neue Meldungen.
+5. **Long Tasks:** ✔ — **kein Task über 200 ms** (größter 69 ms, größte Bildlücke 83 ms). Damit
+   ist die Frage, die in 12.8.5 ehrlich mit „teils" beantwortet werden musste, geschlossen.
+
+### 12.9.6 V-Katalog (Fortschreibung)
+
+- **V-SAT-17 ist umgesetzt.** Der Blocker der Kette SAT2d → SAT2g: **1 028 ms → 237 ms (SAT2f)
+  → 69 ms (SAT2g)**.
+- **Korrektur der eigenen Skizze:** 12.8.6 schlug „ein Komposit je rAF" vor. Das wäre am Ziel
+  vorbeigegangen — das Komposit war nie der Klumpen, es ist durch die Netzankunft längst
+  verteilt. Gekostet hat es nichts, weil die Skizze gemessen und nicht gebaut wurde; sie steht
+  hier als Beleg, dass eine plausible Ursache ohne Messung falsch sein kann (dieselbe Lehre wie
+  der Irrweg E6 in 12.8.2).
+- **V-SAT-18 (neu):** das Komposit einer 512²-Kachel kostet 50–85 ms, **mit und ohne** Dämpfung
+  (`dnbrTileRgba` + `createImageBitmap`). **Mehrwert:** es ist nach dieser Phase der größte
+  verbliebene Einzelposten des Viewers und trifft auch Nutzer ohne WorldCover.
+  **Umsetzungsskizze:** `dnbrTileRgba` ist pur und arbeitet nur auf typisierten Feldern — ein
+  Worker wäre hier der natürliche Ort, und die Kachel-Bytes ließen sich transferieren statt
+  kopieren. **Nicht in dieser Phase**: eigenes Thema, eigenes Gate, und der Posten liegt weit
+  unter der 200-ms-Grenze.
+- **Mess-Lehre:** ein Erfolg kann wie ein Messausfall aussehen. Nach dem Frame-Budget meldet die
+  `longtask`-Sonde fast nichts mehr, weil ihre Schwelle bei 50 ms liegt — erst der
+  rAF-Bildlücken-Zähler zeigt, dass die Seite tatsächlich durchatmet. Wer nur die alte Sonde
+  liest, kann einen Erfolg nicht von einer kaputten Messung unterscheiden.
+- **Sonden-Lehre:** eine Textsonde, die eine **Argumentliste wörtlich** regext, bricht bei jedem
+  angehängten Parameter. `[dnbr]` prüfte `true\);` und schlug fehl, obwohl die Aussage („dNBR
+  zeichnet nur die gewählte Ebene") unverändert galt; sie prüft jetzt die Aussage
+  (`chosen.ifd.width, true[^)]*\);`). Verwandt mit §14.5 (`codeOnly`): eine Sonde muss den
+  Gegenstand fassen, nicht seine Schreibweise.
+
+---
+
+## 12.10 SAT2h — V-SAT-18: das Komposit einer Kachel (Gate GSAT2h)
+
+Jans Auftrag: „setze V-SAT-18 um". Der V-Eintrag aus 12.9.6 lautete: *„das Komposit einer
+512²-Kachel kostet 50–85 ms, mit und ohne Dämpfung (`dnbrTileRgba` + `createImageBitmap`) …
+ein Worker wäre hier der natürliche Ort, und die Kachel-Bytes ließen sich transferieren statt
+kopieren."* Diese Phase misst diese Skizze, **bevor** sie gebaut wird — dieselbe Disziplin, die
+in 12.9.1 die vorige Skizze widerlegt hat.
+
+### 12.10.1 Die Messung — zwei Prüfstände, ein Befund
+
+**(a) Node: was kostet welcher Baustein?** `audit/brandradar-satellitenbilder/dnbr-composite-bench.mjs`
+importiert die echten Module und misst die Bausteine einer 512²-Kachel einzeln (Median aus 9
+Läufen, Node 22.17, Fixture ~1 % nodata · ~6 % Narbe — die Mischung entscheidet über die
+Sprungvorhersage, eine reine Narbenkachel wäre ein anderer Prüfstand):
+
+| Baustein | Zeit | Anmerkung |
+|---|---|---|
+| `decodeTileU16` gesamt | 8,93 ms | davon `inflate` = Stream (eigener Task) |
+| davon reiner JS-Anteil | **1,76 ms** | × 4 Bänder je Kachel |
+| `dnbrTileRgba` ohne SCL/WC | 27,74 ms | SAT2b-Stand |
+| `dnbrTileRgba` mit SCL | 30,35 ms | SAT2c |
+| **`dnbrTileRgba` mit SCL + WorldCover** | **28,51 ms** | SAT2d — der Betriebsfall |
+| `swirTileRgba` | 26,10 ms | SWIR-Modus, gleicher Umfang |
+| `new Uint8ClampedArray(nPix·4)` | 0,01 ms | 1,0 MB |
+
+**Das ist die eigentliche Zahl der Phase: 28 ms für 262 144 Pixel sind ~110 ns je Pixel** — für
+eine Schleife, die vier Multiplikationen, eine Division und ein paar Vergleiche rechnet, zwei
+Größenordnungen zu viel. Damit stand die Frage nicht mehr „Worker oder nicht", sondern **wofür
+geht die Zeit drauf**.
+
+**(b) Node: Bisektion der Schleife.** `dnbr-loop-bisect.mjs` führt die Schleife von vorher
+wortgleich als `refLoop` mit (Gleichheits-Orakel, BW-1-Muster) und misst drei Varianten gegen
+sie — in **allen vier Aufrufformen**, nicht nur im Betriebsfall:
+
+| Variante | ohne SCL/WC | nur SCL | nur WC | SCL + WC | gleich? |
+|---|---|---|---|---|---|
+| REF (Stand vor V-SAT-18) | 50,1 ms | 47,3 ms | 71,7 ms | 50,1 ms | — |
+| V1 ohne Array-Destrukturierung | 34,5 ms | 47,7 ms | 47,3 ms | 37,2 ms | ja |
+| V2 `nbrOf` inline, NaN statt `null` | 11,2 ms | 13,0 ms | 8,8 ms | 10,8 ms | ja |
+| **V3 beides** | **8,0 ms** | **13,1 ms** | **6,6 ms** | **9,8 ms** | ja |
+
+Zwei Verdächtige standen im Quelltext, die Bisektion reiht sie:
+
+1. **Der Haupttäter ist die `number | null`-Union.** `boaOf` und `nbrOf` geben „Zahl oder
+   `null`" zurück — zweimal je Pixel, plus zweimal `boaOf` darin. V8 kann daraus keinen
+   untagged Double machen; jeder Rückgabewert ist ein getaggter Wert, die Rechnung läuft auf
+   geboxten Doubles, und 262 144 Pixel erzeugen einen Wall aus kurzlebigen Objekten. Inline mit
+   `NaN` als „kein Wert": **4,5–8,1×**.
+2. **Die Array-Destrukturierung je Pixel** (`const [r, g, bl, al] = dnbrRgba(…)`) läuft über das
+   Iterator-Protokoll — je Pixel. Für sich genommen 1,0–1,5×, zusammen mit (1) noch einmal
+   spürbar.
+
+Die absoluten REF-Zahlen der beiden Prüfstände weichen ab (28 ms gegen 47–72 ms): der
+Bisektions-Prüfstand hält vier Varianten in EINEM Isolat, was die Aufrufstellen polymorph macht.
+**Belastbar ist deshalb das Verhältnis, nicht der Absolutwert** — die Absolutzahl liefert (a),
+die Zerlegung liefert (b), und den Betriebswert liefert (c). Das ist selbst eine Mess-Lehre und
+steht in 12.10.5.
+
+**(c) Browser: woraus besteht der Task wirklich?** Prod-Preview (Port 4173), Hürtgenwald-Ereignis,
+Kaltstart, dNBR-Klick. Sonde als `initScript`, ohne einen Eingriff ins Bündel — sie klammert die
+Schleife zwischen zwei Ereignisse, die von außen sichtbar sind:
+
+| Sonde | was sie markiert |
+|---|---|
+| `new Uint8ClampedArray(1 048 576)` | **Beginn** von `dnbrTileRgba` (die `out`-Allokation, 512²·4) |
+| `createImageBitmap(…)` | **Ende** der Schleife — die Differenz ist ihre Laufzeit |
+| Rückgabe-Promise desselben Aufrufs | Kosten von `createImageBitmap` selbst |
+| `longtask` + rAF-Bildlücken | der Task, in dem beides liegt (12.9.6: die 50-ms-Schwelle allein genügt nicht) |
+
+Sechs Komposite, jedes einzeln vermessen:
+
+| # | Schleife (`dnbrTileRgba`) | `createImageBitmap` blockierend | bis Promise |
+|---|---|---|---|
+| 1 | 32,9 ms | 1,1 ms | 1,2 ms |
+| 2 | 25,9 ms | 1,2 ms | 1,3 ms |
+| 3 | 23,1 ms | 1,1 ms | 1,1 ms |
+| 4 | 29,2 ms | 1,1 ms | 1,1 ms |
+| 5 | 21,1 ms | 1,1 ms | 1,1 ms |
+| 6 | 38,3 ms | 1,0 ms | 1,1 ms |
+
+Die zugehörigen Bildlücken liegen bei 42–51 ms. **Damit ist die Skizze zur Hälfte widerlegt:
+`createImageBitmap` kostet 1,1 ms, nicht die Hälfte des Tasks** — es ist kein Kandidat für
+irgendeine Maßnahme. Der Task besteht aus der Schleife (21–38 ms), dem JS-Anteil der zuletzt
+auflösenden `decodeTileU16` (~2 ms) und Überhang. Der Kontrolllauf ist derselbe wie in 12.9:
+ohne Dämpfung baut der Viewer dieselben Kacheln, und die Schleife kostet dort dasselbe — die
+Zahl hängt nicht an WorldCover.
+
+### 12.10.2 Die Entscheidung fällt an der Zahl
+
+- **E1 — kein Worker.** Er würde 28 ms vom Hauptthread nehmen und dieselben 28 ms weiter
+  verbrennen; auf einem langsamen Gerät steht dort das Vierfache. Dazu käme je Kachel der
+  Transport von 4 × 512 KB Banddaten plus SCL und Landbedeckung, ein zweiter Chunk, ein
+  Rückfallpfad und ein Kill-Switch — Aufwand und laufende Kosten für eine Verschiebung. Die
+  Schleife **billiger** zu machen nimmt die Arbeit ganz weg, ist im Node-Prüfstand beweisbar
+  byte-gleich, bleibt DOM-frei und headless prüfbar, und schließt einen Worker nicht aus: wer
+  ihn je braucht, transportiert dann eine 10-ms-Schleife statt einer 28-ms-Schleife. **Das ist
+  dieselbe Entscheidung wie in SAT2f** (Ganzzahl statt Strings) und die zweite widerlegte
+  „ab-in-den-Worker"-Skizze dieser Linie.
+- **E2 — die Regeln bleiben, wo sie stehen.** `DNBR_CLASSES`, `wcDamped`, `sclPreMasked`,
+  `sclPostMasked`, `sclPostUnsure`, `boaOf`, `nbrOf`, `dnbrRgba` und `swirChannel` bleiben
+  unverändert exportiert und dokumentiert — sie sind die lesbare Fassung der Fachregel und
+  speisen weiter Legende und Selbstverifikation. Die Schleifen leiten ihre Tabellen **aus**
+  `DNBR_CLASSES` ab (nie eigene Literale), damit es bei EINER Quelle für Canvas und Legende
+  bleibt. Muster: `wcTileName` in SAT2f, das ebenfalls stehen blieb und delegiert.
+- **E3 — `swirTileRgba` bekommt dieselbe Behandlung.** `swirChannel` hat exakt denselben Defekt
+  (`number | null`, dreimal je Pixel) und kostet gemessen 26,1 ms. Es wäre unehrlich, den
+  identischen Fehler im selben Bau und derselben Datei stehen zu lassen, weil er in einem
+  anderen Modus sitzt.
+- **E4 — der Beleg ist die Gleichheit, nicht die Geschwindigkeit.** Wie in SAT2f entscheidet
+  nicht der Faktor, sondern dass **jedes Byte** gleich bleibt: der Prüfstand führt die alte
+  Schleife wortgleich mit und vergleicht in allen vier Aufrufformen; der Verifier prüft
+  zusätzlich die Kanten (nodata, Summe 0, NaN, Klassenkanten, halbe Deckkraft).
+- **E5 — kein neuer Schalter.** Es gibt kein Verhalten zu schalten: die Ausgabe ist
+  byte-identisch. Ein Kill-Switch für eine byte-gleiche Umsetzung wäre Zeremonie und eine
+  zweite Wahrheit.
+
+### 12.10.3 Umsetzung — eine Datei, zwei Schleifen
+
+Alles liegt in `src/fire/detail/burnIndex.ts`. `FireCogViewer.tsx`, `worldCover.ts` und
+`cogTiff.ts` sind **unberührt** — die Signaturen der beiden Kompositoren ändern sich nicht.
+
+| Baustein | was er tut |
+|---|---|
+| `CLS_MIN`/`CLS_R`/`CLS_G`/`CLS_B`/`CLS_A` | die Klassentabelle als typisierte Spalten, `…from(DNBR_CLASSES, …)` — **abgeleitet**, nie danebengeschrieben |
+| `dnbrTileRgba` | NBR beider Szenen inline, `NaN` statt `null`, Klassensuche über die Spalten; die Maskenregeln werden weiter **aufgerufen** |
+| `swirTileRgba` | `swirChannel` inline, nodata-Prüfung als drei Ganzzahlvergleiche vor der Rechnung |
+| `boaOf`, `nbrOf`, `dnbrRgba`, `swirChannel` | **unverändert exportiert** — sie sind die lesbare Fachregel und speisen Legende und Selbstverifikation |
+
+Zwei Feinheiten, die leicht still falsch werden:
+
+1. **`!(d >= min0)` statt `d < min0`.** Mit `NaN` als „kein Wert" ist jeder Vergleich falsch —
+   `d < min0` liefert bei nodata `false`, das Pixel liefe weiter und bekäme in der
+   Klassensuche die **oberste** Klasse. Aus einem transparenten Szenenrand würde eine
+   dunkelviolette Fläche. Die Negativ-Kontrolle in 12.10.4 zeigt genau das.
+2. **`if (al === 0) continue;` bleibt.** Keine der vier Klassen trägt heute Deckkraft 0; trüge
+   je eine, bliebe das Pixel damit unberührt wie in der lesbaren Fassung, statt RGB ohne Alpha
+   zu schreiben. Ein Zweig, der nichts kostet und eine Abweichung ausschließt.
+
+### 12.10.4 Gate GSAT2h — gemessen (2026-09-03)
+
+**Headless.** `typecheck` grün · `verify:fire-detail` **296/296** (+14) · `verify:fire-model`
+122/122 · `verify:fire-time` 114/114 · Build grün · Budget grün
+(totalJs **1 089,1/1 109,8**, +0,4 KB gegen SAT2g — **keine Ratsche**).
+
+**Der Beleg ist die Gleichheit.** Der Verifier führt die lesbare Regelfassung
+(`nbrOf`/`dnbrRgba`/`swirChannel`) als Referenzschleife mit und vergleicht sie Byte für Byte mit
+den ausgelieferten Kompositoren — über eine 64²-Kachel, die **jeden** Sonderfall deterministisch
+enthält (nodata je Band einzeln, beide Bänder geklemmt, exakte Klassenkanten, jede SCL-Klasse
+0…11, jede WorldCover-Klasse), in allen vier Aufrufformen plus SWIR mit beiden Skalen. Dazu
+prüft `dnbr-loop-bisect.mjs` denselben Vertrag an einer 512²-Kachel gegen die wortgleiche
+Schleife von vorher.
+
+**Negativ-Kontrolle — hat die Sonde Zähne?** `!(d >= min0)` wurde probeweise durch `d < min0`
+ersetzt (der naheliegende, still falsche Schreibfehler: bei `NaN` ist jeder Vergleich falsch,
+nodata bekäme die oberste Klasse). Ergebnis: **8 Prüfungen fallen**, darunter alle vier
+Byte-Gleichheiten und die nodata-Sonde — 288/296. Danach byte-genau zurückgestellt.
+*(Nebenbefund: das Zurückschreiben über PowerShell `Set-Content -Encoding utf8` hat die Datei
+doppelt kodiert — die bekannte Mojibake-Falle; die Wiederherstellung lief über eine vorher
+angelegte Byte-Kopie, nicht über `git checkout` (der Baum ist uncommitted).)*
+
+**Node, ein Isolat je Variante, identische Maschinenlast** (`ONE=<Label>`):
+
+| Variante | ohne SCL/WC | nur SCL | nur WC | SCL + WC |
+|---|---|---|---|---|
+| REF (vorher) | 35,0 ms | 43,6 ms | 53,9 ms | 54,5 ms |
+| **BAU (Bestand)** | **10,3 ms** | **13,7 ms** | **9,5 ms** | **15,6 ms** |
+| Faktor | 3,4× | 3,2× | 5,7× | 3,5× |
+
+**Browser (Prod-Preview, Hürtgenwald 16.08., Kaltstart je Lauf, dieselbe Sonde wie 12.10.1):**
+
+| Größe | vorher | nachher |
+|---|---|---|
+| `dnbrTileRgba` je 512²-Kachel | 21,1 · 23,1 · 25,9 · 29,2 · 32,9 · 38,3 ms (Median **27,6**) | Median **11,7** (Lauf A) bzw. **15,8** ms (Lauf B) |
+| `swirTileRgba` je 512²-Kachel | (Node: 26,1 ms) | 10,0–13,0 ms |
+| `createImageBitmap`, blockierend | 1,0–1,2 ms | 0,9–1,9 ms — **unverändert, war nie der Posten** |
+| größte Bildlücke im Komposit-Abschnitt | 42–51 ms | 30 ms (SWIR) / 36–49 ms (dNBR) |
+| letztes Kachelbild nach dem Klick | — | 3 828 ms (dNBR) / 4 375 ms (SWIR) |
+| Konsole | — | **0 Meldungen** |
+
+**Ehrlich zum Faktor:** der Browser zeigt ~2×, der Node-Prüfstand 3,2–5,7×. Der Unterschied ist
+kein Widerspruch, sondern das Einschwingen: in einer Sitzung läuft die Schleife nur sechs bis
+zwölf Mal, die ersten ein bis zwei Kacheln liegen deshalb höher (Lauf A: 25,3 und 22,8 ms,
+danach 8,9–15,9 ms). **Der Prüfstand zeigt den eingeschwungenen Wert, der Browser den echten.**
+Beide sagen dasselbe über die Sache: die Schleife kostet jetzt rund ein Drittel bis die Hälfte.
+
+**Bild.** `audit/brandradar-satellitenbilder/sat2h-dnbr-nach.png` — Narbe als kompakte
+rot-violette Fläche am Fadenkreuz, Ernte-Sprenkel auf den Feldern, beide Legenden-Chips
+(„blasser: Wolke/Schatten nachher möglich" · „blasser: Acker/Siedlung — Ernte statt Brand
+möglich"), Dämpfungssatz mit Quelle und Lizenz, Statuszeile „56 Kacheln · 16,0 MB geladen ·
+~20 m/px". Kein dunkelvioletter Szenenrand — genau das wäre das Bild des NaN-Fehlers gewesen.
+
+### 12.10.5 Selbstverifikation (Gate-Fragen)
+
+1. **Funktionserhalt:** ✔ — nichts entfernt. `boaOf`, `nbrOf`, `dnbrRgba`, `swirChannel` und
+   `SWIR_GAIN` bleiben exportiert und dokumentiert; die Signaturen der beiden Kompositoren sind
+   unverändert; Modi, Legende, Chips, Sätze, Caches und Kill-Switches unangetastet.
+2. **Desktop-Regression:** ✔ — die Ausgabe ist **byte-identisch**, headless in fünf
+   Aufrufformen bewiesen und im Bild bestätigt. Es ändert sich nur, wie lange sie entsteht.
+3. **Touch-Ziele:** ✔ — kein UI-Element berührt.
+4. **Konsole:** ✔ — 0 Meldungen im Messlauf.
+5. **Long Tasks:** ✔ — kein Task über 200 ms; größte Bildlücke 60 ms, und die entsteht in der
+   Sampler-Phase (V-SAT-17-Gebiet), nicht im Komposit.
+
+**Mess-Lehren dieser Phase:**
+
+- **Ein Mikro-Prüfstand mit mehreren Varianten in EINEM Isolat misst Verhältnisse, keine
+  Absolutwerte.** Dieselbe Referenzschleife kam auf 28, 50, 66 und 86 ms, je nachdem, welche
+  Varianten daneben liefen — die Aufrufstellen werden polymorph. Deshalb hat der Prüfstand jetzt
+  den Modus `ONE=<Label>` (ein Isolat je Variante), und die Absolutzahl kommt aus dem
+  Bausteine-Prüfstand, der nur EINE Funktion anfasst.
+- **Ein Leistungsanker misst die Maschine mit.** Zwischen der Vorher- und der Nachher-Messung
+  liefen Chrome, der Preview-Server und Altlasten aus früheren Sitzungen; alle Vergleiche stehen
+  deshalb entweder in EINEM Lauf nebeneinander oder werden mit ihrer Last benannt (Lehre aus VB0
+  und LE0, hier erneut bestätigt).
+- **Byte-Gleichheit braucht eine Negativ-Kontrolle.** Ein Gleichheitstest, der immer besteht,
+  beweist nichts. Erst der absichtlich eingebaute Fehler zeigt, dass die Sonde greift.
+
+### 12.10.6 V-Katalog (Fortschreibung)
+
+- **V-SAT-18 ist umgesetzt — aber anders, als der Eintrag es skizziert hat.** Der Eintrag sagte
+  „ein Worker wäre hier der natürliche Ort". Die Messung hat zwei Teile davon widerlegt:
+  `createImageBitmap` kostet **1,1 ms** statt eines nennenswerten Anteils, und die Schleife ist
+  nicht 28 ms Arbeit, sondern 28 ms **Verpackung** — `number | null` als Rückgabetyp zwingt V8
+  zu geboxten Doubles, die Array-Destrukturierung je Pixel läuft über das Iterator-Protokoll.
+  Ein Worker hätte diese Kosten verschoben statt beseitigt.
+- **Das ist die zweite widerlegte „ab-in-den-Worker"-Skizze dieser Linie** (nach „ein Komposit
+  je rAF" in 12.9.6) und die dritte Wiederholung desselben Musters: **SAT2f** ersetzte Strings
+  durch eine Ganzzahl, **SAT2h** ersetzt eine Typ-Union durch `NaN`. Beide Male lag der Aufwand
+  nicht in der Fachrechnung, sondern in der Form, in der Werte durch sie transportiert wurden.
+  Die Lehre für die nächste Skizze: **bevor Arbeit verschoben wird, prüfen, ob sie überhaupt
+  anfallen muss.**
+- **Neu — V-SAT-19:** die Kette „Kachel ankommen → dekodieren → komponieren" ist jetzt so kurz,
+  dass der größte verbliebene Einzelposten des Viewers die **Sampler-Phase** ist (12 Sampler,
+  Tasks von 51–65 ms). V-SAT-17 hat sie über Frames verteilt, aber nicht verbilligt; `wcMapBlock`
+  arbeitet nach SAT2f schon auf typisierten Spalten, `wcGeoGrid` rechnet je Kachel eine
+  vollständige UTM→Grad-Inverse über ein Stützgitter. **Mehrwert:** die letzten Tasks über 50 ms
+  im Viewer. **Umsetzungsskizze:** erst messen, ob `wcGeoGrid` oder `wcMapBlock` den Ausschlag
+  gibt (die Sonde aus 12.9.1 trennt beide bereits), dann entscheiden. **Nicht in dieser Phase:**
+  eigenes Thema, eigenes Gate, und alles liegt unter der 200-ms-Grenze.
+- **Offen wie bisher:** V-SAT-10 (Wisch-Vergleich), V-SAT-11 (Historie-Dossier fehlt mobil),
+  V-SAT-12 (Real-Device-Messung).

@@ -39,6 +39,7 @@ import {
   rvImgEligible, rvImgDir, rvStampToMs,
 } from './radolanRuns';
 import { parseRvImgMeta, RadarImg404, fetchImgRes, loadRadarGrayPng } from './radarImg';
+import { decodeGrayPng } from './grayPng';
 export { guessRvRuns } from './radolanRuns';
 
 const RY_LATEST =
@@ -311,13 +312,22 @@ async function fetchRvFromImg(ts: string, signal?: AbortSignal, priority?: Reque
     const metaRes = await imgRes(`${dir}/meta.json`, dl.signal, priority);
     const meta = parseRvImgMeta(await metaRes.json());
     if (!meta || meta.stamp !== ts) return null; // Drift/fremder Slot ⇒ benannter Rohweg
-    const frames: RvFrame[] = await Promise.all(meta.frames.map(async (f) => ({
+    // Erst alle Bytes holen (das Netz ist der schnelle Teil: 26 Dateien ≈ 1,4 s
+    // gemessen), dann in EINEM Zug off-main dekodieren — 33 MPixel gehören nicht
+    // auf den Hauptthread (§14.7). Ohne Worker läuft derselbe Code hier.
+    const bytes = await Promise.all(meta.frames.map(async (f) => ({
       leadMinutes: f.lead,
-      validAt: new Date(f.validAtMs ?? meta.runAtMs + f.lead * 60_000),
-      values: await loadRadarGrayPng(await imgRes(`${dir}/${f.file}`, dl.signal, priority), meta.width, meta.height),
-      width: meta.width,
-      height: meta.height,
+      validAtMs: f.validAtMs ?? meta.runAtMs + f.lead * 60_000,
+      buf: await (await imgRes(`${dir}/${f.file}`, dl.signal, priority)).arrayBuffer(),
     })));
+    const decoded = await decodeGrayPngsOffMain(bytes, meta.width, meta.height);
+    const frames: RvFrame[] = decoded.map((f) => ({
+      leadMinutes: f.leadMinutes,
+      validAt: new Date(f.validAtMs),
+      values: f.values,
+      width: f.width,
+      height: f.height,
+    }));
     return { runAt: new Date(meta.runAtMs), frames, corners: DE1200_CORNERS };
   } catch (err) {
     if (signal?.aborted) throw err;             // Abbruch des Aufrufers bleibt ein Abbruch
@@ -337,6 +347,42 @@ async function fetchRvAnalysisFromImg(ts: string, signal?: AbortSignal): Promise
     if (!(err instanceof RadarImg404)) noteRadarCdnFailure();
     return null;
   } finally { dl.done(); }
+}
+
+/**
+ * Frame-PNGs → Werte-Grids, off-main im vorhandenen RADOLAN-Worker; bei
+ * Worker-Problemen derselbe Code auf dem Hauptthread (Muster `decodeRvTarOffMain`).
+ */
+async function decodeGrayPngsOffMain(
+  pngs: { leadMinutes: number; validAtMs: number; buf: ArrayBuffer }[], width: number, height: number,
+): Promise<DecodedRvFrame[]> {
+  const onMain = async (): Promise<DecodedRvFrame[]> => {
+    const out: DecodedRvFrame[] = [];
+    for (const p of pngs) {
+      const g = await decodeGrayPng(new Uint8Array(p.buf));
+      if (g.width !== width || g.height !== height) throw new Error(`PNG-Maße ${g.width}×${g.height} statt ${width}×${height}`);
+      out.push({ leadMinutes: p.leadMinutes, validAtMs: p.validAtMs, width: g.width, height: g.height, values: g.values });
+    }
+    return out;
+  };
+  rwInit();
+  if (!rwUsable || !rwWorker) return onMain();
+  const w = rwWorker;
+  const id = rwNextId++;
+  try {
+    const res = await new Promise<{ runAtMs: number; frames: DecodedRvFrame[] }>((resolve, reject) => {
+      rwPending.set(id, { resolve, reject });
+      w.postMessage({ id, pngs }, pngs.map((p) => p.buf));
+    });
+    for (const f of res.frames) {
+      if (f.width !== width || f.height !== height) throw new Error(`PNG-Maße ${f.width}×${f.height} statt ${width}×${height}`);
+    }
+    return res.frames;
+  } catch (err) {
+    rwPending.delete(id);
+    if (pngs.length && pngs[0].buf.byteLength === 0) throw err;   // nach echtem Transfer kein Rückfall
+    return onMain();
+  }
 }
 
 async function fetchRvTar(ts: string, signal?: AbortSignal, priority?: RequestPriority): Promise<RvNowcast> {

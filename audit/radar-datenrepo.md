@@ -836,3 +836,145 @@ mit den zusätzlichen Pushes weiter — Beobachtungsposten bleibt. **V-RD-16:** 
 09z-Publish gestoppt); die Heilung ist konstruktionsgleich zur RD1-belegten (publish() baut
 `radar/` bei JEDEM Push komplett aus dem lokalen Bestand neu — Bilder gehen durch dieselbe
 Kopie), beim nächsten Blick auf status.json nach einem :06-Publish gegenprüfen.
+
+### 14.5 Verifikation nach Jans Deploy (2026-09-03 nachmittags) — zwei Befunde, beide behoben
+
+Jans Auftrag: „ich habe alles committed, kannst du jetzt verifizieren dass alles funktioniert?"
+Alle RD3-Module liegen seither auf `origin/main` (Arbeitsbaum = origin/main, 0 ahead/behind).
+
+**V-RD-12 erledigt.** Producer gegen einen FRISCHEN `main`-Sparse-Klon getestet (exakt der
+Runner-Weg: `--filter=blob:none --no-checkout` + `sparse-checkout scripts src package.json` +
+`npm install bz2@1 jsfive@0.4`): alle vier Derives laufen (rv 26 Dateien/6,0 s, konrad3d 41 ms,
+inca 13/1,9 s, rzc 2/0,5 s). Workflow im Daten-Repo auf `main` zurückgestellt (`3da8252`),
+Kette neu dispatcht (Lauf **33752414327**), Zweig `rd3-producer` gelöscht. **Produktiv belegt:**
+der main-basierte Lauf deriviert alle vier Quellen (rv 1 196–1 237 ms, konrad3d ~145 ms,
+inca ~550 ms, rzc ~220 ms), **DWD→Push 9–16 s — unverändert zum Takt vor RD3**.
+
+**V-RD-16 belegt (ICON-Force-Push).** Der Publisher hat um **10:07:21 UTC** die ganze Historie
+ersetzt (`d3eae0e` = neuer Wurzel-Commit; die Commit-Liste endet dort). `radar/img/v1/` steht
+danach unverändert mit allen vier Quellen und **je genau 12 Slots** (Retention), Roh-Bestand
+ebenso 12 — die Store-Rebuild-Heilung trägt die Bilder wie die Rohdateien.
+
+**Befund 1 (behoben): der GeoSphere-`/metadata`-Endpunkt flattert.** Direkt gemessen —
+drei Abrufe in Folge: **200 / 502 / 503** (kein Rate-Limit: `X-RateLimit-Remaining-Hour` 228).
+Damit hing der AT-Bildweg an einem instabilen Fremdhost, und die in §14.3 zugesagte
+Ausfall-Resilienz („bei Direkt-Ausfall CDN-Last-Good") existierte NICHT: ohne `/metadata` gab es
+gar keinen Bild-Versuch. Gebaut: `guessIncaStamps` (15-min-Raster, Gate **28 min** — die
+Spiegel-Telemetrie misst reftime→Push **16,7 / 22,8 min**) und `loadIncaFromImgGuessed` als
+Rückfall NACH dem Direktweg (Reihenfolge ist die Frische-Regel: der geratene Slot ist älter,
+er darf den frischen Direktweg nie verdrängen), Ergebnis trägt `staleFromMs`.
+
+**Befund 2 (behoben, schwerer): ein Fremdhost-Fehler vergiftete den GETEILTEN CDN-Latch.**
+Der `/metadata`-Abruf lag INNERHALB des CDN-Fehlerpfads von `loadIncaFromImg` — jedes 502 rief
+`noteRadarCdnFailure()`, und nach zwei davon schaltete `radarCdnUsable()` den Bildweg für die
+ganze Sitzung ab: **auch für RV, KONRAD und rzc**, obwohl jsDelivr einwandfrei lief. Aufgedeckt
+durch den Ausfall-Drill (der Rückfall griff nicht, weil der Latch bereits zu war). Behoben:
+der Fremd-Abruf hat sein eigenes `catch` und zählt nie in den CDN-Latch. Zwei Hosts, zwei
+Fehlerkonten. (Die anderen drei Quellen sind nicht betroffen — dort liegen ausschließlich
+jsDelivr-URLs im CDN-Pfad.)
+
+**Ausfall-Drill (Beleg, Dev-Server, frische Modulinstanz ⇒ kein `lastGood`, Latch
+zurückgesetzt):** GeoSphere komplett blockiert (beide Abrufe abgefangen: `metadata` +
+`nowcast-v1-15min-1km`) ⇒ **12 Frames aus dem Daten-Repo**, `staleFromMs` = 31 min,
+4 Ecken aus dem Meta, 5,1 s — und **`radarCdnUsable()` bleibt true** (Latch-Isolation wirkt).
+
+**Befund 3 (Verifier-Fehlalarm, korrigiert):** B5 verlangte exakt 12 INCA-Frames; die API
+liefert je nach Lauf-Alter auch **11** (im Lauf gemessen — der Grund, warum das Meta die echten
+Leads trägt). Der Check zählt jetzt nicht mehr die Frames, sondern prüft, dass JEDER gelieferte
+byte-gleich ankommt. Das erklärt auch einen früheren 30/31-Lauf; er war kein Produktfehler.
+
+**Verifiziert:** `verify:radar-repack` **33/33** (+3: A23–A25 Stempel/Gate/Fenster des
+Rückfalls, A26 Frische-Regel „geraten NACH direkt", A27 Latch-Isolation), radar-runs 52/52,
+routing 105/105, layer-erstbild 37/37, radar-sampling 25/25, cells 133/133, hail 55/55,
+precip-source 30/30, typecheck + Build + Budget grün. Browser (Prod-Preview, Regenradar DE):
+RV 26 PNG / 1 148 KB, **0 Tar**, KONRAD cells.json 2 KB, INCA 13 PNG; rzc im Frische-Fenster
+über STAC (Konstruktion). Nicht bestandene Live-Zeilen werden als ⊘ ausgewiesen, nie als grün
+(rzc-Asset lieferte einmal 403 — Quellen-Eigenschaft, vom Producer als „nächster Versuch"
+behandelt).
+
+**V-Katalog fortgeschrieben:** V-RD-12 und V-RD-16 **erledigt**. Neu **V-RD-17:** die
+`/metadata`-Instabilität ist gemessen, aber ihre Häufigkeit über den Tag nicht — wenn sie
+häufig ist, lohnt es, den INCA-Stempel primär zu RATEN (Gate 28 min) und `/metadata` nur zur
+Verfeinerung zu nutzen; heute ist die Reihenfolge bewusst umgekehrt, weil sie die Frische
+schützt. V-RD-13 (rzc-Frische-Fenster kostet ~50 % der Loads den CDN-Weg), V-RD-14
+(Long-Task-Messung), V-RD-15 (Rückblick-Browser-Beleg) bleiben offen.
+
+### 14.6 Nachtrag CH — ein Altbestand-Defekt, den die Verifikation aufdeckte
+
+**Befund 4 (behoben, Altbestand — älter als RD3):** MeteoSwiss listet ein rzc-Asset im
+STAC-Tagesitem, **bevor die Datei abrufbar ist**. Am 2026-09-03 gemessen: das jüngste gelistete
+Asset lieferte **403**, die drei älteren **200** (`rzc262461225vl.001.h5` gegen …1205/…1210/…1215).
+`resolveLatestRzcHref` nahm ausschließlich das letzte und warf bei `!res.ok` — in diesem Fenster
+fiel das **CH-Radar ganz aus**, ohne Rückfall. Das betraf den Bestand seit jeher; RD3 hat es nur
+sichtbar gemacht, weil zwei Verifier-Zeilen daran dauerhaft hängen blieben.
+
+Behoben in `meteoSwissRadar.ts`: `resolveRzcHrefs` liefert die **drei jüngsten** Assets
+(jüngstes zuerst), der Leser nimmt das erste ABRUFBARE (`!res.ok` ⇒ nächstälteres). Zusätzlich —
+wie bei INCA — ein Ausfall-Rückfall auf den Spiegel: ist die Quelle ganz weg, gilt das
+Frische-Fenster nicht mehr (`quelleWeg`), und der Bild-Weg darf bis zu 6 Slots (30 min)
+zurückreichen; ausdrücklich NACH dem Direktweg, damit die Frische nie sinkt.
+
+**Befund 5 (Verifier, korrigiert):** dieselbe 403-Annahme steckte in ZWEI Verifiern
+(`verify-radar-repack` B7/B8, `verify-layer-erstbild` E/F) — beide nahmen nur das jüngste
+Asset und übersprangen sich dann selbst (⊘). Damit war die einzige CH-Byte-Identitätsprüfung
+faktisch wirkungslos. Beide nehmen jetzt das jüngste abrufbare; Ergebnis:
+`verify:radar-repack` **37/37** (B7/B8 grün, nur noch die CDN-Zeile ⊘) und
+`verify:layer-erstbild` **37/37** (vorher 32/37, fünf Prüfungen fielen still aus).
+
+**Mess-Lehre (Wiederholung von LE0):** die Browser-Runde lief zwischenzeitlich ins Leere —
+`canvas: 0`, nur ein Bruchteil der Abrufe, „page is busy" beim Screenshot. Ursache war NICHT
+der Code, sondern die eigene Maschine: **82 Node-Prozesse mit 5,2 GB** aus verwaisten
+Preview-/Dev-Servern und Verifier-Läufen (ein Build dauerte 1 m 20 statt 35 s). Nach dem
+Aufräumen war derselbe Build sofort korrekt (canvas 1, 26 PNG-Abrufe). **Vor jeder
+Browser-Messung die eigenen Server zählen** — ein hängender Ladevorgang ist zuerst ein
+Verdacht gegen die Umgebung, nicht gegen die Änderung.
+
+**Abschließend belegt (Prod-Preview :5219, entlastete Maschine, Spiegel live mit je 12 frischen
+Slots):**
+
+| Prüfung | Beleg |
+|---|---|
+| Normalbetrieb Regenradar DE | RV **26 PNG / 1 100 KB**, INCA **13 PNG / 74 KB**, KONRAD **cells.json 2 KB**, **0 Tar**; rzc im Frische-Fenster über STAC (Konstruktion); Karte gerendert (`canvas: 1`), Zeitleiste „17:50 jetzt · gemessen" |
+| Kill-Switch `?radarimg=0` | **0 Bild-Abrufe**; exakt die Altwege: Tar 886 KB · NetCDF 866 KB · STAC/HDF5 197 KB · KONRAD-XML 7 KB |
+| INCA-Totalausfall (Drill) | GeoSphere komplett blockiert ⇒ **12 Frames aus dem Daten-Repo**, `staleFromMs` 31 min, Ecken aus dem Meta, `radarCdnUsable()` bleibt **true** |
+| Konsole | 0 Fehler/Exceptions |
+| Producer auf `main` | alle vier Quellen derivieren (rv ~1,2 s, konrad ~160 ms, inca ~540 ms, rzc ~220 ms), **DWD→Push 9–16 s** (unverändert), je 12 Slots je Quelle |
+
+### 14.7 Ladeweg auf ICON-D2-Niveau (Jans Auftrag: „gleiche Performance beim Laden wie bei den ICON-D2-Layern")
+
+**Diagnose — der Unterschied lag nicht im Netz.** Isoliert gemessen (ein gegatterter RV-Slot,
+`cache: 'reload'`): **26 Dateien / 1 094 KB in 1 403 ms** parallel — das ist so schnell wie der
+ICON-Weg und schneller als der 1,4-MB-Tar. Der Posten war die **Dekodierung: 5 435 ms** für
+33 MPixel, und zwar **auf dem Hauptthread**. Genau darin unterschied sich der neue Weg vom
+alten: `bz2` + Tar-Dekode laufen seit BW-5 im Worker (`radolanWorker`), die PNG-Dekodierung lief
+im UI-Thread. Dazu kommt die Größenordnung: ein ICON-Bild ist 608 × 373 (0,23 MPix), ein
+RV-Frame 1100 × 1200 — **25 Frames sind 33 MPix, das 11-Fache eines ganzen ICON-Schrittsatzes**.
+
+**Zwei Hebel gebaut:**
+
+1. **Kein Canvas-Umweg mehr** (`src/sources/grayPng.ts`, neu, DOM-frei): Graustufen-PNG →
+   1 Byte je Pixel direkt aus IDAT (`DecompressionStream('deflate')` + Un-Filter). Der
+   Canvas-Weg liefert *immer* RGBA — 132 MB Zwischenpuffer je Lauf, aus denen jeder vierte
+   Wert wieder herausgezogen wird. Der neue Leser kann genau die Bauart des Spiegels (8 bit,
+   Farbtyp 0, kein Interlace); alles andere ist `GrayPngUnsupported`, und der **Canvas-Weg
+   bleibt als benannter Rückfall** (Rule 2). Byte-Gleichheit ist bewiesen, nicht behauptet:
+   `verify:radar-repack` **B1b** dekodiert alle 25 echten Frames und vergleicht gegen
+   `decodeRvTar` (`Buffer.compare === 0`), **B1c** prüft die Ablehnungsfälle.
+2. **Dekodierung off-main:** `radolanWorker` kennt jetzt zwei Aufträge — `tarBuf` (wie bisher)
+   und `pngs`. `decodeGrayPngsOffMain` in `radolan.ts` folgt exakt dem Muster von
+   `decodeRvTarOffMain` samt Hauptthread-Rückfall (und der Transfer-Falle: nach einem echten
+   `postMessage`-Transfer ist kein Rückfall mehr möglich, das wird geprüft).
+
+**Belegt (Prod-Preview, Regenradar DE):** „25 Frames (0…+120 min) · Quelle Daten-Repo (PNG)",
+Karte gerendert, **Long Tasks: 0** (vorher lag die gesamte Dekodierung als Hauptthread-Arbeit
+an) — damit ist **V-RD-14 geschlossen**. `verify:radar-repack` **41/41** (+4: B1b/B1c
+Byte-Gleichheit und Ablehnung des neuen Lesers, A30 Off-Main-Weg mit Rückfall, A31 der Worker
+kennt beide Aufträge), typecheck + Build + Budget grün.
+
+**Messgrenze, ehrlich:** ein sauberer Faktor „direkter Leser gegen Canvas" ist auf dieser
+Maschine NICHT ermittelbar — die Wiederholungsläufe schwankten zwischen 27 s und 126 s für
+dieselben 25 Frames, weil Chrome, mehrere Vite-Server und die laufende App um die CPU
+konkurrierten (dieselbe Messfalle wie §14.6). Belegbar sind: Einzelframe 627 ms (Canvas) gegen
+206 ms (direkt), Node über 25 Frames 188 ms/Frame, und — unabhängig von jedem Faktor — dass die
+Arbeit den Hauptthread verlassen hat (Long Tasks 0). Ein belastbarer Vergleich gehört auf eine
+ruhige Maschine (**V-RD-18**).

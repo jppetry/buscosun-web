@@ -55,6 +55,14 @@ const MODE_LABEL: Record<CogMode, string> = { tci: 'Echtfarbe', swir: 'SWIR', dn
 
 const _tiles = new Map<string, Promise<ImageBitmap>>();
 const TILE_CACHE_MAX = 24;
+/**
+ * V-SAT-17: wie viele TEURE Kachelbauten ein Bild anstoßen darf. Der dNBR-Bau mit
+ * Landbedeckungs-Dämpfung rechnet `wcGeoGrid` + `wcMapBlock` SYNCHRON beim Start (~37 ms je
+ * 512²-Kachel, §12.9.1) — sechs davon in einem `draw()` ergaben EINEN Task von 237–245 ms.
+ * Einer je Bild macht daraus sechs Scheiben, die meist nicht einmal Long Tasks sind. Der
+ * Deckel gilt NUR dort: ohne Dämpfung kostet ein Start praktisch nichts (Kontrolllauf C).
+ */
+const WC_STARTS_PER_FRAME = 1;
 /** Dekodierte uint16-Bandkacheln (SAT2b) — je 512² × 2 B ≈ 0,5 MB, Deckel hält ~16 MB. */
 const _bandTiles = new Map<string, Promise<Uint16Array>>();
 const BAND_CACHE_MAX = 32;
@@ -530,15 +538,21 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
       );
     };
     const budget = { n: 0 };
+    const frame = { deferred: false };
     /**
      * Eine Pyramide zeichnen: grob → fein bis zur gewählten Ebene; nur die gewählte fordert
      * fehlende Kacheln an (Deckel 12 je Bild). Overlays (`chosenOnly`) zeichnen NUR die gewählte
      * Ebene — zwei gestapelte halbtransparente Ebenen würden die Deckkraft verdoppeln.
+     *
+     * `maxStarts` ist das Frame-Budget (V-SAT-17): mehr als so viele NEUE Bauten stößt dieses
+     * Bild nicht an, der Rest kommt im nächsten. Weil jedes Bild `tilesFor` aus der AKTUELLEN
+     * Sicht neu ableitet, wird eine inzwischen weggezoomte Kachel dabei gar nicht erst gebaut.
      */
     const drawPyramid = (
       levels: Array<{ ifd: CogIfd; key: (t: CogTileRef) => string; request: (t: CogTileRef) => Promise<ImageBitmap> }>,
-      chosenW: number, chosenOnly: boolean,
+      chosenW: number, chosenOnly: boolean, maxStarts = 12,
     ) => {
+      let started = 0;
       const sorted = [...levels].sort((a, b) => a.ifd.width - b.ifd.width);
       for (const lv of sorted) {
         if (lv.ifd.width > chosenW) continue;
@@ -548,7 +562,8 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
           const cached = _tiles.get(lv.key(t));
           if (!cached) {
             if (lv.ifd.width === chosenW && budget.n < 12) {
-              budget.n++;
+              if (started >= maxStarts) { frame.deferred = true; continue; }
+              budget.n++; started++;
               lv.request(t).then(() => schedule(), () => schedule());
             }
             continue;
@@ -601,7 +616,7 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
         ifd: lv.postS,
         key: (t) => `dnbr|${post.swir22}|${pre.swir22}|${lv.postS.width}|${t.idx}${wcKeySuffix(d.wc != null)}`,
         request: (t) => loadDnbrTile(post, pre, lv, t, onBytes, wcArgsFor(lv, t)),
-      })), chosen.ifd.width, true);
+      })), chosen.ifd.width, true, d.wc ? WC_STARTS_PER_FRAME : 12);
     }
 
     const drawCross = () => {
@@ -620,6 +635,10 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
       ctx.stroke();
     };
     drawCross();
+
+    // V-SAT-17: was das Frame-Budget stehen ließ, holt das nächste Bild — `schedule()` ist
+    // rAF-koalesziert, es entsteht also genau ein weiterer Durchlauf, keine Schleife.
+    if (frame.deferred) schedule();
 
     // V-SAT-15: ein Latch-Kipp (PC → Spiegel) mitten in der Sitzung wird beim nächsten Draw
     // sichtbar — der Satz unten wechselt mit, neue Kacheln laufen unter dem `|wcm`-Schlüssel.
