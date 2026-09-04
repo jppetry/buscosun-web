@@ -933,3 +933,136 @@ export async function resolveRepackForRun(
   const raw = await readManifestRepack(url);
   return resolveRepackSection(run, family, raw, wanted);
 }
+
+// ---------------------------------------------------------------------------
+// BW-12 (§31.6): der LAUF aus dem Daten-Index — der Weg, der die Warm-Crons
+// überflüssig macht
+//
+// Bis hierher erfuhr der Client den ICON-D2-Lauf aus `/latest-{grib,wind}.json`,
+// das ein Warm-Cron ins Site-Repo committet — und jeder dieser Commits ist ein
+// voller Netlify-Produktionsbuild (gemessen ~31/Tag, `audit/bandbreite.md` §31.1).
+// Der Index des Daten-Repos, den dieses Modul für den Repack-Abschnitt ohnehin
+// liest, trägt dieselbe Auskunft: `run`, `runAt` und je Familie die Schritte —
+// und die Producer-Caps sind mit den Client-Caps identisch (`verify:repack`
+// prüft das je Familie), der Horizont ist also derselbe.
+//
+// Was sich dadurch ändert, ehrlich benannt: der Lauf ist der neueste
+// REPACKTE, nicht der neueste beim DWD publizierte. Hinkt der Producer, bleibt
+// die Karte auf dem vorherigen Lauf, statt auf frisches GRIB umzuschwenken —
+// ältere Daten, dafür kein GRIB-Egress. Der Lauf steht in der UI, wird also
+// nicht verschwiegen.
+//
+// Rule 2: default-OFF. `?repackrun=1` (bzw. `localStorage.repackrun = '1'`)
+// schaltet den Weg ein; ohne Flag verhält sich der Client byte-identisch wie
+// vorher. Benannter Rückfallweg in jedem Fehlerfall: Manifest, dann
+// Directory-Scan — dieselbe Kette wie bisher, nur eine Stufe davor.
+// ---------------------------------------------------------------------------
+
+/** Rückgabeform — deckungsgleich mit `RunInfo`/`ManifestRun` der Aufrufer. */
+export interface RepackIndexRun { runStr: string; runAt: Date; steps: number[] }
+
+/** Max. Alter des Laufs, identisch zum Manifest-Staleness-Guard begründet:
+ *  jenseits von 24 h ist ein Lauf keine Aussage über das Wetter mehr. */
+export const MAX_INDEX_RUN_AGE_H = 24;
+
+/** `YYYYMMDDHH` → UTC-Date (lokal, damit dieses Modul unabhängig bleibt). */
+function runStrToDate(run: string): Date {
+  return new Date(Date.UTC(
+    +run.slice(0, 4), +run.slice(4, 6) - 1, +run.slice(6, 8), +run.slice(8, 10), 0, 0, 0,
+  ));
+}
+
+/**
+ * Schalter des Lauf-Wegs, getrennt vom Abschnitt-Weg (`repackidx`) und vom
+ * Repack insgesamt (`repack`). **Default off** — die Query schlägt den Speicher
+ * in beide Richtungen, wie bei den beiden anderen Schaltern.
+ */
+export function repackRunFlagFrom(search: string, stored: string | null): boolean {
+  const q = new URLSearchParams(search.startsWith('?') ? search.slice(1) : search).get('repackrun');
+  if (q === '1') return true;
+  if (q === '0') return false;
+  return stored === '1';
+}
+export function repackRunEnabled(): boolean {
+  if (typeof window === 'undefined') return false;
+  let stored: string | null = null;
+  try { stored = window.localStorage?.getItem('repackrun') ?? null; } catch { /* wie repackEnabled */ }
+  try { return repackRunFlagFrom(window.location.search, stored); } catch { return false; }
+}
+
+/**
+ * Der jüngste Lauf des Index, der DIESE Familie führt — rein, DOM-frei, ohne
+ * Netz, damit `verify:repack` ihn durchspielen kann.
+ *
+ * Drei Regeln, und die dritte ist die, die man leicht vergisst:
+ *   1. nur Einträge mit nicht-leerer Schrittliste DIESER Familie zählen — ein
+ *      Lauf, dessen Bilder noch fehlen, ist für den Aufrufer kein Lauf;
+ *   2. der jüngste gewinnt, verglichen über die Lauf-Kennung (`YYYYMMDDHH`
+ *      sortiert lexikografisch wie chronologisch), nicht über die Reihenfolge
+ *      im Index;
+ *   3. Staleness-Guard wie beim Manifest — ein zu alter (> 24 h) oder
+ *      unplausibel zukünftiger (> 2 h voraus) Lauf wird verworfen, damit ein
+ *      stehengebliebenes Daten-Repo den Client nicht auf Altdaten festnagelt.
+ */
+export function newestRunFromIndex(
+  index: unknown,
+  family: RepackFamily,
+  nowMs: number = Date.now(),
+): RepackIndexRun | null {
+  if (!index || typeof index !== 'object') return null;
+  const runs = (index as { runs?: unknown }).runs;
+  if (!Array.isArray(runs)) return null;
+  let best: RepackIndexRun | null = null;
+  for (const raw of runs as unknown[]) {
+    if (!raw || typeof raw !== 'object') continue;
+    const entry = raw as Record<string, unknown>;
+    const run = entry.run;
+    if (typeof run !== 'string' || !/^\d{10}$/.test(run)) continue;
+    const fam = entry[family] as { steps?: unknown } | undefined;
+    if (!fam || typeof fam !== 'object' || !Array.isArray(fam.steps)) continue;
+    // ⚠️ Die Schrittliste des Index enthält OBJEKTE, keine Zahlen:
+    // `{ step, file, bytes, … }` (so liest sie auch `parseRepackSection`). Eine
+    // erste Fassung filterte hier auf `Number.isInteger` — sie lieferte gegen
+    // den echten Index für JEDE Familie `null`, während synthetische Fixtures
+    // mit Zahlen bestanden. Deshalb prüft `verify:repack` seither gegen die
+    // echte Form (V-BW-51).
+    const steps = (fam.steps as unknown[])
+      .map((s) => (s && typeof s === 'object' ? (s as { step?: unknown }).step : s))
+      .filter((s): s is number => Number.isInteger(s) && (s as number) >= 0)
+      .sort((a, b) => a - b);
+    if (steps.length === 0) continue;
+    const runAt = typeof entry.runAt === 'string' ? new Date(entry.runAt) : runStrToDate(run);
+    if (Number.isNaN(runAt.getTime())) continue;
+    const ageH = (nowMs - runAt.getTime()) / 3_600_000;
+    if (ageH > MAX_INDEX_RUN_AGE_H || ageH < -2) continue;
+    if (!best || run > best.runStr) best = { runStr: run, runAt, steps };
+  }
+  return best;
+}
+
+/**
+ * Der Lauf für diese Familie aus dem CDN-Index — über DENSELBEN 60-s-Cache,
+ * den `resolveRepackSection` benutzt: der Abschnitt, der gleich danach gebraucht
+ * wird, kostet deshalb keinen ZWEITEN Index-Abruf.
+ *
+ * ⚠️ Das heißt NICHT „kostenlos": deckt der Manifest-Abschnitt heute alles ab,
+ * wird der Index gar nicht geholt (BW-10 §29.3). Am Dev-Server gemessen
+ * (2026-09-04, Wetterkarte kalt): ohne Flag 0 CDN-JSON-Abrufe, mit Flag 2
+ * (Index + Zeiger). Solange die Manifeste noch liegen, ist der Index-Weg also
+ * ein Zukauf; erst ohne sie ist er die einzige Quelle. Siehe V-BW-52 für den
+ * Hebel, den Zeiger einzusparen.
+ *
+ * `null` heißt „nimm den bisherigen Weg" — Schalter aus, Repack aus, Index
+ * unlesbar, Familie nicht im Index, Lauf zu alt. Der Aufrufer fällt dann auf
+ * Manifest bzw. Directory-Scan zurück, exakt wie vor dieser Phase.
+ */
+export async function resolveRunFromRepackIndex(
+  family: RepackFamily,
+  signal?: AbortSignal,
+): Promise<RepackIndexRun | null> {
+  if (!repackUsable() || !repackIndexEnabled() || !repackRunEnabled()) return null;
+  if (signal?.aborted) return null;
+  const raw = await cdnIndex();
+  if (signal?.aborted) return null;
+  return newestRunFromIndex(raw, family);
+}

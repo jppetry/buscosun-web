@@ -109,7 +109,7 @@ export async function fetchIconD2Lpi(
    *  ohne die Option alle Schritte, wie bisher. */
   opts?: { nowOnly?: boolean; aheadHours?: number },
 ): Promise<IconD2Lpi> {
-  const { runStr, runAt, steps } = await resolveLatestRun('lpi_max', signal);
+  const { runStr, runAt, steps } = await resolveLatestRun('lpi_max', signal, 'lightningfc');
   // t+0 auslassen: `lpi_max` ist dort als Intervall-Maximum strukturell 0.
   const capped = steps.filter((s) => s >= MIN_STEP && s <= MAX_STEP);
   const wanted = opts?.nowOnly ? stepsForNowWindow(capped, runAt, opts.aheadHours ?? 0) : capped;

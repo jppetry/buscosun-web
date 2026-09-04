@@ -203,8 +203,13 @@ async function main() {
     return 0;
   }
   if (manifestCovers(existing, latest) && !repackSettled) {
+    // BW-12: „geändert" heißt seit `sameSection` ohne Commit-Vergleich: der
+    // Abschnitt kam dazu, fiel weg, oder seine Schrittzahl hat sich bewegt —
+    // ein reiner Commit-Wechsel steht hier nicht mehr (§31.9). Deshalb nennt
+    // die Zeile die Schrittzahl, nicht den SHA.
+    const nSteps = (s) => s?.wind?.steps?.length ?? 0;
     log(`Gleicher Lauf ${latest.run}, aber der Repack-Abschnitt hat sich geändert `
-      + `(${existing?.repack?.commit?.slice(0, 7) ?? '—'} → ${nextRepack?.commit?.slice(0, 7) ?? '—'}) → umlegen.`);
+      + `(${nSteps(existing?.repack)} → ${nSteps(nextRepack)} Schritte) → umlegen.`);
   }
   if (existing && existing.run === latest.run) {
     const have = Array.isArray(existing.steps) ? existing.steps : [];

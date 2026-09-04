@@ -122,7 +122,7 @@ export async function fetchIconD2Rotation(
   opts?: { nowOnly?: boolean; aheadHours?: number },
 ): Promise<IconD2Rotation> {
   // uh_max ist der Rotations-/Domänenanker & immer publizierter Param → löst Lauf/Steps auf.
-  const { runStr, runAt, steps } = await resolveLatestRun('uh_max', signal);
+  const { runStr, runAt, steps } = await resolveLatestRun('uh_max', signal, 'rotation');
   // Intervall-Maximum → Analyse-Schritt 0 degeneriert überspringen (minStepHours=1).
   const capped = steps.filter((s) => s >= 1 && s <= MAX_STEP);
   const wanted = opts?.nowOnly ? stepsForNowWindow(capped, runAt, opts.aheadHours ?? 0) : capped;

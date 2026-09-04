@@ -353,8 +353,72 @@ if (hsurfGreys.length >= 2) {
       RM.carryRepack({ repack: sec }, entry.run, { ok: false, section: null }) === sec);
     add('carryRepack (3b) Index unlesbar → Abschnitt eines ANDEREN Laufs fallen lassen',
       RM.carryRepack({ repack: other }, entry.run, { ok: false, section: null }) === null);
-    add('sameSection erkennt einen Commit-Wechsel',
-      RM.sameSection(sec, sec) && !RM.sameSection(sec, { ...sec, commit: 'c'.repeat(40) }));
+    // BW-12 (§31.9): der reine Commit-Wechsel des stündlichen Re-Publishs ist
+    // KEINE Änderung mehr — er sagt dem Client nichts Neues und kostete bis
+    // hierher einen vollen Netlify-Build. Die Negativ-Kontrollen daneben halten
+    // fest, was sehr wohl eine Änderung bleibt: anderer Lauf, andere Schrittzahl
+    // (letzteres zusätzlich für eine neue Familie weiter unten geprüft).
+    add('sameSection ignoriert einen reinen Commit-Wechsel',
+      RM.sameSection(sec, sec) && RM.sameSection(sec, { ...sec, commit: 'c'.repeat(40) }));
+    add('sameSection erkennt trotzdem einen Lauf-Wechsel',
+      !RM.sameSection(sec, { ...sec, run: '1970010100' }));
+
+    // ── BW-12 (§31.12): der LAUF aus dem Index — die Regel, die die
+    // Warm-Crons ersetzt. Rein und netzfrei, deshalb hier vollständig
+    // durchgespielt: jede Regel mit einer Negativ-Kontrolle daneben.
+    //
+    // ⚠️ Die Fixtures tragen die ECHTE Form der Schrittliste — Objekte
+    // `{ step, file, … }`, nicht Zahlen. Eine erste Fassung des Resolvers
+    // filterte auf `Number.isInteger` und lieferte gegen den echten Index für
+    // JEDE Familie `null`; mit Zahlen-Fixtures wäre das hier grün gewesen
+    // (V-BW-51). Deshalb unten zusätzlich die Gegenprobe am Baum-Index.
+    {
+      const H = 3_600_000;
+      const now = Date.UTC(2026, 8, 4, 2, 0, 0);            // 2026-09-04 02:00 UTC
+      const at = (h) => new Date(now - h * H).toISOString();
+      const S = (...ns) => ({ steps: ns.map((step) => ({ step, file: `x-${String(step).padStart(3, '0')}.png` })) });
+      const ix = {
+        commit: 'a'.repeat(40),
+        runs: [
+          // absichtlich NICHT chronologisch abgelegt — die Regel sortiert selbst
+          { run: '2026090321', runAt: at(5), wind: S(0, 1, 2), temp: S(0, 1) },
+          { run: '2026090400', runAt: at(2), wind: S(0, 1, 2, 3) },
+          { run: '2026090318', runAt: at(8), wind: S(0), temp: S(0, 1, 2) },
+        ],
+      };
+      const one = (run, runAt, fam, steps) => ({ commit: 'a'.repeat(40), runs: [{ run, runAt, [fam]: steps }] });
+      const wind = RS.newestRunFromIndex(ix, 'wind', now);
+      add('Index-Lauf: der jüngste Eintrag der Familie gewinnt, unabhängig von der Reihenfolge',
+        wind?.runStr === '2026090400' && wind.steps.join(',') === '0,1,2,3', wind?.runStr);
+      const temp = RS.newestRunFromIndex(ix, 'temp', now);
+      add('Index-Lauf: ein Lauf OHNE die Familie zählt nicht — `temp` bekommt 21z, nicht 00z',
+        temp?.runStr === '2026090321' && temp.steps.join(',') === '0,1', temp?.runStr);
+      add('Index-Lauf: leere Schrittliste zählt als „führt den Lauf nicht"',
+        RS.newestRunFromIndex(one('2026090400', at(2), 'wind', S()), 'wind', now) === null);
+      add('Index-Lauf: Staleness-Guard verwirft einen Lauf älter als 24 h',
+        RS.newestRunFromIndex(one('2026090100', at(30), 'wind', S(0)), 'wind', now) === null);
+      add('Index-Lauf: unplausibel zukünftiger Lauf (> 2 h voraus) wird verworfen',
+        RS.newestRunFromIndex(one('2026090406', at(-4), 'wind', S(0)), 'wind', now) === null);
+      add('Index-Lauf: ein Lauf KNAPP in der Zukunft (1 h) bleibt gültig (Negativ-Kontrolle zur Zeile darüber)',
+        RS.newestRunFromIndex(one('2026090403', at(-1), 'wind', S(0)), 'wind', now)?.runStr === '2026090403');
+      add('Index-Lauf: Müll ergibt null statt Absturz',
+        RS.newestRunFromIndex(null, 'wind', now) === null
+        && RS.newestRunFromIndex({}, 'wind', now) === null
+        && RS.newestRunFromIndex({ runs: 'nein' }, 'wind', now) === null
+        && RS.newestRunFromIndex(one('kaputt', at(2), 'wind', S(0)), 'wind', now) === null);
+      add('Index-Lauf: `runAt` fehlt → aus der Lauf-Kennung abgeleitet, nicht verworfen',
+        RS.newestRunFromIndex({ commit: 'a'.repeat(40), runs: [{ run: '2026090400', ...{ wind: S(0, 1) } }] }, 'wind', now)?.runStr === '2026090400');
+      add('Index-Lauf: eine Schrittliste in der FALSCHEN Form ergibt null (Negativ-Kontrolle zur Objekt-Form)',
+        RS.newestRunFromIndex(one('2026090400', at(2), 'wind', { steps: [{ datei: 'x' }, { datei: 'y' }] }), 'wind', now) === null);
+
+      // Der Schalter: Rule 2 verlangt default-OFF mit benanntem Rückfallweg.
+      add('Index-Lauf ist DEFAULT-OFF (ohne Query, ohne Speicher)',
+        RS.repackRunFlagFrom('', null) === false);
+      add('`?repackrun=1` schaltet ein, `?repackrun=0` schlägt den Speicher',
+        RS.repackRunFlagFrom('?repackrun=1', null) === true
+        && RS.repackRunFlagFrom('?repackrun=0', '1') === false
+        && RS.repackRunFlagFrom('', '1') === true);
+    }
 
     // ── Die Wiederholung, an einem echten Server ───────────────────────────
     // Anlass ist kein Gedankenspiel: `raw.githubusercontent.com` lief am
@@ -694,7 +758,11 @@ if (hsurfGreys.length >= 2) {
       RS.REPACK_CONCURRENCY > 6 && RS.REPACK_CONCURRENCY <= 16, String(RS.REPACK_CONCURRENCY));
     // Die Frist wird nach den Kopfzeilen NEU gesetzt — sonst wäre die Körper-Frist ein Wunsch im Kommentar.
     const src = rf('src/sources/repackSource.ts', 'utf8');
-    const iFetch = src.indexOf("await fetch(url, { signal: sig, cache: 'default' })");
+    // Altbestand-Reparatur (BW-12): die Zusicherung suchte den Aufruf WÖRTLICH
+    // und schlug fehl, seit LE2/H7 ihm ein `priority` mitgibt — die geprüfte
+    // Eigenschaft (Kopfzeilen → `rearm` → Körper) war nie verletzt. Jetzt wird
+    // der Aufruf-Anfang gesucht, nicht die vollständige Optionsliste.
+    const iFetch = src.search(/await fetch\(url, \{ signal: sig, cache: 'default'/);
     const iRearm = src.indexOf('rearm(BODY_TIMEOUT_MS)');
     const iBlob = src.indexOf('blob = await res.blob()');
     add('Bildabruf: Kopfzeilen unter der Schritt-Frist, dann `rearm(BODY_TIMEOUT_MS)`, dann der Körper',
@@ -703,7 +771,11 @@ if (hsurfGreys.length >= 2) {
       (() => { try { RS.preconnectDataCdn(); return true; } catch { return false; } })());
     const wind = rf('src/wind/iconD2WindSource.ts', 'utf8');
     const precip = rf('src/sources/iconD2Precip.ts', 'utf8');
-    const w1 = wind.indexOf('preconnectDataCdn();'), w2 = wind.indexOf('await fetch(liveManifestUrl(WIND_MANIFEST_URL');
+    // Altbestand-Reparatur (BW-12): seit LE1/H2 steht vor dem Abruf der
+    // Frühstart (`takeWarmManifest(…) ?? fetch(…)`), das wörtliche `await fetch(`
+    // gibt es nicht mehr. Gesucht wird jetzt der Abruf selbst — die geprüfte
+    // Eigenschaft (Preconnect VOR dem Manifest-Abruf) ist dieselbe.
+    const w1 = wind.indexOf('preconnectDataCdn();'), w2 = wind.search(/fetch\(liveManifestUrl\(WIND_MANIFEST_URL/);
     const p1 = precip.indexOf('preconnectDataCdn();'), p2 = precip.indexOf('resolveRunFromManifest(');
     add('Beide Manifest-Resolver bauen die CDN-Verbindung VOR dem Manifest-Abruf auf',
       w1 > 0 && w2 > w1 && p1 > 0 && p2 > p1, `wind ${w1} < ${w2} · grib ${p1} < ${p2}`);
@@ -711,7 +783,11 @@ if (hsurfGreys.length >= 2) {
     const loaders = ['iconD2TempSource', 'iconD2GustSource', 'iconD2Lpi', 'iconD2Rotation', 'iconD2Snow', 'iconD2Thunder', 'iconD2Precip', 'iconD2Cape'];
     const missing = loaders.filter((f) => !/resolveRepackForRun\([^)]*,\s*(wanted|steps)\)/.test(rf(`src/sources/${f}.ts`, 'utf8')));
     add('Alle acht GRIB-Manifest-Loader reichen `wanted`/`steps` an `resolveRepackForRun` durch',
-      missing.length === 0 && /resolveRepackSection\(runStr, 'wind', manifest\.repackRaw, wanted\)/.test(wind),
+      // BW-12: der Wind-Zweig nimmt seit dem Index-Gate `manifest?.repackRaw ?? null`
+      // (der Index-Weg bringt keinen Manifest-Abschnitt mit). Geprüft bleibt, was
+      // die Zusicherung meint: Lauf, Familie `wind` und die WUNSCHLISTE gehen
+      // durch — ohne sie wartete der Loader wieder auf den Index.
+      missing.length === 0 && /resolveRepackSection\(runStr, 'wind', [^,]+, wanted\)/.test(wind),
       missing.length ? missing.join(' · ') : `${loaders.length} + Wind`);
   }
 
@@ -872,6 +948,27 @@ if (hsurfGreys.length >= 2) {
       }
       add('Publisher-Baum: jeder Lauf hat seinen Zeiger — Commit, Kopf und Eintrag wie im Index, Abschnitt daraus == aus dem Index',
         badPtr.length === 0, badPtr.length ? badPtr.join(' · ') : `${index.runs.length} Zeiger`);
+      // BW-12 (§31.12): die Gegenprobe am ECHTEN Baum-Index — genau die Lücke,
+      // durch die eine erste Fassung des Resolvers gefallen ist (sie las die
+      // Schrittliste als Zahlen statt als Objekte und lieferte für JEDE Familie
+      // `null`, während Zahlen-Fixtures grün waren). Geprüft wird gegen den
+      // jüngsten Lauf des Baums UND gegen die Familien-Caps.
+      {
+        const newest = index.runs.map((r) => r.run).sort().at(-1);
+        const bad = [];
+        for (const fam of Object.keys(RS.REPACK_FAMILIES)) {
+          const entry = index.runs.find((r) => r.run === newest);
+          if (!entry?.[fam]?.steps?.length) continue;          // Familie im Baum nicht gebaut
+          const got = RS.newestRunFromIndex(index, fam, Date.parse(entry.runAt) + 3_600_000);
+          if (!got) { bad.push(`${fam}: null`); continue; }
+          if (got.runStr !== newest) { bad.push(`${fam}: ${got.runStr} statt ${newest}`); continue; }
+          const want = entry[fam].steps.map((s) => s.step).sort((a, b) => a - b);
+          if (got.steps.join(',') !== want.join(',')) bad.push(`${fam}: ${got.steps.length} statt ${want.length} Schritte`);
+        }
+        add('Index-Lauf am ECHTEN Baum-Index: jüngster Lauf und Schritte je Familie stimmen',
+          bad.length === 0, bad.length ? bad.join(' · ') : `Lauf ${newest}`);
+      }
+
     }
     // Purge-Nachprüfung netzfrei: eine Attrappe, die erst beim zweiten Mal den erwarteten Commit liefert.
     {
@@ -1180,7 +1277,9 @@ if (hsurfGreys.length >= 2) {
   {
     const src = rf('src/sources/iconD2Precip.ts', 'utf8');
     add('Client cape: nimmt die Familie über `loadGridStep(section, \'cape\', …)` und fällt als GANZES zurück',
-      /loadGridStep\(section, 'cape', step, signal\)/.test(rf('src/sources/iconD2Cape.ts', 'utf8'))
+      // Altbestand-Reparatur (BW-12): LE2/H7 gibt dem Aufruf ein fünftes
+      // Argument ('low'); die geprüfte Eigenschaft ist unverändert.
+      /loadGridStep\(section, 'cape', step, signal[,)]/.test(rf('src/sources/iconD2Cape.ts', 'utf8'))
       && /if \(!wanted\.every\(\(s\) => have\.has\(s\)\)\) return null;/.test(rf('src/sources/iconD2Cape.ts', 'utf8')));
     add('Client precip: prüft die Schrittfolge (`precipStepsUsable`) und fällt als GANZES auf GRIB zurück',
       /precipStepsUsable\(section, steps\)/.test(src) && /loadPrecipStep\(section, step, signal\)/.test(src)

@@ -24,6 +24,7 @@ import { buildWindRgba } from './windFrameBuild';
 import { blendAndRefine, type FrameNorm } from './windBlendRefine';
 import {
   resolveRepackSection, loadWindStep, uvBoundsOf, repackUsable, preconnectDataCdn, REPACK_CONCURRENCY,
+  resolveRunFromRepackIndex,
   type RepackSection,
 } from '../sources/repackSource';
 import type { DataTextureFormat, PackedTexture } from './glUtil';
@@ -411,11 +412,24 @@ export async function fetchIconD2Wind(
   // `/latest-wind.json` lesen. Das ersetzt für Wind den ~1,9-s-Directory-Scan UND
   // die spekulative Lauf-Raterei: das Manifest nennt den Lauf sofort + korrekt,
   // der Client fragt ausschließlich gewärmte (Lauf,Step)-URLs an.
-  const manifest = await resolveWindRunFromManifest(signal);
-  let usedManifest = manifest != null;
-  let { runStr, runAt, wanted, specLoaded } = manifest
-    ? { runStr: manifest.runStr, runAt: manifest.runAt, wanted: manifest.steps.filter((s) => s <= MAX_STEP), specLoaded: new Set<number>() }
-    : await resolveViaScan();
+  // ── INDEX-GATE (BW-12, §31.6) — vor dem Manifest-Gate, default-off ────────
+  // Der Daten-Index führt die Familie `wind` mit den Schritten 0…12, also GENAU
+  // dem Horizont dieses Layers (`MAX_STEP`, von `verify:repack` je Familie gegen
+  // die Producer-Caps geprüft). Er nennt damit alles, was `latest-wind.json`
+  // nennt — ohne Commit ins Site-Repo und ohne Netlify-Build. Schalter aus,
+  // Index unlesbar oder Lauf zu alt ⇒ `null` ⇒ es gilt unverändert das
+  // Manifest-Gate darunter, danach der Directory-Scan.
+  const fromIndex = await resolveRunFromRepackIndex('wind', signal);
+  const manifest = fromIndex ? null : await resolveWindRunFromManifest(signal);
+  // „Abkürzung genommen" — Index ODER Manifest. Trägt der Graceful-Degrade
+  // unten: liefert die Abkürzung keine Frames, wird EINMAL auf den Scan
+  // zurückgefallen, damit der Kaltstart nie schlechter ist als ohne sie.
+  let usedShortcut = fromIndex != null || manifest != null;
+  let { runStr, runAt, wanted, specLoaded } = fromIndex
+    ? { runStr: fromIndex.runStr, runAt: fromIndex.runAt, wanted: fromIndex.steps.filter((s) => s <= MAX_STEP), specLoaded: new Set<number>() }
+    : manifest
+      ? { runStr: manifest.runStr, runAt: manifest.runAt, wanted: manifest.steps.filter((s) => s <= MAX_STEP), specLoaded: new Set<number>() }
+      : await resolveViaScan();
 
   // Nahen Horizont auf dem kritischen Pfad laden → Wind sofort nutzbar.
   // Nur-Jetzt-Modus: ausschließlich die zwei Schritte um die aktuelle Uhrzeit.
@@ -423,7 +437,15 @@ export async function fetchIconD2Wind(
   // BW-3/BW-10: der CDN-Abschnitt — gegen den Lauf, den die Auflösung wirklich
   // geliefert hat (§22.4), und gegen GENAU die Schritte, die gleich geladen
   // werden: deckt der Manifest-Abschnitt sie, wird das CDN nicht gefragt (§29.3).
-  if (manifest && repackUsable()) section = await resolveRepackSection(runStr, 'wind', manifest.repackRaw, wanted);
+  // Der Index-Weg bringt keinen Manifest-Abschnitt mit (`manifest` ist dann
+  // `null`) — `resolveRepackSection` holt ihn über Zeiger/Index, und weil der
+  // Index für die Lauf-Auflösung eben erst geholt wurde, trifft er dasselbe
+  // 60-s-Promise: kein zusätzlicher INDEX-Abruf (der Zeiger kommt hinzu,
+  // solange der Abschnitt nicht aus dem schon geholten Index gelesen wird —
+  // V-BW-52).
+  if ((manifest || fromIndex) && repackUsable()) {
+    section = await resolveRepackSection(runStr, 'wind', manifest?.repackRaw ?? null, wanted);
+  }
   let near = nowOnly ? wanted : wanted.filter((s) => s <= NEAR_STEP);
   let far = nowOnly ? [] : wanted.filter((s) => s > NEAR_STEP);
   await pump(near, runStr, runAt, section ? REPACK_CONCURRENCY : CONCURRENCY, specLoaded);
@@ -433,9 +455,9 @@ export async function fetchIconD2Wind(
   // eine Optimierung — einmalig transparent auf den Directory-Scan zurückfallen,
   // damit der Kaltstart NIE schlechter ist als vor T1 (auch bei einem eingefroren-
   // veralteten committeten Manifest).
-  if (usedManifest && (frames.length === 0 || !uvBounds)) {
+  if (usedShortcut && (frames.length === 0 || !uvBounds)) {
     frames.length = 0; uvBounds = null;
-    usedManifest = false;
+    usedShortcut = false;
     ({ runStr, runAt, wanted, specLoaded } = await resolveViaScan());
     if (nowOnly) wanted = stepsForNowWindow(wanted, runAt, aheadH);
     near = nowOnly ? wanted : wanted.filter((s) => s <= NEAR_STEP);

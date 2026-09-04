@@ -174,7 +174,7 @@ export async function fetchIconD2Temp(
    *  (invariant, fürs Rendering nötig) laden unverändert. */
   opts?: { nowOnly?: boolean; aheadHours?: number },
 ): Promise<IconD2Temp> {
-  const { runStr, runAt, steps } = await resolveLatestRun('t_2m', signal);
+  const { runStr, runAt, steps } = await resolveLatestRun('t_2m', signal, 'temp');
   const capped = steps.filter((s) => s <= MAX_STEP);
   const wanted = opts?.nowOnly ? stepsForNowWindow(capped, runAt, opts.aheadHours ?? 0) : capped;
 
@@ -318,7 +318,7 @@ function buildSpreadImage(cur: GribField, prev: GribField, ss: number): Omit<Ico
  * ist → der Schleier nutzt dann weiter nur die Klimatologie-Anomalie.
  */
 export async function fetchTempRunSpread(signal?: AbortSignal): Promise<IconD2TempSpread | null> {
-  const latest = await resolveLatestRun('t_2m', signal);
+  const latest = await resolveLatestRun('t_2m', signal, 'temp');
   const prevAt = new Date(latest.runAt.getTime() - 3 * 3_600_000);
   const prevStr =
     `${prevAt.getUTCFullYear()}${p2(prevAt.getUTCMonth() + 1)}${p2(prevAt.getUTCDate())}${p2(prevAt.getUTCHours())}`;

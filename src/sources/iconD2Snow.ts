@@ -125,7 +125,7 @@ export async function fetchIconD2Snow(
   const vMax = mode === 'depth' ? SNOW_DEPTH_VMAX_CM : SNOW_FRESH_VMAX_CM;
   // Lauf/Steps über den jeweils Pflicht-Param auflösen (immer publiziert).
   const anchorParam = mode === 'depth' ? 'h_snow' : 'snow_gsp';
-  const { runStr, runAt, steps } = await resolveLatestRun(anchorParam, signal);
+  const { runStr, runAt, steps } = await resolveLatestRun(anchorParam, signal, mode === 'depth' ? 'snowDepth' : 'snowFresh');
   // Neuschnee: Step 0 ist als Akkumulation strukturell 0 → auslassen (minStepHours=1).
   const capped = steps.filter((s) => s <= MAX_STEP && (mode === 'depth' || s >= 1));
   const wanted = opts?.nowOnly ? stepsForNowWindow(capped, runAt, opts.aheadHours ?? 0) : capped;

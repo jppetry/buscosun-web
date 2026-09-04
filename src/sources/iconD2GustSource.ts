@@ -77,7 +77,7 @@ export async function fetchIconD2Gust(
    *  von „jetzt" bis „jetzt + aheadHours" (`stepsForNowWindow`); 0 = Jetzt-Bracket. */
   opts?: { nowOnly?: boolean; aheadHours?: number },
 ): Promise<IconD2Gust> {
-  const { runStr, runAt, steps } = await resolveLatestRun('vmax_10m', signal);
+  const { runStr, runAt, steps } = await resolveLatestRun('vmax_10m', signal, 'gust');
   const capped = steps.filter((s) => s <= MAX_STEP);
   const wanted = opts?.nowOnly ? stepsForNowWindow(capped, runAt, opts.aheadHours ?? 0) : capped;
 

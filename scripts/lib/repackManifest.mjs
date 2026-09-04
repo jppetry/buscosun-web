@@ -315,10 +315,35 @@ export function carryRepack(existing, run, fetched) {
   return prev && prev.run === run ? prev : null;
 }
 
-/** Gleichheit zweier Abschnitte — Commit und Schrittzahl JEDER Familie reichen als Anker. */
+/**
+ * Gleichheit zweier Abschnitte — Lauf und Schrittzahl JEDER Familie sind die
+ * Anker. **Der Commit-SHA ist bewusst NICHT dabei** (BW-12, `audit/bandbreite.md`
+ * §31.9).
+ *
+ * Warum: der Repack-Batch rechnet stündlich neu (V-BW-38) und pusht das Ergebnis
+ * als neuen Commit — die Bilder sind dabei byte-gleich (BW-1-Determinismus,
+ * gemessen). Zählte der SHA als Änderung, legte jeder Warm-Cron das Manifest um,
+ * committete es ins Site-Repo und löste einen vollen Netlify-Build aus, dessen
+ * einziger Inhalt ein anderer Hex-String ist. Gemessen am 2026-09-03: die zwei
+ * Wind-Manifeste 22:15:34 und 23:38:01 unterschieden sich in `updatedAt` und
+ * `commit` — sonst in nichts. Ein Drittel der ~31 Deploys/Tag entstand so.
+ *
+ * Warum das gefahrlos ist: die URLs des Abschnitts sind commit-gepinnt und
+ * damit unveränderlich — ein älterer SHA zeigt weiter auf dieselben Bytes. Genau
+ * darauf verlässt sich `carryRepack` Fall 3 seit BW-3 („die Bilder liegen ja
+ * noch, der SHA ist unveränderlich"); hier gilt dieselbe Annahme, nur länger:
+ * bis zum nächsten Lauf, also höchstens ~3 h. Nachgemessen am 2026-09-04:
+ * `@0626976…/runs/2026090321/wind-000.png` lieferte 200 und exakt dieselbe
+ * Bytezahl wie derselbe Pfad unter dem neuen SHA, obwohl `0626976` im
+ * (bei jedem Publish gestutzten) Verlauf des Daten-Repos nicht mehr erreichbar ist.
+ *
+ * Was weiterhin als Änderung zählt und deshalb umlegt: ein anderer Lauf und
+ * jede geänderte Schrittzahl — also jeder Fall, in dem der Abschnitt dem Client
+ * etwas ANDERES sagt.
+ */
 export function sameSection(a, b) {
   if (!a && !b) return true;
   if (!a || !b) return false;
   const n = (s) => FAMILY_KEYS.map((f) => s[f]?.steps?.length ?? 0).join('/');
-  return a.commit === b.commit && a.run === b.run && n(a) === n(b);
+  return a.run === b.run && n(a) === n(b);
 }

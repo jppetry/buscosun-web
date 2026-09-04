@@ -333,13 +333,33 @@ async function main() {
   // braucht ~2 min je Lauf). Ohne diese Prüfung stünde sein Abschnitt bis zum
   // nächsten DWD-Lauf nicht im Manifest — dasselbe Muster wie V-81.
   const repackSettled = sameSection(existing?.repack ?? null, existing?.run ? repackFor(existing.run) : null);
-  if (!needMain && !needEps && repackSettled) {
-    log('Early-Exit: Manifest deckt 2D und EPS bereits vollständig ab.');
+
+  // ── BW-12 (§31.10): der `eps`-Abschnitt LÖST KEIN UMLEGEN MEHR AUS ─────────
+  // Er ist Doku/Ops — „der Client liest ihn NICHT" (Phase T2b-3, Kopf dieser
+  // Datei). Trotzdem war er der größte einzelne Deploy-Treiber: gemessen am
+  // 2026-09-04 änderten **46 von 136** grib-Commits der letzten sieben Tage
+  // (34 %) nichts als diesen Abschnitt, und jeder kostete einen vollen
+  // Netlify-Produktionsbuild für eine Information, die kein Browser abruft.
+  //
+  // Er wird deshalb nicht entfernt (Funktionserhalt), sondern FÄHRT MIT: sobald
+  // 2D oder der Repack-Abschnitt ohnehin schreiben, geht er im selben Commit
+  // frisch mit raus (`advanceEps` unverändert). Allein löst er nichts aus.
+  // Wirkung auf seine Aktualität: er ist höchstens bis zum nächsten echten
+  // Schreibvorgang alt (2–3 je Lauf) — für Doku/Ops ohne Belang.
+  //
+  // `EPS_FORCES_WRITE=1` stellt das alte Verhalten wieder her (benannter
+  // Rückfallweg, Rule 2).
+  const epsForcesWrite = process.env.EPS_FORCES_WRITE === '1';
+  const needEpsWrite = needEps && epsForcesWrite;
+
+  if (!needMain && !needEpsWrite && repackSettled) {
+    if (needEps) log('Early-Exit: nur der eps-Abschnitt hat sich bewegt — er fährt beim nächsten Umlegen mit (BW-12).');
+    else log('Early-Exit: Manifest deckt 2D und EPS bereits vollständig ab.');
     return 0;
   }
-  if (!needMain && !needEps) log('2D und EPS abgedeckt, aber der Repack-Abschnitt hat sich geändert → umlegen.');
-  if (!needMain && latest) log(`2D bereits abgedeckt (Lauf ${latest.run}) → nur EPS wärmen.`);
-  if (!needEps && latestEps) log(`EPS bereits abgedeckt (Lauf ${latestEps.run}) → nur 2D wärmen.`);
+  if (!needMain && !needEpsWrite) log('2D abgedeckt, aber der Repack-Abschnitt hat sich geändert → umlegen.');
+  if (!needMain && latest) log(`2D bereits abgedeckt (Lauf ${latest.run}).`);
+  if (!needEps && latestEps) log(`EPS bereits abgedeckt (Lauf ${latestEps.run}).`);
 
   // Bestätigte Steps je Param — aus den DWD-Directory-Listings, die die
   // Discovery ohnehin geholt hat. Null zusätzliche Requests, null Netlify-Bytes.
@@ -376,11 +396,15 @@ async function main() {
       log(`EPS unvollständig (${epsBad.map((p) => `${p}:[${confirmedEps[p].join(',')}]`).join(' ')}) → eps-Abschnitt UNVERÄNDERT (Fail-Safe).`);
     } else advanceEps = true;
   }
+  // BW-12: ein EPS-Advance allein schreibt nicht mehr (Begründung oben beim
+  // Early-Exit). `advanceEps` bleibt trotzdem stehen und gilt — er sorgt dafür,
+  // dass der Abschnitt FRISCH ist, wenn aus einem anderen Grund geschrieben wird.
+  const epsWrite = advanceEps && epsForcesWrite;
   // Dritter Grund umzulegen: nur der Repack-Abschnitt hat sich bewegt. Dann
   // bleiben 2D und EPS 1:1 aus dem Bestand — es ändert sich genau ein Feld.
-  const repackOnly = !advanceMain && !advanceEps && !repackSettled && typeof existing?.run === 'string';
-  if (!advanceMain && !advanceEps && !repackOnly) {
-    log('Nichts umzulegen (Fail-Safes). Exit 0.');
+  const repackOnly = !advanceMain && !epsWrite && !repackSettled && typeof existing?.run === 'string';
+  if (!advanceMain && !epsWrite && !repackOnly) {
+    log('Nichts umzulegen (Fail-Safes bzw. nur EPS). Exit 0.');
     return 0;
   }
 

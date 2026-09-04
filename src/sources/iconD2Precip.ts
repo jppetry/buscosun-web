@@ -24,7 +24,7 @@ import { decodeGrib2, type GribField } from './gribDecode';
 import { decodeGridStep, type GridToU8Kind, type DecodedGridStep } from './gribGridDecode';
 import { resolveRunFromManifest, GRIB_MANIFEST_URL } from './gribManifest';
 import { stepsForNowWindow } from './frameAtValidTime';
-import { repackUsable, resolveRepackForRun, loadPrecipStep, precipStepsUsable, preconnectDataCdn } from './repackSource';
+import { repackUsable, resolveRepackForRun, loadPrecipStep, precipStepsUsable, preconnectDataCdn, resolveRunFromRepackIndex, type RepackFamily } from './repackSource';
 
 // Reiner GRIB2-Decoder lebt jetzt in ./gribDecode (browser-unabhängig, headless
 // gegen eccodes verifizierbar). Re-Export hält bestehende Importpfade stabil
@@ -109,6 +109,7 @@ async function fetchRunSteps(runStr: string, param: string, signal?: AbortSignal
 export async function resolveLatestRun(
   param: string,
   signal?: AbortSignal,
+  family?: RepackFamily,
 ): Promise<RunInfo> {
   // BW-10: Verbindung zum Daten-CDN parallel zum Manifest aufbauen (§29.3 Hebel 2) —
   // einmal je Dokument, ohne Wirkung, wenn der Repack-Weg aus ist.
@@ -116,6 +117,26 @@ export async function resolveLatestRun(
   const t = Date.now();
   const cached = runCache.get(param);
   if (cached && t - cached.at < RUN_CACHE_TTL_MS) return cached.info;
+
+  // ── INDEX-GATE (BW-12, §31.6) — VOR dem Manifest-Gate, default-off ────────
+  // Der Daten-Index nennt Lauf und Schritte derselben Familie, die gleich
+  // geladen wird; er wird ohnehin geholt (geteiltes 60-s-Promise), kostet hier
+  // also keinen zusätzlichen Abruf. Nur mit `family` — Params ohne Repack-Familie
+  // (relhum_2m, clcl …) gehen unverändert den Weg darunter.
+  //
+  // `sharedRun` wird hier — anders als beim Manifest-Gate — GESETZT: sonst löst
+  // ein Param ohne Familie per Rückwärtssuche womöglich einen ANDEREN Lauf auf
+  // als die Layer daneben, und die Karte zeigte zwei Läufe nebeneinander. Mit
+  // `sharedRun` probiert er zuerst genau den Lauf, den die Familien benutzen.
+  if (family) {
+    const fromIndex = await resolveRunFromRepackIndex(family, signal);
+    if (fromIndex) {
+      const info: RunInfo = { runStr: fromIndex.runStr, runAt: fromIndex.runAt, steps: fromIndex.steps };
+      runCache.set(param, { at: Date.now(), info });
+      sharedRun = { runStr: info.runStr, runAt: info.runAt, at: Date.now() };
+      return info;
+    }
+  }
 
   // MANIFEST-GATE (Phase T2-3, Muster aus T1/Wind): den zuletzt GEWÄRMTEN Lauf
   // same-origin aus `latest-grib.json` lesen. Ersetzt für die T2-Params (t_2m,
@@ -125,6 +146,10 @@ export async function resolveLatestRun(
   // veraltetes Manifest, 24h-Staleness-Guard) fallen auf den Scan darunter
   // zurück — nie schlechter als vor T2. `sharedRun` wird bewusst NICHT gesetzt
   // (Scan-Verhalten für Nicht-Manifest-Params bleibt byte-identisch).
+  //
+  // Seit BW-12 ist das die ZWEITE Stufe: das Index-Gate oben greift zuerst,
+  // aber nur mit Flag und nur mit Familie — ohne beides ist dieser Weg
+  // unverändert der erste.
   const fromManifest = await resolveRunFromManifest(GRIB_MANIFEST_URL, param, signal);
   if (fromManifest) {
     const info: RunInfo = { runStr: fromManifest.runStr, runAt: fromManifest.runAt, steps: fromManifest.steps };
@@ -592,7 +617,7 @@ async function fetchPrecipRepack(
   opts?: { nowOnly?: boolean; aheadHours?: number },
 ): Promise<IconD2Precip | null> {
   if (!repackUsable()) return null;
-  const resolved = await resolveLatestRun('tot_prec', signal);
+  const resolved = await resolveLatestRun('tot_prec', signal, 'precip');
   const { runStr, runAt } = resolved;
   const capped = resolved.steps.filter((s) => s <= PRECIP_MAX_STEP);
   const steps = opts?.nowOnly ? stepsForNowWindow(capped, runAt, opts.aheadHours ?? 0) : capped;

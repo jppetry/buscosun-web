@@ -3780,3 +3780,441 @@ oder `?repackidx=1` … nein — der schnellste ehrliche Weg ist das Abmelden.
   einmalig teurer Kaltstart, kein Datenfehler. Aufgefallen bei der Messung oben;
   nicht behoben, weil die Aufräumregel sonst eine Liste pflegen müsste — Jans
   Entscheidung.
+
+
+# 31 BW-12 — Die Warm-Crons deployen 31×/Tag, ohne noch etwas zu wärmen (Diagnose, 2026-09-04)
+
+**Jans Meldung:** „Die ständigen Deploys wegen Wind-GRIB kosten total viel
+Netlify-Credits, sind diese überhaupt noch notwendig? Ich würde sie wenn möglich
+komplett lassen und das ganze komplett entfernen."
+
+## 31.1 Die Last, gezählt
+
+    git log --since="7 days ago" -- public/latest-grib.json public/latest-wind.json
+
+**218 Commits in 7 Tagen = 31,1 Produktions-Builds pro Tag ≈ 930 im Monat.**
+Jeder ist ein voller `tsc -b && vite build && node scripts/generate-seo.mjs`
+(`netlify.toml` `[build] command`), ausgelöst allein durch den Commit-back der
+beiden Manifeste — die Workflows setzen bewusst KEIN `[skip ci]`, weil genau
+dieser Build das Manifest statisch neu ausliefert.
+
+Aufteilung je ICON-D2-Lauf (8/Tag):
+
+| Cron | Commits/Lauf | Warum mehr als einer |
+|---|---|---|
+| `warm-grib` | 2–3 | erst der Lauf-Advance, dann der `repack`-Abschnitt, wenn der Producer nachzieht; dazwischen Step-Nachträge (ICON-D2 publiziert progressiv, V-81) |
+| `warm-wind` | 1 | eigener Lauf, eigenes Manifest, eigener Commit |
+
+Beispiel 2026-09-03: 19:13 wind, 19:13 grib, 19:37 grib, 19:49 grib — vier
+Builds in 36 Minuten.
+
+## 31.2 Korrektur an der ersten Einschätzung dieser Session
+
+Meine erste Antwort an Jan nannte „Durable-Edge-Cache wärmen" als noch bestehende
+Leistung der Crons. **Das ist falsch.** Beide Skripte tragen seit dem
+2026-08-23 den Kopf „⚠️ Der Dateiname ist historisch: hier wird NICHTS mehr
+gewärmt" (`scripts/warm-grib.mjs` Z. 15–50, `scripts/warm-wind.mjs` Z. 13–46) —
+der wärmende Pfad wurde auf Jans Auftrag hin nicht abgeschaltet, sondern
+gelöscht (§5, §14, §16: 372 MiB Egress je Durchlauf, `durable` auf Edge
+Functions wirkungslos, Konto in `usage_exceeded`).
+
+Beide Crons sind seitdem **reine Manifest-Publisher**. Das ändert die Bewertung
+zugunsten des Rückbaus: es gibt keine zweite, versteckte Leistung mehr zu retten.
+
+## 31.3 Was die Manifeste heute noch wert sind
+
+Drei Dinge, und nur drei:
+
+1. **Lauf-Auflösung ohne Directory-Scan.** `resolveLatestRun`
+   (`src/sources/iconD2Precip.ts:128`) liest `run` + `steps` aus dem Manifest;
+   ohne Manifest greift die Rückwärtssuche über DWD-Listings darunter — mit
+   ~1,9 s beziffert (Kopf beider Warm-Skripte), pro Param und Kaltsitzung, und
+   jedes Listing läuft über den Netlify-Proxy.
+2. **Der `repack`-Abschnitt als kostenlose erste Quelle.** Seit BW-9 kann der
+   Client den Abschnitt selbst vom CDN holen (`repackRunPointerUrl`,
+   `REPACK_INDEX_CDN_URL`, `src/sources/repackSource.ts:836 ff.`) — das Manifest
+   ist dort nicht mehr die einzige, sondern die **billigste** Quelle: BW-10
+   (§29.3 Hebel 1) hält fest, dass ein vollständiger Manifest-Abschnitt
+   **0 CDN-Abrufe** kostet, während Zeiger (29 KB) und Index (116 KB) zusammen
+   gemessen **0,94 s** vor dem ersten Bild stehen.
+3. **Der `eps`-Abschnitt** ist ausdrücklich Doku/Ops — „der Client liest ihn
+   NICHT" (`warm-grib.mjs`, Phase T2b-3). Wert für die Auslieferung: null.
+
+Ersatzloses Löschen kostet also ~1,9 s Lauf-Auflösung + bis zu 0,94 s vor dem
+ersten Bild — gegen die gesamte LE-Linie (`audit/layer-erstbild.md`), die
+zuletzt um Sekundenbruchteile gekämpft hat. Es ist nicht der billigste Weg.
+
+## 31.4 Der Deploy ist das Problem, nicht der Cron
+
+Der Cron kostet nichts: er zieht DWD-Listings und schreibt ~30 KB JSON. Teuer
+ist ausschließlich der **Auslieferungsweg** — „Datei liegt im Site-Repo, also
+muss Netlify bauen". Genau diesen Weg hat die Radar-Linie schon einmal verlassen
+(RD2/RD3, `audit/radar-datenrepo.md`): der Client liest die Bilder direkt vom
+Daten-CDN, Netlify sieht kein Byte und baut nicht.
+
+**Jans Entscheidung 2026-09-04:** dieselbe Verlegung für die Manifeste —
+`latest-{grib,wind}.json` wandern nach `buscosun-data`, Auslieferung über
+jsDelivr, die same-origin-Datei bleibt eingefrorener Fallback.
+
+Nebengewinn, der nicht kalkuliert war: `public/sw.js` reicht `cdn.jsdelivr.net`
+unangetastet ans Netz durch (`DATA_CDN_HOST`, kein `respondWith`). Ein Manifest
+auf dem CDN verlässt damit den Service-Worker-Zweig vollständig — die gesamte
+Fehlerklasse aus BW-10 §29.1 B und BW-11 (`LIVE_RE`, Minutenstempel,
+Worker-Aktivierung) entfällt ersatzlos statt gepflegt zu werden.
+
+## 31.5 Die Frischefalle, die den Pfad bestimmt
+
+BW-9 §28.9 ist hier bindend: **ein Purge erreicht den jsDelivr-Origin nicht.**
+Gemessen am 2026-08-25 lieferte `@main/index.json` nach dem Purge mit
+`MISS, MISS` trotzdem den alten Stand. Frisch war nur ein Pfad, der **noch nie
+abgerufen wurde** (35–57 s nach dem Push). Dazu kommt die 404-Stickyness aus
+RD0 (`audit/radar-datenrepo.md`): ein Pfad, den man probeweise anfragt, bevor
+er existiert, kann als 404 hängenbleiben.
+
+Daraus folgt die Pfadwahl — sie ist keine Geschmacksfrage:
+
+| Quelle | Pfad | Frische | Rolle |
+|---|---|---|---|
+| Lauf-Zeiger | `@main/manifest/<run>/{grib,wind}.json` | 35–57 s (neuer Pfad je Lauf) | erste Quelle, aber **nur für einen Lauf, den der Client bereits kennt** — nie blind probieren (404-Sticky) |
+| Stabiler Pfad | `@main/manifest/latest-{grib,wind}.json` | Minuten (Origin-Lag trotz Purge) | zweite Quelle; immer noch schneller als der heutige Weg (5–21 min Cron-Slot + Build, §28.2) |
+| Site (eingefroren) | `/latest-{grib,wind}.json` | Stand des letzten echten Deploys | dritte Quelle; der 24-h-Staleness-Guard verwirft sie von selbst, sobald sie zu alt ist |
+| Directory-Scan | DWD über `/_dwd_opendata` | live | vierte, unveränderte Rückfallebene |
+
+Der Zeiger löst das Henne-Ei-Problem nicht allein (für den ERSTEN Abruf kennt
+der Client den Lauf noch nicht); er wirkt ab der zweiten Auflösung und für
+Läufe, die aus dem Repack-Index bekannt sind. Den Kaltstart trägt der stabile
+Pfad. **Jede so entstehende CDN-Verzögerung ist kleiner als die
+Netlify-Build-Verzögerung, die sie ersetzt** — das ist der Kern der
+Rechtfertigung.
+
+## 31.6 Was zu bauen ist
+
+> **Überholt durch §31.12.** Dieser Abschnitt beschreibt den UMZUG der Manifeste
+> nach `buscosun-data`. Gebaut wurde stattdessen ihre Abschaffung: der Client liest
+> Lauf und Schritte aus dem Index, den der Producer ohnehin veröffentlicht. Der
+> Abschnitt bleibt als Beschreibung des verworfenen Wegs stehen.
+
+1. **Producer** (`.github/workflows/warm-{grib,wind}.yml`): Commit-back nicht
+   mehr nach `jppetry/buscosun-web`, sondern nach `jppetry/buscosun-data`
+   (`manifest/latest-*.json` + `manifest/<run>/*.json`), anschließend Purge des
+   stabilen Pfads mit Frischeprüfung — dasselbe Muster wie
+   `purgeIndexUntilFresh` in `scripts/lib/repackManifest.mjs`.
+2. **Client** (`src/sources/liveManifest.ts`, `gribManifest.ts`,
+   `iconD2WindSource.ts`): Quellenkette nach §31.5, **default-off hinter einem
+   Flag mit benanntem Fallback (Rule 2)** — `?manifestcdn=0` schaltet zurück auf
+   den heutigen same-origin-Weg, byte-identisch.
+3. **Service Worker:** `LIVE_RE` bleibt, solange die same-origin-Datei die dritte
+   Quelle ist. Keine neue Regel für den CDN-Host nötig (er wird durchgereicht).
+4. **Verifier:** `verify:repack` prüft schon heute die Spiegelung der Konstanten
+   zwischen Producer und Client; die neuen Pfadkonstanten gehören in dieselbe
+   Prüfung. `verify:health`/`verify:datenalter` lesen die Manifest-URL — mitziehen.
+5. **Aufräumen erst am Schluss:** die Dateien bleiben im Site-Repo liegen
+   (eingefroren, dritte Quelle). Was entfällt, ist der Commit-back — und damit
+   der Build.
+
+## 31.7 Offen — Jans Hand
+
+* ~~**Cross-Repo-Schreibrecht.**~~ **Hinfällig seit §31.12.** Der Umzug der
+  Manifeste nach `buscosun-data` hätte einen Fine-grained-PAT gebraucht, den nur
+  Jan anlegen kann. Der Index-Weg braucht ihn nicht: der Client liest, was der
+  Producer ohnehin veröffentlicht. Der Absatz bleibt als Notiz stehen, falls der
+  Umzug je wieder aufkommt.
+* **Der Schalter.** `?repackrun=1` ist gebaut, der Default ist aus. Das Umlegen
+  des Defaults UND das Abschalten der beiden Warm-Crons ist ein Schritt und
+  Jans Freigabe (§31.12, „Noch offen").
+
+## 31.8 Was vor dem Gate GBW12 zu messen ist
+
+* (a) Kaltstart-Erstbild mit `?repackrun=1` gegen den heutigen Stand, Desktop
+  1440×900 und iPhone 12 Pro — darf nicht schlechter werden.
+* (b) Der angezeigte Lauf über mindestens drei Zyklen: wie weit hinkt der
+  Index-Lauf dem DWD-Lauf nach, und wie oft?
+* (c) Netlify-Builds/Tag nach dem Abschalten der Crons (Ziel: 0 aus den Crons).
+* (d) Netzwerk-Wasserfall: dass das Index-Gate wirklich **keinen** zusätzlichen
+  Abruf erzeugt (geteiltes 60-s-Promise mit dem Abschnitt).
+
+
+## 31.9 Sofortfix A — der Commit-SHA zählt nicht mehr als Änderung
+
+**Befund.** Die beiden letzten Wind-Manifeste unterschieden sich in genau zwei
+Feldern:
+
+    "updatedAt": 2026-09-03T22:15:34.595Z  →  2026-09-03T23:38:01.150Z
+    "commit":    0626976adc385d…           →  0eb686615d2172…
+
+Sonst in nichts. Der Repack-Batch rechnet stündlich neu (V-BW-38) und pusht das
+Ergebnis als neuen Commit; die Bilder sind dabei byte-gleich (BW-1-Determinismus).
+`sameSection` verglich `a.commit === b.commit` und meldete deshalb „geändert" —
+ein voller Netlify-Produktionsbuild für einen anderen Hex-String.
+
+**Umgesetzt.** `sameSection` (`scripts/lib/repackManifest.mjs`) vergleicht nur
+noch Lauf und Schrittzahl jeder Familie.
+
+**Warum das gefahrlos ist.** Die URLs des Abschnitts sind commit-gepinnt und
+unveränderlich; ein älterer SHA zeigt weiter auf dieselben Bytes. Genau darauf
+verlässt sich `carryRepack` Fall 3 seit BW-3 („die Bilder liegen ja noch, der SHA
+ist unveränderlich") — hier gilt dieselbe Annahme, nur bis zum nächsten Lauf statt
+bis zum nächsten Tick, also höchstens ~3 h.
+
+**Nachgemessen (2026-09-04), weil das Daten-Repo seinen Verlauf bei jedem Publish
+stutzt** (`api.github.com/…/commits` liefert 10 erreichbare Commits, ältester
+23:31:56Z — der Vorgänger `0626976` ist im Verlauf **nicht mehr erreichbar**):
+
+    @0626976…/runs/2026090321/wind-000.png  → 200, 242 246 Bytes
+    @0eb6866…/runs/2026090321/wind-000.png  → 200, 242 246 Bytes
+
+Ein unerreichbarer Commit wird also weiter ausgeliefert (jsDelivr hält
+commit-gepinnte Pfade, GitHub gibt das Objekt heraus). Das ist der Grund, die
+Annahme auf einen Lauf zu begrenzen statt auf unbestimmte Zeit.
+
+**Gemessene Wirkung — und eine Korrektur.** Ich hatte aus dem einen beobachteten
+Paar auf „rund ein Drittel der Deploys" geschlossen. Über sieben Tage
+ausgezählt sind es **11 von 85** Wind-Commits (13 %) und **0 von 136**
+Grib-Commits. Der Fix trägt also ~11 Deploys/Woche, nicht ~70.
+
+## 31.10 Sofortfix B — der `eps`-Abschnitt löst kein Umlegen mehr aus
+
+Die Auszählung, die §31.9 relativiert hat, hat den eigentlichen Treiber gezeigt.
+Was ändert sich je Grib-Commit (7 Tage, 136 Commits, jeweils gegen den Vorgänger)?
+
+| Änderung | Commits | Anteil |
+|---|---|---|
+| nur der `eps`-Abschnitt | **46** | **34 %** |
+| nur der Commit-SHA | 0 | 0 % |
+| echte Client-Änderung (Lauf, Schritte, Repack-Lauf) | 90 | 66 % |
+
+Der `eps`-Abschnitt ist ausdrücklich Doku/Ops — „der Abschnitt ist Doku/Ops —
+**der Client liest ihn NICHT**, seine EPS-Lauf-Discovery bleibt der
+Directory-Scan" (Phase T2b-3, Kopf von `scripts/warm-grib.mjs`). Ein Drittel
+aller Produktionsbuilds entstand also für eine Information, die kein Browser
+abruft.
+
+**Umgesetzt.** Der Abschnitt wird nicht entfernt (Funktionserhalt), sondern
+**fährt mit**: `advanceEps` bleibt unverändert und hält ihn frisch, aber ein
+EPS-Advance allein löst kein Schreiben mehr aus. Sobald 2D oder der
+Repack-Abschnitt ohnehin schreiben (2–3× je Lauf), geht der aktuelle Stand im
+selben Commit mit raus. `EPS_FORCES_WRITE=1` stellt das alte Verhalten wieder
+her (benannter Rückfallweg, Rule 2).
+
+**Belegt am laufenden System** (live-Manifest von buscosun.com als Bestand,
+Schreibziel im Scratch, DWD-Listings echt):
+
+| Probe | Erwartet | Beobachtet |
+|---|---|---|
+| unverändertes Live-Manifest | Early-Exit | `Early-Exit: Manifest deckt 2D und EPS bereits vollständig ab.` |
+| nur `eps` künstlich veraltet (je Param ein Step entfernt) | Early-Exit, kein Schreiben | `Early-Exit: nur der eps-Abschnitt hat sich bewegt — er fährt beim nächsten Umlegen mit (BW-12).` · `eps.t_2m` bleibt `[0,3]` |
+| **Negativ-Kontrolle** dasselbe mit `EPS_FORCES_WRITE=1` | schreibt | `Manifest umgelegt …` · `eps.t_2m` → `[0,3,6]` |
+| `eps` UND 2D veraltet | schreibt, `eps` fährt mit | `2D-Lauf … (neu) · EPS-Lauf … (neu)` · `t_2m` 24 → 25 Steps, `eps.t_2m` → `[0,3,6]` |
+
+**Erwartete Gesamtwirkung beider Sofortfixe:** 57 der 221 Manifest-Commits
+einer Woche entfallen (26 %) — von ~31 auf ~23 Deploys/Tag. Die restlichen 74 %
+tragen echte Client-Information (neuer Lauf, neue Schritte, neuer Repack-Lauf)
+und verschwinden erst mit dem Index-Weg (§31.6), der die Manifeste ganz
+überflüssig macht.
+
+## 31.11 Verifikation der Sofortfixe
+
+* `npm run verify:warm-wind` **13/13**.
+* `npm run verify:warm-budget` **30/30**.
+* `verify:repack`: die Zusicherung „`sameSection` erkennt einen Commit-Wechsel"
+  war die Spezifikation des alten Verhaltens und ist durch drei ersetzt —
+  „ignoriert einen reinen Commit-Wechsel" plus zwei Negativ-Kontrollen
+  (Lauf-Wechsel, Schrittzahl-Wechsel; letzterer zusätzlich für eine neue Familie
+  weiter unten).
+* Gegenprobe an den ECHTEN Manifesten aus dem Verlauf (22:15 und 23:38 des
+  2026-09-03): `sameSection(w1.repack, w2.repack) === true` ⇒ genau der Deploy,
+  der nichts trug, entsteht nicht mehr; beide Negativ-Kontrollen an denselben
+  Daten halten.
+**Gesamtstand der Phase (Sofortfixe + Index-Weg), zuletzt gelaufen 2026-09-04:**
+
+| Verifier | Ergebnis |
+|---|---|
+| `verify:repack` | **314/314** |
+| `verify:warm-wind` | 13/13 |
+| `verify:warm-budget` | 30/30 |
+| `verify:health` | 20/20 |
+| `verify:datenalter` | 54/54 |
+| `npm run typecheck` | grün |
+
+Drei ✗ eines Zwischenlaufs waren **Altbestand**, kein Befund dieser Phase: die
+Zusicherungen suchten Quelltext WÖRTLICH und passten nicht mehr, seit LE2/H7 dem
+Bildabruf ein `priority` und dem CAPE-Aufruf ein fünftes Argument gibt und seit
+LE1/H2 vor dem Manifest-Abruf der Frühstart steht. Die geprüften Eigenschaften
+(Kopfzeilen → `rearm` → Körper; Preconnect vor dem Manifest; CAPE als GANZES)
+waren nie verletzt — je einzeln nachgesehen und danach formunabhängig gefasst,
+jede Reparatur mit Negativ-Kontrolle. Eine vierte ✗ gehörte dieser Phase: der
+Wind-Zweig heißt seit dem Index-Gate `manifest?.repackRaw ?? null`; die
+Zusicherung prüft jetzt, dass Lauf, Familie und Wunschliste durchgehen, statt den
+Ausdruck wörtlich zu suchen.
+
+
+
+## 31.12 Der Index-Weg, umgesetzt (default-off)
+
+Nicht der Umzug der Manifeste (§31.5/§31.6), sondern ihre Abschaffung: der
+Client löst Lauf und Schritte aus dem Index des Daten-Repos auf, den er für den
+Repack-Abschnitt ohnehin holt. Damit hat kein Warm-Cron mehr eine Aufgabe, die
+einen Commit ins Site-Repo rechtfertigt.
+
+**Warum das überhaupt geht — am 2026-09-04 gegen den Live-Index nachgesehen:**
+
+    Index-Commit 0eb6866 · 4 Läufe
+    wind         2026090321  13 Schritte (0…12)
+    temp         2026090321  25 Schritte (0…24)
+    gust         2026090321  25 Schritte (0…24)
+    thunder      2026090321  13 Schritte (0…12)
+    rotation     2026090321  12 Schritte (0…12)
+    lightningfc  2026090321  12 Schritte (0…12)
+    snowDepth    2026090321  25 Schritte (0…24)
+    snowFresh    2026090321  24 Schritte (0…24)
+    precip       2026090321  28 Schritte (0…27)
+    cape         2026090321  28 Schritte (0…27)
+
+Jeder Horizont ist exakt der Cap des zugehörigen Layers — dieselbe Gleichheit,
+die `verify:repack` seit BW-6b je Familie prüft („Producer-Caps == Client-Caps").
+Der Index sagt dem Client also alles, was `latest-grib.json`/`latest-wind.json`
+ihm sagen.
+
+**Gebaut.**
+
+* `src/sources/repackSource.ts`: `newestRunFromIndex(index, family, now)` (rein,
+  netzfrei) und `resolveRunFromRepackIndex(family, signal)` über den bestehenden
+  60-s-Index-Cache — der Abschnitt, der gleich danach gebraucht wird, kostet
+  deshalb **keinen** zweiten Abruf. Drei Regeln: nur Läufe mit nicht-leerer
+  Schrittliste DIESER Familie; der jüngste gewinnt (Lauf-Kennung, nicht
+  Array-Reihenfolge); Staleness-Guard wie beim Manifest (> 24 h alt oder > 2 h
+  in der Zukunft ⇒ verworfen).
+* `src/sources/iconD2Precip.ts`: `resolveLatestRun(param, signal, family?)` —
+  additives drittes Argument. Mit Familie fragt ein INDEX-GATE vor dem
+  Manifest-Gate; ohne Familie (`relhum_2m`, `clcl`) ist alles unverändert.
+  Anders als das Manifest-Gate setzt es `sharedRun`: sonst löste ein Param ohne
+  Familie per Rückwärtssuche womöglich einen anderen Lauf auf als die Layer
+  daneben, und die Karte zeigte zwei Läufe nebeneinander.
+* Aufrufstellen mit Familie: Temperatur (`temp`, 2×), Böen (`gust`), Gewitter
+  (`thunder`), Blitz (`lightningfc`), Rotation (`rotation`), Schnee
+  (`snowDepth`/`snowFresh` je Modus), Niederschlag (`precip`), CAPE (`cape`),
+  Wind (`wind`) und der Vorwärmer in `MapView.tsx`.
+* `src/wind/iconD2WindSource.ts`: dasselbe Gate vor `resolveWindRunFromManifest`.
+  `usedManifest` heißt jetzt `usedShortcut` und deckt beide Abkürzungen — der
+  Graceful-Degrade („keine Frames ⇒ einmal auf den Directory-Scan") gilt
+  unverändert für Index UND Manifest.
+
+**Rule 2: default-off.** `?repackrun=1` bzw. `localStorage.repackrun = '1'`
+schaltet ein; ohne Flag ist der Client byte-identisch zu vorher. Rückfallkette
+in jedem Fehlerfall unverändert: Index → Manifest → Directory-Scan.
+
+**Der Fehler, den nur echte Daten gefunden haben (V-BW-51).** Die erste Fassung
+las die Schrittliste des Index als Zahlen (`Number.isInteger`). Sie ist aber eine
+Liste von OBJEKTEN — `{ step, file, bytes, … }`. Gegen synthetische Fixtures mit
+Zahlen war alles grün; gegen den echten Index lieferte der Resolver für **jede**
+Familie `null`, der Client wäre also stillschweigend auf dem alten Weg geblieben
+und niemandem wäre etwas aufgefallen. Gefunden hat es ein Probelauf gegen
+`index.json` vom CDN, nicht der Verifier. Konsequenz: die Fixtures tragen jetzt
+die echte Form, **und** es gibt eine Zusicherung gegen den echten Publisher-Baum.
+
+**Was sich für den Nutzer ändert, wenn Jan den Schalter umlegt:** der angezeigte
+Lauf ist der neueste REPACKTE statt der neueste beim DWD publizierte. Hinkt der
+Producer, bleibt die Karte auf dem vorherigen Lauf, statt auf frisches GRIB
+umzuschwenken — ältere Daten, dafür kein GRIB-Egress über Netlify. Der Lauf steht
+in der UI, wird also nicht verschwiegen. Gemessen am 2026-09-03 war der Abstand
+gering: `latest-wind.json` nannte 21z um 22:15:35 UTC (Lauf + 76 min) und trug im
+SELBEN Commit schon den Repack-Abschnitt für 21z — der Index war an diesem Zyklus
+nicht langsamer. Beim Lauf davor (18z) lag das Manifest 22 min vorn (18:50 ohne
+Abschnitt, 19:13 mit) — und genau in diesen 22 min lud der Client Wind-GRIB über
+Netlify.
+
+**Noch offen (bewusst, nicht vergessen):**
+
+1. Der Schalter ist aus — die Phase spart heute noch keinen einzigen Deploy. Das
+   Umlegen des Defaults und das Abschalten der beiden Crons ist **ein** Schritt
+   und gehört an ein Gate mit Browser-Beleg (Kaltstart Desktop + Mobile, Lauf-
+   Anzeige, Konsole, Netzwerk-Wasserfall) — Jans Freigabe.
+2. Erst danach dürfen `warm-grib.yml`/`warm-wind.yml` weg. Die Manifeste selbst
+   bleiben als eingefrorene dritte Quelle liegen (der 24-h-Staleness-Guard
+   verwirft sie von allein).
+3. `verify:health`/`verify:datenalter` prüfen die Manifest-Frische — sie messen
+   nach dem Umlegen etwas, das niemand mehr benutzt. Mitziehen, wenn der Default
+   fällt.
+
+
+## 31.13 Im Browser gemessen (Dev-Server :5211, Playwright, Desktop 1440×900, 2026-09-04 00:34–00:36 UTC)
+
+Zwei Kaltstarts derselben Seite (`/wetterkarte`), einzige Änderung der Schalter.
+Chrome-DevTools-MCP war durch den bekannten Profilkonflikt blockiert, daher
+Playwright.
+
+| | `?repackrun=0` (Kontrolle) | `?repackrun=1` |
+|---|---|---|
+| aufgelöster Lauf | **2026090318** | **2026090321** |
+| Anzeige in der UI | „Lauf 18z · vor 6 h" | „Lauf 21z · vor 3 h" |
+| Repack-Commit der Bilder | `bfc9c1b` | `0eb6866` |
+| CDN-JSON-Abrufe | **0** | **2** (`index.json`, `runs/2026090321/index.json`) |
+| Manifest-Abrufe | 3 | 2 |
+| GRIB über `/_dwd_*` | 0 | **0** |
+| Konsole | 0 Fehler, 0 Warnungen | 0 Fehler, 0 Warnungen |
+
+**Was das belegt.** Der Index-Weg löst auf, lädt die Bilder derselben Familien
+vom CDN und kommt ohne ein einziges GRIB-Byte aus; die UI nennt den Lauf
+korrekt; die Rückfallkette funktioniert in beide Richtungen (der Schalter auf
+`0` liefert exakt das alte Verhalten).
+
+**Was das NICHT belegt — die ehrliche Einschränkung.** Der Vorsprung von drei
+Stunden ist ein Artefakt der Dev-Umgebung: same-origin liegt dort die
+**committete** `public/latest-grib.json` des lokalen Arbeitsverzeichnisses
+(Stand 18z), nicht das live deployte Manifest (das zur Messzeit ebenfalls auf 21z
+stand, §31.9). In Produktion nennen beide Wege denselben Lauf; der Unterschied
+ist der Auslieferungsweg, nicht die Frische. Der Lauf zeigt hier nur, dass der
+Index-Weg auch dann greift, wenn das Manifest hinterherhinkt — nicht, dass er
+generell drei Stunden voraus wäre.
+
+**Eine Korrektur an meiner eigenen Behauptung.** Ich hatte notiert, das
+Index-Gate koste „keinen zusätzlichen Abruf". Gemessen: ohne Flag **0**
+CDN-JSON-Abrufe, mit Flag **2**. Richtig ist die engere Aussage: es kostet
+keinen **zweiten Index**-Abruf, weil Lauf-Auflösung und Abschnitt sich dasselbe
+60-s-Promise teilen. Solange die Manifeste noch liegen und ihr Abschnitt alles
+abdeckt, wird der Index heute gar nicht geholt (BW-10 §29.3) — der Index-Weg ist
+in diesem Übergangszustand also ein Zukauf von 2 Abrufen (BW-10 maß Zeiger 29 KB
++ Index 116 KB ≈ 0,94 s vor dem ersten Bild). Ohne die Manifeste ist er die
+einzige Quelle, und die Rechnung dreht sich. Die Kommentare in
+`repackSource.ts`/`iconD2WindSource.ts` sind entsprechend berichtigt.
+
+Der Zeiger-Abruf ist dabei vermeidbar — s. V-BW-52.
+
+## 31.14 V-Einträge
+
+* **V-BW-46** — ein Auslieferungsweg kann eine Leistung überleben: beide
+  Warm-Crons deployen seit dem 2026-08-23 für eine Wärmung, die es nicht mehr
+  gibt. Wird eine Funktion zurückgezogen, gehört ihr Transportweg mit auf den
+  Prüfstand.
+* **V-BW-47** — die Kosten eines Mechanismus stehen nicht dort, wo er gebaut
+  wird: der Cron ist gratis, der Commit-back kostet 930 Builds im Monat.
+* **V-BW-48** — ein Abschnitt, den „nur die Ops liest", ist trotzdem teuer,
+  wenn sein Transportweg ein Deploy ist: der `eps`-Abschnitt trieb 34 % aller
+  Grib-Commits, obwohl kein Browser ihn abruft. Doku gehört ins Log des Jobs,
+  nicht in die ausgelieferte Datei.
+* **V-BW-49** — eine Hochrechnung aus EINEM beobachteten Paar ist keine
+  Messung: „rund ein Drittel der Deploys sind nur ein Hex-String" wurde beim
+  Auszählen über sieben Tage zu 13 % (Wind) bzw. 0 % (Grib). Erst die
+  vollständige Auszählung fand den echten Treiber (§31.10).
+* **V-BW-50** — der Index des Daten-Repos ist bereits ein Manifest: er nennt
+  Lauf, Zeit und je Familie die Schritte, und die Producer-Caps sind mit den
+  Client-Caps identisch. Ein zweites Manifest daneben zu committen war eine
+  Doppelung, die zwei Crons und ~31 Deploys/Tag rechtfertigte.
+* **V-BW-51** — **synthetische Fixtures müssen die echte Form tragen.** Der
+  Index führt Schritte als Objekte `{ step, file, … }`; ein Resolver, der Zahlen
+  erwartete, war gegen Zahlen-Fixtures grün und gegen die Wirklichkeit für jede
+  Familie `null` — ein stiller Totalausfall, der nur deshalb auffiel, weil ein
+  Probelauf gegen die echte `index.json` lief. Seither prüft `verify:repack`
+  zusätzlich gegen den echten Publisher-Baum.
+* **V-BW-52** — **der Zeiger-Abruf des Index-Wegs ist überflüssig.** Kommt der
+  Lauf aus dem Index, ist per Konstruktion belegt, dass genau dieser Index den
+  Lauf führt — der Abschnitt ließe sich aus dem bereits geholten Dokument lesen
+  (`sectionFromIndex`), statt zuerst `runs/<run>/index.json` zu ziehen. Skizze:
+  `resolveRepackSection` bekommt den schon aufgelösten Index als vierte Quelle
+  gereicht und fragt ihn VOR dem Zeiger; die BW-9-Reihenfolge für den
+  Manifest-Weg bleibt unangetastet. Ersparnis gemessen: 1 von 2 Abrufen, ~29 KB
+  und ein RTT vor dem ersten Bild. Nicht in dieser Phase gebaut — sie ist schon
+  groß genug, und der Weg ist default-off.
+* **V-BW-53** — der Router startet die Live-Manifeste vor (`warmLiveManifest`,
+  LE1/H2). Fällt der Manifest-Weg weg, ist dieser Frühstart zwei Abrufe für
+  nichts. Mit dem Default-Umlegen mit entfernen.

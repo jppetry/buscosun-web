@@ -2414,7 +2414,7 @@ export default function MapView({
       // Lauf einmal vorab auflösen → sharedRun/runCache sind warm, wenn die Installer
       // starten (jeder trifft dann seinen Param mit einer Directory-Probe statt einer
       // nebenläufigen Rückwärtssuche). t_2m ist immer ein gültiger Param.
-      try { await resolveLatestRun('t_2m', abort.signal); } catch { /* Installer lösen selbst auf */ }
+      try { await resolveLatestRun('t_2m', abort.signal, 'temp'); } catch { /* Installer lösen selbst auf */ }
       for (const job of jobs) void job();
     };
     const tD2 = window.setInterval(() => { void refreshIconD2Layers(); }, 30 * 60 * 1000);

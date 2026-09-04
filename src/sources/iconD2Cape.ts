@@ -53,7 +53,7 @@ export async function fetchCapeSeriesAtPoint(
 
 async function fetchCapeRepack(maxStepHours: number, signal?: AbortSignal): Promise<IconD2Precip | null> {
   if (!repackUsable()) return null;
-  const { runStr, runAt, steps } = await resolveLatestRun('cape_ml', signal);
+  const { runStr, runAt, steps } = await resolveLatestRun('cape_ml', signal, 'cape');
   const wanted = steps.filter((s) => s <= maxStepHours);
   const section = await resolveRepackForRun(runStr, 'cape', wanted);
   if (!section?.cape || wanted.length === 0) return null;

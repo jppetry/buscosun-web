@@ -117,7 +117,7 @@ export async function fetchIconD2Thunder(
   opts?: { nowOnly?: boolean; aheadHours?: number },
 ): Promise<IconD2Thunder> {
   // cape_ml ist der Energieanker & immer publizierte Param → löst Lauf/Steps auf.
-  const { runStr, runAt, steps } = await resolveLatestRun('cape_ml', signal);
+  const { runStr, runAt, steps } = await resolveLatestRun('cape_ml', signal, 'thunder');
   const capped = steps.filter((s) => s <= MAX_STEP);
   const wanted = opts?.nowOnly ? stepsForNowWindow(capped, runAt, opts.aheadHours ?? 0) : capped;
   if (wanted.length === 0) throw new Error('ICON-D2 Gewitter: keine Schritte im Horizont');
