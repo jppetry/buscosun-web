@@ -312,4 +312,7 @@ Vorher/Nachher-Tabelle, Abschlussbericht. Kein Merge nach `main` (Jans Gate).
 | V-SEO-20 | Zielgruppen finden eine Seite, die ehrlich sagt, was für sie geht und was nicht | `/fuer/<gruppe>/` | E6 |
 | V-SEO-21 | Ortsseiten beantworten Klimafragen zeitlos statt nur zu verlinken | Klimatabelle aus `climaGrid.json`, Sonnenzeiten je Monat | E8 |
 | V-SEO-22 | Tote Knöpfe („Als Event", „Tagesablauf", „Speichern" in der Tour; „Link teilen" in der Atmosphäre) irritieren Nutzer und Crawler | verdrahten oder entfernen — **nicht Teil dieses Laufs**, Jans Entscheidung (Funktionserhalt) | offen |
+| V-SEO-24 | `verify:route-3d` scheitert in CRLF-Checkouts (autocrlf) an einem LF-String-Vergleich — falsches Rot auf Windows-Worktrees | `viewSrc12.replace(/
+/g, "
+")` im Verifier | offen (nicht Teil dieses Laufs, fremde Linie) |
 | V-SEO-23 | `wedding` nutzt das Default-Bewertungsprofil, obwohl der Anlass eigene Phasen hat | eigenes Profil in `eventScoring.ts` — fachliche Entscheidung, nicht SEO | offen |

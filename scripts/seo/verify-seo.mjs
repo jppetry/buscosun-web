@@ -150,6 +150,58 @@ for (const rel of ['wetterkarte.html', 'regenradar.html', 'waldbrand.html', 'atm
   if (!canon || canon[1] !== want) fail(rel, `canonical ist ${canon ? canon[1] : 'leer'}, erwartet ${want}`);
   else ok(rel, 'canonical = eigener Pfad (ohne Query)');
 }
+// 5) Sub-Routen-Shells (SEO/GEO 2026, E1): jede indexierbare Sub-Route hat eine
+// EIGENE flache Shell mit eigenem Title/Canonical/H1/Lead — vorher teilten sie die
+// Eltern-Shell (SEO-AUDIT.md §2). 24 = 18 Layer + 3 Atmosphäre-Linsen + 3 Brand-Sichten;
+// die exakte Menge prüft verify-routing gegen die Routen-Tabelle.
+console.log('\nSub-Routen-Shells:');
+const subShells = readdirSync(DIST).filter((f) => /^[a-z]+--[a-z0-9-]+\.html$/.test(f)).sort();
+if (subShells.length !== 24) fail('dist/', `erwartet 24 Sub-Routen-Shells, gefunden ${subShells.length}`);
+else ok('dist/', '24 Sub-Routen-Shells vorhanden');
+const parentTitle = (id) => (read(`${id}.html`).match(/<title>([^<]*)<\/title>/) || [])[1];
+const seenLeads = new Set();
+for (const f of subShells) {
+  const html = read(f);
+  const [routeId, slug] = f.replace(/\.html$/, '').split('--');
+  checkCommon(f, html, { type: 'WebPage' });
+  const canon = html.match(/rel=["']canonical["'][^>]*href=["']([^"']+)["']/i);
+  const want = `https://buscosun.com/${routeId}/${slug}`;
+  if (!canon || canon[1] !== want) fail(f, `canonical ist ${canon ? canon[1] : 'leer'}, erwartet ${want}`);
+  else ok(f, 'canonical = eigener Sub-Pfad');
+  const title = (html.match(/<title>([^<]*)<\/title>/) || [])[1];
+  if (!title || title === parentTitle(routeId)) fail(f, 'Title ist der der Eltern-Shell');
+  else ok(f, 'eigener Title');
+  const lead = leadWordCount(html);
+  if (lead < 60) fail(f, `Lead zu kurz (${lead} Wörter, erwartet ≥ 60)`);
+  const leadText = (html.match(/<h1>[^<]*<\/h1>\s*<p>([^<]*)<\/p>/) || [])[1];
+  if (leadText && seenLeads.has(leadText)) fail(f, 'Lead ist wortgleich zu einer anderen Sub-Shell');
+  if (leadText) seenLeads.add(leadText);
+  if (!html.includes('<h2>Daten und Grenzen</h2>')) fail(f, 'Faktenliste „Daten und Grenzen" fehlt');
+  if (!new RegExp(`href="/${routeId}"`).test(html)) fail(f, 'kein Link auf die Eltern-Route');
+  if (/hreflang=/.test(html)) fail(f, 'hreflang vorhanden (seit E1 entfernt)');
+}
+
+// 6) Sitemap (E1): lastmod je URL aus dem Inhalt, kein changefreq, alle URLs kanonisch.
+console.log('\nSitemap:');
+{
+  const sm = read('sitemap.xml');
+  const locs = [...sm.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
+  const mods = [...sm.matchAll(/<lastmod>([^<]+)<\/lastmod>/g)].map((m) => m[1]);
+  if (locs.length === 0) fail('sitemap.xml', 'keine URLs');
+  else ok('sitemap.xml', `${locs.length} URLs`);
+  if (locs.some((l) => !l.startsWith('https://buscosun.com/'))) fail('sitemap.xml', 'URL außerhalb der kanonischen Origin');
+  if (locs.some((l) => l.includes('?') || l.includes('#'))) fail('sitemap.xml', 'URL mit Query/Hash');
+  if (/<changefreq>/.test(sm)) fail('sitemap.xml', 'changefreq vorhanden (seit E1 entfernt — Google ignoriert es)');
+  else ok('sitemap.xml', 'kein changefreq');
+  if (mods.length !== locs.length || mods.some((d) => !/^\d{4}-\d{2}-\d{2}$/.test(d))) fail('sitemap.xml', 'lastmod fehlt oder ist kein ISO-Datum');
+  else if (new Set(mods).size < 2) fail('sitemap.xml', 'alle lastmod identisch — Build-Datum statt Inhaltsdatum?');
+  else ok('sitemap.xml', `lastmod aus dem Inhalt (${new Set(mods).size} verschiedene Daten)`);
+  const subUrls = subShells.map((f) => { const [r, sl] = f.replace(/\.html$/, '').split('--'); return `https://buscosun.com/${r}/${sl}`; });
+  const missing = subUrls.filter((u) => !locs.includes(u));
+  if (missing.length) fail('sitemap.xml', `Sub-Routen fehlen: ${missing.join(', ')}`);
+  else ok('sitemap.xml', 'alle Sub-Routen-Shells enthalten');
+}
+
 const homeApps = jsonLdBlocks(read('index.html')).filter((b) => /"@type":"WebApplication"/.test(b)).length;
 if (homeApps !== 1) fail('index.html', `erwartet genau 1× WebApplication, gefunden ${homeApps}`);
 else ok('index.html', 'genau eine WebApplication');

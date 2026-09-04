@@ -19,10 +19,14 @@ import {
   SITE, renderPlacePage, renderHomeRootContent, homeHeadExtras, escapeHtml, metaFor,
   renderExplainerPage, renderWissenHub, renderToolPage, renderFunktionenHub,
   renderEventPage, renderWetterlageHub, renderLegalPage, routeHeadExtras, renderRouteRootContent,
+  subRouteHeadExtras, renderSubRouteRootContent,
 } from './seo/content.mjs';
 // Phase RT1: die App-Routen-Tabelle (echtes TS-Modul, via --experimental-strip-types
 // + register-ts.mjs wie die Verifier) — Route-Shells + Sitemap aus EINER Quelle.
-import { ROUTES, sitemapPaths } from '../src/router/routes.ts';
+import { ROUTES, sitemapPaths, indexableSubRoutes, CONTENT_UPDATED } from '../src/router/routes.ts';
+import { subRouteText } from '../src/seo/subRouteTexts.ts';
+import { PLACES_UPDATED } from './seo/places.mjs';
+import { LEGAL_UPDATED } from './seo/legal.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = join(ROOT, 'dist');
@@ -59,10 +63,6 @@ function hubPage() {
     <title>Wetter in DACH-Orten | ${SITE.name}</title>
     <meta name="description" content="Wetter-Übersicht für Orte in Deutschland, Österreich und der Schweiz — höhenkorrigiert, aus amtlichen Quellen, ohne Tracker." />
     <link rel="canonical" href="${SITE.url}/wetter/" />
-    <link rel="alternate" hreflang="de-DE" href="${SITE.url}/wetter/" />
-    <link rel="alternate" hreflang="de-AT" href="${SITE.url}/wetter/" />
-    <link rel="alternate" hreflang="de-CH" href="${SITE.url}/wetter/" />
-    <link rel="alternate" hreflang="x-default" href="${SITE.url}/wetter/" />
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
     <meta name="theme-color" content="#2C2A26" />
     <meta property="og:title" content="Wetter in DACH-Orten | ${SITE.name}" />
@@ -174,26 +174,31 @@ body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;bac
 }
 writeFileSync(join(DIST, '404.html'), notFoundPage(), 'utf8');
 
-// 3) sitemap.xml
+// 3) sitemap.xml — lastmod je URL aus dem INHALT (Explainer/Tool/Event: dateModified;
+// Orte: PLACES_UPDATED; Rechtsseiten: LEGAL_UPDATED; App-Routen: CONTENT_UPDATED bzw.
+// `updated` je Route). Vorher stand das Build-Datum an jeder URL — jeder Cron-Rebuild
+// meldete 189 „geänderte" Seiten (SEO-AUDIT.md §6). `changefreq`/`priority` bleiben
+// weg bzw. minimal: Google ignoriert changefreq seit Jahren.
+const maxDate = (arr, fallback) => arr.reduce((m, d) => (d && d > m ? d : m), fallback);
 function sitemap() {
+  const fullEx = EXPLAINERS.filter((e) => e.status === 'full');
+  const fullTools = TOOLS.filter((t) => t.status === 'full');
+  const fullEvents = EVENTS.filter((e) => e.status === 'full');
   const urls = [
-    { loc: `${SITE.url}/`, pri: '1.0' },
-    // App-Routen (Phase RT1): Top-Routen 0.8, Sub-Routen (Layer/Linsen/Ansichten) 0.5 — ohne Query.
-    ...sitemapPaths().map((p) => ({ loc: `${SITE.url}${p.path}`, pri: p.priority })),
-    { loc: `${SITE.url}/wetter/`, pri: '0.8' },
-    ...PLACES.map((p) => ({ loc: `${SITE.url}/wetter/${p.slug}/`, pri: '0.6' })),
-    { loc: `${SITE.url}/wissen/`, pri: '0.7' },
-    // Nur vollständige Explainer indexieren (Scaffolds sind noindex).
-    ...EXPLAINERS.filter((e) => e.status === 'full').map((e) => ({ loc: `${SITE.url}/wissen/${e.slug}/`, pri: '0.6' })),
-    { loc: `${SITE.url}/funktionen/`, pri: '0.7' },
-    ...TOOLS.filter((t) => t.status === 'full').map((t) => ({ loc: `${SITE.url}/funktionen/${t.slug}/`, pri: '0.6' })),
-    { loc: `${SITE.url}/wetterlage/`, pri: '0.6' },
-    ...EVENTS.filter((e) => e.status === 'full').map((e) => ({ loc: `${SITE.url}/wetterlage/${e.slug}/`, pri: '0.7' })),
-    // Pflichtseiten: niedrige Priorität, aber indexierbar und auffindbar.
-    ...[...LEGAL_PAGES, LICENSE_PAGE].map((l) => ({ loc: `${SITE.url}/${l.slug}/`, pri: '0.3' })),
+    { loc: `${SITE.url}/`, pri: '1.0', mod: CONTENT_UPDATED },
+    ...sitemapPaths().map((p) => ({ loc: `${SITE.url}${p.path}`, pri: p.priority, mod: p.lastmod })),
+    { loc: `${SITE.url}/wetter/`, pri: '0.8', mod: PLACES_UPDATED },
+    ...PLACES.map((p) => ({ loc: `${SITE.url}/wetter/${p.slug}/`, pri: '0.6', mod: PLACES_UPDATED })),
+    { loc: `${SITE.url}/wissen/`, pri: '0.7', mod: maxDate(fullEx.map((e) => e.dateModified), CONTENT_UPDATED) },
+    ...fullEx.map((e) => ({ loc: `${SITE.url}/wissen/${e.slug}/`, pri: '0.6', mod: e.dateModified || CONTENT_UPDATED })),
+    { loc: `${SITE.url}/funktionen/`, pri: '0.7', mod: maxDate(fullTools.map((t) => t.dateModified), CONTENT_UPDATED) },
+    ...fullTools.map((t) => ({ loc: `${SITE.url}/funktionen/${t.slug}/`, pri: '0.6', mod: t.dateModified || CONTENT_UPDATED })),
+    { loc: `${SITE.url}/wetterlage/`, pri: '0.6', mod: maxDate(fullEvents.map((e) => e.dateModified), CONTENT_UPDATED) },
+    ...fullEvents.map((e) => ({ loc: `${SITE.url}/wetterlage/${e.slug}/`, pri: '0.7', mod: e.dateModified || CONTENT_UPDATED })),
+    ...[...LEGAL_PAGES, LICENSE_PAGE].map((l) => ({ loc: `${SITE.url}/${l.slug}/`, pri: '0.3', mod: l.dateModified || LEGAL_UPDATED })),
   ];
   const body = urls.map((u) =>
-    `  <url><loc>${u.loc}</loc><lastmod>${BUILD_DATE}</lastmod><changefreq>daily</changefreq><priority>${u.pri}</priority></url>`).join('\n');
+    `  <url><loc>${u.loc}</loc><lastmod>${u.mod}</lastmod><priority>${u.pri}</priority></url>`).join('\n');
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${body}\n</urlset>\n`;
 }
 writeFileSync(join(DIST, 'sitemap.xml'), sitemap(), 'utf8');
@@ -315,6 +320,7 @@ function routePreloadLinks(routeId) {
 }
 
 let routeShells = 0;
+let subShells = 0;
 for (const route of ROUTES) {
   if (route.id === 'home') continue;
   let shell = rawShell
@@ -326,6 +332,26 @@ for (const route of ROUTES) {
   shell = shell.replace('<div id="root"></div>', `<div id="root">${renderRouteRootContent(route)}</div>`);
   writeFileSync(join(DIST, `${route.id}.html`), shell, 'utf8');
   routeShells++;
+
+  // 4c) SEO/GEO 2026 (E1): eigene flache Shell je indexierbarer Sub-Route
+  // (`dist/<route>--<slug>.html`), auf die netlify.toml den Pfad umschreibt —
+  // eigener Title/Description/Canonical/OG/JSON-LD und der Katalogtext als
+  // crawlbarer #root-Inhalt. Vorher lieferten alle Sub-Routen die Eltern-Shell
+  // samt Eltern-Canonical (SEO-AUDIT.md §2).
+  const subs = indexableSubRoutes(route);
+  const explainerOk = (slug) => EXPLAINERS_BY_SLUG[slug]?.status === 'full';
+  for (const x of subs) {
+    const text = subRouteText(x.path);
+    if (!text) { console.error(`[seo] Sub-Route ${x.path} ohne Text (src/seo/subRouteTexts.ts)`); process.exit(1); }
+    let sh = rawShell
+      .replace(/<title>[^<]*<\/title>/, `<title>${escapeHtml(x.sub.title)} | ${SITE.name}</title>`)
+      .replace(/<meta name="description" content="[^"]*" \/>/, `<meta name="description" content="${escapeHtml(x.sub.description)}" />`);
+    sh = sh.replace('</head>', `    ${subRouteHeadExtras(route, x.sub)}\n  </head>`);
+    if (preload.length) sh = sh.replace('</head>', `    ${preload.join('\n    ')}\n  </head>`);
+    sh = sh.replace('<div id="root"></div>', `<div id="root">${renderSubRouteRootContent(route, x.sub, text, subs.map((y) => y.sub), explainerOk)}</div>`);
+    writeFileSync(join(DIST, x.shell.slice(1)), sh, 'utf8');
+    subShells++;
+  }
 }
 
 // 4) Home anreichern: Head-Meta/JSON-LD + crawlbarer #root-Inhalt
@@ -341,4 +367,4 @@ const fullTools = TOOLS.filter((t) => t.status === 'full').length;
 const fullEvents = EVENTS.filter((e) => e.status === 'full').length;
 const appUrls = sitemapPaths().length;
 const urlCount = PLACES.length + 5 + appUrls + fullExplainers + fullTools + fullEvents + LEGAL_PAGES.length + 1; // +1 = /lizenzen/ (V-104)
-console.log(`[seo] ${pages} Geo, ${explainerPages} Explainer (${fullExplainers} idx), ${toolPages} Tools (${fullTools} idx), ${eventPages} Wetterlage (${fullEvents} idx), ${LEGAL_PAGES.length} Rechtsseiten + Hubs, ${routeShells} App-Routen-Shells (${appUrls} URLs), sitemap.xml (${urlCount} URLs), feed.xml, sitemap-news.xml, Home angereichert. Build ${BUILD_DATE}.`);
+console.log(`[seo] ${pages} Geo, ${explainerPages} Explainer (${fullExplainers} idx), ${toolPages} Tools (${fullTools} idx), ${eventPages} Wetterlage (${fullEvents} idx), ${LEGAL_PAGES.length} Rechtsseiten + Hubs, ${routeShells} App-Routen-Shells + ${subShells} Sub-Routen-Shells (${appUrls} URLs), sitemap.xml (${urlCount} URLs), feed.xml, sitemap-news.xml, Home angereichert. Build ${BUILD_DATE}.`);

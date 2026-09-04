@@ -67,6 +67,31 @@ export const LAYER_SLUG_TITLE: Record<LayerKey, string> = {
   warnings: 'Amtliche Warnungen',
 };
 
+/** Meta-Description je Layer-Sub-Route (≤ 160 Zeichen, paarweise verschieden — SEO/GEO 2026 E1).
+ *  Absichtlich hier statt in `src/seo/*`: der Client setzt sie beim Routenwechsel (RouteMeta),
+ *  also müssen sie im Start-Bundle liegen — kurz, damit die Budget-Ratsche hält. */
+export const LAYER_SLUG_DESCRIPTION: Record<LayerKey, string> = {
+  wind: 'Wind in 10 m Höhe als animierte Partikel über einer Heatmap — DWD ICON-D2, 2,2 km, bis 12 h voraus; Höhenwind 850/700/500 hPa aus ICON-EU.',
+  gust: 'Spitzenböen bis 24 h voraus als Fläche über DACH — DWD ICON-D2 vmax_10m, 2,2 km; für Kran, Gerüst, Drohne, Segeln und Zeltaufbau.',
+  nowcast: 'Gemessenes Landesradar als DACH-Komposit: RADOLAN-RV (DE, bis 2 h), INCA (AT, bis 3 h), MeteoSchweiz — bewusst ohne Modellverlängerung.',
+  temp: '2-m-Temperatur aus DWD ICON-D2, je Pixel auf das echte Gelände höhenkorrigiert — stündlich bis 24 h voraus für DE, AT und CH.',
+  clouds: 'Bewölkung in drei Stockwerken (tief, mittel, hoch) aus DWD ICON-D2 — für Foto-Licht, Astro-Nächte und die Frage, ob die Sonne durchkommt.',
+  sat: 'Meteosat-Satellitenbild über der Wetterkarte: Europa in Echtfarbe/Infrarot (1 km) oder Welt-Infrarot (3 km), alle 3 Stunden via DWD OpenData.',
+  lightning: 'Gemessene Blitzeinschläge der letzten 60 Minuten aus dem DWD-Blitzortungsnetz — die Messung zum Gewitter, etwa alle 10 Minuten erneuert.',
+  lightningfc: 'Blitzpotenzial bis 12 h voraus: der Lightning Potential Index (lpi_max) aus DWD ICON-D2 als Fläche über DACH — Prognose, nicht Messung.',
+  stations: 'Rund 1 000 amtliche Messstationen in DE, AT und CH mit Live-Werten: DWD, GeoSphere TAWES und MeteoSchweiz SMN — per Klick abrufbar.',
+  confidence: 'Wo die Wettervorhersage unsicher ist, als Schraffur: Ensemble-Spread beim Regen (DE) oder Klimatologie mal Laufvergleich bei der Temperatur.',
+  snowline: 'Die Linie zwischen Regen und Schnee über DE, AT und CH — aus dem höhenkorrigierten ICON-D2-Feld mit gelernter Orts-Korrektur, stündlich bis 24 h.',
+  flownowcast: 'Das RADOLAN-Radarbild eine Stunde weitergeschoben: Optical-Flow-Extrapolation ohne Training — nur Deutschland, nur beobachtete Bewegung.',
+  poprob: 'Regenwahrscheinlichkeit in Prozent für die nächste Stunde aus einem 15-Member-Flow-Ensemble auf RADOLAN — kalibriert, nur Deutschland.',
+  thunder: 'Gewitterpotenzial 0–100 aus CAPE, CIN und Blitzbereitschaft (LPI) — DWD ICON-D2, 2,2 km, bis 12 h voraus für DE, AT und CH.',
+  snow: 'Schneedecke und Neuschnee in Zentimetern als Fläche über DACH — DWD ICON-D2 h_snow und snow_gsp, umschaltbar; Modell, keine Messung.',
+  rotation: 'Experten-Layer: Modell-Verdachtsflächen für rotierende Gewitter aus ICON-D2 Updraft-Helicity und Supercell-Index — konservativ, kein Warnprodukt.',
+  cells: 'Gewitterzellen mit amtlicher Zugbahn, Zeitmarken und Unsicherheitstrichter aus DWD KONRAD3D — alle 5 Minuten, bis 60 Minuten voraus.',
+  hail: 'Hagelerkennung aus zwei Radarprodukten: MeteoSchweiz MESHS/POH als Fläche (Apr–Sep) und DWD-KONRAD-Hagelzellen — Ostösterreich ohne Quelle.',
+  warnings: 'Amtliche Wetterwarnungen von DWD und MeteoSchweiz wortwörtlich auf der Karte — landkreisgenau, alle 5 Minuten; Österreich folgt.',
+};
+
 export const SLUG_TO_LAYER: Readonly<Record<string, LayerKey>> = Object.fromEntries(
   (Object.entries(LAYER_SLUGS) as [LayerKey, string][]).map(([k, s]) => [s, k]),
 );

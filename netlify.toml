@@ -21,6 +21,86 @@
   command   = "npm run build"
   publish   = "dist"
 
+# ── Header (SEO/GEO 2026, E1 — „Ebene B") ────────────────────────────────────
+#
+# Gehashte Bundles bleiben für Googlebot ABRUFBAR (sonst kann Google die App nicht
+# rendern und meldet blockierte Ressourcen), erscheinen aber nie als Suchtreffer:
+# `X-Robots-Tag: noindex, nofollow`. Dazu `immutable`-Caching, weil Vite jede
+# Datei mit Inhalts-Hash benennt — der Service Worker (`ASSET_RE`, stale-while-
+# revalidate) bleibt davon unberührt. Datenartefakte (public/fire, params, …),
+# Manifeste und der Service Worker tragen dasselbe noindex.
+#
+# Für die Proxy-Rewrites (/_dwd_opendata u. a.) wirken Header NICHT (Netlify setzt
+# eigene Header nicht auf proxied Antworten) — dort schützt nur robots.txt; eine
+# Origin-/Referer-Prüfung wäre eine Edge Function (STOPP & FRAGEN, s. MANUELLE-SCHRITTE.md).
+# `scripts/verify-routing.mjs` prüft, dass dieser Block vorhanden ist.
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+    X-Robots-Tag  = "noindex, nofollow"
+
+[[headers]]
+  for = "/manifest.webmanifest"
+  [headers.values]
+    Content-Type = "application/manifest+json; charset=utf-8"
+
+[[headers]]
+  for = "/fonts/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/params/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/fire/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/countries/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/globe/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/wind/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/latest-grib.json"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/climaGrid.json"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/nowcasterWeights.json"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/_og-card.html"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
 # DWD OpenData proxy — used by `src/sources/radolan.ts` to fetch RADOLAN-RY
 # live frames and RADVOR-RE nowcast forecasts as BZ2/GZIP binary streams.
 # Muss VOR dem SPA-Fallback stehen (Regeln werden von oben nach unten geprüft).
@@ -210,6 +290,81 @@
   from   = "/wetterkarte"
   to     = "/wetterkarte.html"
   status = 200
+# SEO/GEO 2026 (E1): jede indexierbare Sub-Route hat ihre EIGENE flache Shell
+# (`dist/wetterkarte--<slug>.html`, aus `indexableSubRoutes()` in src/router/routes.ts) —
+# eigener Title/Canonical/H1/Lead statt der Eltern-Shell. Muss VOR `/wetterkarte/*` stehen.
+[[redirects]]
+  from   = "/wetterkarte/wind"
+  to     = "/wetterkarte--wind.html"
+  status = 200
+[[redirects]]
+  from   = "/wetterkarte/boeen"
+  to     = "/wetterkarte--boeen.html"
+  status = 200
+[[redirects]]
+  from   = "/wetterkarte/niederschlag"
+  to     = "/wetterkarte--niederschlag.html"
+  status = 200
+[[redirects]]
+  from   = "/wetterkarte/temperatur"
+  to     = "/wetterkarte--temperatur.html"
+  status = 200
+[[redirects]]
+  from   = "/wetterkarte/bewoelkung"
+  to     = "/wetterkarte--bewoelkung.html"
+  status = 200
+[[redirects]]
+  from   = "/wetterkarte/satellit"
+  to     = "/wetterkarte--satellit.html"
+  status = 200
+[[redirects]]
+  from   = "/wetterkarte/blitze"
+  to     = "/wetterkarte--blitze.html"
+  status = 200
+[[redirects]]
+  from   = "/wetterkarte/blitzprognose"
+  to     = "/wetterkarte--blitzprognose.html"
+  status = 200
+[[redirects]]
+  from   = "/wetterkarte/stationen"
+  to     = "/wetterkarte--stationen.html"
+  status = 200
+[[redirects]]
+  from   = "/wetterkarte/sicherheit"
+  to     = "/wetterkarte--sicherheit.html"
+  status = 200
+[[redirects]]
+  from   = "/wetterkarte/schneegrenze"
+  to     = "/wetterkarte--schneegrenze.html"
+  status = 200
+[[redirects]]
+  from   = "/wetterkarte/flow-nowcast"
+  to     = "/wetterkarte--flow-nowcast.html"
+  status = 200
+[[redirects]]
+  from   = "/wetterkarte/regen-chance"
+  to     = "/wetterkarte--regen-chance.html"
+  status = 200
+[[redirects]]
+  from   = "/wetterkarte/gewitter"
+  to     = "/wetterkarte--gewitter.html"
+  status = 200
+[[redirects]]
+  from   = "/wetterkarte/schnee"
+  to     = "/wetterkarte--schnee.html"
+  status = 200
+[[redirects]]
+  from   = "/wetterkarte/rotation"
+  to     = "/wetterkarte--rotation.html"
+  status = 200
+[[redirects]]
+  from   = "/wetterkarte/zellbahnen"
+  to     = "/wetterkarte--zellbahnen.html"
+  status = 200
+[[redirects]]
+  from   = "/wetterkarte/hagel"
+  to     = "/wetterkarte--hagel.html"
+  status = 200
 [[redirects]]
   from   = "/wetterkarte/*"
   to     = "/wetterkarte.html"
@@ -246,6 +401,21 @@
   from   = "/atmosphaere"
   to     = "/atmosphaere.html"
   status = 200
+# SEO/GEO 2026 (E1): jede indexierbare Sub-Route hat ihre EIGENE flache Shell
+# (`dist/atmosphaere--<slug>.html`, aus `indexableSubRoutes()` in src/router/routes.ts) —
+# eigener Title/Canonical/H1/Lead statt der Eltern-Shell. Muss VOR `/atmosphaere/*` stehen.
+[[redirects]]
+  from   = "/atmosphaere/fliegen"
+  to     = "/atmosphaere--fliegen.html"
+  status = 200
+[[redirects]]
+  from   = "/atmosphaere/berg-und-weg"
+  to     = "/atmosphaere--berg-und-weg.html"
+  status = 200
+[[redirects]]
+  from   = "/atmosphaere/querschnitt"
+  to     = "/atmosphaere--querschnitt.html"
+  status = 200
 [[redirects]]
   from   = "/atmosphaere/*"
   to     = "/atmosphaere.html"
@@ -257,6 +427,21 @@
 [[redirects]]
   from   = "/waldbrand"
   to     = "/waldbrand.html"
+  status = 200
+# SEO/GEO 2026 (E1): jede indexierbare Sub-Route hat ihre EIGENE flache Shell
+# (`dist/waldbrand--<slug>.html`, aus `indexableSubRoutes()` in src/router/routes.ts) —
+# eigener Title/Canonical/H1/Lead statt der Eltern-Shell. Muss VOR `/waldbrand/*` stehen.
+[[redirects]]
+  from   = "/waldbrand/gefahrenindex"
+  to     = "/waldbrand--gefahrenindex.html"
+  status = 200
+[[redirects]]
+  from   = "/waldbrand/aktive-braende"
+  to     = "/waldbrand--aktive-braende.html"
+  status = 200
+[[redirects]]
+  from   = "/waldbrand/trockenheit"
+  to     = "/waldbrand--trockenheit.html"
   status = 200
 [[redirects]]
   from   = "/waldbrand/*"

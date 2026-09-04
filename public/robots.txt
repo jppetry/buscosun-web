@@ -1,46 +1,55 @@
-# buscosun — robots.txt
+# buscosun — robots.txt (SEO/GEO 2026, E1 — „Ebene B")
+#
+# Alle Gruppen stehen in EINEM Block: Nach dem robots-Standard gilt für einen
+# Crawler nur die Gruppe, die ihn am genauesten nennt — ein eigener Block
+# „User-agent: Googlebot / Allow: /" hätte die Disallows des *-Blocks für
+# Googlebot ersatzlos aufgehoben. Klassische Suchmaschinen und LLM-/GEO-Crawler
+# sind ausdrücklich willkommen (Zitierbarkeit erwünscht).
+#
+# Ebene A (Seiten, Texte, Sitemaps, llms.txt): erlaubt.
+# Ebene B (Datenpfade, Proxys, Artefakte, Bundles): Proxys und Daten sind gesperrt;
+# /assets/ bleibt absichtlich ABRUFBAR, damit Googlebot die App rendern kann —
+# die Bundles tragen stattdessen `X-Robots-Tag: noindex` (netlify.toml).
+
 User-agent: *
+User-agent: Googlebot
+User-agent: Bingbot
+User-agent: GPTBot
+User-agent: OAI-SearchBot
+User-agent: ChatGPT-User
+User-agent: ClaudeBot
+User-agent: Claude-Web
+User-agent: Claude-SearchBot
+User-agent: PerplexityBot
+User-agent: Perplexity-User
+User-agent: CCBot
+User-agent: Google-Extended
+User-agent: Applebot
+User-agent: Applebot-Extended
 Allow: /
 # OG-Karten-Renderer (nur zur Bildgenerierung, kein Inhalt)
 Disallow: /_og-card.html
-
-# Klassische Suchmaschinen (explizit, zur Klarheit)
-User-agent: Googlebot
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
-# LLM-/GEO-Crawler ausdrücklich willkommen (Zitierbarkeit erwünscht)
-User-agent: GPTBot
-Allow: /
-
-User-agent: OAI-SearchBot
-Allow: /
-
-User-agent: ChatGPT-User
-Allow: /
-
-User-agent: ClaudeBot
-Allow: /
-
-User-agent: Claude-Web
-Allow: /
-
-User-agent: Claude-SearchBot
-Allow: /
-
-User-agent: PerplexityBot
-Allow: /
-
-User-agent: CCBot
-Allow: /
-
-User-agent: Google-Extended
-Allow: /
-
-User-agent: Applebot-Extended
-Allow: /
+# Proxys auf Fremd-Server (reichen Verzeichnislistings durch — kein Inhalt von buscosun)
+Disallow: /_dwd_opendata/
+Disallow: /_meteoalarm/
+Disallow: /_gfs/
+Disallow: /_cscs/
+Disallow: /_mf/
+Disallow: /_ecmwf/
+# Edge Functions (Cache-/Schlüssel-Proxys)
+Disallow: /_firms
+Disallow: /_dwd_wind
+Disallow: /_dwd_grib
+# Datenartefakte, Manifeste, Service Worker
+Disallow: /params/
+Disallow: /fire/
+Disallow: /countries/
+Disallow: /globe/
+Disallow: /wind/
+Disallow: /latest-grib.json
+Disallow: /climaGrid.json
+Disallow: /nowcasterWeights.json
+Disallow: /sw.js
 
 Sitemap: https://buscosun.com/sitemap.xml
 Sitemap: https://buscosun.com/sitemap-news.xml

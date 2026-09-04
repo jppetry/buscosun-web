@@ -14,7 +14,7 @@
 
 import type { FeatureId } from '../App';
 import { ALL_LAYER_KEYS } from '../map/layerTypes';
-import { LAYER_SLUGS, LAYER_SLUG_TITLE } from './urlState';
+import { LAYER_SLUGS, LAYER_SLUG_TITLE, LAYER_SLUG_DESCRIPTION } from './urlState';
 
 /** Kanonische Origin — deckungsgleich mit `scripts/seo/content.mjs` (O-03); der Verifier prüft das. */
 export const SITE_URL = 'https://buscosun.com';
@@ -33,6 +33,8 @@ export interface RouteMeta {
   lead: string;
   ogImage?: string;
   noindex?: boolean;
+  /** Letzte inhaltliche Änderung (Sitemap-lastmod); Default `CONTENT_UPDATED`. */
+  updated?: string;
 }
 
 export interface SubRoute {
@@ -41,7 +43,15 @@ export interface SubRoute {
   description: string;
   /** Sicht, die ohne Nutzereingabe leer ist (3D braucht eine hochgeladene Strecke) ⇒ nicht in die Sitemap. */
   noindex?: boolean;
+  /** Eigenes OG-Bild der Sub-Route (sonst das der Route). */
+  ogImage?: string;
+  /** Letzte inhaltliche Änderung (Sitemap-lastmod). Die ausführlichen Texte (H1, Lead, Absätze,
+   *  Fakten) stehen NICHT hier, sondern in `src/seo/subRouteTexts.ts` — außerhalb des Start-Bundles. */
+  updated?: string;
 }
+
+/** Datum der letzten Textänderung an dieser Tabelle — Sitemap-`lastmod` für alle App-Routen ohne eigenes `updated`. */
+export const CONTENT_UPDATED = '2026-09-05';
 
 export interface RouteDef {
   id: RouteId;
@@ -61,7 +71,7 @@ export interface RouteDef {
 const LAYER_SUBS: readonly SubRoute[] = ALL_LAYER_KEYS.map((k) => ({
   slug: LAYER_SLUGS[k],
   title: `${LAYER_SLUG_TITLE[k]} DACH`,
-  description: `${LAYER_SLUG_TITLE[k]} für Deutschland, Österreich und die Schweiz auf der interaktiven buscosun-Wetterkarte — amtliche Quellen, höhenkorrigiert, ohne Tracker.`,
+  description: LAYER_SLUG_DESCRIPTION[k],
 }));
 
 export const ATMOSPHERE_LENS_SLUGS = {
@@ -159,9 +169,15 @@ export const ROUTES: readonly RouteDef[] = [
   {
     id: 'atmosphaere', path: '/atmosphaere', aliases: ['/atmosph%C3%A4re', '/atmosphere'], featureId: 'atmosphere', subParam: 'lens',
     subs: [
-      { slug: ATMOSPHERE_LENS_SLUGS.fly, title: 'Thermik & Fliegen', description: 'Thermik, Höhenwind und Wolkenbasis über deinem Startplatz — die Atmosphäre aus Sicht von Gleitschirm- und Segelfliegern.' },
-      { slug: ATMOSPHERE_LENS_SLUGS.mountain, title: 'Föhn, Berg & Weg', description: 'Föhn, Inversion und Wind in der Höhe für Bergtouren — was über dem Tal passiert, bevor es unten ankommt.' },
-      { slug: ATMOSPHERE_LENS_SLUGS.section, title: 'Vertikalschnitt der Atmosphäre', description: 'Höhenwind, Inversion und Go/No-Go entlang einer frei gezogenen Schnittlinie — die Atmosphäre im Querschnitt.' },
+      {
+        slug: ATMOSPHERE_LENS_SLUGS.fly, title: 'Thermik & Fliegen', description: 'Thermik, Höhenwind und Wolkenbasis über deinem Startplatz — die Atmosphäre aus Sicht von Gleitschirm- und Segelfliegern.',
+      },
+      {
+        slug: ATMOSPHERE_LENS_SLUGS.mountain, title: 'Föhn, Berg & Weg', description: 'Föhn, Inversion und Wind in der Höhe für Bergtouren — was über dem Tal passiert, bevor es unten ankommt.',
+      },
+      {
+        slug: ATMOSPHERE_LENS_SLUGS.section, title: 'Vertikalschnitt der Atmosphäre', description: 'Höhenwind, Inversion und Go/No-Go entlang einer frei gezogenen Schnittlinie — die Atmosphäre im Querschnitt.',
+      },
     ],
     meta: {
       title: 'Die Atmosphäre über dir — Vertikalschnitt & 3D-Wetter',
@@ -183,9 +199,15 @@ export const ROUTES: readonly RouteDef[] = [
   {
     id: 'waldbrand', path: '/waldbrand', aliases: ['/waldbraende', '/feuer'], featureId: 'fire', subParam: 'view',
     subs: [
-      { slug: 'gefahrenindex', title: 'Waldbrandgefahr DACH — Gefahrenindex', description: 'Der europäische Waldbrand-Gefahrenindex als Fläche über Deutschland, Österreich und die Schweiz, daneben die amtlichen Landesstufen.' },
-      { slug: 'aktive-braende', title: 'Aktive Waldbrände DACH', description: 'Aktive Brände aus Satellitendetektionen (NASA FIRMS) mit kartierten Brandflächen (EFFIS), Stärke (FRP) und der beobachteten Verschiebung zwischen den Überflügen — unbestätigt ist der Normalfall.' },
-      { slug: 'trockenheit', title: 'Bodentrockenheit & Feuerwetter DACH', description: 'Bodenfeuchte aus ICON-D2 in zwei Tiefen und das stündliche Feuerwetter als Treiber der Waldbrandgefahr.' },
+      {
+        slug: 'gefahrenindex', title: 'Waldbrandgefahr DACH — Gefahrenindex', description: 'Der europäische Fire Weather Index (GWIS/ECMWF) als Fläche über DE, AT und CH bis 9 Tage voraus, dazu die nationalen Skalen von DWD und BAFU.',
+      },
+      {
+        slug: 'aktive-braende', title: 'Aktive Waldbrände DACH', description: 'Aktive Brände aus NASA-FIRMS-Detektionen mit EFFIS-Brandflächen, Stärke (FRP) und Verschiebung zwischen den Überflügen — unbestätigt ist der Normalfall.',
+      },
+      {
+        slug: 'trockenheit', title: 'Bodentrockenheit & Feuerwetter DACH', description: 'Bodenfeuchte aus ICON-D2 in zwei Tiefen (Oberboden bis 9 cm, Wurzelzone bis 81 cm) und die Trockenheit der Luft als stündlicher Feuerwetter-Treiber.',
+      },
     ],
     meta: {
       title: 'Waldbrandgefahr DACH — Brandradar',
@@ -339,15 +361,31 @@ export function metaForPath(pathname: string): { title: string; description: str
 }
 
 /** Alle kanonischen URLs für die Sitemap (Top-Routen + Sub-Routen, ohne noindex). */
-export function sitemapPaths(): Array<{ path: string; priority: string }> {
-  const out: Array<{ path: string; priority: string }> = [];
+export function sitemapPaths(): Array<{ path: string; priority: string; lastmod: string }> {
+  const out: Array<{ path: string; priority: string; lastmod: string }> = [];
   for (const r of ROUTES) {
     if (r.meta.noindex || r.id === 'home') continue;
-    out.push({ path: r.path, priority: '0.8' });
+    out.push({ path: r.path, priority: '0.8', lastmod: r.meta.updated ?? CONTENT_UPDATED });
+    for (const s of indexableSubRoutes(r)) out.push({ path: s.path, priority: '0.5', lastmod: s.sub.updated ?? r.meta.updated ?? CONTENT_UPDATED });
+  }
+  return out;
+}
+
+export interface IndexableSub { route: RouteDef; sub: SubRoute; /** kanonischer Pfad */ path: string; /** flache Shell-Datei in dist/ (Netlify-200-Ziel) */ shell: string }
+
+/**
+ * Sub-Routen, die eine EIGENE Shell bekommen (SEO/GEO 2026, E1): indexierbar,
+ * mit eigenem Text, kein Cross-Alias. Der Dateiname ist flach (`<route>--<slug>.html`),
+ * damit Netlifys „Pretty URLs" nicht auf den End-Slash umleiten.
+ */
+export function indexableSubRoutes(route?: RouteDef): IndexableSub[] {
+  const out: IndexableSub[] = [];
+  for (const r of route ? [route] : ROUTES) {
+    if (r.meta.noindex) continue;
     for (const s of r.subs ?? []) {
       if (s.noindex) continue;                                                 // z. B. /tourenplanung/3d
       if (r.id === 'wetterkarte' && s.slug === LAYER_SLUGS.warnings) continue; // kanonisch /warnungen
-      out.push({ path: `${r.path}/${s.slug}`, priority: '0.5' });
+      out.push({ route: r, sub: s, path: `${r.path}/${s.slug}`, shell: `/${r.id}--${s.slug}.html` });
     }
   }
   return out;
@@ -383,6 +421,13 @@ export function verifyRoutes(): { checks: RouteCheck[]; passed: number; failed: 
   add('/route/3d löst auf /tourenplanung/3d auf und verdeckt keinen echten Pfad',
     aliasTarget('/route/3d') === '/tourenplanung/3d' && routeForPath('/route/3d', false) === null);
   add('Canonical von /route/3d ist die deutsche Sub-Route', canonicalPath('/route/3d') === '/tourenplanung/3d');
+  // SEO/GEO 2026 (E1): jede indexierbare Sub-Route trägt eigenen Text für ihre Shell.
+  const subs = indexableSubRoutes();
+  add('24 indexierbare Sub-Routen mit eigener Shell (18 Layer + 3 Linsen + 3 Brand-Sichten)', subs.length === 24, String(subs.length));
+  const longDesc = subs.filter((x) => x.sub.description.length > 160).map((x) => `${x.path} (${x.sub.description.length})`);
+  add('Sub-Routen-Descriptions sind paarweise verschieden und ≤ 160 Zeichen', new Set(subs.map((x) => x.sub.description)).size === subs.length && longDesc.length === 0, longDesc.join(', '));
+  add('Shell-Dateinamen sind eindeutig und flach', new Set(subs.map((x) => x.shell)).size === subs.length && subs.every((x) => /^\/[a-z]+--[a-z0-9-]+\.html$/.test(x.shell)));
+  add('Sitemap trägt lastmod je Eintrag (ISO-Datum)', sitemapPaths().every((p) => /^\d{4}-\d{2}-\d{2}$/.test(p.lastmod)));
   const failed = checks.filter((c) => !c.ok).length;
   return { checks, passed: checks.length - failed, failed };
 }

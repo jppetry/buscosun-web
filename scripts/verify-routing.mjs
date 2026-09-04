@@ -16,7 +16,11 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
-import { CROSS_ALIASES, ROUTES, ROUTE_BY_ID, SITE_URL, routeForPath, verifyRoutes, aliasTarget } from '../src/router/routes.ts';
+import { CROSS_ALIASES, ROUTES, ROUTE_BY_ID, SITE_URL, routeForPath, verifyRoutes, aliasTarget, indexableSubRoutes } from '../src/router/routes.ts';
+// SEO/GEO 2026 (E1): Layer-Katalog = eine Quelle für Dock, Sub-Routen-Shells, gerenderten Inhalt.
+import { verifyLayerCatalog, LAYER_CATALOG } from '../src/map/layerCatalog.ts';
+import { ALL_LAYER_KEYS } from '../src/map/layerTypes.ts';
+import { verifySubRouteTexts, subRouteText } from '../src/seo/subRouteTexts.ts';
 import { verifyUrlState, mapPathForPlace } from '../src/router/urlState.ts';
 import { verifyLegacyHash } from '../src/router/legacyHash.ts';
 import { verifyFireRouteView } from '../src/fire/fireRouteView.ts';
@@ -38,6 +42,12 @@ for (const c of verifyRoutes().checks) add(`[routes] ${c.name}`, c.ok, c.detail)
 for (const c of verifyUrlState().checks) add(`[urlState] ${c.name}`, c.ok, c.detail);
 for (const c of verifyLegacyHash().checks) add(`[legacy] ${c.name}`, c.ok, c.detail);
 for (const c of verifyFireRouteView().checks) add(`[fireView] ${c.name}`, c.ok);
+for (const c of verifyLayerCatalog(ALL_LAYER_KEYS).checks) add(`[layerCatalog] ${c.name}`, c.ok, c.detail);
+for (const c of verifySubRouteTexts(indexableSubRoutes().map((x) => x.path)).checks) add(`[subTexts] ${c.name}`, c.ok, c.detail);
+// Die Tooltips im Dock kommen seit E1 aus dem Katalog — MapView darf keine eigene Liste mehr führen.
+const mapViewSrc = readFileSync(join(ROOT, 'src', 'MapView.tsx'), 'utf8');
+add('[layerCatalog] MapView leitet LAYER_OPTIONS aus LAYER_OPTION_ORDER/LAYER_CATALOG ab (keine Zweitliste)', /LAYER_OPTIONS[^\n]*= LAYER_OPTION_ORDER\.map/.test(mapViewSrc) && !/\{ key: 'wind', label: 'Wind', title: 'Wind \(DWD ICON-D2/.test(mapViewSrc));
+add('[layerCatalog] Tooltip des Warn-Layers unverändert (Zitatregel-Text erhalten)', LAYER_CATALOG.warnings.title.includes('wortwörtlich übernommen') && LAYER_CATALOG.warnings.title.includes('ÖSTERREICH fehlt weiterhin'));
 
 // --- (2) Build-Seite: dieselben Tabellen --------------------------------------
 add('[seo] SITE_URL ≡ content.mjs SITE.url', SITE_URL === SITE.url, `${SITE_URL} vs ${SITE.url}`);
@@ -95,6 +105,29 @@ add('[netlify] jeder Cross-Alias hat eine 301 auf sein Ziel (nicht auf die Top-R
 add('[netlify] keine Regel mit from ≡ to (Loop-Schutz)', !rules.some((x) => x.from && x.to && x.from.replace(/\/$/, '') === x.to.replace(/\/$/, '')));
 add('[netlify] Proxy-Rewrites unverändert vorhanden', ['/_dwd_opendata/*', '/_meteoalarm/*', '/_gfs/*', '/_cscs/*', '/_mf/*', '/_ecmwf/*'].every((p) => rules.some((x) => x.from === p && x.status === 200 && x.force)));
 add('[netlify] Proxys stehen VOR den App-Regeln', idx((x) => x.from === '/_ecmwf/*') < idx((x) => x.to && x.to.endsWith('.html') && x.status === 200));
+
+// --- (3b) SEO/GEO 2026 E1: Sub-Routen-Shells, Ebene B (robots + Header) ------------------
+{
+  const subs = indexableSubRoutes();
+  const bad = subs.filter((x) => {
+    const i = idx((r) => r.from === x.path && r.to === x.shell && r.status === 200 && !r.force);
+    const w = idx((r) => r.from === `${x.route.path}/*`);
+    return i < 0 || w < 0 || i > w;
+  }).map((x) => x.path);
+  add('[netlify] jede indexierbare Sub-Route hat ein 200-Rewrite auf ihre EIGENE Shell VOR der Wildcard-Regel', bad.length === 0, bad.join(', '));
+  add('[netlify] keine Sub-Routen-Regel für den Cross-Alias /wetterkarte/warnungen', !rules.some((r) => r.from === '/wetterkarte/warnungen' && r.status === 200));
+  const robots = readFileSync(join(ROOT, 'public', 'robots.txt'), 'utf8').replace(/\r\n/g, '\n');
+  const mustDisallow = ['/_dwd_opendata/', '/_meteoalarm/', '/_gfs/', '/_cscs/', '/_mf/', '/_ecmwf/', '/_firms', '/_dwd_wind', '/_dwd_grib', '/params/', '/fire/', '/countries/', '/latest-grib.json', '/sw.js'];
+  add('[robots] Ebene B: Proxys, Edge Functions und Datenartefakte sind disallowed', mustDisallow.every((p) => robots.includes(`Disallow: ${p}\n`)), mustDisallow.filter((p) => !robots.includes(`Disallow: ${p}\n`)).join(', '));
+  add('[robots] /assets/ ist NICHT disallowed (Googlebot muss die App rendern können)', !/Disallow: \/assets/.test(robots));
+  add('[robots] eine gemeinsame UA-Gruppe: Googlebot, GPTBot, ClaudeBot, PerplexityBot stehen VOR dem einzigen Allow', (() => { const allow = robots.indexOf('\nAllow: /\n'); return allow > 0 && ['Googlebot', 'GPTBot', 'ClaudeBot', 'PerplexityBot', 'Bingbot'].every((ua) => { const i = robots.indexOf(`User-agent: ${ua}\n`); return i > 0 && i < allow; }) && robots.indexOf('User-agent:', allow) < 0; })());
+  add('[robots] Sitemap-Zeile vorhanden', robots.includes('Sitemap: https://buscosun.com/sitemap.xml'));
+  const hdr = (p, re) => new RegExp(`for = "${p.replace(/[*.]/g, (m) => '\\' + m)}"[\\s\\S]{0,400}?${re}`).test(toml);
+  add('[headers] /assets/* trägt immutable-Cache UND X-Robots-Tag noindex', hdr('/assets/*', 'Cache-Control = "public, max-age=31536000, immutable"') && hdr('/assets/*', 'X-Robots-Tag\\s+= "noindex, nofollow"'));
+  add('[headers] manifest.webmanifest mit application/manifest+json', hdr('/manifest.webmanifest', 'Content-Type = "application/manifest\\+json'));
+  add('[headers] Datenpfade und Service Worker noindex', ['/params/*', '/fire/*', '/countries/*', '/latest-grib.json', '/sw.js'].every((p) => hdr(p, 'X-Robots-Tag = "noindex, nofollow"')));
+  add('[headers] Header-Block steht VOR den Redirects (Parser-Sicherheit)', toml.indexOf('[[headers]]') >= 0 && toml.indexOf('[[headers]]') < toml.indexOf('[[redirects]]'));
+}
 
 // --- (4) Service Worker ---------------------------------------------------------
 const sw = readFileSync(join(ROOT, 'public', 'sw.js'), 'utf8');
@@ -194,6 +227,16 @@ if (wkShell && rrShell) {
   const dup = (s) => { const hs = [...s.matchAll(/href="([^"]+)"/g)].map((m) => m[1]).filter((h) => h.startsWith('/assets/')); return hs.length !== new Set(hs).size; };
   add('[shell] kein Asset zweimal verlinkt (index.html-Preloads werden nicht wiederholt)', !dup(wkShell) && !dup(rrShell));
   add('[shell] vorhersage.html trägt keine Karten-Preconnects', !fcShell || !fcShell.includes('rel="preconnect"'));
+  // E1: Sub-Routen-Shells tragen eigenen Canonical + dieselben Preloads wie die Eltern-Shell.
+  const subShell = (id, slug) => { const p = join(ROOT, 'dist', `${id}--${slug}.html`); return existsSync(p) ? readFileSync(p, 'utf8') : null; };
+  const tempShell = subShell('wetterkarte', 'temperatur'), flyShell = subShell('atmosphaere', 'fliegen'), fireShell = subShell('waldbrand', 'aktive-braende');
+  add('[shell] Sub-Routen-Shells existieren (wetterkarte--temperatur, atmosphaere--fliegen, waldbrand--aktive-braende)', !!tempShell && !!flyShell && !!fireShell);
+  if (tempShell) {
+    add('[shell] wetterkarte--temperatur.html: eigener Canonical, eigener Title, H1 aus dem Katalog', tempShell.includes('<link rel="canonical" href="https://buscosun.com/wetterkarte/temperatur" />') && tempShell.includes('<title>Temperaturkarte DACH | buscosun</title>') && tempShell.includes(`<h1>${subRouteText('/wetterkarte/temperatur').h1}</h1>`));
+    add('[shell] wetterkarte--temperatur.html lädt Route-Chunk, MapView und maplibre vor', pre(tempShell, 'WetterkarteRoute') && pre(tempShell, 'MapView') && pre(tempShell, 'maplibre'));
+    add('[shell] Sub-Shell verlinkt Eltern-Route und Geschwister-Ansichten', tempShell.includes('href="/wetterkarte"') && tempShell.includes('href="/wetterkarte/wind"') && !tempShell.includes('href="/wetterkarte/temperatur"><') );
+    add('[shell] keine hreflang-Tags mehr', !/hreflang=/.test(tempShell) && !/hreflang=/.test(wkShell));
+  }
 } else {
   add('[shell] Route-Shells nicht geprüft — `dist/` fehlt (erst `npm run build`)', true, 'übersprungen');
 }

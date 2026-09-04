@@ -225,12 +225,10 @@ function jsonLdScript(obj) {
 
 // --- HTML-Rendering ---------------------------------------------------------
 
-/** hreflang-Alternates: Selbstreferenz + Sprachvarianten + x-default. */
-function hreflangLinks(canonicalPath) {
-  const url = SITE.url + canonicalPath;
-  return ['de-DE', 'de-AT', 'de-CH'].map((l) => `<link rel="alternate" hreflang="${l}" href="${url}" />`).join('\n    ')
-    + `\n    <link rel="alternate" hreflang="x-default" href="${url}" />`;
-}
+// hreflang bewusst entfernt (SEO/GEO 2026, E1): es gibt je Seite genau EINE URL —
+// de-DE/de-AT/de-CH auf dieselbe Adresse waren ein No-op und Rauschen im
+// GSC-Bericht „Internationale Ausrichtung". Zurück, sobald es eine echte
+// Sprachvariante gibt (O-05). `<html lang="de">` bleibt.
 
 // Default OG/Twitter image when a page type forgets to pass one. MUST be a
 // raster (PNG/JPG/WebP) — social + Discover never render SVG, so we fall back to
@@ -246,7 +244,6 @@ function headBlock({ title, description, canonicalPath, locale, ogImage, jsonLd,
     <title>${escapeHtml(title)}</title>
     <meta name="description" content="${escapeHtml(description)}" />${noindex ? '\n    <meta name="robots" content="noindex, follow" />' : ''}
     <link rel="canonical" href="${url}" />
-    ${hreflangLinks(canonicalPath)}
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
     <meta name="theme-color" content="#2C2A26" />
     <meta property="og:type" content="website" />
@@ -928,8 +925,7 @@ export function routeHeadExtras(route) {
   const url = SITE.url + route.path;
   const title = `${route.meta.title} | ${SITE.name}`;
   const og = route.meta.ogImage || DEFAULT_OG_IMAGE;
-  return `<link rel="canonical" href="${url}" />
-    ${hreflangLinks(route.path)}${route.meta.noindex ? '\n    <meta name="robots" content="noindex, follow" />' : ''}
+  return `<link rel="canonical" href="${url}" />${route.meta.noindex ? '\n    <meta name="robots" content="noindex, follow" />' : ''}
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="${SITE.name}" />
     <meta property="og:title" content="${escapeHtml(title)}" />
@@ -963,11 +959,78 @@ export function renderRouteRootContent(route) {
 }
 
 /** Head-Ergänzungen für die Home (OG/Twitter/canonical/hreflang/JSON-LD). */
+/** Sub-Routen-Shell (SEO/GEO 2026, E1): eigener Head je Layer/Linse/Brand-Sicht. */
+function subRouteJsonLd(route, sub, url) {
+  return {
+    '@context': 'https://schema.org', '@type': 'WebPage',
+    name: sub.title, description: sub.description, url, inLanguage: 'de',
+    isPartOf: { '@type': 'WebSite', name: SITE.name, url: SITE.url + '/' },
+  };
+}
+function subRouteBreadcrumbJsonLd(route, sub, url) {
+  return {
+    '@context': 'https://schema.org', '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Start', item: SITE.url + '/' },
+      { '@type': 'ListItem', position: 2, name: route.meta.title, item: SITE.url + route.path },
+      { '@type': 'ListItem', position: 3, name: sub.title, item: url },
+    ],
+  };
+}
+export function subRouteHeadExtras(route, sub) {
+  const url = SITE.url + route.path + '/' + sub.slug;
+  const title = `${sub.title} | ${SITE.name}`;
+  const og = sub.ogImage || route.meta.ogImage || DEFAULT_OG_IMAGE;
+  return `<link rel="canonical" href="${url}" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="${SITE.name}" />
+    <meta property="og:title" content="${escapeHtml(title)}" />
+    <meta property="og:description" content="${escapeHtml(sub.description)}" />
+    <meta property="og:url" content="${url}" />
+    <meta property="og:locale" content="de_DE" />
+    <meta property="og:image" content="${SITE.url}${og}" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="${escapeHtml(title)}" />
+    <meta name="twitter:description" content="${escapeHtml(sub.description)}" />
+    <meta name="twitter:image" content="${SITE.url}${og}" />
+    ${jsonLdScript(subRouteJsonLd(route, sub, url))}
+    ${jsonLdScript(subRouteBreadcrumbJsonLd(route, sub, url))}`;
+}
+/**
+ * Crawlbarer #root-Inhalt der Sub-Routen-Shell: H1, Lead, Absätze, Faktenliste,
+ * Geschwister-Ansichten, Explainer (nur wenn `explainerOk(slug)`), Hubs.
+ * Derselbe Text speist nach dem App-Mount `RouteSeoBlock` (E2).
+ */
+export function renderSubRouteRootContent(route, sub, text, siblings, explainerOk = () => false) {
+  const path = route.path + '/' + sub.slug;
+  const body = (text.body || []).map((p) => `<p>${escapeHtml(p)}</p>`).join('\n      ');
+  const facts = (text.facts || []).map((f) => `<dt>${escapeHtml(f.label)}</dt><dd>${escapeHtml(f.text)}</dd>`).join('\n        ');
+  const sib = siblings.filter((x) => x.slug !== sub.slug).map((x) => `<li><a href="${route.path}/${x.slug}">${escapeHtml(x.title)}</a></li>`).join('\n        ');
+  const explainer = text.explainer && explainerOk(text.explainer) ? `<p>Hintergrund: <a href="/wissen/${text.explainer}/">Erklärung im Wetterwissen</a>.</p>` : '';
+  return `<div id="seo-fallback">
+      <nav aria-label="Brotkrumen"><a href="/">Start</a> › <a href="${route.path}">${escapeHtml(route.meta.title)}</a> › ${escapeHtml(sub.title)}</nav>
+      <h1>${escapeHtml(text.h1 || sub.title)}</h1>
+      <p>${escapeHtml(text.lead || sub.description)}</p>
+      ${body}
+      <h2>Daten und Grenzen</h2>
+      <dl>
+        ${facts}
+      </dl>
+      ${explainer}
+      <h2>Weitere Ansichten</h2>
+      <ul>
+        ${sib}
+      </ul>
+      <h2>Mehr auf buscosun</h2>
+      <p><a href="${route.path}">${escapeHtml(route.meta.title)}</a> · <a href="/wetter/">Wetter nach Ort</a> · <a href="/funktionen/">Alle Funktionen</a> · <a href="/wissen/">Wetterwissen</a> · <a href="/lizenzen/">Quellen &amp; Lizenzen</a></p>
+      <p>Diese Ansicht: <a href="${path}">${SITE.url}${path}</a> — amtliche Quellen, höhenkorrigiert, ohne Konto, ohne Tracker.</p>
+    </div>`;
+}
+
 export function homeHeadExtras() {
   const canonicalPath = '/';
   const url = SITE.url + '/';
   return `<link rel="canonical" href="${url}" />
-    ${hreflangLinks(canonicalPath)}
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="${SITE.name}" />
     <meta property="og:title" content="buscosun — ${escapeHtml(SITE.tagline)}" />
