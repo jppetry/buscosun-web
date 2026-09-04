@@ -15,6 +15,11 @@
 > Schritt 004 bei Lauf+50 min und 027 bei Lauf+67 min, der Repack-Batch landet 1–2 min später — der
 > Index-Weg ist damit **früher** am neuen Lauf als der alte Weg, dessen Manifest den Repack-Abschnitt im
 > Median erst bei Lauf+80,5 min trug (plus Netlify-Build). Der befürchtete Nachlauf existiert nicht.
+> Ausbreitung Daten-Repo → jsDelivr am baren Pfad gemessen: **≤ 1,1 min**, im ungünstigen Fall einer
+> 4,4 h alten Cache-Kopie. **Offener Folgebefund (V-BW-58):** `publish-repack.mjs` pusht genau EINMAL
+> ohne Wiederholung, während der Radar-Spiegel im selben Repo alle 1–2 min pusht — am 2026-09-04
+> scheiterte der Publish des 09z-Laufs nach 18 s, das Sicherheitsnetz reparierte es erst 84 min später
+> (Karte stand solange auf dem 4,4 h alten Lauf). Kur = der Commit-back-Loop aus `warm-grib.yml` (T2c).
 > Kritische Fallen dieser Linie: die Schrittliste des Index enthält **Objekte** `{step,file,…}`, keine
 > Zahlen — eine Fassung mit `Number.isInteger` war gegen synthetische Fixtures grün und gegen die
 > Wirklichkeit für jede Familie `null`; ein **abgebrochener** Abruf ist kein Befund über seine Quelle

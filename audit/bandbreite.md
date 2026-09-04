@@ -4231,8 +4231,8 @@ Ins Verhältnis gesetzt: der Weg, den er ersetzt, hing an Cron-Slot + Netlify-Bu
 > **Nachgetragen (§31.18):** über 24 Zyklen gemessen ist die neue Kette nicht nur
 > wahrscheinlich, sondern **belegt** kürzer — der Index führt den neuen Lauf ab
 > ≈ Lauf + 69 min, der alte Weg trug ihn im Median erst bei Lauf + 80,5 min, und
-> darauf kam noch der Build. Offen bleibt allein die Origin-Trägheit selbst; dafür
-> läuft eine eigene Sonde am nächsten Publikationsfenster.
+> darauf kam noch der Build. Die Origin-Trägheit selbst ist in §31.19 gemessen:
+> ≤ 1,1 min, und zwar im ungünstigen Fall einer 4,4 h alten Cache-Kopie.
 
 
 ## 31.15 V-BW-52 umgesetzt — der Zeiger-Abruf entfällt
@@ -4446,15 +4446,85 @@ zweite Kette dazwischenhängt.
 Trägheit des jsDelivr-**Origins** bei einem frisch gepushten Branch-Pfad
 (BW-9 §28.9). Eine Stichprobe 2 h nach dem Push zeigte `@main/index.json` korrekt
 auf dem Stand des 06z-Laufs (`8d9dfdc`, committet 07:07:06Z) — das belegt
-Korrektheit, nicht die Ausbreitungszeit. Dafür läuft eine eigene Sonde am
-nächsten Publikationsfenster mit; Ergebnis s. u.
+Korrektheit, nicht die Ausbreitungszeit. **Nachgemessen in §31.19: ≤ 1,1 min.**
 
 **Nebenbefund, der die alte Entscheidung bestätigt:** in **12 der 24 Zyklen** nannte
 das Manifest den neuen Lauf **ohne** Abschnitt und bekam ihn erst 21–83 min
 später (Median 29 min). Genau in diesem Fenster lud der Client GRIB über Netlify — der
 teuerste Zustand des Systems, und der neue Weg kennt ihn nicht mehr.
 
-## 31.19 V-Einträge
+
+## 31.19 Die Ausbreitung Repo → jsDelivr, gemessen — und ein Zwischenfall am selben Tag
+
+### Die Zahl, die noch fehlte
+
+Die letzte offene Behauptung war die Trägheit des jsDelivr-**Origins** für
+`@main/index.json` (BW-9 §28.9). Gemessen am Publikationsfenster des 09z-Laufs,
+am **baren** Pfad (ein Stempel erzeugte einen neuen Cache-Schlüssel und umginge
+genau das, was zu messen ist):
+
+    11:32:13Z  Daten-Repo: „index: 2026090409 → 51e9d2e"
+    11:33:18Z  jsDelivr @main/index.json führt 2026090409 (@51e9d2e)
+    ⇒ Ausbreitung ≤ 1,1 min (Poll-Auflösung 2 min)
+
+Der Fall ist der ungünstige: die Datei hatte sich **4,4 h nicht geändert**, der
+Origin hielt also eine alte Kopie — genau die Konstellation aus §28.9. Sie
+propagierte trotzdem in gut einer Minute. Das Restrisiko aus §31.14 ist damit
+gemessen und klein; es bleibt **eine** Stichprobe, keine Verteilung.
+
+### Der Zwischenfall: der 09z-Lauf kam 84 min zu spät
+
+Dieselbe Sonde deckte auf, warum sie eine Stunde lang nichts sah.
+
+| Zeit (UTC) | Ereignis |
+|---|---|
+| 10:06:32 | DWD legt 09z Schritt 027 ab — **pünktlich**, wie an allen 24 Zyklen |
+| 09:30:42 → 10:07:19 | Producer-Lauf `build`: Schritt **Repack** erfolgreich (wartet korrekt bis 10:06:58), Schritt **Publish** **fehlgeschlagen** nach 18 s |
+| 11:30:58 → 11:32:34 | Sicherheitsnetz (`cron` Lauf + 150 min) greift, **erfolgreich** in 96 s |
+| 11:33:18 | Lauf 09z am CDN sichtbar — bei **Lauf + 153 min** statt der üblichen ~69 |
+
+**Das ist kein Fehler dieser Phase, und kein jsDelivr-Problem** — CDN und
+Daten-Repo waren die ganze Zeit identisch, das CDN lieferte treu, was da war.
+Es ist ein Producer-Fehler, und er war vorher genauso da. Was sich geändert hat,
+ist seine **Sichtbarkeit**:
+
+* **vorher:** das Manifest wäre trotzdem auf 09z gesprungen, und der Client hätte
+  09z als GRIB über Netlify geladen — frischer Lauf, teurer Weg, Fehler unsichtbar.
+* **jetzt:** die Karte bleibt auf 06z, bis der Producer nachzieht — älterer Lauf,
+  kein Egress, Fehler sichtbar.
+
+Genau der Kompromiss aus §31.14, live am ersten Tag. Die Karte hat dabei nie
+gelogen: das Laufschild nannte durchgehend „Lauf 06z · vor N h". Die
+Schnellzugriff-Zeile hätte um 12:00Z angeschlagen (6 h nach `runAt`); der
+Producer war um 11:33Z wieder da, sie blieb also stumm — richtig, denn zu diesem
+Zeitpunkt war nichts mehr zu melden.
+
+**Was am Publish scheiterte, ist nicht bewiesen, aber eingegrenzt.** 18 Sekunden
+in einem Schritt, der klont, schreibt und pusht, riecht nach der Push-Naht:
+`scripts/publish-repack.mjs` macht **einen einzigen** `git push --force`, ohne
+Wiederholung — während der Radar-Spiegel im selben Repo alle 1–2 min pusht
+(RD0 nennt das „Force-Push-Rennen", RD1 entschärft es durch Terminwahl: „Push nie
+ins Publikationsfenster"). Der 09z-Lauf lag durch die Warteschleife bei 10:07
+**außerhalb** des geplanten Fensters — also mitten im Radar-Takt. Die Logs
+brauchen ein Token, deshalb steht hier keine Ursache, sondern ein Verdacht mit
+Zeitpunkt und Zeile.
+
+**Empfehlung für die nächste Phase** (nicht in dieser gebaut — ein Thema, eine
+Phase): dieselbe Kur wie T2c für die Warm-Crons — Push mit Wiederholung statt
+einem Versuch. Das Muster liegt fertig in `.github/workflows/warm-grib.yml`
+(sichern → auf den Remote-Tip zurücksetzen → drüberlegen → bis zu 3 Versuche).
+Damit wäre der 09z-Lauf um 10:08 statt um 11:33 dagewesen.
+
+### Ein handwerklicher Fehler an der Sonde selbst
+
+Die erste Sonde pollte die GitHub-**API** alle 45 s und verbrannte damit das
+Kontingent (60 Abrufe/Stunde ohne Token). Danach lief sie blind: `repoState()`
+lieferte nur noch `null`, ein Push wäre nie erkannt worden. Die zweite Sonde
+fasst die API nicht an — Push-Zeit aus dem Commit-Atom-Feed, Sichtbarkeit vom
+CDN, 2-Minuten-Takt. **Eine Messsonde, die ihre eigene Quelle drosselt, misst
+nichts** (V-BW-57).
+
+## 31.20 V-Einträge
 
 * **V-BW-46** — ein Auslieferungsweg kann eine Leistung überleben: beide
   Warm-Crons deployen seit dem 2026-08-23 für eine Wärmung, die es nicht mehr
@@ -4506,3 +4576,14 @@ teuerste Zustand des Systems, und der neue Weg kennt ihn nicht mehr.
   nur einmal täglich überschrieben, Actions-Läufe und Git-Verläufe sind
   öffentlich: §31.8 (b) war rückwirkend über 24 Zyklen zu beantworten statt über
   neun Stunden Warten — und die Antwort widerlegte die Befürchtung (§31.18).
+* **V-BW-57** — eine Messsonde, die ihre eigene Quelle drosselt, misst nichts:
+  45-s-Polling auf die GitHub-API (60 Abrufe/h ohne Token) machte die erste
+  Sonde nach knapp einer Stunde blind. Push-Zeiten gibt es limitfrei aus
+  `commits/main.atom`.
+* **V-BW-58** — **`publish-repack.mjs` pusht genau einmal** (`git push --force`,
+  ohne Wiederholung), während der Radar-Spiegel im selben Repo alle 1–2 min
+  pusht. Am 2026-09-04 scheiterte der Publish des 09z-Laufs nach 18 s; das
+  Sicherheitsnetz (Lauf + 150 min) reparierte es 84 min später. Fertiges Muster
+  für die Kur: der Commit-back-Loop aus `warm-grib.yml` (T2c). Seit BW-12 ist
+  ein solcher Aussetzer für den Nutzer sichtbar (älterer Lauf) statt teuer
+  (GRIB über Netlify) — der Fehler ist damit dringender geworden, nicht neuer.
