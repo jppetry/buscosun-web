@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build && node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/generate-seo.mjs",
+    "build": "tsc -b && vite build && node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/generate-seo.mjs && node scripts/seo/verify-seo.mjs && node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-routing.mjs",
     "verify:seo": "node scripts/seo/verify-seo.mjs",
     "verify:official-sources": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-official-sources.mjs",
     "verify:datenalter": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-datenalter.mjs",

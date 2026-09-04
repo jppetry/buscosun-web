@@ -15,7 +15,7 @@
 - [3D-Globus](https://buscosun.com/globus): globales Windfeld (GFS) auf der drehbaren Erde.
 
 ## Wetter nach Ort
-- [Übersicht aller Orte](https://buscosun.com/wetter/): Geo-Landingpages für ~140 Orte in DACH.
+- [Übersicht aller Orte](https://buscosun.com/wetter/): Geo-Landingpages für 138 kuratierte Orte in DACH (DE 58 · AT 40 · CH 40).
 - [Wetter München](https://buscosun.com/wetter/muenchen/): Beispiel-Ortsseite (Deutschland, Bayern).
 - [Wetter Innsbruck](https://buscosun.com/wetter/innsbruck/): Beispiel-Ortsseite (Österreich, Tirol).
 - [Wetter Zermatt](https://buscosun.com/wetter/zermatt/): Beispiel-Ortsseite (Schweiz, Wallis, alpin).

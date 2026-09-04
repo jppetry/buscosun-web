@@ -89,7 +89,7 @@ export const ROUTES: readonly RouteDef[] = [
       title: 'Interaktive Wetterkarte DACH',
       description: 'Wind, Niederschlag, Temperatur, Wolken, Böen, Gewitter und amtliche Warnungen für Deutschland, Österreich und die Schweiz auf einer Karte — aus DWD, GeoSphere und MeteoSchweiz.',
       h1: 'Interaktive Wetterkarte für Deutschland, Österreich und die Schweiz',
-      lead: 'Die Wetterkarte von buscosun legt Wind, Niederschlagsradar, höhenkorrigierte Temperatur, Bewölkung, Böen, Gewitterpotenzial, Blitze, Stationen und amtliche Warnungen als frei kombinierbare Layer über eine flüssige Vektorkarte — mit Zeit-Schieber und Modellwahl je Land, aus amtlichen Quellen, ohne Konto und ohne Tracker.',
+      lead: 'Die Wetterkarte von buscosun legt Wind, Niederschlagsradar, höhenkorrigierte Temperatur, Bewölkung, Böen, Gewitterpotenzial, Blitze, Stationen und amtliche Warnungen als frei kombinierbare Layer über eine flüssige Vektorkarte — mit Zeit-Schieber (beim Start auf die nächsten zwei Stunden begrenzt, beim ersten Ziehen bis 48 Stunden) und Modellwahl je Land, aus amtlichen Quellen, ohne Konto und ohne Tracker.',
       ogImage: '/og/wetterkarte.png',
     },
   },
@@ -184,14 +184,14 @@ export const ROUTES: readonly RouteDef[] = [
     id: 'waldbrand', path: '/waldbrand', aliases: ['/waldbraende', '/feuer'], featureId: 'fire', subParam: 'view',
     subs: [
       { slug: 'gefahrenindex', title: 'Waldbrandgefahr DACH — Gefahrenindex', description: 'Der europäische Waldbrand-Gefahrenindex als Fläche über Deutschland, Österreich und die Schweiz, daneben die amtlichen Landesstufen.' },
-      { slug: 'aktive-braende', title: 'Aktive Waldbrände DACH', description: 'Aktive Brände aus Satellitendetektionen (NASA FIRMS) mit Brandflächen, Ausbreitungsrichtung und Stärke — in Echtzeit.' },
+      { slug: 'aktive-braende', title: 'Aktive Waldbrände DACH', description: 'Aktive Brände aus Satellitendetektionen (NASA FIRMS) mit kartierten Brandflächen (EFFIS), Stärke (FRP) und der beobachteten Verschiebung zwischen den Überflügen — unbestätigt ist der Normalfall.' },
       { slug: 'trockenheit', title: 'Bodentrockenheit & Feuerwetter DACH', description: 'Bodenfeuchte aus ICON-D2 in zwei Tiefen und das stündliche Feuerwetter als Treiber der Waldbrandgefahr.' },
     ],
     meta: {
       title: 'Waldbrandgefahr DACH — Brandradar',
-      description: 'Waldbrandgefahr, aktive Brände aus Satellitendaten und Trockenheit für Deutschland, Österreich und die Schweiz — EU-Index und amtliche Landesstufen nebeneinander.',
+      description: 'Waldbrandgefahr, aktive Brände aus Satellitendaten und Trockenheit für Deutschland, Österreich und die Schweiz — EU-Index als Fläche, die nationalen Skalen von DWD und BAFU zur Einordnung.',
       h1: 'Waldbrandgefahr in Deutschland, Österreich und der Schweiz',
-      lead: 'Das Brandradar von buscosun zeigt den europäischen Gefahrenindex als durchgehende Fläche über die DACH-Region und daneben die amtlichen Landesstufen von DWD und BAFU, jede mit ihrer eigenen Skala. Dazu aktive Brände aus Satellitendetektionen, kartierte Brandflächen, die Ausbreitungsrichtung aus Wind und Gelände sowie Bodentrockenheit und Feuerwetter als Treiber.',
+      lead: 'Das Brandradar von buscosun zeigt den europäischen Gefahrenindex als durchgehende Fläche über die DACH-Region und zur Einordnung die nationalen Skalen von DWD und BAFU, jede mit ihrer eigenen Stufenlogik (Österreich hat keine offene amtliche Stufe). Dazu aktive Brände aus Satellitendetektionen, von EFFIS kartierte Brandflächen, die zwischen den Überflügen beobachtete Verschiebung eines Brands sowie Bodentrockenheit und Feuerwetter als Treiber — ohne amtliches Warnprodukt zu sein.',
     },
   },
   {

@@ -4,7 +4,7 @@ Wie die Wirkung des SEO/GEO-Pakets gesteuert wird. buscosun ist **tracker-frei**
 daher Server-Logs statt JS-Analytics. Monatliche Kadenz.
 
 ## 1. Google Search Console (GSC)
-Property `https://buscosun.app` verifizieren (Aktion → `your-actions.md`). Lesen:
+Property `https://buscosun.com` verifizieren (Aktion → `your-actions.md`). Lesen:
 - **Indexierung → Seiten**: Wie viele der eingereichten URLs sind indexiert?
   Achten auf „Gecrawlt – derzeit nicht indexiert" (Thin-Page-Verdacht → ggf.
   Scaffold lassen / Inhalt ausbauen). Tier-Expansion erst, wenn Tier 1 indexiert.
