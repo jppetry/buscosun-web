@@ -42,7 +42,8 @@ const D2_GRIB_BASE = '/_dwd_opendata/weather/nwp/icon-d2/grib';
  *  Wind-Pfad (`/_dwd_wind`, T1) bleiben unberührt. */
 export const D2_GRIB_PROXY_BASE = '/_dwd_grib/weather/nwp/icon-d2/grib';
 /** Durable-gecachter Edge-Pfad der Wind-Dateien (`u_10m`/`v_10m`/`hsurf`, Phase T1,
- *  `netlify/edge-functions/dwd-wind.ts`, gewärmt bis Step 12 über `latest-wind.json`).
+ *  `netlify/edge-functions/dwd-wind.ts`). Seit BW-13 nur noch der Notweg des
+ *  Windlayers — im Normalbetrieb kommen seine Bilder aus dem Daten-Repo.
  *  Einzige Quelle des Strings — `src/wind/iconD2WindSource.ts` importiert ihn.
  *  Der Feuerwetter-Producer teilte sich diesen Pfad, damit der dekomprimierte
  *  GRIB-Cache je URL geteilt wird; er ist am 2026-08-23 entfallen, der Windlayer

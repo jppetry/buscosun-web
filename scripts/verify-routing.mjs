@@ -23,7 +23,7 @@ import { verifyFireRouteView } from '../src/fire/fireRouteView.ts';
 import { SITE, mapPermalink } from './seo/content.mjs';
 import { TOOLS } from './seo/tools.mjs';
 // LE1/H2 — Frühstart der Datenabrufe + Shell-Preloads (audit/layer-erstbild.md §4)
-import { warmPlanFor, GRIB_MANIFEST_PATH, WIND_MANIFEST_PATH } from '../src/router/prefetch.ts';
+import { warmPlanFor, GRIB_MANIFEST_PATH } from '../src/router/prefetch.ts';
 import { warmLiveManifest, takeWarmManifest, liveManifestUrl, MANIFEST_TTL_MS, _warmManifestCount, _resetWarmManifests } from '../src/sources/liveManifest.ts';
 import { warmRvTar, takeWarmRvTar, rvTarUrlFor, rvTarCdnUrl, guessRvRuns, RV_WARM_TTL_MS, _warmRvCount, _resetWarmRv, rvImgDir, radarImgFrameFile } from '../src/sources/radolanRuns.ts';
 import { guessRvRuns as guessViaRadolan } from '../src/sources/radolan.ts';
@@ -123,11 +123,13 @@ add('[router] Cross-Aliase clientseitig verdrahtet, echte Sub-Routen ausgenommen
 // --- (6) LE1/H2 — Frühstart der Datenabrufe + Shell-Preloads -------------------------
 // Plan je Route (reine Entscheidung, netzfrei).
 const plan = (id, p, s = '') => warmPlanFor(id, p, s);
-add('[warm] /wetterkarte: beide Manifeste, kein RV-Tar', JSON.stringify(plan('wetterkarte', '/wetterkarte')) === JSON.stringify({ manifests: [GRIB_MANIFEST_PATH, WIND_MANIFEST_PATH], rvTar: false }));
+// BW-13 (§32): das Wind-Manifest ist entfallen — der Windlayer holt Lauf und
+// Bilder aus dem Index des Daten-Repos. Vorgewärmt wird nur noch das Grib-Manifest.
+add('[warm] /wetterkarte: nur das Grib-Manifest, kein RV-Tar', JSON.stringify(plan('wetterkarte', '/wetterkarte')) === JSON.stringify({ manifests: [GRIB_MANIFEST_PATH], rvTar: false }));
 add('[warm] /wetterkarte/niederschlag: RV-Tar dazu', plan('wetterkarte', '/wetterkarte/niederschlag').rvTar === true);
 add('[warm] /wetterkarte/wind?l=niederschlag: RV-Tar über `l=`', plan('wetterkarte', '/wetterkarte/wind', '?lat=1&l=niederschlag').rvTar === true);
 add('[warm] /wetterkarte/wind?l=temp: kein RV-Tar', plan('wetterkarte', '/wetterkarte/wind', '?l=temp').rvTar === false);
-add('[warm] /warnungen: wie die Wetterkarte (MapView lädt Wind + Temperatur)', plan('warnungen', '/warnungen').manifests.length === 2);
+add('[warm] /warnungen: wie die Wetterkarte', plan('warnungen', '/warnungen').manifests.length === 1);
 add('[warm] /regenradar?ort=…&land=de: GRIB-Manifest (cape) + RV-Tar, kein Wind-Manifest', JSON.stringify(plan('regenradar', '/regenradar', '?ort=Kassel&olat=51.3&olon=9.5&land=de')) === JSON.stringify({ manifests: [GRIB_MANIFEST_PATH], rvTar: true }));
 add('[warm] /regenradar ohne Ort (Suchformular): kein RV-Tar (V-LE-12)', plan('regenradar', '/regenradar', '').rvTar === false && plan('regenradar', '/regenradar', '').manifests.length === 1);
 add('[warm] /regenradar?ort=Wien&land=at: kein RV-Tar (Nachbarquelle kommt mit low)', plan('regenradar', '/regenradar', '?ort=Wien&olat=48.2&olon=16.4&land=at').rvTar === false);
@@ -146,7 +148,7 @@ add('[warm] andere Routen starten nichts vor', ['vorhersage', 'home', 'waldbrand
     add('[warm] Manifest: Abruf-URL trägt den Minutenstempel (BW-11) und `no-store`', calls[0].url === liveManifestUrl('/latest-grib.json', T) && calls[0].init?.cache === 'no-store');
     const taken = takeWarmManifest('/latest-grib.json', T + 2000);
     add('[warm] Manifest: `take` liefert das Promise genau EINMAL', !!taken && typeof taken.then === 'function' && takeWarmManifest('/latest-grib.json', T + 2000) === null && _warmManifestCount() === 0);
-    add('[warm] Manifest: nach dem TTL liefert `take` null (Verbraucher holt selbst)', (warmLiveManifest('/latest-wind.json', T), takeWarmManifest('/latest-wind.json', T + MANIFEST_TTL_MS + 1) === null));
+    add('[warm] Manifest: nach dem TTL liefert `take` null (Verbraucher holt selbst)', (warmLiveManifest('/latest-grib.json', T + 5000), takeWarmManifest('/latest-grib.json', T + 5000 + MANIFEST_TTL_MS + 1) === null));
     add('[warm] Manifest: vorgestartete Antwort ist lesbar', (await taken).ok === true && (await (await taken).json()).run === '2026082809');
     calls.length = 0;
     const ts0 = guessRvRuns(1, T)[0];

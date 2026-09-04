@@ -3,12 +3,12 @@
  *
  *   npm run health                     # gegen $SITE_URL (oder --url)
  *   npm run health -- --url https://buscosun.com
- *   npm run health -- --file public/latest-grib.json public/latest-wind.json
+ *   npm run health -- --file public/latest-grib.json
  *
  * ── Warum es das gibt ────────────────────────────────────────────────────────
  * Die Warm-Crons **melden Erfolg, auch wenn sie nichts ausgerichtet haben**: bei
  * unvollständiger Wärmung wird das Manifest bewusst nicht umgelegt und der Job
- * endet mit Exit 0 (`warm-grib.mjs:340,351`, `warm-wind.mjs`). Ein dauerhaft
+ * endet mit Exit 0 (`warm-grib.mjs`). Ein dauerhaft
  * blockierter Advance erzeugt lauter GRÜNE Runs. Genau diese Lücke hat am
  * 2026-07-22 eine Merge-Regression zwei Tage lang verborgen und in der
  * Strategie-Session drei unabhängige Analysen zu einer Fehldiagnose verleitet
@@ -43,9 +43,10 @@ const files = fileMode ? argv.slice(argv.indexOf('--file') + 1).filter((a) => !a
 const baseUrl = (flagValue('--url') ?? process.env.SITE_URL ?? '').replace(/\/+$/, '');
 const nowMs = Date.parse(process.env.HEALTH_NOW ?? new Date().toISOString());
 
+// BW-13 (§32): `latest-wind.json` ist entfallen — der Windlayer löst Lauf und
+// Bilder aus dem Index des Daten-Repos auf. Zu überwachen bleibt das Grib-Manifest.
 const MANIFESTS = [
   { name: 'latest-grib.json', proxy: '/_dwd_grib' },
-  { name: 'latest-wind.json', proxy: '/_dwd_wind' },
 ];
 
 /**

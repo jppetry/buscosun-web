@@ -5,9 +5,9 @@
  *  - Navigationen: network-first → bei Offline gecachte index.html (App lädt
  *    auch ohne Empfang, z. B. am Berg, sofern einmal online geladen).
  *  - Same-Origin gehashte Assets (js/css/wasm/…): cache-first /
- *    stale-while-revalidate (Vite-Hashes sind immutable). AUSGENOMMEN die
- *    Live-Manifeste `/latest-{grib,wind}.json` (`LIVE_RE`, BW-10) — sie sind
- *    nicht gehasht, ihr Inhalt ist die Frische → network-first wie Wetterdaten.
+ *    stale-while-revalidate (Vite-Hashes sind immutable). AUSGENOMMEN das
+ *    Live-Manifest `/latest-grib.json` (`LIVE_RE`, BW-10) — es ist nicht
+ *    gehasht, sein Inhalt ist die Frische → network-first wie Wetterdaten.
  *  - Übriges GET (Wetter-APIs, Kartenkacheln): network-first → Cache-Fallback,
  *    Cache gedeckelt (FIFO), damit zuletzt geladene Daten offline verfügbar sind.
  *
@@ -64,11 +64,15 @@ self.addEventListener('activate', (event) => {
 const DATA_CDN_HOST = 'cdn.jsdelivr.net';
 
 const ASSET_RE = /\.(?:js|mjs|css|woff2?|ttf|otf|wasm|png|svg|jpe?g|webp|gif|json|geojson)$/i;
-/** Live-Manifeste der Warm-Crons: same-origin und `.json`, aber NICHT gehasht —
- *  ihr Inhalt IST die Frische. Sie gehören in den network-first-Zweig unten; ein
+/** Live-Manifest des Warm-Crons: same-origin und `.json`, aber NICHT gehasht —
+ *  sein Inhalt IST die Frische. Es gehört in den network-first-Zweig unten; ein
  *  `cache: 'no-store'` der App hilft hier nicht, der Worker greift VOR dem
- *  HTTP-Cache (BW-10, audit/bandbreite.md §29.1 B). */
-const LIVE_RE = /^\/latest-(?:grib|wind)\.json$/;
+ *  HTTP-Cache (BW-10, audit/bandbreite.md §29.1 B).
+ *
+ *  BW-13 (§32): `/latest-wind.json` ist entfallen — der Windlayer liest Lauf und
+ *  Bilder aus dem Index des Daten-Repos, und dessen Host (`DATA_CDN_HOST`) wird
+ *  oben ohnehin unangetastet ans Netz durchgereicht. Bleibt das Grib-Manifest. */
+const LIVE_RE = /^\/latest-grib\.json$/;
 function isHashedAsset(url) {
   return url.origin === self.location.origin && ASSET_RE.test(url.pathname) && !LIVE_RE.test(url.pathname);
 }

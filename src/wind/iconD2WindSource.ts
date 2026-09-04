@@ -15,10 +15,6 @@
  */
 
 import { resolveLatestRun, fetchStepBytes, subsampledCorners, decodeGrib2, D2_WIND_PROXY_BASE, type GribField } from '../sources/iconD2Precip';
-import { reportManifest, stateFromUpdatedAt } from '../sources/manifestHealth';
-// BW-11: EINE Regel für den Abruf-URL der Live-Manifeste (Begründung dort);
-// LE1/H2: der Router startet den Abruf vor, `takeWarmManifest` nimmt ihn entgegen.
-import { liveManifestUrl, takeWarmManifest } from '../sources/liveManifest';
 import { stepsForNowWindow } from '../sources/frameAtValidTime';
 import { buildWindRgba } from './windFrameBuild';
 import { blendAndRefine, type FrameNorm } from './windBlendRefine';
@@ -56,105 +52,37 @@ const CONCURRENCY = 6;
  *  dwd-wind.ts` diesen Pfad (durable Edge-Cache); in `vite dev` ein dünner
  *  Pass-Through-Proxy. Precip/Clouds/Temp bleiben unberührt auf `/_dwd_opendata`. */
 const WIND_GRIB_BASE = D2_WIND_PROXY_BASE;
-/** Warm-Manifest (winzig, same-origin, vom Warm-Cron umgelegt). Nennt den zuletzt
- *  vollständig gewärmten Lauf + dessen Schritte → der Client fragt AUSSCHLIESSLICH
- *  gewärmte Läufe an (kein Directory-Scan, kein spekulativer Fehl-Rat). */
-const WIND_MANIFEST_URL = '/latest-wind.json';
-/** Max. Alter des Manifest-Laufs (Referenzzeit). Jenseits davon sind die GRIB-
- *  Dateien i. d. R. auch von opendata.dwd.de verschwunden → das Manifest ist
- *  „kaputt statt stale": wir überspringen es günstig (kein 404-Sturm) und der
- *  Directory-Scan holt den AKTUELLEN Lauf (frischerer Wind statt tage-alter). Ein
- *  gesundes Manifest ist ~3,5–6,5 h alt (Publikationslag + 3-h-Rotation), 24 h
- *  lässt reichlich Luft für einen kurz ausgefallenen Warmer (stale, nie kalt). */
-const MAX_MANIFEST_RUN_AGE_H = 24;
 
-/** Rückgabeform der Lauf-Auflösung — deckungsgleich mit `resolveLatestRun`.
- *  `repackRaw` (BW-3/BW-10) ist additiv: der ROHE `repack`-Abschnitt des
- *  Manifests; geprüft wird er im Aufrufer gegen Lauf UND gewünschte Schritte
- *  (`resolveRepackSection`). Der Scan-Fallback hat nie einen — er löst am
- *  Manifest vorbei auf. */
-interface WindRunInfo { runStr: string; runAt: Date; steps: number[]; repackRaw: unknown }
-
-/** True, wenn der letzte Schritt des Laufs nicht vor `nowMs` liegt (Horizont-Guard). Rein, fuer den Verifier. */
-export function manifestCoversNow(runAtMs: number, steps: readonly number[], nowMs: number): boolean {
+/**
+ * Horizont-Guard (2026-08-22, seit BW-13 auf den Index angewandt): ein Lauf kann
+ * jung genug sein und trotzdem KEINEN Schritt mehr für „jetzt" tragen — 00z mit
+ * 0…12 h endet um 12 UTC. Der Wind-Layer zeigte dann den letzten Frame als
+ * „jetzt", und der Ausbreitungslayer im Brandradar (30-min-Schranke) fand für
+ * keine Stunde ein Windfeld. Die Regel ist älter als der Index-Weg und galt
+ * zuerst dem Warm-Manifest; sie gilt unverändert weiter, nur für die neue Quelle —
+ * deshalb heißt sie seit BW-13 runCoversNow statt manifestCoversNow.
+ * Rein, für den Verifier.
+ */
+export function runCoversNow(runAtMs: number, steps: readonly number[], nowMs: number): boolean {
   if (steps.length === 0) return false;
   const lastMs = runAtMs + Math.max(...steps) * 3_600_000;
   return lastMs >= nowMs;
 }
 
-/** `YYYYMMDDHH` → UTC-Date. */
-function parseRunStr(run: string): Date {
-  return new Date(Date.UTC(
-    +run.slice(0, 4), +run.slice(4, 6) - 1, +run.slice(6, 8), +run.slice(8, 10), 0, 0, 0,
-  ));
-}
-
-/**
- * Liest das Warm-Manifest (`/latest-wind.json`) und liefert den gewärmten Lauf.
- * Gibt `null` zurück, wenn kein/ungültiges Manifest vorliegt — dann fällt der
- * Aufrufer auf den bestehenden Directory-Scan-Pfad (`resolveLatestRun` +
- * Spekulation) zurück. Das ist die Graceful-Degrade-Naht in beide Richtungen:
- *  • kein Manifest (Dev vor dem ersten Warm-Lauf / Netz-Fehler) → alter Pfad;
- *  • eingefrorenes Manifest (Warmer aus) → letzter gewärmter Lauf (stale, nie kalt).
- * `cache: 'no-store'` hält den HTTP-Layer frisch. Der Service Worker reicht die
- * Live-Manifeste seit BW-10 network-first durch (`LIVE_RE`, `public/sw.js`):
- * unter seiner Asset-Regel servierte er den Lauf der VORIGEN Sitzung — gemessen
- * 9 h alt —, und `cache: 'no-store'` konnte daran nichts ändern, weil der Worker
- * VOR dem HTTP-Cache greift (audit/bandbreite.md §29.1 B).
- */
-async function resolveWindRunFromManifest(signal?: AbortSignal): Promise<WindRunInfo | null> {
-  // V-20: jeder Rückgabepfad `null` bedeutet „Manifest unbrauchbar → Directory-Scan";
-  // genau das meldet `absent`. Rein additiv: die Auflösungslogik bleibt unverändert.
-  const absent = (): null => { reportManifest(WIND_MANIFEST_URL, 'absent'); return null; };
-  // BW-10: Verbindung zum Daten-CDN parallel zum Manifest aufbauen (§29.3 Hebel 2).
-  preconnectDataCdn();
-  try {
-    // LE1/H2: vorgestarteter Abruf des Routers (ohne Signal — er gehört allen
-    // Wartenden), sonst wie bisher selbst holen.
-    const res = await (takeWarmManifest(WIND_MANIFEST_URL) ?? fetch(liveManifestUrl(WIND_MANIFEST_URL), { signal, cache: 'no-store' }));
-    if (!res.ok) return absent();
-    const m = await res.json() as { run?: unknown; runAt?: unknown; updatedAt?: unknown; steps?: unknown; repack?: unknown };
-    if (typeof m.run !== 'string' || !/^\d{10}$/.test(m.run)) return absent();
-    if (!Array.isArray(m.steps)) return absent();
-    const steps = (m.steps as unknown[])
-      .filter((s): s is number => Number.isInteger(s) && (s as number) >= 0)
-      .sort((a, b) => a - b);
-    if (steps.length === 0) return absent();
-    const runAt = typeof m.runAt === 'string' ? new Date(m.runAt) : parseRunStr(m.run);
-    if (Number.isNaN(runAt.getTime())) return absent();
-    // Staleness-Guard: zu alter (Files-weg) oder unplausibel zukünftiger Lauf →
-    // Manifest verwerfen, Directory-Scan holt den aktuellen Lauf (kein 404-Sturm
-    // auf einen toten Lauf, u. a. gegen ein versehentlich committetes Altmanifest).
-    const ageH = (Date.now() - runAt.getTime()) / 3_600_000;
-    if (ageH > MAX_MANIFEST_RUN_AGE_H || ageH < -2) return absent();
-    // Horizont-Guard (2026-08-22): ein eingefrorenes Manifest (Warmer steht, z. B.
-    // Prod 503) kann jung genug sein und trotzdem KEINEN Schritt mehr fuer „jetzt"
-    // tragen — 00z mit 0…12 h endet um 12 UTC. Der Wind-Layer zeigte dann den
-    // letzten Frame als „jetzt", und der Ausbreitungslayer (30-min-Schranke) fand
-    // fuer keine Stunde ein Windfeld. Liegt der letzte Schritt vor jetzt, ist das
-    // Manifest fuer die Gegenwart unbrauchbar → Directory-Scan holt den aktuellen Lauf.
-    if (!manifestCoversNow(runAt.getTime(), steps, Date.now())) return absent();
-    const upd = typeof m.updatedAt === 'string' ? new Date(m.updatedAt) : null;
-    const updatedAtMs = upd && !Number.isNaN(upd.getTime()) ? upd.getTime() : null;
-    reportManifest(WIND_MANIFEST_URL, stateFromUpdatedAt(updatedAtMs, Date.now()), updatedAtMs);
-    // BW-3/BW-10: der Abschnitt wird erst im Aufrufer geprüft — gegen den Lauf,
-    // den DIESE Auflösung liefert (§22.4), und gegen die Schritte, die er
-    // wirklich laden will (Nur-Jetzt-Fenster): erst dann ist klar, ob das CDN
-    // überhaupt gefragt werden muss (§29.3 Hebel 1). Hier nur der rohe Abschnitt.
-    return { runStr: m.run, runAt, steps, repackRaw: m.repack ?? null };
-  } catch (e) {
-    // BW-12 (§31.17): ein ABGEBROCHENER Abruf ist kein Befund über das Manifest —
-    // er sagt nur, dass der Aufrufer nicht mehr wartet. Ihn als `absent` zu melden
-    // hinterließ bis hierher einen Fehlalarm in der Gesundheitsanzeige. Bis BW-12
-    // heilte er sich selbst, weil der nächste (erfolgreiche) Versuch DENSELBEN
-    // Schlüssel überschrieb; seit der Lauf aus dem Index kommt, meldet der
-    // Erfolgsfall unter einem ANDEREN Schlüssel — und der Fehlalarm blieb stehen.
-    // Am Dev-Server genau so beobachtet: „Schnellzugriff nicht aktuell
-    // (/latest-wind.json)", während alle Bilder längst vom CDN kamen.
-    if (signal?.aborted || (e as { name?: string } | null)?.name === 'AbortError') return null;
-    return absent();   // Netzfehler / JSON-Parse → Fallback auf Directory-Scan
-  }
-}
+// ---------------------------------------------------------------------------
+// BW-13: `resolveWindRunFromManifest` und `/latest-wind.json` sind ENTFERNT.
+//
+// Der Lauf kommt ausschließlich aus dem Index des Daten-Repos — derselben Datei,
+// aus der auch die Bilder stammen (`audit/bandbreite.md` §32). Für den Windlayer
+// gibt es damit keine zweite Wahrheit mehr: EINE Quelle nennt den Lauf, seine
+// Schritte und die Bytes. Vorher konnten Manifest und Index verschiedene Läufe
+// nennen — der Abschnitt musste gegen den aufgelösten Lauf geprüft werden (§22.4),
+// und ein eingefrorenes Manifest brauchte eigene Staleness- und Horizont-Wächter.
+//
+// Was bleibt, ist der Notweg unten (Directory-Scan + GRIB über `/_dwd_wind`).
+// Er greift NUR, wenn der Index gar nichts liefert oder alle Bilder scheitern —
+// im Normalbetrieb wird er nicht berührt (gemessen: 1 JSON-Abruf, 0 GRIB).
+// ---------------------------------------------------------------------------
 
 export interface IconD2WindFrame {
   validAt: Date;
@@ -322,6 +250,12 @@ export async function fetchIconD2Wind(
    *  begrenzt das Vorhersagefenster; 0 = nur der Jetzt-Bracket. */
   opts?: { nowOnly?: boolean; aheadHours?: number },
 ): Promise<IconD2Wind> {
+  // BW-10 (§29.3 Hebel 2): Verbindung zum Daten-CDN aufbauen, bevor der erste
+  // Abruf dorthin geht — DNS + TCP + TLS fallen dann nicht vor das erste Bild.
+  // Stand bis BW-13 im Manifest-Resolver; der ist weg, der Nutzen nicht. Hier
+  // ist er sogar richtiger platziert: eine Karte, die NUR Wind zeigt, ging nie
+  // durch `resolveLatestRun` und bekam den Preconnect deshalb nie.
+  preconnectDataCdn();
   const nowOnly = opts?.nowOnly === true;
   const aheadH = opts?.aheadHours ?? 0;
   const frames: IconD2WindFrame[] = [];
@@ -388,7 +322,7 @@ export async function fetchIconD2Wind(
     await Promise.all(workers);
   };
 
-  // FALLBACK-Auflösung (kein/ungültiges/leeres Manifest): bestehender spekulativer
+  // NOTWEG-Auflösung (Index unlesbar/leer/ohne Horizont): spekulativer
   // Kaltstart + Directory-Scan, UNVERÄNDERT. SPECULATIVE near-step fetch
   // (0…SPEC_STEPS-1): Dateinamen sind für einen 3-h-Zyklus deterministisch, also
   // parallel zur (~1,9 s) Directory-Auflösung statt danach. Rat = aktueller
@@ -417,53 +351,48 @@ export async function fetchIconD2Wind(
     return { runStr: resolved.runStr, runAt: resolved.runAt, wanted: resolved.steps.filter((s) => s <= MAX_STEP), specLoaded };
   };
 
-  // MANIFEST-GATE (T1.3): den zuletzt GEWÄRMTEN Lauf same-origin aus
-  // `/latest-wind.json` lesen. Das ersetzt für Wind den ~1,9-s-Directory-Scan UND
-  // die spekulative Lauf-Raterei: das Manifest nennt den Lauf sofort + korrekt,
-  // der Client fragt ausschließlich gewärmte (Lauf,Step)-URLs an.
-  // ── INDEX-GATE (BW-12, §31.6) — vor dem Manifest-Gate, default-off ────────
+  // ── INDEX-GATE (BW-13, §32) — die EINZIGE reguläre Quelle des Laufs ───────
   // Der Daten-Index führt die Familie `wind` mit den Schritten 0…12, also GENAU
   // dem Horizont dieses Layers (`MAX_STEP`, von `verify:repack` je Familie gegen
-  // die Producer-Caps geprüft). Er nennt damit alles, was `latest-wind.json`
-  // nennt — ohne Commit ins Site-Repo und ohne Netlify-Build. Schalter aus,
-  // Index unlesbar oder Lauf zu alt ⇒ `null` ⇒ es gilt unverändert das
-  // Manifest-Gate darunter, danach der Directory-Scan.
-  const fromIndex = await resolveRunFromRepackIndex('wind', signal);
-  const manifest = fromIndex ? null : await resolveWindRunFromManifest(signal);
-  // „Abkürzung genommen" — Index ODER Manifest. Trägt der Graceful-Degrade
-  // unten: liefert die Abkürzung keine Frames, wird EINMAL auf den Scan
-  // zurückgefallen, damit der Kaltstart nie schlechter ist als ohne sie.
-  let usedShortcut = fromIndex != null || manifest != null;
+  // die Producer-Caps geprüft) — und dieselbe Datei nennt auch die Bilder.
+  //
+  // Der HORIZONT-GUARD gilt weiter, nur für die neue Quelle: ein Lauf kann jung
+  // genug sein (24-h-Staleness in `newestRunFromIndex`) und trotzdem keinen
+  // Schritt mehr für „jetzt" tragen — 00z mit 0…12 h endet um 12 UTC. Dann ist
+  // er für die Gegenwart unbrauchbar, und der Notweg holt den aktuellen Lauf.
+  const idx = await resolveRunFromRepackIndex('wind', signal);
+  const fromIndex = idx && runCoversNow(idx.runAt.getTime(), idx.steps, Date.now()) ? idx : null;
+  // „Abkürzung genommen". Trägt den Graceful-Degrade unten: liefert sie keine
+  // Frames, wird EINMAL auf den Scan zurückgefallen, damit der Kaltstart nie
+  // schlechter ist als ohne sie.
+  let usedShortcut = fromIndex != null;
   let { runStr, runAt, wanted, specLoaded } = fromIndex
     ? { runStr: fromIndex.runStr, runAt: fromIndex.runAt, wanted: fromIndex.steps.filter((s) => s <= MAX_STEP), specLoaded: new Set<number>() }
-    : manifest
-      ? { runStr: manifest.runStr, runAt: manifest.runAt, wanted: manifest.steps.filter((s) => s <= MAX_STEP), specLoaded: new Set<number>() }
-      : await resolveViaScan();
+    : await resolveViaScan();
 
   // Nahen Horizont auf dem kritischen Pfad laden → Wind sofort nutzbar.
   // Nur-Jetzt-Modus: ausschließlich die zwei Schritte um die aktuelle Uhrzeit.
   if (nowOnly) wanted = stepsForNowWindow(wanted, runAt, aheadH);
-  // BW-3/BW-10: der CDN-Abschnitt — gegen den Lauf, den die Auflösung wirklich
-  // geliefert hat (§22.4), und gegen GENAU die Schritte, die gleich geladen
-  // werden: deckt der Manifest-Abschnitt sie, wird das CDN nicht gefragt (§29.3).
-  // Der Index-Weg bringt keinen Manifest-Abschnitt mit (`manifest` ist dann
-  // `null`) — `resolveRepackSection` holt ihn über Zeiger/Index, und weil der
-  // Index für die Lauf-Auflösung eben erst geholt wurde, trifft er dasselbe
-  // 60-s-Promise: kein zusätzlicher INDEX-Abruf (der Zeiger kommt hinzu,
-  // solange der Abschnitt nicht aus dem schon geholten Index gelesen wird —
-  // V-BW-52).
-  if ((manifest || fromIndex) && repackUsable()) {
-    section = await resolveRepackSection(runStr, 'wind', manifest?.repackRaw ?? null, wanted);
+  // Der Abschnitt zu GENAU den Schritten, die gleich geladen werden (§29.3).
+  // Kein Manifest-Abschnitt mehr (BW-13) — `resolveRepackSection` liest ihn aus
+  // dem Index, den die Lauf-Auflösung eben geholt hat: dasselbe 60-s-Promise,
+  // also kein weiterer Abruf und auch kein Zeiger (V-BW-52).
+  //
+  // Die Prüfung „Abschnitt gehört zu DIESEM Lauf" (§22.4) bleibt in
+  // `parseRepackSection` — sie kann seit BW-13 zwar nicht mehr fehlschlagen
+  // (Lauf und Abschnitt stammen aus derselben Datei), aber sie kostet nichts
+  // und hält die Regel dort, wo der Abschnitt gelesen wird.
+  if (fromIndex && repackUsable()) {
+    section = await resolveRepackSection(runStr, 'wind', null, wanted);
   }
   let near = nowOnly ? wanted : wanted.filter((s) => s <= NEAR_STEP);
   let far = nowOnly ? [] : wanted.filter((s) => s > NEAR_STEP);
   await pump(near, runStr, runAt, section ? REPACK_CONCURRENCY : CONCURRENCY, specLoaded);
 
-  // Robustheit / Graceful-Degrade: liefert ein (veraltetes/aus dem Cache
-  // evakuiertes/auf DWD gelöschtes) Manifest KEINE Frames, ist das Manifest nur
-  // eine Optimierung — einmalig transparent auf den Directory-Scan zurückfallen,
-  // damit der Kaltstart NIE schlechter ist als vor T1 (auch bei einem eingefroren-
-  // veralteten committeten Manifest).
+  // Robustheit / Graceful-Degrade: liefert der Index KEINE Frames (CDN nicht
+  // erreichbar, alle Bilder kaputt), ist er nur eine Abkürzung — einmalig
+  // transparent auf den Directory-Scan zurückfallen, damit der Kaltstart nie
+  // schlechter ist als vor T1.
   if (usedShortcut && (frames.length === 0 || !uvBounds)) {
     frames.length = 0; uvBounds = null;
     usedShortcut = false;

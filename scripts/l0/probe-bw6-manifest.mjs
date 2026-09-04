@@ -6,7 +6,8 @@
 import { readFileSync, writeFileSync, existsSync, unlinkSync } from 'node:fs';
 import { fetchIndex, pickForRun, GRIB_FAMILIES } from '../lib/repackManifest.mjs';
 
-const FILES = ['latest-grib', 'latest-wind'];
+// BW-13: `latest-wind` ist entfallen (Windlayer liest den Index des Daten-Repos).
+const FILES = ['latest-grib'];
 if (process.argv.includes('--restore')) {
   for (const f of FILES) {
     const b = `public/${f}.bw6-backup.json`;
@@ -19,7 +20,7 @@ if (!idx.ok) { console.error(idx.note); process.exit(1); }
 console.log(idx.note);
 for (const f of FILES) {
   const prod = await (await fetch(`https://buscosun.com/${f}.json`, { cache: 'no-store' })).json();
-  const fams = f === 'latest-wind' ? 'wind' : GRIB_FAMILIES;
+  const fams = GRIB_FAMILIES;
   const section = pickForRun(idx.index, prod.run, fams);
   if (!section) { console.error(`${f}: Index führt Lauf ${prod.run} nicht`); process.exit(1); }
   const local = `public/${f}.json`;

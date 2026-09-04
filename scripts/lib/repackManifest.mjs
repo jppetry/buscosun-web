@@ -85,9 +85,10 @@ export const SCHEMA = 1;
  * sie hier; der Client spiegelt sie typisiert in `src/sources/repackSource.ts`
  * (`REPACK_FAMILIES`) — `verify:repack` prüft, dass beide Listen gleich sind.
  *
- *   manifest   welches Manifest den Abschnitt trägt: `wind` → `latest-wind.json`,
- *              `grib` → `latest-grib.json` (dort ALLE Familien in EINEM Abschnitt,
- *              weil sie am selben Lauf und Commit hängen)
+ *   manifest   welches Manifest den Abschnitt trägt: `grib` → `latest-grib.json`
+ *              (dort ALLE Familien in EINEM Abschnitt, weil sie am selben Lauf und
+ *              Commit hängen). `null` = KEIN Manifest — seit BW-13 (§32) gilt das
+ *              für `wind`: dieser Layer liest Lauf UND Bilder aus `index.json`.
  *   file       Dateipräfix im Lauf-Verzeichnis: `<file>-<SSS>.png`
  *   channels   PNG-Kanäle: 3 = RGB (Wind), 2 = Grau+Alpha (Wert + Maske),
  *              1 = Grau (Niederschlag: 0 ist dort „transparent", keine Maske)
@@ -102,7 +103,7 @@ export const SCHEMA = 1;
  *   kind       Quantisierer von `decodeGridStep` (`precipToU8` / `capeToU8`) bei fullRes
  */
 export const FAMILIES = Object.freeze({
-  wind:        { manifest: 'wind', file: 'wind',      channels: 3, params: ['u_10m', 'v_10m'],                 minStep: 0, maxStep: 12 },
+  wind:        { manifest: null,   file: 'wind',      channels: 3, params: ['u_10m', 'v_10m'],                 minStep: 0, maxStep: 12 },
   temp:        { manifest: 'grib', file: 'temp',      channels: 2, params: ['t_2m'],                           minStep: 0, maxStep: 24 },
   gust:        { manifest: 'grib', file: 'gust',      channels: 2, params: ['vmax_10m'],                       minStep: 0, maxStep: 24 },
   thunder:     { manifest: 'grib', file: 'thunder',   channels: 2, params: ['cape_ml', 'cin_ml', 'lpi'],       minStep: 0, maxStep: 12 },
@@ -115,7 +116,8 @@ export const FAMILIES = Object.freeze({
   cape:        { manifest: 'grib', file: 'cape',      channels: 1, params: ['cape_ml'],                        minStep: 0, maxStep: 27, fullRes: true, kind: 'cape' },
 });
 export const FAMILY_KEYS = Object.freeze(Object.keys(FAMILIES));
-/** Familien je Manifest — `latest-wind.json` trägt nur Wind, `latest-grib.json` den Rest. */
+/** Familien je Manifest. Seit BW-13 trägt nur noch `latest-grib.json` einen Abschnitt;
+ *  `wind` hat `manifest: null` und kommt ausschließlich über `index.json`. */
 export const familiesOf = (manifest) => FAMILY_KEYS.filter((f) => FAMILIES[f].manifest === manifest);
 export const GRIB_FAMILIES = Object.freeze(familiesOf('grib'));
 
@@ -152,7 +154,7 @@ export function indexEntry(runManifest) {
  * Baut den Manifest-Abschnitt für eine Familie ODER eine Liste von Familien aus
  * einem Index-Eintrag.
  *
- * `'wind'` → `latest-wind.json`; `GRIB_FAMILIES` → `latest-grib.json`, dort alle
+ * `GRIB_FAMILIES` → `latest-grib.json`, dort alle
  * in EINEM Abschnitt (gleicher Lauf, gleicher Commit, gleiches Gitter). Jedes
  * Manifest bekommt nur seine eigenen Familien: das Wind-Manifest trägt keine
  * Temperatur-Normierung und umgekehrt. Die vier Wind-Normierungswerte stehen JE

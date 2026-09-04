@@ -1,9 +1,9 @@
 # ============================================================================
 # Warm-Cron für die ICON-D2-Kartenlayer Temp/Gust/Precip/Clouds (Phase T2-4)
 # ============================================================================
-# Generalisierung des T1-Wind-Warmers (warm-wind.yml — bleibt unverändert
-# parallel bestehen). Aktiv, sobald dieser Branch (main) nach origin gepusht
-# ist. Läuft NUR auf dem Default-Branch.
+# Ursprünglich die Generalisierung des T1-Wind-Warmers; der (warm-wind.yml) ist
+# seit BW-13 gelöscht, weil der Windlayer Lauf und Bilder aus dem Index des
+# Daten-Repos liest. Dieser Workflow läuft NUR auf dem Default-Branch.
 #
 # VORAUSSETZUNG (einmalig, sonst No-op): Repo-Variable SITE_URL auf die Netlify-
 # Prod-URL setzen (öffentlich, KEIN Secret) — Repo → Settings → Secrets and
@@ -22,7 +22,7 @@ name: warm-grib
 
 on:
   # ── ABGESCHALTET seit dem Gate GBW12 (2026-09-04) ──────────────────────────
-  # Begründung wörtlich wie in `warm-wind.yml`: der Client liest Lauf und
+  # Der Client liest Lauf und
   # Schritte seit BW-12 aus dem Index des Daten-Repos (`resolveRunFromRepackIndex`,
   # default an), dieses Manifest wird nicht mehr gelesen — und jeder seiner
   # Commits kostete einen vollen Netlify-Produktionsbuild (≈ 31/Tag über beide
@@ -60,7 +60,7 @@ jobs:
         run: node scripts/warm-grib.mjs
 
       # T2c-2: Race-sicherer Commit-back. main kann sich seit dem Checkout bewegt
-      # haben (warm-wind-Bot, manuelle Pushes) → ein blinder `git push` wird dann
+      # haben (manuelle Pushes) → ein blinder `git push` wird dann
       # non-fast-forward abgewiesen und der Advance ginge verloren. Statt Rebase
       # (auf dem Shallow-Checkout von actions/checkout gibt es keine verlässliche
       # Merge-Base): Warmer-Manifest sichern → auf den frischen Remote-Tip

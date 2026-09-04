@@ -10,7 +10,7 @@
 #
 # Dieser Workflow prüft deshalb NICHT die Crons, sondern das AUSGELIEFERTE
 # Ergebnis — von außen, über HTTPS, wie ein Besucher. Er ist bewusst unabhängig
-# und fasst warm-grib.yml / warm-wind.yml NICHT an: Cron-Semantik ist STOPP-Zone
+# und fasst warm-grib.yml NICHT an: Cron-Semantik ist STOPP-Zone
 # (`CLAUDE.md`). Jan hat am 2026-08-03 ausdrücklich diese Variante gewählt.
 #
 # WIRKUNG BEI ROT: Der Job schlägt fehl ⇒ GitHub verschickt seine Standard-

@@ -1,17 +1,18 @@
 /**
  * Gesundheit der Warm-Manifeste, sichtbar gemacht (Verbesserung V-20).
  *
- * `latest-grib.json` (Phase T2) und `latest-wind.json` (Phase T1) sind der
- * Schnellzugriff: sie nennen den zuletzt in den Edge-Cache GEWÄRMTEN Lauf, damit
- * der Client ausschließlich warme (Lauf,Step)-URLs anfragt. Fehlt das Manifest
- * oder ist es eingefroren, fallen die Loader still auf den Directory-Scan zurück —
- * die App bleibt korrekt, wird aber langsam, und niemand erfährt davon (weder
- * Nutzer noch Betreiber).
+ * „Schnellzugriff" heißt die Quelle, die dem Client den aktuellen Lauf nennt,
+ * damit er nicht selbst suchen muss. Das war das Warm-Manifest (T1/T2); seit
+ * BW-12/BW-13 ist es der **Index des Daten-Repos** — für den Windlayer sogar
+ * ausschließlich, für die Grib-Layer mit `latest-grib.json` als Rückfallweg.
+ * Fällt der Schnellzugriff aus, lösen die Loader still per Directory-Scan gegen
+ * den DWD auf: die App bleibt korrekt, wird aber langsam, und niemand erfährt
+ * davon — weder Nutzer noch Betreiber.
  *
- * Dieses Modul ist die winzige Meldestelle dazwischen: die beiden Resolver melden
- * ihren Befund, die UI liest den SCHLECHTESTEN Zustand und zeigt eine dezente
- * Zeile. Es verändert NICHTS an der Auflösungslogik, an Caches oder an der
- * Manifest-Mechanik (die Cron-/Manifest-Semantik bleibt unberührt — STOPP-Zone).
+ * Dieses Modul ist die winzige Meldestelle dazwischen: die Resolver melden ihren
+ * Befund, die UI liest den SCHLECHTESTEN Zustand (mit der `primary`-Regel unten)
+ * und zeigt eine dezente Zeile. Es verändert NICHTS an der Auflösungslogik, an
+ * Caches oder an der Manifest-Mechanik.
  *
  * Pur im Sinne von D-12: kein DOM, kein Fetch, kein Timer.
  */
@@ -139,10 +140,10 @@ export function verifyManifestHealth(): { checks: ManifestHealthCheck[]; passed:
   reportManifest('/latest-grib.json', 'fresh', now - H);
   add('ein frisches Manifest → fresh', getManifestHealth().state === 'fresh');
 
-  reportManifest('/latest-wind.json', 'stale', now - 8 * H);
+  reportManifest('/zweite-quelle.json', 'stale', now - 8 * H);
   add('worst-of: fresh + stale → stale', getManifestHealth().state === 'stale');
   add('worst-of nennt die betroffene Quelle',
-    getManifestHealth().sources.join() === '/latest-wind.json', getManifestHealth().sources.join());
+    getManifestHealth().sources.join() === '/zweite-quelle.json', getManifestHealth().sources.join());
 
   reportManifest('/latest-grib.json', 'absent', null);
   add('worst-of: absent schlägt stale', getManifestHealth().state === 'absent');
@@ -150,7 +151,7 @@ export function verifyManifestHealth(): { checks: ManifestHealthCheck[]; passed:
   reportManifest('/latest-grib.json', 'fresh', now - H);
   add('Erholung: absent → stale, wenn das andere stale bleibt', getManifestHealth().state === 'stale');
 
-  reportManifest('/latest-wind.json', 'fresh', now - 3 * H);
+  reportManifest('/zweite-quelle.json', 'fresh', now - 3 * H);
   const h = getManifestHealth();
   add('beide frisch → fresh', h.state === 'fresh');
   add('bei Gleichstand zählt die ÄLTESTE Auffrischung', h.updatedAtMs === now - 3 * H);

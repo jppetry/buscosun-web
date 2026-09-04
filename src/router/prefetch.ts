@@ -19,7 +19,9 @@ import { warmRvTar } from '../sources/radolanRuns';
 import type { RouteId } from './routes';
 
 export const GRIB_MANIFEST_PATH = '/latest-grib.json';
-export const WIND_MANIFEST_PATH = '/latest-wind.json';
+// BW-13: WIND_MANIFEST_PATH ist entfallen — der Windlayer löst seinen Lauf aus
+// dem Index des Daten-Repos auf, es gibt kein `/latest-wind.json` mehr
+// (audit/bandbreite.md §32).
 
 /** Slugs der Wetterkarte, die den RADOLAN-RV-Tar brauchen (Nowcast-Familie). */
 const RV_SLUGS = new Set(['niederschlag', 'flow-nowcast', 'regen-chance']);
@@ -39,7 +41,7 @@ export function warmPlanFor(routeId: RouteId, pathname: string, search: string):
       let extra = '';
       try { extra = new URLSearchParams(search).get('l') ?? ''; } catch { /* kein Query */ }
       const slugs = [slug, ...extra.split(',')].map((s) => s.trim()).filter(Boolean);
-      return { manifests: [GRIB_MANIFEST_PATH, WIND_MANIFEST_PATH], rvTar: slugs.some((s) => RV_SLUGS.has(s)) };
+      return { manifests: [GRIB_MANIFEST_PATH], rvTar: slugs.some((s) => RV_SLUGS.has(s)) };
     }
     case 'regenradar': {
       // V-LE-12 (LE2): der Tar (2,2 MB, `priority: 'high'`) nur, wenn die URL

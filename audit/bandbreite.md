@@ -3352,7 +3352,8 @@ einen älteren Lauf, den die Anti-Drift-Regel verwirft. `REPACK_NO_PURGE=1` für
 | PNG-Encoder nach B | Filterwahl allein: 172 → 169 ms je Windbild (nichts); Deflate L9 → `Z_RLE`: **21,2 s → 0,46 s je Lauf** (205 Bilder), Summe 12,43 → 12,31 MiB; Filter-Rewrite byte-gleich zur Referenz (Verifier, 5 Bilder), Rundlauf decode == Eingabe |
 | Pool live (thunder, 39 Dateien, 45 MB, ungecacht) | ≈ 10 s im Lauf statt ≈ 90 s seriell |
 | Wind-Lauf aus dem Cache, ganzer Producer inkl. Start + DWD-Listing | 6,0 s (nach V1) → **3,7 s** (nach A + B + D); 13/13 dekodiert identisch, Dateien −3,0 % |
-| `typecheck` | grün |
+| `typecheck` / `build` | grün |
+| Budget `totalJs` | 1089,3 / 1109,8 KB (−0,4 KB) |
 | `verify:repack` | **276/276** (nach S1b — Zeiger-URL-Spiegel, Publisher purgt Zeiger vor Index, Zeiger je Lauf im Baum == Index; davor 273/273 nach A + B + D; neu: Pool-Grenze/Dedupe/Nachbestellung/Fehlschlag, `planUrls`-Schrittfolge, `inHorizon`, PNG-Encoder == Referenz byte-gleich; davor 267/267 nach der Slot-Änderung, neu `expectedRunOf`) — die Zeile „bzip2-Binary == pure-JS" steht unter PowerShell als ⊘ (kein `bzip2` im PATH), unter Git-Bash direkt geprüft: IDENTISCH 1623229 (neu: Konstanten-Spiegel, `sectionFromIndex` == `pickForRun`, fremder Lauf, Index-Abschnitt besteht dieselbe Prüfung, `chooseSection`-Wahl, Publisher purgt NACH dem Push, Purge-Wiederholung, `stepsMissing`/`waitDecision`, Workflow-Vorlage, bzip2 == JS) |
 | Build + Budget | totalJs **980,9/1017,7 KB** (vorher 975,5), eagerJs 101,5/106,5, alle Budgets eingehalten |
 
@@ -4587,3 +4588,161 @@ nichts** (V-BW-57).
   für die Kur: der Commit-back-Loop aus `warm-grib.yml` (T2c). Seit BW-12 ist
   ein solcher Aussetzer für den Nutzer sichtbar (älterer Lauf) statt teuer
   (GRIB über Netlify) — der Fehler ist damit dringender geworden, nicht neuer.
+
+
+# 32 BW-13 — Der Windlayer kommt vollständig aus dem Daten-Repo (2026-09-04)
+
+> **Auftrag (Jan):** „mir geht es darum, dass es warm gribs und latest wind
+> deploys nicht mehr gibt und dass der Windlayer in der Wetterkarte komplett aus
+> den Winddaten im buscosun-data Repo gebaut wird."
+
+## 32.1 Was schon erfüllt war — und was nicht
+
+Die Deploys waren mit dem Gate GBW12 (§31.16) erledigt: beide Zeitpläne still,
+seit ~13 h null Cron-Commits. Und der Windlayer lud im Normalbetrieb bereits
+ausschließlich PNGs aus dem Daten-Repo (§31.17: 1 JSON-Abruf, 0 GRIB).
+
+Offen war das, was **darunter** noch stand: `/latest-wind.json` existierte weiter,
+der Client konnte es lesen, der Router wärmte es vor, der Service Worker hatte
+eine Regel dafür, ein Cron hätte es weiter schreiben können. Der Windlayer hing
+also nicht mehr daran — aber er kannte es noch. Zwei Quellen für dieselbe
+Auskunft sind eine Quelle zu viel: sie können sich widersprechen, und genau
+gegen diesen Widerspruch stand seit BW-3 eigene Mechanik (Anti-Drift-Regel
+§22.4, Staleness- und Horizont-Wächter im Wind-Resolver).
+
+## 32.2 Warum genau eine Quelle reicht
+
+Der Index des Daten-Repos nennt für die Familie `wind`:
+
+* den **Lauf** (`run`, `runAt`) — geprüft gegen einen 24-h-Staleness-Guard,
+* die **Schritte** 0…12 — exakt der Horizont dieses Layers (`MAX_STEP`, von
+  `verify:repack` je Familie gegen die Producer-Caps geprüft),
+* und die **Bytes** (`wind-NNN.png` samt `uMin/uMax/vMin/vMax` je Schritt).
+
+Damit ist alles, was das Manifest je beitrug, in derselben Datei — und zwar in
+der, aus der die Bilder ohnehin kommen. Lauf und Bild können nicht mehr
+auseinanderlaufen, weil sie aus einem Dokument stammen.
+
+## 32.3 Entfernt
+
+| Was | Wo |
+|---|---|
+| `public/latest-wind.json` | gelöscht |
+| `.github/workflows/warm-wind.yml` | gelöscht (sein Produkt gibt es nicht mehr) |
+| `scripts/warm-wind.mjs`, `scripts/verify-warm-wind.mjs` | gelöscht, samt npm-Alias und CI-Schritt |
+| `resolveWindRunFromManifest`, `WIND_MANIFEST_URL`, `MAX_MANIFEST_RUN_AGE_H` | `src/wind/iconD2WindSource.ts` |
+| `WIND_MANIFEST_PATH` aus dem Frühstart-Plan | `src/router/prefetch.ts` |
+| Wind-Zweig in `LIVE_RE` | `public/sw.js` |
+| Wind-Eintrag der Gesundheitsüberwachung | `scripts/health-manifests.mjs` |
+| `manifest: 'wind'` → `manifest: null` | `scripts/lib/repackManifest.mjs` |
+
+## 32.4 Behalten — und warum
+
+**Der Horizont-Guard.** Er hieß `manifestCoversNow` und prüfte, ob der letzte
+Schritt eines Laufs überhaupt noch in der Zukunft liegt. Der Fall ist NICHT
+manifest-spezifisch: auch ein Index-Lauf kann jung genug für den 24-h-Guard sein
+und trotzdem keinen Schritt mehr für „jetzt" tragen — 00z mit 0…12 h endet um
+12 UTC. Ohne ihn zeigte der Windlayer den letzten Frame als „jetzt", und der
+Ausbreitungslayer im Brandradar (30-min-Schranke) fände für keine Stunde ein
+Windfeld. Die Regel wandert also mit auf die neue Quelle und heißt seither
+`runCoversNow`.
+
+**Der Preconnect.** Er stand im Manifest-Resolver (BW-10 §29.3 Hebel 2) und wäre
+mit ihm verschwunden. Er steht jetzt am Anfang von `fetchIconD2Wind` — und ist
+dort sogar richtiger platziert: eine Karte, die NUR Wind zeigt, lief nie durch
+`resolveLatestRun` und bekam den Preconnect deshalb nie.
+
+**Der Notweg.** Directory-Scan gegen den DWD + GRIB über `/_dwd_wind` bleibt.
+Er greift nur, wenn der Index gar nichts liefert oder alle Bilder scheitern —
+also wenn jsDelivr ausfällt. Das ist kein Widerspruch zu „komplett aus dem
+Repo": im Normalbetrieb wird er nicht berührt (gemessen unten). Ihn zu löschen
+hieße, den Windlayer bei einem CDN-Ausfall **leer** zu lassen statt langsam; das
+wäre Funktionsverlust ohne Gegenwert. Die Alternative steht als Frage offen.
+
+## 32.5 Gemessen (Dev :5213, Playwright, Desktop 1440×900, 2026-09-04 20:53 UTC)
+
+`/wetterkarte/wind`, Kaltstart. **Jeder** Abruf, der Daten holt:
+
+    cdn.jsdelivr.net/gh/jppetry/buscosun-data@main/index.json
+    …@c7c88c9/runs/2026090418/wind-002.png
+    …@c7c88c9/runs/2026090418/wind-003.png
+    …@c7c88c9/hsurf-v1.png            (Temperatur-Layer)
+    …@c7c88c9/runs/2026090418/temp-002.png
+    …@c7c88c9/runs/2026090418/temp-003.png
+
+| | |
+|---|---|
+| Abrufe an `/latest-wind.json` | **0** (die Datei gibt es nicht mehr) |
+| Abrufe an `/latest-grib.json` | **0** |
+| Abrufe an `/_dwd_wind` bzw. `/_dwd_opendata` | **0** |
+| Anzeige | „Lauf 18z · vor 2 h" |
+| Schnellzugriff-Zeile | keine |
+| Konsole | 0 Fehler, 0 Warnungen |
+
+Der Windlayer wird damit **vollständig** aus `buscosun-data` gebaut: eine Datei
+nennt den Lauf, dieselbe Datei nennt die Bilder, und die Bilder kommen vom
+selben Commit.
+
+## 32.6 Verifikation
+
+| Verifier | Ergebnis |
+|---|---|
+| `verify:repack` | **325/325** |
+| `verify:routing` | 105/105 |
+| `verify:health` | 20/20 |
+| `verify:datenalter` | 54/54 |
+| `verify:warm-budget` | 30/30 |
+| `verify:layer-erstbild` | 37/37 |
+| `typecheck` / `build` | grün |
+| Budget `totalJs` | 1089,3 / 1109,8 KB (−0,4 KB) |
+
+Neue bzw. umgestellte Zusicherungen in `verify:repack`:
+
+* „Der Windlayer kennt kein Manifest mehr" — geprüft am MECHANISMUS, nicht an
+  der Zeichenkette: erst Kommentare entfernen, dann nach `latest-wind.json`,
+  `WIND_MANIFEST_URL`, `resolveWindRunFromManifest` und den beiden Importen
+  (`liveManifest`, `manifestHealth`) suchen. Die erste Fassung suchte den Text
+  roh und schlug an genau dem Kommentar fehl, der das Entfernen ERKLÄRT
+  (V-BW-61) — mit Negativ-Kontrolle für den Kommentar-Entferner daneben.
+* „`warm-wind.yml` und `latest-wind.json` sind WEG" — die drei gelöschten Dateien
+  existieren nicht mehr.
+* „Preconnect steht vor dem ersten CDN-Abruf — Wind (Index) wie Grib (Manifest)":
+  die alte Zusicherung suchte den Manifest-Abruf des Windlayers; geprüft wird
+  jetzt dieselbe Eigenschaft an der neuen Quelle.
+* „Service Worker kennt das Live-Manifest — genau eines, und nur das": der frühere
+  Wind-Pfad steht jetzt in der **Negativ-Liste**. Fasste die Regel ihn weiter,
+  wäre das ein Rest, den die nächste Änderung wieder mitschleppt.
+* „`latest-grib.json` bekommt alle Familien außer Wind; Wind hängt an keinem
+  Manifest" — plus die Gegenprobe „… und der Index trägt Wind trotzdem", denn
+  ohne die wäre die Zeile darüber auch dann grün, wenn der Windlayer gar keine
+  Quelle mehr hätte.
+
+## 32.7 Offen
+
+* **Der Notweg (§32.4).** Er ist der einzige Rest, über den der Windlayer noch
+  GRIB laden KANN. Streichen wäre die wörtliche Lesart von „komplett" — mit dem
+  Preis, dass ein CDN-Ausfall den Layer leer statt langsam macht. Jans
+  Entscheidung.
+* **`relhum_2m`** (Feuerwetter im Brandradar) hat keine Repack-Familie und zieht
+  1,08 MB je Schritt × 25 Schritte ≈ **27 MB roh über Netlify** je
+  Kaltaktivierung. Das ist der letzte große Netlify-Posten unter den
+  Wetter-Layern — eine eigene Phase (Familie im Producer ergänzen).
+* **V-BW-58** (Publish-Race im Producer) ist mit BW-13 dringender geworden: für
+  den Windlayer ist das Daten-Repo jetzt die einzige reguläre Quelle. Am
+  2026-09-04 scheiterte der Publish dreimal (10:07, 16:07, 17:32), 15z fiel ganz
+  aus, die Karte stand sechs Stunden auf 12z.
+
+## 32.8 V-Einträge
+
+* **V-BW-59** — wird eine von zwei Quellen abgeschafft, muss man die Wächter
+  einzeln durchgehen: der Staleness-Guard war manifest-spezifisch (der Index hat
+  seinen eigenen), der **Horizont-Guard nicht** — er hing nur zufällig am
+  Manifest und wäre bei einem pauschalen Rückbau still verschwunden. Dasselbe
+  gilt für den Preconnect, der im gelöschten Resolver stand.
+* **V-BW-60** — eine Negativ-Liste ist die halbe Zusicherung: nach dem Entfernen
+  eines Pfads muss die Regel, die ihn traf, ihn AKTIV nicht mehr treffen
+  (`LIVE_RE`), sonst bleibt ein Rest, den niemand mehr bemerkt.
+* **V-BW-61** — eine „das gibt es nicht mehr"-Zusicherung darf nicht nach dem
+  Namen suchen: der Kommentar, der das Entfernen erklärt, enthält ihn
+  zwangsläufig. Erst Kommentare entfernen, dann Bezeichner und Importe prüfen —
+  und den Entferner selbst mit einer Negativ-Kontrolle absichern.

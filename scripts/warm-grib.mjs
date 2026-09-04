@@ -1,10 +1,11 @@
 /**
  * warm-grib.mjs — Manifest-Publisher für die ICON-D2-Kartenlayer
- * (Phase T2-4, Generalisierung von warm-wind.mjs / Phase T1.2).
+ * (Phase T2-4, ursprünglich Generalisierung des Wind-Warmers aus Phase T1.2 —
+ * der ist seit BW-13 entfernt).
  *
  * ⚠️ Der Dateiname ist historisch: seit 2026-08-23 wird hier NICHTS mehr
  * gewärmt (s. u.). Umbenennen würde `verify-warm-budget.mjs` (liest diese Datei
- * per Pfad) und `verify-warm-wind.mjs` (importiert das Schwesterskript) treffen
+ * per Pfad) treffen
  * — bewusst zurückgestellt, damit der Rückzug ein reiner Verhaltens-Diff bleibt.
  *
  * Rolle: findet den neuesten vollständigen ICON-D2-Lauf und legt das kombinierte
@@ -71,7 +72,8 @@
  * Durchlauf der teuerste Einzelposten des Projekts — es ist mit entfallen.
  *
  * Kein eccodes, kein Decode, kein bz2, kein Byte durch Netlify.
- * Wind (T1, latest-wind.json + /_dwd_wind) hat sein eigenes Skript.
+ * Wind hatte bis BW-13 ein eigenes Skript und ein eigenes Manifest; beide sind
+ * entfernt — der Windlayer liest Lauf UND Bilder aus dem Index des Daten-Repos.
  *
  * ENV:
  *   SITE_URL            Site, FÜR die das Manifest publiziert wird (Feld

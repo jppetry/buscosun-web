@@ -432,18 +432,24 @@ if (hsurfGreys.length >= 2) {
       {
         const hasActiveCron = (text) => text.split('\n')
           .some((l) => /^\s*-\s*cron:/.test(l) && !/^\s*#/.test(l));
-        const crons = ['.github/workflows/warm-grib.yml', '.github/workflows/warm-wind.yml'];
+        // BW-13 (§32): `warm-wind.yml` ist GELÖSCHT (sein Produkt gibt es nicht
+        // mehr). `warm-grib.yml` bleibt still liegen, damit das Grib-Manifest
+        // bei Bedarf von Hand aufgefrischt werden kann.
+        const crons = ['.github/workflows/warm-grib.yml'];
         const still = crons.filter((f) => existsSync(f) && hasActiveCron(rf(f, 'utf8')));
         add('Index-Weg default an ⇒ kein Warm-Cron mehr im Zeitplan (GBW12)',
           RS.repackRunFlagFrom('', null) !== true || still.length === 0,
-          still.length ? still.join(' · ') : 'beide nur workflow_dispatch');
+          still.length ? still.join(' · ') : 'nur workflow_dispatch');
         // Negativ-Kontrolle der Erkennung selbst — sonst wäre die Zeile darüber
         // auch dann grün, wenn sie gar nichts findet.
         add('Zeitplan-Erkennung: aktive `- cron:`-Zeile ja, auskommentierte nein',
           hasActiveCron("  schedule:\n    - cron: '*/15 * * * *'") === true
           && hasActiveCron("  # schedule:\n  #   - cron: '*/15 * * * *'") === false);
-        add('Beide Warm-Workflows sind noch da und per Hand auslösbar (Rückfallweg, nicht gelöscht)',
+        add('`warm-grib.yml` ist noch da und per Hand auslösbar (Rückfallweg, nicht gelöscht)',
           crons.every((f) => existsSync(f) && /workflow_dispatch:/.test(rf(f, 'utf8'))));
+        add('`warm-wind.yml` und `latest-wind.json` sind WEG (BW-13)',
+          !existsSync('.github/workflows/warm-wind.yml') && !existsSync('public/latest-wind.json')
+          && !existsSync('scripts/warm-wind.mjs'));
       }
 
       // V-BW-53: der Manifest-Frühstart schweigt, wenn der Index-Weg läuft.
@@ -823,14 +829,33 @@ if (hsurfGreys.length >= 2) {
       (() => { try { RS.preconnectDataCdn(); return true; } catch { return false; } })());
     const wind = rf('src/wind/iconD2WindSource.ts', 'utf8');
     const precip = rf('src/sources/iconD2Precip.ts', 'utf8');
-    // Altbestand-Reparatur (BW-12): seit LE1/H2 steht vor dem Abruf der
-    // Frühstart (`takeWarmManifest(…) ?? fetch(…)`), das wörtliche `await fetch(`
-    // gibt es nicht mehr. Gesucht wird jetzt der Abruf selbst — die geprüfte
-    // Eigenschaft (Preconnect VOR dem Manifest-Abruf) ist dieselbe.
-    const w1 = wind.indexOf('preconnectDataCdn();'), w2 = wind.search(/fetch\(liveManifestUrl\(WIND_MANIFEST_URL/);
+    // BW-13 (§32): der Windlayer hat keinen Manifest-Resolver mehr. Geprüft wird
+    // die Eigenschaft, um die es immer ging — die CDN-Verbindung steht, BEVOR der
+    // erste Abruf dorthin geht. Beim Wind ist das jetzt der Index-Abruf am Anfang
+    // von `fetchIconD2Wind`, bei den Grib-Layern weiterhin der Manifest-Abruf.
+    const w1 = wind.indexOf('preconnectDataCdn();'), w2 = wind.indexOf("resolveRunFromRepackIndex('wind'");
     const p1 = precip.indexOf('preconnectDataCdn();'), p2 = precip.indexOf('resolveRunFromManifest(');
-    add('Beide Manifest-Resolver bauen die CDN-Verbindung VOR dem Manifest-Abruf auf',
+    add('Preconnect steht vor dem ersten CDN-Abruf — Wind (Index) wie Grib (Manifest)',
       w1 > 0 && w2 > w1 && p1 > 0 && p2 > p1, `wind ${w1} < ${w2} · grib ${p1} < ${p2}`);
+    // Geprüft wird der MECHANISMUS, nicht die Zeichenkette: der Kommentar oben im
+    // Modul erklärt ja gerade, dass es `resolveWindRunFromManifest` und
+    // `/latest-wind.json` nicht mehr gibt — eine reine Textsuche schlüge daran
+    // fehl und verböte damit die Erklärung. Also erst Kommentare entfernen, dann
+    // nach den Bezeichnern suchen; dazu die Importe, die es nur für den
+    // Manifest-Weg gab.
+    const stripComments = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/[^\n]*/g, '$1');
+    const windCode = stripComments(wind);
+    add('Der Windlayer kennt kein Manifest mehr (BW-13)',
+      !/latest-wind\.json/.test(windCode)
+      && !/resolveWindRunFromManifest|WIND_MANIFEST_URL/.test(windCode)
+      && !/from '\.\.\/sources\/liveManifest'/.test(windCode)
+      && !/from '\.\.\/sources\/manifestHealth'/.test(windCode));
+    // Negativ-Kontrolle des Kommentar-Entferners — ohne sie wäre die Zeile
+    // darüber auch dann grün, wenn `stripComments` einfach alles wegwürfe.
+    add('Kommentar-Entferner trifft Kommentare und lässt Code stehen',
+      stripComments('const a = 1; // latest-wind.json\n/* WIND_MANIFEST_URL */\nconst b = 2;').includes('const a = 1;')
+      && stripComments('const a = 1; // latest-wind.json').includes('latest-wind.json') === false
+      && stripComments("const u = 'https://x/y';").includes("'https://x/y'"));
     // Jeder Loader reicht seine Wunschliste durch — ohne sie wartete er wieder auf den Index.
     const loaders = ['iconD2TempSource', 'iconD2GustSource', 'iconD2Lpi', 'iconD2Rotation', 'iconD2Snow', 'iconD2Thunder', 'iconD2Precip', 'iconD2Cape'];
     const missing = loaders.filter((f) => !/resolveRepackForRun\([^)]*,\s*(wanted|steps)\)/.test(rf(`src/sources/${f}.ts`, 'utf8')));
@@ -849,12 +874,14 @@ if (hsurfGreys.length >= 2) {
   // den Lauf der vorigen Sitzung. Zwei Naht­stellen, beide hier geprüft.
   {
     const GM = await import('../src/sources/gribManifest.ts');
-    const u = GM.liveManifestUrl('/latest-wind.json', 1_756_170_000_000);
+    // BW-13: gemessen wurde die Falle seinerzeit am Wind-Manifest; das gibt es
+    // nicht mehr. Die Regel gilt unverändert für das verbliebene Grib-Manifest.
+    const u = GM.liveManifestUrl('/latest-grib.json', 1_756_170_000_000);
     add('Abruf-URL trägt einen Stempel, der Pfad bleibt unverändert',
-      u.startsWith('/latest-wind.json?') && new URL(u, 'https://x').pathname === '/latest-wind.json', u);
+      u.startsWith('/latest-grib.json?') && new URL(u, 'https://x').pathname === '/latest-grib.json', u);
     add('Stempel wechselt im Takt des Manifest-Caches (60 s), nicht je Abruf',
-      GM.liveManifestUrl('/latest-wind.json', 1_756_170_000_000) === GM.liveManifestUrl('/latest-wind.json', 1_756_170_059_999)
-      && GM.liveManifestUrl('/latest-wind.json', 1_756_170_000_000) !== GM.liveManifestUrl('/latest-wind.json', 1_756_170_060_001));
+      GM.liveManifestUrl('/latest-grib.json', 1_756_170_000_000) === GM.liveManifestUrl('/latest-grib.json', 1_756_170_059_999)
+      && GM.liveManifestUrl('/latest-grib.json', 1_756_170_000_000) !== GM.liveManifestUrl('/latest-grib.json', 1_756_170_060_001));
     add('bestehende Query bleibt erhalten (der Stempel hängt an, ersetzt nicht)',
       GM.liveManifestUrl('/x.json?a=1', 0) === '/x.json?a=1&t=0');
     const sw = rf('public/sw.js', 'utf8');
@@ -1210,10 +1237,15 @@ if (hsurfGreys.length >= 2) {
   {
     const liveSrc = /const LIVE_RE = (\/.+\/[a-z]*);/.exec(sw)?.[1];
     const liveRe = liveSrc ? new Function(`return ${liveSrc}`)() : null;
-    add('Service Worker kennt die Live-Manifeste (`LIVE_RE`) — beide, und nur die',
-      !!liveRe && liveRe.test('/latest-wind.json') && liveRe.test('/latest-grib.json')
-      && !liveRe.test('/fire/af/area-estimate-v1.json') && !liveRe.test('/latest-wind.json.bak')
-      && !liveRe.test('/x/latest-wind.json') && !liveRe.test('/assets/index-abc123.js'), liveSrc);
+    // BW-13 (§32): `/latest-wind.json` gibt es nicht mehr — die Regel darf genau
+    // das Grib-Manifest treffen und sonst nichts. Der frühere Wind-Pfad steht
+    // hier jetzt in der Negativ-Liste: fasste die Regel ihn weiter, wäre das ein
+    // Rest, der bei der nächsten Änderung wieder mitgeschleppt würde.
+    add('Service Worker kennt das Live-Manifest (`LIVE_RE`) — genau eines, und nur das',
+      !!liveRe && liveRe.test('/latest-grib.json')
+      && !liveRe.test('/latest-wind.json')
+      && !liveRe.test('/fire/af/area-estimate-v1.json') && !liveRe.test('/latest-grib.json.bak')
+      && !liveRe.test('/x/latest-grib.json') && !liveRe.test('/assets/index-abc123.js'), liveSrc);
     const iHashed = sw.indexOf('function isHashedAsset');
     const iLiveUse = sw.indexOf('!LIVE_RE.test(url.pathname)');
     const iAssetBranch = sw.indexOf('if (isHashedAsset(url))');
@@ -1334,8 +1366,13 @@ if (hsurfGreys.length >= 2) {
   add('Familienliste Producer == Familienliste Client (Schlüssel und Kanäle)',
     pf.length === cf.length && pf.every((f) => cf.includes(f) && RM.FAMILIES[f].channels === RS.REPACK_FAMILIES[f].channels),
     `${pf.length} Familien: ${pf.join(', ')}`);
-  add('`latest-grib.json` bekommt alle Familien außer Wind, `latest-wind.json` nur Wind',
-    RM.GRIB_FAMILIES.length === pf.length - 1 && !RM.GRIB_FAMILIES.includes('wind') && RM.familiesOf('wind').join() === 'wind');
+  // BW-13 (§32): Wind hängt an KEINEM Manifest mehr (`manifest: null`) — Lauf und
+  // Bilder kommen aus `index.json`. Alle übrigen Familien trägt `latest-grib.json`.
+  add('`latest-grib.json` bekommt alle Familien außer Wind; Wind hängt an keinem Manifest',
+    RM.GRIB_FAMILIES.length === pf.length - 1 && !RM.GRIB_FAMILIES.includes('wind')
+    && RM.FAMILIES.wind.manifest === null && RM.familiesOf('wind').length === 0);
+  add('… und der Index trägt Wind trotzdem (sonst hätte der Layer keine Quelle)',
+    RM.FAMILY_KEYS.includes('wind') && RM.FAMILIES.wind.file === 'wind');
 
   // ── Producer und Clients benutzen die GETEILTEN Bauschleifen ────────────
   const prodSrc = rf('scripts/repack-icon-d2.mjs', 'utf8');

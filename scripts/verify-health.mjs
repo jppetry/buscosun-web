@@ -87,10 +87,12 @@ add('H1 rot bei nicht lesbarem Manifest', idOf(checkManifest('m', null, OPTS), '
   add('H5 rot wenn nicht bei Step 0 beginnend', idOf(checkManifest('m', notFromZero, OPTS), 'H5 Step-Vollständigkeit')?.pass === false);
   add('H5 rot bei leerer Liste', idOf(checkManifest('m', { ...healthy, params: { t_2m: [] } }, OPTS), 'H5 Step-Vollständigkeit')?.pass === false);
   add('H5 rot ohne params und ohne steps', idOf(checkManifest('m', { ...healthy, params: undefined }, OPTS), 'H5 Step-Vollständigkeit')?.pass === false);
-  // Wind-Manifest trägt ein flaches steps[] statt params{}.
+  // Ein flaches steps[] statt params{} verstehen: diese Form trug bis BW-13 das
+  // Wind-Manifest. Es gibt sie nicht mehr im Betrieb, die Prüflogik bleibt aber
+  // formunabhängig — und genau das hält diese Zeile fest.
   const wind = { run: 'R', runAt: healthy.runAt, updatedAt: healthy.updatedAt, warmedThroughProxy: 'https://buscosun.com/_dwd_wind', steps: [0, 1, 2, 3, 4] };
-  add('H5 versteht das flache steps[] des Wind-Manifests',
-    idOf(checkManifest('latest-wind.json', wind, { ...OPTS, proxyPath: '/_dwd_wind' }), 'H5 Step-Vollständigkeit')?.pass === true);
+  add('H5 versteht auch ein flaches steps[] (Form ohne Produzent seit BW-13)',
+    idOf(checkManifest('flach.json', wind, { ...OPTS, proxyPath: '/_dwd_wind' }), 'H5 Step-Vollständigkeit')?.pass === true);
 }
 
 const passed = checks.filter((c) => c.ok).length;

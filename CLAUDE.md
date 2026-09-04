@@ -1,43 +1,55 @@
 # CLAUDE.md — buscosun: Projekt-Verfassung für Claude-Code-Agenten
 
-> **Stand: 2026-09-04.** **Aktuelle Phase: BW-12 / Gate GBW12 — Warm-Crons abgeschaltet, Lauf kommt aus dem Daten-Index**
-> (`audit/bandbreite.md` §31). Ausgangspunkt war Jans Frage nach den Netlify-Kosten: gemessen **218
-> Manifest-Commits in 7 Tagen ≈ 31 Produktions-Builds pro Tag** — für zwei Crons, die seit dem 2026-08-23
-> **gar nichts mehr wärmen** (der Pfad wurde damals gelöscht, sie sind reine Manifest-Publisher).
-> Die Auszählung fand den eigentlichen Treiber: **46 von 136 grib-Commits (34 %) änderten nichts als den
-> `eps`-Abschnitt**, den der Client ausdrücklich nicht liest. Zwei Sofortfixe (Commit-SHA zählt nicht mehr
-> als Änderung; `eps` fährt mit, statt umzulegen) nahmen ~26 % der Deploys weg — und der eigentliche Weg
-> nahm den Rest: **der Client liest Lauf und Schritte aus dem `index.json` des Daten-Repos**, das er für
-> den Repack-Abschnitt ohnehin holt. Beide Warm-Workflows tragen nur noch `workflow_dispatch`
-> (Zeitplan auskommentiert, nicht gelöscht); `?repackrun=0` ist der benannte Rückfallweg. **JSON-Abrufe
-> vor dem ersten Bild 3 → 1, GRIB über Netlify weiterhin 0, 0 Cron-Deploys** (nach dem Push belegt: drei
-> fällige Zeitplan-Läufe fanden nicht statt). Rückwirkend über **24 Zyklen** gemessen: DWD publiziert
-> Schritt 004 bei Lauf+50 min und 027 bei Lauf+67 min, der Repack-Batch landet 1–2 min später — der
-> Index-Weg ist damit **früher** am neuen Lauf als der alte Weg, dessen Manifest den Repack-Abschnitt im
-> Median erst bei Lauf+80,5 min trug (plus Netlify-Build). Der befürchtete Nachlauf existiert nicht.
-> Ausbreitung Daten-Repo → jsDelivr am baren Pfad gemessen: **≤ 1,1 min**, im ungünstigen Fall einer
-> 4,4 h alten Cache-Kopie. **Offener Folgebefund (V-BW-58):** `publish-repack.mjs` pusht genau EINMAL
-> ohne Wiederholung, während der Radar-Spiegel im selben Repo alle 1–2 min pusht — am 2026-09-04
-> scheiterte der Publish des 09z-Laufs nach 18 s, das Sicherheitsnetz reparierte es erst 84 min später
-> (Karte stand solange auf dem 4,4 h alten Lauf). Kur = der Commit-back-Loop aus `warm-grib.yml` (T2c).
-> Kritische Fallen dieser Linie: die Schrittliste des Index enthält **Objekte** `{step,file,…}`, keine
+> **Stand: 2026-09-04.** **Aktuelle Phase: BW-13 — der Windlayer kommt vollständig aus dem Daten-Repo**
+> (`audit/bandbreite.md` §32; davor BW-12 / Gate GBW12 in §31). Ausgangspunkt war Jans Frage nach den
+> Netlify-Kosten: gemessen **218 Manifest-Commits in 7 Tagen ≈ 31 Produktions-Builds pro Tag** — für zwei
+> Crons, die seit dem 2026-08-23 **gar nichts mehr wärmen**. Die Auszählung fand den eigentlichen Treiber:
+> **46 von 136 grib-Commits (34 %) änderten nichts als den `eps`-Abschnitt**, den der Client ausdrücklich
+> nicht liest. Zwei Sofortfixe nahmen ~26 % der Deploys weg, der Index-Weg den Rest: **der Client liest Lauf
+> und Schritte aus dem `index.json` des Daten-Repos**, das er für die Bilder ohnehin holt. Beide
+> Warm-Workflows sind still (`warm-grib.yml` nur noch `workflow_dispatch`, **`warm-wind.yml` gelöscht**);
+> `?repackrun=0` ist der benannte Rückfallweg. **JSON-Abrufe vor dem ersten Bild 3 → 1, GRIB über Netlify 0,
+> 0 Cron-Deploys** (belegt: nach dem Push fanden drei fällige Zeitplan-Läufe nicht statt).
+>
+> **BW-13** hat danach die zweite Quelle ganz entfernt: `/latest-wind.json`, sein Cron, sein Verifier und
+> der Wind-Manifest-Resolver sind weg. Der Windlayer nennt Lauf, Schritte und Bytes aus EINER Datei —
+> gemessen `/wetterkarte/wind` kalt: **0 Abrufe an Manifeste, 0 an `/_dwd_*`**, alles von `cdn.jsdelivr.net`.
+> Zwei Wächter mussten dabei einzeln mitwandern (V-BW-59): der **Horizont-Guard** (`runCoversNow` — ein Lauf
+> kann jung genug sein und trotzdem keinen Schritt für „jetzt" tragen) und der **Preconnect**, der im
+> gelöschten Resolver stand. Als Notweg bleibt Directory-Scan + GRIB; er greift nur bei CDN-Ausfall.
+>
+> **Rückwirkend über 24 Zyklen gemessen** (§31.18): DWD publiziert Schritt 004 bei Lauf+50 min und 027 bei
+> Lauf+67 min, der Repack-Batch landet 1–2 min später — der Index-Weg ist damit **15–30 min früher** am neuen
+> Lauf als der alte (Manifest mit Abschnitt: Median Lauf+80,5 min, plus Build). Ausbreitung Daten-Repo →
+> jsDelivr am baren Pfad: **≤ 1,1 min**, im ungünstigen Fall einer 4,4 h alten Cache-Kopie.
+>
+> ⚠ **Offener Folgebefund (V-BW-58), jetzt der wichtigste:** `scripts/publish-repack.mjs` pusht genau EINMAL
+> ohne Wiederholung, während der Radar-Spiegel im selben Repo alle 1–2 min pusht. Am 2026-09-04 scheiterte
+> der Publish **dreimal** (10:07, 16:07, 17:32 — immer der Schritt „Publish", 16–18 s); 09z kam 84 min zu
+> spät, **15z fiel ganz aus**, die Karte stand sechs Stunden auf 12z. Seit BW-13 ist das Daten-Repo für den
+> Windlayer die einzige reguläre Quelle — der Fehler ist dadurch dringender geworden. Kur: der
+> Commit-back-Loop aus `warm-grib.yml` (T2c). Zweiter offener Posten: **`relhum_2m`** (Feuerwetter) hat keine
+> Repack-Familie und zieht ≈ 27 MB roh über Netlify je Kaltaktivierung.
+>
+> **Kritische Fallen dieser Linie:** die Schrittliste des Index enthält **Objekte** `{step,file,…}`, keine
 > Zahlen — eine Fassung mit `Number.isInteger` war gegen synthetische Fixtures grün und gegen die
 > Wirklichkeit für jede Familie `null`; ein **abgebrochener** Abruf ist kein Befund über seine Quelle
-> (`AbortError` wurde als `absent` gemeldet und hinterließ einen Fehlalarm, den kein späterer Lauf mehr
-> aufräumte); und wird eine Quelle durch eine andere ersetzt, **muss die Gesundheitsanzeige mitwandern**
-> (`manifestHealth` kennt jetzt `primary`), sonst schweigt sie über den neuen Weg oder rauscht über den
-> alten. `verify:repack` 321/321, routing/health/datenalter/warm-* grün, typecheck + Build grün,
-> totalJs 1089,7/1109,8 KB. Gepusht als `26d2c7e` + `48ef19c`.
+> (`AbortError` wurde als `absent` gemeldet und hinterließ einen Fehlalarm); wird eine Quelle durch eine
+> andere ersetzt, **muss die Gesundheitsanzeige mitwandern** (`manifestHealth` kennt jetzt `primary`); und
+> eine **Messsonde, die ihre eigene Quelle drosselt, misst nichts** (45-s-Polling auf die GitHub-API, 60/h).
+> `verify:repack` **325/325**, routing 105/105, health 20/20, datenalter 54/54, warm-budget 30/30,
+> layer-erstbild 37/37, typecheck + Build grün, totalJs 1089,3/1109,8 KB.
 >
 > **Drei wiederkehrende Mess-Lehren der Satelliten-Linie (SAT2h) gelten weiter:** ein Mikro-Prüfstand mit
 > mehreren Varianten in EINEM Isolat misst nur *Verhältnisse*, keine Absolutwerte (⇒ ein Isolat je Variante);
 > ein Leistungsanker misst immer auch die Maschine mit (Vergleiche nur innerhalb eines Laufs oder mit
 > genannter Last); und Byte-Gleichheitstests brauchen eine Negativ-Kontrolle, sonst beweisen sie nichts.
-> Dazu aus BW-12: eine Hochrechnung aus EINEM beobachteten Fall ist keine Messung (die „ein Drittel der
-> Deploys"-Schätzung wurde beim Auszählen zu 13 % bzw. 0 %), und **synthetische Fixtures müssen die echte
-> Datenform tragen**. PowerShell-Fallen: `Set-Content -Encoding utf8` kodiert eine BOM-lose UTF-8-Datei
-> doppelt, und `node … 2>&1 | Out-File` macht aus stderr-Warnungen ErrorRecords und liefert Exit 1 —
-> Verifier nie mit `2>&1` starten.
+> Dazu aus BW-12/13: eine Hochrechnung aus EINEM beobachteten Fall ist keine Messung (die „ein Drittel der
+> Deploys"-Schätzung wurde beim Auszählen zu 13 % bzw. 0 %); **synthetische Fixtures müssen die echte
+> Datenform tragen**; und eine Frage nach *zeitlichem* Verhalten braucht nicht immer ein Beobachtungsfenster —
+> DWD-Verzeichnisse, Actions-Läufe und Git-Verläufe sind rückwirkend lesbar. PowerShell-Fallen:
+> `Set-Content -Encoding utf8` kodiert eine BOM-lose UTF-8-Datei doppelt, und `node … 2>&1 | Out-File` macht
+> aus stderr-Warnungen ErrorRecords und liefert Exit 1 — Verifier nie mit `2>&1` starten.
 >
 > **Historie:** Die vollständige Chronik jeder früheren Phase (Diagnose, Messwerte, Gate-Belege) steht
 > in den jeweiligen `audit/<thema>.md`-Dateien — Übersicht in der Dokumenten-Landkarte unten und in

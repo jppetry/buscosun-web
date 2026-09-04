@@ -77,8 +77,6 @@ jobs:
           npm run verify:lpi
           npm run verify:snow
           npm run verify:rotation
-      - name: Verifier — Warm-Wind-Logik (V-81)
-        run: npm run verify:warm-wind
       - name: Verifier — Warm-Budget ⇄ Layer-Dock (V-80)
         run: npm run verify:warm-budget
       - name: Verifier — Betriebs-Wächter (V-79)

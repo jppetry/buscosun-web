@@ -3882,7 +3882,8 @@ export default function MapView({
   // (Der frühere lokale `fmtTime` ist entfallen: seine drei Aufrufer sind auf
   //  `statusStamp`/`dataAgeText` umgestellt, das die Uhrzeit selbst formatiert.)
 
-  // V-20: Zustand der Warm-Manifeste (`latest-grib.json` / `latest-wind.json`).
+  // V-20: Zustand des Schnellzugriffs (Index des Daten-Repos, ersatzweise
+  // `latest-grib.json`; das Wind-Manifest ist seit BW-13 entfallen).
   // Die Loader melden ihn beim Auflösen; hier wird er nur gelesen. Fällt der
   // Schnellzugriff aus, lädt die Karte weiter — nur langsamer, und genau das
   // soll man sehen statt sich über plötzliche Wartezeiten zu wundern.

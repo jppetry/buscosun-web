@@ -14,7 +14,6 @@
     "verify:datenalter": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-datenalter.mjs",
     "verify:layer-transport": "node scripts/verify-layer-transport.mjs",
     "verify:wind-transport": "node --experimental-strip-types scripts/verify-wind-transport.mjs",
-    "verify:warm-wind": "node scripts/verify-warm-wind.mjs",
     "verify:health": "node scripts/verify-health.mjs",
     "verify:warm-budget": "node scripts/verify-warm-budget.mjs",
     "budget": "node scripts/check-budget.mjs",
