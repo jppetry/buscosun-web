@@ -55,6 +55,7 @@ import { buildTempRgba, TEMP_VMIN, TEMP_VMAX, TEMP_DEM_MAX } from '../src/source
 // seine reinen Teile (Prüfung, URL-Bau, Zusammensetzen, Schalter) gegen
 // DIESELBE Wahrheit laufen wie der Producer.
 import * as RS from '../src/sources/repackSource.ts';
+import * as LM from '../src/sources/liveManifest.ts';
 
 const checks = [];
 const add = (name, ok, detail) => { checks.push({ name, ok, detail }); };
@@ -411,13 +412,64 @@ if (hsurfGreys.length >= 2) {
       add('Index-Lauf: eine Schrittliste in der FALSCHEN Form ergibt null (Negativ-Kontrolle zur Objekt-Form)',
         RS.newestRunFromIndex(one('2026090400', at(2), 'wind', { steps: [{ datei: 'x' }, { datei: 'y' }] }), 'wind', now) === null);
 
-      // Der Schalter: Rule 2 verlangt default-OFF mit benanntem Rückfallweg.
-      add('Index-Lauf ist DEFAULT-OFF (ohne Query, ohne Speicher)',
-        RS.repackRunFlagFrom('', null) === false);
-      add('`?repackrun=1` schaltet ein, `?repackrun=0` schlägt den Speicher',
-        RS.repackRunFlagFrom('?repackrun=1', null) === true
-        && RS.repackRunFlagFrom('?repackrun=0', '1') === false
-        && RS.repackRunFlagFrom('', '1') === true);
+      // Gate GBW12 (§31.16): der Schalter ist jetzt DEFAULT AN — der Index-Weg
+      // ist der Normalweg, das Manifest der benannte Rückfallweg. Die
+      // Negativ-Kontrollen daneben halten fest, dass `?repackrun=0` und ein
+      // gesetzter Speicher den Rückfallweg wirklich erreichen.
+      add('Index-Lauf ist DEFAULT AN (ohne Query, ohne Speicher)',
+        RS.repackRunFlagFrom('', null) === true);
+      add('`?repackrun=0` schaltet ab, `?repackrun=1` schlägt den Speicher',
+        RS.repackRunFlagFrom('?repackrun=0', null) === false
+        && RS.repackRunFlagFrom('?repackrun=1', '0') === true
+        && RS.repackRunFlagFrom('', '0') === false);
+      add('Die Flag-Fassung wohnt in liveManifest, repackSource reicht sie nur durch (eine Quelle, keine Drift)',
+        RS.repackRunFlagFrom === LM.repackRunFlagFrom && RS.repackRunEnabled === LM.repackRunEnabled);
+
+      // Gate GBW12: läuft der Index-Weg, darf KEIN Warm-Cron mehr im Zeitplan
+      // stehen — sonst committete er weiter Manifeste, die niemand liest, und
+      // jeder Commit wäre ein Netlify-Produktionsbuild. Genau die halbe
+      // Umstellung, die man ein halbes Jahr später sucht.
+      {
+        const hasActiveCron = (text) => text.split('\n')
+          .some((l) => /^\s*-\s*cron:/.test(l) && !/^\s*#/.test(l));
+        const crons = ['.github/workflows/warm-grib.yml', '.github/workflows/warm-wind.yml'];
+        const still = crons.filter((f) => existsSync(f) && hasActiveCron(rf(f, 'utf8')));
+        add('Index-Weg default an ⇒ kein Warm-Cron mehr im Zeitplan (GBW12)',
+          RS.repackRunFlagFrom('', null) !== true || still.length === 0,
+          still.length ? still.join(' · ') : 'beide nur workflow_dispatch');
+        // Negativ-Kontrolle der Erkennung selbst — sonst wäre die Zeile darüber
+        // auch dann grün, wenn sie gar nichts findet.
+        add('Zeitplan-Erkennung: aktive `- cron:`-Zeile ja, auskommentierte nein',
+          hasActiveCron("  schedule:\n    - cron: '*/15 * * * *'") === true
+          && hasActiveCron("  # schedule:\n  #   - cron: '*/15 * * * *'") === false);
+        add('Beide Warm-Workflows sind noch da und per Hand auslösbar (Rückfallweg, nicht gelöscht)',
+          crons.every((f) => existsSync(f) && /workflow_dispatch:/.test(rf(f, 'utf8'))));
+      }
+
+      // V-BW-53: der Manifest-Frühstart schweigt, wenn der Index-Weg läuft.
+      // Kein Textmuster, sondern das Verhalten — mit einem gefälschten `window`,
+      // weil `repackRunEnabled()` ohne DOM immer false liefert (und die
+      // Frühstart-Zusicherungen in `verify:routing` deshalb unberührt bleiben).
+      {
+        LM._resetWarmManifests();
+        const hadWindow = 'window' in globalThis;
+        const realFetch = globalThis.fetch;
+        let calls = 0;
+        globalThis.fetch = () => { calls++; return Promise.resolve(new Response('{}')); };
+        try {
+          globalThis.window = { location: { search: '?repackrun=1' }, localStorage: null };
+          const onStarted = LM.warmLiveManifest('/latest-grib.json');
+          LM._resetWarmManifests();
+          globalThis.window = { location: { search: '?repackrun=0' }, localStorage: null };
+          const offStarted = LM.warmLiveManifest('/latest-grib.json');
+          add('V-BW-53: Frühstart schweigt mit Index-Weg an, startet mit Rückfallweg',
+            onStarted === false && offStarted === true && calls === 1, `Abrufe ${calls}`);
+        } finally {
+          if (!hadWindow) delete globalThis.window;
+          globalThis.fetch = realFetch;
+          LM._resetWarmManifests();
+        }
+      }
     }
 
     // ── Die Wiederholung, an einem echten Server ───────────────────────────
@@ -967,6 +1019,50 @@ if (hsurfGreys.length >= 2) {
         }
         add('Index-Lauf am ECHTEN Baum-Index: jüngster Lauf und Schritte je Familie stimmen',
           bad.length === 0, bad.length ? bad.join(' · ') : `Lauf ${newest}`);
+
+      // ── V-BW-52 (§31.15): der Zeiger-Abruf entfällt, wenn der Lauf aus dem
+      // Index kam. Verhalten, nicht Textmuster: echter Baum-Index als Antwort,
+      // Abruf-URLs gezählt. Die Negativ-Kontrolle daneben ist der Beweis, dass
+      // die Zusicherung überhaupt etwas misst — ohne vorgeholten Index MUSS der
+      // Zeiger geholt werden, sonst prüfte die Zeile darüber nichts.
+      {
+        const hadWindow = 'window' in globalThis;
+        const realFetch = globalThis.fetch;
+        let urls = [];
+        // Der Baum-Index ist ein Fixture aus einem vergangenen Lauf; der
+        // 24-h-Staleness-Guard von resolveRunFromRepackIndex würde ihn zu Recht
+        // verwerfen. Deshalb dieselbe Datei mit frischer Referenzzeit — Form und
+        // Schrittlisten bleiben die ECHTEN, nur die Uhr wird gestellt.
+        const freshIndex = JSON.parse(JSON.stringify(index));
+        for (const r of freshIndex.runs) r.runAt = new Date(Date.now() - 2 * 3_600_000).toISOString();
+        globalThis.fetch = (u) => { urls.push(String(u)); return Promise.resolve(new Response(JSON.stringify(freshIndex), { status: 200 })); };
+        globalThis.window = { location: { search: '' }, localStorage: null };
+        const isPointer = (u) => /\/runs\/[^/]+\/index\.json/.test(u);
+        try {
+          RS.resetRepackState();
+          RS.resetRepackIndexCache();
+          const run = await RS.resolveRunFromRepackIndex('wind');
+          const entry = run ? freshIndex.runs.find((r) => r.run === run.runStr) : null;
+          const wanted = entry ? entry.wind.steps.map((s) => s.step).slice(0, 2) : [];
+          const afterRun = urls.length;
+          const sec = await RS.resolveRepackSection(run.runStr, 'wind', null, wanted);
+          add('V-BW-52: Lauf aus dem Index ⇒ Abschnitt ohne Zeiger-Abruf',
+            !!sec && urls.length === afterRun && !urls.some(isPointer),
+            `${urls.length} Abruf(e), Zeiger: ${urls.filter(isPointer).length}`);
+
+          RS.resetRepackState();
+          RS.resetRepackIndexCache();
+          urls = [];
+          const sec2 = await RS.resolveRepackSection(run.runStr, 'wind', null, wanted);
+          add('V-BW-52 Negativ-Kontrolle: ohne vorgeholten Index wird der Zeiger geholt',
+            !!sec2 && urls.some(isPointer), `${urls.length} Abruf(e), Zeiger: ${urls.filter(isPointer).length}`);
+        } finally {
+          if (!hadWindow) delete globalThis.window;
+          globalThis.fetch = realFetch;
+          RS.resetRepackIndexCache();
+          RS.resetRepackState();
+        }
+      }
       }
 
     }

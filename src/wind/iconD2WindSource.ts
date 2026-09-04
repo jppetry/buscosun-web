@@ -142,7 +142,16 @@ async function resolveWindRunFromManifest(signal?: AbortSignal): Promise<WindRun
     // wirklich laden will (Nur-Jetzt-Fenster): erst dann ist klar, ob das CDN
     // überhaupt gefragt werden muss (§29.3 Hebel 1). Hier nur der rohe Abschnitt.
     return { runStr: m.run, runAt, steps, repackRaw: m.repack ?? null };
-  } catch {
+  } catch (e) {
+    // BW-12 (§31.17): ein ABGEBROCHENER Abruf ist kein Befund über das Manifest —
+    // er sagt nur, dass der Aufrufer nicht mehr wartet. Ihn als `absent` zu melden
+    // hinterließ bis hierher einen Fehlalarm in der Gesundheitsanzeige. Bis BW-12
+    // heilte er sich selbst, weil der nächste (erfolgreiche) Versuch DENSELBEN
+    // Schlüssel überschrieb; seit der Lauf aus dem Index kommt, meldet der
+    // Erfolgsfall unter einem ANDEREN Schlüssel — und der Fehlalarm blieb stehen.
+    // Am Dev-Server genau so beobachtet: „Schnellzugriff nicht aktuell
+    // (/latest-wind.json)", während alle Bilder längst vom CDN kamen.
+    if (signal?.aborted || (e as { name?: string } | null)?.name === 'AbortError') return null;
     return absent();   // Netzfehler / JSON-Parse → Fallback auf Directory-Scan
   }
 }

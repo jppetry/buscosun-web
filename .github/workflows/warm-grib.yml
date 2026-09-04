@@ -21,9 +21,18 @@
 name: warm-grib
 
 on:
-  schedule:
-    - cron: '*/15 * * * *'   # alle 15 min pollen; Early-Exit wenn Manifest aktuell
-  workflow_dispatch: {}       # manueller Trigger (erste Wärmung / Test)
+  # ── ABGESCHALTET seit dem Gate GBW12 (2026-09-04) ──────────────────────────
+  # Begründung wörtlich wie in `warm-wind.yml`: der Client liest Lauf und
+  # Schritte seit BW-12 aus dem Index des Daten-Repos (`resolveRunFromRepackIndex`,
+  # default an), dieses Manifest wird nicht mehr gelesen — und jeder seiner
+  # Commits kostete einen vollen Netlify-Produktionsbuild (≈ 31/Tag über beide
+  # Crons, `audit/bandbreite.md` §31). Zeitplan still, nicht gelöscht;
+  # `workflow_dispatch` bleibt für den Rückfallweg `?repackrun=0`.
+  #
+  # Wieder einschalten: die `- cron:`-Zeile unten entkommentieren.
+  # schedule:
+  #   - cron: '*/15 * * * *'   # alle 15 min pollen; Early-Exit wenn Manifest aktuell
+  workflow_dispatch: {}       # manueller Trigger (Rückfallweg / Test)
 
 # Nur ein Warmer gleichzeitig (überlappende Läufe würden dasselbe Manifest umlegen).
 concurrency:

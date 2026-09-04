@@ -39,7 +39,7 @@ export interface ManifestHealth {
 /** Schlechteste zuerst — `get()` aggregiert nach diesem Rang. */
 const RANK: Record<ManifestState, number> = { absent: 3, stale: 2, fresh: 1, unknown: 0 };
 
-interface Entry { state: ManifestState; updatedAtMs: number | null }
+interface Entry { state: ManifestState; updatedAtMs: number | null; primary: boolean }
 const entries = new Map<string, Entry>();
 const listeners = new Set<(h: ManifestHealth) => void>();
 
@@ -58,20 +58,43 @@ export function stateFromUpdatedAt(updatedAtMs: number | null, nowMs: number): M
  * wenn der Param dort nicht geführt wird (cape_ml, uh_max, h_snow …) — das ist
  * kein Defekt und darf keinen Hinweis auslösen.
  */
-export function reportManifest(url: string, state: ManifestState, updatedAtMs: number | null = null): void {
+export function reportManifest(
+  url: string,
+  state: ManifestState,
+  updatedAtMs: number | null = null,
+  primary = false,
+): void {
   const prev = entries.get(url);
-  if (prev && prev.state === state && prev.updatedAtMs === updatedAtMs) return;
-  entries.set(url, { state, updatedAtMs });
+  if (prev && prev.state === state && prev.updatedAtMs === updatedAtMs && prev.primary === primary) return;
+  entries.set(url, { state, updatedAtMs, primary });
   const h = getManifestHealth();
   for (const fn of listeners) { try { fn(h); } catch { /* ein Hörer darf die übrigen nicht reißen */ } }
 }
 
-/** Schlechtester Zustand über alle gemeldeten Manifeste. */
+/**
+ * Schlechtester Zustand über alle gemeldeten Quellen — mit einer Ausnahme.
+ *
+ * BW-12 (§31.17): meldet eine Quelle sich als **primär**, zählen NUR die
+ * primären. Seit dem Gate GBW12 ist der Schnellzugriff der Index des
+ * Daten-Repos; die beiden Warm-Manifeste sind eingefrorene Rückfallwege. Ohne
+ * diese Regel entschiede weiter der schlechteste Eintrag — und die Manifeste
+ * altern zwangsläufig aus dem 24-h-Guard heraus. Params ohne Repack-Familie
+ * (`relhum_2m`, `clcl`) befragen sie weiterhin, würden also ab dem zweiten Tag
+ * dauerhaft `absent` melden und die Karte behaupten lassen, der Schnellzugriff
+ * sei kaputt, während jedes Bild vom CDN kommt. Das wäre kein Alarm mehr,
+ * sondern Rauschen — und Rauschen macht die ehrliche Anzeige wertlos.
+ *
+ * Fällt der primäre Weg aus, meldet er NICHT (`resolveRunFromRepackIndex`
+ * meldet nur den Erfolgsfall); dann greift automatisch wieder die alte Regel
+ * über die Manifeste, und deren Befund ist dann auch der richtige.
+ */
 export function getManifestHealth(): ManifestHealth {
   let state: ManifestState = 'unknown';
   let updatedAtMs: number | null = null;
   const sources: string[] = [];
+  const hasPrimary = [...entries.values()].some((e) => e.primary);
   for (const [url, e] of entries) {
+    if (hasPrimary && !e.primary) continue;
     if (RANK[e.state] > RANK[state]) { state = e.state; updatedAtMs = e.updatedAtMs; sources.length = 0; }
     if (e.state === state) {
       sources.push(url);

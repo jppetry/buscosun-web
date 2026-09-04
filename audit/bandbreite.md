@@ -4029,12 +4029,14 @@ und verschwinden erst mit dem Index-Weg (§31.6), der die Manifeste ganz
 
 | Verifier | Ergebnis |
 |---|---|
-| `verify:repack` | **314/314** |
+| `verify:repack` | **321/321** (Stand nach dem Gate GBW12; 314/314 vor §31.14–§31.17) |
 | `verify:warm-wind` | 13/13 |
 | `verify:warm-budget` | 30/30 |
 | `verify:health` | 20/20 |
 | `verify:datenalter` | 54/54 |
-| `npm run typecheck` | grün |
+| `verify:routing` | 105/105 |
+| `npm run typecheck` / `build` | grün |
+| Budget `totalJs` | 1089,7 / 1109,8 KB (keine Ratsche) |
 
 Drei ✗ eines Zwischenlaufs waren **Altbestand**, kein Befund dieser Phase: die
 Zusicherungen suchten Quelltext WÖRTLICH und passten nicht mehr, seit LE2/H7 dem
@@ -4050,6 +4052,10 @@ Ausdruck wörtlich zu suchen.
 
 
 ## 31.12 Der Index-Weg, umgesetzt (default-off)
+
+> **Nachtrag 2026-09-04:** der Schalter ist seit dem Gate GBW12 **default AN**
+> (§31.16). Der Abschnitt beschreibt den Bauzustand bei der Fertigstellung; die
+> `Noch offen`-Liste am Ende ist mit §31.14–§31.16 abgearbeitet.
 
 Nicht der Umzug der Manifeste (§31.5/§31.6), sondern ihre Abschaffung: der
 Client löst Lauf und Schritte aus dem Index des Daten-Repos auf, den er für den
@@ -4180,7 +4186,194 @@ einzige Quelle, und die Rechnung dreht sich. Die Kommentare in
 
 Der Zeiger-Abruf ist dabei vermeidbar — s. V-BW-52.
 
-## 31.14 V-Einträge
+
+## 31.14 Gate GBW12 — die Umstellung (2026-09-04, Jans „starte jetzt 2 und 3")
+
+Jans Auftrag: V-BW-52 bauen und danach umstellen — **ohne** das Beobachtungsfenster
+aus §31.8 abzuwarten („das wird schon alles laufen").
+
+**Was damit ungemessen bleibt, ausdrücklich:**
+
+* (b) Wie weit der Index-Lauf dem DWD-Lauf über drei Zyklen nachhinkt. Belegt ist
+  nur ein Zyklus-Paar aus §31.12: am 2026-09-03 lag der Index für 21z gleichauf
+  mit dem Manifest, für 18z war das Manifest 22 min voraus. Ein systematischer
+  Nachlauf über den Tag ist damit **nicht ausgeschlossen**.
+* (c) Die tatsächliche Deploy-Zahl nach der Umstellung. Sie ist jetzt allerdings
+  trivial vorhersagbar: die Zeitpläne beider Crons sind still, also entstehen aus
+  ihnen **null** Commits und **null** Builds.
+
+**Warum das Risiko trotzdem klein ist.** Fällt der Producer aus, greift eine
+Kette, die vollständig aus vorhandenen, geprüften Teilen besteht:
+Index älter als 24 h ⇒ Staleness-Guard verwirft ihn ⇒ Manifest-Resolver (die
+eingefrorenen Dateien liegen weiter im Site-Repo) ⇒ nach dessen eigenem
+24-h-Guard der Directory-Scan gegen den DWD. Der schlimmste Fall ist also der
+Zustand von vor T1: langsamer Kaltstart, korrekte Daten. Und die Anzeige schweigt
+dabei nicht (§31.16, Gesundheitsanzeige).
+
+**Eine Folge, die man kennen muss** (und die Messung (b) beziffert hätte): der
+Lauf hängt jetzt an `@main/index.json`. BW-9 §28.9 hat gemessen, dass der
+jsDelivr-**Origin** einen Branch-Pfad trotz Purge minutenlang alt ausliefern
+kann — dafür wurde damals der Zeiger `runs/<run>/index.json` eingeführt. Der
+Zeiger hilft hier nicht: er ist ein Pfad, den man erst kennt, wenn man den Lauf
+schon kennt. Der Laufwechsel kann sich also um die Origin-Trägheit verzögern,
+zusätzlich zur Producer-Zeit.
+
+Ins Verhältnis gesetzt: der Weg, den er ersetzt, hing an Cron-Slot + Netlify-Build
+— gemessen 5–21 min (§28.2), plus bis zu 15 min Slot-Wartezeit. Die neue
+Verzögerung ist mit hoher Wahrscheinlichkeit kleiner, **belegt ist das aber
+nicht**. Wer es beziffern will, misst §31.8 (b) nach.
+
+
+## 31.15 V-BW-52 umgesetzt — der Zeiger-Abruf entfällt
+
+**Befund aus §31.13:** der Index-Weg kostete 2 CDN-JSON-Abrufe (Index + Zeiger),
+wo der Manifest-Weg 0 kostete. Der Zeiger war davon überflüssig: kommt der Lauf
+aus dem Index, ist per Konstruktion belegt, dass genau dieses Dokument ihn führt.
+
+**Gebaut.** `warmCdnIndex()` liefert das Index-Promise **nur**, wenn es im
+laufenden 60-s-Fenster ohnehin schon geholt wurde, und löst selbst keinen Abruf
+aus. `resolveRepackSection` fragt es in der `wanted`-Variante vor dem Zeiger.
+Deckt es die Wunschliste, ist Schluss; deckt es sie nicht, läuft die BW-9-Kette
+(Zeiger → Index → Manifest) unverändert weiter. **Die Naht kann nur sparen, nie
+verschlechtern** — ohne vorgeholten Index verhält sich der Aufruf byte-identisch
+zu vorher, weil `warmCdnIndex()` dann `null` liefert.
+
+Wichtig für das Verständnis der BW-9-Regel: sie bleibt gültig. Der Zeiger ist
+dort die *frischere* Quelle für einen Lauf, den man aus einer ANDEREN Quelle
+kennt (dem Manifest). Kennt man den Lauf aus dem Index selbst, kann der Zeiger
+per Definition nichts Neues sagen.
+
+**Geprüft am Verhalten, nicht am Text** (`verify:repack`, echter Publisher-Baum
+als Antwort, Abruf-URLs gezählt, Referenzzeit auf „vor 2 h" gestellt, damit der
+Staleness-Guard das Fixture nicht zu Recht verwirft):
+
+| Probe | Erwartet | Ergebnis |
+|---|---|---|
+| Lauf aus dem Index, dann Abschnitt | kein Zeiger-Abruf | ✓ |
+| **Negativ-Kontrolle:** Cache geleert, dann Abschnitt | Zeiger wird geholt | ✓ |
+
+## 31.16 Default umgelegt, Crons still — und was mitziehen musste
+
+**1. Der Schalter ist an.** `repackrun` ist default AN; `?repackrun=0` (bzw.
+`localStorage.repackrun = '0'`) ist der benannte Rückfallweg und stellt die alte
+Kette wieder her. Die Fassung des Schalters ist von `repackSource.ts` nach
+`liveManifest.ts` gewandert — dorthin, wo sie abhängigkeitsfrei ist, weil auch
+der Router-Chunk sie braucht; `repackSource` reicht sie nur durch. Zwei Kopien
+derselben Flag-Logik wären genau die Drift, die man später sucht, deshalb prüft
+`verify:repack`, dass beide Namen auf dieselbe Funktion zeigen.
+
+**2. Beide Warm-Crons sind still.** In `warm-grib.yml` und `warm-wind.yml` ist
+der `schedule:`-Block auskommentiert, `workflow_dispatch` bleibt. **Nicht
+gelöscht** — ein Handlauf kann die Manifeste jederzeit wieder auffrischen, falls
+der Rückfallweg gebraucht wird. `verify:repack` hält das als Invariante fest:
+*Index-Weg default an ⇒ kein Warm-Cron im Zeitplan*, mit einer Negativ-Kontrolle
+für die Erkennung selbst und einer Zusicherung, dass beide Dateien noch da und
+per Hand auslösbar sind.
+
+**3. V-BW-53: der Manifest-Frühstart schweigt.** `warmLiveManifest` ist ein No-op,
+solange der Index-Weg läuft — sonst wären es zwei Abrufe für Dateien, die niemand
+liest. Geprüft am Verhalten mit gefälschtem `window` (ohne DOM liefert
+`repackRunEnabled()` immer `false`, deshalb bleiben die Frühstart-Zusicherungen
+in `verify:routing` unberührt). Preis, ehrlich benannt: fällt der Index zur
+Laufzeit aus, holt der Verbraucher das Manifest selbst — ohne den ~1,5-s-Vorsprung
+aus LE1/H2.
+
+**4. Die Gesundheitsanzeige zeigt jetzt auf den Index.** Das war die Stelle, an
+der die Umstellung still kaputtgegangen wäre: „Schnellzugriff" (V-20) meldete den
+Zustand der Warm-Manifeste. Werden die nicht mehr gelesen, meldet niemand mehr
+etwas — der Zustand bliebe `unknown`, und `unknown` erzeugt bewusst keine Zeile.
+Ein eingefrorener Producer wäre damit **unsichtbar** geworden, und das verstößt
+gegen das Ehrlichkeitsprinzip.
+
+Deshalb meldet `resolveRunFromRepackIndex` jetzt selbst — und zwar **nur im
+Erfolgsfall**. Das ist kein Detail: meldete der Index auch sein Scheitern, stünde
+bei funktionierendem Rückfallweg (Index kaputt, Manifest gesund) ein Alarm auf
+der Karte, weil `getManifestHealth()` den schlechtesten Zustand nimmt. So bleibt
+der Manifest-Resolver der Alarmgeber, und der Index sagt nur, wie frisch er ist.
+
+Frischemaß ist die Referenzzeit des jüngsten repackten Laufs. Sie pendelt im
+Normalbetrieb zwischen ~1,5 h und ~4,5 h; `MANIFEST_STALE_H` = 6 h schlägt also
+genau dann an, wenn ein ganzer 3-h-Zyklus ausgefallen ist — und dann zeigt die
+Karte tatsächlich einen alten Lauf. Die zwei Tooltips in `MapView.tsx` sagen
+nicht mehr „Warm-Manifest", sondern „Schnellzugriff"; welches Dokument gemeint
+ist, stand ohnehin schon in `sources`.
+
+
+## 31.17 Zwei Reste, die erst der laufende Browser gezeigt hat
+
+Nach V-BW-52 und V-BW-53 war der Kaltstart im Netzwerk-Wasserfall fast leer —
+und genau in diesem „fast" steckten zwei Befunde, die keine Zusicherung gefunden
+hätte, weil beide korrektes Verhalten einzelner Bausteine sind und erst im
+Zusammenspiel falsch werden.
+
+### (1) Das eingefrorene Manifest wurde weiter abgeholt
+
+Übrig blieb ein Abruf: `/latest-grib.json`. Herkunft war `resolveRepackForRun`,
+das den Manifest-Abschnitt **immer zuerst** liest, bevor `resolveRepackSection`
+überhaupt zum Zug kommt — sinnvoll, solange das Manifest die billigste Quelle
+war (BW-10 §29.3). Seit dem Gate GBW12 ist es eine eingefrorene Datei: ~30 KB
+same-origin je Kaltstart für eine Auskunft, die schon im Speicher liegt.
+
+**Gebaut:** `resolveRepackForRun` fragt zuerst den bereits geholten Index
+(`warmCdnIndex`, kein Abruf) und liest das Manifest nur, wenn der die
+Wunschliste nicht deckt. Der Rückfallweg ist unberührt.
+
+**Ergebnis am Dev-Server** (Wetterkarte kalt, Desktop 1440×900):
+
+| | vorher (BW-10) | nach dem Gate |
+|---|---|---|
+| Manifest-Abrufe (Frühstart + Bedarf) | 3 | **0** |
+| CDN-JSON (Index + Zeiger) | 0–2 | **1** |
+| GRIB über `/_dwd_*` | 0 | **0** |
+| **JSON-Abrufe gesamt vor dem ersten Bild** | **3** | **1** |
+
+### (2) Ein abgebrochener Abruf schlug Fehlalarm
+
+Die Karte zeigte „**Schnellzugriff nicht aktuell — Daten kommen direkt von der
+Quelle**", während jedes Bild vom CDN kam. Der Tooltip nannte die Quelle:
+`/latest-wind.json`.
+
+Ursache: `resolveWindRunFromManifest` fängt jeden Fehler und meldet `absent` —
+**auch einen Abbruch**. Die Karte bricht Loader beim Neuaufbau routinemäßig ab.
+Bis BW-12 heilte sich das selbst, weil der nächste, erfolgreiche Versuch
+DENSELBEN Schlüssel (`/latest-wind.json`) mit `fresh` überschrieb. Seit der Lauf
+aus dem Index kommt, meldet der Erfolgsfall unter einem ANDEREN Schlüssel — und
+der Fehlalarm des abgebrochenen Versuchs blieb für immer stehen.
+
+Das ist die Sorte Fehler, die eine Ehrlichkeits-Anzeige wertlos macht: sie warnt,
+wenn nichts ist. Zwei Nähte, jede für sich nötig:
+
+* **Abbruch ist kein Befund.** Der `catch` unterscheidet jetzt: `signal.aborted`
+  oder `AbortError` ⇒ `null` ohne Meldung; alles andere weiter `absent`.
+* **Primäre Quelle entscheidet.** `reportManifest` kennt ein viertes Argument
+  `primary`; `getManifestHealth` wertet **nur** die primären Einträge, sobald es
+  welche gibt. Ohne diese Regel wäre der Fehlalarm ohnehin zurückgekommen: die
+  Manifeste sind eingefroren und laufen zwangsläufig aus ihrem 24-h-Guard; die
+  Params ohne Repack-Familie (`relhum_2m`, `clcl`) befragen sie weiterhin und
+  meldeten ab dem zweiten Tag dauerhaft `absent`. Fällt der primäre Weg aus,
+  meldet er gar nichts (`resolveRunFromRepackIndex` meldet nur den Erfolgsfall)
+  — dann greift automatisch wieder die alte Regel über die Manifeste, und deren
+  Befund ist dann auch der richtige.
+
+**Nachgeprüft, Desktop 1440×900 und iPhone 12 Pro 390×844:**
+
+| Probe | Lauf | JSON-Abrufe | GRIB | Schnellzugriff-Zeile | Konsole |
+|---|---|---|---|---|---|
+| Desktop, Index-Weg | 06z · vor 2 h | 1 (Index) | 0 | **keine** | 0 Fehler / 0 Warnungen |
+| Mobil 390×844, Index-Weg | — (Layout) | 1 (Index) | 0 | keine | 0 Fehler / 0 Warnungen |
+| Desktop, `?repackrun=0` | 06z · vor 2 h | 3 (Manifeste) | 0 | keine | 0 Fehler / 0 Warnungen |
+
+Der Rückfallweg holt also wieder genau das, was er vorher holte — Frühstart
+inklusive —, und liefert denselben Lauf. Vorher, mit dem Fehlalarm noch drin,
+stand in derselben Zeile „Schnellzugriff nicht aktuell (/latest-wind.json)"; das
+ist die Negativ-Kontrolle zu dieser Naht, an der echten Seite beobachtet.
+
+**Lehre (V-BW-54):** Wird eine Quelle durch eine andere ersetzt, muss die
+Gesundheitsanzeige mitwandern. Sonst passiert eines von beiden — sie schweigt
+über den neuen Weg (Ausfall unsichtbar) oder sie alarmiert über den alten
+(Rauschen). Beides ist schlimmer als vorher.
+
+## 31.18 V-Einträge
 
 * **V-BW-46** — ein Auslieferungsweg kann eine Leistung überleben: beide
   Warm-Crons deployen seit dem 2026-08-23 für eine Wärmung, die es nicht mehr
@@ -4218,3 +4411,12 @@ Der Zeiger-Abruf ist dabei vermeidbar — s. V-BW-52.
 * **V-BW-53** — der Router startet die Live-Manifeste vor (`warmLiveManifest`,
   LE1/H2). Fällt der Manifest-Weg weg, ist dieser Frühstart zwei Abrufe für
   nichts. Mit dem Default-Umlegen mit entfernen.
+* **V-BW-54** — wird eine Quelle durch eine andere ersetzt, muss die
+  Gesundheitsanzeige mitwandern: sonst schweigt sie über den neuen Weg (Ausfall
+  unsichtbar) oder alarmiert über den alten (Rauschen). Beides ist schlechter
+  als vorher. Umgesetzt als `primary`-Regel in `manifestHealth` (§31.17).
+* **V-BW-55** — ein **abgebrochener** Abruf ist kein Befund über seine Quelle.
+  `resolveWindRunFromManifest` meldete jeden `catch` als `absent`, auch den
+  AbortError eines neu aufgebauten Layers. Solange derselbe Schlüssel gleich
+  darauf mit `fresh` überschrieben wurde, fiel es nicht auf — der Fehler war
+  latent, seit es die Meldung gibt.

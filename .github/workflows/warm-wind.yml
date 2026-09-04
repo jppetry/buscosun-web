@@ -22,11 +22,24 @@
 name: warm-wind
 
 on:
-  schedule:
-    # T2c-2: gegenüber warm-grib (*/15) um 2 min versetzt, damit die beiden
-    # Bots nicht im selben Fenster auf main pushen (Race-Entzerrung).
-    - cron: '2,17,32,47 * * * *'
-  workflow_dispatch: {}       # manueller Trigger (erste Wärmung / Test)
+  # ── ABGESCHALTET seit dem Gate GBW12 (2026-09-04) ──────────────────────────
+  # Der Client liest Lauf und Schritte seit BW-12 aus dem Index des Daten-Repos
+  # (`resolveRunFromRepackIndex`, default an) — dieses Manifest wird nicht mehr
+  # gelesen. Der Zeitplan ist deshalb still, NICHT gelöscht: `workflow_dispatch`
+  # bleibt, damit ein Handlauf das Manifest jederzeit wieder auffrischen kann,
+  # falls der Rückfallweg `?repackrun=0` gebraucht wird.
+  #
+  # Grund für das Abschalten (`audit/bandbreite.md` §31): jeder Commit dieses
+  # Manifests löste einen vollen Netlify-Produktionsbuild aus — gemessen 218
+  # Manifest-Commits in 7 Tagen über beide Crons, ≈ 31 Builds pro Tag, für eine
+  # Wärmung, die es seit dem 2026-08-23 gar nicht mehr gibt.
+  #
+  # Wieder einschalten: die beiden `- cron:`-Zeilen unten entkommentieren.
+  # schedule:
+  #   # T2c-2: gegenüber warm-grib (*/15) um 2 min versetzt, damit die beiden
+  #   # Bots nicht im selben Fenster auf main pushen (Race-Entzerrung).
+  #   - cron: '2,17,32,47 * * * *'
+  workflow_dispatch: {}       # manueller Trigger (Rückfallweg / Test)
 
 # Nur ein Warmer gleichzeitig (überlappende Läufe würden dasselbe Manifest umlegen).
 concurrency:

@@ -3892,14 +3892,17 @@ export default function MapView({
     if (manifestHealth.state === 'absent') {
       return {
         text: 'Schnellzugriff nicht aktuell — Daten kommen direkt von der Quelle.',
-        title: `Kein nutzbares Warm-Manifest (${manifestHealth.sources.join(', ') || '—'}). Die Layer lösen den Lauf per Verzeichnis-Abfrage auf: gleiche Daten, längere Ladezeit.`,
+        title: `Kein nutzbarer Schnellzugriff (${manifestHealth.sources.join(', ') || '—'}). Die Layer lösen den Lauf per Verzeichnis-Abfrage auf: gleiche Daten, längere Ladezeit.`,
       };
     }
     if (manifestHealth.state === 'stale') {
       const age = manifestHealth.updatedAtMs != null ? ageText(clockMs - manifestHealth.updatedAtMs) : 'seit unbekannter Zeit';
       return {
         text: `Schnellzugriff zuletzt ${age} aufgefrischt.`,
-        title: `Das Warm-Manifest (${manifestHealth.sources.join(', ') || '—'}) wird nicht mehr regelmäßig umgelegt. Die Karte zeigt den zuletzt gewärmten Lauf.`,
+        // BW-12 (§31.16): „Schnellzugriff" ist seit dem Gate GBW12 der Index des
+        // Daten-Repos; der Rückfallweg `?repackrun=0` nennt hier weiter ein
+        // Warm-Manifest. `sources` sagt in beiden Fällen, welches Dokument es ist.
+        title: `Der Schnellzugriff (${manifestHealth.sources.join(', ') || '—'}) wird nicht mehr regelmäßig aufgefrischt. Die Karte zeigt den zuletzt verfügbaren Lauf.`,
       };
     }
     return null;   // 'fresh' und 'unknown' erzeugen bewusst keine Zeile

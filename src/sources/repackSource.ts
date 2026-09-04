@@ -44,6 +44,8 @@
  */
 
 import { GRIB_MANIFEST_URL, readManifestRepack } from './gribManifest';
+import { repackRunEnabled } from './liveManifest';
+import { reportManifest, stateFromUpdatedAt } from './manifestHealth';
 import {
   GUST_VMIN, GUST_VMAX, LPI_VMIN, LPI_VMAX, SNOW_DEPTH_VMAX_CM, SNOW_FRESH_VMAX_CM,
   THUNDER_VMIN, THUNDER_VMAX, ROTATION_VMIN, ROTATION_VMAX,
@@ -877,6 +879,21 @@ function cdnIndex(): Promise<unknown> {
   if (!indexCache || now - indexCache.at >= INDEX_TTL_MS) indexCache = { at: now, p: fetchCdnJson(REPACK_INDEX_CDN_URL) };
   return indexCache.p;
 }
+/**
+ * Der Index NUR, wenn er in diesem TTL-Fenster ohnehin schon geholt wurde —
+ * sonst `null`. Löst KEINEN Abruf aus (V-BW-52, `audit/bandbreite.md` §31.15).
+ *
+ * Der Fall, für den es das gibt: seit BW-12 kann der LAUF aus dem Index kommen
+ * (`resolveRunFromRepackIndex`). Dann ist per Konstruktion belegt, dass genau
+ * dieses Dokument den Lauf führt — der Abschnitt steht also schon im Speicher,
+ * und den Zeiger `runs/<run>/index.json` (29 KB + ein RTT vor dem ersten Bild)
+ * zusätzlich zu holen wäre reine Verschwendung. Gemessen am 2026-09-04:
+ * 2 CDN-JSON-Abrufe je Kaltstart, von denen einer entfällt.
+ */
+function warmCdnIndex(): Promise<unknown> | null {
+  if (!indexCache || Date.now() - indexCache.at >= INDEX_TTL_MS) return null;
+  return indexCache.p;
+}
 
 /**
  * Der geprüfte Abschnitt für `run` und `family` aus drei Quellen — roher
@@ -908,6 +925,17 @@ export async function resolveRepackSection(
     return chooseSection(parse(pointer), chooseSection(parse(index), fromManifest, family), family);
   }
   if (sectionCovers(fromManifest, family, wanted)) return fromManifest;
+  // V-BW-52 (§31.15): ist der Index in diesem TTL-Fenster schon geholt — was
+  // seit BW-12 der Normalfall ist, weil der LAUF aus ihm stammt —, dann zuerst
+  // ihn fragen. Er kostet nichts mehr, und er trägt den Lauf per Konstruktion.
+  // Deckt er die Wunschliste, entfällt der Zeiger-Abruf ersatzlos. Deckt er sie
+  // nicht, läuft die BW-9-Kette darunter unverändert weiter — diese Naht kann
+  // also nur sparen, nie verschlechtern.
+  const warm = warmCdnIndex();
+  if (warm) {
+    const best = chooseSection(parse(await warm), fromManifest, family);
+    if (sectionCovers(best, family, wanted)) return best;
+  }
   const fromPointer = parse(await cdnPointer(run));
   const best = chooseSection(fromPointer, fromManifest, family);
   if (sectionCovers(best, family, wanted)) return best;
@@ -930,6 +958,22 @@ export async function resolveRepackForRun(
   url: string = GRIB_MANIFEST_URL,
 ): Promise<RepackSection | null> {
   if (!repackUsable()) return null;
+  // BW-12 (§31.17): trägt der schon geholte Index alle gewünschten Schritte,
+  // ist das Manifest überflüssig — und seit dem Gate GBW12 ist es eine
+  // EINGEFRORENE Datei (die Warm-Crons sind still). Ohne diese Abkürzung holte
+  // jeder Kaltstart sie weiter ab, ~30 KB same-origin für eine Auskunft, die
+  // schon im Speicher liegt. Am Dev-Server aufgefallen: nach V-BW-52/53 blieb
+  // genau dieser eine Abruf übrig.
+  //
+  // Deckt der warme Index die Wunschliste NICHT, passiert unten alles wie
+  // bisher — inklusive Manifest-Abruf. Der Rückfallweg ist damit unberührt.
+  if (wanted && repackIndexEnabled() && repackRunEnabled()) {
+    const warm = warmCdnIndex();
+    if (warm) {
+      const fromWarm = parseRepackSection(sectionFromIndex(await warm, run, family), family, run);
+      if (sectionCovers(fromWarm, family, wanted)) return fromWarm;
+    }
+  }
   const raw = await readManifestRepack(url);
   return resolveRepackSection(run, family, raw, wanted);
 }
@@ -973,22 +1017,15 @@ function runStrToDate(run: string): Date {
 }
 
 /**
- * Schalter des Lauf-Wegs, getrennt vom Abschnitt-Weg (`repackidx`) und vom
- * Repack insgesamt (`repack`). **Default off** — die Query schlägt den Speicher
- * in beide Richtungen, wie bei den beiden anderen Schaltern.
+ * Schalter des Lauf-Wegs (`repackrun`), getrennt vom Abschnitt-Weg (`repackidx`)
+ * und vom Repack insgesamt (`repack`). **Default AN seit dem Gate GBW12.**
+ *
+ * Die Fassung wohnt in `liveManifest.ts` — abhängigkeitsfrei, weil auch der
+ * Router-Chunk sie braucht (der Manifest-Frühstart entfällt, wenn dieser Weg
+ * läuft; V-BW-53). Hier nur die Weiterleitung, damit bestehende Importeure und
+ * `verify:repack` unverändert bleiben.
  */
-export function repackRunFlagFrom(search: string, stored: string | null): boolean {
-  const q = new URLSearchParams(search.startsWith('?') ? search.slice(1) : search).get('repackrun');
-  if (q === '1') return true;
-  if (q === '0') return false;
-  return stored === '1';
-}
-export function repackRunEnabled(): boolean {
-  if (typeof window === 'undefined') return false;
-  let stored: string | null = null;
-  try { stored = window.localStorage?.getItem('repackrun') ?? null; } catch { /* wie repackEnabled */ }
-  try { return repackRunFlagFrom(window.location.search, stored); } catch { return false; }
-}
+export { repackRunFlagFrom, repackRunEnabled } from './liveManifest';
 
 /**
  * Der jüngste Lauf des Index, der DIESE Familie führt — rein, DOM-frei, ohne
@@ -1064,5 +1101,22 @@ export async function resolveRunFromRepackIndex(
   if (signal?.aborted) return null;
   const raw = await cdnIndex();
   if (signal?.aborted) return null;
-  return newestRunFromIndex(raw, family);
+  const run = newestRunFromIndex(raw, family);
+  // V-20 bleibt gültig, zeigt aber ab jetzt auf den Index (BW-12, §31.16):
+  // „Schnellzugriff" ist seit dem Gate GBW12 nicht mehr das Warm-Manifest,
+  // sondern dieses Dokument. Gemeldet wird NUR der Erfolgsfall — schlägt der
+  // Index fehl, übernimmt der Manifest-Resolver und meldet SEINEN Befund;
+  // beides zu melden hieße, bei funktionierendem Rückfallweg Alarm zu schlagen
+  // (`getManifestHealth` nimmt den schlechtesten Zustand).
+  //
+  // Frischemaß ist die Referenzzeit des jüngsten repackten Laufs: sie pendelt
+  // im Normalbetrieb zwischen ~1,5 h (frisch gerechnet) und ~4,5 h (kurz vor
+  // dem nächsten Lauf). `MANIFEST_STALE_H` = 6 h schlägt damit genau dann an,
+  // wenn ein ganzer 3-h-Zyklus ausgefallen ist — und dann zeigt die Karte
+  // tatsächlich einen alten Lauf.
+  if (run) {
+    const atMs = run.runAt.getTime();
+    reportManifest(REPACK_INDEX_CDN_URL, stateFromUpdatedAt(atMs, Date.now()), atMs, true);
+  }
+  return run;
 }

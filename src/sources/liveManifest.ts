@@ -23,6 +23,37 @@ export function liveManifestUrl(url: string, nowMs: number = Date.now()): string
   return `${url}${sep}t=${Math.floor(nowMs / MANIFEST_TTL_MS)}`;
 }
 
+// ---------------------------------------------------------------------------
+// BW-12 (§31.16): der Schalter des Index-Wegs — hier, nicht in `repackSource`
+//
+// Er wird an ZWEI weit auseinanderliegenden Stellen gebraucht: vom Resolver
+// (`resolveRunFromRepackIndex`, der den Lauf aus dem Daten-Index liest) und vom
+// Frühstart weiter unten, der die Manifeste vorlädt. Dieses Modul ist bewusst
+// abhängigkeitsfrei und wird vom Router-Chunk importiert — deshalb wohnt die
+// EINE Fassung hier, und `repackSource` reicht sie nur durch. Zwei Kopien
+// derselben Flag-Logik wären genau die Drift, die man später sucht.
+//
+// **Default AN seit dem Gate GBW12** (`audit/bandbreite.md` §31.16): der Lauf
+// kommt aus dem Index des Daten-Repos, die beiden Warm-Crons sind abgeschaltet.
+// `?repackrun=0` (bzw. `localStorage.repackrun = '0'`) ist der benannte
+// Rückfallweg (Rule 2) und stellt die alte Kette wieder her: Manifest zuerst,
+// dann Directory-Scan. Die Query schlägt den Speicher in beide Richtungen.
+// ---------------------------------------------------------------------------
+
+export function repackRunFlagFrom(search: string, stored: string | null): boolean {
+  const q = new URLSearchParams(search.startsWith('?') ? search.slice(1) : search).get('repackrun');
+  if (q === '1') return true;
+  if (q === '0') return false;
+  return stored !== '0';
+}
+
+export function repackRunEnabled(): boolean {
+  if (typeof window === 'undefined') return false;
+  let stored: string | null = null;
+  try { stored = window.localStorage?.getItem('repackrun') ?? null; } catch { /* Safari-Privatmodus wirft */ }
+  try { return repackRunFlagFrom(window.location.search, stored); } catch { return false; }
+}
+
 interface Warm { at: number; p: Promise<Response> }
 const warm = new Map<string, Warm>();
 
@@ -34,6 +65,13 @@ const warm = new Map<string, Warm>();
  */
 export function warmLiveManifest(path: string, nowMs: number = Date.now()): boolean {
   if (typeof fetch !== 'function') return false;
+  // V-BW-53 (§31.16): läuft der Index-Weg, wird kein Manifest mehr gelesen —
+  // der Frühstart wären zwei Abrufe für nichts. Er bleibt für den Rückfallweg
+  // (`?repackrun=0`) und für Node/Verifier (dort ist `repackRunEnabled()`
+  // mangels `window` immer false) unverändert erhalten. Preis, ehrlich benannt:
+  // fällt der Index zur Laufzeit aus, holt der Verbraucher das Manifest selbst
+  // — ohne den ~1,5-s-Vorsprung aus LE1/H2.
+  if (repackRunEnabled()) return false;
   const cur = warm.get(path);
   if (cur && nowMs - cur.at < MANIFEST_TTL_MS) return false;
   const p = fetch(liveManifestUrl(path, nowMs), { cache: 'no-store' });
