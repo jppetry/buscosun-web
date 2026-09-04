@@ -3923,16 +3923,23 @@ Rechtfertigung.
   des Defaults UND das Abschalten der beiden Warm-Crons ist ein Schritt und
   Jans Freigabe (§31.12, „Noch offen").
 
-## 31.8 Was vor dem Gate GBW12 zu messen ist
+## 31.8 Was vor dem Gate GBW12 zu messen ist — und was daraus wurde
 
 * (a) Kaltstart-Erstbild mit `?repackrun=1` gegen den heutigen Stand, Desktop
   1440×900 und iPhone 12 Pro — darf nicht schlechter werden.
+  ⇒ **erledigt, §31.17:** JSON-Abrufe vor dem ersten Bild 3 → 1, 0 GRIB, Konsole
+  sauber, auf beiden Größen; der Rückfallweg holt exakt das, was er vorher holte.
 * (b) Der angezeigte Lauf über mindestens drei Zyklen: wie weit hinkt der
   Index-Lauf dem DWD-Lauf nach, und wie oft?
+  ⇒ **erledigt, §31.18** — rückwirkend über **24 Zyklen** statt über neun Stunden
+  Warten. Der befürchtete Nachlauf existiert nicht, der Index-Weg ist ~15–30 min
+  **früher** am neuen Lauf.
 * (c) Netlify-Builds/Tag nach dem Abschalten der Crons (Ziel: 0 aus den Crons).
-* (d) Netzwerk-Wasserfall: dass das Index-Gate wirklich **keinen** zusätzlichen
-  Abruf erzeugt (geteiltes 60-s-Promise mit dem Abschnitt).
-
+  ⇒ **erledigt, §31.16/§31.17:** nach dem Push fanden drei fällige Zeitplan-Läufe
+  nicht statt, `main` blieb unverändert.
+* (d) Netzwerk-Wasserfall: dass das Index-Gate keinen unnötigen Abruf erzeugt.
+  ⇒ **erledigt, §31.15/§31.17** — und die erste Fassung der Behauptung war
+  falsch (§31.13), was erst die Messung zeigte.
 
 ## 31.9 Sofortfix A — der Commit-SHA zählt nicht mehr als Änderung
 
@@ -4219,9 +4226,13 @@ schon kennt. Der Laufwechsel kann sich also um die Origin-Trägheit verzögern,
 zusätzlich zur Producer-Zeit.
 
 Ins Verhältnis gesetzt: der Weg, den er ersetzt, hing an Cron-Slot + Netlify-Build
-— gemessen 5–21 min (§28.2), plus bis zu 15 min Slot-Wartezeit. Die neue
-Verzögerung ist mit hoher Wahrscheinlichkeit kleiner, **belegt ist das aber
-nicht**. Wer es beziffern will, misst §31.8 (b) nach.
+— gemessen 5–21 min (§28.2), plus bis zu 15 min Slot-Wartezeit.
+
+> **Nachgetragen (§31.18):** über 24 Zyklen gemessen ist die neue Kette nicht nur
+> wahrscheinlich, sondern **belegt** kürzer — der Index führt den neuen Lauf ab
+> ≈ Lauf + 69 min, der alte Weg trug ihn im Median erst bei Lauf + 80,5 min, und
+> darauf kam noch der Build. Offen bleibt allein die Origin-Trägheit selbst; dafür
+> läuft eine eigene Sonde am nächsten Publikationsfenster.
 
 
 ## 31.15 V-BW-52 umgesetzt — der Zeiger-Abruf entfällt
@@ -4373,7 +4384,77 @@ Gesundheitsanzeige mitwandern. Sonst passiert eines von beiden — sie schweigt
 über den neuen Weg (Ausfall unsichtbar) oder sie alarmiert über den alten
 (Rauschen). Beides ist schlimmer als vorher.
 
-## 31.18 V-Einträge
+
+## 31.18 §31.8 (b) nachgemessen — rückwirkend statt abgewartet
+
+Die offene Frage war: **hinkt der Index-Lauf dem DWD-Lauf systematisch nach?**
+Sie braucht kein Beobachtungsfenster. Beide Seiten sind rückwirkend ablesbar:
+
+* Das DWD-Verzeichnis `icon-d2/grib/<HH>/<param>/` trägt je Datei einen
+  Zeitstempel und wird nur **einmal pro Tag** überschrieben — die letzten acht
+  Zyklen liegen also gleichzeitig vor.
+* Wann der Repack-Batch fertig war, steht in den Actions-Läufen von
+  `buscosun-data` (öffentlich).
+* Wann das alte Manifest einen Lauf zuerst nannte — und wann es ihn **mit**
+  Repack-Abschnitt nannte —, steht im Git-Verlauf dieses Repos.
+
+Gemessen `regular-lat-lon` (nicht `icosahedral`: das liegt ~7 min früher und hat
+in §28.1 schon einmal eine Messung verdorben).
+
+**DWD, 8 Zyklen (2026-09-03 09z … 2026-09-04 06z):**
+
+| | Schritt 004 (Manifest-Gate `NEAR_REQUIRED`) | Schritt 027 (letzter, den der Repack braucht) |
+|---|---|---|
+| Lauf + | **50–51 min** | **67–68 min** |
+
+Die Streuung über acht Zyklen ist **eine Minute**. Das DWD ist hier keine
+Fehlerquelle.
+
+**Repack-Batch** (Actions `build`, erfolgreiche Läufe): 01:08, 04:08, 07:07 UTC
+gegen DWD-027 um 01:07, 04:06, 07:06 — der Batch landet **1–2 min** nach der
+letzten Datei, die er braucht. Die BW-9-Vorverlegung des Slots auf Lauf + 20
+(§28.10) wirkt also wie beabsichtigt.
+
+⇒ **Der Index führt den neuen Lauf ab ≈ Lauf + 69 min**, plus die Ausbreitung
+nach jsDelivr (§28.10: 1–4 min).
+
+**Der alte Weg, 24 Zyklen aus dem Git-Verlauf** (`latest-grib.json`, wann das
+Manifest den Lauf zuerst nannte, und wann es ihn mit passendem Repack-Abschnitt
+trug — erst dann zeigt die Karte den neuen Lauf auf PNGs):
+
+| | Median | Spanne |
+|---|---|---|
+| Manifest nennt den Lauf | Lauf + 75,5 min | 50 … 105 min |
+| Manifest **mit** Repack-Abschnitt | **Lauf + 80,5 min** | 74 … 158 min |
+
+Dazu kam der Netlify-Build (§28.2: 5–21 min), bevor ein Browser etwas davon sah.
+
+**Ergebnis: der befürchtete Nachlauf existiert nicht — es ist umgekehrt.**
+
+| Weg | Neuer Lauf auf PNGs sichtbar |
+|---|---|
+| alt (Manifest + Cron + Build) | ≈ Lauf + 86 … 102 min (Median + Build) |
+| **neu (Index)** | **≈ Lauf + 70 … 74 min** |
+
+Der Grund ist strukturell, nicht zufällig: das Manifest musste auf **denselben**
+Repack-Abschnitt warten wie der Index — es konnte ihn nur später erfahren
+(Cron-Slot) und noch später ausliefern (Build). Die zwei Ausreißer der alten
+Spalte (158 min, 105 min) haben keine Entsprechung im neuen Weg, weil dort keine
+zweite Kette dazwischenhängt.
+
+**Was die Zahlen NICHT sagen.** Sie messen die Kette bis jsDelivr, nicht die
+Trägheit des jsDelivr-**Origins** bei einem frisch gepushten Branch-Pfad
+(BW-9 §28.9). Eine Stichprobe 2 h nach dem Push zeigte `@main/index.json` korrekt
+auf dem Stand des 06z-Laufs (`8d9dfdc`, committet 07:07:06Z) — das belegt
+Korrektheit, nicht die Ausbreitungszeit. Dafür läuft eine eigene Sonde am
+nächsten Publikationsfenster mit; Ergebnis s. u.
+
+**Nebenbefund, der die alte Entscheidung bestätigt:** in **12 der 24 Zyklen** nannte
+das Manifest den neuen Lauf **ohne** Abschnitt und bekam ihn erst 21–83 min
+später (Median 29 min). Genau in diesem Fenster lud der Client GRIB über Netlify — der
+teuerste Zustand des Systems, und der neue Weg kennt ihn nicht mehr.
+
+## 31.19 V-Einträge
 
 * **V-BW-46** — ein Auslieferungsweg kann eine Leistung überleben: beide
   Warm-Crons deployen seit dem 2026-08-23 für eine Wärmung, die es nicht mehr
@@ -4420,3 +4501,8 @@ Gesundheitsanzeige mitwandern. Sonst passiert eines von beiden — sie schweigt
   AbortError eines neu aufgebauten Layers. Solange derselbe Schlüssel gleich
   darauf mit `fresh` überschrieben wurde, fiel es nicht auf — der Fehler war
   latent, seit es die Meldung gibt.
+* **V-BW-56** — eine Frage nach dem *zeitlichen* Verhalten braucht nicht immer
+  ein Beobachtungsfenster. DWD-Verzeichnisse tragen Dateizeitstempel und werden
+  nur einmal täglich überschrieben, Actions-Läufe und Git-Verläufe sind
+  öffentlich: §31.8 (b) war rückwirkend über 24 Zyklen zu beantworten statt über
+  neun Stunden Warten — und die Antwort widerlegte die Befürchtung (§31.18).
