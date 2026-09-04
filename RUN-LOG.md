@@ -25,7 +25,8 @@ Zeitstempel (Europe/Berlin), Entscheidungen, die im Plan nicht standen. Prüfung
 |---|---|---|---|---|
 | E0 Fundament | 2026-09-05 00:45 | 2026-09-05 01:20 | grün | d39f854 |
 | E1 Kanonik & Ebene B | 2026-09-05 01:25 | 2026-09-05 03:05 | grün (lokal) | 4400a5c |
-| E2 Gerenderter Inhalt & Verlinkung | 2026-09-05 03:10 | 2026-09-05 04:30 | grün (lokal); Preview-Belege E1+E2 unten | (s. u.) |
+| E2 Gerenderter Inhalt & Verlinkung | 2026-09-05 03:10 | 2026-09-05 04:30 | grün (lokal + Preview) | f90dbff |
+| E3 Entitäten, Vertrauen, Methodik | 2026-09-05 04:35 | 2026-09-05 06:10 | grün (lokal) | (s. u.) |
 
 ## E0 · Fundament — 2026-09-05
 
@@ -115,3 +116,44 @@ Vorher (Live, SEO-AUDIT §4): 0 H1, 0 Links, 35 Wörter. Konsole: 0 Fehler/Warnu
 Block mobil: alle ≥ 44 px (nach Fix der Brotkrumen-Links; Erstmessung 13 px). typecheck grün · build grün ·
 verify-seo 383/383 · verify-routing 142/142 · budget grün.
 Belege: `audit/seo-geo-2026/e2-mobile-temperatur-chip.jpeg`, `e2-desktop-regenradar-chip.jpeg`.
+
+## Preview-Belege E1 + E2 — deploy-preview-2--weatherhub94.netlify.app @ f90dbff (2026-09-05 05:20)
+
+- `npm run verify:live <preview> --sample 30`: **92 Checks ok, 1 Fehler** — `/wetter/`-Hub ohne JSON-LD (Altbestand,
+  in E3 behoben: CollectionPage + Entitäten). Geprüft: robots (Disallows, /assets offen), `assets/index-*.js`
+  → 200 + `X-Robots-Tag: noindex` + `immutable`, Manifest-MIME, `/latest-grib.json` + `/sw.js` noindex,
+  HTML max-age=0, 404, fünf 301s, 62 Sitemap-URLs (alle App-/Sub-Routen + Stichprobe) mit Self-Canonical,
+  eigenem Title, H1, JSON-LD, ohne hreflang. `/_dwd_opendata/` antwortet weiter 200 (nur robots-gesperrt, s. Z2).
+- **V-7 Desktop-Regression** (1440×900, Chrome-DevTools-MCP, Produktion vs. Preview, `/wetterkarte/temperatur`):
+  Bounding-Boxes und Farben von Topbar, Rail, Dock, Readout, Stage, Zeit-Deck, Zoom, aktivem Rail-Knopf und
+  Canvas **identisch** (z. B. Stage 298/64/794×836, Zeit-Deck 322/783/746×99). Rail: Produktion `BUTTON`,
+  Preview `A` mit gleicher Box/Farbe; einziger Unterschied `text-decoration: underline` (ohne Text unsichtbar)
+  → in E3 per Inline-Style entfernt. H1: Produktion 0, Preview 1; interne Links: Produktion 0, Preview 36.
+  Chip `.rsb-summary` 147×30 @ (1277,856) unten rechts, über keinem Bedienelement.
+
+## E3 · Entitäten, Vertrauen, Methodik — 2026-09-05
+
+**Getan:**
+- `@id`-Graph: `Organization` (`/#organization`, Logo, knowsAbout, areaServed) und `WebSite` (`/#website`,
+  publisher-Referenz) auf JEDER Seite genau einmal definiert (`entityScripts()` in headBlock, Route-/Sub-Shells,
+  Home); `linkEntities()` ersetzt eingebettete Organization/WebSite-Objekte automatisch durch `{@id}`-Referenzen
+  und hängt `isPartOf {@id website}` an Seitenknoten; `WebApplication` trägt `/#app` + publisher-Referenz.
+- DWD-Etikett in vier Footern: „CC BY 4.0" → „GeoNutzV"; `Dataset.license` (DE) auf die erreichbare
+  DWD-Rechtshinweis-Seite (alte URL 404, geprüft 2026-09-05). Modellkatalog (`license: 'CC-BY-4.0'` für DWD)
+  unverändert — fusion-Datei, Lizenzfrage an Jan (MANUELLE-SCHRITTE).
+- Neue Seiten (`scripts/seo/methodik.mjs`, Renderer `renderArticlePage`/`renderMethodikHub`): `/methodik/` Hub +
+  9 Seiten (Höhenkorrektur, Punktvorhersage-Quellenmix, Regenradar-Nowcast, Konfidenz & Trefferquote,
+  Event-Bewertung, Tourenplanung-Zeitmodell, E-Bike-Reichweite, Brandradar, Wettermodelle — letztere als Tabelle
+  aus `modelCatalog.ts`, Parser in `licenses.mjs` um Zahlen/Flags/Abdeckung erweitert), `/ueber/` (AboutPage,
+  Betreiber nur aus `legal.mjs` — Platzhalter bleiben sichtbar), `/ohne-tracker/` (Hosts + Speicher aus
+  `legal.mjs`, Prüfanleitung). Jede Seite: TechArticle/AboutPage + FAQPage + BreadcrumbList, ≥ 500 Wörter,
+  Stand-Zeile, Konstanten aus dem Code.
+- `/validierung` indexierbar (noindex entfernt, Lead erweitert); Sitemap 190 URLs → 202 mit Methodik/Vertrauen.
+- Footer (Rechtsseiten, Startseite, RouteSeoBlock) verlinken Über/Methodik/Ohne Tracker; `/wetter/`-Hub bekommt
+  CollectionPage + Entitäten.
+- Verifier: `verify-seo` +120 Checks (Methodik-Wortzahl ≥ 500, Typen, keine Platzhalter; Entitäten-Graph auf 11
+  Seitentypen: je genau eine Organization/WebSite-Definition, alle `@id`-Referenzen auflösbar, keine eingebettete
+  Organization ohne `@id`, kein „DWD, CC BY 4.0").
+
+**Messwerte:** typecheck grün · build grün · verify-seo 503/503 · verify-routing 142/142 · budget eagerJs 105,1 /
+totalJs 1113,3 (Ratsche 1114,0) · Generator: 9 Methodik + 2 Vertrauensseiten, Sitemap 202 URLs.

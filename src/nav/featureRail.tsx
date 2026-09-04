@@ -124,6 +124,11 @@ export const FEATURE_RAIL_ITEMS: Array<{ id: RailFeature; label: string; icon: R
   { id: 'feedback', label: 'Ideen & Vorschläge', icon: <IconRailFeedback /> },
 ];
 
+/** Anker statt Button: die Deck-Klassen setzen Farbe/Layout, aber nicht die Link-Unterstreichung —
+ *  gemessen am Deploy-Preview (`text-decoration: underline` auf dem Icon-Link, unsichtbar ohne Text,
+ *  aber ein Unterschied zum Button). Inline, damit kein Deck-CSS angefasst werden muss. */
+const RAIL_LINK_STYLE = { textDecoration: 'none' } as const;
+
 interface FeatureRailProps {
   /** Werkzeug, auf dem man gerade steht — wird als aktiv markiert, kein Klick. */
   active: RailFeature;
@@ -170,6 +175,7 @@ export function FeatureRail({
             aria-label={it.label}
             aria-current={isActive ? 'page' : undefined}
             onClick={onClick}
+            style={RAIL_LINK_STYLE}
           >
             {it.icon}
           </Link>
@@ -183,6 +189,7 @@ export function FeatureRail({
         title="Startseite"
         aria-label="Startseite"
         onClick={(e: MouseEvent<HTMLAnchorElement>) => { e.preventDefault(); onHome(); }}
+        style={RAIL_LINK_STYLE}
       >
         <IconRailHome />
       </Link>

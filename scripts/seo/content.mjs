@@ -146,10 +146,54 @@ export function metaFor(place) {
 
 // --- JSON-LD ----------------------------------------------------------------
 
+/** Stabile Entitäts-Kennungen (SEO/GEO 2026, E3): EIN Betreiber, EINE Website — jede Seite
+ *  definiert beide Knoten kompakt und referenziert sie per `{ "@id" }` (Google löst @id nur
+ *  innerhalb derselben Seite auf). `linkEntities()` ersetzt eingebettete Organization/WebSite-
+ *  Objekte automatisch durch Referenzen, `verify-seo` prüft Definition und Auflösung. */
+export const ORG_ID = SITE.url + '/#organization';
+export const SITE_ID = SITE.url + '/#website';
+export const APP_ID = SITE.url + '/#app';
+
+export function websiteJsonLd() {
+  return {
+    '@context': 'https://schema.org', '@type': 'WebSite', '@id': SITE_ID,
+    name: SITE.name, url: SITE.url + '/', inLanguage: 'de',
+    description: SITE.description,
+    publisher: { '@id': ORG_ID },
+  };
+}
+
+/** CollectionPage + Entitäten für Hubs, die ihren Head selbst bauen (/wetter/). */
+export function collectionPageScripts(name, path, description, dateModified) {
+  return `${jsonLdScript({ '@context': 'https://schema.org', '@type': 'CollectionPage', name, url: SITE.url + path, description, inLanguage: 'de', ...(dateModified ? { dateModified } : {}) })}
+    ${entityScripts()}`;
+}
+
+/** Beide Entitäts-Knoten als Script-Blöcke (auf jeder Seite genau einmal). */
+export function entityScripts() {
+  return `${jsonLdScript(organizationJsonLd())}\n    ${jsonLdScript(websiteJsonLd())}`;
+}
+
+const PART_TYPES = new Set(['WebPage', 'CollectionPage', 'AboutPage', 'Article', 'TechArticle', 'NewsArticle', 'SoftwareApplication', 'Dataset', 'FAQPage', 'WebApplication', 'CreativeWork', 'DefinedTermSet']);
+function linkEntities(obj, top = true) {
+  if (Array.isArray(obj)) return obj.map((x) => linkEntities(x, false));
+  if (!obj || typeof obj !== 'object') return obj;
+  if (!top) {
+    if (obj['@type'] === 'Organization' && obj.name === SITE.name) return { '@type': 'Organization', '@id': ORG_ID };
+    if (obj['@type'] === 'WebSite' && (obj['@id'] === SITE_ID || obj.url === SITE.url + '/')) return { '@type': 'WebSite', '@id': SITE_ID };
+  }
+  const out = {};
+  for (const [k, v] of Object.entries(obj)) out[k] = linkEntities(v, false);
+  if (top && PART_TYPES.has(out['@type']) && !out.isPartOf && out['@id'] !== SITE_ID) out.isPartOf = { '@id': SITE_ID };
+  return out;
+}
+
 export function webAppJsonLd() {
   return {
     '@context': 'https://schema.org',
     '@type': 'WebApplication',
+    '@id': APP_ID,
+    publisher: { '@id': ORG_ID },
     name: SITE.name,
     url: SITE.url + '/',
     applicationCategory: 'Weather',
@@ -162,7 +206,14 @@ export function webAppJsonLd() {
 }
 
 export function organizationJsonLd() {
-  return { '@context': 'https://schema.org', '@type': 'Organization', name: SITE.name, url: SITE.url + '/', logo: SITE.url + '/icon.svg' };
+  return {
+    '@context': 'https://schema.org', '@type': 'Organization', '@id': ORG_ID,
+    name: SITE.name, url: SITE.url + '/',
+    logo: { '@type': 'ImageObject', url: SITE.url + '/icon-512.png', width: 512, height: 512 },
+    description: SITE.description,
+    knowsAbout: ['Wettervorhersage', 'Regenradar', 'Höhenkorrektur', 'Föhn', 'Waldbrandgefahr', 'DACH-Wetter'],
+    areaServed: ['DE', 'AT', 'CH'],
+  };
 }
 
 export function placeJsonLd(place) {
@@ -176,10 +227,11 @@ export function placeJsonLd(place) {
 }
 
 /** Dataset-JSON-LD: höhenkorrigierte Vorhersage je Ort, ehrliche Quellen-/
- *  Lizenzangabe (DWD CC BY 4.0). Macht die Datenbasis GEO-/Rich-Result-lesbar. */
+ *  Lizenzangabe (DWD: GeoNutzV — Rechtshinweis-Seite des DWD; AT/CH: CC BY 4.0). Macht die
+ *  Datenbasis GEO-/Rich-Result-lesbar. Die frühere DWD-URL antwortete 404 (SEO-AUDIT 2026-09-04). */
 export function datasetJsonLd(place) {
   const license = place.country === 'DE'
-    ? 'https://www.dwd.de/DE/service/copyright/copyright_node.html'
+    ? 'https://www.dwd.de/DE/service/rechtliche_hinweise/rechtliche_hinweise_node.html'
     : 'https://creativecommons.org/licenses/by/4.0/';
   return {
     '@context': 'https://schema.org',
@@ -220,7 +272,7 @@ export function faqJsonLd(faqs) {
 }
 
 function jsonLdScript(obj) {
-  return `<script type="application/ld+json">${JSON.stringify(obj)}</script>`;
+  return `<script type="application/ld+json">${JSON.stringify(linkEntities(obj))}</script>`;
 }
 
 // --- HTML-Rendering ---------------------------------------------------------
@@ -257,7 +309,8 @@ function headBlock({ title, description, canonicalPath, locale, ogImage, jsonLd,
     <meta name="twitter:title" content="${escapeHtml(ogt)}" />
     <meta name="twitter:description" content="${escapeHtml(description)}" />
     <meta name="twitter:image" content="${SITE.url}${ogImage || DEFAULT_OG_IMAGE}" />
-    ${jsonLd.map(jsonLdScript).join('\n    ')}`;
+    ${jsonLd.map(jsonLdScript).join('\n    ')}
+    ${entityScripts()}`;
 }
 
 const PAGE_CSS = `:root{--sand:#FAF6EA;--ink:#2C2A26;--stone:#5C5447;--terra:#C97B47;--border:#E0D6BE}
@@ -344,7 +397,7 @@ ${head}
       </section>
 
       <footer>
-        ${escapeHtml(SITE.name)} — ${escapeHtml(SITE.tagline)}. Datenbasis: Deutscher Wetterdienst (DWD, CC BY 4.0) · GeoSphere Austria · MeteoSwiss. Keine Tracker, keine Werbung.
+        ${escapeHtml(SITE.name)} — ${escapeHtml(SITE.tagline)}. Datenbasis: Deutscher Wetterdienst (DWD, GeoNutzV) · GeoSphere Austria · MeteoSwiss. Keine Tracker, keine Werbung.
         Hinweis: Diese Seite nennt stabile Standort-Fakten; aktuelle Messwerte und Vorhersagen liefert die interaktive App. buscosun gibt keine amtlichen Warnungen heraus.
       </footer>
     </div>
@@ -485,7 +538,7 @@ ${relExplainers ? `      <section>\n        <h2>Verwandte Themen</h2>\n        <
 ${relPlaces ? `      <section>\n        <h2>Passende Orte</h2>\n        <div class="links">\n        ${relPlaces}\n        </div>\n      </section>` : ''}
 ${sources ? `      <section>\n        <h2>Quellen</h2>\n        <ul>\n        ${sources}\n        </ul>\n      </section>` : ''}
       <footer>
-        ${escapeHtml(SITE.name)} — ${escapeHtml(SITE.tagline)}. Datenbasis: Deutscher Wetterdienst (DWD, CC BY 4.0) · GeoSphere Austria · MeteoSwiss.
+        ${escapeHtml(SITE.name)} — ${escapeHtml(SITE.tagline)}. Datenbasis: Deutscher Wetterdienst (DWD, GeoNutzV) · GeoSphere Austria · MeteoSwiss.
         buscosun erklärt Wetterphänomene und gibt keine amtlichen Warnungen heraus.
       </footer>
     </div>
@@ -642,7 +695,7 @@ ${sections}
       </section>
 ${relExplainers ? `      <section>\n        <h2>Passendes Wetterwissen</h2>\n        <div class="links">\n        ${relExplainers}\n        </div>\n      </section>` : ''}
       <footer>
-        ${escapeHtml(SITE.name)} — ${escapeHtml(SITE.tagline)}. Datenbasis: Deutscher Wetterdienst (DWD, CC BY 4.0) · GeoSphere Austria · MeteoSwiss. Kostenlos, ohne Tracker.
+        ${escapeHtml(SITE.name)} — ${escapeHtml(SITE.tagline)}. Datenbasis: Deutscher Wetterdienst (DWD, GeoNutzV) · GeoSphere Austria · MeteoSwiss. Kostenlos, ohne Tracker.
       </footer>
     </div>
   </body>
@@ -703,8 +756,103 @@ section li{margin-bottom:.5rem}</style>
 ${sections}
       <footer>
         ${escapeHtml(SITE.name)} — ${escapeHtml(SITE.tagline)}.
-        <a href="/impressum/">Impressum</a> · <a href="/datenschutz/">Datenschutz</a> · <a href="/lizenzen/">Quellen &amp; Lizenzen</a> · <a href="/kontakt/">Kontakt</a>
+        <a href="/ueber/">Über buscosun</a> · <a href="/methodik/">Methodik</a> · <a href="/ohne-tracker/">Ohne Tracker</a> · <a href="/impressum/">Impressum</a> · <a href="/datenschutz/">Datenschutz</a> · <a href="/lizenzen/">Quellen &amp; Lizenzen</a> · <a href="/kontakt/">Kontakt</a>
       </footer>
+    </div>
+  </body>
+</html>
+`;
+}
+
+/**
+ * Artikelseite für /methodik/<slug>/, /ueber/, /ohne-tracker/ (SEO/GEO 2026, E3):
+ * Direktantwort-Lead, Abschnitte, FAQ, verwandte Seiten; TechArticle/AboutPage +
+ * FAQPage + BreadcrumbList. `hub` = { path, name } für Brotkrumen (null = Wurzel).
+ */
+export function renderArticlePage(page, { hub = null, updated, ogImage } = {}) {
+  const canonicalPath = hub ? `${hub.path}${page.slug}/` : `/${page.slug}/`;
+  const url = SITE.url + canonicalPath;
+  const type = page.jsonLdType ?? 'TechArticle';
+  const crumbs = [{ '@type': 'ListItem', position: 1, name: 'Start', item: SITE.url + '/' }];
+  if (hub) crumbs.push({ '@type': 'ListItem', position: 2, name: hub.name, item: SITE.url + hub.path });
+  crumbs.push({ '@type': 'ListItem', position: crumbs.length + 1, name: page.title, item: url });
+  const jsonLd = [
+    {
+      '@context': 'https://schema.org', '@type': type,
+      headline: page.h1, name: page.title, description: page.description, url, mainEntityOfPage: url,
+      inLanguage: 'de-DE', datePublished: page.datePublished ?? updated, dateModified: page.dateModified ?? updated,
+      author: { '@type': 'Organization', name: SITE.name, url: SITE.url + '/' },
+      publisher: { '@type': 'Organization', name: SITE.name, url: SITE.url + '/' },
+      isAccessibleForFree: true,
+      image: [SITE.url + (ogImage || DEFAULT_OG_IMAGE)],
+    },
+    { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: crumbs },
+    ...(page.faqs?.length ? [faqJsonLd(page.faqs)] : []),
+  ];
+  const head = headBlock({ title: `${page.title} | ${SITE.name}`, description: page.description, canonicalPath, locale: 'de-DE', ogImage, jsonLd });
+  const sections = page.sections.map((sec) => `      <section>\n        <h2>${escapeHtml(sec.h2)}</h2>\n        ${sec.html}\n      </section>`).join('\n');
+  const faqs = page.faqs?.length ? `      <section>\n        <h2>Häufige Fragen</h2>\n        ${page.faqs.map((f) => `<details><summary>${escapeHtml(f.q)}</summary><p>${escapeHtml(f.a)}</p></details>`).join('\n        ')}\n      </section>` : '';
+  const related = page.related?.length ? `      <section>\n        <h2>Weiterlesen</h2>\n        <div class="links">${page.related.map((r) => `<a href="${r}">${escapeHtml(r.replace(/^\//, '').replace(/\/$/, '').replace(/-/g, ' '))}</a>`).join('')}</div>\n      </section>` : '';
+  return `<!doctype html>
+<html lang="de">
+  <head>
+${head}
+    <style>${PAGE_CSS}
+h3{font-size:1rem;margin:1.1rem 0 .3rem}
+code{font-size:.82em;background:#fff;border:1px solid var(--border);border-radius:4px;padding:.05rem .3rem}
+section ul{padding-left:1.1rem}section li{margin-bottom:.5rem}
+table{border-collapse:collapse;width:100%;font-size:.86rem;margin:.4rem 0}
+th,td{text-align:left;vertical-align:top;padding:.4rem .55rem;border-bottom:1px solid var(--border)}
+th{font-weight:600}
+.meta{font-size:.8rem;color:var(--stone)}</style>
+  </head>
+  <body>
+    <div class="wrap">
+      <nav class="bc" aria-label="Brotkrumen"><a href="/">Start</a>${hub ? ` › <a href="${hub.path}">${escapeHtml(hub.name)}</a>` : ''} › ${escapeHtml(page.title)}</nav>
+      <h1>${escapeHtml(page.h1)}</h1>
+      <p class="lead">${escapeHtml(page.answer)}</p>
+      <p class="meta">Stand: ${escapeHtml(page.dateModified ?? updated)} · Alle Zahlen stammen aus dem Quellcode von buscosun (Konstanten und Schwellen), nicht aus Marketingtexten.</p>
+${sections}
+${faqs}
+${related}
+      <footer>
+        ${escapeHtml(SITE.name)} — ${escapeHtml(SITE.tagline)}. Datenbasis: Deutscher Wetterdienst (DWD, GeoNutzV) · GeoSphere Austria · MeteoSwiss. Keine Tracker, keine Werbung.
+        <a href="/ueber/">Über buscosun</a> · <a href="/methodik/">Methodik</a> · <a href="/lizenzen/">Quellen &amp; Lizenzen</a> · <a href="/impressum/">Impressum</a> · <a href="/datenschutz/">Datenschutz</a>
+      </footer>
+    </div>
+  </body>
+</html>
+`;
+}
+
+/** /methodik/-Hub. */
+export function renderMethodikHub(pages, updated) {
+  const head = headBlock({
+    title: `Methodik — wie buscosun rechnet | ${SITE.name}`,
+    description: 'Höhenkorrektur, Quellenmix, Radar-Nowcast, Konfidenz, Event-Bewertung, Tourenplanung, E-Bike-Reichweite, Brandradar, Wettermodelle — die Rechenwege von buscosun mit Konstanten und Grenzen.',
+    canonicalPath: '/methodik/', locale: 'de-DE',
+    jsonLd: [{ '@context': 'https://schema.org', '@type': 'CollectionPage', name: 'Methodik', url: SITE.url + '/methodik/', description: 'Die Rechenwege von buscosun, offengelegt.', dateModified: updated }],
+  });
+  const cards = pages.map((pg) => `<a href="/methodik/${pg.slug}/" class="card"><strong>${escapeHtml(pg.title)}</strong><span>${escapeHtml(pg.description)}</span></a>`).join('\n      ');
+  return `<!doctype html>
+<html lang="de">
+  <head>
+${head}
+    <style>${PAGE_CSS}
+.cards{display:grid;gap:.8rem}@media(min-width:560px){.cards{grid-template-columns:1fr 1fr}}
+.card{display:flex;flex-direction:column;gap:.3rem;background:#fff;border:1px solid var(--border);border-radius:12px;padding:.9rem 1rem;text-decoration:none;color:var(--ink)}
+.card span{font-size:.88rem;color:var(--stone)}</style>
+  </head>
+  <body>
+    <div class="wrap">
+      <nav class="bc" aria-label="Brotkrumen"><a href="/">Start</a> › Methodik</nav>
+      <h1>Wie buscosun rechnet</h1>
+      <p class="lead">Jede Zahl auf buscosun hat einen Rechenweg — und jeder Rechenweg hat Grenzen. Diese Seiten legen beides offen: Quellen, Formeln, Schwellen und Konstanten, wie sie im Quellcode stehen, sowie das, was das Verfahren nicht kann. Ohne Werbetexte, ohne Scheingenauigkeit.</p>
+      <div class="cards">
+      ${cards}
+      </div>
+      <section><h2>Verwandt</h2><div class="links"><a href="/ueber/">Über buscosun</a><a href="/ohne-tracker/">Ohne Tracker</a><a href="/lizenzen/">Quellen &amp; Lizenzen</a><a href="/wissen/">Wetterwissen</a><a href="/validierung">Validierung</a></div></section>
+      <footer>${escapeHtml(SITE.name)} — ${escapeHtml(SITE.tagline)}. <a href="/impressum/">Impressum</a> · <a href="/datenschutz/">Datenschutz</a></footer>
     </div>
   </body>
 </html>
@@ -844,7 +992,7 @@ ${relPlaces ? `        <section>\n          <h2>Betroffene Orte</h2>\n          
 ${relExplainers ? `        <section>\n          <h2>Hintergrund</h2>\n          <div class="links">\n        ${relExplainers}\n          </div>\n        </section>` : ''}
       </article>
       <footer>
-        ${escapeHtml(SITE.name)} — ${escapeHtml(SITE.tagline)}. Datenbasis: Deutscher Wetterdienst (DWD, CC BY 4.0) · GeoSphere Austria · MeteoSwiss.
+        ${escapeHtml(SITE.name)} — ${escapeHtml(SITE.tagline)}. Datenbasis: Deutscher Wetterdienst (DWD, GeoNutzV) · GeoSphere Austria · MeteoSwiss.
         Einordnung einer Wetterlage, keine amtliche Warnung. Verbindliche Warnungen geben die staatlichen Wetterdienste heraus.
       </footer>
     </div>
@@ -938,7 +1086,8 @@ export function routeHeadExtras(route) {
     <meta name="twitter:description" content="${escapeHtml(route.meta.description)}" />
     <meta name="twitter:image" content="${SITE.url}${og}" />
     ${jsonLdScript(routeJsonLd(route, url))}
-    ${jsonLdScript(routeBreadcrumbJsonLd(route, url))}`;
+    ${jsonLdScript(routeBreadcrumbJsonLd(route, url))}
+    ${entityScripts()}`;
 }
 
 /** Crawlbarer #root-Inhalt einer Route-Shell (wird von der App beim Mount ersetzt). */
@@ -994,7 +1143,8 @@ export function subRouteHeadExtras(route, sub) {
     <meta name="twitter:description" content="${escapeHtml(sub.description)}" />
     <meta name="twitter:image" content="${SITE.url}${og}" />
     ${jsonLdScript(subRouteJsonLd(route, sub, url))}
-    ${jsonLdScript(subRouteBreadcrumbJsonLd(route, sub, url))}`;
+    ${jsonLdScript(subRouteBreadcrumbJsonLd(route, sub, url))}
+    ${entityScripts()}`;
 }
 /**
  * Crawlbarer #root-Inhalt der Sub-Routen-Shell: H1, Lead, Absätze, Faktenliste,
@@ -1043,5 +1193,5 @@ export function homeHeadExtras() {
     <meta name="twitter:description" content="${escapeHtml(SITE.description)}" />
     <meta name="twitter:image" content="${SITE.url}/og/home.png" />
     ${jsonLdScript(webAppJsonLd())}
-    ${jsonLdScript(organizationJsonLd())}`;
+    ${entityScripts()}`;
 }

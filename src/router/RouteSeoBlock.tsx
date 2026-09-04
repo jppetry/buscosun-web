@@ -82,7 +82,7 @@ export default function RouteSeoBlock() {
         <h2 className="rsb-h2">Mehr auf buscosun</h2>
         <p className="rsb-links">
           {sub && <><Link to={def.path}>{def.meta.title}</Link> · </>}
-          <a href="/wetter/">Wetter nach Ort</a> · <a href="/wissen/">Wetterwissen</a> · <a href="/funktionen/">Alle Funktionen</a> · <a href="/wetterlage/">Wetterlagen</a> · <a href="/lizenzen/">Quellen &amp; Lizenzen</a>
+          <a href="/wetter/">Wetter nach Ort</a> · <a href="/wissen/">Wetterwissen</a> · <a href="/funktionen/">Alle Funktionen</a> · <a href="/wetterlage/">Wetterlagen</a> · <a href="/methodik/">Methodik</a> · <a href="/lizenzen/">Quellen &amp; Lizenzen</a> · <a href="/ueber/">Über buscosun</a>
         </p>
         <p className="rsb-foot">Amtliche Quellen (DWD · GeoSphere Austria · MeteoSchweiz), höhenkorrigiert, ohne Konto, ohne Tracker. buscosun gibt keine amtlichen Warnungen heraus.</p>
       </div>

@@ -804,7 +804,10 @@ function DeckFooter({ onOpenFeature }: { onOpenFeature: (f: FeatureInfo) => void
               <a href="/wetter/">Wetter nach Ort</a><br />
               <a href="/wissen/">Wetterwissen</a><br />
               <a href="/funktionen/">Alle Funktionen</a><br />
-              <a href="/wetterlage/">Wetterlagen</a>
+              <a href="/wetterlage/">Wetterlagen</a><br />
+              <a href="/methodik/">Methodik</a><br />
+              <a href="/ueber/">Über buscosun</a><br />
+              <a href="/ohne-tracker/">Ohne Tracker</a>
             </div>
           </div>
           <div className="deck-footer-col">

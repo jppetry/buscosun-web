@@ -15,11 +15,12 @@ import { TOOLS } from './seo/tools.mjs';
 import { EVENTS } from './seo/events.mjs';
 import { LEGAL_PAGES, operatorIncomplete } from './seo/legal.mjs';
 import { buildLicensePage } from './seo/licenses.mjs';
+import { allMethodikPages, buildUeberPage, buildOhneTrackerPage, METHODIK_UPDATED } from './seo/methodik.mjs';
 import {
   SITE, renderPlacePage, renderHomeRootContent, homeHeadExtras, escapeHtml, metaFor,
   renderExplainerPage, renderWissenHub, renderToolPage, renderFunktionenHub,
   renderEventPage, renderWetterlageHub, renderLegalPage, routeHeadExtras, renderRouteRootContent,
-  subRouteHeadExtras, renderSubRouteRootContent,
+  subRouteHeadExtras, renderSubRouteRootContent, renderArticlePage, renderMethodikHub, collectionPageScripts,
 } from './seo/content.mjs';
 // Phase RT1: die App-Routen-Tabelle (echtes TS-Modul, via --experimental-strip-types
 // + register-ts.mjs wie die Verifier) — Route-Shells + Sitemap aus EINER Quelle.
@@ -69,6 +70,7 @@ function hubPage() {
     <meta property="og:image" content="${SITE.url}/og/wetter.png" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:image" content="${SITE.url}/og/wetter.png" />
+    ${collectionPageScripts('Wetter in DACH-Orten', '/wetter/', `Höhenkorrigierte Wetter-Landingpages für ${PLACES.length} Orte in Deutschland, Österreich und der Schweiz.`, PLACES_UPDATED)}
     <style>:root{--sand:#FAF6EA;--ink:#2C2A26;--stone:#5C5447;--terra:#C97B47;--border:#E0D6BE}
 body{margin:0;font-family:system-ui,sans-serif;background:var(--sand);color:var(--ink);line-height:1.6}
 .wrap{max-width:820px;margin:0 auto;padding:2rem 1.25rem 4rem}h1{font-size:2rem}h2{font-size:1.15rem;border-bottom:1px solid var(--border);padding-bottom:.3rem;margin-top:2rem}
@@ -143,6 +145,22 @@ if (operatorIncomplete()) {
   );
 }
 
+// 2g) SEO/GEO 2026 (E3): /methodik/<slug>/ + Hub, /ueber/, /ohne-tracker/.
+const METHODIK = allMethodikPages();
+for (const pg of METHODIK) {
+  const dir = join(DIST, 'methodik', pg.slug);
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, 'index.html'), renderArticlePage(pg, { hub: { path: '/methodik/', name: 'Methodik' }, updated: METHODIK_UPDATED }), 'utf8');
+}
+mkdirSync(join(DIST, 'methodik'), { recursive: true });
+writeFileSync(join(DIST, 'methodik', 'index.html'), renderMethodikHub(METHODIK, METHODIK_UPDATED), 'utf8');
+const TRUST_PAGES = [buildUeberPage(), buildOhneTrackerPage()];
+for (const pg of TRUST_PAGES) {
+  const dir = join(DIST, pg.slug);
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, 'index.html'), renderArticlePage(pg, { updated: METHODIK_UPDATED }), 'utf8');
+}
+
 // 2b) 404.html — echte Fehlerseite (Host muss sie mit HTTP 404 ausliefern,
 // siehe docs/seo-geo/your-actions.md). noindex, aber crawlbar verlinkt.
 function notFoundPage() {
@@ -196,6 +214,10 @@ function sitemap() {
     { loc: `${SITE.url}/wetterlage/`, pri: '0.6', mod: maxDate(fullEvents.map((e) => e.dateModified), CONTENT_UPDATED) },
     ...fullEvents.map((e) => ({ loc: `${SITE.url}/wetterlage/${e.slug}/`, pri: '0.7', mod: e.dateModified || CONTENT_UPDATED })),
     ...[...LEGAL_PAGES, LICENSE_PAGE].map((l) => ({ loc: `${SITE.url}/${l.slug}/`, pri: '0.3', mod: l.dateModified || LEGAL_UPDATED })),
+    // E3: Methodik + Vertrauensseiten
+    { loc: `${SITE.url}/methodik/`, pri: '0.7', mod: METHODIK_UPDATED },
+    ...METHODIK.map((pg) => ({ loc: `${SITE.url}/methodik/${pg.slug}/`, pri: '0.6', mod: METHODIK_UPDATED })),
+    ...TRUST_PAGES.map((pg) => ({ loc: `${SITE.url}/${pg.slug}/`, pri: '0.5', mod: METHODIK_UPDATED })),
   ];
   const body = urls.map((u) =>
     `  <url><loc>${u.loc}</loc><lastmod>${u.mod}</lastmod><priority>${u.pri}</priority></url>`).join('\n');
@@ -367,4 +389,4 @@ const fullTools = TOOLS.filter((t) => t.status === 'full').length;
 const fullEvents = EVENTS.filter((e) => e.status === 'full').length;
 const appUrls = sitemapPaths().length;
 const urlCount = PLACES.length + 5 + appUrls + fullExplainers + fullTools + fullEvents + LEGAL_PAGES.length + 1; // +1 = /lizenzen/ (V-104)
-console.log(`[seo] ${pages} Geo, ${explainerPages} Explainer (${fullExplainers} idx), ${toolPages} Tools (${fullTools} idx), ${eventPages} Wetterlage (${fullEvents} idx), ${LEGAL_PAGES.length} Rechtsseiten + Hubs, ${routeShells} App-Routen-Shells + ${subShells} Sub-Routen-Shells (${appUrls} URLs), sitemap.xml (${urlCount} URLs), feed.xml, sitemap-news.xml, Home angereichert. Build ${BUILD_DATE}.`);
+console.log(`[seo] ${pages} Geo, ${explainerPages} Explainer (${fullExplainers} idx), ${toolPages} Tools (${fullTools} idx), ${eventPages} Wetterlage (${fullEvents} idx), ${LEGAL_PAGES.length} Rechtsseiten + Hubs, ${METHODIK.length} Methodik + ${TRUST_PAGES.length} Vertrauensseiten, ${routeShells} App-Routen-Shells + ${subShells} Sub-Routen-Shells (${appUrls} URLs), sitemap.xml (${urlCount} URLs), feed.xml, sitemap-news.xml, Home angereichert. Build ${BUILD_DATE}.`);

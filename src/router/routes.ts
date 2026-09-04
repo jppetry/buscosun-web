@@ -231,8 +231,8 @@ export const ROUTES: readonly RouteDef[] = [
       title: 'Validierung — wie gut ist der KI-Nowcast?',
       description: 'Messwerte statt Versprechen: wie gut der buscosun-Nowcast gegen das gemessene Radar abschneidet.',
       h1: 'Wie gut ist der KI-Nowcast wirklich?',
-      lead: 'Diese Seite legt offen, wie gut der Nowcast von buscosun im Vergleich zum gemessenen Radar abschneidet — mit den Kennzahlen, die auch die Wetterdienste verwenden, und ohne die Fälle zu verschweigen, in denen er danebenliegt.',
-      noindex: true,
+      lead: 'Diese Seite legt offen, wie gut der Nowcast von buscosun im Vergleich zum gemessenen Radar abschneidet — mit den Kennzahlen, die auch die Wetterdienste verwenden, und ohne die Fälle zu verschweigen, in denen er danebenliegt. Beim Aufruf rechnet sie ein echtes Hindcast: aus beobachteten RADOLAN-Analysen wird vorhergesagt und gegen die spätere Beobachtung verifiziert — Brier Skill Score, Kalibrierungsfehler, Trefferquote und Reliability-Diagramm je Vorlaufminute.',
+      // SEO/GEO 2026 (E3): indexierbar — die Seite ist der Beleg für die Konfidenz-Aussagen (/methodik/konfidenz-und-trefferquote/).
     },
   },
   {
@@ -413,7 +413,7 @@ export function verifyRoutes(): { checks: RouteCheck[]; passed: number; failed: 
   add('Sub-Route wird erkannt', routeForPath('/wetterkarte/temperatur')?.sub?.slug === 'temperatur' && routeForPath('/atmosphaere/fliegen')?.sub?.slug === 'fliegen' && routeForPath('/waldbrand/aktive-braende')?.sub?.slug === 'aktive-braende');
   add('unbekannte Sub-Route bleibt auf der Route, aber noindex', routeForPath('/wetterkarte/xyz')?.sub === null && metaForPath('/wetterkarte/xyz').noindex);
   add('unbekannter Pfad ⇒ null', routeForPath('/nope') === null && routeForPath('/wetterkarte/a/b') === null && routeForPath('/regenradar/x') === null);
-  add('Sitemap enthält Top- und Sub-Routen ohne noindex und ohne /wetterkarte/warnungen', (() => { const s = sitemapPaths().map((p) => p.path); return s.includes('/regenradar') && s.includes('/wetterkarte/wind') && !s.includes('/validierung') && !s.includes('/wetterkarte/warnungen') && s.includes('/warnungen'); })());
+  add('Sitemap enthält Top- und Sub-Routen ohne noindex (inkl. /validierung seit E3) und ohne /wetterkarte/warnungen', (() => { const s = sitemapPaths().map((p) => p.path); return s.includes('/regenradar') && s.includes('/wetterkarte/wind') && s.includes('/validierung') && !s.includes('/mobiletest') && !s.includes('/wetterkarte/warnungen') && s.includes('/warnungen'); })());
   add('Meta der Sub-Route gewinnt', metaForPath('/wetterkarte/wind').title === 'Windkarte DACH' && metaForPath('/wetterkarte').title === 'Interaktive Wetterkarte DACH');
   add('/tourenplanung/3d ist eine erkannte Sub-Route', routeForPath('/tourenplanung/3d')?.sub?.slug === '3d');
   add('/tourenplanung/3d ist noindex und NICHT in der Sitemap (leer ohne Strecke)',

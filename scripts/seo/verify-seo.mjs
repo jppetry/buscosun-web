@@ -202,6 +202,52 @@ console.log('\nSitemap:');
   else ok('sitemap.xml', 'alle Sub-Routen-Shells enthalten');
 }
 
+// 7) E3: Methodik-/Vertrauensseiten — Wortzahl, Typ, FAQ.
+console.log('\nMethodik & Vertrauen:');
+{
+  const words = (html) => html.replace(/<script[\s\S]*?<\/script>/g, '').replace(/<style[\s\S]*?<\/style>/g, '').replace(/<[^>]+>/g, ' ').split(/\s+/).filter(Boolean).length;
+  const pages = existsSync(join(DIST, 'methodik')) ? readdirSync(join(DIST, 'methodik'), { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => `methodik/${d.name}/index.html`) : [];
+  if (pages.length < 9) fail('methodik/', `erwartet ≥ 9 Methodik-Seiten, gefunden ${pages.length}`); else ok('methodik/', `${pages.length} Methodik-Seiten`);
+  for (const rel of [...pages, 'ueber/index.html', 'ohne-tracker/index.html', 'methodik/index.html']) {
+    if (!existsSync(join(DIST, rel))) { fail(rel, 'fehlt'); continue; }
+    const html = read(rel);
+    checkCommon(rel, html, { type: rel === 'methodik/index.html' ? 'CollectionPage' : rel.startsWith('ueber') ? 'AboutPage' : 'TechArticle' });
+    const n = words(html);
+    if (rel !== 'methodik/index.html' && n < 500) fail(rel, `nur ${n} Wörter (erwartet ≥ 500)`);
+    if (/@@TODO_JAN@@/.test(html)) fail(rel, 'Platzhalter @@TODO_JAN@@ im HTML');
+  }
+}
+
+// 8) E3: Entitäten-Graph — Organization/WebSite je Seite genau einmal definiert, jede @id-Referenz auflösbar;
+// DWD-Etikett GeoNutzV statt CC BY 4.0.
+console.log('\nEntitäten-Graph:');
+{
+  const ORG = 'https://buscosun.com/#organization', WEB = 'https://buscosun.com/#website';
+  const files = ['index.html', 'wetterkarte.html', 'wetterkarte--temperatur.html', 'wetter/muenchen/index.html', 'wissen/foehn/index.html', 'funktionen/wetterkarte/index.html', 'wetterlage/omega-lage-mitteleuropa/index.html', 'lizenzen/index.html', 'impressum/index.html', 'methodik/hoehenkorrektur/index.html', 'ueber/index.html'];
+  for (const rel of files) {
+    if (!existsSync(join(DIST, rel))) { fail(rel, 'fehlt (Entitäten-Prüfung)'); continue; }
+    const html = read(rel);
+    const defs = new Map(); const refs = new Set(); let inlineOrg = 0;
+    const walk = (o, top) => {
+      if (Array.isArray(o)) return o.forEach((x) => walk(x, false));
+      if (!o || typeof o !== 'object') return;
+      if (o['@id'] && Object.keys(o).filter((k) => k !== '@context').length <= 2) refs.add(o['@id']);
+      else if (o['@id']) defs.set(o['@id'], (defs.get(o['@id']) || 0) + 1);
+      if (!top && o['@type'] === 'Organization' && o.name === 'buscosun' && !o['@id']) inlineOrg++;
+      for (const v of Object.values(o)) if (v && typeof v === 'object') walk(v, false);
+    };
+    for (const b of jsonLdBlocks(html)) { try { walk(JSON.parse(b), true); } catch { /* bereits oben gemeldet */ } }
+    if (defs.get(ORG) !== 1) fail(rel, `Organization @id ${defs.get(ORG) ?? 0}× definiert (erwartet 1)`);
+    if (defs.get(WEB) !== 1) fail(rel, `WebSite @id ${defs.get(WEB) ?? 0}× definiert (erwartet 1)`);
+    const dangling = [...refs].filter((id) => !defs.has(id));
+    if (dangling.length) fail(rel, `@id-Referenz ohne Definition: ${dangling.join(', ')}`);
+    if (inlineOrg) fail(rel, `${inlineOrg} eingebettete Organization ohne @id (linkEntities greift nicht)`);
+    if (!defs.get(ORG) || !defs.get(WEB) || dangling.length || inlineOrg) continue;
+    ok(rel, `Entitäten: ${defs.size} Definitionen, ${refs.size} Referenzen, alle auflösbar`);
+    if (/DWD, CC BY 4\.0/.test(html)) fail(rel, 'Footer nennt „DWD, CC BY 4.0" — DWD-Open-Data steht unter GeoNutzV');
+  }
+}
+
 const homeApps = jsonLdBlocks(read('index.html')).filter((b) => /"@type":"WebApplication"/.test(b)).length;
 if (homeApps !== 1) fail('index.html', `erwartet genau 1× WebApplication, gefunden ${homeApps}`);
 else ok('index.html', 'genau eine WebApplication');
