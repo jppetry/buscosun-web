@@ -796,6 +796,17 @@ function DeckFooter({ onOpenFeature }: { onOpenFeature: (f: FeatureInfo) => void
           {/* Rechtsseiten werden vom SEO-Generator als echte Pfade erzeugt →
               normale <a>-Links, kein Router nötig (D-06). Ohne sie wäre das
               Impressum aus der App heraus nicht erreichbar (V-103). */}
+          {/* SEO/GEO 2026 (E2): die statischen Seitenfamilien aus der App verlinken —
+              vorher hingen 190 Seiten nur an der Sitemap (SEO-AUDIT.md §7). */}
+          <div className="deck-footer-col">
+            <div className="deck-footer-h">ENTDECKEN</div>
+            <div className="deck-footer-links">
+              <a href="/wetter/">Wetter nach Ort</a><br />
+              <a href="/wissen/">Wetterwissen</a><br />
+              <a href="/funktionen/">Alle Funktionen</a><br />
+              <a href="/wetterlage/">Wetterlagen</a>
+            </div>
+          </div>
           <div className="deck-footer-col">
             <div className="deck-footer-h">RECHTLICHES</div>
             <div className="deck-footer-links">

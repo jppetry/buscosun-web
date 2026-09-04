@@ -30,6 +30,8 @@
     "repack": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/repack-icon-d2.mjs",
     "repack:publish": "node scripts/publish-repack.mjs",
     "seo:logs": "node scripts/seo/parse-crawler-logs.mjs",
+    "seo:places": "node scripts/seo/export-place-slugs.mjs",
+    "verify:live": "node scripts/seo/verify-live.mjs",
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
     "qa:layers": "node scripts/qa-layers.mjs",

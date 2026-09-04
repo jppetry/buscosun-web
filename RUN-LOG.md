@@ -24,7 +24,8 @@ Zeitstempel (Europe/Berlin), Entscheidungen, die im Plan nicht standen. Prüfung
 | Etappe | Start | Ende | Ergebnis | Commit |
 |---|---|---|---|---|
 | E0 Fundament | 2026-09-05 00:45 | 2026-09-05 01:20 | grün | d39f854 |
-| E1 Kanonik & Ebene B | 2026-09-05 01:25 | 2026-09-05 03:05 | grün (lokal); Preview-Belege in E2 | (s. u.) |
+| E1 Kanonik & Ebene B | 2026-09-05 01:25 | 2026-09-05 03:05 | grün (lokal) | 4400a5c |
+| E2 Gerenderter Inhalt & Verlinkung | 2026-09-05 03:10 | 2026-09-05 04:30 | grün (lokal); Preview-Belege E1+E2 unten | (s. u.) |
 
 ## E0 · Fundament — 2026-09-05
 
@@ -80,3 +81,37 @@ gegen den Code; Verifier ist CRLF-empfindlich (V-SEO-24, s. SEO-PLAN). CI (Linux
 **Entscheidungen außerhalb des Plans:** kein SW-Version-Bump (Cache-Control `immutable` ändert das SW-Verhalten
 nicht — `ASSET_RE` ist ohnehin stale-while-revalidate); Header wirken nicht auf Proxy-Rewrites (Netlify), dort
 schützt nur robots.txt (in netlify.toml dokumentiert); `sitemap-news.xml` bleibt (Jan schreibt einen Saisonbericht).
+
+## E2 · Gerenderter Inhalt & interne Verlinkung — 2026-09-05
+
+**Getan:**
+- `src/router/RouteSeoBlock.tsx` + `routeSeoBlock.css`: „Über diese Ansicht" als natives `<details>` — Chip
+  sichtbar, Inhalt zugeklappt im DOM (kein `display:none`, kein versteckter Text). Inhalt = derselbe Text wie die
+  Shell (Route-Meta bzw. `subRouteText()`, lazy geladen), Brotkrumen, Fakten, Geschwister-Ansichten, Hub-Links.
+  H1 nur, wenn die Seite keine eigene hat. Lazy über `React.lazy` im `page()`-Wrapper (`router.tsx`,
+  `withSeo`), damit eagerJs/eagerCss unverändert bleiben.
+- **Abweichung vom Plan (Z3):** statt einer Karte am Ende der Readout-Spalte (je Deck anders) ein einheitlicher
+  Chip unten rechts (Desktop) bzw. rechts neben der Modell-Pille unter dem schwebenden Kopf (Mobil). Grund: zehn
+  Decks mit verschiedenen Layouts; der Chip lässt jede Bühne pixelgleich.
+- `src/nav/featureRail.tsx`: Rail-Einträge sind `<Link to>` statt `<button>` (gleiche Klassen; Deck-Handler
+  übernimmt per preventDefault — Klickverhalten unverändert, jetzt 11 crawlbare Links je Deck).
+- Startseiten-Footer: Spalte „Entdecken" (`/wetter/ /wissen/ /funktionen/ /wetterlage/`).
+- Punktforecast: Link „Mehr über das Wetter in <Ort>" auf `/wetter/<slug>/`, wenn ein kuratierter Ort ≤ 3 km liegt
+  (`src/router/placePages.ts`, `placeSlugs.json` via `npm run seo:places`, Verifier prüft Gleichheit mit `places.mjs`).
+- `scripts/seo/verify-live.mjs` (V-2…V-5, V-9, V-13 gegen ein Deploy), `npm run verify:live <url>`.
+- `budget.json`: **totalJs-Ratsche bewusst 1109,8 → 1114,0 KB gzip** (lazy Text-Chunk `subRouteTexts` ≈ 13 KB gzip,
+  nur nach dem App-Mount, immutable gecacht); eagerJs-Ratsche unverändert 107,9 (Ist 105,0), eagerCss 2,4/2,5.
+  Zwischenstand vor der Lazy-Umstellung: eagerCss 3,3 > 2,5 (Block-CSS im Start-Bundle) ⇒ behoben.
+
+**Messwerte (lokaler `vite preview` von dist/, Chrome-DevTools-MCP):**
+
+| Seite | Viewport | H1 | interne Links (DOM) | Wörter im Block (textContent) | Chip |
+|---|---|---|---|---|---|
+| `/wetterkarte/temperatur` | 390×844 | 1 (aus Katalog) | 25 | 293 | 166×44 @ (212,68) |
+| `/regenradar` | 1440×900 | 1 (eigene „Regnet es bald?", Block als `<p>`) | 16 (Rail 13) | 89 | 147×30 @ (1277,856) |
+| `/waldbrand/aktive-braende` | 1440×900 | 1 (aus Katalog) | 18 | 310 | 147×30, liegt über `.br-fires` frei |
+
+Vorher (Live, SEO-AUDIT §4): 0 H1, 0 Links, 35 Wörter. Konsole: 0 Fehler/Warnungen. Touch-Ziele im geöffneten
+Block mobil: alle ≥ 44 px (nach Fix der Brotkrumen-Links; Erstmessung 13 px). typecheck grün · build grün ·
+verify-seo 383/383 · verify-routing 142/142 · budget grün.
+Belege: `audit/seo-geo-2026/e2-mobile-temperatur-chip.jpeg`, `e2-desktop-regenradar-chip.jpeg`.

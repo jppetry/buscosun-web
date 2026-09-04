@@ -1,0 +1,83 @@
+/* „Über diese Ansicht" (SEO/GEO 2026, E2) — Command-Deck-Tokens (Sand/Ink, League Spartan-Fallback).
+   Nur ein Chip ist sichtbar; der Inhalt klappt als Glas-Karte auf. Kein display:none:
+   ein natives <details> hält den Text im DOM (crawlbar), ohne ihn zu zeigen. */
+.rsb {
+  position: fixed;
+  right: 16px;
+  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  z-index: 8;
+  width: max-content;
+  text-align: right;
+  max-width: min(640px, calc(100vw - 32px));
+  font-family: var(--font-base, system-ui, sans-serif);
+  color: var(--ink-900, #2C2A26);
+}
+.rsb-summary {
+  list-style: none;
+  cursor: pointer;
+  display: inline-flex; align-items: center; gap: 7px;
+  min-height: 30px; padding: 5px 12px 5px 8px;
+  border-radius: 999px;
+  background: var(--surface-glass, rgba(250, 246, 234, 0.92));
+  border: 1px solid var(--sand-200, #E0D6BE);
+  box-shadow: 0 1px 3px rgba(44, 42, 38, 0.10);
+  font-size: 12px; font-weight: 600; letter-spacing: .01em;
+  color: var(--stone-600, #5C5447);
+  backdrop-filter: blur(6px);
+}
+.rsb-summary::-webkit-details-marker { display: none; }
+.rsb-summary:hover { color: var(--ink-900, #2C2A26); border-color: var(--border-strong, #C4B896); }
+.rsb-summary:focus-visible { outline: 2px solid var(--terracotta-500, #C97B47); outline-offset: 2px; }
+.rsb-i {
+  display: inline-grid; place-items: center;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: var(--ink-900, #2C2A26); color: var(--cream-50, #FAF6EA);
+  font: 700 11px/1 var(--font-base, system-ui, sans-serif);
+}
+.rsb[open] { width: min(640px, calc(100vw - 32px)); }
+.rsb[open] .rsb-summary { color: var(--ink-900, #2C2A26); }
+.rsb-body {
+  margin-top: 8px;
+  max-height: min(68vh, 560px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  background: var(--surface-glass-strong, rgba(250, 246, 234, 0.97));
+  border: 1px solid var(--sand-200, #E0D6BE);
+  border-radius: 16px;
+  padding: 18px 20px 16px;
+  box-shadow: 0 8px 28px rgba(44, 42, 38, 0.18);
+  font-size: 14px; line-height: 1.55;
+  text-align: left;
+}
+.rsb-bc { font-size: 11px; color: var(--stone-500, #8B7355); margin-bottom: 8px; }
+.rsb-bc a { color: inherit; display: inline-block; padding: 2px 4px; margin: -2px -4px; border-radius: 6px; }
+.rsb-h1 { font-size: 18px; line-height: 1.25; font-weight: 600; margin: 0 0 8px; color: var(--ink-900, #2C2A26); }
+.rsb-lead { font-size: 14px; margin: 0 0 10px; }
+.rsb-body p { margin: 0 0 10px; }
+.rsb-h2 { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--stone-500, #8B7355); margin: 14px 0 6px; }
+.rsb-facts { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 0 0 6px; }
+.rsb-facts div { display: contents; }
+.rsb-facts dt { color: var(--stone-600, #5C5447); font-weight: 600; }
+.rsb-facts dd { margin: 0; }
+.rsb-list { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 6px; }
+.rsb-list a, .rsb-links a {
+  display: inline-block; padding: 4px 10px; border-radius: 999px;
+  background: #fff; border: 1px solid var(--sand-200, #E0D6BE);
+  color: var(--ink-900, #2C2A26); text-decoration: none; font-size: 12.5px; line-height: 1.4;
+}
+.rsb-list a:hover, .rsb-links a:hover { border-color: var(--terracotta-500, #C97B47); color: var(--terracotta-700, #A85E2E); }
+.rsb-links { display: flex; flex-wrap: wrap; gap: 6px; }
+.rsb-foot { font-size: 11.5px; color: var(--stone-500, #8B7355); margin: 10px 0 0; }
+
+/* Mobil: über der Bottom-Bar der Decks (--mdk-bar-h u. a. sind 64 px), Touch-Ziel ≥ 44 px. */
+@media (max-width: 767px) {
+  /* Unten liegen Bottom-Bar und Sheet — der Chip sitzt rechts unter dem schwebenden Kopf,
+     neben der Modell-Pille (links, top 68px); die Karte klappt nach unten auf. */
+  .rsb { top: calc(68px + env(safe-area-inset-top, 0px)); bottom: auto; right: 12px; z-index: 11; }
+  .rsb[open] { width: calc(100vw - 24px); }
+  .rsb-summary { min-height: 44px; padding: 10px 14px 10px 10px; font-size: 13px; }
+  .rsb-body { max-height: min(60vh, 480px); padding: 16px 16px 14px; }
+  .rsb-list a, .rsb-links a { min-height: 44px; display: inline-flex; align-items: center; padding: 8px 12px; }
+  .rsb-bc { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; }
+  .rsb-bc a { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; min-width: 44px; padding: 0 8px; margin: 0; }
+}

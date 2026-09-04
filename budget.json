@@ -1,6 +1,6 @@
 {
-  "note": "gzip-KB. limitKb = Ratsche gegen Regression (rot). targetKb = Ziel aus dem Rendering-Audit (nur Hinweis). Aktualisieren: npm run budget -- --update",
-  "updated": "2026-08-29",
+  "note": "gzip-KB. limitKb = Ratsche gegen Regression (rot). targetKb = Ziel aus dem Rendering-Audit (nur Hinweis). Aktualisieren: npm run budget -- --update. 2026-09-05 (SEO/GEO E2): totalJs 1109,8 → 1114,0 für den lazy geladenen Sub-Routen-Text-Chunk (subRouteTexts, ~13 KB gzip, nur nach dem App-Mount, immutable gecacht); eagerJs-Ratsche unverändert 107,9.",
+  "updated": "2026-09-05",
   "budgets": {
     "eagerJs": {
       "limitKb": 107.9,
@@ -13,7 +13,7 @@
       "limitKb": 292.3
     },
     "totalJs": {
-      "limitKb": 1109.8
+      "limitKb": 1114
     }
   }
 }

@@ -26,6 +26,7 @@ import { verifyLegacyHash } from '../src/router/legacyHash.ts';
 import { verifyFireRouteView } from '../src/fire/fireRouteView.ts';
 import { SITE, mapPermalink } from './seo/content.mjs';
 import { TOOLS } from './seo/tools.mjs';
+import { PLACES } from './seo/places.mjs';
 // LE1/H2 — Frühstart der Datenabrufe + Shell-Preloads (audit/layer-erstbild.md §4)
 import { warmPlanFor, GRIB_MANIFEST_PATH } from '../src/router/prefetch.ts';
 import { warmLiveManifest, takeWarmManifest, liveManifestUrl, MANIFEST_TTL_MS, _warmManifestCount, _resetWarmManifests } from '../src/sources/liveManifest.ts';
@@ -55,6 +56,17 @@ const muc = { name: 'München', lat: 48.13743, lon: 11.57549, country: 'DE', slu
 add('[seo] mapPermalink (Geo-Seiten) ≡ mapPathForPlace (App)', mapPermalink(muc) === mapPathForPlace(muc, 'temp'), `${mapPermalink(muc)} vs ${mapPathForPlace(muc, 'temp')}`);
 const badLinks = TOOLS.filter((t) => !routeForPath(t.deepLink.split('?')[0]));
 add('[seo] jeder tools.mjs-deepLink zeigt auf eine Route (kein Hash mehr)', badLinks.length === 0 && TOOLS.every((t) => !t.deepLink.includes('#')), badLinks.map((t) => `${t.slug}→${t.deepLink}`).join(', '));
+
+// SEO/GEO 2026 (E2): die App verlinkt Ortsseiten über src/router/placeSlugs.json (npm run seo:places).
+{
+  const rows = JSON.parse(readFileSync(join(ROOT, 'src', 'router', 'placeSlugs.json'), 'utf8'));
+  const want = PLACES.map((p) => [p.slug, p.name, +p.lat.toFixed(3), +p.lon.toFixed(3)]);
+  add('[seo] placeSlugs.json ≡ places.mjs (npm run seo:places nach jeder Ortsänderung)', JSON.stringify(rows) === JSON.stringify(want), rows.length + ' vs ' + want.length);
+  const railSrc = readFileSync(join(ROOT, 'src', 'nav', 'featureRail.tsx'), 'utf8');
+  add('[seo] FeatureRail rendert Links (crawlbar), keine Buttons', /<Link\b/.test(railSrc) && !/<button\b/.test(railSrc) && railSrc.includes('pathForFeature(it.id)'));
+  const routerSrc2 = readFileSync(join(ROOT, 'src', 'router', 'router.tsx'), 'utf8');
+  add('[seo] jede Seite bekommt RouteSeoBlock (withSeo im page()-Wrapper)', routerSrc2.includes('withSeo((await load()).default)') && routerSrc2.includes('<RouteSeoBlock />') && routerSrc2.includes("lazy(() => import('./RouteSeoBlock'))"));
+}
 
 // --- (3) netlify.toml: Reihenfolge + Vollständigkeit ------------------------------
 const toml = readFileSync(join(ROOT, 'netlify.toml'), 'utf8');

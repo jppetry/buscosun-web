@@ -8,12 +8,14 @@
  * `main.tsx` VORHER die Legacy-Hash-Migration laufen lässt — der Router liest
  * `window.location` beim Erzeugen.
  */
-import type { ComponentType } from 'react';
+import { lazy, Suspense, type ComponentType } from 'react';
 import { createBrowserRouter, isRouteErrorResponse, Navigate, useLocation, useRouteError, type RouteObject } from 'react-router';
 import App from '../App';
 import AppLoader from './AppLoader';
 import { CROSS_ALIASES, ROUTES, ROUTE_BY_ID, routeForPath, type RouteId } from './routes';
 import { warmRouteData } from './prefetch';
+// Lazy: Block + CSS hängen nicht am Start-Bundle (Budget-Ratschen eagerJs/eagerCss).
+const RouteSeoBlock = lazy(() => import('./RouteSeoBlock'));
 
 /**
  * `warm`: LE1/H2 — sobald React Router die Route auflöst (beim Erstaufruf: direkt
@@ -21,13 +23,23 @@ import { warmRouteData } from './prefetch';
  * der Datenabrufe dieser Seite (`prefetch.ts`). Fehler dort bleiben ohne Folge
  * — die Seite lädt dann wie bisher selbst.
  */
+/**
+ * SEO/GEO 2026 (E2): hinter jede Seite kommt `RouteSeoBlock` („Über diese Ansicht") —
+ * derselbe Text wie in der Route-Shell, im gerenderten DOM. Der Block entscheidet
+ * selbst, ob er für die Route etwas zeigt (Home/noindex: nichts).
+ */
+const withSeo = (C: ComponentType): ComponentType => {
+  const Wrapped = () => (<><C /><Suspense fallback={null}><RouteSeoBlock /></Suspense></>);
+  Wrapped.displayName = `WithSeo(${C.displayName ?? C.name ?? 'Page'})`;
+  return Wrapped;
+};
 const page = (load: () => Promise<{ default: ComponentType }>, warm?: RouteId) => ({
   lazy: {
     Component: async () => {
       if (warm && typeof window !== 'undefined') {
         try { warmRouteData(warm, window.location.pathname, window.location.search); } catch { /* Frühstart ist Bonus */ }
       }
-      return (await load()).default;
+      return withSeo((await load()).default);
     },
   },
 });
