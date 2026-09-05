@@ -16,6 +16,8 @@ import { EVENTS } from './seo/events.mjs';
 import { LEGAL_PAGES, operatorIncomplete } from './seo/legal.mjs';
 import { buildLicensePage } from './seo/licenses.mjs';
 import { allMethodikPages, buildUeberPage, buildOhneTrackerPage, METHODIK_UPDATED } from './seo/methodik.mjs';
+import { GLOSSARY, GLOSSARY_UPDATED, renderGlossaryPage } from './seo/glossary.mjs';
+import { AUDIENCES, AUDIENCES_UPDATED, renderAudiencePage, renderAudienceHub } from './seo/audiences.mjs';
 import {
   SITE, renderPlacePage, renderHomeRootContent, homeHeadExtras, escapeHtml, metaFor,
   renderExplainerPage, renderWissenHub, renderToolPage, renderFunktionenHub,
@@ -161,6 +163,18 @@ for (const pg of TRUST_PAGES) {
   writeFileSync(join(dir, 'index.html'), renderArticlePage(pg, { updated: METHODIK_UPDATED }), 'utf8');
 }
 
+// 2h) SEO/GEO 2026 (E5/E6): /glossar/ (ein Nachschlagewerk, Anker je Begriff) und
+// /fuer/<gruppe>/ (Zielgruppen-Seiten inkl. „Was buscosun hier nicht kann") + Hub.
+mkdirSync(join(DIST, 'glossar'), { recursive: true });
+writeFileSync(join(DIST, 'glossar', 'index.html'), renderGlossaryPage(GLOSSARY, GLOSSARY_UPDATED), 'utf8');
+for (const pg of AUDIENCES) {
+  const dir = join(DIST, 'fuer', pg.slug);
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, 'index.html'), renderAudiencePage(pg, AUDIENCES_UPDATED), 'utf8');
+}
+mkdirSync(join(DIST, 'fuer'), { recursive: true });
+writeFileSync(join(DIST, 'fuer', 'index.html'), renderAudienceHub(AUDIENCES, AUDIENCES_UPDATED), 'utf8');
+
 // 2b) 404.html — echte Fehlerseite (Host muss sie mit HTTP 404 ausliefern,
 // siehe docs/seo-geo/your-actions.md). noindex, aber crawlbar verlinkt.
 function notFoundPage() {
@@ -218,6 +232,10 @@ function sitemap() {
     { loc: `${SITE.url}/methodik/`, pri: '0.7', mod: METHODIK_UPDATED },
     ...METHODIK.map((pg) => ({ loc: `${SITE.url}/methodik/${pg.slug}/`, pri: '0.6', mod: METHODIK_UPDATED })),
     ...TRUST_PAGES.map((pg) => ({ loc: `${SITE.url}/${pg.slug}/`, pri: '0.5', mod: METHODIK_UPDATED })),
+    // E5/E6: Glossar + Zielgruppen-Seiten
+    { loc: `${SITE.url}/glossar/`, pri: '0.6', mod: GLOSSARY_UPDATED },
+    { loc: `${SITE.url}/fuer/`, pri: '0.7', mod: AUDIENCES_UPDATED },
+    ...AUDIENCES.map((pg) => ({ loc: `${SITE.url}/fuer/${pg.slug}/`, pri: '0.6', mod: AUDIENCES_UPDATED })),
   ];
   const body = urls.map((u) =>
     `  <url><loc>${u.loc}</loc><lastmod>${u.mod}</lastmod><priority>${u.pri}</priority></url>`).join('\n');
@@ -389,4 +407,4 @@ const fullTools = TOOLS.filter((t) => t.status === 'full').length;
 const fullEvents = EVENTS.filter((e) => e.status === 'full').length;
 const appUrls = sitemapPaths().length;
 const urlCount = PLACES.length + 5 + appUrls + fullExplainers + fullTools + fullEvents + LEGAL_PAGES.length + 1; // +1 = /lizenzen/ (V-104)
-console.log(`[seo] ${pages} Geo, ${explainerPages} Explainer (${fullExplainers} idx), ${toolPages} Tools (${fullTools} idx), ${eventPages} Wetterlage (${fullEvents} idx), ${LEGAL_PAGES.length} Rechtsseiten + Hubs, ${METHODIK.length} Methodik + ${TRUST_PAGES.length} Vertrauensseiten, ${routeShells} App-Routen-Shells + ${subShells} Sub-Routen-Shells (${appUrls} URLs), sitemap.xml (${urlCount} URLs), feed.xml, sitemap-news.xml, Home angereichert. Build ${BUILD_DATE}.`);
+console.log(`[seo] ${GLOSSARY.length} Glossar-Begriffe, ${AUDIENCES.length} Zielgruppen-Seiten, ${pages} Geo, ${explainerPages} Explainer (${fullExplainers} idx), ${toolPages} Tools (${fullTools} idx), ${eventPages} Wetterlage (${fullEvents} idx), ${LEGAL_PAGES.length} Rechtsseiten + Hubs, ${METHODIK.length} Methodik + ${TRUST_PAGES.length} Vertrauensseiten, ${routeShells} App-Routen-Shells + ${subShells} Sub-Routen-Shells (${appUrls} URLs), sitemap.xml (${urlCount} URLs), feed.xml, sitemap-news.xml, Home angereichert. Build ${BUILD_DATE}.`);

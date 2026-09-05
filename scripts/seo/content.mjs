@@ -6,7 +6,14 @@
  * abgeleitete Faktentexte + Verweis auf die Live-App. Ehrlich, GEO-zitierbar.
  */
 
+import { existsSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { nearestPlaces } from './places.mjs';
+
+const OG_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'public', 'og');
+/** SEO/GEO 2026 (E4): eigenes OG-Bild nur, wenn die PNG existiert — sonst die Bereichs-Karte (E10 erzeugt die Bilder). */
+export const ogImageOr = (slug, fallback) => (existsSync(join(OG_DIR, `${slug}.png`)) ? `/og/${slug}.png` : fallback);
 
 export const SITE = {
   name: 'buscosun',
@@ -286,9 +293,9 @@ function jsonLdScript(obj) {
 // raster (PNG/JPG/WebP) — social + Discover never render SVG, so we fall back to
 // the branded home hero, NOT the og.svg placeholder. verify-seo.mjs additionally
 // hard-fails on any SVG og:image, so this can never regress silently.
-const DEFAULT_OG_IMAGE = '/og/home.png';
+export const DEFAULT_OG_IMAGE = '/og/home.png';
 
-function headBlock({ title, description, canonicalPath, locale, ogImage, jsonLd, noindex, ogTitle }) {
+export function headBlock({ title, description, canonicalPath, locale, ogImage, jsonLd, noindex, ogTitle }) {
   const url = SITE.url + canonicalPath;
   const ogt = ogTitle || title;
   return `    <meta charset="UTF-8" />
@@ -313,7 +320,7 @@ function headBlock({ title, description, canonicalPath, locale, ogImage, jsonLd,
     ${entityScripts()}`;
 }
 
-const PAGE_CSS = `:root{--sand:#FAF6EA;--ink:#2C2A26;--stone:#5C5447;--terra:#C97B47;--border:#E0D6BE}
+export const PAGE_CSS = `:root{--sand:#FAF6EA;--ink:#2C2A26;--stone:#5C5447;--terra:#C97B47;--border:#E0D6BE}
 *{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--sand);color:var(--ink);line-height:1.6}
 .wrap{max-width:760px;margin:0 auto;padding:2rem 1.25rem 4rem}
 a{color:var(--terra)}nav.bc{font-size:.85rem;color:var(--stone);margin-bottom:1.5rem}nav.bc a{color:var(--stone)}
@@ -446,7 +453,7 @@ const PLACE_BY_SLUG = Object.fromEntries(PLACES.map((p) => [p.slug, p]));
 /** Article-JSON-LD für einen Explainer (mit author, datePublished, dateModified). */
 /** OG/Hero-Bild je Explainer (volle = eigenes PNG, Scaffold = Kategorie-Default). */
 export function explainerOgImage(ex) {
-  return ex.status === 'full' ? `/og/${ex.slug}.png` : '/og/wissen-default.png';
+  return ex.status === 'full' ? ogImageOr(ex.slug, '/og/wissen-default.png') : '/og/wissen-default.png';
 }
 
 export function articleJsonLd(ex) {
@@ -609,7 +616,7 @@ import { EXPLAINERS_BY_SLUG } from './explainers.mjs';
 
 /** OG/Hero-Bild je Tool (volle = eigenes PNG, Scaffold = Kategorie-Default). */
 export function toolOgImage(tool) {
-  return tool.status === 'full' ? `/og/${tool.slug}.png` : '/og/funktionen-default.png';
+  return tool.status === 'full' ? ogImageOr(tool.slug, '/og/funktionen-default.png') : '/og/funktionen-default.png';
 }
 
 export function softwareApplicationJsonLd(tool) {

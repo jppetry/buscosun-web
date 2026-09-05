@@ -807,6 +807,8 @@ function DeckFooter({ onOpenFeature }: { onOpenFeature: (f: FeatureInfo) => void
               <a href="/wetterlage/">Wetterlagen</a><br />
               <a href="/methodik/">Methodik</a><br />
               <a href="/ueber/">Über buscosun</a><br />
+              <a href="/fuer/">Für wen</a><br />
+              <a href="/glossar/">Glossar</a><br />
               <a href="/ohne-tracker/">Ohne Tracker</a>
             </div>
           </div>
