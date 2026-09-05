@@ -11,6 +11,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { nearestPlaces } from './places.mjs';
 import { climateSection, sunSection, unknownsSection, climateHighlights, placeDescription, CLIMA_YEARS } from './climate.mjs';
+import { verificationMetaTags } from './verification.mjs';
 
 const OG_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'public', 'og');
 /** SEO/GEO 2026 (E4): eigenes OG-Bild nur, wenn die PNG existiert — sonst die Bereichs-Karte (E10 erzeugt die Bilder). */
@@ -322,6 +323,9 @@ export function headBlock({ title, description, canonicalPath, locale, ogImage, 
     <meta name="twitter:title" content="${escapeHtml(ogt)}" />
     <meta name="twitter:description" content="${escapeHtml(description)}" />
     <meta name="twitter:image" content="${SITE.url}${ogImage || DEFAULT_OG_IMAGE}" />
+    <!-- E10c: Auto-Discovery des Feeds. Er existierte, aber keine Seite verwies darauf —
+         Feed-Reader und Aggregatoren konnten ihn deshalb nicht finden. -->
+    <link rel="alternate" type="application/rss+xml" title="buscosun — Wetterwissen &amp; Wetterlagen" href="/feed.xml" />
     ${jsonLd.map(jsonLdScript).join('\n    ')}
     ${entityScripts()}`;
 }
@@ -1125,9 +1129,11 @@ function routeBreadcrumbJsonLd(route, url) {
 /** Head-Ergänzungen einer Route-Shell (Canonical = Pfad ohne Query). */
 export function routeHeadExtras(route) {
   const url = SITE.url + route.path;
+  const feedLink = `<link rel="alternate" type="application/rss+xml" title="buscosun — Wetterwissen &amp; Wetterlagen" href="/feed.xml" />`;
   const title = `${route.meta.title} | ${SITE.name}`;
   const og = route.meta.ogImage || DEFAULT_OG_IMAGE;
   return `<link rel="canonical" href="${url}" />${route.meta.noindex ? '\n    <meta name="robots" content="noindex, follow" />' : ''}
+    ${feedLink}
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="${SITE.name}" />
     <meta property="og:title" content="${escapeHtml(title)}" />
@@ -1234,7 +1240,11 @@ export function renderSubRouteRootContent(route, sub, text, siblings, explainerO
 export function homeHeadExtras() {
   const canonicalPath = '/';
   const url = SITE.url + '/';
-  return `<link rel="canonical" href="${url}" />
+  // E10c: Eigentumsnachweis fuer Search Console / Bing (leer, solange kein Token eingetragen ist).
+  const extras = [`<link rel="alternate" type="application/rss+xml" title="buscosun — Wetterwissen &amp; Wetterlagen" href="/feed.xml" />`, ...verificationMetaTags()];
+  const verify = extras.map((t) => `
+    ${t}`).join('');
+  return `<link rel="canonical" href="${url}" />${verify}
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="${SITE.name}" />
     <meta property="og:title" content="buscosun — ${escapeHtml(SITE.tagline)}" />
