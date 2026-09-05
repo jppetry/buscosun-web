@@ -378,6 +378,16 @@ war fluechtig — nachgemessen antwortet `/llms.txt` am Preview in 0,31 s (10 KB
    (gleiche CSS-Klasse, keine Layoutaenderung), damit Screenreader und agentische Browser den Inhaltsbereich
    finden.
 
+**Nachmessung nach der Behebung** (Preview neu gebaut, `/fuer/bau-und-kran/`, mobil): Barrierefreiheit
+**93 → 100**, Agentic Browsing **67 → 100**, Best Practices 96, SEO 66. Die beiden verbliebenen Punkte
+stammen nachweislich aus dem Preview selbst und nicht aus dem Code: `is-crawlable` nennt als Quelle
+`x-robots-tag: noindex` (Netlify auf Deploy-Previews), und `inspector-issues` listet ausschliesslich Cookies
+von `app.netlify.com/cdp/…` — der Preview-Werkzeugleiste von Netlify. Auf der Produktion erreicht derselbe
+Seitentyp 100 in beiden Kategorien.
+
+**Abschluss-Verifikation am Preview (Commit 9976fd3):** `verify:live --sample 40` → **156 Checks ok,
+0 Fehler**, 117 Sitemap-URLs geprueft.
+
 Die Kennzahlen des Erstbilds bleiben unberuehrt: CLS 0 in beiden Laeufen, eagerJs/eagerCss unveraendert.
 
 ## Vorher / Nachher (gemessen, nicht geschätzt)
