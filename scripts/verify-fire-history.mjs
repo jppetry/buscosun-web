@@ -140,7 +140,10 @@ if (!existsSync(file)) {
   add('[client] Historie-Modus leert die Live-Daten der Karte (Hotspots, Raster, Hüllen, Flächen, Pfeile)',
     /hotspots=\{history \? null : hotspots\}/.test(page) && /fireZones=\{history \? EMPTY_ZONES/.test(page) && /clusters=\{history \? EMPTY_CLUSTER_LIST/.test(page) && /footprintFc=\{history \? null/.test(page) && /spreadFc=\{history \? null : spreadFc\}/.test(page));
   add('[client] Standort-Rauten bleiben im Historie-Modus (zeitlos)', /anomalyFc=\{anomalyFc\}/.test(page));
-  add('[client] Kill-Switch: Fenster Monat/Saison nur mit historyEnabled()', /historyEnabled\(\) && \(\[\['month', 'Monat'\], \['season', 'Saison'\]\]/.test(page) && /historyEnabled\(\) && initial\?\.historyWindow/.test(page));
+  // SEO/GEO 2026 (E7): das Anfangsfenster kann jetzt auch aus dem Preset der Sub-Route
+  // /waldbrand/historie kommen (`historyEnabled() && (initial?.historyWindow ?? routePreset?.history)`).
+  // Die Sonde prüft weiterhin die Aussage — historyEnabled() steht davor —, nicht die Klammerung.
+  add('[client] Kill-Switch: Fenster Monat/Saison nur mit historyEnabled()', /historyEnabled\(\) && \(\[\['month', 'Monat'\], \['season', 'Saison'\]\]/.test(page) && /historyEnabled\(\) && \(?initial\?\.historyWindow/.test(page));
   add('[client] Live-Fenster-Klick verlässt die Historie', /setHistory\(null\); setTime\(\(t\) => \(\{ \.\.\.t, windowH: h \}\)\)/.test(page));
   add('[client] Permalink führt historyWindow mit (nur im Modus)', /historyWindow: history,/.test(page));
   // BD2d (2026-08-31): die Dossier-Registry ist wieder entfallen (Sidebars bleiben Bestand) — zwei Orte.
