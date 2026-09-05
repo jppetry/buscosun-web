@@ -6,7 +6,7 @@ Community). Der autonome Runner sammelt sie hier und macht code-seitig weiter.
 ## Offen
 
 ### Phase 0.3 — SEO-Infra
-- [ ] **GSC + Bing Webmaster Tools**: Property `https://buscosun.app` verifizieren.
+- [ ] **GSC + Bing Webmaster Tools**: Property `https://buscosun.com` verifizieren.
 - [ ] **Sitemaps einreichen**: `/sitemap.xml` (und später `/sitemap-news.xml`,
       `/feed.xml`) in GSC + Bing einreichen.
 - [ ] **Host-404**: Statisches Hosting so konfigurieren, dass unbekannte Pfade

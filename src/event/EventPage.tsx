@@ -36,7 +36,18 @@ import '../mobile/safeArea.css';
 import './eventDeck.css';
 import { FeatureRail, type RailFeature } from '../nav/featureRail';
 
-interface Props { onBack: () => void; onOpenFeature?: (id: RailFeature) => void; }
+interface Props {
+  onBack: () => void;
+  onOpenFeature?: (id: RailFeature) => void;
+  /**
+   * SEO/GEO 2026 (E7): Anlass aus `/eventplanung/<anlass>` (id aus EVENT_ACTIVITIES).
+   * Reines Preset — der Wizard startet wie immer beim Ort, Schritt 3 ist nur schon gefuellt.
+   * Ein Permalink `#ev=` gewinnt weiterhin (er traegt den ganzen Zustand).
+   */
+  initialActivityId?: string | null;
+  /** Anlasswechsel im Wizard ⇒ Pfad nachziehen (replace). Nur bei echter Nutzeraktion. */
+  onActivityChange?: (activityId: string | null) => void;
+}
 
 // Karte erst laden, wenn der Flächen-Schritt erreicht wird — maplibre bleibt
 // aus dem Wizard-Chunk (EZ, Entscheidung E7).
@@ -52,22 +63,24 @@ const STEP_META: Array<{ eyebrow: string; title: string; sub: string; optional?:
 
 const LAST_STEP = STEP_META.length - 1;
 
-export default function EventPage({ onBack, onOpenFeature }: Props) {
+export default function EventPage({ onBack, onOpenFeature, initialActivityId, onActivityChange }: Props) {
   return (
     <NotificationProvider>
-      <EventPageInner onBack={onBack} onOpenFeature={onOpenFeature} />
+      <EventPageInner onBack={onBack} onOpenFeature={onOpenFeature} initialActivityId={initialActivityId} onActivityChange={onActivityChange} />
     </NotificationProvider>
   );
 }
 
-function EventPageInner({ onBack, onOpenFeature }: Props) {
+function EventPageInner({ onBack, onOpenFeature, initialActivityId, onActivityChange }: Props) {
   const isMobile = useIsMobile();
-  const [activity, setActivity] = useState<EventActivity | null>(null);
+  // E7: Preset der Sub-Route (unbekannte id ⇒ kein Anlass, der Wizard fragt wie bisher).
+  const presetActivity = initialActivityId ? EVENT_ACTIVITIES.find((a) => a.id === initialActivityId) ?? null : null;
+  const [activity, setActivity] = useState<EventActivity | null>(presetActivity);
   const [location, setLocation] = useState<Location | null>(null);
   const [zone, setZone] = useState<EventZone | null>(null);
   const [windowSel, setWindowSel] = useState<TimeWindow>({ mode: 'range', from: todayISO(), to: horizonEndISO() });
-  const [phases, setPhases] = useState<EventPhase[]>(defaultPhasesFor(''));
-  const [tuning, setTuning] = useState<PresetTuning>(defaultTuningFor(''));
+  const [phases, setPhases] = useState<EventPhase[]>(() => defaultPhasesFor(presetActivity?.id ?? ''));
+  const [tuning, setTuning] = useState<PresetTuning>(() => defaultTuningFor(presetActivity?.id ?? ''));
   // Standard-Metrik „Score" wie in der Vorlage (Schritt 3 zeigt die Score-Schwelle
   // mit kritisch/okay/gut). Bleibt deaktiviert — ehrlicher Ausgangszustand.
   const [planB, setPlanB] = useState<PlanBConfig>(() => ({ ...defaultPlanB(), metric: 'score', threshold: planBMetricDef('score').default }));
@@ -105,6 +118,8 @@ function EventPageInner({ onBack, onOpenFeature }: Props) {
   const handleActivity = (a: EventActivity | null) => {
     setActivity(a);
     if (a) { setPhases(defaultPhasesFor(a.id)); setTuning(defaultTuningFor(a.id)); }
+    // E7: nur die Nutzeraktion zieht den Pfad nach — die Wiederherstellung aus `#ev=` nicht.
+    onActivityChange?.(a?.id ?? null);
   };
 
   const partial: Partial<EventQuery> = {

@@ -14,7 +14,7 @@
 
 import type { FeatureId } from '../App';
 import { ALL_LAYER_KEYS } from '../map/layerTypes';
-import { LAYER_SLUGS, LAYER_SLUG_TITLE } from './urlState';
+import { LAYER_SLUGS, LAYER_SLUG_TITLE, LAYER_SLUG_DESCRIPTION } from './urlState';
 
 /** Kanonische Origin — deckungsgleich mit `scripts/seo/content.mjs` (O-03); der Verifier prüft das. */
 export const SITE_URL = 'https://buscosun.com';
@@ -33,6 +33,8 @@ export interface RouteMeta {
   lead: string;
   ogImage?: string;
   noindex?: boolean;
+  /** Letzte inhaltliche Änderung (Sitemap-lastmod); Default `CONTENT_UPDATED`. */
+  updated?: string;
 }
 
 export interface SubRoute {
@@ -41,7 +43,15 @@ export interface SubRoute {
   description: string;
   /** Sicht, die ohne Nutzereingabe leer ist (3D braucht eine hochgeladene Strecke) ⇒ nicht in die Sitemap. */
   noindex?: boolean;
+  /** Eigenes OG-Bild der Sub-Route (sonst das der Route). */
+  ogImage?: string;
+  /** Letzte inhaltliche Änderung (Sitemap-lastmod). Die ausführlichen Texte (H1, Lead, Absätze,
+   *  Fakten) stehen NICHT hier, sondern in `src/seo/subRouteTexts.ts` — außerhalb des Start-Bundles. */
+  updated?: string;
 }
+
+/** Datum der letzten Textänderung an dieser Tabelle — Sitemap-`lastmod` für alle App-Routen ohne eigenes `updated`. */
+export const CONTENT_UPDATED = '2026-09-05';
 
 export interface RouteDef {
   id: RouteId;
@@ -61,7 +71,7 @@ export interface RouteDef {
 const LAYER_SUBS: readonly SubRoute[] = ALL_LAYER_KEYS.map((k) => ({
   slug: LAYER_SLUGS[k],
   title: `${LAYER_SLUG_TITLE[k]} DACH`,
-  description: `${LAYER_SLUG_TITLE[k]} für Deutschland, Österreich und die Schweiz auf der interaktiven buscosun-Wetterkarte — amtliche Quellen, höhenkorrigiert, ohne Tracker.`,
+  description: LAYER_SLUG_DESCRIPTION[k],
 }));
 
 export const ATMOSPHERE_LENS_SLUGS = {
@@ -71,7 +81,32 @@ export const ATMOSPHERE_LENS_SLUGS = {
 } as const;
 export type AtmosphereLensSlug = (typeof ATMOSPHERE_LENS_SLUGS)[keyof typeof ATMOSPHERE_LENS_SLUGS];
 
-export const FIRE_VIEW_SLUGS = ['gefahrenindex', 'aktive-braende', 'trockenheit'] as const;
+/**
+ * SEO/GEO 2026 (E7): das Arbeitsfenster (Go/No-Go) ist fachlich eine eigene Ansicht — sie hatte
+ * bisher nur die Query-Form "?ansicht=gonogo" und damit keinen kanonischen Pfad. Der Pfad liegt
+ * auf derselben Linse "section"; die alte Query-Form bleibt gueltig und wird auf ihn umgeschrieben.
+ */
+export const ATMOSPHERE_WORK_WINDOW_SLUG = 'arbeitsfenster';
+
+export const FIRE_VIEW_SLUGS = ['gefahrenindex', 'aktive-braende', 'trockenheit', 'historie', 'thermalanomalien'] as const;
+
+/**
+ * SEO/GEO 2026 (E7): Anlass-Sub-Routen der Event-Planung. Der Slug ist deutsch, der Wert die id
+ * des Anlasses in "src/event/eventModel.ts" (EVENT_ACTIVITIES). Die Sub-Route waehlt den Anlass
+ * im Wizard vor — der uebrige Zustand bleibt wie bisher im Fragment "#ev=".
+ */
+export const EVENT_ACTIVITY_SLUGS: Readonly<Record<string, string>> = {
+  grillen: 'bbq',
+  hochzeit: 'wedding',
+  wandern: 'hiking',
+  drohne: 'drone',
+  fotografie: 'photo',
+  sterne: 'stargazing',
+  radtour: 'cycling',
+  picknick: 'picnic',
+  laufen: 'running',
+  baden: 'swimming',
+};
 
 export const ROUTES: readonly RouteDef[] = [
   {
@@ -89,7 +124,7 @@ export const ROUTES: readonly RouteDef[] = [
       title: 'Interaktive Wetterkarte DACH',
       description: 'Wind, Niederschlag, Temperatur, Wolken, Böen, Gewitter und amtliche Warnungen für Deutschland, Österreich und die Schweiz auf einer Karte — aus DWD, GeoSphere und MeteoSchweiz.',
       h1: 'Interaktive Wetterkarte für Deutschland, Österreich und die Schweiz',
-      lead: 'Die Wetterkarte von buscosun legt Wind, Niederschlagsradar, höhenkorrigierte Temperatur, Bewölkung, Böen, Gewitterpotenzial, Blitze, Stationen und amtliche Warnungen als frei kombinierbare Layer über eine flüssige Vektorkarte — mit Zeit-Schieber und Modellwahl je Land, aus amtlichen Quellen, ohne Konto und ohne Tracker.',
+      lead: 'Die Wetterkarte von buscosun legt Wind, Niederschlagsradar, höhenkorrigierte Temperatur, Bewölkung, Böen, Gewitterpotenzial, Blitze, Stationen und amtliche Warnungen als frei kombinierbare Layer über eine flüssige Vektorkarte — mit Zeit-Schieber (beim Start auf die nächsten zwei Stunden begrenzt, beim ersten Ziehen bis 48 Stunden) und Modellwahl je Land, aus amtlichen Quellen, ohne Konto und ohne Tracker.',
       ogImage: '/og/wetterkarte.png',
     },
   },
@@ -139,7 +174,20 @@ export const ROUTES: readonly RouteDef[] = [
     },
   },
   {
-    id: 'eventplanung', path: '/eventplanung', aliases: ['/events', '/event'], featureId: 'event', subs: null,
+    id: 'eventplanung', path: '/eventplanung', aliases: ['/events', '/event'], featureId: 'event', subParam: 'view',
+    // SEO/GEO 2026 (E7): je Anlass ein kanonischer Pfad — der Wizard oeffnet mit vorgewaehltem Anlass.
+    subs: [
+      { slug: 'grillen', title: 'Grillwetter — der beste Tag zum Grillen', description: 'Welcher Tag der kommenden Woche ist warm, trocken und windstill genug für Grillabend, Gartenfest oder Hoffest?', updated: CONTENT_UPDATED },
+      { slug: 'hochzeit', title: 'Hochzeitswetter mit Plan B', description: 'Trauung, Empfang und Abendfeier einzeln bewertet, dazu die Schwelle, ab der ein Plan B nötig wird — für die Hochzeit im Freien.', updated: CONTENT_UPDATED },
+      { slug: 'wandern', title: 'Wanderwetter — der beste Tag für die Tour', description: 'Trocken, mild, gute Sicht: welcher der nächsten Tage sich für die Wanderung eignet, mit ehrlicher Sicherheit je Tag.', updated: CONTENT_UPDATED },
+      { slug: 'drohne', title: 'Drohnenwetter — Böen, Sicht und Regen', description: 'Der beste Tag für den Drohnenflug: Böen zählen am schwersten, dazu Sicht und Niederschlag — plus Go/No-Go auf Flughöhe.', updated: CONTENT_UPDATED },
+      { slug: 'fotografie', title: 'Fotowetter — Licht, Wolken und Stimmung', description: 'Wolkenlicht statt blankem Himmel: welcher Tag weiches Licht verspricht, dazu goldene und blaue Stunde für jedes Datum.', updated: CONTENT_UPDATED },
+      { slug: 'sterne', title: 'Sternenwetter — klare Nächte finden', description: 'Wolken, Mond, astronomische Dunkelheit und Tau-Risiko für die Kernnacht — welche Nacht der Woche sich zum Beobachten eignet.', updated: CONTENT_UPDATED },
+      { slug: 'radtour', title: 'Radwetter — der beste Tag für die Ausfahrt', description: 'Wind wiegt schwer, Regen noch schwerer: welcher Tag sich für Rennrad, Gravel oder die E-Bike-Tour anbietet.', updated: CONTENT_UPDATED },
+      { slug: 'picknick', title: 'Picknickwetter — mild, trocken, sonnig', description: 'Der beste Tag für Picknick, Kindergeburtstag im Freien oder das Treffen im Park — mild, trocken und wenig bewölkt.', updated: CONTENT_UPDATED },
+      { slug: 'laufen', title: 'Laufwetter — kühl und trocken', description: 'Wann es kühl und trocken genug für den langen Lauf, den Firmenlauf oder das Training im Freien wird.', updated: CONTENT_UPDATED },
+      { slug: 'baden', title: 'Badewetter — heiß und sonnig', description: 'Welcher Tag heiß und sonnig genug für Freibad, Badesee oder Strandtag wird — die Temperatur zählt hier am schwersten.', updated: CONTENT_UPDATED },
+    ],
     meta: {
       title: 'Event-Planung — der beste Tag',
       description: 'Welcher Tag passt am besten? buscosun bewertet Wetterfenster für Hochzeit, Grillabend, Drohnenflug oder Outdoor-Event und schlägt einen Plan B vor.',
@@ -159,9 +207,20 @@ export const ROUTES: readonly RouteDef[] = [
   {
     id: 'atmosphaere', path: '/atmosphaere', aliases: ['/atmosph%C3%A4re', '/atmosphere'], featureId: 'atmosphere', subParam: 'lens',
     subs: [
-      { slug: ATMOSPHERE_LENS_SLUGS.fly, title: 'Thermik & Fliegen', description: 'Thermik, Höhenwind und Wolkenbasis über deinem Startplatz — die Atmosphäre aus Sicht von Gleitschirm- und Segelfliegern.' },
-      { slug: ATMOSPHERE_LENS_SLUGS.mountain, title: 'Föhn, Berg & Weg', description: 'Föhn, Inversion und Wind in der Höhe für Bergtouren — was über dem Tal passiert, bevor es unten ankommt.' },
-      { slug: ATMOSPHERE_LENS_SLUGS.section, title: 'Vertikalschnitt der Atmosphäre', description: 'Höhenwind, Inversion und Go/No-Go entlang einer frei gezogenen Schnittlinie — die Atmosphäre im Querschnitt.' },
+      {
+        slug: ATMOSPHERE_LENS_SLUGS.fly, title: 'Thermik & Fliegen', description: 'Thermik, Höhenwind und Wolkenbasis über deinem Startplatz — die Atmosphäre aus Sicht von Gleitschirm- und Segelfliegern.',
+      },
+      {
+        slug: ATMOSPHERE_LENS_SLUGS.mountain, title: 'Föhn, Berg & Weg', description: 'Föhn, Inversion und Wind in der Höhe für Bergtouren — was über dem Tal passiert, bevor es unten ankommt.',
+      },
+      {
+        slug: ATMOSPHERE_LENS_SLUGS.section, title: 'Vertikalschnitt der Atmosphäre', description: 'Höhenwind, Inversion und Schichtung entlang einer frei gezogenen Schnittlinie — die Atmosphäre im Querschnitt.',
+      },
+      {
+        slug: ATMOSPHERE_WORK_WINDOW_SLUG, title: 'Arbeitsfenster Go/No-Go — Böen auf Arbeitshöhe',
+        description: 'Arbeitshöhe und Böengrenzwert eingeben und GO/NO-GO über den Tag ablesen — für Drohne, Kran, Gerüst und Höhenarbeit.',
+        updated: CONTENT_UPDATED,
+      },
     ],
     meta: {
       title: 'Die Atmosphäre über dir — Vertikalschnitt & 3D-Wetter',
@@ -183,15 +242,31 @@ export const ROUTES: readonly RouteDef[] = [
   {
     id: 'waldbrand', path: '/waldbrand', aliases: ['/waldbraende', '/feuer'], featureId: 'fire', subParam: 'view',
     subs: [
-      { slug: 'gefahrenindex', title: 'Waldbrandgefahr DACH — Gefahrenindex', description: 'Der europäische Waldbrand-Gefahrenindex als Fläche über Deutschland, Österreich und die Schweiz, daneben die amtlichen Landesstufen.' },
-      { slug: 'aktive-braende', title: 'Aktive Waldbrände DACH', description: 'Aktive Brände aus Satellitendetektionen (NASA FIRMS) mit Brandflächen, Ausbreitungsrichtung und Stärke — in Echtzeit.' },
-      { slug: 'trockenheit', title: 'Bodentrockenheit & Feuerwetter DACH', description: 'Bodenfeuchte aus ICON-D2 in zwei Tiefen und das stündliche Feuerwetter als Treiber der Waldbrandgefahr.' },
+      {
+        slug: 'gefahrenindex', title: 'Waldbrandgefahr DACH — Gefahrenindex', description: 'Der europäische Fire Weather Index (GWIS/ECMWF) als Fläche über DE, AT und CH bis 9 Tage voraus, dazu die nationalen Skalen von DWD und BAFU.',
+      },
+      {
+        slug: 'aktive-braende', title: 'Aktive Waldbrände DACH', description: 'Aktive Brände aus NASA-FIRMS-Detektionen mit EFFIS-Brandflächen, Stärke (FRP) und Verschiebung zwischen den Überflügen — unbestätigt ist der Normalfall.',
+      },
+      {
+        slug: 'trockenheit', title: 'Bodentrockenheit & Feuerwetter DACH', description: 'Bodenfeuchte aus ICON-D2 in zwei Tiefen (Oberboden bis 9 cm, Wurzelzone bis 81 cm) und die Trockenheit der Luft als stündlicher Feuerwetter-Treiber.',
+      },
+      {
+        slug: 'historie', title: 'Waldbrand-Historie DACH — Monat und Saison',
+        description: 'Die laufende Saison und die Jahre seit 2020 aus dem eigenen FIRMS-Archiv: Ereignisse je Monat, Saisonverlauf und Einzelfälle mit Wetterlage.',
+        updated: CONTENT_UPDATED,
+      },
+      {
+        slug: 'thermalanomalien', title: 'Thermalanomalien — Anlagen statt Brände',
+        description: 'Standorte, an denen Satelliten dauerhaft Wärme sehen: Stahlwerke, Zementwerke, Raffinerien — als eigene Klasse, damit sie nicht als Waldbrand zählen.',
+        updated: CONTENT_UPDATED,
+      },
     ],
     meta: {
       title: 'Waldbrandgefahr DACH — Brandradar',
-      description: 'Waldbrandgefahr, aktive Brände aus Satellitendaten und Trockenheit für Deutschland, Österreich und die Schweiz — EU-Index und amtliche Landesstufen nebeneinander.',
+      description: 'Waldbrandgefahr, aktive Brände aus Satellitendaten und Trockenheit für Deutschland, Österreich und die Schweiz — EU-Index als Fläche, die nationalen Skalen von DWD und BAFU zur Einordnung.',
       h1: 'Waldbrandgefahr in Deutschland, Österreich und der Schweiz',
-      lead: 'Das Brandradar von buscosun zeigt den europäischen Gefahrenindex als durchgehende Fläche über die DACH-Region und daneben die amtlichen Landesstufen von DWD und BAFU, jede mit ihrer eigenen Skala. Dazu aktive Brände aus Satellitendetektionen, kartierte Brandflächen, die Ausbreitungsrichtung aus Wind und Gelände sowie Bodentrockenheit und Feuerwetter als Treiber.',
+      lead: 'Das Brandradar von buscosun zeigt den europäischen Gefahrenindex als durchgehende Fläche über die DACH-Region und zur Einordnung die nationalen Skalen von DWD und BAFU, jede mit ihrer eigenen Stufenlogik (Österreich hat keine offene amtliche Stufe). Dazu aktive Brände aus Satellitendetektionen, von EFFIS kartierte Brandflächen, die zwischen den Überflügen beobachtete Verschiebung eines Brands sowie Bodentrockenheit und Feuerwetter als Treiber — ohne amtliches Warnprodukt zu sein.',
     },
   },
   {
@@ -209,8 +284,8 @@ export const ROUTES: readonly RouteDef[] = [
       title: 'Validierung — wie gut ist der KI-Nowcast?',
       description: 'Messwerte statt Versprechen: wie gut der buscosun-Nowcast gegen das gemessene Radar abschneidet.',
       h1: 'Wie gut ist der KI-Nowcast wirklich?',
-      lead: 'Diese Seite legt offen, wie gut der Nowcast von buscosun im Vergleich zum gemessenen Radar abschneidet — mit den Kennzahlen, die auch die Wetterdienste verwenden, und ohne die Fälle zu verschweigen, in denen er danebenliegt.',
-      noindex: true,
+      lead: 'Diese Seite legt offen, wie gut der Nowcast von buscosun im Vergleich zum gemessenen Radar abschneidet — mit den Kennzahlen, die auch die Wetterdienste verwenden, und ohne die Fälle zu verschweigen, in denen er danebenliegt. Beim Aufruf rechnet sie ein echtes Hindcast: aus beobachteten RADOLAN-Analysen wird vorhergesagt und gegen die spätere Beobachtung verifiziert — Brier Skill Score, Kalibrierungsfehler, Trefferquote und Reliability-Diagramm je Vorlaufminute.',
+      // SEO/GEO 2026 (E3): indexierbar — die Seite ist der Beleg für die Konfidenz-Aussagen (/methodik/konfidenz-und-trefferquote/).
     },
   },
   {
@@ -339,15 +414,31 @@ export function metaForPath(pathname: string): { title: string; description: str
 }
 
 /** Alle kanonischen URLs für die Sitemap (Top-Routen + Sub-Routen, ohne noindex). */
-export function sitemapPaths(): Array<{ path: string; priority: string }> {
-  const out: Array<{ path: string; priority: string }> = [];
+export function sitemapPaths(): Array<{ path: string; priority: string; lastmod: string }> {
+  const out: Array<{ path: string; priority: string; lastmod: string }> = [];
   for (const r of ROUTES) {
     if (r.meta.noindex || r.id === 'home') continue;
-    out.push({ path: r.path, priority: '0.8' });
+    out.push({ path: r.path, priority: '0.8', lastmod: r.meta.updated ?? CONTENT_UPDATED });
+    for (const s of indexableSubRoutes(r)) out.push({ path: s.path, priority: '0.5', lastmod: s.sub.updated ?? r.meta.updated ?? CONTENT_UPDATED });
+  }
+  return out;
+}
+
+export interface IndexableSub { route: RouteDef; sub: SubRoute; /** kanonischer Pfad */ path: string; /** flache Shell-Datei in dist/ (Netlify-200-Ziel) */ shell: string }
+
+/**
+ * Sub-Routen, die eine EIGENE Shell bekommen (SEO/GEO 2026, E1): indexierbar,
+ * mit eigenem Text, kein Cross-Alias. Der Dateiname ist flach (`<route>--<slug>.html`),
+ * damit Netlifys „Pretty URLs" nicht auf den End-Slash umleiten.
+ */
+export function indexableSubRoutes(route?: RouteDef): IndexableSub[] {
+  const out: IndexableSub[] = [];
+  for (const r of route ? [route] : ROUTES) {
+    if (r.meta.noindex) continue;
     for (const s of r.subs ?? []) {
       if (s.noindex) continue;                                                 // z. B. /tourenplanung/3d
       if (r.id === 'wetterkarte' && s.slug === LAYER_SLUGS.warnings) continue; // kanonisch /warnungen
-      out.push({ path: `${r.path}/${s.slug}`, priority: '0.5' });
+      out.push({ route: r, sub: s, path: `${r.path}/${s.slug}`, shell: `/${r.id}--${s.slug}.html` });
     }
   }
   return out;
@@ -375,7 +466,7 @@ export function verifyRoutes(): { checks: RouteCheck[]; passed: number; failed: 
   add('Sub-Route wird erkannt', routeForPath('/wetterkarte/temperatur')?.sub?.slug === 'temperatur' && routeForPath('/atmosphaere/fliegen')?.sub?.slug === 'fliegen' && routeForPath('/waldbrand/aktive-braende')?.sub?.slug === 'aktive-braende');
   add('unbekannte Sub-Route bleibt auf der Route, aber noindex', routeForPath('/wetterkarte/xyz')?.sub === null && metaForPath('/wetterkarte/xyz').noindex);
   add('unbekannter Pfad ⇒ null', routeForPath('/nope') === null && routeForPath('/wetterkarte/a/b') === null && routeForPath('/regenradar/x') === null);
-  add('Sitemap enthält Top- und Sub-Routen ohne noindex und ohne /wetterkarte/warnungen', (() => { const s = sitemapPaths().map((p) => p.path); return s.includes('/regenradar') && s.includes('/wetterkarte/wind') && !s.includes('/validierung') && !s.includes('/wetterkarte/warnungen') && s.includes('/warnungen'); })());
+  add('Sitemap enthält Top- und Sub-Routen ohne noindex (inkl. /validierung seit E3) und ohne /wetterkarte/warnungen', (() => { const s = sitemapPaths().map((p) => p.path); return s.includes('/regenradar') && s.includes('/wetterkarte/wind') && s.includes('/validierung') && !s.includes('/mobiletest') && !s.includes('/wetterkarte/warnungen') && s.includes('/warnungen'); })());
   add('Meta der Sub-Route gewinnt', metaForPath('/wetterkarte/wind').title === 'Windkarte DACH' && metaForPath('/wetterkarte').title === 'Interaktive Wetterkarte DACH');
   add('/tourenplanung/3d ist eine erkannte Sub-Route', routeForPath('/tourenplanung/3d')?.sub?.slug === '3d');
   add('/tourenplanung/3d ist noindex und NICHT in der Sitemap (leer ohne Strecke)',
@@ -383,6 +474,13 @@ export function verifyRoutes(): { checks: RouteCheck[]; passed: number; failed: 
   add('/route/3d löst auf /tourenplanung/3d auf und verdeckt keinen echten Pfad',
     aliasTarget('/route/3d') === '/tourenplanung/3d' && routeForPath('/route/3d', false) === null);
   add('Canonical von /route/3d ist die deutsche Sub-Route', canonicalPath('/route/3d') === '/tourenplanung/3d');
+  // SEO/GEO 2026 (E1): jede indexierbare Sub-Route trägt eigenen Text für ihre Shell.
+  const subs = indexableSubRoutes();
+  add('37 indexierbare Sub-Routen mit eigener Shell (18 Layer + 4 Atmosphäre + 5 Brand-Sichten + 10 Event-Anlässe)', subs.length === 37, String(subs.length));
+  const longDesc = subs.filter((x) => x.sub.description.length > 160).map((x) => `${x.path} (${x.sub.description.length})`);
+  add('Sub-Routen-Descriptions sind paarweise verschieden und ≤ 160 Zeichen', new Set(subs.map((x) => x.sub.description)).size === subs.length && longDesc.length === 0, longDesc.join(', '));
+  add('Shell-Dateinamen sind eindeutig und flach', new Set(subs.map((x) => x.shell)).size === subs.length && subs.every((x) => /^\/[a-z]+--[a-z0-9-]+\.html$/.test(x.shell)));
+  add('Sitemap trägt lastmod je Eintrag (ISO-Datum)', sitemapPaths().every((p) => /^\d{4}-\d{2}-\d{2}$/.test(p.lastmod)));
   const failed = checks.filter((c) => !c.ok).length;
   return { checks, passed: checks.length - failed, failed };
 }

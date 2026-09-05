@@ -1,3 +1,6 @@
+/** Letzte inhaltliche Änderung der Rechtsseiten (Sitemap-lastmod, SEO/GEO 2026 E1). */
+export const LEGAL_UPDATED = '2026-08-01';
+
 /**
  * Rechtsseiten: /impressum/, /datenschutz/, /kontakt/ (V-103, build-only).
  *

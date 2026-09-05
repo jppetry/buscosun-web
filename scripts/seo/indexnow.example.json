@@ -1,0 +1,14 @@
+{
+  "host": "buscosun.com",
+  "key": "@@INDEXNOW_KEY@@",
+  "keyLocation": "https://buscosun.com/@@INDEXNOW_KEY@@.txt",
+  "urlList": [
+    "https://buscosun.com/",
+    "https://buscosun.com/glossar/",
+    "https://buscosun.com/fuer/",
+    "https://buscosun.com/methodik/",
+    "https://buscosun.com/atmosphaere/arbeitsfenster",
+    "https://buscosun.com/waldbrand/historie",
+    "https://buscosun.com/eventplanung/hochzeit"
+  ]
+}

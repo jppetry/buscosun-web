@@ -2,7 +2,7 @@
 
 28 deutsche Prompts, einmal pro Monat in ChatGPT, Perplexity und Gemini abfragen.
 Bewertung je Modell: **N** = nicht genannt · **E** = erwähnt · **L** = mit Link
-zu buscosun.app · **F** = falsch/veraltet zitiert. Ziel: Trend über die Monate.
+zu buscosun.com · **F** = falsch/veraltet zitiert. Ziel: Trend über die Monate.
 
 ## Prompt-Liste
 

@@ -6,7 +6,9 @@
  * eigenen CSS-Klassen mit, damit ihr jeweiliges Design unangetastet bleibt.
  */
 
-import type { ReactNode } from 'react';
+import type { MouseEvent, ReactNode } from 'react';
+import { Link } from 'react-router';
+import { pathForFeature } from '../router/routes';
 
 export type RailFeature =
   | 'map2d' | 'nowcast' | 'route' | 'event' | 'forecast' | 'history' | 'atmosphere' | 'globe'
@@ -122,6 +124,11 @@ export const FEATURE_RAIL_ITEMS: Array<{ id: RailFeature; label: string; icon: R
   { id: 'feedback', label: 'Ideen & Vorschläge', icon: <IconRailFeedback /> },
 ];
 
+/** Anker statt Button: die Deck-Klassen setzen Farbe/Layout, aber nicht die Link-Unterstreichung —
+ *  gemessen am Deploy-Preview (`text-decoration: underline` auf dem Icon-Link, unsichtbar ohne Text,
+ *  aber ein Unterschied zum Button). Inline, damit kein Deck-CSS angefasst werden muss. */
+const RAIL_LINK_STYLE = { textDecoration: 'none' } as const;
+
 interface FeatureRailProps {
   /** Werkzeug, auf dem man gerade steht — wird als aktiv markiert, kein Klick. */
   active: RailFeature;
@@ -147,33 +154,45 @@ export function FeatureRail({
 }: FeatureRailProps) {
   return (
     <nav className={navClass} aria-label={ariaLabel}>
+      {/* SEO/GEO 2026 (E2): echte Links statt Buttons — der gerenderte DOM hatte
+          0 <a href> (SEO-AUDIT.md §4). Das Klick-Verhalten bleibt exakt: der
+          Deck-Handler übernimmt (preventDefault), nur ohne Handler navigiert der
+          Link selbst. Optik über dieselben Klassen; die Decks setzen display/
+          color/border auf der Klasse, nicht auf dem Tag. */}
       {FEATURE_RAIL_ITEMS.map((it) => {
         const isActive = it.id === active;
+        const to = pathForFeature(it.id);
+        const onClick = (e: MouseEvent<HTMLAnchorElement>) => {
+          if (isActive) { e.preventDefault(); return; }
+          if (onOpenFeature) { e.preventDefault(); onOpenFeature(it.id); }
+        };
         return (
-          <button
+          <Link
             key={it.id}
-            type="button"
+            to={to}
             className={`${btnClass}${isActive ? ` ${activeClass}` : ''}`}
             title={it.label}
             aria-label={it.label}
             aria-current={isActive ? 'page' : undefined}
-            onClick={isActive ? undefined : () => (onOpenFeature ? onOpenFeature(it.id) : onHome())}
+            onClick={onClick}
+            style={RAIL_LINK_STYLE}
           >
             {it.icon}
-          </button>
+          </Link>
         );
       })}
       {extra}
       {spacerClass && <span className={spacerClass} />}
-      <button
-        type="button"
+      <Link
+        to="/"
         className={homeBtnClass ?? btnClass}
         title="Startseite"
         aria-label="Startseite"
-        onClick={onHome}
+        onClick={(e: MouseEvent<HTMLAnchorElement>) => { e.preventDefault(); onHome(); }}
+        style={RAIL_LINK_STYLE}
       >
         <IconRailHome />
-      </button>
+      </Link>
     </nav>
   );
 }
