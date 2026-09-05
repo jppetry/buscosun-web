@@ -36,6 +36,12 @@ export function readModelCatalog() {
 
   // Einträge auf oberster Ebene: jeder beginnt mit "  {" und endet mit "  },".
   const entries = block.split(/\n  \},?/).filter((e) => /\bid:\s*'/.test(e));
+  // SEO/GEO 2026 (E3): Zahlen, Flags und Abdeckung für /methodik/wettermodelle/.
+  const num = (entry, key) => { const m = entry.match(new RegExp(`\\b${key}:\\s*([0-9.]+)`)); return m ? Number(m[1]) : null; };
+  const flag = (entry, key) => new RegExp(`\\b${key}:\\s*true\\b`).test(entry) ? true : new RegExp(`\\b${key}:\\s*false\\b`).test(entry) ? false : null;
+  const covConsts = Object.fromEntries([...src.matchAll(/const (\w+)\s*(?::[^=]+)?=\s*(\{[^}]*DE:[^}]*\})/g)].map((m) => [m[1], m[2]]));
+  const parseCov = (txt) => { if (!txt) return null; const o = {}; for (const c of ['DE', 'AT', 'CH']) { const m = txt.match(new RegExp(`${c}:\\s*'([a-z]+)'`)); if (m) o[c] = m[1]; } return Object.keys(o).length ? o : null; };
+  const coverage = (entry) => { const m = entry.match(/\bcoverage:\s*(\w+|\{[^}]*\})/); if (!m) return null; return parseCov(m[1].startsWith('{') ? m[1] : covConsts[m[1]]); };
   const models = entries.map((e) => ({
     id: field(e, 'id'),
     name: field(e, 'name'),
@@ -43,6 +49,13 @@ export function readModelCatalog() {
     license: field(e, 'license'),
     attribution: field(e, 'attribution'),
     special: field(e, 'special'),
+    resolutionKm: num(e, 'resolutionKm'),
+    horizonH: num(e, 'horizonH'),
+    ensemble: flag(e, 'ensemble') === true,
+    ai: flag(e, 'ai') === true,
+    ingested: flag(e, 'ingested'),
+    group: field(e, 'group'),
+    coverage: coverage(e),
   })).filter((m) => m.id && m.name);
 
   if (models.length < MIN_EXPECTED_MODELS) {

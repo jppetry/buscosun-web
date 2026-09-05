@@ -32,21 +32,23 @@ interface Props {
   /** Linse von außen (nur Zurück/Vorwärts). */
   routeLens?: Lens | null;
   initialSub?: DeckSub | null;
+  /** Unterlinse von aussen (nur Zurueck/Vorwaerts) — E7: /atmosphaere/arbeitsfenster. */
+  routeSub?: DeckSub | null;
   onLensChange?: (lens: Lens, initial: boolean) => void;
   onSubChange?: (sub: DeckSub) => void;
 }
 
-export default function AtmospherePage({ onBack, onOpenFeature, initialLens, routeLens, initialSub, onLensChange, onSubChange }: Props) {
+export default function AtmospherePage({ onBack, onOpenFeature, initialLens, routeLens, initialSub, routeSub, onLensChange, onSubChange }: Props) {
   return (
     <AtmosphereProvider initialLens={initialLens} routeLens={routeLens} onLensChange={onLensChange}>
-      <AtmosphereShell onBack={onBack} onOpenFeature={onOpenFeature} initialSub={initialSub} onSubChange={onSubChange} />
+      <AtmosphereShell onBack={onBack} onOpenFeature={onOpenFeature} initialSub={initialSub} routeSub={routeSub} onSubChange={onSubChange} />
     </AtmosphereProvider>
   );
 }
 
-function AtmosphereShell({ onBack, onOpenFeature, initialSub, onSubChange }: Props) {
+function AtmosphereShell({ onBack, onOpenFeature, initialSub, routeSub, onSubChange }: Props) {
   const { location } = useAtmosphere();
-  if (location) return <AtmosphereDeck onBack={onBack} onOpenFeature={onOpenFeature} initialSub={initialSub} onSubChange={onSubChange} />;
+  if (location) return <AtmosphereDeck onBack={onBack} onOpenFeature={onOpenFeature} initialSub={initialSub} routeSub={routeSub} onSubChange={onSubChange} />;
 
   return (
     <div className="atm-idle-shell">

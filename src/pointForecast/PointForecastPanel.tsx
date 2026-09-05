@@ -27,6 +27,7 @@ import { isOpenMeteoOptIn, setOpenMeteoOptIn } from '../optIn';
 import { avalancheFor, AVALANCHE_MIN_ELEVATION_M } from '../avalanche';
 import { hasOwnWarnings, warningsSourceFor, countryLabel } from '../officialSources';
 import FavoriteStar from '../FavoriteStar';
+import { placePageFor } from '../router/placePages';
 import { PointForecastOverview } from './PointForecastOverview';
 import { PointForecastCharts } from './PointForecastCharts';
 
@@ -205,6 +206,9 @@ function PointForecastPanelImpl({ lat, lng, country, locationLabel, hours = 24, 
                   hier steht der Nutzer bereits vor „seinem" Ort. */}
               <FavoriteStar loc={{ name: locationLabel, lat, lon: lng, country }} className="pfc-fav" withLabel />
             </div>
+            {/* SEO/GEO 2026 (E2): liegt der Ort in der kuratierten Ortsliste, führt ein
+                Link zur statischen Ortsseite (Klimafakten, FAQ) — interne Verlinkung App → /wetter/. */}
+            {(() => { const pp = placePageFor(lat, lng); return pp ? <a className="pfc-place-link" href={pp.href}>Mehr über das Wetter in {pp.name} →</a> : null; })()}
             {data && (
               <div className="pfc-meta">
                 {Math.round(data.query.elevation)} m ü. NN ·

@@ -47,6 +47,8 @@ interface Props {
   onBack: () => void;
   onOpenFeature?: (id: RailFeature) => void;
   initialSub?: DeckSub | null;
+  /** Unterlinse von aussen (nur Zurueck/Vorwaerts) — E7: /atmosphaere/arbeitsfenster. */
+  routeSub?: DeckSub | null;
   onSubChange?: (sub: DeckSub) => void;
 }
 
@@ -103,7 +105,7 @@ function useSectionData() {
 // ----------------------------------------------------------------------------
 // Deck
 // ----------------------------------------------------------------------------
-export default function AtmosphereDeck({ onBack, onOpenFeature, initialSub, onSubChange }: Props) {
+export default function AtmosphereDeck({ onBack, onOpenFeature, initialSub, routeSub, onSubChange }: Props) {
   const isMobile = useIsMobile();
   const { lens, setLens, location } = useAtmosphere();
   const [sub, setSub] = useState<DeckSub>(initialSub ?? 'hoehenwind');
@@ -111,6 +113,8 @@ export default function AtmosphereDeck({ onBack, onOpenFeature, initialSub, onSu
   const onSubChangeRef = useRef(onSubChange);
   onSubChangeRef.current = onSubChange;
   useEffect(() => { onSubChangeRef.current?.(sub); }, [sub]);
+  // Zurueck/Vorwaerts: Unterlinse aus der URL uebernehmen (E7; setLens macht der Store).
+  useEffect(() => { if (routeSub && routeSub !== sub) setSub(routeSub); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [routeSub]);
   const deckLens: DeckLens = lens === 'mountain' ? 'foehn' : lens === 'fly' ? 'thermik' : sub;
   const setDeckLens = (l: DeckLens) => {
     if (l === 'foehn') setLens('mountain');

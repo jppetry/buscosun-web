@@ -286,3 +286,44 @@ Vorher/Nachher-Tabelle, Abschlussbericht. Kein Merge nach `main` (Jans Gate).
   Sitemap `lastmod` per `git log` · `sitemap-news.xml` entfällt bei 0 aktuellen Artikeln · `/validierung`
   wird indexierbar · Tier-2-Orte nur, wenn Zeit bleibt · Impressum-Platzhalter werden **nie** erfunden
   (Build-Warnung bleibt sichtbar) · kein Merge nach `main`, kein Prod-Dispatch.
+<<<<<<< HEAD
+=======
+
+---
+
+# Entscheidungen Jans zur Freigabe (2026-09-05)
+
+| Frage | Antwort | Wirkung im Lauf |
+|---|---|---|
+| Deploy-Previews | automatisch je Pull Request gegen `main` | Branch pushen, PR (Draft) öffnen, `deploy-preview-<Nr>--<site>.netlify.app` prüfen |
+| `buscosun.app` | vermutlich nicht registriert, nicht relevant | keine Migrationsschritte; letzte Nennungen in Alt-Doku auf `.com` gesetzt (E0) |
+| Repo öffentlich | nein | `/ohne-tracker/` ohne „Quelltext offen"; kein Repo-Link in Wikidata |
+| Impressum | Jan füllt am Ende | Build-Warnung bleibt; `/ueber/` nennt keinen Betreiber, verweist auf `/impressum/` |
+| `/wetterlage/` | weiterführen, neuer Saisonbericht | E5 ergänzt Artikel „Waldbrandsaison 2026 DACH — Zwischenbilanz" aus `public/fire/bh/*` |
+| Stufe 2 | freigegeben | Lauf E0–E10 ohne Zwischenstopps |
+
+# V-Einträge (D-28; `improvements.md` fehlt im Arbeitsverzeichnis — hier geführt, bis die Datei zurück ist)
+
+| V | Mehrwert (für Jan) | Umsetzungsskizze | Status |
+|---|---|---|---|
+| V-SEO-15 | Jede Layer-/Linsen-/Brand-Sicht ist eine eigene Google-Seite statt Duplikat der Elternseite | Sub-Routen-Shells + Netlify-Regeln aus `routes.ts` generiert | E1 |
+| V-SEO-16 | Google sieht nach dem App-Start Text und Links, nicht nur die Karte | `RouteSeoBlock` + Rail als Links | E2 |
+| V-SEO-17 | Bots können die Wetterdaten-Proxys nicht mehr als Spiegel von opendata.dwd.de missbrauchen | robots-Disallow + `X-Robots-Tag`; Origin-Guard = Edge Function (Jans Gate) | E1 / offen |
+| V-SEO-18 | Zweitbesuche laden gehashte Bundles aus dem Browser-Cache statt neu | `Cache-Control: immutable` für `/assets/*` | E1 |
+| V-SEO-19 | Suchmaschinen und KI erkennen buscosun als eine Entität mit Methodik | `@id`-Graph, `/ueber/`, `/methodik/` | E3 |
+| V-SEO-20 | Zielgruppen finden eine Seite, die ehrlich sagt, was für sie geht und was nicht | `/fuer/<gruppe>/` | E6 |
+| V-SEO-21 | Ortsseiten beantworten Klimafragen zeitlos statt nur zu verlinken | Klimatabelle aus `climaGrid.json`, Sonnenzeiten je Monat | E8 |
+| V-SEO-22 | Tote Knöpfe („Als Event", „Tagesablauf", „Speichern" in der Tour; „Link teilen" in der Atmosphäre) irritieren Nutzer und Crawler | verdrahten oder entfernen — **nicht Teil dieses Laufs**, Jans Entscheidung (Funktionserhalt) | offen |
+| V-SEO-24 | `verify:route-3d` scheitert in CRLF-Checkouts (autocrlf) an einem LF-String-Vergleich — falsches Rot auf Windows-Worktrees | `viewSrc12.replace(/
+/g, "
+")` im Verifier | offen (nicht Teil dieses Laufs, fremde Linie) |
+| V-SEO-25 | `llms.txt` behauptete, der Globus zeige gebündelte Beispieldaten — er liest GFS live per HTTP-Range (`src/globe/gfs.ts`); die Falschaussage verschenkte ein Feature gegenüber KI-Crawlern | Zeile korrigiert; `llms.txt` wird seit E9 aus dem Build erzeugt, damit sie nicht wieder driftet | E7/E9 |
+| V-SEO-26 | `llms.txt` sprach von „amtlichen Landesstufen" — zwei der gemeinten Layer sind zurückgezogen, und Österreich hat gar keine offene Stufe | genaue Formulierung: nationale Skalen von DWD und BAFU, AT-Lücke benannt | E7 |
+| V-SEO-27 | Linktext auf allen statischen Seiten erreichte nur 3,03:1 Kontrast (Lighthouse gemessen), gefordert sind 4,5:1 — betrifft auch die Bestandsseiten | eigener Token `--terra-ink #96521F` (5,52:1) nur für Linktext; Akzentfarbe unverändert | E10 |
+| V-SEO-28 | Die 14 statischen Seitenvorlagen hatten keinen `main`-Landmark — Screenreader und agentische Browser finden den Inhaltsbereich nicht | `<div class="wrap">` → `<main class="wrap">`, gleiche CSS-Klasse, keine Layoutänderung | E10 |
+| V-SEO-29 | Auf jeder Ortsseite zeigten die sechs Funktions-Knöpfe **alle auf `/`** — sechs gleich aussehende Links ohne Ziel | acht Deep-Links in die passende Ansicht, mit dem Ort in der Query | E8 |
+| V-SEO-30 | `scripts/generate-seo.mjs` ist nicht idempotent: ein zweiter Lauf ohne `vite build` leitet die Route-Shells aus der bereits angereicherten `index.html` ab und meldet 196 falsche Fehler | Bedienhinweis im RUN-LOG; sauberer wäre ein Rohshell-Snapshot vor der Anreicherung | offen |
+| V-SEO-31 | `npm run budget -- --update` hebt pauschal ALLE Metriken um 5 % an und löscht die Begründungs-Notiz — aus einer bewussten Ratsche wird unbemerkt eine Blanko-Erhöhung | Grenzen von Hand gesetzt; Warnhinweis steht jetzt in `budget.json` | E7 (dokumentiert) |
+| V-SEO-32 | `src/fusion/modelCatalog.ts` führt für die DWD-Modelle `license: CC-BY-4.0`, die Seiten nennen seit E3 GeoNutzV — zwei Wahrheiten im selben Repo | eine Zeile je DWD-Eintrag; Fusions-Datei ⇒ STOPP & FRAGEN, deshalb im Lauf nicht angefasst | offen (Jans Gate) |
+| V-SEO-23 | `wedding` nutzt das Default-Bewertungsprofil, obwohl der Anlass eigene Phasen hat | eigenes Profil in `eventScoring.ts` — fachliche Entscheidung, nicht SEO | offen |
+>>>>>>> b35e8525fec3332340576fed27aa2ce070a07b6c

@@ -58,6 +58,10 @@ jobs:
       - name: SEO-Gate
         run: npm run verify:seo
 
+      # SEO/GEO 2026 (E0): Routen-Tabelle, Sub-Routen-Shells und netlify.toml aus EINER Quelle.
+      - name: Routing-Gate
+        run: npm run verify:routing
+
       - name: Performance-Budget
         run: npm run budget
 

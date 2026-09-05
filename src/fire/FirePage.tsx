@@ -227,7 +227,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
    */
   const [stage, setStage] = useState<'map' | 'dossier'>(initial?.dossier ? 'dossier' : 'map');
   /** Mobil: der Bereich der Bottom-Bar — Karte · Layer · Brände · Zeit. Die Thermalanomalien sind dort ein Segment in „Brände". */
-  const [mobileTab, setMobileTab] = useState<MobileTab>(initial?.footprintPanel || initial?.anomalyPanel || routePreset?.readoutTab === 'fires' ? 'fires' : 'map');
+  const [mobileTab, setMobileTab] = useState<MobileTab>(initial?.footprintPanel || initial?.anomalyPanel || routePreset?.readoutTab === 'fires' || routePreset?.readoutTab === 'anomalies' ? 'fires' : 'map');
   /** TA4: markierter Standort (auch ohne Eintrag im Fenster) — die Karte hebt ihn hervor. */
   const [selectedSite, setSelectedSite] = useState<string | null>(null);
   /**
@@ -236,7 +236,9 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
    * Flächen, Pfeile — alles leer), sondern die Ereignispunkte der statischen Datei; die
    * Standort-Rauten bleiben, sie sind zeitlos. Kill-Switch `?bh=0` ⇒ die Fenster gibt es nicht.
    */
-  const [history, setHistory] = useState<HistoryWindowKind | null>(() => (historyEnabled() && initial?.historyWindow) || null);
+  // E7: das Preset der Sub-Route `/waldbrand/historie` setzt das Saison-Fenster, sofern die
+  // Historie nicht per `?bh=0` abgeschaltet ist; ein Hash im Link gewinnt wie bisher.
+  const [history, setHistory] = useState<HistoryWindowKind | null>(() => (historyEnabled() && (initial?.historyWindow ?? routePreset?.history)) || null);
   const [historyLoad, setHistoryLoad] = useState<HistoryLoad>({ kind: 'idle' });
   const [selectedHistory, setSelectedHistory] = useState<string | null>(null);
   useEffect(() => {
@@ -1228,16 +1230,17 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
   const onViewChangeRef = useRef(onViewChange);
   onViewChangeRef.current = onViewChange;
   useEffect(() => {
-    onViewChangeRef.current?.(fireViewFromState(active, readoutTab), !viewReportedRef.current);
+    onViewChangeRef.current?.(fireViewFromState(active, readoutTab, history), !viewReportedRef.current);
     viewReportedRef.current = true;
-  }, [active, readoutTab]);
+  }, [active, readoutTab, history]);
   // Zurück/Vorwärts: Preset der Sub-Route aus der URL übernehmen.
   useEffect(() => {
     if (!routeView) return;
     const r = applyFireView(routeView, active);
     setActive(withFireAlwaysOn(r.layers));
     setReadoutTab(r.readoutTab);
-    if (r.readoutTab === 'fires') setMobileTab('fires');
+    setHistory(historyEnabled() ? r.history : null);
+    if (r.readoutTab === 'fires' || r.readoutTab === 'anomalies') setMobileTab('fires');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routeView]);
 

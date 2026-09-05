@@ -6,7 +6,15 @@
  * abgeleitete Faktentexte + Verweis auf die Live-App. Ehrlich, GEO-zitierbar.
  */
 
+import { existsSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { nearestPlaces } from './places.mjs';
+import { climateSection, sunSection, unknownsSection, climateHighlights, placeDescription, CLIMA_YEARS } from './climate.mjs';
+
+const OG_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'public', 'og');
+/** SEO/GEO 2026 (E4): eigenes OG-Bild nur, wenn die PNG existiert — sonst die Bereichs-Karte (E10 erzeugt die Bilder). */
+export const ogImageOr = (slug, fallback) => (existsSync(join(OG_DIR, `${slug}.png`)) ? `/og/${slug}.png` : fallback);
 
 export const SITE = {
   name: 'buscosun',
@@ -140,16 +148,63 @@ export function placeFaqs(place) {
 
 export function metaFor(place) {
   const title = `Wetter ${place.name} — ${place.region} | ${SITE.name}`;
-  const description = `Wetter für ${place.name} (${place.region}, ${COUNTRY_NAME[place.country]}): höhenkorrigierte Vorhersage aus amtlichen Quellen, interaktive Karte, Nowcast und Modellvergleich — ohne Tracker.`;
+  // SEO/GEO 2026 (E8): eigene Description je Ort. Vorher stand auf allen 138 Seiten derselbe
+  // Satz — für Google ein Duplikat-Signal, für einen Menschen ohne Informationswert. Die
+  // Klimakennzahlen unterscheiden die Orte inhaltlich, nicht nur durch den Namen.
+  const description = placeDescription(place, climateHighlights(place));
   return { title, description, locale: LOCALE[place.country] };
 }
 
 // --- JSON-LD ----------------------------------------------------------------
 
+/** Stabile Entitäts-Kennungen (SEO/GEO 2026, E3): EIN Betreiber, EINE Website — jede Seite
+ *  definiert beide Knoten kompakt und referenziert sie per `{ "@id" }` (Google löst @id nur
+ *  innerhalb derselben Seite auf). `linkEntities()` ersetzt eingebettete Organization/WebSite-
+ *  Objekte automatisch durch Referenzen, `verify-seo` prüft Definition und Auflösung. */
+export const ORG_ID = SITE.url + '/#organization';
+export const SITE_ID = SITE.url + '/#website';
+export const APP_ID = SITE.url + '/#app';
+
+export function websiteJsonLd() {
+  return {
+    '@context': 'https://schema.org', '@type': 'WebSite', '@id': SITE_ID,
+    name: SITE.name, url: SITE.url + '/', inLanguage: 'de',
+    description: SITE.description,
+    publisher: { '@id': ORG_ID },
+  };
+}
+
+/** CollectionPage + Entitäten für Hubs, die ihren Head selbst bauen (/wetter/). */
+export function collectionPageScripts(name, path, description, dateModified) {
+  return `${jsonLdScript({ '@context': 'https://schema.org', '@type': 'CollectionPage', name, url: SITE.url + path, description, inLanguage: 'de', ...(dateModified ? { dateModified } : {}) })}
+    ${entityScripts()}`;
+}
+
+/** Beide Entitäts-Knoten als Script-Blöcke (auf jeder Seite genau einmal). */
+export function entityScripts() {
+  return `${jsonLdScript(organizationJsonLd())}\n    ${jsonLdScript(websiteJsonLd())}`;
+}
+
+const PART_TYPES = new Set(['WebPage', 'CollectionPage', 'AboutPage', 'Article', 'TechArticle', 'NewsArticle', 'SoftwareApplication', 'Dataset', 'FAQPage', 'WebApplication', 'CreativeWork', 'DefinedTermSet']);
+function linkEntities(obj, top = true) {
+  if (Array.isArray(obj)) return obj.map((x) => linkEntities(x, false));
+  if (!obj || typeof obj !== 'object') return obj;
+  if (!top) {
+    if (obj['@type'] === 'Organization' && obj.name === SITE.name) return { '@type': 'Organization', '@id': ORG_ID };
+    if (obj['@type'] === 'WebSite' && (obj['@id'] === SITE_ID || obj.url === SITE.url + '/')) return { '@type': 'WebSite', '@id': SITE_ID };
+  }
+  const out = {};
+  for (const [k, v] of Object.entries(obj)) out[k] = linkEntities(v, false);
+  if (top && PART_TYPES.has(out['@type']) && !out.isPartOf && out['@id'] !== SITE_ID) out.isPartOf = { '@id': SITE_ID };
+  return out;
+}
+
 export function webAppJsonLd() {
   return {
     '@context': 'https://schema.org',
     '@type': 'WebApplication',
+    '@id': APP_ID,
+    publisher: { '@id': ORG_ID },
     name: SITE.name,
     url: SITE.url + '/',
     applicationCategory: 'Weather',
@@ -162,7 +217,14 @@ export function webAppJsonLd() {
 }
 
 export function organizationJsonLd() {
-  return { '@context': 'https://schema.org', '@type': 'Organization', name: SITE.name, url: SITE.url + '/', logo: SITE.url + '/icon.svg' };
+  return {
+    '@context': 'https://schema.org', '@type': 'Organization', '@id': ORG_ID,
+    name: SITE.name, url: SITE.url + '/',
+    logo: { '@type': 'ImageObject', url: SITE.url + '/icon-512.png', width: 512, height: 512 },
+    description: SITE.description,
+    knowsAbout: ['Wettervorhersage', 'Regenradar', 'Höhenkorrektur', 'Föhn', 'Waldbrandgefahr', 'DACH-Wetter'],
+    areaServed: ['DE', 'AT', 'CH'],
+  };
 }
 
 export function placeJsonLd(place) {
@@ -176,10 +238,11 @@ export function placeJsonLd(place) {
 }
 
 /** Dataset-JSON-LD: höhenkorrigierte Vorhersage je Ort, ehrliche Quellen-/
- *  Lizenzangabe (DWD CC BY 4.0). Macht die Datenbasis GEO-/Rich-Result-lesbar. */
+ *  Lizenzangabe (DWD: GeoNutzV — Rechtshinweis-Seite des DWD; AT/CH: CC BY 4.0). Macht die
+ *  Datenbasis GEO-/Rich-Result-lesbar. Die frühere DWD-URL antwortete 404 (SEO-AUDIT 2026-09-04). */
 export function datasetJsonLd(place) {
   const license = place.country === 'DE'
-    ? 'https://www.dwd.de/DE/service/copyright/copyright_node.html'
+    ? 'https://www.dwd.de/DE/service/rechtliche_hinweise/rechtliche_hinweise_node.html'
     : 'https://creativecommons.org/licenses/by/4.0/';
   return {
     '@context': 'https://schema.org',
@@ -189,6 +252,8 @@ export function datasetJsonLd(place) {
     url: `${SITE.url}/wetter/${place.slug}/`,
     license,
     isAccessibleForFree: true,
+    // E8: Die Seite trägt eine Klimatologie aus Stationsdaten — der Zeitraum gehört ausgewiesen.
+    temporalCoverage: `${CLIMA_YEARS[0]}/${CLIMA_YEARS[1]}`,
     creator: { '@type': 'Organization', name: SITE.name, url: SITE.url + '/' },
     spatialCoverage: {
       '@type': 'Place',
@@ -220,25 +285,23 @@ export function faqJsonLd(faqs) {
 }
 
 function jsonLdScript(obj) {
-  return `<script type="application/ld+json">${JSON.stringify(obj)}</script>`;
+  return `<script type="application/ld+json">${JSON.stringify(linkEntities(obj))}</script>`;
 }
 
 // --- HTML-Rendering ---------------------------------------------------------
 
-/** hreflang-Alternates: Selbstreferenz + Sprachvarianten + x-default. */
-function hreflangLinks(canonicalPath) {
-  const url = SITE.url + canonicalPath;
-  return ['de-DE', 'de-AT', 'de-CH'].map((l) => `<link rel="alternate" hreflang="${l}" href="${url}" />`).join('\n    ')
-    + `\n    <link rel="alternate" hreflang="x-default" href="${url}" />`;
-}
+// hreflang bewusst entfernt (SEO/GEO 2026, E1): es gibt je Seite genau EINE URL —
+// de-DE/de-AT/de-CH auf dieselbe Adresse waren ein No-op und Rauschen im
+// GSC-Bericht „Internationale Ausrichtung". Zurück, sobald es eine echte
+// Sprachvariante gibt (O-05). `<html lang="de">` bleibt.
 
 // Default OG/Twitter image when a page type forgets to pass one. MUST be a
 // raster (PNG/JPG/WebP) — social + Discover never render SVG, so we fall back to
 // the branded home hero, NOT the og.svg placeholder. verify-seo.mjs additionally
 // hard-fails on any SVG og:image, so this can never regress silently.
-const DEFAULT_OG_IMAGE = '/og/home.png';
+export const DEFAULT_OG_IMAGE = '/og/home.png';
 
-function headBlock({ title, description, canonicalPath, locale, ogImage, jsonLd, noindex, ogTitle }) {
+export function headBlock({ title, description, canonicalPath, locale, ogImage, jsonLd, noindex, ogTitle }) {
   const url = SITE.url + canonicalPath;
   const ogt = ogTitle || title;
   return `    <meta charset="UTF-8" />
@@ -246,7 +309,6 @@ function headBlock({ title, description, canonicalPath, locale, ogImage, jsonLd,
     <title>${escapeHtml(title)}</title>
     <meta name="description" content="${escapeHtml(description)}" />${noindex ? '\n    <meta name="robots" content="noindex, follow" />' : ''}
     <link rel="canonical" href="${url}" />
-    ${hreflangLinks(canonicalPath)}
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
     <meta name="theme-color" content="#2C2A26" />
     <meta property="og:type" content="website" />
@@ -260,13 +322,14 @@ function headBlock({ title, description, canonicalPath, locale, ogImage, jsonLd,
     <meta name="twitter:title" content="${escapeHtml(ogt)}" />
     <meta name="twitter:description" content="${escapeHtml(description)}" />
     <meta name="twitter:image" content="${SITE.url}${ogImage || DEFAULT_OG_IMAGE}" />
-    ${jsonLd.map(jsonLdScript).join('\n    ')}`;
+    ${jsonLd.map(jsonLdScript).join('\n    ')}
+    ${entityScripts()}`;
 }
 
-const PAGE_CSS = `:root{--sand:#FAF6EA;--ink:#2C2A26;--stone:#5C5447;--terra:#C97B47;--border:#E0D6BE}
+export const PAGE_CSS = `:root{--sand:#FAF6EA;--ink:#2C2A26;--stone:#5C5447;--terra:#C97B47;--terra-ink:#96521F;--border:#E0D6BE}
 *{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--sand);color:var(--ink);line-height:1.6}
 .wrap{max-width:760px;margin:0 auto;padding:2rem 1.25rem 4rem}
-a{color:var(--terra)}nav.bc{font-size:.85rem;color:var(--stone);margin-bottom:1.5rem}nav.bc a{color:var(--stone)}
+a{color:var(--terra-ink)}nav.bc{font-size:.85rem;color:var(--stone);margin-bottom:1.5rem}nav.bc a{color:var(--stone)}
 h1{font-size:2rem;margin:.2rem 0 .3rem}.sub{color:var(--stone);margin:0 0 .6rem}
 p.lead{font-size:1.05rem;margin:0 0 1.2rem}
 .cta{display:inline-block;background:var(--ink);color:#fff;text-decoration:none;font-weight:600;padding:.7rem 1.2rem;border-radius:999px;margin:.5rem 0 1.5rem}
@@ -275,7 +338,12 @@ section{margin:1.8rem 0}h2{font-size:1.2rem;border-bottom:1px solid var(--border
 ul.facts{padding-left:1.1rem}details{border:1px solid var(--border);border-radius:10px;padding:.6rem .9rem;margin:.5rem 0;background:#fff}
 summary{font-weight:600;cursor:pointer}.links{display:flex;flex-wrap:wrap;gap:.5rem}
 .links a{display:inline-block;background:#fff;border:1px solid var(--border);border-radius:999px;padding:.35rem .8rem;text-decoration:none;color:var(--ink);font-size:.9rem}
-footer{margin-top:3rem;font-size:.8rem;color:var(--stone);border-top:1px solid var(--border);padding-top:1rem}`;
+footer{margin-top:3rem;font-size:.8rem;color:var(--stone);border-top:1px solid var(--border);padding-top:1rem}
+table{border-collapse:collapse;width:100%;font-size:.88rem;margin:.6rem 0;background:#fff}
+th,td{text-align:left;padding:.4rem .55rem;border-bottom:1px solid var(--border)}
+th{font-weight:600;background:rgba(224,214,190,.35)}
+td+td,th+th{text-align:right}
+p.note{font-size:.85rem;color:var(--stone)}`;
 
 /** Vollständige statische Geo-Seite (semantisch, crawlbar, GEO-zitierbar). */
 export function renderPlacePage(place) {
@@ -293,8 +361,21 @@ export function renderPlacePage(place) {
   const factItems = facts.map((f) => `<li>${escapeHtml(f)}</li>`).join('\n        ');
   const faqItems = faqs.map((f) => `<details><summary>${escapeHtml(f.q)}</summary><p>${escapeHtml(f.a)}</p></details>`).join('\n      ');
   const neighborLinks = neighbors.map((n) => `<a href="/wetter/${n.slug}/">${escapeHtml(n.name)} <span>(${n.distKm} km)</span></a>`).join('\n        ');
-  const featureLinks = ['Karte', 'Tourenplanung', 'Event-Tag', 'Nowcast', 'Vorhersage', 'Arbeitsfenster']
-    .map((f) => `<a href="/">${f}</a>`).join('\n        ');
+  // E8: Vorher zeigten alle sechs Knöpfe auf „/" — sechs identische Links ohne Ziel.
+  // Jetzt führt jeder in die passende Ansicht, wo möglich mit dem Ort in der Query.
+  const placeQuery = new URLSearchParams([
+    ['ort', place.name], ['olat', coord4(place.lat)], ['olon', coord4(place.lon)], ['land', String(place.country).toLowerCase()],
+  ]).toString();
+  const featureLinks = [
+    ['Wetterkarte', mapPermalink(place)],
+    ['Regenradar', `/regenradar?${placeQuery}`],
+    ['Vorhersage & Modellvergleich', `/vorhersage?${placeQuery}`],
+    ['Bester Tag für ein Vorhaben', `/eventplanung?${placeQuery}`],
+    ['Wetter entlang einer Tour', '/tourenplanung'],
+    ['Atmosphäre & Höhenwind', `/atmosphaere/querschnitt?${placeQuery}`],
+    ['Wetterarchiv & Klima', `/wetterarchiv?${placeQuery}`],
+    ['Waldbrandgefahr', '/waldbrand/gefahrenindex'],
+  ].map(([label, href]) => `<a href="${href}">${label}</a>`).join('\n        ');
   const knowledgeLinks = relevantExplainersFor(place, EXPLAINERS, 3)
     .map((e) => `<a href="/wissen/${e.slug}/">${escapeHtml(e.title)}</a>`).join('\n        ');
 
@@ -305,7 +386,7 @@ ${head}
     <style>${PAGE_CSS}</style>
   </head>
   <body>
-    <div class="wrap">
+    <main class="wrap">
       <nav class="bc" aria-label="Brotkrumen"><a href="/">Start</a> › <a href="/wetter/">Wetter</a> › ${escapeHtml(place.name)}</nav>
       <h1>Wetter ${escapeHtml(place.name)}</h1>
       <p class="sub">${FLAG[place.country]} ${escapeHtml(place.region)} · ${COUNTRY_NAME[place.country]} · rund ${place.ele} m</p>
@@ -320,11 +401,13 @@ ${head}
         <p>Live-Werte und Stundenverlauf zeigt die <a href="${mapPermalink(place)}">interaktive Karte für ${escapeHtml(place.name)}</a>. buscosun nutzt ausschließlich amtliche Quellen und arbeitet ohne Tracker.</p>
       </section>
 
+${climateSection(place)}${sunSection(place)}
       <section>
         <h2>Häufige Fragen zum Wetter in ${escapeHtml(place.name)}</h2>
         ${faqItems}
       </section>
 
+${unknownsSection(place, { alpine: isAlpine(place) })}
       <section>
         <h2>Wetter in der Umgebung</h2>
         <div class="links">
@@ -347,10 +430,10 @@ ${head}
       </section>
 
       <footer>
-        ${escapeHtml(SITE.name)} — ${escapeHtml(SITE.tagline)}. Datenbasis: Deutscher Wetterdienst (DWD, CC BY 4.0) · GeoSphere Austria · MeteoSwiss. Keine Tracker, keine Werbung.
+        ${escapeHtml(SITE.name)} — ${escapeHtml(SITE.tagline)}. Datenbasis: Deutscher Wetterdienst (DWD, GeoNutzV) · GeoSphere Austria · MeteoSwiss. Keine Tracker, keine Werbung.
         Hinweis: Diese Seite nennt stabile Standort-Fakten; aktuelle Messwerte und Vorhersagen liefert die interaktive App. buscosun gibt keine amtlichen Warnungen heraus.
       </footer>
-    </div>
+    </main>
   </body>
 </html>
 `;
@@ -396,7 +479,7 @@ const PLACE_BY_SLUG = Object.fromEntries(PLACES.map((p) => [p.slug, p]));
 /** Article-JSON-LD für einen Explainer (mit author, datePublished, dateModified). */
 /** OG/Hero-Bild je Explainer (volle = eigenes PNG, Scaffold = Kategorie-Default). */
 export function explainerOgImage(ex) {
-  return ex.status === 'full' ? `/og/${ex.slug}.png` : '/og/wissen-default.png';
+  return ex.status === 'full' ? ogImageOr(ex.slug, '/og/wissen-default.png') : '/og/wissen-default.png';
 }
 
 export function articleJsonLd(ex) {
@@ -406,6 +489,8 @@ export function articleJsonLd(ex) {
     '@type': 'Article',
     headline: ex.h1,
     image: [SITE.url + explainerOgImage(ex)],
+    // E9: Die Direktantwort ist der vorlesbare Teil (Assistenten, Voice-Ergebnisse).
+    speakable: { '@type': 'SpeakableSpecification', cssSelector: ['h1', '.lead'] },
     description: ex.answer,
     inLanguage: 'de-DE',
     mainEntityOfPage: url,
@@ -474,7 +559,7 @@ ${head}
 .answer{font-size:1.1rem;background:#fff;border:1px solid var(--border);border-left:4px solid var(--terra);border-radius:10px;padding:1rem 1.1rem;margin:0 0 1.5rem}</style>
   </head>
   <body>
-    <div class="wrap">
+    <main class="wrap">
       <nav class="bc" aria-label="Brotkrumen"><a href="/">Start</a> › <a href="/wissen/">Wetterwissen</a> › ${escapeHtml(ex.title)}</nav>
       <h1>${escapeHtml(ex.h1)}</h1>
       <p class="answer">${escapeHtml(ex.answer)}</p>
@@ -488,10 +573,10 @@ ${relExplainers ? `      <section>\n        <h2>Verwandte Themen</h2>\n        <
 ${relPlaces ? `      <section>\n        <h2>Passende Orte</h2>\n        <div class="links">\n        ${relPlaces}\n        </div>\n      </section>` : ''}
 ${sources ? `      <section>\n        <h2>Quellen</h2>\n        <ul>\n        ${sources}\n        </ul>\n      </section>` : ''}
       <footer>
-        ${escapeHtml(SITE.name)} — ${escapeHtml(SITE.tagline)}. Datenbasis: Deutscher Wetterdienst (DWD, CC BY 4.0) · GeoSphere Austria · MeteoSwiss.
+        ${escapeHtml(SITE.name)} — ${escapeHtml(SITE.tagline)}. Datenbasis: Deutscher Wetterdienst (DWD, GeoNutzV) · GeoSphere Austria · MeteoSwiss.
         buscosun erklärt Wetterphänomene und gibt keine amtlichen Warnungen heraus.
       </footer>
-    </div>
+    </main>
   </body>
 </html>
 `;
@@ -525,7 +610,7 @@ ${head}
 .card strong{color:var(--terra)}.card span{font-size:.85rem;color:var(--stone)}.card.stub{opacity:.7}</style>
   </head>
   <body>
-    <div class="wrap">
+    <main class="wrap">
       <nav class="bc" aria-label="Brotkrumen"><a href="/">Start</a> › Wetterwissen</nav>
       <h1>Wetterwissen</h1>
       <p class="lead">Meteorologische Phänomene der DACH-Region — Föhn, Inversion, Nebelobergrenze, Thermik, Schneefallgrenze und mehr — verständlich, faktenbasiert und mit Quellen erklärt. buscosun erklärt nur und gibt keine amtlichen Warnungen heraus.</p>
@@ -537,7 +622,7 @@ ${head}
       <div class="cards">
       ${stubs}
       </div>
-    </div>
+    </main>
   </body>
 </html>
 `;
@@ -559,7 +644,7 @@ import { EXPLAINERS_BY_SLUG } from './explainers.mjs';
 
 /** OG/Hero-Bild je Tool (volle = eigenes PNG, Scaffold = Kategorie-Default). */
 export function toolOgImage(tool) {
-  return tool.status === 'full' ? `/og/${tool.slug}.png` : '/og/funktionen-default.png';
+  return tool.status === 'full' ? ogImageOr(tool.slug, '/og/funktionen-default.png') : '/og/funktionen-default.png';
 }
 
 export function softwareApplicationJsonLd(tool) {
@@ -630,7 +715,7 @@ ${head}
 .answer{font-size:1.1rem;margin:0 0 1.2rem}</style>
   </head>
   <body>
-    <div class="wrap">
+    <main class="wrap">
       <nav class="bc" aria-label="Brotkrumen"><a href="/">Start</a> › <a href="/funktionen/">Funktionen</a> › ${escapeHtml(tool.title)}</nav>
       <h1>${escapeHtml(tool.h1)}</h1>
       <img class="hero" src="${ogImage}" width="1200" height="630" alt="${escapeHtml(tool.title)} — buscosun" />
@@ -645,9 +730,9 @@ ${sections}
       </section>
 ${relExplainers ? `      <section>\n        <h2>Passendes Wetterwissen</h2>\n        <div class="links">\n        ${relExplainers}\n        </div>\n      </section>` : ''}
       <footer>
-        ${escapeHtml(SITE.name)} — ${escapeHtml(SITE.tagline)}. Datenbasis: Deutscher Wetterdienst (DWD, CC BY 4.0) · GeoSphere Austria · MeteoSwiss. Kostenlos, ohne Tracker.
+        ${escapeHtml(SITE.name)} — ${escapeHtml(SITE.tagline)}. Datenbasis: Deutscher Wetterdienst (DWD, GeoNutzV) · GeoSphere Austria · MeteoSwiss. Kostenlos, ohne Tracker.
       </footer>
-    </div>
+    </main>
   </body>
 </html>
 `;
@@ -699,16 +784,114 @@ th{font-weight:600;white-space:nowrap}
 section li{margin-bottom:.5rem}</style>
   </head>
   <body>
-    <div class="wrap">
+    <main class="wrap">
       <nav class="bc" aria-label="Brotkrumen"><a href="/">Start</a> › ${escapeHtml(page.title)}</nav>
       <h1>${escapeHtml(page.h1)}</h1>
       <p class="lead">${escapeHtml(page.lead)}</p>
 ${sections}
       <footer>
         ${escapeHtml(SITE.name)} — ${escapeHtml(SITE.tagline)}.
-        <a href="/impressum/">Impressum</a> · <a href="/datenschutz/">Datenschutz</a> · <a href="/lizenzen/">Quellen &amp; Lizenzen</a> · <a href="/kontakt/">Kontakt</a>
+        <a href="/ueber/">Über buscosun</a> · <a href="/methodik/">Methodik</a> · <a href="/ohne-tracker/">Ohne Tracker</a> · <a href="/impressum/">Impressum</a> · <a href="/datenschutz/">Datenschutz</a> · <a href="/lizenzen/">Quellen &amp; Lizenzen</a> · <a href="/kontakt/">Kontakt</a>
       </footer>
-    </div>
+    </main>
+  </body>
+</html>
+`;
+}
+
+/**
+ * Artikelseite für /methodik/<slug>/, /ueber/, /ohne-tracker/ (SEO/GEO 2026, E3):
+ * Direktantwort-Lead, Abschnitte, FAQ, verwandte Seiten; TechArticle/AboutPage +
+ * FAQPage + BreadcrumbList. `hub` = { path, name } für Brotkrumen (null = Wurzel).
+ */
+export function renderArticlePage(page, { hub = null, updated, ogImage } = {}) {
+  const canonicalPath = hub ? `${hub.path}${page.slug}/` : `/${page.slug}/`;
+  const url = SITE.url + canonicalPath;
+  const type = page.jsonLdType ?? 'TechArticle';
+  const crumbs = [{ '@type': 'ListItem', position: 1, name: 'Start', item: SITE.url + '/' }];
+  if (hub) crumbs.push({ '@type': 'ListItem', position: 2, name: hub.name, item: SITE.url + hub.path });
+  crumbs.push({ '@type': 'ListItem', position: crumbs.length + 1, name: page.title, item: url });
+  const jsonLd = [
+    {
+      '@context': 'https://schema.org', '@type': type,
+      headline: page.h1, name: page.title, description: page.description, url, mainEntityOfPage: url,
+      inLanguage: 'de-DE', datePublished: page.datePublished ?? updated, dateModified: page.dateModified ?? updated,
+      author: { '@type': 'Organization', name: SITE.name, url: SITE.url + '/' },
+      publisher: { '@type': 'Organization', name: SITE.name, url: SITE.url + '/' },
+      isAccessibleForFree: true,
+      // E9: Direktantwort als vorlesbarer Abschnitt auszeichnen (Assistenten, Voice-Ergebnisse).
+      speakable: { '@type': 'SpeakableSpecification', cssSelector: ['h1', '.lead'] },
+      image: [SITE.url + (ogImage || DEFAULT_OG_IMAGE)],
+    },
+    { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: crumbs },
+    ...(page.faqs?.length ? [faqJsonLd(page.faqs)] : []),
+  ];
+  const head = headBlock({ title: `${page.title} | ${SITE.name}`, description: page.description, canonicalPath, locale: 'de-DE', ogImage, jsonLd });
+  const sections = page.sections.map((sec) => `      <section>\n        <h2>${escapeHtml(sec.h2)}</h2>\n        ${sec.html}\n      </section>`).join('\n');
+  const faqs = page.faqs?.length ? `      <section>\n        <h2>Häufige Fragen</h2>\n        ${page.faqs.map((f) => `<details><summary>${escapeHtml(f.q)}</summary><p>${escapeHtml(f.a)}</p></details>`).join('\n        ')}\n      </section>` : '';
+  const related = page.related?.length ? `      <section>\n        <h2>Weiterlesen</h2>\n        <div class="links">${page.related.map((r) => `<a href="${r}">${escapeHtml(r.replace(/^\//, '').replace(/\/$/, '').replace(/-/g, ' '))}</a>`).join('')}</div>\n      </section>` : '';
+  return `<!doctype html>
+<html lang="de">
+  <head>
+${head}
+    <style>${PAGE_CSS}
+h3{font-size:1rem;margin:1.1rem 0 .3rem}
+code{font-size:.82em;background:#fff;border:1px solid var(--border);border-radius:4px;padding:.05rem .3rem}
+section ul{padding-left:1.1rem}section li{margin-bottom:.5rem}
+table{border-collapse:collapse;width:100%;font-size:.86rem;margin:.4rem 0}
+th,td{text-align:left;vertical-align:top;padding:.4rem .55rem;border-bottom:1px solid var(--border)}
+th{font-weight:600}
+.meta{font-size:.8rem;color:var(--stone)}</style>
+  </head>
+  <body>
+    <main class="wrap">
+      <nav class="bc" aria-label="Brotkrumen"><a href="/">Start</a>${hub ? ` › <a href="${hub.path}">${escapeHtml(hub.name)}</a>` : ''} › ${escapeHtml(page.title)}</nav>
+      <h1>${escapeHtml(page.h1)}</h1>
+      <p class="lead">${escapeHtml(page.answer)}</p>
+      <p class="meta">Stand: ${escapeHtml(page.dateModified ?? updated)} · Alle Zahlen stammen aus dem Quellcode von buscosun (Konstanten und Schwellen), nicht aus Marketingtexten.</p>
+${sections}
+${faqs}
+${related}
+      <footer>
+        ${escapeHtml(SITE.name)} — ${escapeHtml(SITE.tagline)}. Datenbasis: Deutscher Wetterdienst (DWD, GeoNutzV) · GeoSphere Austria · MeteoSwiss. Keine Tracker, keine Werbung.
+        <a href="/ueber/">Über buscosun</a> · <a href="/methodik/">Methodik</a> · <a href="/lizenzen/">Quellen &amp; Lizenzen</a> · <a href="/impressum/">Impressum</a> · <a href="/datenschutz/">Datenschutz</a>
+      </footer>
+    </main>
+  </body>
+</html>
+`;
+}
+
+/** /methodik/-Hub. */
+export function renderMethodikHub(pages, updated) {
+  const head = headBlock({
+    ogImage: ogImageOr('methodik', DEFAULT_OG_IMAGE),
+    title: `Methodik — wie buscosun rechnet | ${SITE.name}`,
+    description: 'Höhenkorrektur, Quellenmix, Radar-Nowcast, Konfidenz, Event-Bewertung, Tourenplanung, E-Bike-Reichweite, Brandradar, Wettermodelle — die Rechenwege von buscosun mit Konstanten und Grenzen.',
+    canonicalPath: '/methodik/', locale: 'de-DE',
+    jsonLd: [{ '@context': 'https://schema.org', '@type': 'CollectionPage', name: 'Methodik', url: SITE.url + '/methodik/', description: 'Die Rechenwege von buscosun, offengelegt.', dateModified: updated }],
+  });
+  const cards = pages.map((pg) => `<a href="/methodik/${pg.slug}/" class="card"><strong>${escapeHtml(pg.title)}</strong><span>${escapeHtml(pg.description)}</span></a>`).join('\n      ');
+  return `<!doctype html>
+<html lang="de">
+  <head>
+${head}
+    <style>${PAGE_CSS}
+.cards{display:grid;gap:.8rem}@media(min-width:560px){.cards{grid-template-columns:1fr 1fr}}
+.card{display:flex;flex-direction:column;gap:.3rem;background:#fff;border:1px solid var(--border);border-radius:12px;padding:.9rem 1rem;text-decoration:none;color:var(--ink)}
+.card span{font-size:.88rem;color:var(--stone)}</style>
+  </head>
+  <body>
+    <main class="wrap">
+      <nav class="bc" aria-label="Brotkrumen"><a href="/">Start</a> › Methodik</nav>
+      <h1>Wie buscosun rechnet</h1>
+      <p class="lead">Jede Zahl auf buscosun hat einen Rechenweg — und jeder Rechenweg hat Grenzen. Diese Seiten legen beides offen: Quellen, Formeln, Schwellen und Konstanten, wie sie im Quellcode stehen, sowie das, was das Verfahren nicht kann. Ohne Werbetexte, ohne Scheingenauigkeit.</p>
+      <div class="cards">
+      ${cards}
+      </div>
+      <section><h2>Verwandt</h2><div class="links"><a href="/ueber/">Über buscosun</a><a href="/ohne-tracker/">Ohne Tracker</a><a href="/lizenzen/">Quellen &amp; Lizenzen</a><a href="/wissen/">Wetterwissen</a><a href="/validierung">Validierung</a></div></section>
+      <footer>${escapeHtml(SITE.name)} — ${escapeHtml(SITE.tagline)}. <a href="/impressum/">Impressum</a> · <a href="/datenschutz/">Datenschutz</a></footer>
+    </main>
   </body>
 </html>
 `;
@@ -741,7 +924,7 @@ ${head}
 .card strong{color:var(--terra)}.card span{font-size:.85rem;color:var(--stone)}.card.stub{opacity:.7}</style>
   </head>
   <body>
-    <div class="wrap">
+    <main class="wrap">
       <nav class="bc" aria-label="Brotkrumen"><a href="/">Start</a> › Funktionen</nav>
       <h1>buscosun-Funktionen</h1>
       <p class="lead">Alle Werkzeuge von buscosun auf einen Blick — interaktive Wetterkarte, 3D-Atmosphäre, Tourenplanung, bester Event-Tag, Nowcast, Modellvergleich, Globus, Wetterhistorie und Arbeitsfenster. Alles höhenkorrigiert, aus amtlichen Quellen, kostenlos und ohne Tracker.</p>
@@ -753,7 +936,7 @@ ${head}
       <div class="cards">
       ${stubs}
       </div>
-    </div>
+    </main>
   </body>
 </html>
 `;
@@ -835,7 +1018,7 @@ ${head}
 .byline{font-size:.85rem;color:var(--stone);margin:0 0 1rem}.dek{font-size:1.15rem;margin:0 0 1.2rem}</style>
   </head>
   <body>
-    <div class="wrap">
+    <main class="wrap">
       <nav class="bc" aria-label="Brotkrumen"><a href="/">Start</a> › <a href="/wetterlage/">Wetterlage</a> › ${escapeHtml(ev.section)}</nav>
       <article>
         <h1>${escapeHtml(ev.h1)}</h1>
@@ -847,10 +1030,10 @@ ${relPlaces ? `        <section>\n          <h2>Betroffene Orte</h2>\n          
 ${relExplainers ? `        <section>\n          <h2>Hintergrund</h2>\n          <div class="links">\n        ${relExplainers}\n          </div>\n        </section>` : ''}
       </article>
       <footer>
-        ${escapeHtml(SITE.name)} — ${escapeHtml(SITE.tagline)}. Datenbasis: Deutscher Wetterdienst (DWD, CC BY 4.0) · GeoSphere Austria · MeteoSwiss.
+        ${escapeHtml(SITE.name)} — ${escapeHtml(SITE.tagline)}. Datenbasis: Deutscher Wetterdienst (DWD, GeoNutzV) · GeoSphere Austria · MeteoSwiss.
         Einordnung einer Wetterlage, keine amtliche Warnung. Verbindliche Warnungen geben die staatlichen Wetterdienste heraus.
       </footer>
-    </div>
+    </main>
   </body>
 </html>
 `;
@@ -878,14 +1061,14 @@ ${head}
 .card strong{color:var(--terra)}.card span{font-size:.85rem;color:var(--stone)}</style>
   </head>
   <body>
-    <div class="wrap">
+    <main class="wrap">
       <nav class="bc" aria-label="Brotkrumen"><a href="/">Start</a> › Wetterlage</nav>
       <h1>Wetterlagen</h1>
       <p class="lead">Einordnung markanter Wetterlagen in der DACH-Region — Hintergründe, betroffene Orte und die Meteorologie dahinter. buscosun erklärt die Lage und gibt keine amtlichen Warnungen heraus.</p>
       <div class="cards">
       ${items}
       </div>
-    </div>
+    </main>
   </body>
 </html>
 `;
@@ -928,8 +1111,7 @@ export function routeHeadExtras(route) {
   const url = SITE.url + route.path;
   const title = `${route.meta.title} | ${SITE.name}`;
   const og = route.meta.ogImage || DEFAULT_OG_IMAGE;
-  return `<link rel="canonical" href="${url}" />
-    ${hreflangLinks(route.path)}${route.meta.noindex ? '\n    <meta name="robots" content="noindex, follow" />' : ''}
+  return `<link rel="canonical" href="${url}" />${route.meta.noindex ? '\n    <meta name="robots" content="noindex, follow" />' : ''}
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="${SITE.name}" />
     <meta property="og:title" content="${escapeHtml(title)}" />
@@ -942,7 +1124,8 @@ export function routeHeadExtras(route) {
     <meta name="twitter:description" content="${escapeHtml(route.meta.description)}" />
     <meta name="twitter:image" content="${SITE.url}${og}" />
     ${jsonLdScript(routeJsonLd(route, url))}
-    ${jsonLdScript(routeBreadcrumbJsonLd(route, url))}`;
+    ${jsonLdScript(routeBreadcrumbJsonLd(route, url))}
+    ${entityScripts()}`;
 }
 
 /** Crawlbarer #root-Inhalt einer Route-Shell (wird von der App beim Mount ersetzt). */
@@ -963,11 +1146,79 @@ export function renderRouteRootContent(route) {
 }
 
 /** Head-Ergänzungen für die Home (OG/Twitter/canonical/hreflang/JSON-LD). */
+/** Sub-Routen-Shell (SEO/GEO 2026, E1): eigener Head je Layer/Linse/Brand-Sicht. */
+function subRouteJsonLd(route, sub, url) {
+  return {
+    '@context': 'https://schema.org', '@type': 'WebPage',
+    name: sub.title, description: sub.description, url, inLanguage: 'de',
+    isPartOf: { '@type': 'WebSite', name: SITE.name, url: SITE.url + '/' },
+  };
+}
+function subRouteBreadcrumbJsonLd(route, sub, url) {
+  return {
+    '@context': 'https://schema.org', '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Start', item: SITE.url + '/' },
+      { '@type': 'ListItem', position: 2, name: route.meta.title, item: SITE.url + route.path },
+      { '@type': 'ListItem', position: 3, name: sub.title, item: url },
+    ],
+  };
+}
+export function subRouteHeadExtras(route, sub) {
+  const url = SITE.url + route.path + '/' + sub.slug;
+  const title = `${sub.title} | ${SITE.name}`;
+  const og = sub.ogImage || route.meta.ogImage || DEFAULT_OG_IMAGE;
+  return `<link rel="canonical" href="${url}" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="${SITE.name}" />
+    <meta property="og:title" content="${escapeHtml(title)}" />
+    <meta property="og:description" content="${escapeHtml(sub.description)}" />
+    <meta property="og:url" content="${url}" />
+    <meta property="og:locale" content="de_DE" />
+    <meta property="og:image" content="${SITE.url}${og}" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="${escapeHtml(title)}" />
+    <meta name="twitter:description" content="${escapeHtml(sub.description)}" />
+    <meta name="twitter:image" content="${SITE.url}${og}" />
+    ${jsonLdScript(subRouteJsonLd(route, sub, url))}
+    ${jsonLdScript(subRouteBreadcrumbJsonLd(route, sub, url))}
+    ${entityScripts()}`;
+}
+/**
+ * Crawlbarer #root-Inhalt der Sub-Routen-Shell: H1, Lead, Absätze, Faktenliste,
+ * Geschwister-Ansichten, Explainer (nur wenn `explainerOk(slug)`), Hubs.
+ * Derselbe Text speist nach dem App-Mount `RouteSeoBlock` (E2).
+ */
+export function renderSubRouteRootContent(route, sub, text, siblings, explainerOk = () => false) {
+  const path = route.path + '/' + sub.slug;
+  const body = (text.body || []).map((p) => `<p>${escapeHtml(p)}</p>`).join('\n      ');
+  const facts = (text.facts || []).map((f) => `<dt>${escapeHtml(f.label)}</dt><dd>${escapeHtml(f.text)}</dd>`).join('\n        ');
+  const sib = siblings.filter((x) => x.slug !== sub.slug).map((x) => `<li><a href="${route.path}/${x.slug}">${escapeHtml(x.title)}</a></li>`).join('\n        ');
+  const explainer = text.explainer && explainerOk(text.explainer) ? `<p>Hintergrund: <a href="/wissen/${text.explainer}/">Erklärung im Wetterwissen</a>.</p>` : '';
+  return `<div id="seo-fallback">
+      <nav aria-label="Brotkrumen"><a href="/">Start</a> › <a href="${route.path}">${escapeHtml(route.meta.title)}</a> › ${escapeHtml(sub.title)}</nav>
+      <h1>${escapeHtml(text.h1 || sub.title)}</h1>
+      <p>${escapeHtml(text.lead || sub.description)}</p>
+      ${body}
+      <h2>Daten und Grenzen</h2>
+      <dl>
+        ${facts}
+      </dl>
+      ${explainer}
+      <h2>Weitere Ansichten</h2>
+      <ul>
+        ${sib}
+      </ul>
+      <h2>Mehr auf buscosun</h2>
+      <p><a href="${route.path}">${escapeHtml(route.meta.title)}</a> · <a href="/wetter/">Wetter nach Ort</a> · <a href="/funktionen/">Alle Funktionen</a> · <a href="/wissen/">Wetterwissen</a> · <a href="/lizenzen/">Quellen &amp; Lizenzen</a></p>
+      <p>Diese Ansicht: <a href="${path}">${SITE.url}${path}</a> — amtliche Quellen, höhenkorrigiert, ohne Konto, ohne Tracker.</p>
+    </div>`;
+}
+
 export function homeHeadExtras() {
   const canonicalPath = '/';
   const url = SITE.url + '/';
   return `<link rel="canonical" href="${url}" />
-    ${hreflangLinks(canonicalPath)}
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="${SITE.name}" />
     <meta property="og:title" content="buscosun — ${escapeHtml(SITE.tagline)}" />
@@ -980,5 +1231,5 @@ export function homeHeadExtras() {
     <meta name="twitter:description" content="${escapeHtml(SITE.description)}" />
     <meta name="twitter:image" content="${SITE.url}/og/home.png" />
     ${jsonLdScript(webAppJsonLd())}
-    ${jsonLdScript(organizationJsonLd())}`;
+    ${entityScripts()}`;
 }
