@@ -10,7 +10,7 @@
  */
 
 /** Letzte inhaltliche Änderung der Ortsliste/-texte (Sitemap-lastmod, SEO/GEO 2026 E1). */
-export const PLACES_UPDATED = '2026-06-09';
+export const PLACES_UPDATED = '2026-09-05';
 
 export function toSlug(name) {
   return name

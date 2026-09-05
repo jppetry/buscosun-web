@@ -10,6 +10,7 @@ import { existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { nearestPlaces } from './places.mjs';
+import { climateSection, sunSection, unknownsSection, climateHighlights, placeDescription, CLIMA_YEARS } from './climate.mjs';
 
 const OG_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'public', 'og');
 /** SEO/GEO 2026 (E4): eigenes OG-Bild nur, wenn die PNG existiert — sonst die Bereichs-Karte (E10 erzeugt die Bilder). */
@@ -147,7 +148,10 @@ export function placeFaqs(place) {
 
 export function metaFor(place) {
   const title = `Wetter ${place.name} — ${place.region} | ${SITE.name}`;
-  const description = `Wetter für ${place.name} (${place.region}, ${COUNTRY_NAME[place.country]}): höhenkorrigierte Vorhersage aus amtlichen Quellen, interaktive Karte, Nowcast und Modellvergleich — ohne Tracker.`;
+  // SEO/GEO 2026 (E8): eigene Description je Ort. Vorher stand auf allen 138 Seiten derselbe
+  // Satz — für Google ein Duplikat-Signal, für einen Menschen ohne Informationswert. Die
+  // Klimakennzahlen unterscheiden die Orte inhaltlich, nicht nur durch den Namen.
+  const description = placeDescription(place, climateHighlights(place));
   return { title, description, locale: LOCALE[place.country] };
 }
 
@@ -248,6 +252,8 @@ export function datasetJsonLd(place) {
     url: `${SITE.url}/wetter/${place.slug}/`,
     license,
     isAccessibleForFree: true,
+    // E8: Die Seite trägt eine Klimatologie aus Stationsdaten — der Zeitraum gehört ausgewiesen.
+    temporalCoverage: `${CLIMA_YEARS[0]}/${CLIMA_YEARS[1]}`,
     creator: { '@type': 'Organization', name: SITE.name, url: SITE.url + '/' },
     spatialCoverage: {
       '@type': 'Place',
@@ -332,7 +338,12 @@ section{margin:1.8rem 0}h2{font-size:1.2rem;border-bottom:1px solid var(--border
 ul.facts{padding-left:1.1rem}details{border:1px solid var(--border);border-radius:10px;padding:.6rem .9rem;margin:.5rem 0;background:#fff}
 summary{font-weight:600;cursor:pointer}.links{display:flex;flex-wrap:wrap;gap:.5rem}
 .links a{display:inline-block;background:#fff;border:1px solid var(--border);border-radius:999px;padding:.35rem .8rem;text-decoration:none;color:var(--ink);font-size:.9rem}
-footer{margin-top:3rem;font-size:.8rem;color:var(--stone);border-top:1px solid var(--border);padding-top:1rem}`;
+footer{margin-top:3rem;font-size:.8rem;color:var(--stone);border-top:1px solid var(--border);padding-top:1rem}
+table{border-collapse:collapse;width:100%;font-size:.88rem;margin:.6rem 0;background:#fff}
+th,td{text-align:left;padding:.4rem .55rem;border-bottom:1px solid var(--border)}
+th{font-weight:600;background:rgba(224,214,190,.35)}
+td+td,th+th{text-align:right}
+p.note{font-size:.85rem;color:var(--stone)}`;
 
 /** Vollständige statische Geo-Seite (semantisch, crawlbar, GEO-zitierbar). */
 export function renderPlacePage(place) {
@@ -350,8 +361,21 @@ export function renderPlacePage(place) {
   const factItems = facts.map((f) => `<li>${escapeHtml(f)}</li>`).join('\n        ');
   const faqItems = faqs.map((f) => `<details><summary>${escapeHtml(f.q)}</summary><p>${escapeHtml(f.a)}</p></details>`).join('\n      ');
   const neighborLinks = neighbors.map((n) => `<a href="/wetter/${n.slug}/">${escapeHtml(n.name)} <span>(${n.distKm} km)</span></a>`).join('\n        ');
-  const featureLinks = ['Karte', 'Tourenplanung', 'Event-Tag', 'Nowcast', 'Vorhersage', 'Arbeitsfenster']
-    .map((f) => `<a href="/">${f}</a>`).join('\n        ');
+  // E8: Vorher zeigten alle sechs Knöpfe auf „/" — sechs identische Links ohne Ziel.
+  // Jetzt führt jeder in die passende Ansicht, wo möglich mit dem Ort in der Query.
+  const placeQuery = new URLSearchParams([
+    ['ort', place.name], ['olat', coord4(place.lat)], ['olon', coord4(place.lon)], ['land', String(place.country).toLowerCase()],
+  ]).toString();
+  const featureLinks = [
+    ['Wetterkarte', mapPermalink(place)],
+    ['Regenradar', `/regenradar?${placeQuery}`],
+    ['Vorhersage & Modellvergleich', `/vorhersage?${placeQuery}`],
+    ['Bester Tag für ein Vorhaben', `/eventplanung?${placeQuery}`],
+    ['Wetter entlang einer Tour', '/tourenplanung'],
+    ['Atmosphäre & Höhenwind', `/atmosphaere/querschnitt?${placeQuery}`],
+    ['Wetterarchiv & Klima', `/wetterarchiv?${placeQuery}`],
+    ['Waldbrandgefahr', '/waldbrand/gefahrenindex'],
+  ].map(([label, href]) => `<a href="${href}">${label}</a>`).join('\n        ');
   const knowledgeLinks = relevantExplainersFor(place, EXPLAINERS, 3)
     .map((e) => `<a href="/wissen/${e.slug}/">${escapeHtml(e.title)}</a>`).join('\n        ');
 
@@ -377,11 +401,13 @@ ${head}
         <p>Live-Werte und Stundenverlauf zeigt die <a href="${mapPermalink(place)}">interaktive Karte für ${escapeHtml(place.name)}</a>. buscosun nutzt ausschließlich amtliche Quellen und arbeitet ohne Tracker.</p>
       </section>
 
+${climateSection(place)}${sunSection(place)}
       <section>
         <h2>Häufige Fragen zum Wetter in ${escapeHtml(place.name)}</h2>
         ${faqItems}
       </section>
 
+${unknownsSection(place, { alpine: isAlpine(place) })}
       <section>
         <h2>Wetter in der Umgebung</h2>
         <div class="links">
@@ -463,6 +489,8 @@ export function articleJsonLd(ex) {
     '@type': 'Article',
     headline: ex.h1,
     image: [SITE.url + explainerOgImage(ex)],
+    // E9: Die Direktantwort ist der vorlesbare Teil (Assistenten, Voice-Ergebnisse).
+    speakable: { '@type': 'SpeakableSpecification', cssSelector: ['h1', '.lead'] },
     description: ex.answer,
     inLanguage: 'de-DE',
     mainEntityOfPage: url,
@@ -791,6 +819,8 @@ export function renderArticlePage(page, { hub = null, updated, ogImage } = {}) {
       author: { '@type': 'Organization', name: SITE.name, url: SITE.url + '/' },
       publisher: { '@type': 'Organization', name: SITE.name, url: SITE.url + '/' },
       isAccessibleForFree: true,
+      // E9: Direktantwort als vorlesbarer Abschnitt auszeichnen (Assistenten, Voice-Ergebnisse).
+      speakable: { '@type': 'SpeakableSpecification', cssSelector: ['h1', '.lead'] },
       image: [SITE.url + (ogImage || DEFAULT_OG_IMAGE)],
     },
     { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: crumbs },
