@@ -81,7 +81,32 @@ export const ATMOSPHERE_LENS_SLUGS = {
 } as const;
 export type AtmosphereLensSlug = (typeof ATMOSPHERE_LENS_SLUGS)[keyof typeof ATMOSPHERE_LENS_SLUGS];
 
-export const FIRE_VIEW_SLUGS = ['gefahrenindex', 'aktive-braende', 'trockenheit'] as const;
+/**
+ * SEO/GEO 2026 (E7): das Arbeitsfenster (Go/No-Go) ist fachlich eine eigene Ansicht — sie hatte
+ * bisher nur die Query-Form "?ansicht=gonogo" und damit keinen kanonischen Pfad. Der Pfad liegt
+ * auf derselben Linse "section"; die alte Query-Form bleibt gueltig und wird auf ihn umgeschrieben.
+ */
+export const ATMOSPHERE_WORK_WINDOW_SLUG = 'arbeitsfenster';
+
+export const FIRE_VIEW_SLUGS = ['gefahrenindex', 'aktive-braende', 'trockenheit', 'historie', 'thermalanomalien'] as const;
+
+/**
+ * SEO/GEO 2026 (E7): Anlass-Sub-Routen der Event-Planung. Der Slug ist deutsch, der Wert die id
+ * des Anlasses in "src/event/eventModel.ts" (EVENT_ACTIVITIES). Die Sub-Route waehlt den Anlass
+ * im Wizard vor — der uebrige Zustand bleibt wie bisher im Fragment "#ev=".
+ */
+export const EVENT_ACTIVITY_SLUGS: Readonly<Record<string, string>> = {
+  grillen: 'bbq',
+  hochzeit: 'wedding',
+  wandern: 'hiking',
+  drohne: 'drone',
+  fotografie: 'photo',
+  sterne: 'stargazing',
+  radtour: 'cycling',
+  picknick: 'picnic',
+  laufen: 'running',
+  baden: 'swimming',
+};
 
 export const ROUTES: readonly RouteDef[] = [
   {
@@ -149,7 +174,20 @@ export const ROUTES: readonly RouteDef[] = [
     },
   },
   {
-    id: 'eventplanung', path: '/eventplanung', aliases: ['/events', '/event'], featureId: 'event', subs: null,
+    id: 'eventplanung', path: '/eventplanung', aliases: ['/events', '/event'], featureId: 'event', subParam: 'view',
+    // SEO/GEO 2026 (E7): je Anlass ein kanonischer Pfad — der Wizard oeffnet mit vorgewaehltem Anlass.
+    subs: [
+      { slug: 'grillen', title: 'Grillwetter — der beste Tag zum Grillen', description: 'Welcher Tag der kommenden Woche ist warm, trocken und windstill genug für Grillabend, Gartenfest oder Hoffest?', updated: CONTENT_UPDATED },
+      { slug: 'hochzeit', title: 'Hochzeitswetter mit Plan B', description: 'Trauung, Empfang und Abendfeier einzeln bewertet, dazu die Schwelle, ab der ein Plan B nötig wird — für die Hochzeit im Freien.', updated: CONTENT_UPDATED },
+      { slug: 'wandern', title: 'Wanderwetter — der beste Tag für die Tour', description: 'Trocken, mild, gute Sicht: welcher der nächsten Tage sich für die Wanderung eignet, mit ehrlicher Sicherheit je Tag.', updated: CONTENT_UPDATED },
+      { slug: 'drohne', title: 'Drohnenwetter — Böen, Sicht und Regen', description: 'Der beste Tag für den Drohnenflug: Böen zählen am schwersten, dazu Sicht und Niederschlag — plus Go/No-Go auf Flughöhe.', updated: CONTENT_UPDATED },
+      { slug: 'fotografie', title: 'Fotowetter — Licht, Wolken und Stimmung', description: 'Wolkenlicht statt blankem Himmel: welcher Tag weiches Licht verspricht, dazu goldene und blaue Stunde für jedes Datum.', updated: CONTENT_UPDATED },
+      { slug: 'sterne', title: 'Sternenwetter — klare Nächte finden', description: 'Wolken, Mond, astronomische Dunkelheit und Tau-Risiko für die Kernnacht — welche Nacht der Woche sich zum Beobachten eignet.', updated: CONTENT_UPDATED },
+      { slug: 'radtour', title: 'Radwetter — der beste Tag für die Ausfahrt', description: 'Wind wiegt schwer, Regen noch schwerer: welcher Tag sich für Rennrad, Gravel oder die E-Bike-Tour anbietet.', updated: CONTENT_UPDATED },
+      { slug: 'picknick', title: 'Picknickwetter — mild, trocken, sonnig', description: 'Der beste Tag für Picknick, Kindergeburtstag im Freien oder das Treffen im Park — mild, trocken und wenig bewölkt.', updated: CONTENT_UPDATED },
+      { slug: 'laufen', title: 'Laufwetter — kühl und trocken', description: 'Wann es kühl und trocken genug für den langen Lauf, den Firmenlauf oder das Training im Freien wird.', updated: CONTENT_UPDATED },
+      { slug: 'baden', title: 'Badewetter — heiß und sonnig', description: 'Welcher Tag heiß und sonnig genug für Freibad, Badesee oder Strandtag wird — die Temperatur zählt hier am schwersten.', updated: CONTENT_UPDATED },
+    ],
     meta: {
       title: 'Event-Planung — der beste Tag',
       description: 'Welcher Tag passt am besten? buscosun bewertet Wetterfenster für Hochzeit, Grillabend, Drohnenflug oder Outdoor-Event und schlägt einen Plan B vor.',
@@ -176,7 +214,12 @@ export const ROUTES: readonly RouteDef[] = [
         slug: ATMOSPHERE_LENS_SLUGS.mountain, title: 'Föhn, Berg & Weg', description: 'Föhn, Inversion und Wind in der Höhe für Bergtouren — was über dem Tal passiert, bevor es unten ankommt.',
       },
       {
-        slug: ATMOSPHERE_LENS_SLUGS.section, title: 'Vertikalschnitt der Atmosphäre', description: 'Höhenwind, Inversion und Go/No-Go entlang einer frei gezogenen Schnittlinie — die Atmosphäre im Querschnitt.',
+        slug: ATMOSPHERE_LENS_SLUGS.section, title: 'Vertikalschnitt der Atmosphäre', description: 'Höhenwind, Inversion und Schichtung entlang einer frei gezogenen Schnittlinie — die Atmosphäre im Querschnitt.',
+      },
+      {
+        slug: ATMOSPHERE_WORK_WINDOW_SLUG, title: 'Arbeitsfenster Go/No-Go — Böen auf Arbeitshöhe',
+        description: 'Arbeitshöhe und Böengrenzwert eingeben und GO/NO-GO über den Tag ablesen — für Drohne, Kran, Gerüst und Höhenarbeit.',
+        updated: CONTENT_UPDATED,
       },
     ],
     meta: {
@@ -207,6 +250,16 @@ export const ROUTES: readonly RouteDef[] = [
       },
       {
         slug: 'trockenheit', title: 'Bodentrockenheit & Feuerwetter DACH', description: 'Bodenfeuchte aus ICON-D2 in zwei Tiefen (Oberboden bis 9 cm, Wurzelzone bis 81 cm) und die Trockenheit der Luft als stündlicher Feuerwetter-Treiber.',
+      },
+      {
+        slug: 'historie', title: 'Waldbrand-Historie DACH — Monat und Saison',
+        description: 'Die laufende Saison und die Jahre seit 2020 aus dem eigenen FIRMS-Archiv: Ereignisse je Monat, Saisonverlauf und Einzelfälle mit Wetterlage.',
+        updated: CONTENT_UPDATED,
+      },
+      {
+        slug: 'thermalanomalien', title: 'Thermalanomalien — Anlagen statt Brände',
+        description: 'Standorte, an denen Satelliten dauerhaft Wärme sehen: Stahlwerke, Zementwerke, Raffinerien — als eigene Klasse, damit sie nicht als Waldbrand zählen.',
+        updated: CONTENT_UPDATED,
       },
     ],
     meta: {
@@ -423,7 +476,7 @@ export function verifyRoutes(): { checks: RouteCheck[]; passed: number; failed: 
   add('Canonical von /route/3d ist die deutsche Sub-Route', canonicalPath('/route/3d') === '/tourenplanung/3d');
   // SEO/GEO 2026 (E1): jede indexierbare Sub-Route trägt eigenen Text für ihre Shell.
   const subs = indexableSubRoutes();
-  add('24 indexierbare Sub-Routen mit eigener Shell (18 Layer + 3 Linsen + 3 Brand-Sichten)', subs.length === 24, String(subs.length));
+  add('37 indexierbare Sub-Routen mit eigener Shell (18 Layer + 4 Atmosphäre + 5 Brand-Sichten + 10 Event-Anlässe)', subs.length === 37, String(subs.length));
   const longDesc = subs.filter((x) => x.sub.description.length > 160).map((x) => `${x.path} (${x.sub.description.length})`);
   add('Sub-Routen-Descriptions sind paarweise verschieden und ≤ 160 Zeichen', new Set(subs.map((x) => x.sub.description)).size === subs.length && longDesc.length === 0, longDesc.join(', '));
   add('Shell-Dateinamen sind eindeutig und flach', new Set(subs.map((x) => x.shell)).size === subs.length && subs.every((x) => /^\/[a-z]+--[a-z0-9-]+\.html$/.test(x.shell)));

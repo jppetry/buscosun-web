@@ -1,5 +1,5 @@
 {
-  "note": "gzip-KB. limitKb = Ratsche gegen Regression (rot). targetKb = Ziel aus dem Rendering-Audit (nur Hinweis). Aktualisieren: npm run budget -- --update. 2026-09-05 (SEO/GEO E2): totalJs 1109,8 → 1114,0 für den lazy geladenen Sub-Routen-Text-Chunk (subRouteTexts, ~13 KB gzip, nur nach dem App-Mount, immutable gecacht); eagerJs-Ratsche unverändert 107,9.",
+  "note": "gzip-KB. limitKb = Ratsche gegen Regression (rot). targetKb = Ziel aus dem Rendering-Audit (nur Hinweis). Aktualisieren: npm run budget -- --update (setzt pauschal +5 % auf ALLE Metriken und loescht diese Notiz — danach die unveraenderten Grenzen von Hand zuruecksetzen). 2026-09-05 (SEO/GEO E2): totalJs 1109,8 -> 1114,0 fuer den lazy geladenen Sub-Routen-Text-Chunk (subRouteTexts). 2026-09-05 (SEO/GEO E7): totalJs 1114,0 -> 1124,0 — 13 neue Sub-Routen (Arbeitsfenster, Waldbrand-Historie, Thermalanomalien, 10 Event-Anlaesse) bringen ihre Texte in denselben lazy Chunk (74 KB roh, ~9,5 KB gzip, erst nach dem App-Mount, immutable gecacht). eagerJs-Ratsche bewusst unveraendert 107,9 (IST 106,3) — der Erstbild-Pfad waechst nicht mit.",
   "updated": "2026-09-05",
   "budgets": {
     "eagerJs": {
@@ -13,7 +13,7 @@
       "limitKb": 292.3
     },
     "totalJs": {
-      "limitKb": 1114
+      "limitKb": 1124
     }
   }
 }

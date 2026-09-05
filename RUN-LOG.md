@@ -157,3 +157,119 @@ Belege: `audit/seo-geo-2026/e2-mobile-temperatur-chip.jpeg`, `e2-desktop-regenra
 
 **Messwerte:** typecheck grün · build grün · verify-seo 503/503 · verify-routing 142/142 · budget eagerJs 105,1 /
 totalJs 1113,3 (Ratsche 1114,0) · Generator: 9 Methodik + 2 Vertrauensseiten, Sitemap 202 URLs.
+
+## E4 · Content-Reife bestehender Seiten — 2026-09-05
+
+**Getan:** Alle 14 `stub`-Seiten sind `full` — 0 noindex-Gerüste im Bestand.
+- `scripts/seo/explainers.mjs`: 7 Explainer ausgeschrieben (thermik, schneefallgrenze, gewitter-unwetter,
+  biowetter, hoehenkorrektur-lapse-rate, modellvergleich-unsicherheit, windboeen-sturm) — je 4 Abschnitte,
+  4 FAQ, ≥ 2 Quellen, gemessen **647–733 Wörter** (Vorgabe ≥ 450). Zahlen aus dem Code:
+  `src/atmosphere/thermalField.ts`, `src/scalar/snowLine.ts`, `src/ml/snowModel.ts`,
+  `src/radar/thunderPotential.ts`, `lightningPotential.ts`, `konrad3d.ts`, `src/confidence/*`,
+  `src/sources/iconD2GustSource.ts`. „Biowetter" ist bewusst eine Negativ-Auskunft: buscosun hat kein
+  Biowetter-Modul; die Seite erklärt Föhn, UV und Pollen mit der DE/AT/CH-Asymmetrie.
+- `scripts/seo/tools.mjs`: 7 Tool-Seiten ausgeschrieben (tourenplanung, event-tag, nowcast, modellvergleich,
+  globus, historie, arbeitsfenster) — je „So geht's" als nummerierter Ablauf, ein Abschnitt „Was das Werkzeug
+  nicht kann", 3 FAQ, gemessen **614–782 Wörter** (Vorgabe ≥ 400). Arbeitsfenster aus den echten Konstanten in
+  `src/threed/goNoGo.ts` (Voreinstellung 120 m AGL / 40 km/h, 15-Min-Raster, Potenzprofil α = 0,2 mit
+  Sättigung bei 1 500 m aus `crossSection.ts`, Referenzanker = höchstes Gelände).
+- `scripts/seo/content.mjs`: `ogImageOr()` — eine Seite bekommt ihr eigenes OG-Bild nur, wenn die PNG
+  existiert, sonst die Bereichs-Karte. Ohne das hätten die 14 neuen `full`-Seiten auf nicht existierende
+  Bilder gezeigt (die PNGs entstehen in E10).
+
+## E5 · Neue Explainer, Glossar, Saisonbericht — 2026-09-05
+
+**Getan:**
+- `scripts/seo/explainers-extra.mjs` (neu): **15 Explainer**, alle `full`, gemessen **488–648 Wörter**,
+  je 4 FAQ und 2–4 Quellen — fire-weather-index, waldbrandwarnstufen-de-at-ch, thermalanomalien-firms,
+  goldene-blaue-stunde, lichtverschmutzung-bortle, klimastreifen, kenntage-hitzetage-frosttage,
+  wachstumsgradtage-heizgradtage, trockenperioden, talwind, skew-t, gewitterzellen-konrad, hagel-meshs-poh,
+  regenradar-radolan-inca-rzc, windgrenzwerte-arbeit-drohne. `explainers.mjs` führt Basis und Neue in EINER
+  Liste zusammen (`EXPLAINERS_BASE` + `EXPLAINERS_EXTRA`), damit Hub, Sitemap, Feed und Verifier nur eine
+  Quelle lesen. Bestand danach: **25 Explainer, alle indexierbar**.
+- `scripts/seo/glossary.mjs` (neu): `/glossar/` mit **75 Begriffen**, je Anker-`id`, Kurz-Definition
+  (`DefinedTerm.description`) und ≥ 40 Wörtern Erläuterung; `DefinedTermSet` + `BreadcrumbList` als
+  JSON-LD, A–Z-Sprungleiste. Explainer und Sub-Routen können damit auf `/glossar/#<begriff>` zeigen.
+- Saisonbericht `waldbrandsaison-2026-dach-zwischenbilanz` in `scripts/seo/events.mjs` (982 Wörter).
+  **Jede Zahl aus den Artefakten im Repo**, nicht geschätzt: `public/fire/bh/index-season-v1.json`
+  (5 881 Ereignisse, DE 5 349 · AT 368 · CH 164, 1 195 auf Anlagenstandorten, 120 nur über EFFIS, 37
+  Abweichungen; Regel Cluster 2 km × Lücke 48 h, Saison 1.3.–31.10.) und `season-series-v1.json`
+  (Saisontag 174 = 22.8.2026: DACH 4 686 gegen Mittel 2 475,5 der Jahre 2020–2025, Spanne 1 544–4 045;
+  Saisonenden 2020–2025 2 792 / 1 980 / 3 171 / 2 992 / 2 814 / 4 528). Der Artikel sagt ausdrücklich, dass
+  die Zahlen Satellitendetektionen und keine amtliche Statistik sind, dass die Reihe die Anlagenstandorte
+  ausschließt, und **er nennt keine Ursache** — die Daten geben keine her. Die `limits` des Artefakts sind
+  als Abschnitt „Grenzen dieser Bilanz" übernommen.
+
+## E6 · Zielgruppen-Landingpages /fuer/ — 2026-09-05
+
+**Getan:** `scripts/seo/audiences.mjs` (neu) mit **16 Seiten + Hub**: gleitschirmflieger, bergsport,
+radsport, e-bike, segler, drohnenpiloten, bau-und-kran, landwirtschaft, veranstalter, hochzeit, fotografen,
+astronomie, feuerwehr-katastrophenschutz, wetterfuehlige, allergiker, wintersport. Gemessen **586–766 Wörter**
+je Seite (Vorgabe ≥ 500), je 4 FAQ, Descriptions paarweise verschieden und ≤ 160 Zeichen (15 von 16 waren
+zunächst 169–198 Zeichen lang und wurden gekürzt). Jede Seite hat den Pflicht-Abschnitt **„Was buscosun hier
+nicht kann"** — Feuerwehr: kein Einsatzsystem, keine Alarmierung; Wintersport/Bergsport: kein
+Lawinenlagebericht; Segler: keine Wellenhöhe; Allergiker: Pollen amtlich nur in Deutschland; Wetterfühlige:
+keine Gesundheitsaussagen; Landwirtschaft: kein Agrar-Modul. Der Verifier erzwingt diesen Abschnitt per Regex.
+
+**Generator/Verifier (E5+E6):** `scripts/generate-seo.mjs` erzeugt `/glossar/` und `/fuer/<gruppe>/` +
+Hub und nimmt sie in die Sitemap; `verify-seo.mjs` prüft Glossar (≥ 60 Begriffe, DefinedTermSet) und
+Zielgruppen-Seiten (≥ 16, ≥ 500 Wörter, Negativ-Abschnitt, paarweise verschiedene Descriptions).
+Startseiten-Footer und „Über diese Ansicht" verlinken `/fuer/` und `/glossar/`.
+
+**Abweichung vom Plan (Prozess, ohne inhaltliche Wirkung):** E4, E5 und E6 liegen in EINEM Commit statt in
+dreien. Die drei Etappen sind parallel entstanden und teilen sich dieselben Hunks in `generate-seo.mjs`,
+`verify-seo.mjs` und `explainers.mjs`; eine Aufteilung hätte Zwischenstände erzeugt, die nicht bauen.
+Der Commit nennt alle drei Etappennummern.
+
+**Anmerkung zur Erzeugung:** Die drei Content-Agenten liefen in ein Sitzungslimit (HTTP 429). Fertig geworden
+waren die 7 Explainer, 9 von 10 Tool-Seiten, die 15 neuen Explainer, das Glossar und die 16 Zielgruppen-Seiten;
+von Hand nachgezogen wurden die Tool-Seite Arbeitsfenster, der Saisonbericht, eine zu kurze Glossar-Erläuterung
+(KONRAD, 38 statt 40 Wörter) und die 15 zu langen Descriptions.
+
+## E7 · Neue App-Sub-Routen — 2026-09-05
+
+**Getan:** 13 neue kanonische Pfade, **24 → 37 indexierbare Sub-Routen**.
+- `/atmosphaere/arbeitsfenster` (Go/No-Go): lag bisher nur auf `?ansicht=gonogo` — eine Query-URL, die
+  Google auf die Elternseite faltet, obwohl `llms.txt` und die Tool-Seite darauf verlinkten. `urlFor()` in
+  `AtmosphereRoute.tsx` rechnet Pfad und Query an EINER Stelle und schreibt sie pro Tick einmal
+  (`queueMicrotask`), damit Linsen- und Unterlinsen-Wechsel im selben Commit nicht zwei History-Einträge
+  erzeugen. Alte Links bleiben gültig und werden per `replace` auf den Pfad umgeschrieben.
+  `routeSub` wandert wie `routeLens` durch `AtmospherePage` → `AtmosphereDeck`, damit Zurück/Vorwärts
+  zwischen Querschnitt und Arbeitsfenster die Unterlinse mitnimmt.
+- `/waldbrand/historie` und `/waldbrand/thermalanomalien`: `fireRouteView.ts` kennt zwei neue Sichten;
+  `applyFireView` liefert zusätzlich ein `history`-Feld (`'season'` für die Historie), `fireViewFromState`
+  nimmt das Historie-Fenster als drittes Argument — Historie schlägt Reiter, Reiter schlägt Layer. In
+  `FirePage.tsx` vier kleine Stellen: Anfangszustand des Historie-Fensters (Hash gewinnt weiter, `?bh=0`
+  schaltet ab), Mobil-Reiter, Meldung an den Router, Übernahme bei Zurück/Vorwärts.
+  `verifyFireRouteView` 7 → **11/11** (neu: beide Sichten, „Historie schlägt Reiter", „jede Sicht ist ihr
+  eigener Rückweg").
+- `/eventplanung/<anlass>` ×10 (grillen, hochzeit, wandern, drohne, fotografie, sterne, radtour, picknick,
+  laufen, baden): `EVENT_ACTIVITY_SLUGS` in `routes.ts`, `EventRoute.tsx` wählt den Anlass vor,
+  `EventPage` nimmt `initialActivityId` (setzt Anlass, Phasen und Gewichte) und meldet einen Anlasswechsel
+  per `onActivityChange` zurück in den Pfad (`replace`, nur bei echter Nutzeraktion — die Wiederherstellung
+  aus `#ev=` löst nichts aus). Unbekannter Slug ⇒ 404 statt stiller Eltern-Shell.
+- `src/seo/subRouteTexts.ts`: 13 neue Texte, jeder mit ≥ 60-Wort-Lead, ≥ 2 Absätzen, ≥ 4 Fakten inkl.
+  Quelle und Grenze. Zahlen aus dem Code bzw. den Artefakten: Go/No-Go-Konstanten aus `goNoGo.ts`;
+  Anlass-Gewichte und Idealtemperaturen aus `src/event/eventScoring.ts`; Thermalanomalien aus
+  `public/fire/ta/thermal-sites-v1.json` (218 Standorte — A 145 · B 8 · C 65; DE 92 · AT 12 · CH 8, übrige
+  außerhalb DACH; Regel ≥ 2 Jahre mit je ≥ 5 Tagen, Anlagen-Join 1,5 km, Archiv 2020-01…2026-05);
+  Historie aus `index-season-v1.json`.
+- `netlify.toml`: 13 neue 200-Regeln je vor ihrer Wildcard, dazu erstmals `/eventplanung/*`.
+- `public/llms.txt`: Go/No-Go-Link auf den kanonischen Pfad, alle Sub-Routen benannt.
+  **Zwei Textfehler korrigiert** (V-SEO-25, V-SEO-26): Der Globus lädt GFS **live** per HTTP-Range aus dem
+  AWS-Bucket (`src/globe/gfs.ts`) — die Datei behauptete „gebündelte Beispieldaten, keine globale
+  Live-Vorhersage" und verschenkte damit ein Feature; und „amtliche Landesstufen" wurde durch die genaue
+  Formulierung ersetzt (nationale Skalen von DWD und BAFU, Österreich hat keine offene amtliche Stufe).
+
+**Messwerte E4–E7:** typecheck grün · build grün · **verify-seo 785/785** (E3: 503) ·
+**verify-routing 146/146** (E3: 142) · `verifyFireRouteView` 11/11 · `verifySubRouteTexts` 9/9 für 37 Pfade ·
+**Sitemap 202 → 263 URLs** · 37 Sub-Routen-Shells · 25 Explainer + 10 Tool-Seiten + 2 Wetterlage-Artikel +
+75 Glossar-Begriffe + 16 Zielgruppen-Seiten, alle indexierbar.
+
+**Budget bewusst angehoben:** totalJs 1114,0 → **1124,0** (IST 1123,5). Ursache benannt und begrenzt: die 13
+neuen Sub-Routen-Texte liegen im **lazy** Chunk `subRouteTexts` (74 KB roh, ~9,5 KB gzip), der erst nach dem
+App-Mount lädt und immutable gecacht ist. Die Erstbild-Ratsche **eagerJs bleibt 107,9** (IST 106,3), eagerCss
+2,5 (IST 2,4), largestChunk 292,3 (IST 278,4) — der Erstbild-Pfad wächst nicht mit.
+**Falle:** `npm run budget -- --update` setzt pauschal +5 % auf ALLE Metriken (eagerJs wäre auf 111,6
+gewandert) und löscht die Notiz. Die Grenzen wurden deshalb von Hand gesetzt; der Hinweis steht jetzt in
+`budget.json`.

@@ -7,12 +7,12 @@
 - [Amtliche Unwetterwarnungen](https://buscosun.com/warnungen): DWD und MeteoSchweiz wortwörtlich auf der Karte (Österreich folgt).
 - [Regenradar](https://buscosun.com/regenradar): gemessenes Landesradar DE/AT/CH mit Nowcast bis 2 Stunden.
 - [Tourenplanung](https://buscosun.com/tourenplanung): Wetter entlang einer hochgeladenen Route (GPX/TCX/FIT/KML/KMZ) zur Ankunftszeit je Kilometer, inkl. E-Bike-Reichweite.
-- [Event-Planung](https://buscosun.com/eventplanung): vergleicht die nächsten 7 Tage und nennt den besten Tag für ein Vorhaben (Phasen, Plan B, Foto-Licht, Astro-Nacht).
+- [Event-Planung](https://buscosun.com/eventplanung): vergleicht die nächsten 7 Tage und nennt den besten Tag für ein Vorhaben (Phasen, Plan B, Foto-Licht, Astro-Nacht). Je Anlass ein eigener Pfad, z. B. [Hochzeit](https://buscosun.com/eventplanung/hochzeit), [Grillen](https://buscosun.com/eventplanung/grillen), [Drohne](https://buscosun.com/eventplanung/drohne), [Sterne](https://buscosun.com/eventplanung/sterne).
 - [Vorhersage mit Konfidenz & Modellvergleich](https://buscosun.com/vorhersage): ICON-D2, MOSMIX und ICON-EU mit ehrlichem Unsicherheits-Spread und Trefferquoten-Rückblick.
 - [Wetterarchiv & Klima seit 1940](https://buscosun.com/wetterarchiv): Rückblick und Veränderung je Ort.
-- [Atmosphäre](https://buscosun.com/atmosphaere): Vertikalschnitt, Föhn, Thermik; [Arbeitsfenster (Go/No-Go)](https://buscosun.com/atmosphaere/querschnitt?ansicht=gonogo) für Drohne, Kran, Höhenarbeit.
-- [Waldbrandgefahr DACH](https://buscosun.com/waldbrand): EU-Index + amtliche Landesstufen, aktive Brände aus Satellitendaten, Trockenheit.
-- [3D-Globus](https://buscosun.com/globus): globales Windfeld (GFS) auf der drehbaren Erde.
+- [Atmosphäre](https://buscosun.com/atmosphaere): Vertikalschnitt, Föhn, Thermik — [Thermik & Fliegen](https://buscosun.com/atmosphaere/fliegen), [Föhn, Berg & Weg](https://buscosun.com/atmosphaere/berg-und-weg), [Vertikalschnitt](https://buscosun.com/atmosphaere/querschnitt), [Arbeitsfenster (Go/No-Go)](https://buscosun.com/atmosphaere/arbeitsfenster) für Drohne, Kran und Höhenarbeit.
+- [Waldbrandgefahr DACH](https://buscosun.com/waldbrand): EU-Index (GWIS/ECMWF) als Fläche, dazu die nationalen Skalen von DWD und BAFU zur Einordnung — Österreich hat keine offene amtliche Stufe. Eigene Pfade: [Gefahrenindex](https://buscosun.com/waldbrand/gefahrenindex), [aktive Brände](https://buscosun.com/waldbrand/aktive-braende), [Trockenheit](https://buscosun.com/waldbrand/trockenheit), [Historie seit 2020](https://buscosun.com/waldbrand/historie), [Thermalanomalien](https://buscosun.com/waldbrand/thermalanomalien).
+- [3D-Globus](https://buscosun.com/globus): globales Wind-, Temperatur-, Feuchte- und Druckfeld aus dem aktuellen GFS-Lauf (NOAA, 1°) auf der drehbaren Erde — Boden sowie 850, 500 und 250 hPa bis +120 Stunden.
 
 ## Wetter nach Ort
 - [Übersicht aller Orte](https://buscosun.com/wetter/): Geo-Landingpages für 138 kuratierte Orte in DACH (DE 58 · AT 40 · CH 40).
@@ -33,5 +33,5 @@
 
 ## Grenzen
 - Reine Frontend-App, kein Server: kein zuverlässiges Push bei geschlossener App, keine Konten.
-- Globus-Ansicht nutzt gebündelte Beispieldaten, keine globale Live-Vorhersage.
+- Globus-Ansicht: GFS mit 1° Gitterweite — global, aber deutlich gröber als die DACH-Layer (ICON-D2, 2,2 km).
 - Kein amtliches Briefing (kein METAR/TAF, kein Lawinenlagebericht als Datenprodukt) — nur Kontext und Deep-Links.

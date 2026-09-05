@@ -393,6 +393,52 @@
   from   = "/eventplanung"
   to     = "/eventplanung.html"
   status = 200
+# SEO/GEO 2026 (E7): je Anlass eine eigene flache Shell (`dist/eventplanung--<slug>.html`) —
+# eigener Title/Canonical/H1/Lead statt der Eltern-Shell. Muss VOR `/eventplanung/*` stehen.
+[[redirects]]
+  from   = "/eventplanung/grillen"
+  to     = "/eventplanung--grillen.html"
+  status = 200
+[[redirects]]
+  from   = "/eventplanung/hochzeit"
+  to     = "/eventplanung--hochzeit.html"
+  status = 200
+[[redirects]]
+  from   = "/eventplanung/wandern"
+  to     = "/eventplanung--wandern.html"
+  status = 200
+[[redirects]]
+  from   = "/eventplanung/drohne"
+  to     = "/eventplanung--drohne.html"
+  status = 200
+[[redirects]]
+  from   = "/eventplanung/fotografie"
+  to     = "/eventplanung--fotografie.html"
+  status = 200
+[[redirects]]
+  from   = "/eventplanung/sterne"
+  to     = "/eventplanung--sterne.html"
+  status = 200
+[[redirects]]
+  from   = "/eventplanung/radtour"
+  to     = "/eventplanung--radtour.html"
+  status = 200
+[[redirects]]
+  from   = "/eventplanung/picknick"
+  to     = "/eventplanung--picknick.html"
+  status = 200
+[[redirects]]
+  from   = "/eventplanung/laufen"
+  to     = "/eventplanung--laufen.html"
+  status = 200
+[[redirects]]
+  from   = "/eventplanung/baden"
+  to     = "/eventplanung--baden.html"
+  status = 200
+[[redirects]]
+  from   = "/eventplanung/*"
+  to     = "/eventplanung.html"
+  status = 200
 [[redirects]]
   from   = "/wetterarchiv"
   to     = "/wetterarchiv.html"
@@ -415,6 +461,10 @@
 [[redirects]]
   from   = "/atmosphaere/querschnitt"
   to     = "/atmosphaere--querschnitt.html"
+  status = 200
+[[redirects]]
+  from   = "/atmosphaere/arbeitsfenster"
+  to     = "/atmosphaere--arbeitsfenster.html"
   status = 200
 [[redirects]]
   from   = "/atmosphaere/*"
@@ -442,6 +492,14 @@
 [[redirects]]
   from   = "/waldbrand/trockenheit"
   to     = "/waldbrand--trockenheit.html"
+  status = 200
+[[redirects]]
+  from   = "/waldbrand/historie"
+  to     = "/waldbrand--historie.html"
+  status = 200
+[[redirects]]
+  from   = "/waldbrand/thermalanomalien"
+  to     = "/waldbrand--thermalanomalien.html"
   status = 200
 [[redirects]]
   from   = "/waldbrand/*"

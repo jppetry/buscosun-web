@@ -152,12 +152,12 @@ for (const rel of ['wetterkarte.html', 'regenradar.html', 'waldbrand.html', 'atm
 }
 // 5) Sub-Routen-Shells (SEO/GEO 2026, E1): jede indexierbare Sub-Route hat eine
 // EIGENE flache Shell mit eigenem Title/Canonical/H1/Lead — vorher teilten sie die
-// Eltern-Shell (SEO-AUDIT.md §2). 24 = 18 Layer + 3 Atmosphäre-Linsen + 3 Brand-Sichten;
+// Eltern-Shell (SEO-AUDIT.md §2). 37 = 18 Layer + 4 Atmosphäre + 5 Brand-Sichten + 10 Event-Anlässe (E7);
 // die exakte Menge prüft verify-routing gegen die Routen-Tabelle.
 console.log('\nSub-Routen-Shells:');
 const subShells = readdirSync(DIST).filter((f) => /^[a-z]+--[a-z0-9-]+\.html$/.test(f)).sort();
-if (subShells.length !== 24) fail('dist/', `erwartet 24 Sub-Routen-Shells, gefunden ${subShells.length}`);
-else ok('dist/', '24 Sub-Routen-Shells vorhanden');
+if (subShells.length !== 37) fail('dist/', `erwartet 37 Sub-Routen-Shells, gefunden ${subShells.length}`);
+else ok('dist/', '37 Sub-Routen-Shells vorhanden');
 const parentTitle = (id) => (read(`${id}.html`).match(/<title>([^<]*)<\/title>/) || [])[1];
 const seenLeads = new Set();
 for (const f of subShells) {
@@ -216,6 +216,37 @@ console.log('\nMethodik & Vertrauen:');
     if (rel !== 'methodik/index.html' && n < 500) fail(rel, `nur ${n} Wörter (erwartet ≥ 500)`);
     if (/@@TODO_JAN@@/.test(html)) fail(rel, 'Platzhalter @@TODO_JAN@@ im HTML');
   }
+}
+
+// 7b) E5/E6: Glossar und Zielgruppen-Seiten — Umfang, Negativ-Abschnitt, Typ.
+console.log('\nZielgruppen & Glossar:');
+{
+  const words = (html) => html.replace(/<script[\s\S]*?<\/script>/g, '').replace(/<style[\s\S]*?<\/style>/g, '').replace(/<[^>]+>/g, ' ').split(/\s+/).filter(Boolean).length;
+  if (!existsSync(join(DIST, 'glossar', 'index.html'))) fail('glossar/', 'fehlt');
+  else {
+    const html = read('glossar/index.html');
+    checkCommon('glossar/index.html', html, {});
+    const terms = (html.match(/<dt[ >]/g) || []).length;
+    if (terms < 60) fail('glossar/', `nur ${terms} Begriffe (erwartet ≥ 60)`); else ok('glossar/', `${terms} Begriffe mit Anker`);
+    if (!/DefinedTermSet/.test(html)) fail('glossar/', 'kein DefinedTermSet in den strukturierten Daten');
+    else ok('glossar/', 'DefinedTermSet vorhanden');
+  }
+  const audienceDirs = existsSync(join(DIST, 'fuer')) ? readdirSync(join(DIST, 'fuer'), { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name) : [];
+  if (audienceDirs.length < 16) fail('fuer/', `erwartet ≥ 16 Zielgruppen-Seiten, gefunden ${audienceDirs.length}`);
+  else ok('fuer/', `${audienceDirs.length} Zielgruppen-Seiten`);
+  const descs = new Map();
+  for (const name of audienceDirs) {
+    const rel = `fuer/${name}/index.html`;
+    const html = read(rel);
+    checkCommon(rel, html, {});
+    const n = words(html);
+    if (n < 500) fail(rel, `nur ${n} Wörter (erwartet ≥ 500)`);
+    // Jede Zielgruppen-Seite muss sagen, was buscosun für sie NICHT kann (Z5, D-04).
+    if (!/<h2[^>]*>[^<]*nicht[^<]*<\/h2>/i.test(html)) fail(rel, 'kein Abschnitt „Was buscosun hier nicht kann"');
+    const d = (html.match(/name=["']description["'][^>]*content=["']([^"']+)["']/i) || [])[1] || '';
+    if (descs.has(d)) fail(rel, `Description identisch mit ${descs.get(d)}`); else descs.set(d, rel);
+  }
+  if (audienceDirs.length && !existsSync(join(DIST, 'fuer', 'index.html'))) fail('fuer/', 'Hub fehlt');
 }
 
 // 8) E3: Entitäten-Graph — Organization/WebSite je Seite genau einmal definiert, jede @id-Referenz auflösbar;
