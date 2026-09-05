@@ -412,3 +412,27 @@ Die Kennzahlen des Erstbilds bleiben unberuehrt: CLS 0 in beiden Laeufen, eagerJ
 | `llms.txt` | handgepflegt, 3 veraltete Aussagen | **erzeugt**, dazu `llms-full.txt` (321 KB) |
 | SEO-Gate im Build | nicht verdrahtet | `verify-seo` **803** + `verify-routing` **146** im `npm run build` |
 | Live-Prüfung gegen Preview | – | `verify:live` **142/142** |
+
+## Merge nach main und Produktions-Verifikation — 2026-09-05
+
+Jan hat den Merge freigegeben. PR #2 wurde als Merge-Commit `be7929b` nach `main` gebracht; Netlify hat
+daraufhin die Produktion gebaut.
+
+**Bewusst NICHT angefasst:** der Haupt-Arbeitsbaum `C:/dev/buscosun-web`. Dort liegen 24 unversionierte
+Dateien einer parallel laufenden Linie, darunter `src/fire/FirePage.tsx` (+194 Zeilen) und
+`src/fire/fireRouteView.ts` (+43) — genau die Dateien, die E7 geaendert hat. Der Merge lief deshalb ueber
+die GitHub-API auf `origin/main`, ohne lokal auszuchecken; der lokale `main`-Zeiger steht weiter auf
+`a6174e0` und die fremde Arbeit ist unberuehrt. **Diese Ueberschneidung muss die andere Linie aufloesen**,
+bevor sie ihre Fire-Aenderungen committet — sonst nimmt ihr Commit die E7-Aenderungen an denselben zwei
+Dateien wieder zurueck.
+
+**Gemessen an der Produktion (buscosun.com, nach dem Deploy):**
+- `verify:live https://buscosun.com --sample 40` → **156 Checks ok, 0 Fehler**, 117 Sitemap-URLs geprueft.
+- Lighthouse mobil `/fuer/bau-und-kran/`: **SEO 100 · Best Practices 100 · Barrierefreiheit 100 ·
+  Agentic Browsing 100**, 48 Audits bestanden, 0 gescheitert. Damit ist auch belegt, dass die 66 im
+  Preview allein am Netlify-`noindex` der Deploy-Previews lag.
+- Stichproben live: `/glossar/` mit DefinedTermSet, `/fuer/bau-und-kran/`, `/atmosphaere/arbeitsfenster`,
+  `/llms-full.txt`, `sitemap.xml` als Index.
+
+Unveraendert offen: die Impressum-Platzhalter (stehen bereits vor diesem Lauf so in der Produktion,
+MANUELLE-SCHRITTE Nr. 2) und die sechs offenen Proxys (Nr. 8).
