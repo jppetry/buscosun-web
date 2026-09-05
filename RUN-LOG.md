@@ -466,6 +466,14 @@ Block schlicht nicht.
 Damit erfahren Bing, Yandex, Seznam und Naver die 323 URLs sofort statt beim nächsten Besuch. Google
 nimmt an IndexNow nicht teil — dort bleibt die Search Console der einzige Weg (MANUELLE-SCHRITTE Nr. 3).
 
+**Meldung ausgeführt (2026-09-05, nach dem Deploy):** `node scripts/seo/indexnow.mjs` → **HTTP 200**,
+323 URLs angenommen. Der erste Versuch lief unmittelbar nach dem Deploy in ein
+`SiteVerificationNotCompleted` (403) — die Schluesseldatei war noch nicht geprueft; nach wenigen Minuten
+ging es durch. Wer das kuenftig wiederholt: erst warten, bis `https://buscosun.com/<key>.txt` 200 liefert.
+
+**Abschluss-Messung an der Produktion mit 198 Orten:** `verify:live --sample 40` → **154 Checks ok,
+0 Fehler**, 115 Sitemap-URLs geprueft; `sitemap-orte.xml` fuehrt 198 Ortsseiten.
+
 **Bewusst nicht gemacht:** eigene OG-Karten je Ort (198 Stück; die Ortsseiten teilen sich weiterhin
 `wetter-default.png` — der Aufwand steht nicht im Verhältnis zum Nutzen beim Teilen einer Ortsseite),
 englischsprachige Seiten (nicht im Auftrag), und Backlink-Arbeit (extern, siehe MANUELLE-SCHRITTE).
