@@ -18,6 +18,7 @@ import { buildLicensePage } from './seo/licenses.mjs';
 import { allMethodikPages, buildUeberPage, buildOhneTrackerPage, METHODIK_UPDATED } from './seo/methodik.mjs';
 import { GLOSSARY, GLOSSARY_UPDATED, renderGlossaryPage } from './seo/glossary.mjs';
 import { buildLlmsTxt, buildLlmsFullTxt } from './seo/llms.mjs';
+import { ogImageOr } from './seo/content.mjs';
 import { AUDIENCES, AUDIENCES_UPDATED, renderAudiencePage, renderAudienceHub } from './seo/audiences.mjs';
 import {
   SITE, renderPlacePage, renderHomeRootContent, homeHeadExtras, escapeHtml, metaFor,
@@ -81,14 +82,14 @@ body{margin:0;font-family:system-ui,sans-serif;background:var(--sand);color:var(
 a{color:var(--terra)}</style>
   </head>
   <body>
-    <div class="wrap">
+    <main class="wrap">
       <nav style="font-size:.85rem;color:var(--stone);margin-bottom:1rem"><a href="/" style="color:var(--stone)">Start</a> › Wetter</nav>
       <h1>Wetter in DACH-Orten</h1>
       <p>Höhenkorrigierte Vorhersage aus amtlichen Quellen (DWD · GeoSphere · MeteoSwiss) für ${PLACES.length} Orte in Deutschland, Österreich und der Schweiz.</p>
       ${byCountry('DE', 'Deutschland', '🇩🇪')}
       ${byCountry('AT', 'Österreich', '🇦🇹')}
       ${byCountry('CH', 'Schweiz', '🇨🇭')}
-    </div>
+    </main>
   </body>
 </html>
 `;
@@ -153,7 +154,7 @@ const METHODIK = allMethodikPages();
 for (const pg of METHODIK) {
   const dir = join(DIST, 'methodik', pg.slug);
   mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, 'index.html'), renderArticlePage(pg, { hub: { path: '/methodik/', name: 'Methodik' }, updated: METHODIK_UPDATED }), 'utf8');
+  writeFileSync(join(dir, 'index.html'), renderArticlePage(pg, { hub: { path: '/methodik/', name: 'Methodik' }, updated: METHODIK_UPDATED, ogImage: ogImageOr(`methodik-${pg.slug}`, undefined) }), 'utf8');
 }
 mkdirSync(join(DIST, 'methodik'), { recursive: true });
 writeFileSync(join(DIST, 'methodik', 'index.html'), renderMethodikHub(METHODIK, METHODIK_UPDATED), 'utf8');
@@ -161,7 +162,7 @@ const TRUST_PAGES = [buildUeberPage(), buildOhneTrackerPage()];
 for (const pg of TRUST_PAGES) {
   const dir = join(DIST, pg.slug);
   mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, 'index.html'), renderArticlePage(pg, { updated: METHODIK_UPDATED }), 'utf8');
+  writeFileSync(join(dir, 'index.html'), renderArticlePage(pg, { updated: METHODIK_UPDATED, ogImage: ogImageOr(pg.slug, undefined) }), 'utf8');
 }
 
 // 2h) SEO/GEO 2026 (E5/E6): /glossar/ (ein Nachschlagewerk, Anker je Begriff) und
@@ -195,12 +196,12 @@ body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;bac
 .cta:hover{background:var(--terra)}a{color:var(--terra)}</style>
   </head>
   <body>
-    <div class="wrap">
+    <main class="wrap">
       <h1>404 — Seite nicht gefunden</h1>
       <p>Diese Seite gibt es nicht (mehr). Vielleicht suchst du das Wetter für einen Ort oder eine der Funktionen von ${SITE.name}.</p>
       <a class="cta" href="/">Zur Startseite</a>
       <a class="cta" href="/wetter/">Wetter nach Ort</a>
-    </div>
+    </main>
   </body>
 </html>
 `;

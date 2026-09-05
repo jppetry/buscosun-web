@@ -13,8 +13,7 @@
  * damit renderArticlePage aus content.mjs unverändert wiederverwendet wird.
  */
 import {
-  SITE, headBlock, PAGE_CSS, escapeHtml, DEFAULT_OG_IMAGE, renderArticlePage,
-} from './content.mjs';
+  SITE, headBlock, PAGE_CSS, escapeHtml, DEFAULT_OG_IMAGE, renderArticlePage, ogImageOr } from './content.mjs';
 
 export const AUDIENCES_UPDATED = '2026-09-05';
 
@@ -751,7 +750,8 @@ export const AUDIENCES = [
 
 /** /fuer/<slug>/ — nutzt den Artikel-Renderer der Methodik unverändert (gleiche Seitenform). */
 export function renderAudiencePage(page, updated) {
-  return renderArticlePage(page, { hub: { path: '/fuer/', name: 'Für wen' }, updated });
+  // E10: eigene OG-Karte je Zielgruppe, solange sie existiert (sonst die Bereichs-Karte).
+  return renderArticlePage(page, { hub: { path: '/fuer/', name: 'Für wen' }, updated, ogImage: ogImageOr(`fuer-${page.slug}`, undefined) });
 }
 
 /** /fuer/-Hub: CollectionPage + BreadcrumbList, Karten je Zielgruppe — nach dem Muster von renderMethodikHub. */
@@ -767,7 +767,7 @@ export function renderAudienceHub(pages, updated) {
   ];
   const head = headBlock({
     title: `buscosun für …: Wetter nach Anwendung | ${SITE.name}`,
-    description, canonicalPath, locale: 'de-DE', ogImage: DEFAULT_OG_IMAGE, jsonLd,
+    description, canonicalPath, locale: 'de-DE', ogImage: ogImageOr('fuer', DEFAULT_OG_IMAGE), jsonLd,
   });
   const cards = pages.map((pg) => `<a href="/fuer/${pg.slug}/" class="card"><strong>${escapeHtml(pg.title)}</strong><span>${escapeHtml(pg.description)}</span></a>`).join('\n      ');
   return `<!doctype html>
@@ -780,7 +780,7 @@ ${head}
 .card span{font-size:.88rem;color:var(--stone)}</style>
   </head>
   <body>
-    <div class="wrap">
+    <main class="wrap">
       <nav class="bc" aria-label="Brotkrumen"><a href="/">Start</a> › Für wen</nav>
       <h1>buscosun für …: Wetter nach Anwendung</h1>
       <p class="lead">Dieselben Daten, aber nicht dieselbe Frage: Ein Gleitschirmflieger braucht den Höhenwind, ein Kranführer die Böe auf Arbeitshöhe, ein Winzer den Hagel und die Bodenfeuchte, ein Hochzeitspaar den Plan B. Diese Seiten sagen je Anwendung, was buscosun konkret tut, wie man es nutzt — und was es ausdrücklich nicht kann: kein Briefing, keine Alarmierung, keine amtliche Warnung, keine Gesundheitsaussage. Die Länderunterschiede zwischen Deutschland, Österreich und der Schweiz stehen dabei, statt kaschiert zu werden.</p>
@@ -792,7 +792,7 @@ ${head}
         ${escapeHtml(SITE.name)} — ${escapeHtml(SITE.tagline)}. Datenbasis: Deutscher Wetterdienst (DWD, GeoNutzV) · GeoSphere Austria · MeteoSwiss. Keine Tracker, keine Werbung.
         <a href="/ueber/">Über buscosun</a> · <a href="/methodik/">Methodik</a> · <a href="/lizenzen/">Quellen &amp; Lizenzen</a> · <a href="/impressum/">Impressum</a> · <a href="/datenschutz/">Datenschutz</a>
       </footer>
-    </div>
+    </main>
   </body>
 </html>
 `;

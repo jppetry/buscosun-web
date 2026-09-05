@@ -273,3 +273,132 @@ App-Mount lädt und immutable gecacht ist. Die Erstbild-Ratsche **eagerJs bleibt
 **Falle:** `npm run budget -- --update` setzt pauschal +5 % auf ALLE Metriken (eagerJs wäre auf 111,6
 gewandert) und löscht die Notiz. Die Grenzen wurden deshalb von Hand gesetzt; der Hinweis steht jetzt in
 `budget.json`.
+
+## E8 · Ortsseiten v2 — 2026-09-05
+
+**Getan:** Aus 138 Landingpages nach einem Muster wurden 138 Nachschlagewerke.
+- `scripts/seo/climate.mjs` (neu) rechnet je Ort eine **Monats-Klimatologie** aus
+  `public/climaGrid.json` (178 Stationen, DWD-Messungen über Meteostat, 1995–2024) — und zwar mit
+  **derselben Klasse wie die App** (`src/ml/climaField.ts`: drei nächste Stationen, entfernungsgewichtet,
+  Höhenkorrektur 6,5 K/km). Kein zweiter Rechenweg, der driften kann (Lehre V-80). Ausgewiesen wird das
+  Ergebnis als Schätzung aus Stationsdaten mit der **Entfernung zur nächsten Station** — die Zahl, die
+  bestimmt, was die Schätzung wert ist (Berlin 9 km, Innsbruck 4 km, Zermatt 39 km).
+  Stichprobe gegen bekannte Normalwerte: Berlin Juli-Maximum 25,1 °C / Januar-Minimum −1,3 °C,
+  Zermatt (1 608 m) 19,1 / −8,5 °C, Hamburg 23,5 / −0,6 °C — plausibel.
+- **Sonnenzeiten je Monat** (Aufgang, Untergang, Tageslänge, goldene und blaue Stunde am Abend) aus
+  `src/photo/sun.ts`. **Zeitzonen-Falle vermieden:** Tagesgrenze UND Formatierung sind an
+  `Europe/Berlin` verankert, nicht an der Systemuhr — Netlify baut in UTC, die Zeiten wären lokal
+  richtig und in Produktion um ein bis zwei Stunden falsch gewesen. Gegenprobe: Hamburg 15. Juni
+  04:50–21:51 (17:01 h), Berlin 15. Dezember 08:10–15:52 (7:41 h).
+- Block **„Was wir für <Ort> nicht wissen"** je Ort: Radar-Horizont des Landes, wer warnt und wo die
+  Warnung fehlt (Österreich), Pollen/UV-Verfügbarkeit, Lawinen nur als Deep-Link, und dass die
+  Klimatabelle geschätzt ist.
+- **Eigene Description je Ort** aus Region, Höhe und zwei Klimakennzahlen: **138/138 verschieden**,
+  alle ≤ 160 Zeichen (vorher 138× derselbe Satz — ein Duplikat-Signal ohne Informationswert).
+- **Defekt behoben:** Die sechs Funktions-Knöpfe der Ortsseite zeigten **alle auf `/`**. Jetzt acht
+  Deep-Links in die passende Ansicht, mit dem Ort in der Query, wo die Ansicht ihn annimmt.
+- `Dataset` JSON-LD trägt `temporalCoverage 1995/2024`; `PLACES_UPDATED` auf 2026-09-05.
+
+**Messwerte:** **994 Wörter je Ortsseite** (vorher ~520; Vorgabe ≥ 650) · 138 eigene Descriptions ·
+verify-seo 792/792 (+7 neue Ortsseiten-Checks: Wortzahl, Klimatabelle, Sonnenzeiten, Lücken-Abschnitt,
+temporalCoverage, Description-Eindeutigkeit).
+
+**Falle notiert:** `scripts/generate-seo.mjs` ist **nicht idempotent** gegen ein bereits erzeugtes
+`dist/`. Ein zweiter Lauf ohne vorheriges `vite build` leitet die Route-Shells aus der schon
+angereicherten `index.html` ab — Ergebnis: 196 Fehler mit Startseiten-Canonical auf allen Shells. Das
+ist kein Regress, sondern ein Bedienfehler; Verifier immer nach vollem `npm run build` lesen.
+
+## E9 · GEO-Schicht — 2026-09-05
+
+**Getan:**
+- `scripts/seo/llms.mjs` (neu) **erzeugt** `llms.txt` und `llms-full.txt` aus denselben Listen wie die
+  Seiten. Die handgeschriebene Fassung war an drei Stellen veraltet: „~140 Orte" bei 138, Go/No-Go auf
+  einer Query-URL ohne eigenen Canonical, und die Behauptung, der Globus zeige gebündelte Beispieldaten
+  (er liest GFS live per HTTP-Range, `src/globe/gfs.ts`). `public/llms.txt` ist entfallen.
+  `llms.txt` (10 KB): Funktionen mit kanonischen URLs, Orte je Land, Methodik, Erklärungen, Zielgruppen,
+  Glossar, **Zitierhinweis** und ein Abschnitt **Grenzen**. `llms-full.txt` (321 KB): Direktantworten und
+  Volltext aller 25 Erklärungen, 9 Methodik-Seiten, 16 Zielgruppen-Seiten, 10 Werkzeugseiten,
+  2 Wetterlage-Artikel und 75 Glossar-Begriffe.
+- **Sitemap-Index:** `sitemap.xml` verweist jetzt auf `sitemap-pages.xml` (125 URLs) und
+  `sitemap-orte.xml` (138). Die URL bleibt gleich, damit eine eingereichte Sitemap weiter funktioniert;
+  in der Search Console lässt sich die Indexierung dadurch je Seitentyp lesen. `robots.txt` nennt alle drei.
+- `feed.xml` um Methodik- und Zielgruppen-Seiten erweitert (die zitierfähigsten Texte).
+- `speakable` (h1 + Lead) auf Erklärungen, Methodik- und Zielgruppen-Seiten.
+- Verifier: `verify-seo` prüft die GEO-Dateien selbst (Ortszahl in `llms.txt` == gebaute Ortsseiten,
+  Go/No-Go auf dem kanonischen Pfad, Zitierhinweis vorhanden, `llms-full.txt` < 2 MB, keine relativen
+  Links, kein `buscosun.app`); `verify-live` löst den Sitemap-Index auf und holt beide GEO-Dateien.
+
+**Messwerte:** verify-seo 803/803 · verify-routing 146/146 · Sitemap 263 URLs (125 + 138).
+
+## E10 · Abschluss — 2026-09-05
+
+**OG-Bilder:** 60 neue Karten (Bestand 14 → **74**) für alle Erklärungen, Werkzeugseiten,
+Zielgruppen- und Methodik-Seiten, die Hubs `/fuer/`, `/methodik/`, `/glossar/`, die Vertrauensseiten und
+den Saisonbericht. Erzeugt aus `public/_og-card.html` mit dem lokal vorhandenen **Headless-Chromium**
+(`--screenshot`, 1200×630) — kein Netzdienst, keine neue Abhängigkeit, rund fünf Minuten für 60 Karten.
+Verdrahtet über `ogImageOr(slug, fallback)`: die eigene Karte wird nur genommen, wenn die PNG existiert,
+sonst die Bereichs-Karte — so zeigt keine Seite je auf ein fehlendes Bild. Vorgehen in
+`docs/seo-geo/og-images.md` festgehalten.
+Der Playwright-MCP-Server war für diesen Lauf gesperrt („Browser is already in use", Profilkonflikt);
+der Weg über die Chromium-Binärdatei ist ohnehin der schnellere und ist jetzt dokumentiert.
+
+**Preview-Verifikation (deploy-preview-2, Commit d4f04a9):** `npm run verify:live <preview> --sample 25`
+→ **142 Checks ok, 0 Fehler**, 103 Sitemap-URLs geprüft. Darunter: Sitemap-Index samt beider Teillisten,
+robots mit allen Disallows, `/assets/*.js` 200 mit `X-Robots-Tag: noindex` und `immutable`,
+Manifest-MIME, 404, fünf 301-Weiterleitungen, je URL Self-Canonical, eigener Title, H1, JSON-LD, kein
+hreflang, dazu `llms.txt` (kanonischer Go/No-Go-Pfad, Zitierhinweis) und `llms-full.txt`.
+Unverändert gemeldet: `/_dwd_opendata/` antwortet weiter 200 — nur `robots.txt` hält Bots fern, eine
+echte Abschottung braucht eine Edge Function (Zielkonflikt Z2, MANUELLE-SCHRITTE Nr. 8).
+
+**MANUELLE-SCHRITTE finalisiert:** Rich-Results-Liste mit 14 URLs je Seitentyp, Sitemap-Einreichung mit
+Index-Erklärung, IndexNow-Vorlage (`scripts/seo/indexnow.example.json`), Entscheidung zum
+DWD-Lizenzetikett im Modellkatalog (Fusions-Datei ⇒ STOPP & FRAGEN, im Lauf nicht angefasst),
+Hinweis zur Neuerzeugung der OG-Karten, Vorschlag zur Taktung der 300 GEO-Prompts.
+
+**Lighthouse (mobil, Chrome-DevTools):** Zwei Läufe, weil der erste allein nicht interpretierbar war.
+
+| Lauf | SEO | Best Practices | Barrierefreiheit | Agentic Browsing |
+|---|---|---|---|---|
+| Preview `/wissen/fire-weather-index/` | 66 | 96 | 93 | 67 |
+| Produktion `/wissen/foehn/` (gleicher Seitentyp) | **100** | **100** | 92 | **100** |
+
+Die 66 im Preview kommen **nicht** aus dem Code: Netlify setzt auf Deploy-Previews automatisch
+`X-Robots-Tag: noindex` (Lighthouse-Befund woertlich: „source: x-robots-tag: noindex"). Gegenprobe an der
+Produktion: `curl -I https://buscosun.com/wissen/foehn/` → 200 ohne `X-Robots-Tag`; unsere `[[headers]]`
+setzen noindex nur auf `/assets/*`, `/_*` und Artefakte. Auch der Agentic-Befund „llms.txt Fetch timed out"
+war fluechtig — nachgemessen antwortet `/llms.txt` am Preview in 0,31 s (10 KB), `/llms-full.txt` in 0,82 s
+(321 KB); die Produktion erreicht in derselben Kategorie 100.
+
+**Zwei echte Befunde, beide behoben (E10):**
+1. **Kontrast 3,03:1** — die Linkfarbe der statischen Seiten (Terracotta `#C97B47` auf Sand `#FAF6EA`)
+   lag unter den geforderten 4,5:1. Betroffen waren ALLE statischen Seiten, auch die alten. Neuer Token
+   `--terra-ink: #96521F` **nur fuer Linktext** (gemessen 5,52:1); `--terra` bleibt als Akzentfarbe fuer
+   Balken, Eyebrows und Raender unveraendert. Die App-Oberflaeche ist nicht betroffen.
+2. **Kein `main`-Landmark** — die 14 Seitenvorlagen trugen `<div class="wrap">`. Jetzt `<main class="wrap">`
+   (gleiche CSS-Klasse, keine Layoutaenderung), damit Screenreader und agentische Browser den Inhaltsbereich
+   finden.
+
+Die Kennzahlen des Erstbilds bleiben unberuehrt: CLS 0 in beiden Laeufen, eagerJs/eagerCss unveraendert.
+
+## Vorher / Nachher (gemessen, nicht geschätzt)
+
+| Kennzahl | Vorher (2026-09-04, Live) | Nachher (Branch `seo-geo-2026`) |
+|---|---|---|
+| Sub-Routen mit eigenem Roh-HTML | 0 von 25 (alle trugen Eltern-Title und Eltern-Canonical) | **37 von 37** |
+| Kanonische URLs in der Sitemap | 189 | **263** (125 Seiten + 138 Orte, als Index) |
+| Indexierbare Erklärungen | 3 von 10 (7 `noindex`-Gerüste) | **25 von 25** |
+| Indexierbare Werkzeugseiten | 3 von 10 | **10 von 10** |
+| Zielgruppen-Seiten | 0 | **16 + Hub** |
+| Glossar | – | **75 Begriffe mit Anker** |
+| Methodik-Seiten | 0 | **9 + Hub** |
+| Wörter je Ortsseite | ~520 | **994** |
+| Eigene Descriptions der Ortsseiten | 1 Satz für alle 138 | **138 verschiedene** |
+| Gerenderter DOM je App-Route | 0 H1, 0 interne Links, 35 Wörter | **1 H1, 36 interne Links, ≥ 120 Wörter** |
+| `X-Robots-Tag` auf Bundles/Datenpfaden | keiner | **noindex auf /assets, /_*, Artefakten** |
+| Proxy-Verzeichnisse in `robots.txt` | nicht gesperrt | **6 Rewrites + Edge Functions gesperrt** |
+| hreflang | 4 Tags je Seite, alle auf dieselbe URL | **entfernt** |
+| Sitemap-`lastmod` | Build-Datum für alle 189 | **aus dem Inhalt, 8 verschiedene Daten** |
+| OG-Karten | 14 | **74** |
+| `llms.txt` | handgepflegt, 3 veraltete Aussagen | **erzeugt**, dazu `llms-full.txt` (321 KB) |
+| SEO-Gate im Build | nicht verdrahtet | `verify-seo` **803** + `verify-routing` **146** im `npm run build` |
+| Live-Prüfung gegen Preview | – | `verify:live` **142/142** |

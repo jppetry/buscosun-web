@@ -9,7 +9,7 @@
  * CLAUDE.md (no official warnings, no "Tornado" wording, DACH asymmetries named).
  */
 
-import { SITE, headBlock, PAGE_CSS, escapeHtml, DEFAULT_OG_IMAGE } from './content.mjs';
+import { SITE, headBlock, PAGE_CSS, escapeHtml, DEFAULT_OG_IMAGE, ogImageOr } from './content.mjs';
 
 export const GLOSSARY_UPDATED = '2026-09-05';
 
@@ -516,7 +516,7 @@ export function renderGlossaryPage(glossary, updated) {
       ],
     },
   ];
-  const head = headBlock({ title: `${title} | ${SITE.name}`, description, canonicalPath, locale: 'de-DE', ogImage: DEFAULT_OG_IMAGE, jsonLd });
+  const head = headBlock({ title: `${title} | ${SITE.name}`, description, canonicalPath, locale: 'de-DE', ogImage: ogImageOr('glossar', DEFAULT_OG_IMAGE), jsonLd });
 
   // A–Z jump list: only letters that actually occur.
   const letters = [...new Set(glossary.map((g) => letterOf(g.term)))];
@@ -554,7 +554,7 @@ dd .links{margin-top:.4rem}dd .links a{font-size:.82rem}
 dt:target{background:#fff;border-left:3px solid var(--terra);padding-left:.5rem}</style>
   </head>
   <body>
-    <div class="wrap">
+    <main class="wrap">
       <nav class="bc" aria-label="Brotkrumen"><a href="/">Start</a> › Glossar</nav>
       <h1>Glossar: Wetter- und Brandradar-Begriffe</h1>
       <p class="lead">${escapeHtml(description)}</p>
@@ -573,7 +573,7 @@ ${items}
         ${escapeHtml(SITE.name)} — ${escapeHtml(SITE.tagline)}. Datenbasis: Deutscher Wetterdienst (DWD, GeoNutzV) · GeoSphere Austria · MeteoSwiss. Keine Tracker, keine Werbung.
         <a href="/ueber/">Über buscosun</a> · <a href="/methodik/">Methodik</a> · <a href="/lizenzen/">Quellen &amp; Lizenzen</a> · <a href="/impressum/">Impressum</a> · <a href="/datenschutz/">Datenschutz</a>
       </footer>
-    </div>
+    </main>
   </body>
 </html>
 `;

@@ -72,7 +72,7 @@ export const EVENTS = [
     status: 'full',
     datePublished: '2026-09-05',
     dateModified: '2026-09-05',
-    hero: { url: '/og/wetterlage.png', w: 1200, h: 630, alt: 'buscosun — Waldbrandsaison im DACH-Raum' },
+    hero: { url: '/og/waldbrandsaison-2026-dach-zwischenbilanz.png', w: 1200, h: 630, alt: 'buscosun — Waldbrandsaison im DACH-Raum' },
     dek:
       'Bis zum 22. August 2026 zählt das Brandarchiv von buscosun 4 686 Vegetationsbrand-Ereignisse in ' +
       'Deutschland, Österreich und der Schweiz — fast doppelt so viele wie im Mittel der sechs Vorjahre am ' +

@@ -326,10 +326,10 @@ export function headBlock({ title, description, canonicalPath, locale, ogImage, 
     ${entityScripts()}`;
 }
 
-export const PAGE_CSS = `:root{--sand:#FAF6EA;--ink:#2C2A26;--stone:#5C5447;--terra:#C97B47;--border:#E0D6BE}
+export const PAGE_CSS = `:root{--sand:#FAF6EA;--ink:#2C2A26;--stone:#5C5447;--terra:#C97B47;--terra-ink:#96521F;--border:#E0D6BE}
 *{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--sand);color:var(--ink);line-height:1.6}
 .wrap{max-width:760px;margin:0 auto;padding:2rem 1.25rem 4rem}
-a{color:var(--terra)}nav.bc{font-size:.85rem;color:var(--stone);margin-bottom:1.5rem}nav.bc a{color:var(--stone)}
+a{color:var(--terra-ink)}nav.bc{font-size:.85rem;color:var(--stone);margin-bottom:1.5rem}nav.bc a{color:var(--stone)}
 h1{font-size:2rem;margin:.2rem 0 .3rem}.sub{color:var(--stone);margin:0 0 .6rem}
 p.lead{font-size:1.05rem;margin:0 0 1.2rem}
 .cta{display:inline-block;background:var(--ink);color:#fff;text-decoration:none;font-weight:600;padding:.7rem 1.2rem;border-radius:999px;margin:.5rem 0 1.5rem}
@@ -386,7 +386,7 @@ ${head}
     <style>${PAGE_CSS}</style>
   </head>
   <body>
-    <div class="wrap">
+    <main class="wrap">
       <nav class="bc" aria-label="Brotkrumen"><a href="/">Start</a> › <a href="/wetter/">Wetter</a> › ${escapeHtml(place.name)}</nav>
       <h1>Wetter ${escapeHtml(place.name)}</h1>
       <p class="sub">${FLAG[place.country]} ${escapeHtml(place.region)} · ${COUNTRY_NAME[place.country]} · rund ${place.ele} m</p>
@@ -433,7 +433,7 @@ ${unknownsSection(place, { alpine: isAlpine(place) })}
         ${escapeHtml(SITE.name)} — ${escapeHtml(SITE.tagline)}. Datenbasis: Deutscher Wetterdienst (DWD, GeoNutzV) · GeoSphere Austria · MeteoSwiss. Keine Tracker, keine Werbung.
         Hinweis: Diese Seite nennt stabile Standort-Fakten; aktuelle Messwerte und Vorhersagen liefert die interaktive App. buscosun gibt keine amtlichen Warnungen heraus.
       </footer>
-    </div>
+    </main>
   </body>
 </html>
 `;
@@ -559,7 +559,7 @@ ${head}
 .answer{font-size:1.1rem;background:#fff;border:1px solid var(--border);border-left:4px solid var(--terra);border-radius:10px;padding:1rem 1.1rem;margin:0 0 1.5rem}</style>
   </head>
   <body>
-    <div class="wrap">
+    <main class="wrap">
       <nav class="bc" aria-label="Brotkrumen"><a href="/">Start</a> › <a href="/wissen/">Wetterwissen</a> › ${escapeHtml(ex.title)}</nav>
       <h1>${escapeHtml(ex.h1)}</h1>
       <p class="answer">${escapeHtml(ex.answer)}</p>
@@ -576,7 +576,7 @@ ${sources ? `      <section>\n        <h2>Quellen</h2>\n        <ul>\n        ${
         ${escapeHtml(SITE.name)} — ${escapeHtml(SITE.tagline)}. Datenbasis: Deutscher Wetterdienst (DWD, GeoNutzV) · GeoSphere Austria · MeteoSwiss.
         buscosun erklärt Wetterphänomene und gibt keine amtlichen Warnungen heraus.
       </footer>
-    </div>
+    </main>
   </body>
 </html>
 `;
@@ -610,7 +610,7 @@ ${head}
 .card strong{color:var(--terra)}.card span{font-size:.85rem;color:var(--stone)}.card.stub{opacity:.7}</style>
   </head>
   <body>
-    <div class="wrap">
+    <main class="wrap">
       <nav class="bc" aria-label="Brotkrumen"><a href="/">Start</a> › Wetterwissen</nav>
       <h1>Wetterwissen</h1>
       <p class="lead">Meteorologische Phänomene der DACH-Region — Föhn, Inversion, Nebelobergrenze, Thermik, Schneefallgrenze und mehr — verständlich, faktenbasiert und mit Quellen erklärt. buscosun erklärt nur und gibt keine amtlichen Warnungen heraus.</p>
@@ -622,7 +622,7 @@ ${head}
       <div class="cards">
       ${stubs}
       </div>
-    </div>
+    </main>
   </body>
 </html>
 `;
@@ -715,7 +715,7 @@ ${head}
 .answer{font-size:1.1rem;margin:0 0 1.2rem}</style>
   </head>
   <body>
-    <div class="wrap">
+    <main class="wrap">
       <nav class="bc" aria-label="Brotkrumen"><a href="/">Start</a> › <a href="/funktionen/">Funktionen</a> › ${escapeHtml(tool.title)}</nav>
       <h1>${escapeHtml(tool.h1)}</h1>
       <img class="hero" src="${ogImage}" width="1200" height="630" alt="${escapeHtml(tool.title)} — buscosun" />
@@ -732,7 +732,7 @@ ${relExplainers ? `      <section>\n        <h2>Passendes Wetterwissen</h2>\n   
       <footer>
         ${escapeHtml(SITE.name)} — ${escapeHtml(SITE.tagline)}. Datenbasis: Deutscher Wetterdienst (DWD, GeoNutzV) · GeoSphere Austria · MeteoSwiss. Kostenlos, ohne Tracker.
       </footer>
-    </div>
+    </main>
   </body>
 </html>
 `;
@@ -784,7 +784,7 @@ th{font-weight:600;white-space:nowrap}
 section li{margin-bottom:.5rem}</style>
   </head>
   <body>
-    <div class="wrap">
+    <main class="wrap">
       <nav class="bc" aria-label="Brotkrumen"><a href="/">Start</a> › ${escapeHtml(page.title)}</nav>
       <h1>${escapeHtml(page.h1)}</h1>
       <p class="lead">${escapeHtml(page.lead)}</p>
@@ -793,7 +793,7 @@ ${sections}
         ${escapeHtml(SITE.name)} — ${escapeHtml(SITE.tagline)}.
         <a href="/ueber/">Über buscosun</a> · <a href="/methodik/">Methodik</a> · <a href="/ohne-tracker/">Ohne Tracker</a> · <a href="/impressum/">Impressum</a> · <a href="/datenschutz/">Datenschutz</a> · <a href="/lizenzen/">Quellen &amp; Lizenzen</a> · <a href="/kontakt/">Kontakt</a>
       </footer>
-    </div>
+    </main>
   </body>
 </html>
 `;
@@ -844,7 +844,7 @@ th{font-weight:600}
 .meta{font-size:.8rem;color:var(--stone)}</style>
   </head>
   <body>
-    <div class="wrap">
+    <main class="wrap">
       <nav class="bc" aria-label="Brotkrumen"><a href="/">Start</a>${hub ? ` › <a href="${hub.path}">${escapeHtml(hub.name)}</a>` : ''} › ${escapeHtml(page.title)}</nav>
       <h1>${escapeHtml(page.h1)}</h1>
       <p class="lead">${escapeHtml(page.answer)}</p>
@@ -856,7 +856,7 @@ ${related}
         ${escapeHtml(SITE.name)} — ${escapeHtml(SITE.tagline)}. Datenbasis: Deutscher Wetterdienst (DWD, GeoNutzV) · GeoSphere Austria · MeteoSwiss. Keine Tracker, keine Werbung.
         <a href="/ueber/">Über buscosun</a> · <a href="/methodik/">Methodik</a> · <a href="/lizenzen/">Quellen &amp; Lizenzen</a> · <a href="/impressum/">Impressum</a> · <a href="/datenschutz/">Datenschutz</a>
       </footer>
-    </div>
+    </main>
   </body>
 </html>
 `;
@@ -865,6 +865,7 @@ ${related}
 /** /methodik/-Hub. */
 export function renderMethodikHub(pages, updated) {
   const head = headBlock({
+    ogImage: ogImageOr('methodik', DEFAULT_OG_IMAGE),
     title: `Methodik — wie buscosun rechnet | ${SITE.name}`,
     description: 'Höhenkorrektur, Quellenmix, Radar-Nowcast, Konfidenz, Event-Bewertung, Tourenplanung, E-Bike-Reichweite, Brandradar, Wettermodelle — die Rechenwege von buscosun mit Konstanten und Grenzen.',
     canonicalPath: '/methodik/', locale: 'de-DE',
@@ -881,7 +882,7 @@ ${head}
 .card span{font-size:.88rem;color:var(--stone)}</style>
   </head>
   <body>
-    <div class="wrap">
+    <main class="wrap">
       <nav class="bc" aria-label="Brotkrumen"><a href="/">Start</a> › Methodik</nav>
       <h1>Wie buscosun rechnet</h1>
       <p class="lead">Jede Zahl auf buscosun hat einen Rechenweg — und jeder Rechenweg hat Grenzen. Diese Seiten legen beides offen: Quellen, Formeln, Schwellen und Konstanten, wie sie im Quellcode stehen, sowie das, was das Verfahren nicht kann. Ohne Werbetexte, ohne Scheingenauigkeit.</p>
@@ -890,7 +891,7 @@ ${head}
       </div>
       <section><h2>Verwandt</h2><div class="links"><a href="/ueber/">Über buscosun</a><a href="/ohne-tracker/">Ohne Tracker</a><a href="/lizenzen/">Quellen &amp; Lizenzen</a><a href="/wissen/">Wetterwissen</a><a href="/validierung">Validierung</a></div></section>
       <footer>${escapeHtml(SITE.name)} — ${escapeHtml(SITE.tagline)}. <a href="/impressum/">Impressum</a> · <a href="/datenschutz/">Datenschutz</a></footer>
-    </div>
+    </main>
   </body>
 </html>
 `;
@@ -923,7 +924,7 @@ ${head}
 .card strong{color:var(--terra)}.card span{font-size:.85rem;color:var(--stone)}.card.stub{opacity:.7}</style>
   </head>
   <body>
-    <div class="wrap">
+    <main class="wrap">
       <nav class="bc" aria-label="Brotkrumen"><a href="/">Start</a> › Funktionen</nav>
       <h1>buscosun-Funktionen</h1>
       <p class="lead">Alle Werkzeuge von buscosun auf einen Blick — interaktive Wetterkarte, 3D-Atmosphäre, Tourenplanung, bester Event-Tag, Nowcast, Modellvergleich, Globus, Wetterhistorie und Arbeitsfenster. Alles höhenkorrigiert, aus amtlichen Quellen, kostenlos und ohne Tracker.</p>
@@ -935,7 +936,7 @@ ${head}
       <div class="cards">
       ${stubs}
       </div>
-    </div>
+    </main>
   </body>
 </html>
 `;
@@ -1017,7 +1018,7 @@ ${head}
 .byline{font-size:.85rem;color:var(--stone);margin:0 0 1rem}.dek{font-size:1.15rem;margin:0 0 1.2rem}</style>
   </head>
   <body>
-    <div class="wrap">
+    <main class="wrap">
       <nav class="bc" aria-label="Brotkrumen"><a href="/">Start</a> › <a href="/wetterlage/">Wetterlage</a> › ${escapeHtml(ev.section)}</nav>
       <article>
         <h1>${escapeHtml(ev.h1)}</h1>
@@ -1032,7 +1033,7 @@ ${relExplainers ? `        <section>\n          <h2>Hintergrund</h2>\n          
         ${escapeHtml(SITE.name)} — ${escapeHtml(SITE.tagline)}. Datenbasis: Deutscher Wetterdienst (DWD, GeoNutzV) · GeoSphere Austria · MeteoSwiss.
         Einordnung einer Wetterlage, keine amtliche Warnung. Verbindliche Warnungen geben die staatlichen Wetterdienste heraus.
       </footer>
-    </div>
+    </main>
   </body>
 </html>
 `;
@@ -1060,14 +1061,14 @@ ${head}
 .card strong{color:var(--terra)}.card span{font-size:.85rem;color:var(--stone)}</style>
   </head>
   <body>
-    <div class="wrap">
+    <main class="wrap">
       <nav class="bc" aria-label="Brotkrumen"><a href="/">Start</a> › Wetterlage</nav>
       <h1>Wetterlagen</h1>
       <p class="lead">Einordnung markanter Wetterlagen in der DACH-Region — Hintergründe, betroffene Orte und die Meteorologie dahinter. buscosun erklärt die Lage und gibt keine amtlichen Warnungen heraus.</p>
       <div class="cards">
       ${items}
       </div>
-    </div>
+    </main>
   </body>
 </html>
 `;
