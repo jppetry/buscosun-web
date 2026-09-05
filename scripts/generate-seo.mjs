@@ -17,6 +17,7 @@ import { LEGAL_PAGES, operatorIncomplete } from './seo/legal.mjs';
 import { buildLicensePage } from './seo/licenses.mjs';
 import { allMethodikPages, buildUeberPage, buildOhneTrackerPage, METHODIK_UPDATED } from './seo/methodik.mjs';
 import { GLOSSARY, GLOSSARY_UPDATED, renderGlossaryPage } from './seo/glossary.mjs';
+import { buildLlmsTxt, buildLlmsFullTxt } from './seo/llms.mjs';
 import { AUDIENCES, AUDIENCES_UPDATED, renderAudiencePage, renderAudienceHub } from './seo/audiences.mjs';
 import {
   SITE, renderPlacePage, renderHomeRootContent, homeHeadExtras, escapeHtml, metaFor,
@@ -212,6 +213,13 @@ writeFileSync(join(DIST, '404.html'), notFoundPage(), 'utf8');
 // meldete 189 „geänderte" Seiten (SEO-AUDIT.md §6). `changefreq`/`priority` bleiben
 // weg bzw. minimal: Google ignoriert changefreq seit Jahren.
 const maxDate = (arr, fallback) => arr.reduce((m, d) => (d && d > m ? d : m), fallback);
+/**
+ * SEO/GEO 2026 (E9): `sitemap.xml` ist jetzt ein **Sitemap-Index** auf zwei Teillisten —
+ * `sitemap-pages.xml` (App-Routen, Hubs, Erklärungen, Methodik, Zielgruppen, Werkzeuge,
+ * Rechtsseiten) und `sitemap-orte.xml` (die Ortsseiten). Die URL bleibt dieselbe, damit
+ * eine bereits eingereichte Sitemap weiter funktioniert; in der Search Console lässt sich
+ * die Indexierung dadurch getrennt nach Seitentyp lesen statt als eine Zahl über alles.
+ */
 function sitemap() {
   const fullEx = EXPLAINERS.filter((e) => e.status === 'full');
   const fullTools = TOOLS.filter((t) => t.status === 'full');
@@ -237,11 +245,23 @@ function sitemap() {
     { loc: `${SITE.url}/fuer/`, pri: '0.7', mod: AUDIENCES_UPDATED },
     ...AUDIENCES.map((pg) => ({ loc: `${SITE.url}/fuer/${pg.slug}/`, pri: '0.6', mod: AUDIENCES_UPDATED })),
   ];
-  const body = urls.map((u) =>
-    `  <url><loc>${u.loc}</loc><lastmod>${u.mod}</lastmod><priority>${u.pri}</priority></url>`).join('\n');
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${body}\n</urlset>\n`;
+  return urls;
 }
-writeFileSync(join(DIST, 'sitemap.xml'), sitemap(), 'utf8');
+const urlSet = (urls) => `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${
+  urls.map((u) => `  <url><loc>${u.loc}</loc><lastmod>${u.mod}</lastmod><priority>${u.pri}</priority></url>`).join('\n')}\n</urlset>\n`;
+const ALL_URLS = sitemap();
+const PLACE_PREFIX = `${SITE.url}/wetter/`;
+const placeUrls = ALL_URLS.filter((u) => u.loc.startsWith(PLACE_PREFIX) && u.loc !== `${PLACE_PREFIX}`);
+const pageUrls = ALL_URLS.filter((u) => !placeUrls.includes(u));
+writeFileSync(join(DIST, 'sitemap-orte.xml'), urlSet(placeUrls), 'utf8');
+writeFileSync(join(DIST, 'sitemap-pages.xml'), urlSet(pageUrls), 'utf8');
+const sitemapLastmod = maxDate(ALL_URLS.map((u) => u.mod), BUILD_DATE);
+writeFileSync(join(DIST, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <sitemap><loc>${SITE.url}/sitemap-pages.xml</loc><lastmod>${sitemapLastmod}</lastmod></sitemap>
+  <sitemap><loc>${SITE.url}/sitemap-orte.xml</loc><lastmod>${PLACES_UPDATED}</lastmod></sitemap>
+</sitemapindex>
+`, 'utf8');
 
 // 3b) RSS-2.0-Feed (/feed.xml) — neueste Inhalte für Discover/Reader. Enthält
 // Event-Artikel + vollständige Explainer, neueste zuerst. Nicht in robots blockiert.
@@ -252,6 +272,13 @@ function rssFeed() {
     })),
     ...EXPLAINERS.filter((e) => e.status === 'full').map((e) => ({
       title: e.title, link: `${SITE.url}/wissen/${e.slug}/`, desc: e.answer, date: e.dateModified, cat: 'Wetterwissen',
+    })),
+    // E9: Methodik und Zielgruppen-Seiten gehören in den Feed — sie sind die zitierfähigsten Texte.
+    ...METHODIK.map((m) => ({
+      title: m.title, link: `${SITE.url}/methodik/${m.slug}/`, desc: m.answer, date: METHODIK_UPDATED, cat: 'Methodik',
+    })),
+    ...AUDIENCES.map((a) => ({
+      title: a.title, link: `${SITE.url}/fuer/${a.slug}/`, desc: a.answer, date: AUDIENCES_UPDATED, cat: 'Für wen',
     })),
   ].sort((a, b) => (a.date < b.date ? 1 : -1));
   const rfc822 = (iso) => new Date(iso + 'T08:00:00Z').toUTCString();
@@ -302,6 +329,20 @@ ${body}
 `;
 }
 writeFileSync(join(DIST, 'sitemap-news.xml'), newsSitemap(), 'utf8');
+
+// 3d) SEO/GEO 2026 (E9): llms.txt und llms-full.txt werden ERZEUGT, nicht gepflegt.
+// Die handgeschriebene Fassung war an drei Stellen veraltet (Ortszahl, Go/No-Go-Link,
+// Globus-Datenlage) — jede Zahl kommt jetzt aus derselben Liste wie die Seiten.
+const llmsArgs = {
+  site: SITE, updated: CONTENT_UPDATED, places: PLACES,
+  explainers: EXPLAINERS.filter((e) => e.status === 'full'),
+  tools: TOOLS.filter((t) => t.status === 'full'),
+  methodik: METHODIK, audiences: AUDIENCES, glossary: GLOSSARY,
+  events: EVENTS.filter((e) => e.status === 'full'),
+  subRoutes: indexableSubRoutes(),
+};
+writeFileSync(join(DIST, 'llms.txt'), buildLlmsTxt(llmsArgs), 'utf8');
+writeFileSync(join(DIST, 'llms-full.txt'), buildLlmsFullTxt(llmsArgs), 'utf8');
 
 // 4a) App-Routen-Shells (Phase RT1): je Pfad-Route eine FLACHE Datei
 // dist/<route>.html aus der unangereicherten Vite-Shell, mit eigenem Title/
@@ -406,5 +447,4 @@ const fullExplainers = EXPLAINERS.filter((e) => e.status === 'full').length;
 const fullTools = TOOLS.filter((t) => t.status === 'full').length;
 const fullEvents = EVENTS.filter((e) => e.status === 'full').length;
 const appUrls = sitemapPaths().length;
-const urlCount = PLACES.length + 5 + appUrls + fullExplainers + fullTools + fullEvents + LEGAL_PAGES.length + 1; // +1 = /lizenzen/ (V-104)
-console.log(`[seo] ${GLOSSARY.length} Glossar-Begriffe, ${AUDIENCES.length} Zielgruppen-Seiten, ${pages} Geo, ${explainerPages} Explainer (${fullExplainers} idx), ${toolPages} Tools (${fullTools} idx), ${eventPages} Wetterlage (${fullEvents} idx), ${LEGAL_PAGES.length} Rechtsseiten + Hubs, ${METHODIK.length} Methodik + ${TRUST_PAGES.length} Vertrauensseiten, ${routeShells} App-Routen-Shells + ${subShells} Sub-Routen-Shells (${appUrls} URLs), sitemap.xml (${urlCount} URLs), feed.xml, sitemap-news.xml, Home angereichert. Build ${BUILD_DATE}.`);
+console.log(`[seo] llms.txt + llms-full.txt, ${GLOSSARY.length} Glossar-Begriffe, ${AUDIENCES.length} Zielgruppen-Seiten, ${pages} Geo, ${explainerPages} Explainer (${fullExplainers} idx), ${toolPages} Tools (${fullTools} idx), ${eventPages} Wetterlage (${fullEvents} idx), ${LEGAL_PAGES.length} Rechtsseiten + Hubs, ${METHODIK.length} Methodik + ${TRUST_PAGES.length} Vertrauensseiten, ${routeShells} App-Routen-Shells + ${subShells} Sub-Routen-Shells (${appUrls} URLs), sitemap-index + ${pageUrls.length} Seiten / ${placeUrls.length} Orte, feed.xml, sitemap-news.xml, Home angereichert. Build ${BUILD_DATE}.`);

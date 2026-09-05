@@ -181,14 +181,29 @@ for (const f of subShells) {
   if (/hreflang=/.test(html)) fail(f, 'hreflang vorhanden (seit E1 entfernt)');
 }
 
-// 6) Sitemap (E1): lastmod je URL aus dem Inhalt, kein changefreq, alle URLs kanonisch.
+// 6) Sitemap (E1, seit E9 ein Index auf zwei Teillisten): lastmod je URL aus dem Inhalt,
+// kein changefreq, alle URLs kanonisch.
 console.log('\nSitemap:');
 {
-  const sm = read('sitemap.xml');
+  const index = read('sitemap.xml');
+  if (!/<sitemapindex/.test(index)) fail('sitemap.xml', 'kein Sitemap-Index (E9)');
+  else ok('sitemap.xml', 'Sitemap-Index');
+  const children = [...index.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1].replace('https://buscosun.com/', ''));
+  const expected = ['sitemap-pages.xml', 'sitemap-orte.xml'];
+  if (expected.some((f) => !children.includes(f))) fail('sitemap.xml', `Teilliste fehlt: ${expected.filter((f) => !children.includes(f)).join(', ')}`);
+  else ok('sitemap.xml', `verweist auf ${children.length} Teillisten`);
+  const sm = expected.map((f) => read(f)).join('\n');
+  for (const f of expected) {
+    const part = read(f);
+    if (!/<urlset/.test(part)) fail(f, 'kein urlset');
+    else ok(f, `${[...part.matchAll(/<loc>/g)].length} URLs`);
+  }
   const locs = [...sm.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
   const mods = [...sm.matchAll(/<lastmod>([^<]+)<\/lastmod>/g)].map((m) => m[1]);
-  if (locs.length === 0) fail('sitemap.xml', 'keine URLs');
-  else ok('sitemap.xml', `${locs.length} URLs`);
+  if (locs.length === 0) fail('sitemap', 'keine URLs');
+  else ok('sitemap', `${locs.length} URLs über beide Teillisten`);
+  if (new Set(locs).size !== locs.length) fail('sitemap', 'URL in beiden Teillisten (Doppelung)');
+  else ok('sitemap', 'keine URL doppelt');
   if (locs.some((l) => !l.startsWith('https://buscosun.com/'))) fail('sitemap.xml', 'URL außerhalb der kanonischen Origin');
   if (locs.some((l) => l.includes('?') || l.includes('#'))) fail('sitemap.xml', 'URL mit Query/Hash');
   if (/<changefreq>/.test(sm)) fail('sitemap.xml', 'changefreq vorhanden (seit E1 entfernt — Google ignoriert es)');
@@ -216,6 +231,61 @@ console.log('\nMethodik & Vertrauen:');
     if (rel !== 'methodik/index.html' && n < 500) fail(rel, `nur ${n} Wörter (erwartet ≥ 500)`);
     if (/@@TODO_JAN@@/.test(html)) fail(rel, 'Platzhalter @@TODO_JAN@@ im HTML');
   }
+}
+
+// 6b) E9: GEO-Dateien — erzeugt statt gepflegt, Zahlen dürfen nicht driften.
+console.log('\nGEO-Dateien:');
+{
+  for (const f of ['llms.txt', 'llms-full.txt']) {
+    if (!existsSync(join(DIST, f))) { fail(f, 'fehlt'); continue; }
+    const t = read(f);
+    if (!/^# buscosun/.test(t)) fail(f, 'kein Titel'); else ok(f, `${Math.round(t.length / 1024)} KB`);
+    if (/buscosun\.app/.test(t)) fail(f, 'nennt buscosun.app');
+    const rel = [...t.matchAll(/\]\((\/[^)]*)\)/g)].map((m) => m[1]);
+    if (rel.length) fail(f, `relative Links (absolut erwartet): ${rel.slice(0, 3).join(', ')}`);
+  }
+  const llms = read('llms.txt');
+  const placeCount = readdirSync(join(DIST, 'wetter'), { withFileTypes: true }).filter((d) => d.isDirectory()).length;
+  if (!llms.includes(`Übersicht aller ${placeCount} Orte`)) fail('llms.txt', `Ortszahl weicht ab (erwartet ${placeCount})`);
+  else ok('llms.txt', `Ortszahl stimmt mit dem Bestand überein (${placeCount})`);
+  if (!llms.includes('/atmosphaere/arbeitsfenster')) fail('llms.txt', 'Go/No-Go nicht auf dem kanonischen Pfad');
+  else ok('llms.txt', 'Go/No-Go auf dem kanonischen Pfad');
+  if (!/## Zitieren/.test(llms)) fail('llms.txt', 'kein Zitierhinweis');
+  else ok('llms.txt', 'Zitierhinweis vorhanden');
+  const full = read('llms-full.txt');
+  if (full.length > 2 * 1024 * 1024) fail('llms-full.txt', `${Math.round(full.length / 1024)} KB > 2 MB`);
+  else ok('llms-full.txt', 'unter 2 MB');
+}
+
+// 7a) E8: Ortsseiten v2 — Umfang, Klimatabelle, Sonnenzeiten, Lücken-Abschnitt, eigene Description.
+console.log('\nOrtsseiten v2:');
+{
+  const words = (html) => html.replace(/<script[\s\S]*?<\/script>/g, '').replace(/<style[\s\S]*?<\/style>/g, '').replace(/<[^>]+>/g, ' ').split(/\s+/).filter(Boolean).length;
+  const dirs = existsSync(join(DIST, 'wetter')) ? readdirSync(join(DIST, 'wetter'), { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name) : [];
+  if (dirs.length < 100) fail('wetter/', `erwartet ≥ 100 Ortsseiten, gefunden ${dirs.length}`);
+  else ok('wetter/', `${dirs.length} Ortsseiten`);
+  const descs = new Map();
+  let thin = [], noClimate = [], noSun = [], noUnknown = [], noCoverage = [];
+  for (const slug of dirs) {
+    const rel = `wetter/${slug}/index.html`;
+    const html = read(rel);
+    if (words(html) < 650) thin.push(`${slug} (${words(html)})`);
+    if (!/Klima in .* im Jahresverlauf/.test(html) || !/<table>/.test(html)) noClimate.push(slug);
+    if (!/Sonnenzeiten in /.test(html)) noSun.push(slug);
+    if (!/Was wir für .* nicht wissen/.test(html)) noUnknown.push(slug);
+    if (!/"temporalCoverage"/.test(html)) noCoverage.push(slug);
+    const d = (html.match(/name=["']description["'][^>]*content=["']([^"']+)["']/i) || [])[1] || '';
+    if (descs.has(d)) descs.set(d, [...descs.get(d), slug]); else descs.set(d, [slug]);
+  }
+  const dupes = [...descs.values()].filter((v) => v.length > 1);
+  if (thin.length) fail('wetter/', `${thin.length} Ortsseiten unter 650 Wörtern: ${thin.slice(0, 3).join(', ')}`);
+  else ok('wetter/', 'jede Ortsseite ≥ 650 Wörter');
+  if (noClimate.length) fail('wetter/', `ohne Klimatabelle: ${noClimate.slice(0, 3).join(', ')}`); else ok('wetter/', 'Klimatabelle auf jeder Ortsseite');
+  if (noSun.length) fail('wetter/', `ohne Sonnenzeiten: ${noSun.slice(0, 3).join(', ')}`); else ok('wetter/', 'Sonnenzeiten auf jeder Ortsseite');
+  if (noUnknown.length) fail('wetter/', `ohne „Was wir nicht wissen": ${noUnknown.slice(0, 3).join(', ')}`); else ok('wetter/', 'Lücken-Abschnitt auf jeder Ortsseite');
+  if (noCoverage.length) fail('wetter/', `Dataset ohne temporalCoverage: ${noCoverage.slice(0, 3).join(', ')}`); else ok('wetter/', 'Dataset nennt den Klimazeitraum');
+  if (dupes.length) fail('wetter/', `${dupes.length} Description-Gruppen mehrfach vergeben (z. B. ${dupes[0].slice(0, 3).join(', ')})`);
+  else ok('wetter/', 'jede Ortsseite hat eine eigene Description');
 }
 
 // 7b) E5/E6: Glossar und Zielgruppen-Seiten — Umfang, Negativ-Abschnitt, Typ.

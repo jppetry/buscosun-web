@@ -39,6 +39,7 @@ const attr = (html, re) => (html.match(re) || [])[1];
   for (const p of ['/_dwd_opendata/', '/_meteoalarm/', '/_gfs/', '/_firms', '/params/', '/fire/', '/sw.js']) expect(t.includes(`Disallow: ${p}\n`), `robots: Disallow ${p}`);
   expect(!t.includes('Disallow: /assets'), 'robots: /assets/ nicht gesperrt');
   expect(t.includes('Sitemap: https://buscosun.com/sitemap.xml'), 'robots: Sitemap-Zeile');
+  expect(t.includes('Sitemap: https://buscosun.com/sitemap-orte.xml'), 'robots: Teilliste Orte genannt');
 }
 
 // 2) Header (Ebene B, Cache)
@@ -77,8 +78,18 @@ const attr = (html, re) => (html.match(re) || [])[1];
 }
 
 // 4) Sitemap + jede URL
-const sm = await get('/sitemap.xml');
-expect(sm.status === 200, 'sitemap.xml 200');
+const smIndex = await get('/sitemap.xml');
+expect(smIndex.status === 200, 'sitemap.xml 200');
+expect(/<sitemapindex/.test(smIndex.text), 'sitemap.xml ist ein Index (E9)');
+// Teillisten holen und zu EINER Liste zusammenziehen — der Rest der Prüfung bleibt gleich.
+const childLocs = [...smIndex.text.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
+const parts = [];
+for (const loc of childLocs) {
+  const r = await get(new URL(loc).pathname);
+  expect(r.status === 200 && /<urlset/.test(r.text), `${new URL(loc).pathname} 200 mit urlset`);
+  parts.push(r.text);
+}
+const sm = { status: 200, text: parts.join('\n') };
 let locs = [...sm.text.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
 expect(locs.length > 100, `sitemap enthält ${locs.length} URLs`);
 expect(locs.every((l) => l.startsWith(CANON_ORIGIN + '/')), 'alle Sitemap-URLs auf buscosun.com');
@@ -126,6 +137,11 @@ for (let i = 0; i < others.length; i += 8) await Promise.all(others.slice(i, i +
   const r = await get('/llms.txt');
   expect(r.status === 200 && /^# buscosun/.test(r.text), 'llms.txt 200 mit Titel');
   expect(!/buscosun\.app/.test(r.text), 'llms.txt ohne buscosun.app');
+  expect(/\/atmosphaere\/arbeitsfenster/.test(r.text), 'llms.txt nennt den kanonischen Go/No-Go-Pfad');
+  expect(/## Zitieren/.test(r.text), 'llms.txt enthält den Zitierhinweis');
+  const full = await get('/llms-full.txt');
+  expect(full.status === 200 && /^# buscosun/.test(full.text), 'llms-full.txt 200 mit Titel');
+  expect(full.text.length > 50_000, `llms-full.txt trägt Volltext (${Math.round(full.text.length / 1024)} KB)`);
 }
 
 console.log(`\n[verify-live] ${base}: ${checks} Checks ok, ${failures} Fehler (${locs.length} Sitemap-URLs geprüft).`);

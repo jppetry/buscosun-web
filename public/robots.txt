@@ -51,5 +51,9 @@ Disallow: /climaGrid.json
 Disallow: /nowcasterWeights.json
 Disallow: /sw.js
 
+# sitemap.xml ist ein Index auf die beiden Teillisten (E9) — beide zusätzlich genannt,
+# damit Crawler sie auch ohne Index-Auflösung finden.
 Sitemap: https://buscosun.com/sitemap.xml
+Sitemap: https://buscosun.com/sitemap-pages.xml
+Sitemap: https://buscosun.com/sitemap-orte.xml
 Sitemap: https://buscosun.com/sitemap-news.xml
