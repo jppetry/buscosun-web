@@ -9,16 +9,11 @@
 
 import type { FireLayerId } from './fireModel';
 
-<<<<<<< HEAD
-export type FireRouteView = 'gefahrenindex' | 'aktive-braende' | 'trockenheit';
+export type FireRouteView = 'gefahrenindex' | 'aktive-braende' | 'trockenheit' | 'historie' | 'thermalanomalien';
 // BD3 (2026-09-03): der Reiter „Layer" ist entfallen — die Steckbriefe stehen im Dock.
 export type FireReadoutTab = 'fires' | 'anomalies';
-=======
-export type FireRouteView = 'gefahrenindex' | 'aktive-braende' | 'trockenheit' | 'historie' | 'thermalanomalien';
-export type FireReadoutTab = 'layers' | 'fires' | 'anomalies';
-/** Historie-Fenster (BH3) als Teil des Presets; null = Live-Fenster wie bisher. */
+/** Historie-Fenster (BH3) als Teil des Presets; null = Live-Fenster wie bisher (SEO/GEO E7). */
 export type FireHistoryPreset = 'month' | 'season' | null;
->>>>>>> b35e8525fec3332340576fed27aa2ce070a07b6c
 
 export const FIRE_ROUTE_VIEWS: readonly FireRouteView[] = ['gefahrenindex', 'aktive-braende', 'trockenheit', 'historie', 'thermalanomalien'];
 
@@ -39,23 +34,32 @@ export function applyFireView(view: FireRouteView, active: ReadonlySet<FireLayer
     // ist der Blick auf die Brände OHNE die Gefahrenfläche darunter — sonst wäre
     // sie von `/gefahrenindex` nicht zu unterscheiden und die URL spränge um.
     next.add('fireHotspots'); next.add('fireFootprints');
-<<<<<<< HEAD
     next.delete('fireDanger');
-    return { layers: [...next], readoutTab: 'fires' };
-=======
     return { layers: [...next], readoutTab: 'fires', history: null };
->>>>>>> b35e8525fec3332340576fed27aa2ce070a07b6c
   }
   if (view === 'trockenheit') {
     // Gleiche Überlegung, und deckungsgleich mit dem, was `fireViewFromState`
     // schon immer prüfte: Trockenheit OHNE Gefahrenindex.
     next.add('fireSoilDryness');
-<<<<<<< HEAD
     next.delete('fireDanger');
-    return { layers: [...next], readoutTab: 'fires' };
+    return { layers: [...next], readoutTab: 'fires', history: null };
+  }
+  // SEO/GEO 2026 (E7): Saison-Historie und Thermalanomalien hatten nur eine Hash-Form
+  // (`#wb=bh=season`, `#wb=ta=1`) und damit keinen kanonischen Pfad.
+  if (view === 'historie') {
+    // Wie `aktive-braende` (Blick auf die Brände), aber im Historie-Fenster statt live.
+    next.add('fireHotspots'); next.add('fireFootprints');
+    next.delete('fireDanger');
+    return { layers: [...next], readoutTab: 'fires', history: 'season' };
+  }
+  if (view === 'thermalanomalien') {
+    // `fireAnomalies` ist immer an (FIRE_ALWAYS_ON) und kann die Sicht deshalb nicht
+    // kennzeichnen — das tut allein der Reiter.
+    next.add('fireAnomalies');
+    return { layers: [...next], readoutTab: 'anomalies', history: null };
   }
   next.add('fireDanger');
-  return { layers: [...next], readoutTab: 'fires' };
+  return { layers: [...next], readoutTab: 'fires', history: null };
 }
 
 /**
@@ -69,37 +73,16 @@ export function applyFireView(view: FireRouteView, active: ReadonlySet<FireLayer
  * deshalb nichts entscheiden — sonst hieße wieder jeder Zustand „aktive-braende". Es
  * entscheiden nur noch die schaltbaren Flächen: Gefahrenindex, sonst Trockenheit, sonst die
  * Brände als Rückfall.
+ *
+ * E7: Das Historie-Fenster steht über allem (es ist der einzige Zustand, den kein Layer trägt),
+ * und der Anomalien-Reiter zeigt jetzt auf seinen eigenen Pfad statt auf `aktive-braende`.
  */
-export function fireViewFromState(active: ReadonlySet<FireLayerId>, readoutTab: FireReadoutTab): FireRouteView {
-  if (readoutTab === 'anomalies') return 'aktive-braende';
-  if (active.has('fireDanger')) return 'gefahrenindex';
-  if (active.has('fireSoilDryness')) return 'trockenheit';
-  return 'aktive-braende';
-=======
-    return { layers: [...next], readoutTab: 'layers', history: null };
-  }
-  // SEO/GEO 2026 (E7): die Saison-Historie und die Thermalanomalien hatten nur eine Hash-Form
-  // (`#wb=bh=season`, `#wb=ta=1`) und damit keinen kanonischen Pfad.
-  if (view === 'historie') {
-    next.add('fireHotspots'); next.add('fireFootprints');
-    return { layers: [...next], readoutTab: 'fires', history: 'season' };
-  }
-  if (view === 'thermalanomalien') {
-    next.add('fireAnomalies');
-    return { layers: [...next], readoutTab: 'anomalies', history: null };
-  }
-  next.add('fireDanger');
-  return { layers: [...next], readoutTab: 'layers', history: null };
-}
-
-/** Zustand → passender Pfad-Slug (deterministisch; Historie schlägt Reiter, Reiter schlägt Layer). */
 export function fireViewFromState(active: ReadonlySet<FireLayerId>, readoutTab: FireReadoutTab, history: FireHistoryPreset = null): FireRouteView {
   if (history) return 'historie';
   if (readoutTab === 'anomalies') return 'thermalanomalien';
-  if (readoutTab === 'fires') return 'aktive-braende';
-  if (active.has('fireSoilDryness') && !active.has('fireDanger')) return 'trockenheit';
-  return 'gefahrenindex';
->>>>>>> b35e8525fec3332340576fed27aa2ce070a07b6c
+  if (active.has('fireDanger')) return 'gefahrenindex';
+  if (active.has('fireSoilDryness')) return 'trockenheit';
+  return 'aktive-braende';
 }
 
 export function verifyFireRouteView(): { checks: Array<{ name: string; ok: boolean }>; passed: number; failed: number } {
@@ -110,31 +93,23 @@ export function verifyFireRouteView(): { checks: Array<{ name: string; ok: boole
   add('aktive-braende blendet die Gefahrenfläche ab (sonst nicht unterscheidbar)',
     !applyFireView('aktive-braende', base).layers.includes('fireDanger'));
   add('trockenheit ⇒ Bodentrockenheit an', applyFireView('trockenheit', base).layers.includes('fireSoilDryness'));
-<<<<<<< HEAD
   add('gefahrenindex ⇒ Gefahrenindex an', applyFireView('gefahrenindex', new Set()).layers.join() === 'fireDanger');
-  add('Anomalien-Reiter ⇒ aktive-braende, unabhängig von den Layern',
-    fireViewFromState(base, 'anomalies') === 'aktive-braende');
   add('immer aktive Layer entscheiden NICHT (Hotspots+Brandflächen allein ⇒ aktive-braende)',
     fireViewFromState(new Set<FireLayerId>(['fireHotspots', 'fireFootprints', 'fireAnomalies', 'fireBurnt']), 'fires') === 'aktive-braende');
   add('Gefahrenindex schlägt Trockenheit', fireViewFromState(base, 'fires') === 'gefahrenindex');
   add('nur Trockenheit ⇒ trockenheit', fireViewFromState(new Set<FireLayerId>(['fireSoilDryness']), 'fires') === 'trockenheit');
   add('nur Gefahrenindex ⇒ gefahrenindex', fireViewFromState(new Set<FireLayerId>(['fireDanger']), 'fires') === 'gefahrenindex');
-=======
-  add('gefahrenindex ⇒ Gefahrenindex an, Reiter Layer', applyFireView('gefahrenindex', new Set()).layers.join() === 'fireDanger');
-  add('Reiter Brände ⇒ aktive-braende, Reiter Anomalien ⇒ thermalanomalien', fireViewFromState(base, 'fires') === 'aktive-braende' && fireViewFromState(base, 'anomalies') === 'thermalanomalien');
-  add('nur Trockenheit ⇒ trockenheit', fireViewFromState(new Set<FireLayerId>(['fireSoilDryness']), 'layers') === 'trockenheit');
-  add('Default ⇒ gefahrenindex', fireViewFromState(base, 'layers') === 'gefahrenindex');
   // E7: die beiden neuen Sichten — Preset und Rückweg.
   add('historie ⇒ Reiter Brände + Saison-Fenster', (() => { const r = applyFireView('historie', base); return r.readoutTab === 'fires' && r.history === 'season' && r.layers.includes('fireFootprints'); })());
-  add('thermalanomalien ⇒ Standort-Layer + Reiter Anomalien', (() => { const r = applyFireView('thermalanomalien', base); return r.readoutTab === 'anomalies' && r.layers.includes('fireAnomalies') && r.history === null; })());
-  add('Historie-Fenster schlägt den Reiter', fireViewFromState(base, 'fires', 'season') === 'historie' && fireViewFromState(base, 'anomalies', 'month') === 'historie');
-  add('jede Sicht ist ihr eigener Rückweg', FIRE_ROUTE_VIEWS.every((v) => { const r = applyFireView(v, v === 'trockenheit' ? new Set<FireLayerId>() : base); return fireViewFromState(new Set(r.layers), r.readoutTab, r.history) === v; }));
->>>>>>> b35e8525fec3332340576fed27aa2ce070a07b6c
+  add('thermalanomalien ⇒ Reiter Anomalien, kein Historie-Fenster', (() => { const r = applyFireView('thermalanomalien', base); return r.readoutTab === 'anomalies' && r.history === null; })());
+  add('Anomalien-Reiter ⇒ thermalanomalien, unabhängig von den Layern',
+    fireViewFromState(base, 'anomalies') === 'thermalanomalien');
+  add('Historie-Fenster schlägt Reiter und Layer', fireViewFromState(base, 'fires', 'season') === 'historie' && fireViewFromState(base, 'anomalies', 'month') === 'historie');
   add('Preset ist idempotent', (() => { const r = applyFireView('aktive-braende', base); return applyFireView('aktive-braende', new Set(r.layers)).layers.length === r.layers.length; })());
   // Rundlauf: jede Sub-Route muss aus ihrem eigenen Preset wieder ihren Slug ergeben.
   for (const v of FIRE_ROUTE_VIEWS) {
     const r = applyFireView(v, new Set<FireLayerId>(['fireHotspots', 'fireFootprints', 'fireAnomalies', 'fireBurnt']));
-    add(`Rundlauf ${v}`, fireViewFromState(new Set(r.layers), r.readoutTab) === v);
+    add(`Rundlauf ${v}`, fireViewFromState(new Set(r.layers), r.readoutTab, r.history) === v);
   }
   const failed = checks.filter((c) => !c.ok).length;
   return { checks, passed: checks.length - failed, failed };
