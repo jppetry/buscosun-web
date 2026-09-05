@@ -192,7 +192,6 @@ export function FireAnomalyPanel(p: AnomalyPanelProps) {
                     <span className="br-fire-ctx">Signal weicht vom Anlagenmuster ab — der Eintrag steht als Brand im Reiter „Brände".</span>
                   )}
                 </button>
-                {sel && <AnomalyDetail site={site} rec={rec} onClose={p.onClearSelect} />}
               </div>
             </li>
           );
@@ -217,49 +216,79 @@ export function FireAnomalyPanel(p: AnomalyPanelProps) {
   );
 }
 
-function AnomalyDetail({ site, rec, onClose }: { site: ThermalSite; rec: FireRecord | null; onClose: () => void }) {
+/**
+ * BD3 (2026-09-03) — die Standort-Angaben als Dossier-Karten in der MITTE. Vorher standen sie als
+ * Inline-Karte (`.br-detail`) unter der markierten Zeile; die Zeilen sind WORTGLEICH übernommen,
+ * nur auf drei Karten der BD2-Form gruppiert. Beide Aufrufer teilen diesen Baustein:
+ * der Standort ohne Eintrag rendert ihn allein, der Standort MIT Eintrag als `extra` im
+ * Brand-Dossier — so verliert kein Fall eine Zeile.
+ */
+export function AnomalySiteCards({ site, rec }: { site: ThermalSite; rec: FireRecord | null }) {
   const f = site.facility;
   const years = Object.entries(site.stats.years).sort(([a], [b]) => a.localeCompare(b));
   const checks = rec?.anomaly?.checks ?? null;
   return (
-    <section className="br-detail" aria-label={`Details ${siteName(site)}`}>
-      <div className="br-detail-head">
-        <span className="br-eyebrow">Standort</span>
-        <button type="button" className="br-close" aria-label="Details schließen" onClick={onClose}>×</button>
-      </div>
-      <dl className="fire-fp-dl">
-        <dt>Kennung</dt><dd><code>{site.id}</code> · {site.cells.length} {site.cells.length === 1 ? 'Zelle' : 'Zellen'} à 0,01°</dd>
-        <dt>Klasse</dt><dd>{site.cls} · {SITE_CLASS_LABEL[site.cls]}</dd>
-        {f && (
-          <>
-            <dt>Anlage</dt>
-            <dd>{f.name} — {FACILITY_KIND_LABEL[f.kind]} · {f.source === 'eprtr' ? 'EEA Industrial Reporting (E-PRTR/IED), CC-BY 4.0' : f.source === 'mastr' ? 'Marktstammdatenregister (BNetzA), DL-DE/BY-2.0' : 'BFE Elektrizitätsproduktionsanlagen, OPEN BY'} · {f.distanceM} m vom Signal{f.detail ? <> · {f.detail}</> : null}</dd>
-            <dt>Betreiber</dt><dd>{f.operator ?? 'nicht in der Quelle geführt — der Anlagenname trägt oft die Firma'}</dd>
-          </>
-        )}
-        {site.facilityAlt && <><dt>Weitere Anlage</dt><dd>{site.facilityAlt.name} ({FACILITY_KIND_LABEL[site.facilityAlt.kind]}, {site.facilityAlt.source === 'eprtr' ? 'E-PRTR' : site.facilityAlt.source === 'mastr' ? 'MaStR' : 'BFE'}, {site.facilityAlt.distanceM} m)</dd></>}
-        {site.note && <><dt>Einordnung</dt><dd>{site.note}</dd></>}
-        <dt>Archiv</dt>
-        <dd>{de(site.stats.detections)} Detektionen an {de(site.stats.distinctDays)} Tagen · nachts {de(site.stats.nightShare * 100)} % · NASA-Kennung „statisch" bei {de(site.stats.nasaType2Share * 100)} % · zuletzt {fmtDate(site.stats.lastMs)}</dd>
-        <dt>Tage je Jahr</dt>
-        <dd>{years.map(([y, n]) => `${y}: ${n}`).join(' · ')}</dd>
-        <dt>FRP-Muster</dt>
-        <dd>{site.stats.frp.p50 != null ? `Median ${de(site.stats.frp.p50, 1)} MW · p95 ${de(site.stats.frp.p95 ?? 0, 1)} MW · max ${de(site.stats.frp.max ?? 0, 1)} MW je Pixel` : '—'}</dd>
-        <dt>Landbedeckung</dt>
-        <dd>{site.landcover === 'industrial' ? 'CORINE 2018: Industrie-/Abbau-/Deponiefläche (Plausibilität)' : site.landcover === 'other' ? 'CORINE 2018: keine Industrie-/Abbau-/Deponiefläche in der Zelle' : '—'}</dd>
-        <dt>Im Fenster</dt>
-        <dd>{rec ? <>{rec.hotspots ?? 0} Detektionen, {rec.overpasses ?? 0} Überflüge{rec.frpSumMw != null ? `, ΣFRP ${de(rec.frpSumMw)} MW` : ''} · Abzeichen {rec.anomaly ? BR_BADGE_LABEL[rec.anomaly.kind] : '—'}</> : 'kein Signal — Beobachtungslücke oder kein Betrieb, keine Aussage'}</dd>
-        {checks && (
-          <>
-            <dt>Signaturprüfung</dt>
-            <dd>
-              {checks.footprint ? '✓' : '✗'} Standortraster ± 1 Zelle · {checks.growth ? '✓' : '✗'} kein Wachstum · {checks.intensity ? '✓' : '✗'} FRP im Archivrahmen · {checks.mapping ? '✓' : '✗'} keine Kartierung/EMS
-            </dd>
-            {rec?.anomaly?.reasons.length ? <><dt>Begründung</dt><dd><ul className="fire-fp-reasons">{rec.anomaly.reasons.map((r, i) => <li key={i}>{r}</li>)}</ul></dd></> : null}
-          </>
-        )}
-        <dt>Lage</dt><dd>{site.lat.toFixed(4)} / {site.lon.toFixed(4)}{site.place ? ` · ${site.place}` : ''}</dd>
-      </dl>
-    </section>
+    <>
+      <section className="br-ds-card br-ds-einordnung" aria-label="Standort und Anlage">
+        <div className="br-ds-cardhead"><span className="br-ds-eyebrow is-stone">Standort &amp; Anlage</span></div>
+        <dl className="fire-fp-dl br-ds-dl">
+          <dt>Kennung</dt><dd><code>{site.id}</code> · {site.cells.length} {site.cells.length === 1 ? 'Zelle' : 'Zellen'} à 0,01°</dd>
+          <dt>Klasse</dt><dd>{site.cls} · {SITE_CLASS_LABEL[site.cls]}</dd>
+          {f && (
+            <>
+              <dt>Anlage</dt>
+              <dd>{f.name} — {FACILITY_KIND_LABEL[f.kind]} · {f.source === 'eprtr' ? 'EEA Industrial Reporting (E-PRTR/IED), CC-BY 4.0' : f.source === 'mastr' ? 'Marktstammdatenregister (BNetzA), DL-DE/BY-2.0' : 'BFE Elektrizitätsproduktionsanlagen, OPEN BY'} · {f.distanceM} m vom Signal{f.detail ? <> · {f.detail}</> : null}</dd>
+              <dt>Betreiber</dt><dd>{f.operator ?? 'nicht in der Quelle geführt — der Anlagenname trägt oft die Firma'}</dd>
+            </>
+          )}
+          {site.facilityAlt && <><dt>Weitere Anlage</dt><dd>{site.facilityAlt.name} ({FACILITY_KIND_LABEL[site.facilityAlt.kind]}, {site.facilityAlt.source === 'eprtr' ? 'E-PRTR' : site.facilityAlt.source === 'mastr' ? 'MaStR' : 'BFE'}, {site.facilityAlt.distanceM} m)</dd></>}
+          {site.note && <><dt>Einordnung</dt><dd>{site.note}</dd></>}
+          <dt>Landbedeckung</dt>
+          <dd>{site.landcover === 'industrial' ? 'CORINE 2018: Industrie-/Abbau-/Deponiefläche (Plausibilität)' : site.landcover === 'other' ? 'CORINE 2018: keine Industrie-/Abbau-/Deponiefläche in der Zelle' : '—'}</dd>
+          <dt>Lage</dt><dd>{site.lat.toFixed(4)} / {site.lon.toFixed(4)}{site.place ? ` · ${site.place}` : ''}</dd>
+        </dl>
+      </section>
+
+      <section className="br-ds-card is-steel br-ds-wetter" aria-label="Signatur im Archiv">
+        <div className="br-ds-cardhead"><span className="br-ds-eyebrow is-steel">Signatur im Archiv</span></div>
+        <dl className="fire-fp-dl br-ds-dl">
+          <dt>Archiv</dt>
+          <dd>{de(site.stats.detections)} Detektionen an {de(site.stats.distinctDays)} Tagen · nachts {de(site.stats.nightShare * 100)} % · NASA-Kennung „statisch" bei {de(site.stats.nasaType2Share * 100)} % · zuletzt {fmtDate(site.stats.lastMs)}</dd>
+          <dt>Tage je Jahr</dt>
+          <dd>{years.map(([y, n]) => `${y}: ${n}`).join(' · ')}</dd>
+          <dt>FRP-Muster</dt>
+          <dd>{site.stats.frp.p50 != null ? `Median ${de(site.stats.frp.p50, 1)} MW · p95 ${de(site.stats.frp.p95 ?? 0, 1)} MW · max ${de(site.stats.frp.max ?? 0, 1)} MW je Pixel` : '—'}</dd>
+        </dl>
+      </section>
+
+      <section className="br-ds-card br-ds-merkmale" aria-label="Im Fenster und Signaturprüfung">
+        <div className="br-ds-cardhead"><span className="br-ds-eyebrow is-stone">Im Fenster &amp; Prüfung</span></div>
+        <dl className="fire-fp-dl br-ds-dl">
+          <dt>Im Fenster</dt>
+          <dd>{rec ? <>{rec.hotspots ?? 0} Detektionen, {rec.overpasses ?? 0} Überflüge{rec.frpSumMw != null ? `, ΣFRP ${de(rec.frpSumMw)} MW` : ''} · Abzeichen {rec.anomaly ? BR_BADGE_LABEL[rec.anomaly.kind] : '—'}</> : 'kein Signal — Beobachtungslücke oder kein Betrieb, keine Aussage'}</dd>
+          {checks && (
+            <>
+              <dt>Signaturprüfung</dt>
+              <dd>
+                {checks.footprint ? '✓' : '✗'} Standortraster ± 1 Zelle · {checks.growth ? '✓' : '✗'} kein Wachstum · {checks.intensity ? '✓' : '✗'} FRP im Archivrahmen · {checks.mapping ? '✓' : '✗'} keine Kartierung/EMS
+              </dd>
+              {rec?.anomaly?.reasons.length ? <><dt>Begründung</dt><dd><ul className="fire-fp-reasons">{rec.anomaly.reasons.map((r, i) => <li key={i}>{r}</li>)}</ul></dd></> : null}
+            </>
+          )}
+        </dl>
+      </section>
+    </>
   );
+}
+
+/** Die vier Kennzahl-Kacheln des Standort-Dossiers — Form wie `historyStatTiles`. */
+export function siteStatTiles(s: ThermalSite, rec: FireRecord | null): { lbl: string; val: string; sub: string }[] {
+  return [
+    { lbl: 'Klasse', val: s.cls, sub: SITE_CLASS_LABEL[s.cls] },
+    { lbl: 'Archiv', val: de(s.stats.detections), sub: `an ${de(s.stats.distinctDays)} Tagen · ${siteYearsLabel(s)}` },
+    { lbl: 'Nachtanteil', val: `${de(s.stats.nightShare * 100)} %`, sub: 'Wärmequellen laufen auch nachts' },
+    rec
+      ? { lbl: 'Im Fenster', val: de(rec.hotspots ?? 0), sub: `${de(rec.overpasses ?? 0)} Überflüge · ${rec.anomaly ? BR_BADGE_LABEL[rec.anomaly.kind] : '—'}` }
+      : { lbl: 'Im Fenster', val: '—', sub: 'kein Signal — keine Aussage' },
+  ];
 }

@@ -187,10 +187,52 @@
 .br-layer.is-on .br-switch { background: var(--br-acc); }
 .br-layer.is-on .br-switch-knob { transform: translateX(13px); }
 /* Blockierte Quellen (EDO, ungültiges CORS) bleiben SICHTBAR: gestrichelt, Schloss, Grund. */
+/* BR2 (Jans Auftrag 2026-09-05): der Zeitkorb-Filter der frueheren Brandflaechen
+   steht seit dem Wegfall seiner Layer-Zeile fuer sich. Gleicher Rahmen wie eine
+   Zeile mit Untersegment (.has-seg), nur mit Ueberschrift statt Schalter. */
+.br-layerwrap.is-standalone { padding-top: 8px; }
+.br-standalone-head {
+  font-size: 9.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--br-acc); padding: 0 0 2px;
+}
+
 .br-layer.is-blocked { background: var(--br-blocked-bg); border: 1px dashed var(--border-medium, #D9D0B8); opacity: .75; cursor: not-allowed; }
 .br-layer.is-blocked .br-layer-ic { color: var(--br-stone); }
 .br-layer.is-blocked .br-layer-label, .br-layer.is-blocked .br-layer-sub { color: var(--br-stone); font-weight: 500; }
 .br-layer-info { display: none; }
+/* BD3 (2026-09-03): der Steckbrief-Knopf im DOCK (Desktop/Tablet) — bis dahin gab es ihn nur im
+   mobilen Layer-Sheet. Er sitzt rechts in der Zeile; der Schalter rückt dafür nach links
+   (`padding-right`). Die Trefferfläche ist 44 px hoch/breit und ragt bewusst über den 26-px-Kreis
+   hinaus (negativer Versatz), damit die Zeilenhöhe des Docks unverändert bleibt. */
+.br-dock .br-layer { padding-right: 40px; }
+.br-dock .br-layerwrap.has-seg > .br-layer { padding-left: 0; padding-right: 30px; }
+.br-dock .br-layer-info {
+  display: flex; align-items: center; justify-content: center;
+  position: absolute; top: 0; right: 0; width: 44px; height: 44px; max-height: 100%;
+  padding: 0; border: 0; background: transparent; font: inherit; font-size: 0; cursor: pointer;
+}
+.br-dock .br-layerwrap.has-seg > .br-layer-info { top: 2px; right: -4px; }
+.br-dock .br-layer-info::before {
+  content: 'i'; width: 20px; height: 20px; border-radius: 50%;
+  border: 1px solid var(--sand-200, #E0D6BE); background: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; font-family: inherit; color: var(--stone-500, #8B7355);
+}
+.br-dock .br-layer-info[aria-expanded='true']::before { background: var(--sand-100, #EDE6D3); border-color: var(--br-acc); color: var(--br-acc); }
+.br-dock .br-layer-info:hover::before { border-color: var(--border-medium, #D9D0B8); }
+/* Der Steckbrief im Dock: dieselbe Karte wie im Sheet, nur enger gesetzt. */
+.br-dock .br-card { margin-top: 6px; padding: 11px; border-radius: 10px; }
+.br-dock .br-views {
+  margin-top: 7px; flex-wrap: wrap; overflow: visible;
+  background: none; border: 0; padding: 0; gap: 4px;
+}
+.br-dock .br-views button { border: 1px solid var(--sand-200, #E0D6BE); background: #fff; border-radius: 7px; padding: 4px 8px; }
+.br-dock .br-views button.is-active { border-color: var(--br-red); }
+/* BD3: der Fuß des Docks trägt, was der gestrichene Readout-Reiter „Layer" trug. */
+.br-dockfoot { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--sand-200, #E0D6BE); }
+.br-dockfoot-basemap { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+.br-dockfoot-basemap .br-basemap { background: #fff; }
+.br-dockfoot .br-legend { margin: 0; }
 /* Status-/Hinweiszeilen unter der Zeile — „keine Daten" darf nie wie „keine Gefahr" aussehen (D-04). */
 .br-layer-note { margin: 4px 2px 0; font-size: 10px; color: var(--stone-500, #8B7355); line-height: 1.45; }
 .br-layer-note.is-muted { color: var(--stone-400, #A89A7A); }
@@ -864,6 +906,7 @@
 .br-ds-eyebrow.is-red { color: var(--br-red); }
 .br-ds-eyebrow.is-steel { color: var(--br-steel); }
 .br-ds-eyebrow.is-warn { color: var(--br-warn-ink); }
+.br-ds-eyebrow.is-terra { color: var(--br-terra); }
 .br-ds-cardhead { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
 .br-ds-cardsub { font-size: 12.5px; color: var(--stone-500, #8B7355); }
 .br-ds-headrow { display: flex; align-items: flex-start; gap: 16px; }
@@ -910,6 +953,22 @@
 .br-sat-frame { position: relative; border-radius: 10px; overflow: hidden; background: #F5F1E8; border: 1px solid var(--sand-200, #E0D6BE); aspect-ratio: 5 / 4; max-width: 600px; }
 .br-sat-frame img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .br-sat-wait { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 16px 22px; margin: 0; font-size: 13px; text-align: center; }
+/* SAT3: Detektions-Rechtecke über dem 30-m-Bild — SVG im Bildmaß (viewBox = SNAP_W×SNAP_H, non-uniform
+   skaliert wie das Bild selbst), darunter der Umschalter. Farben wie im 10-m-Viewer (DET_COLOR/DET_HALO).
+
+   Sichtbarkeit ist hier ein FACHLICHES Problem, kein Geschmack (§13.5): ein VIIRS-Pixel ist 375 m, der
+   Bildausschnitt mindestens 18 km — das Rechteck ist also nur ~10 CSS-px groß. Gemessen unsichtbar waren
+   dünner Strich + matte Deckfarbe auf braun-grünem Gelände. Deshalb: helles Signal-Terracotta (KEIN
+   Deck-Token — das matte --terracotta-500 verschwand im Bild), 2 px Strich, dunkler 2-px-Halo und eine
+   halbtransparente FÜLLUNG. Die Füllung ist auch inhaltlich richtig: das Rechteck ist eine Fläche
+   („das Feuer liegt irgendwo darin"), keine Linie. Aufnahmen NACH dem Bild bleiben ungefüllt und
+   gestrichelt — so sind beide sichtbar UND unterscheidbar. */
+.br-sat-det { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.br-sat-det rect { fill: rgba(255, 176, 138, .28); stroke: #FFB08A; stroke-width: 2; vector-effect: non-scaling-stroke; filter: drop-shadow(0 0 2px rgba(44, 42, 38, .95)); }
+.br-sat-det rect.is-after { fill: none; stroke-dasharray: 5 3; }
+.br-sat-dettoggle { position: absolute; left: 8px; bottom: 8px; padding: 5px 10px; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 999px; background: rgba(253, 251, 244, .92); color: var(--ink-900, #2C2A26); font-family: 'League Spartan', system-ui, sans-serif; font-size: 12px; font-weight: 700; letter-spacing: .05em; cursor: pointer; }
+.br-sat-dettoggle[aria-pressed='true'] { background: var(--ink-900, #2C2A26); color: #FDFBF4; border-color: var(--ink-900, #2C2A26); }
+.br-sat-detnote { margin: 6px 0 0; font-size: 12px; }
 .br-sat-caption { margin: 8px 0 0; font-size: 13px; color: var(--stone-600, #5C5447); }
 .br-sat-caption strong { color: var(--ink-900, #2C2A26); }
 .br-sat-days { display: flex; gap: 6px; overflow-x: auto; margin-top: 10px; padding-bottom: 4px; }
@@ -938,6 +997,10 @@
 .br-cog-mode { position: absolute; top: 8px; left: 8px; display: flex; gap: 6px; }
 .br-cog-mode button { padding: 7px 12px; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 999px; background: #FDFBF4; color: var(--ink-900, #2C2A26); font-family: 'League Spartan', system-ui, sans-serif; font-size: 12px; font-weight: 700; letter-spacing: .04em; cursor: pointer; }
 .br-cog-mode button.is-active { background: var(--ink-900, #2C2A26); color: #FDFBF4; border-color: var(--ink-900, #2C2A26); }
+/* SAT3: Overlay-Umschalter (Detektionen) in zweiter Reihe unter den Modus-Chips. */
+.br-cog-over { position: absolute; top: 48px; left: 8px; display: flex; gap: 6px; }
+.br-cog-over button { padding: 5px 10px; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 999px; background: #FDFBF4; color: var(--ink-900, #2C2A26); font-family: 'League Spartan', system-ui, sans-serif; font-size: 12px; font-weight: 700; letter-spacing: .04em; cursor: pointer; }
+.br-cog-over button.is-active { background: var(--ink-900, #2C2A26); color: #FDFBF4; border-color: var(--ink-900, #2C2A26); }
 .br-cog-legend { display: flex; flex-wrap: wrap; gap: 10px; padding: 3px 7px; border-radius: 6px; background: var(--ink-900, #2C2A26); font-size: 12px; color: #EDE6D3; }
 .br-cog-legend i { display: inline-block; width: 14px; height: 10px; margin-right: 4px; border: 1px solid #EDE6D3; }
 /* Verlauf: der Chart auf voller Panelbreite, die Zeilen darunter. */
@@ -1047,5 +1110,54 @@
   /* Chips und Steuerknöpfe teilen sich die Kopfzeile — nebeneinander überlappten sie (§10.3). */
   .br-cog-mode { flex-direction: column; align-items: flex-start; }
   .br-cog-mode button { min-height: 44px; }
+  /* SAT3: unter den drei gestapelten Modus-Chips (3 × 44 px + Abstände). */
+  .br-cog-over { top: 158px; }
+  .br-cog-over button, .br-sat-dettoggle { min-height: 44px; }
+  /* SAT3 (§13.4 (4)): mobil stapeln sich bis zu vier Sätze über einem ~230 px hohen Bild und
+     verdeckten es ganz. Sie bleiben ALLE lesbar — der Block wird gedeckelt und scrollt, statt
+     dass ein Satz wegfällt (Ehrlichkeit ist Produktprinzip). Im Vollbild ist Platz genug. */
+  .br-cog-inline .br-cog-notes { max-height: 42%; overflow-y: auto; overscroll-behavior: contain; }
   .br-ds-legend .br-legend-dot { font-size: 12.5px; }
+}
+
+/* ---------------------------------------------------------------------------
+   BDE-C — Wetterführung im Brandzeitfenster (Einstufung, Windrose, Zeitreihe).
+   Farben ausschließlich aus vorhandenen Tokens: die Stärkeklassen der Rose sind
+   die Sand-/Stein-Leiter (in der Komponente), die Einstufung nutzt die drei
+   Deck-Akzente Rot/Stein/Steel. Keine neue Farbe (Sonde [bd2]).
+   --------------------------------------------------------------------------- */
+.br-drv { display: flex; flex-direction: column; gap: 10px; }
+.br-drv-verdict { margin: 0; font-size: 13px; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.br-drv-lbl {
+  font-weight: 700; font-size: 12px; letter-spacing: .08em; text-transform: uppercase;
+  padding: 3px 9px; border-radius: 999px; border: 1px solid currentColor; color: var(--br-stone);
+}
+.br-drv-verdict.is-driving .br-drv-lbl { color: var(--br-red); }
+.br-drv-verdict.is-damping .br-drv-lbl { color: var(--br-steel); }
+.br-drv-reasons { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
+.br-drv-reasons li { display: flex; gap: 8px; font-size: 12px; align-items: baseline; }
+.br-drv-pt {
+  flex: 0 0 auto; min-width: 26px; text-align: right; font-variant-numeric: tabular-nums;
+  font-weight: 700; color: var(--br-stone);
+}
+.br-drv-reasons li[data-sign='up'] .br-drv-pt { color: var(--br-red); }
+.br-drv-reasons li[data-sign='down'] .br-drv-pt { color: var(--br-steel); }
+.br-drv-wind { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+/* Die Beschriftungen hier sind länger als die 112-px-Spalte des Dossiers („VORHERRSCHENDER WIND");
+   in der schmalen Mitte steht das Label deshalb ÜBER dem Wert statt daneben. */
+.br-drv-dl { flex: 1 1 260px; min-width: 0; }
+.br-ds .br-drv-dl, .br-drv-dl { grid-template-columns: 1fr; gap: 2px; }
+.br-ds .br-drv-dl dt, .br-drv-dl dt { padding-top: 6px; }
+.br-rose { margin: 0; flex: 0 0 auto; }
+.br-rose-cap { display: flex; flex-direction: column; gap: 4px; max-width: 260px; }
+.br-rose-key { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 12px; }
+.br-rose-key li { display: flex; align-items: center; gap: 5px; }
+.br-rose-key i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+.br-drvchart { margin: 0; }
+.br-drvchart svg { display: block; }
+
+/* Mobil/Tablet: Rose und Zeilen untereinander, Rose zentriert. */
+@media (max-width: 767px) {
+  .br-drv-wind { flex-direction: column; align-items: center; }
+  .br-rose-cap { max-width: none; }
 }

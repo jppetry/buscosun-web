@@ -319,3 +319,192 @@ Y-Achse (`x ≥ L + 30`-Wächter). `verify:fire-detail` **67/67** (Sonde erweite
 `groupPasses(shardRows(ev))`), `verify:fire-history` 112/113 (Rest `spreadFc` = Altbestand), typecheck grün.
 Bei Einzeldetektions-Ereignissen (Jans Beispiel Niederstetten) bleibt der Gehalt **strukturell** klein — ein
 Überflug, eine Zahl —, aber die Form sagt es jetzt („ein einziger Überflug — kein Verlauf") statt dünn auszusehen.
+
+---
+
+## 6. Diagnose BD3 (2026-09-03) — Inline-Detailkarte im Readout streichen, Layer-Steckbrief ins Dock
+
+**Jans Auftrag.** (a) Die Detailansicht rechts beim Klick auf einen Brand ist seit dem Dossier
+überflüssig — streichen, und was dort Wichtiges steht, das dem Dossier fehlt, vorher hinübertragen.
+(b) Die Layer-Beschreibung wandert in die linke Sidebar und steht dort **unter dem Layer**.
+
+### 6.1 Befund (a) — die Inline-Karte ist heute wirklich redundant
+
+`FootprintDetail` (`FireFootprintPanel.tsx:633`) rendert im Readout unter der markierten Zeile, sobald
+`sel && p.detail`. Sie ist seit BD2 aus **denselben Bausteinen** gebaut wie das Dossier
+(`FireFootprintPanel.tsx:675 ff.` — „EINE Quelle für Detailkarte und Dossier"). Bausteinvergleich:
+
+| Baustein | Inline-Karte | Dossier |
+|---|---|---|
+| `DetailSubline`, `Badge`, `recordName` | ✓ | ✓ |
+| `DetailKennzahlenRows`, `DetailFrpRows` | ✓ | ✓ |
+| `DetailConfidenceRows` | unter „Kennzahlen" | unter „Einordnung" |
+| `DetailVerlauf` | ✓ (compact) | ✓ (wide, 360/420/340) |
+| `WeatherBlock` | ✓ | ✓ (Steel-Karte) |
+| `DetailEinordnungRows` + `CauseText` | ✓ | ✓ (Ursache im eigenen Kasten) |
+| `FeaturesRow` | ✓ | ✓ |
+| `RecordStats` (4 Kennzahl-Kacheln) | nur in der Listenzeile | ✓ zusätzlich im Kopf |
+| Methoden-/Bewertungs-Chips | nur in der Listenzeile | ✓ zusätzlich im Kopf |
+| `SatImageryBlock` (SAT1) | — | ✓ |
+| Minikarte + Legende + `DossierMapNote` | — | ✓ (`aside`) |
+
+**Ergebnis: das Dossier ist eine echte Obermenge.** Es gibt keine Zeile, die nur in der Inline-Karte
+steht — zu übertragen ist nichts. Das ist keine Vermutung, sondern folgt aus der BD2-Regel, dass beide
+Ansichten dieselben exportierten Bausteine benutzen; der Verifier `verify:fire-detail` hält das fest.
+
+**Zweiter Befund: die Inline-Karte ist heute doppelt sichtbar.** Jeder Auswahlweg setzt bereits
+`setStage('dossier')` — Karte (`selectFootprintFromMap:1033`), EFFIS-Fläche (`openDossierForEffis`),
+Detektionspunkt (`openDossierForDetection`), Raster (`openDossierForZone`), Registry-Zeile
+(`openDossier:1073`), Hülle (`selectFromMap:630`). Wer einen Brand markiert, sieht die Angaben also
+**gleichzeitig** in der Mitte (groß, mit Satellitenbild und Minikarte) und rechts in der Liste (klein).
+Die Inline-Karte schiebt dabei die Nachbarzeilen der Registry auseinander und erzwingt den
+Scroll-Ins-Bild-Effekt (`FirePage.tsx:1191`).
+
+**Abgrenzung — was NICHT gemeint ist** (eigene Inline-Karten, anderer Auftrag, bleiben unberührt, bis
+Jan es sagt): `HistoryDetailBody` im Historie-Readout (BD2g hat dafür bewusst das
+`HistoryDossierBody`-Gegenstück gebaut und die Inline-Karte ausdrücklich stehen lassen) und die
+Standort-Karte in `FireAnomalyPanel.tsx:225`.
+
+### 6.2 Befund (b) — wo die Layer-Beschreibung heute steht
+
+Zwei Orte, beide `FireLayerCard`:
+
+1. **Readout, Reiter „Layer"** (`readoutLayersContent`, `FirePage.tsx:1978`): zeigt Karten für alle Layer
+   aus `readoutLayers = FIRE_LAYER_ORDER.filter(aktiv || layerHover)` — also für jeden **aktiven** Layer
+   plus den gerade **überfahrenen** (Hover auf der Dock-Zeile, `layerRow` setzt `setLayerHover`).
+   Darunter im selben Reiter: `scalesCard` (nationale Skalen DE/CH) und `sourcesLine` (Quellenzeile),
+   sowie oben der Hinweiskasten `is-lag` für Layer, die dem Regler nicht folgen.
+2. **Mobiles Layer-Sheet** (`layerRow(inSheet=true)`, `FirePage.tsx:1405-1419`): pro Zeile ein
+   `i`-Knopf, der die Karte **unter der Zeile** aufklappt (`openInfo`-State). **Das ist exakt die Form,
+   die Jan jetzt auch für Desktop/Tablet will** — der Mechanismus existiert also schon und muss nur auf
+   das Dock ausgedehnt werden.
+
+Das Dock ist 250 px breit (Tablet 214 px, `fireDeck.css:160/609`); die `compact`-Variante der Karte ist
+für Sheet-Breite gebaut und passt dort hinein — Maße sind am Gerät zu prüfen, nicht zu behaupten.
+
+**Offene Frage, die Jan entscheiden muss** (Funktionserhalt, oberste Direktive): Wenn die
+Layer-Steckbriefe ins Dock wandern, bleibt der Readout-Reiter „Layer" mit `scalesCard`, `sourcesLine`
+und dem Lag-Kasten zurück. Diese drei sind **keine** Layer-Beschreibungen und dürfen nicht wegfallen.
+Varianten: Reiter „Layer" behalten (nur ohne die Layer-Karten) — oder Reiter streichen und die drei
+Inhalte ans Ende des Docks hängen. Zweite offene Frage: ob die Karte im Dock **immer** unter einem
+aktiven Layer steht (mehr Text, kein Klick nötig) oder wie mobil **auf `i`** aufklappt (ruhiges Dock).
+
+### 6.3 Was zu tun ist (Skizze, nach Jans Antworten)
+
+1. `FootprintDetail`-Aufruf in `FireFootprintPanel.tsx:472` entfernen; die Funktion selbst bleibt
+   exportiert, solange kein anderer Ort sie braucht — geprüft wird das vor dem Löschen.
+   Die markierte Zeile behält Markierung (`is-sel`) und Kennzahlen; das Dossier ist der Detailort.
+   `onClearSelect`/`p.detail` bleiben Vertrag der Registry (Abwählen per zweitem Klick).
+2. `layerRow` bekommt den `i`-Knopf und den `openInfo`-Zweig **auch ohne `inSheet`** (oder die Karte
+   ungefragt unter aktiven Zeilen — je nach Antwort); Hover-Steckbrief im Readout entfällt damit,
+   `layerHover` wird nur noch für die Karten-Hervorhebung gebraucht (prüfen, ob dort verwendet).
+3. `readoutLayersContent` verliert die Layer-Karten; Skalen/Quellen/Lag-Kasten je nach Antwort.
+4. Gate GBD3: `verify:fire-detail`, `verify:fire-clusters` (Altbestand-Zahlen unverändert), typecheck,
+   Budget, Desktop 1440×900 / Tablet / iPhone 12 Pro 390×844, fünf Selbstverifikations-Fragen.
+
+### 6.4 Jans Entscheidungen (2026-09-03)
+
+1. **Steckbrief im Dock: auf „i" aufklappen** — dasselbe Muster wie das mobile Layer-Sheet, immer nur
+   einer offen. (Alternativen „immer unter aktiven Layern" / „nur Text ohne Legende" verworfen: das
+   Dock wäre bei mehreren aktiven Layern sehr lang geworden.)
+2. **Readout-Reiter „Layer" streichen, seine Reste ans Dock-Ende.**
+3. **Inline-Detail auch in Historie UND Thermalanomalien streichen** — nicht nur in der Registry.
+
+### 6.5 Umsetzung BD3
+
+**(a) Registry.** Der Aufruf von `FootprintDetail` in der Zeile ist weg, die Funktion selbst gelöscht
+(sie hatte keinen zweiten Aufrufer); mit ihr der Abschnittskopf `Sec` und die Prop `detail` des Panels.
+Die Bausteine (`DetailKennzahlenRows` u. a.) bleiben unverändert exportiert — das Dossier baut sich
+weiter aus ihnen. Übertragen werden musste **nichts**: der Bausteinvergleich in §6.1 zeigt das Dossier
+als echte Obermenge, und jeder Auswahlweg öffnete es schon vorher (`setStage('dossier')`).
+
+**(b) Historie.** `HistoryDetailBody` + `HistoryEventDetail` (nur von ihm benutzt) sind gelöscht; das
+Ereignis-Dossier der Mitte (BD2g) ist die Obermenge. **Eine** Zeile fehlte ihm und ist übernommen: die
+Einzeldetektion („keine Bestätigung durch einen weiteren Überflug") — sie hing an `hotspots === 1`,
+während das Dossier nur `passes.length === 1` kannte.
+
+**(c) Thermalanomalien — der Fall, der wirklich Arbeit war.** Die Standort-Angaben (Kennung, Klasse,
+Anlage samt Quelle und Abstand, Betreiber, Archiv-Signatur, Tage je Jahr, FRP-Muster, Landbedeckung,
+Im Fenster, Signaturprüfung) standen **nur** in der Inline-Karte — anders als bei Brand und Historie gab
+es dafür in der Mitte nichts. Ohne Ersatz hätte das Streichen sie gelöscht, nicht verschoben. Gebaut
+wurde deshalb `AnomalySiteCards` (drei Dossier-Karten mit **wortgleichen** Zeilen) plus `siteStatTiles`,
+und zwei Aufrufer teilen sich den Baustein:
+
+* **Standort ohne Eintrag im Fenster** → eigenes **Standort-Dossier** in der Mitte (Kopf + vier Kacheln
+  + die drei Karten + Minikarte/Legende). Damit der Klick nicht folgenlos bleibt, setzen `focusSite` und
+  `selectSiteFromMap` jetzt auch ohne Eintrag `stage = 'dossier'`.
+* **Standort MIT Eintrag** → dieselben Karten hängen als neue Prop `extra` im Brand-Dossier, das wie
+  bisher den Brand zeigt. Nichts konkurriert, nichts fehlt.
+
+**(d) Layer-Steckbrief ins Dock.** `layerRow` rendert den „i"-Knopf und die aufgeklappte `FireLayerCard`
+jetzt auf **jeder** Breite (vorher `inSheet &&`); die Hotspot-Kacheln und der Detektions-Vorspann, die
+der Readout-Stapel trug, kommen mit. Der Reiter „Layer" ist gestrichen (`readoutTab` ist nur noch
+`'fires' | 'anomalies'`), die Hover-Vorschau (`layerHover`) mit ihm.
+
+**Was sonst still verschwunden wäre — und wohin es gegangen ist.** Der Reiter war nicht nur ein
+Reiter: `firesMode` (= „das Readout zeigt eine Liste") schaltete die halbe Karten-Möblierung ab. Da das
+Readout jetzt IMMER eine Liste zeigt, wäre alles Folgende ersatzlos weg gewesen. Nichts davon ist
+gestrichen, jedes Stück hat einen neuen Ort:
+
+| Bisher im breiten Modus | Jetzt |
+|---|---|
+| Einheit Tage \| Stunden (`unitSeg`) | bleibt in der kompakten Zeit-Zeile |
+| Legende (FWI + Detektionspunkte) | Dock-Fuß |
+| Basiskarte (Straßen/Gelände/Satellit) | Dock-Fuß (Desktop/Tablet); mobil unverändert im Layer-Sheet |
+| Ansicht-Chips des EU-Index (`viewChips`) | im Dock unter der Zeile `fireDanger` (mobil weiter über der Karte) |
+| Treiber-Notiz Feuerwetter (`mapNotes`) | im Dock unter der Zeile `fireWeather` (mobil weiter über der Karte) |
+| Quellen-Pille der Karte | bleibt — die Markierungs-Pille kommt jetzt **dazu** statt sie zu ersetzen |
+| „Karte: …" + FIRMS-Live-Anzeige in der Topbar | dauerhaft sichtbar |
+| Presets in der Topbar | dauerhaft sichtbar (nur im Dossier ausgeblendet) |
+| Nationale Skalen + Quellenzeile + Lag-Hinweis | Dock-Fuß |
+
+**Nebenbefund Routing.** `fireViewFromState` entschied den Pfad-Slug am Reiter — mit nur noch zwei
+Reitern hätte **jeder** Zustand `aktive-braende` ergeben. Er entscheidet jetzt an den **Layern**
+(Hotspots/Brandflächen ⇒ `aktive-braende`, Trockenheit ohne Index ⇒ `trockenheit`, sonst
+`gefahrenindex`); nur der Anomalien-Reiter bleibt eine eigene Aussage. Das ist zugleich ehrlicher: der
+Slug beschreibt, was die Karte zeigt, nicht welche Liste offen ist.
+
+### 6.6 Gate GBD3 — Belege
+
+* `npm run typecheck` grün. `npm run verify:fire-detail` **297/297** (die BD2-Sonde „die alte Detailkarte
+  setzt alle Bausteine zusammen" ist durch zwei BD3-Sonden ersetzt: die Inline-Karte ist **weg**, und das
+  Dossier setzt **alle** Bausteine zusammen). `verify:routing` 105/105. `verify:fire-history` 112/113
+  (Rest `spreadFc` = Altbestand). `verify:fire-clusters` **109/117** — vorher 105/117; die drei
+  reparierten Sonden beschrieben den gestrichenen Reiter, die verbleibenden 8 sind derselbe Altbestand
+  wie vor BD3 (**gegengeprüft an einem HEAD-Worktree**: dort exakt dieselben 12 Fehlschläge, also keiner
+  von BD3 verursacht).
+* Browser (Dev :5199, Chrome DevTools MCP): **Desktop 1440×900** — Steckbrief klappt unter der
+  Layer-Zeile auf (`bd3-info.png`), Dock ohne Querlauf (`scrollWidth === clientWidth`), Trefferfläche des
+  „i" **44 × 44 px** gemessen, Dock-Fuß trägt Legende, Basiskarte, nationale Skalen, Quellenzeile
+  (`bd3-dockfoot.png`); Brand-Klick öffnet das Dossier, in der Registry **0** Inline-Karten
+  (`.br-fires .br-detail` = 0, `bd3-dossier.png`). **Thermalanomalien:** Standort mit Eintrag ⇒
+  Brand-Dossier + die drei Standort-Karten; Standort ohne Eintrag ⇒ „Standort-Dossier" mit Kopf, vier
+  Kacheln und denselben Karten (`bd3-site.png`). **Tablet 1024×800** ohne Querlauf, „i" 44 × 44
+  (`bd3-tablet.png`). **Mobil** Layer-Seite unverändert plus Chips unter dem Index (`bd3-mobile.png`);
+  Karten-Sheet trägt die Ansicht-Chips weiter über der Karte. Konsole ohne Fehler und Warnungen.
+  *Messfalle (bekannt, `audit/event-terrain.md`): `resize_page` bleibt bei 500 px stehen — die gemeldete
+  „Überbreite" bei 390 px ist das Werkzeug, nicht die Seite.*
+* Budget: `totalJs` **1089,1 KB** (Grenze 1109,8) — unverändert gegenüber dem Stand vor BD3, keine
+  Ratsche; `eagerJs` 103,4 KB, größter Chunk 278,4 KB. Build grün.
+* Fünf Selbstverifikations-Fragen: (1) **Funktionserhalt** — jede gestrichene Fläche hat einen benannten
+  neuen Ort (Tabelle §6.5), die einzige Zeile ohne Gegenstück (Einzeldetektion) ist übertragen;
+  (2) **Desktop** ist absichtlich verändert (der Auftrag), Tablet/Mobil mitgeprüft; (3) **Touch-Targets**
+  „i" 44 × 44 px gemessen, Desktop wie Tablet; (4) **Konsole** ohne Fehler/Warnungen; (5) **Long Tasks**
+  nicht neu gemessen — BD3 verschiebt Knoten, rechnet nichts: die Steckbrief-Karte rendert wie vorher,
+  nur an einem anderen Ort, und es entfällt sogar der Hover-getriebene Stapel im Readout.
+
+### 6.7 Verbesserungen aus BD3 (D-28)
+
+`improvements.md` fehlt im Arbeitsverzeichnis (bekannter Repo-Zustand, s. CLAUDE.md-Kopf) — die
+V-Einträge stehen deshalb hier und gehören beim Wiederherstellen in den Katalog übertragen.
+
+* **V-BD3-1 · Legende des Steckbriefs im Dock offen zeigen.** Die Karte läuft im Dock in der
+  `compact`-Fassung; dort steht die Farblegende hinter „Ausführlich". *Mehrwert:* Wer einen Layer
+  einschaltet, sieht sofort, was welche Farbe bedeutet, ohne zweiten Klick. *Skizze:* in `FireLayerCard`
+  eine Option `legendOpen`, die im Dock für den **aktiven** Layer gesetzt wird (für ausgeschaltete
+  bleibt es kompakt, sonst wird das Dock lang).
+* **V-BD3-2 · Acht Altfehler in `verify:fire-clusters` aufräumen.** Sie prüfen auf Klassennamen aus der
+  Zeit vor dem Command-Deck (`fire-ro-layerinfo`, `fire-scales`, `fire-fplist`) und schlugen schon vor
+  BD3 fehl. *Mehrwert:* Ein Harnisch, der dauerhaft rot ist, verliert seine Warnwirkung — echte
+  Regressionen fallen darin nicht mehr auf. *Skizze:* je Sonde entscheiden, ob die geprüfte Zusage noch
+  gilt (dann Selektor nachziehen) oder mit dem Redesign entfallen ist (dann Sonde löschen, mit Vermerk).

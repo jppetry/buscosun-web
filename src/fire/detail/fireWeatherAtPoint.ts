@@ -27,6 +27,14 @@ export const DAILY_PAST_DAYS = 31;
 /** Rückblick für „Tage seit Regen" — ein Tag weniger als die Tagesreihe, weil der Brandtag selbst nicht zählt. */
 export const RAIN_LOOKBACK_DAYS_LIVE = 30;
 export const HOUR_TOLERANCE_MS = 90 * 60_000;
+/**
+ * BDE-C: Wie weit das Brandzeitfenster VOR der Erstdetektion beginnt. 24 h, weil die
+ * Trockenheit davor die Lage am Brandtag mit erklärt — und weil `precip24hBeforeMm`
+ * denselben Zeitraum meint; zwei Fenster mit verschiedenen Längen wären eine Falle.
+ */
+export const WINDOW_PRE_H = 24;
+/** … und wie weit danach: 3 h, damit die letzte Detektion nicht am Rand der Reihe klebt. */
+export const WINDOW_POST_H = 3;
 export const WEATHER_TTL_MS = 30 * 60_000;
 const H_MS = 3_600_000;
 
@@ -60,6 +68,18 @@ export interface FireWeatherAtPoint {
   fireDay: FireWeatherDay | null;
   /** Niederschlag der 24 h VOR der Erstdetektion; `null` ohne vollständige Reihe. */
   precip24hBeforeMm: number | null;
+  /**
+   * BDE-C: die Stundenreihe des Brandzeitfensters (24 h vor der Erstdetektion bis 3 h nach
+   * der letzten) — Grundlage für Windrose, Zeitreihe und Einstufung. Leer, wenn keine
+   * Detektion im Fenster liegt oder die Reihe nicht so weit zurückreicht; dann sagt
+   * `notes`, warum. Enthält dieselben Stunden, aus denen `atFirst`/`atLast` stammen —
+   * es gibt keinen zweiten Abruf und keine zweite Zeitrechnung.
+   */
+  windowHours: FireWeatherHour[];
+  /** `[von, bis]` des Fensters (ms) — auch dann gesetzt, wenn die Reihe nicht ganz hineinreicht. */
+  windowRange: [number, number] | null;
+  /** `[von, bis]` der Detektionen selbst (ms) — die Windrose zeigt nur diesen Teil. */
+  detectionRange: [number, number] | null;
   daysSinceRain: number | null;
   rainLookbackHit: boolean;
   notes: string[];
@@ -197,7 +217,8 @@ export function parseFireWeather(
 ): FireWeatherAtPoint {
   const out: FireWeatherAtPoint = {
     fetchedAt: nowMs, atFirst: null, atLast: null, now: null, fireDay: null,
-    precip24hBeforeMm: null, daysSinceRain: null, rainLookbackHit: false, notes: [],
+    precip24hBeforeMm: null, windowHours: [], windowRange: null, detectionRange: null,
+    daysSinceRain: null, rainLookbackHit: false, notes: [],
   };
   const hours = hoursOf(hourly);
   if (hours.length === 0) {
@@ -212,6 +233,15 @@ export function parseFireWeather(
         out.atLast = pickHour(hours, lastMs);
         if (out.atLast && out.atFirst && out.atLast.atMs === out.atFirst.atMs) out.atLast = null;
       }
+      // BDE-C: das Fenster steht auch dann, wenn die Reihe es nicht ganz füllt — die
+      // Aussage „so weit reicht die Reihe" gehört in die Anzeige, nicht in ein stilles Loch.
+      const detTo = lastMs != null && lastMs > firstMs ? lastMs : firstMs;
+      const from = firstMs - WINDOW_PRE_H * H_MS;
+      const to = detTo + WINDOW_POST_H * H_MS;
+      out.windowRange = [from, to];
+      out.detectionRange = [firstMs, detTo];
+      out.windowHours = hours.filter((h) => h.atMs >= from && h.atMs <= to);
+      if (out.windowHours.length === 0) out.notes.push('Keine Modellstunde im Brandzeitfenster — die Reihe reicht nicht so weit zurück.');
       out.precip24hBeforeMm = precipBefore(hours, firstMs);
       if (out.precip24hBeforeMm == null) out.notes.push('Niederschlag der 24 h vor der Erstdetektion nicht bestimmbar (Reihe unvollständig).');
       out.fireDay = daySummary(hours, isoDayUtc(firstMs), nowMs);

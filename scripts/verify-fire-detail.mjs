@@ -23,6 +23,14 @@ import {
   sclPreMasked, sclPostMasked, sclPostUnsure, wcDamped,
 } from '../src/fire/detail/burnIndex.ts';
 import { verifyWorldCover } from '../src/fire/detail/worldCover.ts';
+import { verifySatDetections } from '../src/fire/detail/satDetections.ts';
+import { verifyBurnScar, floodScar, seedsFromRects, SCAR_MIN_CLASS } from '../src/fire/detail/burnScar.ts';
+import { CLS_UNSURE_FLAG } from '../src/fire/detail/burnIndex.ts';
+import {
+  verifyFireDrivers, driverRating, dominantWind, windRose, spreadVsWind, fireIndexSeries,
+  DRIVER_RULES, DRIVER_RULE_TEXT, FIRE_INDEX_NOTE, STEADY_MIN,
+} from '../src/fire/detail/fireDrivers.ts';
+import { mappingGapText, EFFIS_LAG_DAYS, EFFIS_SIZE_EVIDENCE } from '../src/fire/footprint/fireRegistry.ts';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const checks = [];
@@ -39,8 +47,6 @@ const audit = readFileSync(join(ROOT, 'audit', 'brandradar-satellitenbilder.md')
 
 add('[kachel] vier Kennzahlen: Fläche · Detektionen · Stärke · Tendenz', /lbl="Fläche"/.test(panel) && /lbl="Detektionen"/.test(panel) && /lbl="Stärke"/.test(panel) && /lbl="Tendenz"/.test(panel));
 add('[kachel] Kennzahlen stehen nicht mehr hinter `sel ?` (immer sichtbar)', !/\{sel \? \(\s*<span className="br-fire-stats">/.test(panel));
-add('[detail] Abschnitte Kennzahlen · Verlauf · Wetterlage · Einordnung · Merkmale', ['Kennzahlen', 'Verlauf', 'Wetterlage', 'Einordnung', 'Merkmale'].every((s) => new RegExp(`<Sec[^>]*>${s}`).test(panel)));
-add('[detail] Ursache: „keine Quelle" mit Einordnungshilfen', /<dt>Ursache<\/dt>/.test(panel) && /keine Quelle/.test(panel));
 add('[detail] Wetterlage trägt das Modell-Label (keine Messung)', /FIRE_WEATHER_SOURCE_LABEL/.test(panel));
 add('[detail] Wetter lädt erst bei offenem Detail (Effekt an r.id)', /fetchFireWeatherAtPoint\(/.test(panel) && /useEffect/.test(panel));
 add('[detail] Chart ist eingebunden und die Textliste bleibt', /<FirePassChart/.test(panel) && /fire-fp-passes--af/.test(panel));
@@ -55,11 +61,19 @@ const page = readFileSync(join(ROOT, 'src', 'fire', 'FirePage.tsx'), 'utf8');
 const chart = readFileSync(join(ROOT, 'src', 'fire', 'FirePassChart.tsx'), 'utf8');
 const fstate = readFileSync(join(ROOT, 'src', 'fire', 'fireState.ts'), 'utf8');
 const BLOCKS = ['DetailSubline', 'DetailKennzahlenRows', 'DetailConfidenceRows', 'DetailFrpRows', 'DetailVerlauf', 'WeatherBlock', 'DetailEinordnungRows', 'CauseText', 'FeaturesRow', 'RecordStats'];
-const oldDetail = panel.slice(panel.indexOf('export function FootprintDetail'), panel.indexOf('// BD2: die Bausteine'));
+// BD3 (2026-09-03): die Abschnitte stehen im DOSSIER — die Inline-Karte im Readout ist gestrichen.
+add('[detail] Abschnitte Kennzahlen · Verlauf · Wetterlage · Einordnung · Merkmale (jetzt im Dossier)',
+  ['Verlauf', 'Wetterlage am Brandort', 'Einordnung', 'Merkmale'].every((x) => dossier.includes(x)) && /<DetailKennzahlenRows/.test(dossier));
+add('[detail] Ursache: „keine Quelle" mit Einordnungshilfen (Text im Panel, Kasten im Dossier)',
+  /keine Quelle/.test(panel) && /<CauseText/.test(dossier) && /br-ds-cause/.test(dossier));
+// BD3: `FootprintDetail` ist gestrichen — das Dossier ist die Obermenge (audit §6). Geprüft wird
+// beides: dass die Karte wirklich weg ist und dass KEIN Baustein mit ihr verschwunden ist.
 add('[bd2] die Bausteine der Detailkarte sind exportiert (EINE Quelle für Readout und Dossier)',
   BLOCKS.every((b) => new RegExp(`export (function|const) ${b}\\b`).test(panel)));
-add('[bd2] die alte Detailkarte setzt ALLE Bausteine zusammen (keine Zeile fällt)',
-  BLOCKS.filter((b) => b !== 'RecordStats').every((b) => new RegExp(`<${b}\\b`).test(oldDetail)));
+add('[bd3] die Inline-Detailkarte im Readout ist gestrichen (das Dossier ist der einzige Detailort)',
+  !/function FootprintDetail/.test(panel) && !/<FootprintDetail/.test(panel) && !/detail: FireRecord/.test(panel));
+add('[bd3] kein Baustein ist mit ihr verschwunden — das Dossier setzt ALLE zusammen',
+  BLOCKS.every((b) => dossier.includes(`<${b}`)));
 add('[bd2] das Dossier setzt dieselben Bausteine in D6-Ordnung zusammen (Kopf → Kennzahlen → Verlauf → Wetterlage → Einordnung → Merkmale)', (() => {
   if (BLOCKS.some((b) => dossier.indexOf(`<${b}`) < 0)) return false;
   const order = ['RecordStats', 'DetailKennzahlenRows', 'DetailVerlauf', 'WeatherBlock', 'DetailEinordnungRows', 'CauseText', 'FeaturesRow'].map((b) => dossier.indexOf(`<${b}`));
@@ -104,7 +118,7 @@ add('[bd2b] auch der Anlagen-Eintrag (site) öffnet sein Dossier — der Reiter 
 // derselbe Detailkörper (HistoryDetailBody) für Inline-Karte und Mitte, Minikarte strukturell (MiniMapTarget).
 const hpanel = readFileSync(join(ROOT, 'src', 'fire', 'FireHistoryPanel.tsx'), 'utf8');
 add('[bd2f/g] Historie: Klick (Karte + Liste) öffnet das Ereignis-Dossier in der BD2-Kartenform (geteilter Hook, Kacheln, Verlauf aus den Shard-Detektionen)',
-  /export function HistoryDetailBody/.test(hpanel) && (hpanel.match(/<HistoryDetailBody entry=/g) ?? []).length === 1
+  !/HistoryDetailBody/.test(hpanel) && !/HistoryEventDetail/.test(hpanel)
   && /export function HistoryDossierBody/.test(hpanel) && /useHistoryEventData/.test(hpanel) && /groupPasses\(shardRows\(ev\)\)/.test(hpanel)
   && /setStage\('dossier'\)/.test(page.slice(page.indexOf('const selectHistory'), page.indexOf('const selectHistory') + 900))
   && (page.match(/<HistoryDossierBody\b/g) ?? []).length === 1 && /historyStatTiles\(historyEntry\)/.test(page)
@@ -137,7 +151,10 @@ add('[bd2] kleinste Dossier-Schrift Desktop ≥ 12 px, mobil ≥ 11 px', (() => 
 add('[bd2] keine neuen Farben im Dossier-CSS: nur Tokens und die Vorlagen-Hex (#FDFBF4 Kachel, #EAF1F7/#C7D6E4 Steel)', (() => {
   const block = css.slice(css.indexOf('BD2 — Brand-Dossier'));
   const hex = [...block.matchAll(/#[0-9A-Fa-f]{3,6}\b/g)].map((m) => m[0].toUpperCase());
-  const allowed = new Set(['#FDFBF4', '#EAF1F7', '#C7D6E4', '#F5F1E8', '#E0D6BE', '#FAF6EA', '#2C2A26', '#3A3833', '#5C5447', '#8B7355', '#A89A7A', '#EDE6D3', '#FFF']);
+  // SAT3/§13.5: #FFB08A ist eine bewusste AUSNAHME — die Signalfarbe der Detektions-Rechtecke ÜBER
+  // dem Satellitenfoto. Sie ist kein UI-Chrome (D-27 zielt auf das Deck), und das matte Deck-Token
+  // --terracotta-500 war auf braun-grünem Gelände gemessen unsichtbar. Sie darf NUR dort stehen.
+  const allowed = new Set(['#FDFBF4', '#EAF1F7', '#C7D6E4', '#F5F1E8', '#E0D6BE', '#FAF6EA', '#2C2A26', '#3A3833', '#5C5447', '#8B7355', '#A89A7A', '#EDE6D3', '#FFF', '#FFB08A']);
   return hex.every((h) => allowed.has(h));
 })());
 // --- SAT1 (2026-09-01): Satellitenbilder vorher/während/nachher — audit/brandradar-satellitenbilder.md ---
@@ -234,7 +251,10 @@ add('[dnbr] dNBR ist ein Overlay ÜBER der Echtfarbe und zeichnet NUR die gewäh
   // Die Sonde haelt die AUSSAGE fest (dNBR ist der letzte Aufruf, chosenOnly = true),
   // nicht den Wortlaut der Argumentliste - V-SAT-17 haengt dort ein viertes Argument an.
   /chosenOnly/.test(cogv)
-  && /chosen\.ifd\.width, true[^)]*\);\s*\}\s*const drawCross/.test(cogv.replace(/\r/g, '')));
+  // SAT3d: zwischen dem Overlay-Aufruf und drawCross liegt jetzt die Narben-Rechnung — die zweite
+  // Zeile hält fest, dass dort KEIN weiterer Pyramiden-Aufruf steht (dNBR bleibt der letzte).
+  && /chosen\.ifd\.width, true[^)]*\);\s*\/\/ SAT3d/.test(cogv.replace(/\r/g, ''))
+  && !/drawPyramid\(/.test(cogv.slice(cogv.lastIndexOf('chosen.ifd.width, true'), cogv.indexOf('const drawScar'))));
 add('[dnbr] Legende aus DERSELBEN Quelle wie die Canvas-Farben (DNBR_CLASSES, eine Wahrheit)',
   /DNBR_CLASSES\.map/.test(cogv) && /DNBR_CLASSES/.test(burnSrc));
 add('[dnbr] jede Lücke ist ein benannter Satz: kein Band / keine Vorher-Szene / fremdes Format',
@@ -582,6 +602,222 @@ const codeOnly = (src) => src
     && /wcDamped\(wcCls\[i\]\)/.test(burnSrc));
   add('[v18][doku] Audit führt V-SAT-18 mit der Browser-Zerlegung (createImageBitmap 1,1 ms)',
     /V-SAT-18/.test(audit) && /12\.10\.1/.test(audit) && /1,1 ms/.test(audit));
+}
+
+// --- SAT3 (2026-09-05): Detektionen im Bild + Narbe an den Detektionen — audit/brandradar-satellitenbilder.md §13 ---
+{
+  for (const c of verifySatDetections().checks) add(`[sat3] ${c.name}`, c.ok, c.detail);
+  for (const c of verifyBurnScar().checks) add(`[sat3][narbe] ${c.name}`, c.ok, c.detail);
+  const dossier = readFileSync(join(ROOT, 'src', 'fire', 'FireDossier.tsx'), 'utf8');
+  const page = readFileSync(join(ROOT, 'src', 'fire', 'FirePage.tsx'), 'utf8');
+  const detSrc = readFileSync(join(ROOT, 'src', 'fire', 'detail', 'satDetections.ts'), 'utf8');
+  const scarSrc = readFileSync(join(ROOT, 'src', 'fire', 'detail', 'burnScar.ts'), 'utf8');
+
+  add('[sat3] Durchreichung: FirePage → FireDossier → SatImageryBlock → FireCogViewer, als reine FirmsRow-Liste',
+    (page.match(/detections=\{hotspotRows\}/g) ?? []).length === 2
+    && /detections\?: readonly FirmsRow\[\] \| null/.test(dossier) && /detections \}\} nowMs/.test(dossier)
+    && /detections\?: readonly FirmsRow\[\] \| null/.test(satc) && /detections=\{t\.detections \?\? null\}/.test(satc)
+    && /detections\?: readonly FirmsRow\[\] \| null/.test(cogv));
+  // §13.5: gemessen unsichtbar war das matte Deck-Token auf braun-grünem Gelände. Die Sonde hält
+  // fest, was die Sichtbarkeit trägt: EINE Farbe für beide Bilder, Füllung + Strich + dunkler Halo.
+  add('[sat3] EINE Rechteckfarbe für beide Bilder, mit Füllung und dunklem Halo (Sichtbarkeit bei ~10 px)',
+    /const DET_COLOR = '#FFB08A'/.test(cogv) && /const DET_FILL = 'rgba\(255, 176, 138, 0\.28\)'/.test(cogv)
+    && /\.br-sat-det rect \{ fill: rgba\(255, 176, 138, \.28\); stroke: #FFB08A; stroke-width: 2;/.test(css)
+    && /drop-shadow\(0 0 2px rgba\(44, 42, 38, \.95\)\)/.test(css)
+    && /const DET_HALO = 'rgba\(44, 42, 38, 0\.85\)'/.test(cogv));
+  add('[sat3] die Signalfarbe #FFB08A steht NUR an den Detektions-Rechtecken, nirgends sonst im Deck',
+    (css.match(/#FFB08A|255, 176, 138/gi) ?? []).every((_, i, a) => a.length === 2)
+    && css.slice(css.indexOf('.br-sat-det rect {'), css.indexOf('.br-sat-det rect.is-after')).includes('#FFB08A'));
+  add('[sat3] „danach" ist in BEIDEN Bildern ungefüllt und gestrichelt — sichtbar UND unterscheidbar',
+    /\.br-sat-det rect\.is-after \{ fill: none; stroke-dasharray: 5 3; \}/.test(css)
+    && /ctx\.setLineDash\(after \? \[5 \* dpr, 3 \* dpr\] : \[\]\)/.test(cogv)
+    && /path\(false\);\s*ctx\.fill\(\);/.test(cogv));
+  add('[sat3] Rechtecke kommen aus footprintRing — dieselbe Regel wie der Karten-Layer, kein zweiter Bau',
+    /import \{ footprintRing, type FirmsRow \} from '\.\.\/sources\/firmsHotspots'/.test(detSrc)
+    && (detSrc.match(/footprintRing\(r\)/g) ?? []).length === 2);
+  add('[sat3] 30 m: SVG im Bildmaß — viewBox aus SNAP_W/SNAP_H, Rahmen 5:4, Bild nur skaliert (object-fit: cover ohne Beschnitt)',
+    /viewBox=\{`0 0 \$\{SNAP_W\} \$\{SNAP_H\}`\}/.test(satc) && /detectionRects30m\(t\.detections, data\.bbox, SNAP_W, SNAP_H/.test(satc)
+    && /\.br-sat-frame \{[^}]*aspect-ratio: 5 \/ 4/.test(css) && /export const SNAP_W = 600/.test(satm) && /export const SNAP_H = 480/.test(satm));
+  add('[sat3] 30 m: Umschalter „Detektionen" default an, nennt die Zahl im Bild, Sitzungszustand (kein Permalink)',
+    /useState\(true\)/.test(satc) && /br-sat-dettoggle/.test(satc) && /keine im Bild/.test(satc) && !/showDet/.test(readFileSync(join(ROOT, 'src', 'fire', 'fireState.ts'), 'utf8')));
+  add('[sat3] Zeitbezug: Aufnahme nach dem Szenentag ist gestrichelt — in beiden Bildern, aus EINER Regel (sceneDayEndMs)',
+    /is-after/.test(satc) && /\.br-sat-det rect\.is-after \{ fill: none; stroke-dasharray/.test(css)
+    && /setLineDash\(after \?/.test(cogv) && (detSrc.match(/sceneDayEndMs\(dayIso\)/g) ?? []).length === 2);
+  add('[sat3] Ehrlichkeit: „Pixelgrundfläche … das Feuer liegt irgendwo darin" steht an BEIDEN Bildern; Historie sagt, warum sie fehlen',
+    (satc.match(/das Feuer liegt irgendwo darin/g) ?? []).length === 1 && /das Feuer liegt irgendwo darin/.test(cogv)
+    && /nur im Live-Dossier/.test(satc));
+  add('[sat3] 10 m: Ecken laufen einzeln durch pixelOf (UTM-Drehung bleibt), Rechtecke außerhalb der Szene+Rand fallen weg',
+    /detectionPolysPx\(/.test(cogv) && /DET_MARGIN_PX/.test(cogv) && /for \(let i = 0; i < 4; i\+\+\)/.test(detSrc));
+  add('[sat3] 10 m: Overlays zeichnen nach JEDER Kachel neu (Narbe → Detektionen → Fadenkreuz), Fadenkreuz bleibt',
+    /const drawOverlays = \(\) => \{ drawScar\(\); drawDet\(\); drawCross\(\); \}/.test(cogv)
+    && /place\(lv\.ifd, t, bmp\); drawOverlays\(\);/.test(cogv));
+
+  add('[sat3][narbe] Klassenkachel ist ein Nebenprodukt derselben Schleife (outCls), unter dem Bitmap-Schlüssel gecacht',
+    /outCls\?: Uint8Array \| null/.test(burnSrc) && /if \(outCls\) outCls\[i\] = unsure \? \(k \+ 1\) \| CLS_UNSURE_FLAG : k \+ 1;/.test(burnSrc)
+    && /putCls\(key, cls\)/.test(cogv) && /const _clsTiles = new Map<string, Uint8Array>/.test(cogv));
+  add('[sat3][narbe] Saat = Rechtecke der Aufnahmen BIS zum Szenentag; ohne Zeilen der Brandort — und der Satz sagt, welche',
+    /d\.det\.filter\(\(q\) => !q\.after\)/.test(cogv) && /seedKind === 'det'/.test(cogv)
+    && /keine Detektionen im Umkreis der Szene/.test(cogv));
+  add('[sat3][narbe] Schwelle ist SCAR_MIN_CLASS = 2 (dNBR ≥ 0,27) — EINE Stelle, der Satz nennt denselben Wert',
+    /export const SCAR_MIN_CLASS = 2/.test(scarSrc) && /floodScar\(grid, gw, gh, seedsFromRects\(rects, gw, gh\), SCAR_MIN_CLASS\)/.test(cogv)
+    && (cogv.match(/dNBR ≥ 0,27/g) ?? []).length >= 2);
+  add('[sat3][narbe] Hektarzahl nennt Auflösung, Unvollständigkeit und Randberührung im selben Satz; nie das Wort „Brandfläche"',
+    /ha bei \$\{Math\.round\(scar\.stepM\)\} m\/px, dNBR ≥ 0,27, unkalibriert/.test(cogv)
+    && /Untergrenze/.test(cogv) && /reicht bis an den Rand/.test(cogv)
+    && !/Brandfläche/.test(cogv.slice(cogv.indexOf('SAT3d: die Narbe in Zahlen'), cogv.indexOf('SAT3: was die Rechtecke sind'))));
+  add('[sat3][narbe] Umriss in Creme (keine dNBR-Klassenfarbe), Legende nennt ihn',
+    /const SCAR_COLOR = '#FDFBF4'/.test(cogv) && /Umriss: zusammenhängende Narbe an den Detektionen/.test(cogv)
+    && !DNBR_CLASSES.some((c) => `#${c.rgba.slice(0, 3).map((v) => v.toString(16).padStart(2, '0')).join('')}`.toUpperCase() === '#FDFBF4'));
+  add('[sat3][narbe] Fill-Schlüssel trägt Ebene, Kachelmenge, Ladestand und Saat — Verschieben im selben Satz rechnet nicht neu',
+    /const key = `\$\{lv\.postS\.width\}\|\$\{tiles\.map\(\(t\) => t\.idx\)\.join\(','\)\}\|\$\{present\.join\(''\)\}/.test(cogv)
+    // SAT3d/§13.4 (3): der Fill läuft in einem EIGENEN Makrotask, nicht im Draw — deshalb prüft
+    // die Sonde die Anstoß-Bedingung samt laufendem Auftrag, nicht mehr den früheren Inline-Zweig.
+    && /if \(\(!sc \|\| sc\.key !== key\) && scarJobRef\.current\?\.key !== key\)/.test(cogv)
+    && /window\.setTimeout\(\(\) => \{[\s\S]{0,200}scarRef\.current = computeScar\(\);[\s\S]{0,80}\}, SCAR_SETTLE_MS\)/.test(cogv)
+    && /const SCAR_SETTLE_MS = \d+/.test(cogv)
+    && /clearTimeout\(scarJobRef\.current\.id\); scarJobRef\.current = null;/.test(cogv));
+  // Goldfall am Hürtgenwald-Narbenpixel (§10.1 (2)): eine 3×3-Kachel, Mitte = Narbe, Rest gesund — Klasse 3, Fläche 0,04 ha bei 20 m.
+  {
+    const S = { scale: 1e-4, offset: -0.1 };
+    const n = 9;
+    const preN = new Uint16Array(n).fill(3310), preS = new Uint16Array(n).fill(586);
+    const postN = new Uint16Array(n).fill(3017), postS = new Uint16Array(n).fill(725);
+    preN[4] = 3105; preS[4] = 542; postN[4] = 2688; postS[4] = 1723;
+    const cls = new Uint8Array(n);
+    dnbrTileRgba(preN, preS, postN, postS, S, S, null, null, null, cls);
+    const r = floodScar(cls, 3, 3, seedsFromRects([{ x0: 1, y0: 1, x1: 1, y1: 1 }], 3, 3), SCAR_MIN_CLASS);
+    add('[sat3][narbe] Goldfall: Narbenpixel (dNBR 0,600) wird Klasse 3, Fill zählt genau 1 Pixel, Umriss 4 Kanten',
+      cls[4] === 3 && cls[0] === 0 && r.count === 1 && r.seeded === 1 && r.edges.length === 16 && !r.touchesEdge);
+    add('[sat3][narbe] Saat auf gesundem Pixel neben der Narbe ⇒ nichts (Diagonale zählt nicht)',
+      floodScar(cls, 3, 3, seedsFromRects([{ x0: 0, y0: 0, x1: 0, y1: 0 }], 3, 3), SCAR_MIN_CLASS).count === 0);
+    // Neutrebbin-Lehre (§13.4 (2)): dasselbe Narbenpixel unter Wolke (SCL 8 nachher) ist KEINE Narbe mehr.
+    const cloudy = new Uint8Array(n);
+    const scl = new Uint8Array(n).fill(4); scl[4] = 8;
+    dnbrTileRgba(preN, preS, postN, postS, S, S, new Uint8Array(n).fill(4), scl, null, cloudy);
+    add('[sat3][narbe] Narbenpixel unter Nachher-Wolke trägt das Flag und wird nicht gefüllt (14 563-ha-Falle)',
+      cloudy[4] === (3 | CLS_UNSURE_FLAG)
+      && floodScar(cloudy, 3, 3, seedsFromRects([{ x0: 1, y0: 1, x1: 1, y1: 1 }], 3, 3), SCAR_MIN_CLASS).count === 0
+      && /nur volldeckende Pixel/.test(cogv) && /function isScar/.test(scarSrc) && /v < CLS_UNSURE_FLAG/.test(scarSrc));
+  }
+  add('[sat3] CSS: Overlay-Umschalter mobil ≥ 44 px, Rechtecke nicht klickbar (pointer-events: none)', (() => {
+    const block = css.slice(css.indexOf('BD2 — Brand-Dossier'));
+    const mob = block.slice(block.indexOf('@media (max-width: 767px)'));
+    return /\.br-cog-over button, \.br-sat-dettoggle \{ min-height: 44px; \}/.test(mob) && /\.br-sat-det \{[^}]*pointer-events: none/.test(css)
+      // §13.4 (4): mobil deckelt der Satz-Block das Bild nicht mehr zu — gescrollt, nie gekürzt.
+      && /\.br-cog-inline \.br-cog-notes \{ max-height: 42%; overflow-y: auto;/.test(mob);
+  })());
+  add('[sat3][narbe] Kill-Switch ?scar=0 im Viewer (Rule 2): Overlay wie vor SAT3, kein Fill — der Kontrolllauf der Messung',
+    /get\('scar'\) !== '0'/.test(cogv) && /scarEnabled\(\) \? d\.dnbrLevels\.find/.test(cogv));
+  add('[sat3][doku] Audit §13 führt Diagnose, Jans Entscheidung (Narbe an den Detektionen) und V-SAT-20/21',
+    /## §13 SAT3/.test(audit) && /V-SAT-20/.test(audit) && /V-SAT-21/.test(audit) && /Zusammenhängende Narbe an den Detektionen/.test(audit));
+}
+
+// ---------------------------------------------------------------------------
+// BDE (2026-09-05) — Detailansicht erweitert: EFFIS-Fläche, Ausbreitung, Wetterführung
+// `audit/brand-detail-erweiterung.md`
+// ---------------------------------------------------------------------------
+{
+  const dossier = readFileSync(join(ROOT, 'src', 'fire', 'FireDossier.tsx'), 'utf8');
+  const charts = readFileSync(join(ROOT, 'src', 'fire', 'FireDriverCharts.tsx'), 'utf8');
+  const drv = readFileSync(join(ROOT, 'src', 'fire', 'detail', 'fireDrivers.ts'), 'utf8');
+  const reg = readFileSync(join(ROOT, 'src', 'fire', 'footprint', 'fireRegistry.ts'), 'utf8');
+  const dyn = readFileSync(join(ROOT, 'src', 'fire', 'activity', 'dynamics.ts'), 'utf8');
+  const wx = readFileSync(join(ROOT, 'src', 'fire', 'detail', 'fireWeatherAtPoint.ts'), 'utf8');
+  const bdeAudit = readFileSync(join(ROOT, 'audit', 'brand-detail-erweiterung.md'), 'utf8');
+  const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
+  /** Ohne Block- und Zeilenkommentare — der Modulkopf beschreibt die Regel, er ist nicht ihr Beleg. */
+  const code = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  const drvCode = code(drv);
+  const chartsCode = code(charts);
+
+  for (const c of verifyFireDrivers().checks) add(`[bde][treiber] ${c.name}`, c.ok, c.detail);
+
+  // --- A) EFFIS-Fläche ----------------------------------------------------
+  const rec = (over) => ({
+    sources: { effis: null, effisExtra: 0, cluster: null, zones: [], ems: null },
+    areaHa: { value: null, kind: null, source: null, capped: false },
+    firstMs: null, lastMs: null, ...over,
+  });
+  const now = Date.UTC(2026, 8, 5, 12);
+  add('[bde][effis] mit Kartierung kein Begründungstext (die Zahlen stehen für sich)',
+    mappingGapText(rec({ sources: { effis: { id: 'E1' }, effisExtra: 0 }, areaHa: { value: 40, kind: 'mapped' } }), now) === null);
+  const fresh = mappingGapText(rec({ firstMs: now - 6 * 3_600_000, lastMs: now - 6 * 3_600_000 }), now);
+  add('[bde][effis] junger Brand: „kein Befund" + der 1–3-Tage-Verzug, KEINE Größenaussage',
+    /kein Befund/.test(fresh) && new RegExp(`1–${EFFIS_LAG_DAYS} Tage`).test(fresh) && !/30 ha/.test(fresh), fresh);
+  const old = mappingGapText(rec({ firstMs: now - 9 * 86_400_000, lastMs: now - 8 * 86_400_000 }), now);
+  add('[bde][effis] älterer Brand ohne Kartierung: die Gründe werden genannt, keiner behauptet',
+    /Möglich sind/.test(old) && /wolkenfreie Sentinel-2-Szene/.test(old) && /sagt uns keine Quelle/.test(old), old);
+  add('[bde][effis] die WIDERLEGTE Regel „erst ab ~30 ha" steht nirgends als Aussage — nur als benannter Gegenbeleg',
+    /an der Größe liegt es nicht/.test(EFFIS_SIZE_EVIDENCE) && /231 davon unter 30 ha/.test(EFFIS_SIZE_EVIDENCE)
+    && /Median 5 ha/.test(EFFIS_SIZE_EVIDENCE) && old.includes(EFFIS_SIZE_EVIDENCE));
+  add('[bde][effis] der Beleg für die Zahlen steht am Code (audit/waldbrand-effis.md B3)',
+    /waldbrand-effis\.md.*B3|Befund B3/.test(reg));
+  add('[bde][effis] Detailansicht zeigt Fläche, Branddatum, Stand und die Quelle EFFIS',
+    /<dt>Kartierung<\/dt>/.test(panel) && /Branddatum \{fmtDate\(e\.firedateMs\)\}/.test(panel)
+    && /Stand \{fmtDate\(e\.lastUpdateMs\)\}/.test(panel) && /effis\.jrc\.ec\.europa\.eu/.test(panel));
+  add('[bde][effis] kein leerer Platzhalter: ohne Kartierung UND ohne Grund rendert die Zeile gar nicht',
+    /if \(!gap\) return null;/.test(panel));
+
+  // --- B) Ausbreitung -----------------------------------------------------
+  add('[bde][ausbreitung] Geschwindigkeit heißt „Verlagerung" und wird nie als Frontgeschwindigkeit ausgegeben',
+    /NICHT die Geschwindigkeit der Feuerfront/.test(dyn) && /heißt in der\s+\* Oberfläche „Verlagerung"/.test(dyn)
+    && /nicht die Geschwindigkeit der Feuerfront/.test(panel) && !/Ausbreitungsgeschwindigkeit/.test(panel));
+  add('[bde][ausbreitung] Weg und Zeit aus DERSELBEN Gewichtung (sonst gehören sie nicht zusammen)',
+    /wMs \+= p\.atMs \* p\.sumFrp/.test(dyn) && /Dieselben Gewichte wie beim Schwerpunkt/.test(dyn));
+  add('[bde][ausbreitung] Konfidenzzeile nennt Überflüge, Detektionen, Zeitspanne und mittleren Schritt',
+    /<dt>Konfidenz der Richtung<\/dt>/.test(panel) && /spreadConfidence\.detections/.test(panel)
+    && /spreadConfidence\.spanMs/.test(panel) && /spreadConfidence\.meanStepM/.test(panel));
+  add('[bde][ausbreitung] die Konfidenz sagt auch, wenn sie GEGEN die Richtung spricht (Springen)',
+    /springt weiter hin und her/.test(panel));
+  add('[bde][ausbreitung] „nicht bestimmbar" bleibt die Pflichtaussage bei einer Detektion',
+    /keine Richtung bestimmbar/.test(panel));
+
+  // --- C) Wetterführung ---------------------------------------------------
+  add('[bde][wetter] das Brandzeitfenster ist EINE Rechnung (24 h davor, 3 h danach) und wird ausgewiesen',
+    /WINDOW_PRE_H = 24/.test(wx) && /WINDOW_POST_H = 3/.test(wx) && /windowRange/.test(wx));
+  add('[bde][wetter] die Reihe kommt aus DEMSELBEN Abruf wie die Wetterlage (ein Netzaufruf je Brand)',
+    (panel.match(/fetchFireWeatherAtPoint\(/g) ?? []).length === 2 && /Sitzungs-Cache je Brand/.test(panel));
+  add('[bde][wetter] Einstufung, Regeltext, Windrose, Zeitreihe und Winkeldifferenz stehen im Dossier',
+    /<DriversBlock/.test(dossier) && /DRIVER_RULE_TEXT/.test(panel) && /<WindRoseChart/.test(panel)
+    && /<DriverSeriesChart/.test(panel) && /Ausbreitung gegen Wind/.test(panel));
+  add('[bde][wetter] die Heuristik ist offengelegt: jede Zeile mit Punkten, dazu der Regeltext',
+    /br-drv-reasons/.test(panel) && /br-drv-pt/.test(panel) && /Punktsumme/.test(panel));
+  add('[bde][wetter] die Einstufung wird nie als Messwert ausgegeben',
+    /abgeleitete Einstufung/.test(panel) && /kein Messwert und keine amtliche Aussage/.test(DRIVER_RULE_TEXT));
+  add('[bde][wetter] Rose und Ausbreitungspfeil tragen ihre GEGENSÄTZLICHE Konvention im Text',
+    /aus der der Wind <b>kommt<\/b>/.test(charts) && /andere Konvention als die Rose/.test(charts));
+  add('[bde][wetter] keine vorherrschende Richtung ohne Beständigkeit ≥ STEADY_MIN',
+    STEADY_MIN === 0.5 && dominantWind([
+      { atMs: 0, tempC: 20, rhPct: 50, windKmh: 10, windFromDeg: 0, gustKmh: null, precipMm: 0 },
+      { atMs: 1, tempC: 20, rhPct: 50, windKmh: 10, windFromDeg: 180, gustKmh: null, precipMm: 0 },
+    ]).fromDeg === null);
+
+  // --- FWI: was gerechnet wird und was nicht ------------------------------
+  add('[bde][fwi] der geprüfte Rechenkern ist zurück (cffdrs-Vektoren) und hat seinen Verifier',
+    typeof pkg.scripts['verify:fire-fwi'] === 'string' && /fwi\/fwi/.test(drv));
+  add('[bde][fwi] NUR FFMC und ISI — der Gesamt-FWI wird ausdrücklich nicht ausgegeben',
+    /NICHT ausgegeben/.test(FIRE_INDEX_NOTE) && !/const .*fwi\b.*=.*fwi\(/.test(drv)
+    && /FFMC \/ ISI/.test(panel));
+  add('[bde][fwi] GWIS wird verlinkt statt eingerechnet, mit dem Grund (nicht queryable)',
+    /gwis\.jrc\.ec\.europa\.eu/.test(panel) && /nur als Bild aus, nicht als Zahl/.test(panel));
+  add('[bde][fwi] die ersten Stunden sind Vorlauf und werden als solche beschriftet',
+    /noch im Vorlauf der Kette/.test(panel) && /spinup/.test(drv));
+
+  // --- Haus-Regeln --------------------------------------------------------
+  add('[bde] die neuen Module sind pur: kein Date.now(), kein fetch, kein DOM',
+    !/Date\.now\(/.test(drvCode) && !/fetch\(/.test(drvCode) && !/document\./.test(drvCode));
+  add('[bde] keine neue Abhängigkeit für die Charts (SVG von Hand, D-06)',
+    !/recharts|chart\.js|d3|@mui/i.test(chartsCode) && Object.keys(pkg.dependencies).length === 7);
+  add('[bde] SVG-Texte tragen font-family ausdrücklich (Befund B1)',
+    (chartsCode.match(/<text/g) ?? []).length === (chartsCode.match(/fontFamily=\{FONT\}/g) ?? []).length
+    && (chartsCode.match(/<text/g) ?? []).length >= 5);
+  add('[bde] Chart-Farben nur aus vorhandenen Tokens — keine neue Hex-Farbe im neuen CSS',
+    !/#[0-9A-Fa-f]{3,6}/.test(charts) && !/#[0-9A-Fa-f]{3,6}/.test(css.slice(css.indexOf('BDE-C — Wetterführung'))));
+  add('[bde] Touch-Targets und Umbruch mobil geregelt (Rose zentriert, Spalten untereinander)',
+    /\.br-drv-wind \{ flex-direction: column/.test(css.slice(css.indexOf('BDE-C — Wetterführung'))));
+  add('[bde][doku] das Analyse-Dokument führt Jans Entscheidungen und die drei Kollisionen',
+    /Phase 1: Analyse/.test(bdeAudit) && /Kollisionen mit dem Ist-Zustand/.test(bdeAudit)
+    && /Jans Entscheidungen/.test(bdeAudit));
 }
 
 const failed = checks.filter((c) => !c.ok);

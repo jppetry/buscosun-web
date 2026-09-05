@@ -74,6 +74,7 @@
     "verify:model-source": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-modelsource.mjs",
     "verify:routing": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-routing.mjs",
     "verify:layer-erstbild": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-layer-erstbild.mjs",
+    "verify:fire-fwi": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-fire-fwi.mjs",
     "verify:fire-detail": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-fire-detail.mjs",
     "verify:fire-history": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-fire-history.mjs",
     "fire:history-archive": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/fire/bh/events-from-archive.mjs",

@@ -1645,3 +1645,221 @@ möglich"), Dämpfungssatz mit Quelle und Lizenz, Statuszeile „56 Kacheln · 1
   eigenes Thema, eigenes Gate, und alles liegt unter der 200-ms-Grenze.
 - **Offen wie bisher:** V-SAT-10 (Wisch-Vergleich), V-SAT-11 (Historie-Dossier fehlt mobil),
   V-SAT-12 (Real-Device-Messung).
+
+
+---
+
+## §13 SAT3 — Detektionen im Satellitenbild + die Narbe an den Detektionen (Diagnose, 2026-09-05)
+
+> **Jans Auftrag (2026-09-05):** „in den Satellitenbildern sollen die genauen Detektionsabgrenzungen
+> des FIRMS zu sehen sein, sodass der Anwender weiß, worauf er schauen muss — und verbrannte Flächen,
+> die im Vorher-Satellitenbild noch nicht da waren (quasi die geschätzte Brandfläche), besonders
+> kennzeichnen."
+
+### 13.1 Was der Bestand kann — und wo die Lücke ist
+
+| Baustein | Stand | Lücke für den Auftrag |
+|---|---|---|
+| **Detektions-Rechtecke** (`footprintRing`, `sources/firmsHotspots.ts:425`) | Je FIRMS-Zeile ein achsparalleles Rechteck aus `scan`×`track` (0,32–0,80 km) — die ehrliche **Pixelgrundfläche**: das Feuer liegt *irgendwo darin*, nicht in der Mitte. Auf der Hauptkarte als Layer gezeichnet | Kommt im Dossier **nicht** an: `SatImageryBlock` erhält nur `{lat, lon, bbox, firstMs, lastMs}` (`FireSatImagery.tsx:22`), die `FirmsRow`-Liste lebt in `FirePage.tsx:203` (`hotspotRows`) |
+| **30-m-Bild** (GIBS-Snapshot, `snapshotUrl`) | JPEG 1200×960 in **EPSG:4326** mit bekannter BBox `[S, W, N, O]` (`snapshotBbox`), im `<img>` mit `object-fit: cover` bei festem 5:4 | Kein Overlay. Weil Plate-Carrée: Grad → Bildpixel ist **linear** in Lon und Lat — ein SVG-Overlay im selben Seitenverhältnis reicht, keine Projektion nötig |
+| **10-m-Viewer** (`FireCogViewer.tsx`) | Canvas 2D, Sicht in Vollauflösungs-Pixeln des Granulats; `pixelOf(lat, lon, epsg, transform)` (`sentinelGeo.ts:108`) liefert für jede Koordinate das Pixel — wird schon fürs Fadenkreuz genutzt (`d.fire`) | Nur EIN Punkt (Fadenkreuz am Brand-Schwerpunkt), keine Detektionen. Die vier Ecken eines Rechtecks laufen durch dieselbe `pixelOf` |
+| **dNBR-Overlay** (`burnIndex.ts:dnbrTileRgba`) | Vorher/Nachher-Vergleich desselben Granulats, USGS-Klassen 0,10/0,27/0,44/0,66, SCL-Maske, WorldCover-Dämpfung — das ist bereits „verbrannt, was im Vorher-Bild nicht da war" | Es ist eine **Fläche aus Klassenfarben, keine Form**: Ernte-Sprenkel und die Narbe tragen dieselbe Farbe, nur die Dämpfung macht Ernte blasser. Welche Pixel *der Brand* sind, sagt niemand. Die Kachel liefert nur RGBA-Bytes — die **Klasse je Pixel** geht nach `createImageBitmap` verloren |
+| **Fläche** | `FireRecord.areaHa` ist kartiert (EFFIS) oder Obergrenze aus dem Detektionsraster bzw. Schätzung aus FRP/Detektionen (AF3) | Keine Fläche **aus dem Bild** — obwohl das Bild die einzige Beobachtung der Narbe ist |
+
+### 13.2 Befunde am Code (ohne Messung, am Bestand gelesen)
+
+1. **Die Detektionen eines Brands sind nicht adressierbar.** `FireCluster` trägt `passes`, `hull`, `bbox`
+   und `anchorKey`, aber **keine Zeilen und keine Schlüssel** (`fireClusters.ts:290–312`); die Cluster
+   entstehen im Worker (`computeZonesAndClusters`), die Zeilen bleiben in `FirePage`. Ein Filter
+   „Zeile ∈ Brand" ginge nur über BBox + Zeitfenster und wäre an Cluster-Grenzen unscharf.
+   **Folgerung:** Das Dossier bekommt **alle Detektionen des Laufs**, und das Bild zeigt die, die in
+   seinem Ausschnitt liegen. Das ist ohnehin die ehrlichere Aussage — „wo der Satellit im Fenster
+   Wärme sah", nicht „was wir diesem Brand zurechnen".
+2. **Zeitbezug ist Pflicht.** Eine Detektion NACH dem Aufnahmetag kann im Bild nichts erklären; eine
+   davor erklärt die Narbe. Die Zeichnung muss die Lage zur Szene tragen (vor/am Tag = voll,
+   danach = gestrichelt) — sonst sucht der Anwender eine Narbe unter einem Rechteck, das erst
+   später entstand.
+3. **Das 30-m-Bild ist `object-fit: cover`** bei festem 5:4 und einem Bild, das ebenfalls 5:4 ist
+   (600×480·2) — es wird also **nicht beschnitten**, nur skaliert. Ein SVG mit `viewBox="0 0 600 480"`
+   über dem Bild deckt sich pixelgenau. Sollte das Verhältnis je zerbrechen, wäre die Zuordnung
+   falsch — dafür kommt eine Sonde in den Verifier (Frame und Snapshot teilen `SNAP_W/SNAP_H`).
+4. **Die Narbe braucht die Klasse je Pixel, nicht die Farbe.** `dnbrTileRgba` müsste zusätzlich zur
+   RGBA-Kachel eine `Uint8Array`-Klassenkachel liefern (0 = kein Signal/maskiert, 1–4 = Klasse).
+   Das ist ein zweites Ausgabefeld derselben Schleife (kein zweiter Durchlauf) — die
+   Byte-Gleichheit der RGBA-Ausgabe bleibt prüfbar (Orakel aus 12.10 gilt weiter).
+5. **„Die geschätzte Brandfläche" = die zusammenhängende Narbe, die die Detektionen berührt.**
+   Definition (Vorschlag): Flood-Fill auf dem Klassenraster der gezeigten Ebene, Saat = alle Pixel
+   unter Detektions-Rechtecken mit Aufnahme ≤ Szenentag, Durchgang = Klasse ≥ 2 (dNBR ≥ 0,27,
+   USGS „moderate-low" und darüber; die 0,10er-Klasse ist an der Börde zu 13 % Ernte-Sprenkel,
+   §12.1 (4)), 4er-Nachbarschaft, Halbdeckkraft-Pixel (SCL-unsicher, Acker) zählen **mit** —
+   nie gelöscht, wie überall in dieser Linie. Ergebnis: Umriss (Kanten der Randpixel) in einer
+   Farbe, die keine dNBR-Klasse trägt (Creme `#FDFBF4`, wie Fadenkreuz und Maßstab), plus
+   Fläche = Pixelzahl × Schrittweite² in ha **mit der Schrittweite im Satz** („bei 20 m/px").
+6. **Rechenaufwand ist beherrschbar, aber nur je Ebene.** Der Startausschnitt ist 18 km; auf der
+   20-m-Ebene sind das 900² ≈ 0,8 Mio Pixel — ein Flood-Fill in ~10–20 ms, EIN Task, kein Long
+   Task. Auf der 10-m-Ebene (Anzeige ≥ 2×) wäre es 4× so viel und die Kacheln (16 je Band) müssten
+   für die Fläche komplett geladen sein. **Deshalb:** die Narbe wird auf der Ebene gerechnet, deren
+   Kacheln der Viewer gerade ohnehin zeigt, und NUR aus den Kacheln, die geladen sind; fehlt eine
+   Kachel am Rand des Ausschnitts, sagt der Satz „Ausschnitt unvollständig — Fläche ist eine
+   Untergrenze". Ergebnis je (Ebene, Kachelmenge) gecacht, Neuberechnung nur bei Änderung.
+7. **Zwei Aufrufer, eine Komponente** (`SatImageryBlock` im Live-Dossier und im Historie-Ereignis):
+   die Historie hat keine FIRMS-Zeilen des Laufs. Die Detektions-Ebene ist dort schlicht leer, und
+   die Fußnote sagt es („Detektionen gibt es nur im Live-Dossier"). Kein zweiter Bau.
+
+### 13.3 Plan SAT3 (vier Schritte, ein Gate GSAT3)
+
+| Schritt | Was | Wo |
+|---|---|---|
+| **SAT3a** | `SatTarget.detections?: readonly FirmsRow[]` durchreichen (FirePage → FireDossier → SatImageryBlock → FireCogViewer). Reine `FirmsRow`-Liste, keine Registry-Typen (BD2f-Regel bleibt) | `FirePage.tsx`, `FireDossier.tsx`, `FireSatImagery.tsx` |
+| **SAT3b** | **30-m-Bild:** SVG-Overlay im `br-sat-frame`, Rechtecke aus `footprintRing` in Bild-Koordinaten (linear aus `snapshotBbox`), Umschalter „Detektionen" (Sitzungszustand, default an), Zeitbezug wie 13.2 (2), Legende + Satz „Rechteck = Pixelgrundfläche, das Feuer liegt irgendwo darin" | `FireSatImagery.tsx`, `fireDeck.css` |
+| **SAT3c** | **10-m-Viewer:** dieselben Rechtecke über `pixelOf` auf die Canvas (nach den Kacheln, vor dem Fadenkreuz; über der Datenauflösung weiterhin harte Kanten); derselbe Umschalter | `FireCogViewer.tsx` |
+| **SAT3d** | **Narbe:** `dnbrTileRgba` liefert zusätzlich die Klassenkachel; Klassen-Cache neben `_tiles`; pures Modul `detail/burnScar.ts` mit `floodScar(grid, w, h, seeds, minClass)` → `{ count, edges }`; im dNBR-Modus Umriss + Satz „Zusammenhängende Narbe an den Detektionen: ≈ N ha (dNBR ≥ 0,27, unkalibriert, bei X m/px)" bzw. „an den Detektionen keine zusammenhängende Fläche ≥ 0,27" | `burnIndex.ts`, neu `detail/burnScar.ts`, `FireCogViewer.tsx` |
+| **Gate** | `verify:fire-detail` um `[sat3]`-Prüfungen (Bildgeometrie 30 m, Rechteck-Ecken im Viewer = `pixelOf`, Flood-Fill-Goldfälle, Kachel-Byte-Gleichheit RGBA, Fußnoten-Wortlaut), typecheck, Build, Long Tasks am dNBR-Modus (Kontrolllauf), Ansicht Desktop/Mobil am Hürtgenwald-Fall | — |
+
+**Ehrlichkeitsregeln dieser Phase:** das Rechteck ist die *Pixelgrundfläche*, nie „der Brand"; die
+Narbe heißt „verbrannt wirkende Fläche an den Detektionen (dNBR, unkalibriert)", nie „Brandfläche";
+die Hektarzahl nennt ihre Auflösung und ob der Ausschnitt vollständig war; die kartierte EFFIS-Fläche
+(`areaHa.kind = 'mapped'`) bleibt die einzige belastbare — steht sie im Dossier, nennt der Satz beide
+nebeneinander, ohne eine zu verrechnen.
+
+**Offen (V-Katalog):**
+- **V-SAT-20** — Detektions-Rechtecke ohne Bahn-Orientierung: `footprintRing` ist achsparallel, das
+  echte VIIRS-Pixel ist entlang der Bahn gedreht (bis ~15°). Mehrwert gering (Median 0,42 km);
+  Umsetzungsskizze: Bahnwinkel aus aufeinanderfolgenden Zeilen desselben Überflugs schätzen.
+- **V-SAT-21** — die Narbe auf der 10-m-Ebene aus B08 (10 m) statt B8A (20 m) rechnen — nur, wenn
+  Jan die vierfachen Bytes will; erst messen, ob die Form sich sichtbar ändert.
+
+
+### 13.4 SAT3 — Umsetzung (2026-09-05, Jans Entscheidung „zusammenhängende Narbe an den Detektionen")
+
+**Gebaut**
+
+| Datei | Rolle |
+|---|---|
+| `src/fire/detail/satDetections.ts` (neu, pur) | `detectionRects30m` (Plate-Carrée, linear) und `detectionPolysPx` (vier Ecken je Rechteck durch `pixelOf`, UTM-Drehung bleibt erhalten) + `sceneDayEndMs` als EINE Zeitbezugs-Regel. Rechtecke kommen aus `footprintRing` — dieselbe Funktion wie der Karten-Layer, kein zweiter Bau |
+| `src/fire/detail/burnScar.ts` (neu, pur) | `floodScar` (4er-Nachbarschaft, Läufe statt Einzelsegmente im Umriss), `seedsFromRects`, `scarHa`, `SCAR_MIN_CLASS = 2` |
+| `src/fire/detail/burnIndex.ts` | `dnbrTileRgba` bekommt ein optionales `outCls`: Klasse je Pixel als Nebenprodukt DERSELBEN Schleife, plus `CLS_UNSURE_FLAG` (Bit 7) für halbdeckende Pixel. RGBA-Ausgabe byte-gleich (im Verifier gegengeprüft) |
+| `src/fire/FireSatImagery.tsx` | SVG-Overlay über dem 30-m-Bild, Umschalter „Detektionen · N", Fußnote; `detections` an den Viewer weitergereicht |
+| `src/fire/FireCogViewer.tsx` | Rechtecke auf der Canvas (Reihenfolge Narbe → Detektionen → Fadenkreuz), Klassenkachel-Cache `_clsTiles`, Narben-Fill, Umriss in Creme, Hektarsatz, Kill-Switch `?scar=0` |
+| `FirePage.tsx` / `FireDossier.tsx` | `hotspotRows` → `detections` durchgereicht (reine `FirmsRow`-Liste; die BD2f-Regel „keine Registry-Typen in der Bildkomponente" bleibt) |
+
+**Drei Befunde, die den Bau geändert haben**
+
+1. **Das 30-m-Bild taugt oft nicht.** Von den zwei am Live-Bestand geprüften Fällen lieferte der erste
+   (Neutrebbin) für JEDEN gewählten Tag `Data-Present: false` bzw. ~99 % Wolken; erst Bad Königshofen
+   zeigte 9 Rechtecke über einer sichtbaren Narbe. Der Umschalter nennt deshalb die Zahl der Rechtecke
+   **im Bild** („Detektionen · 9" bzw. „keine im Bild") — sonst wäre unklar, ob nichts gezeichnet wird
+   oder nichts da ist. Die Fußnote erscheint nur, wenn wirklich ein Bild steht (`snap.kind === 'img'`).
+2. **Der erste Fill meldete 14 563 ha — und das war ein Fehler in der Definition, kein Zahlendreher.**
+   Am Neutrebbin-Fall (Nachher-Szene 02.09., ~99 % Wolken) lief der Flood-Fill über die halbtransparenten
+   Wolken-/Ackerpixel und verband halb Brandenburg zu „einer Narbe". Ursache: die Klassenkachel trug nur
+   die Klasse, nicht die **Halbdeckung**. Kur: `CLS_UNSURE_FLAG` in Bit 7, und `floodScar` nimmt nur
+   volldeckende Pixel als Saat UND als Durchgang. Die Anzeige bleibt unverändert — gedämpfte Pixel sind
+   weiterhin blass sichtbar, sie **verbinden** nur nichts mehr. Der Satz sagt das ausdrücklich
+   („nur volldeckende Pixel (Wolke/Schatten, Acker/Siedlung verbinden nichts)"), und der Leerfall heißt
+   „unter Wolken oder auf Acker bleibt die Narbe unentschieden" — nicht „keine Narbe".
+   Danach: Bad Königshofen **179 ha**, Umriss deckungsgleich mit der sichtbaren Narbe unter den Rechtecken.
+3. **Long Tasks: erst nach drei Anläufen eine belastbare Aussage — und sie hat den Bau geändert.**
+   Erste Messung im Vollbild: 185/208 ms. Ein **alternierender** Lauf (0/1/0/1 in EINER Sitzung)
+   ergab `?scar=0` 1 513 / 1 809 ms gegen `?scar=1` 540 / 1 684 ms — der *Kontrolllauf* war zweimal
+   der schlechtere. Grund: dieser Durchgang lief **parallel zu einem `npm run build`**. Aus solchen
+   Zahlen ist nichts abzuleiten (V-WF-13; ein Leistungsanker misst immer auch die Maschine mit).
+   **Dritter Lauf, ohne Nebenlast und mit dem Messfenster erst NACH dem Bildaufbau** (gemessen wird
+   nur das Zoomen im Vollbild): `?scar=0` **0 bzw. 1** Task > 200 ms, `?scar=1` **je 4** — das war
+   endlich ein Signal, und es zeigte auf den Fill.
+   Die Ursache war nicht die Rechnung, sondern ihre **Häufigkeit**: der Fill-Schlüssel trägt den
+   Ladestand der Kacheln (`present`), also stieß JEDE ankommende Kachel einen neuen Fill an. Kur:
+   `SCAR_SETTLE_MS = 400` — der Auftrag wird bei jeder Änderung neu gestellt und der vorige
+   verworfen, gerechnet wird erst, wenn der Kachelsatz steht. **Nachmessung:** `?scar=0` 0 / 0 Tasks
+   > 200 ms (max 103 / 82 ms), `?scar=1` 2 / **0** (max 1 419 / **90** ms) — der warme Lauf mit Fill
+   ist vom Kontrolllauf nicht mehr zu unterscheiden. Der eine 1 419-ms-Ausreißer lag im ERSTEN Fill
+   nach frischem Seitenaufbau (Kaltpfad, EINE Beobachtung — keine Aussage, s. V-SAT-23).
+   Der Mikro-Prüfstand bleibt der Anker: `floodScar` auf 900² kostet **24–59 ms**, voll gefüllt 78 ms.
+   `?scar=0` bleibt als benannter Rückfall- **und Kontrollweg** (Rule 2); das Fill-Raster ist
+   zusätzlich auf Sicht ∩ Startfenster (±9 km) gedeckelt.
+4. **Mobil verdeckten die Sätze das Bild.** Mit dem vierten Satz stapelte `.br-cog-notes` über einem
+   255 px hohen Rahmen ~200 px Text — vom Bild blieb nichts. Gekürzt wird nicht (Ehrlichkeit ist
+   Produktprinzip): der Block ist mobil auf **42 % der Rahmenhöhe gedeckelt und scrollt**, alle Sätze
+   bleiben erreichbar, der Narben-Umriss ist wieder zu sehen
+   (`audit/brandradar-satellitenbilder/sat3-mobile-cog.png`).
+
+**Ehrlichkeit, wie umgesetzt**
+
+- Rechteck = „FIRMS-Pixelgrundfläche (VIIRS, 375 m) — das Feuer liegt irgendwo darin"; gestrichelt =
+  Aufnahme erst NACH diesem Bild. Beide Bilder tragen den Satz, beide aus derselben `sceneDayEndMs`-Regel.
+- Die Narbe heißt „verbrannt wirkende Fläche", nie „Brandfläche"; die Hektarzahl nennt im selben Satz
+  ihre Auflösung (`bei 20 m/px`), die Schwelle (`dNBR ≥ 0,27, unkalibriert`), die Einschränkung
+  (nur volldeckende Pixel) und, falls zutreffend, „Kacheln laden noch — Untergrenze" bzw.
+  „reicht bis an den Rand — herauszoomen".
+- Historie-Ereignisse haben keine FIRMS-Zeilen; dort steht ein Satz, warum die Rechtecke fehlen, statt
+  eines leeren Bildes.
+
+**Belege (2026-09-05)** — `npm run typecheck` grün, `verify:fire-detail` **344/344** (davon 42+ neue
+`[sat3]`-Prüfungen: Bildgeometrie 30 m, Ecken über `pixelOf`, Zeitbezug, Flood-Fill-Goldfälle,
+Wolken-Falle aus (2), Byte-Gleichheit der RGBA-Ausgabe, Kill-Switch, Wortlaut). Augenschein Desktop
+1440×900 am Live-Bestand: `audit/brandradar-satellitenbilder/sat3-30m.png` (9 Rechtecke über dem
+30-m-Bild), `sat3-cog-tci.png` (Echtfarbe), `sat3-cog-dnbr-bk.png` und `sat3-cog-full.png`
+(Umriss 179 ha im Vollbild); mobil 390×844: `sat3-mobile-30m.png` (Rechtecke + Umschalter „Detektionen · 9",
+Touch-Ziele 44 px) und `sat3-mobile-cog.png` (gedeckelter Satz-Block, Umriss sichtbar).
+
+**V-Katalog dieser Phase:** V-SAT-20 und V-SAT-21 wie in §13.3; neu **V-SAT-22** — der Umriss wird bei
+jedem Zoomschritt aus dem Raster der neuen Ebene neu gerechnet, statt einmal in Geo-Koordinaten
+festgehalten zu werden. Mehrwert: die Hektarzahl bliebe über Zoomstufen stabil (sie schwankt heute mit
+der Auflösung, was ehrlich, aber unruhig ist). Umsetzungsskizze: Fill EINMAL auf der gröbsten Ebene mit
+vollständigen Kacheln, Umriss in UTM-Metern speichern, beim Zeichnen nur transformieren.
+**V-SAT-23** — der Kaltpfad des ersten Fills nach frischem Seitenaufbau zeigte einmalig 1 419 ms.
+Eine Beobachtung ist keine Messung; Mehrwert: falls reproduzierbar, säße dort der letzte Ausreißer
+des Viewers. Umsetzungsskizze: zehn Kaltstarts gegen zehn mit `?scar=0`, und erst danach entscheiden,
+ob die Klassenkachel-Allokation (`outCls`, 256 KB je Kachel) oder die Rasterkopie den Ausschlag gibt.
+
+
+### 13.5 Nachbesserung — die Rechtecke waren gezeichnet, aber unsichtbar (Jans Befund, 2026-09-05)
+
+**Jans Befund:** „ich sehe immer noch nicht den FIRMS-Detektionsrahmen eingezeichnet auf dem Satellitenbild."
+
+**Er hatte recht, und der Fehler war meiner.** Der Code zeichnete korrekt — an fünf nacheinander
+geöffneten Bränden lieferten drei jeweils 3–4 Rechtecke (zwei hatten für den gewählten Tag gar kein
+Bild). Nur *sehen* konnte man sie nicht. Am Element gemessen:
+
+| Größe | Wert | Folge |
+|---|---|---|
+| Rechteck | **10 × 9 CSS-px** | Ein VIIRS-Pixel ist 375 m, der Bildausschnitt mindestens 18 km — physikalisch richtig, aber winzig |
+| Strich | 1,6 px, `#C97B47` | Das matte Deck-Token ging im braun-grünen Gelände unter |
+| Muster | `stroke-dasharray: 4 3` | Bei 10 px Kantenlänge bleiben ~2 Striche je Kante |
+| Halo | `drop-shadow 1 px` | Zu schwach, um den Strich vom Untergrund zu trennen |
+
+Beleg: `audit/brandradar-satellitenbilder/sat3-30m-unsichtbar.png` — vier Rechtecke sind im Bild, man
+findet sie nicht.
+
+**Wie es dazu kam — die eigentliche Lehre.** Der erste Bau nutzte `#FFB08A` und war im Augenschein gut
+sichtbar (`sat3-30m.png`). Danach schlug die Sonde `[bd2] keine neuen Farben im Dossier-CSS` an, und ich
+habe die Farbe auf das Deck-Token `--terracotta-500` gezogen, **ohne danach noch einmal hinzusehen** —
+die Sonde war grün, das Ergebnis kaputt. Zwischendurch stand die Farbe sogar als
+`var(--br-det, rgb(255, 176, 138))` da, also als Token getarnt, nur damit die Hex-Sonde nicht anschlägt.
+Das ist zweimal derselbe Fehler: **eine Prüfung befriedigen statt ihre Absicht.** Ein Overlay auf einem
+Satellitenfoto ist kein UI-Chrome; D-27 zielt auf das Deck. Die Ausnahme steht jetzt **benannt** in der
+Allowlist des Verifiers, mit Begründung und einer zweiten Sonde, die sie eingrenzt: `#FFB08A` darf
+ausschließlich an `.br-sat-det rect` stehen.
+
+**Was jetzt die Sichtbarkeit trägt** (in beiden Bildern gleich, `sat3-30m-sichtbar.png` /
+`sat3-cog-fuellung.png`):
+
+- **Füllung** `rgba(255, 176, 138, 0.28)` — bei 10 px trägt die Fläche, nicht der Strich. Sie ist auch
+  inhaltlich richtig: das Rechteck IST eine Fläche („das Feuer liegt irgendwo darin"), keine Linie.
+- Strich 2 px in `#FFB08A`, dunkler Halo 2 px (`rgba(44,42,38,.95)`) — steht auf Wald wie auf Acker.
+- **„Danach" bleibt ungefüllt und gestrichelt** (5/3). Damit sind beide Lagen sichtbar UND
+  unterscheidbar — vorher trennte nur das Strichmuster, das bei 10 px nichts trennt.
+
+**Nebenbefund, kein Fehler:** beim Öffnen eines frischen Brands ist die Startszene oft ein **Vorher**-Bild
+(ein Nachher-Bild braucht 2–3 Tage Verarbeitung). Dann sind ALLE Rechtecke „danach", also ungefüllt und
+gestrichelt. Das ist die richtige Aussage — „hier hat es später gebrannt, hier war noch nichts" — und
+genau der Blick, den Jans Auftrag meint; sichtbar ist er jetzt auch.
+
+**Zweite Nachbesserung im selben Zug:** der Verifier trug eine Prüfung
+„Laufzeit: 900² voll gefüllt < 200 ms". Sie fiel unter Parallellast durch, ohne dass sich am Code etwas
+geändert hatte — ein Leistungsanker im Verifier misst immer auch die Maschine mit. Sie prüft jetzt, was
+sie belegen kann (terminiert, zählt jedes Pixel genau einmal, kein Stack-Überlauf); die Laufzeit steht
+als Messung in §13.4 (3).
+
+**Belege:** `verify:fire-detail` **347/347** (zwei neue `[sat3]`-Sonden: Füllung + Halo + eine Farbe für
+beide Bilder; `#FFB08A` nur an den Rechtecken), typecheck grün.

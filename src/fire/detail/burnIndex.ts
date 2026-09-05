@@ -134,6 +134,13 @@ export function wcDamped(cls: number): boolean {
   return cls === 40 || cls === 50 || cls === 60 || cls === 70 || cls === 80;
 }
 
+/**
+ * SAT3d: Bit 7 in der Klassenkachel — „halbdeckend" (Wolke/Schatten nachher ODER Landbedeckung
+ * gedämpft). Die Narbe (`burnScar.ts`) läuft durch solche Pixel NICHT: am Neutrebbin-Fall (02.09.,
+ * ~99 % Wolken) verband ein Fill über die Wolkenpixel 14 563 ha zu „einer Narbe" (§13.4 (2)).
+ */
+export const CLS_UNSURE_FLAG = 0x80;
+
 // --- Kachel-Kompositoren -----------------------------------------------------------------------
 
 /**
@@ -174,11 +181,17 @@ export function swirTileRgba(
  * dNBR-Overlaykachel: NBR(vorher) − NBR(nachher) je Pixel, Klassenfarbe, sonst transparent.
  * Mit SCL-Kacheln (SAT2c, optional — ohne sie byte-gleich zu SAT2b): Vorher-Störklassen und
  * Nachher-Nie-Narbe-Klassen maskieren hart, Nachher-Wolke/Schatten halbiert die Deckkraft.
+ *
+ * SAT3d: `outCls` (optional, Länge n) nimmt nebenher die **Klasse je Pixel** auf — 0 = kein
+ * Signal/maskiert, 1–4 = Index in `DNBR_CLASSES` + 1 — genau die Pixel, die eine Farbe bekommen;
+ * halbdeckende Pixel (SCL-unsicher, Landbedeckung gedämpft) tragen zusätzlich `CLS_UNSURE_FLAG`.
+ * Dieselbe Schleife, kein zweiter Durchlauf; die RGBA-Ausgabe bleibt byte-gleich (Orakel 12.10).
  */
 export function dnbrTileRgba(
   preN: Uint16Array, preS: Uint16Array, postN: Uint16Array, postS: Uint16Array,
   sPre: BandScale, sPost: BandScale,
   preScl?: Uint8Array | null, postScl?: Uint8Array | null, wcCls?: Uint8Array | null,
+  outCls?: Uint8Array | null,
 ): Uint8ClampedArray {
   const n = preN.length;
   const out = new Uint8ClampedArray(n * 4);
@@ -214,6 +227,7 @@ export function dnbrTileRgba(
     // SCL-Unsicherheit und Landbedeckungs-Dämpfung halbieren EINMAL, nie zweimal (§12.2 E1).
     const unsure = (postScl != null && sclPostUnsure(postScl[i])) || (wcCls != null && wcDamped(wcCls[i]));
     out[j + 3] = unsure ? al >> 1 : al;
+    if (outCls) outCls[i] = unsure ? (k + 1) | CLS_UNSURE_FLAG : k + 1; // SAT3d: Klasse + Halbdeckungs-Flag
   }
   return out;
 }
@@ -296,6 +310,20 @@ export function verifyBurnIndex(): { checks: BurnCheck[]; passed: number; total:
     add('dnbrTileRgba: Acker halbiert die Deckkraft, Gras bleibt voll — nie transparent',
       dnbrTileRgba(preN, preS, postN, postS, pb4, pb4, null, null, Uint8Array.of(40, 4, 4, 4))[3] === DNBR_CLASSES[2].rgba[3] >> 1
       && dnbrTileRgba(preN, preS, postN, postS, pb4, pb4, null, null, Uint8Array.of(30, 4, 4, 4))[3] === DNBR_CLASSES[2].rgba[3]);
+    // SAT3d: die Klassenkachel — Narbenpixel Klasse 3 (0,44–0,66), alles andere 0; RGBA unverändert.
+    add('dnbrTileRgba: outCls trägt die Klasse je Pixel (Narbe = 3, gesund/nodata/unter Kante = 0)', (() => {
+      const cls = new Uint8Array(4);
+      const withCls = dnbrTileRgba(preN, preS, postN, postS, pb4, pb4, null, null, null, cls);
+      return cls.join(',') === '3,0,0,0'
+        && withCls.join(',') === dnbrTileRgba(preN, preS, postN, postS, pb4, pb4).join(',');
+    })());
+    add('dnbrTileRgba: outCls trägt bei gedämpften Pixeln Klasse + Flag (Acker ⇒ 3 | 0x80), Wolke nachher ebenso', (() => {
+      const a = new Uint8Array(4);
+      dnbrTileRgba(preN, preS, postN, postS, pb4, pb4, null, null, Uint8Array.of(40, 4, 4, 4), a);
+      const b = new Uint8Array(4);
+      dnbrTileRgba(preN, preS, postN, postS, pb4, pb4, clear, Uint8Array.of(8, 4, 4, 4), null, b);
+      return a[0] === (3 | CLS_UNSURE_FLAG) && b[0] === (3 | CLS_UNSURE_FLAG) && (a[0] & 0x7f) === 3;
+    })());
     add('dnbrTileRgba: SCL-unsicher + Acker halbieren zusammen genau einmal',
       dnbrTileRgba(preN, preS, postN, postS, pb4, pb4, clear, Uint8Array.of(8, 4, 4, 4), Uint8Array.of(40, 4, 4, 4))[3]
       === DNBR_CLASSES[2].rgba[3] >> 1);

@@ -30,7 +30,7 @@ import {
 import {
   type FireRecord, type RecordSort, type RecordFilter, type FireStatusKind,
   STATUS_LABEL, STATUS_COLOR, METHOD_LABEL, statusLabel, areaLabel, confidenceLabel,
-  missingReason, registryNote, provisionalArea,
+  missingReason, registryNote, provisionalArea, mappingGapText,
 } from './footprint/fireRegistry';
 import {
   CLUSTER_PAGE, STATIC_GREY, countryLabel,
@@ -38,7 +38,12 @@ import {
 } from './fireClusters';
 import { freLabel, DAYNIGHT_LABEL } from './activity/intensity';
 import { activitySummary } from './activity/fireActivity';
-import { STATE_LABEL, compassLabel } from './activity/dynamics';
+import { STATE_LABEL, compassLabel, SPREAD_MIN_M } from './activity/dynamics';
+import {
+  driverRating, dominantWind, windRose, spreadVsWind, spreadVsWindLabel, fireIndexSeries, indexAt,
+  DRIVER_LABEL, DRIVER_RULE_TEXT, FIRE_INDEX_NOTE, STEADY_MIN,
+} from './detail/fireDrivers';
+import { WindRoseChart, DriverSeriesChart } from './FireDriverCharts';
 import { OBSERVATION_LABEL } from './activity/observation';
 import { featuresOf, featuresJson, featuresSummary, FEATURE_VERSION } from './activity/features';
 import { estimateLabel } from './activity/estimate';
@@ -82,7 +87,6 @@ export interface FootprintPanelProps {
   records: readonly FireRecord[];
   /** Vor dem Filter — für „n von m". */
   total: number;
-  detail: FireRecord | null;
   nowMs: number;
   windowH: number;
   sort: PanelSort;
@@ -221,11 +225,6 @@ export function RecordStats({ r, nowMs, wide = false }: { r: FireRecord; nowMs: 
       />
     </span>
   );
-}
-
-/** Abschnittskopf der Detailkarte (BD1). */
-function Sec({ children }: { children: ReactNode }) {
-  return <h4 className="br-detail-sec">{children}</h4>;
 }
 
 function StatusDot({ status, isStatic }: { status: FireStatusKind; isStatic: boolean }) {
@@ -468,9 +467,6 @@ export function FireFootprintPanel(p: FootprintPanelProps) {
                       )}
                     </span>
                   </button>
-                  {sel && p.detail && p.detail.id === r.id && (
-                    <FootprintDetail r={p.detail} nowMs={nowMs} onClose={p.onClearSelect} atContext={at} compact={p.inSheet || !!p.compact} />
-                  )}
                 </div>
               </li>
             );
@@ -626,48 +622,143 @@ export function WeatherBlock({ r, nowMs }: { r: FireRecord; nowMs: number }) {
 }
 
 /**
- * Die Detailkarte eines Eintrags — in der Brandkarte, kein Popup. Jede Zahl mit Art und Quelle.
- * BD1: gegliedert in Kennzahlen · Verlauf · Wetterlage · Einordnung & Bestätigung · Merkmale
- * (`audit/brand-detail.md` §2 D6); jede Zeile von vorher steht weiter drin, nur sortiert.
+ * BDE-A — die Zeile „Kartierung": mit EFFIS-Fläche deren Zahlen (Fläche, Branddatum, Stand,
+ * Quelle), ohne sie der GRUND. Der Grund kommt aus `mappingGapText` — EINE Stelle, damit die
+ * widerlegte Regel „EFFIS kartiert erst ab ~30 ha" nicht über eine zweite Formulierung
+ * zurückkehrt (`audit/waldbrand-effis.md` B3).
  */
-export function FootprintDetail(
-  { r, nowMs, onClose, atContext = null, compact = false }:
-  { r: FireRecord; nowMs: number; onClose: () => void; atContext?: AtWarnContext | null; compact?: boolean },
-) {
+export function MappingRow({ r, nowMs }: { r: FireRecord; nowMs: number }) {
+  const e = r.sources.effis;
+  const gap = mappingGapText(r, nowMs);
+  if (e) {
+    return (
+      <>
+        <dt>Kartierung</dt>
+        <dd>
+          {e.areaHa != null ? <b>{e.areaHa.toLocaleString('de-DE', { maximumFractionDigits: 0 })} ha</b> : <span className="br-muted">Fläche ohne Wert in der Kartierung</span>}
+          {e.firedateMs != null && <> · Branddatum {fmtDate(e.firedateMs)}</>}
+          {e.finaldateMs != null && <> · Ende {fmtDate(e.finaldateMs)}</>}
+          {e.lastUpdateMs != null && <> · Stand {fmtDate(e.lastUpdateMs)}</>}
+          {' · '}<a href="https://effis.jrc.ec.europa.eu/" target="_blank" rel="noopener">EFFIS</a> (Copernicus EMS, CC BY 4.0)
+          {r.sources.effisExtra > 0 && <span className="br-muted"> · {r.sources.effisExtra} weitere Kartierung{r.sources.effisExtra === 1 ? '' : 'en'} im selben Cluster</span>}
+        </dd>
+      </>
+    );
+  }
+  if (!gap) return null;
   return (
-    <section className="br-detail" aria-label={`Details ${recordTitle(r)}`}>
-      <div className="br-detail-head">
-        <span className="br-eyebrow">Details</span>
-        <span className="br-detail-title">{recordName(r)} <Badge r={r} /></span>
-        <button type="button" className="br-close" aria-label="Details schließen" onClick={onClose}>×</button>
+    <>
+      <dt>Kartierung</dt>
+      <dd className="br-muted">{gap}</dd>
+    </>
+  );
+}
+
+/**
+ * BDE-C — **Wetterführung im Brandzeitfenster**: Einstufung, Winkeldifferenz zur beobachteten
+ * Ausbreitung, Windrose und Zeitreihe, dazu FFMC/ISI als eigene Rechnung.
+ *
+ * Der Abruf ist DERSELBE wie in `WeatherBlock` (`fetchFireWeatherAtPoint` hat einen
+ * Sitzungs-Cache je Brand) — zwei Bausteine, EIN Netzaufruf. Deshalb steht hier auch kein
+ * zweiter Ladehinweis-Text, sondern derselbe.
+ */
+export function DriversBlock({ r, nowMs, width }: { r: FireRecord; nowMs: number; width?: number }) {
+  const [wx, setWx] = useState<{ kind: 'loading' } | { kind: 'ok'; data: FireWeatherAtPoint }>({ kind: 'loading' });
+  useEffect(() => {
+    let alive = true;
+    setWx({ kind: 'loading' });
+    void fetchFireWeatherAtPoint(r.lat, r.lon, r.firstMs, r.lastMs, nowMs).then((data) => { if (alive) setWx({ kind: 'ok', data }); });
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [r.id, r.lat, r.lon, r.firstMs, r.lastMs]);
+  if (wx.kind === 'loading') return <p className="br-muted br-wx-loading">Modellwerte für den Brandort werden geladen …</p>;
+  const w = wx.data;
+  if (w.windowHours.length === 0) {
+    return (
+      <p className="br-muted">
+        Keine Stundenreihe für das Brandzeitfenster — ohne sie gibt es weder Windrose noch Einstufung.
+        {w.notes.length > 0 && ` ${w.notes[0]}`}
+      </p>
+    );
+  }
+  const det = w.detectionRange;
+  const inDet = det ? w.windowHours.filter((h) => h.atMs >= det[0] && h.atMs <= det[1]) : [];
+  // Die Einstufung gilt für die Stunden der Detektionen; liegt alles in einer Stunde, nimmt sie diese eine.
+  const ratingHours = inDet.length > 0 ? inDet : w.atFirst ? [w.atFirst] : [];
+  const rating = driverRating({ hours: ratingHours, precip24hBeforeMm: w.precip24hBeforeMm, daysSinceRain: w.daysSinceRain });
+  const rose = windRose(ratingHours.length >= 3 ? ratingHours : w.windowHours);
+  const dom = dominantWind(ratingHours.length >= 3 ? ratingHours : w.windowHours);
+  const vs = spreadVsWind(r.activity?.spreadBearingDeg ?? null, dom.fromDeg);
+  const series = fireIndexSeries(w.windowHours);
+  const atFirst = w.atFirst ? indexAt(series, w.atFirst.atMs) : null;
+  return (
+    <div className="br-drv">
+      {rating ? (
+        <p className={`br-drv-verdict is-${rating.level}`}>
+          <span className="br-drv-lbl">{DRIVER_LABEL[rating.level]}</span>
+          <span className="br-muted">
+            {' '}— abgeleitete Einstufung aus {rating.hours} Modellstunde{rating.hours === 1 ? '' : 'n'}
+            {inDet.length === 0 && ' (nur die Stunde der Erstdetektion — die Detektionen liegen innerhalb einer Stunde)'}
+            {', Punktsumme '}{rating.score > 0 ? `+${rating.score}` : rating.score}
+          </span>
+        </p>
+      ) : (
+        <p className="br-muted">Keine Einstufung — für den Zeitraum der Detektionen liegt keine Modellstunde vor.</p>
+      )}
+      {rating && (
+        <ul className="br-drv-reasons">
+          {rating.reasons.map((x) => (
+            <li key={x.text} data-sign={x.points > 0 ? 'up' : x.points < 0 ? 'down' : 'zero'}>
+              <span className="br-drv-pt">{x.points > 0 ? `+${x.points}` : x.points === 0 ? '±0' : x.points}</span>
+              <span>{x.text}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="br-note">{DRIVER_RULE_TEXT}</p>
+
+      <div className="br-drv-wind">
+        <WindRoseChart rose={rose} spreadBearingDeg={r.activity?.spreadBearingDeg ?? null} dominantFromDeg={dom.fromDeg} />
+        <dl className="fire-fp-dl br-drv-dl">
+          <dt>Vorherrschender Wind</dt>
+          <dd>
+            {dom.fromDeg != null
+              ? <>aus <b>{compassLabel(dom.fromDeg)}</b> ({dom.fromDeg}°) · im Mittel {dom.meanKmh} km/h{dom.maxGustKmh != null && <> · Böen bis {Math.round(dom.maxGustKmh)} km/h</>}</>
+              : <>keine vorherrschende Richtung — der Wind drehte zu stark (Beständigkeit {dom.steadiness ?? '—'} unter {STEADY_MIN}){dom.meanKmh != null && <>, im Mittel {dom.meanKmh} km/h</>}</>}
+            <span className="br-muted"> · geschwindigkeitsgewichtetes Vektormittel über {dom.hours} Stunden; „Beständigkeit" 1 = konstant, 0 = dreht ständig</span>
+          </dd>
+          <dt>Ausbreitung gegen Wind</dt>
+          <dd>
+            {vs
+              ? <><b>{vs.diffDeg}°</b> — {spreadVsWindLabel(vs)} <span className="br-muted">(Wind weht nach {compassLabel(vs.downwindDeg)}, Schwerpunkt wandert nach {compassLabel(vs.spreadDeg)})</span></>
+              : <span className="br-muted">
+                  nicht bestimmbar — {r.activity?.spreadBearingDeg == null ? 'es gibt keine belastbare Ausbreitungsrichtung' : 'es gibt keine vorherrschende Windrichtung'}. Nichts wird interpoliert.
+                </span>}
+          </dd>
+          {series && (
+            <>
+              <dt>FFMC / ISI</dt>
+              <dd>
+                {atFirst
+                  ? <>bei Erstdetektion FFMC <b>{atFirst.ffmc.toFixed(1)}</b> · ISI <b>{atFirst.isi.toFixed(1)}</b>{atFirst.spinup && <span className="br-muted"> (noch im Vorlauf der Kette — nur als Größenordnung)</span>}</>
+                  : <span className="br-muted">keine Stunde der Erstdetektion in der gerechneten Kette</span>}
+                {series.skipped > 0 && <span className="br-muted"> · {series.skipped} Stunde{series.skipped === 1 ? '' : 'n'} ohne Werte übersprungen</span>}
+              </dd>
+            </>
+          )}
+        </dl>
       </div>
-      <p className="br-detail-sub"><DetailSubline r={r} /></p>
 
-      <Sec>Kennzahlen</Sec>
-      <dl className="fire-fp-dl">
-        <DetailKennzahlenRows r={r} nowMs={nowMs} />
-        <DetailConfidenceRows r={r} />
-        <DetailFrpRows r={r} />
-      </dl>
+      <DriverSeriesChart hours={w.windowHours} detectionRange={w.detectionRange} index={series} width={width} />
 
-      <Sec>Verlauf</Sec>
-      <DetailVerlauf r={r} nowMs={nowMs} compact={compact} />
-
-      <Sec>Wetterlage</Sec>
-      <WeatherBlock r={r} nowMs={nowMs} />
-
-      <Sec>Einordnung &amp; Bestätigung</Sec>
-      <dl className="fire-fp-dl">
-        <DetailEinordnungRows r={r} atContext={atContext} />
-        <dt>Ursache</dt>
-        <dd><CauseText r={r} /></dd>
-      </dl>
-
-      <Sec>Merkmale</Sec>
-      <dl className="fire-fp-dl">
-        <FeaturesRow r={r} nowMs={nowMs} />
-      </dl>
-    </section>
+      {series && <p className="br-note">{FIRE_INDEX_NOTE}</p>}
+      <p className="br-note">
+        Der Gesamt-FWI steht bewusst nicht hier. Wer ihn braucht:{' '}
+        <a href="https://gwis.jrc.ec.europa.eu/apps/gwis_current_situation/" target="_blank" rel="noopener">GWIS · Current Situation</a>{' '}
+        (Copernicus, CC BY 4.0) — der Dienst gibt seine Werte nur als Bild aus, nicht als Zahl, deshalb ist er hier verlinkt statt eingerechnet.
+      </p>
+      <p className="br-note">{FIRE_WEATHER_SOURCE_LABEL} · {FIRE_WEATHER_ATTRIBUTION}.</p>
+    </div>
   );
 }
 
@@ -715,6 +806,7 @@ export function DetailKennzahlenRows({ r, nowMs }: { r: FireRecord; nowMs: numbe
           </>
         )}
       </dd>
+      <MappingRow r={r} nowMs={nowMs} />
       {!prov && act && (act.areaEst || act.areaEstReason) && (
         <>
           <dt>Schätzung</dt>
@@ -758,6 +850,27 @@ export function DetailConfidenceRows({ r }: { r: FireRecord }) {
       <dt>Methode</dt><dd>{r.method.map((m) => METHOD_LABEL[m]).join(' · ')}</dd>
     </>
   );
+}
+
+/**
+ * BDE-B: Was die drei Zahlen der Konfidenz bedeuten — und zwar AUFGELÖST. Die Zeile
+ * „Ausbreitung" nennt zwei mögliche Gründe für eine fehlende Richtung („unter 3 Überflügen
+ * ODER Verschiebung unter einer halben Pixelbreite"); welcher zutrifft, ist hier bekannt.
+ * Ein „entweder/oder" stehen zu lassen, wo die Antwort vorliegt, wäre eine vermeidbare Lücke.
+ */
+export function spreadConfidenceNote(act: NonNullable<FireRecord['activity']>): string {
+  const c = act.spreadConfidence;
+  if (!c) return 'keine Überflüge mit FRP';
+  if (act.spreadBearingDeg == null) {
+    if (c.passes < 3) return `unter 3 Überflügen mit FRP gibt es keine Richtung — hier ${c.passes}`;
+    return c.meanStepM != null && c.meanStepM > SPREAD_MIN_M
+      ? `der Schwerpunkt pendelt (mittlerer Schritt ${c.meanStepM.toLocaleString('de-DE')} m), verlagert sich aber insgesamt um weniger als ${SPREAD_MIN_M} m — eine halbe Pixelbreite, also Gitterrauschen`
+      : `die Gesamtverschiebung bleibt unter ${SPREAD_MIN_M} m (eine halbe Pixelbreite) — das ist Gitterrauschen, keine Bewegung`;
+  }
+  if (c.meanStepM != null && act.spreadDistanceM != null && c.meanStepM > 2 * act.spreadDistanceM) {
+    return 'der Schwerpunkt springt weiter hin und her, als er sich insgesamt verlagert hat — die Richtung ist grob';
+  }
+  return 'je mehr Überflüge und je länger die Spanne, desto belastbarer die Richtung';
 }
 
 /** ΣFRP (Fenstersumme) und FRP je Überflug. */
@@ -810,13 +923,27 @@ export function DetailVerlauf({ r, nowMs, compact = false, wide = false, wideWid
                 {act.windAgreement === 'agree' && <> · <span className="fire-fp-wind is-agree">mit dem ICON-D2-Wind ({act.windFromDeg}° aus)</span></>}
                 {act.windAgreement === 'disagree' && <> · <span className="fire-fp-wind is-disagree">gegen den ICON-D2-Wind ({act.windFromDeg}° aus) — Schwerpunkt verzerrt oder zwei Feuer?</span></>}
                 {act.windAgreement === null && act.windFromDeg != null && <> · <span className="br-muted">Wind ({act.windFromDeg}° aus) weder klar dafür noch dagegen</span></>}
-                {act.windFromDeg == null && <> · <span className="br-muted">kein Windabgleich (Windlayer aus oder kein Frame nahe genug)</span></>}
-                <span className="br-muted"> · Verschiebung des FRP-Schwerpunkts, kein Frontverlauf</span>
+                {act.windFromDeg == null && <> · <span className="br-muted">kein Windabgleich hier (Windlayer aus); der Abgleich gegen die Modell-Stundenreihe steht unter „Wetterführung"</span></>}
+                {act.spreadSpeedMh != null && act.spreadSpanMs != null && (
+                  <> · <b>{act.spreadSpeedMh.toLocaleString('de-DE')} m/h</b> über {Math.round(act.spreadSpanMs / 3_600_000)} h</>
+                )}
+                <span className="br-muted"> · Verschiebung des FRP-Schwerpunkts, kein Frontverlauf — die Zahl ist eine <b>Verlagerung</b> zwischen Momentaufnahmen, nicht die Geschwindigkeit der Feuerfront</span>
               </>
             ) : (
               <span className="br-muted">— keine Richtung bestimmbar (unter 3 Überflügen mit FRP oder Verschiebung unter einer halben Pixelbreite); die Ausdehnung der Hülle steht in der Kachel</span>
             )}
           </dd>
+          {act.spreadConfidence && (
+            <>
+              <dt>Konfidenz der Richtung</dt>
+              <dd>
+                {act.spreadConfidence.passes === 1 ? '1 Überflug' : `${act.spreadConfidence.passes} Überflüge`} mit FRP · {act.spreadConfidence.detections} Detektionen
+                {act.spreadConfidence.passes > 1 && <> · {Math.round(act.spreadConfidence.spanMs / 3_600_000)} h Zeitspanne</>}
+                {act.spreadConfidence.meanStepM != null && <> · mittlerer Schritt {act.spreadConfidence.meanStepM.toLocaleString('de-DE')} m</>}
+                <span className="br-muted">{' '}— {spreadConfidenceNote(act)}</span>
+              </dd>
+            </>
+          )}
           <dt>FRE</dt><dd>{freLabel(act)}</dd>
           <dt>Überflüge</dt>
           <dd>

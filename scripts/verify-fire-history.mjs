@@ -166,7 +166,9 @@ if (!existsSync(file)) {
   add('[detail] Karte sagt, dass ICON/Fusion kein Archiv haben (W4)', /Kein ICON-\/Fusionswert: die Vorhersagemodelle haben kein Archiv/.test(pnl));
   add('[detail] Ausfall ≠ Wert: Wetter null ⇒ „kein Wert erfunden", Shard-Fehler benannt', /kein Wert erfunden/.test(pnl) && /Detail nicht erreichbar \(\{shard\.message\}\)/.test(pnl));
   add('[detail] Evidenz: Gründe der Standort-Einordnung, frühere Kennung, Merkmalsatz + JSON kopieren', /ev\.anomaly\.reasons\.map/.test(pnl) && /previousIds\.join/.test(pnl) && /featuresJson\(ev\.features!\)/.test(pnl));
-  add('[detail] Landbedeckung nur mit EFFIS-Kartierung, Natura 2000 nur mit Wert', /ev\?\.effis && \(/.test(pnl) && /ev\.effis\.percNa2k != null &&/.test(pnl));
+  // BD3 (2026-09-03): die Inline-Karte ist gestrichen — die Regel gilt jetzt im Dossier-Körper,
+  // wo die Natura-2000-Angabe als Ternär in der Kartierungszeile hängt (nur mit Wert).
+  add('[detail] Landbedeckung nur mit EFFIS-Kartierung, Natura 2000 nur mit Wert', /ev\?\.effis && \(/.test(pnl) && /ev\.effis\.percNa2k != null \?/.test(pnl));
   const exp = readFileSync(join(ROOT, 'src', 'history', 'historyExport.ts'), 'utf8');
   const pro = readFileSync(join(ROOT, 'src', 'history', 'HistoryPro.tsx'), 'utf8');
   add('[nebenbefund] CSV-Export nennt die aktive Quelle, nicht fest ERA5', /Quelle: \$\{source\}/.test(exp) && /bucketsToCSV\(buckets, meta, loc\.name, defaultHistorySource\.label\)/.test(pro));

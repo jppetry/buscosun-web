@@ -19,9 +19,10 @@ import { METHOD_LABEL, provisionalArea } from './footprint/fireRegistry';
 import { extentLabel } from './fireClusters';
 import { LEVEL_LABEL } from './fireAssessment';
 import type { AtWarnContext } from './sources/geosphereWarnContext';
+import type { FirmsRow } from './sources/firmsHotspots';
 import {
   Badge, CauseText, DetailConfidenceRows, DetailEinordnungRows, DetailFrpRows, DetailKennzahlenRows,
-  DetailSubline, DetailVerlauf, FeaturesRow, RecordStats, WeatherBlock, recordName, recordTitle,
+  DetailSubline, DetailVerlauf, DriversBlock, FeaturesRow, RecordStats, WeatherBlock, recordName, recordTitle,
 } from './FireFootprintPanel';
 import { SatImageryBlock } from './FireSatImagery';
 import { satEnabled } from './detail/fireSatImagery';
@@ -38,13 +39,21 @@ export interface FireDossierProps {
   aside?: ReactNode;
   /** Kopfzeile oberhalb (mobil: „← Brände" + Segment) — wird vor dem Kopf gerendert. */
   lead?: ReactNode;
+  /**
+   * BD3: zusätzliche Karten im Raster — die Standort-Angaben (`AnomalySiteCards`), wenn der
+   * markierte Eintrag auf einem bekannten Anlagenstandort liegt. Vor BD3 standen sie als
+   * Inline-Karte im Readout; sie dürfen nicht verloren gehen, nur weil die Mitte den Brand zeigt.
+   */
+  extra?: ReactNode;
+  /** SAT3: die FIRMS-Zeilen des Laufs für das Satellitenbild (nur Live-Dossier; Historie hat keine). */
+  detections?: readonly FirmsRow[] | null;
 }
 
-function Eyebrow({ children, tone }: { children: ReactNode; tone?: 'red' | 'steel' | 'stone' | 'warn' }) {
+function Eyebrow({ children, tone }: { children: ReactNode; tone?: 'red' | 'steel' | 'stone' | 'warn' | 'terra' }) {
   return <span className={`br-ds-eyebrow${tone ? ` is-${tone}` : ''}`}>{children}</span>;
 }
 
-export function FireDossier({ r, nowMs, atContext = null, compact = false, mobile = false, aside, lead }: FireDossierProps) {
+export function FireDossier({ r, nowMs, atContext = null, compact = false, mobile = false, aside, lead, extra, detections = null }: FireDossierProps) {
   if (!r) {
     return (
       <section className="br-ds is-empty" aria-label="Brand-Dossier">
@@ -102,6 +111,17 @@ export function FireDossier({ r, nowMs, atContext = null, compact = false, mobil
           <WeatherBlock r={r} nowMs={nowMs} />
         </section>
 
+        {/* BDE-C: die Wetterführung im Brandzeitfenster — Einstufung, Windrose, Zeitreihe.
+            Eigene Karte, weil sie etwas anderes sagt als die Wetterlage darüber: dort einzelne
+            Zeitpunkte, hier der Verlauf und was er für das Feuer bedeutet (abgeleitet). */}
+        <section className="br-ds-card br-ds-drv" aria-label="Wetterführung im Brandzeitfenster">
+          <div className="br-ds-cardhead">
+            <Eyebrow tone="terra">Wetterführung</Eyebrow>
+            <span className="br-ds-cardsub">Im Brandzeitfenster · abgeleitet, keine Messung</span>
+          </div>
+          <DriversBlock r={r} nowMs={nowMs} width={mobile ? 330 : compact ? 420 : 360} />
+        </section>
+
         {/* SAT1: der Brand im Satellitenbild — vorher, während, nachher (wenn die Wolken es zulassen). */}
         {satEnabled() && (
           <section className="br-ds-card br-ds-satbild" aria-label="Satellitenbild vorher, während und nachher">
@@ -109,9 +129,11 @@ export function FireDossier({ r, nowMs, atContext = null, compact = false, mobil
               <Eyebrow tone="stone">Satellitenbild</Eyebrow>
               <span className="br-ds-cardsub">Vorher · während · nachher — wenn die Wolken es zulassen</span>
             </div>
-            <SatImageryBlock t={{ lat: r.lat, lon: r.lon, bbox: r.bbox, firstMs: r.firstMs, lastMs: r.lastMs }} nowMs={nowMs} />
+            <SatImageryBlock t={{ lat: r.lat, lon: r.lon, bbox: r.bbox, firstMs: r.firstMs, lastMs: r.lastMs, detections }} nowMs={nowMs} />
           </section>
         )}
+
+        {extra}
 
         {aside && <div className="br-ds-aside">{aside}</div>}
 

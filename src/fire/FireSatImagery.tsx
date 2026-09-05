@@ -13,8 +13,10 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import {
   cloudLabel, copernicusBrowserUrl, fetchSatImagery, PHASE_LABEL, SAT_ATTRIBUTION,
-  SAT_SOURCE_LABEL, sat10Enabled, satLabel, snapshotUrl, type SatImagery, type SatPhase, type SatScene,
+  SAT_SOURCE_LABEL, sat10Enabled, satLabel, snapshotUrl, SNAP_H, SNAP_W, type SatImagery, type SatPhase, type SatScene,
 } from './detail/fireSatImagery';
+import { detectionRects30m } from './detail/satDetections';
+import type { FirmsRow } from './sources/firmsHotspots';
 
 /** SAT2a: der 10-m-Viewer ist ein eigener Lazy-Chunk — er lädt erst mit dem Klick (NerdPanel-Muster). */
 const FireCogViewer = lazy(() => import('./FireCogViewer'));
@@ -26,6 +28,11 @@ export interface SatTarget {
   bbox: readonly [number, number, number, number] | null;
   firstMs: number | null;
   lastMs: number | null;
+  /**
+   * SAT3: die FIRMS-Zeilen des Laufs — ALLE, das Bild zeigt die in seinem Ausschnitt
+   * (§13.2 (1)). `null`/fehlend = der Aufrufer hat keine (Historie-Ereignis); die Fußnote sagt es.
+   */
+  detections?: readonly FirmsRow[] | null;
 }
 
 // Sitzungs-Cache der geladenen Bilder: kein Doppelabruf beim Hin- und Herschalten (V-SAT-1:
@@ -69,6 +76,8 @@ export function SatImageryBlock({ t, nowMs }: { t: SatTarget; nowMs: number }) {
   const [snap, setSnap] = useState<SnapState | { kind: 'loading' } | null>(null);
   /** SAT2a: 10-m-Ansicht offen? Sitzungszustand, nie Permalink (Präzedenz Szenenwahl). */
   const [cog10, setCog10] = useState(false);
+  /** SAT3: Detektions-Rechtecke über dem 30-m-Bild (Sitzungszustand, default an). */
+  const [showDet, setShowDet] = useState(true);
 
   useEffect(() => {
     let alive = true;
@@ -87,6 +96,12 @@ export function SatImageryBlock({ t, nowMs }: { t: SatTarget; nowMs: number }) {
     if (selDay) return data.scenes.find((s) => s.dayIso === selDay) ?? null;
     return data.pick.after ?? data.pick.during ?? data.pick.before ?? data.scenes.at(-1) ?? null;
   }, [data, selDay]);
+
+  // SAT3: die Rechtecke in Bildpixeln — Plate-Carrée, linear aus derselben BBox wie der Abruf.
+  const detRects = useMemo(
+    () => (data && scene && t.detections ? detectionRects30m(t.detections, data.bbox, SNAP_W, SNAP_H, scene.dayIso) : []),
+    [data, scene, t.detections],
+  );
 
   useEffect(() => {
     if (!data || !scene) { setSnap(null); return; }
@@ -141,12 +156,31 @@ export function SatImageryBlock({ t, nowMs }: { t: SatTarget; nowMs: number }) {
               lat={t.lat} lon={t.lon} dayIso={scene.dayIso}
               fireStartIso={t.firstMs != null ? new Date(t.firstMs).toISOString().slice(0, 10) : null}
               fallbackUrl={copernicusBrowserUrl(t.lat, t.lon, scene.dayIso)}
+              detections={t.detections ?? null}
               onClose={() => setCog10(false)}
             />
           </Suspense>
         )}
         {!cog10 && snap?.kind === 'img' && (
           <img src={snap.url} alt={`Satellitenbild vom ${fmtDay(scene.dayIso)} (${satLabel(scene.sat)}, Echtfarbe, 30 m)`} />
+        )}
+        {/* SAT3: Detektions-Rechtecke als SVG im Bildmaß — Bild und Rahmen teilen das 5:4 von SNAP_W/SNAP_H,
+            das Bild wird nur skaliert, nie beschnitten (§13.2 (3)); die viewBox deckt sich damit pixelgenau. */}
+        {!cog10 && snap?.kind === 'img' && showDet && detRects.length > 0 && (
+          <svg className="br-sat-det" viewBox={`0 0 ${SNAP_W} ${SNAP_H}`} preserveAspectRatio="none" aria-hidden="true">
+            {detRects.map((r, i) => (
+              <rect key={i} x={r.x} y={r.y} width={r.w} height={r.h} className={r.after ? 'is-after' : undefined} />
+            ))}
+          </svg>
+        )}
+        {!cog10 && snap?.kind === 'img' && t.detections && (
+          <button
+            type="button" className="br-sat-dettoggle" aria-pressed={showDet}
+            onClick={() => setShowDet((v) => !v)}
+            title="FIRMS-Detektionen als Pixelgrundfläche ein-/ausblenden"
+          >
+            Detektionen{detRects.length > 0 ? ` · ${detRects.length}` : ' · keine im Bild'}
+          </button>
         )}
         {!cog10 && snap?.kind === 'loading' && <p className="br-sat-wait br-muted">Bild wird geladen …</p>}
         {!cog10 && snap?.kind === 'nodata' && (
@@ -186,6 +220,15 @@ export function SatImageryBlock({ t, nowMs }: { t: SatTarget; nowMs: number }) {
       {data.notes.length > 0 && (
         <ul className="fire-fp-reasons br-muted">{data.notes.map((n, i) => <li key={i}>{n}</li>)}</ul>
       )}
+      {/* SAT3: was die Rechtecke sind — und warum sie in der Historie fehlen. */}
+      {!cog10 && (t.detections
+        ? (showDet && detRects.length > 0 && snap?.kind === 'img' && (
+          <p className="br-sat-detnote br-muted">
+            Rechtecke: FIRMS-Pixelgrundfläche (VIIRS, 375 m) — das Feuer liegt irgendwo darin, nicht in der Mitte;
+            gestrichelt = Aufnahme erst nach diesem Bild. Die Narbe selbst grenzt der dNBR-Modus der 10-m-Ansicht ein.
+          </p>
+        ))
+        : <p className="br-sat-detnote br-muted">Detektions-Rechtecke gibt es nur im Live-Dossier — für Ereignisse aus dem Archiv liegen die FIRMS-Zeilen nicht vor.</p>)}
       <p className="br-note">
         {SAT_SOURCE_LABEL} — bei kleinen Bränden (unter ~10–20 ha) zeigt das 30-m-Bild oft keine sichtbare Narbe.
         Der Wolkenanteil gilt je Szene, nicht am Brandort.

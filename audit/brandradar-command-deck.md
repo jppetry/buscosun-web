@@ -59,3 +59,58 @@ diese Fassung (`font-family: 'League Spartan', var(--font-base)`), kein neuer Go
    des Windlayers — kein App-Fehler.
 5. **Budget:** `npm run build` + `npm run budget` grün — totalJs 922,3/926,1 KB, eagerCss 8,7/8,9 KB.
    Long Tasks nicht neu gemessen (keine Änderung am Datenpfad).
+
+
+---
+
+## 5. Nachtrag BR2 (2026-09-05) — die Datengrundlage verlässt die Sidebar
+
+**Jans Auftrag, in zwei Schritten:** zuerst „Detektionen", „Brandflächen je Brand", „Thermalanomalien" und
+„Frühere Brandflächen" nicht mehr schaltbar machen (die Daten werden gebraucht, ein Schalter dafür ergibt
+keinen Sinn) — danach: „die Layer von den besagten Layer entfernen, diese Informationen bringen uns nichts
+mehr", also auch die Zeilen selbst aus dem Dock. **Kein Rückzug:** die vier Layer laufen unverändert
+weiter, sie laufen nur immer und ohne Bedienelement.
+
+**Befund, warum das stimmt:** Brandliste, Dossier und die Anomalien-Einordnung lesen diese vier ohnehin;
+ein ausgeschalteter Layer machte die Karte leer, ohne dass die Liste daneben leerer wurde — die Seite
+widersprach sich selbst. Der Ausschalter war auch kein Sparhebel: die Abrufe hängen an der Registry,
+nicht am Schalter. Ohne Schalter blieb von der Zeile nur Text übrig, der in jedem Zustand dasselbe sagt.
+
+**Was gebaut wurde**
+
+| Stelle | Änderung |
+|---|---|
+| `fireModel.ts` | `FIRE_ALWAYS_ON` + `withFireAlwaysOn()` — die EINE Stelle, die die vier ergänzt (Hash, Sub-Route, Preset, Default) |
+| `fireModel.ts` | `activeFirePresetId` ergänzt beide Seiten, sonst könnte kein Preset je wieder hervorgehoben sein |
+| `FirePage.tsx` | `dockGroups` filtert die vier heraus; eine dadurch leere Gruppe entfällt ganz, statt als leere Überschrift stehen zu bleiben |
+| `FirePage.tsx` | `burntBlock` — der Zeitkorb-Filter der früheren Brandflächen steht jetzt für sich („Frühere Brandflächen · Zeitraum") |
+| `FirePage.tsx` | `readoutLayers` (mobiles Karten-Sheet) lässt die vier aus — sie stünden sonst in JEDEM Sheet |
+| `FirePage.tsx` | der Zähler im Dock-Kopf zählt die SCHALTBAREN Layer (`switchableCount`), sonst nennt er mehr, als das Dock zeigt |
+| `FirePage.tsx` | `toggle()` weist die vier ab (ein Aufruf wäre ein Fehler im Aufrufer) |
+| `fireDeck.css` | `.br-layerwrap.is-standalone` + `.br-standalone-head` für den freistehenden Filter |
+| `fireRouteView.ts` | `fireViewFromState` entschied an `fireHotspots`/`fireFootprints` — die stehen jetzt in JEDEM Zustand und hätten jeden Slug zu `aktive-braende` gemacht. Es entscheiden nur noch die schaltbaren Flächen; `aktive-braende` und `trockenheit` blenden dafür die Gefahrenfläche ab, sonst wären sie von `gefahrenindex` nicht zu unterscheiden |
+
+**Was bewusst BLEIBT (Funktionserhalt):** der Zeitkorb-Filter der früheren Brandflächen
+(7 Tage | Saison | Archiv + Tagesregler). Er ist kein Steckbrief, sondern bestimmt, WELCHE kartierten
+Flächen die Karte zeigt — und ohne ihn wäre auch der Umfang „ganze Saison" der Brände-Liste gesperrt.
+Verloren gehen ausschließlich die vier Schalter und ihre Steckbrief-Texte im Dock; die Ehrlichkeits-Sätze
+zu Grenze und Rückfall stehen weiterhin in `brandradarMeta.ts` und damit im Dossier-/Karten-Pfad.
+
+**Nebenwirkungen, ausgesprochen:** ein Alt-Link mit `fb: 0` (frühere Brandflächen bewusst aus) öffnet sie
+jetzt trotzdem — das ist der Auftrag, nicht ein Fehler im Codec (`fireState.ts` liest `fb` unverändert).
+Und „Gefahrenindex + Feuerwetter" ist jetzt derselbe Zustand wie das Preset „Aktuelle Lage".
+
+**Belege (2026-09-05)**
+
+- `npm run typecheck` grün, `npm run build` grün.
+- `verify:routing` **111/111** (3 neue Rundlauf-Prüfungen je Sub-Route), `verify:fire-model` **123/123**,
+  `verify:fire-anomalies` 56/56, `verify:fire-time`, `-detail`, `-events`, `-corroboration`, `-sources`,
+  `-boden`, `-behoerden`, `-danger-views` je 0 Fehler.
+- Unverändert gegenüber dem Stand VOR der Änderung (Altbestand, mit `git stash` gegengeprüft):
+  `fire-footprint` 72/73, `fire-registry` 1, `fire-history` 1, `fire-zones` 1, `fire-activity` 3,
+  `fire-clusters` 8. **Keine neue Fehlprüfung.**
+- Ansicht Desktop 1440×900 und Mobil 390×844 (Layer-Seite, Accessibility-Snapshot): Dock trägt noch
+  EU-Gefahrenindex, Feuerwetter-Treiber, Bodentrockenheit, Brennmaterial, Schutzgebiete und den
+  Zeitraum-Block; Karte zeichnet Detektionen, Anomalien-Rauten, Brandflächen und die FWI-Fläche
+  unverändert, Brände-Liste 134 Einträge. Kopfzeile „1 aktiv". Konsole nur die vorbestehenden externen
+  Fehler (GeoSphere 404, EFFIS/EMS-CORS im Dev-Server ohne Netlify-Proxys).

@@ -31,6 +31,15 @@
  * nur, wenn die Verschiebung größer ist als eine halbe Pixelbreite
  * (`SPREAD_MIN_M`) — darunter ist es Gitterrauschen, keine Bewegung.
  *
+ * ── Geschwindigkeit (`spreadSpeedMh`) ───────────────────────────────────────
+ * Verschiebung geteilt durch die Zeit, über die sie stattfand (FRP-gewichtetes Mittel
+ * der früheren Zeitpunkte → jüngster Überflug — dieselben Gewichte wie beim Schwerpunkt).
+ * **Das ist NICHT die Geschwindigkeit der Feuerfront.** Es ist die Wanderung eines
+ * Schwerpunkts zwischen zwei Momentaufnahmen im Abstand von Stunden: erlischt eine Flanke
+ * und entzündet sich eine andere, „bewegt" sich der Schwerpunkt, ohne dass etwas gelaufen
+ * wäre. Die Zahl steht deshalb nur zusammen mit ihrer Zeitspanne und heißt in der
+ * Oberfläche „Verlagerung", nie „Ausbreitungsgeschwindigkeit".
+ *
  * ── Windabgleich (`windAgreement`) ───────────────────────────────────────────
  * Ein Flag, keine Korrektur: liegt die Ausbreitungsrichtung innerhalb
  * `WIND_AGREE_DEG` um die Windrichtung („wohin" = met. Richtung + 180°), gilt
@@ -62,6 +71,24 @@ export const SPREAD_MIN_M = 200;
 export const WIND_AGREE_DEG = 60;
 export const WIND_DISAGREE_DEG = 120;
 
+/**
+ * BDE-B: worauf die Richtungsaussage steht. Alle drei Zahlen sind Beobachtung, keine
+ * Bewertung — die Einordnung („grob"/„belastbar") entsteht erst in der Anzeige, mit
+ * ausgesprochener Regel. `meanStepM` ist der mittlere Abstand aufeinanderfolgender
+ * Überflug-Schwerpunkte: springt er weit über `spreadDistanceM` hinaus, wandert der
+ * Schwerpunkt hin und her, statt sich zu verlagern.
+ */
+export interface SpreadConfidence {
+  /** Überflüge mit FRP, die in die Richtung eingehen. */
+  passes: number;
+  /** Detektionen (Pixel) in diesen Überflügen. */
+  detections: number;
+  /** Zeitspanne zwischen erstem und letztem dieser Überflüge. */
+  spanMs: number;
+  /** Mittlerer Abstand aufeinanderfolgender Schwerpunkte, m; `null` unter zwei Überflügen. */
+  meanStepM: number | null;
+}
+
 export interface Dynamics {
   state: Exclude<ActivityState, 'no-signal'> | null;
   /** Warum die Tendenz fehlt oder wie sie zustande kam — für den Steckbrief. */
@@ -69,6 +96,16 @@ export interface Dynamics {
   spreadBearingDeg: number | null;
   /** Verschiebung des Schwerpunkts in m (nur wenn eine Richtung ausgegeben wird). */
   spreadDistanceM: number | null;
+  /**
+   * Zeit, über die diese Verschiebung stattfand: vom FRP-gewichteten Mittel der Zeitpunkte
+   * der früheren Überflüge bis zum jüngsten — dieselbe Gewichtung wie beim Schwerpunkt,
+   * sonst gehörten Weg und Zeit nicht zusammen.
+   */
+  spreadSpanMs: number | null;
+  /** Verschiebung je Stunde (m/h). KEINE Feuerfrontgeschwindigkeit — s. Modulkopf. */
+  spreadSpeedMh: number | null;
+  /** Worauf die Richtung steht — auch dann gefüllt, wenn keine Richtung herauskommt. */
+  spreadConfidence: SpreadConfidence | null;
 }
 
 /** Die jüngsten Überflüge derselben Tageshälfte wie der letzte, mit FRP, aufsteigend. */
@@ -101,7 +138,8 @@ export function dynamicsOf(passes: readonly FirePass[]): Dynamics {
     return {
       state: null,
       stateNote: hasFrp ? 'nur ein Überflug dieser Tageshälfte mit FRP — kein Verlauf' : 'keine Überflüge mit FRP',
-      spreadBearingDeg: null, spreadDistanceM: null,
+      spreadBearingDeg: null, spreadDistanceM: null, spreadSpanMs: null, spreadSpeedMh: null,
+      spreadConfidence: confidenceOf(passes.filter((p) => p.frpPixels > 0)),
     };
   }
   const cmp = comparablePasses(passes);
@@ -142,22 +180,46 @@ export function dynamicsOf(passes: readonly FirePass[]): Dynamics {
 
   // Ausbreitungsrichtung
   let spreadBearingDeg: number | null = null; let spreadDistanceM: number | null = null;
+  let spreadSpanMs: number | null = null; let spreadSpeedMh: number | null = null;
   const withFrp = passes.filter((p) => p.frpPixels > 0);
+  const spreadConfidence = confidenceOf(withFrp);
   if (withFrp.length >= 3) {
     const last = withFrp[withFrp.length - 1];
     const earlier = withFrp.slice(0, -1);
-    let wLat = 0, wLon = 0, w = 0;
-    for (const p of earlier) { wLat += p.lat * p.sumFrp; wLon += p.lon * p.sumFrp; w += p.sumFrp; }
+    let wLat = 0, wLon = 0, wMs = 0, w = 0;
+    for (const p of earlier) { wLat += p.lat * p.sumFrp; wLon += p.lon * p.sumFrp; wMs += p.atMs * p.sumFrp; w += p.sumFrp; }
     if (w > 0) {
       const from = { lat: wLat / w, lon: wLon / w };
       const dist = metersBetween(from, last);
       if (dist > SPREAD_MIN_M) {
         spreadBearingDeg = bearingDeg(from.lat, from.lon, last.lat, last.lon);
         spreadDistanceM = Math.round(dist);
+        // Die Zeit zum Weg: gewichtetes Mittel der früheren Zeitpunkte → jüngster Überflug.
+        // Dieselben Gewichte wie beim Schwerpunkt — sonst gehörten Zähler und Nenner nicht zusammen.
+        const span = last.atMs - wMs / w;
+        if (span > 0) {
+          spreadSpanMs = Math.round(span);
+          spreadSpeedMh = Math.round(dist / (span / 3_600_000));
+        }
       }
     }
   }
-  return { state, stateNote, spreadBearingDeg, spreadDistanceM };
+  return { state, stateNote, spreadBearingDeg, spreadDistanceM, spreadSpanMs, spreadSpeedMh, spreadConfidence };
+}
+
+/** Zählwerk zur Richtung — ohne Bewertung; `null`, wenn kein Überflug mit FRP da ist. */
+export function confidenceOf(withFrp: readonly FirePass[]): SpreadConfidence | null {
+  if (withFrp.length === 0) return null;
+  let detections = 0;
+  for (const p of withFrp) detections += p.frpPixels;
+  let steps = 0; let sum = 0;
+  for (let i = 1; i < withFrp.length; i++) { sum += metersBetween(withFrp[i - 1], withFrp[i]); steps++; }
+  return {
+    passes: withFrp.length,
+    detections,
+    spanMs: withFrp[withFrp.length - 1].atMs - withFrp[0].atMs,
+    meanStepM: steps > 0 ? Math.round(sum / steps) : null,
+  };
 }
 
 function fmtPct(ratio: number): string {
@@ -262,6 +324,28 @@ export function verifyDynamics(): { checks: DynamicsCheck[]; passed: number; tot
   add('Windflag: 90° Abweichung ⇒ null (unklar), ohne Wind ⇒ null', windAgreement(90, 180) === null && windAgreement(90, null) === null);
   add('Kompass: 0 N, 45 NO, 90 O, 225 SW', compassLabel(0) === 'N' && compassLabel(45) === 'NO' && compassLabel(90) === 'O' && compassLabel(225) === 'SW');
   add('Konstanten wie im Konzept (±30 %, 3 Überflüge)', STABLE_TOLERANCE === 0.3 && TREND_WINDOW === 3);
+
+  // BDE-B: Geschwindigkeit und Konfidenz.
+  // Drei Überflüge (t0, t0+2h, t0+4h), Schwerpunkt der ersten beiden bei t0+1h ⇒ Spanne 3 h.
+  add('Verlagerung: Weg und Zeit gehören zusammen (Spanne = gewichtetes Mittel → jüngster Überflug)',
+    east.spreadSpanMs === 3 * H && east.spreadSpeedMh != null
+    && Math.abs(east.spreadSpeedMh - Math.round((east.spreadDistanceM ?? 0) / 3)) <= 1,
+    `${east.spreadSpanMs} ms / ${east.spreadSpeedMh} m/h`);
+  add('ohne Richtung auch keine Geschwindigkeit (nie eine Zahl ohne ihre Verschiebung)', (() => {
+    const d = dynamicsOf([pass(t0, 10), pass(t0 + 2 * H, 10), pass(t0 + 4 * H, 10, 48.001, 11)]);
+    return d.spreadBearingDeg === null && d.spreadSpeedMh === null && d.spreadSpanMs === null;
+  })());
+  add('Konfidenz zählt Überflüge, Detektionen, Zeitspanne und mittleren Schritt',
+    east.spreadConfidence != null && east.spreadConfidence.passes === 3
+    && east.spreadConfidence.detections === 6 && east.spreadConfidence.spanMs === 4 * H
+    && east.spreadConfidence.meanStepM != null && east.spreadConfidence.meanStepM > 0,
+    JSON.stringify(east.spreadConfidence));
+  add('Konfidenz gibt es AUCH ohne Richtung — sie erklärt, warum keine da ist', (() => {
+    const d = dynamicsOf([pass(t0, 10)]);
+    return d.spreadBearingDeg === null && d.spreadConfidence?.passes === 1 && d.spreadConfidence.meanStepM === null;
+  })());
+  add('ohne Überflug mit FRP keine Konfidenz (null, nicht 0)',
+    dynamicsOf([pass(t0, 0), pass(t0 + 2 * H, 0)]).spreadConfidence === null);
 
   const passed = checks.filter((c) => c.ok).length;
   return { checks, passed, total: checks.length };

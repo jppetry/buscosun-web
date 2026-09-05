@@ -26,7 +26,7 @@
 import type { FirePass } from './overpasses';
 import { verifyOverpasses } from './overpasses';
 import { intensityOf, verifyIntensity, type Intensity } from './intensity';
-import { dynamicsOf, windAgreement, verifyDynamics } from './dynamics';
+import { dynamicsOf, windAgreement, verifyDynamics, type SpreadConfidence } from './dynamics';
 import { verifyObservation, type Observation } from './observation';
 import { verifyFeatures } from './features';
 import { verifyCalibration } from './calibration';
@@ -50,6 +50,12 @@ export interface FireActivity extends Intensity {
   /** AF2: Ausbreitungsrichtung (Grad, wohin) aus der Verschiebung des FRP-Schwerpunkts; `null` unter 3 Überflügen oder unter einer halben Pixelbreite. */
   spreadBearingDeg: number | null;
   spreadDistanceM: number | null;
+  /** BDE-B: Zeitspanne, über die sich der Schwerpunkt verlagert hat (ms) — gehört zu `spreadDistanceM`. */
+  spreadSpanMs: number | null;
+  /** BDE-B: Verlagerung je Stunde (m/h) — KEINE Frontgeschwindigkeit, s. `dynamics.ts`. */
+  spreadSpeedMh: number | null;
+  /** BDE-B: worauf die Richtung steht (Überflüge, Detektionen, Zeitspanne, mittlerer Schritt). */
+  spreadConfidence: SpreadConfidence | null;
   /** AF2: Plausibilitätsflag gegen den ICON-D2-Wind — nie eine Korrektur; `null` ohne Wind (Layer aus, Frame > 3 h entfernt) oder ohne Richtung. */
   windAgreement: 'agree' | 'disagree' | null;
   /** AF2: benutzte Windrichtung („kommt aus", Grad) — damit das Flag nachvollziehbar bleibt. */
@@ -89,6 +95,9 @@ export function activityOf(passes: readonly FirePass[], ctx: ActivityContext = N
     observationNote: ctx.noSignal && ctx.observation ? ctx.observation.note : null,
     spreadBearingDeg: dyn.spreadBearingDeg,
     spreadDistanceM: dyn.spreadDistanceM,
+    spreadSpanMs: dyn.spreadSpanMs,
+    spreadSpeedMh: dyn.spreadSpeedMh,
+    spreadConfidence: dyn.spreadConfidence,
     windAgreement: windAgreement(dyn.spreadBearingDeg, ctx.windFromDeg),
     windFromDeg: ctx.windFromDeg,
     areaEst: null,

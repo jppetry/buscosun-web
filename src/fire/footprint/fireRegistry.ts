@@ -754,6 +754,51 @@ export function provisionalArea(r: FireRecord): ProvisionalArea | null {
   return e ? provisionalAreaText(e, r.areaHa.kind === 'upper-bound' ? r.areaHa.value : null) : null;
 }
 
+// ---------------------------------------------------------------------------
+// BDE-A: warum keine EFFIS-Kartierung vorliegt
+// ---------------------------------------------------------------------------
+
+/**
+ * Verzug der EFFIS-Kartierung gegenüber der Beobachtung, in Tagen. Innerhalb dieser
+ * Spanne ist eine fehlende Fläche **kein Befund** — sie ist der Normalfall.
+ * Beleg: `audit/waldbrand-effis.md` (E1) und die Kartenzeile „läuft der Beobachtung
+ * 1–3 Tage nach", die dieselbe Zahl nennt.
+ */
+export const EFFIS_LAG_DAYS = 3;
+
+/**
+ * ⚠️ **Die verbreitete Aussage „EFFIS kartiert erst ab ~30 ha" ist für heute falsch** und
+ * darf so nicht in der Oberfläche stehen. Am Bestand gemessen (`audit/waldbrand-effis.md`
+ * Befund B3): Sie gilt nur für die MODIS-Ära (kleinste Fläche je Jahr 2016–2019:
+ * 52/34/22/21 ha); **ab 2020/21 kartiert EFFIS Sentinel-2-gestützt bis 0–2 ha**.
+ * Saison 2026 in DACH: 293 Flächen, Median **5 ha**, **231 von 293 unter 30 ha**.
+ * Diese Zahlen stehen im Begründungstext, damit niemand die alte Regel zurückholt.
+ */
+export const EFFIS_SIZE_EVIDENCE =
+  'an der Größe liegt es nicht: EFFIS kartiert seit 2020/21 Sentinel-2-gestützt auch kleine Flächen '
+  + '(Saison 2026 in DACH: 293 Flächen, Median 5 ha, 231 davon unter 30 ha)';
+
+/**
+ * Ein Satz dazu, warum dieser Brand keine kartierte Fläche hat — `null`, wenn er eine hat.
+ * Zwei Fälle, weil sie verschiedene Dinge bedeuten: zu früh (Regelfall, kein Befund) und
+ * spät genug, aber trotzdem nichts da (dann werden die möglichen Gründe genannt, ohne
+ * einen davon zu behaupten).
+ */
+export function mappingGapText(r: FireRecord, nowMs: number): string | null {
+  if (r.sources.effis || r.areaHa.kind === 'mapped') return null;
+  const ref = r.lastMs ?? r.firstMs;
+  if (ref == null) return 'Keine kartierte Fläche und keine Detektion im Fenster — es gibt keinen Zeitpunkt, ab dem eine Kartierung zu erwarten wäre.';
+  const days = (nowMs - ref) / 86_400_000;
+  if (days < EFFIS_LAG_DAYS) {
+    const h = Math.max(0, Math.round((nowMs - ref) / 3_600_000));
+    return `Noch keine EFFIS-Kartierung — und das ist hier kein Befund: die Kartierung läuft der Beobachtung `
+      + `1–${EFFIS_LAG_DAYS} Tage nach, die letzte Detektion liegt ${h} h zurück.`;
+  }
+  return `Seit der letzten Detektion sind ${Math.floor(days)} Tage vergangen, eine EFFIS-Kartierung liegt trotzdem nicht vor — `
+    + `${EFFIS_SIZE_EVIDENCE}. Möglich sind: keine wolkenfreie Sentinel-2-Szene über der Stelle, kein Vegetationsbrand `
+    + `(Industrie, Feldrand, Abfackeln), oder die Fläche wurde bisher nicht kartiert. Welcher Grund zutrifft, sagt uns keine Quelle.`;
+}
+
 /** Warum eine Zelle „—" zeigt — als `title`, damit die Lücke einen Grund hat. */
 export function missingReason(r: FireRecord, field: 'area' | 'country' | 'place' | 'hotspots' | 'confidence'): string | null {
   switch (field) {

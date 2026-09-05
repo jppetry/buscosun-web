@@ -12,6 +12,11 @@
  * aus dem Vergleich mit der letzten wolkenarmen Vorher-Szene DESSELBEN Granulats (identisches
  * Pixelgitter, §10.1 (3)). Jede Lücke (kein Band, keine Vorher-Szene, fremdes Format) ist ein
  * BENANNTER Zustand mit dem Copernicus-Link als Ausweg — nie ein stilles Falschbild.
+ *
+ * SAT3 (§13): die FIRMS-Detektionen liegen als Pixelgrundflächen über jedem Modus (Rechteck =
+ * scan × track, das Feuer liegt irgendwo darin; gestrichelt = Aufnahme erst NACH diesem Bild),
+ * und im dNBR-Modus bekommt die zusammenhängende Narbe, die die Detektionen berührt, einen
+ * hellen Umriss samt Hektarzahl — mit ihrer Auflösung im Satz, nie als „Brandfläche".
  */
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -20,6 +25,9 @@ import {
   parseCogIfds, pickLevel, subTileU16, tilesFor, type CogIfd, type CogTileRef,
 } from './detail/cogTiff';
 import { dnbrTileRgba, swirTileRgba, DNBR_CLASSES } from './detail/burnIndex';
+import { floodScar, scarHa, seedsFromRects, SCAR_MIN_CLASS, type ScarResult } from './detail/burnScar';
+import { detectionPolysPx, type DetPoly } from './detail/satDetections';
+import type { FirmsRow } from './sources/firmsHotspots';
 import { fetchS2CogRef, fetchS2PreCogRef, type S2CogRef, type S2PreRef } from './detail/fireSatImagery';
 import { pixelOf } from './detail/sentinelGeo';
 import { prepareWcSampler, wcEnabled, wcVia, type WcSampler, type WcVia } from './detail/worldCover';
@@ -36,6 +44,11 @@ export interface CogViewerProps {
   fireStartIso: string | null;
   /** Copernicus-Deep-Link als Ausweg im Fehlerfall (kommt vom Aufrufer, EINE URL-Stelle). */
   fallbackUrl: string;
+  /**
+   * SAT3: die FIRMS-Zeilen des Laufs (alle, nicht „die dieses Brands" — §13.2 (1)); `null` =
+   * der Aufrufer hat keine (Historie-Ereignis). Die Narbe sät dann am Brandort.
+   */
+  detections?: readonly FirmsRow[] | null;
   onClose: () => void;
 }
 
@@ -47,6 +60,32 @@ const MIN_M_PER_CSS_PX = FULL_M_PER_PX / 2;
 const MAX_M_PER_CSS_PX = 250;
 /** Startfenster um den Brand (halbe Kantenlänge) — dieselbe Größenordnung wie `snapshotBbox`. */
 const START_HALF_M = 9_000;
+/** SAT3: Detektionen bis so weit außerhalb der Szene werden projiziert (zwei Startfenster). */
+const DET_MARGIN_PX = (2 * START_HALF_M) / FULL_M_PER_PX;
+/**
+ * Detektions-Rechtecke: helles Signal-Terracotta über dunklem Halo. Bewusst KEIN Deck-Token —
+ * das matte `--terracotta-500` (#C97B47) war auf braun-grünem Gelände gemessen unsichtbar
+ * (§13.5); ein Overlay auf einem Foto ist kein UI-Chrome und braucht Leuchtkraft. Der Wert MUSS
+ * mit `.br-sat-det rect` in `fireDeck.css` übereinstimmen: dasselbe Rechteck in zwei Bildern.
+ */
+const DET_COLOR = '#FFB08A';
+/** Füllung der Rechtecke — es ist eine FLÄCHE („das Feuer liegt irgendwo darin"), keine Linie. */
+const DET_FILL = 'rgba(255, 176, 138, 0.28)';
+const DET_HALO = 'rgba(44, 42, 38, 0.85)';
+/** Narben-Umriss: Creme wie Fadenkreuz und Maßstab — eine Farbe, die KEINE dNBR-Klasse trägt. */
+const SCAR_COLOR = '#FDFBF4';
+/** SAT3d Kill-Switch `?scar=0` (Rule 2, Muster `?sat10=0`): dNBR-Overlay wie vor SAT3, ohne Fill — auch der Kontrolllauf der Long-Task-Messung. */
+function scarEnabled(): boolean {
+  try { return new URLSearchParams(window.location.search).get('scar') !== '0'; } catch { return true; }
+}
+/**
+ * Wartezeit, bis der Narben-Fill läuft (§13.4 (3)). Beim Zoomen kommen die Kacheln einzeln an, und
+ * JEDE ändert den Fill-Schlüssel (`present`) — ohne Entprellung rechnete der Fill je Kachel einmal.
+ * Gemessen brachte das 4 Tasks > 200 ms je Zoomfolge gegen 0–1 im Kontrolllauf `?scar=0`. Der
+ * Auftrag wird deshalb bei jeder Änderung neu gestellt und der vorige verworfen: gerechnet wird
+ * erst, wenn der Kachelsatz steht.
+ */
+const SCAR_SETTLE_MS = 400;
 
 type CogMode = 'tci' | 'swir' | 'dnbr';
 const MODE_LABEL: Record<CogMode, string> = { tci: 'Echtfarbe', swir: 'SWIR', dnbr: 'Verbrannt (dNBR)' };
@@ -69,6 +108,16 @@ const BAND_CACHE_MAX = 32;
 /** SAT2c: dekodierte SCL-Kacheln (uint8, 5–12 KB je Kachel) — eigener kleiner Deckel. */
 const _sclTiles = new Map<string, Promise<Uint8Array>>();
 const SCL_CACHE_MAX = 32;
+/**
+ * SAT3d: die Klasse je Pixel der dNBR-Kacheln (uint8, 256 KB je 512²) — unter DEMSELBEN Schlüssel
+ * wie das Bitmap, synchron lesbar, damit der Narben-Fill im Draw ohne Promise auskommt.
+ */
+const _clsTiles = new Map<string, Uint8Array>();
+const CLS_CACHE_MAX = 24;
+function putCls(key: string, cls: Uint8Array): void {
+  if (_clsTiles.size >= CLS_CACHE_MAX) _clsTiles.delete(_clsTiles.keys().next().value as string);
+  _clsTiles.set(key, cls);
+}
 const MAX_IN_FLIGHT = 4;
 let _inFlight = 0;
 const _queue: Array<() => void> = [];
@@ -279,7 +328,10 @@ function loadDnbrTile(
         ? wcArgs.wc(wcArgs.epsg, wcArgs.e0, wcArgs.n0, wcArgs.stepM, lv.postS.tileW, lv.postS.tileH, onBytes).catch(() => null)
         : Promise.resolve(null),
     ]);
-    const rgba = dnbrTileRgba(preN, preS, postN, postS, pre, post, preScl, postScl, wcCls);
+    // SAT3d: die Klassenkachel entsteht in derselben Schleife und bleibt für den Narben-Fill.
+    const cls = new Uint8Array(lv.postS.tileW * lv.postS.tileH);
+    const rgba = dnbrTileRgba(preN, preS, postN, postS, pre, post, preScl, postScl, wcCls, cls);
+    putCls(key, cls);
     return createImageBitmap(new ImageData(rgba, lv.postS.tileW, lv.postS.tileH));
   })());
 }
@@ -334,7 +386,21 @@ type ExtraState =
   | { kind: 'absent'; sentence: string }
   | { kind: 'error'; sentence: string };
 
-export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallbackUrl, onClose }: CogViewerProps) {
+/** SAT3d: was der Satz unter dem Bild über die Narbe sagt — aus dem Draw, mit Gleichheitswächter. */
+interface ScarNote {
+  ha: number;
+  stepM: number;
+  /** Kacheln der Sicht fehlen noch — die Zahl ist eine Untergrenze. */
+  partial: boolean;
+  /** Die Narbe berührt den Rand der geladenen Sicht — reicht wahrscheinlich darüber hinaus. */
+  edge: boolean;
+  /** Saat waren die Detektions-Rechtecke oder (ohne Zeilen) der Brandort. */
+  seed: 'det' | 'point';
+  /** Kein Saatpixel hatte Narbenklasse — an den Detektionen gibt es keine zusammenhängende Fläche. */
+  none: boolean;
+}
+
+export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallbackUrl, detections = null, onClose }: CogViewerProps) {
   const [phase, setPhase] = useState<Phase>({ kind: 'loading', word: 'Szene wird gesucht …' });
   const [full, setFull] = useState(false);
   const [mode, setMode] = useState<CogMode>('tci');
@@ -346,6 +412,13 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
   // Spiegel ehrlich „37 m statt 10 m" (aufgefrischt im Draw, damit ein Latch-Kipp sichtbar wird).
   const [wcSrcVia, setWcSrcVia] = useState<WcVia | null>(null);
   const [status, setStatus] = useState({ tiles: 0, mb: 0, mPerPx: 0, viewMpp: 0, edge: false });
+  /** SAT3: Detektions-Rechtecke ein-/ausblenden (Sitzungszustand, default an). */
+  const [showDet, setShowDet] = useState(true);
+  const showDetRef = useRef(true);
+  showDetRef.current = showDet;
+  const [scar, setScar] = useState<ScarNote | null>(null);
+  const detectionsRef = useRef(detections);
+  detectionsRef.current = detections;
 
   const boxRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -358,7 +431,15 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
     sclMask?: boolean;
     /** SAT2d: Landbedeckungs-Sampler — `null`/fehlend heißt „ohne Dämpfung" (Satz sagt es). */
     wc?: WcSampler | null;
+    /** SAT3: Detektions-Rechtecke in Vollauflösungs-Pixeln des Granulats (leer ohne Zeilen). */
+    det: DetPoly[];
   } | null>(null);
+  /** SAT3d: der letzte Narben-Fill — Schlüssel = Ebene + Kachelmenge + Ladestand + Saat. */
+  const scarRef = useRef<{
+    key: string; result: ScarResult; gx0: number; gy0: number; gw: number; fac: number; stepM: number; partial: boolean;
+  } | null>(null);
+  /** Der Fill läuft in einem EIGENEN Task nach dem Draw (Muster V-SAT-17) — hier der ausstehende Aufruf. */
+  const scarJobRef = useRef<{ key: string; id: number } | null>(null);
   // Sichtzustand: Zentrum in Vollauflösungs-Pixeln + Meter je CSS-Pixel.
   const viewRef = useRef({ cx: 0, cy: 0, mpp: 30 });
   const bytesRef = useRef({ tiles: 0, bytes: 0 });
@@ -393,7 +474,13 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
       try {
         const ifds = await fetchIfds(ref.href, onHeaderBytes);
         if (!alive) return;
-        dataRef.current = { ref, ifds, fire };
+        dataRef.current = {
+          ref, ifds, fire,
+          det: detectionsRef.current
+            ? detectionPolysPx(detectionsRef.current, ref.epsg, ref.transform, ref.shape, DET_MARGIN_PX, dayIso, pixelOf)
+            : [],
+        };
+        scarRef.current = null;
         viewRef.current = { cx: fire.px, cy: fire.py, mpp: 30 };
         setStatus((s) => ({ ...s, edge: ref.marginPx * FULL_M_PER_PX < START_HALF_M }));
         setPhase({ kind: 'ready' });
@@ -410,6 +497,18 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
     })();
     return () => { alive = false; };
   }, [lat, lon, dayIso]);
+
+  // SAT3: kommen neue FIRMS-Zeilen (Lauf), ziehen die Rechtecke nach — die Szene bleibt.
+  useEffect(() => {
+    const d = dataRef.current;
+    if (!d || phase.kind !== 'ready') return;
+    d.det = detections
+      ? detectionPolysPx(detections, d.ref.epsg, d.ref.transform, d.ref.shape, DET_MARGIN_PX, dayIso, pixelOf)
+      : [];
+    scarRef.current = null;
+    schedule();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [detections, phase.kind]);
 
   // --- SAT2b: Band-Header (SWIR) und Vorher-Szene (dNBR) on-demand mit dem Moduswechsel --------
   useEffect(() => {
@@ -568,7 +667,7 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
             }
             continue;
           }
-          void cached.then((bmp) => { if (sameView()) { place(lv.ifd, t, bmp); drawCross(); } }, () => undefined);
+          void cached.then((bmp) => { if (sameView()) { place(lv.ifd, t, bmp); drawOverlays(); } }, () => undefined);
         }
       }
     };
@@ -595,6 +694,7 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
     }
 
     // dNBR-Overlay über der Echtfarbe — nur die gewählte Ebene (Deckkraft, s. o.).
+    let scarNote: ScarNote | null = null;
     if (m === 'dnbr' && d.dnbrLevels && d.dnbrLevels.length > 0 && d.pre?.ref.bands && d.ref.bands) {
       const post = d.ref.bands;
       const pre = d.pre.ref.bands;
@@ -612,13 +712,132 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
           n0: d.ref.transform[5] - t.row * lv.postS.tileH * stepM,
         };
       };
+      const keyOf = (lv: DnbrLevel, t: CogTileRef) =>
+        `dnbr|${post.swir22}|${pre.swir22}|${lv.postS.width}|${t.idx}${wcKeySuffix(d.wc != null)}`;
       drawPyramid(d.dnbrLevels.map((lv) => ({
         ifd: lv.postS,
-        key: (t) => `dnbr|${post.swir22}|${pre.swir22}|${lv.postS.width}|${t.idx}${wcKeySuffix(d.wc != null)}`,
+        key: (t) => keyOf(lv, t),
         request: (t) => loadDnbrTile(post, pre, lv, t, onBytes, wcArgsFor(lv, t)),
       })), chosen.ifd.width, true, d.wc ? WC_STARTS_PER_FRAME : 12);
+
+      // SAT3d: die zusammenhängende Narbe an den Detektionen — auf der gezeigten Ebene, aus den
+      // Kacheln dieser Sicht, die schon da sind. Der Schlüssel trägt den Ladestand: jede neu
+      // angekommene Kachel rechnet einmal nach, ein bloßes Verschieben im selben Kachelsatz nicht.
+      const lv = scarEnabled() ? d.dnbrLevels.find((l) => l.postS.width === chosen.ifd.width) : undefined;
+      if (lv) {
+        const fac = lv.postS.width / fullW;
+        // Das Raster ist die Sicht, GESCHNITTEN mit dem Startfenster um den Brand (±9 km): so bleibt
+        // der Fill unter ~0,8 Mio Pixel, egal wie weit herausgezoomt wird — im Vollbild über die
+        // ganze Sicht lief er auf 185–208 ms (§13.4 (3)). Eine Narbe über 18 km gibt es in DACH nicht.
+        const half = START_HALF_M / FULL_M_PER_PX;
+        const tiles = tilesFor(
+          lv.postS,
+          Math.max(px0, d.fire.px - half) * fac, Math.max(py0, d.fire.py - half) * fac,
+          Math.min(px1, d.fire.px + half) * fac, Math.min(py1, d.fire.py + half) * fac,
+        );
+        if (tiles.length > 0) {
+          const present = tiles.map((t) => (_clsTiles.has(keyOf(lv, t)) ? 1 : 0));
+          const seedKind = d.det.length > 0 ? 'det' : 'point';
+          const key = `${lv.postS.width}|${tiles.map((t) => t.idx).join(',')}|${present.join('')}|${wcKeySuffix(d.wc != null)}|${seedKind}|${d.det.length}`;
+          let sc = scarRef.current;
+          const computeScar = () => {
+            const tw = lv.postS.tileW, th = lv.postS.tileH;
+            const c0 = Math.min(...tiles.map((t) => t.col)), c1 = Math.max(...tiles.map((t) => t.col));
+            const r0 = Math.min(...tiles.map((t) => t.row)), r1 = Math.max(...tiles.map((t) => t.row));
+            const gw = (c1 - c0 + 1) * tw, gh = (r1 - r0 + 1) * th;
+            const grid = new Uint8Array(gw * gh);
+            let partial = false;
+            for (const t of tiles) {
+              const cls = _clsTiles.get(keyOf(lv, t));
+              if (!cls) { partial = true; continue; }
+              const ox = (t.col - c0) * tw, oy = (t.row - r0) * th;
+              for (let y = 0; y < th; y++) grid.set(cls.subarray(y * tw, y * tw + tw), (oy + y) * gw + ox);
+            }
+            const gx0 = c0 * tw, gy0 = r0 * th;
+            // Saat: die Rechtecke der Aufnahmen bis zum Szenentag; ohne Zeilen der Brandort (3×3).
+            const rects = seedKind === 'det'
+              ? d.det.filter((q) => !q.after).map((q) => ({
+                x0: q.minX * fac - gx0, y0: q.minY * fac - gy0, x1: q.maxX * fac - gx0, y1: q.maxY * fac - gy0,
+              }))
+              : [{ x0: d.fire.px * fac - gx0 - 1, y0: d.fire.py * fac - gy0 - 1, x1: d.fire.px * fac - gx0 + 1, y1: d.fire.py * fac - gy0 + 1 }];
+            const result = floodScar(grid, gw, gh, seedsFromRects(rects, gw, gh), SCAR_MIN_CLASS);
+            return { key, result, gx0, gy0, gw, fac, stepM: FULL_M_PER_PX / fac, partial };
+          };
+          // Der Fill (Rasterkopie + Flood + Umriss, gemessen ~40–120 ms auf 900²) läuft NICHT im
+          // Draw-Task: er stapelte sich sonst mit Kachelbau und Zeichnen zu 225–355 ms (§13.4 (3)).
+          // Er wird als eigener Makrotask angestoßen; dieses Bild zeichnet den vorigen Stand.
+          if ((!sc || sc.key !== key) && scarJobRef.current?.key !== key) {
+            if (scarJobRef.current) clearTimeout(scarJobRef.current.id);
+            const job = { key, id: 0 };
+            job.id = window.setTimeout(() => {
+              if (scarJobRef.current !== job) return;
+              scarJobRef.current = null;
+              scarRef.current = computeScar();
+              schedule();
+            }, SCAR_SETTLE_MS);
+            scarJobRef.current = job;
+          }
+          // Ein Stand aus einer ANDEREN Ebene/Saat wird nicht gezeigt — lieber kurz nichts als etwas Falsches.
+          if (sc && sc.key.split('|')[0] !== String(lv.postS.width)) sc = null;
+          if (sc) {
+            scarNote = {
+              ha: scarHa(sc.result.count, sc.stepM), stepM: sc.stepM, partial: sc.partial || sc.key !== key,
+              edge: sc.result.touchesEdge, seed: seedKind, none: sc.result.seeded === 0,
+            };
+          }
+        }
+      }
     }
 
+    /** SAT3d: der Umriss der Narbe — Kanten des Rasters in Vollauflösungs-Pixel, dann auf die Canvas. */
+    const drawScar = () => {
+      const sc = scarRef.current;
+      if (m !== 'dnbr' || !sc || sc.result.count === 0 || !scarEnabled()) return;
+      const e = sc.result.edges;
+      const X = (gx: number) => (((sc.gx0 + gx) / sc.fac - px0) / fullPxPerCss) * dpr;
+      const Y = (gy: number) => (((sc.gy0 + gy) / sc.fac - py0) / fullPxPerCss) * dpr;
+      ctx.setLineDash([]);
+      ctx.lineCap = 'square';
+      for (const [color, width] of [[DET_HALO, 4], [SCAR_COLOR, 2]] as const) {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = width * dpr;
+        ctx.beginPath();
+        for (let i = 0; i < e.length; i += 4) { ctx.moveTo(X(e[i]), Y(e[i + 1])); ctx.lineTo(X(e[i + 2]), Y(e[i + 3])); }
+        ctx.stroke();
+      }
+    };
+    /** SAT3: die Detektions-Rechtecke — nur die in Sicht; gestrichelt, wenn die Aufnahme nach dem Bild lag. */
+    const drawDet = () => {
+      if (!showDetRef.current || d.det.length === 0) return;
+      const X = (px: number) => ((px - px0) / fullPxPerCss) * dpr;
+      const Y = (py: number) => ((py - py0) / fullPxPerCss) * dpr;
+      ctx.lineCap = 'butt';
+      const path = (after: boolean) => {
+        ctx.beginPath();
+        for (const q of d.det) {
+          if (q.after !== after || q.maxX < px0 || q.minX > px1 || q.maxY < py0 || q.minY > py1) continue;
+          const p = q.pts;
+          ctx.moveTo(X(p[0]), Y(p[1])); ctx.lineTo(X(p[2]), Y(p[3])); ctx.lineTo(X(p[4]), Y(p[5])); ctx.lineTo(X(p[6]), Y(p[7]));
+          ctx.closePath();
+        }
+      };
+      // Aufnahmen BIS zum Bildtag zusätzlich gefüllt — bei ~10 px Kantenlänge trägt die Fläche
+      // die Sichtbarkeit, nicht der Strich (§13.5). „Danach" bleibt ungefüllt und gestrichelt.
+      ctx.setLineDash([]);
+      ctx.fillStyle = DET_FILL;
+      path(false);
+      ctx.fill();
+      for (const after of [false, true]) {
+        ctx.setLineDash(after ? [5 * dpr, 3 * dpr] : []);
+        for (const [color, width] of [[DET_HALO, 4], [DET_COLOR, 2]] as const) {
+          ctx.strokeStyle = color;
+          ctx.lineWidth = width * dpr;
+          path(after);
+          ctx.stroke();
+        }
+      }
+      ctx.setLineDash([]);
+    };
     const drawCross = () => {
       const fx = ((d.fire.px - px0) / fullPxPerCss) * dpr;
       const fy = ((d.fire.py - py0) / fullPxPerCss) * dpr;
@@ -634,7 +853,12 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
       ctx.arc(fx, fy, 5 * dpr, 0, Math.PI * 2);
       ctx.stroke();
     };
-    drawCross();
+    /** Reihenfolge: Narbe (Fläche) → Detektionen → Fadenkreuz — das Kleinste liegt obenauf. */
+    const drawOverlays = () => { drawScar(); drawDet(); drawCross(); };
+    drawOverlays();
+    setScar((prev) => (prev === scarNote || (prev && scarNote && prev.ha === scarNote.ha && prev.stepM === scarNote.stepM
+      && prev.partial === scarNote.partial && prev.edge === scarNote.edge && prev.seed === scarNote.seed && prev.none === scarNote.none)
+      ? prev : scarNote));
 
     // V-SAT-17: was das Frame-Budget stehen ließ, holt das nächste Bild — `schedule()` ist
     // rAF-koalesziert, es entsteht also genau ein weiterer Durchlauf, keine Schleife.
@@ -674,9 +898,10 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
       // ausstehenden Frame und zeichnet nie wieder — latenter SAT2a-Fehler, der erst auslöste,
       // als der Moduswechsel die Aufräumung mit ausstehendem Draw traf (§10.3).
       if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = 0; }
+      if (scarJobRef.current) { clearTimeout(scarJobRef.current.id); scarJobRef.current = null; }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase.kind, full, mode, swirState.kind, dnbrState.kind]);
+  }, [phase.kind, full, mode, swirState.kind, dnbrState.kind, showDet]);
 
   // --- Gesten ---------------------------------------------------------------------------------
   const clampView = () => {
@@ -797,6 +1022,8 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
 
   const d = dataRef.current;
   const hasBands = phase.kind === 'ready' && d?.ref.bands != null;
+  const hasDet = phase.kind === 'ready' && (d?.det.length ?? 0) > 0;
+  const fmtHa = (ha: number) => (ha < 10 ? ha.toFixed(1).replace('.', ',') : String(Math.round(ha)));
   const extra: ExtraState = mode === 'swir' ? swirState : mode === 'dnbr' ? dnbrState : { kind: 'idle' };
   const preInfo = mode === 'dnbr' && dnbrState.kind === 'ready' && d?.pre ? d.pre : null;
 
@@ -828,6 +1055,13 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
               {MODE_LABEL[k]}
             </button>
           ))}
+        </div>
+      )}
+      {hasDet && (
+        <div className="br-cog-over" role="group" aria-label="Overlays der 10-m-Ansicht">
+          <button type="button" aria-pressed={showDet} className={showDet ? 'is-active' : undefined} onClick={() => setShowDet((v) => !v)}>
+            Detektionen
+          </button>
         </div>
       )}
       <div className="br-cog-ctrl" role="group" aria-label="10-m-Ansicht steuern">
@@ -874,7 +1108,27 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
                   blasser: Acker/Siedlung — Ernte statt Brand möglich
                 </span>
               )}
+              {scar && !scar.none && (
+                <span>
+                  <i style={{ background: 'transparent', borderColor: SCAR_COLOR, borderWidth: 2 }} aria-hidden="true" />
+                  Umriss: zusammenhängende Narbe an den Detektionen
+                </span>
+              )}
             </div>
+          )}
+          {/* SAT3d: die Narbe in Zahlen — Auflösung und Vollständigkeit stehen im selben Satz. */}
+          {mode === 'dnbr' && dnbrState.kind === 'ready' && scar && (
+            <p className="br-cog-note br-muted">
+              {scar.none
+                ? `Keine zusammenhängende, volldeckende Narbe (dNBR ≥ 0,27) an ${scar.seed === 'det' ? 'den Detektionen' : 'diesem Brandort'}${scar.partial ? ' — Kacheln laden noch' : ''}; unter Wolke/Schatten und auf Acker/Siedlung bleibt sie unentschieden.`
+                : `Heller Umriss: verbrannt wirkende Fläche an ${scar.seed === 'det' ? 'den Detektionen' : 'diesem Brandort (keine Detektionen im Umkreis der Szene)'} ≈ ${fmtHa(scar.ha)} ha bei ${Math.round(scar.stepM)} m/px, dNBR ≥ 0,27, unkalibriert, nur volldeckende Pixel (Wolke/Schatten, Acker/Siedlung verbinden nichts)${scar.partial ? '; Kacheln laden noch — Untergrenze' : ''}${scar.edge ? '; reicht bis an den Rand — herauszoomen' : ''}.`}
+            </p>
+          )}
+          {/* SAT3: was die Rechtecke sind — und was nicht. */}
+          {hasDet && showDet && (
+            <p className="br-cog-note br-muted">
+              ▭ FIRMS-Pixelgrundfläche (VIIRS, 375 m) — das Feuer liegt irgendwo darin · gestrichelt: Aufnahme erst nach diesem Bild.
+            </p>
           )}
           {(extra.kind === 'loading' || extra.kind === 'absent' || extra.kind === 'error') && (
             <p className="br-cog-note br-muted">

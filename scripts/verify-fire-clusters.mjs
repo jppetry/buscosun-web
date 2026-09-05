@@ -175,16 +175,21 @@ add('setData bleibt referenzgesichert (V-220): die Hüllen kommen aus einem useM
 // (f) Das bestehende Panel ist NICHT umgebaut worden
 // ---------------------------------------------------------------------------
 const pageSrc = code['FirePage.tsx'] ?? '';
-add('der Steckbrief-Stapel steht unverändert im Readout',
-  /fire-ro-layerinfo/.test(pageSrc) && /Steckbriefe der aktiven Layer/.test(pageSrc));
+// BD3 (2026-09-03, Jans Auftrag): der Steckbrief steht unter SEINER Layer-Zeile im Dock —
+// auf jeder Breite, aufgeklappt über den „i"-Knopf (vorher: Stapel rechts im Readout).
+add('[bd3] der Steckbrief steht im Dock unter seiner Layer-Zeile, aufklappbar',
+  /aria-label=\{`Steckbrief \$\{meta\.label\}`\}/.test(pageSrc)
+  && /\{openInfo === id && \(/.test(pageSrc)
+  && !/readoutLayersContent/.test(pageSrc));
 add('Skalen-Trio, AT-Lücke und Saison-Hinweis sind unverändert vorhanden',
   /fire-scales/.test(pageSrc) && /fire-at-gap/.test(pageSrc) && /fire-season/.test(pageSrc));
 add('der Layer-Steckbrief (FireLayerCard) wurde für diese Phase nicht angefasst',
   !/[Cc]luster/.test(code['FireLayerCard.tsx'] ?? ''));
-add('das Readout startet auf „Layer" — der Bestand ist der Startzustand',
-  // BP5: der Startwert ist „layers", sofern kein Permalink (`fp=1`) die Liste verlangt.
-  // TA4: dritter Reiter „Thermalanomalien" (`ta=1`) — die Union wuchs, der Startwert blieb.
-  /useState<'layers' \| 'fires' \| 'anomalies'>\([\s\S]{0,500}?initial\?\.footprintPanel \? 'fires' : 'layers',/.test(pageSrc));
+// BD3 (2026-09-03): der Reiter „Layer" ist entfallen — die Steckbriefe stehen im Dock unter
+// ihrer Zeile. Das Readout zeigt daher IMMER eine Liste; `ta=1` öffnet weiter die Anomalien.
+add('das Readout startet auf einer Liste — „Layer" gibt es als Reiter nicht mehr (BD3)',
+  /useState<'fires' \| 'anomalies'>\([\s\S]{0,400}?initial\?\.anomalyPanel \? 'anomalies' :[\s\S]{0,120}'fires',/.test(pageSrc)
+  && !/\['layers', 'Layer'\]/.test(pageSrc));
 add('die Liste sitzt im Readout und nicht in der Karte',
   /readoutTab === 'fires' \? footprintPanel\(inSheet\)/.test(pageSrc)
   && !/fire-fplist|fire-fprow/.test(mapSrc));
@@ -265,15 +270,15 @@ add('ein ortsfester Eintrag wird markiert, nicht entfernt',
     /setSelectedCluster\(r\?\.sources\.cluster\?\.id \?\? null\)/.test(pageSrc));
   add('[BP5] ein Klick auf eine Hülle markiert den Brand, der sie enthält',
     /r\.sources\.cluster\?\.id === id/.test(pageSrc));
-  // TA4 (2026-08-22): DREI Reiter — Layer, Brände, Thermalanomalien; der zweite heißt weiter „Brände".
-  add('[BP5/TA4] drei Reiter: Layer, Brände, Thermalanomalien — der zweite heißt „Brände"',
-    /\['layers', 'Layer'\],[\s\S]{0,120}\['fires', panelRecords\.length > 0 \? `Brände · /.test(pageSrc)
+  // TA4 (2026-08-22): Reiter „Brände" und „Thermalanomalien" — BD3 (2026-09-03) hat den dritten
+  // („Layer") gestrichen; die Steckbriefe stehen seither im Dock.
+  add('[BP5/TA4/BD3] zwei Reiter: Brände, Thermalanomalien — der erste heißt „Brände"',
+    /\['fires', history \? [\s\S]{0,220}`Brände · /.test(pageSrc)
     && /\['anomalies', liveSiteCount > 0 \? `Thermalanomalien · /.test(pageSrc));
   add('[BP5] das Overlay am linken Kartenrand ist entfallen',
     !/className="fire-fpanel"/.test(pageSrc) && !/fire-fpanel-tab/.test(pageSrc));
-  add('[BP5] der alte Permalink `fp=1` zeigt weiterhin die Liste',
-    /initial\?\.footprintPanel \? 'fires' : 'layers'/.test(pageSrc)
-    && /footprintPanel: readoutTab === 'fires'/.test(pageSrc));
+  add('[BP5/BD3] der alte Permalink `fp=1` zeigt weiterhin die Liste (sie ist jetzt der Normalfall)',
+    /footprintPanel: readoutTab === 'fires'/.test(pageSrc));
 }
 
 // Land: die Grobzuordnung der Karte (countryGuess) darf hier NICHT benutzt werden.

@@ -80,7 +80,6 @@ export function FireHistoryPanel(p: HistoryPanelProps) {
   }, [p.load, cls, sort]);
 
   const label = file?.window.label ?? (p.kind === 'month' ? 'Monat' : 'Saison');
-  const selected = p.selectedId && p.load.kind === 'ok' ? p.load.entries.find((e) => e.id === p.selectedId) ?? null : null;
 
   return (
     <div className={`br-fires br-history${p.inSheet ? ' in-sheet' : ''}${p.compact ? ' is-compact' : ''}`}>
@@ -118,16 +117,6 @@ export function FireHistoryPanel(p: HistoryPanelProps) {
               <button key={id} type="button" className={`br-chip is-red${cls === id ? ' is-active' : ''}`} aria-pressed={cls === id} onClick={() => { setCls(id); setShown(CLUSTER_PAGE); }}>{l}</button>
             ))}
           </div>
-          {selected && (
-            <section className="br-detail" aria-label={`Ereignis ${historyEntryName(selected)}`}>
-              <div className="br-detail-head">
-                <span className="br-eyebrow">Ereignis</span>
-                <button type="button" className="br-close" aria-label="Details schließen" onClick={p.onClearSelect}>×</button>
-              </div>
-              <h3 className="br-detail-title">{historyEntryName(selected)}</h3>
-              <HistoryDetailBody entry={selected} />
-            </section>
-          )}
           {rows.length === 0 && <p className="br-empty">Keine Ereignisse dieser Art im Stand vom {historyStandLabel(file.evaluatedAt)} — kleine Brände fehlen dem Satelliten systematisch.</p>}
           <ol className="br-firelist">
             {rows.slice(0, shown).map((e) => {
@@ -182,106 +171,6 @@ const num = (n: number | null | undefined, unit = '', frac = 0) => (n == null ? 
  * EINE Quelle für die Inline-Detailkarte im Readout UND das Dossier in der Mitte —
  * dasselbe Muster wie die BD2-Bausteine der Live-Detailkarte.
  */
-export function HistoryDetailBody({ entry }: { entry: HistoryIndexEntry }) {
-  return (
-    <>
-      <dl className="br-detail-dl">
-        <dt>Zeitraum</dt><dd>{spanLabel(entry)} · {entry.distinctDays} {entry.distinctDays === 1 ? 'Tag' : 'Tage'}</dd>
-        <dt>Detektionen</dt><dd>{de(entry.hotspots)} in {de(entry.overpasses)} {entry.overpasses === 1 ? 'Überflug' : 'Überflügen'}{entry.hotspots === 1 && <> — Einzeldetektion, keine Bestätigung durch einen weiteren Überflug</>}</dd>
-        <dt>Stärke</dt><dd>{entry.frpSumMw != null ? `${de(entry.frpSumMw)} MW Summe · max ${de(entry.frpMaxMw ?? 0)} MW` : '—'}</dd>
-        <dt>Fläche</dt><dd>{areaLabel(entry)}</dd>
-        <dt>Herkunft</dt><dd>{entry.nrt > 0 ? `${de(entry.nrt)} von ${de(entry.hotspots)} Detektionen vorläufig (NRT) — kann durch die Standard-Verarbeitung noch wandern` : 'Standard-Verarbeitung (SP), abgeschlossen'}</dd>
-        {entry.anomalyKind && <><dt>Einordnung</dt><dd>{entry.anomalyKind === 'site' ? 'Passt zum Muster eines bekannten Anlagenstandorts (Thermalanomalie)' : 'Bekannter Anlagenstandort, aber das Signal weicht ab — als Brand geführt'}</dd></>}
-      </dl>
-      <HistoryEventDetail entry={entry} />
-    </>
-  );
-}
-
-function HistoryEventDetail({ entry }: { entry: HistoryIndexEntry }) {
-  // BD2g: Shard + Wetterlage kommen aus dem geteilten Hook (auch das Dossier nutzt ihn).
-  const { shard, weather, ev } = useHistoryEventData(entry);
-  const [copied, setCopied] = useState(false);
-  useEffect(() => setCopied(false), [entry]);
-  const lc = ev?.effis?.landcover ?? null;
-  const lcRows = lc ? LANDCOVER_KEYS.map((k) => [LANDCOVER_LABEL[k], lc[k] ?? 0] as const).filter(([, v]) => v >= 1).sort((a, b) => b[1] - a[1]) : [];
-  const w = weather !== 'loading' ? weather : null;
-  return (
-    <div className="br-history-detail">
-      <h4 className="br-eyebrow">Wetterlage am Brandtag</h4>
-      {weather === 'loading' && <p className="br-note">Tages- und Stundenwerte werden geholt …</p>}
-      {w && (
-        <dl className="br-detail-dl">
-          {w.day && (
-            <>
-              <dt>Tag ({w.dateISO.split('-').reverse().join('.')})</dt>
-              <dd>max {num(w.day.tMaxC, ' °C', 1)}{w.day.modelFilled.includes('tMaxC') && '*'} · Feuchte {num(w.day.humidityPct, ' %')}{w.day.modelFilled.includes('humidityPct') && '*'} · Wind max {num(w.day.windMaxKmh, ' km/h')}{w.day.modelFilled.includes('windMaxKmh') && '*'} · Regen {num(w.day.precipMm, ' mm', 1)}{w.day.modelFilled.includes('precipMm') && '*'}
-                <span className="br-muted"> — {w.day.kind === 'measured' ? 'gemessen' : 'Reanalyse'}{w.day.station ? `, Station ${w.day.station.name} (${w.day.station.distanceKm.toFixed(0)} km)` : ''} · {w.day.source}{w.day.modelFilled.length > 0 && ' · * vom Anbieter mit Modellwert gefüllt, nicht gemessen'}</span></dd>
-            </>
-          )}
-          {w.hour && (
-            <>
-              <dt>Stunde {fmtClock(w.hour.atMs)}</dt>
-              <dd>{num(w.hour.tempC, ' °C', 1)} · Wind {num(w.hour.windKmh, ' km/h')} · Regen {num(w.hour.precipMm, ' mm', 1)}
-                <span className="br-muted"> — Reanalyse, {w.hour.source}</span></dd>
-            </>
-          )}
-          <dt>Trockenphase</dt><dd>{rainLabel(w)}{w.day ? '' : ' (Tagesreihe fehlt)'}</dd>
-          {w.notes.map((n, i) => <dd key={i} className="br-muted" style={{ gridColumn: '1 / -1' }}>{n}</dd>)}
-        </dl>
-      )}
-      {weather === null && <p className="br-note">Wetterlage nicht verfügbar — Ausfall der Historie-Quellen, kein Wert erfunden.</p>}
-      <p className="br-note">Kein ICON-/Fusionswert: die Vorhersagemodelle haben kein Archiv. Tag = nächste Station (Meteostat/DWD), Stunde = ERA5-Reanalyse ~25 km — beide nicht der Brandort selbst.</p>
-
-      {ev?.effis && (
-        <>
-          <h4 className="br-eyebrow">Landbedeckung (EFFIS-Kartierung {num(ev.effis.areaHa, ' ha')})</h4>
-          <dl className="br-detail-dl">
-            {lcRows.map(([label, pct]) => <span key={label} style={{ display: 'contents' }}><dt>{label}</dt><dd>{num(pct, ' %')}</dd></span>)}
-            {ev.effis.percNa2k != null && <><dt>Natura 2000</dt><dd>{num(ev.effis.percNa2k, ' %')} der Fläche</dd></>}
-            {(ev.effis.province || ev.effis.commune) && <><dt>EFFIS-Ort</dt><dd>{[ev.effis.commune, ev.effis.province].filter(Boolean).join(', ')}</dd></>}
-          </dl>
-        </>
-      )}
-
-      <h4 className="br-eyebrow">Datengrundlage und Evidenz</h4>
-      {shard.kind === 'loading' && <p className="br-note">Detail wird geladen … (eine Zelle, eine Datei)</p>}
-      {shard.kind === 'error' && <p className="br-note">Detail nicht erreichbar ({shard.message}) — die Zeile oben stammt aus dem Index, mehr ist gerade nicht abrufbar.</p>}
-      {shard.kind === 'ok' && !ev && <p className="br-note">Ereignis nicht im Shard — Index und Detail stammen aus verschiedenen Ständen.</p>}
-      {ev && (
-        <>
-          <dl className="br-detail-dl">
-            <dt>Sensoren</dt><dd>{ev.satellites.length ? ev.satellites.join(', ') : '—'} · {ev.provenance.sp} SP / {ev.provenance.nrt} NRT{ev.nasaType2Share != null && ev.nasaType2Share > 0 ? ` · NASA type 2 bei ${num(ev.nasaType2Share * 100, ' %')} der SP-Zeilen` : ''}</dd>
-            <dt>Konfidenz</dt><dd>{ev.confidence ? `hoch ${ev.confidence.high} · nominal ${ev.confidence.nominal} · gering ${ev.confidence.low}` : '—'}</dd>
-            <dt>Status</dt><dd>{ev.status.kind === 'out' ? 'beendet' : ev.status.kind === 'active' ? 'aktiv zum Stand' : `kein Signal seit ${ev.status.sinceMs != null ? fmtDay(ev.status.sinceMs) : '—'}`}{ev.status.source ? ` (${ev.status.source})` : ''}{ev.status.kind === 'no-signal' && ' — ein Ende bestätigt nur eine EFFIS-Kartierung mit Enddatum'}</dd>
-            {ev.previousIds.length > 0 && <><dt>Frühere Kennung</dt><dd>{ev.previousIds.join(', ')} — nach SP-Nachlieferung neu verknüpft</dd></>}
-            <dt>Ausgewertet</dt><dd>{new Date(ev.evaluatedAt - 1).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' })} · Merkmalsatz v{ev.features?.featureVersion ?? '—'}</dd>
-          </dl>
-          {ev.anomaly && (
-            <ul className="br-reasons">
-              {ev.anomaly.reasons.map((r, i) => <li key={i}>{r}</li>)}
-            </ul>
-          )}
-          {ev.features && (
-            <details className="br-history-features">
-              <summary>Merkmale (AF3, {featuresSummary(ev.features).length} Werte)</summary>
-              <dl className="br-detail-dl">
-                {featuresSummary(ev.features).map((row) => <span key={row.key} style={{ display: 'contents' }}><dt>{row.key}</dt><dd>{row.value}</dd></span>)}
-              </dl>
-              <button
-                type="button" className="br-link"
-                onClick={() => { void navigator.clipboard?.writeText(featuresJson(ev.features!)).then(() => setCopied(true)).catch(() => setCopied(false)); }}
-              >
-                {copied ? 'JSON kopiert' : 'JSON kopieren'}
-              </button>
-            </details>
-          )}
-        </>
-      )}
-    </div>
-  );
-}
-
 // ---------------------------------------------------------------------------
 // BH5 — Saisonverlauf im Saison-Readout (Datei einmal je Sitzung; Ausfall wird gesagt)
 // ---------------------------------------------------------------------------
@@ -372,6 +261,9 @@ export function HistoryDossierBody({ entry, chartWidth = 360, aside }: { entry: 
         {shard.kind === 'error' && <p className="br-note">Detail nicht erreichbar ({shard.message}) — die Kennzahlen oben stammen aus dem Index.</p>}
         {passes.length > 0 && <FirePassChart passes={passes} nowMs={entry.lastMs} wide wideWidth={chartWidth} />}
         {passes.length === 1 && <p className="br-note">Ein einziger Überflug — es gibt keinen zeitlichen Verlauf, nur diesen Messpunkt.</p>}
+        {/* BD3: übernommen aus der gestrichenen Inline-Karte — die Einzeldetektion ist die schwächste
+            Aussage der Historie und muss auch im Dossier stehen. */}
+        {entry.hotspots === 1 && <p className="br-note">Einzeldetektion — keine Bestätigung durch einen weiteren Überflug.</p>}
         {shard.kind === 'ok' && ev && passes.length === 0 && <p className="br-note">Keine Detektionen im Shard — dieses Ereignis besteht nur aus der EFFIS-Kartierung.</p>}
         {ev && passes.length > 0 && (
           <dl className="fire-fp-dl br-ds-dl">
