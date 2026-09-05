@@ -72,7 +72,17 @@ Alle Seiten tragen zusätzlich `Organization` und `WebSite` als Entitäten (E3).
       nur per Edge Function an `Origin`/`Referer` binden. Der Lauf setzt nur `robots.txt` + `X-Robots-Tag`.
       Wenn gewünscht: eine Edge Function `proxy-guard` vor alle sechs Rewrites (Muster: `_dwd_grib`).
 
-## 9 · Optional: IndexNow (kostenlos, ohne Konto)
+## 9 · IndexNow — **erledigt**, nur noch zur Kenntnis
+
+- [x] Schlüsseldatei liegt unter `public/<key>.txt` (32 Hex-Zeichen, Inhalt = der Schlüssel selbst)
+      und wird mit ausgeliefert. **Nicht löschen** — ohne sie weist keine künftige Meldung mehr aus,
+      dass sie von uns kommt.
+- [x] Alle URLs wurden einmalig an `api.indexnow.org` gemeldet (Bing, Yandex, Seznam, Naver;
+      Google nimmt an IndexNow **nicht** teil, dort wirkt nur die Search Console).
+- Wiederholen nach größeren Inhaltsänderungen: `npm run build && node scripts/seo/indexnow.mjs`
+  (`--dry` zeigt vorher, was gemeldet würde). Mehrfaches Melden ist unschädlich.
+
+## 9b · Alte Vorlage (nur noch Referenz)
 - [ ] Key-Datei `public/<key>.txt` anlegen (32 Hex-Zeichen, Inhalt = der Schlüssel selbst), dann einmalig:
       `curl -X POST https://api.indexnow.org/indexnow -H "Content-Type: application/json" -d @indexnow.json`
       Vorlage: `scripts/seo/indexnow.example.json` (Schlüssel und URL-Liste eintragen; die vollständige

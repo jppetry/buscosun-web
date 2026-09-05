@@ -71,6 +71,8 @@ const DET_MARGIN_PX = (2 * START_HALF_M) / FULL_M_PER_PX;
 const DET_COLOR = '#FFB08A';
 /** Füllung der Rechtecke — es ist eine FLÄCHE („das Feuer liegt irgendwo darin"), keine Linie. */
 const DET_FILL = 'rgba(255, 176, 138, 0.28)';
+/** „Danach": schwächer, aber NIE leer — der Rahmen muss in jedem Bild zu finden sein (§13.6). */
+const DET_FILL_AFTER = 'rgba(255, 176, 138, 0.14)';
 const DET_HALO = 'rgba(44, 42, 38, 0.85)';
 /** Narben-Umriss: Creme wie Fadenkreuz und Maßstab — eine Farbe, die KEINE dNBR-Klasse trägt. */
 const SCAR_COLOR = '#FDFBF4';
@@ -821,11 +823,16 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
           ctx.closePath();
         }
       };
-      // Aufnahmen BIS zum Bildtag zusätzlich gefüllt — bei ~10 px Kantenlänge trägt die Fläche
-      // die Sichtbarkeit, nicht der Strich (§13.5). „Danach" bleibt ungefüllt und gestrichelt.
+      // BEIDE Lagen sind gefüllt — bei ~10 px Kantenlänge trägt die Fläche die Sichtbarkeit,
+      // nicht der Strich (§13.5). „Danach" ist schwächer gefüllt und gestrichelt, aber nie leer:
+      // der Rahmen sagt „das Feuer liegt irgendwo darin", und das gilt auch auf dem Vorher-Bild
+      // (§13.6). Unterschieden wird über Deckung und Strichmuster, nicht über An/Aus.
       ctx.setLineDash([]);
       ctx.fillStyle = DET_FILL;
       path(false);
+      ctx.fill();
+      ctx.fillStyle = DET_FILL_AFTER;
+      path(true);
       ctx.fill();
       for (const after of [false, true]) {
         ctx.setLineDash(after ? [5 * dpr, 3 * dpr] : []);
@@ -1127,7 +1134,7 @@ export default function FireCogViewer({ lat, lon, dayIso, fireStartIso, fallback
           {/* SAT3: was die Rechtecke sind — und was nicht. */}
           {hasDet && showDet && (
             <p className="br-cog-note br-muted">
-              ▭ FIRMS-Pixelgrundfläche (VIIRS, 375 m) — das Feuer liegt irgendwo darin · gestrichelt: Aufnahme erst nach diesem Bild.
+              ▭ FIRMS-Pixelgrundfläche — das Feuer liegt irgendwo darin, nicht in der Mitte · gestrichelt und blasser: Detektion erst nach dieser Aufnahme.
             </p>
           )}
           {(extra.kind === 'loading' || extra.kind === 'absent' || extra.kind === 'error') && (

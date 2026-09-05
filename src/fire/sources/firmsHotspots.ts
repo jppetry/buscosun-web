@@ -415,17 +415,32 @@ function propsOf(r: FirmsRow, nowMs: number): FirmsProps {
 }
 
 /**
+ * Nennmaß eines VIIRS-Pixels (km). Alle drei freigeschalteten Ströme sind VIIRS-375-m-NRT
+ * (`FIRMS_SOURCES`) — die Zahl ist also die Produktangabe, keine Annahme. MODIS ist hier
+ * nicht freigegeben; käme es dazu, bräuchte dieser Rückfall eine zweite Zahl.
+ */
+export const VIIRS_NOMINAL_KM = 0.375;
+
+/**
  * Das Footprint-Rechteck einer Detektion.
  *
  * `scan` und `track` sind die **Pixelausdehnung** in km (gemessen 0,32–0,80,
  * Median 0,42) — sie wachsen zum Schwadrand hin. Das Rechteck ist damit die
  * ehrliche räumliche Unsicherheit: Das Feuer liegt **irgendwo darin**, nicht in
- * der Mitte. Ohne `scan`/`track` gibt es kein Rechteck statt eines geratenen.
+ * der Mitte.
+ *
+ * `fallbackKm` (Jans Vorgabe 2026-09-05, §13.6): Fehlen `scan`/`track` in einer Zeile, kann
+ * der Aufrufer das **Nennmaß** einsetzen, damit der Rahmen trotzdem steht — die Aussage
+ * „das Feuer liegt irgendwo in diesem Feld" ist wichtiger als die exakte Kantenlänge.
+ * Wer das tut, muss es sagen (`DetRect30.nominal`). Ohne `fallbackKm` bleibt es beim alten
+ * Verhalten: kein Rechteck statt eines geratenen — so zeichnet der Karten-Layer weiter.
  */
-export function footprintRing(r: FirmsRow): number[][] | null {
-  if (r.scanKm == null || r.trackKm == null) return null;
-  const dLat = (r.trackKm / 2) / 110.574;
-  const dLon = (r.scanKm / 2) / (111.320 * Math.cos((r.lat * Math.PI) / 180));
+export function footprintRing(r: FirmsRow, fallbackKm: number | null = null): number[][] | null {
+  const scanKm = r.scanKm ?? fallbackKm;
+  const trackKm = r.trackKm ?? fallbackKm;
+  if (scanKm == null || trackKm == null) return null;
+  const dLat = (trackKm / 2) / 110.574;
+  const dLon = (scanKm / 2) / (111.320 * Math.cos((r.lat * Math.PI) / 180));
   const w = r.lon - dLon; const e = r.lon + dLon;
   const s = r.lat - dLat; const n = r.lat + dLat;
   return [[w, s], [e, s], [e, n], [w, n], [w, s]];
@@ -788,6 +803,16 @@ export function verifyFirms(): { checks: FirmsCheck[]; passed: number; total: nu
   add('ohne scan/track KEIN geratenes Rechteck',
     footprintRing({ ...base, scanKm: null }) === null
     && footprintRing({ ...base, trackKm: null }) === null);
+  add('Nennmaß nur auf Verlangen: mit fallbackKm entsteht ein Rechteck, ohne bleibt es null', (() => {
+    const ring = footprintRing({ ...base, scanKm: null, trackKm: null }, VIIRS_NOMINAL_KM);
+    if (!ring) return false;
+    const km = (ring[2][1] - ring[0][1]) * 110.574;
+    return Math.abs(km - VIIRS_NOMINAL_KM) < 0.001 && footprintRing({ ...base, scanKm: null, trackKm: null }) === null;
+  })());
+  add('gemessene scan/track schlagen das Nennmaß (der Rückfall greift nur bei Lücken)', (() => {
+    const ring = footprintRing({ ...base, scanKm: 0.8, trackKm: 0.8 }, VIIRS_NOMINAL_KM);
+    return !!ring && Math.abs((ring[2][1] - ring[0][1]) * 110.574 - 0.8) < 0.001;
+  })());
 
   // --- Skalen ------------------------------------------------------------------
   add('FRP-Radius wächst mit der Wurzel, nicht linear',

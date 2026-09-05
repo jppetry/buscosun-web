@@ -174,7 +174,91 @@ function build(rows, country) {
   }));
 }
 
-export const PLACES = [...build(DE, 'DE'), ...build(AT, 'AT'), ...build(CH, 'CH')];
+
+/**
+ * Tier 2 (SEO/GEO 2026, E10): 60 weitere Orte — Kreis-, Bezirks- und Kantonsstädte, die im
+ * ersten Satz fehlten. Ausgewählt aus dem im Repo liegenden GeoNames-Gazetteer
+ * (`public/fire/places-dach.json`, CC BY 4.0, Stand 2026-08-12): Deutschland ab 20 000,
+ * Österreich und die Schweiz ab 9 000 Einwohnern, ohne Orte in der Nähe eines bestehenden
+ * Eintrags (sonst entstünden Vorort-Dubletten). Die Höhen stammen aus denselben
+ * Terrarium-Kacheln, aus denen auch die Karte rechnet — geholt mit
+ * `scripts/seo/fetch-place-elevation.mjs` (einmalig, nicht im Build).
+ * Aussortiert: Eisenzicken (GeoNames führt dort die Bezirkszahl an einem Weiler),
+ * Jona (dieselbe Gemeinde wie Rapperswil-Jona), Baden (in AT und CH mehrdeutig).
+ */
+const DE_T2 = [
+  ['Aachen', 'Städteregion Aachen', 50.777, 6.083, 176],
+  ['Braunschweig', 'Braunschweig', 52.266, 10.527, 72],
+  ['Bremerhaven', 'Bremerhaven', 53.554, 8.576, 5],
+  ['Chemnitz', 'Chemnitz', 50.836, 12.929, 306],
+  ['Darmstadt', 'Darmstadt', 49.872, 8.650, 147],
+  ['Düren', 'Kreis Düren', 50.804, 6.493, 141],
+  ['Erlangen', 'Erlangen', 49.591, 11.008, 292],
+  ['Gera', 'Gera', 50.880, 12.082, 204],
+  ['Gießen', 'Landkreis Gießen', 50.587, 8.676, 162],
+  ['Göttingen', 'Landkreis Göttingen', 51.534, 9.932, 153],
+  ['Gütersloh', 'Kreis Gütersloh', 51.907, 8.379, 80],
+  ['Hagen', 'Hagen', 51.361, 7.472, 112],
+  ['Halle (Saale)', 'Halle', 51.482, 11.979, 116],
+  ['Hamm', 'Hamm', 51.680, 7.821, 66],
+  ['Hanau am Main', 'Main-Kinzig-Kreis', 50.134, 8.914, 108],
+  ['Heilbronn', 'Stadtkreis Heilbronn', 49.140, 9.221, 172],
+  ['Hildesheim', 'Landkreis Hildesheim', 52.151, 9.951, 93],
+  ['Iserlohn', 'Märkischer Kreis', 51.375, 7.703, 253],
+  ['Jena', 'Jena', 50.929, 11.590, 150],
+  ['Kaiserslautern', 'Kaiserslautern', 49.443, 7.772, 240],
+  ['Koblenz', 'Koblenz', 50.354, 7.579, 74],
+  ['Krefeld', 'Krefeld', 51.336, 6.554, 43],
+  ['Marl', 'Kreis Recklinghausen', 51.657, 7.090, 57],
+  ['Mönchengladbach', 'Mönchengladbach', 51.185, 6.442, 57],
+  ['Paderborn', 'Kreis Paderborn', 51.719, 8.754, 116],
+  ['Pforzheim', 'Stadtkreis Pforzheim', 48.884, 8.699, 255],
+  ['Recklinghausen', 'Kreis Recklinghausen', 51.614, 7.197, 79],
+  ['Reutlingen', 'Landkreis Reutlingen', 48.491, 9.204, 379],
+  ['Salzgitter', 'Salzgitter', 52.157, 10.415, 92],
+  ['Schwerin', 'Schwerin', 53.629, 11.413, 48],
+  ['Siegen', 'Kreis Siegen-Wittgenstein', 50.875, 8.024, 270],
+  ['Tübingen', 'Landkreis Tübingen', 48.523, 9.052, 333],
+  ['Wolfsburg', 'Wolfsburg', 52.425, 10.782, 61],
+  ['Zwickau', 'Zwickau', 50.727, 12.488, 268],
+];
+
+const AT_T2 = [
+  ['Amstetten', 'Bezirk Amstetten', 48.123, 14.872, 276],
+  ['Bludenz', 'Bezirk Bludenz', 47.155, 9.823, 564],
+  ['Enns', 'Bezirk Linz-Land', 48.213, 14.476, 269],
+  ['Gänserndorf', 'Bezirk Gänserndorf', 48.339, 16.720, 163],
+  ['Knittelfeld', 'Bezirk Murtal', 47.217, 14.817, 656],
+  ['Korneuburg', 'Bezirk Korneuburg', 48.350, 16.333, 168],
+  ['Mödling', 'Bezirk Mödling', 48.086, 16.289, 222],
+  ['Purkersdorf', 'Bezirk Sankt Pölten', 48.208, 16.175, 247],
+  ['Ried im Innkreis', 'Bezirk Ried im Innkreis', 48.211, 13.489, 431],
+  ['Sankt Veit an der Glan', 'Bezirk Sankt Veit an der Glan', 46.768, 14.360, 481],
+  ['Stockerau', 'Bezirk Korneuburg', 48.383, 16.217, 170],
+  ['Strasshof an der Nordbahn', 'Bezirk Gänserndorf', 48.317, 16.667, 163],
+  ['Tulln', 'Bezirk Tulln', 48.328, 16.059, 178],
+];
+
+const CH_T2 = [
+  ['Aarau', 'Bezirk Aarau', 47.393, 8.044, 387],
+  ['Bülach', 'Bezirk Bülach', 47.522, 8.540, 425],
+  ['Bulle', 'Gruyère', 46.618, 7.057, 771],
+  ['Burgdorf', 'Emmental', 47.059, 7.628, 535],
+  ['Monthey', 'Monthey', 46.255, 6.954, 413],
+  ['Nyon', 'Nyon', 46.383, 6.240, 400],
+  ['Olten', 'Bezirk Olten', 47.350, 7.903, 404],
+  ['Rapperswil', 'Wahlkreis See-Gaster', 47.226, 8.822, 410],
+  ['Solothurn', 'Bezirk Solothurn', 47.208, 7.537, 442],
+  ['Wettingen', 'Bezirk Baden', 47.466, 8.327, 399],
+  ['Wetzikon', 'Bezirk Hinwil', 47.326, 8.798, 541],
+  ['Wil', 'Wahlkreis Wil', 47.462, 9.046, 571],
+  ['Yverdon-les-Bains', 'Jura-Nord vaudois', 46.779, 6.641, 438],
+];
+
+export const PLACES = [
+  ...build(DE, 'DE'), ...build(AT, 'AT'), ...build(CH, 'CH'),
+  ...build(DE_T2, 'DE'), ...build(AT_T2, 'AT'), ...build(CH_T2, 'CH'),
+];
 
 /** Distanz (km, Haversine grob) — für Nachbar-Verlinkung. */
 function distKm(a, b) {

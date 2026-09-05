@@ -102,7 +102,7 @@ let explainerPages = 0;
 for (const ex of EXPLAINERS) {
   const dir = join(DIST, 'wissen', ex.slug);
   mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, 'index.html'), renderExplainerPage(ex, EXPLAINERS_BY_SLUG), 'utf8');
+  writeFileSync(join(dir, 'index.html'), renderExplainerPage(ex, EXPLAINERS_BY_SLUG, AUDIENCES), 'utf8');
   explainerPages++;
 }
 mkdirSync(join(DIST, 'wissen'), { recursive: true });

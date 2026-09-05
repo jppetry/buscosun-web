@@ -965,7 +965,11 @@
    gestrichelt — so sind beide sichtbar UND unterscheidbar. */
 .br-sat-det { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .br-sat-det rect { fill: rgba(255, 176, 138, .28); stroke: #FFB08A; stroke-width: 2; vector-effect: non-scaling-stroke; filter: drop-shadow(0 0 2px rgba(44, 42, 38, .95)); }
-.br-sat-det rect.is-after { fill: none; stroke-dasharray: 5 3; }
+/* Jans Vorgabe (2026-09-05): der FIRMS-Rahmen ist IMMER sichtbar, sobald FIRMS-Zeilen da sind —
+   er sagt „das Feuer liegt irgendwo in diesem Feld", und das gilt auf dem Vorher-Bild genauso.
+   „Danach" bleibt unterscheidbar (gestrichelt, schwächere Füllung), verschwindet aber nicht:
+   ungefüllt war es bei ~10 px Kantenlänge praktisch unsichtbar (§13.6). */
+.br-sat-det rect.is-after { fill: rgba(255, 176, 138, .14); stroke-dasharray: 5 3; }
 .br-sat-dettoggle { position: absolute; left: 8px; bottom: 8px; padding: 5px 10px; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 999px; background: rgba(253, 251, 244, .92); color: var(--ink-900, #2C2A26); font-family: 'League Spartan', system-ui, sans-serif; font-size: 12px; font-weight: 700; letter-spacing: .05em; cursor: pointer; }
 .br-sat-dettoggle[aria-pressed='true'] { background: var(--ink-900, #2C2A26); color: #FDFBF4; border-color: var(--ink-900, #2C2A26); }
 .br-sat-detnote { margin: 6px 0 0; font-size: 12px; }

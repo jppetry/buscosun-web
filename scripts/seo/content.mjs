@@ -524,7 +524,20 @@ function metaForExplainer(ex) {
 }
 
 /** Vollständige/Scaffold-Explainer-Seite (semantisch, crawlbar, GEO-zitierbar). */
-export function renderExplainerPage(ex, allBySlug) {
+/**
+ * Zielgruppen-Seiten, die auf diese Erklärung verweisen (SEO/GEO 2026, E10).
+ * Abgeleitet aus den Links, die in den Seiten selbst stehen — keine zweite, von Hand
+ * gepflegte Zuordnung, die auseinanderlaufen kann.
+ */
+export function audiencesLinkingTo(explainerSlug, audiences) {
+  const needle = `/wissen/${explainerSlug}/`;
+  return (audiences || []).filter((a) => {
+    const hay = [...(a.related || []), ...(a.sections || []).map((x) => x.html), ...(a.faqs || []).map((f) => f.a)].join(' ');
+    return hay.includes(needle);
+  });
+}
+
+export function renderExplainerPage(ex, allBySlug, audiences = []) {
   const meta = metaForExplainer(ex);
   const canonicalPath = `/wissen/${ex.slug}/`;
   const noindex = ex.status !== 'full';
@@ -547,6 +560,8 @@ export function renderExplainerPage(ex, allBySlug) {
     .map((p) => `<a href="/wetter/${p.slug}/">Wetter ${escapeHtml(p.name)}</a>`).join('\n        ');
   const sources = (ex.sources || [])
     .map((s) => `<li><a href="${s.url}" rel="nofollow noopener" target="_blank">${escapeHtml(s.name)}</a></li>`).join('\n        ');
+  const relAudiences = audiencesLinkingTo(ex.slug, audiences).slice(0, 4)
+    .map((a) => `<a href="/fuer/${a.slug}/">${escapeHtml(a.title)}</a>`).join('\n        ');
   const stubNote = noindex
     ? '<p class="sub">Dieser Beitrag wird laufend ausgebaut. Die Kurzantwort oben fasst das Wichtigste bereits zusammen.</p>'
     : '';
@@ -570,6 +585,7 @@ ${sections}
         ${faqItems}
       </section>
 ${relExplainers ? `      <section>\n        <h2>Verwandte Themen</h2>\n        <div class="links">\n        ${relExplainers}\n        </div>\n      </section>` : ''}
+${relAudiences ? `      <section>\n        <h2>Für wen das zählt</h2>\n        <div class="links">\n        ${relAudiences}\n        </div>\n      </section>` : ''}
 ${relPlaces ? `      <section>\n        <h2>Passende Orte</h2>\n        <div class="links">\n        ${relPlaces}\n        </div>\n      </section>` : ''}
 ${sources ? `      <section>\n        <h2>Quellen</h2>\n        <ul>\n        ${sources}\n        </ul>\n      </section>` : ''}
       <footer>

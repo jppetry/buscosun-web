@@ -102,6 +102,8 @@ export function SatImageryBlock({ t, nowMs }: { t: SatTarget; nowMs: number }) {
     () => (data && scene && t.detections ? detectionRects30m(t.detections, data.bbox, SNAP_W, SNAP_H, scene.dayIso) : []),
     [data, scene, t.detections],
   );
+  /** Wie viele Rahmen aus dem Nennmaß stammen — muss im Satz stehen, sobald es einer ist. */
+  const nominalCount = detRects.filter((r) => r.nominal).length;
 
   useEffect(() => {
     if (!data || !scene) { setSnap(null); return; }
@@ -224,8 +226,11 @@ export function SatImageryBlock({ t, nowMs }: { t: SatTarget; nowMs: number }) {
       {!cog10 && (t.detections
         ? (showDet && detRects.length > 0 && snap?.kind === 'img' && (
           <p className="br-sat-detnote br-muted">
-            Rechtecke: FIRMS-Pixelgrundfläche (VIIRS, 375 m) — das Feuer liegt irgendwo darin, nicht in der Mitte;
-            gestrichelt = Aufnahme erst nach diesem Bild. Die Narbe selbst grenzt der dNBR-Modus der 10-m-Ansicht ein.
+            Rechtecke: FIRMS-Pixelgrundfläche — das Feuer liegt irgendwo darin, nicht in der Mitte. Jede Detektion
+            bekommt ihren Rahmen, auch auf dem Vorher-Bild; gestrichelt und blasser heißt: diese Aufnahme entstand
+            VOR der Detektion, dort ist an diesem Tag noch nichts zu sehen.
+            {nominalCount > 0 && ` ${nominalCount === detRects.length ? 'Alle' : `${nominalCount} der`} Rahmen stehen im Nennmaß (VIIRS 375 m), weil die Zeile keine gemessene Pixelbreite trägt.`}
+            {' '}Die Narbe selbst grenzt der dNBR-Modus der 10-m-Ansicht ein.
           </p>
         ))
         : <p className="br-sat-detnote br-muted">Detektions-Rechtecke gibt es nur im Live-Dossier — für Ereignisse aus dem Archiv liegen die FIRMS-Zeilen nicht vor.</p>)}

@@ -6,14 +6,19 @@
  * linear in Grad) und einmal für den 10-m-Viewer (UTM-Pixel des Granulats über `pixelOf`).
  *
  * Zwei Ehrlichkeitsregeln stecken hier drin, nicht in der Zeichnung:
- * 1. Das Rechteck ist die **Pixelgrundfläche** (scan × track), das Feuer liegt irgendwo darin —
- *    ohne `scan`/`track` gibt es kein Rechteck (GWIS-Notbetrieb zeichnet nichts).
+ * 1. Das Rechteck ist die **Pixelgrundfläche** (scan × track), das Feuer liegt irgendwo darin.
+ *    Fehlen `scan`/`track` in einer Zeile, tritt das **Nennmaß** (VIIRS 375 m) an ihre Stelle und
+ *    das Rechteck wird als `nominal` gekennzeichnet — der Rahmen soll immer stehen, sobald es
+ *    FIRMS-Zeilen gibt (Jan, 2026-09-05). Nur im GWIS-Notbetrieb gibt es gar keine Zeilen und
+ *    damit auch nichts zu zeichnen; das sagt die Oberfläche dann.
+ *    Der Karten-Layer behält seine strengere Regel (kein Nennmaß) — dort steht der Rahmen
+ *    neben Hunderten anderen, hier erklärt er ein einzelnes Bild.
  * 2. Der **Zeitbezug zur Szene**: eine Detektion NACH dem Aufnahmetag kann im Bild nichts
  *    erklären; sie wird als `after` markiert (gestrichelt), damit niemand unter ihr eine Narbe
  *    sucht, die es an diesem Tag noch nicht gab.
  */
 
-import { footprintRing, type FirmsRow } from '../sources/firmsHotspots';
+import { footprintRing, VIIRS_NOMINAL_KM, type FirmsRow } from '../sources/firmsHotspots';
 
 /** Ende des UTC-Kalendertags der Szene (exklusiv) — Detektionen davor „erklären" das Bild. */
 export function sceneDayEndMs(dayIso: string): number {
@@ -28,6 +33,8 @@ export interface DetRect30 {
   /** Aufnahme NACH dem Szenentag — kann im Bild nichts erklären. */
   after: boolean;
   day: boolean;
+  /** Kantenlänge aus dem Nennmaß statt aus `scan`/`track` — muss gesagt werden. */
+  nominal: boolean;
 }
 
 /**
@@ -46,8 +53,9 @@ export function detectionRects30m(
   const end = sceneDayEndMs(dayIso);
   const out: DetRect30[] = [];
   for (const r of rows) {
-    const ring = footprintRing(r);
+    const ring = footprintRing(r, VIIRS_NOMINAL_KM);
     if (!ring) continue;
+    const nominal = r.scanKm == null || r.trackKm == null;
     const rw = ring[0][0], rs = ring[0][1], re = ring[2][0], rn = ring[2][1];
     if (re < west || rw > east || rn < s || rs > n) continue;
     const x = ((rw - west) / lonSpan) * w;
@@ -58,6 +66,7 @@ export function detectionRects30m(
       h: ((rn - rs) / latSpan) * h,
       after: r.acqMs >= end,
       day: r.day,
+      nominal,
     });
   }
   return out;
@@ -74,6 +83,8 @@ export interface DetPoly {
   minX: number; minY: number; maxX: number; maxY: number;
   after: boolean;
   day: boolean;
+  /** Kantenlänge aus dem Nennmaß statt aus `scan`/`track`. */
+  nominal: boolean;
 }
 
 /**
@@ -93,7 +104,7 @@ export function detectionPolysPx(
     // Grober Vorfilter am Mittelpunkt, bevor vier Projektionen laufen.
     const c = pixelOf(r.lat, r.lon, epsg, transform);
     if (!c || c.px < -marginPx || c.px > w + marginPx || c.py < -marginPx || c.py > h + marginPx) continue;
-    const ring = footprintRing(r);
+    const ring = footprintRing(r, VIIRS_NOMINAL_KM);
     if (!ring) continue;
     const pts: number[] = [];
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
@@ -106,7 +117,10 @@ export function detectionPolysPx(
       if (p.py < minY) minY = p.py; if (p.py > maxY) maxY = p.py;
     }
     if (!ok) continue;
-    out.push({ pts, minX, minY, maxX, maxY, after: r.acqMs >= end, day: r.day });
+    out.push({
+      pts, minX, minY, maxX, maxY, after: r.acqMs >= end, day: r.day,
+      nominal: r.scanKm == null || r.trackKm == null,
+    });
   }
   return out;
 }
@@ -140,8 +154,19 @@ export function verifySatDetections(): { checks: DetCheck[]; passed: number; tot
   add('30 m: Detektion außerhalb der BBox fällt weg, teils sichtbare bleibt',
     detectionRects30m([row(51.5, 6.3, end - 1)], bb, 600, 480, day).length === 0
     && detectionRects30m([row(50.8, 6.3, end - 1)], bb, 600, 480, day).length === 1);
-  add('30 m: ohne scan/track KEIN Rechteck (kein geratenes)',
-    detectionRects30m([row(50.7, 6.3, end - 1, { scanKm: null, trackKm: null })], bb, 600, 480, day).length === 0);
+  // §13.6 (Jan): der Rahmen steht auch ohne scan/track — dann im Nennmaß und als solches gekennzeichnet.
+  add('30 m: ohne scan/track ein Rechteck im NENNMASS, ausdrücklich markiert', (() => {
+    const a = detectionRects30m([row(50.7, 6.3, end - 1, { scanKm: null, trackKm: null })], bb, 600, 480, day);
+    const b = detectionRects30m([row(50.7, 6.3, end - 1)], bb, 600, 480, day);
+    return a.length === 1 && a[0].nominal === true && b[0].nominal === false
+      // 0,375 km Nennmaß ist schmaler als die gemessenen 0,4 km der Vergleichszeile.
+      && a[0].w < b[0].w;
+  })());
+  add('10 m: Nennmaß-Kennzeichnung auch im Viewer', (() => {
+    const px: PixelOf = (lat, lon) => ({ px: lon * 1000, py: (60 - lat) * 1000 });
+    const p = detectionPolysPx([row(50.7, 6.3, end - 1, { scanKm: null, trackKm: null })], 32632, [10, 0, 0, 0, -10, 0], [60_000, 12_000], 500, day, px);
+    return p.length === 1 && p[0].nominal === true;
+  })());
   add('30 m: Aufnahme am Szenentag = nicht „after", ab Mitternacht danach = „after"',
     detectionRects30m([row(50.7, 6.3, end - 1)], bb, 600, 480, day)[0].after === false
     && detectionRects30m([row(50.7, 6.3, end)], bb, 600, 480, day)[0].after === true);

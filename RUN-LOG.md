@@ -436,3 +436,36 @@ Dateien wieder zurueck.
 
 Unveraendert offen: die Impressum-Platzhalter (stehen bereits vor diesem Lauf so in der Produktion,
 MANUELLE-SCHRITTE Nr. 2) und die sechs offenen Proxys (Nr. 8).
+
+## E10b · Reichweite abgeschlossen — 2026-09-05
+
+Nach dem Merge noch offene Reichweiten-Hebel, die ohne Jans Zutun machbar waren.
+
+**Ortsseiten von 138 auf 198.** 60 Kreis-, Bezirks- und Kantonsstädte, die im ersten Satz fehlten.
+Belegt statt geraten: Namen, Koordinaten, Bezirke und Einwohnerzahlen stammen aus dem GeoNames-Gazetteer,
+der ohnehin im Repo liegt (`public/fire/places-dach.json`, CC BY 4.0). Schwellen: Deutschland ab 20 000,
+Österreich und die Schweiz ab 9 000 Einwohnern — sonst wären beide Länder leer ausgegangen. Orte in der
+Nähe eines bestehenden Eintrags fielen raus, damit keine Vorort-Dubletten entstehen. **Die Höhen kommen
+aus denselben Terrarium-Kacheln, aus denen die Karte rechnet** (`scripts/seo/fetch-place-elevation.mjs`,
+einmalig, nicht im Build; PNG-Dekodierung von Hand über `zlib`, weil das Repo bewusst keine
+Bildbibliothek führt). Stichproben: Aachen 176 m, Chemnitz 306 m, Bludenz 564 m, Bulle 771 m.
+Drei Kandidaten aussortiert: Eisenzicken (GeoNames führt dort die Bezirks-Einwohnerzahl an einem Weiler),
+Jona (dieselbe Gemeinde wie Rapperswil-Jona), Baden (in Österreich und der Schweiz mehrdeutig).
+Verteilung jetzt DE 92 · AT 53 · CH 53. Jede neue Seite bekommt automatisch Klimatabelle, Sonnenzeiten
+und den Abschnitt „Was wir nicht wissen"; `placeSlugs.json` für die Punktforecast-Verlinkung wurde
+mitgezogen. Sitemap **263 → 323 URLs**.
+
+**Rückweg Erklärung → Zielgruppe.** Die Zielgruppen-Seiten verlinkten die Erklärungen, umgekehrt nicht.
+Der Abschnitt „Für wen das zählt" wird jetzt aus den vorhandenen Links **abgeleitet**
+(`audiencesLinkingTo()`), nicht von Hand gepflegt — eine zweite Zuordnung würde auseinanderlaufen.
+Greift bei **23 von 25** Erklärungen; die zwei ohne Treffer (Höhenkorrektur, Klimastreifen) bekommen den
+Block schlicht nicht.
+
+**IndexNow eingerichtet und gemeldet.** Schlüsseldatei in `public/`, Meldeskript
+`scripts/seo/indexnow.mjs` (liest die URL-Liste aus den erzeugten Sitemaps, `--dry` für den Trockenlauf).
+Damit erfahren Bing, Yandex, Seznam und Naver die 323 URLs sofort statt beim nächsten Besuch. Google
+nimmt an IndexNow nicht teil — dort bleibt die Search Console der einzige Weg (MANUELLE-SCHRITTE Nr. 3).
+
+**Bewusst nicht gemacht:** eigene OG-Karten je Ort (198 Stück; die Ortsseiten teilen sich weiterhin
+`wetter-default.png` — der Aufwand steht nicht im Verhältnis zum Nutzen beim Teilen einer Ortsseite),
+englischsprachige Seiten (nicht im Auftrag), und Backlink-Arbeit (extern, siehe MANUELLE-SCHRITTE).
