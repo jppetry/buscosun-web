@@ -148,6 +148,9 @@ import {
   IcoRows, IcoArrowRight, IcoPlay, IcoPause, IcoPlus, IcoMinus,
 } from './map/deckIcons';
 import { geocodeDACH } from './geocode';
+import { lzEnabled } from './sources/loadTuning';
+import { prefetchNowLayers } from './sources/layerPrefetch';
+import type { RepackFamily } from './sources/repackSource';
 import './map/mapDeck.css';
 
 function renderStationPopup(p: StationFeatureProperties, loading = false, errorMsg?: string): string {
@@ -1008,8 +1011,43 @@ export default function MapView({
   const measuredRef = (atMs: number | undefined | null): DataRef | undefined =>
     atMs != null && Number.isFinite(atMs) ? { atMs, kind: 'measured' } : undefined;
 
+  /**
+   * LZ1/M4 (audit/layer-ladezeit.md §7, V-LZ-4): den Installer eines lazy
+   * geladenen Layers GENAU EINMAL starten — aus dem Klick (vor dem React-
+   * Commit) UND aus dem Aktivierungs-Effekt (Permalink, `l=`-Query, Remount).
+   * Gemessen lagen zwischen Klick und Fetch-Start 80–145 ms Desktop und bis zu
+   * 530 ms auf dem Handy (Long Task des Re-Renders VOR dem Effekt). Der Guard
+   * ist nötig, weil die Daten-Ref erst am Ende des Installers gesetzt wird —
+   * ohne ihn liefe der Effekt denselben Abruf ein zweites Mal an. Wind und
+   * Temperatur tragen eigene Guards (`windLoadingRef`/`tempLoadingRef`).
+   */
+  const lazyInFlightRef = useRef<Set<LayerKey>>(new Set());
+  function startLazyInstall(key: LayerKey): void {
+    const slot: Record<string, [{ current: unknown }, { current: (() => Promise<void>) | null }] | undefined> = {
+      gust: [iconD2GustRef, installGustRef],
+      thunder: [iconD2ThunderRef, installThunderRef],
+      lightningfc: [iconD2LightningFcRef, installLightningFcRef],
+      snow: [iconD2SnowRef, installSnowRef],
+      rotation: [iconD2RotationRef, installRotationRef],
+    };
+    const pair = slot[key];
+    if (!pair) return;
+    const [dataRef, installRef] = pair;
+    if (dataRef.current || lazyInFlightRef.current.has(key)) return;
+    const fn = installRef.current;
+    if (!fn) return;                               // vor dem Mount: der Effekt holt es nach
+    lazyInFlightRef.current.add(key);
+    void fn().finally(() => { lazyInFlightRef.current.delete(key); });
+  }
+
   function toggle(key: LayerKey) {
     lastAddedRef.current = active.has(key) ? null : key;
+    if (!active.has(key) && lzEnabled()) {
+      // LZ1/M4: der Abruf startet JETZT, nicht erst im Effekt nach dem Commit.
+      if (key === 'wind') void installWindRef.current?.();
+      else if (key === 'temp') void installTempRef.current?.();
+      else startLazyInstall(key);
+    }
     setActive(prev => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
@@ -2478,31 +2516,64 @@ export default function MapView({
 
   // Böen lazy laden: beim ersten Aktivieren das native ICON-D2-vmax_10m-Gitter ziehen.
   useEffect(() => {
-    if (active.has('gust') && !iconD2GustRef.current) void installGustRef.current?.();
+    if (active.has('gust')) startLazyInstall('gust');
   }, [active]);
 
   // Gewitterpotenzial lazy laden (Feature F1, Jans Vorgabe): erst beim ersten
   // Aktivieren die drei ICON-D2-Felder ziehen — nie eager am Kartenstart.
   useEffect(() => {
-    if (active.has('thunder') && !iconD2ThunderRef.current) void installThunderRef.current?.();
+    if (active.has('thunder')) startLazyInstall('thunder');
   }, [active]);
 
   // Blitz-Vorhersage lazy laden (Feature F2, Jans HARTE Vorgabe): erst beim ersten
   // Aktivieren das ICON-D2-lpi_max-Gitter ziehen — nie eager am Kartenstart.
   useEffect(() => {
-    if (active.has('lightningfc') && !iconD2LightningFcRef.current) void installLightningFcRef.current?.();
+    if (active.has('lightningfc')) startLazyInstall('lightningfc');
   }, [active]);
 
   // Schnee lazy laden (Feature F4, Jans HARTE Vorgabe): erst beim ersten Aktivieren
   // das ICON-D2-Schnee-Gitter ziehen — nie eager am Kartenstart.
   useEffect(() => {
-    if (active.has('snow') && !iconD2SnowRef.current) void installSnowRef.current?.();
+    if (active.has('snow')) startLazyInstall('snow');
   }, [active]);
+
+  // LZ1/M3 (audit/layer-ladezeit.md §7): sobald der Hero-Layer sein erstes Bild
+  // hat (Wind oder Temperatur in der Ref), im Leerlauf die Jetzt-Schritte der
+  // wahrscheinlich nächsten Layer in den HTTP-Cache holen — einmal je Mount,
+  // nie eingebettet, nie vor dem ersten Bild (LE2: Priorität verteilt keine
+  // Bandbreite, nur die Reihenfolge schützt den Hero-Layer).
+  const prefetchDoneRef = useRef(false);
+  // Abbruch NUR beim Unmount — nicht bei jedem Tick: der Effekt unten hängt an
+  // `nowcastTick`, und ein Cleanup je Tick bräche den laufenden Prefetch nach
+  // der ersten Datei ab (so gemessen im ersten A/B-Lauf: nur `gust-003` lag im
+  // Cache, `gust-004` nicht).
+  const prefetchAbortRef = useRef<AbortController | null>(null);
+  useEffect(() => () => { prefetchAbortRef.current?.abort(); }, []);
+  useEffect(() => {
+    if (prefetchDoneRef.current || embedded || !lzEnabled()) return;
+    if (!iconD2WindRef.current && !iconD2TempRef.current) return;
+    prefetchDoneRef.current = true;
+    const abort = new AbortController();
+    prefetchAbortRef.current = abort;
+    const run = () => {
+      if (abort.signal.aborted) return;
+      const skip = new Set<RepackFamily>();
+      if (iconD2GustRef.current) skip.add('gust');
+      if (iconD2ThunderRef.current) skip.add('thunder');
+      if (iconD2RotationRef.current) skip.add('rotation');
+      if (iconD2SnowRef.current) skip.add('snowDepth');
+      if (iconD2LightningFcRef.current) skip.add('lightningfc');
+      void prefetchNowLayers(skip, abort.signal);
+    };
+    if (typeof window.requestIdleCallback === 'function') window.requestIdleCallback(run, { timeout: 4000 });
+    else window.setTimeout(run, 1500);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nowcastTick]);
 
   // Rotationspotenzial lazy laden (Feature F5, Jans HARTE Vorgabe): erst beim ersten
   // Aktivieren die ICON-D2-uh_max/uh_max_low/sdi_2-Felder ziehen — nie eager am Start.
   useEffect(() => {
-    if (active.has('rotation') && !iconD2RotationRef.current) void installRotationRef.current?.();
+    if (active.has('rotation')) startLazyInstall('rotation');
   }, [active]);
 
   // Schnee-Modus-Wechsel (Feature F4): das jeweils ANDERE Feld LAZY nachladen —

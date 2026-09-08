@@ -30,6 +30,16 @@ export interface PointSourceSample {
   gust: number | null;
   /** Relative humidity at 2 m, %. Optional — not every source provides it. */
   relativeHumidity: number | null;
+  /**
+   * Taupunkt bei 2 m (°C). Optional und additiv.
+   *
+   * buscosun Fusion rechnet mit dem TAUPUNKT statt mit der relativen Feuchte:
+   * er ist unbeschränkt, additiv und höhenkorrigierbar — eine relative Feuchte
+   * ist keins davon, und eine Normalverteilung darauf erzeugt Quantile über
+   * 100 %. Quellen, die nur RH liefern, werden in der Fusion aus T und RH
+   * umgerechnet (Magnus); der Altpfad liest dieses Feld nicht.
+   */
+  dewPoint?: number | null;
   /** Schneefallgrenze in m ü. M. (AROME snowlmt). Null wenn Quelle das nicht liefert. */
   snowLine: number | null;
   cloudLow: number | null;           // %
@@ -40,6 +50,16 @@ export interface PointSourceSample {
   uvIndex: number | null;
   /** Distance from query point in metres (0 for native grid samples). */
   distanceMeters?: number;
+  /**
+   * Gültigkeitszeit des Werts (UTC ms), wenn sie von der Stunde abweicht, an
+   * die der Sample gehängt ist — Stationsmessungen werden an h = 0…5 wieder-
+   * verwendet. buscosun Fusion bildet die Anomalie dann gegen die Klimatologie
+   * DIESER Zeit (Anomaliepersistenz) und nicht gegen die der Zielstunde: sonst
+   * wandert der Tagesgang der Klimatologie in die „Anomalie", und die Station
+   * zieht den Morgenanstieg um bis zu 1,4 K nach unten (Audit K-1, 2026-09-07).
+   * Fehlt das Feld, gilt der Wert für die Zielstunde. Der Altpfad liest es nicht.
+   */
+  validAtMs?: number;
 }
 
 export interface PointHourSamples {
@@ -87,6 +107,15 @@ export interface PointForecastHour {
   };
   /** Source tags that contributed > 5 % weight to this hour's blend. */
   contributingSources: string[];
+  /**
+   * Kalibrierte Verteilungen aus buscosun Fusion (`fusion/fuse.ts`).
+   *
+   * Nur gesetzt, wenn der Aufrufer `distribution: true` anfordert — ADDITIV:
+   * alle bestehenden Felder bleiben unverändert, und ohne das Flag ist das
+   * Ergebnis Feld für Feld identisch zum bisherigen Verhalten (D-11).
+   * `null` heißt „konnte nicht gerechnet werden" (kein DEM), nicht „0".
+   */
+  fusion?: import('./fusion/fuse').FusedPoint | null;
 }
 
 /**

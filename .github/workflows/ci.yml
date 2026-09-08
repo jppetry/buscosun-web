@@ -87,3 +87,5 @@ jobs:
         run: npm run verify:health
       - name: Verifier — Modellquellen-Resolver
         run: npm run verify:model-source
+      - name: Verifier — Punkt-Fusion (buscosun Fusion)
+        run: npm run verify:pv-fusion

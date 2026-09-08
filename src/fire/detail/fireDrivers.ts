@@ -301,7 +301,7 @@ export const FIRE_INDEX_NOTE =
   + 'abgeleitet, nicht gemessen und nicht von GWIS übernommen. Die Kette startet ohne Vortagsgedächtnis '
   + `im Gleichgewicht der ersten Stunde; die ersten ${FFMC_SPINUP_H} Stunden sind Vorlauf. `
   + 'Gesamt-FWI wird bewusst NICHT ausgegeben: sein Trockenheitsanteil (DC) braucht Monate Vorlauf, '
-  + 'unsere Reihe hat sieben Tage.';
+  + 'unsere Reihe reicht über Tage.';
 
 /**
  * Stündlicher FFMC und ISI über die Reihe. Stunden ohne T/RH/Wind werden übersprungen

@@ -1,6 +1,6 @@
 {
-  "note": "gzip-KB. limitKb = Ratsche gegen Regression (rot). targetKb = Ziel aus dem Rendering-Audit (nur Hinweis). Aktualisieren: npm run budget -- --update (setzt pauschal +5 % auf ALLE Metriken und loescht diese Notiz — danach die unveraenderten Grenzen von Hand zuruecksetzen). 2026-09-05 (SEO/GEO E2): totalJs 1109,8 -> 1114,0 fuer den lazy geladenen Sub-Routen-Text-Chunk (subRouteTexts). 2026-09-05 (SEO/GEO E7): totalJs 1114,0 -> 1124,0 — 13 neue Sub-Routen (Arbeitsfenster, Waldbrand-Historie, Thermalanomalien, 10 Event-Anlaesse) bringen ihre Texte in denselben lazy Chunk (74 KB roh, ~9,5 KB gzip, erst nach dem App-Mount, immutable gecacht). eagerJs-Ratsche bewusst unveraendert 107,9 (IST 106,3) — der Erstbild-Pfad waechst nicht mit.",
-  "updated": "2026-09-05",
+  "note": "gzip-KB. limitKb = Ratsche gegen Regression (rot). targetKb = Ziel aus dem Rendering-Audit (nur Hinweis). Aktualisieren: npm run budget -- --update (setzt pauschal +5 % auf ALLE Metriken und loescht diese Notiz — danach die unveraenderten Grenzen von Hand zuruecksetzen). 2026-09-05 (SEO/GEO E2): totalJs 1109,8 -> 1114,0 fuer den lazy geladenen Sub-Routen-Text-Chunk (subRouteTexts). 2026-09-05 (SEO/GEO E7): totalJs 1114,0 -> 1124,0 — 13 neue Sub-Routen (Arbeitsfenster, Waldbrand-Historie, Thermalanomalien, 10 Event-Anlaesse) bringen ihre Texte in denselben lazy Chunk (74 KB roh, ~9,5 KB gzip, erst nach dem App-Mount, immutable gecacht). eagerJs-Ratsche bewusst unveraendert 107,9 (IST 106,3) — der Erstbild-Pfad waechst nicht mit. 2026-09-05 (BDE, Brand-Detailansicht): totalJs 1124,0 -> 1136,0. Gemessen +10,9 KB gzip aus dieser Phase (1089,3 -> 1100,2 vor dem SEO-Merge): Wetterfuehrung (fireDrivers, Windrose + Zeitreihe als eigenes SVG statt einer Chart-Bibliothek — Recharts waeren ~95 KB gewesen) und der wiederhergestellte FWI-Rechenkern (fwi.ts, nur FFMC/ISI werden benutzt, der Tagesteil und die Selbstpruefungen sind tree-shaked — am Bundle nachgeprueft). Alles liegt im lazy FireRoute-Chunk: eagerJs bleibt 106,3 (Ratsche 107,9 unveraendert), der Erstbild-Pfad waechst NICHT. Nur die Deploy-Groesse steigt. 2026-09-05 (PV, buscosun Fusion): totalJs 1136,0 -> 1150,0. Gemessen +6,1 KB gzip, vollstaendig in EINEM lazy Chunk (attach-*.js) — der Fusionskern (dist/priors/combine/terrainScale/meteo/fuse) wird ausschliesslich per dynamischem Import geladen und nur, wenn ein Aufrufer `distribution: true` anfordert. eagerJs bleibt unveraendert 106,3 (Ratsche 107,9), der pointForecast-Chunk waechst nicht: der Erstbild-Pfad ist unberuehrt. 2026-09-06 (Brand-Dossier auf MUI): totalJs 1150,0 -> 1330,0. Gemessen +170,7 KB gzip fuer @mui/material + @emotion + @mui/icons-material + @mui/x-charts (Messung: temporaerer manualChunks-Split auf node_modules/@mui + @emotion, danach zurueckgesetzt; FireRoute ohne MUI 112,0 KB). Das ist Jans Entscheidung vom 2026-09-06 und kehrt D-06 (\"SVG von Hand\") FUER DAS BRAND-DOSSIER um; der Gegenwert sind einheitliche Komponenten, fertige Tastatur/ARIA, Skeleton/Alert/Tooltip und EIN Farbsystem statt Deck-CSS plus zweiter Chart-Optik. Alles liegt im LAZY FireRoute-Chunk (279,8 KB gzip, Ratsche 292,3 unveraendert): eagerJs bleibt exakt 106,3 (Ratsche 107,9 unveraendert), eagerCss 2,4 — der Erstbild-Pfad waechst NICHT, nur die Deploy-Groesse und die Ladezeit der Waldbrand-Route beim ersten Aufruf.",
+  "updated": "2026-09-06",
   "budgets": {
     "eagerJs": {
       "limitKb": 107.9,
@@ -13,7 +13,7 @@
       "limitKb": 292.3
     },
     "totalJs": {
-      "limitKb": 1124
+      "limitKb": 1330
     }
   }
 }

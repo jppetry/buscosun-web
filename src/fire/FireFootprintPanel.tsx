@@ -22,10 +22,28 @@
  */
 
 import { useEffect, useState, type ReactNode } from 'react';
+import Box from '@mui/material/Box';
+import Stack from '@mui/material/Stack';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import Typography from '@mui/material/Typography';
+import Chip from '@mui/material/Chip';
+import Tooltip from '@mui/material/Tooltip';
 import { FirePassChart } from './FirePassChart';
 import {
-  fetchFireWeatherAtPoint, hourLine, rainLabelLive, weatherSummary,
-  FIRE_WEATHER_SOURCE_LABEL, FIRE_WEATHER_ATTRIBUTION, type FireWeatherAtPoint,
+  ChartSkeleton, CopyButton, FactList, FactRow, KeyStats, Missing, MissingBlock, StatTile,
+  useDossierBreakpoint,
+} from './dossier/DossierPrimitives';
+import {
+  fetchFireWeatherAtPoint, fetchFireWeatherArchive, hourLine, rainLabelLive, weatherSummary,
+  FIRE_WEATHER_SOURCE_LABEL, FIRE_WEATHER_ATTRIBUTION,
+  FIRE_WEATHER_ARCHIVE_LABEL, FIRE_WEATHER_ARCHIVE_ATTRIBUTION, type FireWeatherAtPoint,
 } from './detail/fireWeatherAtPoint';
 import {
   type FireRecord, type RecordSort, type RecordFilter, type FireStatusKind,
@@ -182,47 +200,101 @@ export function Stat({ lbl, val, sub, tone, valClass, title, dot }: {
   );
 }
 
+/** Eine Kennzahl als DATEN — Wert, Untertitel, Grund, Farbpunkt, Ton. */
+export interface RecordStatTile {
+  lbl: string;
+  val: ReactNode;
+  sub: ReactNode;
+  /** Der Grund bzw. die Erklärung — Desktop `Tooltip`, mobil sichtbar. NIE leer bei „—". */
+  title: string;
+  tone?: 'mapped' | 'est' | 'none';
+  /** Zustandsklasse der Tendenz (`is-growing` …) für die Listenkarte. */
+  valClass?: string;
+  dot?: string;
+}
+
 /**
- * BD1 — die vier Kennzahlen eines Brands: Fläche · Detektionen · Stärke · Tendenz, jede mit
- * Untertitel (Herkunft / letzte vor X / Ausdehnung / Beobachtung); ohne Detektion „—" mit Grund
- * im title, nie 0. BD2: dieselbe Komponente in der Listenkarte UND im Dossier-Kopf.
+ * **Die vier Kennzahlen als eine Quelle** (BD1): Fläche · Detektionen · Stärke · Tendenz.
+ *
+ * Diese Funktion ist der einzige Ort, an dem steht, WAS die vier Kacheln sagen. Die
+ * Listenkarte im Readout rendert sie im Deck-CSS, der Dossier-Kopf als MUI-`StatTile` —
+ * dieselben Werte, dieselben Untertitel, dieselben Gründe. Keine der beiden Ansichten
+ * kann eine Angabe verlieren, die die andere hat; eine neue Kachel erscheint automatisch
+ * in beiden.
+ *
+ * Die Regel, die hier hängt (Prüfliste §6 Punkt 1): fehlt ein Wert, ist er „—" **mit
+ * Grund** — nie 0. `missingReason()` liefert den Grund, er wird nie weggelassen.
  */
-export function RecordStats({ r, nowMs, wide = false }: { r: FireRecord; nowMs: number; wide?: boolean }) {
+export function recordStatTiles(r: FireRecord, nowMs: number, wide = false): RecordStatTile[] {
   const origin = areaOrigin(r);
   const prov = provisionalArea(r);
   const act = r.activity;
+  return [
+    {
+      lbl: 'Fläche',
+      val: origin.tone === 'none' ? '—' : areaValue(r),
+      // Herkunft IMMER dabei: kartiert / geschätzt / Obergrenze / keine (Prüfliste Punkt 2).
+      sub: wide && prov ? `${origin.text} · ${prov.value.replace(/^[^(]*\(/, '').replace(/\)$/, '')}` : origin.text,
+      tone: origin.tone,
+      title: prov?.value ?? areaLabel(r),
+    },
+    {
+      lbl: 'Detektionen',
+      val: r.hotspots ?? '—',
+      sub: r.lastMs != null
+        ? `letzte ${ageText(Math.max(0, nowMs - r.lastMs))}${wide && r.overpasses != null ? ` · ${r.overpasses} ${r.overpasses === 1 ? 'Überflug' : 'Überflüge'}` : ''}`
+        : 'keine im Fenster',
+      title: r.hotspots == null ? (missingReason(r, 'hotspots') ?? '') : `${r.overpasses ?? 0} Überflüge · Satelliten ${r.satellites?.join(', ') || '—'}`,
+    },
+    {
+      lbl: 'Stärke',
+      val: r.sources.cluster ? strengthLabel(r.sources.cluster) : '—',
+      sub: r.sources.cluster ? `${wide ? 'ΣFRP · ' : ''}${extentLabel(r.sources.cluster)} Ausdehnung` : 'keine Leistung (keine Detektion)',
+      title: r.sources.cluster
+        ? 'Summe der Feuerstrahlungsleistung über Pixel UND Überflüge — eine Leistung, keine Fläche und keine Energie. Ausdehnung = konvexe Hülle der Detektionsorte, nicht die verbrannte Fläche.'
+        : (missingReason(r, 'hotspots') ?? ''),
+      dot: r.sources.cluster ? (r.suspectedStatic ? STATIC_GREY : clusterColorOf(r.sources.cluster)) : undefined,
+    },
+    {
+      lbl: 'Tendenz',
+      val: act?.state && act.state !== 'no-signal' ? STATE_LABEL[act.state] : act?.state === 'no-signal' ? 'kein Signal' : '—',
+      valClass: act?.state ? `is-${act.state}` : undefined,
+      sub: act?.state === 'no-signal'
+        ? (act.observation ? (act.observation === 'confirmed' ? 'Sicht gegeben' : 'nicht beobachtbar') : 'Beobachtung unbestimmt')
+        : act?.state ? `${act.passCount} Überflüge` : (act?.stateNote ?? 'nicht bestimmbar'),
+      title: act?.state === 'no-signal' ? (act.observationNote ?? '') : (act?.stateNote ?? ''),
+    },
+  ];
+}
+
+/** Der Ton des Untertitels der Kachel — `RecordStatTile.tone` in die MUI-Sprache übersetzt. */
+const TILE_TONE: Record<string, 'mapped' | 'estimate' | 'none'> = { mapped: 'mapped', est: 'estimate', none: 'none' };
+
+/**
+ * BD1 — die vier Kennzahlen eines Brands. `wide` (Dossier-Kopf) rendert sie als
+ * MUI-`StatTile`-Raster, ohne `wide` (Listenkarte im Readout) im Deck-CSS. Beide Formen
+ * lesen aus `recordStatTiles()` — es gibt keine zweite Fassung der Werte.
+ */
+export function RecordStats({ r, nowMs, wide = false }: { r: FireRecord; nowMs: number; wide?: boolean }) {
+  const tiles = recordStatTiles(r, nowMs, wide);
+  if (wide) {
+    return (
+      <KeyStats>
+        {tiles.map((s) => (
+          <StatTile
+            key={s.lbl} label={s.lbl} value={s.val} caption={s.sub} reason={s.title || undefined}
+            dotColor={s.dot}
+            tone={s.valClass ? (s.valClass.replace('is-', '') as 'growing') : (s.tone ? TILE_TONE[s.tone] : undefined)}
+          />
+        ))}
+      </KeyStats>
+    );
+  }
   return (
-    <span className={`br-fire-stats${wide ? ' is-wide' : ''}`}>
-      <Stat
-        lbl="Fläche" val={origin.tone === 'none' ? '—' : areaValue(r)}
-        sub={wide && prov ? `${origin.text} · ${prov.value.replace(/^[^(]*\(/, '').replace(/\)$/, '')}` : origin.text}
-        tone={origin.tone}
-        title={prov?.value ?? areaLabel(r)}
-      />
-      <Stat
-        lbl="Detektionen" val={r.hotspots ?? '—'}
-        sub={r.lastMs != null
-          ? `letzte ${ageText(Math.max(0, nowMs - r.lastMs))}${wide && r.overpasses != null ? ` · ${r.overpasses} ${r.overpasses === 1 ? 'Überflug' : 'Überflüge'}` : ''}`
-          : 'keine im Fenster'}
-        title={r.hotspots == null ? (missingReason(r, 'hotspots') ?? '') : `${r.overpasses ?? 0} Überflüge · Satelliten ${r.satellites?.join(', ') || '—'}`}
-      />
-      <Stat
-        lbl="Stärke" val={r.sources.cluster ? strengthLabel(r.sources.cluster) : '—'}
-        sub={r.sources.cluster ? `${wide ? 'ΣFRP · ' : ''}${extentLabel(r.sources.cluster)} Ausdehnung` : 'keine Leistung (keine Detektion)'}
-        title={r.sources.cluster
-          ? 'Summe der Feuerstrahlungsleistung über Pixel UND Überflüge — eine Leistung, keine Fläche und keine Energie. Ausdehnung = konvexe Hülle der Detektionsorte, nicht die verbrannte Fläche.'
-          : (missingReason(r, 'hotspots') ?? '')}
-        dot={r.sources.cluster ? (r.suspectedStatic ? STATIC_GREY : clusterColorOf(r.sources.cluster)) : undefined}
-      />
-      <Stat
-        lbl="Tendenz"
-        val={act?.state && act.state !== 'no-signal' ? STATE_LABEL[act.state] : act?.state === 'no-signal' ? 'kein Signal' : '—'}
-        valClass={act?.state ? `is-${act.state}` : undefined}
-        sub={act?.state === 'no-signal'
-          ? (act.observation ? (act.observation === 'confirmed' ? 'Sicht gegeben' : 'nicht beobachtbar') : 'Beobachtung unbestimmt')
-          : act?.state ? `${act.passCount} Überflüge` : (act?.stateNote ?? 'nicht bestimmbar')}
-        title={act?.state === 'no-signal' ? (act.observationNote ?? '') : (act?.stateNote ?? '')}
-      />
+    <span className="br-fire-stats">
+      {tiles.map((s) => (
+        <Stat key={s.lbl} lbl={s.lbl} val={s.val} sub={s.sub} tone={s.tone} valClass={s.valClass} title={s.title} dot={s.dot} />
+      ))}
     </span>
   );
 }
@@ -528,28 +600,38 @@ export function FireFootprintPanel(p: FootprintPanelProps) {
  * derselben Datei rechnen würde. Persistenz gibt es hier nicht (kein Speicher, kein Cron).
  */
 export function FeaturesRow({ r, nowMs }: { r: FireRecord; nowMs: number }) {
-  const [copied, setCopied] = useState(false);
+  // Ohne Detektion UND ohne EFFIS gibt es keinen Merkmalsatz — dann bleibt die Karte weg
+  // (Stufe 3 aus §2.3: nicht anwendbar ⇒ kein leerer Rahmen).
   if (r.hotspots == null && !r.sources.effis) return null;
   const f = featuresOf(r, nowMs);
   const rows = featuresSummary(f);
-  const copy = () => {
-    const json = featuresJson(f);
-    const done = () => { setCopied(true); window.setTimeout(() => setCopied(false), 1500); };
-    if (navigator.clipboard?.writeText) navigator.clipboard.writeText(json).then(done, () => { /* still: nichts behaupten */ });
-  };
   return (
-    <>
-      <dt>Merkmalsatz</dt>
-      <dd className="fire-fp-dd-wide">
-        <ul className="fire-fp-features" aria-label={`Merkmalsatz Version ${FEATURE_VERSION}`}>
-          {rows.map((x) => <li key={x.key}><span>{x.key}</span><span>{x.value}</span></li>)}
-        </ul>
-        <div className="fire-fp-features-foot">
-          <button type="button" className="br-inline-btn" onClick={copy} aria-live="polite">{copied ? 'kopiert ✓' : 'JSON kopieren'}</button>
-          <span className="br-muted">Merkmalsatz v{FEATURE_VERSION} für die spätere Kalibrierung: Prädiktoren aus Detektionen und Strahlungsleistung — die Zielgröße kommt erst mit der Kartierung (BA-Linie); heute ohne Speicher, gilt nur innerhalb des Fensters</span>
-        </div>
-      </dd>
-    </>
+    <Box>
+      <TableContainer sx={{ maxHeight: 420 }}>
+        <Table size="small" stickyHeader aria-label={`Merkmalsatz Version ${FEATURE_VERSION}`}>
+          <TableBody>
+            {rows.map((x) => (
+              <TableRow key={x.key} hover>
+                <TableCell sx={{ color: 'text.secondary', whiteSpace: 'nowrap' }}>{x.key}</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 700, color: 'text.primary' }}>{x.value}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+      <Box sx={{ display: 'flex', flexDirection: 'row', gap: 1, alignItems: 'flex-start', mt: 1.25 }}>
+        <CopyButton
+          text={() => featuresJson(f)}
+          label="JSON kopieren"
+          ariaLabel={`Merkmalsatz v${FEATURE_VERSION} als JSON kopieren`}
+        />
+        <Typography variant="caption" component="span" sx={{ pt: 1.25 }}>
+          Merkmalsatz v{FEATURE_VERSION} für die spätere Kalibrierung: Prädiktoren aus Detektionen und
+          Strahlungsleistung — die Zielgröße kommt erst mit der Kartierung (BA-Linie); heute ohne Speicher,
+          gilt nur innerhalb des Fensters
+        </Typography>
+      </Box>
+    </Box>
   );
 }
 
@@ -558,66 +640,122 @@ export function FeaturesRow({ r, nowMs }: { r: FireRecord; nowMs: number }) {
  * und Sitzung, `detail/fireWeatherAtPoint.ts`). Modellwerte, keine Messung — steht in jeder
  * Zeile; was fehlt, steht als Satz darunter, nie als Lücke.
  */
+/**
+ * BDE-D — der **Zeitanker** des Brandzeitfensters. Regelfall: die Detektionen. Ein Eintrag
+ * ohne Detektion im Fenster (reine EFFIS-Kartierung, z. B. im Saison-Umfang) hat trotzdem
+ * eine Zeit — das Branddatum der Kartierung. Die ist gröber (EFFIS setzt sie auf den
+ * geschätzten Beginn, oft nur tagesgenau), aber sie ist da, und ohne sie stünde bei jedem
+ * kartierten Brand „keine Wetterlage", obwohl es die Werte gibt. Woher der Anker stammt,
+ * MUSS die Karte sagen — `kind` trägt es bis in die Anzeige.
+ */
+export function fireWindowAnchor(r: FireRecord): { firstMs: number; lastMs: number | null; kind: 'detection' | 'effis' } | null {
+  if (r.firstMs != null) return { firstMs: r.firstMs, lastMs: r.lastMs, kind: 'detection' };
+  const e = r.sources.effis;
+  if (e?.firedateMs != null) return { firstMs: e.firedateMs, lastMs: e.finaldateMs, kind: 'effis' };
+  return null;
+}
+
+/** Der Satz zum Anker — eine Stelle, damit Wetterlage und Wetterführung dasselbe sagen. */
+export const EFFIS_ANCHOR_NOTE =
+  'Zeitanker ist das Branddatum der EFFIS-Kartierung, nicht eine Satellitendetektion: für diesen '
+  + 'Eintrag liegt keine Detektion im Fenster. EFFIS setzt das Datum auf den geschätzten Beginn — '
+  + 'oft tagesgenau, nicht stundengenau. Das Fenster kann daher neben dem tatsächlichen Brandverlauf liegen.';
+
 export function WeatherBlock({ r, nowMs }: { r: FireRecord; nowMs: number }) {
   const [wx, setWx] = useState<{ kind: 'loading' } | { kind: 'ok'; data: FireWeatherAtPoint }>({ kind: 'loading' });
   useEffect(() => {
     let alive = true;
     setWx({ kind: 'loading' });
-    void fetchFireWeatherAtPoint(r.lat, r.lon, r.firstMs, r.lastMs, nowMs).then((data) => { if (alive) setWx({ kind: 'ok', data }); });
+    const a = fireWindowAnchor(r);
+    void fetchFireWeatherAtPoint(r.lat, r.lon, a?.firstMs ?? null, a?.lastMs ?? null, nowMs)
+      // BDE-D: derselbe Rückfall wie in `DriversBlock` — reicht die ICON-Reihe nicht bis zum
+      // Brand zurück, kommen die Werte aus dem ERA5-Archiv. Sonst stünde bei jedem Eintrag
+      // aus dem Saison-Umfang „nicht verfügbar", obwohl es die Werte gibt.
+      .then(async (data) => {
+        if (data.atFirst == null && a) {
+          const old = await fetchFireWeatherArchive(r.lat, r.lon, a.firstMs, a.lastMs);
+          if (old.atFirst != null) return old;
+        }
+        return data;
+      })
+      .then((data) => { if (alive) setWx({ kind: 'ok', data }); });
     return () => { alive = false; };
     // nowMs ändert sich je Minute — der Abruf hängt am Brand, nicht an der Uhr.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [r.id, r.lat, r.lon, r.firstMs, r.lastMs]);
-  if (wx.kind === 'loading') return <p className="br-muted br-wx-loading">Modellwerte für den Brandort werden geladen …</p>;
+  // Kein Spinner: ein `Skeleton` im Maß der Kachelzeile — die Karte behält ihre Höhe,
+  // es gibt keinen Layout-Sprung, wenn die Werte eintreffen (§2.2).
+  if (wx.kind === 'loading') return <ChartSkeleton height={140} note="Modellwerte für den Brandort werden geladen …" />;
   const w = wx.data;
   const summary = weatherSummary(w);
   const stampH = (ms: number) => new Date(ms).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
   const de = (n: number, frac = 0) => n.toLocaleString('de-DE', { maximumFractionDigits: frac });
   return (
-    <div className="br-wx">
-      {summary && <p className="br-wx-summary">{summary}</p>}
-      {w.atFirst && (
-        <div className="br-wx-tile">
-          <span className="br-wx-lbl">Bei Erstdetektion · {stampH(w.atFirst.atMs)}</span>
-          {hourLine(w.atFirst)}
-        </div>
+    <WeatherGrid>
+      {summary && (
+        <Typography variant="body1" sx={{ gridColumn: '1 / -1', fontSize: 17, fontWeight: 500, lineHeight: 1.4, color: 'text.primary', mb: 0.5 }}>
+          {summary}
+        </Typography>
       )}
-      {w.atLast && (
-        <div className="br-wx-tile">
-          <span className="br-wx-lbl">Bei letzter Detektion · {stampH(w.atLast.atMs)}</span>
-          {hourLine(w.atLast)}
-        </div>
-      )}
+      {w.atFirst && <WeatherTile label={`Bei Erstdetektion · ${stampH(w.atFirst.atMs)}`} accent>{hourLine(w.atFirst)}</WeatherTile>}
+      {w.atLast && <WeatherTile label={`Bei letzter Detektion · ${stampH(w.atLast.atMs)}`}>{hourLine(w.atLast)}</WeatherTile>}
       {w.fireDay && (
-        <div className="br-wx-tile">
-          <span className="br-wx-lbl">Brandtag {new Date(`${w.fireDay.dateISO}T12:00:00Z`).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}{w.fireDay.partial ? ' · bis jetzt' : ''}</span>
+        <WeatherTile label={`Brandtag ${new Date(`${w.fireDay.dateISO}T12:00:00Z`).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}${w.fireDay.partial ? ' · bis jetzt' : ''}`}>
           {w.fireDay.tMaxC != null ? `Tmax ${de(w.fireDay.tMaxC, 1)} °C` : 'Tmax —'}
           {' · '}{w.fireDay.rhMinPct != null ? `RHmin ${de(w.fireDay.rhMinPct)} %` : 'RHmin —'}
           {' · '}{w.fireDay.gustMaxKmh != null ? `Böen max ${de(w.fireDay.gustMaxKmh)} km/h` : 'Böen —'}
           {' · '}{w.fireDay.precipMm != null ? `${de(w.fireDay.precipMm, 1)} mm` : '— mm'}
-        </div>
+        </WeatherTile>
       )}
-      <div className="br-wx-tile">
-        <span className="br-wx-lbl">Vortage</span>
+      <WeatherTile label="Vortage">
         {w.precip24hBeforeMm != null ? `${de(w.precip24hBeforeMm, 1)} mm in den 24 h vor der Erstdetektion` : 'Niederschlag der 24 h davor nicht bestimmbar'}
         {' · '}{rainLabelLive(w)}
-      </div>
-      {w.now && (
-        <div className="br-wx-tile">
-          <span className="br-wx-lbl">Jetzt · {stampH(w.now.atMs)}</span>
-          {hourLine(w.now)}
-        </div>
-      )}
+      </WeatherTile>
+      {w.now && <WeatherTile label={`Jetzt · ${stampH(w.now.atMs)}`}>{hourLine(w.now)}</WeatherTile>}
       {w.notes.length > 0 && (
-        <ul className="fire-fp-reasons br-muted">
+        <Box component="ul" className="fire-fp-reasons" sx={{ gridColumn: '1 / -1', m: 0, pl: 2.5, color: 'text.disabled', fontSize: 12.5, lineHeight: 1.5 }}>
           {w.notes.map((n) => <li key={n}>{n}</li>)}
-        </ul>
+        </Box>
       )}
-      <p className="br-note">
-        {FIRE_WEATHER_SOURCE_LABEL} · Werte für den Brandort ({r.lat.toFixed(2)}° N, {r.lon.toFixed(2)}° E) aus dem Modellgitter — das Modell
-        kennt den Brand nicht; sie beschreiben die Umgebung, nicht die Flamme. {FIRE_WEATHER_ATTRIBUTION}.
-      </p>
-    </div>
+      <Typography variant="caption" component="p" className="br-note" sx={{ gridColumn: '1 / -1', m: 0 }}>
+        {w.source === 'era5' ? FIRE_WEATHER_ARCHIVE_LABEL : FIRE_WEATHER_SOURCE_LABEL} · Werte für den Brandort ({r.lat.toFixed(2)}° N, {r.lon.toFixed(2)}° E) aus dem
+        {w.source === 'era5' ? ' Reanalysegitter' : ' Modellgitter'} — es kennt den Brand nicht; die Werte beschreiben die Umgebung, nicht die Flamme.
+        {w.source === 'era5' && ' Der Brand liegt zu weit zurück für die ICON-Reihe (7 Tage) — die Vorhersagemodelle haben kein Archiv.'}
+        {' '}{w.source === 'era5' ? FIRE_WEATHER_ARCHIVE_ATTRIBUTION : FIRE_WEATHER_ATTRIBUTION}.
+      </Typography>
+    </WeatherGrid>
+  );
+}
+
+/** Das Kachelraster der Wetterlage: zwei Spalten, mobil eine. */
+function WeatherGrid({ children }: { children: ReactNode }) {
+  const bp = useDossierBreakpoint();
+  return (
+    <Box sx={{ display: 'grid', gridTemplateColumns: bp === 'mobile' ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: '10px' }}>
+      {children}
+    </Box>
+  );
+}
+
+/**
+ * Eine Kachel der Wetterlage. `accent` färbt die erste (Erstdetektion) in Steel —
+ * sie ist der Anker des Brandzeitfensters, nicht nur ein Zeitpunkt unter mehreren.
+ */
+function WeatherTile({ label, accent = false, children }: { label: string; accent?: boolean; children: ReactNode }) {
+  return (
+    <Box
+      sx={{
+        bgcolor: accent ? 'fire.steelTint' : 'fire.tile',
+        border: '1px solid', borderColor: accent ? 'fire.steelBorder' : 'divider',
+        borderRadius: '10px', p: '11px 13px', fontSize: 13.5, lineHeight: 1.5,
+        color: 'text.primary', fontVariantNumeric: 'tabular-nums', minWidth: 0, overflowWrap: 'anywhere',
+      }}
+    >
+      <Typography variant="overline" component="span" sx={{ display: 'block', fontSize: 12, letterSpacing: '.14em', mb: '4px', color: accent ? 'fire.steel' : 'text.disabled' }}>
+        {label}
+      </Typography>
+      {children}
+    </Box>
   );
 }
 
@@ -632,26 +770,20 @@ export function MappingRow({ r, nowMs }: { r: FireRecord; nowMs: number }) {
   const gap = mappingGapText(r, nowMs);
   if (e) {
     return (
-      <>
-        <dt>Kartierung</dt>
-        <dd>
-          {e.areaHa != null ? <b>{e.areaHa.toLocaleString('de-DE', { maximumFractionDigits: 0 })} ha</b> : <span className="br-muted">Fläche ohne Wert in der Kartierung</span>}
-          {e.firedateMs != null && <> · Branddatum {fmtDate(e.firedateMs)}</>}
-          {e.finaldateMs != null && <> · Ende {fmtDate(e.finaldateMs)}</>}
-          {e.lastUpdateMs != null && <> · Stand {fmtDate(e.lastUpdateMs)}</>}
-          {' · '}<a href="https://effis.jrc.ec.europa.eu/" target="_blank" rel="noopener">EFFIS</a> (Copernicus EMS, CC BY 4.0)
-          {r.sources.effisExtra > 0 && <span className="br-muted"> · {r.sources.effisExtra} weitere Kartierung{r.sources.effisExtra === 1 ? '' : 'en'} im selben Cluster</span>}
-        </dd>
-      </>
+      <FactRow term="Kartierung">
+        {e.areaHa != null ? <b>{e.areaHa.toLocaleString('de-DE', { maximumFractionDigits: 0 })} ha</b> : <Muted>Fläche ohne Wert in der Kartierung</Muted>}
+        {e.firedateMs != null && <> · Branddatum {fmtDate(e.firedateMs)}</>}
+        {e.finaldateMs != null && <> · Ende {fmtDate(e.finaldateMs)}</>}
+        {e.lastUpdateMs != null && <> · Stand {fmtDate(e.lastUpdateMs)}</>}
+        {' · '}<a href="https://effis.jrc.ec.europa.eu/" target="_blank" rel="noopener">EFFIS</a> (Copernicus EMS, CC BY 4.0)
+        {r.sources.effisExtra > 0 && <Muted> · {r.sources.effisExtra} weitere Kartierung{r.sources.effisExtra === 1 ? '' : 'en'} im selben Cluster</Muted>}
+      </FactRow>
     );
   }
   if (!gap) return null;
-  return (
-    <>
-      <dt>Kartierung</dt>
-      <dd className="br-muted">{gap}</dd>
-    </>
-  );
+  // Ohne Kartierung steht hier der GRUND — eine Stelle, damit die widerlegte Regel
+  // „EFFIS kartiert erst ab ~30 ha" nicht über eine zweite Formulierung zurückkehrt.
+  return <FactRow term="Kartierung"><Muted>{gap}</Muted></FactRow>;
 }
 
 /**
@@ -667,18 +799,51 @@ export function DriversBlock({ r, nowMs, width }: { r: FireRecord; nowMs: number
   useEffect(() => {
     let alive = true;
     setWx({ kind: 'loading' });
-    void fetchFireWeatherAtPoint(r.lat, r.lon, r.firstMs, r.lastMs, nowMs).then((data) => { if (alive) setWx({ kind: 'ok', data }); });
+    const a = fireWindowAnchor(r);
+    void fetchFireWeatherAtPoint(r.lat, r.lon, a?.firstMs ?? null, a?.lastMs ?? null, nowMs)
+      .then(async (data) => {
+        // BDE-D: die ICON-Reihe reicht nur `HOURLY_PAST_DAYS` zurück. Ein Eintrag aus dem
+        // Saison-Umfang (EFFIS kartiert Wochen später) fiel deshalb bisher auf „keine
+        // Stundenreihe" — für den Nutzer nicht von „gibt es nichts" zu unterscheiden.
+        // Reicht sie nicht, tritt das ERA5-Archiv an ihre Stelle; die Karte sagt, welche
+        // Quelle sie zeigt. Geraten wird nichts: fehlt auch die Reanalyse, bleibt der Satz.
+        if (data.windowHours.length === 0 && a) {
+          const old = await fetchFireWeatherArchive(r.lat, r.lon, a.firstMs, a.lastMs);
+          if (old.windowHours.length > 0) return old;
+        }
+        return data;
+      })
+      .then((data) => { if (alive) setWx({ kind: 'ok', data }); });
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [r.id, r.lat, r.lon, r.firstMs, r.lastMs]);
-  if (wx.kind === 'loading') return <p className="br-muted br-wx-loading">Modellwerte für den Brandort werden geladen …</p>;
-  const w = wx.data;
+  if (wx.kind === 'loading') return <ChartSkeleton height={200} note="Modellwerte für den Brandort werden geladen …" />;
+  return (
+    <DriversView
+      w={wx.data} spreadBearingDeg={r.activity?.spreadBearingDeg ?? null} width={width}
+      anchorNote={fireWindowAnchor(r)?.kind === 'effis' ? EFFIS_ANCHOR_NOTE : undefined}
+    />
+  );
+}
+
+/**
+ * BDE-D — die Darstellung allein, ohne Abruf. Die Historie schickt hier ihre ERA5-Reihe
+ * hinein (`fetchFireWeatherArchive`), die Live-Ansicht ihre ICON-Reihe. EIN Rechenweg,
+ * eine Einstufung, eine Windrose — der Unterschied steht in `w.source` und wird gesagt.
+ */
+export function DriversView({ w, spreadBearingDeg, width, anchorNote }: { w: FireWeatherAtPoint; spreadBearingDeg: number | null; width?: number; anchorNote?: string }) {
+  const era5 = w.source === 'era5';
   if (w.windowHours.length === 0) {
+    // Stufe 2 (§2.3): der ganze Block fehlt, der Grund ist bekannt — ein Kasten mit dem
+    // bestehenden Satz. KEIN leeres Chart, kein „0"-Achsenkreuz.
     return (
-      <p className="br-muted">
-        Keine Stundenreihe für das Brandzeitfenster — ohne sie gibt es weder Windrose noch Einstufung.
-        {w.notes.length > 0 && ` ${w.notes[0]}`}
-      </p>
+      <>
+        <MissingBlock>
+          Keine Stundenreihe für das Brandzeitfenster — ohne sie gibt es weder Windrose noch Einstufung.
+          {w.notes.length > 0 && ` ${w.notes[0]}`}
+        </MissingBlock>
+        {anchorNote && <p className="br-note">{anchorNote}</p>}
+      </>
     );
   }
   const det = w.detectionRange;
@@ -688,78 +853,96 @@ export function DriversBlock({ r, nowMs, width }: { r: FireRecord; nowMs: number
   const rating = driverRating({ hours: ratingHours, precip24hBeforeMm: w.precip24hBeforeMm, daysSinceRain: w.daysSinceRain });
   const rose = windRose(ratingHours.length >= 3 ? ratingHours : w.windowHours);
   const dom = dominantWind(ratingHours.length >= 3 ? ratingHours : w.windowHours);
-  const vs = spreadVsWind(r.activity?.spreadBearingDeg ?? null, dom.fromDeg);
+  const vs = spreadVsWind(spreadBearingDeg, dom.fromDeg);
   const series = fireIndexSeries(w.windowHours);
   const atFirst = w.atFirst ? indexAt(series, w.atFirst.atMs) : null;
   return (
-    <div className="br-drv">
+    <Stack className="br-drv" spacing={1.25}>
       {rating ? (
-        <p className={`br-drv-verdict is-${rating.level}`}>
-          <span className="br-drv-lbl">{DRIVER_LABEL[rating.level]}</span>
-          <span className="br-muted">
-            {' '}— abgeleitete Einstufung aus {rating.hours} Modellstunde{rating.hours === 1 ? '' : 'n'}
-            {inDet.length === 0 && ' (nur die Stunde der Erstdetektion — die Detektionen liegen innerhalb einer Stunde)'}
+        <Box className={`br-drv-verdict is-${rating.level}`} sx={{ display: 'flex', alignItems: 'baseline', gap: 1, flexWrap: 'wrap' }}>
+          <Chip
+            size="small" variant="outlined" className="br-drv-lbl" label={DRIVER_LABEL[rating.level]}
+            sx={{
+              fontSize: 12, letterSpacing: '.08em', textTransform: 'uppercase', borderRadius: '999px',
+              bgcolor: 'transparent',
+              color: rating.level === 'driving' ? 'fire.extreme' : rating.level === 'damping' ? 'fire.steel' : 'text.disabled',
+              borderColor: 'currentColor',
+            }}
+          />
+          <Typography variant="caption" component="span">
+            — abgeleitete Einstufung aus {rating.hours} Modellstunde{rating.hours === 1 ? '' : 'n'}
+            {inDet.length === 0 && (anchorNote
+              ? ' (nur die Stunde des Branddatums — die Kartierung nennt keinen Zeitraum, nur einen Beginn)'
+              : ' (nur die Stunde der Erstdetektion — die Detektionen liegen innerhalb einer Stunde)')}
             {', Punktsumme '}{rating.score > 0 ? `+${rating.score}` : rating.score}
-          </span>
-        </p>
+          </Typography>
+        </Box>
       ) : (
-        <p className="br-muted">Keine Einstufung — für den Zeitraum der Detektionen liegt keine Modellstunde vor.</p>
+        <MissingBlock>Keine Einstufung — für den Zeitraum der Detektionen liegt keine Modellstunde vor.</MissingBlock>
       )}
       {rating && (
-        <ul className="br-drv-reasons">
+        <Box component="ul" className="br-drv-reasons" sx={{ listStyle: 'none', m: 0, p: 0, display: 'flex', flexDirection: 'column', gap: '3px' }}>
           {rating.reasons.map((x) => (
             <li key={x.text} data-sign={x.points > 0 ? 'up' : x.points < 0 ? 'down' : 'zero'}>
               <span className="br-drv-pt">{x.points > 0 ? `+${x.points}` : x.points === 0 ? '±0' : x.points}</span>
               <span>{x.text}</span>
             </li>
           ))}
-        </ul>
+        </Box>
       )}
-      <p className="br-note">{DRIVER_RULE_TEXT}</p>
+      {anchorNote && <p className="br-note">{anchorNote}</p>}
+      <Typography variant="caption" component="p" className="br-note" sx={{ m: 0 }}>{DRIVER_RULE_TEXT}</Typography>
 
-      <div className="br-drv-wind">
-        <WindRoseChart rose={rose} spreadBearingDeg={r.activity?.spreadBearingDeg ?? null} dominantFromDeg={dom.fromDeg} />
-        <dl className="fire-fp-dl br-drv-dl">
-          <dt>Vorherrschender Wind</dt>
-          <dd>
-            {dom.fromDeg != null
-              ? <>aus <b>{compassLabel(dom.fromDeg)}</b> ({dom.fromDeg}°) · im Mittel {dom.meanKmh} km/h{dom.maxGustKmh != null && <> · Böen bis {Math.round(dom.maxGustKmh)} km/h</>}</>
-              : <>keine vorherrschende Richtung — der Wind drehte zu stark (Beständigkeit {dom.steadiness ?? '—'} unter {STEADY_MIN}){dom.meanKmh != null && <>, im Mittel {dom.meanKmh} km/h</>}</>}
-            <span className="br-muted"> · geschwindigkeitsgewichtetes Vektormittel über {dom.hours} Stunden; „Beständigkeit" 1 = konstant, 0 = dreht ständig</span>
-          </dd>
-          <dt>Ausbreitung gegen Wind</dt>
-          <dd>
-            {vs
-              ? <><b>{vs.diffDeg}°</b> — {spreadVsWindLabel(vs)} <span className="br-muted">(Wind weht nach {compassLabel(vs.downwindDeg)}, Schwerpunkt wandert nach {compassLabel(vs.spreadDeg)})</span></>
-              : <span className="br-muted">
-                  nicht bestimmbar — {r.activity?.spreadBearingDeg == null ? 'es gibt keine belastbare Ausbreitungsrichtung' : 'es gibt keine vorherrschende Windrichtung'}. Nichts wird interpoliert.
-                </span>}
-          </dd>
-          {series && (
-            <>
-              <dt>FFMC / ISI</dt>
-              <dd>
+      <Box className="br-drv-wind" sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+        <WindRoseChart rose={rose} spreadBearingDeg={spreadBearingDeg} dominantFromDeg={dom.fromDeg} />
+        <Box className="br-drv-dl" sx={{ flex: '1 1 260px', minWidth: 0 }}>
+          <FactList dense>
+            <FactRow
+              term="Vorherrschender Wind"
+              reason={`geschwindigkeitsgewichtetes Vektormittel über ${dom.hours} Stunden; „Beständigkeit" 1 = konstant, 0 = dreht ständig`}
+            >
+              {dom.fromDeg != null
+                ? <>aus <b>{compassLabel(dom.fromDeg)}</b> ({dom.fromDeg}°) · im Mittel {dom.meanKmh} km/h{dom.maxGustKmh != null && <> · Böen bis {Math.round(dom.maxGustKmh)} km/h</>}</>
+                : <>keine vorherrschende Richtung — der Wind drehte zu stark (Beständigkeit {dom.steadiness ?? '—'} unter {STEADY_MIN}){dom.meanKmh != null && <>, im Mittel {dom.meanKmh} km/h</>}</>}
+            </FactRow>
+            <FactRow term="Ausbreitung gegen Wind">
+              {vs
+                ? <><b>{vs.diffDeg}°</b> — {spreadVsWindLabel(vs)} <Muted>(Wind weht nach {compassLabel(vs.downwindDeg)}, Schwerpunkt wandert nach {compassLabel(vs.spreadDeg)})</Muted></>
+                : <Muted>
+                    nicht bestimmbar — {spreadBearingDeg == null ? 'es gibt keine belastbare Ausbreitungsrichtung' : 'es gibt keine vorherrschende Windrichtung'}. Nichts wird interpoliert.
+                  </Muted>}
+            </FactRow>
+            {series && (
+              <FactRow term="FFMC / ISI">
                 {atFirst
-                  ? <>bei Erstdetektion FFMC <b>{atFirst.ffmc.toFixed(1)}</b> · ISI <b>{atFirst.isi.toFixed(1)}</b>{atFirst.spinup && <span className="br-muted"> (noch im Vorlauf der Kette — nur als Größenordnung)</span>}</>
-                  : <span className="br-muted">keine Stunde der Erstdetektion in der gerechneten Kette</span>}
-                {series.skipped > 0 && <span className="br-muted"> · {series.skipped} Stunde{series.skipped === 1 ? '' : 'n'} ohne Werte übersprungen</span>}
-              </dd>
-            </>
-          )}
-        </dl>
-      </div>
+                  ? <>bei Erstdetektion FFMC <b>{atFirst.ffmc.toFixed(1)}</b> · ISI <b>{atFirst.isi.toFixed(1)}</b>{atFirst.spinup && <Muted> (noch im Vorlauf der Kette — nur als Größenordnung)</Muted>}</>
+                  : <Muted>keine Stunde der Erstdetektion in der gerechneten Kette</Muted>}
+                {series.skipped > 0 && <Muted> · {series.skipped} Stunde{series.skipped === 1 ? '' : 'n'} ohne Werte übersprungen</Muted>}
+              </FactRow>
+            )}
+          </FactList>
+        </Box>
+      </Box>
 
       <DriverSeriesChart hours={w.windowHours} detectionRange={w.detectionRange} index={series} width={width} />
 
-      {series && <p className="br-note">{FIRE_INDEX_NOTE}</p>}
-      <p className="br-note">
+      {series && <Typography variant="caption" component="p" className="br-note" sx={{ m: 0 }}>{FIRE_INDEX_NOTE}</Typography>}
+      <Typography variant="caption" component="p" className="br-note" sx={{ m: 0 }}>
         Der Gesamt-FWI steht bewusst nicht hier. Wer ihn braucht:{' '}
         <a href="https://gwis.jrc.ec.europa.eu/apps/gwis_current_situation/" target="_blank" rel="noopener">GWIS · Current Situation</a>{' '}
         (Copernicus, CC BY 4.0) — der Dienst gibt seine Werte nur als Bild aus, nicht als Zahl, deshalb ist er hier verlinkt statt eingerechnet.
-      </p>
-      <p className="br-note">{FIRE_WEATHER_SOURCE_LABEL} · {FIRE_WEATHER_ATTRIBUTION}.</p>
-    </div>
+      </Typography>
+      <Typography variant="caption" component="p" className="br-note" sx={{ m: 0 }}>
+        {era5 ? FIRE_WEATHER_ARCHIVE_LABEL : FIRE_WEATHER_SOURCE_LABEL} · {era5 ? FIRE_WEATHER_ARCHIVE_ATTRIBUTION : FIRE_WEATHER_ATTRIBUTION}.
+        {era5 && ' Für zurückliegende Brände gibt es kein ICON-Archiv — die Reanalyse ist gröber, ein einzelner Hang oder Talwind steckt in ihr nicht drin.'}
+      </Typography>
+    </Stack>
   );
+}
+
+/** Nebentext innerhalb einer Faktenzeile — der Ton, den vorher `.br-muted` trug. */
+function Muted({ children }: { children: ReactNode }) {
+  return <Box component="span" sx={{ color: 'text.disabled' }}>{children}</Box>;
 }
 
 // ---------------------------------------------------------------------------
@@ -788,46 +971,42 @@ export function DetailKennzahlenRows({ r, nowMs }: { r: FireRecord; nowMs: numbe
   const act = r.activity;
   return (
     <>
-      <dt>Status</dt><dd>{statusLabel(r, nowMs)}</dd>
-      <dt>Fläche</dt>
-      <dd>
+      <FactRow term="Status">{statusLabel(r, nowMs)}</FactRow>
+      <FactRow term="Fläche">
         {prov ? (
           <>
             {prov.head}: <b>{prov.value}</b>
-            <span className="br-muted"> — {prov.note} {prov.source}</span>
+            <Muted> — {prov.note} {prov.source}</Muted>
           </>
         ) : (
           <>
             {areaLabel(r)}
+            {/* Obergrenze heißt Obergrenze: die Pixelgröße gehört in denselben Satz. */}
             {r.areaHa.kind === 'upper-bound' && ' — vom Satelliten abgedeckt (ein Pixel deckt 14–60 ha), Obergrenze, keine Brandfläche'}
             {r.areaHa.kind === 'mapped' && ' — von EFFIS gemessen'}
             {r.areaHa.value == null && ` (${missingReason(r, 'area')})`}
             {r.sources.effisExtra > 0 && ` · ${r.sources.effisExtra} weitere Kartierung${r.sources.effisExtra === 1 ? '' : 'en'} im selben Cluster`}
           </>
         )}
-      </dd>
+      </FactRow>
       <MappingRow r={r} nowMs={nowMs} />
       {!prov && act && (act.areaEst || act.areaEstReason) && (
-        <>
-          <dt>Schätzung</dt>
-          <dd>
-            {act.areaEst
-              ? <>Fläche <b>{estimateLabel(act.areaEst).split(' — ')[0]}</b>{' — '}{estimateLabel(act.areaEst).split(' — ').slice(1).join(' — ')}</>
-              : <span className="br-muted">— {act.areaEstReason}</span>}
-            {act.areaEst && r.areaHa.kind === 'mapped' && r.areaHa.value != null && (
-              <span className="br-muted"> · zum Vergleich kartiert: {r.areaHa.value.toLocaleString('de-DE')} ha (die Kartierung gilt)</span>
-            )}
-          </dd>
-        </>
+        <FactRow term="Schätzung">
+          {act.areaEst
+            ? <>Fläche <b>{estimateLabel(act.areaEst).split(' — ')[0]}</b>{' — '}{estimateLabel(act.areaEst).split(' — ').slice(1).join(' — ')}</>
+            : <Muted>— {act.areaEstReason}</Muted>}
+          {act.areaEst && r.areaHa.kind === 'mapped' && r.areaHa.value != null && (
+            <Muted> · zum Vergleich kartiert: {r.areaHa.value.toLocaleString('de-DE')} ha (die Kartierung gilt)</Muted>
+          )}
+        </FactRow>
       )}
-      <dt>Erstdetektion</dt><dd>{r.firstMs != null ? fmtStamp(r.firstMs) : <span title={missingReason(r, 'hotspots') ?? ''}>—</span>}</dd>
-      <dt>Letzte Detektion</dt><dd>{r.lastMs != null ? `${fmtStamp(r.lastMs)} (${ageText(Math.max(0, nowMs - r.lastMs))})` : '—'}</dd>
-      <dt>Hotspots</dt>
-      <dd>
+      <FactRow term="Erstdetektion">{r.firstMs != null ? fmtStamp(r.firstMs) : <Missing reason={missingReason(r, 'hotspots')} />}</FactRow>
+      <FactRow term="Letzte Detektion">{r.lastMs != null ? `${fmtStamp(r.lastMs)} (${ageText(Math.max(0, nowMs - r.lastMs))})` : <Missing reason={missingReason(r, 'hotspots')} />}</FactRow>
+      <FactRow term="Hotspots">
         {r.hotspots != null
           ? `${r.hotspots} · ${r.overpasses ?? 0} Überflüge · Satelliten ${r.satellites?.join(', ') || '—'}`
-          : <span title={missingReason(r, 'hotspots') ?? ''}>— (kein Satellitensignal im Fenster)</span>}
-      </dd>
+          : <><Missing reason={missingReason(r, 'hotspots')} /> (kein Satellitensignal im Fenster)</>}
+      </FactRow>
     </>
   );
 }
@@ -837,17 +1016,16 @@ export function DetailConfidenceRows({ r }: { r: FireRecord }) {
   const conf = r.confidence;
   return (
     <>
-      <dt>Konfidenz</dt>
-      <dd>
-        {conf.firms ? `FIRMS ${confidenceLabel(r)}` : <span title={missingReason(r, 'confidence') ?? ''}>—</span>}
+      <FactRow term="Konfidenz">
+        {conf.firms ? `FIRMS ${confidenceLabel(r)}` : <Missing reason={missingReason(r, 'confidence')} />}
         {conf.assessment && <> · Bewertung <b>{LEVEL_LABEL[conf.assessment]}</b></>}
         {conf.reasons.length > 0 && (
-          <ul className="fire-fp-reasons">
+          <Box component="ul" className="fire-fp-reasons" sx={{ m: '4px 0 0', pl: 2.5, fontSize: 12.5, lineHeight: 1.5 }}>
             {conf.reasons.map((s) => <li key={s}>{s}</li>)}
-          </ul>
+          </Box>
         )}
-      </dd>
-      <dt>Methode</dt><dd>{r.method.map((m) => METHOD_LABEL[m]).join(' · ')}</dd>
+      </FactRow>
+      <FactRow term="Methode">{r.method.map((m) => METHOD_LABEL[m]).join(' · ')}</FactRow>
     </>
   );
 }
@@ -878,9 +1056,15 @@ export function DetailFrpRows({ r }: { r: FireRecord }) {
   const act = r.activity;
   return (
     <>
-      {r.frpSumMw != null && <><dt>ΣFRP</dt><dd>{r.frpSumMw.toLocaleString('de-DE', { maximumFractionDigits: 1 })} MW — Leistung, summiert über Pixel und Überflüge, keine Fläche</dd></>}
+      {r.frpSumMw != null && (
+        <FactRow term="ΣFRP">
+          {r.frpSumMw.toLocaleString('de-DE', { maximumFractionDigits: 1 })} MW — Leistung, summiert über Pixel und Überflüge, keine Fläche
+        </FactRow>
+      )}
       {act && act.frpLastPassMw != null && (
-        <><dt>FRP je Überflug</dt><dd>{activitySummary(act)} — ΣFRP des jüngsten bzw. stärksten Überflugs (nicht die Fenstersumme oben)</dd></>
+        <FactRow term="FRP je Überflug">
+          {activitySummary(act)} — ΣFRP des jüngsten bzw. stärksten Überflugs (nicht die Fenstersumme oben)
+        </FactRow>
       )}
     </>
   );
@@ -893,84 +1077,123 @@ export function DetailVerlauf({ r, nowMs, compact = false, wide = false, wideWid
     <>
       {r.passes.length > 0
         ? <FirePassChart passes={r.passes} nowMs={nowMs} compact={compact} wide={wide} wideWidth={wideWidth} />
-        : <p className="br-muted br-detail-empty">Kein Überflug im Fenster — es gibt keinen zeitlichen Verlauf, nur die Kartierung.</p>}
+        : <MissingBlock>Kein Überflug im Fenster — es gibt keinen zeitlichen Verlauf, nur die Kartierung.</MissingBlock>}
       {act && act.passCount > 0 && (
-        <dl className="fire-fp-dl">
-          <dt>Tendenz</dt>
-          <dd>
+        <FactList>
+          <FactRow term="Tendenz" reason="FRP-Verlauf der letzten Überflüge derselben Tageshälfte; nicht die Tendenz der Ereignis-Einordnung">
             {act.state && act.state !== 'no-signal'
               ? <><b className={`fire-fp-trend is-${act.state}`}>{STATE_LABEL[act.state]}</b>{act.stateNote ? ` — ${act.stateNote}` : ''}</>
               : act.state === 'no-signal'
                 ? <>kein Signal{act.stateNote ? ` — ${act.stateNote}` : ''}</>
-                : <span className="br-muted">— {act.stateNote ?? 'nicht bestimmbar'}</span>}
-            <span className="br-muted"> · FRP-Verlauf der letzten Überflüge derselben Tageshälfte; nicht die Tendenz der Ereignis-Einordnung</span>
-          </dd>
+                : <Muted>— {act.stateNote ?? 'nicht bestimmbar'}</Muted>}
+          </FactRow>
           {act.state === 'no-signal' && (
-            <>
-              <dt>Beobachtung</dt>
-              <dd>
-                {act.observation
-                  ? <><b>{OBSERVATION_LABEL[act.observation]}</b>{act.observationNote ? ` — ${act.observationNote}` : ''}</>
-                  : <span className="br-muted">— nicht bestimmt (keine Zeilen für den Umkreis)</span>}
-              </dd>
-            </>
+            <FactRow term="Beobachtung">
+              {act.observation
+                ? <><b>{OBSERVATION_LABEL[act.observation]}</b>{act.observationNote ? ` — ${act.observationNote}` : ''}</>
+                : <Muted>— nicht bestimmt (keine Zeilen für den Umkreis)</Muted>}
+            </FactRow>
           )}
-          <dt>Ausbreitung</dt>
-          <dd>
+          <FactRow
+            term="Ausbreitung"
+            reason="Verschiebung des FRP-Schwerpunkts, kein Frontverlauf — die Zahl ist eine Verlagerung zwischen Momentaufnahmen, nicht die Geschwindigkeit der Feuerfront"
+          >
             {act.spreadBearingDeg != null ? (
               <>
                 Schwerpunkt wandert nach <b>{compassLabel(act.spreadBearingDeg)}</b> ({act.spreadBearingDeg}°, {act.spreadDistanceM} m zwischen den Überflügen)
                 {act.windAgreement === 'agree' && <> · <span className="fire-fp-wind is-agree">mit dem ICON-D2-Wind ({act.windFromDeg}° aus)</span></>}
                 {act.windAgreement === 'disagree' && <> · <span className="fire-fp-wind is-disagree">gegen den ICON-D2-Wind ({act.windFromDeg}° aus) — Schwerpunkt verzerrt oder zwei Feuer?</span></>}
-                {act.windAgreement === null && act.windFromDeg != null && <> · <span className="br-muted">Wind ({act.windFromDeg}° aus) weder klar dafür noch dagegen</span></>}
-                {act.windFromDeg == null && <> · <span className="br-muted">kein Windabgleich hier (Windlayer aus); der Abgleich gegen die Modell-Stundenreihe steht unter „Wetterführung"</span></>}
+                {act.windAgreement === null && act.windFromDeg != null && <> · <Muted>Wind ({act.windFromDeg}° aus) weder klar dafür noch dagegen</Muted></>}
+                {act.windFromDeg == null && <> · <Muted>kein Windabgleich hier (Windlayer aus); der Abgleich gegen die Modell-Stundenreihe steht unter „Wetterführung"</Muted></>}
                 {act.spreadSpeedMh != null && act.spreadSpanMs != null && (
                   <> · <b>{act.spreadSpeedMh.toLocaleString('de-DE')} m/h</b> über {Math.round(act.spreadSpanMs / 3_600_000)} h</>
                 )}
-                <span className="br-muted"> · Verschiebung des FRP-Schwerpunkts, kein Frontverlauf — die Zahl ist eine <b>Verlagerung</b> zwischen Momentaufnahmen, nicht die Geschwindigkeit der Feuerfront</span>
+                <Muted> · Verschiebung des FRP-Schwerpunkts, kein Frontverlauf — die Zahl ist eine <b>Verlagerung</b> zwischen Momentaufnahmen, nicht die Geschwindigkeit der Feuerfront</Muted>
               </>
             ) : (
-              <span className="br-muted">— keine Richtung bestimmbar (unter 3 Überflügen mit FRP oder Verschiebung unter einer halben Pixelbreite); die Ausdehnung der Hülle steht in der Kachel</span>
+              <Muted>— keine Richtung bestimmbar (unter 3 Überflügen mit FRP oder Verschiebung unter einer halben Pixelbreite); die Ausdehnung der Hülle steht in der Kachel</Muted>
             )}
-          </dd>
+          </FactRow>
           {act.spreadConfidence && (
-            <>
-              <dt>Konfidenz der Richtung</dt>
-              <dd>
-                {act.spreadConfidence.passes === 1 ? '1 Überflug' : `${act.spreadConfidence.passes} Überflüge`} mit FRP · {act.spreadConfidence.detections} Detektionen
-                {act.spreadConfidence.passes > 1 && <> · {Math.round(act.spreadConfidence.spanMs / 3_600_000)} h Zeitspanne</>}
-                {act.spreadConfidence.meanStepM != null && <> · mittlerer Schritt {act.spreadConfidence.meanStepM.toLocaleString('de-DE')} m</>}
-                <span className="br-muted">{' '}— {spreadConfidenceNote(act)}</span>
-              </dd>
-            </>
+            <FactRow term="Konfidenz der Richtung">
+              {act.spreadConfidence.passes === 1 ? '1 Überflug' : `${act.spreadConfidence.passes} Überflüge`} mit FRP · {act.spreadConfidence.detections} Detektionen
+              {act.spreadConfidence.passes > 1 && <> · {Math.round(act.spreadConfidence.spanMs / 3_600_000)} h Zeitspanne</>}
+              {act.spreadConfidence.meanStepM != null && <> · mittlerer Schritt {act.spreadConfidence.meanStepM.toLocaleString('de-DE')} m</>}
+              {/* AUFGELÖST, nie „entweder/oder": welcher Grund zutrifft, ist bekannt. */}
+              <Muted>{' '}— {spreadConfidenceNote(act)}</Muted>
+            </FactRow>
           )}
-          <dt>FRE</dt><dd>{freLabel(act)}</dd>
-          <dt>Überflüge</dt>
-          <dd>
+          <FactRow term="FRE">{freLabel(act)}</FactRow>
+          <FactRow term="Überflüge">
             {act.daynightMix ? DAYNIGHT_LABEL[act.daynightMix] : '—'}
             {act.meanScanKm != null && <> · mittlere Pixelbreite {act.meanScanKm.toLocaleString('de-DE')} km{act.meanScanKm > 0.6 ? ' (Schwadrand — größere Pixel, andere Detektionswahrscheinlichkeit)' : ''}</>}
-          </dd>
+          </FactRow>
           {r.passes.length > 0 && (
-            <>
-              <dt>Je Überflug</dt>
-              <dd className="fire-fp-dd-wide">
-                <ul className="fire-fp-passes fire-fp-passes--af">
-                  {r.passes.slice(-8).map((ps) => (
-                    <li key={ps.key}>
-                      <span>{fmtStamp(ps.atMs)}</span>
-                      <span title={ps.satellite}>{ps.satellite || '—'} {ps.day === true ? '☀' : ps.day === false ? '☾' : ''}</span>
-                      <span>{ps.pixels} Px</span>
-                      <span>{ps.frpPixels > 0 ? `${ps.sumFrp.toLocaleString('de-DE', { maximumFractionDigits: 1 })} MW` : '—'}</span>
-                    </li>
-                  ))}
-                </ul>
-                <span className="br-muted">{r.passes.length > 8 ? `die letzten 8 von ${r.passes.length} Überflügen` : 'je Überflug'} ({clockLabel(r.passes[0].atMs)} … {clockLabel(r.passes[r.passes.length - 1].atMs)}) — je Satellit, 10-min-Regel; ☀ Tag, ☾ Nacht; nur innerhalb des Fensters, kein Speicher über Sitzungen</span>
-              </dd>
-            </>
+            <FactRow term="Je Überflug" wide>
+              <PassTable passes={r.passes} />
+              <Typography variant="caption" component="span" sx={{ display: 'block', mt: 0.75 }}>
+                {/* Der Deckel wird AUSGESPROCHEN — „8 von N", nie stillschweigend gekürzt. */}
+                {r.passes.length > 8 ? `die letzten 8 von ${r.passes.length} Überflügen` : 'je Überflug'} ({clockLabel(r.passes[0].atMs)} … {clockLabel(r.passes[r.passes.length - 1].atMs)}) — je Satellit, 10-min-Regel; ☀ Tag, ☾ Nacht; nur innerhalb des Fensters, kein Speicher über Sitzungen
+              </Typography>
+            </FactRow>
           )}
-        </dl>
+        </FactList>
       )}
     </>
+  );
+}
+
+/**
+ * „Je Überflug" — die letzten 8. Auf Desktop/Tablet eine `Table size="small"` mit fixem
+ * Kopf; auf Mobil eine Liste, weil fünf Spalten auf 412 px unlesbar umbrechen (§4).
+ * Beide Formen zeigen DIESELBEN fünf Angaben: Zeit · Satellit · ☀/☾ · Px · MW.
+ */
+function PassTable({ passes }: { passes: FireRecord['passes'] }) {
+  const bp = useDossierBreakpoint();
+  const rows = passes.slice(-8);
+  const mw = (ps: (typeof rows)[number]) => (ps.frpPixels > 0 ? `${ps.sumFrp.toLocaleString('de-DE', { maximumFractionDigits: 1 })} MW` : '—');
+  const glyph = (ps: (typeof rows)[number]) => (ps.day === true ? '☀' : ps.day === false ? '☾' : '');
+  if (bp === 'mobile') {
+    return (
+      <List dense disablePadding className="fire-fp-passes" aria-label="Je Überflug">
+        {rows.map((ps) => (
+          <ListItem key={ps.key} disableGutters divider sx={{ display: 'block', py: 0.5 }}>
+            <Typography variant="body2" component="span" sx={{ display: 'block', fontWeight: 600, color: 'text.primary' }}>
+              {fmtStamp(ps.atMs)} {glyph(ps)}
+            </Typography>
+            <Typography variant="caption" component="span" sx={{ display: 'block' }}>
+              {ps.satellite || '—'} · {ps.pixels} Px · {mw(ps)}
+            </Typography>
+          </ListItem>
+        ))}
+      </List>
+    );
+  }
+  return (
+    <TableContainer sx={{ maxHeight: 260 }}>
+      <Table size="small" stickyHeader className="fire-fp-passes" aria-label="Je Überflug">
+        <TableHead>
+          <TableRow>
+            <TableCell>Zeit</TableCell>
+            <TableCell>Satellit</TableCell>
+            <TableCell align="center">☀/☾</TableCell>
+            <TableCell align="right">Px</TableCell>
+            <TableCell align="right">MW</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {rows.map((ps) => (
+            <TableRow key={ps.key} hover>
+              <TableCell sx={{ whiteSpace: 'nowrap' }}>{fmtStamp(ps.atMs)}</TableCell>
+              <TableCell><Tooltip title={ps.satellite || 'Satellit nicht angegeben'}><span>{ps.satellite || '—'}</span></Tooltip></TableCell>
+              <TableCell align="center">{glyph(ps)}</TableCell>
+              <TableCell align="right">{ps.pixels}</TableCell>
+              <TableCell align="right">{mw(ps)}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
   );
 }
 
@@ -979,71 +1202,60 @@ export function DetailEinordnungRows({ r, atContext = null }: { r: FireRecord; a
   const eff = r.sources.effis;
   return (
     <>
-      <dt>Ort</dt>
-      <dd>
+      <FactRow term="Ort">
         {r.place.name || r.place.district
           ? `${r.place.name ?? '—'} · ${r.place.district ?? '—'} (${r.place.source === 'effis' ? 'EFFIS' : `nächster Ort aus dem Verzeichnis, ${r.place.distanceKm?.toLocaleString('de-DE', { maximumFractionDigits: 1 })} km — GeoNames CC BY 4.0`})`
-          : <span title={missingReason(r, 'place') ?? ''}>— (nicht bestimmt)</span>}
+          : <><Missing reason={missingReason(r, 'place')} /> (nicht bestimmt)</>}
         {' · '}{countryLabel(r.country)}
-      </dd>
-      <dt>Landbedeckung</dt>
-      <dd>
+      </FactRow>
+      <FactRow term="Landbedeckung">
         {r.landcover && r.landcover.length > 0
           ? (
-            <span className="fire-fp-lc">
+            <Box component="span" className="fire-fp-lc" sx={{ display: 'inline-flex', flexWrap: 'wrap', gap: '4px 10px', alignItems: 'center' }}>
               {r.landcover.slice(0, 4).map((l) => (
-                <span key={l.key} className="fire-li-lc-item">
-                  <span className="fire-swatch" style={{ background: LANDCOVER_COLOR[l.key] }} aria-hidden="true" />
+                <Box component="span" key={l.key} className="fire-li-lc-item" sx={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                  <Box component="span" aria-hidden="true" sx={{ width: 10, height: 10, borderRadius: '2px', bgcolor: LANDCOVER_COLOR[l.key] }} />
                   {Math.round(l.pct)} % {LANDCOVER_LABEL[l.key]}
-                </span>
+                </Box>
               ))}
-              <span className="br-muted"> (EFFIS/CORINE)</span>
-            </span>
+              <Muted> (EFFIS/CORINE)</Muted>
+            </Box>
           )
-          : <span title="Landbedeckungsanteile liefert nur die EFFIS-Kartierung">—</span>}
-      </dd>
+          : <Missing reason="Landbedeckungsanteile liefert nur die EFFIS-Kartierung" />}
+      </FactRow>
       {(r.anomaly || r.suspectedStatic) && (
-        <>
-          <dt>Anlage?</dt>
-          <dd>
-            {r.anomaly
-              ? (r.anomaly.kind === 'site'
-                ? <>Bekannter Standort: {siteLabel(r.anomaly.site)} — eigene Ableitung aus dem FIRMS-Archiv und Anlagenverzeichnissen, kein Nachweis.</>
-                : <>Nahe bekanntem Standort ({siteLabel(r.anomaly.site)}), das Signal weicht vom Anlagenmuster ab — als Brand behandelt.</>)
-              : 'Vermutlich Industrieanlage — an ≥ 5 Tagen am selben Ort (eigene Einordnung, kein Nachweis).'}
-          </dd>
-        </>
+        <FactRow term="Anlage?">
+          {/* „eigene Ableitung, kein Nachweis" steht im SELBEN Satz — nie als Fußnote. */}
+          {r.anomaly
+            ? (r.anomaly.kind === 'site'
+              ? <>Bekannter Standort: {siteLabel(r.anomaly.site)} — eigene Ableitung aus dem FIRMS-Archiv und Anlagenverzeichnissen, kein Nachweis.</>
+              : <>Nahe bekanntem Standort ({siteLabel(r.anomaly.site)}), das Signal weicht vom Anlagenmuster ab — als Brand behandelt.</>)
+            : 'Vermutlich Industrieanlage — an ≥ 5 Tagen am selben Ort (eigene Einordnung, kein Nachweis).'}
+        </FactRow>
       )}
       {eff && (
-        <>
-          <dt>Kartierung</dt>
-          <dd>EFFIS-Kennung {eff.id} · Branddatum {fmtDate(eff.firedateMs)} · Stand {fmtDate(eff.lastUpdateMs)}{eff.percNa2k != null && eff.percNa2k > 0 ? ` · ${Math.round(eff.percNa2k)} % Natura 2000` : ''}</dd>
-        </>
+        <FactRow term="Kartierung">
+          EFFIS-Kennung {eff.id} · Branddatum {fmtDate(eff.firedateMs)} · Stand {fmtDate(eff.lastUpdateMs)}{eff.percNa2k != null && eff.percNa2k > 0 ? ` · ${Math.round(eff.percNa2k)} % Natura 2000` : ''}
+        </FactRow>
       )}
       {r.sources.ems && (
-        <>
-          <dt>Copernicus EMS</dt>
-          <dd>
-            {r.sources.ems.code}{r.sources.ems.name ? ` — ${r.sources.ems.name}` : ''} · {r.sources.ems.closed === false ? 'offen' : r.sources.ems.closed === true ? 'geschlossen' : 'Status unbekannt'}
-            {' · '}<a href={`https://rapidmapping.emergency.copernicus.eu/${r.sources.ems.code}`} target="_blank" rel="noopener">Aktivierung öffnen</a>
-          </dd>
-        </>
+        <FactRow term="Copernicus EMS">
+          {r.sources.ems.code}{r.sources.ems.name ? ` — ${r.sources.ems.name}` : ''} · {r.sources.ems.closed === false ? 'offen' : r.sources.ems.closed === true ? 'geschlossen' : 'Status unbekannt'}
+          {' · '}<a href={`https://rapidmapping.emergency.copernicus.eu/${r.sources.ems.code}`} target="_blank" rel="noopener">Aktivierung öffnen</a>
+        </FactRow>
       )}
       {/* GWBA1 A3: GeoSphere-Warntexte WÖRTLICH (Zitatregel) — Kontext, nie Bestätigung. */}
       {atContext && atContext.warnings.length > 0 && (
-        <>
-          <dt>GeoSphere-Kontext</dt>
-          <dd>
-            {atContext.gemeinde && <span className="br-muted">{atContext.gemeinde} · </span>}
-            {atContext.warnings.map((w, i) => (
-              <span key={`${w.type}-${i}`}>
-                {i > 0 && ' · '}
-                <b>{w.typeLabel}</b> ({w.levelLabel}){w.text ? <>: <q>{w.text}</q></> : null}
-              </span>
-            ))}
-            <span className="br-muted"> — amtlicher Warntext (Zitat), keine Brandbestätigung</span>
-          </dd>
-        </>
+        <FactRow term="GeoSphere-Kontext">
+          {atContext.gemeinde && <Muted>{atContext.gemeinde} · </Muted>}
+          {atContext.warnings.map((w, i) => (
+            <span key={`${w.type}-${i}`}>
+              {i > 0 && ' · '}
+              <b>{w.typeLabel}</b> ({w.levelLabel}){w.text ? <>: <q>{w.text}</q></> : null}
+            </span>
+          ))}
+          <Muted> — amtlicher Warntext (Zitat), keine Brandbestätigung</Muted>
+        </FactRow>
       )}
     </>
   );

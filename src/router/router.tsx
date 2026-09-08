@@ -63,9 +63,17 @@ function RouteError() {
   );
 }
 
+/**
+ * Pfadmuster einer Route: optionaler Sub-Parameter, danach — für Routen mit
+ * `place: true` (SH1) — ein optionaler Ort-Slug. React Router erlaubt mehrere
+ * optionale Segmente hintereinander; welche Kombination wirklich gültig ist,
+ * entscheidet `routeForPath()` bzw. die Seite (ein Ort ohne Layer ist keine).
+ */
 const sub = (id: keyof typeof ROUTE_BY_ID) => {
   const r = ROUTE_BY_ID[id];
-  return r.subParam ? `${r.path.slice(1)}/:${r.subParam}?` : r.path.slice(1);
+  return r.path.slice(1)
+    + (r.subParam ? `/:${r.subParam}?` : '')
+    + (r.place ? '/:ort?' : '');
 };
 
 export function createAppRouter() {

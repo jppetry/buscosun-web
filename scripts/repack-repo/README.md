@@ -61,6 +61,31 @@ Es geht dabei nichts verloren: alle Dateien sind aus den DWD-Rohdaten
 reproduzierbar, und die Anwendung fällt bei jedem Fehlgriff auf den direkten
 GRIB-Pfad zurück.
 
+## Monatsarchiv: `archive-YYYYMM` (AR1)
+
+Neben `main` führt dieses Repo **Monatszweige**, die jeden Lauf dauerhaft
+behalten — gleiche Pfade, gleiche Bytes, gleiche Blob-OIDs wie auf `main`:
+
+```
+archive-202609    runs/<YYYYMMDDHH>/…   alle Läufe des Monats
+                  hsurf-v1.png
+```
+
+Drei Eigenschaften, die den Unterschied zu `main` ausmachen:
+
+* **Nur anhängen, nie force-pushen.** Der Publisher von `main` kann einen
+  Archivzweig strukturell nicht anfassen; ein Force-Push-Fehler dort kostet
+  weiterhin höchstens die 12 h auf `main`.
+* **Kein zusätzlicher Speicher für dieselben Daten.** Beide Zweige zeigen auf
+  dieselben Blobs — Git speichert sie einmal.
+* **Nicht reproduzierbar.** opendata.dwd.de hält nur ein rollierendes
+  24-h-Fenster. Was hier fehlt, ist endgültig weg — anders als bei `main`.
+
+Geschrieben von [`scripts/archive-runs.mjs`](https://github.com/jppetry/buscosun-web/blob/main/scripts/archive-runs.mjs)
+(Workflow `archive.yml`), stündlich und ergebnislos, wenn nichts Neues da ist.
+Die Anwendung liest diese Zweige **nicht** — sie sind ein Datenbestand für
+Auswertung und Nachrechnung, kein Auslieferungspfad.
+
 ## Takt und Frische (BW-9)
 
 Der Batch startet zu den acht ICON-D2-Laufstunden bei Lauf + 20 min — sicher vor

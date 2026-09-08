@@ -54,7 +54,7 @@ import {
 } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { RUNS_DIR, HSURF_FILE, CDN_BASE, indexEntry, SCHEMA, purgeIndexUntilFresh, RUN_POINTER_FILE, runPointerUrl } from './lib/repackManifest.mjs';
+import { RUNS_DIR, HSURF_FILE, CDN_BASE, indexEntry, SCHEMA, purgeIndexUntilFresh, RUN_POINTER_FILE, runPointerUrl, warmUrlsFor, warmCdnFiles } from './lib/repackManifest.mjs';
 
 const OUT_DIR = resolve(process.env.REPACK_OUT || 'data/repack');
 const REPO = process.env.REPACK_REPO || 'https://github.com/jppetry/buscosun-data.git';
@@ -282,6 +282,27 @@ async function main() {
     cdn = { ...cdn, pointer: ptr };
     log(ptr.fresh ? `CDN-Zeiger ${kept[0]} frisch nach ${ptr.attempts} Versuch(en)` : `⚠ CDN-Zeiger NICHT frisch — ${ptr.note}`);
     log(cdn.fresh ? `CDN-Index frisch nach ${cdn.attempts} Purge(s)` : `⚠ CDN-Index NICHT frisch (Origin-Cache, §28.9) — ${cdn.note}`);
+
+    // ── 8. LZ1/M1 (audit/layer-ladezeit.md §4.3, V-LZ-1): den CDN-Origin wärmen.
+    //    Gemessen: der erste Abruf einer Datei kostet am Edge p50 0,60 s / p90
+    //    1,43 s TTFB (jsDelivr holt sie erst vom Origin); ist der Origin warm,
+    //    sind es p50 0,17 s — für JEDEN Edge weltweit. Die Seite hat zu wenig
+    //    Verkehr, um das selbst zu tun (2,75 h nach dem Publish waren die Jetzt-
+    //    Schritte von fünf Familien noch kalt). Deshalb fasst der Publisher jede
+    //    Datei des jüngsten Laufs einmal an — mit Browser-`Accept-Encoding`
+    //    (jsDelivr hält je Variante einen Eintrag, V-LZ-10), in beiden URL-Formen
+    //    (`@main` seit LZ1, `@<commit>` für alte Bundles). ≈ 26 MB je Publish von
+    //    jsDelivr, 0 von Netlify. Nie fatal. `REPACK_NO_WARM=1` lässt es aus.
+    //    `@main` nur, wenn der Zeiger unter `@main` frisch ist — sonst könnte ein
+    //    404 für den neuen Lauf am Origin festhängen (§28.9); die gepinnte Form
+    //    ist immer sicher.
+    if (process.env.REPACK_NO_WARM !== '1') {
+      const all = warmUrlsFor(index, { pinned: true });
+      const urls = ptr.fresh ? all : all.filter((u) => !u.includes('@main/') || u.endsWith('/index.json'));
+      const stat = await warmCdnFiles(urls, { concurrency: 8, log });
+      cdn = { ...cdn, warm: stat };
+      log(`CDN-Warm-up: ${stat.ok}/${stat.total} ok (${stat.hit} HIT, ${stat.miss} MISS, ${stat.notFound} 404, ${stat.failed} Fehler), ${(stat.bytes / 1048576).toFixed(1)} MiB in ${(stat.ms / 1000).toFixed(0)} s${ptr.fresh ? '' : ' — @main ausgelassen (Zeiger nicht frisch)'}`);
+    }
   }
 
   writeFileSync(join(OUT_DIR, 'published.json'),

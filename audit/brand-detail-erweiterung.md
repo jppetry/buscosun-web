@@ -398,3 +398,77 @@ gegengeprüft und bestehen dort ebenso:
    Konfidenz erst beim Anzeigen rechnen (sie wird nur im Dossier gebraucht, also einmal je Klick).
 
 Kein Fehlschlag betrifft eine ausgelieferte Funktion.
+
+
+## 11. BDE-D — die Wetterführung gilt für JEDEN Brand (2026-09-05, Jans Vorgabe)
+
+Jans Satz: *„ich möchte die Wetterdaten, die ich beschrieben habe, für jeden Brand sehen, nicht nur die
+Brände, die EFFIS bestätigt hat."*
+
+### 11.1 Erst nachgesehen, dann gebaut
+
+Die Vermutung „die Karte hängt an EFFIS" war **falsch** — im Code steht kein solches Gatter, und am
+lebenden Bestand belegt: *bei Zeithain* (DE, Landkreis Meißen, **UNBESTÄTIGT**, keine Kartierung) zeigt
+die Wetterführung vollständig „neutral, Punktsumme 0" mit allen fünf Regelzeilen. Die Beobachtung
+stimmte trotzdem — nur lag es an drei **anderen** Löchern:
+
+| # | Fall | Vorher | Jetzt |
+|---|---|---|---|
+| D1 | **Historie** (Monat/Saison) | Das Ereignis-Dossier hatte die Karte gar nicht — nur „Wetterlage am Brandtag" (ein Tageswert, eine Stunde) | dieselbe `DriversView`, gespeist aus ERA5 |
+| D2 | **Live-Eintrag älter als 7 Tage** (Saison-Umfang; EFFIS kartiert Wochen später) | „Keine Stundenreihe" — für den Leser nicht von „gibt es nicht" zu unterscheiden | Rückfall auf das ERA5-Archiv, gekennzeichnet |
+| D3 | **Eintrag ohne Detektion im Fenster** (reine Kartierung) | „Keine Detektion im Fenster — es gibt keinen Zeitpunkt" | das **EFFIS-Branddatum** trägt das Fenster, mit ausgesprochener Einschränkung |
+
+Ausgerechnet D3 ist der Fall, den Jans Satz ausschließen wollte: die EFFIS-Einträge waren die
+**einzigen**, die gar keine Wetterführung bekommen konnten. Die Wirkung ist trotzdem die von ihm
+verlangte — jetzt hat jeder Brand sie.
+
+### 11.2 Die Quelle: ERA5, und das steht dran
+
+ICON hat **kein Archiv** — die Vorhersagereihe reicht `HOURLY_PAST_DAYS = 7` zurück, weiter nicht.
+Für alles Ältere tritt die **ERA5-Reanalyse** (Open-Meteo Archive) an ihre Stelle: dieselben sechs
+Stundenvariablen (T2m, RH, Wind, Windrichtung, Böen, Niederschlag — am Endpunkt nachgemessen,
+96/96 Werte belegt), aber **~25 km statt 2–13 km** und eine Reanalyse, keine Vorhersage. Deshalb:
+
+* `FireWeatherAtPoint.source: 'icon' | 'era5'` — die Anzeige unterscheidet, nie stillschweigend.
+* Eigene Beschriftung `FIRE_WEATHER_ARCHIVE_LABEL` plus der Satz „die Reanalyse ist gröber, ein
+  einzelner Hang- oder Talwind steckt in ihr nicht drin". Eine Windrose aus 25-km-Gittern sagt
+  weniger als eine aus 2 km, und wer das nicht weiß, liest sie falsch.
+* **EIN Rechenweg:** das Archiv geht durch dieselbe `parseFireWeather`, dieselbe `driverRating`,
+  dieselbe `windRose`, dieselbe `fireIndexSeries`. Es gibt keine zweite Zeitrechnung und keine
+  zweite Einstufung. Die Historie importiert `DriversView` aus `FireFootprintPanel` — sie baut
+  nichts nach (Sonde: `WindRoseChart|driverRating` kommt in `FireHistoryPanel.tsx` **null**-mal vor).
+
+Lizenz: Open-Meteo CC BY 4.0, ERA5 Copernicus/ECMWF — beides genannt. Jans Freigabe für Open-Meteo
+bei **historischen** Daten deckt genau diesen Weg; für neue Quellen bleibt es bei seiner Regel.
+
+### 11.3 Der EFFIS-Zeitanker (D3) — was er kann und was nicht
+
+`fireWindowAnchor(r)` liefert den Regelfall (Detektionen) oder, wenn es keine gibt, `firedateMs` der
+Kartierung. Das ist ehrlich nur mit dem Satz, der jetzt in der Karte steht: EFFIS setzt das Datum auf
+den **geschätzten Beginn**, oft tagesgenau statt stundengenau — das Fenster kann daneben liegen. Und
+die Einstufung sagt dann „nur die Stunde des Branddatums — die Kartierung nennt keinen Zeitraum, nur
+einen Beginn" statt der Detektions-Formulierung. Am Bestand belegt: *Baelen* (2 671 ha, „kein Signal",
+reine Kartierung) zeigt „brandtreibend, Punktsumme +5" **mit** diesem Hinweis.
+
+### 11.4 Ein Fallstrick, den das Repo schon kannte — und der mir trotzdem passiert ist
+
+Der erste Bau gab dem gecachten Archiv-Abruf ein `AbortSignal` mit. Reacts doppelter Dev-Effekt bricht
+den ersten Aufruf ab, das **Promise liegt aber im Cache** — jeder spätere Leser bekam „signal is
+aborted" und die Karte sagte „Archiv nicht erreichbar", obwohl `curl` gegen denselben Endpunkt
+lieferte. Genau diese Lehre steht seit GBP1 (3) in `fireDayWeather` kommentiert. Behoben (kein Signal
+am gecachten Abruf), der Kommentar sagt jetzt an beiden Stellen, warum — und eine Sonde hält es fest.
+
+### 11.5 Belege
+
+`verify:fire-detail` **415/415** (7 neue `[bde-d]`-Sonden), typecheck grün, Build „✓ built in 25.19s",
+`npm run budget` **totalJs 1135,0/1136 KB** (BDE-D kostet +1,1 KB; `eagerJs` unverändert 106,3).
+Augenschein Desktop 1440×900 am lebenden Bestand: Historie *Hürtgenwald* 14.08. → „brandtreibend,
+Punktsumme +6, 26 Modellstunden", Windrose mit Ausbreitungspfeil SO, FFMC 94,9 / ISI 20,3, Fußzeile
+„ERA5-Reanalyse … ~25 km"; Live *bei Zeithain* (unbestätigt) unverändert vollständig; Saison *Baelen*
+(nur Kartierung) mit Anker-Hinweis.
+
+**V-BDE-4 (vorbestehend, nicht von dieser Phase):** `verify:fire-history` 112/113 — die Sonde
+„Historie-Modus leert die Live-Daten der Karte" prüft unter anderem `spreadFc={history ? null : spreadFc}`.
+`spreadFc` existiert **nirgends mehr** im Code (mit dem Rückzug der `fireSpread`-Fläche entfallen);
+gegen `git show HEAD:` fällt die Sonde genauso. Mehrwert der Kur: die Sonde prüft wieder etwas.
+Umsetzungsskizze: den `spreadFc`-Teil streichen und stattdessen den heutigen Pfeil-Layer prüfen.

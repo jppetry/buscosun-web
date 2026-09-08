@@ -1,16 +1,27 @@
 /**
- * Wetterkarte · URL-Zustand (Phase RT1, pur).
+ * Wetterkarte · URL-Zustand (Phase RT1, pur; erweitert in SH1 „Teilen").
  *
- * Pfad = Hauptlayer (`/wetterkarte/<slug>`), Query = alles Übrige. Reine
- * (De-)Serialisierung ohne DOM — headless prüfbar (`scripts/verify-routing.mjs`)
- * und vom Build-Generator importierbar. Regeln (Jans Vorgabe 2026-08-22):
+ * Pfad = Hauptlayer + optionaler Ort (`/wetterkarte/<layer>[/<ort-slug>]`),
+ * Query = alles Übrige. Reine (De-)Serialisierung ohne DOM — headless prüfbar
+ * (`scripts/verify-routing.mjs`, `scripts/verify-share.mjs`) und vom
+ * Build-Generator importierbar. Regeln (Jans Vorgabe 2026-08-22, ergänzt 2026-09-08):
  *
  *  - kurze Keys in FESTER Reihenfolge (`QUERY_ORDER`), damit URLs byte-stabil sind;
- *  - Koordinaten 4, Zoom 2 Nachkommastellen;
+ *  - Koordinaten 4, Zoom **1** Nachkommastelle (SH1: 0,1 Zoomstufe ≈ 7 % Maßstab —
+ *    für einen geteilten Link genug, und es spart in jeder URL Zeichen);
  *  - Defaults werden NICHT geschrieben (Muster `fireState.ts` „Standard-still");
+ *  - geschrieben wird mit `encodeShareQuery` statt `URLSearchParams.toString()`,
+ *    damit `:` und `()` roh bleiben (`t=2026-09-12T15:00Z` statt `…15%3A00Z`);
+ *    **gelesen** wird weiterhin mit `URLSearchParams` — es versteht beide Formen,
+ *    also bleibt jeder bestehende Link gültig;
  *  - bekannte Keys mit ungültigem Wert werden ignoriert (der Aufrufer entfernt
  *    sie per `replaceState`), unbekannte Keys (`startnow`, `ta`, `afEst`, `utm_*`)
  *    werden unverändert durchgereicht — sie gehören anderen Modulen.
+ *
+ * **Der Ort-Slug wird hier NICHT aufgelöst.** Die Ortstabelle wiegt 3,5 KB gzip
+ * und dieses Modul liegt im eager Start-Chunk (Ratsche `eagerJs` 107,9 über
+ * IST 106,3). Der Aufrufer — ein lazy Seiten-Wrapper — reicht Slug und
+ * „steht in der Tabelle" herein, genau wie `isModel` bei `parseMapSearch`.
  *
  * Slug-Tabelle als `Record<LayerKey, string>`: tsc erzwingt alle 19 Layer —
  * die Lücke von `mapState.ts` (12 von 19, V-191) kann hier nicht entstehen.
@@ -18,6 +29,10 @@
 
 import type { Country, Location } from '../types';
 import { ALL_LAYER_KEYS, type LayerKey } from '../map/layerTypes';
+import {
+  encodeShareQuery, fmtCoord, fmtZoom, formatValidTime, parseValidTime, roundTo, TIME_GRID_MS,
+} from '../share/shareSchema';
+import { deSlugName, isSlugShape, slugCarriesName } from '../share/placeSlug';
 
 // --- Layer ↔ Slug ------------------------------------------------------------
 
@@ -171,19 +186,28 @@ export interface MapUrlState {
   place?: Location | null;
   /** Aktives Land (ohne Ort): `land=` aus dem Modell-Switcher. */
   country?: Country | null;
+  /**
+   * SH1: Ort als LESBARES Pfadsegment (`/wetterkarte/wind/muenchen`). Kommt vom
+   * Aufrufer (`slugForPlace` aus `src/share/placeTable.ts`) — dieses Modul zieht
+   * die Ortstabelle nicht in den Start-Chunk.
+   */
+  placeSlug?: string | null;
+  /**
+   * SH1: Der Slug steht in der Ortstabelle und trägt Name, Koordinate und Land
+   * selbst ⇒ `ort`, `olat` und `olon` entfallen (−46 Zeichen). `land` wird auch
+   * dann geschrieben, wenn es von `DE` abweicht: `prefetch.ts` liegt im
+   * index-Chunk, kennt die Tabelle nicht und entscheidet daran den RV-Frühstart.
+   */
+  placeInTable?: boolean;
 }
 
 export const QUERY_ORDER = ['lat', 'lon', 'z', 't', 'l', 'modell', 'mode', 'radar', 'ort', 'olat', 'olon', 'land'] as const;
 export type QueryKey = (typeof QUERY_ORDER)[number];
 const KNOWN_KEYS: ReadonlySet<string> = new Set(QUERY_ORDER);
 
-const r4 = (n: number) => Math.round(n * 1e4) / 1e4;
-const r2 = (n: number) => Math.round(n * 1e2) / 1e2;
-const fmt = (n: number, d: number) => {
-  // Keine Exponentialschreibweise, keine Nachlauf-Nullen („9.1830" → „9.183").
-  const s = n.toFixed(d);
-  return s.includes('.') ? s.replace(/0+$/, '').replace(/\.$/, '') : s;
-};
+const r4 = (n: number) => roundTo(n, 4);
+/** SH1: Zoom wird auf EINE Nachkommastelle geschrieben (vorher zwei). */
+const rz = (n: number) => roundTo(n, 1);
 
 export const ZOOM_MIN = 2;
 export const ZOOM_MAX = 18;
@@ -194,19 +218,31 @@ function finite(s: string | null): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-/** Gültigkeitszeit → Slider-Stunde ab `nowMs` (0,1-h-Raster). Vergangenheit ⇒ 0 (= jetzt). */
+/**
+ * Gültigkeitszeit → Slider-Stunde ab `nowMs` (0,1-h-Raster). Vergangenheit ⇒ 0.
+ *
+ * ⚠ Dass ein zu alter Link still auf „jetzt" klemmt, ist der Defekt **V-SH-2**:
+ * Absender und Empfänger sehen dann Verschiedenes, ohne dass es jemand sagt.
+ * `hourFromValidTimeDetailed` liefert dieselbe Zahl **plus** die Auskunft, ob
+ * geklemmt wurde — die UI kann das ab SH2 benennen.
+ */
 export function hourFromValidTime(t: string, nowMs: number): number | null {
-  const ms = Date.parse(t);
-  if (!Number.isFinite(ms)) return null;
+  return hourFromValidTimeDetailed(t, nowMs).hour;
+}
+
+export interface SharedTime { hour: number | null; /** Der geteilte Zeitpunkt lag in der Vergangenheit. */ past: boolean }
+
+export function hourFromValidTimeDetailed(t: string, nowMs: number): SharedTime {
+  const ms = parseValidTime(t) ?? Date.parse(t);
+  if (!Number.isFinite(ms)) return { hour: null, past: false };
   const h = Math.round(((ms - nowMs) / 3_600_000) * 10) / 10;
-  return h < 0 ? 0 : h;
+  return h < 0 ? { hour: 0, past: true } : { hour: h, past: false };
 }
 
 /** Slider-Stunde → ISO-Minute UTC (auf 10 min gerundet). `h ≤ 0` ⇒ kein `t` (= jetzt). */
 export function validTimeFromHour(h: number, nowMs: number): string | undefined {
   if (!Number.isFinite(h) || h <= 0) return undefined;
-  const ms = Math.round((nowMs + h * 3_600_000) / 600_000) * 600_000;
-  return new Date(ms).toISOString().slice(0, 16) + 'Z';
+  return formatValidTime(Math.round((nowMs + h * 3_600_000) / TIME_GRID_MS) * TIME_GRID_MS);
 }
 
 const COUNTRIES: readonly Country[] = ['DE', 'AT', 'CH'];
@@ -220,6 +256,8 @@ export interface ParsedMapSearch {
   cam: MapCamera | null;
   /** Slider-Stunde aus `t`; undefined = nicht gesetzt. */
   hour?: number;
+  /** SH1/V-SH-2: `t` lag in der Vergangenheit und wurde auf „jetzt" geklemmt. */
+  timePast?: boolean;
   /** `l=` roh (Slugs) — die Auflösung gegen den Pfad macht `layersFromRoute`. */
   l: string | null;
   model: string | null;
@@ -252,16 +290,17 @@ export function parseMapSearch(
   const hasCam = p.has('lat') || p.has('lon') || p.has('z');
   if (hasCam) {
     if (lat != null && lon != null && z != null && Math.abs(lat) <= 90 && Math.abs(lon) <= 180 && z >= ZOOM_MIN && z <= ZOOM_MAX) {
-      cam = { lat: r4(lat), lon: r4(lon), zoom: r2(z) };
+      cam = { lat: r4(lat), lon: r4(lon), zoom: rz(z) };
     } else {
       for (const k of ['lat', 'lon', 'z']) if (p.has(k)) invalid.push(k);
     }
   }
 
   let hour: number | undefined;
+  let timePast: boolean | undefined;
   if (p.has('t')) {
-    const h = hourFromValidTime(p.get('t') ?? '', nowMs);
-    if (h == null) invalid.push('t'); else hour = h;
+    const { hour: h, past } = hourFromValidTimeDetailed(p.get('t') ?? '', nowMs);
+    if (h == null) invalid.push('t'); else { hour = h; if (past) timePast = true; }
   }
 
   const l = p.get('l');
@@ -290,21 +329,25 @@ export function parseMapSearch(
   if (p.has('ort') || p.has('olat') || p.has('olon')) {
     const name = (p.get('ort') ?? '').trim();
     const olat = finite(p.get('olat')), olon = finite(p.get('olon'));
-    if (name && olat != null && olon != null && Math.abs(olat) <= 90 && Math.abs(olon) <= 180) {
+    // SH1: der NAME darf fehlen — bei einem Link mit Ort-Slug im Pfad trägt der
+    // Pfad ihn (`/wetterkarte/wind/muenchen`), und `ort=` steht nur da, wenn der
+    // Slug den Namen nicht verlustfrei trägt. Die Koordinate bleibt Pflicht:
+    // ein `?ort=Foo` ohne Punkt ist und bleibt ungültig.
+    if (olat != null && olon != null && Math.abs(olat) <= 90 && Math.abs(olon) <= 180) {
       place = { name, lat: r4(olat), lon: r4(olon), country: country ?? 'DE' };
     } else {
       for (const k of ['ort', 'olat', 'olon']) if (p.has(k)) invalid.push(k);
     }
   }
 
-  return { cam, hour, l, model, point, radar, place, country, invalid, extra };
+  return { cam, hour, timePast, l, model, point, radar, place, country, invalid, extra };
 }
 
 /** Zustand → Query-String (`''` oder `?…`), Keys in `QUERY_ORDER`, Defaults weggelassen. */
 export function buildMapSearch(s: MapUrlState, nowMs: number, extra: ReadonlyArray<[string, string]> = []): string {
   const out: Array<[string, string]> = [];
   if (s.cam) {
-    out.push(['lat', fmt(r4(s.cam.lat), 4)], ['lon', fmt(r4(s.cam.lon), 4)], ['z', fmt(r2(s.cam.zoom), 2)]);
+    out.push(['lat', fmtCoord(s.cam.lat)], ['lon', fmtCoord(s.cam.lon)], ['z', fmtZoom(s.cam.zoom)]);
   }
   const t = s.hour != null ? validTimeFromHour(s.hour, nowMs) : undefined;
   if (t) out.push(['t', t]);
@@ -315,41 +358,128 @@ export function buildMapSearch(s: MapUrlState, nowMs: number, extra: ReadonlyArr
   if (s.point === 'native') out.push(['mode', 'native']);
   if (s.radar === false) out.push(['radar', '0']);
   if (s.place) {
-    out.push(['ort', s.place.name], ['olat', fmt(r4(s.place.lat), 4)], ['olon', fmt(r4(s.place.lon), 4)], ['land', s.place.country.toLowerCase()]);
+    if (s.placeSlug && s.placeInTable) {
+      // Der Slug im Pfad trägt Name, Koordinate und Land. Geschrieben wird nur
+      // noch ein vom Default abweichendes Land — `prefetch.ts` (index-Chunk,
+      // ohne Ortstabelle) entscheidet daran den RADOLAN-Frühstart.
+      if (s.place.country !== 'DE') out.push(['land', s.place.country.toLowerCase()]);
+    } else {
+      // Freier Ort: Koordinate immer, Name nur, wenn der Slug ihn nicht trägt
+      // („bad-reichenhall" trägt ihn, „muenchen" und „feldberg-schwarzwald" nicht).
+      if (s.place.name && !(s.placeSlug && slugCarriesName(s.placeSlug, s.place.name))) {
+        out.push(['ort', s.place.name]);
+      }
+      out.push(['olat', fmtCoord(s.place.lat)], ['olon', fmtCoord(s.place.lon)], ['land', s.place.country.toLowerCase()]);
+    }
   } else if (s.country && s.country !== 'DE') {
     // Ohne Ort: nur ein vom Default (DE, `initialModelSourceState`) abweichendes Land.
     out.push(['land', s.country.toLowerCase()]);
   }
-  const p = new URLSearchParams();
-  for (const [k, v] of out) p.set(k, v);
-  for (const [k, v] of extra) if (!KNOWN_KEYS.has(k)) p.append(k, v);
-  const q = p.toString();
-  return q ? `?${q}` : '';
+  // Feste Ordnung: Bekanntes in `QUERY_ORDER`, Fremdes hinten dran.
+  const ordered = QUERY_ORDER.flatMap((k) => out.filter(([ok]) => ok === k));
+  for (const [k, v] of extra) if (!KNOWN_KEYS.has(k)) ordered.push([k, v]);
+  return encodeShareQuery(ordered);
 }
 
-/** Vollständige App-URL (Pfad + Query) für die Wetterkarte bzw. `/warnungen`. */
+/**
+ * Vollständige App-URL (Pfad + Query) für die Wetterkarte bzw. `/warnungen`.
+ * SH1: der Ort-Slug wird als drittes Pfadsegment angehängt — er ist NIE
+ * kanonisch (`canonicalPath()` schneidet ihn ab) und nie in der Sitemap.
+ */
 export function buildMapUrl(
   s: MapUrlState,
   nowMs: number,
   base: '/wetterkarte' | '/warnungen' = '/wetterkarte',
   extra: ReadonlyArray<[string, string]> = [],
 ): string {
-  const path = base === '/warnungen'
+  const head = base === '/warnungen'
     ? '/warnungen'
     : s.primary ? `/wetterkarte/${LAYER_SLUGS[s.primary]}` : '/wetterkarte';
+  // Ohne Layer gibt es kein drittes Segment — `/wetterkarte/muenchen` wäre nicht
+  // von einem vertippten Layer-Slug zu unterscheiden (s. `routeForPath`).
+  const canCarryPlace = base === '/warnungen' || !!s.primary;
+  const path = s.place && s.placeSlug && canCarryPlace && isSlugShape(s.placeSlug)
+    ? `${head}/${s.placeSlug}`
+    : head;
   return path + buildMapSearch(s, nowMs, extra);
 }
 
-/** Deep-Link auf einen Ort (Startseiten-Suche: Wind wie bisher; Geo-Seiten: Temperatur): Marker + Punktpanel, Kamera = DACH-Fit. */
-export function mapPathForPlace(loc: Location, layer: LayerKey = DEFAULT_MAP_LAYER): string {
-  return buildMapUrl({ primary: layer, layers: [layer], place: loc }, 0);
+/**
+ * Deep-Link auf einen Ort (Startseiten-Suche: Wind; Geo-Seiten: Temperatur):
+ * Marker + Punktpanel, Kamera = DACH-Fit.
+ *
+ * `slug`/`inTable` kommen vom Aufrufer (`slugForPlace`, `src/share/placeTable.ts`);
+ * ohne sie entsteht die alte reine Query-Form — beide sind gültig.
+ * `scripts/seo/content.mjs` (`mapPermalink`) muss dieselbe Zeichenkette
+ * erzeugen; `verify:routing` prüft das.
+ */
+export function mapPathForPlace(
+  loc: Location,
+  layer: LayerKey = DEFAULT_MAP_LAYER,
+  slug?: { slug: string; inTable: boolean } | null,
+): string {
+  return buildMapUrl({
+    primary: layer, layers: [layer], place: loc,
+    placeSlug: slug?.slug ?? null, placeInTable: !!slug?.inTable,
+  }, 0);
 }
 
 // --- Regenradar: Ort + Kamera -----------------------------------------------------
 
-/** Query des Regenradars: nur Ort-Gruppe + Kamera (keine Layer, keine Stunde). */
-export function buildRadarSearch(place: Location | null, cam: MapCamera | null, extra: ReadonlyArray<[string, string]> = []): string {
-  return buildMapSearch({ primary: 'wind', layers: ['wind'], cam, place }, 0, extra);
+/** Vollständige Regenradar-URL: Ort-Slug im Pfad, Kamera in der Query. */
+export function buildRadarUrl(
+  place: Location | null,
+  slug: { slug: string; inTable: boolean } | null,
+  cam: MapCamera | null,
+  extra: ReadonlyArray<[string, string]> = [],
+): string {
+  const path = place && slug && isSlugShape(slug.slug) ? `/regenradar/${slug.slug}` : '/regenradar';
+  return path + buildMapSearch({
+    primary: 'wind', layers: ['wind'], cam, place,
+    placeSlug: slug?.slug ?? null, placeInTable: !!slug?.inTable,
+  }, 0, extra);
+}
+
+// --- Ort aus Pfad + Query ------------------------------------------------------------
+
+export interface RoutePlace {
+  place: Location | null;
+  /** Slug des Pfadsegments (auch wenn unauflösbar) — für die kanonische Rückschreibung. */
+  slug: string | null;
+  /** Der Ort kommt vollständig aus der Tabelle (⇒ `ort`/`olat`/`olon` dürfen fehlen). */
+  inTable: boolean;
+  /** Ein Slug stand im Pfad, ließ sich aber weder auflösen noch mit `olat`/`olon` retten. */
+  unresolved: boolean;
+}
+
+/**
+ * Ort-Slug (Pfad) + `ort`/`olat`/`olon` (Query) → EIN Ort.
+ *
+ * `fromTable` wird injiziert (`placeBySlug` aus `src/share/placeTable.ts`),
+ * damit die 3,5-KB-Tabelle nicht in den Start-Chunk gerät.
+ *
+ * Vorrang: **die Koordinate aus der Query gewinnt** — sie ist der Punkt, den der
+ * Absender wirklich gewählt hat; der Tabelleneintrag ist nur das Ortszentrum.
+ * Der Name kommt aus `ort=`, sonst aus der Tabelle, sonst notdürftig aus dem
+ * Slug. Ein Slug ohne jede Auflösung ist **kein Fehler**: die Seite öffnet im
+ * DACH-Überblick und sagt es (Vorgabe „robust gegen kaputte Links").
+ */
+export function placeFromRoute(
+  slug: string | null | undefined,
+  queryPlace: Location | null,
+  fromTable: (slug: string) => Location | null,
+): RoutePlace {
+  const s = isSlugShape(slug) ? slug : null;
+  const table = s ? fromTable(s) : null;
+  if (queryPlace) {
+    const name = queryPlace.name || table?.name || (s ? deSlugName(s) : '');
+    // Ohne jeden Namen bleibt es wie bisher: kein Ort (ein namenloser Marker
+    // wäre in Suchfeld und Punktpanel eine leere Behauptung).
+    if (!name) return { place: null, slug: s, inTable: false, unresolved: !!s };
+    return { place: { ...queryPlace, name }, slug: s, inTable: false, unresolved: false };
+  }
+  if (table) return { place: table, slug: s, inTable: true, unresolved: false };
+  return { place: null, slug: s, inTable: false, unresolved: !!s };
 }
 
 // --- Kamera allein -------------------------------------------------------------------
@@ -363,11 +493,9 @@ export function withCameraSearch(search: string, cam: MapCamera | null): string 
   const p = new URLSearchParams(search.startsWith('?') ? search.slice(1) : search);
   const keep: Array<[string, string]> = [];
   for (const [k, v] of p.entries()) if (k !== 'lat' && k !== 'lon' && k !== 'z') keep.push([k, v]);
-  const out = new URLSearchParams();
-  if (cam) { out.set('lat', fmt(r4(cam.lat), 4)); out.set('lon', fmt(r4(cam.lon), 4)); out.set('z', fmt(r2(cam.zoom), 2)); }
-  for (const [k, v] of keep) out.append(k, v);
-  const q = out.toString();
-  return q ? `?${q}` : '';
+  const out: Array<[string, string]> = [];
+  if (cam) out.push(['lat', fmtCoord(cam.lat)], ['lon', fmtCoord(cam.lon)], ['z', fmtZoom(cam.zoom)]);
+  return encodeShareQuery([...out, ...keep]);
 }
 
 // --- Selbstverifikation -----------------------------------------------------------
@@ -393,8 +521,10 @@ export function verifyUrlState(): { checks: UrlStateCheck[]; passed: number; fai
     place: { name: 'Stuttgart', lat: 48.7758, lon: 9.1829, country: 'DE' },
   };
   const url = buildMapUrl(state, now);
-  add('URL-Form: Pfad = Hauptlayer, Query in fester Ordnung',
-    url === '/wetterkarte/temperatur?lat=48.7751&lon=9.1835&z=8&t=2026-08-22T15%3A00Z&l=wind%2Cstationen&modell=icon-d2&mode=native&radar=0&ort=Stuttgart&olat=48.7758&olon=9.1829&land=de', url);
+  // SH1: `t` und `l` tragen jetzt rohe `:` und `,` — genau das ist der Unterschied
+  // zwischen einem lesbaren Link und Prozentsalat (`…T15%3A00Z&l=wind%2Cstationen`).
+  add('URL-Form: Pfad = Hauptlayer, Query in fester Ordnung, ohne unnötige Prozentkodierung',
+    url === '/wetterkarte/temperatur?lat=48.7751&lon=9.1835&z=8&t=2026-08-22T15:00Z&l=wind,stationen&modell=icon-d2&mode=native&radar=0&ort=Stuttgart&olat=48.7758&olon=9.1829&land=de', url);
   const back = parseMapSearch(url.slice(url.indexOf('?')), now);
   const { all } = layersFromRoute('temperatur', back.l);
   add('Roundtrip: Layer-Set identisch', all.join(',') === 'wind,temp,stations', all.join(','));
@@ -409,9 +539,15 @@ export function verifyUrlState(): { checks: UrlStateCheck[]; passed: number; fai
   add('l=- wird als „keine Layer" gelesen', layersFromRoute(undefined, NO_LAYERS).noLayers && layersFromRoute(undefined, NO_LAYERS).all.length === 0);
 
   // Ungültiges wird genannt, Unbekanntes durchgereicht.
-  const bad = parseMapSearch('?lat=abc&lon=9&z=99&t=gestern&modell=foo&mode=x&radar=2&ort=&olat=1&olon=2&land=fr&startnow=0&ta=0&afEst=1', now, (id) => id === 'icon-d2');
+  const bad = parseMapSearch('?lat=abc&lon=9&z=99&t=gestern&modell=foo&mode=x&radar=2&ort=&olat=abc&olon=2&land=fr&startnow=0&ta=0&afEst=1', now, (id) => id === 'icon-d2');
   add('Ungültige Kamera/t/modell/mode/radar/ort/land werden gemeldet',
     ['lat', 'lon', 'z', 't', 'modell', 'mode', 'radar', 'ort', 'olat', 'olon', 'land'].every((k) => bad.invalid.includes(k)), bad.invalid.join(','));
+  // SH1: der NAME darf fehlen, solange die Koordinate steht (Ort-Slug im Pfad);
+  // die Koordinate allein zu verlieren bleibt ein Fehler.
+  add('ort= leer + gültige Koordinate ⇒ Punkt bleibt, kein Invalid',
+    (() => { const r = parseMapSearch('?ort=&olat=48.1&olon=11.5', now); return r.place?.lat === 48.1 && r.place.name === '' && r.invalid.length === 0; })());
+  add('ort= ohne Koordinate bleibt ungültig',
+    (() => { const r = parseMapSearch('?ort=Foo', now); return r.place === null && r.invalid.includes('ort'); })());
   add('startnow/ta/afEst bleiben erhalten', bad.extra.map(([k]) => k).join(',') === 'startnow,ta,afEst');
   add('Extra-Keys werden beim Schreiben angehängt', buildMapUrl({ primary: 'wind', layers: ['wind'] }, now, '/wetterkarte', bad.extra) === '/wetterkarte/wind?startnow=0&ta=0&afEst=1');
   add('Unbekannter Slug wird gemeldet, Rest bleibt', (() => { const r = layersFromRoute('xyz', 'wind,foo'); return r.primary === null && r.all.join() === 'wind' && r.invalid.join() === 'xyz,foo'; })());
@@ -424,8 +560,55 @@ export function verifyUrlState(): { checks: UrlStateCheck[]; passed: number; fai
 
   // Hauptlayer-Wahl.
   add('Hauptlayer = zuletzt eingeschalteter, sonst Katalogerster', routeForLayers(['temp', 'wind'], 'temp').primary === 'temp' && routeForLayers(['temp', 'wind'], null).primary === 'wind' && routeForLayers(['temp', 'wind'], 'hail').primary === 'wind');
-  add('Ort-Deeplink', mapPathForPlace({ name: 'München', lat: 48.1371, lon: 11.5754, country: 'DE' }, 'temp') === '/wetterkarte/temperatur?ort=M%C3%BCnchen&olat=48.1371&olon=11.5754&land=de' && mapPathForPlace({ name: 'Wien', lat: 48.2, lon: 16.37, country: 'AT' }).startsWith('/wetterkarte/wind?'));
+  const muc = { name: 'München', lat: 48.1371, lon: 11.5754, country: 'DE' as Country };
+  add('Ort-Deeplink ohne Slug bleibt die reine Query-Form (rückwärtskompatibel)',
+    mapPathForPlace(muc, 'temp') === '/wetterkarte/temperatur?ort=M%C3%BCnchen&olat=48.1371&olon=11.5754&land=de',
+    mapPathForPlace(muc, 'temp'));
   add('Kamera-Query (Regenradar) ersetzt nur lat/lon/z', withCameraSearch('?lat=1&lon=2&z=3&ta=0', { lat: 48.1, lon: 11.5, zoom: 9 }) === '?lat=48.1&lon=11.5&z=9&ta=0');
+
+  // --- SH1: Ort als Pfadsegment ---------------------------------------------
+  add('Tabellenort ⇒ nur der Slug im Pfad, keine ort/olat/olon-Gruppe',
+    mapPathForPlace(muc, 'temp', { slug: 'muenchen', inTable: true }) === '/wetterkarte/temperatur/muenchen',
+    mapPathForPlace(muc, 'temp', { slug: 'muenchen', inTable: true }));
+  add('Tabellenort außerhalb DE trägt land= (prefetch kennt die Tabelle nicht)',
+    mapPathForPlace({ name: 'Wien', lat: 48.2083, lon: 16.3731, country: 'AT' }, 'temp', { slug: 'wien', inTable: true }) === '/wetterkarte/temperatur/wien?land=at');
+  add('Freier Ort: Slug im Pfad UND Koordinate in der Query',
+    mapPathForPlace({ name: 'Feldberg (Schwarzwald)', lat: 47.8744, lon: 8.0043, country: 'DE' }, 'wind', { slug: 'feldberg-schwarzwald', inTable: false })
+    === '/wetterkarte/wind/feldberg-schwarzwald?ort=Feldberg%20(Schwarzwald)&olat=47.8744&olon=8.0043&land=de',
+    mapPathForPlace({ name: 'Feldberg (Schwarzwald)', lat: 47.8744, lon: 8.0043, country: 'DE' }, 'wind', { slug: 'feldberg-schwarzwald', inTable: false }));
+  add('ohne Layer kein Ortssegment (sonst nicht von einem Tippfehler zu unterscheiden)',
+    buildMapUrl({ primary: null, layers: [], place: muc, placeSlug: 'muenchen', placeInTable: true }, now) === '/wetterkarte?l=-');
+  add('/warnungen trägt den Ort ohne Layer-Segment',
+    buildMapUrl({ primary: 'warnings', layers: ['warnings'], place: muc, placeSlug: 'muenchen', placeInTable: true }, now, '/warnungen') === '/warnungen/muenchen');
+  add('Regenradar-URL: Slug im Pfad, Kamera in der Query',
+    buildRadarUrl(muc, { slug: 'muenchen', inTable: true }, { lat: 48.1374, lon: 11.5755, zoom: 8 }) === '/regenradar/muenchen?lat=48.1374&lon=11.5755&z=8',
+    buildRadarUrl(muc, { slug: 'muenchen', inTable: true }, { lat: 48.1374, lon: 11.5755, zoom: 8 }));
+  add('Regenradar ohne Ort bleibt /regenradar', buildRadarUrl(null, null, null) === '/regenradar');
+
+  // Auflösung Pfad + Query → EIN Ort (Tabelle injiziert).
+  const table = (s: string) => (s === 'muenchen' ? muc : null);
+  add('placeFromRoute: Tabellenslug allein genügt',
+    (() => { const r = placeFromRoute('muenchen', null, table); return r.inTable && r.place?.name === 'München' && !r.unresolved; })());
+  add('placeFromRoute: Query-Koordinate gewinnt gegen das Ortszentrum',
+    (() => { const r = placeFromRoute('muenchen', { name: '', lat: 48.15, lon: 11.6, country: 'DE' }, table); return r.place?.lat === 48.15 && r.place.name === 'München' && !r.inTable; })());
+  add('placeFromRoute: Name aus dem Slug, wenn weder ort= noch Tabelle',
+    (() => { const r = placeFromRoute('bad-reichenhall', { name: '', lat: 47.7, lon: 12.9, country: 'DE' }, table); return r.place?.name === 'Bad Reichenhall'; })());
+  add('placeFromRoute: unauflösbarer Slug ⇒ kein Ort, kein Wurf, aber gemeldet',
+    (() => { const r = placeFromRoute('gibtsnicht', null, table); return r.place === null && r.unresolved && r.slug === 'gibtsnicht'; })());
+  add('placeFromRoute: kaputtes Segment wird gar nicht erst als Slug gelesen',
+    (() => { const r = placeFromRoute('Nicht Ein Slug', null, table); return r.slug === null && !r.unresolved; })());
+  add('Rundlauf Tabellenort: URL → Ort → dieselbe URL',
+    (() => {
+      const u = mapPathForPlace(muc, 'temp', { slug: 'muenchen', inTable: true });
+      const q = u.includes('?') ? u.slice(u.indexOf('?')) : '';
+      const r = placeFromRoute('muenchen', parseMapSearch(q, now).place, table);
+      return mapPathForPlace(r.place!, 'temp', { slug: r.slug!, inTable: r.inTable }) === u;
+    })());
+
+  // V-SH-2: ein alter Link klemmt auf „jetzt" — das muss sichtbar sein.
+  add('t in der Vergangenheit wird als solche gemeldet (V-SH-2)',
+    (() => { const r = parseMapSearch('?t=2026-08-22T09:00Z', now); return r.hour === 0 && r.timePast === true; })());
+  add('t in der Zukunft meldet nichts', parseMapSearch('?t=2026-08-22T15:00Z', now).timePast === undefined);
 
   const failed = checks.filter((c) => !c.ok).length;
   return { checks, passed: checks.length - failed, failed };

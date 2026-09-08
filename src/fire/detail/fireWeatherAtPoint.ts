@@ -22,6 +22,16 @@ import { compassLabel } from '../activity/dynamics';
 
 export const FIRE_WEATHER_SOURCE_LABEL = 'DWD ICON über Open-Meteo · Modellwerte (2–13 km), keine Messung';
 export const FIRE_WEATHER_ATTRIBUTION = 'Wetterdaten: Open-Meteo.com (CC BY 4.0) · Modell DWD ICON';
+/**
+ * BDE-D: dieselbe Auswertung für ZURÜCKLIEGENDE Brände (Historie). ICON hat kein Archiv —
+ * die Vorhersage-Reihe reicht nur `HOURLY_PAST_DAYS` zurück. Für alles Ältere tritt die
+ * ERA5-Reanalyse an ihre Stelle: dieselben Variablen, dieselbe Zusammenführung, aber
+ * **gröber** (~25 km statt 2–13 km) und eine Reanalyse, keine Vorhersage. Das muss in jeder
+ * Beschriftung stehen — eine Windrose aus 25-km-Gittern sagt weniger über einen Hangwind
+ * als eine aus 2 km, und wer das nicht weiß, liest sie falsch.
+ */
+export const FIRE_WEATHER_ARCHIVE_LABEL = 'ERA5-Reanalyse über Open-Meteo · Rasterwerte (~25 km), keine Messung';
+export const FIRE_WEATHER_ARCHIVE_ATTRIBUTION = 'Wetterdaten: Open-Meteo.com (CC BY 4.0) · ERA5-Reanalyse (Copernicus/ECMWF)';
 export const HOURLY_PAST_DAYS = 7;
 export const DAILY_PAST_DAYS = 31;
 /** Rückblick für „Tage seit Regen" — ein Tag weniger als die Tagesreihe, weil der Brandtag selbst nicht zählt. */
@@ -61,6 +71,11 @@ export interface FireWeatherDay {
 
 export interface FireWeatherAtPoint {
   fetchedAt: number;
+  /**
+   * Woher die Stundenreihe stammt. `icon` = Vorhersagelauf (letzte Tage, fein),
+   * `era5` = Reanalyse (beliebig weit zurück, grob). Die Anzeige MUSS das unterscheiden.
+   */
+  source: 'icon' | 'era5';
   atFirst: FireWeatherHour | null;
   /** Stunde der letzten Detektion — `null`, wenn sie in dieselbe Stunde wie die erste fällt. */
   atLast: FireWeatherHour | null;
@@ -216,7 +231,7 @@ export function parseFireWeather(
   firstMs: number | null, lastMs: number | null, nowMs: number,
 ): FireWeatherAtPoint {
   const out: FireWeatherAtPoint = {
-    fetchedAt: nowMs, atFirst: null, atLast: null, now: null, fireDay: null,
+    fetchedAt: nowMs, source: 'icon', atFirst: null, atLast: null, now: null, fireDay: null,
     precip24hBeforeMm: null, windowHours: [], windowRange: null, detectionRange: null,
     daysSinceRain: null, rainLookbackHit: false, notes: [],
   };
@@ -265,9 +280,9 @@ export function parseFireWeather(
 
 const _cache = new Map<string, { at: number; p: Promise<FireWeatherAtPoint> }>();
 
-async function getJson<T>(url: string): Promise<T | null> {
+async function getJson<T>(url: string, signal?: AbortSignal): Promise<T | null> {
   try {
-    const r = await fetch(url);
+    const r = await fetch(url, { signal });
     if (!r.ok) return null;
     return (await r.json()) as T;
   } catch { return null; }
@@ -291,6 +306,79 @@ export function fetchFireWeatherAtPoint(lat: number, lon: number, firstMs: numbe
 }
 
 export function resetFireWeatherCache(): void { _cache.clear(); }
+
+// ---------------------------------------------------------------------------
+// BDE-D — dieselbe Auswertung aus dem Archiv (Historie)
+// ---------------------------------------------------------------------------
+
+/**
+ * Wie viele Tage vor dem Brandfenster die Stundenreihe zusätzlich geholt wird. Ein Tag mehr,
+ * als `WINDOW_PRE_H` braucht, damit `precipBefore` seine 24 vollen Stunden auch dann findet,
+ * wenn die Erstdetektion kurz nach Mitternacht liegt.
+ */
+export const ARCHIVE_PRE_DAYS = 2;
+/** Tage nach der letzten Detektion — deckt `WINDOW_POST_H` ab, auch über Mitternacht. */
+export const ARCHIVE_POST_DAYS = 1;
+
+export function archiveHourlyUrl(lat: number, lon: number, startISO: string, endISO: string): string {
+  const u = new URL('https://archive-api.open-meteo.com/v1/archive');
+  u.searchParams.set('latitude', lat.toFixed(4));
+  u.searchParams.set('longitude', lon.toFixed(4));
+  u.searchParams.set('start_date', startISO);
+  u.searchParams.set('end_date', endISO);
+  u.searchParams.set('hourly', HOURLY_VARS);
+  u.searchParams.set('timezone', 'UTC');
+  return u.toString();
+}
+
+export function archiveDailyUrl(lat: number, lon: number, startISO: string, endISO: string): string {
+  const u = new URL('https://archive-api.open-meteo.com/v1/archive');
+  u.searchParams.set('latitude', lat.toFixed(4));
+  u.searchParams.set('longitude', lon.toFixed(4));
+  u.searchParams.set('start_date', startISO);
+  u.searchParams.set('end_date', endISO);
+  u.searchParams.set('daily', 'precipitation_sum');
+  u.searchParams.set('timezone', 'UTC');
+  return u.toString();
+}
+
+/**
+ * Wetterführung eines zurückliegenden Brands. Führt durch DIESELBE `parseFireWeather` wie die
+ * Live-Ansicht — es gibt keine zweite Zeitrechnung, keine zweite Einstufung und keinen zweiten
+ * Rechenweg für die Windrose. Unterschiedlich ist nur die Quelle der Stunden, und die steht
+ * in `source`.
+ *
+ * `now` bleibt hier ohne Bedeutung (der Brand ist vorbei) — deshalb wird `nowMs` auf das Ende
+ * des Fensters gesetzt: `daySummary` markiert den Brandtag dann nicht fälschlich als „läuft
+ * noch", und die Notiz „keine Modellstunde für jetzt" entfällt.
+ */
+export function fetchFireWeatherArchive(lat: number, lon: number, firstMs: number, lastMs: number | null): Promise<FireWeatherAtPoint> {
+  const detTo = lastMs != null && lastMs > firstMs ? lastMs : firstMs;
+  const startISO = isoDayUtc(firstMs - ARCHIVE_PRE_DAYS * 86_400_000);
+  const endISO = isoDayUtc(detTo + ARCHIVE_POST_DAYS * 86_400_000);
+  const asOf = detTo + WINDOW_POST_H * H_MS;
+  const key = `era5|${lat.toFixed(3)},${lon.toFixed(3)}|${firstMs}|${lastMs ?? 0}`;
+  const hit = _cache.get(key);
+  if (hit) return hit.p;                    // Vergangenheit ändert sich nicht — kein TTL nötig.
+  const dailyFrom = isoDayUtc(firstMs - (RAIN_LOOKBACK_DAYS_LIVE + 1) * 86_400_000);
+  // OHNE Abbruchsignal — bewusst. Das Promise liegt im Sitzungs-Cache; hinge es am Signal des
+  // ERSTEN Aufrufers, bekäme jeder spätere (Reacts doppelter Dev-Effekt, der nächste Klick auf
+  // dasselbe Ereignis) „signal is aborted" aus dem Cache. Genau diese Falle steht schon in
+  // `fireDayWeather` (Lehre GBP1 (3)) — sie ist mir hier trotzdem noch einmal passiert.
+  const p = Promise.all([
+    getJson<OmHourlyJson>(archiveHourlyUrl(lat, lon, startISO, endISO)),
+    getJson<OmDailyJson>(archiveDailyUrl(lat, lon, dailyFrom, endISO)),
+  ]).then(([h, d]) => {
+    const out = parseFireWeather(h, d, firstMs, lastMs, asOf);
+    out.source = 'era5';
+    if (!h) out.notes.unshift('Stundenabruf im Archiv fehlgeschlagen (Open-Meteo nicht erreichbar oder Fehler).');
+    if (!d) out.notes.unshift('Tagesabruf im Archiv fehlgeschlagen (Open-Meteo nicht erreichbar oder Fehler).');
+    if (!h && !d) _cache.delete(key);
+    return out;
+  });
+  _cache.set(key, { at: Date.now(), p });
+  return p;
+}
 
 // ---------------------------------------------------------------------------
 // Beschriftungen — EINE Stelle für Karte und Verifier

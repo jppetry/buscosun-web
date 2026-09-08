@@ -3,6 +3,18 @@
 > Stand 2026-09-05 · Phase PV0 · Dieses Dokument wird **vor** dem ersten Messlauf eingefroren
 > und versioniert (`retro-verifikation.md` §6). Änderungen danach sind Neu-Registrierungen mit
 > eigenem Datum, keine Korrekturen.
+>
+> ## Revision 2026-09-05 nach J-1/J-2/J-5 — was hier weiterhin gilt und was nicht
+>
+> | Abschnitt | Status nach den Entscheidungen |
+> |---|---|
+> | §1 (zwei Ansprüche A und B) | **gilt weiter** — die Unterscheidung „an der Station" vs. „abseits der Station" wird durch keine Entscheidung berührt |
+> | §2 Regime-Tabelle | gilt bis **246 h**; das Regime 246–336 h wandert nach PV5 |
+> | §3 Variablenreihenfolge | gilt weiter |
+> | §4 Metriken, §5 Stratifizierung, §6 Splits | **gelten unverändert** — sie sind das, was den Rückblick überhaupt belastbar macht (J-1 verlangt einen Rückblick, keinen laxen) |
+> | §7.1 Erfolgskriterium | **ersetzt**, s. §7.0 |
+> | §7.3 Abbruchkriterien | gelten weiter |
+> | §8 Werkzeug | gilt weiter |
 
 ---
 
@@ -162,7 +174,40 @@ Mittel gewinnt und im Föhnfall verliert, verliert im Produkt genau dann, wenn e
 
 ## 7. Erfolg und Misserfolg — verbindlich
 
-### 7.1 Erfolgskriterium je Variable und Phase
+### 7.0 Erfolgskriterium — Fassung nach J-1/J-2 (verbindlich)
+
+Der Amtsinhaber ist nicht MOSMIX, sondern **die heutige buscosun-Punktvorhersage**. Das ist die
+direkte Übersetzung von Jans Ziel („ich möchte einfach, dass unser Modell mathematisch und
+physikalisch besser ist") und zugleich das einzige Kriterium, das **sofort** messbar ist.
+
+> **Eine Stufe gilt als bestanden, wenn für die betroffene Variable gilt:**
+>
+> 1. **CRPSS > 0 gegen die heutige Engine**, signifikant auf 5 % (Diebold-Mariano/HAC, gepaarter
+>    Block-Bootstrap, FDR-korrigiert), in **jedem** Lead-Bin von 0 bis 246 h;
+> 2. **CRPSS > 0 gegen Klimatologie und Persistenz** in jedem Lead-Bin — sonst ist die Stufe in
+>    diesem Bereich wertlos, unabhängig vom Vergleich mit dem Amtsinhaber;
+> 3. **in keinem** Lead-Bin, keiner Jahreszeit, keinem Höhenband und keiner der fünf
+>    Extremklassen signifikant schlechter als der Amtsinhaber;
+> 4. **Kalibrierung eingehalten** — PIT-Abweichung unter Schranke, Spread-Skill in
+>    [0,85; 1,20] je Lead-Bin. **Gate-blockierend, unabhängig vom CRPS**;
+> 5. **Betriebsbudget eingehalten** (Artefaktgröße, Client-Payload, Rechenzeit).
+>
+> **Zeitraum:** so weit, wie die vorhandenen Archive reichen — ECMWF ab 2023-01-18, GEFS ab
+> mindestens 2024-01-01, Beobachtungen rückwirkend. Mindestens **2 zusammenhängende Jahre**,
+> Stationszahl ≥ 150 mit ≥ 15 je Höhenband. **Keine Wartezeit, keine Kampagne.**
+
+**MOSMIX ist damit nicht das Gate, sondern eine zusätzliche Auskunft** (J-1: „nur so weit, wie
+MOSMIX anzeigt"): sobald das Archiv aus PV1 genug Läufe trägt, wird derselbe Rückblick
+zusätzlich gegen MOSMIX_L/_S bis 246 h gerechnet und **mit genanntem Zeitraum, Stationszahl und
+abgedeckten Jahreszeiten** berichtet. Er blockiert keine Auslieferung. Ein „besser als MOSMIX"
+ohne Winter bleibt eine Aussage ohne den Winter — und wird so beschriftet.
+
+**Wahrheitsquelle (gilt für jede Auswertung, auch die im Produkt):** Stationsmessungen.
+Nicht Reanalyse, und **nicht der Modell-Analysen-Konsens**, den `src/confidence/hitRate.ts`
+heute verwendet — unsere Engine ist bei h = 0 auf Messungen verankert, ein Vergleich gegen
+Modell-Analysen verzerrt sie systematisch.
+
+### 7.1 Erfolgskriterium je Variable und Phase *(erste Planung — durch §7.0 ersetzt, als Historie erhalten)*
 
 > **Eine Phase gilt als bestanden, wenn für die betroffene(n) Variable(n) gilt:**
 >

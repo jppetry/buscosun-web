@@ -29,6 +29,9 @@
     "verify:repack": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-repack.mjs",
     "repack": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/repack-icon-d2.mjs",
     "repack:publish": "node scripts/publish-repack.mjs",
+    "archive": "node scripts/archive-runs.mjs",
+    "verify:archiv": "node scripts/verify-archiv.mjs",
+    "probe:archiv": "node scripts/probe-archive-branch.mjs",
     "seo:logs": "node scripts/seo/parse-crawler-logs.mjs",
     "seo:places": "node scripts/seo/export-place-slugs.mjs",
     "verify:live": "node scripts/seo/verify-live.mjs",
@@ -81,9 +84,16 @@
     "verify:fire-history": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-fire-history.mjs",
     "fire:history-archive": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/fire/bh/events-from-archive.mjs",
     "fire:history-index": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/fire/bh/build-index.mjs",
-    "wc:mirror": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/fire/wc/build-wc-mirror.mjs"
+    "wc:mirror": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/fire/wc/build-wc-mirror.mjs",
+    "verify:pv-fusion": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-pv-fusion.mjs",
+    "verify:pv-score": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-pv-score.mjs"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/icons-material": "^9.4.0",
+    "@mui/material": "^9.4.0",
+    "@mui/x-charts": "^9.13.0",
     "bz2": "^1.0.1",
     "bzip2-wasm": "^1.0.1",
     "jsfive": "^0.4.0",

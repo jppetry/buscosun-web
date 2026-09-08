@@ -9,10 +9,15 @@
  * Seit Phase WBU1 trägt die Ansicht die **Wetterkarten-Optik**
  * (`audit/waldbrand-ui.md`): Layer-Toggles links als Switch-Zeilen mit Icon
  * (Muster `layerRowDeck`), Steckbriefe rechts als Readout-Karten (Muster
- * `LayerInfoPanel`/`mdk-ro-lcard`, als Kopie in `FireLayerCard.tsx`), der
- * Tagesregler unten mittig als Glass-Zeit-Deck (Muster `mdk-timedeck`).
- * Reine Darstellungsphase: Datenpfad, Zeitmodell und Playback (WB1–WB5)
- * sind unverändert; diese Datei orchestriert weiterhin nur.
+ * `LayerInfoPanel`/`mdk-ro-lcard`, als Kopie in `FireLayerCard.tsx`).
+ *
+ * 2026-09-05 (Jans Auftrag): der Zeit-Regler (Tage/Stunden-Umschalter,
+ * Play/Pause, Schieberegler mit Ticks) ist ersatzlos entfernt — der einzige
+ * verbliebene Zeit-Zugriff ist das Rückblick-Fenster (24 h / 7 d / Monat /
+ * Saison), oben rechts über der Karte. Layer, die zuvor mehrere Tage/Stunden
+ * zeigten (Waldbrand-Forecast, Brandflächen-Woche), zeigen seither nur noch
+ * den aktuellen Stand — das interne Zeitmodell (WB1–WB5) bleibt unverändert,
+ * `pos` steht nur dauerhaft auf 0.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
@@ -20,15 +25,15 @@ import { FeatureRail, type RailFeature } from '../nav/featureRail';
 import FireMap, { type FireBasemap } from './FireMap';
 import {
   FIRE_ALWAYS_ON, withFireAlwaysOn,
-  FIRE_DECK_GROUPS, FIRE_DEFAULT_LAYERS, FIRE_LAYER_ORDER, FIRE_MVP_LAYERS, FIRE_PRESETS,
+  FIRE_DECK_GROUPS, FIRE_DEFAULT_LAYERS, FIRE_LAYER_ORDER, FIRE_MVP_LAYERS,
   FIRE_WEATHER_MAP_LAYERS, FIRE_FOOTPRINT_LAYERS, FIRE_ANOMALY_LAYERS,
-  activeFirePresetId, fireSource, type FireLayerId,
+  fireSource, type FireLayerId,
 } from './fireModel';
 import {
   defaultFireTimeState, reconcileFireTime, sharedMaxDay,
   dayLabel, windowChoices, windowLabel, laggingLayers, FIRE_LAYER_TIME, dayToIsoDate,
   // WF3: eine Achse, zwei Einheiten.
-  timeUnit, sharedMaxHour, hourlyAvailable, hourlyForced, hasTimeSlider, dayOfHour, hourLabel,
+  timeUnit, sharedMaxHour, dayOfHour, hourLabel,
   dailyOnlyLayers, type FireTimeState,
 } from './fireTime';
 import {
@@ -59,6 +64,8 @@ import {
   type FireRecord, type RecordFilter,
 } from './footprint/fireRegistry';
 import { FireFootprintPanel, type EffisScope } from './FireFootprintPanel';
+import { ThemeProvider } from '@mui/material/styles';
+import { buscosunTheme } from '../theme/buscosunTheme';
 import { FireDossier, DossierLegend, DossierMapNote } from './FireDossier';
 import { FireMiniMap, miniFeatures } from './FireMiniMap';
 import { applyFireView, fireViewFromState, type FireRouteView } from './fireRouteView';
@@ -99,7 +106,7 @@ import type { PerfTier } from '../wind/perfGovernor';
 import { dataAgeText, type DataRef } from '../dataAge';
 import { fireSourceFor, fireIncidentSourcesFor, hasOfficialFireConfirmation } from '../officialSources';
 import {
-  FireIcon, IcoFirePlay, IcoFirePause, IcoBarMap, IcoBarLayers, IcoBarFire, IcoBarTime,
+  FireIcon, IcoBarMap, IcoBarLayers, IcoBarFire, IcoBarTime,
 } from './fireIcons';
 import {
   FireLayerCard, FIRE_LAYER_INFO, HOTSPOTS_DEGRADED_INFO, dangerInfoFor, soilDrynessInfoFor,
@@ -328,13 +335,9 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
   const maxHour = sharedMaxHour(activeList);
   const sliderMax = hourly ? maxHour : maxDay;
   const pos = hourly ? time.hour : time.day;
-  const showSlider = hasTimeSlider(activeList, unit);
-  /** Der Einheiten-Umschalter: nur, wenn Stundenframes da sind und nichts die Einheit erzwingt. */
-  const unitChoice = hourlyAvailable(activeList) && !hourlyForced(activeList);
   const windows = windowChoices(activeList);
   const lagging = laggingLayers(activeList, pos, unit);
   const dailyOnly = hourly ? dailyOnlyLayers(activeList, time.hour) : [];
-  const presetId = activeFirePresetId(activeList);
   const nowMs = Date.now();
   const dayForLayers = hourly ? dayOfHour(time.hour, nowMs) : time.day;
 
@@ -1255,10 +1258,6 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
     });
   }, []);
 
-  const applyPreset = useCallback((layers: readonly FireLayerId[]) => {
-    setActive(withFireAlwaysOn(layers));
-  }, []);
-
   // ---- Deck-Bausteine (Brandradar Command-Deck, Vorlage references/brandradar.dc.html) ----
   //
   // Drei Viewports, EIN Bau: Desktop ≥ 1440 (B1/B2), Tablet 768–1439 (B3) und
@@ -1483,22 +1482,6 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
     );
   };
 
-  /** Presets — Desktop in der Topbar, Tablet ebenfalls, mobil oben im Layer-Tab. */
-  const presetSeg = (big: boolean) => (
-    <div className={big ? 'br-presets-big' : 'br-presets'} role="group" aria-label="Preset">
-      {FIRE_PRESETS.map((p) => (
-        <button
-          key={p.id} type="button"
-          className={presetId === p.id ? 'is-active' : ''}
-          aria-pressed={presetId === p.id}
-          onClick={() => applyPreset(p.layers)}
-        >
-          {p.label}
-        </button>
-      ))}
-    </div>
-  );
-
   /**
    * Der Zeitkorb-Filter der früheren Brandflächen, losgelöst von seiner Zeile.
    *
@@ -1610,37 +1593,15 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
    * Fläche (ICON-D2)". Leerzustände nennen IMMER ihren Grund.
    */
 
-  // --- Zeit-Deck: EINE Achse, ZWEI Einheiten --------------------------------------
+  // --- Rückblick-Fenster: einziger verbliebener Zeit-Zugriff der Karte -----------
+  // 2026-09-05 (Jans Auftrag): der Zeit-Regler (Tage/Stunden-Umschalter, Play/Pause,
+  // Schieberegler mit Ticks) ist ersatzlos entfernt. Layer, die zuvor mehrere Tage
+  // oder Stunden zeigten (Waldbrand-Forecast-Stundenregler, Brandflächen-Woche
+  // Tag für Tag), zeigen seither nur noch den aktuellen Stand — `pos` bleibt fest
+  // bei 0. Einziger verbliebener Zeit-Zugriff ist dieses Rückblick-Fenster,
+  // seitdem oben rechts über der Karte statt im Glass-Zeit-Deck.
 
-  /** Einheiten-Umschalter (Tage | Stunden): immer sichtbar; was nicht wählbar ist, sagt warum. */
-  const unitSeg = (
-    <div className="br-seg is-ink br-td-unit" role="group" aria-label="Einheit des Zeitreglers">
-      {(['days', 'hours'] as const).map((u) => {
-        const enabled = unitChoice || unit === u;
-        const why = u === 'hours'
-          ? (hourlyForced(activeList) ? 'Ein aktiver Layer erzwingt die Stundenachse' : 'Kein aktiver Layer hat Stundenframes')
-          : 'Ein aktiver Layer erzwingt die Stundenachse';
-        return (
-          <button
-            key={u} type="button"
-            className={unit === u ? 'is-active' : ''}
-            aria-pressed={unit === u}
-            disabled={!enabled}
-            title={enabled ? undefined : why}
-            onClick={() => {
-              if (unit === u || !enabled) return;
-              setPlay((p) => (p.playing ? { ...p, playing: false } : p));
-              setTime((t) => ({ ...t, unit: u }));
-            }}
-          >
-            {u === 'days' ? 'Tage' : (isTablet || isMobile) ? 'Std.' : 'Stunden'}
-          </button>
-        );
-      })}
-    </div>
-  );
-
-  // Rückblick-Fenster (24 h / 7 d) der Detektionen — im Zeit-Deck (Vorlage).
+  // Rückblick-Fenster (24 h / 7 d) der Detektionen.
   // BH3: dazu die Historie-Fenster Monat | Saison (statische Artefakte) — nur mit Kill-Switch an.
   const windowSeg = windows.length > 0 ? (
     <div className={`br-seg is-red br-td-window${history ? ' is-history' : ''}`} role="group" aria-label="Rückblick-Fenster">
@@ -1672,56 +1633,6 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
   const hourClock = (h: number) => new Date(nowMs + h * 3_600_000)
     .toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
   const standText = hourly ? `${hourLabel(time.hour)} · ${hourClock(time.hour)}` : dayLabel(time.day, nowMs);
-  const tickEvery = isMobile ? 3 : isTablet ? 2 : 1;
-  const ticks: number[] = [];
-  for (let i = 0; i <= sliderMax; i += 1) if (i === 0 || i === sliderMax || i % tickEvery === 0) ticks.push(i);
-
-  const playBtn = (
-    <button
-      type="button"
-      className="br-play"
-      aria-label={play.playing ? 'Abspielen pausieren' : (hourly ? 'Stunden abspielen' : 'Tage abspielen')}
-      aria-pressed={play.playing}
-      disabled={!showSlider}
-      onClick={() => setPlay((p) => ({ ...p, playing: !p.playing }))}
-    >
-      {play.playing ? <IcoFirePause /> : <IcoFirePlay />}
-    </button>
-  );
-
-  const track = showSlider ? (
-    <div className="br-track">
-      <div className="br-ticks" aria-hidden="false">
-        {ticks.map((i) => (
-          <button
-            key={i} type="button"
-            className={`br-tick${i === pos ? ' is-active' : ''}`}
-            onClick={() => { setPlay((p) => (p.playing ? { ...p, playing: false } : p)); setPos(i); }}
-            title={i === 0 ? (hourly ? 'Auf jetzt zurücksetzen' : 'Auf heute zurücksetzen') : undefined}
-          >
-            {i === 0 ? (hourly ? 'JETZT' : 'HEUTE') : `+${i} ${hourly ? 'h' : 'd'}`}
-          </button>
-        ))}
-      </div>
-      <input
-        type="range" min={0} max={sliderMax} step={1} value={pos}
-        aria-label={hourly ? 'Stundenschritt' : 'Tagesschritt'}
-        aria-valuetext={standText}
-        onChange={(e) => {
-          // Von Hand ziehen beendet das Abspielen — sonst kämpfen zwei Quellen um den Regler.
-          setPlay((p) => (p.playing ? { ...p, playing: false } : p));
-          setPos(Number(e.target.value));
-        }}
-        style={{ '--tl-fill': `${(pos / Math.max(sliderMax, 1)) * 100}%` } as React.CSSProperties}
-      />
-    </div>
-  ) : (
-    <p className="br-time-none">
-      {unitChoice
-        ? 'Die aktiven Layer zeigen auf der Tagesachse genau einen Zeitpunkt — Stundenachse wählbar.'
-        : 'Die aktiven Layer zeigen genau einen Zeitpunkt — kein Regler.'}
-    </p>
-  );
 
   /** Die Legende des Zeit-Decks: alle 6 Klassen der gewählten Sub-Ansicht + Detektion/ortsfest. */
   const viewMeta = DANGER_VIEWS[dangerView];
@@ -1763,36 +1674,17 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
     </div>
   );
 
-  /**
-   * Zeit-Deck der Karte (Desktop/Tablet) in der kompakten Zeile (B2). Seit BD3 ist das der
-   * einzige Fall: das Readout zeigt immer eine Liste (Brände oder Thermalanomalien), die Mitte
-   * ist entsprechend schmal. Was der breite Modus zusätzlich trug — Einheit, Legende, Basiskarte,
-   * Ansicht-Chips, Treiber-Notiz — ist nicht gestrichen, sondern umgezogen: die Einheit bleibt
-   * hier in der Zeile, Legende und Basiskarte stehen am Dock-Fuß, Chips und Notiz unter ihrer
-   * eigenen Layer-Zeile im Dock.
-   */
   const firesMode = !isMobile;
-  const timeDeck = (
-    <div className={`br-timedeck${firesMode ? ' is-compact' : ''}${hourly ? ' is-hourly' : ''}`}>
-      <div className="br-td-row">
-        {playBtn}
-        {unitSeg}
-        {track}
-        {firesMode
-          ? (windowSeg ?? <span className="br-td-window-text">Rückblick {windowLabel(time.windowH)}</span>)
-          : windowSeg}
-      </div>
-    </div>
-  );
+  /**
+   * Rückblick-Fenster der Karte (24 h / 7 d / Monat / Saison) — seit 2026-09-05 (Jans
+   * Auftrag) der einzige Zeit-Zugriff der Karte. Desktop/Tablet: oben rechts über der
+   * Karte (`.br-map-tr`) bzw. im Fuß des Brand-Dossiers; Mobil: im Sheet-Bereich „Zeit".
+   */
+  const windowBar = windowSeg ?? <span className="br-td-window-text">Rückblick {windowLabel(time.windowH)}</span>;
 
-  /** Mobil (B4): Zeit-Deck als Karte im Sheet — Play, Einheit, Regler; darunter RÜCKBLICK. */
+  /** Mobil (B4): Rückblick-Auswahl als Karte im Sheet, darunter Stand/„lädt …". */
   const timeCardMobile = (
     <div className="br-mcard br-mtime">
-      <div className="br-td-row">
-        {playBtn}
-        {unitSeg}
-        {track}
-      </div>
       <div className="br-mtime-foot">
         <span className="br-eyebrow">Rückblick</span>
         {windowSeg ?? <span className="br-muted">Detektionen aus — kein Rückblickfenster</span>}
@@ -2237,7 +2129,14 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
     </>
   );
 
+  /*
+   * Das MUI-Theme umschliesst die GANZE Brandradar-Seite, nicht nur das Dossier: die
+   * geteilten Bausteine (`DriversView`, `FirePassChart`) rendert auch die Historie, und
+   * ohne Provider faellt MUI dort auf sein Standard-Blau zurueck. Der Import haengt an
+   * dieser Datei und damit am Lazy-Chunk — nicht an `App.tsx` (Eager-Budget).
+   */
   return (
+    <ThemeProvider theme={buscosunTheme}>
     <div className={`fire-root${isMobile ? ' is-mobile' : ''}${firesMode ? ' is-fires' : ''}`} data-tab={mobileTab}>
       {!isMobile && (
         <FeatureRail
@@ -2261,7 +2160,6 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
             {!isTablet && <span className="br-topdiv" aria-hidden="true" />}
             {!isTablet && <span className="br-topbar-sub">Brandradar · {inDossier ? (readoutTab === 'anomalies' ? 'Thermalanomalien' : 'Brände') : 'DACH-Flächenblick'}</span>}
             {inDossier && dossierRecord && <span className="br-topbar-sub br-topbar-name">{recordName(dossierRecord)}</span>}
-            {!inDossier && presetSeg(false)}
             {stageSeg(false)}
             <div className="br-topbar-right">
               {!isTablet && <span className="br-topbar-map">Karte: <strong>{basemapLabel}</strong></span>}
@@ -2340,15 +2238,16 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
               {isMobile && mapNotes}
             </div>
 
-            {/* Oben rechts: Basemap (Desktop) — der Zoom von MapLibre sitzt per CSS darunter. */}
-
-
-
-            {!isMobile && !inDossier && timeDeck}
+            {/* Oben rechts: Rückblick-Fenster (24 h / 7 d / Monat / Saison) — der Zeit-Regler
+                ist entfallen (Jans Auftrag 2026-09-05), das hier ist der einzige verbliebene
+                Zeit-Zugriff der Karte. Der Zoom von MapLibre sitzt per CSS darunter. */}
+            {!isMobile && !inDossier && (
+              <div className="br-map-tr">{windowBar}</div>
+            )}
           </main>
 
           {/* BD2d: das Dossier ersetzt NUR die Karte — Minikarte, Legende und Skalen
-              stehen in seiner zweiten Rasterspalte, das Zeit-Deck als Leiste darunter. */}
+              stehen in seiner zweiten Rasterspalte, das Rückblick-Fenster als Leiste darunter. */}
           {!isMobile && inDossier && (
             <main className="br-ds-main" aria-label="Brand-Dossier">
               <div className="br-ds-scroll">
@@ -2357,13 +2256,13 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
                 {history ? historyDossier : (readoutTab === 'anomalies' && dossierSite && !dossierRecord) ? siteDossier(false, <div className="br-ds-aside">{dossierSide(250)}</div>) : (
                   <FireDossier
                     r={dossierRecord} nowMs={nowMs} atContext={dossierRecord ? atContextFor(dossierRecord) : null}
-                    compact={isTablet} aside={dossierSide(250)}
+                    breakpoint={isTablet ? 'tablet' : 'desktop'} aside={dossierSide(250)}
                     extra={readoutTab === 'anomalies' ? siteCards : null}
                     detections={hotspotRows}
                   />
                 )}
               </div>
-              <div className="br-ds-foot">{timeDeck}</div>
+              <div className="br-ds-foot">{windowBar}</div>
             </main>
           )}
 
@@ -2377,16 +2276,15 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
           {isMobile && (
             <>
               {mobileTab === 'layers' && (
-                <section className="br-m-page" aria-label="Layer & Presets">
+                <section className="br-m-page" aria-label="Layer">
                   <header className="br-m-head">
                     <div>
                       <div className="br-eyebrow">Brandradar · Layer</div>
-                      <h1 className="br-m-title">Layer &amp; Presets</h1>
+                      <h1 className="br-m-title">Layer</h1>
                     </div>
                     <span className="br-count is-bordered">{switchableCount} aktiv</span>
                   </header>
                   <div className="br-m-scroll">
-                    {presetSeg(true)}
                     {dockGroups(true)}
                     <p className="br-note">Blockierte Layer bleiben sichtbar: die Größe existiert, nur die Quelle ist nicht erreichbar.</p>
                     <div className="br-m-basemap">
@@ -2427,7 +2325,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
                   </header>
                   <div className="br-m-scroll">
                     <FireDossier
-                      r={dossierRecord} nowMs={nowMs} atContext={atContextFor(dossierRecord)} mobile
+                      r={dossierRecord} nowMs={nowMs} atContext={atContextFor(dossierRecord)} breakpoint="mobile"
                       lead={(
                         <div className="br-ds-mapstrip">
                           {miniMap(150)}
@@ -2470,6 +2368,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
         </div>
       </div>
     </div>
+    </ThemeProvider>
   );
 }
 

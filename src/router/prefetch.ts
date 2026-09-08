@@ -49,10 +49,19 @@ export function warmPlanFor(routeId: RouteId, pathname: string, search: string):
       // Suchformular (gemessen: der Tar lief trotzdem); für AT/CH ist RADOLAN
       // die Nachbarquelle, die das Komposit später mit `'low'` holt (H7).
       // Das GRIB-Manifest (`cape`-Familie, Gewittergefahr-Index) bleibt.
-      let hasPlace = false, land = '';
+      //
+      // SH1: Der Ort steht jetzt auch (und bei Tabellenorten NUR) als Slug im
+      // Pfad — `/regenradar/muenchen`. Würde hier weiter nur die Query gelesen,
+      // fiele der RV-Frühstart für genau die kürzesten, meistgeteilten Links
+      // still aus (V-LE-12 rückwärts). Das Land bleibt an `land=` erkennbar:
+      // `buildMapSearch` schreibt es auch für Tabellenorte, sobald es von DE
+      // abweicht — dieses Modul liegt im index-Chunk und kennt die Ortstabelle
+      // bewusst nicht (3,5 KB gzip, Ratsche `eagerJs`).
+      let hasPlace = pathname.split('/').filter(Boolean).length >= 2;
+      let land = '';
       try {
         const q = new URLSearchParams(search);
-        hasPlace = q.has('ort') || (q.has('olat') && q.has('olon'));
+        hasPlace = hasPlace || q.has('ort') || (q.has('olat') && q.has('olon'));
         land = (q.get('land') ?? 'de').toLowerCase();
       } catch { /* kein Query */ }
       return { manifests: [GRIB_MANIFEST_PATH], rvTar: hasPlace && land === 'de' };

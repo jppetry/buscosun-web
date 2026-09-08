@@ -45,11 +45,29 @@ const api = readFileSync(join(ROOT, 'docs', 'API.md'), 'utf8');
 const lic = readFileSync(join(ROOT, 'scripts', 'seo', 'licenses.mjs'), 'utf8');
 const audit = readFileSync(join(ROOT, 'audit', 'brandradar-satellitenbilder.md'), 'utf8');
 
-add('[kachel] vier Kennzahlen: Fläche · Detektionen · Stärke · Tendenz', /lbl="Fläche"/.test(panel) && /lbl="Detektionen"/.test(panel) && /lbl="Stärke"/.test(panel) && /lbl="Tendenz"/.test(panel));
+// MUI-Umbau: die vier Kennzahlen stehen als DATEN in `recordStatTiles()` und werden von
+// der Listenkarte (Deck-CSS) UND vom Dossier-Kopf (MUI-`StatTile`) gerendert — eine Quelle,
+// zwei Formen. Die Sonde prüft die Quelle, nicht mehr die eine Aufrufstelle.
+add('[kachel] vier Kennzahlen: Fläche · Detektionen · Stärke · Tendenz',
+  /export function recordStatTiles/.test(panel)
+  && ['Fläche', 'Detektionen', 'Stärke', 'Tendenz'].every((l) => new RegExp(`lbl: '${l}'`).test(panel)));
+add('[kachel] Liste und Dossier lesen DIESELBE Quelle — keine zweite Fassung der Werte', (() => {
+  // EINE Komponente rendert beide Formen (`wide` = Dossier-Kopf als MUI-Kacheln, sonst die
+  // Listenkarte im Deck-CSS) und liest sie aus EINEM Aufruf von `recordStatTiles()`.
+  const fn = panel.slice(panel.indexOf('export function RecordStats'), panel.indexOf('function StatusDot'));
+  return (fn.match(/recordStatTiles\(/g) ?? []).length === 1
+    && /if \(wide\)/.test(fn) && /<KeyStats>/.test(fn) && /<StatTile/.test(fn)
+    && /className="br-fire-stats"/.test(fn) && /<Stat /.test(fn)
+    && !/lbl="Fläche"/.test(panel);
+})());
 add('[kachel] Kennzahlen stehen nicht mehr hinter `sel ?` (immer sichtbar)', !/\{sel \? \(\s*<span className="br-fire-stats">/.test(panel));
 add('[detail] Wetterlage trägt das Modell-Label (keine Messung)', /FIRE_WEATHER_SOURCE_LABEL/.test(panel));
 add('[detail] Wetter lädt erst bei offenem Detail (Effekt an r.id)', /fetchFireWeatherAtPoint\(/.test(panel) && /useEffect/.test(panel));
-add('[detail] Chart ist eingebunden und die Textliste bleibt', /<FirePassChart/.test(panel) && /fire-fp-passes--af/.test(panel));
+add('[detail] Chart ist eingebunden und die Textliste bleibt (Tabelle desktop, Liste mobil)',
+  /<FirePassChart/.test(panel) && /function PassTable/.test(panel)
+  && /<Table size="small" stickyHeader className="fire-fp-passes"/.test(panel)
+  && /<List dense disablePadding className="fire-fp-passes"/.test(panel)
+  && ['Zeit', 'Satellit', 'Px', 'MW'].every((c) => panel.includes(`>${c}</TableCell>`)));
 add('[css] Kennzahl-Raster vierspaltig, im Sheet/Tablet zweispaltig', /\.br-fire-stats \{[^}]*grid-template-columns: repeat\(4/.test(css) && /\.br-fire-stats \{[^}]*repeat\(2/.test(css));
 add('[doku] API.md nennt past_days + icon_seamless', /past_days/.test(api) && /icon_seamless/.test(api));
 add('[doku] Lizenz-Ref zeigt auf das neue Modul', /fireWeatherAtPoint/.test(lic));
@@ -82,8 +100,26 @@ add('[bd2] das Dossier setzt dieselben Bausteine in D6-Ordnung zusammen (Kopf �
 add('[bd2] Dossier hat keine eigenen Fachtexte zur Ursache (nur der geteilte CauseText)', !/keine Quelle/.test(dossier));
 add('[bd2] Ursache steht im Warn-Kasten (--br-warn-*), Wetterlage in Steel',
   /\.br-ds-cause \{[^}]*--br-warn-tint/.test(css) && /\.br-ds-card\.is-steel \{[^}]*#C7D6E4/.test(css) && /#EAF1F7/.test(css));
-add('[bd2] Verlauf: SVG-Texte tragen League Spartan, wide-Maß wideWidth × 160 (Standard 380; 12 px rendern als 12 px)',
-  /League Spartan/.test(chart) && /wide \? wideWidth/.test(chart) && /wideWidth = 380/.test(chart) && /wide \? 160/.test(chart) && /wide \? 12 : 8/.test(chart) && (chart.match(/fontFamily=\{FONT\}/g) ?? []).length >= 6);
+// MUI-Umbau D1/D2: der Verlauf steht auf MUI X (`ChartsContainer`), die Balken zeichnet die
+// Komponente selbst — MUI X' `BarPlot` verlangt eine BAND-Achse, die die Überflüge gleichmäßig
+// verteilen würde. Genau das darf hier nicht passieren: der zeitliche Abstand IST die Aussage
+// („zwischen zwei Überflügen ist nichts beobachtet"), und ohne echte Zeitachse hätte die
+// Schraffur (D2) keinen Ort. Die Sonde hält beides fest: Zeitachse + log-Achse + eigene Balken.
+add('[bd2] Verlauf: MUI X mit echter Zeit- und log-Achse, Balken auf der Zeitachse (keine Band-Achse)',
+  /<ChartsContainer/.test(chart) && /scaleType: 'time'/.test(chart) && /scaleType: 'log'/.test(chart)
+  && !/scaleType: 'band'/.test(chart)
+  && /useXScale/.test(chart) && /useYScale/.test(chart) && /function BarLayer/.test(chart) && /function GapLayer/.test(chart));
+add('[bd2] Verlauf: „jetzt" als ChartsReferenceLine, Höhe 220 im Dossier, eigene SVG-Texte mit League Spartan',
+  /<ChartsReferenceLine/.test(chart) && /wideWidth = 380/.test(chart)
+  && /bp === 'mobile' \? 180 : 220/.test(chart) && /SVG_FONT/.test(chart)
+  && (chart.match(/fontFamily=\{SVG_FONT\}/g) ?? []).length >= 5);
+// Die Breite ist KEINE feste Zahl je Breakpoint mehr: MUI X misst sie an der Karte
+// (ResizeObserver, `width` bleibt undefined). Feste 620 px liefen auf dem Tablet über den
+// Rand — mit Dock und Readout bleibt der Mitte dort nur ~440 px. `wideWidth` ist seither
+// nur noch die Obergrenze am <figure>, damit der Chart auf breiten Karten nicht ausufert.
+add('[bd2] Chart-Breite kommt aus der Karte, nicht aus einer Tabelle fester Breakpoint-Werte',
+  /const width = wide \? undefined/.test(chart) && /maxWidth: wide \? wideWidth/.test(chart)
+  && /CHART_MAX_WIDTH/.test(dossier) && !/CHART_WIDTH\b/.test(dossier));
 add('[bd2] Minikarte ist KEINE zweite FireMap (eigene leichte Instanz, nicht interaktiv, Klick ⇒ Bühne)',
   /new maplibregl\.Map\(/.test(mini) && /interactive: false/.test(mini) && !/<FireMap\b/.test(mini) && /onClick/.test(mini));
 add('[bd2] Bühne: Segment Karte | Dossier, Klick auf Brand (Karte + Registry) öffnet das Dossier',
@@ -95,7 +131,10 @@ add('[bd2] Hauptkarte bleibt im Dossier montiert (nur außer Bild, kein Remount)
 add('[bd2] Permalink: ds nur wenn offen, Decoder nimmt nur die 1',
   /payload\.ds = 1/.test(fstate) && /dossier: o\.ds === 1/.test(fstate) && /dossier: stage === 'dossier'/.test(page));
 add('[bd2] Zeit-Deck im Dossier als Leiste über die ganze Breite (derselbe Knoten)',
-  /className="br-ds-foot">\{timeDeck\}/.test(page) && /\.br-ds-foot \.br-timedeck \{[^}]*position: static/.test(css));
+  // Seit der Rücknahme des Zeit-Reglers (2026-09-05) trägt die Leiste nur noch das
+  // Rückblick-Fenster; sie bleibt EIN Knoten über die ganze Breite unter dem Scrollbereich.
+  /className="br-ds-foot">\{windowBar\}/.test(page)
+  && /\.br-ds-foot \{[^}]*flex: 0 0 auto/.test(css) && /\.br-ds-foot \{[^}]*border-top/.test(css));
 // BD2d (2026-08-31, Jans Auftrag): die Sidebars bleiben in jeder Bühne — Dock links und Readout
 // rechts rendern unabhängig von der Bühne, das Dossier ersetzt nur die Karten-Mitte.
 add('[bd2d] Sidebars bleiben: kein Registry-/Rail-Ersatz mehr, Dossier als Scrollbereich + Zeit-Deck im Zentrum',
@@ -625,23 +664,45 @@ const codeOnly = (src) => src
     && /\.br-sat-det rect \{ fill: rgba\(255, 176, 138, \.28\); stroke: #FFB08A; stroke-width: 2;/.test(css)
     && /drop-shadow\(0 0 2px rgba\(44, 42, 38, \.95\)\)/.test(css)
     && /const DET_HALO = 'rgba\(44, 42, 38, 0\.85\)'/.test(cogv));
-  add('[sat3] die Signalfarbe #FFB08A steht NUR an den Detektions-Rechtecken, nirgends sonst im Deck',
-    (css.match(/#FFB08A|255, 176, 138/gi) ?? []).every((_, i, a) => a.length === 2)
-    && css.slice(css.indexOf('.br-sat-det rect {'), css.indexOf('.br-sat-det rect.is-after')).includes('#FFB08A'));
-  add('[sat3] „danach" ist in BEIDEN Bildern ungefüllt und gestrichelt — sichtbar UND unterscheidbar',
-    /\.br-sat-det rect\.is-after \{ fill: none; stroke-dasharray: 5 3; \}/.test(css)
-    && /ctx\.setLineDash\(after \? \[5 \* dpr, 3 \* dpr\] : \[\]\)/.test(cogv)
-    && /path\(false\);\s*ctx\.fill\(\);/.test(cogv));
+  add('[sat3] die Signalfarbe #FFB08A steht NUR an den Detektions-Rechtecken, nirgends sonst im Deck', (() => {
+    // Jede Fundstelle muss innerhalb eines `.br-sat-det`-Blocks liegen. Seit §13.6 sind es drei
+    // (Grundregel: Füllung + Strich, „danach": schwächere Füllung) — gezählt wird nicht die Zahl,
+    // sondern dass keine Fundstelle woanders steht.
+    const hits = [...css.matchAll(/#FFB08A|255, 176, 138/gi)].map((m) => m.index);
+    const blocks = [...css.matchAll(/\.br-sat-det rect(\.is-after)? \{[^}]*\}/g)].map((m) => [m.index, m.index + m[0].length]);
+    return hits.length > 0 && hits.every((i) => blocks.some(([a, b]) => i >= a && i <= b));
+  })());
+  // §13.6 (Jans Vorgabe): der Rahmen steht IMMER. „Danach" wird schwächer gefüllt und gestrichelt —
+  // unterschieden über Deckung und Strichmuster, nie über An/Aus. Vorher war es ungefüllt und damit
+  // bei ~10 px Kantenlänge praktisch unsichtbar.
+  add('[sat3] „danach" ist in BEIDEN Bildern GEFÜLLT (schwächer) und gestrichelt — immer sichtbar, trotzdem unterscheidbar', (() => {
+    const svgAfter = /\.br-sat-det rect\.is-after \{ fill: rgba\(255, 176, 138, \.14\); stroke-dasharray: 5 3; \}/.test(css);
+    const base = css.match(/\.br-sat-det rect \{[^}]*\}/)?.[0] ?? '';
+    const weaker = /fill: rgba\(255, 176, 138, \.28\)/.test(base);
+    const canvas = /const DET_FILL_AFTER = 'rgba\(255, 176, 138, 0\.14\)'/.test(cogv)
+      && /ctx\.fillStyle = DET_FILL_AFTER;\s*path\(true\);\s*ctx\.fill\(\);/.test(cogv)
+      && /ctx\.setLineDash\(after \? \[5 \* dpr, 3 \* dpr\] : \[\]\)/.test(cogv);
+    return svgAfter && weaker && canvas;
+  })());
   add('[sat3] Rechtecke kommen aus footprintRing — dieselbe Regel wie der Karten-Layer, kein zweiter Bau',
-    /import \{ footprintRing, type FirmsRow \} from '\.\.\/sources\/firmsHotspots'/.test(detSrc)
-    && (detSrc.match(/footprintRing\(r\)/g) ?? []).length === 2);
+    /import \{ footprintRing, VIIRS_NOMINAL_KM, type FirmsRow \} from '\.\.\/sources\/firmsHotspots'/.test(detSrc)
+    && (detSrc.match(/footprintRing\(r, VIIRS_NOMINAL_KM\)/g) ?? []).length === 2);
+  // §13.6: das Nennmaß ist ein RÜCKFALL, kein Standard — und es muss gesagt werden, wo es greift.
+  add('[sat3] Nennmaß nur mit Kennzeichnung: der Karten-Layer behält die strenge Regel, das Bild sagt es an', (() => {
+    const firms = readFileSync(join(ROOT, 'src', 'fire', 'sources', 'firmsHotspots.ts'), 'utf8');
+    return /export const VIIRS_NOMINAL_KM = 0\.375/.test(firms)
+      && /fallbackKm: number \| null = null/.test(firms)          // ohne Argument unverändert
+      && /nominal: boolean/.test(detSrc)
+      && /Nennmaß \(VIIRS 375 m\)/.test(satc)
+      && !/VIIRS_NOMINAL_KM/.test(readFileSync(join(ROOT, 'src', 'fire', 'FireMap.tsx'), 'utf8'));
+  })());
   add('[sat3] 30 m: SVG im Bildmaß — viewBox aus SNAP_W/SNAP_H, Rahmen 5:4, Bild nur skaliert (object-fit: cover ohne Beschnitt)',
     /viewBox=\{`0 0 \$\{SNAP_W\} \$\{SNAP_H\}`\}/.test(satc) && /detectionRects30m\(t\.detections, data\.bbox, SNAP_W, SNAP_H/.test(satc)
     && /\.br-sat-frame \{[^}]*aspect-ratio: 5 \/ 4/.test(css) && /export const SNAP_W = 600/.test(satm) && /export const SNAP_H = 480/.test(satm));
   add('[sat3] 30 m: Umschalter „Detektionen" default an, nennt die Zahl im Bild, Sitzungszustand (kein Permalink)',
     /useState\(true\)/.test(satc) && /br-sat-dettoggle/.test(satc) && /keine im Bild/.test(satc) && !/showDet/.test(readFileSync(join(ROOT, 'src', 'fire', 'fireState.ts'), 'utf8')));
   add('[sat3] Zeitbezug: Aufnahme nach dem Szenentag ist gestrichelt — in beiden Bildern, aus EINER Regel (sceneDayEndMs)',
-    /is-after/.test(satc) && /\.br-sat-det rect\.is-after \{ fill: none; stroke-dasharray/.test(css)
+    /is-after/.test(satc) && /\.br-sat-det rect\.is-after \{ fill: rgba\(255, 176, 138, \.14\); stroke-dasharray/.test(css)
     && /setLineDash\(after \?/.test(cogv) && (detSrc.match(/sceneDayEndMs\(dayIso\)/g) ?? []).length === 2);
   add('[sat3] Ehrlichkeit: „Pixelgrundfläche … das Feuer liegt irgendwo darin" steht an BEIDEN Bildern; Historie sagt, warum sie fehlen',
     (satc.match(/das Feuer liegt irgendwo darin/g) ?? []).length === 1 && /das Feuer liegt irgendwo darin/.test(cogv)
@@ -753,7 +814,7 @@ const codeOnly = (src) => src
   add('[bde][effis] der Beleg für die Zahlen steht am Code (audit/waldbrand-effis.md B3)',
     /waldbrand-effis\.md.*B3|Befund B3/.test(reg));
   add('[bde][effis] Detailansicht zeigt Fläche, Branddatum, Stand und die Quelle EFFIS',
-    /<dt>Kartierung<\/dt>/.test(panel) && /Branddatum \{fmtDate\(e\.firedateMs\)\}/.test(panel)
+    /term="Kartierung"/.test(panel) && /Branddatum \{fmtDate\(e\.firedateMs\)\}/.test(panel)
     && /Stand \{fmtDate\(e\.lastUpdateMs\)\}/.test(panel) && /effis\.jrc\.ec\.europa\.eu/.test(panel));
   add('[bde][effis] kein leerer Platzhalter: ohne Kartierung UND ohne Grund rendert die Zeile gar nicht',
     /if \(!gap\) return null;/.test(panel));
@@ -765,7 +826,7 @@ const codeOnly = (src) => src
   add('[bde][ausbreitung] Weg und Zeit aus DERSELBEN Gewichtung (sonst gehören sie nicht zusammen)',
     /wMs \+= p\.atMs \* p\.sumFrp/.test(dyn) && /Dieselben Gewichte wie beim Schwerpunkt/.test(dyn));
   add('[bde][ausbreitung] Konfidenzzeile nennt Überflüge, Detektionen, Zeitspanne und mittleren Schritt',
-    /<dt>Konfidenz der Richtung<\/dt>/.test(panel) && /spreadConfidence\.detections/.test(panel)
+    /term="Konfidenz der Richtung"/.test(panel) && /spreadConfidence\.detections/.test(panel)
     && /spreadConfidence\.spanMs/.test(panel) && /spreadConfidence\.meanStepM/.test(panel));
   add('[bde][ausbreitung] die Konfidenz sagt auch, wenn sie GEGEN die Richtung spricht (Springen)',
     /springt weiter hin und her/.test(panel));
@@ -806,11 +867,36 @@ const codeOnly = (src) => src
   // --- Haus-Regeln --------------------------------------------------------
   add('[bde] die neuen Module sind pur: kein Date.now(), kein fetch, kein DOM',
     !/Date\.now\(/.test(drvCode) && !/fetch\(/.test(drvCode) && !/document\./.test(drvCode));
-  add('[bde] keine neue Abhängigkeit für die Charts (SVG von Hand, D-06)',
-    !/recharts|chart\.js|d3|@mui/i.test(chartsCode) && Object.keys(pkg.dependencies).length === 7);
-  add('[bde] SVG-Texte tragen font-family ausdrücklich (Befund B1)',
-    (chartsCode.match(/<text/g) ?? []).length === (chartsCode.match(/fontFamily=\{FONT\}/g) ?? []).length
-    && (chartsCode.match(/<text/g) ?? []).length >= 5);
+  // Jans Entscheidung 2026-09-06 (`docs/konzept-brand-detail.md` §0): das Brand-Dossier steht
+  // auf MUI Material + **MUI X Charts**. Das kehrt D-06 („SVG von Hand") FÜR DIESES FEATURE um.
+  // Was die Sonde weiterhin festhält: (a) es bleibt bei EINER Chart-Bibliothek — Recharts,
+  // Chart.js und d3 kommen nicht zusätzlich dazu; (b) die Windrose bleibt handgeschriebenes SVG,
+  // weil MUI X kein Polarchart hat und ihre zwei GEGENSÄTZLICHEN Konventionen sonst verloren
+  // gingen; (c) die Abhängigkeitsliste wächst nicht unbemerkt weiter.
+  add('[bde] genau EINE Chart-Bibliothek (MUI X), keine zweite Fremd-Optik daneben',
+    !/recharts|chart\.js|\bd3\b/i.test(chartsCode)
+    && typeof pkg.dependencies['@mui/x-charts'] === 'string'
+    && !pkg.dependencies.recharts && !pkg.dependencies['chart.js'] && !pkg.dependencies.d3
+    && Object.keys(pkg.dependencies).length === 12);
+  add('[bde] die Windrose bleibt eigenes SVG — MUI X hat kein Polarchart, die zwei Konventionen blieben sonst nicht trennbar',
+    !/RadarChart/.test(chartsCode) && /<svg viewBox="0 0 200 200"/.test(chartsCode) && /function wedge/.test(chartsCode));
+  // Befund B1 gilt unverändert und jetzt für ALLE Dateien, die selbst SVG zeichnen: MUI X setzt
+  // die Schrift nur auf dem `<svg>`-Wrapper SEINER eigenen Beschriftungen; ein eingehängtes
+  // `<text>` erbt sonst die SVG-Standardschrift des Browsers, nicht die des Decks.
+  add('[bde] SVG-Texte tragen font-family ausdrücklich (Befund B1) — in jeder Datei mit eigenem SVG', (() => {
+    const files = {
+      'FireDriverCharts.tsx': chartsCode,
+      'FirePassChart.tsx': code(readFileSync(join(ROOT, 'src', 'fire', 'FirePassChart.tsx'), 'utf8')),
+    };
+    let texts = 0;
+    for (const [, src] of Object.entries(files)) {
+      const t = (src.match(/<text/g) ?? []).length;
+      const f = (src.match(/fontFamily=\{(FONT|SVG_FONT)\}/g) ?? []).length;
+      if (t !== f) return false;
+      texts += t;
+    }
+    return texts >= 5;
+  })());
   add('[bde] Chart-Farben nur aus vorhandenen Tokens — keine neue Hex-Farbe im neuen CSS',
     !/#[0-9A-Fa-f]{3,6}/.test(charts) && !/#[0-9A-Fa-f]{3,6}/.test(css.slice(css.indexOf('BDE-C — Wetterführung'))));
   add('[bde] Touch-Targets und Umbruch mobil geregelt (Rose zentriert, Spalten untereinander)',
@@ -818,6 +904,161 @@ const codeOnly = (src) => src
   add('[bde][doku] das Analyse-Dokument führt Jans Entscheidungen und die drei Kollisionen',
     /Phase 1: Analyse/.test(bdeAudit) && /Kollisionen mit dem Ist-Zustand/.test(bdeAudit)
     && /Jans Entscheidungen/.test(bdeAudit));
+
+  // --- BDE-D: die Wetterführung gilt für JEDEN Brand, nicht nur für kartierte ----
+  const wxSrc = readFileSync(join(ROOT, 'src', 'fire', 'detail', 'fireWeatherAtPoint.ts'), 'utf8');
+  const hist = readFileSync(join(ROOT, 'src', 'fire', 'FireHistoryPanel.tsx'), 'utf8');
+  add('[bde-d] Archiv-Abruf gegen die ERA5-Reanalyse, mit denselben Variablen wie live',
+    /archive-api\.open-meteo\.com\/v1\/archive/.test(wxSrc)
+    && /u\.searchParams\.set\('hourly', HOURLY_VARS\)/.test(wxSrc)
+    && (wxSrc.match(/HOURLY_VARS/g) ?? []).length >= 3);
+  add('[bde-d] EIN Rechenweg: das Archiv geht durch dieselbe parseFireWeather',
+    /out = parseFireWeather\(h, d, firstMs, lastMs, asOf\)/.test(wxSrc)
+    && (wxSrc.match(/export function parseFireWeather/g) ?? []).length === 1);
+  add('[bde-d] die Quelle steht im Ergebnis und wird unterschieden benannt',
+    /source: 'icon' \| 'era5'/.test(wxSrc)
+    && /FIRE_WEATHER_ARCHIVE_LABEL/.test(wxSrc) && /~25 km/.test(wxSrc)
+    && /era5 \? FIRE_WEATHER_ARCHIVE_LABEL : FIRE_WEATHER_SOURCE_LABEL/.test(panel));
+  add('[bde-d] der gecachte Archiv-Abruf hängt an KEINEM Abbruchsignal (Lehre GBP1 (3))',
+    !/fetchFireWeatherArchive\([^)]*signal/.test(wxSrc)
+    && !/archiveHourlyUrl\(lat, lon, startISO, endISO\), signal\)/.test(wxSrc)
+    && !/fetchFireWeatherArchive\(entry\.lat, entry\.lon, entry\.firstMs, entry\.lastMs, ac\.signal\)/.test(hist));
+  add('[bde-d] reicht die ICON-Reihe nicht zurück, tritt das Archiv an ihre Stelle — in BEIDEN Karten',
+    (panel.match(/await fetchFireWeatherArchive\(r\.lat, r\.lon, a\.firstMs, a\.lastMs\)/g) ?? []).length === 2);
+  add('[bde-d] ohne Detektion trägt das EFFIS-Branddatum das Fenster — ausdrücklich gekennzeichnet',
+    /export function fireWindowAnchor/.test(panel)
+    && /kind: 'detection' \| 'effis'/.test(panel)
+    && /EFFIS_ANCHOR_NOTE/.test(panel) && /nicht eine Satellitendetektion/.test(panel)
+    && /\{anchorNote && <p className="br-note">\{anchorNote\}<\/p>\}/.test(panel));
+  add('[bde-d] die Historie zeigt DIESELBE Karte — keine zweite Darstellung',
+    /import \{ DriversView \} from '\.\/FireFootprintPanel'/.test(hist)
+    && /<DriversView w=\{wx\}/.test(hist)
+    && /aria-label="Wetterführung im Brandzeitfenster"/.test(hist)
+    && (hist.match(/WindRoseChart|driverRating/g) ?? []).length === 0);
+  add('[bde-d] die Ausbreitungsrichtung der Historie kommt aus derselben dynamicsOf',
+    /import \{ dynamicsOf \} from '\.\/activity\/dynamics'/.test(hist)
+    && /dynamicsOf\(passes\)\.spreadBearingDeg/.test(hist));
+}
+
+
+// ---------------------------------------------------------------------------
+// MUI-Umbau des Brand-Dossiers (2026-09-06) — die 20 Punkte aus
+// `docs/konzept-brand-detail.md` §6, soweit sie am Quelltext prüfbar sind.
+//
+// Warum diese Sonden: eine Komponentenbibliothek macht es leicht, eine
+// Ehrlichkeitszeile beim Umbau zu „vereinfachen" — ein `Tooltip` ohne Fallback auf
+// Touch, ein `connectNulls`, das Lücken zuzieht, ein Accordion, das eine Karte
+// verschwinden lässt. Jede Zeile hier hält EINE solche Zusage fest.
+// ---------------------------------------------------------------------------
+{
+  const prim = readFileSync(join(ROOT, 'src', 'fire', 'dossier', 'DossierPrimitives.tsx'), 'utf8');
+  const d4 = readFileSync(join(ROOT, 'src', 'fire', 'dossier', 'DriverSeriesChart.tsx'), 'utf8');
+  const theme = readFileSync(join(ROOT, 'src', 'theme', 'buscosunTheme.ts'), 'utf8');
+  const dos = readFileSync(join(ROOT, 'src', 'fire', 'FireDossier.tsx'), 'utf8');
+  const pch = readFileSync(join(ROOT, 'src', 'fire', 'FirePassChart.tsx'), 'utf8');
+  const pnl = readFileSync(join(ROOT, 'src', 'fire', 'FireFootprintPanel.tsx'), 'utf8');
+  const deckCss = readFileSync(join(ROOT, 'src', 'fire', 'fireDeck.css'), 'utf8');
+  const rose = readFileSync(join(ROOT, 'src', 'fire', 'FireDriverCharts.tsx'), 'utf8');
+  // Für Aussagen über CODE zählt nur der Code: die Modulköpfe erklären die Regeln und
+  // nennen dabei ausdrücklich, was NICHT erlaubt ist („connectNulls: true würde sie
+  // brechen"). Ohne das Abstreifen prüfte die Sonde ihre eigene Begründung mit.
+  /** Ohne Block- und Zeilenkommentare (der `code`-Helfer der BDE-Sektion lebt in deren Block). */
+  const noComments = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  const d4Code = noComments(d4);
+  const themeCode = noComments(theme);
+
+  // (1) „—" mit Grund — und der Grund erreicht auch den Finger.
+  add('[mui] Gründe sind auf Touch sichtbar, nicht nur im Tooltip (Punkt 1)',
+    (prim.match(/reason && bp === 'mobile'/g) ?? []).length === 2   // StatTile UND FactRow
+    && /export function Missing\b/.test(prim)
+    && /!reason \|\| bp === 'mobile'/.test(prim),
+    `reason-Captions: ${(prim.match(/reason && bp === 'mobile'/g) ?? []).length}`);
+  add('[mui] Tooltips öffnen auf Touch ohne Verzögerung und beschreiben ihr Kind',
+    /enterTouchDelay: 0/.test(theme) && /describeChild: true/.test(theme));
+
+  // (7)(8) log-Achse, Messpunkte, Schraffur mit der längsten Lücke.
+  add('[mui] D1: log-Achse + „Balken sind Messpunkte, keine Kurve" + längste Lücke (Punkte 7, 8)',
+    /scaleType: 'log'/.test(pch) && /Messpunkte, keine Kurve/.test(pch)
+    && /längste Lücke \{de\(tl\.maxGapH/.test(pch) && /GAP_HOURS/.test(pch));
+  add('[mui] D1: ein Überflug ohne FRP ist kein Balken der Höhe 0, sondern eine Marke am Achsenboden',
+    /if \(!b\.hasFrp\)/.test(pch) && /ohne FRP-Angabe/.test(pch) && /<circle/.test(pch));
+
+  // (9) Lücken bleiben Lücken.
+  add('[mui] D4: connectNulls false in JEDER Linienserie + der Satz dazu (Punkt 9)',
+    (d4Code.match(/connectNulls: false/g) ?? []).length >= 2
+    && !/connectNulls: true/.test(d4Code)
+    && /Lücken in einer Linie sind fehlende\s+Stunden, keine Nullen/.test(d4),
+    `connectNulls: false ×${(d4Code.match(/connectNulls: false/g) ?? []).length}`);
+  add('[mui] D4: der Niederschlag zeichnet keine Stunde ohne Wert als trockenen Balken',
+    /v == null \|\| v <= 0/.test(d4) || /h\.precipMm == null \|\| h\.precipMm <= 0/.test(d4));
+
+  // (10) Zwei Konventionen, zwei Zeiger — die Rose bleibt SVG.
+  add('[mui] D3: Rose (woher) und Ausbreitungspfeil (wohin) bleiben getrennt (Punkt 10)',
+    /aus der der Wind <b>kommt<\/b>/.test(rose) && /andere Konvention als die Rose/.test(rose)
+    && /spreadBearingDeg/.test(rose));
+
+  // (20) Der Deckel bleibt ausgesprochen — auch als Tabelle/Liste.
+  add('[mui] „letzte 8 von N Überflügen" steht weiterhin da (Punkt 20)',
+    /die letzten 8 von \$\{r\.passes\.length\} Überflügen/.test(pnl));
+
+  // Stufe 2 und 3 aus §2.3: Grund statt leerem Chart, bzw. gar keine Karte.
+  add('[mui] leerer Block ⇒ Kasten MIT Grund, nie ein leeres Chart (§2.3 Stufe 2)',
+    /<MissingBlock>/.test(pnl) && /Keine Stundenreihe für das Brandzeitfenster/.test(pnl)
+    && /Kein Überflug im Fenster/.test(pnl));
+  add('[mui] nicht anwendbarer Block ⇒ gar keine Karte, kein Platzhalter-Rahmen (§2.3 Stufe 3)',
+    /if \(r\.hotspots == null && !r\.sources\.effis\) return null;/.test(pnl)
+    && /satEnabled\(\) &&/.test(dos));
+
+  // Mobil: Accordion — zugeklappt heißt nicht gestrichen.
+  add('[mui] mobil sind die Karten ein Accordion-Stapel; Verlauf und Wetterlage starten OFFEN',
+    /<Accordion/.test(prim) && (dos.match(/defaultExpanded/g) ?? []).length === 2
+    && /title="Verlauf"[\s\S]{0,200}defaultExpanded/.test(dos)
+    && /title="Wetterlage am Brandort"[\s\S]{0,120}defaultExpanded/.test(dos));
+  add('[mui] mobil zeigt D4 zwei Zeilen UND einen Weg zu allen fünf (nicht drei gestrichene)',
+    /Alle fünf Größen zeigen/.test(d4) && /mobileKeys/.test(d4) && /setAllRows\(true\)/.test(d4));
+
+  // Layout: EINE Quelle für die Anordnung, kein zweites Raster.
+  // `gridTemplateColumns` darf es weiter geben — für die Kachelzeile und die Faktenzeile.
+  // Verboten ist ein zweites Raster für die KARTEN: die Anordnung (welche Karte wo, mit
+  // welchen Breakpoints) steht in `fireDeck.css`, sonst überstimmen sich zwei Quellen —
+  // genau so legte sich die Minikarte über den Verlauf.
+  add('[mui] die Kartenanordnung steht NUR in fireDeck.css (kein zweites Raster im TSX)',
+    /export function DossierGrid[\s\S]{0,400}className="br-ds-grid"/.test(prim)
+    && !/export function DossierGrid[\s\S]{0,400}gridTemplateColumns/.test(prim)
+    && !/gridColumn/.test(prim) && !/gridColumn/.test(dos)
+    && /\.br-ds-grid > \* \{ min-width: 0; \}/.test(deckCss));
+
+  // Bewegung: keine eingeblendeten Charts, reduzierte Bewegung respektiert.
+  add('[mui] Charts blenden sich nicht ein (eine Animation suggeriert Verlauf, wo Messpunkte stehen)',
+    /skipAnimation: true/.test(d4) && /prefers-reduced-motion/.test(d4) && /prefers-reduced-motion/.test(theme));
+
+  // Kein Dark-Mode im Alleingang: die FWI-Rampe ist auf Sand kalibriert.
+  add('[mui] kein Dark-Mode-Schema im Theme (die FWI-Rampe ist auf Sand kalibriert)',
+    !/colorSchemes/.test(theme) && /mode: 'light'/.test(theme));
+
+  // Schrift: selbst gehostet, nicht über ein CDN.
+  add('[mui] League Spartan kommt aus dem eigenen Bestand, nicht von fonts.googleapis.com (V-102/D-02)',
+    /League Spartan/.test(themeCode) && !/googleapis/.test(themeCode)
+    && (() => {
+      const html = readFileSync(join(ROOT, 'index.html'), 'utf8');
+      // Der HTML-Kommentar ERKLÄRT die Entfernung und nennt dabei die alte Quelle — er ist
+      // die Begründung, nicht ihr Gegenbeweis. Geprüft wird das Markup.
+      const markup = html.replace(/<!--[\s\S]*?-->/g, '');
+      return /league-spartan-500-latin\.woff2/.test(markup) && !/fonts\.googleapis\.com/.test(markup);
+    })());
+
+  // Farben: keine erfundene Farbe — jeder Ton der Palette steht auch in den Tokens.
+  const unknownHex = (() => {
+    const tokens = readFileSync(join(ROOT, 'src', 'designTokens.css'), 'utf8')
+      + readFileSync(join(ROOT, 'src', 'fire', 'fireModel.ts'), 'utf8')
+      + readFileSync(join(ROOT, 'src', 'fire', 'fireClusters.ts'), 'utf8')
+      + readFileSync(join(ROOT, 'src', 'fire', 'fireDeck.css'), 'utf8');
+    const known = new Set([...tokens.matchAll(/#[0-9A-Fa-f]{6}/g)].map((m) => m[0].toUpperCase()));
+    const used = [...themeCode.matchAll(/#[0-9A-Fa-f]{6}/g)].map((m) => m[0].toUpperCase());
+    return [...new Set(used)].filter((h) => !known.has(h));
+  })();
+  add('[mui] jede Theme-Farbe steht auch in den vorhandenen Tokens (keine erfundene Farbe)',
+    unknownHex.length === 0, unknownHex.join(', '));
 }
 
 const failed = checks.filter((c) => !c.ok);

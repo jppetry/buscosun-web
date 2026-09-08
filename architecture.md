@@ -3,6 +3,9 @@
 > Stand: 2026-07-31, verifiziert am Code (letzter `src/`-Commit 2026-07-30).
 > **Ergänzt 2026-08-05** um §13 (2D-Layer-Erweiterung) und Querverweise auf die neuen
 > Fachspezifikationen unter `docs/`.
+> **Aktualisiert 2026-09-08 (Phase SH):** §2 auf den Stand nach RT1/SEO-E7 gebracht (der
+> alte Text beschrieb noch die Hash-Shell vor dem Router) und §15 (URL-Zustand & Teilen)
+> ergänzt. Details und Messwerte: `audit/teilen-share.md`.
 > Ersetzt die frühere Atmosphäre-P0-Skizze (in Git-Historie erhalten).
 > Ergänzend: `decisions.md` (Warum), `roadmap.md` (Wohin), `docs/` (Fachspezifikationen).
 
@@ -15,11 +18,36 @@ Reine Frontend-SPA, statisch auf Netlify deployt, **kein Backend**. Alle Wetterd
 
 ## 2. App-Shell & Routing
 
-`src/App.tsx` (142 LOC) ist ein handgerollter View-Switcher (`search | map | feature`), initialisiert **einmalig** aus `location.hash`. Alle Feature-Seiten sind `React.lazy`-Chunks, nur `SearchPage` eager.
+Seit **RT1 (2026-08-22)** pfadbasiert: `react-router` 7 mit `createBrowserRouter`
+(`src/router/router.tsx`). Jede Seite ist eine `lazy`-Route mit eigenem Chunk; `App.tsx`
+(53 LOC) ist nur noch Layout-Rahmen plus Pfad-Normalisierung (End-Slash, Großschreibung,
+Alias). **Eine Tabelle** (`src/router/routes.ts`) speist Router, Client-Meta
+(`RouteMeta.tsx`), Build-Generator (`scripts/generate-seo.mjs`: Route-Shells + Sitemap) und
+Verifier (`scripts/verify-routing.mjs`, 105/105).
 
-- Hash-Permalinks: `#m=` (Karte: Ort + Layer-Bitmaske + Stunde, `src/mapState.ts`), `#atm=`/`#3d=` (Atmosphäre), `#h=` (Historie), `#g=` (Globus), `#ev=` (Event), `#val`, `#mobiletest`.
-- **Lücken:** `#r=` (Radar, `src/radar/radarState.ts`) wird von App.tsx nie geprüft → Radar-Permalinks laufen ins Leere. Route, Vorhersage, Feedback haben keinen Hash. Kein `hashchange`-Listener, kein History-Eintrag pro View → Browser-Back navigiert nicht zwischen Features.
-- `FeatureId` ist 12-breit: `route event dayflow forecast nowcast atmosphere history globe map2d feedback validation mobiletest` (`dayflow` ist toter Platzhalter).
+- **14 Top-Routen** (`/wetterkarte`, `/warnungen`, `/regenradar`, `/vorhersage`,
+  `/tourenplanung`, `/eventplanung`, `/wetterarchiv`, `/atmosphaere`, `/globus`,
+  `/waldbrand`, `/feedback`, `/validierung`, `/mobiletest`, `/`) mit 301-Aliasen in
+  `netlify.toml` und clientseitigem `<Navigate replace>` für Dev/Preview.
+- **37 indexierbare Sub-Routen** (19 Layer der Wetterkarte, 4 Atmosphäre-Linsen, 5
+  Brandsichten, 10 Event-Anlässe) mit **eigener flacher Shell** `dist/<route>--<slug>.html`
+  (SEO/GEO E1) — eigener Title, Canonical, JSON-LD und crawlbarer `#root`-Inhalt.
+- **Zustand in der URL, zwei Mechanismen:**
+  - **Query** (`src/router/urlState.ts`, rein und headless prüfbar) für Wetterkarte,
+    Warnungen und Regenradar: Layer im Pfad, alles Übrige als kurze Keys in fester
+    Reihenfolge (`lat lon z t l modell mode radar ort olat olon land`); Standardwerte werden
+    nicht geschrieben, ungültige Werte still auf Standard zurückgenommen, unbekannte Keys
+    durchgereicht.
+  - **Fragment** (Alt-Codecs) für Waldbrand (`#wb=`), Atmosphäre (`#atm=`/`#3d=`), Event
+    (`#ev=`), Historie (`#h=`), Globus (`#g=`) — prozentkodiertes JSON bzw. Query-Text.
+    Der Pfad trägt dort nur ein **Preset**, nicht den Zustand.
+  - **Kein URL-Zustand:** Tourenplanung (die GPX liegt in IndexedDB, `tourStore.ts`),
+    Vorhersage, Feedback, Validierung.
+- **Legacy:** `src/router/legacyHash.ts` übersetzt die alten Hash-Permalinks beim Start;
+  `#m=` wird vollständig in Pfad + Query gewandelt, die übrigen Präfixe behalten ihre
+  Payload und bekommen nur den neuen Pfad davor.
+- `FeatureId` ist 13-breit: `route event dayflow forecast nowcast atmosphere history globe
+  map2d fire feedback validation mobiletest` (`dayflow` ist toter Platzhalter).
 
 ## 3. 2D-Wetterkarte (Kern)
 
@@ -431,3 +459,54 @@ Panelzeile „Flächenschätzung", Kill-Switch `?afEst=0` / `localStorage.afEst 
 `FireCluster.maxFrp` das stärkste Einzelpixel — Überfluggrößen tragen eigene Namen. Keine Biomasse,
 kein eigener Cron; Persistenz (Labelpaare, Verlauf > Fenster, Kalibriermodell) kommt erst mit dem
 BA-Batch. Verifier `verify:fire-activity`.
+
+## 15. URL-Zustand & Teilen (Analyse 2026-09-08 — Konzept, nicht umgesetzt)
+
+Vollständige Diagnose, Schema je Seite, gemessene Link-Längen, Etappenplan und
+Verbesserungskatalog: **`audit/teilen-share.md`**. Kurzfassung der architektonisch
+relevanten Punkte:
+
+### 15.1 Der Bruch, der alles bestimmt
+
+Ein `#…`-Fragment wird vom Browser **nicht an den Server gesendet**. Fünf der neun
+Feature-Seiten legen ihren Zustand genau dort ab (§2). Daraus folgt: solange das so ist,
+kann **kein** serverseitiges Vorschaubild und **kein** zustandsbezogener `og:`-Titel für
+diese Seiten entstehen — weder über die Netlify-Shell noch über eine Edge Function. Der
+Umzug Fragment → Query ist deshalb Voraussetzung, nicht Kosmetik.
+
+### 15.2 Zielbild: ein Schema statt sieben Codecs
+
+`/<feature>/<ansicht>[/<ort-slug>]?<abweichungen>` mit einem gemeinsamen Vokabular
+(`t` absolut ISO, `lat`/`lon` 4 Nachkommastellen, `z` 1, Ort einmal kodiert, Werte als
+lesbare deutsche Enums, Standardwerte implizit, `v` nur wenn ≠ 1). Ein reines Modul
+`src/share/` hält Serialisierer, Parser, Ort-Slug und Textbau; App **und** Edge Function
+importieren denselben Parser (kein zweiter Codec). Die Alt-Codecs bleiben als Leser
+erhalten, ihre Schreiber werden stillgelegt — dasselbe Muster, mit dem RT1 `#m=` abgelöst hat.
+
+Gemessene Wirkung (Beispiele aus `audit/teilen-share.md` §1.3/§3): heute
+`…/waldbrand/aktive-braende#wb=%7B%22b%22%3A37124%2C…` (195 Zeichen, unlesbar) →
+künftig `…/waldbrand/aktive-braende/freiburg-im-breisgau?fenster=48h&liste=1` (86).
+Median über alle Seiten 81 Zeichen, größter gemessener Worst Case 513 (Atmosphäre mit
+24-Punkt-Schnittlinie).
+
+### 15.3 Der Ort-Slug im Pfad ist eine Routing-Änderung
+
+`/wetterkarte/wind/muenchen` ist ein **zweistufiger** Sub-Pfad. `routeForPath()` liefert
+dafür heute `null` (404) — ausdrücklich so getestet. Die Änderung betrifft `routes.ts`,
+`router.tsx` und `verify-routing.mjs`. **Der Ort-Slug darf nie kanonisch werden** und nie
+in die Sitemap: `canonicalPath()` schneidet ihn ab, sonst entsteht ein unendlicher
+indexierbarer Raum. Ortswetter bleibt Sache der statischen Seiten `/wetter/<slug>/`.
+
+### 15.4 Open Graph: der Bestand ist besser als gedacht, aber falsch verdrahtet
+
+`public/_og-card.html` rendert bereits gebrandete 1200×630-Karten; 74 PNGs liegen in
+`public/og/`. Aber `routes.ts` setzt `ogImage` nur für `/wetterkarte` und `/atmosphaere` —
+alle übrigen Seiten und alle 37 Sub-Routen fallen auf `DEFAULT_OG_IMAGE = '/og/home.png'`
+zurück. Die Empfehlung ist deshalb zweistufig: erst Verdrahtung plus die fehlenden
+statischen Karten plus eine Edge Function, die nur `og:title`/`og:description` je Zustand
+in den `<head>` schreibt (durable gecacht, nur für Crawler-User-Agents, Nutzerpfad
+byte-gleich); dynamisch gerenderte Bilder erst danach als eigene Phase.
+
+**R2 existiert in diesem Repo nicht** (kein Konto, keine Bindung) — der etablierte CDN-Weg
+ist `buscosun-data` über jsDelivr. Für 40-KB-PNGs mit `immutable` ist Netlify ohnehin
+unkritisch.

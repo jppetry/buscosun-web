@@ -956,3 +956,91 @@ sagt im Spiegel-Fall ehrlich „37 m statt 10 m"; Schalter `?wcm=1` (erzwingen, 
 `?wcm=0` (Ersatzweg aus), Query schlägt `localStorage.wcm`; erst wenn AUCH der Spiegel ausfällt,
 fällt die Dämpfung (heutiges Verhalten). 0 Netlify-Bytes; PC gesund ⇒ Abrufstrom byte-identisch
 zum SAT2d-Stand.
+
+---
+
+### 8.9 Punktvorhersage-Quellen 0–336 h — *gemessen 2026-09-05 (Phase PV0, `audit/punktvorhersage-14tage/`), noch nicht in Benutzung*
+
+Alle Werte unten sind am Live-Endpunkt gemessen. Vollständige Matrix inkl. Lizenzbewertung:
+`audit/punktvorhersage-14tage/datenquellen-matrix.md`.
+
+**DWD MOSMIX — die Referenz, gegen die gemessen wird**
+```
+https://opendata.dwd.de/weather/local_forecasts/mos/MOSMIX_L/single_stations/<id>/kml/MOSMIX_L_LATEST_<id>.kmz
+https://opendata.dwd.de/weather/local_forecasts/mos/MOSMIX_S/all_stations/kml/MOSMIX_S_LATEST_240.kmz
+```
+| | MOSMIX_L | MOSMIX_S |
+|---|---|---|
+| Takt | 4×/Tag (03/09/15/21 UTC) | **stündlich** |
+| Horizont | **246 h, lückenlos stündlich** (247 Schritte) | 240 h |
+| Parameter | **114** (`dwd:elementName`) | ~40 (*Annahme*, nicht ausgezählt) |
+| Größe | **18 953 B**/Station (KML 344 445 B) · all_stations 82,6 MB | **37,0–37,4 MB**/Lauf |
+| Einzelstationen | ja, **6 046** Verzeichnisse | **nein** (nur all_stations) |
+| Retention | **8 Läufe (≈ 48 h)** | **48 Läufe (48 h)** |
+| Latenz | Lauf 09z → 10:13 UTC = **+73 min** (1 Fall) | **+39 min** (1 Fall) |
+
+DACH-Abdeckung belegt: AT `11035` (15 981 B) und CH `06670` (18 020 B) liefern 200.
+Stationskoordinaten stehen im KML (`kml:coordinates` = lon,lat,elev) — **kein separater Katalog nötig**.
+CC BY 4.0 · kein Key · kein CORS ⇒ `/_dwd_opendata`.
+**Es gibt kein öffentliches MOSMIX-Archiv** — wer MOSMIX als Referenz vermessen will, muss ab sofort selbst archivieren.
+
+**DWD POI — stündliche Beobachtungen, DACH-weit**
+```
+https://opendata.dwd.de/weather/weather_reports/poi/<id>-BEOB.csv
+```
+**974 Stationen** (davon WMO-Block 10/11 = 237, Block 06 = 23; enthält AT 11035 und CH 06670),
+**42 Parameter** (u. a. Temperatur 2 m, Taupunkt, Wolkenbedeckung, Sicht, Windrichtung/-geschwindigkeit,
+Böen letzte Stunde, Niederschlag 1/3/6/12/24 h, Sonnenscheindauer, Globalstrahlung, Schneehöhe),
+**25 Zeilen = 24-h-Rollfenster**, ~7,2 KB je Datei. CC BY 4.0 · kein CORS ⇒ Proxy.
+Semikolon-CSV, 3 Kopfzeilen, deutsches Dezimalkomma, `---` = fehlend, absteigend nach Zeit.
+
+**GeoSphere Stations-Archiv AT (rückwirkend, löst das AT-Wahrheitsproblem)**
+```
+https://dataset.api.hub.geosphere.at/v1/station/historical/klima-v2-1h/metadata
+https://dataset.api.hub.geosphere.at/v1/station/historical/klima-v2-1h?parameters=tl,ff,ffx,dd,rf,rr&station_ids=…&start=…&end=…
+```
+**823 Stationen** mit `lat`/`lon`/`altitude`/`valid_from`/`is_active`; **`start_time` 1880-04-01,
+`end_time` = Abrufzeitpunkt** (kein 14-Tage-Verzug wie bei `inca-v1-1h-1km`).
+Parameter u. a. `tl` (Temperatur), `ff`/`ffx` (Wind/Böe), `dd`, `rf`, `rr`, `p`, `cglo`, `so_h`,
+jeweils mit `*_flag` (Qualitätskennung). CC BY 4.0. **Limits beachten: 5 req/s, 240 req/h je IP,
+GeoJSON ≤ 1 Mio. Werte** ⇒ wenige Großabfragen statt vieler kleiner.
+
+**MeteoSchweiz OGD-SMN (STAC) — rückwirkend, CH**
+```
+https://data.geo.admin.ch/api/stac/v1/collections/ch.meteoschweiz.ogd-smn/items
+```
+`license: CC-BY`. Je Station Assets `ogd-smn_<id>_h_now.csv`, `_h_recent.csv`,
+`_h_historical_<Dekade>.csv` (z. B. `2020-2029`), dazu `_d_*` (Tag), `_m` (Monat), `_t_*` (10 min).
+CORS `*`.
+
+**ECMWF Open Data (`.index` + Byte-Range) und sein AWS-Archiv**
+```
+https://data.ecmwf.int/forecasts/<YYYYMMDD>/<HH>z/ifs/0p25/oper/<stamp>-<step>h-oper-fc.{index,grib2}
+https://data.ecmwf.int/forecasts/<YYYYMMDD>/<HH>z/ifs/0p25/enfo/<stamp>-<step>h-enfo-ef.{index,grib2}
+https://data.ecmwf.int/forecasts/<YYYYMMDD>/<HH>z/aifs-ens/0p25/enfo/<stamp>-<step>h-enfo-{cf,pf}.{index,grib2}
+https://ecmwf-forecasts.s3.amazonaws.com/<YYYYMMDD>/<HH>z/…            (Archiv, Präfixe ab 2023-01-18)
+```
+Lizenz: **CC-BY-4.0 + ECMWF Terms of Use, Weitergabe und kommerzielle Nutzung ausdrücklich erlaubt**
+(ecmwf.int/en/forecasts/datasets/open-data, geprüft 2026-09-05).
+Gemessen: IFS oper 184 Sätze/Schritt, Schritt gesamt **137,3 MB**, Feld `2t` **650 356 B**.
+IFS ENS `enfo-ef`: 8 500 Sätze, **ausschließlich `type: pf`, 50 Member — kein Kontrolllauf**
+(Schritt 0 und 24 geprüft), Schritte bis **360 h**, `2t` je Member 660 768 B.
+AIFS-ENS: `enfo-cf` (Index 26 578 B) und `enfo-pf` (1 428 271 B, 50 Member) **getrennt**,
+**6-stündlich** (3 h → 404), bis 360 h, `2t` je Member 623 502 B.
+Auf dem Live-Host **keine Historie** (20260901 → 404) — dafür das S3-Bucket.
+Der Client-Präfix `/_ecmwf` ist ein Netlify-Rewrite; **Prod-Erreichbarkeit vorher prüfen (A1/V-01)**.
+
+**NOAA GEFS (Public Domain) — Ensemble-Mittel und -Spread als eigene Produkte**
+```
+https://noaa-gefs-pds.s3.amazonaws.com/gefs.<YYYYMMDD>/<HH>/atmos/pgrb2sp25/{geavg,gespr,gepNN}.t<HH>z.pgrb2s.0p25.f<FFF>[.idx]
+https://noaa-gefs-pds.s3.amazonaws.com/gefs.<YYYYMMDD>/<HH>/atmos/pgrb2ap5/{geavg,gespr}.t<HH>z.pgrb2a.0p50.f<FFF>[.idx]
+```
+0,25°-Oberflächensatz bis **f240** (f384 → 404); 0,5° bis **f384** inkl. `gespr` bei f336.
+Feld `TMP 2 m` bei 0,5°/f336 = **122 747 B**; Datei geavg 0,5°/f024 = 13,17 MB, 0,25°/f024 = 17,63 MB.
+`.idx` erlaubt Byte-Range je Feld (gleiches Muster wie der bestehende GFS-Pfad).
+Archiv: 2024-01-01 und 2025-09-05 vorhanden, 2020-01-01 nicht. Reforecast: `noaa-gefs-retrospective`, Präfix `GEFSv12/`.
+
+**Warum das trotzdem nicht clientseitig geht:** GRIB2 hat an keinem dieser Endpunkte ein
+serverseitiges **räumliches** Subsetting — ein Feld ist global und atomar. Für ECMWF-ENS ergibt
+das rund **197 GB je Lauf** (7 Variablen × 51 Member × 85 Schritte × 0,65 MB). Der Ensembleteil
+gehört deshalb in einen Actions-Batch mit statischem Quantil-Artefakt, nicht in den Browser.

@@ -1863,3 +1863,53 @@ als Messung in §13.4 (3).
 
 **Belege:** `verify:fire-detail` **347/347** (zwei neue `[sat3]`-Sonden: Füllung + Halo + eine Farbe für
 beide Bilder; `#FFB08A` nur an den Rechtecken), typecheck grün.
+
+
+### 13.6 Der Rahmen muss immer stehen (2026-09-05, Jans Vorgabe)
+
+Jans Beobachtung: *„manchmal ist die Kachel da und manchmal nicht — sie müsste doch immer da sein,
+sobald eine FIRMS-Detektion erkannt wurde."* Nachgemessen: es gab **fünf** Wege, auf denen der Rahmen
+verschwand. Drei davon sind Datenlagen, zwei waren Fehler.
+
+| # | Weg | Bewertung |
+|---|---|---|
+| 1 | **GWIS-Notbetrieb** (FIRMS-Proxy 503/Limit): `rows: []` — GWIS liefert keine Zeilen im FIRMS-Format und keine `scan`/`track` | bleibt. Ohne Zeile kein Rahmen; der Umschalter sagt „keine im Bild" |
+| 2 | **Historie-Dossier**: Archiv-Ereignisse tragen keine FIRMS-Zeilen | bleibt, mit seinem Satz |
+| 3 | **Reiner EFFIS-Eintrag** ohne Detektion im Fenster | bleibt — es gibt nichts zu zeichnen |
+| 4 | **Kein Bild für den gewählten Tag.** Das Overlay hängt an `snap.kind === 'img'`; für einen frischen Brand ist die vorgewählte Szene oft der jüngste Tag, und der liegt beim Bilddienst noch nicht vor („2–3 Tage Verarbeitung") | **das ist der häufigste Fall.** Am Live-Bestand reproduziert: 04.09. „noch kein Bild", also kein Rahmen; ein Klick auf den 30.08. ⇒ Rahmen da |
+| 5 | **„Danach"-Rechtecke waren ungefüllt** (`fill: none`) und damit bei ~10–16 px Kantenlänge praktisch unsichtbar — und auf einem Vorher-Bild sind **alle** Detektionen „danach" | **Fehler, behoben** |
+
+**Die Änderung (5).** Beide Lagen sind jetzt gefüllt: `rgba(255,176,138,.28)` bis zum Bildtag,
+`rgba(255,176,138,.14)` danach, dazu weiterhin die gestrichelte Kante. Unterschieden wird über
+**Deckung und Strichmuster, nie über An/Aus** — im 30-m-SVG (`.br-sat-det rect.is-after`) und auf der
+10-m-Canvas (`DET_FILL_AFTER`) aus derselben Überlegung. Begründung: die Aussage des Rahmens ist
+„das Feuer liegt irgendwo in diesem Feld", und die gilt auf dem Vorher-Bild **genauso** — dort will
+man ja gerade sehen, wo man hinschauen muss, bevor es gebrannt hat. Der Satz sagt jetzt beides:
+„Jede Detektion bekommt ihren Rahmen, auch auf dem Vorher-Bild; gestrichelt und blasser heißt: diese
+Aufnahme entstand VOR der Detektion."
+
+**Das Nennmaß als benannter Rückfall.** Bisher galt: ohne `scan`/`track` kein Rechteck (kein
+geratenes). Nach Jans Vorgabe („immer, wenn FIRMS-Daten irgendwie verfügbar sind") tritt jetzt im
+**Bild** das Nennmaß an ihre Stelle — `VIIRS_NOMINAL_KM = 0,375`. Das ist keine Annahme: alle drei
+freigeschalteten Ströme (`FIRMS_SOURCES`) sind VIIRS-375-m-NRT, MODIS ist hier nicht freigegeben.
+Drei Sicherungen:
+
+1. `footprintRing(r, fallbackKm)` — **ohne** zweites Argument unverändert. Der **Karten-Layer** ruft
+   weiter ohne auf und behält die strenge Regel: dort steht der Rahmen neben Hunderten anderen, hier
+   erklärt er ein einzelnes Bild.
+2. Gemessene `scan`/`track` schlagen das Nennmaß immer; der Rückfall greift nur bei Lücken.
+3. Jedes so entstandene Rechteck trägt `nominal: true`, und die Oberfläche sagt es an:
+   „… Rahmen stehen im Nennmaß (VIIRS 375 m), weil die Zeile keine gemessene Pixelbreite trägt."
+
+**Was NICHT geändert wurde:** Fall 4. Ohne Bild gibt es nichts zu überlagern — ein Rahmen über einer
+leeren Fläche wäre eine Behauptung über ein Bild, das es nicht gibt. Die Tagesleiste zeigt die
+verfügbaren Szenen mit Wolkenanteil; der Weg ist ein Klick. **V-SAT-24**: die Vorauswahl könnte
+statt „jüngster passender Tag" den jüngsten Tag mit **vorhandenem Bild** nehmen — dann stünde beim
+Öffnen nie ein leerer Rahmen. Mehrwert: der häufigste „die Kachel fehlt"-Fall verschwindet ganz.
+Umsetzungsskizze: Data-Present ist erst nach dem Abruf bekannt, also entweder ein Vorabruf je
+Kandidatentag (teuer) oder ein automatischer Rückschritt auf den nächstälteren Tag beim ersten
+`nodata` — mit sichtbarer Meldung, welcher Tag genommen wurde.
+
+**Belege (2026-09-05):** `verify:fire-detail` **407/407**, typecheck grün. Augenschein Desktop
+1440×900 am Live-Bestand: `sat3-rahmen-vorher-gefuellt.png` — ein „danach"-Rahmen (16 × 18 px,
+Füllung `rgba(255,176,138,0.14)`, gestrichelt) auf dem Vorher-Bild vom 30.08., auffindbar.

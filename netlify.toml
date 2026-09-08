@@ -373,8 +373,22 @@
   from   = "/warnungen"
   to     = "/warnungen.html"
   status = 200
+# SH1 („Teilen"): Der Ort steht als lesbares letztes Pfadsegment in der URL
+# (`/warnungen/muenchen`, `/regenradar/muenchen`, `/wetterkarte/wind/muenchen`).
+# Er ist NIE kanonisch — die Shell setzt den Canonical auf den Pfad ohne Ort,
+# und in der Sitemap taucht er nicht auf. `verify:routing` erzwingt für jede
+# Route mit `place: true` genau dieses Wildcard-Rewrite VOR dem 404.
+# Für /wetterkarte erledigt das die bereits vorhandene Regel `/wetterkarte/*`.
+[[redirects]]
+  from   = "/warnungen/*"
+  to     = "/warnungen.html"
+  status = 200
 [[redirects]]
   from   = "/regenradar"
+  to     = "/regenradar.html"
+  status = 200
+[[redirects]]
+  from   = "/regenradar/*"
   to     = "/regenradar.html"
   status = 200
 [[redirects]]

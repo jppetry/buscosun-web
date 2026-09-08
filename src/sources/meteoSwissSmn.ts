@@ -92,52 +92,118 @@ async function pMap<T, R>(
   return results;
 }
 
+/**
+ * Die Stationsdatei `_t_now.csv` trägt den ganzen laufenden Tag in 10-Minuten-
+ * Schritten (gemessen 2026-09-07: 132 Zeilen). Sie wird je Station EINMAL
+ * gelesen und kurz gehalten, damit die Historie für den Stationsanker aus
+ * derselben Datei kommt wie der aktuelle Wert.
+ */
+interface SmnRows { fetchedAt: number; headers: string[]; rows: string[][] }
+const rowsCache = new Map<string, SmnRows>();
+const ROWS_TTL_MS = 5 * 60_000;
+
+async function loadStationRows(s: SmnStation, signal?: AbortSignal): Promise<SmnRows | null> {
+  const cached = rowsCache.get(s.abbr);
+  if (cached && Date.now() - cached.fetchedAt < ROWS_TTL_MS) return cached;
+  const res = await fetch(STATION_URL(s.abbr), { signal });
+  if (!res.ok) return null;
+  const text = await res.text();
+  const { headers, rows } = parseCsv(text);
+  const entry = { fetchedAt: Date.now(), headers, rows };
+  rowsCache.set(s.abbr, entry);
+  return entry;
+}
+
+function rowToPoint(headers: string[], row: string[], s: SmnStation): ForecastHourPoint {
+  const get = (col: string): number | null => {
+    const idx = headers.indexOf(col);
+    if (idx < 0) return null;
+    const raw = row[idx];
+    if (raw == null || raw === '') return null;
+    const v = parseFloat(raw);
+    return Number.isFinite(v) ? v : null;
+  };
+  const t = get('tre200s0');
+  const ff = get('fkl010z0');
+  const dd = get('dkl010z0');
+  // fkl010d1 = max wind gust during last 10 min, m/s.
+  const ffx = get('fkl010d1');
+  // ure200s0 = relative humidity 2 m, %.
+  const rh = get('ure200s0');
+  const rr10 = get('rre150z0');
+  let u: number | null = null;
+  let v: number | null = null;
+  if (ff != null && dd != null) {
+    const rad = (dd * Math.PI) / 180;
+    u = -ff * Math.sin(rad);
+    v = -ff * Math.cos(rad);
+  }
+  return {
+    temperature: t,
+    u, v,
+    gust: ffx,
+    relativeHumidity: rh,
+    cloudLow: null, cloudMid: null, cloudHigh: null,
+    precipitation: rr10 != null ? rr10 * 6 : null,
+    model: 'smn',
+    lat: s.lat, lng: s.lng, elev: s.elev,
+    ...({ stationName: s.abbr, stationId: s.abbr } as { stationName: string; stationId: string }),
+  };
+}
+
+/** `reference_timestamp` der OGD-Dateien: `dd.mm.yyyy HH:MM`, UTC. */
+function parseSmnTimestamp(raw: string | undefined): number {
+  const m = /^(\d{2})\.(\d{2})\.(\d{4}) (\d{2}):(\d{2})$/.exec(raw ?? '');
+  if (!m) return NaN;
+  return Date.UTC(+m[3], +m[2] - 1, +m[1], +m[4], +m[5]);
+}
+
 async function fetchStationLastRow(s: SmnStation, signal?: AbortSignal): Promise<ForecastHourPoint | null> {
   try {
-    const res = await fetch(STATION_URL(s.abbr), { signal });
-    if (!res.ok) return null;
-    const text = await res.text();
-    const { headers, rows } = parseCsv(text);
-    if (!rows.length) return null;
-    const lastRow = rows[rows.length - 1];
-    const get = (col: string): number | null => {
-      const idx = headers.indexOf(col);
-      if (idx < 0) return null;
-      const raw = lastRow[idx];
-      if (raw == null || raw === '') return null;
-      const v = parseFloat(raw);
-      return Number.isFinite(v) ? v : null;
-    };
-    const t = get('tre200s0');
-    const ff = get('fkl010z0');
-    const dd = get('dkl010z0');
-    // fkl010d1 = max wind gust during last 10 min, m/s.
-    const ffx = get('fkl010d1');
-    // ure200s0 = relative humidity 2 m, %.
-    const rh = get('ure200s0');
-    const rr10 = get('rre150z0');
-    let u: number | null = null;
-    let v: number | null = null;
-    if (ff != null && dd != null) {
-      const rad = (dd * Math.PI) / 180;
-      u = -ff * Math.sin(rad);
-      v = -ff * Math.cos(rad);
-    }
-    return {
-      temperature: t,
-      u, v,
-      gust: ffx,
-      relativeHumidity: rh,
-      cloudLow: null, cloudMid: null, cloudHigh: null,
-      precipitation: rr10 != null ? rr10 * 6 : null,
-      model: 'smn',
-      lat: s.lat, lng: s.lng, elev: s.elev,
-      ...({ stationName: s.abbr } as { stationName: string }),
-    };
+    const data = await loadStationRows(s, signal);
+    if (!data || !data.rows.length) return null;
+    return rowToPoint(data.headers, data.rows[data.rows.length - 1], s);
   } catch (err) {
     if ((err as { name?: string })?.name === 'AbortError') throw err;
     return null;
   }
+}
+
+/**
+ * Stündliche Messwerte der letzten `hours` Stunden je Station (Kürzel) aus der
+ * bereits gelesenen Tagesdatei — je Stundenboden die Zeile zur vollen Stunde
+ * (oder die nächste innerhalb 10 min). Kein zusätzlicher Abruf, wenn die
+ * Station im laufenden Aufruf schon gelesen wurde.
+ */
+export async function fetchSmnHistory(
+  abbrs: string[],
+  hours: number,
+  signal?: AbortSignal,
+): Promise<Map<string, Map<number, ForecastHourPoint>>> {
+  const out = new Map<string, Map<number, ForecastHourPoint>>();
+  if (!abbrs.length || hours <= 0) return out;
+  const all = await loadSmnStationsList(signal);
+  const byAbbr = new Map(all.map((s) => [s.abbr, s]));
+  const endMs = Math.floor(Date.now() / 3600_000) * 3600_000;
+  const startMs = endMs - hours * 3600_000;
+  await pMap(abbrs, async (abbr) => {
+    const s = byAbbr.get(abbr);
+    if (!s) return;
+    const data = await loadStationRows(s, signal).catch(() => null);
+    if (!data) return;
+    const tsCol = data.headers.indexOf('reference_timestamp');
+    if (tsCol < 0) return;
+    const byHour = new Map<number, ForecastHourPoint>();
+    for (const row of data.rows) {
+      const ms = parseSmnTimestamp(row[tsCol]);
+      if (!Number.isFinite(ms) || ms < startMs || ms >= endMs) continue;
+      const hourMs = Math.round(ms / 3600_000) * 3600_000;
+      if (Math.abs(ms - hourMs) > 10 * 60_000) continue;
+      if (!byHour.has(hourMs) || Math.abs(ms - hourMs) < 1) byHour.set(hourMs, rowToPoint(data.headers, row, s));
+    }
+    out.set(abbr, byHour);
+  }, 6, signal);
+  return out;
 }
 
 export interface SmnOptions {

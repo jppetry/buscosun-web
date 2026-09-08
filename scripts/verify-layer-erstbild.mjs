@@ -173,7 +173,9 @@ else {
   add('F: fetchRvNowcast reicht die Priorität bis zum Tar', /loadRvNowcast\(opts\?\.priority\)/.test(rad) && /fetchRvTar\(ts, undefined, priority\)/.test(rad) && /fetchRvBytesCached\(ts, signal, priority\)/.test(rad));
   add('F: Frühstart-Tar bleibt high', /priority: 'high'/.test(src('src/sources/radolanRuns.ts')));
   const rep = src('src/sources/repackSource.ts');
-  add('F: Repack-Bilder high (Standard), loadGridStep reicht durch', /priority: RequestPriority = 'high'\)/.test(rep) && /cache: 'default', priority \}/.test(rep) && /loadRgba\(stepUrl\(section, entry\.file\), signal, fam\.grid, priority\)/.test(rep));
+  // LZ1/M2: `loadRgba` trägt seit LZ1 eine gepinnte Rückfall-URL als fünften
+  // Parameter; der Standard bleibt high, loadGridStep reicht die Priorität durch.
+  add('F: Repack-Bilder high (Standard), loadGridStep reicht durch', /priority: RequestPriority = 'high', fallbackUrl\?: string\)/.test(rep) && /cache: 'default', priority \}/.test(rep) && /loadRgba\(stepUrl\(section, entry\.file\), signal, fam\.grid, priority, stepUrlPinned\(section, entry\.file\)\)/.test(rep));
   add('F: cape (eine Zahl) low', /loadGridStep\(section, 'cape', step, signal, 'low'\)/.test(src('src/sources/iconD2Cape.ts')));
   const kon = src('src/sources/dwdKonrad3d.ts');
   // RD2: dritter low-Abruf ist der CDN-Weg (gerechneter Zeitstempel statt Listing);

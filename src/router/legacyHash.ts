@@ -35,8 +35,20 @@ export const LEGACY_PREFIXES: ReadonlyArray<readonly [prefix: string, path: stri
 /** Name der DACH-Übersichts-„Location" (App.tsx) — kein echter Ort, kein Marker. */
 const OVERVIEW_NAME = 'Deutschland · Österreich · Schweiz';
 
-/** Hash → neue URL (Pfad + Query [+ Hash]); null = kein Legacy-Link. */
-export function resolveLegacyHash(hash: string, nowMs: number = Date.now()): string | null {
+/**
+ * Hash → neue URL (Pfad + Query [+ Hash]); null = kein Legacy-Link.
+ *
+ * `slugFor` ist die (injizierte) Ortsauflösung aus `src/share/placeTable.ts` —
+ * mit ihr entsteht die kurze Slug-Form (`/wetterkarte/temperatur/muenchen`),
+ * ohne sie die alte reine Query-Form. Beide sind gültig; injiziert wird, weil
+ * dieses Modul EAGER läuft und die 3,5-KB-Ortstabelle nicht in den Start-Chunk
+ * gehört.
+ */
+export function resolveLegacyHash(
+  hash: string,
+  nowMs: number = Date.now(),
+  slugFor?: (loc: { name: string; lat: number; lon: number; country: string }) => { slug: string; inTable: boolean } | null,
+): string | null {
   if (!hash || hash.length < 2) return null;
   for (const [prefix, path, keepHash] of LEGACY_PREFIXES) {
     if (!hash.startsWith(prefix)) continue;
@@ -46,9 +58,11 @@ export function resolveLegacyHash(hash: string, nowMs: number = Date.now()): str
       const layers = ALL_LAYER_KEYS.filter((k) => m.layers.includes(k));
       const primary: LayerKey | null = layers[0] ?? null;
       const isPlace = !!m.location.name && m.location.name !== OVERVIEW_NAME && Number.isFinite(m.location.lat);
+      const slugged = isPlace && slugFor ? slugFor(m.location) : null;
       return buildMapUrl({
         primary, layers, hour: m.hour > 0 ? m.hour : undefined,
         place: isPlace ? m.location : null,
+        placeSlug: slugged?.slug ?? null, placeInTable: !!slugged?.inTable,
       }, nowMs);
     }
     return keepHash ? path + hash : path;
@@ -60,9 +74,13 @@ export function resolveLegacyHash(hash: string, nowMs: number = Date.now()): str
  * Läuft EINMAL beim Start, bevor der Router die URL liest: nur auf `/` (auf
  * einem Pfad ist ein Hash bereits neu-stilig und gehört dem Feature dort).
  */
-export function runLegacyHashMigration(loc: { pathname: string; hash: string; search: string }, nowMs: number = Date.now()): string | null {
+export function runLegacyHashMigration(
+  loc: { pathname: string; hash: string; search: string },
+  nowMs: number = Date.now(),
+  slugFor?: (l: { name: string; lat: number; lon: number; country: string }) => { slug: string; inTable: boolean } | null,
+): string | null {
   if (loc.pathname !== '/' || !loc.hash) return null;
-  const url = resolveLegacyHash(loc.hash, nowMs);
+  const url = resolveLegacyHash(loc.hash, nowMs, slugFor);
   if (!url) return null;
   // Bestehende Query-Flags (?ta=0, ?afEst=0, ?startnow=0) überleben die Migration.
   if (loc.search && loc.search.length > 1) {
@@ -83,9 +101,14 @@ export function verifyLegacyHash(): { checks: Array<{ name: string; ok: boolean;
   const now = Date.UTC(2026, 7, 22, 12, 0);
   // Der Link, den scripts/seo/content.mjs (mapPermalink) für München baut: Bit 4 = temp.
   const muc = '#m=' + encodeURIComponent(JSON.stringify({ l: [48.13743, 11.57549, 'München', 'DE'], b: 4, h: 0 }));
-  add('#m= (Geo-Seite München) → /wetterkarte/temperatur mit Ort', resolveLegacyHash(muc, now) === '/wetterkarte/temperatur?ort=M%C3%BCnchen&olat=48.1374&olon=11.5755&land=de', resolveLegacyHash(muc, now) ?? 'null');
+  add('#m= (Geo-Seite München) → /wetterkarte/temperatur mit Ort (reine Query ohne Tabelle)',
+    resolveLegacyHash(muc, now) === '/wetterkarte/temperatur?ort=M%C3%BCnchen&olat=48.1374&olon=11.5755&land=de', resolveLegacyHash(muc, now) ?? 'null');
+  // SH1: mit injizierter Ortstabelle wird daraus die kurze Slug-Form.
+  const mucSlug = () => ({ slug: 'muenchen', inTable: true });
+  add('#m= mit Ortstabelle → /wetterkarte/temperatur/muenchen',
+    resolveLegacyHash(muc, now, mucSlug) === '/wetterkarte/temperatur/muenchen', resolveLegacyHash(muc, now, mucSlug) ?? 'null');
   const multi = '#m=' + encodeURIComponent(JSON.stringify({ l: [50.2, 10.5, OVERVIEW_NAME, 'DE'], b: 5, h: 3 }));
-  add('#m= Übersicht mit wind+temp, h=3 → kein Ort, l=temperatur, t', resolveLegacyHash(multi, now) === '/wetterkarte/wind?t=2026-08-22T15%3A00Z&l=temperatur', resolveLegacyHash(multi, now) ?? 'null');
+  add('#m= Übersicht mit wind+temp, h=3 → kein Ort, l=temperatur, t', resolveLegacyHash(multi, now) === '/wetterkarte/wind?t=2026-08-22T15:00Z&l=temperatur', resolveLegacyHash(multi, now) ?? 'null');
   add('#m= unlesbar → /wetterkarte', resolveLegacyHash('#m=%7Bkaputt', now) === '/wetterkarte');
   add('#wb= behält Payload', resolveLegacyHash('#wb=%7B%22b%22%3A1%2C%22d%22%3A0%2C%22w%22%3A24%7D', now) === '/waldbrand#wb=%7B%22b%22%3A1%2C%22d%22%3A0%2C%22w%22%3A24%7D');
   add('#ev= / #h= / #atm= / #3d= / #g= behalten Payload', resolveLegacyHash('#ev=x', now) === '/eventplanung#ev=x' && resolveLegacyHash('#h=v=tmean', now) === '/wetterarchiv#h=v=tmean' && resolveLegacyHash('#atm=x', now) === '/atmosphaere#atm=x' && resolveLegacyHash('#3d=x', now) === '/atmosphaere#3d=x' && resolveLegacyHash('#g=x', now) === '/globus#g=x');

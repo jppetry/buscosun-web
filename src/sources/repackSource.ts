@@ -45,6 +45,7 @@
 
 import { GRIB_MANIFEST_URL, readManifestRepack } from './gribManifest';
 import { repackRunEnabled } from './liveManifest';
+import { lzEnabled } from './loadTuning';
 import { reportManifest, stateFromUpdatedAt } from './manifestHealth';
 import {
   GUST_VMIN, GUST_VMAX, LPI_VMIN, LPI_VMAX, SNOW_DEPTH_VMAX_CM, SNOW_FRESH_VMAX_CM,
@@ -384,12 +385,33 @@ export function sectionCovers(section: RepackSection | null, family: RepackFamil
   return wanted.every((s) => have.has(s));
 }
 
+/**
+ * Die Ref in der Bild-URL. LZ1/M2 (audit/layer-ladezeit.md §4.2, V-LZ-3): der
+ * Publisher force-pusht je Lauf eine neue Historie, und eine auf den Commit
+ * gepinnte URL ist danach an JEDEM CDN-Knoten neu — auch für Dateien, deren
+ * Inhalt sich nie ändert (`hsurf-v1.png`, die drei älteren Läufe). Die Pfade
+ * unter `runs/<lauf>/` sind inhaltlich unveränderlich (der Producer schreibt
+ * einen Schritt genau einmal, byte-gleich — `verify:repack`), deshalb ist die
+ * Branch-Ref `@main` für sie sicher: der Edge hält sie 24 h, ein 15 min alter
+ * Index löst weiter auf (`keep: 4` hält die Läufe 12 h). `?lz=0` pinnt wieder.
+ */
+export function urlRef(section: RepackSection): string {
+  return lzEnabled() ? 'main' : section.commit;
+}
 /** URL einer Schritt-Datei. DIE Regel — Spiegel von `scripts/lib/repackManifest.mjs`. */
 export function stepUrl(section: RepackSection, file: string): string {
-  return `${section.base}@${section.commit}/${section.path}/${file}`;
+  return `${section.base}@${urlRef(section)}/${section.path}/${file}`;
 }
 /** URL einer lauf-unabhängigen Datei (`hsurf`): ohne Lauf-Pfad. */
 export function repoUrl(section: RepackSection, file: string): string {
+  return `${section.base}@${urlRef(section)}/${file}`;
+}
+/** Dieselben URLs, auf den Commit des Index gepinnt — der Rückfall, falls die
+ *  Branch-Ref am CDN einen Pfad (noch) nicht kennt (404 direkt nach dem Push). */
+export function stepUrlPinned(section: RepackSection, file: string): string {
+  return `${section.base}@${section.commit}/${section.path}/${file}`;
+}
+export function repoUrlPinned(section: RepackSection, file: string): string {
   return `${section.base}@${section.commit}/${file}`;
 }
 
@@ -545,14 +567,21 @@ interface DecodedImage { data: Uint8ClampedArray; width: number; height: number 
  * hat A = 0 außerhalb der Domäne — ohne die Option würden dort R/G genullt).
  * Chrome war auch ohne die Optionen exakt; sie stehen als Absicherung.
  */
-async function loadRgba(url: string, signal: AbortSignal | undefined, expect: RepackGrid, priority: RequestPriority = 'high'): Promise<DecodedImage | null> {
+async function loadRgba(url: string, signal: AbortSignal | undefined, expect: RepackGrid, priority: RequestPriority = 'high', fallbackUrl?: string): Promise<DecodedImage | null> {
   const first = !state.firstDone;
   const { signal: sig, rearm, done } = withDeadline(first ? FIRST_TIMEOUT_MS : STEP_TIMEOUT_MS, signal);
   let blob: Blob;
   try {
     // LE2/H7: die Repack-Bilder SIND das Erstbild der Wetterkarte ⇒ `'high'`;
     // wer nur eine Zahl daraus liest (`cape` am Regenradar) reicht `'low'` durch.
-    const res = await fetch(url, { signal: sig, cache: 'default', priority });
+    let res = await fetch(url, { signal: sig, cache: 'default', priority });
+    // LZ1/M2: kennt die Branch-Ref den Pfad (noch) nicht — jsDelivr löst `@main`
+    // am Origin auf, und direkt nach einem Push kann das für Sekunden hinken —,
+    // ist die auf den Commit gepinnte URL derselbe Inhalt. EIN Versuch, dann
+    // gilt der Befund wie bisher.
+    if (res.status === 404 && fallbackUrl && fallbackUrl !== url) {
+      res = await fetch(fallbackUrl, { signal: sig, cache: 'default', priority });
+    }
     if (!res.ok) { markBroken(`HTTP ${res.status}`); return null; }
     // BW-10: die Kopfzeilen sind da — die Frist hat ihre Frage beantwortet
     // („antwortet das CDN?"). Der Körper bekommt seine eigene, bandbreiten-
@@ -631,7 +660,7 @@ export async function loadWindStep(
   if (state.broken || !section.wind) return null;
   const entry = section.wind.steps.find((s) => s.step === step);
   if (!entry) return null;
-  const img = await loadRgba(stepUrl(section, entry.file), signal, section.grid);
+  const img = await loadRgba(stepUrl(section, entry.file), signal, section.grid, 'high', stepUrlPinned(section, entry.file));
   if (!img) return null;
   return {
     rgba: img.data, width: img.width, height: img.height,
@@ -650,7 +679,7 @@ export async function loadHsurfGrey(section: RepackSection, signal?: AbortSignal
     // Bewusst OHNE das Abbruch-Signal des ersten Aufrufers: der Eintrag ist
     // geteilt, und Reacts doppelte Dev-Effekte bräche sonst der zweite Aufrufer
     // mit dem Abort des ersten ab (Lehre GBP1 (3), audit/brandflaechen-panel.md).
-    p = loadRgba(url, undefined, section.grid).then((img) => {
+    p = loadRgba(url, undefined, section.grid, 'high', repoUrlPinned(section, section.temp.hsurf.url)).then((img) => {
       if (!img) return null;
       const n = img.width * img.height;
       const grey = new Uint8Array(n);
@@ -679,7 +708,7 @@ export async function loadTempStep(
   if (state.broken || !section.temp) return null;
   const entry = section.temp.steps.find((s) => s.step === step);
   if (!entry) return null;
-  const img = await loadRgba(stepUrl(section, entry.file), signal, section.grid);
+  const img = await loadRgba(stepUrl(section, entry.file), signal, section.grid, 'high', stepUrlPinned(section, entry.file));
   if (!img) return null;
   return { rgba: composeTempRgba(img.data, hsurfGrey, img.width, img.height), width: img.width, height: img.height };
 }
@@ -699,7 +728,7 @@ export async function loadScalarStep(
   if (state.broken || !fam) return null;
   const entry = fam.steps.find((s) => s.step === step);
   if (!entry) return null;
-  const img = await loadRgba(stepUrl(section, entry.file), signal, section.grid);
+  const img = await loadRgba(stepUrl(section, entry.file), signal, section.grid, 'high', stepUrlPinned(section, entry.file));
   if (!img) return null;
   return { rgba: composeScalarRgba(img.data), width: img.width, height: img.height };
 }
@@ -729,7 +758,7 @@ export async function loadGridStep(
   if (state.broken || !fam) return null;
   const entry = fam.steps.find((s) => s.step === step);
   if (!entry) return null;
-  const img = await loadRgba(stepUrl(section, entry.file), signal, fam.grid, priority);
+  const img = await loadRgba(stepUrl(section, entry.file), signal, fam.grid, priority, stepUrlPinned(section, entry.file));
   if (!img) return null;
   const n = img.width * img.height;
   const values = new Uint8Array(n);
@@ -844,9 +873,27 @@ export function repackRunPointerUrl(run: string): string {
 }
 
 let pointerCache: { at: number; run: string; p: Promise<unknown> } | null = null;
-let indexCache: { at: number; p: Promise<unknown> } | null = null;
+let indexCache: { at: number; p: Promise<unknown>; ok: boolean } | null = null;
+let indexRefresh: Promise<unknown> | null = null;
 /** Nur für Tests/Verifier. */
-export function resetRepackIndexCache(): void { pointerCache = null; indexCache = null; }
+export function resetRepackIndexCache(): void { pointerCache = null; indexCache = null; indexRefresh = null; }
+
+/**
+ * LZ1/M2 (audit/layer-ladezeit.md §5.1, V-LZ-2): so alt darf der Index im
+ * Speicher sein, um einen Klick SOFORT zu bedienen, während er im Hintergrund
+ * erneuert wird. Der Publish-Takt ist 3 h; in 15 min ändert sich der Lauf in
+ * < 10 % der Fälle — und wenn doch, zeigt die Karte den vorherigen Lauf (wie
+ * bis zur nächsten Minute ohnehin), dessen Bilder unter `@main` weiter liegen.
+ * Gemessen: der Index vor dem ersten Bild kostet +93 ms warm, +1,36 s nach
+ * dem Purge — bei jedem Klick, der > 60 s nach dem letzten Abruf kommt.
+ */
+export const INDEX_STALE_MAX_MS = 15 * 60_000;
+
+function startIndexFetch(at: number): { at: number; p: Promise<unknown>; ok: boolean } {
+  const entry = { at, p: fetchCdnJson(REPACK_INDEX_CDN_URL), ok: false };
+  entry.p.then((v) => { entry.ok = v != null; }, () => { entry.ok = false; });
+  return entry;
+}
 
 /**
  * Ein CDN-JSON, `null` bei JEDEM Problem — und das ist kein Defekt des
@@ -873,11 +920,39 @@ function cdnPointer(run: string): Promise<unknown> {
   }
   return pointerCache.p;
 }
-/** Der Index — EIN geteiltes Promise je TTL-Fenster (lauf-unabhängig). */
+/**
+ * Der Index — EIN geteiltes Promise je TTL-Fenster (lauf-unabhängig).
+ *
+ * LZ1/M2: nach dem TTL wird der alte Index NICHT verworfen, solange er jünger
+ * als `INDEX_STALE_MAX_MS` ist und wirklich ein Dokument geliefert hat: der
+ * Aufrufer bekommt ihn sofort, die Erneuerung läuft daneben (stale-while-
+ * revalidate im Speicher) und ersetzt ihn, sobald sie ein Dokument hat. Ein
+ * gescheiterter alter Abruf (`ok === false`) wird nie weitergereicht — dann
+ * gilt der TTL-Weg wie bisher. `?lz=0` stellt den alten Takt wieder her.
+ */
 function cdnIndex(): Promise<unknown> {
   const now = Date.now();
-  if (!indexCache || now - indexCache.at >= INDEX_TTL_MS) indexCache = { at: now, p: fetchCdnJson(REPACK_INDEX_CDN_URL) };
+  if (!indexCache) { indexCache = startIndexFetch(now); return indexCache.p; }
+  const age = now - indexCache.at;
+  if (age < INDEX_TTL_MS) return indexCache.p;
+  if (!lzEnabled() || !indexCache.ok || age >= INDEX_STALE_MAX_MS) {
+    indexCache = startIndexFetch(now);
+    indexRefresh = null;
+    return indexCache.p;
+  }
+  if (!indexRefresh) {
+    const fresh = startIndexFetch(now);
+    indexRefresh = fresh.p.then((v) => {
+      if (v != null) indexCache = fresh;
+      indexRefresh = null;
+      return v;
+    }, () => { indexRefresh = null; return null; });
+  }
   return indexCache.p;
+}
+/** Alter des Index im Speicher in ms (Verifier/Diagnose), `null` ohne Index. */
+export function repackIndexAgeMs(nowMs: number = Date.now()): number | null {
+  return indexCache ? nowMs - indexCache.at : null;
 }
 /**
  * Der Index NUR, wenn er in diesem TTL-Fenster ohnehin schon geholt wurde —
@@ -891,7 +966,12 @@ function cdnIndex(): Promise<unknown> {
  * 2 CDN-JSON-Abrufe je Kaltstart, von denen einer entfällt.
  */
 function warmCdnIndex(): Promise<unknown> | null {
-  if (!indexCache || Date.now() - indexCache.at >= INDEX_TTL_MS) return null;
+  if (!indexCache) return null;
+  const age = Date.now() - indexCache.at;
+  // LZ1/M2: dasselbe Dokument, das `cdnIndex()` dem Aufrufer eben für den Lauf
+  // gegeben hat — auch wenn es älter als das TTL ist. Lauf und Abschnitt kommen
+  // so IMMER aus derselben Datei (§32.2), nie aus zwei verschiedenen Ständen.
+  if (age >= INDEX_TTL_MS && !(lzEnabled() && indexCache.ok && age < INDEX_STALE_MAX_MS)) return null;
   return indexCache.p;
 }
 

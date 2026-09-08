@@ -10,6 +10,10 @@ import { useNavigate } from 'react-router';
 import type { Location } from '../types';
 import { pathForFeature } from './routes';
 import { mapPathForPlace } from './urlState';
+// SH1: Der Ort wird als lesbarer Slug in den Pfad geschrieben. Die Tabelle liegt
+// hier richtig — `useAppNav` wird ausschließlich aus den LAZY Seiten-Wrappern
+// importiert, der Start-Chunk bleibt unberührt (`src/share/placeTable.ts`).
+import { slugForPlace } from '../share/placeTable';
 
 export interface AppNav {
   goHome: () => void;
@@ -24,6 +28,6 @@ export function useAppNav(): AppNav {
   return useMemo<AppNav>(() => ({
     goHome: () => { void navigate('/'); },
     openFeature: (f) => { void navigate(pathForFeature(typeof f === 'string' ? f : f.id)); },
-    selectLocation: (loc) => { void navigate(mapPathForPlace(loc)); },
+    selectLocation: (loc) => { void navigate(mapPathForPlace(loc, undefined, slugForPlace(loc))); },
   }), [navigate]);
 }

@@ -199,7 +199,7 @@ Gemessen am 2026-09-05 (Rohwerte in `datenquellen-matrix.md`):
 | ECMWF IFS/ENS/AIFS 0,25° | **ja, zurück bis 2023-01-18** | S3 `ecmwf-forecasts`, Präfix-Listing |
 | NOAA GEFS | **ja** (20240101 und 20250905 geprüft vorhanden) | S3 `noaa-gefs-pds` |
 | GEFSv12-Reforecast | **ja** | S3 `noaa-gefs-retrospective` |
-| **DWD MOSMIX_S / _L** | **nein** — Rollfenster: 48 Läufe (S), 4 Läufe (L) | Verzeichnis-Listing |
+| **DWD MOSMIX_S / _L** | **nein** — Rollfenster: 48 Läufe (S), 8 Läufe (L) | Verzeichnis-Listing |
 | **DWD ICON-D2 / ICON-EU / ICON-EPS** | **nein** — 8 Läufe (D2) | Verzeichnis-Listing |
 
 **Daraus folgt die zentrale Planungsaussage:** Ein Hindcast gegen Klimatologie, Persistenz,

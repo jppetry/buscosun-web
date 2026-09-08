@@ -224,7 +224,9 @@ add('(h) calibration.ts/estimate.ts: kein Date.now(), Schätzung „kein Ersatz 
 add('(h) FirePage lädt das Modell nur mit Kill-Switch-Prüfung und reicht estimateFor in die Registry',
   page.includes('areaEstEnabled()') && page.includes('estimateFor: areaModel ? (rec) => estimateArea(featuresOf(rec, now), areaModel) : undefined'));
 add('(h) Panel: Zeile „Schätzung" nutzt estimateLabel (Punktwert nie ohne Intervall) und nennt bei Kartierung „die Kartierung gilt"',
-  panel.includes('<dt>Schätzung</dt>') && panel.includes('estimateLabel(r.activity.areaEst)') && panel.includes('die Kartierung gilt'));
+  // MUI-Umbau: die Faktenzeilen sind `FactRow`-Elemente statt `<dt>/<dd>`; die lokale
+  // Bindung heißt `act` (= `r.activity`) — die AUSSAGE der Sonde ist unverändert.
+  panel.includes('term="Schätzung"') && panel.includes('estimateLabel(act.areaEst)') && panel.includes('die Kartierung gilt'));
 add('(h) Modelldatei im Repo (falls vorhanden): v1/featureVersion 1, ≥ 25 Paare je Fit, Koeffizienten + Leverage-Matrix passend zum Grad, Bereich gesetzt',
   (() => { const f = join(ROOT, 'public', 'fire', 'af', 'area-estimate-v1.json'); if (!existsSync(f)) return true; try {
     const m = JSON.parse(readFileSync(f, 'utf8'));

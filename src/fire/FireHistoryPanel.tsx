@@ -20,6 +20,9 @@ import { FireHistoryChart } from './FireHistoryChart';
 import { loadHistoryShard, eventFromShard, fireDayWeather, rainLabel, type ShardLoad, type FireDayWeather } from './history/historyDetail';
 import type { HistoryEvent } from './history/historyEvents';
 import { featuresSummary, featuresJson } from './activity/features';
+import { dynamicsOf } from './activity/dynamics';
+import { DriversView } from './FireFootprintPanel';
+import { fetchFireWeatherArchive, type FireWeatherAtPoint } from './detail/fireWeatherAtPoint';
 import { LANDCOVER_LABEL, LANDCOVER_KEYS } from './fireCorroboration';
 
 export type HistorySort = 'strength' | 'recency' | 'area';
@@ -239,7 +242,38 @@ export function historyStatTiles(e: HistoryIndexEntry): { lbl: string; val: stri
   ];
 }
 
-/** Ein Ereignis-Dossier-Raster: Verlauf · Wetterlage · (aside) · Einordnung & Evidenz · Merkmale. */
+/**
+ * BDE-D — die **Wetterführung** eines zurückliegenden Brands. Dieselbe Karte wie im
+ * Live-Dossier (`DriversView`), nur mit ERA5 statt ICON als Stundenquelle: die
+ * Vorhersagemodelle haben kein Archiv. Eigener Abruf, weil die Karte oben Tageswerte
+ * einer Station braucht und diese hier eine lückenlose Stundenreihe — zwei Fragen,
+ * zwei Reihen; zusammengeführt wird trotzdem in DERSELBEN `parseFireWeather`.
+ */
+function HistoryDriversCard({ entry, spreadBearingDeg, width }: { entry: HistoryIndexEntry; spreadBearingDeg: number | null; width: number }) {
+  const [wx, setWx] = useState<FireWeatherAtPoint | 'loading' | null>('loading');
+  useEffect(() => {
+    let alive = true;
+    setWx('loading');
+    // Kein AbortController: der Abruf liegt im Sitzungs-Cache und wird geteilt (s. dort).
+    void fetchFireWeatherArchive(entry.lat, entry.lon, entry.firstMs, entry.lastMs)
+      .then((w) => { if (alive) setWx(w); })
+      .catch(() => { if (alive) setWx(null); });
+    return () => { alive = false; };
+  }, [entry]);
+  return (
+    <section className="br-ds-card br-ds-drv" aria-label="Wetterführung im Brandzeitfenster">
+      <div className="br-ds-cardhead">
+        <span className="br-ds-eyebrow is-terra">Wetterführung</span>
+        <span className="br-ds-cardsub">Im Brandzeitfenster · abgeleitet, keine Messung</span>
+      </div>
+      {wx === 'loading' && <p className="br-muted br-wx-loading">Stundenreihe des Brandzeitfensters wird aus dem Archiv geholt …</p>}
+      {wx === null && <p className="br-note">Archivreihe nicht erreichbar — ohne sie gibt es weder Windrose noch Einstufung. Es wird nichts geschätzt.</p>}
+      {wx && wx !== 'loading' && <DriversView w={wx} spreadBearingDeg={spreadBearingDeg} width={width} />}
+    </section>
+  );
+}
+
+/** Ein Ereignis-Dossier-Raster: Verlauf · Wetterlage · Wetterführung · (aside) · Einordnung & Evidenz · Merkmale. */
 export function HistoryDossierBody({ entry, chartWidth = 360, aside }: { entry: HistoryIndexEntry; chartWidth?: number; aside?: ReactNode }) {
   const { shard, weather, ev } = useHistoryEventData(entry);
   const [copied, setCopied] = useState(false);
@@ -248,6 +282,10 @@ export function HistoryDossierBody({ entry, chartWidth = 360, aside }: { entry: 
   const w = weather !== 'loading' ? weather : null;
   const lc = ev?.effis?.landcover ?? null;
   const lcRows = lc ? LANDCOVER_KEYS.map((k) => [LANDCOVER_LABEL[k], lc[k] ?? 0] as const).filter(([, v]) => v >= 1).sort((a, b) => b[1] - a[1]) : [];
+  // BDE-D: die Ausbreitungsrichtung kommt aus DERSELBEN `dynamicsOf` wie live — der
+  // Index trägt sie nicht, die Überflüge des Shards schon. Ohne Shard bleibt sie `null`,
+  // und die Karte sagt „nicht bestimmbar" statt zu raten.
+  const spreadBearingDeg = useMemo(() => (passes.length > 0 ? dynamicsOf(passes).spreadBearingDeg : null), [passes]);
   const dayN = passes.filter((p) => p.day === true).length;
   const nightN = passes.filter((p) => p.day === false).length;
   return (
@@ -306,6 +344,9 @@ export function HistoryDossierBody({ entry, chartWidth = 360, aside }: { entry: 
           </p>
         </div>
       </section>
+
+      {/* BDE-D: dieselbe Wetterführung wie im Live-Dossier — EINE Darstellung, zwei Quellen. */}
+      <HistoryDriversCard entry={entry} spreadBearingDeg={spreadBearingDeg} width={chartWidth} />
 
       {/* SAT1: dieselbe Satellitenbild-Karte wie im Live-Dossier — EINE Komponente, zwei Aufrufer. */}
       {satEnabled() && (

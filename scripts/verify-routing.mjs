@@ -21,7 +21,11 @@ import { CROSS_ALIASES, ROUTES, ROUTE_BY_ID, SITE_URL, routeForPath, verifyRoute
 import { verifyLayerCatalog, LAYER_CATALOG } from '../src/map/layerCatalog.ts';
 import { ALL_LAYER_KEYS } from '../src/map/layerTypes.ts';
 import { verifySubRouteTexts, subRouteText } from '../src/seo/subRouteTexts.ts';
-import { verifyUrlState, mapPathForPlace } from '../src/router/urlState.ts';
+import { verifyUrlState, mapPathForPlace, placeFromRoute, buildRadarUrl } from '../src/router/urlState.ts';
+// SH1 (Teilen): Ort-Slug im Pfad — reine Regel + Tabelle.
+import { verifyPlaceSlug, toSlug } from '../src/share/placeSlug.ts';
+import { verifyShareSchema } from '../src/share/shareSchema.ts';
+import { placeBySlug, slugForPlace, PLACE_TABLE_SIZE } from '../src/share/placeTable.ts';
 import { verifyLegacyHash } from '../src/router/legacyHash.ts';
 import { verifyFireRouteView } from '../src/fire/fireRouteView.ts';
 import { SITE, mapPermalink } from './seo/content.mjs';
@@ -42,6 +46,8 @@ const add = (name, ok, detail) => checks.push({ name, ok, detail });
 for (const c of verifyRoutes().checks) add(`[routes] ${c.name}`, c.ok, c.detail);
 for (const c of verifyUrlState().checks) add(`[urlState] ${c.name}`, c.ok, c.detail);
 for (const c of verifyLegacyHash().checks) add(`[legacy] ${c.name}`, c.ok, c.detail);
+for (const c of verifyPlaceSlug().checks) add(`[placeSlug] ${c.name}`, c.ok, c.detail);
+for (const c of verifyShareSchema().checks) add(`[shareSchema] ${c.name}`, c.ok, c.detail);
 for (const c of verifyFireRouteView().checks) add(`[fireView] ${c.name}`, c.ok);
 for (const c of verifyLayerCatalog(ALL_LAYER_KEYS).checks) add(`[layerCatalog] ${c.name}`, c.ok, c.detail);
 for (const c of verifySubRouteTexts(indexableSubRoutes().map((x) => x.path)).checks) add(`[subTexts] ${c.name}`, c.ok, c.detail);
@@ -53,15 +59,38 @@ add('[layerCatalog] Tooltip des Warn-Layers unverändert (Zitatregel-Text erhalt
 // --- (2) Build-Seite: dieselben Tabellen --------------------------------------
 add('[seo] SITE_URL ≡ content.mjs SITE.url', SITE_URL === SITE.url, `${SITE_URL} vs ${SITE.url}`);
 const muc = { name: 'München', lat: 48.13743, lon: 11.57549, country: 'DE', slug: 'muenchen' };
-add('[seo] mapPermalink (Geo-Seiten) ≡ mapPathForPlace (App)', mapPermalink(muc) === mapPathForPlace(muc, 'temp'), `${mapPermalink(muc)} vs ${mapPathForPlace(muc, 'temp')}`);
+// SH1: beide Seiten schreiben jetzt den Ort als Pfad-Slug. Die App bekommt die
+// Ortstabelle injiziert (eager-Budget), der Generator kennt sie per Konstruktion.
+add('[seo] mapPermalink (Geo-Seiten) ≡ mapPathForPlace (App)',
+  mapPermalink(muc) === mapPathForPlace(muc, 'temp', slugForPlace(muc)),
+  `${mapPermalink(muc)} vs ${mapPathForPlace(muc, 'temp', slugForPlace(muc))}`);
+add('[seo] und zwar in der kurzen Slug-Form', mapPermalink(muc) === '/wetterkarte/temperatur/muenchen', mapPermalink(muc));
+{
+  const bad = PLACES.filter((p) => mapPermalink(p) !== mapPathForPlace(p, 'temp', slugForPlace(p)));
+  add('[seo] mapPermalink ≡ mapPathForPlace für ALLE Orte der Liste', bad.length === 0, bad.slice(0, 3).map((p) => p.slug).join(', '));
+}
 const badLinks = TOOLS.filter((t) => !routeForPath(t.deepLink.split('?')[0]));
 add('[seo] jeder tools.mjs-deepLink zeigt auf eine Route (kein Hash mehr)', badLinks.length === 0 && TOOLS.every((t) => !t.deepLink.includes('#')), badLinks.map((t) => `${t.slug}→${t.deepLink}`).join(', '));
 
 // SEO/GEO 2026 (E2): die App verlinkt Ortsseiten über src/router/placeSlugs.json (npm run seo:places).
 {
   const rows = JSON.parse(readFileSync(join(ROOT, 'src', 'router', 'placeSlugs.json'), 'utf8'));
-  const want = PLACES.map((p) => [p.slug, p.name, +p.lat.toFixed(3), +p.lon.toFixed(3)]);
+  const want = PLACES.map((p) => [p.slug, p.name, +p.lat.toFixed(3), +p.lon.toFixed(3), p.country]);
   add('[seo] placeSlugs.json ≡ places.mjs (npm run seo:places nach jeder Ortsänderung)', JSON.stringify(rows) === JSON.stringify(want), rows.length + ' vs ' + want.length);
+  // SH1: Die Slug-Regel steht zweimal im Repo — als `toSlug` in places.mjs (JS, weil
+  // verify:seo ohne --experimental-strip-types läuft) und in src/share/placeSlug.ts.
+  // Hier wird die Gleichheit über die ECHTE Liste bewiesen, nicht behauptet.
+  {
+    const mismatch = PLACES.filter((p) => toSlug(p.name) !== p.slug);
+    add('[SH1] Slug-Regel TS ≡ places.mjs über alle Orte', mismatch.length === 0, mismatch.slice(0, 3).map((p) => `${p.name}->${toSlug(p.name)}!=${p.slug}`).join(', '));
+    add('[SH1] Ortstabelle im Client hat dieselbe Größe', PLACE_TABLE_SIZE === PLACES.length, `${PLACE_TABLE_SIZE} vs ${PLACES.length}`);
+    const wrong = PLACES.filter((p) => { const r = placeBySlug(p.slug); return !r || r.country !== p.country || Math.abs(r.lat - +p.lat.toFixed(3)) > 1e-9; });
+    add('[SH1] placeBySlug löst jeden Ort mit Land und Koordinate auf', wrong.length === 0, wrong.slice(0, 3).map((p) => p.slug).join(', '));
+    const notInTable = PLACES.filter((p) => !slugForPlace(p)?.inTable);
+    add('[SH1] slugForPlace erkennt jeden Listenort als Tabellenort', notInTable.length === 0, notInTable.slice(0, 3).map((p) => p.slug).join(', '));
+    const off = slugForPlace({ ...PLACES[0], lat: PLACES[0].lat + 0.07 });
+    add('[SH1] 7 km neben dem Ortszentrum ⇒ Koordinate muss mit in die URL', off !== null && off.inTable === false);
+  }
   const railSrc = readFileSync(join(ROOT, 'src', 'nav', 'featureRail.tsx'), 'utf8');
   add('[seo] FeatureRail rendert Links (crawlbar), keine Buttons', /<Link\b/.test(railSrc) && !/<button\b/.test(railSrc) && railSrc.includes('pathForFeature(it.id)'));
   const routerSrc2 = readFileSync(join(ROOT, 'src', 'router', 'router.tsx'), 'utf8');
@@ -94,7 +123,9 @@ for (const r of ROUTES) {
   const want = `/${r.id}.html`;
   const i1 = idx((x) => x.from === r.path && x.to === want && x.status === 200 && !x.force);
   if (i1 < 0 || i1 > notFoundIdx) missing.push(r.path);
-  if (r.subParam) {
+  // SH1: auch Routen mit Ort-Slug (`place: true`) brauchen das Wildcard-Rewrite —
+  // sonst liefert `/regenradar/muenchen` in Produktion die 404-Shell.
+  if (r.subParam || r.place) {
     const i2 = idx((x) => x.from === `${r.path}/*` && x.to === want && x.status === 200 && !x.force);
     if (i2 < 0 || i2 > notFoundIdx) missing.push(`${r.path}/*`);
   }

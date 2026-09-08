@@ -65,6 +65,17 @@ export interface RouteDef {
   subs: readonly SubRoute[] | null;
   /** Welcher Pfadparameter die Sub-Route trägt (für `router.tsx`). */
   subParam?: 'layer' | 'lens' | 'view';
+  /**
+   * SH1 („Teilen"): Diese Route darf als LETZTES Pfadsegment einen Ort-Slug
+   * tragen — `/wetterkarte/wind/muenchen`, `/regenradar/muenchen`.
+   *
+   * Der Slug ist **nie kanonisch** (`canonicalPath()` schneidet ihn ab) und
+   * **nie in der Sitemap**: sonst entstünde ein unendlicher indexierbarer Raum
+   * (jeder Ort × jeder Layer). Ortswetter bleibt Sache der statischen Seiten
+   * `/wetter/<slug>/`. Netlify braucht dafür ein `<pfad>/*`-Rewrite auf die
+   * Shell der Route — `verify:routing` erzwingt das.
+   */
+  place?: boolean;
   meta: RouteMeta;
 }
 
@@ -119,7 +130,7 @@ export const ROUTES: readonly RouteDef[] = [
     },
   },
   {
-    id: 'wetterkarte', path: '/wetterkarte', aliases: ['/karte', '/map'], featureId: 'map2d', subs: LAYER_SUBS, subParam: 'layer',
+    id: 'wetterkarte', path: '/wetterkarte', aliases: ['/karte', '/map'], featureId: 'map2d', subs: LAYER_SUBS, subParam: 'layer', place: true,
     meta: {
       title: 'Interaktive Wetterkarte DACH',
       description: 'Wind, Niederschlag, Temperatur, Wolken, Böen, Gewitter und amtliche Warnungen für Deutschland, Österreich und die Schweiz auf einer Karte — aus DWD, GeoSphere und MeteoSchweiz.',
@@ -129,7 +140,7 @@ export const ROUTES: readonly RouteDef[] = [
     },
   },
   {
-    id: 'warnungen', path: '/warnungen', aliases: ['/unwetterwarnungen', '/warnung'], featureId: 'map2d', subs: null,
+    id: 'warnungen', path: '/warnungen', aliases: ['/unwetterwarnungen', '/warnung'], featureId: 'map2d', subs: null, place: true,
     meta: {
       title: 'Amtliche Unwetterwarnungen DE · CH',
       description: 'Amtliche Wetterwarnungen von DWD und MeteoSchweiz wortwörtlich auf der Karte — landkreisgenau, alle 5 Minuten, mit Zeit-Schieber. Österreich folgt.',
@@ -138,7 +149,7 @@ export const ROUTES: readonly RouteDef[] = [
     },
   },
   {
-    id: 'regenradar', path: '/regenradar', aliases: ['/niederschlagsradar', '/radar', '/regen'], featureId: 'nowcast', subs: null,
+    id: 'regenradar', path: '/regenradar', aliases: ['/niederschlagsradar', '/radar', '/regen'], featureId: 'nowcast', subs: null, place: true,
     meta: {
       title: 'Regenradar & Nowcast DACH',
       description: 'Gemessenes Niederschlagsradar für Deutschland, Österreich und die Schweiz mit Nowcast bis 2 Stunden — RADOLAN, INCA und MeteoSchweiz, minutengenau.',
@@ -355,24 +366,49 @@ export function aliasTarget(pathname: string, cross = true): string | null {
   return null;
 }
 
-export interface RouteMatch { def: RouteDef; sub: SubRoute | null; /** Sub-Slug auch wenn unbekannt (Seite entscheidet über 404). */ subSlug: string | null }
+export interface RouteMatch {
+  def: RouteDef;
+  sub: SubRoute | null;
+  /** Sub-Slug auch wenn unbekannt (Seite entscheidet über 404). */
+  subSlug: string | null;
+  /** SH1: Ort-Slug als letztes Segment (`/wetterkarte/wind/muenchen`); nie kanonisch. */
+  placeSlug: string | null;
+}
+
+const PLACE_SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 /**
  * Pfad → Route (löst Aliase, ignoriert End-Slash/Groß-Schreibung). null = 404.
  * `cross = false` lässt die Cross-Aliase (`/route/3d`) unaufgelöst — so lässt
  * sich prüfen, ob ein Cross-Alias einen echten Pfad verdeckt.
+ *
+ * SH1: Routen mit `place: true` dürfen ein zusätzliches Ort-Segment tragen —
+ * bei einer Route MIT Sub-Routen erst NACH einem gültigen Sub-Slug. Sonst wäre
+ * `/wetterkarte/tempratur` (Tippfehler) nicht mehr von einem Ort zu
+ * unterscheiden und die 404 ginge still verloren.
  */
 export function routeForPath(pathname: string, cross = true): RouteMatch | null {
   const alias = aliasTarget(pathname, cross);
   const p = alias ?? stripSlash(pathname).toLowerCase();
   for (const r of ROUTES) {
-    if (p === r.path) return { def: r, sub: null, subSlug: null };
-    if (r.subParam && p.startsWith(r.path + '/')) {
-      const rest = p.slice(r.path.length + 1);
-      if (!rest || rest.includes('/')) return null;
-      const sub = r.subs?.find((s) => s.slug === rest) ?? null;
-      return { def: r, sub, subSlug: rest };
+    if (p === r.path) return { def: r, sub: null, subSlug: null, placeSlug: null };
+    if (!p.startsWith(r.path + '/')) continue;
+    const rest = p.slice(r.path.length + 1);
+    if (!rest) return null;
+    const seg = rest.split('/');
+    if (r.subParam) {
+      const sub = r.subs?.find((s) => s.slug === seg[0]) ?? null;
+      if (seg.length === 1) return { def: r, sub, subSlug: seg[0], placeSlug: null };
+      // Ort nur hinter einem BEKANNTEN Sub-Slug, und nur ein einziges Segment.
+      if (seg.length === 2 && r.place && sub && PLACE_SLUG_RE.test(seg[1])) {
+        return { def: r, sub, subSlug: seg[0], placeSlug: seg[1] };
+      }
+      return null;
     }
+    if (r.place && seg.length === 1 && PLACE_SLUG_RE.test(seg[0])) {
+      return { def: r, sub: null, subSlug: null, placeSlug: seg[0] };
+    }
+    return null;
   }
   return null;
 }
@@ -465,7 +501,24 @@ export function verifyRoutes(): { checks: RouteCheck[]; passed: number; failed: 
   add('/wetterkarte/warnungen → /warnungen (kanonisch + Meta), Client normalisiert NICHT (kein Remount)', canonicalPath('/wetterkarte/warnungen') === '/warnungen' && normalizePath('/wetterkarte/warnungen') === null && metaForPath('/wetterkarte/warnungen').routeId === 'warnungen');
   add('Sub-Route wird erkannt', routeForPath('/wetterkarte/temperatur')?.sub?.slug === 'temperatur' && routeForPath('/atmosphaere/fliegen')?.sub?.slug === 'fliegen' && routeForPath('/waldbrand/aktive-braende')?.sub?.slug === 'aktive-braende');
   add('unbekannte Sub-Route bleibt auf der Route, aber noindex', routeForPath('/wetterkarte/xyz')?.sub === null && metaForPath('/wetterkarte/xyz').noindex);
-  add('unbekannter Pfad ⇒ null', routeForPath('/nope') === null && routeForPath('/wetterkarte/a/b') === null && routeForPath('/regenradar/x') === null);
+  add('unbekannter Pfad ⇒ null', routeForPath('/nope') === null && routeForPath('/wetterkarte/a/b') === null && routeForPath('/wetterkarte/wind/a/b') === null);
+  // --- SH1: Ort-Slug als letztes Segment -----------------------------------
+  add('[SH1] /wetterkarte/wind/muenchen ⇒ Layer wind + Ort muenchen',
+    (() => { const m = routeForPath('/wetterkarte/wind/muenchen'); return m?.sub?.slug === 'wind' && m.placeSlug === 'muenchen'; })());
+  add('[SH1] /regenradar/muenchen und /warnungen/muenchen tragen den Ort',
+    routeForPath('/regenradar/muenchen')?.placeSlug === 'muenchen' && routeForPath('/warnungen/muenchen')?.placeSlug === 'muenchen');
+  add('[SH1] Ort nur HINTER einem bekannten Layer — ein Tippfehler bleibt 404',
+    routeForPath('/wetterkarte/tempratur/muenchen') === null && routeForPath('/wetterkarte/tempratur')?.sub === null);
+  add('[SH1] kein Ortssegment auf Routen ohne place-Flag', routeForPath('/vorhersage/stuttgart') === null && routeForPath('/globus/x') === null);
+  add('[SH1] Ortssegment muss Slug-Form haben', routeForPath('/regenradar/M%C3%BCnchen') === null && routeForPath('/regenradar/a--b') === null);
+  add('[SH1] der Ort ist NIE kanonisch',
+    canonicalPath('/wetterkarte/wind/muenchen') === '/wetterkarte/wind' && canonicalPath('/regenradar/muenchen') === '/regenradar' && canonicalPath('/warnungen/muenchen') === '/warnungen');
+  add('[SH1] der Ort steht in KEINER Sitemap-Zeile', sitemapPaths().every((x) => x.path.split('/').filter(Boolean).length <= 2));
+  add('[SH1] Ortspfade erben Titel und Description ihrer Route/Sub-Route und sind nicht noindex',
+    metaForPath('/wetterkarte/wind/muenchen').title === metaForPath('/wetterkarte/wind').title
+    && !metaForPath('/wetterkarte/wind/muenchen').noindex && !metaForPath('/regenradar/muenchen').noindex);
+  add('[SH1] jede place-Route ist auch eine echte Route und hat keinen subParam-Konflikt',
+    ROUTES.filter((r) => r.place).map((r) => r.id).join(',') === 'wetterkarte,warnungen,regenradar');
   add('Sitemap enthält Top- und Sub-Routen ohne noindex (inkl. /validierung seit E3) und ohne /wetterkarte/warnungen', (() => { const s = sitemapPaths().map((p) => p.path); return s.includes('/regenradar') && s.includes('/wetterkarte/wind') && s.includes('/validierung') && !s.includes('/mobiletest') && !s.includes('/wetterkarte/warnungen') && s.includes('/warnungen'); })());
   add('Meta der Sub-Route gewinnt', metaForPath('/wetterkarte/wind').title === 'Windkarte DACH' && metaForPath('/wetterkarte').title === 'Interaktive Wetterkarte DACH');
   add('/tourenplanung/3d ist eine erkannte Sub-Route', routeForPath('/tourenplanung/3d')?.sub?.slug === '3d');

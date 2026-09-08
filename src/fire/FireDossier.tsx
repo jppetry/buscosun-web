@@ -1,19 +1,38 @@
 /**
- * BD2 — das Brand-Dossier in der Mitte des Brandradars (Vorlage `reference/brandradar-detail.dc.html`,
- * Variante 1a). Gliederung nach `audit/brand-detail.md` §2 D6:
+ * BD2 — das **Brand-Dossier** in der Mitte des Brandradars (Vorlage
+ * `reference/brandradar-detail.dc.html`, Variante 1a: Bühnenwechsel Karte ⇄ Dossier,
+ * Karte als Miniatur rechts).
  *
- *   Kopf → Kennzahlen (4er-Raster, je Wert mit Untertitel, darunter die Zeilen)
- *        → Verlauf (FirePassChart auf voller Panelbreite)
- *        → Wetterlage (Zusammenfassung + Kacheln, Quellenzeile)
- *        → Einordnung & Bestätigung (inkl. Ursache-Kasten)
- *        → Merkmale.
+ * Seit dem MUI-Umbau ist die Form MUI Material (`Card`/`Accordion`/`Alert`/`Table`), der
+ * INHALT unverändert: jede Zeile kommt aus den Bausteinen der Detailkarte
+ * (`FireFootprintPanel.tsx`) — dieselben Komponenten, die auch die Historie rendert.
+ * Diese Datei ist rein präsentational und hat KEINE eigene Fachaussage; wer hier einen
+ * Satz sucht, findet ihn im Panel. (Das prüft `verify:fire-detail`: das Dossier darf die
+ * Ursachen-Formel nicht selbst führen.)
  *
- * Rein präsentational und OHNE eigene Inhalte: jede Zeile kommt aus den Bausteinen der
- * Detailkarte (`FireFootprintPanel.tsx`) — dieselben Komponenten, die auch die Detailkarte
- * im Readout rendert. Konfidenz und Methode stehen hier (Vorlage) unter „Einordnung", in der
- * Detailkarte weiter unter „Kennzahlen" — sortiert, nicht gestrichen.
+ * Gliederung nach `audit/brand-detail.md` §2 D6 und `docs/konzept-brand-detail.md` §1.3:
+ *
+ *   Kopf → Kennzahlen (4er-Raster) → Faktenzeilen
+ *        → Verlauf (D1/D2) → Wetterlage → Wetterführung (D3/D4) → Satellitenbild
+ *        → [Standort & Anlage] → Einordnung & Bestätigung (inkl. Ursache) → Merkmale
+ *
+ * ── Drei Formen, ein Inhalt ──────────────────────────────────────────────────────────
+ *  • **Desktop** (`breakpoint: 'desktop'`): zweispaltiges Raster, Verlauf/Satellitenbild/
+ *    Einordnung/Merkmale über die volle Breite, `aside` als eigene Spalte im Rahmen.
+ *  • **Tablet**: dasselbe Raster, engere Maße, `aside` IM Raster.
+ *  • **Mobil**: eigener Screen, Kennzahlen 2×2, die Karten als `Accordion`-Stapel —
+ *    Verlauf und Wetterlage offen, der Rest zu. Zugeklappt heißt NICHT gestrichen:
+ *    offen wären es ≈ 4 500 px Scrolltiefe, und die Wetterführung allein ≈ 900 px.
  */
 import type { ReactNode } from 'react';
+import Box from '@mui/material/Box';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import Chip from '@mui/material/Chip';
+import Tooltip from '@mui/material/Tooltip';
+import Typography from '@mui/material/Typography';
+import Alert from '@mui/material/Alert';
+import AlertTitle from '@mui/material/AlertTitle';
 import type { FireRecord } from './footprint/fireRegistry';
 import { METHOD_LABEL, provisionalArea } from './footprint/fireRegistry';
 import { extentLabel } from './fireClusters';
@@ -26,18 +45,24 @@ import {
 } from './FireFootprintPanel';
 import { SatImageryBlock } from './FireSatImagery';
 import { satEnabled } from './detail/fireSatImagery';
+import {
+  DossierBreakpointProvider, DossierCard, DossierGrid, FactList, Overline,
+  type DossierBreakpoint,
+} from './dossier/DossierPrimitives';
 
 export interface FireDossierProps {
   r: FireRecord | null;
   nowMs: number;
   atContext?: AtWarnContext | null;
-  /** Tablet: Chart im 560er-Maß, zweispaltig mit `aside` in der zweiten Spalte. */
-  compact?: boolean;
-  /** Mobil: eine Spalte, Chart auf Sheet-Breite. */
-  mobile?: boolean;
+  /**
+   * Die Form des Dossiers. Ersetzt die früheren Schalter `compact`/`mobile`: mit zwei
+   * Booleans waren „Tablet" und „Mobil" gleichzeitig darstellbar (`compact && mobile`),
+   * obwohl es die Form nicht gibt. Ein Wert aus drei kann das nicht.
+   */
+  breakpoint?: DossierBreakpoint;
   /** Tablet/Mobil: Minikarte (und Legende) innerhalb des Dossier-Rasters; Desktop hat die Spalte rechts. */
   aside?: ReactNode;
-  /** Kopfzeile oberhalb (mobil: „← Brände" + Segment) — wird vor dem Kopf gerendert. */
+  /** Kopfzeile oberhalb (mobil: Kartenstreifen) — wird vor dem Kopf gerendert. */
   lead?: ReactNode;
   /**
    * BD3: zusätzliche Karten im Raster — die Standort-Angaben (`AnomalySiteCards`), wenn der
@@ -49,118 +74,147 @@ export interface FireDossierProps {
   detections?: readonly FirmsRow[] | null;
 }
 
-function Eyebrow({ children, tone }: { children: ReactNode; tone?: 'red' | 'steel' | 'stone' | 'warn' | 'terra' }) {
-  return <span className={`br-ds-eyebrow${tone ? ` is-${tone}` : ''}`}>{children}</span>;
-}
+/**
+ * OBERGRENZE der Chart-Breite je Form. Die tatsächliche Breite messen die Charts an ihrer
+ * Karte (MUI X, ResizeObserver) — feste Zahlen je Breakpoint waren eine zweite Quelle für
+ * eine Größe, die das Layout ohnehin bestimmt, und liefen auf dem Tablet über den Rand:
+ * mit Dock und Readout bleibt der Mitte dort nur ~440 px, nicht die spezifizierten 620.
+ */
+const CHART_MAX_WIDTH: Record<DossierBreakpoint, number> = { desktop: 720, tablet: 620, mobile: 420 };
 
-export function FireDossier({ r, nowMs, atContext = null, compact = false, mobile = false, aside, lead, extra, detections = null }: FireDossierProps) {
+export function FireDossier({ r, nowMs, atContext = null, breakpoint = 'desktop', aside, lead, extra, detections = null }: FireDossierProps) {
+  const bp = breakpoint;
+  const mobile = bp === 'mobile';
+  const width = CHART_MAX_WIDTH[bp];
+
   if (!r) {
     return (
-      <section className="br-ds is-empty" aria-label="Brand-Dossier">
-        {lead}
-        <div className="br-ds-card br-ds-emptycard">
-          <Eyebrow tone="red">Dossier</Eyebrow>
-          <p className="br-ds-emptytext">
-            <strong>Kein Brand markiert.</strong> Ein Klick auf einen Brand in der Registry{mobile ? '' : ' links'} oder auf der Karte öffnet hier sein Dossier —
-            Kennzahlen, Verlauf je Überflug, Wetterlage am Brandort, Einordnung und Merkmale.
-          </p>
-        </div>
-        {aside}
-      </section>
+      <DossierBreakpointProvider value={bp}>
+        <Box component="section" className="br-ds is-empty" aria-label="Brand-Dossier" sx={{ display: 'flex', flexDirection: 'column', gap: mobile ? '10px' : '14px' }}>
+          {lead}
+          <Card component="div">
+            <CardContent sx={{ p: '22px 24px !important' }}>
+              <Overline tone="red">Dossier</Overline>
+              <Typography variant="body1" sx={{ mt: 1, fontSize: 14, lineHeight: 1.55, color: 'text.secondary' }}>
+                <Box component="strong" sx={{ color: 'text.primary' }}>Kein Brand markiert.</Box> Ein Klick auf einen Brand in der Registry{mobile ? '' : ' links'} oder auf der Karte öffnet hier sein Dossier —
+                Kennzahlen, Verlauf je Überflug, Wetterlage am Brandort, Einordnung und Merkmale.
+              </Typography>
+            </CardContent>
+          </Card>
+          {aside}
+        </Box>
+      </DossierBreakpointProvider>
     );
   }
+
   return (
-    <section className={`br-ds${compact ? ' is-compact' : ''}${mobile ? ' is-mobile' : ''}`} aria-label={`Dossier ${recordTitle(r)}`}>
-      {lead}
-      <header className="br-ds-card br-ds-head">
-        <div className="br-ds-headrow">
-          <div className="br-ds-headtx">
-            <h2 className="br-ds-title">{recordName(r)} <Badge r={r} /></h2>
-            <p className="br-ds-sub"><DetailSubline r={r} /></p>
-          </div>
-          <div className="br-ds-chips" aria-label="Methode und Bewertung">
-            {r.method.map((m) => <span key={m} className={`fire-fp-src is-${m}`}>{METHOD_LABEL[m]}</span>)}
-            {r.confidence.assessment && (
-              <span className={`fire-fp-assess is-${r.confidence.assessment}`} title={r.confidence.reasons.join(' · ')}>
-                {LEVEL_LABEL[r.confidence.assessment]}
-              </span>
+    <DossierBreakpointProvider value={bp}>
+      <Box
+        component="section"
+        className={`br-ds${bp === 'tablet' ? ' is-compact' : ''}${mobile ? ' is-mobile' : ''}`}
+        aria-label={`Dossier ${recordTitle(r)}`}
+        sx={{ display: 'flex', flexDirection: 'column', gap: mobile ? '10px' : bp === 'tablet' ? '12px' : '14px' }}
+      >
+        {lead}
+
+        <Card component="header" className="br-ds-head">
+          <CardContent>
+            {/* Mobil trägt die App-Leiste Titel, Abzeichen und Region — hier wären sie doppelt. */}
+            {!mobile && (
+              <Box sx={{ display: 'flex', flexDirection: 'row', gap: 2, alignItems: 'flex-start', mb: 2.25 }}>
+                <Box sx={{ flex: '1 1 auto', minWidth: 0 }}>
+                  <Typography variant="h5" component="h2" sx={{ display: 'flex', alignItems: 'center', gap: 1.25, flexWrap: 'wrap' }}>
+                    {recordName(r)} <Badge r={r} />
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      mt: 0.75, color: 'text.secondary', overflowWrap: 'anywhere', fontSize: 13,
+                      // Die Kennung bleibt als Code-Chip erkennbar (Vorlage 1a) — sie ist eine
+                      // Kennung, kein Fließtext, und wird zum Kopieren angesehen.
+                      '& code': { fontSize: 12, bgcolor: '#EDE6D3', borderRadius: '5px', px: '6px', py: '1px' },
+                    }}
+                  >
+                    <DetailSubline r={r} />
+                  </Typography>
+                </Box>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, justifyContent: 'flex-end', flex: '0 0 auto', maxWidth: '40%' }} aria-label="Methode und Bewertung">
+                  {r.method.map((m) => <Chip key={m} size="small" variant="outlined" label={METHOD_LABEL[m]} />)}
+                  {r.confidence.assessment && (
+                    <Tooltip title={r.confidence.reasons.join(' · ')}>
+                      <Chip size="small" variant="outlined" label={LEVEL_LABEL[r.confidence.assessment]} />
+                    </Tooltip>
+                  )}
+                </Box>
+              </Box>
             )}
-          </div>
-        </div>
-        <RecordStats r={r} nowMs={nowMs} wide />
-        <dl className="fire-fp-dl br-ds-dl">
-          <DetailKennzahlenRows r={r} nowMs={nowMs} />
-          <DetailFrpRows r={r} />
-        </dl>
-      </header>
 
-      <div className="br-ds-grid">
-        <section className="br-ds-card br-ds-verlauf" aria-label="Verlauf">
-          <div className="br-ds-cardhead">
-            <Eyebrow tone="red">Verlauf</Eyebrow>
-            <span className="br-ds-cardsub">ΣFRP je Überflug · log-Achse · Lücken &gt; 6 h schraffiert</span>
-          </div>
-          {/* 360 Einheiten in der Desktop-Spalte (BD2d: die Mitte ist schmaler, die Sidebars bleiben), 420 auf dem Tablet, 340 auf Sheet-Breite — 12-px-Schrift rendert überall ≈ 12 px. */}
-          <DetailVerlauf r={r} nowMs={nowMs} wide wideWidth={mobile ? 340 : compact ? 420 : 360} />
-        </section>
+            <RecordStats r={r} nowMs={nowMs} wide />
 
-        <section className="br-ds-card is-steel br-ds-wetter" aria-label="Wetterlage am Brandort">
-          <div className="br-ds-cardhead">
-            <Eyebrow tone="steel">Wetterlage am Brandort</Eyebrow>
-          </div>
-          <WeatherBlock r={r} nowMs={nowMs} />
-        </section>
+            <FactList>
+              <DetailKennzahlenRows r={r} nowMs={nowMs} />
+              <DetailFrpRows r={r} />
+            </FactList>
+          </CardContent>
+        </Card>
 
-        {/* BDE-C: die Wetterführung im Brandzeitfenster — Einstufung, Windrose, Zeitreihe.
-            Eigene Karte, weil sie etwas anderes sagt als die Wetterlage darüber: dort einzelne
-            Zeitpunkte, hier der Verlauf und was er für das Feuer bedeutet (abgeleitet). */}
-        <section className="br-ds-card br-ds-drv" aria-label="Wetterführung im Brandzeitfenster">
-          <div className="br-ds-cardhead">
-            <Eyebrow tone="terra">Wetterführung</Eyebrow>
-            <span className="br-ds-cardsub">Im Brandzeitfenster · abgeleitet, keine Messung</span>
-          </div>
-          <DriversBlock r={r} nowMs={nowMs} width={mobile ? 330 : compact ? 420 : 360} />
-        </section>
+        <DossierGrid>
+          <DossierCard
+            title="Verlauf" tone="red" label="Verlauf" defaultExpanded
+            subtitle="ΣFRP je Überflug · log-Achse · Lücken > 6 h schraffiert"
+            className="br-ds-verlauf"
+          >
+            <DetailVerlauf r={r} nowMs={nowMs} wide wideWidth={width} />
+          </DossierCard>
 
-        {/* SAT1: der Brand im Satellitenbild — vorher, während, nachher (wenn die Wolken es zulassen). */}
-        {satEnabled() && (
-          <section className="br-ds-card br-ds-satbild" aria-label="Satellitenbild vorher, während und nachher">
-            <div className="br-ds-cardhead">
-              <Eyebrow tone="stone">Satellitenbild</Eyebrow>
-              <span className="br-ds-cardsub">Vorher · während · nachher — wenn die Wolken es zulassen</span>
-            </div>
-            <SatImageryBlock t={{ lat: r.lat, lon: r.lon, bbox: r.bbox, firstMs: r.firstMs, lastMs: r.lastMs, detections }} nowMs={nowMs} />
-          </section>
-        )}
+          <DossierCard title="Wetterlage am Brandort" tone="steel" label="Wetterlage am Brandort" defaultExpanded className="br-ds-wetter">
+            <WeatherBlock r={r} nowMs={nowMs} />
+          </DossierCard>
 
-        {extra}
+          {/* BDE-C: die Wetterführung im Brandzeitfenster — Einstufung, Windrose, Zeitreihe.
+              Eigene Karte, weil sie etwas anderes sagt als die Wetterlage darüber: dort einzelne
+              Zeitpunkte, hier der Verlauf und was er für das Feuer bedeutet (abgeleitet). */}
+          <DossierCard
+            title="Wetterführung" tone="terra" label="Wetterführung im Brandzeitfenster"
+            subtitle="Im Brandzeitfenster · abgeleitet, keine Messung"
+            className="br-ds-drv"
+          >
+            <DriversBlock r={r} nowMs={nowMs} width={width} />
+          </DossierCard>
 
-        {aside && <div className="br-ds-aside">{aside}</div>}
+          {/* SAT1: der Brand im Satellitenbild — vorher, während, nachher (wenn die Wolken es zulassen). */}
+          {satEnabled() && (
+            <DossierCard
+              title="Satellitenbild" tone="stone" label="Satellitenbild vorher, während und nachher"
+              subtitle="Vorher · während · nachher — wenn die Wolken es zulassen"
+              className="br-ds-satbild"
+            >
+              <SatImageryBlock t={{ lat: r.lat, lon: r.lon, bbox: r.bbox, firstMs: r.firstMs, lastMs: r.lastMs, detections }} nowMs={nowMs} />
+            </DossierCard>
+          )}
 
-        <section className="br-ds-card br-ds-einordnung" aria-label="Einordnung und Bestätigung">
-          <div className="br-ds-cardhead">
-            <Eyebrow tone="stone">Einordnung &amp; Bestätigung</Eyebrow>
-          </div>
-          <dl className="fire-fp-dl br-ds-dl">
-            <DetailConfidenceRows r={r} />
-            <DetailEinordnungRows r={r} atContext={atContext} />
-          </dl>
-          <div className="br-ds-cause">
-            <Eyebrow tone="warn">Ursache</Eyebrow>
-            <p className="br-ds-causetext"><CauseText r={r} /></p>
-          </div>
-        </section>
+          {extra}
 
-        <section className="br-ds-card br-ds-merkmale" aria-label="Merkmale">
-          <div className="br-ds-cardhead">
-            <Eyebrow tone="stone">Merkmale</Eyebrow>
-          </div>
-          <dl className="fire-fp-dl br-ds-dl is-features">
+          {aside && <Box className="br-ds-aside" sx={{ display: 'flex', flexDirection: 'column', gap: mobile ? '10px' : '12px' }}>{aside}</Box>}
+
+          <DossierCard title="Einordnung & Bestätigung" tone="stone" label="Einordnung und Bestätigung" className="br-ds-einordnung">
+            <FactList dense>
+              <DetailConfidenceRows r={r} />
+              <DetailEinordnungRows r={r} atContext={atContext} />
+            </FactList>
+            {/* Die wichtigste Ehrlichkeitszeile der Seite bekommt einen Rahmen. */}
+            <Alert severity="warning" variant="outlined" icon={false} className="br-ds-cause" sx={{ mt: 1.75 }}>
+              <AlertTitle>Ursache</AlertTitle>
+              <CauseText r={r} />
+            </Alert>
+          </DossierCard>
+
+          <DossierCard title="Merkmale" tone="stone" label="Merkmale" className="br-ds-merkmale">
             <FeaturesRow r={r} nowMs={nowMs} />
-          </dl>
-        </section>
-      </div>
-    </section>
+          </DossierCard>
+        </DossierGrid>
+      </Box>
+    </DossierBreakpointProvider>
   );
 }
 
@@ -168,8 +222,9 @@ export function FireDossier({ r, nowMs, atContext = null, compact = false, mobil
 export function DossierMapNote({ r, fromRegistry }: { r: FireRecord; fromRegistry: boolean }) {
   const prov = provisionalArea(r);
   return (
-    <p className="br-ds-mapnote">
-      {r.sources.cluster && <strong>{extentLabel(r.sources.cluster)} Ausdehnung der Detektionen. </strong>}
+    <Typography variant="caption" component="p" className="br-ds-mapnote" sx={{ m: 0, lineHeight: 1.5 }}>
+      {/* Die Kartennotiz sagt, WAS gezeichnet ist — Kartierung, Detektionsraster oder nur der Ort. */}
+      {r.sources.cluster && <Box component="strong" sx={{ display: 'block', color: 'text.primary', fontWeight: 600, fontSize: 13 }}>{extentLabel(r.sources.cluster)} Ausdehnung der Detektionen.</Box>}
       {prov
         ? prov.note
         : r.areaHa.kind === 'mapped'
@@ -178,19 +233,41 @@ export function DossierMapNote({ r, fromRegistry }: { r: FireRecord; fromRegistr
             ? 'Gezeichnet ist das Detektionsraster (Satellitenabdeckung), keine Brandfläche.'
             : 'Keine Fläche — nur der Ort der Detektionen.'}
       {!fromRegistry && ' Der Brandflächen-Layer ist aus; gezeigt wird der umschließende Kasten.'}
-    </p>
+    </Typography>
   );
 }
 
 /** Legende · Detektion — die drei Zeilen der Vorlage, Farben aus den Tokens. */
 export function DossierLegend() {
   return (
-    <div className="br-ds-card br-ds-legend">
-      <Eyebrow tone="stone">Legende · Detektion</Eyebrow>
-      <span className="br-legend-dot"><i style={{ background: 'var(--br-det)' }} />Detektion im Fenster</span>
-      <span className="br-legend-dot"><i style={{ background: 'var(--br-grey-dot)' }} />ortsfest (grau)</span>
-      <span className="br-legend-dot"><i className="is-mark" />markierter Brand</span>
-      <span className="br-legend-derived">Farben abgeleitet — nicht amtlich</span>
-    </div>
+    <Card className="br-ds-legend">
+      <CardContent sx={{ p: '14px !important', display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <Overline tone="stone">Legende · Detektion</Overline>
+        <LegendRow color="fire.detection">Detektion im Fenster</LegendRow>
+        <LegendRow color="fire.static">ortsfest (grau)</LegendRow>
+        <LegendRow outline>markierter Brand</LegendRow>
+        {/* Die Farben sind abgeleitet, nicht amtlich — das steht an der Legende, nicht im Impressum. */}
+        <Typography variant="caption" component="span" sx={{ fontSize: 12 }}>Farben abgeleitet — nicht amtlich</Typography>
+      </CardContent>
+    </Card>
+  );
+}
+
+function LegendRow({ color, outline = false, children }: { color?: string; outline?: boolean; children: ReactNode }) {
+  return (
+    <Typography variant="body2" component="span" sx={{ display: 'flex', alignItems: 'center', gap: 1, fontSize: 13, color: 'text.primary' }}>
+      <Box
+        component="i" aria-hidden="true"
+        sx={{
+          width: 11, height: 11, flex: '0 0 auto',
+          borderRadius: outline ? '2px' : '50%',
+          bgcolor: outline ? 'transparent' : color,
+          border: outline ? '2px solid' : 'none',
+          borderColor: outline ? 'fire.mark' : undefined,
+          boxSizing: 'border-box',
+        }}
+      />
+      {children}
+    </Typography>
   );
 }

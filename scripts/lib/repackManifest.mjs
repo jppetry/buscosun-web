@@ -121,13 +121,114 @@ export const FAMILY_KEYS = Object.freeze(Object.keys(FAMILIES));
 export const familiesOf = (manifest) => FAMILY_KEYS.filter((f) => FAMILIES[f].manifest === manifest);
 export const GRIB_FAMILIES = Object.freeze(familiesOf('grib'));
 
+/**
+ * Die Ref in der Bild-URL: `main` (LZ1/M2, audit/layer-ladezeit.md §4.2). Die
+ * Pfade unter `runs/<lauf>/` sind inhaltlich unveränderlich (ein Schritt wird
+ * genau einmal geschrieben, byte-gleich), deshalb darf die Branch-Ref sie
+ * nennen — und überlebt damit den Force-Push des nächsten Publish am CDN
+ * (24 h Edge-TTL), was die auf den Commit gepinnte URL nicht tat. Der Client
+ * (`urlRef` in repackSource.ts) spiegelt die Regel; `verify:repack` prüft die
+ * Gleichheit. Die gepinnte Form bleibt als Rückfall (404 direkt nach dem Push).
+ */
+export const URL_REF = 'main';
 /** URL einer Schritt-Datei. DIE Regel — nirgends sonst zusammensetzen. */
 export function stepUrl(section, file) {
-  return `${section.base}@${section.commit}/${section.path}/${file}`;
+  return `${section.base}@${URL_REF}/${section.path}/${file}`;
 }
 /** URL einer lauf-unabhängigen Datei (`hsurf`): ohne Lauf-Pfad. */
 export function repoUrl(section, file) {
+  return `${section.base}@${URL_REF}/${file}`;
+}
+/** Dieselben URLs, auf den Commit gepinnt (Rückfall; Warm-up beider Formen). */
+export function stepUrlPinned(section, file) {
+  return `${section.base}@${section.commit}/${section.path}/${file}`;
+}
+export function repoUrlPinned(section, file) {
   return `${section.base}@${section.commit}/${file}`;
+}
+
+/**
+ * LZ1/M1 (audit/layer-ladezeit.md §4.3, V-LZ-1): alle URLs, die ein Warm-up
+ * nach dem Publish einmal anfassen soll — Index, `hsurf`, jede Datei JEDER
+ * Familie des jüngsten Laufs. In beiden Formen: `@main` (der Client seit LZ1)
+ * und `@<commit>` (Clients mit altem Bundle, Rückfall). Reihenfolge: zuerst die
+ * Schritte, die ein Klick JETZT braucht (kleine Schrittnummern), dann der Rest.
+ */
+export function warmUrlsFor(index, { pinned = true } = {}) {
+  const runs = Array.isArray(index?.runs) ? index.runs : [];
+  const newest = runs[0];
+  if (!newest) return [];
+  const commit = index.commit;
+  const base = index.base ?? CDN_BASE;
+  const urls = [`${base}@${URL_REF}/index.json`];
+  const push = (rel) => {
+    urls.push(`${base}@${URL_REF}/${rel}`);
+    if (pinned && commit) urls.push(`${base}@${commit}/${rel}`);
+  };
+  if (typeof index.hsurf === 'string') push(index.hsurf);
+  const perStep = new Map();
+  for (const fam of FAMILY_KEYS) {
+    const sec = newest[fam];
+    if (!sec || !Array.isArray(sec.steps)) continue;
+    for (const s of sec.steps) {
+      if (!s || typeof s.file !== 'string') continue;
+      const k = Number.isInteger(s.step) ? s.step : 999;
+      if (!perStep.has(k)) perStep.set(k, []);
+      perStep.get(k).push(`${newest.path}/${s.file}`);
+    }
+  }
+  for (const k of [...perStep.keys()].sort((a, b) => a - b)) for (const rel of perStep.get(k)) push(rel);
+  return urls;
+}
+
+/** `Accept-Encoding` wie Chrome — jsDelivr hält je Kodierungsvariante einen
+ *  eigenen Cache-Eintrag (`Vary: Accept-Encoding`, V-LZ-10); ohne den Header
+ *  füllte das Warm-up eine Variante, die kein Browser liest. */
+export const WARM_ACCEPT_ENCODING = 'gzip, deflate, br, zstd';
+
+/**
+ * Fasst jede URL einmal an (Body wird gelesen, damit der Eintrag vollständig
+ * ist). Nie fatal: ein Fehler ist nur ein nicht gewärmter Eintrag. Gibt eine
+ * Zählung zurück (HIT/MISS/Fehler/ms), die der Publisher protokolliert.
+ * Ein 404 unter `@main` wird gepurgt, damit jsDelivr die Antwort nicht festhält
+ * (§28.9), und einmal wiederholt.
+ */
+export async function warmCdnFiles(urls, { concurrency = 8, timeoutMs = 25_000, fetchImpl = fetch, log = () => {} } = {}) {
+  const stat = { total: urls.length, ok: 0, hit: 0, miss: 0, notFound: 0, failed: 0, bytes: 0, ms: 0 };
+  const t0 = Date.now();
+  let next = 0;
+  const one = async (url, retry = true) => {
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), timeoutMs);
+    try {
+      const res = await fetchImpl(url, { headers: { 'accept-encoding': WARM_ACCEPT_ENCODING }, signal: ctl.signal });
+      const body = await res.arrayBuffer();
+      if (res.status === 404) {
+        stat.notFound++;
+        if (retry && url.includes(`@${URL_REF}/`)) {
+          try { await fetchImpl(purgeUrlOf(url), { signal: ctl.signal }); } catch { /* nur ein Versuch */ }
+          await new Promise((r) => setTimeout(r, 8_000));
+          return one(url, false);
+        }
+        return;
+      }
+      if (!res.ok) { stat.failed++; return; }
+      stat.ok++;
+      stat.bytes += body.byteLength;
+      const xc = (res.headers.get('x-cache') || '').toUpperCase();
+      if (xc.includes('HIT')) stat.hit++; else stat.miss++;
+    } catch (e) {
+      stat.failed++;
+      log(`  warm ${url.slice(-48)}: ${e?.name || e}`);
+    } finally {
+      clearTimeout(timer);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(concurrency, urls.length) }, async () => {
+    while (next < urls.length) await one(urls[next++]);
+  }));
+  stat.ms = Date.now() - t0;
+  return stat;
 }
 
 /**

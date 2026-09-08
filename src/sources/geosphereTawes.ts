@@ -134,7 +134,7 @@ export async function fetchTawesCurrentGrid(options: TawesOptions = {}): Promise
       lat: meta.lat,
       lng: meta.lon,
       elev: meta.altitude,
-      ...({ stationName: meta.name ?? meta.id } as { stationName: string }),
+      ...({ stationName: meta.name ?? meta.id, stationId: meta.id } as { stationName: string; stationId: string }),
     });
   }
 
@@ -147,4 +147,61 @@ export async function fetchTawesCurrentGrid(options: TawesOptions = {}): Promise
     points: [points],
     fetchedAt: Date.now(),
   };
+}
+
+const HISTORY_URL = 'https://dataset.api.hub.geosphere.at/v1/station/historical/tawes-v1-10min';
+
+/**
+ * Stündliche Messwerte der letzten `hours` Stunden für wenige Stationen — EIN
+ * Aufruf (GeoSphere: 5 req/s, 240 req/h je IP). Je Stundenboden der nächste
+ * 10-Minuten-Slot (≤ 10 min). Ergebnis: Stations-ID → (Stundenboden-ms → Punkt).
+ * Grundlage der Innovations-Persistenz des Stationsankers (`pointForecast/anchor.ts`).
+ */
+export async function fetchTawesHistory(
+  stationIds: string[],
+  hours: number,
+  signal?: AbortSignal,
+): Promise<Map<string, Map<number, ForecastHourPoint>>> {
+  const out = new Map<string, Map<number, ForecastHourPoint>>();
+  if (!stationIds.length || hours <= 0) return out;
+  const stations = await loadStationsList();
+  const metaById = new Map<string, StationMeta>();
+  for (const s of stations) metaById.set(s.id, s);
+  const nowMs = Date.now();
+  const endMs = Math.floor(nowMs / 3600_000) * 3600_000;
+  const startMs = endMs - hours * 3600_000;
+  const iso = (ms: number) => new Date(ms).toISOString().slice(0, 16);
+  const url = `${HISTORY_URL}?parameters=DD,FF,FFX,RF,RR,TL&station_ids=${stationIds.join(',')}&start=${iso(startMs)}&end=${iso(nowMs)}`;
+  const res = await fetch(url, { signal });
+  if (!res.ok) throw new Error(`TAWES history ${res.status}`);
+  const json = (await res.json()) as { timestamps?: string[]; features?: CurrentFeature[] };
+  const stamps = (json.timestamps ?? []).map((s) => Date.parse(s));
+  for (const f of json.features ?? []) {
+    const meta = metaById.get(f.properties.station);
+    if (!meta) continue;
+    const p = f.properties.parameters;
+    const byHour = new Map<number, ForecastHourPoint>();
+    for (let ms = startMs; ms < endMs; ms += 3600_000) {
+      let best = -1, bestDelta = Infinity;
+      for (let i = 0; i < stamps.length; i++) {
+        const d = Math.abs(stamps[i] - ms);
+        if (d < bestDelta) { bestDelta = d; best = i; }
+      }
+      if (best < 0 || bestDelta > 10 * 60_000) continue;
+      const at = (k: string): number | null => { const v = p[k]?.data?.[best]; return v != null && Number.isFinite(v) ? v : null; };
+      const dd = at('DD'), ff = at('FF');
+      let u: number | null = null, v: number | null = null;
+      if (ff != null && dd != null) { const rad = (dd * Math.PI) / 180; u = -ff * Math.sin(rad); v = -ff * Math.cos(rad); }
+      const rr = at('RR');
+      byHour.set(ms, {
+        temperature: at('TL'), u, v, gust: at('FFX'), relativeHumidity: at('RF'),
+        cloudLow: null, cloudMid: null, cloudHigh: null,
+        precipitation: rr != null ? rr * 6 : null,
+        model: 'tawes', lat: meta.lat, lng: meta.lon, elev: meta.altitude,
+        ...({ stationName: meta.name ?? meta.id, stationId: meta.id } as { stationName: string; stationId: string }),
+      });
+    }
+    out.set(meta.id, byHour);
+  }
+  return out;
 }

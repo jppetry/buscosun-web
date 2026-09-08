@@ -330,8 +330,13 @@ if (hsurfGreys.length >= 2) {
 
     const wUrl = RM.stepUrl(wSec, wSec.wind.steps[0].file);
     const hUrl = RM.repoUrl(tSec, tSec.temp.hsurf.url);
-    add('Schritt-URL enthält Commit UND Lauf',
-      wUrl.includes(`@${index.commit}/`) && wUrl.includes(`/${entry.run}/`), wUrl.slice(0, 96) + '…');
+    // LZ1/M2: die Ref ist `@main` (Lauf-Pfade sind unveränderlich, so überlebt
+    // die URL den Force-Push am CDN); der Commit steht nur noch in der
+    // gepinnten Rückfall-Form. Der LAUF steht in beiden.
+    add('Schritt-URL enthält Branch-Ref UND Lauf; die gepinnte Form den Commit UND Lauf',
+      wUrl.includes('@main/') && wUrl.includes(`/${entry.run}/`) && !wUrl.includes(index.commit)
+      && RM.stepUrlPinned(wSec, wSec.wind.steps[0].file).includes(`@${index.commit}/`)
+      && RM.stepUrlPinned(wSec, wSec.wind.steps[0].file).includes(`/${entry.run}/`), wUrl.slice(0, 96) + '…');
     // Das ist der sichtbare Beweis der Lauf-Unabhängigkeit: die Orographie
     // steht in der URL NICHT hinter einem Lauf. Landete sie doch dort, lüde
     // der Client sie bei jedem Laufwechsel neu — 64 KB × 8/Tag umsonst.
@@ -1586,6 +1591,143 @@ if (hsurfGreys.length >= 2) {
         (() => { const x = clone(); x.precip.steps = [{ ...x.precip.steps[1], ref: x.precip.steps[1].step }]; return RS.parseRepackSection(x, 'precip', entry.run) === null; })());
     }
   }
+}
+
+// ---------------------------------------------------------------------------
+// LZ1 (audit/layer-ladezeit.md §7): Ladezeit am Layer-Klick — M1 Warm-up,
+// M2 Index stale-while-revalidate + `@main`-Pfade, M3 Prefetch, M4 Fetch vor
+// dem Render. Attrappen wie oben (Browser-Fenster, zählender `fetch`) und
+// eine gestellte Uhr; die Fixtures kommen aus dem ECHTEN Publisher-Baum
+// (Lehre V-BW-51: synthetische Formen haben schon einmal getäuscht).
+// ---------------------------------------------------------------------------
+{
+  const { existsSync, readFileSync: rf } = await import('node:fs');
+  const { join } = await import('node:path');
+  const RM = await import('./lib/repackManifest.mjs');
+  const LT = await import('../src/sources/loadTuning.ts');
+  const LP = await import('../src/sources/layerPrefetch.ts');
+  add('LZ-Schalter ist default-on; `?lz=0` schlägt den Speicher in beide Richtungen; ohne DOM an',
+    LT.lzFlagFrom('', null) === true && LT.lzFlagFrom('?lz=0', '1') === false && LT.lzFlagFrom('?lz=1', '0') === true
+    && LT.lzFlagFrom('', '0') === false && LT.lzEnabled() === true);
+  add('Prefetch-Erlaubnis: keine Auskunft ⇒ ja; saveData ⇒ nein; 2g/3g ⇒ nein; 4g ⇒ ja',
+    LP.prefetchAllowed(undefined) && LP.prefetchAllowed(null) && !LP.prefetchAllowed({ saveData: true })
+    && !LP.prefetchAllowed({ effectiveType: '3g' }) && !LP.prefetchAllowed({ effectiveType: 'slow-2g' }) && LP.prefetchAllowed({ effectiveType: '4g' }));
+  add('Prefetch-Familien: Böen zuerst, nur Repack-Familien, kein Wind/Temp (die lädt die Karte selbst)',
+    LP.PREFETCH_FAMILIES[0] === 'gust' && LP.PREFETCH_FAMILIES.every((f) => f in RS.REPACK_FAMILIES)
+    && !LP.PREFETCH_FAMILIES.includes('wind') && !LP.PREFETCH_FAMILIES.includes('temp'));
+  add('Warm-up sendet Chromes `Accept-Encoding` (jsDelivr-Varianten, V-LZ-10)',
+    RM.WARM_ACCEPT_ENCODING === 'gzip, deflate, br, zstd');
+  add('Stale-Fenster des Index: 15 min (kleiner als der Publish-Takt 3 h, größer als das TTL 60 s)',
+    RS.INDEX_STALE_MAX_MS === 15 * 60_000 && RS.INDEX_STALE_MAX_MS > RS.INDEX_TTL_MS);
+
+  const WORK = process.env.REPACK_WORK || '.cache/repack-repo';
+  const indexPath = join(WORK, 'index.json');
+  if (existsSync(indexPath)) {
+    const index = JSON.parse(rf(indexPath, 'utf8'));
+    const e0 = index.runs[0];
+    const secRM = RM.pickForRun(index, e0.run, 'wind');
+    const secRS = RS.parseRepackSection(RS.sectionFromIndex(index, e0.run, 'wind'), 'wind', e0.run);
+    const wf = secRS?.wind?.steps?.[0]?.file;
+    if (secRS && wf) {
+      add('URL-Regel LZ1: Client == Publisher, Branch-Ref `@main`, Lauf-Pfad, kein Commit in der URL',
+        RS.stepUrl(secRS, wf) === RM.stepUrl(secRM, wf) && RS.stepUrl(secRS, wf) === `${index.base}@main/${e0.path}/${wf}`
+        && !RS.stepUrl(secRS, wf).includes(index.commit), RS.stepUrl(secRS, wf).slice(0, 96));
+      add('Gepinnte Rückfall-URL: Client == Publisher, trägt den Commit, sonst identisch',
+        RS.stepUrlPinned(secRS, wf) === RM.stepUrlPinned(secRM, wf) && RS.stepUrlPinned(secRS, wf) === `${index.base}@${index.commit}/${e0.path}/${wf}`
+        && (index.hsurf ? RS.repoUrlPinned(secRS, index.hsurf) === RM.repoUrlPinned(secRM, index.hsurf) && RS.repoUrl(secRS, index.hsurf) === `${index.base}@main/${index.hsurf}` : true));
+      // Warm-up-Liste
+      const files = RM.FAMILY_KEYS.reduce((n, f) => n + (Array.isArray(e0[f]?.steps) ? e0[f].steps.length : 0), 0);
+      const urls = RM.warmUrlsFor(index);
+      const main = urls.filter((u) => u.includes('@main/')), pinned = urls.filter((u) => u.includes(`@${index.commit}/`));
+      const stepOf = (u) => { const m = u.match(/-(\d{3})\.png$/); return m ? Number(m[1]) : -1; };
+      const order = main.filter((u) => /\.png$/.test(u) && u.includes(`${e0.path}/`)).map(stepOf);
+      add('Warm-up-Liste: Index zuerst, dann hsurf und JEDE Datei des jüngsten Laufs in beiden Formen, Schritte aufsteigend',
+        urls[0] === `${index.base}@main/index.json`
+        && main.length === 1 + (index.hsurf ? 1 : 0) + files && pinned.length === (index.hsurf ? 1 : 0) + files
+        && order.every((s, i) => i === 0 || s >= order[i - 1])
+        && RM.warmUrlsFor(index, { pinned: false }).length === main.length,
+        `${urls.length} URLs (${files} Dateien)`);
+      add('Warm-up-Liste ohne Läufe ist leer, ohne Commit nur @main', RM.warmUrlsFor({ runs: [] }).length === 0
+        && RM.warmUrlsFor({ ...index, commit: undefined }).every((u) => u.includes('@main/')));
+      // Prefetch-Dateien: das Jetzt-Fenster einer Familie
+      const gSec = RS.parseRepackSection(RS.sectionFromIndex(index, e0.run, 'gust'), 'gust', e0.run);
+      if (gSec) {
+        const steps = gSec.gust.steps.map((s) => s.step);
+        const runAt = new Date(e0.runAt);
+        const nowMs = runAt.getTime() + 3.5 * 3_600_000;
+        const pf = LP.prefetchFilesFor(gSec, 'gust', steps, runAt, nowMs);
+        const f3 = gSec.gust.steps.find((s) => s.step === 3)?.file, f4 = gSec.gust.steps.find((s) => s.step === 4)?.file;
+        add('Prefetch holt genau das Jetzt-Fenster (Bracket 3/4 bei Lauf + 3,5 h) der Familie — beide Dateien im Abschnitt',
+          pf.length >= 1 && pf.length <= 2 && pf.every((f) => gSec.gust.steps.some((s) => s.file === f))
+          && (f3 && f4 ? pf.join(',') === `${f3},${f4}` : true), pf.join(','));
+        add('Prefetch für eine fremde Familie liefert nichts', LP.prefetchFilesFor(gSec, 'thunder', steps, runAt, nowMs).length === 0);
+      }
+      // ── M2: stale-while-revalidate am Index, mit gestellter Uhr ──
+      const hadWindow = 'window' in globalThis, realWindow = globalThis.window, realFetch = globalThis.fetch, realNow = Date.now;
+      const calls = [];
+      let clock = Date.parse(e0.runAt) + 2 * 3_600_000;   // 2 h nach dem Lauf: der Lauf ist gültig und jung
+      let served = index;
+      const wanted2 = secRS.wind.steps.slice(0, 2).map((x) => x.step);
+      globalThis.window = { location: { search: '' }, localStorage: null };
+      globalThis.fetch = async (url) => { calls.push(String(url)); return String(url) === RS.REPACK_INDEX_CDN_URL && served ? { ok: true, status: 200, json: async () => served } : { ok: false, status: 404, json: async () => null }; };
+      Date.now = () => clock;
+      const reset = () => { calls.length = 0; RS.resetRepackState(); RS.resetRepackIndexCache(); };
+      const tick = () => new Promise((r) => setTimeout(r, 0));
+      try {
+        reset();
+        const r1 = await RS.resolveRunFromRepackIndex('wind');
+        add('SWR: erster Aufruf holt den Index (1 Abruf) und nennt den jüngsten Lauf', calls.length === 1 && r1?.runStr === e0.run);
+        clock += 70_000;
+        const r2 = await RS.resolveRunFromRepackIndex('wind');
+        const ageAtClick = RS.repackIndexAgeMs();
+        add('SWR: 70 s später bedient der ALTE Index den Aufruf sofort (Alter 70 s), die Erneuerung läuft daneben (2. Abruf)',
+          calls.length === 2 && r2?.runStr === e0.run && ageAtClick === 70_000, `Alter ${ageAtClick} ms, ${calls.length} Abrufe`);
+        const s2 = await RS.resolveRepackSection(e0.run, 'wind', null, wanted2);
+        add('SWR: der Abschnitt zum Klick kommt aus DEMSELBEN alten Index — kein Zeiger, kein dritter Abruf',
+          calls.length === 2 && !!s2 && s2.commit === index.commit, `${calls.length} Abrufe`);
+        await tick(); await tick();
+        add('SWR: nach der Erneuerung ist der Index im Speicher frisch (Alter 0)', RS.repackIndexAgeMs() === 0);
+        clock += 16 * 60_000;
+        const r3 = await RS.resolveRunFromRepackIndex('wind');
+        add('SWR: jenseits von 15 min wird gewartet — der Abruf steht wieder vor dem Ergebnis (3. Abruf, Alter 0)',
+          calls.length === 3 && r3?.runStr === e0.run && RS.repackIndexAgeMs() === 0);
+        reset(); served = null;
+        const r4 = await RS.resolveRunFromRepackIndex('wind');
+        clock += 70_000; served = index;
+        const r5 = await RS.resolveRunFromRepackIndex('wind');
+        add('SWR: ein gescheiterter Abruf wird NICHT als alter Stand ausgegeben — nach dem TTL wird gewartet und der frische Stand gilt',
+          r4 === null && calls.length === 2 && r5?.runStr === e0.run && RS.repackIndexAgeMs() === 0);
+        reset(); globalThis.window = { location: { search: '?lz=0' }, localStorage: null };
+        await RS.resolveRunFromRepackIndex('wind');
+        clock += 70_000;
+        await RS.resolveRunFromRepackIndex('wind');
+        add('`?lz=0`: nach 60 s wird der Index wieder VOR dem Ergebnis geholt (Alter 0), und die Bild-URL ist auf den Commit gepinnt',
+          calls.length === 2 && RS.repackIndexAgeMs() === 0 && RS.stepUrl(secRS, wf) === RS.stepUrlPinned(secRS, wf));
+      } finally {
+        if (hadWindow) globalThis.window = realWindow; else delete globalThis.window;
+        globalThis.fetch = realFetch; Date.now = realNow;
+        RS.resetRepackState(); RS.resetRepackIndexCache();
+      }
+    }
+  } else {
+    add('LZ1: Publisher-Baum fehlt (REPACK_WORK) — URL-/SWR-Prüfungen übersprungen', true, indexPath);
+  }
+  // ── Quelltext-Verträge (wie die Publisher-Prüfungen oben) ──
+  const pubSrc = rf('scripts/publish-repack.mjs', 'utf8');
+  const iPurge = pubSrc.lastIndexOf('purgeIndexUntilFresh({ commit: dataSha, firstWaitMs: 0'), iWarm = pubSrc.indexOf('warmCdnFiles(');
+  add('Publisher wärmt den CDN NACH Push und Purge; `@main` nur bei frischem Zeiger; `REPACK_NO_WARM=1` lässt es aus',
+    iWarm > iPurge && pubSrc.includes("process.env.REPACK_NO_WARM !== '1'") && pubSrc.includes('ptr.fresh ? all :'));
+  const mv = rf('src/MapView.tsx', 'utf8');
+  const iToggle = mv.indexOf('function toggle(key: LayerKey)');
+  const body = mv.slice(iToggle, mv.indexOf('setActive(prev =>', iToggle));
+  add('M4: `toggle` startet den Installer VOR `setActive` (Böen/Gewitter/… über den Guard, Wind/Temp über ihre eigenen)',
+    iToggle > 0 && body.includes('startLazyInstall(key)') && body.includes('installWindRef.current?.()') && body.includes('installTempRef.current?.()'));
+  add('M4: die fünf Lazy-Effekte laufen durch denselben Guard (kein zweiter Abruf aus dem Effekt)',
+    ['gust', 'thunder', 'lightningfc', 'snow', 'rotation'].every((k) => mv.includes(`if (active.has('${k}')) startLazyInstall('${k}');`))
+    && !mv.includes('!iconD2GustRef.current) void installGustRef.current?.()'));
+  add('M3: Prefetch hängt am ersten Bild des Hero-Layers, läuft einmal je Mount, nie eingebettet, im Leerlauf',
+    mv.includes('prefetchNowLayers(skip, abort.signal)') && mv.includes('if (prefetchDoneRef.current || embedded || !lzEnabled()) return;')
+    && mv.includes('requestIdleCallback(run, { timeout: 4000 })'));
 }
 
 // ---------------------------------------------------------------------------

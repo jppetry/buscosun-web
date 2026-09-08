@@ -122,7 +122,7 @@ add('FirePage: beide 12-UTC-Anker laufen über frameAtValidTime (keine handgerol
   && (page.match(/frameAtValidTime\(/g) ?? []).length >= 2
   && !/Math\.abs\(f\.validAt\.getTime\(\)\s*-\s*zielMs\)/.test(page));
 add('FirePage: die Einheit kommt aus timeUnit (erzwungen > gewählt > Tage), nicht aus einem lokalen Flag',
-  /timeUnit\(time,\s*activeList\)/.test(page) && /hasTimeSlider\(activeList,\s*unit\)/.test(page));
+  /timeUnit\(time,\s*activeList\)/.test(page));
 add('FirePage: Tages-Layer zeigen auf der Stundenachse den Kalendertag von jetzt + h (dayOfHour)',
   /dayOfHour\(time\.hour,\s*nowMs\)/.test(page)
   && /setCommittedDay\(dayForLayers\)/.test(page));
@@ -152,17 +152,22 @@ add('FirePage: Permalink schreibt h nur auf der Stundenachse',
 add('FirePage: Abspielen läuft in der geltenden Einheit (stepPlayback einheitenfrei, Stunden/s)',
   /stepPlayback\(posRef\.current,\s*dt,\s*unitsPerSecond,\s*sliderMax\)/.test(page)
   && /hoursPerSecondForTier\(tier\)/.test(page));
-add('FirePage: der Einheiten-Umschalter hängt an hourlyAvailable && !hourlyForced',
-  /hourlyAvailable\(activeList\)\s*&&\s*!hourlyForced\(activeList\)/.test(page));
+// 2026-09-05 (Jans Auftrag): der Zeit-Regler (Tage/Stunden-Umschalter, Play/Pause,
+// Schieberegler mit Ticks) ist ersatzlos entfernt — der einzige verbliebene
+// Zeit-Zugriff der Karte ist das Rückblick-Fenster (24 h / 7 d / Monat / Saison),
+// oben rechts über der Karte. `hourlyAvailable`/`hourlyForced` bleiben in
+// `fireTime.ts` exportiert und eingebettet selbstverifiziert (oben), werden aber
+// von FirePage.tsx nicht mehr aufgerufen — das interne Zeitmodell (WB1–WB5)
+// bleibt unverändert, `pos` steht nur dauerhaft auf 0.
+add('FirePage: der Einheiten-Umschalter ist entfernt (kein hourlyAvailable/hourlyForced-Aufruf mehr)',
+  !/hourlyAvailable\(activeList\)/.test(page) && !/hourlyForced\(activeList\)/.test(page));
 add('FirePage: Lag-Texte kennen beide Regler (Tages-/Stundenregler) und den Tageswert',
   /folgt dem Stundenregler nicht/.test(page) && /folgt dem Tagesregler nicht/.test(page)
   && /Tageswert · gilt für/.test(page));
-// Mobil: der Umschalter wird zur eigenen Zeile mit 44-px-Knöpfen (mobile-design-guidelines §3).
+// Mit dem Einheiten-Umschalter ist auch seine Mobil-Zeile (.br-td-unit) entfallen.
 const css = readFileSync(join(ROOT, 'src', 'fire', 'fireDeck.css'), 'utf8');
-const mobileBlock = css.slice(css.indexOf('@media (max-width: 767px)'));
-// Brandradar Command-Deck (2026-08-22): Klassen .br-td-unit / .br-close.
-add('fireDeck.css: Einheiten-Umschalter mobil ≥ 44 px',
-  /\.br-td-unit button\s*\{[^}]*min-height:\s*44px/.test(mobileBlock));
+add('fireDeck.css: der Einheiten-Umschalter (.br-td-unit) ist restlos raus',
+  !/\.br-td-unit\b/.test(css));
 
 // --- (5) Der Rückzug von Feuerwetter + Ausbreitung (2026-08-23) --------------
 // Jans Auftrag, ausdrückliche Ausnahme vom Funktionserhalt: der Producer

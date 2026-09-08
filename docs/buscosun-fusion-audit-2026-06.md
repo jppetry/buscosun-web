@@ -77,6 +77,23 @@ Neuer Adapter `src/pointForecast/gfsPoint.ts` + Einbindung in `getPointForecast`
   hat nur 50 perturbierte Member (kein Kontroll-/Mittelwert) und nutzt CCSDS/AEC-
   Packing (DRT 42), das der vorhandene Decoder nicht liest. 50-Member-Mittel +
   AEC-Decoder im Browser = unpraktikabel.
+
+  > ⚠️ **Teilkorrektur 2026-09-05** (Phase PV0, `audit/punktvorhersage-14tage/`):
+  > Zwei der drei Begründungen sind überholt, eine ist bestätigt und quantifiziert.
+  > **Überholt:** (a) Der AEC-Decoder (DRT 42) existiert seit 2026-06 im Repo
+  > (`src/sources/gribDecode.ts`, D-07) — ECMWF ist lesbar. (b) `.index`-Sidecars
+  > erlauben Byte-Range je Feld; der Adapter `src/sources/ecmwfIfsSource.ts` nutzt das
+  > bereits für IFS, AIFS-single und AIFS-ENS-cf. Zusätzlich neu: das AWS-Open-Data-Bucket
+  > `ecmwf-forecasts` hält die Läufe **ab 2023-01-18** vor (gemessen 2026-09-05), womit ein
+  > mehrjähriger ECMWF-Hindcast ohne Eigenarchiv möglich ist. ECMWF Open Data ist
+  > **CC-BY-4.0 + ECMWF ToU, Weitergabe und kommerzielle Nutzung ausdrücklich erlaubt**
+  > (ecmwf.int, 2026-09-05).
+  > **Bestätigt und jetzt beziffert:** `enfo-ef` enthält am Schritt 0 **und** 24 ausschließlich
+  > `type: pf` mit 50 Membern — **kein Kontrolllauf**. Und der eigentliche Ausschlussgrund ist
+  > nicht das Decodieren, sondern das Volumen: `2t` je Member ≈ 0,65 MB ⇒ **~197 GB je Lauf**
+  > für 7 Variablen × 51 Member × 85 Schritte. Ein clientseitiges ENS bleibt damit
+  > ausgeschlossen; der Weg führt über einen Actions-Batch (GEFS-Mittel+Spread ≈ 191 MB/Lauf)
+  > und ein statisches Quantil-Artefakt.
 - **Runtime-verifiziert** (isolierter Chromium → Vite-Import → echte Abfrage,
   Frankfurt, hours 336): Zeitachse 336 h, Quellen enthalten `gfs`, Schwanz mit
   Temperatur/Wind/Niederschlag gefüllt, Konfidenz bei Lead 312 h ehrlich niedrig

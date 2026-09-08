@@ -137,13 +137,6 @@
 .br-topdiv { width: 1px; height: 26px; background: var(--sand-200, #E0D6BE); flex: 0 0 auto; }
 .br-topbar-sub { font-size: 13px; color: var(--stone-500, #8B7355); font-weight: 500; }
 .br-topback { margin: 0; font-size: 12px; }
-.br-presets { display: flex; gap: 4px; margin-left: 8px; background: #fff; border: 1px solid var(--border-medium, #D9D0B8); border-radius: 9px; padding: 3px; }
-.br-presets button {
-  border: 0; background: transparent; cursor: pointer; font: inherit;
-  font-size: 12px; font-weight: 500; color: var(--stone-500, #8B7355); border-radius: 6px; padding: 6px 12px;
-}
-.br-presets button.is-active { font-weight: 600; color: var(--cream-50, #FAF6EA); background: var(--br-red); }
-.br-presets button:not(.is-active):hover { color: var(--ink-900, #2C2A26); }
 .br-topbar-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
 .br-topbar-map { font-size: 11px; color: var(--stone-500, #8B7355); }
 .br-topbar-map strong { color: var(--ink-900, #2C2A26); font-weight: 600; }
@@ -319,38 +312,14 @@
 .br-pc-src { margin: 6px 0 0; font-size: 9.5px; color: var(--stone-400, #A89A7A); }
 .br-pc .br-box.is-gap { margin: 8px 0 0; }
 
-/* --- Zeit-Deck ------------------------------------------------------------ */
-.br-timedeck {
-  position: absolute; left: 16px; right: 16px; bottom: 16px; z-index: 6;
-  background: var(--br-glass-strong); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-  border: 1px solid var(--sand-200, #E0D6BE); border-radius: 14px; padding: 13px 18px;
+/* --- Rückblick-Fenster (2026-09-05: einziger verbliebener Zeit-Zugriff, der
+   Zeit-Regler mit Play/Pause/Tage-Stunden-Umschalter/Schieberegler ist entfallen) */
+.br-td-window-text {
+  font-size: 10.5px; color: var(--stone-500, #8B7355); display: inline-flex; align-items: center;
+  padding: 8px 13px; border-radius: 10px; background: var(--br-glass); backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px); border: 1px solid var(--sand-200, #E0D6BE);
 }
-.br-td-row { display: flex; align-items: center; gap: 16px; }
-.br-play {
-  width: 36px; height: 36px; border-radius: 9px; border: 0; background: var(--br-red); color: var(--cream-50, #FAF6EA);
-  display: flex; align-items: center; justify-content: center; cursor: pointer; flex: 0 0 auto;
-}
-.br-play:hover { background: #8F2419; }
-.br-play:disabled { opacity: .45; cursor: default; }
-.br-track { flex: 1; min-width: 0; }
-.br-ticks { display: flex; justify-content: space-between; font-size: 11px; color: var(--stone-400, #A89A7A); font-weight: 500; margin-bottom: 7px; }
-.br-tick { border: 0; background: none; padding: 0; cursor: pointer; font: inherit; font-size: 11px; font-weight: 500; color: var(--stone-400, #A89A7A); }
-.br-tick:hover { color: var(--ink-900, #2C2A26); }
-.br-tick.is-active { color: var(--br-red); font-weight: 600; }
-.br-track input[type='range'] { width: 100%; height: 18px; margin: 0; appearance: none; -webkit-appearance: none; background: transparent; cursor: pointer; display: block; }
-.br-track input[type='range']::-webkit-slider-runnable-track {
-  height: 8px; border-radius: 4px;
-  background: linear-gradient(90deg, var(--br-red) 0 var(--tl-fill, 0%), var(--sand-200, #E0D6BE) var(--tl-fill, 0%) 100%);
-}
-.br-track input[type='range']::-webkit-slider-thumb {
-  -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%;
-  background: var(--br-red); border: 4px solid var(--cream-50, #FAF6EA); box-shadow: 0 2px 6px rgba(0,0,0,.2); margin-top: -5px;
-}
-.br-track input[type='range']::-moz-range-track { height: 8px; border-radius: 4px; background: var(--sand-200, #E0D6BE); }
-.br-track input[type='range']::-moz-range-progress { height: 8px; border-radius: 4px; background: var(--br-red); }
-.br-track input[type='range']::-moz-range-thumb { width: 10px; height: 10px; border-radius: 50%; background: var(--br-red); border: 4px solid var(--cream-50, #FAF6EA); box-shadow: 0 2px 6px rgba(0,0,0,.2); }
-.br-time-none { flex: 1; margin: 0; font-size: 12px; color: var(--stone-600, #5C5447); line-height: 1.5; }
-.br-td-window-text { font-size: 10.5px; color: var(--stone-500, #8B7355); }
+.br-map-tr .br-seg { background: var(--br-glass); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
 .br-legend { display: flex; align-items: center; gap: 16px; margin-top: 11px; padding-top: 11px; border-top: 1px solid var(--sand-200, #E0D6BE); flex-wrap: wrap; }
 .br-legend-classes { display: flex; align-items: center; }
 .br-legend-cls { display: flex; align-items: center; gap: 5px; padding-right: 9px; font-size: 10.5px; color: var(--stone-600, #5C5447); }
@@ -364,13 +333,6 @@
 .br-legend-stand { font-size: 10.5px; color: var(--stone-500, #8B7355); font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .br-legend-derived { font-size: 10px; color: var(--stone-400, #A89A7A); margin-left: auto; }
 .br-td-pending { color: var(--br-red); font-style: italic; }
-/* B2 — Brände-Modus: kompakte Zeile (32-px-Play, 6-px-Spur, Rückblick als Text). */
-.br-timedeck.is-compact { padding: 11px 15px; border-radius: 12px; left: 14px; right: 14px; bottom: 14px; }
-.br-timedeck.is-compact .br-td-row { gap: 14px; }
-.br-timedeck.is-compact .br-play { width: 32px; height: 32px; border-radius: 8px; }
-.br-timedeck.is-compact .br-ticks { font-size: 10px; margin-bottom: 6px; }
-.br-timedeck.is-compact .br-track input[type='range']::-webkit-slider-runnable-track { height: 6px; }
-.br-timedeck.is-compact .br-track input[type='range']::-webkit-slider-thumb { width: 15px; height: 15px; border: 3px solid var(--cream-50, #FAF6EA); margin-top: -4.5px; }
 
 /* --- Readout (340 px) ----------------------------------------------------- */
 /* 2026-08-25 (Jans Auftrag): Readout breiter, Karte gibt ab — 340 → 400 px im
@@ -632,7 +594,7 @@
 .fire-pop-lc b { font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
 
 /* --- Mobil-only-Bausteine (ausgeblendet auf Desktop/Tablet) ---------------- */
-.br-m-maprow, .br-bar, .br-m-page, .br-presets-big, .br-mcard, .br-m-basemap { display: none; }
+.br-m-maprow, .br-bar, .br-m-page, .br-mcard, .br-m-basemap { display: none; }
 
 /* ==========================================================================
    Tablet 768–1439 px (Vorlage B3): Topbar 54, Rail 54, Dock 214, Readout 266.
@@ -640,8 +602,6 @@
 @media (max-width: 1439px) and (min-width: 768px) {
   .br-topbar { height: 54px; gap: 14px; padding: 0 16px; }
   .br-brand-name { font-size: 17px; }
-  .br-presets { margin-left: 0; border-radius: 8px; gap: 3px; }
-  .br-presets button { font-size: 11.5px; padding: 5px 10px; border-radius: 5px; }
   .br-live { gap: 7px; letter-spacing: 1px; }
   .br-live-dot { width: 7px; height: 7px; }
   .br-rail { width: 54px; padding: 12px 0; }
@@ -672,16 +632,8 @@
   .br-views { max-width: 330px; border-radius: 9px; }
   .br-views button { font-size: 11px; padding: 5px 9px; border-radius: 6px; }
   .br-basemap button { font-size: 11px; padding: 5px 9px; }
-  .br-timedeck { left: 12px; right: 12px; bottom: 12px; border-radius: 12px; padding: 11px 14px; }
-  .br-td-row { gap: 11px; }
-  .br-play { width: 32px; height: 32px; border-radius: 8px; }
   .br-seg { border-radius: 7px; padding: 2px; }
   .br-seg button { font-size: 10.5px; padding: 4px 8px; }
-  .br-ticks { font-size: 9.5px; margin-bottom: 5px; }
-  .br-tick { font-size: 9.5px; }
-  .br-track input[type='range'] { height: 15px; }
-  .br-track input[type='range']::-webkit-slider-runnable-track { height: 6px; }
-  .br-track input[type='range']::-webkit-slider-thumb { width: 15px; height: 15px; border: 3px solid var(--cream-50, #FAF6EA); margin-top: -4.5px; }
   .br-legend { gap: 12px; margin-top: 9px; padding-top: 9px; }
   .br-legend-dot { font-size: 10px; color: var(--stone-500, #8B7355); }
   .br-legend-dot i { width: 8px; height: 8px; }
@@ -740,25 +692,16 @@
   .br-mcard { display: block; background: #fff; border: 1px solid var(--sand-200, #E0D6BE); border-radius: 12px; padding: 12px; }
   .br-mcard-head { display: flex; align-items: baseline; justify-content: space-between; }
   .br-mcard-head .br-eyebrow { font-size: 10px; }
-  .br-mtime .br-td-row { gap: 10px; }
-  .br-mtime .br-play { width: 34px; height: 34px; }
   .br-mtime .br-seg { background: var(--cream-50, #FAF6EA); padding: 2px; }
   /* Touch-Ziele ≥ 44 px (mobile-design-guidelines §3): sichtbar 30 px, Trefffläche
      44 px über negative Ränder — der Padding-Trick der früheren Zeitleiste. */
   .br-mtime .br-seg button { font-size: 11px; padding: 5px 9px; min-height: 30px; }
-  .br-td-unit button { min-height: 44px; margin: -7px 0; }
   .br-td-window button { min-height: 44px; margin: -7px 0; }
   .br-mtime .br-seg { overflow: visible; }
-  .br-mtime .br-ticks { font-size: 9.5px; margin-bottom: 5px; }
-  .br-mtime .br-tick { font-size: 9.5px; min-height: 24px; }
-  .br-track input[type='range'] { height: 44px; }
-  .br-track input[type='range']::-webkit-slider-runnable-track { height: 6px; }
-  .br-track input[type='range']::-webkit-slider-thumb { width: 16px; height: 16px; border: 4px solid #fff; margin-top: -5px; }
-  .br-mtime-foot { display: flex; align-items: center; gap: 10px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--sand-100, #EDE6D3); flex-wrap: wrap; }
+  .br-mtime-foot { display: flex; align-items: center; gap: 10px; margin-top: 0; padding-top: 0; border-top: 0; flex-wrap: wrap; }
   .br-mtime-foot .br-eyebrow { font-size: 10px; letter-spacing: .5px; }
   .br-mtime-foot .br-seg button { padding: 5px 11px; }
   .br-mtime-foot .br-legend-stand { margin-left: auto; font-size: 10px; }
-  .br-time-none { font-size: 11.5px; }
   .br-mbar { display: flex; margin-top: 9px; border-radius: 5px; overflow: hidden; }
   .br-mbar span { flex: 1; height: 11px; }
   .br-mbar-labels { display: flex; justify-content: space-between; font-size: 9.5px; color: var(--stone-500, #8B7355); margin-top: 5px; }
@@ -782,9 +725,6 @@
   .br-m-head .br-eyebrow { letter-spacing: 2px; }
   .br-m-title { margin: 3px 0 0; font-size: 19px; line-height: 1.15; font-weight: 700; color: var(--ink-900, #2C2A26); letter-spacing: -0.4px; }
   .br-m-scroll { flex: 1; overflow-y: auto; padding: 14px 16px 24px; -webkit-overflow-scrolling: touch; }
-  .br-presets-big { display: flex; gap: 8px; }
-  .br-presets-big button { flex: 1; text-align: center; font: inherit; font-size: 12.5px; font-weight: 500; color: var(--stone-600, #5C5447); background: var(--cream-50, #FAF6EA); border: 1px solid var(--sand-200, #E0D6BE); border-radius: 10px; padding: 10px 0; min-height: 44px; cursor: pointer; }
-  .br-presets-big button.is-active { font-weight: 600; color: var(--cream-50, #FAF6EA); background: var(--br-red); border-color: var(--br-red); }
   .br-m-scroll .br-group { margin-top: 16px; }
   .br-m-scroll .br-group-head { letter-spacing: 2px; margin: 0 2px 8px; }
   .br-m-scroll .br-layers { gap: 7px; }
@@ -898,7 +838,6 @@
 .br-ds-aside .br-scales-note { font-size: 12px; }
 .br-ds-aside .br-scales .br-card-eyebrow { font-size: 12px; letter-spacing: .16em; }
 .br-ds-foot { flex: 0 0 auto; padding: 10px 16px 12px; background: var(--sand-50, #F5F1E8); border-top: 1px solid var(--sand-200, #E0D6BE); }
-.br-ds-foot .br-timedeck { position: static; border-radius: 12px; }
 
 .br-ds { display: flex; flex-direction: column; gap: 14px; }
 .br-ds-card { background: var(--cream-50, #FAF6EA); border: 1px solid var(--sand-200, #E0D6BE); border-radius: 14px; padding: 18px 20px; min-width: 0; }
@@ -1047,6 +986,27 @@
 .br-ds-legend .br-legend-dot i.is-mark { border-radius: 2px; background: transparent; border: 2px solid var(--br-mark); box-sizing: border-box; }
 .br-ds-legend .br-legend-derived { margin-left: 0; font-size: 12px; }
 .br-ds-mapstrip, .br-m-dossier, .br-m-dshead-row, .br-m-dsregion, .br-m-dsbadge { display: none; }
+
+/* ---------------------------------------------------------------------------
+   MUI-Umbau des Dossiers (2026-09-06): die Karten sind jetzt `<Card>`-Elemente,
+   ihre Innenabstände kommen aus `MuiCardHeader`/`MuiCardContent` im Theme. Die
+   Klassen `br-ds-card`/`br-ds-verlauf`/`br-ds-aside`/… bleiben trotzdem stehen —
+   sie tragen die RASTER-PLATZIERUNG der Vorlage 1a, und die soll nur EINMAL
+   beschrieben sein (nicht ein zweites Mal inline im TSX). Hier wird deshalb genau
+   das zurückgenommen, was MUI selbst mitbringt: Rahmen, Fläche, Radius, Polster.
+   --------------------------------------------------------------------------- */
+.br-ds-card.MuiCard-root { padding: 0; background: none; border: 0; border-radius: 0; }
+/* Ein Grid-Kind ist `minmax(auto, 1fr)` — ohne `min-width: 0` wächst es auf seine
+   MIN-CONTENT-Breite und schiebt die ganze Seite quer. Auf Mobil sind die Karten
+   `Accordion`s (nicht `br-ds-card`), und genau dort trat es auf: die Spalte wurde 1 146 px
+   breit, die Regeltexte liefen rechts aus dem Bild. Gilt fuer JEDES Kind des Rasters. */
+.br-ds-grid > * { min-width: 0; }
+.br-ds-card.MuiPaper-root { background-color: var(--cream-50, #FAF6EA); border: 1px solid var(--sand-200, #E0D6BE); border-radius: 14px; }
+.br-ds-legend.MuiCard-root, .br-ds-mapcard.MuiCard-root { display: block; }
+/* Die Faktenzeilen sind `FactRow`-Grids, kein `dl` mehr — die alte Spaltenbreite
+   würde die Begriffe („KONFIDENZ DER RICHTUNG") abschneiden. */
+.br-ds .MuiCardContent-root > dl.MuiStack-root { display: flex; }
+
 
 @media (max-width: 1439px) and (min-width: 768px) {
   .br-stage-seg button { font-size: 11.5px; padding: 5px 10px; min-width: 56px; }

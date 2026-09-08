@@ -7,6 +7,12 @@ import './index.css';
 
 // Alt-Permalinks (`/#m=…`, `/#wb=…`, …) VOR dem Router auf die neuen Pfade
 // heben — `createBrowserRouter` liest `window.location` beim Erzeugen.
+//
+// SH1: bewusst OHNE die Ortsauflösung (`slugForPlace`) — diese Datei ist der
+// Start-Chunk, und die Ortstabelle wiegt 3,5 KB gzip bei 1,6 KB Luft an der
+// Ratsche `eagerJs`. Ein Alt-Link landet deshalb zunächst in der reinen
+// Query-Form; `WetterkarteRoute` (lazy, mit Tabelle) zieht ihn beim Ankommen
+// einmal per `replace` auf die kurze Slug-Form nach.
 const migrated = runLegacyHashMigration(window.location);
 if (migrated) window.history.replaceState(window.history.state, '', migrated);
 

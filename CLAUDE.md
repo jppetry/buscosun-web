@@ -1,6 +1,38 @@
 # CLAUDE.md — buscosun: Projekt-Verfassung für Claude-Code-Agenten
 
-> **Stand: 2026-09-04.** **Aktuelle Phase: BW-13 — der Windlayer kommt vollständig aus dem Daten-Repo**
+> **Stand: 2026-09-08.** **Aktuelle Phase: SH0 — „Auswahl teilen“ (Diagnose + Plan)** (`audit/teilen-share.md`).
+> Jans Auftrag: Teilen-Knopf je Feature-Seite, Zustand vollständig UND lesbar in der URL, Share-Sheet
+> (WhatsApp/Gmail/Mail/Kopieren), serverseitiges Vorschaubild. **Kein Code — SH0 ist Diagnose und Plan,
+> die Umsetzung braucht Jans Bestätigung.** Kernbefund: der Zustand steht heute in **zwei** Formen in der
+> URL — Query (Wetterkarte, Warnungen, Regenradar; `urlState.ts`, RT1) und **prozentkodiertes JSON im
+> Fragment** (Waldbrand, Atmosphäre, Event, Historie, Globus); Tourenplanung, Vorhersage, Feedback und
+> Validierung tragen gar keinen. **Ein Fragment erreicht den Server nie** ⇒ für fünf von neun Seiten ist
+> ein zustandsbezogenes Vorschaubild heute grundsätzlich unmöglich, auch mit Edge Function. Gemessen
+> (echte Codecs): Event 340, Globus 238, Waldbrand 195 Zeichen — alles unlesbarer JSON-Salat; das
+> Zielschema `/<feature>/<ansicht>[/<ort-slug>]?<abweichungen>` bringt den Median auf **81 Zeichen**,
+> größter Worst Case 513 (Atmosphäre mit 24-Punkt-Schnittlinie). Weiterer Befund: `ogImage` ist nur für
+> `/wetterkarte` und `/atmosphaere` gesetzt — **alle anderen Seiten und alle 37 Sub-Routen zeigen
+> `/og/home.png`**, obwohl der Kartenrenderer (`public/_og-card.html`, 74 PNGs) längst existiert.
+> Etappen SH1–SH6 mit Gates und die offenen Entscheidungen E-1…E-7 (u. a. Ort hinter statt vor dem Layer,
+> Tourenplanung ohne Strecke, helle statt dunkle OG-Karten, Edge-Function-Freigabe) stehen im
+> Phasen-Dokument; `architecture.md` §2 (war noch Vor-RT1) und §15 sind nachgezogen.
+> ⚠ **R2 gibt es in diesem Repo nicht** — der CDN-Weg ist `buscosun-data` über jsDelivr.
+>
+> **Davor (2026-09-07): LZ1 — Ladezeit am Layer-Klick** (`audit/layer-ladezeit.md`).
+> Diagnose LZ0: Dekodieren + GPU kosten 15–60 ms; dominant war der **kalte jsDelivr-TTFB** (p50 0,60 s,
+> p90 1,43 s), weil der Publish je Lauf force-pusht und jede Bild-URL den Commit trug — fast jeder Klick
+> ein MISS —, dazu der Index-Round-Trip nach 60 s (+93 ms warm, +1,36 s nach Purge). Umgesetzt (Jans
+> „ja starte damit", uncommitted): **M4** Fetch im `toggle` vor dem Render, **M2** Index stale-while-
+> revalidate (15 min) + `@main`-Bild-URLs mit 404-Rückfall auf den Commit, **M1** Edge-Warm-up im
+> Publisher (413 URLs, Chrome-`Accept-Encoding` — wirkt erst nach dem Push von `publish-repack.mjs`),
+> **M3** Prefetch der Jetzt-Schritte von Böen/Gewitter/Rotation/Schnee/Blitz im Leerlauf. Kill-Switch
+> `?lz=0`. A/B lokal gegen das echte CDN: Böen kalt **765 → 156 ms**, Klick nach 65 s **502 → 386 ms**,
+> vorgeladene Layer **≈ 180–220 ms** Desktop / **394 ms** iPhone-Emu (alt 665). Fallen: jsDelivr hält je
+> `Accept-Encoding`-Variante einen Cache-Eintrag (curl ohne Header misst einen Cache, den kein Browser
+> liest); ein Effekt an `nowcastTick` mit Cleanup bricht einen laufenden Prefetch je Tick ab. Offen: M5–M8,
+> Prod-Nachmessung, Real-Device (Chrome-MCP/Extension waren nicht verbunden ⇒ Playwright-core).
+>
+> **Davor (2026-09-04): BW-13 — der Windlayer kommt vollständig aus dem Daten-Repo**
 > (`audit/bandbreite.md` §32; davor BW-12 / Gate GBW12 in §31). Ausgangspunkt war Jans Frage nach den
 > Netlify-Kosten: gemessen **218 Manifest-Commits in 7 Tagen ≈ 31 Produktions-Builds pro Tag** — für zwei
 > Crons, die seit dem 2026-08-23 **gar nichts mehr wärmen**. Die Auszählung fand den eigentlichen Treiber:
@@ -37,7 +69,7 @@
 > (`AbortError` wurde als `absent` gemeldet und hinterließ einen Fehlalarm); wird eine Quelle durch eine
 > andere ersetzt, **muss die Gesundheitsanzeige mitwandern** (`manifestHealth` kennt jetzt `primary`); und
 > eine **Messsonde, die ihre eigene Quelle drosselt, misst nichts** (45-s-Polling auf die GitHub-API, 60/h).
-> `verify:repack` **325/325**, routing 105/105, health 20/20, datenalter 54/54, warm-budget 30/30,
+> `verify:repack` **348/348** (LZ1), routing 105/105, health 20/20, datenalter 54/54, warm-budget 30/30,
 > layer-erstbild 37/37, typecheck + Build grün, totalJs 1089,3/1109,8 KB.
 >
 > **Drei wiederkehrende Mess-Lehren der Satelliten-Linie (SAT2h) gelten weiter:** ein Mikro-Prüfstand mit
@@ -157,6 +189,8 @@ Geländebühne (R3D); Event-Fläche + Terrain-Bühne für die Eventplanung (EZ, 
 
 | Datei | Feature-Linie |
 |---|---|
+| `audit/punktvorhersage-14tage.md` (+ `audit/punktvorhersage-14tage/`) | PV0 Diagnose/Spezifikation/Plan **und PV3 Implementierung** der punktbasierten probabilistischen Vorhersage („buscosun Fusion", `src/pointForecast/fusion/`): Verteilungsalgebra, Minimum-Varianz-Kombination mit Fehlerkorrelation, Repräsentativität aus dem Gelände, Klimatologie als Prior, Feuchtkugel-Phase. Gate GPV3 grün, danach **GPV3b: 0–336 h** (§8 — ACC mit zwei Zeitskalen, Taupunkt statt RH als Fusionsgröße, Klimatologie als letzter Member statt `null`). `verify:pv-fusion` **208/208** (nach Gate GPV3d, §10), netzfrei; alle sieben Skalargrößen tragen bis **372 h** eine echte Quelle, die Windrichtung endet konzentrationsabhängig (229 h bei 12 m/s, 46 h bei 3 m/s). Default-off hinter `distribution: true` — **kein Consumer nutzt das Flag**; drei Fachprüfungen (Statistik · Meteorologie · Integration) eingearbeitet. **Externes Audit 2026-09-07** (`FUSION_AUDIT.md`, `FUSION_VERIFICATION.md`, `FUSION_IMPROVEMENTS.md` in der Repo-Wurzel): Block 0 umgesetzt — Stationsanker jetzt Anomaliepersistenz (`validAtMs`/`climaAt`), ohne Klimatologie `null` statt stiller 8 °C, MOSMIX-Amplitude α = √ρ, Taupunkt-Lapse, Quellen-Auslauf auf dem Gewicht statt auf ρ; **K-2 umgesetzt** (§10): Niederschlag zweistufig — Auftreten im Probit-Latentraum mit eigenen Auftretens-ACC und Tail-Prior, Menge bedingt auf nass zur Nassstunden-Klimatologie, Ausgabe `hurdleLogNormal` (MOSMIX 5 mm/h bei 24 h: P(nass) 59 → 79 %, Median 0,22 → 1,95 mm/h). Falle: Nassmenge nie als Normalverteilung in log1p (30 % Masse < 0), und die MOS-Amplitude gehört nicht aufs Auftretens-Latent. **V-A₁ gelaufen** (§11, `npm run verify:pv-score`, netzabhängig): 111 DE-Stationen, MOSMIX_L as-of, POI-Wahrheit — Fusion-T = MOSMIX ± 3 % MAE, aber **Spread/Skill 0,5–0,6 (zweifach überkonfident, Gate verletzt)**, Wind +0,3 m/s Bias, K-1 an 435 Fällen belegt, **Altpfad bei 1–6 h 2,3× schlechter als rohes MOSMIX (V-PV-19, Produktdefekt)** — **behoben 2026-09-08 auf Jans Auftrag (§12): Stationsanker als Innovations-Persistenz (`src/pointForecast/anchor.ts`, Modell + Versatz·e^{−h/τ}, Versatz altersgewichtet aus den letzten 6 h ohne Archiv: BrightSky-Messungen + laufender MOSMIX-Lauf per `source_id`, TAWES-Historie, SMN-Tagesdatei), Default im Produkt, Kill-Switch `?anchor=value` / `anchorMode`; gemessen T 1–6 h 2,18 → 0,92 K (MOSMIX 0,90), Td 1,05 → 0,70. Fusion unberührt (behält K-1). `verify:pv-fusion` 222/222.** **Offen, in dieser Reihenfolge: Priors aus den Scorecards fitten (V-PV-18), Scorecards täglich fortschreiben, dann ICON-D2 aus dem CDN und IFS als zweites Zentrum; die K-2-Priors (`ACC.precipOcc`, `PRECIP_WET_CLIMA`, `PRECIP_OCC_TAIL`) sind ungemessen (V-PV-17); `climatologyOnly`/`climaSource` werden noch nirgends angezeigt (V-PV-14); Stufe 4 (GEFS-Spread) braucht einen neuen Actions-Cron ⇒ STOPP & FRAGEN** |
+| `audit/teilen-share.md` | **SH0–SH6: „Auswahl teilen“** — Diagnose des URL-Zustands je Feature-Seite (Query vs. Fragment vs. gar nichts, gemessene Link-Längen), Zielschema `/<feature>/<ansicht>[/<ort-slug>]?<abweichungen>` mit Beispiel-URL je Seite, Share-UI, Kanäle, Open-Graph-Empfehlung in zwei Stufen, Etappenplan mit Gates, V-SH-1…10 |
 | `audit/brandradar-satellitenbilder.md` | SAT0–SAT2h: Satellitenbilder vorher/nachher, 10-m-COG-Viewer, SWIR/dNBR/SCL-Maske/WorldCover-Dämpfung, Performance-Härtung der Komposit-Schleife |
 | `audit/route-3d.md` | R3D-1…R3D-8: 3D-Tourenansicht (Schnitt 1a/1b/1c + Geländekarte, Zeitplan, Ergebnis öffnet mit dem Gelände) |
 | `audit/bandbreite.md` | BW-0…BW-11: Netlify-Bandbreite für Wetterkarte + Regenradar auf ≈ 0 (jsDelivr-Repack, PNG-Familien, Radar-/KONRAD-Spiegel `buscosun-data`, Service-Worker-Frischefallen) |
@@ -254,5 +288,12 @@ Bei Widerspruch gilt: **Code > `architecture.md`/`decisions.md` > Alt-Doku.**
 
 - Dokumentation auf **Deutsch**, Prompts an Claude Code auf **Englisch**, Code/Kommentare/Commits auf
   Englisch (Bestand ist gemischt — bei Neuanlage Englisch).
+- **Namensregel „buscosun Fusion" (Jans Festlegung 2026-09-06):** Der Punkt-Algorithmus in
+  `src/pointForecast/fusion/` heißt im Projekt **immer „buscosun Fusion"** — in Doku, Code-Kommentaren,
+  Commits und UI. Keine Umschreibungen („Punkt-Fusion", „point engine", „die Fusion", „der Algorithmus").
+  Der Ordner bleibt `fusion/`; die erwogene Umbenennung nach `predictive/` ist damit erledigt.
+  **Abgrenzung:** `src/fusion/` ist etwas anderes — der IDW-Rasterisierer der 2D-Karte, Name historisch
+  (s. `audit/rasterfusion-rueckbau.md` §2). Wo beides gemeint sein könnte: „buscosun Fusion" für den Punkt,
+  „Rasterfusion" für die Karte.
 - Commits: Conventional Commits, Scope = Feature-/Themenname. Keine Commits ohne Auftrag.
 - Nach jeder Phase: `checklist.md` aktualisieren, 3–5-Satz-Fazit in `context.md` §Session-Log anhängen.

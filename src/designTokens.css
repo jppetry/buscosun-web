@@ -240,6 +240,7 @@
   --br-warn-ink:     #9A5A2A;
   --br-blocked-bg:   #F4F0E4;  /* blockierte EDO-Zeilen */
   --br-grey-dot:     #8B8474;  /* ortsfeste Detektion (grau) */
+  --br-hatch:        #C9B98F;  /* Schraffur der Beobachtungsluecken im Verlauf (D2) */
   --br-det:          #FF6B3D;  /* Detektion (Legende) */
   --br-det-2:        #FF8A3D;
   --br-mark:         #FFB03D;  /* markierter Brand (Kontur) */

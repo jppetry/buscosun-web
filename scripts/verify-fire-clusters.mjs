@@ -216,8 +216,14 @@ add('kein DOM/fetch im Modul (headless prüfbar)', !/document|window|fetch\(/.te
 add('keine neue Runtime-Dependency (D-06): nur projektinterne Importe',
   (src.match(/^import .*from '(?!\.)/gm) ?? []).length === 0);
 const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
+// Die Liste wächst nur mit einer benannten Entscheidung. Stand:
+//  • `react-router` seit RT1 (pfadbasiertes Routing statt Hash-Fragmenten),
+//  • `@mui/material` + `@emotion/*` + `@mui/icons-material` + `@mui/x-charts` seit dem
+//    Brand-Dossier-Umbau (Jans Entscheidung 2026-09-06, `docs/konzept-brand-detail.md` §0).
+// Alles davon liegt im LAZY-Chunk; der Erstbild-Pfad wächst nicht mit (`npm run budget`).
 add('package.json führt weiterhin genau die bekannten Runtime-Dependencies',
-  Object.keys(pkg.dependencies ?? {}).sort().join(',') === 'bz2,bzip2-wasm,jsfive,maplibre-gl,react,react-dom',
+  Object.keys(pkg.dependencies ?? {}).sort().join(',')
+    === '@emotion/react,@emotion/styled,@mui/icons-material,@mui/material,@mui/x-charts,bz2,bzip2-wasm,jsfive,maplibre-gl,react,react-dom,react-router',
   Object.keys(pkg.dependencies ?? {}).join(','));
 add('der Verifier ist als npm-Skript hinterlegt', !!pkg.scripts['verify:fire-clusters']);
 

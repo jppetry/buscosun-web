@@ -51,10 +51,17 @@ const coord4 = (n) => {
  * abgetippte Zweitfassung driftet). Alte `/#m=`-Links migriert der Client.
  */
 export function mapPermalink(place) {
-  const q = new URLSearchParams([
-    ['ort', place.name], ['olat', coord4(place.lat)], ['olon', coord4(place.lon)], ['land', String(place.country).toLowerCase()],
-  ]);
-  return '/wetterkarte/temperatur?' + q.toString();
+  // SH1 („Teilen"): Der Ort steht als lesbarer Slug im Pfad. Für die Orte DIESER
+  // Liste ist der Slug per Konstruktion ein Tabellentreffer (`placeSlugs.json`
+  // wird aus ihr erzeugt) und die Koordinate identisch — Name, Punkt und Land
+  // kommen also aus der Tabelle, `ort`/`olat`/`olon` entfallen. Nur `land` wird
+  // geschrieben, wenn es von DE abweicht: `src/router/prefetch.ts` liegt im
+  // index-Chunk, kennt die Tabelle nicht und entscheidet daran den Frühstart.
+  //
+  // Muss zeichengleich zu `mapPathForPlace()` in `src/router/urlState.ts` sein —
+  // `verify:routing` prüft genau das.
+  const land = String(place.country).toLowerCase();
+  return `/wetterkarte/temperatur/${place.slug}` + (land === 'de' ? '' : `?land=${land}`);
 }
 
 /** Höhenband (Richtwert) aus der Höhe. */
@@ -372,7 +379,10 @@ export function renderPlacePage(place) {
   ]).toString();
   const featureLinks = [
     ['Wetterkarte', mapPermalink(place)],
-    ['Regenradar', `/regenradar?${placeQuery}`],
+    // SH1: Das Regenradar trägt den Ort wie die Wetterkarte als Pfad-Slug
+    // (`/regenradar/muenchen`). Die übrigen Ansichten bekommen ihre Slug-Form in
+    // SH3–SH5, wenn ihr Zustand vom Fragment in die Query wandert.
+    ['Regenradar', `/regenradar/${place.slug}` + (String(place.country).toLowerCase() === 'de' ? '' : `?land=${String(place.country).toLowerCase()}`)],
     ['Vorhersage & Modellvergleich', `/vorhersage?${placeQuery}`],
     ['Bester Tag für ein Vorhaben', `/eventplanung?${placeQuery}`],
     ['Wetter entlang einer Tour', '/tourenplanung'],

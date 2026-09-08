@@ -18,6 +18,12 @@
  *  - Niederschlag: GFS-APCP ist akkumuliert; an den 6-h-Stufen ein sauberer
  *    6-h-Eimer → mm/h = Eimer ÷ 6.
  *  - Familie `global` (kein neues Gewicht nötig).
+ *  - Seit 2026-09-06 zusätzlich **Taupunkt** (`DPT`) und **Böe** (`GUST`): beide
+ *    stehen bei f336 in derselben Datei, die ohnehin gelesen wird. Ohne sie endete
+ *    die Feuchte bei ~229 h, während Temperatur und Wind 376 h erreichten — eine
+ *    reine Datenlücke, keine Skill-Grenze. Kosten: 27 Stützstellen × 2 Felder =
+ *    54 zusätzliche Range-Abrufe (135 → 189), und nur, wenn ein Consumer
+ *    überhaupt mehr als 240 h anfragt.
  */
 
 import { fetchGfsGrid, sampleGfs, runValidMs, type GfsRun } from '../globe/gfs';
@@ -29,14 +35,23 @@ const MATCH = {
   v: ':VGRD:10 m above ground:',
   apcp: ':APCP:surface:',
   tcc: ':TCDC:entire atmosphere',
+  // Taupunkt statt relativer Feuchte: unbeschraenkt, additiv, hoehenkorrigierbar —
+  // die richtige Groesse zum Fusionieren; RH wird daraus exakt abgeleitet.
+  // Ohne dieses Feld endete die Feuchte bei ~229 h, obwohl es bei f336 in
+  // derselben Datei steht (am echten Lauf nachgesehen, 2026-09-06).
+  dpt: ':DPT:2 m above ground:',
+  gust: ':GUST:surface:',
 };
 const STEP_H = 6;            // 6-stündige Stützstellen im Schwanz
 const GFS_MAX_FHOUR = 384;   // GFS-Horizont (16 Tage)
 
-interface GfsNode { ms: number; t: number | null; u: number | null; v: number | null; pr: number | null; cl: number | null; }
+interface GfsNode {
+  ms: number; t: number | null; u: number | null; v: number | null;
+  pr: number | null; cl: number | null; td: number | null; gu: number | null;
+}
 
 /** Lineare Interpolation eines Knoten-Feldes auf den Zeitpunkt `ms`. */
-function lerpAt(nodes: GfsNode[], ms: number, key: 't' | 'u' | 'v' | 'pr' | 'cl'): number | null {
+function lerpAt(nodes: GfsNode[], ms: number, key: 't' | 'u' | 'v' | 'pr' | 'cl' | 'td' | 'gu'): number | null {
   if (ms <= nodes[0].ms) return nodes[0][key];
   const last = nodes[nodes.length - 1];
   if (ms >= last.ms) return last[key];
@@ -86,15 +101,17 @@ export async function fetchGfsPointTail(
 
   const nodes: GfsNode[] = [];
   for (let f = firstStep; f <= lastStep && f <= GFS_MAX_FHOUR; f += STEP_H) {
-    const [gt, gu, gv, gp, gc] = await Promise.all([
+    const [gt, gu, gv, gp, gc, gd, gg] = await Promise.all([
       fetchGfsGrid(run, f, MATCH.t, signal).catch(() => null),
       fetchGfsGrid(run, f, MATCH.u, signal).catch(() => null),
       fetchGfsGrid(run, f, MATCH.v, signal).catch(() => null),
       fetchGfsGrid(run, f, MATCH.apcp, signal).catch(() => null),
       fetchGfsGrid(run, f, MATCH.tcc, signal).catch(() => null),
+      fetchGfsGrid(run, f, MATCH.dpt, signal).catch(() => null),
+      fetchGfsGrid(run, f, MATCH.gust, signal).catch(() => null),
     ]);
     const s = (g: typeof gt) => (g ? sampleGfs(g, lng, lat) : NaN);
-    const tK = s(gt), u = s(gu), v = s(gv), apcp = s(gp), tcc = s(gc);
+    const tK = s(gt), u = s(gu), v = s(gv), apcp = s(gp), tcc = s(gc), tdK = s(gd), gust = s(gg);
     nodes.push({
       ms: runValidMs(run, f),
       t: Number.isFinite(tK) ? tK - 273.15 : null,
@@ -102,6 +119,8 @@ export async function fetchGfsPointTail(
       v: Number.isFinite(v) ? v : null,
       pr: Number.isFinite(apcp) ? Math.max(0, apcp) / STEP_H : null,
       cl: Number.isFinite(tcc) ? Math.max(0, Math.min(100, tcc)) : null,
+      td: Number.isFinite(tdK) ? tdK - 273.15 : null,
+      gu: Number.isFinite(gust) ? Math.max(0, gust) : null,
     });
   }
   if (nodes.filter((n) => n.t != null).length < 2) return [];
@@ -118,7 +137,9 @@ export async function fetchGfsPointTail(
       source: 'gfs', family: 'global',
       temperature: t, sourceElevation: null,
       u: lerpAt(nodes, ms, 'u'), v: lerpAt(nodes, ms, 'v'),
-      gust: null, relativeHumidity: null, snowLine: null,
+      gust: lerpAt(nodes, ms, 'gu'),
+      dewPoint: lerpAt(nodes, ms, 'td'),
+      relativeHumidity: null, snowLine: null,
       cloudLow: cl != null ? cl * 0.55 : null,
       cloudMid: cl != null ? cl * 0.30 : null,
       cloudHigh: cl != null ? cl * 0.15 : null,

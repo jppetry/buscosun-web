@@ -1,5 +1,11 @@
 /**
- * `/wetterkarte/:layer?` und `/warnungen` (`fixedPrimary='warnings'`).
+ * `/wetterkarte/:layer?/:ort?` und `/warnungen/:ort?` (`fixedPrimary='warnings'`).
+ *
+ * SH1: Der Ort steht als lesbares letztes Pfadsegment (`/wetterkarte/wind/muenchen`);
+ * nur ein Ort außerhalb der Ortstabelle trägt zusätzlich `ort`/`olat`/`olon`/`land`.
+ * Der Slug ist NIE kanonisch und nie in der Sitemap — ein Ortssegment hinter einem
+ * UNBEKANNTEN Layer-Slug bleibt eine 404 (`routeForPath`), sonst verschwände jeder
+ * Tippfehler still in einem „Ort".
  *
  * Übersetzt Pfad + Query in MapView-Props und schreibt den Kartenzustand zurück:
  *  - Layerwechsel ⇒ `navigate` (pushState: Zurück führt zum vorherigen Layer);
@@ -22,9 +28,13 @@ import type { ModelSourceState } from '../../fusion/modelSource';
 import { isWhitelisted } from '../../fusion/modelCatalog';
 import { useAppNav } from '../useAppNav';
 import {
-  buildMapUrl, layersFromRoute, parseMapSearch, routeForLayers, DEFAULT_MAP_LAYER, LAYER_SLUGS,
-  type MapCamera,
+  buildMapUrl, layersFromRoute, parseMapSearch, placeFromRoute, routeForLayers,
+  DEFAULT_MAP_LAYER, LAYER_SLUGS, type MapCamera,
 } from '../urlState';
+// SH1: Ort-Slug im Pfad (`/wetterkarte/wind/muenchen`). Die Ortstabelle wird hier
+// importiert — dieser Wrapper ist ein LAZY Chunk, `urlState.ts` (eager) bekommt
+// die Auflösung injiziert.
+import { placeBySlug, slugForPlace } from '../../share/placeTable';
 import NotFoundRoute from './NotFoundRoute';
 
 const CAM_DEBOUNCE_MS = 300;
@@ -43,7 +53,7 @@ interface UrlRefs {
 }
 
 export default function WetterkarteRoute({ fixedPrimary }: { fixedPrimary?: LayerKey }) {
-  const params = useParams<{ layer?: string }>();
+  const params = useParams<{ layer?: string; ort?: string }>();
   const loc = useLocation();
   const navType = useNavigationType();
   const navigate = useNavigate();
@@ -52,6 +62,8 @@ export default function WetterkarteRoute({ fixedPrimary }: { fixedPrimary?: Laye
 
   const parsed = useMemo(() => parseMapSearch(loc.search, Date.now(), isWhitelisted), [loc.search]);
   const slug = fixedPrimary ? LAYER_SLUGS[fixedPrimary] : params.layer;
+  // Ort: Pfadsegment (Tabellenort) und/oder `ort`/`olat`/`olon` (freier Ort).
+  const routePlace = useMemo(() => placeFromRoute(params.ort, parsed.place, placeBySlug), [params.ort, parsed.place]);
   const route = useMemo(() => layersFromRoute(slug, parsed.l), [slug, parsed.l]);
   const unknownPrimary = !!slug && !route.primary;
   const urlLayers = useMemo<LayerKey[]>(
@@ -70,8 +82,8 @@ export default function WetterkarteRoute({ fixedPrimary }: { fixedPrimary?: Laye
       point: parsed.point ?? 'fusion',
       radar: parsed.radar ?? true,
       cam: parsed.cam,
-      place: parsed.place,
-      country: parsed.country ?? parsed.place?.country ?? null,
+      place: routePlace.place,
+      country: parsed.country ?? routePlace.place?.country ?? null,
       extra: parsed.extra,
     };
   }
@@ -90,7 +102,7 @@ export default function WetterkarteRoute({ fixedPrimary }: { fixedPrimary?: Laye
       s.primary = fixedPrimary ?? route.primary ?? (slug || route.noLayers ? null : DEFAULT_MAP_LAYER);
       s.hour = parsed.hour ?? 0;
       s.model = parsed.model; s.point = parsed.point ?? 'fusion'; s.radar = parsed.radar ?? true;
-      s.place = parsed.place; s.country = parsed.country ?? parsed.place?.country ?? s.country;
+      s.place = routePlace.place; s.country = parsed.country ?? routePlace.place?.country ?? s.country;
       if (parsed.cam) s.cam = parsed.cam;
       s.extra = parsed.extra;
     }
@@ -99,9 +111,11 @@ export default function WetterkarteRoute({ fixedPrimary }: { fixedPrimary?: Laye
 
   const urlOf = useCallback(() => {
     const s = st.current!;
+    const slugged = s.place ? slugForPlace(s.place) : null;
     return buildMapUrl({
       primary: fixedPrimary ?? s.primary, layers: s.layers, cam: s.cam, hour: s.hour,
       model: s.model, point: s.point, radar: s.radar, place: s.place, country: s.place ? null : s.country,
+      placeSlug: slugged?.slug ?? null, placeInTable: !!slugged?.inTable,
     }, Date.now(), base, s.extra);
   }, [fixedPrimary, base]);
 
@@ -130,7 +144,11 @@ export default function WetterkarteRoute({ fixedPrimary }: { fixedPrimary?: Laye
   // Parameter fallen still auf Defaults zurück und verschwinden aus der URL.
   useEffect(() => {
     if (unknownPrimary) return;
-    if (!slug || parsed.invalid.length || route.invalid.length) {
+    // Auch: einen Ort in der reinen Query-Form (Alt-Link, `#m=`-Migration,
+    // Geo-Seite von vor SH1) einmal auf die Slug-Form ziehen — danach ist
+    // `params.ort` gesetzt und die Bedingung greift nicht erneut.
+    const wantsSlugForm = !!parsed.place && !params.ort;
+    if (!slug || parsed.invalid.length || route.invalid.length || routePlace.unresolved || wantsSlugForm) {
       const url = urlOf();
       lastWrittenRef.current = url;
       void navigate(url, { replace: true });
@@ -141,7 +159,7 @@ export default function WetterkarteRoute({ fixedPrimary }: { fixedPrimary?: Laye
 
   const isPop = navType === 'POP';
 
-  const place = parsed.place;
+  const place = routePlace.place;
   const country: Country = parsed.country ?? place?.country ?? 'DE';
   const mapLocation = useMemo<Location>(
     () => place ?? { ...DACH_OVERVIEW_LOCATION, country },

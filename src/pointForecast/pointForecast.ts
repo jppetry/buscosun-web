@@ -30,15 +30,23 @@ import {
   type Variable,
 } from './leadTimeWeights';
 import {
+  brightSkyHistoryToSamples,
   brightSkyToHourSamples,
   fetchAromePoint,
   fetchBrightSkyPointForecast,
   fetchIncaPoint,
   fetchNearestStationObs,
+  fetchStationHistory,
   haversine,
   seriesToHourSamples,
+  stationsToHistorySamples,
   stationsToHour0Samples,
 } from './sampleSources';
+import {
+  ANCHOR_HISTORY_H, ANCHOR_MAX, ANCHOR_TAU_H, anchorDecay, anchorTerm, innovation,
+  type AnchorMode, type AnchorPair, type Innovation,
+} from './anchor';
+import type { ForecastHourPoint } from '../sources/openMeteoForecast';
 import type {
   PointForecast,
   PointForecastHour,
@@ -103,6 +111,18 @@ const SKILL_DECAY: Record<Variable, { tau: number; floor: number }> = {
   uvIndex:     { tau: 200, floor: 0.5 },
 };
 
+/**
+ * Stationsanker: Default ist die Innovations-Persistenz (`anchor.ts`, V-PV-19).
+ * Kill-Switch zurück zum alten Wert-Anker per URL `?anchor=value` — der benannte
+ * Rückfallweg (D-11), damit ein Vergleich im Produkt jederzeit möglich bleibt.
+ */
+const ANCHOR_MODE_DEFAULT: AnchorMode = (() => {
+  try {
+    if (typeof location !== 'undefined' && new URLSearchParams(location.search).get('anchor') === 'value') return 'value';
+  } catch { /* kein DOM (Node/Worker) */ }
+  return 'offset';
+})();
+
 export interface PointForecastOptions {
   lat: number;
   lng: number;
@@ -128,6 +148,29 @@ export interface PointForecastOptions {
    *    auf den Blend, wenn die native Quelle nichts liefert.
    */
   sourceMode?: ModelSource;
+  /**
+   * Kalibrierte Verteilungen je Stunde mitrechnen (buscosun Fusion,
+   * `fusion/fuse.ts`). **Default aus** (D-11: neue Rechenpfade kommen
+   * default-off mit benanntem Rückfallweg — hier ist der Rückfallweg das
+   * unveränderte Ergebnis ohne `hours[].fusion`).
+   *
+   * Kostet einmalig das Klima-Grid (72 KB, permanent gecacht) und ~50
+   * DEM-Abtastungen aus der bereits geladenen Kachel; kein zusätzlicher
+   * Wetterdaten-Abruf.
+   */
+  distribution?: boolean;
+  /**
+   * Wie die Stationsmessung in die ersten Stunden eingeht (`anchor.ts`):
+   *  - `'offset'` (Default) → Innovations-Persistenz: Modell + (Messung − Modell
+   *    zu t₀, altersgewichtet über die letzten Stunden) · Abklingen. Das Modell
+   *    trägt den Tagesgang, die Station den Ortsversatz.
+   *  - `'value'` → der alte Anker: der Messwert selbst mit Gewicht 5,0 und
+   *    Halbwertszeit 2,5 h an h = 0…5. Gemessen 2,3× schlechter als rohes MOSMIX
+   *    bei 1–6 h (V-A₁); bleibt als Kill-Switch (`?anchor=value`).
+   * Die Fusion (`distribution: true`) ist davon unberührt — sie führt ihren
+   * eigenen Anker als Anomaliepersistenz (K-1).
+   */
+  anchorMode?: AnchorMode;
 }
 
 // Modulweiter Cache des positions-unabhängigen Radar-Samplers (ein Stack je Land
@@ -153,12 +196,15 @@ interface PfCacheEntry { hours: number; forecast: PointForecast; ts: number }
 const PF_CACHE = new Map<string, PfCacheEntry>();
 const PF_CACHE_TTL_MS = 180_000;     // 3 min
 const PF_CACHE_MAX = 64;
-function pfCacheKey(lat: number, lng: number, country: Country, radar: boolean, native: boolean): string {
+function pfCacheKey(lat: number, lng: number, country: Country, radar: boolean, native: boolean, dist: boolean, anchorValue = false): string {
   // Das Radar-Flag MUSS in den Key: sonst könnte ein Nicht-Radar-Aufrufer
   // (Route/3D) den Cache füllen und ein Radar-Aufrufer (Event/Panel) bekäme das
   // radarlose Ergebnis (fehlender Nowcast-Niederschlag). Ebenso der Native-Modus:
   // sonst kollidierten Blend- und Einzelmodell-Ergebnis am selben Punkt.
-  return `${country}:${lat.toFixed(3)}:${lng.toFixed(3)}${radar ? ':r' : ''}${native ? ':n' : ''}`;
+  // Ebenso das Verteilungs-Flag: sonst bekäme ein Aufrufer, der Verteilungen
+  // braucht, den Treffer eines Aufrufers ohne sie — und sähe `fusion` als
+  // `undefined`, ohne dass etwas fehlgeschlagen wäre.
+  return `${country}:${lat.toFixed(3)}:${lng.toFixed(3)}${radar ? ':r' : ''}${native ? ':n' : ''}${dist ? ':d' : ''}${anchorValue ? ':av' : ''}`;
 }
 
 /**
@@ -168,8 +214,11 @@ export async function getPointForecast(opts: PointForecastOptions): Promise<Poin
   const { lat, lng, country, signal } = opts;
   const profile = COUNTRY_PROFILES[country];
   const hours = opts.hours ?? profile.forecastHours;
+  const anchorMode: AnchorMode = opts.anchorMode ?? ANCHOR_MODE_DEFAULT;
+  // Wie viele vergangene Stunden für den Anker geholt werden (Schritt zwei).
+  const histH = anchorMode === 'offset' ? ANCHOR_HISTORY_H : 0;
 
-  const cacheKey = pfCacheKey(lat, lng, country, !!opts.includeRadarNowcast, opts.sourceMode === 'native');
+  const cacheKey = pfCacheKey(lat, lng, country, !!opts.includeRadarNowcast, opts.sourceMode === 'native', !!opts.distribution, anchorMode === 'value');
   const cached = PF_CACHE.get(cacheKey);
   if (cached && cached.hours >= hours && (Date.now() - cached.ts) < PF_CACHE_TTL_MS) {
     return cached.forecast;
@@ -178,14 +227,26 @@ export async function getPointForecast(opts: PointForecastOptions): Promise<Poin
   // --- 1) Parallel data fetches -------------------------------------------
   // DEM lookup → not just the point elevation, but also the local terrain
   // context (sink depth for cold-air pooling, slope/aspect for insolation).
-  const terrain$ = (async (): Promise<TerrainContext> => {
+  // Der DEM-Sampler wird MITGEFÜHRT, nicht verworfen: buscosun Fusion braucht
+  // dieselben Kacheln für ihre Geländeskalen. Ihn ein zweites Mal zu laden
+  // hieße bis zu vier zusätzliche S3-Abrufe und ebenso viele Kachel-Dekodierungen
+  // auf dem Hauptthread — für Daten, die schon im Speicher liegen. Die ±0,2°-Box
+  // deckt bei 47° N mindestens 15 km Halbweite ab und damit alle Ringradien der
+  // Fusion (max. 12 km).
+  const terrain$ = (async (): Promise<{ ctx: TerrainContext; sample: ((lng: number, lat: number) => number) | null }> => {
     try {
       const lookup = await loadElevationLookup(
         { lngMin: lng - 0.2, lngMax: lng + 0.2, latMin: lat - 0.2, latMax: lat + 0.2 },
         9, signal,                          // z9 ≈ ~150 m / pixel — alpine-accurate
       );
-      return terrainContext((x, y) => lookup.sample(x, y), lng, lat);
-    } catch { return { elevationM: 0, sinkDepthM: 0, slopeRad: 0, aspectRad: 0 }; }
+      const sample = (x: number, y: number) => lookup.sample(x, y);
+      // Ein leerer Kachelsatz wirft NICHT — `loadTile` verschluckt jeden Fehler.
+      // Ohne diese Probe liefe die Fusion mit einer perfekt flachen Welt weiter
+      // und wäre dabei SCHMALER als mit echtem Gelände: falsch und überkonfident
+      // zugleich. Deshalb: kein endlicher Wert am Abfragepunkt ⇒ kein Sampler.
+      const probe = sample(lng, lat);
+      return { ctx: terrainContext(sample, lng, lat), sample: Number.isFinite(probe) ? sample : null };
+    } catch { return { ctx: { elevationM: 0, sinkDepthM: 0, slopeRad: 0, aspectRad: 0 }, sample: null }; }
   })();
 
   // Country-specific source set:
@@ -201,7 +262,7 @@ export async function getPointForecast(opts: PointForecastOptions): Promise<Poin
   // forecast is now continuous over the full horizon in every country. Inside
   // 0–60 h it simply adds an independent consensus member next to AROME.
   const bs$ = profile.useMosmix
-    ? fetchBrightSkyPointForecast(lat, lng, hours, signal).catch(() => null)
+    ? fetchBrightSkyPointForecast(lat, lng, hours, signal, histH).catch(() => null)
     : Promise.resolve(null);
 
   // DWD UV-Index (Tagespeak je Ort, per Sonnenstand auf die Stunde verteilt).
@@ -211,14 +272,21 @@ export async function getPointForecast(opts: PointForecastOptions): Promise<Poin
     : Promise.resolve([] as Awaited<ReturnType<typeof fetchDwdUvPoint>>);
 
   const inca$ = country === 'AT'
-    ? fetchIncaPoint(lat, lng, Math.min(hours, 4), signal).catch(() => [])
+    ? fetchIncaPoint(lat, lng, Math.min(hours, 4), signal, histH).catch(() => [])
     : Promise.resolve([] as Awaited<ReturnType<typeof fetchIncaPoint>>);
   const arome$ = country === 'AT' || country === 'CH'
-    ? fetchAromePoint(lat, lng, hours, signal).catch(() => [])
+    ? fetchAromePoint(lat, lng, hours, signal, histH).catch(() => [])
     : Promise.resolve([] as Awaited<ReturnType<typeof fetchAromePoint>>);
 
   const stations$ = fetchNearestStationObs(lat, lng, country, 6, signal)
     .catch(() => []);
+  // Stationshistorie für den Anker (AT: TAWES-Historie, CH: SMN-Tagesdateien),
+  // an die Stationsliste gekettet statt danach — kein zusätzlicher Round-Trip
+  // auf dem kritischen Pfad. DE kommt über BrightSky im selben Abruf.
+  const stationHist$: Promise<Map<string, Map<number, ForecastHourPoint>>> =
+    histH > 0 && (country === 'AT' || country === 'CH')
+      ? stations$.then((s) => fetchStationHistory(s, country, histH, signal)).catch(() => new Map())
+      : Promise.resolve(new Map());
 
   // Radar-Nowcast (DE: RADOLAN-RV, CH: rzc) — nur auf Anforderung. AT deckt den
   // Nowcast bereits über INCA (nowcast-Familie) ab, daher hier ausgenommen.
@@ -236,9 +304,18 @@ export async function getPointForecast(opts: PointForecastOptions): Promise<Poin
         .catch(() => [] as PointHourSamples[])
     : Promise.resolve([] as PointHourSamples[]);
 
-  const [terrain, bsPoint, incaPoint, aromePoint, stations, uvPoint, gfsHours] = await Promise.all([
+  const [terrainRes, bsPoint, incaPoint, aromePoint, stations, uvPoint, gfsHours] = await Promise.all([
     terrain$, bs$, inca$, arome$, stations$, uv$, gfs$,
   ]);
+  // Die Stationshistorie ist ein Bonus für den Anker, kein Pflichtteil: sie
+  // bekommt nach den Pflichtabrufen noch eine kurze Frist (GeoSphere antwortet
+  // zeitweise mit vielen Sekunden), danach rechnet der Anker mit dem Paar zu t₀.
+  const stationHist = await Promise.race([
+    stationHist$,
+    new Promise<Map<string, Map<number, ForecastHourPoint>>>((r) => setTimeout(() => r(new Map()), 1500)),
+  ]);
+  const terrain = terrainRes.ctx;
+  const demSample = terrainRes.sample;
   const elevation = terrain.elevationM;
 
   // Existiert eine quasi ko-lokalisierte Station, misst sie die Mikrolage
@@ -264,9 +341,14 @@ export async function getPointForecast(opts: PointForecastOptions): Promise<Poin
   const lapseRatePerM = estimateLapseRate(lapseSamples, STD_LAPSE_PER_M);
 
   // --- 3) Build per-hour sample lists -------------------------------------
-  const mosmixHours = brightSkyToHourSamples(bsPoint);
-  const incaHours = seriesToHourSamples(incaPoint, 'inca', 'nowcast');
-  const aromeHours = seriesToHourSamples(aromePoint, 'arome_at', 'highres');
+  // AROME/INCA tragen bei `histH > 0` auch vergangene Schritte (Zeit < t₀) —
+  // die gehören in die Anker-Historie, nicht in die Zeitachse.
+  const isPast = (e: { time: Date }) => e.time.getTime() < t0Ms;
+  const aromePast = aromePoint.filter(isPast), aromeFuture = aromePoint.filter((e) => !isPast(e));
+  const incaPast = incaPoint.filter(isPast), incaFuture = incaPoint.filter((e) => !isPast(e));
+  const mosmixHours = brightSkyToHourSamples(bsPoint, lat, lng);
+  const incaHours = seriesToHourSamples(incaFuture, 'inca', 'nowcast');
+  const aromeHours = seriesToHourSamples(aromeFuture, 'arome_at', 'highres');
   const uvHours = uvToHourSamples(uvPoint);
 
   // Build the unified per-hour samples. We anchor on the longest available
@@ -298,6 +380,31 @@ export async function getPointForecast(opts: PointForecastOptions): Promise<Poin
   const stationSamples = stationsToHour0Samples(stations).samples;
   for (let h = 0; h < Math.min(6, unified.length); h++) {
     unified[h].samples.push(...stationSamples);
+  }
+  // Im Versatz-Modus liest der Blend die Stationen nur bei h = 0 (s. Schritt 4);
+  // die Einträge an h = 1…5 bleiben für buscosun Fusion (Anomaliepersistenz, K-1).
+
+  // --- 3a) Anker-Historie (Schritt zwei): Paare (Messung, Modell) der letzten
+  //     Stunden. DE über BrightSky (Messungen + laufender MOSMIX-Lauf), AT über
+  //     TAWES-Historie + AROME/INCA-Schritte, CH aus den SMN-Tagesdateien + AROME.
+  const history: PointHourSamples[] = [];
+  if (histH > 0) {
+    // BrightSky-Messhistorie nur in DE: dort ist die nächste Beobachtungsstation
+    // eine der Ankerstationen. In AT/CH wäre es eine ferne DWD-Station.
+    const bsHist = brightSkyHistoryToSamples(bsPoint, lat, lng, country === 'DE');
+    const aromeHist = seriesToHourSamples(aromePast, 'arome_at', 'highres');
+    const incaHist = seriesToHourSamples(incaPast, 'inca', 'nowcast');
+    const at = (arr: PointHourSamples[], ms: number) => arr.find((x) => x.timestamp.getTime() === ms)?.samples ?? [];
+    for (let k = 1; k <= histH; k++) {
+      const ms = t0Ms - k * 3_600_000;
+      const samples: PointSourceSample[] = [
+        ...(bsHist.get(ms) ?? []),
+        ...at(aromeHist, ms),
+        ...at(incaHist, ms),
+        ...stationsToHistorySamples(stations, stationHist, ms),
+      ];
+      if (samples.length) history.push({ timestamp: new Date(ms), samples });
+    }
   }
 
   // Radar-Nowcast-Niederschlag (mm/h) als nowcast-Familie einspeisen — nur die
@@ -343,10 +450,24 @@ export async function getPointForecast(opts: PointForecastOptions): Promise<Poin
     }
   }
 
+  // --- 3c) Stationsanker als Innovation (V-PV-19) --------------------------
+  // Aus den Paaren (Messung, Modell) zu t₀ und in der Historie. Im Native-Modus
+  // gibt es keinen Anker (kein Obs-Sample), im Wert-Modus den alten Weg.
+  const anchor = anchorMode === 'offset' && !isolatedNative && unified.length
+    ? anchorOffsetsFor(
+      [{ ageH: 0, samples: unified[0].samples },
+        ...history.map((hh) => ({ ageH: (t0Ms - hh.timestamp.getTime()) / 3_600_000, samples: hh.samples }))],
+      elevation, lapseRatePerM,
+    )
+    : null;
+  // Ab h = 1 sieht der Blend die Stationen im Versatz-Modus nicht mehr als Wert.
+  const blendSamples = (h: number, samples: PointSourceSample[]) =>
+    (anchorMode === 'offset' && h > 0 ? samples.filter((x) => x.family !== 'obs') : samples);
+
   // --- 4) Blend per-hour -------------------------------------------------
   const outHours: PointForecastHour[] = unified.map((hour, hIdx) => {
     // Blend each variable ONCE (value + confidence come from the same result).
-    const s = hour.samples;
+    const s = blendSamples(hIdx, hour.samples);
     const temp = blendVariable(s, 'temperature', hIdx, elevation, lapseRatePerM);
     const cLow = blendVariable(s, 'clouds', hIdx, elevation, lapseRatePerM, 'cloudLow');
     const cMid = blendVariable(s, 'clouds', hIdx, elevation, lapseRatePerM, 'cloudMid');
@@ -383,19 +504,9 @@ export async function getPointForecast(opts: PointForecastOptions): Promise<Poin
   });
   // Wind needs u/v blended then converted to speed/dir.
   for (let h = 0; h < outHours.length; h++) {
-    const samples = unified[h].samples;
+    const samples = blendSamples(h, unified[h].samples);
     const uRes = blendVariable(samples, 'wind', h, elevation, lapseRatePerM, 'u');
     const vRes = blendVariable(samples, 'wind', h, elevation, lapseRatePerM, 'v');
-    if (uRes.value != null && vRes.value != null) {
-      const u = uRes.value;
-      const v = vRes.value;
-      outHours[h].windSpeed = Math.sqrt(u * u + v * v);
-      // meteorological direction = where wind comes FROM
-      const dirMath = (Math.atan2(-u, -v) * 180) / Math.PI;
-      outHours[h].windDirection = (dirMath + 360) % 360;
-    }
-    outHours[h].confidence.wind = (uRes.confidence + vRes.confidence) / 2;
-
     // Gust and humidity are blended as scalars. Both gracefully skip null
     // samples (handled in blendVariable), so sources without the variable
     // simply don't contribute. Gust is post-floored at windSpeed (gust can
@@ -404,17 +515,35 @@ export async function getPointForecast(opts: PointForecastOptions): Promise<Poin
     const gustRes = blendVariable(samples, 'gust', h, elevation, lapseRatePerM);
     const humRes = blendVariable(samples, 'humidity', h, elevation, lapseRatePerM);
     const snowRes = blendVariable(samples, 'snowLine', h, elevation, lapseRatePerM);
+
+    // Stationsanker als Innovations-Persistenz: Modell + Versatz · Abklingen
+    // (`anchor.ts`). Bei h = 0 und ohne Anker unverändert der Blend.
+    const a = anchoredValues(h, anchor, {
+      temperature: outHours[h].temperature, u: uRes.value, v: vRes.value, gust: gustRes.value, humidity: humRes.value,
+    });
+    outHours[h].temperature = a.temperature;
+    if (a.u != null && a.v != null) {
+      outHours[h].windSpeed = Math.sqrt(a.u * a.u + a.v * a.v);
+      // meteorological direction = where wind comes FROM
+      const dirMath = (Math.atan2(-a.u, -a.v) * 180) / Math.PI;
+      outHours[h].windDirection = (dirMath + 360) % 360;
+    }
+    outHours[h].confidence.wind = (uRes.confidence + vRes.confidence) / 2;
     const ws = outHours[h].windSpeed;
-    if (gustRes.value != null) {
-      outHours[h].gustSpeed = ws != null ? Math.max(gustRes.value, ws) : gustRes.value;
+    if (a.gust != null) {
+      outHours[h].gustSpeed = ws != null ? Math.max(a.gust, ws) : a.gust;
     } else if (ws != null) {
       outHours[h].gustSpeed = ws * 1.4;     // fallback factor for open terrain
     }
     outHours[h].confidence.gust = gustRes.value != null ? gustRes.confidence : 0.3;
-    outHours[h].relativeHumidity = humRes.value;
+    outHours[h].relativeHumidity = a.humidity;
     outHours[h].confidence.humidity = humRes.confidence;
     outHours[h].snowLineM = snowRes.value;
     outHours[h].confidence.snowLine = snowRes.confidence;
+    // Herkunfts-Badges: die Station trägt über den Versatz, solange er ≥ 5 % wiegt.
+    if (anchor && h > 0 && anchor.fraction * anchorDecay(h, ANCHOR_TAU_H.temperature) >= 0.05) {
+      for (const src of anchor.sources) if (!outHours[h].contributingSources.includes(src)) outHours[h].contributingSources.push(src);
+    }
 
     // Total cover: the point sources (MOSMIX/AROME) only report ONE total
     // cover, which we split 55/30/15 into L/M/H. They are NOT independent
@@ -462,6 +591,30 @@ export async function getPointForecast(opts: PointForecastOptions): Promise<Poin
     // Blend eingegangen sind.
     .filter((s) => !isolatedNative || NATIVE_POINT_SOURCES[country].has(s));
 
+  // --- 4c) Kalibrierte Verteilungen (opt-in, additiv) ----------------------
+  // Rechnet buscosun Fusion (`fusion/fuse.ts`) je Stunde und hängt sie an.
+  // Ohne `distribution: true` passiert hier nichts — alle bestehenden Aufrufer
+  // bekommen Feld für Feld dasselbe Ergebnis wie zuvor (D-11, Funktionserhalt).
+  if (opts.distribution) {
+    try {
+      const { computeDistributions } = await import('./fusion/attach');
+      const dists = await computeDistributions({
+        lat, lng,
+        elevationM: elevation,
+        lapseRatePerM,
+        terrain,
+        demSample,
+        unified,
+        blended: outHours,
+        signal,
+      });
+      for (let h = 0; h < outHours.length; h++) outHours[h].fusion = dists[h] ?? null;
+    } catch {
+      // Ein Fehlschlag nimmt die Verteilungen, nie die Vorhersage.
+      for (const h of outHours) h.fusion = null;
+    }
+  }
+
   const result: PointForecast = {
     query: { lat, lng, elevation, country },
     hours: outHours,
@@ -474,12 +627,107 @@ export async function getPointForecast(opts: PointForecastOptions): Promise<Poin
     })),
     sourcesAvailable,
   };
-  PF_CACHE.set(cacheKey, { hours, forecast: result, ts: Date.now() });
+  // Ein abgebrochener oder quellenloser Lauf darf NICHT in den Cache: jeder
+  // Fetch fängt seine Fehler selbst ab, ein `abort()` beim Unmount erzeugt also
+  // ein leeres, fehlerfreies Ergebnis — und würde drei Minuten lang an alle
+  // weiteren Abfragen desselben Punktes ausgeliefert.
+  const degraded = signal?.aborted === true || outHours.length === 0 || sourcesAvailable.length === 0;
+  if (!degraded) {
+    PF_CACHE.set(cacheKey, { hours, forecast: result, ts: Date.now() });
+  }
   if (PF_CACHE.size > PF_CACHE_MAX) {
     const oldest = PF_CACHE.keys().next().value;
     if (oldest !== undefined) PF_CACHE.delete(oldest);
   }
   return result;
+}
+
+// ---------------------------------------------------------------------------
+// Stationsanker als Innovations-Persistenz (V-PV-19) — geteilt mit dem
+// Nachrechen-Harness `scripts/verify-pv-score.mjs`, damit dort dieselbe Rechnung läuft.
+// ---------------------------------------------------------------------------
+
+export interface AnchorOffsets {
+  temperature: Innovation | null;
+  humidity: Innovation | null;
+  u: Innovation | null;
+  v: Innovation | null;
+  gust: Innovation | null;
+  /** Größte Repräsentativität unter den Stationen (für Badges/Diagnose). */
+  fraction: number;
+  sources: string[];
+}
+
+/**
+ * Versatz je Größe aus Stunden, die Messungen UND Modellwerte tragen: je Stunde
+ * die räumlich gewichtete Messung (wie im Blend) gegen den Modell-Blend derselben
+ * Stunde; `ageH` = Alter der Stunde gegenüber t₀ (0 = jetzt). `null`, wenn keine
+ * Stunde ein Paar liefert.
+ */
+export function anchorOffsetsFor(
+  hours: Array<{ ageH: number; samples: PointSourceSample[] }>,
+  queryElevation: number,
+  lapseRatePerM: number,
+): AnchorOffsets | null {
+  type Key = 'temperature' | 'humidity' | 'u' | 'v' | 'gust';
+  const spec: Array<[Key, Variable, 'u' | 'v' | undefined]> = [
+    ['temperature', 'temperature', undefined], ['humidity', 'humidity', undefined],
+    ['u', 'wind', 'u'], ['v', 'wind', 'v'], ['gust', 'gust', undefined],
+  ];
+  const pairs: Record<Key, AnchorPair[]> = { temperature: [], humidity: [], u: [], v: [], gust: [] };
+  const sources = new Set<string>();
+  let fraction = 0;
+  const rawOf = (s: PointSourceSample, key: Key): number | null =>
+    key === 'u' ? s.u : key === 'v' ? s.v : key === 'temperature' ? s.temperature : key === 'humidity' ? s.relativeHumidity : s.gust;
+  for (const hr of hours) {
+    const obs = hr.samples.filter((s) => s.family === 'obs');
+    const model = hr.samples.filter((s) => s.family !== 'obs');
+    if (!obs.length || !model.length) continue;
+    for (const [key, variable, pick] of spec) {
+      const o = blendVariable(obs, variable, 0, queryElevation, lapseRatePerM, pick);
+      const m = blendVariable(model, variable, 0, queryElevation, lapseRatePerM, pick);
+      if (o.value == null || m.value == null) continue;
+      let wsp = 0;
+      for (const s of obs) {
+        const raw = rawOf(s, key);
+        if (raw == null || !Number.isFinite(raw)) continue;
+        wsp = Math.max(wsp, spatialWeight(s.distanceMeters ?? 0, Math.abs((s.sourceElevation ?? queryElevation) - queryElevation)));
+        sources.add(s.source);
+      }
+      if (!(wsp > 0)) continue;
+      pairs[key].push({ ageH: hr.ageH, obs: o.value, model: m.value, wsp });
+      fraction = Math.max(fraction, wsp);
+    }
+  }
+  const out: AnchorOffsets = {
+    temperature: innovation(pairs.temperature, ANCHOR_MAX.temperature),
+    humidity: innovation(pairs.humidity, ANCHOR_MAX.humidity),
+    u: innovation(pairs.u, ANCHOR_MAX.wind),
+    v: innovation(pairs.v, ANCHOR_MAX.wind),
+    gust: innovation(pairs.gust, ANCHOR_MAX.gust),
+    fraction: Math.min(1, fraction),
+    sources: [...sources],
+  };
+  return out.temperature || out.humidity || out.u || out.v || out.gust ? out : null;
+}
+
+/** Modellwerte der Stunde `h` plus abklingender Versatz; bei h = 0 oder ohne Anker unverändert. */
+export function anchoredValues(
+  h: number,
+  a: AnchorOffsets | null,
+  raw: { temperature: number | null; u: number | null; v: number | null; gust: number | null; humidity: number | null },
+): { temperature: number | null; u: number | null; v: number | null; gust: number | null; humidity: number | null } {
+  if (!a || h <= 0) return raw;
+  const add = (v: number | null, inn: Innovation | null, tau: number) => (v == null || !inn ? v : v + anchorTerm(inn, h, tau));
+  const hum = add(raw.humidity, a.humidity, ANCHOR_TAU_H.humidity);
+  const gust = add(raw.gust, a.gust, ANCHOR_TAU_H.gust);
+  return {
+    temperature: add(raw.temperature, a.temperature, ANCHOR_TAU_H.temperature),
+    u: add(raw.u, a.u, ANCHOR_TAU_H.wind),
+    v: add(raw.v, a.v, ANCHOR_TAU_H.wind),
+    gust: gust == null ? null : Math.max(0, gust),
+    humidity: hum == null ? null : Math.max(0, Math.min(100, hum)),
+  };
 }
 
 interface BlendResult {
@@ -709,6 +957,18 @@ export function verifyAnchorQC(): AnchorVerifyResult {
   const noAnchor = blend([mkPS('obs', 28, 600, 30000), mkPS('highres', 20.5, null, 0)]);
   checks.push({ name: 'Ohne ko-lokalisierten Anker → QC inaktiv (NWP-dominiert >19)', expected: '>19', got: r1(noAnchor),
     ok: noAnchor != null && noAnchor > 19 });
+
+  // Innovations-Persistenz (V-PV-19): Station 8 °C, Modell 12 °C bei t₀ ⇒ Versatz −4 K;
+  // bei h = 1 trägt er mit e^(−1/4), bei h = 0 bleibt der Blend unangetastet.
+  const off = anchorOffsetsFor([{ ageH: 0, samples: [mkPS('obs', 8, 2200, 100), mkPS('highres', 12, null, 0)] }], qElev, lapse);
+  const t1 = anchoredValues(1, off, { temperature: 14, u: null, v: null, gust: null, humidity: null }).temperature;
+  const t0 = anchoredValues(0, off, { temperature: 14, u: null, v: null, gust: null, humidity: null }).temperature;
+  checks.push({ name: 'Anker-Versatz: Station − Modell = −4 K, bei h = 1 mit e^(−¼) (→ 10,9)', expected: '10.8–11.0', got: r1(t1),
+    ok: off?.temperature?.offset === -4 && t1 != null && t1 > 10.8 && t1 < 11.0 });
+  checks.push({ name: 'Anker-Versatz: bei h = 0 unverändert', expected: '14', got: r1(t0), ok: t0 === 14 });
+  // Negativkontrolle: ohne Modellwert im selben Stundenkorb gibt es kein Paar und keinen Versatz.
+  const none = anchorOffsetsFor([{ ageH: 0, samples: [mkPS('obs', 8, 2200, 100)] }], qElev, lapse);
+  checks.push({ name: 'Negativkontrolle: Messung ohne Modell ⇒ kein Versatz', expected: 'null', got: none ? 1 : null, ok: none === null });
 
   return { checks, passed: checks.filter((c) => c.ok).length, failed: checks.filter((c) => !c.ok).length };
 }
