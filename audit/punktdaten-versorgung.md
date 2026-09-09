@@ -1819,3 +1819,93 @@ Lauf) und die Radarquellen (liegen schon unter `radar/`, brauchen einen Leser st
 Ingests). Der Cron ist weiterhin Jans Gate: `workflow-point.yml` muss von Hand ins
 Daten-Repo (`MANUELLE-SCHRITTE.md` §13) — bis dahin ist der veröffentlichte Lauf ein
 Einzelstand und altert.
+
+
+## §30 Der Cron, nachgebaut statt angenommen (2026-09-09, nachts)
+
+Jan hat `buscosun-web` committet und gepusht (`388c9ac`). Damit war die Voraussetzung
+erfuellt, die §29.4 als offen fuehrte — der Cron holt den Producer bei jedem Lauf frisch
+von GitHub:
+
+```yaml
+git clone --depth=1 --filter=blob:none https://github.com/jppetry/buscosun-web.git app
+git sparse-checkout set --no-cone scripts src package.json
+```
+
+Statt das fuer erledigt zu erklaeren, habe ich **nachgebaut, was der Job tut**: frisch von
+GitHub klonen, sparse auschecken, `bz2` installieren, das netzfreie Gate laufen lassen.
+
+### 30.1 Der Befund
+
+```
+FAIL  QUELLENMATRIX.md liegt im Repo — ohne sie ist dieser Abgleich nicht moeglich
+230/231 Pruefungen bestanden
+```
+
+Die Matrix **ist** committet (10 349 B). Sie liegt nur in der **Wurzel**, und das
+sparse-Set des Crons ist `scripts src package.json` — sie kommt nie mit. Der
+Dokument-gegen-Registry-Abgleich (§ der Check, der fuenf fehlende Eintraege fand) fiel
+deshalb durch, und weil das Gate im Job **vor** dem Ingest steht, waere **jeder
+planmaessige Lauf abgebrochen, bevor er ein Byte zieht**.
+
+Lokal ist das unsichtbar: hier liegt immer der volle Baum. Es ist damit dieselbe Klasse
+wie §26 und §29.1 — **geprueft wurde der Bauplan, nicht das Bauwerk.** Nur diesmal war das
+Bauwerk nicht der Ausgabebaum, sondern die Umgebung, in der der Producer laeuft.
+
+### 30.2 Die Kur an beiden Enden
+
+1. **Die Vorlage holt die Datei mit** und prueft danach nach:
+
+   ```yaml
+   git sparse-checkout set --no-cone scripts src package.json QUELLENMATRIX.md
+   git checkout --quiet
+   test -f QUELLENMATRIX.md || { echo "..."; exit 1; }
+   ```
+
+   Das `test -f` ist kein Gürtel-und-Hosentraeger: **ein sparse-Muster, das nichts
+   trifft, meldet von sich aus nichts** — dieselbe Stille wie beim `git add` im sparse
+   Checkout (§22).
+
+2. **Eine fehlende Dokumentationsdatei ist kein Fehlschlag mehr, sondern ein
+   Ueberspringen mit Hinweis.** Ein Datenlauf darf nicht an einer Markdown-Datei
+   sterben. In CI liegt der volle Baum, dort wird der Abgleich weiter erzwungen — die
+   Strenge geht also nicht verloren, sie steht nur an der richtigen Stelle.
+
+Dazu zwei Pruefungen, die die Vorlage selbst gegen diesen Fehler halten.
+
+### 30.3 Beleg am gepushten Stand
+
+Nach `f8342d2` derselbe Nachbau noch einmal, **vollstaendig aus GitHub**, nichts von der
+Platte kopiert:
+
+```
+Klon f8342d2 · Matrix 10 349 B
+OK  QUELLENMATRIX §1: jeder genannte Name loest sich auf — 28 Namen geprueft
+OK  die Cron-Vorlage holt QUELLENMATRIX.md mit
+OK  die Cron-Vorlage prueft das auch nach
+235/235 Pruefungen bestanden.
+Exit-Code des Gates: 0
+```
+
+Der Unterschied zur lokalen Zahl (238) sind genau die drei Pruefungen, die einen Baum
+unter `data/point` brauchen — sie werden uebersprungen **und das wird gesagt**.
+
+### 30.4 Werkzeugfalle, zum dritten Mal
+
+Beim Einbau der neuen Pruefung wurde `[^
+]` in einer Regex durch die
+Python-in-Bash-Kette zu einem **echten Zeilenumbruch** und hat die Datei zerschossen
+(`SyntaxError: Invalid regular expression: missing /`). Das ist derselbe Werkzeugfehler
+wie zweimal zuvor in dieser Phase. Kur wie festgelegt: mit dem Edit-Werkzeug arbeiten und
+die `NEWLINE`-Konstante nutzen — hier ganz ohne Regex:
+
+```js
+wf.split(NEWLINE).some((l) => l.includes('sparse-checkout set') && l.includes('QUELLENMATRIX.md'))
+```
+
+### 30.5 Was jetzt noch fehlt
+
+Genau **ein** Schritt, und der ist Jans: `scripts/repack-repo/workflow-point.yml` von Hand
+nach `.github/workflows/point.yml` im Daten-Repo (eine Action darf ohne `workflows`-Scope
+keine Workflow-Datei pushen). Danach laeuft die Linie ohne Zutun — mit der Einschraenkung
+aus E-19, dass die Slots im Publish-Fenster der Kartenlinie liegen.

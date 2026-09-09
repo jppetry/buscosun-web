@@ -16,7 +16,7 @@
 > **Umgesetzt (uncommitted):** `src/point/{cubeFormat,sourceMatrix,terrainPoint,calibration,manifest}.ts`
 > als EINE Form für Producer und Client (kein Spiegel wie bei `repackManifest.mjs` — beide importieren
 > dieselbe Datei); `scripts/point/{build-point-cube,publish-point}.mjs` plus die Adapter-Schicht;
-> `verify:point-data` **236/236** (in CI); `scripts/repack-repo/README.md` neu (beschreibt alle
+> `verify:point-data` **238/238** (in CI); `scripts/repack-repo/README.md` neu (beschreibt alle
 > Linien — V-PD-3) und `workflow-point.yml` als Cron-Vorlage.
 > **Gemessen am echten Datum, nicht geschätzt:** Cube Stufe 1 (ICON-D2 2026090909, 0–3 h) 208 Chunks
 > à 14,1 KiB Median, 2,64 MiB, Abruf 53,3 MiB bz2 in 89 s ⇒ volle Stufe 1 ≈ 32 MiB (mit gefüllten
@@ -61,9 +61,29 @@
 > sechsstündlich). ⚠ **Derselbe Befund als Warnung:** in zwei Dritteln der t1-Stunden steht
 > σ_div auf nur zwei Quellen, **und beide sind ICON** — dort misst σ weitgehend die
 > Auflösungsdifferenz, nicht die Meinungsverschiedenheit unabhängiger Zentren (PAP 6, §29.3).
-> ⚠ **Noch offen und Jans Gate:** der **Cron** — `workflow-point.yml` muss von Hand ins
-> Daten-Repo (`MANUELLE-SCHRITTE.md` §13; eine Action darf ohne `workflows`-Scope keine
-> Workflow-Datei pushen). Bis dahin ist der veröffentlichte Lauf ein Einzelstand und altert.
+> **`buscosun-web` ist committet und gepusht** (`388c9ac`, Fix `f8342d2`) — nötig, weil der
+> Cron den Producer bei jedem Lauf frisch von GitHub klont (`scripts src package.json`).
+> **§30 — den Cron nachgebaut statt angenommen, und das hat einen Abbruch verhindert:**
+> frisch von GitHub geklont, sparse ausgecheckt, Gate gelaufen ⇒ **230/231, `QUELLENMATRIX.md`
+> fehlt**. Die Matrix IST committet, sie liegt nur in der **Wurzel** und war nicht im
+> sparse-Set — und weil das Gate im Job **vor** dem Ingest steht, wäre **jeder planmäßige
+> Lauf abgebrochen, bevor er ein Byte zieht**. Lokal unsichtbar, weil hier immer der volle
+> Baum liegt: wieder „geprüft wurde der Bauplan, nicht das Bauwerk", diesmal die *Umgebung*
+> statt des Ausgabebaums. Kur an beiden Enden: die Vorlage holt die Datei mit **und prüft es
+> mit `test -f` nach** (ein sparse-Muster, das nichts trifft, meldet nichts — dieselbe Stille
+> wie beim `git add`), und eine fehlende *Dokumentations*datei ist jetzt ein Überspringen mit
+> Hinweis statt eines Fehlschlags; CI hat den vollen Baum und erzwingt weiter. Am gepushten
+> Stand belegt: Klon `f8342d2`, Matrix 10 349 B, **28 Namen aufgelöst, 235/235, Exit 0**
+> (lokal 238 — die drei Mehr sind die, die einen Baum unter `data/point` brauchen und sonst
+> **hörbar** übersprungen werden).
+> ⚠ **Es fehlt genau ein Schritt, und der ist Jans:** `workflow-point.yml` von Hand nach
+> `.github/workflows/point.yml` im Daten-Repo (`MANUELLE-SCHRITTE.md` §13; eine Action darf
+> ohne `workflows`-Scope keine Workflow-Datei pushen). Bis dahin ist der veröffentlichte Lauf
+> ein Einzelstand und altert.
+> **Werkzeugfalle zum dritten Mal in dieser Phase:** `[^
+]` in einer Regex wurde durch die
+> Python-in-Bash-Kette zum echten Zeilenumbruch und hat den Verifier zerschossen. Kur wie
+> festgelegt — Edit-Werkzeug und `NEWLINE`-Konstante, hier ganz ohne Regex.
 > Dazu **E-19** (§27.3): die Punkt-Slots (:10 der Stunden 02/08/14/20) laufen ins
 > Publish-Fenster der Kartenlinie (:30 derselben Stunden) — `publish-repack.mjs` klont,
 > wirft `.git` weg und **force-pusht**, was dazwischen ankommt, ist spurlos weg. Der Publisher
@@ -107,7 +127,7 @@
 > Rest tragen die gröberen Globalmodelle — damit steckt in σ_div dort auch die
 > **Auflösungsdifferenz**, nicht nur Vorhersageunsicherheit. Das Manifest sagt es jetzt als
 > `fusion.resolutionCaveat` und je Quelle über `role` und `steps`; drei Verifier-Prüfungen halten
-> die Aussage am Code fest. `verify:point-data` **236/236**.
+> die Aussage am Code fest. `verify:point-data` **238/238**.
 >
 > **Jans Entscheidung (2026-09-09): im Daten-Repo liegen nur Daten der letzten 24 Stunden,
 > quellenunabhängig (§24).** Das begrenzt das ALTER eines Laufs, nicht seinen Horizont — ein Lauf
