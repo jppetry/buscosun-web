@@ -2,23 +2,31 @@
  * Atmosphäre · shared state store (the single source of truth).
  *
  * The Time-Scrubber drives `activeHour`; every child subscribes to it via
- * useAtmosphere(). Lens + depth (Nerd) + location + marker live here too. State
- * is mirrored to the URL hash (#atm=) for shareable permalinks and the last lens
- * is remembered in localStorage. The app has no global store, so this provider is
- * scoped to the Atmosphäre feature only — same per-feature pattern as the rest.
+ * useAtmosphere(). Lens + depth (Nerd) + location + marker live here too; the
+ * last lens is remembered in localStorage. The app has no global store, so this
+ * provider is scoped to the Atmosphäre feature only.
+ *
+ * ── SH3: der Store schreibt die URL NICHT mehr selbst ────────────────────────
+ * Bis 2026-09-08 spiegelte er seinen Zustand in das Fragment `#atm=`. Das ist
+ * entfallen: ein Fragment erreicht den Server nie, also kann daraus kein
+ * Vorschaubild und kein `og:title` entstehen (`audit/teilen-share.md` §1.2).
+ * Der Zustand geht jetzt per `onUrlState` an den Router-Wrapper, und der ist
+ * der EINZIGE Schreiber von Pfad und Query — dasselbe Muster wie
+ * `WetterkarteRoute` (RT1). Der Codec `atmosphereState.ts` bleibt als LESER
+ * für Alt-Links erhalten; den Umzug erledigt der Wrapper beim Ankommen.
  */
 
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { Location } from '../types';
 import {
-  decodeState, encodeState, clampHour, LENSES, type Lens, type AtmosphereMarker,
+  clampHour, LENSES, type Lens, type AtmosphereMarker,
 } from './atmosphereState';
+import { hourFromValidAt, validAtFromHour, type AtmosphereUrlState } from './atmosphereUrl';
 import type { DerivedProfile } from './profile-derivations';
 import type { SoundingProfile } from '../sources/iconEuSounding';
 import type { SoundingDerived } from '../threed/soundingMath';
 import type { GeoPoint } from '../threed/sectionGeometry';
 import type { ThreeDLayers } from '../threed/threedState';
-import { decodeState as decodeThreeD, hasThreeDHash } from '../threed/threedState';
 
 export type SectionMode = '2d' | '3d' | 'terrain';
 const DEFAULT_SECTION_LAYERS: ThreeDLayers = { mean: true, gust: false, shear: false, inversion: false, cloudBase: false, cloudLayers: false, streamlines: false, foehn: false, temp: false };
@@ -70,34 +78,39 @@ function readLensFromStorage(): Lens | null {
 
 interface ProviderProps {
   children: ReactNode;
-  /** Router (RT1): Linse aus dem Pfad — nach dem Hash, vor localStorage. */
+  /** Router (RT1): Linse aus dem Pfad — vor localStorage. */
   initialLens?: Lens | null;
   /** Linse von außen (nur Zurück/Vorwärts). */
   routeLens?: Lens | null;
   /** Linse ⇒ Pfad (erster Lauf = replace, danach push). */
   onLensChange?: (lens: Lens, initial: boolean) => void;
+  /**
+   * SH3: Anfangszustand aus Pfad + Query (der Wrapper hat ihn schon geparst und
+   * einen Alt-Link `#atm=`/`#3d=` bereits umgeschrieben). `null` ⇒ Standard.
+   */
+  initialUrl?: AtmosphereUrlState | null;
+  /** SH3: Zustandsänderung ⇒ der Wrapper schreibt die URL. */
+  onUrlState?: (s: AtmosphereUrlState) => void;
+  /** Bezugszeit für die Umrechnung absolute Zeit ⇄ Scrubber-Stunde. */
+  nowMs?: number;
 }
 
-export function AtmosphereProvider({ children, initialLens, routeLens, onLensChange }: ProviderProps) {
-  // Initial state: hash wins; else the route's lens; else last lens from
-  // localStorage; else first-time default lens = "Föhn" (mountain) — the
-  // broadest everyday lens.
+export function AtmosphereProvider({ children, initialLens, routeLens, onLensChange, initialUrl, onUrlState, nowMs }: ProviderProps) {
+  // SH3: Anfangszustand kommt aus Pfad + Query (der Wrapper hat ihn geparst und
+  // einen Alt-Link bereits umgeschrieben). Ohne Ort in der URL entscheidet die
+  // Linse: Pfad, sonst localStorage, sonst „Föhn" (mountain) als breiteste Sicht.
+  const nowRef = useRef(nowMs ?? Date.now());
   const initial = useMemo(() => {
-    const hash = typeof window !== 'undefined' ? window.location.hash : '';
-    const st = decodeState(hash);
-    if (st) {
-      const loc = st.loc ? { name: st.loc.name, lat: st.loc.lat, lon: st.loc.lon, country: st.loc.country } : null;
-      return { lens: st.lens, hour: st.hour, nerd: st.nerd, loc,
-        marker: st.marker ?? (loc ? { lat: loc.lat, lon: loc.lon } : null), cut: st.cut };
-    }
-    // Migration: alter threed-Permalink (#3d=) → Schnitt-Linse mit Ort + Schnittlinie.
-    const td = hasThreeDHash(hash) ? decodeThreeD(hash) : null;
-    if (td) {
-      const loc = td.loc ? { name: td.loc.name, lat: td.loc.lat, lon: td.loc.lon, country: td.loc.country } : null;
-      return { lens: 'section' as Lens, hour: 0, nerd: false, loc,
-        marker: loc ? { lat: loc.lat, lon: loc.lon } : null, cut: td.points };
-    }
-    return { lens: initialLens ?? readLensFromStorage() ?? 'mountain', hour: 0, nerd: false, loc: null, marker: null, cut: [] as GeoPoint[] };
+    const u = initialUrl ?? null;
+    const loc = u?.place ?? null;
+    return {
+      lens: initialLens ?? readLensFromStorage() ?? 'mountain',
+      hour: hourFromValidAt(u?.validAtMs ?? null, nowRef.current),
+      nerd: !!u?.nerd,
+      loc,
+      marker: u?.marker ?? (loc ? { lat: loc.lat, lon: loc.lon } : null),
+      cut: (u?.cut ?? []) as GeoPoint[],
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -119,18 +132,18 @@ export function AtmosphereProvider({ children, initialLens, routeLens, onLensCha
   };
   const setHour = (h: number) => setHourState(clampHour(h));
 
-  // Mirror state into the URL hash (shareable permalink). Sole writer.
-  const restoredRef = useRef(false);
+  // SH3: Zustand ⇒ Wrapper (der schreibt Pfad UND Query). Kein zweiter Schreiber.
+  const onUrlStateRef = useRef(onUrlState);
+  onUrlStateRef.current = onUrlState;
   useEffect(() => {
-    // Skip the very first run so an unrelated hash isn't clobbered before mount
-    // settles; from then on the atmosphere state owns the hash while mounted.
-    if (!restoredRef.current) { restoredRef.current = true; }
-    const hash = encodeState({
-      loc: location ? { lat: location.lat, lon: location.lon, name: location.name, country: location.country } : null,
-      hour, lens, nerd: nerdOpen, marker, cut: cutPoints,
+    onUrlStateRef.current?.({
+      place: location,
+      validAtMs: validAtFromHour(hour, nowRef.current),
+      nerd: nerdOpen,
+      marker,
+      cut: cutPoints,
     });
-    if (window.location.hash !== hash) window.history.replaceState(null, '', hash);
-  }, [location, hour, lens, nerdOpen, marker, cutPoints]);
+  }, [location, hour, nerdOpen, marker, cutPoints]);
 
   // Router (RT1): Linse ⇒ Pfad `/atmosphaere/<lens>` (nach dem Hash-Schreiber,
   // damit der Wrapper den frischen Hash mitnimmt); Zurück/Vorwärts ⇒ Linse aus dem Pfad.

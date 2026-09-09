@@ -1206,19 +1206,48 @@ if (hsurfGreys.length >= 2) {
         /strategy: constants\.Z_RLE/.test(rf('scripts/lib/png.mjs', 'utf8')) && roundtrip && typeof zc.Z_RLE === 'number' && typeof deflateSync === 'function');
     }
 
-    // ── BW-9 (V-BW-27): bzip2-Binary == pure-JS, Byte für Byte ──────────────
+    // ── BW-9 (V-BW-27), KORRIGIERT am 2026-09-09 ────────────────────────────
+    //
+    // Die alte Fassung verglich GENAU EINE Datei und behauptete daraus „bzip2-Binary
+    // liefert dieselben Bytes wie pure-JS". Gemessen an 24 ICON-D2-Feldern (Lauf
+    // 2026090909): **23 byte-gleich, 1 abweichend** — `tot_prec@0`, JS 4 983 271 B
+    // gegen Binary 4 983 288 B. Und an ICON global `CLON` liefert der JS-Weg sogar
+    // die RICHTIGE Länge bei falschem Inhalt (Läufe 06z/12z, AEC-Überlauf beim
+    // Dekodieren; 00z geht durch). Es ist datenabhängig, nicht größenabhängig.
+    //
+    // Die Behauptung war also falsch und ist mit einer Stichprobe von 1 nur nicht
+    // aufgefallen — dieselbe Falle, die dieser Verifier sonst überall vermeidet.
+    // Statt sie zu wiederholen: ALLE zwischengespeicherten Dateien vergleichen, die
+    // Abweichungen ZÄHLEN, und das Gate an die Frage hängen, die wirklich zählt —
+    // benutzt die PRODUKTION den geprüften Weg?
     {
       const { readdirSync } = await import('node:fs');
       const cacheDir = '.cache/repack';
-      const sample = existsSync(cacheDir) ? readdirSync(cacheDir).find((n) => n.endsWith('.grib2.bz2')) : null;
+      const files = existsSync(cacheDir)
+        ? readdirSync(cacheDir).filter((n) => n.endsWith('.grib2.bz2')).slice(0, 40) : [];
       const hasBin = !(await import('node:child_process')).spawnSync('bzip2', ['--help'], { stdio: 'ignore' }).error;
-      if (!sample) console.log('⊘ bzip2-Vergleich nicht geprüft: keine Datei in .cache/repack');
+      if (files.length === 0) console.log('⊘ bzip2-Vergleich nicht geprüft: keine Datei in .cache/repack');
       else if (!hasBin) console.log('⊘ bzip2-Vergleich nicht geprüft: kein `bzip2` im PATH');
       else {
-        const raw = rf(join(cacheDir, sample));
-        const a = Buffer.from(await PROD.decompressBz2(raw, { binary: true }));
-        const b = Buffer.from(await PROD.decompressBz2(raw, { binary: false }));
-        add('bzip2-Binary liefert dieselben Bytes wie pure-JS', a.length > 0 && a.equals(b), `${sample.slice(-40)} · ${a.length} B`);
+        let same = 0;
+        const differ = [];
+        for (const f of files) {
+          const raw = rf(join(cacheDir, f));
+          const a = Buffer.from(await PROD.decompressBz2(raw, { binary: true }));
+          const b = Buffer.from(await PROD.decompressBz2(raw, { binary: false }));
+          if (a.length > 0 && a.equals(b)) same++;
+          else differ.push(`${f.slice(-28)} (${a.length} vs ${b.length} B)`);
+        }
+        // KEIN Gate auf Gleichheit — sie gilt nachweislich nicht. Der Befund wird
+        // berichtet, damit er sichtbar bleibt statt still zu verschwinden.
+        console.log(differ.length === 0
+          ? `ℹ bz2-Wege an ${files.length} Dateien byte-gleich (kein Beweis für Gleichheit — s. Kommentar)`
+          : `⚠ bz2-Wege weichen an ${differ.length} von ${files.length} Dateien ab: ${differ.slice(0, 3).join(' · ')}`);
+        // DAS ist die Prüfung, die trägt: der pure-JS-Weg darf in Produktion nicht
+        // der Standard sein. `libbzip2` prüft die Block-CRC, das JS-Paket nicht.
+        add('Produktion entpackt mit dem bzip2-Binary, nicht mit pure-JS',
+          /REPACK_BZIP2:\s*'1'/.test(srcOf('./repack-repo/workflow-build.yml')),
+          'JS liefert datenabhängig falsche Bytes bei richtiger Länge — V-PD-12');
       }
     }
   }

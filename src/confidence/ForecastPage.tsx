@@ -10,6 +10,7 @@ import { useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import type { Location } from '../types';
 import { geocodeDACH, flagForCountry } from '../geocode';
 import ForecastDeck from './ForecastDeck';
+import type { ForecastUrlState, ParsedForecastQuery } from './forecastUrl';
 import '../intro/intro.css';
 import '../route/tourTheme.css';
 import './forecast.css';
@@ -40,7 +41,16 @@ function IconHowTo() {
 
 import { FeatureRail, type RailFeature } from '../nav/featureRail';
 
-interface Props { onBack: () => void; onOpenFeature?: (id: RailFeature) => void }
+interface Props {
+  onBack: () => void;
+  onOpenFeature?: (id: RailFeature) => void;
+  /** SH5: Ort aus Pfad + Query (die Seite hatte bisher gar keinen URL-Zustand). */
+  initialPlace?: Location | null;
+  /** SH5: Anfangszustand des Decks aus der Query; `null`-Felder ⇒ localStorage gilt. */
+  initialUrl?: ParsedForecastQuery | null;
+  /** SH5: Zustandsänderung ⇒ der Wrapper schreibt die URL (einziger Schreiber). */
+  onUrlState?: (s: ForecastUrlState) => void;
+}
 
 /**
  * Orchestriert nur noch Idle-/Standortschritt vs. das Command-Deck: ohne Ort der
@@ -48,10 +58,17 @@ interface Props { onBack: () => void; onOpenFeature?: (id: RailFeature) => void 
  * „So geht's"), mit Ort das vollflächige `ForecastDeck` (Topbar · Rail · Dock ·
  * Center · Readout). Der gesamte Datenlebenszyklus liegt im Deck.
  */
-export default function ForecastPage({ onBack, onOpenFeature }: Props) {
-  const [location, setLocation] = useState<Location | null>(null);
+export default function ForecastPage({ onBack, onOpenFeature, initialPlace, initialUrl, onUrlState }: Props) {
+  const [location, setLocation] = useState<Location | null>(initialPlace ?? null);
 
-  if (location) return <ForecastDeck location={location} setLocation={setLocation} onBack={onBack} onOpenFeature={onOpenFeature} />;
+  if (location) {
+    return (
+      <ForecastDeck
+        location={location} setLocation={setLocation} onBack={onBack} onOpenFeature={onOpenFeature}
+        initialUrl={initialUrl} onUrlState={onUrlState}
+      />
+    );
+  }
 
   return (
     <div className="fc-idle-shell">

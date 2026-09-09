@@ -460,7 +460,7 @@ Panelzeile „Flächenschätzung", Kill-Switch `?afEst=0` / `localStorage.afEst 
 kein eigener Cron; Persistenz (Labelpaare, Verlauf > Fenster, Kalibriermodell) kommt erst mit dem
 BA-Batch. Verifier `verify:fire-activity`.
 
-## 15. URL-Zustand & Teilen (Analyse 2026-09-08 — Konzept, nicht umgesetzt)
+## 15. URL-Zustand & Teilen (2026-09-08/09 — SH0 Analyse, SH1–SH5 umgesetzt, SH6 offen)
 
 Vollständige Diagnose, Schema je Seite, gemessene Link-Längen, Etappenplan und
 Verbesserungskatalog: **`audit/teilen-share.md`**. Kurzfassung der architektonisch
@@ -497,16 +497,185 @@ dafür heute `null` (404) — ausdrücklich so getestet. Die Änderung betrifft 
 in die Sitemap: `canonicalPath()` schneidet ihn ab, sonst entsteht ein unendlicher
 indexierbarer Raum. Ortswetter bleibt Sache der statischen Seiten `/wetter/<slug>/`.
 
-### 15.4 Open Graph: der Bestand ist besser als gedacht, aber falsch verdrahtet
+### 15.4 Teilen-UI (SH2, umgesetzt)
 
-`public/_og-card.html` rendert bereits gebrandete 1200×630-Karten; 74 PNGs liegen in
-`public/og/`. Aber `routes.ts` setzt `ogImage` nur für `/wetterkarte` und `/atmosphaere` —
-alle übrigen Seiten und alle 37 Sub-Routen fallen auf `DEFAULT_OG_IMAGE = '/og/home.png'`
-zurück. Die Empfehlung ist deshalb zweistufig: erst Verdrahtung plus die fehlenden
-statischen Karten plus eine Edge Function, die nur `og:title`/`og:description` je Zustand
-in den `<head>` schreibt (durable gecacht, nur für Crawler-User-Agents, Nutzerpfad
-byte-gleich); dynamisch gerenderte Bilder erst danach als eigene Phase.
+`src/share/ShareButton.tsx` sitzt in den Topbars von Wetterkarte, Warnungen und Regenradar
+(Desktop und mobile Schwebeleiste) und hält nur den Offen-Zustand. Alles Weitere — Adapter,
+Ortstabelle, Kanäle, Sheet — kommt per **dynamischem Import beim ersten Klick**; am
+Netzwerk-Mitschnitt nachgewiesen. `ShareSheet` rendert per `createPortal` an den Body:
+ein Modal, das im Deck hängt, erbt dessen Layout (`.mdk-m-topfloat > div { display: flex }`
+hatte es in eine Zeile zerlegt) und würde von jedem Vorfahren mit `transform` aus dem
+`position: fixed` gerissen.
 
-**R2 existiert in diesem Repo nicht** (kein Konto, keine Bindung) — der etablierte CDN-Weg
-ist `buscosun-data` über jsDelivr. Für 40-KB-PNGs mit `immutable` ist Netlify ohnehin
-unkritisch.
+Den Zustand liefert `window.location` — gelesen mit **demselben** `parseShareUrl`, das die
+OG-Meta bauen wird. Es gibt damit genau einen Parser und keine zweite Zustandsquelle.
+
+**Die geteilte Stunde kommt an (V-SH-13, umgesetzt).** Der Erstbild-Modus `START_NOW_ONLY`
+baut eine Zeitbasis von drei Stunden; ein aus der URL wiederhergestellter Zeitpunkt jenseits
+davon wurde still auf +2 h gekürzt. Seit 2026-09-09 spannt eine verlangte Stunde das Fenster
+auf (`forecastAheadHRef` startet auf ihr, die Basis wird voll) — ohne `t=` bleibt alles wie
+zuvor, der Erstbild-Pfad ist unberührt. Jenseits der 24-Stunden-Basis kürzt die Karte weiter,
+meldet es aber (`onHourChange(hour, 'clamped')`), und der Empfänger bekommt denselben Hinweis
+wie beim vergangenen Zeitpunkt.
+
+**Dunkel auf dem Globus (V-SH-12, umgesetzt).** Der Globus ist die einzige dunkle Oberfläche
+im Repo. Sheet und Hinweis haben dort eine dunkle Fassung — ohne zweiten Regelsatz: die
+Palette liegt einmal als `--shp-*`-Variablen auf `.sh-sheet, .sh-stale`, `--dark` tauscht nur
+die Werte (es sind die Glasflächen und Textfarben aus `globe/globe.css`). Weitergegeben wird
+sie als `tone="dark"` von `ShareButton` an `ShareSheet` und `StaleLinkNotice`.
+
+**Die Empfängerseite (V-SH-2, umgesetzt).** Ein geteilter Link trägt eine absolute Zeit;
+wird er später geöffnet, klemmt die Seite auf „jetzt" bzw. „heute". Das sagt seit
+2026-09-09 `src/share/StaleLinkNotice.tsx` — eine Zeile über dem Inhalt, zwölf Sekunden
+lang, auf Wetterkarte, Warnungen, Brandradar, Atmosphäre und Globus. Jede Seite nennt
+ihren eigenen Rückfall („die Lage für jetzt", „heute", „der aktuelle Lauf"); die vier
+Parser liefern dafür `pastAtMs`, nicht nur ein `timePast`-Flag. Er verschwindet
+absichtlich von selbst: sobald der Empfänger die Zeit verstellt, wäre die Aussage falsch.
+
+### 15.5 Fragment → Query und die Seiten ohne Zustand (SH3–SH5, umgesetzt)
+
+Waldbrand und Atmosphäre tragen ihren Zustand seit 2026-09-09 in Pfad + Query
+(`src/fire/fireUrl.ts`, `src/atmosphere/atmosphereUrl.ts`, beide rein und
+selbstprüfend). Die Wrapper `FireRoute`/`AtmosphereRoute` sind die einzigen
+Schreiber; `FirePage` und `atmosphereStore` melden ihren Zustand per
+`onUrlState` nach oben. Die alten Codecs (`fireState.ts`, `atmosphereState.ts`,
+`threedState.ts`) bleiben als **Leser** für Alt-Links, die beim Ankommen einmal
+übersetzt und per `replace` ersetzt werden.
+
+**SH5** schloss den Umzug ab: Vorhersage (`forecastUrl.ts`) und Tourenplanung
+(`tourUrl.ts`) hatten gar keinen URL-Zustand. Bei der Vorhersage gewinnt die URL
+gegen `localStorage`, und der Tag steht als **Datum** statt als Index. Die
+Tourenplanung trägt nur Bewegungsart, Startzeit und Richtung — Profil, Pausen
+und E-Bike-Konfiguration wären Zahlenketten und stecken ohnehin in den Vorgaben
+der Bewegungsart. Sie bekommt **keinen Teilen-Knopf**: ohne die Strecke sähe der
+Empfänger die Tour nicht.
+
+**SH4** brachte Eventplanung, Wetterarchiv und Globus dazu (`eventUrl.ts`,
+`historyUrl.ts`, `globeUrl.ts`, gleiches Muster). Damit stehen **acht der neun**
+Feature-Seiten in Pfad + Query und sind teilbar; die Tourenplanung trägt nur
+ihre Einstellungen (§15.1, GPX).
+Zwei Besonderheiten: der Globus speicherte `c`/`pin` als `[lon, lat]` — die neue
+Form ist `lat,lon`, der Alt-Leser behält die alte Reihenfolge (V-SH-3). Und seine
+Zeit war eine Vorhersagestunde ab dem GFS-Lauf, der beim Mount noch unbekannt ist:
+die Seite merkt sich den gewünschten Zeitpunkt und rechnet ihn einmal um, sobald
+`RunInfo` eintrifft; ohne Lauf schreibt sie kein `t`.
+
+Drei Befunde aus dieser Etappe, die für andere Umzüge gelten: das Brandradar hat
+**keine Ortswahl** (der alte Codec las ein `l`, das nie jemand schrieb); immer
+aktive Layer gehören nicht in eine URL, weil sie nichts unterscheiden; und ein
+URL-Vokabular muss aus dem Code kommen — ein erfundenes `?fenster=48h` wurde von
+`reconcileFireTime` still auf 24 h geklemmt, weil `FIRE_LAYER_TIME` nur
+`[24, 168]` anbietet.
+
+### 15.6 Open Graph je Zustand (SH6, umgesetzt)
+
+**Das Problem:** Vorschau-Crawler führen kein JavaScript aus. Was `RouteMeta.tsx` im Browser
+in den `<head>` schreibt, sieht WhatsApp nie — es sieht die statische Shell, und die kennt
+nur die Route. Vor SH6 setzte `routes.ts` `ogImage` zudem nur für `/wetterkarte` und
+`/atmosphaere`; alle anderen Seiten und alle 37 Sub-Routen zeigten `/og/home.png`.
+
+**Die Lösung hat drei Teile:**
+
+**(1) 50 statische Karten.** `public/og/app/<route>[-<sicht>].png`, erzeugt aus
+`public/_og-app-card.html` mit `npm run og:app-cards` (Optik E-5: heller Rahmen, dunkles
+Kartenfeld, Motiv je Feature, Pfad der Seite im Feld). Welche Karte zu welcher Seite gehört,
+sagt **eine Regel** — `ogCardPath()` in `src/share/ogCard.ts`, benutzt von Renderer,
+Shell-Generator, Edge Function und Verifier. Die toten Felder `RouteMeta.ogImage` und
+`SubRoute.ogImage` sind entfallen. `verify:share` prüft beide Richtungen (keine Seite ohne
+Karte, keine Karte ohne Seite).
+
+**(2) Ein Parser, zwei Laufzeiten.** Die Edge Function läuft unter Deno und kann den
+App-Baum nicht direkt importieren (Deno verlangt Datei-Endungen an jedem Import). Statt
+einer zweiten Implementierung liegt **dasselbe Modul als Bündel** daneben:
+`src/share/edgeShare.ts` → `npm run edge:share` (esbuild) →
+`netlify/edge-shared/shareParser.js` (50 KB, eingecheckt), Typen über ein `shareParser.d.ts`,
+das nur `export * from '../../src/share/edgeShare.ts'` tut. `verify:share` baut das Bündel
+bei jedem Lauf neu und vergleicht byteweise — ein veraltetes Artefakt ist ein roter
+Verifier, keine falsche Vorschau. Der Verifier läuft in CI.
+
+**(3) `netlify/edge-functions/og-meta.ts`** auf den neun teilbaren Routen
+(Datei-Konfiguration wie `firms.ts`, kein `netlify.toml`-Eingriff). Für bekannte
+Vorschau-Crawler tauscht sie `og:title`, `og:description`, `og:url`, `og:image` und die
+`twitter:*`-Entsprechungen gegen die Beschreibung des Zustands; für alle anderen kehrt sie
+**vor** dem Lesen der Shell und **vor** dem Import des Parsers zurück — die Antwort an einen
+Browser ist byte-gleich zur statischen Shell (gemessen mit `netlify dev` gegen `dist/`).
+Bewusst **kein** durable Cache: die Antwort hängt am User-Agent, und eine gecachte Fassung
+ohne exakt passendes `Vary` könnte die Crawler-Antwort an Menschen ausliefern.
+`x-buscosun-og` nennt den kanonischen Schlüssel als Beleg.
+
+Ein Bild, das den **Zustand** zeigt (Ort, Uhrzeit, Messwert), wäre Stufe 2 — eigene Phase,
+Jans Entscheidung. **R2 existiert in diesem Repo nicht** (kein Konto, keine Bindung); der
+etablierte CDN-Weg wäre `buscosun-data` über jsDelivr.
+
+---
+
+## 16. Punktdaten im Daten-Repo (2026-09-09 — PD-A, Fundament umgesetzt)
+
+Vollständig in `audit/punktdaten-versorgung.md`. Hier nur das, was repo-weit gilt.
+
+**Das Daten-Repo `jppetry/buscosun-data` trägt seit PD-A drei Linien statt zwei.**
+Sie unterscheiden sich nicht im Inhalt, sondern in der **Achse** und im **Takt**:
+
+| Linie | Verzeichnis | Achse | Takt | Producer |
+|---|---|---|---|---|
+| Kartenlayer | `runs/`, `index.json` | Fläche je Zeitpunkt | 8 ×/Tag | `scripts/repack-icon-d2.mjs` |
+| Radar-Spiegel | `radar/` | Fläche je Minute | 1–2 min | `scripts/radar-mirror/radar-mirror.mjs` |
+| **Punkt-Cube** | `point/` | **Zeitreihe je Ort** | 4 ×/Tag | `scripts/point/build-point-cube.mjs` |
+
+**Gelände ist bewusst KEINE vierte Linie** (Jans Entscheidung 2026-09-09: „bei dem Repo
+geht es erstmal um Wetterdaten"). Die Höhe kommt aus den Terrarium-Kacheln, die die App
+für ihre 3D-Ansichten ohnehin lädt, die Landbedeckung aus dem bestehenden Spiegel
+`jppetry/buscosun-worldcover`; TPI, Sky-View-Faktor, Horizontwinkel und Hangneigung
+rechnet der Client **am Punkt** (`src/point/terrainPoint.ts`). Ein Punkt braucht keine
+Fläche — ein Rasterprodukt hätte 300 MiB gekostet, um an einer einzigen Koordinate
+gelesen zu werden.
+
+Der Grund für die Trennung ist keine Optimierung, sondern eine andere Frage: eine Karte
+fragt „welche Fläche zu diesem Zeitpunkt", eine Punktvorhersage „welcher Ort über alle
+Zeitpunkte". Aus `runs/` eine 336-h-Reihe über neun Größen zu holen wären ~981
+Bildabrufe für EINEN Punkt.
+
+**Drei Auflösungsstufen statt eines Gitters** (`ABLAUFPLAENE.md` PAP 1 E2: „drei
+Range-Requests, für jede Auflösungsstufe einen Chunk"): `t1` 0,05° / 0–48 h stündlich,
+`t2` 0,10° / 51–120 h dreistündlich, `t3` 0,25° / 126–336 h sechsstündlich. Die
+Staffelung folgt der Auflösung der Quellen — ICON-D2 ist 2,2 km, IFS ist 0,25°.
+
+**Die Form liegt in `src/point/`, nicht in `scripts/lib/`.** Das ist eine bewusste
+Abweichung vom Muster der Repack-Linie: dort steht die Form in
+`scripts/lib/repackManifest.mjs` und der Client spiegelt sie in
+`src/sources/repackSource.ts`, mit `verify:repack` als Wächter über die Gleichheit —
+eine Kopie mit Wächter. Producer und Client importieren hier **dieselbe Datei**
+(`cubeFormat.ts`, `terrainFormat.ts`, `sourceMatrix.ts`, `calibration.ts`,
+`manifest.ts`); der Node-Producer über `--experimental-strip-types`, der Client über
+Vite. Es gibt keine zweite Liste, die driften könnte. Solange kein Client-Modul
+importiert, ist der Bundle unberührt (per Textsonde am `dist/` belegt).
+
+**Der Container** (`BSPC` für Chunks, `BSTR` für Terrain-Kacheln): Kopf und Verzeichnis
+unkomprimiert, danach je Ebene ein eigener `deflate-raw`-Block; das Verzeichnis nennt
+Offset, Länge und den Vorstufen-Filter. Damit ist der Transport egal (kein `.gz` im
+Dateinamen, keine Abhängigkeit von jsDelivrs Verhalten), ein Client entpackt nur die
+Ebenen, die er braucht, und Byte-Bereiche bleiben möglich, ohne sie heute festzulegen.
+`−32768` heißt **fehlt** — nicht 0.
+
+**Die Kalibrierung ist Teil der Daten, nicht des Codes.** `σ_sys`, die Fehlerkovarianz
+`Σ`, `c(p,f)`, `L_d`/`L_h`, `A`/`A_uhi`, die Form von `φ`, `Δz_min`, der Schmelzversatz —
+die Ablaufpläne nennen sie ausdrücklich „Kalibrierungsparameter, keine physikalischen
+Konstanten" und sagen, dass die Amplituden an Stationen **gelernt** werden. Sie liegen
+in `point/calib.json`, jeder Wert mit `provenance` (`measured` / `literature` /
+`physical` / `set` / `null`). Heute ist **kein einziger gemessen** — das geht erst mit
+`buscosun-archiv` (PA). `null` ist dort der ehrliche Zustand, nicht ein unfertiger.
+
+**Die Quellenauswahl ist geometrisch, nicht national.** `src/point/sourceMatrix.ts`
+führt Domäne, Randabstand, Horizont je Laufstunde, Lizenz und Vorhalt je Quelle; die
+Länder-Tabelle aus `QUELLENMATRIX.md` §1 steht daneben als `MATRIX_BANDS`. Beide werden
+geschnitten: zugeordnet UND geometrisch gedeckt UND innerhalb des Horizonts. Wo die
+Domänen-**Hülle** mehr verspricht als das Gitter hält (ICON-CH über Ostösterreich),
+entscheidet die Zuordnung — die Diskrepanz ist in `CH_EDGE_DISCREPANCY` festgehalten
+und wird vom Verifier geprüft.
+
+**Ein Verzeichnis ist eine Veröffentlichung.** `point/<lauf>/` trägt ein `run.json`,
+das **jeden** Chunk darin nennt, und umgekehrt. Die Stufen kommen regelmäßig aus
+verschiedenen Modellläufen (t1 aus ICON-D2 12z, t3 aus ICON global 06z); der
+Verzeichnisname ist deshalb der **Publikationslauf**, und jeder Stufeneintrag nennt
+seinen eigenen **Quell-Lauf** samt Alter (`run`, `runAt`, `ageH`). Vor der Trennung
+dieser zwei Begriffe lagen zwölf Chunks im Repo, die kein Manifest nannte.

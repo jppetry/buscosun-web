@@ -6,7 +6,7 @@
  * Warn-/Föhn-Banner, Zeit-Scrubber, Zeitplan + Zeit-Übersicht, Daten-Herkunft).
  */
 
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import RouteMap, { type MapBreak, type WeatherMarker } from './RouteMap';
 import MovementPicker from './MovementPicker';
 import SpeedProfileConfig from './SpeedProfileConfig';
@@ -52,6 +52,7 @@ function loadResultMap(): ResultMap {
   }
 }
 import type { TourViewMode } from './RoutePage';
+import type { TourUrlState } from './tourUrl';
 import { clock } from './tourUi';
 import {
   IconLoop, IconWarning, IconCheck, IconArrowRight,
@@ -84,17 +85,27 @@ type WeatherState =
   | { kind: 'ready'; samples: SampleETA[]; meta: EnrichmentMeta }
   | { kind: 'error'; message: string };
 
-export default function TourView({ track, fileLabel, onBack, onHome, onOpenFeature, isMobile: isMobileProp, view = '2d', onView, restore }: { track: TourTrack; fileLabel?: string; onBack?: () => void; onHome?: () => void; onOpenFeature?: (id: RailFeature) => void; isMobile?: boolean; view?: TourViewMode; onView?: (v: TourViewMode) => void; restore?: RestoredTour }) {
+export default function TourView({ track, fileLabel, onBack, onHome, onOpenFeature, isMobile: isMobileProp, view = '2d', onView, restore, initialUrl, onUrlState }: { track: TourTrack; fileLabel?: string; onBack?: () => void; onHome?: () => void; onOpenFeature?: (id: RailFeature) => void; isMobile?: boolean; view?: TourViewMode; onView?: (v: TourViewMode) => void; restore?: RestoredTour; initialUrl?: TourUrlState | null; onUrlState?: (s: TourUrlState) => void }) {
   const isMobileHook = useIsMobile();
   const isMobile = isMobileProp ?? isMobileHook;
   const loop = useMemo(() => isLoop(track), [track]);
   // Vorbelegung: entweder frisch oder aus dem gespeicherten Plan (V-R3D-1).
   // Das Wetter ist NICHT dabei — es waere nach Minuten falsch und wird neu geholt.
-  const [direction, setDirection] = useState<Direction>(restore?.plan.direction ?? 'forward');
-  const [typeId, setTypeId] = useState<MovementId | null>(restore?.plan.typeId ?? null);
-  const [profile, setProfile] = useState<SpeedProfile | null>(restore?.plan.profile ?? null);
-  const [breakCfg, setBreakCfg] = useState<BreakConfig | null>(restore?.plan.breakCfg ?? null);
-  const [startMs, setStartMs] = useState<number>(() => restore?.plan.startMs ?? Date.now());
+  /*
+   * SH5: Die URL gewinnt gegen den Gerätespeicher — wer einen Link öffnet, hat
+   * sich für dessen Zustand entschieden. Was die URL NICHT nennt (Profil,
+   * Pausen, E-Bike), bleibt beim gespeicherten Plan bzw. bei den Vorgaben der
+   * Bewegungsart; s. Kopfkommentar von `tourUrl.ts`.
+   */
+  const [direction, setDirection] = useState<Direction>(initialUrl?.direction ?? restore?.plan.direction ?? 'forward');
+  const [typeId, setTypeId] = useState<MovementId | null>(initialUrl?.typeId ?? restore?.plan.typeId ?? null);
+  const [profile, setProfile] = useState<SpeedProfile | null>(
+    restore?.plan.profile ?? (initialUrl?.typeId ? { ...getMovementType(initialUrl.typeId).defaults } : null),
+  );
+  const [breakCfg, setBreakCfg] = useState<BreakConfig | null>(
+    restore?.plan.breakCfg ?? (initialUrl?.typeId ? defaultBreakConfig(BREAK_DEFAULTS[initialUrl.typeId]) : null),
+  );
+  const [startMs, setStartMs] = useState<number>(() => initialUrl?.startMs ?? restore?.plan.startMs ?? Date.now());
   const [ebikeCfg, setEbikeCfg] = useState<EbikeConfig>(() => ({ ...(restore?.plan.ebikeCfg ?? DEFAULT_EBIKE_CONFIG) }));
   const [weatherRequested, setWeatherRequested] = useState(restore?.plan.weatherRequested ?? false);
   const [noteOpen, setNoteOpen] = useState(true);
@@ -122,6 +133,14 @@ export default function TourView({ track, fileLabel, onBack, onHome, onOpenFeatu
       .catch(() => { if (!cancelled) setWindState({ kind: 'unavailable' }); });
     return () => { cancelled = true; ctrl.abort(); };
   }, [eff]);
+
+  // SH5: Zustand ⇒ Wrapper (der schreibt die URL). Nur die drei Werte, die
+  // etwas über die TOUR sagen und lesbar sind — nicht die Zahlenprofile.
+  const onUrlStateRef = useRef(onUrlState);
+  onUrlStateRef.current = onUrlState;
+  useEffect(() => {
+    onUrlStateRef.current?.({ typeId, startMs, direction });
+  }, [typeId, startMs, direction]);
 
   function selectType(id: MovementId) {
     setTypeId(id);

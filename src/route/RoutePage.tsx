@@ -12,6 +12,7 @@ import { useEffect, useState } from 'react';
 import RouteUpload from './RouteUpload';
 import RouteResult from './RouteResult';
 import TourView from './TourView';
+import type { TourUrlState } from './tourUrl';
 import { clearTour, loadTour, restoreStartMs, tourStoreEnabled, unpackTour, type StoredPlan } from './tourStore';
 import type { TourTrack } from './tourTrack';
 import RouteDeckShell, { DeckLive, type RailFeature } from './RouteDeck';
@@ -33,6 +34,14 @@ interface Props {
   /** Sicht aus dem Pfad (`/tourenplanung/3d`). Ohne Strecke bleibt sie folgenlos. */
   view?: TourViewMode;
   onView?: (v: TourViewMode) => void;
+  /**
+   * SH5: Bewegungsart, Startzeit und Richtung aus der Query. **Nicht** die
+   * Strecke — die passt in keine URL (`tourStore.ts`, §1.8); der Empfänger
+   * bringt seine eigene mit.
+   */
+  initialUrl?: TourUrlState | null;
+  /** SH5: Zustandsänderung ⇒ der Wrapper schreibt die URL. */
+  onUrlState?: (s: TourUrlState) => void;
 }
 
 /** Möglichkeiten-Liste des Idle-Kopfs — was die Tourenplanung dir bietet. */
@@ -67,7 +76,7 @@ type Status =
   // Vorschau mehr — die Planung ist der richtige Ort zum Aufsetzen.
   | { kind: 'restored'; track: TourTrack; plan: StoredPlan; fileLabel?: string; savedMs: number; startMoved: boolean };
 
-export default function RoutePage({ onBack, onOpenFeature, view = '2d', onView }: Props) {
+export default function RoutePage({ onBack, onOpenFeature, view = '2d', onView, initialUrl, onUrlState }: Props) {
   const [status, setStatus] = useState<Status>({ kind: 'idle' });
   const isMobile = useIsMobile();
 
@@ -146,13 +155,17 @@ export default function RoutePage({ onBack, onOpenFeature, view = '2d', onView }
         view={view}
         onView={onView}
         restore={{ plan: status.plan, savedMs: status.savedMs, startMoved: status.startMoved, onDiscard: discardTour }}
+        initialUrl={initialUrl}
+        onUrlState={onUrlState}
       />
     );
   }
 
   // Planung/Ergebnis bringt seine eigene Shell mit (RouteResult → TourView).
   if (status.kind === 'ready') {
-    return <RouteResult file={status.file} format={status.format} parsed={status.parsed} onReset={reset} onHome={onBack} onOpenFeature={onOpenFeature} isMobile={isMobile} view={view} onView={onView} />;
+    return <RouteResult file={status.file} format={status.format} parsed={status.parsed} onReset={reset} onHome={onBack} onOpenFeature={onOpenFeature} isMobile={isMobile} view={view} onView={onView}   initialUrl={initialUrl}
+        onUrlState={onUrlState}
+      />;
   }
 
   const crumb = <span className="rd-crumb-txt">Tourenplanung</span>;

@@ -65,12 +65,11 @@ add('sortByZBand ist stabil und vollständig',
 
 // Permalink: der Round-Trip über ALLE Layer, unabhängig nachgerechnet.
 const rt = decodeFireState(encodeFireState({
-  location: { name: 'Wien', lat: 48.2082, lon: 16.3738, country: 'AT' },
   layers: [...FIRE_LAYER_ORDER], day: 4, windowH: 168,
 }));
 add('Round-Trip: alle Layer + Ort + Tag + Fenster',
   rt && rt.layers.length === FIRE_LAYER_ORDER.length && rt.day === 4
-  && rt.windowH === 168 && rt.location?.country === 'AT',
+  && rt.windowH === 168,
   `${rt?.layers.length} Layer`);
 
 // --- (3) Quell-Sonden -------------------------------------------------------

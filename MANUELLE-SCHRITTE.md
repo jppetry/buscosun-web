@@ -149,3 +149,83 @@ gegen die Spam-Richtlinien von Google, und es fällt bei einer kleinen Domain eh
       Befehl stehen in `docs/seo-geo/og-images.md`. Wenn Titel oder Marke sich ändern: neu erzeugen.
 - [ ] Falls eine eigene Karte je Ort gewünscht ist (138 Stück): technisch derselbe Lauf, dauert wenige
       Minuten. Bewusst nicht gemacht — die Ortsseiten teilen sich `wetter-default.png`.
+
+## 12 · Vorschaubilder am echten Deploy prüfen (SH6, „Auswahl teilen")
+
+Lokal ist alles belegt: die Edge Function `og-meta` liefert im echten Deno je geteiltem Link
+eigenen Titel und eigenes Bild, und die Antwort an einen Browser ist byte-gleich zur Shell
+(`audit/teilen-share.md` §20.6). Was sich lokal **nicht** prüfen lässt, ist, wie WhatsApp
+und Co. daraus eine Karte malen. Nach dem ersten Deploy also einmal:
+
+- [ ] Einen Link aus der App teilen (Teilen-Knopf → Kopieren) und sich selbst per WhatsApp
+      schicken. Erwartet: Titel mit Ort und Thema, Bild mit dunklem Kartenfeld und dem Pfad
+      der Seite, nicht die Startseiten-Karte.
+- [ ] <https://developers.facebook.com/tools/debug/> mit demselben Link. Dort steht, was der
+      Crawler wirklich gesehen hat; „Scrape Again" leert Facebooks Zwischenspeicher, falls
+      vorher schon einmal die alte Karte gezogen wurde.
+- [ ] Gegenprobe im normalen Browser: derselbe Link muss die Seite zeigen wie immer
+      (die Function greift nur bei Crawler-User-Agents).
+- [ ] Falls ein Bild fehlt: `curl -A "WhatsApp/2.24" -D - "<link>" | grep og:` — die Antwort
+      trägt den Beleg-Header `x-buscosun-og`. Fehlt der, hat die Function nicht gegriffen
+      (Pfad nicht in `config.path`, oder Deploy älter als die Function).
+
+Nichts davon ist blockierend; die Seite funktioniert unabhängig davon.
+
+---
+
+## 13 · Punktdaten im Daten-Repo freigeben (PD-A) — **blockierend**
+
+Das Fundament der Punkt-Linie steht (`audit/punktdaten-versorgung.md` §22): Formate,
+Quellenregister, Kalibrierung, Producer, Verifier, Cron-Vorlage. **Es ist nichts
+veröffentlicht** — kein Byte in `jppetry/buscosun-data`. Vier Schritte, die nur Jan
+machen kann, in dieser Reihenfolge:
+
+- [ ] **Die Entscheidungen E-9 bis E-18 durchgehen** (`audit/punktdaten-versorgung.md`
+      §20 und §22.7). Sie legen fest, was das Repo dauerhaft trägt — eine Änderung
+      danach bricht jeden Leser.
+
+- [ ] **`workflow-point.yml` manuell committen.** Die Vorlage liegt in
+      `scripts/repack-repo/workflow-point.yml` und gehört nach
+      `.github/workflows/point.yml` im Daten-Repo. Eine Action darf ohne
+      `workflows`-Scope keine Workflow-Datei pushen — dieselbe Einschränkung wie bei
+      `workflow-build.yml`.
+
+- [ ] **Optional: die drei bestehenden Workflows im Daten-Repo auf `sparse-checkout`
+      umstellen.** `build.yml`, `radar.yml` und `radar-watchdog.yml` checken heute mit
+      `fetch-depth: 1` den vollen Baum aus und ziehen damit auch `point/` mit (≈ 50 MiB
+      je Lauf, vier Läufe am Tag). Nicht blockierend — seit dem Rückbau des
+      Geländeprodukts geht es um Zehner-MiB, nicht um 300. Sie können es bereits, sie
+      klonen `buscosun-web` sparse; es fehlt nur beim eigenen Repo:
+
+      ```yaml
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+          sparse-checkout: |
+            runs
+            radar
+            index.json
+            hsurf-v1.png
+          sparse-checkout-cone-mode: false
+      ```
+
+- [ ] **Den ersten Push freigeben.** Der Publisher schreibt ohne `POINT_PUSH=1` nur
+      lokal. Zum Prüfen vorher:
+
+      ```
+      npm run point:cube -- --tiers=all
+      npm run verify:point-data
+      npm run point:publish -- --repo=../buscosun-data
+      ```
+
+      **`--tiers=all` ist wichtig, nicht bequem:** die Stufen einzeln zu bauen legt sie
+      unter verschiedene Läufe, und dann beschreibt kein Manifest mehr sein eigenes
+      Verzeichnis (§26). Der Publisher bricht in dem Fall ab, bevor er etwas committet.
+
+      Danach den Baum ansehen (`git -C ../buscosun-data show --stat`), und erst dann
+      mit `POINT_PUSH=1` erneut laufen lassen.
+
+Nicht blockierend, aber sinnvoll direkt danach: einen Chunk über jsDelivr abrufen und
+prüfen, dass das CDN ihn **unverändert** ausliefert (der Container hat einen CRC im
+Kopf — ein `curl … | node -e "…readCubeHeader"` sagt es sofort).

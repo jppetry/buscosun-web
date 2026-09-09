@@ -56,6 +56,9 @@
 .fcd-loc-name { flex: 1; font-size: 14px; color: var(--ink-900); font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .fcd-loc-change { font-size: 11px; color: var(--evd-sage-text); font-weight: 600; cursor: pointer; background: none; border: none; padding: 0 0 0 2px; }
 .fcd-topright { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+
+/* SH5: Teilen-Knopf in der Topbar; Form und Farbe aus src/share/share.css. */
+.fcd-share { margin-left: 2px; }
 .fcd-live { display: flex; align-items: center; gap: 8px; }
 .fcd-live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--sage-600); flex: 0 0 auto; }
 .fcd-live-txt { font-size: 11px; letter-spacing: 1.5px; color: var(--evd-sage-text); font-weight: 600; white-space: nowrap; }

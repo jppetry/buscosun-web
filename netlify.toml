@@ -101,6 +101,20 @@
   [headers.values]
     X-Robots-Tag = "noindex, nofollow"
 
+[[headers]]
+  for = "/_og-app-card.html"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+# SH6: die Vorschaubilder. Ein Tag Cache statt eines Jahres, weil die Dateinamen
+# KEINEN Inhalts-Hash tragen — eine neu gerenderte Karte muss sich innerhalb
+# eines Tages durchsetzen koennen. Das nimmt trotzdem den Grossteil der
+# Crawler-Zugriffe von der Netlify-Bandbreite.
+[[headers]]
+  for = "/og/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+
 # DWD OpenData proxy — used by `src/sources/radolan.ts` to fetch RADOLAN-RY
 # live frames and RADVOR-RE nowcast forecasts as BZ2/GZIP binary streams.
 # Muss VOR dem SPA-Fallback stehen (Regeln werden von oben nach unten geprüft).
@@ -395,6 +409,12 @@
   from   = "/vorhersage"
   to     = "/vorhersage.html"
   status = 200
+# SH5: Der Ort steht als lesbares Pfadsegment ("/vorhersage/stuttgart").
+# Nie kanonisch, nie in der Sitemap — s. Kommentar bei /warnungen/*.
+[[redirects]]
+  from   = "/vorhersage/*"
+  to     = "/vorhersage.html"
+  status = 200
 [[redirects]]
   from   = "/tourenplanung"
   to     = "/tourenplanung.html"
@@ -455,6 +475,12 @@
   status = 200
 [[redirects]]
   from   = "/wetterarchiv"
+  to     = "/wetterarchiv.html"
+  status = 200
+# SH4: Der Ort steht als lesbares Pfadsegment ("/wetterarchiv/stuttgart").
+# Nie kanonisch, nie in der Sitemap — s. Kommentar bei /warnungen/*.
+[[redirects]]
+  from   = "/wetterarchiv/*"
   to     = "/wetterarchiv.html"
   status = 200
 [[redirects]]

@@ -86,10 +86,20 @@ export function shareTargets(s: ShareTargetInput, mobile: boolean): ShareTarget[
  * vier vorhandenen Kopier-Stellen im Repo haben jede ihren eigenen Code und
  * keine einzige einen Rückfall.
  */
+export const COPY_TIMEOUT_MS = 1500;
+
 export async function copyText(text: string): Promise<boolean> {
   try {
     if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(text);
+      // ⚠ Mit Frist: `writeText` LÖST in manchen Lagen nie auf — ohne Fokus auf
+      // dem Dokument, hinter einem noch offenen Berechtigungsdialog, in
+      // ferngesteuerten Browsern (hier am Preview beobachtet). Ohne Frist bliebe
+      // der Nutzer ohne jede Rückmeldung stehen; mit Frist fällt er auf den
+      // alten Weg zurück und bekommt spätestens ein ehrliches „ging nicht".
+      await Promise.race([
+        navigator.clipboard.writeText(text),
+        new Promise((_, rej) => setTimeout(() => rej(new Error('clipboard timeout')), COPY_TIMEOUT_MS)),
+      ]);
       return true;
     }
   } catch { /* weiter zum Rückfall */ }

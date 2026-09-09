@@ -54,6 +54,15 @@
 .vsd-toppill:hover { border-color: var(--steel-600); }
 .vsd-toppill--primary:hover { background: var(--nc-blue-dark); }
 
+/* SH3: Teilen-Knopf. Bewusst EIGENE Regeln statt `.vsd-toppill` obendrauf —
+   `.sh-btn` (share.css) und die Pille würden sich sonst um Rahmen und Farbe
+   streiten, und welches Stylesheet zuletzt kommt, ist nicht zugesichert.
+   Optik der primären Pille, Touch-Ziel aus share.css (≥ 44 px). */
+.vsd-share { border-radius: 16px; background: var(--steel-600); color: var(--cream-50); border-color: var(--steel-600); font-size: 12px; }
+.vsd-share:hover { background: var(--nc-blue-dark); border-color: var(--nc-blue-dark); }
+.vsd-share--wide { flex: 1; }
+.vsd-m-actions { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+
 /* ============================ Body + Rail ============================ */
 .vsd-body { flex: 1; display: flex; min-height: 0; }
 .vsd-rail { width: 62px; flex: 0 0 auto; background: var(--ink-900); display: flex; flex-direction: column; align-items: center; padding: 14px 0; gap: 6px; }
@@ -274,7 +283,7 @@
 .vsd-m-htext { min-width: 0; }
 .vsd-m-eyebrow { font-size: 9px; letter-spacing: 1.5px; color: var(--steel-600); font-weight: 700; text-transform: uppercase; }
 .vsd-m-title { font-size: 15px; font-weight: 700; color: var(--ink-900); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.vsd-m-share { font-size: 11px; color: var(--steel-600); font-weight: 600; border: 1px solid var(--border-default); border-radius: 8px; padding: 6px 10px; background: none; cursor: pointer; flex: 0 0 auto; min-height: 40px; }
+.vsd-m-share { font-size: 11px; color: var(--steel-600); font-weight: 600; border: 1px solid var(--border-default); border-radius: 8px; background: none; cursor: pointer; flex: 0 0 auto; }
 .vsd-m-back { width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--border-default); background: var(--cream-50); display: flex; align-items: center; justify-content: center; color: var(--stone-500); flex: 0 0 auto; cursor: pointer; }
 .vsd-m-tabs { flex: 0 0 auto; display: flex; gap: 6px; overflow-x: auto; padding: 12px 16px 3px; scrollbar-width: none; }
 .vsd-m-tabs::-webkit-scrollbar { display: none; }
@@ -341,4 +350,75 @@
   .vsd-timedeck { padding: 10px 14px; margin-top: 9px; }
   .vsd-timedeck-row { margin-top: 8px; }
   .vsd-chips { margin-bottom: 9px; }
+}
+
+/* ── E-7: Druckbericht des Arbeitsfensters ─────────────────────────────────────
+ *
+ * Der PDF-Knopf war eine Attrappe. Statt einer PDF-Bibliothek (neue
+ * Abhaengigkeit, ~100 KB, Dependency-Gate) nimmt er den Druckweg des Browsers —
+ * dort heisst es „Als PDF speichern". Damit ein Ausdruck nicht die halbe
+ * Bedienoberflaeche zeigt, ist im Druck NUR dieser Block sichtbar; `#root`
+ * verschwindet. Der Block haengt per Portal am Body (s. GoNoGoReport.tsx).
+ */
+.vsd-print { display: none; }
+
+@media print {
+  #root { display: none !important; }
+
+  .vsd-print {
+    display: block !important;
+    font-family: 'League Spartan', system-ui, sans-serif;
+    color: #2C2A26;
+    font-size: 11pt;
+    line-height: 1.45;
+  }
+  @page { margin: 16mm 14mm; }
+
+  .vsd-print-head {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    border-bottom: 2px solid #2C2A26; padding-bottom: 6mm; margin-bottom: 6mm;
+  }
+  .vsd-print-brand {
+    font-size: 10pt; font-weight: 800; letter-spacing: .5pt; text-transform: lowercase;
+  }
+  .vsd-print h1 { margin: 1mm 0 0; font-size: 18pt; font-weight: 800; letter-spacing: -.3pt; }
+  .vsd-print h2 { margin: 7mm 0 2mm; font-size: 11pt; font-weight: 800; }
+  .vsd-print-meta { text-align: right; font-size: 9.5pt; color: #5C5447; }
+
+  .vsd-print-grid, .vsd-print-list { width: 100%; border-collapse: collapse; margin: 0 0 4mm; }
+  .vsd-print-grid th {
+    width: 52mm; text-align: left; font-weight: 600; color: #5C5447;
+    padding: 1.6mm 3mm 1.6mm 0; vertical-align: top;
+  }
+  .vsd-print-grid td { padding: 1.6mm 0; font-weight: 600; }
+  .vsd-print-grid tr + tr th, .vsd-print-grid tr + tr td { border-top: 1px solid #E0D6BE; }
+
+  .vsd-print-list th {
+    text-align: left; font-size: 9.5pt; color: #5C5447; font-weight: 600;
+    border-bottom: 1px solid #2C2A26; padding: 0 6mm 1.4mm 0;
+  }
+  .vsd-print-list td { padding: 1.4mm 6mm 1.4mm 0; font-variant-numeric: tabular-nums; }
+
+  /* Der Status ist die eine Zeile, die man auf einem Ausdruck sucht. */
+  .vsd-print-status {
+    display: flex; align-items: baseline; gap: 4mm;
+    margin: 2mm 0 5mm; padding: 3.5mm 4mm;
+    border: 1.5pt solid #2C2A26; border-radius: 2mm;
+    font-size: 20pt; font-weight: 800; letter-spacing: .5pt;
+  }
+  .vsd-print-status span { font-size: 10.5pt; font-weight: 600; letter-spacing: 0; }
+  .vsd-print-status--go { border-color: #5F7A4C; color: #5F7A4C; }
+  .vsd-print-status--no-go { border-color: #8A1C1C; color: #8A1C1C; }
+  .vsd-print-status span { color: #2C2A26; }
+
+  .vsd-print-p { margin: 0 0 3mm; }
+  .vsd-print-empty { margin: 0; font-size: 11pt; }
+  .vsd-print-warn {
+    padding: 3mm 4mm; background: #FAEEDA; border-left: 2pt solid #C97B47;
+    break-inside: avoid;
+  }
+  .vsd-print-link {
+    margin: 6mm 0 0; padding-top: 3mm; border-top: 1px solid #E0D6BE;
+    font-size: 8.5pt; color: #5C5447; word-break: break-all;
+  }
 }

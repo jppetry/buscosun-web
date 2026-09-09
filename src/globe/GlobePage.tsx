@@ -10,6 +10,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 import GlobeMap, { type PickInfo, type Projection, type RunInfo } from './GlobeMap';
+import { fhourForValidAt, validAtForFhour, type GlobeUrlState } from './globeUrl';
+// SH4: Teilen-Knopf (laedt Adapter und Sheet erst beim Klick).
+import ShareButton from '../share/ShareButton';
 import type { Height, OverlayKind } from './gfs';
 import { prefetch } from './gfsClient';
 import './globe.css';
@@ -53,43 +56,81 @@ function gradient(stops: { v: number; rgb: string }[]) {
 }
 const tickPos = (t: number, stops: { v: number }[]) => ((t - stops[0].v) / (stops[stops.length - 1].v - stops[0].v)) * 100;
 
-interface Props { onBack: () => void }
-
-// --- Permalink (#g=) --------------------------------------------------------
-interface GState { ov: OverlayKind; ht: Height; fh: number; pj: Projection; pa: boolean; hd: boolean; c?: [number, number]; z?: number; pin?: [number, number]; }
-function parseHash(): Partial<GState> | null {
-  const m = location.hash.match(/[#&]g=([^&]+)/);
-  if (!m) return null;
-  try { return JSON.parse(decodeURIComponent(m[1])); } catch { return null; }
+interface Props {
+  onBack: () => void;
+  /** SH4: Anfangszustand aus der Query (Alt-Links hat der Wrapper übersetzt). */
+  initialUrl?: GlobeUrlState | null;
+  /** Vorhersagestunde eines Alt-Links (`#g=` trug `fh`, keine absolute Zeit). */
+  initialFhour?: number;
+  /** SH4: Zustandsänderung ⇒ der Wrapper schreibt die URL (einziger Schreiber). */
+  onUrlState?: (s: GlobeUrlState) => void;
 }
-const initial = parseHash();
 
-export default function GlobePage({ onBack }: Props) {
-  const [overlay, setOverlay] = useState<OverlayKind>(initial?.ov ?? 'temp');
-  const [height, setHeight] = useState<Height>(initial?.ht ?? 'sfc');
-  const [projection, setProjection] = useState<Projection>(initial?.pj ?? 'globe');
-  const [showParticles, setShowParticles] = useState(initial?.pa ?? true);
-  const [hd, setHd] = useState(initial?.hd ?? false);
+/**
+ * SH4: Der Permalink `#g=` ist entfallen — der Zustand steht in der QUERY
+ * (`globeUrl.ts`), und der Router-Wrapper ist der einzige Schreiber. Zwei
+ * Änderungen sind dabei mehr als ein Umzug:
+ *
+ *  - **Die Zeit ist absolut.** `fh` zählte Stunden ab dem GFS-Lauf, und der Lauf
+ *    wechselt alle sechs Stunden — ein geteilter Link zeigte danach etwas
+ *    anderes. Der Lauf ist beim Mount noch unbekannt (er kommt mit dem ersten
+ *    Frame), deshalb merkt sich die Seite den gewünschten Zeitpunkt und rechnet
+ *    ihn in eine Vorhersagestunde um, sobald `RunInfo` da ist.
+ *  - **Die Achsen stehen wie überall sonst** (`lat, lon`). Der alte Permalink
+ *    speicherte `[lon, lat]`; die Übersetzung macht `decodeGlobeHash` (V-SH-3).
+ */
+export default function GlobePage({ onBack, initialUrl, initialFhour, onUrlState }: Props) {
+  const init = initialUrl ?? null;
+  const [overlay, setOverlay] = useState<OverlayKind>(init?.overlay ?? 'temp');
+  const [height, setHeight] = useState<Height>(init?.height ?? 'sfc');
+  const [projection, setProjection] = useState<Projection>(init?.projection ?? 'globe');
+  const [showParticles, setShowParticles] = useState(init?.particles ?? true);
+  const [hd, setHd] = useState(init?.hd ?? false);
   const [spinning, setSpinning] = useState(false);
-  const [fhour, setFhour] = useState(initial?.fh ?? 0);
+  const [fhour, setFhour] = useState(initialFhour ?? 0);
   const [hover, setHover] = useState<PickInfo | null>(null);
-  const [pin, setPin] = useState<PickInfo | null>(initial?.pin ? { lat: initial.pin[1], lng: initial.pin[0], tempC: null, wind: null } : null);
+  const [pin, setPin] = useState<PickInfo | null>(init?.pin ? { lat: init.pin.lat, lng: init.pin.lon, tempC: null, wind: null } : null);
   const [runInfo, setRunInfo] = useState<RunInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [playing, setPlaying] = useState(false);
-  const viewRef = useRef<{ center: [number, number]; zoom: number } | null>(initial?.c ? { center: initial.c, zoom: initial.z ?? 2.2 } : null);
+  const viewRef = useRef<{ center: [number, number]; zoom: number } | null>(
+    init?.center ? { center: [init.center.lon, init.center.lat], zoom: init.zoom ?? 2.2 } : null,
+  );
 
   const readout = pin ?? hover;
   const legend = overlay !== 'none' ? LEGENDS[overlay] : undefined;
 
-  // Permalink synchronisieren.
+  /**
+   * Gewünschte Gültigkeitszeit aus der URL → Vorhersagestunde, sobald der Lauf
+   * bekannt ist. Genau EINMAL: danach gehört die Stunde dem Nutzer.
+   */
+  const wantedValidAtRef = useRef<number | null>(init?.validAtMs ?? null);
   useEffect(() => {
-    const s: GState = { ov: overlay, ht: height, fh: fhour, pj: projection, pa: showParticles, hd };
-    if (viewRef.current) { s.c = viewRef.current.center; s.z = viewRef.current.zoom; }
-    if (pin) s.pin = [+pin.lng.toFixed(2), +pin.lat.toFixed(2)];
-    history.replaceState(null, '', `${location.pathname}#g=${encodeURIComponent(JSON.stringify(s))}`);
-  }, [overlay, height, fhour, projection, showParticles, hd, pin]);
+    const wanted = wantedValidAtRef.current;
+    if (wanted == null || !runInfo) return;
+    wantedValidAtRef.current = null;
+    const runStart = runInfo.validMs - runInfo.fhour * 3_600_000;
+    const fh = fhourForValidAt(wanted, runStart);
+    setFhour((cur) => (cur === fh ? cur : fh));
+  }, [runInfo]);
+
+  // SH4: Zustand ⇒ Wrapper (der schreibt die URL). Kein zweiter Schreiber.
+  const onUrlStateRef = useRef(onUrlState);
+  onUrlStateRef.current = onUrlState;
+  useEffect(() => {
+    const runStart = runInfo ? runInfo.validMs - runInfo.fhour * 3_600_000 : null;
+    onUrlStateRef.current?.({
+      overlay, height,
+      // Ohne bekannten Lauf lässt sich keine ehrliche Gültigkeitszeit angeben —
+      // dann bleibt `t` aus der URL weg, statt eine zu erfinden.
+      validAtMs: runStart != null && fhour > 0 ? validAtForFhour(fhour, runStart) : null,
+      center: viewRef.current ? { lat: viewRef.current.center[1], lon: viewRef.current.center[0] } : null,
+      zoom: viewRef.current ? viewRef.current.zoom : null,
+      pin: pin ? { lat: pin.lat, lon: pin.lng } : null,
+      projection, particles: showParticles, hd,
+    });
+  }, [overlay, height, fhour, projection, showParticles, hd, pin, runInfo]);
 
   // Animation: alle ~0,65 s einen 3-h-Frame weiter (zyklisch 0 → +120 h → 0).
   useEffect(() => {
@@ -118,7 +159,7 @@ export default function GlobePage({ onBack }: Props) {
         overlay={overlay} height={height} projection={projection} showParticles={showParticles}
         hd={hd} spinning={spinning} fhour={fhour} pinActive={pin !== null}
         initialView={viewRef.current ?? undefined}
-        initialPin={initial?.pin ? { lat: initial.pin[1], lng: initial.pin[0] } : undefined}
+        initialPin={init?.pin ? { lat: init.pin.lat, lng: init.pin.lon } : undefined}
         onHover={setHover} onPin={setPin} onRunInfo={setRunInfo}
         onLoading={setLoading} onError={setError}
         onView={(v) => { viewRef.current = v; }}
@@ -130,6 +171,10 @@ export default function GlobePage({ onBack }: Props) {
         <button type="button" className="gl-back" onClick={onBack} aria-label="Zurück">‹ Start</button>
         <span className="gl-brand"><span className="gl-brand-mark" /> buscosun · Erde</span>
         <button type="button" className={`gl-iconbtn${spinning ? ' is-on' : ''}`} aria-pressed={spinning} title="Auto-Rotation" onClick={() => setSpinning((v) => !v)}>{spinning ? '❚❚' : '▶'}</button>
+        {/* V-SH-12: Knopf UND Sheet dunkel — der Globus ist die einzige dunkle
+            Oberfläche; ein helles Dialogfenster sprang hier ins Auge wie ein
+            Fremdkörper (Jans Entscheidung 2026-09-09). */}
+        <ShareButton className="gl-share" tone="dark" />
       </header>
 
       <section className="gl-panel" aria-label="Globus-Steuerung">

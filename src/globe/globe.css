@@ -29,6 +29,23 @@
   pointer-events: none;
 }
 .gl-top > * { pointer-events: auto; }
+
+/* SH4: Teilen-Knopf. Der Globus ist die EINZIGE dunkle Oberfläche im Repo —
+   die helle Grundform aus `src/share/share.css` würde hier wie ein Fremdkörper
+   sitzen. Deshalb hier die dunkle Glasfläche der übrigen Globus-Knöpfe; die
+   Maße (≥ 44 px) und das Verhalten bleiben aus share.css.
+   V-SH-12 (2026-09-09): das Sheet ist jetzt ebenfalls dunkel — `tone="dark"`
+   tauscht in share.css nur die `--shp-*`-Palette, es gibt keine zweite Optik.
+   Die dunklen Werte dort sind genau die Glasflächen und Textfarben von hier. */
+.gl-share {
+  margin-left: auto;
+  background: rgba(20, 24, 32, 0.55);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #d8dbe2;
+  border-radius: 999px;
+}
+.gl-share:hover { background: rgba(30, 36, 48, 0.75); border-color: rgba(255, 255, 255, 0.22); }
+.gl-share:focus-visible { outline-color: #d8dbe2; }
 .gl-back {
   background: rgba(20,24,32,0.55); border: 1px solid rgba(255,255,255,0.12); color: #d8dbe2;
   border-radius: 999px; padding: 0.32rem 0.8rem; font: inherit; font-size: 0.82rem; cursor: pointer;

@@ -36,9 +36,15 @@ import {
   timeUnit, sharedMaxHour, dayOfHour, hourLabel,
   dailyOnlyLayers, type FireTimeState,
 } from './fireTime';
+import { DEFAULT_BURNT_BUCKETS, DEFAULT_SOIL_MODE } from './fireState';
+// SH3: Zustand in der QUERY statt im Fragment (`#wb=`). `fireState.ts` bleibt
+// als LESER fuer Alt-Links; den Umzug erledigt `FireRoute` beim Ankommen.
 import {
-  decodeFireState, encodeFireState, FIRE_HASH_PREFIX, DEFAULT_BURNT_BUCKETS, DEFAULT_SOIL_MODE,
-} from './fireState';
+  dayFromValidAt, fireHourFromValidAt, validAtFromDay, validAtFromFireHour,
+  type FireUrlState, type ParsedFireQuery,
+} from './fireUrl';
+// SH2/SH3: Teilen-Knopf (laedt Adapter und Sheet erst beim Klick).
+import ShareButton from '../share/ShareButton';
 import { fetchHotspots } from './sources/gwisHotspots';
 import {
   fetchFirmsHotspots, toRun, detectionKey, type HotspotRun, type FirmsRow,
@@ -151,34 +157,48 @@ const isBuilt = (id: FireLayerId) =>
 interface Props {
   onBack: () => void;
   onOpenFeature?: (id: RailFeature) => void;
-  // --- Router (RT1), additiv: Sub-Route `/waldbrand/<view>` als Preset; der
-  // vollständige Zustand bleibt im Fragment `#wb=` (Codec unangetastet). ---
+  // --- Router: Sub-Route `/waldbrand/<view>` als Preset; der vollständige
+  // Zustand steht seit SH3 in der QUERY (`fireUrl.ts`), nicht mehr im Fragment. ---
   initialView?: FireRouteView | null;
   /** Sub-Route von außen (nur Zurück/Vorwärts). */
   routeView?: FireRouteView | null;
   /** Zustand ⇒ passender Pfad (erster Lauf = replace, danach push). */
   onViewChange?: (view: FireRouteView, initial: boolean) => void;
+  /**
+   * SH3: Anfangszustand aus Pfad + Query. Der Wrapper hat einen Alt-Link `#wb=`
+   * bereits umgeschrieben und das Preset der Sub-Route eingerechnet — hier
+   * kommt der fertige Zustand an. `null` ⇒ Standard.
+   */
+  initialUrl?: ParsedFireQuery | null;
+  /** SH3: Zustandsänderung ⇒ der Wrapper schreibt Pfad UND Query (einziger Schreiber). */
+  onUrlState?: (s: FireUrlState) => void;
 }
 
-export default function FirePage({ onBack, onOpenFeature, initialView, routeView, onViewChange }: Props) {
-  const initial = typeof window !== 'undefined' ? decodeFireState(window.location.hash) : null;
-  // RT1: das Preset der Sub-Route greift NUR ohne Hash — der Hash ist der ganze Zustand und gewinnt.
-  const routePreset = !initial && initialView ? applyFireView(initialView, new Set<FireLayerId>(FIRE_DEFAULT_LAYERS)) : null;
+export default function FirePage({ onBack, onOpenFeature, initialView, routeView, onViewChange, initialUrl, onUrlState }: Props) {
+  /**
+   * SH3: Der Anfangszustand kommt aus Pfad + Query. `parseFireQuery` im Wrapper
+   * hat das Preset der Sub-Route bereits eingerechnet — deshalb gibt es hier
+   * kein zweites `routePreset` mehr, das ihm widersprechen könnte.
+   */
+  const nowRef = useRef(Date.now());
+  const initial = initialUrl ?? null;
 
   const [active, setActive] = useState<Set<FireLayerId>>(
-    // Die immer aktiven Layer (FIRE_ALWAYS_ON) kommen bei JEDER Herkunft dazu —
-    // Hash, Sub-Route oder Default. Alte `#wb=`-Links, die sie nicht führen,
-    // öffnen damit dieselbe Karte wie neue.
-    () => withFireAlwaysOn(initial?.layers.length ? initial.layers : routePreset ? routePreset.layers : FIRE_DEFAULT_LAYERS),
+    // Die immer aktiven Layer (FIRE_ALWAYS_ON) kommen bei JEDER Herkunft dazu.
+    // Ein leeres Set aus der URL (`l=-`) ist eine ABSICHT und bleibt leer;
+    // ganz ohne URL-Zustand gelten die Standard-Layer.
+    () => withFireAlwaysOn(initial ? initial.layers : FIRE_DEFAULT_LAYERS),
   );
   const [time, setTime] = useState<FireTimeState>(() => {
     const base = defaultFireTimeState();
     if (!initial) return base;
-    // WF3: `h` im Hash ⇒ Stundenachse (auch bei 0); ohne `h` die Tagesachse wie bisher.
-    const hourly = typeof initial.hour === 'number';
+    // WF3: `t` mit Uhrzeit ⇒ Stundenachse (auch bei 0); reines Datum ⇒ Tagesachse.
     return {
-      ...base, day: initial.day, windowH: initial.windowH,
-      hour: hourly ? (initial.hour as number) : 0, unit: hourly ? 'hours' : 'days',
+      ...base,
+      day: dayFromValidAt(initial.validAtMs, nowRef.current),
+      windowH: initial.windowH,
+      hour: initial.hourly ? fireHourFromValidAt(initial.validAtMs, nowRef.current) : 0,
+      unit: initial.hourly ? 'hours' : 'days',
     };
   });
   const [basemap, setBasemap] = useState<FireBasemap>('streets');
@@ -221,12 +241,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
    * BC1/BD3: welche Liste das Readout zeigt. Der dritte Wert „Layer" ist mit BD3 entfallen —
    * die Layer-Steckbriefe stehen jetzt im Dock unter ihrer Zeile (Jans Auftrag 2026-09-03).
    */
-  const [readoutTab, setReadoutTab] = useState<'fires' | 'anomalies'>(
-    // BP5: `fp=1` aus einem alten Permalink hiess „Liste zeigen" — die Liste ist
-    // jetzt der Reiter „Braende". Die Bedeutung bleibt, nur ihr Ort hat sich geaendert.
-    // TA4: `ta=1` öffnet den dritten Reiter „Thermalanomalien"; er gewinnt gegen `fp`.
-    initial?.anomalyPanel ? 'anomalies' : routePreset ? routePreset.readoutTab : 'fires',
-  );
+  const [readoutTab, setReadoutTab] = useState<'fires' | 'anomalies'>(initial?.readoutTab ?? 'fires');
   /**
    * BD2: die Bühne der Mitte — Karte (Standard) oder Dossier des markierten Brands. Permalink `ds`.
    * Ein Klick auf einen Brand (Karte oder Registry) schaltet auf Dossier; zurück über das Segment,
@@ -234,7 +249,15 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
    */
   const [stage, setStage] = useState<'map' | 'dossier'>(initial?.dossier ? 'dossier' : 'map');
   /** Mobil: der Bereich der Bottom-Bar — Karte · Layer · Brände · Zeit. Die Thermalanomalien sind dort ein Segment in „Brände". */
-  const [mobileTab, setMobileTab] = useState<MobileTab>(initial?.footprintPanel || initial?.anomalyPanel || routePreset?.readoutTab === 'fires' || routePreset?.readoutTab === 'anomalies' ? 'fires' : 'map');
+  /**
+   * SH3: Mobil öffnet die Seite auf der KARTE, sofern die URL nichts anderes
+   * sagt. „Etwas anderes" heißt: eine Sub-Route im Pfad, ein ausdrücklich
+   * genannter Reiter (`reiter=`) oder das Dossier. Der alte Hash trug dafür
+   * `fp`/`ta`; ohne diese Unterscheidung öffnete jede Seite auf dem Blatt.
+   */
+  const [mobileTab, setMobileTab] = useState<MobileTab>(
+    initialView || initial?.readoutExplicit || initial?.dossier ? 'fires' : 'map',
+  );
   /** TA4: markierter Standort (auch ohne Eintrag im Fenster) — die Karte hebt ihn hervor. */
   const [selectedSite, setSelectedSite] = useState<string | null>(null);
   /**
@@ -245,7 +268,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
    */
   // E7: das Preset der Sub-Route `/waldbrand/historie` setzt das Saison-Fenster, sofern die
   // Historie nicht per `?bh=0` abgeschaltet ist; ein Hash im Link gewinnt wie bisher.
-  const [history, setHistory] = useState<HistoryWindowKind | null>(() => (historyEnabled() && (initial?.historyWindow ?? routePreset?.history)) || null);
+  const [history, setHistory] = useState<HistoryWindowKind | null>(() => (historyEnabled() && initial?.historyWindow) || null);
   const [historyLoad, setHistoryLoad] = useState<HistoryLoad>({ kind: 'idle' });
   const [selectedHistory, setSelectedHistory] = useState<string | null>(null);
   useEffect(() => {
@@ -1210,21 +1233,27 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
     // BD2: auch die Registry links im Dossier (sie montiert mit dem Bühnenwechsel).
   }, [selectedFootprint, readoutTab, stage]);
 
-  // Permalink mitführen (replaceState, damit der Zurück-Knopf nicht zumüllt).
+  /**
+   * SH3: Zustand ⇒ Wrapper (der schreibt Pfad UND Query). Kein zweiter Schreiber
+   * und kein Fragment mehr — das war die Voraussetzung dafür, dass ein geteilter
+   * Waldbrand-Link überhaupt ein Vorschaubild bekommen kann.
+   */
+  const onUrlStateRef = useRef(onUrlState);
+  onUrlStateRef.current = onUrlState;
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const hash = encodeFireState({
-      location: null, layers: activeList, day: time.day, windowH: time.windowH,
-      dangerView, burntBuckets: [...burntBuckets], soilMode, burntDay, footprintPanel: readoutTab === 'fires',
-      anomalyPanel: readoutTab === 'anomalies',
-      // WF3: `h` nur auf der Stundenachse — Links der Tagesachse bleiben byte-gleich.
-      hour: hourly ? time.hour : null,
-      // BH3: nur im Historie-Modus.
+    onUrlStateRef.current?.({
+      layers: activeList,
+      // Die Zeit steht ABSOLUT in der URL: auf der Tagesachse als Datum, auf der
+      // Stundenachse mit Uhrzeit. Relativ („+2 Tage") zeigte dem Empfänger einen
+      // anderen Tag als dem Absender.
+      validAtMs: hourly ? validAtFromFireHour(time.hour, nowRef.current) : validAtFromDay(time.day, nowRef.current),
+      hourly,
+      windowH: time.windowH,
+      dangerView, burntBuckets: [...burntBuckets], burntDay, soilMode,
+      readoutTab,
       historyWindow: history,
-      // BD2: nur wenn das Dossier offen ist.
       dossier: stage === 'dossier',
     });
-    if (window.location.hash !== hash) window.history.replaceState(null, '', hash);
   }, [activeList, time.day, time.windowH, dangerView, burntBuckets, soilMode, burntDay, readoutTab, hourly, time.hour, history, stage]);
 
   // Router (RT1): Zustand ⇒ Sub-Route (läuft NACH dem Hash-Schreiber, damit der
@@ -2167,6 +2196,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
                 <span className="br-live-dot" aria-hidden="true"><span /><span /></span>
                 {firms.label}
               </span>
+              <ShareButton className="br-share" />
             </div>
           </header>
         )}
@@ -2221,6 +2251,7 @@ export default function FirePage({ onBack, onOpenFeature, initialView, routeView
                     <img src="/buscosun-mark.svg" width={22} height={22} alt="" />
                   </button>
                   {sourcePill}
+                  <ShareButton className="br-m-share" compact />
                 </div>
               )}
               {/* BD3: beides statt „entweder/oder je Reiter" — die Quellen-Pille bleibt, die
@@ -2413,4 +2444,3 @@ function LayerStatus(
   );
 }
 
-export { FIRE_HASH_PREFIX };

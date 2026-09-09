@@ -13,6 +13,7 @@ import { buildTourTrack, type TourTrack } from './tourTrack';
 import { formatFileSize, type RouteFormat } from './routeFormats';
 import type { ParsedFile, ParsedRoute } from './routeModel';
 import type { TourViewMode } from './RoutePage';
+import type { TourUrlState } from './tourUrl';
 import { IconArrowRight } from './routeIcons';
 
 type Selection = 'all' | number;
@@ -33,9 +34,12 @@ interface Props {
   /** Ansichtsmodus aus dem Pfad — nur im Ergebnis wirksam. */
   view?: TourViewMode;
   onView?: (v: TourViewMode) => void;
+  /** SH5: Bewegungsart, Startzeit, Richtung aus der Query — nicht die Strecke. */
+  initialUrl?: TourUrlState | null;
+  onUrlState?: (s: TourUrlState) => void;
 }
 
-export default function RouteResult({ file, format, parsed, onReset, onHome, onOpenFeature, isMobile, view = '2d', onView }: Props) {
+export default function RouteResult({ file, format, parsed, onReset, onHome, onOpenFeature, isMobile, view = '2d', onView, initialUrl, onUrlState }: Props) {
   const multi = parsed.tracks.length > 1;
   const [selection, setSelection] = useState<Selection>(multi ? 'all' : 0);
   // Schritt-Flow: erst Parse-Vorschau (T2), dann Planung/Ergebnis (TourView).
@@ -63,7 +67,7 @@ export default function RouteResult({ file, format, parsed, onReset, onHome, onO
 
   // Planung/Ergebnis: TourView übernimmt die Shell (Vorlage T3–T5).
   if (tour.kind === 'done' && started) {
-    return <TourView track={tour.track} fileLabel={file.name} onBack={() => setStarted(false)} onHome={onHome} onOpenFeature={onOpenFeature} isMobile={isMobile} view={view} onView={onView} />;
+    return <TourView track={tour.track} fileLabel={file.name} onBack={() => setStarted(false)} onHome={onHome} onOpenFeature={onOpenFeature} isMobile={isMobile} view={view} onView={onView} initialUrl={initialUrl} onUrlState={onUrlState} />;
   }
 
   const crumb = (

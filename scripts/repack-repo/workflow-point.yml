@@ -1,0 +1,138 @@
+# ============================================================================
+# point.yml — Punkt-Cube für buscosun Fusion (Phase PD, audit/punktdaten-versorgung.md)
+#
+# VORLAGE. Diese Datei gehört nach `.github/workflows/point.yml` im Daten-Repo
+# `jppetry/buscosun-data` und muss dort MANUELL committet werden: eine Action darf
+# ohne `workflows`-Scope keine Workflow-Datei pushen (dieselbe Einschränkung wie bei
+# `workflow-build.yml`). Weicht die Vorlage vom Stand im Daten-Repo ab, läuft dort
+# der alte Stand weiter.
+#
+# ── Warum ein EIGENER Workflow und nicht `build.yml` ─────────────────────────
+# Anderer Takt (4 statt 8 Slots), andere Laufzeit (Stunden statt Minuten), andere
+# Quellen. Ein gemeinsamer Job würde die Kartenlinie an die langsamste Punktquelle
+# hängen — und die Kartenlinie ist die, die live sichtbar ist.
+#
+# ── Die vier Slots ───────────────────────────────────────────────────────────
+# Der Takt richtet sich nach der LANGSAMSTEN tragenden Quelle, nicht nach der
+# schnellsten. Für 0–336 h ist das IFS: die volle Reichweite liefern nur die Läufe
+# 00 und 12 UTC (`oper`, 360 h); 06 und 18 UTC enden bei 144 h (`scda`, ⚠⁷).
+#
+#   02 UTC  ICON-D2 00z · ICON-EU 00z (120 h) · ICON global 00z (180 h) · IFS 00z  → volle 336 h
+#   08 UTC  ICON-D2 06z · ICON-EU 06z (120 h) · ICON global 06z (120 h) · IFS 06z  → bis 144 h
+#   14 UTC  ICON-D2 12z · ICON-EU 12z (120 h) · ICON global 12z (180 h) · IFS 12z  → volle 336 h
+#   20 UTC  ICON-D2 18z · ICON-EU 18z (120 h) · ICON global 18z (120 h) · IFS 18z  → bis 144 h
+#
+# Jenseits 144 h bleibt in den Zwischenslots der letzte volle Lauf stehen. Das ist
+# korrekt und steht im Manifest (`sources[].runAt`), damit das Produkt das Alter je
+# Bereich ehrlich ausweisen kann.
+#
+# ── Was hier NICHT passiert ──────────────────────────────────────────────────
+# Gelände. Dieses Repo speichert Wetterdaten (Jans Entscheidung 2026-09-09): Höhe kommt
+# aus den Terrarium-Kacheln, die die App ohnehin lädt, Landbedeckung aus dem Spiegel
+# `jppetry/buscosun-worldcover`, und die Ableitungen rechnet der Client am Punkt.
+# ============================================================================
+
+name: point
+
+on:
+  schedule:
+    # Lauf + 2 h. Die genaue Wartezeit ist in PD1 zu MESSEN, nicht zu setzen —
+    # für ICON-D2 ist sie aus BW-13 bekannt (Schritt 027 bei Lauf + 67 min),
+    # für IFS und ICON global nicht.
+    - cron: '10 2,8,14,20 * * *'
+  workflow_dispatch:
+    inputs:
+      run:
+        description: 'Fester ICON-D2-Lauf YYYYMMDDHH (leer = Discovery)'
+        required: false
+      steps:
+        description: 'Schrittbereich, z. B. 0-48 (leer = volle Stufe)'
+        required: false
+
+concurrency:
+  # Der Radar-Spiegel pusht in DIESES Repo alle 1–2 Minuten. Zwei Publisher
+  # gleichzeitig sind der Kern von V-BW-58 — deshalb nie zwei Punktläufe parallel.
+  group: point
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      # SPARSE: der Radar-Spiegel macht den Baum gross (gemessen 279 MiB am 2026-09-09).
+      # Der Cube-Job braucht davon nichts ausser `point/`.
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+          sparse-checkout: |
+            point
+            index.json
+          sparse-checkout-cone-mode: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Git identity
+        run: |
+          git config user.name  'buscosun-bot'
+          git config user.email 'bot@buscosun.local'
+
+      # Producer aus dem Anwendungs-Repo — sparse, wie in build.yml (der volle Klon
+      # maß 188 s, BW-9 §28.6). Nur `scripts/`, `src/` und `package.json`.
+      - name: Checkout producer (public, no token, sparse)
+        run: |
+          git clone --depth=1 --quiet --filter=blob:none --no-checkout https://github.com/jppetry/buscosun-web.git app
+          cd app
+          git sparse-checkout set --no-cone scripts src package.json
+          git checkout --quiet
+
+      # Der Cube-Producer hängt an genau EINER Laufzeit-Abhängigkeit: `bz2`.
+      # `gribDecode.ts` ist importfrei (handgeschriebener Decoder inkl. CCSDS-AEC).
+      - name: Install producer dependency
+        run: cd app && npm install --no-save --no-audit --no-fund bz2@1
+
+      # Netzfreies Gate VOR dem Ingest: eine kaputte Formdefinition soll auffallen,
+      # bevor 600 MiB gezogen werden.
+      - name: Gate — Form der Punktdaten
+        run: cd app && node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-point-data.mjs
+
+      - name: Build point cube
+        env:
+          POINT_OUT: ${{ github.workspace }}/point
+          POINT_CACHE: ${{ runner.temp }}/point-cache
+          # Das `bzip2`-Binary statt des reinen JS-Wegs (BW-9/V-BW-27: Faktor ~2,6,
+          # und parallele Aufrufe laufen als Prozesse auf mehreren Kernen). Das faellt
+          # bei ICON global ins Gewicht: 3,2 MiB je Feld, ~4 s rein in JS — bei
+          # 36 Schritten x 11 Groessen waeren das ueber 25 Minuten nur Entpacken.
+          # Fehlt das Binary, faellt die DATEI auf JS zurueck, nie der Lauf.
+          REPACK_BZIP2: '1'
+        run: |
+          cd app
+          node --experimental-strip-types --import ./scripts/lib/register-ts.mjs \
+            scripts/point/build-point-cube.mjs \
+            ${{ github.event.inputs.run && format('--run={0}', github.event.inputs.run) || '' }} \
+            ${{ github.event.inputs.steps && format('--steps={0}', github.event.inputs.steps) || '' }}
+
+      # Der Publisher committet, pusht (mit Wiederholung) und purgt DANACH den Index
+      # am CDN. Ein zweiter Push auf Job-Ebene waere nicht nur doppelt — er wuerde die
+      # Reihenfolge zerreissen: der Purge steht im Publisher HINTER dem Push, und ohne
+      # eigenen Push kaeme er nie dort an.
+      #
+      # V-BW-58 (Publish scheiterte am 2026-09-04 dreimal, 15z fiel ganz aus) ist damit
+      # an EINER Stelle geheilt: `publish-point.mjs` versucht fuenfmal mit
+      # `pull --rebase` dazwischen.
+      - name: Publish (committet, pusht mit Wiederholung, purgt das CDN)
+        env:
+          # OHNE diese Variable schreibt der Publisher nur lokal und pusht NICHT.
+          # Der erste Push in Produktion ist Jans Gate (CLAUDE.md, STOPP & FRAGEN) —
+          # die Zeile ist bewusst die einzige Stelle, an der das umschaltet.
+          POINT_PUSH: '1'
+        run: |
+          cd app
+          node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/point/publish-point.mjs --repo=${{ github.workspace }}

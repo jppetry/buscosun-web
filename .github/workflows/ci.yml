@@ -89,3 +89,12 @@ jobs:
         run: npm run verify:model-source
       - name: Verifier — Punkt-Fusion (buscosun Fusion)
         run: npm run verify:pv-fusion
+      # SH: „Auswahl teilen" — Query-Schema, Ort-Slugs, Kanaele, Vorschaubilder
+      # UND der Abgleich des Edge-Buendels gegen src/share/* (SH6).
+      - name: Verifier — Teilen (Share/OG)
+        run: npm run verify:share
+      # PD: Form der Punktdaten im Daten-Repo (Cube-Container, Terrain-Kacheln,
+      # Quellenmatrix, Kalibrierung, Manifeste). Netzfrei — die Quellen selbst
+      # pruefen die bestehenden verify:icon-*/verify:ifs-Harnische.
+      - name: Verifier — Punktdaten (Cube/Terrain/Quellen)
+        run: npm run verify:point-data

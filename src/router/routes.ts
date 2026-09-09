@@ -15,6 +15,7 @@
 import type { FeatureId } from '../App';
 import { ALL_LAYER_KEYS } from '../map/layerTypes';
 import { LAYER_SLUGS, LAYER_SLUG_TITLE, LAYER_SLUG_DESCRIPTION } from './urlState';
+import { ogCardPath } from '../share/ogCard';
 
 /** Kanonische Origin — deckungsgleich mit `scripts/seo/content.mjs` (O-03); der Verifier prüft das. */
 export const SITE_URL = 'https://buscosun.com';
@@ -31,7 +32,6 @@ export interface RouteMeta {
   /** H1 + Lead der statischen Route-Shell (crawlbarer Inhalt ohne JS). */
   h1: string;
   lead: string;
-  ogImage?: string;
   noindex?: boolean;
   /** Letzte inhaltliche Änderung (Sitemap-lastmod); Default `CONTENT_UPDATED`. */
   updated?: string;
@@ -43,8 +43,6 @@ export interface SubRoute {
   description: string;
   /** Sicht, die ohne Nutzereingabe leer ist (3D braucht eine hochgeladene Strecke) ⇒ nicht in die Sitemap. */
   noindex?: boolean;
-  /** Eigenes OG-Bild der Sub-Route (sonst das der Route). */
-  ogImage?: string;
   /** Letzte inhaltliche Änderung (Sitemap-lastmod). Die ausführlichen Texte (H1, Lead, Absätze,
    *  Fakten) stehen NICHT hier, sondern in `src/seo/subRouteTexts.ts` — außerhalb des Start-Bundles. */
   updated?: string;
@@ -136,7 +134,6 @@ export const ROUTES: readonly RouteDef[] = [
       description: 'Wind, Niederschlag, Temperatur, Wolken, Böen, Gewitter und amtliche Warnungen für Deutschland, Österreich und die Schweiz auf einer Karte — aus DWD, GeoSphere und MeteoSchweiz.',
       h1: 'Interaktive Wetterkarte für Deutschland, Österreich und die Schweiz',
       lead: 'Die Wetterkarte von buscosun legt Wind, Niederschlagsradar, höhenkorrigierte Temperatur, Bewölkung, Böen, Gewitterpotenzial, Blitze, Stationen und amtliche Warnungen als frei kombinierbare Layer über eine flüssige Vektorkarte — mit Zeit-Schieber (beim Start auf die nächsten zwei Stunden begrenzt, beim ersten Ziehen bis 48 Stunden) und Modellwahl je Land, aus amtlichen Quellen, ohne Konto und ohne Tracker.',
-      ogImage: '/og/wetterkarte.png',
     },
   },
   {
@@ -158,7 +155,7 @@ export const ROUTES: readonly RouteDef[] = [
     },
   },
   {
-    id: 'vorhersage', path: '/vorhersage', aliases: ['/wettervorhersage', '/forecast'], featureId: 'forecast', subs: null,
+    id: 'vorhersage', path: '/vorhersage', aliases: ['/wettervorhersage', '/forecast'], featureId: 'forecast', subs: null, place: true,
     meta: {
       title: 'Wettervorhersage mit Konfidenz & Modellvergleich',
       description: 'Vorhersage für jeden Ort in DACH mit ausgewiesener Sicherheit — mehrere Modelle im Vergleich, ehrlich statt scheingenau.',
@@ -185,7 +182,7 @@ export const ROUTES: readonly RouteDef[] = [
     },
   },
   {
-    id: 'eventplanung', path: '/eventplanung', aliases: ['/events', '/event'], featureId: 'event', subParam: 'view',
+    id: 'eventplanung', path: '/eventplanung', aliases: ['/events', '/event'], featureId: 'event', subParam: 'view', place: true,
     // SEO/GEO 2026 (E7): je Anlass ein kanonischer Pfad — der Wizard oeffnet mit vorgewaehltem Anlass.
     subs: [
       { slug: 'grillen', title: 'Grillwetter — der beste Tag zum Grillen', description: 'Welcher Tag der kommenden Woche ist warm, trocken und windstill genug für Grillabend, Gartenfest oder Hoffest?', updated: CONTENT_UPDATED },
@@ -207,7 +204,7 @@ export const ROUTES: readonly RouteDef[] = [
     },
   },
   {
-    id: 'wetterarchiv', path: '/wetterarchiv', aliases: ['/historie', '/rueckblick'], featureId: 'history', subs: null,
+    id: 'wetterarchiv', path: '/wetterarchiv', aliases: ['/historie', '/rueckblick'], featureId: 'history', subs: null, place: true,
     meta: {
       title: 'Wetterarchiv & Klima seit 1940',
       description: 'Wie hat sich das Wetter an deinem Ort verändert? Rückblick und Klimatrends seit 1940 aus Reanalyse- und Stationsdaten.',
@@ -216,7 +213,7 @@ export const ROUTES: readonly RouteDef[] = [
     },
   },
   {
-    id: 'atmosphaere', path: '/atmosphaere', aliases: ['/atmosph%C3%A4re', '/atmosphere'], featureId: 'atmosphere', subParam: 'lens',
+    id: 'atmosphaere', path: '/atmosphaere', aliases: ['/atmosph%C3%A4re', '/atmosphere'], featureId: 'atmosphere', subParam: 'lens', place: true,
     subs: [
       {
         slug: ATMOSPHERE_LENS_SLUGS.fly, title: 'Thermik & Fliegen', description: 'Thermik, Höhenwind und Wolkenbasis über deinem Startplatz — die Atmosphäre aus Sicht von Gleitschirm- und Segelfliegern.',
@@ -238,7 +235,6 @@ export const ROUTES: readonly RouteDef[] = [
       description: 'Höhenwind, Inversionen, Föhn und Thermik als Vertikalschnitt über jedem Ort in DACH — für Fliegen, Berg und Drohne.',
       h1: 'Die Atmosphäre über dir',
       lead: 'Die Atmosphäre-Ansicht von buscosun zeigt, was sich über deinem Standort in der Höhe abspielt: Höhenwind in mehreren Druckflächen, Inversionen, Föhnlagen und Thermik als Vertikalschnitt und im 3D-Gelände — mit Go/No-Go-Einschätzung für Drohne, Höhenarbeit und Flugsport.',
-      ogImage: '/og/atmosphaere.png',
     },
   },
   {
@@ -444,7 +440,7 @@ export function metaForPath(pathname: string): { title: string; description: str
     title: m.sub ? m.sub.title : base.title,
     description: m.sub ? m.sub.description : base.description,
     noindex: !!base.noindex || !!m.sub?.noindex || (!!m.subSlug && !m.sub),
-    ogImage: base.ogImage,
+    ogImage: ogCardPath(m.def.id, m.sub?.slug ?? null) ?? undefined,
     routeId: m.def.id,
   };
 }
@@ -509,7 +505,7 @@ export function verifyRoutes(): { checks: RouteCheck[]; passed: number; failed: 
     routeForPath('/regenradar/muenchen')?.placeSlug === 'muenchen' && routeForPath('/warnungen/muenchen')?.placeSlug === 'muenchen');
   add('[SH1] Ort nur HINTER einem bekannten Layer — ein Tippfehler bleibt 404',
     routeForPath('/wetterkarte/tempratur/muenchen') === null && routeForPath('/wetterkarte/tempratur')?.sub === null);
-  add('[SH1] kein Ortssegment auf Routen ohne place-Flag', routeForPath('/vorhersage/stuttgart') === null && routeForPath('/globus/x') === null);
+  add('[SH1] kein Ortssegment auf Routen ohne place-Flag', routeForPath('/globus/x') === null && routeForPath('/feedback/x') === null);
   add('[SH1] Ortssegment muss Slug-Form haben', routeForPath('/regenradar/M%C3%BCnchen') === null && routeForPath('/regenradar/a--b') === null);
   add('[SH1] der Ort ist NIE kanonisch',
     canonicalPath('/wetterkarte/wind/muenchen') === '/wetterkarte/wind' && canonicalPath('/regenradar/muenchen') === '/regenradar' && canonicalPath('/warnungen/muenchen') === '/warnungen');
@@ -518,7 +514,13 @@ export function verifyRoutes(): { checks: RouteCheck[]; passed: number; failed: 
     metaForPath('/wetterkarte/wind/muenchen').title === metaForPath('/wetterkarte/wind').title
     && !metaForPath('/wetterkarte/wind/muenchen').noindex && !metaForPath('/regenradar/muenchen').noindex);
   add('[SH1] jede place-Route ist auch eine echte Route und hat keinen subParam-Konflikt',
-    ROUTES.filter((r) => r.place).map((r) => r.id).join(',') === 'wetterkarte,warnungen,regenradar');
+    ROUTES.filter((r) => r.place).map((r) => r.id).join(',') === 'wetterkarte,warnungen,regenradar,vorhersage,eventplanung,wetterarchiv,atmosphaere');
+  // SH3: die Atmosphäre trägt den Ort hinter der Linse.
+  add('[SH3] /atmosphaere/querschnitt/innsbruck ⇒ Linse + Ort',
+    (() => { const m = routeForPath('/atmosphaere/querschnitt/innsbruck'); return m?.sub?.slug === 'querschnitt' && m.placeSlug === 'innsbruck'; })());
+  add('[SH3] Ort nur hinter einer bekannten Linse', routeForPath('/atmosphaere/quer/innsbruck') === null);
+  add('[SH3] der Ort der Atmosphäre ist nie kanonisch',
+    canonicalPath('/atmosphaere/querschnitt/innsbruck') === '/atmosphaere/querschnitt');
   add('Sitemap enthält Top- und Sub-Routen ohne noindex (inkl. /validierung seit E3) und ohne /wetterkarte/warnungen', (() => { const s = sitemapPaths().map((p) => p.path); return s.includes('/regenradar') && s.includes('/wetterkarte/wind') && s.includes('/validierung') && !s.includes('/mobiletest') && !s.includes('/wetterkarte/warnungen') && s.includes('/warnungen'); })());
   add('Meta der Sub-Route gewinnt', metaForPath('/wetterkarte/wind').title === 'Windkarte DACH' && metaForPath('/wetterkarte').title === 'Interaktive Wetterkarte DACH');
   add('/tourenplanung/3d ist eine erkannte Sub-Route', routeForPath('/tourenplanung/3d')?.sub?.slug === '3d');

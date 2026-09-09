@@ -1285,10 +1285,25 @@ console.log('\n— Verdrahtung 1c —');
     const deps = Object.keys(pkg.dependencies ?? {});
     return viewSrc12.includes('window.print()') && !deps.some((d) => /pdf|jspdf|print/i.test(d));
   })());
-  add('… und die Laufzeit-Abhängigkeiten sind unverändert sieben', (() => {
+  /*
+   * Der Zweck dieses Checks ist „keine PDF-/Druck-Bibliothek und kein
+   * heimlicher Zuwachs", nicht die Zahl selbst. Sie stand auf **sieben** und
+   * war seit dem 2026-09-06 falsch: Jans Beschluss zum Brand-Dossier hat
+   * @mui/material, @mui/icons-material, @mui/x-charts, @emotion/react und
+   * @emotion/styled dazugenommen (dokumentiert in budget.json). Der Check war
+   * seither rot und wurde überlesen — genau die Sorte Zahl, die BW-1 gelehrt
+   * hat, nicht fortzuschreiben, sondern zu zählen. Jetzt steht die Liste da,
+   * nicht die Zahl: dann sagt ein Fehlschlag auch, WAS dazugekommen ist.
+   */
+  add('… und die Laufzeit-Abhängigkeiten sind genau die bekannten zwölf', (() => {
     const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
-    return Object.keys(pkg.dependencies ?? {}).length === 7;
-  })());
+    const known = [
+      '@emotion/react', '@emotion/styled', '@mui/icons-material', '@mui/material', '@mui/x-charts',
+      'bz2', 'bzip2-wasm', 'jsfive', 'maplibre-gl', 'react', 'react-dom', 'react-router',
+    ];
+    const have = Object.keys(pkg.dependencies ?? {}).sort();
+    return have.length === known.length && have.every((d, i) => d === known[i]);
+  })(), Object.keys(JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')).dependencies ?? {}).sort().join(', '));
   add('das Druckbild lässt die Bedienung weg', /@media print \{[\s\S]{0,320}r3-sliders/.test(css12));
   add('mobil misst jedes Bedienelement 44 px', (() => {
     const i = css12.lastIndexOf('@media (max-width: 767px)');
@@ -2101,6 +2116,64 @@ console.log('\n— Verdrahtung des Zeitplans (R3D-7) —');
     const m = css16.slice(i);
     return /\.r3-plan-row button \{[^}]*44px/.test(m) && /\.r3-plan-copy \{ min-height: 44px/.test(m);
   })());
+}
+
+// --- E-7: der Druckbericht des Arbeitsfensters -------------------------------
+//
+// Der PDF-Knopf der Atmosphäre war eine Attrappe (`vsd-toppill` ohne
+// `onClick`), während die Bildunterschrift daneben einen Export versprach.
+// Geprüft wird deshalb beides: dass der Knopf etwas tut UND dass der Ausdruck
+// hält, was der Text zusagt (Ort, Zeit, Höhe, Werte, Grenzwert, Status).
+{
+  const deck = readFileSync(join(ROOT, 'src', 'atmosphere', 'AtmosphereDeck.tsx'), 'utf8');
+  const report = readFileSync(join(ROOT, 'src', 'atmosphere', 'GoNoGoReport.tsx'), 'utf8');
+  const css = readFileSync(join(ROOT, 'src', 'atmosphere', 'atmosphereDeck.css'), 'utf8');
+
+  // Jeder Knopf, der „PDF" sagt, muss auch drucken. (Der erste Versuch dieses
+  // Checks zaehlte die verdrahteten Knoepfe als Attrappen mit — ein Verifier,
+  // der beim ersten Lauf falsch anschlaegt, ist selbst ein Befund.)
+  const pdfFragments = deck.split('<button').filter((f) => /<IconDownload \/> PDF/.test(f.slice(0, 400)));
+  const dummies = pdfFragments.filter((f) => !f.slice(0, 400).includes('onClick='));
+  add('E-7: jeder PDF-Knopf ist verdrahtet — keine Attrappe mehr',
+    pdfFragments.length === 2 && dummies.length === 0,
+    `${pdfFragments.length} Knoepfe, ${dummies.length} ohne onClick`);
+  const wired = (deck.match(/onClick=\{printGoNoGoReport\}/g) ?? []).length;
+  add('E-7: beide PDF-Knöpfe (Desktop + mobil) lösen den Druck aus', wired === 2, String(wired));
+  add('E-7: der Bericht steht dort im Baum, wo die Auswertung liegt (zweimal, je Fassung)',
+    (deck.match(/<GoNoGoReport /g) ?? []).length === 2);
+
+  // Der Ausdruck darf nur nennen, was `evaluateGoNoGo` wirklich liefert.
+  const goNoGo = readFileSync(join(ROOT, 'src', 'threed', 'goNoGo.ts'), 'utf8');
+  for (const f of ['gustNowKmh', 'peakGustKmh', 'groundGustKmh', 'heightFactor', 'noGoWindows', 'status']) {
+    add(`E-7: der Bericht nennt \`${f}\` — und das Feld gibt es im Rechenkern`,
+      report.includes(f) && goNoGo.includes(f));
+  }
+  add('E-7: er nennt Arbeitshöhe und Grenzwert (die zwei Eingaben des Nutzers)',
+    report.includes('cfg.heightAglM') && report.includes('cfg.gustLimitKmh'));
+  add('E-7: er nennt Zeitfenster UND Modelllauf aus dem Schnitt',
+    report.includes('prepared.startMs') && report.includes('prepared.endMs') && report.includes('prepared.runAtMs'));
+  add('E-7: der Höhenexponent kommt aus dem Rechenkern, nicht als zweite Zahl im Text',
+    report.includes("DEFAULT_ALPHA") && !/α\s*=\s*0[.,]\d/.test(report));
+  add('E-7: der Status nennt das nächste Fenster über dem Limit (ein Ausdruck zeigt kein Band)',
+    report.includes('nextWindow'));
+  add('E-7: Ehrlichkeit auf Papier — keine amtliche Freigabe, Modellwerte',
+    /Keine amtliche Freigabe/.test(report) && /Modellauswertung/.test(report));
+  add('E-7: der Ausdruck trägt den Link der Ansicht (Teil derselben Zusage)',
+    report.includes('window.location.href'));
+  add('E-7: ohne Schnittlinie sagt der Ausdruck das, statt leer zu bleiben',
+    /noch keine Auswertung vor/.test(report));
+
+  // Isolation: im Druck ist NUR der Bericht sichtbar.
+  const printIdx = css.indexOf('@media print');
+  add('E-7: es gibt einen Druck-Block in atmosphereDeck.css', printIdx > 0);
+  const printCss = css.slice(printIdx);
+  add('E-7: im Druck verschwindet die App (#root)', /#root \{ display: none !important; \}/.test(printCss));
+  add('E-7: … und der Bericht erscheint', /\.vsd-print \{\s*display: block !important;/.test(printCss));
+  add('E-7: am Schirm ist der Bericht unsichtbar', /^\.vsd-print \{ display: none; \}/m.test(css));
+  add('E-7: Seitenrand gesetzt (sonst druckt jeder Browser anders)', /@page \{ margin:/.test(printCss));
+  add('E-7: der Warnkasten wird nicht über zwei Seiten zerrissen', /break-inside: avoid/.test(printCss));
+  add('E-7: GO und NO-GO sind auch in Graustufen zu unterscheiden (Rahmenfarbe + Wort)',
+    /vsd-print-status--go/.test(printCss) && /vsd-print-status--no-go/.test(printCss) && /'NO-GO'/.test(report));
 }
 
 console.log(`\n${fail === 0 ? '✓' : '✗'} verify:route-3d — ${pass}/${pass + fail}\n`);

@@ -33,6 +33,8 @@
 .rr-topdiv { width: 1px; height: 26px; background: var(--sand-200, #E0D6BE); flex: 0 0 auto; }
 .rr-topsearch { flex: 1; max-width: 400px; }
 .rr-topright { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+/* SH2: Teilen-Knopf zwischen Live-Anzeige und Avatar. */
+.rr-share { margin-left: -4px; }
 .rr-live { display: inline-flex; align-items: center; gap: 8px; }
 .rr-live-dot { position: relative; width: 8px; height: 8px; display: inline-block; }
 .rr-live-dot span { position: absolute; inset: 0; border-radius: 50%; background: var(--steel-600, #3A6FA8); }

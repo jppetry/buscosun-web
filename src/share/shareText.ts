@@ -11,6 +11,16 @@
  * Menschen und wird lokal formatiert (`Intl`, Zeitzone des Lesers). Das ist
  * kein Widerspruch, sondern die Arbeitsteilung: der Empfänger sieht denselben
  * Zeitpunkt, aber in seiner Uhrzeit.
+ *
+ * ── SH6: warum es einen `timeZone`-Parameter gibt ──────────────────────────
+ * Im Browser ist „Zeitzone des Lesers“ richtig. Auf dem Server nicht: eine Edge
+ * Function läuft in **UTC**, und eine Vorschaukarte, die „Sa 13.09. 05:30“
+ * behauptet, während die Nachricht daneben „07:30“ sagt, ist schlimmer als gar
+ * keine Zeit. Die Edge Function übergibt deshalb ausdrücklich `Europe/Berlin` —
+ * eine Zone für ganz DACH, weil DE, AT und CH dieselbe Uhr haben.
+ * Bleibt eine ehrliche Restlücke: teilt jemand aus einer anderen Zeitzone, nennt
+ * seine Nachricht seine Uhrzeit und die Vorschau die deutsche. Für ein
+ * DACH-Produkt ist die deutsche die richtige Aussage.
  */
 
 import type { Location } from '../types';
@@ -42,13 +52,17 @@ export interface ShareCopy {
 
 const WD = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
 
-/** „Fr 12.09. 15:00" in der Zeitzone des Lesers; ohne Zeit: `null`. */
-export function formatWhen(ms: number | null | undefined, locale: ShareLocale = 'de'): string | null {
+/**
+ * „Fr 12.09. 15:00" — ohne `timeZone` in der Zone des Lesers, mit `timeZone`
+ * in der genannten (die Edge Function nennt `Europe/Berlin`). Ohne Zeit: `null`.
+ */
+export function formatWhen(ms: number | null | undefined, locale: ShareLocale = 'de', timeZone?: string): string | null {
   if (ms == null || !Number.isFinite(ms)) return null;
   const d = new Date(ms);
   try {
     const p = new Intl.DateTimeFormat(locale === 'de' ? 'de-DE' : locale, {
       weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
+      ...(timeZone ? { timeZone } : {}),
     }).formatToParts(d);
     const get = (t: string) => p.find((x) => x.type === t)?.value ?? '';
     return `${get('weekday')} ${get('day')}.${get('month')}. ${get('hour')}:${get('minute')}`;
@@ -59,15 +73,35 @@ export function formatWhen(ms: number | null | undefined, locale: ShareLocale = 
 }
 
 /**
+ * „Do 10.09." — nur der Tag, ohne Uhrzeit. Für die Achsen, die tageweise
+ * gehen (Waldbrand-Tagesachse, gewählter Vorhersagetag): eine Uhrzeit
+ * anzuzeigen, wo keine geteilt wurde, wäre eine erfundene Genauigkeit.
+ */
+export function formatDay(ms: number | null | undefined, locale: ShareLocale = 'de', timeZone?: string): string | null {
+  if (ms == null || !Number.isFinite(ms)) return null;
+  const d = new Date(ms);
+  try {
+    const p = new Intl.DateTimeFormat(locale === 'de' ? 'de-DE' : locale, {
+      weekday: 'short', day: '2-digit', month: '2-digit',
+      ...(timeZone ? { timeZone } : {}),
+    }).formatToParts(d);
+    const get = (t: string) => p.find((x) => x.type === t)?.value ?? '';
+    return `${get('weekday')} ${get('day')}.${get('month')}.`;
+  } catch {
+    return `${WD[d.getDay()]} ${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.`;
+  }
+}
+
+/**
  * Betreff einer Ansicht → Titel, Beschreibung, Nachricht.
  *
  * Beispiel: `Wetterkarte Feldberg — Wind (10 m), Fr 12.09. 15:00`
  * Ohne Ort und ohne Zeit bleibt schlicht `Wetterkarte — Wind`.
  */
-export function shareCopy(s: ShareSubject, locale: ShareLocale = 'de'): ShareCopy {
+export function shareCopy(s: ShareSubject, locale: ShareLocale = 'de', timeZone?: string): ShareCopy {
   const head = s.place?.name ? `${s.feature} ${s.place.name}` : s.feature;
   const topic = s.topic ? (s.detail ? `${s.topic} (${s.detail})` : s.topic) : null;
-  const when = formatWhen(s.validAtMs, locale);
+  const when = formatWhen(s.validAtMs, locale, timeZone);
   const tail = [topic, when].filter(Boolean).join(', ');
   const title = tail ? `${head} — ${tail}` : head;
 
@@ -109,7 +143,7 @@ export function verifyShareText(): { checks: ShareTextCheck[]; passed: number; f
   add('eigene Beschreibung gewinnt', own.description === 'Eigener Satz.');
 
   add('Zeit wird lokal formatiert (Wochentag, Tag.Monat, Uhrzeit)',
-    /^[A-Za-zÄÖÜäöü]{2,3} \d{2}\.\d{2}\. \d{2}:\d{2}$/.test(formatWhen(t) ?? ''), formatWhen(t) ?? '—');
+    /^[A-Za-zÄÖÜäöü]{2,3}\.? \d{2}\.\d{2}\. \d{2}:\d{2}$/.test(formatWhen(t) ?? ''), formatWhen(t) ?? '—');
   add('keine Zeit ⇒ null', formatWhen(null) === null && formatWhen(undefined) === null && formatWhen(NaN) === null);
 
   add('kein Zeilenumbruch im Titel (WhatsApp-Vorschau bricht sonst)', !full.title.includes('\n') && !full.description.includes('\n'));

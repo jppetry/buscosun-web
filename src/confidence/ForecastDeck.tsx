@@ -38,8 +38,18 @@ import '../route/tourTheme.css';
 import './forecast.css';
 import './forecastDeck.css';
 import { FeatureRail, type RailFeature } from '../nav/featureRail';
+import type { ForecastUrlState, ParsedForecastQuery } from './forecastUrl';
+// SH5: Teilen-Knopf (laedt Adapter und Sheet erst beim Klick).
+import ShareButton from '../share/ShareButton';
 
-interface Props { location: Location; setLocation: (l: Location | null) => void; onBack: () => void; onOpenFeature?: (id: RailFeature) => void }
+interface Props {
+  location: Location; setLocation: (l: Location | null) => void;
+  onBack: () => void; onOpenFeature?: (id: RailFeature) => void;
+  /** SH5: Anfangszustand aus der Query; `null`-Felder ⇒ `localStorage` gilt (V-SH-10). */
+  initialUrl?: ParsedForecastQuery | null;
+  /** SH5: Zustandsänderung ⇒ der Wrapper schreibt die URL. */
+  onUrlState?: (s: ForecastUrlState) => void;
+}
 
 type State =
   | { kind: 'loading' }
@@ -109,12 +119,25 @@ function useForecastData(location: Location) {
 // ----------------------------------------------------------------------------
 // Deck
 // ----------------------------------------------------------------------------
-export default function ForecastDeck({ location, setLocation, onBack, onOpenFeature }: Props) {
+export default function ForecastDeck({ location, setLocation, onBack, onOpenFeature, initialUrl, onUrlState }: Props) {
   const isMobile = useIsMobile();
   const data = useForecastData(location);
   const [selected, setSelected] = useState(0);
-  const [settings, setSettings] = useState<CompareSettings>(loadSettings);
-  const [metric, setMetric] = useState<ChartMetric>(loadMetric);
+  /*
+   * SH5: Die URL gewinnt, `localStorage` bleibt der Standard (V-SH-10). Wer
+   * nichts teilt, behält seine gemerkte Auswahl; wer einen Link öffnet, sieht,
+   * was der Absender sah.
+   */
+  const [settings, setSettings] = useState<CompareSettings>(() => {
+    const base = loadSettings();
+    return {
+      disabled: initialUrl?.disabled ?? base.disabled,
+      consensus: initialUrl?.consensus ?? base.consensus,
+    };
+  });
+  const [metric, setMetric] = useState<ChartMetric>(() => initialUrl?.metric ?? loadMetric());
+  /** Gewünschter Tag aus der URL — ein DATUM, kein Index (der zeigte morgen etwas anderes). */
+  const wantedDayRef = useRef<string | null>(initialUrl?.day ?? null);
 
   function saveSettings(s: CompareSettings) { setSettings(s); try { localStorage.setItem(SEL_KEY, JSON.stringify(s)); } catch { /* ignore */ } }
   function pickMetric(m: ChartMetric) { setMetric(m); try { localStorage.setItem(METRIC_KEY, m); } catch { /* ignore */ } }
@@ -126,6 +149,31 @@ export default function ForecastDeck({ location, setLocation, onBack, onOpenFeat
 
   const days = data.days;
   const sel = Math.min(selected, Math.max(0, days.length - 1));
+
+  /** Datum aus der URL → Position in der Tagesliste, genau einmal beim Laden. */
+  useEffect(() => {
+    const wanted = wantedDayRef.current;
+    if (!wanted || !days.length) return;
+    wantedDayRef.current = null;
+    const i = days.findIndex((d) => d.day.dateISO === wanted);
+    // Ein Tag, den es nicht (mehr) gibt, wird nicht geraten — dann bleibt „heute".
+    if (i >= 0) setSelected(i);
+  }, [days]);
+
+  // SH5: Zustand ⇒ Wrapper (der schreibt die URL). Kein zweiter Schreiber.
+  const onUrlStateRef = useRef(onUrlState);
+  onUrlStateRef.current = onUrlState;
+  useEffect(() => {
+    const iso = days[sel]?.day.dateISO ?? null;
+    onUrlStateRef.current?.({
+      place: location,
+      // Der erste Tag ist der Standard und steht nicht in der URL.
+      day: sel > 0 ? iso : null,
+      metric,
+      disabled: settings.disabled,
+      consensus: settings.consensus,
+    });
+  }, [location, sel, days, metric, settings]);
 
   const ctx: DeckCtx = {
     ...data, location, setLocation, onBack, onOpenFeature,
@@ -196,6 +244,7 @@ function DesktopDeck(ctx: DeckCtx) {
         </div>
         <div className="fcd-topright">
           <div className="fcd-live"><span className="fcd-live-dot" /><span className="fcd-live-txt">{state.kind === 'ready' ? `${state.forecast.models.length} QUELLEN AKTIV` : 'MODELLVERGLEICH'}</span></div>
+          <ShareButton className="fcd-share" />
           <span className="fcd-avatar">JK</span>
         </div>
       </div>

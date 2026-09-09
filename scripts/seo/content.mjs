@@ -15,6 +15,10 @@ import { verificationMetaTags } from './verification.mjs';
 
 const OG_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'public', 'og');
 /** SEO/GEO 2026 (E4): eigenes OG-Bild nur, wenn die PNG existiert — sonst die Bereichs-Karte (E10 erzeugt die Bilder). */
+// SH6: welche App-Karte zu Route/Sub-Route gehoert, sagt EINE Regel — dieselbe,
+// die der Renderer, die Edge Function und der Verifier benutzen.
+import { ogCardPath } from '../../src/share/ogCard.ts';
+
 export const ogImageOr = (slug, fallback) => (existsSync(join(OG_DIR, `${slug}.png`)) ? `/og/${slug}.png` : fallback);
 
 export const SITE = {
@@ -1141,7 +1145,7 @@ export function routeHeadExtras(route) {
   const url = SITE.url + route.path;
   const feedLink = `<link rel="alternate" type="application/rss+xml" title="buscosun — Wetterwissen &amp; Wetterlagen" href="/feed.xml" />`;
   const title = `${route.meta.title} | ${SITE.name}`;
-  const og = route.meta.ogImage || DEFAULT_OG_IMAGE;
+  const og = ogCardPath(route.id) || DEFAULT_OG_IMAGE;
   return `<link rel="canonical" href="${url}" />${route.meta.noindex ? '\n    <meta name="robots" content="noindex, follow" />' : ''}
     ${feedLink}
     <meta property="og:type" content="website" />
@@ -1199,7 +1203,7 @@ function subRouteBreadcrumbJsonLd(route, sub, url) {
 export function subRouteHeadExtras(route, sub) {
   const url = SITE.url + route.path + '/' + sub.slug;
   const title = `${sub.title} | ${SITE.name}`;
-  const og = sub.ogImage || route.meta.ogImage || DEFAULT_OG_IMAGE;
+  const og = ogCardPath(route.id, sub.slug) || DEFAULT_OG_IMAGE;
   return `<link rel="canonical" href="${url}" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="${SITE.name}" />

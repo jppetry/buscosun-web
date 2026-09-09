@@ -22,7 +22,6 @@ import {
   type PlanBConfig, type PlanBMetric,
 } from './eventModel';
 import { activityFactorPriorities, defaultTuningFor, candidateDays } from './eventScoring';
-import { encodeEventState, decodeEventState, hasEventHash } from './eventState';
 import {
   DeckActivityIcon,
   IconDeckSearch, IconDeckPin, IconDeckArrowRight, IconDeckChevLeft, IconDeckPlus,
@@ -47,6 +46,13 @@ interface Props {
   initialActivityId?: string | null;
   /** Anlasswechsel im Wizard ⇒ Pfad nachziehen (replace). Nur bei echter Nutzeraktion. */
   onActivityChange?: (activityId: string | null) => void;
+  /**
+   * SH4: Fertige Anfrage aus Pfad + Query (der Wrapper hat einen Alt-Link `#ev=`
+   * bereits übersetzt). Vorhanden ⇒ die Seite öffnet direkt im Resultat.
+   */
+  initialQuery?: EventQuery | null;
+  /** SH4: Resultat ⇒ der Wrapper schreibt die URL; `null` beim Bearbeiten. */
+  onUrlState?: (q: EventQuery | null) => void;
 }
 
 // Karte erst laden, wenn der Flächen-Schritt erreicht wird — maplibre bleibt
@@ -63,15 +69,15 @@ const STEP_META: Array<{ eyebrow: string; title: string; sub: string; optional?:
 
 const LAST_STEP = STEP_META.length - 1;
 
-export default function EventPage({ onBack, onOpenFeature, initialActivityId, onActivityChange }: Props) {
+export default function EventPage({ onBack, onOpenFeature, initialActivityId, onActivityChange, initialQuery, onUrlState }: Props) {
   return (
     <NotificationProvider>
-      <EventPageInner onBack={onBack} onOpenFeature={onOpenFeature} initialActivityId={initialActivityId} onActivityChange={onActivityChange} />
+      <EventPageInner onBack={onBack} onOpenFeature={onOpenFeature} initialActivityId={initialActivityId} onActivityChange={onActivityChange} initialQuery={initialQuery} onUrlState={onUrlState} />
     </NotificationProvider>
   );
 }
 
-function EventPageInner({ onBack, onOpenFeature, initialActivityId, onActivityChange }: Props) {
+function EventPageInner({ onBack, onOpenFeature, initialActivityId, onActivityChange, initialQuery, onUrlState }: Props) {
   const isMobile = useIsMobile();
   // E7: Preset der Sub-Route (unbekannte id ⇒ kein Anlass, der Wizard fragt wie bisher).
   const presetActivity = initialActivityId ? EVENT_ACTIVITIES.find((a) => a.id === initialActivityId) ?? null : null;
@@ -88,26 +94,26 @@ function EventPageInner({ onBack, onOpenFeature, initialActivityId, onActivityCh
   const [step, setStep] = useState(0);
   const restoredRef = useRef(false);
 
-  // Permalink beim Öffnen wiederherstellen (#ev=…) → direkt ins Resultat.
+  /**
+   * SH4: Die Anfrage kommt aus Pfad + Query statt aus `#ev=` — ein Fragment
+   * erreicht den Server nie, also konnte daraus kein Vorschaubild entstehen
+   * (`audit/teilen-share.md` §1.2). Der Wrapper hat einen Alt-Link bereits
+   * übersetzt; hier kommt die fertige Anfrage an und öffnet das Resultat.
+   */
   useEffect(() => {
     if (restoredRef.current) return;
     restoredRef.current = true;
-    if (typeof window === 'undefined') return;
-    const q = decodeEventState(window.location.hash);
+    const q = initialQuery;
     if (!q) return;
     setActivity(q.activity); setLocation(q.location); setZone(q.zone ?? null); setWindowSel(q.window);
     setPhases(q.phases); setTuning(q.tuning); setPlanB(q.planB); setSubmitted(q);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Resultat ⇄ Hash spiegeln (teilbarer Link); beim Bearbeiten Hash räumen.
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    if (submitted) {
-      window.history.replaceState(null, '', encodeEventState(submitted));
-    } else if (hasEventHash(window.location.hash)) {
-      window.history.replaceState(null, '', window.location.pathname);
-    }
-  }, [submitted]);
+  // Resultat ⇒ Wrapper (der schreibt die URL); beim Bearbeiten wieder blank.
+  const onUrlStateRef = useRef(onUrlState);
+  onUrlStateRef.current = onUrlState;
+  useEffect(() => { onUrlStateRef.current?.(submitted); }, [submitted]);
 
   // Eine Fläche gehört zu genau einem Ort — wechselt der Ort, ist sie hinfällig.
   const setLocationAndResetZone = (l: Location | null) => {

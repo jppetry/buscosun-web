@@ -1,0 +1,237 @@
+/*
+ * Teilen · Optik (Phase SH2) — Namensraum `.sh-`.
+ *
+ * Command-Deck (D-27): Sand/Ink, League Spartan, Terracotta als Akzent. Alle
+ * Farben kommen aus `designTokens.css`; die Rückfallwerte stehen daneben, damit
+ * das Sheet auch dort trägt, wo ein Deck eigene Token setzt.
+ *
+ * Der Knopf ist absichtlich neutral: er erbt `color` vom Deck (Karte = Ink auf
+ * Sand, Radar = Ink auf Sand) und bekommt seine Einpassung als zusätzliche
+ * Klasse von außen. Touch-Ziele ≥ 44 px, auch die kompakte Variante.
+ */
+
+/* ── Knopf ──────────────────────────────────────────────────────────────── */
+.sh-btn {
+  -webkit-appearance: none; appearance: none;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-width: 44px; min-height: 44px; padding: 0 12px;
+  border: 1px solid var(--border-default, #E0D6BE);
+  border-radius: 12px;
+  background: var(--surface-glass, rgba(250, 246, 234, 0.92));
+  color: var(--ink-900, #2C2A26);
+  font: inherit; font-size: 13px; font-weight: 600;
+  cursor: pointer;
+  transition: background-color .15s ease, border-color .15s ease, transform .08s ease;
+}
+.sh-btn:hover { background: var(--cream-50, #FAF6EA); border-color: var(--border-strong, #C4B896); }
+.sh-btn:active { transform: translateY(1px); }
+.sh-btn:focus-visible { outline: 2px solid var(--terracotta-700, #A85E2E); outline-offset: 2px; }
+.sh-btn[data-busy] { opacity: .6; cursor: progress; }
+/* Kompakt bleibt 44 px hoch — nur die Fläche wird schmaler, nicht das Ziel. */
+.sh-btn--compact { padding: 0 10px; border-radius: 11px; }
+.sh-btn--text { padding: 0 14px; }
+
+/* ── Palette (V-SH-12) ──────────────────────────────────────────────────────
+ *
+ * Das Sheet und der Hinweis holten ihre Farben bisher direkt aus den
+ * Command-Deck-Token. Das ist richtig, solange die Oberfläche hell ist — und
+ * das ist sie überall AUSSER auf dem Globus. Statt für die eine dunkle Seite
+ * jede Regel zu verdoppeln, stehen die Farben jetzt EINMAL als `--shp-*` hier;
+ * `.sh-sheet--dark` / `.sh-stale--dark` tauschen nur diese Werte.
+ *
+ * Die dunklen Werte sind nicht erfunden: sie sind die Glasflächen und
+ * Textfarben aus `src/globe/globe.css` (`rgba(20,24,32,.55)`, `#eef1f6`,
+ * `#d8dbe2`, Akzent `#d88a56` von der Wortmarke).
+ */
+.sh-sheet, .sh-stale {
+  --shp-surface:       var(--cream-50, #FAF6EA);
+  --shp-surface-2:     var(--sand-50, #F5F1E8);
+  --shp-surface-3:     #fff;
+  --shp-ink:           var(--ink-900, #2C2A26);
+  --shp-ink-soft:      var(--stone-600, #5C5447);
+  --shp-ink-faint:     var(--stone-400, #A89A7A);
+  --shp-border:        var(--border-default, #E0D6BE);
+  --shp-border-medium: var(--border-medium, #D9D0B8);
+  --shp-border-strong: var(--border-strong, #C4B896);
+  --shp-accent:        var(--terracotta-700, #A85E2E);
+  --shp-accent-line:   var(--terracotta-500, #C97B47);
+  --shp-accent-tint:   var(--terracotta-50, #FAEEDA);
+  --shp-hover:         var(--sand-100, #EDE6D3);
+  --shp-shadow:        rgba(44, 42, 38, .18);
+}
+.sh-sheet--dark, .sh-stale--dark {
+  --shp-surface:       #141a24;
+  --shp-surface-2:     #1b2230;
+  --shp-surface-3:     #1b2230;
+  --shp-ink:           #eef1f6;
+  --shp-ink-soft:      #b9c0cc;
+  --shp-ink-faint:     #8b93a1;
+  --shp-border:        rgba(255, 255, 255, .12);
+  --shp-border-medium: rgba(255, 255, 255, .14);
+  --shp-border-strong: rgba(255, 255, 255, .26);
+  --shp-accent:        #d88a56;
+  --shp-accent-line:   #d88a56;
+  --shp-accent-tint:   rgba(216, 138, 86, .16);
+  --shp-hover:         rgba(255, 255, 255, .07);
+  --shp-shadow:        rgba(0, 0, 0, .55);
+}
+
+/* ── Sheet ──────────────────────────────────────────────────────────────── */
+.sh-scrim {
+  position: fixed; inset: 0; z-index: 998;
+  background: rgba(44, 42, 38, 0.28);
+  animation: shFade .14s ease-out;
+}
+@keyframes shFade { from { opacity: 0 } to { opacity: 1 } }
+
+.sh-sheet {
+  position: fixed; z-index: 999;
+  width: min(380px, calc(100vw - 24px));
+  max-height: calc(100vh - 96px); overflow-y: auto;
+  padding: 16px 18px 14px;
+  background: var(--shp-surface);
+  border: 1px solid var(--shp-border);
+  border-radius: 16px;
+  box-shadow: 0 18px 44px var(--shp-shadow);
+  color: var(--shp-ink);
+  font-family: var(--font-base, 'League Spartan', system-ui, sans-serif);
+  animation: shPop .16s ease-out;
+}
+@keyframes shPop { from { opacity: 0; transform: translateY(-6px) } to { opacity: 1; transform: none } }
+
+.sh-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.sh-eyebrow {
+  font-size: 10px; letter-spacing: 2px; text-transform: uppercase; font-weight: 700;
+  color: var(--shp-accent);
+}
+.sh-close {
+  -webkit-appearance: none; appearance: none;
+  width: 44px; height: 44px; margin: -12px -12px -12px 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 0; background: none; color: var(--shp-ink-soft); cursor: pointer; border-radius: 10px;
+}
+.sh-close:hover { background: var(--shp-hover); color: var(--shp-ink); }
+.sh-close:focus-visible { outline: 2px solid var(--shp-accent); outline-offset: -2px; }
+
+.sh-title { margin: 0 0 4px; font-size: 15px; font-weight: 700; line-height: 1.3; }
+.sh-desc {
+  margin: 0 0 12px; font-size: 12.5px; line-height: 1.45; color: var(--shp-ink-soft);
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+
+.sh-urlrow { margin-bottom: 10px; }
+.sh-url {
+  display: block; padding: 9px 10px;
+  background: var(--shp-surface-2);
+  border: 1px solid var(--shp-border-medium); border-radius: 10px;
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11.5px; line-height: 1.45; color: var(--shp-ink-soft);
+  /* Die volle URL soll lesbar bleiben — umbrechen statt abschneiden. */
+  overflow-wrap: anywhere; word-break: break-word; user-select: all;
+}
+
+.sh-note {
+  margin: 0 0 8px; padding: 7px 9px;
+  background: var(--shp-accent-tint);
+  border-left: 3px solid var(--shp-accent-line); border-radius: 0 8px 8px 0;
+  font-size: 12px; line-height: 1.4; color: var(--shp-ink);
+}
+
+.sh-targets { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0 10px; }
+.sh-target {
+  -webkit-appearance: none; appearance: none;
+  display: flex; align-items: center; gap: 9px;
+  min-height: 44px; padding: 0 12px;
+  border: 1px solid var(--shp-border); border-radius: 11px;
+  background: var(--shp-surface-3); color: var(--shp-ink);
+  font: inherit; font-size: 13px; font-weight: 600; text-decoration: none;
+  cursor: pointer; text-align: left;
+}
+.sh-target:hover { background: var(--shp-hover); border-color: var(--shp-border-strong); }
+.sh-target:focus-visible { outline: 2px solid var(--shp-accent); outline-offset: 2px; }
+.sh-target svg { flex: 0 0 auto; color: var(--shp-ink-faint); }
+.sh-target span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.sh-foot { margin: 0; font-size: 11px; line-height: 1.4; color: var(--shp-ink-faint); }
+
+/* ── V-SH-2: Hinweis beim Ankommen aus einem alten Link ─────────────────── */
+/*
+ * Eine Zeile, oben mittig über dem Inhalt — dort, wo der Blick nach dem
+ * Ankommen ohnehin ist, und quer zu den Bedienelementen, die links (Rail) und
+ * rechts (Dock) sitzen. Mobil wandert er nach unten über die Bottom-Bar.
+ */
+.sh-stale {
+  position: fixed; z-index: 997;
+  /* 176 px statt am oberen Rand: darueber schweben auf der Karte die Modell-
+     und die Quellenzeile (gemessen: Unterkante ~162 px). Ein Hinweis, der die
+     Quellenangabe verdeckt, taeuscht mehr, als er erklaert. */
+  top: 176px; left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 6px;
+  max-width: min(560px, calc(100vw - 24px));
+  padding: 6px 6px 6px 12px;
+  background: var(--shp-accent-tint);
+  border: 1px solid var(--shp-border-strong);
+  border-left: 3px solid var(--shp-accent-line);
+  border-radius: 4px 12px 12px 4px;
+  box-shadow: 0 8px 22px var(--shp-shadow);
+  color: var(--shp-ink);
+  font-family: var(--font-base, 'League Spartan', system-ui, sans-serif);
+  font-size: 12.5px; line-height: 1.35;
+  animation: shPop .18s ease-out;
+}
+/* Auf hell trägt der Hinweis den Terracotta-Rahmen des Decks; auf dunkel
+   genügt die Akzentkante, sonst leuchtet die Fläche über dem Globus. */
+.sh-stale:not(.sh-stale--dark) { border-color: var(--evd-terra-border, #E7C6A6); }
+.sh-stale-txt { min-width: 0; }
+.sh-stale-txt strong { font-weight: 700; }
+.sh-stale-x {
+  -webkit-appearance: none; appearance: none;
+  flex: 0 0 auto;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 44px; height: 44px; margin: -6px -6px -6px 0;   /* Ziel 44 px, Optik schlank */
+  border: 0; background: none; color: var(--shp-ink-faint);
+  cursor: pointer; border-radius: 12px;
+}
+.sh-stale-x:hover { color: var(--shp-ink); }
+.sh-stale-x:focus-visible { outline: 2px solid var(--shp-accent); outline-offset: -4px; }
+
+@media (max-width: 767px) {
+  /*
+   * Mobil bleibt der Hinweis OBEN — der erste Versuch setzte ihn unten ueber
+   * die Bottom-Bar, und dort legte er sich genau auf den Zeit-Schieber des
+   * Decks (am iPhone-12-Pro-Bild gesehen). Oben ist zwischen Suchfeld/Chip
+   * (Unterkante ~112 px) und Karte Platz, und dort schaut man nach dem
+   * Ankommen ohnehin hin.
+   */
+  .sh-stale {
+    top: calc(env(safe-area-inset-top, 0px) + 122px);
+    max-width: calc(100vw - 20px);
+    font-size: 12px;
+  }
+}
+
+/* Nur für Screenreader — die Kopier-Rückmeldung. */
+.sh-live {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* ── Mobil: Bottom-Sheet (Breakpoint 767 px wie im ganzen Repo) ──────────── */
+@media (max-width: 767px) {
+  .sh-sheet--mobile {
+    left: 0; right: 0; bottom: 0; top: auto;
+    width: auto; max-height: 82vh;
+    border-radius: 18px 18px 0 0;
+    border-bottom: 0;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    animation: shUp .18s ease-out;
+  }
+  @keyframes shUp { from { transform: translateY(14px); opacity: .6 } to { transform: none; opacity: 1 } }
+  .sh-sheet--mobile .sh-targets { grid-template-columns: 1fr; }
+  .sh-sheet--mobile .sh-target { min-height: 48px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sh-scrim, .sh-sheet, .sh-sheet--mobile { animation: none; }
+  .sh-btn { transition: none; }
+}

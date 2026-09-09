@@ -25,6 +25,8 @@ import {
 } from '../threed/buildCrossSection';
 import type { CrossSection } from '../threed/crossSection';
 import { evaluateGoNoGo, loadGoNoGo, saveGoNoGo, type GoNoGoConfig } from '../threed/goNoGo';
+// E-7: der PDF-Knopf war eine Attrappe — jetzt druckt er einen echten Bericht.
+import GoNoGoReport, { printGoNoGoReport } from './GoNoGoReport';
 import AtmosphereVerdict from './AtmosphereVerdict';
 import AtmosphereProfile from './AtmosphereProfile';
 import ThermalMap from './ThermalMap';
@@ -34,6 +36,8 @@ import '../threed/threed.css';
 import './atmosphere.css';
 import './atmosphereDeck.css';
 import { FeatureRail, type RailFeature } from '../nav/featureRail';
+// SH3: der Teilen-Knopf ersetzt die drei Attrappen, die hier bisher ohne onClick standen (V-SH-1).
+import ShareButton from '../share/ShareButton';
 
 const NerdPanel = lazy(() => import('./NerdPanel'));
 
@@ -163,8 +167,11 @@ function DesktopDeck(ctx: DeckCtx) {
         <div className="vsd-topright">
           {isGoNoGo ? (
             <>
-              <button className="vsd-toppill"><IconDownload /> PDF</button>
-              <button className="vsd-toppill vsd-toppill--primary"><IconShare /> Link teilen</button>
+              <button
+                className="vsd-toppill"
+                onClick={printGoNoGoReport}
+                title="Auswertung drucken oder als PDF speichern"
+              ><IconDownload /> PDF</button>
             </>
           ) : (
             <>
@@ -172,6 +179,10 @@ function DesktopDeck(ctx: DeckCtx) {
               <span className="vsd-avatar">JK</span>
             </>
           )}
+          {/* SH3: Teilen steht in JEDER Linse — vorher gab es den Knopf (als
+              Attrappe ohne onClick) nur im Arbeitsfenster, und auf allen anderen
+              Ansichten war die Seite gar nicht teilbar. */}
+          <ShareButton className="vsd-share" text="Link teilen" />
         </div>
       </div>
       <div className="vsd-body">
@@ -533,6 +544,10 @@ function GoNoGoDesktop(ctx: DeckCtx) {
 
   return (
     <>
+      {/* E-7: liegt am Schirm auf `display: none` und ist im Druck das Einzige,
+          was erscheint. Muss HIER stehen, wo `res`/`cfg`/`prepared` sind —
+          der Knopf in der Topbar löst nur `window.print()` aus. */}
+      <GoNoGoReport res={res} prepared={prepared} cfg={cfg} location={location} />
       <div className="vsd-dock vsd-dock--wide vsd-scroll">
         <div className="vsd-eyebrow">Betriebs-Check · Drohne</div>
         <div className="vsd-dock-title">Vermessungsflug · {location?.name ?? 'Feldberg-Süd'}</div>
@@ -581,7 +596,7 @@ function GoNoGoDesktop(ctx: DeckCtx) {
             </div>
             <div className="vsd-sec-lab">Go / No-Go über den Tag · {cfg.heightAglM} m AGL</div>
             <div className="vsd-panel"><GoNoGoBand res={res} prepared={prepared} /></div>
-            <div className="vsd-info"><span className="vsd-ibadge">i</span><span>Auswertung enthält Ort, Zeit, Höhe, Werte, Grenzwert &amp; Status — als PDF/Link exportierbar. Modell ICON-D2, Gitterzellen ≈ 2 km.</span></div>
+            <div className="vsd-info"><span className="vsd-ibadge">i</span><span>Auswertung enthält Ort, Zeit, Höhe, Werte, Grenzwert &amp; Status — über „PDF" druckbar (im Druckdialog „Als PDF speichern") oder als Link teilbar. Modell ICON-D2, Gitterzellen ≈ 2 km.</span></div>
           </>
         ) : (
           <div className="vsd-plot"><SectionPlaceholder data={data} onDraw={() => setDeckLens('hoehenwind')} /></div>
@@ -741,7 +756,10 @@ function MobileDeck(ctx: DeckCtx) {
           <img src="/buscosun-mark.svg" width={22} height={22} alt="" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} onClick={onBack} />
           <div className="vsd-m-htext"><div className="vsd-m-eyebrow">{t.eyebrow}</div><div className="vsd-m-title">{t.title}</div></div>
         </div>
-        {deckLens === 'gonogo' ? <button className="vsd-m-share">Teilen</button> : <button className="vsd-m-back" onClick={onBack} aria-label="Zurück"><IconRailMap /></button>}
+        <div className="vsd-m-actions">
+          <ShareButton className="vsd-m-share" compact />
+          {deckLens !== 'gonogo' && <button className="vsd-m-back" onClick={onBack} aria-label="Zurück"><IconRailMap /></button>}
+        </div>
       </div>
       <div className="vsd-m-tabs" role="tablist" aria-label="Linse">
         {(['hoehenwind', 'inversion', 'gonogo', 'foehn', 'thermik'] as DeckLens[]).map((l) => (
@@ -825,12 +843,16 @@ function InversionMobile(ctx: DeckCtx) {
 }
 
 function GoNoGoMobile(ctx: DeckCtx) {
-  const { data, cfg, setCfg } = ctx;
+  const { data, cfg, setCfg, location } = ctx;
   const res = useMemo(() => (data.kind === 'ready' ? evaluateGoNoGo(data.prepared, cfg) : null), [data, cfg]);
   const prepared = data.kind === 'ready' ? data.prepared : null;
   if (!res || !prepared) return <div className="vsd-plot"><SectionPlaceholder data={data} onDraw={() => ctx.setDeckLens('hoehenwind')} /></div>;
   return (
     <>
+      {/* E-7: derselbe Bericht wie am Desktop — am Schirm unsichtbar, im Druck
+          das Einzige. Ein zweiter Ausdruck kann nicht entstehen: das Deck
+          rendert entweder die mobile ODER die Desktop-Fassung. */}
+      <GoNoGoReport res={res} prepared={prepared} cfg={cfg} location={location} />
       <GoNoGoHero res={res} prepared={prepared} cfg={cfg} />
       <div className="vsd-fh">
         <div className="vsd-pquery-lab">Flughöhe (AGL)</div>
@@ -844,10 +866,15 @@ function GoNoGoMobile(ctx: DeckCtx) {
       <div className="vsd-sec-lab">Höhenfaktor · Wind ↑ mit Höhe</div>
       <div className="vsd-panel"><HeightFactorChart res={res} cfg={cfg} /></div>
       <div style={{ display: 'flex', gap: 8 }}>
-        <button className="vsd-toppill" style={{ flex: 1, justifyContent: 'center' }}><IconDownload /> PDF</button>
-        <button className="vsd-toppill vsd-toppill--primary" style={{ flex: 1, justifyContent: 'center' }}><IconShare /> Link teilen</button>
+        <button
+          className="vsd-toppill"
+          style={{ flex: 1, justifyContent: 'center' }}
+          onClick={printGoNoGoReport}
+          title="Auswertung drucken oder als PDF speichern"
+        ><IconDownload /> PDF</button>
+        <ShareButton className="vsd-share vsd-share--wide" text="Link teilen" />
       </div>
-      <p className="vsd-m-caption">Export enthält Ort, Zeit, Höhe, Werte, Grenzwert &amp; Status. Modell ICON-D2 · Gitterzellen ≈ 2 km.</p>
+      <p className="vsd-m-caption">Der Ausdruck enthält Ort, Zeit, Höhe, Werte, Grenzwert &amp; Status — im Druckdialog „Als PDF speichern". Modell ICON-D2 · Gitterzellen ≈ 2 km.</p>
     </>
   );
 }
@@ -1011,7 +1038,6 @@ function IconOctagonX() { return <svg width="48" height="48" viewBox="0 0 48 48"
 function IconOctagonCheck() { return <svg width="48" height="48" viewBox="0 0 48 48"><path d="M12 0 L36 0 L48 12 L48 36 L36 48 L12 48 L0 36 L0 12 Z" fill="var(--sage-600)" /><path d="M14 24 L21 31 L34 17" stroke="var(--cream-50)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" fill="none" /></svg>; }
 function IconCheck() { return <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M5 13 L10 18 L19 6" stroke="var(--cream-50)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></svg>; }
 function IconDownload() { return <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 4 V15 M8 12 L12 16 L16 12 M6 20 H18" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>; }
-function IconShare() { return <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="18" cy="5" r="3" stroke="currentColor" strokeWidth="1.6" /><circle cx="6" cy="12" r="3" stroke="currentColor" strokeWidth="1.6" /><circle cx="18" cy="19" r="3" stroke="currentColor" strokeWidth="1.6" /><line x1="8.6" y1="10.5" x2="15.4" y2="6.5" stroke="currentColor" strokeWidth="1.6" /><line x1="8.6" y1="13.5" x2="15.4" y2="17.5" stroke="currentColor" strokeWidth="1.6" /></svg>; }
 function IconRotate() { return <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M8 12 A8 8 0 1 1 10 17" stroke="var(--stone-600)" strokeWidth="1.6" fill="none" /><path d="M10 13 L10 18 L5 17 Z" fill="var(--stone-600)" /></svg>; }
 function IconTriangle() { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 20 L12 6 L18 20 Z" stroke="var(--vs-valley)" strokeWidth="1.6" strokeLinejoin="round" /></svg>; }
 function IconRoute() { return <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 4 H14 L18 8 V20 H6 Z" stroke="var(--steel-600)" strokeWidth="1.5" strokeLinejoin="round" /></svg>; }

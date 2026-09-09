@@ -10,9 +10,16 @@
   // importierbar für scripts/verify-layer-transport.mjs und verify-wind-transport.mjs.
   // Deno-Globals werden deshalb nicht deklariert: würde einer eingeführt, soll der
   // Typecheck es melden, statt es durchzuwinken.
+  // SH6: `og-meta.ts` holt seine TYPEN aus `src/share/edgeShare.ts` (der Code
+  // kommt aus dem Buendel). Damit steht ein Stueck des App-Baums in diesem
+  // Projekt — deshalb jetzt `jsx` und `DOM.Iterable`: `routes.ts` beruehrt
+  // `App.tsx`, und `urlState.ts` iteriert ueber `URLSearchParams`. Ohne beides
+  // scheitert der Typecheck an Dateien, die er gar nicht pruefen soll.
+  // Unveraendert gilt: KEINE Deno-Globals hier deklarieren.
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["ES2023", "DOM"],
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
     "module": "ESNext",
     "skipLibCheck": true,
     "moduleResolution": "bundler",

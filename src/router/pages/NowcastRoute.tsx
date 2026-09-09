@@ -13,9 +13,9 @@ import { useLocation, useNavigate, useParams } from 'react-router';
 import NowcastPage from '../../nowcast/NowcastPage';
 import type { Location } from '../../types';
 import { useAppNav } from '../useAppNav';
-import { buildRadarUrl, parseMapSearch, placeFromRoute, type MapCamera } from '../urlState';
+import { buildRadarUrl, parseMapSearch, type MapCamera } from '../urlState';
 // SH1: Ortstabelle nur im LAZY Chunk — `urlState.ts` (eager) bleibt tabellenfrei.
-import { placeBySlug, slugForPlace } from '../../share/placeTable';
+import { resolveRoutePlace, slugForPlace } from '../../share/placeTable';
 
 const CAM_DEBOUNCE_MS = 300;
 
@@ -25,7 +25,7 @@ export default function NowcastRoute() {
   const navigate = useNavigate();
   const nav = useAppNav();
   const parsed = useMemo(() => parseMapSearch(loc.search, 0), [loc.search]);
-  const routePlace = useMemo(() => placeFromRoute(params.ort, parsed.place, placeBySlug), [params.ort, parsed.place]);
+  const routePlace = useMemo(() => resolveRoutePlace(params.ort, parsed.place), [params.ort, parsed.place]);
   const st = useRef({ place: routePlace.place, cam: parsed.cam, extra: parsed.extra });
   const initial = useRef({ place: routePlace.place, cam: parsed.cam });
 

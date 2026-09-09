@@ -38,7 +38,54 @@ Verdrahtung: `ogImageOr(slug, fallback)` in `scripts/seo/content.mjs` nimmt die 
 nur, WENN die PNG existiert — sonst die Bereichs-Karte. Dadurch zeigt keine Seite je auf ein
 fehlendes Bild, auch wenn eine neue Seite vor ihrer Karte live geht.
 
-## Neu erzeugen (ein Lauf, ohne MCP und ohne neue Abhängigkeit)
+## Die App-Karten (SH6, 2026-09-09) — zweiter Satz, eigener Renderer
+
+Die 74 oben sind **Inhalts**-Karten (Wissen, Funktionen, Für wen, Methodik, Orte). Seit SH6
+gibt es daneben **50 App-Karten** in `public/og/app/` — eine je Feature-Route und je
+Sub-Route, damit ein geteilter Link nicht mehr die generische Startseiten-Karte zeigt.
+
+| | Inhaltskarten | App-Karten |
+|---|---|---|
+| Ordner | `public/og/` | `public/og/app/` |
+| Renderer | `public/_og-card.html` | `public/_og-app-card.html` |
+| Optik | ganz hell (Sand/Ink) | heller Rahmen, **dunkles Kartenfeld** rechts (Jans Entscheidung E-5) |
+| Zuordnung | `ogImageOr(slug, fallback)` (Datei-Existenz) | `ogCardPath()` in `src/share/ogCard.ts` (Regel) |
+| Erzeugen | s. unten | `npm run og:app-cards` |
+
+Die App-Karten tragen ein **Motiv** je Feature (Isolinien, Radarringe, Warndreieck,
+Höhenprofil, …) und unten im dunklen Feld den **Pfad der Seite** — dieselbe lesbare URL,
+die auch im Share-Sheet steht.
+
+**Welche Karte es gibt, entscheidet keine Liste, sondern eine Regel:** `ogCardPath(routeId,
+sub)` in `src/share/ogCard.ts`. Renderer, Shell-Generator, Edge Function und Verifier
+benutzen dieselbe. `npm run verify:share` schlägt fehl, wenn eine Karte fehlt ODER eine
+Karte ohne Seite herumliegt — eine umbenannte Sub-Route fällt damit sofort auf, statt still
+auf ein 404-Bild zu zeigen.
+
+```
+npm run og:app-cards                 # nur fehlende
+npm run og:app-cards -- --all        # alle neu (~90 s für 50 Karten)
+node --experimental-strip-types --import ./scripts/lib/register-ts.mjs   scripts/render-og-app-cards.mjs --pick wetterkarte-wind,globus
+```
+
+> ⚠ `npm run og:app-cards -- --pick …` schluckt npm manchmal (`invalid config`); im Zweifel
+> `node …` direkt aufrufen wie oben.
+
+## ⚠ Der `--screenshot`-Schalter ist weg (gemessen 2026-09-09)
+
+Das Rezept unten stammt aus E10 und **funktioniert nicht mehr**. Geprüft mit beiden
+Chromium-Ständen auf dem Rechner (`chromium_headless_shell-1217` = Chrome 147,
+`-1223` = Chrome 148): der Aufruf endet mit **Status 0**, `--dump-dom` liefert sauberes
+HTML — und es entsteht **keine Datei**. Ein Rezept, das still nichts tut, ist schlimmer als
+eines, das scheitert.
+
+Der Ersatz steht in `scripts/lib/headlessShot.mjs`: EIN Browser über das DevTools-Protokoll
+(`Page.captureScreenshot`), gesteuert mit dem `WebSocket`, den Node 22 mitbringt — keine
+neue Abhängigkeit, und schneller, weil nicht je Bild ein Prozess startet. `openShooter()`
+kann PNG und JPEG; die Inhaltskarten lassen sich damit genauso erzeugen wie die App-Karten.
+
+## Alter Weg (E10, nur noch als Beschreibung der Absicht)
+
 
 Das Repo hat weder Playwright noch Puppeteer als Abhängigkeit — nötig ist beides nicht:
 auf dem Entwicklungsrechner liegt bereits ein Headless-Chromium (von Playwright-MCP

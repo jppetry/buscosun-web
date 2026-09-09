@@ -15,6 +15,7 @@ import { tourFileToCutLine } from '../threed/tourImport';
 import { pickCountry } from '../pointForecast/clustering';
 import { AtmosphereProvider, useAtmosphere } from './atmosphereStore';
 import AtmosphereDeck, { type DeckSub } from './AtmosphereDeck';
+import type { AtmosphereUrlState } from './atmosphereUrl';
 import type { Lens } from './atmosphereState';
 import { FeatureRail, type RailFeature } from '../nav/featureRail';
 import '../threed/threed.css';
@@ -36,11 +37,15 @@ interface Props {
   routeSub?: DeckSub | null;
   onLensChange?: (lens: Lens, initial: boolean) => void;
   onSubChange?: (sub: DeckSub) => void;
+  /** SH3: Anfangszustand aus Pfad + Query (Alt-Links hat der Wrapper schon umgeschrieben). */
+  initialUrl?: AtmosphereUrlState | null;
+  /** SH3: Zustandsänderung ⇒ der Wrapper schreibt die URL (einziger Schreiber). */
+  onUrlState?: (s: AtmosphereUrlState) => void;
 }
 
-export default function AtmospherePage({ onBack, onOpenFeature, initialLens, routeLens, initialSub, routeSub, onLensChange, onSubChange }: Props) {
+export default function AtmospherePage({ onBack, onOpenFeature, initialLens, routeLens, initialSub, routeSub, onLensChange, onSubChange, initialUrl, onUrlState }: Props) {
   return (
-    <AtmosphereProvider initialLens={initialLens} routeLens={routeLens} onLensChange={onLensChange}>
+    <AtmosphereProvider initialLens={initialLens} routeLens={routeLens} onLensChange={onLensChange} initialUrl={initialUrl} onUrlState={onUrlState}>
       <AtmosphereShell onBack={onBack} onOpenFeature={onOpenFeature} initialSub={initialSub} routeSub={routeSub} onSubChange={onSubChange} />
     </AtmosphereProvider>
   );

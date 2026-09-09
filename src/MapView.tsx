@@ -137,6 +137,9 @@ import {
   type StationsFeatureCollection,
 } from './sources/dachStations';
 import { FeatureRail, type RailFeature } from './nav/featureRail';
+// SH2: Teilen-Knopf. Winzig und ohne schwere Importe — Adapter, Ortstabelle und
+// Sheet kommen erst beim ersten Klick (dynamischer Import in ShareButton).
+import ShareButton from './share/ShareButton';
 import './MapView.css';
 // Command-Deck der Kartenseite (references/*-karte.png): Topbar · Ink-Rail ·
 // Layer-Dock · dunkle Bühne · rechtes Panel · Modellseite · Mobile-Bottom-Bar.
@@ -532,7 +535,12 @@ interface Props {
   onLayersChange?: (layers: LayerKey[], added: LayerKey | null) => void;
   /** Slider-Stunde von außen (nur Zurück/Vorwärts); undefined = nicht steuern. */
   routeHour?: number;
-  onHourChange?: (hour: number) => void;
+  /**
+   * Gemeldete Slider-Stunde. `reason: 'clamped'` heißt: die Karte konnte die
+   * verlangte Stunde nicht halten (der Horizont trägt sie nicht) und hat auf
+   * das Ende gekürzt — der Aufrufer kann das dem Empfänger sagen (V-SH-13).
+   */
+  onHourChange?: (hour: number, reason?: 'clamped') => void;
   /** Startkamera (überstimmt DACH-Fit/Default); danach führt die Karte. */
   initialView?: MapCameraView | null;
   onViewChange?: (view: MapCameraView) => void;
@@ -976,7 +984,23 @@ export default function MapView({
   // Testmodus „Nur-Jetzt": aktuelles Vorhersagefenster (h), das die Grid-Layer
   // laden. 0 = nur der Jetzt-Bracket; wird beim ERSTEN Slider-Move auf
   // NOWONLY_AHEAD_H gesetzt (Forecast lädt nach Bedarf, nur für aktive Layer).
-  const forecastAheadHRef = useRef(0);
+  /**
+   * Wie weit die Grid-Layer im Testmodus „Nur-Jetzt" nach vorn laden (Stunden).
+   *
+   * V-SH-13 (2026-09-09): **ein Link, der ausdrücklich eine Stunde nennt, ist
+   * kein Erstbild.** Vorher stand hier fest `0`, das Fenster wuchs erst beim
+   * ersten Slider-Zug auf `NOWONLY_AHEAD_H` (2 h) — und die Zeitbasis war
+   * ebenfalls 3 Stunden lang. Gemessen am 2026-09-09: `?t=+8h` landete still
+   * bei **+2 h**, `?t=+3h` ebenso, und der Slider blieb dort. Mit
+   * `?startnow=0` (also ohne den Erstbild-Modus) kam derselbe Link korrekt bei
+   * 21:00 UTC an — die Daten waren da, nur das Fenster war zu kurz.
+   *
+   * Deshalb startet der Ref jetzt auf der aus der URL verlangten Stunde. Das
+   * lädt NICHT mehr als nötig (`stepsForNowWindow` schneidet bei jetzt+ahead
+   * ab, nicht bei 24 h) und lässt das Erstbild ohne `t=` unberührt: dort ist
+   * `initialHour` 0, und alles bleibt wie in LZ1 gemessen.
+   */
+  const forecastAheadHRef = useRef(Math.max(0, Math.ceil(initialHour ?? 0)));
   // Wiederverwendeter Ausgabepuffer für die Sub-Stunden-Interpolation des
   // Wolken-Frames (RGBA-Bytes). CloudLayer.setFrame lädt synchron per texImage2D
   // hoch → der Puffer kann pro Slider-Tick überschrieben werden (keine Allokation).
@@ -2379,7 +2403,12 @@ export default function MapView({
     // hier, sondern erst beim ersten Slider-Move (siehe forecastAheadHRef-Effekt) —
     // und dann nur für aktive Grid-Layer. Beim Start (Slider=0) genügt der
     // Jetzt-Bracket, den die Layer ohnehin laden.
-    const sliderHours = (START_NOW_ONLY && !embedded) ? NOWONLY_AHEAD_H + 1 : FORECAST_HOURS;
+    // V-SH-13: Verlangt die URL eine Stunde jenseits des Jetzt-Fensters, taugt
+    // die 3-Stunden-Basis nicht — sie würde die Stunde gleich wieder klemmen
+    // (s. Kommentar an `forecastAheadHRef`). Dann die volle Basis; ohne `t=`
+    // bleibt es beim kurzen Erstbild.
+    const sharedAhead = Math.max(0, initialHour ?? 0) > NOWONLY_AHEAD_H;
+    const sliderHours = (START_NOW_ONLY && !embedded && !sharedAhead) ? NOWONLY_AHEAD_H + 1 : FORECAST_HOURS;
     setForecast({
       hours: Array.from({ length: sliderHours }, (_, h) => ({
         timestamp: new Date(Date.now() + h * 3_600_000),
@@ -4031,8 +4060,12 @@ export default function MapView({
   // Wenn der Horizont schrumpft (Niederschlag deaktiviert), Slider zurückholen.
   // Erst wenn der Forecast da ist: vorher ist `sliderMax` 0 und würde eine aus
   // der URL (`t`) wiederhergestellte Stunde noch vor dem ersten Frame auf 0 klemmen (V-R-07).
+  // V-SH-13: Bleibt nach dem Fenster-Fix eine echte Kürzung (der geteilte
+  // Zeitpunkt liegt jenseits dessen, was die Daten hier tragen), dann wird sie
+  // GEMELDET statt still vollzogen — `onHourChange` bekommt `'clamped'`.
+  const clampedRef = useRef(false);
   useEffect(() => {
-    if (forecast && forecastHour > sliderMax) setForecastHour(sliderMax);
+    if (forecast && forecastHour > sliderMax) { clampedRef.current = true; setForecastHour(sliderMax); }
   }, [forecast, sliderMax, forecastHour]);
 
   // Testmodus „Nur-Jetzt": Forecast-Frames (bis +NOWONLY_AHEAD_H) NACH BEDARF —
@@ -4125,7 +4158,9 @@ export default function MapView({
   useEffect(() => {
     if (prevHourRef.current === forecastHour) return;
     prevHourRef.current = forecastHour;
-    if (!embedded) routeCbRef.current.onHourChange?.(forecastHour);
+    const clamped = clampedRef.current;
+    clampedRef.current = false;
+    if (!embedded) routeCbRef.current.onHourChange?.(forecastHour, clamped ? 'clamped' : undefined);
   }, [forecastHour, embedded]);
   useEffect(() => {
     if (routeHour == null) return;
@@ -5027,6 +5062,7 @@ export default function MapView({
               <div className="mdk-clock-time">{clockTime}</div>
               <div className="mdk-clock-date">{clockDate}</div>
             </div>
+            <ShareButton className="mdk-share" />
           </div>
         </header>
       )}
@@ -5139,6 +5175,7 @@ export default function MapView({
                     </div>
                   )}
                 </div>
+                <ShareButton className="mdk-m-share" compact />
               </div>
               {mobileTab === 'karte' && (
                 <button type="button" className="mdk-m-modelpill mdk-glass" onClick={() => setMobileTab('modelle')}>

@@ -56,6 +56,9 @@
 .hd-topbtn--on { background: var(--steel-600); border-color: var(--steel-600); color: var(--cream-50); }
 
 .hd-topright { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+
+/* SH4: Teilen-Knopf in der Topbar; Form und Farbe aus src/share/share.css. */
+.hd-share { margin-left: 2px; }
 .hd-modelink { font-size: 12px; font-weight: 600; cursor: pointer; background: none; border: none; font-family: inherit; display: inline-flex; align-items: center; gap: 6px; }
 .hd-modelink--steel { color: var(--steel-600); }
 .hd-modelink--terra { color: var(--terracotta-500); }

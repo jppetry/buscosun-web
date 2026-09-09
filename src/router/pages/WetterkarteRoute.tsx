@@ -19,7 +19,7 @@
  * EINE Route mit optionalem Param — bei einem Layerwechsel bleibt dieselbe
  * Route-Instanz stehen, MapView wird nicht remountet (kein `key`!).
  */
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useNavigationType, useParams } from 'react-router';
 import MapView, { type LayerKey } from '../../MapView';
 import { DACH_OVERVIEW_LOCATION } from '../../App';
@@ -28,13 +28,16 @@ import type { ModelSourceState } from '../../fusion/modelSource';
 import { isWhitelisted } from '../../fusion/modelCatalog';
 import { useAppNav } from '../useAppNav';
 import {
-  buildMapUrl, layersFromRoute, parseMapSearch, placeFromRoute, routeForLayers,
+  buildMapUrl, layersFromRoute, parseMapSearch, routeForLayers,
   DEFAULT_MAP_LAYER, LAYER_SLUGS, type MapCamera,
 } from '../urlState';
 // SH1: Ort-Slug im Pfad (`/wetterkarte/wind/muenchen`). Die Ortstabelle wird hier
 // importiert — dieser Wrapper ist ein LAZY Chunk, `urlState.ts` (eager) bekommt
 // die Auflösung injiziert.
-import { placeBySlug, slugForPlace } from '../../share/placeTable';
+import { resolveRoutePlace, slugForPlace } from '../../share/placeTable';
+// V-SH-2: „der geteilte Zeitpunkt ist vorbei" gehört auf die EMPFÄNGERseite,
+// nicht nur ins Sheet des Absenders.
+import StaleLinkNotice from '../../share/StaleLinkNotice';
 import NotFoundRoute from './NotFoundRoute';
 
 const CAM_DEBOUNCE_MS = 300;
@@ -50,6 +53,10 @@ interface UrlRefs {
   place: Location | null;
   country: Country | null;
   extra: Array<[string, string]>;
+  /** Welcher Zeitpunkt im Link stand (V-SH-2 / V-SH-13). */
+  wantedAtMs: number | undefined;
+  /** War er beim Ankommen schon vorbei? */
+  timePast: boolean;
 }
 
 export default function WetterkarteRoute({ fixedPrimary }: { fixedPrimary?: LayerKey }) {
@@ -63,7 +70,7 @@ export default function WetterkarteRoute({ fixedPrimary }: { fixedPrimary?: Laye
   const parsed = useMemo(() => parseMapSearch(loc.search, Date.now(), isWhitelisted), [loc.search]);
   const slug = fixedPrimary ? LAYER_SLUGS[fixedPrimary] : params.layer;
   // Ort: Pfadsegment (Tabellenort) und/oder `ort`/`olat`/`olon` (freier Ort).
-  const routePlace = useMemo(() => placeFromRoute(params.ort, parsed.place, placeBySlug), [params.ort, parsed.place]);
+  const routePlace = useMemo(() => resolveRoutePlace(params.ort, parsed.place), [params.ort, parsed.place]);
   const route = useMemo(() => layersFromRoute(slug, parsed.l), [slug, parsed.l]);
   const unknownPrimary = !!slug && !route.primary;
   const urlLayers = useMemo<LayerKey[]>(
@@ -85,6 +92,8 @@ export default function WetterkarteRoute({ fixedPrimary }: { fixedPrimary?: Laye
       place: routePlace.place,
       country: parsed.country ?? routePlace.place?.country ?? null,
       extra: parsed.extra,
+      wantedAtMs: parsed.wantedAtMs,
+      timePast: !!parsed.timePast,
     };
   }
   // Jede Navigation, die NICHT diese Komponente geschrieben hat (Zurück/Vorwärts,
@@ -173,7 +182,31 @@ export default function WetterkarteRoute({ fixedPrimary }: { fixedPrimary?: Laye
     s.primary = fixedPrimary ?? (added ?? routeForLayers(layers, s.primary).primary);
     push();
   }, [push, fixedPrimary]);
-  const onHourChange = useCallback((h: number) => { st.current!.hour = h; replaceDebounced(); }, [replaceDebounced]);
+  /*
+   * V-SH-13: Die Karte meldet mit `reason: 'clamped'`, dass sie die verlangte
+   * Stunde nicht halten konnte. Gezählt wird nur die ERSTE Meldung nach dem
+   * Ankommen und nur, wenn der Link überhaupt eine Stunde verlangt hat — eine
+   * spätere Kürzung entsteht, weil der Nutzer selbst einen Layer abschaltet
+   * (kürzerer Horizont), und darüber muss ihm niemand einen Hinweis geben.
+   */
+  const wantedHourRef = useRef(init.hour);
+  const arrivalDoneRef = useRef(false);
+  const [horizonAt, setHorizonAt] = useState<number | null>(null);
+  const onHourChange = useCallback((h: number, reason?: 'clamped') => {
+    const first = !arrivalDoneRef.current;
+    arrivalDoneRef.current = true;
+    if (first && reason === 'clamped' && wantedHourRef.current > h + 0.15) {
+      // Nur WAS verlangt war, nicht was stattdessen gilt: die Schieber-Stunde
+      // ist nicht die angezeigte Gültigkeitszeit (der Layer kann kürzer sein,
+      // am Bild gesehen: Schieber +23 h, Deck „Stand · Do 02:00"). Die genaue
+      // Zeit sagt das Zeit-Deck, der Hinweis sagt nur, dass es nicht die
+      // geteilte ist.
+      const wanted = st.current!.wantedAtMs;
+      if (wanted != null) setHorizonAt(wanted);
+    }
+    st.current!.hour = h;
+    replaceDebounced();
+  }, [replaceDebounced]);
   const onViewChange = useCallback((cam: MapCamera) => { st.current!.cam = cam; replaceDebounced(); }, [replaceDebounced]);
   const onModelSourceChange = useCallback((m: ModelSourceState) => {
     const s = st.current!;
@@ -191,23 +224,27 @@ export default function WetterkarteRoute({ fixedPrimary }: { fixedPrimary?: Laye
   const popModel = isPop ? { country: parsed.country ?? place?.country ?? null, model: parsed.model, point: parsed.point ?? 'fusion', radar: parsed.radar ?? true } : undefined;
 
   return (
-    <MapView
-      location={mapLocation}
-      overview={!place}
-      initialActive={init.layers}
-      initialHour={init.hour}
-      initialView={init.cam}
-      initialModelSource={{ country: init.country, model: init.model, point: init.point, radar: init.radar }}
-      routeLayers={urlLayers}
-      routeHour={isPop ? (parsed.hour ?? 0) : undefined}
-      routeModelSource={popModel}
-      onLayersChange={onLayersChange}
-      onHourChange={onHourChange}
-      onViewChange={onViewChange}
-      onModelSourceChange={onModelSourceChange}
-      onSelectLocation={onSelectLocation}
-      onBack={nav.goHome}
-      onOpenFeature={nav.openFeature}
-    />
+    <>
+      <StaleLinkNotice at={init.timePast ? init.wantedAtMs : null} shows="die Lage für jetzt" />
+      <StaleLinkNotice reason="horizon" at={horizonAt} />
+      <MapView
+        location={mapLocation}
+        overview={!place}
+        initialActive={init.layers}
+        initialHour={init.hour}
+        initialView={init.cam}
+        initialModelSource={{ country: init.country, model: init.model, point: init.point, radar: init.radar }}
+        routeLayers={urlLayers}
+        routeHour={isPop ? (parsed.hour ?? 0) : undefined}
+        routeModelSource={popModel}
+        onLayersChange={onLayersChange}
+        onHourChange={onHourChange}
+        onViewChange={onViewChange}
+        onModelSourceChange={onModelSourceChange}
+        onSelectLocation={onSelectLocation}
+        onBack={nav.goHome}
+        onOpenFeature={nav.openFeature}
+      />
+    </>
   );
 }

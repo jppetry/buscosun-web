@@ -120,6 +120,9 @@
 .mdk-clock { text-align: right; line-height: 1.15; }
 .mdk-clock-time { font-size: 19px; font-weight: 700; letter-spacing: -0.3px; font-variant-numeric: tabular-nums; }
 .mdk-clock-date { font-size: 10px; letter-spacing: 1.5px; color: var(--stone-400, #A89A7A); font-weight: 600; text-transform: uppercase; }
+/* SH2: Teilen-Knopf ganz rechts in der Topbar. Erbt Form und Farbe aus
+   `src/share/share.css`; hier steht nur die Einpassung ins Karten-Deck. */
+.mdk-share { margin-left: 4px; }
 
 /* ---- Body: Rail · Dock · Bühne · Readout ---------------------------------- */
 .mdk-body { flex: 1; display: flex; min-height: 0; }
@@ -782,6 +785,13 @@
     cursor: pointer;
   }
   .mdk-m-topfloat > div { display: flex; }
+  /* SH2: Teilen neben der Landeswahl — gleiche Höhe wie Suche und Land (46 px),
+     das Touch-Ziel bleibt durch `min-height` in share.css bei 44 px. */
+  .mdk-m-share {
+    flex: 0 0 auto; min-width: 46px; min-height: 46px;
+    border-radius: 14px; border-color: var(--border-medium, #D9D0B8);
+    background: var(--cream-50, #FAF6EA); box-shadow: var(--shadow-card);
+  }
   .mdk-m-country-menu {
     position: absolute; right: 0; top: calc(100% + 6px); z-index: 40;
     background: var(--cream-50, #FAF6EA); border: 1px solid var(--border-medium, #D9D0B8);

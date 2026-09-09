@@ -24,7 +24,7 @@ import {
 } from './historyModel';
 import {
   DEFAULT_SETTINGS, resolveYearRange,
-  encodeState, decodeState, isFavorite, toggleFavorite, pushRecent,
+  isFavorite, toggleFavorite, pushRecent,
   type HistorySettings, type HistoryLocation, type ChartType,
 } from './historyState';
 import { summarizeTrend, summarizeKenntage, summarizeSeries } from './historySummary';
@@ -52,8 +52,19 @@ import './history.css';
 import './historyDeck.css';
 
 import { FeatureRail, type RailFeature } from '../nav/featureRail';
+// SH4: Teilen-Knopf (laedt Adapter und Sheet erst beim Klick).
+import ShareButton from '../share/ShareButton';
 
-interface Props { onBack: () => void; onOpenFeature?: (id: RailFeature) => void }
+interface Props {
+  onBack: () => void;
+  onOpenFeature?: (id: RailFeature) => void;
+  /** SH4: Anfangszustand aus Pfad + Query (Alt-Links hat der Wrapper übersetzt). */
+  initialUrl?: { place: HistoryLocation | null; settings: HistorySettings } | null;
+  /** SH4: Zustandsänderung ⇒ der Wrapper schreibt die URL (einziger Schreiber). */
+  onUrlState?: (place: HistoryLocation, settings: HistorySettings) => void;
+  /** Ort verworfen (`Ort wechseln`, `Zurück`) ⇒ der Wrapper räumt die URL. */
+  onClearPlace?: () => void;
+}
 
 const HIST_INTRO_CAPS = [
   'Klimastreifen: jedes Jahr ein Streifen — wärmer oder kälter',
@@ -92,7 +103,7 @@ function IconChevronLeft() {
 
 // ============================ Haupt-Container ============================
 
-export default function HistoryPage({ onBack, onOpenFeature }: Props) {
+export default function HistoryPage({ onBack, onOpenFeature, initialUrl, onUrlState, onClearPlace }: Props) {
   const [loc, setLoc] = useState<HistoryLocation | null>(null);
   const [settings, setSettings] = useState<HistorySettings>(DEFAULT_SETTINGS);
   const [days, setDays] = useState<DailyRecord[] | null>(null);
@@ -110,17 +121,19 @@ export default function HistoryPage({ onBack, onOpenFeature }: Props) {
   function toggleDark() { setDark((d) => { const n = !d; try { localStorage.setItem('buscosun.history.dark.v1', n ? '1' : '0'); } catch { /* ignore */ } return n; }); }
   const patch = (p: Partial<HistorySettings>) => setSettings((s) => ({ ...s, ...p }));
 
-  const clearHash = () => {
-    if (typeof window === 'undefined') return;
-    if (window.location.hash) window.history.replaceState(null, '', window.location.pathname + window.location.search);
-  };
-  const handleBack = () => { clearHash(); onBack(); };
-  const changeLocation = () => { clearHash(); setModePicked(false); setLoc(null); };
+  /**
+   * SH4: Der Zustand steht in der QUERY, nicht mehr im Fragment `#h=` — der
+   * Router-Wrapper ist der einzige Schreiber. „Ort wechseln" und „Zurück"
+   * melden das nach oben, statt selbst an der Adresszeile zu drehen.
+   */
+  const clearPlace = () => { onClearPlace?.(); };
+  const handleBack = () => { clearPlace(); onBack(); };
+  const changeLocation = () => { clearPlace(); setModePicked(false); setLoc(null); };
   const backToMode = () => { setModePicked(false); setDrillDate(null); setProOpen(false); };
 
   useEffect(() => {
-    const dec = typeof window !== 'undefined' ? decodeState(window.location.hash) : null;
-    if (dec?.loc) { setLoc(dec.loc); setSettings(dec.settings); setModePicked(true); }
+    if (initialUrl?.place) { setLoc(initialUrl.place); setSettings(initialUrl.settings); setModePicked(true); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -139,14 +152,19 @@ export default function HistoryPage({ onBack, onOpenFeature }: Props) {
     return () => ac.abort();
   }, [loc]);
 
-  const embed = useMemo(() => typeof window !== 'undefined' && /(?:^|[#&])embed=1/.test(window.location.hash), []);
+  // `embed=1` gab es bisher nur im Fragment; seit SH4 zählt beides — Alt-Links
+  // in fremden Seiten sollen nicht brechen.
+  const embed = useMemo(
+    () => typeof window !== 'undefined'
+      && (/(?:^|[#&])embed=1/.test(window.location.hash) || new URLSearchParams(window.location.search).get('embed') === '1'),
+    [],
+  );
 
+  const onUrlStateRef = useRef(onUrlState);
+  onUrlStateRef.current = onUrlState;
   useEffect(() => {
     if (embed) return;
-    if (loc && modePicked && typeof window !== 'undefined') {
-      const enc = encodeState(loc, settings);
-      window.history.replaceState(null, '', `#h=${enc}`);
-    }
+    if (loc && modePicked) onUrlStateRef.current?.(loc, settings);
   }, [loc, settings, embed, modePicked]);
 
   const available = useMemo(() => (days ? yearSpan(days) : null), [days]);
@@ -377,6 +395,8 @@ function Topbar({ view, loc, available, dark, onToggleDark, onBrand, onChangeLoc
         )}
         <button type="button" className="hd-theme-btn" onClick={onToggleDark} aria-label={dark ? 'Heller Modus' : 'Dunkler Modus'} title="Hell/Dunkel">{dark ? '☀' : '☾'}</button>
         {view === 'modus' && <span className="hd-live-txt">KLIMA-RÜCKBLICK</span>}
+        {/* SH4: teilbar, sobald ein Ort gewählt ist — vorher trägt die URL nichts. */}
+        {loc && <ShareButton className="hd-share" />}
         <span className="hd-avatar">JK</span>
       </div>
     </header>

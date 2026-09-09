@@ -29,6 +29,7 @@ User-agent: Applebot-Extended
 Allow: /
 # OG-Karten-Renderer (nur zur Bildgenerierung, kein Inhalt)
 Disallow: /_og-card.html
+Disallow: /_og-app-card.html
 # Proxys auf Fremd-Server (reichen Verzeichnislistings durch — kein Inhalt von buscosun)
 Disallow: /_dwd_opendata/
 Disallow: /_meteoalarm/

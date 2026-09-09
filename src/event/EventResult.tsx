@@ -19,6 +19,7 @@ import {
 } from './eventScoring';
 import { findBetterLocation, ALT_RADIUS_KM, type AltLocationCandidate } from './eventAltLocation';
 import { scanZone, type ZoneScan } from './eventZoneScan';
+import ShareButton from '../share/ShareButton';
 import { isDrawnZone, zoneCenter, zoneContains, zoneSamplePoints, zoneSizeText } from './eventZone';
 import {
   horizonAt, phaseMidMs, phasesWindow, representativeWindHour, sunBehindRidge, windAtHour,
@@ -32,7 +33,6 @@ import { fetchCapeSeriesAtPoint } from '../sources/iconD2Cape';
 import { fetchDwdAlerts } from '../sources/dwdAlerts';
 import { convectiveOutlook, type ConvectiveOutlook } from '../radar/convectiveIndex';
 import { downloadEventICS } from './icsExport';
-import { encodeEventState } from './eventState';
 import { exportSvgAsPng } from '../imageExport';
 import {
   VenueIcon, IconRain, IconSun, IconWind, IconThermometer, IconSnow,
@@ -50,7 +50,7 @@ import {
   DeckActivityIcon,
   IconDeckMap, IconDeckRadar, IconDeckEventPlain,
   IconDeckSearch, IconDeckArrowRight, IconDeckCalendar,
-  IconDeckShare, IconDeckSun, IconDeckStorm, IconDeckHouse, IconDeckStarNav,
+  IconDeckSun, IconDeckStorm, IconDeckHouse, IconDeckStarNav,
 } from './eventIcons';
 import './eventDeck.css';
 // Bewusst zusätzlich geladen: die wiederverwendeten Detail-Bausteine (Ablauf-Chart,
@@ -241,14 +241,8 @@ function ResultBottomNav({ onBack }: { onBack?: () => void }) {
 
 function Recommendation({ rec, query, forecast, activityLabel, datesMode, onEdit, onBack, onOpenFeature, isMobile }: { rec: EventRecommendation; query: EventQuery; forecast: PointForecast; activityLabel: string; datesMode: boolean; onEdit: () => void; onBack?: () => void; onOpenFeature?: (id: RailFeature) => void; isMobile: boolean }) {
   const best = rec.days[rec.bestIndex];
-  const [linkCopied, setLinkCopied] = useState(false);
+
   const storm = useEventStormOutlook(query.location, forecast, best);
-  const copyEventLink = async () => {
-    const url = `${window.location.origin}${window.location.pathname}${encodeEventState(query)}`;
-    try { await navigator.clipboard.writeText(url); } catch { /* ignore */ }
-    setLinkCopied(true);
-    window.setTimeout(() => setLinkCopied(false), 2000);
-  };
   const ranked = [...rec.days].sort((a, b) => {
     if (a.summary && b.summary) return b.score - a.score || a.date.localeCompare(b.date);
     if (a.summary) return -1;
@@ -319,11 +313,13 @@ function Recommendation({ rec, query, forecast, activityLabel, datesMode, onEdit
       <IconDeckCalendar size={15} />In den Kalender
     </button>
   );
-  const shareBtn = (
-    <button type="button" className="evd-btn-white" onClick={copyEventLink} title="Link zu dieser Auswertung kopieren">
-      <IconDeckShare size={14} />{linkCopied ? '✓ Link kopiert' : 'Link teilen'}
-    </button>
-  );
+  /*
+   * SH4: Aus dem Kopier-Knopf ist der gemeinsame Teilen-Knopf geworden. Er liest
+   * die Adresszeile (die der Wrapper kanonisch hält) und bietet WhatsApp, Gmail,
+   * Mail und Kopieren an — statt nur die Zwischenablage zu füllen. Damit ist
+   * auch die vierte eigene `navigator.clipboard`-Stelle im Repo weg (V-SH-5).
+   */
+  const shareBtn = <ShareButton className="evd-btn-white evd-share" text="Link teilen" />;
 
   // --- Wiederverwendete Detail-Bausteine (Funktionserhalt) für die Center-Extras ---
   const centerExtras = (

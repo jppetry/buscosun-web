@@ -254,6 +254,55 @@ export async function decodeTileU16(bytes: Uint8Array, ifd: CogIfd): Promise<Uin
 }
 
 /**
+ * PD-A: eine float32-Einband-Kachel → Float32Array (`tileW · tileH`).
+ *
+ * Gebraucht für **Copernicus DEM GLO-30** (`audit/punktdaten-versorgung.md` §14.4) — am echten
+ * Objekt gemessen (2026-09-09, `Copernicus_DSM_COG_10_N47_00_E011_00_DEM.tif`, 41,5 MiB):
+ * 3 600², LE, `sampleFormat` 3 (float), 32 bit, Compression 8 = Deflate, **Predictor 3**,
+ * 1024²-Kacheln, 4 IFD-Ebenen. Nördlich von 50 °N sind es 2 400 × 3 600 (1,5″ in Länge) —
+ * das ist Sache des Aufrufers, nicht des Decoders.
+ *
+ * **Predictor 3** ist nicht Predictor 2 mit anderer Wortbreite. Der Gleitkomma-Prädiktor
+ * arbeitet in zwei Schritten (libtiff `fpAcc`): erst wird der BYTE-Strom je Zeile
+ * aufaddiert, dann werden die Byte-EBENEN entflochten — Ebene 0 trägt die höchstwertigen
+ * Bytes aller Samples, Ebene 1 die nächsten und so fort. Wer das als 32-bit-Differenz
+ * liest, bekommt Höhen, die plausibel aussehen und falsch sind.
+ */
+export async function decodeTileF32(bytes: Uint8Array, ifd: CogIfd): Promise<Float32Array> {
+  if (ifd.bitsPerSample !== 32) throw new Error(`cog-unsupported: ${ifd.bitsPerSample} Bit (F32-Pfad liest 32)`);
+  if (ifd.samplesPerPixel !== 1) throw new Error(`cog-unsupported: ${ifd.samplesPerPixel} Kanäle (F32-Pfad liest 1)`);
+  if (ifd.compression !== 1 && ifd.compression !== 8) {
+    throw new Error(`cog-unsupported: Compression ${ifd.compression} (v1 liest 1 und 8=Deflate)`);
+  }
+  if (ifd.predictor !== 1 && ifd.predictor !== 3) {
+    throw new Error(`cog-unsupported: Predictor ${ifd.predictor} (F32-Pfad liest 1 und 3)`);
+  }
+  const raw = ifd.compression === 8 ? await inflate(bytes) : bytes.slice();
+  const n = ifd.tileW * ifd.tileH;
+  if (raw.length !== n * 4) throw new Error(`cog-unsupported: Kachelgröße ${raw.length} statt ${n * 4}`);
+  const bps = 4;
+  const rowBytes = ifd.tileW * bps;
+  if (ifd.predictor === 3) {
+    const plane = new Uint8Array(rowBytes);
+    for (let y = 0; y < ifd.tileH; y++) {
+      const base = y * rowBytes;
+      // (1) Byte-Akkumulation über die ganze Zeile.
+      for (let i = 1; i < rowBytes; i++) raw[base + i] = (raw[base + i] + raw[base + i - 1]) & 0xff;
+      // (2) Entflechtung: Byte-Ebene `b` → Position `bps-b-1` im Sample (Little-Endian-Ziel).
+      plane.set(raw.subarray(base, base + rowBytes));
+      for (let c = 0; c < ifd.tileW; c++) {
+        for (let b = 0; b < bps; b++) raw[base + bps * c + (bps - b - 1)] = plane[b * ifd.tileW + c];
+      }
+    }
+  }
+  const dv = new DataView(raw.buffer, raw.byteOffset, raw.byteLength);
+  const out = new Float32Array(n);
+  // Nach der Entflechtung liegen die Sample-Bytes in der Byte-Ordnung der DATEI.
+  for (let i = 0; i < n; i++) out[i] = dv.getFloat32(i * 4, ifd.littleEndian);
+  return out;
+}
+
+/**
  * Ausschnitt `outW × outH` ab (`ox`, `oy`) aus einer größeren Kachel — die B04-Pyramide nutzt
  * unterhalb der 5490er-Ebene 512er-Kacheln, wo B8A/B12 256er nutzen; die Grenzen sind exakte
  * Vielfache, jede Ausgabe-Kachel liegt vollständig in EINER Quellkachel (§10.1 (4)).
@@ -344,8 +393,10 @@ async function writeTiffFixture(opts: {
  */
 export function writeTiledTiff(opts: {
   le: boolean; width: number; height: number; tileW: number; tileH: number;
-  spp: number; bits: 8 | 16; predictor: number; compression: number;
+  spp: number; bits: 8 | 16 | 32; predictor: number; compression: number;
   encodedTiles: readonly Uint8Array[];
+  /** TIFF-Tag 339: 1 = uint (Default), 3 = float. Nur der 32-bit-Pfad (PD-A) braucht ihn. */
+  sampleFormat?: 1 | 3;
 }): ArrayBuffer {
   const { le, width, height, tileW, tileH, spp, bits, predictor, compression, encodedTiles } = opts;
   const entries: Array<{ tag: number; type: number; values: number[] }> = [
@@ -359,6 +410,7 @@ export function writeTiledTiff(opts: {
     { tag: 323, type: 3, values: [tileH] },
     { tag: 324, type: 4, values: [] }, // Offsets — nach der Layout-Rechnung gefüllt
     { tag: 325, type: 4, values: encodedTiles.map((e) => e.length) },
+    ...(opts.sampleFormat ? [{ tag: 339, type: 3, values: [opts.sampleFormat] }] : []),
   ].sort((a, b) => a.tag - b.tag);
 
   const ifdOff = 8;
@@ -472,6 +524,80 @@ export async function verifyCogTiff(): Promise<{ checks: CogCheck[]; passed: num
     let err = '';
     try { await decodeTileU16(new Uint8Array(2), { ...({} as CogIfd), bitsPerSample: 8, samplesPerPixel: 1, compression: 1, predictor: 1, tileW: 1, tileH: 1, littleEndian: true, width: 1, height: 1, tilesAcross: 1, tilesDown: 1, tileOffsets: [], tileByteCounts: [] }); } catch (e) { err = String(e); }
     add('decodeTileU16: 8-bit-Kachel ⇒ benannter cog-unsupported-Fehler', err.includes('cog-unsupported'));
+  }
+
+  // PD-A: float32 + Predictor 3 (Copernicus DEM GLO-30). Die Kodierseite ist hier bewusst
+  // Zeile für Zeile das GEGENTEIL des Decoders geschrieben (differenzieren, dann Byte-Ebenen
+  // verflechten) — und danach steht eine Negativ-Kontrolle: OHNE die Entflechtung müssen
+  // dieselben Bytes ein FALSCHES Ergebnis liefern. Ein Rundlauf ohne diese Gegenprobe
+  // beweist nur, dass zwei Fassungen desselben Missverständnisses zusammenpassen
+  // (die Lehre aus SAT2h: Byte-Gleichheitstests brauchen eine Negativ-Kontrolle).
+  for (const le of [true, false]) {
+    for (const predictor of [1, 3] as const) {
+      const w = 9, h = 5, tw = 4, th = 4;
+      const src = Float32Array.from({ length: w * h }, (_, i) => 300 + i * 17.25 - (i % 3) * 4.5);
+      const across = Math.ceil(w / tw), down = Math.ceil(h / th);
+      const tiles: Float32Array[] = [];
+      const encoded: Uint8Array[] = [];
+      for (let r = 0; r < down; r++) for (let c = 0; c < across; c++) {
+        const tile = new Float32Array(tw * th);
+        for (let y = 0; y < th; y++) for (let x = 0; x < tw; x++) {
+          const gy = r * th + y, gx = c * tw + x;
+          tile[y * tw + x] = gy < h && gx < w ? src[gy * w + gx] : 0;
+        }
+        tiles.push(tile);
+        const bytes = new Uint8Array(tile.length * 4);
+        const dv = new DataView(bytes.buffer);
+        tile.forEach((v, i) => dv.setFloat32(i * 4, v, le));
+        if (predictor === 3) {
+          const rowB = tw * 4;
+          for (let y = 0; y < th; y++) {
+            const base = y * rowB;
+            const row = bytes.slice(base, base + rowB);
+            const planes = new Uint8Array(rowB);
+            // Verflechten: Position `4-b-1` im Sample → Ebene `b` (Umkehr von `fpAcc`).
+            for (let x = 0; x < tw; x++) for (let b = 0; b < 4; b++) planes[b * tw + x] = row[4 * x + (4 - b - 1)];
+            for (let i = rowB - 1; i >= 1; i--) planes[i] = (planes[i] - planes[i - 1]) & 0xff;
+            bytes.set(planes, base);
+          }
+        }
+        encoded.push(await deflateRaw(bytes));
+      }
+      const buf = writeTiledTiff({ le, width: w, height: h, tileW: tw, tileH: th, spp: 1, bits: 32,
+        predictor, compression: 8, encodedTiles: encoded, sampleFormat: 3 });
+      const parsed = parseCogIfds(buf);
+      const label = `f32 ${le ? 'LE' : 'BE'}/Predictor ${predictor}`;
+      if (parsed.kind !== 'ok') { add(`Rundlauf ${label}: Parse`, false, parsed.kind); continue; }
+      const ifd = parsed.ifds[0];
+      add(`Rundlauf ${label}: IFD (32 bit, 1 Kanal)`,
+        ifd.bitsPerSample === 32 && ifd.samplesPerPixel === 1 && ifd.predictor === predictor);
+      const raw = new Uint8Array(buf);
+      let all = true;
+      for (const t of tilesFor(ifd, 0, 0, w, h)) {
+        const dec = await decodeTileF32(raw.slice(t.offset, t.offset + t.byteCount), ifd);
+        const want = tiles[t.idx];
+        if (dec.length !== want.length || !dec.every((v, i) => Math.abs(v - want[i]) < 1e-3)) all = false;
+      }
+      add(`Rundlauf ${label}: alle Kacheln wert-gleich (inkl. Randkacheln)`, all);
+
+      if (predictor === 3) {
+        // Negativ-Kontrolle: derselbe Puffer, aber als Predictor 1 gelesen ⇒ Unsinn.
+        const t0 = tilesFor(ifd, 0, 0, w, h)[0];
+        const wrong = await decodeTileF32(raw.slice(t0.offset, t0.offset + t0.byteCount),
+          { ...ifd, predictor: 1 });
+        add(`Negativ-Kontrolle ${label}: ohne Entflechtung falsche Werte`,
+          !wrong.every((v, i) => Math.abs(v - tiles[0][i]) < 1e-3));
+      }
+    }
+  }
+  {
+    let err = '';
+    try {
+      await decodeTileF32(new Uint8Array(4), { ...({} as CogIfd), bitsPerSample: 32, samplesPerPixel: 1,
+        compression: 1, predictor: 2, tileW: 1, tileH: 1, littleEndian: true, width: 1, height: 1,
+        tilesAcross: 1, tilesDown: 1, tileOffsets: [], tileByteCounts: [] });
+    } catch (e) { err = String(e); }
+    add('decodeTileF32: Predictor 2 ⇒ benannter cog-unsupported-Fehler', err.includes('cog-unsupported'));
   }
 
   // needMoreBytes: ein beschnittener Puffer nennt das benötigte Ende, statt still zu scheitern.

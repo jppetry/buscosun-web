@@ -1,5 +1,21 @@
 /**
- * Waldbrand DACH — teilbarer Zustand (`#wb=`, pur).
+ * Waldbrand DACH — **Leser für Alt-Links** (`#wb=`, pur).
+ *
+ * ⚠ Seit SH3 (2026-09-08) steht der Zustand in der QUERY (`fireUrl.ts`); diese
+ * Datei schreibt nichts mehr. Sie bleibt, damit `#wb=`-Links aus Lesezeichen und
+ * Chats weiterlaufen: `FireRoute` liest sie beim Ankommen einmal und schreibt
+ * die URL in die neue Form um.
+ *
+ * ── V-SH-11 (2026-09-09): der Ort ist raus ──────────────────────────────────
+ * Bis hierher las `decodeFireState` ein Feld `l` (Ort) — und **kein einziger
+ * Commit hat es je geschrieben**: `FirePage` übergab dem Encoder von Anfang an
+ * `location: null` (nachgezählt über alle elf Commits, die die Datei berührt
+ * haben). Das Brandradar hat gar keine Ortswahl, es ist ein DACH-Flächenblick.
+ * Ein Leser für einen Wert, den niemand erzeugt, ist kein Feature, sondern eine
+ * Einladung: der nächste, der ihn sieht, hält ihn für gepflegt.
+ *
+ * Ein hand­geschriebener Link mit `l` bricht dadurch nicht — das Feld wird
+ * schlicht überlesen (der Selbsttest unten beweist es).
  *
  * Eigener Hash-Namensraum neben `#m=` (Karte), `#g=` (Globus), `#ev=` (Event).
  * Bewusst **nicht** `mapState.ts` mitbenutzt: andere Layer-Union, anderes
@@ -21,7 +37,6 @@
  * Reine (De-)Serialisierung: kein Fetch, kein Modulzustand, headless testbar.
  */
 
-import type { Country, Location } from '../types';
 import { FIRE_BIT_ORDER, FIRE_LAYER_ORDER, type FireLayerId } from './fireModel';
 import { DEFAULT_DANGER_VIEW, isDangerView, type DangerView } from './dangerViews';
 import type { BurntBucket } from './sources/euContext';
@@ -30,15 +45,11 @@ import type { SoilDrynessMode } from '../sources/iconD2Smi';
 
 export const FIRE_HASH_PREFIX = '#wb=';
 
-/** Auf 5 Nachkommastellen runden — ~1 m Genauigkeit, kurze URLs. */
-const r5 = (n: number) => Math.round(n * 1e5) / 1e5;
-
 /** Standard-Körbe der Brandflächen: die Saison. Das Archiv nur auf Wunsch (4,8 MB). */
 export const DEFAULT_BURNT_BUCKETS: readonly BurntBucket[] = ['season'] as const;
 
 export interface FireState {
-  /** Betrachteter Ort. `null` = DACH-Überblick ohne Punktbezug. */
-  location: Location | null;
+  // V-SH-11: `location` ist entfallen — nie geschrieben, s. Kopfkommentar.
   layers: FireLayerId[];
   /** Tagesschritt ab heute (0 = heute). */
   day: number;
@@ -116,9 +127,6 @@ export function encodeFireState(s: FireState): string {
     d: Math.max(0, Math.round(s.day)),
     w: Math.round(s.windowH),
   };
-  if (s.location) {
-    payload.l = [r5(s.location.lat), r5(s.location.lon), s.location.name, s.location.country];
-  }
   // 2026-08-25 (Jans Auftrag): „Frühere Brandflächen" ist Standard — auch für
   // Links, die vor diesem Tag geschrieben wurden und den Layer deshalb nicht in
   // `b` tragen. Nach dem Codec-Muster wird nur die ABWEICHUNG geschrieben:
@@ -151,8 +159,10 @@ export function encodeFireState(s: FireState): string {
 export function decodeFireState(hash: string): FireState | null {
   if (!hash || !hash.startsWith(FIRE_HASH_PREFIX)) return null;
   try {
+    // `l` (Ort) steht hier nicht mehr: nie geschrieben, seit V-SH-11 auch nicht
+    // mehr gelesen. Ein Alt-Link, der es trotzdem trägt, wird davon nicht kaputt.
     const o = JSON.parse(decodeURIComponent(hash.slice(FIRE_HASH_PREFIX.length))) as {
-      l?: [number, number, string, string]; b?: number; d?: number; w?: number;
+      b?: number; d?: number; w?: number;
       v?: unknown; bb?: unknown; sm?: unknown; bd?: unknown; fp?: unknown; ta?: unknown; h?: unknown; bh?: unknown;
       fb?: unknown; ds?: unknown;
     };
@@ -163,15 +173,7 @@ export function decodeFireState(hash: string): FireState | null {
     // zurückgezogene Bits), bleibt leer, damit die Seite ihren vollen Standard
     // nimmt statt nur diesen einen Layer.
     const layerBits = o.fb !== 0 && bitsToLayers(bits).length > 0 ? bits | layersToBits(['fireBurnt']) : bits;
-    let location: Location | null = null;
-    if (Array.isArray(o.l) && Number.isFinite(o.l[0]) && Number.isFinite(o.l[1])) {
-      location = {
-        lat: o.l[0], lon: o.l[1],
-        name: String(o.l[2] ?? ''), country: o.l[3] as Country,
-      };
-    }
     return {
-      location,
       layers: bitsToLayers(layerBits),
       day: typeof o.d === 'number' && Number.isFinite(o.d) ? Math.max(0, Math.round(o.d)) : 0,
       windowH: typeof o.w === 'number' && Number.isFinite(o.w) ? Math.round(o.w) : 24,
@@ -214,40 +216,41 @@ export function verifyFireState(): { checks: FireStateCheck[]; passed: number; t
   const checks: FireStateCheck[] = [];
   const add = (name: string, ok: boolean, detail?: string) => checks.push({ name, ok, detail });
 
-  const loc: Location = { name: 'Freiburg im Breisgau', lat: 47.99609, lon: 7.84913, country: 'DE' };
-
   // --- DIE Regel: jeder Layer überlebt die Runde. Das ist der Test, der in
   //     mapState.ts fehlt und dort sieben Layer hat verschwinden lassen.
   const every = [...FIRE_LAYER_ORDER];
-  const roundTrip = decodeFireState(encodeFireState({ location: loc, layers: every, day: 0, windowH: 24 }));
+  const roundTrip = decodeFireState(encodeFireState({ layers: every, day: 0, windowH: 24 }));
   add('Round-Trip erhält JEDEN Layer — kein stiller Verlust (V-191)',
     roundTrip?.layers.length === every.length
       && every.every((l) => roundTrip.layers.includes(l)),
     `${roundTrip?.layers.length ?? 0}/${every.length}`);
 
   for (const l of FIRE_LAYER_ORDER) {
-    const rt = decodeFireState(encodeFireState({ location: null, layers: [l], day: 0, windowH: 24 }));
+    const rt = decodeFireState(encodeFireState({ layers: [l], day: 0, windowH: 24 }));
     add(`Layer „${l}" einzeln permalink-fähig`, rt?.layers.join(',') === l, rt?.layers.join(','));
   }
 
-  // --- Ort
-  const withLoc = decodeFireState(encodeFireState({ location: loc, layers: ['fireDanger'], day: 2, windowH: 168 }));
-  add('Ort überlebt den Round-Trip',
-    withLoc?.location?.name === loc.name && withLoc.location.country === 'DE'
-      && Math.abs((withLoc.location.lat ?? 0) - loc.lat) < 1e-4);
-  add('Tag und Fenster überleben', withLoc?.day === 2 && withLoc.windowH === 168);
-  const noLoc = decodeFireState(encodeFireState({ location: null, layers: [], day: 0, windowH: 24 }));
-  add('ohne Ort bleibt es ohne Ort (DACH-Überblick)', noLoc?.location === null);
+  // --- Tag und Fenster
+  const timed = decodeFireState(encodeFireState({ layers: ['fireDanger'], day: 2, windowH: 168 }));
+  add('Tag und Fenster überleben', timed?.day === 2 && timed.windowH === 168);
+
+  // --- V-SH-11: der Ort ist raus, und ein Alt-Link mit `l` bricht trotzdem nicht.
+  add('kein Ort im Encoder-Ergebnis (das Brandradar hat keine Ortswahl)',
+    !encodeFireState({ layers: ['fireDanger'], day: 0, windowH: 24 }).includes('%22l%22'));
+  const handwritten = decodeFireState(`${FIRE_HASH_PREFIX}${encodeURIComponent('{"b":1,"d":0,"w":24,"l":[47.99,7.84,"Freiburg","DE"]}')}`);
+  add('handgeschriebener Alt-Link mit `l` wird gelesen, das Feld überlesen',
+    !!handwritten && handwritten.layers.includes('fireDanger') && !('location' in handwritten),
+    JSON.stringify(handwritten));
 
   // --- 2026-08-25: „Frühere Brandflächen" ist Standard — auch in Alt-Links.
   const legacy = decodeFireState(`${FIRE_HASH_PREFIX}${encodeURIComponent('{"b":4,"d":0,"w":24,"fp":1}')}`);
   add('Alt-Link ohne `fb` öffnet frühere Brandflächen mit (Jans Link vom 2026-08-25)',
     !!legacy && legacy.layers.includes('fireBurnt') && legacy.layers.includes('fireHotspots') && legacy.layers.length === 2,
     legacy?.layers.join(','));
-  const offHash = encodeFireState({ location: null, layers: ['fireDanger'], day: 0, windowH: 24 });
+  const offHash = encodeFireState({ layers: ['fireDanger'], day: 0, windowH: 24 });
   add('`fb: 0` heißt bewusst aus — der Layer kommt NICHT zurück',
     /%22fb%22%3A0/.test(offHash) && decodeFireState(offHash)?.layers.join(',') === 'fireDanger');
-  const onHash = encodeFireState({ location: null, layers: ['fireDanger', 'fireHotspots', 'fireBurnt'], day: 0, windowH: 24 });
+  const onHash = encodeFireState({ layers: ['fireDanger', 'fireHotspots', 'fireBurnt'], day: 0, windowH: 24 });
   add('mit Brandflächen wird kein `fb` geschrieben (Standard verlängert den Hash nicht)', !/fb/.test(onHash));
   add('`b: 0` bleibt leer — die Seite nimmt den vollen Standard, nicht nur diesen Layer',
     decodeFireState(`${FIRE_HASH_PREFIX}${encodeURIComponent('{"b":0}')}`)?.layers.length === 0);

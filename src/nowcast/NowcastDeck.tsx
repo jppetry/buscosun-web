@@ -26,6 +26,8 @@ import { AlpineCard } from './NowcastDetail';
 import { useIsMobile } from '../mobile/useIsMobile';
 import './nowcastDeck.css';
 import './nowcastMobile.css';
+// SH2: Teilen-Knopf (lazy — s. src/share/ShareButton.tsx).
+import ShareButton from '../share/ShareButton';
 import { FeatureRail, type RailFeature } from '../nav/featureRail';
 
 type DeckState =
@@ -150,6 +152,7 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
               <span className="rr-live-dot"><span /><span /></span>
               <span className="rr-live-text">RADAR LIVE</span>
             </span>
+            <ShareButton className="rr-share" />
             <span className="rr-avatar">JK</span>
           </div>
         </div>
@@ -167,6 +170,7 @@ export default function NowcastDeck({ location, state, onChangeLocation, reloadN
           </div>
           <div className="rm-topfloat">
             <div className="rm-search"><NowcastLocationField value={location} onChange={onChangeLocation} showCountryCode /></div>
+            <ShareButton className="rm-share" compact />
           </div>
           <div className="rm-zoom" role="group" aria-label="Zoom">
             <button type="button" onClick={() => mapRef.current?.zoomIn()} aria-label="Hineinzoomen"><PlusIcon /></button>

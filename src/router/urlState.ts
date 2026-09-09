@@ -32,7 +32,7 @@ import { ALL_LAYER_KEYS, type LayerKey } from '../map/layerTypes';
 import {
   encodeShareQuery, fmtCoord, fmtZoom, formatValidTime, parseValidTime, roundTo, TIME_GRID_MS,
 } from '../share/shareSchema';
-import { deSlugName, isSlugShape, slugCarriesName } from '../share/placeSlug';
+import { isSlugShape, slugCarriesName } from '../share/placeSlug';
 
 // --- Layer ↔ Slug ------------------------------------------------------------
 
@@ -221,22 +221,30 @@ function finite(s: string | null): number | null {
 /**
  * Gültigkeitszeit → Slider-Stunde ab `nowMs` (0,1-h-Raster). Vergangenheit ⇒ 0.
  *
- * ⚠ Dass ein zu alter Link still auf „jetzt" klemmt, ist der Defekt **V-SH-2**:
- * Absender und Empfänger sehen dann Verschiedenes, ohne dass es jemand sagt.
+ * ⚠ Dass ein zu alter Link still auf „jetzt" klemmt, war der Defekt **V-SH-2**:
+ * Absender und Empfänger sahen Verschiedenes, ohne dass es jemand sagte.
  * `hourFromValidTimeDetailed` liefert dieselbe Zahl **plus** die Auskunft, ob
- * geklemmt wurde — die UI kann das ab SH2 benennen.
+ * geklemmt wurde UND welcher Zeitpunkt gemeint war (`atMs`). Seit V-SH-2
+ * (2026-09-09) benennt `StaleLinkNotice` beides beim Ankommen — ein Hinweis,
+ * der den Zeitpunkt nicht nennen kann, ist nur halb ehrlich.
  */
 export function hourFromValidTime(t: string, nowMs: number): number | null {
   return hourFromValidTimeDetailed(t, nowMs).hour;
 }
 
-export interface SharedTime { hour: number | null; /** Der geteilte Zeitpunkt lag in der Vergangenheit. */ past: boolean }
+export interface SharedTime {
+  hour: number | null;
+  /** Der geteilte Zeitpunkt lag in der Vergangenheit. */
+  past: boolean;
+  /** WELCHER Zeitpunkt geteilt war (ms) — auch wenn er vergangen ist. */
+  atMs: number | null;
+}
 
 export function hourFromValidTimeDetailed(t: string, nowMs: number): SharedTime {
   const ms = parseValidTime(t) ?? Date.parse(t);
-  if (!Number.isFinite(ms)) return { hour: null, past: false };
+  if (!Number.isFinite(ms)) return { hour: null, past: false, atMs: null };
   const h = Math.round(((ms - nowMs) / 3_600_000) * 10) / 10;
-  return h < 0 ? { hour: 0, past: true } : { hour: h, past: false };
+  return h < 0 ? { hour: 0, past: true, atMs: ms } : { hour: h, past: false, atMs: ms };
 }
 
 /** Slider-Stunde → ISO-Minute UTC (auf 10 min gerundet). `h ≤ 0` ⇒ kein `t` (= jetzt). */
@@ -258,6 +266,15 @@ export interface ParsedMapSearch {
   hour?: number;
   /** SH1/V-SH-2: `t` lag in der Vergangenheit und wurde auf „jetzt" geklemmt. */
   timePast?: boolean;
+  /**
+   * WELCHER Zeitpunkt im Link stand (ms) — unabhängig davon, ob er erreichbar
+   * war. `timePast` sagt zusätzlich, ob er in der Vergangenheit lag.
+   *
+   * Ein Feld, zwei Verbraucher: der Hinweis beim Ankommen (V-SH-2) braucht den
+   * vergangenen Zeitpunkt, die Horizont-Meldung (V-SH-13) den künftigen. Zwei
+   * Felder für dieselbe Angabe wären die zweite Wahrheit.
+   */
+  wantedAtMs?: number;
   /** `l=` roh (Slugs) — die Auflösung gegen den Pfad macht `layersFromRoute`. */
   l: string | null;
   model: string | null;
@@ -298,9 +315,11 @@ export function parseMapSearch(
 
   let hour: number | undefined;
   let timePast: boolean | undefined;
+  let wantedAtMs: number | undefined;
   if (p.has('t')) {
-    const { hour: h, past } = hourFromValidTimeDetailed(p.get('t') ?? '', nowMs);
-    if (h == null) invalid.push('t'); else { hour = h; if (past) timePast = true; }
+    const { hour: h, past, atMs } = hourFromValidTimeDetailed(p.get('t') ?? '', nowMs);
+    if (h == null) invalid.push('t');
+    else { hour = h; wantedAtMs = atMs ?? undefined; if (past) timePast = true; }
   }
 
   const l = p.get('l');
@@ -340,7 +359,7 @@ export function parseMapSearch(
     }
   }
 
-  return { cam, hour, timePast, l, model, point, radar, place, country, invalid, extra };
+  return { cam, hour, timePast, wantedAtMs, l, model, point, radar, place, country, invalid, extra };
 }
 
 /** Zustand → Query-String (`''` oder `?…`), Keys in `QUERY_ORDER`, Defaults weggelassen. */
@@ -438,48 +457,6 @@ export function buildRadarUrl(
     primary: 'wind', layers: ['wind'], cam, place,
     placeSlug: slug?.slug ?? null, placeInTable: !!slug?.inTable,
   }, 0, extra);
-}
-
-// --- Ort aus Pfad + Query ------------------------------------------------------------
-
-export interface RoutePlace {
-  place: Location | null;
-  /** Slug des Pfadsegments (auch wenn unauflösbar) — für die kanonische Rückschreibung. */
-  slug: string | null;
-  /** Der Ort kommt vollständig aus der Tabelle (⇒ `ort`/`olat`/`olon` dürfen fehlen). */
-  inTable: boolean;
-  /** Ein Slug stand im Pfad, ließ sich aber weder auflösen noch mit `olat`/`olon` retten. */
-  unresolved: boolean;
-}
-
-/**
- * Ort-Slug (Pfad) + `ort`/`olat`/`olon` (Query) → EIN Ort.
- *
- * `fromTable` wird injiziert (`placeBySlug` aus `src/share/placeTable.ts`),
- * damit die 3,5-KB-Tabelle nicht in den Start-Chunk gerät.
- *
- * Vorrang: **die Koordinate aus der Query gewinnt** — sie ist der Punkt, den der
- * Absender wirklich gewählt hat; der Tabelleneintrag ist nur das Ortszentrum.
- * Der Name kommt aus `ort=`, sonst aus der Tabelle, sonst notdürftig aus dem
- * Slug. Ein Slug ohne jede Auflösung ist **kein Fehler**: die Seite öffnet im
- * DACH-Überblick und sagt es (Vorgabe „robust gegen kaputte Links").
- */
-export function placeFromRoute(
-  slug: string | null | undefined,
-  queryPlace: Location | null,
-  fromTable: (slug: string) => Location | null,
-): RoutePlace {
-  const s = isSlugShape(slug) ? slug : null;
-  const table = s ? fromTable(s) : null;
-  if (queryPlace) {
-    const name = queryPlace.name || table?.name || (s ? deSlugName(s) : '');
-    // Ohne jeden Namen bleibt es wie bisher: kein Ort (ein namenloser Marker
-    // wäre in Suchfeld und Punktpanel eine leere Behauptung).
-    if (!name) return { place: null, slug: s, inTable: false, unresolved: !!s };
-    return { place: { ...queryPlace, name }, slug: s, inTable: false, unresolved: false };
-  }
-  if (table) return { place: table, slug: s, inTable: true, unresolved: false };
-  return { place: null, slug: s, inTable: false, unresolved: !!s };
 }
 
 // --- Kamera allein -------------------------------------------------------------------
@@ -585,29 +562,21 @@ export function verifyUrlState(): { checks: UrlStateCheck[]; passed: number; fai
     buildRadarUrl(muc, { slug: 'muenchen', inTable: true }, { lat: 48.1374, lon: 11.5755, zoom: 8 }));
   add('Regenradar ohne Ort bleibt /regenradar', buildRadarUrl(null, null, null) === '/regenradar');
 
-  // Auflösung Pfad + Query → EIN Ort (Tabelle injiziert).
-  const table = (s: string) => (s === 'muenchen' ? muc : null);
-  add('placeFromRoute: Tabellenslug allein genügt',
-    (() => { const r = placeFromRoute('muenchen', null, table); return r.inTable && r.place?.name === 'München' && !r.unresolved; })());
-  add('placeFromRoute: Query-Koordinate gewinnt gegen das Ortszentrum',
-    (() => { const r = placeFromRoute('muenchen', { name: '', lat: 48.15, lon: 11.6, country: 'DE' }, table); return r.place?.lat === 48.15 && r.place.name === 'München' && !r.inTable; })());
-  add('placeFromRoute: Name aus dem Slug, wenn weder ort= noch Tabelle',
-    (() => { const r = placeFromRoute('bad-reichenhall', { name: '', lat: 47.7, lon: 12.9, country: 'DE' }, table); return r.place?.name === 'Bad Reichenhall'; })());
-  add('placeFromRoute: unauflösbarer Slug ⇒ kein Ort, kein Wurf, aber gemeldet',
-    (() => { const r = placeFromRoute('gibtsnicht', null, table); return r.place === null && r.unresolved && r.slug === 'gibtsnicht'; })());
-  add('placeFromRoute: kaputtes Segment wird gar nicht erst als Slug gelesen',
-    (() => { const r = placeFromRoute('Nicht Ein Slug', null, table); return r.slug === null && !r.unresolved; })());
-  add('Rundlauf Tabellenort: URL → Ort → dieselbe URL',
-    (() => {
-      const u = mapPathForPlace(muc, 'temp', { slug: 'muenchen', inTable: true });
-      const q = u.includes('?') ? u.slice(u.indexOf('?')) : '';
-      const r = placeFromRoute('muenchen', parseMapSearch(q, now).place, table);
-      return mapPathForPlace(r.place!, 'temp', { slug: r.slug!, inTable: r.inTable }) === u;
-    })());
-
   // V-SH-2: ein alter Link klemmt auf „jetzt" — das muss sichtbar sein.
   add('t in der Vergangenheit wird als solche gemeldet (V-SH-2)',
     (() => { const r = parseMapSearch('?t=2026-08-22T09:00Z', now); return r.hour === 0 && r.timePast === true; })());
+  add('V-SH-2: der vergangene Zeitpunkt wird auch BENANNT (nicht nur gemeldet)',
+    (() => {
+      const r = parseMapSearch('?t=2026-08-22T09:00Z', now);
+      return r.timePast === true && r.wantedAtMs === Date.UTC(2026, 7, 22, 9, 0);
+    })());
+  add('V-SH-13: auch ein KÜNFTIGER Zeitpunkt wird benannt (für die Horizont-Meldung)',
+    (() => {
+      const r = parseMapSearch('?t=2026-08-22T15:00Z', now);
+      return r.timePast === undefined && r.wantedAtMs === Date.UTC(2026, 7, 22, 15, 0);
+    })());
+  add('ohne `t` gibt es keinen verlangten Zeitpunkt',
+    parseMapSearch('?l=wind', now).wantedAtMs === undefined);
   add('t in der Zukunft meldet nichts', parseMapSearch('?t=2026-08-22T15:00Z', now).timePast === undefined);
 
   const failed = checks.filter((c) => !c.ok).length;

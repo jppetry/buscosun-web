@@ -138,6 +138,12 @@
 .br-topbar-sub { font-size: 13px; color: var(--stone-500, #8B7355); font-weight: 500; }
 .br-topback { margin: 0; font-size: 12px; }
 .br-topbar-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+
+
+/* SH3: Teilen-Knopf rechts in der Topbar bzw. in der mobilen Kartenzeile.
+   Form und Farbe kommen aus `src/share/share.css`; hier steht nur die Einpassung. */
+.br-share { margin-left: 6px; }
+.br-m-share { flex: 0 0 auto; margin-left: auto; box-shadow: var(--shadow-card); }
 .br-topbar-map { font-size: 11px; color: var(--stone-500, #8B7355); }
 .br-topbar-map strong { color: var(--ink-900, #2C2A26); font-weight: 600; }
 .br-live { display: flex; align-items: center; gap: 8px; font-size: 11px; letter-spacing: 1.5px; font-weight: 600; text-transform: uppercase; color: var(--br-red); }
