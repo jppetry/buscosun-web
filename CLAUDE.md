@@ -16,7 +16,7 @@
 > **Umgesetzt (uncommitted):** `src/point/{cubeFormat,sourceMatrix,terrainPoint,calibration,manifest}.ts`
 > als EINE Form für Producer und Client (kein Spiegel wie bei `repackManifest.mjs` — beide importieren
 > dieselbe Datei); `scripts/point/{build-point-cube,publish-point}.mjs` plus die Adapter-Schicht;
-> `verify:point-data` **238/238** (in CI); `scripts/repack-repo/README.md` neu (beschreibt alle
+> `verify:point-data` **241/241** (in CI); `scripts/repack-repo/README.md` neu (beschreibt alle
 > Linien — V-PD-3) und `workflow-point.yml` als Cron-Vorlage.
 > **Gemessen am echten Datum, nicht geschätzt:** Cube Stufe 1 (ICON-D2 2026090909, 0–3 h) 208 Chunks
 > à 14,1 KiB Median, 2,64 MiB, Abruf 53,3 MiB bz2 in 89 s ⇒ volle Stufe 1 ≈ 32 MiB (mit gefüllten
@@ -84,12 +84,23 @@
 ]` in einer Regex wurde durch die
 > Python-in-Bash-Kette zum echten Zeilenumbruch und hat den Verifier zerschossen. Kur wie
 > festgelegt — Edit-Werkzeug und `NEWLINE`-Konstante, hier ganz ohne Regex.
-> Dazu **E-19** (§27.3): die Punkt-Slots (:10 der Stunden 02/08/14/20) laufen ins
-> Publish-Fenster der Kartenlinie (:30 derselben Stunden) — `publish-repack.mjs` klont,
-> wirft `.git` weg und **force-pusht**, was dazwischen ankommt, ist spurlos weg. Der Publisher
-> sieht deshalb nach dem Push nach und purgt das CDN **nur, wenn die Dateien wirklich auf
-> `origin/main` stehen** (sonst ersetzte der Purge die letzte gute Fassung durch eine 404).
-> Vorschlag: Slots auf `10 1,7,13,19` — gleiche Modelllage, keine Überschneidung.
+> **E-19 erledigt (§31) — und die Messung hat meinen eigenen Vorschlag widerlegt.** Die
+> Slots liefen ins Publish-Fenster der Kartenlinie (:30 derselben Stunden); ich hatte
+> `10 1,7,13,19` vorgeschlagen, **ausdrücklich als ungemessen markiert**. Auf Jans „kannst
+> du das verschieben?" erst gemessen (`Last-Modified` der letzten gebrauchten Datei, über
+> **vier** Läufe): **ICON-D2 Lauf + 1,35 h** (±0,01), **ICON-EU + 3,53…3,70 h**,
+> **IFS + 6,45 h** (`scda` 06/18z) bzw. **+ 7,57 h** (`oper` 00/12z, volle 360 h). Um
+> 01:10 ist also **nicht einmal ICON-D2 fertig** — mein Vorschlag war falsch. Gültig ist
+> **`50 3,9,15,21`**: jede Quelle mit dem neuesten Lauf, den sie *vollständig* hat, und
+> **100 min** Abstand zum Repack-Push. Fachlicher Gewinn obendrein: beim alten Takt waren
+> ICON-EU und ICON global des laufenden Zyklus noch nicht fertig, der Ingest fiel auf den
+> vorigen Lauf zurück — **sechs Stunden verschenkte Frische in t2 und t3**.
+> Neuer Wächter, der es **ausrechnet** statt es zu behaupten: `verify:point-data` liest die
+> Cron-Zeilen aus **beiden** Vorlagen und misst den engsten Abstand — mit Negativ-Kontrolle,
+> die beziffert, wie eng es war: **der alte Slot 02:10 hatte 20 min bei 20–40 min Laufzeit**.
+> Der Publisher sieht zusätzlich nach dem Push nach und purgt das CDN **nur, wenn die Dateien
+> wirklich auf `origin/main` stehen** (sonst ersetzte der Purge die letzte gute Fassung durch
+> eine 404). `verify:point-data` **241/241**.
 > Gute Nebenwirkung desselben Force-Pushes: **die Historie wächst nicht** (sie wird achtmal
 > täglich ersetzt), das Repo bleibt bei Arbeitsbaum-Größe ≈ 200–260 MiB.
 > **Danach (Jans dritter Auftrag): die ganze Quellenmatrix abbilden — PD3–PD5 begonnen (§23).**
@@ -127,7 +138,7 @@
 > Rest tragen die gröberen Globalmodelle — damit steckt in σ_div dort auch die
 > **Auflösungsdifferenz**, nicht nur Vorhersageunsicherheit. Das Manifest sagt es jetzt als
 > `fusion.resolutionCaveat` und je Quelle über `role` und `steps`; drei Verifier-Prüfungen halten
-> die Aussage am Code fest. `verify:point-data` **238/238**.
+> die Aussage am Code fest. `verify:point-data` **241/241**.
 >
 > **Jans Entscheidung (2026-09-09): im Daten-Repo liegen nur Daten der letzten 24 Stunden,
 > quellenunabhängig (§24).** Das begrenzt das ALTER eines Laufs, nicht seinen Horizont — ein Lauf

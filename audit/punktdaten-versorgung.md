@@ -758,7 +758,7 @@ drei Auflösungsstufen vor, also gibt es kein einzelnes Basisgitter mehr.
 | **E-13** | GHS-BUILT-S/-H (Versiegelung, Gebäudehöhe) in v1 oder erst in v2? | **v2** — `imperv` und `d0` betreffen nur den Wärmeinsel- und den Windterm; ohne sie funktioniert der Rest. Die Kanäle bleiben im Format **reserviert** |
 | **E-14** | Wie oft wird `calib.json` fortgeschrieben? | monatlich, sobald `buscosun-archiv` läuft (PA); bis dahin **`null` statt geraten** — s. §21 (4) |
 | **E-15** | Wer schreibt `point/`? Der bestehende `build.yml`-Batch oder ein eigener Workflow? | **eigener Workflow** (`point.yml`), anderer Takt (4 statt 8 Slots), andere Laufzeit (Stunden statt Minuten). Aber **derselbe Publisher-Baustein**, damit V-BW-58 nur einmal zu heilen ist |
-| **E-19** | Die Punkt-Slots (:10 der Stunden 02/08/14/20) laufen **in das Publish-Fenster der Kartenlinie** (:30 derselben Stunden). Ein Lauf braucht gemessen 20–40 min, landet also regelmäßig genau dort — und ein Force-Push der Kartenlinie löscht, was dazwischen ankommt (§27). | **Slots auf `10 1,7,13,19` verschieben** — gleiche Modelllage, keine Überschneidung mit einem Repack-Slot. Nicht selbst geändert, weil die Wahl an ECMWF-Bereitstellungszeiten hängt, die ich nicht gemessen habe; die Nachprüfung nach dem Push (§27.2) fängt den Schaden bis dahin auf |
+| **E-19** ✅ | Die Punkt-Slots (:10 der Stunden 02/08/14/20) laufen **in das Publish-Fenster der Kartenlinie** (:30 derselben Stunden). Ein Lauf braucht gemessen 20–40 min, landet also regelmäßig genau dort — und ein Force-Push der Kartenlinie löscht, was dazwischen ankommt (§27). | **Erledigt in §31 auf Jans Auftrag — aber ANDERS als hier vorgeschlagen.** Mein Vorschlag `10 1,7,13,19` war **falsch**: um 01:10 ist nicht einmal ICON-D2 fertig (Lauf + 1,35 h). Gemessen statt geraten ⇒ **`50 3,9,15,21`** — jede Quelle mit dem neuesten Lauf, den sie vollständig hat, und 100 min Abstand zum Repack |
 
 **E-12 ist mit Jans Entscheidung vom 2026-09-09 erledigt und entfällt:** es gibt kein
 Geländeprodukt (§25). **E-4 ist mit der 24-Stunden-Regel erledigt** (§24).
@@ -1614,6 +1614,11 @@ Gleiche Modelllage, keine Überschneidung mit der Kartenlinie. Nicht selbst geä
 weil die Slot-Wahl an ECMWF-Bereitstellungszeiten hängt, die ich nicht gemessen habe —
 und eine Taktung nach Vermutung wäre schlechter als die dokumentierte Kollision.
 
+> ⚠ **Dieser Vorschlag war falsch und ist in §31 durch eine Messung ersetzt.** Um 01:10
+> ist nicht einmal ICON-D2 fertig (Lauf + 1,35 h). Der Satz „01/07/13/19 liegen genauso
+> richtig zu den Modellläufen" oben war genau die Vermutung, vor der derselbe Absatz
+> warnt. Gültig ist **`50 3,9,15,21`**.
+
 
 ## §28 Die Beschreibung war strenger als die Rechnung (2026-09-09, nachts)
 
@@ -1909,3 +1914,103 @@ Genau **ein** Schritt, und der ist Jans: `scripts/repack-repo/workflow-point.yml
 nach `.github/workflows/point.yml` im Daten-Repo (eine Action darf ohne `workflows`-Scope
 keine Workflow-Datei pushen). Danach laeuft die Linie ohne Zutun — mit der Einschraenkung
 aus E-19, dass die Slots im Publish-Fenster der Kartenlinie liegen.
+
+
+## §31 E-19 erledigt: die Slots gemessen statt geraten (2026-09-09, nachts)
+
+Jans Auftrag: „kannst du das vielleicht verschieben?" — die Cron-Slots aus dem
+Publish-Fenster der Kartenlinie holen. Bevor ich sie verschiebe, habe ich nachgeholt,
+was ich in §27.3 selbst als Grund fuers Nicht-Aendern genannt hatte: **die
+Bereitstellungszeiten waren ungemessen.** Sie sind rueckwirkend lesbar — `Last-Modified`
+der jeweils LETZTEN gebrauchten Datei sagt auf die Minute, wann ein Lauf nutzbar war.
+
+### 31.1 Mein eigener Vorschlag war falsch
+
+```
+ICON-D2 00z  +48 h    Wed, 09 Sep 2026 01:21:30 GMT   = Lauf + 1,36 h
+ICON glob 00z +180 h  Wed, 09 Sep 2026 03:31:54 GMT   = Lauf + 3,53 h
+ICON-EU 00z  +120 h   Wed, 09 Sep 2026 03:41:53 GMT   = Lauf + 3,70 h
+AIFS Single 00z +336  Wed, 09 Sep 2026 07:26:00 GMT   = Lauf + 7,43 h
+IFS HRES 00z +336 h   Wed, 09 Sep 2026 07:34:00 GMT   = Lauf + 7,57 h
+```
+
+§27.3 empfahl `10 1,7,13,19`. **Um 01:10 ist nicht einmal ICON-D2 fertig** (01:21).
+Der Satz „01/07/13/19 liegen genauso richtig zu den Modelllaeufen wie 02/08/14/20" war
+exakt die Vermutung, vor der derselbe Absatz warnt — nur diesmal von mir.
+
+### 31.2 Ein Lauf ist keine Messung
+
+Vier Laeufe, damit die Streuung sichtbar wird statt eines Einzelwerts:
+
+| Quelle | 18z | 00z | 06z | 12z |
+|---|---|---|---|---|
+| ICON-D2 +48 h | 1,35 h | 1,36 h | 1,35 h | 1,35 h |
+| ICON-EU +120 h | 3,53 h | 3,70 h | 3,55 h | 3,64 h |
+| IFS +144 h | 6,45 h | **7,57 h** | 6,45 h | (noch nicht) |
+
+ICON ist bemerkenswert stabil (±0,01 h bzw. ±0,09 h). Der IFS-Unterschied ist kein
+Rauschen, sondern **Bauart**: 00z und 12z sind die vollen `oper`-Laeufe bis 360 h und
+brauchen ~7,6 h; 06z und 18z enden als `scda` bei 144 h und sind nach ~6,5 h da (⚠⁷ der
+Quellenmatrix). Die langsamste tragende Quelle ist damit IFS `oper` bei **Lauf + 7,6 h**.
+
+### 31.3 Der neue Takt — und warum er auch fachlich besser ist
+
+```
+- cron: '50 3,9,15,21 * * *'
+```
+
+| Slot | ICON-D2 | ICON-EU | ICON global | IFS |
+|---|---|---|---|---|
+| 03:50 | 00z (01:21) | 00z (03:41) | 00z (03:31) | 18z (00:26) |
+| 09:50 | 06z (07:21) | 06z (09:35) | 06z (09:32) | **00z (07:34)** → volle 336 h |
+| 15:50 | 12z (13:21) | 12z (15:38) | 12z (15:32) | 06z (12:26) |
+| 21:50 | 18z (19:21) | 18z (21:38) | 18z (21:32) | **12z (19:34)** → volle 336 h |
+
+Der Gewinn ist nicht nur die vermiedene Kollision. Beim alten Takt (:10 der Stunden
+02/08/14/20) waren ICON-EU und ICON global des laufenden Zyklus **noch nicht fertig** —
+der Ingest fiel auf den vorigen Lauf zurueck. Das war nirgends falsch (das Manifest nennt
+`runAt` je Quelle), aber es waren **sechs Stunden verschenkte Frische** in t2 und t3.
+Der neue Takt holt beide aus dem aktuellen Lauf, weil er 9 bzw. 12 Minuten nach ihrer
+Bereitstellung liegt.
+
+Der Abstand zu ihrer Bereitstellung ist mit 9–12 min knapp — deshalb steht die gemessene
+Streuung (3,53…3,70 h) im Vorlagenkopf: sie ist der Sicherheitsabstand, und wenn DWD sie
+verschiebt, muss die Messung wiederholt werden, nicht der Slot geraten.
+
+### 31.4 Warum :50 und nicht :10
+
+Die Repack-Slots sind `:20` der Stunden 0/3/6/9/12/15/18/21 und `:30` der Stunden
+2/5/8/11/14/17/20/23. Zwischen ihnen wechseln sich Luecken von **130** und **50** Minuten
+ab; die langen beginnen jeweils direkt nach einem `:20`-Slot.
+
+`50 3,9,15,21` liegt 30 min nach einem `:20`-Slot und hat damit **100 Minuten** bis zum
+naechsten Repack-Push. Bei 20–40 min Laufzeit landet der Push mit 60–80 min Abstand.
+
+### 31.5 Ein Waechter, der es ausrechnet — mit Negativ-Kontrolle
+
+Die Kollision war vorher nicht falsch dokumentiert, sie war **nicht ausgerechnet**.
+`verify:point-data` liest jetzt die Cron-Zeilen aus **beiden** Vorlagen, expandiert sie zu
+Minuten des Tages und misst den engsten Abstand:
+
+```
+OK  beide Cron-Vorlagen sind lesbar — 16 Repack-Slots, 4 Punkt-Slots
+OK  kein Punkt-Slot laeuft in das Publish-Fenster der Kartenlinie
+      — engster Abstand 100 min (Slot 03:50), Lauf dauert bis zu 40 min
+OK  Negativ-Kontrolle: der alte Takt faellt durch dieselbe Pruefung
+      — alter Slot 02:10 haette nur 20 min Abstand — der Push landete auf dem Repack
+```
+
+Die Negativ-Kontrolle ist der eigentliche Beleg: sie zeigt, dass die Pruefung ueberhaupt
+etwas misst — und beziffert nebenbei, wie eng es war (**20 min Abstand bei 20–40 min
+Laufzeit**). Ohne sie waere ein gruener Haken nur ein gruener Haken.
+
+`verify:point-data` **241/241**.
+
+### 31.6 Was das ueber die Reihenfolge sagt
+
+In §27.3 hatte ich die Kollision beschrieben, den Vorschlag aber ausdruecklich als
+ungemessen markiert und nicht umgesetzt. Das war richtig — und die Messung hat den
+Vorschlag dann auch prompt widerlegt. Die Lehre ist nicht „haette ich es doch gleich
+gemacht", sondern: **eine dokumentierte Vermutung bleibt eine Vermutung, auch wenn sie
+plausibel klingt und in einer Tabelle steht.** Erst die 15 Minuten Messung haben aus
+E-19 eine Entscheidung gemacht.

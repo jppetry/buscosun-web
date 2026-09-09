@@ -12,19 +12,44 @@
 # Quellen. Ein gemeinsamer Job würde die Kartenlinie an die langsamste Punktquelle
 # hängen — und die Kartenlinie ist die, die live sichtbar ist.
 #
-# ── Die vier Slots ───────────────────────────────────────────────────────────
-# Der Takt richtet sich nach der LANGSAMSTEN tragenden Quelle, nicht nach der
-# schnellsten. Für 0–336 h ist das IFS: die volle Reichweite liefern nur die Läufe
-# 00 und 12 UTC (`oper`, 360 h); 06 und 18 UTC enden bei 144 h (`scda`, ⚠⁷).
+# ── Die vier Slots — GEMESSEN, nicht gesetzt ─────────────────────────────────
+# Hier stand vorher „Lauf + 2 h" mit dem Vermerk, die Wartezeit sei in PD1 zu MESSEN.
+# Nachgeholt am 2026-09-09 über `Last-Modified` der jeweils LETZTEN gebrauchten Datei,
+# über vier Läufe (18z/00z/06z/12z) — die Bereitstellung ist erstaunlich stabil:
 #
-#   02 UTC  ICON-D2 00z · ICON-EU 00z (120 h) · ICON global 00z (180 h) · IFS 00z  → volle 336 h
-#   08 UTC  ICON-D2 06z · ICON-EU 06z (120 h) · ICON global 06z (120 h) · IFS 06z  → bis 144 h
-#   14 UTC  ICON-D2 12z · ICON-EU 12z (120 h) · ICON global 12z (180 h) · IFS 12z  → volle 336 h
-#   20 UTC  ICON-D2 18z · ICON-EU 18z (120 h) · ICON global 18z (120 h) · IFS 18z  → bis 144 h
+#   Quelle                18z     00z     06z     12z
+#   ICON-D2   +48 h      1,35 h  1,36 h  1,35 h  1,35 h
+#   ICON-EU  +120 h      3,53 h  3,70 h  3,55 h  3,64 h
+#   IFS      +144 h      6,45 h  7,57 h  6,45 h  (noch nicht)
 #
-# Jenseits 144 h bleibt in den Zwischenslots der letzte volle Lauf stehen. Das ist
-# korrekt und steht im Manifest (`sources[].runAt`), damit das Produkt das Alter je
-# Bereich ehrlich ausweisen kann.
+# IFS ist die langsamste tragende Quelle: 00z/12z sind die vollen `oper`-Läufe (360 h)
+# und brauchen ~7,6 h, 06z/18z enden als `scda` bei 144 h und sind nach ~6,5 h da (⚠⁷).
+#
+# Daraus folgt der Takt — jede Quelle mit dem NEUESTEN Lauf, den sie vollständig hat:
+#
+#   03:50  ICON-D2 00z (01:21) · ICON-EU 00z (03:41) · global 00z (03:31) · IFS 18z (00:26)
+#   09:50  ICON-D2 06z (07:21) · ICON-EU 06z (09:35) · global 06z (09:32) · IFS 00z (07:34) → volle 336 h
+#   15:50  ICON-D2 12z (13:21) · ICON-EU 12z (15:38) · global 12z (15:32) · IFS 06z (12:26)
+#   21:50  ICON-D2 18z (19:21) · ICON-EU 18z (21:38) · global 18z (21:32) · IFS 12z (19:34) → volle 336 h
+#
+# Der alte Takt (:10 der Stunden 02/08/14/20) lieferte zwar auch vollständige Felder,
+# aber ICON-EU und ICON global jeweils aus dem VORIGEN Lauf — sie sind zu diesen Zeiten
+# noch nicht fertig. Der neue holt sie sechs Stunden frischer.
+#
+# Jenseits 144 h bleibt in den Zwischenslots der letzte volle IFS-Lauf stehen. Das ist
+# korrekt und steht im Manifest (`sources[].runAt`, `tiers[].ageH`), damit das Produkt
+# das Alter je Bereich ehrlich ausweisen kann.
+#
+# ── Warum :50 und nicht :10 ──────────────────────────────────────────────────
+# Die Kartenlinie (`build.yml`) publiziert um :20 der Stunden 0/3/6/9/12/15/18/21 und
+# um :30 der Stunden 2/5/8/11/14/17/20/23 — und sie **force-pusht**: sie klont flach,
+# wirft `.git` weg und ersetzt `main`. Was zwischen ihrem Klon und ihrem Push hier
+# ankommt, ist danach spurlos weg (kein Konflikt, keine Meldung).
+# Ein Punkt-Lauf braucht gemessen 20–40 min. Bei :10 der Stunden 02/08/14/20 landete
+# sein Push also GENAU auf dem :30-Slot derselben Stunde — eine Kollision durch
+# Konstruktion. Bei :50 der Stunden 03/09/15/21 sind es **100 Minuten** bis zum
+# nächsten Repack-Push. `publish-point.mjs` sieht zusätzlich nach dem Push nach und
+# purgt das CDN nur, wenn die Dateien wirklich auf `origin/main` stehen.
 #
 # ── Was hier NICHT passiert ──────────────────────────────────────────────────
 # Gelände. Dieses Repo speichert Wetterdaten (Jans Entscheidung 2026-09-09): Höhe kommt
@@ -36,10 +61,9 @@ name: point
 
 on:
   schedule:
-    # Lauf + 2 h. Die genaue Wartezeit ist in PD1 zu MESSEN, nicht zu setzen —
-    # für ICON-D2 ist sie aus BW-13 bekannt (Schritt 027 bei Lauf + 67 min),
-    # für IFS und ICON global nicht.
-    - cron: '10 2,8,14,20 * * *'
+    # Gemessen, s. Kopf: jede Quelle mit dem neuesten Lauf, den sie VOLLSTÄNDIG hat,
+    # und 100 min Abstand zum Force-Push der Kartenlinie.
+    - cron: '50 3,9,15,21 * * *'
   workflow_dispatch:
     inputs:
       run:

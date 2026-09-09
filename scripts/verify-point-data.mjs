@@ -522,6 +522,54 @@ add('der gemessene Widerspruch zu ⚠² ist festgehalten',
   const wf = existsSync(join(ROOT, 'scripts/repack-repo/workflow-point.yml'))
     ? readFileSync(join(ROOT, 'scripts/repack-repo/workflow-point.yml'), 'utf8') : '';
   add('die Cron-Vorlage für point/ liegt im Repo', wf.length > 0);
+
+  // ── Der Punkt-Lauf darf nicht ins Publish-Fenster der Kartenlinie laufen ────
+  //
+  // `publish-repack.mjs` klont das Daten-Repo flach, wirft `.git` weg und FORCE-PUSHT
+  // `main`. Was zwischen Klon und Push dort ankommt, ist danach spurlos weg — kein
+  // Konflikt, keine Meldung. Der alte Punkt-Takt (:10 der Stunden 02/08/14/20) lag mit
+  // seinen 20–40 min Laufzeit GENAU auf dem :30-Slot derselben Stunden: eine Kollision
+  // durch Konstruktion, die niemand ausgerechnet hatte.
+  //
+  // Deshalb wird sie jetzt ausgerechnet, aus BEIDEN Vorlagen, statt sie zu behaupten.
+  {
+    const cronsOf = (text) => text.split(NEWLINE)
+      .map((l) => /-\s*cron:\s*'([^']+)'/.exec(l)?.[1])
+      .filter(Boolean)
+      .flatMap((spec) => {
+        const [min, hrs] = spec.split(/\s+/);
+        if (!/^\d+$/.test(min)) return [];
+        return hrs.split(',').filter((h) => /^\d+$/.test(h)).map((h) => +h * 60 + +min);
+      });
+    const buildPath = join(ROOT, 'scripts/repack-repo/workflow-build.yml');
+    const repack = existsSync(buildPath) ? cronsOf(readFileSync(buildPath, 'utf8')) : [];
+    const point = cronsOf(wf);
+    add('beide Cron-Vorlagen sind lesbar', repack.length >= 8 && point.length >= 4,
+      `${repack.length} Repack-Slots, ${point.length} Punkt-Slots`);
+    // Wie lange darf der Punkt-Lauf dauern, ohne in den nächsten Repack-Push zu geraten?
+    const JOB_MAX_MIN = 40;   // gemessen: 20–40 min über alle drei Stufen
+    const worst = point.map((p) => {
+      const gaps = repack.map((r) => ((r - p) % 1440 + 1440) % 1440).filter((d) => d > 0);
+      return { p, gap: gaps.length ? Math.min(...gaps) : 1440 };
+    }).sort((a, b) => a.gap - b.gap)[0];
+    const hhmm = (m) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+    add('kein Punkt-Slot laeuft in das Publish-Fenster der Kartenlinie',
+      !worst || worst.gap >= JOB_MAX_MIN + 20,
+      worst ? `engster Abstand ${worst.gap} min (Slot ${hhmm(worst.p)}), Lauf dauert bis zu ${JOB_MAX_MIN} min`
+        : 'keine Slots gefunden');
+
+    // Negativ-Kontrolle: derselbe Rechenweg auf den ALTEN Takt (:10 der Stunden
+    // 02/08/14/20) muss durchfallen. Ohne sie waere nicht gezeigt, dass die Pruefung
+    // ueberhaupt etwas misst — die Lehre aus SAT2h, hier woertlich angewandt.
+    const oldSlots = cronsOf(`    - cron: '10 2,8,14,20 * * *'`);
+    const oldWorst = oldSlots.map((p) => {
+      const gaps = repack.map((r) => ((r - p) % 1440 + 1440) % 1440).filter((d) => d > 0);
+      return Math.min(...gaps);
+    }).sort((a, b) => a - b)[0];
+    add('Negativ-Kontrolle: der alte Takt faellt durch dieselbe Pruefung',
+      oldWorst < JOB_MAX_MIN + 20,
+      `alter Slot 02:10 haette nur ${oldWorst} min Abstand — der Push landete auf dem Repack`);
+  }
   // Der sparse Checkout hat seit dem Rueckbau des Geländeprodukts einen anderen Grund
   // als frueher: nicht `terrain/`, sondern `runs/` und `radar/`. Der Radar-Spiegel pusht
   // alle 1-2 Minuten; ein voller Checkout zoege ihn bei jedem Punkt-Lauf mit.
