@@ -171,7 +171,16 @@ add('jede Stufe wird von mindestens einer Quelle voll abgedeckt',
 {
   const mp = join(ROOT, 'QUELLENMATRIX.md');
   if (!existsSync(mp)) {
-    add('QUELLENMATRIX.md liegt im Repo', false, 'ohne sie ist dieser Abgleich nicht moeglich');
+    // ── Warum das ein UEBERSPRINGEN ist und kein Fehlschlag ────────────────────
+    // Am 2026-09-09 am nachgebauten Cron gemessen: der Job im Daten-Repo checkt das
+    // Anwendungs-Repo SPARSE aus (`scripts src package.json`) — die Matrix liegt in der
+    // Wurzel und kommt nie mit. Das Gate scheiterte damit, BEVOR ein Byte gezogen wurde.
+    // Die Kur steht an zwei Stellen: die Vorlage holt die Datei jetzt mit (dann laeuft
+    // der Abgleich auch dort), und hier bleibt ein Netz — eine fehlende DOKUMENTATIONS-
+    // datei darf keinen Datenlauf toeten. In CI liegt der volle Baum, dort greift die
+    // Pruefung immer hart.
+    console.log('Hinweis: QUELLENMATRIX.md nicht im Baum (sparse Checkout?) — (2c) uebersprungen. '
+      + 'In CI liegt der volle Baum, dort wird der Abgleich erzwungen.');
   } else {
     const doc = readFileSync(mp, 'utf8');
     // §1 ist die erste Markdown-Tabelle mit der Kopfzeile „Bereich | Deutschland | …".
@@ -516,6 +525,13 @@ add('der gemessene Widerspruch zu ⚠² ist festgehalten',
   // Der sparse Checkout hat seit dem Rueckbau des Geländeprodukts einen anderen Grund
   // als frueher: nicht `terrain/`, sondern `runs/` und `radar/`. Der Radar-Spiegel pusht
   // alle 1-2 Minuten; ein voller Checkout zoege ihn bei jedem Punkt-Lauf mit.
+  // Der Fehler vom 2026-09-09, am nachgebauten Cron gemessen: das sparse-Set holte die
+  // Matrix nicht, das Gate fiel durch, der Job waere vor dem Ingest abgebrochen.
+  add('die Cron-Vorlage holt QUELLENMATRIX.md mit',
+    wf.split(NEWLINE).some((l) => l.includes('sparse-checkout set') && l.includes('QUELLENMATRIX.md')),
+    'sonst faellt der Dokument-Abgleich im Job durch, obwohl er lokal gruen ist');
+  add('die Cron-Vorlage prueft das auch nach',
+    /test -f QUELLENMATRIX\.md/.test(wf), 'ein sparse-Muster, das nichts trifft, meldet nichts');
   add('die Cron-Vorlage checkt das Daten-Repo sparse aus',
     /sparse-checkout:/.test(wf), 'sonst zieht jeder Punkt-Lauf runs/ und radar/ mit');
   // Was ausserhalb der sparse-Muster liegt, verwirft `git add` STILL (Exit 0, kein

@@ -84,13 +84,22 @@ jobs:
           git config user.email 'bot@buscosun.local'
 
       # Producer aus dem Anwendungs-Repo — sparse, wie in build.yml (der volle Klon
-      # maß 188 s, BW-9 §28.6). Nur `scripts/`, `src/` und `package.json`.
+      # maß 188 s, BW-9 §28.6). Nur `scripts/`, `src/`, `package.json` — und
+      # `QUELLENMATRIX.md`.
+      #
+      # ⚠ Die Matrix gehört ins Set, obwohl sie „nur Doku" ist: das Gate unten gleicht
+      # ihre Tabelle §1 gegen die Registry ab (der Abgleich, der am 2026-09-09 fünf
+      # fehlende Einträge fand). Ohne die Datei fiel dieser Block durch — gemessen am
+      # NACHGEBAUTEN Cron, nicht vermutet: frisch von GitHub geklont, sparse ausgecheckt,
+      # Gate gelaufen ⇒ 230/231, und der Job wäre abgebrochen, bevor er ein Byte zieht.
+      # Lokal ist das unsichtbar, weil dort immer der volle Baum liegt.
       - name: Checkout producer (public, no token, sparse)
         run: |
           git clone --depth=1 --quiet --filter=blob:none --no-checkout https://github.com/jppetry/buscosun-web.git app
           cd app
-          git sparse-checkout set --no-cone scripts src package.json
+          git sparse-checkout set --no-cone scripts src package.json QUELLENMATRIX.md
           git checkout --quiet
+          test -f QUELLENMATRIX.md || { echo "QUELLENMATRIX.md fehlt trotz sparse-Muster"; exit 1; }
 
       # Der Cube-Producer hängt an genau EINER Laufzeit-Abhängigkeit: `bz2`.
       # `gribDecode.ts` ist importfrei (handgeschriebener Decoder inkl. CCSDS-AEC).
