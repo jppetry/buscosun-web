@@ -114,8 +114,8 @@ export function makeDwdIcosahedralAdapter(id) {
     accumulated: ICO_ACCUMULATED,
     vars: Object.keys(m.params),
 
-    async discoverRun(leadMax, nowMs = Date.now()) {
-      for (let back = 0; back < 12; back++) {
+    async discoverRun(leadMax, nowMs = Date.now(), maxBack = 12) {
+      for (let back = 0; back < maxBack; back++) {
         const run = runIdBack(nowMs, m.runSlotH, back);
         if (await headOk(url(run, leadMax, m.params.t2m))) return run;
       }

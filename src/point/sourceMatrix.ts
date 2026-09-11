@@ -152,44 +152,67 @@ export const SOURCES: readonly Source[] = Object.freeze([
     id: 'icon_d2_eps', name: 'ICON-D2-EPS', provider: 'DWD', kind: 'ensemble',
     domain: G(43.2, 58.1, -3.9, 20.3), edgeMarginKm: 0, clip: null,
     horizonH: { default: 48 }, runHours: [0, 3, 6, 9, 12, 15, 18, 21], members: 20,
-    vars: ['t2m', 'u10', 'v10', 'precip'], steps: null, stepsMeasured: false,
+    // vars am VERZEICHNIS gemessen (2026-09-09, opendata.dwd.de/weather/nwp/icon-d2-eps/grib/00/):
+    // t_2m td_2m u_10m v_10m vmax_10m tot_prec clct clcl clcm clch ps — die Registry nannte
+    // vorher nur vier davon, und damit haetten td2m/gust/ps nie ein sigma_ens bekommen.
+    vars: ['t2m', 'td2m', 'u10', 'v10', 'gust', 'precip', 'clct', 'clcl', 'clcm', 'clch', 'ps'], steps: null, stepsMeasured: false,
     retentionH: 24, freeArchive: null,
     licence: `${CC_BY_4} / GeoNutzV`, attribution: 'Datenbasis: Deutscher Wetterdienst',
-    access: 'opendata.dwd.de — nur icosahedral', adapter: 'src/sources/iconD2EpsSource.ts',
-    note: 'Liefert σ_ens für PAP 6 im Kurzfristbereich.',
+    access: 'opendata.dwd.de — nur icosahedral, ALLE Member in EINER Datei je (Größe, Schritt)',
+    adapter: 'scripts/point/adapters/dwdEps.mjs',
+    note: '⚠ Gemessen (2026-09-11, PD-B8): 13,4 MiB je (Größe, Schritt), 20 Nachrichten à 542 040 Zellen. '
+      + 'Weil die Datei gebündelt UND bz2-gepackt ist, lässt sich KEINE Teilmenge der Member holen — '
+      + 'stündlich wäre Stufe 1 allein über 5 GiB je Lauf, deshalb sechsstündlich und fünf Größen. '
+      + '⚠ `tot_prec` kommt in VIERTELSTUNDEN: die Datei zum Schritt 006 trägt 80 Nachrichten = 20 Member × '
+      + 'vier Akkumulationen, die um +6:00, +6:15, +6:30 und +6:45 enden. Gefiltert wird auf das Intervall-ENDE, '
+      + 'nicht auf die Länge (`vmax_10m` ist das Maximum der Vorstunde, Spanne immer 60 min). '
+      + '⚠ Trägt NICHTS zum Mittel bei: das Ensemble-Mittel ist derselbe Modelllauf wie ICON-D2 (V-PD-9). '
+      + 'Führt KEIN snowlmt — dessen σ_ens-Ebene gibt es allein wegen ICON-CH (§41.5).',
   },
   {
     id: 'icon_ch1_eps', name: 'ICON-CH1-EPS', provider: 'MeteoSchweiz', kind: 'ensemble',
-    domain: G(42.0, 50.5, -0.8, 17.7), edgeMarginKm: 20, clip: null,
-    horizonH: { default: 33 }, runHours: [0, 3, 6, 9, 12, 15, 18, 21], members: 11,
-    vars: ['t2m', 'u10', 'v10', 'precip', 'clct'], steps: null, stepsMeasured: false,
+    // Am Konstanten-Asset gemessen (2026-09-10): 1 147 980 Zellen,
+    // -0,817…50,501 — die Registry-Hülle stimmt hier, anders als bei C-LAEF.
+    domain: G(42.028, 50.501, -0.817, 17.711), edgeMarginKm: 20, clip: null,
+    // ⚠ Laufabhängig wie ICON-EU (⚠⁵), am Katalog gemessen (2026-09-10):
+    // 00/06/09/12/18/21z tragen 33 h, **03z trägt 45 h**. Für 15z war zur Messzeit
+    // noch nichts publiziert (Lauf 2 h alt), der Wert ist dort ungemessen.
+    horizonH: { default: 33, byRunHour: { 3: 45 } }, runHours: [0, 3, 6, 9, 12, 15, 18, 21], members: 11,
+    vars: ['t2m', 'td2m', 'u10', 'v10', 'gust', 'precip', 'clct', 'clcl', 'clcm', 'clch', 'ps', 'snowlmt'],
+    steps: null, stepsMeasured: false,
     retentionH: 24, freeArchive: null,
     licence: CC_BY_4, attribution: 'Quelle: MeteoSchweiz',
-    access: 'STAC data.geo.admin.ch → pre-signed S3 auf rgw.cscs.ch (CORS-blockiert → /_cscs)',
-    adapter: 'src/sources/iconChEpsSource.ts',
-    note: '⚠² Laut Quellenmatrix in Ostösterreich nicht nutzbar. Die Begründung lässt sich aus der Bounding-Box NICHT nachrechnen — s. CH_EDGE_DISCREPANCY. In §1 ist ICON-CH ohnehin nur der Schweiz zugeordnet; die Zuordnung entscheidet, nicht die Hülle.',
+    access: 'STAC data.geo.admin.ch → vorsignierte S3-Hrefs auf rgw.cscs.ch. Im Browser CORS-blockiert (→ /_cscs), in Node direkt. HEAD antwortet 403, nur GET/Range-GET sind signiert.',
+    adapter: 'scripts/point/adapters/meteoswiss.mjs',
+    note: '⚠ ALLES HIER IST AM OBJEKT GEMESSEN (2026-09-10, PD-B6); die vorige Fassung lag zweifach daneben. (1) vars führte nur fünf Größen — sie stammten aus WANTED_STAC des Kartenclients, also aus einem VERBRAUCHER, nicht aus dem Katalog. Das Collection-Asset params_icon-ch1-eps.csv führt alle zwölf Ziel-Größen, ctrl liefert sie auch alle. (2) horizonH war als EINE Zahl geführt; gemessen ist der Horizont laufabhängig — 33 h, außer 03z mit 45 h. ⚠ TOT_PREC ist laufakkumuliert in mm (0…155 gemessen) — die CSV-Spalte „Standard Unit“ sagt kg m-2 s-1 und ist falsch. ⚠ SNOWLMT ist bitmap-maskiert (270 559 von 283 876 Zellen bei CH2): wo kein Niederschlag fällt, gibt es keine Schneefallgrenze — MISSING, nicht 0. ⚠ Kosten gemessen: 26,4 MiB je Schritt (12 Größen à 2,24 MiB) — stündlich wären das 1,21 GiB je Lauf, deshalb dreistündlich in Stufe 1. ⚠² Laut Quellenmatrix in Ostösterreich nicht nutzbar. Die Begründung lässt sich aus der Bounding-Box NICHT nachrechnen — s. CH_EDGE_DISCREPANCY. ⚠ KORRIGIERT in PD-B6: die vorige Notiz sagte „die Zuordnung entscheidet, nicht die Hülle“ — das widerspricht §2 der Matrix, die ICON-CHs Abdeckung von DE und AT ausdrücklich tabelliert und wörtlich verlangt: „Die Quellenauswahl muss also geometrisch über die Domain entschieden werden, nicht über das Land.“ Der Cube folgt §2, wie bei jeder anderen Quelle. Folge: München und Wien bekommen ICON-CH1 mit — für Wien sind das 99 km bis zur Hülle, also nicht die Randlage aus ⚠². Der echte Wächter gegen die zu großzügige Rechteck-Hülle ist ohnehin die Entfernungsgrenze des Nachbarindex (PD-B4b): gemessen bleiben 63 von 23 203 erlaubten Zellen (0,3 %) leer, statt einen Randwert zu erben.',
   },
   {
-    id: 'claef', name: 'C-LAEF AlpeAdria (1 km)', provider: 'GeoSphere', kind: 'percentiles',
-    domain: G(43.00, 51.50, 5.03, 22.57), edgeMarginKm: 0, clip: null,
-    horizonH: { default: 60 }, runHours: [0, 6, 12, 18], members: 0,
-    vars: ['t2m', 'u10', 'v10', 'precip', 'clct'], steps: null, stepsMeasured: false,
-    retentionH: null, freeArchive: null,
+    id: 'claef', name: 'C-LAEF AlpeAdria (1 km)', provider: 'GeoSphere', kind: 'grid',
+    domain: G(43.002, 51.498, 5.0317, 22.568), edgeMarginKm: 0, clip: null,
+    horizonH: { default: 60 }, runHours: [0, 3, 6, 9, 12, 15, 18, 21], members: 0,
+    vars: ['t2m', 'td2m', 'u10', 'v10', 'gust', 'precip', 'clct', 'snowlmt'],
+    steps: Array.from({ length: 61 }, (_, i) => i), stepsMeasured: true,
+    retentionH: 18, freeArchive: null,
     licence: CC_BY_4, attribution: 'Quelle: GeoSphere Austria',
-    access: 'dataset.api.hub.geosphere.at → /grid/forecast/nwp-v2-1h-1km (am Katalog geprüft 2026-09-09). Nachfolger von nwp-v1-1h-2500m, ab Nov. 2026 Pflicht',
-    adapter: null,
-    note: 'Deterministischer Lauf. Die Perzentil-Variante ist ein EIGENER Datensatz (claef_eps) — das war in der ersten Fassung dieser Datei fälschlich zusammengefasst.',
+    access: 'dataset.api.hub.geosphere.at → /grid/forecast/nwp-v2-1h-1km. HDF5 (netcdf-Ausgabe), reguläres lat/lon-Gitter 0,009° × 0,0135°, max. 10 Mio Datenpunkte je Anfrage',
+    adapter: 'scripts/point/adapters/geosphere.mjs',
+    note: 'Deterministischer Lauf; die Perzentil-Variante ist ein EIGENER Datensatz (claef_eps). ⚠ ALLES HIER IST AM OBJEKT GEMESSEN (2026-09-09), die vorige Fassung lag mehrfach daneben: Läufe sind DREIstündlich (nicht [0,6,12,18]), `forecast_length: 61` ⇒ Stunden 0…60, Vorhalt 6 Reftimes ≈ 18 h, und der Parametersatz führt td2m/gust/snowlmt sehr wohl. ⚠ KEIN `ps` — die Quelle hat nur `msl` (auf Meeresniveau reduziert); in die ps-Ebene geschrieben stünden auf der Zugspitze 1013 statt 700 hPa. ⚠ Kein clcl/clcm/clch, nur tcc. ⚠ `td2m` ist ABGELEITET (Magnus aus 2t + 2r), nicht gelesen. ⚠ `tp` ist die STUNDENSUMME („in the last forecast interval"), nicht laufakkumuliert wie bei ICON/ECMWF. ⚠ Drei verschiedene int16-Skalen in derselben Datei (2t 0,1 · 2r/tcc/msl 0,01 · tp 0,001), und jsfive liest die Attribute nicht — die Skalen sind gegen die geojson-Ausgabe derselben Zelle gemessen. Latenz gemessen: um 19:55 UTC war der neueste Lauf 15:00, also ≈ 4,9 h.',
   },
   {
     id: 'claef_eps', name: 'C-LAEF-EPS', provider: 'GeoSphere', kind: 'percentiles',
-    domain: G(43.00, 51.50, 5.03, 22.57), edgeMarginKm: 0, clip: null,
-    horizonH: { default: 60 }, runHours: [0, 6, 12, 18], members: 0,
-    vars: ['t2m', 'u10', 'v10', 'precip'], steps: null, stepsMeasured: false,
-    retentionH: null, freeArchive: null,
+    domain: G(43.002, 51.498, 5.0317, 22.568), edgeMarginKm: 0, clip: null,
+    horizonH: { default: 60 }, runHours: [0, 3, 6, 9, 12, 15, 18, 21], members: 0,
+    // ⚠ `vars` sind hier die Größen, für die die Quelle QUANTILE liefert — sie
+    // trägt bewusst NICHTS zum Mittel bei (s. note). Gemessen am Katalog, nicht
+    // übernommen: der Datensatz führt 14 Parameter, davon passen sieben auf
+    // Cube-Größen.
+    vars: ['t2m', 'u10', 'v10', 'gust', 'precip', 'clct', 'snowlmt'],
+    steps: Array.from({ length: 61 }, (_, i) => i), stepsMeasured: true,
+    retentionH: 12, freeArchive: null,
     licence: CC_BY_4, attribution: 'Quelle: GeoSphere Austria',
-    access: 'dataset.api.hub.geosphere.at → /grid/forecast/ensemble-v2-1h-1km (am Katalog geprüft 2026-09-09)',
-    adapter: null,
-    note: '⚠³ Liefert KEINE Einzelmember, nur P10/P50/P90 je Parameter. Für kalibrierte Bänder reicht das, für member-basiertes Post-Processing (EMOS/BMA) nicht — und für σ_ens auch nicht, weil eine Spannweite kein Spread ist.',
+    access: 'dataset.api.hub.geosphere.at → /grid/forecast/ensemble-v2-1h-1km (netcdf, gleiches Gitter wie der deterministische Lauf)',
+    adapter: 'scripts/point/adapters/geosphere.mjs',
+    note: '⚠ AM OBJEKT GEMESSEN (2026-09-10, PD-B7); die vorige Fassung lag dreifach daneben: Läufe sind DREIstündlich (nicht [0,6,12,18]), der Vorhalt sind 4 Reftimes ≈ 12 h (stand auf null), und vars führte vier statt sieben Größen. ⚠ Diese Quelle geht NICHT ins Mittel: ihr p50 ist derselbe Modelllauf wie `claef`, den der Cube schon ingestiert — als zweiter „unabhängiger“ Wert ließe sie σ_div schrumpfen (derselbe Grund wie V-PD-9 bei den ECMWF-Kontrollläufen). Sie schreibt ausschließlich die Ebenen `<var>_q10`/`_q90`. ⚠ KEIN td2m: für den Median lässt sich der Taupunkt aus 2t und 2r ableiten, für ein QUANTIL nicht — das q10 des Taupunkts ist nicht Magnus(q10 der Temperatur, q10 der Feuchte). ⚠ KEIN ps (nur msl), kein clcl/clcm/clch (führt der Datensatz nicht). ⚠ Skalen einzeln gemessen: 2t/10u/10v/10fg/snowlmt 0,1 · tcc 0,01 · tp 0,001 — tp an einer NASSEN Zelle, weil beide Quantile im Trockenen 0 sind. ⚠³ Liefert KEINE Einzelmember, nur P10/P50/P90 je Parameter. Für kalibrierte Bänder reicht das, für member-basiertes Post-Processing (EMOS/BMA) nicht — und für σ_ens auch nicht, weil eine Spannweite kein Spread ist.',
   },
 
   // ── 48–120 h: Mittelfrist ────────────────────────────────────────────────
@@ -212,19 +235,32 @@ export const SOURCES: readonly Source[] = Object.freeze([
     domain: G(29.5, 70.5, -23.5, 62.5), edgeMarginKm: 0, clip: null,
     horizonH: { default: 120, byRunHour: { 3: 48, 9: 48, 15: 48, 21: 48 } },
     runHours: [0, 6, 12, 18], members: 40,
-    vars: ['t2m', 'u10', 'v10', 'precip'], steps: null, stepsMeasured: false,
+    // gemessen: t_2m u_10m v_10m vmax_10m tot_prec clct ps — KEIN td_2m, keine Schichtwolken.
+    vars: ['t2m', 'u10', 'v10', 'gust', 'precip', 'clct', 'ps'], steps: null, stepsMeasured: false,
     retentionH: 24, freeArchive: null,
     licence: `${CC_BY_4} / GeoNutzV`, attribution: 'Datenbasis: Deutscher Wetterdienst',
-    access: 'opendata.dwd.de', adapter: null,
+    access: 'opendata.dwd.de — gebündelt, 40 Member je Datei',
+    adapter: 'scripts/point/adapters/dwdEps.mjs',
+    note: '⚠ Gemessen (2026-09-11, PD-B8): 9,1 MiB je (Größe, Schritt) ⇒ zwölfstündlich in Stufe 2. '
+      + 'Führt als einziges der drei KEINEN Taupunkt (am Verzeichnis ausgezählt) und kein snowlmt. '
+      + 'Trägt NICHTS zum Mittel bei (V-PD-9).',
   },
   {
     id: 'icon_ch2_eps', name: 'ICON-CH2-EPS', provider: 'MeteoSchweiz', kind: 'ensemble',
-    domain: G(42.0, 50.5, -0.8, 17.7), edgeMarginKm: 20, clip: null,
+    // Am Konstanten-Asset gemessen (2026-09-10): 283 876 Zellen,
+    // -0,769…17,678 °E / 42,079…50,479 °N.
+    domain: G(42.079, 50.479, -0.769, 17.678), edgeMarginKm: 20, clip: null,
     horizonH: { default: 120 }, runHours: [0, 6, 12, 18], members: 21,
-    vars: ['t2m', 'u10', 'v10', 'precip', 'clct'], steps: null, stepsMeasured: false,
+    vars: ['t2m', 'td2m', 'u10', 'v10', 'gust', 'precip', 'clct', 'clcl', 'clcm', 'clch', 'ps', 'snowlmt'],
+    steps: null, stepsMeasured: false,
     retentionH: 24, freeArchive: null,
     licence: CC_BY_4, attribution: 'Quelle: MeteoSchweiz',
-    access: 'STAC data.geo.admin.ch → rgw.cscs.ch', adapter: 'src/sources/iconChEpsSource.ts',
+    access: 'STAC data.geo.admin.ch → vorsignierte S3-Hrefs auf rgw.cscs.ch (in Node direkt, im Browser über /_cscs)',
+    adapter: 'scripts/point/adapters/meteoswiss.mjs',
+    note: '⚠ Am Objekt gemessen (2026-09-10, PD-B6) wie ICON-CH1 — alle zwölf Größen, nicht fünf. '
+      + 'Deutlich billiger als CH1: 6,5 MiB je Schritt gegen 26,4, deshalb in Stufe 2 ohne Vergröberung (die Stufe ist ohnehin dreistündlich). '
+      + 'Vorhalt gemessen: 4 Läufe, also 6-stündlich über 24 h. Der ctrl-Member geht ins Mittel — er dupliziert KEINE andere ingestierte Quelle, '
+      + 'anders als der IFS-ENS-Kontrolllauf, der IFS HRES ist (V-PD-9). Die perturbed-Member sind PD-B8.',
   },
   {
     id: 'mosmix_s', name: 'MOSMIX-S', provider: 'DWD', kind: 'points',
@@ -242,14 +278,22 @@ export const SOURCES: readonly Source[] = Object.freeze([
   {
     id: 'mosmix_l', name: 'MOSMIX-L', provider: 'DWD', kind: 'points',
     domain: null, edgeMarginKm: 0, clip: null,
-    horizonH: { default: 240 }, runHours: [0, 3, 6, 9, 12, 15, 18, 21], members: 0,
-    vars: ['t2m', 'td2m', 'u10', 'v10', 'gust', 'precip', 'clct', 'ps'],
-    steps: null, stepsMeasured: false,
+    // Alle vier Angaben am echten Verzeichnis gemessen (PD-B9, 2026-09-11) — die
+    // Registry lag an jeder daneben. Läufe: NUR 03/09/15/21 UTC (acht standen hier,
+    // vier sind es). Horizont: die Achse trägt 247 Schritte bis +247 h, stündlich
+    // durchgehend. `ps` NICHT: MOSMIX führt `PPPP`, und das ist auf Meeresniveau
+    // reduziert (München 515 m 1019,3 hPa gegen Schleswig 47 m 1017,5; Zugspitze gar
+    // kein Wert) — derselbe Fall wie C-LAEF.
+    horizonH: { default: 247 }, runHours: [3, 9, 15, 21], members: 0,
+    vars: ['t2m', 'td2m', 'u10', 'v10', 'gust', 'precip', 'clct', 'clcl', 'clcm', 'clch'],
+    // Die native Schrittfolge, am echten Lauf ausgezaehlt: 1…247 h, durchgehend
+    // stuendlich (Histogramm der Differenzen: 246 x 1 h, sonst nichts).
+    steps: Array.from({ length: 247 }, (_, i) => i + 1), stepsMeasured: true,
     retentionH: 48, freeArchive: null,
     licence: `${CC_BY_4} / GeoNutzV`, attribution: 'Datenbasis: Deutscher Wetterdienst',
-    access: 'opendata.dwd.de/weather/local_forecasts/mos/MOSMIX_L — KMZ je Station',
-    adapter: 'src/sources/brightSkyForecast.ts (indirekt)',
-    note: 'Stationsnetz weltweit; für CH 104 Stationen verifiziert. Die Zahlen für DE und AT sind laut Quellenmatrix §7 NICHT ermittelt — sie kommen aus dem echten mosmix_stationskatalog.cfg, nicht aus einer Annahme. PAMORE schließt MOSMIX aus, es gibt also KEIN freies Archiv.',
+    access: 'opendata.dwd.de/weather/local_forecasts/mos/MOSMIX_L/all_stations/kml/MOSMIX_L_LATEST.kmz — ALLE Stationen in EINER KMZ (76 MiB gepackt, 1750 MiB entpackt, am 2026-09-11 gemessen). Die frühere Angabe „KMZ je Station“ war nicht falsch, aber unvollständig: single_stations/ gibt es auch, wäre für 3071 Stationen aber 3071 Abrufe.',
+    adapter: 'scripts/point/mosmix.mjs + scripts/point/build-stations.mjs (Produkt point/stations/)',
+    note: 'Stationsnetz weltweit; im Cube-Ausschnitt **3071** Stationen, davon 281 im WMO-Block 10 (DE), 120 im Block 11 (AT), 122 im Block 06 (CH) — am echten Lauf gezählt, nicht aus §7 der Quellenmatrix übernommen. ⚠ Veröffentlicht bei Lauf + 72…79 min, der Punkt-Cron läuft bei Lauf + 50 min: der gleichzeitige Lauf ist NIE erreichbar. PAMORE schließt MOSMIX aus, es gibt also KEIN freies Archiv.',
   },
 
   // ── 120–336 h: Langfrist ─────────────────────────────────────────────────
@@ -270,10 +314,17 @@ export const SOURCES: readonly Source[] = Object.freeze([
     domain: null, edgeMarginKm: 0, clip: null,
     horizonH: { default: 180, byRunHour: { 6: 120, 18: 120 } },
     runHours: [0, 6, 12, 18], members: 40,
-    vars: ['t2m', 'u10', 'v10', 'precip'], steps: null, stepsMeasured: false,
+    // gemessen: t_2m td_2m u_10m v_10m vmax_10m tot_prec clct ps relhum_2m.
+    vars: ['t2m', 'td2m', 'u10', 'v10', 'gust', 'precip', 'clct', 'ps'], steps: null, stepsMeasured: false,
     retentionH: 24, freeArchive: null,
     licence: `${CC_BY_4} / GeoNutzV`, attribution: 'Datenbasis: Deutscher Wetterdienst',
-    access: 'opendata.dwd.de', adapter: null,
+    access: 'opendata.dwd.de — gebündelt, 40 Member je Datei',
+    adapter: 'scripts/point/adapters/dwdEps.mjs',
+    note: '⚠ Gemessen (2026-09-11, PD-B8): **34,8 MiB** je (Größe, Schritt) — die teuerste der drei '
+      + 'DWD-Ensembles. Deshalb 24-stündlich und nur t2m + precip. Trotzdem die wichtigste: jenseits 180 h '
+      + 'gibt es heute sonst GAR KEINE Unsicherheitsinformation (§33.4). Billiger als die ECMWF-Ensembles '
+      + 'für dieselbe Aussage (IFS-ENS 55,8 MiB, AIFS-ENS 65,1 MiB je Größe und Schritt, als 50 getrennte '
+      + 'Byte-Bereiche). Trägt NICHTS zum Mittel bei (V-PD-9).',
   },
   {
     id: 'aicon', name: 'AICON (KI, 13 km)', provider: 'DWD', kind: 'grid',
@@ -302,12 +353,18 @@ export const SOURCES: readonly Source[] = Object.freeze([
   {
     id: 'ifs_ens', name: 'IFS ENS', provider: 'ECMWF', kind: 'ensemble',
     domain: null, edgeMarginKm: 0, clip: null,
-    horizonH: { default: 360 }, runHours: [0, 6, 12, 18], members: 51,
-    vars: ['t2m', 'u10', 'v10', 'precip'], steps: null, stepsMeasured: false,
+    // Am Katalog gemessen (PD-B10, 2026-09-11): nur 00z/12z reichen bis 360 h,
+    // 06z/18z enden bei 144 h (180 h: 404) — dieselbe Aufteilung wie IFS HRES.
+    horizonH: { default: 360, byRunHour: { 6: 144, 18: 144 } }, runHours: [0, 6, 12, 18], members: 51,
+    // Am `.index` gemessen (…-144h-enfo-ef.index): 2t 2d 10u 10v tp tcc sp liegen vor.
+    // Boe NUR als `10fg3` (3-stuendlich), nicht als `10fg` wie im deterministischen Lauf —
+    // die Parametertabelle in ecmwf.mjs findet sie deshalb heute nicht (PD-B8).
+    vars: ['t2m', 'td2m', 'u10', 'v10', 'precip', 'clct', 'ps'], steps: null, stepsMeasured: false,
     retentionH: 3 * 24, freeArchive: 's3://ecmwf-forecasts ab 2023-01-18',
     licence: CC_BY_4, attribution: 'ECMWF Open Data (ECMWF Terms of Use)',
-    access: 'data.ecmwf.int/forecasts', adapter: 'src/sources/ecmwfIfsSource.ts',
-    note: 'Die tragende Quelle für 240–336 h und die einzige mit 51 Membern ⇒ σ_ens im Langfristbereich.',
+    access: 'data.ecmwf.int/forecasts — 50 gestörte Member (pf 1…50) als getrennte Byte-Bereiche, KEIN Kontrolllauf in enfo-ef; mehrere Bereiche in EINER Anfrage (HTTP 206 multipart/byteranges, gemessen 50 Bereiche / 31,55 MiB / 3,6 s). Je Member 2t 0,63 MiB, tp 1,05 MiB.',
+    adapter: 'scripts/point/adapters/ecmwfEns.mjs (σ_ens: t2m + precip, 48-h-Raster); Kartenlinie: src/sources/ecmwfIfsSource.ts',
+    note: 'Die tragende Quelle für 240–336 h und die einzige mit 51 Membern ⇒ σ_ens im Langfristbereich. Seit PD-B10 (§45) liefert sie σ_ens für t2m und Niederschlag jenseits 180 h. 51 im System, 50 lesbar: der Kontrolllauf liegt nicht in enfo-ef.',
   },
   {
     id: 'aifs_single', name: 'AIFS Single', provider: 'ECMWF', kind: 'grid',
@@ -654,8 +711,16 @@ export function sourceMatrixSelfTest(nowMs = Date.now()): {
       && !assignedSources('AT', 12).secondary.includes('icon_ch1_eps'),
       'deshalb entscheidet MATRIX_BANDS, nicht die Bounding-Box');
   }
-  add('⚠³ C-LAEF ist als percentiles geführt, nicht als ensemble',
-    SOURCE_BY_ID.claef.kind === 'percentiles' && SOURCE_BY_ID.claef.members === 0);
+  // ⚠³ betrifft C-LAEF-**EPS**: „liefert keine Einzelmember, nur P10/P50/P90". Die Prüfung
+  // stand bis 2026-09-09 auf `claef` — dem DETERMINISTISCHEN Datensatz, der gar keine
+  // Perzentile liefert. Am Objekt gemessen (`/grid/forecast/nwp-v2-1h-1km`, geojson):
+  // einzelne Werte mit Einheit, kein `_p10`/`_p50`/`_p90`. Die Perzentile stehen in
+  // `/grid/forecast/ensemble-v2-1h-1km` = `claef_eps`. Die Fußnote galt also immer der
+  // anderen Quelle; die Prüfung prüfte die falsche.
+  add('⚠³ C-LAEF-EPS liefert Perzentile, keine Member',
+    SOURCE_BY_ID.claef_eps.kind === 'percentiles' && SOURCE_BY_ID.claef_eps.members === 0);
+  add('C-LAEF (deterministisch) ist ein gewöhnliches Gitter',
+    SOURCE_BY_ID.claef.kind === 'grid' && SOURCE_BY_ID.claef.members === 0);
   add('⚠⁴ E4 steht NICHT in SOURCES', !SOURCES.some((s) => s.id === 'e4_local'));
   add('⚠⁵ ICON-EU 03/09/15/21 UTC nur 48 h',
     [3, 9, 15, 21].every((h) => horizonFor(SOURCE_BY_ID.icon_eu, h) === 48)
@@ -677,9 +742,17 @@ export function sourceMatrixSelfTest(nowMs = Date.now()): {
   {
     const at336run0 = sourcesForPoint(48.2, 16.4, 336, 0).map((s) => s.id);
     const at336run6 = sourcesForPoint(48.2, 16.4, 336, 6).map((s) => s.id);
-    add('336 h: 00 UTC trägt, 06 UTC trägt nur die ENS',
-      at336run0.includes('ifs_hres') && !at336run6.includes('ifs_hres') && at336run6.includes('ifs_ens'),
-      `00z ${at336run0.length} Quellen, 06z ${at336run6.length}`);
+    // ⚠ Korrigiert in PD-B10 (§45), am Katalog gemessen (Läufe 2026091006 und
+    // 2026091018): um 06/18 UTC enden IFS HRES UND IFS-ENS bei 144 h — bis 336 h
+    // reichen dann nur die AIFS-Läufe (Single und ENS). Die vorige Fassung verlangte
+    // `at336run6.includes('ifs_ens')` und war nur grün, weil die Registry für IFS-ENS
+    // keinen laufabhängigen Horizont kannte. Eine Prüfung, die an einer Lücke der
+    // Registry hängt, bestaetigt die Lücke.
+    add('336 h: 00 UTC trägt IFS und AIFS, 06 UTC nur noch AIFS (Single + ENS)',
+      at336run0.includes('ifs_hres') && at336run0.includes('ifs_ens')
+      && !at336run6.includes('ifs_hres') && !at336run6.includes('ifs_ens')
+      && at336run6.includes('aifs_single') && at336run6.includes('aifs_ens'),
+      `00z ${at336run0.join(',')} · 06z ${at336run6.join(',')}`);
   }
 
   // Jede Cube-Stufe muss von mindestens einer Quelle getragen werden, die es gibt.

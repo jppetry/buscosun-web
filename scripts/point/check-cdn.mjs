@@ -31,14 +31,23 @@ for (const [ref, rel] of targets) {
   const same = Buffer.compare(Buffer.from(buf), Buffer.from(disk)) === 0;
   console.log(`  ${r.status} · ${buf.length} B · ${Date.now() - t0} ms · x-cache ${r.headers.get('x-cache') ?? '—'}`);
   console.log(`  byte-gleich zur Quelle: ${same ? 'JA' : 'NEIN'}`);
-  const { header } = readCubeHeader(buf);
+  // Die Ebenenliste kommt aus DEM Lauf, nicht aus dem Code. Sonst laege dieses Werkzeug
+  // nach jedem Schemasprung falsch — und zwar still, solange die Ebenenzahl zufaellig
+  // passt. Genau dafuer traegt `run.json` die Ebenen mit Skala (PD-B2).
+  const run = rel.split('/')[1];
+  const mres = await fetch(`${B}@${ref}/point/${run}/run.json`);
+  const manifest = mres.ok ? await mres.json() : null;
+  const planes = manifest?.planes ?? CUBE_PLANES;
+  if (manifest) console.log(`  Manifest: Schema ${manifest.schema} · ${planes.length} Ebenen`);
+  const { header } = readCubeHeader(buf, { allowOtherSchema: true });
   console.log(`  Kopf: Stufe ${header.tierIndex} · nt ${header.nt} · ${header.ny}x${header.nx} @ y${header.y0} x${header.x0} · runHours ${header.runHours} (${new Date(header.runHours * 3600e3).toISOString()})`);
   // checkCrc ist Standard: ein verfaelschtes Byte wuerde hier werfen.
-  const chunk = await decodeCubeChunk(buf, { wanted: ['t2m', 't2m_sd'] });
+  const chunk = await decodeCubeChunk(buf, { wanted: ['t2m', 't2m_sd'], planes });
+  const idxOf = (id) => planes.findIndex((p) => p.id === id);
   for (const id of ['t2m', 't2m_sd']) {
-    const p = chunk.planes[planeIndex(id)];
+    const p = chunk.planes[idxOf(id)];
     if (!p || p.length === 0) { console.log(`  ${id}: nicht entpackt`); continue; }
-    const meta = CUBE_PLANES[planeIndex(id)];
+    const meta = planes[idxOf(id)] ?? CUBE_PLANES[planeIndex(id)];
     const fin = Array.from(p).filter((x) => x !== MISSING);
     if (!fin.length) { console.log(`  ${id}: durchgehend MISSING`); continue; }
     const mn = dequantize(Math.min(...fin), meta), mx = dequantize(Math.max(...fin), meta);

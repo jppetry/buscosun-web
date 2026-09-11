@@ -17,6 +17,7 @@ import {
   fetchGribField, headOk, probeHorizon, pad3, runIdBack, sampleRegularToTier, convert,
   KELVIN_TO_C, PA_TO_HPA,
 } from './shared.mjs';
+import { profileGrid, fullLevelHeights, PROFILE_PARAMS } from '../profile.mjs';
 
 const DWD = process.env.DWD_OPENDATA || 'https://opendata.dwd.de/weather/nwp';
 
@@ -39,6 +40,26 @@ const MODELS = {
       ps: 'ps', snowlmt: 'snowlmt',
     },
     orographyParam: 'hsurf',
+    // ── Modelllevel (PD-B5) ───────────────────────────────────────────────
+    // Am Verzeichnis gemessen (2026-09-10, Lauf 2026091009): `t` liegt auf
+    // **65 Vollflächen** als `regular-lat-lon_model-level`, `hhl` auf **66
+    // Halbflächen** — und zwar in BEIDEN Gitterformen, also auch regulär.
+    // Level 65 = unterste Schicht, Level 1 = Modelloberkante.
+    profile: {
+      levelVar: 't',
+      halfVar: 'hhl',
+      bottomLevel: 65,
+      // 20 statt der in E-11 vorgeschlagenen 15 — die Zahl ist gemessen, nicht
+      // gesetzt. Die Level folgen dem Gelände (Abstand 20 m am Boden, ~150 m in
+      // 2,5 km); 15 Level enden bei 1 030–1 135 m über Grund und schneiden damit
+      // Absinkinversionen ab, 20 reichen bis 1 630–1 790 m und decken beide
+      // Inversionstypen. Gemessen an hhl in Hamburg, München, Innsbruck, Zermatt.
+      levelCount: Number(process.env.POINT_PROFILE_LEVELS || 20),
+      file: (run, step, lev) =>
+        `icon-d2_germany_regular-lat-lon_model-level_${run}_${pad3(step)}_${lev}_t.grib2.bz2`,
+      halfFile: (run, lev) =>
+        `icon-d2_germany_regular-lat-lon_time-invariant_${run}_000_${lev}_hhl.grib2.bz2`,
+    },
   },
   icon_eu: {
     base: `${DWD}/icon-eu/grib`,
@@ -54,6 +75,11 @@ const MODELS = {
       ps: 'PS', snowlmt: 'SNOWLMT',
     },
     orographyParam: 'HSURF',
+    // ICON-EU bekommt in PD-B5 KEINE Profilfelder, und das ist eine Entscheidung,
+    // keine Lücke: es führt 74 statt 65 Level, also eine andere Levelzahl für
+    // dieselbe Schichttiefe und ein eigenes Volumen. Ob Stufe 2 Profilfelder
+    // trägt, wird gemessen, nicht angenommen (§40.6).
+    profile: null,
   },
 };
 
@@ -64,6 +90,9 @@ const UNITS = {
 
 /** Größen, die als SUMME seit Laufbeginn kommen — der Orchestrator deakkumuliert. */
 export const DWD_ACCUMULATED = new Set(['precip']);
+
+/** Halbflächenhöhen je (Lauf, Stufe, Levelzahl) — zeitinvariant, also einmal geholt. */
+const halfCache = new Map();
 
 export function makeDwdRegularAdapter(id) {
   const m = MODELS[id];
@@ -79,8 +108,8 @@ export function makeDwdRegularAdapter(id) {
     vars: Object.keys(m.params),
 
     /** Jüngster Lauf, der `leadMax` schon trägt — geprüft am echten Objekt, nicht am Kalender. */
-    async discoverRun(leadMax, nowMs = Date.now()) {
-      for (let back = 0; back < 16; back++) {
+    async discoverRun(leadMax, nowMs = Date.now(), maxBack = 16) {
+      for (let back = 0; back < maxBack; back++) {
         const run = runIdBack(nowMs, m.runSlotH, back);
         if (await headOk(url(run, leadMax, m.params.t2m))) return run;
       }
@@ -107,6 +136,61 @@ export function makeDwdRegularAdapter(id) {
     async orography(run, tier) {
       const f = await fetchGribField(invUrl(run, m.orographyParam));
       return f ? sampleRegularToTier(f, tier) : null;
+    },
+
+    /** Trägt diese Quelle überhaupt Profilfelder? Der Orchestrator fragt das, bevor
+     *  er eine Stunde lang Level zieht. */
+    hasProfile: !!m.profile,
+
+    /** Wie viele Vollflächen das Profil benutzt — fürs Manifest, nicht für die Rechnung. */
+    profileLevels: m.profile ? Math.max(3, m.profile.levelCount) : null,
+
+    /**
+     * Die vier Profilfelder für eine Vorhersagestunde (PD-B5).
+     *
+     * Die Halbflächenhöhen sind **zeitinvariant** — sie werden einmal je (Lauf, Stufe)
+     * geholt und gehalten. Der teure Teil ist die Temperatur: `levelCount` Dateien à
+     * ~0,95 MiB je Stunde.
+     *
+     * Fehlt auch nur EIN Level, gibt es kein Profil — `null` statt eines Profils aus
+     * Löchern. Ein aus 12 statt 20 Leveln bestimmtes Γ sähe an keiner Stelle falsch
+     * aus und wäre es doch.
+     */
+    async profile(run, leadH, tier) {
+      const cfg = m.profile;
+      if (!cfg) return null;
+      const cells = tier.ny * tier.nx;
+      const nl = Math.max(3, cfg.levelCount);
+      const top = cfg.bottomLevel - nl + 1;               // z. B. 65 − 20 + 1 = 46
+
+      // Halbflächen: von unten (bottom+1) nach oben (top) ⇒ Höhe aufsteigend.
+      const hKey = `${run}|${tier.id}|${nl}`;
+      let heights = halfCache.get(hKey);
+      if (heights === undefined) {
+        const half = [];
+        for (let lev = cfg.bottomLevel + 1; lev >= top; lev--) {
+          const f = await fetchGribField(
+            `${m.base}/${run.slice(8, 10)}/${cfg.halfVar}/${cfg.halfFile(run, lev)}`);
+          if (!f) { half.length = 0; break; }
+          half.push(sampleRegularToTier(f, tier));
+        }
+        heights = half.length === nl + 1 ? fullLevelHeights(half, cells) : null;
+        halfCache.set(hKey, heights);
+      }
+      if (!heights) return null;
+
+      // Temperatur auf denselben Vollflächen, gleiche Reihenfolge (unten → oben).
+      const levels = [];
+      for (let lev = cfg.bottomLevel; lev >= top; lev--) {
+        const f = await fetchGribField(
+          `${m.base}/${run.slice(8, 10)}/${cfg.levelVar}/${cfg.file(run, leadH, lev)}`);
+        if (!f) return null;
+        // Kelvin → °C an derselben Stelle wie bei t2m: die Ableitung ist gegen einen
+        // Versatz unempfindlich, dTInv auch — aber ein Cube in gemischten Einheiten
+        // wäre eine Falle für jeden späteren Leser.
+        levels.push(convert(sampleRegularToTier(f, tier), KELVIN_TO_C));
+      }
+      return profileGrid(levels, heights, cells, PROFILE_PARAMS);
     },
   };
 }

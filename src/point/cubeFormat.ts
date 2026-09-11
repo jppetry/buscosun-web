@@ -44,8 +44,54 @@
 
 import { DACH_VIEW } from '../countryProfiles';
 
-/** Schema-Version des Containers UND des `point/`-Manifests. Änderung = neuer Leser. */
-export const CUBE_SCHEMA = 1;
+/**
+ * Schema-Version des Containers UND des `point/`-Manifests. Änderung = neuer Leser.
+ *
+ * **1 → 2 (PD-B2, 2026-09-09):** je Größe kommt `<var>_sd_ens` neben `<var>_sd`, dazu die
+ * Metaebene `ensCount`. Damit ist der Ensemble-Zweig aus PAP 6 überhaupt erst ausdrückbar
+ * (`σ = c(p,f)·σ_ens` gegen `σ² = σ_div² + σ_sys²`) — vorher lagen beide Streuungsarten in
+ * derselben Ebene und waren nicht unterscheidbar.
+ *
+ * Der Bruch ist bewusst JETZT: 27 → 36 Ebenen verschiebt jeden Ebenenindex, und es gibt
+ * **noch keinen Client-Leser** (der ist PD2). Später wäre derselbe Schritt eine Änderung
+ * an jedem Nutzer. Ein Schema-1-Chunk wird ab hier **laut abgelehnt** statt still falsch
+ * gelesen — wer ihn trotzdem lesen will, übergibt seine Ebenenliste aus dem alten Manifest
+ * (`decodeCubeChunk(bytes, { planes })`); genau dafür trägt das Manifest sie seit PD-A.
+ */
+/**
+ * ── Schema 4 (PD-B7, 2026-09-10) ───────────────────────────────────────────
+ * Sieben Größen haben `<id>_q10` und `<id>_q90` bekommen ⇒ 37 → 51 Ebenen.
+ *
+ * C-LAEF-EPS liefert **keine Member**, nur P10/P50/P90 (⚠³ der Quellenmatrix).
+ * Daraus ein σ_ens zu rechnen (`(p90−p10)/2,563`) setzt Normalverteilung voraus.
+ * Am echten Datum widerlegt: an einer nassen Zelle (Innsbruck, +6 h) steht
+ * **p10 = 0,000 mm bei p90 = 0,619 mm**. Ein daraus gebildetes σ = 0,24 mm mit
+ * normalem p10 = Median − 1,28σ ergäbe **negativen Niederschlag**. Ein gemessenes
+ * Quantil bleibt deshalb ein Quantil und bekommt einen eigenen Ort — dieselbe
+ * Lehre wie bei σ_div/σ_ens in Schema 2.
+ *
+ * ⚠ `_q10`/`_q90` gehören zu EINER Quelle und sind NICHT mit `_sd`/`_sd_ens`
+ * verrechenbar: sie beschreiben die Unsicherheit EINES Modells, nicht die
+ * Uneinigkeit mehrerer.
+ *
+ * ── Schema 3 (PD-B6, 2026-09-10) ───────────────────────────────────────────
+ * `snowlmt` hat eine `_sd_ens`-Ebene bekommen ⇒ 36 → 37 Ebenen.
+ *
+ * PD-B2 hatte sie ausdrücklich WEGGELASSEN, mit einer gemessenen Begründung:
+ * „kein Ensemble führt die Schneefallgrenze (am Verzeichnis geprüft)". Das galt
+ * für die drei DWD/ECMWF-EPS-Verzeichnisse und ist für **MeteoSchweiz falsch** —
+ * ICON-CH1/CH2-EPS führen `SNOWLMT` (am Collection-Asset `params_*.csv` und am
+ * Feld gemessen, PD-B6). Aufgefallen ist es nicht beim Lesen, sondern weil der
+ * Wächter aus PD-B2 („keine Ensemble-Größe ohne σ_ens-Ebene") rot wurde — genau
+ * wofür er gebaut wurde.
+ *
+ * Warum trotz selbstbeschreibendem Container eine neue Schema-Nummer: die Liste
+ * im Manifest schützt nur Leser, die sie mitbringen. Der Kopf trägt `nvar`, und
+ * zwei Chunk-Generationen mit derselben Schema-Nummer und verschiedener
+ * Ebenenzahl wären für einen Leser OHNE Manifest still verschieden. Genau davor
+ * schützt die Nummer.
+ */
+export const CUBE_SCHEMA = 4;
 /** `BSPC` — buscosun point cube. */
 export const CUBE_MAGIC = 0x42535043;
 /** Fester Kopf. Das Verzeichnis folgt unmittelbar (`DIR_ENTRY_BYTES` je Ebene). */
@@ -93,8 +139,36 @@ export interface CubeVar {
   /** Physikalischer Wert = `int16 · scale + offset`. */
   readonly scale: number;
   readonly offset: number;
-  /** Führt eine eigene Streuungs-Ebene `<id>_sd`. */
-  readonly sigma: boolean;
+  /**
+   * Führt `<id>_sd` — die Streuung **zwischen den Quellen** (`σ_div`).
+   *
+   * Das ist die Streuung, die der Producer aus dem Vergleich mehrerer Modelle an
+   * derselben Zelle rechnet. Sie braucht mindestens zwei beitragende Quellen;
+   * `srcCount` sagt je Zelle, wie viele es waren.
+   */
+  readonly sigmaDiv: boolean;
+  /**
+   * Führt `<id>_sd_ens` — die Streuung **zwischen den Membern innerhalb einer Quelle**
+   * (`σ_ens`).
+   *
+   * PAP 6 verzweigt: liegt ein Ensemble vor, gilt `σ = c(p,f)·σ_ens`; sonst
+   * `σ² = σ_div² + σ_sys²`. Beide Größen zusammen in EINE Ebene zu schreiben hieße, die
+   * Verzweigung unentscheidbar zu machen — und sie zu addieren wäre Doppelzählung.
+   *
+   * `false` heißt hier ausdrücklich: **keine Quelle liefert dafür Member.** An den drei
+   * EPS-Verzeichnissen gemessen (2026-09-09, `opendata.dwd.de/weather/nwp/icon-{d2,eu}-eps`
+   * und `icon-eps`) führt keines die Schneefallgrenze — `snowlmt_sd_ens` wäre eine Ebene
+   * ohne möglichen Schreiber, dasselbe Muster wie V-SH-11, nur andersherum.
+   */
+  readonly sigmaEns: boolean;
+  /**
+   * Führt `<id>_q10` und `<id>_q90` — **gemessene Quantile einer einzelnen Quelle**.
+   *
+   * Nur für Größen, für die eine Quelle sie wirklich liefert (heute: C-LAEF-EPS).
+   * Eine Ebene ohne Schreiber ist schlimmer als eine fehlende — sie sieht gepflegt
+   * aus (dieselbe Lehre wie V-SH-11).
+   */
+  readonly quantiles?: boolean;
   readonly group: CubeGroup;
   /** Physikalischer Gültigkeitsbereich — der Selbsttest prüft, dass er in int16 passt. */
   readonly range: readonly [number, number];
@@ -113,60 +187,63 @@ export interface CubeVar {
  */
 export const CUBE_VARS: readonly CubeVar[] = Object.freeze([
   // ── Zielgrößen mit Streuung ──────────────────────────────────────────────
-  { id: 't2m',      unit: 'degC',  scale: 0.01, offset: 0, sigma: true,  group: 'target',
+  { id: 't2m',      unit: 'degC',  scale: 0.01, offset: 0, sigmaDiv: true, sigmaEns: true, quantiles: true, group: 'target',
     range: [-60, 60], grib: 't_2m',
     why: 'PAP 4 korrigiert sie vertikal, PAP 5 addiert die Geländeterme, PAP 6 quantilisiert sie normal.' },
-  { id: 'td2m',     unit: 'degC',  scale: 0.01, offset: 0, sigma: true,  group: 'target',
+  { id: 'td2m',     unit: 'degC',  scale: 0.01, offset: 0, sigmaDiv: true, sigmaEns: true, group: 'target',
     range: [-70, 45], grib: 'td_2m',
     why: 'buscosun Fusion rechnet mit dem TAUPUNKT statt der relativen Feuchte (types.ts): unbeschraenkt, additiv, hoehenkorrigierbar.' },
-  { id: 'u10',      unit: 'm/s',   scale: 0.01, offset: 0, sigma: true,  group: 'target',
+  { id: 'u10',      unit: 'm/s',   scale: 0.01, offset: 0, sigmaDiv: true, sigmaEns: true, quantiles: true, group: 'target',
     range: [-100, 100], grib: 'u_10m',
     why: 'PAP 5 braucht v10 fuer f_rad und die Blending-Height-Korrektur.' },
-  { id: 'v10',      unit: 'm/s',   scale: 0.01, offset: 0, sigma: true,  group: 'target',
+  { id: 'v10',      unit: 'm/s',   scale: 0.01, offset: 0, sigmaDiv: true, sigmaEns: true, quantiles: true, group: 'target',
     range: [-100, 100], grib: 'v_10m', why: 'wie u10.' },
-  { id: 'gust',     unit: 'm/s',   scale: 0.01, offset: 0, sigma: true,  group: 'target',
+  { id: 'gust',     unit: 'm/s',   scale: 0.01, offset: 0, sigmaDiv: true, sigmaEns: true, quantiles: true, group: 'target',
     range: [0, 150], grib: 'vmax_10m',
     why: 'PAP 6: v_max := max(v_max, |v10|), Quantile aus einer Weibull-Familie.' },
-  { id: 'precip',   unit: 'mm/h',  scale: 0.01, offset: 0, sigma: true,  group: 'target',
+  { id: 'precip',   unit: 'mm/h',  scale: 0.01, offset: 0, sigmaDiv: true, sigmaEns: true, quantiles: true, group: 'target',
     range: [0, 300], grib: 'tot_prec',
     why: 'PAP 6: zensierte Verteilung mit Punktmasse bei 0 — eine Normalverteilung erzeugte negative p10.' },
-  { id: 'clct',     unit: 'pct',   scale: 0.1,  offset: 0, sigma: true,  group: 'target',
+  { id: 'clct',     unit: 'pct',   scale: 0.1,  offset: 0, sigmaDiv: true, sigmaEns: true, quantiles: true, group: 'target',
     range: [0, 100], grib: 'clct',
     why: 'PAP 5: f_rad = (1 - clct/100)^a · exp(-v10/v_ref) — der Schalter fuer Kaltluftsee und Waermeinsel.' },
-  { id: 'ps',       unit: 'hPa',   scale: 0.1,  offset: 0, sigma: true,  group: 'target',
+  { id: 'ps',       unit: 'hPa',   scale: 0.1,  offset: 0, sigmaDiv: true, sigmaEns: true, group: 'target',
     range: [500, 1100], grib: 'ps',
     why: 'PAP 6 nennt p ausdruecklich unter den normalverteilten Zielgroessen.' },
-  { id: 'snowlmt',  unit: 'm',     scale: 1,    offset: 0, sigma: true,  group: 'target',
+  { id: 'snowlmt',  unit: 'm',     scale: 1,    offset: 0, sigmaDiv: true, sigmaEns: true, quantiles: true, group: 'target',
     range: [0, 6000], grib: 'snowlmt',
     why: 'PAP 6: Schneefallgrenze = T_w-Nullgradgrenze - Schmelzversatz; das Modellfeld ist der Anker dafuer.' },
   // ── Zielgrößen ohne eigene Streuung ──────────────────────────────────────
   // Die drei Schichten existieren nur fuer die Konsistenzbedingung in PAP 6
   // (`clct := max(clct, clcl, clcm, clch)`); eine eigene Unsicherheit je Schicht
   // wuerde nirgends gelesen und kostete drei Ebenen.
-  { id: 'clcl',     unit: 'pct',   scale: 0.1,  offset: 0, sigma: false, group: 'target',
+  { id: 'clcl',     unit: 'pct',   scale: 0.1,  offset: 0, sigmaDiv: false, sigmaEns: false, group: 'target',
     range: [0, 100], grib: 'clcl', why: 'PAP 6 Konsistenz.' },
-  { id: 'clcm',     unit: 'pct',   scale: 0.1,  offset: 0, sigma: false, group: 'target',
+  { id: 'clcm',     unit: 'pct',   scale: 0.1,  offset: 0, sigmaDiv: false, sigmaEns: false, group: 'target',
     range: [0, 100], grib: 'clcm', why: 'PAP 6 Konsistenz.' },
-  { id: 'clch',     unit: 'pct',   scale: 0.1,  offset: 0, sigma: false, group: 'target',
+  { id: 'clch',     unit: 'pct',   scale: 0.1,  offset: 0, sigmaDiv: false, sigmaEns: false, group: 'target',
     range: [0, 100], grib: 'clch', why: 'PAP 6 Konsistenz.' },
   // ── Profilfelder (PAP 2 → PAP 3/4) ───────────────────────────────────────
-  { id: 'gammaEff', unit: 'K/km',  scale: 0.01, offset: 0, sigma: false, group: 'profile',
+  { id: 'gammaEff', unit: 'K/km',  scale: 0.01, offset: 0, sigmaDiv: false, sigmaEns: false, group: 'profile',
     range: [-40, 40], grib: null,
     why: 'Vorzeichenkonvention der Ablaufplaene: Gamma = -dT/dz. Normale Schichtung > 0, Inversion < 0.' },
-  { id: 'zBase',    unit: 'm',     scale: 1,    offset: 0, sigma: false, group: 'profile',
+  { id: 'zBase',    unit: 'm',     scale: 1,    offset: 0, sigmaDiv: false, sigmaEns: false, group: 'profile',
     range: [0, 9000], grib: null, why: 'Hoehe der Inversionsbasis ueber NN (PAP 4 Fall B/C).' },
-  { id: 'zInv',     unit: 'm',     scale: 1,    offset: 0, sigma: false, group: 'profile',
+  { id: 'zInv',     unit: 'm',     scale: 1,    offset: 0, sigmaDiv: false, sigmaEns: false, group: 'profile',
     range: [0, 9000], grib: null,
     why: 'Obergrenze ueber NN. zInv == zBase heisst ausdruecklich: KEINE Inversion (Feldglossar).' },
-  { id: 'dTInv',    unit: 'K',     scale: 0.01, offset: 0, sigma: false, group: 'profile',
+  { id: 'dTInv',    unit: 'K',     scale: 0.01, offset: 0, sigmaDiv: false, sigmaEns: false, group: 'profile',
     range: [0, 30], grib: null, why: 'Temperaturzunahme von zBase bis zInv, positiv.' },
-  { id: 'hModEff',  unit: 'm',     scale: 1,    offset: 0, sigma: false, group: 'profile',
+  { id: 'hModEff',  unit: 'm',     scale: 1,    offset: 0, sigmaDiv: false, sigmaEns: false, group: 'profile',
     range: [-500, 9000], grib: 'hsurf',
     why: 'Gewichtetes Mittel der HSURF der beitragenden Quellen — zeitabhaengig, weil die Quellen mit der Vorhersagestunde wechseln.' },
   // ── Herkunft der Streuung (Ehrlichkeit) ──────────────────────────────────
-  { id: 'srcCount', unit: 'count', scale: 1,   offset: 0, sigma: false, group: 'meta',
+  { id: 'srcCount', unit: 'count', scale: 1,   offset: 0, sigmaDiv: false, sigmaEns: false, group: 'meta',
     range: [0, 32], grib: null,
     why: 'Wie viele Quellen diese Zelle und Stunde ueberhaupt getragen haben. Der PAP-6-Zweig je GROESSE ist daraus NICHT ablesbar — dafuer gibt es sigmaKindOf(): sd vorhanden = Divergenz, sd fehlt aber Median da = nur Sockel. Annahme, kein Zitat — §21 (3).' },
+  { id: 'ensCount', unit: 'count', scale: 1,   offset: 0, sigmaDiv: false, sigmaEns: false, group: 'meta',
+    range: [0, 255], grib: null,
+    why: 'Wie viele Member in σ_ens dieser Zelle eingegangen sind. Ohne n ist die Korrektur E[s] = c4(n)·σ nicht anwendbar — das Manifest nennt die Regel seit PD-A unter fusion.memberBias, und bis Schema 2 konnte sie niemand benutzen, weil n nirgends stand. Das Gegenstueck zu srcCount: srcCount zaehlt QUELLEN (fuer σ_div), ensCount zaehlt MEMBER (fuer σ_ens).' },
 ]);
 
 /**
@@ -198,18 +275,30 @@ export const SIGMA_KIND = Object.freeze({
 });
 
 /**
- * Der PAP-6-Zweig für EINE Größe an EINER Zelle, aus den Daten abgelesen.
- * `meanPresent` = Median vorhanden, `sdPresent` = Streuungs-Ebene vorhanden.
+ * Der PAP-6-Zweig für EINE Größe an EINER Zelle, aus den Daten abgelesen — nicht aus
+ * einem Flag. `meanPresent` = Median da, `sdPresent` = `<var>_sd` da (σ_div),
+ * `ensPresent` = `<var>_sd_ens` da (σ_ens).
+ *
+ * Die Reihenfolge ist die von PAP 6: **liegt ein Ensemble vor, gewinnt es.** Der Plan
+ * sagt „`σ := c(p,f)·σ_ens`, WENN Ensemble verfügbar; sonst `σ² := σ_div² + σ_sys²`" —
+ * ein Entweder-oder, kein Und. Wer beide Ebenen addiert, zählt die Unsicherheit doppelt:
+ * die Member einer Quelle streuen bereits um deren eigenes Mittel, das dann seinerseits
+ * in σ_div eingeht.
+ *
+ * Bis Schema 2 war `SIGMA_KIND.ensemble` **unerreichbar** — es gab keine Ebene, aus der
+ * `ensPresent` hätte folgen können.
  */
-export function sigmaKindOf(meanPresent: boolean, sdPresent: boolean): number {
+export function sigmaKindOf(meanPresent: boolean, sdPresent: boolean, ensPresent = false): number {
   if (!meanPresent) return SIGMA_KIND.unknown;
+  if (ensPresent) return SIGMA_KIND.ensemble;
   return sdPresent ? SIGMA_KIND.divergence : SIGMA_KIND.systematic;
 }
 
 export interface CubePlane {
   readonly id: string;
   readonly varId: string;
-  readonly kind: 'mean' | 'sd';
+  /** `sd` = Streuung zwischen Quellen (σ_div), `sd_ens` = zwischen Membern (σ_ens). */
+  readonly kind: 'mean' | 'sd' | 'sd_ens' | 'q10' | 'q90';
   readonly unit: string;
   readonly scale: number;
   readonly offset: number;
@@ -218,7 +307,13 @@ export interface CubePlane {
 
 /**
  * Die tatsächliche Ebenen-Reihenfolge im Container: je Größe erst der Median, dann —
- * wenn sie eine führt — die Streuung. Aus `CUBE_VARS` abgeleitet, nie getrennt gepflegt.
+ * wenn sie sie führt — `σ_div`, dann `σ_ens`. Aus `CUBE_VARS` abgeleitet, nie getrennt
+ * gepflegt.
+ *
+ * Die Reihenfolge ist Vertrag und wächst nur am Ende **einer Größe**, nicht am Ende der
+ * Liste — deshalb verschiebt Schema 2 die Indizes aller folgenden Ebenen. Genau dafür
+ * gibt es die Schema-Nummer; ein Leser, der `CUBE_PLANES` gegen einen Schema-1-Chunk
+ * hielte, läse stillschweigend die falschen Größen.
  */
 export const CUBE_PLANES: readonly CubePlane[] = Object.freeze(
   CUBE_VARS.flatMap((v): CubePlane[] => {
@@ -226,9 +321,16 @@ export const CUBE_PLANES: readonly CubePlane[] = Object.freeze(
       id: v.id, varId: v.id, kind: 'mean',
       unit: v.unit, scale: v.scale, offset: v.offset, group: v.group,
     };
-    return v.sigma
-      ? [base, { ...base, id: `${v.id}_sd`, kind: 'sd', offset: 0 }]
-      : [base];
+    const out = [base];
+    if (v.sigmaDiv) out.push({ ...base, id: `${v.id}_sd`, kind: 'sd', offset: 0 });
+    if (v.sigmaEns) out.push({ ...base, id: `${v.id}_sd_ens`, kind: 'sd_ens', offset: 0 });
+    // Quantile behalten Skala UND Versatz der Größe — sie sind Werte derselben
+    // Einheit, keine Streuungen. Genau deshalb steht `offset: 0` hier NICHT.
+    if (v.quantiles) {
+      out.push({ ...base, id: `${v.id}_q10`, kind: 'q10' });
+      out.push({ ...base, id: `${v.id}_q90`, kind: 'q90' });
+    }
+    return out;
   }),
 );
 
@@ -304,7 +406,7 @@ export interface CubeTier {
 const TIER_BANDS = [
   { id: 't1' as const, deg: 0.05, fromH: 0,   toH: 48,  stepH: 1,
     label: 'Kurzfrist (0–48 h, stündlich)',
-    sources: ['icon_d2', 'icon_d2_eps', 'icon_ch1_eps', 'claef', 'inca', 'radvor_rv', 'combiprecip'],
+    sources: ['icon_d2', 'icon_d2_eps', 'icon_ch1_eps', 'claef', 'claef_eps', 'inca', 'radvor_rv', 'combiprecip'],
     diversity: ['icon_eu', 'ifs_hres', 'aifs_single'] },
   { id: 't2' as const, deg: 0.10, fromH: 51,  toH: 120, stepH: 3,
     label: 'Mittelfrist (51–120 h, dreistündlich)',
@@ -661,8 +763,14 @@ export async function encodeCubeChunk(
   return out;
 }
 
-/** Liest nur den Kopf und das Verzeichnis — ohne eine einzige Ebene zu entpacken. */
-export function readCubeHeader(bytes: Uint8Array): {
+/**
+ * Liest nur den Kopf und das Verzeichnis — ohne eine einzige Ebene zu entpacken.
+ *
+ * `allowOtherSchema` nimmt einen Chunk mit fremder Schema-Nummer an. Das ist NUR sinnvoll,
+ * wenn der Aufrufer die passende Ebenenliste hat (aus dem Lauf-Manifest jenes Laufs) —
+ * sonst liest er die richtigen Bytes unter falschen Namen.
+ */
+export function readCubeHeader(bytes: Uint8Array, opts: { allowOtherSchema?: boolean } = {}): {
   header: CubeChunkHeader;
   directory: readonly { offset: number; length: number; filter: number }[];
 } {
@@ -670,7 +778,14 @@ export function readCubeHeader(bytes: Uint8Array): {
   const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   if (dv.getUint32(0, false) !== CUBE_MAGIC) throw new Error('cube: falsches Magic');
   const schema = dv.getUint16(4, true);
-  if (schema !== CUBE_SCHEMA) throw new Error(`cube: Schema ${schema}, erwartet ${CUBE_SCHEMA}`);
+  if (schema !== CUBE_SCHEMA && !opts.allowOtherSchema) {
+    throw new Error(
+      `cube: Schema ${schema}, erwartet ${CUBE_SCHEMA}. Ein älterer Chunk hat eine andere `
+      + 'Ebenenliste — mit CUBE_PLANES gelesen ergäbe er stillschweigend falsche Größen. '
+      + 'Wer ihn lesen will, übergibt die Ebenenliste aus SEINEM Lauf-Manifest '
+      + '(decodeCubeChunk(bytes, { planes })).',
+    );
+  }
   const nvar = dv.getUint8(13);
   const dirOffset = dv.getUint32(24, true);
   const directory: { offset: number; length: number; filter: number }[] = [];
@@ -707,9 +822,28 @@ export function readCubeHeader(bytes: Uint8Array): {
  */
 export async function decodeCubeChunk(
   bytes: Uint8Array,
-  opts: { wanted?: readonly string[]; decompress?: Compressor; checkCrc?: boolean } = {},
+  opts: {
+    wanted?: readonly string[];
+    decompress?: Compressor;
+    checkCrc?: boolean;
+    /**
+     * Ebenenliste dieses Chunks. Voreinstellung `CUBE_PLANES` — die des aktuellen Schemas.
+     * Ein Leser mit dem Lauf-Manifest kann hier dessen `planes` übergeben und damit auch
+     * einen Chunk aus einem anderen Schema richtig benennen. **Genau deshalb trägt das
+     * Manifest die Ebenen mit Skala:** ab hier ist der Container selbstbeschreibend, und
+     * die nächste Ebenenerweiterung braucht keinen Schemabruch mehr.
+     */
+    planes?: readonly { id: string }[];
+  } = {},
 ): Promise<CubeChunk> {
-  const { header, directory } = readCubeHeader(bytes);
+  const planeList = opts.planes ?? CUBE_PLANES;
+  const { header, directory } = readCubeHeader(bytes, { allowOtherSchema: opts.planes != null });
+  if (planeList.length !== header.nvar) {
+    throw new Error(
+      `cube: Chunk hat ${header.nvar} Ebenen, die Liste nennt ${planeList.length} — `
+      + 'jede Zuordnung wäre um die Differenz verschoben.',
+    );
+  }
   const decompress = opts.decompress ?? inflateRaw;
   if (opts.checkCrc !== false) {
     const payloadStart = CUBE_HEADER_BYTES + DIR_ENTRY_BYTES * header.nvar;
@@ -722,7 +856,7 @@ export async function decodeCubeChunk(
   const cells = header.nt * header.ny * header.nx;
   const planes: Int16Array[] = [];
   for (let p = 0; p < header.nvar; p++) {
-    const meta = CUBE_PLANES[p];
+    const meta = planeList[p];
     if (want && (!meta || !want.has(meta.id))) { planes.push(new Int16Array(0)); continue; }
     const d = directory[p];
     planes.push(await unpackBlock(bytes.subarray(d.offset, d.offset + d.length), cells, header.nx, d.filter, decompress));
@@ -760,9 +894,36 @@ export async function cubeSelfTest(): Promise<{ checks: CubeCheck[]; passed: num
   // (2) IDs eindeutig, Ebenen aus den Größen abgeleitet.
   add('Größen-IDs eindeutig', new Set(CUBE_VARS.map((v) => v.id)).size === CUBE_VARS.length);
   add('Ebenen-IDs eindeutig', new Set(CUBE_PLANES.map((p) => p.id)).size === CUBE_PLANES.length);
-  add('Ebenenzahl = Größen + Streuungen',
-    CUBE_PLANES.length === CUBE_VARS.length + CUBE_VARS.filter((v) => v.sigma).length,
-    `${CUBE_PLANES.length} Ebenen`);
+  add('Ebenenzahl = Größen + σ_div + σ_ens + 2·Quantile',
+    CUBE_PLANES.length === CUBE_VARS.length
+      + CUBE_VARS.filter((v) => v.sigmaDiv).length
+      + CUBE_VARS.filter((v) => v.sigmaEns).length
+      + 2 * CUBE_VARS.filter((v) => v.quantiles).length,
+    `${CUBE_PLANES.length} Ebenen = ${CUBE_VARS.length} + ${CUBE_VARS.filter((v) => v.sigmaDiv).length} σ_div`
+      + ` + ${CUBE_VARS.filter((v) => v.sigmaEns).length} σ_ens + 2·${CUBE_VARS.filter((v) => v.quantiles).length} Quantile`);
+  // Ein Quantil ist ein WERT derselben Groesse, keine Streuung — es behaelt deshalb
+  // Skala UND Versatz. Stuende hier `offset: 0`, laege eine Temperatur um den
+  // Versatz daneben, und zwar lautlos.
+  add('Quantil-Ebenen behalten Skala und Versatz ihrer Größe',
+    CUBE_PLANES.filter((p) => p.kind === 'q10' || p.kind === 'q90').every((p) => {
+      const v = CUBE_VARS.find((x) => x.id === p.varId);
+      return !!v && p.scale === v.scale && p.offset === v.offset;
+    }));
+  // σ_ens ohne σ_div waere sinnlos: die Ensemble-Streuung ist eine VERFEINERUNG des
+  // Divergenz-Zweigs, keine Alternative fuer eine Groesse, die gar keine Streuung fuehrt.
+  add('keine Größe führt σ_ens ohne σ_div',
+    CUBE_VARS.every((v) => !v.sigmaEns || v.sigmaDiv),
+    CUBE_VARS.filter((v) => v.sigmaEns && !v.sigmaDiv).map((v) => v.id).join(',') || 'keine');
+  // Reihenfolge je Groesse ist Vertrag: Median, dann σ_div, dann σ_ens.
+  add('Ebenen-Reihenfolge je Größe: mean → sd → sd_ens → q10 → q90', (() => {
+    for (const v of CUBE_VARS) {
+      const want = ['mean', ...(v.sigmaDiv ? ['sd'] : []), ...(v.sigmaEns ? ['sd_ens'] : []),
+        ...(v.quantiles ? ['q10', 'q90'] : [])];
+      const got = CUBE_PLANES.filter((p) => p.varId === v.id).map((p) => p.kind);
+      if (want.join() !== got.join()) return false;
+    }
+    return true;
+  })());
   add('Ebenenzahl passt in u8', CUBE_PLANES.length <= 255, String(CUBE_PLANES.length));
 
   // (3) Zeitachse: gezählt, nicht behauptet.

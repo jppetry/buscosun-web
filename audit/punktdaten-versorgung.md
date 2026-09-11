@@ -2014,3 +2014,2679 @@ Vorschlag dann auch prompt widerlegt. Die Lehre ist nicht „haette ich es doch 
 gemacht", sondern: **eine dokumentierte Vermutung bleibt eine Vermutung, auch wenn sie
 plausibel klingt und in einer Tabelle steht.** Erst die 15 Minuten Messung haben aus
 E-19 eine Entscheidung gemacht.
+
+---
+
+## §32 Der Cron läuft (2026-09-09, 17:47 UTC)
+
+Der letzte manuelle Schritt aus §30 ist getan: `scripts/repack-repo/workflow-point.yml` liegt
+als `.github/workflows/point.yml` im Daten-Repo. Commit `fb9e483`, Push `70ed806..fb9e483` —
+der Token trägt den `workflow`-Scope, die Annahme aus `MANUELLE-SCHRITTE.md` §13, das müsse
+Jan von Hand tun, galt nur für einen Push **aus einer Action heraus**.
+
+Nachgeprüft am Remote, nicht am lokalen Baum: die Datei steht auf `origin/main`, misst
+9 222 B und ist **byte-gleich zur Vorlage**; die Cron-Zeile lautet `50 3,9,15,21 * * *`.
+Die GitHub-API meldet den Workflow als registriert:
+
+```
+active   .github/workflows/build.yml            build
+active   .github/workflows/point.yml            point
+active   .github/workflows/radar-watchdog.yml   radar-watchdog
+active   .github/workflows/radar.yml            radar
+```
+
+Erster planmäßiger Lauf: **21:50 UTC**. Er zieht ICON-D2 18z, ICON-EU 18z, ICON global 18z
+und IFS 12z, legt `point/2026090918` neben den bestehenden Lauf und lässt den älteren stehen,
+bis er 24 h überschreitet (`RETENTION_HOURS`, `MIN_RUNS = 2`). Der erste Lauf hat keinen
+warmen Cache und zieht ~2 GB — die gemessenen 20–40 min gelten für den eingeschwungenen
+Zustand, das Timeout steht mit 330 min weit darüber.
+
+**Damit ist die Linie geschlossen:** Producer im Anwendungs-Repo, Vorlage im Anwendungs-Repo,
+Workflow im Daten-Repo, Aufbewahrung im Publisher, Auslieferung über jsDelivr.
+
+---
+
+## §33 Vollständigkeitsprüfung gegen `ABLAUFPLAENE.md` (2026-09-09, nach dem Cron-Start)
+
+Jans Frage: liegen auf `buscosun-data` **alle** Daten, die der Algorithmus später braucht —
+für jeden Punkt im DACH-Raum, über die ganze Quellenmatrix?
+
+**Antwort: nein.** Der Raum stimmt vollständig, die Zeitachse trägt, aber ein Drittel der
+Felder fehlt, und die Quellenmatrix ist nur in ihrer deutschen Spalte abgebildet. Alles
+Folgende ist am veröffentlichten Lauf gemessen, nicht aus dem Bauplan gelesen.
+
+### 33.1 Die Messung, und woran sie hängt
+
+Gemessen am Baum unter `data/repo/point/2026090912`. Dass dieser Baum dem entspricht, was
+wirklich auf `buscosun-data` liegt, ist einzeln geprüft: `point/index.json` vom CDN nennt
+Commit `2e96e22b06a688b64851fafa9e3a8054c1297671`, `publishedAt 2026-09-09T15:49:48Z`,
+**einen** Lauf `2026090912` mit `55 862 146` Bytes — identisch zum lokalen Stand.
+
+Die Sonde dekodiert die echten Chunks (CRC geprüft) und liest an zehn DACH-Punkten
+(Hamburg, Berlin, München, Zugspitze, Wien, Innsbruck, Graz, Zürich, Genf, Zermatt)
+jede der 27 Ebenen über alle 109 Zeitschritte.
+
+### 33.2 Der Raum ist vollständig, die Achse auch
+
+276 von 276 erwarteten Chunks liegen da: t1 13×16 = 208, t2 7×8 = 56, t3 3×4 = 12. Das
+Gitter beginnt bei 45,5 °N / 5,5 °E und reicht bis 55,5 °N / 17,5 °E — DACH liegt mit Rand
+darin (CH ab 45,82 °N / 5,96 °E, DE bis 55,06 °N, AT bis 17,16 °E). **Kein DACH-Punkt fällt
+aus dem Gitter.**
+
+Die Achse trägt 109 Schritte (49 + 24 + 36) und damit 0–336 h. Zwei Stellen sind konstruktiv
+leer, weil die Auflösung wechselt: **49 und 50 h** (t1 endet bei 48, t2 beginnt bei 51) und
+**121–125 h** (t2 endet bei 120, t3 beginnt bei 126). Das ist die abgeleitete Achse aus E-10,
+keine Lücke im Datum — aber ein Client, der nach „49 h" fragt, muss interpolieren.
+
+### 33.3 Die 41 Felder, ausgezählt
+
+| Zustand | Anzahl | Felder |
+|---|---|---|
+| **vollständig geliefert** | **17** | `t2m` `td2m` `u10` `v10` `clct` `ps` (1,2,3,4,7,11) · `hModEff` (17) · `h` `tpi500` `tpi2000` `svf` `z0` `dwater` `lcClass` `sx` (18–22, 25–27, Client-Rechenweg) · `sources[]` `runAt` (40,41) |
+| **lückenhaft** | **6** | `gust` (5) · `precip` (6) · `clcl` `clcm` `clch` (8–10) · `snowlmt` (12) |
+| **fehlt ganz** | **8** | `gammaEff` `zBase` `zInv` `dTInv` (13–16) · `d0` `imperv` (23,24) · `dah` `foehnLee` (28,29) |
+| **Form da, Wert `null`** | **10** | `sigmaSys` `Sigma` `cSpread` `Ld/Lh` `A/A_uhi` `a,v_ref,ε` `phi` `dzMin` `meltOffset` `tpiSigma` (30–39) |
+
+Die Lücken im Einzelnen, gemessen:
+
+```
+t1  0–48 h    21 Ebenen voll · precip + precip_sd fehlen bei 0 h (98 %)
+              gammaEff zBase zInv dTInv nie belegt
+t2  51–120 h  20 Ebenen voll · gust_sd 88 % · snowlmt 88 % · snowlmt_sd nie
+t3  126–336 h  9 Ebenen voll · alle σ, gust, clcl/clcm/clch nur 126–180 h (28 %)
+              gust_sd snowlmt snowlmt_sd nie belegt
+```
+
+`precip` bei 0 h ist korrekt und keine Lücke: eine Stundensumme über die Stunde vor dem
+Lauf gibt es nicht.
+
+### 33.4 Der ernsteste Befund: ab 186 h trägt **eine** Quelle
+
+`srcCount` an München, Wien und Zürich, über die ganze Achse:
+
+```
+t1  0 h = 4 · Stunden ohne Teiler 3 = 2 · durch 3 teilbar = 3 · durch 6 teilbar = 4
+t2  51–111 h = 4 · 114–120 h = 3
+t3  126–144 h = 4 · 150–180 h = 3 · 186–336 h = 1
+```
+
+**150 der 336 Vorhersagestunden — 44 % des Horizonts — ruhen auf AIFS Single allein.**
+IFS HRES trägt in t3 nur vier Schritte (der gegriffene 06z-Lauf ist ein `scda`-Lauf und
+endet bei 144 h), ICON global und AICON enden bei 180 h. Damit ist ab 186 h `σ_div` per
+Konstruktion null, und alle `_sd`-Ebenen sind dort leer.
+
+PAP 6 sieht diesen Fall ausdrücklich vor: „Bei nur einer beitragenden Quelle wird der Nenner
+von `σ_div²` exakt null; dort entfällt der Term und `σ_ges² = σ_sys² + σ_quant²`." Nur ist
+`σ_sys` **ungemessen** (§33.3, Zeile 30). Praktische Folge, ehrlich gesagt: **jenseits 180 h
+gibt es heute überhaupt keine Unsicherheitsinformation** — weder aus Divergenz noch aus dem
+Sockel. Ein p10/p90 dort wäre erfunden.
+
+Kur, in dieser Reihenfolge: (a) IFS HRES aus dem `oper`-Lauf (00z/12z, 360 h) statt aus dem
+jüngsten — der Cron trifft ihn um 09:50 und 21:50 bereits, der Ingest greift aber nach dem
+neuesten Lauf, nicht nach dem weitesten; (b) IFS ENS / AIFS ENS als echte Member (nicht als
+Kontrolllauf, V-PD-9); (c) `σ_sys` aus `buscosun-archiv`.
+
+### 33.5 Die Quellenmatrix ist länderspezifisch — der Cube ist es nicht
+
+`srcCount` ist in München, Wien und Zürich **Stunde für Stunde identisch**. Das ist kein
+Zufall der Messpunkte, sondern die Aussage: der Cube kennt keine Länder. Jeder Punkt in
+Österreich und der Schweiz wird heute aus der **deutschen Spalte** der Matrix versorgt.
+
+Von 22 Registry-Einträgen sind **6 ingestiert**: ICON-D2, ICON-EU, ICON global, AICON,
+IFS HRES, AIFS Single. Gegen Jans Tabelle gehalten:
+
+| Band | Deutschland | Österreich | Schweiz |
+|---|---|---|---|
+| 0–3 h | ICON-D2 ✓ · RV/RY/HG nur als Spiegel (roh, ohne Leser) | ICON-D2 ✓ · INCA nur als **PNG** | ICON-D2 ✓ · CombiPrecip/RZC nur als **PNG** · ICON-CH1-EPS ✗ |
+| 3–33 h | ICON-D2 ✓ · D2-EPS ✗ · MOSMIX ✗ | C-LAEF ✗ · C-LAEF-EPS ✗ · MOSMIX-L ✗ | ICON-CH1-EPS ✗ · E4 ✗ · KENDA-CH1 ✗ |
+| 33–48 h | ICON-D2 ✓ · D2-EPS ✗ · MOSMIX-L ✗ | C-LAEF ✗ · C-LAEF-EPS ✗ | ICON-CH2-EPS ✗ · E4 ✗ |
+| 48–60 h | ICON-EU ✓ · EU-EPS ✗ · MOSMIX-L ✗ | C-LAEF ✗ · C-LAEF-EPS ✗ | ICON-CH2-EPS ✗ · E4 ✗ |
+| 60–120 h | ICON-EU ✓ · EU-EPS ✗ · MOSMIX-L ✗ | ICON-EU ✓ · EU-EPS ✗ | ICON-CH2-EPS ✗ · E4 ✗ |
+| 120–180 h | global ✓ · AICON ✓ · EPS global ✗ · IFS ✓ (4 Schritte) | dito | dito · E4 ✗ |
+| 180–240 h | **AIFS Single ✓ — sonst nichts** · IFS HRES ✗ · IFS/AIFS ENS ✗ · MOSMIX-L ✗ | dito | dito · E4 ✗ |
+| 240–336 h | **AIFS Single ✓ — sonst nichts** · IFS/AIFS ENS ✗ | dito | dito |
+
+Die drei Nowcast-Quellen liegen im Repo, aber **nicht in verwendbarer Form für einen Punkt**:
+RV als rohes `.tar.bz2` (verlustfrei, aber ohne Leser), INCA und RZC nur als gerenderte PNG —
+ein Punktwert daraus ist auf die Palette quantisiert. Für 0–3 h trägt heute allein ICON-D2,
+also genau die Quelle, die die Matrix dort als **dritte** Wahl führt.
+
+### 33.6 Was bewusst so ist, und was eine Lücke ist
+
+**Bewusst so** (keine Nacharbeit nötig): die zwölf Terrain-Felder sind kein Datenprodukt
+(§25) — acht davon rechnet `terrainPoint.ts` am Punkt aus Terrarium und WorldCover. Die
+Ensemble-Kontrollläufe bleiben draußen (V-PD-9). MOSMIX ist ein eigenes Produkt
+(`point/stations/`, im Index angekündigt, **noch nicht gebaut**). Die Achsenlücken bei
+49/50 und 121–125 h folgen aus E-10.
+
+**Echte Lücken**, nach Wirkung geordnet:
+
+1. **`gammaEff`, `zBase`, `zInv`, `dTInv` fehlen überall** (E-11, 1,13 GiB/Lauf Profil-Ingest).
+   Ohne sie hat PAP 4 keine Fallunterscheidung: die Verzweigung `z_inv > z_base` ist nie
+   entscheidbar, Fall B und Fall C sind unerreichbar, und Fall A muss auf
+   `standardLapse = 0,0065 K/m` zurückfallen. Genau die Inversionslagen, für die der
+   Algorithmus gebaut ist — Alpentäler im Winter — sind damit die, die er nicht kann.
+2. **Kein `σ` jenseits 180 h** (§33.4).
+3. **`calib.json` ist leer** — zehn Felder, jeder Wert `null`. `σ_sys` ist nach PAP 6
+   „zwingend"; `L_d`, `L_h`, `A`, `A_uhi`, `φ`, `Δz_min` sind es für PAP 3/4/5.
+4. **`imperv` und `d0` fehlen** (GHS-BUILT-S / -H, E-13) ⇒ der Wärmeinselterm `ΔT_uhi` und
+   die zweistufige Blending-Height-Korrektur in PAP 5 haben keine Eingabe.
+5. **`dah` und `foehnLee` fehlen** ⇒ `foehn_prob` in PAP 5 ist nicht berechenbar; der Faktor
+   `(1 − foehn_prob)` stünde damit dauerhaft auf 1, also räumte kein Föhn je einen
+   Kaltluftsee aus.
+6. **AT und CH haben keine eigene Quelle** (§33.5).
+7. **Die Nowcast-Stunden 0–3 h laufen auf dem Modell**, nicht auf dem Radar (§33.5).
+
+### 33.7 Bewertung
+
+Was steht, steht gut: der Raum ist lückenlos, die Achse trägt bis 336 h, die sechs
+Kern-Zielgrößen liegen durchgehend vor, die Herkunft ist über `sources[].role/steps/runAt`
+und `tiers[].ageH` ehrlicher ausgewiesen, als die Anforderung verlangt, und die Auslieferung
+ist byte-gleich am CDN nachgemessen.
+
+Was fehlt, fehlt **im Kern des Verfahrens**, nicht am Rand: die vier Profilfelder sind der
+Unterschied zwischen „höhenkorrigierte Temperatur" und „Temperatur minus 6,5 K/km", und die
+leere Kalibrierung ist der Unterschied zwischen einem Quantil und einer Zahl mit einem
+Fehlerbalken daneben. Beide sind benannt (E-11, PA/`buscosun-archiv`) und beide brauchen
+eine Entscheidung, keine weitere Analyse.
+
+**Der Satz, der die Lage zusammenfasst:** das Datenfundament trägt heute den Teil des
+Algorithmus, der auch ohne es funktioniert hätte — und noch nicht den Teil, für den er
+entworfen wurde.
+
+---
+
+## §34 PD-B1: die Auswahl repariert (2026-09-09, abends)
+
+Jans Auftrag: einen Plan, der **alle** Quellen der Matrix ins Daten-Repo bringt, für den
+ganzen DACH-Raum. Der Plan steht (PD-B1…B8); diese Etappe ist die erste und die billigste —
+sie holt **kein einziges neues Byte** und schließt trotzdem den schwersten Befund aus §33.
+
+### 34.1 Zwei Fehler, die erst an neuen Quellen sichtbar geworden wären
+
+**(a) Die Laufwahl nahm den jüngsten Lauf, nicht den weitesten.** `build-point-cube.mjs`
+rief `a.discoverRun(leadHours[0])` — geprüft wurde also die **erste** Stunde der Stufe.
+Für Stufe 3 (126–336 h) besteht der ECMWF-Lauf 06z diese Probe: er ist ein `scda`-Lauf und
+endet bei 144 h (⚠⁷), trägt also 126 h. Er verdrängte damit den 00z-`oper`-Lauf mit 360 h.
+Genau daraus entstand der Befund §33.4 — jenseits 180 h blieb AIFS Single als einzige
+Quelle, `srcCount = 1`, alle σ-Ebenen leer.
+
+Dieselbe Klasse steckte in ⚠⁵ und ⚠⁶: ICON-EU trägt bei 03/09/15/21 UTC nur 48 h statt 120,
+ICON global bei 06/18 UTC nur 120 statt 180.
+
+**(b) Die Domänen-Prüfung wurde nie aufgerufen.** `sourceMatrix.ts` führt seit PD-A je
+Quelle `domain`, `clip` und `edgeMarginKm` und die Helfer `coversPoint`/`sourcesForPoint` —
+und **kein Aufrufer außerhalb des Selbsttests** hat sie je benutzt. Die Fusionsschleife lief
+über jede Zelle und mittelte, was endlich war. Unsichtbar, solange nur ICON-D2/EU/global/
+AICON/IFS/AIFS verdrahtet sind: sie decken den ganzen Ausschnitt. Ab C-LAEF (bis 51,5 °N),
+ICON-CH (`edgeMarginKm: 20`) und RADVOR RV (`clip` schneidet östlich 14,1 °E) wäre es ein
+stiller Fehler — und `fillNearest` verschmiert zusätzlich bis zu drei Ringe, bei Stufe 1
+rund **15 km über den Domänenrand hinaus**.
+
+`QUELLENMATRIX.md` §2 sagt die Regel wörtlich: *„Die Quellenauswahl muss geometrisch über
+die Domain entschieden werden, nicht über das Land."*
+
+### 34.2 Was umgesetzt ist
+
+| Datei | Änderung |
+|---|---|
+| `scripts/point/adapters/{dwdRegular,dwdIcosahedral,ecmwf}.mjs` | `discoverRun(leadMax, nowMs, maxBack)` — begrenzbare Rückwärtssuche |
+| `scripts/point/build-point-cube.mjs` | `chooseRun()`, `domainMask()`, `applyMask()`; Maske auf Feldern **und** Orographie; `srcMask`-Grenze; Manifest um `coverage`, `geometry`, `fusion.geometry`, `fusion.runChoice` |
+| `scripts/verify-point-data.mjs` | Block (3e), 18 neue Prüfungen, **241 → 259** |
+
+`chooseRun` sucht zuerst einen Lauf, der bis zur **letzten** Stunde der Stufe reicht
+(höchstens vier Slots zurück); erst wenn es den nicht gibt, den jüngsten, der wenigstens
+die erste trägt. Der Registry-Horizont dient dabei nur als **Vorfilter** — reicht eine
+Quelle nirgends bis zur letzten Stunde (ICON global in Stufe 3: 180 h gegen 336 h), wird
+die Probe gar nicht erst gestellt. Geprüft wird danach am Objekt, nie an der Tabelle
+(§21 (7)).
+
+`domainMask` gibt **`null` zurück, wenn die Quelle den ganzen Stufenausschnitt trägt.**
+Damit ändert sich für die heutigen sechs Quellen kein Byte und keine Kopie fällt an; die
+Maske materialisiert sich erst für die Quellen, die sie brauchen.
+
+### 34.3 Am echten Datum belegt
+
+Laufwahl gegen die echten Verzeichnisse (2026-09-09 18:41 UTC):
+
+```
+t3  ifs_hres      alt 2026090906   neu 2026090900   4/36 → 36/36 Stunden
+t2  (unverändert) ifs_hres 06z · icon_global/aicon/icon_eu 12z
+```
+
+Stufe 3 neu gebaut und mit dem veröffentlichten Stand verglichen, `srcCount` und
+`t2m_sd` an denselben drei Punkten:
+
+```
+VORHER   München/Wien/Zürich   126–144h n=4 σ · 150–180h n=3 σ · 186–336h n=1 (kein σ)
+NACHHER  München/Wien/Zürich   126–180h n=4 σ ·                  186–336h n=2 σ
+```
+
+**Damit ist der Befund aus §33.4 geschlossen:** über alle 336 Stunden tragen mindestens
+zwei Quellen, und σ_div existiert durchgehend. Stufe 3 wächst dabei von 20 auf **21 belegte
+Ebenen** und von 0,76 auf **1,29 MiB**.
+
+**Der Preis, gemessen und nicht verschwiegen:** Stufe 3 zieht jetzt **944,8 MiB in 777
+Dateien** und braucht **6,4 min** (vorher trug IFS dort nur vier Schritte). Das ist der
+Grund, warum jede weitere Etappe ihre Laufzeit messen muss — s. 34.5.
+
+### 34.4 Drei Korrekturen, die erst die Messung erzwungen hat
+
+1. **Meine eigene Negativ-Kontrolle war falsch.** Sie behauptete, Wien liege in der
+   RV-*Domäne* und werde erst durch `clip` entfernt. Tatsächlich endet die Domäne bei
+   **15,7 °E**, Wien liegt bei 16,37 — der Test bewies über `clip` gar nichts. Der Ort, den
+   erst der Schnitt herausnimmt, ist **Linz** (14,29 °E gegen 14,1) — genau die Aufzählung
+   in ⚠¹ („Nicht abgedeckt: Linz, Graz, Klagenfurt, Villach, Wien"). Die Gegenprobe hat also
+   getan, wofür es sie gibt: sie hat den Prüfer widerlegt, nicht den Code.
+2. **Die Abdeckung darf nicht aus der Sonde folgen.** Der erste Entwurf leitete
+   `coverage` daraus ab, welche Probe den Lauf gefunden hatte — und meldete an der echten
+   Quelle für **AIFS Single in Stufe 2 `full` bei null gelieferten Stunden**: AIFS trägt
+   120 h, aber keine 51 h (6-stündliche Achse, 51 ist kein Vielfaches von 6). Die Bandsonde
+   fand den Lauf, `leadsFor` fand nichts. `chooseRun` ist jetzt **stumm zur Abdeckung**; sie
+   kommt aus den gemessenen Stunden. Der Verifier hält das fest (`chooseRun` darf kein
+   `coverage`-Feld zurückgeben).
+3. **`members` im Manifest war immer 0.** Der Ausdruck lautete `c.adapter?.ensembleControlOnly`,
+   und `contributors` trug nie ein `adapter`-Feld — dieselbe Klasse wie `sigmaKind` vor §23:
+   ein Feld, das an jeder Stelle dasselbe sagt, sagt nichts.
+
+### 34.5 Nebenbefund, nachgemessen: `ifs_ens` hat noch nie ein Feld geliefert
+
+Der Kommentar in `ecmwf.mjs` sagte „PD-A nimmt den Kontrolllauf (`number` fehlt oder 0)".
+Am Objekt geprüft (`…/ifs/0p25/enfo/20260909000000-144h-enfo-ef.index`, 2 012 902 B):
+**1 800 sfc-Einträge, ausnahmslos `type: "pf"` mit `number` 1…50** — kein Kontrolllauf.
+Der Filter behält davon **null**. Aufgefallen ist es nie, weil `ensembleControlOnly` die
+Quelle ohnehin aus dem Mittel hält (V-PD-9). Für IFS liegt der Kontrolllauf woanders als
+bei AIFS (dort `enfo-cf`); die beiden Produkte sind verschieden abgelegt. Der Kommentar
+trägt jetzt die Messung; behoben wird es in PD-B8, wenn die Member wirklich gelesen werden.
+
+### 34.6 Die Laufzeit ist die knappste Ressource — und der Deckel ist enger als gedacht
+
+Jan hat ≤ 120 min je Lauf freigegeben. Der Verifier ist strenger: `verify-point-data.mjs`
+fordert `Abstand ≥ JOB_MAX_MIN + 20` und rechnet mit `JOB_MAX_MIN = 40`. Bei 100 min
+Abstand zum Force-Push der Kartenlinie ist das **tatsächliche Budget 80 min**. Und
+`JOB_MAX_MIN` schreibt sich nicht selbst fort: wächst der Lauf auf 85 min, bleibt der
+Verifier grün und der Push landet trotzdem im Löschfenster (§27).
+
+**Ab PD-B4 trägt deshalb jedes Gate die gemessene Laufzeit und zieht `JOB_MAX_MIN` mit.**
+Reicht es nicht, gibt es drei Auswege in dieser Reihenfolge: Slot auf `:40` (110 min
+Abstand), zwei Workflows mit derselben `concurrency`-Gruppe, oder `RETENTION_HOURS` auf
+12 h — was Repo-Größe **und** Klondauer der Kartenlinie senkt.
+
+### 34.7 Gate GPD-B1
+
+| Nachweis | Ergebnis |
+|---|---|
+| `srcCount ≥ 2` über alle 36 t3-Schritte | ✅ 126–180 h n=4, 186–336 h n=2 |
+| `t2m_sd` bis 336 h vorhanden | ✅ (vorher ab 186 h leer) |
+| Quelle mit schmaler Domäne schreibt nichts außerhalb | ✅ synthetisch + Linz/Hamburg/Bern am Zellgitter |
+| heutige Quellen unverändert | ✅ alle sechs ohne Maske (`domainMask → null`) |
+| `verify:point-data` | ✅ **259/259** (war 241) |
+| typecheck · Build · Budget | ✅ grün · grün · totalJs 1 345,8/1 350 unverändert |
+
+---
+
+## §35 PD-B2: σ_ens bekommt einen eigenen Ort (Schema 2, 2026-09-09)
+
+### 35.1 Warum jetzt und nicht später
+
+PAP 6 verzweigt **entweder-oder**: liegt ein Ensemble vor, gilt `σ = c(p,f)·σ_ens`, sonst
+`σ² = σ_div² + σ_sys²`. Bis Schema 1 lagen beide Streuungsarten in **derselben** Ebene
+`<var>_sd` — die Verzweigung war damit nicht entscheidbar, und `SIGMA_KIND.ensemble` war
+ein Enum-Eintrag, den nichts je erreichen konnte.
+
+Der Formatbruch verschiebt jeden Ebenenindex (27 → 36). Er ist **heute kostenlos**, weil es
+noch keinen Client-Leser gibt (der ist PD2) und die Aufbewahrung 24 h beträgt — nach einem
+Slot ist alles Schema 2. Später wäre derselbe Schritt eine Änderung an jedem Nutzer.
+
+### 35.2 Was das Format jetzt sagt
+
+| | |
+|---|---|
+| `<var>_sd` | Streuung **zwischen den Quellen** (σ_div). `srcCount` nennt n je Zelle. |
+| `<var>_sd_ens` | Streuung **zwischen den Membern innerhalb einer Quelle** (σ_ens). `ensCount` nennt n je Zelle. |
+| `ensCount` | neue Meta-Ebene neben `srcCount` — ohne n ist `E[s] = c₄(n)·σ` nicht anwendbar. Das Manifest nennt die Regel seit PD-A unter `fusion.memberBias`, und **niemand konnte sie benutzen**, weil n nirgends stand. |
+
+`CubeVar.sigma` heißt jetzt `sigmaDiv`, daneben steht `sigmaEns`. **19 Größen + 9 σ_div +
+8 σ_ens = 36 Ebenen.** `sigmaKindOf(mean, sd, ens)` liest den Zweig weiter **aus den Daten**,
+nicht aus einem Flag — die dokumentierte Absage an eine `sigmaKind`-Rasterebene (§23.3) gilt
+unverändert: sie galt EINEM Enum je Zelle über ALLE Größen hinweg. Getrennte Ebenen **je
+Größe** sind die Konsequenz aus derselben Lehre, nicht ihr Rückfall.
+
+⚠ Im Manifest steht ausdrücklich, dass man die beiden **nicht addieren** darf: die Member
+einer Quelle streuen bereits um deren eigenes Mittel, und dieses Mittel geht anschließend
+in σ_div ein. Die Summe zählte dieselbe Unsicherheit zweimal.
+
+### 35.3 `snowlmt` bekommt kein σ_ens — und das ist gemessen, nicht vergessen
+
+Eine Ebene, die keine Quelle je füllen kann, ist ein Feld ohne Schreiber (V-SH-11,
+andersherum). Deshalb bekommt eine Größe nur dann `_sd_ens`, wenn mindestens eine
+Ensemble-Quelle sie führt. An den drei DWD-EPS-Verzeichnissen nachgesehen
+(`opendata.dwd.de/weather/nwp/icon-{d2,eu}-eps` und `icon-eps`, 2026-09-09): **keines führt
+die Schneefallgrenze.** `snowlmt_sd_ens` gibt es deshalb nicht, und der Verifier hält den
+Grund fest.
+
+### 35.4 Die Registry war zu bescheiden — der Verifier hat es gefunden
+
+Die neue Prüfung „jede σ_ens-Ebene hat mindestens eine Ensemble-Quelle" fiel beim ersten
+Lauf durch: **`td2m`, `gust`, `ps`**. Nicht weil das Format falsch war, sondern weil die
+Registry **weniger behauptete, als die Quellen liefern**. Am Verzeichnis gemessen:
+
+| Quelle | Registry sagte | gemessen |
+|---|---|---|
+| `icon_d2_eps` | t2m, u10, v10, precip | + **td2m, gust, clct, clcl, clcm, clch, ps** |
+| `icon_eu_eps` | t2m, u10, v10, precip | + **gust, clct, ps** (kein td_2m) |
+| `icon_eps_global` | t2m, u10, v10, precip | + **td2m, gust, clct, ps** |
+| `ifs_ens` | t2m, u10, v10, precip | + **td2m, clct, ps** (am `.index` abgelesen) |
+
+Dabei ein Detail, das sonst erst in PD-B8 aufgefallen wäre: **IFS-ENS führt die Böe nur als
+`10fg3`** (3-stündlich), nicht als `10fg` wie der deterministische Lauf — die
+Parametertabelle in `ecmwf.mjs` findet sie deshalb heute nicht. Steht als Notiz an der
+Quelle.
+
+Das ist dieselbe Lehre wie bei den Schrittlisten (§21 (7)): **die Matrix nennt Fähigkeiten,
+das Verzeichnis nennt Tatsachen.**
+
+### 35.5 Der Container ist jetzt selbstbeschreibend
+
+`decodeCubeChunk(bytes, { planes })` nimmt eine Ebenenliste entgegen; Voreinstellung bleibt
+`CUBE_PLANES`. Ein Leser, der das Lauf-Manifest hat, kann damit **jeden** Lauf richtig
+benennen — auch einen aus einem anderen Schema. Genau dafür trägt `run.json` die Ebenen mit
+Skala seit PD-A; ab jetzt wird es benutzt, und **die nächste Ebenenerweiterung braucht
+keinen Schemabruch mehr.**
+
+Ohne Liste wird ein fremdes Schema **laut abgelehnt**, mit der Kur im Klartext — nicht still
+falsch gelesen. Eine Liste mit falscher Länge fällt ebenfalls auf, statt alles um die
+Differenz zu verschieben.
+
+`planeManifest()` nennt je Ebene zusätzlich `of` (zu welcher Größe) und `kind`
+(`mean`/`sd`/`sd_ens`), damit ein Leser die Bedeutung nicht aus dem Namen raten muss —
+dieselbe Falle wie „Schlüssel ≠ Dateipräfix" (PD0 R-2).
+
+**Sofort nutzbar geworden:** `scripts/point/check-cdn.mjs` holt die Ebenenliste jetzt aus
+`run.json` desselben Laufs statt aus dem Code. Am **veröffentlichten Schema-1-Stand**
+belegt: „Manifest: Schema 1 · 27 Ebenen", `t2m` und `t2m_sd` korrekt dekodiert, byte-gleich
+zur Quelle. Ohne diese Änderung wäre das Werkzeug nach dem Schemasprung gegen die Produktion
+gelaufen und hätte abgebrochen.
+
+### 35.6 Der Preis, gemessen
+
+Stufe 3 zweimal gebaut, aus demselben Cache, nur das Schema unterschiedlich:
+
+```
+12 Chunks · Schema 1  1 355 202 B · Schema 2  1 359 522 B · +0,32 %
+27 gemeinsame Ebenen · 1 952 748 Werte verglichen · 0 Abweichungen
+```
+
+**Neun zusätzliche, durchgehend leere Ebenen kosten 0,32 %** — eine `int16`-Ebene aus lauter
+`MISSING` komprimiert praktisch auf nichts. Und die Gegenprobe, die zählt: **kein einziger
+Wert der 27 gemeinsamen Ebenen hat sich verändert.** Der Vergleich lief über den neuen
+`planes`-Weg gegen die echte Schema-1-Datei — damit ist derselbe Mechanismus zweimal belegt,
+synthetisch und am Datenträger.
+
+### 35.7 Drei fest verdrahtete Schema-Zahlen entfernt
+
+`runManifest()` schrieb `schema: 1` als Literal, und der Verifier prüfte `=== 1`. Beides war
+nach dem Sprung falsch — die Klasse „fortgeschriebene Zahl" aus BW-1. Beide lesen jetzt
+`CUBE_SCHEMA`. Der Ebenen-Anker bleibt bewusst eine **ausgeschriebene Zahl** (`=== 36`), denn
+sein Zweck ist, eine unbeabsichtigte Änderung auffallen zu lassen; er nennt jetzt die
+Herleitung dazu.
+
+### 35.8 Gate GPD-B2
+
+| Nachweis | Ergebnis |
+|---|---|
+| 36 Ebenen, Reihenfolge je Größe mean → sd → sd_ens | ✅ 19 + 9 + 8 |
+| jede σ_ens-Ebene hat eine mögliche Quelle | ✅ (fand die zu enge Registry) |
+| `sigmaKindOf` Wahrheitstabelle, 8 Fälle + Negativ-Kontrolle | ✅ |
+| Container-Rundlauf über 36 Ebenen | ✅ 0 Abweichungen |
+| Schema-1-Chunk wird laut abgelehnt, mit Kur | ✅ |
+| mit Ebenenliste lesbar, falsche Länge fällt auf | ✅ synthetisch **und** am echten CDN-Stand |
+| Volumendelta | ✅ **+0,32 %** (Ziel < 8 %) |
+| 27 gemeinsame Ebenen wertgleich | ✅ 0 von 1 952 748 |
+| `verify:point-data` | ✅ **282/282** (nach B1: 259) |
+| typecheck · Build · Budget | ✅ grün · 241/241 · totalJs unverändert |
+
+**Was noch nicht passiert:** es wird kein Ensemble gelesen, alle acht `_sd_ens`-Ebenen und
+`ensCount` sind durchgehend `MISSING`. Das ist PD-B8. Diese Etappe hat den **Ort** geschaffen,
+nicht den Inhalt — und das Manifest sagt genau das, statt Leere für Vollständigkeit
+auszugeben.
+
+---
+
+## §36 PD-B3: der Nowcast bekommt einen Leser (2026-09-09)
+
+### 36.1 Was hier fehlte — und was nicht
+
+`adapters/index.mjs` sagt es seit PD-A selbst: RADVOR RV, INCA und CombiPrecip „liegen
+bereits als Spiegel … braucht einen Leser, keinen Ingest". Die 0–3-h-Zeile der Matrix ist
+also **nicht** ein Datenproblem, sondern ein Dokumentationsproblem gewesen: die Dateien
+lagen da, aber nirgends stand, wie man aus ihnen einen Punktwert gewinnt.
+
+**Korrektur an §33.5:** dort stand, INCA und RZC lägen „nur als gerenderte PNG" vor und ein
+Punktwert daraus sei „auf die Palette quantisiert". Das ist zu pessimistisch formuliert. Es
+sind **Werte-PNGs, keine Farbbilder** — jedes Byte ist `precipToU8(mm/h)`, die Umkehrung ist
+exakt. Die echten Grenzen sind andere, und beide sind schärfer als eine Palette:
+
+1. **Sättigung bei 20 mm/h.** Byte 255 heißt „≥ 19,96 mm/h" — ein **offener Randbin**, keine
+   Messung. 20, 60 und 200 mm/h landen auf demselben Byte.
+2. ⚠ **Byte 0 ist zweideutig** (s. 36.3) — die gefährlichere der beiden.
+
+### 36.2 Was entstanden ist
+
+| Datei | Rolle |
+|---|---|
+| `src/point/nowcastFormat.ts` | DIE Form: Umkehrung, Sättigungsregel, Pfade, die drei Quellen mit Gitter und Takt, Manifestblock, Selbsttest |
+| `scripts/point/nowcastReader.mjs` | Node-Leser über den Spiegel — `listSlots`, `readFrame`, `readRvExact`, plus Kommandozeile |
+| `src/point/manifest.ts` | `point/index.json` führt die Nowcast-Zeile |
+| `npm run point:nowcast` | `point:nowcast -- <lat> <lon>` |
+
+**Kein Byte aus dem Netz.** Alles steht schon im Daten-Repo; der Leser benutzt
+`scripts/lib/png.mjs` (reines Node), `sampleRadarPoint` (dieselbe Verortung wie die Karte,
+RP1/RP2) und für den verlustfreien Weg `untar` + `decodeRadolanRaw`.
+
+**Die Domäne steht bewusst NICHT im neuen Modul** — sie steht in `sourceMatrix.ts`, und eine
+zweite Fassung wäre eine zweite Wahrheit. Wer wissen will, ob eine Quelle einen Punkt trägt,
+fragt `coversPoint()`; für Cube und Nowcast dieselbe Regel.
+
+### 36.3 Der Befund: Byte 0 heißt zweierlei — und es entstand eine erfundene Trockenheit
+
+`decodeRadolanRaw` setzt außerhalb der Radarabdeckung **`NaN`**. `precipToU8` bildet `NaN`
+auf **0** ab (`!(NaN >= 0.06)` ist wahr). Damit sind „kein messbarer Niederschlag" und
+„keine Radarabdeckung" im PNG **dasselbe Byte**.
+
+Am echten Slot gemessen (RV `2609091740`, beide Wege am selben Punkt):
+
+```
+Ort         PNG (quantisiert)   roh aus tar.bz2   Differenz
+Hamburg          0.0000            0.0000          0.0000
+München          0.1569            0.1200          0.0369      < halber Schritt (0,0392) ✓
+Berlin           0.0000            0.0000          0.0000
+Köln             0.0000            0.0000          0.0000
+Linz             0.0000               —               —        ⚠ erfundene Trockenheit
+Wien             0.0000               —               —        ⚠ erfundene Trockenheit
+```
+
+Die linke Spalte behauptet für Linz und Wien „es regnet nicht"; die rohe Datei sagt
+**`NaN`, ich sehe dort nichts**. Das DE1200-Gitter ist weit größer als das, was die Radare
+erfassen — genau dafür führt die Registry `clip` (⚠¹: „Nicht abgedeckt: Linz, Graz,
+Klagenfurt, Villach, Wien").
+
+**Kur:** der Leser wendet `coversPoint()` an, **bevor** er ein Byte anfasst. Danach melden
+beide Wege dieselbe ehrliche Lücke. Die Restunschärfe bleibt benannt: auch innerhalb des
+`clip` kann eine einzelne Zelle in einer Radarlücke liegen und als 0 erscheinen — wer die
+Unterscheidung braucht, muss für DE den verlustfreien Weg nehmen; für AT und CH gibt es ihn
+heute nicht.
+
+Nebenbei ist damit die Kodierungsaussage **belegt statt behauptet**: München weicht um
+0,0369 mm/h ab, also weniger als der halbe Quantisierungsschritt — genau das Verhalten einer
+Rundung zur nächsten Stufe.
+
+### 36.4 Warum der Nowcast NICHT in den Cube gebacken wird
+
+Die Cube-Achse hängt am **Modelllauf**: `leadH = 0` ist die Laufzeit, nicht „jetzt". Der
+Punkt-Job läuft um `:50`, und der jüngste vollständige ICON-D2-Lauf ist dann gemessen
+3,4–3,8 h alt. Ein RV-Frame mit +120 min deckt damit die Cube-Stunden **≈ 4 bis 6**, nicht
+0–3. Ein Produkt, das viermal täglich erscheint, kann eines, das sich alle fünf Minuten
+erneuert, nicht tragen.
+
+Die Nowcast-Zeile bleibt deshalb **eine eigene Linie neben dem Cube**, zur Abfragezeit
+gelesen. `point/index.json` sagt jetzt, wo sie liegt, wie die Bytes zu lesen sind, wo die
+Sättigung sitzt, dass Byte 0 zweideutig ist, dass die Auswahl geometrisch erfolgt und dass
+der Spiegel ein **Live-Spiegel und kein Archiv** ist (`KEEP = 12`: RV/RZC ≈ 1 h, INCA ≈ 3 h).
+Die 24-h-Regel des Cubes fasst ihn nicht an.
+
+### 36.5 `vMax` bleibt bei 20 — die Erhöhung wäre ein Produktausfall
+
+Der Plan sah vor, im Spiegel einen zweiten Kanal mit höherem `vMax` zu schreiben. Beim
+Nachsehen zeigte sich, warum die **bestehenden** PNGs dabei unangetastet bleiben müssen:
+`src/sources/radarImg.ts` führt `vMax` als **Drift-Wächter** — weicht das `vMax` eines Slots
+von `PRECIP_VMAX` ab, lehnt der Client den Slot ab. Eine Erhöhung von 20 auf 100 machte
+also **jeden veröffentlichten Slot für jeden Leser ungültig** und schaltete das Regenradar
+dunkel. Das ist keine Formatfrage, sondern ein Produktausfall.
+
+Der Ausweg, der heute schon da ist: für Deutschland liegt das **unveränderte** `tar.bz2` im
+Spiegel — `readRvExact()` liest daraus `rainRate` als `Float32`, ganz ohne Sättigung. Für AT
+und CH gibt es ihn nicht; dort gilt `saturated: true` und der Aufrufer entscheidet (der Cube
+schriebe `MISSING`, eine Anzeige darf „> 20 mm/h" schreiben). Ein zusätzlicher
+Werte-Kanal im Spiegel bleibt möglich, ist aber eine Änderung an der **Kartenlinie** mit
+eigenem Volumen und eigenem Gate — nicht Teil dieser Etappe.
+
+### 36.6 Am lebenden Datum: die Matrix stimmt
+
+```
+$ npm run point:nowcast -- 48.137 11.575          (München)
+radvor_rv @ 2609091740: +0min 0.16 · +25min 0.00 · +50min 0.00 · +75min 0.16 · +100min 0.16
+            verlustfrei aus radar/rv: 0.1200 mm/h
+inca      @ 20260909T1715: +15min 0.24 · +45min 0.08 · +75min 0.31 · +105min 0.00 · …
+combiprecip @ 20260909T1745: +0min 0.00
+
+$ npm run point:nowcast -- 48.209 16.373          (Wien)
+radvor_rv:   deckt diesen Punkt NICHT (Domäne aus sources.json)
+combiprecip: deckt diesen Punkt NICHT (Domäne aus sources.json)
+inca @ 20260909T1715: +15min 0.00 · +45min 0.31 · +75min 0.16 · +105min 0.63 · +135min 1.02 · +165min 1.33
+```
+
+**In Wien trägt INCA allein**, mit steigendem Trend über 165 min — genau die Aussage von ⚠¹,
+jetzt nicht mehr als Fußnote, sondern als Verhalten des Lesers.
+
+### 36.7 Gate GPD-B3
+
+| Nachweis | Ergebnis |
+|---|---|
+| Umkehrung deckungsgleich mit `precipToU8` | ✅ **0 Abweichungen über Bytes 1…254** (Rundweg auf dasselbe Byte) |
+| Sättigung: 255 wird nicht zu 20 | ✅ mit Negativ-Kontrolle (naive Umkehrung ergäbe genau 20) |
+| PNG gegen verlustfrei am echten Slot | ✅ Differenz 0,0369 < halber Schritt |
+| Byte-0-Zweideutigkeit erkannt und gekurt | ✅ Linz/Wien melden jetzt beidseitig eine Lücke |
+| Domäne: RV trägt Bregenz, nicht Linz/Wien; INCA trägt Wien | ✅ am Punkt **und** in der CLI |
+| Manifest beschreibt den Leseweg vollständig | ✅ Formel, vMax, Schritt, Totzone, Sättigung, Zweideutigkeit, Geometrie, Vorhalt |
+| Spiegel bleibt außerhalb der 24-h-Regel | ✅ |
+| `verify:point-data` | ✅ **321/321** (nach B2: 282) |
+| typecheck · Build · Budget | ✅ grün · 241/241 · unverändert |
+
+**Was diese Etappe NICHT tut:** sie schreibt nichts in den Cube (s. 36.4) und ändert kein
+Byte der Kartenlinie. Sie macht aus drei Dateien, die im Repo lagen, drei **benutzbare**
+Quellen — und benennt dabei die zwei Eigenschaften, an denen ein Leser sonst stillschweigend
+falsch gelegen hätte.
+
+---
+
+## §37 PD-B4: Österreich bekommt eine eigene Quelle — und ein Altfehler kommt ans Licht (2026-09-09)
+
+### 37.1 Der Befund, der wichtiger war als die Etappe
+
+Beim Vorbereiten des C-LAEF-Adapters fiel eine Zeile auf, die seit PD-A dort steht:
+
+```js
+let g = await c.adapter.field(c.run, leadH, varId, tier);
+```
+
+`leadH` ist die Vorhersagestunde **des Cubes**, `c.run` der Lauf **dieser Quelle**. Haben
+zwei Quellen verschiedene Läufe, bezeichnet dieselbe Stunde **zwei verschiedene
+Gültigzeiten** — und beide Werte landeten im selben Mittel.
+
+Am veröffentlichten Stand nachgerechnet:
+
+```
+Publikationslauf 2026090912
+  icon_global  2026-09-09T12   Versatz  0 h   gültig bei leadH=126: 2026-09-14T18
+  aicon        2026-09-09T12   Versatz  0 h                          2026-09-14T18
+  ifs_hres     2026-09-09T00   Versatz 12 h                          2026-09-14T06   ⚠
+  aifs_single  2026-09-09T12   Versatz  0 h                          2026-09-14T18
+```
+
+**IFS trug Werte bei, die zwölf Stunden früher gültig waren.** Das verwischt den Tagesgang
+im Mittel und bläht σ_div mit einem Zeitversatz auf, der wie Modelluneinigkeit aussieht.
+
+⚠ **Der Fehler ist älter als PD-B1 — aber PD-B1 hat ihn vergrößert.** Vorher nahm IFS den
+06z-Lauf (6 h Versatz), seither den weiteren 00z-Lauf (12 h). Ein Fix, der σ zurückholt,
+darf σ nicht gleichzeitig verfälschen; §34 hätte ohne diese Nachprüfung eine falsche
+Streuung als Erfolg verbucht.
+
+**Kur:** der Producer rechnet in **Gültigzeit**. Der Publikationslauf ist der jüngste
+beitragende Lauf; jede Quelle bekommt einen `offsetH` und wird bei `leadH + offsetH`
+gelesen — im eigenen Laufraum, auch bei `leadsFor` und bei der Entakkumulation. Der
+Versatz steht je Quelle im Manifest.
+
+### 37.2 Was die Korrektur bewirkt — gemessen
+
+Stufe 3 zweimal gebaut, gleicher Cache, nur die Übersetzung unterschiedlich:
+
+```
+t2m_sd über alle Zellen und Schritte (n = 72 324)
+  ohne Versatzkorrektur : Median 3,060 K   Mittel 3,568   p90 7,280
+  MIT  Versatzkorrektur : Median 1,070 K   Mittel 1,380   p90 2,750
+                          ────────────────────────────────────────
+                          Median −65 %     Mittel −61 %
+```
+
+**Zwei Drittel der Streuung in der Fernstufe waren der Tagesgang, nicht die Modelle.**
+1,07 K Median zwischen vier Zentren bei +126…336 h ist ein plausibler Wert; 3,06 K war es
+nicht — es sah nur nach mehr Information aus.
+
+### 37.3 C-LAEF: die AT-Spalte ist nicht mehr leer
+
+Neuer Adapter `scripts/point/adapters/geosphere.mjs`, **fünfte Zugriffsfamilie**
+(Fremd-REST-API statt GRIB-Verzeichnis). Alles daran ist am Objekt gemessen:
+
+| | gemessen |
+|---|---|
+| Gitter | **regulär in lat/lon**, 656 × 889 im DACH-Schnitt, Δ 0,009° × 0,0135° ⇒ `sampleRegularToTier` ohne neue Mathematik |
+| Container | **HDF5**, gelesen mit `jsfive` (schon Abhängigkeit) |
+| Horizont | `forecast_length: 61` ⇒ Stunden 0…60 |
+| Läufe | **3-stündlich**, 6 vorgehalten ≈ 18 h |
+| Latenz | 19:55 UTC ⇒ neuester Lauf 15:00, also **≈ 4,9 h** |
+| Grenze | **10 Mio Datenpunkte je Anfrage** ⇒ ≤ 16 (Parameter × Schritt) je Fenster |
+
+**Die Registry lag an fünf Stellen daneben** und ist gegen die Messung korrigiert:
+`runHours` war `[0, 6, 12, 18]` (tatsächlich achtmal täglich), `retentionH` war `null`
+(18 h), `kind` war `percentiles` (das ist `claef_eps`; der deterministische Datensatz
+liefert einzelne Werte mit Einheit), `vars` nannte fünf statt acht Größen, `adapter` war
+`null`. Auch der Selbsttest zu ⚠³ prüfte die **falsche Quelle** — die Fußnote gilt
+C-LAEF-EPS, geprüft wurde `claef`.
+
+### 37.4 ⚠ Drei verschiedene Skalen in derselben Datei
+
+Die Felder sind `int16`, und **`jsfive` liest die Attribute nicht** (dieselbe Lage wie bei
+INCA). Die Skalen mussten also gemessen werden — gegen die `geojson`-Ausgabe, die echte
+Einheiten liefert, **an derselben Zelle**:
+
+```
+2t   roh      195  →     19,5 °C        ⇒ 0,1
+2r   roh     7531  →    75,31 %         ⇒ 0,01
+10u  roh       51  →      5,1 m/s       ⇒ 0,1
+tcc  roh    10000  →      100 %         ⇒ 0,01
+tp   roh      584  →    0,584 mm        ⇒ 0,001
+msl  roh 10158433  → 101584,33 Pa       ⇒ 0,01
+```
+
+Eine Skala für die ganze Datei zu setzen wäre der Fehler gewesen, der schon „3 597 %
+Bewölkung" erzeugt hat: mit 0,01 statt 0,1 stünde die Temperatur bei **1,95 °C statt 19,5**
+— plausibel und falsch.
+
+**Drei weitere Eigenheiten, jede eine stille Falle:**
+
+1. **`tp` ist NICHT laufakkumuliert.** `/metadata` sagt „in the last forecast interval",
+   und das Intervall ist eine Stunde. `accumulated` bleibt für C-LAEF **leer** — sonst
+   entakkumulierte der Producer eine Stundensumme und bekäme Differenzen mit
+   Vorzeichenwechsel.
+2. **C-LAEF hat `msl`, nicht `ps`.** In die `ps`-Ebene geschrieben stünden auf der
+   Zugspitze 1013 statt 700 hPa. `ps` bleibt bei dieser Quelle `MISSING`.
+3. **Kein Taupunkt.** `td2m` wird aus `2t` + `2r` gerechnet (Magnus) — im Adapter als
+   `derived` geführt, damit ein abgeleiteter Wert nicht aussieht wie ein gelesener.
+
+### 37.5 Am echten Dienst belegt
+
+```
+Lauf 2026090915 · 49 Stunden (0…48)
+  t2m      Wien 18,29 · Innsbruck 12,27 · Graz 20,15 · Hamburg —  · Zürich 12,04
+  td2m     Wien 14,96 · Innsbruck 11,64 · Graz 10,82 · Hamburg —  · Zürich  8,89
+  gust     Wien 15,41 · Innsbruck  5,24 · Graz  8,02 · Hamburg —  · Zürich  3,42
+  snowlmt  Wien 3119  · Innsbruck 2601  · Graz 3180  · Hamburg —  · Zürich 1962
+```
+
+Der Taupunkt liegt an **jedem** Punkt unter der Temperatur, die Böe über dem Wind, die
+Schneefallgrenze im September-Bereich — die Konsistenzbedingungen aus PAP 6 halten ohne
+Nacharbeit. Und **Hamburg liefert `—`**: 53,55 °N liegt über der Domänengrenze 51,498 °N.
+
+Ein echter t1-Bau (0–6 h) zeigt die Wirkung im Cube:
+
+```
+Quelle        Lauf           Versatz  Std.  Abdeckung  Zellen
+icon_d2       2026-09-09T18      0 h     7  full       48441/48441
+claef         2026-09-09T15      3 h     7  full       28920/48441
+icon_eu       2026-09-09T15      3 h     7  full       48441/48441
+ifs_hres      2026-09-09T12      6 h     7  full       ganz
+aifs_single   2026-09-09T12      6 h     7  full       ganz
+
+srcCount je Stunde        0  1  2  3  4  5  6
+  DE Hamburg              4  2  2  3  2  2  4
+  DE München              5  3  3  4  3  3  5
+  AT Wien                 5  3  3  4  3  3  5
+  AT Innsbruck            5  3  3  4  3  3  5
+  CH Zürich               5  3  3  4  3  3  5
+```
+
+**Die Länder-Blindheit aus §33.5 ist beseitigt:** Hamburg hat durchgehend eine Quelle
+weniger, München nicht. Das ist keine Landesgrenze, sondern die Domäne — genau wie
+`QUELLENMATRIX.md` §2 es verlangt („C-LAEF: DE teilweise, nur < 51,5 °N | AT ✓ | CH ✓").
+C-LAEF trägt **28 920 von 48 441** Zellen der Stufe.
+
+### 37.6 C-LAEF-EPS bleibt bewusst draußen
+
+Der Datensatz existiert und wurde geprüft: 42 Felder = 14 Parameter × p10/p50/p90,
+gleiches Gitter, gleicher Horizont, **keine Einzelmember** (⚠³).
+
+Er wird **nicht** aufgenommen, und der Grund ist seit PD-B2 schärfer als vorher: `_sd_ens`
+heißt seit Schema 2 ausdrücklich „Streuung zwischen **Membern**". Aus `(p90 − p10)/2,563`
+ein σ_ens zu machen setzt Normalverteilung voraus — für `t2m` vertretbar, für `precip`
+(zensiert, PAP 6) nachweislich falsch. Ein **gesetzter** Wert in einer Ebene, die einen
+**gemessenen** verspricht, ist der teuerste Fehler, den dieses Produkt machen kann (§21 (4)).
+
+Der saubere Weg wären eigene Quantil-Ebenen `<var>_q10`/`_q90`. Das ist eine
+Formatentscheidung, keine Adapterfrage — sie steht als benannter Pfad in `PENDING`.
+
+### 37.7 Gate GPD-B4
+
+| Nachweis | Ergebnis |
+|---|---|
+| alle Quellen tragen zur selben Gültigzeit bei | ✅ Versatz je Quelle im Manifest, σ_div −65 % |
+| C-LAEF liefert am echten Dienst | ✅ 8 Größen, 49 Stunden, Lauf 2026090915 |
+| Konsistenz PAP 6 (td ≤ t, Böe ≥ Wind) | ✅ an allen Punkten ohne Nacharbeit |
+| `srcCount` in AT/CH > in Hamburg | ✅ 5/3 gegen 4/2 |
+| C-LAEF schreibt nichts nördlich 51,5 °N | ✅ Hamburg `—`, 28 920/48 441 Zellen |
+| `ps` bleibt bei C-LAEF MISSING | ✅ (nur `msl` vorhanden) |
+| Registry gegen die Messung korrigiert | ✅ fünf Felder + der ⚠³-Selbsttest |
+| `verify:point-data` | ✅ **332/332** (nach B3: 321) |
+| typecheck · Build · Budget | ✅ grün · 241/241 · unverändert |
+
+**Laufzeit, für das Budget aus §33.6:** der t1-Testbau über 7 Stunden zog 252 MiB in
+223 Dateien. Hochgerechnet auf 49 Stunden liegt C-LAEF bei ≈ 300 MiB je Lauf — die Zahl aus
+der Planung bestätigt sich.
+
+---
+
+## §38 PD-B4b: der Nachbarindex — 78× schneller, und ein Altfehler dabei gefunden (2026-09-09)
+
+### 38.1 Der Blocker, selbst gemessen
+
+`buildUnstructuredIndex` (`adapters/shared.mjs`) war `O(Zielzellen × Kandidaten)`: es
+filterte die Quellzellen auf eine Umgebungsbox und suchte dann für **jede** der 48 441
+t1-Zellen linear den nächsten Nachbarn. Gemessen mit einem synthetischen Zellsatz in der
+Größe echter Quellen:
+
+```
+ICON global      ~6 000 Kandidaten in der Box →     1 170 ms
+ICON-D2-EPS     542 040 Kandidaten            →    60 272 ms
+ICON-CH1      1 150 000 Kandidaten            →   299 522 ms   = 5,0 min JE STUFE
+```
+
+Für ICON global geht es nur deshalb gut, weil die Box bloß ~7 500 der 2,95 Mio. Zellen
+enthält. Drei unstrukturierte Quellen über drei Stufen hätten Viertelstunden allein für die
+Nachbarsuche gekostet — bei **80 min Gesamtbudget** (§34.6) ein Blocker für B5 (ICON-CH) und
+B8 (die Ensembles).
+
+### 38.2 Die Ersetzung — und zwei Fehler auf dem Weg dorthin
+
+Statt aller Kandidaten je Zielzelle: ein **uniformes Eimergitter** (Kantenlänge aus der
+gemessenen Dichte, ~2 Kandidaten je Eimer), dann eine Ringsuche, die abbricht, sobald
+bewiesen ist, dass draußen nichts Näheres liegen kann. Die alte Fassung bleibt als
+`buildUnstructuredIndexBrute` stehen — ausschließlich für den Gleichheitsbeweis.
+
+**Erster Fehler (mein eigener, gemessen statt vermutet):** die Ringsuche wurde bei einer
+Quelle, die nur einen **Teil** des Ausschnitts deckt, langsamer als das Verfahren, das sie
+ersetzen sollte. Jede Zielzelle nördlich des Quellenrandes ließ Ring für Ring durch leeres
+Gebiet wachsen — bei 5,5° Abstand rund 315 Ringe à 8·r Eimer, mal 20 000 Zellen. Der
+Testlauf brach nach über fünf Minuten ab. Kur: **Sprung auf den belegten Bereich** — alle
+Kandidaten liegen dort, also ist kein Kandidat näher als der Weg dorthin, und die Suche darf
+bei genau diesem Ring beginnen.
+
+**Zweiter Fehler — und der war nicht meiner, sondern schon vorher da:** die alte Fassung
+kannte **keine Entfernungsgrenze**. Sie nahm für jede Zelle den global nächsten Kandidaten,
+auch wenn er 700 km entfernt lag. Für eine Quelle, die den Ausschnitt ganz füllt, fällt das
+nie auf. Für eine, die nur einen Teil deckt — **C-LAEF bis 51,5 °N, ICON-CH bis 50,5 °N** —
+hieße es: ein einzelner Randwert wird über halb Deutschland verteilt und sieht aus wie eine
+Vorhersage.
+
+Der reguläre Gitterweg macht es seit jeher richtig: `fillNearest` extrapoliert höchstens
+drei Zellen und lässt den Rest MISSING („ein Loch, das 4 Zellen von jedem Wert entfernt
+liegt … gehört MISSING"). Der unstrukturierte Weg zieht jetzt nach, mit derselben Regel plus
+der eigenen Maschenweite der Quelle: `maxDist = max(3 · tier.deg, 2 · Maschenweite)`.
+
+Am synthetischen Fall messbar:
+
+```
+Kandidaten nur im Süden, Stufe 3 (2 009 Zellen)
+  neue Fassung : 1 470 Zellen bleiben LEER
+  alte Fassung :     0 Zellen bleiben leer  ⇒ für 1 470 Zellen einen Wert erfunden
+  dort, wo die Quelle wirklich trägt:  0 Abweichungen
+```
+
+### 38.3 Der Beweis: identisch an den ECHTEN Zellkoordinaten
+
+Nicht an synthetischen Punkten, sondern an ICON globals wirklichem Gitter (`CLAT`/`CLON`,
+2 949 120 Zellen weltweit), über alle drei Stufen:
+
+```
+Stufe   Kandidaten    neu       brute     Faktor   verschieden
+  t1        7 449     228 ms   13 655 ms    60x    KEINE (48 441 Zellen)
+  t2        7 502     165 ms    3 786 ms    23x    KEINE (12 221 Zellen)
+  t3        7 667     174 ms      564 ms     3x    KEINE ( 2 009 Zellen)
+```
+
+**62 671 Zielzellen, null Abweichungen** — und die Entfernungskappe ändert daran nichts,
+weil ICON global den Ausschnitt vollständig deckt. Genau so soll es sein: die Kappe greift
+nur dort, wo vorher etwas erfunden wurde.
+
+Was das Gleichstands-Verhalten angeht: die alte Fassung läuft über die Kandidaten
+aufsteigend und nimmt nur **echt** kleinere Abstände, behält bei Gleichstand also den
+kleinsten Index. Die Ringsuche läuft in anderer Reihenfolge — deshalb entscheidet sie
+Gleichstände ausdrücklich über `c < best`. Ohne diese eine Zeile wären beide Fassungen
+„gleich gut" und trotzdem verschieden, und der Gleichheitsbeweis fiele **zufällig** aus.
+
+### 38.4 Was damit möglich wird
+
+```
+                            alle drei Stufen    (t1 allein, alte Fassung)
+ICON-D2-EPS (542 040)            4 265 ms              60 272 ms
+ICON-CH1  (1 150 000)            6 685 ms             299 522 ms
+```
+
+Aus fünf Minuten je Stufe werden **unter sieben Sekunden für alle drei**. Damit sind B5
+(ICON-CH) und B8 (die DWD-Ensembles) rechnerisch tragbar — vorher waren sie es nicht.
+
+### 38.5 Gate GPD-B4b
+
+| Nachweis | Ergebnis |
+|---|---|
+| identisch zur alten Fassung, echte ICON-Koordinaten | ✅ **0 von 62 671** über drei Stufen |
+| identisch, synthetisch dünn und dicht | ✅ 0 von 2 009, je zweimal |
+| Gleichstand geht gleich aus | ✅ eigener Test |
+| Teilabdeckung: leer statt erfunden | ✅ 1 470 leer (alt: 0) |
+| Teilabdeckung: innerhalb der Reichweite identisch | ✅ 0 Abweichungen |
+| Tempo Stufe 1, 200 000 Kandidaten | ✅ **1 464 ms** (alte Fassung ~22 s) |
+| ICON-CH1-Größe, alle drei Stufen | ✅ **6 685 ms** statt 5 min je Stufe |
+| **Byte-Beweis am Ausgabebaum** | ✅ **12 von 12 Chunks byte-gleich** — ICON global + AICON, Stufe 3, vor und nach Umbau |
+| `verify:point-data` | ✅ **342/342** (nach B4: 332) |
+| typecheck (`tsc -b --force`, voller Neudurchlauf) | ✅ 0 Fehler, Exit 0 |
+| Build | ✅ 241/241 |
+| Budget | ⚠ **rot — aber nicht aus PD-B** (s. 38.6) |
+
+### 38.6 Das Budget ist rot — und zwar aus einer anderen Linie
+
+`npm run budget` meldet zwei Überschreitungen: `largestChunk` **300,9 KB > 292,3** und
+`totalJs` **1 365,2 > 1 362`. Die Ursache liegt **nicht** in PD-B, und das ist gemessen,
+nicht behauptet:
+
+**Kein einziges Punkt-Modul steht im Bundle.** Textsonde auf `dist/assets/*.js` nach den
+Signaturen dieser Phase — `sd_ens`, `ensCount`, `BSPC`, `geosphere-grid`, `nowcastFromU8`,
+`C-LAEF AlpeAdria`, `Randbin`: **null Treffer, in null Chunks.** Rollup schüttelt sie
+vollständig heraus, genau wie PD-A es angelegt hat („Bundle bleibt unberührt, solange kein
+Client-Modul importiert"). Ein Repo-weiter Grep bestätigt es an der Wurzel: **kein
+`.ts`/`.tsx` unter `src/` importiert `point/cubeFormat`, `point/manifest`,
+`point/sourceMatrix` oder `point/nowcastFormat`.**
+
+Gewachsen ist der **FireRoute**-Chunk (281,7 → 300,9 KB), und zwar aus der parallel
+laufenden Brandradar-Linie: `budget.json` trägt selbst einen Eintrag vom 2026-09-09
+(„Brandradar-Charts auf nivo", Grenze `totalJs` 1 350 → 1 362, gemessen 1 355,4 /
+`largestChunk` 291,1). Seither ist **`@nivo/radar`** dazugekommen — für ein neues
+`src/fire/dossier/FireProfileChart.tsx` (Brandprofil als Radar-Netz). Die Notiz sagt
+„keine einzige neue Abhängigkeit"; in `package.json` stehen jetzt **14 statt 13**
+Laufzeit-Abhängigkeiten, und `largestChunk` ist auf 300,9 gestiegen. Die Linie ist
+erkennbar mitten in der Arbeit (`src/fire/charts/nivoTheme.ts` und
+`src/fire/detail/fireProfile.ts` sind noch untracked).
+
+**Die Ratsche bleibt hier unangetastet.** Sie anzuheben hieße, eine fremde Regression zu
+verdecken und eine Entscheidung zu treffen, die dieser Phase nicht gehört — dieselbe Lage
+wie in §22 beschrieben: „Wer Gates abnimmt, muss wissen, dass der Baum nicht allein ihm
+gehört."
+
+**Die Lehre dieser Etappe:** eine Optimierung, die nur am günstigen Fall gemessen wird, ist
+keine Messung. Der erste Entwurf war am dichten, voll abgedeckten Gitter tausendfach
+schneller — und am **teilweise** abgedeckten langsamer als das Original. Erst der Fall, für
+den die Etappe gebaut wurde, hat beides gezeigt: den Tempoeinbruch und den Altfehler, der
+seit PD-A darunter lag.
+
+---
+
+## §39 Der Etappenplan PD-B5…B9 — rekonstruiert, nicht wiederhergestellt (2026-09-10)
+
+**Dieser Abschnitt ist eine Rekonstruktion.** Die Etappenliste, auf die §34 sich beruft
+(„Der Plan steht (PD-B1…B8)"), wurde nie niedergeschrieben; die Session, die sie im Kopf
+trug, brach nach PD-B4b ab. Ein Grep über alle `.md`, `.ts` und `.mjs` des Repos findet
+**PD-B5, PD-B6, PD-B7 und PD-B9 kein einziges Mal**. Was hier steht, ist also aus dem
+Ist-Stand abgeleitet — und das ist ausdrücklich gesagt, damit niemand es später für ein
+Zitat des ursprünglichen Plans hält.
+
+Abgeleitet wurde aus drei Quellen, die alle im Repo liegen und alle gemessen sind:
+`PENDING` in `scripts/point/adapters/index.mjs` (13 nicht ingestierte Quellen, je mit
+Grund), `TIER_BANDS` in `src/point/cubeFormat.ts` (welche Quelle welche Stufe tragen
+soll), und §33 (welche der 41 Felder fehlen, nach Wirkung geordnet).
+
+### 39.1 Eine Nummer war schon vergeben — und wird nicht verschoben
+
+**PD-B8 ist inhaltlich festgelegt.** Es wird an **sieben** Stellen genannt, und überall
+für dieselbe Sache: die echten Ensemble-Member.
+
+| Stelle | Aussage |
+|---|---|
+| §34.5 (`:2300`) | `ifs_ens` hat nie ein Feld geliefert — „behoben wird es in PD-B8" |
+| §35.4 (`:2381`) | IFS-ENS führt die Böe nur als `10fg3` — „ein Detail, das sonst erst in PD-B8 aufgefallen wäre" |
+| §35.6 (`:2450`) | „`ensCount` sind durchgehend `MISSING`. Das ist PD-B8." |
+| `CLAUDE.md:132` | „Behebung in PD-B8" |
+| `scripts/point/adapters/ecmwf.mjs:120` · `scripts/point/build-point-cube.mjs:508` · `src/point/sourceMatrix.ts:314` | dieselbe Zusage im Code |
+
+Die naheliegende Nummerierung „B5, B6, B7, B8 der Reihe nach" hätte diese sieben
+Referenzen ins Leere zeigen lassen. Die Reihenfolge wird deshalb **um die feste Nummer
+herum** gebaut, nicht durch sie hindurch. Das ist kein Schönheitsfehler des Plans, sondern
+dieselbe Regel wie bei den Ebenen: was schon benannt ist, behält seinen Namen.
+
+### 39.2 Der Plan
+
+| Etappe | Inhalt | Warum an dieser Stelle | Gate |
+|---|---|---|---|
+| **PD-B1** ✅ §34 | Laufwahl nach Abdeckung, Domänen-Maske | erledigt | GPD-B1 |
+| **PD-B2** ✅ §35 | Schema 2: `_sd_ens` + `ensCount` bekommen einen Ort | erledigt | GPD-B2 |
+| **PD-B3** ✅ §36 | Nowcast-Leser für RV / INCA / CombiPrecip | erledigt | GPD-B3 |
+| **PD-B4** ✅ §37 | C-LAEF (AT) + der Gültigzeit-Fix | erledigt | GPD-B4 |
+| **PD-B4b** ✅ §38 | Nachbarindex 78× + Entfernungsgrenze | erledigt | GPD-B4b |
+| **PD-B5** ✅ §40 | **Profilfelder** `gammaEff` / `zBase` / `zInv` / `dTInv` aus den ICON-D2-Modellleveln (E-11) | Befund 1 aus §33.6. Die Ebenen **existieren schon** (`cubeFormat.ts`, `group: 'profile'`), es fehlt nur der Rechenweg — also die größte fachliche Wirkung ohne jeden Formatbruch | GPD-B5 |
+| **PD-B6** ✅ §41 | **ICON-CH1 / CH2-EPS** über STAC → CSCS | schließt die Länder-Blindheit (§33.5) ganz: AT ist seit B4 versorgt, CH nicht. Der STAC-Client existiert bereits in der Kartenlinie (`src/sources/iconChEpsSource.ts`) und ist die Vorlage | GPD-B6 |
+| **PD-B7** ✅ §42 | **C-LAEF-EPS** als eigene Quantil-Ebenen `<var>_q10` / `_q90` | Jans Entscheidung vom 2026-09-10: eigene Ebenen statt `(p90−p10)/2,563`. **Muss vor B8 liegen** — nach B8 wäre es ein zweiter Ebenenindex-Bruch statt eines ersten | GPD-B7 |
+| **PD-B8** ✅ §43 | **Ensemble-Member**: ICON-D2/EU/global-EPS + IFS/AIFS ENS ⇒ `_sd_ens` und `ensCount` füllen | die Nummer ist vergeben (39.1). Drei benannte Baustellen: `ensembleControlOnly`-Sprung (`build-point-cube.mjs:182`), der `.index`-Filter auf `number` statt `type` (`ecmwf.mjs:123`), und `10fg3` | GPD-B8 |
+| **PD-B9** ✅ §44 | **MOSMIX-L** als eigenes Produkt `point/stations/` | Stationsquelle, anderes Datenmodell, kein Eingriff ins Gitter — deshalb zuletzt und unabhängig von allem davor | GPD-B9 |
+| **PD-B10** ✅ §45 | **IFS-ENS-Member** jenseits 180 h (V-PD-27) — dazu zwei Fehler aus PD-B8: σ_ens(Niederschlag) war die Streuung einer Summe, und der ECMWF-Filter strich IFS HRES und AIFS Single | nicht Teil der Rekonstruktion: aus dem Befund in §43.12, Jans Entscheidung vom 2026-09-11 | GPD-B10 |
+
+### 39.3 Was in JEDER dieser Etappen mitläuft
+
+Aus den fünf abgeschlossenen Etappen sind drei Pflichten entstanden, die keine von ihnen
+noch einmal einzeln begründet:
+
+1. **Ein eigener Verifier-Block**, hinten angehängt statt eingeschoben — `(3e)` = B1,
+   `(3f)` = B2, `(3g)` = B3, `(3h)` = B4, `(3i)` = B4b, also `(3j)` = B5 und so fort.
+   Netzfrei, weil der Workflow den Verifier als Gate **vor** dem Ingest ruft.
+2. **Die gemessene Laufzeit im Gate, und `JOB_MAX_MIN` mitgezogen** (§34.6). Das echte
+   Budget ist 80 min, nicht 120, und die Zahl schreibt sich nicht selbst fort.
+3. **Eine Aussage zum Volumen** — je Lauf und in der Aufbewahrung. Der Publisher hat
+   **keinen Größendeckel**, nur die 24-Stunden-Regel; ab B6 (ICON-CH, ~23 MB je Variable
+   und Schritt) und B8 (Member) ist das eine Stelle, die eine Entscheidung braucht statt
+   einer Annahme. Dazu gehört der Cache: `POINT_CACHE` zeigt im Workflow auf
+   `${{ runner.temp }}` und ist damit **flüchtig** — jeder Cron-Lauf zieht alles neu.
+
+### 39.4 Was der Plan bewusst NICHT enthält
+
+`kenda_ch1` (Analyse, keine Vorhersage), `mosmix_s` (dasselbe Datenmodell wie MOSMIX-L,
+nur stündlich), `gfs` (Rückfall, in §1 der Matrix nicht als tragende Quelle geführt) und
+**E4 Local Forecast** (Benchmark, nicht Quelle — ⚠⁴ und §21 (8)). Alle vier bleiben in
+`PENDING` mit ihrem Grund. Ebenso bleibt der Nowcast außerhalb des Cubes: seine Achse
+hängt am Radarslot, nicht am Modelllauf (§36.4).
+
+---
+
+## §40 PD-B5: die Profilfelder — und der Beweis kommt aus dem Tagesgang (2026-09-10)
+
+Die Etappe schließt Befund 1 aus §33.6: `gammaEff`, `zBase`, `zInv` und `dTInv` waren in
+**keiner** Zelle und keiner Stunde belegt. Die Folge stand in PAP 4 und war kein Schönheits-
+fehler: die Verzweigung `z_inv > z_base` ist ohne diese Felder nie entscheidbar, **Fall B und
+Fall C sind unerreichbar**, und Fall A fällt auf `standardLapse = 6,5 K/km` zurück. Genau die
+Inversionslagen, für die der Algorithmus entworfen wurde, konnte er nicht.
+
+### 40.1 Was NICHT gebaut werden musste
+
+Zwei Dinge waren schon da, und das hat die Etappe billig gemacht:
+
+**Die vier Ebenen existieren seit PD-A im Format** (`cubeFormat.ts`, `group: 'profile'`,
+`grib: null`) — mit Einheit, Skala und Wertebereich. **Kein Formatbruch, kein Schemabruch,
+keine neue Ebene.** Es fehlte ausschließlich der Schreiber.
+
+**Die Modelllevel liegen auf demselben regulären Gitter** wie die Single-Level-Felder. Am
+Verzeichnis nachgemessen (2026-09-10, Lauf 2026091009): `t` auf **65 Vollflächen** als
+`regular-lat-lon_model-level`, `hhl` auf **66 Halbflächen** — und `hhl` in **beiden**
+Gitterformen, also auch regulär (132 Dateien = 66 ikosaedrisch + 66 regulär). Damit ist es
+**keine neue Zugriffsfamilie**: `sampleRegularToTier` trägt unverändert, es braucht keine
+CDO-Gewichte und keinen zweiten Decoder.
+
+### 40.2 Die Levelzahl ist gemessen, nicht gesetzt — und E-11 lag daneben
+
+E-11 empfahl **15 Level**. Die Empfehlung war eine Schätzung; die Level folgen aber dem
+Gelände, und wie weit 15 davon reichen, hängt vom Punkt ab. An `hhl` nachgemessen, Höhe über
+Grund:
+
+| Halbfläche | Hamburg (14 m) | München (531 m) | Innsbruck (757 m) | Zermatt (1 878 m) |
+|---|---|---|---|---|
+| 51 (= 15 Level) | 1 134 m | 1 031 m | 1 043 m | 872 m |
+| 47 | 1 649 m | 1 498 m | 1 506 m | 1 247 m |
+| **46 (= 20 Level)** | **1 792 m** | **1 628 m** | **1 634 m** | **1 349 m** |
+
+Der Abstand wächst von **20 m** an der untersten Fläche auf ~150 m in 2,5 km. 15 Level enden
+bei 870–1 135 m über Grund: nächtliche Talinversionen sind damit erfasst, **Absinkinversionen
+nicht** — und die sind der Fall, in dem eine Höhenkorrektur ohne Fallunterscheidung am
+weitesten danebenliegt. Deshalb **20 Level** (65…46). Die Zahl steht mit dieser Begründung im
+Adapter und ist über `POINT_PROFILE_LEVELS` verstellbar.
+
+### 40.3 Die eine Entscheidung, die keine Rechenfrage ist: **nicht mitteln**
+
+Alle Zielgrößen werden über die Quellen gemittelt. Die Profilfelder **nicht** — sie kommen
+aus genau einer Quelle, und das steht als `provenance: "single-source"` samt Begründung im
+Manifest.
+
+Der Grund: **der Mittelwert zweier Inversionsobergrenzen ist keine Inversionsobergrenze.**
+Sagt eine Quelle „Inversion bis 400 m" und die andere „keine Inversion", stünde nach der
+Mittelung „200 m" im Cube — eine Schicht, die kein Modell kennt und die PAP 4 in Fall B
+schickt, wo kein Modell einen Fall B sieht. Bei einer Temperatur ist das Mittel die bessere
+Schätzung; bei einer Schichtgrenze ist es eine Erfindung. Dieselbe Lehre wie bei der
+zurückgezogenen `sigmaKind`-Ebene (§23.3) und bei ⚠³ (§37): ein gesetzter Wert in einem Feld,
+das einen gemessenen verspricht, ist der teuerste Fehler dieses Produkts.
+
+Genommen wird die erste Quelle der Stufe, die Profile führt — `tier.sources` ist nach
+Auflösung sortiert, also die feinste zuerst. Die Domänenmaske gilt auch hier: sonst trüge eine
+Zelle das Profil einer Quelle, die sie gar nicht abdeckt (derselbe Grund wie bei `hModEff`).
+
+### 40.4 Der eigentliche Beleg: das Feld kennt den Tagesgang, ohne dass es ihm jemand sagt
+
+Dass eine Rechnung Zahlen produziert, sagt nichts über ihre Richtigkeit. Der Beweis ist
+deshalb nicht „die Ebene ist belegt", sondern eine Aussage, die **nur dann herauskommt, wenn
+die Physik stimmt**. Gemessen am Lauf 2026091012, Stufe 1, gleicher Code, nur andere Stunden:
+
+| Vorhersagestunden | Gültigzeit (UTC) | Zellen mit `zInv > zBase` |
+|---|---|---|
+| 0–5 h | 12–17 Uhr, **Tag** | **12,5 %** |
+| 12–17 h | 00–05 Uhr, **Nacht** | **68,2 %** |
+| 18–23 h | 06–11 Uhr, Übergang | 33,5 % |
+
+Das ist der Tagesgang der Strahlungsinversion — nachts fünfeinhalbmal so häufig wie mittags,
+morgens im Abbau. **Nirgends im Code steht „Tag" oder „Nacht".** Die Zahl entsteht allein
+daraus, dass die Temperatur in den untersten 20 Modellleveln nachts mit der Höhe zunimmt.
+Käme sie nicht heraus, wäre die Vorzeichenkonvention gedreht oder die Suche kaputt — und
+beides sähe am Wertebereich unauffällig aus.
+
+**Nebenwirkung, die den Zeitraster entscheidet:** ein Feld, das zwischen 12 % und 68 %
+schwankt, hat eine Stundenstruktur. Der Vorschlag aus E-11, dreistündlich zu messen, hätte
+den Auf- und Abbau der Inversion verwischt. Der Producer rechnet deshalb im **Raster der
+Stufe** (t1: stündlich); `POINT_PROFILE_STEP_H` kann es vergröbern, wenn die Laufzeit es
+verlangt.
+
+### 40.5 Volumen gemessen, Laufzeit ehrlich offen
+
+Derselbe Bereich (6 Stunden, Stufe 1, nur ICON-D2), einmal mit und einmal ohne Profil, beide
+mit kaltem Cache:
+
+| | Dateien | Abruf | Ausgabe |
+|---|---|---|---|
+| ohne Profil (`POINT_PROFILE=0`) | 74 | 79,9 MiB | 3,51 MiB |
+| mit Profil | 215 | 211,2 MiB | 4,56 MiB |
+| **Differenz je 6 Stunden** | **+141** | **+131,3 MiB** | **+1,05 MiB** |
+
+Hochgerechnet auf die volle Stufe 1 (49 Schritte): **980 Level-Dateien ≈ 892 MiB**, dazu die
+Halbflächen **einmal je Lauf ≈ 14 MiB** ⇒ rund **906 MiB**. Gegen das gemessene Laufbudget
+von 4,93 GiB sind das **+18 %**.
+
+⚠ **Die Laufzeit lässt sich aus diesen beiden Läufen NICHT ableiten, und das wird hier
+gesagt statt kaschiert.** Der Lauf **mit** Profil war mit 69 s **schneller** als der ohne
+(132 s) — bei 2,6-facher Datenmenge. Der Durchsatz schwankte zwischen den Läufen von
+0,61 MiB/s auf 3,06 MiB/s, also um den Faktor 5. Damit misst die Differenz die Leitung, nicht
+die Etappe — genau die Falle, die SAT2h schon beschrieben hat („ein Leistungsanker misst
+immer auch die Maschine mit; Vergleiche nur innerhalb eines Laufs"). Belastbar ist deshalb
+nur das **Volumen**; die Laufzeit steht als Messung der vollen Stufe 1 in 40.7, und
+`JOB_MAX_MIN` wird an ihr, nicht an einer Hochrechnung, fortgeschrieben.
+
+### 40.6 Was bewusst draußen bleibt
+
+**ICON-EU bekommt keine Profilfelder** (`profile: null`, mit Begründung im Adapter): es führt
+74 statt 65 Level, also eine andere Levelzahl für dieselbe Schichttiefe und ein eigenes
+Volumen. Ob Stufe 2 Profilfelder trägt, wird gemessen, nicht angenommen. Für Stufe 3 spricht
+ohnehin wenig: sie ist sechsstündlich, und ein Feld mit Tagesgang (40.4) passt schlecht in ein
+Sechs-Stunden-Raster.
+
+**Die beiden Schwellen sind Startwerte, keine Konstanten.** `gammaDepthM` (500 m, Tiefe der
+Γ-Bestimmung), `dzMinM` (50 m, Mindestmächtigkeit) und `dTMinK` (0,2 K, Mindesthub) stehen als
+benannte, eingefrorene Tabelle in `profile.mjs` und **im Manifest**, zusammen mit
+`calibrated: false`. Gemessen werden sie erst aus `buscosun-archiv` (Felder 30–39, E-14). Sie
+im Rechenweg zu verstecken wäre dieselbe stille Konstante, die §33.3 bei zehn anderen Feldern
+schon als Mangel führt.
+
+### 40.7 Die Gegenprobe von Hand — und der Ausreißer, der die Rechnung bestätigt
+
+Dass der Producer Zahlen schreibt, beweist nichts. Deshalb eine **unabhängig getippte**
+Fassung derselben Vorschrift, angesetzt am rohen GRIB an der **nativen** Zelle (nicht am
+Stufengitter), gegen den fertigen Chunk gehalten. Lauf 2026091012, +18 h (06 UTC):
+
+| Punkt | Feld | Cube | Hand | Differenz |
+|---|---|---|---|---|
+| Hamburg | `zBase` / `zInv` / `dTInv` | 55 / 264 m / **3,11 K** | 52 / 261 m / **3,11 K** | 3 m / 3 m / **0,00 K** |
+| Hamburg | `gammaEff` | **−5,18** K/km | −5,03 K/km | 0,15 |
+| Berlin | `zBase` / `zInv` / `dTInv` | 81 / 226 m / 0,91 K | 82 / 227 m / 0,82 K | 1 m / 1 m / 0,09 K |
+| München | Inversion? | **nein** | **nein** | `gammaEff` 4,11 / 3,85 |
+| Innsbruck | Inversion? | **nein** | **nein** | `gammaEff` 6,67 / 6,15 |
+| **Zermatt** | `zBase` | **2 336 m** | **1 888 m** | **+448 m** |
+
+Vier von fünf Punkten stimmen auf wenige Meter und Hundertstel-Kelvin überein, und die
+Ja/Nein-Aussage „Inversion" stimmt an **allen fünf**. Hamburgs `dTInv` ist auf zwei
+Nachkommastellen identisch — die beiden Rechenwege wurden getrennt getippt.
+
+**Der Ausreißer in Zermatt ist keiner.** Nachgemessen an derselben Zelle:
+
+```
+Zermatt     h_true 1608 m · hModEff 2326 m · Differenz −718 m · zBase 2336 m
+Innsbruck   h_true  574 m · hModEff  760 m · Differenz −186 m · zBase  770 m
+Hamburg     h_true    6 m · hModEff   17 m · Differenz  −11 m · zBase   55 m
+```
+
+`zBase` liegt im inversionsfreien Fall genau auf `hModEff` + ~10 m, also auf der untersten
+Vollfläche — wie gebaut. Die Handprobe greift die **native** Zelle (Talboden 1 878 m), der
+Cube mittelt den **0,05°-Block** über ein Tal zwischen Viertausendern (2 326 m). Beide Zahlen
+sind für ihr Gitter richtig; die Differenz ist die Repräsentativitätslücke — und `hModEff`
+reproduziert dabei die schon in §22.5 gemessenen **−718 m** in Zermatt auf den Meter.
+
+**Das ist genau der Term, den PAP 4 korrigieren soll** (`h_true − h_mod_eff`, in Zermatt
+4,7 K). Anders gesagt: die Gegenprobe zeigt nicht nur, dass die vier Felder stimmen, sondern
+auch, warum es sie braucht.
+
+### 40.8 Gate GPD-B5
+
+| Nachweis | Ergebnis |
+|---|---|
+| Die vier Ebenen tragen Werte in Stufe 1 | ✅ `gammaEff` 3 427 · `dTInv` 1 429 · `zInv` 951 · `zBase` 531 KiB (18 von 36 Ebenen belegt, vorher 14) |
+| **Echte Inversion gefunden und unabhängig nachgerechnet** | ✅ Hamburg 55→264 m, `dTInv` **3,11 K** in beiden Rechenwegen identisch; Berlin 81→226 m |
+| **Negativ-Kontrolle: durchmischt ⇒ `zInv == zBase`** | ✅ München und Innsbruck in beiden Rechenwegen „keine Inversion" |
+| **Physik-Kontrolle: Tagesgang ohne Tageszeit im Code** | ✅ **12,5 % mittags · 33,5 % morgens · 68,2 % nachts** |
+| Vorzeichenkonvention Γ = −∂T/∂z | ✅ Standardatmosphäre → +6,50 K/km; Inversion → negativ (Hamburg −5,18) |
+| `hModEff` und alle Zielgrößen unverändert | ✅ dieselben Ebenen, dieselben Werte; `POINT_PROFILE=0` baut den Stand vor PD-B5 |
+| **Volumen gemessen** | ✅ +141 Dateien / +131,3 MiB je 6 h ⇒ volle Stufe 1 **≈ 906 MiB** (+18 % aufs Laufbudget); Ausgabe t1 32,82 MiB |
+| **Laufzeit gemessen, `JOB_MAX_MIN` mitgezogen** | ✅ volle Stufe 1 kalt: **450 s / 1 589 MiB / 3,53 MiB/s**, Profilanteil ≈ 4,3 min ⇒ `JOB_MAX_MIN` **40 → 45**; engster Cron-Abstand 100 min hält (≥ 65) |
+| `verify:point-data` | ✅ **380/380** (war 342) |
+| typecheck · Build | ✅ 0 Fehler · 241/241 |
+| Budget | ✅ 301,2/302 · 1 365,5/1 372 — Textsonde: **null** Punkt-Signaturen in `dist/assets/*.js`, kein `src/*.ts(x)` importiert die Punkt-Module |
+| Veröffentlicht? | ❌ **nein, und das ist Absicht** — `POINT_PUSH` bleibt aus. Der erste Datenpush mit Profilfeldern ist Jans Gate |
+
+### 40.9 Zwei Messfallen dieser Etappe
+
+**(1) Der Laufzeitvergleich zweier Läufe war wertlos, und zwar zugunsten der Etappe.** Der
+Lauf **mit** Profil (69 s, 211 MiB) war schneller als der **ohne** (132 s, 80 MiB). Hätte ich
+diese Differenz als „Profil kostet nichts" berichtet, wäre es eine angenehme und falsche
+Aussage gewesen — der Durchsatz schwankte zwischen den Läufen um den **Faktor 5**
+(0,61 → 3,06 MiB/s). Belastbar ist nur, was **innerhalb eines Laufs** gemessen wird; die Zahl
+im Gate stammt deshalb aus dem einen vollen Stufe-1-Lauf.
+
+**(2) Eine Gegenprobe, die dieselbe Funktion aufruft, ist keine Gegenprobe.** `probe-check`
+importiert `profile.mjs` bewusst **nicht**, sondern tippt die Vorschrift zweitens hin. Nur
+deshalb ist „Hamburg `dTInv` 3,11 = 3,11" eine Aussage und keine Tautologie.
+
+### 40.10 Verbesserungen (D-28)
+
+**V-PD-21 · `gammaEff` ist mit `scale: 0.01` zu fein quantisiert.** Mit 3 427 KiB ist es die
+**größte** Ebene der Stufe 1 — größer als `t2m` (3 376) —, weil 0,01 K/km bei einem
+Wertebereich von ±40 K/km 8 000 Stufen ergibt und das Feld dadurch fast weißes Rauschen im
+untersten Bit trägt. Eine Lapse-Rate auf 0,1 K/km genau ist mehr als jede Anwendung in PAP 3/4
+braucht. *Mehrwert:* schätzungsweise 1–1,5 MiB je Lauf allein in Stufe 1, ohne dass irgendein
+Leser einen Unterschied sähe. *Skizze:* `scale` in `CUBE_VARS` auf 0,1; der Container ist seit
+PD-B2 selbstbeschreibend, ein Leser mit dem Manifest merkt nichts. Gehört zusammen mit den
+Quantil-Ebenen in PD-B7, damit es **eine** Formatänderung bleibt statt zweier.
+
+**V-PD-22 · Der Modelllevel-Abruf ist der neue größte Posten und läuft ohne Cache.**
+`POINT_CACHE` zeigt im Workflow auf `${{ runner.temp }}` und ist damit flüchtig; die
+Halbflächen `hhl` sind **zeitinvariant** (14 MiB je Lauf) und werden trotzdem viermal täglich
+neu gezogen. *Mehrwert:* 56 MiB/Tag ohne jeden Nutzen, und bei ICON-CH (PD-B6) wird derselbe
+Mechanismus deutlich teurer. *Skizze:* `actions/cache` auf die zeitinvarianten Dateien, Schlüssel
+aus Modell + Gitterversion — nicht aus dem Lauf, sonst greift er nie.
+
+---
+
+## §41 PD-B6: die Schweiz bekommt eine eigene Quelle — sechste Zugriffsfamilie (2026-09-10)
+
+Die Etappe schließt Befund 6 aus §33.6: `srcCount` war in München, Wien und Zürich **Stunde für
+Stunde identisch**, weil der Cube keine Länder kannte. Seit PD-B4 hat Österreich C-LAEF; die
+Schweiz wurde weiterhin aus der deutschen Spalte der Quellenmatrix versorgt.
+
+Neu: `scripts/point/adapters/meteoswiss.mjs` — ICON-CH1-EPS in Stufe 1, ICON-CH2-EPS in Stufe 2.
+Zugriffsfamilie 6: **STAC-Katalog plus vorsignierte S3-Objekte**.
+
+### 41.1 Die Registry stand auf einem Verbraucher, nicht auf dem Katalog
+
+`sourceMatrix.ts` führte für beide Modelle **fünf** Größen. Am Collection-Asset
+`params_icon-ch1-eps.csv` gemessen sind es **alle zwölf** Zielgrößen des Cubes — inklusive
+`TD_2M` (nativ, nicht abgeleitet wie bei C-LAEF) und `PS` (echter Bodendruck, **nicht** auf
+Meeresniveau reduziert wie bei C-LAEF).
+
+Woher die Fünf kamen, ist die eigentliche Lehre: aus `WANTED_STAC` in
+`src/sources/iconChEpsSource.ts` — dem **Kartenclient**. Der holt bewusst nur fünf Größen, weil
+er nur fünf zeichnet. Eine Registry, die von einem Verbraucher abschreibt, beschreibt dessen
+Bedarf, nicht die Quelle. Dieselbe Klasse wie V-BW-51 und wie die fünf C-LAEF-Korrekturen in
+§37.
+
+### 41.2 Drei Fallen, die der Katalog stellt
+
+**(1) ⚠ Unbekannte Query-Parameter werden STILL ignoriert.** `/conformance` nennt nur `core`,
+`collections`, `ogcapi-features` und `item-search` — keine Filter-, Sort- oder Query-Klasse.
+`?forecast:variable=T_2M` antwortet trotzdem mit **HTTP 200** und liefert `ALB_DIF`. Gegengeprüft
+mit vier verschiedenen Parametern; alle vier liefern identisch die ungefilterte Seite. Dieselbe
+Stille wie `git add` im sparse-Checkout (§30): Erfolg gemeldet, nichts getan.
+
+**(2) ⚠ Der `next`-Cursor sieht konstruierbar aus und ist es nicht.** Er ist base64 von
+`p=<letzte Item-ID>`, und die IDs beginnen mit `DDMMYYYY-HHMM` — also scheinbar ein
+Keyset-Cursor, mit dem man direkt zum neuesten Lauf springen könnte. Am Objekt geprüft: eine
+selbst gebaute, nicht existierende ID liefert **0 Items** statt eines Sprungs. Dass die
+Kodierung stimmt, zeigt die Gegenprobe — derselbe Cursor dekodiert, neu kodiert und erneut
+abgeschickt liefert dieselbe Seite. Der Cursor schlägt die ID **nach**; er vergleicht nicht.
+Ich hätte darauf gebaut, wenn ich es nicht gemessen hätte.
+
+**(3) ⚠ Vorsignierte URLs sind methodengebunden.** `HEAD` antwortet **403**, `GET` und
+Range-`GET` antworten 200/206 — die Signatur deckt die Methode mit ab. `headOk()` aus
+`shared.mjs` ist hier unbrauchbar und hätte als „Quelle hat nichts“ durchgeschlagen. Die Existenz
+einer Datei folgt deshalb aus dem Katalog, nicht aus einer Sonde. Und weil `Signature` und
+`Expires` bei **jeder** Enumeration wechseln, cacht der Abruf unter dem laufinvarianten
+Objektnamen (`cacheKey`) statt unter der URL — ein URL-Schlüssel träfe nie, der Cache wäre da
+und liefe leer.
+
+Der Katalog ist auch teuer: `limit` ist bei **100** gedeckelt (500 und 1000 liefern 100), und an
+**einer** Gültigzeit stehen bei CH1 **1 600 Items** (50 Variablen × 8 vorgehaltene Läufe ×
+ctrl/perturbed) ⇒ 16 Seiten, 3,9 s, ~3 MB JSON. Deshalb wird je Gültigzeit **genau einmal**
+enumeriert und daraus der Href **jeder** gebrauchten Größe gemerkt.
+
+### 41.3 Einheiten gemessen — und die Doku hat an einer Stelle unrecht
+
+| Größe | CSV sagt | gemessen | Folge |
+|---|---|---|---|
+| `TOT_PREC` | `kg m-2 s-1`, „Accumulation since Reference Time“ | **0…155 mm, laufakkumuliert** (Parameter 0/1/52) | keine Umrechnung; die CSV-Einheit ist falsch |
+| `T_2M`, `TD_2M` | K | 268…303 K | → °C |
+| `PS` | Pa | 60 889…102 351 Pa | → hPa |
+| `CLCT`/`CLCL`/`CLCM`/`CLCH` | % | 0…100 | keine Umrechnung |
+| `VMAX_10M` | m/s, „Maximum, Previous Hour“ | 0 … 35,7 | keine Umrechnung |
+
+Die Zeile `kg m-2 s-1` ist genau die Sorte Angabe, die bei IFS **21 976 mm für Wien** erzeugt hat
+(§23.3).
+
+⚠ **`SNOWLMT` ist bitmap-maskiert:** 270 559 von 283 876 Zellen tragen einen Wert. Wo kein
+Niederschlag fällt, gibt es keine Schneefallgrenze. Diese Zellen bleiben MISSING — eine 0 hieße
+„Schneefallgrenze auf Meeresniveau“.
+
+Die Zellkoordinaten und die Modellorographie kommen aus dem Konstanten-Asset und werden über die
+**Parameter-Identität** gefunden (`clat` = 0/191/1, `clon` = 0/191/2, `HSURF` = 0/3/6), nicht
+über Wertebereiche: eine Bereichs-Heuristik — so macht es der Kartenclient — findet `HSURF` gar
+nicht.
+
+### 41.4 Der Kontrolllauf darf hier ins Mittel — und das ist kein Bruch von V-PD-9
+
+V-PD-9 hält Ensemble-Kontrollläufe aus dem Mittel. Der Grund war nie „Kontrollläufe sind
+schlecht“, sondern: **der IFS-ENS-Kontrolllauf IST IFS HRES**, und eine bereits ingestierte
+Quelle ein zweites Mal zu zählen ließe `σ_div` schrumpfen.
+
+Für ICON-CH trifft das nicht zu: MeteoSchweiz veröffentlicht **keinen** separaten
+deterministischen Lauf, der `ctrl`-Member ist die einzige Fassung, und er dupliziert keine andere
+ingestierte Quelle. Deshalb `ensembleControlOnly: false` — mit genau dieser Begründung als
+`controlNote` im Manifest, damit die Ausnahme nicht als Schlamperei gelesen wird. Die
+`perturbed`-Member (23 MB je Variable und Schritt) bleiben PD-B8.
+
+### 41.5 Der Wächter aus PD-B2 hat eine eigene Messung widerlegt
+
+Beim ersten Verifier-Lauf wurde **`(3f) keine Ensemble-Größe ohne σ_ens-Ebene` rot** — wegen
+`snowlmt`.
+
+PD-B2 hatte die σ_ens-Ebene für `snowlmt` ausdrücklich weggelassen, mit gemessener Begründung:
+„kein Ensemble führt die Schneefallgrenze (am Verzeichnis geprüft)“. Das galt für die drei
+DWD/ECMWF-EPS-Verzeichnisse und ist für **MeteoSchweiz falsch**. Ohne die Ebene ginge die
+Information beim Ingest verloren, ohne dass es je auffiele — genau der Satz, mit dem die Prüfung
+in PD-B2 begründet wurde.
+
+Aufgefallen ist es **nicht beim Lesen**, sondern weil eine Prüfung rot wurde, die für diesen Fall
+gebaut war. Konsequenz: `snowlmt` bekommt `sigmaEns`, **36 → 37 Ebenen**, und `CUBE_SCHEMA` geht
+auf **3**. Warum trotz selbstbeschreibendem Container eine neue Nummer: die Ebenenliste im
+Manifest schützt nur Leser, die sie mitbringen; der Chunk-Kopf trägt `nvar`, und zwei
+Generationen mit gleicher Schema-Nummer und verschiedener Ebenenzahl wären für einen Leser
+**ohne** Manifest still verschieden. Genau davor steht die Nummer. Kosten heute: null (kein
+Client-Leser, 24 h Aufbewahrung).
+
+Zwei Zählprüfungen sind dabei von festen Zahlen auf **gezählte** umgestellt worden
+(`=== 8 σ_ens` ⇒ „eine je Ensemble-fähiger Größe“) — die Lehre aus BW-1: eine fortgeschriebene
+Zahl ist irgendwann eine falsche Zahl.
+
+### 41.6 Der teuerste Befund: `chooseRun` nahm den frischesten statt des brauchbaren Laufs
+
+Der erste volle CH1-Lauf meldete `icon_ch1_eps@2026091015 (3 Std.)` — **3 von 49 Stunden**.
+
+Die Ursache liegt in `chooseRun` und ist **älter als PD-B6**: die Voll-Abdeckungsprobe wurde nur
+gestellt, wenn `maxHorizon ≥ Bandende`. ICON-CH1 reicht 33 h, das t1-Band endet bei 48 ⇒ die
+Probe entfiel ganz, und der Rückfall lautet „neuester Lauf, der Stunde 0 trägt". Das ist der
+**frischeste** Lauf — und damit der am wenigsten veröffentlichte: der 15z-Lauf war zwei Stunden
+alt und hatte drei Schritte publiziert.
+
+Dieselbe Klasse wie §34.1, nur andersherum: dort gewann der kürzere Lauf über den weiteren, hier
+gewinnt der jüngere über den brauchbaren. PD-B1 hatte diese Lücke sogar als **Prüfung**
+festgeschrieben („keine aussichtslose Voll-Abdeckungsprobe") — die Annahme, eine solche Probe
+könne „nur scheitern", war der Fehler.
+
+**Und die naheliegende Kur reichte nicht.** Auf `min(Bandende, maxHorizon)` zu proben ergab für
+CH1 45 h — denn am Katalog gemessen ist der Horizont **laufabhängig**:
+
+```
+Lauf 09-10T12:00  Alter  5 h  ->  Leads 24 30 33
+Lauf 09-10T09:00  Alter  8 h  ->  Leads 24 30 33
+Lauf 09-10T06:00  Alter 11 h  ->  Leads 24 30 33
+Lauf 09-10T03:00  Alter 14 h  ->  Leads 24 30 33 36 42 45   <-- der einzige lange
+Lauf 09-10T00:00  Alter 17 h  ->  Leads 24 30 33
+Lauf 09-09T21:00  Alter 20 h  ->  Leads 24 30 33
+```
+
+**Nur 03z trägt 45 h**, alle anderen 33 — ein ⚠⁵-Fall wie bei ICON-EU. (Für 15z war zur Messzeit
+noch nichts publiziert, dort ist der Wert ungemessen.) Eine Sonde auf 45 findet also nur den
+03z-Lauf, und der war 14 h alt, damit jenseits von `FULL_COVER_MAX_BACK` — Ergebnis wäre wieder
+der Rückfall gewesen.
+
+Kur deshalb als **Leiter statt Sprung**: erst auf `min(Bandende, maxHorizon)`, dann auf
+`min(Bandende, Regelhorizont)`, erst dann der Rückfall — höchstens zwei Sonden. Damit gewinnt der
+5 h alte 12z-Lauf mit **12 von 12 möglichen Schritten** (CH1 liefert in Stufe 1 die Stunden
+0, 3, … 33).
+
+**Regressionsprobe über alle Quellen und Stufen, am echten Datum:** von 18 (Quelle × Stufe)-Paaren
+ändert sich **genau eines** — ICON-CH1, von 3 auf 12 Stunden. Jede andere Quelle wählt denselben
+Lauf wie vorher. Der Befund aus §34.1 bleibt unangetastet (die weiten Quellen proben weiter aufs
+Bandende), und eine eigene Gegenprüfung hält das fest.
+
+### 41.7 Die Rechteck-Hülle überschätzt — der Nachbarindex fängt es
+
+Die Domäne ist die **Bounding-Box eines rotierten Gitters**, also an den Ecken zu großzügig
+(genau der Punkt von `CH_EDGE_DISCREPANCY`: 17,7 °E ist die Hülle, nicht der Rand bei 48 °N).
+Gemessen auf Stufe 1:
+
+```
+48 441 Zellen gesamt
+23 203 von der Rechteck-Maske erlaubt
+    63 davon OHNE Gitterzelle in Reichweite  (0,3 %)
+23 140 tatsaechlich beschrieben
+```
+
+Der eigentliche Wächter ist damit **nicht** die Box, sondern die Entfernungsgrenze des
+Nachbarindex aus PD-B4b — sie lässt die 63 Überhang-Zellen leer, statt einen Randwert über sie zu
+verteilen. Die Nordost-Ecke der Hülle (50,4 °N / 17,6 °E) fällt schon durch `edgeMarginKm: 20`
+heraus.
+
+⚠ **Eine Spannung in den Ausgangsdokumenten, die hier entschieden werden musste.**
+`QUELLENMATRIX.md` §1 führt ICON-CH nur in der Schweizer Spalte; §2 dagegen tabelliert
+ausdrücklich seine Abdeckung von DE („teilweise, nur < 50,5 °N") und AT („✓ aber Randlage ⚠²")
+und sagt wörtlich: „Die Quellenauswahl muss also **geometrisch** über die Domain entschieden
+werden, nicht über das Land." Der Cube folgt §2 — wie bei jeder anderen Quelle auch. Praktische
+Folge: München und Wien bekommen ICON-CH1 mit. Für Wien sind das 99 km bis zur Domänenhülle, also
+nicht die Randlage, vor der ⚠² warnt (deren „15–20 km" ist ohnehin als V-PD-5 offen: gemessen
+sind es 40,2 km an der Ostspitze Österreichs). Die frühere Registry-Notiz „die Zuordnung
+entscheidet, nicht die Hülle" ist damit überholt und korrigiert.
+
+### 41.8 Der Beleg: der Cube kennt jetzt Länder
+
+Stufe 1, Lauf 2026091015, Quellen ICON-D2 + ICON-EU + C-LAEF + ICON-CH1:
+
+| Ort | `srcCount` 0 h / 1 h / 3 h / 6 h / 12 h | `t2m_sd` @ 6 h |
+|---|---|---|
+| Hamburg | 2 · 2 · 2 · 2 · 2 | 0,25 K |
+| Berlin | 2 · 2 · 2 · 2 · 2 | 0,58 K |
+| München | **4 · 3 · 4 · 4 · 4** | 0,75 K |
+| Wien | **4 · 3 · 4 · 4 · 4** | 0,58 K |
+| Innsbruck | **4 · 3 · 4 · 4 · 4** | **1,09 K** |
+| Zürich | **4 · 3 · 4 · 4 · 4** | **1,03 K** |
+| Genf | **4 · 3 · 4 · 4 · 4** | 0,61 K |
+
+Vor PD-B4 war diese Spalte überall gleich. Jetzt trennt sie Norddeutschland (zwei Quellen) vom
+Alpenraum (vier), und der Takt 4/3/4 ist das dreistündliche Raster von C-LAEF und ICON-CH.
+
+**Nebenbefund, der nicht bestellt war:** `t2m_sd` folgt der Geländekomplexität — Innsbruck 1,09 K
+und Zürich 1,03 K gegen Hamburg 0,25 K. Die Modelle sind sich im Flachland einig und im Gebirge
+nicht, und das steht jetzt als Zahl im Cube statt als Vermutung.
+
+### 41.9 Kosten gemessen
+
+| | je Schritt | Schritte | je Lauf |
+|---|---|---|---|
+| **ICON-CH1** (Stufe 1) | **26,4 MiB** (12 × 2,24) | 12 (0…33 h, dreistündlich) | **317 MiB** |
+| **ICON-CH2** (Stufe 2) | **6,5 MiB** (12 × 0,554) | 24 (51…120 h) | **156 MiB** |
+| Konstanten (zeitinvariant) | — | einmal | 41 MiB (CH1 32,9 + CH2 8,1) |
+
+CH1 stündlich wäre **1,21 GiB** je Lauf gewesen — ein Fünftel des gesamten Laufbudgets für eine
+Quelle. Das dreistündliche Raster ist damit keine Bequemlichkeit, sondern Jans Vorgabe für PD-B
+(„Ensembles nur als Mittel + σ_ens in grobem Zeitraster") mit einer Zahl dahinter.
+
+### 41.10 Gate GPD-B6
+
+| Nachweis | Ergebnis |
+|---|---|
+| Beide ICON-CH-Quellen haben einen Adapter und sind aus `PENDING` raus | ✅ |
+| Alle zwölf Zielgrößen, gegen den Katalog geprüft | ✅ `params_*.csv` + am Feld; Registry von 5 auf 12 korrigiert |
+| **Der Cube kennt Länder** | ✅ Hamburg/Berlin `srcCount` 2, Alpenraum 4 (vorher überall gleich) |
+| Domäne trägt CH, aber nicht Norddeutschland | ✅ Zürich/Genf/Zermatt belegt, Hamburg/Berlin MISSING |
+| Rechteck-Hülle überschreitet nicht | ✅ 63 von 23 203 Zellen (0,3 %) bleiben leer statt erfunden |
+| Einheiten am Feld gemessen | ✅ `TOT_PREC` mm laufakkumuliert (CSV sagt fälschlich `kg m-2 s-1`) |
+| `SNOWLMT`-Maske respektiert | ✅ 270 559 von 283 876 Zellen; Rest MISSING, nicht 0 |
+| V-PD-9 bleibt für ECMWF gültig | ✅ `ifs_ens`/`aifs_ens` weiter ausgeschlossen, ICON-CH begründet nicht |
+| **Laufwahl-Regression** | ✅ 18 (Quelle × Stufe)-Paare geprüft, **genau eines** ändert sich (CH1: 3 → 12 Stunden) |
+| Kosten gemessen | ✅ CH1 317 MiB, CH2 156 MiB, Konstanten 41 MiB je Lauf |
+| `verify:point-data` | ✅ **410/410** (nach B5: 380) |
+| typecheck · Build | ✅ 0 Fehler · 241/241 |
+| Veröffentlicht? | ❌ **nein** — `POINT_PUSH` bleibt aus, der erste Push ist Jans Gate |
+
+### 41.11 Verbesserungen (D-28)
+
+**V-PD-23 · Die Katalog-Enumeration ist der neue teuerste Metadaten-Posten.** 16 Seiten à ~193 KB
+je Gültigzeit, und gebraucht werden davon 12 von 1 600 Items (0,75 %). Für CH1 + CH2 zusammen
+sind das 36 Enumerationen ≈ 580 Seiten ≈ 110 MB JSON je Lauf. *Mehrwert:* der Abruf schrumpft um
+mehr als 100 MB und ~2 min. *Skizze:* die Items **eines Laufs** liegen id-zusammenhängend; ein
+`/search` mit `ids`-Liste wäre der saubere Weg, sobald der Katalog ihn unterstützt — heute nicht.
+Bis dahin: die Enumeration je Lauf **einmal** über alle Gültigzeiten halten statt je Gültigzeit,
+sobald PD-B8 ohnehin mehrere Items je Schritt braucht.
+
+**V-PD-24 · Die Konstanten-Assets sind 41 MiB je Lauf für zeitinvariante Daten.** Dieselbe
+Ursache wie V-PD-22 (`POINT_CACHE` liegt im flüchtigen `runner.temp`). Bei ICON-CH wiegt es
+schwerer als bei `hhl`, weil beide Modelle je ein eigenes Asset haben. *Skizze:* wie V-PD-22 —
+`actions/cache`, Schlüssel aus Modell + Gitterversion.
+
+---
+
+## §42 PD-B7: gemessene Quantile bekommen einen eigenen Ort (2026-09-10)
+
+C-LAEF-EPS lag seit PD-A in `PENDING`, mit einer Begründung, die schärfer war als die
+Datenlage: die Quelle liefert **keine Member**, nur P10/P50/P90 (⚠³). Jans Entscheidung vom
+2026-09-10: eigene Quantil-Ebenen statt einer Normalverteilungsannahme.
+
+Neu: `<var>_q10` und `<var>_q90` für sieben Größen ⇒ **37 → 51 Ebenen, Schema 4**.
+
+### 42.1 Der Beweis, warum σ hier falsch wäre — an einer nassen Zelle
+
+Der naheliegende Weg wäre `σ_ens = (p90 − p10) / 2,563`. Am echten Datum gemessen (Lauf
+2026091012, Innsbruck, +6 h):
+
+```
+tp_p10 = 0,000 mm      tp_p90 = 0,619 mm
+```
+
+Daraus σ = 0,241 mm. Ein normalverteiltes p10 wäre `Median − 1,28 σ` — und weil der Median
+dort nahe null liegt, ist das Ergebnis **negativ**. Ein negativer Niederschlag ist keine
+Vorhersage, sondern ein Rechenfehler mit Einheit.
+
+Das ist derselbe Gedanke wie bei Schema 2 (`σ_div` und `σ_ens` in eine Ebene zu schreiben
+machte die PAP-6-Verzweigung unentscheidbar): **ein gemessenes Quantil bleibt ein Quantil.**
+Eine Ebene, die einen gemessenen Wert verspricht und einen gerechneten trägt, ist der teuerste
+Fehler dieses Produkts (§21 (4)).
+
+### 42.2 Sieben Größen — und drei ausdrücklich nicht
+
+Am Katalog gemessen: der Datensatz führt **14 Parameter × p10/p50/p90 = 42 Felder**. Davon
+passen sieben auf Cube-Größen: `t2m`, `u10`, `v10`, `gust`, `precip`, `clct`, `snowlmt`.
+
+**Nicht dabei, mit Grund:**
+
+| Größe | Warum nicht |
+|---|---|
+| `td2m` | Für den **Median** lässt sich der Taupunkt aus `2t` und `2r` ableiten — so macht es der deterministische C-LAEF seit §37. Für ein **Quantil** geht das nicht: das q10 des Taupunkts ist nicht Magnus(q10 der Temperatur, q10 der Feuchte). Ein abgeleitetes Quantil ist keins. |
+| `ps` | Der Datensatz führt nur `msl` (auf Meeresniveau reduziert), wie der deterministische Lauf. Auf der Zugspitze stünden 1013 statt 700 hPa. |
+| `clcl`/`clcm`/`clch` | führt der Datensatz gar nicht. |
+
+### 42.3 Die Quelle geht NICHT ins Mittel — und das ist V-PD-9, nicht dessen Bruch
+
+C-LAEF-EPS hat `vars: []`. Der Grund ist derselbe wie bei den ECMWF-Kontrollläufen: **ihr p50
+ist derselbe Modelllauf wie `claef`**, den der Cube schon ingestiert. Als zweiter
+„unabhängiger" Wert im Mittel ließe sie `σ_div` schrumpfen — die Divergenz zweier Kopien
+desselben Modells ist null.
+
+Umgesetzt ist das nicht als Sonderfall, sondern über die bestehende Mechanik: die
+Mittelungsschleife prüft `c.adapter.vars.includes(varId)`, und eine leere Liste heißt, sie
+fasst die Quelle nie an. Am Bau belegt — ein Lauf nur mit `claef_eps` füllt **14 von 51
+Ebenen, und zwar ausschließlich die Quantil-Ebenen**; `srcCount`, alle Mediane und alle
+σ-Ebenen bleiben MISSING.
+
+Die Quantile kommen zudem aus **genau einer** Quelle, nicht gemittelt — dieselbe Regel wie bei
+den Profilfeldern (§40.3). Das q10 zweier Modelle zu mitteln ergäbe ein Quantil, das kein
+Ensemble je gerechnet hat, und über welche Verteilung es dann etwas sagt, könnte niemand
+angeben. Das Manifest trägt `provenance: "single-source"` und den Satz, der die Doppelzählung
+verhindert: **`_q10`/`_q90` NICHT mit `_sd` oder `_sd_ens` verrechnen** — sie beschreiben die
+Unsicherheit EINER Quelle, nicht die Uneinigkeit mehrerer.
+
+### 42.4 Die Registry lag dreifach daneben — zum zweiten Mal bei derselben Quellenfamilie
+
+| Feld | stand da | gemessen |
+|---|---|---|
+| `runHours` | `[0, 6, 12, 18]` | **dreistündlich** (12/09/06/03 UTC vorgehalten) |
+| `retentionH` | `null` | **4 Reftimes ≈ 12 h** |
+| `vars` | 4 Größen | **7** (von 14 Parametern des Datensatzes) |
+
+Der Laufrhythmus ist **exakt derselbe Fehler**, den §37 schon beim deterministischen C-LAEF
+gefunden hat („Läufe sind DREIstündlich, nicht `[0,6,12,18]`"). Eine falsche Zahl war in einer
+Datei korrigiert und in der Zeile darunter stehen geblieben.
+
+Die Skalen sind einzeln am Objekt gemessen (netcdf-int16 gegen die `geojson`-Ausgabe
+**derselben Zelle**, weil `jsfive` die Attribute nicht liest): `2t`/`10u`/`10v`/`10fg`/`snowlmt`
+0,1 · `tcc` 0,01 · `tp` 0,001. ⚠ `tp` war an einer **trockenen** Zelle nicht bestimmbar (beide
+Quantile 0) und musste an einer nassen gemessen werden — Innsbruck +6 h, 0,619 mm ← int16 619.
+
+### 42.5 Der Fund, der nicht zu dieser Etappe gehörte: −1 mm Niederschlag im Cube
+
+Die Konsistenzprobe meldete **29 161 negative `precip_q10`**. Die Spur:
+
+```
+Minimum im Cube: -1,000 mm  (int16 -100)
+verschiedene negative Werte: genau EINER
+```
+
+Ein einziger Wert, also kein Rechenfehler, sondern ein Marker. Bei Skala 0,001 heißt −1,00 mm
+im Cube ein Rohwert von **−1000** — ein Füllwert, den die Liste des Adapters
+(−32768/−32767/−9999) nicht kannte. Die Liste war geraten, nicht gemessen.
+
+**Und er betraf nicht nur die neuen Ebenen:** derselbe Lauf trug **28 920 Zellen mit −1,000 mm
+im deterministischen `precip`** — ein Altfehler seit PD-B4, den erst die Quantil-Arbeit
+sichtbar gemacht hat.
+
+Die Ursache ist Semantik, nicht Technik: alle negativen Zellen liegen **ausschließlich bei
+Stunde 0** (gemessen, je Zeitschritt ausgezählt). `tp` ist die Menge „in the last forecast
+interval", und vor Stunde 0 gibt es kein Intervall — genau wie bei ICON, wo die Stunde 0 gar
+keinen Niederschlag führt (§33.3). Die API sagt es selbst, wenn man sie richtig fragt:
+
+```
+geojson, Lead 0:  tp_p10 = null   tp_p90 = null
+geojson, Lead 1:  tp_p10 = 0
+```
+
+**Kur an zwei Stellen, weil eine nicht reicht.** Erstens: −1000 kommt in die Füllwert-Liste,
+mit der Messung als Begründung. Zweitens — und wichtiger — ein **zweiter Wall**, der von der
+Liste unabhängig ist: Größen, die physikalisch nicht negativ werden können, sind deklariert
+(`precip`, `clct`, `gust`, `snowlmt`), und ein negativer Wert dort ist keine Messung. Das fängt
+jeden **weiteren** undokumentierten Füllwert, ohne dass ihn erst jemand finden muss.
+`t2m`, `u10` und `v10` stehen ausdrücklich **nicht** in der Liste — sie dürfen negativ sein,
+und eine Gegenprüfung hält das fest.
+
+Nach der Kur: **0 negative Werte**, und `precip` verliert genau 28 920 Zellen — die Stunde 0
+steht jetzt als MISSING statt als −1 mm.
+
+### 42.6 Die Gegenprobe: liegt der deterministische Lauf im eigenen Ensemble-Band?
+
+Der stärkste verfügbare Test ohne Wahrheitsdaten: `claef` und `claef_eps` stammen aus demselben
+Modell. Läge der deterministische Wert systematisch außerhalb des 80-%-Bands seines eigenen
+Ensembles, wäre etwas räumlich oder zeitlich fehlzugeordnet.
+
+Über **347 040 Zellen** (Stufe 1, Stunden 0–11):
+
+| Größe | `q10 ≤ q90` | Median im Band | mittlere Bandbreite |
+|---|---|---|---|
+| `t2m` | **100,00 %** | 83,25 % | 1,40 K |
+| `u10` | **100,00 %** | 88,97 % | 1,34 m/s |
+| `v10` | **100,00 %** | 88,52 % | 1,41 m/s |
+| `gust` | **100,00 %** | 90,20 % | 2,17 m/s |
+| `precip` | **100,00 %** | 97,13 % | 0,68 mm |
+| `clct` | **100,00 %** | 88,26 % | 30,3 % |
+| `snowlmt` | **100,00 %** | 77,22 % | 217 m |
+
+Die Ordnung hält ausnahmslos, und die Trefferquote liegt dort, wo man sie für ein 80-%-Band
+erwartet. Bei einer Verschiebung um eine Zelle oder eine Stunde wäre sie eingebrochen —
+deshalb ist diese Zahl der eigentliche Verortungsbeweis der Etappe.
+
+### 42.7 Kosten gemessen
+
+Voller Bau der Stufe 1 nur mit `claef_eps`, kalter Cache:
+
+```
+49 Stunden · 7 Größen × 2 Quantile · 57 Dateien · 339,1 MiB · 306 s · Ausgabe 20,65 MiB
+```
+
+Die 57 Dateien sind **4 Zeitfenster × 14 Parameter + 1 Metadatenabruf** — die API liefert bis
+zu 16 Stunden je Anfrage (Grenze: 10 Mio Punkte), also kostet eine Stunde mehr im Fenster
+nichts. Gegen das Laufbudget sind die 339 MiB ein Zuwachs von **+6 %**; zusammen mit PD-B5
+(906 MiB) und PD-B6 (473 MiB + 41 MiB Konstanten) steht die Phase bei **rund 6,7 GiB je Lauf**.
+
+⚠ Damit wird die Laufzeit zum bindenden Posten, nicht das Volumen: bei dem in §40.5 gemessenen
+Durchsatz von 3,5 MiB/s sind 6,7 GiB rund **32 min** — innerhalb der 45 min, die `JOB_MAX_MIN`
+seit PD-B5 nennt, aber ohne den Puffer, den die Zahl vor B5 hatte. Die nächste Etappe (PD-B8,
+Ensemble-Member) ist die teuerste der Reihe und braucht deshalb **vor** dem Bau eine
+Volumenentscheidung, keine danach.
+
+### 42.8 Gate GPD-B7
+
+| Nachweis | Ergebnis |
+|---|---|
+| `_q10`/`_q90` für sieben Größen, Schema 4 | ✅ 37 → **51 Ebenen** |
+| Quantile behalten Skala **und Versatz** ihrer Größe | ✅ (`_sd` setzt `offset: 0` — hier wäre das ein lautloser Fehler) |
+| **Die Quelle trägt nichts zum Mittel bei** | ✅ Lauf nur mit `claef_eps`: **14 von 51 Ebenen belegt, ausschließlich Quantile**; `srcCount` und alle Mediane MISSING |
+| `td2m` und `ps` bekommen bewusst keine | ✅ mit Begründung in Adapter und Verifier |
+| **`q10 ≤ q90`** | ✅ **100,00 %** über 347 040 Zellen, alle sieben Größen |
+| **Verortungsbeweis** | ✅ deterministischer Lauf im eigenen 80-%-Band: 77–97 % |
+| ⚠ **Altfehler gefunden und behoben** | ✅ −1 mm Niederschlag: 28 920 Zellen im deterministischen C-LAEF (seit PD-B4) + 29 161 je Quantil-Ebene ⇒ nach der Kur **0** |
+| Zweiter Wall gegen künftige Füllwerte | ✅ `NON_NEGATIVE` deklariert; `t2m`/`u10`/`v10` ausdrücklich nicht drin |
+| Registry korrigiert | ✅ Läufe dreistündlich, Vorhalt 12 h, 7 statt 4 Größen |
+| Kosten gemessen | ✅ 57 Dateien · **339,1 MiB** · 306 s · Ausgabe 20,65 MiB (Stufe 1 voll) |
+| `verify:point-data` | ✅ **440/440** (nach B6: 410) |
+| typecheck · Build · Budget | ✅ 0 Fehler · 241/241 · 301,2/302 · 1 365,5/1 372 |
+| Veröffentlicht? | ❌ **nein** — `POINT_PUSH` bleibt aus |
+
+### 42.9 Die Lehre dieser Etappe
+
+**Eine Füllwert-Liste, die nicht gemessen ist, ist eine Vermutung mit drei Einträgen.** Die alte
+Liste (−32768/−32767/−9999) sah vollständig aus und war es nicht; der fehlende vierte Eintrag
+stand seit PD-B4 als −1 mm Niederschlag im Cube, in einer Ebene, die niemand angesehen hatte.
+Gefunden wurde er nicht durch Lesen, sondern durch eine **physikalische** Prüfung („kann diese
+Größe negativ werden?") an einer ganz anderen Etappe.
+
+Deshalb ist die Kur auch nicht nur der vierte Listeneintrag, sondern der zweite Wall: die
+Vollständigkeit einer Liste kann man nicht beweisen, die Nichtnegativität von Niederschlag
+schon.
+
+---
+
+## §43 PD-B8: σ_ens und ensCount bekommen endlich Daten (2026-09-11)
+
+PD-B2 hat den **Ort** geschaffen (Schema 2), PD-B6 die Ebene für `snowlmt` ergänzt (Schema 3) —
+gefüllt hat sie niemand. `<var>_sd_ens` und `ensCount` standen seit PD-A **durchgehend auf
+MISSING**; §35.6 sagte es ausdrücklich: „Diese Etappe hat den Ort geschaffen, nicht die Daten."
+
+Neu: `scripts/point/adapters/dwdEps.mjs` — ICON-D2-EPS (Stufe 1), ICON-EU-EPS (Stufe 2),
+ICON-EPS global (Stufe 3). **Siebte Zugriffsfamilie**: gebündelte Member auf dem ikosaedrischen
+Gitter.
+
+### 43.1 Die Volumenentscheidung kam VOR dem Code — und das war nötig
+
+Gemessen je (Größe, Schritt):
+
+| Quelle | Member | Größe | Form |
+|---|---|---|---|
+| ICON-D2-EPS | 20 | **13,4 MiB** | gebündelt, ein Abruf |
+| ICON-EU-EPS | 40 | 9,1 MiB | gebündelt |
+| ICON-EPS global | 40 | **34,8 MiB** | gebündelt |
+| IFS-ENS | 50 | 1,12 MiB × 50 = **55,8 MiB** | 50 getrennte Byte-Bereiche |
+| AIFS-ENS | 50 | 1,30 × 50 = **65,1 MiB** | `enfo-cf` + `enfo-pf` getrennt |
+
+⚠ **Eine Teilmenge der Member ist bei ICON nicht abrufbar.** Die Datei ist gebündelt *und*
+bz2-gepackt; ein Byte-Bereich hilft nicht. Entweder alle 20 (bzw. 40) oder keiner. Damit fällt
+die naheliegende Sparmaßnahme („nimm 20 von 50 Membern, σ ist dann fast so gut") für die
+DWD-Ensembles aus — sie geht nur bei ECMWF, und dort ist schon der Vollpreis am höchsten.
+
+Stündlich wäre allein Stufe 1 **über 5 GiB je Lauf**. Nach PD-B5 bis B7 steht das Laufbudget
+bereits bei ≈ 6,7 GiB ⇒ ~32 min gegen `JOB_MAX_MIN` 45. Deshalb ist das Zeitraster hier keine
+Bequemlichkeit, sondern die Etappe selbst — **Jans Entscheidung vom 2026-09-11**: alle drei
+Stufen, sehr grob.
+
+| Stufe | Quelle | Raster | Größen |
+|---|---|---|---|
+| t1 | ICON-D2-EPS | **6-stündlich** | t2m, u10, v10, gust, precip |
+| t2 | ICON-EU-EPS | **12-stündlich** | dieselben fünf |
+| t3 | ICON-EPS global | **24-stündlich** | nur t2m und precip |
+
+Stufe 3 ist am stärksten beschnitten und trotzdem die wichtigste: **dort fehlt heute jede
+Unsicherheitsinformation** (§33.4 — jenseits 180 h trug lange nur eine Quelle, und `σ_sys` ist
+bis `buscosun-archiv` ungemessen).
+
+Zwischen den Rasterstunden bleiben die Ebenen MISSING. Das ist die ehrliche Form: der Client
+sieht, wo eine gemessene Member-Streuung vorliegt und wo er auf `σ_div` zurückfällt — eine
+interpolierte Streuung sähe aus wie eine gemessene.
+
+### 43.2 Jans zweite Entscheidung: die Ensembles gehen NICHT ins Mittel
+
+Die Vorgabe für PD-B lautete „Ensembles nur als Mittel + σ_ens in grobem Zeitraster". Ich habe
+das als **Speicherform** gelesen (keine Einzelmember im Repo, sondern die abgeleiteten Größen)
+und nicht als Fusionsregel — und nachgefragt, weil die andere Lesart messbar etwas anderes tut.
+
+Der Grund ist derselbe wie zweimal zuvor: **das Ensemble-Mittel von ICON-D2-EPS ist derselbe
+Modelllauf wie ICON-D2**, den der Cube schon ingestiert. Als zweiter „unabhängiger" Wert im
+Mittel ließe es `σ_div` schrumpfen — exakt V-PD-9 (ECMWF-Kontrollläufe) und §42.3 (C-LAEF-EPS).
+Umgesetzt über dieselbe Mechanik: `vars: []`, und die Mittelungsschleife fasst die Quelle nie
+an. `srcCount` zählt sie ebenfalls nicht.
+
+### 43.3 ⚠ Die Einheit einer Streuung ist nicht die Einheit eines Werts
+
+`convert()` rechnet `wert · factor + offset`. Auf eine **Standardabweichung** angewandt wäre
+das ein stiller Totalschaden: `KELVIN_TO_C` trägt `offset: −273,15`, und eine Streuung von
+1,2 K stünde als **−271,95** im Cube. Nicht einmal sichtbar wäre es: beim Quantisieren würde
+der Wert schlicht an der Bereichsgrenze geklemmt, ohne Fehlermeldung.
+
+Streuungen werden deshalb **nur mit dem Faktor** skaliert. Das steht als eigene Tabelle
+(`SD_FACTOR`) im Adapter, nicht als stille Auslassung — und der Verifier prüft, dass
+`convert()` im Code dieser Datei überhaupt nicht vorkommt.
+
+### 43.4 ⚠ Der teuerste Fund: nicht jede GRIB-Nachricht ist ein Member
+
+Der erste Lauf meldete **„80 Member"** — bei einem Ensemble mit 20.
+
+Am Objekt nachgezählt: `t_2m`, `u_10m`, `v_10m` und `vmax_10m` liefern je **20** Nachrichten,
+`tot_prec` aber **80** — mit **identischer Parameter-Identität** und Member-Nummern 1…20, jede
+viermal, und die vier sind nachweislich **verschieden** (55 466 von 542 040 Werten). Der
+Unterschied steckt in Sektion 4, die der Decoder bis dahin nur bis zur Parameter-Identität las:
+
+```
+Ende 09:00 · Prozess 1 (Akkumulation) · Spanne 360 min  ->  20 Nachrichten
+Ende 09:15 · Prozess 1                · Spanne 375 min  ->  20 Nachrichten
+Ende 09:30 · Prozess 1                · Spanne 390 min  ->  20 Nachrichten
+Ende 09:45 · Prozess 1                · Spanne 405 min  ->  20 Nachrichten
+```
+
+**ICON-D2-EPS veröffentlicht den Niederschlag in Viertelstunden.** Die Datei zum Schritt 006
+enthält die Laufsummen bis +6:00, +6:15, +6:30 und +6:45. Eine Streuung über alle 80 hätte vier
+**Gültigzeiten** vermischt — der Zuwachs über 45 Minuten sähe aus wie Modellstreuung und wäre
+der Lauf der Uhr.
+
+Der Decoder trägt dafür jetzt `productTemplate`, `forecastTime`, `statProcess`, `timeRangeMin`
+und `intervalEndMinute` (Oktettlagen am echten Objekt abgelesen, Sektion 4 Länge 61). Die
+Ergänzung ist rein additiv — die Kartenlinie liest die Felder nicht.
+
+**Und der erste Filter war falsch, was sofort am Volumen sichtbar wurde.** Ich hatte auf die
+**Länge** gefiltert (`timeRangeMin === leadH·60`). Damit verschwand `gust` fast vollständig:
+`gust_sd_ens` fiel von 119 auf **5 KiB**. Der Grund: `tot_prec` ist seit Laufbeginn akkumuliert
+(Spanne = `leadH·60`), `vmax_10m` aber das Maximum der **Vorstunde** (Spanne immer 60) — beide
+enden auf der vollen Stunde, haben aber völlig verschiedene Längen. Das Kriterium ist das
+**Ende** des Intervalls, nicht seine Länge. Nach der Korrektur: 20 Member, `gust` wieder bei
+119 KiB.
+
+Bemerkenswert an diesem Fehler ist, wie er aufgefallen ist: nicht durch eine Prüfung, sondern
+weil eine **Ebenengröße im Bauprotokoll** um den Faktor 24 einbrach. Die Zeile „mit Werten"
+ist damit mehr als Buchhaltung.
+
+### 43.5 Der Beleg: die Streuung wächst mit der Vorhersagezeit
+
+Wie bei den Profilfeldern (§40.4) ist der Beweis nicht „die Ebene ist belegt", sondern eine
+Aussage, die **nur bei richtiger Rechnung** herauskommt. Ensemble-Spread wächst mit der
+Vorhersagestunde — das steht nirgends im Code.
+
+| Ort | σ_ens(t2m) 0 h | 6 h | 12 h | σ_ens(gust) 0 h | 6 h | 12 h |
+|---|---|---|---|---|---|---|
+| Hamburg | 0,32 K | 0,38 | **0,64** | **0,00** | 0,33 | **1,21** |
+| München | 0,25 K | 0,57 | **0,60** | **0,00** | 0,60 | **1,12** |
+| Innsbruck | 0,29 K | 0,42 | **0,57** | **0,00** | 0,52 | 0,59 |
+| Zugspitze | 0,19 K | 0,28 | **0,33** | **0,00** | 0,59 | 0,38 |
+
+⚠ **σ_ens(gust) ist bei Stunde 0 exakt null** — an allen vier Punkten. Das ist kein fehlender
+Wert, sondern die richtige Antwort: zur Analysezeit teilen sich alle 20 Member denselben
+Zustand. Eine Streuung, die dort *nicht* null wäre, hieße, dass vier verschiedene Gültigzeiten
+im Topf liegen — also genau der Fehler aus 43.4.
+
+`ensCount` steht überall auf **20**, wie es soll.
+
+### 43.6 §34.5 geschlossen — der ECMWF-Filter greift jetzt über `type`
+
+§34.5 hatte gemessen, dass `ifs_ens` **nie ein Feld geliefert** hat: der Filter behielt
+„`number` fehlt oder ist 0", und `…/enfo-ef.index` enthält ausschließlich `type: "pf"` mit
+`number` 1…50. `CLAUDE.md` versprach die Behebung für PD-B8.
+
+Behoben ist sie als **Ursache, nicht als Symptom**: gefiltert wird über `type` (`cf` =
+Kontrolllauf, `pf` = gestörter Member). Der Befund selbst bleibt bestehen — `enfo-ef` hat
+keinen `cf`-Eintrag —, aber jetzt liefert die Quelle nichts, *weil der Katalog nichts hat*,
+und nicht, weil der Filter danebengreift. Am Objekt gegengeprüft: AIFS führt den Kontrolllauf
+in einer eigenen Datei (`enfo-cf`, 21 Einträge), die gestörten in `enfo-pf` (1 050 = 50 × 21).
+
+**Die ECMWF-Member werden in diesem Zuschnitt nicht gelesen, und das ist eine Rechnung:**
+55,8 MiB (IFS-ENS) bzw. 65,1 MiB (AIFS-ENS) je (Größe, Schritt) gegen 34,8 MiB bei ICON-EPS
+global für dieselbe Aussage. Die Fernstufe bekommt σ_ens deshalb aus ICON-EPS global.
+
+### 43.7 Was die drei Ensembles NICHT führen
+
+Am Verzeichnis ausgezählt, denn sie führen nicht dasselbe:
+
+| | t2m | td2m | u10/v10 | gust | precip | clct | ps | snowlmt |
+|---|---|---|---|---|---|---|---|---|
+| ICON-D2-EPS | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | **✗** |
+| ICON-EU-EPS | ✓ | **✗** | ✓ | ✓ | ✓ | ✓ | ✓ | **✗** |
+| ICON-EPS global | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | **✗** |
+
+**Keines führt `snowlmt`** — das bestätigt die ursprüngliche Messung aus PD-B2 und zeigt
+zugleich, warum sie unvollständig war: die σ_ens-Ebene für `snowlmt` existiert seit Schema 3
+allein wegen ICON-CH (§41.5). Sie bleibt in Stufe 1 und 2 leer, bis PD-B6s perturbed-Member
+gelesen werden.
+
+### 43.8 Der Decoder log — je nach Quelle
+
+Der Fund aus 43.4 hatte einen Nachläufer, der ohne eine Gegenprobe im Produkt gelandet wäre.
+
+Der deterministische ICON-D2 führt `tot_prec` **ebenfalls** in vier Viertelstunden-Fassungen.
+Er benutzt aber **Template 4.8**, das Ensemble **4.11** — und 4.11 ist 4.8 **plus drei
+Ensemble-Oktette** (Typ, Member-Nummer, Anzahl). Alles danach ist um drei Oktette verschoben.
+
+Mit einem Offsetsatz für beide las derselbe Code im Ensemble korrekt (Prozess 1, Spanne
+360 min) und im deterministischen Lauf:
+
+```
+#0 Template 8 · Prozess 0 · Spanne 105 692 528 640 min · Ende-Minute 0
+#1 Template 8 · Prozess 0 · Spanne 120 792 023 040 min · Ende-Minute 0
+```
+
+Ein Feld, das je nach Quelle stimmt oder Unsinn ist, ist schlimmer als keins — die Ende-Minute
+stand dabei zufällig auf 0, also hätte ein Filter darauf **richtig ausgesehen und falsch
+funktioniert**. Nach der Fallunterscheidung:
+
+```
+#0 Template 8 · Prozess 1 · Spanne 360 min · Ende-Minute  0
+#1 Template 8 · Prozess 1 · Spanne 375 min · Ende-Minute 15
+#2 Template 8 · Prozess 1 · Spanne 390 min · Ende-Minute 30
+#3 Template 8 · Prozess 1 · Spanne 405 min · Ende-Minute 45
+```
+
+**Nebenbefund, der gesagt gehört:** `decodeGrib2` nimmt die **erste** Nachricht, und das ist
+die 360-min-Fassung. Der deterministische Niederschlag im Cube war also immer richtig — aber
+**durch die Reihenfolge der Datei, nicht durch eine Auswahl**. Ordnet DWD je um, würde daraus
+lautlos eine Summe bis +6:45. Als V-PD-25 festgehalten.
+
+### 43.9 Gate GPD-B8
+
+| Nachweis | Ergebnis |
+|---|---|
+| Alle drei DWD-Ensembles haben einen Adapter, keins mehr in `PENDING` | ✅ |
+| **`<var>_sd_ens` und `ensCount` tragen zum ersten Mal Werte** | ✅ Stufe 1: fünf σ_ens-Ebenen belegt, `ensCount` = **20** |
+| **Keines trägt zum Mittel bei** | ✅ `vars: []`; `srcCount` zählt sie nicht (V-PD-9, wie C-LAEF-EPS) |
+| **Spread wächst mit der Vorhersagezeit** | ✅ σ_ens(t2m) 0,19–0,32 K bei 0 h → 0,57–0,64 K bei 12 h; σ_ens(gust) bei 0 h **exakt 0** an allen Prüfpunkten |
+| Streuung wird nur mit dem Faktor skaliert | ✅ `SD_FACTOR`; `convert()` kommt im Code der Datei nicht vor |
+| ⚠ **Member korrekt abgegrenzt** | ✅ 80 Nachrichten → 20 Member; gefiltert auf das Intervall-**Ende**, nicht die Länge |
+| ⚠ **Decoder für beide Templates korrekt** | ✅ 4.8 und 4.11 getrennt; vorher Spannen von 105 Mrd. Minuten im deterministischen Lauf |
+| §34.5 geschlossen | ✅ ECMWF filtert über `type` statt `number`; der Befund („kein `cf` in `enfo-ef`") bleibt, aber als Katalog-Aussage |
+| Kosten Stufe 1 gemessen | ✅ 47 Dateien · **670,2 MiB** · 206 s · Ausgabe 2,53 MiB |
+| **End-zu-End gemessen** (alle Stufen, alle Quellen) | ✅ `EXIT=0` · **2 315 s = 38,6 min** · 3 325 Dateien · **5 965,7 MiB** · 276 Chunks · 77,84 MiB; Speicher stabil ~2,1 GB ⇒ `JOB_MAX_MIN` **45 → 50** |
+| ⚠ σ_ens in Stufe 3 | **2 von 9 Rasterstunden** — ICON-EPS global endet bei 180 h, das Band bei 336. Jenseits 180 h weiterhin nichts (s. 43.12, V-PD-27) |
+| `verify:point-data` | ✅ **479/479** (nach B7: 440) |
+| typecheck · Build · Budget | ✅ 0 Fehler · 241/241 · 301,2/302 · 1 366,0/1 372 |
+| Veröffentlicht? | ❌ **nein** — `POINT_PUSH` bleibt aus |
+
+### 43.10 Verbesserungen (D-28)
+
+**V-PD-25 · Der deterministische Niederschlag wird durch Reihenfolge ausgewählt, nicht durch
+Auswahl.** `decodeGrib2` nimmt die erste GRIB-Nachricht; bei `tot_prec` sind es vier
+(Viertelstunden), und die erste ist heute die Fassung auf der vollen Stunde. *Mehrwert:* der
+Wert bleibt richtig, auch wenn DWD die Reihenfolge ändert — heute würde daraus lautlos eine
+Summe bis +6:45, also bis zu 45 Minuten zu viel Niederschlag. *Skizze:* im DWD-Adapter wie beim
+Ensemble auf `intervalEndMinute === 0` filtern; die Felder liefert der Decoder seit dieser
+Etappe. Betrifft `icon_d2`, `icon_eu` und alle Quellen mit akkumulierten Größen.
+
+**V-PD-26 · `ensCount` ist eine Ebene für alle Größen, aber die Quellen führen nicht dieselben.**
+ICON-EU-EPS hat keinen Taupunkt, keines der drei hat `snowlmt` — dort steht `ensCount` auf 20
+bzw. 40, obwohl es für jene Größe null Member gab. *Mehrwert:* die Bias-Korrektur
+`E[s] = c4(n)·σ` würde sonst mit einem n rechnen, das für diese Größe nicht gilt. *Skizze:*
+`ensCount` nur dort setzen, wo mindestens eine σ_ens-Ebene der Zelle belegt ist — oder je Größe
+führen, was eine Ebene je Größe kostet und deshalb eine Formatentscheidung ist.
+
+### 43.11 ⚠ Der volle Lauf ist am Speicher gestorben — und meldete Exit 0
+
+Bis hierhin war jede Etappe **quellenweise** gemessen worden: ein Bau mit `--only=<quelle>`,
+sauber und billig. Der erste Lauf über **alle Stufen mit allen Quellen** hat gezeigt, was diese
+Messweise nicht sehen kann:
+
+```
+t1: σ_ens aus icon_d2_eps — 9 Stunden (Raster 6 h), 5 Größen, 20 Member
+[1688] 1015537 ms: Mark-Compact (reduce) 4026.0 (4036.2) -> 4025.6 (4029.4) MB …
+       allocation failure; scavenge might not succeed
+WALL_ALL=1017s
+```
+
+**Der Producer lief gegen die 4-GB-Heapgrenze von Node und starb mitten in Stufe 1** — kein
+einziger Chunk wurde geschrieben. Auf einem GitHub-Runner gilt dieselbe Grenze; der geplante
+Cron wäre also bei seinem ersten Lauf gestorben, ohne dass eine der sieben Etappen davor etwas
+Falsches getan hätte.
+
+⚠ **Und er meldete `Exit 0`.** Das Kommando endete auf `| grep …`, und in einer Pipeline setzt
+das **letzte** Glied den Status. Hätte ich nur auf den Exit-Code gesehen, wäre der Absturz als
+erfolgreicher Lauf durchgegangen. Dieselbe Klasse wie das stille `git add` im sparse-Checkout
+(§30) und die still ignorierten STAC-Filter (§41.2) — nur diesmal in meinem eigenen
+Messaufbau.
+
+**Die Ursache ist ein unbegrenzter Cache, nicht die Datenmenge.** `window_()` in
+`geosphere.mjs` hält je (Parameter, 16-Stunden-Fenster) ein typisiertes Array von
+16 × ~593 000 Werten ≈ **19 MiB**. Der Producer läuft Schritt für Schritt und fragt in jedem
+Schritt **alle** Größen, also sind während eines Blocks alle Parameter gleichzeitig lebendig:
+mit `claef` (8) und dem in PD-B7 dazugekommenen `claef_eps` (14 Quantil-Parameter) sind das
+**22 Fenster ≈ 420 MiB** — und ohne Deckel blieb jeder weitere Block daneben liegen.
+
+Bemerkenswert daran: **PD-B7 hat den Cache verdreifacht, ohne dass es auffiel.** Vorher waren es
+8 Parameter, danach 22. Gemessen wurde in PD-B7 aber nur der Bau mit `--only=claef_eps`, und da
+gibt es kein Nebeneinander. Eine Etappe kann ein Problem einbauen, das erst die *nächste*
+sichtbar macht — genau dafür ist der volle Lauf da.
+
+Kur: ein **gedeckelter LRU** (`GEOSPHERE_WIN_CACHE`, Standard 26 — bewusst über den 22
+gleichzeitig gebrauchten, damit der häufigste Zugriff ein Treffer bleibt). Drei Prüfungen halten
+den Deckel, seine Höhe und die Begründung fest.
+
+**Die Lehre:** quellenweise Messungen sind billig, ehrlich und blind für alles, was aus dem
+*Zusammenspiel* entsteht. Das gilt für Speicher genauso wie für die Laufzeit — und beides
+entscheidet, ob der Cron lebt.
+
+### 43.12 Der erste End-zu-End-Lauf — und was er über die Fernstufe sagt
+
+Nach der Kur aus 43.11 lief derselbe Bau durch, diesmal mit erhaltenem Exit-Code:
+
+```
+EXIT=0  WALL=2315s  (38,6 min)
+  t1  208 Chunks · 70,99 MiB   σ_ens 8 Std (20 Member) · Quantile 49 Std · Profil 38 Std
+      icon_d2 · icon_d2_eps · icon_ch1_eps · claef · claef_eps
+  t2   56 Chunks ·  6,47 MiB   σ_ens 6 Std (40 Member)
+      icon_eu · icon_eu_eps · icon_ch2_eps
+  t3   12 Chunks ·  0,38 MiB   σ_ens 2 Std (40 Member)
+      icon_global · icon_eps_global · aicon · ifs_hres · aifs_single
+  3 Stufen · 276 Chunks · 77,84 MiB
+  Netz: 3 325 Dateien · 5 965,7 MiB
+```
+
+**Der Speicher blieb stabil bei ~2,1 GB**, während der Plattencache von 2,0 auf 2,7 GiB wuchs —
+genau die Trennung, die vorher fehlte. Vorher war der Heap monoton bis 4 GB gewachsen.
+
+**Die Hochrechnung war zu hoch, und das ist lehrreich.** Aus den Einzelquellen hatte ich
+8,2 GiB erwartet; gemessen sind es **5,83 GiB**. Der Unterschied ist keine Messungenauigkeit,
+sondern die Wirklichkeit: mehrere Quellen tragen ihre Stufe nicht voll (ICON global 10 von 36
+Schritten, Profil 38 von 49, ICON-EPS global 2 von 9 Rasterstunden). Eine Summe aus
+Einzelmessungen unterstellt Vollbesetzung — die gibt es nie.
+
+**`JOB_MAX_MIN` geht von 45 auf 50** (gemessene 38,6 min plus Rand). Der engste Cron-Abstand
+von 100 min hält damit weiterhin die Bedingung `≥ JOB_MAX_MIN + 20`.
+
+#### ⚠ Und der Befund, der die t3-Entscheidung relativiert
+
+σ_ens in der Fernstufe deckt **2 von 9 Rasterstunden** ab, und zwar 144 h und 168 h:
+
+```
+t3-Band 126…336 h · 24-h-Raster: 144 168 192 216 240 264 288 312 336
+ICON-EPS global Horizont: 180 h
+erreichbar: 144 168   ⇒ 2 von 9, und NULL jenseits 180 h
+```
+
+Der Grund ist **nicht** das grobe Raster, sondern der Horizont der Quelle. ICON-EPS global endet
+bei 180 h (bei 06/18 UTC schon bei 120). Damit liegt die gesamte gelieferte Information in dem
+Band, das ohnehin schon vier Quellen und damit `σ_div` hat — und **jenseits 180 h bleibt es
+genau so leer wie in §33.4 beschrieben**.
+
+Das gehört unverstellt gesagt: die Entscheidung „alle drei Stufen" bringt in Stufe 3 sehr wenig,
+und sie bringt es an der falschen Stelle. Die einzigen Ensembles, die bis 336 h reichen, sind
+**IFS-ENS und AIFS-ENS** — also genau die, die aus Kostengründen draußen blieben (55,8 bzw.
+65,1 MiB je Größe und Schritt gegen 34,8).
+
+Was daraus folgt, ist eine Entscheidung und keine Nacharbeit:
+
+* **entweder** ECMWF-Member für zwei Größen in einem sehr groben Raster (t2m + precip alle 48 h
+  = 5 Stunden × 2 × 55,8 MiB ≈ **558 MiB**, also tragbar) —
+* **oder** man akzeptiert, dass jenseits 180 h die Unsicherheit erst aus `σ_sys` kommt, und das
+  heißt: erst mit `buscosun-archiv` (PA).
+
+Als **V-PD-27** festgehalten; die Zahl 558 MiB ist aus den in 43.1 gemessenen Feldgrößen
+gerechnet, nicht geschätzt.
+
+**V-PD-27 · σ_ens fehlt genau dort, wo es am meisten fehlt.** Die Fernstufe bekommt aus
+ICON-EPS global nur 144 h und 168 h; jenseits 180 h gibt es weiterhin keine
+Unsicherheitsinformation (§33.4 unverändert). *Mehrwert:* das ist der Bereich, in dem ein
+p10/p90 heute erfunden wäre — 150 der 336 Stunden. *Skizze:* IFS-ENS oder AIFS-ENS für **zwei**
+Größen (t2m, precip) in einem 48-Stunden-Raster: fünf Stunden × 2 Größen × 55,8 MiB ≈ **558 MiB**
+je Lauf, gerechnet aus den in 43.1 gemessenen Feldgrößen. Die Member liegen dort als getrennte
+Byte-Bereiche — anders als bei ICON ist eine **Teilmenge** abrufbar, 20 von 50 Membern kosteten
+also nur 223 MiB. Braucht Jans Entscheidung, weil es das Laufbudget wieder anhebt.
+→ **Erledigt in §45 (PD-B10).** Jan hat am 2026-09-11 entschieden: ECMWF-Member, 48-h-Raster. Umgesetzt mit **50** Membern (gemessen reichen 20 für Niederschlag nicht) und 538 MiB. Dabei zwei Fehler aus PD-B8 gefunden und behoben — s. §45.2 und §45.7.
+
+
+---
+
+## §44 PD-B9 — MOSMIX-L als eigenes Produkt `point/stations/`
+
+Die letzte Etappe der Phase PD-B, und die einzige, bei der **die Form schon da war und der
+Schreiber fehlte**: `stationBundlePath()`, `stationManifestPath()` und `STATION_CATALOG_PATH`
+stehen seit PD-A in `cubeFormat.ts`, `index.json` kündigt den Stationsblock an, und
+`TIMELESS_PATHS` nimmt den Katalog von der Aufbewahrung aus. Erzeugt hat das nie jemand.
+
+Das ist dieselbe Klasse wie V-SH-11 (ein Leser ohne Schreiber), nur andersherum — und genauso
+unangenehm, weil es **gepflegt aussieht**.
+
+### 44.1 Die Entscheidung, die nicht neu getroffen wurde
+
+MOSMIX geht **nicht ins Gitter**. Die Begründung steht seit PD-A im Format und gilt unverändert:
+MOSMIX ist auf DWD-Stationen bias-korrigiert, sein ganzer Wert hängt daran, dass die Zahl **an
+dieser Station** gilt. Eine Interpolation auf 0,05° verschmierte die Korrektur über die Fläche
+und würfe genau den einen Vorteil weg, den die Quelle hat.
+
+Ausgeliefert wird deshalb ein zweites Produkt im **selben Container**: eine Stationsreihe ist ein
+Chunk mit `ny = 1` und `nx = Anzahl Stationen im Bündel`, gebündelt nach dem Chunk-Raster der
+Stufe 1. Gleiche Ebenen, gleiche Skalen, gleicher Leser. Die Zuordnung **Spalte → Station** steht
+im Lauf-Manifest, nicht in der Datei — eine Datei ohne ihr Manifest ist hier wie überall
+Zahlensalat.
+
+⚠ **Eine Spannung bleibt und wird benannt:** `TIER_BANDS` führt `mosmix_l` unter den Quellen der
+Stufe 2. Ein Gitter-Adapter existiert nicht und soll nicht existieren. Der Eintrag bleibt, weil
+`sources` je Stufe die Auskunft ist, welche Quellen diese Stunden *überhaupt* versorgen — und das
+tut MOSMIX, nur über dieses Produkt. `PENDING.mosmix_l` sagt das jetzt ausdrücklich, statt wie
+bisher „passt nicht ohne Entscheidung in ein Gitter" zu behaupten, als sei die Entscheidung offen.
+
+### 44.2 ⚠ Die Koordinatenfalle, die keine Zählung gefunden hätte
+
+Der naheliegende Weg zu den Stationsorten ist `mosmix_stationskatalog.cfg`. Er ist falsch.
+
+Der Katalog führt Lat/Lon als **Grad + Dezimalminuten**, nicht als Dezimalgrad. Gemessen an drei
+bekannten Lagen:
+
+```
+Wien/Hohe Warte   Katalog 48.15 / 16.22   ->  als Dezimalminuten 48.250 / 16.367   (wahr 48.2489 / 16.3564)
+Zuerich           Katalog 47.23 /  8.34   ->                     47.383 /  8.567   (wahr 47.3769 /  8.5417)
+Muenchen Stadt    Katalog 48.10 / 11.32   ->                     48.167 / 11.533   (wahr 48.14   / 11.57)
+```
+
+Die Dezimalgrad-Lesart verschiebt jede Station um bis zu ~20 km. **Und die Stationszahl im
+Ausschnitt hätte das nicht gezeigt:** 3 049 gegen 3 055 — beides plausibel, keine Prüfung wäre
+angeschlagen. Der Fehler wäre als leichte Unschärfe in die Verifikation eingegangen und hätte dort
+wie Modellfehler ausgesehen.
+
+Der Producer liest den Katalog deshalb **gar nicht**. Die Koordinaten kommen aus
+`<kml:coordinates>` der Datei selbst und sind echte Dezimalgrad. Eine Quelle, die ihre eigenen
+Koordinaten mitbringt, braucht keinen zweiten Katalog — der `catalog.json` dieses Produkts wird
+aus der KML erzeugt und sagt im Kopf, warum.
+
+### 44.3 Die achte Zugriffsfamilie — und zwei Fallen darin
+
+MOSMIX ist kein GRIB, kein netCDF, kein REST: ein **KMZ** (Zip) mit einer KML darin.
+
+⚠ **(1) Der lokale Dateikopf lügt.** DWD schreibt das Zip als **Strom mit Data-Descriptor**:
+`compressedSize` und `uncompressedSize` stehen im lokalen Kopf auf **0**, die echten Größen erst
+im Central Directory am Dateiende. Der vorhandene `unzip()` in `build-places-dach.mjs` liest nur
+den lokalen Kopf und scheitert an MOSMIX mit `Z_BUF_ERROR` — gemessen. Ein Fehler, der nach
+Datenkorruption aussieht und keine ist.
+
+⚠ **(2) Die Datei passt nicht in einen String.**
+`MOSMIX_L/all_stations/kml/MOSMIX_L_LATEST.kmz` ist **76,2 MiB gepackt und 1 750 MiB entpackt**.
+Ein `inflateRawSync(...).toString()` wirft — und zwar erst nach 34 Sekunden Arbeit. Gelesen wird
+deshalb als Strom: `createInflateRaw()`, ein Rest-Puffer, und je vollständigem `</kml:Placemark>`
+wird ausgewertet und weggeworfen.
+
+**Gemessen am echten Lauf:** Rest-Puffer **max 0,31 MiB**, Heap **unter 40 MiB** — bei 1 750 MiB
+Durchsatz. Das ist die Lehre aus §43.11, diesmal *vor* dem Absturz angewandt.
+
+### 44.4 Der Zugriffsweg, und warum die Registry ihn nicht kannte
+
+Die Registry führte MOSMIX-L als „KMZ je Station". Das ist nicht falsch, aber unvollständig:
+
+| Weg | Abruf | Anfragen | Speicher |
+|---|---|---|---|
+| `single_stations/<id>/` | 17,7 KiB je Station ⇒ **53 MiB** für 3 071 | **3 071** | unkritisch |
+| `all_stations/` | **76,2 MiB in 6,2 s** | **1** | 1 750 MiB entpackt ⇒ Strom nötig |
+
+Gewählt ist `all_stations` mit Stromparsen: **ein** Abruf statt 3 071 gegen einen Server, den
+diese Linie ohnehin achtmal täglich beansprucht. Gesamt gemessen: **55 s** (6,2 s Abruf, 29,9 s
+Parsen, Rest Schreiben).
+
+Die Registry lag zum **vierten Mal in dieser Phase** bei einer Quellenfamilie daneben, und alle
+vier Punkte sind jetzt gemessen:
+
+| Feld | stand auf | gemessen |
+|---|---|---|
+| `runHours` | `[0,3,6,9,12,15,18,21]` | **`[3,9,15,21]`** — vier Läufe, nicht acht |
+| `horizonH` | 240 | **247** (Schritte 1…247 h) |
+| `steps` | `null`, ungemessen | **1…247 h, durchgehend stündlich** (Differenz-Histogramm: 246 × 1 h, sonst nichts) |
+| `vars` | enthielt `ps` | **ohne `ps`** — s. 44.5 |
+
+### 44.5 ⚠ `PPPP` ist nicht der Stationsdruck
+
+MOSMIX führt `PPPP`. Die Versuchung, das auf `ps` abzubilden, ist groß und falsch. Am echten
+Datum geprüft, statt der Doku zu glauben:
+
+```
+Muenchen Stadt   515 m   PPPP = 1019,3 hPa
+Schleswig         47 m   PPPP = 1017,5 hPa      -> 470 m Hoehenunterschied fuer 1,8 hPa
+Zugspitze      2 960 m   PPPP = "-"             -> gar kein Wert
+```
+
+Ein Stationsdruck stünde in München bei ~955 und auf der Zugspitze bei ~700 hPa. `PPPP` ist auf
+Meeresniveau reduziert ⇒ **`ps` bleibt MISSING**, genau wie bei C-LAEF (§37). Dasselbe gilt für
+`snowlmt` (MOSMIX führt sie unter seinen 114 Parametern nicht) und für die vier Profilfelder (eine
+Station ist ein Punkt, kein Profil). Alle fünf stehen als `MOSMIX_NOT_MAPPED` **mit Grund** im
+Manifest — benannt abwesend, nicht stillschweigend leer.
+
+### 44.6 ⚠ Die Bö-Bedingung ist nicht geschenkt
+
+PAP 6 verlangt `v_max := max(v_max, |v10|)`. Am echten Lauf ist das **in 97 Fällen verletzt**:
+`FX1` (Maximum der Vorstunde) steht unter `FF` (Mittelwind). Das ist kein Lesefehler — die
+MOS-Regression rechnet Mittel und Bö getrennt und kennt die Ungleichung nicht.
+
+Ohne die Klammer stünde eine Bö unter dem Wind im Cube, und die PAP-6-Konsistenzprüfung schlüge
+bei jedem Nutzer fehl. Der Producer klammert und **zählt mit**: im echten Lauf 92 Fälle innerhalb
+des Ausschnitts.
+
+Die übrigen Konsistenzbedingungen halten ohne Nacharbeit: Taupunkt ≤ Temperatur in **allen
+758 536** Paaren, **0** negative Niederschläge (anders als C-LAEF, §42).
+
+### 44.7 Die Zeitachse — eine Entscheidung mit gemessenem Preis
+
+Die Stationsreihe könnte die Achse des Cubes benutzen (t1 stündlich, t2 dreistündlich, t3
+sechsstündlich = 109 Schritte) oder ihre eigene (247 Schritte, durchgehend stündlich). Beides
+gebaut und gemessen:
+
+```
+A  MOSMIX-Achse, 247 Schritte   179 Buendel   6,79 MiB   groesstes 152 KiB
+B  Cube-Achse,   109 Schritte   179 Buendel   2,89 MiB   groesstes  61 KiB      = 42 % von A
+```
+
+Gewählt ist **A**. Die 3,9 MiB Differenz sind gegen die **77,84 MiB** des Cubes nichts, und dafür
+bleibt erhalten, was MOSMIX als **einzige** Quelle im ganzen Repo kann: eine **stündliche**
+Vorhersage bis 246 h. Der Cube ist ab 51 h dreistündlich, weil *Flächen* teuer sind — eine
+Stationsreihe ist es nicht, und eine Sparsamkeit aus einem fremden Grund ist keine.
+
+Die Achse steht in `stations.json`, damit kein Leser sie raten muss.
+
+### 44.8 Ergebnis am echten Lauf
+
+```
+Lauf 2026091103 (Alter 5,7 h) · 247 Schritte 1…247 h
+Stationen: 3071 von 5648 im Ausschnitt
+179 Buendel · 6,71 MiB · 9 094 710 Werte
+belegte Ebenen (12/51): v10 996 · u10 994 · t2m 853 · clch 732 · clcm 717 · td2m 716
+                      · clcl 692 · clct 644 · gust 360 · precip 68 · hModEff 13 · srcCount 4
+WALL_STATIONS=55s
+```
+
+**Die Länderabdeckung ist gezählt, nicht übernommen** (die Quellenmatrix §7 sagt ausdrücklich, dass
+die Zahlen für DE und AT *nicht* ermittelt sind): im Ausschnitt **281** Stationen im WMO-Block 10
+(DE), **120** im Block 11 (AT), **122** im Block 06 (CH) — alle drei mit Werten, keine leere Gruppe.
+Höhen von **0 bis 3 797 m**.
+
+**12 von 51 Ebenen tragen**, und das ist die richtige Zahl: eine Quelle hat keine Streuung zwischen
+Quellen (`_sd` leer), keine Member (`_sd_ens` leer) und keine gemessenen Quantile (`_q10`/`_q90`
+leer). `srcCount` steht auf **1**; `ensCount` bleibt **MISSING statt 0** — 0 hieße „gemessen und
+null", gemessen wurde nichts. Die 39 leeren Ebenen kosten gemessen **4 Byte je Ebene und Bündel**,
+zusammen rund 28 KiB — der Preis dafür, dass es derselbe Container und derselbe Leser ist.
+
+`hModEff` trägt die **Stationshöhe**. Das ist keine Verlegenheitslösung: MOSMIX gilt *am Ort*, also
+ist `h_true − h_mod_eff` hier null und PAP 4 hat nichts zu korrigieren. Genau das ist der Grund,
+warum diese Quelle nicht ins Gitter darf.
+
+### 44.9 Der Verortungsbeweis
+
+Ein Bündel ist nur dann etwas wert, wenn Spalte *k* wirklich die Station ist, die das Manifest
+nennt. Geprüft wurde deshalb **gegen eine unabhängig geholte Quelle**: vier Stationen aus
+`single_stations/` einzeln abgerufen, die Bündel mit dem **Client-Leser** (`decodeCubeChunk`)
+zurückgelesen und Wert für Wert verglichen:
+
+```
+10865 MUENCHEN STADT       Buendel 3_7  Spalte  2/48   2470 Werte, 0 fehlend   max. Abweichung 5,0e-3
+11035 WIEN/HOHE WARTE      Buendel 3_13 Spalte  3/8    2470 Werte, 0 fehlend   max. Abweichung 5,0e-3
+06660 ZUERICH              Buendel 2_3  Spalte  9/31   2470 Werte, 0 fehlend   max. Abweichung 5,0e-3
+10961 ZUGSPITZE            Buendel 2_6  Spalte  3/42   2470 Werte, 0 fehlend   max. Abweichung 5,0e-3
+```
+
+**5,0·10⁻³ ist exakt der halbe Quantisierungsschritt** von `u10`/`v10` (Skala 0,01) — also der
+größtmögliche Rundungsfehler und kein Versatz. Bei einer Verschiebung um eine Spalte oder eine
+Stunde wäre das sofort um Größenordnungen eingebrochen.
+
+### 44.10 ⚠ Zwei Betriebsbefunde, die nicht zur Etappe gehörten
+
+**(1) Der Cron erreicht MOSMIX-L nie im eigenen Zyklus.** An vier aufeinanderfolgenden Läufen
+gemessen erscheint die Datei bei **Lauf + 72…79 min** (04:17, 10:12, 16:16, 22:12 zu den Läufen
+03/09/15/21 UTC). Der Punkt-Cron läuft bei **Lauf + 50 min** (§31). Der gleichzeitige Lauf ist
+damit grundsätzlich unerreichbar; genommen wird der vorige, also ein **6,8 h alter**.
+
+Das ist kein Fehler, aber es muss **dastehen** statt aufzufallen: `stations.json` nennt `ageH`, und
+der Grund steht als `caveat` daneben. Den Slot zu verschieben wäre eine Cron-Änderung und damit
+Jans Gate — dazu V-PD-28.
+
+**(2) Das Stationsprodukt fiel durch jede Aufbewahrung.** `runsIn(point/)` nimmt nur
+Verzeichnisse, die **wie ein Lauf heißen**. `stations` heißt nicht so, also wurde
+`point/stations/<lauf>/` nie aufgeräumt — 6,7 MiB je Lauf, achtmal täglich, unbegrenzt. Nach
+Tagen hätte das das Repo-Gewicht gesprengt, und zwar lautlos.
+
+Kur: dieselbe Regel in einer zweiten Runde über `point/stations/`, derselbe Boden (`MIN_RUNS`),
+und **überalterte Läufe werden benannt statt verschwiegen** — wie auf der Cube-Seite. Am
+Datenträger belegt mit drei künstlich gealterten Läufen: der älteste entfernt, der zweite bleibt
+mit Hinweis, `catalog.json` unberührt (es ist eine Datei, kein Laufverzeichnis, und steht in
+`TIMELESS_PATHS`).
+
+### 44.11 Gate GPD-B9
+
+| Nachweis | Ergebnis |
+|---|---|
+| MOSMIX-L hat einen Erzeuger; die Form von PD-A ist nicht mehr leer | ✅ `scripts/point/{mosmix,build-stations}.mjs`, **achte Zugriffsfamilie** |
+| **Die Bündel tragen Werte** | ✅ 179 Bündel · 6,71 MiB · 9 094 710 Werte · 12/51 Ebenen |
+| **Spalte → Station stimmt**, gegen eine unabhängige Quelle | ✅ 4 Stationen × 2 470 Werte, **0 fehlend**, max. Abweichung = halber Quantisierungsschritt |
+| Alle drei Länder versorgt, **gezählt** | ✅ DE 281 · AT 120 · CH 122, Höhen 0…3 797 m |
+| ⚠ `ps` bleibt MISSING, mit Messung statt Doku | ✅ München/Schleswig/Zugspitze |
+| ⚠ PAP-6-Konsistenz hergestellt | ✅ Bö auf den Wind geklammert (92 Fälle); Td ≤ T in 758 536 von 758 536; 0 negative Niederschläge |
+| ⚠ Speicher bleibt beschränkt trotz 1 750 MiB | ✅ Rest-Puffer 0,31 MiB, Heap < 40 MiB |
+| ⚠ Aufbewahrung greift auch für `stations/` | ✅ am Datenträger nachgebaut; überalterte Läufe werden benannt |
+| Registry an vier Stellen gemessen korrigiert | ✅ Läufe · Horizont · Schrittfolge · `vars` |
+| Kill-Switch (Regel 2) | ✅ `POINT_STATIONS=0` |
+| Laufzeit gemessen, Budget geprüft | ✅ **55 s**; 38,6 + 0,9 = **39,5 min** gegen `JOB_MAX_MIN` 50 — unverändert ausreichend |
+| `verify:point-data` | ✅ **533/533** (nach B8: 482) |
+| typecheck · Build · Budget | ✅ 0 Fehler · 241/241 · 301,2/302 · **1 366/1 372 unverändert** |
+| Bundle unberührt | ✅ `stationBundlePath`, `kml:Placemark`, `MOSMIX_L_LATEST` in **0** Chunks; `totalJs` byte-gleich |
+| Veröffentlicht? | ❌ **nein** — `POINT_PUSH` bleibt aus |
+
+### 44.12 Verbesserungen (D-28)
+
+**V-PD-28 · Der Cron-Slot erreicht MOSMIX-L nie im eigenen Zyklus.** Gemessen erscheint MOSMIX-L
+bei Lauf + 72…79 min, der Job läuft bei Lauf + 50 min ⇒ der genommene Lauf ist stets ~6,8 h alt.
+*Mehrwert:* sechs Stunden Frische an der einzigen bias-korrigierten Quelle des Repos — und zwar
+genau in den Stunden 1…6, in denen der Stationsanker den größten Hebel hat (§12 der
+Punktvorhersage-Linie: 2,18 → 0,92 K). *Skizze:* entweder den Slot auf `:25` der Folgestunde
+schieben (dann sind aber ICON-EU und IFS *weniger* weit, §31 hat das gegeneinander gemessen) oder
+**einen zweiten, sehr billigen Job** nur für das Stationsprodukt bei `25 4,10,16,22` — 55 s und
+76 MiB, also weit unter allem anderen. Der zweite Weg ändert den Cube-Takt nicht.
+⚠ **Cron-Änderung = Jans Gate.**
+
+**V-PD-29 · Der Stationsanker holt MOSMIX noch selbst, obwohl es jetzt im Repo liegt.**
+`src/pointForecast/anchor.ts` zieht MOSMIX-L je Station einzeln von `opendata.dwd.de` (17,7 KiB
+je Station, eine Anfrage je Ort). Dasselbe Datum steht ab dieser Etappe als Bündel im Daten-Repo
+und käme über jsDelivr. *Mehrwert:* ein Abruf statt einem je Ort, kein Fremd-Origin im
+Erstbild-Pfad, und dieselbe Zahl für Producer und Client (heute können die beiden Wege
+verschiedene Läufe treffen, ohne dass es jemand merkt). *Skizze:* ein Leser analog
+`nowcastReader.mjs`, der aus `lat/lon` den Stufe-1-Chunk rechnet, das Bündel holt und die Spalte
+über `stations.json` auflöst — die nächstgelegene Station kommt aus `catalog.json`.
+
+**V-PD-30 · MOSMIX-S könnte die Stationsreihe stündlich frisch halten.** MOSMIX-S läuft
+**stündlich** (alle Stationen in einer Datei, am Verzeichnis 36,3 MiB), MOSMIX-L nur viermal
+täglich. *Mehrwert:* die Stationsreihe wäre nie älter als eine Stunde statt bis zu 6,8 h — das
+behebt V-PD-28 auf einem anderen Weg. *Skizze:* dasselbe Modul liest beide (die KML-Form ist
+identisch); zu klären ist, welche der zehn Größen MOSMIX-S führt (es hat weniger Parameter als L)
+und ob ein Nebeneinander zweier Läufe im selben Produkt die Achse zerreißt — beides eine Messung,
+keine Annahme.
+
+
+---
+
+## §45 PD-B10 — IFS-ENS-Member jenseits 180 h (V-PD-27), und drei Fehler aus PD-B8
+
+Jans Entscheidung vom 2026-09-11 zu V-PD-27: **ECMWF-Member dazunehmen**, t2m + Niederschlag im
+48-Stunden-Raster. Hintergrund aus §43.12: σ_ens deckte in der Fernstufe 2 von 9 Rasterstunden,
+beide im Bereich, der ohnehin σ_div aus vier Quellen hat — jenseits 180 h gab es keine
+Unsicherheitsinformation, und ein p10/p90 dort wäre erfunden gewesen.
+
+Die Etappe hat getan, was bestellt war. Sie hat dabei aber **drei Fehler aus meiner eigenen Etappe PD-B8** ans Licht gebracht, alle
+still: einer lag im erlaubten Wertebereich, einer hat zwei Quellen vollständig aus dem Cube
+entfernt, und der dritte zeigte sich erst am Speicher — der Cron stand bei 84 % der
+Heap-Grenze (45.12). Die ersten beiden stehen hier zuerst, weil sie wichtiger sind als die
+Etappe selbst.
+
+### 45.1 Am Katalog gemessen, bevor gebaut wurde
+
+Am echten Lauf 2026091100, Schritt +240 h:
+
+| Befund | gemessen |
+|---|---|
+| Member | **50** gestörte (`type: pf`, `number` 1…50), **kein** Kontrolllauf in `enfo-ef` — einzeln adressierbar, aber nicht zusammenhängend abgelegt |
+| Größe je Member | `2t` **0,63 MiB**, `tp` **1,05 MiB** |
+| Horizont | nur **00z und 12z** reichen bis 336 h; 06z/18z enden bei **144 h** (180 h: 404) |
+| ⚠ `tp` | seit Laufbeginn **akkumuliert** (Template 4.11, Prozess 1, Spanne = 14 400 min = 240 h) |
+
+⚠ **Meine Zahl aus §43 war falsch hochgerechnet:** „55,8 MiB je (Größe, Schritt)" galt einem
+anderen Parameter. Richtig sind 31,5 MiB (`2t`) und 51,5 MiB (`tp`) für 50 Member. Die
+Kostenentscheidung, die in PD-B8 darauf stand, war also auf einer falschen Zahl gebaut.
+
+### 45.2 ⚠ Fehler 1 aus PD-B8: `precip_sd_ens` war die Streuung einer SUMME
+
+Die Producer-Schleife entakkumuliert den deterministischen Niederschlag korrekt:
+`(Summe[t] − Summe[t−Δ]) / Δ`. Der Ensemble-Pfad tat das **nicht** — `dwdEps.mjs` streute direkt
+über `tot_prec`, also über die Summe seit Laufbeginn, und schrieb das Ergebnis in
+`precip_sd_ens`: eine Ebene mit der Einheit mm/h, die dieselbe Größe verspricht wie `precip`.
+
+Am echten ICON-D2-EPS nachgemessen, Streuung der Summe gegen Streuung der Rate:
+
+```
+                              heute geschrieben    versprochen    Faktor
++6 h,  nasse Zellen (52 074)        1,04               0,42          2,5
++12 h, nasse Zellen (16 528)        0,88               0,31          2,8
++48 h, nasse Zellen (150 867)       1,82               0,49          3,7
++48 h, alle Zellen (Median)         1,23               0,04         29
+IFS-ENS +240 h, DACH (Median)       9,57 mm            0,18 mm/h    53
+```
+
+**Zellen, in denen es JETZT trocken ist, trugen die Streuung des Regens der letzten Tage.** Im
+Probebau sieht man es an Wien: Regen in den Stunden 1–2 (1,03 und 0,63 mm/h), bei +12 h trocken
+— die korrigierte Ebene sagt dort **0,00**. Nach PD-B8 hätte dort die Streuung des Regens vom
+Vormittag gestanden. Und alles lag im erlaubten Wertebereich `[0, 300]`: keine Prüfung hätte
+angeschlagen.
+
+**Kur:** eine Streuungsrechnung für alle Ensembles (`scripts/point/adapters/ensembleStats.mjs`,
+`memberSpread`) — je Member `max(0, Summe[t] − Summe[t−Δ]) / Δ`, Member über ihre **Nummer**
+gepaart, dann die Streuung. Δ ist der **Stufenschritt** (1/3/6 h), also dieselbe Größe wie die
+`precip`-Ebene; bewusst nicht der Abstand zur vorigen *gewählten* Stunde, sonst stünde mit
+`--steps` eine Rate über zwei Tage in der Stundenebene. Die Klammer auf 0 ist gemessen nötig:
+**312 von 100 450** entakkumulierten IFS-Werten waren negativ (Packungsrauschen in trockenen
+Zellen), im Probebau der Fernstufe **1 578**.
+
+**Die Korrektur hat Folgen, die dastehen müssen.** Eine Rate braucht den Vorschritt, und die
+DWD-Ensembles haben ihn nicht überall — am Verzeichnis gemessen:
+
+| Ensemble | Schritte `tot_prec` | Stufenschritt | Rate bildbar |
+|---|---|---|---|
+| ICON-D2-EPS | stündlich bis 48 h | 1 h | überall außer Stunde 0 |
+| ICON-EU-EPS | stündlich bis 48, 3-stündlich bis 72, **6-stündlich bis 120** | 3 h | nur **60 und 72 h** |
+| ICON-EPS global | …, 6-stündlich bis 120, **12-stündlich bis 180** | 6 h | **nirgends** (138/162 fehlen) |
+
+Wo die Rate nicht bildbar ist, bleibt die Ebene **MISSING** — nicht eine Rate über einen längeren
+Zeitraum: σ über 6 h ist glatter als über 3 h, und in die 3-h-Ebene geschrieben wäre das eine
+erfundene Sicherheit. **Die Fernstufe hatte also nie ein richtiges σ_ens für Niederschlag, nur
+ein falsches.** Das richtige kommt jetzt von IFS-ENS, dessen Schrittraster den Vorschritt t−6
+überall führt (3-stündlich bis 144, danach 6-stündlich).
+
+Stunde 0 bekommt keine Niederschlags-Streuung mehr — PD-B8 schrieb dort eine 0 (alle Member
+teilen die Analyse, also streut die Summe null). Eine Rate „bis zum Laufbeginn" gibt es nicht.
+
+### 45.3 Member über ihre Nummer, nicht über ihre Reihenfolge
+
+Die Rate braucht **denselben** Member in zwei Dateien. Der Decoder lieferte die Member bisher nur
+in Dateireihenfolge — eine Paarung darüber wäre genau V-PD-25 gewesen (der deterministische
+Niederschlag war dort durch die Reihenfolge richtig, nicht durch eine Auswahl).
+
+`src/sources/gribDecode.ts` liest jetzt **Oktett 36 (Member-Nummer) und 37 (Ensemblegröße)** der
+Templates 4.1 und 4.11 — rein additiv. Am echten ICON-D2-EPS: `t_2m` (Template 1) und `tot_prec`
+(Template 11) tragen beide die Nummern **1…20**, Ensemblegröße 20. Bei ECMWF wird die Nummer
+zusätzlich **gegen das `.index` geprüft**: weicht sie ab, sind die Byte-Bereiche verschoben, und
+der Abruf scheitert laut statt still falsche Zahlen zu liefern. Fehlt die Nummer bei einer
+akkumulierten Größe, gibt es keine Rate — eine geratene Paarung ist schlimmer als keine.
+
+⚠ Der Decoder liegt im Kartenbündel: **+0,1 KB** `totalJs` (1 366,0 → 1 366,1), in denselben drei
+Worker-Chunks wie die PD-B8-Felder, **nicht** im Start-Chunk (`eagerJs` bleibt unberührt).
+
+### 45.4 Warum 50 Member und nicht 20
+
+Weil ECMWF die Member als getrennte Bereiche ablegt, wäre eine Teilmenge abrufbar — das war der
+Kern von V-PD-27. Gemessen an allen 2 009 Zellen des Ausschnitts, σ aus den ersten 20 gegen σ aus
+allen 50:
+
+```
+2t @240 h                 Median-Abweichung  4,9 %   Mittel s20/s50 0,999   → 20 würden reichen
+tp 234→240 h (mm/h)       Median-Abweichung 39,9 %   Mittel s20/s50 0,984   → 20 reichen NICHT
+```
+
+Niederschlag ist intermittierend; ob eine Teilmenge die nassen Member erwischt, ist Zufall. Und
+beide Größen brauchen **dieselbe** Memberzahl, sonst sagte `ensCount` — eine Ebene für alle
+Größen (V-PD-26) — für eine von beiden das Falsche. Also 50, `POINT_ECMWF_MEMBERS` verkleinert nur
+auf gerade Zahlen (vollständige Paare). Die ±-Paar-Struktur der Anfangsstörungen ist am Start nur
+noch schwach sichtbar (rms(m1+m2−m3−m4) = 0,97 K gegen 1,24 K über Kreuz), bei +240 h gar nicht
+mehr (3,55 gegen 3,64).
+
+Kosten bei 50 Membern: jenseits der ICON-EPS-Reichweite 4 Rasterstunden × (31,5 + 2 × 51,5) MiB
+= **538 MiB** — der Niederschlag zählt doppelt, weil der Vorschritt mitkommt. Das liegt innerhalb
+der ≈ 558 MiB, die Jan freigegeben hat.
+
+### 45.5 Mehrere Byte-Bereiche in einer Anfrage
+
+50 Member einzeln wären 50 Anfragen je (Größe, Schritt), bei 300 ms Mindestabstand und gemessenen
+3 Drosselungen je 165 Anfragen. `data.ecmwf.int` beantwortet einen Range-Kopf mit 50 Bereichen mit
+**HTTP 206 `multipart/byteranges`** — gemessen **31,55 MiB in 3,6 s**, alle 50 Längen stimmen.
+
+`fetchRanges()` in `shared.mjs` ordnet die Teile über ihren `Content-Range` zu, **nicht über ihre
+Position** — ein Server darf umordnen und nahe Bereiche zusammenlegen (RFC 7233); beides steht im
+Selbsttest. Und es bricht ab, **bevor der Körper gelesen wird**, wenn der Server den Range-Kopf
+ignoriert und mit 200 die ganze Datei schicken will — eine `enfo-ef`-Datei hat Hunderte MiB.
+Jeder Bereich liegt danach im Cache unter demselben Schlüssel wie bei `fetchBytes(url, { range })`.
+
+Am echten Server: **5 Anfragen statt 150** für t2m + Niederschlag an einem Schritt, 138 MiB in
+41,8 s, keine Drosselung.
+
+### 45.6 Je Stunde genau eine Quelle
+
+Bis PD-B8 kannte eine Stufe genau ein Ensemble (`find`). Die Fernstufe hat jetzt zwei. Die Regel:
+**je Stunde genau EINE Quelle**, die erste in der Reihenfolge der Stufe, die mindestens eine Größe
+liefert. Member zweier Ensembles werden **nie** gemischt — die Streuung über ICON- und IFS-Member
+wäre eine Streuung *zwischen* Modellen, also σ_div, und stünde in der Ebene für σ_ens.
+
+ICON-EPS global steht in der Stufe vor IFS-ENS: Jans PD-B8-Raster bleibt, IFS-ENS ergänzt. Am
+Probebau:
+
+```
+byHour  144 → icon_eps_global   168 → icon_eps_global   (nur t2m — keine 6-h-Rate bildbar)
+        192 → ifs_ens   240 → ifs_ens   288 → ifs_ens   336 → ifs_ens   (t2m + Niederschlag)
+```
+
+⚠ **Der Quellenwechsel ist sichtbar, und das gehört gesagt:** bei 168 h (ICON) steht σ_ens(t2m)
+im Median bei 1,93 K, bei 192 h (IFS) bei 1,47 K. Die Unsicherheit sinkt nicht — zwei Systeme
+streuen verschieden (am selben Termin +144 h: IFS-ENS 1,20 K, ICON-EPS global 1,33 K). `byHour`
+im Manifest macht den Wechsel lesbar; ausgleichen kann ihn erst `c(p,f)` je Quelle, und das
+braucht `buscosun-archiv`.
+
+Ein Ensemble-Fehler ist **laut, aber nicht tödlich**: er wird gezählt und steht im Manifest, der
+Cube wird trotzdem fertig — dieselbe Regel wie beim Stationsprodukt.
+
+### 45.7 ⚠ Fehler 2 aus PD-B8: IFS HRES und AIFS Single lieferten seit PD-B8 nichts
+
+Der erste Probebau der Fernstufe hatte IFS HRES als einzige deterministische Quelle — und **jede**
+deterministische Ebene blieb leer, obwohl die Quelle als „zugeordnet (36 Std.)" im Protokoll stand.
+
+Die Ursache stand in PD-B8 (§43.6): der ECMWF-Indexfilter wurde von `number` auf `type`
+umgestellt, damit Ensembles nur ihren Kontrolllauf behalten —
+`if (e.type != null && String(e.type) !== 'cf') continue;` — als **eine** Bedingung für **alle**
+Modelle. Deterministische Dateien tragen `type: "fc"`. Am echten `.index` nachgezählt:
+
+```
+ifs_hres     36 Oberflächeneinträge, alle type fc   → PD-B8-Filter behält 0
+aifs_single  21 Oberflächeneinträge, alle type fc   → PD-B8-Filter behält 0
+aifs_ens     21 Oberflächeneinträge, alle type cf   → behält 21 (richtig)
+```
+
+**Beide deterministischen ECMWF-Quellen haben seit PD-B8 in keiner Stufe ein Feld geliefert.** Im
+Gesamtlauf fiel es nicht auf, weil ICON global und AICON die Fernstufe weiter füllten. Der einzige
+Hinweis war die Größe — Stufe 3 schrumpfte von **1,29 MiB (PD-B1) auf 0,38 MiB** —, und den habe
+ich in §43.12 übersehen. Veröffentlicht ist davon nichts: der Cron baut mit dem committeten Stand,
+und der liegt vor PD-B8.
+
+⚠ **Und der Verifier hat den Fehler bestätigt statt gefunden.** Die Prüfung aus PD-B8 verlangte
+per Regex, dass genau die Zeile `String(e.type) !== 'cf'` im Code steht. Geprüft wurde die
+**Schreibweise**, nicht das Verhalten. Die Kur ist deshalb eine Funktion, `keepIndexEntry(model,
+entry)`, die der Verifier mit Zeilen in echter Form füttert: `fc` bleibt bei deterministischen
+Modellen, `cf` bleibt beim Kontrolllauf-Adapter, `pf` fällt dort heraus.
+
+Nach der Reparatur, derselbe Probebau: Stufe 3 **1,25 MiB statt 0,05**, **19 von 51 Ebenen**,
+`srcCount` durchgehend **2** (IFS HRES + AIFS Single).
+
+### 45.8 Der Beleg: Spread wächst, und σ_div sagt etwas anderes als σ_ens
+
+Nirgends im Code steht, dass die Unsicherheit mit der Vorhersagezeit zunimmt. Am Probebau:
+
+```
+σ_ens(t2m), Median über 2 009 Zellen:   192 h 1,47 K · 240 h 2,35 K · 288 h 2,60 K · 336 h 3,48 K
+σ_ens(Niederschlag):                    192 h 0,18 · 240 h 0,18 · 288 h 0,28 · 336 h 0,31 mm/h
+```
+
+Und die unabhängige Gegenprobe: dieselben Werte hatte eine **getrennt geschriebene** Sonde vorher
+direkt aus den Member-Feldern gerechnet — 2,350 K, 0,180 mm/h, 312 geklemmte Werte. Adapter und
+Sonde stimmen auf die Stelle.
+
+**Die eigentliche Begründung für V-PD-27 steht in derselben Tabelle:** bei +240 h streuen IFS HRES
+und AIFS Single untereinander nur **0,63 K** (σ_div), das Ensemble aber **2,35 K** (σ_ens); bei
++192 h 0,54 gegen 1,47. Zwei Modelle derselben Familie sind sich viel einiger, als die Lage sicher
+ist — dieselbe Warnung wie §29.3 für die beiden ICON in Stufe 1. Ohne σ_ens hätte die Fernstufe
+jenseits 180 h nur σ_div gehabt, und `σ_sys` ist ungemessen.
+
+### 45.9 Ein Schritt, eine Anfrage — auch für die deterministischen Felder
+
+Die Reparatur aus 45.7 hat eine Kostenfolge: IFS HRES und AIFS Single holen wieder Felder, je
+Größe eine Anfrage — gerechnet rund 1 000 über alle Stufen, bei 300 ms Mindestabstand ≥ 5 min nur
+Warten. **Der PD-B8-Gesamtlauf (38,6 min) war also zu kurz gemessen**, weil diese Abrufe fehlten.
+
+Derselbe Mechanismus wie in 45.5 hilft: beim ersten Feld eines Schritts werden alle Größen dieses
+Schritts in **einer** Anfrage geholt; sie liegen danach im Cache, und die Einzelabrufe treffen ihn.
+Schlägt der Sammelabruf fehl, bleibt der Einzelweg; `POINT_ECMWF_MULTIRANGE=0` schaltet ab.
+
+**Beweis, dass kein Byte anders wird:** dieselbe Stufe 3 mit leerem Cache neu gebaut und jeden
+Chunk gegen den Bau mit Einzelabrufen verglichen — **12 von 12 byte-gleich**. Dabei **172
+Anfragen** für 1,03 GiB (vorher über 700 für dieselben Felder).
+
+### 45.10 Drei veraltete Aussagen im Lauf-Manifest
+
+Alle drei betreffen genau die Quellen dieser Etappe, deshalb sind sie hier korrigiert:
+
+* `sigma.ens` sagte „**heute überall MISSING**, weil noch kein Ensemble gelesen wird" — seit PD-B8
+  falsch.
+* `sources[].members` stand bei den EPS-Quellen auf **0**, und der Kommentar daneben definiert 0 als
+  „deterministisch". Jetzt die Zahl der Member (ICON-D2-EPS 20, ICON-EPS global 40, IFS-ENS 50).
+* `noEns` behauptete „Größen ohne `_sd_ens`-Ebene: `snowlmt`" — mit Schema 3 falsch geworden und
+  bis heute nicht aufgefallen. Jetzt steht dort **gezählt**, welche σ_ens-Ebenen im Lauf leer
+  blieben (`sdEnsEmpty`), statt einer fortgeschriebenen Liste (BW-1).
+
+### 45.11 Ein Befund für die Quellenmatrix
+
+Die Matrix führt IFS ENS als tragende Quelle für 240–336 h und schreibt die 144-h-Grenze der
+06/18-UTC-Läufe (⚠⁷) nur **IFS HRES** zu. Gemessen (Läufe 2026091006 und 2026091018) gilt sie für
+IFS ENS genauso; bis 336 h reichen um 06/18 UTC nur **AIFS Single und AIFS-ENS**. Der Selbsttest
+der Registry hatte daraus „06 UTC trägt nur die ENS" abgeleitet und war nur grün, weil die Registry
+für IFS-ENS keinen laufabhängigen Horizont kannte — eine Prüfung, die an einer Lücke der Registry
+hängt, bestätigt die Lücke. Registry und Selbsttest sind korrigiert; die Matrix selbst bleibt
+Jans Dokument (V-PD-33).
+
+### 45.12 Der Gesamtlauf — und was er über PD-B8 nachträglich sagt
+
+Alle drei Stufen, alle Quellen, **leerer Cache**:
+
+```
+EXIT=0  WALL=2 540 s (42,3 min)
+t1  208 Chunks · 75,76 MiB   σ_ens icon_d2_eps 9 Std. · Quantile 49 · Profil 49
+t2   56 Chunks ·  6,53 MiB   σ_ens icon_eu_eps 6 Std. (Niederschlag nur 60/72 h)
+t3   12 Chunks ·  1,34 MiB   σ_ens icon_eps_global 144/168 · ifs_ens 192/240/288/336
+3 Stufen · 276 Chunks · 83,63 MiB · Netz 3 947 Dateien · 7 801,6 MiB
+```
+
+Gegen PD-B8 (38,6 min · 5 965,7 MiB · 77,84 MiB): **+1,8 GiB Netz, aber nur +3,7 min**. Dazu
+gehören IFS-ENS (538 MiB), die deterministischen ECMWF-Felder, die in PD-B8 gar nicht geholt
+wurden, die Vorschritte für die Entakkumulation und laufabhängige Abdeckung (Profil diesmal 49
+statt 38 Stunden). Genau aufschlüsseln lässt es sich nicht — der Producer zählt das Netz nur
+gesamt (V-PD-36). Dass die Laufzeit kaum wächst, liegt an den Sammelabrufen aus 45.5 und 45.9.
+
+**Der PD-B8-Wert von 38,6 min war zu kurz gemessen**, weil die Abrufe von IFS HRES und AIFS Single
+fehlten. `JOB_MAX_MIN` geht deshalb von 50 auf **55** (gemessen + 30 %; der Durchsatz schwankte in
+dieser Phase um Faktor 5). Der engste Cron-Abstand von 100 min hält die Regel `≥ JOB_MAX_MIN + 20`
+weiter. Das Job-Timeout der Vorlage liegt bei 330 min und bindet nicht.
+
+**Was dem PD-B8-Cube gefehlt hätte, zeigt `srcCount` jetzt direkt:**
+
+```
+t1  srcCount  2: 26 %   3: 46 %   4: 10 %   5: 10 %   6: 8 %
+t2  srcCount  4: 53 %   5: 47 %
+t3  srcCount  2: 72 %   4: 28 %      ← die „2" jenseits 180 h sind IFS HRES + AIFS Single
+```
+
+In Stufe 3 tragen jenseits 180 h **genau die zwei Quellen, die der Filter gestrichen hatte**. Der
+PD-B8-Cube hatte dort also **überhaupt keine Vorhersage** — 156 der 336 Stunden leer, schlimmer
+als die Lage aus §33.4, die PD-B1 behoben hatte. Veröffentlicht war er nie.
+
+**Und σ_div gegen σ_ens, über alle drei Stufen:**
+
+```
+          σ_div(t2m)   σ_ens(t2m)
+t1 +6 h      0,63         0,46       Modelle streuen STÄRKER als das Ensemble
+t1 +48 h     0,70         0,56
+t2 +72 h     0,63         0,96       ab hier ist es umgekehrt
+t2 +120 h    0,90         1,58
+t3 +240 h    0,63         2,35       Faktor 3,7
+t3 +336 h    1,59         3,48
+```
+
+Die beiden Streuungen messen verschiedene Dinge, und ihr Verhältnis **kippt** mit der
+Vorhersagezeit: kurzfristig sind die Modelle uneiniger, als ein Ensemble streut (bekannt: die
+Kurzfrist-EPS sind unterdispersiv), in der Fernstufe sind sich zwei Modelle derselben Familie weit
+einiger, als die Lage sicher ist. PAP 6 verzweigt deshalb zu Recht ENTWEDER-ODER — einen festen
+Faktor zwischen beiden gibt es nicht, und genau deshalb dürfen sie nicht addiert werden.
+
+**Speicher — und ein dritter Fehler aus PD-B8.** Die Prozessgröße stieg in Stufe 1
+(12:09–12:11 Uhr) von 2,3 auf **4,2 GB** und blieb danach bei ~3,5 GB; nach PD-B8 lag sie bei
+~2,1 GB. Die Prozessgröße sagt aber nicht, wie nah die V8-Heap-Grenze ist — der Speicher
+hinter Typed Arrays liegt außerhalb. Deshalb misst der Producer jetzt je Stufe den
+Heap-Höchststand gegen die Grenze (eine Zeile im Cron-Protokoll), und die erste Messung war
+eindeutig:
+
+```
+Stufe 1, alter Code:  Heap max 3 486 von 4 144 MiB (84 %) · extern max 369 MiB · RSS max 3 831 MiB
+```
+
+Das ist die Lage aus §43.11, 16 % davor — und meine Vermutung („Typed-Array-Speicher außerhalb
+des Heaps“) war falsch. Die Ursache ließ sich am echten Adapter isolieren: vier C-LAEF-Fenster
+nacheinander geladen, nach jeder vollen Speicherbereinigung gemessen:
+
+```
+                        lebendiger Heap je Fenster    außerhalb des Heaps
+vorher  (JS-Array)             +72 MiB                     +0 MiB
+nachher (Int16Array)            +0 MiB                    +18 MiB
+```
+
+`jsfive` legt gechunkte HDF5-Datensätze als **gewöhnliches JavaScript-Array** an
+(`new Array(data_size)`), und `geosphere.mjs` legte genau dieses Array in den Fenstercache.
+§43.11 hatte dessen Obergrenze von 26 Fenstern mit **19 MiB je Fenster** ausgelegt — als Typed
+Array gerechnet, nicht gemessen. Tatsächlich waren es **72 MiB im Heap**; die Obergrenze ließ
+also bis zu ~1,9 GB zu. Dieselbe Klasse wie die Füllwertliste aus PD-B7: eine Zahl, die man
+hätte messen können, war angenommen — und die Kur für §43.11 war auf ihr gebaut.
+
+Beim Lesen dazugekommen: `d.value` ist in `jsfive` ein **Getter, der bei jedem Zugriff neu
+entpackt**. Der Code griff zweimal zu (`d.value?.length` und `values: d.value`), jedes Fenster
+wurde also doppelt dekomprimiert.
+
+**Kur:** Fenster als `Int16Array` (`toTyped()` — die Felder sind int16; ein unbekannter Typ
+fällt verlustfrei auf `Float64Array` zurück, geschätzt wird nichts), und `d.value` wird einmal
+gelesen. Der Verifier prüft beides am Verhalten. 
+
+**Der Gegenbeweis mit halbierter Grenze.** `heapUsed` zählt auch Müll, den der Garbage Collector
+noch nicht eingesammelt hat; tödlich ist nur, was nach einer vollen Sammlung lebendig bleibt. Mit
+`--max-old-space-size=2560` sammelt V8 aggressiver — und der **alte Code stirbt**: nach 444 s
+„FATAL ERROR: Reached heap limit … JavaScript heap out of memory“ bei 2 511 MB, unmittelbar nach
+dem Ensemble-Abschnitt, also in den C-LAEF-Quantilen (14 Parameter — genau dort füllt sich der
+Fenstercache). Der lebendige Heap lag über 2,5 GB; mit der normalen Grenze von 4 144 MiB war der
+Cron nicht sicher, sondern 16 % vor §43.11. Der **korrigierte Code läuft unter derselben Grenze durch**: 545 s, EXIT 0, Quantile
+und Profil vollständig, Heap max 98 von 2 608 MiB. Gleiche Daten, gleiche Grenze — der alte
+stirbt, der neue nicht.
+
+```
+Stufe 1, alter Code:  Heap max 3 486 von 4 144 MiB (84 %) · extern max   369 MiB · RSS max 3 831 MiB
+Stufe 1, neuer Code:  Heap max    98 von 4 144 MiB  (2 %) · extern max 1 407 MiB · RSS max 1 529 MiB
+```
+
+Dass der Heap fast leer wird, ist stimmig: außer den `jsfive`-Arrays liegen alle großen Daten des
+Producers in Typed Arrays, also außerhalb — deshalb steigt der externe Speicher, und der zählt
+nicht gegen die Grenze. Die Prozessgröße fällt von 3,8 auf 1,5 GB. Einschränkung: der Abtaster
+misst im Sekundentakt und kann kurze Spitzen in langen synchronen Abschnitten verpassen (etwa das
+72-MiB-Array, das `jsfive` beim Lesen eines Fensters weiterhin kurz anlegt) — beweiskräftiger ist
+deshalb der Gegenversuch mit halbierter Grenze oben.
+
+Der Gesamtlauf oben ist mit dem **alten** Code gemessen. Neu gemessen ist nur Stufe 1, weil der
+C-LAEF-Fenstercache nur dort lebt; dort macht der korrigierte Code strikt weniger Arbeit (jedes
+Fenster einmal statt zweimal entpackt).
+
+
+**Platte.** Der Cache wuchs auf **9,1 GiB** (Stufe 1 5,51 · Stufe 2 2,08 · Stufe 3 1,53). Ein
+GitHub-Runner garantiert für öffentliche Repos 14 GB SSD. Das passt, ist aber zum ersten Mal als
+Grenze gemessen und wächst mit jeder Quelle — V-PD-36.
+
+### 45.13 Gate GPD-B10
+
+| Nachweis | Ergebnis |
+|---|---|
+| **σ_ens jenseits 180 h** (V-PD-27) | ✅ IFS-ENS bei 192/240/288/336 h, t2m + Niederschlag, 50 Member; ICON-EPS global behält 144/168 h |
+| Je Stunde genau eine Quelle, Member nie gemischt | ✅ `tiers[].ensemble.byHour`; der Sprung beim Quellenwechsel (1,93 → 1,47 K) ist benannt, nicht geglättet |
+| ⚠ **PD-B8-Fehler 1 behoben:** `precip_sd_ens` ist die Streuung der Rate | ✅ vorher Faktor 2,5–3,7 (nasse Zellen) bis 53 (IFS +240 h) zu groß; Stunde 0, ICON-EU-EPS 84–120 h und ICON-EPS global 144/168 h jetzt MISSING statt falsch |
+| Member über ihre Nummer gepaart | ✅ Decoder liest Oktett 36/37; bei ECMWF gegen das `.index` geprüft; ohne Nummer keine Rate |
+| ⚠ **PD-B8-Fehler 2 behoben:** ECMWF-Indexfilter | ✅ vorher IFS HRES 0/36, AIFS Single 0/21 behalten; jetzt `keepIndexEntry`, vom Verifier mit echt geformten Zeilen geprüft statt per Regex; Stufe 3 wieder 1,34 MiB, jenseits 180 h `srcCount` 2 |
+| 50 statt 20 Member begründet | ✅ gemessen: t2m 4,9 %, Niederschlag 39,9 % Median-Abweichung bei 20 |
+| Mehrere Bereiche in einer Anfrage | ✅ IFS-ENS 5 statt 150 Anfragen je Schritt; deterministische ECMWF-Felder **12/12 Chunks byte-gleich** zum Einzelweg |
+| Unabhängige Gegenprobe | ✅ Adapter und getrennt geschriebene Sonde: 2,350 K · 0,180 mm/h · 312 geklemmte Werte, auf die Stelle |
+| Spread wächst ohne Vorgabe | ✅ σ_ens(t2m) 1,47 → 2,35 → 2,60 → 3,48 K (192 → 336 h) |
+| Gesamtlauf kalt | ✅ EXIT 0 · **42,3 min** · 7,8 GiB Netz · 276 Chunks · 83,63 MiB; `JOB_MAX_MIN` 50 → **55** |
+| ⚠ **PD-B8-Fehler 3 behoben:** C-LAEF-Fenster lagen als JS-Array im Heap | ✅ je Fenster 72 → 0 MiB Heap (18 MiB außerhalb); doppeltes Entpacken beseitigt; Verhaltensprüfung im Verifier |
+| Speicher | ✅ Stufe 1 Heap max 3 486 → **98** von 4 144 MiB, Prozess 3,8 → 1,5 GB; **mit halbierter Grenze (2 560 MiB) stirbt der alte Code nach 444 s, der neue läuft durch** |
+| Platte | ⚠ Cache 9,1 GiB gegen 14 GB auf dem Runner — passt, erstmals gemessen, V-PD-36 |
+| Registry und Selbsttest | ✅ IFS-ENS 06/18 UTC → 144 h; der 336-h-Selbsttest prüft jetzt die gemessene Aufteilung |
+| Veraltete Manifest-Aussagen | ✅ drei korrigiert (`sigma.ens`, `sources[].members`, `noEns` → `sdEnsEmpty`) |
+| `verify:point-data` | ✅ **586/586** (nach B9: 533) |
+| typecheck · Build · Budget | ✅ 0 Fehler · 241/241 · 301,2/302 · 1 366,1/1 372 |
+| Bundle | ✅ Decoder +0,1 KB (`totalJs` 1 366,0 → 1 366,1) in drei Worker-Chunks, **nicht** im Start-Chunk; die Punkt-Module in null Chunks |
+| Veröffentlicht? | ❌ **nein** — `POINT_PUSH` bleibt aus |
+
+### 45.14 Verbesserungen (D-28)
+
+**V-PD-27 · erledigt (§45).** σ_ens reicht jetzt bis 336 h: IFS-ENS, 50 Member, t2m und
+Niederschlag bei 192/240/288/336 h; ICON-EPS global behält 144/168 h.
+
+**V-PD-31 · Der Decoder entpackt 80 Nachrichten, wo 20 gebraucht werden.** ICON-D2-EPS bündelt
+`tot_prec` in vier Viertelstunden-Fassungen je Member; `decodeGrib2All` dekodiert alle 80
+(80 × 542 040 Werte ≈ 173 MB), behalten werden 20. Seit der Entakkumulation liegen zwei solche
+Dateien gleichzeitig im Speicher. *Mehrwert:* drei Viertel der Dekodierzeit und des Spitzenspeichers
+für diese Größe fallen weg — genau der Posten, der beim Cron an der 4-GB-Grenze zählt (§43.11).
+*Skizze:* `decodeGrib2All(raw, { keep: (hdr) => hdr.intervalEndMinute === 0 })` — Sektion 4 ist
+vor Sektion 7 gelesen, die Werte einer verworfenen Nachricht müssen nie entpackt werden.
+
+**V-PD-32 · Beim Quellenwechsel springt σ_ens, obwohl die Unsicherheit nicht springt.** In der
+Fernstufe wechselt die Quelle zwischen 168 h (ICON-EPS global) und 192 h (IFS-ENS); σ_ens(t2m)
+fällt dort im Median von 1,93 auf 1,47 K. Zwei Systeme streuen verschieden (am selben Termin
++144 h: IFS 1,20 K, ICON 1,33 K). *Mehrwert:* PAP 6 rechnet `σ = c(p,f)·σ_ens` — mit EINEM c für
+beide Quellen erbte die Vorhersage den Sprung als falsche Kante in der Unsicherheit. *Skizze:*
+`calib.json` führt `c` je (Quelle, Größe, Vorhersagezeit); bis es gemessen ist, nennt
+`tiers[].ensemble.byHour` die Quelle je Stunde, damit ein Leser den Sprung zuordnen kann.
+Braucht `buscosun-archiv`.
+
+**V-PD-33 · ⚠⁷ der Quellenmatrix gilt auch für IFS ENS.** Die Matrix nennt die 144-h-Grenze der
+06/18-UTC-Läufe nur für IFS HRES; gemessen gilt sie für IFS ENS genauso, und um 06/18 UTC reichen
+nur AIFS Single und AIFS-ENS bis 336 h. *Mehrwert:* wer die Matrix liest, plant sonst mit einer
+Quelle, die es zu dieser Stunde nicht gibt — genau der Fehler, den der Registry-Selbsttest hatte.
+*Skizze:* Fußnote ⚠⁷ auf „IFS HRES und IFS ENS" erweitern. **Jans Dokument** — nicht von mir
+geändert.
+
+**V-PD-34 · Vier σ_ens-Ebenen haben keinen Schreiber.** `td2m`, `clct`, `ps` und `snowlmt` — jetzt
+gezählt in `sdEnsEmpty`, nicht behauptet. Ursache ist die PD-B8-Volumenentscheidung (fünf Größen
+in t1/t2, zwei in t3) und dass die ICON-CH-Member nicht gelesen werden. *Mehrwert:* für diese
+Größen fällt PAP 6 auf σ_div zurück, das in Stufe 1 zu zwei Dritteln aus zwei ICON besteht
+(§29.3). *Skizze:* je Größe die Kosten am Verzeichnis messen (ICON-D2-EPS 13,4 MiB je Datei, bei
+6-stündlichem Raster 9 Dateien je Größe) und Jan die Zahl vorlegen.
+
+**V-PD-35 · Stufe 2 hat jenseits 72 h keine Niederschlags-Streuung.** ICON-EU-EPS rechnet ab 78 h
+6-stündlich, der Stufenschritt ist 3 h — die Rate ist dort nicht bildbar (45.2). *Mehrwert:* σ_ens
+für Niederschlag über 84–120 h, also genau in der Mittelfrist, in der Starkregen-Signale anfangen
+zu tragen. *Skizze:* IFS-ENS rechnet bis 144 h **3-stündlich** — dieselbe Mechanik wie in Stufe 3,
+nur mit Δ = 3 h; Kosten je Rasterstunde 2 × 51,5 MiB. Eine Messung und eine Entscheidung, keine
+Annahme.
+
+**V-PD-36 · Der Plattencache wächst über alle Stufen, obwohl kaum etwas zweimal gelesen wird.**
+Im kalten Gesamtlauf 9,1 GiB (Stufe 1 5,51 · Stufe 2 2,08 · Stufe 3 1,53 GiB); ein GitHub-Runner
+garantiert für öffentliche Repos **14 GB SSD**, und darauf liegen auch Checkout und Daten-Repo.
+Der Cache ist ohnehin flüchtig (V-PD-22) und wird innerhalb eines Laufs fast nur für den
+Vorschritt der Entakkumulation und für die Sammelabrufe gebraucht. *Mehrwert:* jede weitere
+Quelle macht den Cron sonst ein Stück näher am `ENOSPC` — und der kommt als Abbruch mitten im
+Lauf, nicht als Warnung. *Skizze:* den Cache nach jeder Stufe leeren (bis auf Koordinaten- und
+Konstantendateien), dann ist die Spitze die größte Stufe (5,5 GiB) statt der Summe; dazu das
+Netzvolumen **je Quelle** ins Manifest — der Producer zählt es heute nur gesamt, deshalb ließ sich
+der Zuwachs von 1,8 GiB in diesem Lauf nicht auf den MiB genau zuordnen.
+
+**V-PD-37 · AIFS Single fällt in Stufe 2 aus, weil die Horizontsuche die erste Stunde prüft.**
+Im Gesamtlauf: „Lauf 2026091100 liefert keine Stunde dieser Stufe (Versatz 6 h)". AIFS rechnet
+6-stündlich; die erste eigene Stunde der Stufe (51 + 6 = 57) gibt es nicht, und `probeHorizon`
+schließt daraus, dass die Quelle gar nichts hat. Umgekehrt meldet Stufe 1 für AIFS „49 Stunden",
+obwohl es nur jede sechste gibt — die fehlenden enden als 404 (80 im Gesamtlauf). §34 hatte den
+6-Stunden-Takt schon einmal beim Abdeckungsflag erwischt. *Mehrwert:* eine zweite Meinung für σ_div
+in der Mittelfrist, wo heute in Stufe 2 nur ICON und IFS HRES tragen — und keine vergeblichen
+Abrufe mehr. *Skizze:* die ECMWF-Adapter kennen ihr Schrittraster (AIFS 6 h; IFS 3 h bis 144,
+danach 6 h) und `leadsFor` prüft nur Stunden darauf. Ändert die Daten in Stufe 2 und braucht deshalb
+eine eigene Messung.
+
+**V-PD-38 · `--run` aus der Cron-Vorlage kommt im Producer nie an.** `workflow-point.yml` reicht
+bei manuellem Start `--run=<Lauf>` weiter, `main()` in `build-point-cube.mjs` liest das Argument
+nicht. Ein Eingabefeld, das nichts tut — dieselbe Klasse wie V-SH-11, nur in der Bedienung.
+*Mehrwert:* wer einen bestimmten Lauf nachbauen will (z. B. nach einem Ausfall), bekommt heute
+still den neuesten. *Skizze:* entweder `--run` bis `chooseRun` durchreichen (als Obergrenze der
+Suche) oder das Feld aus der Vorlage streichen; im Verifier prüfen, dass jedes Eingabefeld der
+Vorlage einen Leser hat.
+
+**V-PD-39 · Die Karten-App liest HDF5 ebenfalls über jsfive — also als JS-Array.** INCA
+(`src/sources/incaParse.ts`), CombiPrecip (`rzcParse.ts`) und der MeteoSchweiz-Hagel
+(`meteoSwissHail.ts`) lesen `.value` und bekommen damit dieselben gewöhnlichen Arrays, die im
+Producer 72 statt 18 MiB je C-LAEF-Fenster gekostet haben. **Im Browser nicht gemessen** — deshalb
+hier ohne Zahl. *Mehrwert:* weniger Speicher im Worker auf Mobilgeräten, wo der Tab bei Druck
+zuerst entladen wird. *Skizze:* erst messen (Heap-Snapshot des `hdf5Worker` nach einem INCA-Abruf),
+dann dieselbe Umwandlung wie `toTyped()` direkt nach dem Lesen; Float-Felder als `Float32Array`.
+Eigene Phase der Kartenlinie, nicht diese.

@@ -29,7 +29,8 @@
 import { mkdirSync, writeFileSync, readFileSync, existsSync, readdirSync, rmSync, statSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { POINT_DIR, POINT_INDEX_PATH, POINT_SOURCES_PATH, POINT_CALIB_PATH, TIER_BY_ID } from '../../src/point/cubeFormat.ts';
+import { POINT_DIR, POINT_INDEX_PATH, POINT_SOURCES_PATH, POINT_CALIB_PATH, TIER_BY_ID,
+         STATIONS_DIR, stationManifestPath } from '../../src/point/cubeFormat.ts';
 import { buildPointIndex, runsToKeep, RETENTION_HOURS, MIN_RUNS, CDN_BASE } from '../../src/point/manifest.ts';
 import { buildSourcesJson } from '../../src/point/sourceMatrix.ts';
 import { CALIBRATION_V1 } from '../../src/point/calibration.ts';
@@ -108,6 +109,37 @@ for (const r of decision.stale) {
 }
 const kept = runsIn(join(REPO, POINT_DIR));
 
+// ⚠ Das Stationsprodukt liegt unter `point/stations/<lauf>/` und wurde von der
+// Schleife oben NICHT erfasst: `runsIn(point/)` nimmt nur Verzeichnisse, die wie ein
+// Lauf heißen, und `stations` heißt nicht so. Ohne diese zweite Runde wüchse das
+// Produkt unbegrenzt — 6,7 MiB je Lauf, achtmal am Tag. Dieselbe Regel, derselbe
+// Boden (MIN_RUNS), und `catalog.json` ist davon nicht betroffen: es ist eine Datei,
+// kein Laufverzeichnis, und steht ohnehin in TIMELESS_PATHS.
+const stationsRoot = join(REPO, STATIONS_DIR);
+const stPresent = runsIn(stationsRoot).map((r) => ({ run: r, runAt: runIdToIso(r) }));
+const stDecision = runsToKeep(stPresent);
+for (const r of stDecision.drop) {
+  rmSync(join(stationsRoot, r.run), { recursive: true, force: true });
+  log(`Aufbewahrung stations/: ${r.run} entfernt (${((Date.now() - Date.parse(r.runAt)) / 3_600_000).toFixed(1)} h alt)`);
+}
+for (const r of stDecision.stale) {
+  log(`⚠ stations/${r.run} ist ${((Date.now() - Date.parse(r.runAt)) / 3_600_000).toFixed(1)} h alt und bleibt nur wegen des Bodens (min. ${MIN_RUNS} Läufe) — ein überalteter Lauf wird BENANNT, nicht verschwiegen.`);
+}
+const stKept = runsIn(stationsRoot);
+const stationRuns = stKept.map((run) => {
+  const mp = join(REPO, stationManifestPath(run));
+  const m = existsSync(mp) ? JSON.parse(readFileSync(mp, 'utf8')) : null;
+  return {
+    run, runAt: m?.runAt ?? null, ageH: m?.ageH ?? null,
+    path: `${STATIONS_DIR}/${run}`,
+    manifest: stationManifestPath(run),
+    stationCount: m?.stationCount ?? null,
+    leadHours: m?.axis?.leadHours?.length ?? null,
+    bytes: dirBytes(join(stationsRoot, run)),
+  };
+});
+log(`stations/: ${stationRuns.length} Lauf/Läufe, ${(stationRuns.reduce((n, r) => n + r.bytes, 0) / 1048576).toFixed(2)} MiB`);
+
 // --- 3. Manifeste ------------------------------------------------------------
 const runEntries = kept.map((run) => {
   const manPath = join(REPO, POINT_DIR, run, 'run.json');
@@ -137,6 +169,7 @@ write(POINT_INDEX_PATH, buildPointIndex({
   commit: null,
   publishedAt: new Date().toISOString(),
   runs: runEntries,
+  stationRuns,
 }));
 
 // ── Kein Chunk ohne Manifesteintrag ─────────────────────────────────────────

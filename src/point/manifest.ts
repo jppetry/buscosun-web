@@ -23,6 +23,7 @@ import {
   CUBE_SCHEMA, CUBE_PLANES, CHUNK_CELLS, TIERS, POINT_DIR, POINT_INDEX_PATH,
   POINT_SOURCES_PATH, POINT_CALIB_PATH, STATIONS_DIR, STATION_CATALOG_PATH, type TierId,
 } from './cubeFormat';
+import { nowcastManifest } from './nowcastFormat';
 
 /** Basis des Daten-CDNs — dieselbe Konstante wie die Kartenlinie (`repackManifest.mjs`). */
 export const CDN_BASE = 'https://cdn.jsdelivr.net/gh/jppetry/buscosun-data';
@@ -118,6 +119,12 @@ export interface PointRunManifest {
 export function planeManifest() {
   return CUBE_PLANES.map((p) => ({
     id: p.id, unit: p.unit, scale: p.scale, offset: p.offset, group: p.group,
+    // Zu WELCHER Größe die Ebene gehört und WAS sie ist. Ohne diese beiden Felder müsste
+    // ein Leser die Bedeutung aus dem Namen raten („endet auf _sd_ens, also …") — genau
+    // die Sorte stillschweigender Konvention, an der die Repack-Linie schon einmal
+    // gescheitert ist (Schlüssel ≠ Dateipräfix, PD0 R-2).
+    of: p.varId,
+    kind: p.kind,
     // Δ für `σ_quant² = Δ²/12` — der Client soll ihn nicht aus `scale` „wissen" müssen.
     quantStep: p.scale,
   }));
@@ -144,6 +151,13 @@ export function buildPointIndex(opts: {
   commit: string | null;
   publishedAt: string;
   runs: Array<{ run: string; runAt: string; path: string; tiers: string[]; sources: string[]; bytes: number }>;
+  /**
+   * Die Läufe des Stationsprodukts. Getrennt von `runs`, weil es ein getrenntes
+   * Produkt mit eigener Zeitachse ist — wer beide in eine Liste würfe, machte aus
+   * dem Unterschied ein Versehen.
+   */
+  stationRuns?: Array<{ run: string; runAt: string | null; ageH: number | null; path: string;
+    manifest: string; stationCount: number | null; leadHours: number | null; bytes: number }>;
 }) {
   return {
     schema: CUBE_SCHEMA,
@@ -157,7 +171,13 @@ export function buildPointIndex(opts: {
     sources: POINT_SOURCES_PATH,
     calibration: POINT_CALIB_PATH,
     stations: { dir: STATIONS_DIR, catalog: STATION_CATALOG_PATH,
+      runs: opts.stationRuns ?? [],
+      source: 'mosmix_l',
+      axis: 'eigene Achse, stuendlich bis 247 h — NICHT die Stufenachse des Cubes (die ist ab 51 h dreistuendlich).',
       note: 'Stationsvorhersagen (MOSMIX) sind ein EIGENES Produkt, kein Gitter — s. cubeFormat.ts. Gebündelt nach dem Chunk-Raster der Stufe 1, gleicher Container, Zuordnung Spalte → Station im Lauf-Manifest.' },
+    // Die 0–3-h-Zeile der Quellenmatrix. Sie liegt seit RD3 im Repo — aber nirgends stand,
+    // WIE man daraus einen Punktwert gewinnt, und dass Byte 0 zweideutig ist (PD-B3).
+    nowcast: nowcastManifest(),
     tiers: tierManifest(),
     planes: planeManifest(),
     runs: opts.runs,

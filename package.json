@@ -88,9 +88,11 @@
     "verify:pv-fusion": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-pv-fusion.mjs",
     "verify:point-data": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-point-data.mjs",
     "point:cube": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/point/build-point-cube.mjs",
+    "point:stations": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/point/build-stations.mjs",
     "point:publish": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/point/publish-point.mjs",
     "point:check-cdn": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/point/check-cdn.mjs",
-    "verify:pv-score": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-pv-score.mjs"
+    "verify:pv-score": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-pv-score.mjs",
+    "point:nowcast": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/point/nowcastReader.mjs"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

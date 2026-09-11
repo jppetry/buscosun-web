@@ -152,6 +152,23 @@ jobs:
             ${{ github.event.inputs.run && format('--run={0}', github.event.inputs.run) || '' }} \
             ${{ github.event.inputs.steps && format('--steps={0}', github.event.inputs.steps) || '' }}
 
+      # Das Stationsprodukt (PD-B9). Eigener Schritt, weil es ein eigenes Produkt ist:
+      # eigene Quelle (MOSMIX-L), eigene Zeitachse (stuendlich bis 247 h), eigenes
+      # Manifest. Gemessen 55 s — 76 MiB Abruf, 30 s Stromparsen.
+      #
+      # ⚠ `continue-on-error`: das Stationsprodukt darf den Cube nicht mitreissen.
+      # MOSMIX-L erscheint bei Lauf + 72…79 min, dieser Job laeuft bei Lauf + 50 min;
+      # faellt die Datei einmal aus, ist der Cube trotzdem vollstaendig. Ein fehlendes
+      # `point/stations/<lauf>/` ist sichtbar (index.json listet die Laeufe), ein
+      # abgebrochener Lauf waere teurer.
+      - name: Build station product (MOSMIX-L)
+        continue-on-error: true
+        env:
+          POINT_OUT: ${{ github.workspace }}/point
+        run: |
+          cd app
+          node --experimental-strip-types --import ./scripts/lib/register-ts.mjs             scripts/point/build-stations.mjs
+
       # Der Publisher committet, pusht (mit Wiederholung) und purgt DANACH den Index
       # am CDN. Ein zweiter Push auf Job-Ebene waere nicht nur doppelt — er wuerde die
       # Reihenfolge zerreissen: der Purge steht im Publisher HINTER dem Push, und ohne

@@ -33,6 +33,31 @@ export interface GribField {
   discipline?: number;
   parameterCategory?: number;
   parameterNumber?: number;
+  /**
+   * Produktdefinitions-Template (GRIB2 Tabelle 4.0) und Vorhersagezeit in der
+   * Einheit aus Oktett 18. Noetig, wenn eine Datei dieselbe Groesse MEHRFACH
+   * fuehrt und sich die Nachrichten nur im Zeitbezug unterscheiden — s. PD-B8.
+   */
+  productTemplate?: number;
+  forecastTime?: number;
+  /**
+   * Nur bei statistisch verarbeiteten Templates (4.8/4.11): der statistische
+   * Prozess (Tabelle 4.10; 1 = Akkumulation) und die Zeitspanne **in Minuten**,
+   * einheitlich umgerechnet. `undefined` bei Momentanwerten.
+   */
+  statProcess?: number;
+  timeRangeMin?: number;
+  /** Minute, auf die das statistische Intervall endet (0 = volle Stunde). */
+  intervalEndMinute?: number;
+  /**
+   * Member-Nummer eines Ensemble-Felds (Templates 4.1 und 4.11, Oktett 36).
+   * Gebraucht seit PD-B10: eine Niederschlagsrate braucht DENSELBEN Member in
+   * zwei Dateien, und die Reihenfolge der Nachrichten ist dafuer kein Beleg
+   * (V-PD-25). Fehlt bei deterministischen Templates.
+   */
+  perturbationNumber?: number;
+  /** Anzahl der Member im Ensemble laut Datei (Oktett 37). */
+  ensembleSize?: number;
   surfaceType?: number;
   level?: number;
   /**
@@ -197,6 +222,10 @@ export function decodeGrib2(raw: Uint8Array): GribField {
   const discipline = raw[p + 6]; // Sektion 0, Oktett 7
   let parameterCategory: number | undefined, parameterNumber: number | undefined;
   let surfaceType: number | undefined, level: number | undefined;
+  let productTemplate: number | undefined, forecastTime: number | undefined;
+  let statProcess: number | undefined, timeRangeMin: number | undefined;
+  let intervalEndMinute: number | undefined;
+  let perturbationNumber: number | undefined, ensembleSize: number | undefined;
 
   let off = p + 16; // Sektion 0 ist 16 Byte
   while (off < raw.length - 4) {
@@ -233,6 +262,49 @@ export function decodeGrib2(raw: Uint8Array): GribField {
       // Produktdefinition (Template 4.0/4.8…): Kategorie/Nummer + erste feste
       // Fläche. Oktett 10/11 = cat/num; 23 = surface type; 24 = scale; 25-28 =
       // scaled value. Für Multi-Variablen-Dateien (AROME-Pakete) zur Identität.
+      // Template-Nummer (Oktett 8-9) und Vorhersagezeit (Oktett 19-22).
+      //
+      // Gebraucht seit PD-B8: ICON-D2-EPS buendelt `tot_prec` als **80** Nachrichten
+      // mit IDENTISCHER Parameter-Identitaet (20 Member x 4 Akkumulationsformen).
+      // Ohne diese zwei Felder liessen sich die vier Formen nicht trennen, und eine
+      // Streuung ueber alle 80 mischte verschiedene Zeitraeume — sie saehe aus wie
+      // Modellunsicherheit und waere in Wahrheit der Unterschied zwischen
+      // Stundensumme und Laufsumme.
+      productTemplate = dv.getUint16(off + 7);
+      forecastTime = dv.getUint32(off + 18);
+      // Ensemble-Templates 4.1 und 4.11 tragen nach Oktett 34 drei eigene
+      // Oktette: 35 Typ, 36 Member-Nummer, 37 Anzahl. (Bei 4.11 folgt danach der
+      // 4.8-Teil, um genau diese 3 verschoben - s. unten.)
+      if (productTemplate === 1 || productTemplate === 11) {
+        perturbationNumber = raw[off + 35];
+        ensembleSize = raw[off + 36];
+      }
+      // Statistisch verarbeitete Templates (4.8 / 4.11) tragen am Ende die
+      // Zeitspanne, über die gemittelt oder akkumuliert wurde. Oktettlagen am
+      // echten Objekt abgelesen (ICON-D2-EPS `tot_prec`, Sektion 4 Länge 61):
+      //   50 = statistischer Prozess (1 = Akkumulation)
+      //   52 = Einheit der Zeitspanne (Tabelle 4.4; 0 = Minute, 1 = Stunde)
+      //   53-56 = Länge der Zeitspanne
+      // Ohne sie lassen sich die VIER Viertelstunden-Fassungen derselben Stunde
+      // nicht trennen — s. PD-B8 §43.
+      if (productTemplate === 8 || productTemplate === 11) {
+        // ⚠ Template 4.11 ist 4.8 PLUS drei Ensemble-Oktette (35 Typ, 36 Member,
+        // 37 Anzahl) — alles danach ist um 3 verschoben. Mit EINEM Offsetsatz für
+        // beide las der Decoder für den deterministischen ICON-D2 Spannen von
+        // 105 Milliarden Minuten und `statProcess: 0`; im Ensemble stimmten
+        // dieselben Zeilen. Ein Feld, das je nach Quelle richtig oder Unsinn ist,
+        // ist schlimmer als keins.
+        const d = productTemplate === 11 ? 3 : 0;
+        statProcess = raw[off + 46 + d];
+        const unit = raw[off + 48 + d];
+        const span = dv.getUint32(off + 49 + d);
+        timeRangeMin = unit === 0 ? span : unit === 1 ? span * 60 : unit === 2 ? span * 1440 : undefined;
+        // Minute, auf die das Intervall ENDET (Oktett 43). Das ist der Wert, der
+        // die vier Viertelstunden-Fassungen trennt — die LAENGE taugt dafuer
+        // nicht: eine Stundensumme seit Laufbeginn ist `leadH x 60` lang, ein
+        // Stundenmaximum aber immer 60, und beide enden auf der vollen Stunde.
+        intervalEndMinute = raw[off + 39 + d];
+      }
       parameterCategory = raw[off + 9];
       parameterNumber = raw[off + 10];
       surfaceType = raw[off + 22];
@@ -313,6 +385,8 @@ export function decodeGrib2(raw: Uint8Array): GribField {
     di, dj, scanMode, values,
     unstructured,
     discipline, parameterCategory, parameterNumber, surfaceType, level,
+    productTemplate, forecastTime, statProcess, timeRangeMin, intervalEndMinute,
+    perturbationNumber, ensembleSize,
   };
 }
 

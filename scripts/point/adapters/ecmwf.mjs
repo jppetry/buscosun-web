@@ -20,7 +20,7 @@
  * Die Lehre aus SH3/V-BW-51 gilt: das Vokabular kommt aus der Quelle, nicht aus der Skizze.
  */
 
-import { fetchBytes, headOk, probeHorizon, pad2, runIdBack, sampleRegularToTier, convert,
+import { fetchBytes, fetchRanges, headOk, probeHorizon, pad2, runIdBack, sampleRegularToTier, convert,
   KELVIN_TO_C, PA_TO_HPA, FRACTION_TO_PCT, M_TO_MM } from './shared.mjs';
 import { decodeGrib2 } from '../../../src/sources/gribDecode.ts';
 
@@ -28,7 +28,9 @@ const ECMWF = process.env.ECMWF_BASE || 'https://data.ecmwf.int/forecasts';
 
 const MODELS = {
   ifs_hres:    { path: 'ifs/0p25/oper',        suffix: 'oper-fc',  runSlotH: 6 },
-  ifs_ens:     { path: 'ifs/0p25/enfo',        suffix: 'enfo-ef',  runSlotH: 6, ensemble: true },
+  // ifs_ens: seit PD-B10 in ecmwfEns.mjs — die Member statt eines Kontrolllaufs, den
+  // `enfo-ef` gar nicht führt (§34.5). Hier stand er als Kontrolllauf-Quelle, die nie
+  // ein Feld geliefert hat.
   aifs_single: { path: 'aifs-single/0p25/oper', suffix: 'oper-fc', runSlotH: 6 },
   // AIFS-ENS legt KEINE gebuendelte `enfo-ef` ab, sondern `enfo-cf` (Kontrolllauf)
   // und `enfo-pf` (gestoerte Member) getrennt. Am Verzeichnis abgelesen (2026-09-08);
@@ -85,6 +87,34 @@ function scaleFromGrib(varId, f) {
 
 export const ECMWF_ACCUMULATED = new Set(['precip']);
 
+/**
+ * Welche `.index`-Zeile ein Adapter behält.
+ *
+ * ⚠ Der Fehler, den diese Funktion behebt (in PD-B8 eingebaut, in PD-B10 gefunden):
+ * PD-B8 stellte den Filter von `number` auf `type` um — richtig für die Ensembles,
+ * aber als EINE Bedingung für ALLE Modelle geschrieben:
+ * `if (e.type != null && String(e.type) !== 'cf') continue;`. Deterministische
+ * Dateien tragen `type: "fc"`. Gemessen am Lauf 2026091100, +240 h: der Filter
+ * behielt bei IFS HRES **0 von 36** und bei AIFS Single **0 von 21**
+ * Oberflächeneinträgen. Beide Quellen haben seit PD-B8 in KEINER Stufe ein Feld
+ * geliefert. Sichtbar wurde es erst, als ein Probebau der Fernstufe nur IFS HRES als
+ * deterministische Quelle hatte und jede Ebene leer blieb; im Gesamtlauf füllten
+ * ICON global und AICON die Stufe weiter, und der einzige Hinweis war die Größe
+ * (Stufe 3: 1,29 → 0,38 MiB).
+ *
+ * Und der Verifier hat den Fehler BESTÄTIGT statt gefunden: er prüfte per Regex,
+ * dass genau diese Zeile im Code steht. Geprüft wurde die Schreibweise, nicht das
+ * Verhalten — deshalb ist das hier eine Funktion, die der Verifier mit Zeilen in
+ * echter Form füttert.
+ */
+export function keepIndexEntry(model, e) {
+  if (e.levtype !== 'sfc') return false;
+  // Nur ein Kontrolllauf-Adapter eines Ensembles filtert nach `type` und behält `cf`.
+  // Deterministische Dateien (`fc`) enthalten nichts anderes als den einen Lauf.
+  if (model.ensemble) return String(e.type) === 'cf';
+  return true;
+}
+
 export function makeEcmwfAdapter(id) {
   const m = MODELS[id];
   if (!m) throw new Error(`ecmwf: unbekanntes Modell ${id}`);
@@ -108,14 +138,65 @@ export function makeEcmwfAdapter(id) {
       let e;
       try { e = JSON.parse(s); } catch { continue; }
       if (e.levtype !== 'sfc') continue;
-      // Beim Ensemble tragen alle Member denselben Parameter; PD-A nimmt den
-      // Kontrolllauf (`number` fehlt oder 0). Das Member-Mittel ist eine eigene
-      // Etappe — es kostet 51 Bereiche je Feld und Schritt.
-      if (e.number != null && Number(e.number) !== 0) continue;
+      // Beim Ensemble tragen alle Member denselben Parameter; diese Zeile behält den
+      // Kontrolllauf (`number` fehlt oder 0). Das Member-Mittel ist eine eigene Etappe.
+      //
+      // ⚠ GEMESSEN am 2026-09-09 (`…/ifs/0p25/enfo/…-144h-enfo-ef.index`, 2 012 902 B):
+      // die Datei enthält **1 800 sfc-Einträge, ALLE mit `type: "pf"` und `number` 1…50**
+      // — keinen einzigen Kontrolllauf. Dieser Filter behält für `ifs_ens` also **null**
+      // Einträge; die Quelle hat noch nie ein Feld geliefert. Aufgefallen ist es nicht,
+      // weil `ensembleControlOnly` sie ohnehin aus dem Mittel hält (V-PD-9).
+      // Für IFS liegt der Kontrolllauf woanders als bei AIFS (dort `enfo-cf`) — die
+      // beiden Produkte sind unterschiedlich abgelegt.
+      // ── Behoben in PD-B8 (§43.6) ───────────────────────────────────────
+      // Gefiltert wird jetzt über `type`, nicht über `number`: `cf` = Kontrolllauf,
+      // `pf` = gestörter Member. Die alte Bedingung „`number` fehlt oder 0" sagte
+      // dasselbe nur für AIFS und war für IFS eine stille Null.
+      //
+      // ⚠ Der Befund bleibt: `…/ifs/0p25/enfo/…-enfo-ef.index` enthält **keinen
+      // `cf`-Eintrag**. Diese Quelle liefert also weiterhin nichts — aber jetzt,
+      // weil der Katalog nichts hat, und nicht, weil der Filter danebengreift.
+      // `ensembleControlOnly` hält sie ohnehin aus dem Mittel (V-PD-9).
+      //
+      // ⚠ Und die Member werden hier NICHT gelesen, obwohl PD-B8 sie einführt:
+      // gemessen kostet ein (Größe, Schritt) bei IFS-ENS **55,8 MiB** (50 Member
+      // à 1,12 MiB als getrennte Byte-Bereiche) und bei AIFS-ENS **65,1 MiB** —
+      // gegen 34,8 MiB bei ICON-EPS global für dieselbe Aussage. Die Fernstufe
+      // bekommt σ_ens deshalb aus ICON-EPS global. Das ist eine Kostenentscheidung
+      // mit Zahlen, keine Lücke.
+      // ⚠ Nachgemessen in PD-B10 (§45): die 55,8 MiB galten einem anderen Parameter.
+      // Je Member kosten `2t` 0,63 und `tp` 1,05 MiB, und mit mehreren Bereichen in EINER
+      // Anfrage kommen 50 Member in 3,6 s. Die Entscheidung ist gekippt — ecmwfEns.mjs
+      // liest sie; dieser Filter betrifft nur noch den AIFS-ENS-Kontrolllauf (`enfo-cf`).
+      if (!keepIndexEntry(m, e)) continue;   // ⚠ die alte Zeile strich jedes `fc` — s. keepIndexEntry (PD-B10)
       if (!byParam.has(e.param)) byParam.set(e.param, e);
     }
     idxCache.set(key, byParam);
     return byParam;
+  }
+
+  // ── Ein Schritt, EINE Anfrage (PD-B10, §45) ───────────────────────────────────
+  // `field()` wird je Größe gerufen — acht Größen je Schritt waren acht Anfragen,
+  // bei 300 ms Mindestabstand. Seit der Filter-Reparatur aus PD-B10 holen IFS HRES
+  // und AIFS Single wieder Felder, gerechnet rund 1 000 Abrufe über alle Stufen,
+  // also ≥ 5 min nur Warten. Beim ersten Feld eines Schritts werden deshalb ALLE
+  // Größen dieses Schritts in EINER Anfrage mit mehreren Bereichen geholt. Sie liegen
+  // danach im Cache unter demselben Schlüssel, den `fetchBytes(url, { range })`
+  // benutzt — die Einzelabrufe unten treffen ihn. Schlägt der Sammelabruf fehl,
+  // bleibt der Einzelweg (benannter Rückfall); `POINT_ECMWF_MULTIRANGE=0` schaltet ab.
+  //
+  // Das Ergebnis wird NICHT gehalten, nur das Erledigt: die Bytes liegen auf der
+  // Platte, und 72 Schritte à ~5 MiB im Speicher wären die Klasse aus §43.11.
+  const prefetched = new Map();
+  function prefetchStep(run, leadH, idx) {
+    const key = `${run}#${leadH}`;
+    if (!prefetched.has(key)) {
+      const es = Object.values(PARAMS).map((p) => idx.get(p)).filter(Boolean);
+      prefetched.set(key, es.length < 2 ? Promise.resolve(false)
+        : fetchRanges(`${stem(run, leadH)}.grib2`, es.map((e) => ({ offset: e._offset, length: e._length })))
+          .then(() => true, () => false));
+    }
+    return prefetched.get(key);
   }
 
   return {
@@ -125,8 +206,8 @@ export function makeEcmwfAdapter(id) {
     vars: Object.keys(PARAMS),
     ensembleControlOnly: !!m.ensemble,
 
-    async discoverRun(leadMax, nowMs = Date.now()) {
-      for (let back = 0; back < 8; back++) {
+    async discoverRun(leadMax, nowMs = Date.now(), maxBack = 8) {
+      for (let back = 0; back < maxBack; back++) {
         const run = runIdBack(nowMs, m.runSlotH, back);
         if (await headOk(`${stem(run, leadMax)}.index`)) return run;
       }
@@ -143,6 +224,7 @@ export function makeEcmwfAdapter(id) {
       const idx = await index(run, leadH);
       const e = idx?.get(p);
       if (!e) return null;
+      if (process.env.POINT_ECMWF_MULTIRANGE !== '0') await prefetchStep(run, leadH, idx);
       const raw = await fetchBytes(`${stem(run, leadH)}.grib2`, {
         range: `${e._offset}-${e._offset + e._length - 1}`,
       });
