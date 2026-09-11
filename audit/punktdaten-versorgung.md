@@ -4934,3 +4934,107 @@ ab 78 h, V-PD-35) ist die Rate nicht bildbar und bleibt MISSING. *Mehrwert:* Nie
 Meinung in der Mittelfrist. *Skizze:* Rate über Δ = Quellenschritt bilden und auf die Stufenstunden
 verteilen (gleiche Rate für beide 3-h-Schritte) — eine Annahme über die zeitliche Verteilung, die im
 Manifest stehen müsste (`precipRateSpanH`). Entscheidung Jan, nicht hier.
+
+---
+
+## §49 PD-F1 — Wo die Zeit bleibt (Jans Prioritäten: Frische, Verarbeitungszeit, Vollständigkeit)
+
+Jan hat am 2026-09-11 nachmittags drei Ziele gleichrangig benannt: kurze Veröffentlichungszeit,
+immer die neuesten Werte, alle Quellen der Matrix im Repo. Die Vormittagsvorgabe „ein Job, ≤ 60 min /
+≤ 10 GiB" ist damit eine Folgegröße, keine Randbedingung mehr (Plan, Block F).
+
+### 49.1 Die Verzögerung hat drei Anteile
+
+| Anteil | Dauer | Änderbar? |
+|---|---|---|
+| Quelle vollständig veröffentlicht | ICON-D2 +1,4 h · ICON-EU +3,6 h · IFS +6,5…7,6 h (§31) | nein |
+| Wartezeit bis zum Slot | 0–6 h (vier Slots) | **ja — der größte Anteil** (F3) |
+| Bau + Publish + Purge | ≈ 42 min gesamt | ja (F2) |
+
+Der Nowcast (0–3 h) ist unberührt: Radar-Spiegel alle 1–2 min, Lesen zur Abfragezeit (§36.4).
+
+### 49.2 Messung: Producer misst jetzt Wandzeit je Phase und Quelle
+
+`safeCall` und der Ensemble-Aufruf zählen Wandzeit je Quelle (`msWall`, `calls`); sieben Phasenmarken
+(`discover`, `fields`, `ensemble`, `quantiles`, `profile`, `orography`, `encode`); Log-Zeilen „Zeit je
+Phase" / „Zeit je Quelle" und `tiers[].timing` im Manifest (Vertrag akzeptiert es, Verifier 661/661).
+
+**Warm (t2, drei Quellen, alles aus dem Cache):** 76 s gesamt, davon **69 s `fields`** — reines
+Dekodieren und Abtasten ohne ein Byte aus dem Netz (icon_eu 36 s/291 Aufrufe, ifs 25 s/195, aifs 11 s/98).
+
+**Kalt (t1, frischer Cache, 2026-09-11 15:34–15:55 UTC, Lauf 2026091112):**
+
+| | Zeit | Anteil |
+|---|---|---|
+| gesamt | **1 292 s = 21,5 min** | |
+| `fields` (deterministische Felder) | 598 s | 46 % |
+| `ensemble` (ICON-D2-EPS, 9 Rasterstunden, 20 Member) | 226 s | 17 % |
+| `profile` (ICON-D2, 20 Level, 49 Stunden) | 211 s | 16 % |
+| `quantiles` (C-LAEF-EPS, 7 Größen) | 176 s | 14 % |
+| `discover` (Laufsuche + Abdeckung, 8 Quellen) | 57 s | 4 % |
+| `encode` (208 Chunks, 75,7 MiB) | 23 s | 2 % |
+
+| Quelle | Wandzeit | davon Netz | ⇒ Dekodieren/Abtasten | Netz | Aufrufe |
+|---|---|---|---|---|---|
+| icon_d2 | 380 s | 207 s | 173 s | 1 574,7 MiB | 639 |
+| icon_d2_eps | 227 s | 65 s | **162 s** | 794,6 MiB | 47 |
+| icon_eu | 198 s | 85 s | 113 s | 545,2 MiB | 590 |
+| claef_eps | 176 s | 109 s | 67 s | 339,4 MiB | 345 |
+| claef | 108 s | 69 s | 39 s | 217,2 MiB | 394 |
+| icon_ch1_eps | 104 s | 55 s | 49 s | 346,8 MiB | 146 |
+| ifs_hres | 46 s | 25 s | 21 s | 105,8 MiB | 139 |
+| aifs_single | 20 s | 11 s | 9 s | 45,4 MiB | 75 |
+| **Summe** | **1 259 s** | **626 s** | **633 s** | 3,97 GiB | |
+
+Speicher: Heap max 103 MiB, RSS 1,7 GB; Plattencache der Stufe **5,48 GiB**.
+
+### 49.3 Was die Zahlen sagen
+
+1. **Die Quellen laufen nacheinander:** die Summe der Quellen-Wandzeiten (1 259 s) ist die Stufenzeit.
+   Netz (626 s) und Rechnen (633 s) sind fast gleich groß — sie überlappen sich heute **gar nicht**.
+   Quellen parallel mit Host-Deckel ⇒ Untergrenze ≈ max(Netz, Rechnen) ≈ 630 s statt 1 259, also bis
+   zu **−50 %** — eine Rechnung, keine Messung; F2 muss sie belegen.
+2. **ICON-D2-EPS dekodiert 162 s für 47 Dateien** — das ist V-PD-31 in Zahlen: 80 Nachrichten je
+   `tot_prec`-Datei entpackt, 20 gebraucht. Erwartete Ersparnis ≈ 60–100 s (nur die Niederschlagsdateien).
+3. **ICON-D2 allein: 1 590 Anfragen, 1,57 GiB, 380 s** — die Kurzfrist-Frische (F3, 8 Slots) hängt an
+   dieser Quelle; ein reiner Stufe-1-Job kostet heute 21,5 min und 4 GiB Netz. Mit F2 realistisch
+   ≈ 11–13 min.
+4. Nebenbefund: je **1 × 404** bei IFS HRES und AIFS Single — der Vorschritt der ersten Stufenstunde
+   (`leadH − 1` im Laufraum der Quelle) liegt VOR der Stufe und wird deshalb ohne Rasterprüfung geholt
+   (§48.2 prüft nur innerhalb der Stufe). Zwei Anfragen je Lauf; Kur wäre `adapter.steps` auch dort
+   (V-PD-45, klein).
+
+### 49.4 Folgerung für den Plan
+
+- **F2 vor F3:** erst den Bau halbieren (parallel + V-PD-31 + `deflate9` einmal statt zweimal), dann
+  acht Slots für Stufe 1 — sonst kosten acht Slots 8 × 21,5 min Runner-Zeit für 8 × 4 GiB.
+- **F3 (ein Job je Stufe):** t1 8×/Tag ≈ 32 GiB, t2 4×/Tag (heute ≈ 2,1 GiB), t3 2×/Tag ≈ 1,5 GiB ⇒
+  ≈ **43 GiB/Tag** (ohne Block-3-Zuwächse); Aufbewahrung je Stufe (t1 12 h), `latestByTier` im Index
+  (Client-Vertrag PD-C12). Cron = Jans Gate.
+- Verifier +6 (3s). `typecheck` unverändert (nur `.mjs`).
+
+### 49.5 ⚠ Lauf 8 auf dem Runner: der Bau braucht dort ≈ 80 min, nicht 42
+
+Der manuell angestoßene Lauf 8 (15:18 UTC, Stand `0cf7dca` = PD-B10 + C1/C2) kam durch alle Vorstufen
+und wurde nach **exakt 75 min** vom neuen `timeout-minutes` abgebrochen — in Stufe 3, vor dem Publish.
+Zeitstempel aus dem Job-Log:
+
+| Stufe | Runner | lokal (§49.2 / §45.12) |
+|---|---|---|
+| t1 | **41,4 min** (15:18:42 → 16:00:08) | 21,5 min |
+| t2 | **25,6 min** | (t2 mit 3 Quellen warm: 1,3 min) |
+| t3 | abgebrochen nach 8 min | — |
+
+Der Runner ist bei diesem CPU-gebundenen Bau **≈ 2× langsamer** als Jans Maschine — und die 42,3 min
+aus §45.12 waren **lokal** gemessen, nie auf dem Runner: Läufe 1–6 (22–26 min) liefen noch mit dem
+alten Producer aus sechs Quellen. **Die volle Matrix ist auf dem Runner noch nie durchgelaufen.**
+Hochgerechnet ≈ 80 min je Lauf; der Slot-Abstand zur Kartenlinie beträgt 100 min.
+
+Was funktioniert hat: Sparse-Nachprüfung grün, Gate grün, `Netz je Quelle` je Stufe im Log (t1
+byte-gleich zu §49.2: derselbe Lauf 2026091112), **Plattencache je Stufe geleert** (5 404 MiB nach t1,
+2 191 MiB nach t2 — V-PD-36 wirkt), kein 429, keine herausgefallene Quelle.
+
+**Folgerung:** PD-F2 ist kein Komfort, sondern Voraussetzung für den Cron. Übergangsentscheidung
+(Jans Gate, Cron-Vorlage): `timeout-minutes` 75 → 95 und `JOB_MAX_MIN` 55 → 80 (Verifier: 80 + 20 =
+100 = Slot-Abstand, gerade noch). Lauf 9 (planmäßig 15:50, wegen der Concurrency erst 16:34 gestartet)
+läuft mit demselben Stand und wird voraussichtlich ebenso am Timeout enden.

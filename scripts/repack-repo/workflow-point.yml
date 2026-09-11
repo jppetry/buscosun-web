@@ -85,10 +85,13 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    # 75 = Jans Laufzeitbudget (60 min) + Publish-Reserve. Die alten 330 min haetten
-    # einen haengenden Lauf still bis in den naechsten Slot laufen lassen; der Verifier
-    # verlangt JOB_MAX_MIN + 10 <= timeout <= engster Slot-Abstand (PD-C1).
-    timeout-minutes: 75
+    # PD-C1 setzte 75 (Jans Budget 60 min + Reserve). Lauf 8 am 2026-09-11 zeigte: auf dem
+    # Runner braucht der Bau der vollen Matrix ≈ 80 min (t1 41,4 · t2 25,6 · t3 abgebrochen),
+    # etwa das Doppelte der lokal gemessenen 42 min — und die volle Matrix war dort noch nie
+    # durchgelaufen. 95 = Uebergang (Jans Entscheidung 16:40 UTC) bis PD-F2 den Bau kuerzt;
+    # der Verifier verlangt JOB_MAX_MIN + 10 <= timeout <= engster Slot-Abstand (100 min).
+    # Die alten 330 min haetten einen haengenden Lauf still bis in den naechsten Slot laufen lassen.
+    timeout-minutes: 95
     steps:
       # SPARSE: der Radar-Spiegel macht den Baum gross (gemessen 279 MiB am 2026-09-09).
       # Der Cube-Job braucht davon nichts ausser `point/` — UND `.gitattributes`.

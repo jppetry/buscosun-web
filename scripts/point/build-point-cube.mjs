@@ -208,6 +208,10 @@ export async function buildTier(tierId, opts = {}) {
   const dropped = [];
   const safeCall = async (c, what, fn) => {
     if (c.dropped) return null;
+    // PD-F1: Wandzeit je Quelle (Abruf + Dekodieren + Abtasten) — `net.bySource` kennt nur
+    // die Netzzeit; die Differenz ist Dekodieren und Nachbarindex. Ohne diese Zahl bleibt
+    // „der Bau ließe sich kürzen" eine Vermutung.
+    const tc = Date.now();
     try {
       return await fn();
     } catch (e) {
@@ -220,8 +224,17 @@ export async function buildTier(tierId, opts = {}) {
         console.log(`  ⚠ ${tierId}: ${c.id} fällt für diese Stufe heraus — ${c.dropped.reason}`);
       }
       return null;
+    } finally {
+      c.msWall = (c.msWall ?? 0) + (Date.now() - tc);
+      c.calls = (c.calls ?? 0) + 1;
     }
   };
+  // PD-F1: Wandzeit je Phase der Stufe — Laufsuche, Felder, Ensemble, Quantile, Profil,
+  // Orographie, Kodierung. Die Summe ergibt die Stufenzeit; die groesste Zahl sagt, wo
+  // PD-F2 ansetzt.
+  const phase = {};
+  let tMark = t0;
+  const mark = (name) => { const n = Date.now(); phase[name] = (phase[name] ?? 0) + (n - tMark); tMark = n; };
 
   // Je Quelle: Lauf und lieferbare Stunden — beides am ECHTEN Objekt geprüft,
   // nicht aus einer Tabelle geraten (§21 (7)).
@@ -315,6 +328,7 @@ export async function buildTier(tierId, opts = {}) {
     throw new Error(`${tierId}: ${contributors.length} Quellen — srcMask trägt höchstens 31 (1 << ci in Int32Array)`);
   }
 
+  mark('discover');
   // Volle Stufenebenen als int16 — das ist zugleich die Ausgabegröße.
   const planes = CUBE_PLANES.map(() => new Int16Array(nt * cells).fill(MISSING));
   const planeAt = (id) => planes[planeIndex(id)];
@@ -444,6 +458,7 @@ export async function buildTier(tierId, opts = {}) {
   // Δ ist der Stufenschritt, nicht der Abstand zur vorigen GEWÄHLTEN Stunde: mit
   // `--steps` wäre der sonst 48 h, und die Rate über zwei Tage stünde in der
   // Stundenebene.
+  mark('fields');
   const ensSources = process.env.POINT_ENSEMBLE === '0'
     ? [] : contributors.filter((c) => (c.adapter.ensembleVars ?? []).length > 0 && !c.dropped);
   let ensStat = null;
@@ -467,9 +482,13 @@ export async function buildTier(tierId, opts = {}) {
         let any = false;
         for (const varId of eVars) {
           let r = null;
+          const tEns = Date.now();
           try {
             r = await src.adapter.ensemble(src.run, own, varId, tier, { dt: tier.stepH });
+            // PD-F1: Wandzeit der Ensemble-Quelle wie bei safeCall — sie ist die teuerste Phase.
+            src.msWall = (src.msWall ?? 0) + (Date.now() - tEns); src.calls = (src.calls ?? 0) + 1;
           } catch (e) {
+            src.msWall = (src.msWall ?? 0) + (Date.now() - tEns); src.calls = (src.calls ?? 0) + 1;
             // Laut, aber nicht tödlich: ein Ensemble-Fehler darf den Cube nicht
             // mitreißen (dieselbe Regel wie beim Stationsprodukt). Er steht im Manifest.
             st.errors++;
@@ -556,6 +575,7 @@ export async function buildTier(tierId, opts = {}) {
       + contributors.map((c) => `${c.id}: ${c.firstError}`).join(' · '));
   }
 
+  mark('ensemble');
   const quantSrc = process.env.POINT_QUANTILES === '0'
     ? null : contributors.find((c) => (c.adapter.quantileVars ?? []).length > 0 && !c.dropped);
   let quantStat = null;
@@ -613,6 +633,7 @@ export async function buildTier(tierId, opts = {}) {
   // Cube wie vor PD-B5 — die vier Ebenen bleiben dann MISSING, also genau der
   // Zustand, den §33.3 beschreibt. Das ist zugleich die Messvorrichtung: derselbe
   // Bereich einmal mit und einmal ohne, und die Differenz ist der Preis.
+  mark('quantiles');
   const profileSrc = process.env.POINT_PROFILE === '0'
     ? null : contributors.find((c) => c.adapter.hasProfile);
   let profileStat = null;
@@ -660,6 +681,7 @@ export async function buildTier(tierId, opts = {}) {
   }
 
   const tFields = Date.now();
+  mark('profile');
 
   // hModEff: Mittel der Modellorographien der beitragenden Quellen. Bei gleichen
   // Gewichten ist das ihr arithmetisches Mittel; bei genau einer Quelle deren HSURF.
@@ -686,6 +708,7 @@ export async function buildTier(tierId, opts = {}) {
   }
 
   // --- Chunks schneiden ------------------------------------------------------
+  mark('orography');
   const files = [];
   let bytesTotal = 0;
   const perPlane = new Array(CUBE_PLANES.length).fill(0);
@@ -743,7 +766,15 @@ export async function buildTier(tierId, opts = {}) {
     ensemble: ensStat,
     perPlane: Object.fromEntries(CUBE_PLANES.map((p, i) => [p.id, perPlane[i]])),
     hasData: Object.fromEntries(CUBE_PLANES.map((p, i) => [p.id, hasData[i]])),
-    ms: { fields: tFields - t0, total: Date.now() - t0 },
+    ms: (() => {
+      mark('encode');
+      return {
+        fields: tFields - t0, total: Date.now() - t0,
+        // PD-F1: je Phase und je Quelle (Wandzeit aller Adapteraufrufe, inkl. Dekodieren).
+        phases: phase,
+        bySource: Object.fromEntries(contributors.map((c) => [c.id, { msWall: c.msWall ?? 0, calls: c.calls ?? 0 }])),
+      };
+    })(),
   };
 }
 
@@ -840,6 +871,8 @@ export function runManifest(results) {
         // Messgrundlage für jede Volumenentscheidung (PD-C6…C9). `null` bei einem
         // Manifest, das aus einem älteren Producer stammt.
         net: r.net ?? null,
+        // PD-F1: Wandzeit je Phase und Quelle dieser Stufe — die Messgrundlage für PD-F2/F3.
+        timing: r.ms ? { phases: r.ms.phases ?? null, bySource: r.ms.bySource ?? null, totalMs: r.ms.total } : null,
         dropped: (r.dropped ?? []).map(([id, reason]) => ({ id, reason })),
         profile: r.profile ? {
           ...r.profile,
@@ -990,6 +1023,15 @@ async function main() {
     const netLine = Object.entries(r.net).sort((a, b) => b[1].bytes - a[1].bytes)
       .map(([sid, n]) => `${sid} ${(n.bytes / 1048576).toFixed(1)} MiB/${n.files}${n.throttled ? ` ⚠${n.throttled}×429` : ''}${n.absent ? ` (${n.absent}×404)` : ''}`);
     if (netLine.length) console.log(`  Netz je Quelle: ${netLine.join(' · ')}`);
+    // PD-F1: wo die Zeit bleibt — je Phase (Summe = Stufenzeit) und je Quelle (Wandzeit
+    // aller Adapteraufrufe; abzüglich net.ms ist das Dekodieren + Nachbarindex).
+    const ph = r.ms?.phases ?? {};
+    const phLine = Object.entries(ph).map(([k, v]) => `${k} ${(v / 1000).toFixed(0)} s`).join(' · ');
+    if (phLine) console.log(`  Zeit je Phase: ${phLine} · gesamt ${(r.ms.total / 1000).toFixed(0)} s`);
+    const bs = r.ms?.bySource ?? {};
+    const bsLine = Object.entries(bs).sort((a, b) => b[1].msWall - a[1].msWall)
+      .map(([sid, v]) => `${sid} ${(v.msWall / 1000).toFixed(0)} s/${v.calls}${r.net?.[sid] ? ` (Netz ${(r.net[sid].ms / 1000).toFixed(0)} s)` : ''}`).join(' · ');
+    if (bsLine) console.log(`  Zeit je Quelle: ${bsLine}`);
     const cc = clearCache();
     if (!cc.skipped) console.log(`  Plattencache geleert: ${cc.files} Dateien, ${(cc.bytes / 1048576).toFixed(0)} MiB (${cc.kept} Konstanten behalten)`);
     results.push(r);

@@ -636,6 +636,14 @@
 > (Vorschritt −3 h bei 6-h-Quelle) — jetzt nur geholt, wenn `leadsFor` ihn kennt; 56/56 Chunks
 > byte-gleich. AIFS liefert in t2 weiter keinen Niederschlag (V-PD-44, Jans Entscheidung).
 > `verify:point-data` **655/655**, typecheck 0 Fehler. V-PD-41 (Client-Nowcast ohne Maske) offen = STOPP & FRAGEN.
+> **Jans Prioritäten (2026-09-11 nachmittags): kurze Veröffentlichungszeit, immer die neuesten Werte,
+> ALLE Matrix-Quellen im Repo — gleichrangig.** Daraus Block F im Plan (F1 messen · F2 Bau kürzen ·
+> F3 ein Job je Stufe mit eigenem Takt, t1 8×/Tag). ✅ **PD-F1 umgesetzt (§49):** Wandzeit je Phase und
+> Quelle im Log und Manifest (`tiers[].timing`). **Kalt gemessen, Stufe 1: 21,5 min, 3,97 GiB, Cache
+> 5,48 GiB** — die Quellen laufen NACHEINANDER, Netz 626 s und Rechnen 633 s überlappen sich nicht
+> (⇒ parallel bis −50 %, zu belegen); ICON-D2-EPS dekodiert 162 s für 47 Dateien (V-PD-31 in Zahlen);
+> warm braucht t2 76 s, davon 69 s reines Dekodieren. Verifier **661/661**. Lauf 8 (manuell 15:18 UTC,
+> Stand `0cf7dca`) läuft; die drei Vorstufen inkl. Sparse-Nachprüfung sind grün.
 > **Werkzeugfalle zum dritten Mal in dieser Phase:** `[^
 ]` in einer Regex wurde durch die
 > Python-in-Bash-Kette zum echten Zeilenumbruch und hat den Verifier zerschossen. Kur wie

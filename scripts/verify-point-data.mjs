@@ -586,7 +586,12 @@ add('der gemessene Widerspruch zu ⚠² ist festgehalten',
     // durch einen Filterfehler nichts geholt hatten — und mit IFS-ENS: kalt 2 540 s =
     // 42,3 min. Der PD-B8-Wert (38,6 min) war also zu kurz gemessen, weil Abrufe
     // fehlten. 55 = gemessen + 30 %; der Durchsatz schwankte in dieser Phase um Faktor 5.
-    const JOB_MAX_MIN = 55;
+    // PD-F1/§49.5 (2026-09-11): Lauf 8 auf dem Runner — t1 41,4 min, t2 25,6 min, t3 abgebrochen
+    // am 75-min-Timeout ⇒ hochgerechnet ≈ 80 min. Die 42,3 min aus PD-B10 waren LOKAL gemessen; der
+    // Runner ist bei diesem CPU-gebundenen Bau ≈ 2× langsamer. 80 = Runner-Messung; damit steht der
+    // Slot-Abstand (100) GENAU an der Grenze 80 + 20. PD-F2 muss den Bau kuerzen, sonst bleibt
+    // hier keine Reserve — der Wert wird nach F2 an der Runner-Messung nachgezogen.
+    const JOB_MAX_MIN = 80;
     const worst = point.map((p) => {
       const gaps = repack.map((r) => ((r - p) % 1440 + 1440) % 1440).filter((d) => d > 0);
       return { p, gap: gaps.length ? Math.min(...gaps) : 1440 };
@@ -2172,6 +2177,31 @@ merge('Profil (PD-B5)', profileSelfTest());
   add('(3r) der Vorschritt der Entakkumulation wird nur geholt, wenn die Quelle ihn laut leadsFor traegt',
     /const insideTier = ownPrev >= leadHours\[0\] \+ c\.offsetH;/.test(prodC5)
     && /fetchable = ownPrev >= 0 && \(!insideTier \|\| c\.leads\.has\(ownPrev\)\)/.test(prodC5));
+}
+
+// --- (3s) PD-F1: Wandzeit je Phase und Quelle (Jans Prioritaet: kurze Verarbeitung) --------
+//
+// Gemessen am 2026-09-11 aus dem Cache (t2, drei Quellen): 76 s gesamt, davon 69 s „fields" —
+// reines Dekodieren und Abtasten ohne ein Byte aus dem Netz. Ohne diese Zeile stuende
+// „der Bau liesse sich kuerzen" ohne Zahl im Plan.
+{
+  const prodF1 = readFileSync(join(ROOT, 'scripts/point/build-point-cube.mjs'), 'utf8');
+  add('(3s) safeCall misst die Wandzeit je Quelle (finally, auch im Fehlerfall)',
+    /finally \{\s*c\.msWall = \(c\.msWall \?\? 0\) \+ \(Date\.now\(\) - tc\);/.test(prodF1));
+  const marks = [...prodF1.matchAll(/^\s*mark\('([a-z]+)'\);/gm)].map((m) => m[1]);
+  add('(3s) sieben Phasenmarken in der richtigen Reihenfolge',
+    JSON.stringify(marks) === JSON.stringify(['discover', 'fields', 'ensemble', 'quantiles', 'profile', 'orography', 'encode']), marks.join(','));
+  add('(3s) auch die Ensemble-Quelle wird gemessen', /src\.msWall = \(src\.msWall \?\? 0\)/.test(prodF1));
+  add('(3s) das Manifest traegt timing je Stufe (phases, bySource, totalMs)',
+    /timing: r\.ms \? \{ phases: r\.ms\.phases \?\? null, bySource: r\.ms\.bySource \?\? null, totalMs: r\.ms\.total \}/.test(prodF1));
+  add('(3s) der Producer schreibt die Zeit je Phase und je Quelle ins Log', /Zeit je Phase:/.test(prodF1) && /Zeit je Quelle:/.test(prodF1));
+  // Der Vertrag laesst `timing` zu — ein Manifest mit timing besteht validateRunManifest.
+  const withTiming = runManifest([{
+    tier: 't3', run: '2026091100', leadHours: TIER_BY_ID.t3.leadHours, files: [], bytesTotal: 0, skipped: [], dropped: [],
+    contributors: [{ id: 'ifs_hres', run: '2026091100', leads: 36, role: 'assigned', coverage: 'full', offsetH: 0, cells: 2009, maskInside: 2009, errors: 0 }],
+    net: {}, perPlane: {}, hasData: {}, ms: { fields: 1, total: 2, phases: { discover: 1, fields: 1 }, bySource: { ifs_hres: { msWall: 1, calls: 1 } } },
+  }]);
+  add('(3s) ein Manifest mit timing besteht den Vertrag', validateRunManifest(withTiming).length === 0 && withTiming.tiers[0].timing?.totalMs === 2);
 }
 
 // --- Ausgabe ----------------------------------------------------------------
