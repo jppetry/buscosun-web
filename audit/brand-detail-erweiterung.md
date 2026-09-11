@@ -472,3 +472,113 @@ Punktsumme +6, 26 Modellstunden", Windrose mit Ausbreitungspfeil SO, FFMC 94,9 /
 `spreadFc` existiert **nirgends mehr** im Code (mit dem Rückzug der `fireSpread`-Fläche entfallen);
 gegen `git show HEAD:` fällt die Sonde genauso. Mehrwert der Kur: die Sonde prüft wieder etwas.
 Umsetzungsskizze: den `spreadFc`-Teil streichen und stattdessen den heutigen Pfeil-Layer prüfen.
+
+
+## 12. BDE-E — Brandprofil: wie ungewöhnlich war dieser Tag HIER? (2026-09-10)
+
+Jans Idee: *„man könnte mittels nivo so ein Diagramm auf die Brandseite machen, um zu sehen, wie zum
+Zeitpunkt des Brands verschiedene Parameter waren — z. B. rel. Feuchte oder Bodentrockenheit"*, mit
+Verweis auf `nivo.rocks/radar`.
+
+### 12.1 Eine Korrektur vorweg
+
+Die erste Antwort dieser Sitzung lautete „nivo geht nicht — keine neue Abhängigkeit". **Das war
+falsch und stand auf dem Stand von vier Tagen vorher.** Zwischenzeitlich hat Jan zwei Beschlüsse
+gefasst, die die Lage umkehren: das Brand-Dossier steht seit dem 2026-09-06 auf MUI, und seit dem
+2026-09-09 stehen die Diagramme auf **nivo** (`@nivo/core` + `@nivo/line`; `@mui/x-charts` wurde im
+selben Zug entfernt). `@nivo/radar` bringt darüber hinaus **keine einzige neue Abhängigkeit** mit —
+`core`, `colors`, `legends`, `text`, `theming`, `tooltip`, `d3-scale`, `d3-shape` und
+`@react-spring/web` lagen bereits im Baum. Jans Vorschlag war also von Anfang an der richtige.
+
+### 12.2 Die eigentliche Entscheidung: was bedeutet eine Achse?
+
+Ein Radar-Netz braucht je Achse eine 0–100-Skala, und **da** liegt die Falle: sechs willkürlich
+gewählte Skalen ergeben eine Form, die bedeutsam aussieht und nichts bedeutet. Jan wurde deshalb die
+Skalenfrage vorgelegt (drei Fassungen mit Vorschau) und hat **Perzentilrang am selben Ort** gewählt:
+
+> „Der Wert zur Brandstunde war brandförderlicher als P % der Vergleichsstunden."
+
+Damit bedeuten alle Achsen dasselbe und dürfen zu EINER Fläche verbunden werden. Drei Festlegungen
+tragen das (`src/fire/detail/fireProfile.ts`):
+
+1. **Ortsbezug.** 22 % relative Feuchte sind im Rheinland außergewöhnlich und im Wallis ein
+   Dienstagnachmittag. Eine feste Schwelle („≤ 30 % = extrem") malte beides gleich.
+2. **Gleiche Tageszeit (± 1 h).** Ohne diese Einschränkung läge ein Brand um 14 Uhr auf der
+   Temperaturachse IMMER weit außen — nicht weil der Tag heiß war, sondern weil die meisten
+   Vergleichsstunden Nacht sind. Der Tagesgang würde als Ausnahmelage gelesen. **Eine eigene
+   Prüfung hält das fest**: ein ganz gewöhnlicher Mittag in einer synthetischen Reihe mit reinem
+   Tagesgang muss zwischen P20 und P80 landen.
+3. **Eine Quelle.** Wert und Verteilung stammen aus derselben ERA5-Reihe. Käme der Brandwert aus
+   ICON und die Verteilung aus ERA5, wäre jeder Modellversatz zwischen beiden als „ungewöhnlich"
+   sichtbar.
+
+**Sechs Achsen:** rel. Feuchte ↓, Temperatur ↑, Wind ↑, Böen ↑, Bodenfeuchte 0–7 cm ↓, ISI ↑.
+Bewusst NICHT dabei: das Dampfdruckdefizit (rechnerisch fast vollständig aus Temperatur und Feuchte —
+eine dritte Stimme derselben Aussage) und „Tage seit Regen" (eine Tagesgröße; ein Perzentil über
+tageszeitgleiche Stunden ergibt dafür keinen Sinn).
+
+**Was das Netz nicht ist**, und das steht auch in der Oberfläche: die Achsen sind **nicht
+unabhängig**. ISI enthält Wind und FFMC, FFMC enthält Feuchte und Temperatur, die Bodenfeuchte hängt
+am Niederschlag der Vortage. Eine große Fläche heißt „eine Wetterlage, die sich in sechs Größen
+zeigt", nicht „sechs unabhängige Belege".
+
+### 12.3 Bodenfeuchte: zwei Quellen, zwei Tiefen
+
+Am Endpunkt nachgemessen: ICON liefert `soil_moisture_0_to_1cm`, ERA5 nur `soil_moisture_0_to_7cm` —
+die 1-cm-Schicht gibt es im Archiv **nicht** (die Antwort trägt `"undefined"` als Einheit). Das
+Profil steht deshalb immer auf ERA5 (Festlegung 3), und die Tiefe steht in der Oberfläche. Der
+absolute Wert in m³/m³ ist ohne Bodentyp ohnehin nicht deutbar — als **Rang am selben Ort** schon,
+und genau das ist der Grund, warum die Perzentil-Fassung diese Achse überhaupt tragen kann. Die
+Schwellen-Fassung hätte sie leer lassen müssen.
+
+### 12.4 Drei Fehler, die der Augenschein gefunden hat
+
+| # | Befund | Ursache | Kur |
+|---|---|---|---|
+| 1 | Seite blieb auf „lädt …", `@nivo_radar.js` → **HTTP 504** | Der Entwicklungsserver lief seit VOR der Installation und hatte das Paket nie vorgebündelt | `node_modules/.vite` gelöscht, Server neu — kein Codefehler |
+| 2 | Achsenbeschriftung 21–35 px **außerhalb** des SVG, „chte · P91" statt „Bodenfeuchte" | Ich hatte im eigenen `gridLabel` **`x`/`y` UND** `transform` gesetzt. nivos eigenes Label (im Bundle nachgelesen) setzt **nur** `transform` — beides addiert sich zum doppelten Radius | `x`/`y` weg, nur `transform`; der Kommentar sagt jetzt „eines von beidem, nie beides" |
+| 3 | `compact` fragte das **Fenster** (`useDossierBreakpoint` → `desktop`), die Karte steht aber in einer **250-px-Spalte** | Ränder waren für 380 px gerechnet | Breite des Behälters per `ResizeObserver` selbst gemessen; unter 330 px Kurzbeschriftung am Netz, Rohwerte in einer Liste darunter (die für Screenreader ohnehin die bessere Form ist) |
+
+Dazu ein bewusster Tausch: statt `ResponsiveRadar` steht dort jetzt `Radar` mit **selbst gemessener**
+Breite. `ResponsiveRadar` misst seinen Behälter selbst und lag daneben — es zeichnete ein 208 px
+breites SVG und setzte die Beschriftung für eine breitere Fläche. Mit fester Zahl können
+Zeichenfläche und Geometrie nicht mehr auseinanderlaufen.
+
+### 12.5 Belege
+
+`verifyFireProfile()` **23/23** (netzfrei, inkl. der Tagesgang-Falle und „fehlende Bodenfeuchte lässt
+ihre Achse leer und sagt es"), `verify:fire-detail` **483/483** (13 neue `[bde-e]`-Sonden),
+`verify:route-3d` **587/587**, typecheck grün, Build „✓ built in 30,67 s".
+
+**Budget: bewusst angehoben, gemessen statt geschätzt.** Kontrollbau derselben Arbeitskopie EINMAL
+ohne die Brandprofil-Karte (largestChunk **291,1** / totalJs **1355,4**) und EINMAL mit (**301,2** /
+**1365,5**) ⇒ **+10,1 KB gzip**. Ratschen: largestChunk 292,3 → 302, totalJs 1362 → 1372.
+`eagerJs` **unverändert 107,9** und per Textsonde am gebauten Bundle belegt, dass weder
+„Brandprofil" noch „brandförderlicher" noch `nivo_radar` im Start-Chunk `index-*.js` stehen — alles
+liegt im lazy FireRoute-Chunk. **Achtung:** `eagerJs` stand schon **vor** dieser Phase bei 107,9
+(im Kontrollbau bestätigt) und steht damit exakt auf seiner Ratsche — das ist nicht BDE-E, aber es
+ist eine Warnung an die nächste Phase, die den Startpfad anfasst.
+
+Augenschein Desktop, beide Fälle:
+
+* **Historie, Hürtgenwald 14.08.** (319 ha, EFFIS kartiert): Feuchte P100, Temperatur P99, Wind P100,
+  Böen P97, Boden P91, ISI P100 — ein fast ausgefülltes Sechseck. 90 Vergleichsstunden.
+* **Live, Postojna** (reine EFFIS-Kartierung, Anker = Branddatum): Feuchte P54, Temperatur P25,
+  Wind P43, Böen P43, Boden P62, ISI P61 — eine kleine, unregelmäßige Form, die sich am P50-Ring
+  entlangzieht (`audit/brand-detail-erweiterung/bde-e-profil-unauffaellig.png`). Der Vorbehalt zum
+  EFFIS-Zeitanker aus §11.3 steht mit in der Karte.
+
+Der zweite Fall ist der wichtigere Beleg: die Skala **unterscheidet**. Ein unauffälliger Tag sieht
+unauffällig aus.
+
+### 12.6 Offene V-Einträge (beide vorbestehend, nicht von dieser Phase)
+
+* **V-BDE-4** (aus §11.5): `verify:fire-history` — Sonde „Historie-Modus leert die Live-Daten"
+  prüft `spreadFc`, das nirgends mehr existiert.
+* **V-BDE-5:** dieselbe Datei, Sonde „[serie] Chart: reines SVG" verlangt `<svg viewBox` in
+  `FireHistoryChart.tsx`. Die Datei steht seit dem nivo-Umbau (uncommitted, parallele Linie) auf
+  `ResponsiveLine`; gegen `git show HEAD:` ist die Sonde grün, gegen die Arbeitskopie rot. **Nicht
+  von mir angefasst** — die Sonde gehört zu der Umbau-Linie und sollte dort mitwandern
+  (`verify:fire-history` steht damit bei 111/113).
+* `verify:fire-clusters` **107/117** ist Altbestand — mit und ohne meine Dateien identisch
+  (gegengeprüft per `git stash`).

@@ -816,7 +816,20 @@
 .br-history-features { margin-top: 8px; font-size: 12px; }
 .br-history-features summary { cursor: pointer; color: var(--ink-900, #2C2A26); }
 .br-history-chart { margin: 10px 0 4px; }
-.br-history-chart svg { display: block; max-width: 100%; height: auto; }
+/*
+ * `max-width: 100%; height: auto` galt dem handgezeichneten Vorgänger: der trug ein `viewBox`,
+ * also kannte der Browser sein Seitenverhältnis und konnte beides ausrechnen. nivo schreibt
+ * `width`/`height` als Attribute und KEIN `viewBox`, und es misst seinen Platz in einem eigenen
+ * Wrapper-`div`. Beide Angaben werden damit zur Falle:
+ *   • `height: auto` fällt ohne Seitenverhältnis auf **0** zurück,
+ *   • `max-width: 100%` bezieht sich auf genau jenen Wrapper, dessen Breite nivo erst aus dem
+ *     SVG ableitet — 100 % von 0 ist 0, und die Messung kommt nie in Gang.
+ * Gezeichnet wurde dann alles, sichtbar nichts: ein SVG clippt seinen Inhalt per Default, und
+ * die Kinder behalten trotzdem ihre Maße (gemessen: `<polygon>` 368×112 px in einem `<svg>` mit
+ * Layoutbox 0×0 — der Grund, warum kein Verifier das fangen konnte). Die Breite gibt jetzt der
+ * Container in `FireHistoryChart.tsx` vor, nicht diese Regel.
+ */
+.br-history-chart svg { display: block; }
 .br-history-chart figcaption { margin-top: 4px; }
 
 /* BD1: im Sheet (mobil) zwei Kennzahl-Spalten, Chart auf Sheet-Breite */

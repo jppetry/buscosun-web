@@ -1294,11 +1294,23 @@ console.log('\n— Verdrahtung 1c —');
    * seither rot und wurde überlesen — genau die Sorte Zahl, die BW-1 gelehrt
    * hat, nicht fortzuschreiben, sondern zu zählen. Jetzt steht die Liste da,
    * nicht die Zahl: dann sagt ein Fehlschlag auch, WAS dazugekommen ist.
+   *
+   * Am 2026-09-09 hat der Chart-Umbau des Brandradars @mui/x-charts durch
+   * @nivo/core + @nivo/line ERSETZT (Jans Entscheidung) — daher dreizehn.
+   *
+   * Am 2026-09-10 kam @nivo/radar dazu (BDE-E, Brandprofil — Jans Vorschlag mit
+   * ausdrücklichem Verweis auf nivo.rocks/radar): **vierzehn**. Es ist ein Zuwachs
+   * in package.json, aber KEINER an fremden Bäumen — sämtliche Abhängigkeiten des
+   * Pakets (@nivo/core, colors, legends, text, theming, tooltip, d3-scale,
+   * d3-shape, @react-spring/web) lagen bereits über @nivo/line im node_modules.
+   * Gemessene Kosten: +10,1 KB gzip im lazy FireRoute-Chunk (Kontrollbau, s.
+   * budget.json), eagerJs unverändert.
    */
-  add('… und die Laufzeit-Abhängigkeiten sind genau die bekannten zwölf', (() => {
+  add('… und die Laufzeit-Abhängigkeiten sind genau die bekannten vierzehn', (() => {
     const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
     const known = [
-      '@emotion/react', '@emotion/styled', '@mui/icons-material', '@mui/material', '@mui/x-charts',
+      '@emotion/react', '@emotion/styled', '@mui/icons-material', '@mui/material',
+      '@nivo/core', '@nivo/line', '@nivo/radar',
       'bz2', 'bzip2-wasm', 'jsfive', 'maplibre-gl', 'react', 'react-dom', 'react-router',
     ];
     const have = Object.keys(pkg.dependencies ?? {}).sort();

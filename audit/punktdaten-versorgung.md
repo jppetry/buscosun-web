@@ -4690,3 +4690,17 @@ hier ohne Zahl. *Mehrwert:* weniger Speicher im Worker auf Mobilgeräten, wo der
 zuerst entladen wird. *Skizze:* erst messen (Heap-Snapshot des `hdf5Worker` nach einem INCA-Abruf),
 dann dieselbe Umwandlung wie `toTyped()` direkt nach dem Lesen; Float-Felder als `Float32Array`.
 Eigene Phase der Kartenlinie, nicht diese.
+
+**V-PD-40 · Ein Fehler bei einer einzelnen deterministischen Quelle bricht den ganzen Bau ab.**
+In der Fusionsschleife steht `await c.adapter.field(...)` ohne Fehlerbehandlung
+(`build-point-cube.mjs`, deterministische Schleife und Vorschritt der Entakkumulation). Scheitert
+ein Abruf endgültig — ein 429 nach allen Wiederholungen, eine unlesbare Datei —, wirft der
+Producer, und der Cron veröffentlicht **nichts**, auch nicht die Stufen und Quellen, die fehlerfrei
+waren. Seit PD-B10 fängt nur der Ensemble-Teil Fehler ab. *Mehrwert:* ein Ausfall bei einer von 14
+Quellen kostet dann eine Stimme im Mittel statt des ganzen Laufs, und die Quelle steht benannt im
+Manifest — wie beim Überspringen in `chooseRun`. Möglicherweise ist das die Ursache der sieben
+gescheiterten Cron-Läufe seit dem 2026-09-09 (Abbruch nach 23–28 min im Bau-Schritt) — **unbelegt**,
+das Protokoll gibt GitHub nur mit Anmeldung heraus. *Skizze:* `field()` je (Quelle, Stunde, Größe) in
+`try/catch`, Fehler je Quelle zählen, ab einer Schwelle die Quelle für die Stufe verwerfen und im
+Manifest nennen; dieselbe Regel für Profil und Quantile. ⚠ Ab welcher Schwelle eine Stufe
+lieber gar nicht als mit zu wenigen Quellen veröffentlicht wird, ist eine Produktentscheidung.

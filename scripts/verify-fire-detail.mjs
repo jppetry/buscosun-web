@@ -23,6 +23,7 @@ import {
   sclPreMasked, sclPostMasked, sclPostUnsure, wcDamped,
 } from '../src/fire/detail/burnIndex.ts';
 import { verifyWorldCover } from '../src/fire/detail/worldCover.ts';
+import { verifyFireProfile, PROFILE_AXES, PROFILE_REF_DAYS } from '../src/fire/detail/fireProfile.ts';
 import { verifySatDetections } from '../src/fire/detail/satDetections.ts';
 import { verifyBurnScar, floodScar, seedsFromRects, SCAR_MIN_CLASS } from '../src/fire/detail/burnScar.ts';
 import { CLS_UNSURE_FLAG } from '../src/fire/detail/burnIndex.ts';
@@ -105,12 +106,14 @@ add('[bd2] Ursache steht im Warn-Kasten (--br-warn-*), Wetterlage in Steel',
 // verteilen würde. Genau das darf hier nicht passieren: der zeitliche Abstand IST die Aussage
 // („zwischen zwei Überflügen ist nichts beobachtet"), und ohne echte Zeitachse hätte die
 // Schraffur (D2) keinen Ort. Die Sonde hält beides fest: Zeitachse + log-Achse + eigene Balken.
-add('[bd2] Verlauf: MUI X mit echter Zeit- und log-Achse, Balken auf der Zeitachse (keine Band-Achse)',
-  /<ChartsContainer/.test(chart) && /scaleType: 'time'/.test(chart) && /scaleType: 'log'/.test(chart)
-  && !/scaleType: 'band'/.test(chart)
-  && /useXScale/.test(chart) && /useYScale/.test(chart) && /function BarLayer/.test(chart) && /function GapLayer/.test(chart));
-add('[bd2] Verlauf: „jetzt" als ChartsReferenceLine, Höhe 220 im Dossier, eigene SVG-Texte mit League Spartan',
-  /<ChartsReferenceLine/.test(chart) && /wideWidth = 380/.test(chart)
+add('[bd2] Verlauf: nivo mit echter Zeit- und log-Achse, Balken auf der Zeitachse (keine Band-Achse)',
+  /<ResponsiveLine/.test(chart) && /type: 'time'/.test(chart) && /type: 'log'/.test(chart)
+  // Der Dateikopf ERKLÄRT, warum es `@nivo/bar` nicht gibt — er ist die Begründung, nicht
+  // ihr Gegenbeweis. Geprüft wird der Import, nicht die Erwähnung.
+  && !/type: 'band'/.test(chart) && !/from '@nivo\/bar'/.test(chart)
+  && /xScale/.test(chart) && /yScale/.test(chart) && /const BarLayer/.test(chart) && /const GapLayer/.test(chart));
+add('[bd2] Verlauf: „jetzt" als eigene Ebene, Höhe 220 im Dossier, eigene SVG-Texte mit League Spartan',
+  /const NowLayer/.test(chart) && /nowInside/.test(chart) && /wideWidth = 380/.test(chart)
   && /bp === 'mobile' \? 180 : 220/.test(chart) && /SVG_FONT/.test(chart)
   && (chart.match(/fontFamily=\{SVG_FONT\}/g) ?? []).length >= 5);
 // Die Breite ist KEINE feste Zahl je Breakpoint mehr: MUI X misst sie an der Karte
@@ -868,18 +871,40 @@ const codeOnly = (src) => src
   add('[bde] die neuen Module sind pur: kein Date.now(), kein fetch, kein DOM',
     !/Date\.now\(/.test(drvCode) && !/fetch\(/.test(drvCode) && !/document\./.test(drvCode));
   // Jans Entscheidung 2026-09-06 (`docs/konzept-brand-detail.md` §0): das Brand-Dossier steht
-  // auf MUI Material + **MUI X Charts**. Das kehrt D-06 („SVG von Hand") FÜR DIESES FEATURE um.
-  // Was die Sonde weiterhin festhält: (a) es bleibt bei EINER Chart-Bibliothek — Recharts,
-  // Chart.js und d3 kommen nicht zusätzlich dazu; (b) die Windrose bleibt handgeschriebenes SVG,
-  // weil MUI X kein Polarchart hat und ihre zwei GEGENSÄTZLICHEN Konventionen sonst verloren
-  // gingen; (c) die Abhängigkeitsliste wächst nicht unbemerkt weiter.
-  add('[bde] genau EINE Chart-Bibliothek (MUI X), keine zweite Fremd-Optik daneben',
-    !/recharts|chart\.js|\bd3\b/i.test(chartsCode)
-    && typeof pkg.dependencies['@mui/x-charts'] === 'string'
+  // auf MUI Material + einer Chart-Bibliothek. Das kehrt D-06 („SVG von Hand") FÜR DIESES
+  // FEATURE um. Seit Jans Entscheidung vom 2026-09-09 ist die Bibliothek **nivo**
+  // (`@nivo/line`); `@mui/x-charts` ist dabei ERSETZT und aus `package.json` entfernt worden,
+  // nicht daneben stehen geblieben — genau das prüft diese Sonde.
+  // Was sie weiterhin festhält: (a) es bleibt bei EINER Chart-Bibliothek — Recharts, Chart.js
+  // und MUI X kommen nicht zusätzlich dazu; (b) die Windrose bleibt handgeschriebenes SVG, weil
+  // auch nivo ihre zwei GEGENSÄTZLICHEN Konventionen nicht trennen könnte; (c) die
+  // Abhängigkeitsliste wächst nicht unbemerkt weiter.
+  //
+  // `@nivo/bar` steht bewusst NICHT in der Liste: jede fertige Balken-Komponente verlangt eine
+  // Band-Achse, und die verteilte die Überflüge gleichmäßig — der zeitliche Abstand, die
+  // Kernaussage von D1/D2, ginge verloren (Begründung im Kopf von `FirePassChart.tsx`).
+  add('[bde] genau EINE Chart-Bibliothek (nivo), keine zweite Fremd-Optik daneben',
+    !/recharts|chart\.js|@mui\/x-charts/i.test(chartsCode)
+    && typeof pkg.dependencies['@nivo/line'] === 'string'
+    && typeof pkg.dependencies['@nivo/core'] === 'string'
+    && !pkg.dependencies['@nivo/bar']
+    && !pkg.dependencies['@mui/x-charts']
     && !pkg.dependencies.recharts && !pkg.dependencies['chart.js'] && !pkg.dependencies.d3
-    && Object.keys(pkg.dependencies).length === 12);
-  add('[bde] die Windrose bleibt eigenes SVG — MUI X hat kein Polarchart, die zwei Konventionen blieben sonst nicht trennbar',
-    !/RadarChart/.test(chartsCode) && /<svg viewBox="0 0 200 200"/.test(chartsCode) && /function wedge/.test(chartsCode));
+    // BDE-E (2026-09-10): +@nivo/radar für das Brandprofil. KEIN Zuwachs an fremden Bäumen —
+    // seine sämtlichen Abhängigkeiten (core, colors, legends, text, theming, tooltip,
+    // d3-scale, d3-shape, @react-spring/web) lagen bereits über @nivo/line im Baum.
+    && typeof pkg.dependencies['@nivo/radar'] === 'string'
+    && Object.keys(pkg.dependencies).length === 14);
+  // Seit BDE-E liegt @nivo/radar im Baum — die alte Begründung („nivo hat kein Polarchart")
+  // ist damit hinfällig und wurde ersetzt. Der Grund selbst gilt unverändert: `@nivo/radar`
+  // zeichnet EINE Fläche über gleichwertige Achsen. Die Windrose braucht GESTAPELTE Sektoren
+  // (Stärkeklassen je Richtung) und einen ZWEITEN Zeiger in einer ANDEREN Konvention (Rose =
+  // woher der Wind kommt, Pfeil = wohin der Brand wandert). Beides kann das Radar nicht, und
+  // beides zu verschmelzen wäre Informationsverlust.
+  add('[bde] die Windrose bleibt eigenes SVG — gestapelte Sektoren + zweiter Zeiger in anderer Konvention',
+    /<svg viewBox="0 0 200 200"/.test(chartsCode) && /function wedge/.test(chartsCode)
+    && !/@nivo\/radar/.test(chartsCode)
+    && /spreadBearingDeg/.test(chartsCode));
   // Befund B1 gilt unverändert und jetzt für ALLE Dateien, die selbst SVG zeichnen: MUI X setzt
   // die Schrift nur auf dem `<svg>`-Wrapper SEINER eigenen Beschriftungen; ein eingehängtes
   // `<text>` erbt sonst die SVG-Standardschrift des Browsers, nicht die des Decks.
@@ -938,6 +963,49 @@ const codeOnly = (src) => src
   add('[bde-d] die Ausbreitungsrichtung der Historie kommt aus derselben dynamicsOf',
     /import \{ dynamicsOf \} from '\.\/activity\/dynamics'/.test(hist)
     && /dynamicsOf\(passes\)\.spreadBearingDeg/.test(hist));
+
+  // --- BDE-E: das Brandprofil (Radar-Netz im Ortsvergleich) ---------------------
+  for (const c of verifyFireProfile().checks) add(`[bde-e][kern] ${c.name}`, c.ok, c.detail);
+
+  const prof = readFileSync(join(ROOT, 'src', 'fire', 'detail', 'fireProfile.ts'), 'utf8');
+  const profCode = code(prof);
+  const load = readFileSync(join(ROOT, 'src', 'fire', 'detail', 'fireProfileLoad.ts'), 'utf8');
+  const rchart = readFileSync(join(ROOT, 'src', 'fire', 'dossier', 'FireProfileChart.tsx'), 'utf8');
+  const rblock = readFileSync(join(ROOT, 'src', 'fire', 'dossier', 'FireProfileBlock.tsx'), 'utf8');
+
+  add('[bde-e] der Rechenkern bleibt pur: kein fetch, kein DOM, kein Date.now()',
+    !/fetch\(/.test(profCode) && !/document\./.test(profCode) && !/Date\.now\(/.test(profCode));
+  add('[bde-e] das Netz steht auf @nivo/radar — keine zweite Chart-Bibliothek',
+    /from '@nivo\/radar'/.test(rchart)
+    && !/recharts|chart\.js|@mui\/x-charts|highcharts/i.test(rchart)
+    && Object.keys(pkg.dependencies).filter((d) => /^@nivo\//.test(d)).sort().join(',') === '@nivo/core,@nivo/line,@nivo/radar');
+  add('[bde-e] maxValue ist FEST 100 — nie auto, sonst sieht ein harmloser Brand extrem aus',
+    /maxValue=\{100\}/.test(rchart) && !/maxValue="auto"|maxValue=\{'auto'\}/.test(rchart));
+  add('[bde-e] die Achsen tragen Rohwert UND Rang am Netz, nicht nur im Tooltip',
+    /axisValueText/.test(rchart) && /gridLabel=\{gridLabel/.test(rchart)
+    && /P\$\{Math\.round\(row\.rang\)\}/.test(rchart));
+  add('[bde-e] eine Achse ohne Rang verschwindet nicht — sie steht auf 0 und sagt es',
+    /a\.pct \?\? 0/.test(rchart) && /Ohne Rang und deshalb auf null gezeichnet/.test(rchart));
+  add('[bde-e] Referenzring bei P50 mit Beschriftung „üblich für diesen Ort"',
+    /REFERENCE_PCT = 50/.test(rchart) && /üblich für diesen Ort/.test(rchart));
+  add('[bde-e] keine Hex-Farbe im Netz — alles aus theme.palette',
+    !/#[0-9A-Fa-f]{3,6}/.test(code(rchart)));
+  add('[bde-e] SVG-Texte des Netzes tragen font-family ausdrücklich (Befund B1)',
+    (code(rchart).match(/<text/g) ?? []).length === (code(rchart).match(/fontFamily=\{SVG_FONT\}/g) ?? []).length
+    && (code(rchart).match(/<text/g) ?? []).length >= 2);
+  add('[bde-e] der Abruf hängt an KEINEM Abbruchsignal (Lehre GBP1 (3))',
+    !/signal/.test(code(load)) && /_cache/.test(load));
+  add('[bde-e] das Archiv ist die EINE Quelle für Wert und Verteilung',
+    /archive-api\.open-meteo\.com/.test(load) && !/api\.open-meteo\.com\/v1\/forecast/.test(load)
+    && /soil_moisture_0_to_7cm/.test(load));
+  add('[bde-e] EINE Komponente, zwei Aufrufer (Live-Dossier und Historie)',
+    /<FireProfileBlock/.test(dossier) && /<FireProfileBlock/.test(hist)
+    && (rblock.match(/export function FireProfileBlock/g) ?? []).length === 1);
+  add('[bde-e] ohne Zeitanker kein Profil — und der Grund wird gesagt',
+    /anchorMs == null/.test(rblock) && /Ohne Zeitpunkt kein Profil/.test(rblock));
+  add('[bde-e] die Legende nennt Zeitraum, Tageszeit und Abhängigkeit der Achsen',
+    /PROFILE_NOTE/.test(rblock) && /PROFILE_DEPENDENCE_NOTE/.test(rblock)
+    && PROFILE_AXES.length === 6 && PROFILE_REF_DAYS === 30);
 }
 
 
@@ -978,17 +1046,26 @@ const codeOnly = (src) => src
 
   // (7)(8) log-Achse, Messpunkte, Schraffur mit der längsten Lücke.
   add('[mui] D1: log-Achse + „Balken sind Messpunkte, keine Kurve" + längste Lücke (Punkte 7, 8)',
-    /scaleType: 'log'/.test(pch) && /Messpunkte, keine Kurve/.test(pch)
+    /type: 'log'/.test(pch) && /Messpunkte, keine Kurve/.test(pch)
     && /längste Lücke \{de\(tl\.maxGapH/.test(pch) && /GAP_HOURS/.test(pch));
   add('[mui] D1: ein Überflug ohne FRP ist kein Balken der Höhe 0, sondern eine Marke am Achsenboden',
     /if \(!b\.hasFrp\)/.test(pch) && /ohne FRP-Angabe/.test(pch) && /<circle/.test(pch));
 
   // (9) Lücken bleiben Lücken.
-  add('[mui] D4: connectNulls false in JEDER Linienserie + der Satz dazu (Punkt 9)',
-    (d4Code.match(/connectNulls: false/g) ?? []).length >= 2
+  /*
+   * Punkt 9 hieß unter MUI X `connectNulls: false`. Unter nivo gibt es diese Schraube nicht:
+   * ein `y: null` IST dort die Lücke. Die Zusage ist damit nicht weggefallen, sondern hängt an
+   * einer anderen Stelle — daran, dass ein fehlender Wert überhaupt bis in die Serie kommt.
+   * Ein `.filter(v => v != null)` auf den Seriendaten zöge die Gerade, die `connectNulls: true`
+   * gezogen hätte: die Lücke wäre weg, ohne dass irgendwo „true" stünde. Deshalb prüft die
+   * Sonde die DIREKTE Durchreiche je Linie (Wind/Größe + Böen) statt eines Schalternamens.
+   */
+  add('[mui] D4: fehlende Stunden kommen ungefiltert in JEDE Linienserie + der Satz dazu (Punkt 9)',
+    (d4Code.match(/y: r\.(second!\.)?values\[k\]/g) ?? []).length >= 2
     && !/connectNulls: true/.test(d4Code)
+    && !/data: hours[\s\S]{0,120}\.filter\(/.test(d4Code)
     && /Lücken in einer Linie sind fehlende\s+Stunden, keine Nullen/.test(d4),
-    `connectNulls: false ×${(d4Code.match(/connectNulls: false/g) ?? []).length}`);
+    `direkte Durchreichen ×${(d4Code.match(/y: r\.(second!\.)?values\[k\]/g) ?? []).length}`);
   add('[mui] D4: der Niederschlag zeichnet keine Stunde ohne Wert als trockenen Balken',
     /v == null \|\| v <= 0/.test(d4) || /h\.precipMm == null \|\| h\.precipMm <= 0/.test(d4));
 
@@ -1029,8 +1106,9 @@ const codeOnly = (src) => src
     && /\.br-ds-grid > \* \{ min-width: 0; \}/.test(deckCss));
 
   // Bewegung: keine eingeblendeten Charts, reduzierte Bewegung respektiert.
+  // `animate={false}` ist nivos Form von `skipAnimation: true` — dieselbe Aussage.
   add('[mui] Charts blenden sich nicht ein (eine Animation suggeriert Verlauf, wo Messpunkte stehen)',
-    /skipAnimation: true/.test(d4) && /prefers-reduced-motion/.test(d4) && /prefers-reduced-motion/.test(theme));
+    /animate=\{false\}/.test(d4) && /prefers-reduced-motion/.test(d4) && /prefers-reduced-motion/.test(theme));
 
   // Kein Dark-Mode im Alleingang: die FWI-Rampe ist auf Sand kalibriert.
   add('[mui] kein Dark-Mode-Schema im Theme (die FWI-Rampe ist auf Sand kalibriert)',

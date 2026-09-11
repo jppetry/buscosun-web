@@ -22,6 +22,7 @@ import type { HistoryEvent } from './history/historyEvents';
 import { featuresSummary, featuresJson } from './activity/features';
 import { dynamicsOf } from './activity/dynamics';
 import { DriversView } from './FireFootprintPanel';
+import { FireProfileBlock } from './dossier/FireProfileBlock';
 import { fetchFireWeatherArchive, type FireWeatherAtPoint } from './detail/fireWeatherAtPoint';
 import { LANDCOVER_LABEL, LANDCOVER_KEYS } from './fireCorroboration';
 
@@ -347,6 +348,17 @@ export function HistoryDossierBody({ entry, chartWidth = 360, aside }: { entry: 
 
       {/* BDE-D: dieselbe Wetterführung wie im Live-Dossier — EINE Darstellung, zwei Quellen. */}
       <HistoryDriversCard entry={entry} spreadBearingDeg={spreadBearingDeg} width={chartWidth} />
+
+      {/* BDE-E: dasselbe Brandprofil wie im Live-Dossier. Der Anker ist hier immer eine
+          Detektion — Historie-Ereignisse ohne Detektion tragen den Beginn der Kartierung
+          in `firstMs`, also gilt derselbe Zeitpunkt wie in der Liste. */}
+      <section className="br-ds-card br-ds-profile" aria-label="Brandprofil im Ortsvergleich">
+        <div className="br-ds-cardhead">
+          <span className="br-ds-eyebrow is-warn">Brandprofil</span>
+          <span className="br-ds-cardsub">Rang gegen die letzten 30 Tage am selben Punkt · abgeleitet</span>
+        </div>
+        <FireProfileBlock lat={entry.lat} lon={entry.lon} anchorMs={entry.firstMs} />
+      </section>
 
       {/* SAT1: dieselbe Satellitenbild-Karte wie im Live-Dossier — EINE Komponente, zwei Aufrufer. */}
       {satEnabled() && (

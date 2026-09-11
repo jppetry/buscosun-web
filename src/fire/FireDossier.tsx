@@ -42,6 +42,7 @@ import type { FirmsRow } from './sources/firmsHotspots';
 import {
   Badge, CauseText, DetailConfidenceRows, DetailEinordnungRows, DetailFrpRows, DetailKennzahlenRows,
   DetailSubline, DetailVerlauf, DriversBlock, FeaturesRow, RecordStats, WeatherBlock, recordName, recordTitle,
+  fireWindowAnchor, EFFIS_ANCHOR_NOTE,
 } from './FireFootprintPanel';
 import { SatImageryBlock } from './FireSatImagery';
 import { satEnabled } from './detail/fireSatImagery';
@@ -49,6 +50,7 @@ import {
   DossierBreakpointProvider, DossierCard, DossierGrid, FactList, Overline,
   type DossierBreakpoint,
 } from './dossier/DossierPrimitives';
+import { FireProfileBlock } from './dossier/FireProfileBlock';
 
 export interface FireDossierProps {
   r: FireRecord | null;
@@ -180,6 +182,22 @@ export function FireDossier({ r, nowMs, atContext = null, breakpoint = 'desktop'
             className="br-ds-drv"
           >
             <DriversBlock r={r} nowMs={nowMs} width={width} />
+          </DossierCard>
+
+          {/* BDE-E: das Brandprofil — wie ungewöhnlich waren die Treiber FÜR DIESEN ORT?
+              Eigene Karte, weil sie eine andere Frage beantwortet als die Wetterführung:
+              dort „was war", hier „war das hier viel". Zugeklappt, weil sie einen eigenen
+              31-Tage-Abruf auslöst — wer sie nie öffnet, zieht ihn nicht. */}
+          <DossierCard
+            title="Brandprofil" tone="warn" label="Brandprofil im Ortsvergleich"
+            subtitle="Rang gegen die letzten 30 Tage am selben Punkt · abgeleitet"
+            className="br-ds-profile"
+          >
+            <FireProfileBlock
+              lat={r.lat} lon={r.lon}
+              anchorMs={fireWindowAnchor(r)?.firstMs ?? null}
+              anchorNote={fireWindowAnchor(r)?.kind === 'effis' ? EFFIS_ANCHOR_NOTE : undefined}
+            />
           </DossierCard>
 
           {/* SAT1: der Brand im Satellitenbild — vorher, während, nachher (wenn die Wolken es zulassen). */}
