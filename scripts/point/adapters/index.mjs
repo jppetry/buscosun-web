@@ -32,6 +32,7 @@ import { makeGeosphereAdapter } from './geosphere.mjs';
 import { makeMeteoSwissAdapter } from './meteoswiss.mjs';
 import { makeDwdEpsAdapter } from './dwdEps.mjs';
 import { SOURCE_BY_ID } from '../../../src/point/sourceMatrix.ts';
+import { withSource } from './shared.mjs';
 
 /** Quell-ID → Fabrik. Genau die IDs aus `sourceMatrix.ts`, nichts Erfundenes. */
 const FACTORIES = {
@@ -71,10 +72,26 @@ export const PENDING = Object.freeze({
 
 const cache = new Map();
 
+/**
+ * Jede Methode des Adapters läuft im Quellkontext (`withSource`), damit `shared.mjs`
+ * Netzvolumen, Drosselungen und Fehlerinjektion JE QUELLE zuordnen kann — ohne dass
+ * eine der Aufrufstellen im Producer ihre Signatur ändert (PD-C2). Datenfelder
+ * (`vars`, `members`, `accumulated`, …) gehen unverändert durch.
+ */
+function withSourceContext(id, adapter) {
+  return new Proxy(adapter, {
+    get(target, prop, receiver) {
+      const v = Reflect.get(target, prop, receiver);
+      if (typeof v !== 'function') return v;
+      return (...args) => withSource(id, () => v.apply(target, args));
+    },
+  });
+}
+
 /** Adapter zu einer Quell-ID. `null`, wenn die Quelle noch keinen Ingest hat. */
 export function adapterFor(id) {
   if (!FACTORIES[id]) return null;
-  if (!cache.has(id)) cache.set(id, FACTORIES[id]());
+  if (!cache.has(id)) cache.set(id, withSourceContext(id, FACTORIES[id]()));
   return cache.get(id);
 }
 

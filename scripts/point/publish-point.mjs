@@ -34,6 +34,10 @@ import { POINT_DIR, POINT_INDEX_PATH, POINT_SOURCES_PATH, POINT_CALIB_PATH, TIER
 import { buildPointIndex, runsToKeep, RETENTION_HOURS, MIN_RUNS, CDN_BASE } from '../../src/point/manifest.ts';
 import { buildSourcesJson } from '../../src/point/sourceMatrix.ts';
 import { CALIBRATION_V1 } from '../../src/point/calibration.ts';
+// PD-C1: Pfadliste und Prädikat teilen sich Publisher und Verifier (EINE Form) —
+// sieben Cron-Läufe lang deckte das sparse-Muster `.gitattributes` nicht, und nur
+// dieser Publisher wusste es, erst im Job.
+import { PUBLISH_PATHS, uncoveredPaths } from './sparseCover.mjs';
 
 const args = {};
 for (const s of process.argv.slice(2)) {
@@ -235,7 +239,7 @@ if (!existsSync(attrPath) || !readFileSync(attrPath, 'utf8').includes('*.bin -te
 // Nur Pfade übergeben, die es GIBT: `git add -A <fehlender Pfad>` bricht mit
 // `fatal: pathspec … did not match any files` ab und tötete damit jeden Lauf, in dem
 // ein optionales Verzeichnis fehlt.
-const addPaths = [POINT_DIR, '.gitattributes'].filter((p) => existsSync(join(REPO, p)));
+const addPaths = PUBLISH_PATHS.filter((p) => existsSync(join(REPO, p)));
 
 // ── Der stille Fall, der Stunden kosten würde ──────────────────────────────
 // In einem SPARSE Checkout meldet `git add` für Pfade außerhalb der Muster:
@@ -250,8 +254,7 @@ const sparse = (() => {
 if (sparse) {
   let patterns = [];
   try { patterns = git('sparse-checkout', 'list').split(/\r?\n/).map((s) => s.trim()).filter(Boolean); } catch { /* ältere Git-Version */ }
-  const covered = (p) => patterns.some((pat) => pat === p || pat === `/${p}` || pat.startsWith(`${p}/`) || p.startsWith(pat.replace(/^\//, '')));
-  const uncovered = addPaths.filter((p) => !covered(p));
+  const uncovered = uncoveredPaths(patterns, addPaths);
   if (uncovered.length) {
     console.error(`[publish-point] Sparse Checkout deckt ${uncovered.join(', ')} nicht ab — `
       + `git würde diese Dateien STILL verwerfen (Exit 0, kein Fehler).`);

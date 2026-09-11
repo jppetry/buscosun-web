@@ -85,10 +85,21 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 330
+    # 75 = Jans Laufzeitbudget (60 min) + Publish-Reserve. Die alten 330 min haetten
+    # einen haengenden Lauf still bis in den naechsten Slot laufen lassen; der Verifier
+    # verlangt JOB_MAX_MIN + 10 <= timeout <= engster Slot-Abstand (PD-C1).
+    timeout-minutes: 75
     steps:
       # SPARSE: der Radar-Spiegel macht den Baum gross (gemessen 279 MiB am 2026-09-09).
-      # Der Cube-Job braucht davon nichts ausser `point/`.
+      # Der Cube-Job braucht davon nichts ausser `point/` — UND `.gitattributes`.
+      #
+      # ⚠ Die dritte Zeile hat sieben Cron-Laeufe gekostet (2026-09-09 … 2026-09-11):
+      # der Publisher legt `.gitattributes` an (`*.bin -text`, §29) und staged sie; ein
+      # sparse Checkout ohne dieses Muster laesst `git add` die Datei STILL verwerfen
+      # (Exit 0). Der Publisher erkennt das und bricht ab — richtig, aber erst im Job,
+      # nach 23 Minuten Bau. Lokal unsichtbar, weil hier immer der volle Baum liegt.
+      # Die Liste hier und `PUBLISH_PATHS` in `scripts/point/sparseCover.mjs` prueft der
+      # Verifier jetzt GEGENEINANDER, nicht per Schluesselwort.
       - uses: actions/checkout@v4
         with:
           ref: main
@@ -96,7 +107,16 @@ jobs:
           sparse-checkout: |
             point
             index.json
+            .gitattributes
           sparse-checkout-cone-mode: false
+
+      # Nachpruefen, was der Checkout wirklich gesetzt hat — ein sparse-Muster, das
+      # nichts trifft, meldet nichts (dieselbe Stille wie bei QUELLENMATRIX.md, §30).
+      - name: Sparse-Muster des Daten-Repos nachpruefen
+        run: |
+          git sparse-checkout list
+          git sparse-checkout list | grep -qx '.gitattributes' || { echo "sparse-Muster ohne .gitattributes — der Publisher wuerde abbrechen"; exit 1; }
+          test -f .gitattributes && echo ".gitattributes vorhanden" || echo ".gitattributes fehlt im Repo — der Publisher legt sie an"
 
       - uses: actions/setup-node@v4
         with:
@@ -145,6 +165,11 @@ jobs:
           # 36 Schritten x 11 Groessen waeren das ueber 25 Minuten nur Entpacken.
           # Fehlt das Binary, faellt die DATEI auf JS zurueck, nie der Lauf.
           REPACK_BZIP2: '1'
+          # PD-C2 (V-PD-36): Plattencache nach jeder Stufe leeren, Konstanten bleiben.
+          # Kalt gemessen waren es 9,1 GiB gegen 14 GB Runner-Platte; die Spitze ist
+          # jetzt die groesste Stufe, nicht die Summe. Lokal ist das AUS (Messungen
+          # „am selben Cache" brauchen ihn).
+          POINT_CACHE_CLEAR: 'tier'
         run: |
           cd app
           node --experimental-strip-types --import ./scripts/lib/register-ts.mjs \

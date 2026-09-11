@@ -1,6 +1,6 @@
 # CLAUDE.md — buscosun: Projekt-Verfassung für Claude-Code-Agenten
 
-> **Stand: 2026-09-11.** **Aktuelle Phase: PD-B10 erledigt — σ_ens bis 336 h aus IFS-ENS (V-PD-27, §45), dazu drei Fehler aus PD-B8 behoben (Niederschlags-σ war die Streuung einer Summe; der ECMWF-Filter strich IFS HRES und AIFS Single; C-LAEF-Fenster lagen als JS-Array im Heap — 84 % der Grenze). Offen und Jans Gate: der erste Push, V-PD-28 (Cron-Slot für MOSMIX-L)**
+> **Stand: 2026-09-11.** **Aktuelle Phase: PD-B10 erledigt — σ_ens bis 336 h aus IFS-ENS (V-PD-27, §45), dazu drei Fehler aus PD-B8 behoben (Niederschlags-σ war die Streuung einer Summe; der ECMWF-Filter strich IFS HRES und AIFS Single; C-LAEF-Fenster lagen als JS-Array im Heap — 84 % der Grenze). Offen und Jans Gate: der erste Push, V-PD-28 (Cron-Slot für MOSMIX-L). Danach Plan PD-C (16 Etappen, s. unten): C1+C2 umgesetzt (§46) — der Cron hatte 0 von 7 Läufen veröffentlicht; Jans Gate PD-C3 = Vorlage ins Daten-Repo kopieren**
 > (`audit/punktdaten-versorgung.md` §12–§22, Gate GPD-A grün). Jans zweiter Auftrag des Tages:
 > `ABLAUFPLAENE.md` (sechs DIN-66001-Pläne des Fusions- und Downscaling-Algorithmus) und
 > `QUELLENMATRIX.md` (Primärquellen je Land und Vorhersagestunde) liegen in der Wurzel; daraus ist
@@ -602,6 +602,24 @@
 > `verify:point-data` 586/586 (nach B9: 533), typecheck + Build + Budget grün, `totalJs` 1 366,1
 > (+0,1 KB Decoder, nicht im Start-Chunk). **Nicht veröffentlicht** — `POINT_PUSH` bleibt aus.
 >
+> ✅ **PD-C1/PD-C2 umgesetzt (§46) — Betrieb zuerst, weil NICHTS von PD-B je im Daten-Repo ankam.**
+> Gemessen am GitHub-API-Verlauf: **0 von 7 Cron-Läufen veröffentlicht**, CDN auf Schema 1 /
+> Handlauf `2026090912`. Läufe 1–6 starben am Publish — die sparse-Muster `point` + `index.json`
+> deckten `.gitattributes` nicht, der §29-Wächter im Publisher brach korrekt ab, nur eben erst im Job;
+> Lauf 7 am Bau — ein ECMWF-429 bei AIFS Single, ungefangen in der deterministischen Schleife
+> (V-PD-40, jetzt belegt). Kur C1: drittes sparse-Muster, Nachprüfung im Job, `timeout-minutes`
+> 330 → 75, und `scripts/point/sparseCover.mjs` als EINE Form für Publisher und Verifier — der
+> Verifier liest den Block der Vorlage und hält ihn gegen die Publisher-Pfade (Negativ-Kontrolle:
+> das deployte Muster fällt durch). Kur C2: `safeCall()` um alle sechs deterministischen
+> Adapteraufrufe (Fehler je Quelle gezählt, ab 5 fällt die Quelle, Abbruch nur ohne jede Quelle),
+> Drosselung zählt gegen 10 min Wartezeit statt gegen Versuche, ECMWF-Takt 600 ms, Netz **je Quelle**
+> im Log und Manifest (`tiers[].net`), Fehlerinjektion `POINT_FAULT_INJECT`, `--run` als Obergrenze
+> (V-PD-38), Cache je Stufe leeren (V-PD-36, nur im Cron). **Laufzeitbeweis:** Bau mit injiziertem
+> AIFS-Fehler ⇒ 6 Fehler, Quelle herausgefallen, IFS trägt, 12 Chunks, EXIT 0; Cron-Nachbau mit
+> sparse-Klon ⇒ Publisher Exit 0. `verify:point-data` **615/615**, typecheck grün.
+> ⚠ **Nicht deployt — Jans Gate PD-C3:** die Vorlage nach `buscosun-data/.github/workflows/point.yml`
+> kopieren, vorher C1+C2 pushen (der Cron klont den Producer frisch). Plan: `~/.claude/plans/…`
+> (PD-C1…C16), Etappen C3 ff. offen.
 > **Werkzeugfalle zum dritten Mal in dieser Phase:** `[^
 ]` in einer Regex wurde durch die
 > Python-in-Bash-Kette zum echten Zeilenumbruch und hat den Verifier zerschossen. Kur wie

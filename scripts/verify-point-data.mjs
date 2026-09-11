@@ -43,7 +43,10 @@ import { calibrationSelfTest, CALIBRATION_V1 } from '../src/point/calibration.ts
 import { buildPointIndex, planeManifest, tierManifest, RETENTION_HOURS, MIN_RUNS, TIMELESS_PATHS, isTimeless, runsToKeep, CDN_BASE } from '../src/point/manifest.ts';
 import { verifyCogTiff } from '../src/fire/detail/cogTiff.ts';
 import { adapterFor, INGESTABLE, PENDING, ingestableFor } from './point/adapters/index.mjs';
-import { runIso, buildUnstructuredIndex, buildUnstructuredIndexBrute } from './point/adapters/shared.mjs';
+import {
+  runIso, buildUnstructuredIndex, buildUnstructuredIndexBrute,
+  withSource, currentSource, netDiff, clearCache,
+} from './point/adapters/shared.mjs';
 import { placeUnderPublishRun, runManifest, chooseRun, domainMask } from './point/build-point-cube.mjs';
 import { MATRIX_ALIASES, BENCHMARKS } from '../src/point/sourceMatrix.ts';
 import {
@@ -52,6 +55,9 @@ import {
 } from '../src/point/nowcastFormat.ts';
 import { precipToU8 } from '../src/scalar/RainLayer.ts';
 import { profileSelfTest, profileFromColumn, PROFILE_PARAMS } from './point/profile.mjs';
+import {
+  PUBLISH_PATHS, sparseCovers, uncoveredPaths, sparseBlocksOf, timeoutMinutesOf, dispatchInputsOf,
+} from './point/sparseCover.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 /** Zeilentrenner als Konstante — ein Escape in einer Regex hat sich beim Erzeugen
@@ -602,6 +608,19 @@ add('der gemessene Widerspruch zu ⚠² ist festgehalten',
     add('Negativ-Kontrolle: der alte Takt faellt durch dieselbe Pruefung',
       oldWorst < JOB_MAX_MIN + 20,
       `alter Slot 02:10 haette nur ${oldWorst} min Abstand — der Push landete auf dem Repack`);
+
+    // PD-C1: `timeout-minutes` der Vorlage und JOB_MAX_MIN waren zwei Zahlen ohne
+    // Verbindung (330 gegen 55). Ein haengender Lauf haette 330 min gelebt — quer durch
+    // den naechsten Slot und drei Publish-Fenster der Kartenlinie. Jetzt gilt:
+    // JOB_MAX_MIN + 10 <= timeout <= engster Slot-Abstand.
+    const timeouts = timeoutMinutesOf(wf);
+    add('die Cron-Vorlage hat genau ein timeout-minutes', timeouts.length === 1, `${timeouts.join(', ') || 'keins'}`);
+    const timeout = timeouts[0] ?? 0;
+    add('timeout-minutes liegt zwischen JOB_MAX_MIN + 10 und dem engsten Slot-Abstand',
+      timeout >= JOB_MAX_MIN + 10 && (!worst || timeout <= worst.gap),
+      `timeout ${timeout} min, JOB_MAX_MIN ${JOB_MAX_MIN}, Abstand ${worst?.gap ?? '?'} min`);
+    add('Negativ-Kontrolle: die alten 330 min haetten die Pruefung nicht bestanden',
+      !(330 <= (worst?.gap ?? 0)), `330 > ${worst?.gap ?? '?'}`);
   }
   // Der sparse Checkout hat seit dem Rueckbau des Geländeprodukts einen anderen Grund
   // als frueher: nicht `terrain/`, sondern `runs/` und `radar/`. Der Radar-Spiegel pusht
@@ -617,6 +636,53 @@ add('der gemessene Widerspruch zu ⚠² ist festgehalten',
     /sparse-checkout:/.test(wf), 'sonst zieht jeder Punkt-Lauf runs/ und radar/ mit');
   // Was ausserhalb der sparse-Muster liegt, verwirft `git add` STILL (Exit 0, kein
   // Fehler) — nachgestellt 2026-09-09, damals an `terrain/`.
+  //
+  // PD-C1: bis hier stand nur ein Grep. Der echte Fehler (sieben rote Cron-Laeufe,
+  // 2026-09-09 … 2026-09-11) war, dass das Muster `point` + `index.json` die vom
+  // Publisher gestagte `.gitattributes` nicht deckte — und KEINE Schluesselwortpruefung
+  // kann das sehen. Jetzt wird der Block der Vorlage gelesen und mit demselben
+  // Praedikat gegen dieselbe Pfadliste gehalten, die der Publisher benutzt.
+  {
+    const blocks = sparseBlocksOf(wf);
+    add('die Vorlage hat genau einen sparse-checkout-Block fuer das Daten-Repo',
+      blocks.length === 1, `${blocks.length} Bloecke: ${blocks.map((b) => b.join(' ')).join(' | ')}`);
+    const patterns = blocks[0] ?? [];
+    const mustCover = [...PUBLISH_PATHS, STATIONS_DIR, POINT_INDEX_PATH, POINT_CALIB_PATH];
+    const open = uncoveredPaths(patterns, mustCover);
+    add('der sparse-Block deckt jeden Pfad, den der Publisher staged',
+      open.length === 0, open.length ? `ungedeckt: ${open.join(', ')}` : `${mustCover.length} Pfade gegen ${patterns.join(' ')}`);
+    add('die Vorlage prueft das Muster im Job nach (git sparse-checkout list)',
+      /sparse-checkout list/.test(wf) && /grep -qx '\.gitattributes'/.test(wf),
+      'ein Muster, das nichts trifft, meldet nichts');
+    // Negativ-Kontrolle: das deployte Muster vom 2026-09-09 muss durchfallen.
+    const deployedOld = ['point', 'index.json'];
+    add('Negativ-Kontrolle: das alte Muster (point, index.json) faellt durch',
+      uncoveredPaths(deployedOld).includes('.gitattributes'), uncoveredPaths(deployedOld).join(', '));
+    // Und das Praedikat selbst, an den Faellen, die es tragen muss.
+    add('sparseCovers: exakt, mit fuehrendem /, als Praefix — und nicht per Teilstring',
+      sparseCovers(['point'], 'point') && sparseCovers(['/point'], 'point')
+      && sparseCovers(['point'], 'point/stations') && sparseCovers(['point/'], 'point/index.json')
+      && !sparseCovers(['point'], 'pointer') && !sparseCovers(['index.json'], '.gitattributes')
+      && !sparseCovers(['#.gitattributes'], '.gitattributes'));
+    // Jedes Eingabefeld der Vorlage braucht einen Leser im Producer (V-PD-38: `--run`
+    // wurde uebergeben und von niemandem gelesen — ein Feld, das nichts tut).
+    const prodSrc = readFileSync(join(ROOT, 'scripts/point/build-point-cube.mjs'), 'utf8');
+    const inputs = dispatchInputsOf(wf);
+    const unread = inputs.filter((n) => !prodSrc.includes(`args.${n}`));
+    add('jedes workflow_dispatch-Eingabefeld hat einen Leser im Producer (V-PD-38)',
+      inputs.length > 0 && unread.length === 0,
+      unread.length ? `ohne Leser: ${unread.join(', ')}` : `Felder: ${inputs.join(', ')}`);
+    // Die DEPLOYTE Datei im Daten-Repo ist Jans Gate (PD-C3) — hier nur Auskunft, kein
+    // Fehlschlag: bis zur Kopie weicht sie zwangslaeufig ab.
+    const deployedPath = join(ROOT, 'data/repo/.github/workflows/point.yml');
+    if (existsSync(deployedPath)) {
+      const dep = readFileSync(deployedPath, 'utf8');
+      if (dep === wf) add('die lokal ausgecheckte deployte point.yml ist byte-gleich zur Vorlage', true);
+      else console.log(`  ⚠ data/repo/.github/workflows/point.yml weicht von der Vorlage ab (${dep.length} gegen ${wf.length} Zeichen) — Kopie ins Daten-Repo ist Jans Gate (PD-C3)`);
+    } else {
+      console.log('  ⚠ kein lokaler Klon des Daten-Repos unter data/repo — Vergleich mit der deployten point.yml uebersprungen');
+    }
+  }
 
   // Genau EINE Stelle pusht: der Publisher. Ein zweiter Push im Job wuerde den
   // jsDelivr-Purge ueberspringen, der im Publisher HINTER dem Push steht.
@@ -646,7 +712,8 @@ add('der gemessene Widerspruch zu ⚠² ist festgehalten',
   add('der Publisher purgt den Index NACH dem Push', pub.indexOf('purge.jsdelivr.net') > pub.indexOf('git push') || /purgeUrl|purge\.jsdelivr/.test(pub));
   // Die zwei Faelle, die `git add` still scheitern lassen.
   add('der Publisher uebergibt nur existierende Pfade an git add',
-    /addPaths = \[/.test(pub) && /filter\(\(p\) => existsSync/.test(pub));
+    /addPaths = PUBLISH_PATHS\.filter\(\(p\) => existsSync/.test(pub),
+    'die Pfadliste kommt aus sparseCover.mjs — dieselbe, die der Verifier gegen die Vorlage haelt');
   add('der Publisher erkennt einen sparse Checkout, der seine Pfade nicht deckt',
     /core\.sparseCheckout/.test(pub) && /STILL verwerfen/.test(pub));
   add('der Publisher prueft nach dem add den Index gegen das Geschriebene',
@@ -1493,7 +1560,8 @@ merge('Profil (PD-B5)', profileSelfTest());
   // Die Quantile duerfen nicht gemittelt werden — dieselbe Regel wie beim Profil.
   const prod = readFileSync(join(ROOT, 'scripts/point/build-point-cube.mjs'), 'utf8');
   add('(3l) Quantile kommen aus GENAU EINER Quelle',
-    /contributors\.find\(\(c\) => \(c\.adapter\.quantileVars \?\? \[\]\)\.length > 0\)/.test(prod));
+    /contributors\.find\(\(c\) => \(c\.adapter\.quantileVars \?\? \[\]\)\.length > 0 && !c\.dropped\)/.test(prod),
+    'PD-C2: eine herausgefallene Quelle liefert auch keine Quantile');
   add('(3l) Kill-Switch mit benanntem Rueckfall', /POINT_QUANTILES === .0./.test(prod));
   add('(3l) die Domaenenmaske gilt auch fuer Quantile',
     /quantSrc\.mask && !quantSrc\.mask\[i\]/.test(prod));
@@ -1855,7 +1923,7 @@ merge('Profil (PD-B5)', profileSelfTest());
 
   // Mehrere Ensembles je Stufe — aber je Stunde genau eines.
   add('(3o) der Producer kennt mehrere Ensembles je Stufe',
-    /contributors\.filter\(\(c\) => \(c\.adapter\.ensembleVars \?\? \[\]\)\.length > 0\)/.test(prC)
+    /contributors\.filter\(\(c\) => \(c\.adapter\.ensembleVars \?\? \[\]\)\.length > 0 && !c\.dropped\)/.test(prC)
     && !/contributors\.find\(\(c\) => \(c\.adapter\.ensembleVars/.test(prC));
   add('(3o) je Stunde genau EINE Quelle (Member zweier Modelle werden nie gemischt)',
     /if \(any\) \{ servedBy = src\.id; st\.hours\.push\(leadH\); break; \}/.test(prC));
@@ -1871,6 +1939,100 @@ merge('Profil (PD-B5)', profileSelfTest());
   add('(3o) leere sd_ens-Ebenen werden GEZÄHLT statt aufgezählt', /sdEnsEmpty:/.test(prC));
   add('(3o) Ensemble-Quellen nennen ihre Memberzahl (nicht 0 = „deterministisch")',
     /members: c\.ensembleOnly \? \(c\.members \?\? null\)/.test(prC));
+}
+
+// --- (3p) PD-C2: ein Quellfehler kostet eine Stimme, nicht den Lauf (V-PD-40) --------
+//
+// Lauf 7 des Crons (2026-09-11 09:54 UTC) starb an EINEM ECMWF-429 bei AIFS Single —
+// `fetchBytes` warf nach fuenf Versuchen, und `await c.adapter.field(...)` in der
+// deterministischen Schleife fing nicht. Hier wird zweierlei geprueft: die FORM (jeder
+// Adapteraufruf laeuft durch `safeCall`) und die MECHANIK (Fehlerinjektion, Drosselung,
+// Netz je Quelle, `--run`, Cache) — als Funktionsaufrufe, wo es geht, nicht als Regex.
+{
+  const prod = readFileSync(join(ROOT, 'scripts/point/build-point-cube.mjs'), 'utf8');
+  const sh = readFileSync(join(ROOT, 'scripts/point/adapters/shared.mjs'), 'utf8');
+  const idx = readFileSync(join(ROOT, 'scripts/point/adapters/index.mjs'), 'utf8');
+  const wfp = readFileSync(join(ROOT, 'scripts/repack-repo/workflow-point.yml'), 'utf8');
+
+  // (a) Kein deterministischer Adapteraufruf ausserhalb von safeCall. Die Zeile, auf der
+  //     `.adapter.field(` steht, muss auch `safeCall(` tragen; `ensemble` hat seit PD-B10
+  //     sein eigenes try/catch und ist ausgenommen.
+  const calls = prod.split(NEWLINE)
+    .filter((l) => !/^\s*(\*|\/\/)/.test(l))   // Kommentare zaehlen nicht (der Kopf zitiert die alte Zeile)
+    .filter((l) => /\.adapter\.(field|quantiles|profile|orography|leadsFor)\(/.test(l));
+  const bare = calls.filter((l) => !/safeCall\(/.test(l));
+  add('(3p) jeder deterministische Adapteraufruf laeuft durch safeCall',
+    calls.length >= 6 && bare.length === 0,
+    bare.length ? `ungefangen: ${bare.map((l) => l.trim()).join(' | ')}` : `${calls.length} Aufrufstellen`);
+  add('(3p) safeCall zaehlt je Quelle, benennt den ersten Fehler und laesst die Quelle ab SRC_MAX_ERRORS fallen',
+    /const safeCall = async \(c, what, fn\)/.test(prod) && /c\.errors = \(c\.errors \?\? 0\) \+ 1/.test(prod)
+    && /c\.firstError \?\?=/.test(prod) && /c\.errors > SRC_MAX_ERRORS/.test(prod) && /POINT_SRC_MAX_ERRORS/.test(prod));
+  add('(3p) die Laufsuche selbst ist gefangen (ein 429 in discoverRun ist ein Befund ueber die Quelle)',
+    /choice = await chooseRun\(a, src, leadHours, opts\.nowMs\);\s*\} catch/.test(prod));
+  add('(3p) Abbruch NUR, wenn keine Quelle der Stufe mehr traegt',
+    /contributors\.every\(\(c\) => c\.dropped\)/.test(prod) && /alle .* Quellen sind herausgefallen/.test(prod));
+  add('(3p) herausgefallene Quellen stehen im Manifest (sources[].errors/dropped, tiers[].dropped)',
+    /errors: c\.errors \?\? 0, firstError: c\.firstError \?\? null, dropped: c\.dropped \?\? null/.test(prod)
+    && /dropped: \(r\.dropped \?\? \[\]\)\.map/.test(prod));
+
+  // (b) Fehlerinjektion: an allen drei Netzwegen, VOR dem Cache.
+  const injectSites = (sh.match(/^\s*maybeInjectFault\(url\);/gm) ?? []).length;   // Aufrufe, nicht die Definition
+  add('(3p) POINT_FAULT_INJECT greift in fetchBytes, headOk und fetchRanges', injectSites === 3, `${injectSites} Stellen`);
+  add('(3p) die Injektion steht VOR dem Cache-Treffer (Pruefen auch am warmen Cache)',
+    sh.indexOf('maybeInjectFault(url);   // VOR dem Cache') < sh.indexOf('if (existsSync(p)) { net.cached++; ps.cached++;'));
+
+  // (c) Drosselung zaehlt gegen die Wartezeit, nicht gegen die Versuche.
+  add('(3p) 429/503 verbraucht keinen der fuenf Versuche (Schleife zaehlt nur im catch hoch)',
+    /for \(let i = 0; i < 5;\) \{/.test(sh) && /THROTTLE_MAX_WAIT_MS = 10 \* 60_000/.test(sh)
+    && /if \(throttleWait > THROTTLE_MAX_WAIT_MS\) break;/.test(sh));
+  add('(3p) ein gedrosselter HEAD faellt nicht still auf „gibt es nicht" zurueck',
+    /HEAD \$\{r\.status\} \(gedrosselt/.test(sh));
+  add('(3p) ECMWF-Takt 600 ms (300 ms wurden am 2026-09-11 gedrosselt)', /'data\.ecmwf\.int': 600/.test(sh));
+
+  // (d) Netz je Quelle — als Funktion geprueft, nicht als Text.
+  const ctx = await withSource('probe_src', async () => { await new Promise((r) => setTimeout(r, 1)); return currentSource(); });
+  add('(3p) der Quellkontext ueberlebt ein await', ctx === 'probe_src' && currentSource() === null);
+  const d = netDiff(
+    { bySource: { a: { files: 1, bytes: 10, ms: 1, cached: 0, absent: 0, throttled: 0, probes: 0 } } },
+    { bySource: { a: { files: 3, bytes: 50, ms: 4, cached: 0, absent: 1, throttled: 0, probes: 0 }, b: { files: 1, bytes: 7, ms: 1, cached: 0, absent: 0, throttled: 0, probes: 0 } } },
+  );
+  add('(3p) netDiff bildet die Differenz je Quelle und laesst Unveraendertes weg',
+    d.a?.files === 2 && d.a?.bytes === 40 && d.a?.absent === 1 && d.b?.bytes === 7 && Object.keys(d).length === 2);
+  add('(3p) adapterFor wickelt jede Methode in den Quellkontext (Proxy), Datenfelder gehen durch',
+    /withSourceContext\(id, FACTORIES\[id\]\(\)\)/.test(idx) && /withSource\(id, \(\) => v\.apply\(target, args\)\)/.test(idx));
+  const probeAdapter = adapterFor('icon_d2');
+  add('(3p) am echten Adapter: vars ist weiter ein Array, field weiter eine Funktion',
+    Array.isArray(probeAdapter?.vars) && typeof probeAdapter?.field === 'function');
+  add('(3p) der Producer schreibt das Netz je Quelle und Stufe ins Manifest',
+    /r\.net = netDiff\(netBefore, netStats\(\)\)/.test(prod) && /net: r\.net \?\? null/.test(prod));
+
+  // (e) `--run` als Obergrenze (V-PD-38) — der Leser existiert und erreicht chooseRun.
+  add('(3p) --run wird gelesen, geprueft und als nowMs an buildTier gereicht',
+    /if \(args\.run\)/.test(prod) && /\^\\d\{10\}\$/.test(prod)
+    && /nowMs = Date\.parse\(runIso\(args\.run\)\) \+ 3_600_000/.test(prod)
+    && /buildTier\(id, \{ steps, only, out, nowMs \}\)/.test(prod));
+
+  // (f) Plattencache je Stufe — opt-in, Konstanten bleiben.
+  const cc = clearCache();
+  add('(3p) clearCache ist ohne POINT_CACHE_CLEAR=tier ein No-op', cc.skipped === true && cc.files === 0);
+  add('(3p) die Cron-Vorlage setzt POINT_CACHE_CLEAR im Bau-Schritt', /POINT_CACHE_CLEAR: 'tier'/.test(wfp));
+  add('(3p) Koordinaten- und Konstantendateien sind vom Leeren ausgenommen',
+    /CACHE_KEEP_RE = \/clat\|clon\|hhl\|hsurf/.test(sh) && /const cc = clearCache\(\);/.test(prod));
+
+  // (g) Der Laufzeitbeweis: ein Bau mit POINT_FAULT_INJECT=aifs_single:12 (t3, 126-150 h,
+  //     nur aifs_single+ifs_hres) endete am 2026-09-11 mit EXIT 0, 12 Chunks, aifs_single
+  //     nach 6 Fehlern herausgefallen, ifs_hres traegt, Manifest nennt beides. Netzabhaengig,
+  //     deshalb hier nur, wenn ein solcher Lauf vorliegt (POINT_FAULT_MANIFEST=<run.json>).
+  const fm = process.env.POINT_FAULT_MANIFEST;
+  if (fm && existsSync(fm)) {
+    const m = JSON.parse(readFileSync(fm, 'utf8'));
+    const bad = m.sources.find((s) => s.dropped);
+    const good = m.sources.find((s) => !s.dropped && s.errors === 0);
+    add('(3p) Fehlerinjektions-Lauf: eine Quelle herausgefallen, eine traegt, beides im Manifest',
+      !!bad && !!good && m.tiers.some((t) => (t.dropped ?? []).some((x) => x.id === bad.id)) && m.tiers.every((t) => t.net));
+  } else {
+    console.log('  (3p) kein Fehlerinjektions-Manifest angegeben (POINT_FAULT_MANIFEST) — Laufzeitbeweis uebersprungen, s. Audit §46');
+  }
 }
 
 // --- Ausgabe ----------------------------------------------------------------

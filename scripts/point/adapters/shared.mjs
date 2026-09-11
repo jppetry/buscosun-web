@@ -24,17 +24,76 @@
  * einer falschen Vorhersage.
  */
 
-import { mkdirSync, existsSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdirSync, existsSync, readFileSync, writeFileSync, rmSync, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { createHash } from 'node:crypto';
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { decodeGrib2 } from '../../../src/sources/gribDecode.ts';
 import { decompressBz2 } from '../../lib/bz2.mjs';
 
 const CACHE = process.env.POINT_CACHE || '.cache/point';
 
-let net = { files: 0, bytes: 0, cached: 0, absent: 0, ms: 0, throttled: 0, probes: 0, reDecompressed: 0 };
-export function netStats() { return { ...net }; }
-export function resetNetStats() { net = { files: 0, bytes: 0, cached: 0, absent: 0, ms: 0, throttled: 0, probes: 0, reDecompressed: 0 }; }
+// ---------------------------------------------------------------------------
+// Welche Quelle gerade zieht (PD-C2)
+// ---------------------------------------------------------------------------
+//
+// Bis PD-C2 zählte `net` nur GESAMT. Am kalten PD-B10-Lauf ließ sich deshalb ein
+// Zuwachs von 1,8 GiB nicht auf den MiB genau einer Quelle zuordnen (§45, V-PD-36) —
+// und jede Volumenentscheidung der Etappen PD-C6…C9 hängt an genau dieser Zahl.
+// Der Kontext läuft über `AsyncLocalStorage`, damit keine der 14 Aufrufstellen ihre
+// Signatur ändern muss: `adapterFor()` wickelt jede Adapter-Methode in `withSource()`.
+const sourceCtx = new AsyncLocalStorage();
+export const withSource = (id, fn) => sourceCtx.run(id, fn);
+export const currentSource = () => sourceCtx.getStore() ?? null;
+
+const freshNet = () => ({ files: 0, bytes: 0, cached: 0, absent: 0, ms: 0, throttled: 0, probes: 0, reDecompressed: 0, bySource: {} });
+let net = freshNet();
+/** Momentaufnahme — `bySource` ist eine Kopie, damit Differenzen je Stufe gebildet werden können. */
+export function netStats() {
+  return { ...net, bySource: Object.fromEntries(Object.entries(net.bySource).map(([k, v]) => [k, { ...v }])) };
+}
+export function resetNetStats() { net = freshNet(); }
+function perSource() {
+  const id = currentSource() ?? '_';
+  return (net.bySource[id] ??= { files: 0, bytes: 0, ms: 0, cached: 0, absent: 0, throttled: 0, probes: 0 });
+}
+/** `after − before` je Quelle — was EINE Stufe gezogen hat. */
+export function netDiff(before, after) {
+  const out = {};
+  for (const [id, a] of Object.entries(after.bySource)) {
+    const b = before.bySource[id] ?? {};
+    const d = Object.fromEntries(Object.keys(a).map((k) => [k, a[k] - (b[k] ?? 0)]));
+    if (Object.values(d).some((v) => v !== 0)) out[id] = d;
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// Fehlerinjektion (PD-C2) — der Verifier BEWEIST, dass ein Quellfehler eine Stimme
+// kostet und nicht den Lauf, statt es per Regex am Quelltext zu vermuten (§45: „der
+// Verifier hat den Fehler bestätigt statt gefunden"). `POINT_FAULT_INJECT=<id>[:<n>]`
+// lässt ab dem n-ten Abruf dieser Quelle jeden weiteren werfen. Nur für Prüfläufe.
+// ---------------------------------------------------------------------------
+const FAULT = (() => {
+  const s = process.env.POINT_FAULT_INJECT;
+  if (!s) return null;
+  const [id, n] = s.split(':');
+  return { id, after: Number(n ?? 0), seen: 0 };
+})();
+function maybeInjectFault(url) {
+  if (!FAULT || currentSource() !== FAULT.id) return;
+  if (++FAULT.seen > FAULT.after) throw new Error(`POINT_FAULT_INJECT: ${FAULT.id} wirft absichtlich (${url})`);
+}
+
+// ---------------------------------------------------------------------------
+// Drosselung ist kein Fehlversuch (PD-C2)
+// ---------------------------------------------------------------------------
+//
+// Lauf 7 des Crons (2026-09-11 09:54 UTC) starb an einem ECMWF-429: fünf Versuche,
+// jeder 429 zählte als einer, danach warf `fetchBytes` — mitten in Stufe 3, ohne
+// einen Chunk. Ein 429 ist eine ANTWORT („später"), kein Netzabbruch. Er zählt jetzt
+// gegen eine Wartezeit, nicht gegen die Versuche.
+const THROTTLE_MAX_WAIT_MS = 10 * 60_000;
 
 // ---------------------------------------------------------------------------
 // Taktung je Host
@@ -50,7 +109,10 @@ export function resetNetStats() { net = { files: 0, bytes: 0, cached: 0, absent:
 //   3. die Horizontsuche halbiert statt zu zählen (`probeHorizon`).
 
 const HOST_MIN_MS = {
-  'data.ecmwf.int': 300,
+  // 300 ms reichten nicht: Lauf 7 des Crons wurde damit gedrosselt (429 bei AIFS
+  // Single, 2026-09-11). 600 ms kosten je Stufe ~1 min mehr Takt, sparen aber die
+  // Wartezeiten nach 429 — `net.throttled` im Manifest sagt, ob es genügt (PD-C2).
+  'data.ecmwf.int': 600,
   'opendata.dwd.de': 60,
   // GeoSphere nennt in QUELLENMATRIX §5 ein Limit von 240/h und 5/s. 250 ms halten das
   // Sekundenlimit mit Rand; die Stundengrenze ist bei ~24 Anfragen je Lauf weit weg.
@@ -82,9 +144,37 @@ function retryAfterMs(res, attempt) {
  */
 const CACHE_VERSION = 2;
 
+// ── Plattencache je Stufe leeren (PD-C2, V-PD-36) ────────────────────────────
+// Der kalte PD-B10-Lauf ließ 9,1 GiB Cache liegen — gegen 14 GB Platte auf dem Runner,
+// auf denen auch Checkout und Daten-Repo liegen. Innerhalb eines Laufs wird fast nichts
+// zweimal gelesen; die Ausnahmen sind Koordinaten- und Konstantendateien (clat/clon,
+// HHL, HSURF, MeteoSchweiz-Konstanten), die über Stufen hinweg gebraucht werden.
+//
+// Gelöscht wird NUR, was dieser Prozess angefasst hat (`touched`) und was nicht wie
+// eine Konstante heißt — und nur mit `POINT_CACHE_CLEAR=tier` (setzt die Cron-Vorlage).
+// Lokal bleibt der Cache stehen: Messungen „am selben Cache" (§37, §38) brauchen ihn.
+const CACHE_KEEP_RE = /clat|clon|hhl|hsurf|time-invariant|invariant|constants|mch:[^#]*const/i;
+const touched = new Map();   // Pfad → keep?
+function noteTouched(key, p) { if (!touched.has(p)) touched.set(p, CACHE_KEEP_RE.test(key)); }
+/** Alle in diesem Prozess berührten Cache-Dateien löschen, bis auf Konstanten. Gibt Bytes/Dateien zurück. */
+export function clearCache({ force = false } = {}) {
+  if (!force && process.env.POINT_CACHE_CLEAR !== 'tier') return { files: 0, bytes: 0, kept: touched.size, skipped: true };
+  let files = 0, bytes = 0, kept = 0;
+  for (const [p, keep] of touched) {
+    if (keep) { kept++; continue; }
+    try {
+      if (existsSync(p)) { bytes += statSync(p).size; rmSync(p); files++; }
+    } catch { /* eine nicht löschbare Cache-Datei ist kein Fehler */ }
+    touched.delete(p);
+  }
+  return { files, bytes, kept, skipped: false };
+}
+
 function cachePath(key) {
   const h = createHash('sha1').update(`v${CACHE_VERSION}|${key}`).digest('hex');
-  return join(CACHE, h.slice(0, 2), `${h}.bin`);
+  const p = join(CACHE, h.slice(0, 2), `${h}.bin`);
+  noteTouched(key, p);
+  return p;
 }
 
 /** Einen Eintrag verwerfen — nach einem Befund, nicht auf Verdacht. */
@@ -111,23 +201,34 @@ export async function fetchBytes(url, { range = null, decompress = false, forceB
   // liefe leer. Der Objektname ist dagegen laufinvariant.
   const key = `${cacheKey ?? url}#${range ?? ''}${decompress ? '#bz2' : ''}`;
   const p = cachePath(key);
-  if (existsSync(p)) { net.cached++; return new Uint8Array(readFileSync(p)); }
+  const ps = perSource();
+  maybeInjectFault(url);   // VOR dem Cache — ein Prüflauf soll auch am warmen Cache werfen
+  if (existsSync(p)) { net.cached++; ps.cached++; return new Uint8Array(readFileSync(p)); }
   let lastError = null;
-  for (let i = 0; i < 5; i++) {
+  let throttleWait = 0;
+  // Fünf Fehlversuche — aber ein 429/503 ist KEIN Fehlversuch (s. o.): er zählt gegen
+  // `THROTTLE_MAX_WAIT_MS`, nicht gegen `i`. Erst wenn die Quelle uns zehn Minuten lang
+  // vertröstet hat, ist das ein Befund, der geworfen werden darf.
+  for (let i = 0; i < 5;) {
     const t0 = Date.now();
     try {
       await pace(url);
       const res = await fetch(url, range ? { headers: { range: `bytes=${range}` } } : undefined);
-      if (res.status === 404) { net.absent++; return null; }
+      if (res.status === 404) { net.absent++; ps.absent++; return null; }
       if (res.status === 429 || res.status === 503) {
-        net.throttled++;
-        await new Promise((r) => setTimeout(r, retryAfterMs(res, i)));
-        lastError = new Error(`HTTP ${res.status} (gedrosselt)`);
+        net.throttled++; ps.throttled++;
+        const wait = retryAfterMs(res, Math.min(4, Math.floor(throttleWait / 15_000)));
+        throttleWait += wait;
+        lastError = new Error(`HTTP ${res.status} (gedrosselt, ${Math.round(throttleWait / 1000)} s gewartet)`);
+        if (throttleWait > THROTTLE_MAX_WAIT_MS) break;
+        await new Promise((r) => setTimeout(r, wait));
         continue;
       }
       if (!res.ok && res.status !== 206) throw new Error(`HTTP ${res.status}`);
       const raw = new Uint8Array(await res.arrayBuffer());
-      net.files++; net.bytes += raw.length; net.ms += Date.now() - t0;
+      const dt = Date.now() - t0;
+      net.files++; net.bytes += raw.length; net.ms += dt;
+      ps.files++; ps.bytes += raw.length; ps.ms += dt;
       // `binary: true` — libbzip2 prüft die Block-CRC, das JS-Paket nicht (s. fetchGribField).
       const out = decompress ? await decompressBz2(raw, { binary: true }) : raw;
       void forceBinary;   // der Weg ist ohnehin schon der binäre; das Flag dokumentiert die Absicht
@@ -136,7 +237,8 @@ export async function fetchBytes(url, { range = null, decompress = false, forceB
       return out;
     } catch (e) {
       lastError = e;
-      await new Promise((r) => setTimeout(r, 400 * (i + 1)));
+      i++;
+      await new Promise((r) => setTimeout(r, 400 * i));
     }
   }
   throw new Error(`${url}: ${lastError?.message ?? 'unbekannt'}`);
@@ -190,19 +292,29 @@ export async function fetchGribField(url, { bz2 = true, range = null, cacheKey =
  * das wäre die stille Variante des Fehlers, den 429 überhaupt erst auslöst.
  */
 export async function headOk(url) {
-  for (let i = 0; i < 4; i++) {
+  const ps = perSource();
+  maybeInjectFault(url);
+  let throttleWait = 0;
+  for (let i = 0; i < 4;) {
     try {
       await pace(url);
-      net.probes++;
+      net.probes++; ps.probes++;
       const r = await fetch(url, { method: 'HEAD' });
       if (r.status === 429 || r.status === 503) {
-        net.throttled++;
-        await new Promise((x) => setTimeout(x, retryAfterMs(r, i)));
+        // Ein gedrosselter HEAD, der als `false` zurückkäme, hieße „Lauf gibt es nicht" —
+        // die stille Variante des Fehlers (PD-C2). Deshalb zählt auch hier die Wartezeit.
+        net.throttled++; ps.throttled++;
+        const wait = retryAfterMs(r, Math.min(4, Math.floor(throttleWait / 15_000)));
+        throttleWait += wait;
+        if (throttleWait > THROTTLE_MAX_WAIT_MS) throw new Error(`${url}: HEAD ${r.status} (gedrosselt, ${Math.round(throttleWait / 1000)} s gewartet)`);
+        await new Promise((x) => setTimeout(x, wait));
         continue;
       }
       return r.ok;
-    } catch {
-      await new Promise((x) => setTimeout(x, 300 * (i + 1)));
+    } catch (e) {
+      if (/gedrosselt|POINT_FAULT_INJECT/.test(e.message)) throw e;
+      i++;
+      await new Promise((x) => setTimeout(x, 300 * i));
     }
   }
   return false;
@@ -609,11 +721,13 @@ export async function fetchRanges(url, ranges, { cacheKey = null, maxPerRequest 
     const p = cachePath(keyOf(ranges[i]));
     if (existsSync(p)) { net.cached++; out[i] = new Uint8Array(readFileSync(p)); } else todo.push(i);
   }
+  const ps = perSource();
+  maybeInjectFault(url);
   for (let g = 0; g < todo.length; g += maxPerRequest) {
     const group = todo.slice(g, g + maxPerRequest);
     const header = 'bytes=' + group.map((i) => `${ranges[i].offset}-${ranges[i].offset + ranges[i].length - 1}`).join(',');
-    let lastError = null, done = false;
-    for (let a = 0; a < 5 && !done; a++) {
+    let lastError = null, done = false, throttleWait = 0;
+    for (let a = 0; a < 5 && !done;) {
       const t0 = Date.now();
       const ac = new AbortController();
       let res;
@@ -622,15 +736,20 @@ export async function fetchRanges(url, ranges, { cacheKey = null, maxPerRequest 
         res = await fetch(url, { headers: { range: header }, signal: ac.signal });
       } catch (e) {
         lastError = e;
-        await new Promise((r) => setTimeout(r, 400 * (a + 1)));
+        a++;
+        await new Promise((r) => setTimeout(r, 400 * a));
         continue;
       }
-      if (res.status === 404) { ac.abort(); net.absent++; return null; }
+      if (res.status === 404) { ac.abort(); net.absent++; ps.absent++; return null; }
       if (res.status === 429 || res.status === 503) {
         ac.abort();
-        net.throttled++;
-        await new Promise((r) => setTimeout(r, retryAfterMs(res, a)));
-        lastError = new Error(`HTTP ${res.status} (gedrosselt)`);
+        // Wie in fetchBytes: Drosselung zählt gegen die Wartezeit, nicht gegen die Versuche.
+        net.throttled++; ps.throttled++;
+        const wait = retryAfterMs(res, Math.min(4, Math.floor(throttleWait / 15_000)));
+        throttleWait += wait;
+        lastError = new Error(`HTTP ${res.status} (gedrosselt, ${Math.round(throttleWait / 1000)} s gewartet)`);
+        if (throttleWait > THROTTLE_MAX_WAIT_MS) break;
+        await new Promise((r) => setTimeout(r, wait));
         continue;
       }
       if (res.status !== 206) {
@@ -640,7 +759,7 @@ export async function fetchRanges(url, ranges, { cacheKey = null, maxPerRequest 
       }
       const ct = res.headers.get('content-type') || '';
       const body = new Uint8Array(await res.arrayBuffer());
-      net.files++; net.bytes += body.length; net.ms += Date.now() - t0;
+      { const dt = Date.now() - t0; net.files++; net.bytes += body.length; net.ms += dt; ps.files++; ps.bytes += body.length; ps.ms += dt; }
       let parts;
       if (/multipart\/byteranges/i.test(ct)) {
         parts = parseMultipartByteranges(body, ct);

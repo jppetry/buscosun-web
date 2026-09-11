@@ -4704,3 +4704,109 @@ das Protokoll gibt GitHub nur mit Anmeldung heraus. *Skizze:* `field()` je (Quel
 `try/catch`, Fehler je Quelle zählen, ab einer Schwelle die Quelle für die Stufe verwerfen und im
 Manifest nennen; dieselbe Regel für Profil und Quantile. ⚠ Ab welcher Schwelle eine Stufe
 lieber gar nicht als mit zu wenigen Quellen veröffentlicht wird, ist eine Produktentscheidung.
+
+---
+
+## §46 PD-C1/PD-C2 — der Cron veröffentlicht nichts, und warum (Betrieb vor allem anderen)
+
+Plan PD-C (Jans Auftrag 2026-09-11: „alle Probleme beheben, sodass dem Algorithmus nichts mehr
+entgegensteht") beginnt nicht bei einer Quelle, sondern beim Betrieb — weil die Messung des Tages
+zeigte, dass **nichts von PD-B je im Daten-Repo angekommen ist**.
+
+### 46.1 Diagnose: 0 von 7 Cron-Läufen veröffentlicht
+
+Am CDN lag `point/index.json` mit **Schema 1** und dem Handlauf `2026090912` vom 2026-09-09. Der
+GitHub-API-Verlauf des Daten-Repos (`actions/workflows/point.yml/runs`) zeigte sieben planmäßige
+Läufe seit 2026-09-09 21:54 UTC, **alle sieben `failure`**, 22–29 min lang. Die Job-Logs (mit dem
+Token aus `git credential fill` gelesen — das Protokoll gibt GitHub nur mit Anmeldung heraus, §45.14
+hatte das noch als „unbelegt" geführt) nennen zwei verschiedene Ursachen:
+
+| Läufe | Schritt | Ursache |
+|---|---|---|
+| 1–6 | Publish | `Sparse Checkout deckt .gitattributes nicht ab — git würde diese Dateien STILL verwerfen (Exit 0). Kur: git sparse-checkout add .gitattributes. Aktuelle Muster: point index.json` — der Publisher bricht **korrekt** ab (§29-Wächter), aber erst nach 23 min Bau |
+| 7 | Build point cube | `https://data.ecmwf.int/…/aifs-single/…-276h-oper-fc.grib2: HTTP 429 (gedrosselt)` aus `fetchBytes` (5 Versuche, dann Wurf) durch `await c.adapter.field(...)` in der deterministischen Schleife — **V-PD-40**, jetzt belegt |
+
+Beides war lokal unsichtbar: hier liegt immer der volle Baum (kein sparse), und 300 ms Takt gegen
+ECMWF reichten am Nachmittag. Dieselbe Klasse wie §30 („geprüft wurde der Bauplan, nicht das
+Bauwerk") — nur dass diesmal der Wächter im Publisher **funktioniert** hat und trotzdem niemand die
+sieben roten Läufe sah, weil kein Verifier die sparse-Muster mit den Publisher-Pfaden verglich.
+
+Nebenbefund: die Vorlage im Daten-Repo ist die **alte** Fassung (9 222 B, vor PD-B9, ohne
+Stationsschritt) — PD-B9 und PD-B10 hätten den Cron also auch nach einer Kur nicht erreicht.
+
+### 46.2 PD-C1 — Sparse-Vertrag, verifiziert statt gemerkt
+
+- `scripts/repack-repo/workflow-point.yml`: sparse-Muster `point`, `index.json`, **`.gitattributes`**;
+  neuer Schritt nach dem Checkout (`git sparse-checkout list`, `grep -qx '.gitattributes'`, sonst
+  Exit 1 — ein Muster, das nichts trifft, meldet nichts, §30). `timeout-minutes` **330 → 75**.
+- Neu `scripts/point/sparseCover.mjs`: `PUBLISH_PATHS`, `sparseCovers()`, `uncoveredPaths()`,
+  `sparseBlocksOf()`, `timeoutMinutesOf()`, `dispatchInputsOf()`. Publisher UND Verifier importieren
+  dieselbe Liste und dasselbe Prädikat (kein Spiegel — die `repackManifest.mjs`-Lehre).
+- Verifier: der `sparse-checkout: |`-Block der Vorlage wird **gelesen** und gegen `PUBLISH_PATHS` +
+  `STATIONS_DIR` + Index/Kalibrierung gehalten; Negativ-Kontrolle mit dem deployten Muster
+  (`point`, `index.json`) fällt durch; `JOB_MAX_MIN + 10 ≤ timeout ≤ engster Slot-Abstand`
+  (75 gegen 100 min, die alten 330 fallen durch); jedes `workflow_dispatch`-Eingabefeld braucht
+  einen Leser `args.<name>` im Producer. Die **deployte** Datei wird, wenn `data/repo` lokal liegt,
+  byte-verglichen — Abweichung ist Auskunft, kein Fehlschlag (Jans Gate PD-C3).
+
+**Cron-Nachbau (Muster §30):** frischer sparse-Klon von `jppetry/buscosun-data` mit den drei
+Mustern ⇒ `git sparse-checkout list` nennt alle drei, `.gitattributes` (83 B) liegt im Baum;
+Publisher gegen den Ausgabebaum des Fehlerinjektions-Laufs (46.3) ohne `POINT_PUSH` ⇒ Aufbewahrung,
+Manifest-Abgleich („12 Chunks, alle im Manifest"), Datencommit `dae2444` lokal, **Exit 0**, Push
+korrekt verweigert. ⚠ Nebenbei gesehen: in no-cone-Modus trifft das Muster `index.json` **jede**
+Datei dieses Namens, also auch `runs/<lauf>/index.json` — der Klon trägt deshalb ein kleines `runs/`
+(V-PD-42, harmlos, aber unerwartet).
+
+### 46.3 PD-C2 — ein Quellfehler kostet eine Stimme, nicht den Lauf
+
+- `build-point-cube.mjs`: `safeCall(c, what, fn)` um **alle sechs** deterministischen Adapteraufrufe
+  (`leadsFor`, `field`, Vorschritt der Entakkumulation, `quantiles`, `profile`, `orography`); die
+  Laufsuche (`chooseRun`) ist gesondert gefangen (ein 429 in `discoverRun` ⇒ Quelle benannt
+  übersprungen). Fehler je (Stufe, Quelle) gezählt, erster Fehlertext bleibt stehen; ab
+  `POINT_SRC_MAX_ERRORS` (Standard 5) fällt die Quelle für die Stufe heraus (`dropped`). Abbruch
+  **nur**, wenn keine Quelle der Stufe mehr trägt. Manifest: `sources[].errors/firstError/dropped`,
+  `tiers[].dropped`.
+- `shared.mjs`: **Drosselung ist kein Fehlversuch** — 429/503 zählen gegen eine Wartezeit
+  (`THROTTLE_MAX_WAIT_MS` 10 min), nicht gegen die fünf Versuche (`fetchBytes`, `fetchRanges`,
+  `headOk`; ein gedrosselter HEAD fällt nicht mehr still auf „gibt es nicht"). ECMWF-Takt
+  **300 → 600 ms**. Netz **je Quelle** (`net.bySource` über `AsyncLocalStorage`; `adapterFor()`
+  wickelt jede Adaptermethode in `withSource()` — keine der 14 Aufrufstellen ändert sich); `netDiff()`
+  je Stufe ⇒ Log-Zeile „Netz je Quelle" und `tiers[].net` im Manifest. **Fehlerinjektion**
+  `POINT_FAULT_INJECT=<id>[:<n>]` an allen drei Netzwegen, VOR dem Cache. Plattencache je Stufe
+  leeren (`clearCache()`, nur mit `POINT_CACHE_CLEAR=tier`, das die Vorlage setzt; Konstanten
+  clat/clon/hhl/hsurf/`mch:…const` bleiben) — V-PD-36.
+- `--run=YYYYMMDDHH` wird gelesen (V-PD-38): Obergrenze der Laufsuche (`nowMs = Lauf + 1 h`),
+  `man.note` benennt es.
+
+**Laufzeitbeweis statt Regex** (die Lehre aus §45.7): t3, 126–150 h, nur `aifs_single` + `ifs_hres`,
+`POINT_FAULT_INJECT=aifs_single:12` ⇒ AIFS Single wirft ab dem 13. Abruf, **6 Fehler geloggt**,
+„fällt für diese Stufe heraus", IFS HRES trägt weiter, **12 Chunks, EXIT 0**; Manifest:
+`aifs_single errors 6, dropped {reason, errors, firstError}`, `ifs_hres errors 0`,
+`tiers[0].net = { ifs_hres: 44 aus dem Cache · aifs_single: 3 Dateien, 5,1 MiB }`. Der Verifier
+prüft dieses Manifest, wenn `POINT_FAULT_MANIFEST` gesetzt ist, sonst sagt er, dass er es überspringt.
+
+### 46.4 Gate GPD-C1/C2
+
+`verify:point-data` **615/615** (nach PD-B10: 586; +20 für C1/C2 inkl. Negativ-Kontrollen),
+`typecheck` 0 Fehler, Cron-Nachbau Exit 0, Fehlerinjektion Exit 0. **Nicht deployt:** die Vorlage
+(11 516 Zeichen) weicht von der Datei im Daten-Repo (8 798) ab — die Kopie ist **Jans Gate (PD-C3)**;
+vorher müssen C1+C2 in `buscosun-web` gepusht sein, weil der Cron den Producer frisch klont.
+
+### 46.5 Verbesserungen (D-28)
+
+**V-PD-40 · erledigt (46.3).** Ursache der Cron-Ausfälle war zweigeteilt (46.1); die Schwelle
+(5 Fehler je Stufe) und die Frage, ob eine Stufe mit nur EINER verbleibenden Quelle publizieren darf,
+sind als Standard „veröffentlichen, `srcCount` sagt die Wahrheit" gesetzt — **Produktentscheidung
+für Jan**, als Umgebungsvariable änderbar.
+
+**V-PD-41 · Der Client-Nowcast tastet Radar-PNGs ohne Domänenmaske ab.**
+`src/pointForecast/radarNowcast.ts` liefert für Punkte außerhalb der RV-Abdeckung 0,0 mm/h statt
+„kein Wert" (der Byte-0-Fall aus §36.2, Linz/Wien). *Mehrwert:* keine erfundene Trockenheit in
+Ostösterreich. *Skizze:* `coversPoint()` aus `sourceMatrix.ts` VOR dem Byte, wie im Node-Leser.
+⚠ Ändert Live-Ausgabe (null statt 0) ⇒ STOPP & FRAGEN, eigene Mikro-Etappe (Plan PD-C4).
+
+**V-PD-42 · Das sparse-Muster `index.json` trifft in no-cone-Modus jede gleichnamige Datei.**
+Der Cron-Klon trägt deshalb `runs/<lauf>/index.json` mit. *Mehrwert:* ein paar KiB und Klarheit,
+was der Job wirklich auscheckt. *Skizze:* `/index.json` mit führendem Schrägstrich (Wurzel);
+`sparseCovers()` akzeptiert die Form bereits. Vorher messen, ob `actions/checkout` den Schrägstrich
+durchreicht.

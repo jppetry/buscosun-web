@@ -27,10 +27,24 @@
  *   • Ensemble-Member (σ_ens) — bei IFS/AIFS wird nur der Kontrolllauf gelesen (PD-B8).
  *   • MOSMIX, C-LAEF, ICON-CH, die Radar-Quellen — s. `adapters/index.mjs` PENDING.
  *
+ * ── Ein Quellfehler kostet eine Stimme, nicht den Lauf (PD-C2, V-PD-40) ─────
+ * Lauf 7 des Crons (2026-09-11) starb an EINEM ECMWF-429 bei AIFS Single, mitten in
+ * Stufe 3, ohne einen Chunk — weil `await c.adapter.field(...)` in der
+ * deterministischen Schleife nicht gefangen war (die Ensemble-Schleife fing seit
+ * PD-B10). Jetzt läuft jeder Adapteraufruf durch `safeCall()`: Fehler werden je Quelle
+ * gezählt und laut geloggt, die Zelle bleibt MISSING; ab `POINT_SRC_MAX_ERRORS`
+ * (Standard 5) fällt die Quelle für die Stufe heraus und steht als `dropped` im
+ * Manifest. Abgebrochen wird nur, wenn KEINE Quelle der Stufe mehr trägt.
+ *
  * Aufruf:
  *   npm run point:cube -- --tiers=t1
  *   npm run point:cube -- --tiers=all --steps=0-6
  *   npm run point:cube -- --only=icon_d2,icon_eu
+ *   npm run point:cube -- --run=2026091100      # Obergrenze: kein Lauf jünger als dieser
+ *
+ * Umgebung (nur Prüfläufe): POINT_FAULT_INJECT=<quelle>[:<n>] lässt die Quelle ab dem
+ * n-ten Abruf werfen — der Verifier beweist damit zur Laufzeit, dass der Bau weiterläuft.
+ * POINT_CACHE_CLEAR=tier leert den Plattencache nach jeder Stufe (setzt der Cron).
  */
 
 import { mkdirSync, writeFileSync, readFileSync, existsSync, renameSync, rmSync, readdirSync } from 'node:fs';
@@ -44,10 +58,12 @@ import {
 } from '../../src/point/cubeFormat.ts';
 import { SOURCE_BY_ID, coversPoint } from '../../src/point/sourceMatrix.ts';
 import { adapterFor, ingestableFor, PENDING } from './adapters/index.mjs';
-import { netStats, resetNetStats, runIso } from './adapters/shared.mjs';
+import { netStats, resetNetStats, netDiff, clearCache, runIso } from './adapters/shared.mjs';
 import { PROFILE_PARAMS } from './profile.mjs';
 
 const OUT = process.env.POINT_OUT || 'data/point';
+/** Ab so vielen Fehlern je (Stufe, Quelle) fällt die Quelle für die Stufe heraus (PD-C2). */
+const SRC_MAX_ERRORS = Math.max(0, Number(process.env.POINT_SRC_MAX_ERRORS ?? 5));
 const deflate9 = async (bytes) => new Uint8Array(deflateRawSync(bytes, { level: 9 }));
 
 /** Zielgrößen aus den Quellen; Profil und Meta füllt der Producer selbst. */
@@ -183,6 +199,30 @@ export async function buildTier(tierId, opts = {}) {
   const ids = [...usable, ...(opts.noDiversity ? [] : diversity)].filter((id) => !only || only.has(id));
   const isDiversity = new Set(diversity);
 
+  // ── Ein Fehler kostet eine Stimme, nicht den Lauf (PD-C2, V-PD-40) ──────────
+  // Jeder Adapteraufruf der deterministischen Seite läuft hier durch. Der Fehler wird
+  // je Quelle gezählt und benannt (erster Fehlertext bleibt stehen), die Antwort ist
+  // `null` — also MISSING an dieser Zelle, nicht Exit 1 für den ganzen Cube. Ab
+  // `SRC_MAX_ERRORS` fällt die Quelle für die Stufe heraus (`dropped`), damit eine
+  // Quelle, die dauerhaft drosselt, nicht 336 Stunden lang je Abruf zehn Minuten wartet.
+  const dropped = [];
+  const safeCall = async (c, what, fn) => {
+    if (c.dropped) return null;
+    try {
+      return await fn();
+    } catch (e) {
+      c.errors = (c.errors ?? 0) + 1;
+      c.firstError ??= `${what}: ${e.message}`;
+      console.log(`  ⚠ ${tierId}: ${c.id} ${what}: ${e.message}`);
+      if (c.errors > SRC_MAX_ERRORS) {
+        c.dropped = { reason: `mehr als ${SRC_MAX_ERRORS} Fehler in dieser Stufe`, errors: c.errors, firstError: c.firstError };
+        dropped.push([c.id, c.dropped.reason]);
+        console.log(`  ⚠ ${tierId}: ${c.id} fällt für diese Stufe heraus — ${c.dropped.reason}`);
+      }
+      return null;
+    }
+  };
+
   // Je Quelle: Lauf und lieferbare Stunden — beides am ECHTEN Objekt geprüft,
   // nicht aus einer Tabelle geraten (§21 (7)).
   const candidates = [];
@@ -205,7 +245,15 @@ export async function buildTier(tierId, opts = {}) {
       continue;
     }
     const src = SOURCE_BY_ID[id];
-    const choice = await chooseRun(a, src, leadHours, opts.nowMs);
+    let choice = null;
+    try {
+      choice = await chooseRun(a, src, leadHours, opts.nowMs);
+    } catch (e) {
+      // Eine Laufsuche, die wirft (Drosselung über zehn Minuten, Netz weg), ist ein
+      // Befund über DIESE Quelle — sie wird benannt übersprungen, der Bau läuft weiter.
+      skipped.push([id, `Laufsuche fehlgeschlagen: ${e.message}`]);
+      continue;
+    }
     if (!choice) { skipped.push([id, `kein Lauf gefunden, der ${leadHours[0]} h trägt`]); continue; }
     const { run, probe } = choice;
     const dom = domainMask(src, tier);
@@ -245,7 +293,9 @@ export async function buildTier(tierId, opts = {}) {
     // Die Stunden im Laufraum der Quelle — sonst meldete `leadsFor` eine Abdeckung für
     // Stunden, die diese Quelle so gar nicht kennt.
     const own = leadHours.map((h) => h + c.offsetH);
-    const got = new Set(await c.adapter.leadsFor(c.run, { ...tier, leadHours: own }));
+    const leads = await safeCall(c, 'leadsFor', () => c.adapter.leadsFor(c.run, { ...tier, leadHours: own }));
+    if (!leads) { skipped.push([c.id, `Abdeckung nicht bestimmbar: ${c.firstError ?? 'Fehler'}`]); continue; }
+    const got = new Set(leads);
     if (got.size === 0) {
       skipped.push([c.id, `Lauf ${c.run} liefert keine Stunde dieser Stufe (Versatz ${c.offsetH} h)`]);
       continue;
@@ -290,7 +340,7 @@ export async function buildTier(tierId, opts = {}) {
         // In den Laufraum DIESER Quelle: dieselbe Gültigzeit, andere Vorhersagestunde.
         const own = leadH + c.offsetH;
         if (!c.leads.has(own)) continue;
-        let g = await c.adapter.field(c.run, own, varId, tier);
+        let g = await safeCall(c, `${varId} @ +${own} h`, () => c.adapter.field(c.run, own, varId, tier));
         if (!g) continue;
         // Geometrie VOR allem anderen: was außerhalb der Domäne liegt, ist kein Wert.
         // Steht hier und nicht in der Zellschleife, damit auch die Entakkumulation und
@@ -303,7 +353,7 @@ export async function buildTier(tierId, opts = {}) {
           const ownPrev = prevLead + c.offsetH;
           let prev = accPrev.get(key);
           if (!prev || prev.lead !== ownPrev) {
-            const p = ownPrev >= 0 ? await c.adapter.field(c.run, ownPrev, varId, tier) : null;
+            const p = ownPrev >= 0 ? await safeCall(c, `${varId} @ +${ownPrev} h (Vorschritt)`, () => c.adapter.field(c.run, ownPrev, varId, tier)) : null;
             prev = p ? { lead: ownPrev, grid: p } : null;
           }
           accPrev.set(key, { lead: own, grid: g });
@@ -389,7 +439,7 @@ export async function buildTier(tierId, opts = {}) {
   // `--steps` wäre der sonst 48 h, und die Rate über zwei Tage stünde in der
   // Stundenebene.
   const ensSources = process.env.POINT_ENSEMBLE === '0'
-    ? [] : contributors.filter((c) => (c.adapter.ensembleVars ?? []).length > 0);
+    ? [] : contributors.filter((c) => (c.adapter.ensembleVars ?? []).length > 0 && !c.dropped);
   let ensStat = null;
   if (ensSources.length) {
     const cp = meta('ensCount');
@@ -492,8 +542,16 @@ export async function buildTier(tierId, opts = {}) {
   // Wie bei den Profilfeldern: aus GENAU EINER Quelle, nicht gemittelt. Das q10
   // zweier Modelle zu mitteln ergäbe ein Quantil, das kein Ensemble je gerechnet
   // hat — und über welche Verteilung es dann etwas sagt, könnte niemand angeben.
+  // Die einzige Stelle, an der ein Quellfehler den Bau noch abbrechen darf: wenn in
+  // dieser Stufe KEINE Quelle mehr trägt. Ein leerer Lauf wäre schlimmer als keiner —
+  // er sähe im Manifest aus wie ein Lauf ohne Wetter.
+  if (contributors.length && contributors.every((c) => c.dropped)) {
+    throw new Error(`${tierId}: alle ${contributors.length} Quellen sind herausgefallen — `
+      + contributors.map((c) => `${c.id}: ${c.firstError}`).join(' · '));
+  }
+
   const quantSrc = process.env.POINT_QUANTILES === '0'
-    ? null : contributors.find((c) => (c.adapter.quantileVars ?? []).length > 0);
+    ? null : contributors.find((c) => (c.adapter.quantileVars ?? []).length > 0 && !c.dropped);
   let quantStat = null;
   if (quantSrc) {
     const qVars = quantSrc.adapter.quantileVars.filter((v) => planeIndex(`${v}_q10`) >= 0);
@@ -504,7 +562,7 @@ export async function buildTier(tierId, opts = {}) {
       if (!quantSrc.leads.has(own)) { missed++; continue; }
       let any = false;
       for (const varId of qVars) {
-        const r = await quantSrc.adapter.quantiles(quantSrc.run, own, varId, tier);
+        const r = await safeCall(quantSrc, `Quantile ${varId} @ +${own} h`, () => quantSrc.adapter.quantiles(quantSrc.run, own, varId, tier));
         if (!r) continue;
         any = true;
         for (const [lvl, grid] of [['q10', r.q10], ['q90', r.q90]]) {
@@ -563,7 +621,7 @@ export async function buildTier(tierId, opts = {}) {
       if ((leadH - leadHours[0]) % stepH !== 0) continue;
       const own = leadH + profileSrc.offsetH;
       if (!profileSrc.leads.has(own)) { missed++; continue; }
-      const r = await profileSrc.adapter.profile(profileSrc.run, own, tier);
+      const r = await safeCall(profileSrc, `Profil @ +${own} h`, () => profileSrc.adapter.profile(profileSrc.run, own, tier));
       if (!r) { missed++; continue; }
       done++;
       for (let k = 0; k < ids.length; k++) {
@@ -601,7 +659,7 @@ export async function buildTier(tierId, opts = {}) {
   // Gewichten ist das ihr arithmetisches Mittel; bei genau einer Quelle deren HSURF.
   const oros = [];
   for (const c of contributors) {
-    let o = await c.adapter.orography(c.run, tier);
+    let o = await safeCall(c, 'Orographie', () => c.adapter.orography(c.run, tier));
     if (!o) continue;
     // Auch hier die Domäne: sonst mittelt `hModEff` die Modellhöhe einer Quelle ein, die
     // die Zelle gar nicht trägt — und `h_true − h_mod_eff` ist genau der Term, den PAP 4
@@ -663,13 +721,16 @@ export async function buildTier(tierId, opts = {}) {
   }
 
   return {
-    tier: tierId, run: runId, leadHours, files, bytesTotal, skipped,
+    tier: tierId, run: runId, leadHours, files, bytesTotal, skipped, dropped,
     contributors: contributors.map((c) => ({
       id: c.id, run: c.run, leads: c.leads.size, role: c.role,
       coverage: c.coverage, maskInside: c.maskInside, cells, offsetH: c.offsetH,
       ensembleControlOnly: !!c.adapter.ensembleControlOnly,
       ensembleOnly: !!c.adapter.ensembleOnly,
       members: c.adapter.members ?? null,
+      // PD-C2: wie oft diese Quelle in dieser Stufe geworfen hat, und ob sie deshalb
+      // herausfiel. `0`/`null` ist der Normalfall — eine Zahl hier ist ein Befund.
+      errors: c.errors ?? 0, firstError: c.firstError ?? null, dropped: c.dropped ?? null,
     })),
     profile: profileStat,
     quantiles: quantStat,
@@ -731,6 +792,9 @@ export function runManifest(results) {
           from: 'coversPoint(domain ∩ clip, edgeMarginKm) am Zellmittelpunkt',
         } : null,
         attribution: s?.attribution ?? null, licence: s?.licence ?? null,
+        // PD-C2 (V-PD-40): Fehler dieser Quelle in dieser Stufe. Jeder Fehler ließ die
+        // Zelle MISSING statt den Lauf sterben; `dropped` heißt: ab hier gar nicht mehr gefragt.
+        errors: c.errors ?? 0, firstError: c.firstError ?? null, dropped: c.dropped ?? null,
       });
     }
   }
@@ -766,6 +830,11 @@ export function runManifest(results) {
         // einer Eigenschaft von C-LAEF.
         quantiles: r.quantiles ?? null,
         ensemble: r.ensemble ?? null,
+        // PD-C2: Netzvolumen dieser Stufe je Quelle (Bytes, Dateien, 404, 429) — die
+        // Messgrundlage für jede Volumenentscheidung (PD-C6…C9). `null` bei einem
+        // Manifest, das aus einem älteren Producer stammt.
+        net: r.net ?? null,
+        dropped: (r.dropped ?? []).map(([id, reason]) => ({ id, reason })),
         profile: r.profile ? {
           ...r.profile,
           params: PROFILE_PARAMS,
@@ -862,6 +931,18 @@ async function main() {
   const wanted = (args.tiers && args.tiers !== 'all') ? args.tiers.split(',') : TIERS.map((t) => t.id);
   const only = args.only ? args.only.split(',') : null;
   const out = args.out || OUT;
+  // ── `--run` (PD-C2, V-PD-38) ─────────────────────────────────────────────
+  // Die Cron-Vorlage reichte `--run=<Lauf>` seit PD-A durch, und niemand las es — ein
+  // Eingabefeld, das nichts tat (dieselbe Klasse wie V-SH-11). Jetzt ist der Lauf eine
+  // OBERGRENZE: die Laufsuche jeder Quelle beginnt eine Stunde nach diesem Lauf, also
+  // gewinnt kein Lauf, der jünger ist. Für Quellen mit gröberem Takt (6 h) rundet
+  // `runIdBack` auf ihren letzten Slot davor ab. So lässt sich ein Ausfall nachbauen.
+  let nowMs;
+  if (args.run) {
+    if (!/^\d{10}$/.test(args.run)) { console.error(`--run erwartet YYYYMMDDHH, nicht „${args.run}"`); process.exit(1); }
+    nowMs = Date.parse(runIso(args.run)) + 3_600_000;
+    console.log(`Obergrenze --run=${args.run}: keine Quelle nimmt einen jüngeren Lauf`);
+  }
   resetNetStats();
 
   // ── Speicher je Stufe (PD-B10, §45) ─────────────────────────────────────
@@ -892,11 +973,21 @@ async function main() {
     if (steps.length === 0) { console.log(`\n── Stufe ${id}: keine Schritte im gewählten Bereich`); continue; }
     console.log(`\n── Stufe ${tier.id} · ${tier.deg}° · ${tier.ny}×${tier.nx} · ${steps.length} Schritte ${steps[0]}–${steps.at(-1)} h`);
     mem.reset();
-    const r = await buildTier(id, { steps, only, out });
+    const netBefore = netStats();
+    const r = await buildTier(id, { steps, only, out, nowMs });
     mem.sample();
     console.log(`  Speicher: Heap max ${mem.mb(mem.peak.heap)} von ${mem.mb(mem.limit)} MiB · `
       + `extern max ${mem.mb(mem.peak.ext)} MiB · RSS max ${mem.mb(mem.peak.rss)} MiB`);
+    // Netz JE QUELLE (PD-C2): die Zahl, an der jede Volumenentscheidung hängt — bis
+    // hier gab es sie nur als Summe über den Lauf.
+    r.net = netDiff(netBefore, netStats());
+    const netLine = Object.entries(r.net).sort((a, b) => b[1].bytes - a[1].bytes)
+      .map(([sid, n]) => `${sid} ${(n.bytes / 1048576).toFixed(1)} MiB/${n.files}${n.throttled ? ` ⚠${n.throttled}×429` : ''}${n.absent ? ` (${n.absent}×404)` : ''}`);
+    if (netLine.length) console.log(`  Netz je Quelle: ${netLine.join(' · ')}`);
+    const cc = clearCache();
+    if (!cc.skipped) console.log(`  Plattencache geleert: ${cc.files} Dateien, ${(cc.bytes / 1048576).toFixed(0)} MiB (${cc.kept} Konstanten behalten)`);
     results.push(r);
+    if (r.dropped?.length) for (const [sid, why] of r.dropped) console.log(`  ⚠ herausgefallen ${sid}: ${why}`);
     if (r.empty) {
       console.log('  KEINE Quelle lieferbar:');
       for (const [sid, why] of r.skipped) console.log(`    ${sid}: ${why}`);
@@ -919,6 +1010,7 @@ async function main() {
   if (built.length) {
     placeUnderPublishRun(results, out);
     const man = runManifest(results);
+    if (args.run) man.note = `--run=${args.run}: Obergrenze der Laufsuche; keine Quelle nimmt einen jüngeren Lauf (PD-C2, V-PD-38)`;
     const mp = join(out, runManifestPath(man.run).replace(/^point\//, ''));
     mkdirSync(dirname(mp), { recursive: true });
     // ── Nie eine fremde Stufe aus dem Manifest werfen ────────────────────────
