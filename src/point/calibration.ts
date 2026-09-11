@@ -48,6 +48,11 @@ export interface CalibEntry<T = number> {
 const unknown = <T>(source: string, unit?: string, pap?: string): CalibEntry<T> =>
   ({ value: null, provenance: null, source, updatedAt: null, unit, pap });
 
+// PD-C4: `terrainPoint.ts` sagt seit PD-A „point/calib.json führt ihn als literature" —
+// und es gab den Eintrag nicht. Die Tabelle bleibt DORT (der Client rechnet z₀ am Punkt);
+// hier steht sie als Kalibriereintrag mit Herkunft, damit der Satz wahr ist.
+import { WORLDCOVER_Z0 } from './terrainPoint';
+
 export const CALIB_SCHEMA = 1;
 
 /**
@@ -122,6 +127,10 @@ export const CALIBRATION_V1 = Object.freeze({
     gammaSign: { value: '-dT/dz', provenance: 'physical' as Provenance,
       source: 'PAP 4, Vorzeichenkonvention „hier verbindlich": normale Schichtung → Γ > 0, Inversion → Γ < 0. Steht hier, damit ein Leser sie nicht aus dem Vorzeichen der Daten raten muss.',
       updatedAt: null, unit: '—', pap: 'PAP 4' },
+    /** PAP 3/5: Rauhigkeitslänge je WorldCover-Klasse — Literatur (Davenport/Wieringa), keine Messung. */
+    z0Table: { value: WORLDCOVER_Z0 as Readonly<Record<number, number>>, provenance: 'literature' as Provenance,
+      source: 'Davenport/Wieringa-Klassen auf ESA WorldCover v200 (Codes 10…100). Dieselbe Tabelle rechnet der Client am Punkt (src/point/terrainPoint.ts, WORLDCOVER_Z0); hier steht sie mit Herkunft, weil PAP 5 O7 damit den Wind korrigiert. Bis PD-C4 behauptete terrainPoint.ts diesen Eintrag, ohne dass es ihn gab.',
+      updatedAt: null, unit: 'm', pap: 'PAP 5' },
   }),
 });
 
@@ -166,6 +175,13 @@ export function calibrationSelfTest(): { checks: CalibCheck[]; passed: number; t
     CALIBRATION_V1.fixed.dryAdiabatic.value === 0.0098 && CALIBRATION_V1.fixed.standardLapse.value === 0.0065);
   add('die Vorzeichenkonvention steht in der Datei',
     CALIBRATION_V1.fixed.gammaSign.value === '-dT/dz');
+  // PD-C4: der Eintrag, den terrainPoint.ts seit PD-A behauptete — mit allen elf Klassen,
+  // als Literatur markiert, und Wasser rauer als nichts (0,0002 m, nicht 0).
+  add('z0-Tabelle: elf WorldCover-Klassen, Literatur, kein Wert 0',
+    CALIBRATION_V1.fixed.z0Table.provenance === 'literature'
+    && Object.keys(CALIBRATION_V1.fixed.z0Table.value).length === 11
+    && Object.values(CALIBRATION_V1.fixed.z0Table.value).every((v) => v > 0)
+    && CALIBRATION_V1.fixed.z0Table.value[80] === 0.0002);
   add('jeder PAP-Verweis zeigt auf einen der sechs Pläne',
     entries.every(([, e]) => e.pap == null || /^PAP [1-6]$/.test(e.pap)),
     entries.filter(([, e]) => e.pap != null && !/^PAP [1-6]$/.test(e.pap)).map(([p]) => p).join(',') || 'alle');

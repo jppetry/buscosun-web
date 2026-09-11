@@ -26,17 +26,47 @@ import { decodeGrib2 } from '../../../src/sources/gribDecode.ts';
 
 const ECMWF = process.env.ECMWF_BASE || 'https://data.ecmwf.int/forecasts';
 
+// ── Schrittraster je Modell (PD-C5, V-PD-37) ──────────────────────────────────
+//
+// ECMWF veröffentlicht nicht jede Stunde: IFS rechnet 3-stündlich bis 144 h, danach
+// 6-stündlich; AIFS (Single und ENS) durchgehend 6-stündlich. Bis PD-C5 kannte dieser
+// Adapter das nicht — `leadsFor` probte die ERSTE Stufenstunde und schloss aus einem 404,
+// die Quelle habe nichts. Gemessen am Gesamtlauf (§45.12): AIFS Single fiel in Stufe 2
+// komplett aus (51 h ist kein Vielfaches von 6), und in Stufe 1 meldete die Halbierung
+// „49 Stunden", von denen der Producer dann 80 vergeblich abrief (404). Das Raster gilt
+// im LAUFRAUM der Quelle — `leadsFor` bekommt die um `offsetH` verschobenen Stunden.
+export const ECMWF_STEPS = Object.freeze({
+  ifs:  (h) => (h <= 144 ? h % 3 === 0 : h % 6 === 0),
+  aifs: (h) => h % 6 === 0,
+});
+
 const MODELS = {
-  ifs_hres:    { path: 'ifs/0p25/oper',        suffix: 'oper-fc',  runSlotH: 6 },
+  ifs_hres:    { path: 'ifs/0p25/oper',        suffix: 'oper-fc',  runSlotH: 6, steps: ECMWF_STEPS.ifs },
   // ifs_ens: seit PD-B10 in ecmwfEns.mjs — die Member statt eines Kontrolllaufs, den
   // `enfo-ef` gar nicht führt (§34.5). Hier stand er als Kontrolllauf-Quelle, die nie
   // ein Feld geliefert hat.
-  aifs_single: { path: 'aifs-single/0p25/oper', suffix: 'oper-fc', runSlotH: 6 },
+  aifs_single: { path: 'aifs-single/0p25/oper', suffix: 'oper-fc', runSlotH: 6, steps: ECMWF_STEPS.aifs },
   // AIFS-ENS legt KEINE gebuendelte `enfo-ef` ab, sondern `enfo-cf` (Kontrolllauf)
   // und `enfo-pf` (gestoerte Member) getrennt. Am Verzeichnis abgelesen (2026-09-08);
   // mit `enfo-ef` fand die Lauf-Suche gar nichts und meldete „Quelle nicht verfuegbar".
-  aifs_ens:    { path: 'aifs-ens/0p25/enfo',    suffix: 'enfo-cf', runSlotH: 6, ensemble: true },
+  aifs_ens:    { path: 'aifs-ens/0p25/enfo',    suffix: 'enfo-cf', runSlotH: 6, ensemble: true, steps: ECMWF_STEPS.aifs },
 };
+
+/** Die Stufenstunden, die dieses Modell überhaupt rechnet — VOR jeder Netzsonde. */
+export function ecmwfOwnLeads(id, leadHours) {
+  const m = MODELS[id];
+  if (!m) return [];
+  return leadHours.filter((h) => h >= 0 && m.steps(h));
+}
+
+/** Die größte Rasterstunde ≤ h — damit die Laufsuche nicht auf eine Stunde probt, die es nie gibt. */
+export function ecmwfSnapDown(id, h) {
+  const m = MODELS[id];
+  if (!m) return h;
+  let x = Math.floor(h);
+  while (x > 0 && !m.steps(x)) x--;
+  return x;
+}
 
 /** Cube-Größe → ECMWF-Kürzel. Was fehlt, führt ECMWF nicht (s. Kopf). */
 const PARAMS = {
@@ -207,15 +237,20 @@ export function makeEcmwfAdapter(id) {
     ensembleControlOnly: !!m.ensemble,
 
     async discoverRun(leadMax, nowMs = Date.now(), maxBack = 8) {
+      // Auf eine Stunde proben, die das Modell RECHNET (PD-C5): `chooseRun` fragt nach
+      // dem Bandende bzw. der ersten Stufenstunde — 51 h gibt es bei AIFS nicht, 48 h schon.
+      const probeH = ecmwfSnapDown(id, leadMax);
       for (let back = 0; back < maxBack; back++) {
         const run = runIdBack(nowMs, m.runSlotH, back);
-        if (await headOk(`${stem(run, leadMax)}.index`)) return run;
+        if (await headOk(`${stem(run, probeH)}.index`)) return run;
       }
       return null;
     },
 
     async leadsFor(run, tier) {
-      return probeHorizon(tier.leadHours, (h) => headOk(`${stem(run, h)}.index`));
+      // Erst das Raster, dann die Sonde: die Halbierung setzt Zusammenhang voraus, und
+      // der gilt nur auf den Stunden, die das Modell ueberhaupt rechnet (PD-C5).
+      return probeHorizon(ecmwfOwnLeads(id, tier.leadHours), (h) => headOk(`${stem(run, h)}.index`));
     },
 
     async field(run, leadH, varId, tier) {

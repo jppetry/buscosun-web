@@ -52,6 +52,8 @@
 
 import { fetchBytes, fetchRanges, headOk, runIdBack, sampleRegularToTier, M_TO_MM } from './shared.mjs';
 import { memberSpread } from './ensembleStats.mjs';
+// PD-C5: dasselbe Schrittraster wie der deterministische IFS-Adapter — EINE Regel.
+import { ECMWF_STEPS } from './ecmwf.mjs';
 import { decodeGrib2 } from '../../../src/sources/gribDecode.ts';
 
 const ECMWF = process.env.ECMWF_BASE || 'https://data.ecmwf.int/forecasts';
@@ -171,18 +173,26 @@ export function makeEcmwfEnsembleAdapter(id) {
     ensembleControlOnly: false,
 
     async discoverRun(leadMax, nowMs = Date.now(), maxBack = 8) {
+      // PD-C5: auf eine Stunde proben, die IFS rechnet (3 h bis 144, dann 6 h).
+      let probeH = Math.floor(leadMax);
+      while (probeH > 0 && !ECMWF_STEPS.ifs(probeH)) probeH--;
       for (let back = 0; back < maxBack; back++) {
         const run = runIdBack(nowMs, m.runSlotH, back);
-        if (await headOk(`${stem(run, leadMax)}.index`)) return run;
+        if (await headOk(`${stem(run, probeH)}.index`)) return run;
       }
       return null;
     },
 
-    /** Nur die Stunden des 48-h-Rasters werden geprüft — eine HEAD-Anfrage je Rasterstunde. */
+    /**
+     * Nur die Stunden des 48-h-Rasters werden geprüft — eine HEAD-Anfrage je Rasterstunde.
+     * PD-C5: und nur solche, die IFS überhaupt rechnet (`ECMWF_STEPS.ifs`) — heute
+     * deckungsgleich mit dem 48-h-Raster, aber ein feineres Raster in Stufe 2 (Plan PD-C8b)
+     * darf keine Stunde zwischen den Modellschritten fordern.
+     */
     async leadsFor(run, tier) {
       const got = [];
       for (const h of tier.leadHours) {
-        if (h % ECMWF_ENS_STEP_H !== 0) continue;
+        if (h % ECMWF_ENS_STEP_H !== 0 || !ECMWF_STEPS.ifs(h)) continue;
         if (await headOk(`${stem(run, h)}.index`)) got.push(h);
       }
       return got;

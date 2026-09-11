@@ -78,6 +78,9 @@ export const MOSMIX_NOT_MAPPED = Object.freeze({
   snowlmt: 'MOSMIX fuehrt keine Schneefallgrenze (114 Parameter am echten Datum ausgezaehlt).',
   gammaEff: 'Eine Station ist ein Punkt, kein Profil — es gibt keine Level, aus denen ein Gradient folgte.',
   zBase: 'wie gammaEff.', zInv: 'wie gammaEff.', dTInv: 'wie gammaEff.',
+  // PD-C4: die Metaebene, deren Abwesenheit bis hier nur in Prosa stand (§44). `srcCount`
+  // steht dagegen auf 1 und gehoert NICHT hierher — eine Quelle ist eine Aussage, keine Luecke.
+  ensCount: 'MOSMIX-L ist ein statistisches Produkt ohne Member. MISSING statt 0 — 0 hiesse „gemessen und null".',
 });
 
 // ---------------------------------------------------------------------------

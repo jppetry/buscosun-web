@@ -353,7 +353,13 @@ export async function buildTier(tierId, opts = {}) {
           const ownPrev = prevLead + c.offsetH;
           let prev = accPrev.get(key);
           if (!prev || prev.lead !== ownPrev) {
-            const p = ownPrev >= 0 ? await safeCall(c, `${varId} @ +${ownPrev} h (Vorschritt)`, () => c.adapter.field(c.run, ownPrev, varId, tier)) : null;
+            // PD-C5: liegt der Vorschritt INNERHALB der Stufe und die Quelle traegt ihn laut
+            // `leadsFor` nicht (AIFS rechnet 6-stuendlich, die Stufe 3-stuendlich), gibt es
+            // nichts zu holen — vorher gingen dafuer je Lauf 12 Abrufe in t2 ins Leere (404).
+            // Vor der ersten Stufenstunde (it = 0) wird weiter gefragt: dort sagt `leads` nichts.
+            const insideTier = ownPrev >= leadHours[0] + c.offsetH;
+            const fetchable = ownPrev >= 0 && (!insideTier || c.leads.has(ownPrev));
+            const p = fetchable ? await safeCall(c, `${varId} @ +${ownPrev} h (Vorschritt)`, () => c.adapter.field(c.run, ownPrev, varId, tier)) : null;
             prev = p ? { lead: ownPrev, grid: p } : null;
           }
           accPrev.set(key, { lead: own, grid: g });

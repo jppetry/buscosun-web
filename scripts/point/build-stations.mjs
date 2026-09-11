@@ -227,6 +227,9 @@ async function main() {
   console.log(`WALL_STATIONS=${Math.round((Date.now() - t0) / 1000)}s`);
 }
 
-if (import.meta.url === `file:///${process.argv[1].replace(/\\/g, '/')}`) {
+// PD-C4: dasselbe Idiom wie im Producer (`build-point-cube.mjs`). Der Windows-geformte
+// Vergleich davor (`file:///C:/…` gegen argv[1]) haette auf einem Linux-Runner mit
+// absolutem Pfad `file:////home/…` verglichen und `main()` still nie gestartet.
+if (process.argv[1]?.endsWith('build-stations.mjs')) {
   main().catch((e) => { console.error('[stations]', e); process.exit(1); });
 }

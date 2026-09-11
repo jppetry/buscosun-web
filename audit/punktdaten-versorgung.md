@@ -4788,9 +4788,14 @@ prüft dieses Manifest, wenn `POINT_FAULT_MANIFEST` gesetzt ist, sonst sagt er, 
 ### 46.4 Gate GPD-C1/C2
 
 `verify:point-data` **615/615** (nach PD-B10: 586; +20 für C1/C2 inkl. Negativ-Kontrollen),
-`typecheck` 0 Fehler, Cron-Nachbau Exit 0, Fehlerinjektion Exit 0. **Nicht deployt:** die Vorlage
-(11 516 Zeichen) weicht von der Datei im Daten-Repo (8 798) ab — die Kopie ist **Jans Gate (PD-C3)**;
-vorher müssen C1+C2 in `buscosun-web` gepusht sein, weil der Cron den Producer frisch klont.
+`typecheck` 0 Fehler, Cron-Nachbau Exit 0, Fehlerinjektion Exit 0.
+
+**PD-C3, Jans Gate (2026-09-11):** C1+C2 als `0cf7dca` in `buscosun-web` gepusht; die Vorlage liegt seit
+`4db2a2c` (Push 14:27 UTC) byte-gleich (11 964 B) als `.github/workflows/point.yml` im Daten-Repo,
+Workflow `active`. Der Auto-Modus hatte Klon, Commit und Push einer Workflow-Datei dreimal blockiert
+(Persistenz/Deploy/Selbstmodifikation); Jan hat die Regeln in `.claude/settings.local.json` selbst
+gesetzt. Erster planmäßiger Lauf mit dem neuen Stand: **15:50 UTC**; Gate GPD-C3 = zwei grüne Läufe
+am API-Verlauf und Schema 4 am CDN — noch offen.
 
 ### 46.5 Verbesserungen (D-28)
 
@@ -4810,3 +4815,122 @@ Der Cron-Klon trägt deshalb `runs/<lauf>/index.json` mit. *Mehrwert:* ein paar 
 was der Job wirklich auscheckt. *Skizze:* `/index.json` mit führendem Schrägstrich (Wurzel);
 `sparseCovers()` akzeptiert die Form bereits. Vorher messen, ob `actions/checkout` den Schrägstrich
 durchreicht.
+
+---
+
+## §47 PD-C4 — Manifest-Wahrheit, Aufbewahrung, Nowcast-Ehrlichkeit
+
+**Befund:** `PointRunManifest` in `src/point/manifest.ts` beschrieb ein Manifest, das kein Producer je
+geschrieben hat — es deklarierte `missing` (nie geschrieben) und kannte weder `quantiles`, `ensemble`,
+`profile`, `ageH`, `fusion`, `skipped`, `pending` noch die PD-C2-Felder `net`/`errors`/`dropped`.
+Dieselbe Klasse wie V-SH-11 (ein Leser ohne Schreiber), nur als Typ: ein Client, der sich darauf
+verlassen hätte, wäre am echten `run.json` gescheitert.
+
+### 47.1 Der Vertrag
+
+- Typ aus dem **tatsächlichen** Output von `runManifest()` abgeschrieben (`PointSourceManifest`,
+  `PointNetStat`, `PointTierManifest`, `PointRunManifest`); `missing` gestrichen.
+- Neu `validateRunManifest(json): string[]` — ohne Abhängigkeit, damit Verifier UND Browser sie
+  ausführen. Prüft Schema (nur das aktuelle; ältere fallen an der **ersten** Zeile), Läufe, Stufen samt
+  `run/runAt/ageH`, Chunk-Pfade unter dem Publikationslauf (§26), Ebenen, Quellen (`role`, `coverage`,
+  `offsetH`, `errors`, `dropped` nur mit Fehlern), `fusion` (gleiche Gewichte müssen `fallback` heißen;
+  `sdEnsEmpty` als Liste), `skipped`/`pending` als Objekte.
+- **Belegt:** das synthetische Producer-Manifest besteht (0 Verstöße); das **echte** PD-C2-Manifest
+  aus dem Fehlerinjektionslauf (46.3) besteht; vier Negativ-Kontrollen fallen an der benannten
+  Stelle durch (fehlender Quell-Lauf, Chunk unter fremdem Lauf, Schema 1, „measured" bei gleichen
+  Gewichten). Das lokale `data/point/2026090912` ist Schema 1 und wird **benannt** übersprungen.
+
+### 47.2 Aufbewahrung
+
+`TIMELESS_PATHS` führt jetzt `point/static/` (Präfix) — PD-C11 braucht dafür keine Formatentscheidung
+mehr. Verifier: `index.json.timeless` ist **exakt** die Liste, kein zeitloser Pfad liegt in einem
+Laufverzeichnis, ein Lauf-Chunk ist nicht zeitlos (Negativ-Kontrolle).
+
+### 47.3 Nowcast-Ehrlichkeit
+
+`nowcastManifest()` nennt je Quelle `extrapolationH` **aus der Registry** (`horizonH.default`: RV 2,
+INCA 3, **CombiPrecip 0** — eine Analyse, kein Nowcast), `extrapolation: false` für die Schweiz,
+`ambiguousZero: true` für alle PNG-Quellen, `coverageFrom: point/sources.json#<id>` statt einer
+zweiten Domänenfassung, dazu `fallback` (jenseits der Reichweite tragen die Cube-Stunden 0–3, der
+Client nennt die Quelle) und `horizonH: 3`. Selbsttest +6.
+
+### 47.4 Drei Wahrheitskorrekturen — und ein Fund, der schwerer war
+
+- `calib.json` führt jetzt `fixed.z0Table` (Davenport, `literature`, elf Klassen, Wasser 0,0002 m) —
+  `terrainPoint.ts` behauptete den Eintrag seit PD-A.
+- `MOSMIX_NOT_MAPPED.ensCount` benannt (MISSING statt 0); `srcCount` ausdrücklich **nicht** — es steht
+  auf 1, eine Quelle ist eine Aussage.
+- ⚠ **V-PD-43, gefunden beim Vereinheitlichen des Guard-Idioms:** `build-stations.mjs` startete
+  `main()` nur, wenn `import.meta.url === 'file:///' + argv[1]`. Auf Windows (`C:/…`) stimmt das; auf
+  einem **Linux-Runner** ist `argv[1]` absolut (`/home/…`), der Vergleich lautet `file:////home/…`
+  gegen `file:///home/…` — **und `main()` wäre nie gestartet, mit Exit 0.** Der Stationsschritt in der
+  neuen Vorlage hätte also still nichts gebaut, und `continue-on-error` hätte es zusätzlich verdeckt.
+  Der Cron hat den Schritt bisher nie ausgeführt (die deployte Vorlage war die alte ohne ihn), deshalb
+  gab es kein Protokoll, das es zeigte. Jetzt dasselbe Idiom wie im Producer (`argv[1].endsWith`);
+  der Verifier prüft es und verbietet die alte Form.
+
+### 47.5 Gate GPD-C4
+
+`verify:point-data` **642/642** (nach C2: 615), `typecheck` 0 Fehler. Keine Netzänderung.
+**V-PD-41** (Domänenmaske im Client-Nowcast) bleibt benannt und offen — STOPP & FRAGEN, weil es
+Live-Ausgabe ändert (null statt 0,0 mm/h außerhalb der Abdeckung).
+
+---
+
+## §48 PD-C5 — ECMWF-Schrittraster (V-PD-37)
+
+**Befund (§45.12, jetzt behoben):** die ECMWF-Adapter kannten ihr Schrittraster nicht. IFS rechnet
+3-stündlich bis 144 h und danach 6-stündlich, AIFS durchgehend 6-stündlich; `leadsFor` probte aber die
+ERSTE Stufenstunde und schloss aus einem 404, die Quelle habe nichts. In Stufe 2 beginnt die Achse bei
+51 h — kein Vielfaches von 6 — also fiel **AIFS Single dort komplett aus** („kein Lauf gefunden, der
+51 h trägt", Cron-Läufe 1–7). In Stufe 1 meldete die Halbierung 49 Stunden, von denen der Producer 80
+vergeblich abrief.
+
+### 48.1 Änderung
+
+`scripts/point/adapters/ecmwf.mjs`: `ECMWF_STEPS` (eine Regel je Modellfamilie), `ecmwfOwnLeads(id,
+leadHours)` filtert die Stufenstunden **vor** `probeHorizon` (die Halbierung setzt Zusammenhang voraus,
+und der gilt nur auf den Stunden, die das Modell rechnet), `ecmwfSnapDown()` lässt `discoverRun` auf
+eine Rasterstunde proben (51 → 48). Das Raster gilt im **Laufraum der Quelle** — `leadsFor` bekommt
+die um `offsetH` verschobenen Stunden. `ecmwfEns.mjs` importiert dieselbe Regel (kein Spiegel).
+Muster: `ownSteps` aus `dwdEps.mjs`.
+
+### 48.2 Messung — und ein zweiter Fund
+
+Stufe 2, `--only=aifs_single,ifs_hres,icon_eu`, Lauf 2026091106 (alle drei ohne Versatz):
+
+| Quelle | Schritte | Netz | Anfragen | 404 | Sonden |
+|---|---|---|---|---|---|
+| icon_eu | 24/24 | 277,4 MiB | 290 | 0 | 5 |
+| ifs_hres | 24/24 | 147,1 MiB | 50 | 0 | 4 |
+| **aifs_single** | **12/24** (54…120 h, `partial`) | **60,8 MiB** | 23 | **12** | 4 |
+
+AIFS Single trägt in Stufe 2 erstmals — **12 statt 0 Schritte**, für ≈ 61 MiB (der Plan hatte ≈ 40
+geschätzt; gemessen sind es 61, das Budget-Buch ist nachzuziehen). Kein 429 bei 600 ms Takt. Stufe 1
+(nur AIFS, 0–12 h): 3 Schritte (0/6/12), **keine** erfundenen 49 Stunden mehr.
+
+⚠ **Die 12 (und in t1 2) verbliebenen 404 waren ein zweiter Fehler:** die Entakkumulation des
+Niederschlags holt je Schritt den Vorschritt `leadH − Δ` — mit Δ = 3 h bei einer 6-stündlichen Quelle
+eine Stunde, die es nie gibt. Der Producer prüft jetzt, ob die Quelle den Vorschritt laut `leadsFor`
+trägt, bevor er ihn abruft (vor der ersten Stufenstunde weiter ohne Prüfung, dort sagt `leads` nichts).
+Danach am selben Cache: **0 nicht vorhanden** in beiden Stufen, und **56 von 56 t2-Chunks byte-gleich**
+zum Lauf davor — der Wächter ändert keine Daten, nur die Zahl der Anfragen. Ehrlich dazu: AIFS liefert
+in Stufe 2 damit weiterhin **keinen Niederschlag** (die Rate über 3 h ist aus 6-h-Summen nicht bildbar),
+wohl aber t2m, td2m, u10, v10, clct, ps — sechs von acht Größen als zweite Meinung für σ_div.
+
+**Nicht gemessen:** der σ_div-Median vorher/nachher am selben Cache — dafür müsste der alte Code laufen
+(kein `git stash`, Lehre Z3). Der Vergleich gegen den Cron steht stattdessen im Protokoll der Läufe 1–7
+(AIFS in t2 übersprungen).
+
+### 48.3 Gate GPD-C5
+
+`verify:point-data` **655/655** (nach C4: 642; +13 als Funktionsaufrufe: Raster, 12 Schritte in t2,
+9 in t1, Snap 51→48, Versatz, Vorschritt-Wächter), `typecheck` 0 Fehler, Chunks byte-gleich.
+**Kosten:** +≈ 61 MiB und ≈ 14 s Netzzeit je Lauf für AIFS in Stufe 2; −80 −12 vergebliche Anfragen.
+
+**V-PD-37 · erledigt (§48).** **V-PD-44 · Der Vorschritt der Entakkumulation folgt dem Stufenschritt,
+nicht dem Quellenraster.** Für 6-stündliche Quellen in einer 3-stündlichen Stufe (AIFS in t2, ICON-EU-EPS
+ab 78 h, V-PD-35) ist die Rate nicht bildbar und bleibt MISSING. *Mehrwert:* Niederschlag als zweite
+Meinung in der Mittelfrist. *Skizze:* Rate über Δ = Quellenschritt bilden und auf die Stufenstunden
+verteilen (gleiche Rate für beide 3-h-Schritte) — eine Annahme über die zeitliche Verteilung, die im
+Manifest stehen müsste (`precipRateSpanH`). Entscheidung Jan, nicht hier.

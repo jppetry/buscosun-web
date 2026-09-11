@@ -37,10 +37,10 @@ import { terrainPointSelfTest } from '../src/point/terrainPoint.ts';
 import { mosmixSelfTest, MOSMIX_NOT_MAPPED } from './point/mosmix.mjs';
 import { ensembleStatsSelfTest } from './point/adapters/ensembleStats.mjs';
 import { ECMWF_ENS_MEMBERS, ECMWF_ENS_STEP_H } from './point/adapters/ecmwfEns.mjs';
-import { keepIndexEntry } from './point/adapters/ecmwf.mjs';
+import { keepIndexEntry, ECMWF_STEPS, ecmwfOwnLeads, ecmwfSnapDown } from './point/adapters/ecmwf.mjs';
 import { toTyped } from './point/adapters/geosphere.mjs';
 import { calibrationSelfTest, CALIBRATION_V1 } from '../src/point/calibration.ts';
-import { buildPointIndex, planeManifest, tierManifest, RETENTION_HOURS, MIN_RUNS, TIMELESS_PATHS, isTimeless, runsToKeep, CDN_BASE } from '../src/point/manifest.ts';
+import { buildPointIndex, planeManifest, tierManifest, RETENTION_HOURS, MIN_RUNS, TIMELESS_PATHS, isTimeless, runsToKeep, CDN_BASE, validateRunManifest } from '../src/point/manifest.ts';
 import { verifyCogTiff } from '../src/fire/detail/cogTiff.ts';
 import { adapterFor, INGESTABLE, PENDING, ingestableFor } from './point/adapters/index.mjs';
 import {
@@ -2033,6 +2033,145 @@ merge('Profil (PD-B5)', profileSelfTest());
   } else {
     console.log('  (3p) kein Fehlerinjektions-Manifest angegeben (POINT_FAULT_MANIFEST) — Laufzeitbeweis uebersprungen, s. Audit §46');
   }
+}
+
+// --- (3q) PD-C4: Manifest-Wahrheit, Aufbewahrung, Nowcast-Ehrlichkeit ----------------
+//
+// Der Typ `PointRunManifest` beschrieb bis PD-C4 ein Manifest, das kein Producer je
+// geschrieben hat (`missing` deklariert, nie geschrieben; Quantile/Ensemble/Profil/ageH/
+// net fehlten). Jetzt ist er aus `runManifest()` abgeschrieben, und `validateRunManifest`
+// haelt echte Manifeste dagegen — der Vertrag, den der Client-Leser (PD-C12) einhaelt.
+{
+  const manSrc = readFileSync(join(ROOT, 'src/point/manifest.ts'), 'utf8');
+  add('(3q) der Typ deklariert kein Feld mehr, das niemand schreibt (missing)',
+    !/^\s*missing: string\[\];/m.test(manSrc));
+  add('(3q) der Typ kennt, was der Producer schreibt (quantiles, ensemble, profile, ageH, net, dropped, fusion, skipped, pending)',
+    ['quantiles:', 'ensemble:', 'profile:', 'ageH:', 'net:', 'dropped:', 'fusion:', 'skipped:', 'pending:'].every((k) => manSrc.includes(k)));
+
+  // (a) Ein vom Producer gebautes Manifest ist gueltig — synthetisch, mit allen Feldern,
+  //     die der echte Bau setzt (Quantile/Ensemble/Profil/net/dropped).
+  const synthetic = runManifest([{
+    tier: 't3', run: '2026091100', leadHours: TIER_BY_ID.t3.leadHours,
+    files: [{ file: 'point/2026091100/t3/00_00.bin', bytes: 10, cy: 0, cx: 0 }], bytesTotal: 10, skipped: [['aicon', 'Test']],
+    dropped: [['aifs_single', 'Test']],
+    contributors: [
+      { id: 'ifs_hres', run: '2026091100', leads: 36, role: 'assigned', coverage: 'full', offsetH: 0, cells: 2009, maskInside: 2009, errors: 0 },
+      { id: 'aifs_single', run: '2026091100', leads: 5, role: 'assigned', coverage: 'partial', offsetH: 0, cells: 2009, maskInside: 2009,
+        errors: 6, firstError: 'Test', dropped: { reason: 'Test', errors: 6, firstError: 'Test' } },
+    ],
+    net: { ifs_hres: { files: 1, bytes: 2, ms: 3, cached: 0, absent: 0, throttled: 0, probes: 1 } },
+    quantiles: null, ensemble: null, profile: null,
+    perPlane: {}, hasData: {}, ms: { fields: 0, total: 0 },
+  }]);
+  const synthErrs = validateRunManifest(synthetic);
+  add('(3q) ein vom Producer gebautes Manifest besteht validateRunManifest', synthErrs.length === 0, synthErrs.slice(0, 3).join(' | '));
+  add('(3q) das Manifest traegt die PD-C2-Felder je Quelle und Stufe',
+    synthetic.sources.find((s) => s.id === 'aifs_single')?.dropped?.errors === 6
+    && synthetic.tiers[0].net?.ifs_hres?.bytes === 2 && synthetic.tiers[0].dropped[0]?.id === 'aifs_single');
+
+  // (b) Negativ-Kontrollen: ein kaputtes Manifest faellt durch — und zwar an der richtigen Stelle.
+  const broken1 = JSON.parse(JSON.stringify(synthetic)); delete broken1.tiers[0].run;
+  const broken2 = JSON.parse(JSON.stringify(synthetic)); broken2.tiers[0].files[0].file = 'point/2026091106/t3/00_00.bin';
+  const broken3 = JSON.parse(JSON.stringify(synthetic)); broken3.schema = 1;
+  const broken4 = JSON.parse(JSON.stringify(synthetic)); broken4.fusion.provenance = 'measured';
+  add('(3q) Negativ-Kontrolle: fehlender Quell-Lauf einer Stufe faellt durch',
+    validateRunManifest(broken1).some((e) => e.includes('tiers[0].run')));
+  add('(3q) Negativ-Kontrolle: ein Chunk unter einem fremden Lauf faellt durch (§26)',
+    validateRunManifest(broken2).some((e) => e.includes('§26')));
+  add('(3q) Negativ-Kontrolle: ein Manifest eines aelteren Schemas faellt an der ersten Zeile',
+    validateRunManifest(broken3)[0]?.startsWith('schema 1'));
+  add('(3q) Negativ-Kontrolle: gleiche Gewichte als „gemessen" ausgegeben faellt durch',
+    validateRunManifest(broken4).some((e) => e.includes('fallback')));
+  add('(3q) kein Objekt ist kein Manifest', validateRunManifest(null)[0] === 'kein Objekt');
+
+  // (c) Echte Manifeste im Ausgabebaum — nur die des aktuellen Schemas; aeltere werden
+  //     BENANNT uebersprungen (der Handlauf 2026090912 ist Schema 1).
+  const pointDir = join(ROOT, 'data/point');
+  const real = existsSync(pointDir)
+    ? readdirSync(pointDir).filter((d) => /^\d{10}$/.test(d) && existsSync(join(pointDir, d, 'run.json'))) : [];
+  let checkedReal = 0;
+  for (const d of real) {
+    const m = JSON.parse(readFileSync(join(pointDir, d, 'run.json'), 'utf8'));
+    if (m.schema !== CUBE_SCHEMA) { console.log(`  (3q) data/point/${d}/run.json ist Schema ${m.schema} — nicht gegen den Schema-${CUBE_SCHEMA}-Vertrag gehalten`); continue; }
+    const e = validateRunManifest(m);
+    add(`(3q) echtes Manifest data/point/${d} besteht den Vertrag`, e.length === 0, e.slice(0, 3).join(' | '));
+    checkedReal++;
+  }
+  if (!checkedReal) console.log('  (3q) kein Schema-4-Manifest unter data/point — Vertragspruefung am echten Baum uebersprungen');
+  const fm2 = process.env.POINT_FAULT_MANIFEST;
+  if (fm2 && existsSync(fm2)) {
+    const e = validateRunManifest(JSON.parse(readFileSync(fm2, 'utf8')));
+    add('(3q) das Fehlerinjektions-Manifest besteht den Vertrag', e.length === 0, e.slice(0, 3).join(' | '));
+  }
+
+  // (d) Aufbewahrung: die Ausnahmeliste steht EXAKT im Index, nichts davon liegt in einem
+  //     Laufverzeichnis, und das statische Produkt ist schon ausgenommen (PD-C11 muss
+  //     dafuer keine Formatentscheidung mehr treffen).
+  const idx = buildPointIndex({ commit: null, publishedAt: '2026-09-11T00:00:00Z', runs: [] });
+  add('(3q) index.json.timeless ist exakt TIMELESS_PATHS', JSON.stringify(idx.timeless) === JSON.stringify(TIMELESS_PATHS));
+  add('(3q) kein zeitloser Pfad liegt in einem Laufverzeichnis', !TIMELESS_PATHS.some((p) => /\/\d{10}(\/|$)/.test(p)));
+  add('(3q) point/static/ ist zeitlos (Praefix)', isTimeless('point/static/ghs-2023-v1/static.json') && !isTimeless('point/2026091100/run.json'));
+  add('(3q) Negativ-Kontrolle: ein Lauf-Chunk ist NICHT zeitlos', !isTimeless('point/2026091100/t1/00_00.bin'));
+
+  // (e) Nowcast-Ehrlichkeit: Reichweite je Quelle aus der Registry, CH ohne Extrapolation.
+  const nm = idx.nowcast;
+  add('(3q) Nowcast: extrapolationH je Quelle = Registry-Horizont',
+    nm.sources.every((s) => s.extrapolationH === SOURCE_BY_ID[s.id].horizonH.default));
+  add('(3q) Nowcast: CombiPrecip ist Analyse (0 h), RV 2 h, INCA 3 h',
+    nm.sources.find((s) => s.id === 'combiprecip')?.extrapolationH === 0
+    && nm.sources.find((s) => s.id === 'radvor_rv')?.extrapolationH === 2
+    && nm.sources.find((s) => s.id === 'inca')?.extrapolationH === 3);
+  add('(3q) Nowcast: der Rueckfall auf das Modell steht im Index', typeof nm.fallback === 'string' && nm.fallback.includes('Cube-Stunden 0–3'));
+  add('(3q) Nowcast: keine zweite Domaenen-Fassung, nur der Verweis auf sources.json',
+    nm.sources.every((s) => !('domain' in s) && String(s.coverageFrom).startsWith('point/sources.json#')));
+
+  // (f) Wahrheitskorrekturen: z0 in der Kalibrierung, ensCount bei MOSMIX, Stations-Guard.
+  add('(3q) calib.json fuehrt die z0-Tabelle als literature (terrainPoint.ts behauptete das seit PD-A)',
+    CALIBRATION_V1.fixed.z0Table?.provenance === 'literature');
+  add('(3q) MOSMIX benennt ensCount als nicht abbildbar, srcCount NICHT (steht auf 1)',
+    !!MOSMIX_NOT_MAPPED.ensCount && !MOSMIX_NOT_MAPPED.srcCount);
+  const stSrc = readFileSync(join(ROOT, 'scripts/point/build-stations.mjs'), 'utf8');
+  add('(3q) build-stations startet ueber dasselbe Guard-Idiom wie der Producer (endsWith)',
+    /process\.argv\[1\]\?\.endsWith\('build-stations\.mjs'\)/.test(stSrc) && !/file:\/\/\/\$\{process\.argv\[1\]/.test(stSrc),
+    'der alte Vergleich file:///${argv[1]} traf auf Linux mit absolutem Pfad nie (file:////home/…)');
+}
+
+// --- (3r) PD-C5: ECMWF-Schrittraster (V-PD-37) ---------------------------------------
+//
+// IFS rechnet 3-stuendlich bis 144 h, danach 6-stuendlich; AIFS durchgehend 6-stuendlich.
+// Ohne dieses Wissen probte `leadsFor` die erste Stufenstunde: 51 h gibt es bei AIFS nicht
+// ⇒ Stufe 2 ohne AIFS Single; und in Stufe 1 meldete die Halbierung 49 Stunden, von denen
+// 80 Abrufe je Lauf ins Leere gingen (§45.12). Geprueft als Funktion, nicht als Regex.
+{
+  add('(3r) IFS: 3-stuendlich bis 144 h, danach 6-stuendlich',
+    ECMWF_STEPS.ifs(141) && ECMWF_STEPS.ifs(144) && !ECMWF_STEPS.ifs(147) && ECMWF_STEPS.ifs(150) && !ECMWF_STEPS.ifs(1) && ECMWF_STEPS.ifs(0));
+  add('(3r) AIFS: durchgehend 6-stuendlich', ECMWF_STEPS.aifs(48) && !ECMWF_STEPS.aifs(51) && ECMWF_STEPS.aifs(54) && !ECMWF_STEPS.aifs(3));
+  const t2Aifs = ecmwfOwnLeads('aifs_single', TIER_BY_ID.t2.leadHours);
+  add('(3r) AIFS Single traegt in Stufe 2 zwoelf Schritte (54…120 h), nicht null',
+    t2Aifs.length === 12 && t2Aifs[0] === 54 && t2Aifs.at(-1) === 120, t2Aifs.join(','));
+  const t1Aifs = ecmwfOwnLeads('aifs_single', TIER_BY_ID.t1.leadHours);
+  add('(3r) AIFS Single in Stufe 1: neun Schritte (0…48), keine 49 „Stunden" mehr', t1Aifs.length === 9, t1Aifs.join(','));
+  const t3Ifs = ecmwfOwnLeads('ifs_hres', TIER_BY_ID.t3.leadHours);
+  add('(3r) IFS HRES in Stufe 3: alle 36 Stufenstunden (126…336 sind Vielfache von 6)', t3Ifs.length === 36);
+  const t2Ifs = ecmwfOwnLeads('ifs_hres', TIER_BY_ID.t2.leadHours);
+  add('(3r) IFS HRES in Stufe 2: alle 24 (dreistuendlich ≤ 144)', t2Ifs.length === 24);
+  add('(3r) die Laufsuche probt auf eine Rasterstunde (51 → 48 bei AIFS, 147 → 144 bei IFS)',
+    ecmwfSnapDown('aifs_single', 51) === 48 && ecmwfSnapDown('ifs_hres', 147) === 144 && ecmwfSnapDown('ifs_hres', 120) === 120);
+  // Im Laufraum der Quelle: `leadsFor` bekommt Stunden + offsetH — das Raster gilt DORT.
+  add('(3r) das Raster gilt fuer verschobene Stunden (Versatz 6 h: 51+6 = 57 faellt, 54+6 = 60 traegt)',
+    !ecmwfOwnLeads('aifs_single', [57]).length && ecmwfOwnLeads('aifs_single', [60]).length === 1);
+  const ec = readFileSync(join(ROOT, 'scripts/point/adapters/ecmwf.mjs'), 'utf8');
+  const ecEns = readFileSync(join(ROOT, 'scripts/point/adapters/ecmwfEns.mjs'), 'utf8');
+  add('(3r) leadsFor filtert VOR der Halbierung', /probeHorizon\(ecmwfOwnLeads\(id, tier\.leadHours\)/.test(ec));
+  add('(3r) discoverRun probt die geschnappte Stunde', /ecmwfSnapDown\(id, leadMax\)/.test(ec) && /stem\(run, probeH\)/.test(ec));
+  add('(3r) der Ensemble-Adapter teilt die Regel (kein Spiegel)', /import \{ ECMWF_STEPS \} from '\.\/ecmwf\.mjs'/.test(ecEns) && /ECMWF_STEPS\.ifs\(h\)/.test(ecEns));
+  add('(3r) Negativ-Kontrolle: unbekannte Modell-ID liefert keine Stunden', ecmwfOwnLeads('nope', [0, 6]).length === 0);
+  // Gemessen nach dem Rasterfix: AIFS trug in t2 zwoelf Schritte, aber der Producer holte
+  // fuer die Entakkumulation zwoelfmal den Vorschritt leadH−3, den AIFS nie rechnet (12×404).
+  const prodC5 = readFileSync(join(ROOT, 'scripts/point/build-point-cube.mjs'), 'utf8');
+  add('(3r) der Vorschritt der Entakkumulation wird nur geholt, wenn die Quelle ihn laut leadsFor traegt',
+    /const insideTier = ownPrev >= leadHours\[0\] \+ c\.offsetH;/.test(prodC5)
+    && /fetchable = ownPrev >= 0 && \(!insideTier \|\| c\.leads\.has\(ownPrev\)\)/.test(prodC5));
 }
 
 // --- Ausgabe ----------------------------------------------------------------

@@ -60,6 +60,9 @@
  */
 
 import { CUBE_DOMAIN } from './cubeFormat';
+// PD-C4: Reichweite und Domäne je Quelle kommen aus der Registry — EINE Wahrheit.
+// `sourceMatrix.ts` importiert nichts, also kein Zyklus.
+import { SOURCE_BY_ID } from './sourceMatrix';
 
 /** Obergrenze der Werteskala im Spiegel. Spiegelt `PRECIP_VMAX` — NICHT ändern (s. Kopf). */
 export const NOWCAST_VMAX = 20;
@@ -182,8 +185,22 @@ export function nowcastManifest() {
       id: s.id, dir: `${NOWCAST_IMG_DIR}/${s.dir}`, grid: s.grid,
       cornersFrom: s.cornersFrom, slotMinutes: s.slotMinutes, keptSlots: s.keptSlots,
       lossless: s.lossless, note: s.why,
+      // PD-C4: wie weit die Quelle EXTRAPOLIERT — aus der Registry, nicht hier abgeschrieben.
+      // RV 2 h (+120 min gemessen, §36), INCA 3 h, CombiPrecip 0 h: eine Analyse, kein Nowcast.
+      // Jenseits davon gibt es für diesen Punkt aus dieser Quelle keinen Wert — der Client
+      // fällt auf das Modell (Cube-Stunden 0–3) und SAGT es (`fallback` unten).
+      extrapolationH: SOURCE_BY_ID[s.id]?.horizonH.default ?? 0,
+      extrapolation: (SOURCE_BY_ID[s.id]?.horizonH.default ?? 0) > 0,
+      // Alle drei liegen als u8-PNG im Spiegel: Byte 0 ist überall zweideutig, 255 gesättigt.
+      ambiguousZero: true,
+      saturatedAt: NOWCAST_SATURATION,
+      coverageFrom: `point/sources.json#${s.id} (domain ∩ clip, edgeMarginKm) — hier steht keine zweite Fassung`,
     })),
     geometry: 'Welche Quelle einen Punkt trägt, entscheidet die Domäne aus point/sources.json (domain ∩ clip, edgeMarginKm) — geometrisch, nicht über das Land (QUELLENMATRIX §2). Für Ostösterreich trägt allein INCA.',
+    // PD-C4: die Schweiz hat KEINE Extrapolation (E1 nur auf Anfrage, QUELLENMATRIX §5;
+    // Ende 2026 kündigt MeteoSchweiz eine Einzelabfrage-API an — SCHEDULED_CHANGES).
+    fallback: 'Jenseits `sources[].extrapolationH` trägt für 0–3 h das Modell: die Cube-Stunden 0–3 (ICON-D2 stündlich, ICON-CH1-EPS dreistündlich, C-LAEF). Ein Client, der dort einen Wert zeigt, nennt die Quelle — „Nowcast" wäre für die Schweiz jenseits der Analyse unwahr. Kein CH-Nowcast im Repo, weil E1 blockiert ist.',
+    horizonH: Math.max(...NOWCAST_SOURCES.map((s) => SOURCE_BY_ID[s.id]?.horizonH.default ?? 0)),
     retention: `Der Spiegel hält ${NOWCAST_SOURCES[0].keptSlots} Slots je Quelle (RV/RZC ≈ 1 h, INCA ≈ 3 h) — er ist ein LIVE-Spiegel, kein Archiv. Die 24-Stunden-Regel des Cubes gilt hier nicht.`,
   };
 }
@@ -243,6 +260,16 @@ export function nowcastFormatSelfTest(): { checks: NowcastCheck[]; passed: numbe
   add('das Manifest nennt den verlustfreien Weg für DE',
     m.sources.find((s) => s.id === 'radvor_rv')?.lossless === NOWCAST_RV_RAW_DIR);
   add('das Manifest sagt, dass die Auswahl geometrisch ist', m.geometry.includes('geometrisch'));
+  // PD-C4: Reichweite je Quelle aus der Registry — CombiPrecip ist eine ANALYSE (0 h).
+  const ext = Object.fromEntries(m.sources.map((s) => [s.id, s.extrapolationH]));
+  add('Reichweite je Quelle: RV 2 h, INCA 3 h, CombiPrecip 0 h (aus der Registry)',
+    ext.radvor_rv === 2 && ext.inca === 3 && ext.combiprecip === 0, JSON.stringify(ext));
+  add('CombiPrecip ist als Analyse ohne Extrapolation ausgewiesen',
+    m.sources.find((s) => s.id === 'combiprecip')?.extrapolation === false);
+  add('der Nowcast-Horizont ist das Maximum der Quellen (3 h)', m.horizonH === 3, `${m.horizonH} h`);
+  add('das Manifest nennt den Rückfall auf das Modell und die fehlende CH-Extrapolation',
+    m.fallback.includes('Cube-Stunden 0–3') && m.fallback.includes('Schweiz'));
+  add('jede PNG-Quelle trägt die Zweideutigkeit von Byte 0 als Flag', m.sources.every((s) => s.ambiguousZero === true));
 
   // Die Domäne wird NICHT hier geführt — sonst gäbe es zwei Wahrheiten.
   add('keine zweite Domänen-Fassung in diesem Modul',

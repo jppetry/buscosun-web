@@ -617,9 +617,25 @@
 > (V-PD-38), Cache je Stufe leeren (V-PD-36, nur im Cron). **Laufzeitbeweis:** Bau mit injiziertem
 > AIFS-Fehler ⇒ 6 Fehler, Quelle herausgefallen, IFS trägt, 12 Chunks, EXIT 0; Cron-Nachbau mit
 > sparse-Klon ⇒ Publisher Exit 0. `verify:point-data` **615/615**, typecheck grün.
-> ⚠ **Nicht deployt — Jans Gate PD-C3:** die Vorlage nach `buscosun-data/.github/workflows/point.yml`
-> kopieren, vorher C1+C2 pushen (der Cron klont den Producer frisch). Plan: `~/.claude/plans/…`
-> (PD-C1…C16), Etappen C3 ff. offen.
+> ✅ **PD-C3 deployt (2026-09-11 14:27 UTC):** C1+C2 als `0cf7dca` gepusht, Vorlage byte-gleich als
+> `buscosun-data/.github/workflows/point.yml` (`4db2a2c`, 11 964 B, Workflow `active`). Gate GPD-C3
+> noch offen: zwei grüne planmäßige Läufe (erster 15:50 UTC) und Schema 4 am CDN. Plan:
+> `~/.claude/plans/…` (PD-C1…C16).
+> ✅ **PD-C4/PD-C5 umgesetzt (§47/§48, uncommitted).** C4: `PointRunManifest` aus dem ECHTEN
+> Producer-Output neu geschrieben (`missing` war ein Feld ohne Schreiber), `validateRunManifest()` als
+> Vertrag für Verifier und späteren Client (Negativ-Kontrollen: fremder Lauf im Chunk-Pfad, Schema 1,
+> „measured" bei gleichen Gewichten); `point/static/` zeitlos; Nowcast-Block nennt `extrapolationH`
+> aus der Registry (RV 2, INCA 3, **CombiPrecip 0** — die Schweiz hat keine Extrapolation) und den
+> Rückfall auf die Cube-Stunden 0–3; `calib.json` führt die z0-Tabelle (`literature`), die
+> `terrainPoint.ts` seit PD-A behauptete. ⚠ **V-PD-43 nebenbei gefunden:** der Einstiegs-Guard von
+> `build-stations.mjs` (`file:///` + argv[1]) hätte auf einem **Linux-Runner nie** `main()` gestartet
+> — Exit 0, `continue-on-error`, nichts gebaut, kein Protokoll; jetzt dasselbe Idiom wie der Producer.
+> C5: `ECMWF_STEPS` (IFS 3 h bis 144, dann 6 h; AIFS 6 h), `leadsFor` filtert VOR der Halbierung,
+> `discoverRun` probt Rasterstunden (51 → 48). **Gemessen in t2: AIFS Single 12 statt 0 Schritte
+> (54…120 h), 60,8 MiB**, 0 statt 80 vergebliche Abrufe; die letzten 12 × 404 waren die Entakkumulation
+> (Vorschritt −3 h bei 6-h-Quelle) — jetzt nur geholt, wenn `leadsFor` ihn kennt; 56/56 Chunks
+> byte-gleich. AIFS liefert in t2 weiter keinen Niederschlag (V-PD-44, Jans Entscheidung).
+> `verify:point-data` **655/655**, typecheck 0 Fehler. V-PD-41 (Client-Nowcast ohne Maske) offen = STOPP & FRAGEN.
 > **Werkzeugfalle zum dritten Mal in dieser Phase:** `[^
 ]` in einer Regex wurde durch die
 > Python-in-Bash-Kette zum echten Zeilenumbruch und hat den Verifier zerschossen. Kur wie
