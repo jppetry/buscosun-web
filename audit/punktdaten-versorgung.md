@@ -5587,6 +5587,18 @@ Die „80 zusätzlichen" Chunks in der `compareTrees`-Zeile sind die 68 des Frem
 t3 — die t1-Referenz kennt sie nicht; verglichen wurden absichtlich zwei verschieden geschnittene
 Bäume, damit der Fremdlauf im selben Lauf mitgeprüft wird.
 
+**Und die Publisher-Seite, trocken gegen einen frischen Baum** (mit einem absichtlich liegengelassenen
+`point/.build/t1/00_00.bin`):
+
+```
+[publish-point] Bau-Ablage point/.build entfernt (1 Datei(en) aus einem abgebrochenen Lauf).
+[publish-point] 2026091115: 220 Chunks, alle im Manifest
+[publish-point] 2026091112: 68 Chunks, alle im Manifest
+```
+
+Genau die Zeile, die in Lauf 13 „12 Eintrag/Einträge ohne Datei. Abbruch." lautete — und der Rest der
+Bau-Ablage steht danach in keinem Commit.
+
 Im Verifier neu: **(3c2)** baut den Lauf-13-Fall synthetisch nach (veröffentlichter Lauf + Quell-Lauf
 gleichen Namens) und prüft, dass dessen Chunks *und Bytes* und sein Manifest unangetastet bleiben;
 **(3c3)** hält die Form fest (Ablage heißt nicht wie ein Lauf, der Producer schreibt dorthin und
@@ -5596,7 +5608,53 @@ in die Ablage — er prüft damit, was der Producer wirklich tut.
 `verify:point-data` **826/826** (war 814), `typecheck` 0 Fehler, Build 241/241, Budget grün
 (`totalJs` 1 366,1 unverändert — `cubeFormat.ts` steht in keinem Chunk).
 
-### 51.5 Was offen bleibt
+### 51.5 Der Nachhol-Lauf (Lauf 14) — und die erste saubere Runner-Messung von Block F
+
+Nach dem Push der Kur (`e00ff3d`) von Hand angestoßen: **Lauf 14, `workflow_dispatch` 14:54 UTC,
+EXIT 0 nach 25 min.** `2026091212` steht mit **276 Chunks / 81,9 MiB** im Repo, Datencommit `9ae83db`
+(vier Push-Versuche — der Radar-Spiegel pusht dazwischen, die Wiederholung aus §29 hält),
+Manifest `f1654c0`, jsDelivr-Purge 200, `index.json` am CDN um 15:17 UTC mit `latestByTier` und
+`retentionByTier` (F3a ist damit erstmals AM CDN sichtbar). Die Aufbewahrung je Stufe hat gearbeitet:
+t3 aus `2026091118`/`2026091115` entfernt (27,3 h alt), `2026091115` damit ganz weg, `2026091118` trägt
+nur noch t2. **Kein `point/.build` im Repo.**
+
+⚠ **Ehrlich zum Beweiswert:** Lauf 14 hat den Kollisionsfall NICHT ausgelöst — alle drei Stufen hatten
+`2026091212` als jüngsten Beiträger (AICON und ICON-CH2 waren mit 12z schon da), also gab es nichts zu
+verschieben. Der Lauf beweist damit Regressionsfreiheit am echten Betrieb und die Rückkehr der
+Veröffentlichung, nicht die Kur selbst; die ist lokal bewiesen (51.4) und wird am Runner wieder
+geprüft, sobald t3 auf einen älteren, schon veröffentlichten Lauf zurückfällt — im 09:50-Slot der
+Regelfall.
+
+**Was der Tag nebenbei liefert, ist die erste Vorher/Nachher-Messung auf DEMSELBEN Runner:**
+
+| Stufe | Lauf 12 (03:50, vor Block F) | Lauf 13 (09:50) | Lauf 14 (14:54) |
+|---|---|---|---|
+| t1 | 2 108 s (35,1 min) | 600 s | 599 s |
+| t2 | 1 527 s (25,5 min) | 448 s | 435 s |
+| t3 | 965 s (16,1 min) | 291 s | 227 s |
+| **Bau gesamt** | **4 600 s = 76,7 min** | 1 339 s = 22,3 min | **1 261 s = 21,0 min** |
+
+**−72 % auf dem Runner** — die lokale Messung (kalt t1 1 219 → 539 s, −56 %) hat die Wirkung eher
+unterschätzt, weil der Runner mit 4 vCPU stärker an der Sequenzialität litt. Damit ist Jans dritte
+Priorität („kurzer Verarbeitungszeitraum") nicht mehr die Bremse: der Bau kostet 21 min, die Wartezeit
+bis zum Slot 0–6 h. Das ist die Rechtfertigung für F3b (drei Takte) — und die Zahlen für
+`JOB_MAX_MIN_BY_TIER` sind jetzt gemessen statt hochgerechnet: Maximum über die zwei Läufe mit Block F
++ 30 % ⇒ **t1 13 · t2 10 · t3 7 min** (die Vorlage trägt provisorisch {30, 30, 20} — sie bleibt so
+lange stehen, bis ein ganzer Tag gemessen ist, F3c; ein Deckel darf großzügig sein, ein Slot nicht).
+
+⚠ **Auffällig und noch nicht behoben:** `discover` kostet auf dem Runner **107–158 s** in t1/t2 (lokal
+6–15 s). Die Laufsuche läuft seit F2b parallel; was hier misst, sind Netz-Rundreisen zu DWD und CSCS
+über eine langsamere Leitung. Zusammen mit V-PD-48 (Bahnen je (Quelle, Var)) ist das der nächste
+Posten, wenn Stufe 1 unter 8 min soll.
+
+**V-PD-50 (neu, benannt):** `tiers[].ageH` misst den Abstand des **jüngsten beitragenden** Laufs zum
+Publikationslauf — nicht den der tragenden Quelle. In Lauf 14 steht t3 damit auf `ageH: 0`, obwohl IFS
+HRES und ICON global aus 00z stammen (15 h) und AICON@12z nur zehn Stunden beisteuert. Je Quelle steht
+es richtig im Manifest (`sources[].runAt`, `offsetH`); die Stufenzahl allein liest sich zu jung. Kur
+wäre ein zweiter Wert („Alter der Quelle mit der weitesten Abdeckung") — eigene Etappe, weil der
+Client-Vertrag (PD-C12) davon abhängt.
+
+### 51.6 Was offen bleibt
 
 - **V-PD-49:** Dieselbe Klasse für das Stationsprodukt ist NICHT geprüft — `build-stations.mjs`
   schreibt direkt nach `point/stations/<Lauf>/`. Dort gibt es keine Umbenennung und der Lauf gehört

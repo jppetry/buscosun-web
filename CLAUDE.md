@@ -700,6 +700,18 @@
 > veröffentlichten Lauf: **69/69 fremde Dateien SHA1-identisch**, t1 **208/208** und t3 **12/12**
 > byte-gleich, Ablage danach weg. `verify:point-data` **826/826**, typecheck 0, Build 241/241, Budget
 > grün. **V-PD-49** (dieselbe Klasse beim Stationsprodukt) ist benannt, nicht behoben.
+> ✅ **Lauf 14 (nachgeholt, 14:54 UTC) hat veröffentlicht:** `point/2026091212/` mit 276 Chunks,
+> 81,9 MiB, Datencommit `9ae83db` (vier Push-Versuche, die Wiederholung hält), Purge 200, und
+> **`latestByTier`/`retentionByTier` stehen erstmals am CDN**; die Aufbewahrung je Stufe hat t3 aus zwei
+> Altläufen entfernt. ⚠ Ehrlich: dieser Lauf hat die Kollision NICHT ausgelöst (alle Stufen hatten 12z
+> als jüngsten Beiträger) — er belegt Regressionsfreiheit, die Kur selbst ist lokal belegt.
+> **Die erste Vorher/Nachher-Messung auf DEMSELBEN Runner, gleicher Tag** (§51.5): Bau **76,7 min
+> (Lauf 12, vor Block F) → 22,3 → 21,0 min = −72 %** (t1 2 108 → 599 s · t2 1 527 → 435 · t3 965 → 227).
+> Damit ist der Bau nicht mehr die Bremse; die Wartezeit bis zum Slot ist es (⇒ F3b). Gemessene Zahlen
+> für `JOB_MAX_MIN_BY_TIER`: **t1 13 · t2 10 · t3 7 min** (Maximum + 30 %) — die Vorlage behält
+> {30, 30, 20}, bis ein ganzer Tag gemessen ist (F3c). ⚠ `discover` kostet auf dem Runner 107–158 s
+> gegen 6–15 s lokal; **V-PD-50**: `tiers[].ageH` misst den jüngsten Beiträger, nicht die tragende
+> Quelle (t3 stand auf „0 h", während IFS aus 00z kam).
 > **Werkzeugfalle zum dritten Mal in dieser Phase:** `[^
 ]` in einer Regex wurde durch die
 > Python-in-Bash-Kette zum echten Zeilenumbruch und hat den Verifier zerschossen. Kur wie
