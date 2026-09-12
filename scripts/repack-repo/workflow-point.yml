@@ -31,7 +31,7 @@
 # als `scda` bei 144 h.
 #
 # ── Die drei Takte ───────────────────────────────────────────────────────────
-#   t1  30 1,4,7,10,13,16,19,22   ICON-D2 des Laufs −3 h (Lauf + 1,35 h + 9 min Rand);
+#   t1  40 1,4,7,10,13,16,19,22   ICON-D2 des Laufs −3 h (Lauf + 1,67 h ⇒ 18 min Rand);
 #                                  8×/Tag, ≈ 4 GiB je Lauf.
 #   t2  50 3,9,15,21              wie bisher: ICON-EU/ICON global des laufenden Zyklus
 #                                  (+3,7 h) sind fertig; hier läuft auch das Stationsprodukt.
@@ -49,9 +49,27 @@
 #            Abstand − JOB_MAX_MIN(vorderer) ≥ JOB_MAX_MIN(Job) + 20
 #   Regel C  JOB_MAX_MIN(Job) + 10 ≤ timeout-minutes(Job) ≤ Abstand
 #   Regel D  keine zwei Cron-Zeilen mit derselben Minute, nie drei Jobs im selben Fenster
-# t1 um :30 hat zum :30-Push der Kartenlinie eine Stunde später GENAU 60 min ⇒
-# JOB_MAX_MIN(t1) ≤ 40. Rückfall, falls der Runner t1 nicht in 30 min schafft:
-# `30 0,3,6,…` mit 120 min Abstand, aber ≈ 2 h älterem ICON-D2.
+#
+# ── Warum der t1-Slot auf :40 liegt (2026-09-12 nachgemessen) ────────────────
+# Die Kartenlinie lässt je Drei-Stunden-Zyklus GENAU EIN Fenster: von :20 der Stunden
+# 0/3/6/… bis :30 der Stunden 2/5/8/…. Mit JOB_MAX_MIN(t1) = 20 muss der Slot also
+# zwischen H:20 und (H+1):50 liegen. Nach unten begrenzt ihn die Bereitstellung:
+# ICON-D2 15z Stunde 048 stand am 2026-09-12 um 16:21:43 UTC, also Lauf + 1,36 h.
+#   :30 ⇒  8 min Rand, 60 min Abstand zur Kartenlinie
+#   :40 ⇒ 18 min Rand, 50 min Abstand      ← gewählt
+#   :50 ⇒ 28 min Rand, 40 min Abstand      (Regel A gerade noch, keine Reserve)
+# Acht Minuten Rand sind zu wenig für eine Quelle, deren Bereitstellung über vier
+# Läufe ±0,01 h schwankt, aber eben nicht garantiert ist; verspätet sie sich, fiele
+# der Lauf still auf ICON-D2 −3 h zurück. Rückfall, falls der Runner t1 nicht in
+# 20 min schafft: `40 0,3,6,…` mit 110 min Abstand, aber ≈ 2 h älterem ICON-D2.
+#
+# ⚠ Was der Slot NICHT einholt, und das gehört dazu: ICON-D2-EPS braucht länger als
+# der deterministische Lauf (15z am 2026-09-11 erst um 17:09 UTC = Lauf + 2,17 h) und
+# C-LAEF ≈ 4,9 h. Beide nimmt die Laufwahl deshalb aus dem vorigen Zyklus — kein
+# Ausfall, es steht je Quelle als `runAt` im Manifest. Der Gewinn des 3-h-Takts liegt
+# für sie trotzdem darin, dass ihr neuer Lauf nach höchstens 3 h statt 6 h abgeholt
+# wird: die mittlere Wartezeit „Modelllauf fertig → im Repo" halbiert sich für JEDE
+# Quelle, und für die tragende Quelle der Stufe 1 sinkt das Alter von 3,8 h auf 1,7 h.
 #
 # ⚠ JOB_MAX_MIN je Stufe (im Verifier) ist bis zum ersten Runner-Tag nach F2
 # PROVISORISCH aus der lokalen Messung × 2 (Runner-Faktor, §49.5) abgeleitet — F3c zieht
@@ -75,7 +93,7 @@ name: point
 on:
   schedule:
     # Drei Takte, drei Jobs — jeder Job prüft unten, ob SEIN Cron ihn geweckt hat.
-    - cron: '30 1,4,7,10,13,16,19,22 * * *'   # t1
+    - cron: '40 1,4,7,10,13,16,19,22 * * *'   # t1
     - cron: '50 3,9,15,21 * * *'              # t2 (+ Stationsprodukt)
     - cron: '55 9,21 * * *'                   # t3
   workflow_dispatch:
@@ -105,7 +123,7 @@ jobs:
   # ── Stufe 1 (0–48 h, 0,05°) — achtmal täglich ─────────────────────────────
   t1:
     if: >-
-      (github.event_name == 'schedule' && github.event.schedule == '30 1,4,7,10,13,16,19,22 * * *')
+      (github.event_name == 'schedule' && github.event.schedule == '40 1,4,7,10,13,16,19,22 * * *')
       || (github.event_name == 'workflow_dispatch' && (github.event.inputs.tiers == 'all' || github.event.inputs.tiers == 't1'))
     runs-on: ubuntu-latest
     # Regel C: JOB_MAX_MIN(t1) + 10 ≤ 45 ≤ 60 (Abstand zum :30-Push der Kartenlinie).

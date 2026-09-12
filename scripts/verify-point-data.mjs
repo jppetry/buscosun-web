@@ -708,11 +708,14 @@ add('der gemessene Widerspruch zu ⚠² ist festgehalten',
     // ⚠ Diese Zahlen schreiben sich NICHT selbst fort (§34.6). Geschichte des einen Werts:
     //   PD-B4b 20–40 · PD-B5 45 · PD-B8 50 (erstmals Ende-zu-Ende) · PD-B10 55 · PD-F1 80 (Runner
     //   ≈ 2× lokal, Lauf 8: t1 41,4 · t2 25,6 · t3 abgebrochen).
-    // PD-F3b (2026-09-11): JE STUFE, **PROVISORISCH** aus der lokalen Messung nach F2 × 2 (Runner-
-    // Faktor): t1 kalt lokal 620 s nach F2d (§50.e) ⇒ ≈ 21 min Runner ⇒ 30; t2/t3 aus Lauf 9
-    // (15,6 / 11,4 min VOR F2) ⇒ 30 / 20. F3c zieht sie an `tiers[].timing.totalMs` der
-    // Cron-Manifeste nach (Maximum + 30 %) — bis dahin gilt: t1 MUSS ≤ 40, sonst faellt Regel A.
-    const JOB_MAX_MIN_BY_TIER = { t1: 30, t2: 30, t3: 20 };
+    // PD-F3c (2026-09-12): jetzt GEMESSEN statt hochgerechnet — `tiers[].timing.totalMs` der drei
+    // Runner-Laeufe mit Block F (13, 14, 15): t1 600/599/664 s · t2 448/435/501 · t3 291/227/351.
+    // Maximum + Job-Rand (Klon, Install, Gate, Publish ≈ 2,5 min) + 30 % Reserve fuer die
+    // Runner-Varianz (vor Block F schwankte t1 zwischen 27,8 und 41,4 min):
+    //   t1 11,1 + 2,5 = 13,6 → 20 · t2 8,4 + 3,5 (Stationen) = 11,9 → 15 · t3 5,9 + 2,5 = 8,4 → 10.
+    // ⚠ Diese Zahlen schreiben sich NICHT selbst fort (§34.6) — sie stehen mit Datum und Laufnummer
+    // hier, damit die naechste Aenderung sie nachrechnet statt sie zu erben.
+    const JOB_MAX_MIN_BY_TIER = { t1: 20, t2: 15, t3: 10 };
     const JOB_MAX_MIN = Math.max(...Object.values(JOB_MAX_MIN_BY_TIER));
     const jobs = jobsOf(wf);
     add('(F3b) die Vorlage hat drei Jobs t1/t2/t3, jeder baut GENAU seine Stufe (--tiers=tX)',
@@ -783,6 +786,40 @@ add('der gemessene Widerspruch zu ⚠² ist festgehalten',
       jobs.every((j) => (j.body.match(/publish-point\.mjs/g) || []).length === 1 && /POINT_CACHE_CLEAR: 'tier'/.test(j.body) && /REPACK_BZIP2: '1'/.test(j.body) && /POINT_PUSH: '1'/.test(j.body)));
     add('(F3b) jeder Job holt QUELLENMATRIX.md und prueft es nach',
       jobs.every((j) => /sparse-checkout set --no-cone scripts src package\.json QUELLENMATRIX\.md/.test(j.body) && /test -f QUELLENMATRIX\.md/.test(j.body)));
+    // ── Regel E: der Slot muss die TRAGENDE Quelle der Stufe schon fertig vorfinden ──────
+    // Jans Vorgabe (2026-09-12): „die aktuellsten Staende von jeder Quelle". Ein Slot, der VOR der
+    // Bereitstellung liegt, bekommt still den vorigen Lauf — kein Fehler, kein Log, nur aeltere
+    // Daten. Die Bereitstellung ist gemessen (`Last-Modified` der jeweils LETZTEN gebrauchten
+    // Datei), nicht aus einer Doku uebernommen:
+    //   icon_d2   15z Stunde 048 am 2026-09-12 um 16:21:43 UTC  ⇒ Lauf + 1,36 h  (§31: 1,35 ± 0,01)
+    //   icon_eu   12z Stunde 120 am 2026-09-12 um 15:38:14 UTC  ⇒ Lauf + 3,64 h
+    //   ifs_oper  §31 ueber vier Laeufe                          ⇒ Lauf + 7,57 h
+    const READY_H = { icon_d2: 1.36, icon_eu: 3.64, ifs_oper: 7.57 };
+    const TIER_DRIVER = { t1: { src: 'icon_d2', everyH: 3 }, t2: { src: 'icon_eu', everyH: 6 }, t3: { src: 'ifs_oper', everyH: 12 } };
+    const MARGIN_MIN = 9;
+    // Alter des juengsten Laufs der Quelle zum Slot-Zeitpunkt, in Minuten.
+    const ageAtSlot = (slotMin, everyH) => {
+      const step = everyH * 60;
+      return ((slotMin % step) + step) % step;
+    };
+    for (const j of jobs) {
+      const d = TIER_DRIVER[j.name];
+      const readyMin = READY_H[d.src] * 60;
+      const worst = slotsOf(j).map((p) => ({ p, margin: ageAtSlot(p, d.everyH) - readyMin })).sort((a, b) => a.margin - b.margin)[0];
+      add(`(F3c) Regel E ${j.name}: jeder Slot findet ${d.src} fertig vor (Rand ≥ ${MARGIN_MIN} min)`,
+        !!worst && worst.margin >= MARGIN_MIN,
+        worst ? `engster Rand ${worst.margin.toFixed(0)} min (Slot ${hhmm(worst.p)}, Lauf + ${(ageAtSlot(worst.p, d.everyH) / 60).toFixed(2)} h)` : 'keine Slots');
+    }
+    // Negativ-Kontrolle zu E: acht Minuten Rand (der urspruenglich geplante :30-Slot) faellt durch,
+    // und ein Slot VOR der Bereitstellung erst recht.
+    {
+      const m30 = Math.min(...cronsOf(`    - cron: '30 1,4,7,10,13,16,19,22 * * *'`).map((p) => ageAtSlot(p, 3) - READY_H.icon_d2 * 60));
+      const m20 = Math.min(...cronsOf(`    - cron: '20 1,4,7,10,13,16,19,22 * * *'`).map((p) => ageAtSlot(p, 3) - READY_H.icon_d2 * 60));
+      add('Negativ-Kontrolle: der :30-Slot haette nur acht Minuten Rand und faellt durch Regel E',
+        m30 < MARGIN_MIN && m30 > 0, `${m30.toFixed(0)} min`);
+      add('Negativ-Kontrolle: ein :20-Slot laege VOR der Bereitstellung von ICON-D2',
+        m20 < 0, `${m20.toFixed(0)} min`);
+    }
     // Negativ-Kontrollen: der alte Takt und ein t1-Takt auf :30 der Kartenlinien-Stunden fallen durch.
     const oldWorst = Math.min(...cronsOf(`    - cron: '10 2,8,14,20 * * *'`).map(gapTo));
     add('Negativ-Kontrolle: der alte Takt (10 2,8,14,20) faellt durch Regel A',

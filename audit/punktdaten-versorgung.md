@@ -5688,3 +5688,95 @@ Client-Vertrag (PD-C12) davon abhängt.
 - Nebenbefund derselben Messung, ohne Handlungsbedarf: **ICON-EU ist nur bis +30 h stündlich** (Stunde
   031 gibt es nicht, am Verzeichnis geprüft; danach 3-stündlich). Deshalb trägt es in der stündlichen
   Stufe 1 mit Versatz 3 h genau 28 der 49 Schritte — die Zahl ist erklärt, nicht defekt.
+
+## §52 PD-F3c — der Drei-Stunden-Takt, an der Bereitstellung ausgerichtet (2026-09-12)
+
+Jans Auftrag am Abend des 12.09.: „wollen wir den Takt dann vielleicht zu einem 3-Stunden-Takt umbauen?
+der rest bleibt genauso wie es ist … **wichtig ist dass wieder darauf geachtet werden muss dass die
+aktuellsten Stände von jeder Quelle hergezogen werden**." Der zweite Satz ist der eigentliche Auftrag —
+ein Takt, der VOR der Bereitstellung liegt, bekommt still den vorigen Lauf.
+
+### 52.1 Was den Slot einklemmt
+
+Zwei Schranken, beide gemessen statt angenommen:
+
+**Von unten die Bereitstellung.** Am `Last-Modified` der jeweils LETZTEN gebrauchten Datei:
+ICON-D2 15z Stunde 048 stand am 2026-09-12 um **16:21:43 UTC** ⇒ Lauf + 1,36 h (§31 hatte 1,35 ± 0,01 —
+die Zahl hält). ICON-EU 12z Stunde 120 um **15:38:14** ⇒ + 3,64 h.
+
+**Von oben die Kartenlinie.** `build.yml` force-pusht um :20 der Stunden 0/3/6/… und um :30 der Stunden
+2/5/8/…; dazwischen liegt je Drei-Stunden-Zyklus **genau ein Fenster**, von `H:20` bis `(H+2):30`. Mit
+Regel A (Abstand ≥ JOB_MAX + 20) und JOB_MAX(t1) = 20 muss der Slot zwischen `H:20` und `(H+1):50`
+liegen.
+
+Daraus die Wahl, mit den drei Kandidaten nebeneinander:
+
+| t1-Slot | Rand nach ICON-D2 | Abstand zur Kartenlinie |
+|---|---|---|
+| `:30` | 8 min | 60 min |
+| **`:40`** | **18 min** | **50 min** |
+| `:50` | 28 min | 40 min (Regel A gerade noch, keine Reserve) |
+
+Gewählt ist **`40 1,4,7,10,13,16,19,22`**. Acht Minuten Rand sind zu wenig für eine Bereitstellung, die
+zwar stabil ist, aber nicht garantiert; vierzig Minuten Abstand lassen keinen Raum, wenn ein Lauf einmal
+über seine gemessene Zeit geht.
+
+### 52.2 Was der Takt NICHT einholt — und warum er trotzdem für jede Quelle wirkt
+
+Nicht jede Quelle ist so schnell wie ICON-D2. Gemessen: **ICON-D2-EPS braucht 2,17 h** (15z am
+2026-09-11 erst um 17:09 UTC), C-LAEF ≈ 4,9 h, ICON-CH1 ≈ 3–4 h. Ein Slot bei Lauf + 1,67 h nimmt für
+diese Quellen also den vorigen Zyklus. Das ist kein Ausfall — die Laufwahl greift automatisch den
+neuesten VERFÜGBAREN, und `sources[].runAt` sagt je Quelle, welcher es war.
+
+Der Gewinn liegt woanders, und so ist er auch zu messen: **nicht am Alter zum Slot-Zeitpunkt, sondern
+an der Wartezeit „Modelllauf fertig → im Repo".** Die halbiert sich für JEDE Quelle von im Mittel 3 h
+auf 1,5 h. Beispiel C-LAEF 12z (fertig 16:54): beim Sechs-Stunden-Takt wartet er bis 21:50, beim
+Drei-Stunden-Takt bis 19:40 — **zwei Stunden früher**. Für die tragende Quelle der Stufe 1 sinkt das
+Alter beim Bau von 3,8 h auf **1,7 h**.
+
+t2 und t3 bleiben, wie sie sind (`50 3,9,15,21` bzw. `55 9,21`): ICON-EU liefert die 120-h-Hauptläufe
+nur viermal, IFS `oper` nur zweimal täglich. Öfter zu laufen brächte dort denselben Lauf noch einmal.
+
+### 52.3 `JOB_MAX_MIN_BY_TIER` ist jetzt gemessen (F3c, erster Teil)
+
+Aus `tiers[].timing` der drei Runner-Läufe mit Block F — Lauf 13 / 14 / 15:
+
+| Stufe | Bauzeit (s) | Maximum | + Job-Rand | Deckel |
+|---|---|---|---|---|
+| t1 | 600 · 599 · 664 | 11,1 min | + 2,5 (Klon, Gate, Publish) | **20** |
+| t2 | 448 · 435 · 501 | 8,4 min | + 3,5 (Stationsprodukt) | **15** |
+| t3 | 291 · 227 · 351 | 5,9 min | + 2,5 | **10** |
+
+Die Reserve (≈ 30 %) deckt die Runner-Varianz, die vor Block F zwischen 27,8 und 41,4 min für t1 lag.
+Die Zahlen stehen mit Datum und Laufnummer im Verifier, damit die nächste Änderung sie **nachrechnet
+statt sie zu erben** (§34.6).
+
+### 52.4 Regel E: der Verifier rechnet die Frische nach, statt sie zu behaupten
+
+Neu neben den Slot-Regeln A–D: **Regel E** prüft je Job, dass jeder Slot die tragende Quelle der Stufe
+schon fertig vorfindet, mit mindestens 9 min Rand. Die Bereitstellungszeiten stehen als gemessene
+Tabelle im Code (mit Datum und Quelle der Messung), nicht als Kommentar.
+
+```
+Regel E t1: engster Rand 18 min (Slot 01:40, Lauf + 1,67 h)   icon_d2  ready 1,36 h
+Regel E t2: engster Rand 12 min (Slot 03:50, Lauf + 3,83 h)   icon_eu  ready 3,64 h
+Regel E t3: engster Rand 141 min (Slot 09:55, Lauf + 9,92 h)  ifs_oper ready 7,57 h
+```
+
+Zwei Negativkontrollen halten sie ehrlich: der ursprünglich geplante `:30`-Slot fällt mit 8 min durch,
+ein `:20`-Slot läge mit **−2 min** vor der Bereitstellung — genau der stille Fall, den Jans Vorgabe
+meint. `verify:point-data` **837/837**.
+
+### 52.5 Ein-Stufen-Betrieb am Datenträger belegt
+
+Drei Jobs heißen: ein Laufverzeichnis kann künftig nur EINE Stufe tragen. Nachgebaut mit `pruneTier`
+und dem echten Publisher gegen einen frischen Baum:
+
+```
+2026091115: 208 Chunks, alle im Manifest      (nur t1)
+2026091112:  68 Chunks, alle im Manifest      (t2+t3)
+latest t1 -> 2026091115 | t2 -> 2026091112 | t3 -> 2026091112
+```
+
+Der Orphan-Wächter bleibt grün, und `latestByTier` zeigt je Stufe auf den richtigen Lauf — das ist der
+Zeiger, den der Client (PD-C12) lesen wird.
