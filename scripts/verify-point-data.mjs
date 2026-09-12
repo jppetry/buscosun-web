@@ -28,6 +28,7 @@ import {
   chunkPath, chunkExtent, cellOf, MISSING, quantize, dequantize, planeIndex,
   POINT_INDEX_PATH, POINT_SOURCES_PATH, POINT_CALIB_PATH,
   STATION_CATALOG_PATH, STATIONS_DIR, stationBundlePath, stationManifestPath, readCubeHeader,
+  STAGE_DIR, stageChunkPath, stageTierDir,
 } from '../src/point/cubeFormat.ts';
 import {
   sourceMatrixSelfTest, SOURCES, SOURCE_BY_ID, MATRIX_BANDS, SCHEDULED_CHANGES,
@@ -332,18 +333,23 @@ add('jede Stufe wird von mindestens einer Quelle voll abgedeckt',
     mkTier('t3', '2026090906', [{ file: 'point/2026090906/t3/00_00.bin', bytes: 1, cy: 0, cx: 0 }]),
   ];
   // Auf dem Datentraeger nachbauen, damit die Verschiebung ECHT geprueft wird und
-  // nicht nur die Buchhaltung ueber ihr.
+  // nicht nur die Buchhaltung ueber ihr. Gebaut wird in die Bau-Ablage (§51) — genau
+  // so, wie der Producer es tut.
+  const stageAt = (rel) => join(tmp, rel.replace(/^point\//, ''));
   rmSync(tmp, { recursive: true, force: true });
   for (const r of res) {
-    mkdirSync(join(tmp, r.run, r.tier), { recursive: true });
-    writeFileSync(join(tmp, r.run, r.tier, '00_00.bin'), Buffer.from([r.tier === 't1' ? 1 : 3]));
+    mkdirSync(stageAt(stageTierDir(r.tier)), { recursive: true });
+    writeFileSync(stageAt(stageChunkPath(TIER_BY_ID[r.tier], 0, 0)), Buffer.from([r.tier === 't1' ? 1 : 3]));
   }
   const publishRun = placeUnderPublishRun(res, tmp);
+  add('Platzierung: die Bau-Ablage bleibt nicht stehen',
+    !existsSync(stageAt(STAGE_DIR)),
+    'sonst committete `git add -A point` Chunks, die in keinem Manifest stehen');
   add('Platzierung: der Publikationslauf ist der neueste ueber alle Stufen',
     publishRun === '2026090912', String(publishRun));
   add('Platzierung: die aeltere Stufe zieht in das Verzeichnis des Publikationslaufs',
     existsSync(join(tmp, '2026090912', 't3', '00_00.bin')) && !existsSync(join(tmp, '2026090906')),
-    'und das leere Quell-Verzeichnis bleibt nicht als Geisterlauf stehen');
+    'und ein Verzeichnis mit dem Namen des Quell-Laufs entsteht gar nicht erst');
   add('Platzierung: die Bytes des Chunks aendern sich dabei NICHT',
     readFileSync(join(tmp, '2026090912', 't3', '00_00.bin'))[0] === 3,
     'Umbenennung, keine Neukodierung — der Header behaelt sein runHours');
@@ -374,6 +380,85 @@ add('jede Stufe wird von mindestens einer Quelle voll abgedeckt',
       return onDisk.length === listed.size && onDisk.every((f) => listed.has(f));
     })(), 'die Umkehrung des Fehlers vom 2026-09-09');
   rmSync(tmp, { recursive: true, force: true });
+}
+
+// --- (3c2) Der Bau fasst KEIN fremdes Laufverzeichnis an (§51) ---------------
+//
+// Cron-Lauf 13 am 2026-09-12 ist genau daran gestorben, und zwar erst im Publisher:
+// t3 kam aus IFS `oper` 2026091200, und `point/2026091200/` war das VERÖFFENTLICHTE
+// Verzeichnis des 03:50-Laufs. Der Bau schrieb seine zwölf t3-Chunks hinein (fremde
+// Bytes überschrieben) und `renameSync` zog das Verzeichnis nach 2026091206; zurück
+// blieb ein `run.json`, das zwölf Dateien nennt, die es nicht mehr gab. Der
+// Orphan-Wächter hat den Push verhindert — der Lauf war trotzdem verloren.
+// Diese Pruefung baut den Fall auf dem Datentraeger nach, mit einem Quell-Lauf, der
+// so heisst wie ein schon veroeffentlichter Lauf.
+{
+  const tmp = join(ROOT, 'node_modules', '.cache', 'point-verify-foreign');
+  const stageAt = (rel) => join(tmp, rel.replace(/^point\//, ''));
+  rmSync(tmp, { recursive: true, force: true });
+  // Der schon veroeffentlichte Lauf: zwoelf t3-Chunks (hier einer) und sein Manifest.
+  mkdirSync(join(tmp, '2026091200', 't3'), { recursive: true });
+  writeFileSync(join(tmp, '2026091200', 't3', '00_00.bin'), Buffer.from([9, 9, 9]));
+  writeFileSync(join(tmp, '2026091200', 'run.json'), JSON.stringify({
+    run: '2026091200',
+    tiers: [{ id: 't3', files: [{ file: 'point/2026091200/t3/00_00.bin', bytes: 3 }] }],
+  }));
+  // Der neue Lauf: t1 aus 2026091206, t3 aus DEMSELBEN Quell-Lauf 2026091200.
+  const mk = (tier, run) => ({
+    tier, run, leadHours: TIER_BY_ID[tier].leadHours.slice(0, 2),
+    files: [{ file: `point/${run}/${tier}/00_00.bin`, bytes: 1, cy: 0, cx: 0 }],
+    contributors: [{ id: 'ifs_hres', run, leads: 2, role: 'assigned' }],
+    bytesTotal: 1, skipped: [], perPlane: {}, hasData: {},
+  });
+  const res = [mk('t1', '2026091206'), mk('t3', '2026091200')];
+  for (const r of res) {
+    mkdirSync(stageAt(stageTierDir(r.tier)), { recursive: true });
+    writeFileSync(stageAt(stageChunkPath(TIER_BY_ID[r.tier], 0, 0)), Buffer.from([r.tier === 't1' ? 1 : 3]));
+  }
+  const publishRun = placeUnderPublishRun(res, tmp);
+  add('fremder Lauf: der Publikationslauf ist der neueste ueber alle Stufen',
+    publishRun === '2026091206', String(publishRun));
+  add('fremder Lauf: das veroeffentlichte Verzeichnis behaelt seine Chunks',
+    existsSync(join(tmp, '2026091200', 't3', '00_00.bin')),
+    'Lauf 13: es war weg, und sein run.json nannte es weiter');
+  add('fremder Lauf: dessen Bytes sind UNVERAENDERT',
+    readFileSync(join(tmp, '2026091200', 't3', '00_00.bin'))[0] === 9,
+    'der Bau darf fremde Chunks auch nicht ueberschreiben, bevor er sie verschoebe');
+  add('fremder Lauf: das fremde Manifest ist unangetastet',
+    JSON.parse(readFileSync(join(tmp, '2026091200', 'run.json'), 'utf8')).tiers[0].files[0].file
+      === 'point/2026091200/t3/00_00.bin');
+  add('fremder Lauf: die neue Stufe liegt unter dem Publikationslauf',
+    readFileSync(join(tmp, '2026091206', 't3', '00_00.bin'))[0] === 3
+    && readFileSync(join(tmp, '2026091206', 't1', '00_00.bin'))[0] === 1);
+  add('fremder Lauf: jeder Chunk des neuen Laufs steht im Manifest',
+    (() => {
+      const man = runManifest(res);
+      const listed = new Set(man.tiers.flatMap((t) => t.files.map((f) => f.file)));
+      return listed.size === 2 && [...listed].every((f) => existsSync(join(tmp, f.replace(/^point\//, ''))));
+    })(), 'die Pruefung, an der der Publisher in Lauf 13 abbrach');
+  add('fremder Lauf: die Bau-Ablage ist danach weg',
+    !existsSync(stageAt(STAGE_DIR)));
+  rmSync(tmp, { recursive: true, force: true });
+}
+
+// --- (3c3) Die Bau-Ablage ist als Form festgeschrieben ----------------------
+{
+  const prod = readFileSync(join(ROOT, 'scripts/point/build-point-cube.mjs'), 'utf8');
+  const pub = readFileSync(join(ROOT, 'scripts/point/publish-point.mjs'), 'utf8');
+  add('Bau-Ablage: heisst nicht wie ein Lauf',
+    !/^\d{10}$/.test(STAGE_DIR.split('/').pop()) && STAGE_DIR.startsWith('point/.'),
+    `${STAGE_DIR} — sonst zaehlte die Aufbewahrung sie als Lauf`);
+  add('Bau-Ablage: der Producer schreibt seine Chunks dorthin, nicht unter den Lauf',
+    /writeFileSync\(inOut\([^)]*stageChunkPath\(/.test(prod)
+    && !/writeFileSync\(\s*join\(opts\.out/.test(prod),
+    'die Schreibstelle in encodeOne');
+  add('Bau-Ablage: verschoben wird aus der Ablage, nicht aus dem Quell-Lauf',
+    /const from = inOut\(out, stageTierDir\(r\.tier\)\)/.test(prod)
+    && !/const from = join\(out, r\.run, r\.tier\)/.test(prod));
+  const cleanAt = pub.indexOf('join(REPO, STAGE_DIR)');
+  add('Bau-Ablage: der Publisher raeumt Reste weg, BEVOR er staged',
+    cleanAt > 0 && cleanAt < pub.indexOf("git('add'"),
+    'sonst committete `git add -A point` einen abgebrochenen Bau');
 }
 
 // --- (3d) Der ECHTE Baum, wenn einer da ist --------------------------------

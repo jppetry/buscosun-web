@@ -5502,3 +5502,106 @@ Wandzeit, kalt t1 ≈ 480 s. Zweiter Posten: C-LAEF-EPS (345 Anfragen an GeoSphe
 Quantile je Größe parallel. Beides Rechnung, keine Messung; Byte-Beweis wie in Block F.
 **V-PD-46:** `check-cdn.mjs` braucht `<commit>` und trägt einen alten Lauf fest — Aufrufform in die
 Vorlage/README, `index.json.commit` als Standard.
+
+## §51 Der Bau griff in FREMDE Laufverzeichnisse — Cron-Lauf 13 (2026-09-12)
+
+Der erste Cron-Lauf mit dem committeten Block-F-Stand hat **gebaut wie geplant und nicht
+veröffentlicht**. Die Zahlen des Baus sind das Beste, was die Linie bisher hatte, und der Abbruch kam
+von einem Wächter, der genau dafür da ist.
+
+### 51.1 Was der Lauf gemeldet hat
+
+Lauf 13 (`schedule`, 09:54–10:18 UTC, 34687063042): Schritte 1–10 grün, **Schritt 11 `Publish`
+rot nach 0 s**:
+
+```
+[publish-point] 2026091206: 276 Chunks, alle im Manifest
+[publish-point] 2026091200: 0 Chunk(s) ohne Manifesteintrag, 12 Eintrag/Einträge ohne Datei. Abbruch.
+  fehlend:  point/2026091200/t3/00_00.bin point/2026091200/t3/00_01.bin …
+```
+
+**Der Bau selbst war der schnellste bisher:** 22,3 min für alle drei Stufen (Lauf 9 vor Block F:
+55 min), 276 Chunks, 84,10 MiB, 7 972,5 MiB Netz, Heap max 38 von 4 144 MiB, Stationsprodukt 52 s.
+Block F wirkt auf dem Runner also ungefähr so wie lokal.
+
+### 51.2 Die Ursache, und warum sie erst jetzt zuschlug
+
+`placeUnderPublishRun` (§26) legt alle Stufen unter EINEN Publikationslauf. Bis heute lief das über
+den **Quell-Lauf als Zwischenablage**: jede Stufe schnitt ihre Chunks nach `point/<Quell-Lauf>/<Stufe>/`
+und wurde von dort per `renameSync` verschoben. Im Cron ist der Ausgabebaum aber **das ausgecheckte
+Daten-Repo**, in dem die zuletzt veröffentlichten Läufe liegen. Fällt der Quell-Lauf einer Stufe mit
+dem Namen eines solchen Laufs zusammen, trifft der Bau ein **fremdes** Verzeichnis — erst schreibend
+(die zwölf t3-Chunks des Vorlaufs wurden überschrieben), dann verschiebend (`renameSync` zog das
+Verzeichnis weg). Zurück blieb `point/2026091200/run.json`, das zwölf Dateien nennt, die es nicht
+mehr gab.
+
+**Gemessen am Log beider Läufe desselben Tages** — der Unterschied ist eine einzige Zeile:
+
+| | t1 | t2 | t3 | Publikationslauf | Platzierung |
+|---|---|---|---|---|---|
+| Lauf 12 (03:50, grün) | 2026091200 | 2026091200 | **2026091200** | 2026091200 | keine Verschiebung |
+| Lauf 13 (09:50, rot) | 2026091206 | 2026091206 | **2026091200** | 2026091206 | `t3: Quellen aus 2026091200, abgelegt unter 2026091206` |
+
+Die Bedingung ist also: **die Fernstufe fällt auf einen älteren Lauf zurück, und genau dieser Lauf
+liegt schon als Veröffentlichung im Repo.** Im 09:50-Slot ist das der Regelfall — ICON global und IFS
+`oper` sind dort noch nicht mit dem 06z-Lauf fertig, t3 nimmt 00z, und `point/2026091200/` hat der
+03:50-Lauf zwei Stunden vorher hingelegt. Der Fehler ist **älter als Block F** (er steckt seit §26 in
+der Umbenennung), aber er brauchte ein Repo, in dem mehrere Läufe nebeneinander liegen — und das gibt
+es erst, seit der Cron veröffentlicht (Gate C3, gestern).
+
+⚠ **Der Wächter hat funktioniert, und das ist der eigentliche Befund.** Ohne die Orphan-Prüfung im
+Publisher (§26) wäre ein Lauf gepusht worden, dessen `run.json` zwölf Chunks nennt, die am CDN
+**404** liefern — für jeden Client ein halber Lauf, und niemand hätte es gesehen. Der rote Job ist die
+teure, aber ehrliche Variante.
+
+### 51.3 Die Kur: der Bau fasst kein Laufverzeichnis mehr an
+
+`src/point/cubeFormat.ts` bekommt die **Bau-Ablage** als Form (`STAGE_DIR = 'point/.build'`,
+`stageChunkPath`, `stageTierDir`) — dieselbe Regel für Producer, Publisher und Verifier, nirgends
+zusammengesetzt. Der Producer schneidet jede Stufe nach `point/.build/<Stufe>/`; `files[].file` bleibt
+der LOGISCHE Pfad `point/<Quell-Lauf>/<Stufe>/…`, also ändert sich am Manifestvertrag nichts.
+`placeUnderPublishRun` verschiebt **aus der Ablage** und ersetzt dabei ausschließlich das Verzeichnis
+**der eigenen Stufe** unter dem Publikationslauf (die Fortschreibung eines Laufs durch einen zweiten
+Job bleibt damit erhalten, F3b). Danach ist die Ablage weg; bleibt doch etwas liegen, stammt es aus
+einem Abbruch und wird benannt entfernt.
+
+Zweiter Riegel im Publisher: `point/.build` wird **vor** `git add -A point` gelöscht (mit Zählung im
+Log). Der Name beginnt mit einem Punkt und ist damit kein Laufname (`^\d{10}$`) — Aufbewahrung,
+`latestByTier` und die Orphan-Prüfung sehen ihn nie.
+
+### 51.4 Der Beweis, am Datenträger und mit dem echten Fall
+
+Nachgebaut mit dem warmen Referenz-Cache (`--tiers=t1,t3 --run=2026091115`) in einen Ausgabebaum, in
+den vorher ein **vollständiger, veröffentlichter Lauf `2026091112`** (56 t2 + 12 t3 + `run.json`,
+69 Dateien) gelegt wurde — und t3 kommt in diesem Bau aus genau diesem Lauf:
+`t3: Quellen aus 2026091112, abgelegt unter 2026091115`.
+
+| Frage | Ergebnis |
+|---|---|
+| Bleibt der fremde Lauf unberührt? | **69 von 69 Dateien SHA1-identisch** zu vorher (vor der Kur wären die 12 t3-Chunks weg gewesen) |
+| Ändert die Kur ein Byte in t1? | `compareTrees` **208 verglichen · 208 gleich · 0 verschieden** |
+| Ändert sie ein Byte in t3? | `cmp` gegen die t2/t3-Referenz: **12 gleich · 0 verschieden** (der Pfad wandert, der Inhalt nicht) |
+| Bleibt die Bau-Ablage stehen? | nein — `point/.build` existiert nach dem Lauf nicht |
+
+Die „80 zusätzlichen" Chunks in der `compareTrees`-Zeile sind die 68 des Fremdlaufs plus die 12 neuen
+t3 — die t1-Referenz kennt sie nicht; verglichen wurden absichtlich zwei verschieden geschnittene
+Bäume, damit der Fremdlauf im selben Lauf mitgeprüft wird.
+
+Im Verifier neu: **(3c2)** baut den Lauf-13-Fall synthetisch nach (veröffentlichter Lauf + Quell-Lauf
+gleichen Namens) und prüft, dass dessen Chunks *und Bytes* und sein Manifest unangetastet bleiben;
+**(3c3)** hält die Form fest (Ablage heißt nicht wie ein Lauf, der Producer schreibt dorthin und
+verschiebt von dort, der Publisher räumt vor `git add`). Der bestehende (3c)-Test baut jetzt ebenfalls
+in die Ablage — er prüft damit, was der Producer wirklich tut.
+
+`verify:point-data` **826/826** (war 814), `typecheck` 0 Fehler, Build 241/241, Budget grün
+(`totalJs` 1 366,1 unverändert — `cubeFormat.ts` steht in keinem Chunk).
+
+### 51.5 Was offen bleibt
+
+- **V-PD-49:** Dieselbe Klasse für das Stationsprodukt ist NICHT geprüft — `build-stations.mjs`
+  schreibt direkt nach `point/stations/<Lauf>/`. Dort gibt es keine Umbenennung und der Lauf gehört
+  immer dem eigenen Produkt, aber ein abgebrochener Bau kann halbe Bündel hinterlassen, die kein
+  Manifest nennt (die Orphan-Prüfung läuft nur über `point/<Lauf>/`). Benannt, nicht behoben — ein
+  Thema, eine Phase.
+- Der erste Runner-Lauf mit der Kur ist zugleich der F2-Gate-Lauf: aus seinem `tiers[].timing.totalMs`
+  kommt `JOB_MAX_MIN_BY_TIER` für F3c (heute {30, 30, 20} provisorisch).

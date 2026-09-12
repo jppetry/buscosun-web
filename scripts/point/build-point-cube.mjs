@@ -55,7 +55,7 @@ import v8 from 'node:v8';
 import {
   TIERS, TIER_BY_ID, CUBE_PLANES, CHUNK_CELLS, MISSING,
   chunkExtent, chunkPath, runManifestPath, planeIndex, quantize, encodeCubeChunk, cellCenter,
-  CUBE_SCHEMA, readCubeHeader,
+  CUBE_SCHEMA, readCubeHeader, STAGE_DIR, stageChunkPath, stageTierDir,
 } from '../../src/point/cubeFormat.ts';
 import { SOURCE_BY_ID, coversPoint } from '../../src/point/sourceMatrix.ts';
 import { adapterFor, ingestableFor, PENDING } from './adapters/index.mjs';
@@ -847,6 +847,13 @@ export async function buildTier(tierId, opts = {}) {
 
   const jobs = [];
   for (let cy = 0; cy < tier.chunk.cy; cy++) for (let cx = 0; cx < tier.chunk.cx; cx++) jobs.push({ cy, cx });
+  // ── Erst in die Bau-Ablage, verschoben wird am Ende (§51) ──────────────────
+  // `files[].file` bleibt der LOGISCHE Pfad `point/<Quell-Lauf>/<Stufe>/…`; geschrieben
+  // wird nach `point/.build/<Stufe>/`. Beides auseinanderzuhalten ist der ganze Fix:
+  // der Bau darf kein fremdes Laufverzeichnis anfassen, auch nicht schreibend.
+  const stageDir = inOut(opts.out ?? OUT, stageTierDir(tierId));
+  rmSync(stageDir, { recursive: true, force: true });
+  mkdirSync(stageDir, { recursive: true });
   const encodeOne = async ({ cy, cx }) => {
     const ext = chunkExtent(tier, cy, cx);
     const n = nt * ext.ny * ext.nx;
@@ -867,9 +874,7 @@ export async function buildTier(tierId, opts = {}) {
       runHours, tierIndex: tier.index, nt, y0: ext.y0, x0: ext.x0, ny: ext.ny, nx: ext.nx, planes: cut,
     }, deflate9);
     const rel = chunkPath(runId, tier, cy, cx);
-    const p = join(opts.out ?? OUT, rel.replace(/^point\//, ''));
-    mkdirSync(dirname(p), { recursive: true });
-    writeFileSync(p, bytes);
+    writeFileSync(inOut(opts.out ?? OUT, stageChunkPath(tier, cy, cx)), bytes);
     return { file: rel, bytes: bytes.length, cy, cx, planeBytes: readCubeHeader(bytes).directory.map((d) => d.length) };
   };
   // PD-F2f: bis zu vier Chunks gleichzeitig (der Deflate läuft im Threadpool); `files[]` PER INDEX in
@@ -1058,12 +1063,29 @@ export function runManifest(results) {
 }
 
 /**
- * Alle Stufen unter EINEN Publikationslauf legen.
+ * Einen repo-relativen Pfad (`point/…`, DIE Regel aus `cubeFormat.ts`) in den
+ * Ausgabebaum abbilden. `out` IST das `point/`-Verzeichnis des Ziels — deshalb wird
+ * genau dieses Präfix abgezogen, an EINER Stelle statt an dreien.
+ */
+function inOut(out, rel) {
+  return join(out, rel.replace(/^point\//, ''));
+}
+
+/**
+ * Alle Stufen aus der Bau-Ablage unter EINEN Publikationslauf legen.
  *
  * Jede Stufe schneidet ihre Chunks unter dem Lauf ihrer eigenen Quellen — t1 aus
  * ICON-D2 12z, t2/t3 aus ICON global 06z. Das Manifest lag aber immer unter dem
  * NEUESTEN Lauf. Ergebnis am 2026-09-09: `point/2026090906/` trug 68 Chunks, sein
  * `run.json` nannte nur t2, und die zwölf t3-Chunks waren unauffindbar.
+ *
+ * ⚠ Bis zum 2026-09-12 lief das über den QUELL-Lauf als Zwischenablage: gebaut wurde
+ * nach `point/<Quell-Lauf>/<Stufe>/`, verschoben von dort. Im Cron ist der Ausgabebaum
+ * das ausgecheckte Daten-Repo — und sobald der Quell-Lauf einer Stufe so heißt wie ein
+ * schon veröffentlichter Lauf, war das ein FREMDES Verzeichnis: der Bau überschrieb
+ * dessen Chunks, `renameSync` zog das Verzeichnis weg, und zurück blieb ein `run.json`
+ * mit zwölf Einträgen ohne Datei (Lauf 13, §51). Gebaut wird jetzt nach `point/.build/`;
+ * angefasst wird ausschließlich das Verzeichnis der eigenen Stufe unter `publishRun`.
  *
  * Die Verschiebung ist reine Umbenennung — kein Byte im Chunk ändert sich, und der
  * Header behält sein `runHours` aus dem Quell-Lauf. Damit gilt wieder: ein
@@ -1076,19 +1098,25 @@ export function placeUnderPublishRun(results, out) {
   const publishRun = built.map((r) => r.run).sort().at(-1);
   for (const r of built) {
     r.sourceRun = r.run;
-    if (r.run === publishRun) continue;
-    const from = join(out, r.run, r.tier);
+    const from = inOut(out, stageTierDir(r.tier));
     const to = join(out, publishRun, r.tier);
     mkdirSync(dirname(to), { recursive: true });
+    // Nur die EIGENE Stufe im Zielverzeichnis wird ersetzt (ein zweiter Job desselben
+    // Laufs schreibt seine Stufe fort, §26) — nie ein ganzes fremdes Laufverzeichnis.
     if (existsSync(to)) rmSync(to, { recursive: true, force: true });
     renameSync(from, to);
+    if (r.run === publishRun) continue;
     r.files = r.files.map((f) => ({ ...f, file: f.file.replace(`/${r.run}/`, `/${publishRun}/`) }));
     r.run = publishRun;
-    // Das leere Quell-Verzeichnis mitnehmen; ein `point/<lauf>/` ohne Chunks sähe
-    // aus wie ein Lauf, der nichts geliefert hat.
-    const old = join(out, r.sourceRun);
-    if (existsSync(old) && readdirSync(old).length === 0) rmSync(old, { recursive: true, force: true });
     console.log(`  ${r.tier}: Quellen aus ${r.sourceRun}, abgelegt unter ${publishRun}`);
+  }
+  // Die Bau-Ablage ist jetzt leer. Bleibt doch etwas liegen, stammt es aus einem
+  // früheren Abbruch und gehört keinem Manifest — weg damit, und BENANNT.
+  const stage = inOut(out, STAGE_DIR);
+  if (existsSync(stage)) {
+    const rest = readdirSync(stage);
+    if (rest.length) console.log(`  Bau-Ablage: ${rest.join(', ')} aus einem früheren Abbruch entfernt`);
+    rmSync(stage, { recursive: true, force: true });
   }
   return publishRun;
 }
@@ -1211,7 +1239,7 @@ async function main() {
     placeUnderPublishRun(results, out);
     const man = runManifest(results);
     if (args.run) man.note = `--run=${args.run}: Obergrenze der Laufsuche; keine Quelle nimmt einen jüngeren Lauf (PD-C2, V-PD-38)`;
-    const mp = join(out, runManifestPath(man.run).replace(/^point\//, ''));
+    const mp = inOut(out, runManifestPath(man.run));
     mkdirSync(dirname(mp), { recursive: true });
     // ── Nie eine fremde Stufe aus dem Manifest werfen ────────────────────────
     // Am 2026-09-09 in drei getrennten Prozessen gebaut: jeder schrieb sein eigenes

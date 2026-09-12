@@ -30,7 +30,7 @@ import { mkdirSync, writeFileSync, readFileSync, existsSync, readdirSync, rmSync
 import { join, dirname } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { POINT_DIR, POINT_INDEX_PATH, POINT_SOURCES_PATH, POINT_CALIB_PATH, TIER_BY_ID,
-         STATIONS_DIR, stationManifestPath } from '../../src/point/cubeFormat.ts';
+         STATIONS_DIR, STAGE_DIR, stationManifestPath } from '../../src/point/cubeFormat.ts';
 import { buildPointIndex, runsToKeep, runsToKeepFor, RETENTION_HOURS, RETENTION_HOURS_BY_TIER, MIN_RUNS, CDN_BASE } from '../../src/point/manifest.ts';
 import { TIERS } from '../../src/point/cubeFormat.ts';
 import { pruneTier, tiersOf } from './prune.mjs';
@@ -95,6 +95,24 @@ function dirBytes(dir) {
 mkdirSync(join(REPO, POINT_DIR), { recursive: true });
 const copied = copyTree(POINT_SRC, join(REPO, POINT_DIR));
 log(`point/: ${copied.files} Dateien, ${(copied.bytes / 1048576).toFixed(2)} MiB`);
+
+// ── Reste der Bau-Ablage gehören NIE ins Repo (§51) ─────────────────────────
+// `git add -A point` nimmt alles unter `point/` mit, auch `point/.build/`. Nach einem
+// vollständigen Bau ist das Verzeichnis weg; bleibt es liegen, ist der Bau abgebrochen,
+// und diese Chunks stehen in keinem Manifest — sie wären genau die verwaisten Dateien,
+// die der Wächter weiter unten zu Recht anschreit.
+{
+  const stage = join(REPO, STAGE_DIR);
+  if (existsSync(stage)) {
+    const n = (function count(d) {
+      let k = 0;
+      for (const e of readdirSync(d, { withFileTypes: true })) k += e.isDirectory() ? count(join(d, e.name)) : 1;
+      return k;
+    })(stage);
+    rmSync(stage, { recursive: true, force: true });
+    log(`Bau-Ablage ${STAGE_DIR} entfernt (${n} Datei(en) aus einem abgebrochenen Lauf).`);
+  }
+}
 
 
 // --- 2. Aufbewahrung ---------------------------------------------------------

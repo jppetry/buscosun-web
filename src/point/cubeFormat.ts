@@ -511,6 +511,36 @@ export function runManifestPath(run: string): string {
   return `${POINT_DIR}/${run}/run.json`;
 }
 
+/**
+ * ── Bau-Ablage: der Producer schreibt NIE direkt in ein Laufverzeichnis ──────
+ *
+ * Der Ausgabebaum IST im Cron das ausgecheckte Daten-Repo, in dem die zuletzt
+ * veröffentlichten Läufe liegen. Bis zum 2026-09-12 schnitt jede Stufe ihre Chunks
+ * zuerst unter ihrem QUELL-Lauf (`point/<Quell-Lauf>/<Stufe>/`) und wurde danach unter
+ * den Publikationslauf verschoben. Das trifft ein FREMDES Laufverzeichnis, sobald der
+ * Quell-Lauf einer Stufe so heißt wie ein schon veröffentlichter Lauf — und genau das
+ * ist der Regelfall geworden: t3 nimmt den IFS-`oper`-Lauf 00z, und `point/2026091200/`
+ * lag als Veröffentlichung des 03:50-Laufs im Repo. Der Bau überschrieb dessen zwölf
+ * t3-Chunks und `renameSync` zog das Verzeichnis anschließend weg; zurück blieb ein
+ * `run.json`, das zwölf Dateien nennt, die es nicht mehr gibt (Lauf 13, §51).
+ *
+ * Deshalb: erst hierhin schreiben, am Ende je Stufe verschieben. Der Name beginnt mit
+ * einem Punkt und ist damit KEIN Laufname (`^\d{10}$`) — die Aufbewahrung und der
+ * Index sehen ihn nie; der Publisher räumt Reste eines abgebrochenen Baus weg, bevor
+ * er staged.
+ */
+export const STAGE_DIR = `${POINT_DIR}/.build`;
+
+/** Pfad eines Chunks in der Bau-Ablage, RELATIV zur Repo-Wurzel. */
+export function stageChunkPath(tier: CubeTier, cy: number, cx: number): string {
+  return `${STAGE_DIR}/${tier.id}/${pad2(cy)}_${pad2(cx)}.bin`;
+}
+
+/** Verzeichnis einer Stufe in der Bau-Ablage, RELATIV zur Repo-Wurzel. */
+export function stageTierDir(tierId: TierId): string {
+  return `${STAGE_DIR}/${tierId}`;
+}
+
 /** Pfad des Punkt-Manifests. */
 /**
  * ── Stationsquellen als EIGENES Produkt (Jans Entscheidung 2026-09-09) ──────

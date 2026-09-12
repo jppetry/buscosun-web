@@ -1,6 +1,6 @@
 # CLAUDE.md — buscosun: Projekt-Verfassung für Claude-Code-Agenten
 
-> **Stand: 2026-09-11.** **Aktuelle Phase: PD-B10 erledigt — σ_ens bis 336 h aus IFS-ENS (V-PD-27, §45), dazu drei Fehler aus PD-B8 behoben (Niederschlags-σ war die Streuung einer Summe; der ECMWF-Filter strich IFS HRES und AIFS Single; C-LAEF-Fenster lagen als JS-Array im Heap — 84 % der Grenze). Offen und Jans Gate: der erste Push, V-PD-28 (Cron-Slot für MOSMIX-L). Danach Plan PD-C (16 Etappen, s. unten): C1+C2 umgesetzt (§46) — der Cron hatte 0 von 7 Läufen veröffentlicht; Jans Gate PD-C3 = Vorlage ins Daten-Repo kopieren**
+> **Stand: 2026-09-12.** **Aktuelle Phase: PD-B10 erledigt — σ_ens bis 336 h aus IFS-ENS (V-PD-27, §45), dazu drei Fehler aus PD-B8 behoben (Niederschlags-σ war die Streuung einer Summe; der ECMWF-Filter strich IFS HRES und AIFS Single; C-LAEF-Fenster lagen als JS-Array im Heap — 84 % der Grenze). Offen und Jans Gate: der erste Push, V-PD-28 (Cron-Slot für MOSMIX-L). Danach Plan PD-C (16 Etappen, s. unten): C1+C2 umgesetzt (§46) — der Cron hatte 0 von 7 Läufen veröffentlicht; Jans Gate PD-C3 = Vorlage ins Daten-Repo kopieren**
 > (`audit/punktdaten-versorgung.md` §12–§22, Gate GPD-A grün). Jans zweiter Auftrag des Tages:
 > `ABLAUFPLAENE.md` (sechs DIN-66001-Pläne des Fusions- und Downscaling-Algorithmus) und
 > `QUELLENMATRIX.md` (Primärquellen je Land und Vorhersagestunde) liegen in der Wurzel; daraus ist
@@ -685,6 +685,21 @@
 > Verifier rechnet Regeln A–D je Job gegen die Kartenlinie (`jobsOf`), `JOB_MAX_MIN_BY_TIER` {30, 30, 20}
 > **provisorisch** (lokal × 2), F3c zieht nach. **Kopie der Vorlage = Jans Gate.** `verify:point-data`
 > **814/814**, typecheck 0, Build 241/241, Budget grün (`totalJs` 1 366,1 unverändert).
+> ⚠ **Der erste Cron-Lauf mit dem gepushten Block-F-Stand hat gebaut und NICHT veröffentlicht (§51).**
+> Lauf 13 (12.09., 09:50 UTC): Bau **22,3 min statt 55** — Block F wirkt auf dem Runner —, 276 Chunks,
+> 84,1 MiB, dann Abbruch im Publisher: `2026091200: 12 Eintrag/Einträge ohne Datei`. Die Ursache ist
+> **älter als Block F**: `placeUnderPublishRun` benutzte den QUELL-Lauf als Zwischenablage, und im Cron
+> ist der Ausgabebaum das ausgecheckte Daten-Repo. Fällt der Quell-Lauf einer Stufe mit einem schon
+> veröffentlichten Lauf zusammen — im 09:50-Slot der Regelfall, weil t3 dort auf IFS/global 00z
+> zurückfällt —, überschreibt der Bau dessen Chunks und `renameSync` zieht das Verzeichnis weg; zurück
+> bleibt ein `run.json`, das zwölf Dateien nennt, die es nicht mehr gibt. **Der Orphan-Wächter aus §26
+> hat den Push verhindert** — ohne ihn stünden zwölf Chunks als 404 am CDN. Kur: **Bau-Ablage**
+> `point/.build` (`STAGE_DIR`/`stageChunkPath`/`stageTierDir` als EINE Form für Producer, Publisher und
+> Verifier); verschoben wird je Stufe aus der Ablage, angefasst wird nur das Verzeichnis der eigenen
+> Stufe, und der Publisher räumt Reste vor `git add`. Beweis am Datenträger mit einem untergeschobenen
+> veröffentlichten Lauf: **69/69 fremde Dateien SHA1-identisch**, t1 **208/208** und t3 **12/12**
+> byte-gleich, Ablage danach weg. `verify:point-data` **826/826**, typecheck 0, Build 241/241, Budget
+> grün. **V-PD-49** (dieselbe Klasse beim Stationsprodukt) ist benannt, nicht behoben.
 > **Werkzeugfalle zum dritten Mal in dieser Phase:** `[^
 ]` in einer Regex wurde durch die
 > Python-in-Bash-Kette zum echten Zeilenumbruch und hat den Verifier zerschossen. Kur wie
