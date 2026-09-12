@@ -344,6 +344,24 @@ export function makeGeosphereAdapter(id) {
     /** Groessen, fuer die diese Quelle gemessene Quantile liefert (PD-B7). */
     quantileVars: Object.keys(m.quantileParams ?? {}),
 
+    /**
+     * ⚠ V-PD-47: Diese API kennt KEINE Referenzzeit. Die Anfrage nennt nur `start`/`end`,
+     * also die Gueltigzeit — der Server antwortet stets aus seinem neuesten Lauf.
+     * Am 2026-09-12 gemessen (Wien, 2t, gleiche Gueltigzeit): `forecast_reference_time`,
+     * `reftime` und `forecast_reftime` werden alle mit HTTP 200 angenommen und STILL
+     * ignoriert (identischer Wert 17,8 °C), und die Antwort nennt selbst
+     * `reference_time: 2026-09-12T09:00` — den neuesten Lauf, nicht den gefragten.
+     * Dieselbe Falle wie beim STAC-Katalog (§41.3).
+     *
+     * Folge fuer das Produkt: die Werte liegen ZEITLICH richtig (die Achse kommt aus der
+     * Gueltigzeit), aber `runAt` ist die Wahl des Producers und nicht die Herkunft der
+     * Bytes. Im Normalbetrieb faellt das kaum ins Gewicht (gebaut wird 1–4 h nach dem
+     * Lauf); bei einem NACHGEHOLTEN Lauf sind es die frischeren Daten unter dem aelteren
+     * Etikett. Der Producer schreibt das je Quelle als `runCaveat` ins Manifest, statt es
+     * zu verschweigen.
+     */
+    noReferenceTime: true,
+
     async discoverRun(leadMax, nowMs = Date.now(), maxBack = 8) {
       if (leadMax > m.horizonH) return null;          // reicht nie so weit
       const rts = await reftimes();

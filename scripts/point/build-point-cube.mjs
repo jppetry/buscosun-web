@@ -894,6 +894,10 @@ export async function buildTier(tierId, opts = {}) {
       ensembleControlOnly: !!c.adapter.ensembleControlOnly,
       ensembleOnly: !!c.adapter.ensembleOnly,
       members: c.adapter.members ?? null,
+      // V-PD-47: Quellen, deren API keine Referenzzeit kennt (GeoSphere) — `run` ist dort
+      // die Wahl des Producers, nicht die Herkunft der Bytes. Wandert als `runCaveat` ins
+      // Manifest, damit ein Leser die Herkunftsangabe richtig gewichtet.
+      noReferenceTime: !!c.adapter.noReferenceTime,
       // PD-C2: wie oft diese Quelle in dieser Stufe geworfen hat, und ob sie deshalb
       // herausfiel. `0`/`null` ist der Normalfall — eine Zahl hier ist ein Befund.
       errors: c.errors ?? 0, firstError: c.firstError ?? null, dropped: c.dropped ?? null,
@@ -934,6 +938,17 @@ export function runManifest(results) {
       const s = SOURCE_BY_ID[c.id];
       sources.push({
         id: c.id, name: s?.name ?? c.id, tier: r.tier, runAt: runIso(c.run),
+        // ⚠ `runAt` ist bei diesen Quellen die WAHL des Producers, nicht die Herkunft der
+        // Bytes: ihre API kennt keine Referenzzeit und antwortet aus ihrem neuesten Lauf
+        // (V-PD-47, am 2026-09-12 an drei Parameter-Schreibweisen gemessen). Die Werte
+        // liegen zeitlich richtig — die Anfrage geht über die Gültigzeit.
+        ...(c.noReferenceTime ? {
+          runCaveat: 'Die API dieser Quelle kennt keine Referenzzeit: die Anfrage nennt nur die '
+            + 'Gültigzeit, geantwortet wird aus dem zur Abrufzeit neuesten Lauf. `runAt` ist damit '
+            + 'die Laufwahl des Producers, nicht die Herkunft der Werte; zeitlich liegen sie '
+            + 'richtig. Bei einem nachgeholten Lauf sind es die frischeren Daten unter dem '
+            + 'älteren Etikett (V-PD-47).',
+        } : {}),
         fromH: r.leadHours[0], toH: r.leadHours[r.leadHours.length - 1], steps: c.leads,
         // Wie viele Member tatsächlich gelesen wurden. Steht hier, weil die
         // Standardabweichung aus n Membern die wahre systematisch UNTERSCHÄTZT:
@@ -1238,7 +1253,9 @@ async function main() {
   if (built.length) {
     placeUnderPublishRun(results, out);
     const man = runManifest(results);
-    if (args.run) man.note = `--run=${args.run}: Obergrenze der Laufsuche; keine Quelle nimmt einen jüngeren Lauf (PD-C2, V-PD-38)`;
+    if (args.run) man.note = `--run=${args.run}: Obergrenze der Laufsuche; keine Quelle nimmt einen jüngeren Lauf (PD-C2, V-PD-38). `
+      + `⚠ Ausgenommen Quellen mit "runCaveat" — ihre API kennt keine Referenzzeit und liefert den zur Abrufzeit neuesten Lauf; `
+      + `bei einem nachgeholten Lauf stehen dort also frischere Werte unter dem älteren Etikett (V-PD-47).`;
     const mp = inOut(out, runManifestPath(man.run));
     mkdirSync(dirname(mp), { recursive: true });
     // ── Nie eine fremde Stufe aus dem Manifest werfen ────────────────────────

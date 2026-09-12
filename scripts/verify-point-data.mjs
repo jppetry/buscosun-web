@@ -461,6 +461,45 @@ add('jede Stufe wird von mindestens einer Quelle voll abgedeckt',
     'sonst committete `git add -A point` einen abgebrochenen Bau');
 }
 
+// --- (3c4) Herkunft je Quelle: wo `runAt` NICHT die Herkunft ist (V-PD-47) --
+//
+// Die GeoSphere-API kennt keine Referenzzeit: die Anfrage nennt nur die Gueltigzeit,
+// geantwortet wird aus dem neuesten Lauf. Am 2026-09-12 gemessen — `forecast_reference_time`,
+// `reftime` und `forecast_reftime` werden mit HTTP 200 angenommen und STILL ignoriert
+// (identischer Wert), und die Antwort nennt selbst den neuesten Lauf. `runAt` ist dort also
+// die Wahl des Producers. Das darf nicht im Kopf eines Entwicklers stehen, sondern im Manifest.
+{
+  const prod = readFileSync(join(ROOT, 'scripts/point/build-point-cube.mjs'), 'utf8');
+  const flagged = ['claef', 'claef_eps'].filter((id) => adapterFor(id)?.noReferenceTime === true);
+  add('Herkunft: beide GeoSphere-Quellen sind als „ohne Referenzzeit" gekennzeichnet',
+    flagged.length === 2, flagged.join('+') || '(keine)');
+  const nominal = ['icon_d2', 'ifs_hres', 'icon_ch1_eps', 'icon_d2_eps']
+    .filter((id) => adapterFor(id)?.noReferenceTime);
+  add('Herkunft: Quellen, die ihren Lauf in der URL nennen, sind NICHT gekennzeichnet',
+    nominal.length === 0, nominal.join('+') || 'keine — richtig');
+  add('Herkunft: der Producer reicht das Kennzeichen an die Beitraeger durch',
+    /noReferenceTime: !!c\.adapter\.noReferenceTime/.test(prod));
+  add('Herkunft: `--run` sagt, dass diese Quellen die Obergrenze NICHT einhalten',
+    /Ausgenommen Quellen mit "runCaveat"/.test(prod) && /V-PD-47/.test(prod),
+    'sonst liest ein nachgeholter Lauf sich, als kaeme jede Quelle aus dem genannten Lauf');
+  // Funktional: das Manifest traegt den Vermerk genau bei der gekennzeichneten Quelle.
+  const mkRes = (id, noRef) => ({
+    tier: 't1', run: '2026091206', leadHours: TIER_BY_ID.t1.leadHours.slice(0, 2),
+    files: [{ file: 'point/2026091206/t1/00_00.bin', bytes: 1, cy: 0, cx: 0 }],
+    contributors: [{ id, run: '2026091206', leads: 2, role: 'assigned', noReferenceTime: noRef }],
+    bytesTotal: 1, skipped: [], perPlane: {}, hasData: {},
+  });
+  const withCaveat = runManifest([mkRes('claef', true)]).sources[0];
+  const without = runManifest([mkRes('icon_d2', false)]).sources[0];
+  const caveat = (withCaveat.runCaveat ?? '').replace(/\s+/g, ' ');
+  add('Herkunft: `runCaveat` steht im Manifest der gekennzeichneten Quelle',
+    /V-PD-47/.test(caveat) && /Gültigzeit/.test(caveat) && /zeitlich liegen sie richtig/.test(caveat),
+    caveat.slice(0, 70) || '(fehlt)');
+  add('Herkunft: eine Quelle mit nominalem Lauf traegt KEINEN Vermerk',
+    without.runCaveat === undefined,
+    'ein Feld, das ueberall steht, sagt nichts (dieselbe Lehre wie sigmaKind → srcCount)');
+}
+
 // --- (3d) Der ECHTE Baum, wenn einer da ist --------------------------------
 {
   const tree = join(ROOT, 'data', 'point');
