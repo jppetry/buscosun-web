@@ -5625,6 +5625,16 @@ Veröffentlichung, nicht die Kur selbst; die ist lokal bewiesen (51.4) und wird 
 geprüft, sobald t3 auf einen älteren, schon veröffentlichten Lauf zurückfällt — im 09:50-Slot der
 Regelfall.
 
+**Lauf 15 (planmäßig 15:50, EXIT 0 nach 27,5 min)** hat den zweiten Fall geprüft, den der Umbau
+berührt: `2026091212` lag mit allen drei Stufen im Repo und wurde **fortgeschrieben** — jede Stufe aus
+der Ablage an ihren Platz, `run.json` neu, Orphan-Wächter grün, 276 Chunks / 84,45 MiB, Datencommit
+`18489ce`, Purge 200. Inhaltlich zieht er fast alles auf 12z: ICON-EU als Hauptlauf (t1 **49/49**,
+t2 24/24), ICON global, AICON, ICON-CH1 und ICON-CH2 ebenfalls 12z; nur IFS HRES/AIFS Single bleiben
+bei 06z bzw. 00z (Bereitstellung 6,5 h). **`sources[].runCaveat` steht erstmals im veröffentlichten
+Manifest** — bei `claef` und `claef_eps`, wie gebaut. Zeiten: t1 664 s · t2 501 s · t3 351 s.
+⚠ Beim Nachsehen am CDN eine Minute nach dem Purge kam noch die vorige Fassung — für Gegenproben
+unmittelbar nach einem Lauf ist `raw`/API die verlässliche Quelle, nicht jsDelivr.
+
 **Was der Tag nebenbei liefert, ist die erste Vorher/Nachher-Messung auf DEMSELBEN Runner:**
 
 | Stufe | Lauf 12 (03:50, vor Block F) | Lauf 13 (09:50) | Lauf 14 (14:54) |
@@ -5663,3 +5673,18 @@ Client-Vertrag (PD-C12) davon abhängt.
   Thema, eine Phase.
 - Der erste Runner-Lauf mit der Kur ist zugleich der F2-Gate-Lauf: aus seinem `tiers[].timing.totalMs`
   kommt `JOB_MAX_MIN_BY_TIER` für F3c (heute {30, 30, 20} provisorisch).
+- **V-PD-51 (neu, an `2026091212` gemessen): die Laufwahl stellt Abdeckung VOR Frische, und bei
+  ICON-CH1-EPS kostet das neun Stunden.** Am Katalog gemessen (12.09., 16:05 UTC): der 03z-Lauf trägt
+  16 Schritte bis +45 h, die Läufe 06z/09z/**12z** je 12 Schritte bis +33 h (⚠⁵, §41). Die Leiter
+  nimmt deshalb 03z — im Cube 13 statt 12 Stundenwerte, also **ein einziges Drei-Stunden-Fenster mehr,
+  bezahlt mit neun Stunden Vorlaufzeit in allen übrigen**. Für ein Band, dessen Stunden 33–48 ohnehin
+  ICON-D2, ICON-EU und IFS tragen, ist das vermutlich der falsche Tausch; die Kur wäre eine Schranke
+  in `chooseRun` („nimm den frischesten Lauf, dessen Abdeckung höchstens N Schritte unter der besten
+  liegt"). Sie ändert Werte ⇒ Jans Entscheidung, eigene Etappe mit Vorher/Nachher-Messung.
+  ⚠ **Der Befund ist kleiner, als er zuerst aussah, und das gehört dazu:** eine Stunde später (Lauf 15,
+  15:54 UTC) hat dieselbe Leiter den frischen **12z** genommen (12 Schritte). Der Rückgriff auf 03z
+  betrifft also das Fenster, in dem der jüngste CH1-Lauf noch nicht fertig ist — dort gewinnt der
+  45-h-Lauf gegen die 33-h-Läufe. Kein Dauerzustand, aber in jedem Lauf kurz nach einem CH1-Zyklus.
+- Nebenbefund derselben Messung, ohne Handlungsbedarf: **ICON-EU ist nur bis +30 h stündlich** (Stunde
+  031 gibt es nicht, am Verzeichnis geprüft; danach 3-stündlich). Deshalb trägt es in der stündlichen
+  Stufe 1 mit Versatz 3 h genau 28 der 49 Schritte — die Zahl ist erklärt, nicht defekt.
