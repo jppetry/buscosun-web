@@ -49,22 +49,56 @@
 
 import { mkdirSync, writeFileSync, readFileSync, existsSync, renameSync, rmSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { deflateRawSync } from 'node:zlib';
+import { deflateRawSync, deflateRaw } from 'node:zlib';
+import { promisify } from 'node:util';
 import v8 from 'node:v8';
 import {
   TIERS, TIER_BY_ID, CUBE_PLANES, CHUNK_CELLS, MISSING,
   chunkExtent, chunkPath, runManifestPath, planeIndex, quantize, encodeCubeChunk, cellCenter,
-  CUBE_SCHEMA,
+  CUBE_SCHEMA, readCubeHeader,
 } from '../../src/point/cubeFormat.ts';
 import { SOURCE_BY_ID, coversPoint } from '../../src/point/sourceMatrix.ts';
 import { adapterFor, ingestableFor, PENDING } from './adapters/index.mjs';
-import { netStats, resetNetStats, netDiff, clearCache, runIso } from './adapters/shared.mjs';
+import { netStats, resetNetStats, netDiff, clearCache, runIso, poolStats, poolClose } from './adapters/shared.mjs';
 import { PROFILE_PARAMS } from './profile.mjs';
+import { runLanes, orderedSettle, sequentialSettle } from './lanes.mjs';
 
 const OUT = process.env.POINT_OUT || 'data/point';
 /** Ab so vielen Fehlern je (Stufe, Quelle) fällt die Quelle für die Stufe heraus (PD-C2). */
 const SRC_MAX_ERRORS = Math.max(0, Number(process.env.POINT_SRC_MAX_ERRORS ?? 5));
-const deflate9 = async (bytes) => new Uint8Array(deflateRawSync(bytes, { level: 9 }));
+/**
+ * PD-F2b: Quellen laufen als Bahnen gleichzeitig (Netz überlappt Rechnen); `POINT_PARALLEL=0`
+ * ist der Rückfall auf die alte, streng sequenzielle Reihenfolge — und die Referenz für den
+ * Byte-Beweis. `POINT_AHEAD_HOURS` deckelt, wie weit eine Bahn dem Verbraucher vorauslaufen darf.
+ */
+const PARALLEL = process.env.POINT_PARALLEL !== '0';
+const AHEAD_HOURS = Math.max(1, Number(process.env.POINT_AHEAD_HOURS || 3));
+const deflate9Sync = async (bytes) => new Uint8Array(deflateRawSync(bytes, { level: 9 }));
+/**
+ * PD-F2f: derselbe Deflate im libuv-Threadpool statt im Hauptthread. zlib ist bei gleichen Parametern
+ * deterministisch — dieselben Bytes wie `deflateRawSync` (Verifier (3y) belegt es an drei Eingaben).
+ * `POINT_ENCODE_ASYNC=0` fährt den alten, synchronen Weg (Rückfall und Referenz).
+ */
+const deflateRawAsync = promisify(deflateRaw);
+const deflate9Async = async (bytes) => new Uint8Array(await deflateRawAsync(bytes, { level: 9 }));
+const ENCODE_ASYNC = process.env.POINT_ENCODE_ASYNC !== '0';
+const ENCODE_CONCURRENCY = 4;
+const deflate9 = ENCODE_ASYNC ? deflate9Async : deflate9Sync;
+
+/** `items` in Reihenfolge abarbeiten, höchstens `limit` gleichzeitig; Ergebnisse PER INDEX. */
+export async function mapLimit(items, limit, fn) {
+  const out = new Array(items.length);
+  let next = 0;
+  const worker = async () => {
+    for (;;) {
+      const i = next++;
+      if (i >= items.length) return;
+      out[i] = await fn(items[i], i);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.max(1, Math.min(limit, items.length)) }, worker));
+  return out;
+}
 
 /** Zielgrößen aus den Quellen; Profil und Meta füllt der Producer selbst. */
 const TARGET_VARS = CUBE_PLANES.filter((p) => p.kind === 'mean' && p.group === 'target').map((p) => p.id);
@@ -240,7 +274,13 @@ export async function buildTier(tierId, opts = {}) {
   // nicht aus einer Tabelle geraten (§21 (7)).
   const candidates = [];
   const contributors = [];
-  for (const id of ids) {
+  /**
+   * Erster Durchgang je Quelle: Lauf wählen, Domäne prüfen. Liefert `{ candidate }` oder
+   * `{ skip: Grund }` — nie einen Wurf nach außen. PD-F2b: läuft für alle Quellen GLEICHZEITIG
+   * (`orderedSettle`), die Ergebnisse werden in `ids`-Ordnung eingesammelt, denn der Index `ci`
+   * ist tragend (srcMask-Bit, Ensemble-Priorität, quantSrc/profileSrc).
+   */
+  async function discoverOne(id) {
     const a = adapterFor(id);
     // ── Warum die Ensemble-KONTROLLLÄUFE nicht in den Mittelwert gehen ────────
     // IFS-ENS-Kontrolle ist dasselbe Modell wie IFS HRES, nur gröber gerechnet;
@@ -254,8 +294,7 @@ export async function buildTier(tierId, opts = {}) {
     // Lauf. Die Adapter bleiben — sobald echte Member gelesen werden, liefern sie
     // `σ_ens` und werden wieder aufgenommen. → V-PD-9
     if (a?.ensembleControlOnly && !opts.withEnsembleControl) {
-      skipped.push([id, 'nur Kontrolllauf lesbar; als vierter „unabhängiger" Wert würde er σ_div schrumpfen (V-PD-9)']);
-      continue;
+      return { skip: 'nur Kontrolllauf lesbar; als vierter „unabhängiger" Wert würde er σ_div schrumpfen (V-PD-9)' };
     }
     const src = SOURCE_BY_ID[id];
     let choice = null;
@@ -264,25 +303,33 @@ export async function buildTier(tierId, opts = {}) {
     } catch (e) {
       // Eine Laufsuche, die wirft (Drosselung über zehn Minuten, Netz weg), ist ein
       // Befund über DIESE Quelle — sie wird benannt übersprungen, der Bau läuft weiter.
-      skipped.push([id, `Laufsuche fehlgeschlagen: ${e.message}`]);
-      continue;
+      return { skip: `Laufsuche fehlgeschlagen: ${e.message}` };
     }
-    if (!choice) { skipped.push([id, `kein Lauf gefunden, der ${leadHours[0]} h trägt`]); continue; }
+    if (!choice) return { skip: `kein Lauf gefunden, der ${leadHours[0]} h trägt` };
     const { run, probe } = choice;
     const dom = domainMask(src, tier);
     // Eine Quelle, deren Domäne den Ausschnitt gar nicht schneidet, ist kein Beiträger —
     // sie stünde sonst im Manifest, zählte in `srcMask` ein Bit und lieferte nie etwas.
     // Benannt überspringen statt still mitschleppen.
     if (dom && dom.inside === 0) {
-      skipped.push([id, `Domäne schneidet den Ausschnitt der Stufe nicht (0 von ${dom.cells} Zellen)`]);
-      continue;
+      return { skip: `Domäne schneidet den Ausschnitt der Stufe nicht (0 von ${dom.cells} Zellen)` };
     }
     // `leads` kommt erst NACH der Versatzrechnung — s. unten.
-    candidates.push({
+    return { candidate: {
       id, adapter: a, run, probe,
       mask: dom?.mask ?? null, maskInside: dom?.inside ?? (tier.ny * tier.nx),
       role: isDiversity.has(id) ? 'diversity' : 'assigned',
-    });
+    } };
+  }
+  const settle = PARALLEL ? orderedSettle : sequentialSettle;
+  {
+    const found = await settle(ids, discoverOne);
+    for (let i = 0; i < ids.length; i++) {
+      const r = found[i];
+      if (!r.ok) { skipped.push([ids[i], `Laufsuche fehlgeschlagen: ${r.error?.message ?? r.error}`]); continue; }
+      if (r.value.skip) { skipped.push([ids[i], r.value.skip]); continue; }
+      candidates.push(r.value.candidate);
+    }
   }
   // ── Zweiter Durchgang: Zeitversatz je Quelle ────────────────────────────────
   //
@@ -301,21 +348,28 @@ export async function buildTier(tierId, opts = {}) {
   // jede Quelle bekommt ihren eigenen Versatz und wird in IHREM Laufraum gefragt.
   const publishRun = candidates.map((c) => c.run).sort().at(-1);
   const runMs = (r) => Date.parse(runIso(r));
-  for (const c of candidates) {
+  /** Zweiter Durchgang je Quelle: Versatz, dann die lieferbaren Stunden am Objekt. */
+  async function coverOne(c) {
     c.offsetH = Math.round((runMs(publishRun) - runMs(c.run)) / 3_600_000);
     // Die Stunden im Laufraum der Quelle — sonst meldete `leadsFor` eine Abdeckung für
     // Stunden, die diese Quelle so gar nicht kennt.
     const own = leadHours.map((h) => h + c.offsetH);
     const leads = await safeCall(c, 'leadsFor', () => c.adapter.leadsFor(c.run, { ...tier, leadHours: own }));
-    if (!leads) { skipped.push([c.id, `Abdeckung nicht bestimmbar: ${c.firstError ?? 'Fehler'}`]); continue; }
+    if (!leads) return { skip: `Abdeckung nicht bestimmbar: ${c.firstError ?? 'Fehler'}` };
     const got = new Set(leads);
-    if (got.size === 0) {
-      skipped.push([c.id, `Lauf ${c.run} liefert keine Stunde dieser Stufe (Versatz ${c.offsetH} h)`]);
-      continue;
-    }
+    if (got.size === 0) return { skip: `Lauf ${c.run} liefert keine Stunde dieser Stufe (Versatz ${c.offsetH} h)` };
     c.leads = got;                                   // im Laufraum DER QUELLE
     c.coverage = got.size === leadHours.length ? 'full' : 'partial';
-    contributors.push(c);
+    return { ok: true };
+  }
+  {
+    const covered = await settle(candidates, coverOne);
+    for (let i = 0; i < candidates.length; i++) {
+      const r = covered[i];
+      if (!r.ok) { skipped.push([candidates[i].id, `Abdeckung nicht bestimmbar: ${r.error?.message ?? r.error}`]); continue; }
+      if (r.value.skip) { skipped.push([candidates[i].id, r.value.skip]); continue; }
+      contributors.push(candidates[i]);
+    }
   }
 
   if (contributors.length === 0) {
@@ -340,52 +394,73 @@ export async function buildTier(tierId, opts = {}) {
 
   const accPrev = new Map();   // Quelle+Größe → Summe des zuletzt geholten Schritts
 
-  for (let it = 0; it < nt; it++) {
+  // ── PD-F2b: eine Bahn je Quelle, Verbraucher in Stundenordnung ─────────────
+  //
+  // Bis PD-F2b fragte die Schleife je (Stunde, Größe) jede Quelle NACHEINANDER ab — Netz
+  // 626 s und Rechnen 633 s (t1 kalt, §49.2) überlappten sich zu keiner Sekunde. Jetzt:
+  // `sourceHour(c, it)` erledigt für EINE Quelle alle Zielgrößen einer Stunde (Abruf, Maske,
+  // Entakkumulation — die `accPrev`-Rekurrenz bleibt in der Bahn, weil nur sie ihren
+  // Schlüssel berührt); die Bahnen laufen gleichzeitig; `consumeHour(it, perSource)` führt je
+  // Größe den UNVERÄNDERTEN synchronen Block aus, mit den Gittern in Beiträger-Ordnung ⇒ die
+  // FP-Summen laufen in derselben Reihenfolge wie zuvor ⇒ byte-gleiche Chunks (Beweis:
+  // compareTrees, §50). `POINT_PARALLEL=0` fährt dieselben zwei Funktionen sequenziell.
+  async function sourceHour(c, it) {
     const leadH = leadHours[it];
     const prevLead = it === 0 ? leadH - tier.stepH : leadHours[it - 1];
     const dt = leadH - prevLead;
+    const out = new Map();
+    for (const varId of TARGET_VARS) {
+      if (!c.adapter.vars.includes(varId)) continue;
+      // In den Laufraum DIESER Quelle: dieselbe Gültigzeit, andere Vorhersagestunde.
+      const own = leadH + c.offsetH;
+      if (!c.leads.has(own)) continue;
+      let g = await safeCall(c, `${varId} @ +${own} h`, () => c.adapter.field(c.run, own, varId, tier));
+      if (!g) continue;
+      // Geometrie VOR allem anderen: was außerhalb der Domäne liegt, ist kein Wert.
+      // Steht hier und nicht in der Zellschleife, damit auch die Entakkumulation und
+      // `maskHere` (und damit `srcCount`) es sehen — an EINER Stelle, nicht an dreien.
+      if (c.mask) g = applyMask(g, c.mask);
+      if (c.adapter.accumulated.has(varId)) {
+        // Rate = (Summe[t] − Summe[t−Δ]) / Δ. Ohne Referenz ist 0 mm/h KEINE
+        // Aussage über den Niederschlag, sondern über den Lauf ⇒ MISSING.
+        const key = `${c.id}:${varId}`;
+        const ownPrev = prevLead + c.offsetH;
+        let prev = accPrev.get(key);
+        if (!prev || prev.lead !== ownPrev) {
+          // PD-C5: liegt der Vorschritt INNERHALB der Stufe und die Quelle traegt ihn laut
+          // `leadsFor` nicht (AIFS rechnet 6-stuendlich, die Stufe 3-stuendlich), gibt es
+          // nichts zu holen — vorher gingen dafuer je Lauf 12 Abrufe in t2 ins Leere (404).
+          // Vor der ersten Stufenstunde (it = 0) wird weiter gefragt: dort sagt `leads` nichts.
+          const insideTier = ownPrev >= leadHours[0] + c.offsetH;
+          // V-PD-45 (F2e): liegt der Vorschritt VOR der Stufe, kennt `leads` ihn nicht — dann fragt der
+          // Adapter sein Schrittraster (ECMWF: 3 h/6 h), statt blind einen 404 zu holen.
+          const fetchable = ownPrev >= 0 && (insideTier ? c.leads.has(ownPrev) : (c.adapter.hasStep?.(ownPrev) ?? true));
+          const p = fetchable ? await safeCall(c, `${varId} @ +${ownPrev} h (Vorschritt)`, () => c.adapter.field(c.run, ownPrev, varId, tier)) : null;
+          prev = p ? { lead: ownPrev, grid: p } : null;
+        }
+        accPrev.set(key, { lead: own, grid: g });
+        if (!prev || dt <= 0) continue;
+        const rate = new Float32Array(cells).fill(NaN);
+        for (let k = 0; k < cells; k++) {
+          if (Number.isFinite(g[k]) && Number.isFinite(prev.grid[k])) {
+            rate[k] = Math.max(0, (g[k] - prev.grid[k]) / dt);
+          }
+        }
+        g = rate;
+      }
+      out.set(varId, g);
+    }
+    return out;
+  }
 
+  function consumeHour(it, perSource) {
     for (const varId of TARGET_VARS) {
       const grids = [];
       const gridSrc = [];
       for (let ci = 0; ci < contributors.length; ci++) {
-        const c = contributors[ci];
-        if (!c.adapter.vars.includes(varId)) continue;
-        // In den Laufraum DIESER Quelle: dieselbe Gültigzeit, andere Vorhersagestunde.
-        const own = leadH + c.offsetH;
-        if (!c.leads.has(own)) continue;
-        let g = await safeCall(c, `${varId} @ +${own} h`, () => c.adapter.field(c.run, own, varId, tier));
+        const m = perSource[ci];
+        const g = m instanceof Map ? m.get(varId) : undefined;   // { error } einer Bahn ⇒ kein Beitrag
         if (!g) continue;
-        // Geometrie VOR allem anderen: was außerhalb der Domäne liegt, ist kein Wert.
-        // Steht hier und nicht in der Zellschleife, damit auch die Entakkumulation und
-        // `maskHere` (und damit `srcCount`) es sehen — an EINER Stelle, nicht an dreien.
-        if (c.mask) g = applyMask(g, c.mask);
-        if (c.adapter.accumulated.has(varId)) {
-          // Rate = (Summe[t] − Summe[t−Δ]) / Δ. Ohne Referenz ist 0 mm/h KEINE
-          // Aussage über den Niederschlag, sondern über den Lauf ⇒ MISSING.
-          const key = `${c.id}:${varId}`;
-          const ownPrev = prevLead + c.offsetH;
-          let prev = accPrev.get(key);
-          if (!prev || prev.lead !== ownPrev) {
-            // PD-C5: liegt der Vorschritt INNERHALB der Stufe und die Quelle traegt ihn laut
-            // `leadsFor` nicht (AIFS rechnet 6-stuendlich, die Stufe 3-stuendlich), gibt es
-            // nichts zu holen — vorher gingen dafuer je Lauf 12 Abrufe in t2 ins Leere (404).
-            // Vor der ersten Stufenstunde (it = 0) wird weiter gefragt: dort sagt `leads` nichts.
-            const insideTier = ownPrev >= leadHours[0] + c.offsetH;
-            const fetchable = ownPrev >= 0 && (!insideTier || c.leads.has(ownPrev));
-            const p = fetchable ? await safeCall(c, `${varId} @ +${ownPrev} h (Vorschritt)`, () => c.adapter.field(c.run, ownPrev, varId, tier)) : null;
-            prev = p ? { lead: ownPrev, grid: p } : null;
-          }
-          accPrev.set(key, { lead: own, grid: g });
-          if (!prev || dt <= 0) continue;
-          const rate = new Float32Array(cells).fill(NaN);
-          for (let k = 0; k < cells; k++) {
-            if (Number.isFinite(g[k]) && Number.isFinite(prev.grid[k])) {
-              rate[k] = Math.max(0, (g[k] - prev.grid[k]) / dt);
-            }
-          }
-          g = rate;
-        }
         grids.push(g);
         gridSrc.push(ci);
       }
@@ -420,6 +495,22 @@ export async function buildTier(tierId, opts = {}) {
       }
     }
   }
+
+  let laneStats = null;
+  async function runFields() {
+  if (PARALLEL && contributors.length > 0) {
+    laneStats = await runLanes({
+      nLanes: contributors.length, nSteps: nt, ahead: AHEAD_HOURS,
+      task: (ci, it) => sourceHour(contributors[ci], it),
+      consume: consumeHour,
+    });
+  } else {
+    for (let it = 0; it < nt; it++) {
+      const per = new Array(contributors.length);
+      for (let ci = 0; ci < contributors.length; ci++) per[ci] = await sourceHour(contributors[ci], it);
+      consumeHour(it, per);
+    }
+  }
   // srcCount aus der Bitmaske — dieselbe Quelle ueber mehrere Groessen zaehlt einmal.
   {
     const mp = meta('srcCount');
@@ -430,6 +521,7 @@ export async function buildTier(tierId, opts = {}) {
       for (let b = m; b; b >>= 1) n += b & 1;
       countPlane[i] = quantize(n, mp);
     }
+  }
   }
   // --- Ensemble-Streuung (PD-B8) ---------------------------------------------
   //
@@ -458,10 +550,10 @@ export async function buildTier(tierId, opts = {}) {
   // Δ ist der Stufenschritt, nicht der Abstand zur vorigen GEWÄHLTEN Stunde: mit
   // `--steps` wäre der sonst 48 h, und die Rate über zwei Tage stünde in der
   // Stundenebene.
-  mark('fields');
+  let ensStat = null;
+  async function runEnsemble() {
   const ensSources = process.env.POINT_ENSEMBLE === '0'
     ? [] : contributors.filter((c) => (c.adapter.ensembleVars ?? []).length > 0 && !c.dropped);
-  let ensStat = null;
   if (ensSources.length) {
     const cp = meta('ensCount');
     const countPl = planeAt('ensCount');
@@ -555,6 +647,7 @@ export async function buildTier(tierId, opts = {}) {
         + (s.errors ? `, ⚠ ${s.errors} Fehler` : ''));
     }
   }
+  }
 
   // --- Quantil-Ebenen (PD-B7) ------------------------------------------------
   //
@@ -567,18 +660,10 @@ export async function buildTier(tierId, opts = {}) {
   // Wie bei den Profilfeldern: aus GENAU EINER Quelle, nicht gemittelt. Das q10
   // zweier Modelle zu mitteln ergäbe ein Quantil, das kein Ensemble je gerechnet
   // hat — und über welche Verteilung es dann etwas sagt, könnte niemand angeben.
-  // Die einzige Stelle, an der ein Quellfehler den Bau noch abbrechen darf: wenn in
-  // dieser Stufe KEINE Quelle mehr trägt. Ein leerer Lauf wäre schlimmer als keiner —
-  // er sähe im Manifest aus wie ein Lauf ohne Wetter.
-  if (contributors.length && contributors.every((c) => c.dropped)) {
-    throw new Error(`${tierId}: alle ${contributors.length} Quellen sind herausgefallen — `
-      + contributors.map((c) => `${c.id}: ${c.firstError}`).join(' · '));
-  }
-
-  mark('ensemble');
+  let quantStat = null;
+  async function runQuantiles() {
   const quantSrc = process.env.POINT_QUANTILES === '0'
     ? null : contributors.find((c) => (c.adapter.quantileVars ?? []).length > 0 && !c.dropped);
-  let quantStat = null;
   if (quantSrc) {
     const qVars = quantSrc.adapter.quantileVars.filter((v) => planeIndex(`${v}_q10`) >= 0);
     let done = 0, missed = 0, filled = 0;
@@ -617,6 +702,7 @@ export async function buildTier(tierId, opts = {}) {
     console.log(`  ${tierId}: Quantile aus ${quantSrc.id} — ${done} Stunden, ${missed} ohne, `
       + `${qVars.length} Größen`);
   }
+  }
 
   // --- Profilfelder (PD-B5) --------------------------------------------------
   //
@@ -633,10 +719,10 @@ export async function buildTier(tierId, opts = {}) {
   // Cube wie vor PD-B5 — die vier Ebenen bleiben dann MISSING, also genau der
   // Zustand, den §33.3 beschreibt. Das ist zugleich die Messvorrichtung: derselbe
   // Bereich einmal mit und einmal ohne, und die Differenz ist der Preis.
-  mark('quantiles');
+  let profileStat = null;
+  async function runProfile() {
   const profileSrc = process.env.POINT_PROFILE === '0'
     ? null : contributors.find((c) => c.adapter.hasProfile);
-  let profileStat = null;
   if (profileSrc) {
     const stepH = Math.max(tier.stepH, Number(process.env.POINT_PROFILE_STEP_H || tier.stepH));
     const ids = ['gammaEff', 'zBase', 'zInv', 'dTInv'];
@@ -679,12 +765,11 @@ export async function buildTier(tierId, opts = {}) {
     console.log(`  ${tierId}: Profil aus ${profileSrc.id} — ${done} Stunden (Raster ${stepH} h), `
       + `${missed} ohne, Inversionsanteil ${(profileStat.inversionShare * 100).toFixed(1)} %`);
   }
-
-  const tFields = Date.now();
-  mark('profile');
+  }
 
   // hModEff: Mittel der Modellorographien der beitragenden Quellen. Bei gleichen
   // Gewichten ist das ihr arithmetisches Mittel; bei genau einer Quelle deren HSURF.
+  async function runOrography() {
   const oros = [];
   for (const c of contributors) {
     let o = await safeCall(c, 'Orographie', () => c.adapter.orography(c.run, tier));
@@ -706,47 +791,94 @@ export async function buildTier(tierId, opts = {}) {
       for (let it = 0; it < nt; it++) plane[it * cells + k] = q;
     }
   }
+  }
+
+  // ── PD-F2b-2: die vier Nebenblöcke laufen als eigene Bahnen NEBEN den Feldbahnen ──────
+  //
+  // Nach F2b lagen 65 % der Stufenzeit in Ensemble, Quantilen und Profil — streng HINTER den
+  // Feldern, obwohl sie disjunkte Ebenen schreiben (`_sd_ens`/`ensCount`, `_q10`/`_q90`, die
+  // vier Profilebenen, `hModEff`) und nichts aus den Feldebenen lesen. Jeder Block bleibt innen
+  // sequenziell — seine Reihenfolge und damit die FP-Ordnung sind unverändert —, nur die Blöcke
+  // laufen gleichzeitig. Geteilt ist allein die Fehlerbuchhaltung je Quelle (`safeCall`:
+  // errors/dropped/msWall). Folge im FEHLERFALL: die Quellenwahl von Ensemble und Quantilen
+  // fällt, bevor die Feldbahnen eine Quelle `dropped` setzen können; `safeCall` liefert für eine
+  // herausgefallene Quelle danach ohnehin `null`. `POINT_PARALLEL=0` fährt die alte Folge
+  // Felder → Ensemble → Quantile → Profil → Orographie. `blockMs` sind Wandzeiten je Block und
+  // ÜBERLAPPEND — nicht summierbar; `phases` bleibt die sequenzielle Zerlegung (Summe = Stufe).
+  const blockMs = {};
+  const timed = async (name, fn) => { const t = Date.now(); try { return await fn(); } finally { blockMs[name] = Date.now() - t; } };
+  let tFields;
+  if (PARALLEL) {
+    const outcome = await Promise.allSettled([
+      timed('fields', runFields), timed('ensemble', runEnsemble), timed('quantiles', runQuantiles),
+      timed('profile', runProfile), timed('orography', runOrography),
+    ]);
+    tFields = Date.now();
+    mark('fields');
+    const failed = outcome.find((o) => o.status === 'rejected');
+    if (failed) throw failed.reason;
+  } else {
+    await timed('fields', runFields); mark('fields');
+    await timed('ensemble', runEnsemble); mark('ensemble');
+    await timed('quantiles', runQuantiles); mark('quantiles');
+    await timed('profile', runProfile); tFields = Date.now(); mark('profile');
+    await timed('orography', runOrography); mark('orography');
+  }
+  // Die einzige Stelle, an der ein Quellfehler den Bau noch abbrechen darf: wenn in
+  // dieser Stufe KEINE Quelle mehr trägt. Ein leerer Lauf wäre schlimmer als keiner —
+  // er sähe im Manifest aus wie ein Lauf ohne Wetter. Seit F2b-2 HINTER dem Join.
+  if (contributors.length && contributors.every((c) => c.dropped)) {
+    throw new Error(`${tierId}: alle ${contributors.length} Quellen sind herausgefallen — `
+      + contributors.map((c) => `${c.id}: ${c.firstError}`).join(' · '));
+  }
 
   // --- Chunks schneiden ------------------------------------------------------
-  mark('orography');
   const files = [];
   let bytesTotal = 0;
+  // PD-F2f: `perPlane` = Bytes je Ebene IM CONTAINER (Verzeichnis des geschriebenen Chunks, also
+  // min(roh, Zeilendifferenz) nach dem Deflate) — bis F2f war es ein DRITTER Deflate der rohen Ebene
+  // je Chunk (51 × 208 Deflates nur für eine Logzeile). Die Zahl steht nur im Bauprotokoll, nicht im
+  // Manifest; die Beschriftung sagt es (§50.g).
   const perPlane = new Array(CUBE_PLANES.length).fill(0);
-  const hasData = new Array(CUBE_PLANES.length).fill(false);
+  // `hasData` EINMAL über die vollen Stufenebenen statt je Chunk.
+  const hasData = CUBE_PLANES.map((_, pi) => { const src = planes[pi]; for (let k = 0; k < src.length; k++) if (src[k] !== MISSING) return true; return false; });
   const runId = contributors.map((c) => c.run).sort().at(-1);
+  const runHours = Math.floor(Date.parse(runIso(runId)) / 3_600_000);
 
-  for (let cy = 0; cy < tier.chunk.cy; cy++) {
-    for (let cx = 0; cx < tier.chunk.cx; cx++) {
-      const ext = chunkExtent(tier, cy, cx);
-      const n = nt * ext.ny * ext.nx;
-      const cut = CUBE_PLANES.map((_, pi) => {
-        const out = new Int16Array(n);
-        const src = planes[pi];
-        let w = 0;
-        for (let it = 0; it < nt; it++) {
-          const b = it * cells;
-          for (let ry = 0; ry < ext.ny; ry++) {
-            const row = b + (ext.y0 + ry) * tier.nx + ext.x0;
-            for (let rx = 0; rx < ext.nx; rx++) out[w++] = src[row + rx];
-          }
+  const jobs = [];
+  for (let cy = 0; cy < tier.chunk.cy; cy++) for (let cx = 0; cx < tier.chunk.cx; cx++) jobs.push({ cy, cx });
+  const encodeOne = async ({ cy, cx }) => {
+    const ext = chunkExtent(tier, cy, cx);
+    const n = nt * ext.ny * ext.nx;
+    const cut = CUBE_PLANES.map((_, pi) => {
+      const out = new Int16Array(n);
+      const src = planes[pi];
+      let w = 0;
+      for (let it = 0; it < nt; it++) {
+        const b = it * cells;
+        for (let ry = 0; ry < ext.ny; ry++) {
+          const row = b + (ext.y0 + ry) * tier.nx + ext.x0;
+          for (let rx = 0; rx < ext.nx; rx++) out[w++] = src[row + rx];
         }
-        return out;
-      });
-      const bytes = await encodeCubeChunk({
-        runHours: Math.floor(Date.parse(runIso(runId)) / 3_600_000),
-        tierIndex: tier.index, nt, y0: ext.y0, x0: ext.x0, ny: ext.ny, nx: ext.nx, planes: cut,
-      }, deflate9);
-      const rel = chunkPath(runId, tier, cy, cx);
-      const p = join(opts.out ?? OUT, rel.replace(/^point\//, ''));
-      mkdirSync(dirname(p), { recursive: true });
-      writeFileSync(p, bytes);
-      files.push({ file: rel, bytes: bytes.length, cy, cx });
-      bytesTotal += bytes.length;
-      for (let pi = 0; pi < CUBE_PLANES.length; pi++) {
-        perPlane[pi] += (await deflate9(new Uint8Array(cut[pi].buffer))).length;
-        if (!hasData[pi]) for (const v of cut[pi]) if (v !== MISSING) { hasData[pi] = true; break; }
       }
-    }
+      return out;
+    });
+    const bytes = await encodeCubeChunk({
+      runHours, tierIndex: tier.index, nt, y0: ext.y0, x0: ext.x0, ny: ext.ny, nx: ext.nx, planes: cut,
+    }, deflate9);
+    const rel = chunkPath(runId, tier, cy, cx);
+    const p = join(opts.out ?? OUT, rel.replace(/^point\//, ''));
+    mkdirSync(dirname(p), { recursive: true });
+    writeFileSync(p, bytes);
+    return { file: rel, bytes: bytes.length, cy, cx, planeBytes: readCubeHeader(bytes).directory.map((d) => d.length) };
+  };
+  // PD-F2f: bis zu vier Chunks gleichzeitig (der Deflate läuft im Threadpool); `files[]` PER INDEX in
+  // (cy, cx)-Ordnung — die Reihenfolge ist Manifestvertrag, nicht die Fertigstellung.
+  const encoded = await mapLimit(jobs, ENCODE_ASYNC ? ENCODE_CONCURRENCY : 1, encodeOne);
+  for (const e of encoded) {
+    files.push({ file: e.file, bytes: e.bytes, cy: e.cy, cx: e.cx });
+    bytesTotal += e.bytes;
+    for (let pi = 0; pi < CUBE_PLANES.length; pi++) perPlane[pi] += e.planeBytes[pi];
   }
 
   return {
@@ -773,6 +905,15 @@ export async function buildTier(tierId, opts = {}) {
         // PD-F1: je Phase und je Quelle (Wandzeit aller Adapteraufrufe, inkl. Dekodieren).
         phases: phase,
         bySource: Object.fromEntries(contributors.map((c) => [c.id, { msWall: c.msWall ?? 0, calls: c.calls ?? 0 }])),
+        // PD-F2b: Bahnen laufen gleichzeitig — `laneMs` je Quelle sind ÜBERLAPPEND, nicht summierbar.
+        mode: PARALLEL ? 'lanes' : 'sequential',
+        // PD-F2b-2: Wandzeit je Block (Felder, Ensemble, Quantile, Profil, Orographie) — ÜBERLAPPEND.
+        blocks: blockMs,
+        // PD-F2d: der Worker-Pool (requested/running/mode/jobs/inlineJobs/errors/msWait) — wird in
+        // main() nach der Stufe gefüllt, weil der Pool lazy startet und dort erst sichtbar ist.
+        workers: null,
+        lanes: laneStats ? { ahead: AHEAD_HOURS, maxAhead: laneStats.maxAhead, consumeMs: laneStats.consumeMs,
+          laneMs: Object.fromEntries(contributors.map((c, i) => [c.id, laneStats.laneMs[i]])) } : null,
       };
     })(),
   };
@@ -872,7 +1013,9 @@ export function runManifest(results) {
         // Manifest, das aus einem älteren Producer stammt.
         net: r.net ?? null,
         // PD-F1: Wandzeit je Phase und Quelle dieser Stufe — die Messgrundlage für PD-F2/F3.
-        timing: r.ms ? { phases: r.ms.phases ?? null, bySource: r.ms.bySource ?? null, totalMs: r.ms.total } : null,
+        timing: r.ms ? { phases: r.ms.phases ?? null, bySource: r.ms.bySource ?? null, totalMs: r.ms.total,
+          mode: r.ms.mode ?? 'sequential', lanes: r.ms.lanes ?? null, blocks: r.ms.blocks ?? null,
+          workers: r.ms.workers ?? null } : null,
         dropped: (r.dropped ?? []).map(([id, reason]) => ({ id, reason })),
         profile: r.profile ? {
           ...r.profile,
@@ -1028,6 +1171,14 @@ async function main() {
     const ph = r.ms?.phases ?? {};
     const phLine = Object.entries(ph).map(([k, v]) => `${k} ${(v / 1000).toFixed(0)} s`).join(' · ');
     if (phLine) console.log(`  Zeit je Phase: ${phLine} · gesamt ${(r.ms.total / 1000).toFixed(0)} s`);
+    // PD-F2b-2: die Blöcke laufen gleichzeitig — ihre Zeiten überlappen, die größte ist der Boden.
+    const bl = Object.entries(r.ms?.blocks ?? {}).map(([k, v]) => `${k} ${(v / 1000).toFixed(0)} s`).join(' · ');
+    if (bl && r.ms?.mode === 'lanes') console.log(`  Zeit je Block (überlappend): ${bl}`);
+    // PD-F2d: hat der Pool gerechnet? `mode: 'inline'` heißt Rückfall im Hauptthread — hörbar.
+    const pw = await poolStats();
+    if (r.ms) r.ms.workers = pw;
+    if (pw.mode !== 'not-started') console.log(`  Worker-Pool: ${pw.mode} · ${pw.running}/${pw.requested} Worker · ${pw.jobs ?? 0} Aufträge`
+      + `${pw.inlineJobs ? `, ${pw.inlineJobs} inline` : ''}${pw.errors ? `, ⚠ ${pw.errors} Fehler` : ''} · Wartezeit ${((pw.msWait ?? 0) / 1000).toFixed(0)} s`);
     const bs = r.ms?.bySource ?? {};
     const bsLine = Object.entries(bs).sort((a, b) => b[1].msWall - a[1].msWall)
       .map(([sid, v]) => `${sid} ${(v.msWall / 1000).toFixed(0)} s/${v.calls}${r.net?.[sid] ? ` (Netz ${(r.net[sid].ms / 1000).toFixed(0)} s)` : ''}`).join(' · ');
@@ -1048,7 +1199,8 @@ async function main() {
     for (const [sid, why] of r.skipped) console.log(`  übersprungen ${sid}: ${why}`);
     console.log(`  ${r.files.length} Chunks · ${(r.bytesTotal / 1048576).toFixed(2)} MiB · Median ${(median(r.files.map((f) => f.bytes)) / 1024).toFixed(1)} KiB`);
     const filled = Object.entries(r.perPlane).filter(([k]) => r.hasData[k]).sort((a, b) => b[1] - a[1]);
-    console.log(`  mit Werten (${filled.length}/${CUBE_PLANES.length}): ${filled.map(([k, v]) => `${k} ${(v / 1024).toFixed(0)}`).join(' · ')}`);
+    // PD-F2f: KiB je Ebene IM CONTAINER (min(roh, Zeilendifferenz) nach Deflate), nicht mehr die Rohgroesse ohne Filter.
+    console.log(`  mit Werten (${filled.length}/${CUBE_PLANES.length}, KiB im Container): ${filled.map(([k, v]) => `${k} ${(v / 1024).toFixed(0)}`).join(' · ')}`);
     const empty = Object.keys(r.perPlane).filter((k) => !r.hasData[k]);
     if (empty.length) console.log(`  durchgehend MISSING: ${empty.join(', ')}`);
     console.log(`  ms: Felder ${r.ms.fields} · gesamt ${r.ms.total}`);
@@ -1086,6 +1238,7 @@ async function main() {
     console.log(`Netz: ${n.files} Dateien (${(n.bytes / 1048576).toFixed(1)} MiB), ${n.cached} aus dem Cache, ${n.absent} nicht vorhanden`);
     console.log(`Manifest: ${mp}`);
   }
+  await poolClose();
 }
 
 if (process.argv[1]?.endsWith('build-point-cube.mjs')) {

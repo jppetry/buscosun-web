@@ -68,6 +68,38 @@ export function sparseBlocksOf(yamlText) {
   return blocks;
 }
 
+/**
+ * PD-F3b: die Jobs der Vorlage — Name, der Cron aus dem `if:` (`github.event.schedule == '…'`),
+ * `timeout-minutes`, `needs`, die gebaute Stufe (`--tiers=tX`) und der sparse-Block des Jobs.
+ * Der Verifier rechnet damit die Slot-Regeln JE JOB gegen die Kartenlinie.
+ */
+export function jobsOf(yamlText) {
+  const lines = String(yamlText).split(/\r?\n/);
+  const jobsAt = lines.findIndex((l) => /^jobs:\s*$/.test(l));
+  if (jobsAt < 0) return [];
+  const heads = [];
+  for (let i = jobsAt + 1; i < lines.length; i++) {
+    const m = /^  ([A-Za-z0-9_-]+):\s*$/.exec(lines[i]);
+    if (m) heads.push({ name: m[1], start: i });
+  }
+  return heads.map((h, k) => {
+    const end = heads[k + 1]?.start ?? lines.length;
+    const body = lines.slice(h.start, end).join('\n');
+    const timeout = /^\s*timeout-minutes:\s*(\d+)/m.exec(body)?.[1];
+    const needs = /^\s*needs:\s*\[([^\]]*)\]/m.exec(body)?.[1];
+    return {
+      name: h.name,
+      cron: /github\.event\.schedule == '([^']+)'/.exec(body)?.[1] ?? null,
+      timeout: timeout ? Number(timeout) : null,
+      needs: needs ? needs.split(',').map((x) => x.trim()).filter(Boolean) : [],
+      always: /^\s*if:[\s\S]*?always\(\)/m.test(body),
+      tier: /--tiers=(t\d)/.exec(body)?.[1] ?? null,
+      sparse: sparseBlocksOf(body)[0] ?? null,
+      body,
+    };
+  });
+}
+
 /** `timeout-minutes:` je Job, in Dateireihenfolge. */
 export function timeoutMinutesOf(yamlText) {
   return [...String(yamlText).matchAll(/^\s*timeout-minutes:\s*(\d+)\s*$/gm)].map((m) => Number(m[1]));

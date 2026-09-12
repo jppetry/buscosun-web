@@ -617,10 +617,13 @@
 > (V-PD-38), Cache je Stufe leeren (V-PD-36, nur im Cron). **Laufzeitbeweis:** Bau mit injiziertem
 > AIFS-Fehler ⇒ 6 Fehler, Quelle herausgefallen, IFS trägt, 12 Chunks, EXIT 0; Cron-Nachbau mit
 > sparse-Klon ⇒ Publisher Exit 0. `verify:point-data` **615/615**, typecheck grün.
-> ✅ **PD-C3 deployt (2026-09-11 14:27 UTC):** C1+C2 als `0cf7dca` gepusht, Vorlage byte-gleich als
-> `buscosun-data/.github/workflows/point.yml` (`4db2a2c`, 11 964 B, Workflow `active`). Gate GPD-C3
-> noch offen: zwei grüne planmäßige Läufe (erster 15:50 UTC) und Schema 4 am CDN. Plan:
-> `~/.claude/plans/…` (PD-C1…C16).
+> ✅ **PD-C3 deployt und Gate grün (§49.6/49.7).** Vorlage byte-gleich im Daten-Repo (`4db2a2c`, dann
+> Timeout 95 min als `57200a3` — Lauf 8 fiel nach 75 min ins Timeout, der Runner braucht für die volle
+> Matrix 55–74 min, ≈ 2× lokal). **Lauf 9 (16:34 UTC) und Lauf 10 (17:40 UTC) sind die ersten
+> erfolgreichen Punkt-Läufe:** `point/2026091115/` mit 276 Chunks, 83,5 MiB, 14 Quellen, 51 Ebenen,
+> Stationsprodukt 3 071 Stationen, Schema 4 am CDN, `validateRunManifest` 0 Verstöße, `@commit`/`@main`
+> byte-gleich. Runner-Varianz t1 27,8/32,9/41,4 min ⇒ `JOB_MAX_MIN` künftig aus dem Maximum.
+> Plan: `~/.claude/plans/…` (PD-C1…C16 + Block F).
 > ✅ **PD-C4/PD-C5 umgesetzt (§47/§48, uncommitted).** C4: `PointRunManifest` aus dem ECHTEN
 > Producer-Output neu geschrieben (`missing` war ein Feld ohne Schreiber), `validateRunManifest()` als
 > Vertrag für Verifier und späteren Client (Negativ-Kontrollen: fremder Lauf im Chunk-Pfad, Schema 1,
@@ -644,6 +647,44 @@
 > (⇒ parallel bis −50 %, zu belegen); ICON-D2-EPS dekodiert 162 s für 47 Dateien (V-PD-31 in Zahlen);
 > warm braucht t2 76 s, davon 69 s reines Dekodieren. Verifier **661/661**. Lauf 8 (manuell 15:18 UTC,
 > Stand `0cf7dca`) läuft; die drei Vorstufen inkl. Sparse-Nachprüfung sind grün.
+> ✅ **Block F, Etappen F2a–F2d umgesetzt (§50, uncommitted) — der Bau wird kürzer, ohne dass ein Byte
+> anders wird.** Jans Entscheidungen: Netz und Rechnen überlappen UND Worker-Threads; F3 (ein Job je
+> Stufe) danach im selben Plan. Beweisregel je Etappe: warmer Bau am selben Cache mit demselben `--run`
+> gegen die Referenz des committeten Producers ⇒ `compareTrees` **208/208 Chunks byte-gleich**, Manifest-
+> Whitelist gleich, `errors = 0` — jede Etappe hat ihn bestanden. **F2a** Grundbausteine (FIFO-Pacer je
+> Host mit `maxInflight`, In-flight-Memo, `fetchJson`, reine Abtastung in `sample.mjs`, Promise-Caches in
+> vier Adaptern, `compareTrees.mjs`); **F2b** eine Bahn je Quelle + Verbraucher in Stundenordnung
+> (`lanes.mjs`, `accPrev`-Rekurrenz bleibt in der Bahn, FP-Ordnung in Beiträger-Ordnung) ⇒ kalt t1 1 219 →
+> 1 092 s, discover 57 → 6 s; **F2b-2** Ensemble/Quantile/Profil/Orographie als eigene Bahnen neben den
+> Feldbahnen (`Promise.allSettled`, `timing.blocks` überlappend); **F2d** Dekodieren + Abtasten in
+> `worker_threads` (`gribWorker.mjs`/`decodePool.mjs`, Einstiege `fetchSampledField`/`sampleBytes`/
+> `sampleBytesMany`, Inline-Rückfall `POINT_WORKERS=0`, `timing.workers`) ⇒ **warm t1 393 → 295 s**.
+> ⚠ **Zwei ehrliche Befunde:** (1) **F2c** (Abtast-Index je Gittersignatur) ist byte-gleich bewiesen und
+> **wirkungslos** — gemessen 5,8 → 5,5 ms je Aufruf, ≈ 4 s je Stufe statt der geplanten 150–250 s; der
+> Plan hatte Punkte gezählt, nicht mit dem Takt multipliziert (906 k × 639 ≈ 6 s bei 10⁸/s). Der Boden von
+> `fields` ist die Dekodierung, nicht die Abtastung. (2) F2b-2 allein machte den **warmen** Bau langsamer
+> (423 → 496 s): fünf Blöcke auf EINEM Kern gewinnen nichts und zahlen Verwaltung — erst mit den Workern
+> (F2d) rechnen sie nebeneinander. Neuer Boden ist die Ensemble-Bahn (261 s: dwdEps entpackt 80 statt 20
+> Nachrichten, V-PD-31) ⇒ **F2e** (`keep`-Prädikat im Decoder) als Nächstes, dann F2f (Kodierung), F2-Gate
+> mit Runner-Lauf (Jan), F3a–F3c. **V-PD-47 (§50.b):** GeoSphere-Anfragen nennen keine Referenzzeit ⇒
+> C-LAEF-Daten hängen von der Abrufzeit ab, Byte-Beweise nur warm gegen warm. Kill-Switches:
+> `POINT_PARALLEL=0`, `POINT_SAMPLE_INDEX=0`, `POINT_WORKERS=0`, `POINT_ENCODE_ASYNC=0`.
+> ✅ **F2e/F2f/F3a/F3b danach (§50.f–j, uncommitted):** **F2e** `decodeGrib2All(raw,{keep})` +
+> `scanGrib2Headers` (Prädikat VOR der Entpackstufe; „keine dekodierbar" wirft, „keine behalten" gibt `[]`),
+> `keepSpec.mjs` mit `intervalEndMinuteIfAny` (dwdEps 80 → 20 Nachrichten im Worker), meteoswiss-Konstanten
+> 17 → 3, Profil-Level per `Promise.all` in Levelordnung, V-PD-45 (`adapter.hasStep`); **F2f** dritter Deflate
+> weg (`perPlane` aus dem Chunk-Verzeichnis, Logzeile „KiB im Container"), `hasData` einmal, Deflate im
+> Threadpool mit vier Chunks gleichzeitig, `files[]` per Index ⇒ encode 31 → 7 s. **Zeittafel t1 kalt:
+> 1 219 (Basis) → 1 092 (F2b) → 620 (F2d) → 539 s (F2e+F2f) = −56 %**; Planziel 480 s um 59 s verfehlt —
+> der Boden ist jetzt die ICON-D2-Bahn (1 590 Anfragen in EINER Bahn) und GeoSphere (345 Anfragen), nicht
+> mehr CPU (V-PD-48, Skizze: mehrere Bahnen je Quelle). **F3a** additiv: `RETENTION_HOURS_BY_TIER`
+> {t1 9, t2 24, t3 24} (⚠ Vorschlag E-F-1, Jans Entscheidung offen; 36 h für t3 widerspräche der 24-h-Regel),
+> `runsToKeepFor`, `latestByTier` + `retentionByTier` im Index, `prune.mjs` (`pruneTier` hält den
+> Orphan-Wächter grün), Publisher räumt je Stufe. **F3b** Vorlage mit drei Jobs t1 `30 1,4,…,22` · t2
+> `50 3,9,15,21` (+ Stationen) · t3 `55 9,21`, `needs`-Kette mit `always()`, eine Concurrency-Gruppe; der
+> Verifier rechnet Regeln A–D je Job gegen die Kartenlinie (`jobsOf`), `JOB_MAX_MIN_BY_TIER` {30, 30, 20}
+> **provisorisch** (lokal × 2), F3c zieht nach. **Kopie der Vorlage = Jans Gate.** `verify:point-data`
+> **814/814**, typecheck 0, Build 241/241, Budget grün (`totalJs` 1 366,1 unverändert).
 > **Werkzeugfalle zum dritten Mal in dieser Phase:** `[^
 ]` in einer Regex wurde durch die
 > Python-in-Bash-Kette zum echten Zeilenumbruch und hat den Verifier zerschossen. Kur wie

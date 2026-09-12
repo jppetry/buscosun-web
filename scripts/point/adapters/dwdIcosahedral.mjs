@@ -22,8 +22,8 @@
  */
 
 import {
-  fetchGribField, headOk, probeHorizon, pad3, runIdBack, buildUnstructuredIndex,
-  sampleUnstructuredToTier, convert, KELVIN_TO_C, PA_TO_HPA,
+  fetchGribField, fetchSampledField, poolSetIndex, headOk, probeHorizon, pad3, runIdBack, buildUnstructuredIndex,
+  KELVIN_TO_C, PA_TO_HPA,
 } from './shared.mjs';
 
 const DWD = process.env.DWD_OPENDATA || 'https://opendata.dwd.de/weather/nwp';
@@ -60,15 +60,18 @@ const UNITS = { t2m: KELVIN_TO_C, td2m: KELVIN_TO_C, ps: PA_TO_HPA };
 export const ICO_ACCUMULATED = new Set(['precip']);
 
 /** ICON-global-Zellkoordinaten, einmal je Prozess. */
-let cellCoords = null;
-async function iconGlobalCells(run) {
+let cellCoords = null;   // PD-F2a: Promise, nicht Wert — zwei 11,8-MB-Felder sollen genau einmal geholt werden
+function iconGlobalCells(run) {
   if (cellCoords) return cellCoords;
   const base = MODELS.icon_global.base;
   const u = (p) => `${base}/${run.slice(8, 10)}/${p.toLowerCase()}/${MODELS.icon_global.invariant(run, p)}`;
-  const lat = await fetchGribField(u('CLAT'));
-  const lon = await fetchGribField(u('CLON'));
-  if (!lat || !lon) return null;
-  cellCoords = { lat: lat.values, lon: lon.values };
+  cellCoords = (async () => {
+    const lat = await fetchGribField(u('CLAT'));
+    const lon = await fetchGribField(u('CLON'));
+    if (!lat || !lon) return null;
+    return { lat: lat.values, lon: lon.values };
+  })();
+  cellCoords.then((v) => { if (v == null) cellCoords = null; }, () => { cellCoords = null; });
   return cellCoords;
 }
 
@@ -89,14 +92,34 @@ export function makeDwdIcosahedralAdapter(id) {
     ? `${m.base}/${p}/r/${aiconRunPath(run)}/s/PT${pad3(step)}H00M.grib2`
     : `${m.base}/${run.slice(8, 10)}/${p.toLowerCase()}/${m.file(run, step, p)}`);
 
-  /** Nachbarindex je Stufe — einmal gebaut, dann wiederverwendet. */
+  /**
+   * Nachbarindex je Stufe — einmal gebaut, dann wiederverwendet. PD-F2a: gecacht wird das
+   * PROMISE, nicht der Wert — unter Nebenläufigkeit (Bahnen je Quelle, F2b) fragten sonst
+   * mehrere Aufrufer vor dem ersten `set` und bauten den Index doppelt (ICON global ~1 s,
+   * ICON-D2-EPS 60 s). Ein abgelehnter Promise wird entfernt, damit ein Netzfehler nicht
+   * für den Rest des Laufs klebt.
+   */
   const idxCache = new Map();
-  async function indexFor(run, tier) {
+  function indexFor(run, tier) {
     if (idxCache.has(tier.id)) return idxCache.get(tier.id);
-    const cells = await iconGlobalCells(m.ownGrid ? run : await siblingRun(run));
-    const idx = cells ? buildUnstructuredIndex(cells.lat, cells.lon, tier) : null;
-    idxCache.set(tier.id, idx);
-    return idx;
+    const p = (async () => {
+      const cells = await iconGlobalCells(m.ownGrid ? run : await siblingRun(run));
+      return cells ? buildUnstructuredIndex(cells.lat, cells.lon, tier) : null;
+    })();
+    idxCache.set(tier.id, p);
+    p.catch(() => idxCache.delete(tier.id));
+    return p;
+  }
+  /** PD-F2d: den Nachbarindex EINMAL je Stufe an den Pool geben; der Schlüssel ist (Quelle, Stufe). */
+  const idxSent = new Map();
+  function idxKeyFor(tier, idx) {
+    const key = `${id}|${tier.id}`;
+    if (!idxSent.has(key)) {
+      const p = poolSetIndex(key, idx).then(() => key);
+      idxSent.set(key, p);
+      p.catch(() => idxSent.delete(key));
+    }
+    return idxSent.get(key);
   }
   /** Fuer AICON: ein ICON-global-Lauf, dessen clat/clon abrufbar ist. */
   async function siblingRun(run) {
@@ -131,9 +154,10 @@ export function makeDwdIcosahedralAdapter(id) {
       if (!p) return null;
       const idx = await indexFor(run, tier);
       if (!idx) return null;
-      const f = await fetchGribField(url(run, leadH, p), { bz2: !m.raw });
-      if (!f) return null;
-      return convert(sampleUnstructuredToTier(f.values, idx, tier), UNITS[varId]);
+      // PD-F2d: Dekodieren + Abtasten im Pool; der Index liegt dort schon (idxKeyFor).
+      const idxKey = await idxKeyFor(tier, idx);
+      const r = await fetchSampledField(url(run, leadH, p), tier, { bz2: !m.raw, grid: 'unstructured', idxKey, unit: UNITS[varId] ?? null });
+      return r ? r.grid : null;
     },
 
     async orography(run, tier) {
@@ -141,8 +165,9 @@ export function makeDwdIcosahedralAdapter(id) {
       const idx = await indexFor(run, tier);
       if (!idx) return null;
       const u = `${m.base}/${run.slice(8, 10)}/${m.orographyParam.toLowerCase()}/${m.invariant(run, m.orographyParam)}`;
-      const f = await fetchGribField(u);
-      return f ? sampleUnstructuredToTier(f.values, idx, tier) : null;
+      const idxKey = await idxKeyFor(tier, idx);
+      const r = await fetchSampledField(u, tier, { grid: 'unstructured', idxKey });
+      return r ? r.grid : null;
     },
   };
 }

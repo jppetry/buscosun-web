@@ -5,51 +5,64 @@
 # `jppetry/buscosun-data` und muss dort MANUELL committet werden: eine Action darf
 # ohne `workflows`-Scope keine Workflow-Datei pushen (dieselbe Einschränkung wie bei
 # `workflow-build.yml`). Weicht die Vorlage vom Stand im Daten-Repo ab, läuft dort
-# der alte Stand weiter.
+# der alte Stand weiter. Die Kopie ist Jans Gate (PD-F3b).
 #
 # ── Warum ein EIGENER Workflow und nicht `build.yml` ─────────────────────────
-# Anderer Takt (4 statt 8 Slots), andere Laufzeit (Stunden statt Minuten), andere
+# Anderer Takt, andere Laufzeit (Minuten bis Viertelstunden statt Sekunden), andere
 # Quellen. Ein gemeinsamer Job würde die Kartenlinie an die langsamste Punktquelle
 # hängen — und die Kartenlinie ist die, die live sichtbar ist.
 #
-# ── Die vier Slots — GEMESSEN, nicht gesetzt ─────────────────────────────────
-# Hier stand vorher „Lauf + 2 h" mit dem Vermerk, die Wartezeit sei in PD1 zu MESSEN.
-# Nachgeholt am 2026-09-09 über `Last-Modified` der jeweils LETZTEN gebrauchten Datei,
-# über vier Läufe (18z/00z/06z/12z) — die Bereitstellung ist erstaunlich stabil:
+# ── PD-F3b: EIN Workflow, DREI Jobs, DREI Takte ──────────────────────────────
+# Bis F3 baute ein Job alle drei Stufen viermal am Tag (`50 3,9,15,21`). Damit war
+# Stufe 1 beim Bau 3,4–3,8 h alt, obwohl ICON-D2 achtmal täglich rechnet und nach
+# 1,35 h fertig ist — die Wartezeit bis zum Slot war der größte Anteil der Verzögerung
+# (§49.1). Jetzt hat jede Stufe ihren Job und ihren Takt; jeder Job baut GENAU EINE
+# Stufe (`--tiers=tX`), veröffentlicht sie unter dem Quell-Lauf dieser Stufe (§26) und
+# der Index nennt je Stufe den jüngsten Lauf, der sie trägt (`latestByTier`, PD-F3a).
+#
+# ── Bereitstellung — GEMESSEN, nicht gesetzt (§31, 2026-09-09, über vier Läufe) ──
 #
 #   Quelle                18z     00z     06z     12z
 #   ICON-D2   +48 h      1,35 h  1,36 h  1,35 h  1,35 h
 #   ICON-EU  +120 h      3,53 h  3,70 h  3,55 h  3,64 h
 #   IFS      +144 h      6,45 h  7,57 h  6,45 h  (noch nicht)
 #
-# IFS ist die langsamste tragende Quelle: 00z/12z sind die vollen `oper`-Läufe (360 h)
-# und brauchen ~7,6 h, 06z/18z enden als `scda` bei 144 h und sind nach ~6,5 h da (⚠⁷).
+# IFS 00z/12z sind die vollen `oper`-Läufe (360 h) und brauchen ~7,6 h; 06z/18z enden
+# als `scda` bei 144 h.
 #
-# Daraus folgt der Takt — jede Quelle mit dem NEUESTEN Lauf, den sie vollständig hat:
+# ── Die drei Takte ───────────────────────────────────────────────────────────
+#   t1  30 1,4,7,10,13,16,19,22   ICON-D2 des Laufs −3 h (Lauf + 1,35 h + 9 min Rand);
+#                                  8×/Tag, ≈ 4 GiB je Lauf.
+#   t2  50 3,9,15,21              wie bisher: ICON-EU/ICON global des laufenden Zyklus
+#                                  (+3,7 h) sind fertig; hier läuft auch das Stationsprodukt.
+#   t3  55 9,21                   IFS `oper` 00z/12z (+7,6 h) — nur diese reichen bis 336 h.
+#                                  Fünf Minuten hinter t2 und in DERSELBEN Gruppe: t3 wartet,
+#                                  bis t2 fertig ist (s. „Warteschlange" unten).
 #
-#   03:50  ICON-D2 00z (01:21) · ICON-EU 00z (03:41) · global 00z (03:31) · IFS 18z (00:26)
-#   09:50  ICON-D2 06z (07:21) · ICON-EU 06z (09:35) · global 06z (09:32) · IFS 00z (07:34) → volle 336 h
-#   15:50  ICON-D2 12z (13:21) · ICON-EU 12z (15:38) · global 12z (15:32) · IFS 06z (12:26)
-#   21:50  ICON-D2 18z (19:21) · ICON-EU 18z (21:38) · global 18z (21:32) · IFS 12z (19:34) → volle 336 h
+# ── Abstand zur Kartenlinie — ausgerechnet, nicht behauptet ──────────────────
+# `build.yml` publiziert um :20 der Stunden 0/3/6/… und um :30 der Stunden 2/5/8/… und
+# **force-pusht**: was zwischen seinem Klon und seinem Push hier ankommt, ist danach
+# spurlos weg. Der Verifier (`verify:point-data`) liest die Cron-Zeilen BEIDER Vorlagen
+# und rechnet je Job:
+#   Regel A  Abstand zum nächsten Kartenlinien-Push ≥ JOB_MAX_MIN(Job) + 20
+#   Regel B  wartet der Job in der Gruppe hinter einem anderen (t3 hinter t2), gilt
+#            Abstand − JOB_MAX_MIN(vorderer) ≥ JOB_MAX_MIN(Job) + 20
+#   Regel C  JOB_MAX_MIN(Job) + 10 ≤ timeout-minutes(Job) ≤ Abstand
+#   Regel D  keine zwei Cron-Zeilen mit derselben Minute, nie drei Jobs im selben Fenster
+# t1 um :30 hat zum :30-Push der Kartenlinie eine Stunde später GENAU 60 min ⇒
+# JOB_MAX_MIN(t1) ≤ 40. Rückfall, falls der Runner t1 nicht in 30 min schafft:
+# `30 0,3,6,…` mit 120 min Abstand, aber ≈ 2 h älterem ICON-D2.
 #
-# Der alte Takt (:10 der Stunden 02/08/14/20) lieferte zwar auch vollständige Felder,
-# aber ICON-EU und ICON global jeweils aus dem VORIGEN Lauf — sie sind zu diesen Zeiten
-# noch nicht fertig. Der neue holt sie sechs Stunden frischer.
+# ⚠ JOB_MAX_MIN je Stufe (im Verifier) ist bis zum ersten Runner-Tag nach F2
+# PROVISORISCH aus der lokalen Messung × 2 (Runner-Faktor, §49.5) abgeleitet — F3c zieht
+# sie an `tiers[].timing.totalMs` der Cron-Manifeste nach (Maximum + 30 %).
 #
-# Jenseits 144 h bleibt in den Zwischenslots der letzte volle IFS-Lauf stehen. Das ist
-# korrekt und steht im Manifest (`sources[].runAt`, `tiers[].ageH`), damit das Produkt
-# das Alter je Bereich ehrlich ausweisen kann.
-#
-# ── Warum :50 und nicht :10 ──────────────────────────────────────────────────
-# Die Kartenlinie (`build.yml`) publiziert um :20 der Stunden 0/3/6/9/12/15/18/21 und
-# um :30 der Stunden 2/5/8/11/14/17/20/23 — und sie **force-pusht**: sie klont flach,
-# wirft `.git` weg und ersetzt `main`. Was zwischen ihrem Klon und ihrem Push hier
-# ankommt, ist danach spurlos weg (kein Konflikt, keine Meldung).
-# Ein Punkt-Lauf braucht gemessen 20–40 min. Bei :10 der Stunden 02/08/14/20 landete
-# sein Push also GENAU auf dem :30-Slot derselben Stunde — eine Kollision durch
-# Konstruktion. Bei :50 der Stunden 03/09/15/21 sind es **100 Minuten** bis zum
-# nächsten Repack-Push. `publish-point.mjs` sieht zusätzlich nach dem Push nach und
-# purgt das CDN nur, wenn die Dateien wirklich auf `origin/main` stehen.
+# ── Warteschlange ────────────────────────────────────────────────────────────
+# EINE Concurrency-Gruppe für alle drei Jobs: die Manifest-Zusammenführung in
+# `point/<run>/run.json` ist nicht nebenläufigkeitsfest, und zwei Publisher gleichzeitig
+# sind der Kern von V-BW-58. ⚠ GitHub bricht einen WARTENDEN Lauf ab, sobald ein zweiter
+# wartet (nur einer darf anstehen) — deshalb nie drei Jobs im selben Fenster, und die
+# Cron-Zeilen tragen nie dieselbe Minute (Regel D).
 #
 # ── Was hier NICHT passiert ──────────────────────────────────────────────────
 # Gelände. Dieses Repo speichert Wetterdaten (Jans Entscheidung 2026-09-09): Höhe kommt
@@ -61,13 +74,18 @@ name: point
 
 on:
   schedule:
-    # Gemessen, s. Kopf: jede Quelle mit dem neuesten Lauf, den sie VOLLSTÄNDIG hat,
-    # und 100 min Abstand zum Force-Push der Kartenlinie.
-    - cron: '50 3,9,15,21 * * *'
+    # Drei Takte, drei Jobs — jeder Job prüft unten, ob SEIN Cron ihn geweckt hat.
+    - cron: '30 1,4,7,10,13,16,19,22 * * *'   # t1
+    - cron: '50 3,9,15,21 * * *'              # t2 (+ Stationsprodukt)
+    - cron: '55 9,21 * * *'                   # t3
   workflow_dispatch:
     inputs:
+      tiers:
+        description: 'Stufen: all | t1 | t2 | t3 (all = nacheinander t1 → t2 → t3)'
+        required: false
+        default: 'all'
       run:
-        description: 'Fester ICON-D2-Lauf YYYYMMDDHH (leer = Discovery)'
+        description: 'Fester Lauf YYYYMMDDHH als Obergrenze der Laufsuche (leer = Discovery)'
         required: false
       steps:
         description: 'Schrittbereich, z. B. 0-48 (leer = volle Stufe)'
@@ -75,7 +93,8 @@ on:
 
 concurrency:
   # Der Radar-Spiegel pusht in DIESES Repo alle 1–2 Minuten. Zwei Publisher
-  # gleichzeitig sind der Kern von V-BW-58 — deshalb nie zwei Punktläufe parallel.
+  # gleichzeitig sind der Kern von V-BW-58 — deshalb nie zwei Punktläufe parallel,
+  # auch nicht zwei Stufen-Jobs.
   group: point
   cancel-in-progress: false
 
@@ -83,15 +102,14 @@ permissions:
   contents: write
 
 jobs:
-  build:
+  # ── Stufe 1 (0–48 h, 0,05°) — achtmal täglich ─────────────────────────────
+  t1:
+    if: >-
+      (github.event_name == 'schedule' && github.event.schedule == '30 1,4,7,10,13,16,19,22 * * *')
+      || (github.event_name == 'workflow_dispatch' && (github.event.inputs.tiers == 'all' || github.event.inputs.tiers == 't1'))
     runs-on: ubuntu-latest
-    # PD-C1 setzte 75 (Jans Budget 60 min + Reserve). Lauf 8 am 2026-09-11 zeigte: auf dem
-    # Runner braucht der Bau der vollen Matrix ≈ 80 min (t1 41,4 · t2 25,6 · t3 abgebrochen),
-    # etwa das Doppelte der lokal gemessenen 42 min — und die volle Matrix war dort noch nie
-    # durchgelaufen. 95 = Uebergang (Jans Entscheidung 16:40 UTC) bis PD-F2 den Bau kuerzt;
-    # der Verifier verlangt JOB_MAX_MIN + 10 <= timeout <= engster Slot-Abstand (100 min).
-    # Die alten 330 min haetten einen haengenden Lauf still bis in den naechsten Slot laufen lassen.
-    timeout-minutes: 95
+    # Regel C: JOB_MAX_MIN(t1) + 10 ≤ 45 ≤ 60 (Abstand zum :30-Push der Kartenlinie).
+    timeout-minutes: 45
     steps:
       # SPARSE: der Radar-Spiegel macht den Baum gross (gemessen 279 MiB am 2026-09-09).
       # Der Cube-Job braucht davon nichts ausser `point/` — UND `.gitattributes`.
@@ -99,10 +117,8 @@ jobs:
       # ⚠ Die dritte Zeile hat sieben Cron-Laeufe gekostet (2026-09-09 … 2026-09-11):
       # der Publisher legt `.gitattributes` an (`*.bin -text`, §29) und staged sie; ein
       # sparse Checkout ohne dieses Muster laesst `git add` die Datei STILL verwerfen
-      # (Exit 0). Der Publisher erkennt das und bricht ab — richtig, aber erst im Job,
-      # nach 23 Minuten Bau. Lokal unsichtbar, weil hier immer der volle Baum liegt.
-      # Die Liste hier und `PUBLISH_PATHS` in `scripts/point/sparseCover.mjs` prueft der
-      # Verifier jetzt GEGENEINANDER, nicht per Schluesselwort.
+      # (Exit 0). Die Liste hier und `PUBLISH_PATHS` in `scripts/point/sparseCover.mjs`
+      # prueft der Verifier GEGENEINANDER, je Job.
       - uses: actions/checkout@v4
         with:
           ref: main
@@ -112,34 +128,21 @@ jobs:
             index.json
             .gitattributes
           sparse-checkout-cone-mode: false
-
-      # Nachpruefen, was der Checkout wirklich gesetzt hat — ein sparse-Muster, das
-      # nichts trifft, meldet nichts (dieselbe Stille wie bei QUELLENMATRIX.md, §30).
       - name: Sparse-Muster des Daten-Repos nachpruefen
         run: |
           git sparse-checkout list
           git sparse-checkout list | grep -qx '.gitattributes' || { echo "sparse-Muster ohne .gitattributes — der Publisher wuerde abbrechen"; exit 1; }
           test -f .gitattributes && echo ".gitattributes vorhanden" || echo ".gitattributes fehlt im Repo — der Publisher legt sie an"
-
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-
       - name: Git identity
         run: |
           git config user.name  'buscosun-bot'
           git config user.email 'bot@buscosun.local'
-
-      # Producer aus dem Anwendungs-Repo — sparse, wie in build.yml (der volle Klon
-      # maß 188 s, BW-9 §28.6). Nur `scripts/`, `src/`, `package.json` — und
-      # `QUELLENMATRIX.md`.
-      #
-      # ⚠ Die Matrix gehört ins Set, obwohl sie „nur Doku" ist: das Gate unten gleicht
-      # ihre Tabelle §1 gegen die Registry ab (der Abgleich, der am 2026-09-09 fünf
-      # fehlende Einträge fand). Ohne die Datei fiel dieser Block durch — gemessen am
-      # NACHGEBAUTEN Cron, nicht vermutet: frisch von GitHub geklont, sparse ausgecheckt,
-      # Gate gelaufen ⇒ 230/231, und der Job wäre abgebrochen, bevor er ein Byte zieht.
-      # Lokal ist das unsichtbar, weil dort immer der volle Baum liegt.
+      # Producer aus dem Anwendungs-Repo — sparse (der volle Klon maß 188 s, BW-9 §28.6):
+      # `scripts/`, `src/`, `package.json` und `QUELLENMATRIX.md` (das Gate gleicht die
+      # Matrix gegen die Registry ab; ohne die Datei fiel es am nachgebauten Cron durch, §30).
       - name: Checkout producer (public, no token, sparse)
         run: |
           git clone --depth=1 --quiet --filter=blob:none --no-checkout https://github.com/jppetry/buscosun-web.git app
@@ -147,69 +150,172 @@ jobs:
           git sparse-checkout set --no-cone scripts src package.json QUELLENMATRIX.md
           git checkout --quiet
           test -f QUELLENMATRIX.md || { echo "QUELLENMATRIX.md fehlt trotz sparse-Muster"; exit 1; }
-
-      # Der Cube-Producer hängt an genau EINER Laufzeit-Abhängigkeit: `bz2`.
-      # `gribDecode.ts` ist importfrei (handgeschriebener Decoder inkl. CCSDS-AEC).
       - name: Install producer dependency
         run: cd app && npm install --no-save --no-audit --no-fund bz2@1
-
       # Netzfreies Gate VOR dem Ingest: eine kaputte Formdefinition soll auffallen,
-      # bevor 600 MiB gezogen werden.
+      # bevor Gigabytes gezogen werden.
       - name: Gate — Form der Punktdaten
         run: cd app && node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-point-data.mjs
+      - name: Build point cube — t1
+        env:
+          # Direkt in den ausgecheckten Baum: der Producer fuehrt ein vorhandenes run.json
+          # desselben Laufs fort (nie eine fremde Stufe aus dem Manifest werfen, §26).
+          POINT_OUT: ${{ github.workspace }}/point
+          POINT_CACHE: ${{ runner.temp }}/point-cache
+          # Das `bzip2`-Binary statt des reinen JS-Wegs (BW-9/V-BW-27: Faktor ~2,6).
+          REPACK_BZIP2: '1'
+          # PD-C2 (V-PD-36): Plattencache nach der Stufe leeren, Konstanten bleiben.
+          POINT_CACHE_CLEAR: 'tier'
+          # PD-F2d: Worker-Pool — Standard min(6, Kerne − 1) = 3 auf dem 4-vCPU-Runner.
+        run: |
+          cd app
+          node --experimental-strip-types --import ./scripts/lib/register-ts.mjs \
+            scripts/point/build-point-cube.mjs --tiers=t1 \
+            ${{ github.event.inputs.run && format('--run={0}', github.event.inputs.run) || '' }} \
+            ${{ github.event.inputs.steps && format('--steps={0}', github.event.inputs.steps) || '' }}
+      # Der Publisher committet, pusht (mit Wiederholung) und purgt DANACH den Index am
+      # CDN — genau EINE Push-Stelle je Job (V-BW-58: fuenf Versuche mit `pull --rebase`).
+      - name: Publish (committet, pusht mit Wiederholung, purgt das CDN)
+        env:
+          # OHNE diese Variable schreibt der Publisher nur lokal und pusht NICHT.
+          POINT_PUSH: '1'
+        run: |
+          cd app
+          node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/point/publish-point.mjs --repo=${{ github.workspace }}
 
-      - name: Build point cube
+  # ── Stufe 2 (51–120 h, 0,10°) + Stationsprodukt — viermal täglich ────────
+  t2:
+    # `needs` + `always()`: bei `tiers=all` laeuft t2 NACH t1 (nie zwei Publisher gleichzeitig);
+    # bei einem planmaessigen t2-Lauf ist t1 uebersprungen, und `always()` laesst t2 trotzdem laufen.
+    needs: [t1]
+    if: >-
+      always() && (
+      (github.event_name == 'schedule' && github.event.schedule == '50 3,9,15,21 * * *')
+      || (github.event_name == 'workflow_dispatch' && (github.event.inputs.tiers == 'all' || github.event.inputs.tiers == 't2'))
+      )
+    runs-on: ubuntu-latest
+    # Regel C: JOB_MAX_MIN(t2) + 10 ≤ 60 ≤ 100 (Abstand zum :30-Push).
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+          sparse-checkout: |
+            point
+            index.json
+            .gitattributes
+          sparse-checkout-cone-mode: false
+      - name: Sparse-Muster des Daten-Repos nachpruefen
+        run: |
+          git sparse-checkout list
+          git sparse-checkout list | grep -qx '.gitattributes' || { echo "sparse-Muster ohne .gitattributes — der Publisher wuerde abbrechen"; exit 1; }
+          test -f .gitattributes && echo ".gitattributes vorhanden" || echo ".gitattributes fehlt im Repo — der Publisher legt sie an"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Git identity
+        run: |
+          git config user.name  'buscosun-bot'
+          git config user.email 'bot@buscosun.local'
+      - name: Checkout producer (public, no token, sparse)
+        run: |
+          git clone --depth=1 --quiet --filter=blob:none --no-checkout https://github.com/jppetry/buscosun-web.git app
+          cd app
+          git sparse-checkout set --no-cone scripts src package.json QUELLENMATRIX.md
+          git checkout --quiet
+          test -f QUELLENMATRIX.md || { echo "QUELLENMATRIX.md fehlt trotz sparse-Muster"; exit 1; }
+      - name: Install producer dependency
+        run: cd app && npm install --no-save --no-audit --no-fund bz2@1
+      - name: Gate — Form der Punktdaten
+        run: cd app && node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-point-data.mjs
+      - name: Build point cube — t2
         env:
           POINT_OUT: ${{ github.workspace }}/point
           POINT_CACHE: ${{ runner.temp }}/point-cache
-          # Das `bzip2`-Binary statt des reinen JS-Wegs (BW-9/V-BW-27: Faktor ~2,6,
-          # und parallele Aufrufe laufen als Prozesse auf mehreren Kernen). Das faellt
-          # bei ICON global ins Gewicht: 3,2 MiB je Feld, ~4 s rein in JS — bei
-          # 36 Schritten x 11 Groessen waeren das ueber 25 Minuten nur Entpacken.
-          # Fehlt das Binary, faellt die DATEI auf JS zurueck, nie der Lauf.
           REPACK_BZIP2: '1'
-          # PD-C2 (V-PD-36): Plattencache nach jeder Stufe leeren, Konstanten bleiben.
-          # Kalt gemessen waren es 9,1 GiB gegen 14 GB Runner-Platte; die Spitze ist
-          # jetzt die groesste Stufe, nicht die Summe. Lokal ist das AUS (Messungen
-          # „am selben Cache" brauchen ihn).
           POINT_CACHE_CLEAR: 'tier'
         run: |
           cd app
           node --experimental-strip-types --import ./scripts/lib/register-ts.mjs \
-            scripts/point/build-point-cube.mjs \
+            scripts/point/build-point-cube.mjs --tiers=t2 \
             ${{ github.event.inputs.run && format('--run={0}', github.event.inputs.run) || '' }} \
             ${{ github.event.inputs.steps && format('--steps={0}', github.event.inputs.steps) || '' }}
-
-      # Das Stationsprodukt (PD-B9). Eigener Schritt, weil es ein eigenes Produkt ist:
-      # eigene Quelle (MOSMIX-L), eigene Zeitachse (stuendlich bis 247 h), eigenes
-      # Manifest. Gemessen 55 s — 76 MiB Abruf, 30 s Stromparsen.
-      #
-      # ⚠ `continue-on-error`: das Stationsprodukt darf den Cube nicht mitreissen.
-      # MOSMIX-L erscheint bei Lauf + 72…79 min, dieser Job laeuft bei Lauf + 50 min;
-      # faellt die Datei einmal aus, ist der Cube trotzdem vollstaendig. Ein fehlendes
-      # `point/stations/<lauf>/` ist sichtbar (index.json listet die Laeufe), ein
-      # abgebrochener Lauf waere teurer.
+      # Das Stationsprodukt (PD-B9) — eigenes Produkt, eigene Quelle (MOSMIX-L), eigene
+      # Zeitachse; gemessen 55 s. Bleibt im t2-Job (viermal taeglich, wie bisher).
+      # ⚠ `continue-on-error`: das Stationsprodukt darf den Cube nicht mitreissen (V-PD-28).
       - name: Build station product (MOSMIX-L)
         continue-on-error: true
         env:
           POINT_OUT: ${{ github.workspace }}/point
         run: |
           cd app
-          node --experimental-strip-types --import ./scripts/lib/register-ts.mjs             scripts/point/build-stations.mjs
-
-      # Der Publisher committet, pusht (mit Wiederholung) und purgt DANACH den Index
-      # am CDN. Ein zweiter Push auf Job-Ebene waere nicht nur doppelt — er wuerde die
-      # Reihenfolge zerreissen: der Purge steht im Publisher HINTER dem Push, und ohne
-      # eigenen Push kaeme er nie dort an.
-      #
-      # V-BW-58 (Publish scheiterte am 2026-09-04 dreimal, 15z fiel ganz aus) ist damit
-      # an EINER Stelle geheilt: `publish-point.mjs` versucht fuenfmal mit
-      # `pull --rebase` dazwischen.
+          node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/point/build-stations.mjs
       - name: Publish (committet, pusht mit Wiederholung, purgt das CDN)
         env:
-          # OHNE diese Variable schreibt der Publisher nur lokal und pusht NICHT.
-          # Der erste Push in Produktion ist Jans Gate (CLAUDE.md, STOPP & FRAGEN) —
-          # die Zeile ist bewusst die einzige Stelle, an der das umschaltet.
+          POINT_PUSH: '1'
+        run: |
+          cd app
+          node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/point/publish-point.mjs --repo=${{ github.workspace }}
+
+  # ── Stufe 3 (126–336 h, 0,25°) — zweimal täglich, hinter t2 in der Gruppe ─
+  t3:
+    needs: [t2]
+    if: >-
+      always() && (
+      (github.event_name == 'schedule' && github.event.schedule == '55 9,21 * * *')
+      || (github.event_name == 'workflow_dispatch' && (github.event.inputs.tiers == 'all' || github.event.inputs.tiers == 't3'))
+      )
+    runs-on: ubuntu-latest
+    # Regel C: JOB_MAX_MIN(t3) + 10 ≤ 40 ≤ 95; Regel B: 95 − JOB_MAX_MIN(t2) ≥ JOB_MAX_MIN(t3) + 20.
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+          sparse-checkout: |
+            point
+            index.json
+            .gitattributes
+          sparse-checkout-cone-mode: false
+      - name: Sparse-Muster des Daten-Repos nachpruefen
+        run: |
+          git sparse-checkout list
+          git sparse-checkout list | grep -qx '.gitattributes' || { echo "sparse-Muster ohne .gitattributes — der Publisher wuerde abbrechen"; exit 1; }
+          test -f .gitattributes && echo ".gitattributes vorhanden" || echo ".gitattributes fehlt im Repo — der Publisher legt sie an"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Git identity
+        run: |
+          git config user.name  'buscosun-bot'
+          git config user.email 'bot@buscosun.local'
+      - name: Checkout producer (public, no token, sparse)
+        run: |
+          git clone --depth=1 --quiet --filter=blob:none --no-checkout https://github.com/jppetry/buscosun-web.git app
+          cd app
+          git sparse-checkout set --no-cone scripts src package.json QUELLENMATRIX.md
+          git checkout --quiet
+          test -f QUELLENMATRIX.md || { echo "QUELLENMATRIX.md fehlt trotz sparse-Muster"; exit 1; }
+      - name: Install producer dependency
+        run: cd app && npm install --no-save --no-audit --no-fund bz2@1
+      - name: Gate — Form der Punktdaten
+        run: cd app && node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-point-data.mjs
+      - name: Build point cube — t3
+        env:
+          POINT_OUT: ${{ github.workspace }}/point
+          POINT_CACHE: ${{ runner.temp }}/point-cache
+          REPACK_BZIP2: '1'
+          POINT_CACHE_CLEAR: 'tier'
+        run: |
+          cd app
+          node --experimental-strip-types --import ./scripts/lib/register-ts.mjs \
+            scripts/point/build-point-cube.mjs --tiers=t3 \
+            ${{ github.event.inputs.run && format('--run={0}', github.event.inputs.run) || '' }} \
+            ${{ github.event.inputs.steps && format('--steps={0}', github.event.inputs.steps) || '' }}
+      - name: Publish (committet, pusht mit Wiederholung, purgt das CDN)
+        env:
           POINT_PUSH: '1'
         run: |
           cd app

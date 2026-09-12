@@ -50,7 +50,7 @@
  * „unabhängiger" Wert ließe es σ_div schrumpfen (V-PD-9).
  */
 
-import { fetchBytes, fetchRanges, headOk, runIdBack, sampleRegularToTier, M_TO_MM } from './shared.mjs';
+import { fetchBytes, fetchRanges, headOk, runIdBack, sampleBytes, M_TO_MM } from './shared.mjs';
 import { memberSpread } from './ensembleStats.mjs';
 // PD-C5: dasselbe Schrittraster wie der deterministische IFS-Adapter — EINE Regel.
 import { ECMWF_STEPS } from './ecmwf.mjs';
@@ -143,8 +143,10 @@ export function makeEcmwfEnsembleAdapter(id) {
     if (!bufs) return null;
     const members = new Map();
     let factor = null, mismatch = 0;
+    // PD-F2d: alle Member gleichzeitig in den Pool, Ergebnisse PER INDEX in Index-Ordnung.
+    const sampled = await Promise.all(bufs.map((b) => sampleBytes(b, tier)));
     for (let i = 0; i < entries.length; i++) {
-      const f = decodeGrib2(bufs[i]);
+      const f = sampled[i].header;
       // Gegenprobe am Byte: die Member-Nummer IM GRIB muss die aus dem `.index`
       // sein. Weicht sie ab, sind die Bereiche verschoben — dann ist jede Zahl
       // danach falsch, und zwar ohne dass sie falsch aussähe.
@@ -152,7 +154,7 @@ export function makeEcmwfEnsembleAdapter(id) {
       const fac = unitFactor(varId, f);
       if (factor == null) factor = fac;
       else if (fac !== factor) throw new Error(`ecmwfEns: ${param}@${step} h mit gemischten Einheiten`);
-      members.set(Number(entries[i].number), sampleRegularToTier(f, tier));
+      members.set(Number(entries[i].number), sampled[i].grid);
     }
     if (mismatch) {
       throw new Error(`ecmwfEns: ${mismatch} von ${entries.length} Membern tragen im GRIB eine andere Nummer als im .index — Byte-Bereiche verschoben`);

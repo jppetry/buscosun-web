@@ -14,7 +14,7 @@
  */
 
 import {
-  fetchGribField, headOk, probeHorizon, pad3, runIdBack, sampleRegularToTier, convert,
+  fetchSampledField, headOk, probeHorizon, pad3, runIdBack,
   KELVIN_TO_C, PA_TO_HPA,
 } from './shared.mjs';
 import { profileGrid, fullLevelHeights, PROFILE_PARAMS } from '../profile.mjs';
@@ -128,14 +128,15 @@ export function makeDwdRegularAdapter(id) {
     async field(run, leadH, varId, tier) {
       const p = m.params[varId];
       if (!p) return null;
-      const f = await fetchGribField(url(run, leadH, p));
-      if (!f) return null;
-      return convert(sampleRegularToTier(f, tier), UNITS[varId]);
+      // PD-F2d: Dekodieren + Abtasten im Worker-Pool; zurück kommt das Stufengitter (194 KB),
+      // nicht das volle Feld (bis 3,6 MB). Einheit wandert mit — `convert` läuft im Worker.
+      const r = await fetchSampledField(url(run, leadH, p), tier, { unit: UNITS[varId] ?? null });
+      return r ? r.grid : null;
     },
 
     async orography(run, tier) {
-      const f = await fetchGribField(invUrl(run, m.orographyParam));
-      return f ? sampleRegularToTier(f, tier) : null;
+      const r = await fetchSampledField(invUrl(run, m.orographyParam), tier);
+      return r ? r.grid : null;
     },
 
     /** Trägt diese Quelle überhaupt Profilfelder? Der Orchestrator fragt das, bevor
@@ -165,32 +166,35 @@ export function makeDwdRegularAdapter(id) {
 
       // Halbflächen: von unten (bottom+1) nach oben (top) ⇒ Höhe aufsteigend.
       const hKey = `${run}|${tier.id}|${nl}`;
-      let heights = halfCache.get(hKey);
-      if (heights === undefined) {
-        const half = [];
-        for (let lev = cfg.bottomLevel + 1; lev >= top; lev--) {
-          const f = await fetchGribField(
-            `${m.base}/${run.slice(8, 10)}/${cfg.halfVar}/${cfg.halfFile(run, lev)}`);
-          if (!f) { half.length = 0; break; }
-          half.push(sampleRegularToTier(f, tier));
-        }
-        heights = half.length === nl + 1 ? fullLevelHeights(half, cells) : null;
-        halfCache.set(hKey, heights);
+      // PD-F2a: das PROMISE cachen — unter Nebenläufigkeit holten sonst zwei Aufrufer die
+      // 21 HHL-Felder doppelt (je 906 k Punkte), bevor der erste `set` kam.
+      if (!halfCache.has(hKey)) {
+        const p = (async () => {
+          // PD-F2e: alle Halbflächen gleichzeitig holen, Ergebnisse PER INDEX in Levelordnung
+          // (unten → oben) — jedes Level ist unabhängig, die Reihenfolge trägt die Rechnung.
+          const levs = [];
+          for (let lev = cfg.bottomLevel + 1; lev >= top; lev--) levs.push(lev);
+          const rs = await Promise.all(levs.map((lev) => fetchSampledField(
+            `${m.base}/${run.slice(8, 10)}/${cfg.halfVar}/${cfg.halfFile(run, lev)}`, tier)));
+          return rs.length === nl + 1 && rs.every(Boolean) ? fullLevelHeights(rs.map((r) => r.grid), cells) : null;
+        })();
+        halfCache.set(hKey, p);
+        p.catch(() => halfCache.delete(hKey));
       }
+      const heights = await halfCache.get(hKey);
       if (!heights) return null;
 
-      // Temperatur auf denselben Vollflächen, gleiche Reihenfolge (unten → oben).
-      const levels = [];
-      for (let lev = cfg.bottomLevel; lev >= top; lev--) {
-        const f = await fetchGribField(
-          `${m.base}/${run.slice(8, 10)}/${cfg.levelVar}/${cfg.file(run, leadH, lev)}`);
-        if (!f) return null;
-        // Kelvin → °C an derselben Stelle wie bei t2m: die Ableitung ist gegen einen
-        // Versatz unempfindlich, dTInv auch — aber ein Cube in gemischten Einheiten
-        // wäre eine Falle für jeden späteren Leser.
-        levels.push(convert(sampleRegularToTier(f, tier), KELVIN_TO_C));
-      }
-      return profileGrid(levels, heights, cells, PROFILE_PARAMS);
+      // Temperatur auf denselben Vollflächen, gleiche Reihenfolge (unten → oben) — PD-F2e: die
+      // 20 Level gleichzeitig, per Index eingesammelt. Fehlt EIN Level, gibt es kein Profil.
+      // Kelvin → °C an derselben Stelle wie bei t2m: die Ableitung ist gegen einen Versatz
+      // unempfindlich, dTInv auch — aber ein Cube in gemischten Einheiten wäre eine Falle für
+      // jeden späteren Leser.
+      const levs = [];
+      for (let lev = cfg.bottomLevel; lev >= top; lev--) levs.push(lev);
+      const rs = await Promise.all(levs.map((lev) => fetchSampledField(
+        `${m.base}/${run.slice(8, 10)}/${cfg.levelVar}/${cfg.file(run, leadH, lev)}`, tier, { unit: KELVIN_TO_C })));
+      if (rs.some((r) => !r)) return null;
+      return profileGrid(rs.map((r) => r.grid), heights, cells, PROFILE_PARAMS);
     },
   };
 }

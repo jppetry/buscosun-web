@@ -31,7 +31,9 @@ import { join, dirname } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { POINT_DIR, POINT_INDEX_PATH, POINT_SOURCES_PATH, POINT_CALIB_PATH, TIER_BY_ID,
          STATIONS_DIR, stationManifestPath } from '../../src/point/cubeFormat.ts';
-import { buildPointIndex, runsToKeep, RETENTION_HOURS, MIN_RUNS, CDN_BASE } from '../../src/point/manifest.ts';
+import { buildPointIndex, runsToKeep, runsToKeepFor, RETENTION_HOURS, RETENTION_HOURS_BY_TIER, MIN_RUNS, CDN_BASE } from '../../src/point/manifest.ts';
+import { TIERS } from '../../src/point/cubeFormat.ts';
+import { pruneTier, tiersOf } from './prune.mjs';
 import { buildSourcesJson } from '../../src/point/sourceMatrix.ts';
 import { CALIBRATION_V1 } from '../../src/point/calibration.ts';
 // PD-C1: Pfadliste und Prädikat teilen sich Publisher und Verifier (EINE Form) —
@@ -100,6 +102,27 @@ log(`point/: ${copied.files} Dateien, ${(copied.bytes / 1048576).toFixed(2)} MiB
 // quellenunabhaengig. Zeitlose Dateien (Stationskatalog, Register, Kalibrierung)
 // sind ausgenommen — s. TIMELESS_PATHS im Manifest-Modul.
 const runIdToIso = (r) => `${r.slice(0, 4)}-${r.slice(4, 6)}-${r.slice(6, 8)}T${r.slice(8, 10)}:00:00Z`;
+
+// --- 2a. Aufbewahrung JE STUFE (PD-F3a) --------------------------------------
+// Mit einem Job je Stufe altern die Stufen verschieden (t1 8×/Tag, t3 2×/Tag). Gemessen wird das
+// Alter des QUELL-Laufs der Stufe (run.json), nicht das des Verzeichnisnamens; MIN_RUNS gilt je Stufe.
+for (const tier of TIERS) {
+  const withTier = runsIn(join(REPO, POINT_DIR)).map((run) => {
+    const t = tiersOf(join(REPO, POINT_DIR, run)).find((x) => x.id === tier.id);
+    return t ? { run, runAt: t.runAt ?? runIdToIso(run) } : null;
+  }).filter(Boolean);
+  const d = runsToKeepFor(withTier, { hours: RETENTION_HOURS_BY_TIER[tier.id], minRuns: MIN_RUNS });
+  for (const r of d.drop) {
+    const res = pruneTier(join(REPO, POINT_DIR, r.run), tier.id);
+    const ageH = ((Date.now() - Date.parse(r.runAt)) / 3_600_000).toFixed(1);
+    log(`Aufbewahrung ${tier.id}: aus ${r.run} entfernt (Quell-Lauf ${ageH} h alt, Grenze ${RETENTION_HOURS_BY_TIER[tier.id]} h)`
+      + (res.removedRun ? ' — letzte Stufe, Verzeichnis weg' : ` — bleibt mit ${res.remaining.join('+')}`));
+  }
+  for (const r of d.stale) {
+    log(`⚠ ${tier.id} in ${r.run} ist ${((Date.now() - Date.parse(r.runAt)) / 3_600_000).toFixed(1)} h alt und bleibt nur wegen des Bodens (min. ${MIN_RUNS} Läufe je Stufe).`);
+  }
+}
+
 const present = runsIn(join(REPO, POINT_DIR)).map((r) => ({ run: r, runAt: runIdToIso(r) }));
 const decision = runsToKeep(present);
 for (const r of decision.drop) {
@@ -155,6 +178,8 @@ const runEntries = kept.map((run) => {
     tiers: man?.tiers?.map((t) => t.id) ?? [],
     sources: man?.sources?.map((s) => s.id) ?? [],
     bytes: dirBytes(join(REPO, POINT_DIR, run)),
+    // PD-F3a: Quell-Lauf je Stufe — daraus baut `buildPointIndex` den Zeiger `latestByTier`.
+    tierRuns: tiersOf(join(REPO, POINT_DIR, run)),
   };
 });
 

@@ -200,7 +200,32 @@ export function aecDecode(data: Uint8Array, bitsPerSample: number, count: number
 }
 
 /** Dekodiert die erste GRIB2-Nachricht eines (bereits entpackten) Puffers. */
+/** Kopf einer Nachricht — alles außer den Werten (PD-F2e). */
+export type GribHeader = Omit<GribField, 'values'>;
+export interface GribDecodeOpts {
+  /**
+   * Prädikat über den Kopf, ausgewertet NACH dem Sektionslauf und VOR der Entpackstufe: eine
+   * abgelehnte Nachricht kostet nur das Lesen der Sektionen 1–6, nicht das Entpacken der Daten
+   * (ICON-D2-EPS: 80 Nachrichten je tot_prec-Datei, 20 gebraucht — PD-B8/V-PD-31).
+   */
+  keep?: (h: GribHeader) => boolean;
+}
+
 export function decodeGrib2(raw: Uint8Array): GribField {
+  return decodeGrib2Message(raw, null)!;
+}
+
+/**
+ * Nur die Köpfe aller Nachrichten eines Puffers, ohne ein Datenbyte zu entpacken (PD-F2e). Wirft,
+ * wenn keine Nachricht dekodierbar ist (wie `decodeGrib2All`).
+ */
+export function scanGrib2Headers(raw: Uint8Array): GribHeader[] {
+  const heads: GribHeader[] = [];
+  decodeGrib2All(raw, { keep: (h) => { heads.push(h); return false; } });
+  return heads;
+}
+
+function decodeGrib2Message(raw: Uint8Array, keep: ((h: GribHeader) => boolean) | null): GribField | null {
   // 'GRIB'-Indikator suchen (der bz2-Output kann Vor-/Nachlauf enthalten).
   let p = 0;
   while (
@@ -333,6 +358,18 @@ export function decodeGrib2(raw: Uint8Array): GribField {
     off += seclen;
   }
 
+  const header: GribHeader = {
+    ni, nj,
+    lat1: la1, lon1: lo1 > 180 ? lo1 - 360 : lo1, lat2: la2, lon2: lo2 > 180 ? lo2 - 360 : lo2,
+    di, dj, scanMode,
+    unstructured,
+    discipline, parameterCategory, parameterNumber, surfaceType, level,
+    productTemplate, forecastTime, statProcess, timeRangeMin, intervalEndMinute,
+    perturbationNumber, ensembleSize,
+  };
+  // PD-F2e: das Prädikat sieht den Kopf, bevor ein Datenbyte entpackt wird.
+  if (keep && !keep(header)) return null;
+
   if (!ni || !nj) throw new Error('GRIB2: keine Gitterdefinition (Sektion 3)');
   if (!data) throw new Error('GRIB2: keine Datensektion (Sektion 7)');
 
@@ -376,18 +413,7 @@ export function decodeGrib2(raw: Uint8Array): GribField {
     throw new Error(`GRIB2: Datenanzahl inkonsistent (${di_} ≠ ${ndata})`);
   }
 
-  let normLon1 = lo1 > 180 ? lo1 - 360 : lo1;
-  let normLon2 = lo2 > 180 ? lo2 - 360 : lo2;
-
-  return {
-    ni, nj,
-    lat1: la1, lon1: normLon1, lat2: la2, lon2: normLon2,
-    di, dj, scanMode, values,
-    unstructured,
-    discipline, parameterCategory, parameterNumber, surfaceType, level,
-    productTemplate, forecastTime, statProcess, timeRangeMin, intervalEndMinute,
-    perturbationNumber, ensembleSize,
-  };
+  return { ...header, values };
 }
 
 /**
@@ -397,9 +423,11 @@ export function decodeGrib2(raw: Uint8Array): GribField {
  * Sektion 0 (Oktett 9-16), dekodiert jede Nachricht einzeln. Reihenfolge =
  * Datei-Reihenfolge (i. d. R. perturbationNumber aufsteigend).
  */
-export function decodeGrib2All(raw: Uint8Array): GribField[] {
+export function decodeGrib2All(raw: Uint8Array, opts?: GribDecodeOpts): GribField[] {
+  const keep = opts?.keep ?? null;
   const dv = new DataView(raw.buffer, raw.byteOffset, raw.byteLength);
   const out: GribField[] = [];
+  let decodable = 0;   // PD-F2e: „keine dekodierbar" (Fehler) ≠ „keine behalten" (leer)
   let off = 0;
   while (off < raw.length - 4) {
     if (!(raw[off] === 0x47 && raw[off + 1] === 0x52 && raw[off + 2] === 0x49 && raw[off + 3] === 0x42)) {
@@ -414,10 +442,14 @@ export function decodeGrib2All(raw: Uint8Array): GribField[] {
     // vollflächiges Bitmap-Layout, das nicht sauber parst — für das Ensemble-
     // Mittel ist der Verlust eines Members irrelevant. Die Nachrichtengrenze
     // (totalLen) ist unabhängig vom Inhalt korrekt → wir resynchronisieren sauber.
-    try { out.push(decodeGrib2(raw.subarray(off, off + totalLen))); } catch { /* skip */ }
+    try {
+      const f = decodeGrib2Message(raw.subarray(off, off + totalLen), keep);
+      decodable++;
+      if (f) out.push(f);
+    } catch { /* skip */ }
     off += totalLen;
   }
-  if (out.length === 0) throw new Error('GRIB2: keine dekodierbare Nachricht gefunden');
+  if (decodable === 0) throw new Error('GRIB2: keine dekodierbare Nachricht gefunden');
   return out;
 }
 

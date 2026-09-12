@@ -18,7 +18,7 @@
  *   npm run verify:point-data
  */
 
-import { readFileSync, existsSync, mkdirSync, writeFileSync, rmSync, readdirSync } from 'node:fs';
+import { readFileSync, existsSync, mkdirSync, writeFileSync, rmSync, readdirSync, statSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -27,7 +27,7 @@ import {
   sigmaKindOf, SIGMA_KIND, encodeCubeChunk, decodeCubeChunk,
   chunkPath, chunkExtent, cellOf, MISSING, quantize, dequantize, planeIndex,
   POINT_INDEX_PATH, POINT_SOURCES_PATH, POINT_CALIB_PATH,
-  STATION_CATALOG_PATH, STATIONS_DIR, stationBundlePath, stationManifestPath,
+  STATION_CATALOG_PATH, STATIONS_DIR, stationBundlePath, stationManifestPath, readCubeHeader,
 } from '../src/point/cubeFormat.ts';
 import {
   sourceMatrixSelfTest, SOURCES, SOURCE_BY_ID, MATRIX_BANDS, SCHEDULED_CHANGES,
@@ -40,14 +40,15 @@ import { ECMWF_ENS_MEMBERS, ECMWF_ENS_STEP_H } from './point/adapters/ecmwfEns.m
 import { keepIndexEntry, ECMWF_STEPS, ecmwfOwnLeads, ecmwfSnapDown } from './point/adapters/ecmwf.mjs';
 import { toTyped } from './point/adapters/geosphere.mjs';
 import { calibrationSelfTest, CALIBRATION_V1 } from '../src/point/calibration.ts';
-import { buildPointIndex, planeManifest, tierManifest, RETENTION_HOURS, MIN_RUNS, TIMELESS_PATHS, isTimeless, runsToKeep, CDN_BASE, validateRunManifest } from '../src/point/manifest.ts';
+import { buildPointIndex, planeManifest, tierManifest, RETENTION_HOURS, MIN_RUNS, TIMELESS_PATHS, isTimeless, runsToKeep, CDN_BASE, validateRunManifest, runsToKeepFor, RETENTION_HOURS_BY_TIER, latestByTier } from '../src/point/manifest.ts';
+import { pruneTier, tiersOf } from './point/prune.mjs';
 import { verifyCogTiff } from '../src/fire/detail/cogTiff.ts';
 import { adapterFor, INGESTABLE, PENDING, ingestableFor } from './point/adapters/index.mjs';
 import {
   runIso, buildUnstructuredIndex, buildUnstructuredIndexBrute,
   withSource, currentSource, netDiff, clearCache,
 } from './point/adapters/shared.mjs';
-import { placeUnderPublishRun, runManifest, chooseRun, domainMask } from './point/build-point-cube.mjs';
+import { placeUnderPublishRun, runManifest, chooseRun, domainMask, mapLimit } from './point/build-point-cube.mjs';
 import { MATRIX_ALIASES, BENCHMARKS } from '../src/point/sourceMatrix.ts';
 import {
   nowcastFormatSelfTest, nowcastFromU8, NOWCAST_SOURCES, NOWCAST_BY_ID,
@@ -56,8 +57,16 @@ import {
 import { precipToU8 } from '../src/scalar/RainLayer.ts';
 import { profileSelfTest, profileFromColumn, PROFILE_PARAMS } from './point/profile.mjs';
 import {
-  PUBLISH_PATHS, sparseCovers, uncoveredPaths, sparseBlocksOf, timeoutMinutesOf, dispatchInputsOf,
+  PUBLISH_PATHS, sparseCovers, uncoveredPaths, sparseBlocksOf, timeoutMinutesOf, dispatchInputsOf, jobsOf,
 } from './point/sparseCover.mjs';
+import { pacerSelfTest, makePacer } from './point/adapters/pacer.mjs';
+import { lanesSelfTest, runLanes, orderedSettle, sequentialSettle } from './point/lanes.mjs';
+import { compareTrees, compareChunkTrees, compareManifests } from './point/compareTrees.mjs';
+import * as sampleNs from './point/adapters/sample.mjs';
+import * as sharedNs from './point/adapters/shared.mjs';
+import { decodePoolSelfTest } from './point/adapters/decodePool.mjs';
+import { decodeGrib2, decodeGrib2All, scanGrib2Headers } from '../src/sources/gribDecode.ts';
+import { resolveKeep } from './point/adapters/keepSpec.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 /** Zeilentrenner als Konstante — ein Escape in einer Regex hat sich beim Erzeugen
@@ -566,66 +575,98 @@ add('der gemessene Widerspruch zu ⚠² ist festgehalten',
     const point = cronsOf(wf);
     add('beide Cron-Vorlagen sind lesbar', repack.length >= 8 && point.length >= 4,
       `${repack.length} Repack-Slots, ${point.length} Punkt-Slots`);
-    // Wie lange darf der Punkt-Lauf dauern, ohne in den nächsten Repack-Push zu geraten?
-    // ⚠ Diese Zahl schreibt sich NICHT selbst fort (§34.6). Sie wird bei jedem Gate
-    // ab PD-B4 an der gemessenen Laufzeit nachgezogen — bleibt sie stehen, während
-    // der Lauf wächst, ist der Verifier grün und der Push landet trotzdem im
-    // Löschfenster der Kartenlinie (§27).
-    //   PD-B4b: 20–40 min über alle drei Stufen.
-    //   PD-B5:  +906 MiB Modelllevel je Lauf. Gemessen (2026-09-10, kalter Cache,
-    //           volle Stufe 1 aus ICON-D2): 450 s bei 1 589 MiB, also 3,53 MiB/s —
-    //           der Profilanteil davon ≈ 4,3 min. ⇒ 45 min.
-    //   PD-B8:  **erstmals END-ZU-END gemessen** statt hochgerechnet (2026-09-11,
-    //           kalter Cache, alle drei Stufen, alle Quellen): **2 315 s = 38,6 min**
-    //           bei 3 325 Dateien und 5 965,7 MiB. Die Hochrechnung aus den
-    //           Einzelquellen hatte 8,2 GiB erwartet — tatsächlich sind es 5,83 GiB,
-    //           weil mehrere Quellen ihre Stufe nicht voll tragen (ICON global 10 von
-    //           36 Schritten, ICON-EPS global 2 von 9 Rasterstunden, Profil 38 von 49).
-    //           ⇒ 50 min, also gemessene Zeit plus Rand für langsamere Läufe.
-    // PD-B10 (§45): der erste Gesamtlauf MIT IFS HRES und AIFS Single — die seit PD-B8
-    // durch einen Filterfehler nichts geholt hatten — und mit IFS-ENS: kalt 2 540 s =
-    // 42,3 min. Der PD-B8-Wert (38,6 min) war also zu kurz gemessen, weil Abrufe
-    // fehlten. 55 = gemessen + 30 %; der Durchsatz schwankte in dieser Phase um Faktor 5.
-    // PD-F1/§49.5 (2026-09-11): Lauf 8 auf dem Runner — t1 41,4 min, t2 25,6 min, t3 abgebrochen
-    // am 75-min-Timeout ⇒ hochgerechnet ≈ 80 min. Die 42,3 min aus PD-B10 waren LOKAL gemessen; der
-    // Runner ist bei diesem CPU-gebundenen Bau ≈ 2× langsamer. 80 = Runner-Messung; damit steht der
-    // Slot-Abstand (100) GENAU an der Grenze 80 + 20. PD-F2 muss den Bau kuerzen, sonst bleibt
-    // hier keine Reserve — der Wert wird nach F2 an der Runner-Messung nachgezogen.
-    const JOB_MAX_MIN = 80;
-    const worst = point.map((p) => {
-      const gaps = repack.map((r) => ((r - p) % 1440 + 1440) % 1440).filter((d) => d > 0);
-      return { p, gap: gaps.length ? Math.min(...gaps) : 1440 };
-    }).sort((a, b) => a.gap - b.gap)[0];
     const hhmm = (m) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
-    add('kein Punkt-Slot laeuft in das Publish-Fenster der Kartenlinie',
-      !worst || worst.gap >= JOB_MAX_MIN + 20,
-      worst ? `engster Abstand ${worst.gap} min (Slot ${hhmm(worst.p)}), Lauf dauert bis zu ${JOB_MAX_MIN} min`
-        : 'keine Slots gefunden');
+    // Abstand 0 = derselbe Minutenslot wie ein Kartenlinien-Push: die Kollision selbst, kein „kein Abstand".
+    const gapTo = (p) => { const g = repack.map((r) => ((r - p) % 1440 + 1440) % 1440); return g.length ? Math.min(...g) : 1440; };
 
-    // Negativ-Kontrolle: derselbe Rechenweg auf den ALTEN Takt (:10 der Stunden
-    // 02/08/14/20) muss durchfallen. Ohne sie waere nicht gezeigt, dass die Pruefung
-    // ueberhaupt etwas misst — die Lehre aus SAT2h, hier woertlich angewandt.
-    const oldSlots = cronsOf(`    - cron: '10 2,8,14,20 * * *'`);
-    const oldWorst = oldSlots.map((p) => {
-      const gaps = repack.map((r) => ((r - p) % 1440 + 1440) % 1440).filter((d) => d > 0);
-      return Math.min(...gaps);
-    }).sort((a, b) => a - b)[0];
-    add('Negativ-Kontrolle: der alte Takt faellt durch dieselbe Pruefung',
-      oldWorst < JOB_MAX_MIN + 20,
-      `alter Slot 02:10 haette nur ${oldWorst} min Abstand — der Push landete auf dem Repack`);
-
-    // PD-C1: `timeout-minutes` der Vorlage und JOB_MAX_MIN waren zwei Zahlen ohne
-    // Verbindung (330 gegen 55). Ein haengender Lauf haette 330 min gelebt — quer durch
-    // den naechsten Slot und drei Publish-Fenster der Kartenlinie. Jetzt gilt:
-    // JOB_MAX_MIN + 10 <= timeout <= engster Slot-Abstand.
+    // ── PD-F3b: ein Job je Stufe, die Regeln A–D JE JOB ──────────────────────────────────
+    // Wie lange darf ein Job dauern, ohne in den naechsten Repack-Push zu geraten?
+    // ⚠ Diese Zahlen schreiben sich NICHT selbst fort (§34.6). Geschichte des einen Werts:
+    //   PD-B4b 20–40 · PD-B5 45 · PD-B8 50 (erstmals Ende-zu-Ende) · PD-B10 55 · PD-F1 80 (Runner
+    //   ≈ 2× lokal, Lauf 8: t1 41,4 · t2 25,6 · t3 abgebrochen).
+    // PD-F3b (2026-09-11): JE STUFE, **PROVISORISCH** aus der lokalen Messung nach F2 × 2 (Runner-
+    // Faktor): t1 kalt lokal 620 s nach F2d (§50.e) ⇒ ≈ 21 min Runner ⇒ 30; t2/t3 aus Lauf 9
+    // (15,6 / 11,4 min VOR F2) ⇒ 30 / 20. F3c zieht sie an `tiers[].timing.totalMs` der
+    // Cron-Manifeste nach (Maximum + 30 %) — bis dahin gilt: t1 MUSS ≤ 40, sonst faellt Regel A.
+    const JOB_MAX_MIN_BY_TIER = { t1: 30, t2: 30, t3: 20 };
+    const JOB_MAX_MIN = Math.max(...Object.values(JOB_MAX_MIN_BY_TIER));
+    const jobs = jobsOf(wf);
+    add('(F3b) die Vorlage hat drei Jobs t1/t2/t3, jeder baut GENAU seine Stufe (--tiers=tX)',
+      jobs.map((j) => j.name).join() === 't1,t2,t3' && jobs.every((j) => j.tier === j.name), jobs.map((j) => `${j.name}:${j.tier}`).join(' '));
+    const scheduleLines = wf.split(NEWLINE).map((l) => /-\s*cron:\s*'([^']+)'/.exec(l)?.[1]).filter(Boolean);
+    add('(F3b) jeder Job hat seinen eigenen Cron im `if:` und der steht in on.schedule',
+      jobs.every((j) => j.cron && scheduleLines.includes(j.cron)) && new Set(jobs.map((j) => j.cron)).size === jobs.length && scheduleLines.length === jobs.length,
+      jobs.map((j) => `${j.name}='${j.cron}'`).join(' · '));
+    const slotsOf = (j) => cronsOf(`- cron: '${j.cron}'`);
+    // Regel A je Job.
+    for (const j of jobs) {
+      const max = JOB_MAX_MIN_BY_TIER[j.name] ?? JOB_MAX_MIN;
+      const worst = slotsOf(j).map((p) => ({ p, gap: gapTo(p) })).sort((a, b) => a.gap - b.gap)[0];
+      add(`(F3b) Regel A ${j.name}: kein Slot laeuft in das Publish-Fenster der Kartenlinie (Abstand ≥ ${max} + 20)`,
+        !!worst && worst.gap >= max + 20, worst ? `engster Abstand ${worst.gap} min (Slot ${hhmm(worst.p)})` : 'keine Slots');
+      j.worstGap = worst?.gap ?? 0;
+    }
+    // Regel B: wartet ein Job in der Gruppe hinter einem anderen, zaehlt dessen Laufzeit mit.
+    for (const j of jobs) {
+      const max = JOB_MAX_MIN_BY_TIER[j.name] ?? JOB_MAX_MIN;
+      let tightest = null;
+      for (const p of slotsOf(j)) {
+        for (const o of jobs) {
+          if (o === j) continue;
+          const oMax = JOB_MAX_MIN_BY_TIER[o.name] ?? JOB_MAX_MIN;
+          for (const q of slotsOf(o)) {
+            const ahead = ((p - q) % 1440 + 1440) % 1440;   // o startete `ahead` min vor j
+            if (ahead > 0 && ahead < oMax) {
+              const eff = gapTo(p) - (oMax - ahead);
+              if (!tightest || eff < tightest.eff) tightest = { eff, p, o: o.name, ahead };
+            }
+          }
+        }
+      }
+      add(`(F3b) Regel B ${j.name}: hinter einem laufenden Job bleibt Abstand − Restlaufzeit ≥ ${max} + 20`,
+        !tightest || tightest.eff >= max + 20,
+        tightest ? `Slot ${hhmm(tightest.p)} wartet hinter ${tightest.o} (gestartet ${tightest.ahead} min vorher): effektiv ${tightest.eff} min` : 'kein Job wartet hinter einem anderen');
+    }
+    // Regel C: timeout je Job zwischen JOB_MAX + 10 und dem engsten Abstand.
     const timeouts = timeoutMinutesOf(wf);
-    add('die Cron-Vorlage hat genau ein timeout-minutes', timeouts.length === 1, `${timeouts.join(', ') || 'keins'}`);
-    const timeout = timeouts[0] ?? 0;
-    add('timeout-minutes liegt zwischen JOB_MAX_MIN + 10 und dem engsten Slot-Abstand',
-      timeout >= JOB_MAX_MIN + 10 && (!worst || timeout <= worst.gap),
-      `timeout ${timeout} min, JOB_MAX_MIN ${JOB_MAX_MIN}, Abstand ${worst?.gap ?? '?'} min`);
-    add('Negativ-Kontrolle: die alten 330 min haetten die Pruefung nicht bestanden',
-      !(330 <= (worst?.gap ?? 0)), `330 > ${worst?.gap ?? '?'}`);
+    add('(F3b) drei Jobs, drei timeout-minutes', timeouts.length === 3 && jobs.every((j) => j.timeout), timeouts.join(', '));
+    for (const j of jobs) {
+      const max = JOB_MAX_MIN_BY_TIER[j.name] ?? JOB_MAX_MIN;
+      add(`(F3b) Regel C ${j.name}: ${max} + 10 ≤ timeout ${j.timeout} ≤ Abstand ${j.worstGap}`, j.timeout >= max + 10 && j.timeout <= j.worstGap);
+    }
+    // Regel D: keine zwei Cron-Zeilen mit derselben Minute (GitHub bricht einen wartenden Lauf ab,
+    // sobald ein zweiter wartet), und nie drei Jobs im selben Fenster.
+    {
+      const all = jobs.flatMap((j) => slotsOf(j).map((p) => ({ p, j: j.name })));
+      const dup = all.filter((a, i) => all.some((b, k) => k !== i && b.p === a.p));
+      add('(F3b) Regel D: keine zwei Slots auf derselben Minute', dup.length === 0, dup.map((d) => `${d.j}@${hhmm(d.p)}`).join(' '));
+      let triple = null;
+      for (const a of all) {
+        const inWindow = all.filter((b) => { const d = ((b.p - a.p) % 1440 + 1440) % 1440; return d < JOB_MAX_MIN; });
+        if (new Set(inWindow.map((b) => b.j)).size >= 3) triple = a;
+      }
+      add(`(F3b) Regel D: nie drei Jobs innerhalb von ${JOB_MAX_MIN} min`, !triple, triple ? `um ${hhmm(triple.p)}` : `${all.length} Slots am Tag`);
+    }
+    // Reihenfolge und Warteschlange: t2 hinter t1, t3 hinter t2 — mit always(), sonst faellt ein
+    // planmaessiger t2-Lauf aus, weil t1 an dem Tag uebersprungen ist.
+    add('(F3b) needs-Kette t1 → t2 → t3 mit always() (bei tiers=all nacheinander, planmaessig unabhaengig)',
+      jobs[1]?.needs.join() === 't1' && jobs[2]?.needs.join() === 't2' && jobs[1]?.always && jobs[2]?.always && !jobs[0]?.needs.length);
+    add('(F3b) EINE Concurrency-Gruppe fuer alle Jobs, ohne cancel-in-progress',
+      /concurrency:\s*[\s\S]*?group: point\s*[\s\S]*?cancel-in-progress: false/.test(wf) && (wf.match(/group: point/g) || []).length === 1);
+    add('(F3b) das Stationsprodukt haengt genau am t2-Job (viermal taeglich, continue-on-error)',
+      jobs.filter((j) => /build-stations\.mjs/.test(j.body)).map((j) => j.name).join() === 't2' && /continue-on-error: true/.test(jobs[1]?.body ?? ''));
+    add('(F3b) jeder Job hat genau EINE Push-Stelle (publish-point.mjs) und leert den Cache je Stufe',
+      jobs.every((j) => (j.body.match(/publish-point\.mjs/g) || []).length === 1 && /POINT_CACHE_CLEAR: 'tier'/.test(j.body) && /REPACK_BZIP2: '1'/.test(j.body) && /POINT_PUSH: '1'/.test(j.body)));
+    add('(F3b) jeder Job holt QUELLENMATRIX.md und prueft es nach',
+      jobs.every((j) => /sparse-checkout set --no-cone scripts src package\.json QUELLENMATRIX\.md/.test(j.body) && /test -f QUELLENMATRIX\.md/.test(j.body)));
+    // Negativ-Kontrollen: der alte Takt und ein t1-Takt auf :30 der Kartenlinien-Stunden fallen durch.
+    const oldWorst = Math.min(...cronsOf(`    - cron: '10 2,8,14,20 * * *'`).map(gapTo));
+    add('Negativ-Kontrolle: der alte Takt (10 2,8,14,20) faellt durch Regel A',
+      oldWorst < JOB_MAX_MIN_BY_TIER.t2 + 20, `alter Slot 02:10 haette nur ${oldWorst} min Abstand`);
+    const badT1 = Math.min(...cronsOf(`    - cron: '30 2,5,8,11,14,17,20,23 * * *'`).map(gapTo));
+    add('Negativ-Kontrolle: ein t1-Takt auf den :30-Push-Stunden der Kartenlinie faellt durch Regel A',
+      badT1 < JOB_MAX_MIN_BY_TIER.t1 + 20, `${badT1} min`);
+    add('Negativ-Kontrolle: die alten 330 min haetten Regel C nicht bestanden', jobs.every((j) => 330 > j.worstGap));
   }
   // Der sparse Checkout hat seit dem Rueckbau des Geländeprodukts einen anderen Grund
   // als frueher: nicht `terrain/`, sondern `runs/` und `radar/`. Der Radar-Spiegel pusht
@@ -649,15 +690,16 @@ add('der gemessene Widerspruch zu ⚠² ist festgehalten',
   // Praedikat gegen dieselbe Pfadliste gehalten, die der Publisher benutzt.
   {
     const blocks = sparseBlocksOf(wf);
-    add('die Vorlage hat genau einen sparse-checkout-Block fuer das Daten-Repo',
-      blocks.length === 1, `${blocks.length} Bloecke: ${blocks.map((b) => b.join(' ')).join(' | ')}`);
-    const patterns = blocks[0] ?? [];
+    add('(F3b) die Vorlage hat einen sparse-checkout-Block JE JOB (drei)',
+      blocks.length === 3, `${blocks.length} Bloecke: ${blocks.map((b) => b.join(' ')).join(' | ')}`);
     const mustCover = [...PUBLISH_PATHS, STATIONS_DIR, POINT_INDEX_PATH, POINT_CALIB_PATH];
-    const open = uncoveredPaths(patterns, mustCover);
-    add('der sparse-Block deckt jeden Pfad, den der Publisher staged',
-      open.length === 0, open.length ? `ungedeckt: ${open.join(', ')}` : `${mustCover.length} Pfade gegen ${patterns.join(' ')}`);
-    add('die Vorlage prueft das Muster im Job nach (git sparse-checkout list)',
-      /sparse-checkout list/.test(wf) && /grep -qx '\.gitattributes'/.test(wf),
+    for (const [i, patterns] of blocks.entries()) {
+      const open = uncoveredPaths(patterns, mustCover);
+      add(`der sparse-Block ${i + 1} deckt jeden Pfad, den der Publisher staged`,
+        open.length === 0, open.length ? `ungedeckt: ${open.join(', ')}` : `${mustCover.length} Pfade gegen ${patterns.join(' ')}`);
+    }
+    add('jeder Job prueft das Muster nach (git sparse-checkout list)',
+      (wf.match(/sparse-checkout list \| grep -qx '\.gitattributes'/g) || []).length === 3,
       'ein Muster, das nichts trifft, meldet nichts');
     // Negativ-Kontrolle: das deployte Muster vom 2026-09-09 muss durchfallen.
     const deployedOld = ['point', 'index.json'];
@@ -1626,7 +1668,7 @@ merge('Profil (PD-B5)', profileSelfTest());
   // Viertelstunden (80 = 20 Member x 4 Endzeiten). Gefiltert wird auf das Intervall-
   // ENDE, nicht auf die Laenge — eine Stundensumme seit Laufbeginn ist leadH x 60
   // lang, ein Stundenmaximum immer 60, und beide enden auf der vollen Stunde.
-  add('(3m) gefiltert wird auf das Intervall-ENDE', /intervalEndMinute === 0/.test(src));
+  add('(3m) gefiltert wird auf das Intervall-ENDE (seit F2e als keep im Decoder: intervalEndMinuteIfAny 0)', /intervalEndMinuteIfAny: 0/.test(src));
   add('(3m) die Laengen-Falle ist dokumentiert',
     /Nicht ueber die LAENGE filtern/.test(src) && /119 auf 5 KiB/.test(src));
   const gd = readFileSync(join(ROOT, 'src/sources/gribDecode.ts'), 'utf8');
@@ -1982,7 +2024,7 @@ merge('Profil (PD-B5)', profileSelfTest());
 
   // (b) Fehlerinjektion: an allen drei Netzwegen, VOR dem Cache.
   const injectSites = (sh.match(/^\s*maybeInjectFault\(url\);/gm) ?? []).length;   // Aufrufe, nicht die Definition
-  add('(3p) POINT_FAULT_INJECT greift in fetchBytes, headOk und fetchRanges', injectSites === 3, `${injectSites} Stellen`);
+  add('(3p) POINT_FAULT_INJECT greift in fetchBytes, headOk, fetchRanges und fetchJson (PD-F2a)', injectSites === 4, `${injectSites} Stellen`);
   add('(3p) die Injektion steht VOR dem Cache-Treffer (Pruefen auch am warmen Cache)',
     sh.indexOf('maybeInjectFault(url);   // VOR dem Cache') < sh.indexOf('if (existsSync(p)) { net.cached++; ps.cached++;'));
 
@@ -2174,9 +2216,16 @@ merge('Profil (PD-B5)', profileSelfTest());
   // Gemessen nach dem Rasterfix: AIFS trug in t2 zwoelf Schritte, aber der Producer holte
   // fuer die Entakkumulation zwoelfmal den Vorschritt leadH−3, den AIFS nie rechnet (12×404).
   const prodC5 = readFileSync(join(ROOT, 'scripts/point/build-point-cube.mjs'), 'utf8');
-  add('(3r) der Vorschritt der Entakkumulation wird nur geholt, wenn die Quelle ihn laut leadsFor traegt',
+  add('(3r) der Vorschritt der Entakkumulation wird nur geholt, wenn die Quelle ihn laut leadsFor traegt — vor der Stufe laut Schrittraster (V-PD-45)',
     /const insideTier = ownPrev >= leadHours\[0\] \+ c\.offsetH;/.test(prodC5)
-    && /fetchable = ownPrev >= 0 && \(!insideTier \|\| c\.leads\.has\(ownPrev\)\)/.test(prodC5));
+    && /fetchable = ownPrev >= 0 && \(insideTier \? c\.leads\.has\(ownPrev\) : \(c\.adapter\.hasStep\?\.\(ownPrev\) \?\? true\)\)/.test(prodC5));
+  // V-PD-45 funktional: ECMWF kennt sein Raster — 50 h ist keine IFS-Stunde, 51 h schon; AIFS nur 6-stuendlich.
+  {
+    const ec = adapterFor('ifs_hres'), ai = adapterFor('aifs_single');
+    add('(3r) ecmwf.hasStep folgt dem Schrittraster (IFS 3 h bis 144, dann 6 h; AIFS 6 h)',
+      typeof ec.hasStep === 'function' && ec.hasStep(51) && !ec.hasStep(50) && ec.hasStep(150) && !ec.hasStep(147)
+      && ai.hasStep(48) && !ai.hasStep(51));
+  }
 }
 
 // --- (3s) PD-F1: Wandzeit je Phase und Quelle (Jans Prioritaet: kurze Verarbeitung) --------
@@ -2188,12 +2237,15 @@ merge('Profil (PD-B5)', profileSelfTest());
   const prodF1 = readFileSync(join(ROOT, 'scripts/point/build-point-cube.mjs'), 'utf8');
   add('(3s) safeCall misst die Wandzeit je Quelle (finally, auch im Fehlerfall)',
     /finally \{\s*c\.msWall = \(c\.msWall \?\? 0\) \+ \(Date\.now\(\) - tc\);/.test(prodF1));
-  const marks = [...prodF1.matchAll(/^\s*mark\('([a-z]+)'\);/gm)].map((m) => m[1]);
-  add('(3s) sieben Phasenmarken in der richtigen Reihenfolge',
-    JSON.stringify(marks) === JSON.stringify(['discover', 'fields', 'ensemble', 'quantiles', 'profile', 'orography', 'encode']), marks.join(','));
+  // PD-F2b-2: der sequenzielle Rueckfall traegt alle sieben Marken in der alten Reihenfolge; der
+  // Bahnenpfad setzt nach dem Join genau EINE (`fields`) — deshalb kommt `fields` zweimal vor.
+  const marks = [...prodF1.matchAll(/mark\('([a-z]+)'\);/g)].map((m) => m[1]);
+  add('(3s) sieben Phasenmarken in der richtigen Reihenfolge (Rueckfall), eine Join-Marke (Bahnen)',
+    JSON.stringify([...new Set(marks)]) === JSON.stringify(['discover', 'fields', 'ensemble', 'quantiles', 'profile', 'orography', 'encode'])
+    && marks.filter((m) => m === 'fields').length === 2 && marks.length === 8, marks.join(','));
   add('(3s) auch die Ensemble-Quelle wird gemessen', /src\.msWall = \(src\.msWall \?\? 0\)/.test(prodF1));
-  add('(3s) das Manifest traegt timing je Stufe (phases, bySource, totalMs)',
-    /timing: r\.ms \? \{ phases: r\.ms\.phases \?\? null, bySource: r\.ms\.bySource \?\? null, totalMs: r\.ms\.total \}/.test(prodF1));
+  add('(3s) das Manifest traegt timing je Stufe (phases, bySource, totalMs, mode, lanes, blocks, workers)',
+    /timing: r\.ms \? \{ phases: r\.ms\.phases \?\? null, bySource: r\.ms\.bySource \?\? null, totalMs: r\.ms\.total,\s*mode: r\.ms\.mode \?\? 'sequential', lanes: r\.ms\.lanes \?\? null, blocks: r\.ms\.blocks \?\? null,\s*workers: r\.ms\.workers \?\? null \}/.test(prodF1));
   add('(3s) der Producer schreibt die Zeit je Phase und je Quelle ins Log', /Zeit je Phase:/.test(prodF1) && /Zeit je Quelle:/.test(prodF1));
   // Der Vertrag laesst `timing` zu — ein Manifest mit timing besteht validateRunManifest.
   const withTiming = runManifest([{
@@ -2202,6 +2254,485 @@ merge('Profil (PD-B5)', profileSelfTest());
     net: {}, perPlane: {}, hasData: {}, ms: { fields: 1, total: 2, phases: { discover: 1, fields: 1 }, bySource: { ifs_hres: { msWall: 1, calls: 1 } } },
   }]);
   add('(3s) ein Manifest mit timing besteht den Vertrag', validateRunManifest(withTiming).length === 0 && withTiming.tiers[0].timing?.totalMs === 2);
+}
+
+// --- (3t) PD-F2a: nebenlaeufigkeitsfeste Grundbausteine + Byte-Beweis-Harnisch ------------
+//
+// Block F kuerzt den Bau, ohne ein Byte zu aendern. Dafuer braucht es VORHER: einen Takt je
+// Host, der auch unter Nebenlaeufigkeit haelt (das alte pace() las vor dem await), Caches,
+// die das Promise statt den Wert halten (sonst doppelte Arbeit), reine Abtastfunktionen in
+// einem worker-tauglichen Modul — und den Beweis selbst: compareTrees (Muster §38).
+{
+  merge('(3t) Pacer', await pacerSelfTest());
+  // sample.mjs ist die EINE Form; shared.mjs re-exportiert dieselben Funktionsobjekte.
+  add('(3t) shared.mjs re-exportiert die Abtastung aus sample.mjs (dieselben Funktionsobjekte)',
+    sharedNs.sampleRegularToTier === sampleNs.sampleRegularToTier
+    && sharedNs.buildUnstructuredIndex === sampleNs.buildUnstructuredIndex
+    && sharedNs.fillNearest === sampleNs.fillNearest && sharedNs.convert === sampleNs.convert);
+  // Nur CODE-Zeilen pruefen — der Kopfkommentar erklaert genau, warum shared.mjs hier NICHT
+  // geladen wird, und nennt es deshalb beim Namen.
+  const sampleCode = readFileSync(join(ROOT, 'scripts/point/adapters/sample.mjs'), 'utf8')
+    .split(NEWLINE).filter((l) => !/^\s*(\*|\/\/|\/\*)/.test(l)).join(NEWLINE);
+  add('(3t) sample.mjs ist worker-tauglich: kein Import, kein node:fs/net, kein AsyncLocalStorage im Code',
+    !/^import /m.test(sampleCode) && !/node:fs|node:http|AsyncLocalStorage|fetch\(/.test(sampleCode));
+  // Promise-Caches in den vier Adaptern, die den Wert bisher erst NACH dem await setzten.
+  const ico = readFileSync(join(ROOT, 'scripts/point/adapters/dwdIcosahedral.mjs'), 'utf8');
+  const reg = readFileSync(join(ROOT, 'scripts/point/adapters/dwdRegular.mjs'), 'utf8');
+  const geo = readFileSync(join(ROOT, 'scripts/point/adapters/geosphere.mjs'), 'utf8');
+  const mch = readFileSync(join(ROOT, 'scripts/point/adapters/meteoswiss.mjs'), 'utf8');
+  add('(3t) dwdIcosahedral: Nachbarindex und Zellkoordinaten als Promise gecacht, Fehler faellt aus dem Cache',
+    /idxCache\.set\(tier\.id, p\);\s*p\.catch\(\(\) => idxCache\.delete\(tier\.id\)\)/.test(ico) && /cellCoords = \(async \(\) =>/.test(ico));
+  add('(3t) dwdRegular: Halbflaechen als Promise gecacht', /halfCache\.set\(hKey, p\);\s*p\.catch/.test(reg) && /await halfCache\.get\(hKey\)/.test(reg));
+  add('(3t) geosphere: der LRU haelt Promises, kein winPut nach dem await mehr',
+    /winPut\(key, p\);/.test(geo) && !/winPut\(key, win\)/.test(geo) && !/winPut\(key, null\)/.test(geo));
+  add('(3t) meteoswiss: Katalog-Enumeration als Promise gecacht', /itemCache\.set\(key, p\);/.test(mch) && !/itemCache\.set\(key, out\)/.test(mch));
+  add('(3t) meteoswiss: STAC-Listen laufen ueber fetchJson (Takt, Zaehler, Memo), kein nacktes fetch mehr',
+    /await fetchJson\(url\)/.test(mch) && !/await fetch\(url\)/.test(mch));
+  // shared.mjs: Takt ueber die FIFO, kein read-before-await mehr; Memo an allen drei Netzwegen.
+  const shSrc = readFileSync(join(ROOT, 'scripts/point/adapters/shared.mjs'), 'utf8');
+  add('(3t) shared.mjs taktet ueber makeHostPacers, das alte pace() ist weg',
+    /makeHostPacers\(HOST_MIN_MS, HOST_MAX_INFLIGHT\)/.test(shSrc) && !/async function pace\(/.test(shSrc) && !/await pace\(/.test(shSrc));
+  const pacedSites = (shSrc.match(/await paced\(url, \(\) => fetch\(/g) ?? []).length;
+  add('(3t) alle vier Netzwege (fetchBytes, headOk, fetchRanges, fetchJson) laufen durch paced()', pacedSites === 4, `${pacedSites}`);
+  const memoSites = (shSrc.match(/return memoInflight\(/g) ?? []).length;
+  add('(3t) In-flight-Memo an fetchBytes, headOk und fetchJson', memoSites === 3 && /pr\.then\(\(\) => inflight\.delete\(key\), \(\) => inflight\.delete\(key\)\)/.test(shSrc), `${memoSites}`);
+  add('(3t) ECMWF-Deckel: hoechstens 2 offene Anfragen', /HOST_MAX_INFLIGHT = \{ 'data\.ecmwf\.int': 2 \}/.test(shSrc));
+  add('(3t) coalesced zaehlt im Netzstatus je Quelle', /coalesced: 0/.test(shSrc) && /ps\.coalesced\+\+/.test(shSrc));
+  // Memo funktional: zwei gleichzeitige fetchJson auf dieselbe (unerreichbare) URL ⇒ ein Fehler, ein Aufruf geteilt.
+  {
+    const url = 'http://127.0.0.1:9/point-verify-memo';   // Port 9 (discard) — verbindet nie
+    const a = sharedNs.fetchJson(url).catch((e) => e);
+    const b = sharedNs.fetchJson(url).catch((e) => e);
+    const [ra, rb] = await Promise.all([a, b]);
+    add('(3t) memoInflight teilt den laufenden Abruf (zwei Aufrufer, ein Netzweg, gleiche Ablehnung)',
+      ra instanceof Error && rb instanceof Error && sharedNs.netStats().coalesced >= 1, `coalesced ${sharedNs.netStats().coalesced}`);
+  }
+
+  // Der Byte-Beweis als Funktion: zwei synthetische Baeume, gleich und um ein Byte verschieden.
+  {
+    const tmp = join(ROOT, 'data/.tmp-verify-cmp');
+    rmSync(tmp, { recursive: true, force: true });
+    const man = (steps) => ({ schema: CUBE_SCHEMA, run: '2026091100', tiers: [{ id: 't1', run: '2026091100', leadHours: [0, 1], files: [{ file: 'point/2026091100/t1/00_00.bin', bytes: 3 }], dropped: [] }],
+      sources: [{ id: 'icon_d2', tier: 't1', runAt: 'x', steps, coverage: 'full', offsetH: 0, members: 0, role: 'assigned', errors: 0, dropped: null }],
+      fusion: { spread: { sdEnsEmpty: [] } }, skipped: {} });
+    for (const [name, byte, steps] of [['ref', 7, 49], ['same', 7, 49], ['diff', 8, 49], ['manifest', 7, 48]]) {
+      mkdirSync(join(tmp, name, '2026091100', 't1'), { recursive: true });
+      writeFileSync(join(tmp, name, '2026091100', 't1', '00_00.bin'), Buffer.from([1, 2, byte]));
+      writeFileSync(join(tmp, name, '2026091100', 'run.json'), JSON.stringify(man(steps)));
+    }
+    const same = compareTrees(join(tmp, 'ref'), join(tmp, 'same'));
+    const diff = compareTrees(join(tmp, 'ref'), join(tmp, 'diff'));
+    const mdiff = compareTrees(join(tmp, 'ref'), join(tmp, 'manifest'));
+    add('(3t) compareTrees: gleiche Baeume ⇒ ok', same.ok && same.chunks.same === 1 && same.manifest.length === 0);
+    add('(3t) Negativ-Kontrolle: EIN Byte anders ⇒ nicht ok, Pfad benannt', !diff.ok && diff.chunks.differing[0] === '2026091100/t1/00_00.bin');
+    add('(3t) Negativ-Kontrolle: Whitelist-Feld anders (steps) ⇒ nicht ok', !mdiff.ok && mdiff.manifest.some((d) => d.includes('sources.0.steps')));
+    add('(3t) compareTrees: fehlender Baum ist nicht „gleich"', !compareChunkTrees(join(tmp, 'ref'), join(tmp, 'nope')).ok);
+    rmSync(tmp, { recursive: true, force: true });
+  }
+  // Der echte Beweis, wenn zwei Baeume angegeben sind (Messprotokoll F-M); sonst hoerbar uebersprungen.
+  const REF = process.env.POINT_REF, NEW = process.env.POINT_NEW;
+  if (REF && NEW && existsSync(REF) && existsSync(NEW)) {
+    const r = compareTrees(REF, NEW);
+    add(`(3t) Byte-Beweis ${REF} ⇔ ${NEW}: ${r.chunks.compared} Chunks`, r.ok,
+      r.ok ? `${r.chunks.same} gleich, ${(r.chunks.bytes / 1048576).toFixed(1)} MiB` : `${r.chunks.differing.length} verschieden, ${r.chunks.missing.length} fehlen, ${r.manifest.length} Manifest-Abweichungen: ${r.manifest.slice(0, 3).join(' | ')}`);
+  } else {
+    console.log('  (3t) POINT_REF/POINT_NEW nicht gesetzt — Byte-Beweis an echten Baeumen uebersprungen (Messprotokoll F-M)');
+  }
+  void makePacer; void compareManifests;
+}
+
+// --- (3u) PD-F2b: Bahnen je Quelle, Verbraucher in Ordnung, Laufsuche parallel ---------
+//
+// Die Fusionsschleife fragte je (Stunde, Groesse) jede Quelle nacheinander ab — Netz und
+// Rechnen ueberlappten sich nie (§49.2). Jetzt: eine Bahn je Quelle (Rekurrenz je Quelle
+// bleibt), Verbraucher in Stundenordnung mit den Gittern in Beitraeger-Ordnung (FP-Summen wie
+// zuvor). Byte-gleich bewiesen mit compareTrees (§50.b); hier die Form und die Steuerlogik.
+{
+  merge('(3u) Bahnen', await lanesSelfTest());
+  const prodL = readFileSync(join(ROOT, 'scripts/point/build-point-cube.mjs'), 'utf8');
+  add('(3u) Kill-Switch POINT_PARALLEL=0 mit sequenziellem Rueckfall (dieselben zwei Funktionen)',
+    /const PARALLEL = process\.env\.POINT_PARALLEL !== '0'/.test(prodL)
+    && /if \(PARALLEL && contributors\.length > 0\) \{\s*laneStats = await runLanes\(/.test(prodL)
+    && /per\[ci\] = await sourceHour\(contributors\[ci\], it\);\s*consumeHour\(it, per\);/.test(prodL));
+  add('(3u) Rueckstau ist konfigurierbar und mindestens 1', /AHEAD_HOURS = Math\.max\(1, Number\(process\.env\.POINT_AHEAD_HOURS \|\| 3\)\)/.test(prodL));
+  add('(3u) der Verbraucher baut grids in Beitraeger-Ordnung (ci aufsteigend) — die FP-Ordnung von vorher',
+    /for \(let ci = 0; ci < contributors\.length; ci\+\+\) \{\s*const m = perSource\[ci\];\s*const g = m instanceof Map \? m\.get\(varId\) : undefined;/.test(prodL));
+  add('(3u) die Entakkumulation (accPrev) liegt IN der Bahn (sourceHour), nicht im Verbraucher',
+    prodL.indexOf('async function sourceHour') < prodL.indexOf('accPrev.set(key, { lead: own, grid: g })')
+    && prodL.indexOf('accPrev.set(key, { lead: own, grid: g })') < prodL.indexOf('function consumeHour'));
+  add('(3u) beide Durchgaenge der Laufsuche laufen ueber settle() und sammeln per Index in ids-Ordnung ein',
+    /const settle = PARALLEL \? orderedSettle : sequentialSettle;/.test(prodL)
+    && /const found = await settle\(ids, discoverOne\);/.test(prodL) && /const covered = await settle\(candidates, coverOne\);/.test(prodL)
+    && /for \(let i = 0; i < ids\.length; i\+\+\) \{\s*const r = found\[i\];/.test(prodL));
+  add('(3u) das Manifest nennt den Modus (lanes|sequential) und die Bahnzeiten als ueberlappend',
+    /mode: PARALLEL \? 'lanes' : 'sequential'/.test(prodL) && /laneMs: Object\.fromEntries\(contributors\.map/.test(prodL));
+  // Steuerlogik funktional: orderedSettle und sequentialSettle liefern dieselbe Ordnung und Form.
+  {
+    const items = [3, 1, 2];
+    const fn = async (x) => { await new Promise((r) => setTimeout(r, x)); if (x === 1) throw new Error('eins'); return x * 10; };
+    const a = await orderedSettle(items, fn), b = await sequentialSettle(items, fn);
+    const norm = (r) => r.map((x) => (x.ok ? `v${x.value}` : `e:${x.error.message}`)).join(',');
+    add('(3u) orderedSettle ≡ sequentialSettle in Ordnung und Fehlerform', norm(a) === norm(b) && norm(a) === 'v30,e:eins,v20', `${norm(a)} | ${norm(b)}`);
+  }
+  // runLanes mit nLanes=1 ⇔ sequenziell: identische Verbrauchsfolge.
+  {
+    const seq = []; for (let it = 0; it < 5; it++) seq.push(`${it}:${it * 2}`);
+    const got = [];
+    await runLanes({ nLanes: 1, nSteps: 5, ahead: 2, task: async (_l, it) => it * 2, consume: (it, v) => got.push(`${it}:${v[0]}`) });
+    add('(3u) runLanes mit einer Bahn ⇔ sequenzielle Schleife', got.join(' ') === seq.join(' '));
+  }
+}
+
+// --- (3v) PD-F2c: Abtast-Index je Gittersignatur ------------------------------------------
+//
+// `sampleRegularToTier` lief je Aufruf ueber das volle Quellgitter. Der Index haelt die Paare
+// (Quellzelle → Zielzelle) in derselben Reihenfolge wie die Schleife ⇒ dieselben FP-Summen.
+// Bewiesen an vier Geometrien mit Zufallswerten und NaN-Loechern: Float32-Ausgabe byte-gleich.
+{
+  const full = sampleNs.sampleRegularToTierFull, viaIndex = sampleNs.sampleRegularToTier;
+  add('(3v) sample.mjs exportiert Vollschleife (Referenz) und Indexweg', typeof full === 'function' && typeof sampleNs.sampleIndexFor === 'function');
+  if (typeof full === 'function') {
+    let seed = 4242; const rnd = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+    const mk = (ni, nj, lat1, lon1, di, dj, scanMode, nanShare = 0.1) => {
+      const values = new Float32Array(ni * nj);
+      for (let k = 0; k < values.length; k++) values[k] = rnd() < nanShare ? NaN : Math.fround(rnd() * 300 - 50);
+      return { ni, nj, lat1, lon1, di, dj, scanMode, values };
+    };
+    const cases = [
+      ['global 0,25° mit Wrap (ECMWF)', mk(1440, 721, 90, 0, 0.25, 0.25, 0x00)],
+      ['ICON-D2-artig 0,02° nach Norden', mk(1215, 746, 43.18, -3.94, 0.02, 0.02, 0x40)],
+      ['C-LAEF 0,0135×0,009 nach Norden', mk(1300, 945, 43.0, 5.03, 0.0135, 0.009, 0x40)],
+      ['ICON-EU 0,0625° nord→süd', mk(1377, 657, 70.5, -23.5, 0.0625, 0.0625, 0x00)],
+    ];
+    const sameBytes = (a, b) => a.length === b.length && Buffer.compare(Buffer.from(a.buffer, a.byteOffset, a.byteLength), Buffer.from(b.buffer, b.byteOffset, b.byteLength)) === 0;
+    for (const [name, f] of cases) {
+      for (const tier of TIERS) {
+        const a = full(f, tier), b = viaIndex(f, tier);
+        const nonNaN = Array.from(a).filter(Number.isFinite).length;
+        add(`(3v) ${name} → ${tier.id}: Index ≡ Vollschleife (byte-gleich, ${nonNaN} belegte Zellen)`, sameBytes(a, b) && nonNaN > 0);
+      }
+      // ohne Lueckenfuellung ebenso
+      const a0 = full(f, TIERS[0], { fillGaps: false }), b0 = viaIndex(f, TIERS[0], { fillGaps: false });
+      add(`(3v) ${name}: auch ohne fillGaps byte-gleich`, sameBytes(a0, b0));
+    }
+    // Negativ-Kontrolle: ein um eine halbe Zelle verschobenes Gitter muss anders abtasten — sonst misst der Test nichts.
+    const f = cases[1][1], g = { ...f, lon1: f.lon1 + 0.011 };
+    add('(3v) Negativ-Kontrolle: verschobenes Gitter ⇒ anderer Schluessel, andere Ausgabe',
+      sampleNs.sampleIndexKey(f, TIERS[0]) !== sampleNs.sampleIndexKey(g, TIERS[0]) && !sameBytes(viaIndex(f, TIERS[0]), viaIndex(g, TIERS[0])));
+    // Cache: zweiter Aufruf trifft den Index, LRU deckelt.
+    const before = sampleNs.sampleIndexStats.hits; viaIndex(f, TIERS[0]); viaIndex(f, TIERS[0]);
+    add('(3v) der Index wird wiederverwendet (LRU-Treffer)', sampleNs.sampleIndexStats.hits >= before + 2);
+    add('(3v) der Index haelt nur den Ausschnitt (ICON-D2 → t1: << 906 390 Paare)', sampleNs.sampleIndexFor(f, TIERS[0]).n < 906390 && sampleNs.sampleIndexFor(f, TIERS[0]).n > 100000, `${sampleNs.sampleIndexFor(f, TIERS[0]).n} Paare`);
+  }
+  const sampleSrc2 = readFileSync(join(ROOT, 'scripts/point/adapters/sample.mjs'), 'utf8');
+  add('(3v) Kill-Switch POINT_SAMPLE_INDEX=0 faehrt die Vollschleife', /POINT_SAMPLE_INDEX !== '0'/.test(sampleSrc2) && /if \(!SAMPLE_INDEX_ENABLED\) return sampleRegularToTierFull/.test(sampleSrc2));
+}
+
+// --- (3w) PD-F2d: Dekodieren + Abtasten im Worker-Pool -----------------------------------
+//
+// Der Boden von `fields` ist die Dekodierung (bz2 + GRIB-Entpacken, §50.c), und die lief im
+// Hauptthread — ein Kern fuer acht Bahnen. Jetzt geben `fetchSampledField`/`sampleBytes`/
+// `sampleBytesMany` die Bytes an `worker_threads`; zurueck kommt das Stufengitter (194 KB statt
+// bis 11,8 MB). Netz, Plattencache, Zaehler, Takt und Fehlerinjektion bleiben im Hauptthread.
+// Byte-Beweis am echten Bau: §50.e; hier die Form, die Rundreise und der Rueckfall.
+{
+  merge('(3w) Pool', await decodePoolSelfTest());
+  const stripC = (txt) => txt.split(NEWLINE).filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).join(NEWLINE);
+  const sh = readFileSync(join(ROOT, 'scripts/point/adapters/shared.mjs'), 'utf8');
+  const wk = readFileSync(join(ROOT, 'scripts/point/adapters/gribWorker.mjs'), 'utf8');
+  const dp = readFileSync(join(ROOT, 'scripts/point/adapters/decodePool.mjs'), 'utf8');
+  const files = Object.fromEntries(['dwdRegular', 'dwdIcosahedral', 'meteoswiss', 'ecmwf', 'ecmwfEns', 'dwdEps', 'geosphere']
+    .map((n) => [n, readFileSync(join(ROOT, `scripts/point/adapters/${n}.mjs`), 'utf8')]));
+  add('(3w) der Worker importiert NUR Decoder und Abtastung — kein shared.mjs (Netz, Cache, Kontext bleiben im Hauptthread)',
+    /from '\.\.\/\.\.\/\.\.\/src\/sources\/gribDecode\.ts'/.test(wk) && /from '\.\/sample\.mjs'/.test(wk)
+    && /from '\.\/keepSpec\.mjs'/.test(wk) && !/shared\.mjs/.test(stripC(wk)) && (wk.match(/^import /gm) || []).length === 4, `${(wk.match(/^import /gm) || []).length} Importe`);
+  add('(3w) Poolgroesse aus POINT_WORKERS, Standard min(6, Kerne − 1), 0 = inline',
+    /process\.env\.POINT_WORKERS/.test(dp) && /Math\.min\(6, Math\.max\(1, availableParallelism\(\) - 1\)\)/.test(dp));
+  add('(3w) Worker starten mit --experimental-strip-types (der Decoder ist .ts)',
+    /execArgv: \['--experimental-strip-types', '--no-warnings'\]/.test(dp));
+  add('(3w) dwdRegular: field, orography, Halbflaechen und Level laufen ueber fetchSampledField, nichts mehr inline',
+    (files.dwdRegular.match(/fetchSampledField\(/g) || []).length === 4 && !/fetchGribField|sampleRegularToTier/.test(stripC(files.dwdRegular)));
+  add('(3w) dwdIcosahedral: field/orography ueber fetchSampledField, Nachbarindex EINMAL je Stufe an den Pool',
+    (files.dwdIcosahedral.match(/fetchSampledField\(/g) || []).length === 2 && /poolSetIndex\(key, idx\)/.test(files.dwdIcosahedral)
+    && (files.dwdIcosahedral.match(/grid: 'unstructured', idxKey/g) || []).length === 2);
+  add('(3w) meteoswiss: field ueber fetchSampledField (Rohpuffer bis 26 MiB bleiben im Worker), Index je (Sammlung, Stufe)',
+    /fetchSampledField\(it\.href, tier, \{/.test(files.meteoswiss) && /mch:\$\{cfg\.collection\}\|\$\{tier\.id\}/.test(files.meteoswiss));
+  add('(3w) ecmwf: sampleBytes, Einheit NACH der Abtastung aus dem mitgelieferten GRIB-Kopf (§23 (4) bleibt)',
+    /const r = await sampleBytes\(raw, tier\);\s*return convert\(r\.grid, scaleFromGrib\(varId, r\.header\)\);/.test(files.ecmwf));
+  add('(3w) ecmwfEns: alle Member gleichzeitig in den Pool, per Index eingesammelt, Member-Nummer weiter am Kopf geprueft',
+    /const sampled = await Promise\.all\(bufs\.map\(\(b\) => sampleBytes\(b, tier\)\)\);/.test(files.ecmwfEns)
+    && /const f = sampled\[i\]\.header;/.test(files.ecmwfEns) && /sampled\[i\]\.grid\)/.test(files.ecmwfEns));
+  add('(3w) dwdEps: sampleBytesMany, Intervall-Ende und Member-Nummer am Kopf, kein decodeGrib2All mehr im Adapter',
+    /await sampleBytesMany\(raw, tier, \{\s*grid: 'unstructured', idxKey, keep: \{ intervalEndMinuteIfAny: 0 \},\s*\}\)/.test(files.dwdEps)
+    && /f\.header\.perturbationNumber/.test(files.dwdEps)
+    && !/decodeGrib2All/.test(stripC(files.dwdEps)));
+  add('(3w) geosphere bleibt inline (netCDF/jsfive, kein GRIB)', !/fetchSampledField|sampleBytes/.test(files.geosphere));
+  add('(3w) fetchSampledField traegt denselben Binary-Rueckfall wie fetchGribField (§25: richtige Laenge, falsche Bytes)',
+    /export async function fetchSampledField[\s\S]*?forceBinary: true[\s\S]*?bzip2-Binary nicht dekodierbar/.test(sh));
+  add('(3w) sampleBytes kopiert den Puffer vor der Uebergabe (der In-flight-Memo teilt Puffer zwischen Aufrufern)',
+    (sh.match(/const copy = raw\.slice\(\)\.buffer;/g) || []).length === 2);
+  const prodW = readFileSync(join(ROOT, 'scripts/point/build-point-cube.mjs'), 'utf8');
+  add('(3w) das Manifest traegt timing.workers (Modus inline|workers hoerbar), der Pool wird am Ende geschlossen',
+    /workers: r\.ms\.workers \?\? null/.test(prodW) && /const pw = await poolStats\(\);/.test(prodW) && /await poolClose\(\);/.test(prodW));
+  // Rundreise an einer ECHTEN GRIB-Datei aus dem Plattencache (regulaeres Gitter); sonst hoerbar uebersprungen.
+  {
+    const cacheDir = process.env.POINT_CACHE || join(ROOT, '.cache/point');
+    let real = null;
+    if (existsSync(cacheDir)) {
+      outer: for (const sub of readdirSync(cacheDir).sort()) {
+        const d = join(cacheDir, sub);
+        let names; try { names = readdirSync(d); } catch { continue; }
+        for (const n of names.sort()) {
+          const p = join(d, n);
+          let st; try { st = statSync(p); } catch { continue; }
+          if (!st.isFile() || st.size < 10_000 || st.size > 6_000_000) continue;
+          const b = readFileSync(p);
+          if (b.subarray(0, 4).toString('latin1') !== 'GRIB') continue;
+          try {
+            const f = decodeGrib2(new Uint8Array(b));
+            if (f.ni && f.di && f.values?.length === f.ni * f.nj) { real = { path: p, bytes: new Uint8Array(b), f }; break outer; }
+          } catch { /* naechste Datei */ }
+        }
+      }
+    }
+    if (real) {
+      const tier = TIERS[0];
+      const inline = sampleNs.convert(sampleNs.sampleRegularToTier(real.f, tier), sampleNs.KELVIN_TO_C);
+      const viaPool = await sharedNs.sampleBytes(real.bytes, tier, { unit: sampleNs.KELVIN_TO_C });
+      const same = Buffer.compare(Buffer.from(inline.buffer), Buffer.from(viaPool.grid.buffer)) === 0;
+      add(`(3w) echte GRIB-Datei: Pool ⇔ inline byte-gleich (${real.f.ni}×${real.f.nj}, ${(real.bytes.length / 1048576).toFixed(1)} MiB)`,
+        same && viaPool.header.ni === real.f.ni && !('values' in viaPool.header), real.path.split(/[\\/]/).slice(-2).join('/'));
+      const info = await sharedNs.poolStats();
+      add('(3w) der Pool meldet seinen Modus', info.mode === 'workers' || info.mode === 'inline', `${info.mode}, ${info.running}/${info.requested}`);
+      await sharedNs.poolClose();
+    } else {
+      console.log('  (3w) keine GRIB-Datei im Plattencache — Rundreise am echten Objekt uebersprungen (der Selbsttest deckt die synthetische)');
+    }
+  }
+}
+
+// --- (3x) PD-F2e: keep-Praedikat im Decoder, Konstanten 17 → 3, Profil-Level parallel, V-PD-45 ---
+//
+// Der Boden nach F2d war die Ensemble-Bahn: dwdEps entpackte je tot_prec-Datei 80 Nachrichten und
+// warf 60 weg (V-PD-31). Jetzt sieht ein Praedikat den Kopf VOR der Entpackstufe. Regel: „keine
+// dekodierbar" (Fehler) ist etwas anderes als „keine behalten" (leeres Ergebnis).
+{
+  const gd = readFileSync(join(ROOT, 'src/sources/gribDecode.ts'), 'utf8');
+  const ks = readFileSync(join(ROOT, 'scripts/point/adapters/keepSpec.mjs'), 'utf8');
+  const de = readFileSync(join(ROOT, 'scripts/point/adapters/dwdEps.mjs'), 'utf8');
+  const ms = readFileSync(join(ROOT, 'scripts/point/adapters/meteoswiss.mjs'), 'utf8');
+  const rg = readFileSync(join(ROOT, 'scripts/point/adapters/dwdRegular.mjs'), 'utf8');
+  const stripC = (txt) => txt.split(NEWLINE).filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).join(NEWLINE);
+  add('(3x) das Praedikat sieht den Kopf VOR der Entpackstufe (keep vor Gitter-/Datenpruefung, values erst danach)',
+    gd.indexOf('if (keep && !keep(header)) return null;') > 0
+    && gd.indexOf('if (keep && !keep(header)) return null;') < gd.indexOf("throw new Error('GRIB2: keine Datensektion (Sektion 7)')")
+    && gd.indexOf('if (keep && !keep(header)) return null;') < gd.indexOf('const values = new Float32Array(npoints);'));
+  add('(3x) decodeGrib2All unterscheidet „keine dekodierbar" (wirft) von „keine behalten" (leer)',
+    /let decodable = 0;/.test(gd) && /if \(decodable === 0\) throw new Error\('GRIB2: keine dekodierbare Nachricht gefunden'\);/.test(gd));
+  add('(3x) decodeGrib2(raw) bleibt die alte Signatur (Kartenlinie unberuehrt)', /export function decodeGrib2\(raw: Uint8Array\): GribField \{\s*return decodeGrib2Message\(raw, null\)!;/.test(gd));
+  add('(3x) keepSpec.mjs importiert nur den Decoder (worker-tauglich)', (ks.match(/^import /gm) || []).length === 1 && /gribDecode\.ts'/.test(ks) && !/shared\.mjs/.test(stripC(ks)));
+  add('(3x) dwdEps filtert per keep IM Worker (intervalEndMinuteIfAny 0), kein Nachfilter am Kopf mehr',
+    /keep: \{ intervalEndMinuteIfAny: 0 \}/.test(de) && !/\.filter\(\(f\) => f\.header\.intervalEndMinute/.test(de) && /return \{ members, total, byOrder \};/.test(de));
+  add('(3x) meteoswiss entpackt von 17 Konstantenfeldern nur clat/clon/hsurf',
+    /const wanted = \[CONST_ID\.clat, CONST_ID\.clon, CONST_ID\.hsurf\];/.test(ms) && /decodeGrib2All\(raw, \{ keep: isWanted \}\)/.test(ms));
+  add('(3x) dwdRegular holt Halbflaechen und Level gleichzeitig und sammelt PER INDEX in Levelordnung',
+    (rg.match(/await Promise\.all\(levs\.map\(\(lev\) => fetchSampledField\(/g) || []).length === 2
+    && /if \(rs\.some\(\(r\) => !r\)\) return null;/.test(rg) && /rs\.length === nl \+ 1 && rs\.every\(Boolean\)/.test(rg));
+  // Funktional, synthetisch: Muell wirft; keep, das alles ablehnt, gibt [] statt zu werfen.
+  {
+    let threw = false;
+    try { decodeGrib2All(new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20])); } catch { threw = true; }
+    add('(3x) Muell ⇒ „keine dekodierbare Nachricht" (wirft)', threw);
+  }
+  // Funktional an echten Dateien aus dem Plattencache: decodeGrib2All(raw,{keep}) ≡ decodeGrib2All(raw).filter(keep),
+  // scanGrib2Headers zaehlt wie decodeGrib2All, und resolveKeep(intervalEndMinuteIfAny) an einer Mehr-Nachrichten-Datei.
+  {
+    const cacheDir = process.env.POINT_CACHE || join(ROOT, '.cache/point');
+    let single = null, multi = null;
+    if (existsSync(cacheDir)) {
+      outer: for (const sub of readdirSync(cacheDir).sort()) {
+        const d = join(cacheDir, sub);
+        let names; try { names = readdirSync(d); } catch { continue; }
+        for (const n of names.sort()) {
+          const p = join(d, n);
+          let st; try { st = statSync(p); } catch { continue; }
+          if (!st.isFile() || st.size < 10_000 || st.size > 40_000_000) continue;
+          const b = readFileSync(p);
+          if (b.subarray(0, 4).toString('latin1') !== 'GRIB') continue;
+          let heads; try { heads = scanGrib2Headers(new Uint8Array(b)); } catch { continue; }
+          if (heads.length === 1 && !single) single = { p, b: new Uint8Array(b), heads };
+          if (heads.length >= 4 && !multi) multi = { p, b: new Uint8Array(b), heads };
+          if (single && multi) break outer;
+        }
+      }
+    }
+    for (const [label, real] of [['eine Nachricht', single], ['mehrere Nachrichten', multi]]) {
+      if (!real) { console.log(`  (3x) keine Datei mit ${label} im Plattencache — Vergleich uebersprungen`); continue; }
+      const all = decodeGrib2All(real.b);
+      add(`(3x) scanGrib2Headers zaehlt wie decodeGrib2All (${label}: ${all.length})`, real.heads.length === all.length
+        && real.heads.every((h, i) => h.ni === all[i].ni && h.parameterNumber === all[i].parameterNumber && !('values' in h)), real.p.split(/[\\/]/).slice(-2).join('/'));
+      const keep = (h) => (h.perturbationNumber ?? 1) % 2 === 1;
+      const a = decodeGrib2All(real.b, { keep }), b = all.filter(keep);
+      add(`(3x) decodeGrib2All(raw,{keep}) ≡ decodeGrib2All(raw).filter(keep) (${label}: ${a.length} behalten)`,
+        a.length === b.length && a.every((f, i) => Buffer.compare(Buffer.from(f.values.buffer), Buffer.from(b[i].values.buffer)) === 0));
+      add(`(3x) keep, das alles ablehnt ⇒ [] statt Fehler (${label})`, decodeGrib2All(real.b, { keep: () => false }).length === 0);
+    }
+    if (multi) {
+      const { keep, total } = resolveKeep(multi.b, { intervalEndMinuteIfAny: 0 });
+      const anyEnd = multi.heads.some((h) => h.intervalEndMinute != null);
+      const kept = decodeGrib2All(multi.b, { keep });
+      const expect = anyEnd ? multi.heads.filter((h) => h.intervalEndMinute === 0).length : multi.heads.length;
+      add(`(3x) resolveKeep(intervalEndMinuteIfAny 0) an ${multi.heads.length} Nachrichten: ${anyEnd ? 'Intervall-Enden ⇒ nur volle Stunde' : 'keine Intervall-Enden ⇒ alle'} (${kept.length})`,
+        total === multi.heads.length && kept.length === expect && kept.length >= 1);
+    }
+  }
+}
+
+// --- (3y) PD-F2f: Kodierung — dritter Deflate weg, hasData einmal, Deflate asynchron -----------
+//
+// Je Chunk liefen drei Deflates je Ebene (roh, Zeilendifferenz, und ein dritter nur fuer eine
+// Logzeile) im Hauptthread. Jetzt: `perPlane` aus dem Verzeichnis des geschriebenen Chunks,
+// `hasData` einmal ueber die vollen Ebenen, Deflate im libuv-Threadpool mit vier Chunks gleichzeitig
+// und `files[]` per Index in (cy, cx)-Ordnung. zlib ist bei gleichen Parametern deterministisch.
+{
+  const prodE = readFileSync(join(ROOT, 'scripts/point/build-point-cube.mjs'), 'utf8');
+  add('(3y) kein dritter Deflate mehr — perPlane kommt aus dem Verzeichnis des geschriebenen Chunks',
+    /planeBytes: readCubeHeader\(bytes\)\.directory\.map\(\(d\) => d\.length\)/.test(prodE) && !/perPlane\[pi\] \+= \(await deflate9/.test(prodE));
+  add('(3y) hasData einmal ueber die vollen Stufenebenen, nicht je Chunk',
+    /const hasData = CUBE_PLANES\.map\(\(_, pi\) => \{ const src = planes\[pi\];/.test(prodE) && !/if \(!hasData\[pi\]\) for \(const v of cut\[pi\]\)/.test(prodE));
+  add('(3y) Kill-Switch POINT_ENCODE_ASYNC=0 mit synchronem Rueckfall (deflateRawSync bleibt im Code)',
+    /const ENCODE_ASYNC = process\.env\.POINT_ENCODE_ASYNC !== '0';/.test(prodE) && /const deflate9 = ENCODE_ASYNC \? deflate9Async : deflate9Sync;/.test(prodE)
+    && /deflateRawSync\(bytes, \{ level: 9 \}\)/.test(prodE) && /promisify\(deflateRaw\)/.test(prodE));
+  add('(3y) files[] per Index in (cy, cx)-Ordnung, hoechstens vier Chunks gleichzeitig, sequenziell im Rueckfall',
+    /const encoded = await mapLimit\(jobs, ENCODE_ASYNC \? ENCODE_CONCURRENCY : 1, encodeOne\);/.test(prodE) && /const ENCODE_CONCURRENCY = 4;/.test(prodE));
+  add('(3y) die Logzeile sagt, was perPlane jetzt misst (KiB im Container)', /KiB im Container/.test(prodE));
+  // Funktional: async ≡ sync byte-gleich an drei Eingaben (MISSING-Ebene, Zufall, Rampe).
+  {
+    const { deflateRawSync: dsync, deflateRaw: dasync } = await import('node:zlib');
+    const { promisify: pf } = await import('node:util');
+    const da = pf(dasync);
+    let seed = 4242; const rnd = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+    const n = 49 * 24 * 24;
+    const inputs = {
+      'MISSING-Ebene': new Int16Array(n).fill(MISSING),
+      'Zufall': Int16Array.from({ length: n }, () => Math.floor(rnd() * 65536) - 32768),
+      'Rampe': Int16Array.from({ length: n }, (_, i) => (i % 3000) - 1500),
+    };
+    for (const [label, plane] of Object.entries(inputs)) {
+      const bytes = new Uint8Array(plane.buffer);
+      const a = new Uint8Array(await da(bytes, { level: 9 })), b = new Uint8Array(dsync(bytes, { level: 9 }));
+      add(`(3y) deflateRaw async ≡ deflateRawSync (${label}, ${b.length} B)`, Buffer.compare(Buffer.from(a), Buffer.from(b)) === 0);
+    }
+    // encodeCubeChunk mit dem asynchronen Kompressor ≡ mit dem synchronen.
+    const planes = CUBE_PLANES.map((_, i) => (i % 2 ? inputs.Rampe : inputs.Zufall));
+    const hdr = { runHours: 497000, tierIndex: 0, nt: 49, y0: 0, x0: 0, ny: 24, nx: 24, planes };
+    const ca = await encodeCubeChunk(hdr, async (x) => new Uint8Array(await da(x, { level: 9 })));
+    const cs = await encodeCubeChunk(hdr, async (x) => new Uint8Array(dsync(x, { level: 9 })));
+    add('(3y) encodeCubeChunk mit asynchronem Kompressor ≡ synchron (ganzer Chunk byte-gleich)', Buffer.compare(Buffer.from(ca), Buffer.from(cs)) === 0, `${ca.length} B`);
+    // perPlane aus dem Verzeichnis = Summe der Blockgroessen = Container minus Kopf und Verzeichnis.
+    const { directory } = readCubeHeader(ca);
+    const sum = directory.reduce((s, d) => s + d.length, 0);
+    add('(3y) Verzeichnis-Laengen summieren sich exakt auf den Nutzteil des Containers', sum === ca.length - directory[0].offset && directory.length === CUBE_PLANES.length);
+  }
+  // mapLimit: Reihenfolge per Index trotz gestoerter Fertigstellung, Grenze eingehalten.
+  {
+    const items = [30, 5, 20, 1, 10, 2];
+    let running = 0, maxRunning = 0;
+    const out = await mapLimit(items, 3, async (ms, i) => {
+      running++; maxRunning = Math.max(maxRunning, running);
+      await new Promise((r) => setTimeout(r, ms));
+      running--;
+      return `${i}:${ms}`;
+    });
+    add('(3y) mapLimit liefert per Index in Eingabeordnung, obwohl die Fertigstellung anders laeuft', out.join(' ') === items.map((ms, i) => `${i}:${ms}`).join(' '), out.join(' '));
+    add('(3y) mapLimit haelt die Grenze (≤ 3 gleichzeitig, > 1)', maxRunning <= 3 && maxRunning > 1, `max ${maxRunning}`);
+    add('(3y) mapLimit mit leerer Liste ⇒ []', (await mapLimit([], 4, async () => 1)).length === 0);
+  }
+}
+
+// --- (3z) PD-F3a: Laeufe je Stufe — latestByTier, Aufbewahrung je Stufe, pruneTier ---------------
+//
+// Mit einem Job je Stufe (F3b) traegt der juengste Lauf meist nur t1; ein Client, der „den neuesten
+// Lauf" naehme, faende fuer t3 nichts. Deshalb `latestByTier` im Index, Aufbewahrung je Stufe
+// (Quell-Lauf-Alter, MIN_RUNS je Stufe) und `pruneTier`, das eine Stufe aus einem Laufverzeichnis
+// nimmt, ohne den Orphan-Waechter des Publishers zu verletzen. Alles additiv, CUBE_SCHEMA bleibt.
+{
+  add('(3z) CUBE_SCHEMA unveraendert 4 — F3a ist additiv', CUBE_SCHEMA === 4);
+  add('(3z) Aufbewahrung je Stufe: t1 kuerzer als die Gesamtregel, keine Stufe laenger als 24 h (Jans Regel 2026-09-09)',
+    RETENTION_HOURS_BY_TIER.t1 < RETENTION_HOURS && Object.values(RETENTION_HOURS_BY_TIER).every((h) => h <= RETENTION_HOURS)
+    && Object.keys(RETENTION_HOURS_BY_TIER).sort().join() === TIERS.map((t) => t.id).sort().join(), JSON.stringify(RETENTION_HOURS_BY_TIER));
+  // t1 8x/Tag zu ~75 MiB: der 500-MiB-Deckel haelt nur mit kurzer t1-Aufbewahrung.
+  {
+    const perRun = 75.7, slotsPerDay = 8;
+    const t1Runs = Math.max(MIN_RUNS, Math.floor(RETENTION_HOURS_BY_TIER.t1 / (24 / slotsPerDay)) + 1);
+    add(`(3z) Repo-Rechnung: ${t1Runs} t1-Laeufe x ${perRun} MiB + t2/t3/stations bleibt unter 500 MiB`, t1Runs * perRun + 4 * 25 + 2 * 5 + 27 < 500, `${(t1Runs * perRun + 4 * 25 + 2 * 5 + 27).toFixed(0)} MiB`);
+  }
+  const now = Date.parse('2026-09-11T22:00:00Z');
+  const iso = (r) => `${r.slice(0, 4)}-${r.slice(4, 6)}-${r.slice(6, 8)}T${r.slice(8, 10)}:00:00Z`;
+  // runsToKeepFor: 9 h behaelt drei von acht 3-stuendlichen t1-Laeufen, 24 h alle acht; Boden greift.
+  {
+    const runs = ['2026091121', '2026091118', '2026091115', '2026091112', '2026091109', '2026091106', '2026091103', '2026091100'].map((r) => ({ run: r, runAt: iso(r) }));
+    const d9 = runsToKeepFor(runs, { hours: 9, minRuns: 2 }, now), d24 = runsToKeepFor(runs, { hours: 24, minRuns: 2 }, now);
+    add('(3z) runsToKeepFor(9 h) behaelt genau die drei juengsten (21z 18z 15z), 24 h alle acht', d9.keep.map((r) => r.run).join() === '2026091121,2026091118,2026091115' && d24.keep.length === 8 && d9.drop.length === 5);
+    const old = [{ run: '2026091000', runAt: iso('2026091000') }, { run: '2026090912', runAt: iso('2026090912') }, { run: '2026090900', runAt: iso('2026090900') }];
+    const db = runsToKeepFor(old, { hours: 9, minRuns: 2 }, now);
+    add('(3z) der Boden haelt zwei ueberalterte Laeufe und BENENNT sie (stale)', db.keep.length === 2 && db.stale.length === 2 && db.drop.length === 1);
+    add('(3z) runsToKeep ≡ runsToKeepFor mit der Gesamtregel', JSON.stringify(runsToKeep(runs, now)) === JSON.stringify(runsToKeepFor(runs, { hours: RETENTION_HOURS, minRuns: MIN_RUNS }, now)));
+  }
+  // latestByTier: der juengste Lauf MIT der Stufe — Negativkontrolle: der juengste Lauf ohne t3 wird fuer t3 nie gewaehlt.
+  {
+    const runs = [
+      { run: '2026091118', runAt: iso('2026091118'), path: 'point/2026091118', tiers: ['t1'], sources: [], bytes: 1, tierRuns: [{ id: 't1', run: '2026091118', runAt: iso('2026091118'), ageH: 0, files: 208, bytes: 70 }] },
+      { run: '2026091115', runAt: iso('2026091115'), path: 'point/2026091115', tiers: ['t1', 't2'], sources: [], bytes: 2, tierRuns: [{ id: 't1', run: '2026091115', runAt: iso('2026091115'), ageH: 0, files: 208, bytes: 70 }, { id: 't2', run: '2026091112', runAt: iso('2026091112'), ageH: 3, files: 56, bytes: 6 }] },
+      { run: '2026091112', runAt: iso('2026091112'), path: 'point/2026091112', tiers: ['t2', 't3'], sources: [], bytes: 3, tierRuns: [{ id: 't2', run: '2026091112', runAt: iso('2026091112'), ageH: 0, files: 56, bytes: 6 }, { id: 't3', run: '2026091100', runAt: iso('2026091100'), ageH: 12, files: 12, bytes: 1 }] },
+    ];
+    const l = latestByTier(runs);
+    add('(3z) latestByTier: t1 aus 18z, t2 aus 15z, t3 aus 12z (jeweils der juengste Lauf MIT der Stufe)', l.t1.run === '2026091118' && l.t2.run === '2026091115' && l.t3.run === '2026091112');
+    add('(3z) latestByTier traegt Quell-Lauf, Alter, Manifestpfad und Bytes je Stufe', l.t3.sourceRun === '2026091100' && l.t3.ageH === 12 && l.t3.manifest === 'point/2026091112/run.json' && l.t2.sourceRun === '2026091112' && l.t1.files === 208);
+    add('(3z) fehlt eine Stufe ueberall ⇒ null, nicht ein falscher Lauf', latestByTier(runs.slice(0, 1)).t3 === null && latestByTier([]).t1 === null);
+    const idx = buildPointIndex({ commit: null, publishedAt: '2026-09-11T22:00:00Z', runs });
+    add('(3z) buildPointIndex traegt latestByTier und retentionByTier (additiv, Gesamtregel bleibt)', idx.latestByTier.t3.run === '2026091112' && idx.retentionByTier.t1 === RETENTION_HOURS_BY_TIER.t1 && idx.retentionHours === RETENTION_HOURS);
+  }
+  // pruneTier am synthetischen Baum: Stufe weg, Manifest ohne die Stufe und ihre Quellen, Orphan-Waechter gruen; letzte Stufe ⇒ Verzeichnis weg.
+  {
+    const tmp = join(ROOT, 'data', `_verify-prune-${process.pid}`);
+    rmSync(tmp, { recursive: true, force: true });
+    const runDir = join(tmp, 'point', '2026091115');
+    for (const t of ['t1', 't2']) { mkdirSync(join(runDir, t), { recursive: true }); writeFileSync(join(runDir, t, '00_00.bin'), Buffer.from([1, 2, 3])); }
+    const man = {
+      run: '2026091115', tiers: [
+        { id: 't1', run: '2026091115', runAt: iso('2026091115'), ageH: 0, files: [{ file: 'point/2026091115/t1/00_00.bin', bytes: 3, cy: 0, cx: 0 }] },
+        { id: 't2', run: '2026091112', runAt: iso('2026091112'), ageH: 3, files: [{ file: 'point/2026091115/t2/00_00.bin', bytes: 3, cy: 0, cx: 0 }] },
+      ],
+      sources: [{ id: 'icon_d2', tier: 't1' }, { id: 'icon_eu', tier: 't2' }, { id: 'ifs_hres', tier: 't2' }],
+    };
+    writeFileSync(join(runDir, 'run.json'), JSON.stringify(man));
+    add('(3z) tiersOf liest Stufen mit Quell-Lauf, Dateizahl und Bytes', JSON.stringify(tiersOf(runDir).map((t) => [t.id, t.run, t.files, t.bytes])) === JSON.stringify([['t1', '2026091115', 1, 3], ['t2', '2026091112', 1, 3]]));
+    const r1 = pruneTier(runDir, 't1');
+    const after = JSON.parse(readFileSync(join(runDir, 'run.json'), 'utf8'));
+    const onDisk = readdirSync(runDir).filter((n) => n !== 'run.json');
+    const listed = after.tiers.flatMap((t) => t.files.map((f) => f.file));
+    add('(3z) pruneTier(t1): Verzeichnis t1 weg, Manifest nur noch t2, Quellen von t1 weg, Lauf bleibt', r1.removedTier && !r1.removedRun && r1.remaining.join() === 't2' && onDisk.join() === 't2' && after.sources.map((s) => s.id).join() === 'icon_eu,ifs_hres');
+    add('(3z) nach pruneTier: kein Chunk ohne Manifesteintrag, kein Eintrag ohne Datei (der Publisher-Waechter bliebe gruen)',
+      listed.every((f) => existsSync(join(tmp, f))) && listed.length === 1 && existsSync(join(runDir, 't2', '00_00.bin')));
+    const r2 = pruneTier(runDir, 't2');
+    add('(3z) pruneTier der letzten Stufe entfernt das Laufverzeichnis ganz', r2.removedRun && r2.remaining.length === 0 && !existsSync(runDir));
+    add('(3z) pruneTier auf eine fehlende Stufe ist harmlos', (() => { mkdirSync(runDir, { recursive: true }); writeFileSync(join(runDir, 'run.json'), JSON.stringify({ tiers: [{ id: 't3', files: [] }], sources: [] })); const r = pruneTier(runDir, 't1'); return !r.removedTier && !r.removedRun && r.remaining.join() === 't3'; })());
+    rmSync(tmp, { recursive: true, force: true });
+  }
+  // validateRunManifest nimmt einen Lauf mit EINER Stufe an (F3b baut so).
+  {
+    const one = runManifest([{
+      tier: 't1', run: '2026091115', leadHours: TIER_BY_ID.t1.leadHours, files: [], bytesTotal: 0, skipped: [], dropped: [],
+      contributors: [{ id: 'icon_d2', run: '2026091115', leads: 49, role: 'assigned', coverage: 'full', offsetH: 0, cells: 48441, maskInside: 48441, errors: 0 }],
+      net: {}, perPlane: {}, hasData: {}, ms: { fields: 1, total: 2 },
+    }]);
+    add('(3z) validateRunManifest akzeptiert ein Manifest mit nur t1 (Ein-Stufen-Job)', validateRunManifest(one).length === 0 && one.tiers.length === 1, validateRunManifest(one).slice(0, 2).join(' | '));
+  }
+  const pub = readFileSync(join(ROOT, 'scripts/point/publish-point.mjs'), 'utf8');
+  add('(3z) der Publisher raeumt JE STUFE vor der Laufregel (runsToKeepFor + pruneTier je Tier) und schreibt tierRuns in den Index',
+    /for \(const tier of TIERS\) \{[\s\S]*?runsToKeepFor\(withTier, \{ hours: RETENTION_HOURS_BY_TIER\[tier\.id\], minRuns: MIN_RUNS \}\)[\s\S]*?pruneTier\(join\(REPO, POINT_DIR, r\.run\), tier\.id\)/.test(pub)
+    && /tierRuns: tiersOf\(join\(REPO, POINT_DIR, run\)\),/.test(pub) && pub.indexOf('for (const tier of TIERS)') < pub.indexOf('const decision = runsToKeep(present);'));
 }
 
 // --- Ausgabe ----------------------------------------------------------------

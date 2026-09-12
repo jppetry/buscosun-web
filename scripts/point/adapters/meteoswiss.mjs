@@ -73,8 +73,8 @@
  */
 
 import {
-  fetchBytes, fetchGribField, runIdBack, buildUnstructuredIndex, sampleUnstructuredToTier,
-  convert, KELVIN_TO_C, PA_TO_HPA,
+  fetchBytes, fetchJson, fetchSampledField, poolSetIndex, runIdBack, buildUnstructuredIndex, sampleUnstructuredToTier,
+  KELVIN_TO_C, PA_TO_HPA,
 } from './shared.mjs';
 import { decodeGrib2All } from '../../../src/sources/gribDecode.ts';
 
@@ -140,16 +140,25 @@ const indexCache = new Map();
  * neueste Lauf steht also am ENDE — abbrechen darf man erst, wenn keine Seite mehr
  * kommt. Ein zu früher Abbruch verlöre genau den Lauf, den man sucht.
  */
-async function itemsAt(cfg, validMs, maxPages = 25) {
+function itemsAt(cfg, validMs, maxPages = 25) {
   const key = `${cfg.collection}|${validMs}`;
   if (itemCache.has(key)) return itemCache.get(key);
+  // PD-F2a: das PROMISE cachen — die Enumeration kostet 16 Seiten / 3,9 s je Gültigzeit
+  // (Kopf), und unter Nebenläufigkeit fragten `leadsFor` und `field` sie sonst doppelt an.
+  const p = listItems(cfg, validMs, maxPages);
+  itemCache.set(key, p);
+  p.catch(() => itemCache.delete(key));
+  return p;
+}
+async function listItems(cfg, validMs, maxPages) {
   const out = [];
   let url = `${STAC}/collections/${cfg.collection}/items`
     + `?limit=100&datetime=${encodeURIComponent(instant(validMs))}`;
   for (let p = 0; p < maxPages && url; p++) {
-    const res = await fetch(url);
-    if (!res.ok) break;
-    const j = await res.json();
+    // PD-F2a: im Takt und mit Zaehler statt nacktem fetch — die Enumeration ist Netzverkehr
+    // wie jeder andere und stand bisher in keiner Statistik.
+    const j = await fetchJson(url);
+    if (!j) break;
     const feats = j.features ?? [];
     if (feats.length === 0) break;
     for (const f of feats) {
@@ -163,7 +172,6 @@ async function itemsAt(cfg, validMs, maxPages = 25) {
     }
     url = (j.links ?? []).find((l) => l.rel === 'next')?.href;
   }
-  itemCache.set(key, out);
   return out;
 }
 
@@ -178,7 +186,11 @@ async function constants(cfg) {
     if (!href) return null;
     const raw = await fetchBytes(href, { cacheKey: `mch:${cfg.constants}` });
     if (!raw) return null;
-    const fields = decodeGrib2All(raw);
+    // PD-F2e: von den 17 Konstantenfeldern (41 MiB) werden nur clat/clon/hsurf entpackt — das
+    // Prädikat sieht den Kopf vor der Entpackstufe.
+    const wanted = [CONST_ID.clat, CONST_ID.clon, CONST_ID.hsurf];
+    const isWanted = (h) => wanted.some(([d, c, n]) => h.discipline === d && h.parameterCategory === c && h.parameterNumber === n);
+    const fields = decodeGrib2All(raw, { keep: isWanted });
     const pick = ([d, c, n]) => fields.find((f) =>
       f.discipline === d && f.parameterCategory === c && f.parameterNumber === n);
     const clat = pick(CONST_ID.clat), clon = pick(CONST_ID.clon), hsurf = pick(CONST_ID.hsurf);
@@ -201,6 +213,18 @@ async function cellIndex(cfg, tier) {
   })();
   indexCache.set(key, p);
   return p;
+}
+
+/** PD-F2d: den Nachbarindex einmal je (Sammlung, Stufe) an den Pool geben. */
+const idxSent = new Map();
+function idxKeyFor(cfg, tier, idx) {
+  const key = `mch:${cfg.collection}|${tier.id}`;
+  if (!idxSent.has(key)) {
+    const p = poolSetIndex(key, idx).then(() => key);
+    idxSent.set(key, p);
+    p.catch(() => idxSent.delete(key));
+  }
+  return idxSent.get(key);
 }
 
 export function makeMeteoSwissAdapter(id) {
@@ -262,9 +286,12 @@ export function makeMeteoSwissAdapter(id) {
       if (!it) return null;
       // Cache unter dem OBJEKTNAMEN: die Signatur in der URL wechselt bei jeder
       // Enumeration, ein URL-Schlüssel träfe nie.
-      const f = await fetchGribField(it.href, { bz2: false, cacheKey: `mch:${it.object}` });
-      if (!f) return null;
-      return convert(sampleUnstructuredToTier(f.values, idx, tier), UNITS[varId]);
+      // PD-F2d: Dekodieren + Abtasten im Pool (Rohpuffer CH1 bis 26 MiB bleiben dort).
+      const idxKey = await idxKeyFor(cfg, tier, idx);
+      const r = await fetchSampledField(it.href, tier, {
+        bz2: false, cacheKey: `mch:${it.object}`, grid: 'unstructured', idxKey, unit: UNITS[varId] ?? null,
+      });
+      return r ? r.grid : null;
     },
 
     async orography(run, tier) {

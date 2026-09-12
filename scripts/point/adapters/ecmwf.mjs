@@ -20,7 +20,7 @@
  * Die Lehre aus SH3/V-BW-51 gilt: das Vokabular kommt aus der Quelle, nicht aus der Skizze.
  */
 
-import { fetchBytes, fetchRanges, headOk, probeHorizon, pad2, runIdBack, sampleRegularToTier, convert,
+import { fetchBytes, fetchRanges, headOk, probeHorizon, pad2, runIdBack, sampleBytes, convert,
   KELVIN_TO_C, PA_TO_HPA, FRACTION_TO_PCT, M_TO_MM } from './shared.mjs';
 import { decodeGrib2 } from '../../../src/sources/gribDecode.ts';
 
@@ -264,9 +264,14 @@ export function makeEcmwfAdapter(id) {
         range: `${e._offset}-${e._offset + e._length - 1}`,
       });
       if (!raw) return null;
-      const f = decodeGrib2(raw);
-      return convert(sampleRegularToTier(f, tier), scaleFromGrib(varId, f));
+      // PD-F2d: Dekodieren + Abtasten im Pool; die Einheit hängt am GRIB-Kopf (§23 (4)), der
+      // kommt mit — die Umrechnung bleibt hier, NACH der Abtastung wie zuvor.
+      const r = await sampleBytes(raw, tier);
+      return convert(r.grid, scaleFromGrib(varId, r.header));
     },
+
+    /** Rechnet das Modell diese Stunde überhaupt? (V-PD-45: Vorschritt vor der Stufe ohne 404.) */
+    hasStep: (h) => ecmwfOwnLeads(id, [h]).length === 1,
 
     /** ECMWF Open Data liefert keine Modellorographie in den Oberflächenfeldern. */
     async orography() { return null; },

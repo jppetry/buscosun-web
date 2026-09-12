@@ -5038,3 +5038,467 @@ byte-gleich zu §49.2: derselbe Lauf 2026091112), **Plattencache je Stufe geleer
 (Jans Gate, Cron-Vorlage): `timeout-minutes` 75 → 95 und `JOB_MAX_MIN` 55 → 80 (Verifier: 80 + 20 =
 100 = Slot-Abstand, gerade noch). Lauf 9 (planmäßig 15:50, wegen der Concurrency erst 16:34 gestartet)
 läuft mit demselben Stand und wird voraussichtlich ebenso am Timeout enden.
+
+### 49.6 ✅ Lauf 9 — der erste erfolgreiche Punkt-Lauf; Gate GPD-C3 halb
+
+Der planmäßige 15:50-Lauf (wegen der Concurrency-Gruppe erst 16:34 UTC gestartet, noch unter der
+75-min-Definition) **kam durch**: t1 27,8 min · t2 15,6 min · t3 11,4 min = **55 min Bau**, 7,7 GiB Netz,
+Stationsprodukt 51 s (3 071 Stationen), Datencommit lokal `7d4ccc6` → am Remote **`44bd87b`** (Rebase
+durch den Radar-Spiegel; die Zwei-Commit-Regel aus §29 hat genau dafür gegriffen: der Index nennt den
+Remote-SHA), Purge 200. Am CDN geprüft (18:05 UTC): `point/index.json` Schema 4, Läufe
+`2026091115` (t1 aus ICON-D2 15z; t2/t3 aus 2026091112, `ageH` 3) und der alte `2026090912` (bleibt
+wegen `MIN_RUNS`); `validateRunManifest` **0 Verstöße** an `@44bd87b` und `@main`; 21 Quelleneinträge,
+14 Quellen, 51 Ebenen; Chunk `t1/05_07.bin` `@commit` und `@main` byte-gleich (511 637 B), CRC hält;
+`sdEnsEmpty` = td2m, clct, ps, snowlmt (V-PD-34, wie erwartet). Runner-Varianz: Lauf 8 brauchte für t1
+41,4 min, Lauf 9 27,8 — dieselbe Vorlage, derselbe Stand.
+
+⚠ Nebenbefund: der **erste** Abruf des frisch gepinnten `@44bd87b/…/05_07.bin` antwortete am CDN mit
+**HTTP 403 (149 B)**, der zweite Abruf Sekunden später mit 200 — ein Kaltstart-Verhalten von jsDelivr, kein
+Datenfehler (V-PD-46: `check-cdn.mjs` sollte einen 403/404 beim ersten Abruf einmal wiederholen, bevor
+er „nicht ausgeliefert" meldet; außerdem ist es auf den Lauf 2026090912 und einen lokalen Klon fest
+verdrahtet und braucht `<commit>` als Argument — heute unbenutzbar für den aktuellen Lauf).
+
+Gate GPD-C3 verlangt zwei aufeinanderfolgende grüne Läufe: Lauf 10 (manuell 17:40 UTC, jetzt unter der
+95-min-Definition) läuft.
+
+---
+
+## §50 Block F — Bau kürzen, ohne ein Byte zu ändern (PD-F2a…F2f)
+
+Jans Plan-Freigabe (2026-09-11 18:35 UTC): Netz und Rechnen überlappen **und** Worker-Threads; danach
+F3 (ein Job je Stufe). Invarianten (Plan F-0): Fusionsmathematik, Format, Quellenmenge, Adapter-Semantik
+unverändert; jeder neue Pfad mit Kill-Switch; Beweis je Etappe = `compareTrees` (0 von 276 Chunks
+verschieden am selben Cache mit demselben `--run`).
+
+### 50.0 Referenzmessung (F-M)
+
+Fester Lauf `--run=2026091115`, frischer Cache, kein `POINT_CACHE_CLEAR`, Producer-Stand vor F2a
+(Stufe 1: der Code von `c686a3b`; Stufe 2/3 und der warme Lauf liefen als eigene Prozesse und luden
+`shared.mjs` teils schon mit F2a-Änderungen — semantisch neutral, nur die Zeiten sind deshalb nicht
+laborrein). Gemessen 18:42–19:35 UTC, lokal:
+
+| Stufe | kalt gesamt | discover | fields | ensemble | quantiles | profile | encode | Netz |
+|---|---|---|---|---|---|---|---|---|
+| t1 | **1 219 s** | 48 | 557 | 227 | 168 | 198 | 23 | 3 833 MiB, 2 383 Dateien, 139 × 404 |
+| t2 | **801 s** | 60 | **670** | 68 | 0 | 0 | 2 | 2 136 MiB, 1 069 Dateien |
+| t3 | **764 s** | 15 | 404 | **345** | 0 | 0 | 0 | 1 680 MiB, 335 Dateien |
+| t1 **warm** | **393 s** | 47 | 135 | 104 | 67 | 17 | 23 | 27,5 MiB (139 × 404 neu geholt) |
+
+Lesart: der warme t1-Lauf ist die **reine Rechenzeit** — 393 s, davon 47 s Laufsuche (HEAD-Sonden
+sind nicht gecacht) und 23 s Kodierung. Die Differenz kalt − warm ≈ 826 s ist Netz **plus** das, was
+das Netz sequenziell blockiert. In t2 kostet `fields` 670 s (ICON global/AICON ikosaedrisch, 2,95 M
+Zellen je Feld dekodiert für 12 221 Zielzellen); in t3 die Ensemble-Bahn 345 s (IFS-ENS, 50 Member ×
+2 Größen × 4 Rasterstunden, jedes Member ein globales 0,25°-Feld). Plattencache nach allen Stufen
+9,23 GiB. Die Referenzbäume liegen unter `point-ref/` (kalt) und `point-ref-warm/` (t1 warm).
+
+### 50.a PD-F2a — Grundbausteine, Parallelität noch aus
+
+- **`adapters/pacer.mjs`** (neu): `makePacer(minMs, maxInflight)` = FIFO je Host, Zeitstempel bei
+  **Vergabe** gesetzt, Semaphor für gleichzeitige Anfragen; `makeHostPacers(minByHost, maxByHost)`.
+  Selbsttest 11/11, darunter die **Negativ-Kontrolle**: das alte `pace()`-Muster (Lesen vor dem `await`)
+  lässt fünf gleichzeitige Aufrufer mit **0 ms** Abstand durch — genau der Burst, der Lauf 7 mit 429 beendete.
+- **`adapters/sample.mjs`** (neu): die reinen Abtast-/Nachbarindex-/Einheitenfunktionen aus `shared.mjs`
+  herausgezogen (294 Zeilen, unverändert), `shared.mjs` re-exportiert dieselben Funktionsobjekte (vom
+  Verifier per Identität geprüft) — der Worker (F2d) darf `shared.mjs` nicht laden.
+- **Promise-Caches** statt Wert-nach-`await` in `dwdIcosahedral` (Nachbarindex, Zellkoordinaten),
+  `dwdRegular` (21 HHL-Felder), `geosphere` (Fenster-LRU hält jetzt Promises, kein `winPut` nach dem
+  `await`), `meteoswiss` (Katalog-Enumeration). Abgelehnte Promises fallen aus dem Cache.
+- **`scripts/point/compareTrees.mjs`** (neu): Chunk-Bäume byteweise, Manifest-**Whitelist**
+  (Läufe, Stufen, Dateigrößen, `steps/coverage/offsetH/errors`, `ensemble.byHour`, Quantil-/Profilzähler,
+  `sdEnsEmpty`, `skipped`); `errors > 0` oder `throttled > 0` im neuen Bau ⇒ Vergleich ungültig.
+  ⚠ Beim ersten Einsatz zeigte sich, dass die Anfragezahl NICHT in die Whitelist gehört: pc-c5 gegen
+  pc-c5b waren 56/56 Chunks gleich, aber 233 ≠ 208 Anfragen bei IFS — der PD-C5-Vorschrittwächter hatte
+  404-Abrufe gespart. Genau das sollen F2a–F2e tun; verglichen wird Datenzustand, nicht Netzverkehr.
+- Verifier (3t): Pacer-Selbsttest, Re-Export-Identität, Worker-Tauglichkeit von `sample.mjs` (nur
+  Code-Zeilen, der Kopf nennt `shared.mjs` beim Namen), Promise-Cache-Muster in vier Adaptern,
+  `compareTrees` an synthetischen Bäumen (gleich · ein Byte anders · Whitelist-Feld anders · fehlender
+  Baum) und — wenn `POINT_REF`/`POINT_NEW` gesetzt — am echten Paar. **680/680.**
+- Noch offen in F2a (nach Ende der Referenz-t1, damit die Messung nicht der Code von morgen ist):
+  `pace()` in `shared.mjs` auf `makeHostPacers` umstellen, In-flight-Memo in `fetchBytes`/`fetchRanges`/
+  `headOk`, `fetchJson()` für die STAC-Listen.
+
+### 49.7 ✅ Gate GPD-C3 grün: zwei aufeinanderfolgende Läufe, Schema 4 am CDN
+
+Lauf 10 (manuell 17:40 UTC, erste Ausführung unter der 95-min-Definition) ist ebenfalls durch:
+t1 **32,9 min** · t2 22,2 · t3 16,8 = **72 min Bau**, Stationen 53 s, Datencommit `8757b8d`, Purge 200,
+Index-Commit `cce5a6e`, 656/656 Gate-Prüfungen im Job. Gesamtdauer 74 min — **21 min unter dem
+Timeout, 26 min vor dem nächsten Kartenlinien-Push**. Der Publikationslauf blieb `2026091115` (ICON-D2 18z
+war um 17:40 noch nicht veröffentlicht), das Verzeichnis wurde ersetzt, Index und Stationsprodukt neu.
+
+Runner-Laufzeiten derselben Vorlage, derselbe Producer-Stand, drei Läufe: t1 **27,8 · 32,9 · 41,4 min**
+(Läufe 9, 10, 8). Die Varianz von ±25 % ist die eigentliche Botschaft für Block F: eine Slot-Regel, die
+auf dem Mittelwert steht, reißt an einem langsamen Abend. `JOB_MAX_MIN` wird deshalb nach F2 aus dem
+**Maximum** der Runner-Läufe + 30 % gesetzt, nicht aus dem Mittel.
+
+**Gate GPD-C3 (Plan): zwei aufeinanderfolgende grüne Läufe (9, 10), `point/index.json` Schema 4 am CDN,
+`@commit` und `@main` byte-gleich (49.6) — erfüllt.** Erster planmäßiger Lauf mit C4/C5/F1 an Bord:
+21:50 UTC (Stand `c686a3b`).
+
+**Byte-Beweis F2a (19:35–19:49 UTC):** Referenz = der committete Producer (`git archive c686a3b` nach
+`data/ref-producer/`, gitignored), neu = Arbeitsbaum mit F2a; beide **warm am selben Cache mit
+`--run=2026091115`**, Stufe 1: **208 von 208 Chunks byte-gleich, 74,36 MiB, Manifest-Whitelist gleich.**
+Zeiten: Referenz 375 s, neu 439 s — die Differenz ist **nicht** der Code, sondern ECMWF: der neue Lauf
+kassierte **32 × 429** (AIFS 26, IFS 6) auf HEAD-Sonden, `discover` 10 → 101 s; die Referenz direkt davor
+hatte 34 echte IFS-GETs ohne einen 429. Wahrscheinlich ein rollendes Kontingent je IP (beide Läufe
+sequenziell, gleiche 600-ms-Takte, der Pacer vergibt nachweislich nicht dichter — Selbsttest).
+`compareTrees` meldet den Lauf deshalb regelkonform als „ungültig" (`throttled > 0`); der Chunk-Beweis
+selbst ist eindeutig. Wiederholung des neuen Baus läuft (19:50 UTC), um den 429-Befund von der
+Codeänderung zu trennen. Nebenbei sichtbar: `fetchJson` zählt die STAC-Seiten jetzt als Netzverkehr
+(icon_ch1_eps 161 Dateien, 28,6 MiB) — vorher stand diese Enumeration in keiner Statistik.
+
+### 50.b PD-F2b — eine Bahn je Quelle, Verbraucher in Stundenordnung, Laufsuche parallel
+
+- **`scripts/point/lanes.mjs`** (neu): `runLanes({ nLanes, nSteps, task, consume, ahead })` — je Bahn
+  eine strikt sequenzielle Folge `it = 0…n−1` (die `accPrev`-Rekurrenz je Quelle bleibt, weil nur die
+  eigene Bahn ihren Schlüssel berührt), Bahnen gleichzeitig, Verbraucher in Stundenordnung mit den Werten
+  **in Bahnen-Ordnung**; Rückstau `ahead` (Standard 3 h, `POINT_AHEAD_HOURS`). Dazu `orderedSettle`
+  (Promise.allSettled in **Eingabe**-Ordnung) und `sequentialSettle` (der Rückfall). Selbsttest 10/10,
+  darunter: 4 Bahnen mit zufälligen Latenzen liefern dem Verbraucher exakt die Werte der sequenziellen
+  Schleife in derselben Ordnung (mit einem absichtlich ordnungsabhängigen Prüfwert), Rekurrenz je Bahn
+  strikt, Rückstau eingehalten, Fehler einer Bahn landet als `{ error }` an seiner Stelle.
+- **Producer:** die Fusionsschleife ist in zwei Funktionen zerlegt — `sourceHour(c, it)` (alle Zielgrößen
+  EINER Quelle für eine Stunde: Abruf, Maske, Entakkumulation — der bisherige Schleifenkörper, textgleich)
+  und `consumeHour(it, perSource)` (je Größe der **unveränderte** synchrone Block: Bitmaske, Mittel/σ,
+  `srcMask`; `grids` in `ci`-Ordnung ⇒ FP-Summen wie zuvor). `POINT_PARALLEL=0` fährt dieselben zwei
+  Funktionen sequenziell — Rückfall UND Referenz.
+- **Laufsuche parallel:** `discoverOne(id)` und `coverOne(c)` liefern `{ candidate | skip }`; beide
+  Durchgänge laufen über `settle()` (parallel oder sequenziell) und sammeln **per Index in `ids`-Ordnung**
+  ein — der Index `ci` ist tragend (srcMask-Bit, Ensemble-Priorität, `quantSrc`/`profileSrc`).
+- Manifest additiv: `timing.mode: 'lanes'|'sequential'`, `timing.lanes: { ahead, maxAhead, consumeMs,
+  laneMs je Quelle }` — Bahnzeiten **überlappen**, sind nicht summierbar.
+- Verifier (3u): Bahnen-Selbsttest, Form (Kill-Switch, Rückstau ≥ 1, `ci`-Ordnung im Verbraucher,
+  Entakkumulation IN der Bahn, beide Durchgänge über `settle`), `orderedSettle ≡ sequentialSettle`,
+  `runLanes` mit einer Bahn ⇔ sequenziell. **705/705.**
+- Noch nicht in Bahnen: Ensemble-, Quantil- und Profilblock (laufen weiter nach den Feldbahnen,
+  intern sequenziell) — zweiter Schritt, wenn die Messung sagt, dass sie den Boden bilden.
+
+**Wiederholung des F2a-Baus (19:50–19:57 UTC):** wieder **208/208 byte-gleich**, 386 s gegen 375 s der
+Referenz (±3 %, Messrauschen — F2a ist zeitneutral, wie geplant). Diesmal **6 × 429** statt 32 (IFS 3,
+AIFS 3, alles HEAD-Sonden), `discover` 27 s: ECMWF drosselt die Sonden zu dieser Tageszeit
+schwankend, unabhängig vom Code — beide Läufe waren streng sequenziell mit demselben 600-ms-Takt.
+Regel für die weiteren Etappen: der **Chunk-Beweis** entscheidet; `throttled` wird berichtet und bleibt
+Gate nur für den Verdacht auf einen Burst (Bahnen), nicht für den Zufall der Gegenseite.
+**Gate GPD-F2a erfüllt.**
+
+**Byte-Beweis F2b (warm, 19:57–20:04 UTC):** Bahnen gegen den committeten Producer am selben Cache:
+**208/208 Chunks byte-gleich, Manifest-Whitelist gleich, 0 × 429.** Zeit warm **454 s gegen 375–386 s** —
+langsamer, und das ist erwartbar: warm gibt es kein Netz zu überlappen, die Bahnen verschränken nur
+CPU-Arbeit im selben Thread und kosten Verwaltung (Verbraucher wartet je Stunde auf acht Bahnen, mehr
+gleichzeitig lebende Gitter ⇒ GC; `encode` 23 → 33 s deutet auf Speicherdruck). **Der Gewinn von F2b
+kann nur kalt sichtbar sein** — die Messung läuft (20:04 UTC, frischer Cache, `--run=2026091115`).
+Der warme Befund ist zugleich das Argument für F2d (Worker): solange Dekodieren im Hauptthread bleibt,
+ist die reine Rechenzeit (≈ 390 s in t1) der Boden, unter den kein Überlappen kommt.
+
+**F2b kalt (20:04–20:23 UTC, frischer Cache, `--run=2026091115`): 1 092 s gegen 1 219 s Referenz
+(−10 %).** Je Phase: discover **6 s** (war 48 — parallele Laufsuche), fields **338 s** (war 557,
+−39 %), ensemble 281 (war 227), quantiles 227 (war 168), profile 208 (war 198), encode 32. Die Summe der
+Quellen-Wandzeiten stieg auf 1 722 s (icon_d2 515 statt 351): die Bahnen überlappen, aber sie teilen sich
+EINEN Thread — was eine Bahn dekodiert, wartet die andere. Die drei Blöcke, die NICHT in Bahnen laufen
+(Ensemble, Quantile, Profil), sind jetzt **716 s = 65 %** der Stufe; ihre Zuwächse (+123 s) liegen im
+Netzrauschen des Abends. **Lehre:** der Feld-Teil ist gelöst, der Boden liegt bei den drei Restblöcken
+und beim Hauptthread ⇒ F2b-2 (Ensemble/Quantile/Profil als eigene Bahnen, gleichzeitig mit den
+Feldbahnen) und F2d (Worker) sind das, was zählt. Speicher unauffällig (Heap 105 MiB, RSS 1,7 GB).
+
+⚠ **V-PD-47 — C-LAEF ist nicht reproduzierbar (Befund des kalten Vergleichs):** kalt gegen warm mit
+demselben Code unterscheiden sich **128 von 208 Chunks — exakt die Zeilen cy 0…7**, also die
+C-LAEF-Domäne (≤ 51,5 °N), in allen Stunden und allen von C-LAEF getragenen Größen. Ursache: die
+GeoSphere-Anfrage nennt **absolute Zeiten, aber keine Referenzzeit**
+(`…?parameters=…&start=…&end=…&bbox=…`) — der Hub liefert den jeweils NEUESTEN Lauf, der die Zeiten
+deckt. Um 18:42 war das ein anderer C-LAEF-Lauf als um 20:05. Der Cube bleibt in Gültigzeit korrekt,
+aber `sources[].run/runAt/ageH` für `claef`/`claef_eps` sind nominal (aus `reftimes()`), nicht das, was
+geliefert wurde — und ein Byte-Beweis kalt gegen warm ist für C-LAEF grundsätzlich unmöglich. *Skizze:*
+prüfen, ob der Hub `forecast_offset`/Referenzzeit annimmt; sonst den gelieferten Lauf aus dem netCDF
+(`leadtime`/Attribute) lesen und ins Manifest schreiben. Für Block F gilt deshalb: **Byte-Beweise nur
+warm gegen warm am selben Cache** (so geschehen: F2a 208/208, F2b 208/208); der kalte Lauf misst Zeit.
+
+### 50.c PD-F2c — Abtast-Index je Gittersignatur
+
+`sample.mjs`: `sampleIndexKey/buildSampleIndex/sampleIndexFor/sampleWithIndex`, LRU ≤ 16; die alte
+Schleife bleibt als `sampleRegularToTierFull` (Rückfall `POINT_SAMPLE_INDEX=0` und Referenz). Der Index
+hält die Paare in der **Reihenfolge der Schleife** (j außen, i innen, mit Wrap und `Math.round`), also
+laufen die Blockmittel-Summen in identischer FP-Ordnung. Verifier (3v): vier Geometrien (global 0,25° mit
+Wrap · ICON-D2 0,02° nordwärts · C-LAEF 0,0135×0,009 · ICON-EU 0,0625° südwärts) × drei Stufen mit
+Zufallswerten und NaN-Löchern ⇒ Float32-Ausgabe **byte-gleich**, auch ohne `fillGaps`;
+Negativ-Kontrolle (Gitter um 0,011° verschoben ⇒ anderer Schlüssel, andere Ausgabe); LRU-Treffer;
+ICON-D2 → t1 hält 303 309 statt 906 390 Paare, das globale 0,25°-Gitter → t3 2 009 statt 1 038 240 (gemessen). **726/726.**
+
+**Byte-Beweis am echten Bau:** warm t1 gegen `point-ref-old` (committeter Producer, gleicher Cache,
+gleicher `--run`) ⇒ **208 verglichen · 208 gleich · 0 verschieden**, Manifest-Whitelist gleich.
+
+⚠ **Die Wirkung ist gemessen null — und die Schätzung im Plan war ein Rechenfehler.** Warm t1 423 s
+mit `fields` **147 s** gegen 135–148 s der F2b-Referenz; die Blöcke Ensemble 110 · Quantile 72 ·
+Profil 17 s unverändert. Der Mikro-Benchmark auf den echten Geometrien sagt, warum: ICON-D2 → t1 kostet
+die Vollschleife **5,8 ms je Aufruf**, der Index **5,5 ms**; das globale 0,25°-Gitter → t3 1,5 gegen
+0,2 ms. Bei 639 ICON-D2-Aufrufen in t1 sind das **≈ 3,7 s, nicht 150–250 s**. Der Plan hatte aus
+„906 k Punkte je Aufruf" eine große Zahl gemacht, ohne sie mit dem Takt zu multiplizieren: 906 390 ×
+639 ≈ 5,8·10⁸ Schleifendurchläufe sind bei ~10⁸/s **sechs Sekunden** — die Abtastung war nie der
+Boden von `fields`, das ist die Dekodierung (bz2 + GRIB-Entpacken), und die erreicht kein Index.
+**Dieselbe Lehre wie §38.6, nur andersherum:** dort war eine Optimierung am günstigen Fall gemessen,
+hier war sie gar nicht gemessen, sondern aus einer Punktzahl geschätzt. Der Pfad bleibt (bewiesen
+byte-gleich, Kill-Switch, Referenzschleife im Code), aber er trägt zur Bau-Kürzung nichts bei; die
+Ziele hängen an F2b-2 (Blöcke nebeneinander) und F2d (Worker).
+
+### 50.d PD-F2b-2 — Ensemble, Quantile, Profil und Orographie als eigene Bahnen
+
+**Diagnose (aus 50.b):** nach F2b liefen die vier Nebenblöcke weiter streng HINTER den Feldbahnen —
+im kalten t1 716 von 1 092 s (65 %), warm 110 + 72 + 17 s hinter 147 s `fields`. Sie schreiben
+disjunkte Ebenen (`_sd_ens`/`ensCount`, `_q10`/`_q90`, vier Profilebenen, `hModEff`) und lesen
+nichts aus den Feldebenen; ihre einzige Kopplung an die Felder ist die Fehlerbuchhaltung je Quelle
+in `safeCall` (`errors`/`dropped`/`msWall`).
+
+**Umsetzung:** die fünf Blöcke sind Funktionen (`runFields`, `runEnsemble`, `runQuantiles`,
+`runProfile`, `runOrography`), **innen unverändert sequenziell** — Reihenfolge und FP-Ordnung je Block
+bleiben —, und laufen mit `POINT_PARALLEL` (Standard) über `Promise.allSettled` gleichzeitig; erst
+danach die Prüfung „alle Quellen tot" und der Chunk-Schnitt. `POINT_PARALLEL=0` fährt die alte Folge
+Felder → Ensemble → Quantile → Profil → Orographie mit den alten sieben Phasenmarken. Neu im Manifest
+(additiv): `timing.blocks` = Wandzeit je Block, **überlappend**; `timing.phases` bleibt die
+sequenzielle Zerlegung (im Bahnenmodus discover · fields = Join · encode, Summe = Stufenzeit).
+Benannte Folge im Fehlerfall: die Quellenwahl von Ensemble und Quantilen (`!c.dropped`) fällt jetzt
+VOR den Feldbahnen, kann also ein späteres `dropped` nicht sehen; `safeCall` liefert für eine
+herausgefallene Quelle danach ohnehin `null`. `PointTierManifest.timing` ist jetzt typisiert.
+Verifier (3s) angepasst: sieben Marken im Rückfall, eine Join-Marke im Bahnenpfad — **726/726**,
+typecheck 0.
+
+**Byte-Beweis:** warm t1 gegen `point-ref-old` ⇒ **208 verglichen · 208 gleich · 0 verschieden**,
+Manifest-Whitelist gleich. Speicher unverändert (Heap 31 MiB, extern 1 428 MiB, RSS 1 536 MiB).
+
+⚠ **Warm ist der Bau damit LANGSAMER geworden — 496 s statt 423 s (+17 %) — und das ist kein
+Widerspruch, sondern die Messung dessen, was der Warmlauf misst:** ohne Netz ist Stufe 1 reine
+CPU in EINEM Thread. Fünf gleichzeitige Blöcke auf einem Kern gewinnen nichts (die Summe der
+Arbeit ist dieselbe) und zahlen Verwaltung: `fields` 147 → 418 s, weil Ensemble (143 s),
+Quantile und Profil (je 237 s) jetzt IN dieselbe Zeitspanne verschachtelt sind statt dahinter.
+Der Warmlauf ist für F2b-2 der ungünstigste Fall; der Gewinn liegt dort, wo die Blöcke auf Netz
+warten (kalt: Ensemble-Bahn zog 13,4 MiB je Datei, Quantile 345 Anfragen an GeoSphere) — und ab
+F2d, wenn die CPU-Arbeit der Blöcke in Worker wandert und die Blöcke wirklich nebeneinander
+rechnen. Deshalb wird F2b-2 NICHT einzeln kalt bewertet, sondern zusammen mit F2d (§50.e), und
+der Kill-Switch bleibt: `POINT_PARALLEL=0` stellt den alten Ablauf her.
+
+### 50.e PD-F2d — Dekodieren + Abtasten in `worker_threads`
+
+**Diagnose:** nach 50.c ist der Boden von `fields` die Dekodierung (bz2 + GRIB-Entpacken), nach 50.d
+teilen sich fünf gleichzeitige Blöcke einen Kern. Der Runner hat vier vCPU, lokal sind es vier Kerne —
+drei davon lagen brach.
+
+**Umsetzung:** `adapters/gribWorker.mjs` (Worker: importiert NUR `gribDecode.ts` und `sample.mjs`, kein
+`shared.mjs` — Netz, Plattencache, Zähler, AsyncLocalStorage-Kontext und Fehlerinjektion bleiben im
+Hauptthread) und `adapters/decodePool.mjs` (`DecodePool`: `POINT_WORKERS` Worker, Standard
+min(6, Kerne − 1), je Worker ≤ 2 offene Aufträge, least-busy-Verteilung, `ref()` solange beschäftigt /
+`unref()` im Leerlauf, Inline-Rückfall bei `POINT_WORKERS=0`, bei Spawn-Fehler und bei Worker-Ausfall —
+laufende Aufträge des gestorbenen Workers rechnen inline weiter; Selbsttest 8/8). Einbau über drei
+Einstiege in `shared.mjs`: `fetchSampledField(url, tier, opts)` (Bytes hier, Dekodieren + Abtasten +
+Einheit im Pool, zurück Kopf ohne `values` + Stufengitter 194 KB statt bis 11,8 MB Feld; **derselbe
+Binary-Rückfall wie `fetchGribField`**, §25), `sampleBytes(raw, tier, opts)` (für Range-Puffer: ECMWF,
+IFS-ENS-Member per `Promise.all`, Ergebnisse per Index) und `sampleBytesMany` (dwdEps: alle Nachrichten
+einer Datei, Filter auf Intervall-Ende und Member-Nummer am mitgelieferten Kopf). Nachbarindizes gehen
+EINMAL je (Quelle, Stufe) als Kopie an alle Worker (`poolSetIndex`; Schlüssel `<id>|<tier>` bzw.
+`mch:<collection>|<tier>`). Der Puffer wird vor der Übergabe kopiert, weil der In-flight-Memo (F2a)
+denselben Puffer an zwei Aufrufer reicht und ein übertragener ArrayBuffer für den zweiten leer wäre.
+Verdrahtet: dwdRegular (field/orography/Halbflächen/Level), dwdIcosahedral, meteoswiss, ecmwf (Einheit
+NACH der Abtastung aus dem Kopf, §23 (4) bleibt), ecmwfEns, dwdEps; **geosphere bleibt inline**
+(netCDF/jsfive). Manifest additiv: `timing.workers` = {requested, running, mode, jobs, inlineJobs,
+errors, msWait}; Logzeile „Worker-Pool"; `poolClose()` am Ende von `main()`.
+
+**Beweise:** Verifier (3w) — Pool-Selbsttest (Rundreise Worker ⇔ inline byte-gleich, sechs gleichzeitige
+Aufträge richtig zugeordnet, kaputte Bytes ⇒ Fehler beim Aufrufer, kein Worker verloren,
+`POINT_WORKERS=0` inline byte-gleich), Form je Adapter, Binary-Rückfall, Import-Hygiene des Workers, und
+eine **echte ICON-D2-Datei aus dem Plattencache** (1 215×746, 1,5 MiB): Pool ⇔ inline byte-gleich.
+**749/749** (nach F2c: 726). Byte-Beweis am Bau: warm t1 gegen `point-ref-old` ⇒ **208 verglichen ·
+208 gleich · 0 verschieden**, Manifest-Whitelist gleich.
+
+**Wirkung, warm t1 (reine CPU, 4 Kerne, 3 Worker):** **295 s** gegen 496 s (F2b-2) / 423 s (F2c) /
+393 s (Referenz vor Block F) ⇒ **−25 % gegen die Referenz, −40 % gegen F2b-2** — und damit ist auch die
+Verlangsamung aus 50.d erklärt und aufgehoben: die fünf Blöcke rechnen jetzt wirklich nebeneinander
+(Blöcke überlappend: fields 238 · ensemble 261 · profile 142 · quantiles 98 · orography 99 s, Join
+262 s). `discover` 6 s (Netz warm). Pool: 2 432 Aufträge, Wartezeit 481 s über alle Aufträge. Speicher
+RSS **2 083 MiB** (war 1 536 — die drei Worker halten je einen Node-Heap plus die Rohpuffer in Arbeit),
+Heap des Hauptthreads 42 MiB, extern 1 505 MiB — unter der Schranke des Plans (2,5 GB).
+⚠ **Der neue Boden ist die Ensemble-Bahn (261 s):** dwdEps dekodiert je `tot_prec`-Datei alle
+80 Nachrichten, obwohl 60 davon Viertelstunden sind — genau V-PD-31, das F2e mit dem `keep`-Prädikat im
+Worker schließt.
+
+**Kalt, t1, frischer Cache, `--run=2026091115`, F2b-2 + F2d zusammen: 620 s** (F1-Basis 1 219 s,
+F2b 1 092 s ⇒ **−43 % gegen F2b, −49 % gegen die Basis**). Phasen: discover 46 · fields (Join) 544 ·
+encode 31 s; Blöcke überlappend: profile 543 · fields 517 · ensemble 473 · quantiles 411 ·
+orography 35 s. Netz 3 858 MiB in 2 545 Dateien (ICON-D2 1 580 MiB/1 590 Dateien, Netzzeit 522 s
+bei 933 s Wandzeit — die Quelle ist jetzt der Boden der Feldbahnen, weil 639 Aufrufe je Stufe
+sequenziell durch EINE Bahn laufen), Pool 2 432 Aufträge / Wartezeit 405 s, RSS 2 146 MiB, Heap
+106 MiB. 74,27 statt 74,36 MiB Ausgabe — C-LAEF-Fenster einer anderen Abrufzeit (V-PD-47), kein
+Vergleichsmaß. Ziel des Plans (t1 kalt ≤ 8 min = 480 s) noch nicht erreicht; die nächsten Böden
+sind benannt: Profil-Level sequenziell (F2e), dwdEps 80 statt 20 Nachrichten (F2e), dritter Deflate
+(F2f).
+
+### 50.f PD-F2e — `keep` im Decoder, Konstanten 17 → 3, Profil-Level gleichzeitig, V-PD-45
+
+**Diagnose:** nach F2d war die Ensemble-Bahn der Boden (warm 261 s): dwdEps entpackte je
+`tot_prec`-Datei alle 80 Nachrichten (20 Member × vier Viertelstunden) und warf 60 weg (V-PD-31 aus
+§43); meteoswiss entpackte 17 Konstantenfelder (41 MiB) für drei; das Profil holte 20 Level je Stunde
+NACHEINANDER (mit dem Pool wartet dabei ein Kern auf einen); und der Vorschritt der ersten Stufenstunde
+wurde bei ECMWF ohne Rasterprüfung geholt (2 × 404 je Lauf, V-PD-45 aus §49.3).
+
+**Umsetzung:** `gribDecode.ts` — `decodeGrib2All(raw, { keep })` und `scanGrib2Headers(raw)`; das
+Prädikat sieht den Kopf (`GribHeader` = `GribField` ohne `values`) **nach dem Sektionslauf und vor der
+Entpackstufe**, eine abgelehnte Nachricht kostet nur das Lesen der Sektionen 1–6. `decodeGrib2(raw)`
+behält seine Signatur (die Kartenlinie lädt die Datei). Regel: **„keine dekodierbar" wirft, „keine
+behalten" gibt `[]`** — zwei verschiedene Aussagen. `adapters/keepSpec.mjs` (importiert NUR den
+Decoder, worker-tauglich): deklaratives `keep` für Worker und Inline-Pfad — `intervalEndMinute`,
+`paramIds`, `perturbationNumbers` und **`intervalEndMinuteIfAny`** („nur filtern, wenn die Datei
+überhaupt Intervall-Enden trägt": `t_2m` hat keine, `tot_prec` vier je Member), aufgelöst am
+Sektionslauf über alle Köpfe (`resolveKeep` liefert auch `total`, damit `messagesTotal` im Manifest
+weiter die 80 nennt). dwdEps: `sampleBytesMany(…, { keep: { intervalEndMinuteIfAny: 0 } })`, kein
+Nachfilter mehr. meteoswiss `constants`: `keep` auf clat/clon/hsurf. dwdRegular `profile`:
+Halbflächen und Level per `Promise.all`, **Ergebnisse per Index in Levelordnung** (unten → oben),
+fehlt eines ⇒ `null` wie zuvor. **V-PD-45:** liegt der Vorschritt vor der Stufe, fragt der Producer
+`adapter.hasStep(h)` (ECMWF: 3 h bis 144, dann 6 h; AIFS 6 h) statt blind abzurufen.
+
+**Beweise:** Verifier (3x) — keep-Position im Decoder (vor Gitter-/Datenprüfung, vor `values`),
+Unterscheidung wirft/leer, Signatur von `decodeGrib2`, Import-Hygiene von keepSpec, Form in dwdEps/
+meteoswiss/dwdRegular, Müll wirft, und **an echten Dateien aus dem Plattencache**: `scanGrib2Headers`
+zählt wie `decodeGrib2All` (1 und 4 Nachrichten), `decodeGrib2All(raw,{keep}) ≡ decodeGrib2All(raw)
+.filter(keep)` byte-gleich, keep-alles-ablehnen ⇒ `[]`, `resolveKeep(intervalEndMinuteIfAny)` an einer
+Datei ohne Intervall-Enden behält alle; (3r) `hasStep` funktional (51 ja/50 nein/150 ja/147 nein;
+AIFS 48 ja/51 nein). **765/765**, typecheck 0. ⚠ `gribDecode.ts` liegt im Karten-Bundle — `totalJs`
+wird nach dem Byte-Beweis gemessen (§50.h).
+
+### 50.g PD-F2f — Kodierung: dritter Deflate weg, `hasData` einmal, Deflate asynchron
+
+**Diagnose:** je Chunk liefen je Ebene DREI Deflates im Hauptthread — roh und Zeilendifferenz in
+`packBlock` (die Wahl je Block, §22) und ein dritter nur für die Logzeile „mit Werten" (`perPlane`),
+dazu `hasData` als Schleife über jede Ebene jedes Chunks; `encode` 24–31 s je Stufe 1.
+
+**Umsetzung:** `perPlane` kommt aus dem **Verzeichnis des geschriebenen Chunks**
+(`readCubeHeader(bytes).directory[p].length`) — Semantik jetzt „Bytes im Container je Ebene"
+(min(roh, Differenz) nach Deflate) statt „Rohgröße ohne Filter"; zulässig, weil die Zahl nur im
+Bauprotokoll steht (nicht im Manifest), und die Zeile ist umbeschriftet („KiB im Container").
+`hasData` einmal über die vollen Stufenebenen. `deflate9` = `promisify(zlib.deflateRaw)` mit
+`level: 9` (libuv-Threadpool); zlib ist bei gleichen Parametern deterministisch. Bis **vier Chunks
+gleichzeitig** über `mapLimit(jobs, 4, encodeOne)`, `files[]` **per Index in (cy, cx)-Ordnung** — die
+Reihenfolge ist Manifestvertrag, nicht die Fertigstellung. Kill-Switch `POINT_ENCODE_ASYNC=0`
+(synchron, ein Chunk nach dem anderen; `deflateRawSync` bleibt im Code als Referenz).
+`build-stations.mjs` behält seinen dritten Deflate (55 s Gesamtlauf, eigenes Produkt — nicht Teil
+dieser Etappe).
+
+**Beweise:** Verifier (3y) — async ≡ sync byte-gleich an MISSING-Ebene (72 B), Zufall (35 587 B),
+Rampe (5 527 B); `encodeCubeChunk` mit asynchronem ≡ synchronem Kompressor über den ganzen Chunk
+(942 597 B); Verzeichnislängen summieren sich exakt auf den Nutzteil; `mapLimit` liefert per Index
+trotz gestörter Fertigstellung (0:30 1:5 2:20 3:1 4:10 5:2), hält die Grenze, leere Liste ⇒ `[]`;
+Form (kein dritter Deflate, `hasData` einmal, Kill-Switch, Logzeile). **778/778.**
+
+**Byte-Beweis F2e + F2f zusammen:** warm t1 gegen `point-ref-old` ⇒ **208 verglichen · 208 gleich ·
+0 verschieden**, Manifest-Whitelist gleich; `encode` **28 → 8 s**; `messagesTotal` nennt weiter 80.
+⚠ **Die Wandzeit dieses Laufs (351 s) ist KEINE Messung:** während des Baus lief der Verifier
+(Pool-Selbsttest mit eigenen Workern, Dekodierproben an echten Dateien) auf derselben Maschine, und
+`discover` brauchte 47 statt 6 s (Netz: STAC-Listen und ECMWF-Sonden). Der Wert steht hier, damit
+niemand ihn später für einen Rückschritt hält; gemessen wird F2e/F2f am kalten Lauf (§50.h) und an
+einem sauberen Warmlauf.
+
+### 50.i PD-F3a — Datenmodell für einen Job je Stufe: `latestByTier`, Aufbewahrung je Stufe, `pruneTier`
+
+**Diagnose:** mit einem Job je Stufe (F3b) heißt jedes Verzeichnis nach dem Quell-Lauf der in DIESEM
+Job gebauten Stufen (§26, `placeUnderPublishRun`) — t1 liegt achtmal täglich in einem eigenen
+Verzeichnis, t3 zweimal. Der jüngste Lauf trägt dann meist nur t1; ein Client, der „den neuesten Lauf"
+nähme, fände für t3 nichts. Und die 24-h-Regel hielte acht t1-Läufe ≈ 600 MiB im Arbeitsbaum — über
+dem 500-MiB-Deckel.
+
+**Umsetzung (additiv, `CUBE_SCHEMA` bleibt 4):** `manifest.ts` — `RETENTION_HOURS_BY_TIER`
+**{ t1: 9, t2: 24, t3: 24 }** (⚠ **Vorschlag E-F-1, Jans Entscheidung steht aus**; der Plan nannte für
+t3 36 h — das widerspräche Jans 24-h-Regel vom 2026-09-09 und steht deshalb nicht im Code; t3 behält
+über `MIN_RUNS` je Stufe ohnehin zwei Läufe), `runsToKeepFor(runs, { hours, minRuns })` (dieselbe
+Regel mit eigener Grenze; `runsToKeep` ist jetzt ein Aufruf davon), `latestByTier(runs)` = je Stufe
+der jüngste Lauf, der sie TRÄGT, mit Quell-Lauf, Alter, Manifestpfad, Dateizahl und Bytes; `index.json`
+bekommt `latestByTier` und `retentionByTier`, `retentionHours`/`minRuns` bleiben. Neu
+`scripts/point/prune.mjs`: `tiersOf(runDir)` und `pruneTier(runDir, tierId)` — löscht
+`point/<run>/<tier>/`, nimmt Stufeneintrag und dessen Quellen aus `run.json`, entfernt das Verzeichnis
+ganz, wenn keine Stufe bleibt, und lässt kein Stufenverzeichnis ohne Manifesteintrag stehen (der
+Orphan-Wächter des Publishers bleibt grün). `publish-point.mjs`: **Aufbewahrung je Stufe VOR der
+Laufregel** — gemessen am Alter des Quell-Laufs der Stufe aus `run.json`, nicht am Verzeichnisnamen;
+`tierRuns` je Lauf im Index. Repo-Rechnung: 4 t1-Läufe (9 h bei 3-h-Takt) × 75,7 + t2 4 × 25 + t3 2 × 5
++ stations 27 ≈ **440 MiB** < 500 (t2/t3-Größen nach dem ersten F3-Lauf nachmessen).
+
+**Beweise:** Verifier (3z) — Regel je Stufe (9 h behält von acht 3-stündlichen Läufen genau 21z/18z/15z,
+24 h alle acht; der Boden hält zwei überalterte und benennt sie; `runsToKeep ≡ runsToKeepFor` mit der
+Gesamtregel), `latestByTier` an drei Läufen (t1 aus 18z, t2 aus 15z, t3 aus 12z — **Negativkontrolle:
+der jüngste Lauf ohne t3 wird für t3 nie gewählt**; fehlt eine Stufe überall ⇒ `null`), `pruneTier` am
+synthetischen Baum (Stufe weg, Manifest ohne Stufe und Quellen, kein Chunk ohne Eintrag / kein Eintrag
+ohne Datei, letzte Stufe ⇒ Verzeichnis weg, fehlende Stufe harmlos), `validateRunManifest` nimmt ein
+Manifest mit nur t1 an, Publisher-Form. Der Client-Leser von `latestByTier` gehört zu PD-C12.
+
+### 50.j PD-F3b — die Vorlage: EIN Workflow, DREI Jobs, DREI Takte (Kopie = Jans Gate)
+
+**Diagnose (§49.1):** die Verzögerung der Stufe 1 bestand zu ihrem größten Teil aus Wartezeit bis
+zum Slot (0–6 h), nicht aus Bau oder Bereitstellung — ICON-D2 rechnet achtmal täglich und ist nach
+1,35 h fertig, der Cube nahm ihn viermal täglich mit 3,4–3,8 h Alter.
+
+**Umsetzung (`scripts/repack-repo/workflow-point.yml`, nur Vorlage — die Kopie ins Daten-Repo ist
+Jans Gate):** drei Jobs `t1`/`t2`/`t3`, jeder mit eigenem Cron im `if:`
+(`github.event.schedule == '…'`), eigenem `timeout-minutes`, eigenem sparse-Block und genau einer
+Push-Stelle; jeder baut GENAU eine Stufe (`--tiers=tX`) direkt in den ausgecheckten `point/`-Baum
+(der Producer führt ein vorhandenes `run.json` desselben Laufs fort, §26). Takte: **t1
+`30 1,4,7,10,13,16,19,22`** (ICON-D2 des Laufs −3 h, +1,35 h + 9 min Rand; 8×/Tag), **t2
+`50 3,9,15,21`** (wie bisher, mit dem Stationsprodukt), **t3 `55 9,21`** (IFS `oper` 00z/12z, die
+einzigen bis 336 h; fünf Minuten hinter t2 in derselben Gruppe ⇒ wartet). `workflow_dispatch`
+bekommt `tiers` (all | t1 | t2 | t3; `all` läuft über eine `needs`-Kette t1 → t2 → t3 mit `always()`,
+damit ein planmäßiger t2-Lauf nicht ausfällt, weil t1 an dem Tag übersprungen ist); der Producer
+liest `args.tiers` seit PD-B. EINE Concurrency-Gruppe ohne `cancel-in-progress` — zwei Publisher
+gleichzeitig sind V-BW-58.
+
+**Der Verifier rechnet die Slot-Regeln JE JOB gegen die Cron-Zeilen der Kartenlinie** (neu
+`jobsOf()` in `sparseCover.mjs`): **Regel A** Abstand zum nächsten Kartenlinien-Push ≥
+JOB_MAX_MIN(Job) + 20; **Regel B** wartet ein Job hinter einem anderen der Gruppe, zählt dessen
+Restlaufzeit mit; **Regel C** JOB_MAX_MIN + 10 ≤ timeout ≤ Abstand; **Regel D** keine zwei Slots
+auf derselben Minute (GitHub bricht einen wartenden Lauf ab, sobald ein zweiter wartet) und nie drei
+Jobs in einem Fenster. Dazu je Job: sparse-Block deckt alle Publisher-Pfade, Nachprüfung im Job,
+`QUELLENMATRIX.md`, `POINT_CACHE_CLEAR`, `REPACK_BZIP2`, genau eine Push-Stelle; Stationsprodukt
+genau im t2-Job. Negativkontrollen: der alte Takt `10 2,8,14,20` und ein t1-Takt auf den
+:30-Stunden der Kartenlinie fallen durch Regel A, 330 min fielen durch Regel C.
+
+⚠ **`JOB_MAX_MIN_BY_TIER = { t1: 30, t2: 30, t3: 20 }` ist PROVISORISCH** — t1 aus der lokalen
+kalten Messung nach F2d (620 s) × 2 (Runner-Faktor, §49.5), t2/t3 aus Lauf 9 VOR F2 (15,6 / 11,4 min).
+Die Regel steht damit für t1 an der Grenze der Konstruktion: der :30-Slot hat zum :30-Push der
+Kartenlinie eine Stunde später **60 min**, also JOB_MAX_MIN(t1) ≤ 40. Bringt der Runner t1 nicht in
+30 min, greift der benannte Rückfall `30 0,3,6,…` (120 min Abstand, ≈ 2 h älteres ICON-D2) — eine
+Vorlagenänderung und damit wieder Jans Gate. F3c zieht die drei Zahlen an `tiers[].timing.totalMs`
+der Cron-Manifeste nach (Maximum + 30 %). Tagesnetz gerechnet ≈ 8 × 3,9 + 4 × 2,1 + 2 × 1,5 ≈
+**43 GiB**, Runner-Minuten ≈ 8 × 12 + 4 × 10 + 2 × 6 ≈ 140/Tag (Schätzungen, zu messen).
+
+### 50.h F2 — Zeittafel Stufe 1 (alle Werte gemessen, lokal, 4 Kerne, `--run=2026091115`)
+
+| Stand | kalt t1 | warm t1 | Boden |
+|---|---|---|---|
+| F1-Basis (§49) | **1 219 s** | 393 s | Quellen sequenziell, Netz ≈ Rechnen ohne Überlappung |
+| F2b Bahnen | 1 092 s | — | Ensemble/Quantile/Profil hinter den Feldern (65 %) |
+| F2b-2 + F2c | — | 496 s / 423 s | ein Kern für fünf Blöcke; Index wirkungslos |
+| F2d Worker | **620 s** | **295 s** | Ensemble-Bahn (80 statt 20 Nachrichten), Profil-Level sequenziell |
+| F2e + F2f | **539 s** | (351 s, verunreinigt) | Feldbahn ICON-D2 603 s (1 590 Abrufe, eine Bahn), Ensemble 466 s, Quantile 443 s (GeoSphere, 345 Anfragen) |
+
+Kalt F2e + F2f: discover 6 · fields 526 · **encode 7 s** (war 31); Blöcke überlappend profile **191 s**
+(war 543), quantiles 443, ensemble 466, fields 526, orography 39; Netz 3 858 MiB / 2 545 Dateien;
+RSS 1 910 MiB; Cache 5 324 MiB. **Gegen die Basis −56 %, gegen den Stand vor Block F (1 092 s)
+−51 %.** Das Planziel „t1 kalt ≤ 8 min (480 s)" ist um **59 s verfehlt** — der Boden ist jetzt nicht
+mehr CPU, sondern die ICON-D2-Bahn (1 590 Anfragen sequenziell in einer Bahn, 60-ms-Takt) und die
+C-LAEF-EPS-Bahn (345 Anfragen an GeoSphere). Beides wäre eine weitere Etappe (mehrere Bahnen je
+Quelle ⇒ die `accPrev`-Rekurrenz je Größe statt je Quelle) und steht als Skizze unter V-PD-48; für
+den Runner (Faktor ≈ 2) heißen 539 s ≈ 18 min je t1-Job — unter den 30 min, die Regel A für den
+:30-Takt verlangt, aber mit weniger Reserve, als der Plan wollte.
+
+**Gate-Stand F2 (lokal, 2026-09-11 spät):** `verify:point-data` **814/814** (Block F: 3t/3u/3v/3w/3x/3y/3z
++ F3b-Regeln), typecheck 0, Build 241/241, Budget grün — **`totalJs` 1 366,1 KB unverändert** trotz
+`keep`/`scanGrib2Headers` in `gribDecode.ts` (die Kartenlinie lädt die Datei; der Zusatz wiegt unter
+der Rundung). Byte-Beweise t1: F2a, F2b, F2b-2, F2c, F2d, F2e+F2f je 208/208 gegen den committeten
+Producer. **t2 + t3:** Referenz mit dem committeten Producer (`data/ref-producer`, `--tiers=t2,t3`,
+gleicher Cache, gleicher `--run`), dann der neue Producer ⇒ **68 verglichen · 68 gleich · 0 verschieden**
+(t2 56 Chunks 6,54 MiB, t3 12 Chunks 1,34 MiB), Manifest-Whitelist gleich. Damit sind **alle 276 Chunks
+aller drei Stufen byte-gleich** zum Stand vor Block F — die Vollständigkeitsgarantie F-0 ist am Bau belegt,
+nicht behauptet. (Die Zeiten dieses Paars taugen NICHT zum Vergleich: die Referenz zog 895 MiB t2/t3-Dateien
+frisch, der neue Bau fand sie im Cache — 447/377 s gegen 219/151 s messen den Cache, nicht die Etappe.)
+**Offen für das Gate:** der Runner-Lauf (Jans Dispatch, mit gepushtem Stand) und `JOB_MAX_MIN_BY_TIER`
+aus dessen Manifest (F3c).
+
+**V-PD-48 (neu, Skizze):** die ICON-D2-Bahn ist nach F2 der Boden von Stufe 1 — 639 Feldaufrufe
+(≈ 1 590 Anfragen mit Vorschritten und Sonden) laufen in EINER Bahn nacheinander, weil die
+`accPrev`-Rekurrenz der Entakkumulation je Quelle in der Bahn liegt. Skizze: eine Bahn je (Quelle,
+Größe) statt je Quelle — die Rekurrenz gilt je `${id}:${varId}`, also bleibt sie in ihrer Bahn strikt;
+der Verbraucher sammelt `(it, varId, ci)` unverändert per Index. Erwartung: ICON-D2 603 → ≈ 150 s
+Wandzeit, kalt t1 ≈ 480 s. Zweiter Posten: C-LAEF-EPS (345 Anfragen an GeoSphere, 349 s Netz) — die
+Quantile je Größe parallel. Beides Rechnung, keine Messung; Byte-Beweis wie in Block F.
+**V-PD-46:** `check-cdn.mjs` braucht `<commit>` und trägt einen alten Lauf fest — Aufrufform in die
+Vorlage/README, `index.json.commit` als Standard.

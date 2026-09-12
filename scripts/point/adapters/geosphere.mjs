@@ -243,11 +243,23 @@ export function makeGeosphereAdapter(id) {
    * Die API nimmt **absolute Zeiten**, keine Vorhersagestunden — was hier ein Vorteil
    * ist: die Gültigzeit steht damit direkt in der Anfrage und kann nicht verrutschen.
    */
-  async function window_(run, apiParam, winStart, tier) {
+  // PD-F2a: der LRU haelt PROMISES, nicht Werte. Unter Nebenlaeufigkeit (Bahnen je Quelle,
+  // F2b) fragten sonst `claef` und `claef_eps` dasselbe Fenster gleichzeitig an, bevor der
+  // erste `winPut` kam — zweimal 19 MiB netCDF laden und zweimal jsfive entpacken, und der
+  // Deckel `WIN_CACHE_MAX` (§43.11) zaehlte nur eines davon. Ein abgelehnter Promise faellt
+  // aus dem Cache, damit ein Netzfehler nicht klebt.
+  function window_(run, apiParam, winStart, tier) {
     const key = `${run}#${apiParam}#${winStart}`;
     if (winCache.has(key)) { const v = winCache.get(key); winCache.delete(key); winCache.set(key, v); return v; }
+    const p = loadWindow(run, apiParam, winStart, tier, key);
+    winPut(key, p);
+    p.catch(() => { if (winCache.get(key) === p) winCache.delete(key); });
+    return p;
+  }
+  async function loadWindow(run, apiParam, winStart, tier, key) {
+    void key;
     const bbox = bboxFor(tier);
-    if (!bbox) { winPut(key, null); return null; }
+    if (!bbox) return null;
     const last = Math.min(winStart + MAX_COMBOS - 1, m.horizonH);
     const base = runMs(run);
     const url = `${HUB}/${m.dataset}?parameters=${apiParam}`
@@ -255,7 +267,7 @@ export function makeGeosphereAdapter(id) {
       + `&end=${isoOf(base + last * 3_600_000)}`
       + `&bbox=${bbox}&output_format=netcdf`;
     const raw = await fetchBytes(url);
-    if (!raw) { winPut(key, null); return null; }
+    if (!raw) return null;
 
     let win = null;
     try {
@@ -280,7 +292,6 @@ export function makeGeosphereAdapter(id) {
       console.warn(`  ${id}: Fenster ${apiParam}@${run}+${winStart} unlesbar (${e.message})`);
       win = null;
     }
-    winPut(key, win);
     return win;
   }
 

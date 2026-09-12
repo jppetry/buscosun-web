@@ -52,6 +52,16 @@ export const POINT_INDEX_CDN_URL = `${CDN_BASE}@main/${POINT_INDEX_PATH}`;
  */
 export const RETENTION_HOURS = 24;
 export const MIN_RUNS = 2;
+/**
+ * PD-F3a: Aufbewahrung JE STUFE (Stunden) — der Client liest `latestByTier`, also darf eine Stufe
+ * aus einem Lauf fallen, während eine andere bleibt. **Vorschlag E-F-1, Jans Entscheidung steht
+ * aus:** t1 kommt mit F3b achtmal täglich (≈ 75 MiB je Lauf) — 24 h hielten acht Läufe ≈ 600 MiB und
+ * rissen den 500-MiB-Deckel, 9 h halten drei. t2/t3 bleiben bei der 24-h-Regel (Jan 2026-09-09);
+ * `MIN_RUNS` gilt je Stufe, t3 (2×/Tag) behält damit immer zwei Läufe. Der Plan nannte für t3 36 h —
+ * das widerspräche der 24-h-Regel und steht deshalb NICHT hier. `RETENTION_HOURS` bleibt die Regel
+ * der Gesamtsicht (ein Lauf, dessen letzte Stufe herausfällt, verschwindet ganz).
+ */
+export const RETENTION_HOURS_BY_TIER: Readonly<Record<TierId, number>> = Object.freeze({ t1: 9, t2: 24, t3: 24 });
 
 /**
  * Was von der Aufbewahrung AUSGENOMMEN ist, weil es kein Alter hat.
@@ -87,16 +97,55 @@ export function isTimeless(path: string): boolean {
 export function runsToKeep<T extends { run: string; runAt: string | null }>(
   runs: readonly T[], nowMs = Date.now(),
 ): { keep: T[]; drop: T[]; stale: T[] } {
+  return runsToKeepFor(runs, { hours: RETENTION_HOURS, minRuns: MIN_RUNS }, nowMs);
+}
+
+/** Dieselbe Regel mit eigener Grenze — PD-F3a: je Stufe (`RETENTION_HOURS_BY_TIER`). */
+export function runsToKeepFor<T extends { run: string; runAt: string | null }>(
+  runs: readonly T[], rule: { hours: number; minRuns: number }, nowMs = Date.now(),
+): { keep: T[]; drop: T[]; stale: T[] } {
   const sorted = [...runs].sort((a, b) => (a.run < b.run ? 1 : -1));
   const ageH = (r: T) => (r.runAt ? (nowMs - Date.parse(r.runAt)) / 3_600_000 : Infinity);
-  const fresh = sorted.filter((r) => ageH(r) <= RETENTION_HOURS);
-  const keep = fresh.length >= MIN_RUNS ? fresh : sorted.slice(0, MIN_RUNS);
+  const fresh = sorted.filter((r) => ageH(r) <= rule.hours);
+  const keep = fresh.length >= rule.minRuns ? fresh : sorted.slice(0, rule.minRuns);
   const keepIds = new Set(keep.map((r) => r.run));
   return {
     keep,
     drop: sorted.filter((r) => !keepIds.has(r.run)),
-    stale: keep.filter((r) => ageH(r) > RETENTION_HOURS),
+    stale: keep.filter((r) => ageH(r) > rule.hours),
   };
+}
+
+/** Ein Lauf-Eintrag in `point/index.json` (PD-F3a: mit den Quell-Läufen je Stufe). */
+export interface PointIndexRun {
+  run: string; runAt: string | null; path: string; tiers: string[]; sources: string[]; bytes: number;
+  /** Je gebauter Stufe der QUELL-Lauf (§26: das Verzeichnis heißt nach dem Publikationslauf). */
+  tierRuns?: Array<{ id: string; run: string; runAt: string; ageH: number; files: number; bytes: number }>;
+}
+
+export interface PointLatestTier {
+  run: string; runAt: string | null; path: string; manifest: string;
+  sourceRun: string | null; sourceRunAt: string | null; ageH: number | null; files: number | null; bytes: number | null;
+}
+
+/**
+ * PD-F3a: je Stufe der jüngste Lauf, der diese Stufe TRÄGT. Mit einem Job je Stufe (F3b) liegt t1
+ * achtmal täglich in einem eigenen Verzeichnis, t3 zweimal — der jüngste Lauf insgesamt trägt dann
+ * meist nur t1. Ein Client, der „den neuesten Lauf" nähme, fände für t3 nichts.
+ */
+export function latestByTier(runs: readonly PointIndexRun[]): Record<TierId, PointLatestTier | null> {
+  const out = {} as Record<TierId, PointLatestTier | null>;
+  for (const tier of TIERS) {
+    const r = [...runs].filter((x) => x.tiers.includes(tier.id)).sort((a, b) => (a.run < b.run ? 1 : -1))[0];
+    if (!r) { out[tier.id] = null; continue; }
+    const tr = r.tierRuns?.find((t) => t.id === tier.id) ?? null;
+    out[tier.id] = {
+      run: r.run, runAt: r.runAt, path: r.path, manifest: `${r.path}/run.json`,
+      sourceRun: tr?.run ?? null, sourceRunAt: tr?.runAt ?? null, ageH: tr?.ageH ?? null,
+      files: tr?.files ?? null, bytes: tr?.bytes ?? null,
+    };
+  }
+  return out;
 }
 
 // ---------------------------------------------------------------------------
@@ -154,6 +203,13 @@ export interface PointTierManifest {
     inversionShare: number; params: unknown; provenance: string; why: string; calibrated: boolean; calibNote: string } | null;
   /** PD-C2: Netz je Quelle in dieser Stufe; `null` bei einem älteren Producer. */
   net: Record<string, PointNetStat> | null;
+  /**
+   * PD-F1/F2b: Wandzeiten dieser Stufe. `phases` ist die sequenzielle Zerlegung (Summe = totalMs);
+   * `lanes.laneMs` und `blocks` (F2b-2) sind ÜBERLAPPEND und nicht summierbar. `null` bei einem
+   * älteren Producer.
+   */
+  timing?: { phases: Record<string, number> | null; bySource: Record<string, { msWall: number; calls: number }> | null;
+    totalMs: number; mode: 'lanes' | 'sequential'; lanes: Record<string, unknown> | null; blocks?: Record<string, number> | null } | null;
   dropped: Array<{ id: string; reason: string }>;
 }
 
@@ -316,7 +372,7 @@ export function tierManifest() {
 export function buildPointIndex(opts: {
   commit: string | null;
   publishedAt: string;
-  runs: Array<{ run: string; runAt: string; path: string; tiers: string[]; sources: string[]; bytes: number }>;
+  runs: PointIndexRun[];
   /**
    * Die Läufe des Stationsprodukts. Getrennt von `runs`, weil es ein getrenntes
    * Produkt mit eigener Zeitachse ist — wer beide in eine Liste würfe, machte aus
@@ -332,6 +388,9 @@ export function buildPointIndex(opts: {
     publishedAt: opts.publishedAt,
     retentionHours: RETENTION_HOURS,
     minRuns: MIN_RUNS,
+    // PD-F3a: Aufbewahrung je Stufe und der Zeiger, den ein Client zuerst liest.
+    retentionByTier: RETENTION_HOURS_BY_TIER,
+    latestByTier: latestByTier(opts.runs),
     timeless: TIMELESS_PATHS,
     dir: POINT_DIR,
     sources: POINT_SOURCES_PATH,

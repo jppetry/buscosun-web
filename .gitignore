@@ -38,3 +38,5 @@ data/repack-full/
 data/point/
 data/terrain/
 data/repo/
+# PD-F2a: Kopie des COMMITTETEN Producers (git archive HEAD) als Referenz fuer den Byte-Beweis
+data/ref-producer/

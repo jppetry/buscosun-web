@@ -50,9 +50,8 @@
 
 import {
   fetchBytes, headOk, pad3, runIdBack, buildUnstructuredIndex,
-  sampleUnstructuredToTier, KELVIN_TO_C, PA_TO_HPA, fetchGribField,
+  sampleBytesMany, poolSetIndex, KELVIN_TO_C, PA_TO_HPA, fetchGribField,
 } from './shared.mjs';
-import { decodeGrib2All } from '../../../src/sources/gribDecode.ts';
 import { memberSpread } from './ensembleStats.mjs';
 
 const DWD = process.env.DWD_OPENDATA || 'https://opendata.dwd.de/weather/nwp';
@@ -142,6 +141,17 @@ export function makeDwdEpsAdapter(id) {
     indexCache.set(key, p);
     return p;
   }
+  /** PD-F2d: den Nachbarindex einmal je Stufe an den Pool geben. */
+  const idxSent = new Map();
+  function idxKeyFor(tier, idx) {
+    const key = `${id}|${tier.id}`;
+    if (!idxSent.has(key)) {
+      const p = poolSetIndex(key, idx).then(() => key);
+      idxSent.set(key, p);
+      p.catch(() => idxSent.delete(key));
+    }
+    return idxSent.get(key);
+  }
 
   /** Die Vorhersagestunden, die dieses Ensemble in dieser Stufe anbietet. */
   const ownSteps = (tier) => {
@@ -165,20 +175,25 @@ export function makeDwdEpsAdapter(id) {
   async function membersAt(run, step, p, idx, tier) {
     const raw = await fetchBytes(url(run, step, p), { decompress: true });
     if (!raw) return null;
-    const all = decodeGrib2All(raw);
-    const msgs = all.some((f) => f.intervalEndMinute != null)
-      ? all.filter((f) => f.intervalEndMinute === 0)
-      : all;
+    // PD-F2d/F2e: Dekodieren UND Abtasten im Pool; der Filter auf das Intervall-Ende läuft als
+    // `keep` IM Decoder, VOR der Entpackstufe — von den 80 Nachrichten einer tot_prec-Datei werden
+    // nur die 20 entpackt, die auf der vollen Stunde enden (V-PD-31). `intervalEndMinuteIfAny`
+    // heißt: nur filtern, wenn die Datei überhaupt Intervall-Enden trägt (t_2m hat keine) — das
+    // entscheidet der Worker am Sektionslauf über alle Köpfe, ohne ein Datenbyte zu entpacken.
+    const idxKey = await idxKeyFor(tier, idx);
+    const { items: msgs, total } = await sampleBytesMany(raw, tier, {
+      grid: 'unstructured', idxKey, keep: { intervalEndMinuteIfAny: 0 },
+    });
     if (msgs.length < 2) return null;            // eine Streuung aus einem Member gibt es nicht
     const members = new Map();
     let byOrder = 0;
     msgs.forEach((f, i) => {
-      let key = f.perturbationNumber;
+      let key = f.header.perturbationNumber;
       if (key == null) { key = i + 1; byOrder++; }
       if (members.has(key)) throw new Error(`${id}: Member ${key} doppelt in ${p} @ ${step} h`);
-      members.set(key, sampleUnstructuredToTier(f.values, idx, tier));
+      members.set(key, f.grid);
     });
-    return { members, total: all.length, byOrder };
+    return { members, total, byOrder };
   }
 
   return {
