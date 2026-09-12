@@ -712,6 +712,25 @@
 > {30, 30, 20}, bis ein ganzer Tag gemessen ist (F3c). ⚠ `discover` kostet auf dem Runner 107–158 s
 > gegen 6–15 s lokal; **V-PD-50**: `tiers[].ageH` misst den jüngsten Beiträger, nicht die tragende
 > Quelle (t3 stand auf „0 h", während IFS aus 00z kam).
+> ✅ **PD-F3c umgesetzt und DEPLOYT (§52, 2026-09-12): der Punkt-Cron läuft ab sofort im
+> Drei-Stunden-Takt.** Jans Auftrag: „Takt auf 3 Stunden, der Rest bleibt — **wichtig ist, dass die
+> aktuellsten Stände von jeder Quelle hergezogen werden**." Deshalb ist der Slot abgeleitet, nicht
+> gesetzt: **gemessen** am `Last-Modified` der letzten gebrauchten Datei (ICON-D2 15z Stunde 048 um
+> 16:21:43 UTC = Lauf + 1,36 h; ICON-EU 12z Stunde 120 um 15:38:14 = + 3,64 h), und nach oben begrenzt
+> vom einzigen Fenster, das die force-pushende Kartenlinie je Drei-Stunden-Zyklus lässt (`H:20` bis
+> `(H+2):30`). Gewählt **t1 `40 1,4,7,10,13,16,19,22`** (8×/Tag): 18 min Rand nach ICON-D2, 50 min
+> Abstand zur Kartenlinie; `:30` hätte nur 8 min Rand, `:50` nur 40 min Abstand. t2 `50 3,9,15,21` und
+> t3 `55 9,21` bleiben — ICON-EU liefert die 120-h-Hauptläufe nur 4×, IFS `oper` nur 2× täglich.
+> **Wirkung:** Stufe 1 ist beim Bau **1,7 statt 3,8 h alt**, und die Wartezeit „Modelllauf fertig → im
+> Repo" halbiert sich für JEDE Quelle von 3 h auf 1,5 h. ⚠ Ehrlich dazu: ICON-D2-EPS (gemessen + 2,17 h)
+> und C-LAEF (+ 4,9 h) sind zum Slot noch nicht fertig und kommen aus dem vorigen Zyklus — kein Ausfall,
+> es steht je Quelle als `runAt` im Manifest. **`JOB_MAX_MIN_BY_TIER` ist jetzt GEMESSEN** (Läufe 13–15:
+> t1 max 11,1 · t2 8,4 · t3 5,9 min ⇒ mit Job-Rand und 30 % Reserve **{20, 15, 10}**). Neu **Regel E**
+> im Verifier: jeder Slot muss die tragende Quelle seiner Stufe fertig vorfinden (Rand ≥ 9 min) —
+> gerechnet, nicht behauptet, mit Negativkontrollen (`:30` fällt mit 8 min, `:20` mit −2 min).
+> Vorlage **byte-gleich im Daten-Repo** (`a7f772f`, 19 036 B, Workflow `active`); Ein-Stufen-Betrieb am
+> Datenträger belegt (nur-t1-Lauf, Orphan-Wächter grün, `latestByTier` je Stufe richtig).
+> `verify:point-data` **837/837**, typecheck 0.
 > **Werkzeugfalle zum dritten Mal in dieser Phase:** `[^
 ]` in einer Regex wurde durch die
 > Python-in-Bash-Kette zum echten Zeilenumbruch und hat den Verifier zerschossen. Kur wie
