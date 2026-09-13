@@ -79,6 +79,27 @@ const PARAMS = {
  */
 const UNITS = { t2m: KELVIN_TO_C, td2m: KELVIN_TO_C, ps: PA_TO_HPA };
 
+// ── Druckflächen (PD-E) ───────────────────────────────────────────────────────
+//
+// Am `.index` ausgezählt (2026-09-13, `ifs/0p25/oper`, +12 h): auf `pl` liegen
+// `d gh q r t u v vo w z` bei 10 50 100 150 200 250 300 400 500 600 700 850 **925** 1000 hPa.
+// **Kein 950** — die DWD-Grenzschichtfläche von ICON-D2 gibt es hier nicht, und umgekehrt.
+//
+// ⚠ **AIFS Single führt kein `r`.** Am `.index` desselben Laufs: `gh q t u v w z`, keine
+// relative Feuchte. AIFS trägt auf den Druckflächen deshalb nur die Temperatur; RH aus `q`
+// wäre exakt ableitbar und kostet eine zweite, größere Datei je Fläche (E-E-2).
+const PL_PARAMS = { t: 't', rh: 'r' };
+
+/** Führt dieses Modell die relative Feuchte auf Druckflächen? Gemessen, nicht angenommen. */
+const PL_HAS_RH = { ifs_hres: true, aifs_single: false, aifs_ens: false };
+
+/**
+ * Flächen, die für die abgeleitete Modellhöhe gebraucht werden (§5.3 des Audits): `gh`
+ * spannt die Säule, `sp` sagt, wo der Boden liegt. 1000 muss dabei sein — ohne sie gäbe es
+ * über dem Flachland (sp ≈ 1013 hPa) kein einschließendes Paar.
+ */
+const GH_LEVELS = [1000, 925, 850, 700];
+
 /**
  * ── Die Einheit kommt aus dem GRIB, nicht aus dem Modellnamen ──────────────
  *
@@ -137,12 +158,29 @@ export const ECMWF_ACCUMULATED = new Set(['precip']);
  * Verhalten — deshalb ist das hier eine Funktion, die der Verifier mit Zeilen in
  * echter Form füttert.
  */
-export function keepIndexEntry(model, e) {
-  if (e.levtype !== 'sfc') return false;
+/**
+ * Die LAUF-Regel allein, ohne Aussage über die Flächenart.
+ *
+ * ⚠ Getrennt in PD-E, und der Grund ist ein Fehler, der beim ersten echten Bau auffiel:
+ * `keepIndexEntry` beginnt mit `levtype !== 'sfc'`. Der Druckflächen-Index benutzte
+ * dieselbe Funktion und verwarf damit **jeden** seiner Einträge — lautlos, ohne Fehler,
+ * ohne 404: `t850` und `rh850` standen im Manifest mit „0 Stunden", das statische
+ * Produkt hatte keine ECMWF-Spalte, und nichts davon sah nach einem Fehler aus.
+ * Dieselbe Klasse wie §45.2 (ein Filter, der für einen Zweck geschrieben und für einen
+ * zweiten wiederverwendet wurde) — nur diesmal von mir eingebaut und in derselben
+ * Etappe gefunden, weil der Bau die Zahl „0" ausdruckt.
+ */
+export function keepIndexType(model, e) {
   // Nur ein Kontrolllauf-Adapter eines Ensembles filtert nach `type` und behält `cf`.
   // Deterministische Dateien (`fc`) enthalten nichts anderes als den einen Lauf.
   if (model.ensemble) return String(e.type) === 'cf';
   return true;
+}
+
+/** Dieselbe Regel PLUS „nur Oberflächenfelder" — das ist die Sicht von `index()`. */
+export function keepIndexEntry(model, e) {
+  if (e.levtype !== 'sfc') return false;
+  return keepIndexType(model, e);
 }
 
 export function makeEcmwfAdapter(id) {
@@ -229,6 +267,67 @@ export function makeEcmwfAdapter(id) {
     return prefetched.get(key);
   }
 
+  /**
+   * `.index` auf DRUCKFLÄCHEN, nach `param|hPa` geschlüsselt. Eigener Cache, weil
+   * `index()` oben ausdrücklich auf `levtype === 'sfc'` filtert — beide Sichten
+   * lesen dieselbe heruntergeladene Datei aus dem Plattencache.
+   */
+  const plCache = new Map();
+  async function plIndex(run, step) {
+    const key = `${run}#${step}`;
+    if (plCache.has(key)) return plCache.get(key);
+    const raw = await fetchBytes(`${stem(run, step)}.index`);
+    if (!raw) { plCache.set(key, null); return null; }
+    const byKey = new Map();
+    for (const line of new TextDecoder().decode(raw).split('\n')) {
+      const t = line.trim();
+      if (!t) continue;
+      let e;
+      try { e = JSON.parse(t); } catch { continue; }
+      if (e.levtype !== 'pl') continue;
+      // `keepIndexType`, NICHT `keepIndexEntry`: letzteres verlangt `levtype === 'sfc'`
+      // und verwürfe hier jede einzelne Zeile (s. den Kommentar dort).
+      if (!keepIndexType(m, e)) continue;
+      const k = `${e.param}|${Number(e.levelist)}`;
+      if (!byKey.has(k)) byKey.set(k, e);
+    }
+    plCache.set(key, byKey);
+    return byKey;
+  }
+
+  /** Alle Bereiche eines Schritts in EINER Anfrage — dieselbe Rechnung wie `prefetchStep`. */
+  const plPrefetched = new Map();
+  function plPrefetch(run, leadH, idx, keys) {
+    const key = `${run}#${leadH}#${keys.join(',')}`;
+    if (!plPrefetched.has(key)) {
+      const es = keys.map((k) => idx.get(k)).filter(Boolean);
+      plPrefetched.set(key, es.length < 2 ? Promise.resolve(false)
+        : fetchRanges(`${stem(run, leadH)}.grib2`, es.map((e) => ({ offset: e._offset, length: e._length })))
+          .then(() => true, () => false));
+    }
+    return plPrefetched.get(key);
+  }
+
+  /** Ein einzelnes Druckflächenfeld als Stufengitter; `null`, wenn der Katalog es nicht führt. */
+  async function plField(run, leadH, tier, param, hPa, unit) {
+    const idx = await plIndex(run, leadH);
+    const e = idx?.get(`${param}|${hPa}`);
+    if (!e) return null;
+    const raw = await fetchBytes(`${stem(run, leadH)}.grib2`, {
+      range: `${e._offset}-${e._offset + e._length - 1}`,
+    });
+    if (!raw) return null;
+    const r = await sampleBytes(raw, tier);
+    const lev = r.header?.level;
+    // GRIB nennt die Fläche in Pa. ECMWF schreibt sie bei `pl` in hPa in den Katalog und
+    // in Pa in die Nachricht — geprüft statt geglaubt, sonst landet eine fremde Fläche
+    // stumm in der richtigen Ebene.
+    if (lev != null && lev !== hPa * 100 && lev !== hPa) {
+      throw new Error(`${id}: ${param}@${hPa} hPa trägt level ${lev}, erwartet ${hPa * 100} Pa`);
+    }
+    return convert(r.grid, unit);
+  }
+
   return {
     id,
     family: 'ecmwf-index',
@@ -273,8 +372,112 @@ export function makeEcmwfAdapter(id) {
     /** Rechnet das Modell diese Stunde überhaupt? (V-PD-45: Vorschritt vor der Stufe ohne 404.) */
     hasStep: (h) => ecmwfOwnLeads(id, [h]).length === 1,
 
-    /** ECMWF Open Data liefert keine Modellorographie in den Oberflächenfeldern. */
+    /** Welche Druckflächen dieses Modell führt (hPa) — aus dem gemessenen Katalog. */
+    pressureLevels: [925, 850, 700],
+    pressureHasRh: PL_HAS_RH[id] ?? false,
+
+    async pressureField(run, leadH, tier, hPa, kind) {
+      const param = PL_PARAMS[kind];
+      if (!param) return null;
+      if (kind === 'rh' && !(PL_HAS_RH[id] ?? false)) return null;
+      const idx = await plIndex(run, leadH);
+      if (!idx) return null;
+      if (process.env.POINT_ECMWF_MULTIRANGE !== '0') {
+        // Alle Flächen und beide Größen dieses Schritts auf einmal — der Einzelabruf
+        // unten trifft danach den Plattencache unter demselben Schlüssel.
+        const keys = [];
+        for (const l of [925, 850, 700]) {
+          keys.push(`t|${l}`);
+          if (PL_HAS_RH[id]) keys.push(`r|${l}`);
+        }
+        await plPrefetch(run, leadH, idx, keys);
+      }
+      return plField(run, leadH, tier, param, hPa, kind === 't' ? KELVIN_TO_C : null);
+    },
+
+    /**
+     * ── ECMWF hat keine veröffentlichte Modellorographie ──────────────────────
+     *
+     * Die gemessene `sfc`-Liste (Kopf dieser Datei) führt weder `z` noch `orog`. Für
+     * `hModEff` bleibt es deshalb bei `null`: eine erfundene Höhe wäre schlimmer als
+     * keine, weil PAP 4 genau mit `h_true − h_mod_eff` rechnet.
+     */
     async orography() { return null; },
+    orographyAbsentReason: 'ECMWF Open Data fuehrt auf sfc weder z noch orog. Die Hoehe wird '
+      + 'stattdessen aus gh + sp abgeleitet (orographyDerived) — schlaegt auch das fehl, '
+      + 'fehlte einer der beiden Katalogeintraege.',
+
+    /**
+     * ── Dieselbe Höhe, ABGELEITET — nur für das statische Produkt (PD-E §5.3) ──
+     *
+     * `gh` ist die geopotentielle Höhe der Druckfläche in Metern, `sp` der Bodendruck.
+     * Die Modelloberfläche ist die Höhe, auf der der Druck gleich `sp` ist:
+     *
+     *     h_mod = gh, interpoliert in ln p an der Stelle p = sp
+     *
+     * Das ist keine Schätzung, sondern die Umkehrung derselben Beziehung, aus der `gh`
+     * kommt; über eine Schicht von ~700 m ist die log-lineare Interpolation für eine
+     * isotherme Schicht exakt und sonst nahezu.
+     *
+     * Sie geht **nicht** in `hModEff` — das bliebe eine stille Änderung an genau dem Term,
+     * den PAP 4 korrigiert (E-E-5). Sie steht als eigene Spalte mit
+     * `provenance: 'derived-gh-sp'` im statischen Produkt, damit die Differenz zu ICON
+     * globals nativem HSURF sichtbar wird statt gemittelt.
+     */
+    async orographyDerived(run, tier) {
+      const step = ecmwfSnapDown(id, 0);
+      const idx = await plIndex(run, step);
+      const sfc = await index(run, step);
+      if (!idx || !sfc) return null;
+      const spEntry = sfc.get(PARAMS.ps);
+      if (!spEntry) return null;
+
+      const ranges = [];
+      for (const l of GH_LEVELS) { const e = idx.get(`gh|${l}`); if (e) ranges.push(e); }
+      if (ranges.length < 2) return null;
+      if (process.env.POINT_ECMWF_MULTIRANGE !== '0') {
+        await fetchRanges(`${stem(run, step)}.grib2`,
+          [...ranges, spEntry].map((e) => ({ offset: e._offset, length: e._length }))).catch(() => null);
+      }
+
+      const gh = [];
+      const levs = [];
+      for (const l of GH_LEVELS) {
+        const g = await plField(run, step, tier, 'gh', l, null);
+        if (g) { gh.push(g); levs.push(l); }
+      }
+      if (gh.length < 2) return null;
+
+      const spRaw = await fetchBytes(`${stem(run, step)}.grib2`, {
+        range: `${spEntry._offset}-${spEntry._offset + spEntry._length - 1}`,
+      });
+      if (!spRaw) return null;
+      const spR = await sampleBytes(spRaw, tier);
+      const sp = convert(spR.grid, PA_TO_HPA);        // hPa, wie `ps` im Cube
+
+      const out = new Float32Array(sp.length).fill(NaN);
+      const lnp = levs.map((l) => Math.log(l));
+      for (let k = 0; k < sp.length; k++) {
+        const ps = sp[k];
+        if (!Number.isFinite(ps) || ps <= 0) continue;
+        // Das einschließende Paar suchen; außerhalb wird mit dem Randpaar extrapoliert
+        // (Meeresspiegel über 1000 hPa, Hochgebirge unter 700 hPa).
+        // `levs` ist absteigend (1000 -> 700). Gesucht ist das Paar mit
+        // levs[a] >= ps >= levs[a+1]; darüber und darunter das Randpaar.
+        let a = levs.length - 2;                       // unterhalb der tiefsten Fläche
+        if (ps > levs[0]) a = 0;                       // unter dem Meeresspiegeldruck
+        else {
+          for (let i = 0; i < levs.length - 1; i++) {
+            if (ps <= levs[i] && ps >= levs[i + 1]) { a = i; break; }
+          }
+        }
+        const za = gh[a][k], zb = gh[a + 1][k];
+        if (!Number.isFinite(za) || !Number.isFinite(zb)) continue;
+        const f = (Math.log(ps) - lnp[a]) / (lnp[a + 1] - lnp[a]);
+        out[k] = za + (zb - za) * f;
+      }
+      return out;
+    },
   };
 }
 

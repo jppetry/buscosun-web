@@ -399,6 +399,11 @@ export function makeGeosphereAdapter(id) {
     // `hModEff` mittelt dann über die Quellen, die eine haben. Eine erfundene Höhe waere
     // schlimmer, weil PAP 4 genau mit `h_true − h_mod_eff` rechnet.
     async orography() { return null; },
+    // PD-E: warum es auch keine ABGELEITETE Hoehe gibt. Der Weg aus gh + sp (ECMWF)
+    // ist hier versperrt: C-LAEF fuehrt `msl`, NICHT `ps` (§37) — ohne Bodendruck gibt
+    // es keine Flaeche, auf der man die Modelloberflaeche suchen koennte.
+    orographyAbsentReason: 'GeoSphere veroeffentlicht keine Modellorographie; die Ableitung aus '
+      + 'Druckflaechen ist versperrt, weil C-LAEF nur msl fuehrt, nicht ps.',
 
     /**
      * Die gemessenen Quantile einer Groesse (PD-B7). `null`, wenn diese Quelle

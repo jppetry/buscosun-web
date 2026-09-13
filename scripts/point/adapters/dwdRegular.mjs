@@ -60,6 +60,20 @@ const MODELS = {
       halfFile: (run, lev) =>
         `icon-d2_germany_regular-lat-lon_time-invariant_${run}_000_${lev}_hhl.grib2.bz2`,
     },
+    // ── Druckflächen (PD-E) ───────────────────────────────────────────────
+    // ⚠ **ICON-D2 führt kein 925 hPa.** Am Verzeichnis ausgezählt (2026-09-13,
+    // `icon-d2/grib/00/t/`): 200 250 300 400 500 600 700 850 **950 975** 1000. Die
+    // Grenzschichtfläche des DWD-Kurzfristmodells heißt 950, die von ECMWF 925 — und
+    // beide in DIESELBE Ebene zu schreiben wäre der Fehler aus §37 in vertikaler Form.
+    // Deshalb trägt ICON-D2 hier nur 850 und 700; 925 kommt in t1 aus ICON-EU, IFS und
+    // AIFS (V-PD-58). Gitter und Einheiten sind gemessen identisch zur Einzelfläche
+    // (ni 1215 × nj 746, di 0,02, scan 64, T in K, RH in %).
+    pressure: {
+      levels: [850, 700],
+      tVar: 't', rhVar: 'relhum',
+      file: (run, step, hPa, p) =>
+        `icon-d2_germany_regular-lat-lon_pressure-level_${run}_${pad3(step)}_${hPa}_${p}.grib2.bz2`,
+    },
   },
   icon_eu: {
     base: `${DWD}/icon-eu/grib`,
@@ -80,6 +94,16 @@ const MODELS = {
     // dieselbe Schichttiefe und ein eigenes Volumen. Ob Stufe 2 Profilfelder
     // trägt, wird gemessen, nicht angenommen (§40.6).
     profile: null,
+    // Am Verzeichnis ausgezählt (2026-09-13): 50 70 100 150 200 250 300 400 500 600 700
+    // 775 800 825 850 875 900 **925 950** 1000, stündlich bis 78 h, danach dreistündlich
+    // bis 120 h — dasselbe Raster wie die Einzelflächen. ICON-EU ist damit die einzige
+    // Quelle, die 925 hPa im Kurzfristband STÜNDLICH trägt (E-E-1).
+    pressure: {
+      levels: [925, 850, 700],
+      tVar: 'T', rhVar: 'RELHUM',
+      file: (run, step, hPa, p) =>
+        `icon-eu_europe_regular-lat-lon_pressure-level_${run}_${pad3(step)}_${hPa}_${p}.grib2.bz2`,
+    },
   },
 };
 
@@ -137,6 +161,34 @@ export function makeDwdRegularAdapter(id) {
     async orography(run, tier) {
       const r = await fetchSampledField(invUrl(run, m.orographyParam), tier);
       return r ? r.grid : null;
+    },
+
+    /** Welche Druckflächen diese Quelle führt (hPa) — gemessen, nicht angenommen. */
+    pressureLevels: m.pressure ? m.pressure.levels : [],
+    /** Führt sie dort auch die relative Feuchte? (AIFS z. B. nicht.) */
+    pressureHasRh: !!m.pressure?.rhVar,
+
+    /**
+     * Ein Feld auf einer Druckfläche (PD-E). `kind` ist `'t'` oder `'rh'`.
+     *
+     * Der Wächter auf `level` ist der Grund, warum hier nichts geraten wird: GRIB nennt die
+     * Fläche in **Pa** (85000 für 850 hPa). Passt sie nicht, wird laut abgebrochen statt
+     * eine fremde Fläche stumm in die richtige Ebene zu schreiben — dieselbe Klasse Wächter
+     * wie `vMax` beim Nowcast.
+     */
+    async pressureField(run, leadH, tier, hPa, kind) {
+      const cfg = m.pressure;
+      if (!cfg || !cfg.levels.includes(hPa)) return null;
+      const p = kind === 't' ? cfg.tVar : cfg.rhVar;
+      if (!p) return null;
+      const url = `${m.base}/${run.slice(8, 10)}/${m.dir(p)}/${cfg.file(run, leadH, hPa, p)}`;
+      const r = await fetchSampledField(url, tier, { unit: kind === 't' ? KELVIN_TO_C : null });
+      if (!r) return null;
+      const lev = r.header?.level;
+      if (lev != null && lev !== hPa * 100) {
+        throw new Error(`${id}: ${url} trägt Fläche ${lev} Pa, erwartet ${hPa * 100} Pa`);
+      }
+      return r.grid;
     },
 
     /** Trägt diese Quelle überhaupt Profilfelder? Der Orchestrator fragt das, bevor

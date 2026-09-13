@@ -128,6 +128,53 @@ export const NOWCAST_BY_ID: Readonly<Record<string, NowcastSourceSpec>> = Object
   Object.fromEntries(NOWCAST_SOURCES.map((s) => [s.id, s])),
 );
 
+// ---------------------------------------------------------------------------
+// Slot-Stempel (PD-D2)
+// ---------------------------------------------------------------------------
+//
+// ⚠ **Es gibt keinen Slot-Index im Repo** (V-PD-52). `nowcastReader.mjs` listet das
+// Verzeichnis mit `readdirSync` — das setzt einen lokalen Klon voraus. Ein Netz-Leser
+// muss den Stempel aus der Uhr ableiten und rückwärts probieren. Damit er das nicht
+// raten muss, steht die Form hier, am Spiegel GEMESSEN (2026-09-12 20:46 UTC):
+//   rv   `2609122040`      = YYMMDDHHMM  (der DWD-Stempel aus dem tar-Namen)
+//   inca `20260912T2015`   = YYYYMMDDTHHMM (`imgStampOf` in `radar-mirror.mjs`)
+//   rzc  `20260912T2045`   = YYYYMMDDTHHMM
+// Gemessene Kosten der Rückwärtssuche: 2 · 3 · 1 Sonden.
+
+export type NowcastStampForm = 'dwd10' | 'iso';
+
+export const NOWCAST_STAMP_FORM: Readonly<Record<NowcastSourceId, NowcastStampForm>> = Object.freeze({
+  radvor_rv: 'dwd10',
+  inca: 'iso',
+  combiprecip: 'iso',
+});
+
+const p2 = (n: number) => String(n).padStart(2, '0');
+
+/** Der Verzeichnisname eines Slots zu einem Zeitpunkt. */
+export function nowcastStampOf(id: NowcastSourceId, date: Date): string {
+  const y = date.getUTCFullYear();
+  const rest = `${p2(date.getUTCMonth() + 1)}${p2(date.getUTCDate())}`;
+  const hm = `${p2(date.getUTCHours())}${p2(date.getUTCMinutes())}`;
+  return NOWCAST_STAMP_FORM[id] === 'dwd10' ? `${p2(y % 100)}${rest}${hm}` : `${y}${rest}T${hm}`;
+}
+
+/**
+ * Kandidaten-Stempel, **jüngster zuerst** — die Suchreihenfolge eines Netz-Lesers.
+ *
+ * `backMinutes` deckelt die Suche. Voreinstellung 180 min: der Spiegel hält
+ * `keptSlots = 12`, das sind bei RV/RZC ≈ 1 h und bei INCA 3 h. Wer länger sucht,
+ * bekommt garantiert nichts und zahlt nur Sonden.
+ */
+export function nowcastSlotStamps(id: NowcastSourceId, nowMs: number, backMinutes = 180): string[] {
+  const stepMs = NOWCAST_BY_ID[id].slotMinutes * 60_000;
+  const out: string[] = [];
+  for (let back = 0; back <= backMinutes * 60_000; back += stepMs) {
+    out.push(nowcastStampOf(id, new Date(Math.floor((nowMs - back) / stepMs) * stepMs)));
+  }
+  return out;
+}
+
 /** Ergebnis einer Punktabfrage — Wert UND die Auskunft, ob er am oberen Rand klebt. */
 export interface NowcastPoint {
   /** mm/h. `null` = außerhalb des Gitters oder gesättigt (s. `saturated`). */

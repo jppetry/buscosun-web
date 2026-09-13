@@ -56,12 +56,14 @@ import {
   TIERS, TIER_BY_ID, CUBE_PLANES, CHUNK_CELLS, MISSING,
   chunkExtent, chunkPath, runManifestPath, planeIndex, quantize, encodeCubeChunk, cellCenter,
   CUBE_SCHEMA, readCubeHeader, STAGE_DIR, stageChunkPath, stageTierDir,
+  pressureLevelsForTier, pressurePlaneId,
 } from '../../src/point/cubeFormat.ts';
 import { SOURCE_BY_ID, coversPoint } from '../../src/point/sourceMatrix.ts';
 import { adapterFor, ingestableFor, PENDING } from './adapters/index.mjs';
 import { netStats, resetNetStats, netDiff, clearCache, runIso, poolStats, poolClose } from './adapters/shared.mjs';
 import { PROFILE_PARAMS } from './profile.mjs';
 import { runLanes, orderedSettle, sequentialSettle } from './lanes.mjs';
+import { writeStaticHmodel } from './staticHmodel.mjs';
 
 const OUT = process.env.POINT_OUT || 'data/point';
 /** Ab so vielen Fehlern je (Stufe, Quelle) fällt die Quelle für die Stufe heraus (PD-C2). */
@@ -767,18 +769,163 @@ export async function buildTier(tierId, opts = {}) {
   }
   }
 
+  // --- Druckflächen (PD-E) ---------------------------------------------------
+  //
+  // Drei Flächen (t3: eine), T und RH, GEMITTELT über die Quellen, die die Fläche
+  // führen. Der Unterschied zu den Profilfeldern darüber ist keine Inkonsequenz: T auf
+  // 850 hPa ist ein gewöhnliches Skalarfeld, für das der Cube seit PD-A mittelt; eine
+  // Inversionsobergrenze ist es nicht (§40).
+  //
+  // ⚠ Nicht jede Quelle führt jede Fläche: ICON-D2 hat **kein 925 hPa** (950/975 statt
+  // dessen), IFS und AIFS haben **kein 950**. Es wird deshalb je Fläche gemittelt über
+  // die, die genau DIESE Fläche führen — nie über zwei verschiedene Flächen (V-PD-58).
+  // AIFS führt auf Druckflächen keine relative Feuchte, nur die Temperatur.
+  //
+  // Eigene Bahnen wie bei den Feldern (F2b): der Posten ist netzgebunden (t1 ≈ 574 MiB),
+  // sequenziell wäre er der neue Boden. Kill-Switch `POINT_PLEVEL=0` mit benanntem
+  // Rückfall: die sechs Ebenen bleiben dann MISSING, also der Zustand vor PD-E.
+  let hmodelStat = null;
+  let pressureStat = null;
+  async function runPressure() {
+  if (process.env.POINT_PLEVEL === '0') return;
+  const levels = pressureLevelsForTier(tierId);
+  const srcs = contributors.filter((c) => (c.adapter.pressureLevels?.length ?? 0) > 0);
+  if (srcs.length === 0 || levels.length === 0) return;
+  const stepH = Math.max(tier.stepH, Number(process.env.POINT_PLEVEL_STEP_H || tier.stepH));
+  const jobs = [];
+  for (const hPa of levels) {
+    jobs.push({ hPa, kind: 't' });
+    jobs.push({ hPa, kind: 'rh' });
+  }
+  const done = {};
+  const bySource = {};
+  for (const j of jobs) done[pressurePlaneId(j.kind, j.hPa)] = 0;
+
+  // Eine Bahn je Quelle; sie erledigt für eine Stunde alle Flächen und beide Größen.
+  async function sourcePressureHour(li, it) {
+    const c = srcs[li];
+    const leadH = leadHours[it];
+    if ((leadH - leadHours[0]) % stepH !== 0) return null;
+    const own = leadH + c.offsetH;
+    if (!c.leads.has(own)) return null;
+    const out = new Map();
+    for (const { hPa, kind } of jobs) {
+      if (!c.adapter.pressureLevels.includes(hPa)) continue;
+      if (kind === 'rh' && !c.adapter.pressureHasRh) continue;
+      let g = await safeCall(c, `${kind}${hPa} @ +${own} h`,
+        () => c.adapter.pressureField(c.run, own, tier, hPa, kind));
+      if (!g) continue;
+      if (c.mask) g = applyMask(g, c.mask);
+      out.set(pressurePlaneId(kind, hPa), g);
+      bySource[c.id] = (bySource[c.id] ?? 0) + 1;
+    }
+    return out;
+  }
+
+  function consumePressureHour(it, perSource) {
+    for (const { hPa, kind } of jobs) {
+      const id = pressurePlaneId(kind, hPa);
+      const pi = planeIndex(id);
+      if (pi < 0) continue;
+      const grids = [];
+      for (let li = 0; li < srcs.length; li++) {
+        const m = perSource[li];
+        const g = m instanceof Map ? m.get(id) : undefined;
+        if (g) grids.push(g);
+      }
+      if (grids.length === 0) continue;
+      done[id]++;
+      const mp = CUBE_PLANES[pi];
+      const target = planes[pi];
+      const base = it * cells;
+      for (let k = 0; k < cells; k++) {
+        let n = 0, sum = 0;
+        for (const g of grids) { const v = g[k]; if (Number.isFinite(v)) { n++; sum += v; } }
+        if (n === 0) continue;
+        target[base + k] = quantize(sum / n, mp);
+      }
+    }
+  }
+
+  if (PARALLEL) {
+    await runLanes({
+      nLanes: srcs.length, nSteps: nt, ahead: AHEAD_HOURS,
+      task: (li, it) => sourcePressureHour(li, it),
+      consume: (it, values) => consumePressureHour(it, values),
+    });
+  } else {
+    for (let it = 0; it < nt; it++) {
+      const per = new Array(srcs.length);
+      for (let li = 0; li < srcs.length; li++) per[li] = await sourcePressureHour(li, it);
+      consumePressureHour(it, per);
+    }
+  }
+
+  pressureStat = {
+    levels: [...levels],
+    stepH,
+    sources: srcs.map((c) => ({
+      id: c.id, levels: [...c.adapter.pressureLevels].filter((l) => levels.includes(l)), rh: !!c.adapter.pressureHasRh,
+    })),
+    steps: done,
+    provenance: 'mean',
+    why: 'T und RH auf Druckflaechen sind gewoehnliche Skalarfelder — anders als die Profilfelder werden sie gemittelt.',
+    levelCaveat: 'ICON-D2 fuehrt kein 925 hPa (950/975 statt dessen), IFS und AIFS kein 950. Je Ebene wird nur ueber die Quellen gemittelt, die GENAU diese Flaeche fuehren.',
+    rhCaveat: 'AIFS Single fuehrt auf Druckflaechen keine relative Feuchte (nur q) — es traegt dort nur die Temperatur.',
+    belowGroundRule: 'Liegt die Flaeche unter der Modelloberflaeche (p_Flaeche > ps), extrapolieren alle Modelle. Der Wert steht unveraendert im Cube; der Leser markiert ihn anhand der Ebene ps.',
+    rhRange: 'Werte ueber 100 % sind normal (am echten Feld 101,00 gemessen) und stehen unveraendert im Cube — die Ebene deklariert deshalb [0,120]. Nicht auf 100 klemmen.',
+  };
+  const summary = Object.entries(done).map(([k, v]) => `${k} ${v}`).join(' · ');
+  console.log(`  ${tierId}: Druckflaechen (Raster ${stepH} h) — ${summary}`);
+  }
+
   // hModEff: Mittel der Modellorographien der beitragenden Quellen. Bei gleichen
   // Gewichten ist das ihr arithmetisches Mittel; bei genau einer Quelle deren HSURF.
   async function runOrography() {
   const oros = [];
+  // PD-E: die Spalten je Quelle werden NICHT mehr weggeworfen — sie sind das statische
+  // Produkt `point/static/hmodel/` (Jans Posten 2). `hModEff` bleibt davon unberührt:
+  // gemittelt wird weiterhin nur über die NATIV veröffentlichten HSURF. Die abgeleitete
+  // ECMWF-Höhe in `hModEff` aufzunehmen wäre eine stille Änderung an genau dem Term, den
+  // PAP 4 korrigiert (E-E-5) — sie steht deshalb nur im statischen Produkt.
+  const columns = [];
+  const absent = {};
   for (const c of contributors) {
     let o = await safeCall(c, 'Orographie', () => c.adapter.orography(c.run, tier));
-    if (!o) continue;
+    if (!o) {
+      // Abgeleitete Höhe? Nur fürs statische Produkt, nie fürs Mittel.
+      if (typeof c.adapter.orographyDerived === 'function') {
+        const d = await safeCall(c, 'Orographie (abgeleitet)', () => c.adapter.orographyDerived(c.run, tier));
+        if (d) {
+          columns.push({ id: c.id, provenance: 'derived-gh-sp', grid: c.mask ? applyMask(d, c.mask) : d,
+            note: 'aus gh + sp interpoliert; die Quelle veröffentlicht keine Orographie' });
+          continue;
+        }
+      }
+      absent[c.id] = c.adapter.orographyAbsentReason
+        ?? 'die Quelle veröffentlicht keine Modellorographie, und es gibt nichts, woraus sie ableitbar wäre';
+      continue;
+    }
     // Auch hier die Domäne: sonst mittelt `hModEff` die Modellhöhe einer Quelle ein, die
     // die Zelle gar nicht trägt — und `h_true − h_mod_eff` ist genau der Term, den PAP 4
     // korrigiert. Ein falsches `hModEff` verschiebt die Höhenkorrektur, nicht die Optik.
     if (c.mask) o = applyMask(o, c.mask);
     oros.push(o);
+    columns.push({ id: c.id, provenance: 'native', grid: o });
+  }
+  if (columns.length && process.env.POINT_STATIC !== '0') {
+    // Ein Fehler hier darf den Cube nicht mitreißen — das Produkt ist statisch, der
+    // nächste Lauf holt es nach (dieselbe Regel wie `continue-on-error` beim Stationsprodukt).
+    try {
+      const st = await writeStaticHmodel(opts.out ?? OUT, tierId, columns,
+        { run: contributors.map((c) => c.run).sort().at(-1) ?? null, absent });
+      hmodelStat = { ...st, absent };
+      console.log(`  ${tierId}: h_model je Quelle — ${st.planes.join(', ') || '(keine)'} · `
+        + (st.changed ? `${st.chunks} Chunks, ${(st.bytes / 1024).toFixed(0)} KiB geschrieben` : st.reason));
+    } catch (e) {
+      hmodelStat = { changed: false, planes: [], chunks: 0, bytes: 0, reason: `Fehler: ${e.message}`, absent };
+      console.log(`  ${tierId}: h_model je Quelle FEHLGESCHLAGEN — ${e.message}`);
+    }
   }
   if (oros.length) {
     const mp = meta('hModEff');
@@ -812,6 +959,7 @@ export async function buildTier(tierId, opts = {}) {
     const outcome = await Promise.allSettled([
       timed('fields', runFields), timed('ensemble', runEnsemble), timed('quantiles', runQuantiles),
       timed('profile', runProfile), timed('orography', runOrography),
+      timed('pressure', runPressure),
     ]);
     tFields = Date.now();
     mark('fields');
@@ -823,6 +971,7 @@ export async function buildTier(tierId, opts = {}) {
     await timed('quantiles', runQuantiles); mark('quantiles');
     await timed('profile', runProfile); tFields = Date.now(); mark('profile');
     await timed('orography', runOrography); mark('orography');
+    await timed('pressure', runPressure); mark('pressure');
   }
   // Die einzige Stelle, an der ein Quellfehler den Bau noch abbrechen darf: wenn in
   // dieser Stufe KEINE Quelle mehr trägt. Ein leerer Lauf wäre schlimmer als keiner —
@@ -903,6 +1052,8 @@ export async function buildTier(tierId, opts = {}) {
       errors: c.errors ?? 0, firstError: c.firstError ?? null, dropped: c.dropped ?? null,
     })),
     profile: profileStat,
+    pressure: pressureStat,
+    hmodel: hmodelStat,
     quantiles: quantStat,
     ensemble: ensStat,
     perPlane: Object.fromEntries(CUBE_PLANES.map((p, i) => [p.id, perPlane[i]])),
@@ -1028,6 +1179,13 @@ export function runManifest(results) {
         // einer Eigenschaft von C-LAEF.
         quantiles: r.quantiles ?? null,
         ensemble: r.ensemble ?? null,
+        // PD-E: das statische Produkt dieser Stufe. `changed: false` heisst „unveraendert,
+        // nichts geschrieben" — genau Jans Vorgabe „nicht pro Lauf neu schreiben".
+        hmodel: r.hmodel ?? null,
+        // PD-E: Druckflaechen. Traegt die Flaechenliste dieser Stufe, die Quellen je
+        // Flaeche und die drei Vorbehalte (fehlende 925 bei ICON-D2, fehlendes RH bei
+        // AIFS, Extrapolation unter Grund) im Klartext.
+        pressure: r.pressure ?? null,
         // PD-C2: Netzvolumen dieser Stufe je Quelle (Bytes, Dateien, 404, 429) — die
         // Messgrundlage für jede Volumenentscheidung (PD-C6…C9). `null` bei einem
         // Manifest, das aus einem älteren Producer stammt.

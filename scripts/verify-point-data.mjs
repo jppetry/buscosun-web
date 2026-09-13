@@ -930,9 +930,10 @@ add('der gemessene Widerspruch zu ⚠² ist festgehalten',
 
 // --- (12) Zählwerte, die im Audit stehen -----------------------------------
 add('Zeitachse: 109 Schritte über drei Stufen', CUBE_STEP_COUNT === 109, `${CUBE_STEP_COUNT}`);
-// Gezaehlter Anker, kein Kommentar: 19 Groessen + 9 sigma_div + 8 sigma_ens = 36 (Schema 2;
-// Schema 1 waren es 27). Aendert sich die Zahl unbeabsichtigt, faellt diese Zeile.
-add('51 Ebenen im Cube (Schema 4)', CUBE_PLANES.length === 51 && CUBE_SCHEMA === 4, `${CUBE_PLANES.length}, Schema ${CUBE_SCHEMA}`);
+// Gezaehlter Anker, kein Kommentar: 25 Groessen + 9 sigma_div + 9 sigma_ens + 2x7 Quantile = 57
+// (Schema 5; Schema 4 waren es 51, Schema 2 36, Schema 1 27). Aendert sich die Zahl
+// unbeabsichtigt, faellt diese Zeile.
+add('57 Ebenen im Cube (Schema 5)', CUBE_PLANES.length === 57 && CUBE_SCHEMA === 5, `${CUBE_PLANES.length}, Schema ${CUBE_SCHEMA}`);
 add('276 Chunks je vollem Lauf',
   TIERS.reduce((n, t) => n + t.chunk.cy * t.chunk.cx, 0) === 276,
   String(TIERS.reduce((n, t) => n + t.chunk.cy * t.chunk.cx, 0)));
@@ -2398,12 +2399,13 @@ merge('Profil (PD-B5)', profileSelfTest());
   const prodF1 = readFileSync(join(ROOT, 'scripts/point/build-point-cube.mjs'), 'utf8');
   add('(3s) safeCall misst die Wandzeit je Quelle (finally, auch im Fehlerfall)',
     /finally \{\s*c\.msWall = \(c\.msWall \?\? 0\) \+ \(Date\.now\(\) - tc\);/.test(prodF1));
-  // PD-F2b-2: der sequenzielle Rueckfall traegt alle sieben Marken in der alten Reihenfolge; der
+  // PD-F2b-2: der sequenzielle Rueckfall traegt alle Marken in der alten Reihenfolge; der
   // Bahnenpfad setzt nach dem Join genau EINE (`fields`) — deshalb kommt `fields` zweimal vor.
+  // PD-E hat `pressure` als achte Marke dazugelegt (eigene Bahn, eigene Wandzeit).
   const marks = [...prodF1.matchAll(/mark\('([a-z]+)'\);/g)].map((m) => m[1]);
-  add('(3s) sieben Phasenmarken in der richtigen Reihenfolge (Rueckfall), eine Join-Marke (Bahnen)',
-    JSON.stringify([...new Set(marks)]) === JSON.stringify(['discover', 'fields', 'ensemble', 'quantiles', 'profile', 'orography', 'encode'])
-    && marks.filter((m) => m === 'fields').length === 2 && marks.length === 8, marks.join(','));
+  add('(3s) acht Phasenmarken in der richtigen Reihenfolge (Rueckfall), eine Join-Marke (Bahnen)',
+    JSON.stringify([...new Set(marks)]) === JSON.stringify(['discover', 'fields', 'ensemble', 'quantiles', 'profile', 'orography', 'pressure', 'encode'])
+    && marks.filter((m) => m === 'fields').length === 2 && marks.length === 9, marks.join(','));
   add('(3s) auch die Ensemble-Quelle wird gemessen', /src\.msWall = \(src\.msWall \?\? 0\)/.test(prodF1));
   add('(3s) das Manifest traegt timing je Stufe (phases, bySource, totalMs, mode, lanes, blocks, workers)',
     /timing: r\.ms \? \{ phases: r\.ms\.phases \?\? null, bySource: r\.ms\.bySource \?\? null, totalMs: r\.ms\.total,\s*mode: r\.ms\.mode \?\? 'sequential', lanes: r\.ms\.lanes \?\? null, blocks: r\.ms\.blocks \?\? null,\s*workers: r\.ms\.workers \?\? null \}/.test(prodF1));
@@ -2611,8 +2613,10 @@ merge('Profil (PD-B5)', profileSelfTest());
     /process\.env\.POINT_WORKERS/.test(dp) && /Math\.min\(6, Math\.max\(1, availableParallelism\(\) - 1\)\)/.test(dp));
   add('(3w) Worker starten mit --experimental-strip-types (der Decoder ist .ts)',
     /execArgv: \['--experimental-strip-types', '--no-warnings'\]/.test(dp));
-  add('(3w) dwdRegular: field, orography, Halbflaechen und Level laufen ueber fetchSampledField, nichts mehr inline',
-    (files.dwdRegular.match(/fetchSampledField\(/g) || []).length === 4 && !/fetchGribField|sampleRegularToTier/.test(stripC(files.dwdRegular)));
+  // Fuenf Aufrufstellen seit PD-E: field, orography, Halbflaechen, Level — und pressureField.
+  add('(3w) dwdRegular: field, orography, Halbflaechen, Level und Druckflaechen laufen ueber fetchSampledField, nichts mehr inline',
+    (files.dwdRegular.match(/fetchSampledField\(/g) || []).length === 5 && !/fetchGribField|sampleRegularToTier/.test(stripC(files.dwdRegular)),
+    `${(files.dwdRegular.match(/fetchSampledField\(/g) || []).length} Aufrufe`);
   add('(3w) dwdIcosahedral: field/orography ueber fetchSampledField, Nachbarindex EINMAL je Stufe an den Pool',
     (files.dwdIcosahedral.match(/fetchSampledField\(/g) || []).length === 2 && /poolSetIndex\(key, idx\)/.test(files.dwdIcosahedral)
     && (files.dwdIcosahedral.match(/grid: 'unstructured', idxKey/g) || []).length === 2);
@@ -2818,7 +2822,10 @@ merge('Profil (PD-B5)', profileSelfTest());
 // (Quell-Lauf-Alter, MIN_RUNS je Stufe) und `pruneTier`, das eine Stufe aus einem Laufverzeichnis
 // nimmt, ohne den Orphan-Waechter des Publishers zu verletzen. Alles additiv, CUBE_SCHEMA bleibt.
 {
-  add('(3z) CUBE_SCHEMA unveraendert 4 — F3a ist additiv', CUBE_SCHEMA === 4);
+  // F3a selbst war additiv und hat das Schema nicht angefasst; angehoben hat es PD-E
+  // (51 -> 57 Ebenen, Druckflaechen). Die Zeile haelt die Zahl an EINER Stelle fest, damit
+  // eine unbeabsichtigte Ebenenaenderung auffaellt — nicht die Behauptung, sie aendere sich nie.
+  add('(3z) CUBE_SCHEMA ist 5 (F3a additiv, angehoben von PD-E)', CUBE_SCHEMA === 5, String(CUBE_SCHEMA));
   add('(3z) Aufbewahrung je Stufe: t1 kuerzer als die Gesamtregel, keine Stufe laenger als 24 h (Jans Regel 2026-09-09)',
     RETENTION_HOURS_BY_TIER.t1 < RETENTION_HOURS && Object.values(RETENTION_HOURS_BY_TIER).every((h) => h <= RETENTION_HOURS)
     && Object.keys(RETENTION_HOURS_BY_TIER).sort().join() === TIERS.map((t) => t.id).sort().join(), JSON.stringify(RETENTION_HOURS_BY_TIER));
@@ -2894,6 +2901,221 @@ merge('Profil (PD-B5)', profileSelfTest());
   add('(3z) der Publisher raeumt JE STUFE vor der Laufregel (runsToKeepFor + pruneTier je Tier) und schreibt tierRuns in den Index',
     /for \(const tier of TIERS\) \{[\s\S]*?runsToKeepFor\(withTier, \{ hours: RETENTION_HOURS_BY_TIER\[tier\.id\], minRuns: MIN_RUNS \}\)[\s\S]*?pruneTier\(join\(REPO, POINT_DIR, r\.run\), tier\.id\)/.test(pub)
     && /tierRuns: tiersOf\(join\(REPO, POINT_DIR, run\)\),/.test(pub) && pub.indexOf('for (const tier of TIERS)') < pub.indexOf('const decision = runsToKeep(present);'));
+}
+
+// --- (3aa) PD-E: Druckflaechen und h_model je Quelle ---------------------------------
+//
+// Die Pruefungen hier haben zwei Sorten: Formaussagen (Ebenen, Bereiche, Pfade) und
+// GEGENKONTROLLEN gegen die drei Messbefunde, die am 2026-09-13 am echten Katalog
+// erhoben wurden (audit/punktdaten-druckflaechen.md §1). Die Gegenkontrollen sind die
+// wichtigeren: sie halten fest, was NICHT geht, damit es niemand spaeter "aufraeumt".
+{
+  const { PRESSURE_LEVELS_HPA, pressureLevelsForTier, pressurePlaneId, parsePressurePlaneId,
+    STATIC_DIR, staticChunkPath, staticManifestPath, HMODEL_PRODUCT, HMODEL_VERSION,
+    encodeCubeChunk: encPE, decodeCubeChunk: decPE, MISSING: MISS_PE, quantize: qPE, dequantize: dqPE,
+  } = await import('../src/point/cubeFormat.ts');
+  const { isTimeless, TIMELESS_PATHS } = await import('../src/point/manifest.ts');
+  const { staticHmodelSelfTest, HMODEL_PLANE_META } = await import('./point/staticHmodel.mjs');
+  const { makeDwdRegularAdapter } = await import('./point/adapters/dwdRegular.mjs');
+  const { makeEcmwfAdapter } = await import('./point/adapters/ecmwf.mjs');
+
+  // -- Form ------------------------------------------------------------------
+  add('(3aa) drei Druckflaechen, wie Jan sie genannt hat', PRESSURE_LEVELS_HPA.join(',') === '925,850,700',
+    PRESSURE_LEVELS_HPA.join(','));
+  for (const hPa of PRESSURE_LEVELS_HPA) {
+    for (const kind of ['t', 'rh']) {
+      const id = pressurePlaneId(kind, hPa);
+      add(`(3aa) Ebene ${id} steht im Container`, CUBE_PLANES.some((x) => x.id === id));
+    }
+  }
+  add('(3aa) t3 traegt nur 850 hPa (Jans Vorgabe)', pressureLevelsForTier('t3').join(',') === '850',
+    pressureLevelsForTier('t3').join(','));
+  add('(3aa) t1 und t2 tragen alle drei', pressureLevelsForTier('t1').length === 3 && pressureLevelsForTier('t2').length === 3);
+  add('(3aa) parsePressurePlaneId erkennt nur echte Flaechen',
+    parsePressurePlaneId('rh850')?.hPa === 850 && parsePressurePlaneId('t950') === null
+    && parsePressurePlaneId('t2m') === null && parsePressurePlaneId('td2m') === null,
+    'rh850 ja, t950/t2m/td2m nein');
+
+  // ⚠ V-PD-59: RH erreicht am echten Feld 101,00 %.
+  //
+  // ⚠ Und eine Korrektur an meiner eigenen Diagnose, die erst diese Pruefung erzwungen hat:
+  // `quantize` liest `range` GAR NICHT — es wehrt nur den int16-Ueberlauf ab. Der Bereich ist
+  // eine DEKLARATION, kein Laufzeitwaechter. 101 % landen also so oder so unveraendert im
+  // Cube. Falsch waere trotzdem [0,100]: die Deklaration waere unwahr, der int16-Check
+  // pruefte die falsche Spanne, und jeder Leser, der ihr glaubt (UI-Klemme,
+  // Plausibilitaetsfilter, das Archivschema, das dieselben Skalen erbt), hielte einen
+  // gueltigen Wert fuer einen Fehler.
+  {
+    const rh = CUBE_PLANES.find((x) => x.id === 'rh850');
+    const rhVar = CUBE_VARS.find((x) => x.id === 'rh850');
+    const q101 = qPE(101, rh);
+    add('(3aa) 101 % ueberleben den Rundweg unveraendert',
+      q101 !== MISS_PE && Math.abs(dqPE(q101, rh) - 101) < 0.05, `101 % -> ${dqPE(q101, rh)}`);
+    add('(3aa) die Deklaration deckt sie: rh-Bereich reicht ueber 100',
+      rhVar.range[1] > 100, `${rhVar.range[0]}…${rhVar.range[1]}`);
+    // Der Beleg, dass `range` kein Laufzeitwaechter ist, liegt schon in der Form: eine
+    // CUBE_PLANE traegt gar kein `range` — quantize bekommt es also nie zu sehen.
+    add('(3aa) Gegenkontrolle: eine Ebene traegt gar keinen Bereich, quantize kann ihn nicht pruefen',
+      rh.range === undefined && rhVar.range !== undefined);
+    add('(3aa) Gegenkontrolle: quantize klemmt NICHT an einer mitgegebenen Spanne',
+      qPE(101, { ...rh, range: [0, 100] }) === q101,
+      'derselbe Wert trotz engerer Angabe — Deklaration, kein Waechter');
+    add('(3aa) Gegenkontrolle: was int16 wirklich sprengt, wird MISSING', qPE(1e9, rh) === MISS_PE);
+  }
+  add('(3aa) Druckflaechen tragen weder sigma noch Quantile (sechs Ebenen, nicht dreissig)',
+    CUBE_PLANES.filter((x) => parsePressurePlaneId(x.id)).length === 6,
+    String(CUBE_PLANES.filter((x) => parsePressurePlaneId(x.id)).length));
+
+  // -- Gegenkontrollen zu den Messbefunden -----------------------------------
+  const d2 = makeDwdRegularAdapter('icon_d2');
+  const eu = makeDwdRegularAdapter('icon_eu');
+  const ifs = makeEcmwfAdapter('ifs_hres');
+  const aifs = makeEcmwfAdapter('aifs_single');
+  add('(3aa) V-PD-58: ICON-D2 fuehrt KEIN 925 hPa (gemessen am Verzeichnis)',
+    !d2.pressureLevels.includes(925) && d2.pressureLevels.includes(850) && d2.pressureLevels.includes(700),
+    d2.pressureLevels.join(','));
+  add('(3aa) ICON-EU fuehrt alle drei — es traegt 925 in t1', eu.pressureLevels.join(',') === '925,850,700',
+    eu.pressureLevels.join(','));
+  add('(3aa) IFS fuehrt alle drei', ifs.pressureLevels.join(',') === '925,850,700');
+  add('(3aa) AIFS fuehrt auf Druckflaechen KEINE relative Feuchte (nur q)',
+    aifs.pressureLevels.length === 3 && aifs.pressureHasRh === false);
+  add('(3aa) IFS fuehrt sie sehr wohl', ifs.pressureHasRh === true);
+  add('(3aa) 925 hat in t1 trotzdem eine Quelle (sonst waere die Ebene leer)',
+    [eu, ifs, aifs].some((a) => a.pressureLevels.includes(925)));
+  add('(3aa) eine Quelle liefert nichts fuer eine Flaeche, die sie nicht fuehrt',
+    await d2.pressureField('2026091300', 12, TIER_BY_ID.t1, 925, 't') === null);
+  add('(3aa) eine Quelle liefert kein RH, wenn sie keins hat',
+    await aifs.pressureField('2026091300', 12, TIER_BY_ID.t3, 850, 'rh') === null);
+
+  // -- Producer: die Bahn, ihr Kill-Switch, die Vorbehalte im Manifest --------
+  const bp = readFileSync(join(ROOT, 'scripts/point/build-point-cube.mjs'), 'utf8');
+  add('(3aa) die Druckflaechen laufen als EIGENE Bahn neben den Feldbahnen',
+    /timed\('pressure', runPressure\)/.test(bp) && /runLanes\(\{[\s\S]{0,200}sourcePressureHour/.test(bp));
+  add('(3aa) Kill-Switch POINT_PLEVEL=0 mit benanntem Rueckfall (Regel 2)',
+    /POINT_PLEVEL === '0'/.test(bp));
+  add('(3aa) je Ebene wird nur ueber Quellen gemittelt, die GENAU diese Flaeche fuehren',
+    /if \(!c\.adapter\.pressureLevels\.includes\(hPa\)\) continue;/.test(bp));
+  add('(3aa) das Manifest nennt den 925-Vorbehalt', /levelCaveat:/.test(bp) && /kein 925 hPa/.test(bp));
+  add('(3aa) das Manifest nennt den AIFS-RH-Vorbehalt', /rhCaveat:/.test(bp));
+  add('(3aa) das Manifest nennt die Regel fuer Werte unter Grund', /belowGroundRule:/.test(bp) && /p_Flaeche > ps/.test(bp));
+
+  // -- Statisches Produkt ----------------------------------------------------
+  const st = await staticHmodelSelfTest();
+  add('(3aa) staticHmodel-Selbsttest (Rundweg + Gegenprobe)', st.pass === st.total, `${st.pass}/${st.total}${st.fails.length ? ' — ' + st.fails.join(' | ') : ''}`);
+  add('(3aa) das statische Produkt liegt unter point/static/', STATIC_DIR === 'point/static');
+  add('(3aa) sein Chunk liegt am GLEICHEN Raster wie der Cube',
+    staticChunkPath(HMODEL_PRODUCT, HMODEL_VERSION, 't1', 3, 12) === 'point/static/hmodel/v1/t1/03_12.bin',
+    staticChunkPath(HMODEL_PRODUCT, HMODEL_VERSION, 't1', 3, 12));
+  add('(3aa) sein Manifest liegt daneben',
+    staticManifestPath(HMODEL_PRODUCT, HMODEL_VERSION) === 'point/static/hmodel/v1/static.json');
+  add('(3aa) point/static/ ist von der Aufbewahrung ausgenommen',
+    isTimeless(staticChunkPath(HMODEL_PRODUCT, HMODEL_VERSION, 't3', 0, 0))
+    && isTimeless(staticManifestPath(HMODEL_PRODUCT, HMODEL_VERSION))
+    && TIMELESS_PATHS.includes('point/static/'));
+  add('(3aa) Gegenkontrolle: ein Laufverzeichnis ist NICHT zeitlos',
+    !isTimeless('point/2026091312/t1/00_00.bin'));
+  add('(3aa) "static" ist kein Laufname — die Loeschregel fasst es nicht an',
+    !/^\d{10}$/.test('static'));
+  // ⚠ Der Waechter, der das Produkt haette blockieren koennen: der Publisher bricht ab,
+  // wenn eine .bin ohne Manifesteintrag im Repo liegt (§26) — und genau das IST das
+  // statische Produkt. Er sieht es nur deshalb nicht, weil er ausschliesslich
+  // Laufverzeichnisse begeht. Diese Zeile haelt beides zusammen: aendert jemand `runsIn`
+  // oder den Ort des Produkts, faellt sie, statt dass ein Lauf im Cron abbricht.
+  {
+    const pubS = readFileSync(join(ROOT, 'scripts/point/publish-point.mjs'), 'utf8');
+    const runsInBody = pubS.slice(pubS.indexOf('function runsIn(dir)'), pubS.indexOf('function dirBytes'));
+    add('(3aa) der Orphan-Waechter begeht NUR Laufverzeichnisse (sonst wuerde er das statische Produkt melden)',
+      runsInBody.includes(String.raw`/^\d{10}$/.test(e.name)`)
+      && pubS.includes('for (const run of kept)')
+      && pubS.includes('join(REPO, POINT_DIR, run, rel)'),
+      runsInBody.includes(String.raw`/^\d{10}$/.test(e.name)`) ? 'ok' : 'runsIn filtert nicht mehr auf Laufnamen');
+    add('(3aa) der Publisher staged `point` als Ganzes — das statische Produkt ist mit drin',
+      /PUBLISH_PATHS/.test(pubS));
+  }
+  // ⚠ Die Regel, die beim ersten echten Bau gefehlt hat: POINT_OUT IST das point/-Verzeichnis,
+  // die Pfadbauer liefern aber Pfade ab Repo-Wurzel. Wer das Praefix nicht streift, schreibt
+  // nach point/point/static/ — ohne Fehlermeldung, weil Schreiben ja gelingt.
+  {
+    const sh = readFileSync(join(ROOT, 'scripts/point/staticHmodel.mjs'), 'utf8');
+    add('(3aa) das statische Produkt streift das point/-Praefix wie inOut() im Producer',
+      /rel\.replace\(\/\^point\\\/\/, ''\)/.test(sh) && !/join\(outRoot, static(Chunk|Manifest)Path/.test(sh));
+  }
+  add('(3aa) die Hoehenspalte hat dieselbe Skala wie hModEff (sonst vergleicht man zwei Raster)',
+    HMODEL_PLANE_META.scale === CUBE_PLANES.find((x) => x.id === 'hModEff').scale);
+
+  // Jans Vorgabe "nicht pro Lauf neu schreiben" — am Datentraeger belegt, nicht behauptet.
+  {
+    const { writeStaticHmodel } = await import('./point/staticHmodel.mjs');
+    const tmp = join(ROOT, 'data', `.verify-static-${process.pid}`);
+    rmSync(tmp, { recursive: true, force: true });
+    try {
+    const tier = TIER_BY_ID.t3;
+    const cells = tier.ny * tier.nx;
+    const g1 = new Float32Array(cells); for (let k = 0; k < cells; k++) g1[k] = 200 + (k % 800);
+    const g2 = new Float32Array(cells); for (let k = 0; k < cells; k++) g2[k] = 210 + (k % 800);
+    const cols = [{ id: 'icon_global', provenance: 'native', grid: g1 }];
+    const first = await writeStaticHmodel(tmp, 't3', cols, { run: '2026091312' });
+    add('(3aa) erster Lauf schreibt das Produkt', first.changed && first.chunks === tier.chunk.cy * tier.chunk.cx,
+      `${first.chunks} Chunks, ${first.bytes} B`);
+    const second = await writeStaticHmodel(tmp, 't3', cols, { run: '2026091318' });
+    add('(3aa) zweiter Lauf schreibt NICHTS (Jans Vorgabe)', second.changed === false, second.reason);
+    const third = await writeStaticHmodel(tmp, 't3',
+      [{ id: 'icon_global', provenance: 'native', grid: g2 }], { run: '2026091400' });
+    add('(3aa) Gegenkontrolle: geaenderte Hoehen werden sehr wohl geschrieben', third.changed === true, third.reason);
+    const forth = await writeStaticHmodel(tmp, 't3',
+      [{ id: 'icon_global', provenance: 'native', grid: g2 },
+        { id: 'ifs_hres', provenance: 'derived-gh-sp', grid: g1 }], { run: '2026091406' });
+    add('(3aa) Gegenkontrolle: eine NEUE Spalte wird geschrieben', forth.changed === true && forth.planes.length === 2);
+    // Und ein anderer Job (andere Stufe) darf die Spalten der ersten nicht loeschen.
+    const t2cells = TIER_BY_ID.t2.ny * TIER_BY_ID.t2.nx;
+    const g3 = new Float32Array(t2cells); for (let k = 0; k < t2cells; k++) g3[k] = 300;
+    await writeStaticHmodel(tmp, 't2', [{ id: 'icon_eu', provenance: 'native', grid: g3 }], { run: '2026091406' });
+    // POINT_OUT IST das point/-Verzeichnis — dieselbe Regel wie im Producer (inOut).
+    const relOut = (x) => x.replace(/^point\//, '');
+    const man = JSON.parse(readFileSync(join(tmp, relOut(staticManifestPath(HMODEL_PRODUCT, HMODEL_VERSION))), 'utf8'));
+    add('(3aa) ein Ein-Stufen-Job MERGT das Manifest, er ersetzt es nicht',
+      !!man.tiers.t3 && !!man.tiers.t2 && man.tiers.t3.planes.length === 2,
+      Object.keys(man.tiers).join(','));
+    add('(3aa) die Herkunft steht je Spalte (native gegen abgeleitet)',
+      man.tiers.t3.planes.map((x) => x.provenance).join(',') === 'native,derived-gh-sp',
+      man.tiers.t3.planes.map((x) => x.provenance).join(','));
+    // Rundweg durch die geschriebene Datei: die Spalte muss zurueckkommen, wie sie hineinging.
+    const raw = new Uint8Array(readFileSync(join(tmp, relOut(staticChunkPath(HMODEL_PRODUCT, HMODEL_VERSION, 't3', 0, 0)))));
+    const back = await decPE(raw, { planes: man.tiers.t3.planes });
+    add('(3aa) Rundweg ueber die geschriebene Datei', back.nvar === 2 && back.nt === 1
+      && Math.abs(dqPE(back.planes[0][0], HMODEL_PLANE_META) - g2[0]) <= 0.5,
+      `${dqPE(back.planes[0][0], HMODEL_PLANE_META)} statt ${g2[0]}`);
+    } finally { rmSync(tmp, { recursive: true, force: true }); }
+  }
+
+  // -- Die abgeleitete ECMWF-Hoehe geht NICHT ins hModEff (E-E-5) -------------
+  add('(3aa) die abgeleitete Hoehe steht nur im statischen Produkt, nicht im Mittel',
+    /orographyDerived/.test(bp) && !/oros\.push\([\s\S]{0,80}derived/.test(bp)
+    && /provenance: 'derived-gh-sp'/.test(bp));
+  const ec = readFileSync(join(ROOT, 'scripts/point/adapters/ecmwf.mjs'), 'utf8');
+  add('(3aa) ECMWF meldet fuer hModEff weiterhin null (keine erfundene Hoehe)',
+    /async orography\(\) \{ return null; \}/.test(ec));
+  add('(3aa) und sagt im Klartext, warum', /orographyAbsentReason:/.test(ec));
+
+  // Die log-lineare Interpolation gegen die Standardatmosphaere — sie ist der einzige
+  // Grund, warum die abgeleitete Hoehe ueberhaupt verwendbar ist.
+  {
+    const levs = [1000, 925, 850, 700];
+    const lnp = levs.map(Math.log);
+    const gh = [110.9, 762.0, 1457.4, 3012.2];      // Standardatmosphaere
+    const h = (ps) => {
+      let a = levs.length - 2;
+      if (ps > levs[0]) a = 0;
+      else for (let i = 0; i < levs.length - 1; i++) if (ps <= levs[i] && ps >= levs[i + 1]) { a = i; break; }
+      const f = (Math.log(ps) - lnp[a]) / (lnp[a + 1] - lnp[a]);
+      return gh[a] + (gh[a + 1] - gh[a]) * f;
+    };
+    const cases = [[1013.25, 0], [1012, 11], [953, 515], [946, 574], [836, 1608], [706, 2962]];
+    const worst = Math.max(...cases.map(([ps, soll]) => Math.abs(h(ps) - soll)));
+    add('(3aa) gh-Interpolation trifft die Standardatmosphaere auf < 25 m', worst < 25, `${worst.toFixed(0)} m`);
+    add('(3aa) unter 700 hPa wird extrapoliert statt geklemmt', h(650) > h(706));
+    add('(3aa) ueber 1000 hPa ebenso', h(1030) < h(1013.25));
+  }
 }
 
 // --- Ausgabe ----------------------------------------------------------------

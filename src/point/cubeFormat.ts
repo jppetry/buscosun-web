@@ -91,7 +91,7 @@ import { DACH_VIEW } from '../countryProfiles';
  * Ebenenzahl wären für einen Leser OHNE Manifest still verschieden. Genau davor
  * schützt die Nummer.
  */
-export const CUBE_SCHEMA = 4;
+export const CUBE_SCHEMA = 5;
 /** `BSPC` — buscosun point cube. */
 export const CUBE_MAGIC = 0x42535043;
 /** Fester Kopf. Das Verzeichnis folgt unmittelbar (`DIR_ENTRY_BYTES` je Ebene). */
@@ -126,6 +126,48 @@ export const CUBE_DOMAIN = Object.freeze({
 
 /** Chunk-Raster in Zellen. PAP 2 O5: „Zeitreihe je 16×16-Block". */
 export const CHUNK_CELLS = 16;
+
+/**
+ * -- Die drei Druckflaechen (PD-E) ------------------------------------------
+ *
+ * Jans Vorgabe: 925 / 850 / 700 hPa. Am Verzeichnis gemessen (2026-09-13) und deshalb
+ * hier mit dem Vorbehalt, der nirgends sonst steht:
+ *
+ *   ICON-D2     200 250 300 400 500 600 700 850 **950 975** 1000  => **kein 925**
+ *   ICON-EU     ... 700 775 800 825 850 875 900 925 950 1000
+ *   ICON global ... 700 800 850 900 925 950 1000
+ *   IFS / AIFS  ... 700 850 925 1000                              => **kein 950**
+ *
+ * Die Schnittmenge aller Quellen in der Grenzschicht ist LEER. Ein Ersatz "950 statt 925
+ * fuer ICON-D2" ist deshalb ausgeschlossen: eine Ebene bedeutet genau EINE Flaeche, sonst
+ * mittelt sie zwei verschiedene Hoehen zusammen - derselbe Fehler wie die vermischten
+ * Gueltigzeiten aus §37. In t1 traegt 925 damit ICON-EU/IFS/AIFS, nicht das feinste
+ * Modell (V-PD-58, im Manifest benannt).
+ */
+export const PRESSURE_LEVELS_HPA: readonly number[] = Object.freeze([925, 850, 700]);
+
+/**
+ * Welche Flaechen eine Stufe traegt. Jans Vorgabe: "Nur in t1 und t2 noetig, in t3
+ * reicht 850 hPa." Die uebrigen Ebenen bleiben in t3 MISSING und stehen so im Manifest
+ * - benannt abwesend statt stumm leer (E-E-4: 700 hPa in t3 kostete 36 MiB je Lauf).
+ */
+export function pressureLevelsForTier(tierId: TierId): readonly number[] {
+  return tierId === 't3' ? [850] : PRESSURE_LEVELS_HPA;
+}
+
+/** Ebenen-ID der Temperatur bzw. der Feuchte auf einer Druckflaeche. DIE Regel. */
+export function pressurePlaneId(kind: 't' | 'rh', hPa: number): string {
+  return `${kind}${hPa}`;
+}
+
+/** Welche Groesse eine Druckflaechen-Ebene meint - `null`, wenn es keine ist. */
+export function parsePressurePlaneId(id: string): { kind: 't' | 'rh'; hPa: number } | null {
+  const m = /^(t|rh)(\d{3,4})$/.exec(id);
+  if (!m) return null;
+  const hPa = Number(m[2]);
+  if (!PRESSURE_LEVELS_HPA.includes(hPa)) return null;
+  return { kind: m[1] as 't' | 'rh', hPa };
+}
 
 // ---------------------------------------------------------------------------
 // Größen
@@ -237,6 +279,35 @@ export const CUBE_VARS: readonly CubeVar[] = Object.freeze([
   { id: 'hModEff',  unit: 'm',     scale: 1,    offset: 0, sigmaDiv: false, sigmaEns: false, group: 'profile',
     range: [-500, 9000], grib: 'hsurf',
     why: 'Gewichtetes Mittel der HSURF der beitragenden Quellen — zeitabhaengig, weil die Quellen mit der Vorhersagestunde wechseln.' },
+  // ── Druckflächen (PD-E, `audit/punktdaten-druckflaechen.md`) ─────────────
+  // Drei Flächen, T und RH, ohne σ und ohne Quantile — sie sind heute Kontext für die
+  // Schichtung, keine unsichere Eingabe von PAP 4/5/6 (dieselbe Begründung wie bei
+  // `clcl/clcm/clch`). Die Werte werden über die Quellen GEMITTELT, anders als die
+  // Profilfelder darüber: T auf 850 hPa ist ein gewöhnliches Skalarfeld, das Mittel
+  // zweier Inversionsobergrenzen dagegen keine Inversionsobergrenze (§40).
+  //
+  // ⚠ Unter Grund gibt es keinen Messwert: liegt die Fläche unterhalb der
+  // Modelloberfläche (`p_Fläche > ps`), extrapolieren alle Modelle. Der Cube schreibt
+  // den Wert unverändert, der Leser markiert ihn — die Regel steht im Manifest
+  // (`pressure.belowGroundRule`), s. §4.3.
+  { id: 't925',      unit: 'degC',  scale: 0.01, offset: 0, sigmaDiv: false, sigmaEns: false, group: 'profile',
+    range: [-80, 40], grib: 't',
+    why: 'Temperatur auf 925 hPa — grobes Vertikalprofil dort, wo es keine Modelllevel gibt (t2/t3).' },
+  { id: 't850',      unit: 'degC',  scale: 0.01, offset: 0, sigmaDiv: false, sigmaEns: false, group: 'profile',
+    range: [-80, 40], grib: 't',
+    why: 'Temperatur auf 850 hPa — grobes Vertikalprofil dort, wo es keine Modelllevel gibt (t2/t3).' },
+  { id: 't700',      unit: 'degC',  scale: 0.01, offset: 0, sigmaDiv: false, sigmaEns: false, group: 'profile',
+    range: [-80, 40], grib: 't',
+    why: 'Temperatur auf 700 hPa — grobes Vertikalprofil dort, wo es keine Modelllevel gibt (t2/t3).' },
+  { id: 'rh925',     unit: 'pct',   scale: 0.1,  offset: 0, sigmaDiv: false, sigmaEns: false, group: 'profile',
+    range: [0, 120], grib: 'relhum',
+    why: 'Relative Feuchte auf 925 hPa. Bereich bis 120 %, weil am echten Feld 101,00 % gemessen wurden. Der Bereich ist eine Deklaration — quantize wehrt nur den int16-Ueberlauf ab und liest ihn gar nicht; eine unwahre Deklaration faengt sich der erste Leser ein, der ihr glaubt.' },
+  { id: 'rh850',     unit: 'pct',   scale: 0.1,  offset: 0, sigmaDiv: false, sigmaEns: false, group: 'profile',
+    range: [0, 120], grib: 'relhum',
+    why: 'Relative Feuchte auf 850 hPa. Bereich bis 120 %, weil am echten Feld 101,00 % gemessen wurden. Deklaration, kein Laufzeitwaechter: quantize prueft nur int16.' },
+  { id: 'rh700',     unit: 'pct',   scale: 0.1,  offset: 0, sigmaDiv: false, sigmaEns: false, group: 'profile',
+    range: [0, 120], grib: 'relhum',
+    why: 'Relative Feuchte auf 700 hPa. Bereich bis 120 %, weil am echten Feld 101,00 % gemessen wurden. Deklaration, kein Laufzeitwaechter: quantize prueft nur int16.' },
   // ── Herkunft der Streuung (Ehrlichkeit) ──────────────────────────────────
   { id: 'srcCount', unit: 'count', scale: 1,   offset: 0, sigmaDiv: false, sigmaEns: false, group: 'meta',
     range: [0, 32], grib: null,
@@ -541,6 +612,41 @@ export function stageTierDir(tierId: TierId): string {
   return `${STAGE_DIR}/${tierId}`;
 }
 
+/**
+ * -- Statische Produkte: `point/static/<Produkt>/<Fassung>/` (PD-E, Posten 2) --
+ *
+ * Ein statisches Produkt hat kein Alter - es aendert sich mit der Sache (einem
+ * Modell-Upgrade), nicht mit der Uhr. `point/static/` steht deshalb in `TIMELESS_PATHS`,
+ * und `static` erfuellt `^\d{10}$` nicht, wird also weder von der Aufbewahrung noch vom
+ * Orphan-Waechter angefasst.
+ *
+ * Das Chunk-Raster ist ABSICHTLICH dasselbe wie beim Cube: ein Client, der fuer seinen
+ * Punkt ohnehin `(cy, cx)` liest, holt die Modellhoehen aus derselben Kachel - 1,5 KiB
+ * statt der rund 210 KiB, die eine Datei je Stufe kostete.
+ */
+export const STATIC_DIR = `${POINT_DIR}/static`;
+
+/** Wurzel eines statischen Produkts in einer Fassung. */
+export function staticProductDir(product: string, version: string): string {
+  return `${STATIC_DIR}/${product}/${version}`;
+}
+
+/** Manifest eines statischen Produkts (Ebenenliste = Bedeutung der Spalten). */
+export function staticManifestPath(product: string, version: string): string {
+  return `${staticProductDir(product, version)}/static.json`;
+}
+
+/** Chunk eines statischen Produkts - gleiches Raster wie `chunkPath`. */
+export function staticChunkPath(
+  product: string, version: string, tierId: TierId, cy: number, cx: number,
+): string {
+  return `${staticProductDir(product, version)}/${tierId}/${pad2(cy)}_${pad2(cx)}.bin`;
+}
+
+/** Das eine statische Produkt, das es heute gibt: die Modellhoehe je Quelle. */
+export const HMODEL_PRODUCT = 'hmodel';
+export const HMODEL_VERSION = 'v1';
+
 /** Pfad des Punkt-Manifests. */
 /**
  * ── Stationsquellen als EIGENES Produkt (Jans Entscheidung 2026-09-09) ──────
@@ -597,14 +703,29 @@ export function quantize(value: number | null | undefined, plane: CubePlane): nu
   return q;
 }
 
+/**
+ * Was zum Umrechnen reicht: Skala und Versatz.
+ *
+ * PD-D2: Das Lauf-Manifest führt je Ebene genau `{ id, unit, scale, offset, group }` —
+ * kein `varId`, kein `kind`. Ein Leser, der ein Manifest liest (und das ist der Normalfall,
+ * seit der Container selbstbeschreibend ist), hätte damit kein `CubePlane` in der Hand und
+ * müsste die Umrechnung ein zweites Mal hinschreiben. Genau diese zweite Fassung ist der
+ * Fehler, den diese Linie an `repackManifest.mjs` gelernt hat. Deshalb nimmt `dequantize`
+ * das Minimum, das die Rechnung braucht; `CubePlane` erfüllt es.
+ */
+export interface PlaneScale {
+  readonly scale: number;
+  readonly offset: number;
+}
+
 /** int16 → physikalischer Wert. `MISSING` → `null`. */
-export function dequantize(q: number, plane: CubePlane): number | null {
+export function dequantize(q: number, plane: PlaneScale): number | null {
   if (q === MISSING) return null;
   return q * plane.scale + plane.offset;
 }
 
 /** Quantisierungsschrittweite Δ einer Ebene — PAP 6 rechnet `σ_quant² = Δ²/12`. */
-export function quantStep(plane: CubePlane): number {
+export function quantStep(plane: PlaneScale): number {
   return plane.scale;
 }
 
@@ -738,24 +859,34 @@ export function crc32(bytes: Uint8Array): number {
 }
 
 /**
- * Schreibt einen Chunk. `planes` muss `CUBE_PLANES.length` Einträge in genau dieser
+ * Schreibt einen Chunk. `planes` muss `planeList.length` Einträge in genau dieser
  * Reihenfolge haben — eine kürzere Liste wäre eine stille Umnummerierung aller
  * folgenden Ebenen.
+ *
+ * `planeList` ist seit PD-E überschreibbar, weil das statische Produkt
+ * (`point/static/hmodel/`) denselben Container mit einer EIGENEN Ebenenliste benutzt
+ * (eine Ebene je Quelle). Voreinstellung bleibt `CUBE_PLANES`, keine Aufrufstelle
+ * ändert sich. Die Schema-Nummer bleibt dieselbe, und das ist sicher: `decodeCubeChunk`
+ * bricht laut ab, wenn die übergebene Liste nicht so lang ist wie `nvar` im Kopf —
+ * ein Leser, der einen `hmodel`-Chunk mit `CUBE_PLANES` öffnet, bekommt einen Fehler,
+ * keine verschobenen Größen.
  */
 export async function encodeCubeChunk(
   chunk: Omit<CubeChunk, 'payloadCrc32' | 'schema' | 'flags' | 'nvar'>,
   compress: Compressor = deflateRaw,
+  planeList: readonly { id: string }[] = CUBE_PLANES,
 ): Promise<Uint8Array> {
-  const nvar = CUBE_PLANES.length;
+  const nvar = planeList.length;
   if (chunk.planes.length !== nvar) {
     throw new Error(`cube: ${chunk.planes.length} Ebenen statt ${nvar} — die Reihenfolge ist Vertrag`);
   }
+  if (nvar > 255) throw new Error(`cube: ${nvar} Ebenen passen nicht in das u8-Feld nvar`);
   const cells = chunk.nt * chunk.ny * chunk.nx;
   const blocks: { bytes: Uint8Array; filter: number }[] = [];
   for (let p = 0; p < nvar; p++) {
     const plane = chunk.planes[p];
     if (plane.length !== cells) {
-      throw new Error(`cube: Ebene ${CUBE_PLANES[p].id} hat ${plane.length} Werte statt ${cells}`);
+      throw new Error(`cube: Ebene ${planeList[p].id} hat ${plane.length} Werte statt ${cells}`);
     }
     blocks.push(await packBlock(plane, chunk.nx, compress));
   }

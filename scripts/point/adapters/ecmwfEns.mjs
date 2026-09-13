@@ -231,6 +231,8 @@ export function makeEcmwfEnsembleAdapter(id) {
     },
 
     async orography() { return null; },
+    orographyAbsentReason: 'Reine sigma_ens-Quelle — sie traegt keine Mittelwerte, fuer die '
+      + 'PAP 4 eine Hoehenkorrektur rechnen wuerde.',
     hasProfile: false,
     profileLevels: null,
 

@@ -29,10 +29,15 @@ import { sampleRadarPoint } from '../../src/pointForecast/radarSample.ts';
 import { untar, decodeRadolanRaw } from '../../src/sources/radolanDecode.ts';
 import { DE1200_CORNERS } from '../../src/sources/radolanGeo.ts';
 import {
-  NOWCAST_BY_ID, NOWCAST_SOURCES, NOWCAST_VMAX, NOWCAST_IMG_DIR, NOWCAST_RV_RAW_DIR,
-  nowcastFramePath, nowcastMetaPath, nowcastFromU8,
+  NOWCAST_BY_ID, NOWCAST_SOURCES, NOWCAST_IMG_DIR, NOWCAST_RV_RAW_DIR,
+  nowcastFramePath, nowcastMetaPath,
 } from '../../src/point/nowcastFormat.ts';
 import { SOURCE_BY_ID, coversPoint } from '../../src/point/sourceMatrix.ts';
+// PD-D2: Domaenenpruefung, vMax-Waechter, Abtastung und Byte -> mm/h stehen seit dieser
+// Phase EINMAL in `src/point/nowcastSample.ts` — der Netz-Leser des Clients benutzt
+// denselben Kern. Zwei Fassungen desselben teuren Teils waren der Fehler, den diese
+// Linie an `repackManifest.mjs` gelernt hat.
+import { sampleNowcastFrame } from '../../src/point/nowcastSample.ts';
 
 /**
  * Die vorhandenen Slots einer Quelle, **jüngster zuerst**.
@@ -57,76 +62,23 @@ export function readMeta(repoRoot, sourceId, stamp) {
   return JSON.parse(readFileSync(p, 'utf8'));
 }
 
-/**
- * Die vier Eckpunkte des Gitters als `[lon, lat]`.
- *
- * Für INCA und RZC stehen sie in der `meta.json` — sie ändern sich nicht, aber sie AUS
- * DEN DATEN zu nehmen ist der Unterschied zwischen einer geprüften und einer geglaubten
- * Geometrie. DE1200 hat ein festes Gitter; dort ist die Konstante die Quelle.
- */
-function cornersOf(spec, meta) {
-  if (spec.cornersFrom === 'de1200') return DE1200_CORNERS;
-  if (!Array.isArray(meta?.corners) || meta.corners.length !== 4) {
-    throw new Error(`nowcast: ${spec.id} — meta.json ohne brauchbare corners`);
-  }
-  return meta.corners;
-}
-
-/**
- * Ein Frame lesen und an einem Punkt abtasten.
- *
- * `lead` wählt den Vorhersageschritt in Minuten; ohne Angabe der erste (die Analyse).
- * Rückgabe wie `NowcastPoint`: `mmh`, `saturated`, `validAtMs`.
- */
 export async function readFrame(repoRoot, sourceId, stamp, lat, lon, lead = null) {
   const spec = NOWCAST_BY_ID[sourceId];
   const meta = readMeta(repoRoot, sourceId, stamp);
   if (!meta) return null;
 
-  // ⚠ Der Drift-Wächter, den auch der Client fährt (`src/sources/radarImg.ts`): weicht das
-  // `vMax` des Slots von der erwarteten Skala ab, sind ALLE Werte darin anders gemeint.
-  // Lieber laut abbrechen als eine ganze Kachel um den Faktor 5 danebenliegen.
-  if (meta.vMax !== NOWCAST_VMAX) {
-    throw new Error(`nowcast: ${sourceId}/${stamp} hat vMax ${meta.vMax}, erwartet ${NOWCAST_VMAX}`);
-  }
-
-  // ⚠ Die Domäne wird HIER angewandt, nicht beim Aufrufer — und das ist kein Luxus,
-  // sondern die Kur für einen gemessenen Fehler (2026-09-09, PD-B3):
-  //
-  // `decodeRadolanRaw` setzt ausserhalb der Radarabdeckung **NaN**. `precipToU8` bildet
-  // NaN auf **0** ab (`!(NaN >= 0.06)`), und 0 heisst im PNG „kein messbarer
-  // Niederschlag". Das Werte-PNG wirft damit „keine Abdeckung" und „kein Regen" in
-  // DASSELBE Byte. Am echten Slot nachgemessen: Linz und Wien liefern aus dem rohen
-  // tar.bz2 `NaN` (keine Abdeckung), aus dem PNG aber **0,0000 mm/h** — eine erfundene
-  // Trockenheit, mitten in ⚠¹ („Nicht abgedeckt: Linz, Graz, Klagenfurt, Villach, Wien").
-  //
-  // Das DE1200-Gitter ist viel groesser als das, was die Radare sehen; genau dafuer
-  // fuehrt die Registry `clip`. Ohne diesen Test bekaeme Ostoesterreich eine plausible
-  // Null statt einer ehrlichen Luecke.
-  const src = SOURCE_BY_ID[sourceId];
-  if (src && !coversPoint(src, lat, lon)) return null;
-
   const frames = meta.frames ?? [];
   const f = lead == null ? frames[0] : frames.find((x) => x.lead === lead);
   if (!f) return null;
 
+  // Die Domaenenpruefung steckt im Kern und laeuft dort VOR jeder Abtastung; hier wird
+  // sie vorgezogen, damit fuer einen nicht abgedeckten Punkt kein PNG von der Platte
+  // gelesen wird. Fiele sie hier weg, aendert sich das Ergebnis nicht — nur die Arbeit.
+  const src = SOURCE_BY_ID[sourceId];
+  if (src && !coversPoint(src, lat, lon)) return null;
+
   const png = decodePng(readFileSync(join(repoRoot, nowcastFramePath(spec, stamp, f.file))));
-  if (png.channels !== 1) throw new Error(`nowcast: ${f.file} hat ${png.channels} Kanäle, erwartet 1`);
-
-  // `sampleRadarPoint` mit vMax = 255 liefert das ROHE Byte zurück (raw/255·255). Die
-  // Umkehrung in mm/h macht danach `nowcastFromU8` — an EINER Stelle, mit der
-  // Sättigungsregel. Sonst käme aus 255 eine 20, und die wäre eine Erfindung.
-  const raw = sampleRadarPoint(
-    spec.grid, png.data, png.width, png.height,
-    cornersOf(spec, meta), lat, lon, 255,
-  );
-  if (raw == null) return null;
-
-  const { mmh, saturated } = nowcastFromU8(Math.round(raw));
-  const validAtMs = f.validAtMs
-    ?? (meta.runAtMs != null ? meta.runAtMs + (f.lead ?? 0) * 60_000 : null)
-    ?? (meta.validAtMs ?? null);
-  return { mmh, saturated, validAtMs, lead: f.lead ?? 0, stamp };
+  return sampleNowcastFrame(sourceId, { ...meta, stamp }, png, lat, lon, f);
 }
 
 /**

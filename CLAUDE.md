@@ -1,6 +1,8 @@
 # CLAUDE.md — buscosun: Projekt-Verfassung für Claude-Code-Agenten
 
-> **Stand: 2026-09-12.** **Aktuelle Phase: PD-B10 erledigt — σ_ens bis 336 h aus IFS-ENS (V-PD-27, §45), dazu drei Fehler aus PD-B8 behoben (Niederschlags-σ war die Streuung einer Summe; der ECMWF-Filter strich IFS HRES und AIFS Single; C-LAEF-Fenster lagen als JS-Array im Heap — 84 % der Grenze). Offen und Jans Gate: der erste Push, V-PD-28 (Cron-Slot für MOSMIX-L). Danach Plan PD-C (16 Etappen, s. unten): C1+C2 umgesetzt (§46) — der Cron hatte 0 von 7 Läufen veröffentlicht; Jans Gate PD-C3 = Vorlage ins Daten-Repo kopieren**
+> **Stand: 2026-09-13.** **Aktuelle Phase: PD-E erledigt — Druckflächen (925/850/700, T + RH) als sechs neue Ebenen im Cube (Schema 5, 57 Ebenen) und `point/static/hmodel/` mit der Modellhöhe JE QUELLE. Gate grün (point-data 895/895, point-client 63/63, Budget unverändert), **nichts committet, nichts veröffentlicht, keine Workflow-Datei angefasst**. Offen für Jan: E-E-1…E-E-5 (s. den PD-E-Absatz unten). Davor: PD-D (Vorstufe der Fusion, `audit/fusion-vorstufe.md`) und Block F/PD-C3 (Drei-Job-Cron im Drei-Stunden-Takt, deployt).**
+>
+> **Historie der Phase (Chronik nach unten): PD-B10 erledigt — σ_ens bis 336 h aus IFS-ENS (V-PD-27, §45), dazu drei Fehler aus PD-B8 behoben (Niederschlags-σ war die Streuung einer Summe; der ECMWF-Filter strich IFS HRES und AIFS Single; C-LAEF-Fenster lagen als JS-Array im Heap — 84 % der Grenze). Offen und Jans Gate: der erste Push, V-PD-28 (Cron-Slot für MOSMIX-L). Danach Plan PD-C (16 Etappen, s. unten): C1+C2 umgesetzt (§46) — der Cron hatte 0 von 7 Läufen veröffentlicht; Jans Gate PD-C3 = Vorlage ins Daten-Repo kopieren**
 > (`audit/punktdaten-versorgung.md` §12–§22, Gate GPD-A grün). Jans zweiter Auftrag des Tages:
 > `ABLAUFPLAENE.md` (sechs DIN-66001-Pläne des Fusions- und Downscaling-Algorithmus) und
 > `QUELLENMATRIX.md` (Primärquellen je Land und Vorhersagestunde) liegen in der Wurzel; daraus ist
@@ -731,6 +733,104 @@
 > Vorlage **byte-gleich im Daten-Repo** (`a7f772f`, 19 036 B, Workflow `active`); Ein-Stufen-Betrieb am
 > Datenträger belegt (nur-t1-Lauf, Orphan-Wächter grün, `latestByTier` je Stufe richtig).
 > `verify:point-data` **837/837**, typecheck 0.
+> ✅ **PD-D umgesetzt (2026-09-13, `audit/fusion-vorstufe.md`) — die Vorstufe der buscosun Fusion
+> liest, wählt und begründet.** Jans Auftrag: Punkt + Zeitpunkt/Zeitraum ⇒ **beste verfügbare Quelle
+> aus `buscosun-data`** und alle Werte dieser Quelle, **komplett ohne Algorithmus**.
+> **Der Befund, der die Aufgabe umformt (§1):** der Cube trägt **keine Werte einzelner Quellen** —
+> `srcMask` wird vor dem Kodieren auf `srcCount` reduziert, die 51 Ebenen tragen das fusionierte
+> Mittel. „Quelle“ hat im Repo heute genau eine beantwortbare Bedeutung: das **Produkt** (Nowcast /
+> Stationen / Cube-Stufe). Werte je Modell wären ein neues Producer-Produkt (**E-D-1**, `extract.bin`).
+> **Gemessen statt geschlossen:** Abdeckung in **Gültigzeit** (t1/t2 überlappen 3 h, t2/t3 klaffen 6 h,
+> jenseits +328 h nichts — die Naht ist **beweglich**, V-PD-55); in EINER Stunde stecken bis zu
+> **fünf Modellaufe** (Mittel 0–6 h alt, σ_ens 15z, Quantile 12z) ⇒ „Alter“ hat keine einzelne
+> Antwort; der veröffentlichte **Mittelwert liegt in 10–42 % der Stunden außerhalb des
+> q10/q90-Bands** (t2m 38 %) — erklärbar (das Band ist EINE Quelle aus einem älteren Lauf), aber ohne
+> Hinweis irreführend (**V-PD-54**); Stationsnetz Median 9,2 km, p90 **31 km**, Maximum 77,7 km;
+> Nahtsprung t1→t2 an derselben Gültigzeit −0,60 K bei Δh_mod +17 m; Lesekosten ≈ 1,1 MiB je Punkt.
+> **Die Auswahlregel ist abgeleitet, nicht gesetzt:** Niederschlag im Nowcast-Horizont ⇒ Radar
+> (Beobachtung 1–6 min alt gegen Modell aus 1,9 h altem Lauf); sonst gewinnt der Cube, **außer** die
+> Station liegt **mehr als 30 min näher** an der gefragten Zeit — dann ist der Cube-Wert erkennbar für
+> eine andere Stunde gemeint. ⚠ Die erste Fassung prüfte eine feste Schwelle und war falsch: bei
+> **07:25** verfehlen Cube und Station das Raster um **dieselben** 25 min, die Station hätte gewonnen,
+> ohne etwas besser zu können — am lebenden Datum aufgefallen, Negativkontrolle im Verifier.
+> ⚠ **V-PD-56, beim ersten Lauf gefunden:** **jeder RV-Frame trägt dieselbe `validAtMs`** — auch
+> `f120.png`. Der Wert ist der RADOLAN-Kopfzeitstempel, also die LAUFZEIT; die Vorhersagestunde steht
+> daneben in `leadMinutes`. Wer ihn glaubt, findet für „in zwei Stunden“ nichts, **ohne dass irgendwo
+> ein Fehler auftaucht**. Der Leser rechnet aus Slot + `lead` und meldet den Widerspruch als
+> `validAtSuspect`; **der Spiegel bleibt unangetastet** (Radar-Linie = STOPP & FRAGEN).
+> Neu: `src/point/client/{store,cubePoint,stationPoint,nowcastPoint,resolve,index}.ts`,
+> `src/point/nowcastSample.ts` (**geteilter Kern** — `nowcastReader.mjs` ruft ihn jetzt auch, keine
+> zweite Abtastung), `scripts/point/read-point.mjs` (`npm run point:read`), `verify:point-client`.
+> Additiv an bestehender Form: `dequantize`/`quantStep` nehmen `PlaneScale` (das Manifest führt genau
+> `scale`+`offset`), `nowcastFormat` bekam die am Spiegel gemessenen Stempelformen — `point/index.json`
+> **unverändert**. **Gate GPD-D:** `verify:point-client` **44/44** (Rundweg über den echten
+> `encodeCubeChunk`, größte Abweichung 2,0·10⁻³ K ≤ Δ/2, Zellverschiebung als Gegenprobe),
+> `verify:point-data` **837/837** unverändert, typecheck 0, Build 241/241, Budget **unverändert**
+> (eagerJs 107,9 · totalJs 1366,1; Textsonde: 0 von 83 Chunks). **Kein Verbraucher verdrahtet**,
+> `src/pointForecast/fusion/*` unberührt. Offen für Jan: **E-D-1** (Werte je Einzelquelle?),
+> **E-D-2** (Stationsschwelle 15 km/100 m — gesetzt, nicht gemessen), **E-D-3** (zwischen Rasterstunden
+> melden statt rechnen). Benannt: V-PD-52 (kein Slot-Index), V-PD-53 (`run.json` 85 kB je Punktwert).
+>
+> ✅ **PD-E umgesetzt (2026-09-13, `audit/punktdaten-druckflaechen.md`) — Druckflächen im Cube und
+> `h_model` je Quelle.** Jans zwei Posten, beide von ihm als „niedrig" eingeschätzt. Einer war es,
+> beim anderen hielt die Verfügbarkeitsannahme nicht.
+> ⚠ **„ICON-D2/EU/global und IFS liefern sie alle" stimmt für 925 hPa NICHT.** Am Verzeichnis
+> ausgezählt: **ICON-D2 führt kein 925** (es springt von **950** auf 850), **IFS und AIFS führen
+> kein 950**. Die Schnittmenge aller Quellen in der Grenzschicht ist **leer**; gemeinsam sind nur
+> 700, 850 und 1000. Die drei Flächen bleiben trotzdem **925/850/700** wie beauftragt — 925 trägt in
+> t1 ICON-EU/IFS/AIFS, ICON-D2 trägt 850 und 700 (**V-PD-58**). Ein Ersatz „950 statt 925 für
+> ICON-D2" ist ausgeschlossen: zwei Flächen in EINER Ebene wären §37 in vertikaler Form.
+> ⚠ **AIFS führt auf Druckflächen kein `r`** (nur `q`) ⇒ dort nur Temperatur (E-E-2).
+> ✓ „nur eine erweiterte Parameterliste" stimmt im Kern: das Druckflächen-GRIB liegt auf dem
+> **byte-identisch definierten Gitter** wie die Einzelfläche (ni 1215 × nj 746, di 0,02, scan 64) ⇒
+> keine neue Zugriffsfamilie, kein zweiter Abtast-Index; `level` kommt in **Pa** und ist als Wächter
+> verdrahtet. **51 → 57 Ebenen, Schema 5.** Sechs Ebenen ohne σ und ohne Quantile; gemittelt wird
+> über die Quellen, die GENAU diese Fläche führen. **ICON global bleibt draußen** — gemessen 7,63
+> gegen 2,18 (ICON-EU) bzw. 0,99 MiB (IFS) je Fläche und Schritt für dieselbe Aussage (E-E-3).
+> **Kosten gemessen: 574 MiB (t1) · 243 (t2) · 54 (t3) je Zyklus ⇒ ≈ 5,5 GiB/Tag, +13 %.**
+> ✅ **`point/static/hmodel/v1/` — und das kostet KEIN Byte Netz:** `runOrography` holt die
+> Modellorographie längst je Quelle und **mittelt sie vor dem Schreiben weg** zu `hModEff` — dieselbe
+> Klasse wie `srcMask → srcCount` (PD-D §1). Jetzt liegt sie je Quelle und Stufe im BSPC-Container
+> mit eigener Ebenenliste, im **Chunk-Raster des Cubes** (1,5 KiB je Punkt statt 210 KiB je Stufe),
+> `TIMELESS`, und ein Hash je Spalte sorgt dafür, dass ein zweiter Lauf **null Bytes** schreibt
+> (Jans Vorgabe) — ohne blind zu werden, wenn ein Modell-Upgrade die Orographie ändert.
+> **ECMWF veröffentlicht keine Orographie**, also aus `gh` + `sp` abgeleitet (`h = gh` interpoliert
+> in ln p bei p = sp), gekennzeichnet als `derived-gh-sp`. **Die Gegenprobe entschied darüber:**
+> gegen ICON globals natives HSURF auf demselben 0,25°-Gitter **7 m mittlere Abweichung im
+> Flachland** (max 10 m), 30 m im Bergland — erwartet, weil die Modelle verschieden glätten.
+> **Was das Produkt sichtbar macht:** in Innsbruck steht die Modellhöhe derselben t3-Zelle bei ICON
+> global 1332, IFS 1402, **AIFS 1672 m** — Spanne 340 m bei 574 m echter Höhe; an der Zugspitze
+> 1123–1374 m gegen 2962 m. PAP 4 korrigiert `h_true − h_mod_eff`; bis PD-E stand dort ein Mittel,
+> das beides verschwieg. Die abgeleiteten Höhen gehen **bewusst nicht** ins `hModEff` (**E-E-5**) —
+> das wäre eine stille Änderung an genau diesem Term.
+> ⚠ **Zwei Fehler, beide meine, beide erst am echten Bau sichtbar — und beide LAUTLOS.**
+> (1) `keepIndexEntry()` beginnt mit `levtype !== 'sfc'`; mein Druckflächen-Index benutzte dieselbe
+> Funktion und verwarf **jede** Zeile. Ergebnis: `t850 0 · rh850 0` im Manifest, ein statisches
+> Produkt mit einer Spalte, **kein Fehler, kein 404, keine Ausnahme**. Kur: `keepIndexType()` (die
+> Lauf-Regel allein) getrennt von `keepIndexEntry()`. Gefunden hat es nicht der Verifier — meine 21
+> neuen Prüfungen testeten die Adapter-*Oberfläche* und nie, ob eine Quelle für eine Fläche, die sie
+> führt, auch etwas **liefert** —, sondern die Zahl im Bauprotokoll. (2) `POINT_OUT` **ist** das
+> `point/`-Verzeichnis; mein Modul schrieb nach `point/point/static/`, ebenfalls ohne Fehler.
+> ⚠ **Und eine Korrektur an meiner eigenen Diagnose:** ich hatte geschrieben, ein Ebenen-`range` von
+> `[0,100]` würde die gemessenen **101,00 % RH** still klemmen. Falsch — `quantize()` liest `range`
+> **gar nicht**, es wehrt nur den int16-Überlauf ab; `CUBE_PLANES` trägt das Feld nicht einmal. Der
+> Bereich ist eine **Deklaration**, und falsch wäre sie trotzdem gewesen, nur anders (V-PD-59).
+> **Der Beleg ist die Physik, nicht der Wertebereich:** über **145 323 (Zelle, Stunde)** fällt T mit
+> der Höhe — `t925 > t850` in 57 Fällen verletzt (0,04 %, größte Umkehr 0,33 K: echte Inversionen),
+> `t850 > t700` in **0**. Und `belowGroundHPa` hat seinen Grund: **Zermatt meldet auf 925 hPa
+> 19,5 °C bei 4,2 °C am Boden** — die Fläche liegt dort unter Grund, der Wert ist Extrapolation. Der
+> Cube schreibt ihn unverändert, der Leser markiert ihn; `null` heißt „nicht entscheidbar", `[]`
+> heißt „geprüft".
+> **Gate:** `verify:point-data` **895/895** (war 837), `verify:point-client` **63/63** (war 44),
+> typecheck 0, Build 241/241, Budget **unverändert** (eagerJs 107,9 · totalJs 1366,1; Textsonde 0 von
+> 83 Chunks). **Keine Workflow-Datei angefasst**, nichts committet, nichts veröffentlicht.
+> Offen für Jan: **E-E-1** (ICON-EU in t1 ist mit 320 MiB der größte Posten und die einzige
+> stündliche 925-Quelle), **E-E-2** (RH für AIFS aus `q`?), **E-E-3** (ICON global draußen?),
+> **E-E-4** (700 hPa auch in t3?), **E-E-5** (abgeleitete Höhe in `hModEff`?). Neu benannt:
+> **V-PD-57** (`hModEff` in t3 ist ICON globals Höhe, auch jenseits 180 h, wo nur IFS/AIFS tragen),
+> **V-PD-58**, **V-PD-59**, **V-PD-60** (die Druckflächen legen eine zweite Mehrbereichs-Familie auf
+> `data.ecmwf.int`; gemessen 3 × 429, vom Pacer aufgefangen).
+>
 > **Werkzeugfalle zum dritten Mal in dieser Phase:** `[^
 ]` in einer Regex wurde durch die
 > Python-in-Bash-Kette zum echten Zeilenumbruch und hat den Verifier zerschossen. Kur wie
@@ -1357,6 +1457,7 @@ Geländebühne (R3D); Event-Fläche + Terrain-Bühne für die Eventplanung (EZ, 
 |---|---|
 | `audit/punktvorhersage-14tage.md` (+ `audit/punktvorhersage-14tage/`) | PV0 Diagnose/Spezifikation/Plan **und PV3 Implementierung** der punktbasierten probabilistischen Vorhersage („buscosun Fusion", `src/pointForecast/fusion/`): Verteilungsalgebra, Minimum-Varianz-Kombination mit Fehlerkorrelation, Repräsentativität aus dem Gelände, Klimatologie als Prior, Feuchtkugel-Phase. Gate GPV3 grün, danach **GPV3b: 0–336 h** (§8 — ACC mit zwei Zeitskalen, Taupunkt statt RH als Fusionsgröße, Klimatologie als letzter Member statt `null`). `verify:pv-fusion` **208/208** (nach Gate GPV3d, §10), netzfrei; alle sieben Skalargrößen tragen bis **372 h** eine echte Quelle, die Windrichtung endet konzentrationsabhängig (229 h bei 12 m/s, 46 h bei 3 m/s). Default-off hinter `distribution: true` — **kein Consumer nutzt das Flag**; drei Fachprüfungen (Statistik · Meteorologie · Integration) eingearbeitet. **Externes Audit 2026-09-07** (`FUSION_AUDIT.md`, `FUSION_VERIFICATION.md`, `FUSION_IMPROVEMENTS.md` in der Repo-Wurzel): Block 0 umgesetzt — Stationsanker jetzt Anomaliepersistenz (`validAtMs`/`climaAt`), ohne Klimatologie `null` statt stiller 8 °C, MOSMIX-Amplitude α = √ρ, Taupunkt-Lapse, Quellen-Auslauf auf dem Gewicht statt auf ρ; **K-2 umgesetzt** (§10): Niederschlag zweistufig — Auftreten im Probit-Latentraum mit eigenen Auftretens-ACC und Tail-Prior, Menge bedingt auf nass zur Nassstunden-Klimatologie, Ausgabe `hurdleLogNormal` (MOSMIX 5 mm/h bei 24 h: P(nass) 59 → 79 %, Median 0,22 → 1,95 mm/h). Falle: Nassmenge nie als Normalverteilung in log1p (30 % Masse < 0), und die MOS-Amplitude gehört nicht aufs Auftretens-Latent. **V-A₁ gelaufen** (§11, `npm run verify:pv-score`, netzabhängig): 111 DE-Stationen, MOSMIX_L as-of, POI-Wahrheit — Fusion-T = MOSMIX ± 3 % MAE, aber **Spread/Skill 0,5–0,6 (zweifach überkonfident, Gate verletzt)**, Wind +0,3 m/s Bias, K-1 an 435 Fällen belegt, **Altpfad bei 1–6 h 2,3× schlechter als rohes MOSMIX (V-PV-19, Produktdefekt)** — **behoben 2026-09-08 auf Jans Auftrag (§12): Stationsanker als Innovations-Persistenz (`src/pointForecast/anchor.ts`, Modell + Versatz·e^{−h/τ}, Versatz altersgewichtet aus den letzten 6 h ohne Archiv: BrightSky-Messungen + laufender MOSMIX-Lauf per `source_id`, TAWES-Historie, SMN-Tagesdatei), Default im Produkt, Kill-Switch `?anchor=value` / `anchorMode`; gemessen T 1–6 h 2,18 → 0,92 K (MOSMIX 0,90), Td 1,05 → 0,70. Fusion unberührt (behält K-1). `verify:pv-fusion` 222/222.** **Offen, in dieser Reihenfolge: Priors aus den Scorecards fitten (V-PV-18), Scorecards täglich fortschreiben, dann ICON-D2 aus dem CDN und IFS als zweites Zentrum; die K-2-Priors (`ACC.precipOcc`, `PRECIP_WET_CLIMA`, `PRECIP_OCC_TAIL`) sind ungemessen (V-PV-17); `climatologyOnly`/`climaSource` werden noch nirgends angezeigt (V-PV-14); Stufe 4 (GEFS-Spread) braucht einen neuen Actions-Cron ⇒ STOPP & FRAGEN** |
 | `audit/punktarchiv.md` | **PA0–PA7: Punktarchiv für buscosun Fusion** — Diagnose der Aufbewahrung je Quelle (Vorhersagen nicht nachholbar, Wahrheit schon), Datenmodell v1 (Slot-Datei spaltenweise, ganzzahlig skaliert, Fusion als Verteilungsparameter), Sammler als Datenschritt des V-A-Harness, Repo `buscosun-archiv` mit eigenem Cron, Bewerter-Modus `--archive`, Gates GPA1–GPA7, E-1…E-7, V-PA-1…5 |
+| `audit/punktdaten-druckflaechen.md` | **PD-E: Druckflächen im Cube und `h_model` je Quelle** — die zwei Verfügbarkeitsannahmen am Katalog gemessen (ICON-D2 ohne 925, AIFS ohne RH), Schema 5 mit sechs Ebenen, `point/static/hmodel/` als zeitloses Produkt mit Hash-Vergleich, die ECMWF-Höhe aus `gh` + `sp` samt Gegenprobe gegen ICON global (7 m im Flachland), E-E-1…E-E-5, V-PD-57…60 |
 | `audit/punktdaten-versorgung.md` | **PD0/PD-A: Punktdaten aus dem Daten-Repo** — warum buscosun Fusion `buscosun-data` heute nicht liest, der vollständige Datenbedarf aus `ABLAUFPLAENE.md` (41 Felder) mit Quellenzuordnung aus `QUELLENMATRIX.md`, die fehlenden Produktlinien (Punkt-Cube, Kalibrierung), gemessene Formate und Volumina, Etappen PD1–PD6 mit Gates, E-1…E-18, V-PD-1…8; §22 = das Fundament, §23 die Adapter, §24 die 24-h-Aufbewahrung, §25 Geländerückbau + bz2-Befund, §26 ein Verzeichnis = eine Veröffentlichung |
 | `audit/teilen-share.md` | **SH0–SH6: „Auswahl teilen“ (vollständig umgesetzt)** — Diagnose des URL-Zustands je Feature-Seite (Query vs. Fragment vs. gar nichts, gemessene Link-Längen), Zielschema `/<feature>/<ansicht>[/<ort-slug>]?<abweichungen>` mit Beispiel-URL je Seite, Share-UI, Kanäle, Open-Graph-Empfehlung in zwei Stufen, Etappenplan mit Gates, V-SH-1…13 (alle erledigt), §20 = SH6, §22 = V-SH-12 + E-7, §23 = V-SH-13 mit Edge Function, 50 Vorschaubildern und den zwei Fehlern, die erst die echte Crawler-Antwort zeigte |
 | `audit/brandradar-satellitenbilder.md` | SAT0–SAT2h: Satellitenbilder vorher/nachher, 10-m-COG-Viewer, SWIR/dNBR/SCL-Maske/WorldCover-Dämpfung, Performance-Härtung der Komposit-Schleife |

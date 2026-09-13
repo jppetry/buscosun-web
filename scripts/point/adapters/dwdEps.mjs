@@ -274,6 +274,8 @@ export function makeDwdEpsAdapter(id) {
 
     /** EPS-Quellen liefern keine eigene Orographie in den Cube. */
     async orography() { return null; },
+    orographyAbsentReason: 'Reine sigma_ens-Quelle — sie traegt keine Mittelwerte, fuer die '
+      + 'PAP 4 eine Hoehenkorrektur rechnen wuerde.',
 
     ensembleOnly: true,
     ensembleNote: `${m.members} Member, gebündelt in EINER Datei je (Größe, Schritt) — eine `

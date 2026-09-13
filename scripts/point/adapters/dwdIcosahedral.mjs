@@ -160,6 +160,13 @@ export function makeDwdIcosahedralAdapter(id) {
       return r ? r.grid : null;
     },
 
+    // PD-E: AICON hat keine zeitinvariante Datei. Ihm ICON globals HSURF zu UNTERSTELLEN
+    // (es leiht sich dessen Gitter) waere eine Annahme, keine Messung — und genau die Sorte
+    // Annahme, die spaeter wie ein Messwert gelesen wird.
+    orographyAbsentReason: m.orographyParam ? null
+      : 'Der DWD legt fuer AICON keine time-invariant-Datei ab. AICON rechnet auf dem '
+        + 'ikosaedrischen Gitter von ICON global; dessen HSURF zu unterstellen waere eine Annahme.',
+
     async orography(run, tier) {
       if (!m.orographyParam) return null;
       const idx = await indexFor(run, tier);
