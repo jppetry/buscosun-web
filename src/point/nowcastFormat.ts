@@ -9,11 +9,13 @@
  *
  * ── Warum der Nowcast NICHT in den Cube gebacken wird ──────────────────────
  * Die Cube-Achse hängt am **Modelllauf**: `leadH = 0` ist die Laufzeit, nicht „jetzt".
- * Der Punkt-Job läuft um `:50`, und der jüngste vollständige ICON-D2-Lauf ist dann
- * gemessen 3,4–3,8 h alt. Ein RV-Frame mit +120 min deckt damit die Cube-Stunden **≈ 4
- * bis 6**, nicht 0–3. Ein Produkt, das viermal täglich erscheint, kann ein Produkt, das
- * sich alle fünf Minuten erneuert, nicht tragen — es lieferte eine Beobachtung aus, die
- * beim Lesen schon Stunden alt wäre.
+ * Seit dem Drei-Stunden-Takt (PD-F3c) läuft der Job für Stufe 1 um `:40` der Stunden
+ * 1, 4, …, 22; der jüngste vollständige ICON-D2-Lauf ist dann **1,7 h** alt (vor F3c:
+ * 3,4–3,8 h, damals ein Job um `:50` viermal täglich). Die gröberen Stufen sind älter —
+ * Stufe 2 ≈ 3,8 h (ICON-EU), Stufe 3 ≈ 9,9 h (IFS-Hauptlauf 00z/12z). Ein RV-Frame mit
+ * +120 min deckt damit die Cube-Stunden **≈ 2 bis 4**, nicht 0–3. Ein Produkt, das
+ * achtmal täglich erscheint, kann eines, das sich alle fünf Minuten erneuert, nicht
+ * tragen — es lieferte eine Beobachtung aus, die beim Lesen schon Stunden alt wäre.
  *
  * Die Nowcast-Zeile bleibt deshalb **eine eigene Linie neben dem Cube**, die zur
  * ABFRAGEZEIT gelesen wird. Dieses Modul sagt, wo sie liegt und wie sie zu lesen ist;
@@ -216,7 +218,7 @@ export function nowcastMetaPath(spec: NowcastSourceSpec, stamp: string): string 
 export function nowcastManifest() {
   return {
     dir: NOWCAST_IMG_DIR,
-    note: 'Beobachtungsnahe Quellen für 0–3 h. Liegt NEBEN dem Cube, nicht darin: die Cube-Achse hängt am Modelllauf, und der ist beim Bau 3,4–3,8 h alt — ein 5-Minuten-Produkt passt nicht in ein 6-Stunden-Raster. Zur Abfragezeit lesen.',
+    note: 'Beobachtungsnahe Quellen für 0–3 h. Liegt NEBEN dem Cube, nicht darin: die Cube-Achse hängt am Modelllauf, und der ist beim Bau je nach Stufe 1,7 h (t1, ICON-D2), 3,8 h (t2, ICON-EU) oder 9,9 h (t3, IFS-Hauptlauf) alt — ein 5-Minuten-Produkt passt nicht in ein Raster, das je Stufe zwei- bis achtmal täglich erscheint. Zur Abfragezeit lesen.',
     encoding: {
       kind: 'u8-grayscale-png',
       vMax: NOWCAST_VMAX,

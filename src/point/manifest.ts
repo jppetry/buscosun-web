@@ -21,7 +21,8 @@
 
 import {
   CUBE_SCHEMA, CUBE_PLANES, CHUNK_CELLS, TIERS, POINT_DIR, POINT_INDEX_PATH,
-  POINT_SOURCES_PATH, POINT_CALIB_PATH, STATIONS_DIR, STATION_CATALOG_PATH, type TierId,
+  POINT_SOURCES_PATH, POINT_CALIB_PATH, STATIONS_DIR, STATION_CATALOG_PATH, STATIC_DIR,
+  type TierId,
 } from './cubeFormat';
 import { nowcastManifest } from './nowcastFormat';
 
@@ -77,9 +78,10 @@ export const TIMELESS_PATHS: readonly string[] = Object.freeze([
   `${POINT_DIR}/sources.json`,
   `${POINT_DIR}/calib.json`,
   `${POINT_DIR}/index.json`,
-  // PD-C4 (Plan PD-C11): das statische Produkt (Versiegelung, Gebäudehöhe aus GHS-BUILT)
-  // altert mit dem Datensatz-Jahrgang, nicht mit der Uhr. Präfix mit Schrägstrich — der
-  // Jahrgang steht als Unterverzeichnis (`point/static/ghs-2023-v1/`).
+  // Die statischen Produkte altern mit der Sache, nicht mit der Uhr. Präfix mit
+  // Schrägstrich — Produkt und Fassung stehen als Unterverzeichnisse. Heute liegt dort
+  // `point/static/hmodel/v1/` (Modellhöhe je Quelle, PD-E); das Versiegelungs- und
+  // Gebäudehöhenprodukt aus GHS-BUILT (Plan PD-C11) ist noch nicht gebaut.
   `${POINT_DIR}/static/`,
   'hsurf-v1.png',
   'index.json',
@@ -380,6 +382,14 @@ export function buildPointIndex(opts: {
    */
   stationRuns?: Array<{ run: string; runAt: string | null; ageH: number | null; path: string;
     manifest: string; stationCount: number | null; leadHours: number | null; bytes: number }>;
+  /**
+   * Die zeitlosen Produkte unter `point/static/`. Vom Publisher **gezählt**, nicht hier
+   * behauptet: ein Register, das ein Produkt nennt, das nicht liegt, ist schlimmer als
+   * eines, das schweigt.
+   */
+  staticProducts?: Array<{ product: string; version: string; path: string; manifest: string;
+    kind: string | null; updatedAt: string | null; bytes: number;
+    tiers: Array<{ id: string; columns: string[]; chunks: number | null; bytes: number | null }> }>;
 }) {
   return {
     schema: CUBE_SCHEMA,
@@ -400,6 +410,15 @@ export function buildPointIndex(opts: {
       source: 'mosmix_l',
       axis: 'eigene Achse, stuendlich bis 247 h — NICHT die Stufenachse des Cubes (die ist ab 51 h dreistuendlich).',
       note: 'Stationsvorhersagen (MOSMIX) sind ein EIGENES Produkt, kein Gitter — s. cubeFormat.ts. Gebündelt nach dem Chunk-Raster der Stufe 1, gleicher Container, Zuordnung Spalte → Station im Lauf-Manifest.' },
+    // Die zeitlosen Produkte. `point/static/` stand seit PD-C4 in `timeless`, aber kein
+    // Register nannte, WAS dort liegt: das Produkt `hmodel` war veröffentlicht und nur
+    // auffindbar, wer den Pfad im Client-Code kannte. Die Umkehrung von V-SH-11 — dort
+    // ein Leser ohne Schreiber, hier ein Schreiber ohne Ankündigung.
+    static: {
+      dir: STATIC_DIR,
+      products: opts.staticProducts ?? [],
+      note: 'Zeitlose Produkte: sie altern mit der Sache (Modell-Upgrade, Datensatz-Jahrgang), nicht mit der Uhr, und fallen deshalb nicht unter die Aufbewahrung. Jedes Produkt hat sein eigenes static.json mit Ebenenliste, Herkunft je Spalte und dem, was fehlt — der Container ist derselbe wie beim Cube, die Ebenenliste aber NICHT die von planes.',
+    },
     // Die 0–3-h-Zeile der Quellenmatrix. Sie liegt seit RD3 im Repo — aber nirgends stand,
     // WIE man daraus einen Punktwert gewinnt, und dass Byte 0 zweideutig ist (PD-B3).
     nowcast: nowcastManifest(),

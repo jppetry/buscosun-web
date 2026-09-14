@@ -7,7 +7,8 @@
  *
  * ── Warum er nichts in den Cube schreibt ───────────────────────────────────
  * Siehe `src/point/nowcastFormat.ts`: die Cube-Achse hängt am Modelllauf, und der ist
- * beim Bau 3,4–3,8 h alt. Ein 5-Minuten-Produkt in ein 6-Stunden-Raster zu backen hieße,
+ * beim Bau je nach Stufe 1,7 h (t1) bis 9,9 h (t3) alt. Ein 5-Minuten-Produkt in das
+ * Raster einer Stufe zu backen hieße,
  * eine Beobachtung auszuliefern, die beim Lesen längst überholt ist. Der Leser bedient
  * deshalb die Abfragezeit — und den Verifier, der damit die Kodierungsaussage prüft.
  *

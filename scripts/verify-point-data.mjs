@@ -28,7 +28,7 @@ import {
   chunkPath, chunkExtent, cellOf, MISSING, quantize, dequantize, planeIndex,
   POINT_INDEX_PATH, POINT_SOURCES_PATH, POINT_CALIB_PATH,
   STATION_CATALOG_PATH, STATIONS_DIR, stationBundlePath, stationManifestPath, readCubeHeader,
-  STAGE_DIR, stageChunkPath, stageTierDir,
+  STAGE_DIR, stageChunkPath, stageTierDir, STATIC_DIR,
 } from '../src/point/cubeFormat.ts';
 import {
   sourceMatrixSelfTest, SOURCES, SOURCE_BY_ID, MATRIX_BANDS, SCHEDULED_CHANGES,
@@ -74,6 +74,9 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
  *  dieser Datei zweimal in ein echtes Steuerzeichen verwandelt (Werkzeugkette, nicht
  *  Node). Eine benannte Konstante kann das nicht passieren. */
 const NEWLINE = String.fromCharCode(10);
+const CARRIAGE_RETURN = String.fromCharCode(13);
+/** Zeilenenden auf LF — der Daten-Repo-Klon checkt unter Windows mit CRLF aus. */
+const lfOnly = (s) => s.split(CARRIAGE_RETURN + NEWLINE).join(NEWLINE);
 const checks = [];
 const add = (name, ok, detail) => checks.push({ name, ok: !!ok, detail });
 const merge = (label, r) => { for (const c of r.checks) add(`${label}: ${c.name}`, c.ok, c.detail); };
@@ -676,6 +679,91 @@ add('der gemessene Widerspruch zu ⚠² ist festgehalten',
     ? readFileSync(join(ROOT, 'scripts/repack-repo/workflow-point.yml'), 'utf8') : '';
   add('die Cron-Vorlage für point/ liegt im Repo', wf.length > 0);
 
+  // ── Der README nennt, was im Code steht — an den Konstanten gemessen ───────
+  //
+  // Die Prüfungen darüber fragen nach STICHWORTEN (`point/`, `radar/`, `cape`, `ageH`).
+  // Alle waren grün, während die Hälfte des Textes falsch war (2026-09-14 ausgezählt):
+  // „4 × täglich" bei drei Jobs mit drei Takten, „Aufbewahrung 24 h quellenunabhängig"
+  // bei 9/24/24 je Stufe, eine Quellentabelle von vor PD-B4…B10, kein Wort über
+  // `point/stations/` und `point/static/`. Ein Stichwort beweist nichts über eine Zahl —
+  // das ist BW-1 in Textform.
+  //
+  // Deshalb wird jede Zahl des Textes gegen IHRE Konstante gehalten. `readmeGaps` gibt
+  // zurück, was fehlt; leer heißt, der Text nennt alles, was er nennen muss. Der Text
+  // darf mehr sagen, nur nichts auslassen — eine Prüfung auf Wortlaut wäre eine zweite
+  // Fassung des READMEs im Verifier.
+  const readmeGaps = (text) => {
+    const gaps = [];
+    const need = (what, ok) => { if (!ok) gaps.push(what); };
+    const lines = text.split(NEWLINE);
+    for (const [i, t] of TIERS.entries()) {
+      need(`Band ${t.id} ${t.fromH}–${t.toH} h`, text.includes(`${t.fromH}–${t.toH} h`));
+      need(`Gitter ${t.id} ${t.ny}×${t.nx}`, text.includes(`${t.ny}×${t.nx}`));
+      need(`Chunkzahl ${t.id}`, text.includes(`${t.chunk.cy * t.chunk.cx} Chunks`));
+      // Die Aufbewahrung steht je Stufe in EINER Tabellenzeile — sonst zählte das „24 h"
+      // einer anderen Zeile für alle drei Stufen mit.
+      const row = lines.find((l) => /^\|\s*`point\/`\s*Stufe/.test(l) && l.includes(`Stufe ${i + 1}`));
+      need(`Aufbewahrung ${t.id} = ${RETENTION_HOURS_BY_TIER[t.id]} h`,
+        !!row && row.includes(`${RETENTION_HOURS_BY_TIER[t.id]} h`));
+    }
+    const byKind = {};
+    for (const p of CUBE_PLANES) byKind[p.kind] = (byKind[p.kind] ?? 0) + 1;
+    need(`Schrittzahl ${CUBE_STEP_COUNT}`, text.includes(`${CUBE_STEP_COUNT} Zeitschritte`));
+    need(`Ebenenzahl ${CUBE_PLANES.length}`, text.includes(`${CUBE_PLANES.length} Ebenen`));
+    need(`${byKind.mean} Mittel`, text.includes(`${byKind.mean} Mittel`));
+    need(`${byKind.sd} σ_div`, text.includes(`${byKind.sd} σ_div`));
+    need(`${byKind.sd_ens} σ_ens`, text.includes(`${byKind.sd_ens} σ_ens`));
+    need('Quantilzahl', text.includes(`${byKind.q10} q10 + ${byKind.q90} q90`));
+    need(`Registergröße ${SOURCES.length}`, text.includes(`${SOURCES.length} Einträge`));
+    for (const d of [STATIONS_DIR, STATIC_DIR, STAGE_DIR]) need(`Verzeichnis ${d}`, text.includes(d));
+    for (const p of TIMELESS_PATHS) need(`zeitlos ${p}`, text.includes(p));
+    return gaps;
+  };
+  {
+    const gaps = readmeGaps(readme);
+    add('der README nennt jede Zahl, die im Code steht (Bänder, Ebenen, Aufbewahrung, Verzeichnisse)',
+      readme.length > 0 && gaps.length === 0,
+      gaps.length ? `fehlt: ${gaps.slice(0, 8).join(' · ')}` : 'vollständig');
+
+    // Jeder Takt, den die Vorlage schaltet, steht auch im README — sonst beschreibt der
+    // Text einen Betrieb, den es nicht gibt (genau der Fehler von 2026-09-14).
+    const jobCrons = wf.split(NEWLINE)
+      .map((l) => /-\s*cron:\s*'(\d+)\s+([\d,]+)/.exec(l))
+      .filter(Boolean)
+      .map((m) => ({ min: +m[1], hours: m[2].split(',') }));
+    const cronMissing = jobCrons.filter((c) => !readme.includes(`:${String(c.min).padStart(2, '0')}`)
+      || !readme.includes(c.hours.join(', ')));
+    add('der README nennt jeden Takt, den die Cron-Vorlage schaltet',
+      jobCrons.length >= 3 && cronMissing.length === 0,
+      cronMissing.length ? `nicht beschrieben: ${cronMissing.map((c) => `:${c.min} ${c.hours.join(',')}`).join(' · ')}`
+        : `${jobCrons.length} Takte`);
+
+    // Negativ-Kontrollen: eine Prüfung, die nur „grün" kann, prüft nichts. Jede Mutation
+    // ist ein Fehler, der 2026-09-14 WIRKLICH im Text stand.
+    for (const [what, txt] of [
+      ['eine alte Ebenenzahl', readme.replace(`${CUBE_PLANES.length} Ebenen`, '51 Ebenen')],
+      ['eine Aufbewahrung ohne Stufen', readme.replace(`${RETENTION_HOURS_BY_TIER.t1} h**`, '24 h**')],
+      ['ein fehlendes Verzeichnis', readme.split(STATIC_DIR).join('point/statik')],
+    ]) {
+      add(`Gegenprobe: ${what} im README fällt auf`, readmeGaps(txt).length > 0);
+    }
+
+    // Die DEPLOYTE Kopie ist Jans Gate wie bei der Workflow-Vorlage — hier nur Auskunft.
+    // ⚠ Verglichen wird ZEILENWEISE, nicht byteweise: das Daten-Repo checkt unter Windows
+    // mit `core.autocrlf=true` aus, die Vorlage liegt mit LF. Ein Byte-Vergleich meldete
+    // deshalb IMMER „weicht ab" (gemessen: point.yml 18 524 gegen 18 184 Zeichen bei
+    // identischem Blob — die Differenz ist exakt die Zeilenzahl) und wäre als Warnung
+    // wertlos, weil sie nie verschwindet.
+    const deployedReadme = join(ROOT, 'data/repo/README.md');
+    if (existsSync(deployedReadme)) {
+      const dep = lfOnly(readFileSync(deployedReadme, 'utf8'));
+      if (dep === lfOnly(readme)) add('der lokal ausgecheckte deployte README ist inhaltsgleich zur Vorlage', true);
+      else console.log(`  ⚠ data/repo/README.md weicht von der Vorlage ab (${dep.length} gegen ${lfOnly(readme).length} Zeichen, Zeilenenden normalisiert) — die Kopie ins Daten-Repo ist Jans Gate`);
+    } else {
+      console.log('  ⚠ kein lokaler Klon des Daten-Repos unter data/repo — Vergleich mit dem deployten README uebersprungen');
+    }
+  }
+
   // ── Der Punkt-Lauf darf nicht ins Publish-Fenster der Kartenlinie laufen ────
   //
   // `publish-repack.mjs` klont das Daten-Repo flach, wirft `.git` weg und FORCE-PUSHT
@@ -884,9 +972,10 @@ add('der gemessene Widerspruch zu ⚠² ist festgehalten',
     // Fehlschlag: bis zur Kopie weicht sie zwangslaeufig ab.
     const deployedPath = join(ROOT, 'data/repo/.github/workflows/point.yml');
     if (existsSync(deployedPath)) {
-      const dep = readFileSync(deployedPath, 'utf8');
-      if (dep === wf) add('die lokal ausgecheckte deployte point.yml ist byte-gleich zur Vorlage', true);
-      else console.log(`  ⚠ data/repo/.github/workflows/point.yml weicht von der Vorlage ab (${dep.length} gegen ${wf.length} Zeichen) — Kopie ins Daten-Repo ist Jans Gate (PD-C3)`);
+      // Zeilenenden normalisiert — s. die Begründung beim README weiter oben.
+      const dep = lfOnly(readFileSync(deployedPath, 'utf8'));
+      if (dep === lfOnly(wf)) add('die lokal ausgecheckte deployte point.yml ist inhaltsgleich zur Vorlage', true);
+      else console.log(`  ⚠ data/repo/.github/workflows/point.yml weicht von der Vorlage ab (${dep.length} gegen ${lfOnly(wf).length} Zeichen, Zeilenenden normalisiert) — Kopie ins Daten-Repo ist Jans Gate (PD-C3)`);
     } else {
       console.log('  ⚠ kein lokaler Klon des Daten-Repos unter data/repo — Vergleich mit der deployten point.yml uebersprungen');
     }
@@ -1822,8 +1911,15 @@ merge('Profil (PD-B5)', profileSelfTest());
   // `convert()` ja gerade, um zu erklären, warum es NICHT benutzt wird (dieselbe
   // Klasse wie (3k) und §22).
   const epsCode = src.split(NEWLINE).filter((l) => !/^\s*\*/.test(l) && !/^\s*\/\//.test(l));
+  const usesConvert = (lines) => lines.some((l) => /convert\(/.test(l));
   add('(3m) Streuungen werden nur mit dem FAKTOR skaliert',
-    /SD_FACTOR/.test(src) && !epsCode.some((l) => /convert\(/.test(l)));
+    /SD_FACTOR/.test(src) && !usesConvert(epsCode));
+  // ⚠ Gegenprobe, weil genau diese Prüfung zwei Wochen lang NICHT prüfen konnte: das
+  // `\b` im Muster war durch die Python-in-Bash-Kette zu einem echten Backspace-Byte
+  // geworden (2026-09-14 gefunden, dieselbe Werkzeugfalle wie §52). Das Muster traf
+  // dadurch nie etwas, und die Verneinung war IMMER wahr — grün ohne Aussage.
+  add('(3m) Gegenprobe: das Muster trifft ueberhaupt etwas',
+    usesConvert(['      out[k] = convert(raw[k], unit);']));
   add('(3m) und der Grund ist benannt', /nie mit dem Versatz/.test(src));
 
   // ⚠ Nicht jede GRIB-Nachricht ist ein Member: ICON-D2-EPS bundelt `tot_prec` in
@@ -3086,6 +3182,60 @@ merge('Profil (PD-B5)', profileSelfTest());
       && Math.abs(dqPE(back.planes[0][0], HMODEL_PLANE_META) - g2[0]) <= 0.5,
       `${dqPE(back.planes[0][0], HMODEL_PLANE_META)} statt ${g2[0]}`);
     } finally { rmSync(tmp, { recursive: true, force: true }); }
+  }
+
+  // -- Das Register nennt, was unter point/static/ WIRKLICH liegt (2026-09-14) --
+  //
+  // Das Produkt war seit PD-E veroeffentlicht und stand in `point/index.json` nicht:
+  // auffindbar nur, wer den Pfad im Client-Code kannte. Geprueft wird deshalb an
+  // ECHTEN Dateien und in der Reihenfolge des Betriebs — schreiben, abtasten,
+  // ankuendigen. Eine Quellsonde allein haette die stille Fassung (`products: []`)
+  // nicht von der richtigen unterschieden.
+  {
+    const { writeStaticHmodel } = await import('./point/staticHmodel.mjs');
+    const { scanStaticProducts } = await import('./point/staticIndex.mjs');
+    const tmp2 = join(ROOT, 'data', `.verify-staticidx-${process.pid}`);
+    rmSync(tmp2, { recursive: true, force: true });
+    try {
+      add('(3ab) ohne Produkt nennt das Register nichts (kein erfundener Eintrag)',
+        scanStaticProducts(tmp2).length === 0);
+      const cells3 = TIER_BY_ID.t3.ny * TIER_BY_ID.t3.nx;
+      const gh = new Float32Array(cells3);
+      for (let k = 0; k < cells3; k++) gh[k] = 500 + (k % 7);
+      // `writeStaticHmodel` bekommt das point/-Verzeichnis, `scanStaticProducts` die
+      // Repo-Wurzel — genau die zwei Sichten, deren Verwechslung in PD-E
+      // `point/point/static/` erzeugt hat. Hier stehen sie nebeneinander.
+      await writeStaticHmodel(join(tmp2, 'point'), 't3',
+        [{ id: 'icon_global', provenance: 'native', grid: gh }], { run: '2026091400' });
+      const prods = scanStaticProducts(tmp2);
+      add('(3ab) das geschriebene Produkt wird gefunden',
+        prods.length === 1 && prods[0].product === HMODEL_PRODUCT && prods[0].version === HMODEL_VERSION,
+        prods.map((x) => `${x.product}/${x.version}`).join(',') || '(keins)');
+      add('(3ab) der Pfad traegt das point/-Praefix genau einmal',
+        prods[0]?.path === `${STATIC_DIR}/${HMODEL_PRODUCT}/${HMODEL_VERSION}`
+        && existsSync(join(tmp2, prods[0].manifest)), prods[0]?.path);
+      add('(3ab) die Spalten stehen im Register, nicht nur im Produktmanifest',
+        prods[0]?.tiers.some((t) => t.id === 't3' && t.columns.join() === 'icon_global'),
+        JSON.stringify(prods[0]?.tiers));
+      add('(3ab) Groesse und Chunkzahl sind gezaehlt',
+        prods[0]?.bytes > 0 && prods[0]?.tiers[0]?.chunks === TIER_BY_ID.t3.chunk.cy * TIER_BY_ID.t3.chunk.cx,
+        `${prods[0]?.bytes} B, ${prods[0]?.tiers[0]?.chunks} Chunks`);
+      const idx2 = buildPointIndex({ commit: null, publishedAt: new Date().toISOString(),
+        runs: [], staticProducts: prods });
+      add('(3ab) point/index.json kuendigt das Produkt an',
+        idx2.static?.dir === STATIC_DIR && idx2.static.products.length === 1
+        && idx2.static.products[0].manifest.endsWith('static.json'));
+      add('(3ab) Gegenkontrolle: ohne Produkt bleibt die Liste leer, der Block aber da',
+        buildPointIndex({ commit: null, publishedAt: '', runs: [] }).static.products.length === 0);
+      // Ein Produktverzeichnis ohne `static.json` ist ein abgebrochener Lauf, kein Produkt.
+      mkdirSync(join(tmp2, STATIC_DIR, 'ghs', 'v1'), { recursive: true });
+      add('(3ab) ein Produktverzeichnis ohne static.json wird uebergangen',
+        scanStaticProducts(tmp2).length === 1);
+      const pubSrc = readFileSync(join(ROOT, 'scripts/point/publish-point.mjs'), 'utf8');
+      add('(3ab) der Publisher zaehlt mit DERSELBEN Funktion (keine zweite Fassung)',
+        /scanStaticProducts\(REPO\)/.test(pubSrc) && /staticProducts,/.test(pubSrc)
+        && !/readdirSync\(staticRoot/.test(pubSrc));
+    } finally { rmSync(tmp2, { recursive: true, force: true }); }
   }
 
   // -- Die abgeleitete ECMWF-Hoehe geht NICHT ins hModEff (E-E-5) -------------

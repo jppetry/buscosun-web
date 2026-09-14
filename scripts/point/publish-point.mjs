@@ -34,6 +34,7 @@ import { POINT_DIR, POINT_INDEX_PATH, POINT_SOURCES_PATH, POINT_CALIB_PATH, TIER
 import { buildPointIndex, runsToKeep, runsToKeepFor, RETENTION_HOURS, RETENTION_HOURS_BY_TIER, MIN_RUNS, CDN_BASE } from '../../src/point/manifest.ts';
 import { TIERS } from '../../src/point/cubeFormat.ts';
 import { pruneTier, tiersOf } from './prune.mjs';
+import { scanStaticProducts } from './staticIndex.mjs';
 import { buildSourcesJson } from '../../src/point/sourceMatrix.ts';
 import { CALIBRATION_V1 } from '../../src/point/calibration.ts';
 // PD-C1: Pfadliste und Prädikat teilen sich Publisher und Verifier (EINE Form) —
@@ -185,6 +186,17 @@ const stationRuns = stKept.map((run) => {
 });
 log(`stations/: ${stationRuns.length} Lauf/Läufe, ${(stationRuns.reduce((n, r) => n + r.bytes, 0) / 1048576).toFixed(2)} MiB`);
 
+// ── Die zeitlosen Produkte unter `point/static/` ──────────────────────
+// Sie fallen NICHT unter die Aufbewahrung (`TIMELESS_PATHS`) und werden hier deshalb
+// auch nicht gelöscht — sie werden GEZÄHLT. Bis PD-E lag `hmodel` veröffentlicht im Repo
+// und stand in keinem Register: auffindbar nur, wer den Pfad im Client-Code kannte.
+// Die Abtastung liegt in `staticIndex.mjs`, damit der Verifier sie an echten Dateien
+// prüfen kann — dieses Skript veröffentlicht beim Import.
+const staticProducts = scanStaticProducts(REPO);
+log(`static/: ${staticProducts.length} Produkt(e), `
+  + `${(staticProducts.reduce((n, p) => n + p.bytes, 0) / 1024).toFixed(0)} KiB`
+  + (staticProducts.length ? ` — ${staticProducts.map((p) => `${p.product}/${p.version}`).join(', ')}` : ''));
+
 // --- 3. Manifeste ------------------------------------------------------------
 const runEntries = kept.map((run) => {
   const manPath = join(REPO, POINT_DIR, run, 'run.json');
@@ -217,6 +229,7 @@ write(POINT_INDEX_PATH, buildPointIndex({
   publishedAt: new Date().toISOString(),
   runs: runEntries,
   stationRuns,
+  staticProducts,
 }));
 
 // ── Kein Chunk ohne Manifesteintrag ─────────────────────────────────────────

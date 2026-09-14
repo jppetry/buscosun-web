@@ -1,6 +1,8 @@
 # CLAUDE.md — buscosun: Projekt-Verfassung für Claude-Code-Agenten
 
-> **Stand: 2026-09-13.** **Aktuelle Phase: PD-E erledigt — Druckflächen (925/850/700, T + RH) als sechs neue Ebenen im Cube (Schema 5, 57 Ebenen) und `point/static/hmodel/` mit der Modellhöhe JE QUELLE. Gate grün (point-data 895/895, point-client 63/63, Budget unverändert), **nichts committet, nichts veröffentlicht, keine Workflow-Datei angefasst**. Offen für Jan: E-E-1…E-E-5 (s. den PD-E-Absatz unten). Davor: PD-D (Vorstufe der Fusion, `audit/fusion-vorstufe.md`) und Block F/PD-C3 (Drei-Job-Cron im Drei-Stunden-Takt, deployt).**
+> **Stand: 2026-09-14.** **Aktuelle Phase: D — die Beschreibungen im Daten-Repo aufgefrischt (`audit/datenrepo-beschreibungen.md`), nachdem Jan sie als veraltet gemeldet hat. Der README des Daten-Repos stammte von PD-A und beschrieb einen Betrieb, den es seit PD-B/Block F nicht mehr gibt; neu ist er an die Konstanten gebunden, damit er nicht wieder still verrottet. Dazu: `point/index.json` kündigt jetzt das statische Produkt an, das seit PD-E veröffentlicht und im Register unsichtbar war. Gate grün (point-data 912/912, point-client 63/63, Budget unverändert). **Die Kopie des READMEs ins Daten-Repo ist Jans Gate.****
+>
+> ⚠ **PD-E ist seit dem 2026-09-13 LIVE** (Jan hat `5ec08a6` gepusht): am Remote liegen Schema 5, 57 Ebenen, alle sechs Druckflächen mit 49/49 Schritten in t1 und `point/static/hmodel/v1/` mit fünf Spalten. Die Zeile „nichts committet, nichts veröffentlicht" aus dem PD-E-Bericht galt nur für den 13.09. Offen für Jan bleiben E-E-1…E-E-5 (s. den PD-E-Absatz unten). Davor: PD-D (Vorstufe der Fusion, `audit/fusion-vorstufe.md`) und Block F/PD-C3 (Drei-Job-Cron im Drei-Stunden-Takt, deployt).
 >
 > **Historie der Phase (Chronik nach unten): PD-B10 erledigt — σ_ens bis 336 h aus IFS-ENS (V-PD-27, §45), dazu drei Fehler aus PD-B8 behoben (Niederschlags-σ war die Streuung einer Summe; der ECMWF-Filter strich IFS HRES und AIFS Single; C-LAEF-Fenster lagen als JS-Array im Heap — 84 % der Grenze). Offen und Jans Gate: der erste Push, V-PD-28 (Cron-Slot für MOSMIX-L). Danach Plan PD-C (16 Etappen, s. unten): C1+C2 umgesetzt (§46) — der Cron hatte 0 von 7 Läufen veröffentlicht; Jans Gate PD-C3 = Vorlage ins Daten-Repo kopieren**
 > (`audit/punktdaten-versorgung.md` §12–§22, Gate GPD-A grün). Jans zweiter Auftrag des Tages:
@@ -831,6 +833,40 @@
 > **V-PD-58**, **V-PD-59**, **V-PD-60** (die Druckflächen legen eine zweite Mehrbereichs-Familie auf
 > `data.ecmwf.int`; gemessen 3 × 429, vom Pacer aufgefangen).
 >
+> ✅ **Beschreibungen im Daten-Repo aufgefrischt (2026-09-14, `audit/datenrepo-beschreibungen.md`).**
+> Jans Befund: „viele Beschreibungen sind veraltet". Gemessen am Remote (`40243a1`) stimmt das
+> für den README, nicht für die Manifeste — und der Unterschied ist der Weg dorthin: `README.md`,
+> die vier Workflows und `scripts/radar-mirror.mjs` sind **Kopien** aus `buscosun-web` (alle drei
+> am Remote byte-gleich zur Vorlage) und ändern sich nur durch einen Commit; alles unter
+> `point/*.json` schreibt der Producer **je Lauf neu** und ist damit von selbst aktuell.
+> **Der README stammte von PD-A und beschrieb einen Betrieb, den es nicht mehr gibt:** „4 × täglich"
+> bei drei Jobs mit drei Takten, „Aufbewahrung 24 h quellenunabhängig" bei 9/24/24 je Stufe, eine
+> Quellentabelle von vor PD-B4…B10 („MOSMIX offen", „C-LAEF offen", „nur der Kontrolllauf ist
+> lesbar"), drei statt acht Zugriffsfamilien, kein Wort über `point/stations/`, `point/static/` und
+> die 57 Ebenen. **Die sechs bestehenden Prüfungen waren grün**, weil sie nach Stichworten fragen
+> (`point/`, `radar/`, `cape`) — BW-1 in Textform. Der Text hängt jetzt an den Konstanten: Bänder
+> aus `TIERS`, Aufbewahrung aus `RETENTION_HOURS_BY_TIER`, Zeitlos-Liste aus `TIMELESS_PATHS`,
+> Takte aus den `cron:`-Zeilen der Vorlage, dazu drei Negativ-Kontrollen mit genau den Fehlern, die
+> wirklich darin standen.
+> **Drei Stellen im generierten Text waren ebenfalls falsch:** das Laufalter „3,4–3,8 h" stammt aus
+> der Zeit vor dem Drei-Stunden-Takt (jetzt je Stufe: t1 1,7 h · t2 3,8 h · t3 9,9 h), der
+> TIMELESS-Kommentar nannte ein GHS-Produkt, das nicht gebaut ist, statt des `hmodel`, das liegt —
+> und **`point/index.json` kündigte das statische Produkt gar nicht an**: veröffentlicht seit PD-E,
+> auffindbar nur, wer den Pfad im Client-Code kannte (die Umkehrung von V-SH-11). Neu
+> `scripts/point/staticIndex.mjs` — bewusst außerhalb des Publishers, der beim Import
+> veröffentlicht, damit der Verifier die Abtastung an echten Dateien prüfen kann. Am echten
+> `static.json` des Crons belegt: `static/: 1 Produkt(e), hmodel/v1`, Spalten je Stufe im Index.
+> ⚠ **Die Werkzeugfalle zum vierten Mal — und diesmal hatte sie zwei Wochen lang eine Prüfung
+> stillgelegt.** Beim Einfügen wurde `\b` durch die Python-in-Bash-Kette zu einem echten
+> **Backspace-Byte**; die Suche danach fand **zwei**. Das zweite steckt seit PD-B8 in
+> `(3m) Streuungen werden nur mit dem FAKTOR skaliert`: gemeint war `/\bconvert\(/`, dagestanden
+> hat ein Muster mit 0x08, das auf keine Zeile passt — in einer **Verneinung**, also immer wahr.
+> Grün ohne Aussage, genau die Klasse aus §45. Beide entfernt, die Aussage hält auch echt geprüft,
+> und eine Gegenprobe belegt jetzt, dass das Muster im Anwesenheitsfall anschlägt. **Lehre: eine
+> Prüfung, die eine Abwesenheit behauptet, braucht eine Gegenprobe auf ihr eigenes Muster.**
+> `verify:point-data` **912/912** (war 897), point-client 63/63, typecheck 0, Build 241/241, Budget
+> unverändert. **Kopie des READMEs ins Daten-Repo = Jans Gate.**
+>
 > **Werkzeugfalle zum dritten Mal in dieser Phase:** `[^
 ]` in einer Regex wurde durch die
 > Python-in-Bash-Kette zum echten Zeilenumbruch und hat den Verifier zerschossen. Kur wie
@@ -1457,6 +1493,7 @@ Geländebühne (R3D); Event-Fläche + Terrain-Bühne für die Eventplanung (EZ, 
 |---|---|
 | `audit/punktvorhersage-14tage.md` (+ `audit/punktvorhersage-14tage/`) | PV0 Diagnose/Spezifikation/Plan **und PV3 Implementierung** der punktbasierten probabilistischen Vorhersage („buscosun Fusion", `src/pointForecast/fusion/`): Verteilungsalgebra, Minimum-Varianz-Kombination mit Fehlerkorrelation, Repräsentativität aus dem Gelände, Klimatologie als Prior, Feuchtkugel-Phase. Gate GPV3 grün, danach **GPV3b: 0–336 h** (§8 — ACC mit zwei Zeitskalen, Taupunkt statt RH als Fusionsgröße, Klimatologie als letzter Member statt `null`). `verify:pv-fusion` **208/208** (nach Gate GPV3d, §10), netzfrei; alle sieben Skalargrößen tragen bis **372 h** eine echte Quelle, die Windrichtung endet konzentrationsabhängig (229 h bei 12 m/s, 46 h bei 3 m/s). Default-off hinter `distribution: true` — **kein Consumer nutzt das Flag**; drei Fachprüfungen (Statistik · Meteorologie · Integration) eingearbeitet. **Externes Audit 2026-09-07** (`FUSION_AUDIT.md`, `FUSION_VERIFICATION.md`, `FUSION_IMPROVEMENTS.md` in der Repo-Wurzel): Block 0 umgesetzt — Stationsanker jetzt Anomaliepersistenz (`validAtMs`/`climaAt`), ohne Klimatologie `null` statt stiller 8 °C, MOSMIX-Amplitude α = √ρ, Taupunkt-Lapse, Quellen-Auslauf auf dem Gewicht statt auf ρ; **K-2 umgesetzt** (§10): Niederschlag zweistufig — Auftreten im Probit-Latentraum mit eigenen Auftretens-ACC und Tail-Prior, Menge bedingt auf nass zur Nassstunden-Klimatologie, Ausgabe `hurdleLogNormal` (MOSMIX 5 mm/h bei 24 h: P(nass) 59 → 79 %, Median 0,22 → 1,95 mm/h). Falle: Nassmenge nie als Normalverteilung in log1p (30 % Masse < 0), und die MOS-Amplitude gehört nicht aufs Auftretens-Latent. **V-A₁ gelaufen** (§11, `npm run verify:pv-score`, netzabhängig): 111 DE-Stationen, MOSMIX_L as-of, POI-Wahrheit — Fusion-T = MOSMIX ± 3 % MAE, aber **Spread/Skill 0,5–0,6 (zweifach überkonfident, Gate verletzt)**, Wind +0,3 m/s Bias, K-1 an 435 Fällen belegt, **Altpfad bei 1–6 h 2,3× schlechter als rohes MOSMIX (V-PV-19, Produktdefekt)** — **behoben 2026-09-08 auf Jans Auftrag (§12): Stationsanker als Innovations-Persistenz (`src/pointForecast/anchor.ts`, Modell + Versatz·e^{−h/τ}, Versatz altersgewichtet aus den letzten 6 h ohne Archiv: BrightSky-Messungen + laufender MOSMIX-Lauf per `source_id`, TAWES-Historie, SMN-Tagesdatei), Default im Produkt, Kill-Switch `?anchor=value` / `anchorMode`; gemessen T 1–6 h 2,18 → 0,92 K (MOSMIX 0,90), Td 1,05 → 0,70. Fusion unberührt (behält K-1). `verify:pv-fusion` 222/222.** **Offen, in dieser Reihenfolge: Priors aus den Scorecards fitten (V-PV-18), Scorecards täglich fortschreiben, dann ICON-D2 aus dem CDN und IFS als zweites Zentrum; die K-2-Priors (`ACC.precipOcc`, `PRECIP_WET_CLIMA`, `PRECIP_OCC_TAIL`) sind ungemessen (V-PV-17); `climatologyOnly`/`climaSource` werden noch nirgends angezeigt (V-PV-14); Stufe 4 (GEFS-Spread) braucht einen neuen Actions-Cron ⇒ STOPP & FRAGEN** |
 | `audit/punktarchiv.md` | **PA0–PA7: Punktarchiv für buscosun Fusion** — Diagnose der Aufbewahrung je Quelle (Vorhersagen nicht nachholbar, Wahrheit schon), Datenmodell v1 (Slot-Datei spaltenweise, ganzzahlig skaliert, Fusion als Verteilungsparameter), Sammler als Datenschritt des V-A-Harness, Repo `buscosun-archiv` mit eigenem Cron, Bewerter-Modus `--archive`, Gates GPA1–GPA7, E-1…E-7, V-PA-1…5 |
+| `audit/datenrepo-beschreibungen.md` | **Beschreibungen im Daten-Repo:** wer welchen Text dort schreibt (Kopie gegen je Lauf erzeugt), die zwölf veralteten Stellen des READMEs einzeln gemessen, die drei falschen Stellen im generierten Text, der `static`-Block im Register, und warum der Text jetzt an den Konstanten hängt statt an Stichworten; dazu der Backspace-Fund in einer PD-B8-Prüfung |
 | `audit/punktdaten-druckflaechen.md` | **PD-E: Druckflächen im Cube und `h_model` je Quelle** — die zwei Verfügbarkeitsannahmen am Katalog gemessen (ICON-D2 ohne 925, AIFS ohne RH), Schema 5 mit sechs Ebenen, `point/static/hmodel/` als zeitloses Produkt mit Hash-Vergleich, die ECMWF-Höhe aus `gh` + `sp` samt Gegenprobe gegen ICON global (7 m im Flachland), E-E-1…E-E-5, V-PD-57…60 |
 | `audit/punktdaten-versorgung.md` | **PD0/PD-A: Punktdaten aus dem Daten-Repo** — warum buscosun Fusion `buscosun-data` heute nicht liest, der vollständige Datenbedarf aus `ABLAUFPLAENE.md` (41 Felder) mit Quellenzuordnung aus `QUELLENMATRIX.md`, die fehlenden Produktlinien (Punkt-Cube, Kalibrierung), gemessene Formate und Volumina, Etappen PD1–PD6 mit Gates, E-1…E-18, V-PD-1…8; §22 = das Fundament, §23 die Adapter, §24 die 24-h-Aufbewahrung, §25 Geländerückbau + bz2-Befund, §26 ein Verzeichnis = eine Veröffentlichung |
 | `audit/teilen-share.md` | **SH0–SH6: „Auswahl teilen“ (vollständig umgesetzt)** — Diagnose des URL-Zustands je Feature-Seite (Query vs. Fragment vs. gar nichts, gemessene Link-Längen), Zielschema `/<feature>/<ansicht>[/<ort-slug>]?<abweichungen>` mit Beispiel-URL je Seite, Share-UI, Kanäle, Open-Graph-Empfehlung in zwei Stufen, Etappenplan mit Gates, V-SH-1…13 (alle erledigt), §20 = SH6, §22 = V-SH-12 + E-7, §23 = V-SH-13 mit Edge Function, 50 Vorschaubildern und den zwei Fehlern, die erst die echte Crawler-Antwort zeigte |
