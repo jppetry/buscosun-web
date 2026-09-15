@@ -62,12 +62,21 @@ export const PENDING = Object.freeze({
   // Stationen bias-korrigiert; eine Interpolation auf 0,05° wirft genau das weg.
   // Ausgeliefert als eigenes Produkt: scripts/point/build-stations.mjs → point/stations/.
   mosmix_l: 'Stationsquelle — ausgeliefert als eigenes Produkt point/stations/ (PD-B9, §44), NICHT als Gitterquelle.',
-  mosmix_s: 'Stationsquelle wie MOSMIX-L, aber stündlich und alle Stationen in EINER KMZ — passt aus demselben Grund nicht ohne Entscheidung in ein Gitter (§21 (9)).',
-  kenda_ch1: 'ANALYSE, keine Vorhersage (STAC ch.meteoschweiz.ogd-analysis-kenda-ch1). Gehört zu Stunde 0 wie das Radar, nicht in ein Vorhersageband.',
   radvor_rv: 'liegt als UNVERAENDERTES tar.bz2 unter radar/rv und als Werte-PNG unter radar/img/v1/rv. Seit PD-B3 gibt es den Leser (scripts/point/nowcastReader.mjs); er gehoert NICHT in den Cube, weil dessen Achse am Modelllauf haengt (§36.4).',
   inca: 'liegt unter radar/img/v1/inca, Leser seit PD-B3. Traegt Ostoesterreich allein (⚠¹). Nicht im Cube — s. radvor_rv.',
   combiprecip: 'liegt unter radar/img/v1/rzc, Leser seit PD-B3. Nicht im Cube — s. radvor_rv.',
   gfs: 'Rückfall, nicht in §1 als tragende Quelle geführt.',
+});
+
+/**
+ * Quellen, die BEWUSST nicht ingestiert werden — mit dem Grund und der Bedingung, unter der
+ * die Entscheidung wieder aufgeht (Jans Auftrag 2026-09-14, AP5). `pending` heißt „noch nicht",
+ * `declined` heißt „nicht, solange …". Beides steht im Lauf-Manifest, damit ein Leser nicht
+ * auf eine Quelle wartet, die nie kommt.
+ */
+export const DECLINED = Object.freeze({
+  mosmix_s: 'Stündliches Stationsprodukt (24 KMZ à ≈ 80 MiB je Tag). Neben ICON-D2 (stündlich, 8 Läufe) und dem Stationsanker ist ein Gewinn in 0–24 h nicht belegt (Annahme, audit/punktdaten-bereitschaft.md §5.8). Wieder offen, sobald buscosun-archiv zeigt, dass MOSMIX-S dort besser ist als MOSMIX-L + Anker.',
+  kenda_ch1: 'ANALYSE, keine Vorhersage (STAC ch.meteoschweiz.ogd-analysis-kenda-ch1) — gehört zu Stunde 0 wie das Radar. Der Anker liest heute SwissMetNet live; KENDA wäre ein Ersatz für ein dünnes Stationsnetz. Wieder offen, sobald das Archiv an CH-Punkten einen Anker-Fehler zeigt, den die Analyse schließen könnte.',
 });
 
 const cache = new Map();

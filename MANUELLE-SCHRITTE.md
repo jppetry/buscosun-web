@@ -229,3 +229,39 @@ machen kann, in dieser Reihenfolge:
 Nicht blockierend, aber sinnvoll direkt danach: einen Chunk über jsDelivr abrufen und
 prüfen, dass das CDN ihn **unverändert** ausliefert (der Container hat einen CRC im
 Kopf — ein `curl … | node -e "…readCubeHeader"` sagt es sofort).
+
+## 14. Punktarchiv freigeben (PD-U, 2026-09-14) — blockierend für die Kalibrierung
+
+Jeder Tag ohne Sammler ist ein Tag ohne Vorhersage-Archiv — Vorhersagen sind nicht
+nachholbar (MOSMIX-L 48 h, ICON-D2 ≈ 24 h online). Plan und Belege:
+`audit/punktdaten-umsetzungsplan.md` §2 (U-1/U-2), Anhang A.
+
+- [ ] **Entscheidungen E-U-1 und PA-E-1…PA-E-7** (Plan §6) beantworten — vor allem, ob
+      das Archiv trotz J-2/J-3 vom 2026-09-05 gewollt ist (PA0 vom 2026-09-08 sagt ja).
+
+- [ ] **`workflow-punktarchiv.yml` ins Archiv-Repo kopieren.** Die Vorlage liegt in
+      `scripts/punktarchiv-repo/workflow-punktarchiv.yml` und gehört nach
+      `.github/workflows/punktarchiv.yml` in `jppetry/buscosun-archiv`. Der Slot ist
+      `10 23 * * *` (nach dem letzten t1-Bau 22:40 + 20 min + 5 min CDN); der Verifier
+      `npm run verify:punktarchiv` rechnet ihn nach. Standard-Token reicht (eigenes Repo).
+
+- [ ] **Den ersten Slot pushen.** Lokal liegt in `C:\dev\buscosun-archiv` ein Slot vom
+      2026-09-14 (uncommitted, s. Plan §4.3). Vorher prüfen:
+
+      ```
+      npm run verify:punktarchiv
+      node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/punktarchiv/collect.mjs --limit=10 --dry
+      ```
+
+      Dann im Archiv-Repo `git add -A && git commit -m "archiv: erster Slot" && git push origin main`
+      — **nie `--force`**, das Repo ist append-only. Danach den Workflow einmal per
+      `workflow_dispatch` starten und den zweiten Slot am Remote sehen.
+
+- [ ] **`points.json` liegt in buscosun-web** (`scripts/punktarchiv/points.json`, 243 Punkte)
+      und wird vom Cron mitgeklont — sie muss mit dem Sammler-Code committet und gepusht sein,
+      sonst bricht der Job im Gate ab (das ist Absicht).
+
+Dazu aus derselben Phase, je ein Handgriff: `scripts/repack-repo/workflow-point.yml` (t2-Slot
+`30 4,10,16,22`) ins Daten-Repo kopieren (§13 gilt sinngemäß); der Push von `main` bringt die
+Retention-Korrektur, `declined` und das hmodel-Diff in den Cron; das Stadt-Raster braucht eine
+kurze Freigabe (Register-Erweiterung `static.urban`, Plan E-U-10).

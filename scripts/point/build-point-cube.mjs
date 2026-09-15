@@ -59,7 +59,7 @@ import {
   pressureLevelsForTier, pressurePlaneId,
 } from '../../src/point/cubeFormat.ts';
 import { SOURCE_BY_ID, coversPoint } from '../../src/point/sourceMatrix.ts';
-import { adapterFor, ingestableFor, PENDING } from './adapters/index.mjs';
+import { adapterFor, ingestableFor, PENDING, DECLINED } from './adapters/index.mjs';
 import { netStats, resetNetStats, netDiff, clearCache, runIso, poolStats, poolClose } from './adapters/shared.mjs';
 import { PROFILE_PARAMS } from './profile.mjs';
 import { runLanes, orderedSettle, sequentialSettle } from './lanes.mjs';
@@ -921,7 +921,12 @@ export async function buildTier(tierId, opts = {}) {
         { run: contributors.map((c) => c.run).sort().at(-1) ?? null, absent });
       hmodelStat = { ...st, absent };
       console.log(`  ${tierId}: h_model je Quelle — ${st.planes.join(', ') || '(keine)'} · `
-        + (st.changed ? `${st.chunks} Chunks, ${(st.bytes / 1024).toFixed(0)} KiB geschrieben` : st.reason));
+        + (st.changed ? `${st.chunks} Chunks, ${(st.bytes / 1024).toFixed(0)} KiB geschrieben — ${st.reason}` : st.reason));
+      // Je geänderter Spalte alt/neu, damit ein `changed: true` nicht „Modell-Upgrade?" bleibt (AP5, 2026-09-14).
+      for (const d of st.diff ?? []) {
+        if (d.kind === 'changed') console.log(`     ${d.id}: ${String(d.prevHash).slice(0, 8)} → ${String(d.hash).slice(0, 8)} · Deckung ${d.prevCovered} → ${d.covered} · min/max ${d.prevMinM}/${d.prevMaxM} → ${d.minM}/${d.maxM} m`);
+        else console.log(`     ${d.id}: ${d.kind}`);
+      }
     } catch (e) {
       hmodelStat = { changed: false, planes: [], chunks: 0, bytes: 0, reason: `Fehler: ${e.message}`, absent };
       console.log(`  ${tierId}: h_model je Quelle FEHLGESCHLAGEN — ${e.message}`);
@@ -1232,6 +1237,8 @@ export function runManifest(results) {
     },
     skipped: Object.fromEntries(built.flatMap((r) => r.skipped)),
     pending: PENDING,
+    // Bewusst abgesagt, mit Grund UND Wiedereröffnungsbedingung (AP5, 2026-09-14). Additiv.
+    declined: DECLINED,
   };
 }
 

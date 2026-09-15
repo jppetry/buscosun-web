@@ -33,11 +33,27 @@
 # ── Die drei Takte ───────────────────────────────────────────────────────────
 #   t1  40 1,4,7,10,13,16,19,22   ICON-D2 des Laufs −3 h (Lauf + 1,67 h ⇒ 18 min Rand);
 #                                  8×/Tag, ≈ 4 GiB je Lauf.
-#   t2  50 3,9,15,21              wie bisher: ICON-EU/ICON global des laufenden Zyklus
-#                                  (+3,7 h) sind fertig; hier läuft auch das Stationsprodukt.
+#   t2  30 4,10,16,22             ICON-EU/ICON global des laufenden Zyklus (+3,6…3,7 h) sind
+#                                  fertig UND MOSMIX-L (Lauf + 73…76 min) liegt — hier läuft auch
+#                                  das Stationsprodukt (s. „Warum der t2-Slot auf :30" unten).
 #   t3  55 9,21                   IFS `oper` 00z/12z (+7,6 h) — nur diese reichen bis 336 h.
-#                                  Fünf Minuten hinter t2 und in DERSELBEN Gruppe: t3 wartet,
-#                                  bis t2 fertig ist (s. „Warteschlange" unten).
+#                                  In DERSELBEN Gruppe wie t2; seit dem 14.09. liegt t2 35 min
+#                                  HINTER t3 (10:30), t1 (10:40) wartet dann ≤ 15 min auf t2.
+#
+# ── Warum der t2-Slot auf :30 der Stunden 4/10/16/22 liegt (2026-09-14 nachgemessen) ─
+# Der alte Slot `50 3,9,15,21` lag bei ICON-EU-Lauf + 3,83 h — nur 8 min hinter der
+# gemessenen Bereitstellung (+3,53…3,70 h, am 14.09. 12z: +3,60 h) — und bei MOSMIX-L-Lauf
+# + 50 min, während MOSMIX-L bei Lauf + 73…76 min erscheint (Last-Modified all_stations,
+# 13./14.09.: 21z 22:12:47 · 03z 04:16:01 · 09z 10:12:51 · 15z 16:16:16). Das Stationsprodukt
+# trug deshalb IMMER den Vorlauf (`ageH 7,06`, V-PD-28). Mit :30 der Folgestunde:
+#   ICON-EU   Lauf + 4,50 h ⇒ 48–58 min Rand (Regel E)
+#   MOSMIX-L  Lauf + 90 min ⇒ 14–17 min Rand (Regel E′, neu im Verifier)
+#   Kartenlinie: nächster Push 05:30/11:30/17:30/23:30 ⇒ 60 min Abstand; Regel A verlangt
+#   JOB_MAX_MIN(t2) + 20 = 35 ≤ 60, Regel C 25 ≤ timeout 60 ≤ 60.
+# Gemessen am Runner (Läufe 38 und 42, 14.09.): t2-Job 8,6 und 9,8 min, davon Bau 6,1/7,7 min,
+# Stationsprodukt 38/58 s, Publish 55/24 s. Preis: t2-Daten sind beim Bau 40 min älter.
+# ⚠ t1 (:40 der Stunden 4/10/16/22) startet 10 min nach t2 und wartet in der Gruppe — Regel B:
+# 50 − (15 − 10) = 45 ≥ 20 + 20. Die Kopie dieser Vorlage ins Daten-Repo ist Jans Gate.
 #
 # ── Abstand zur Kartenlinie — ausgerechnet, nicht behauptet ──────────────────
 # `build.yml` publiziert um :20 der Stunden 0/3/6/… und um :30 der Stunden 2/5/8/… und
@@ -94,7 +110,7 @@ on:
   schedule:
     # Drei Takte, drei Jobs — jeder Job prüft unten, ob SEIN Cron ihn geweckt hat.
     - cron: '40 1,4,7,10,13,16,19,22 * * *'   # t1
-    - cron: '50 3,9,15,21 * * *'              # t2 (+ Stationsprodukt)
+    - cron: '30 4,10,16,22 * * *'             # t2 (+ Stationsprodukt), seit 2026-09-14 (V-PD-28)
     - cron: '55 9,21 * * *'                   # t3
   workflow_dispatch:
     inputs:
@@ -208,11 +224,11 @@ jobs:
     needs: [t1]
     if: >-
       always() && (
-      (github.event_name == 'schedule' && github.event.schedule == '50 3,9,15,21 * * *')
+      (github.event_name == 'schedule' && github.event.schedule == '30 4,10,16,22 * * *')
       || (github.event_name == 'workflow_dispatch' && (github.event.inputs.tiers == 'all' || github.event.inputs.tiers == 't2'))
       )
     runs-on: ubuntu-latest
-    # Regel C: JOB_MAX_MIN(t2) + 10 ≤ 60 ≤ 100 (Abstand zum :30-Push).
+    # Regel C: JOB_MAX_MIN(t2) + 10 ≤ 60 ≤ 60 (Abstand zum :30-Push der Folgestunde, seit 14.09.).
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
@@ -260,7 +276,8 @@ jobs:
             ${{ github.event.inputs.run && format('--run={0}', github.event.inputs.run) || '' }} \
             ${{ github.event.inputs.steps && format('--steps={0}', github.event.inputs.steps) || '' }}
       # Das Stationsprodukt (PD-B9) — eigenes Produkt, eigene Quelle (MOSMIX-L), eigene
-      # Zeitachse; gemessen 55 s. Bleibt im t2-Job (viermal taeglich, wie bisher).
+      # Zeitachse; gemessen 55 s lokal, 38 und 58 s am Runner (Laeufe 38/42, 2026-09-14).
+      # Bleibt im t2-Job (viermal taeglich); der Slot :30 erreicht jetzt den gleichzeitigen Lauf.
       # ⚠ `continue-on-error`: das Stationsprodukt darf den Cube nicht mitreissen (V-PD-28).
       - name: Build station product (MOSMIX-L)
         continue-on-error: true
@@ -276,7 +293,7 @@ jobs:
           cd app
           node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/point/publish-point.mjs --repo=${{ github.workspace }}
 
-  # ── Stufe 3 (126–336 h, 0,25°) — zweimal täglich, hinter t2 in der Gruppe ─
+  # ── Stufe 3 (126–336 h, 0,25°) — zweimal täglich, in der Gruppe VOR t2 (seit 14.09.) ─
   t3:
     needs: [t2]
     if: >-
@@ -285,7 +302,8 @@ jobs:
       || (github.event_name == 'workflow_dispatch' && (github.event.inputs.tiers == 'all' || github.event.inputs.tiers == 't3'))
       )
     runs-on: ubuntu-latest
-    # Regel C: JOB_MAX_MIN(t3) + 10 ≤ 40 ≤ 95; Regel B: 95 − JOB_MAX_MIN(t2) ≥ JOB_MAX_MIN(t3) + 20.
+    # Regel C: JOB_MAX_MIN(t3) + 10 ≤ 40 ≤ 95. Regel B gilt jetzt umgekehrt: t2 (10:30) startet
+    # 35 min nach t3 (09:55) und wartet hoechstens dessen Restlaufzeit (JOB_MAX_MIN(t3) = 10 < 35).
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4

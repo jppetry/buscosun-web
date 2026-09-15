@@ -61,6 +61,12 @@ export const MIN_RUNS = 2;
  * `MIN_RUNS` gilt je Stufe, t3 (2×/Tag) behält damit immer zwei Läufe. Der Plan nannte für t3 36 h —
  * das widerspräche der 24-h-Regel und steht deshalb NICHT hier. `RETENTION_HOURS` bleibt die Regel
  * der Gesamtsicht (ein Lauf, dessen letzte Stufe herausfällt, verschwindet ganz).
+ *
+ * ⚠ 2026-09-14: „`MIN_RUNS` gilt je Stufe" war bis dahin nur die halbe Wahrheit — die Gesamtsicht
+ * im Publisher löschte das Verzeichnis eines vom Stufen-Durchgang behaltenen t3-Laufs am Namen
+ * (28,9 h > 24 h), am Remote hielt t3 genau EINEN Lauf. Seither respektiert die Gesamtsicht die
+ * Stufen-Entscheidung (`retainRuns` in `scripts/point/prune.mjs`, vom Verifier an der Verkettung
+ * geprüft). Die 36 h für t3 bleiben damit unnötig: der Boden trägt den Rückfall-Lauf.
  */
 export const RETENTION_HOURS_BY_TIER: Readonly<Record<TierId, number>> = Object.freeze({ t1: 9, t2: 24, t3: 24 });
 
@@ -231,6 +237,8 @@ export interface PointRunManifest {
   skipped: Record<string, string>;
   /** Quelle → Grund, warum es keinen Ingest gibt (aus `adapters/index.mjs`). */
   pending: Record<string, string>;
+  /** Quelle → Grund UND Bedingung, unter der die Absage wieder aufgeht (`DECLINED`, 2026-09-14). Additiv. */
+  declined?: Record<string, string>;
   /** Gesetzt von `--run` (PD-C2): die Obergrenze der Laufsuche. */
   note?: string;
 }
@@ -336,6 +344,12 @@ export function validateRunManifest(json: unknown): string[] {
   }
   if (!isObj(m.skipped)) err('skipped: kein Objekt (Quelle → Grund)');
   if (!isObj(m.pending)) err('pending: kein Objekt (Quelle → Grund)');
+  if (m.declined !== undefined && !isObj(m.declined)) err('declined: kein Objekt (Quelle → Grund + Bedingung)');
+  if (isObj(m.declined) && isObj(m.pending)) {
+    const declined = m.declined as Record<string, unknown>;
+    const pending = m.pending as Record<string, unknown>;
+    for (const id of Object.keys(declined)) if (id in pending) err(`declined/pending: ${id} steht in beiden`);
+  }
   return errs;
 }
 

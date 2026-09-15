@@ -134,8 +134,20 @@ export async function writeStaticHmodel(outRoot, tierId, columns, ctx = {}) {
     && prevTier.planes.every((q, i) => q.id === planes[i].id && q.hash === planes[i].hash);
   if (same) {
     return { changed: false, planes: planes.map((p) => p.id), chunks: prevTier.chunks ?? 0,
-      bytes: prevTier.bytes ?? 0, reason: 'unverändert (Hash je Spalte gleich)' };
+      bytes: prevTier.bytes ?? 0, reason: 'unverändert (Hash je Spalte gleich)', diff: [] };
   }
+  // ── WAS sich geändert hat, je Spalte — nicht nur DASS (2026-09-14, AP5) ────────
+  // `changed: true` mit „Modell-Upgrade?" stand am 2026-09-14 in t2 und t3, ohne dass jemand
+  // sagen konnte, welche Spalte. Jetzt steht je Spalte alt/neu-Hash, Deckung und Min/Max —
+  // eine neue Spalte heißt `added`, eine verschwundene `removed`, andere Bytes `changed`.
+  const prevById = new Map((prevTier?.planes ?? []).map((q) => [q.id, q]));
+  const diff = [];
+  for (const p of planes) {
+    const q = prevById.get(p.id);
+    if (!q) diff.push({ id: p.id, kind: 'added', hash: p.hash, covered: p.covered });
+    else if (q.hash !== p.hash) diff.push({ id: p.id, kind: 'changed', prevHash: q.hash, hash: p.hash, prevCovered: q.covered ?? null, covered: p.covered, prevMinM: q.minM ?? null, minM: p.minM, prevMaxM: q.maxM ?? null, maxM: p.maxM });
+  }
+  for (const q of prevTier?.planes ?? []) if (!planes.some((p) => p.id === q.id)) diff.push({ id: q.id, kind: 'removed', prevHash: q.hash });
 
   // ── Chunks schreiben, gleiches Raster wie der Cube ────────────────────────
   let bytes = 0, chunks = 0;
@@ -195,15 +207,20 @@ export async function writeStaticHmodel(outRoot, tierId, columns, ctx = {}) {
     builtFrom: ctx.run ?? null,
     builtAt: new Date().toISOString(),
     absent: ctx.absent ?? {},
+    // Was sich gegenüber der vorigen Fassung geändert hat (leer beim ersten Bau).
+    diffFromPrev: prevTier ? { builtAtPrev: prevTier.builtAt ?? null, columns: diff } : null,
   };
   man.updatedAt = new Date().toISOString();
   const mp = inPointDir(outRoot, staticManifestPath(HMODEL_PRODUCT, HMODEL_VERSION));
   mkdirSync(dirname(mp), { recursive: true });
   writeFileSync(mp, `${JSON.stringify(man, null, 2)}\n`);
 
+  const reason = !prevTier ? 'erstmals gebaut'
+    : diff.every((d) => d.kind === 'added') ? `Spalte(n) hinzugekommen: ${diff.map((d) => d.id).join(', ')}`
+      : diff.every((d) => d.kind === 'removed') ? `Spalte(n) entfallen: ${diff.map((d) => d.id).join(', ')}`
+        : `Spalten geändert: ${diff.map((d) => `${d.id}(${d.kind})`).join(', ')} — Modell-Upgrade oder andere Quellenreihenfolge`;
   return {
-    changed: true, planes: planes.map((p) => p.id), chunks, bytes,
-    reason: prevTier ? 'Spalten haben sich geändert (Modell-Upgrade?)' : 'erstmals gebaut',
+    changed: true, planes: planes.map((p) => p.id), chunks, bytes, reason, diff,
   };
 }
 

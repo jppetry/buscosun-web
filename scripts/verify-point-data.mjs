@@ -42,9 +42,9 @@ import { keepIndexEntry, ECMWF_STEPS, ecmwfOwnLeads, ecmwfSnapDown } from './poi
 import { toTyped } from './point/adapters/geosphere.mjs';
 import { calibrationSelfTest, CALIBRATION_V1 } from '../src/point/calibration.ts';
 import { buildPointIndex, planeManifest, tierManifest, RETENTION_HOURS, MIN_RUNS, TIMELESS_PATHS, isTimeless, runsToKeep, CDN_BASE, validateRunManifest, runsToKeepFor, RETENTION_HOURS_BY_TIER, latestByTier } from '../src/point/manifest.ts';
-import { pruneTier, tiersOf } from './point/prune.mjs';
+import { pruneTier, tiersOf, retainRuns, runsIn } from './point/prune.mjs';
 import { verifyCogTiff } from '../src/fire/detail/cogTiff.ts';
-import { adapterFor, INGESTABLE, PENDING, ingestableFor } from './point/adapters/index.mjs';
+import { adapterFor, INGESTABLE, PENDING, DECLINED, ingestableFor } from './point/adapters/index.mjs';
 import {
   runIso, buildUnstructuredIndex, buildUnstructuredIndexBrute,
   withSource, currentSource, netDiff, clearCache,
@@ -132,7 +132,16 @@ add('jede Stufe wird von mindestens einer Quelle voll abgedeckt',
   add('jede zurueckgestellte Quelle existiert in der Matrix',
     Object.keys(PENDING).every((id) => SOURCE_BY_ID[id] != null),
     Object.keys(PENDING).filter((id) => !SOURCE_BY_ID[id]).join(',') || `${Object.keys(PENDING).length} offen`);
-  const accounted = new Set([...INGESTABLE, ...Object.keys(PENDING)]);
+  // AP5 (2026-09-14): eine dritte Klasse neben ingestierbar und zurueckgestellt — bewusst ABGESAGT,
+  // mit Grund und Wiedereroeffnungsbedingung. `pending` heisst „noch nicht", `declined` „nicht, solange …".
+  add('jede abgesagte Quelle existiert in der Matrix und steht NICHT zugleich in PENDING oder INGESTABLE',
+    Object.keys(DECLINED).every((id) => SOURCE_BY_ID[id] != null && !(id in PENDING) && !INGESTABLE.includes(id)),
+    Object.keys(DECLINED).join(','));
+  add('MOSMIX-S und KENDA-CH1 sind abgesagt (Jans Auftrag AP5), nicht mehr offen',
+    'mosmix_s' in DECLINED && 'kenda_ch1' in DECLINED && !('mosmix_s' in PENDING) && !('kenda_ch1' in PENDING));
+  add('jede Absage nennt die Bedingung, unter der sie wieder aufgeht („Wieder offen, sobald …")',
+    Object.values(DECLINED).every((why) => /Wieder offen, sobald/.test(why) && why.length > 80));
+  const accounted = new Set([...INGESTABLE, ...Object.keys(PENDING), ...Object.keys(DECLINED)]);
   const orphan = SOURCES.map((s) => s.id).filter((id) => !accounted.has(id));
   add('KEINE Quelle ohne Adapter und ohne benannten Grund', orphan.length === 0,
     orphan.join(',') || `${accounted.size} von ${SOURCES.length} zugeordnet`);
@@ -880,9 +889,14 @@ add('der gemessene Widerspruch zu ⚠² ist festgehalten',
     // Daten. Die Bereitstellung ist gemessen (`Last-Modified` der jeweils LETZTEN gebrauchten
     // Datei), nicht aus einer Doku uebernommen:
     //   icon_d2   15z Stunde 048 am 2026-09-12 um 16:21:43 UTC  ⇒ Lauf + 1,36 h  (§31: 1,35 ± 0,01)
+    //             18z Stunde 048 am 2026-09-14 um 19:20:59 UTC  ⇒ Lauf + 1,35 h
     //   icon_eu   12z Stunde 120 am 2026-09-12 um 15:38:14 UTC  ⇒ Lauf + 3,64 h
-    //   ifs_oper  §31 ueber vier Laeufe                          ⇒ Lauf + 7,57 h
-    const READY_H = { icon_d2: 1.36, icon_eu: 3.64, ifs_oper: 7.57 };
+    //             12z Stunde 120 am 2026-09-14 um 15:36:02 UTC  ⇒ Lauf + 3,60 h
+    //   ifs_oper  §31 ueber vier Laeufe (00z)                    ⇒ Lauf + 7,57 h
+    //             12z Stunde 360 am 2026-09-14 um 19:34 UTC     ⇒ Lauf + 7,57 h  (12z erstmals gemessen)
+    //   mosmix_l  all_stations, Last-Modified 2026-09-13/14: 21z 22:12:47 · 03z 04:16:01 ·
+    //             09z 10:12:51 · 15z 16:16:16                    ⇒ Lauf + 73…76 min (Regel E′)
+    const READY_H = { icon_d2: 1.36, icon_eu: 3.64, ifs_oper: 7.57, mosmix_l: 1.28 };
     const TIER_DRIVER = { t1: { src: 'icon_d2', everyH: 3 }, t2: { src: 'icon_eu', everyH: 6 }, t3: { src: 'ifs_oper', everyH: 12 } };
     const MARGIN_MIN = 9;
     // Alter des juengsten Laufs der Quelle zum Slot-Zeitpunkt, in Minuten.
@@ -897,6 +911,24 @@ add('der gemessene Widerspruch zu ⚠² ist festgehalten',
       add(`(F3c) Regel E ${j.name}: jeder Slot findet ${d.src} fertig vor (Rand ≥ ${MARGIN_MIN} min)`,
         !!worst && worst.margin >= MARGIN_MIN,
         worst ? `engster Rand ${worst.margin.toFixed(0)} min (Slot ${hhmm(worst.p)}, Lauf + ${(ageAtSlot(worst.p, d.everyH) / 60).toFixed(2)} h)` : 'keine Slots');
+    }
+    // ── Regel E′ (2026-09-14): das Stationsprodukt haengt am t2-Job, MOSMIX-L laeuft 03/09/15/21z ──
+    // Der alte t2-Slot `50 3,9,15,21` lag bei Lauf + 50 min, MOSMIX-L erscheint bei Lauf + 73…76 min:
+    // der gleichzeitige Lauf war NIE erreichbar, das Stationsprodukt trug immer den Vorlauf
+    // (`ageH 7,06` in allen drei veroeffentlichten Laeufen, V-PD-28). Das Alter wird hier mit der
+    // MOSMIX-Phase (Laeufe 03/09/15/21z, also +3 h gegen das 6-h-Raster) gerechnet.
+    {
+      const t2 = jobs.find((j) => j.name === 't2');
+      const mosmixAgeMin = (slotMin) => ((((slotMin - 180) % 360) + 360) % 360);
+      const readyMin = READY_H.mosmix_l * 60;
+      const worst = t2 ? slotsOf(t2).map((p) => ({ p, margin: mosmixAgeMin(p) - readyMin })).sort((a, b) => a.margin - b.margin)[0] : null;
+      add(`(PD-U) Regel E′ t2: jeder Slot findet MOSMIX-L (03/09/15/21z, Lauf + ${Math.round(readyMin)} min) fertig vor (Rand ≥ ${MARGIN_MIN} min)`,
+        !!worst && worst.margin >= MARGIN_MIN,
+        worst ? `engster Rand ${worst.margin.toFixed(0)} min (Slot ${hhmm(worst.p)}, MOSMIX-Lauf + ${mosmixAgeMin(worst.p)} min)` : 'kein t2-Job');
+      const old = Math.min(...cronsOf(`    - cron: '50 3,9,15,21 * * *'`).map((p) => mosmixAgeMin(p) - readyMin));
+      add('Negativ-Kontrolle: der alte t2-Slot (50 3,9,15,21) lag VOR der MOSMIX-L-Bereitstellung (V-PD-28)',
+        old < 0, `${old.toFixed(0)} min`);
+      // Regel E fuer t2 bleibt dabei erfuellt: ICON-EU (+3,60…3,70 h) ist um :30 der Folgestunde laengst da.
     }
     // Negativ-Kontrolle zu E: acht Minuten Rand (der urspruenglich geplante :30-Slot) faellt durch,
     // und ein Slot VOR der Bereitstellung erst recht.
@@ -2066,9 +2098,11 @@ merge('Profil (PD-B5)', profileSelfTest());
   add('(3n) die Stationszahl ist gezaehlt, nicht uebernommen',
     /3071/.test(ml.note) && /gezählt/.test(ml.note));
 
-  // ⚠ MOSMIX-L erscheint bei Lauf + 72…79 min, der Cron laeuft bei Lauf + 50 min.
-  // Der gleichzeitige Lauf ist NIE erreichbar — das muss dastehen, nicht auffallen.
-  add('(3n) die Veroeffentlichungslatenz ist benannt', /72/.test(ml.note) && /50 min/.test(ml.note));
+  // ⚠ MOSMIX-L erscheint bei Lauf + 72…79 min. Der Cron lief bis 2026-09-14 bei Lauf + 50 min
+  // (der gleichzeitige Lauf war NIE erreichbar, V-PD-28); die Vorlage liegt jetzt bei + 90 min.
+  // Beides muss dastehen, nicht auffallen.
+  add('(3n) die Veroeffentlichungslatenz ist benannt (72 min, alter Slot + 50 min, neuer Slot + 90 min)',
+    /72/.test(ml.note) && /50 min/.test(ml.note) && /90 min/.test(ml.note));
   add('(3n) das Lauf-Manifest nennt das Alter des genommenen Laufs', /ageH/.test(bs));
 
   // Der Vertrag zwischen Buendel und Manifest.
@@ -2992,11 +3026,64 @@ merge('Profil (PD-B5)', profileSelfTest());
       net: {}, perPlane: {}, hasData: {}, ms: { fields: 1, total: 2 },
     }]);
     add('(3z) validateRunManifest akzeptiert ein Manifest mit nur t1 (Ein-Stufen-Job)', validateRunManifest(one).length === 0 && one.tiers.length === 1, validateRunManifest(one).slice(0, 2).join(' | '));
+    // AP5 (2026-09-14): das Manifest traegt `declined` (additiv) — und eine Quelle darf nicht in beiden Listen stehen.
+    add('(3z) das Lauf-Manifest traegt `declined` mit MOSMIX-S und KENDA-CH1, `pending` ohne sie',
+      one.declined?.mosmix_s != null && one.declined?.kenda_ch1 != null && !('mosmix_s' in one.pending) && !('kenda_ch1' in one.pending));
+    add('(3z) Negativ-Kontrolle: eine Quelle in `pending` UND `declined` faellt durch validateRunManifest',
+      validateRunManifest({ ...one, pending: { ...one.pending, mosmix_s: 'x' } }).some((e) => /declined\/pending: mosmix_s/.test(e)));
   }
   const pub = readFileSync(join(ROOT, 'scripts/point/publish-point.mjs'), 'utf8');
-  add('(3z) der Publisher raeumt JE STUFE vor der Laufregel (runsToKeepFor + pruneTier je Tier) und schreibt tierRuns in den Index',
-    /for \(const tier of TIERS\) \{[\s\S]*?runsToKeepFor\(withTier, \{ hours: RETENTION_HOURS_BY_TIER\[tier\.id\], minRuns: MIN_RUNS \}\)[\s\S]*?pruneTier\(join\(REPO, POINT_DIR, r\.run\), tier\.id\)/.test(pub)
-    && /tierRuns: tiersOf\(join\(REPO, POINT_DIR, run\)\),/.test(pub) && pub.indexOf('for (const tier of TIERS)') < pub.indexOf('const decision = runsToKeep(present);'));
+  add('(3z) der Publisher raeumt ueber retainRuns (EINE Form fuer Publisher und Verifier) und schreibt tierRuns in den Index',
+    /retainRuns\(join\(REPO, POINT_DIR\)\)/.test(pub) && /tierRuns: tiersOf\(join\(REPO, POINT_DIR, run\)\),/.test(pub)
+    && !/const decision = runsToKeep\(present\)/.test(pub));
+  // ── Die VERKETTUNG beider Durchgaenge (2026-09-14) ──────────────────────────────────────────
+  // Am Remote hielt t3 genau EINEN Lauf (Index 16:56 und 19:53 UTC), obwohl `minRuns: 2` daneben stand:
+  // der Stufen-Durchgang behielt `2026091312` (28,9 h, Boden), die Gesamtsicht loeschte das
+  // Verzeichnis am Namen. Der Baum hier ist der veroeffentlichte Stand vom 16:56 UTC plus dem
+  // Lauf, der fehlte, plus einer Waise ohne Manifest.
+  {
+    const tmp = join(ROOT, 'data', `_verify-retain-${process.pid}`);
+    const nowMs = Date.parse('2026-09-14T16:56:00Z');
+    const build = () => {
+      rmSync(tmp, { recursive: true, force: true });
+      const pointDir = join(tmp, 'point');
+      const mk = (run, tiers) => {
+        const dir = join(pointDir, run);
+        const man = { run, tiers: [], sources: [] };
+        for (const t of tiers) {
+          mkdirSync(join(dir, t), { recursive: true });
+          writeFileSync(join(dir, t, '00_00.bin'), Buffer.from([1]));
+          man.tiers.push({ id: t, run, runAt: iso(run), ageH: 0, files: [{ file: `point/${run}/${t}/00_00.bin`, bytes: 1, cy: 0, cx: 0 }] });
+        }
+        mkdirSync(dir, { recursive: true });
+        writeFileSync(join(dir, 'run.json'), JSON.stringify(man));
+      };
+      mk('2026091415', ['t1']); mk('2026091412', ['t1', 't2']); mk('2026091409', ['t1']); mk('2026091406', ['t2']);
+      mk('2026091400', ['t2', 't3']); mk('2026091318', ['t2']); mk('2026091312', ['t3']);
+      mkdirSync(join(pointDir, '2026091100'), { recursive: true });   // Waise: kein run.json, 64 h alt
+      writeFileSync(join(pointDir, '2026091100', 'stray.bin'), Buffer.from([1]));
+      return pointDir;
+    };
+    const pointDir = build();
+    const r = retainRuns(pointDir, { nowMs });
+    const t3Dirs = runsIn(pointDir).filter((run) => tiersOf(join(pointDir, run)).some((t) => t.id === 't3'));
+    add('(3z) Verkettung: der 28,9 h alte t3-Lauf ueberlebt die Gesamtsicht (MIN_RUNS gilt JE STUFE)',
+      t3Dirs.join() === '2026091400,2026091312' && existsSync(join(pointDir, '2026091312', 't3', '00_00.bin')), t3Dirs.join());
+    add('(3z) Verkettung: die Gesamtsicht BENENNT den behaltenen Lauf statt ihn zu loeschen',
+      r.events.some((e) => e.kind === 'run-kept-by-tier' && e.run === '2026091312' && e.tiers.join() === 't3'));
+    add('(3z) Verkettung: eine Waise ohne Manifest faellt weiter der Gesamtsicht zum Opfer',
+      !existsSync(join(pointDir, '2026091100')) && r.events.some((e) => e.kind === 'run-drop' && e.run === '2026091100'));
+    add('(3z) Verkettung: t1 haelt nach 9 h drei Laeufe (15z 12z 09z), t2 alle vier, t3 zwei',
+      r.keptByTier.t1.join() === '2026091415,2026091412,2026091409' && r.keptByTier.t2.length === 4 && r.keptByTier.t3.join() === '2026091400,2026091312',
+      JSON.stringify(r.keptByTier));
+    // Negativkontrolle: der alte Weg (Gesamtsicht ohne Ruecksicht auf die Stufen) loescht den Rueckfall-Lauf.
+    const pointDir2 = build();
+    const r2 = retainRuns(pointDir2, { nowMs, legacyGlobalPass: true });
+    add('Negativ-Kontrolle: der alte globale Durchgang loescht 2026091312 und laesst t3 mit EINEM Lauf zurueck',
+      !existsSync(join(pointDir2, '2026091312')) && r2.events.some((e) => e.kind === 'run-drop' && e.run === '2026091312' && e.legacy)
+      && runsIn(pointDir2).filter((run) => tiersOf(join(pointDir2, run)).some((t) => t.id === 't3')).length === 1);
+    rmSync(tmp, { recursive: true, force: true });
+  }
 }
 
 // --- (3aa) PD-E: Druckflaechen und h_model je Quelle ---------------------------------
@@ -3119,9 +3206,12 @@ merge('Profil (PD-B5)', profileSelfTest());
   // oder den Ort des Produkts, faellt sie, statt dass ein Lauf im Cron abbricht.
   {
     const pubS = readFileSync(join(ROOT, 'scripts/point/publish-point.mjs'), 'utf8');
-    const runsInBody = pubS.slice(pubS.indexOf('function runsIn(dir)'), pubS.indexOf('function dirBytes'));
+    // `runsIn` lebt seit 2026-09-14 in prune.mjs (EINE Form fuer Publisher, retainRuns und Verifier).
+    const pruneS = readFileSync(join(ROOT, 'scripts/point/prune.mjs'), 'utf8');
+    const runsInBody = pruneS.slice(pruneS.indexOf('export function runsIn(dir)'), pruneS.indexOf('export const runIdToIso'));
     add('(3aa) der Orphan-Waechter begeht NUR Laufverzeichnisse (sonst wuerde er das statische Produkt melden)',
       runsInBody.includes(String.raw`/^\d{10}$/.test(e.name)`)
+      && /import \{[^}]*\brunsIn\b[^}]*\} from '\.\/prune\.mjs'/.test(pubS)
       && pubS.includes('for (const run of kept)')
       && pubS.includes('join(REPO, POINT_DIR, run, rel)'),
       runsInBody.includes(String.raw`/^\d{10}$/.test(e.name)`) ? 'ok' : 'runsIn filtert nicht mehr auf Laufnamen');

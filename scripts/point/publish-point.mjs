@@ -33,7 +33,7 @@ import { POINT_DIR, POINT_INDEX_PATH, POINT_SOURCES_PATH, POINT_CALIB_PATH, TIER
          STATIONS_DIR, STAGE_DIR, stationManifestPath } from '../../src/point/cubeFormat.ts';
 import { buildPointIndex, runsToKeep, runsToKeepFor, RETENTION_HOURS, RETENTION_HOURS_BY_TIER, MIN_RUNS, CDN_BASE } from '../../src/point/manifest.ts';
 import { TIERS } from '../../src/point/cubeFormat.ts';
-import { pruneTier, tiersOf } from './prune.mjs';
+import { tiersOf, runsIn, runIdToIso, retainRuns } from './prune.mjs';
 import { scanStaticProducts } from './staticIndex.mjs';
 import { buildSourcesJson } from '../../src/point/sourceMatrix.ts';
 import { CALIBRATION_V1 } from '../../src/point/calibration.ts';
@@ -69,15 +69,6 @@ function copyTree(from, to) {
   };
   if (existsSync(from)) walk('');
   return { files, bytes };
-}
-
-function runsIn(dir) {
-  if (!existsSync(dir)) return [];
-  return readdirSync(dir, { withFileTypes: true })
-    .filter((e) => e.isDirectory() && /^\d{10}$/.test(e.name))
-    .map((e) => e.name)
-    .sort()
-    .reverse();
 }
 
 function dirBytes(dir) {
@@ -120,38 +111,29 @@ log(`point/: ${copied.files} Dateien, ${(copied.bytes / 1048576).toFixed(2)} MiB
 // Alter statt Anzahl (Jans Entscheidung 2026-09-09): nur Daten der letzten 24 Stunden,
 // quellenunabhaengig. Zeitlose Dateien (Stationskatalog, Register, Kalibrierung)
 // sind ausgenommen — s. TIMELESS_PATHS im Manifest-Modul.
-const runIdToIso = (r) => `${r.slice(0, 4)}-${r.slice(4, 6)}-${r.slice(6, 8)}T${r.slice(8, 10)}:00:00Z`;
-
-// --- 2a. Aufbewahrung JE STUFE (PD-F3a) --------------------------------------
+// --- 2a. Aufbewahrung JE STUFE, dann Gesamtsicht (PD-F3a, Verkettung 2026-09-14) -------------
 // Mit einem Job je Stufe altern die Stufen verschieden (t1 8×/Tag, t3 2×/Tag). Gemessen wird das
 // Alter des QUELL-Laufs der Stufe (run.json), nicht das des Verzeichnisnamens; MIN_RUNS gilt je Stufe.
-for (const tier of TIERS) {
-  const withTier = runsIn(join(REPO, POINT_DIR)).map((run) => {
-    const t = tiersOf(join(REPO, POINT_DIR, run)).find((x) => x.id === tier.id);
-    return t ? { run, runAt: t.runAt ?? runIdToIso(run) } : null;
-  }).filter(Boolean);
-  const d = runsToKeepFor(withTier, { hours: RETENTION_HOURS_BY_TIER[tier.id], minRuns: MIN_RUNS });
-  for (const r of d.drop) {
-    const res = pruneTier(join(REPO, POINT_DIR, r.run), tier.id);
-    const ageH = ((Date.now() - Date.parse(r.runAt)) / 3_600_000).toFixed(1);
-    log(`Aufbewahrung ${tier.id}: aus ${r.run} entfernt (Quell-Lauf ${ageH} h alt, Grenze ${RETENTION_HOURS_BY_TIER[tier.id]} h)`
-      + (res.removedRun ? ' — letzte Stufe, Verzeichnis weg' : ` — bleibt mit ${res.remaining.join('+')}`));
+// ⚠ Beide Durchgänge liegen als EINE Funktion in `prune.mjs` (`retainRuns`), damit der Verifier
+// ihre VERKETTUNG prüfen kann: bis zum 2026-09-14 löschte die Gesamtsicht hier jedes Verzeichnis
+// > 24 h am Verzeichnisnamen — auch den t3-Lauf, den der Stufen-Durchgang wegen des Bodens gerade
+// behalten hatte. Am Remote hielt t3 deshalb genau EINEN Lauf (Index 16:56 und 19:53 UTC).
+{
+  const ret = retainRuns(join(REPO, POINT_DIR));
+  for (const e of ret.events) {
+    if (e.kind === 'tier-drop') {
+      log(`Aufbewahrung ${e.tier}: aus ${e.run} entfernt (Quell-Lauf ${e.ageH.toFixed(1)} h alt, Grenze ${e.limitH} h)`
+        + (e.removedRun ? ' — letzte Stufe, Verzeichnis weg' : ` — bleibt mit ${e.remaining.join('+')}`));
+    } else if (e.kind === 'tier-stale') {
+      log(`⚠ ${e.tier} in ${e.run} ist ${e.ageH.toFixed(1)} h alt und bleibt nur wegen des Bodens (min. ${e.minRuns} Läufe je Stufe).`);
+    } else if (e.kind === 'run-kept-by-tier') {
+      log(`Aufbewahrung: ${e.run} ist ${e.ageH.toFixed(1)} h alt und bleibt — ${e.tiers.join('+')} hält ihn als Rückfall-Lauf (min. ${MIN_RUNS} je Stufe).`);
+    } else if (e.kind === 'run-drop') {
+      log(`Aufbewahrung: ${e.run} entfernt (${e.ageH.toFixed(1)} h alt, Grenze ${e.limitH} h, keine Stufe hält ihn)`);
+    } else if (e.kind === 'run-stale') {
+      log(`⚠ ${e.run} ist ${e.ageH.toFixed(1)} h alt und bleibt nur wegen des Bodens (min. ${e.minRuns} Läufe) — Publishes fallen aus (V-BW-58).`);
+    }
   }
-  for (const r of d.stale) {
-    log(`⚠ ${tier.id} in ${r.run} ist ${((Date.now() - Date.parse(r.runAt)) / 3_600_000).toFixed(1)} h alt und bleibt nur wegen des Bodens (min. ${MIN_RUNS} Läufe je Stufe).`);
-  }
-}
-
-const present = runsIn(join(REPO, POINT_DIR)).map((r) => ({ run: r, runAt: runIdToIso(r) }));
-const decision = runsToKeep(present);
-for (const r of decision.drop) {
-  rmSync(join(REPO, POINT_DIR, r.run), { recursive: true, force: true });
-  const ageH = ((Date.now() - Date.parse(r.runAt)) / 3_600_000).toFixed(1);
-  log(`Aufbewahrung: ${r.run} entfernt (${ageH} h alt, Grenze ${RETENTION_HOURS} h)`);
-}
-for (const r of decision.stale) {
-  const ageH = ((Date.now() - Date.parse(r.runAt)) / 3_600_000).toFixed(1);
-  log(`⚠ ${r.run} ist ${ageH} h alt und bleibt nur wegen des Bodens (min. ${MIN_RUNS} Läufe) — Publishes fallen aus (V-BW-58).`);
 }
 const kept = runsIn(join(REPO, POINT_DIR));
 

@@ -40,3 +40,5 @@ data/terrain/
 data/repo/
 # PD-F2a: Kopie des COMMITTETEN Producers (git archive HEAD) als Referenz fuer den Byte-Beweis
 data/ref-producer/
+# PD-Umsetzungsplan (2026-09-14): lokaler Probelauf des Stadt-Rasters (reproduzierbar aus .cache/urban/)
+data/urban-probe/

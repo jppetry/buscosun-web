@@ -1,0 +1,114 @@
+# ============================================================================
+# punktarchiv.yml — täglicher Sammler des Punktarchivs (PA1, audit/punktdaten-umsetzungsplan.md)
+#
+# VORLAGE. Diese Datei gehört nach `.github/workflows/punktarchiv.yml` im Archiv-Repo
+# `jppetry/buscosun-archiv` und wird dort von Jan committet (die Kopie und der erste Push
+# sind Jans Gate, GPA3). Der Sammler-Code lebt in `buscosun-web` (`scripts/punktarchiv/`)
+# und wird bei jedem Lauf frisch geklont — dieselbe Regel wie beim Punkt-Cube: EINE Form,
+# kein Spiegel.
+#
+# ── Warum HIER und nicht im Daten-Repo ─────────────────────────────────────
+# `buscosun-data` ist auf Vergessen gebaut: `build.yml` force-pusht achtmal am Tag und ersetzt
+# die Historie, die Aufbewahrung löscht nach 9/24 h. Ein Archiv darf dort nicht liegen. Das
+# Archiv-Repo hat keine Kartenlinie, keinen Force-Push und keine Aufbewahrung — es wächst nur.
+# Der Standard-`GITHUB_TOKEN` schreibt ins eigene Repo; kein Secret, kein PAT.
+#
+# ── Der Slot: 23:10 UTC — abgeleitet, nicht gesetzt ────────────────────────
+# Der Sammler soll den jüngsten Stand ALLER Stufen sehen und die POI-Wahrheit des Tages
+# (24-h-Rollfenster). Der letzte t1-Bau des Tages läuft um 22:40 UTC (`workflow-point.yml`,
+# Slot `40 1,4,…,22`), dauert bis zu JOB_MAX_MIN(t1) = 20 min, der Index braucht ≤ 5 min bis
+# jsDelivr — 23:05 wäre die Untergrenze, 23:10 hat fünf Minuten Rand und liegt vor Mitternacht
+# UTC, damit Slot- und Tagesverzeichnis zusammenfallen. Die Kartenlinie und ihre Push-Fenster
+# spielen hier keine Rolle: es ist ein anderes Repo. Der Verifier (`verify:punktarchiv`, (6))
+# rechnet den Abstand zum t1-Slot nach und fällt bei einem Slot vor 23:05.
+#
+# ⚠ Ein Tag = ein Slot = ein t1-Lauf von acht. Vier Slots am Tag (PA0-Plan) sähen mehr
+# Läufe, kosteten aber das Vierfache an Cube-Chunks und Live-Abrufen — PA-E-3 ist Jans
+# Entscheidung; die Vorlage startet mit einem Slot (Auftrag 2026-09-14).
+# ============================================================================
+
+name: punktarchiv
+
+on:
+  schedule:
+    - cron: '10 23 * * *'   # täglich, nach dem letzten t1-Bau (22:40 + 20 min + 5 min CDN)
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: 'Nur die ersten N Punkte (leer = alle)'
+        required: false
+      live_hours:
+        description: 'Stunden je Punkt im Live-Pfad (Standard 240; > 240 zieht den GFS-Schwanz)'
+        required: false
+        default: '240'
+
+concurrency:
+  # Eigene Gruppe: nichts hier teilt sich Dateien mit dem Daten-Repo.
+  group: punktarchiv
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    # Gemessen lokal (Probelauf 2026-09-14, s. audit/punktdaten-umsetzungsplan.md §4): der Slot
+    # dauert Minuten, nicht Viertelstunden. 60 min ist die Obergrenze, nicht die Erwartung.
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Git identity
+        run: |
+          git config user.name  'buscosun-punktarchiv[bot]'
+          git config user.email 'punktarchiv@users.noreply.github.com'
+
+      # Der Sammler aus dem Anwendungs-Repo — sparse: scripts/, src/ (Leser + buscosun Fusion),
+      # package.json, und public/climaGrid.json, ohne das `computeDistributions` verweigert.
+      - name: Checkout collector (public, no token, sparse)
+        run: |
+          git clone --depth=1 --quiet --filter=blob:none --no-checkout https://github.com/jppetry/buscosun-web.git app
+          cd app
+          git sparse-checkout set --no-cone scripts src package.json public/climaGrid.json
+          git checkout --quiet
+          test -f public/climaGrid.json || { echo "public/climaGrid.json fehlt trotz sparse-Muster"; exit 1; }
+          test -f scripts/punktarchiv/points.json || { echo "scripts/punktarchiv/points.json fehlt — Punktliste nicht committet"; exit 1; }
+
+      - name: Install collector dependencies
+        run: cd app && npm install --no-save --no-audit --no-fund bz2@1 jsfive@0.4
+
+      # Netzfreies Gate VOR dem Sammeln: eine kaputte Form soll auffallen, bevor Punkte gelesen werden.
+      - name: Gate — Form des Punktarchivs
+        run: cd app && node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-punktarchiv.mjs
+
+      - name: Collect slot
+        env:
+          POINTARCHIVE_OUT: ${{ github.workspace }}
+        run: |
+          cd app
+          node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/punktarchiv/collect.mjs \
+            ${{ github.event.inputs.limit && format('--limit={0}', github.event.inputs.limit) || '' }} \
+            --live-hours=${{ github.event.inputs.live_hours || '240' }} --live-full=10
+
+      # Append-only: normaler Push mit Wiederholung, NIE --force. Ein abgewiesener Push heißt
+      # hier nur, dass ein anderer Lauf (manuell) dazwischenkam — rebase und erneut.
+      - name: Commit and push (append-only, with retry)
+        run: |
+          git add -A -- . ':!app'
+          if git diff --cached --quiet; then echo "Nichts Neues — kein Commit."; exit 0; fi
+          git commit -m "archiv: slot $(date -u +%Y-%m-%dT%H:%MZ)"
+          for attempt in 1 2 3 4 5; do
+            if git push origin main; then echo "Push in Versuch $attempt gelungen."; exit 0; fi
+            echo "Versuch $attempt scheiterte — rebase und erneut."
+            git pull --rebase --autostash origin main || true
+            sleep $((attempt * 15))
+          done
+          echo "Push nach 5 Versuchen gescheitert."; exit 1

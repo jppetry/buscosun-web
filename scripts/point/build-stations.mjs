@@ -191,7 +191,7 @@ async function main() {
       'ensCount bleibt MISSING statt 0: 0 hiesse "gemessen und null", gemessen wurde nichts.',
       'hModEff ist die Stationshoehe — MOSMIX gilt AM Ort, PAP 4 hat hier nichts zu korrigieren.',
       'gust ist auf max(FX1, |v10|) geklammert (PAP 6); am echten Lauf war FX1 in 97 Fallen kleiner als FF.',
-      'MOSMIX-L laeuft 03/09/15/21 UTC und erscheint bei Lauf + 72…77 min. Der Punkt-Cron laeuft bei Lauf + 50 min, erreicht den gleichzeitigen Lauf also NIE — ageH sagt, wie alt der genommene ist.',
+      'MOSMIX-L laeuft 03/09/15/21 UTC und erscheint bei Lauf + 72…77 min. Ein t2-Slot bei Lauf + 50 min (bis 2026-09-14) erreicht den gleichzeitigen Lauf NIE, einer bei + 90 min (Vorlage `30 4,10,16,22`) mit 14–17 min Rand — ageH sagt, wie alt der genommene ist.',
     ],
     producer: 'buscosun-web/scripts/point/build-stations.mjs',
   };

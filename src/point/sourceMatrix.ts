@@ -120,10 +120,15 @@ export const SOURCES: readonly Source[] = Object.freeze([
     id: 'inca', name: 'INCA Analyse / Nowcast', provider: 'GeoSphere', kind: 'nowcast',
     domain: G(45.5, 49.5, 8.10, 17.74), edgeMarginKm: 0, clip: null,
     horizonH: { default: 3 }, runHours: [], members: 0,
-    vars: ['precip', 't2m'], steps: null, stepsMeasured: false,
+    // 2026-09-14 (AP5): `t2m` gestrichen — der Spiegel `radar/img/v1/inca` trägt NUR den
+    // Niederschlag (RR als u8-PNG). Die INCA-Temperaturanalyse liest der Live-Anker der App
+    // direkt (`src/pointForecast/sampleSources.ts`, `fetchIncaPoint`); im Daten-Repo liegt sie
+    // nicht. Ein zweites PNG (T2m) wäre eine Erweiterung des Spiegels = Radar-Linie = STOPP & FRAGEN.
+    vars: ['precip'], steps: null, stepsMeasured: false,
     retentionH: null, freeArchive: 'INCA-Analyse ab 2011',
     licence: CC_BY_4, attribution: 'Quelle: GeoSphere Austria',
     access: 'dataset.api.hub.geosphere.at (Rate-Limit 240/h, 5/s)', adapter: 'src/sources/geosphereInca.ts',
+    note: 'Im Spiegel nur RR (Nowcast). Die INCA-Temperaturanalyse (t2m) wird NICHT gespiegelt; der Live-Pfad der App holt sie direkt.',
   },
   {
     id: 'combiprecip', name: 'CombiPrecip (+ PRECIP RZC)', provider: 'MeteoSchweiz', kind: 'nowcast',
@@ -293,7 +298,7 @@ export const SOURCES: readonly Source[] = Object.freeze([
     licence: `${CC_BY_4} / GeoNutzV`, attribution: 'Datenbasis: Deutscher Wetterdienst',
     access: 'opendata.dwd.de/weather/local_forecasts/mos/MOSMIX_L/all_stations/kml/MOSMIX_L_LATEST.kmz — ALLE Stationen in EINER KMZ (76 MiB gepackt, 1750 MiB entpackt, am 2026-09-11 gemessen). Die frühere Angabe „KMZ je Station“ war nicht falsch, aber unvollständig: single_stations/ gibt es auch, wäre für 3071 Stationen aber 3071 Abrufe.',
     adapter: 'scripts/point/mosmix.mjs + scripts/point/build-stations.mjs (Produkt point/stations/)',
-    note: 'Stationsnetz weltweit; im Cube-Ausschnitt **3071** Stationen, davon 281 im WMO-Block 10 (DE), 120 im Block 11 (AT), 122 im Block 06 (CH) — am echten Lauf gezählt, nicht aus §7 der Quellenmatrix übernommen. ⚠ Veröffentlicht bei Lauf + 72…79 min, der Punkt-Cron läuft bei Lauf + 50 min: der gleichzeitige Lauf ist NIE erreichbar. PAMORE schließt MOSMIX aus, es gibt also KEIN freies Archiv.',
+    note: 'Stationsnetz weltweit; im Cube-Ausschnitt **3071** Stationen, davon 281 im WMO-Block 10 (DE), 120 im Block 11 (AT), 122 im Block 06 (CH) — am echten Lauf gezählt, nicht aus §7 der Quellenmatrix übernommen. ⚠ Veröffentlicht bei Lauf + 72…79 min (2026-09-14 gemessen: 73…76 min). Der Punkt-Cron lief bis 2026-09-14 bei Lauf + 50 min — der gleichzeitige Lauf war NIE erreichbar (V-PD-28, ageH 7,06); die Vorlage liegt seither bei Lauf + 90 min (`30 4,10,16,22`, Rand 14–17 min), die Kopie ins Daten-Repo ist Jans Gate. PAMORE schließt MOSMIX aus, es gibt also KEIN freies Archiv.',
   },
 
   // ── 120–336 h: Langfrist ─────────────────────────────────────────────────

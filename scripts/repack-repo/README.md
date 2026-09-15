@@ -347,7 +347,7 @@ ein gemeinsamer Takt für jede von ihnen der falsche wäre. Die Slots sind aus d
 | Job | Slot (UTC) | tragende Quelle | gemessene Bereitstellung |
 |---|---|---|---|
 | Stufe 1 | `:40` der Stunden 1, 4, 7, 10, 13, 16, 19, 22 | ICON-D2 | Lauf + 1,36 h ⇒ 18 min Rand |
-| Stufe 2 (+ Stationen) | `:50` der Stunden 3, 9, 15, 21 | ICON-EU | Lauf + 3,64 h; die 120-h-Hauptläufe gibt es nur 4 × täglich |
+| Stufe 2 (+ Stationen) | `:30` der Stunden 4, 10, 16, 22 | ICON-EU, MOSMIX-L | ICON-EU Lauf + 3,60…3,70 h ⇒ 48 min Rand; MOSMIX-L (03/09/15/21z) Lauf + 73…76 min ⇒ 14 min Rand. Bis 2026-09-14 lag der Slot bei `:50` der Stunden 3, 9, 15, 21 — 27 min VOR MOSMIX-L, das Stationsprodukt trug immer den Vorlauf (7 h alt) |
 | Stufe 3 | `:55` der Stunden 9, 21 | IFS `oper` | Lauf + 7,57 h; 336 h liefern nur 00z und 12z |
 
 Alle drei teilen eine Concurrency-Gruppe — sie können sich nie überlappen — und halten
