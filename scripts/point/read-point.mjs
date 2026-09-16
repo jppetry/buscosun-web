@@ -26,7 +26,7 @@ import { pathToFileURL } from 'node:url';
 import { decodePng } from '../lib/png.mjs';
 import { httpStore, POINT_RAW_BASE } from '../../src/point/client/store.ts';
 import { planPointSources } from '../../src/point/client/resolve.ts';
-import { readCubePoint, stepNearest } from '../../src/point/client/cubePoint.ts';
+import { readCubePoint, stepNearest, manifestStore } from '../../src/point/client/cubePoint.ts';
 import { readStationPoint } from '../../src/point/client/stationPoint.ts';
 import { readNowcastPoint } from '../../src/point/client/nowcastPoint.ts';
 import { loadHmodelManifest, readHmodelPoint } from '../../src/point/client/staticPoint.ts';
@@ -91,7 +91,8 @@ async function main() {
   }
 
   const cube = {};
-  for (const t of needTiers) cube[t] = await readCubePoint(store, plan.index, t, lat, lon);
+  // Eine uebersprungene Stufe wird GESAGT (V-FI-3): `null` allein sagt nicht, warum.
+  for (const t of needTiers) cube[t] = await readCubePoint(store, plan.index, t, lat, lon, { onSkip: (r) => console.error(`⚠ Stufe uebersprungen — ${r}`) });
   // PD-E: die Modellhoehen je Quelle. Das Produkt ist zeitlos und liegt im Chunk-Raster
   // des Cubes — derselbe (cy, cx), also eine kleine Datei. Fehlt es (noch), ist das kein
   // Fehler: der Block bleibt dann einfach aus.
@@ -99,8 +100,10 @@ async function main() {
   {
     const firstTier = [...needTiers][0];
     if (firstTier) {
-      const hm = await loadHmodelManifest(store);
-      if (hm) hmodel = await readHmodelPoint(store, hm, firstTier, lat, lon);
+      // In place veraenderliches Produkt ⇒ Manifest UND Chunk gepinnt an den Index-Commit (V-FI-1).
+      const pinned = manifestStore(store, plan.index);
+      const hm = await loadHmodelManifest(pinned);
+      if (hm) hmodel = await readHmodelPoint(pinned, hm, firstTier, lat, lon);
     }
   }
   const station = needStation && plan.station.manifest && plan.station.candidate

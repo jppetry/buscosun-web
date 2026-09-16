@@ -93,6 +93,7 @@
     "point:publish": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/point/publish-point.mjs",
     "point:check-cdn": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/point/check-cdn.mjs",
     "verify:pv-score": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/verify-pv-score.mjs",
+    "verify:pv-latency": "node scripts/verify-pv-latency.mjs",
     "point:nowcast": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/point/nowcastReader.mjs",
     "point:read": "node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/point/read-point.mjs",
     "point:availability": "node scripts/point/measure-availability.mjs",

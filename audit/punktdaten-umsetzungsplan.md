@@ -334,6 +334,26 @@ Grün sein muss:
 8. Messreihe ≥ 7 Tage je Quelle; `READY_H` im Verifier nachgezogen; t3-Slot entschieden.
 9. Alle Verifier grün, Budget unverändert, kein offener STOPP-&-FRAGEN-Punkt ohne Antwort.
 
+### 8.1 Prüfung am 2026-09-16, 09:00 UTC (nach Jans Push von `717cc12`)
+
+Alles am Primärdatum geprüft: Remote-`index.json` (Commit `9d7fc77`, 07:57 UTC), Lauf-Manifeste `2026091600/03/06` und `2026091512`, GitHub-API (Läufe von `point.yml` und `punktarchiv.yml`), Archiv-Indizes, Verifier lokal.
+
+| # | Bedingung | Befund | Stand |
+|---|---|---|---|
+| 1 | Archiv läuft mit Push | Lauf 1 von `punktarchiv.yml` (15.09. 23:19–23:32 UTC, success, Commit `cdbe952`): Slot `2026-09-15/2320.json.gz`, **243 Punkte**, 10,6 MB, `conflicts 0`; dazu der lokal gesammelte Slot vom 14.09. (243 Punkte). Zweiter Cron-Slot heute 23:10 UTC. | ✅ (ein Cron-Tag) |
+| 2 | t3 ≥ 2 Läufe · Stationen `ageH < 2` · `declined`/`hmodel.diff` | `runs[]` hält t3 `2026091512` + `2026091500` (Verkettungsfix wirkt); Stationen `ageH` **1,78 / 1,73** (t2-Slot `:30` wirkt, vorher 7,1); `run.json` trägt `declined` (mosmix_s, kenda_ch1) und `hmodel.diff` je Spalte | ✅ |
+| 3 | `urban/v1` am Remote | `index.json static.products` nennt `urban/v1` (208 Chunks, 110,7 KB, Spalten imperv/d0/bldgH, Stand 14.09. 20:43 UTC) | ✅ |
+| 4 | M-1 entschieden und deployt | Lauf 65 (t1, 07:45 UTC, Job 11 min 48 s, Bau ≈ 10,2 min gegen `JOB_MAX_MIN_BY_TIER.t1` 20) baut mit `717cc12`: `axis.gaps`/`usableToH 318` im Index, `hmodel.hModEff.provenance per-step-contributing` (2 373 609 Zellen aus tragenden Quellen, 0 Rückfälle), `windMembers`-Felder im Ensemble-Manifest. **t2 und t3 noch mit altem Code** (t3 `2026091512`: `pressure.levels [850]`, kein Wind, keine Quantile) — erste Läufe mit neuem Code **09:55 UTC** (t3) und **10:30 UTC** (t2). E-U-8: 24 Windmember gesetzt, Empfehlung 50 offen (§4.6a). | ⏳ t1 ✅, t2/t3 heute |
+| 5 | AROME-Live-Pfad abgelöst (U-19) | `src/pointForecast/sampleSources.ts:417` und `src/sources/geosphereArome.ts:81` rufen weiter `nwp-v1-1h-2500m`; Frist 2026-11-01 | ❌ offen, nicht blockierend |
+| 6 | Cube-Adapter hinter Flag (U-20) | kein `cubeSource.ts`, kein `pointSource` in `pointForecast.ts`/`types.ts` — das ist keine Vorarbeit mehr, sondern **die erste Etappe der Implementierung** (S&F) | ❌ = Start |
+| 7 | `calib.json`-Provenienzregel im Client | `src/pointForecast/*` liest `calib.json` nicht, `src/point/client/resolve.ts` kennt keine Provenienz — gehört zur Verdrahtung von PAP 6 | ❌ = Implementierung |
+| 8 | Messreihe ≥ 7 Tage, t3-Slot | `availability.json` Stand 14.09. 20:37 UTC (79 Proben, **ein** Tag); `READY_H` unverändert; t3-Slot `35 8,20` unentschieden | ❌ läuft nebenher |
+| 9 | Verifier grün, Budget unverändert | `verify:point-data` **947/947** · `verify:point-client` **63/63** · `verify:punktarchiv` **56/56** · typecheck 0 · Build 241/241 · Budget eagerJs 107,9 · totalJs 1 366,1 (unverändert) | ✅ |
+
+**Urteil:** Die Datenseite ist bereit (1–4 und 9); Punkt 4 wird mit den Läufen 09:55/10:30 UTC vollständig. 6 und 7 sind keine Vorarbeiten, sondern die ersten Etappen der Implementierung selbst. 5 und 8 laufen daneben — mit Frist (5) bzw. Messpflicht (8). Nach dem t3-Lauf 09:55 UTC am Manifest prüfen: `ensemble.sources[ifs_ens].windMembers 24`, `membersRead 50`, `pressure.levels [925,850,700]`, `quantiles.provenance ensemble-members`, Jobdauer gegen `JOB_MAX_MIN_BY_TIER.t3 = 10`.
+
+- ⚠ **Neu benannt, V-PD-62** (am Remote gefunden): `hmodel.changed` steht für `ifs_hres` und `aifs_single` auf `true`, sobald der ECMWF-Lauf wechselt — 18z → 00z: Hash `0978…` → `0079…`, min −24 → −26 m, max 3 006 → 3 005 m; bei gleichem Lauf (`2026091600` → `2026091603`, beide 18z) bleibt er gleich. Die abgeleitete Höhe `gh @ sp` hängt am Bodendruck des Laufs und ist damit **laufabhängig um 1–2 m**; die Begründung „Modell-Upgrade oder andere Quellenreihenfolge" ist für diese zwei Spalten irreführend, und das statische Produkt wird viermal täglich neu geschrieben (190 KB, harmlos). Damit ist die offene Frage aus §0 („`hmodel.changed` t2/t3 `true`, Ursache offen") beantwortet. Kur: abgeleitete Spalten mit Toleranz (≈ 5 m) vergleichen oder gegen eine feste Referenz (Analyse 00z); PAP 4 ist um ≤ 0,02 K betroffen. Kein Blocker.
+
 ---
 
 ## Anhang A — Rekonstruktion des PA0-Plans (Punktarchiv)

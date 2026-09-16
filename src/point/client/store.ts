@@ -39,6 +39,13 @@ export interface PointStore {
   /** Dieselbe Datei als JSON; `null` bei 404. */
   json<T = unknown>(path: string): Promise<T | null>;
   readonly stats: StoreStats;
+  /**
+   * Derselbe Store unter einer anderen Basis — dieselbe Frist, dasselbe `fetch`, DIESELBE
+   * Zählung. Gebraucht, um veränderliche Manifeste an den Index-Commit zu pinnen
+   * (`@<commit>` statt `@main`, V-FI-1), während die Chunks weiter unter `@main` liegen.
+   * Optional: ein Speicher-Store kennt keine Commits und gibt sich selbst zurück.
+   */
+  withBase?(base: string): PointStore;
 }
 
 /** Das Daten-Repo über jsDelivr — der Weg, den auch die Kartenlinie fährt. */
@@ -53,11 +60,11 @@ export interface HttpStoreOptions {
   timeoutMs?: number;
 }
 
-export function httpStore(opts: HttpStoreOptions = {}): PointStore {
+export function httpStore(opts: HttpStoreOptions = {}, sharedStats?: StoreStats): PointStore {
   const base = (opts.base ?? POINT_CDN_BASE).replace(/\/+$/, '');
   const f = opts.fetchImpl ?? fetch;
   const timeoutMs = opts.timeoutMs ?? 20_000;
-  const stats: StoreStats = { files: 0, bytes: 0, misses: 0 };
+  const stats: StoreStats = sharedStats ?? { files: 0, bytes: 0, misses: 0 };
 
   const bytes = async (path: string): Promise<Uint8Array | null> => {
     const url = `${base}/${path.replace(/^\/+/, '')}`;
@@ -85,6 +92,7 @@ export function httpStore(opts: HttpStoreOptions = {}): PointStore {
       return JSON.parse(new TextDecoder().decode(b)) as T;
     },
     stats,
+    withBase: (other: string) => httpStore({ ...opts, base: other }, stats),
   };
 }
 
@@ -103,7 +111,7 @@ export function memoryStore(files: Map<string, Uint8Array>, base = 'memory://'):
     stats.bytes += b.length;
     return b;
   };
-  return {
+  const self: PointStore = {
     base,
     bytes,
     async json<T>(path: string) {
@@ -112,5 +120,8 @@ export function memoryStore(files: Map<string, Uint8Array>, base = 'memory://'):
       return JSON.parse(new TextDecoder().decode(b)) as T;
     },
     stats,
+    // Eine Tabelle im Speicher hat keine Commits: dieselben Bytes unter jeder Basis.
+    withBase: () => self,
   };
+  return self;
 }

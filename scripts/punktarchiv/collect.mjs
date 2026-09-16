@@ -42,7 +42,7 @@ installNodeShims();
 
 import { decodePng } from '../lib/png.mjs';
 import { httpStore, POINT_RAW_BASE } from '../../src/point/client/store.ts';
-import { loadPointIndex, loadRunManifest, readCubePoint } from '../../src/point/client/cubePoint.ts';
+import { loadPointIndex, loadRunManifestFrom, manifestStore, readCubePoint } from '../../src/point/client/cubePoint.ts';
 import { loadStationCatalog, nearestStations, readStationPoint } from '../../src/point/client/stationPoint.ts';
 import { nowcastSourcesFor, readNowcastPoint } from '../../src/point/client/nowcastPoint.ts';
 import { loadHmodelManifest, readHmodelPoint } from '../../src/point/client/staticPoint.ts';
@@ -74,13 +74,21 @@ function parseArgs(argv) {
 }
 
 // ─── a memoising store: every chunk, manifest and PNG is fetched ONCE per slot ──
-function memoStore(inner) {
+function memoStore(inner, pinned = new Map()) {
   const bytes = new Map(), json = new Map();
   return {
     get base() { return inner.base; },
     get stats() { return inner.stats; },
     bytes(path) { if (!bytes.has(path)) bytes.set(path, inner.bytes(path)); return bytes.get(path); },
     json(path) { if (!json.has(path)) json.set(path, inner.json(path)); return json.get(path); },
+    // V-FI-1: Manifeste werden an den Index-Commit gepinnt (`manifestStore`). Der gepinnte
+    // Store ist derselbe Memo-Store unter anderer Basis — einmal je Basis, damit ein Manifest
+    // auch gepinnt nur EINMAL je Slot geholt wird.
+    withBase(base) {
+      if (!inner.withBase) return this;
+      if (!pinned.has(base)) pinned.set(base, memoStore(inner.withBase(base), pinned));
+      return pinned.get(base);
+    },
     memo: { get chunks() { return bytes.size; }, get jsons() { return json.size; } },
   };
 }
@@ -132,9 +140,14 @@ async function collectCube(store, index, points, slot, opts) {
     const lb = index.latestByTier?.[t];
     if (!lb?.manifest) { slot.stats.errors.push(`cube/${t}: kein Lauf im Index`); continue; }
     const t0 = Date.now();
-    const manifest = await loadRunManifest(store, lb.manifest);
+    // V-FI-1: das Manifest an den Index-Commit gepinnt lesen — `@main` kann eine Fassung
+    // OHNE diese Stufe tragen (gemergt/beschnitten, nie gepurgt). Ein Rueckfall auf `@main`
+    // wird als Vorbehalt in den Slot geschrieben, nicht verschwiegen.
+    const { manifest, from } = await loadRunManifestFrom(store, lb.manifest, index);
     if (!manifest) { slot.stats.errors.push(`cube/${t}: Manifest ${lb.manifest} nicht lesbar`); continue; }
+    if (from !== 'pinned') slot.stats.errors.push(`cube/${t}: Manifest ${lb.manifest} nur ueber @main gelesen (${from}) — moeglicherweise veraltet (V-FI-1)`);
     const tm = manifest.tiers.find((x) => x.id === t);
+    if (!tm) { slot.stats.errors.push(`cube/${t}: Manifest ${lb.manifest} (${from}) kennt die Stufe nicht — traegt ${manifest.tiers.map((x) => x.id).join('+')} (V-FI-1)`); continue; }
     slot.scales.cube[t] = Object.fromEntries(manifest.planes.map((p) => [p.id, { scale: p.scale, offset: p.offset, unit: p.unit }]));
     slot.cube[t] = {
       run: lb.run, runAt: lb.runAt, sourceRun: lb.sourceRun, sourceRunAt: lb.sourceRunAt, ageH: lb.ageH,
@@ -151,8 +164,9 @@ async function collectCube(store, index, points, slot, opts) {
     let ok = 0;
     for (const p of points) {
       try {
-        const ser = await readCubePoint(store, index, t, p.lat, p.lon, { manifest });
-        if (!ser) { slot.cube[t].byPoint[p.id] = null; continue; }
+        let skipReason = null;
+        const ser = await readCubePoint(store, index, t, p.lat, p.lon, { manifest, onSkip: (r) => { skipReason = r; } });
+        if (!ser) { slot.cube[t].byPoint[p.id] = null; if (skipReason && !/ausserhalb|außerhalb/.test(skipReason)) slot.stats.errors.push(`cube/${t}/${p.id}: ${skipReason}`); continue; }
         const enc = encodeCubeSeries(ser);
         slot.cube[t].byPoint[p.id] = {
           cell: { iy: ser.cell.iy, ix: ser.cell.ix, lat: ser.cell.lat, lon: ser.cell.lon, offsetKm: Math.round(ser.cell.offsetKm * 100) / 100 },
@@ -449,7 +463,9 @@ async function main() {
   if (!flags['no-cube']) {
     await collectCube(store, index, points, slot, {});
     await collectStations(store, index, points, slot);
-    await collectHmodel(store, points, slot);
+    // Das statische Produkt aendert sich IN PLACE (static.json UND Chunks, viermal taeglich):
+    // beides gepinnt an den Index-Commit, damit Ebenenliste und Bytes zusammenpassen.
+    await collectHmodel(manifestStore(store, index), points, slot);
     await collectPlan(store, points, slot, slotAtMs);
   }
   if (!flags['no-nowcast'] && !flags['no-cube']) await collectNowcast(store, points, slot, slotAtMs);

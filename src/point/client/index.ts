@@ -15,8 +15,8 @@ export {
 } from './store';
 
 export {
-  loadPointIndex, loadRunManifest, readCubePoint, stepNearest, distanceKm,
-  type PointIndex, type CubePointSeries, type CubePointStep, type ReadCubeOptions,
+  loadPointIndex, loadRunManifest, loadRunManifestFrom, manifestStore, readCubePoint, stepNearest, distanceKm,
+  type PointIndex, type CubePointSeries, type CubePointStep, type ReadCubeOptions, type ManifestOrigin,
 } from './cubePoint';
 
 export {

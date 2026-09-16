@@ -1,0 +1,6111 @@
+{
+ "schema": 1,
+ "startedAt": "2026-09-16T11:09:08.785Z",
+ "finishedAt": "2026-09-16T11:19:22.191Z",
+ "host": {
+  "platform": "win32",
+  "node": "v22.17.0",
+  "chrome": "C:\\Users\\User\\AppData\\Local\\ms-playwright\\chromium_headless_shell-1223\\chrome-headless-shell-win64\\chrome-headless-shell.exe"
+ },
+ "args": {
+  "profileIds": [
+   "fast-3g"
+  ],
+  "placeIds": [
+   "hamburg",
+   "berlin",
+   "muenchen",
+   "wien",
+   "graz",
+   "innsbruck",
+   "zuerich",
+   "genf",
+   "zermatt",
+   "zugspitze"
+  ],
+  "only": [
+   "terrain",
+   "reader",
+   "live"
+  ],
+  "repeats": 1
+ },
+ "chunkEdgePlaces": [
+  "graz"
+ ],
+ "summary": [
+  {
+   "profile": "fast-3g",
+   "scenario": "dem-live-z9",
+   "n": 10,
+   "p50": 3022.399999976158,
+   "p95": 3890.2999999523163,
+   "max": 3890.2999999523163
+  },
+  {
+   "profile": "fast-3g",
+   "scenario": "terrain-z9",
+   "n": 10,
+   "p50": 3603.5,
+   "p95": 3905.5,
+   "max": 3905.5
+  },
+  {
+   "profile": "fast-3g",
+   "scenario": "terrain-z10",
+   "n": 10,
+   "p50": 4108.099999964237,
+   "p95": 7193.800000011921,
+   "max": 7193.800000011921
+  },
+  {
+   "profile": "fast-3g",
+   "scenario": "terrain-z11",
+   "n": 10,
+   "p50": 2010.8999999761581,
+   "p95": 3331.699999988079,
+   "max": 3331.699999988079
+  },
+  {
+   "profile": "fast-3g",
+   "scenario": "reader-cold",
+   "n": 10,
+   "p50": 38938.39999997616,
+   "p95": 45536.19999998808,
+   "max": 45536.19999998808
+  },
+  {
+   "profile": "fast-3g",
+   "scenario": "reader-warm",
+   "n": 10,
+   "p50": 2784.400000035763,
+   "p95": 5633.199999988079,
+   "max": 5633.199999988079
+  },
+  {
+   "profile": "fast-3g",
+   "scenario": "reader-parallel",
+   "n": 10,
+   "p50": 2377.300000011921,
+   "p95": 4201.699999988079,
+   "max": 4201.699999988079
+  }
+ ],
+ "gate": null,
+ "runs": [
+  {
+   "profile": "fast-3g",
+   "place": "hamburg",
+   "lat": 53.5511,
+   "lon": 9.9937,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "dem-live-z9",
+   "rep": 0,
+   "wallMs": 2928,
+   "totalMs": 2923.300000011921,
+   "result": {
+    "total": 2923.300000011921,
+    "elevation": 12
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 431950,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/270/164.png",
+     "bytes": 110922,
+     "ttfbMs": 849,
+     "ms": 2902,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "hamburg",
+   "lat": 53.5511,
+   "lon": 9.9937,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "terrain-z9",
+   "rep": 0,
+   "wallMs": 1892,
+   "totalMs": 1888.2999999523163,
+   "result": {
+    "z": 9,
+    "radiusM": 20000,
+    "tiles": 2,
+    "bytes": 214430,
+    "total": 1888.2999999523163,
+    "decodeMs": 12.399999976158142,
+    "failed": 0
+   },
+   "net": {
+    "requests": 2,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 216070,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/270/165.png",
+     "bytes": 110603,
+     "ttfbMs": 831,
+     "ms": 1874,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 2
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "hamburg",
+   "lat": 53.5511,
+   "lon": 9.9937,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "terrain-z10",
+   "rep": 0,
+   "wallMs": 3593,
+   "totalMs": 3590.599999964237,
+   "result": {
+    "z": 10,
+    "radiusM": 20000,
+    "tiles": 6,
+    "bytes": 619740,
+    "total": 3590.599999964237,
+    "decodeMs": 40.3999999165535,
+    "failed": 0
+   },
+   "net": {
+    "requests": 6,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 624421,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/10/541/330.png",
+     "bytes": 107801,
+     "ttfbMs": 800,
+     "ms": 3557,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 6
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "hamburg",
+   "lat": 53.5511,
+   "lon": 9.9937,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "terrain-z11",
+   "rep": 0,
+   "wallMs": 2518,
+   "totalMs": 2516.5,
+   "result": {
+    "z": 11,
+    "radiusM": 2000,
+    "tiles": 4,
+    "bytes": 393951,
+    "total": 2516.5,
+    "decodeMs": 20,
+    "failed": 0
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 397042,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/11/1080/662.png",
+     "bytes": 102444,
+     "ttfbMs": 621,
+     "ms": 2506,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "hamburg",
+   "lat": 53.5511,
+   "lon": 9.9937,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "reader-cold",
+   "rep": 0,
+   "wallMs": 39699,
+   "totalMs": 39691,
+   "result": {
+    "total": 39691,
+    "t": {
+     "plan": 2827.199999988079,
+     "cube.t1": 3032,
+     "cube.t2": 2180.7000000476837,
+     "cube.t3": 7.099999964237213,
+     "hmodel": 1212.699999988079,
+     "station": 883.3000000119209,
+     "nowcast": 29543.5,
+     "read": 36861.89999997616
+    },
+    "stats": {
+     "files": 38,
+     "bytes": 3075449,
+     "misses": 0
+    },
+    "tiers": [
+     "t1",
+     "t2",
+     "t3"
+    ],
+    "cube": {
+     "t1": {
+      "steps": 49
+     },
+     "t2": {
+      "steps": 24
+     },
+     "t3": null
+    },
+    "hmodel": "ok",
+    "station": {
+     "steps": 247
+    },
+    "nowcast": {
+     "frames": 25,
+     "probes": 1
+    },
+    "plan": {
+     "segments": 91,
+     "station": true,
+     "nowcast": [
+      "radvor_rv"
+     ]
+    }
+   },
+   "net": {
+    "requests": 38,
+    "cached": 2,
+    "failed": 0,
+    "bytes": 2468214,
+    "cdn": 36,
+    "hit": 10,
+    "miss": 26,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/2026091606/t1/10_05.bin",
+     "bytes": 330134,
+     "ttfbMs": 594,
+     "ms": 2186,
+     "xCache": "HIT"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 38
+    },
+    "cdnRequests": [
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/index.json",
+      "bytes": 5217,
+      "ttfbMs": 631,
+      "ms": 652,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/catalog.json",
+      "bytes": 59356,
+      "ttfbMs": 582,
+      "ms": 850,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/2026091603/stations.json",
+      "bytes": 14373,
+      "ttfbMs": 590,
+      "ms": 655,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/meta.json",
+      "bytes": 666,
+      "ttfbMs": 583,
+      "ms": 584,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091606/run.json",
+      "bytes": 10471,
+      "ttfbMs": 592,
+      "ms": 633,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091606/t1/10_05.bin",
+      "bytes": 330134,
+      "ttfbMs": 594,
+      "ms": 2186,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091600/run.json",
+      "bytes": 11916,
+      "ttfbMs": 591,
+      "ms": 631,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091600/t2/05_02.bin",
+      "bytes": 173572,
+      "ttfbMs": 597,
+      "ms": 1419,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/static.json",
+      "bytes": 2291,
+      "ttfbMs": 593,
+      "ms": 594,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/t1/10_05.bin",
+      "bytes": 1012,
+      "ttfbMs": 597,
+      "ms": 599,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/2026091603/10_05.bin",
+      "bytes": 42990,
+      "ttfbMs": 583,
+      "ms": 784,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f000.png",
+      "bytes": 74116,
+      "ttfbMs": 593,
+      "ms": 939,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f005.png",
+      "bytes": 73190,
+      "ttfbMs": 594,
+      "ms": 928,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f010.png",
+      "bytes": 73244,
+      "ttfbMs": 694,
+      "ms": 1073,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f015.png",
+      "bytes": 72956,
+      "ttfbMs": 1510,
+      "ms": 1852,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f020.png",
+      "bytes": 72853,
+      "ttfbMs": 580,
+      "ms": 917,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f025.png",
+      "bytes": 73057,
+      "ttfbMs": 603,
+      "ms": 943,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f030.png",
+      "bytes": 72849,
+      "ttfbMs": 842,
+      "ms": 1192,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f035.png",
+      "bytes": 73069,
+      "ttfbMs": 1241,
+      "ms": 1573,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f040.png",
+      "bytes": 72948,
+      "ttfbMs": 593,
+      "ms": 940,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f045.png",
+      "bytes": 72698,
+      "ttfbMs": 600,
+      "ms": 934,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f050.png",
+      "bytes": 72617,
+      "ttfbMs": 589,
+      "ms": 936,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f055.png",
+      "bytes": 72593,
+      "ttfbMs": 1037,
+      "ms": 1390,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f060.png",
+      "bytes": 72561,
+      "ttfbMs": 589,
+      "ms": 933,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f065.png",
+      "bytes": 72437,
+      "ttfbMs": 582,
+      "ms": 920,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f070.png",
+      "bytes": 72376,
+      "ttfbMs": 605,
+      "ms": 933,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f075.png",
+      "bytes": 72441,
+      "ttfbMs": 582,
+      "ms": 923,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f080.png",
+      "bytes": 72264,
+      "ttfbMs": 584,
+      "ms": 928,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f085.png",
+      "bytes": 72436,
+      "ttfbMs": 595,
+      "ms": 945,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f090.png",
+      "bytes": 72337,
+      "ttfbMs": 1050,
+      "ms": 1403,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f095.png",
+      "bytes": 72149,
+      "ttfbMs": 1417,
+      "ms": 1765,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f100.png",
+      "bytes": 72358,
+      "ttfbMs": 591,
+      "ms": 935,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f105.png",
+      "bytes": 72238,
+      "ttfbMs": 590,
+      "ms": 917,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f110.png",
+      "bytes": 72216,
+      "ttfbMs": 915,
+      "ms": 1268,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f115.png",
+      "bytes": 72183,
+      "ttfbMs": 1652,
+      "ms": 2015,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f120.png",
+      "bytes": 72030,
+      "ttfbMs": 578,
+      "ms": 919,
+      "xCache": "MISS"
+     }
+    ]
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "hamburg",
+   "lat": 53.5511,
+   "lon": 9.9937,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "reader-warm",
+   "rep": 0,
+   "wallMs": 2787,
+   "totalMs": 2784.400000035763,
+   "result": {
+    "total": 2784.400000035763,
+    "t": {
+     "plan": 663.3999999761581,
+     "cube.t1": 144.5,
+     "cube.t2": 127,
+     "cube.t3": 7.5,
+     "hmodel": 16.700000047683716,
+     "station": 93,
+     "nowcast": 1728.300000011921,
+     "read": 2117.5
+    },
+    "stats": {
+     "files": 38,
+     "bytes": 3075449,
+     "misses": 2
+    },
+    "tiers": [
+     "t1",
+     "t2",
+     "t3"
+    ],
+    "cube": {
+     "t1": {
+      "steps": 49
+     },
+     "t2": {
+      "steps": 24
+     },
+     "t3": null
+    },
+    "hmodel": "ok",
+    "station": {
+     "steps": 247
+    },
+    "nowcast": {
+     "frames": 25,
+     "probes": 2
+    },
+    "plan": {
+     "segments": 91,
+     "station": true,
+     "nowcast": [
+      "radvor_rv"
+     ]
+    }
+   },
+   "net": {
+    "requests": 38,
+    "cached": 38,
+    "failed": 0,
+    "bytes": 0,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/index.json",
+     "bytes": 0,
+     "ttfbMs": 0,
+     "ms": 2,
+     "xCache": "HIT"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 38
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "hamburg",
+   "lat": 53.5511,
+   "lon": 9.9937,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "reader-parallel",
+   "rep": 0,
+   "wallMs": 2380,
+   "totalMs": 2378.399999976158,
+   "result": {
+    "total": 2378.399999976158,
+    "t": {
+     "plan": 647.5999999642372,
+     "cube.t3": 15.600000023841858,
+     "hmodel": 69.19999998807907,
+     "station": 321.5,
+     "cube.t1": 333.0999999642372,
+     "cube.t2": 333.60000002384186,
+     "nowcast": 1723.5,
+     "read": 1728.8999999761581
+    },
+    "stats": {
+     "files": 38,
+     "bytes": 3075449,
+     "misses": 2
+    },
+    "tiers": [
+     "t1",
+     "t2",
+     "t3"
+    ],
+    "cube": {
+     "t1": {
+      "steps": 49
+     },
+     "t2": {
+      "steps": 24
+     },
+     "t3": null
+    },
+    "hmodel": "ok",
+    "station": {
+     "steps": 247
+    },
+    "nowcast": {
+     "frames": 25,
+     "probes": 2
+    },
+    "plan": {
+     "segments": 91,
+     "station": true,
+     "nowcast": [
+      "radvor_rv"
+     ]
+    }
+   },
+   "net": {
+    "requests": 38,
+    "cached": 38,
+    "failed": 0,
+    "bytes": 0,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/index.json",
+     "bytes": 0,
+     "ttfbMs": 0,
+     "ms": 1,
+     "xCache": "HIT"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 38
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "berlin",
+   "lat": 52.52,
+   "lon": 13.405,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "dem-live-z9",
+   "rep": 0,
+   "wallMs": 3025,
+   "totalMs": 3022.399999976158,
+   "result": {
+    "total": 3022.399999976158,
+    "elevation": 40
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 444469,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/275/167.png",
+     "bytes": 113345,
+     "ttfbMs": 874,
+     "ms": 2997,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "berlin",
+   "lat": 52.52,
+   "lon": 13.405,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "terrain-z9",
+   "rep": 0,
+   "wallMs": 2990,
+   "totalMs": 2986.899999976158,
+   "result": {
+    "z": 9,
+    "radiusM": 20000,
+    "tiles": 4,
+    "bytes": 441513,
+    "total": 2986.899999976158,
+    "decodeMs": 25.19999998807907,
+    "failed": 0
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 444469,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/275/167.png",
+     "bytes": 113345,
+     "ttfbMs": 847,
+     "ms": 2970,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "berlin",
+   "lat": 52.52,
+   "lon": 13.405,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "terrain-z10",
+   "rep": 0,
+   "wallMs": 3653,
+   "totalMs": 3652.199999988079,
+   "result": {
+    "z": 10,
+    "radiusM": 20000,
+    "tiles": 6,
+    "bytes": 633637,
+    "total": 3652.199999988079,
+    "decodeMs": 41.80000001192093,
+    "failed": 0
+   },
+   "net": {
+    "requests": 6,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 638017,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/10/550/334.png",
+     "bytes": 109821,
+     "ttfbMs": 597,
+     "ms": 3565,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 6
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "berlin",
+   "lat": 52.52,
+   "lon": 13.405,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "terrain-z11",
+   "rep": 0,
+   "wallMs": 1069,
+   "totalMs": 1065.8999999761581,
+   "result": {
+    "z": 11,
+    "radiusM": 2000,
+    "tiles": 1,
+    "bytes": 100292,
+    "total": 1065.8999999761581,
+    "decodeMs": 4.699999988079071,
+    "failed": 0
+   },
+   "net": {
+    "requests": 1,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 101022,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/11/1100/671.png",
+     "bytes": 101022,
+     "ttfbMs": 589,
+     "ms": 1058,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 1
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "berlin",
+   "lat": 52.52,
+   "lon": 13.405,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "reader-cold",
+   "rep": 0,
+   "wallMs": 35671,
+   "totalMs": 35676.19999998808,
+   "result": {
+    "total": 35676.19999998808,
+    "t": {
+     "plan": 3437.100000023842,
+     "cube.t1": 2964.7999999523163,
+     "cube.t2": 2132.600000023842,
+     "cube.t3": 6.899999976158142,
+     "hmodel": 1230.300000011921,
+     "station": 918.7000000476837,
+     "nowcast": 24982.399999976158,
+     "read": 32237.099999964237
+    },
+    "stats": {
+     "files": 38,
+     "bytes": 3081051,
+     "misses": 2
+    },
+    "tiers": [
+     "t1",
+     "t2",
+     "t3"
+    ],
+    "cube": {
+     "t1": {
+      "steps": 49
+     },
+     "t2": {
+      "steps": 24
+     },
+     "t3": null
+    },
+    "hmodel": "ok",
+    "station": {
+     "steps": 247
+    },
+    "nowcast": {
+     "frames": 25,
+     "probes": 2
+    },
+    "plan": {
+     "segments": 91,
+     "station": true,
+     "nowcast": [
+      "radvor_rv"
+     ]
+    }
+   },
+   "net": {
+    "requests": 38,
+    "cached": 2,
+    "failed": 0,
+    "bytes": 2473752,
+    "cdn": 36,
+    "hit": 36,
+    "miss": 0,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/2026091606/t1/08_09.bin",
+     "bytes": 334022,
+     "ttfbMs": 580,
+     "ms": 2163,
+     "xCache": "HIT"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 38
+    },
+    "cdnRequests": [
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/index.json",
+      "bytes": 5217,
+      "ttfbMs": 621,
+      "ms": 642,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/catalog.json",
+      "bytes": 59333,
+      "ttfbMs": 602,
+      "ms": 862,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/2026091603/stations.json",
+      "bytes": 14373,
+      "ttfbMs": 594,
+      "ms": 644,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/meta.json",
+      "bytes": 668,
+      "ttfbMs": 599,
+      "ms": 600,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091606/run.json",
+      "bytes": 10471,
+      "ttfbMs": 601,
+      "ms": 634,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091606/t1/08_09.bin",
+      "bytes": 334022,
+      "ttfbMs": 580,
+      "ms": 2163,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091600/run.json",
+      "bytes": 11916,
+      "ttfbMs": 597,
+      "ms": 642,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091600/t2/04_04.bin",
+      "bytes": 165425,
+      "ttfbMs": 579,
+      "ms": 1381,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/static.json",
+      "bytes": 2291,
+      "ttfbMs": 599,
+      "ms": 600,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/t1/08_09.bin",
+      "bytes": 1065,
+      "ttfbMs": 601,
+      "ms": 602,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/2026091603/08_09.bin",
+      "bytes": 52680,
+      "ttfbMs": 581,
+      "ms": 819,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f000.png",
+      "bytes": 74123,
+      "ttfbMs": 593,
+      "ms": 940,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f005.png",
+      "bytes": 73195,
+      "ttfbMs": 585,
+      "ms": 914,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f010.png",
+      "bytes": 73251,
+      "ttfbMs": 604,
+      "ms": 950,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f015.png",
+      "bytes": 72961,
+      "ttfbMs": 590,
+      "ms": 939,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f020.png",
+      "bytes": 72847,
+      "ttfbMs": 590,
+      "ms": 918,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f025.png",
+      "bytes": 73061,
+      "ttfbMs": 593,
+      "ms": 940,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f030.png",
+      "bytes": 72851,
+      "ttfbMs": 589,
+      "ms": 937,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f035.png",
+      "bytes": 73071,
+      "ttfbMs": 585,
+      "ms": 925,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f040.png",
+      "bytes": 72950,
+      "ttfbMs": 599,
+      "ms": 943,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f045.png",
+      "bytes": 72703,
+      "ttfbMs": 588,
+      "ms": 935,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f050.png",
+      "bytes": 72619,
+      "ttfbMs": 578,
+      "ms": 917,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f055.png",
+      "bytes": 72600,
+      "ttfbMs": 596,
+      "ms": 930,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f060.png",
+      "bytes": 72568,
+      "ttfbMs": 595,
+      "ms": 923,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f065.png",
+      "bytes": 72436,
+      "ttfbMs": 578,
+      "ms": 932,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f070.png",
+      "bytes": 72378,
+      "ttfbMs": 580,
+      "ms": 923,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f075.png",
+      "bytes": 72448,
+      "ttfbMs": 589,
+      "ms": 911,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f080.png",
+      "bytes": 72271,
+      "ttfbMs": 587,
+      "ms": 928,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f085.png",
+      "bytes": 72438,
+      "ttfbMs": 593,
+      "ms": 923,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f090.png",
+      "bytes": 72339,
+      "ttfbMs": 597,
+      "ms": 944,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f095.png",
+      "bytes": 72156,
+      "ttfbMs": 598,
+      "ms": 944,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f100.png",
+      "bytes": 72355,
+      "ttfbMs": 584,
+      "ms": 921,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f105.png",
+      "bytes": 72240,
+      "ttfbMs": 581,
+      "ms": 919,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f110.png",
+      "bytes": 72218,
+      "ttfbMs": 580,
+      "ms": 923,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f115.png",
+      "bytes": 72185,
+      "ttfbMs": 580,
+      "ms": 925,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f120.png",
+      "bytes": 72027,
+      "ttfbMs": 600,
+      "ms": 932,
+      "xCache": "HIT"
+     }
+    ]
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "berlin",
+   "lat": 52.52,
+   "lon": 13.405,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "reader-warm",
+   "rep": 0,
+   "wallMs": 2799,
+   "totalMs": 2797.699999988079,
+   "result": {
+    "total": 2797.699999988079,
+    "t": {
+     "plan": 654.5999999642372,
+     "cube.t1": 169.60000002384186,
+     "cube.t2": 127.5,
+     "cube.t3": 6.599999964237213,
+     "hmodel": 18.599999964237213,
+     "station": 93.30000001192093,
+     "nowcast": 1725.199999988079,
+     "read": 2141.199999988079
+    },
+    "stats": {
+     "files": 38,
+     "bytes": 3081051,
+     "misses": 2
+    },
+    "tiers": [
+     "t1",
+     "t2",
+     "t3"
+    ],
+    "cube": {
+     "t1": {
+      "steps": 49
+     },
+     "t2": {
+      "steps": 24
+     },
+     "t3": null
+    },
+    "hmodel": "ok",
+    "station": {
+     "steps": 247
+    },
+    "nowcast": {
+     "frames": 25,
+     "probes": 2
+    },
+    "plan": {
+     "segments": 91,
+     "station": true,
+     "nowcast": [
+      "radvor_rv"
+     ]
+    }
+   },
+   "net": {
+    "requests": 38,
+    "cached": 38,
+    "failed": 0,
+    "bytes": 0,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/index.json",
+     "bytes": 0,
+     "ttfbMs": 0,
+     "ms": 1,
+     "xCache": "HIT"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 38
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "berlin",
+   "lat": 52.52,
+   "lon": 13.405,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "reader-parallel",
+   "rep": 0,
+   "wallMs": 2379,
+   "totalMs": 2377.300000011921,
+   "result": {
+    "total": 2377.300000011921,
+    "t": {
+     "plan": 633.6000000238419,
+     "cube.t3": 18.80000001192093,
+     "hmodel": 71.69999998807907,
+     "station": 341.39999997615814,
+     "cube.t1": 355.4000000357628,
+     "cube.t2": 356.69999998807907,
+     "nowcast": 1736.5999999642372,
+     "read": 1741.9000000357628
+    },
+    "stats": {
+     "files": 38,
+     "bytes": 3081051,
+     "misses": 2
+    },
+    "tiers": [
+     "t1",
+     "t2",
+     "t3"
+    ],
+    "cube": {
+     "t1": {
+      "steps": 49
+     },
+     "t2": {
+      "steps": 24
+     },
+     "t3": null
+    },
+    "hmodel": "ok",
+    "station": {
+     "steps": 247
+    },
+    "nowcast": {
+     "frames": 25,
+     "probes": 2
+    },
+    "plan": {
+     "segments": 91,
+     "station": true,
+     "nowcast": [
+      "radvor_rv"
+     ]
+    }
+   },
+   "net": {
+    "requests": 38,
+    "cached": 38,
+    "failed": 0,
+    "bytes": 0,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/index.json",
+     "bytes": 0,
+     "ttfbMs": 0,
+     "ms": 1,
+     "xCache": "HIT"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 38
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "muenchen",
+   "lat": 48.1372,
+   "lon": 11.5755,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "dem-live-z9",
+   "rep": 0,
+   "wallMs": 2127,
+   "totalMs": 2122.399999976158,
+   "result": {
+    "total": 2122.399999976158,
+    "elevation": 523
+   },
+   "net": {
+    "requests": 2,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 265485,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/272/178.png",
+     "bytes": 142469,
+     "ttfbMs": 851,
+     "ms": 2103,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 2
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "muenchen",
+   "lat": 48.1372,
+   "lon": 11.5755,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "terrain-z9",
+   "rep": 0,
+   "wallMs": 2096,
+   "totalMs": 2093.2000000476837,
+   "result": {
+    "z": 9,
+    "radiusM": 20000,
+    "tiles": 2,
+    "bytes": 264025,
+    "total": 2093.2000000476837,
+    "decodeMs": 13.5,
+    "failed": 0
+   },
+   "net": {
+    "requests": 2,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 265445,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/272/178.png",
+     "bytes": 142449,
+     "ttfbMs": 817,
+     "ms": 2075,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 2
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "muenchen",
+   "lat": 48.1372,
+   "lon": 11.5755,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "terrain-z10",
+   "rep": 0,
+   "wallMs": 4098,
+   "totalMs": 4095.300000011921,
+   "result": {
+    "z": 10,
+    "radiusM": 20000,
+    "tiles": 6,
+    "bytes": 720703,
+    "total": 4095.300000011921,
+    "decodeMs": 38.700000047683716,
+    "failed": 0
+   },
+   "net": {
+    "requests": 6,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 724963,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/10/545/356.png",
+     "bytes": 129337,
+     "ttfbMs": 825,
+     "ms": 4077,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 6
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "muenchen",
+   "lat": 48.1372,
+   "lon": 11.5755,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "terrain-z11",
+   "rep": 0,
+   "wallMs": 1611,
+   "totalMs": 1609.199999988079,
+   "result": {
+    "z": 11,
+    "radiusM": 2000,
+    "tiles": 2,
+    "bytes": 209550,
+    "total": 1609.199999988079,
+    "decodeMs": 11.299999952316284,
+    "failed": 0
+   },
+   "net": {
+    "requests": 2,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 210970,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/11/1089/710.png",
+     "bytes": 107115,
+     "ttfbMs": 595,
+     "ms": 1600,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 2
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "muenchen",
+   "lat": 48.1372,
+   "lon": 11.5755,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "reader-cold",
+   "rep": 0,
+   "wallMs": 38948,
+   "totalMs": 38938.39999997616,
+   "result": {
+    "total": 38938.39999997616,
+    "t": {
+     "plan": 5250.699999988079,
+     "cube.t1": 4053.099999964237,
+     "cube.t2": 2240.099999964237,
+     "cube.t3": 7,
+     "hmodel": 1210.1000000238419,
+     "station": 1243.7999999523163,
+     "nowcast": 24929.399999976158,
+     "read": 33686
+    },
+    "stats": {
+     "files": 40,
+     "bytes": 3384106,
+     "misses": 3
+    },
+    "tiers": [
+     "t1",
+     "t2",
+     "t3"
+    ],
+    "cube": {
+     "t1": {
+      "steps": 49
+     },
+     "t2": {
+      "steps": 24
+     },
+     "t3": null
+    },
+    "hmodel": "ok",
+    "station": {
+     "steps": 247
+    },
+    "nowcast": {
+     "frames": 25,
+     "probes": 2
+    },
+    "plan": {
+     "segments": 91,
+     "station": true,
+     "nowcast": [
+      "radvor_rv",
+      "inca",
+      "combiprecip"
+     ]
+    }
+   },
+   "net": {
+    "requests": 40,
+    "cached": 2,
+    "failed": 0,
+    "bytes": 2776400,
+    "cdn": 38,
+    "hit": 37,
+    "miss": 1,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/2026091606/t1/03_07.bin",
+     "bytes": 556938,
+     "ttfbMs": 581,
+     "ms": 3231,
+     "xCache": "HIT"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 40
+    },
+    "cdnRequests": [
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/index.json",
+      "bytes": 5217,
+      "ttfbMs": 632,
+      "ms": 654,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/catalog.json",
+      "bytes": 59333,
+      "ttfbMs": 592,
+      "ms": 871,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/2026091603/stations.json",
+      "bytes": 14373,
+      "ttfbMs": 602,
+      "ms": 655,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/meta.json",
+      "bytes": 669,
+      "ttfbMs": 598,
+      "ms": 600,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1045/meta.json",
+      "bytes": 667,
+      "ttfbMs": 590,
+      "ms": 592,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260916T1110/meta.json",
+      "bytes": 573,
+      "ttfbMs": 580,
+      "ms": 581,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091606/run.json",
+      "bytes": 10471,
+      "ttfbMs": 584,
+      "ms": 618,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091606/t1/03_07.bin",
+      "bytes": 556938,
+      "ttfbMs": 581,
+      "ms": 3231,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091600/run.json",
+      "bytes": 11916,
+      "ttfbMs": 587,
+      "ms": 626,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091600/t2/01_03.bin",
+      "bytes": 195081,
+      "ttfbMs": 579,
+      "ms": 1505,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/static.json",
+      "bytes": 2291,
+      "ttfbMs": 584,
+      "ms": 585,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/t1/03_07.bin",
+      "bytes": 1515,
+      "ttfbMs": 589,
+      "ms": 591,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/2026091603/03_07.bin",
+      "bytes": 100969,
+      "ttfbMs": 619,
+      "ms": 1106,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f000.png",
+      "bytes": 74119,
+      "ttfbMs": 591,
+      "ms": 934,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f005.png",
+      "bytes": 73202,
+      "ttfbMs": 592,
+      "ms": 925,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f010.png",
+      "bytes": 73255,
+      "ttfbMs": 590,
+      "ms": 933,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f015.png",
+      "bytes": 72959,
+      "ttfbMs": 578,
+      "ms": 928,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f020.png",
+      "bytes": 72848,
+      "ttfbMs": 586,
+      "ms": 926,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f025.png",
+      "bytes": 73057,
+      "ttfbMs": 584,
+      "ms": 925,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f030.png",
+      "bytes": 72857,
+      "ttfbMs": 598,
+      "ms": 939,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f035.png",
+      "bytes": 73077,
+      "ttfbMs": 586,
+      "ms": 923,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f040.png",
+      "bytes": 72943,
+      "ttfbMs": 579,
+      "ms": 938,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f045.png",
+      "bytes": 72701,
+      "ttfbMs": 597,
+      "ms": 929,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f050.png",
+      "bytes": 72620,
+      "ttfbMs": 590,
+      "ms": 940,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f055.png",
+      "bytes": 72606,
+      "ttfbMs": 578,
+      "ms": 920,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f060.png",
+      "bytes": 72567,
+      "ttfbMs": 599,
+      "ms": 938,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f065.png",
+      "bytes": 72442,
+      "ttfbMs": 583,
+      "ms": 923,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f070.png",
+      "bytes": 72382,
+      "ttfbMs": 580,
+      "ms": 911,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f075.png",
+      "bytes": 72449,
+      "ttfbMs": 584,
+      "ms": 927,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f080.png",
+      "bytes": 72275,
+      "ttfbMs": 592,
+      "ms": 930,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f085.png",
+      "bytes": 72444,
+      "ttfbMs": 578,
+      "ms": 917,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f090.png",
+      "bytes": 72383,
+      "ttfbMs": 598,
+      "ms": 939,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f095.png",
+      "bytes": 72157,
+      "ttfbMs": 584,
+      "ms": 923,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f100.png",
+      "bytes": 72353,
+      "ttfbMs": 590,
+      "ms": 918,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f105.png",
+      "bytes": 72246,
+      "ttfbMs": 589,
+      "ms": 922,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f110.png",
+      "bytes": 72218,
+      "ttfbMs": 593,
+      "ms": 929,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f115.png",
+      "bytes": 72195,
+      "ttfbMs": 582,
+      "ms": 916,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161105/f120.png",
+      "bytes": 72032,
+      "ttfbMs": 605,
+      "ms": 938,
+      "xCache": "HIT"
+     }
+    ]
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "muenchen",
+   "lat": 48.1372,
+   "lon": 11.5755,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "reader-warm",
+   "rep": 0,
+   "wallMs": 4309,
+   "totalMs": 4305.400000035763,
+   "result": {
+    "total": 4305.400000035763,
+    "t": {
+     "plan": 2130.599999964237,
+     "cube.t1": 158.19999998807907,
+     "cube.t2": 124.39999997615814,
+     "cube.t3": 7.199999988079071,
+     "hmodel": 15.899999976158142,
+     "station": 113.70000004768372,
+     "nowcast": 1752.0999999642372,
+     "read": 2171.599999964237
+    },
+    "stats": {
+     "files": 40,
+     "bytes": 3384106,
+     "misses": 3
+    },
+    "tiers": [
+     "t1",
+     "t2",
+     "t3"
+    ],
+    "cube": {
+     "t1": {
+      "steps": 49
+     },
+     "t2": {
+      "steps": 24
+     },
+     "t3": null
+    },
+    "hmodel": "ok",
+    "station": {
+     "steps": 247
+    },
+    "nowcast": {
+     "frames": 25,
+     "probes": 2
+    },
+    "plan": {
+     "segments": 91,
+     "station": true,
+     "nowcast": [
+      "radvor_rv",
+      "inca",
+      "combiprecip"
+     ]
+    }
+   },
+   "net": {
+    "requests": 40,
+    "cached": 40,
+    "failed": 0,
+    "bytes": 0,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/index.json",
+     "bytes": 0,
+     "ttfbMs": 0,
+     "ms": 1,
+     "xCache": "HIT"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 40
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "muenchen",
+   "lat": 48.1372,
+   "lon": 11.5755,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "reader-parallel",
+   "rep": 0,
+   "wallMs": 2981,
+   "totalMs": 2979.199999988079,
+   "result": {
+    "total": 2979.199999988079,
+    "t": {
+     "plan": 1269.7000000476837,
+     "cube.t3": 26.899999976158142,
+     "hmodel": 92.10000002384186,
+     "station": 351.30000001192093,
+     "cube.t1": 362.5999999642372,
+     "cube.t2": 363,
+     "nowcast": 1700.800000011921,
+     "read": 1707.5999999642372
+    },
+    "stats": {
+     "files": 40,
+     "bytes": 3384106,
+     "misses": 3
+    },
+    "tiers": [
+     "t1",
+     "t2",
+     "t3"
+    ],
+    "cube": {
+     "t1": {
+      "steps": 49
+     },
+     "t2": {
+      "steps": 24
+     },
+     "t3": null
+    },
+    "hmodel": "ok",
+    "station": {
+     "steps": 247
+    },
+    "nowcast": {
+     "frames": 25,
+     "probes": 2
+    },
+    "plan": {
+     "segments": 91,
+     "station": true,
+     "nowcast": [
+      "radvor_rv",
+      "inca",
+      "combiprecip"
+     ]
+    }
+   },
+   "net": {
+    "requests": 40,
+    "cached": 40,
+    "failed": 0,
+    "bytes": 0,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/index.json",
+     "bytes": 0,
+     "ttfbMs": 0,
+     "ms": 1,
+     "xCache": "HIT"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 40
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "wien",
+   "lat": 48.2082,
+   "lon": 16.3738,
+   "country": "AT",
+   "chunkEdge": false,
+   "scenario": "dem-live-z9",
+   "rep": 0,
+   "wallMs": 1450,
+   "totalMs": 1446.9000000357628,
+   "result": {
+    "total": 1446.9000000357628,
+    "elevation": 187
+   },
+   "net": {
+    "requests": 1,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 123668,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/279/177.png",
+     "bytes": 123668,
+     "ttfbMs": 826,
+     "ms": 1429,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 1
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "wien",
+   "lat": 48.2082,
+   "lon": 16.3738,
+   "country": "AT",
+   "chunkEdge": false,
+   "scenario": "terrain-z9",
+   "rep": 0,
+   "wallMs": 2151,
+   "totalMs": 2148.600000023842,
+   "result": {
+    "z": 9,
+    "radiusM": 20000,
+    "tiles": 2,
+    "bytes": 260160,
+    "total": 2148.600000023842,
+    "decodeMs": 15.200000047683716,
+    "failed": 0
+   },
+   "net": {
+    "requests": 2,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 261580,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/278/177.png",
+     "bytes": 137912,
+     "ttfbMs": 885,
+     "ms": 2137,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 2
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "wien",
+   "lat": 48.2082,
+   "lon": 16.3738,
+   "country": "AT",
+   "chunkEdge": false,
+   "scenario": "terrain-z10",
+   "rep": 0,
+   "wallMs": 4110,
+   "totalMs": 4108.099999964237,
+   "result": {
+    "z": 10,
+    "radiusM": 20000,
+    "tiles": 6,
+    "bytes": 731600,
+    "total": 4108.099999964237,
+    "decodeMs": 37.40000003576279,
+    "failed": 0
+   },
+   "net": {
+    "requests": 6,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 735860,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/10/557/355.png",
+     "bytes": 141493,
+     "ttfbMs": 813,
+     "ms": 4095,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 6
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "wien",
+   "lat": 48.2082,
+   "lon": 16.3738,
+   "country": "AT",
+   "chunkEdge": false,
+   "scenario": "terrain-z11",
+   "rep": 0,
+   "wallMs": 2817,
+   "totalMs": 2813.699999988079,
+   "result": {
+    "z": 11,
+    "radiusM": 2000,
+    "tiles": 4,
+    "bytes": 463754,
+    "total": 2813.699999988079,
+    "decodeMs": 20.899999916553497,
+    "failed": 0
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 466554,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/11/1116/709.png",
+     "bytes": 131928,
+     "ttfbMs": 600,
+     "ms": 2804,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "wien",
+   "lat": 48.2082,
+   "lon": 16.3738,
+   "country": "AT",
+   "chunkEdge": false,
+   "scenario": "reader-cold",
+   "rep": 0,
+   "wallMs": 21899,
+   "totalMs": 21896,
+   "result": {
+    "total": 21896,
+    "t": {
+     "plan": 4334.799999952316,
+     "cube.t1": 4154.900000035763,
+     "cube.t2": 2334.599999964237,
+     "cube.t3": 7.899999976158142,
+     "hmodel": 1235.199999988079,
+     "station": 777.4000000357628,
+     "nowcast": 9047.899999976158,
+     "read": 17559.5
+    },
+    "stats": {
+     "files": 25,
+     "bytes": 1717022,
+     "misses": 2
+    },
+    "tiers": [
+     "t1",
+     "t2",
+     "t3"
+    ],
+    "cube": {
+     "t1": {
+      "steps": 49
+     },
+     "t2": {
+      "steps": 24
+     },
+     "t3": null
+    },
+    "hmodel": "ok",
+    "station": {
+     "steps": 247
+    },
+    "nowcast": {
+     "frames": 12,
+     "probes": 2
+    },
+    "plan": {
+     "segments": 91,
+     "station": true,
+     "nowcast": [
+      "inca"
+     ]
+    }
+   },
+   "net": {
+    "requests": 25,
+    "cached": 2,
+    "failed": 0,
+    "bytes": 1107867,
+    "cdn": 23,
+    "hit": 11,
+    "miss": 12,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/2026091606/t1/03_13.bin",
+     "bytes": 580406,
+     "ttfbMs": 589,
+     "ms": 3351,
+     "xCache": "HIT"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 25
+    },
+    "cdnRequests": [
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/index.json",
+      "bytes": 5217,
+      "ttfbMs": 648,
+      "ms": 675,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/catalog.json",
+      "bytes": 59356,
+      "ttfbMs": 579,
+      "ms": 850,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/2026091603/stations.json",
+      "bytes": 14373,
+      "ttfbMs": 590,
+      "ms": 640,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1045/meta.json",
+      "bytes": 667,
+      "ttfbMs": 588,
+      "ms": 589,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091606/run.json",
+      "bytes": 10471,
+      "ttfbMs": 590,
+      "ms": 630,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091606/t1/03_13.bin",
+      "bytes": 580406,
+      "ttfbMs": 589,
+      "ms": 3351,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091600/run.json",
+      "bytes": 11916,
+      "ttfbMs": 599,
+      "ms": 641,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091600/t2/01_06.bin",
+      "bytes": 197582,
+      "ttfbMs": 593,
+      "ms": 1533,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/static.json",
+      "bytes": 2291,
+      "ttfbMs": 585,
+      "ms": 604,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/t1/03_13.bin",
+      "bytes": 1615,
+      "ttfbMs": 595,
+      "ms": 597,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/2026091603/03_13.bin",
+      "bytes": 20355,
+      "ttfbMs": 591,
+      "ms": 690,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1045/f015.png",
+      "bytes": 8469,
+      "ttfbMs": 578,
+      "ms": 617,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1045/f030.png",
+      "bytes": 8171,
+      "ttfbMs": 585,
+      "ms": 628,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1045/f045.png",
+      "bytes": 7878,
+      "ttfbMs": 575,
+      "ms": 608,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1045/f060.png",
+      "bytes": 7556,
+      "ttfbMs": 594,
+      "ms": 636,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1045/f075.png",
+      "bytes": 11906,
+      "ttfbMs": 596,
+      "ms": 647,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1045/f090.png",
+      "bytes": 15139,
+      "ttfbMs": 585,
+      "ms": 645,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1045/f105.png",
+      "bytes": 18047,
+      "ttfbMs": 807,
+      "ms": 876,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1045/f120.png",
+      "bytes": 21009,
+      "ttfbMs": 583,
+      "ms": 685,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1045/f135.png",
+      "bytes": 23858,
+      "ttfbMs": 587,
+      "ms": 699,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1045/f150.png",
+      "bytes": 25108,
+      "ttfbMs": 581,
+      "ms": 683,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1045/f165.png",
+      "bytes": 27064,
+      "ttfbMs": 605,
+      "ms": 733,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1045/f180.png",
+      "bytes": 29413,
+      "ttfbMs": 593,
+      "ms": 743,
+      "xCache": "MISS"
+     }
+    ]
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "wien",
+   "lat": 48.2082,
+   "lon": 16.3738,
+   "country": "AT",
+   "chunkEdge": false,
+   "scenario": "reader-warm",
+   "rep": 0,
+   "wallMs": 1902,
+   "totalMs": 1899.800000011921,
+   "result": {
+    "total": 1899.800000011921,
+    "t": {
+     "plan": 675.5,
+     "cube.t1": 161.89999997615814,
+     "cube.t2": 111.19999998807907,
+     "cube.t3": 6.800000011920929,
+     "hmodel": 18.400000035762787,
+     "station": 72.80000001192093,
+     "nowcast": 851.3999999761581,
+     "read": 1222.8999999761581
+    },
+    "stats": {
+     "files": 25,
+     "bytes": 1717022,
+     "misses": 2
+    },
+    "tiers": [
+     "t1",
+     "t2",
+     "t3"
+    ],
+    "cube": {
+     "t1": {
+      "steps": 49
+     },
+     "t2": {
+      "steps": 24
+     },
+     "t3": null
+    },
+    "hmodel": "ok",
+    "station": {
+     "steps": 247
+    },
+    "nowcast": {
+     "frames": 12,
+     "probes": 2
+    },
+    "plan": {
+     "segments": 91,
+     "station": true,
+     "nowcast": [
+      "inca"
+     ]
+    }
+   },
+   "net": {
+    "requests": 25,
+    "cached": 25,
+    "failed": 0,
+    "bytes": 0,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/index.json",
+     "bytes": 0,
+     "ttfbMs": 0,
+     "ms": 1,
+     "xCache": "HIT"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 25
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "wien",
+   "lat": 48.2082,
+   "lon": 16.3738,
+   "country": "AT",
+   "chunkEdge": false,
+   "scenario": "reader-parallel",
+   "rep": 0,
+   "wallMs": 1458,
+   "totalMs": 1456.300000011921,
+   "result": {
+    "total": 1456.300000011921,
+    "t": {
+     "plan": 636.0999999642372,
+     "cube.t3": 34.5,
+     "hmodel": 129.30000001192093,
+     "station": 377.5,
+     "cube.t1": 387,
+     "cube.t2": 388,
+     "nowcast": 813.1000000238419,
+     "read": 818.8000000119209
+    },
+    "stats": {
+     "files": 25,
+     "bytes": 1717022,
+     "misses": 2
+    },
+    "tiers": [
+     "t1",
+     "t2",
+     "t3"
+    ],
+    "cube": {
+     "t1": {
+      "steps": 49
+     },
+     "t2": {
+      "steps": 24
+     },
+     "t3": null
+    },
+    "hmodel": "ok",
+    "station": {
+     "steps": 247
+    },
+    "nowcast": {
+     "frames": 12,
+     "probes": 2
+    },
+    "plan": {
+     "segments": 91,
+     "station": true,
+     "nowcast": [
+      "inca"
+     ]
+    }
+   },
+   "net": {
+    "requests": 25,
+    "cached": 25,
+    "failed": 0,
+    "bytes": 0,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/index.json",
+     "bytes": 0,
+     "ttfbMs": 0,
+     "ms": 1,
+     "xCache": "HIT"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 25
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "graz",
+   "lat": 47.0707,
+   "lon": 15.4395,
+   "country": "AT",
+   "chunkEdge": true,
+   "scenario": "dem-live-z9",
+   "rep": 0,
+   "wallMs": 3627,
+   "totalMs": 3625.399999976158,
+   "result": {
+    "total": 3625.399999976158,
+    "elevation": 364
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 587063,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/277/179.png",
+     "bytes": 154438,
+     "ttfbMs": 823,
+     "ms": 3616,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "graz",
+   "lat": 47.0707,
+   "lon": 15.4395,
+   "country": "AT",
+   "chunkEdge": true,
+   "scenario": "terrain-z9",
+   "rep": 0,
+   "wallMs": 3631,
+   "totalMs": 3625.7000000476837,
+   "result": {
+    "z": 9,
+    "radiusM": 20000,
+    "tiles": 4,
+    "bytes": 584155,
+    "total": 3625.7000000476837,
+    "decodeMs": 23.09999990463257,
+    "failed": 0
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 587063,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/277/179.png",
+     "bytes": 154438,
+     "ttfbMs": 840,
+     "ms": 3615,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "graz",
+   "lat": 47.0707,
+   "lon": 15.4395,
+   "country": "AT",
+   "chunkEdge": true,
+   "scenario": "terrain-z10",
+   "rep": 0,
+   "wallMs": 3259,
+   "totalMs": 3257.099999964237,
+   "result": {
+    "z": 10,
+    "radiusM": 20000,
+    "tiles": 4,
+    "bytes": 550739,
+    "total": 3257.099999964237,
+    "decodeMs": 20,
+    "failed": 0
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 553579,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/10/555/359.png",
+     "bytes": 144874,
+     "ttfbMs": 591,
+     "ms": 3243,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "graz",
+   "lat": 47.0707,
+   "lon": 15.4395,
+   "country": "AT",
+   "chunkEdge": true,
+   "scenario": "terrain-z11",
+   "rep": 0,
+   "wallMs": 1218,
+   "totalMs": 1216.5,
+   "result": {
+    "z": 11,
+    "radiusM": 2000,
+    "tiles": 1,
+    "bytes": 130269,
+    "total": 1216.5,
+    "decodeMs": 9.800000011920929,
+    "failed": 0
+   },
+   "net": {
+    "requests": 1,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 130969,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/11/1111/719.png",
+     "bytes": 130969,
+     "ttfbMs": 592,
+     "ms": 1204,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 1
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "graz",
+   "lat": 47.0707,
+   "lon": 15.4395,
+   "country": "AT",
+   "chunkEdge": true,
+   "scenario": "reader-cold",
+   "rep": 0,
+   "wallMs": 21082,
+   "totalMs": 21074.30000001192,
+   "result": {
+    "total": 21074.30000001192,
+    "t": {
+     "plan": 3859.800000011921,
+     "cube.t1": 4131.899999976158,
+     "cube.t2": 2257.899999976158,
+     "cube.t3": 6.800000011920929,
+     "hmodel": 1211.5,
+     "station": 807.6000000238419,
+     "nowcast": 8793.699999988079,
+     "read": 17210.69999998808
+    },
+    "stats": {
+     "files": 25,
+     "bytes": 1706205,
+     "misses": 2
+    },
+    "tiers": [
+     "t1",
+     "t2",
+     "t3"
+    ],
+    "cube": {
+     "t1": {
+      "steps": 49
+     },
+     "t2": {
+      "steps": 24
+     },
+     "t3": null
+    },
+    "hmodel": "ok",
+    "station": {
+     "steps": 247
+    },
+    "nowcast": {
+     "frames": 12,
+     "probes": 2
+    },
+    "plan": {
+     "segments": 91,
+     "station": true,
+     "nowcast": [
+      "inca"
+     ]
+    }
+   },
+   "net": {
+    "requests": 25,
+    "cached": 2,
+    "failed": 0,
+    "bytes": 1097070,
+    "cdn": 23,
+    "hit": 23,
+    "miss": 0,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/2026091606/t1/01_12.bin",
+     "bytes": 570450,
+     "ttfbMs": 583,
+     "ms": 3301,
+     "xCache": "HIT"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 25
+    },
+    "cdnRequests": [
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/index.json",
+      "bytes": 5217,
+      "ttfbMs": 633,
+      "ms": 653,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/catalog.json",
+      "bytes": 59356,
+      "ttfbMs": 590,
+      "ms": 867,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/2026091603/stations.json",
+      "bytes": 14373,
+      "ttfbMs": 577,
+      "ms": 640,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1045/meta.json",
+      "bytes": 667,
+      "ttfbMs": 589,
+      "ms": 591,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091606/run.json",
+      "bytes": 10471,
+      "ttfbMs": 580,
+      "ms": 621,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091606/t1/01_12.bin",
+      "bytes": 570450,
+      "ttfbMs": 583,
+      "ms": 3301,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091600/run.json",
+      "bytes": 11916,
+      "ttfbMs": 581,
+      "ms": 625,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091600/t2/01_06.bin",
+      "bytes": 197582,
+      "ttfbMs": 583,
+      "ms": 1519,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/static.json",
+      "bytes": 2291,
+      "ttfbMs": 593,
+      "ms": 595,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/t1/01_12.bin",
+      "bytes": 1721,
+      "ttfbMs": 592,
+      "ms": 594,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/2026091603/02_12.bin",
+      "bytes": 19385,
+      "ttfbMs": 591,
+      "ms": 690,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1045/f015.png",
+      "bytes": 8471,
+      "ttfbMs": 586,
+      "ms": 607,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1045/f030.png",
+      "bytes": 8173,
+      "ttfbMs": 593,
+      "ms": 626,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1045/f045.png",
+      "bytes": 7880,
+      "ttfbMs": 599,
+      "ms": 640,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1045/f060.png",
+      "bytes": 7558,
+      "ttfbMs": 595,
+      "ms": 621,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1045/f075.png",
+      "bytes": 11908,
+      "ttfbMs": 582,
+      "ms": 623,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1045/f090.png",
+      "bytes": 15141,
+      "ttfbMs": 617,
+      "ms": 668,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1045/f105.png",
+      "bytes": 18049,
+      "ttfbMs": 592,
+      "ms": 668,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1045/f120.png",
+      "bytes": 21011,
+      "ttfbMs": 597,
+      "ms": 689,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1045/f135.png",
+      "bytes": 23859,
+      "ttfbMs": 586,
+      "ms": 683,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1045/f150.png",
+      "bytes": 25110,
+      "ttfbMs": 579,
+      "ms": 687,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1045/f165.png",
+      "bytes": 27066,
+      "ttfbMs": 581,
+      "ms": 708,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1045/f180.png",
+      "bytes": 29415,
+      "ttfbMs": 593,
+      "ms": 734,
+      "xCache": "HIT"
+     }
+    ]
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "graz",
+   "lat": 47.0707,
+   "lon": 15.4395,
+   "country": "AT",
+   "chunkEdge": true,
+   "scenario": "reader-warm",
+   "rep": 0,
+   "wallMs": 1849,
+   "totalMs": 1846.699999988079,
+   "result": {
+    "total": 1846.699999988079,
+    "t": {
+     "plan": 664,
+     "cube.t1": 151.60000002384186,
+     "cube.t2": 112.19999998807907,
+     "cube.t3": 6.400000035762787,
+     "hmodel": 19,
+     "station": 86,
+     "nowcast": 806,
+     "read": 1181.5
+    },
+    "stats": {
+     "files": 25,
+     "bytes": 1706205,
+     "misses": 2
+    },
+    "tiers": [
+     "t1",
+     "t2",
+     "t3"
+    ],
+    "cube": {
+     "t1": {
+      "steps": 49
+     },
+     "t2": {
+      "steps": 24
+     },
+     "t3": null
+    },
+    "hmodel": "ok",
+    "station": {
+     "steps": 247
+    },
+    "nowcast": {
+     "frames": 12,
+     "probes": 2
+    },
+    "plan": {
+     "segments": 91,
+     "station": true,
+     "nowcast": [
+      "inca"
+     ]
+    }
+   },
+   "net": {
+    "requests": 25,
+    "cached": 25,
+    "failed": 0,
+    "bytes": 0,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/index.json",
+     "bytes": 0,
+     "ttfbMs": 0,
+     "ms": 1,
+     "xCache": "HIT"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 25
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "graz",
+   "lat": 47.0707,
+   "lon": 15.4395,
+   "country": "AT",
+   "chunkEdge": true,
+   "scenario": "reader-parallel",
+   "rep": 0,
+   "wallMs": 1454,
+   "totalMs": 1452.300000011921,
+   "result": {
+    "total": 1452.300000011921,
+    "t": {
+     "plan": 641.5999999642372,
+     "cube.t3": 17.399999976158142,
+     "hmodel": 119.59999996423721,
+     "station": 380.80000001192093,
+     "cube.t1": 389.69999998807907,
+     "cube.t2": 390,
+     "nowcast": 804.6999999880791,
+     "read": 809.3000000119209
+    },
+    "stats": {
+     "files": 25,
+     "bytes": 1706205,
+     "misses": 2
+    },
+    "tiers": [
+     "t1",
+     "t2",
+     "t3"
+    ],
+    "cube": {
+     "t1": {
+      "steps": 49
+     },
+     "t2": {
+      "steps": 24
+     },
+     "t3": null
+    },
+    "hmodel": "ok",
+    "station": {
+     "steps": 247
+    },
+    "nowcast": {
+     "frames": 12,
+     "probes": 2
+    },
+    "plan": {
+     "segments": 91,
+     "station": true,
+     "nowcast": [
+      "inca"
+     ]
+    }
+   },
+   "net": {
+    "requests": 25,
+    "cached": 25,
+    "failed": 0,
+    "bytes": 0,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/index.json",
+     "bytes": 0,
+     "ttfbMs": 0,
+     "ms": 1,
+     "xCache": "HIT"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 25
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "innsbruck",
+   "lat": 47.2692,
+   "lon": 11.4041,
+   "country": "AT",
+   "chunkEdge": false,
+   "scenario": "dem-live-z9",
+   "rep": 0,
+   "wallMs": 2363,
+   "totalMs": 2361,
+   "result": {
+    "total": 2361,
+    "elevation": 577
+   },
+   "net": {
+    "requests": 2,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 317833,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/271/179.png",
+     "bytes": 159186,
+     "ttfbMs": 832,
+     "ms": 2347,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 2
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "innsbruck",
+   "lat": 47.2692,
+   "lon": 11.4041,
+   "country": "AT",
+   "chunkEdge": false,
+   "scenario": "terrain-z9",
+   "rep": 0,
+   "wallMs": 2416,
+   "totalMs": 2412.399999976158,
+   "result": {
+    "z": 9,
+    "radiusM": 20000,
+    "tiles": 2,
+    "bytes": 316413,
+    "total": 2412.399999976158,
+    "decodeMs": 12.799999952316284,
+    "failed": 0
+   },
+   "net": {
+    "requests": 2,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 317873,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/271/179.png",
+     "bytes": 159206,
+     "ttfbMs": 867,
+     "ms": 2402,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 2
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "innsbruck",
+   "lat": 47.2692,
+   "lon": 11.4041,
+   "country": "AT",
+   "chunkEdge": false,
+   "scenario": "terrain-z10",
+   "rep": 0,
+   "wallMs": 4942,
+   "totalMs": 4950.600000023842,
+   "result": {
+    "z": 10,
+    "radiusM": 20000,
+    "tiles": 6,
+    "bytes": 905729,
+    "total": 4950.600000023842,
+    "decodeMs": 39.10000002384186,
+    "failed": 0
+   },
+   "net": {
+    "requests": 6,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 910109,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/10/543/359.png",
+     "bytes": 153765,
+     "ttfbMs": 832,
+     "ms": 4935,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 6
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "innsbruck",
+   "lat": 47.2692,
+   "lon": 11.4041,
+   "country": "AT",
+   "chunkEdge": false,
+   "scenario": "terrain-z11",
+   "rep": 0,
+   "wallMs": 3334,
+   "totalMs": 3331.699999988079,
+   "result": {
+    "z": 11,
+    "radiusM": 2000,
+    "tiles": 4,
+    "bytes": 570240,
+    "total": 3331.699999988079,
+    "decodeMs": 23.499999940395355,
+    "failed": 0
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 573120,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/11/1088/717.png",
+     "bytes": 148094,
+     "ttfbMs": 608,
+     "ms": 3321,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "innsbruck",
+   "lat": 47.2692,
+   "lon": 11.4041,
+   "country": "AT",
+   "chunkEdge": false,
+   "scenario": "reader-cold",
+   "rep": 0,
+   "wallMs": 40398,
+   "totalMs": 40394.19999998808,
+   "result": {
+    "total": 40394.19999998808,
+    "t": {
+     "plan": 5755.400000035763,
+     "cube.t1": 4267.399999976158,
+     "cube.t2": 2291.199999988079,
+     "cube.t3": 8.300000011920929,
+     "hmodel": 1211.6000000238419,
+     "station": 1243,
+     "nowcast": 25613.30000001192,
+     "read": 34636.30000001192
+    },
+    "stats": {
+     "files": 40,
+     "bytes": 3476576,
+     "misses": 1
+    },
+    "tiers": [
+     "t1",
+     "t2",
+     "t3"
+    ],
+    "cube": {
+     "t1": {
+      "steps": 49
+     },
+     "t2": {
+      "steps": 24
+     },
+     "t3": null
+    },
+    "hmodel": "ok",
+    "station": {
+     "steps": 247
+    },
+    "nowcast": {
+     "frames": 25,
+     "probes": 1
+    },
+    "plan": {
+     "segments": 91,
+     "station": true,
+     "nowcast": [
+      "radvor_rv",
+      "inca",
+      "combiprecip"
+     ]
+    }
+   },
+   "net": {
+    "requests": 40,
+    "cached": 2,
+    "failed": 0,
+    "bytes": 2868710,
+    "cdn": 38,
+    "hit": 12,
+    "miss": 26,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/2026091606/t1/02_07.bin",
+     "bytes": 606133,
+     "ttfbMs": 577,
+     "ms": 3463,
+     "xCache": "HIT"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 40
+    },
+    "cdnRequests": [
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/index.json",
+      "bytes": 5217,
+      "ttfbMs": 625,
+      "ms": 652,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/catalog.json",
+      "bytes": 59356,
+      "ttfbMs": 582,
+      "ms": 868,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/2026091603/stations.json",
+      "bytes": 14373,
+      "ttfbMs": 584,
+      "ms": 640,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161110/meta.json",
+      "bytes": 660,
+      "ttfbMs": 1719,
+      "ms": 1720,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1045/meta.json",
+      "bytes": 667,
+      "ttfbMs": 578,
+      "ms": 579,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260916T1110/meta.json",
+      "bytes": 575,
+      "ttfbMs": 579,
+      "ms": 580,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091606/run.json",
+      "bytes": 10471,
+      "ttfbMs": 594,
+      "ms": 616,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091606/t1/02_07.bin",
+      "bytes": 606133,
+      "ttfbMs": 577,
+      "ms": 3463,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091600/run.json",
+      "bytes": 11916,
+      "ttfbMs": 585,
+      "ms": 626,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091600/t2/01_03.bin",
+      "bytes": 195076,
+      "ttfbMs": 596,
+      "ms": 1534,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/static.json",
+      "bytes": 2291,
+      "ttfbMs": 589,
+      "ms": 590,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/t1/02_07.bin",
+      "bytes": 1796,
+      "ttfbMs": 586,
+      "ms": 587,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/2026091603/02_07.bin",
+      "bytes": 110194,
+      "ttfbMs": 587,
+      "ms": 1110,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161110/f000.png",
+      "bytes": 75693,
+      "ttfbMs": 591,
+      "ms": 947,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161110/f005.png",
+      "bytes": 74882,
+      "ttfbMs": 598,
+      "ms": 944,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161110/f010.png",
+      "bytes": 74879,
+      "ttfbMs": 613,
+      "ms": 963,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161110/f015.png",
+      "bytes": 74505,
+      "ttfbMs": 594,
+      "ms": 942,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161110/f020.png",
+      "bytes": 74296,
+      "ttfbMs": 591,
+      "ms": 941,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161110/f025.png",
+      "bytes": 74336,
+      "ttfbMs": 589,
+      "ms": 945,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161110/f030.png",
+      "bytes": 74322,
+      "ttfbMs": 579,
+      "ms": 939,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161110/f035.png",
+      "bytes": 74361,
+      "ttfbMs": 586,
+      "ms": 927,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161110/f040.png",
+      "bytes": 74134,
+      "ttfbMs": 632,
+      "ms": 993,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161110/f045.png",
+      "bytes": 74238,
+      "ttfbMs": 587,
+      "ms": 931,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161110/f050.png",
+      "bytes": 74087,
+      "ttfbMs": 581,
+      "ms": 929,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161110/f055.png",
+      "bytes": 73990,
+      "ttfbMs": 586,
+      "ms": 923,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161110/f060.png",
+      "bytes": 73858,
+      "ttfbMs": 598,
+      "ms": 937,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161110/f065.png",
+      "bytes": 73893,
+      "ttfbMs": 695,
+      "ms": 1030,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161110/f070.png",
+      "bytes": 73923,
+      "ttfbMs": 602,
+      "ms": 933,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161110/f075.png",
+      "bytes": 73916,
+      "ttfbMs": 592,
+      "ms": 959,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161110/f080.png",
+      "bytes": 73695,
+      "ttfbMs": 592,
+      "ms": 949,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161110/f085.png",
+      "bytes": 73501,
+      "ttfbMs": 586,
+      "ms": 924,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161110/f090.png",
+      "bytes": 73446,
+      "ttfbMs": 596,
+      "ms": 945,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161110/f095.png",
+      "bytes": 73581,
+      "ttfbMs": 582,
+      "ms": 925,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161110/f100.png",
+      "bytes": 73253,
+      "ttfbMs": 685,
+      "ms": 1037,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161110/f105.png",
+      "bytes": 73325,
+      "ttfbMs": 581,
+      "ms": 918,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161110/f110.png",
+      "bytes": 73122,
+      "ttfbMs": 583,
+      "ms": 921,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161110/f115.png",
+      "bytes": 73341,
+      "ttfbMs": 1306,
+      "ms": 1641,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161110/f120.png",
+      "bytes": 73408,
+      "ttfbMs": 690,
+      "ms": 1037,
+      "xCache": "MISS"
+     }
+    ]
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "innsbruck",
+   "lat": 47.2692,
+   "lon": 11.4041,
+   "country": "AT",
+   "chunkEdge": false,
+   "scenario": "reader-warm",
+   "rep": 0,
+   "wallMs": 4686,
+   "totalMs": 4683.300000011921,
+   "result": {
+    "total": 4683.300000011921,
+    "t": {
+     "plan": 2466.800000011921,
+     "cube.t1": 188.19999998807907,
+     "cube.t2": 130.9000000357628,
+     "cube.t3": 7.300000011920929,
+     "hmodel": 16.30000001192093,
+     "station": 118.10000002384186,
+     "nowcast": 1751.800000011921,
+     "read": 2213.199999988079
+    },
+    "stats": {
+     "files": 40,
+     "bytes": 3476576,
+     "misses": 5
+    },
+    "tiers": [
+     "t1",
+     "t2",
+     "t3"
+    ],
+    "cube": {
+     "t1": {
+      "steps": 49
+     },
+     "t2": {
+      "steps": 24
+     },
+     "t3": null
+    },
+    "hmodel": "ok",
+    "station": {
+     "steps": 247
+    },
+    "nowcast": {
+     "frames": 25,
+     "probes": 2
+    },
+    "plan": {
+     "segments": 92,
+     "station": true,
+     "nowcast": [
+      "radvor_rv",
+      "inca",
+      "combiprecip"
+     ]
+    }
+   },
+   "net": {
+    "requests": 40,
+    "cached": 40,
+    "failed": 0,
+    "bytes": 0,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/index.json",
+     "bytes": 0,
+     "ttfbMs": 0,
+     "ms": 1,
+     "xCache": "HIT"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 40
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "innsbruck",
+   "lat": 47.2692,
+   "lon": 11.4041,
+   "country": "AT",
+   "chunkEdge": false,
+   "scenario": "reader-parallel",
+   "rep": 0,
+   "wallMs": 4204,
+   "totalMs": 4201.699999988079,
+   "result": {
+    "total": 4201.699999988079,
+    "t": {
+     "plan": 2445.099999964237,
+     "cube.t3": 38,
+     "hmodel": 108.60000002384186,
+     "station": 369.19999998807907,
+     "cube.t1": 384.9000000357628,
+     "cube.t2": 385.5999999642372,
+     "nowcast": 1743,
+     "read": 1755.199999988079
+    },
+    "stats": {
+     "files": 40,
+     "bytes": 3476576,
+     "misses": 5
+    },
+    "tiers": [
+     "t1",
+     "t2",
+     "t3"
+    ],
+    "cube": {
+     "t1": {
+      "steps": 49
+     },
+     "t2": {
+      "steps": 24
+     },
+     "t3": null
+    },
+    "hmodel": "ok",
+    "station": {
+     "steps": 247
+    },
+    "nowcast": {
+     "frames": 25,
+     "probes": 2
+    },
+    "plan": {
+     "segments": 92,
+     "station": true,
+     "nowcast": [
+      "radvor_rv",
+      "inca",
+      "combiprecip"
+     ]
+    }
+   },
+   "net": {
+    "requests": 40,
+    "cached": 40,
+    "failed": 0,
+    "bytes": 0,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/index.json",
+     "bytes": 0,
+     "ttfbMs": 0,
+     "ms": 1,
+     "xCache": "HIT"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 40
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "zuerich",
+   "lat": 47.3769,
+   "lon": 8.5417,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "dem-live-z9",
+   "rep": 0,
+   "wallMs": 3607,
+   "totalMs": 3605,
+   "result": {
+    "total": 3605,
+    "elevation": 414
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 577274,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/267/178.png",
+     "bytes": 147404,
+     "ttfbMs": 841,
+     "ms": 3591,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "zuerich",
+   "lat": 47.3769,
+   "lon": 8.5417,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "terrain-z9",
+   "rep": 0,
+   "wallMs": 3606,
+   "totalMs": 3603.5,
+   "result": {
+    "z": 9,
+    "radiusM": 20000,
+    "tiles": 4,
+    "bytes": 574354,
+    "total": 3603.5,
+    "decodeMs": 30.699999928474426,
+    "failed": 0
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 577274,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/267/178.png",
+     "bytes": 147404,
+     "ttfbMs": 840,
+     "ms": 3589,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "zuerich",
+   "lat": 47.3769,
+   "lon": 8.5417,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "terrain-z10",
+   "rep": 0,
+   "wallMs": 6716,
+   "totalMs": 6713.699999988079,
+   "result": {
+    "z": 10,
+    "radiusM": 20000,
+    "tiles": 9,
+    "bytes": 1215162,
+    "total": 6713.699999988079,
+    "decodeMs": 54.500000059604645,
+    "failed": 0
+   },
+   "net": {
+    "requests": 9,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 1221732,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/10/537/359.png",
+     "bytes": 142210,
+     "ttfbMs": 4909,
+     "ms": 6698,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 9
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "zuerich",
+   "lat": 47.3769,
+   "lon": 8.5417,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "terrain-z11",
+   "rep": 0,
+   "wallMs": 1196,
+   "totalMs": 1193,
+   "result": {
+    "z": 11,
+    "radiusM": 2000,
+    "tiles": 1,
+    "bytes": 120800,
+    "total": 1193,
+    "decodeMs": 5.899999976158142,
+    "failed": 0
+   },
+   "net": {
+    "requests": 1,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 121530,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/11/1072/717.png",
+     "bytes": 121530,
+     "ttfbMs": 596,
+     "ms": 1183,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 1
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "zuerich",
+   "lat": 47.3769,
+   "lon": 8.5417,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "reader-cold",
+   "rep": 0,
+   "wallMs": 41619,
+   "totalMs": 41598.89999997616,
+   "result": {
+    "total": 41598.89999997616,
+    "t": {
+     "plan": 7627.399999976158,
+     "cube.t1": 4180.599999964237,
+     "cube.t2": 2278.100000023842,
+     "cube.t3": 4.5,
+     "hmodel": 1198.7000000476837,
+     "station": 1077,
+     "nowcast": 25227.799999952316,
+     "read": 33967.89999997616
+    },
+    "stats": {
+     "files": 40,
+     "bytes": 3414829,
+     "misses": 5
+    },
+    "tiers": [
+     "t1",
+     "t2",
+     "t3"
+    ],
+    "cube": {
+     "t1": {
+      "steps": 49
+     },
+     "t2": {
+      "steps": 24
+     },
+     "t3": null
+    },
+    "hmodel": "ok",
+    "station": {
+     "steps": 247
+    },
+    "nowcast": {
+     "frames": 25,
+     "probes": 2
+    },
+    "plan": {
+     "segments": 92,
+     "station": true,
+     "nowcast": [
+      "radvor_rv",
+      "inca",
+      "combiprecip"
+     ]
+    }
+   },
+   "net": {
+    "requests": 40,
+    "cached": 2,
+    "failed": 0,
+    "bytes": 2807459,
+    "cdn": 38,
+    "hit": 38,
+    "miss": 0,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/2026091606/t1/02_03.bin",
+     "bytes": 583178,
+     "ttfbMs": 590,
+     "ms": 3380,
+     "xCache": "HIT"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 40
+    },
+    "cdnRequests": [
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/index.json",
+      "bytes": 5217,
+      "ttfbMs": 637,
+      "ms": 648,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/catalog.json",
+      "bytes": 59333,
+      "ttfbMs": 596,
+      "ms": 861,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/2026091603/stations.json",
+      "bytes": 14373,
+      "ttfbMs": 589,
+      "ms": 652,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161110/meta.json",
+      "bytes": 662,
+      "ttfbMs": 595,
+      "ms": 611,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1045/meta.json",
+      "bytes": 667,
+      "ttfbMs": 583,
+      "ms": 599,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260916T1110/meta.json",
+      "bytes": 576,
+      "ttfbMs": 597,
+      "ms": 599,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091606/run.json",
+      "bytes": 10471,
+      "ttfbMs": 580,
+      "ms": 624,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091606/t1/02_03.bin",
+      "bytes": 583178,
+      "ttfbMs": 590,
+      "ms": 3380,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091600/run.json",
+      "bytes": 11916,
+      "ttfbMs": 596,
+      "ms": 630,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091600/t2/01_01.bin",
+      "bytes": 195414,
+      "ttfbMs": 596,
+      "ms": 1510,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/static.json",
+      "bytes": 2291,
+      "ttfbMs": 598,
+      "ms": 600,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/t1/02_03.bin",
+      "bytes": 1701,
+      "ttfbMs": 579,
+      "ms": 581,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/2026091603/02_03.bin",
+      "bytes": 71582,
+      "ttfbMs": 587,
+      "ms": 927,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161110/f000.png",
+      "bytes": 75700,
+      "ttfbMs": 592,
+      "ms": 965,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161110/f005.png",
+      "bytes": 74881,
+      "ttfbMs": 579,
+      "ms": 928,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161110/f010.png",
+      "bytes": 74879,
+      "ttfbMs": 580,
+      "ms": 955,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161110/f015.png",
+      "bytes": 74515,
+      "ttfbMs": 595,
+      "ms": 943,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161110/f020.png",
+      "bytes": 74298,
+      "ttfbMs": 596,
+      "ms": 939,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161110/f025.png",
+      "bytes": 74338,
+      "ttfbMs": 580,
+      "ms": 933,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161110/f030.png",
+      "bytes": 74324,
+      "ttfbMs": 589,
+      "ms": 929,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161110/f035.png",
+      "bytes": 74363,
+      "ttfbMs": 592,
+      "ms": 934,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161110/f040.png",
+      "bytes": 74139,
+      "ttfbMs": 582,
+      "ms": 926,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161110/f045.png",
+      "bytes": 74240,
+      "ttfbMs": 584,
+      "ms": 940,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161110/f050.png",
+      "bytes": 74094,
+      "ttfbMs": 595,
+      "ms": 950,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161110/f055.png",
+      "bytes": 73992,
+      "ttfbMs": 592,
+      "ms": 940,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161110/f060.png",
+      "bytes": 73865,
+      "ttfbMs": 580,
+      "ms": 931,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161110/f065.png",
+      "bytes": 73898,
+      "ttfbMs": 588,
+      "ms": 946,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161110/f070.png",
+      "bytes": 73928,
+      "ttfbMs": 582,
+      "ms": 937,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161110/f075.png",
+      "bytes": 73926,
+      "ttfbMs": 605,
+      "ms": 954,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161110/f080.png",
+      "bytes": 73702,
+      "ttfbMs": 580,
+      "ms": 922,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161110/f085.png",
+      "bytes": 73506,
+      "ttfbMs": 623,
+      "ms": 960,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161110/f090.png",
+      "bytes": 73451,
+      "ttfbMs": 652,
+      "ms": 997,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161110/f095.png",
+      "bytes": 73588,
+      "ttfbMs": 588,
+      "ms": 945,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161110/f100.png",
+      "bytes": 73252,
+      "ttfbMs": 581,
+      "ms": 925,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161110/f105.png",
+      "bytes": 73330,
+      "ttfbMs": 583,
+      "ms": 925,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161110/f110.png",
+      "bytes": 73124,
+      "ttfbMs": 578,
+      "ms": 917,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161110/f115.png",
+      "bytes": 73343,
+      "ttfbMs": 722,
+      "ms": 1068,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161110/f120.png",
+      "bytes": 73402,
+      "ttfbMs": 611,
+      "ms": 964,
+      "xCache": "HIT"
+     }
+    ]
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "zuerich",
+   "lat": 47.3769,
+   "lon": 8.5417,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "reader-warm",
+   "rep": 0,
+   "wallMs": 5644,
+   "totalMs": 5633.199999988079,
+   "result": {
+    "total": 5633.199999988079,
+    "t": {
+     "plan": 3954.699999988079,
+     "cube.t1": 105.80000001192093,
+     "cube.t2": 80.80000001192093,
+     "cube.t3": 3.099999964237213,
+     "hmodel": 7.400000035762787,
+     "station": 80.30000001192093,
+     "nowcast": 1400.3999999761581,
+     "read": 1677.800000011921
+    },
+    "stats": {
+     "files": 40,
+     "bytes": 3414829,
+     "misses": 5
+    },
+    "tiers": [
+     "t1",
+     "t2",
+     "t3"
+    ],
+    "cube": {
+     "t1": {
+      "steps": 49
+     },
+     "t2": {
+      "steps": 24
+     },
+     "t3": null
+    },
+    "hmodel": "ok",
+    "station": {
+     "steps": 247
+    },
+    "nowcast": {
+     "frames": 25,
+     "probes": 2
+    },
+    "plan": {
+     "segments": 92,
+     "station": true,
+     "nowcast": [
+      "radvor_rv",
+      "inca",
+      "combiprecip"
+     ]
+    }
+   },
+   "net": {
+    "requests": 40,
+    "cached": 40,
+    "failed": 0,
+    "bytes": 0,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/index.json",
+     "bytes": 0,
+     "ttfbMs": 0,
+     "ms": 1,
+     "xCache": "HIT"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 40
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "zuerich",
+   "lat": 47.3769,
+   "lon": 8.5417,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "reader-parallel",
+   "rep": 0,
+   "wallMs": 3877,
+   "totalMs": 3861.199999988079,
+   "result": {
+    "total": 3861.199999988079,
+    "t": {
+     "plan": 2509,
+     "cube.t3": 11.400000035762787,
+     "hmodel": 84.89999997615814,
+     "station": 326,
+     "cube.t1": 330.5,
+     "cube.t2": 329.5999999642372,
+     "nowcast": 1346.699999988079,
+     "read": 1349.699999988079
+    },
+    "stats": {
+     "files": 40,
+     "bytes": 3414829,
+     "misses": 5
+    },
+    "tiers": [
+     "t1",
+     "t2",
+     "t3"
+    ],
+    "cube": {
+     "t1": {
+      "steps": 49
+     },
+     "t2": {
+      "steps": 24
+     },
+     "t3": null
+    },
+    "hmodel": "ok",
+    "station": {
+     "steps": 247
+    },
+    "nowcast": {
+     "frames": 25,
+     "probes": 2
+    },
+    "plan": {
+     "segments": 92,
+     "station": true,
+     "nowcast": [
+      "radvor_rv",
+      "inca",
+      "combiprecip"
+     ]
+    }
+   },
+   "net": {
+    "requests": 40,
+    "cached": 40,
+    "failed": 0,
+    "bytes": 0,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/index.json",
+     "bytes": 0,
+     "ttfbMs": 0,
+     "ms": 1,
+     "xCache": "HIT"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 40
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "genf",
+   "lat": 46.2044,
+   "lon": 6.1432,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "dem-live-z9",
+   "rep": 0,
+   "wallMs": 3670,
+   "totalMs": 3667.300000011921,
+   "result": {
+    "total": 3667.300000011921,
+    "elevation": 387
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 590079,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/265/182.png",
+     "bytes": 159050,
+     "ttfbMs": 822,
+     "ms": 3651,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "genf",
+   "lat": 46.2044,
+   "lon": 6.1432,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "terrain-z9",
+   "rep": 0,
+   "wallMs": 3677,
+   "totalMs": 3674.099999964237,
+   "result": {
+    "z": 9,
+    "radiusM": 20000,
+    "tiles": 4,
+    "bytes": 587239,
+    "total": 3674.099999964237,
+    "decodeMs": 25.699999928474426,
+    "failed": 0
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 590159,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/265/182.png",
+     "bytes": 159070,
+     "ttfbMs": 847,
+     "ms": 3654,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "genf",
+   "lat": 46.2044,
+   "lon": 6.1432,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "terrain-z10",
+   "rep": 0,
+   "wallMs": 6433,
+   "totalMs": 6398,
+   "result": {
+    "z": 10,
+    "radiusM": 20000,
+    "tiles": 9,
+    "bytes": 1202519,
+    "total": 6398,
+    "decodeMs": 54.200000047683716,
+    "failed": 0
+   },
+   "net": {
+    "requests": 9,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 1209088,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/10/530/364.png",
+     "bytes": 150392,
+     "ttfbMs": 4606,
+     "ms": 6289,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 9
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "genf",
+   "lat": 46.2044,
+   "lon": 6.1432,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "terrain-z11",
+   "rep": 0,
+   "wallMs": 2828,
+   "totalMs": 2826.199999988079,
+   "result": {
+    "z": 11,
+    "radiusM": 2000,
+    "tiles": 4,
+    "bytes": 466219,
+    "total": 2826.199999988079,
+    "decodeMs": 18.800000071525574,
+    "failed": 0
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 469138,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/11/1059/727.png",
+     "bytes": 129061,
+     "ttfbMs": 588,
+     "ms": 2817,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "genf",
+   "lat": 46.2044,
+   "lon": 6.1432,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "reader-cold",
+   "rep": 0,
+   "wallMs": 11970,
+   "totalMs": 11967,
+   "result": {
+    "total": 11967,
+    "t": {
+     "plan": 3451,
+     "cube.t1": 4244.899999976158,
+     "cube.t2": 2300.699999988079,
+     "cube.t3": 6.899999976158142,
+     "hmodel": 1196.699999988079,
+     "station": 763.1999999880791,
+     "read": 8513.400000035763
+    },
+    "stats": {
+     "files": 12,
+     "bytes": 1527221,
+     "misses": 0
+    },
+    "tiers": [
+     "t1",
+     "t2",
+     "t3"
+    ],
+    "cube": {
+     "t1": {
+      "steps": 49
+     },
+     "t2": {
+      "steps": 24
+     },
+     "t3": null
+    },
+    "hmodel": "ok",
+    "station": {
+     "steps": 247
+    },
+    "nowcast": null,
+    "plan": {
+     "segments": 91,
+     "station": true,
+     "nowcast": [
+      "combiprecip"
+     ]
+    }
+   },
+   "net": {
+    "requests": 12,
+    "cached": 1,
+    "failed": 0,
+    "bytes": 919420,
+    "cdn": 11,
+    "hit": 9,
+    "miss": 3,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/2026091606/t1/00_00.bin",
+     "bytes": 600759,
+     "ttfbMs": 578,
+     "ms": 3462,
+     "xCache": "MISS"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 12
+    },
+    "cdnRequests": [
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/index.json",
+      "bytes": 5544,
+      "ttfbMs": 633,
+      "ms": 664,
+      "xCache": "HIT, MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/catalog.json",
+      "bytes": 59666,
+      "ttfbMs": 597,
+      "ms": 869,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/2026091603/stations.json",
+      "bytes": 14742,
+      "ttfbMs": 581,
+      "ms": 648,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260916T1115/meta.json",
+      "bytes": 926,
+      "ttfbMs": 1185,
+      "ms": 1187,
+      "xCache": "MISS, MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091606/run.json",
+      "bytes": 10806,
+      "ttfbMs": 579,
+      "ms": 619,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091606/t1/00_00.bin",
+      "bytes": 600759,
+      "ttfbMs": 578,
+      "ms": 3462,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091600/run.json",
+      "bytes": 12243,
+      "ttfbMs": 592,
+      "ms": 644,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091600/t2/00_00.bin",
+      "bytes": 200689,
+      "ttfbMs": 583,
+      "ms": 1543,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/static.json",
+      "bytes": 2613,
+      "ttfbMs": 590,
+      "ms": 591,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/t1/00_00.bin",
+      "bytes": 2099,
+      "ttfbMs": 583,
+      "ms": 584,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/2026091603/00_00.bin",
+      "bytes": 9333,
+      "ttfbMs": 577,
+      "ms": 625,
+      "xCache": "HIT"
+     }
+    ]
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "genf",
+   "lat": 46.2044,
+   "lon": 6.1432,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "reader-warm",
+   "rep": 0,
+   "wallMs": 453,
+   "totalMs": 451.19999998807907,
+   "result": {
+    "total": 451.19999998807907,
+    "t": {
+     "plan": 62.30000001192093,
+     "cube.t1": 153.39999997615814,
+     "cube.t2": 126.29999995231628,
+     "cube.t3": 7.100000023841858,
+     "hmodel": 16.399999976158142,
+     "station": 84.30000001192093,
+     "read": 387.69999998807907
+    },
+    "stats": {
+     "files": 12,
+     "bytes": 1527221,
+     "misses": 0
+    },
+    "tiers": [
+     "t1",
+     "t2",
+     "t3"
+    ],
+    "cube": {
+     "t1": {
+      "steps": 49
+     },
+     "t2": {
+      "steps": 24
+     },
+     "t3": null
+    },
+    "hmodel": "ok",
+    "station": {
+     "steps": 247
+    },
+    "nowcast": null,
+    "plan": {
+     "segments": 91,
+     "station": true,
+     "nowcast": [
+      "combiprecip"
+     ]
+    }
+   },
+   "net": {
+    "requests": 12,
+    "cached": 12,
+    "failed": 0,
+    "bytes": 0,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/index.json",
+     "bytes": 0,
+     "ttfbMs": 0,
+     "ms": 1,
+     "xCache": "HIT, MISS"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 12
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "genf",
+   "lat": 46.2044,
+   "lon": 6.1432,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "reader-parallel",
+   "rep": 0,
+   "wallMs": 459,
+   "totalMs": 456.30000001192093,
+   "result": {
+    "total": 456.30000001192093,
+    "t": {
+     "plan": 53,
+     "cube.t3": 22.30000001192093,
+     "hmodel": 123.70000004768372,
+     "station": 390.89999997615814,
+     "cube.t1": 398.69999998807907,
+     "cube.t2": 398.7000000476837,
+     "read": 400.69999998807907
+    },
+    "stats": {
+     "files": 12,
+     "bytes": 1527221,
+     "misses": 0
+    },
+    "tiers": [
+     "t1",
+     "t2",
+     "t3"
+    ],
+    "cube": {
+     "t1": {
+      "steps": 49
+     },
+     "t2": {
+      "steps": 24
+     },
+     "t3": null
+    },
+    "hmodel": "ok",
+    "station": {
+     "steps": 247
+    },
+    "nowcast": null,
+    "plan": {
+     "segments": 91,
+     "station": true,
+     "nowcast": [
+      "combiprecip"
+     ]
+    }
+   },
+   "net": {
+    "requests": 12,
+    "cached": 12,
+    "failed": 0,
+    "bytes": 0,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/index.json",
+     "bytes": 0,
+     "ttfbMs": 0,
+     "ms": 1,
+     "xCache": "HIT, MISS"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 12
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "zermatt",
+   "lat": 46.0207,
+   "lon": 7.7491,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "dem-live-z9",
+   "rep": 0,
+   "wallMs": 3893,
+   "totalMs": 3890.2999999523163,
+   "result": {
+    "total": 3890.2999999523163,
+    "elevation": 1630
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 638353,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/267/181.png",
+     "bytes": 160638,
+     "ttfbMs": 842,
+     "ms": 3874,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "zermatt",
+   "lat": 46.0207,
+   "lon": 7.7491,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "terrain-z9",
+   "rep": 0,
+   "wallMs": 3909,
+   "totalMs": 3905.5,
+   "result": {
+    "z": 9,
+    "radiusM": 20000,
+    "tiles": 4,
+    "bytes": 635513,
+    "total": 3905.5,
+    "decodeMs": 32.80000001192093,
+    "failed": 0
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 638433,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/267/181.png",
+     "bytes": 160658,
+     "ttfbMs": 831,
+     "ms": 3890,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "zermatt",
+   "lat": 46.0207,
+   "lon": 7.7491,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "terrain-z10",
+   "rep": 0,
+   "wallMs": 3547,
+   "totalMs": 3545.300000011921,
+   "result": {
+    "z": 10,
+    "radiusM": 20000,
+    "tiles": 4,
+    "bytes": 611168,
+    "total": 3545.300000011921,
+    "decodeMs": 33.5,
+    "failed": 0
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 614088,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/10/534/364.png",
+     "bytes": 154401,
+     "ttfbMs": 589,
+     "ms": 3521,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "zermatt",
+   "lat": 46.0207,
+   "lon": 7.7491,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "terrain-z11",
+   "rep": 0,
+   "wallMs": 2013,
+   "totalMs": 2010.8999999761581,
+   "result": {
+    "z": 11,
+    "radiusM": 2000,
+    "tiles": 2,
+    "bytes": 287906,
+    "total": 2010.8999999761581,
+    "decodeMs": 11.300000011920929,
+    "failed": 0
+   },
+   "net": {
+    "requests": 2,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 289366,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/11/1067/728.png",
+     "bytes": 145316,
+     "ttfbMs": 599,
+     "ms": 1984,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 2
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "zermatt",
+   "lat": 46.0207,
+   "lon": 7.7491,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "reader-cold",
+   "rep": 0,
+   "wallMs": 11821,
+   "totalMs": 11816.5,
+   "result": {
+    "total": 11816.5,
+    "t": {
+     "plan": 2845.5,
+     "cube.t1": 4503.300000011921,
+     "cube.t2": 2376.5,
+     "cube.t3": 9.5,
+     "hmodel": 1224.6000000238419,
+     "station": 853.1000000238419,
+     "read": 8968.799999952316
+    },
+    "stats": {
+     "files": 12,
+     "bytes": 1589146,
+     "misses": 0
+    },
+    "tiers": [
+     "t1",
+     "t2",
+     "t3"
+    ],
+    "cube": {
+     "t1": {
+      "steps": 49
+     },
+     "t2": {
+      "steps": 24
+     },
+     "t3": null
+    },
+    "hmodel": "ok",
+    "station": {
+     "steps": 247
+    },
+    "nowcast": null,
+    "plan": {
+     "segments": 91,
+     "station": true,
+     "nowcast": [
+      "combiprecip"
+     ]
+    }
+   },
+   "net": {
+    "requests": 12,
+    "cached": 1,
+    "failed": 0,
+    "bytes": 981107,
+    "cdn": 11,
+    "hit": 9,
+    "miss": 3,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/2026091606/t1/00_02.bin",
+     "bytes": 639937,
+     "ttfbMs": 597,
+     "ms": 3644,
+     "xCache": "MISS"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 12
+    },
+    "cdnRequests": [
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/index.json",
+      "bytes": 5546,
+      "ttfbMs": 635,
+      "ms": 641,
+      "xCache": "HIT, MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/catalog.json",
+      "bytes": 59662,
+      "ttfbMs": 594,
+      "ms": 866,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/2026091603/stations.json",
+      "bytes": 14740,
+      "ttfbMs": 584,
+      "ms": 643,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260916T1115/meta.json",
+      "bytes": 934,
+      "ttfbMs": 604,
+      "ms": 605,
+      "xCache": "MISS, MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091606/run.json",
+      "bytes": 10802,
+      "ttfbMs": 591,
+      "ms": 647,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091606/t1/00_02.bin",
+      "bytes": 639937,
+      "ttfbMs": 597,
+      "ms": 3644,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091600/run.json",
+      "bytes": 12250,
+      "ttfbMs": 588,
+      "ms": 658,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091600/t2/00_01.bin",
+      "bytes": 207219,
+      "ttfbMs": 588,
+      "ms": 1570,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/static.json",
+      "bytes": 2615,
+      "ttfbMs": 601,
+      "ms": 602,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/t1/00_02.bin",
+      "bytes": 2180,
+      "ttfbMs": 600,
+      "ms": 602,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/2026091603/00_02.bin",
+      "bytes": 25222,
+      "ttfbMs": 590,
+      "ms": 720,
+      "xCache": "HIT"
+     }
+    ]
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "zermatt",
+   "lat": 46.0207,
+   "lon": 7.7491,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "reader-warm",
+   "rep": 0,
+   "wallMs": 598,
+   "totalMs": 595.8000000119209,
+   "result": {
+    "total": 595.8000000119209,
+    "t": {
+     "plan": 66,
+     "cube.t1": 190.4000000357628,
+     "cube.t2": 175.30000001192093,
+     "cube.t3": 8.699999988079071,
+     "hmodel": 20.30000001192093,
+     "station": 132.60000002384186,
+     "read": 527.6000000238419
+    },
+    "stats": {
+     "files": 12,
+     "bytes": 1589146,
+     "misses": 0
+    },
+    "tiers": [
+     "t1",
+     "t2",
+     "t3"
+    ],
+    "cube": {
+     "t1": {
+      "steps": 49
+     },
+     "t2": {
+      "steps": 24
+     },
+     "t3": null
+    },
+    "hmodel": "ok",
+    "station": {
+     "steps": 247
+    },
+    "nowcast": null,
+    "plan": {
+     "segments": 91,
+     "station": true,
+     "nowcast": [
+      "combiprecip"
+     ]
+    }
+   },
+   "net": {
+    "requests": 12,
+    "cached": 12,
+    "failed": 0,
+    "bytes": 0,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/index.json",
+     "bytes": 0,
+     "ttfbMs": 0,
+     "ms": 2,
+     "xCache": "HIT, MISS"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 12
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "zermatt",
+   "lat": 46.0207,
+   "lon": 7.7491,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "reader-parallel",
+   "rep": 0,
+   "wallMs": 572,
+   "totalMs": 568.8000000119209,
+   "result": {
+    "total": 568.8000000119209,
+    "t": {
+     "plan": 54.69999998807907,
+     "cube.t3": 27.200000047683716,
+     "hmodel": 153.39999997615814,
+     "station": 496.5,
+     "cube.t1": 509.39999997615814,
+     "cube.t2": 511,
+     "read": 512.8000000119209
+    },
+    "stats": {
+     "files": 12,
+     "bytes": 1589146,
+     "misses": 0
+    },
+    "tiers": [
+     "t1",
+     "t2",
+     "t3"
+    ],
+    "cube": {
+     "t1": {
+      "steps": 49
+     },
+     "t2": {
+      "steps": 24
+     },
+     "t3": null
+    },
+    "hmodel": "ok",
+    "station": {
+     "steps": 247
+    },
+    "nowcast": null,
+    "plan": {
+     "segments": 91,
+     "station": true,
+     "nowcast": [
+      "combiprecip"
+     ]
+    }
+   },
+   "net": {
+    "requests": 12,
+    "cached": 12,
+    "failed": 0,
+    "bytes": 0,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/index.json",
+     "bytes": 0,
+     "ttfbMs": 0,
+     "ms": 1,
+     "xCache": "HIT, MISS"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 12
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "zugspitze",
+   "lat": 47.421,
+   "lon": 10.9863,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "dem-live-z9",
+   "rep": 0,
+   "wallMs": 2267,
+   "totalMs": 2263.7999999523163,
+   "result": {
+    "total": 2263.7999999523163,
+    "elevation": 2822
+   },
+   "net": {
+    "requests": 2,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 297753,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/271/179.png",
+     "bytes": 159206,
+     "ttfbMs": 819,
+     "ms": 2246,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 2
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "zugspitze",
+   "lat": 47.421,
+   "lon": 10.9863,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "terrain-z9",
+   "rep": 0,
+   "wallMs": 3718,
+   "totalMs": 3715.899999976158,
+   "result": {
+    "z": 9,
+    "radiusM": 20000,
+    "tiles": 4,
+    "bytes": 595969,
+    "total": 3715.899999976158,
+    "decodeMs": 27.599999964237213,
+    "failed": 0
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 598889,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/271/179.png",
+     "bytes": 159206,
+     "ttfbMs": 824,
+     "ms": 3699,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "zugspitze",
+   "lat": 47.421,
+   "lon": 10.9863,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "terrain-z10",
+   "rep": 0,
+   "wallMs": 7195,
+   "totalMs": 7193.800000011921,
+   "result": {
+    "z": 10,
+    "radiusM": 20000,
+    "tiles": 9,
+    "bytes": 1323986,
+    "total": 7193.800000011921,
+    "decodeMs": 51.10000002384186,
+    "failed": 0
+   },
+   "net": {
+    "requests": 9,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 1330556,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/10/543/359.png",
+     "bytes": 153765,
+     "ttfbMs": 5065,
+     "ms": 7153,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 9
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "zugspitze",
+   "lat": 47.421,
+   "lon": 10.9863,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "terrain-z11",
+   "rep": 0,
+   "wallMs": 1271,
+   "totalMs": 1268.9000000357628,
+   "result": {
+    "z": 11,
+    "radiusM": 2000,
+    "tiles": 1,
+    "bytes": 143388,
+    "total": 1268.9000000357628,
+    "decodeMs": 6.699999988079071,
+    "failed": 0
+   },
+   "net": {
+    "requests": 1,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 144142,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/11/1086/716.png",
+     "bytes": 144142,
+     "ttfbMs": 581,
+     "ms": 1259,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 1
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "zugspitze",
+   "lat": 47.421,
+   "lon": 10.9863,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "reader-cold",
+   "rep": 0,
+   "wallMs": 45532,
+   "totalMs": 45536.19999998808,
+   "result": {
+    "total": 45536.19999998808,
+    "t": {
+     "plan": 4604.399999976158,
+     "cube.t1": 4354,
+     "cube.t2": 2295.300000011921,
+     "cube.t3": 8.5,
+     "hmodel": 1194.1000000238419,
+     "station": 1226.300000011921,
+     "nowcast": 31848.5,
+     "read": 40928.799999952316
+    },
+    "stats": {
+     "files": 40,
+     "bytes": 3499812,
+     "misses": 1
+    },
+    "tiers": [
+     "t1",
+     "t2",
+     "t3"
+    ],
+    "cube": {
+     "t1": {
+      "steps": 49
+     },
+     "t2": {
+      "steps": 24
+     },
+     "t3": null
+    },
+    "hmodel": "ok",
+    "station": {
+     "steps": 247
+    },
+    "nowcast": {
+     "frames": 25,
+     "probes": 1
+    },
+    "plan": {
+     "segments": 92,
+     "station": true,
+     "nowcast": [
+      "radvor_rv",
+      "inca",
+      "combiprecip"
+     ]
+    }
+   },
+   "net": {
+    "requests": 40,
+    "cached": 2,
+    "failed": 0,
+    "bytes": 2905116,
+    "cdn": 38,
+    "hit": 9,
+    "miss": 32,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/2026091606/t1/02_06.bin",
+     "bytes": 605421,
+     "ttfbMs": 596,
+     "ms": 3504,
+     "xCache": "MISS"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 40
+    },
+    "cdnRequests": [
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/index.json",
+      "bytes": 5541,
+      "ttfbMs": 611,
+      "ms": 632,
+      "xCache": "HIT, MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/catalog.json",
+      "bytes": 59636,
+      "ttfbMs": 575,
+      "ms": 858,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/2026091603/stations.json",
+      "bytes": 14741,
+      "ttfbMs": 586,
+      "ms": 648,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161115/meta.json",
+      "bytes": 984,
+      "ttfbMs": 599,
+      "ms": 601,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1100/meta.json",
+      "bytes": 1003,
+      "ttfbMs": 595,
+      "ms": 597,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260916T1115/meta.json",
+      "bytes": 925,
+      "ttfbMs": 589,
+      "ms": 591,
+      "xCache": "MISS, MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091606/run.json",
+      "bytes": 10806,
+      "ttfbMs": 588,
+      "ms": 631,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091606/t1/02_06.bin",
+      "bytes": 605421,
+      "ttfbMs": 596,
+      "ms": 3504,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091600/run.json",
+      "bytes": 12241,
+      "ttfbMs": 588,
+      "ms": 637,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091600/t2/01_03.bin",
+      "bytes": 195431,
+      "ttfbMs": 583,
+      "ms": 1505,
+      "xCache": "HIT, MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/static.json",
+      "bytes": 2618,
+      "ttfbMs": 583,
+      "ms": 584,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/t1/02_06.bin",
+      "bytes": 2115,
+      "ttfbMs": 588,
+      "ms": 589,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/2026091603/02_06.bin",
+      "bytes": 102998,
+      "ttfbMs": 587,
+      "ms": 1074,
+      "xCache": "HIT, MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161115/f000.png",
+      "bytes": 77197,
+      "ttfbMs": 587,
+      "ms": 948,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161115/f005.png",
+      "bytes": 76972,
+      "ttfbMs": 1808,
+      "ms": 2172,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161115/f010.png",
+      "bytes": 76196,
+      "ttfbMs": 586,
+      "ms": 950,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161115/f015.png",
+      "bytes": 76532,
+      "ttfbMs": 1920,
+      "ms": 2277,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161115/f020.png",
+      "bytes": 76097,
+      "ttfbMs": 579,
+      "ms": 942,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161115/f025.png",
+      "bytes": 76071,
+      "ttfbMs": 643,
+      "ms": 998,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161115/f030.png",
+      "bytes": 76143,
+      "ttfbMs": 1760,
+      "ms": 2129,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161115/f035.png",
+      "bytes": 75994,
+      "ttfbMs": 1810,
+      "ms": 2160,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161115/f040.png",
+      "bytes": 75857,
+      "ttfbMs": 582,
+      "ms": 935,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161115/f045.png",
+      "bytes": 75820,
+      "ttfbMs": 579,
+      "ms": 940,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161115/f050.png",
+      "bytes": 75484,
+      "ttfbMs": 594,
+      "ms": 959,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161115/f055.png",
+      "bytes": 75428,
+      "ttfbMs": 594,
+      "ms": 963,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161115/f060.png",
+      "bytes": 75552,
+      "ttfbMs": 567,
+      "ms": 943,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161115/f065.png",
+      "bytes": 75424,
+      "ttfbMs": 1086,
+      "ms": 1455,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161115/f070.png",
+      "bytes": 75478,
+      "ttfbMs": 934,
+      "ms": 1305,
+      "xCache": "MISS, MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161115/f075.png",
+      "bytes": 75423,
+      "ttfbMs": 589,
+      "ms": 946,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161115/f080.png",
+      "bytes": 75260,
+      "ttfbMs": 1315,
+      "ms": 1678,
+      "xCache": "MISS, MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161115/f085.png",
+      "bytes": 75264,
+      "ttfbMs": 606,
+      "ms": 953,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161115/f090.png",
+      "bytes": 75023,
+      "ttfbMs": 569,
+      "ms": 940,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161115/f095.png",
+      "bytes": 75044,
+      "ttfbMs": 901,
+      "ms": 1267,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161115/f100.png",
+      "bytes": 74922,
+      "ttfbMs": 590,
+      "ms": 935,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161115/f105.png",
+      "bytes": 74914,
+      "ttfbMs": 591,
+      "ms": 935,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161115/f110.png",
+      "bytes": 74864,
+      "ttfbMs": 587,
+      "ms": 933,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161115/f115.png",
+      "bytes": 74719,
+      "ttfbMs": 594,
+      "ms": 923,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161115/f120.png",
+      "bytes": 74978,
+      "ttfbMs": 673,
+      "ms": 1026,
+      "xCache": "MISS"
+     }
+    ]
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "zugspitze",
+   "lat": 47.421,
+   "lon": 10.9863,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "reader-warm",
+   "rep": 0,
+   "wallMs": 2572,
+   "totalMs": 2570,
+   "result": {
+    "total": 2570,
+    "t": {
+     "plan": 690.9000000357628,
+     "cube.t1": 197.69999998807907,
+     "cube.t2": 174.39999997615814,
+     "cube.t3": 8.199999988079071,
+     "hmodel": 22,
+     "station": 143.20000004768372,
+     "nowcast": 1330.2999999523163,
+     "read": 1875.7999999523163
+    },
+    "stats": {
+     "files": 40,
+     "bytes": 3499812,
+     "misses": 1
+    },
+    "tiers": [
+     "t1",
+     "t2",
+     "t3"
+    ],
+    "cube": {
+     "t1": {
+      "steps": 49
+     },
+     "t2": {
+      "steps": 24
+     },
+     "t3": null
+    },
+    "hmodel": "ok",
+    "station": {
+     "steps": 247
+    },
+    "nowcast": {
+     "frames": 25,
+     "probes": 1
+    },
+    "plan": {
+     "segments": 92,
+     "station": true,
+     "nowcast": [
+      "radvor_rv",
+      "inca",
+      "combiprecip"
+     ]
+    }
+   },
+   "net": {
+    "requests": 40,
+    "cached": 40,
+    "failed": 0,
+    "bytes": 0,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/index.json",
+     "bytes": 0,
+     "ttfbMs": 0,
+     "ms": 2,
+     "xCache": "HIT, MISS"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 40
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "fast-3g",
+   "place": "zugspitze",
+   "lat": 47.421,
+   "lon": 10.9863,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "reader-parallel",
+   "rep": 0,
+   "wallMs": 2333,
+   "totalMs": 2330.5,
+   "result": {
+    "total": 2330.5,
+    "t": {
+     "plan": 664.5,
+     "cube.t3": 32.09999996423721,
+     "hmodel": 212.5,
+     "station": 1365.199999988079,
+     "cube.t1": 1379.5,
+     "cube.t2": 1383.1000000238419,
+     "nowcast": 1655.800000011921,
+     "read": 1663.199999988079
+    },
+    "stats": {
+     "files": 40,
+     "bytes": 3499812,
+     "misses": 1
+    },
+    "tiers": [
+     "t1",
+     "t2",
+     "t3"
+    ],
+    "cube": {
+     "t1": {
+      "steps": 49
+     },
+     "t2": {
+      "steps": 24
+     },
+     "t3": null
+    },
+    "hmodel": "ok",
+    "station": {
+     "steps": 247
+    },
+    "nowcast": {
+     "frames": 25,
+     "probes": 1
+    },
+    "plan": {
+     "segments": 92,
+     "station": true,
+     "nowcast": [
+      "radvor_rv",
+      "inca",
+      "combiprecip"
+     ]
+    }
+   },
+   "net": {
+    "requests": 40,
+    "cached": 40,
+    "failed": 0,
+    "bytes": 0,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/index.json",
+     "bytes": 0,
+     "ttfbMs": 0,
+     "ms": 1,
+     "xCache": "HIT, MISS"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 40
+    },
+    "cdnRequests": []
+   }
+  }
+ ]
+}

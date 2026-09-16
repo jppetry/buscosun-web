@@ -32,7 +32,7 @@ import {
 } from '../src/point/nowcastFormat.ts';
 import { sampleNowcastFrame, stampMs } from '../src/point/nowcastSample.ts';
 import { memoryStore, httpStore, POINT_CDN_BASE } from '../src/point/client/store.ts';
-import { readCubePoint, stepNearest, distanceKm } from '../src/point/client/cubePoint.ts';
+import { readCubePoint, stepNearest, distanceKm, manifestStore, loadRunManifestFrom } from '../src/point/client/cubePoint.ts';
 import { nearestStations, readStationPoint } from '../src/point/client/stationPoint.ts';
 import { planPointSources, SELECTION } from '../src/point/client/resolve.ts';
 import { readHmodelPoint, loadHmodelManifest } from '../src/point/client/staticPoint.ts';
@@ -170,6 +170,56 @@ let cubeIndex;
     (await readCubePoint(memoryStore(new Map([['point/index.json', enc(cubeIndex)], [`point/${RUN}/run.json`, enc(manifest)]])), cubeIndex, 't1', LAT, LON)) === null);
   add('(3) `wanted` entpackt nur die verlangten Ebenen',
     Object.keys((await readCubePoint(memoryStore(cubeFiles), cubeIndex, 't1', LAT, LON, { wanted: ['t2m'] })).steps[0].values).join() === 't2m');
+
+  // ── V-FI-1: Manifeste gepinnt an den Index-Commit ──────────────────────────
+  // Nachgebaut, was am 16.09. am CDN stand: `@main` traegt ein Manifest OHNE die Stufe,
+  // `@<commit>` das richtige. Ein Store ueber einen eigenen `fetch`, der beide Fassungen
+  // ausliefert und mitzaehlt, welche Basis gefragt wurde.
+  {
+    const stale = { ...manifest, tiers: [] };            // wie am CDN: die Stufe fehlt
+    const hits = { main: 0, pinned: 0, firstPinned403: 0 };
+    const mkFetch = (opts = {}) => async (url) => {
+      const u = String(url);
+      const path = u.replace(/^https:\/\/cdn\.jsdelivr\.net\/gh\/jppetry\/buscosun-data@[^/]+\//, '');
+      const isPinned = u.includes(`@${cubeIndex.commit}/`);
+      if (path.endsWith('run.json')) {
+        if (isPinned) {
+          hits.pinned += 1;
+          if (opts.first403 && hits.pinned === 1) { hits.firstPinned403 += 1; return new Response('', { status: 403 }); }
+          return new Response(enc(manifest), { status: 200 });
+        }
+        hits.main += 1;
+        return new Response(enc(stale), { status: 200 });
+      }
+      const b = cubeFiles.get(path);
+      return b ? new Response(b, { status: 200 }) : new Response('', { status: 404 });
+    };
+    const store = httpStore({ base: POINT_CDN_BASE, fetchImpl: mkFetch() });
+    const pinned = manifestStore(store, cubeIndex);
+    add('(3) V-FI-1: `manifestStore` pinnt eine jsDelivr-`@main`-Basis an den Index-Commit und zaehlt in DENSELBEN stats',
+      pinned.base === `https://cdn.jsdelivr.net/gh/jppetry/buscosun-data@${cubeIndex.commit}` && pinned.stats === store.stats);
+    add('(3) V-FI-1: ohne Commit im Index oder ohne jsDelivr-Basis bleibt der Store, wie er ist',
+      manifestStore(store, { commit: null }) === store && manifestStore(httpStore({ base: 'https://example.org/x', fetchImpl: mkFetch() }), cubeIndex).base === 'https://example.org/x'
+      && manifestStore(memoryStore(cubeFiles), cubeIndex).base === 'memory://');
+    const viaPinned = await readCubePoint(store, cubeIndex, 't1', LAT, LON);
+    add('(3) V-FI-1: der Leser liest das Manifest GEPINNT und findet die Stufe, obwohl `@main` sie nicht kennt',
+      viaPinned?.manifestFrom === 'pinned' && viaPinned.steps.length === tier.leadHours.length && hits.pinned === 1 && hits.main === 0,
+      JSON.stringify(hits));
+    const reasons = [];
+    const noCommit = await readCubePoint(store, { ...cubeIndex, commit: null }, 't1', LAT, LON, { onSkip: (r) => reasons.push(r) });
+    add('(3) Negativ-Kontrolle V-FI-3: ohne Commit kommt `@main`, die Stufe fehlt, und der Leser SAGT es (kein stilles `null`)',
+      noCommit === null && reasons.length === 1 && /veraltet|V-FI-1/.test(reasons[0]) && /kennt die Stufe nicht/.test(reasons[0]), reasons[0]);
+    const s403 = httpStore({ base: POINT_CDN_BASE, fetchImpl: mkFetch({ first403: true }) });
+    const hits0 = { ...hits }; hits.pinned = 0; hits.main = 0; hits.firstPinned403 = 0;
+    const retried = await readCubePoint(s403, cubeIndex, 't1', LAT, LON);
+    add('(3) V-PD-46: ein 403 auf die ERSTE gepinnte Anfrage wird EINMAL wiederholt, dann traegt der Commit',
+      retried?.manifestFrom === 'pinned' && hits.firstPinned403 === 1 && hits.pinned === 2 && hits.main === 0, JSON.stringify({ before: hits0, after: hits }));
+    const fromMain = await loadRunManifestFrom(httpStore({ base: POINT_CDN_BASE, fetchImpl: async () => new Response(enc(manifest), { status: 200 }) }), `point/${RUN}/run.json`, { commit: null });
+    add('(3) V-FI-1: `loadRunManifestFrom` nennt die Herkunft — `main`, wenn nichts gepinnt werden konnte',
+      fromMain.from === 'main' && fromMain.manifest?.run === RUN);
+    add('(3) V-FI-1: ein vom Aufrufer uebergebenes Manifest wird als `caller` ausgewiesen',
+      (await readCubePoint(memoryStore(cubeFiles), cubeIndex, 't1', LAT, LON, { manifest }))?.manifestFrom === 'caller');
+  }
 }
 
 // ---------------------------------------------------------------------------

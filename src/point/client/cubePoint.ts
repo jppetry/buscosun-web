@@ -47,8 +47,59 @@ export async function loadPointIndex(store: PointStore): Promise<PointIndex | nu
   return store.json<PointIndex>(POINT_INDEX_PATH);
 }
 
-export async function loadRunManifest(store: PointStore, path: string): Promise<PointRunManifest | null> {
-  return store.json<PointRunManifest>(path);
+/**
+ * Der Store für VERÄNDERLICHE Dateien: `@<commit>` statt `@main` (V-FI-1).
+ *
+ * `point/<lauf>/run.json` wird je Stufe gemergt (der t2-Job schreibt in das Verzeichnis
+ * des t1-Laufs) und beim Aufräumen beschnitten — die Datei unter festem Pfad ändert sich,
+ * der Publisher purgt aber nur `index.json`. Am 16.09. nannte das CDN für `2026091600`
+ * die Stufen t1+t2, das Repo t2+t3: ein Leser fand t3 nicht und meldete NICHTS. Der
+ * Index trägt den Commit, unter dem er geschrieben wurde; alles, was er nennt, gibt es
+ * genau dort — und `@<sha>` ist bei jsDelivr unveränderlich (gemessen: 200, `immutable`,
+ * die gepinnte Fassung trug t2+t3). Chunks bleiben unter `@main`: ihr Pfad enthält den
+ * Lauf, sie ändern sich nie, und `@main` ist am Edge warm, `@<sha>` je Commit kalt.
+ * Ohne Commit im Index oder ohne jsDelivr-Basis bleibt es beim übergebenen Store.
+ */
+export function manifestStore(store: PointStore, index: Pick<PointIndex, 'commit'> | null | undefined): PointStore {
+  const commit = index?.commit;
+  if (!commit || !store.withBase) return store;
+  const m = store.base.match(/^(https:\/\/cdn\.jsdelivr\.net\/gh\/[^@/]+\/[^@/]+)@main$/);
+  return m ? store.withBase(`${m[1]}@${commit}`) : store;
+}
+
+export type ManifestOrigin = 'pinned' | 'main' | 'none';
+
+/**
+ * Ein Lauf-Manifest, zuerst gepinnt, dann `@main` als Rückfall — und die Herkunft dazu.
+ * Der Rückfall ist kein stiller Ersatz: wer `main` bekommt, kann eine veraltete Fassung
+ * in der Hand haben und sagt es weiter (`readCubePoint` meldet die fehlende Stufe).
+ * V-PD-46: die ERSTE Anfrage an einen frisch gepinnten Commit kann mit 403/404 enden;
+ * ein zweiter Versuch nach kurzer Pause gilt, bevor „nicht da" behauptet wird.
+ */
+export async function loadRunManifestFrom(
+  store: PointStore, path: string, index?: Pick<PointIndex, 'commit'> | null,
+): Promise<{ manifest: PointRunManifest | null; from: ManifestOrigin }> {
+  const pinned = manifestStore(store, index);
+  if (pinned !== store) {
+    // Ein 403 ist beim Store ein FEHLER (nur 404 ist ein Befund) — genau der Fall V-PD-46
+    // (Kaltstart eines frisch gepinnten Commits). Deshalb fängt der gepinnte Versuch alles
+    // und versucht es einmal erneut, bevor er `@main` fragt.
+    const attempt = async () => { try { return await pinned.json<PointRunManifest>(path); } catch { return null; } };
+    let man = await attempt();
+    if (!man) {
+      await new Promise((r) => setTimeout(r, 400));
+      man = await attempt();
+    }
+    if (man) return { manifest: man, from: 'pinned' };
+  }
+  const man = await store.json<PointRunManifest>(path);
+  return { manifest: man, from: man ? 'main' : 'none' };
+}
+
+export async function loadRunManifest(
+  store: PointStore, path: string, index?: Pick<PointIndex, 'commit'> | null,
+): Promise<PointRunManifest | null> {
+  return (await loadRunManifestFrom(store, path, index)).manifest;
 }
 
 /** Ein Zeitschritt der gelesenen Reihe. */
@@ -102,6 +153,8 @@ export interface CubePointSeries {
     ensemble: PointTierManifest['ensemble'];
     profile: PointTierManifest['profile'];
   };
+  /** Woher das Manifest kam: gepinnt an den Index-Commit, `@main` (Rueckfall, moeglicherweise veraltet) oder vom Aufrufer uebergeben. */
+  manifestFrom?: ManifestOrigin | 'caller';
 }
 
 export interface ReadCubeOptions {
@@ -109,6 +162,12 @@ export interface ReadCubeOptions {
   wanted?: readonly string[];
   /** Bereits geladenes Manifest wiederverwenden (es ist 85 kB groß — V-PD-53). */
   manifest?: PointRunManifest;
+  /**
+   * Warum eine Stufe NICHT gelesen wurde. `null` allein sagt nicht, ob der Punkt außerhalb
+   * liegt, der Lauf fehlt oder das Manifest die Stufe nicht kennt (V-FI-3) — der Grund
+   * geht hier hinaus, damit ein Aufrufer ihn protokollieren kann, statt ihn zu raten.
+   */
+  onSkip?: (reason: string) => void;
 }
 
 /**
@@ -123,22 +182,32 @@ export async function readCubePoint(
   lon: number,
   opts: ReadCubeOptions = {},
 ): Promise<CubePointSeries | null> {
+  const skip = (reason: string) => { opts.onSkip?.(`${tierId}: ${reason}`); return null; };
   const pointer = index.latestByTier[tierId];
-  if (!pointer || !pointer.runAt) return null;
+  if (!pointer || !pointer.runAt) return skip('der Index nennt keinen Lauf für diese Stufe');
   const tier: CubeTier = TIER_BY_ID[tierId];
 
   const cell = cellOf(tier, lat, lon);
-  if (!cell) return null;
+  if (!cell) return skip('der Punkt liegt außerhalb des Gitters');
   const ch = chunkOf(cell.iy, cell.ix);
 
-  const man = opts.manifest ?? await loadRunManifest(store, pointer.manifest);
-  if (!man) return null;
+  let man = opts.manifest ?? null;
+  let manifestFrom: ManifestOrigin = 'pinned';
+  if (!man) {
+    const loaded = await loadRunManifestFrom(store, pointer.manifest, index);
+    man = loaded.manifest;
+    manifestFrom = loaded.from;
+  }
+  if (!man) return skip(`Manifest ${pointer.manifest} nicht lesbar`);
   const tm = man.tiers.find((t) => t.id === tierId);
-  if (!tm) return null;
+  if (!tm) {
+    return skip(`Manifest ${pointer.manifest} (${manifestFrom === 'main' ? '@main, möglicherweise veraltet — V-FI-1' : manifestFrom}) `
+      + `kennt die Stufe nicht (trägt: ${man.tiers.map((t) => t.id).join('+') || '—'})`);
+  }
 
   const path = chunkPath(pointer.run, tier, ch.cy, ch.cx);
   const bytes = await store.bytes(path);
-  if (!bytes) return null;
+  if (!bytes) return skip(`Chunk ${path} nicht im Repo (Aufbewahrung?)`);
 
   const chunk = await decodeCubeChunk(bytes, { planes: man.planes, wanted: opts.wanted });
   const ry = cell.iy - chunk.y0;
@@ -203,6 +272,7 @@ export async function readCubePoint(
     emptyPlanes: considered.filter((id) => !filled.has(id)),
     sources: man.sources.filter((s) => s.tier === tierId),
     provenance: { quantiles: tm.quantiles, ensemble: tm.ensemble, profile: tm.profile },
+    manifestFrom: opts.manifest ? 'caller' : manifestFrom,
   };
 }
 

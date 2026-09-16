@@ -1,0 +1,807 @@
+{
+ "schema": 1,
+ "startedAt": "2026-09-16T12:55:07.378Z",
+ "finishedAt": "2026-09-16T12:55:23.588Z",
+ "host": {
+  "platform": "win32",
+  "node": "v22.17.0",
+  "chrome": "C:\\Users\\User\\AppData\\Local\\ms-playwright\\chromium_headless_shell-1223\\chrome-headless-shell-win64\\chrome-headless-shell.exe"
+ },
+ "args": {
+  "profileIds": [
+   "desktop-none"
+  ],
+  "placeIds": [
+   "wien",
+   "zermatt"
+  ],
+  "only": [
+   "reader"
+  ],
+  "repeats": 1
+ },
+ "chunkEdgePlaces": [
+  "graz"
+ ],
+ "summary": [
+  {
+   "profile": "desktop-none",
+   "scenario": "reader-cold",
+   "n": 2,
+   "p50": 12378.800000011921,
+   "p95": 12378.800000011921,
+   "max": 12378.800000011921
+  },
+  {
+   "profile": "desktop-none",
+   "scenario": "reader-warm",
+   "n": 2,
+   "p50": 297.10000002384186,
+   "p95": 297.10000002384186,
+   "max": 297.10000002384186
+  },
+  {
+   "profile": "desktop-none",
+   "scenario": "reader-parallel",
+   "n": 2,
+   "p50": 239.70000004768372,
+   "p95": 239.70000004768372,
+   "max": 239.70000004768372
+  }
+ ],
+ "gate": null,
+ "runs": [
+  {
+   "profile": "desktop-none",
+   "place": "wien",
+   "lat": 48.2082,
+   "lon": 16.3738,
+   "country": "AT",
+   "chunkEdge": false,
+   "scenario": "reader-cold",
+   "rep": 0,
+   "wallMs": 12382,
+   "totalMs": 12378.800000011921,
+   "result": {
+    "total": 12378.800000011921,
+    "t": {
+     "plan": 3966.2999999523163,
+     "cube.t1": 154.80000001192093,
+     "cube.t2": 104.20000004768372,
+     "cube.t3": 2111.899999976158,
+     "hmodel": 49.60000002384186,
+     "station": 54.5,
+     "nowcast": 5936.400000035763,
+     "read": 8411.600000023842
+    },
+    "stats": {
+     "files": 26,
+     "bytes": 2023367,
+     "misses": 2
+    },
+    "tiers": [
+     "t1",
+     "t2",
+     "t3"
+    ],
+    "cube": {
+     "t1": {
+      "steps": 49,
+      "manifestFrom": "pinned"
+     },
+     "t2": {
+      "steps": 24,
+      "manifestFrom": "pinned"
+     },
+     "t3": {
+      "steps": 36,
+      "manifestFrom": "pinned"
+     }
+    },
+    "hmodel": "ok",
+    "station": {
+     "steps": 247
+    },
+    "nowcast": {
+     "frames": 12,
+     "probes": 2
+    },
+    "skips": [],
+    "plan": {
+     "segments": 90,
+     "station": true,
+     "nowcast": [
+      "inca"
+     ]
+    }
+   },
+   "net": {
+    "requests": 26,
+    "cached": 2,
+    "failed": 0,
+    "bytes": 1480218,
+    "cdn": 24,
+    "hit": 8,
+    "miss": 17,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/2026091606/t1/03_13.bin",
+     "bytes": 580859,
+     "ttfbMs": 25,
+     "ms": 77,
+     "xCache": "MISS, MISS"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 26
+    },
+    "cdnRequests": [
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/index.json",
+      "bytes": 5543,
+      "ttfbMs": 2360,
+      "ms": 2363,
+      "xCache": "HIT, MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/catalog.json",
+      "bytes": 59636,
+      "ttfbMs": 22,
+      "ms": 27,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/2026091603/stations.json",
+      "bytes": 14741,
+      "ttfbMs": 21,
+      "ms": 24,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1230/meta.json",
+      "bytes": 986,
+      "ttfbMs": 843,
+      "ms": 844,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@1b200925eade1e94f1e07467842cd96e375f6f0d/point/2026091606/run.json",
+      "bytes": 10833,
+      "ttfbMs": 31,
+      "ms": 33,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091606/t1/03_13.bin",
+      "bytes": 580859,
+      "ttfbMs": 25,
+      "ms": 77,
+      "xCache": "MISS, MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@1b200925eade1e94f1e07467842cd96e375f6f0d/point/2026091600/run.json",
+      "bytes": 10174,
+      "ttfbMs": 20,
+      "ms": 22,
+      "xCache": "MISS, MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091600/t2/01_06.bin",
+      "bytes": 197924,
+      "ttfbMs": 29,
+      "ms": 44,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091600/t3/00_02.bin",
+      "bytes": 248362,
+      "ttfbMs": 2053,
+      "ms": 2072,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/static.json",
+      "bytes": 2614,
+      "ttfbMs": 18,
+      "ms": 20,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/t1/03_13.bin",
+      "bytes": 1945,
+      "ttfbMs": 23,
+      "ms": 24,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/2026091603/03_13.bin",
+      "bytes": 20679,
+      "ttfbMs": 25,
+      "ms": 27,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1230/f015.png",
+      "bytes": 19239,
+      "ttfbMs": 410,
+      "ms": 413,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1230/f030.png",
+      "bytes": 18559,
+      "ttfbMs": 317,
+      "ms": 318,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1230/f045.png",
+      "bytes": 18121,
+      "ttfbMs": 405,
+      "ms": 407,
+      "xCache": "MISS, MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1230/f060.png",
+      "bytes": 17758,
+      "ttfbMs": 372,
+      "ms": 375,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1230/f075.png",
+      "bytes": 23393,
+      "ttfbMs": 488,
+      "ms": 492,
+      "xCache": "MISS, MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1230/f090.png",
+      "bytes": 27519,
+      "ttfbMs": 281,
+      "ms": 283,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1230/f105.png",
+      "bytes": 29680,
+      "ttfbMs": 331,
+      "ms": 335,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1230/f120.png",
+      "bytes": 31516,
+      "ttfbMs": 1560,
+      "ms": 1564,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1230/f135.png",
+      "bytes": 33303,
+      "ttfbMs": 770,
+      "ms": 770,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1230/f150.png",
+      "bytes": 35301,
+      "ttfbMs": 333,
+      "ms": 342,
+      "xCache": "MISS, MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1230/f165.png",
+      "bytes": 35553,
+      "ttfbMs": 267,
+      "ms": 272,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1230/f180.png",
+      "bytes": 35980,
+      "ttfbMs": 254,
+      "ms": 257,
+      "xCache": "MISS"
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "wien",
+   "lat": 48.2082,
+   "lon": 16.3738,
+   "country": "AT",
+   "chunkEdge": false,
+   "scenario": "reader-warm",
+   "rep": 0,
+   "wallMs": 299,
+   "totalMs": 297.10000002384186,
+   "result": {
+    "total": 297.10000002384186,
+    "t": {
+     "plan": 44.59999996423721,
+     "cube.t1": 45.69999998807907,
+     "cube.t2": 34.80000001192093,
+     "cube.t3": 40.80000001192093,
+     "hmodel": 6.699999988079071,
+     "station": 25.600000023841858,
+     "nowcast": 98.5,
+     "read": 252.10000002384186
+    },
+    "stats": {
+     "files": 26,
+     "bytes": 2023367,
+     "misses": 2
+    },
+    "tiers": [
+     "t1",
+     "t2",
+     "t3"
+    ],
+    "cube": {
+     "t1": {
+      "steps": 49,
+      "manifestFrom": "pinned"
+     },
+     "t2": {
+      "steps": 24,
+      "manifestFrom": "pinned"
+     },
+     "t3": {
+      "steps": 36,
+      "manifestFrom": "pinned"
+     }
+    },
+    "hmodel": "ok",
+    "station": {
+     "steps": 247
+    },
+    "nowcast": {
+     "frames": 12,
+     "probes": 2
+    },
+    "skips": [],
+    "plan": {
+     "segments": 90,
+     "station": true,
+     "nowcast": [
+      "inca"
+     ]
+    }
+   },
+   "net": {
+    "requests": 26,
+    "cached": 26,
+    "failed": 0,
+    "bytes": 0,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/index.json",
+     "bytes": 0,
+     "ttfbMs": 0,
+     "ms": 2,
+     "xCache": "HIT, MISS"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 26
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "wien",
+   "lat": 48.2082,
+   "lon": 16.3738,
+   "country": "AT",
+   "chunkEdge": false,
+   "scenario": "reader-parallel",
+   "rep": 0,
+   "wallMs": 242,
+   "totalMs": 239.70000004768372,
+   "result": {
+    "total": 239.70000004768372,
+    "t": {
+     "plan": 59.89999997615814,
+     "hmodel": 38.69999998807907,
+     "nowcast": 145.30000001192093,
+     "station": 175.20000004768372,
+     "cube.t1": 178.10000002384186,
+     "cube.t2": 178,
+     "cube.t3": 178.30000001192093,
+     "read": 179.30000001192093
+    },
+    "stats": {
+     "files": 26,
+     "bytes": 2023367,
+     "misses": 2
+    },
+    "tiers": [
+     "t1",
+     "t2",
+     "t3"
+    ],
+    "cube": {
+     "t1": {
+      "steps": 49,
+      "manifestFrom": "pinned"
+     },
+     "t2": {
+      "steps": 24,
+      "manifestFrom": "pinned"
+     },
+     "t3": {
+      "steps": 36,
+      "manifestFrom": "pinned"
+     }
+    },
+    "hmodel": "ok",
+    "station": {
+     "steps": 247
+    },
+    "nowcast": {
+     "frames": 12,
+     "probes": 2
+    },
+    "skips": [],
+    "plan": {
+     "segments": 90,
+     "station": true,
+     "nowcast": [
+      "inca"
+     ]
+    }
+   },
+   "net": {
+    "requests": 26,
+    "cached": 26,
+    "failed": 0,
+    "bytes": 0,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/index.json",
+     "bytes": 0,
+     "ttfbMs": 0,
+     "ms": 2,
+     "xCache": "HIT, MISS"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 26
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "zermatt",
+   "lat": 46.0207,
+   "lon": 7.7491,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "reader-cold",
+   "rep": 0,
+   "wallMs": 1415,
+   "totalMs": 1412.9000000357628,
+   "result": {
+    "total": 1412.9000000357628,
+    "t": {
+     "plan": 930.8000000119209,
+     "cube.t1": 147.5,
+     "cube.t2": 80.19999998807907,
+     "cube.t3": 147.60000002384186,
+     "hmodel": 43,
+     "station": 62.69999998807907,
+     "read": 481.5
+    },
+    "stats": {
+     "files": 13,
+     "bytes": 1776727,
+     "misses": 1
+    },
+    "tiers": [
+     "t1",
+     "t2",
+     "t3"
+    ],
+    "cube": {
+     "t1": {
+      "steps": 49,
+      "manifestFrom": "pinned"
+     },
+     "t2": {
+      "steps": 24,
+      "manifestFrom": "pinned"
+     },
+     "t3": {
+      "steps": 36,
+      "manifestFrom": "pinned"
+     }
+    },
+    "hmodel": "ok",
+    "station": {
+     "steps": 247
+    },
+    "nowcast": null,
+    "skips": [],
+    "plan": {
+     "segments": 89,
+     "station": true,
+     "nowcast": [
+      "combiprecip"
+     ]
+    }
+   },
+   "net": {
+    "requests": 13,
+    "cached": 1,
+    "failed": 0,
+    "bytes": 1226864,
+    "cdn": 12,
+    "hit": 10,
+    "miss": 4,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/2026091606/t1/00_02.bin",
+     "bytes": 639936,
+     "ttfbMs": 22,
+     "ms": 79,
+     "xCache": "MISS"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 13
+    },
+    "cdnRequests": [
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/index.json",
+      "bytes": 5541,
+      "ttfbMs": 68,
+      "ms": 72,
+      "xCache": "HIT, MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/catalog.json",
+      "bytes": 59641,
+      "ttfbMs": 69,
+      "ms": 76,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/2026091603/stations.json",
+      "bytes": 14741,
+      "ttfbMs": 19,
+      "ms": 23,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260916T1250/meta.json",
+      "bytes": 903,
+      "ttfbMs": 34,
+      "ms": 35,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@1b200925eade1e94f1e07467842cd96e375f6f0d/point/2026091606/run.json",
+      "bytes": 10841,
+      "ttfbMs": 15,
+      "ms": 17,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091606/t1/00_02.bin",
+      "bytes": 639936,
+      "ttfbMs": 22,
+      "ms": 79,
+      "xCache": "MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@1b200925eade1e94f1e07467842cd96e375f6f0d/point/2026091600/run.json",
+      "bytes": 10167,
+      "ttfbMs": 16,
+      "ms": 17,
+      "xCache": "MISS, MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091600/t2/00_01.bin",
+      "bytes": 207215,
+      "ttfbMs": 16,
+      "ms": 33,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091600/t3/00_00.bin",
+      "bytes": 247866,
+      "ttfbMs": 91,
+      "ms": 110,
+      "xCache": "HIT, MISS"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/static.json",
+      "bytes": 2620,
+      "ttfbMs": 15,
+      "ms": 16,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/t1/00_02.bin",
+      "bytes": 2174,
+      "ttfbMs": 17,
+      "ms": 18,
+      "xCache": "HIT"
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/2026091603/00_02.bin",
+      "bytes": 25219,
+      "ttfbMs": 18,
+      "ms": 23,
+      "xCache": "HIT"
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "zermatt",
+   "lat": 46.0207,
+   "lon": 7.7491,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "reader-warm",
+   "rep": 0,
+   "wallMs": 218,
+   "totalMs": 216.4000000357628,
+   "result": {
+    "total": 216.4000000357628,
+    "t": {
+     "plan": 54.5,
+     "cube.t1": 56.30000001192093,
+     "cube.t2": 34.30000001192093,
+     "cube.t3": 39.19999998807907,
+     "hmodel": 5.900000035762787,
+     "station": 25.69999998807907,
+     "read": 161.4000000357628
+    },
+    "stats": {
+     "files": 13,
+     "bytes": 1776727,
+     "misses": 1
+    },
+    "tiers": [
+     "t1",
+     "t2",
+     "t3"
+    ],
+    "cube": {
+     "t1": {
+      "steps": 49,
+      "manifestFrom": "pinned"
+     },
+     "t2": {
+      "steps": 24,
+      "manifestFrom": "pinned"
+     },
+     "t3": {
+      "steps": 36,
+      "manifestFrom": "pinned"
+     }
+    },
+    "hmodel": "ok",
+    "station": {
+     "steps": 247
+    },
+    "nowcast": null,
+    "skips": [],
+    "plan": {
+     "segments": 89,
+     "station": true,
+     "nowcast": [
+      "combiprecip"
+     ]
+    }
+   },
+   "net": {
+    "requests": 13,
+    "cached": 13,
+    "failed": 0,
+    "bytes": 0,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/index.json",
+     "bytes": 0,
+     "ttfbMs": 0,
+     "ms": 2,
+     "xCache": "HIT, MISS"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 13
+    },
+    "cdnRequests": []
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "zermatt",
+   "lat": 46.0207,
+   "lon": 7.7491,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "reader-parallel",
+   "rep": 0,
+   "wallMs": 195,
+   "totalMs": 189.80000001192093,
+   "result": {
+    "total": 189.80000001192093,
+    "t": {
+     "plan": 60.59999996423721,
+     "hmodel": 40.30000001192093,
+     "station": 124.59999996423721,
+     "cube.t1": 126.89999997615814,
+     "cube.t2": 127.09999996423721,
+     "cube.t3": 127.59999996423721,
+     "read": 128.60000002384186
+    },
+    "stats": {
+     "files": 13,
+     "bytes": 1776727,
+     "misses": 1
+    },
+    "tiers": [
+     "t1",
+     "t2",
+     "t3"
+    ],
+    "cube": {
+     "t1": {
+      "steps": 49,
+      "manifestFrom": "pinned"
+     },
+     "t2": {
+      "steps": 24,
+      "manifestFrom": "pinned"
+     },
+     "t3": {
+      "steps": 36,
+      "manifestFrom": "pinned"
+     }
+    },
+    "hmodel": "ok",
+    "station": {
+     "steps": 247
+    },
+    "nowcast": null,
+    "skips": [],
+    "plan": {
+     "segments": 89,
+     "station": true,
+     "nowcast": [
+      "combiprecip"
+     ]
+    }
+   },
+   "net": {
+    "requests": 13,
+    "cached": 13,
+    "failed": 0,
+    "bytes": 0,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/index.json",
+     "bytes": 0,
+     "ttfbMs": 0,
+     "ms": 2,
+     "xCache": "HIT, MISS"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 13
+    },
+    "cdnRequests": []
+   }
+  }
+ ]
+}
