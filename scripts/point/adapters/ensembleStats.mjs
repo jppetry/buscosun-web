@@ -83,6 +83,53 @@ export function memberSpread(cur, prev, { cells, dt = null, factor = 1 } = {}) {
   return { sd, members: keys.length, maxN, clamped };
 }
 
+/**
+ * Quantile ueber Member je Zelle (E-U-9, 2026-09-15) — Typ 7 (linear zwischen den
+ * Ordnungsstatistiken, der R-/NumPy-Standard), dieselbe Rate wie `memberSpread`.
+ *
+ * ⚠ Ein Quantil ist ein WERT, keine Streuung: es braucht den Versatz der Groesse
+ * (Kelvin → °C), den die Streuung nicht braucht. Die Adapter liefern deshalb Rohwert ×
+ * Faktor, und der Producer addiert `QUANTILE_VALUE_OFFSET[varId]` beim Schreiben —
+ * dieselbe Trennung wie bei `convert()` gegen `SD_FACTOR`, nur andersherum benannt.
+ *
+ * @returns `{ q: { [p]: Float32Array }, members, maxN }`; NaN, wo weniger als zwei Member.
+ */
+export function memberQuantiles(cur, prev, { cells, dt = null, factor = 1, probs = [0.1, 0.9] } = {}) {
+  if (prev && !(dt > 0)) throw new Error('memberQuantiles: eine Rate braucht dt > 0');
+  const keys = [...cur.keys()].filter((k) => !prev || prev.has(k));
+  const buf = new Float64Array(keys.length);
+  const q = Object.fromEntries(probs.map((p) => [p, new Float32Array(cells).fill(NaN)]));
+  let maxN = 0;
+  for (let k = 0; k < cells; k++) {
+    let n = 0;
+    for (const key of keys) {
+      let v = cur.get(key)[k];
+      if (!Number.isFinite(v)) continue;
+      if (prev) {
+        const w = prev.get(key)[k];
+        if (!Number.isFinite(w)) continue;
+        v = Math.max(0, v - w) / dt;
+      }
+      buf[n++] = v * factor;
+    }
+    if (n < 2) continue;
+    if (n > maxN) maxN = n;
+    const s = buf.subarray(0, n).sort();
+    for (const p of probs) {
+      const h = (n - 1) * p;
+      const lo = Math.floor(h), hi = Math.min(n - 1, lo + 1);
+      q[p][k] = s[lo] + (h - lo) * (s[hi] - s[lo]);
+    }
+  }
+  return { q, members: keys.length, maxN };
+}
+
+/**
+ * Versatz je Groesse fuer QUANTILE (Werte), nicht fuer Streuungen. Beide Ensemble-Familien
+ * (DWD `t_2m`, ECMWF `2t`) liefern Kelvin; alles andere ist versatzfrei (m/s, mm/h, %).
+ */
+export const QUANTILE_VALUE_OFFSET = Object.freeze({ t2m: -273.15, td2m: -273.15 });
+
 // ---------------------------------------------------------------------------
 // Selbsttest (netzfrei)
 // ---------------------------------------------------------------------------
@@ -123,6 +170,23 @@ export async function ensembleStatsSelfTest() {
 
   r = memberSpread(m({ 1: [5], 2: [NaN] }), null, { cells: 1 });
   ok('weniger als zwei Werte => MISSING, nicht 0', Number.isNaN(r.sd[0]));
+
+  // ── E-U-9: Quantile ueber Member (Typ 7) ──────────────────────────────────
+  let qr = memberQuantiles(m({ 1: [4], 2: [1], 3: [3], 4: [2] }), null, { cells: 1 });
+  ok('Quantile: q10 von {1,2,3,4} = 1,3 und q90 = 3,7 (Typ 7), Reihenfolge der Member egal',
+    close(qr.q[0.1][0], 1.3) && close(qr.q[0.9][0], 3.7) && qr.members === 4, `q10=${qr.q[0.1][0].toFixed(3)} q90=${qr.q[0.9][0].toFixed(3)}`);
+  qr = memberQuantiles(m({ 1: [5], 2: [7], 3: [9] }), m({ 1: [4], 2: [4], 3: [4] }), { cells: 1, dt: 2 });
+  ok('Quantile einer RATE: {0,5 · 1,5 · 2,5} ⇒ q10 0,7 · q90 2,3', close(qr.q[0.1][0], 0.7) && close(qr.q[0.9][0], 2.3), `${qr.q[0.1][0].toFixed(3)} ${qr.q[0.9][0].toFixed(3)}`);
+  qr = memberQuantiles(m({ 1: [3.9], 2: [5], 3: [6] }), m({ 1: [4], 2: [4], 3: [4] }), { cells: 1, dt: 1 });
+  ok('Quantile: negative Differenz wird 0 ⇒ q10 ≥ 0 (kein negativer Niederschlag)', qr.q[0.1][0] >= 0, `q10=${qr.q[0.1][0].toFixed(3)}`);
+  qr = memberQuantiles(m({ 1: [280], 2: [282] }), null, { cells: 1, factor: 1 });
+  // Float32-Ablage: 280,2 liegt dort bei 280,20001 — Toleranz entsprechend.
+  ok('Quantile sind Werte in der Roheinheit × Faktor (Kelvin bleibt Kelvin, der Versatz kommt spaeter)', close(qr.q[0.1][0], 280.2, 1e-3) && QUANTILE_VALUE_OFFSET.t2m === -273.15);
+  qr = memberQuantiles(m({ 1: [5], 2: [NaN] }), null, { cells: 1 });
+  ok('Quantile: weniger als zwei Werte ⇒ MISSING', Number.isNaN(qr.q[0.1][0]) && Number.isNaN(qr.q[0.9][0]));
+  let loudQ = false;
+  try { memberQuantiles(cur, prev, { cells: 1 }); } catch { loudQ = true; }
+  ok('Quantile einer Rate ohne dt scheitern laut', loudQ);
 
   let loud = false;
   try { memberSpread(cur, prev, { cells: 1 }); } catch { loud = true; }

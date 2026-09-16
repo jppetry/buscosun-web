@@ -64,6 +64,7 @@ import { netStats, resetNetStats, netDiff, clearCache, runIso, poolStats, poolCl
 import { PROFILE_PARAMS } from './profile.mjs';
 import { runLanes, orderedSettle, sequentialSettle } from './lanes.mjs';
 import { writeStaticHmodel } from './staticHmodel.mjs';
+import { QUANTILE_VALUE_OFFSET } from './adapters/ensembleStats.mjs';
 
 const OUT = process.env.POINT_OUT || 'data/point';
 /** Ab so vielen Fehlern je (Stufe, Quelle) fällt die Quelle für die Stufe heraus (PD-C2). */
@@ -559,6 +560,15 @@ export async function buildTier(tierId, opts = {}) {
   if (ensSources.length) {
     const cp = meta('ensCount');
     const countPl = planeAt('ensCount');
+    // E-U-9 (Jan, 2026-09-15): Quantile q10/q90 aus den Membern — aber NUR in Stufen ohne
+    // eigene Quantilquelle (t1 hat C-LAEF-EPS; dort bleibt es bei GENAU EINER Quelle je Ebene).
+    // Dieselbe Stunden-Regel wie bei σ_ens: die Quelle, die die Stunde traegt, liefert auch
+    // die Quantile; zwei Ensembles werden nie gemischt. Quantile sind WERTE und bekommen den
+    // Versatz der Groesse (`QUANTILE_VALUE_OFFSET`, Kelvin → °C), σ nicht.
+    const writeMemberQuantiles = process.env.POINT_QUANTILES !== '0'
+      && !contributors.some((c) => (c.adapter.quantileVars ?? []).length > 0 && !c.dropped);
+    const qHours = new Set(), qVars = new Set(), qByHour = {};
+    let qFilled = 0;
     const per = new Map(ensSources.map((c) => [c.id, {
       id: c.id, run: c.run, hours: [], vars: new Set(),
       membersMin: Infinity, membersMax: 0, clamped: 0, noRate: 0, errors: 0,
@@ -609,6 +619,20 @@ export async function buildTier(tierId, opts = {}) {
           if (r.members < st.membersMin) st.membersMin = r.members;
           if (r.members > st.membersMax) st.membersMax = r.members;
           st.clamped += r.clamped ?? 0;
+          if (writeMemberQuantiles && r.q10 && r.q90 && planeIndex(`${varId}_q10`) >= 0) {
+            const off = QUANTILE_VALUE_OFFSET[varId] ?? 0;
+            for (const [lvl, grid] of [['q10', r.q10], ['q90', r.q90]]) {
+              const qm = meta(`${varId}_${lvl}`), qp = planeAt(`${varId}_${lvl}`);
+              for (let i = 0; i < cells; i++) {
+                const v = grid[i];
+                if (!Number.isFinite(v)) continue;
+                if (src.mask && !src.mask[i]) continue;
+                qp[b + i] = quantize(v + off, qm);
+                qFilled++;
+              }
+            }
+            qHours.add(leadH); qVars.add(varId); qByHour[leadH] = src.id;
+          }
         }
         if (any) { servedBy = src.id; st.hours.push(leadH); break; }
       }
@@ -619,6 +643,10 @@ export async function buildTier(tierId, opts = {}) {
       return {
         id: s.id, run: s.run, hours: s.hours, vars: [...s.vars],
         stepH: c.adapter.stepH ?? null,
+        // E-U-8: Wind mit eigener Memberzahl (IFS-ENS 24 statt 50) und eigenem Raster — benannt, nicht versteckt.
+        windStepH: c.adapter.windStepH ?? null,
+        windVars: c.adapter.windVars ? [...c.adapter.windVars] : null,
+        windMembers: c.adapter.windMembers ?? null,
         membersDeclared: c.adapter.members ?? null,
         membersRead: s.membersMax || null,
         membersMin: Number.isFinite(s.membersMin) ? s.membersMin : null,
@@ -640,6 +668,22 @@ export async function buildTier(tierId, opts = {}) {
       caveat: 'σ_ens ist die Streuung INNERHALB einer Quelle, σ_div die zwischen Quellen. '
         + 'PAP 6 verzweigt zwischen beiden — sie werden NICHT addiert.',
     };
+    if (writeMemberQuantiles && qHours.size) {
+      const ids = [...new Set(Object.values(qByHour))];
+      quantStat = {
+        source: ids.join('+'), run: sources.find((s) => s.id === ids[0])?.run ?? null,
+        vars: [...qVars], levels: ['q10', 'q90'], steps: qHours.size, missing: nt - qHours.size, cellsWritten: qFilled,
+        provenance: 'ensemble-members',
+        byHour: qByHour,
+        membersN: Object.fromEntries(sources.filter((s) => ids.includes(s.id)).map((s) => [s.id, s.membersRead])),
+        note: 'E-U-9 (2026-09-15): Typ-7-Quantile ueber die Member der Quelle, die die Stunde traegt (byHour) — '
+          + 'dieselben Member wie fuer σ_ens, null Bytes zusaetzlich. ROH und UNKALIBRIERT: c(p,f) fehlt, '
+          + 'solange buscosun-archiv nicht misst. Niederschlag als Rate ueber den Stufenschritt (wie precip_sd_ens).',
+        caveat: 'Quantile beschreiben die Unsicherheit EINER Quelle, nicht die Uneinigkeit mehrerer. '
+          + 'NICHT mit _sd oder _sd_ens verrechnen. Zwischen den Rasterstunden bleiben sie MISSING.',
+      };
+      console.log(`  ${tierId}: Quantile aus Membern (${ids.join('+')}) — ${qHours.size} Stunden, ${[...qVars].join('+')}`);
+    }
     for (const s of sources) {
       if (!s.hours.length && !s.errors && !s.noRate) continue;
       console.log(`  ${tierId}: σ_ens aus ${s.id} — ${s.hours.length} Stunden (Raster ${s.stepH} h)`
@@ -879,26 +923,36 @@ export async function buildTier(tierId, opts = {}) {
   console.log(`  ${tierId}: Druckflaechen (Raster ${stepH} h) — ${summary}`);
   }
 
-  // hModEff: Mittel der Modellorographien der beitragenden Quellen. Bei gleichen
-  // Gewichten ist das ihr arithmetisches Mittel; bei genau einer Quelle deren HSURF.
+  // hModEff: Mittel der Modellorographien der TRAGENDEN Quellen — je Schritt (V-PD-57).
+  //
+  // ⚠ E-E-5 + V-PD-57 (Jan, 2026-09-15): bis dahin stand hier ein statisches Mittel ueber
+  // ALLE nativ veroeffentlichten HSURF, fuer alle Schritte gleich. In t3 war das ICON globals
+  // Hoehe fuer alle 36 Schritte — auch jenseits 180 h, wo nur IFS und AIFS tragen, also fuer
+  // 156 von 336 Stunden die Hoehe eines Modells, das dort gar nicht mitrechnet. Jetzt haelt
+  // dieser Block die Spalten JE QUELLE (`oroByCi`), und `fillHModEff()` mittelt nach dem Join
+  // je (Schritt, Zelle) nur ueber die Quellen mit gesetztem Bit in `srcMask`. Die abgeleitete
+  // ECMWF-Hoehe (gh + sp, `derived-gh-sp`) geht dabei EIN — ohne sie waere jenseits 180 h keine
+  // Hoehe da, und die falsche Hoehe eines unbeteiligten Modells ist die schlechtere Wahl. Die
+  // Herkunft steht je Stufe im Manifest (`hmodel.hModEff`).
+  const oroByCi = new Array(contributors.length).fill(null);
+  const derivedIds = [], nativeIds = [];
   async function runOrography() {
-  const oros = [];
-  // PD-E: die Spalten je Quelle werden NICHT mehr weggeworfen — sie sind das statische
-  // Produkt `point/static/hmodel/` (Jans Posten 2). `hModEff` bleibt davon unberührt:
-  // gemittelt wird weiterhin nur über die NATIV veröffentlichten HSURF. Die abgeleitete
-  // ECMWF-Höhe in `hModEff` aufzunehmen wäre eine stille Änderung an genau dem Term, den
-  // PAP 4 korrigiert (E-E-5) — sie steht deshalb nur im statischen Produkt.
+  // PD-E: die Spalten je Quelle werden NICHT weggeworfen — sie sind das statische Produkt
+  // `point/static/hmodel/` (Jans Posten 2), mit `provenance` je Spalte.
   const columns = [];
   const absent = {};
-  for (const c of contributors) {
+  for (const [ci, c] of contributors.entries()) {
     let o = await safeCall(c, 'Orographie', () => c.adapter.orography(c.run, tier));
     if (!o) {
-      // Abgeleitete Höhe? Nur fürs statische Produkt, nie fürs Mittel.
+      // Abgeleitete Höhe: fuers statische Produkt UND (seit E-E-5) fuer hModEff.
       if (typeof c.adapter.orographyDerived === 'function') {
         const d = await safeCall(c, 'Orographie (abgeleitet)', () => c.adapter.orographyDerived(c.run, tier));
         if (d) {
-          columns.push({ id: c.id, provenance: 'derived-gh-sp', grid: c.mask ? applyMask(d, c.mask) : d,
+          const g = c.mask ? applyMask(d, c.mask) : d;
+          columns.push({ id: c.id, provenance: 'derived-gh-sp', grid: g,
             note: 'aus gh + sp interpoliert; die Quelle veröffentlicht keine Orographie' });
+          oroByCi[ci] = g;
+          derivedIds.push(c.id);
           continue;
         }
       }
@@ -910,7 +964,8 @@ export async function buildTier(tierId, opts = {}) {
     // die Zelle gar nicht trägt — und `h_true − h_mod_eff` ist genau der Term, den PAP 4
     // korrigiert. Ein falsches `hModEff` verschiebt die Höhenkorrektur, nicht die Optik.
     if (c.mask) o = applyMask(o, c.mask);
-    oros.push(o);
+    oroByCi[ci] = o;
+    nativeIds.push(c.id);
     columns.push({ id: c.id, provenance: 'native', grid: o });
   }
   if (columns.length && process.env.POINT_STATIC !== '0') {
@@ -932,17 +987,51 @@ export async function buildTier(tierId, opts = {}) {
       console.log(`  ${tierId}: h_model je Quelle FEHLGESCHLAGEN — ${e.message}`);
     }
   }
-  if (oros.length) {
+  }
+
+  // hModEff je (Schritt, Zelle) aus den Quellen, die dort tatsaechlich getragen haben (srcMask).
+  // Laeuft NACH dem Join der Bloecke — vorher ist die Maske unvollstaendig. Rueckfall je Zelle:
+  // hat keine tragende Quelle eine Hoehe (z. B. nur AICON, das keine veroeffentlicht), das
+  // Mittel ALLER Hoehen dieser Zelle — die alte Regel —, gezaehlt im Manifest.
+  let hModEffStat = null;
+  function fillHModEff() {
+    const withOro = oroByCi.map((o, ci) => (o ? ci : -1)).filter((ci) => ci >= 0);
+    if (!withOro.length) return;
     const mp = meta('hModEff');
     const plane = planeAt('hModEff');
-    for (let k = 0; k < cells; k++) {
-      let n = 0, sum = 0;
-      for (const o of oros) if (Number.isFinite(o[k])) { n++; sum += o[k]; }
-      if (n === 0) continue;
-      const q = quantize(sum / n, mp);
-      for (let it = 0; it < nt; it++) plane[it * cells + k] = q;
+    let fromContributing = 0, fallbackAll = 0, none = 0;
+    const perSourceCells = Object.fromEntries(withOro.map((ci) => [contributors[ci].id, 0]));
+    for (let it = 0; it < nt; it++) {
+      const base = it * cells;
+      for (let k = 0; k < cells; k++) {
+        const m = srcMask[it * cells + k];
+        let n = 0, sum = 0;
+        if (m !== 0) {
+          for (const ci of withOro) {
+            if (!(m & (1 << ci))) continue;
+            const v = oroByCi[ci][k];
+            if (!Number.isFinite(v)) continue;
+            n++; sum += v; perSourceCells[contributors[ci].id]++;
+          }
+        }
+        if (n > 0) { plane[base + k] = quantize(sum / n, mp); fromContributing++; continue; }
+        let n2 = 0, s2 = 0;
+        for (const ci of withOro) { const v = oroByCi[ci][k]; if (Number.isFinite(v)) { n2++; s2 += v; } }
+        if (n2 > 0) { plane[base + k] = quantize(s2 / n2, mp); fallbackAll++; } else none++;
+      }
     }
-  }
+    hModEffStat = {
+      provenance: 'per-step-contributing',
+      rule: 'hModEff(it, k) = Mittel der Modellhoehen der Quellen mit gesetztem srcMask-Bit in (it, k); '
+        + 'Rueckfall auf das Mittel aller Hoehen der Zelle, wenn keine tragende Quelle eine Hoehe hat (V-PD-57, E-E-5, 2026-09-15).',
+      nativeIds, derivedIncluded: derivedIds,
+      cellsFromContributing: fromContributing, cellsFallbackAllSources: fallbackAll, cellsWithoutHeight: none,
+      contributionsPerSource: perSourceCells,
+      caveat: 'Vor dem 2026-09-15 stand hier ein statisches Mittel ueber alle nativen HSURF fuer alle Schritte; '
+        + 'in t3 war das ICON globals Hoehe auch jenseits 180 h. Der Wert am PAP-4-Term hat sich damit geaendert.',
+    };
+    console.log(`  ${tierId}: hModEff je Schritt — ${fromContributing} Zellen aus tragenden Quellen, `
+      + `${fallbackAll} Rueckfall (alle Hoehen), ${none} ohne Hoehe · nativ ${nativeIds.join('+') || '—'} · abgeleitet ${derivedIds.join('+') || '—'}`);
   }
 
   // ── PD-F2b-2: die vier Nebenblöcke laufen als eigene Bahnen NEBEN den Feldbahnen ──────
@@ -985,6 +1074,8 @@ export async function buildTier(tierId, opts = {}) {
     throw new Error(`${tierId}: alle ${contributors.length} Quellen sind herausgefallen — `
       + contributors.map((c) => `${c.id}: ${c.firstError}`).join(' · '));
   }
+  // V-PD-57 / E-E-5: erst jetzt ist `srcMask` vollstaendig.
+  fillHModEff();
 
   // --- Chunks schneiden ------------------------------------------------------
   const files = [];
@@ -1058,7 +1149,7 @@ export async function buildTier(tierId, opts = {}) {
     })),
     profile: profileStat,
     pressure: pressureStat,
-    hmodel: hmodelStat,
+    hmodel: hmodelStat || hModEffStat ? { ...(hmodelStat ?? {}), hModEff: hModEffStat } : null,
     quantiles: quantStat,
     ensemble: ensStat,
     perPlane: Object.fromEntries(CUBE_PLANES.map((p, i) => [p.id, perPlane[i]])),

@@ -37,7 +37,7 @@ import {
 import { terrainPointSelfTest } from '../src/point/terrainPoint.ts';
 import { mosmixSelfTest, MOSMIX_NOT_MAPPED } from './point/mosmix.mjs';
 import { ensembleStatsSelfTest } from './point/adapters/ensembleStats.mjs';
-import { ECMWF_ENS_MEMBERS, ECMWF_ENS_STEP_H } from './point/adapters/ecmwfEns.mjs';
+import { ECMWF_ENS_MEMBERS, ECMWF_ENS_STEP_H, ECMWF_ENS_WIND_EVERY, ECMWF_ENS_WIND_MEMBERS, ecmwfEnsWindAt, ecmwfEnsMembersFor } from './point/adapters/ecmwfEns.mjs';
 import { keepIndexEntry, ECMWF_STEPS, ecmwfOwnLeads, ecmwfSnapDown } from './point/adapters/ecmwf.mjs';
 import { toTyped } from './point/adapters/geosphere.mjs';
 import { calibrationSelfTest, CALIBRATION_V1 } from '../src/point/calibration.ts';
@@ -2179,9 +2179,9 @@ merge('Profil (PD-B5)', profileSelfTest());
 
   // EINE Streuungsrechnung für alle Ensembles — sonst versteckt sich derselbe Fehler
   // in jeder Kopie einzeln.
-  add('(3o) dwdEps und ecmwfEns rechnen mit derselben Funktion',
-    /import \{ memberSpread \} from '\.\/ensembleStats\.mjs'/.test(de)
-    && /import \{ memberSpread \} from '\.\/ensembleStats\.mjs'/.test(ee));
+  add('(3o) dwdEps und ecmwfEns rechnen mit derselben Funktion (Streuung UND Quantile aus ensembleStats.mjs)',
+    /import \{ memberSpread, memberQuantiles \} from '\.\/ensembleStats\.mjs'/.test(de)
+    && /import \{ memberSpread, memberQuantiles \} from '\.\/ensembleStats\.mjs'/.test(ee));
   add('(3o) dwdEps rechnet die Streuung nicht mehr selbst',
     !/\(s2\[k\] - \(s1\[k\] \* s1\[k\]\) \/ c\) \/ \(c - 1\)/.test(deC));
 
@@ -2202,12 +2202,35 @@ merge('Profil (PD-B5)', profileSelfTest());
   // IFS-ENS
   const ie = adapterFor('ifs_ens');
   add('(3o) IFS-ENS trägt nichts zum Mittel bei', (ie?.vars ?? []).length === 0 && ie?.ensembleOnly === true);
-  add('(3o) IFS-ENS liefert σ_ens für t2m und Niederschlag',
-    JSON.stringify(ie?.ensembleVars) === JSON.stringify(['t2m', 'precip']), (ie?.ensembleVars ?? []).join(','));
+  // E-U-8 (Jan, 2026-09-15, Option b): dazu u10/v10 — nicht Boe und Bewoelkung (die kosten
+  // je ≈ 126 MiB je t3-Lauf und liegen zusammen ueber der +25-%-Schwelle des Auftrags).
+  add('(3o) IFS-ENS liefert σ_ens für t2m, Niederschlag, u10 und v10 (E-U-8 b)',
+    JSON.stringify(ie?.ensembleVars) === JSON.stringify(['t2m', 'precip', 'u10', 'v10']), (ie?.ensembleVars ?? []).join(','));
+  add('(3o) Negativ-Kontrolle E-U-8: Boe und Bewoelkung sind NICHT dabei (Volumen)',
+    !(ie?.ensembleVars ?? []).includes('gust') && !(ie?.ensembleVars ?? []).includes('clct'));
   add('(3o) 50 Member als Standard, Teilmengen nur als vollständige Paare',
     ECMWF_ENS_MEMBERS === 50 && /n % 2 !== 0/.test(ee), `${ECMWF_ENS_MEMBERS}`);
   add('(3o) die Mitgliederzahl ist mit der Messung begründet', /39,9 %/.test(ee) && /4,9 %/.test(ee));
   add('(3o) 48-Stunden-Raster (Jans Vorgabe)', ECMWF_ENS_STEP_H === 48, `${ECMWF_ENS_STEP_H} h`);
+  // E-U-8, gemessen 2026-09-15 aus dem .index des Laufs 2026091512: ein Windfeld 0,79 MiB je Member; u10+v10
+  // je Rasterstunde 79 MiB mit 50, 38 MiB mit 24 Membern (5 Rasterstunden: +395 bzw. +190 MiB je t3-Lauf).
+  // Jans Entscheidung: 48-h-Raster bleibt, Wind mit 24 Membern (Niederschlag 50). Die erste Zahl (+530 MiB,
+  // 1,06 MiB) war eine Differenz ungleicher Stundenzahlen (Plan §4.6a) — deshalb steht hier die Index-Summe.
+  add('(3o) Wind (u10/v10) liest IFS-ENS mit 24 Membern, alles andere mit 50 (E-U-8, Jans Entscheidung)',
+    ECMWF_ENS_WIND_MEMBERS === 24 && ecmwfEnsMembersFor('u10') === 24 && ecmwfEnsMembersFor('v10') === 24
+    && ecmwfEnsMembersFor('t2m') === ECMWF_ENS_MEMBERS && ecmwfEnsMembersFor('precip') === ECMWF_ENS_MEMBERS,
+    `Wind ${ECMWF_ENS_WIND_MEMBERS}, Rest ${ECMWF_ENS_MEMBERS}`);
+  add('(3o) Wind bleibt im 48-h-Raster (jede Rasterstunde; EVERY=1) — vier Stuetzstellen statt zwei',
+    ECMWF_ENS_WIND_EVERY === 1 && [144, 192, 240, 288, 336].every(ecmwfEnsWindAt), `EVERY=${ECMWF_ENS_WIND_EVERY}`);
+  add('(3o) membersAt schneidet je Groesse (ecmwfEnsMembersFor), nicht global',
+    /for \(let n = 1; n <= ecmwfEnsMembersFor\(varId\); n\+\+\)/.test(ee));
+  add('(3o) die Windkosten stehen mit der Index-Messung im Adapter (0,79 MiB je Windfeld und Member; 79/38 MiB je Rasterstunde)',
+    /0,79 MiB/.test(ee) && /79 MiB mit 50/.test(ee) && /38 MiB mit 24/.test(ee) && /ECMWF_ENS_WIND_VARS\.includes\(varId\) && !ecmwfEnsWindAt\(leadH\)/.test(ee));
+  add('(3o) der Adapter benennt, warum die erste Kostenzahl falsch war (vier gegen fuenf IFS-ENS-Stunden)',
+    /vier Rasterstunden, der lokale\s*\n?\s*\*?\s*Bau fuenf/.test(ee) && /POINT_ECMWF_WIND_MEMBERS=50/.test(ee));
+  add('(3o) Wind-Raster und -Memberzahl stehen im Manifest (sources[].windStepH, windMembers)',
+    /windStepH: c\.adapter\.windStepH \?\? null/.test(prC) && /windMembers: c\.adapter\.windMembers \?\? null/.test(prC));
+  add('(3o) Negativ-Kontrolle: eine ungerade Wind-Memberzahl (Paare!) wuerde laut abgelehnt', /n % 2 !== 0/.test(ee.slice(ee.indexOf('ECMWF_ENS_WIND_MEMBERS'))));
   add('(3o) Gegenprobe am Byte: Member-Nummer im GRIB gegen das .index',
     /f\.perturbationNumber !== Number\(entries\[i\]\.number\)/.test(eeC));
   add('(3o) die Einheit kommt aus dem GRIB (tp in Metern ist ECMWF-lokal 1/193)',
@@ -2276,6 +2299,20 @@ merge('Profil (PD-B5)', profileSelfTest());
   // Veraltete Aussagen im Lauf-Manifest über genau diese Quellen.
   add('(3o) das Manifest behauptet nicht mehr, σ_ens sei überall leer', !/heute .berall MISSING/.test(pr));
   add('(3o) leere sd_ens-Ebenen werden GEZÄHLT statt aufgezählt', /sdEnsEmpty:/.test(prC));
+  // E-U-9 (2026-09-15): Member-Quantile nur in Stufen OHNE Perzentilquelle, mit Versatz der Groesse.
+  add('(3o) Member-Quantile werden nur geschrieben, wenn KEINE Quantilquelle die Stufe traegt (t1 bleibt bei C-LAEF-EPS)',
+    /writeMemberQuantiles = process\.env\.POINT_QUANTILES !== '0'\s*&& !contributors\.some\(\(c\) => \(c\.adapter\.quantileVars \?\? \[\]\)\.length > 0 && !c\.dropped\)/.test(prC));
+  add('(3o) Member-Quantile bekommen den Versatz der Groesse (Kelvin → °C), σ_ens nicht',
+    /quantize\(v \+ off, qm\)/.test(prC) && /QUANTILE_VALUE_OFFSET\[varId\]/.test(prC) && /pl\[b \+ i\] = quantize\(v, mp\)/.test(prC));
+  add('(3o) Member-Quantile stehen mit Herkunft ensemble-members, byHour und membersN im Manifest',
+    /provenance: 'ensemble-members'/.test(prC) && /byHour: qByHour/.test(prC) && /membersN:/.test(prC));
+  {
+    const { memberQuantiles, QUANTILE_VALUE_OFFSET } = await import('./point/adapters/ensembleStats.mjs');
+    const mm = (obj) => new Map(Object.entries(obj).map(([k, v]) => [Number(k), Float32Array.from(v)]));
+    const q = memberQuantiles(mm({ 1: [273.15], 2: [283.15], 3: [278.15] }), null, { cells: 1 });
+    add('(3o) Rechenprobe: q10 in Kelvin + Versatz = °C (273,15/278,15/283,15 ⇒ q10 = 1,0 °C)',
+      Math.abs(q.q[0.1][0] + QUANTILE_VALUE_OFFSET.t2m - 1.0) < 1e-4, `${(q.q[0.1][0] + QUANTILE_VALUE_OFFSET.t2m).toFixed(3)}`);
+  }
   add('(3o) Ensemble-Quellen nennen ihre Memberzahl (nicht 0 = „deterministisch")',
     /members: c\.ensembleOnly \? \(c\.members \?\? null\)/.test(prC));
 }
@@ -2990,6 +3027,11 @@ merge('Profil (PD-B5)', profileSelfTest());
     add('(3z) fehlt eine Stufe ueberall ⇒ null, nicht ein falscher Lauf', latestByTier(runs.slice(0, 1)).t3 === null && latestByTier([]).t1 === null);
     const idx = buildPointIndex({ commit: null, publishedAt: '2026-09-11T22:00:00Z', runs });
     add('(3z) buildPointIndex traegt latestByTier und retentionByTier (additiv, Gesamtregel bleibt)', idx.latestByTier.t3.run === '2026091112' && idx.retentionByTier.t1 === RETENTION_HOURS_BY_TIER.t1 && idx.retentionHours === RETENTION_HOURS);
+    // U-17 (2026-09-15): die Achse aus TIERS gerechnet — zwei Luecken, und das nutzbare Ende zaehlt ab dem t3-Lauf.
+    add('(3z) axis: die Luecken 49–50 h (t1→t2) und 121–125 h (t2→t3) stehen im Index, aus TIERS gerechnet',
+      JSON.stringify(idx.axis.gaps.map((g) => [g.fromH, g.toH, g.between.join('>')])) === JSON.stringify([[49, 50, 't1>t2'], [121, 125, 't2>t3']]), JSON.stringify(idx.axis.gaps));
+    add('(3z) axis: usableToH = 336 − (t1-Lauf − t3-Lauf) = 336 − 6 = 330 h fuer t1 18z / t3 12z', idx.axis.usableToH === 330 && idx.axis.usableToMs === Date.parse('2026-09-11T12:00:00Z') + 336 * 3_600_000, `${idx.axis.usableToH}`);
+    add('(3z) axis ohne Laeufe: null statt erfundener Zahl', buildPointIndex({ commit: null, publishedAt: '2026-09-11T22:00:00Z', runs: [] }).axis.usableToH === null);
   }
   // pruneTier am synthetischen Baum: Stufe weg, Manifest ohne die Stufe und ihre Quellen, Orphan-Waechter gruen; letzte Stufe ⇒ Verzeichnis weg.
   {
@@ -3111,7 +3153,8 @@ merge('Profil (PD-B5)', profileSelfTest());
       add(`(3aa) Ebene ${id} steht im Container`, CUBE_PLANES.some((x) => x.id === id));
     }
   }
-  add('(3aa) t3 traegt nur 850 hPa (Jans Vorgabe)', pressureLevelsForTier('t3').join(',') === '850',
+  // E-E-4 (Jan, 2026-09-15): auch t3 traegt 925/850/700 — bis dahin nur 850.
+  add('(3aa) t3 traegt seit E-E-4 alle drei Flaechen (925/850/700)', pressureLevelsForTier('t3').join(',') === '925,850,700',
     pressureLevelsForTier('t3').join(','));
   add('(3aa) t1 und t2 tragen alle drei', pressureLevelsForTier('t1').length === 3 && pressureLevelsForTier('t2').length === 3);
   add('(3aa) parsePressurePlaneId erkennt nur echte Flaechen',
@@ -3328,10 +3371,16 @@ merge('Profil (PD-B5)', profileSelfTest());
     } finally { rmSync(tmp2, { recursive: true, force: true }); }
   }
 
-  // -- Die abgeleitete ECMWF-Hoehe geht NICHT ins hModEff (E-E-5) -------------
-  add('(3aa) die abgeleitete Hoehe steht nur im statischen Produkt, nicht im Mittel',
-    /orographyDerived/.test(bp) && !/oros\.push\([\s\S]{0,80}derived/.test(bp)
-    && /provenance: 'derived-gh-sp'/.test(bp));
+  // -- E-E-5 + V-PD-57 (Jan, 2026-09-15): hModEff je SCHRITT aus den TRAGENDEN Quellen, die
+  //    abgeleitete ECMWF-Hoehe eingeschlossen. Bis dahin stand in t3 fuer alle 36 Schritte ICON
+  //    globals Hoehe, auch jenseits 180 h, wo nur IFS/AIFS tragen — ohne E-E-5 waere V-PD-57 dort
+  //    gar nicht moeglich, weil ECMWF keine native Orographie veroeffentlicht.
+  add('(3aa) hModEff wird je Schritt aus den tragenden Quellen gemittelt (srcMask), Herkunft per-step-contributing',
+    /function fillHModEff\(/.test(bp) && /srcMask\[it \* cells \+ k\]/.test(bp) && /per-step-contributing/.test(bp));
+  add('(3aa) die abgeleitete ECMWF-Hoehe geht in hModEff ein und steht als solche im Manifest (derivedIncluded)',
+    /orographyDerived/.test(bp) && /oroByCi\[ci\] = /.test(bp) && /derivedIncluded/.test(bp) && /provenance: 'derived-gh-sp'/.test(bp));
+  add('(3aa) hModEff wird NACH den Feldbahnen gefuellt (die srcMask ist erst dann vollstaendig)',
+    bp.indexOf('fillHModEff();') > bp.indexOf("if (failed) throw failed.reason;") && bp.indexOf('fillHModEff();') < bp.indexOf('// --- Chunks schneiden'));
   const ec = readFileSync(join(ROOT, 'scripts/point/adapters/ecmwf.mjs'), 'utf8');
   add('(3aa) ECMWF meldet fuer hModEff weiterhin null (keine erfundene Hoehe)',
     /async orography\(\) \{ return null; \}/.test(ec));

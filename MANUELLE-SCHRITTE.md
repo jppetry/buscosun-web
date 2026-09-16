@@ -245,8 +245,9 @@ nachholbar (MOSMIX-L 48 h, ICON-D2 ≈ 24 h online). Plan und Belege:
       `10 23 * * *` (nach dem letzten t1-Bau 22:40 + 20 min + 5 min CDN); der Verifier
       `npm run verify:punktarchiv` rechnet ihn nach. Standard-Token reicht (eigenes Repo).
 
-- [ ] **Den ersten Slot pushen.** Lokal liegt in `C:\dev\buscosun-archiv` ein Slot vom
-      2026-09-14 (uncommitted, s. Plan §4.3). Vorher prüfen:
+- [x] **Den ersten Slot pushen.** ✅ 2026-09-15: Jan hat `b0c2829` (Slot 2026-09-14, 243 Punkte)
+      nach `origin/main` gepusht. Lokal liegt in `C:\dev\buscosun-archiv` ein Slot vom
+      2026-09-14 (s. Plan §4.3). Vorher prüfen:
 
       ```
       npm run verify:punktarchiv
@@ -257,11 +258,13 @@ nachholbar (MOSMIX-L 48 h, ICON-D2 ≈ 24 h online). Plan und Belege:
       — **nie `--force`**, das Repo ist append-only. Danach den Workflow einmal per
       `workflow_dispatch` starten und den zweiten Slot am Remote sehen.
 
-- [ ] **`points.json` liegt in buscosun-web** (`scripts/punktarchiv/points.json`, 243 Punkte)
-      und wird vom Cron mitgeklont — sie muss mit dem Sammler-Code committet und gepusht sein,
-      sonst bricht der Job im Gate ab (das ist Absicht).
+- [x] **`points.json` liegt in buscosun-web** (`scripts/punktarchiv/points.json`, 243 Punkte)
+      und wird vom Cron mitgeklont. ✅ Im Commit `f13661c` enthalten, gepusht 2026-09-15.
 
-Dazu aus derselben Phase, je ein Handgriff: `scripts/repack-repo/workflow-point.yml` (t2-Slot
-`30 4,10,16,22`) ins Daten-Repo kopieren (§13 gilt sinngemäß); der Push von `main` bringt die
-Retention-Korrektur, `declined` und das hmodel-Diff in den Cron; das Stadt-Raster braucht eine
-kurze Freigabe (Register-Erweiterung `static.urban`, Plan E-U-10).
+Dazu aus derselben Phase — **erledigt am 2026-09-15 mit Jans Freigabe für das Daten-Repo**,
+Commit `5ea830a` auf `buscosun-data/main` (Push im ersten Versuch, 18:53 UTC, Fenster vor dem
+20:30-Push der Kartenlinie): `scripts/repack-repo/workflow-point.yml` (t2-Slot `30 4,10,16,22`)
+liegt als `.github/workflows/point.yml`, das Stadt-Raster liegt unter `point/static/urban/v1/`
+(208 Chunks + `static.json`, am Remote mit `decodeCubeChunk` zurückgelesen). Der Push von
+`buscosun-web/main` (`f13661c`) bringt Retention-Korrektur, `declined` und hmodel-Diff ab dem
+nächsten Cron-Lauf. **Noch offen im Archiv-Repo: die Workflow-Datei** (zweiter Punkt oben).

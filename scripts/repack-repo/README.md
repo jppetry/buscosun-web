@@ -137,7 +137,7 @@ wie viele Member.
 ⚠️ **Die Druckflächen sind nicht überall dieselben Quellen:** ICON-D2 führt kein 925 hPa
 (sondern 950/975), IFS und AIFS kein 950; AIFS führt auf Druckflächen keine relative
 Feuchte. Gemittelt wird je Ebene nur über die Quellen, die **genau** diese Fläche führen.
-Stufe 3 trägt nur 850 hPa. Liegt eine Fläche unter der Modelloberfläche (p > `ps`), ist
+Seit 2026-09-15 (E-E-4) tragen alle drei Stufen 925/850/700 hPa; davor führte Stufe 3 nur 850. Liegt eine Fläche unter der Modelloberfläche (p > `ps`), ist
 ihr Wert eine Extrapolation — er steht unverändert im Cube, das Erkennen ist Sache des
 Lesers.
 

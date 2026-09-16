@@ -147,12 +147,15 @@ export const CHUNK_CELLS = 16;
 export const PRESSURE_LEVELS_HPA: readonly number[] = Object.freeze([925, 850, 700]);
 
 /**
- * Welche Flaechen eine Stufe traegt. Jans Vorgabe: "Nur in t1 und t2 noetig, in t3
- * reicht 850 hPa." Die uebrigen Ebenen bleiben in t3 MISSING und stehen so im Manifest
- * - benannt abwesend statt stumm leer (E-E-4: 700 hPa in t3 kostete 36 MiB je Lauf).
+ * Welche Flaechen eine Stufe traegt. Bis 2026-09-15 galt Jans Vorgabe "in t3 reicht
+ * 850 hPa"; mit E-E-4 (Entscheidung 2026-09-15) traegt auch t3 alle drei — PAP 4 braucht
+ * 925/850/700 als Profil-Ersatz und PAP 5 die Feuchte auf 700/850 fuer Foehnlagen, im
+ * Fernbereich genauso wie in t1/t2. Preis: ≈ 36 MiB je Flaeche und t3-Lauf (PD-E §7),
+ * also +72 MiB je Lauf bei zwei Laeufen am Tag (+2,6 % des Tagesvolumens). Die Funktion
+ * bleibt, damit Manifest und Verifier weiter EINE Stelle fragen.
  */
-export function pressureLevelsForTier(tierId: TierId): readonly number[] {
-  return tierId === 't3' ? [850] : PRESSURE_LEVELS_HPA;
+export function pressureLevelsForTier(_tierId: TierId): readonly number[] {
+  return PRESSURE_LEVELS_HPA;
 }
 
 /** Ebenen-ID der Temperatur bzw. der Feuchte auf einer Druckflaeche. DIE Regel. */

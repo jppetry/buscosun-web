@@ -491,8 +491,9 @@ let stationManifest;
     add('(9) Gegenkontrolle: ohne jede Druckflaeche ebenfalls `null`, nicht `[]`',
       ser.steps[0].belowGroundHPa === null && ser.steps[0].values.ps != null);
   }
-  add('(9) die Flaechen sind dieselben wie im Format, und t3 traegt nur 850',
-    PRESSURE_LEVELS_HPA.join() === '925,850,700' && pressureLevelsForTier('t3').join() === '850');
+  // E-E-4 (Jan, 2026-09-15): seither traegt auch t3 alle drei Flaechen.
+  add('(9) die Flaechen sind dieselben wie im Format, und seit E-E-4 traegt auch t3 alle drei',
+    PRESSURE_LEVELS_HPA.join() === '925,850,700' && pressureLevelsForTier('t3').join() === '925,850,700');
   add('(9) die Ebenen-IDs kommen aus EINER Regel',
     pressurePlaneId('t', 850) === 't850' && pressurePlaneId('rh', 925) === 'rh925');
 

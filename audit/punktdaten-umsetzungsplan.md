@@ -14,6 +14,22 @@
 
 ---
 
+## §0 Nachtrag 2026-09-15 — was seit dem Plan passiert ist
+
+- `buscosun-web` `f13661c` ist committet und auf `origin/main` (Jan, 18:35 UTC): Retention-Korrektur, `declined`, hmodel-Diff, Sammler, `points.json` — der Cron klont es ab dem nächsten Lauf.
+- `buscosun-archiv` `b0c2829` (Slot 2026-09-14, 243 Punkte) ist auf `origin/main` (Jan). **Die Workflow-Datei fehlt dort noch** (Remote trägt nur `2026-09-14/*` und `index.json`).
+- `buscosun-data` `5ea830a` (18:53 UTC, mit Jans Freigabe): `.github/workflows/point.yml` mit dem t2-Slot `30 4,10,16,22` (U-4 deployt) und `point/static/urban/v1/` (U-6 abgelegt, Option E-U-10 (a)); am Remote mit `decodeCubeChunk` zurückgelesen. `index.json static.products` nennt `urban/v1` ab dem nächsten Publish (t1 19:40 UTC).
+- Am Remote-Index von 16:56 UTC (noch alter Producer) hielt t3 zwei Läufe; der erste Lauf mit `retainRuns` ist der t3-Job um 21:55 UTC.
+- `buscosun-archiv` `0df940b` (18:59 UTC, mit Jans Freigabe): `.github/workflows/punktarchiv.yml` liegt am Remote; erster planmäßiger Slot 23:10 UTC.
+- **M-1 umgesetzt (Jans Entscheidung „alle Punkte", 2026-09-15, lokal, uncommitted):**
+  - **E-E-4** `pressureLevelsForTier` liefert für alle Stufen 925/850/700 (`cubeFormat.ts`); README-Satz und beide Verifier nachgezogen.
+  - **E-U-8 (b)** `ecmwfEns.mjs`: `params` + `u10: '10u', v10: '10v'`, Einheitenfaktor Wind (cat 2 num 2/3); Böe/Bewölkung bewusst nicht (Negativkontrolle im Verifier).
+  - **E-U-8, Memberzahl (Jan, „mach die 24 member variante", 15.09. abends):** Wind mit **24 Membern im 48-h-Raster** (`ECMWF_ENS_WIND_MEMBERS`, `ecmwfEnsMembersFor`, `ecmwfEnsWindAt`; Manifest `windMembers`), kalt gemessen **863,2 MiB je IFS-ENS-Lauf** (35 Anfragen, 167 s). ⚠ **Die Kostenzahl aus §4.6, auf der Jans Wahl beruhte (+530 MiB = +31 %), war falsch** — fünf gegen vier IFS-ENS-Stunden; richtig sind **+395 MiB = +23 % für 50 und +190 MiB = +11 % für 24 Windmember** (§4.6a, aus dem `.index` gerechnet). σ24 gegen σ50: Median 8,0 %, p90 20,5 %, unverzerrt. **Empfehlung 50** (`POINT_ECMWF_WIND_MEMBERS: '50'` in `point.yml`), Entscheidung bei Jan (§6, Punkt 12).
+  - **E-U-9** `memberQuantiles` (Typ 7) in `ensembleStats.mjs` (+7 Selbsttests); beide Ensemble-Adapter liefern `q10/q90` aus denselben Membern; der Producer schreibt sie **nur in Stufen ohne Perzentilquelle** (t1 bleibt bei C-LAEF-EPS), mit `QUANTILE_VALUE_OFFSET` (Kelvin → °C, nur für Werte, nie für σ) und Manifest `quantiles.provenance: 'ensemble-members'`, `byHour`, `membersN`. **Belegt am t2-Teilbau** (ICON-EU + EU-EPS, 51–72 h, 251 MiB): Quantile an 60/72 h für t2m/u10/v10/gust/precip, `cellsWritten 244 420`.
+  - **E-E-5 + V-PD-57** `fillHModEff()` im Producer: `hModEff` je (Schritt, Zelle) aus den Quellen mit gesetztem `srcMask`-Bit, abgeleitete ECMWF-Höhe eingeschlossen (`derivedIncluded`), Rückfall auf das Mittel aller Höhen gezählt; läuft hinter dem Join der Bahnen. Manifest `hmodel.hModEff` mit Herkunft und Zellzählung. Belegt am t2-Teilbau: 97 768 Zellen aus tragenden Quellen, 0 Rückfall.
+  - **U-17** `cubeAxis()` in `manifest.ts`: Index trägt `axis.gaps` (49–50 t1→t2, 121–125 t2→t3, aus `TIERS` gerechnet), `usableToH`/`usableToMs` (336 h ab dem t3-Lauf, Verifier-Beispiel t1 18z/t3 12z ⇒ 330) und die Begründung.
+  - Gates: `verify:point-data` **947/947** (war 924), `verify:point-client` 63/63, typecheck 0. Kosten t3: s. §4.6 und §4.6a. **Deploy = Push von `buscosun-web/main` (Jan).**
+
 ## §1 Stand und Abweichungen
 
 ### 1.1 Ist-Stand am Remote (nachgeprüft 20:03–21:10 UTC)
@@ -63,9 +79,9 @@ Zustand: ✅ umgesetzt und geprüft · 📝 nur Plan/Diff · ⏳ Messung läuft.
 | **U-1** ✅ | Archiv PA1: Bibliothek, Punktliste, Sammler, Node-Shim, Wahrheitsleser | Archiv leer (0 Commits); jeder Tag ohne Sammler ist verloren (Vorhersagen nicht nachholbar) | `scripts/punktarchiv/lib/punktarchiv.mjs` (Schema 1, int-Kodierung, Merge, As-of), `lib/truth.mjs` (POI/TAWES/SMN), `lib/nodeShims.mjs` (DEM/Proxy/Klimagitter), `points.mjs` + `points.json` (243 Punkte), `collect.mjs` (beide Pfade) | `verify:punktarchiv` **56/56** (Schema-Rundweg, Skalen/Sentinel, Lead-Raster, Punktliste, Merge idempotent, As-of mit Negativkontrolle, Vorlage) | Probelauf 10 Punkte: 64 s, 0,47 MiB gzip (§4.3); voll: s. §4.3 | Slot liegt lokal, V-PA-1 grün | — (Push = J) | 1 |
 | **U-2** ✅ | Archiv-Workflow-Vorlage | Cron-Ort und Token (PA0 vs. Auftrag) | `scripts/punktarchiv-repo/workflow-punktarchiv.yml`: `10 23 * * *`, Gruppe `punktarchiv`, Standard-Token, Push mit Rebase-Wiederholung, nie `--force` | `verify:punktarchiv` (6): Slot ≥ letzter t1-Bau 22:40 + 20 + 5 min, < 24:00; Negativkontrolle 22:45 | — | Vorlage grün | **J** (Kopie ins Archiv-Repo + erster Push = GPA3) | 2 |
 | **U-3** ✅ | t3-Retention (Verkettung) | §1.2 Nr. 4 | `scripts/point/prune.mjs`: `runsIn`, `runIdToIso`, **`retainRuns`** (beide Durchgänge, Gesamtsicht respektiert die Stufen-Entscheidung; `legacyGlobalPass` nur für die Negativkontrolle); `publish-point.mjs` ruft es auf; `manifest.ts`-Kommentar | `verify:point-data` (3z) Verkettung am Fixture-Baum des 16:56-Stands: `2026091312` überlebt, Waise fällt, t1 3 / t2 4 / t3 2; **Negativkontrolle: der alte Weg löscht ihn** | +1,5 MB je gehaltenem t3-Lauf | Nach dem nächsten Push: Index hält ≥ 2 t3-Läufe | — (Deploy = Push von buscosun-web `main`, den der Cron klont: **J**) | 3 |
-| **U-4** ✅ | t2-Cron `30 4,10,16,22` | ICON-EU +3,60…3,70 h (8 min Rand am alten Slot), MOSMIX-L +73…76 min (alter Slot 27 min VOR der Bereitstellung, `ageH 7,06`) | `scripts/repack-repo/workflow-point.yml` (Cron, `if:`, Kopf mit Herleitung, Regel-C-Kommentare), `README.md`-Tabelle, `sourceMatrix.ts` MOSMIX-Notiz, `build-stations.mjs` Caveat | `verify:point-data`: Regel A 60 ≥ 35 · B t1 45 ≥ 40 · C 25 ≤ 60 ≤ 60 · D · E 52 min · **E′ (neu) 13 min**; Negativkontrolle alter Slot −27 min | keine; t2-Daten beim Bau 40 min älter | Stationen `ageH < 2` nach dem ersten Lauf | **J** (Kopie ins Daten-Repo) | 3 |
+| **U-4** ✅ deployt 15.09. (`5ea830a`) | t2-Cron `30 4,10,16,22` | ICON-EU +3,60…3,70 h (8 min Rand am alten Slot), MOSMIX-L +73…76 min (alter Slot 27 min VOR der Bereitstellung, `ageH 7,06`) | `scripts/repack-repo/workflow-point.yml` (Cron, `if:`, Kopf mit Herleitung, Regel-C-Kommentare), `README.md`-Tabelle, `sourceMatrix.ts` MOSMIX-Notiz, `build-stations.mjs` Caveat | `verify:point-data`: Regel A 60 ≥ 35 · B t1 45 ≥ 40 · C 25 ≤ 60 ≤ 60 · D · E 52 min · **E′ (neu) 13 min**; Negativkontrolle alter Slot −27 min | keine; t2-Daten beim Bau 40 min älter | Stationen `ageH < 2` nach dem ersten Lauf | **J** (Kopie ins Daten-Repo) | 3 |
 | **U-5** 📝 | Publish-Retry Kartenlinie | `publish-repack.mjs` pusht einmal `--force` (V-BW-58); Punkt-Jobs haben den Retry längst | Diff-Skizze §6.2: Klon + Force-Push bis zu 3× wiederholen (kein Rebase, weil Wurzel-Commit) | `verify:repack` (bestehend) + Regex auf die Schleife | — | drei Fehlschläge vom 2026-09-04 wären abgefangen | **S&F** (Kartenlinie/Warm-Cron) | 9 |
-| **U-6** ✅ | Stadt-Raster `point/static/urban/v1/` | `imperv`/`d0` fehlen (E-13, PAP 5) | `scripts/point/build-urban.mjs` + `urbanTiff.mjs` (BigTIFF, **LZW eigener Decoder**, Mollweide) — GHS-BUILT-S E2020 100 m + GHS-BUILT-H ANBH E2018 100 m, vier Kacheln R3/R4 × C19/C20, drei Ebenen `imperv`/`d0`/`bldgH`, Hash je Spalte, `static.json` mit Lizenz/Zitat/Caveats | `--self-test` 34/34; `verify:point-data` unberührt | Netz 199,8 MiB einmalig; Ausgabe **208 Chunks = 111 KB + 12 KB Manifest**; Bau 22 s kalt | München 29 %/6,2 m · Wien 38 % · Zermatt 2 % (§4.4) | **J** (Erstablage = Register-Erweiterung `static.urban`, kurz abstimmen; Producer-Aufruf im Cron oder einmalig per Hand) | 5 |
+| **U-6** ✅ abgelegt 15.09. (`5ea830a`) | Stadt-Raster `point/static/urban/v1/` | `imperv`/`d0` fehlen (E-13, PAP 5) | `scripts/point/build-urban.mjs` + `urbanTiff.mjs` (BigTIFF, **LZW eigener Decoder**, Mollweide) — GHS-BUILT-S E2020 100 m + GHS-BUILT-H ANBH E2018 100 m, vier Kacheln R3/R4 × C19/C20, drei Ebenen `imperv`/`d0`/`bldgH`, Hash je Spalte, `static.json` mit Lizenz/Zitat/Caveats | `--self-test` 34/34; `verify:point-data` unberührt | Netz 199,8 MiB einmalig; Ausgabe **208 Chunks = 111 KB + 12 KB Manifest**; Bau 22 s kalt | München 29 %/6,2 m · Wien 38 % · Zermatt 2 % (§4.4) | **J** (Erstablage = Register-Erweiterung `static.urban`, kurz abstimmen; Producer-Aufruf im Cron oder einmalig per Hand) | 5 |
 | **U-7** 📝 | Client-Leser `readUrbanPoint` | Client liest `hmodel`, kennt `urban` nicht | Plan: `src/point/client/staticPoint.ts` nach dem Muster `readHmodelPoint` (Produkt-Parameter statt Konstante) | `verify:point-client` Rundweg an einem synthetischen Urban-Chunk | 0 Byte Netz | Rundweg ≤ Δ/2 | — | 6 |
 | **U-8** ✅ | `sources.json`/Registry: INCA `vars`, `declined` | INCA-Spiegel trägt nur RR; MOSMIX-S/KENDA-CH1 sollen abgesagt sein | `sourceMatrix.ts` INCA `vars: ['precip']` + Notiz; `adapters/index.mjs` `DECLINED` (mit Wiedereröffnungsbedingung), `build-point-cube.mjs` `declined:` im Manifest (additiv), `manifest.ts` Typ + Validierung (nie in beiden Listen) | `verify:point-data`: Bilanz mit drei Klassen, Absagen nennen „Wieder offen, sobald …", Manifest-Test + Negativkontrolle | — | `sources.json`/`run.json` am Remote tragen es nach dem nächsten Push | — (Deploy: **J** über Push von `main`; **Manifest-Feld additiv = S&F** — E-U-6) | 4 |
 | **U-9** ✅ | `hmodel.changed` erklärbar | t2/t3 `changed: true` ohne Grund | `staticHmodel.mjs`: Diff je Spalte (added/changed/removed, alt/neu-Hash, Deckung, Min/Max) im Rückgabewert und als `diffFromPrev` im `static.json`; `build-point-cube.mjs` loggt je Spalte | `staticHmodelSelfTest` (bestehend) | — | Beim nächsten Cron-Bau steht im Log, WELCHE Spalte sich änderte | — (Deploy **J**) | 4 |
@@ -179,6 +195,60 @@ Der volle Slot liegt lokal als `C:\dev\buscosun-archiv\2026-09-14\2046.json.gz` 
 - Abdeckung t1: 47 013/48 441 Zellen (1 428 MISSING = Meer). Mittel `imperv` 1,94 %, Max 38 %, ≥ 50 %: 0 (Zellmittel über ≈ 5 km).
 - Proben (aus den Chunks zurückgelesen): **München 29 % / d0 6,2 m / bldgH 8,8 m · Berlin 30 / 8,7 / 12,5 · Wien 38 / 11,6 / 16,6 · Zürich 23 / 7,1 / 10,2 · Zermatt 2 / 0,5 / 0,7 · Rhön 1 · Bayerischer Wald 0.** Am Marienplatz trägt das 100-m-Pixel 67 % — das Zellmittel glättet Stadtkerne (Caveat im Manifest; E-U-10).
 
+### 4.6 M-1 — Kosten am kalten t3-Bau (2026-09-15, lokal, Lauf 2026091512)
+
+`tiers[].net` je Quelle gegen den Remote-Lauf `2026091500` (t3, alter Producer):
+
+| Quelle | neu MiB | Remote MiB | Δ MiB | Anfragen neu / Remote |
+|---|---|---|---|---|
+| icon_global | 369,2 | 371,5 | −2,3 | |
+| icon_eps_global | 69,2 | 69,8 | −0,6 | |
+| aicon | 157,8 | 155,0 | +2,8 | |
+| **ifs_hres** (925/700 neu) | 349,3 | 346,2 | **+3,1** | 112 / 112 |
+| **aifs_single** (925/700 neu) | 235,2 | 235,6 | −0,5 | 112 / 112 |
+| **ifs_ens** (u10/v10, 50 Member, **fünf** Rasterstunden) | 1 069,4 | 539,5 (**vier** Rasterstunden) | +529,9 ⚠ ungleiche Stundenzahl — s. 4.6a | 35 / 20 |
+| Summe | 2 250,1 | 1 717,6 | +532,5 = +31,0 % ⚠ s. 4.6a (richtig: +23 % für 50, +11 % für 24 Windmember) | |
+
+- **E-E-4 ist praktisch gratis:** die 925/700-Felder liegen in denselben Mehrbereichs-Anfragen wie 850 (Anfragezahl unverändert 112), +3 MiB statt der in PD-E §7 geschätzten +36 MiB je Fläche. Alle sechs Ebenen tragen 36/36 Schritte.
+- ⚠ **E-U-8 — diese Zeile war falsch und bleibt als Beleg stehen:** aus der Tabelle folgte „ein Windfeld wiegt je Member 1,06 MiB, u10 + v10 an fünf Rasterstunden = +530 MiB = +31 %, über der Abbruchschwelle", daraus ein 96-h-Windraster („830,9 MiB ⇒ +291 MiB = +17 %") und schließlich Jans Wahl von 24 Windmembern. Die Differenz 1 069,4 − 539,5 verglich aber **fünf lokale gegen vier Remote-Stunden** (der Remote-Lauf gibt 144 h an ICON-EPS global). Die richtigen Zahlen, aus dem `.index` gerechnet und am kalten Bau bestätigt, stehen in **4.6a**: 50 Windmember +395 MiB = +23 %, 24 Member +190 MiB = +11 %, das 96-h-Raster +158 MiB = +9 %.
+- Laufzeit t3 lokal 406 s gegen 219 s des Remote-Laufs — die Differenz ist überwiegend das IFS-ENS-Volumen; `JOB_MAX_MIN(t3) = 10` hält rechnerisch (Runner ≈ 2× lokal für Netz, 4,7 min bisher).
+- **Verortungsbeweis `hModEff` je Schritt (Innsbruck, 47,269/11,404):** +126…168 h **1469 m** (Mittel ICON global 1332 · IFS 1402 · AIFS 1672, `srcCount 4`), ab +192 h **1537 m** (IFS + AIFS, `srcCount 2`) — bisher stand 1332 m für alle 36 Schritte. `cellsFromContributing 72 324`, 0 Rückfall, 0 ohne Höhe; `derivedIncluded: ifs_hres, aifs_single`.
+- **Quantile t3:** 7 Rasterstunden (132/180/228/276/324 IFS-ENS, 144/168 ICON-EPS global), `cellsWritten 88 396`; im Innsbruck-Chunk 1 792 t2m-Werte, `q10 ≤ q90` 100,00 %, Mittel im Band 86,4 %.
+- **Quantile t2** (Teilbau ICON-EU + EU-EPS, 51–72 h, 251 MiB): 60/72 h, t2m/u10/v10/gust/precip, `cellsWritten 244 420`; `hModEff` 97 768 Zellen aus tragenden Quellen.
+
+### 4.6a E-U-8 nachgemessen — 24 Windmember, und die Korrektur der Kostenzahl (2026-09-15, 21:37 UTC, Lauf 2026091512)
+
+Jans Entscheidung („mach die 24 member variante") ist umgesetzt: `ECMWF_ENS_WIND_MEMBERS = 24` (Standard, nur u10/v10; `ecmwfEnsMembersFor`), `ECMWF_ENS_WIND_EVERY = 1` (das 48-h-Raster bleibt), Manifest `sources[].windMembers` und `ensemble.sources[].windMembers/membersMin`.
+
+**Kalter `--only=ifs_ens`-Bau, t3, 24 Windmember:** 35 Anfragen, **863,2 MiB**, 167 s, `windMembers 24`, `membersRead 50` (t2m/precip), 13 von 57 Ebenen belegt — σ_ens und q10/q90 für t2m/precip/u10/v10 an 144/192/240/288/336 h, 3 363 negative Ratendifferenzen auf 0.
+
+**Die Zahl lag über der Erwartung (≈ 794 MiB) — und die Nachrechnung hat die erste Messung dieser Etappe widerlegt.** Aus den `.index`-Dateien des Laufs (Summe der `_length` je Parameter und Member — exakt, kein Netz):
+
+| Posten je Rasterstunde (Lauf 2026091512, Mittel über 144…336 h) | MiB |
+|---|---|
+| `2t`, 50 Member | 31,7 |
+| `tp`, 50 Member (plus Vorschritt für die Rate ⇒ ×2) | 49,5 (99,0) |
+| `10u` + `10v`, **24** Member | **37,9** |
+| `10u` + `10v`, **50** Member | 79,0 |
+| **je Windfeld und Member** | **0,79** (nicht 1,06) |
+
+Fünf Rasterstunden: Grundlast (t2m + tp + Vorschritt) 654 MiB + 10 Index-Dateien ≈ 16 MiB + Wind mit 24 Membern 190 MiB ⇒ **844 MiB gerechnet, 863 gemessen** (Rest: Multipart-Rahmen). Der Cache des Baus bestätigt die Zählung: 1 000 Dateien = 5 × (50 + 50 + 24 + 24) Member-Nachrichten + 5 × 50 Vorschritt-`tp` + 10 Index.
+
+⚠ **Korrektur zu 4.6:** „+530 MiB, 1,06 MiB je Windfeld" war die Differenz **1 069,4 − 539,5**. Der Remote-Lauf `2026091500` gibt aber **144 h an ICON-EPS global** (Regel „je Stunde EINE Quelle", `ensemble.byHour`), IFS-ENS trug dort nur **vier** Rasterstunden (192/240/288/336, 20 Anfragen); der lokale `--only`-Bau hat kein ICON-EPS und trägt **fünf**. Die fünfte Stunde t2m + tp + Vorschritt (≈ 134 MiB) wurde dem Wind zugeschlagen. Am 00z-Index nachgeprüft: die Feldgrößen beider Läufe sind gleich (2t 31,6 · tp 48,8 · 10u 39,3 MiB je 50 Member) — der Fehler lag in der Stundenzahl, nicht in den Bytes. Richtig ist:
+
+| Variante | Wind je t3-Lauf (5 Rasterstunden) | Anteil am t3-Zyklus (1 718 MiB) | bei 4 IFS-ENS-Stunden (Regelfall mit ICON-EPS global) |
+|---|---|---|---|
+| 50 Member, 48 h | +395 MiB | **+23 %** | +316 MiB = +18 % |
+| **24 Member, 48 h (umgesetzt)** | **+190 MiB** | **+11 %** | +152 MiB = +9 % |
+| 50 Member, 96 h (verworfen) | +158 MiB | +9 % | — |
+
+**Folge für die Entscheidung:** 50 Windmember lägen mit +18…23 % **unter** der Abbruchschwelle (+25 %), nicht darüber — Jans Wahl von 24 Membern beruhte auf meiner falschen Zahl. Der Preis der 24 ist gemessen (nächster Absatz), der Rückweg ist eine Zeile in `point.yml` (`POINT_ECMWF_WIND_MEMBERS: '50'`). **Empfehlung: 50** — der Unterschied sind 205 MiB je t3-Lauf (zweimal täglich), und ein p90 von 20 % in σ_ens(Wind) ist kein Rundungsfehler. Die Entscheidung bleibt bei Jan (§6, Punkt 12).
+
+**σ aus 24 gegen 50 Membern, dieselben Bytes** (Cache des 50er-Baus, u10 und v10 an fünf Rasterstunden, 2 009 Zellen ⇒ n = 20 090): Median |Δσ|/σ **8,0 %**, p90 **20,5 %**, σ24/σ50 im Median 0,997 (p10 0,827 · p90 1,143) — **unverzerrt**, aber je Zelle ein Rauschen von ±15–20 %. Zum Vergleich §45: t2m aus 20 Membern 4,9 %, Niederschlag 39,9 %.
+
+**Lehre:** Kosten nie als Differenz zweier Bäume mit anderer Quellenbelegung messen — der `--only`-Bau ändert nicht nur die Quelle, sondern über die „eine Quelle je Stunde"-Regel auch, **welche Stunden** sie trägt. Die Index-Summe ist exakt, netzfrei und in Sekunden gerechnet; sie hätte vor der Frage an Jan stehen müssen.
+- ⚠ **Neu benannt, V-PD-61:** die Stunden-Regel „genau eine Quelle je Stunde" gilt je STUNDE, nicht je Größe. An 144/168 h trägt ICON-EPS global (nur t2m), also bleiben dort u10/v10 σ_ens und -Quantile leer, obwohl IFS-ENS sie hätte. Kur: Rückfall je Größe auf die nächste Quelle der Stunde (E-U-16, Manifest-Änderung, offen).
+
 ### 4.5 Gates
 
 | Gate | vorher | nachher |
@@ -225,7 +295,7 @@ Je Punkt: Frage · Optionen · Empfehlung · Folge bei Nichtentscheidung.
 9. **PA-E-6 — Retention des Archivs:** append-only, nie prunen (umgesetzt: `mergeSlot` überschreibt nie). Wachstum **gemessen 10,09 MiB je Slot ⇒ ≈ 3,7 GB je Jahr bei einem Slot am Tag** (§4.3) — GitHub empfiehlt < 1 GB je Repo, jsDelivr ist hier irrelevant (kein CDN-Pfad). Optionen: (a) so lassen und ab 1 GB Jahresverzeichnisse als Release-Assets auslagern; (b) Binärkodierung der int-Spalten (≈ 2×, ungemessen); (c) Live-Fusion nur für die 10 Vollpunkte. **Empfehlung (b) vor dem ersten Push prüfen, (a) als Betriebsregel** (E-U-13).
 10. **PA-E-7 — Cron-Ort und Token:** Archiv-Repo, Standard-`GITHUB_TOKEN`, Vorlage in buscosun-web, Kopie = Gate (umgesetzt). **Empfehlung: so**; Handpush des ersten Slots aus `C:\dev\buscosun-archiv` durch Jan (GPA3).
 11. **E-E-4 — 700 + 925 hPa in t3** (+2,6 %/Tag). **Empfehlung: ja** (Föhn-/Absinklagen im Fernbereich; kleinster Posten von M-1).
-12. **E-U-8 — σ_ens in t3 erweitern:** (a) u10/v10/gust/clct (+500 MiB je t3-Lauf, +28 % je Zyklus — über der Abbruchschwelle); (b) nur u10/v10 (+250 MiB, +14 %); (c) 96-h-Raster für die vier Größen (+250 MiB); (d) nichts. **Empfehlung (b)** — Windunsicherheit ist im Fernbereich die zweite Größe, die p10/p90 trägt.
+12. **E-U-8 — σ_ens in t3 erweitern.** Jan: (b) u10/v10; danach „mach die 24 member variante" (15.09.). **Umgesetzt: u10/v10 im 48-h-Raster mit 24 Membern** (`ECMWF_ENS_WIND_MEMBERS = 24`; Temperatur und Niederschlag behalten 50). ⚠ **Die Entscheidungsgrundlage war falsch:** „+530 MiB = +31 %" verglich fünf lokale gegen vier Remote-IFS-ENS-Stunden (§4.6a). Aus dem `.index` gerechnet und am kalten Bau bestätigt: 50 Windmember **+395 MiB = +23 %** (im Regelfall mit vier Stunden +18 %), 24 Member **+190 MiB = +11 %** — beides unter der Schwelle. Preis der 24: σ-Abweichung Median 8,0 %, p90 20,5 % (unverzerrt). **Empfehlung: 50 Member** — `POINT_ECMWF_WIND_MEMBERS: '50'` in `point.yml`, eine Zeile, ohne Code-Änderung. Nichtentscheidung = 24 (wie umgesetzt).
 13. **E-U-9 — Quantile aus Membern in t2/t3** (0 Byte, Provenienz `ensemble-members`, unkalibriert): **Empfehlung: ja**, mit `quantiles.provenance` je Stufe und dem Hinweis, dass c(p,f) fehlt.
 14. **E-E-5 + V-PD-57 — `hModEff` je Schritt / abgeleitete ECMWF-Höhe:** ändert veröffentlichte Werte am PAP-4-Term. **Empfehlung: `hModEff` je Schritt aus den tragenden Quellen (V-PD-57) ja; abgeleitete Höhe (E-E-5) nur als eigene Spalte, nicht ins Mittel.**
 15. **E-D-3 / U-17 — Achsenlücken:** `axisGaps` + `usableToH` im Index (additiv) statt t3 ab 123 h. **Empfehlung: Index-Felder.**

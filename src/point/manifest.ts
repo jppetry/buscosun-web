@@ -203,8 +203,14 @@ export interface PointTierManifest {
   ageH: number;
   leadHours: readonly number[];
   files: Array<{ file: string; bytes: number; cy: number; cx: number }>;
-  quantiles: { source: string; run: string; vars: string[]; levels: string[]; steps: number; missing: number;
-    cellsWritten: number; provenance: string; note: string | null; caveat: string } | null;
+  /**
+   * `provenance: 'single-source'` = eine Perzentilquelle (t1, C-LAEF-EPS); `'ensemble-members'` =
+   * Typ-7-Quantile ueber die Member der Quelle, die die Stunde traegt (t2/t3, E-U-9 2026-09-15) —
+   * dann tragen `byHour` und `membersN` die Herkunft je Stunde. Beides roh, unkalibriert.
+   */
+  quantiles: { source: string; run: string | null; vars: string[]; levels: string[]; steps: number; missing: number;
+    cellsWritten: number; provenance: string; note: string | null; caveat: string;
+    byHour?: Record<string, string>; membersN?: Record<string, number | null> } | null;
   ensemble: { sources: Array<Record<string, unknown>>; byHour: Record<string, string>; steps: number; missing: number;
     provenance: string; rule: string; precip: string; caveat: string } | null;
   profile: { source: string; run: string; stepH: number; levels: unknown; steps: number; missing: number;
@@ -385,6 +391,43 @@ export function tierManifest() {
  * `null`, denn ein Manifest, das einen Commit behauptet, den es nicht gibt, wäre
  * schlimmer als eines ohne.
  */
+/**
+ * Die Achse des Cubes als Auskunft im Index (U-17, 2026-09-15): die Luecken ZWISCHEN den
+ * Stufen (49–50 h, 121–125 h) und das nutzbare Ende in Stunden ab dem t1-Lauf — denn t3
+ * reicht 336 h ab SEINEM Lauf, der beim Publish aelter ist (V-PD-55: die Naht ist beweglich).
+ * Innerhalb einer Stufe sind die Zwischenstunden (t2 3-stuendlich, t3 6-stuendlich) keine
+ * Luecken, sondern das Raster — der Leser sieht sie an `tiers[].stepH`.
+ */
+export function cubeAxis(runs: readonly PointIndexRun[]) {
+  const gaps: Array<{ fromH: number; toH: number; between: [TierId, TierId] }> = [];
+  for (let i = 1; i < TIERS.length; i++) {
+    const prev = TIERS[i - 1], next = TIERS[i];
+    if (next.fromH > prev.toH + 1) gaps.push({ fromH: prev.toH + 1, toH: next.fromH - 1, between: [prev.id, next.id] });
+  }
+  const lb = latestByTier(runs);
+  const first = lb.t1 ?? lb.t2 ?? lb.t3;
+  const last = lb.t3 ?? lb.t2 ?? lb.t1;
+  const H = 3_600_000;
+  const usable = first && last && first.runAt && last.runAt
+    ? {
+      fromTier: (['t1', 't2', 't3'] as TierId[]).find((t) => lb[t] === first) ?? null,
+      toTier: (['t1', 't2', 't3'] as TierId[]).find((t) => lb[t] === last) ?? null,
+      usableToMs: Date.parse(last.runAt) + TIERS[TIERS.length - 1].toH * H,
+      usableToH: TIERS[TIERS.length - 1].toH - Math.round((Date.parse(first.runAt) - Date.parse(last.runAt)) / H),
+    }
+    : null;
+  return {
+    gaps,
+    usableToH: usable?.usableToH ?? null,
+    usableToMs: usable?.usableToMs ?? null,
+    usableToNote: usable
+      ? `Stunden ab dem ${usable.fromTier}-Lauf (${first!.runAt}), an denen die letzte Stufe (${usable.toTier}, Lauf ${last!.runAt}) noch traegt: `
+        + `${TIERS[TIERS.length - 1].toH} h ab ihrem Lauf. Die Naht ist beweglich (V-PD-55).`
+      : 'kein Lauf im Index',
+    note: 'Luecken sind Vorhersagestunden, die KEINE Stufe traegt; ein Leser nennt sie, statt zu interpolieren (E-D-3).',
+  };
+}
+
 export function buildPointIndex(opts: {
   commit: string | null;
   publishedAt: string;
@@ -415,6 +458,10 @@ export function buildPointIndex(opts: {
     // PD-F3a: Aufbewahrung je Stufe und der Zeiger, den ein Client zuerst liest.
     retentionByTier: RETENTION_HOURS_BY_TIER,
     latestByTier: latestByTier(opts.runs),
+    // U-17 (Jan, 2026-09-15): die Achse mit ihren Luecken und dem nutzbaren Ende — gerechnet aus
+    // TIERS und den Laeufen, nicht behauptet. Ein Leser interpoliert damit nicht still ueber 49–50 h
+    // und 121–125 h, und er weiss, dass „336 h" ab dem t3-LAUF zaehlt, der aelter ist als t1.
+    axis: cubeAxis(opts.runs),
     timeless: TIMELESS_PATHS,
     dir: POINT_DIR,
     sources: POINT_SOURCES_PATH,

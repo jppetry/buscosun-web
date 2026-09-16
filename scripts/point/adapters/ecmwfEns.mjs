@@ -51,7 +51,7 @@
  */
 
 import { fetchBytes, fetchRanges, headOk, runIdBack, sampleBytes, M_TO_MM } from './shared.mjs';
-import { memberSpread } from './ensembleStats.mjs';
+import { memberSpread, memberQuantiles } from './ensembleStats.mjs';
 // PD-C5: dasselbe Schrittraster wie der deterministische IFS-Adapter — EINE Regel.
 import { ECMWF_STEPS } from './ecmwf.mjs';
 import { decodeGrib2 } from '../../../src/sources/gribDecode.ts';
@@ -59,7 +59,10 @@ import { decodeGrib2 } from '../../../src/sources/gribDecode.ts';
 const ECMWF = process.env.ECMWF_BASE || 'https://data.ecmwf.int/forecasts';
 
 const MODELS = {
-  ifs_ens: { path: 'ifs/0p25/enfo', suffix: 'enfo-ef', runSlotH: 6, params: { t2m: '2t', precip: 'tp' } },
+  // E-U-8 (Jan, 2026-09-15, Option b): u10/v10 dazu — je Groesse ≈ 0,63 MiB × 50 Member × 4 Schritte
+  // ≈ 126 MiB je t3-Lauf. Boe (`10fg3`) und Bewoelkung (`tcc`) bewusst NICHT: zusammen laegen die
+  // vier Groessen bei +500 MiB je Lauf = +28 % des t3-Zyklus, ueber der Abbruchschwelle des Auftrags.
+  ifs_ens: { path: 'ifs/0p25/enfo', suffix: 'enfo-ef', runSlotH: 6, params: { t2m: '2t', precip: 'tp', u10: '10u', v10: '10v' } },
 };
 
 /** Gerade Zahl 2…50: vollständige Paare. Standard 50 — s. Kopf. */
@@ -73,6 +76,42 @@ export const ECMWF_ENS_MEMBERS = (() => {
 
 /** Jans Vorgabe: 48-Stunden-Raster. */
 export const ECMWF_ENS_STEP_H = Number(process.env.POINT_ENS_STEP_ECMWF || 48);
+
+/**
+ * E-U-8 (b), GEMESSEN am 2026-09-15 aus dem `.index` des Laufs 2026091512 (Summe der Byte-Bereiche
+ * je Parameter und Member — exakt, kein Netz; am kalten `--only=ifs_ens`-Bau mit 863 MiB bestaetigt):
+ * ein Windfeld wiegt je Member 0,79 MiB (2t 0,63 · tp 0,99). u10 + v10 kosten je Rasterstunde
+ * 79 MiB mit 50 Membern und 38 MiB mit 24 — bei fuenf Rasterstunden +395 bzw. +190 MiB je t3-Lauf,
+ * das sind +23 % bzw. +11 % des t3-Zyklus (1 718 MiB). Die erste Zahl dieser Etappe (+530 MiB,
+ * "1,06 MiB je Windfeld") war die Differenz zweier Baeume mit VERSCHIEDENER Stundenzahl: der
+ * Remote-Lauf gibt 144 h an ICON-EPS global und IFS-ENS traegt dort vier Rasterstunden, der lokale
+ * Bau fuenf — die fuenfte Stunde t2m + tp (≈ 134 MiB) wurde dem Wind zugeschlagen (Plan §4.6a).
+ *
+ * Jans Entscheidung (2026-09-15, auf Basis der ersten Zahl): das 48-h-Raster BLEIBT (vier
+ * Stuetzstellen statt zwei), gespart wird an der MEMBERZAHL fuer Wind — `ECMWF_ENS_WIND_MEMBERS`
+ * (Standard 24 statt 50). Wind ist stetig und nahezu normalverteilt; am echten Lauf weicht σ aus
+ * 24 Membern im Median um 8,0 % ab (p90 20,5 %, unverzerrt — Plan §4.6a), ein konstanter Faktor
+ * geht ohnehin in c(p,f) auf. Niederschlag behaelt die 50 (dort 39,9 %), Temperatur ebenso.
+ * 50 Windmember sind `POINT_ECMWF_WIND_MEMBERS=50` — eine Zeile in point.yml. `ECMWF_ENS_WIND_EVERY`
+ * (Standard 1 = jede Rasterstunde) bleibt als Notschalter fuer ein groeberes Windraster.
+ */
+export const ECMWF_ENS_WIND_MEMBERS = (() => {
+  const n = Number(process.env.POINT_ECMWF_WIND_MEMBERS || 24);
+  if (!Number.isInteger(n) || n < 2 || n > 50 || n % 2 !== 0) {
+    throw new Error(`POINT_ECMWF_WIND_MEMBERS=${process.env.POINT_ECMWF_WIND_MEMBERS}: erlaubt sind gerade Zahlen 2…50`);
+  }
+  return n;
+})();
+export const ECMWF_ENS_WIND_EVERY = Math.max(1, Number(process.env.POINT_ECMWF_WIND_EVERY || 1));
+export const ECMWF_ENS_WIND_VARS = Object.freeze(['u10', 'v10']);
+/** Memberzahl je Groesse: Wind mit der kleineren, alles andere mit der vollen. */
+export function ecmwfEnsMembersFor(varId) {
+  return ECMWF_ENS_WIND_VARS.includes(varId) ? Math.min(ECMWF_ENS_WIND_MEMBERS, ECMWF_ENS_MEMBERS) : ECMWF_ENS_MEMBERS;
+}
+/** Liefert der Adapter Wind an dieser (Quell-)Stunde? Rasterschritt Nr. n = leadH / 48; Wind bei n % EVERY == 0. */
+export function ecmwfEnsWindAt(leadH) {
+  return Math.round(leadH / ECMWF_ENS_STEP_H) % ECMWF_ENS_WIND_EVERY === 0;
+}
 
 const ACCUMULATED = new Set(['precip']);
 
@@ -91,6 +130,11 @@ function unitFactor(varId, f) {
     if (cat === 1 && num === 193) return M_TO_MM.factor;    // ECMWF-lokal: Meter
     if (cat === 1 && (num === 52 || num === 8)) return 1;   // WMO: bereits mm
     throw new Error(`ecmwfEns: unbekannte Niederschlags-Identität cat=${cat} num=${num}`);
+  }
+  if (varId === 'u10' || varId === 'v10') {
+    // WMO Momentum: 10u = cat 2 num 2, 10v = cat 2 num 3 — m/s, kein Faktor, kein Versatz.
+    if (cat === 2 && (num === 2 || num === 3)) return 1;
+    throw new Error(`ecmwfEns: unbekannte Wind-Identität cat=${cat} num=${num}`);
   }
   throw new Error(`ecmwfEns: keine Einheit für ${varId}`);
 }
@@ -133,7 +177,8 @@ export function makeEcmwfEnsembleAdapter(id) {
     const idx = await index(run, step);
     if (!idx) return null;
     const entries = [];
-    for (let n = 1; n <= ECMWF_ENS_MEMBERS; n++) {
+    // Member 1…N in Nummernordnung — fuer Wind die kleinere N (E-U-8, Jans Entscheidung 2026-09-15).
+    for (let n = 1; n <= ecmwfEnsMembersFor(varId); n++) {
       const e = idx.get(`${param}#${n}`);
       if (e) entries.push(e);
     }
@@ -171,6 +216,10 @@ export function makeEcmwfEnsembleAdapter(id) {
     ensembleVars: Object.keys(m.params),
     members: ECMWF_ENS_MEMBERS,
     stepH: ECMWF_ENS_STEP_H,
+    /** Wind (u10/v10): eigenes Raster und eigene Memberzahl — beides steht im Manifest (`sources[]`). */
+    windStepH: ECMWF_ENS_STEP_H * ECMWF_ENS_WIND_EVERY,
+    windVars: ECMWF_ENS_WIND_VARS,
+    windMembers: ecmwfEnsMembersFor('u10'),
     ensembleOnly: true,
     ensembleControlOnly: false,
 
@@ -212,12 +261,18 @@ export function makeEcmwfEnsembleAdapter(id) {
     async ensemble(run, leadH, varId, tier, { dt } = {}) {
       const param = m.params[varId];
       if (!param) return null;
+      // Wind nur im groeberen Raster (E-U-8, gemessen +31 % bei jedem Schritt).
+      if (ECMWF_ENS_WIND_VARS.includes(varId) && !ecmwfEnsWindAt(leadH)) return null;
       const cells = tier.ny * tier.nx;
+      // E-U-9 (2026-09-15): dieselben Member liefern die Quantile q10/q90 mit — null Bytes
+      // zusaetzlich. Sie sind WERTE (Kelvin bei 2t), der Producer addiert den Versatz der
+      // Groesse beim Schreiben (`QUANTILE_VALUE_OFFSET`); σ bleibt versatzfrei.
       if (!ACCUMULATED.has(varId)) {
         const cur = await membersAt(run, leadH, param, varId, tier);
         if (!cur) return null;
         const r = memberSpread(cur.members, null, { cells, factor: cur.factor });
-        return { sd: r.sd, n: r.maxN, members: r.members, clamped: 0 };
+        const q = memberQuantiles(cur.members, null, { cells, factor: cur.factor });
+        return { sd: r.sd, n: r.maxN, members: r.members, clamped: 0, q10: q.q[0.1], q90: q.q[0.9] };
       }
       if (!(dt > 0) || leadH - dt <= 0) return null;
       // Vorschritt ZUERST: fehlt er, gibt es keine Rate, und der Hauptschritt
@@ -227,7 +282,8 @@ export function makeEcmwfEnsembleAdapter(id) {
       const cur = await membersAt(run, leadH, param, varId, tier);
       if (!cur) return null;
       const r = memberSpread(cur.members, prev.members, { cells, dt, factor: cur.factor });
-      return { sd: r.sd, n: r.maxN, members: r.members, clamped: r.clamped };
+      const q = memberQuantiles(cur.members, prev.members, { cells, dt, factor: cur.factor });
+      return { sd: r.sd, n: r.maxN, members: r.members, clamped: r.clamped, q10: q.q[0.1], q90: q.q[0.9] };
     },
 
     async orography() { return null; },
@@ -241,6 +297,9 @@ export function makeEcmwfEnsembleAdapter(id) {
       + `${ECMWF_ENS_STEP_H} h, nur 00z/12z reichen bis 336 h. Traegt NICHTS zum Mittel bei: `
       + 'das Ensemble-Mittel ist derselbe Modellzyklus wie IFS HRES (V-PD-9). Niederschlag je '
       + 'Member entakkumuliert ueber den Stufenschritt; die Member-Nummer im GRIB wird gegen '
-      + 'das .index geprueft.',
+      + 'das .index geprueft. Seit 2026-09-15 auch u10/v10 (E-U-8 b) mit '
+      + `${ecmwfEnsMembersFor('u10')} statt ${ECMWF_ENS_MEMBERS} Membern im ${ECMWF_ENS_STEP_H * ECMWF_ENS_WIND_EVERY}-h-Raster, `
+      + 'weil ein Windfeld je Member 0,79 MiB wiegt (aus dem .index gerechnet: u10+v10 je Rasterstunde 79 MiB mit 50, 38 MiB mit 24 Membern) — und die Quantile '
+      + 'q10/q90 aus denselben Membern (E-U-9), unkalibriert.',
   };
 }

@@ -52,7 +52,7 @@ import {
   fetchBytes, headOk, pad3, runIdBack, buildUnstructuredIndex,
   sampleBytesMany, poolSetIndex, KELVIN_TO_C, PA_TO_HPA, fetchGribField,
 } from './shared.mjs';
-import { memberSpread } from './ensembleStats.mjs';
+import { memberSpread, memberQuantiles } from './ensembleStats.mjs';
 
 const DWD = process.env.DWD_OPENDATA || 'https://opendata.dwd.de/weather/nwp';
 
@@ -250,11 +250,15 @@ export function makeDwdEpsAdapter(id) {
       if (!idx) return null;
       const cells = tier.ny * tier.nx;
       const factor = SD_FACTOR[varId] ?? 1;
+      // E-U-9 (2026-09-15): Quantile q10/q90 aus denselben Membern — Werte in der ROHEINHEIT
+      // mal Faktor (Kelvin bei t_2m); den Versatz addiert der Producer beim Schreiben. Hier
+      // steht kein Versatz — dieselbe Regel wie bei der Streuung.
       if (!EPS_ACCUMULATED.has(varId)) {
         const cur = await membersAt(run, leadH, p, idx, tier);
         if (!cur) return null;
         const r = memberSpread(cur.members, null, { cells, factor });
-        return { sd: r.sd, n: r.maxN, members: r.members, messagesTotal: cur.total, clamped: 0 };
+        const q = memberQuantiles(cur.members, null, { cells, factor });
+        return { sd: r.sd, n: r.maxN, members: r.members, messagesTotal: cur.total, clamped: 0, q10: q.q[0.1], q90: q.q[0.9] };
       }
       // Stunde 0 hat keine Vorstunde — eine Rate „bis zum Laufbeginn" gibt es nicht.
       if (!(dt > 0) || leadH - dt < 0) return null;
@@ -269,7 +273,8 @@ export function makeDwdEpsAdapter(id) {
           + 'wäre geraten (V-PD-25), deshalb keine Rate');
       }
       const r = memberSpread(cur.members, prev.members, { cells, dt, factor });
-      return { sd: r.sd, n: r.maxN, members: r.members, messagesTotal: cur.total, clamped: r.clamped };
+      const q = memberQuantiles(cur.members, prev.members, { cells, dt, factor });
+      return { sd: r.sd, n: r.maxN, members: r.members, messagesTotal: cur.total, clamped: r.clamped, q10: q.q[0.1], q90: q.q[0.9] };
     },
 
     /** EPS-Quellen liefern keine eigene Orographie in den Cube. */
