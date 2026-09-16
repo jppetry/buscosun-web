@@ -43,6 +43,8 @@ import { toTyped } from './point/adapters/geosphere.mjs';
 import { calibrationSelfTest, CALIBRATION_V1 } from '../src/point/calibration.ts';
 import { buildPointIndex, planeManifest, tierManifest, RETENTION_HOURS, MIN_RUNS, TIMELESS_PATHS, isTimeless, runsToKeep, CDN_BASE, validateRunManifest, runsToKeepFor, RETENTION_HOURS_BY_TIER, latestByTier } from '../src/point/manifest.ts';
 import { pruneTier, tiersOf, retainRuns, runsIn } from './point/prune.mjs';
+import { planCdnSync, parseNameStatus, missingManifestPurges, cdnContractViolations, syncCdn, CDN_BUDGET_S_BY_TIER, CDN_BUDGET_S_DEFAULT, JOB_MEASURED_MAX_MIN } from './point/cdnSync.mjs';
+import { warmCdnFiles, WARM_ACCEPT_ENCODING } from './lib/repackManifest.mjs';
 import { verifyCogTiff } from '../src/fire/detail/cogTiff.ts';
 import { adapterFor, INGESTABLE, PENDING, DECLINED, ingestableFor } from './point/adapters/index.mjs';
 import {
@@ -881,6 +883,20 @@ add('der gemessene Widerspruch zu ⚠² ist festgehalten',
       jobs.filter((j) => /build-stations\.mjs/.test(j.body)).map((j) => j.name).join() === 't2' && /continue-on-error: true/.test(jobs[1]?.body ?? ''));
     add('(F3b) jeder Job hat genau EINE Push-Stelle (publish-point.mjs) und leert den Cache je Stufe',
       jobs.every((j) => (j.body.match(/publish-point\.mjs/g) || []).length === 1 && /POINT_CACHE_CLEAR: 'tier'/.test(j.body) && /REPACK_BZIP2: '1'/.test(j.body) && /POINT_PUSH: '1'/.test(j.body)));
+    // ── Regel F (AP12a, E-F-1): der CDN-Abgleich nach dem Push passt in die Luft des Jobs ──────
+    // Budget je Job = POINT_CDN_BUDGET_S im Publish-Schritt; gemessenes Job-Maximum (GitHub-API,
+    // Läufe 56–71, 15./16.09.) + Budget + 1 min Reserve ≤ JOB_MAX_MIN_BY_TIER. Die Vorlage und
+    // `CDN_BUDGET_S_BY_TIER` in cdnSync.mjs nennen dieselben Zahlen; ohne Variable gilt das
+    // kleinste Budget, das in JEDEM Job hält.
+    const ruleF = (tier, budgetS) => JOB_MEASURED_MAX_MIN[tier] + budgetS / 60 + 1 <= JOB_MAX_MIN_BY_TIER[tier];
+    for (const j of jobs) {
+      const b = Number(/POINT_CDN_BUDGET_S: '(\d+)'/.exec(j.body)?.[1] ?? NaN);
+      add(`(F3b) Regel F ${j.name}: gemessen ${JOB_MEASURED_MAX_MIN[j.name]} + CDN-Budget ${b} s + 1 ≤ JOB_MAX_MIN ${JOB_MAX_MIN_BY_TIER[j.name]} min, Vorlage = cdnSync.mjs`,
+        Number.isFinite(b) && ruleF(j.name, b) && b === CDN_BUDGET_S_BY_TIER[j.name],
+        `${(JOB_MEASURED_MAX_MIN[j.name] + b / 60 + 1).toFixed(1)} min`);
+    }
+    add('(F3b) Regel F: das Standard-Budget ohne Variable hält in jedem Job; Negativkontrolle: 400 s in t1 fiele durch (14,2 + 6,7 + 1 > 20)',
+      ['t1', 't2', 't3'].every((t) => ruleF(t, CDN_BUDGET_S_DEFAULT)) && !ruleF('t1', 400), `Standard ${CDN_BUDGET_S_DEFAULT} s`);
     add('(F3b) jeder Job holt QUELLENMATRIX.md und prueft es nach',
       jobs.every((j) => /sparse-checkout set --no-cone scripts src package\.json QUELLENMATRIX\.md/.test(j.body) && /test -f QUELLENMATRIX\.md/.test(j.body)));
     // ── Regel E: der Slot muss die TRAGENDE Quelle der Stufe schon fertig vorfinden ──────
@@ -1047,6 +1063,104 @@ add('der gemessene Widerspruch zu ⚠² ist festgehalten',
     /core\.sparseCheckout/.test(pub) && /STILL verwerfen/.test(pub));
   add('der Publisher prueft nach dem add den Index gegen das Geschriebene',
     /diff', '--cached', '--name-only/.test(pub));
+
+  // ── AP12a (E-F-1, audit/fusion-implementierung.md §9.4): Purge jeder geänderten Datei + Warm-up ──
+  {
+    const viol = cdnContractViolations(pub);
+    add('(AP12a) der Publisher ermittelt die angefassten Dateien aus git diff --name-status und ruft syncCdn NACH dem Landen auf origin/main; POINT_CDN_SYNC=0 ist der alte Weg',
+      viol.length === 0, viol.join(' · '));
+    const noSync = cdnContractViolations(pub.replace(/await syncCdn\(/g, 'await noSync('));
+    add('(AP12a) Negativkontrolle: ein Publisher ohne syncCdn-Aufruf (kein run.json-Purge, kein Warm-up) fällt durch', noSync.some((v) => /ruft syncCdn nicht auf/.test(v)), noSync.join(' · '));
+    const early = cdnContractViolations(`import { syncCdn } from './cdnSync.mjs'; '--name-status'; POINT_CDN_SYNC; await syncCdn({}); pushWithRetry('Manifest'); landed = true;`);
+    add('(AP12a) Negativkontrolle: syncCdn VOR dem Push bzw. vor der Landeprüfung fällt durch', early.some((v) => /Landeprüfung|gelandet/.test(v)) && early.some((v) => /Manifest-Push/.test(v)), early.join(' · '));
+
+    // Plan an der echten Pfadform eines t2-Jobs: Stufe in den t1-Lauf gemergt, Aufbewahrung beschneidet
+    // einen Lauf und löscht einen anderen, hmodel ändert sich in place, Stationsprodukt neu.
+    const ns = parseNameStatus([
+      'A\tpoint/2026091612/t2/00_00.bin', 'A\tpoint/2026091612/t2/00_01.bin', 'M\tpoint/2026091612/run.json',
+      'M\tpoint/2026091603/run.json', 'D\tpoint/2026091521/run.json', 'D\tpoint/2026091521/t1/00_00.bin', 'M\tpoint/index.json',
+      'M\tpoint/static/hmodel/v1/static.json', 'M\tpoint/static/hmodel/v1/t2/00_00.bin',
+      'A\tpoint/stations/2026091615/stations.json', 'A\tpoint/stations/2026091615/00_00.bin', 'M\tpoint/stations/catalog.json',
+      'T\tpoint/sources.json', 'kein Eintrag', 'R100\tpoint/a\tpoint/b',
+    ].join('\n'));
+    add('(AP12a) parseNameStatus: A/M/D übernommen, T ⇒ M, Umbenennungen und Müll ausgelassen', ns.length === 13 && ns.filter((t) => t.status === 'M').length === 7 && ns.filter((t) => t.status === 'D').length === 2, `${ns.length} Einträge`);
+    const C = 'c'.repeat(40);
+    const plan = planCdnSync(ns, { commit: C, base: CDN_BASE });
+    const purgePaths = plan.purge.map((p) => p.path);
+    add('(AP12a) Plan: jede geänderte Datei wird gepurgt — beide run.json ZUERST —, index.json getrennt (Frischeprüfung), neue Dateien nie',
+      purgePaths.slice(0, 2).sort().join() === 'point/2026091603/run.json,point/2026091612/run.json' && purgePaths.length === 5
+      && !purgePaths.includes('point/index.json') && !ns.filter((t) => t.status === 'A').some((t) => purgePaths.includes(t.path))
+      && plan.indexUrl === `${CDN_BASE}@main/point/index.json`, purgePaths.join(' '));
+    add('(AP12a) Plan: gewärmt wird in der Form des Lesers — run.json gepinnt an den Daten-Commit (§9.1), Chunks/Bündel/Katalog/static.json unter @main (V-FI-6)',
+      plan.warm.includes(`${CDN_BASE}@${C}/point/2026091612/run.json`) && plan.warm.includes(`${CDN_BASE}@main/point/2026091612/t2/00_00.bin`)
+      && plan.warm.includes(`${CDN_BASE}@main/point/stations/2026091615/00_00.bin`) && plan.warm.includes(`${CDN_BASE}@main/point/static/hmodel/v1/static.json`)
+      && plan.warm.indexOf(`${CDN_BASE}@${C}/point/2026091612/run.json`) < plan.warm.indexOf(`${CDN_BASE}@main/point/2026091612/t2/00_00.bin`),
+      `${plan.warm.length} URLs`);
+    add('(AP12a) Plan: in place geänderte hmodel-Chunks (V-PD-62, 124 je t1-Job gemessen) werden weder gepurgt noch gewärmt, static.json schon; neue statische Chunks werden gewärmt',
+      !purgePaths.includes('point/static/hmodel/v1/t2/00_00.bin') && !plan.warm.some((u) => u.endsWith('/static/hmodel/v1/t2/00_00.bin'))
+      && purgePaths.includes('point/static/hmodel/v1/static.json') && plan.counts.staticChunksLeft === 1
+      && planCdnSync([{ status: 'A', path: 'point/static/hmodel/v2/t1/00_00.bin' }], { commit: C }).warm.length === 1);
+    add('(AP12a) Plan: gelöschte Läufe werden weder gepurgt noch gewärmt (kein Index nennt sie mehr), index.json nicht gewärmt',
+      plan.deleted.length === 2 && !plan.warm.some((u) => /2026091521|index\.json$/.test(u)) && !purgePaths.some((p) => /2026091521/.test(p)));
+    add('(AP12a) jede geänderte run.json steht im Purge; Negativkontrolle: ein Plan ohne Purges verfehlt genau die zwei',
+      missingManifestPurges(plan, ns).length === 0 && missingManifestPurges({ ...plan, purge: [] }, ns).length === 2);
+
+    // Warm-up: 403 und Fristablauf sind FEHLSCHLÄGE (V-FI-5), mit Wiederholung heilbar, gezählt.
+    const res = (status, hdr = {}) => ({ status, ok: status >= 200 && status < 300, headers: { get: (k) => hdr[k.toLowerCase()] ?? null }, arrayBuffer: async () => new ArrayBuffer(10) });
+    const noSleep = async () => {};
+    const seen = [];
+    const s403 = await warmCdnFiles(['https://x/a', 'https://x/b'], { fetchImpl: async (u, o) => { seen.push(o?.headers?.['accept-encoding']); return res(403); }, sleepImpl: noSleep, retries: 0 });
+    add('(AP12a) Warm-up: 403 zählt als Fehlschlag (forbidden, failed), nie als ok — und der Abruf trägt Chromes Accept-Encoding',
+      s403.ok === 0 && s403.failed === 2 && s403.forbidden === 2 && seen.every((h) => h === WARM_ACCEPT_ENCODING), JSON.stringify(s403));
+    let n = 0;
+    const sHeal = await warmCdnFiles(['https://x/@main/c'], { fetchImpl: async () => (++n === 1 ? res(403) : res(200, { 'x-cache': 'MISS' })), sleepImpl: noSleep, retries: 2 });
+    add('(AP12a) Warm-up: 403 → Wiederholung → 200 ⇒ ok, geheilt 1, wiederholt 1, kein forbidden',
+      sHeal.ok === 1 && sHeal.recovered === 1 && sHeal.retried === 1 && sHeal.forbidden === 0 && sHeal.failed === 0, JSON.stringify(sHeal));
+    const sTo = await warmCdnFiles(['https://x/d'], { timeoutMs: 5, sleepImpl: noSleep, retries: 1,
+      fetchImpl: (u, o) => new Promise((_, rej) => o.signal.addEventListener('abort', () => rej(Object.assign(new Error('aborted'), { name: 'AbortError' })))) });
+    add('(AP12a) Warm-up: Fristablauf zählt als timeout und failed, nach der erlaubten Wiederholung', sTo.timeout === 1 && sTo.failed === 1 && sTo.retried === 1 && sTo.ok === 0, JSON.stringify(sTo));
+    const purges = [];
+    const s404 = await warmCdnFiles(['https://cdn.jsdelivr.net/gh/o/r@main/x.bin'], { fetchImpl: async (u) => { if (/purge\.jsdelivr/.test(u)) purges.push(u); return res(404); }, sleepImpl: noSleep, purgeOn404: false });
+    add('(AP12a) Warm-up im Trockenlauf (purgeOn404: false): eine 404 unter @main löst KEINEN Purge aus', s404.notFound === 1 && purges.length === 0);
+    const sDead = await warmCdnFiles(['https://x/e', 'https://x/f'], { fetchImpl: async () => { throw new Error('darf nicht laufen'); }, deadlineMs: 0 });
+    add('(AP12a) Warm-up: ausgeschöpftes Budget ⇒ nichts mehr begonnen, als ausgelassen gezählt', sDead.skipped === 2 && sDead.ok === 0 && sDead.failed === 0);
+
+    // syncCdn Ende zu Ende gegen ein nachgebautes CDN: Trockenlauf schickt NIE einen Purge; echter Lauf purgt
+    // genau die geänderten Dateien; ist der Index unter @main nicht frisch, wird @main NICHT gewärmt.
+    const cdnFake = (indexCommit) => {
+      const calls = [];
+      const impl = async (u) => {
+        calls.push(u);
+        if (/purge\.jsdelivr\.net/.test(u)) return { ok: true, status: 200, json: async () => ({ status: 'finished' }) };
+        if (/point\/index\.json$/.test(u)) return { ok: true, status: 200, json: async () => ({ commit: indexCommit }), arrayBuffer: async () => new ArrayBuffer(1), headers: { get: () => null } };
+        return res(200, { 'x-cache': 'MISS' });
+      };
+      return { calls, impl };
+    };
+    const quiet = () => {};
+    const dry = cdnFake(C);
+    const rDry = await syncCdn({ touched: ns, commit: C, dryRun: true, fetchImpl: dry.impl, sleepImpl: noSleep, log: quiet, budgetS: 60, repoSha: async () => null });
+    add('(AP12a) syncCdn Trockenlauf: kein einziger Abruf an purge.jsdelivr.net, Index frisch, alles Geplante gewärmt',
+      !dry.calls.some((u) => /purge\.jsdelivr\.net/.test(u)) && rDry.index.fresh && rDry.warm.ok === plan.warm.length, `${dry.calls.length} Abrufe, gewärmt ${rDry.warm?.ok}/${plan.warm.length}`);
+    const wet = cdnFake(C);
+    const rWet = await syncCdn({ touched: ns, commit: C, fetchImpl: wet.impl, sleepImpl: noSleep, log: quiet, budgetS: 60, repoSha: async () => null });
+    const purged = wet.calls.filter((u) => /purge\.jsdelivr\.net/.test(u));
+    add('(AP12a) syncCdn: purgt jede geänderte Datei und den Index (6 + Index + Nachpurges der nicht frischen run.json), nie eine neue oder gelöschte',
+      plan.purge.every((p) => purged.includes(p.url.replace('https://cdn.jsdelivr.net/', 'https://purge.jsdelivr.net/'))) && purged.some((u) => /point\/index\.json$/.test(u))
+      && !purged.some((u) => /t2\/00_01\.bin|2026091521|stations\/2026091615/.test(u)) && rWet.manifests.length === 2, `${purged.length} Purges`);
+    const stale = cdnFake('b'.repeat(40));
+    const rStale = await syncCdn({ touched: ns, commit: C, dryRun: true, fetchImpl: stale.impl, sleepImpl: noSleep, log: quiet, budgetS: 60, repoSha: async () => null, indexWait: { attempts: 2, waitMs: 0, firstWaitMs: 0 } });
+    add('(AP12a) syncCdn: Index unter @main nicht frisch ⇒ nur die gepinnten run.json werden gewärmt, kein @main-Abruf eines neuen Chunks',
+      !rStale.index.fresh && rStale.warm.total === 2 && !stale.calls.some((u) => /@main\/point\/2026091612\/t2\//.test(u)), `gewärmt ${rStale.warm?.total}`);
+    // Ein hängendes CDN darf den Publish-Schritt nicht bis zum Job-Timeout halten (gefunden im lokalen Nachbau:
+    // die Purge- und Prüfabrufe hatten keine Frist).
+    const inits = [];
+    const hang = (u, init) => { inits.push({ u, signal: !!init?.signal }); return new Promise(() => {}); };
+    const t0h = Date.now();
+    const rHang = await syncCdn({ touched: ns, commit: C, fetchImpl: hang, sleepImpl: noSleep, log: quiet, budgetS: 0.05, hardCapExtraMs: 50, repoSha: async () => null });
+    add('(AP12a) syncCdn: hängt jeder Abruf, endet der Schritt an der harten Obergrenze (Budget + Aufschlag) — und jeder Purge-/Prüfabruf trägt eine Frist',
+      rHang.timedOut === true && Date.now() - t0h < 2_000 && inits.length > 0 && inits.every((x) => x.signal), `${Date.now() - t0h} ms, ${inits.length} Abruf(e)`);
+  }
 }
 
 // --- (12) Zählwerte, die im Audit stehen -----------------------------------

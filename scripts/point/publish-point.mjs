@@ -41,6 +41,9 @@ import { CALIBRATION_V1 } from '../../src/point/calibration.ts';
 // sieben Cron-Läufe lang deckte das sparse-Muster `.gitattributes` nicht, und nur
 // dieser Publisher wusste es, erst im Job.
 import { PUBLISH_PATHS, uncoveredPaths } from './sparseCover.mjs';
+// AP12a (E-F-1): nach dem Landen jede geänderte Datei purgen, den Index frisch prüfen, alles
+// Neue wärmen — Plan und Ausführung liegen dort, damit der Verifier sie netzfrei prüfen kann.
+import { syncCdn, parseNameStatus, CDN_BUDGET_S_DEFAULT } from './cdnSync.mjs';
 
 const args = {};
 for (const s of process.argv.slice(2)) {
@@ -304,6 +307,10 @@ if (sparse) {
 
 git('add', '-A', ...addPaths);
 const status = git('status', '--porcelain');
+// Was dieser Job am CDN verändert: jede neue, geänderte und gelöschte Datei unter point/ —
+// aus Git, nicht aus einer Liste im Kopf (gemergte run.json, beschnittene Läufe, statische
+// Produkte, Stationsprodukt). `--no-renames`: eine Umbenennung ist hier D + A.
+let touched = parseNameStatus(git('diff', '--cached', '--name-status', '--no-renames', '--', POINT_DIR));
 if (!status) {
   // ── Nichts NEUES heisst nicht: nichts zu TUN ────────────────────────────────
   // Der uebliche Ablauf ist Probelauf ohne `POINT_PUSH`, Baum ansehen, dann mit
@@ -322,6 +329,7 @@ if (!status) {
     process.exit(0);
   }
   log(`Nichts Neues zu committen, aber ${ahead} Commit(s) liegen vor origin/main ⇒ nur pushen.`);
+  try { touched = parseNameStatus(git('diff', '--name-status', '--no-renames', 'origin/main', 'HEAD', '--', POINT_DIR)); } catch { /* dann nur der Index */ }
 }
 
 const msg = `data(point): ${kept[0] ?? 'leer'}`;
@@ -432,14 +440,35 @@ try {
     + 'sofort heilen geht mit einem erneuten `npm run point:publish -- --repo=… POINT_PUSH=1`.');
 }
 
-// Frische am CDN: den Index purgen und nachprüfen (Muster aus publish-repack.mjs).
-// Nur wenn die Dateien wirklich auf origin/main stehen — einen Index zu purgen, den es
-// dort nicht gibt, hieße die alte Fassung durch eine 404 zu ersetzen.
-if (landed) {
+// Frische am CDN (Muster aus publish-repack.mjs). Nur wenn die Dateien wirklich auf
+// origin/main stehen — einen Index zu purgen, den es dort nicht gibt, hieße die alte Fassung
+// durch eine 404 zu ersetzen.
+//
+// AP12a (E-F-1, audit/fusion-implementierung.md §9.4): bis hierher wurde NUR `index.json`
+// gepurgt, ohne Nachprüfung. `point/<lauf>/run.json` wird aber je Stufe gemergt und beim
+// Aufräumen beschnitten und stand am CDN bis zu 12 h ohne die neue Stufe (V-FI-1); und jeder
+// Chunk eines neuen Laufs war für den ersten Nutzer ein Edge-MISS (TTFB p50 0,64 s, p90 2,6 s,
+// §9.0.1), gelegentlich ein 403 nach Sekunden (V-FI-5). `syncCdn` purgt jede geänderte Datei
+// (run.json zuerst), prüft Index und run.json auf Frische und wärmt alles Neue — nie fatal,
+// im Budget des Jobs (`POINT_CDN_BUDGET_S`). `POINT_CDN_SYNC=0` ist der alte Weg,
+// `POINT_CDN_DRY=1` schickt keinen Purge.
+if (landed && process.env.POINT_CDN_SYNC !== '0') {
+  try {
+    await syncCdn({
+      repo: REPO, touched, commit: sha,
+      dryRun: process.env.POINT_CDN_DRY === '1',
+      budgetS: Number(process.env.POINT_CDN_BUDGET_S) || CDN_BUDGET_S_DEFAULT,
+      base: process.env.POINT_CDN_BASE || undefined,
+      log,
+    });
+  } catch (e) {
+    log(`CDN-Abgleich fehlgeschlagen (${e.message}) — nicht fatal, das CDN holt spätestens nach 12 h nach.`);
+  }
+} else if (landed) {
   const purge = `${CDN_BASE}@main/${POINT_INDEX_PATH}`.replace('https://cdn.jsdelivr.net/', 'https://purge.jsdelivr.net/');
   try {
     const r = await fetch(purge);
-    log(`jsDelivr-Purge: ${r.status}`);
+    log(`jsDelivr-Purge: ${r.status} (POINT_CDN_SYNC=0: nur index.json, ohne Nachprüfung)`);
   } catch (e) {
     log(`Purge fehlgeschlagen (${e.message}) — nicht fatal, das CDN holt spätestens nach 12 h nach.`);
   }

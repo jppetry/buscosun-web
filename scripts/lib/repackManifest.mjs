@@ -191,41 +191,92 @@ export const WARM_ACCEPT_ENCODING = 'gzip, deflate, br, zstd';
  * ist). Nie fatal: ein Fehler ist nur ein nicht gewärmter Eintrag. Gibt eine
  * Zählung zurück (HIT/MISS/Fehler/ms), die der Publisher protokolliert.
  * Ein 404 unter `@main` wird gepurgt, damit jsDelivr die Antwort nicht festhält
- * (§28.9), und einmal wiederholt.
+ * (§28.9), und einmal wiederholt (`purgeOn404: false` lässt das aus — Trockenlauf).
+ *
+ * AP12a (E-F-1, V-FI-5, additiv — ohne die neuen Optionen verhält es sich wie bisher):
+ * jsDelivr antwortet vorübergehend mit **403 nach 1–8 s** statt 200 oder 404, und ein
+ * Abruf kann in die Frist laufen. Beides ist ein NICHT gewärmter Eintrag: gezählt als
+ * `forbidden` bzw. `timeout` (beide Teil von `failed`, nie von `ok`). Mit `retries > 0`
+ * werden 403, Fristablauf, 5xx und Netzfehler mit exponentiellem Abstand wiederholt
+ * (`backoffMs · 2^k`); `recovered` zählt, was danach doch kam, `retried` die
+ * Wiederholungen. `deadlineMs` begrenzt die Wandzeit (Job-Budget): was bis dahin nicht
+ * begonnen wurde, steht in `skipped`, eine Wiederholung über die Frist hinaus entfällt.
  */
-export async function warmCdnFiles(urls, { concurrency = 8, timeoutMs = 25_000, fetchImpl = fetch, log = () => {} } = {}) {
-  const stat = { total: urls.length, ok: 0, hit: 0, miss: 0, notFound: 0, failed: 0, bytes: 0, ms: 0 };
+export async function warmCdnFiles(urls, {
+  concurrency = 8, timeoutMs = 25_000, fetchImpl = fetch, log = () => {},
+  retries = 0, backoffMs = 2_000, deadlineMs = Infinity, purgeOn404 = true, sleepImpl = (ms) => new Promise((r) => setTimeout(r, ms)),
+} = {}) {
+  const stat = { total: urls.length, ok: 0, hit: 0, miss: 0, notFound: 0, failed: 0, bytes: 0, ms: 0, forbidden: 0, timeout: 0, retried: 0, recovered: 0, skipped: 0 };
   const t0 = Date.now();
+  const left = () => (Number.isFinite(deadlineMs) ? deadlineMs - (Date.now() - t0) : Infinity);
   let next = 0;
-  const one = async (url, retry = true) => {
+  // Ein Versuch: 'ok' | '404' | '403' | 'timeout' | 'http' (anderer Status) | 'net' (Netzfehler)
+  const attempt = async (url) => {
     const ctl = new AbortController();
-    const timer = setTimeout(() => ctl.abort(), timeoutMs);
+    let timedOut = false;
+    const timer = setTimeout(() => { timedOut = true; ctl.abort(); }, Math.max(1, Math.min(timeoutMs, left())));
     try {
       const res = await fetchImpl(url, { headers: { 'accept-encoding': WARM_ACCEPT_ENCODING }, signal: ctl.signal });
       const body = await res.arrayBuffer();
-      if (res.status === 404) {
-        stat.notFound++;
-        if (retry && url.includes(`@${URL_REF}/`)) {
-          try { await fetchImpl(purgeUrlOf(url), { signal: ctl.signal }); } catch { /* nur ein Versuch */ }
-          await new Promise((r) => setTimeout(r, 8_000));
-          return one(url, false);
-        }
-        return;
-      }
-      if (!res.ok) { stat.failed++; return; }
-      stat.ok++;
-      stat.bytes += body.byteLength;
+      if (res.status === 404) return { kind: '404' };
+      if (res.status === 403) return { kind: '403' };
+      if (!res.ok) return { kind: 'http', status: res.status };
       const xc = (res.headers.get('x-cache') || '').toUpperCase();
-      if (xc.includes('HIT')) stat.hit++; else stat.miss++;
+      return { kind: 'ok', bytes: body.byteLength, hit: xc.includes('HIT') };
     } catch (e) {
-      stat.failed++;
+      if (timedOut) return { kind: 'timeout' };
       log(`  warm ${url.slice(-48)}: ${e?.name || e}`);
+      return { kind: 'net' };
     } finally {
       clearTimeout(timer);
     }
   };
+  const one = async (url) => {
+    let purged = false;
+    for (let k = 0; ; k++) {
+      const r = await attempt(url);
+      if (r.kind === 'ok') {
+        stat.ok++; stat.bytes += r.bytes;
+        if (r.hit) stat.hit++; else stat.miss++;
+        if (k > 0) stat.recovered++;
+        return;
+      }
+      if (r.kind === '404') {
+        if (!purged && purgeOn404 && url.includes(`@${URL_REF}/`) && left() > 8_000) {
+          purged = true;
+          stat.notFound++;
+          try { await fetchImpl(purgeUrlOf(url), { signal: AbortSignal.timeout(timeoutMs) }); } catch { /* nur ein Versuch */ }
+          await sleepImpl(8_000);
+          const again = await attempt(url);
+          if (again.kind === 'ok') { stat.ok++; stat.bytes += again.bytes; if (again.hit) stat.hit++; else stat.miss++; return; }
+          if (again.kind === '404') { stat.notFound++; return; }
+          stat.failed++;
+          if (again.kind === '403') stat.forbidden++;
+          if (again.kind === 'timeout') stat.timeout++;
+          return;
+        }
+        stat.notFound++;
+        return;
+      }
+      const retryable = r.kind === '403' || r.kind === 'timeout' || r.kind === 'net' || (r.kind === 'http' && r.status >= 500);
+      const wait = backoffMs * 2 ** k;
+      if (retryable && k < retries && left() > wait + 1_000) {
+        stat.retried++;
+        await sleepImpl(wait);
+        continue;
+      }
+      stat.failed++;
+      if (r.kind === '403') stat.forbidden++;
+      if (r.kind === 'timeout') stat.timeout++;
+      return;
+    }
+  };
   await Promise.all(Array.from({ length: Math.min(concurrency, urls.length) }, async () => {
-    while (next < urls.length) await one(urls[next++]);
+    while (next < urls.length) {
+      const url = urls[next++];
+      if (left() <= 0) { stat.skipped++; continue; }
+      await one(url);
+    }
   }));
   stat.ms = Date.now() - t0;
   return stat;
@@ -356,28 +407,51 @@ export async function fetchIndex(opts = {}) {
  * weiterhin, und ein alter Index nennt höchstens einen älteren Lauf, den die
  * Anti-Drift-Regel im Client verwirft).
  */
-export async function purgeIndexUntilFresh({ commit, url = INDEX_CDN_URL, attempts = 3, waitMs = 20_000, firstWaitMs = 8_000, fetchImpl = fetch, log = () => {} } = {}) {
-  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-  let note = '';
-  if (firstWaitMs > 0) await sleep(firstWaitMs);
-  for (let i = 1; i <= attempts; i++) {
-    try {
-      const p = await fetchImpl(purgeUrlOf(url), { cache: 'no-store' });
-      const body = p.ok ? await p.json().catch(() => null) : null;
-      const status = body?.status ?? `HTTP ${p.status}`;
-      const res = await fetchImpl(url, { cache: 'no-store' });
+export async function purgeIndexUntilFresh({ commit, url = INDEX_CDN_URL, ...rest } = {}) {
+  const r = await purgeUntilFresh({
+    url, ...rest,
+    check: async (res) => {
       const idx = res.ok ? await res.json().catch(() => null) : null;
       const got = idx?.commit ?? null;
-      note = `Purge ${i}/${attempts}: ${status} · CDN-Index @ ${got ? got.slice(0, 7) : '—'}`;
+      return { fresh: got === commit, seen: `CDN-Index @ ${got ? got.slice(0, 7) : '—'}` };
+    },
+  });
+  return r.fresh ? r : { ...r, note: `${r.note} — erwartet ${commit.slice(0, 7)}; der Cron-Weg trägt den Abschnitt weiter` };
+}
+
+/**
+ * Die Schleife hinter `purgeIndexUntilFresh`, für JEDE veränderliche Datei (AP12a: auch
+ * `point/<lauf>/run.json`, das je Stufe gemergt und beschnitten wird, V-FI-1): purgen,
+ * lesen, `check(res)` fragen, notfalls warten und wiederholen. `check` liefert
+ * `{ fresh, seen }`. `dryRun` schickt KEINEN Purge (nur das Lesen) — der Purge gegen das
+ * echte CDN ist eine Produktionshandlung. Wirft nie.
+ */
+export async function purgeUntilFresh({ url, check, attempts = 3, waitMs = 20_000, firstWaitMs = 8_000, fetchImpl = fetch, log = () => {}, dryRun = false, timeoutMs = 0, sleepImpl = (ms) => new Promise((r) => setTimeout(r, ms)) } = {}) {
+  let note = '';
+  // `timeoutMs > 0`: Frist je Abruf (AP12a — ein hängendes CDN darf den Publish-Schritt nicht bis
+  // zum Job-Timeout halten). 0 = wie bisher ohne Frist (Kartenlinie unverändert).
+  const init = () => (timeoutMs > 0 ? { cache: 'no-store', signal: AbortSignal.timeout(timeoutMs) } : { cache: 'no-store' });
+  if (firstWaitMs > 0) await sleepImpl(firstWaitMs);
+  for (let i = 1; i <= attempts; i++) {
+    try {
+      let status = 'kein Purge (Trockenlauf)';
+      if (!dryRun) {
+        const p = await fetchImpl(purgeUrlOf(url), init());
+        const body = p.ok ? await p.json().catch(() => null) : null;
+        status = body?.status ?? `HTTP ${p.status}`;
+      }
+      const res = await fetchImpl(url, init());
+      const c = await check(res);
+      note = `Purge ${i}/${attempts}: ${status} · ${c.seen}`;
       log(note);
-      if (got === commit) return { fresh: true, attempts: i, note };
+      if (c.fresh) return { fresh: true, attempts: i, note };
     } catch (e) {
       note = `Purge ${i}/${attempts} fehlgeschlagen: ${e.message}`;
       log(note);
     }
-    if (i < attempts) await sleep(waitMs);
+    if (i < attempts) await sleepImpl(waitMs);
   }
-  return { fresh: false, attempts, note: `${note} — erwartet ${commit.slice(0, 7)}; der Cron-Weg trägt den Abschnitt weiter` };
+  return { fresh: false, attempts, note };
 }
 
 /** Index holen und gleich den Abschnitt für EINEN Lauf ziehen. */

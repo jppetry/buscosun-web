@@ -11,16 +11,25 @@
  * rechnet keine Höhenkorrektur. Alle drei wären Algorithmus (PAP 4/6) und gehören in die
  * nächste Phase. Was er stattdessen tut: die Abweichung **benennen** — Abstand zur
  * Rasterstunde, `hModEff` gegen die echte Höhe, Alter je Herkunft.
+ *
+ * ── AP1 (Phase FI): drei Stücke statt eines ────────────────────────────────
+ * `readCubePoint` ist seit AP1 aus drei reinen Stücken gebaut, die der parallele Leser
+ * (`readPoint.ts`) einzeln benutzt: `cubeAddress` (Index → Zelle, Chunk, Pfad — OHNE
+ * Manifest), `cubeSeriesFrom` (entpackter Chunk → Reihe) und dazwischen Abruf und
+ * Dekodierung, die der Aufrufer selbst anordnet. Damit hängt die Chunk-Adresse nicht
+ * mehr am `run.json` (V-FI-1: der Index trägt Lauf und Manifestpfad je Stufe), und das
+ * Manifest ist nur noch für die Provenienz nötig — es kann parallel zum Chunk kommen.
  */
 
 import {
-  TIER_BY_ID, type TierId, type CubeTier,
+  TIER_BY_ID, type TierId, type CubeTier, type CubeChunk,
   cellOf, cellCenter, chunkOf, chunkPath, decodeCubeChunk, dequantize, planeOffset, MISSING,
-  PRESSURE_LEVELS_HPA, pressurePlaneId,
+  PRESSURE_LEVELS_HPA, pressurePlaneId, CUBE_PLANES, CUBE_SCHEMA, readCubeHeader,
 } from '../cubeFormat';
 import type { PointRunManifest, PointSourceManifest, PointTierManifest } from '../manifest';
 import { POINT_INDEX_PATH } from '../cubeFormat';
 import type { PointStore } from './store';
+import type { ChunkDecoder } from './decodePool';
 
 /**
  * Der Index, wie ihn `buildPointIndex()` schreibt.
@@ -43,8 +52,12 @@ export function distanceKm(aLat: number, aLon: number, bLat: number, bLon: numbe
   return 2 * EARTH_R_KM * Math.asin(Math.min(1, Math.sqrt(h)));
 }
 
+/**
+ * Der Index — im Browser mit `cache: 'no-cache'` (R9: `@main` trägt `max-age=604800`;
+ * ohne Revalidierung zeigt ein Browser bis zu sieben Tage auf gelöschte Läufe).
+ */
 export async function loadPointIndex(store: PointStore): Promise<PointIndex | null> {
-  return store.json<PointIndex>(POINT_INDEX_PATH);
+  return store.json<PointIndex>(POINT_INDEX_PATH, { cache: 'no-cache' });
 }
 
 /**
@@ -155,6 +168,12 @@ export interface CubePointSeries {
   };
   /** Woher das Manifest kam: gepinnt an den Index-Commit, `@main` (Rueckfall, moeglicherweise veraltet) oder vom Aufrufer uebergeben. */
   manifestFrom?: ManifestOrigin | 'caller';
+  /**
+   * AP1: die Werte sind da, die Provenienz nicht — das Manifest war nicht lesbar oder
+   * kennt die Stufe nicht (V-FI-1 am `@main`-Rückfall). Der Chunk selbst ist
+   * unveränderlich und richtig; nur `sources`/`provenance` bleiben leer. Benannt.
+   */
+  provenanceNote?: string;
 }
 
 export interface ReadCubeOptions {
@@ -168,65 +187,86 @@ export interface ReadCubeOptions {
    * geht hier hinaus, damit ein Aufrufer ihn protokollieren kann, statt ihn zu raten.
    */
   onSkip?: (reason: string) => void;
+  /** Dekodierweg (AP1): Worker-Pool im Browser, Hauptthread in Node. Voreinstellung: Hauptthread. */
+  decodeChunk?: ChunkDecoder;
+}
+
+/** Adresse einer Stufe am Punkt — allein aus dem Index, ohne Manifest (AP1). */
+export interface CubeAddress {
+  tierId: TierId;
+  tier: CubeTier;
+  pointer: NonNullable<PointIndex['latestByTier'][TierId]>;
+  cell: { iy: number; ix: number };
+  chunk: { cy: number; cx: number };
+  path: string;
+}
+
+export function cubeAddress(
+  index: PointIndex, tierId: TierId, lat: number, lon: number,
+): { ok: true; addr: CubeAddress } | { ok: false; reason: string } {
+  const pointer = index.latestByTier[tierId];
+  if (!pointer || !pointer.runAt) return { ok: false, reason: `${tierId}: der Index nennt keinen Lauf für diese Stufe` };
+  const tier = TIER_BY_ID[tierId];
+  const cell = cellOf(tier, lat, lon);
+  if (!cell) return { ok: false, reason: `${tierId}: der Punkt liegt außerhalb des Gitters` };
+  const ch = chunkOf(cell.iy, cell.ix);
+  return { ok: true, addr: { tierId, tier, pointer, cell, chunk: ch, path: chunkPath(pointer.run, tier, ch.cy, ch.cx) } };
 }
 
 /**
- * Liest eine Stufe an einem Punkt. `null`, wenn der Punkt außerhalb des Gitters liegt
- * oder der Lauf nicht mehr im Repo steht (Aufbewahrung je Stufe, PD-F3a).
+ * Die Ebenenliste, mit der ein Chunk zu lesen ist, BEVOR das Manifest da ist.
+ *
+ * Der Chunk ist selbstbeschreibend genug für die Frage „ist das das aktuelle Schema mit
+ * seinen 57 Ebenen?" — dann gilt `CUBE_PLANES`, dieselbe Liste, die der Producer ins
+ * Manifest schreibt. Ein fremdes Schema oder eine andere Ebenenzahl braucht das
+ * Manifest (`null`), sonst läse man richtige Bytes unter falschen Namen.
  */
-export async function readCubePoint(
-  store: PointStore,
-  index: PointIndex,
-  tierId: TierId,
-  lat: number,
-  lon: number,
-  opts: ReadCubeOptions = {},
-): Promise<CubePointSeries | null> {
-  const skip = (reason: string) => { opts.onSkip?.(`${tierId}: ${reason}`); return null; };
-  const pointer = index.latestByTier[tierId];
-  if (!pointer || !pointer.runAt) return skip('der Index nennt keinen Lauf für diese Stufe');
-  const tier: CubeTier = TIER_BY_ID[tierId];
+export function planesForChunkHeader(bytes: Uint8Array): PointRunManifest['planes'] | null {
+  const { header } = readCubeHeader(bytes, { allowOtherSchema: true });
+  if (header.schema !== CUBE_SCHEMA || header.nvar !== CUBE_PLANES.length) return null;
+  return CUBE_PLANES.map((pl) => ({ id: pl.id, unit: pl.unit, scale: pl.scale, offset: pl.offset, group: pl.group }));
+}
 
-  const cell = cellOf(tier, lat, lon);
-  if (!cell) return skip('der Punkt liegt außerhalb des Gitters');
-  const ch = chunkOf(cell.iy, cell.ix);
-
-  let man = opts.manifest ?? null;
-  let manifestFrom: ManifestOrigin = 'pinned';
-  if (!man) {
-    const loaded = await loadRunManifestFrom(store, pointer.manifest, index);
-    man = loaded.manifest;
-    manifestFrom = loaded.from;
-  }
-  if (!man) return skip(`Manifest ${pointer.manifest} nicht lesbar`);
-  const tm = man.tiers.find((t) => t.id === tierId);
-  if (!tm) {
-    return skip(`Manifest ${pointer.manifest} (${manifestFrom === 'main' ? '@main, möglicherweise veraltet — V-FI-1' : manifestFrom}) `
-      + `kennt die Stufe nicht (trägt: ${man.tiers.map((t) => t.id).join('+') || '—'})`);
-  }
-
-  const path = chunkPath(pointer.run, tier, ch.cy, ch.cx);
-  const bytes = await store.bytes(path);
-  if (!bytes) return skip(`Chunk ${path} nicht im Repo (Aufbewahrung?)`);
-
-  const chunk = await decodeCubeChunk(bytes, { planes: man.planes, wanted: opts.wanted });
+/** Entpackter Chunk + Adresse + (optional) Manifest → die Reihe. Rein. */
+export function cubeSeriesFrom(
+  chunk: CubeChunk,
+  addr: CubeAddress,
+  planes: PointRunManifest['planes'],
+  ctx: {
+    bytes: number;
+    manifest: PointRunManifest | null;
+    manifestFrom: ManifestOrigin | 'caller';
+    wanted?: readonly string[];
+    lat: number;
+    lon: number;
+  },
+): CubePointSeries {
+  const { tier, tierId, pointer, cell, path } = addr;
+  const tm = ctx.manifest?.tiers.find((t) => t.id === tierId) ?? null;
   const ry = cell.iy - chunk.y0;
   const rx = cell.ix - chunk.x0;
   if (ry < 0 || rx < 0 || ry >= chunk.ny || rx >= chunk.nx) {
     throw new Error(`cubePoint: Zelle ${cell.iy}/${cell.ix} liegt nicht in ${path} — Chunk-Raster verletzt`);
   }
+  if (planes.length !== chunk.planes.length) {
+    throw new Error(`cubePoint: ${path} hat ${chunk.planes.length} Ebenen, die Liste nennt ${planes.length}`);
+  }
+  const leadHours = tm?.leadHours ?? tier.leadHours;
+  if (leadHours.length !== chunk.nt) {
+    throw new Error(`cubePoint: ${path} trägt ${chunk.nt} Schritte, die Achse nennt ${leadHours.length}`);
+  }
 
-  const runAtMs = Date.parse(pointer.runAt);
+  const runAtMs = Date.parse(pointer.runAt as string);
   const centre = cellCenter(tier, cell.iy, cell.ix);
-  const want = opts.wanted ? new Set(opts.wanted) : null;
+  const want = ctx.wanted ? new Set(ctx.wanted) : null;
 
   const steps: CubePointStep[] = [];
   const filled = new Set<string>();
   for (let it = 0; it < chunk.nt; it++) {
-    const leadH = tm.leadHours[it];
+    const leadH = leadHours[it];
     const values: Record<string, number | null> = {};
-    for (let pi = 0; pi < man.planes.length; pi++) {
-      const plane = man.planes[pi];
+    for (let pi = 0; pi < planes.length; pi++) {
+      const plane = planes[pi];
       if (want && !want.has(plane.id)) continue;
       const raw = chunk.planes[pi];
       // `decodeCubeChunk` gibt für nicht angeforderte Ebenen ein leeres Array zurück.
@@ -250,30 +290,83 @@ export async function readCubePoint(
   }
 
   const hMod = steps.find((s) => s.values.hModEff != null)?.values.hModEff ?? null;
-  const considered = man.planes.filter((p) => !want || want.has(p.id)).map((p) => p.id);
+  const considered = planes.filter((p) => !want || want.has(p.id)).map((p) => p.id);
+
+  let provenanceNote: string | undefined;
+  if (!ctx.manifest) provenanceNote = `Manifest ${pointer.manifest} nicht lesbar — Werte aus dem Chunk, Quellen und Provenienz unbekannt`;
+  else if (!tm) {
+    provenanceNote = `Manifest ${pointer.manifest} (${ctx.manifestFrom === 'main' ? '@main, möglicherweise veraltet — V-FI-1' : ctx.manifestFrom}) `
+      + `kennt die Stufe nicht (trägt: ${ctx.manifest.tiers.map((t) => t.id).join('+') || '—'}) — Werte aus dem Chunk, Quellen unbekannt`;
+  }
 
   return {
     product: 'cube',
     tier: tierId,
     run: pointer.run,
     runAtMs,
-    sourceRun: tm.run,
-    sourceRunAtMs: Date.parse(tm.runAt),
-    chunk: { path, bytes: bytes.length, cy: ch.cy, cx: ch.cx },
+    sourceRun: tm?.run ?? pointer.sourceRun ?? pointer.run,
+    sourceRunAtMs: Date.parse((tm?.runAt ?? pointer.sourceRunAt ?? pointer.runAt) as string),
+    chunk: { path, bytes: ctx.bytes, cy: addr.chunk.cy, cx: addr.chunk.cx },
     cell: {
       iy: cell.iy, ix: cell.ix, lat: centre.lat, lon: centre.lon,
-      offsetKm: distanceKm(lat, lon, centre.lat, centre.lon),
+      offsetKm: distanceKm(ctx.lat, ctx.lon, centre.lat, centre.lon),
       degrees: tier.deg,
     },
     hModEffM: hMod,
     steps,
-    planes: man.planes,
+    planes,
     filledPlanes: considered.filter((id) => filled.has(id)),
     emptyPlanes: considered.filter((id) => !filled.has(id)),
-    sources: man.sources.filter((s) => s.tier === tierId),
-    provenance: { quantiles: tm.quantiles, ensemble: tm.ensemble, profile: tm.profile },
-    manifestFrom: opts.manifest ? 'caller' : manifestFrom,
+    sources: (ctx.manifest?.sources ?? []).filter((s) => s.tier === tierId),
+    provenance: { quantiles: tm?.quantiles ?? null, ensemble: tm?.ensemble ?? null, profile: tm?.profile ?? null },
+    manifestFrom: ctx.manifestFrom,
+    ...(provenanceNote ? { provenanceNote } : {}),
   };
+}
+
+/**
+ * Liest eine Stufe an einem Punkt — seriell: Manifest, dann Chunk. `null`, wenn der
+ * Punkt außerhalb des Gitters liegt, der Lauf nicht mehr im Repo steht (Aufbewahrung je
+ * Stufe, PD-F3a) oder das Manifest die Stufe nicht kennt. Der parallele Weg für den
+ * Browser ist `readPointBundle` (`readPoint.ts`); dieser hier bleibt der Referenzweg
+ * für Sammler und Verifier.
+ */
+export async function readCubePoint(
+  store: PointStore,
+  index: PointIndex,
+  tierId: TierId,
+  lat: number,
+  lon: number,
+  opts: ReadCubeOptions = {},
+): Promise<CubePointSeries | null> {
+  const skip = (reason: string) => { opts.onSkip?.(reason); return null; };
+  const a = cubeAddress(index, tierId, lat, lon);
+  if (!a.ok) return skip(a.reason);
+  const { addr } = a;
+  const pointer = addr.pointer;
+
+  let man = opts.manifest ?? null;
+  let manifestFrom: ManifestOrigin | 'caller' = opts.manifest ? 'caller' : 'pinned';
+  if (!man) {
+    const loaded = await loadRunManifestFrom(store, pointer.manifest, index);
+    man = loaded.manifest;
+    manifestFrom = loaded.from;
+  }
+  if (!man) return skip(`${tierId}: Manifest ${pointer.manifest} nicht lesbar`);
+  const tm = man.tiers.find((t) => t.id === tierId);
+  if (!tm) {
+    return skip(`${tierId}: Manifest ${pointer.manifest} (${manifestFrom === 'main' ? '@main, möglicherweise veraltet — V-FI-1' : manifestFrom}) `
+      + `kennt die Stufe nicht (trägt: ${man.tiers.map((t) => t.id).join('+') || '—'})`);
+  }
+
+  const bytes = await store.bytes(addr.path);
+  if (!bytes) return skip(`${tierId}: Chunk ${addr.path} nicht im Repo (Aufbewahrung?)`);
+
+  const decode: ChunkDecoder = opts.decodeChunk ?? ((b, o) => decodeCubeChunk(b, { planes: o.planes, wanted: o.wanted }));
+  const chunk = await decode(bytes, { planes: man.planes, wanted: opts.wanted });
+  return cubeSeriesFrom(chunk, addr, man.planes, {
+    bytes: bytes.length, manifest: man, manifestFrom, wanted: opts.wanted, lat, lon,
+  });
 }
 
 /**

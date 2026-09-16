@@ -1,0 +1,8110 @@
+{
+ "schema": 2,
+ "startedAt": "2026-09-16T14:42:16.240Z",
+ "finishedAt": "2026-09-16T14:44:24.848Z",
+ "host": {
+  "platform": "win32",
+  "node": "v22.17.0",
+  "chrome": "C:\\Users\\User\\AppData\\Local\\ms-playwright\\chromium_headless_shell-1223\\chrome-headless-shell-win64\\chrome-headless-shell.exe"
+ },
+ "args": {
+  "profileIds": [
+   "desktop-none",
+   "mobile-4g"
+  ],
+  "placeIds": [
+   "hamburg",
+   "berlin",
+   "muenchen",
+   "wien",
+   "graz",
+   "innsbruck",
+   "zuerich",
+   "genf",
+   "zermatt",
+   "zugspitze"
+  ],
+  "only": [
+   "terrain"
+  ],
+  "repeats": 1
+ },
+ "chunkEdgePlaces": [
+  "graz"
+ ],
+ "summary": [
+  {
+   "profile": "desktop-none",
+   "scenario": "dem-live-z9",
+   "n": 10,
+   "p50": 715.3000000119209,
+   "p95": 1607.199999988079,
+   "max": 1607.199999988079,
+   "coreP50": null,
+   "coreP95": null,
+   "readP50": null,
+   "readP95": null,
+   "firstP50": null,
+   "firstP95": null
+  },
+  {
+   "profile": "desktop-none",
+   "scenario": "terrain-z8",
+   "n": 10,
+   "p50": 624.8000000119209,
+   "p95": 1013.9000000357628,
+   "max": 1013.9000000357628,
+   "coreP50": null,
+   "coreP95": null,
+   "readP50": null,
+   "readP95": null,
+   "firstP50": null,
+   "firstP95": null
+  },
+  {
+   "profile": "desktop-none",
+   "scenario": "terrain-z9",
+   "n": 10,
+   "p50": 623.1000000238419,
+   "p95": 941.3000000119209,
+   "max": 941.3000000119209,
+   "coreP50": null,
+   "coreP95": null,
+   "readP50": null,
+   "readP95": null,
+   "firstP50": null,
+   "firstP95": null
+  },
+  {
+   "profile": "desktop-none",
+   "scenario": "terrain-z11",
+   "n": 10,
+   "p50": 250.30000001192093,
+   "p95": 702.9000000357628,
+   "max": 702.9000000357628,
+   "coreP50": null,
+   "coreP95": null,
+   "readP50": null,
+   "readP95": null,
+   "firstP50": null,
+   "firstP95": null
+  },
+  {
+   "profile": "desktop-none",
+   "scenario": "terrain-2scale",
+   "n": 10,
+   "p50": 719.7000000476837,
+   "p95": 1614.8999999761581,
+   "max": 1614.8999999761581,
+   "coreP50": null,
+   "coreP95": null,
+   "readP50": null,
+   "readP95": null,
+   "firstP50": null,
+   "firstP95": null
+  },
+  {
+   "profile": "mobile-4g",
+   "scenario": "dem-live-z9",
+   "n": 10,
+   "p50": 861.1999999880791,
+   "p95": 1654.9000000357628,
+   "max": 1654.9000000357628,
+   "coreP50": null,
+   "coreP95": null,
+   "readP50": null,
+   "readP95": null,
+   "firstP50": null,
+   "firstP95": null
+  },
+  {
+   "profile": "mobile-4g",
+   "scenario": "terrain-z8",
+   "n": 10,
+   "p50": 686.5,
+   "p95": 1293.5,
+   "max": 1293.5,
+   "coreP50": null,
+   "coreP95": null,
+   "readP50": null,
+   "readP95": null,
+   "firstP50": null,
+   "firstP95": null
+  },
+  {
+   "profile": "mobile-4g",
+   "scenario": "terrain-z9",
+   "n": 10,
+   "p50": 751.8000000119209,
+   "p95": 1072.5,
+   "max": 1072.5,
+   "coreP50": null,
+   "coreP95": null,
+   "readP50": null,
+   "readP95": null,
+   "firstP50": null,
+   "firstP95": null
+  },
+  {
+   "profile": "mobile-4g",
+   "scenario": "terrain-z11",
+   "n": 10,
+   "p50": 610.3000000119209,
+   "p95": 738.1000000238419,
+   "max": 738.1000000238419,
+   "coreP50": null,
+   "coreP95": null,
+   "readP50": null,
+   "readP95": null,
+   "firstP50": null,
+   "firstP95": null
+  },
+  {
+   "profile": "mobile-4g",
+   "scenario": "terrain-2scale",
+   "n": 10,
+   "p50": 921.1999999880791,
+   "p95": 1141.6000000238419,
+   "max": 1141.6000000238419,
+   "coreP50": null,
+   "coreP95": null,
+   "readP50": null,
+   "readP95": null,
+   "firstP50": null,
+   "firstP95": null
+  }
+ ],
+ "gate": null,
+ "runs": [
+  {
+   "profile": "desktop-none",
+   "place": "hamburg",
+   "lat": 53.5511,
+   "lon": 9.9937,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "dem-live-z9",
+   "rep": 0,
+   "wallMs": 690,
+   "totalMs": 688,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "total": 688,
+    "elevation": 12
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 431950,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/270/164.png",
+     "bytes": 110922,
+     "ttfbMs": 382,
+     "ms": 610,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/269/164.png",
+      "bytes": 104958,
+      "ttfbMs": 390,
+      "ms": 681,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/269/165.png",
+      "bytes": 105467,
+      "ttfbMs": 399,
+      "ms": 625,
+      "startMs": 2,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/270/164.png",
+      "bytes": 110922,
+      "ttfbMs": 382,
+      "ms": 610,
+      "startMs": 3,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/270/165.png",
+      "bytes": 110603,
+      "ttfbMs": 387,
+      "ms": 613,
+      "startMs": 3,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "hamburg",
+   "lat": 53.5511,
+   "lon": 9.9937,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "terrain-z8",
+   "rep": 0,
+   "wallMs": 716,
+   "totalMs": 713.7999999523163,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 8,
+    "radiusM": 20000,
+    "tiles": 2,
+    "bytes": 107715,
+    "total": 713.7999999523163,
+    "decodeMs": 4.800000011920929,
+    "failed": 0
+   },
+   "net": {
+    "requests": 2,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 109377,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/8/134/82.png",
+     "bytes": 54768,
+     "ttfbMs": 370,
+     "ms": 710,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 2
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/134/82.png",
+      "bytes": 54768,
+      "ttfbMs": 370,
+      "ms": 710,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/135/82.png",
+      "bytes": 54609,
+      "ttfbMs": 366,
+      "ms": 481,
+      "startMs": 2,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "hamburg",
+   "lat": 53.5511,
+   "lon": 9.9937,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "terrain-z9",
+   "rep": 0,
+   "wallMs": 844,
+   "totalMs": 842.5,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 9,
+    "radiusM": 20000,
+    "tiles": 2,
+    "bytes": 214430,
+    "total": 842.5,
+    "decodeMs": 6.800000011920929,
+    "failed": 0
+   },
+   "net": {
+    "requests": 2,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 216070,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/270/165.png",
+     "bytes": 110603,
+     "ttfbMs": 164,
+     "ms": 836,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 2
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/269/165.png",
+      "bytes": 105467,
+      "ttfbMs": 142,
+      "ms": 256,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/270/165.png",
+      "bytes": 110603,
+      "ttfbMs": 164,
+      "ms": 836,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "hamburg",
+   "lat": 53.5511,
+   "lon": 9.9937,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "terrain-z11",
+   "rep": 0,
+   "wallMs": 624,
+   "totalMs": 621.8000000119209,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 11,
+    "radiusM": 2000,
+    "tiles": 4,
+    "bytes": 393951,
+    "total": 621.8000000119209,
+    "decodeMs": 15.20000010728836,
+    "failed": 0
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 397042,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/11/1080/662.png",
+     "bytes": 102444,
+     "ttfbMs": 389,
+     "ms": 616,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1080/661.png",
+      "bytes": 99075,
+      "ttfbMs": 142,
+      "ms": 591,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1081/661.png",
+      "bytes": 99083,
+      "ttfbMs": 145,
+      "ms": 153,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1080/662.png",
+      "bytes": 102444,
+      "ttfbMs": 389,
+      "ms": 616,
+      "startMs": 1,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1081/662.png",
+      "bytes": 96440,
+      "ttfbMs": 285,
+      "ms": 294,
+      "startMs": 1,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "hamburg",
+   "lat": 53.5511,
+   "lon": 9.9937,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "terrain-2scale",
+   "rep": 0,
+   "wallMs": 674,
+   "totalMs": 672.6000000238419,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "total": 672.6000000238419,
+    "scales": {
+     "near": {
+      "z": 11,
+      "radiusM": 2500
+     },
+     "far": {
+      "z": 8,
+      "radiusM": 20500
+     }
+    },
+    "elevationM": 12.1,
+    "tpi500M": -0.4,
+    "tpi2000M": 2.5,
+    "svf": 1,
+    "slopeDeg": 1.4,
+    "horizonDeg": [
+     0.2,
+     0.34,
+     1.72,
+     1.63,
+     0.78,
+     0.52,
+     0.64,
+     0.63
+    ],
+    "tiles": {
+     "near": 4,
+     "far": 2,
+     "failed": 0,
+     "bytes": 501666,
+     "fromCache": 0
+    },
+    "timing": {
+     "totalMs": 672,
+     "fetchMs": 3622,
+     "decodeMs": 19,
+     "computeMs": 1
+    }
+   },
+   "net": {
+    "requests": 6,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 506539,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/11/1080/662.png",
+     "bytes": 102464,
+     "ttfbMs": 404,
+     "ms": 666,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 6
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1080/661.png",
+      "bytes": 99095,
+      "ttfbMs": 368,
+      "ms": 587,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1081/661.png",
+      "bytes": 99103,
+      "ttfbMs": 374,
+      "ms": 599,
+      "startMs": 1,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1080/662.png",
+      "bytes": 102464,
+      "ttfbMs": 404,
+      "ms": 666,
+      "startMs": 1,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1081/662.png",
+      "bytes": 96460,
+      "ttfbMs": 377,
+      "ms": 663,
+      "startMs": 1,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/134/82.png",
+      "bytes": 54788,
+      "ttfbMs": 392,
+      "ms": 502,
+      "startMs": 2,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/135/82.png",
+      "bytes": 54629,
+      "ttfbMs": 379,
+      "ms": 599,
+      "startMs": 2,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "berlin",
+   "lat": 52.52,
+   "lon": 13.405,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "dem-live-z9",
+   "rep": 0,
+   "wallMs": 600,
+   "totalMs": 598.3999999761581,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "total": 598.3999999761581,
+    "elevation": 40
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 444469,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/275/167.png",
+     "bytes": 113345,
+     "ttfbMs": 357,
+     "ms": 574,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/274/167.png",
+      "bytes": 105962,
+      "ttfbMs": 358,
+      "ms": 580,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/274/168.png",
+      "bytes": 111948,
+      "ttfbMs": 374,
+      "ms": 594,
+      "startMs": 1,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/275/167.png",
+      "bytes": 113345,
+      "ttfbMs": 357,
+      "ms": 574,
+      "startMs": 1,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/275/168.png",
+      "bytes": 113214,
+      "ttfbMs": 366,
+      "ms": 584,
+      "startMs": 1,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "berlin",
+   "lat": 52.52,
+   "lon": 13.405,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "terrain-z8",
+   "rep": 0,
+   "wallMs": 476,
+   "totalMs": 473.7000000476837,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 8,
+    "radiusM": 20000,
+    "tiles": 2,
+    "bytes": 97254,
+    "total": 473.7000000476837,
+    "decodeMs": 7,
+    "failed": 0
+   },
+   "net": {
+    "requests": 2,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 98967,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/8/137/83.png",
+     "bytes": 50191,
+     "ttfbMs": 359,
+     "ms": 471,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 2
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/137/83.png",
+      "bytes": 50191,
+      "ttfbMs": 359,
+      "ms": 471,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/137/84.png",
+      "bytes": 48776,
+      "ttfbMs": 351,
+      "ms": 462,
+      "startMs": 1,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "berlin",
+   "lat": 52.52,
+   "lon": 13.405,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "terrain-z9",
+   "rep": 0,
+   "wallMs": 603,
+   "totalMs": 600.5999999642372,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 9,
+    "radiusM": 20000,
+    "tiles": 4,
+    "bytes": 441513,
+    "total": 600.5999999642372,
+    "decodeMs": 18.200000047683716,
+    "failed": 0
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 444469,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/275/167.png",
+     "bytes": 113345,
+     "ttfbMs": 138,
+     "ms": 251,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/274/167.png",
+      "bytes": 105962,
+      "ttfbMs": 139,
+      "ms": 253,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/275/167.png",
+      "bytes": 113345,
+      "ttfbMs": 138,
+      "ms": 251,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/274/168.png",
+      "bytes": 111948,
+      "ttfbMs": 358,
+      "ms": 578,
+      "startMs": 1,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/275/168.png",
+      "bytes": 113214,
+      "ttfbMs": 374,
+      "ms": 594,
+      "startMs": 1,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "berlin",
+   "lat": 52.52,
+   "lon": 13.405,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "terrain-z11",
+   "rep": 0,
+   "wallMs": 141,
+   "totalMs": 139.19999998807907,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 11,
+    "radiusM": 2000,
+    "tiles": 1,
+    "bytes": 100292,
+    "total": 139.19999998807907,
+    "decodeMs": 3.699999988079071,
+    "failed": 0
+   },
+   "net": {
+    "requests": 1,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 101022,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/11/1100/671.png",
+     "bytes": 101022,
+     "ttfbMs": 125,
+     "ms": 134,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 1
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1100/671.png",
+      "bytes": 101022,
+      "ttfbMs": 125,
+      "ms": 134,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "berlin",
+   "lat": 52.52,
+   "lon": 13.405,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "terrain-2scale",
+   "rep": 0,
+   "wallMs": 705,
+   "totalMs": 703.3000000119209,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "total": 703.3000000119209,
+    "scales": {
+     "near": {
+      "z": 11,
+      "radiusM": 2500
+     },
+     "far": {
+      "z": 8,
+      "radiusM": 20500
+     }
+    },
+    "elevationM": 44,
+    "tpi500M": 3.8,
+    "tpi2000M": 3.7,
+    "svf": 0.999,
+    "slopeDeg": 3.3,
+    "horizonDeg": [
+     3.32,
+     2.41,
+     0.08,
+     0,
+     0.05,
+     0.1,
+     0.11,
+     1.5
+    ],
+    "tiles": {
+     "near": 1,
+     "far": 2,
+     "failed": 0,
+     "bytes": 197546,
+     "fromCache": 0
+    },
+    "timing": {
+     "totalMs": 703,
+     "fetchMs": 1873,
+     "decodeMs": 8,
+     "computeMs": 2
+    }
+   },
+   "net": {
+    "requests": 3,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 199989,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/11/1100/671.png",
+     "bytes": 101022,
+     "ttfbMs": 361,
+     "ms": 695,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 3
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1100/671.png",
+      "bytes": 101022,
+      "ttfbMs": 361,
+      "ms": 695,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/137/83.png",
+      "bytes": 50191,
+      "ttfbMs": 365,
+      "ms": 585,
+      "startMs": 2,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/137/84.png",
+      "bytes": 48776,
+      "ttfbMs": 369,
+      "ms": 588,
+      "startMs": 3,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "muenchen",
+   "lat": 48.1372,
+   "lon": 11.5755,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "dem-live-z9",
+   "rep": 0,
+   "wallMs": 717,
+   "totalMs": 715.3000000119209,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "total": 715.3000000119209,
+    "elevation": 523
+   },
+   "net": {
+    "requests": 2,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 265485,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/272/178.png",
+     "bytes": 142469,
+     "ttfbMs": 383,
+     "ms": 706,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 2
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/272/177.png",
+      "bytes": 123016,
+      "ttfbMs": 362,
+      "ms": 584,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/272/178.png",
+      "bytes": 142469,
+      "ttfbMs": 383,
+      "ms": 706,
+      "startMs": 2,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "muenchen",
+   "lat": 48.1372,
+   "lon": 11.5755,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "terrain-z8",
+   "rep": 0,
+   "wallMs": 606,
+   "totalMs": 603.3999999761581,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 8,
+    "radiusM": 20000,
+    "tiles": 2,
+    "bytes": 159540,
+    "total": 603.3999999761581,
+    "decodeMs": 7.199999988079071,
+    "failed": 0
+   },
+   "net": {
+    "requests": 2,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 161120,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/8/136/89.png",
+     "bytes": 94490,
+     "ttfbMs": 375,
+     "ms": 595,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 2
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/136/88.png",
+      "bytes": 66630,
+      "ttfbMs": 357,
+      "ms": 575,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/136/89.png",
+      "bytes": 94490,
+      "ttfbMs": 375,
+      "ms": 595,
+      "startMs": 2,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "muenchen",
+   "lat": 48.1372,
+   "lon": 11.5755,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "terrain-z9",
+   "rep": 0,
+   "wallMs": 259,
+   "totalMs": 257.30000001192093,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 9,
+    "radiusM": 20000,
+    "tiles": 2,
+    "bytes": 264025,
+    "total": 257.30000001192093,
+    "decodeMs": 10.399999976158142,
+    "failed": 0
+   },
+   "net": {
+    "requests": 2,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 265485,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/272/178.png",
+     "bytes": 142469,
+     "ttfbMs": 128,
+     "ms": 245,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 2
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/272/177.png",
+      "bytes": 123016,
+      "ttfbMs": 130,
+      "ms": 253,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/272/178.png",
+      "bytes": 142469,
+      "ttfbMs": 128,
+      "ms": 245,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "muenchen",
+   "lat": 48.1372,
+   "lon": 11.5755,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "terrain-z11",
+   "rep": 0,
+   "wallMs": 147,
+   "totalMs": 146.19999998807907,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 11,
+    "radiusM": 2000,
+    "tiles": 2,
+    "bytes": 209550,
+    "total": 146.19999998807907,
+    "decodeMs": 5.700000047683716,
+    "failed": 0
+   },
+   "net": {
+    "requests": 2,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 211010,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/11/1089/710.png",
+     "bytes": 107135,
+     "ttfbMs": 126,
+     "ms": 135,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 2
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1089/710.png",
+      "bytes": 107135,
+      "ttfbMs": 126,
+      "ms": 135,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1090/710.png",
+      "bytes": 103875,
+      "ttfbMs": 134,
+      "ms": 143,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "muenchen",
+   "lat": 48.1372,
+   "lon": 11.5755,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "terrain-2scale",
+   "rep": 0,
+   "wallMs": 624,
+   "totalMs": 622.4000000357628,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "total": 622.4000000357628,
+    "scales": {
+     "near": {
+      "z": 11,
+      "radiusM": 2500
+     },
+     "far": {
+      "z": 8,
+      "radiusM": 20500
+     }
+    },
+    "elevationM": 524.8,
+    "tpi500M": 1.7,
+    "tpi2000M": 3,
+    "svf": 1,
+    "slopeDeg": 1.5,
+    "horizonDeg": [
+     0.26,
+     0,
+     0.28,
+     0.35,
+     0.43,
+     0.38,
+     1.11,
+     1.56
+    ],
+    "tiles": {
+     "near": 2,
+     "far": 2,
+     "failed": 0,
+     "bytes": 369090,
+     "fromCache": 0
+    },
+    "timing": {
+     "totalMs": 622,
+     "fetchMs": 2410,
+     "decodeMs": 17,
+     "computeMs": 1
+    }
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 372130,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/11/1089/710.png",
+     "bytes": 107135,
+     "ttfbMs": 367,
+     "ms": 593,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1089/710.png",
+      "bytes": 107135,
+      "ttfbMs": 367,
+      "ms": 593,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1090/710.png",
+      "bytes": 103875,
+      "ttfbMs": 391,
+      "ms": 611,
+      "startMs": 3,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/136/88.png",
+      "bytes": 66630,
+      "ttfbMs": 391,
+      "ms": 610,
+      "startMs": 3,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/136/89.png",
+      "bytes": 94490,
+      "ttfbMs": 364,
+      "ms": 587,
+      "startMs": 3,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "wien",
+   "lat": 48.2082,
+   "lon": 16.3738,
+   "country": "AT",
+   "chunkEdge": false,
+   "scenario": "dem-live-z9",
+   "rep": 0,
+   "wallMs": 604,
+   "totalMs": 601.8000000119209,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "total": 601.8000000119209,
+    "elevation": 187
+   },
+   "net": {
+    "requests": 1,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 123688,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/279/177.png",
+     "bytes": 123688,
+     "ttfbMs": 371,
+     "ms": 594,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 1
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/279/177.png",
+      "bytes": 123688,
+      "ttfbMs": 371,
+      "ms": 594,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "wien",
+   "lat": 48.2082,
+   "lon": 16.3738,
+   "country": "AT",
+   "chunkEdge": false,
+   "scenario": "terrain-z8",
+   "rep": 0,
+   "wallMs": 641,
+   "totalMs": 639.3000000119209,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 8,
+    "radiusM": 20000,
+    "tiles": 1,
+    "bytes": 71449,
+    "total": 639.3000000119209,
+    "decodeMs": 3,
+    "failed": 0
+   },
+   "net": {
+    "requests": 1,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 72257,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/8/139/88.png",
+     "bytes": 72257,
+     "ttfbMs": 415,
+     "ms": 635,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 1
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/139/88.png",
+      "bytes": 72257,
+      "ttfbMs": 415,
+      "ms": 635,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "wien",
+   "lat": 48.2082,
+   "lon": 16.3738,
+   "country": "AT",
+   "chunkEdge": false,
+   "scenario": "terrain-z9",
+   "rep": 0,
+   "wallMs": 704,
+   "totalMs": 701.6999999880791,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 9,
+    "radiusM": 20000,
+    "tiles": 2,
+    "bytes": 260160,
+    "total": 701.6999999880791,
+    "decodeMs": 8.5,
+    "failed": 0
+   },
+   "net": {
+    "requests": 2,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 261620,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/278/177.png",
+     "bytes": 137932,
+     "ttfbMs": 163,
+     "ms": 275,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 2
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/278/177.png",
+      "bytes": 137932,
+      "ttfbMs": 163,
+      "ms": 275,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/279/177.png",
+      "bytes": 123688,
+      "ttfbMs": 368,
+      "ms": 694,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "wien",
+   "lat": 48.2082,
+   "lon": 16.3738,
+   "country": "AT",
+   "chunkEdge": false,
+   "scenario": "terrain-z11",
+   "rep": 0,
+   "wallMs": 314,
+   "totalMs": 312.19999998807907,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 11,
+    "radiusM": 2000,
+    "tiles": 4,
+    "bytes": 463754,
+    "total": 312.19999998807907,
+    "decodeMs": 17.599999964237213,
+    "failed": 0
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 466634,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/11/1116/709.png",
+     "bytes": 131948,
+     "ttfbMs": 131,
+     "ms": 143,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1116/709.png",
+      "bytes": 131948,
+      "ttfbMs": 131,
+      "ms": 143,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1117/709.png",
+      "bytes": 104912,
+      "ttfbMs": 138,
+      "ms": 148,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1116/710.png",
+      "bytes": 124149,
+      "ttfbMs": 269,
+      "ms": 279,
+      "startMs": 1,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1117/710.png",
+      "bytes": 105625,
+      "ttfbMs": 297,
+      "ms": 306,
+      "startMs": 1,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "wien",
+   "lat": 48.2082,
+   "lon": 16.3738,
+   "country": "AT",
+   "chunkEdge": false,
+   "scenario": "terrain-2scale",
+   "rep": 0,
+   "wallMs": 735,
+   "totalMs": 733.9000000357628,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "total": 733.9000000357628,
+    "scales": {
+     "near": {
+      "z": 11,
+      "radiusM": 2500
+     },
+     "far": {
+      "z": 8,
+      "radiusM": 20500
+     }
+    },
+    "elevationM": 172,
+    "tpi500M": 1.2,
+    "tpi2000M": 0.7,
+    "svf": 1,
+    "slopeDeg": 0.2,
+    "horizonDeg": [
+     0.59,
+     0,
+     0.01,
+     0.16,
+     0.85,
+     1.02,
+     0.93,
+     1.58
+    ],
+    "tiles": {
+     "near": 4,
+     "far": 1,
+     "failed": 0,
+     "bytes": 535203,
+     "fromCache": 0
+    },
+    "timing": {
+     "totalMs": 734,
+     "fetchMs": 3277,
+     "decodeMs": 17,
+     "computeMs": 1
+    }
+   },
+   "net": {
+    "requests": 5,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 538791,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/11/1116/709.png",
+     "bytes": 131928,
+     "ttfbMs": 385,
+     "ms": 723,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 5
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1116/709.png",
+      "bytes": 131928,
+      "ttfbMs": 385,
+      "ms": 723,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1117/709.png",
+      "bytes": 104892,
+      "ttfbMs": 399,
+      "ms": 627,
+      "startMs": 1,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1116/710.png",
+      "bytes": 124129,
+      "ttfbMs": 387,
+      "ms": 726,
+      "startMs": 2,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1117/710.png",
+      "bytes": 105605,
+      "ttfbMs": 392,
+      "ms": 689,
+      "startMs": 2,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/139/88.png",
+      "bytes": 72237,
+      "ttfbMs": 388,
+      "ms": 505,
+      "startMs": 2,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "graz",
+   "lat": 47.0707,
+   "lon": 15.4395,
+   "country": "AT",
+   "chunkEdge": true,
+   "scenario": "dem-live-z9",
+   "rep": 0,
+   "wallMs": 724,
+   "totalMs": 722.1999999880791,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "total": 722.1999999880791,
+    "elevation": 364
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 587063,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/277/179.png",
+     "bytes": 154438,
+     "ttfbMs": 395,
+     "ms": 627,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/277/179.png",
+      "bytes": 154438,
+      "ttfbMs": 395,
+      "ms": 627,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/277/180.png",
+      "bytes": 148419,
+      "ttfbMs": 369,
+      "ms": 712,
+      "startMs": 2,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/278/179.png",
+      "bytes": 145887,
+      "ttfbMs": 419,
+      "ms": 650,
+      "startMs": 3,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/278/180.png",
+      "bytes": 138319,
+      "ttfbMs": 371,
+      "ms": 714,
+      "startMs": 3,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "graz",
+   "lat": 47.0707,
+   "lon": 15.4395,
+   "country": "AT",
+   "chunkEdge": true,
+   "scenario": "terrain-z8",
+   "rep": 0,
+   "wallMs": 703,
+   "totalMs": 701,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 8,
+    "radiusM": 20000,
+    "tiles": 4,
+    "bytes": 352778,
+    "total": 701,
+    "decodeMs": 14.900000035762787,
+    "failed": 0
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 355859,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/8/138/89.png",
+     "bytes": 101099,
+     "ttfbMs": 388,
+     "ms": 620,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/138/89.png",
+      "bytes": 101099,
+      "ttfbMs": 388,
+      "ms": 620,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/139/89.png",
+      "bytes": 83193,
+      "ttfbMs": 387,
+      "ms": 611,
+      "startMs": 2,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/138/90.png",
+      "bytes": 95009,
+      "ttfbMs": 381,
+      "ms": 693,
+      "startMs": 2,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/139/90.png",
+      "bytes": 76558,
+      "ttfbMs": 394,
+      "ms": 511,
+      "startMs": 2,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "graz",
+   "lat": 47.0707,
+   "lon": 15.4395,
+   "country": "AT",
+   "chunkEdge": true,
+   "scenario": "terrain-z9",
+   "rep": 0,
+   "wallMs": 291,
+   "totalMs": 289.4000000357628,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 9,
+    "radiusM": 20000,
+    "tiles": 4,
+    "bytes": 584155,
+    "total": 289.4000000357628,
+    "decodeMs": 13.5,
+    "failed": 0
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 587063,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/277/179.png",
+     "bytes": 154438,
+     "ttfbMs": 140,
+     "ms": 256,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/277/179.png",
+      "bytes": 154438,
+      "ttfbMs": 140,
+      "ms": 256,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/278/179.png",
+      "bytes": 145887,
+      "ttfbMs": 168,
+      "ms": 285,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/277/180.png",
+      "bytes": 148419,
+      "ttfbMs": 149,
+      "ms": 263,
+      "startMs": 1,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/278/180.png",
+      "bytes": 138319,
+      "ttfbMs": 132,
+      "ms": 248,
+      "startMs": 1,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "graz",
+   "lat": 47.0707,
+   "lon": 15.4395,
+   "country": "AT",
+   "chunkEdge": true,
+   "scenario": "terrain-z11",
+   "rep": 0,
+   "wallMs": 152,
+   "totalMs": 150.30000001192093,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 11,
+    "radiusM": 2000,
+    "tiles": 1,
+    "bytes": 130269,
+    "total": 150.30000001192093,
+    "decodeMs": 2.600000023841858,
+    "failed": 0
+   },
+   "net": {
+    "requests": 1,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 130969,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/11/1111/719.png",
+     "bytes": 130969,
+     "ttfbMs": 136,
+     "ms": 146,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 1
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1111/719.png",
+      "bytes": 130969,
+      "ttfbMs": 136,
+      "ms": 146,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "graz",
+   "lat": 47.0707,
+   "lon": 15.4395,
+   "country": "AT",
+   "chunkEdge": true,
+   "scenario": "terrain-2scale",
+   "rep": 0,
+   "wallMs": 657,
+   "totalMs": 655.6000000238419,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "total": 655.6000000238419,
+    "scales": {
+     "near": {
+      "z": 11,
+      "radiusM": 2500
+     },
+     "far": {
+      "z": 8,
+      "radiusM": 20500
+     }
+    },
+    "elevationM": 350.3,
+    "tpi500M": -6,
+    "tpi2000M": -10.1,
+    "svf": 0.999,
+    "slopeDeg": 0.1,
+    "horizonDeg": [
+     3.54,
+     2.9,
+     1.7,
+     0.43,
+     0.16,
+     1.04,
+     2.66,
+     1.17
+    ],
+    "tiles": {
+     "near": 2,
+     "far": 4,
+     "failed": 0,
+     "bytes": 617720,
+     "fromCache": 0
+    },
+    "timing": {
+     "totalMs": 655,
+     "fetchMs": 3721,
+     "decodeMs": 23,
+     "computeMs": 2
+    }
+   },
+   "net": {
+    "requests": 6,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 622321,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/11/1112/719.png",
+     "bytes": 135393,
+     "ttfbMs": 406,
+     "ms": 644,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 6
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1111/719.png",
+      "bytes": 130989,
+      "ttfbMs": 398,
+      "ms": 630,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1112/719.png",
+      "bytes": 135393,
+      "ttfbMs": 406,
+      "ms": 644,
+      "startMs": 2,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/138/89.png",
+      "bytes": 101119,
+      "ttfbMs": 401,
+      "ms": 632,
+      "startMs": 3,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/139/89.png",
+      "bytes": 83213,
+      "ttfbMs": 399,
+      "ms": 628,
+      "startMs": 3,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/138/90.png",
+      "bytes": 95029,
+      "ttfbMs": 413,
+      "ms": 639,
+      "startMs": 4,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/139/90.png",
+      "bytes": 76578,
+      "ttfbMs": 412,
+      "ms": 537,
+      "startMs": 4,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "innsbruck",
+   "lat": 47.2692,
+   "lon": 11.4041,
+   "country": "AT",
+   "chunkEdge": false,
+   "scenario": "dem-live-z9",
+   "rep": 0,
+   "wallMs": 626,
+   "totalMs": 623.9000000357628,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "total": 623.9000000357628,
+    "elevation": 577
+   },
+   "net": {
+    "requests": 2,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 317873,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/271/179.png",
+     "bytes": 159206,
+     "ttfbMs": 372,
+     "ms": 607,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 2
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/271/179.png",
+      "bytes": 159206,
+      "ttfbMs": 372,
+      "ms": 607,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/272/179.png",
+      "bytes": 158667,
+      "ttfbMs": 384,
+      "ms": 616,
+      "startMs": 2,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "innsbruck",
+   "lat": 47.2692,
+   "lon": 11.4041,
+   "country": "AT",
+   "chunkEdge": false,
+   "scenario": "terrain-z8",
+   "rep": 0,
+   "wallMs": 624,
+   "totalMs": 621.9000000357628,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 8,
+    "radiusM": 20000,
+    "tiles": 2,
+    "bytes": 183806,
+    "total": 621.9000000357628,
+    "decodeMs": 10.900000035762787,
+    "failed": 0
+   },
+   "net": {
+    "requests": 2,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 185368,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/8/136/89.png",
+     "bytes": 94490,
+     "ttfbMs": 385,
+     "ms": 611,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 2
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/135/89.png",
+      "bytes": 90878,
+      "ttfbMs": 387,
+      "ms": 615,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/136/89.png",
+      "bytes": 94490,
+      "ttfbMs": 385,
+      "ms": 611,
+      "startMs": 1,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "innsbruck",
+   "lat": 47.2692,
+   "lon": 11.4041,
+   "country": "AT",
+   "chunkEdge": false,
+   "scenario": "terrain-z9",
+   "rep": 0,
+   "wallMs": 265,
+   "totalMs": 263.39999997615814,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 9,
+    "radiusM": 20000,
+    "tiles": 2,
+    "bytes": 316413,
+    "total": 263.39999997615814,
+    "decodeMs": 6.799999952316284,
+    "failed": 0
+   },
+   "net": {
+    "requests": 2,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 317873,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/271/179.png",
+     "bytes": 159206,
+     "ttfbMs": 142,
+     "ms": 260,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 2
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/271/179.png",
+      "bytes": 159206,
+      "ttfbMs": 142,
+      "ms": 260,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/272/179.png",
+      "bytes": 158667,
+      "ttfbMs": 133,
+      "ms": 249,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "innsbruck",
+   "lat": 47.2692,
+   "lon": 11.4041,
+   "country": "AT",
+   "chunkEdge": false,
+   "scenario": "terrain-z11",
+   "rep": 0,
+   "wallMs": 626,
+   "totalMs": 623.7000000476837,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 11,
+    "radiusM": 2000,
+    "tiles": 4,
+    "bytes": 570240,
+    "total": 623.7000000476837,
+    "decodeMs": 10.299999952316284,
+    "failed": 0
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 573120,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/11/1088/717.png",
+     "bytes": 148094,
+     "ttfbMs": 133,
+     "ms": 246,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1088/717.png",
+      "bytes": 148094,
+      "ttfbMs": 133,
+      "ms": 246,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1089/717.png",
+      "bytes": 144462,
+      "ttfbMs": 141,
+      "ms": 254,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1088/718.png",
+      "bytes": 138568,
+      "ttfbMs": 373,
+      "ms": 605,
+      "startMs": 1,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1089/718.png",
+      "bytes": 141996,
+      "ttfbMs": 386,
+      "ms": 619,
+      "startMs": 1,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "innsbruck",
+   "lat": 47.2692,
+   "lon": 11.4041,
+   "country": "AT",
+   "chunkEdge": false,
+   "scenario": "terrain-2scale",
+   "rep": 0,
+   "wallMs": 1617,
+   "totalMs": 1614.8999999761581,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "total": 1614.8999999761581,
+    "scales": {
+     "near": {
+      "z": 11,
+      "radiusM": 2500
+     },
+     "far": {
+      "z": 8,
+      "radiusM": 20500
+     }
+    },
+    "elevationM": 575.6,
+    "tpi500M": -0.2,
+    "tpi2000M": -31,
+    "svf": 0.972,
+    "slopeDeg": 0.3,
+    "horizonDeg": [
+     15.64,
+     9.13,
+     2.99,
+     9.76,
+     5.78,
+     7.18,
+     1.91,
+     15.07
+    ],
+    "tiles": {
+     "near": 4,
+     "far": 2,
+     "failed": 0,
+     "bytes": 754046,
+     "fromCache": 0
+    },
+    "timing": {
+     "totalMs": 1614,
+     "fetchMs": 4701,
+     "decodeMs": 25,
+     "computeMs": 2
+    }
+   },
+   "net": {
+    "requests": 6,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 758368,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/11/1088/717.png",
+     "bytes": 148074,
+     "ttfbMs": 391,
+     "ms": 1604,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 6
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1088/717.png",
+      "bytes": 148074,
+      "ttfbMs": 391,
+      "ms": 1604,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1089/717.png",
+      "bytes": 144442,
+      "ttfbMs": 380,
+      "ms": 604,
+      "startMs": 2,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1088/718.png",
+      "bytes": 138548,
+      "ttfbMs": 384,
+      "ms": 612,
+      "startMs": 2,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1089/718.png",
+      "bytes": 141976,
+      "ttfbMs": 384,
+      "ms": 637,
+      "startMs": 3,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/135/89.png",
+      "bytes": 90858,
+      "ttfbMs": 390,
+      "ms": 636,
+      "startMs": 3,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/136/89.png",
+      "bytes": 94470,
+      "ttfbMs": 377,
+      "ms": 597,
+      "startMs": 3,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "zuerich",
+   "lat": 47.3769,
+   "lon": 8.5417,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "dem-live-z9",
+   "rep": 0,
+   "wallMs": 717,
+   "totalMs": 715.6999999880791,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "total": 715.6999999880791,
+    "elevation": 414
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 577194,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/267/178.png",
+     "bytes": 147384,
+     "ttfbMs": 359,
+     "ms": 630,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/267/178.png",
+      "bytes": 147384,
+      "ttfbMs": 359,
+      "ms": 630,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/267/179.png",
+      "bytes": 143894,
+      "ttfbMs": 371,
+      "ms": 709,
+      "startMs": 2,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/268/178.png",
+      "bytes": 140391,
+      "ttfbMs": 368,
+      "ms": 598,
+      "startMs": 3,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/268/179.png",
+      "bytes": 145525,
+      "ttfbMs": 365,
+      "ms": 592,
+      "startMs": 3,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "zuerich",
+   "lat": 47.3769,
+   "lon": 8.5417,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "terrain-z8",
+   "rep": 0,
+   "wallMs": 598,
+   "totalMs": 595.4000000357628,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 8,
+    "radiusM": 20000,
+    "tiles": 2,
+    "bytes": 166743,
+    "total": 595.4000000357628,
+    "decodeMs": 5.399999976158142,
+    "failed": 0
+   },
+   "net": {
+    "requests": 2,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 168247,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/8/133/89.png",
+     "bytes": 85003,
+     "ttfbMs": 362,
+     "ms": 583,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 2
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/133/89.png",
+      "bytes": 85003,
+      "ttfbMs": 362,
+      "ms": 583,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/134/89.png",
+      "bytes": 83244,
+      "ttfbMs": 363,
+      "ms": 589,
+      "startMs": 2,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "zuerich",
+   "lat": 47.3769,
+   "lon": 8.5417,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "terrain-z9",
+   "rep": 0,
+   "wallMs": 625,
+   "totalMs": 623.1000000238419,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 9,
+    "radiusM": 20000,
+    "tiles": 4,
+    "bytes": 574354,
+    "total": 623.1000000238419,
+    "decodeMs": 11.099999964237213,
+    "failed": 0
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 577194,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/267/178.png",
+     "bytes": 147384,
+     "ttfbMs": 142,
+     "ms": 256,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/267/178.png",
+      "bytes": 147384,
+      "ttfbMs": 142,
+      "ms": 256,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/268/178.png",
+      "bytes": 140391,
+      "ttfbMs": 133,
+      "ms": 246,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/267/179.png",
+      "bytes": 143894,
+      "ttfbMs": 364,
+      "ms": 591,
+      "startMs": 1,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/268/179.png",
+      "bytes": 145525,
+      "ttfbMs": 392,
+      "ms": 619,
+      "startMs": 1,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "zuerich",
+   "lat": 47.3769,
+   "lon": 8.5417,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "terrain-z11",
+   "rep": 0,
+   "wallMs": 146,
+   "totalMs": 144.5,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 11,
+    "radiusM": 2000,
+    "tiles": 1,
+    "bytes": 120800,
+    "total": 144.5,
+    "decodeMs": 3.399999976158142,
+    "failed": 0
+   },
+   "net": {
+    "requests": 1,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 121510,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/11/1072/717.png",
+     "bytes": 121510,
+     "ttfbMs": 128,
+     "ms": 140,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 1
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1072/717.png",
+      "bytes": 121510,
+      "ttfbMs": 128,
+      "ms": 140,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "zuerich",
+   "lat": 47.3769,
+   "lon": 8.5417,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "terrain-2scale",
+   "rep": 0,
+   "wallMs": 1061,
+   "totalMs": 1059.300000011921,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "total": 1059.300000011921,
+    "scales": {
+     "near": {
+      "z": 11,
+      "radiusM": 2500
+     },
+     "far": {
+      "z": 8,
+      "radiusM": 20500
+     }
+    },
+    "elevationM": 406.2,
+    "tpi500M": -14,
+    "tpi2000M": -47.8,
+    "svf": 0.993,
+    "slopeDeg": 3.3,
+    "horizonDeg": [
+     2.74,
+     8,
+     7.18,
+     3.05,
+     1.57,
+     4.27,
+     4.44,
+     3.04
+    ],
+    "tiles": {
+     "near": 2,
+     "far": 2,
+     "failed": 0,
+     "bytes": 407988,
+     "fromCache": 0
+    },
+    "timing": {
+     "totalMs": 1059,
+     "fetchMs": 2899,
+     "decodeMs": 11,
+     "computeMs": 1
+    }
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 410912,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/11/1072/717.png",
+     "bytes": 121510,
+     "ttfbMs": 378,
+     "ms": 603,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1072/716.png",
+      "bytes": 121155,
+      "ttfbMs": 396,
+      "ms": 621,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1072/717.png",
+      "bytes": 121510,
+      "ttfbMs": 378,
+      "ms": 603,
+      "startMs": 2,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/133/89.png",
+      "bytes": 85003,
+      "ttfbMs": 394,
+      "ms": 618,
+      "startMs": 3,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/134/89.png",
+      "bytes": 83244,
+      "ttfbMs": 397,
+      "ms": 1048,
+      "startMs": 3,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "genf",
+   "lat": 46.2044,
+   "lon": 6.1432,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "dem-live-z9",
+   "rep": 0,
+   "wallMs": 704,
+   "totalMs": 701.4000000357628,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "total": 701.4000000357628,
+    "elevation": 387
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 590079,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/265/182.png",
+     "bytes": 159050,
+     "ttfbMs": 366,
+     "ms": 692,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/264/181.png",
+      "bytes": 145532,
+      "ttfbMs": 368,
+      "ms": 593,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/264/182.png",
+      "bytes": 149000,
+      "ttfbMs": 371,
+      "ms": 596,
+      "startMs": 2,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/265/181.png",
+      "bytes": 136497,
+      "ttfbMs": 362,
+      "ms": 581,
+      "startMs": 2,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/265/182.png",
+      "bytes": 159050,
+      "ttfbMs": 366,
+      "ms": 692,
+      "startMs": 3,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "genf",
+   "lat": 46.2044,
+   "lon": 6.1432,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "terrain-z8",
+   "rep": 0,
+   "wallMs": 1016,
+   "totalMs": 1013.9000000357628,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 8,
+    "radiusM": 20000,
+    "tiles": 2,
+    "bytes": 183012,
+    "total": 1013.9000000357628,
+    "decodeMs": 8.500000059604645,
+    "failed": 0
+   },
+   "net": {
+    "requests": 2,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 184660,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/8/132/91.png",
+     "bytes": 99855,
+     "ttfbMs": 354,
+     "ms": 574,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 2
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/132/90.png",
+      "bytes": 84805,
+      "ttfbMs": 353,
+      "ms": 1009,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/132/91.png",
+      "bytes": 99855,
+      "ttfbMs": 354,
+      "ms": 574,
+      "startMs": 2,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "genf",
+   "lat": 46.2044,
+   "lon": 6.1432,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "terrain-z9",
+   "rep": 0,
+   "wallMs": 944,
+   "totalMs": 941.3000000119209,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 9,
+    "radiusM": 20000,
+    "tiles": 4,
+    "bytes": 587239,
+    "total": 941.3000000119209,
+    "decodeMs": 15.700000047683716,
+    "failed": 0
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 590079,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/265/182.png",
+     "bytes": 159050,
+     "ttfbMs": 352,
+     "ms": 574,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/264/181.png",
+      "bytes": 145532,
+      "ttfbMs": 131,
+      "ms": 241,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/265/181.png",
+      "bytes": 136497,
+      "ttfbMs": 134,
+      "ms": 934,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/264/182.png",
+      "bytes": 149000,
+      "ttfbMs": 351,
+      "ms": 678,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/265/182.png",
+      "bytes": 159050,
+      "ttfbMs": 352,
+      "ms": 574,
+      "startMs": 1,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "genf",
+   "lat": 46.2044,
+   "lon": 6.1432,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "terrain-z11",
+   "rep": 0,
+   "wallMs": 705,
+   "totalMs": 702.9000000357628,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 11,
+    "radiusM": 2000,
+    "tiles": 4,
+    "bytes": 466219,
+    "total": 702.9000000357628,
+    "decodeMs": 12.699999928474426,
+    "failed": 0
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 469058,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/11/1059/727.png",
+     "bytes": 129041,
+     "ttfbMs": 139,
+     "ms": 247,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1058/726.png",
+      "bytes": 121206,
+      "ttfbMs": 151,
+      "ms": 696,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1059/726.png",
+      "bytes": 95794,
+      "ttfbMs": 147,
+      "ms": 157,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1058/727.png",
+      "bytes": 123017,
+      "ttfbMs": 132,
+      "ms": 241,
+      "startMs": 1,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1059/727.png",
+      "bytes": 129041,
+      "ttfbMs": 139,
+      "ms": 247,
+      "startMs": 1,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "genf",
+   "lat": 46.2044,
+   "lon": 6.1432,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "terrain-2scale",
+   "rep": 0,
+   "wallMs": 1429,
+   "totalMs": 1426.8999999761581,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "total": 1426.8999999761581,
+    "scales": {
+     "near": {
+      "z": 11,
+      "radiusM": 2500
+     },
+     "far": {
+      "z": 8,
+      "radiusM": 20500
+     }
+    },
+    "elevationM": 378.5,
+    "tpi500M": -4.9,
+    "tpi2000M": -15.4,
+    "svf": 0.997,
+    "slopeDeg": 4.3,
+    "horizonDeg": [
+     1.9,
+     0.4,
+     2.98,
+     6.21,
+     4.6,
+     1.62,
+     1.68,
+     3.33
+    ],
+    "tiles": {
+     "near": 4,
+     "far": 2,
+     "failed": 0,
+     "bytes": 649231,
+     "fromCache": 0
+    },
+    "timing": {
+     "totalMs": 1426,
+     "fetchMs": 4517,
+     "decodeMs": 23,
+     "computeMs": 2
+    }
+   },
+   "net": {
+    "requests": 6,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 653718,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/11/1059/727.png",
+     "bytes": 129041,
+     "ttfbMs": 391,
+     "ms": 1414,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 6
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1058/726.png",
+      "bytes": 121206,
+      "ttfbMs": 389,
+      "ms": 618,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1059/726.png",
+      "bytes": 95794,
+      "ttfbMs": 389,
+      "ms": 613,
+      "startMs": 2,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1058/727.png",
+      "bytes": 123017,
+      "ttfbMs": 383,
+      "ms": 616,
+      "startMs": 2,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1059/727.png",
+      "bytes": 129041,
+      "ttfbMs": 391,
+      "ms": 1414,
+      "startMs": 2,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/132/90.png",
+      "bytes": 84805,
+      "ttfbMs": 393,
+      "ms": 624,
+      "startMs": 2,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/132/91.png",
+      "bytes": 99855,
+      "ttfbMs": 390,
+      "ms": 622,
+      "startMs": 2,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "zermatt",
+   "lat": 46.0207,
+   "lon": 7.7491,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "dem-live-z9",
+   "rep": 0,
+   "wallMs": 1609,
+   "totalMs": 1607.199999988079,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "total": 1607.199999988079,
+    "elevation": 1630
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 638353,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/267/181.png",
+     "bytes": 160638,
+     "ttfbMs": 378,
+     "ms": 717,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/266/181.png",
+      "bytes": 158846,
+      "ttfbMs": 376,
+      "ms": 607,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/266/182.png",
+      "bytes": 160377,
+      "ttfbMs": 368,
+      "ms": 1598,
+      "startMs": 2,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/267/181.png",
+      "bytes": 160638,
+      "ttfbMs": 378,
+      "ms": 717,
+      "startMs": 2,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/267/182.png",
+      "bytes": 158492,
+      "ttfbMs": 363,
+      "ms": 593,
+      "startMs": 2,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "zermatt",
+   "lat": 46.0207,
+   "lon": 7.7491,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "terrain-z8",
+   "rep": 0,
+   "wallMs": 627,
+   "totalMs": 624.8000000119209,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 8,
+    "radiusM": 20000,
+    "tiles": 2,
+    "bytes": 192536,
+    "total": 624.8000000119209,
+    "decodeMs": 8,
+    "failed": 0
+   },
+   "net": {
+    "requests": 2,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 194112,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/8/133/90.png",
+     "bytes": 100152,
+     "ttfbMs": 388,
+     "ms": 617,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 2
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/133/90.png",
+      "bytes": 100152,
+      "ttfbMs": 388,
+      "ms": 617,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/133/91.png",
+      "bytes": 93960,
+      "ttfbMs": 388,
+      "ms": 617,
+      "startMs": 2,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "zermatt",
+   "lat": 46.0207,
+   "lon": 7.7491,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "terrain-z9",
+   "rep": 0,
+   "wallMs": 719,
+   "totalMs": 717,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 9,
+    "radiusM": 20000,
+    "tiles": 4,
+    "bytes": 635513,
+    "total": 717,
+    "decodeMs": 17.000000059604645,
+    "failed": 0
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 638353,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/267/181.png",
+     "bytes": 160638,
+     "ttfbMs": 138,
+     "ms": 255,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/266/181.png",
+      "bytes": 158846,
+      "ttfbMs": 130,
+      "ms": 245,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/267/181.png",
+      "bytes": 160638,
+      "ttfbMs": 138,
+      "ms": 255,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/266/182.png",
+      "bytes": 160377,
+      "ttfbMs": 367,
+      "ms": 707,
+      "startMs": 1,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/267/182.png",
+      "bytes": 158492,
+      "ttfbMs": 370,
+      "ms": 712,
+      "startMs": 1,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "zermatt",
+   "lat": 46.0207,
+   "lon": 7.7491,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "terrain-z11",
+   "rep": 0,
+   "wallMs": 251,
+   "totalMs": 250.30000001192093,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 11,
+    "radiusM": 2000,
+    "tiles": 2,
+    "bytes": 287906,
+    "total": 250.30000001192093,
+    "decodeMs": 5.499999940395355,
+    "failed": 0
+   },
+   "net": {
+    "requests": 2,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 289326,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/11/1067/728.png",
+     "bytes": 145296,
+     "ttfbMs": 134,
+     "ms": 247,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 2
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1067/728.png",
+      "bytes": 145296,
+      "ttfbMs": 134,
+      "ms": 247,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1068/728.png",
+      "bytes": 144030,
+      "ttfbMs": 145,
+      "ms": 156,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "zermatt",
+   "lat": 46.0207,
+   "lon": 7.7491,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "terrain-2scale",
+   "rep": 0,
+   "wallMs": 721,
+   "totalMs": 719.7000000476837,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "total": 719.7000000476837,
+    "scales": {
+     "near": {
+      "z": 11,
+      "radiusM": 2500
+     },
+     "far": {
+      "z": 8,
+      "radiusM": 20500
+     }
+    },
+    "elevationM": 1608.1,
+    "tpi500M": -35,
+    "tpi2000M": -359.3,
+    "svf": 0.864,
+    "slopeDeg": 2.7,
+    "horizonDeg": [
+     17.57,
+     13.21,
+     21.84,
+     26.57,
+     17.74,
+     11.87,
+     26.94,
+     31.21
+    ],
+    "tiles": {
+     "near": 2,
+     "far": 2,
+     "failed": 0,
+     "bytes": 480442,
+     "fromCache": 0
+    },
+    "timing": {
+     "totalMs": 719,
+     "fetchMs": 2517,
+     "decodeMs": 12,
+     "computeMs": 1
+    }
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 483518,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/11/1067/728.png",
+     "bytes": 145316,
+     "ttfbMs": 368,
+     "ms": 596,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1067/728.png",
+      "bytes": 145316,
+      "ttfbMs": 368,
+      "ms": 596,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1068/728.png",
+      "bytes": 144050,
+      "ttfbMs": 382,
+      "ms": 710,
+      "startMs": 2,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/133/90.png",
+      "bytes": 100172,
+      "ttfbMs": 388,
+      "ms": 610,
+      "startMs": 2,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/133/91.png",
+      "bytes": 93980,
+      "ttfbMs": 371,
+      "ms": 595,
+      "startMs": 2,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "zugspitze",
+   "lat": 47.421,
+   "lon": 10.9863,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "dem-live-z9",
+   "rep": 0,
+   "wallMs": 720,
+   "totalMs": 718.7000000476837,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "total": 718.7000000476837,
+    "elevation": 2822
+   },
+   "net": {
+    "requests": 2,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 297753,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/271/179.png",
+     "bytes": 159206,
+     "ttfbMs": 377,
+     "ms": 709,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 2
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/271/178.png",
+      "bytes": 138547,
+      "ttfbMs": 386,
+      "ms": 715,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/271/179.png",
+      "bytes": 159206,
+      "ttfbMs": 377,
+      "ms": 709,
+      "startMs": 2,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "zugspitze",
+   "lat": 47.421,
+   "lon": 10.9863,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "terrain-z8",
+   "rep": 0,
+   "wallMs": 612,
+   "totalMs": 609.8000000119209,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 8,
+    "radiusM": 20000,
+    "tiles": 2,
+    "bytes": 183806,
+    "total": 609.8000000119209,
+    "decodeMs": 9.100000023841858,
+    "failed": 0
+   },
+   "net": {
+    "requests": 2,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 185368,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/8/136/89.png",
+     "bytes": 94490,
+     "ttfbMs": 372,
+     "ms": 595,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 2
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/135/89.png",
+      "bytes": 90878,
+      "ttfbMs": 378,
+      "ms": 605,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/136/89.png",
+      "bytes": 94490,
+      "ttfbMs": 372,
+      "ms": 595,
+      "startMs": 2,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "zugspitze",
+   "lat": 47.421,
+   "lon": 10.9863,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "terrain-z9",
+   "rep": 0,
+   "wallMs": 615,
+   "totalMs": 613.2999999523163,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 9,
+    "radiusM": 20000,
+    "tiles": 4,
+    "bytes": 595969,
+    "total": 613.2999999523163,
+    "decodeMs": 15.099999904632568,
+    "failed": 0
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 598889,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/271/179.png",
+     "bytes": 159206,
+     "ttfbMs": 380,
+     "ms": 609,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/271/178.png",
+      "bytes": 138547,
+      "ttfbMs": 144,
+      "ms": 259,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/272/178.png",
+      "bytes": 142469,
+      "ttfbMs": 134,
+      "ms": 251,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/271/179.png",
+      "bytes": 159206,
+      "ttfbMs": 380,
+      "ms": 609,
+      "startMs": 1,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/272/179.png",
+      "bytes": 158667,
+      "ttfbMs": 375,
+      "ms": 602,
+      "startMs": 1,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "zugspitze",
+   "lat": 47.421,
+   "lon": 10.9863,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "terrain-z11",
+   "rep": 0,
+   "wallMs": 250,
+   "totalMs": 248.60000002384186,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 11,
+    "radiusM": 2000,
+    "tiles": 1,
+    "bytes": 143388,
+    "total": 248.60000002384186,
+    "decodeMs": 3.300000011920929,
+    "failed": 0
+   },
+   "net": {
+    "requests": 1,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 144142,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/11/1086/716.png",
+     "bytes": 144142,
+     "ttfbMs": 138,
+     "ms": 244,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 1
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1086/716.png",
+      "bytes": 144142,
+      "ttfbMs": 138,
+      "ms": 244,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "zugspitze",
+   "lat": 47.421,
+   "lon": 10.9863,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "terrain-2scale",
+   "rep": 0,
+   "wallMs": 632,
+   "totalMs": 630.3999999761581,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "total": 630.3999999761581,
+    "scales": {
+     "near": {
+      "z": 11,
+      "radiusM": 2500
+     },
+     "far": {
+      "z": 8,
+      "radiusM": 20500
+     }
+    },
+    "elevationM": 2905.9,
+    "tpi500M": 203.2,
+    "tpi2000M": 658.8,
+    "svf": 0.994,
+    "slopeDeg": 23,
+    "horizonDeg": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     12.13,
+     0
+    ],
+    "tiles": {
+     "near": 1,
+     "far": 2,
+     "failed": 0,
+     "bytes": 327194,
+     "fromCache": 0
+    },
+    "timing": {
+     "totalMs": 630,
+     "fetchMs": 1850,
+     "decodeMs": 13,
+     "computeMs": 1
+    }
+   },
+   "net": {
+    "requests": 3,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 329450,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/11/1086/716.png",
+     "bytes": 144122,
+     "ttfbMs": 384,
+     "ms": 615,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 3
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1086/716.png",
+      "bytes": 144122,
+      "ttfbMs": 384,
+      "ms": 615,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/135/89.png",
+      "bytes": 90858,
+      "ttfbMs": 386,
+      "ms": 609,
+      "startMs": 2,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/136/89.png",
+      "bytes": 94470,
+      "ttfbMs": 399,
+      "ms": 619,
+      "startMs": 3,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "hamburg",
+   "lat": 53.5511,
+   "lon": 9.9937,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "dem-live-z9",
+   "rep": 0,
+   "wallMs": 861,
+   "totalMs": 857.0999999642372,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "total": 857.0999999642372,
+    "elevation": 12
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 431950,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/270/164.png",
+     "bytes": 110922,
+     "ttfbMs": 452,
+     "ms": 836,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/269/164.png",
+      "bytes": 104958,
+      "ttfbMs": 457,
+      "ms": 842,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/269/165.png",
+      "bytes": 105467,
+      "ttfbMs": 454,
+      "ms": 819,
+      "startMs": 5,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/270/164.png",
+      "bytes": 110922,
+      "ttfbMs": 452,
+      "ms": 836,
+      "startMs": 7,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/270/165.png",
+      "bytes": 110603,
+      "ttfbMs": 452,
+      "ms": 760,
+      "startMs": 9,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "hamburg",
+   "lat": 53.5511,
+   "lon": 9.9937,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "terrain-z8",
+   "rep": 0,
+   "wallMs": 576,
+   "totalMs": 573.8999999761581,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 8,
+    "radiusM": 20000,
+    "tiles": 2,
+    "bytes": 107715,
+    "total": 573.8999999761581,
+    "decodeMs": 10.900000035762787,
+    "failed": 0
+   },
+   "net": {
+    "requests": 2,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 109417,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/8/134/82.png",
+     "bytes": 54788,
+     "ttfbMs": 434,
+     "ms": 566,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 2
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/134/82.png",
+      "bytes": 54788,
+      "ttfbMs": 434,
+      "ms": 566,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/135/82.png",
+      "bytes": 54629,
+      "ttfbMs": 432,
+      "ms": 528,
+      "startMs": 5,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "hamburg",
+   "lat": 53.5511,
+   "lon": 9.9937,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "terrain-z9",
+   "rep": 0,
+   "wallMs": 375,
+   "totalMs": 373.5,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 9,
+    "radiusM": 20000,
+    "tiles": 2,
+    "bytes": 214430,
+    "total": 373.5,
+    "decodeMs": 14.799999952316284,
+    "failed": 0
+   },
+   "net": {
+    "requests": 2,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 216110,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/270/165.png",
+     "bytes": 110623,
+     "ttfbMs": 199,
+     "ms": 362,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 2
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/269/165.png",
+      "bytes": 105487,
+      "ttfbMs": 200,
+      "ms": 360,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/270/165.png",
+      "bytes": 110623,
+      "ttfbMs": 199,
+      "ms": 362,
+      "startMs": 1,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "hamburg",
+   "lat": 53.5511,
+   "lon": 9.9937,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "terrain-z11",
+   "rep": 0,
+   "wallMs": 634,
+   "totalMs": 631.1999999880791,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 11,
+    "radiusM": 2000,
+    "tiles": 4,
+    "bytes": 393951,
+    "total": 631.1999999880791,
+    "decodeMs": 21.399999976158142,
+    "failed": 0
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 397122,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/11/1080/662.png",
+     "bytes": 102464,
+     "ttfbMs": 425,
+     "ms": 603,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1080/661.png",
+      "bytes": 99095,
+      "ttfbMs": 188,
+      "ms": 361,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1081/661.png",
+      "bytes": 99103,
+      "ttfbMs": 187,
+      "ms": 359,
+      "startMs": 2,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1080/662.png",
+      "bytes": 102464,
+      "ttfbMs": 425,
+      "ms": 603,
+      "startMs": 3,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1081/662.png",
+      "bytes": 96460,
+      "ttfbMs": 424,
+      "ms": 618,
+      "startMs": 4,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "hamburg",
+   "lat": 53.5511,
+   "lon": 9.9937,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "terrain-2scale",
+   "rep": 0,
+   "wallMs": 924,
+   "totalMs": 921.1999999880791,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "total": 921.1999999880791,
+    "scales": {
+     "near": {
+      "z": 11,
+      "radiusM": 2500
+     },
+     "far": {
+      "z": 8,
+      "radiusM": 20500
+     }
+    },
+    "elevationM": 12.1,
+    "tpi500M": -0.4,
+    "tpi2000M": 2.5,
+    "svf": 1,
+    "slopeDeg": 1.4,
+    "horizonDeg": [
+     0.2,
+     0.34,
+     1.72,
+     1.63,
+     0.78,
+     0.52,
+     0.64,
+     0.63
+    ],
+    "tiles": {
+     "near": 4,
+     "far": 2,
+     "failed": 0,
+     "bytes": 501666,
+     "fromCache": 0
+    },
+    "timing": {
+     "totalMs": 920,
+     "fetchMs": 5002,
+     "decodeMs": 77,
+     "computeMs": 6
+    }
+   },
+   "net": {
+    "requests": 6,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 506419,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/11/1080/662.png",
+     "bytes": 102444,
+     "ttfbMs": 451,
+     "ms": 877,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 6
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1080/661.png",
+      "bytes": 99075,
+      "ttfbMs": 454,
+      "ms": 875,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1081/661.png",
+      "bytes": 99083,
+      "ttfbMs": 452,
+      "ms": 870,
+      "startMs": 4,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1080/662.png",
+      "bytes": 102444,
+      "ttfbMs": 451,
+      "ms": 877,
+      "startMs": 6,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1081/662.png",
+      "bytes": 96440,
+      "ttfbMs": 450,
+      "ms": 867,
+      "startMs": 7,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/134/82.png",
+      "bytes": 54768,
+      "ttfbMs": 433,
+      "ms": 717,
+      "startMs": 8,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/135/82.png",
+      "bytes": 54609,
+      "ttfbMs": 432,
+      "ms": 716,
+      "startMs": 9,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "berlin",
+   "lat": 52.52,
+   "lon": 13.405,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "dem-live-z9",
+   "rep": 0,
+   "wallMs": 863,
+   "totalMs": 861.1999999880791,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "total": 861.1999999880791,
+    "elevation": 40
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 444389,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/275/167.png",
+     "bytes": 113325,
+     "ttfbMs": 436,
+     "ms": 829,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/274/167.png",
+      "bytes": 105942,
+      "ttfbMs": 435,
+      "ms": 851,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/274/168.png",
+      "bytes": 111928,
+      "ttfbMs": 437,
+      "ms": 831,
+      "startMs": 5,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/275/167.png",
+      "bytes": 113325,
+      "ttfbMs": 436,
+      "ms": 829,
+      "startMs": 6,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/275/168.png",
+      "bytes": 113194,
+      "ttfbMs": 434,
+      "ms": 797,
+      "startMs": 6,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "berlin",
+   "lat": 52.52,
+   "lon": 13.405,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "terrain-z8",
+   "rep": 0,
+   "wallMs": 590,
+   "totalMs": 586.5,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 8,
+    "radiusM": 20000,
+    "tiles": 2,
+    "bytes": 97254,
+    "total": 586.5,
+    "decodeMs": 10.900000035762787,
+    "failed": 0
+   },
+   "net": {
+    "requests": 2,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 98927,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/8/137/83.png",
+     "bytes": 50171,
+     "ttfbMs": 432,
+     "ms": 577,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 2
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/137/83.png",
+      "bytes": 50171,
+      "ttfbMs": 432,
+      "ms": 577,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/137/84.png",
+      "bytes": 48756,
+      "ttfbMs": 430,
+      "ms": 548,
+      "startMs": 10,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "berlin",
+   "lat": 52.52,
+   "lon": 13.405,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "terrain-z9",
+   "rep": 0,
+   "wallMs": 676,
+   "totalMs": 674.1000000238419,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 9,
+    "radiusM": 20000,
+    "tiles": 4,
+    "bytes": 441513,
+    "total": 674.1000000238419,
+    "decodeMs": 26.099999964237213,
+    "failed": 0
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 444389,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/275/167.png",
+     "bytes": 113325,
+     "ttfbMs": 182,
+     "ms": 369,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/274/167.png",
+      "bytes": 105942,
+      "ttfbMs": 182,
+      "ms": 365,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/275/167.png",
+      "bytes": 113325,
+      "ttfbMs": 182,
+      "ms": 369,
+      "startMs": 1,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/274/168.png",
+      "bytes": 111928,
+      "ttfbMs": 428,
+      "ms": 664,
+      "startMs": 2,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/275/168.png",
+      "bytes": 113194,
+      "ttfbMs": 395,
+      "ms": 628,
+      "startMs": 3,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "berlin",
+   "lat": 52.52,
+   "lon": 13.405,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "terrain-z11",
+   "rep": 0,
+   "wallMs": 295,
+   "totalMs": 293.5,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 11,
+    "radiusM": 2000,
+    "tiles": 1,
+    "bytes": 100292,
+    "total": 293.5,
+    "decodeMs": 4.399999976158142,
+    "failed": 0
+   },
+   "net": {
+    "requests": 1,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 101002,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/11/1100/671.png",
+     "bytes": 101002,
+     "ttfbMs": 196,
+     "ms": 286,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 1
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1100/671.png",
+      "bytes": 101002,
+      "ttfbMs": 196,
+      "ms": 286,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "berlin",
+   "lat": 52.52,
+   "lon": 13.405,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "terrain-2scale",
+   "rep": 0,
+   "wallMs": 714,
+   "totalMs": 711.5,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "total": 711.5,
+    "scales": {
+     "near": {
+      "z": 11,
+      "radiusM": 2500
+     },
+     "far": {
+      "z": 8,
+      "radiusM": 20500
+     }
+    },
+    "elevationM": 44,
+    "tpi500M": 3.8,
+    "tpi2000M": 3.7,
+    "svf": 0.999,
+    "slopeDeg": 3.3,
+    "horizonDeg": [
+     3.32,
+     2.41,
+     0.08,
+     0,
+     0.05,
+     0.1,
+     0.11,
+     1.5
+    ],
+    "tiles": {
+     "near": 1,
+     "far": 2,
+     "failed": 0,
+     "bytes": 197546,
+     "fromCache": 0
+    },
+    "timing": {
+     "totalMs": 710,
+     "fetchMs": 1880,
+     "decodeMs": 16,
+     "computeMs": 6
+    }
+   },
+   "net": {
+    "requests": 3,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 199989,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/11/1100/671.png",
+     "bytes": 101022,
+     "ttfbMs": 420,
+     "ms": 694,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 3
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1100/671.png",
+      "bytes": 101022,
+      "ttfbMs": 420,
+      "ms": 694,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/137/83.png",
+      "bytes": 50191,
+      "ttfbMs": 419,
+      "ms": 606,
+      "startMs": 4,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/137/84.png",
+      "bytes": 48776,
+      "ttfbMs": 418,
+      "ms": 569,
+      "startMs": 6,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "muenchen",
+   "lat": 48.1372,
+   "lon": 11.5755,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "dem-live-z9",
+   "rep": 0,
+   "wallMs": 758,
+   "totalMs": 754.3999999761581,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "total": 754.3999999761581,
+    "elevation": 523
+   },
+   "net": {
+    "requests": 2,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 265445,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/272/178.png",
+     "bytes": 142449,
+     "ttfbMs": 443,
+     "ms": 723,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 2
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/272/177.png",
+      "bytes": 122996,
+      "ttfbMs": 443,
+      "ms": 744,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/272/178.png",
+      "bytes": 142449,
+      "ttfbMs": 443,
+      "ms": 723,
+      "startMs": 4,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "muenchen",
+   "lat": 48.1372,
+   "lon": 11.5755,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "terrain-z8",
+   "rep": 0,
+   "wallMs": 692,
+   "totalMs": 689.8999999761581,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 8,
+    "radiusM": 20000,
+    "tiles": 2,
+    "bytes": 159540,
+    "total": 689.8999999761581,
+    "decodeMs": 17.600000023841858,
+    "failed": 0
+   },
+   "net": {
+    "requests": 2,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 161120,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/8/136/89.png",
+     "bytes": 94490,
+     "ttfbMs": 452,
+     "ms": 670,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 2
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/136/88.png",
+      "bytes": 66630,
+      "ttfbMs": 454,
+      "ms": 674,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/136/89.png",
+      "bytes": 94490,
+      "ttfbMs": 452,
+      "ms": 670,
+      "startMs": 4,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "muenchen",
+   "lat": 48.1372,
+   "lon": 11.5755,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "terrain-z9",
+   "rep": 0,
+   "wallMs": 427,
+   "totalMs": 425.5,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 9,
+    "radiusM": 20000,
+    "tiles": 2,
+    "bytes": 264025,
+    "total": 425.5,
+    "decodeMs": 11.299999952316284,
+    "failed": 0
+   },
+   "net": {
+    "requests": 2,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 265485,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/272/178.png",
+     "bytes": 142469,
+     "ttfbMs": 189,
+     "ms": 416,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 2
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/272/177.png",
+      "bytes": 123016,
+      "ttfbMs": 189,
+      "ms": 391,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/272/178.png",
+      "bytes": 142469,
+      "ttfbMs": 189,
+      "ms": 416,
+      "startMs": 1,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "muenchen",
+   "lat": 48.1372,
+   "lon": 11.5755,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "terrain-z11",
+   "rep": 0,
+   "wallMs": 375,
+   "totalMs": 373.39999997615814,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 11,
+    "radiusM": 2000,
+    "tiles": 2,
+    "bytes": 209550,
+    "total": 373.39999997615814,
+    "decodeMs": 10.199999988079071,
+    "failed": 0
+   },
+   "net": {
+    "requests": 2,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 211010,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/11/1089/710.png",
+     "bytes": 107135,
+     "ttfbMs": 192,
+     "ms": 364,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 2
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1089/710.png",
+      "bytes": 107135,
+      "ttfbMs": 192,
+      "ms": 364,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1090/710.png",
+      "bytes": 103875,
+      "ttfbMs": 191,
+      "ms": 359,
+      "startMs": 1,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "muenchen",
+   "lat": 48.1372,
+   "lon": 11.5755,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "terrain-2scale",
+   "rep": 0,
+   "wallMs": 830,
+   "totalMs": 827.5,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "total": 827.5,
+    "scales": {
+     "near": {
+      "z": 11,
+      "radiusM": 2500
+     },
+     "far": {
+      "z": 8,
+      "radiusM": 20500
+     }
+    },
+    "elevationM": 524.8,
+    "tpi500M": 1.7,
+    "tpi2000M": 3,
+    "svf": 1,
+    "slopeDeg": 1.5,
+    "horizonDeg": [
+     0.26,
+     0,
+     0.28,
+     0.35,
+     0.43,
+     0.38,
+     1.11,
+     1.56
+    ],
+    "tiles": {
+     "near": 2,
+     "far": 2,
+     "failed": 0,
+     "bytes": 369090,
+     "fromCache": 0
+    },
+    "timing": {
+     "totalMs": 827,
+     "fetchMs": 3049,
+     "decodeMs": 26,
+     "computeMs": 7
+    }
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 372130,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/11/1089/710.png",
+     "bytes": 107135,
+     "ttfbMs": 435,
+     "ms": 806,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1089/710.png",
+      "bytes": 107135,
+      "ttfbMs": 435,
+      "ms": 806,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1090/710.png",
+      "bytes": 103875,
+      "ttfbMs": 434,
+      "ms": 776,
+      "startMs": 4,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/136/88.png",
+      "bytes": 66630,
+      "ttfbMs": 432,
+      "ms": 700,
+      "startMs": 6,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/136/89.png",
+      "bytes": 94490,
+      "ttfbMs": 431,
+      "ms": 750,
+      "startMs": 7,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "wien",
+   "lat": 48.2082,
+   "lon": 16.3738,
+   "country": "AT",
+   "chunkEdge": false,
+   "scenario": "dem-live-z9",
+   "rep": 0,
+   "wallMs": 700,
+   "totalMs": 697.8999999761581,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "total": 697.8999999761581,
+    "elevation": 187
+   },
+   "net": {
+    "requests": 1,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 123688,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/279/177.png",
+     "bytes": 123688,
+     "ttfbMs": 433,
+     "ms": 688,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 1
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/279/177.png",
+      "bytes": 123688,
+      "ttfbMs": 433,
+      "ms": 688,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "wien",
+   "lat": 48.2082,
+   "lon": 16.3738,
+   "country": "AT",
+   "chunkEdge": false,
+   "scenario": "terrain-z8",
+   "rep": 0,
+   "wallMs": 685,
+   "totalMs": 681.0999999642372,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 8,
+    "radiusM": 20000,
+    "tiles": 1,
+    "bytes": 71449,
+    "total": 681.0999999642372,
+    "decodeMs": 7.600000023841858,
+    "failed": 0
+   },
+   "net": {
+    "requests": 1,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 72257,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/8/139/88.png",
+     "bytes": 72257,
+     "ttfbMs": 432,
+     "ms": 668,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 1
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/139/88.png",
+      "bytes": 72257,
+      "ttfbMs": 432,
+      "ms": 668,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "wien",
+   "lat": 48.2082,
+   "lon": 16.3738,
+   "country": "AT",
+   "chunkEdge": false,
+   "scenario": "terrain-z9",
+   "rep": 0,
+   "wallMs": 661,
+   "totalMs": 644.3000000119209,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 9,
+    "radiusM": 20000,
+    "tiles": 2,
+    "bytes": 260160,
+    "total": 644.3000000119209,
+    "decodeMs": 9.399999976158142,
+    "failed": 0
+   },
+   "net": {
+    "requests": 2,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 261620,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/278/177.png",
+     "bytes": 137932,
+     "ttfbMs": 185,
+     "ms": 301,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 2
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/278/177.png",
+      "bytes": 137932,
+      "ttfbMs": 185,
+      "ms": 301,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/279/177.png",
+      "bytes": 123688,
+      "ttfbMs": 417,
+      "ms": 632,
+      "startMs": 1,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "wien",
+   "lat": 48.2082,
+   "lon": 16.3738,
+   "country": "AT",
+   "chunkEdge": false,
+   "scenario": "terrain-z11",
+   "rep": 0,
+   "wallMs": 702,
+   "totalMs": 699.8000000119209,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 11,
+    "radiusM": 2000,
+    "tiles": 4,
+    "bytes": 463754,
+    "total": 699.8000000119209,
+    "decodeMs": 21.499999940395355,
+    "failed": 0
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 466634,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/11/1116/709.png",
+     "bytes": 131948,
+     "ttfbMs": 196,
+     "ms": 390,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1116/709.png",
+      "bytes": 131948,
+      "ttfbMs": 196,
+      "ms": 390,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1117/709.png",
+      "bytes": 104912,
+      "ttfbMs": 196,
+      "ms": 362,
+      "startMs": 1,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1116/710.png",
+      "bytes": 124149,
+      "ttfbMs": 420,
+      "ms": 690,
+      "startMs": 2,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1117/710.png",
+      "bytes": 105625,
+      "ttfbMs": 418,
+      "ms": 645,
+      "startMs": 4,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "wien",
+   "lat": 48.2082,
+   "lon": 16.3738,
+   "country": "AT",
+   "chunkEdge": false,
+   "scenario": "terrain-2scale",
+   "rep": 0,
+   "wallMs": 928,
+   "totalMs": 926.3000000119209,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "total": 926.3000000119209,
+    "scales": {
+     "near": {
+      "z": 11,
+      "radiusM": 2500
+     },
+     "far": {
+      "z": 8,
+      "radiusM": 20500
+     }
+    },
+    "elevationM": 172,
+    "tpi500M": 1.2,
+    "tpi2000M": 0.7,
+    "svf": 1,
+    "slopeDeg": 0.2,
+    "horizonDeg": [
+     0.59,
+     0,
+     0.01,
+     0.16,
+     0.85,
+     1.02,
+     0.93,
+     1.58
+    ],
+    "tiles": {
+     "near": 4,
+     "far": 1,
+     "failed": 0,
+     "bytes": 535203,
+     "fromCache": 0
+    },
+    "timing": {
+     "totalMs": 925,
+     "fetchMs": 4246,
+     "decodeMs": 33,
+     "computeMs": 5
+    }
+   },
+   "net": {
+    "requests": 5,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 538891,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/11/1116/709.png",
+     "bytes": 131948,
+     "ttfbMs": 465,
+     "ms": 907,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 5
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1116/709.png",
+      "bytes": 131948,
+      "ttfbMs": 465,
+      "ms": 907,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1117/709.png",
+      "bytes": 104912,
+      "ttfbMs": 464,
+      "ms": 847,
+      "startMs": 4,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1116/710.png",
+      "bytes": 124149,
+      "ttfbMs": 463,
+      "ms": 886,
+      "startMs": 6,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1117/710.png",
+      "bytes": 105625,
+      "ttfbMs": 461,
+      "ms": 863,
+      "startMs": 7,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/139/88.png",
+      "bytes": 72257,
+      "ttfbMs": 460,
+      "ms": 724,
+      "startMs": 8,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "graz",
+   "lat": 47.0707,
+   "lon": 15.4395,
+   "country": "AT",
+   "chunkEdge": true,
+   "scenario": "dem-live-z9",
+   "rep": 0,
+   "wallMs": 958,
+   "totalMs": 955.6000000238419,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "total": 955.6000000238419,
+    "elevation": 364
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 587063,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/277/179.png",
+     "bytes": 154438,
+     "ttfbMs": 412,
+     "ms": 932,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/277/179.png",
+      "bytes": 154438,
+      "ttfbMs": 412,
+      "ms": 932,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/277/180.png",
+      "bytes": 148419,
+      "ttfbMs": 407,
+      "ms": 941,
+      "startMs": 4,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/278/179.png",
+      "bytes": 145887,
+      "ttfbMs": 409,
+      "ms": 874,
+      "startMs": 5,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/278/180.png",
+      "bytes": 138319,
+      "ttfbMs": 408,
+      "ms": 906,
+      "startMs": 6,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "graz",
+   "lat": 47.0707,
+   "lon": 15.4395,
+   "country": "AT",
+   "chunkEdge": true,
+   "scenario": "terrain-z8",
+   "rep": 0,
+   "wallMs": 1297,
+   "totalMs": 1293.5,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 8,
+    "radiusM": 20000,
+    "tiles": 4,
+    "bytes": 352778,
+    "total": 1293.5,
+    "decodeMs": 25.599999964237213,
+    "failed": 0
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 355859,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/8/138/89.png",
+     "bytes": 101099,
+     "ttfbMs": 422,
+     "ms": 1284,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/138/89.png",
+      "bytes": 101099,
+      "ttfbMs": 422,
+      "ms": 1284,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/139/89.png",
+      "bytes": 83193,
+      "ttfbMs": 420,
+      "ms": 1063,
+      "startMs": 4,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/138/90.png",
+      "bytes": 95009,
+      "ttfbMs": 419,
+      "ms": 629,
+      "startMs": 5,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/139/90.png",
+      "bytes": 76558,
+      "ttfbMs": 418,
+      "ms": 622,
+      "startMs": 6,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "graz",
+   "lat": 47.0707,
+   "lon": 15.4395,
+   "country": "AT",
+   "chunkEdge": true,
+   "scenario": "terrain-z9",
+   "rep": 0,
+   "wallMs": 1074,
+   "totalMs": 1072.5,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 9,
+    "radiusM": 20000,
+    "tiles": 4,
+    "bytes": 584155,
+    "total": 1072.5,
+    "decodeMs": 29.5,
+    "failed": 0
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 587063,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/277/179.png",
+     "bytes": 154438,
+     "ttfbMs": 190,
+     "ms": 1058,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/277/179.png",
+      "bytes": 154438,
+      "ttfbMs": 190,
+      "ms": 1058,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/278/179.png",
+      "bytes": 145887,
+      "ttfbMs": 176,
+      "ms": 1058,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/277/180.png",
+      "bytes": 148419,
+      "ttfbMs": 189,
+      "ms": 525,
+      "startMs": 1,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/278/180.png",
+      "bytes": 138319,
+      "ttfbMs": 189,
+      "ms": 508,
+      "startMs": 1,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "graz",
+   "lat": 47.0707,
+   "lon": 15.4395,
+   "country": "AT",
+   "chunkEdge": true,
+   "scenario": "terrain-z11",
+   "rep": 0,
+   "wallMs": 721,
+   "totalMs": 719.5999999642372,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 11,
+    "radiusM": 2000,
+    "tiles": 1,
+    "bytes": 130269,
+    "total": 719.5999999642372,
+    "decodeMs": 5.400000035762787,
+    "failed": 0
+   },
+   "net": {
+    "requests": 1,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 130969,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/11/1111/719.png",
+     "bytes": 130969,
+     "ttfbMs": 203,
+     "ms": 710,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 1
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1111/719.png",
+      "bytes": 130969,
+      "ttfbMs": 203,
+      "ms": 710,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "graz",
+   "lat": 47.0707,
+   "lon": 15.4395,
+   "country": "AT",
+   "chunkEdge": true,
+   "scenario": "terrain-2scale",
+   "rep": 0,
+   "wallMs": 991,
+   "totalMs": 989,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "total": 989,
+    "scales": {
+     "near": {
+      "z": 11,
+      "radiusM": 2500
+     },
+     "far": {
+      "z": 8,
+      "radiusM": 20500
+     }
+    },
+    "elevationM": 350.3,
+    "tpi500M": -6,
+    "tpi2000M": -10.1,
+    "svf": 0.999,
+    "slopeDeg": 0.1,
+    "horizonDeg": [
+     3.54,
+     2.9,
+     1.7,
+     0.43,
+     0.16,
+     1.04,
+     2.66,
+     1.17
+    ],
+    "tiles": {
+     "near": 2,
+     "far": 4,
+     "failed": 0,
+     "bytes": 617720,
+     "fromCache": 0
+    },
+    "timing": {
+     "totalMs": 988,
+     "fetchMs": 5389,
+     "decodeMs": 46,
+     "computeMs": 5
+    }
+   },
+   "net": {
+    "requests": 6,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 622321,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/11/1112/719.png",
+     "bytes": 135393,
+     "ttfbMs": 429,
+     "ms": 965,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 6
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1111/719.png",
+      "bytes": 130989,
+      "ttfbMs": 432,
+      "ms": 925,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1112/719.png",
+      "bytes": 135393,
+      "ttfbMs": 429,
+      "ms": 965,
+      "startMs": 5,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/138/89.png",
+      "bytes": 101119,
+      "ttfbMs": 429,
+      "ms": 925,
+      "startMs": 6,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/139/89.png",
+      "bytes": 83213,
+      "ttfbMs": 429,
+      "ms": 876,
+      "startMs": 6,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/138/90.png",
+      "bytes": 95029,
+      "ttfbMs": 429,
+      "ms": 875,
+      "startMs": 6,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/139/90.png",
+      "bytes": 76578,
+      "ttfbMs": 428,
+      "ms": 797,
+      "startMs": 6,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "innsbruck",
+   "lat": 47.2692,
+   "lon": 11.4041,
+   "country": "AT",
+   "chunkEdge": false,
+   "scenario": "dem-live-z9",
+   "rep": 0,
+   "wallMs": 809,
+   "totalMs": 807.0999999642372,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "total": 807.0999999642372,
+    "elevation": 577
+   },
+   "net": {
+    "requests": 2,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 317833,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/271/179.png",
+     "bytes": 159186,
+     "ttfbMs": 426,
+     "ms": 797,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 2
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/271/179.png",
+      "bytes": 159186,
+      "ttfbMs": 426,
+      "ms": 797,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/272/179.png",
+      "bytes": 158647,
+      "ttfbMs": 427,
+      "ms": 759,
+      "startMs": 4,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "innsbruck",
+   "lat": 47.2692,
+   "lon": 11.4041,
+   "country": "AT",
+   "chunkEdge": false,
+   "scenario": "terrain-z8",
+   "rep": 0,
+   "wallMs": 650,
+   "totalMs": 647.1999999880791,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 8,
+    "radiusM": 20000,
+    "tiles": 2,
+    "bytes": 183806,
+    "total": 647.1999999880791,
+    "decodeMs": 11.499999940395355,
+    "failed": 0
+   },
+   "net": {
+    "requests": 2,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 185328,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/8/136/89.png",
+     "bytes": 94470,
+     "ttfbMs": 435,
+     "ms": 610,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 2
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/135/89.png",
+      "bytes": 90858,
+      "ttfbMs": 436,
+      "ms": 638,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/136/89.png",
+      "bytes": 94470,
+      "ttfbMs": 435,
+      "ms": 610,
+      "startMs": 4,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "innsbruck",
+   "lat": 47.2692,
+   "lon": 11.4041,
+   "country": "AT",
+   "chunkEdge": false,
+   "scenario": "terrain-z9",
+   "rep": 0,
+   "wallMs": 481,
+   "totalMs": 479.39999997615814,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 9,
+    "radiusM": 20000,
+    "tiles": 2,
+    "bytes": 316413,
+    "total": 479.39999997615814,
+    "decodeMs": 14.599999964237213,
+    "failed": 0
+   },
+   "net": {
+    "requests": 2,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 317833,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/271/179.png",
+     "bytes": 159186,
+     "ttfbMs": 204,
+     "ms": 466,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 2
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/271/179.png",
+      "bytes": 159186,
+      "ttfbMs": 204,
+      "ms": 466,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/272/179.png",
+      "bytes": 158647,
+      "ttfbMs": 203,
+      "ms": 466,
+      "startMs": 1,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "innsbruck",
+   "lat": 47.2692,
+   "lon": 11.4041,
+   "country": "AT",
+   "chunkEdge": false,
+   "scenario": "terrain-z11",
+   "rep": 0,
+   "wallMs": 740,
+   "totalMs": 738.1000000238419,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 11,
+    "radiusM": 2000,
+    "tiles": 4,
+    "bytes": 570240,
+    "total": 738.1000000238419,
+    "decodeMs": 24.400000035762787,
+    "failed": 0
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 573040,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/11/1088/717.png",
+     "bytes": 148074,
+     "ttfbMs": 181,
+     "ms": 450,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1088/717.png",
+      "bytes": 148074,
+      "ttfbMs": 181,
+      "ms": 450,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1089/717.png",
+      "bytes": 144442,
+      "ttfbMs": 179,
+      "ms": 446,
+      "startMs": 1,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1088/718.png",
+      "bytes": 138548,
+      "ttfbMs": 396,
+      "ms": 728,
+      "startMs": 2,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1089/718.png",
+      "bytes": 141976,
+      "ttfbMs": 392,
+      "ms": 659,
+      "startMs": 3,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "innsbruck",
+   "lat": 47.2692,
+   "lon": 11.4041,
+   "country": "AT",
+   "chunkEdge": false,
+   "scenario": "terrain-2scale",
+   "rep": 0,
+   "wallMs": 1144,
+   "totalMs": 1141.6000000238419,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "total": 1141.6000000238419,
+    "scales": {
+     "near": {
+      "z": 11,
+      "radiusM": 2500
+     },
+     "far": {
+      "z": 8,
+      "radiusM": 20500
+     }
+    },
+    "elevationM": 575.6,
+    "tpi500M": -0.2,
+    "tpi2000M": -31,
+    "svf": 0.972,
+    "slopeDeg": 0.3,
+    "horizonDeg": [
+     15.64,
+     9.13,
+     2.99,
+     9.76,
+     5.78,
+     7.18,
+     1.91,
+     15.07
+    ],
+    "tiles": {
+     "near": 4,
+     "far": 2,
+     "failed": 0,
+     "bytes": 754046,
+     "fromCache": 0
+    },
+    "timing": {
+     "totalMs": 1140,
+     "fetchMs": 6207,
+     "decodeMs": 42,
+     "computeMs": 7
+    }
+   },
+   "net": {
+    "requests": 6,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 758488,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/11/1088/717.png",
+     "bytes": 148094,
+     "ttfbMs": 451,
+     "ms": 1115,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 6
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1088/717.png",
+      "bytes": 148094,
+      "ttfbMs": 451,
+      "ms": 1115,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1089/717.png",
+      "bytes": 144462,
+      "ttfbMs": 449,
+      "ms": 1109,
+      "startMs": 5,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1088/718.png",
+      "bytes": 138568,
+      "ttfbMs": 449,
+      "ms": 1057,
+      "startMs": 7,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1089/718.png",
+      "bytes": 141996,
+      "ttfbMs": 447,
+      "ms": 1089,
+      "startMs": 8,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/135/89.png",
+      "bytes": 90878,
+      "ttfbMs": 447,
+      "ms": 872,
+      "startMs": 9,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/136/89.png",
+      "bytes": 94490,
+      "ttfbMs": 445,
+      "ms": 937,
+      "startMs": 10,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "zuerich",
+   "lat": 47.3769,
+   "lon": 8.5417,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "dem-live-z9",
+   "rep": 0,
+   "wallMs": 960,
+   "totalMs": 957.1999999880791,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "total": 957.1999999880791,
+    "elevation": 414
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 577274,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/267/178.png",
+     "bytes": 147404,
+     "ttfbMs": 425,
+     "ms": 946,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/267/178.png",
+      "bytes": 147404,
+      "ttfbMs": 425,
+      "ms": 946,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/267/179.png",
+      "bytes": 143914,
+      "ttfbMs": 424,
+      "ms": 942,
+      "startMs": 4,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/268/178.png",
+      "bytes": 140411,
+      "ttfbMs": 423,
+      "ms": 839,
+      "startMs": 6,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/268/179.png",
+      "bytes": 145545,
+      "ttfbMs": 422,
+      "ms": 916,
+      "startMs": 7,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "zuerich",
+   "lat": 47.3769,
+   "lon": 8.5417,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "terrain-z8",
+   "rep": 0,
+   "wallMs": 712,
+   "totalMs": 708,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 8,
+    "radiusM": 20000,
+    "tiles": 2,
+    "bytes": 166743,
+    "total": 708,
+    "decodeMs": 11.699999988079071,
+    "failed": 0
+   },
+   "net": {
+    "requests": 2,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 168247,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/8/133/89.png",
+     "bytes": 85003,
+     "ttfbMs": 456,
+     "ms": 700,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 2
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/133/89.png",
+      "bytes": 85003,
+      "ttfbMs": 456,
+      "ms": 700,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/134/89.png",
+      "bytes": 83244,
+      "ttfbMs": 454,
+      "ms": 659,
+      "startMs": 4,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "zuerich",
+   "lat": 47.3769,
+   "lon": 8.5417,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "terrain-z9",
+   "rep": 0,
+   "wallMs": 753,
+   "totalMs": 751.8000000119209,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 9,
+    "radiusM": 20000,
+    "tiles": 4,
+    "bytes": 574354,
+    "total": 751.8000000119209,
+    "decodeMs": 18.899999976158142,
+    "failed": 0
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 577194,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/267/178.png",
+     "bytes": 147384,
+     "ttfbMs": 213,
+     "ms": 470,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/267/178.png",
+      "bytes": 147384,
+      "ttfbMs": 213,
+      "ms": 470,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/268/178.png",
+      "bytes": 140391,
+      "ttfbMs": 213,
+      "ms": 450,
+      "startMs": 2,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/267/179.png",
+      "bytes": 143894,
+      "ttfbMs": 426,
+      "ms": 722,
+      "startMs": 3,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/268/179.png",
+      "bytes": 145525,
+      "ttfbMs": 425,
+      "ms": 738,
+      "startMs": 5,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "zuerich",
+   "lat": 47.3769,
+   "lon": 8.5417,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "terrain-z11",
+   "rep": 0,
+   "wallMs": 296,
+   "totalMs": 294.69999998807907,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 11,
+    "radiusM": 2000,
+    "tiles": 1,
+    "bytes": 120800,
+    "total": 294.69999998807907,
+    "decodeMs": 5.5,
+    "failed": 0
+   },
+   "net": {
+    "requests": 1,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 121510,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/11/1072/717.png",
+     "bytes": 121510,
+     "ttfbMs": 187,
+     "ms": 286,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 1
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1072/717.png",
+      "bytes": 121510,
+      "ttfbMs": 187,
+      "ms": 286,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "zuerich",
+   "lat": 47.3769,
+   "lon": 8.5417,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "terrain-2scale",
+   "rep": 0,
+   "wallMs": 861,
+   "totalMs": 859.4000000357628,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "total": 859.4000000357628,
+    "scales": {
+     "near": {
+      "z": 11,
+      "radiusM": 2500
+     },
+     "far": {
+      "z": 8,
+      "radiusM": 20500
+     }
+    },
+    "elevationM": 406.2,
+    "tpi500M": -14,
+    "tpi2000M": -47.8,
+    "svf": 0.993,
+    "slopeDeg": 3.3,
+    "horizonDeg": [
+     2.74,
+     8,
+     7.18,
+     3.05,
+     1.57,
+     4.27,
+     4.44,
+     3.04
+    ],
+    "tiles": {
+     "near": 2,
+     "far": 2,
+     "failed": 0,
+     "bytes": 407988,
+     "fromCache": 0
+    },
+    "timing": {
+     "totalMs": 857,
+     "fetchMs": 3164,
+     "decodeMs": 22,
+     "computeMs": 6
+    }
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 410992,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/11/1072/717.png",
+     "bytes": 121530,
+     "ttfbMs": 463,
+     "ms": 815,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1072/716.png",
+      "bytes": 121175,
+      "ttfbMs": 424,
+      "ms": 835,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1072/717.png",
+      "bytes": 121530,
+      "ttfbMs": 463,
+      "ms": 815,
+      "startMs": 4,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/133/89.png",
+      "bytes": 85023,
+      "ttfbMs": 463,
+      "ms": 774,
+      "startMs": 5,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/134/89.png",
+      "bytes": 83264,
+      "ttfbMs": 462,
+      "ms": 726,
+      "startMs": 5,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "genf",
+   "lat": 46.2044,
+   "lon": 6.1432,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "dem-live-z9",
+   "rep": 0,
+   "wallMs": 1657,
+   "totalMs": 1654.9000000357628,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "total": 1654.9000000357628,
+    "elevation": 387
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 590079,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/265/182.png",
+     "bytes": 159050,
+     "ttfbMs": 420,
+     "ms": 872,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/264/181.png",
+      "bytes": 145532,
+      "ttfbMs": 420,
+      "ms": 840,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/264/182.png",
+      "bytes": 149000,
+      "ttfbMs": 422,
+      "ms": 1637,
+      "startMs": 5,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/265/181.png",
+      "bytes": 136497,
+      "ttfbMs": 418,
+      "ms": 834,
+      "startMs": 5,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/265/182.png",
+      "bytes": 159050,
+      "ttfbMs": 420,
+      "ms": 872,
+      "startMs": 6,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "genf",
+   "lat": 46.2044,
+   "lon": 6.1432,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "terrain-z8",
+   "rep": 0,
+   "wallMs": 725,
+   "totalMs": 721.8000000119209,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 8,
+    "radiusM": 20000,
+    "tiles": 2,
+    "bytes": 183012,
+    "total": 721.8000000119209,
+    "decodeMs": 18.200000047683716,
+    "failed": 0
+   },
+   "net": {
+    "requests": 2,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 184660,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/8/132/91.png",
+     "bytes": 99855,
+     "ttfbMs": 456,
+     "ms": 704,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 2
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/132/90.png",
+      "bytes": 84805,
+      "ttfbMs": 457,
+      "ms": 704,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/132/91.png",
+      "bytes": 99855,
+      "ttfbMs": 456,
+      "ms": 704,
+      "startMs": 4,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "genf",
+   "lat": 46.2044,
+   "lon": 6.1432,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "terrain-z9",
+   "rep": 0,
+   "wallMs": 766,
+   "totalMs": 763.8999999761581,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 9,
+    "radiusM": 20000,
+    "tiles": 4,
+    "bytes": 587239,
+    "total": 763.8999999761581,
+    "decodeMs": 28.5,
+    "failed": 0
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 590079,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/265/182.png",
+     "bytes": 159050,
+     "ttfbMs": 398,
+     "ms": 746,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/264/181.png",
+      "bytes": 145532,
+      "ttfbMs": 208,
+      "ms": 469,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/265/181.png",
+      "bytes": 136497,
+      "ttfbMs": 206,
+      "ms": 453,
+      "startMs": 1,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/264/182.png",
+      "bytes": 149000,
+      "ttfbMs": 402,
+      "ms": 746,
+      "startMs": 2,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/265/182.png",
+      "bytes": 159050,
+      "ttfbMs": 398,
+      "ms": 746,
+      "startMs": 3,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "genf",
+   "lat": 46.2044,
+   "lon": 6.1432,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "terrain-z11",
+   "rep": 0,
+   "wallMs": 611,
+   "totalMs": 610.3000000119209,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 11,
+    "radiusM": 2000,
+    "tiles": 4,
+    "bytes": 466219,
+    "total": 610.3000000119209,
+    "decodeMs": 33.10000002384186,
+    "failed": 0
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 469058,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/11/1059/727.png",
+     "bytes": 129041,
+     "ttfbMs": 201,
+     "ms": 593,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1058/726.png",
+      "bytes": 121206,
+      "ttfbMs": 188,
+      "ms": 589,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1059/726.png",
+      "bytes": 95794,
+      "ttfbMs": 188,
+      "ms": 523,
+      "startMs": 1,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1058/727.png",
+      "bytes": 123017,
+      "ttfbMs": 201,
+      "ms": 588,
+      "startMs": 2,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1059/727.png",
+      "bytes": 129041,
+      "ttfbMs": 201,
+      "ms": 593,
+      "startMs": 3,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "genf",
+   "lat": 46.2044,
+   "lon": 6.1432,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "terrain-2scale",
+   "rep": 0,
+   "wallMs": 1040,
+   "totalMs": 1037.5999999642372,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "total": 1037.5999999642372,
+    "scales": {
+     "near": {
+      "z": 11,
+      "radiusM": 2500
+     },
+     "far": {
+      "z": 8,
+      "radiusM": 20500
+     }
+    },
+    "elevationM": 378.5,
+    "tpi500M": -4.9,
+    "tpi2000M": -15.4,
+    "svf": 0.997,
+    "slopeDeg": 4.3,
+    "horizonDeg": [
+     1.9,
+     0.4,
+     2.98,
+     6.21,
+     4.6,
+     1.62,
+     1.68,
+     3.33
+    ],
+    "tiles": {
+     "near": 4,
+     "far": 2,
+     "failed": 0,
+     "bytes": 649231,
+     "fromCache": 0
+    },
+    "timing": {
+     "totalMs": 1036,
+     "fetchMs": 5714,
+     "decodeMs": 37,
+     "computeMs": 5
+    }
+   },
+   "net": {
+    "requests": 6,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 653838,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/11/1059/727.png",
+     "bytes": 129061,
+     "ttfbMs": 437,
+     "ms": 1011,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 6
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1058/726.png",
+      "bytes": 121226,
+      "ttfbMs": 441,
+      "ms": 983,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1059/726.png",
+      "bytes": 95814,
+      "ttfbMs": 439,
+      "ms": 907,
+      "startMs": 5,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1058/727.png",
+      "bytes": 123037,
+      "ttfbMs": 438,
+      "ms": 952,
+      "startMs": 6,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1059/727.png",
+      "bytes": 129061,
+      "ttfbMs": 437,
+      "ms": 1011,
+      "startMs": 7,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/132/90.png",
+      "bytes": 84825,
+      "ttfbMs": 436,
+      "ms": 880,
+      "startMs": 8,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/132/91.png",
+      "bytes": 99875,
+      "ttfbMs": 436,
+      "ms": 960,
+      "startMs": 9,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "zermatt",
+   "lat": 46.0207,
+   "lon": 7.7491,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "dem-live-z9",
+   "rep": 0,
+   "wallMs": 1019,
+   "totalMs": 1017.9000000357628,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "total": 1017.9000000357628,
+    "elevation": 1630
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 638353,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/267/181.png",
+     "bytes": 160638,
+     "ttfbMs": 440,
+     "ms": 1001,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/266/181.png",
+      "bytes": 158846,
+      "ttfbMs": 443,
+      "ms": 1008,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/266/182.png",
+      "bytes": 160377,
+      "ttfbMs": 442,
+      "ms": 984,
+      "startMs": 5,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/267/181.png",
+      "bytes": 160638,
+      "ttfbMs": 440,
+      "ms": 1001,
+      "startMs": 7,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/267/182.png",
+      "bytes": 158492,
+      "ttfbMs": 439,
+      "ms": 937,
+      "startMs": 8,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "zermatt",
+   "lat": 46.0207,
+   "lon": 7.7491,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "terrain-z8",
+   "rep": 0,
+   "wallMs": 689,
+   "totalMs": 686.5,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 8,
+    "radiusM": 20000,
+    "tiles": 2,
+    "bytes": 192536,
+    "total": 686.5,
+    "decodeMs": 12.999999940395355,
+    "failed": 0
+   },
+   "net": {
+    "requests": 2,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 194112,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/8/133/90.png",
+     "bytes": 100152,
+     "ttfbMs": 423,
+     "ms": 666,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 2
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/133/90.png",
+      "bytes": 100152,
+      "ttfbMs": 423,
+      "ms": 666,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/133/91.png",
+      "bytes": 93960,
+      "ttfbMs": 422,
+      "ms": 673,
+      "startMs": 4,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "zermatt",
+   "lat": 46.0207,
+   "lon": 7.7491,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "terrain-z9",
+   "rep": 0,
+   "wallMs": 774,
+   "totalMs": 773.2999999523163,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 9,
+    "radiusM": 20000,
+    "tiles": 4,
+    "bytes": 635513,
+    "total": 773.2999999523163,
+    "decodeMs": 27.899999976158142,
+    "failed": 0
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 638353,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/267/181.png",
+     "bytes": 160638,
+     "ttfbMs": 212,
+     "ms": 561,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/266/181.png",
+      "bytes": 158846,
+      "ttfbMs": 214,
+      "ms": 561,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/267/181.png",
+      "bytes": 160638,
+      "ttfbMs": 212,
+      "ms": 561,
+      "startMs": 1,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/266/182.png",
+      "bytes": 160377,
+      "ttfbMs": 422,
+      "ms": 763,
+      "startMs": 2,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/267/182.png",
+      "bytes": 158492,
+      "ttfbMs": 421,
+      "ms": 745,
+      "startMs": 3,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "zermatt",
+   "lat": 46.0207,
+   "lon": 7.7491,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "terrain-z11",
+   "rep": 0,
+   "wallMs": 445,
+   "totalMs": 441.69999998807907,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 11,
+    "radiusM": 2000,
+    "tiles": 2,
+    "bytes": 287906,
+    "total": 441.69999998807907,
+    "decodeMs": 12.700000047683716,
+    "failed": 0
+   },
+   "net": {
+    "requests": 2,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 289326,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/11/1067/728.png",
+     "bytes": 145296,
+     "ttfbMs": 191,
+     "ms": 425,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 2
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1067/728.png",
+      "bytes": 145296,
+      "ttfbMs": 191,
+      "ms": 425,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1068/728.png",
+      "bytes": 144030,
+      "ttfbMs": 191,
+      "ms": 424,
+      "startMs": 1,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "zermatt",
+   "lat": 46.0207,
+   "lon": 7.7491,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "terrain-2scale",
+   "rep": 0,
+   "wallMs": 888,
+   "totalMs": 886.8000000119209,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "total": 886.8000000119209,
+    "scales": {
+     "near": {
+      "z": 11,
+      "radiusM": 2500
+     },
+     "far": {
+      "z": 8,
+      "radiusM": 20500
+     }
+    },
+    "elevationM": 1608.1,
+    "tpi500M": -35,
+    "tpi2000M": -359.3,
+    "svf": 0.864,
+    "slopeDeg": 2.7,
+    "horizonDeg": [
+     17.57,
+     13.21,
+     21.84,
+     26.57,
+     17.74,
+     11.87,
+     26.94,
+     31.21
+    ],
+    "tiles": {
+     "near": 2,
+     "far": 2,
+     "failed": 0,
+     "bytes": 480442,
+     "fromCache": 0
+    },
+    "timing": {
+     "totalMs": 886,
+     "fetchMs": 3267,
+     "decodeMs": 34,
+     "computeMs": 6
+    }
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 483518,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/11/1067/728.png",
+     "bytes": 145316,
+     "ttfbMs": 426,
+     "ms": 868,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1067/728.png",
+      "bytes": 145316,
+      "ttfbMs": 426,
+      "ms": 868,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1068/728.png",
+      "bytes": 144050,
+      "ttfbMs": 449,
+      "ms": 848,
+      "startMs": 4,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/133/90.png",
+      "bytes": 100172,
+      "ttfbMs": 449,
+      "ms": 771,
+      "startMs": 5,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/133/91.png",
+      "bytes": 93980,
+      "ttfbMs": 449,
+      "ms": 765,
+      "startMs": 5,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "zugspitze",
+   "lat": 47.421,
+   "lon": 10.9863,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "dem-live-z9",
+   "rep": 0,
+   "wallMs": 810,
+   "totalMs": 808,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "total": 808,
+    "elevation": 2822
+   },
+   "net": {
+    "requests": 2,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 297753,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/271/179.png",
+     "bytes": 159206,
+     "ttfbMs": 459,
+     "ms": 772,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 2
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/271/178.png",
+      "bytes": 138547,
+      "ttfbMs": 460,
+      "ms": 800,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/271/179.png",
+      "bytes": 159206,
+      "ttfbMs": 459,
+      "ms": 772,
+      "startMs": 5,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "zugspitze",
+   "lat": 47.421,
+   "lon": 10.9863,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "terrain-z8",
+   "rep": 0,
+   "wallMs": 656,
+   "totalMs": 654,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 8,
+    "radiusM": 20000,
+    "tiles": 2,
+    "bytes": 183806,
+    "total": 654,
+    "decodeMs": 12.500000059604645,
+    "failed": 0
+   },
+   "net": {
+    "requests": 2,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 185368,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/8/136/89.png",
+     "bytes": 94490,
+     "ttfbMs": 433,
+     "ms": 642,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 2
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/135/89.png",
+      "bytes": 90878,
+      "ttfbMs": 434,
+      "ms": 628,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/136/89.png",
+      "bytes": 94490,
+      "ttfbMs": 433,
+      "ms": 642,
+      "startMs": 4,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "zugspitze",
+   "lat": 47.421,
+   "lon": 10.9863,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "terrain-z9",
+   "rep": 0,
+   "wallMs": 827,
+   "totalMs": 824.3999999761581,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 9,
+    "radiusM": 20000,
+    "tiles": 4,
+    "bytes": 595969,
+    "total": 824.3999999761581,
+    "decodeMs": 22.80000001192093,
+    "failed": 0
+   },
+   "net": {
+    "requests": 4,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 598889,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/9/271/179.png",
+     "bytes": 159206,
+     "ttfbMs": 409,
+     "ms": 710,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/271/178.png",
+      "bytes": 138547,
+      "ttfbMs": 180,
+      "ms": 426,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/272/178.png",
+      "bytes": 142469,
+      "ttfbMs": 178,
+      "ms": 424,
+      "startMs": 2,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/271/179.png",
+      "bytes": 159206,
+      "ttfbMs": 409,
+      "ms": 710,
+      "startMs": 3,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/9/272/179.png",
+      "bytes": 158667,
+      "ttfbMs": 422,
+      "ms": 810,
+      "startMs": 5,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "zugspitze",
+   "lat": 47.421,
+   "lon": 10.9863,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "terrain-z11",
+   "rep": 0,
+   "wallMs": 320,
+   "totalMs": 318.69999998807907,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "z": 11,
+    "radiusM": 2000,
+    "tiles": 1,
+    "bytes": 143388,
+    "total": 318.69999998807907,
+    "decodeMs": 7,
+    "failed": 0
+   },
+   "net": {
+    "requests": 1,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 144142,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/11/1086/716.png",
+     "bytes": 144142,
+     "ttfbMs": 180,
+     "ms": 309,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 1
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1086/716.png",
+      "bytes": 144142,
+      "ttfbMs": 180,
+      "ms": 309,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "zugspitze",
+   "lat": 47.421,
+   "lon": 10.9863,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "terrain-2scale",
+   "rep": 0,
+   "wallMs": 752,
+   "totalMs": 749.3000000119209,
+   "coreMs": null,
+   "readMs": null,
+   "firstMs": null,
+   "result": {
+    "total": 749.3000000119209,
+    "scales": {
+     "near": {
+      "z": 11,
+      "radiusM": 2500
+     },
+     "far": {
+      "z": 8,
+      "radiusM": 20500
+     }
+    },
+    "elevationM": 2905.9,
+    "tpi500M": 203.2,
+    "tpi2000M": 658.8,
+    "svf": 0.994,
+    "slopeDeg": 23,
+    "horizonDeg": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     12.13,
+     0
+    ],
+    "tiles": {
+     "near": 1,
+     "far": 2,
+     "failed": 0,
+     "bytes": 327194,
+     "fromCache": 0
+    },
+    "timing": {
+     "totalMs": 748,
+     "fetchMs": 2029,
+     "decodeMs": 20,
+     "computeMs": 8
+    }
+   },
+   "net": {
+    "requests": 3,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 329510,
+    "cdn": 0,
+    "hit": 0,
+    "miss": 0,
+    "largest": {
+     "url": "elevation-tiles-prod/terrarium/11/1086/716.png",
+     "bytes": 144142,
+     "ttfbMs": 433,
+     "ms": 726,
+     "xCache": null
+    },
+    "hosts": {
+     "s3.amazonaws.com": 3
+    },
+    "cdnRequests": [],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1086/716.png",
+      "bytes": 144142,
+      "ttfbMs": 433,
+      "ms": 726,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/135/89.png",
+      "bytes": 90878,
+      "ttfbMs": 431,
+      "ms": 647,
+      "startMs": 5,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/136/89.png",
+      "bytes": 94490,
+      "ttfbMs": 429,
+      "ms": 644,
+      "startMs": 6,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  }
+ ]
+}

@@ -8,7 +8,8 @@
  * What one slot holds, per point (see lib/punktarchiv.mjs for the form):
  *   cube      t1/t2/t3 from `buscosun-data` via `src/point/client` — every plane, integer-coded
  *             with the run manifest's own scales (the container is int16, nothing is lost)
- *   stations  the MOSMIX-L product at the point's own station (the point IS a catalog station)
+ *   stations  the MOSMIX-L product at the point's own station (the point IS a catalog station;
+ *             for AT/CH points at the measurement site the catalog id is `point.mosmix.id`)
  *   nowcast   the radar mirror frames covering the slot (domain-checked, `validAtSuspect` kept)
  *   hmodel    model orography per source and tier (`point/static/hmodel/v1`)
  *   plan      what `planPointSources` would choose at the slot — the selection, not the values
@@ -42,8 +43,9 @@ installNodeShims();
 
 import { decodePng } from '../lib/png.mjs';
 import { httpStore, POINT_RAW_BASE } from '../../src/point/client/store.ts';
-import { loadPointIndex, loadRunManifestFrom, manifestStore, readCubePoint } from '../../src/point/client/cubePoint.ts';
-import { loadStationCatalog, nearestStations, readStationPoint } from '../../src/point/client/stationPoint.ts';
+import { withRawSameRef } from './lib/rawFallback.mjs';
+import { distanceKm, loadPointIndex, loadRunManifestFrom, manifestStore, readCubePoint } from '../../src/point/client/cubePoint.ts';
+import { loadStationCatalog, readStationPoint } from '../../src/point/client/stationPoint.ts';
 import { nowcastSourcesFor, readNowcastPoint } from '../../src/point/client/nowcastPoint.ts';
 import { loadHmodelManifest, readHmodelPoint } from '../../src/point/client/staticPoint.ts';
 import { planPointSources } from '../../src/point/client/resolve.ts';
@@ -56,7 +58,9 @@ import { fetchSmnHistory } from '../../src/sources/meteoSwissSmn.ts';
 import {
   newSlot, encodeValue, encodeSeries, LIVE_SCALES, TRUTH_SCALES, serialiseSlot, mergeSlot, slotPaths, SENTINEL,
 } from './lib/punktarchiv.mjs';
-import { POI_URL, parsePoi, poiSeries, hourMapSeries } from './lib/truth.mjs';
+import {
+  POI_URL, parsePoi, poiSeries, hourMapSeries, TAWES_HISTORY_URL, TAWES_10MIN, SMN_NOW_URL, parseTawes10min, parseSmn10min, tenMinColumns,
+} from './lib/truth.mjs';
 import { loadPointList } from './points.mjs';
 
 const H = 3_600_000;
@@ -195,11 +199,16 @@ async function collectStations(store, index, points, slot) {
     notMapped: Object.keys(manifest.notMapped ?? {}), byPoint: {},
   };
   let ok = 0;
+  // By id, not by proximity: a PA2 point sits at its measurement site, up to a few km from its
+  // catalog position (§9.3.1 (4)); the nearest catalog station there can be a different one.
+  // For DE points (point = catalog station) this is the same station with the same distance 0.
+  const byId = new Map(catalog.stations.map((s) => [s.id, s]));
   for (const p of points) {
     try {
-      const cands = nearestStations(catalog, p.lat, p.lon, { elevationM: p.demM, limit: 1 });
-      const c = cands[0];
-      if (!c || c.id !== p.id) { slot.stations.byPoint[p.id] = { station: c ? { id: c.id, distanceKm: c.distanceKm } : null, planes: null, note: 'nächste Katalogstation ist nicht der Punkt selbst' }; continue; }
+      const sid = p.mosmix?.id ?? p.id;
+      const s = byId.get(sid);
+      if (!s) { slot.stations.byPoint[p.id] = { station: null, planes: null, note: `Katalogstation ${sid} steht nicht (mehr) im Katalog` }; continue; }
+      const c = { ...s, distanceKm: distanceKm(p.lat, p.lon, s.lat, s.lon), dElevM: p.demM == null ? null : s.elev - p.demM };
       const ser = await readStationPoint(store, manifest, c);
       if (!ser) { slot.stations.byPoint[p.id] = null; continue; }
       const planes = {};
@@ -333,7 +342,8 @@ async function collectLive(points, slot, opts) {
   await mapLimit(points, opts.liveConcurrency, async (p, i) => {
     const hours = i < opts.liveFull ? 372 : opts.liveHours;
     try {
-      const fc = await getPointForecast({ lat: p.lat, lng: p.lon, country: p.country, hours, includeRadarNowcast: false, distribution: true, anchorMode: 'offset', signal: AbortSignal.timeout(180_000) });
+      // `profile`: the DACH country profile (neighbour points keep the one PA1 used — AT/CH — so their live series does not break).
+      const fc = await getPointForecast({ lat: p.lat, lng: p.lon, country: p.profile ?? p.country, hours, includeRadarNowcast: false, distribution: true, anchorMode: 'offset', signal: AbortSignal.timeout(180_000) });
       slot.live.byPoint[p.id] = encodeLive(fc);
       ok++;
     } catch (e) { slot.stats.errors.push(`live/${p.id}: ${e.message}`); slot.live.byPoint[p.id] = { error: String(e.message) }; }
@@ -347,56 +357,81 @@ async function collectTruth(points, slot, slotAtMs) {
   const t0 = Date.now();
   const fromMs = slotAtMs - 24 * H;
   let poiOk = 0;
-  await mapLimit(points, 6, async (p) => {
-    const rec = {};
+  const poiPoints = points.filter((p) => p.truth?.poi !== false);   // PA2 points without a POI file are not asked (no 404 per point)
+  for (const p of points) slot.truth.byPoint[p.id] = { poi: null };
+  await mapLimit(poiPoints, 6, async (p) => {
+    const rec = slot.truth.byPoint[p.id];
     try {
       const txt = await fetchText(POI_URL(p.id));
       if (txt) {
         const rows = parsePoi(txt);
         const s = poiSeries(rows, fromMs, slotAtMs);
         rec.poi = { obsAtMs: s.obsAtMs, n: s.obsAtMs.length };
-        for (const k of Object.keys(TRUTH_SCALES)) rec.poi[k] = encodeSeries(s[k], TRUTH_SCALES[k]);
+        for (const k of Object.keys(TRUTH_SCALES)) if (s[k] !== undefined) rec.poi[k] = encodeSeries(s[k], TRUTH_SCALES[k]);
         poiOk++;
-      } else rec.poi = null;
-    } catch (e) { slot.stats.errors.push(`truth/poi/${p.id}: ${e.message}`); rec.poi = null; }
-    slot.truth.byPoint[p.id] = rec;
+      }
+    } catch (e) { slot.stats.errors.push(`truth/poi/${p.id}: ${e.message}`); }
   });
-  // TAWES: one call for all AT ids, SMN: per-station day files (the module paces itself).
+  // PA2 (§9.3.1 (6)): the 10-min series the app's hourly readers do not keep — hour sums `rr1h`
+  // (six values stamped h−50…h), measured `td` and reduced `p`. TAWES: one request per ≤ 100 ids
+  // (URL limit ≈ 2 kB); SMN: the day file per station. A failure costs the extra columns, never the record.
   const tawesIds = points.filter((p) => p.truth?.tawes).map((p) => p.truth.tawes);
+  const smnAbbrs = points.filter((p) => p.truth?.smn).map((p) => p.truth.smn);
+  const tenMin = new Map();
+  const iso = (ms) => new Date(ms).toISOString().slice(0, 16);
+  for (let i = 0; i < tawesIds.length; i += 100) {
+    const ids = tawesIds.slice(i, i + 100);
+    try {
+      const txt = await fetchText(`${TAWES_HISTORY_URL}?parameters=${Object.values(TAWES_10MIN).join(',')}&station_ids=${ids.join(',')}&start=${iso(fromMs - H)}&end=${iso(slotAtMs)}`, 60_000);
+      if (txt) for (const [id, rec] of parseTawes10min(JSON.parse(txt))) tenMin.set(`tawes:${id}`, rec);
+    } catch (e) { slot.stats.errors.push(`truth/tawes-10min: ${e.message}`); }
+  }
+  await mapLimit(smnAbbrs, 6, async (abbr) => {
+    try { const txt = await fetchText(SMN_NOW_URL(abbr)); if (txt) tenMin.set(`smn:${abbr}`, parseSmn10min(txt)); } catch (e) { slot.stats.errors.push(`truth/smn-10min/${abbr}: ${e.message}`); }
+  });
+  const networkRecord = (byHour, extra) => {
+    const s = hourMapSeries(byHour, fromMs, slotAtMs);
+    const rec = { obsAtMs: s.obsAtMs, n: s.obsAtMs.length };
+    const cols = extra ? tenMinColumns(extra, s.obsAtMs) : null;
+    if (cols) { s.td = cols.td; s.p = cols.p; }
+    s.rr1h = cols ? cols.rr1h : s.obsAtMs.map(() => null);
+    for (const k of Object.keys(TRUTH_SCALES)) if (s[k] !== undefined) rec[k] = encodeSeries(s[k], TRUTH_SCALES[k]);
+    return rec;
+  };
+  let tawesOk = 0, smnOk = 0;
+  // TAWES: one call for all AT ids, SMN: per-station day files (the module paces itself).
   if (tawesIds.length) {
     try {
       const m = await fetchTawesHistory(tawesIds, 24, AbortSignal.timeout(60_000));
       for (const p of points) {
         const byHour = p.truth?.tawes ? m.get(p.truth.tawes) : null;
         if (!byHour) continue;
-        const s = hourMapSeries(byHour, fromMs, slotAtMs);
-        const rec = { obsAtMs: s.obsAtMs, n: s.obsAtMs.length };
-        for (const k of Object.keys(TRUTH_SCALES)) rec[k] = encodeSeries(s[k], TRUTH_SCALES[k]);
-        slot.truth.byPoint[p.id].tawes = rec;
+        slot.truth.byPoint[p.id].tawes = networkRecord(byHour, tenMin.get(`tawes:${p.truth.tawes}`));
+        tawesOk++;
       }
     } catch (e) { slot.stats.errors.push(`truth/tawes: ${e.message}`); }
   }
-  const smnAbbrs = points.filter((p) => p.truth?.smn).map((p) => p.truth.smn);
   if (smnAbbrs.length) {
     try {
       const m = await fetchSmnHistory(smnAbbrs, 24, AbortSignal.timeout(120_000));
       for (const p of points) {
         const byHour = p.truth?.smn ? m.get(p.truth.smn) : null;
         if (!byHour) continue;
-        const s = hourMapSeries(byHour, fromMs, slotAtMs);
-        const rec = { obsAtMs: s.obsAtMs, n: s.obsAtMs.length };
-        for (const k of Object.keys(TRUTH_SCALES)) rec[k] = encodeSeries(s[k], TRUTH_SCALES[k]);
-        slot.truth.byPoint[p.id].smn = rec;
+        slot.truth.byPoint[p.id].smn = networkRecord(byHour, tenMin.get(`smn:${p.truth.smn}`));
+        smnOk++;
       }
     } catch (e) { slot.stats.errors.push(`truth/smn: ${e.message}`); }
   }
   slot.truth.caveats = [
     'POI: stündlich, 24-h-Rollfenster des DWD, Stationskennung = WMO-Kennung, Zeit = UTC aus den Spalten Datum/Uhrzeit.',
     'TAWES/SMN: 10-min-Werte auf den Stundenboden abgetastet (≤ 10 min), rr1 dort = Rate der letzten 10 min × 6 (mm/h), NICHT die Stundensumme wie bei POI.',
+    'TAWES/SMN rr1h (PA2): Stundensumme der sechs 10-min-Werte mit Stempel h−50…h (Stempel = Intervallende; SMN gegen POI auf die Stelle gemessen, TAWES laut API „letzte 10 Minuten"), Sentinel wenn einer fehlt — DAS ist die mit POI rr1 vergleichbare Größe. td (TAWES TP, SMN tde200s0) und p (reduziert: TAWES PRED, SMN pp0qffs0) am Stundenstempel.',
+    'SMN-Tagesdatei trägt nur den laufenden UTC-Tag: im 23:10-Slot fehlen die Vortagsstunde 23:00 und die Stundensumme um 00:00; Nachholweg _t_recent.csv.',
+    'Punkte ohne POI-Datei (PA2, AT/CH an der Messstelle) tragen poi: null — nicht abgefragt.',
     'Alle Messzeiten liegen ≤ Slotzeit (As-of-Wächter der Bibliothek).',
   ];
   slot.stats.timing.truth = Date.now() - t0;
-  console.log(`[collect] truth: POI ${poiOk}/${points.length} · TAWES ${tawesIds.length} · SMN ${smnAbbrs.length} · ${((Date.now() - t0) / 1000).toFixed(1)} s`);
+  console.log(`[collect] truth: POI ${poiOk}/${poiPoints.length} · TAWES ${tawesOk}/${tawesIds.length} (10 min ${[...tenMin.keys()].filter((k) => k.startsWith('tawes:')).length}) · SMN ${smnOk}/${smnAbbrs.length} (10 min ${[...tenMin.keys()].filter((k) => k.startsWith('smn:')).length}) · ${((Date.now() - t0) / 1000).toFixed(1)} s`);
 }
 
 // ─── V-PA-1: archived live samples against a fresh call ─────────────────────
@@ -444,10 +479,10 @@ async function main() {
   const liveFull = Number(flags['live-full'] ?? 0);
   const t0 = Date.now();
 
-  const store = memoStore(httpStore(flags.raw ? { base: POINT_RAW_BASE } : {}));
+  const store = memoStore(flags.raw ? httpStore({ base: POINT_RAW_BASE }) : withRawSameRef(httpStore({})));
   const slot = newSlot({ slotAtMs, codeHash: codeHash(), producer: PRODUCER });
   slot.pointsFrom = { file: 'scripts/punktarchiv/points.json', builtAt: list.builtAt, total: list.points.length, used: points.length };
-  slot.points = points.map((p) => ({ id: p.id, name: p.name, lat: p.lat, lon: p.lon, elev: p.elev, demM: p.demM, country: p.country, wmo: p.wmo, truth: p.truth }));
+  slot.points = points.map((p) => ({ id: p.id, name: p.name, lat: p.lat, lon: p.lon, elev: p.elev, demM: p.demM, country: p.country, profile: p.profile ?? p.country, wmo: p.wmo, truth: p.truth, ...(p.mosmix ? { mosmix: p.mosmix } : {}) }));
   console.log(`[collect] Slot ${slot.slotAt} · ${points.length} Punkte · Repo ${store.base} · Ausgabe ${outRoot}${flags.dry ? ' (dry)' : ''}`);
 
   const index = await loadPointIndex(store);
@@ -472,7 +507,7 @@ async function main() {
   if (!flags['no-truth']) await collectTruth(points, slot, slotAtMs);
   if (!flags['no-live']) await collectLive(points, slot, { liveHours, liveFull, liveConcurrency: Number(flags['live-concurrency'] ?? 3) });
 
-  slot.stats.net = { files: store.stats.files, bytes: store.stats.bytes, misses: store.stats.misses, memoChunks: store.memo.chunks, memoJsons: store.memo.jsons };
+  slot.stats.net = { files: store.stats.files, bytes: store.stats.bytes, misses: store.stats.misses, fallbacks: store.stats.fallbacks ?? 0, memoChunks: store.memo.chunks, memoJsons: store.memo.jsons };
   slot.stats.timing.total = Date.now() - t0;
 
   const bytes = serialiseSlot(slot);

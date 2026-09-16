@@ -55,6 +55,8 @@ export const TRUTH_SCALES = Object.freeze({
   dd: { scale: 1, offset: 0, unit: 'deg' },
   fx: { scale: 0.01, offset: 0, unit: 'm/s' },
   rr1: { scale: 0.01, offset: 0, unit: 'mm' },
+  // PA2: hour sum from six 10-min values (TAWES/SMN only; POI's rr1 already is the hour sum).
+  rr1h: { scale: 0.01, offset: 0, unit: 'mm' },
   n: { scale: 0.1, offset: 0, unit: 'pct' },
   p: { scale: 0.1, offset: 0, unit: 'hPa' },
 });
@@ -90,7 +92,7 @@ export function newSlot(head) {
     sentinel: SENTINEL,
     scales: { live: LIVE_SCALES, truth: TRUTH_SCALES, cube: {} },
     index: null,          // point/index.json head: commit, publishedAt, latestByTier, stations run
-    points: [],           // { id, name, lat, lon, elev, country, wmo, truth: { poi, tawes, smn } }
+    points: [],           // { id, name, lat, lon, elev, country, profile, wmo, truth: { poi, tawes, smn }, mosmix? } — mosmix: catalog station when the point sits at a TAWES/SMN site (PA2)
     cube: {},             // tier → { run, sourceRun, sourceRunAtMs, leadHours, planes[], provenance, byPoint }
     stations: null,       // { run, ageH, leadHours, planes[], byPoint }
     nowcast: { byPoint: {} },

@@ -23,13 +23,10 @@
  */
 
 import { pathToFileURL } from 'node:url';
-import { decodePng } from '../lib/png.mjs';
+import { decodePng, toRgba } from '../lib/png.mjs';
 import { httpStore, POINT_RAW_BASE } from '../../src/point/client/store.ts';
-import { planPointSources } from '../../src/point/client/resolve.ts';
-import { readCubePoint, stepNearest, manifestStore } from '../../src/point/client/cubePoint.ts';
-import { readStationPoint } from '../../src/point/client/stationPoint.ts';
-import { readNowcastPoint } from '../../src/point/client/nowcastPoint.ts';
-import { loadHmodelManifest, readHmodelPoint } from '../../src/point/client/staticPoint.ts';
+import { stepNearest } from '../../src/point/client/cubePoint.ts';
+import { readPointBundle } from '../../src/point/client/readPoint.ts';
 
 const H = 3_600_000;
 const iso = (ms) => new Date(ms).toISOString().slice(0, 16) + 'Z';
@@ -60,7 +57,8 @@ async function main() {
   if (!Number.isFinite(lat) || !Number.isFinite(lon)) { usage(); process.exitCode = 2; return; }
 
   const nowMs = flags.now ? Date.parse(flags.now) : Date.now();
-  const store = httpStore(flags.raw ? { base: POINT_RAW_BASE } : {});
+  // Harte Frist 8 s wie im Browser-Leser (Plan §4, AP1); der Sammler behaelt seine 20 s.
+  const store = httpStore(flags.raw ? { base: POINT_RAW_BASE, timeoutMs: 8_000 } : { timeoutMs: 8_000 });
 
   const input = {
     lat, lon,
@@ -74,58 +72,38 @@ async function main() {
     input.toMs = flags.to ? Date.parse(flags.to) : (input.fromMs + 336 * H);
   }
 
-  const plan = await planPointSources(store, input);
-  if (!plan) { console.error('point/index.json nicht erreichbar.'); process.exitCode = 1; return; }
+  // ── AP1: alle Produkte PARALLEL über den Bündel-Leser (derselbe Weg wie im Browser) ──
+  // Chunk-Adresse aus dem Index, Manifeste gepinnt nur fuer die Provenienz, Radar-Frames nur
+  // auf den Ausgabezeiten, Gelaende aus zwei Kachelskalen (z11 + z8) parallel dazu.
+  const bundle = await readPointBundle(input, {
+    store,
+    decodePng: flags['no-nowcast'] ? undefined : decodePng,
+    nowcast: !flags['no-nowcast'],
+    // Node hat kein createImageBitmap: PNG aus `png.mjs`, dann RGBA in der Form, die der Browser liefert.
+    terrain: flags['no-terrain'] ? false : { decodeRgba: (b) => { const png = decodePng(b); return { data: toRgba(png), width: png.width, height: png.height }; } },
+    plan: true,
+  });
+  const plan = bundle.plan;
+  if (!bundle.index) { console.error('point/index.json nicht erreichbar.'); process.exitCode = 1; return; }
+  if (!plan) { console.error('Auswahlregel nicht gelaufen: ' + bundle.errors.join(' · ')); process.exitCode = 1; return; }
+  // Uebersprungenes wird GESAGT (V-FI-3): `null` allein sagt nicht, warum.
+  for (const s of bundle.skips) if (!/außerhalb|ausserhalb/.test(s)) console.error(`⚠ uebersprungen — ${s}`);
+  for (const n of bundle.notes) console.error(`⚠ Hinweis — ${n}`);
+  for (const e of bundle.errors) console.error(`✗ Fehler — ${e}`);
 
-  // ── Die gewählten Produkte EINMAL lesen ──────────────────────────────────
-  const needTiers = new Set();
-  let needStation = false;
-  let needNowcast = false;
-  for (const d of plan.decisions) {
-    for (const c of [d.primary, d.alternative, d.precip, d.uncertainty]) {
-      if (!c) continue;
-      if (c.product.startsWith('cube-')) needTiers.add(c.product.slice(5));
-      if (c.product === 'stations') needStation = true;
-      if (c.product === 'nowcast') needNowcast = true;
-    }
-  }
-
-  const cube = {};
-  // Eine uebersprungene Stufe wird GESAGT (V-FI-3): `null` allein sagt nicht, warum.
-  for (const t of needTiers) cube[t] = await readCubePoint(store, plan.index, t, lat, lon, { onSkip: (r) => console.error(`⚠ Stufe uebersprungen — ${r}`) });
-  // PD-E: die Modellhoehen je Quelle. Das Produkt ist zeitlos und liegt im Chunk-Raster
-  // des Cubes — derselbe (cy, cx), also eine kleine Datei. Fehlt es (noch), ist das kein
-  // Fehler: der Block bleibt dann einfach aus.
-  let hmodel = null;
-  {
-    const firstTier = [...needTiers][0];
-    if (firstTier) {
-      // In place veraenderliches Produkt ⇒ Manifest UND Chunk gepinnt an den Index-Commit (V-FI-1).
-      const pinned = manifestStore(store, plan.index);
-      const hm = await loadHmodelManifest(pinned);
-      if (hm) hmodel = await readHmodelPoint(pinned, hm, firstTier, lat, lon);
-    }
-  }
-  const station = needStation && plan.station.manifest && plan.station.candidate
-    ? await readStationPoint(store, plan.station.manifest, plan.station.candidate)
-    : null;
-  let nowcast = null;
-  if (needNowcast && !flags['no-nowcast']) {
-    const wanted = plan.decisions.filter((d) => d.precip?.product === 'nowcast');
-    if (wanted.length) {
-      // Nur die Frames holen, die eine angefragte Zeit treffen können. Ein RV-Slot sind
-      // 25 PNG à ~80 KB — ungefiltert kostet eine Ein-Stunden-Anfrage 2 MiB für 24
-      // Bilder, die niemand liest.
-      nowcast = await readNowcastPoint(store, wanted[0].precip.detail, lat, lon, {
-        nowMs, decodePng,
-        fromMs: wanted[0].atMs - 30 * 60_000,
-        untilMs: wanted[wanted.length - 1].atMs + 30 * 60_000,
-      });
-    }
-  }
+  const needTiers = new Set(bundle.tiers);
+  const cube = bundle.cube;
+  const hmodel = bundle.hmodel[bundle.tiers[0]] ?? null;
+  const station = bundle.station;
+  const nowcast = bundle.nowcast[0] ?? null;
+  const terrain = bundle.terrain;
 
   if (flags.json) {
-    console.log(JSON.stringify({ plan: { ...plan, index: undefined }, cube, station, nowcast, stats: store.stats }, null, 1));
+    console.log(JSON.stringify({
+      plan: { ...plan, index: undefined }, cube, station, nowcast, nowcastAll: bundle.nowcast,
+      hmodel: bundle.hmodel, urban: bundle.urban, terrain, stationChoice: bundle.stationChoice,
+      timing: bundle.timing, stats: store.stats, skips: bundle.skips, notes: bundle.notes, errors: bundle.errors,
+    }, null, 1));
     return;
   }
 
@@ -315,9 +293,21 @@ async function main() {
     }
   }
 
+  // ── AP1: Gelände am Punkt (zwei Kachelskalen) ───────────────────────────────
+  if (terrain) {
+    console.log(`* Gelände (${terrain.source}${terrain.fromCache ? ', aus dem Cache' : ''}): Höhe ${terrain.elevationM ?? '—'} m · `
+      + `TPI 500 m ${terrain.tpi500M ?? '—'} · TPI 2 km ${terrain.tpi2000M ?? '—'} · Neigung ${terrain.slopeDeg ?? '—'}° · `
+      + `SVF ${terrain.svf ?? '—'} · Horizont N…NW ${terrain.horizonDeg ? terrain.horizonDeg.map((h) => h.toFixed(0)).join('/') : '—'}° `
+      + `(${terrain.tiles.near + terrain.tiles.far} Kacheln, ${(terrain.tiles.bytes / 1024).toFixed(0)} KB, ${terrain.timing.totalMs} ms${terrain.tiles.failed ? `, ${terrain.tiles.failed} fehlgeschlagen` : ''})`);
+  }
+  if (bundle.urban) {
+    const u = bundle.urban.byColumn;
+    console.log(`* Stadt-Raster (urban/v1, t1-Zelle): versiegelt ${u.imperv ?? '—'} % · d0 ${u.d0 ?? '—'} m · Gebäudehöhe ${u.bldgH ?? '—'} m`);
+  }
+
   // ── PD-E: Modellhöhe je Quelle statt nur des Mittels ───────────────────────
   if (hmodel) {
-    const rows = Object.entries(hmodel.bySource).filter(([, v]) => v != null);
+    const rows = Object.entries(hmodel.byColumn).filter(([, v]) => v != null);
     if (rows.length) {
       console.log(`* Modellhöhe je Quelle (${hmodel.tier}, ${hmodel.version}): `
         + rows.map(([id, v]) => `${id} ${v} m${hmodel.provenance[id] === 'native' ? '' : '*'}`).join(' · ')
@@ -336,7 +326,12 @@ async function main() {
   console.log(`* Schwellen der Auswahl: Station ≤ ${plan.selection.stationMaxKm} km und `
     + `≤ ±${plan.selection.stationMaxDElevM} m — gesetzt, NICHT gemessen (E-D-2).`);
   console.log(`* Gelesen: ${store.stats.files} Dateien, ${(store.stats.bytes / 1048576).toFixed(2)} MiB, `
-    + `${store.stats.misses} Sonde(n) ins Leere.`);
+    + `${store.stats.misses} Sonde(n) ins Leere, ${store.stats.slow} Abruf(e) über der weichen Frist.`);
+  const tm = bundle.timing;
+  const crit = Object.entries(tm.doneAt).filter(([k]) => !['read', 'plan', 'first', 'core'].includes(k)).sort((a, b) => b[1] - a[1]);
+  console.log(`* Zeit (AP1, parallel): Index ${tm.indexMs ?? '—'} ms · erste Darstellung ${tm.firstMs ?? '—'} ms · Lesephase ${tm.readMs} ms · gesamt ${tm.totalMs} ms`
+    + ` — kritischer Pfad: ${crit.slice(0, 3).map(([k, v]) => `${k} ${v} ms`).join(' > ')}`
+    + (Object.keys(tm.phases).length ? ` · Dekodierung ${Object.entries(tm.phases).filter(([k]) => k.startsWith('decode.')).map(([k, v]) => `${k.slice(7)} ${v} ms`).join(', ')}` : ''));
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {

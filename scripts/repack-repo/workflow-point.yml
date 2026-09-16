@@ -209,10 +209,19 @@ jobs:
             ${{ github.event.inputs.steps && format('--steps={0}', github.event.inputs.steps) || '' }}
       # Der Publisher committet, pusht (mit Wiederholung) und purgt DANACH den Index am
       # CDN — genau EINE Push-Stelle je Job (V-BW-58: fuenf Versuche mit `pull --rebase`).
+      # AP12a (E-F-1, audit/fusion-implementierung.md §9.4): danach purgt er JEDE geaenderte Datei
+      # (run.json zuerst — sie wird je Stufe gemergt und beschnitten, V-FI-1), prueft Index und
+      # run.json auf Frische und waermt alles Neue mit Browser-`Accept-Encoding`; 403 und
+      # Fristablauf zaehlen als Fehlschlag und werden wiederholt (V-FI-5). Nie fatal.
+      # POINT_CDN_BUDGET_S = Wandzeit dieses Schritts, hergeleitet aus der Luft unter
+      # JOB_MAX_MIN_BY_TIER ueber die gemessenen Job-Maxima (Laeufe 56–71, 15./16.09.) minus 1 min:
+      #   t1 20 − 14,2 − 1 = 4,8 min ⇒ 240 s · t2 15 − 10,7 − 1 = 3,3 ⇒ 180 s · t3 10 − 5,4 − 1 = 3,6 ⇒ 180 s
+      # (Regel F im Verifier rechnet es nach). Rueckweg: POINT_CDN_SYNC: '0' (nur index.json purgen).
       - name: Publish (committet, pusht mit Wiederholung, purgt das CDN)
         env:
           # OHNE diese Variable schreibt der Publisher nur lokal und pusht NICHT.
           POINT_PUSH: '1'
+          POINT_CDN_BUDGET_S: '240'
         run: |
           cd app
           node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/point/publish-point.mjs --repo=${{ github.workspace }}
@@ -289,6 +298,7 @@ jobs:
       - name: Publish (committet, pusht mit Wiederholung, purgt das CDN)
         env:
           POINT_PUSH: '1'
+          POINT_CDN_BUDGET_S: '180'   # AP12a, s. t1
         run: |
           cd app
           node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/point/publish-point.mjs --repo=${{ github.workspace }}
@@ -353,6 +363,7 @@ jobs:
       - name: Publish (committet, pusht mit Wiederholung, purgt das CDN)
         env:
           POINT_PUSH: '1'
+          POINT_CDN_BUDGET_S: '180'   # AP12a, s. t1
         run: |
           cd app
           node --experimental-strip-types --import ./scripts/lib/register-ts.mjs scripts/point/publish-point.mjs --repo=${{ github.workspace }}

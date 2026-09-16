@@ -1,33 +1,77 @@
 {
  "schema": 1,
  "kind": "punktarchiv/points",
- "builtAt": "2026-09-14T20:38:17.722Z",
+ "builtAt": "2026-09-16T17:46:31.059Z",
  "from": {
   "catalog": "https://cdn.jsdelivr.net/gh/jppetry/buscosun-data@main/point/stations/catalog.json",
-  "catalogUpdatedAt": "2026-09-14T16:03:53.282Z",
+  "catalogUpdatedAt": "2026-09-15T22:44:02.927Z",
   "catalogCount": 3071,
   "poiDir": "https://opendata.dwd.de/weather/weather_reports/poi/",
   "poiFiles": 974,
   "smnMeta": "https://data.geo.admin.ch/ch.meteoschweiz.ogd-smn/ogd-smn_meta_stations.csv",
-  "tawesMeta": "https://dataset.api.hub.geosphere.at/v1/station/current/tawes-v1-10min/metadata"
+  "tawesMeta": "https://dataset.api.hub.geosphere.at/v1/station/current/tawes-v1-10min/metadata",
+  "networkProbe": {
+   "tawes": {
+    "stations": 286,
+    "requests": 3,
+    "bytes": 268270,
+    "ms": 1429,
+    "readable": 280,
+    "notReadable": [
+     "11267 DACHSTEIN-HUNERKOGEL",
+     "11290 GRAZ UNIVERSITAET",
+     "8989044 HAHNENKAMM/SONNENRAST",
+     "11194 NEUSIEDL AM SEE",
+     "11316 PITZTALER GLETSCHER",
+     "8989104 GRAZ LENDPLATZ/FEUERWEHRTURM"
+    ]
+   },
+   "smn": {
+    "stations": 158,
+    "requests": 158,
+    "bytes": 2040503,
+    "ms": 1303,
+    "failed": [],
+    "readable": 158
+   }
+  }
  },
- "rule": "MOSMIX-Katalog ∩ POI-Kennung ∩ WMO-Block 10/11/06 ∩ Cube-Box, eindeutig nach Kennung und Position (3 Dezimalen), DEM (Terrarium z9) endlich.",
+ "rule": "DE: MOSMIX-Katalog ∩ POI ∩ WMO 10000–10999 (PA1). AT/CH/LI: Katalogstation mit TAWES- bzw. SMN-Station am selben Ort (gleiche Kennung ≤ 5 km oder ≤ 2 km, |Δz| ≤ 50 m; Position = Messstelle), POI zusätzlich wo vorhanden, ohne Netzpaar POI allein. Nachbarn (CZ/SK/DK/NL/BE/LU) nur mit POI, Länderprofil wie in PA1. Alle: Cube-Box, eindeutig nach Kennung und Position (3 Dezimalen), DEM (Terrarium z9) endlich. Herleitung: audit/fusion-implementierung.md §9.3.",
+ "colocate": {
+  "idMaxKm": 5,
+  "maxKm": 2,
+  "maxDzM": 50
+ },
  "counts": {
-  "points": 243,
+  "points": 410,
   "byCountry": {
+   "DK": 1,
+   "NL": 4,
+   "LU": 1,
+   "CH": 101,
+   "LI": 1,
    "DE": 208,
-   "AT": 23,
-   "CH": 12
+   "AT": 84,
+   "CZ": 9,
+   "SK": 1
   },
-  "withTawes": 11,
-  "withSmn": 6,
+  "dach": 394,
+  "neighbours": 16,
+  "withPoi": 243,
+  "withTawes": 84,
+  "withSmn": 102,
+  "networkOnly": 167,
+  "matchId": 169,
+  "matchColocated": 17,
   "droppedNoDem": 0,
-  "noCountry": 2548,
-  "noPoi": 280,
+  "noCountry": 2547,
+  "noTruth": 114,
   "outsideBox": 0,
   "dupId": 0,
   "dupPos": 0,
-  "terrariumTiles": 170
+  "colocateTooFar": 0,
+  "colocateDz": 3,
+  "terrariumTiles": 208
  },
  "points": [
   {
@@ -36,7 +80,8 @@
    "lat": 55.47,
    "lon": 10.33,
    "elev": 17,
-   "country": "CH",
+   "country": "DK",
+   "profile": "CH",
    "wmo": "06120",
    "truth": {
     "poi": true,
@@ -51,7 +96,8 @@
    "lat": 53.22,
    "lon": 5.77,
    "elev": 1,
-   "country": "CH",
+   "country": "NL",
+   "profile": "CH",
    "wmo": "06270",
    "truth": {
     "poi": true,
@@ -66,7 +112,8 @@
    "lat": 52.27,
    "lon": 6.9,
    "elev": 35,
-   "country": "CH",
+   "country": "NL",
+   "profile": "CH",
    "wmo": "06290",
    "truth": {
     "poi": true,
@@ -81,7 +128,8 @@
    "lat": 51.65,
    "lon": 5.7,
    "elev": 22,
-   "country": "CH",
+   "country": "NL",
+   "profile": "CH",
    "wmo": "06375",
    "truth": {
     "poi": true,
@@ -96,7 +144,8 @@
    "lat": 50.92,
    "lon": 5.78,
    "elev": 114,
-   "country": "CH",
+   "country": "NL",
+   "profile": "CH",
    "wmo": "06380",
    "truth": {
     "poi": true,
@@ -111,7 +160,8 @@
    "lat": 49.62,
    "lon": 6.22,
    "elev": 376,
-   "country": "CH",
+   "country": "LU",
+   "profile": "CH",
    "wmo": "06590",
    "truth": {
     "poi": true,
@@ -121,94 +171,2656 @@
    "demM": 355
   },
   {
+   "id": "06601",
+   "name": "Basel / Binningen",
+   "lat": 47.541142,
+   "lon": 7.583525,
+   "elev": 316,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06601",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "BAS"
+   },
+   "mosmix": {
+    "id": "06601",
+    "name": "BASEL",
+    "lat": 47.53,
+    "lon": 7.58,
+    "elev": 316,
+    "distanceKm": 1.27,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 308
+  },
+  {
+   "id": "06604",
+   "name": "Neuchâtel",
+   "lat": 47.000067,
+   "lon": 6.953297,
+   "elev": 485,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06604",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "NEU"
+   },
+   "mosmix": {
+    "id": "06604",
+    "name": "NEUCHATEL",
+    "lat": 47,
+    "lon": 6.95,
+    "elev": 485,
+    "distanceKm": 0.25,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 463
+  },
+  {
+   "id": "06605",
+   "name": "Chasseral",
+   "lat": 47.131761,
+   "lon": 7.054367,
+   "elev": 1594,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06605",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "CHA"
+   },
+   "mosmix": {
+    "id": "06605",
+    "name": "CHASSERAL",
+    "lat": 47.13,
+    "lon": 7.05,
+    "elev": 1599,
+    "distanceKm": 0.38,
+    "dzM": -5,
+    "match": "id"
+   },
+   "demM": 1556
+  },
+  {
+   "id": "06606",
+   "name": "Cressier",
+   "lat": 47.047581,
+   "lon": 7.059147,
+   "elev": 430,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06606",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "CRM"
+   },
+   "mosmix": {
+    "id": "06606",
+    "name": "CRESSIER",
+    "lat": 47.05,
+    "lon": 7.07,
+    "elev": 431,
+    "distanceKm": 0.87,
+    "dzM": -1,
+    "match": "id"
+   },
+   "demM": 427
+  },
+  {
+   "id": "06609",
+   "name": "Le Moléson",
+   "lat": 46.546197,
+   "lon": 7.017753,
+   "elev": 1974,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06609",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "MLS"
+   },
+   "mosmix": {
+    "id": "06609",
+    "name": "MOLESON",
+    "lat": 46.55,
+    "lon": 7.02,
+    "elev": 1972,
+    "distanceKm": 0.46,
+    "dzM": 2,
+    "match": "id"
+   },
+   "demM": 1895
+  },
+  {
    "id": "06610",
-   "name": "PAYERNE",
-   "lat": 46.82,
-   "lon": 6.93,
+   "name": "Payerne",
+   "lat": 46.811581,
+   "lon": 6.942469,
    "elev": 490,
    "country": "CH",
+   "profile": "CH",
    "wmo": "06610",
    "truth": {
     "poi": true,
     "tawes": null,
     "smn": "PAY"
    },
-   "demM": 447
+   "mosmix": {
+    "id": "06610",
+    "name": "PAYERNE",
+    "lat": 46.82,
+    "lon": 6.93,
+    "elev": 490,
+    "distanceKm": 1.33,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 487
+  },
+  {
+   "id": "06612",
+   "name": "La Chaux-de-Fonds",
+   "lat": 47.082947,
+   "lon": 6.792314,
+   "elev": 1017,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06612",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "CDF"
+   },
+   "mosmix": {
+    "id": "06612",
+    "name": "LA CHAUX DE FONDS",
+    "lat": 47.08,
+    "lon": 6.8,
+    "elev": 1018,
+    "distanceKm": 0.67,
+    "dzM": -1,
+    "match": "id"
+   },
+   "demM": 1008
+  },
+  {
+   "id": "06616",
+   "name": "Fahy",
+   "lat": 47.423814,
+   "lon": 6.941194,
+   "elev": 596,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06616",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "FAH"
+   },
+   "mosmix": {
+    "id": "06616",
+    "name": "FAHY",
+    "lat": 47.42,
+    "lon": 6.93,
+    "elev": 596,
+    "distanceKm": 0.94,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 595
+  },
+  {
+   "id": "06619",
+   "name": "Bullet / La Frétaz",
+   "lat": 46.840622,
+   "lon": 6.576369,
+   "elev": 1205,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06619",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "FRE"
+   },
+   "mosmix": {
+    "id": "06619",
+    "name": "LA FRETAZ",
+    "lat": 46.83,
+    "lon": 6.58,
+    "elev": 1202,
+    "distanceKm": 1.21,
+    "dzM": 3,
+    "match": "id"
+   },
+   "demM": 1199
+  },
+  {
+   "id": "06620",
+   "name": "Schaffhausen",
+   "lat": 47.689842,
+   "lon": 8.620142,
+   "elev": 438,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06620",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "SHA"
+   },
+   "mosmix": {
+    "id": "06620",
+    "name": "SCHAFFHAUSEN",
+    "lat": 47.68,
+    "lon": 8.62,
+    "elev": 437,
+    "distanceKm": 1.09,
+    "dzM": 1,
+    "match": "id"
+   },
+   "demM": 434
+  },
+  {
+   "id": "06621",
+   "name": "Güttingen",
+   "lat": 47.601733,
+   "lon": 9.279428,
+   "elev": 440,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06621",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "GUT"
+   },
+   "mosmix": {
+    "id": "06621",
+    "name": "GUETTINGEN",
+    "lat": 47.6,
+    "lon": 9.28,
+    "elev": 440,
+    "distanceKm": 0.2,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 440
+  },
+  {
+   "id": "06623",
+   "name": "Salen-Reutenen",
+   "lat": 47.651242,
+   "lon": 9.023911,
+   "elev": 719,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06623",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "HAI"
+   },
+   "mosmix": {
+    "id": "06623",
+    "name": "SALEN-REUTENEN",
+    "lat": 47.65,
+    "lon": 9.02,
+    "elev": 718,
+    "distanceKm": 0.32,
+    "dzM": 1,
+    "match": "id"
+   },
+   "demM": 710
+  },
+  {
+   "id": "06624",
+   "name": "Hallau",
+   "lat": 47.697278,
+   "lon": 8.470464,
+   "elev": 419,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06624",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "HLL"
+   },
+   "mosmix": {
+    "id": "06624",
+    "name": "HALLAU",
+    "lat": 47.7,
+    "lon": 8.47,
+    "elev": 419,
+    "distanceKm": 0.3,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 416
+  },
+  {
+   "id": "06625",
+   "name": "Fribourg / Grangeneuve",
+   "lat": 46.7714,
+   "lon": 7.113736,
+   "elev": 651,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06625",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "GRA"
+   },
+   "mosmix": {
+    "id": "06625",
+    "name": "FRIBOURG POSIEUX",
+    "lat": 46.77,
+    "lon": 7.12,
+    "elev": 646,
+    "distanceKm": 0.5,
+    "dzM": 5,
+    "match": "id"
+   },
+   "demM": 635
+  },
+  {
+   "id": "06626",
+   "name": "Gösgen",
+   "lat": 47.363147,
+   "lon": 7.973733,
+   "elev": 380,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06626",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "GOE"
+   },
+   "mosmix": {
+    "id": "06626",
+    "name": "GOESGEN (KKW)",
+    "lat": 47.37,
+    "lon": 7.97,
+    "elev": 380,
+    "distanceKm": 0.81,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 375
+  },
+  {
+   "id": "06628",
+   "name": "Plaffeien",
+   "lat": 46.747717,
+   "lon": 7.266264,
+   "elev": 1042,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06628",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "PLF"
+   },
+   "mosmix": {
+    "id": "06628",
+    "name": "PLAFFEIEN-OBERSCH.",
+    "lat": 46.75,
+    "lon": 7.27,
+    "elev": 1042,
+    "distanceKm": 0.38,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 1038
+  },
+  {
+   "id": "06631",
+   "name": "Bern / Zollikofen",
+   "lat": 46.990744,
+   "lon": 7.464061,
+   "elev": 553,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06631",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "BER"
+   },
+   "mosmix": {
+    "id": "06631",
+    "name": "BERN-LIEBEFELD",
+    "lat": 46.98,
+    "lon": 7.45,
+    "elev": 553,
+    "distanceKm": 1.6,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 549
+  },
+  {
+   "id": "06632",
+   "name": "Grenchen",
+   "lat": 47.179097,
+   "lon": 7.415144,
+   "elev": 428,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06632",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "GRE"
+   },
+   "mosmix": {
+    "id": "06632",
+    "name": "GRENCHEN",
+    "lat": 47.18,
+    "lon": 7.42,
+    "elev": 430,
+    "distanceKm": 0.38,
+    "dzM": -2,
+    "match": "id"
+   },
+   "demM": 427
+  },
+  {
+   "id": "06633",
+   "name": "Buchs / Aarau",
+   "lat": 47.384381,
+   "lon": 8.07955,
+   "elev": 387,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06633",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "BUS"
+   },
+   "mosmix": {
+    "id": "06633",
+    "name": "BUCHS-SUHR",
+    "lat": 47.38,
+    "lon": 8.08,
+    "elev": 387,
+    "distanceKm": 0.49,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 385
+  },
+  {
+   "id": "06635",
+   "name": "Koppigen",
+   "lat": 47.11885,
+   "lon": 7.605503,
+   "elev": 485,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06635",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "KOP"
+   },
+   "mosmix": {
+    "id": "06635",
+    "name": "KOPPIGEN",
+    "lat": 47.12,
+    "lon": 7.62,
+    "elev": 484,
+    "distanceKm": 1.1,
+    "dzM": 1,
+    "match": "id"
+   },
+   "demM": 480
+  },
+  {
+   "id": "06636",
+   "name": "Mühleberg",
+   "lat": 46.973278,
+   "lon": 7.278217,
+   "elev": 480,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06636",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "MUB"
+   },
+   "mosmix": {
+    "id": "06636",
+    "name": "MUEHLEBERG (KKW)",
+    "lat": 46.97,
+    "lon": 7.28,
+    "elev": 480,
+    "distanceKm": 0.39,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 469
+  },
+  {
+   "id": "06637",
+   "name": "Meiringen",
+   "lat": 46.732222,
+   "lon": 8.169247,
+   "elev": 589,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06637",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "MER"
+   },
+   "mosmix": {
+    "id": "06637",
+    "name": "MEIRINGEN",
+    "lat": 46.72,
+    "lon": 8.17,
+    "elev": 589,
+    "distanceKm": 1.36,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 590
+  },
+  {
+   "id": "06638",
+   "name": "Langnau i.E.",
+   "lat": 46.939633,
+   "lon": 7.806425,
+   "elev": 744,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06638",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "LAG"
+   },
+   "mosmix": {
+    "id": "06638",
+    "name": "LANGNAU I.E.",
+    "lat": 46.93,
+    "lon": 7.82,
+    "elev": 745,
+    "distanceKm": 1.49,
+    "dzM": -1,
+    "match": "id"
+   },
+   "demM": 764
+  },
+  {
+   "id": "06639",
+   "name": "Napf",
+   "lat": 47.004667,
+   "lon": 7.940117,
+   "elev": 1404,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06639",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "NAP"
+   },
+   "mosmix": {
+    "id": "06639",
+    "name": "NAPF",
+    "lat": 47,
+    "lon": 7.93,
+    "elev": 1406,
+    "distanceKm": 0.93,
+    "dzM": -2,
+    "match": "id"
+   },
+   "demM": 1323
+  },
+  {
+   "id": "06641",
+   "name": "Möhlin",
+   "lat": 47.572197,
+   "lon": 7.877911,
+   "elev": 343,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06641",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "MOE"
+   },
+   "mosmix": {
+    "id": "06641",
+    "name": "MOEHLIN",
+    "lat": 47.57,
+    "lon": 7.88,
+    "elev": 344,
+    "distanceKm": 0.29,
+    "dzM": -1,
+    "match": "id"
+   },
+   "demM": 342
+  },
+  {
+   "id": "06643",
+   "name": "Wynau",
+   "lat": 47.255025,
+   "lon": 7.787475,
+   "elev": 422,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06643",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "WYN"
+   },
+   "mosmix": {
+    "id": "06643",
+    "name": "WYNAU",
+    "lat": 47.27,
+    "lon": 7.78,
+    "elev": 422,
+    "distanceKm": 1.76,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 409
+  },
+  {
+   "id": "06645",
+   "name": "Rünenberg",
+   "lat": 47.434572,
+   "lon": 7.879414,
+   "elev": 611,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06645",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "RUE"
+   },
+   "mosmix": {
+    "id": "06645",
+    "name": "RUENENBERG",
+    "lat": 47.43,
+    "lon": 7.88,
+    "elev": 611,
+    "distanceKm": 0.51,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 595
+  },
+  {
+   "id": "06646",
+   "name": "Beznau",
+   "lat": 47.557256,
+   "lon": 8.233325,
+   "elev": 326,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06646",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "BEZ"
+   },
+   "mosmix": {
+    "id": "06646",
+    "name": "BEZNAU",
+    "lat": 47.57,
+    "lon": 8.23,
+    "elev": 326,
+    "distanceKm": 1.44,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 321
+  },
+  {
+   "id": "06647",
+   "name": "Würenlingen / PSI",
+   "lat": 47.536475,
+   "lon": 8.226944,
+   "elev": 334,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06647",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "PSI"
+   },
+   "mosmix": {
+    "id": "06647",
+    "name": "WUERENLINGEN",
+    "lat": 47.53,
+    "lon": 8.23,
+    "elev": 334,
+    "distanceKm": 0.76,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 335
+  },
+  {
+   "id": "06648",
+   "name": "Egolzwil",
+   "lat": 47.179428,
+   "lon": 8.004758,
+   "elev": 522,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06648",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "EGO"
+   },
+   "mosmix": {
+    "id": "06648",
+    "name": "EGOLZWIL",
+    "lat": 47.18,
+    "lon": 8,
+    "elev": 521,
+    "distanceKm": 0.37,
+    "dzM": 1,
+    "match": "id"
+   },
+   "demM": 512
+  },
+  {
+   "id": "06650",
+   "name": "Luzern",
+   "lat": 47.036439,
+   "lon": 8.301022,
+   "elev": 454,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06650",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "LUZ"
+   },
+   "mosmix": {
+    "id": "06650",
+    "name": "LUZERN",
+    "lat": 47.02,
+    "lon": 8.3,
+    "elev": 456,
+    "distanceKm": 1.83,
+    "dzM": -2,
+    "match": "id"
+   },
+   "demM": 455
+  },
+  {
+   "id": "06651",
+   "name": "Schüpfheim",
+   "lat": 46.947042,
+   "lon": 8.012442,
+   "elev": 744,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06651",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "SPF"
+   },
+   "mosmix": {
+    "id": "06651",
+    "name": "SCHUEPFHEIM",
+    "lat": 46.95,
+    "lon": 8.02,
+    "elev": 742,
+    "distanceKm": 0.66,
+    "dzM": 2,
+    "match": "id"
+   },
+   "demM": 728
+  },
+  {
+   "id": "06655",
+   "name": "Engelberg",
+   "lat": 46.821639,
+   "lon": 8.410514,
+   "elev": 1036,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06655",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "ENG"
+   },
+   "mosmix": {
+    "id": "06655",
+    "name": "ENGELBERG",
+    "lat": 46.82,
+    "lon": 8.42,
+    "elev": 1036,
+    "distanceKm": 0.74,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 1043
+  },
+  {
+   "id": "06657",
+   "name": "Giswil",
+   "lat": 46.849447,
+   "lon": 8.190225,
+   "elev": 471,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06657",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "GIH"
+   },
+   "mosmix": {
+    "id": "06657",
+    "name": "GISWIL",
+    "lat": 46.83,
+    "lon": 8.18,
+    "elev": 471,
+    "distanceKm": 2.3,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 469
+  },
+  {
+   "id": "06659",
+   "name": "Pilatus",
+   "lat": 46.978869,
+   "lon": 8.252256,
+   "elev": 2105,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06659",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "PIL"
+   },
+   "mosmix": {
+    "id": "06659",
+    "name": "PILATUS",
+    "lat": 46.98,
+    "lon": 8.25,
+    "elev": 2106,
+    "distanceKm": 0.21,
+    "dzM": -1,
+    "match": "id"
+   },
+   "demM": 1982
+  },
+  {
+   "id": "06660",
+   "name": "Zürich / Fluntern",
+   "lat": 47.381003,
+   "lon": 8.567194,
+   "elev": 604,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06660",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "SMA"
+   },
+   "mosmix": {
+    "id": "06660",
+    "name": "ZUERICH (TOWN/VILLE)",
+    "lat": 47.38,
+    "lon": 8.57,
+    "elev": 556,
+    "distanceKm": 0.24,
+    "dzM": 48,
+    "match": "id"
+   },
+   "demM": 605
+  },
+  {
+   "id": "06664",
+   "name": "Zürich / Affoltern",
+   "lat": 47.427694,
+   "lon": 8.517953,
+   "elev": 444,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06664",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "REH"
+   },
+   "mosmix": {
+    "id": "06664",
+    "name": "RECKENHOLZ",
+    "lat": 47.43,
+    "lon": 8.52,
+    "elev": 444,
+    "distanceKm": 0.3,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 436
+  },
+  {
+   "id": "06666",
+   "name": "Leibstadt",
+   "lat": 47.597361,
+   "lon": 8.1882,
+   "elev": 341,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06666",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "LEI"
+   },
+   "mosmix": {
+    "id": "06666",
+    "name": "LEIBSTADT (KKW)",
+    "lat": 47.6,
+    "lon": 8.18,
+    "elev": 341,
+    "distanceKm": 0.68,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 340
+  },
+  {
+   "id": "06669",
+   "name": "Lägern",
+   "lat": 47.481933,
+   "lon": 8.397222,
+   "elev": 845,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06669",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "LAE"
+   },
+   "mosmix": {
+    "id": "06669",
+    "name": "LAEGERN",
+    "lat": 47.48,
+    "lon": 8.4,
+    "elev": 868,
+    "distanceKm": 0.3,
+    "dzM": -23,
+    "match": "id"
+   },
+   "demM": 801
   },
   {
    "id": "06670",
-   "name": "ZUERICH",
-   "lat": 47.48,
-   "lon": 8.53,
-   "elev": 436,
+   "name": "Zürich / Kloten",
+   "lat": 47.479611,
+   "lon": 8.535961,
+   "elev": 426,
    "country": "CH",
+   "profile": "CH",
    "wmo": "06670",
    "truth": {
     "poi": true,
     "tawes": null,
     "smn": "KLO"
    },
-   "demM": 427
+   "mosmix": {
+    "id": "06670",
+    "name": "ZUERICH",
+    "lat": 47.48,
+    "lon": 8.53,
+    "elev": 436,
+    "distanceKm": 0.45,
+    "dzM": -10,
+    "match": "id"
+   },
+   "demM": 423
+  },
+  {
+   "id": "06672",
+   "name": "Altdorf",
+   "lat": 46.887069,
+   "lon": 8.621894,
+   "elev": 438,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06672",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "ALT"
+   },
+   "mosmix": {
+    "id": "06672",
+    "name": "ALTDORF",
+    "lat": 46.87,
+    "lon": 8.63,
+    "elev": 449,
+    "distanceKm": 2,
+    "dzM": -11,
+    "match": "id"
+   },
+   "demM": 437
+  },
+  {
+   "id": "06673",
+   "name": "Wädenswil",
+   "lat": 47.220958,
+   "lon": 8.677706,
+   "elev": 485,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06673",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "WAE"
+   },
+   "mosmix": {
+    "id": "06673",
+    "name": "WAEDENSwl",
+    "lat": 47.22,
+    "lon": 8.68,
+    "elev": 463,
+    "distanceKm": 0.2,
+    "dzM": 22,
+    "match": "id"
+   },
+   "demM": 486
+  },
+  {
+   "id": "06674",
+   "name": "Cham",
+   "lat": 47.188278,
+   "lon": 8.464642,
+   "elev": 443,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06674",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "CHZ"
+   },
+   "mosmix": {
+    "id": "06674",
+    "name": "CHAM",
+    "lat": 47.18,
+    "lon": 8.47,
+    "elev": 443,
+    "distanceKm": 1.01,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 440
+  },
+  {
+   "id": "06675",
+   "name": "Einsiedeln",
+   "lat": 47.133042,
+   "lon": 8.756556,
+   "elev": 911,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06675",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "EIN"
+   },
+   "mosmix": {
+    "id": "06675",
+    "name": "EINSIEDELN",
+    "lat": 47.13,
+    "lon": 8.77,
+    "elev": 910,
+    "distanceKm": 1.07,
+    "dzM": 1,
+    "match": "id"
+   },
+   "demM": 911
+  },
+  {
+   "id": "06676",
+   "name": "Oberägeri",
+   "lat": 47.133636,
+   "lon": 8.608206,
+   "elev": 724,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06676",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "AEG"
+   },
+   "mosmix": {
+    "id": "06676",
+    "name": "OBERAEGERI",
+    "lat": 47.13,
+    "lon": 8.62,
+    "elev": 724,
+    "distanceKm": 0.98,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 720
+  },
+  {
+   "id": "06678",
+   "name": "Bischofszell / Sitterdorf",
+   "lat": 47.508828,
+   "lon": 9.266797,
+   "elev": 507,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06678",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "BIZ"
+   },
+   "mosmix": {
+    "id": "06678",
+    "name": "BISCHOFSZELL",
+    "lat": 47.5,
+    "lon": 9.23,
+    "elev": 470,
+    "distanceKm": 2.93,
+    "dzM": 37,
+    "match": "id"
+   },
+   "demM": 505
+  },
+  {
+   "id": "06679",
+   "name": "Aadorf / Tänikon",
+   "lat": 47.479892,
+   "lon": 8.904928,
+   "elev": 539,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06679",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "TAE"
+   },
+   "mosmix": {
+    "id": "06679",
+    "name": "TAENIKON",
+    "lat": 47.47,
+    "lon": 8.9,
+    "elev": 536,
+    "distanceKm": 1.16,
+    "dzM": 3,
+    "match": "id"
+   },
+   "demM": 533
   },
   {
    "id": "06680",
-   "name": "SAENTIS",
-   "lat": 47.25,
-   "lon": 9.33,
-   "elev": 2502,
+   "name": "Säntis",
+   "lat": 47.249447,
+   "lon": 9.343469,
+   "elev": 2501,
    "country": "CH",
+   "profile": "CH",
    "wmo": "06680",
    "truth": {
     "poi": true,
     "tawes": null,
     "smn": "SAE"
    },
-   "demM": 1925
+   "mosmix": {
+    "id": "06680",
+    "name": "SAENTIS",
+    "lat": 47.25,
+    "lon": 9.33,
+    "elev": 2502,
+    "distanceKm": 1.02,
+    "dzM": -1,
+    "match": "id"
+   },
+   "demM": 2370
+  },
+  {
+   "id": "06681",
+   "name": "St. Gallen",
+   "lat": 47.425475,
+   "lon": 9.398528,
+   "elev": 776,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06681",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "STG"
+   },
+   "mosmix": {
+    "id": "06681",
+    "name": "ST.GALLEN",
+    "lat": 47.43,
+    "lon": 9.4,
+    "elev": 779,
+    "distanceKm": 0.52,
+    "dzM": -3,
+    "match": "id"
+   },
+   "demM": 755
+  },
+  {
+   "id": "06682",
+   "name": "Elm",
+   "lat": 46.923742,
+   "lon": 9.175347,
+   "elev": 958,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06682",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "ELM"
+   },
+   "mosmix": {
+    "id": "06682",
+    "name": "ELM",
+    "lat": 46.92,
+    "lon": 9.18,
+    "elev": 958,
+    "distanceKm": 0.55,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 946
+  },
+  {
+   "id": "06683",
+   "name": "Schmerikon",
+   "lat": 47.224933,
+   "lon": 8.9403,
+   "elev": 408,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06683",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "SCM"
+   },
+   "mosmix": {
+    "id": "06683",
+    "name": "SCHMERIKON",
+    "lat": 47.22,
+    "lon": 8.93,
+    "elev": 408,
+    "distanceKm": 0.95,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 400
+  },
+  {
+   "id": "06685",
+   "name": "Glarus",
+   "lat": 47.034586,
+   "lon": 9.066961,
+   "elev": 517,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06685",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "GLA"
+   },
+   "mosmix": {
+    "id": "06685",
+    "name": "GLARUS",
+    "lat": 47.03,
+    "lon": 9.07,
+    "elev": 515,
+    "distanceKm": 0.56,
+    "dzM": 2,
+    "match": "id"
+   },
+   "demM": 485
+  },
+  {
+   "id": "06687",
+   "name": "Quinten",
+   "lat": 47.128739,
+   "lon": 9.21605,
+   "elev": 419,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06687",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "QUI"
+   },
+   "mosmix": {
+    "id": "06687",
+    "name": "QUINTEN",
+    "lat": 47.13,
+    "lon": 9.22,
+    "elev": 419,
+    "distanceKm": 0.33,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 439
+  },
+  {
+   "id": "06688",
+   "name": "Crap Masegn",
+   "lat": 46.842275,
+   "lon": 9.180042,
+   "elev": 2468,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06688",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "CMA"
+   },
+   "mosmix": {
+    "id": "06688",
+    "name": "CRAP MASEGN",
+    "lat": 46.83,
+    "lon": 9.18,
+    "elev": 2480,
+    "distanceKm": 1.36,
+    "dzM": -12,
+    "match": "id"
+   },
+   "demM": 2423
+  },
+  {
+   "id": "06689",
+   "name": "Hörnli",
+   "lat": 47.370864,
+   "lon": 8.941644,
+   "elev": 1133,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06689",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "HOE"
+   },
+   "mosmix": {
+    "id": "06689",
+    "name": "HOERNLI",
+    "lat": 47.37,
+    "lon": 8.93,
+    "elev": 1144,
+    "distanceKm": 0.88,
+    "dzM": -11,
+    "match": "id"
+   },
+   "demM": 1075
+  },
+  {
+   "id": "06690",
+   "name": "Altenrhein",
+   "lat": 47.483631,
+   "lon": 9.56685,
+   "elev": 398,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06690",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "ARH"
+   },
+   "mosmix": {
+    "id": "06690",
+    "name": "ALTENRHEIN",
+    "lat": 47.48,
+    "lon": 9.57,
+    "elev": 398,
+    "distanceKm": 0.47,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 392
+  },
+  {
+   "id": "06693",
+   "name": "Ebnat-Kappel",
+   "lat": 47.273389,
+   "lon": 9.108494,
+   "elev": 623,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06693",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "EBK"
+   },
+   "mosmix": {
+    "id": "06693",
+    "name": "EBNAT-KAPPEL",
+    "lat": 47.27,
+    "lon": 9.12,
+    "elev": 623,
+    "distanceKm": 0.95,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 617
   },
   {
    "id": "06700",
-   "name": "GENF",
-   "lat": 46.25,
-   "lon": 6.13,
-   "elev": 420,
+   "name": "Genève / Cointrin",
+   "lat": 46.247519,
+   "lon": 6.127742,
+   "elev": 411,
    "country": "CH",
+   "profile": "CH",
    "wmo": "06700",
    "truth": {
     "poi": true,
     "tawes": null,
     "smn": "GVE"
    },
-   "demM": 409
+   "mosmix": {
+    "id": "06700",
+    "name": "GENF",
+    "lat": 46.25,
+    "lon": 6.13,
+    "elev": 420,
+    "distanceKm": 0.33,
+    "dzM": -9,
+    "match": "id"
+   },
+   "demM": 413
+  },
+  {
+   "id": "06702",
+   "name": "La Dôle",
+   "lat": 46.424794,
+   "lon": 6.099453,
+   "elev": 1670,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06702",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "DOL"
+   },
+   "mosmix": {
+    "id": "06702",
+    "name": "LA DOLE",
+    "lat": 46.42,
+    "lon": 6.1,
+    "elev": 1670,
+    "distanceKm": 0.53,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 1632
+  },
+  {
+   "id": "06704",
+   "name": "Bière",
+   "lat": 46.524908,
+   "lon": 6.342386,
+   "elev": 684,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06704",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "BIE"
+   },
+   "mosmix": {
+    "id": "06704",
+    "name": "BIERE",
+    "lat": 46.53,
+    "lon": 6.33,
+    "elev": 684,
+    "distanceKm": 1.1,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 681
+  },
+  {
+   "id": "06705",
+   "name": "Nyon / Changins",
+   "lat": 46.401053,
+   "lon": 6.227722,
+   "elev": 458,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06705",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "CGI"
+   },
+   "mosmix": {
+    "id": "06705",
+    "name": "CHANGINS",
+    "lat": 46.4,
+    "lon": 6.23,
+    "elev": 430,
+    "distanceKm": 0.21,
+    "dzM": 28,
+    "match": "id"
+   },
+   "demM": 450
+  },
+  {
+   "id": "06710",
+   "name": "Courtelary",
+   "lat": 47.180811,
+   "lon": 7.090656,
+   "elev": 695,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06710",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "COY"
+   },
+   "mosmix": {
+    "id": "06710",
+    "name": "COURTELARY",
+    "lat": 47.17,
+    "lon": 7.08,
+    "elev": 695,
+    "distanceKm": 1.45,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 690
+  },
+  {
+   "id": "06711",
+   "name": "Pully",
+   "lat": 46.512283,
+   "lon": 6.667517,
+   "elev": 456,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06711",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "PUY"
+   },
+   "mosmix": {
+    "id": "06711",
+    "name": "LAUSANNE - PULLY",
+    "lat": 46.52,
+    "lon": 6.67,
+    "elev": 461,
+    "distanceKm": 0.88,
+    "dzM": -5,
+    "match": "id"
+   },
+   "demM": 463
+  },
+  {
+   "id": "06712",
+   "name": "Aigle",
+   "lat": 46.326647,
+   "lon": 6.924472,
+   "elev": 381,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06712",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "AIG"
+   },
+   "mosmix": {
+    "id": "06712",
+    "name": "AIGLE",
+    "lat": 46.33,
+    "lon": 6.92,
+    "elev": 381,
+    "distanceKm": 0.51,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 379
+  },
+  {
+   "id": "06717",
+   "name": "Col du Grand St-Bernard",
+   "lat": 45.869092,
+   "lon": 7.170683,
+   "elev": 2472,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06717",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "GSB"
+   },
+   "mosmix": {
+    "id": "06717",
+    "name": "GRAND-ST-BERNARD",
+    "lat": 45.87,
+    "lon": 7.17,
+    "elev": 2472,
+    "distanceKm": 0.11,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 2506
   },
   {
    "id": "06720",
-   "name": "SION",
-   "lat": 46.22,
-   "lon": 7.33,
+   "name": "Sion",
+   "lat": 46.21865,
+   "lon": 7.330203,
    "elev": 482,
    "country": "CH",
+   "profile": "CH",
    "wmo": "06720",
    "truth": {
     "poi": true,
     "tawes": null,
     "smn": "SIO"
    },
-   "demM": 473
+   "mosmix": {
+    "id": "06720",
+    "name": "SION",
+    "lat": 46.22,
+    "lon": 7.33,
+    "elev": 482,
+    "distanceKm": 0.15,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 482
+  },
+  {
+   "id": "06722",
+   "name": "Evolène / Villa",
+   "lat": 46.112211,
+   "lon": 7.508631,
+   "elev": 1825,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06722",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "EVO"
+   },
+   "mosmix": {
+    "id": "06722",
+    "name": "EVOLENE-VILLAZ",
+    "lat": 46.12,
+    "lon": 7.52,
+    "elev": 1825,
+    "distanceKm": 1.23,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 1833
+  },
+  {
+   "id": "06724",
+   "name": "Montana",
+   "lat": 46.298806,
+   "lon": 7.460814,
+   "elev": 1423,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06724",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "MVE"
+   },
+   "mosmix": {
+    "id": "06724",
+    "name": "MONTANA",
+    "lat": 46.28,
+    "lon": 7.45,
+    "elev": 1423,
+    "distanceKm": 2.25,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 1429
+  },
+  {
+   "id": "06727",
+   "name": "Visp",
+   "lat": 46.3029,
+   "lon": 7.842958,
+   "elev": 639,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06727",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "VIS"
+   },
+   "mosmix": {
+    "id": "06727",
+    "name": "VISP",
+    "lat": 46.3,
+    "lon": 7.83,
+    "elev": 639,
+    "distanceKm": 1.05,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 611
+  },
+  {
+   "id": "06730",
+   "name": "Jungfraujoch",
+   "lat": 46.547556,
+   "lon": 7.985444,
+   "elev": 3571,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06730",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "JUN"
+   },
+   "mosmix": {
+    "id": "06730",
+    "name": "JUNGFRAUJOCH",
+    "lat": 46.53,
+    "lon": 7.98,
+    "elev": 3571,
+    "distanceKm": 2,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 3418
+  },
+  {
+   "id": "06734",
+   "name": "Interlaken",
+   "lat": 46.672033,
+   "lon": 7.87045,
+   "elev": 578,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06734",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "INT"
+   },
+   "mosmix": {
+    "id": "06734",
+    "name": "INTERLAKEN",
+    "lat": 46.67,
+    "lon": 7.87,
+    "elev": 580,
+    "distanceKm": 0.23,
+    "dzM": -2,
+    "match": "id"
+   },
+   "demM": 576
+  },
+  {
+   "id": "06735",
+   "name": "Adelboden",
+   "lat": 46.491703,
+   "lon": 7.560703,
+   "elev": 1321,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06735",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "ABO"
+   },
+   "mosmix": {
+    "id": "06735",
+    "name": "ADELBODEN",
+    "lat": 46.5,
+    "lon": 7.57,
+    "elev": 1320,
+    "distanceKm": 1.17,
+    "dzM": 1,
+    "match": "id"
+   },
+   "demM": 1323
+  },
+  {
+   "id": "06744",
+   "name": "Grimsel Hospiz",
+   "lat": 46.571689,
+   "lon": 8.333256,
+   "elev": 1980,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06744",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "GRH"
+   },
+   "mosmix": {
+    "id": "06744",
+    "name": "GRIMSEL-HOSPIZ",
+    "lat": 46.57,
+    "lon": 8.33,
+    "elev": 1980,
+    "distanceKm": 0.31,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 1874
+  },
+  {
+   "id": "06745",
+   "name": "Ulrichen",
+   "lat": 46.504881,
+   "lon": 8.308236,
+   "elev": 1346,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06745",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "ULR"
+   },
+   "mosmix": {
+    "id": "06745",
+    "name": "ULRICHEN",
+    "lat": 46.5,
+    "lon": 8.32,
+    "elev": 1346,
+    "distanceKm": 1.05,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 1337
+  },
+  {
+   "id": "06748",
+   "name": "Zermatt",
+   "lat": 46.029272,
+   "lon": 7.752433,
+   "elev": 1638,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06748",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "ZER"
+   },
+   "mosmix": {
+    "id": "06748",
+    "name": "ZERMATT",
+    "lat": 46.03,
+    "lon": 7.75,
+    "elev": 1638,
+    "distanceKm": 0.2,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 1615
+  },
+  {
+   "id": "06750",
+   "name": "Gütsch, Andermatt",
+   "lat": 46.652475,
+   "lon": 8.615531,
+   "elev": 2286,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06750",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "GUE"
+   },
+   "mosmix": {
+    "id": "06750",
+    "name": "GUETSCH",
+    "lat": 46.65,
+    "lon": 8.62,
+    "elev": 2287,
+    "distanceKm": 0.44,
+    "dzM": -1,
+    "match": "id"
+   },
+   "demM": 2279
+  },
+  {
+   "id": "06751",
+   "name": "Robièi",
+   "lat": 46.443067,
+   "lon": 8.513389,
+   "elev": 1898,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06751",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "ROE"
+   },
+   "mosmix": {
+    "id": "06751",
+    "name": "ROBIEI",
+    "lat": 46.45,
+    "lon": 8.52,
+    "elev": 1898,
+    "distanceKm": 0.92,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 1895
+  },
+  {
+   "id": "06753",
+   "name": "Piotta",
+   "lat": 46.514811,
+   "lon": 8.688039,
+   "elev": 990,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06753",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "PIO"
+   },
+   "mosmix": {
+    "id": "06753",
+    "name": "PIOTTA",
+    "lat": 46.52,
+    "lon": 8.68,
+    "elev": 1007,
+    "distanceKm": 0.84,
+    "dzM": -17,
+    "match": "id"
+   },
+   "demM": 1000
+  },
+  {
+   "id": "06756",
+   "name": "Acquarossa / Comprovasco",
+   "lat": 46.459517,
+   "lon": 8.935486,
+   "elev": 575,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06756",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "COM"
+   },
+   "mosmix": {
+    "id": "06756",
+    "name": "COMPROVASCO",
+    "lat": 46.47,
+    "lon": 8.93,
+    "elev": 575,
+    "distanceKm": 1.24,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 567
+  },
+  {
+   "id": "06759",
+   "name": "Cimetta",
+   "lat": 46.200467,
+   "lon": 8.79165,
+   "elev": 1661,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06759",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "CIM"
+   },
+   "mosmix": {
+    "id": "06759",
+    "name": "CIMETTA",
+    "lat": 46.2,
+    "lon": 8.8,
+    "elev": 1672,
+    "distanceKm": 0.64,
+    "dzM": -11,
+    "match": "id"
+   },
+   "demM": 1579
+  },
+  {
+   "id": "06760",
+   "name": "Locarno / Monti",
+   "lat": 46.172256,
+   "lon": 8.787494,
+   "elev": 367,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06760",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "OTL"
+   },
+   "mosmix": {
+    "id": "06760",
+    "name": "LOCARNO-MONTI",
+    "lat": 46.17,
+    "lon": 8.78,
+    "elev": 367,
+    "distanceKm": 0.63,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 383
+  },
+  {
+   "id": "06762",
+   "name": "Magadino / Cadenazzo",
+   "lat": 46.160025,
+   "lon": 8.933672,
+   "elev": 203,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06762",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "MAG"
+   },
+   "mosmix": {
+    "id": "06762",
+    "name": "CADENAZZO",
+    "lat": 46.15,
+    "lon": 8.93,
+    "elev": 203,
+    "distanceKm": 1.15,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 202
+  },
+  {
+   "id": "06770",
+   "name": "Lugano",
+   "lat": 46.004217,
+   "lon": 8.960322,
+   "elev": 273,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06770",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "LUG"
+   },
+   "mosmix": {
+    "id": "06770",
+    "name": "LUGANO",
+    "lat": 46,
+    "lon": 8.97,
+    "elev": 273,
+    "distanceKm": 0.88,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 276
+  },
+  {
+   "id": "06771",
+   "name": "Stabio",
+   "lat": 45.843444,
+   "lon": 8.932364,
+   "elev": 351,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06771",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "SBO"
+   },
+   "mosmix": {
+    "id": "06771",
+    "name": "STABIO",
+    "lat": 45.83,
+    "lon": 8.93,
+    "elev": 353,
+    "distanceKm": 1.51,
+    "dzM": -2,
+    "match": "id"
+   },
+   "demM": 347
+  },
+  {
+   "id": "06778",
+   "name": "Buffalora",
+   "lat": 46.648408,
+   "lon": 10.2672,
+   "elev": 1971,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06778",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "BUF"
+   },
+   "mosmix": {
+    "id": "06778",
+    "name": "BUFFALORA",
+    "lat": 46.65,
+    "lon": 10.27,
+    "elev": 1968,
+    "distanceKm": 0.28,
+    "dzM": 3,
+    "match": "id"
+   },
+   "demM": 1981
+  },
+  {
+   "id": "06780",
+   "name": "Weissfluhjoch",
+   "lat": 46.833342,
+   "lon": 9.806397,
+   "elev": 2691,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06780",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "WFJ"
+   },
+   "mosmix": {
+    "id": "06780",
+    "name": "WEISSFLUHJOCH",
+    "lat": 46.83,
+    "lon": 9.82,
+    "elev": 2691,
+    "distanceKm": 1.1,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 2613
+  },
+  {
+   "id": "06782",
+   "name": "Disentis",
+   "lat": 46.706569,
+   "lon": 8.853478,
+   "elev": 1197,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06782",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "DIS"
+   },
+   "mosmix": {
+    "id": "06782",
+    "name": "DISENTIS",
+    "lat": 46.7,
+    "lon": 8.85,
+    "elev": 1190,
+    "distanceKm": 0.78,
+    "dzM": 7,
+    "match": "id"
+   },
+   "demM": 1213
+  },
+  {
+   "id": "06783",
+   "name": "S. Bernardino",
+   "lat": 46.463542,
+   "lon": 9.1847,
+   "elev": 1639,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06783",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "SBE"
+   },
+   "mosmix": {
+    "id": "06783",
+    "name": "SAN BERNARDINO",
+    "lat": 46.47,
+    "lon": 9.18,
+    "elev": 1639,
+    "distanceKm": 0.8,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 1651
+  },
+  {
+   "id": "06784",
+   "name": "Davos",
+   "lat": 46.812969,
+   "lon": 9.843558,
+   "elev": 1594,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06784",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "DAV"
+   },
+   "mosmix": {
+    "id": "06784",
+    "name": "DAVOS",
+    "lat": 46.82,
+    "lon": 9.85,
+    "elev": 1590,
+    "distanceKm": 0.92,
+    "dzM": 4,
+    "match": "id"
+   },
+   "demM": 1583
+  },
+  {
+   "id": "06786",
+   "name": "Chur",
+   "lat": 46.870572,
+   "lon": 9.530761,
+   "elev": 556,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06786",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "CHU"
+   },
+   "mosmix": {
+    "id": "06786",
+    "name": "CHUR",
+    "lat": 46.87,
+    "lon": 9.53,
+    "elev": 556,
+    "distanceKm": 0.09,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 560
+  },
+  {
+   "id": "06787",
+   "name": "Andeer",
+   "lat": 46.610139,
+   "lon": 9.431981,
+   "elev": 987,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06787",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "AND"
+   },
+   "mosmix": {
+    "id": "06787",
+    "name": "ANDEER",
+    "lat": 46.62,
+    "lon": 9.42,
+    "elev": 989,
+    "distanceKm": 1.43,
+    "dzM": -2,
+    "match": "id"
+   },
+   "demM": 994
+  },
+  {
+   "id": "06788",
+   "name": "Vicosoprano",
+   "lat": 46.353019,
+   "lon": 9.6278,
+   "elev": 1089,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06788",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "VIO"
+   },
+   "mosmix": {
+    "id": "06788",
+    "name": "VICOSOPRANO",
+    "lat": 46.35,
+    "lon": 9.62,
+    "elev": 1089,
+    "distanceKm": 0.69,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 1083
+  },
+  {
+   "id": "06790",
+   "name": "Schiers",
+   "lat": 46.975506,
+   "lon": 9.668075,
+   "elev": 626,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06790",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "SRS"
+   },
+   "mosmix": {
+    "id": "06790",
+    "name": "SCHIERS",
+    "lat": 46.97,
+    "lon": 9.67,
+    "elev": 626,
+    "distanceKm": 0.63,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 642
+  },
+  {
+   "id": "06791",
+   "name": "Piz Corvatsch",
+   "lat": 46.418039,
+   "lon": 9.821308,
+   "elev": 3294,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06791",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "COV"
+   },
+   "mosmix": {
+    "id": "06791",
+    "name": "CORVATSCH",
+    "lat": 46.42,
+    "lon": 9.82,
+    "elev": 3315,
+    "distanceKm": 0.24,
+    "dzM": -21,
+    "match": "id"
+   },
+   "demM": 3203
+  },
+  {
+   "id": "06792",
+   "name": "Samedan",
+   "lat": 46.526247,
+   "lon": 9.879469,
+   "elev": 1709,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06792",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "SAM"
+   },
+   "mosmix": {
+    "id": "06792",
+    "name": "SAMEDAN",
+    "lat": 46.53,
+    "lon": 9.88,
+    "elev": 1709,
+    "distanceKm": 0.42,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 1706
+  },
+  {
+   "id": "06793",
+   "name": "Valbella",
+   "lat": 46.755039,
+   "lon": 9.554433,
+   "elev": 1568,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06793",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "VAB"
+   },
+   "mosmix": {
+    "id": "06793",
+    "name": "VALBELLA",
+    "lat": 46.77,
+    "lon": 9.55,
+    "elev": 1569,
+    "distanceKm": 1.7,
+    "dzM": -1,
+    "match": "id"
+   },
+   "demM": 1553
+  },
+  {
+   "id": "06794",
+   "name": "Poschiavo / Robbia",
+   "lat": 46.347217,
+   "lon": 10.063031,
+   "elev": 1078,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06794",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "ROB"
+   },
+   "mosmix": {
+    "id": "06794",
+    "name": "ROBBIA",
+    "lat": 46.35,
+    "lon": 10.07,
+    "elev": 1078,
+    "distanceKm": 0.62,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 1077
+  },
+  {
+   "id": "06795",
+   "name": "Piz Martegnas",
+   "lat": 46.577181,
+   "lon": 9.529544,
+   "elev": 2668,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06795",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "PMA"
+   },
+   "mosmix": {
+    "id": "06795",
+    "name": "PIZ MARTEGNAS",
+    "lat": 46.58,
+    "lon": 9.53,
+    "elev": 2670,
+    "distanceKm": 0.32,
+    "dzM": -2,
+    "match": "id"
+   },
+   "demM": 2596
+  },
+  {
+   "id": "06796",
+   "name": "Sta. Maria, Val Müstair",
+   "lat": 46.602256,
+   "lon": 10.426314,
+   "elev": 1386,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06796",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "SMM"
+   },
+   "mosmix": {
+    "id": "06796",
+    "name": "STA. MARIA VAL MUEST",
+    "lat": 46.6,
+    "lon": 10.43,
+    "elev": 1383,
+    "distanceKm": 0.38,
+    "dzM": 3,
+    "match": "id"
+   },
+   "demM": 1398
+  },
+  {
+   "id": "06798",
+   "name": "Scuol",
+   "lat": 46.793275,
+   "lon": 10.283267,
+   "elev": 1304,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06798",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "SCU"
+   },
+   "mosmix": {
+    "id": "06798",
+    "name": "SCOULS",
+    "lat": 46.8,
+    "lon": 10.27,
+    "elev": 1298,
+    "distanceKm": 1.26,
+    "dzM": 6,
+    "match": "id"
+   },
+   "demM": 1297
+  },
+  {
+   "id": "06799",
+   "name": "Naluns / Schlivera",
+   "lat": 46.817164,
+   "lon": 10.2614,
+   "elev": 2380,
+   "country": "CH",
+   "profile": "CH",
+   "wmo": "06799",
+   "truth": {
+    "poi": false,
+    "tawes": null,
+    "smn": "NAS"
+   },
+   "mosmix": {
+    "id": "06799",
+    "name": "NALUNS / SCHLIVERA",
+    "lat": 46.82,
+    "lon": 10.27,
+    "elev": 2400,
+    "distanceKm": 0.73,
+    "dzM": -20,
+    "match": "id"
+   },
+   "demM": 2351
   },
   {
    "id": "06990",
-   "name": "VADUZ FL.",
-   "lat": 47.13,
-   "lon": 9.52,
-   "elev": 460,
-   "country": "CH",
+   "name": "Vaduz",
+   "lat": 47.127472,
+   "lon": 9.517578,
+   "elev": 457,
+   "country": "LI",
+   "profile": "CH",
    "wmo": "06990",
    "truth": {
     "poi": true,
     "tawes": null,
     "smn": "VAD"
    },
-   "demM": 448
+   "mosmix": {
+    "id": "06990",
+    "name": "VADUZ FL.",
+    "lat": 47.13,
+    "lon": 9.52,
+    "elev": 460,
+    "distanceKm": 0.34,
+    "dzM": -3,
+    "match": "id"
+   },
+   "demM": 457
   },
   {
    "id": "10004",
@@ -217,6 +2829,7 @@
    "lon": 6.35,
    "elev": 0,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10004",
    "truth": {
     "poi": true,
@@ -232,6 +2845,7 @@
    "lon": 7.45,
    "elev": 0,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10007",
    "truth": {
     "poi": true,
@@ -247,6 +2861,7 @@
    "lon": 7.88,
    "elev": 4,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10015",
    "truth": {
     "poi": true,
@@ -262,6 +2877,7 @@
    "lon": 8.42,
    "elev": 26,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10020",
    "truth": {
     "poi": true,
@@ -277,6 +2893,7 @@
    "lon": 8.95,
    "elev": 7,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10022",
    "truth": {
     "poi": true,
@@ -292,6 +2909,7 @@
    "lon": 8.6,
    "elev": 5,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10028",
    "truth": {
     "poi": true,
@@ -307,6 +2925,7 @@
    "lon": 9.5,
    "elev": 27,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10033",
    "truth": {
     "poi": true,
@@ -322,6 +2941,7 @@
    "lon": 9.55,
    "elev": 47,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10035",
    "truth": {
     "poi": true,
@@ -337,6 +2957,7 @@
    "lon": 9.52,
    "elev": 22,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10037",
    "truth": {
     "poi": true,
@@ -352,6 +2973,7 @@
    "lon": 9.53,
    "elev": 10,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10038",
    "truth": {
     "poi": true,
@@ -367,6 +2989,7 @@
    "lon": 10.03,
    "elev": 4,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10042",
    "truth": {
     "poi": true,
@@ -382,6 +3005,7 @@
    "lon": 10.27,
    "elev": 5,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10044",
    "truth": {
     "poi": true,
@@ -397,6 +3021,7 @@
    "lon": 10.15,
    "elev": 28,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10046",
    "truth": {
     "poi": true,
@@ -412,6 +3037,7 @@
    "lon": 11.07,
    "elev": 3,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10055",
    "truth": {
     "poi": true,
@@ -427,6 +3053,7 @@
    "lon": 13.43,
    "elev": 42,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10091",
    "truth": {
     "poi": true,
@@ -442,6 +3069,7 @@
    "lon": 13.48,
    "elev": 40,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10093",
    "truth": {
     "poi": true,
@@ -457,6 +3085,7 @@
    "lon": 13.92,
    "elev": 12,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10097",
    "truth": {
     "poi": true,
@@ -472,6 +3101,7 @@
    "lon": 7.15,
    "elev": 11,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10113",
    "truth": {
     "poi": true,
@@ -487,6 +3117,7 @@
    "lon": 8.12,
    "elev": 32,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10124",
    "truth": {
     "poi": true,
@@ -502,6 +3133,7 @@
    "lon": 7.67,
    "elev": 8,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10126",
    "truth": {
     "poi": true,
@@ -517,6 +3149,7 @@
    "lon": 8.58,
    "elev": 7,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10129",
    "truth": {
     "poi": true,
@@ -532,6 +3165,7 @@
    "lon": 9.02,
    "elev": 3,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10130",
    "truth": {
     "poi": true,
@@ -547,6 +3181,7 @@
    "lon": 8.72,
    "elev": 5,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10131",
    "truth": {
     "poi": true,
@@ -562,6 +3197,7 @@
    "lon": 8.67,
    "elev": 23,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10136",
    "truth": {
     "poi": true,
@@ -577,6 +3213,7 @@
    "lon": 9.17,
    "elev": 3,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10139",
    "truth": {
     "poi": true,
@@ -592,6 +3229,7 @@
    "lon": 9.58,
    "elev": 25,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10142",
    "truth": {
     "poi": true,
@@ -607,6 +3245,7 @@
    "lon": 9.88,
    "elev": 13,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10146",
    "truth": {
     "poi": true,
@@ -622,6 +3261,7 @@
    "lon": 10,
    "elev": 16,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10147",
    "truth": {
     "poi": true,
@@ -637,6 +3277,7 @@
    "lon": 10.35,
    "elev": 26,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10150",
    "truth": {
     "poi": true,
@@ -652,6 +3293,7 @@
    "lon": 10.88,
    "elev": 1,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10152",
    "truth": {
     "poi": true,
@@ -667,6 +3309,7 @@
    "lon": 10.7,
    "elev": 14,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10156",
    "truth": {
     "poi": true,
@@ -682,6 +3325,7 @@
    "lon": 11.18,
    "elev": 15,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10161",
    "truth": {
     "poi": true,
@@ -697,6 +3341,7 @@
    "lon": 11.38,
    "elev": 59,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10162",
    "truth": {
     "poi": true,
@@ -712,6 +3357,7 @@
    "lon": 12.1,
    "elev": 58,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10168",
    "truth": {
     "poi": true,
@@ -727,6 +3373,7 @@
    "lon": 12.08,
    "elev": 4,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10170",
    "truth": {
     "poi": true,
@@ -742,6 +3389,7 @@
    "lon": 12.28,
    "elev": 42,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10172",
    "truth": {
     "poi": true,
@@ -757,6 +3405,7 @@
    "lon": 12.72,
    "elev": 7,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10180",
    "truth": {
     "poi": true,
@@ -772,6 +3421,7 @@
    "lon": 13.42,
    "elev": 2,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10184",
    "truth": {
     "poi": true,
@@ -787,6 +3437,7 @@
    "lon": 14.07,
    "elev": 1,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10193",
    "truth": {
     "poi": true,
@@ -802,6 +3453,7 @@
    "lon": 7.23,
    "elev": 0,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10200",
    "truth": {
     "poi": true,
@@ -817,6 +3469,7 @@
    "lon": 7.9,
    "elev": 6,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10210",
    "truth": {
     "poi": true,
@@ -832,6 +3485,7 @@
    "lon": 8.8,
    "elev": 3,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10224",
    "truth": {
     "poi": true,
@@ -847,6 +3501,7 @@
    "lon": 9.78,
    "elev": 76,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10235",
    "truth": {
     "poi": true,
@@ -862,6 +3517,7 @@
    "lon": 9.93,
    "elev": 70,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10238",
    "truth": {
     "poi": true,
@@ -877,6 +3533,7 @@
    "lon": 10.18,
    "elev": 75,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10246",
    "truth": {
     "poi": true,
@@ -892,6 +3549,7 @@
    "lon": 10.68,
    "elev": 45,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10249",
    "truth": {
     "poi": true,
@@ -907,6 +3565,7 @@
    "lon": 11.13,
    "elev": 17,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10253",
    "truth": {
     "poi": true,
@@ -922,6 +3581,7 @@
    "lon": 11.73,
    "elev": 21,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10261",
    "truth": {
     "poi": true,
@@ -937,6 +3597,7 @@
    "lon": 11.93,
    "elev": 81,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10264",
    "truth": {
     "poi": true,
@@ -952,6 +3613,7 @@
    "lon": 12.42,
    "elev": 40,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10267",
    "truth": {
     "poi": true,
@@ -967,6 +3629,7 @@
    "lon": 12.67,
    "elev": 70,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10268",
    "truth": {
     "poi": true,
@@ -982,6 +3645,7 @@
    "lon": 12.85,
    "elev": 50,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10271",
    "truth": {
     "poi": true,
@@ -997,6 +3661,7 @@
    "lon": 13.3,
    "elev": 71,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10281",
    "truth": {
     "poi": true,
@@ -1012,6 +3677,7 @@
    "lon": 13.42,
    "elev": 115,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10282",
    "truth": {
     "poi": true,
@@ -1027,6 +3693,7 @@
    "lon": 13.93,
    "elev": 56,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10289",
    "truth": {
     "poi": true,
@@ -1042,6 +3709,7 @@
    "lon": 14,
    "elev": 56,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10291",
    "truth": {
     "poi": true,
@@ -1057,6 +3725,7 @@
    "lon": 7.42,
    "elev": 40,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10303",
    "truth": {
     "poi": true,
@@ -1072,6 +3741,7 @@
    "lon": 6.93,
    "elev": 46,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10309",
    "truth": {
     "poi": true,
@@ -1087,6 +3757,7 @@
    "lon": 8.17,
    "elev": 103,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10312",
    "truth": {
     "poi": true,
@@ -1102,6 +3773,7 @@
    "lon": 7.7,
    "elev": 48,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10315",
    "truth": {
     "poi": true,
@@ -1117,6 +3789,7 @@
    "lon": 8.35,
    "elev": 39,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10321",
    "truth": {
     "poi": true,
@@ -1132,6 +3805,7 @@
    "lon": 8.75,
    "elev": 135,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10325",
    "truth": {
     "poi": true,
@@ -1147,6 +3821,7 @@
    "lon": 9.43,
    "elev": 57,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10334",
    "truth": {
     "poi": true,
@@ -1162,6 +3837,7 @@
    "lon": 9.08,
    "elev": 70,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10335",
    "truth": {
     "poi": true,
@@ -1177,6 +3853,7 @@
    "lon": 9.68,
    "elev": 56,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10338",
    "truth": {
     "poi": true,
@@ -1192,6 +3869,7 @@
    "lon": 10.02,
    "elev": 39,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10343",
    "truth": {
     "poi": true,
@@ -1207,6 +3885,7 @@
    "lon": 10.45,
    "elev": 81,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10348",
    "truth": {
     "poi": true,
@@ -1222,6 +3901,7 @@
    "lon": 11.18,
    "elev": 162,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10356",
    "truth": {
     "poi": true,
@@ -1237,6 +3917,7 @@
    "lon": 11.38,
    "elev": 47,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10359",
    "truth": {
     "poi": true,
@@ -1252,6 +3933,7 @@
    "lon": 11.58,
    "elev": 79,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10361",
    "truth": {
     "poi": true,
@@ -1267,6 +3949,7 @@
    "lon": 12.17,
    "elev": 35,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10365",
    "truth": {
     "poi": true,
@@ -1282,6 +3965,7 @@
    "lon": 12.47,
    "elev": 187,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10368",
    "truth": {
     "poi": true,
@@ -1297,6 +3981,7 @@
    "lon": 13.5,
    "elev": 55,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10376",
    "truth": {
     "poi": true,
@@ -1312,6 +3997,7 @@
    "lon": 13.07,
    "elev": 99,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10379",
    "truth": {
     "poi": true,
@@ -1327,6 +4013,7 @@
    "lon": 13.3,
    "elev": 58,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10381",
    "truth": {
     "poi": true,
@@ -1342,6 +4029,7 @@
    "lon": 13.32,
    "elev": 37,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10382",
    "truth": {
     "poi": true,
@@ -1357,6 +4045,7 @@
    "lon": 13.4,
    "elev": 50,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10384",
    "truth": {
     "poi": true,
@@ -1372,6 +4061,7 @@
    "lon": 13.52,
    "elev": 47,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10385",
    "truth": {
     "poi": true,
@@ -1387,6 +4077,7 @@
    "lon": 14.12,
    "elev": 112,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10393",
    "truth": {
     "poi": true,
@@ -1402,6 +4093,7 @@
    "lon": 14.55,
    "elev": 12,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10396",
    "truth": {
     "poi": true,
@@ -1417,6 +4109,7 @@
    "lon": 6.77,
    "elev": 45,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10400",
    "truth": {
     "poi": true,
@@ -1432,6 +4125,7 @@
    "lon": 6.97,
    "elev": 161,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10410",
    "truth": {
     "poi": true,
@@ -1447,6 +4141,7 @@
    "lon": 7.63,
    "elev": 387,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10418",
    "truth": {
     "poi": true,
@@ -1462,6 +4157,7 @@
    "lon": 7.88,
    "elev": 85,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10424",
    "truth": {
     "poi": true,
@@ -1477,6 +4173,7 @@
    "lon": 8.48,
    "elev": 839,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10427",
    "truth": {
     "poi": true,
@@ -1492,6 +4189,7 @@
    "lon": 8.83,
    "elev": 157,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10430",
    "truth": {
     "poi": true,
@@ -1507,6 +4205,7 @@
    "lon": 9.27,
    "elev": 258,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10433",
    "truth": {
     "poi": true,
@@ -1522,6 +4221,7 @@
    "lon": 9.12,
    "elev": 236,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10435",
    "truth": {
     "poi": true,
@@ -1537,6 +4237,7 @@
    "lon": 9.28,
    "elev": 172,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10439",
    "truth": {
     "poi": true,
@@ -1552,6 +4253,7 @@
    "lon": 9.37,
    "elev": 317,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10441",
    "truth": {
     "poi": true,
@@ -1567,6 +4269,7 @@
    "lon": 9.8,
    "elev": 148,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10442",
    "truth": {
     "poi": true,
@@ -1582,6 +4285,7 @@
    "lon": 9.95,
    "elev": 175,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10444",
    "truth": {
     "poi": true,
@@ -1597,6 +4301,7 @@
    "lon": 10.32,
    "elev": 356,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10449",
    "truth": {
     "poi": true,
@@ -1612,6 +4317,7 @@
    "lon": 10.6,
    "elev": 607,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10452",
    "truth": {
     "poi": true,
@@ -1627,6 +4333,7 @@
    "lon": 10.62,
    "elev": 1142,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10453",
    "truth": {
     "poi": true,
@@ -1642,6 +4349,7 @@
    "lon": 10.77,
    "elev": 234,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10454",
    "truth": {
     "poi": true,
@@ -1657,6 +4365,7 @@
    "lon": 11.13,
    "elev": 404,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10458",
    "truth": {
     "poi": true,
@@ -1672,6 +4381,7 @@
    "lon": 11.28,
    "elev": 164,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10460",
    "truth": {
     "poi": true,
@@ -1687,6 +4397,7 @@
    "lon": 12.23,
    "elev": 141,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10469",
    "truth": {
     "poi": true,
@@ -1702,6 +4413,7 @@
    "lon": 12.42,
    "elev": 141,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10471",
    "truth": {
     "poi": true,
@@ -1717,6 +4429,7 @@
    "lon": 12.63,
    "elev": 105,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10474",
    "truth": {
     "poi": true,
@@ -1732,6 +4445,7 @@
    "lon": 13.18,
    "elev": 79,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10476",
    "truth": {
     "poi": true,
@@ -1747,6 +4461,7 @@
    "lon": 13.08,
    "elev": 150,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10480",
    "truth": {
     "poi": true,
@@ -1762,6 +4477,7 @@
    "lon": 13.75,
    "elev": 230,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10488",
    "truth": {
     "poi": true,
@@ -1777,6 +4493,7 @@
    "lon": 13.57,
    "elev": 97,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10490",
    "truth": {
     "poi": true,
@@ -1792,6 +4509,7 @@
    "lon": 14.25,
    "elev": 116,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10495",
    "truth": {
     "poi": true,
@@ -1807,6 +4525,7 @@
    "lon": 14.32,
    "elev": 69,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10496",
    "truth": {
     "poi": true,
@@ -1822,6 +4541,7 @@
    "lon": 14.95,
    "elev": 237,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10499",
    "truth": {
     "poi": true,
@@ -1837,6 +4557,7 @@
    "lon": 6.05,
    "elev": 90,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10500",
    "truth": {
     "poi": true,
@@ -1852,6 +4573,7 @@
    "lon": 6.67,
    "elev": 118,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10502",
    "truth": {
     "poi": true,
@@ -1867,6 +4589,7 @@
    "lon": 6.03,
    "elev": 231,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10505",
    "truth": {
     "poi": true,
@@ -1882,6 +4605,7 @@
    "lon": 6.87,
    "elev": 485,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10506",
    "truth": {
     "poi": true,
@@ -1897,6 +4621,7 @@
    "lon": 7.17,
    "elev": 91,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10513",
    "truth": {
     "poi": true,
@@ -1912,6 +4637,7 @@
    "lon": 7.18,
    "elev": 159,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10519",
    "truth": {
     "poi": true,
@@ -1927,6 +4653,7 @@
    "lon": 7.43,
    "elev": 75,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10520",
    "truth": {
     "poi": true,
@@ -1942,6 +4669,7 @@
    "lon": 6.78,
    "elev": 176,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10522",
    "truth": {
     "poi": true,
@@ -1957,6 +4685,7 @@
    "lon": 7.97,
    "elev": 547,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10526",
    "truth": {
     "poi": true,
@@ -1972,6 +4701,7 @@
    "lon": 8.63,
    "elev": 203,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10532",
    "truth": {
     "poi": true,
@@ -1987,6 +4717,7 @@
    "lon": 9.22,
    "elev": 743,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10534",
    "truth": {
     "poi": true,
@@ -2002,6 +4733,7 @@
    "lon": 9.02,
    "elev": 350,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10537",
    "truth": {
     "poi": true,
@@ -2017,6 +4749,7 @@
    "lon": 10.37,
    "elev": 312,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10540",
    "truth": {
     "poi": true,
@@ -2032,6 +4765,7 @@
    "lon": 9.73,
    "elev": 272,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10542",
    "truth": {
     "poi": true,
@@ -2047,6 +4781,7 @@
    "lon": 9.93,
    "elev": 921,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10544",
    "truth": {
     "poi": true,
@@ -2062,6 +4797,7 @@
    "lon": 10.38,
    "elev": 450,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10548",
    "truth": {
     "poi": true,
@@ -2077,6 +4813,7 @@
    "lon": 10.77,
    "elev": 937,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10552",
    "truth": {
     "poi": true,
@@ -2092,6 +4829,7 @@
    "lon": 10.97,
    "elev": 315,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10554",
    "truth": {
     "poi": true,
@@ -2107,6 +4845,7 @@
    "lon": 11.13,
    "elev": 845,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10557",
    "truth": {
     "poi": true,
@@ -2122,6 +4861,7 @@
    "lon": 11.8,
    "elev": 501,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10564",
    "truth": {
     "poi": true,
@@ -2137,6 +4877,7 @@
    "lon": 11.93,
    "elev": 246,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10565",
    "truth": {
     "poi": true,
@@ -2152,6 +4893,7 @@
    "lon": 12.13,
    "elev": 311,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10567",
    "truth": {
     "poi": true,
@@ -2167,6 +4909,7 @@
    "lon": 12.13,
    "elev": 386,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10569",
    "truth": {
     "poi": true,
@@ -2182,6 +4925,7 @@
    "lon": 12.62,
    "elev": 897,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10574",
    "truth": {
     "poi": true,
@@ -2197,6 +4941,7 @@
    "lon": 12.87,
    "elev": 418,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10577",
    "truth": {
     "poi": true,
@@ -2212,6 +4957,7 @@
    "lon": 12.95,
    "elev": 1213,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10578",
    "truth": {
     "poi": true,
@@ -2227,6 +4973,7 @@
    "lon": 13.15,
    "elev": 639,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10579",
    "truth": {
     "poi": true,
@@ -2242,6 +4989,7 @@
    "lon": 13.75,
    "elev": 877,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10582",
    "truth": {
     "poi": true,
@@ -2257,6 +5005,7 @@
    "lon": 14.22,
    "elev": 321,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10591",
    "truth": {
     "poi": true,
@@ -2272,6 +5021,7 @@
    "lon": 6.67,
    "elev": 265,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10609",
    "truth": {
     "poi": true,
@@ -2287,6 +5037,7 @@
    "lon": 7.07,
    "elev": 478,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10613",
    "truth": {
     "poi": true,
@@ -2302,6 +5053,7 @@
    "lon": 7.05,
    "elev": 481,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10615",
    "truth": {
     "poi": true,
@@ -2317,6 +5069,7 @@
    "lon": 7.27,
    "elev": 502,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10616",
    "truth": {
     "poi": true,
@@ -2332,6 +5085,7 @@
    "lon": 7.33,
    "elev": 376,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10618",
    "truth": {
     "poi": true,
@@ -2347,6 +5101,7 @@
    "lon": 7.95,
    "elev": 118,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10628",
    "truth": {
     "poi": true,
@@ -2362,6 +5117,7 @@
    "lon": 8.45,
    "elev": 805,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10635",
    "truth": {
     "poi": true,
@@ -2377,6 +5133,7 @@
    "lon": 8.6,
    "elev": 111,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10637",
    "truth": {
     "poi": true,
@@ -2392,6 +5149,7 @@
    "lon": 8.78,
    "elev": 119,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10641",
    "truth": {
     "poi": true,
@@ -2407,6 +5165,7 @@
    "lon": 9.42,
    "elev": 340,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10646",
    "truth": {
     "poi": true,
@@ -2422,6 +5181,7 @@
    "lon": 9.1,
    "elev": 453,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10648",
    "truth": {
     "poi": true,
@@ -2437,6 +5197,7 @@
    "lon": 9.97,
    "elev": 268,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10655",
    "truth": {
     "poi": true,
@@ -2452,6 +5213,7 @@
    "lon": 10.08,
    "elev": 262,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10658",
    "truth": {
     "poi": true,
@@ -2467,6 +5229,7 @@
    "lon": 10.98,
    "elev": 322,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10671",
    "truth": {
     "poi": true,
@@ -2482,6 +5245,7 @@
    "lon": 10.92,
    "elev": 243,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10675",
    "truth": {
     "poi": true,
@@ -2497,6 +5261,7 @@
    "lon": 11.88,
    "elev": 567,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10685",
    "truth": {
     "poi": true,
@@ -2512,6 +5277,7 @@
    "lon": 11.97,
    "elev": 622,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10686",
    "truth": {
     "poi": true,
@@ -2527,6 +5293,7 @@
    "lon": 12.18,
    "elev": 438,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10688",
    "truth": {
     "poi": true,
@@ -2542,6 +5309,7 @@
    "lon": 6.68,
    "elev": 363,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10704",
    "truth": {
     "poi": true,
@@ -2557,6 +5325,7 @@
    "lon": 7.05,
    "elev": 396,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10706",
    "truth": {
     "poi": true,
@@ -2572,6 +5341,7 @@
    "lon": 7.12,
    "elev": 322,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10708",
    "truth": {
     "poi": true,
@@ -2587,6 +5357,7 @@
    "lon": 8.12,
    "elev": 553,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10724",
    "truth": {
     "poi": true,
@@ -2602,6 +5373,7 @@
    "lon": 8.55,
    "elev": 96,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10729",
    "truth": {
     "poi": true,
@@ -2617,6 +5389,7 @@
    "lon": 8.32,
    "elev": 118,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10731",
    "truth": {
     "poi": true,
@@ -2632,6 +5405,7 @@
    "lon": 8.92,
    "elev": 237,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10733",
    "truth": {
     "poi": true,
@@ -2647,6 +5421,7 @@
    "lon": 8.87,
    "elev": 244,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10736",
    "truth": {
     "poi": true,
@@ -2662,6 +5437,7 @@
    "lon": 9.22,
    "elev": 396,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10738",
    "truth": {
     "poi": true,
@@ -2677,6 +5453,7 @@
    "lon": 9.2,
    "elev": 314,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10739",
    "truth": {
     "poi": true,
@@ -2692,6 +5469,7 @@
    "lon": 9.52,
    "elev": 276,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10742",
    "truth": {
     "poi": true,
@@ -2707,6 +5485,7 @@
    "lon": 9.97,
    "elev": 468,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10743",
    "truth": {
     "poi": true,
@@ -2722,6 +5501,7 @@
    "lon": 9.68,
    "elev": 489,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10747",
    "truth": {
     "poi": true,
@@ -2737,6 +5517,7 @@
    "lon": 10.37,
    "elev": 475,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10756",
    "truth": {
     "poi": true,
@@ -2752,6 +5533,7 @@
    "lon": 10.93,
    "elev": 439,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10761",
    "truth": {
     "poi": true,
@@ -2767,6 +5549,7 @@
    "lon": 11.05,
    "elev": 318,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10763",
    "truth": {
     "poi": true,
@@ -2782,6 +5565,7 @@
    "lon": 11.1,
    "elev": 388,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10765",
    "truth": {
     "poi": true,
@@ -2797,6 +5581,7 @@
    "lon": 11.9,
    "elev": 419,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10771",
    "truth": {
     "poi": true,
@@ -2812,6 +5597,7 @@
    "lon": 12.1,
    "elev": 365,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10776",
    "truth": {
     "poi": true,
@@ -2827,6 +5613,7 @@
    "lon": 11.43,
    "elev": 539,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10777",
    "truth": {
     "poi": true,
@@ -2842,6 +5629,7 @@
    "lon": 12.68,
    "elev": 499,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10782",
    "truth": {
     "poi": true,
@@ -2857,6 +5645,7 @@
    "lon": 12.57,
    "elev": 350,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10788",
    "truth": {
     "poi": true,
@@ -2872,6 +5661,7 @@
    "lon": 13.13,
    "elev": 1446,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10791",
    "truth": {
     "poi": true,
@@ -2887,6 +5677,7 @@
    "lon": 13.23,
    "elev": 612,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10796",
    "truth": {
     "poi": true,
@@ -2902,6 +5693,7 @@
    "lon": 7.83,
    "elev": 236,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10803",
    "truth": {
     "poi": true,
@@ -2917,6 +5709,7 @@
    "lon": 7.83,
    "elev": 156,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10805",
    "truth": {
     "poi": true,
@@ -2932,6 +5725,7 @@
    "lon": 8.42,
    "elev": 797,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10815",
    "truth": {
     "poi": true,
@@ -2947,6 +5741,7 @@
    "lon": 8.75,
    "elev": 973,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10818",
    "truth": {
     "poi": true,
@@ -2962,6 +5757,7 @@
    "lon": 9,
    "elev": 920,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10827",
    "truth": {
     "poi": true,
@@ -2977,6 +5773,7 @@
    "lon": 9.87,
    "elev": 734,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10836",
    "truth": {
     "poi": true,
@@ -2992,6 +5789,7 @@
    "lon": 9.92,
    "elev": 538,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10837",
    "truth": {
     "poi": true,
@@ -3007,6 +5805,7 @@
    "lon": 9.92,
    "elev": 593,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10840",
    "truth": {
     "poi": true,
@@ -3022,6 +5821,7 @@
    "lon": 10.72,
    "elev": 502,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10850",
    "truth": {
     "poi": true,
@@ -3037,6 +5837,7 @@
    "lon": 10.93,
    "elev": 463,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10852",
    "truth": {
     "poi": true,
@@ -3052,6 +5853,7 @@
    "lon": 11.22,
    "elev": 380,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10853",
    "truth": {
     "poi": true,
@@ -3067,6 +5869,7 @@
    "lon": 10.85,
    "elev": 555,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10856",
    "truth": {
     "poi": true,
@@ -3082,6 +5885,7 @@
    "lon": 11.53,
    "elev": 367,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10860",
    "truth": {
     "poi": true,
@@ -3097,6 +5901,7 @@
    "lon": 11.7,
    "elev": 470,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10863",
    "truth": {
     "poi": true,
@@ -3112,6 +5917,7 @@
    "lon": 11.53,
    "elev": 515,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10865",
    "truth": {
     "poi": true,
@@ -3127,6 +5933,7 @@
    "lon": 11.8,
    "elev": 453,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10870",
    "truth": {
     "poi": true,
@@ -3142,6 +5949,7 @@
    "lon": 12.53,
    "elev": 350,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10872",
    "truth": {
     "poi": true,
@@ -3157,6 +5965,7 @@
    "lon": 12.5,
    "elev": 406,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10875",
    "truth": {
     "poi": true,
@@ -3172,6 +5981,7 @@
    "lon": 13.35,
    "elev": 476,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10895",
    "truth": {
     "poi": true,
@@ -3187,6 +5997,7 @@
    "lon": 8,
    "elev": 1486,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10908",
    "truth": {
     "poi": true,
@@ -3202,6 +6013,7 @@
    "lon": 9.18,
    "elev": 443,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10929",
    "truth": {
     "poi": true,
@@ -3217,6 +6029,7 @@
    "lon": 10.03,
    "elev": 672,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10945",
    "truth": {
     "poi": true,
@@ -3232,6 +6045,7 @@
    "lon": 10.33,
    "elev": 705,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10946",
    "truth": {
     "poi": true,
@@ -3247,6 +6061,7 @@
    "lon": 10.28,
    "elev": 810,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10948",
    "truth": {
     "poi": true,
@@ -3262,6 +6077,7 @@
    "lon": 10.87,
    "elev": 739,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10954",
    "truth": {
     "poi": true,
@@ -3277,6 +6093,7 @@
    "lon": 10.98,
    "elev": 2960,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10961",
    "truth": {
     "poi": true,
@@ -3292,6 +6109,7 @@
    "lon": 11.02,
    "elev": 977,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10962",
    "truth": {
     "poi": true,
@@ -3307,6 +6125,7 @@
    "lon": 11.07,
    "elev": 719,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10963",
    "truth": {
     "poi": true,
@@ -3322,6 +6141,7 @@
    "lon": 12.53,
    "elev": 549,
    "country": "DE",
+   "profile": "DE",
    "wmo": "10982",
    "truth": {
     "poi": true,
@@ -3331,199 +6151,2162 @@
    "demM": 522
   },
   {
+   "id": "11001",
+   "name": "WOLFSEGG",
+   "lat": 48.105555555555554,
+   "lon": 13.670833333333333,
+   "elev": 635,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11001",
+   "truth": {
+    "poi": false,
+    "tawes": "11001",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11001",
+    "name": "WOLFSEGG",
+    "lat": 48.1,
+    "lon": 13.67,
+    "elev": 660,
+    "distanceKm": 0.62,
+    "dzM": -25,
+    "match": "id"
+   },
+   "demM": 617
+  },
+  {
+   "id": "11008",
+   "name": "ROHRBACH",
+   "lat": 48.56722222222223,
+   "lon": 14.004444444444445,
+   "elev": 613,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11008",
+   "truth": {
+    "poi": false,
+    "tawes": "11008",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11008",
+    "name": "ROHRBACH",
+    "lat": 48.57,
+    "lon": 14,
+    "elev": 602,
+    "distanceKm": 0.45,
+    "dzM": 11,
+    "match": "id"
+   },
+   "demM": 599
+  },
+  {
    "id": "11010",
-   "name": "LINZ FL.",
-   "lat": 48.23,
-   "lon": 14.18,
+   "name": "LINZ/HOERSCHING-FLUGHAFEN",
+   "lat": 48.23527777777778,
+   "lon": 14.188055555555556,
    "elev": 298,
    "country": "AT",
+   "profile": "AT",
    "wmo": "11010",
    "truth": {
     "poi": true,
     "tawes": "11010",
     "smn": null
    },
-   "demM": 295
+   "mosmix": {
+    "id": "11010",
+    "name": "LINZ FL.",
+    "lat": 48.23,
+    "lon": 14.18,
+    "elev": 298,
+    "distanceKm": 0.84,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 294
+  },
+  {
+   "id": "11012",
+   "name": "KREMSMUENSTER",
+   "lat": 48.055,
+   "lon": 14.131111111111112,
+   "elev": 382,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11012",
+   "truth": {
+    "poi": false,
+    "tawes": "11012",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11012",
+    "name": "KREMSMUENSTER",
+    "lat": 48.07,
+    "lon": 14.13,
+    "elev": 382,
+    "distanceKm": 1.67,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 372
+  },
+  {
+   "id": "11015",
+   "name": "FREISTADT",
+   "lat": 48.49472222222222,
+   "lon": 14.506388888888889,
+   "elev": 539,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11068",
+   "truth": {
+    "poi": false,
+    "tawes": "11068",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11015",
+    "name": "FREISTADT",
+    "lat": 48.5,
+    "lon": 14.5,
+    "elev": 548,
+    "distanceKm": 0.75,
+    "dzM": -9,
+    "match": "colocated"
+   },
+   "demM": 547
+  },
+  {
+   "id": "11018",
+   "name": "AMSTETTEN",
+   "lat": 48.10888888888889,
+   "lon": 14.895,
+   "elev": 266,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11018",
+   "truth": {
+    "poi": false,
+    "tawes": "11018",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11018",
+    "name": "AMSTETTEN",
+    "lat": 48.12,
+    "lon": 14.9,
+    "elev": 266,
+    "distanceKm": 1.29,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 263
+  },
+  {
+   "id": "11019",
+   "name": "ALLENTSTEIG",
+   "lat": 48.69083333333333,
+   "lon": 15.366944444444444,
+   "elev": 599,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11019",
+   "truth": {
+    "poi": false,
+    "tawes": "11019",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11019",
+    "name": "ALLENSTEIG",
+    "lat": 48.68,
+    "lon": 15.37,
+    "elev": 599,
+    "distanceKm": 1.23,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 595
+  },
+  {
+   "id": "11020",
+   "name": "STIFT ZWETTL",
+   "lat": 48.617777777777775,
+   "lon": 15.20361111111111,
+   "elev": 502,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11020",
+   "truth": {
+    "poi": false,
+    "tawes": "11020",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11020",
+    "name": "ZWETTL",
+    "lat": 48.62,
+    "lon": 15.2,
+    "elev": 505,
+    "distanceKm": 0.36,
+    "dzM": -3,
+    "match": "id"
+   },
+   "demM": 510
+  },
+  {
+   "id": "11021",
+   "name": "LITSCHAU",
+   "lat": 48.95472222222222,
+   "lon": 15.038333333333334,
+   "elev": 558,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11021",
+   "truth": {
+    "poi": false,
+    "tawes": "11021",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11021",
+    "name": "LITSCHAU",
+    "lat": 48.95,
+    "lon": 15.03,
+    "elev": 558,
+    "distanceKm": 0.8,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 552
+  },
+  {
+   "id": "11022",
+   "name": "RETZ",
+   "lat": 48.76111111111111,
+   "lon": 15.941666666666666,
+   "elev": 320,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11022",
+   "truth": {
+    "poi": false,
+    "tawes": "11022",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11022",
+    "name": "RETZ",
+    "lat": 48.77,
+    "lon": 15.93,
+    "elev": 320,
+    "distanceKm": 1.31,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 309
+  },
+  {
+   "id": "11028",
+   "name": "ST.POELTEN LANDHAUS",
+   "lat": 48.19972222222222,
+   "lon": 15.631111111111112,
+   "elev": 274,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11389",
+   "truth": {
+    "poi": false,
+    "tawes": "11389",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11028",
+    "name": "ST. POELTEN",
+    "lat": 48.2,
+    "lon": 15.62,
+    "elev": 282,
+    "distanceKm": 0.82,
+    "dzM": -8,
+    "match": "colocated"
+   },
+   "demM": 272
+  },
+  {
+   "id": "11030",
+   "name": "TULLN/LANGENLEBARN",
+   "lat": 48.323888888888895,
+   "lon": 16.118055555555557,
+   "elev": 175,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11030",
+   "truth": {
+    "poi": false,
+    "tawes": "11030",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11030",
+    "name": "TULLN",
+    "lat": 48.32,
+    "lon": 16.12,
+    "elev": 175,
+    "distanceKm": 0.46,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 172
+  },
+  {
+   "id": "11032",
+   "name": "POYSDORF",
+   "lat": 48.66916666666666,
+   "lon": 16.6375,
+   "elev": 198,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11032",
+   "truth": {
+    "poi": false,
+    "tawes": "11032",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11032",
+    "name": "POYSDORF",
+    "lat": 48.67,
+    "lon": 16.63,
+    "elev": 202,
+    "distanceKm": 0.56,
+    "dzM": -4,
+    "match": "id"
+   },
+   "demM": 203
+  },
+  {
+   "id": "11034",
+   "name": "WIEN-INNERE STADT",
+   "lat": 48.19833333333333,
+   "lon": 16.366944444444446,
+   "elev": 177,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11034",
+   "truth": {
+    "poi": false,
+    "tawes": "11034",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11034",
+    "name": "WIEN/CITY",
+    "lat": 48.2,
+    "lon": 16.37,
+    "elev": 171,
+    "distanceKm": 0.29,
+    "dzM": 6,
+    "match": "id"
+   },
+   "demM": 183
   },
   {
    "id": "11035",
    "name": "WIEN/HOHE WARTE",
-   "lat": 48.25,
-   "lon": 16.37,
-   "elev": 195,
+   "lat": 48.24861111111111,
+   "lon": 16.35638888888889,
+   "elev": 198,
    "country": "AT",
+   "profile": "AT",
    "wmo": "11035",
    "truth": {
     "poi": true,
     "tawes": "11035",
     "smn": null
    },
-   "demM": 163
+   "mosmix": {
+    "id": "11035",
+    "name": "WIEN/HOHE WARTE",
+    "lat": 48.25,
+    "lon": 16.37,
+    "elev": 195,
+    "distanceKm": 1.02,
+    "dzM": 3,
+    "match": "id"
+   },
+   "demM": 202
+  },
+  {
+   "id": "11036",
+   "name": "WIEN/SCHWECHAT-FLUGHAFEN",
+   "lat": 48.1175,
+   "lon": 16.58138888888889,
+   "elev": 183,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11036",
+   "truth": {
+    "poi": false,
+    "tawes": "11036",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11036",
+    "name": "WIEN FL.",
+    "lat": 48.12,
+    "lon": 16.57,
+    "elev": 183,
+    "distanceKm": 0.89,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 177
+  },
+  {
+   "id": "11040",
+   "name": "WIEN/UNTERLAA",
+   "lat": 48.125,
+   "lon": 16.419444444444444,
+   "elev": 200,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11040",
+   "truth": {
+    "poi": false,
+    "tawes": "11040",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11040",
+    "name": "WIEN/UNTERLAA",
+    "lat": 48.13,
+    "lon": 16.42,
+    "elev": 201,
+    "distanceKm": 0.56,
+    "dzM": -1,
+    "match": "id"
+   },
+   "demM": 199
+  },
+  {
+   "id": "11053",
+   "name": "RIED IM INNKREIS",
+   "lat": 48.217222222222226,
+   "lon": 13.475,
+   "elev": 427,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11053",
+   "truth": {
+    "poi": false,
+    "tawes": "11053",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11053",
+    "name": "RIED IM INNKREIS",
+    "lat": 48.22,
+    "lon": 13.48,
+    "elev": 431,
+    "distanceKm": 0.48,
+    "dzM": -4,
+    "match": "id"
+   },
+   "demM": 428
+  },
+  {
+   "id": "11055",
+   "name": "SCHAERDING",
+   "lat": 48.46416666666667,
+   "lon": 13.434444444444445,
+   "elev": 307,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11055",
+   "truth": {
+    "poi": false,
+    "tawes": "11055",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11055",
+    "name": "SCHAERDING",
+    "lat": 48.47,
+    "lon": 13.43,
+    "elev": 314,
+    "distanceKm": 0.73,
+    "dzM": -7,
+    "match": "id"
+   },
+   "demM": 304
+  },
+  {
+   "id": "11060",
+   "name": "LINZ-STADT",
+   "lat": 48.296388888888885,
+   "lon": 14.285555555555556,
+   "elev": 262,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11060",
+   "truth": {
+    "poi": false,
+    "tawes": "11060",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11060",
+    "name": "LINZ",
+    "lat": 48.3,
+    "lon": 14.28,
+    "elev": 262,
+    "distanceKm": 0.57,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 268
+  },
+  {
+   "id": "11070",
+   "name": "KREMS",
+   "lat": 48.41861111111111,
+   "lon": 15.622222222222224,
+   "elev": 202,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11070",
+   "truth": {
+    "poi": false,
+    "tawes": "11070",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11070",
+    "name": "KREMS",
+    "lat": 48.42,
+    "lon": 15.62,
+    "elev": 203,
+    "distanceKm": 0.23,
+    "dzM": -1,
+    "match": "id"
+   },
+   "demM": 206
+  },
+  {
+   "id": "11075",
+   "name": "LANGENLOIS",
+   "lat": 48.472500000000004,
+   "lon": 15.697222222222223,
+   "elev": 207,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11075",
+   "truth": {
+    "poi": false,
+    "tawes": "11075",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11075",
+    "name": "LANGENLOIS",
+    "lat": 48.47,
+    "lon": 15.7,
+    "elev": 204,
+    "distanceKm": 0.35,
+    "dzM": 3,
+    "match": "id"
+   },
+   "demM": 204
+  },
+  {
+   "id": "11078",
+   "name": "LILIENFELD/TARSCHBERG",
+   "lat": 48.028055555555554,
+   "lon": 15.5875,
+   "elev": 696,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11078",
+   "truth": {
+    "poi": false,
+    "tawes": "11078",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11078",
+    "name": "LILIENFELD/TARSCHBER",
+    "lat": 48.03,
+    "lon": 15.58,
+    "elev": 681,
+    "distanceKm": 0.6,
+    "dzM": 15,
+    "match": "id"
+   },
+   "demM": 672
+  },
+  {
+   "id": "11082",
+   "name": "GUMPOLDSKIRCHEN",
+   "lat": 48.03583333333333,
+   "lon": 16.280833333333334,
+   "elev": 212,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11082",
+   "truth": {
+    "poi": false,
+    "tawes": "11082",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11082",
+    "name": "GUMPOLDSKIRCHEN",
+    "lat": 48.03,
+    "lon": 16.28,
+    "elev": 219,
+    "distanceKm": 0.65,
+    "dzM": -7,
+    "match": "id"
+   },
+   "demM": 210
+  },
+  {
+   "id": "11101",
+   "name": "BREGENZ",
+   "lat": 47.49916666666667,
+   "lon": 9.74611111111111,
+   "elev": 424,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11101",
+   "truth": {
+    "poi": false,
+    "tawes": "11101",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11101",
+    "name": "BREGENZ",
+    "lat": 47.5,
+    "lon": 9.75,
+    "elev": 424,
+    "distanceKm": 0.31,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 416
   },
   {
    "id": "11105",
    "name": "FELDKIRCH",
-   "lat": 47.27,
-   "lon": 9.62,
+   "lat": 47.27111111111111,
+   "lon": 9.609722222222222,
    "elev": 438,
    "country": "AT",
+   "profile": "AT",
    "wmo": "11105",
    "truth": {
     "poi": true,
     "tawes": "11105",
     "smn": null
    },
-   "demM": 446
+   "mosmix": {
+    "id": "11105",
+    "name": "FELDKIRCH",
+    "lat": 47.27,
+    "lon": 9.62,
+    "elev": 438,
+    "distanceKm": 0.79,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 439
+  },
+  {
+   "id": "11109",
+   "name": "ST.ANTON/ARLBERG",
+   "lat": 47.13138888888889,
+   "lon": 10.266666666666667,
+   "elev": 1304,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11311",
+   "truth": {
+    "poi": false,
+    "tawes": "11311",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11109",
+    "name": "ST.ANTON AM ARLBERG",
+    "lat": 47.13,
+    "lon": 10.27,
+    "elev": 1289,
+    "distanceKm": 0.3,
+    "dzM": 15,
+    "match": "colocated"
+   },
+   "demM": 1310
+  },
+  {
+   "id": "11110",
+   "name": "GALZIG",
+   "lat": 47.12972222222222,
+   "lon": 10.230277777777777,
+   "elev": 2079,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11110",
+   "truth": {
+    "poi": false,
+    "tawes": "11110",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11110",
+    "name": "GALZIG",
+    "lat": 47.13,
+    "lon": 10.23,
+    "elev": 2080,
+    "distanceKm": 0.04,
+    "dzM": -1,
+    "match": "id"
+   },
+   "demM": 2059
+  },
+  {
+   "id": "11112",
+   "name": "LANDECK",
+   "lat": 47.140277777777776,
+   "lon": 10.563611111111111,
+   "elev": 796,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11112",
+   "truth": {
+    "poi": false,
+    "tawes": "11112",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11112",
+    "name": "LANDECK",
+    "lat": 47.15,
+    "lon": 10.57,
+    "elev": 785,
+    "distanceKm": 1.18,
+    "dzM": 11,
+    "match": "id"
+   },
+   "demM": 791
+  },
+  {
+   "id": "11113",
+   "name": "NAUDERS",
+   "lat": 46.89111111111111,
+   "lon": 10.496944444444443,
+   "elev": 1330,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11113",
+   "truth": {
+    "poi": false,
+    "tawes": "11113",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11113",
+    "name": "NAUDERS",
+    "lat": 46.88,
+    "lon": 10.5,
+    "elev": 1330,
+    "distanceKm": 1.26,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 1317
   },
   {
    "id": "11120",
-   "name": "INNSBRUCK FL.",
-   "lat": 47.27,
-   "lon": 11.35,
-   "elev": 581,
+   "name": "INNSBRUCK-FLUGHAFEN (AUTOMAT)",
+   "lat": 47.26,
+   "lon": 11.356666666666667,
+   "elev": 578,
    "country": "AT",
-   "wmo": "11120",
+   "profile": "AT",
+   "wmo": "11121",
    "truth": {
     "poi": true,
-    "tawes": null,
+    "tawes": "11121",
     "smn": null
    },
-   "demM": 689
+   "mosmix": {
+    "id": "11120",
+    "name": "INNSBRUCK FL.",
+    "lat": 47.27,
+    "lon": 11.35,
+    "elev": 581,
+    "distanceKm": 1.22,
+    "dzM": -3,
+    "match": "colocated"
+   },
+   "demM": 576
+  },
+  {
+   "id": "11127",
+   "name": "OBERGURGL",
+   "lat": 46.86694444444444,
+   "lon": 11.024444444444445,
+   "elev": 1941,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11127",
+   "truth": {
+    "poi": false,
+    "tawes": "11127",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11127",
+    "name": "OBERGURGL",
+    "lat": 46.87,
+    "lon": 11.02,
+    "elev": 1941,
+    "distanceKm": 0.48,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 1911
+  },
+  {
+   "id": "11130",
+   "name": "KUFSTEIN",
+   "lat": 47.57527777777778,
+   "lon": 12.162777777777778,
+   "elev": 490,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11130",
+   "truth": {
+    "poi": false,
+    "tawes": "11130",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11130",
+    "name": "KUFSTEIN",
+    "lat": 47.58,
+    "lon": 12.17,
+    "elev": 493,
+    "distanceKm": 0.75,
+    "dzM": -3,
+    "match": "id"
+   },
+   "demM": 486
+  },
+  {
+   "id": "11138",
+   "name": "RUDOLFSHUETTE-ALPINZENTRUM",
+   "lat": 47.135,
+   "lon": 12.625833333333334,
+   "elev": 2317,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11138",
+   "truth": {
+    "poi": false,
+    "tawes": "11138",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11138",
+    "name": "ALPINZENTRUM RUDOL.",
+    "lat": 47.13,
+    "lon": 12.63,
+    "elev": 2317,
+    "distanceKm": 0.64,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 2265
+  },
+  {
+   "id": "11140",
+   "name": "LOFER",
+   "lat": 47.58444444444444,
+   "lon": 12.695277777777777,
+   "elev": 622,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11140",
+   "truth": {
+    "poi": false,
+    "tawes": "11140",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11140",
+    "name": "LOFER",
+    "lat": 47.58,
+    "lon": 12.7,
+    "elev": 629,
+    "distanceKm": 0.61,
+    "dzM": -7,
+    "match": "id"
+   },
+   "demM": 625
+  },
+  {
+   "id": "11141",
+   "name": "BISCHOFSHOFEN",
+   "lat": 47.406666666666666,
+   "lon": 13.221111111111112,
+   "elev": 550,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11141",
+   "truth": {
+    "poi": false,
+    "tawes": "11141",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11141",
+    "name": "BISCHOFSHOFEN",
+    "lat": 47.4,
+    "lon": 13.22,
+    "elev": 543,
+    "distanceKm": 0.75,
+    "dzM": 7,
+    "match": "id"
+   },
+   "demM": 539
   },
   {
    "id": "11144",
-   "name": "ZELL A.SEE",
-   "lat": 47.33,
-   "lon": 12.8,
-   "elev": 766,
+   "name": "ZELL AM SEE",
+   "lat": 47.29,
+   "lon": 12.786388888888888,
+   "elev": 754,
    "country": "AT",
+   "profile": "AT",
    "wmo": "11144",
    "truth": {
     "poi": true,
     "tawes": "11144",
     "smn": null
    },
-   "demM": 737
+   "mosmix": {
+    "id": "11144",
+    "name": "ZELL A.SEE",
+    "lat": 47.33,
+    "lon": 12.8,
+    "elev": 766,
+    "distanceKm": 4.56,
+    "dzM": -12,
+    "match": "id"
+   },
+   "demM": 754
+  },
+  {
+   "id": "11145",
+   "name": "BAD GASTEIN",
+   "lat": 47.11055555555556,
+   "lon": 13.133333333333333,
+   "elev": 1092,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11372",
+   "truth": {
+    "poi": false,
+    "tawes": "11372",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11145",
+    "name": "BAD GASTEIN",
+    "lat": 47.12,
+    "lon": 13.13,
+    "elev": 1100,
+    "distanceKm": 1.08,
+    "dzM": -8,
+    "match": "colocated"
+   },
+   "demM": 1072
+  },
+  {
+   "id": "11146",
+   "name": "SONNBLICK - AUTOM.",
+   "lat": 47.05416666666667,
+   "lon": 12.9575,
+   "elev": 3109,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11343",
+   "truth": {
+    "poi": false,
+    "tawes": "11343",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11146",
+    "name": "SONNBLICK",
+    "lat": 47.05,
+    "lon": 12.95,
+    "elev": 3106,
+    "distanceKm": 0.73,
+    "dzM": 3,
+    "match": "colocated"
+   },
+   "demM": 2955
   },
   {
    "id": "11148",
    "name": "ST.MICHAEL/LUNGAU",
-   "lat": 47.1,
-   "lon": 13.65,
-   "elev": 1094,
+   "lat": 47.09444444444445,
+   "lon": 13.622777777777777,
+   "elev": 1052,
    "country": "AT",
+   "profile": "AT",
    "wmo": "11148",
    "truth": {
     "poi": true,
     "tawes": "11148",
     "smn": null
    },
-   "demM": 1058
+   "mosmix": {
+    "id": "11148",
+    "name": "ST.MICHAEL/LUNGAU",
+    "lat": 47.1,
+    "lon": 13.65,
+    "elev": 1094,
+    "distanceKm": 2.15,
+    "dzM": -42,
+    "match": "id"
+   },
+   "demM": 1043
+  },
+  {
+   "id": "11149",
+   "name": "OBERTAUERN",
+   "lat": 47.24888888888889,
+   "lon": 13.559722222222224,
+   "elev": 1772,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11149",
+   "truth": {
+    "poi": false,
+    "tawes": "11149",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11149",
+    "name": "OBERTAUERN",
+    "lat": 47.25,
+    "lon": 13.57,
+    "elev": 1743,
+    "distanceKm": 0.79,
+    "dzM": 29,
+    "match": "id"
+   },
+   "demM": 1747
   },
   {
    "id": "11150",
-   "name": "SALZBURG FL.",
-   "lat": 47.8,
-   "lon": 13,
+   "name": "SALZBURG-FLUGHAFEN",
+   "lat": 47.78944444444444,
+   "lon": 13.008611111111112,
    "elev": 430,
    "country": "AT",
+   "profile": "AT",
    "wmo": "11150",
    "truth": {
     "poi": true,
     "tawes": "11150",
     "smn": null
    },
-   "demM": 424
+   "mosmix": {
+    "id": "11150",
+    "name": "SALZBURG FL.",
+    "lat": 47.8,
+    "lon": 13,
+    "elev": 430,
+    "distanceKm": 1.34,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 427
+  },
+  {
+   "id": "11155",
+   "name": "FEUERKOGEL",
+   "lat": 47.81666666666667,
+   "lon": 13.717777777777778,
+   "elev": 1618,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11155",
+   "truth": {
+    "poi": false,
+    "tawes": "11155",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11155",
+    "name": "FEUERKOGEL",
+    "lat": 47.82,
+    "lon": 13.72,
+    "elev": 1618,
+    "distanceKm": 0.41,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 1577
   },
   {
    "id": "11157",
-   "name": "AIGEN/ENNS",
-   "lat": 47.53,
-   "lon": 14.13,
-   "elev": 638,
+   "name": "AIGEN IM ENNSTAL",
+   "lat": 47.532777777777774,
+   "lon": 14.138333333333334,
+   "elev": 641,
    "country": "AT",
+   "profile": "AT",
    "wmo": "11157",
    "truth": {
     "poi": true,
     "tawes": "11157",
     "smn": null
    },
-   "demM": 660
+   "mosmix": {
+    "id": "11157",
+    "name": "AIGEN/ENNS",
+    "lat": 47.53,
+    "lon": 14.13,
+    "elev": 638,
+    "distanceKm": 0.7,
+    "dzM": 3,
+    "match": "id"
+   },
+   "demM": 643
+  },
+  {
+   "id": "11165",
+   "name": "ZELTWEG - AUTOM. STAT.",
+   "lat": 47.19972222222222,
+   "lon": 14.746944444444443,
+   "elev": 678,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11365",
+   "truth": {
+    "poi": false,
+    "tawes": "11365",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11165",
+    "name": "ZELTWEG",
+    "lat": 47.2,
+    "lon": 14.75,
+    "elev": 677,
+    "distanceKm": 0.23,
+    "dzM": 1,
+    "match": "colocated"
+   },
+   "demM": 673
+  },
+  {
+   "id": "11170",
+   "name": "LUNZ",
+   "lat": 47.85444444444445,
+   "lon": 15.067499999999999,
+   "elev": 612,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11170",
+   "truth": {
+    "poi": false,
+    "tawes": "11170",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11170",
+    "name": "LUNZ",
+    "lat": 47.85,
+    "lon": 15.07,
+    "elev": 614,
+    "distanceKm": 0.53,
+    "dzM": -2,
+    "match": "id"
+   },
+   "demM": 617
+  },
+  {
+   "id": "11173",
+   "name": "FISCHBACH",
+   "lat": 47.44416666666666,
+   "lon": 15.643888888888888,
+   "elev": 1034,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11173",
+   "truth": {
+    "poi": false,
+    "tawes": "11173",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11173",
+    "name": "FISCHBACH",
+    "lat": 47.45,
+    "lon": 15.65,
+    "elev": 1034,
+    "distanceKm": 0.79,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 1028
+  },
+  {
+   "id": "11176",
+   "name": "KAPFENBERG-FLUGFELD",
+   "lat": 47.458333333333336,
+   "lon": 15.335555555555556,
+   "elev": 515,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11176",
+   "truth": {
+    "poi": false,
+    "tawes": "11176",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11176",
+    "name": "KAPFENBERG",
+    "lat": 47.47,
+    "lon": 15.33,
+    "elev": 515,
+    "distanceKm": 1.36,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 514
+  },
+  {
+   "id": "11182",
+   "name": "WIENER NEUSTADT",
+   "lat": 47.83222222222223,
+   "lon": 16.231388888888887,
+   "elev": 275,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11182",
+   "truth": {
+    "poi": false,
+    "tawes": "11182",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11182",
+    "name": "WIENER NEUSTADT",
+    "lat": 47.83,
+    "lon": 16.22,
+    "elev": 285,
+    "distanceKm": 0.89,
+    "dzM": -10,
+    "match": "id"
+   },
+   "demM": 272
   },
   {
    "id": "11190",
    "name": "EISENSTADT",
-   "lat": 47.85,
-   "lon": 16.53,
+   "lat": 47.85416666666667,
+   "lon": 16.538333333333334,
    "elev": 184,
    "country": "AT",
+   "profile": "AT",
    "wmo": "11190",
    "truth": {
     "poi": true,
     "tawes": "11190",
     "smn": null
    },
-   "demM": 180
+   "mosmix": {
+    "id": "11190",
+    "name": "EISENSTADT",
+    "lat": 47.85,
+    "lon": 16.53,
+    "elev": 184,
+    "distanceKm": 0.78,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 192
+  },
+  {
+   "id": "11192",
+   "name": "KLEINZICKEN",
+   "lat": 47.2075,
+   "lon": 16.326666666666668,
+   "elev": 263,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11192",
+   "truth": {
+    "poi": false,
+    "tawes": "11192",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11192",
+    "name": "KLEINZICKEN",
+    "lat": 47.2,
+    "lon": 16.33,
+    "elev": 267,
+    "distanceKm": 0.87,
+    "dzM": -4,
+    "match": "id"
+   },
+   "demM": 262
+  },
+  {
+   "id": "11194",
+   "name": "NEUSIEDL AM SEE",
+   "lat": 47.94916666666666,
+   "lon": 16.828888888888887,
+   "elev": 117,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11072",
+   "truth": {
+    "poi": false,
+    "tawes": "11072",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11194",
+    "name": "NEUSIEDL AM SEE",
+    "lat": 47.95,
+    "lon": 16.85,
+    "elev": 135,
+    "distanceKm": 1.58,
+    "dzM": -18,
+    "match": "colocated"
+   },
+   "demM": 114
+  },
+  {
+   "id": "11201",
+   "name": "SILLIAN",
+   "lat": 46.74638888888889,
+   "lon": 12.42361111111111,
+   "elev": 1081,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11201",
+   "truth": {
+    "poi": false,
+    "tawes": "11201",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11201",
+    "name": "SILLIAN",
+    "lat": 46.75,
+    "lon": 12.42,
+    "elev": 1081,
+    "distanceKm": 0.49,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 1059
+  },
+  {
+   "id": "11204",
+   "name": "LIENZ",
+   "lat": 46.82555555555556,
+   "lon": 12.80638888888889,
+   "elev": 661,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11204",
+   "truth": {
+    "poi": false,
+    "tawes": "11204",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11204",
+    "name": "LIENZ",
+    "lat": 46.83,
+    "lon": 12.8,
+    "elev": 659,
+    "distanceKm": 0.69,
+    "dzM": 2,
+    "match": "id"
+   },
+   "demM": 658
+  },
+  {
+   "id": "11210",
+   "name": "MALLNITZ-BAD",
+   "lat": 46.99194444444444,
+   "lon": 13.166666666666666,
+   "elev": 1197,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11260",
+   "truth": {
+    "poi": false,
+    "tawes": "11260",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11210",
+    "name": "MALLNITZ",
+    "lat": 46.98,
+    "lon": 13.18,
+    "elev": 1185,
+    "distanceKm": 1.67,
+    "dzM": 12,
+    "match": "colocated"
+   },
+   "demM": 1202
+  },
+  {
+   "id": "11212",
+   "name": "VILLACHER ALPE - AUTOM.",
+   "lat": 46.603611111111114,
+   "lon": 13.672777777777776,
+   "elev": 2117,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11265",
+   "truth": {
+    "poi": false,
+    "tawes": "11265",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11212",
+    "name": "VILL.ALPE",
+    "lat": 46.6,
+    "lon": 13.67,
+    "elev": 2140,
+    "distanceKm": 0.45,
+    "dzM": -23,
+    "match": "colocated"
+   },
+   "demM": 2061
   },
   {
    "id": "11213",
    "name": "VILLACH",
-   "lat": 46.62,
-   "lon": 13.87,
-   "elev": 495,
+   "lat": 46.61805555555556,
+   "lon": 13.873888888888889,
+   "elev": 493,
    "country": "AT",
+   "profile": "AT",
    "wmo": "11213",
    "truth": {
     "poi": true,
     "tawes": "11213",
     "smn": null
    },
-   "demM": 493
+   "mosmix": {
+    "id": "11213",
+    "name": "VILLACH",
+    "lat": 46.62,
+    "lon": 13.87,
+    "elev": 495,
+    "distanceKm": 0.37,
+    "dzM": -2,
+    "match": "id"
+   },
+   "demM": 488
+  },
+  {
+   "id": "11221",
+   "name": "KOEFLACH",
+   "lat": 47.070277777777775,
+   "lon": 15.087222222222222,
+   "elev": 465,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11221",
+   "truth": {
+    "poi": false,
+    "tawes": "11221",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11221",
+    "name": "KOEFLACH",
+    "lat": 47.07,
+    "lon": 15.08,
+    "elev": 463,
+    "distanceKm": 0.55,
+    "dzM": 2,
+    "match": "id"
+   },
+   "demM": 485
   },
   {
    "id": "11231",
-   "name": "KLAGENFURT FL.",
-   "lat": 46.65,
-   "lon": 14.33,
-   "elev": 448,
+   "name": "KLAGENFURT-FLUGHAFEN (AUTOMAT)",
+   "lat": 46.64833333333333,
+   "lon": 14.318333333333333,
+   "elev": 450,
    "country": "AT",
-   "wmo": "11231",
+   "profile": "AT",
+   "wmo": "11331",
    "truth": {
     "poi": true,
-    "tawes": null,
+    "tawes": "11331",
     "smn": null
    },
-   "demM": 472
+   "mosmix": {
+    "id": "11231",
+    "name": "KLAGENFURT FL.",
+    "lat": 46.65,
+    "lon": 14.33,
+    "elev": 448,
+    "distanceKm": 0.91,
+    "dzM": 2,
+    "match": "colocated"
+   },
+   "demM": 447
+  },
+  {
+   "id": "11232",
+   "name": "FEISTRITZ OB BLEIBURG",
+   "lat": 46.55888888888889,
+   "lon": 14.766666666666667,
+   "elev": 522,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11232",
+   "truth": {
+    "poi": false,
+    "tawes": "11232",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11232",
+    "name": "FEISTRITZ",
+    "lat": 46.57,
+    "lon": 14.77,
+    "elev": 532,
+    "distanceKm": 1.26,
+    "dzM": -10,
+    "match": "id"
+   },
+   "demM": 530
   },
   {
    "id": "11240",
-   "name": "GRAZ FL.",
-   "lat": 47,
-   "lon": 15.43,
+   "name": "GRAZ-THALERHOF-FLUGHAFEN",
+   "lat": 46.980555555555554,
+   "lon": 15.44,
    "elev": 340,
    "country": "AT",
+   "profile": "AT",
    "wmo": "11240",
    "truth": {
     "poi": true,
     "tawes": "11240",
     "smn": null
    },
-   "demM": 336
+   "mosmix": {
+    "id": "11240",
+    "name": "GRAZ FL.",
+    "lat": 47,
+    "lon": 15.43,
+    "elev": 340,
+    "distanceKm": 2.29,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 334
+  },
+  {
+   "id": "11245",
+   "name": "BAD GLEICHENBERG",
+   "lat": 46.87222222222222,
+   "lon": 15.903611111111111,
+   "elev": 269,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11244",
+   "truth": {
+    "poi": false,
+    "tawes": "11244",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11245",
+    "name": "GLEICHENBERG",
+    "lat": 46.87,
+    "lon": 15.9,
+    "elev": 303,
+    "distanceKm": 0.37,
+    "dzM": -34,
+    "match": "colocated"
+   },
+   "demM": 279
+  },
+  {
+   "id": "11248",
+   "name": "BAD RADKERSBURG",
+   "lat": 46.69222222222222,
+   "lon": 15.993333333333332,
+   "elev": 207,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11264",
+   "truth": {
+    "poi": false,
+    "tawes": "11264",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11248",
+    "name": "BAD RADKERSBURG",
+    "lat": 46.68,
+    "lon": 15.98,
+    "elev": 208,
+    "distanceKm": 1.7,
+    "dzM": -1,
+    "match": "colocated"
+   },
+   "demM": 209
+  },
+  {
+   "id": "11252",
+   "name": "VIRGEN",
+   "lat": 47.00277777777778,
+   "lon": 12.455833333333333,
+   "elev": 1212,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11252",
+   "truth": {
+    "poi": false,
+    "tawes": "11252",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11252",
+    "name": "VIRGEN (OSTTIROL)",
+    "lat": 47,
+    "lon": 12.45,
+    "elev": 1212,
+    "distanceKm": 0.54,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 1202
+  },
+  {
+   "id": "11255",
+   "name": "KOETSCHACH-MAUTHEN",
+   "lat": 46.67638888888889,
+   "lon": 12.998333333333333,
+   "elev": 705,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11255",
+   "truth": {
+    "poi": false,
+    "tawes": "11255",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11255",
+    "name": "KOETSCHACH",
+    "lat": 46.68,
+    "lon": 13,
+    "elev": 722,
+    "distanceKm": 0.42,
+    "dzM": -17,
+    "match": "id"
+   },
+   "demM": 717
+  },
+  {
+   "id": "11270",
+   "name": "DELLACH IM DRAUTAL",
+   "lat": 46.74194444444444,
+   "lon": 13.082777777777778,
+   "elev": 628,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11270",
+   "truth": {
+    "poi": false,
+    "tawes": "11270",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11270",
+    "name": "DELLACH IM DRAUTAL",
+    "lat": 46.73,
+    "lon": 13.08,
+    "elev": 625,
+    "distanceKm": 1.34,
+    "dzM": 3,
+    "match": "id"
+   },
+   "demM": 642
+  },
+  {
+   "id": "11272",
+   "name": "SPITTAL/DRAU",
+   "lat": 46.79055555555556,
+   "lon": 13.487222222222222,
+   "elev": 542,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11272",
+   "truth": {
+    "poi": false,
+    "tawes": "11272",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11272",
+    "name": "SPITTAL/DRAU (TAWES)",
+    "lat": 46.78,
+    "lon": 13.48,
+    "elev": 542,
+    "distanceKm": 1.3,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 539
+  },
+  {
+   "id": "11280",
+   "name": "MURAU",
+   "lat": 47.111111111111114,
+   "lon": 14.176944444444445,
+   "elev": 816,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11280",
+   "truth": {
+    "poi": false,
+    "tawes": "11280",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11280",
+    "name": "MURAU",
+    "lat": 47.12,
+    "lon": 14.18,
+    "elev": 814,
+    "distanceKm": 1.02,
+    "dzM": 2,
+    "match": "id"
+   },
+   "demM": 802
+  },
+  {
+   "id": "11285",
+   "name": "DEUTSCHLANDSBERG",
+   "lat": 46.82166666666667,
+   "lon": 15.226944444444445,
+   "elev": 354,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11285",
+   "truth": {
+    "poi": false,
+    "tawes": "11285",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11285",
+    "name": "DEUTSCHLANDSBERG",
+    "lat": 46.82,
+    "lon": 15.23,
+    "elev": 354,
+    "distanceKm": 0.3,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 358
+  },
+  {
+   "id": "11290",
+   "name": "GRAZ UNIVERSITAET/HEINRICHSTRASSE",
+   "lat": 47.080000000000005,
+   "lon": 15.448055555555555,
+   "elev": 366,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11291",
+   "truth": {
+    "poi": false,
+    "tawes": "11291",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11290",
+    "name": "GRAZ (UNIVERSITAET)",
+    "lat": 47.08,
+    "lon": 15.45,
+    "elev": 367,
+    "distanceKm": 0.15,
+    "dzM": -1,
+    "match": "colocated"
+   },
+   "demM": 373
+  },
+  {
+   "id": "11292",
+   "name": "LASSNITZHOEHE",
+   "lat": 47.07361111111111,
+   "lon": 15.592222222222222,
+   "elev": 530,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11292",
+   "truth": {
+    "poi": false,
+    "tawes": "11292",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11292",
+    "name": "LASSNITZHOEHE",
+    "lat": 47.08,
+    "lon": 15.58,
+    "elev": 524,
+    "distanceKm": 1.17,
+    "dzM": 6,
+    "match": "id"
+   },
+   "demM": 535
+  },
+  {
+   "id": "11295",
+   "name": "LEIBNITZ",
+   "lat": 46.7675,
+   "lon": 15.552777777777779,
+   "elev": 268,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11296",
+   "truth": {
+    "poi": false,
+    "tawes": "11296",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11295",
+    "name": "LEIBNITZ",
+    "lat": 46.78,
+    "lon": 15.55,
+    "elev": 271,
+    "distanceKm": 1.41,
+    "dzM": -3,
+    "match": "colocated"
+   },
+   "demM": 267
+  },
+  {
+   "id": "11308",
+   "name": "WARTH",
+   "lat": 47.255833333333335,
+   "lon": 10.186111111111112,
+   "elev": 1478,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11308",
+   "truth": {
+    "poi": false,
+    "tawes": "11308",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11308",
+    "name": "WARTH",
+    "lat": 47.25,
+    "lon": 10.18,
+    "elev": 1475,
+    "distanceKm": 0.8,
+    "dzM": 3,
+    "match": "id"
+   },
+   "demM": 1474
+  },
+  {
+   "id": "11310",
+   "name": "ISCHGL/IDALPE",
+   "lat": 46.9825,
+   "lon": 10.317222222222222,
+   "elev": 2327,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11310",
+   "truth": {
+    "poi": false,
+    "tawes": "11310",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11310",
+    "name": "ISCHGL",
+    "lat": 46.98,
+    "lon": 10.32,
+    "elev": 2327,
+    "distanceKm": 0.35,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 2327
+  },
+  {
+   "id": "11312",
+   "name": "GALTUER",
+   "lat": 46.96805555555556,
+   "lon": 10.185555555555556,
+   "elev": 1587,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11312",
+   "truth": {
+    "poi": false,
+    "tawes": "11312",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11312",
+    "name": "GALTUER",
+    "lat": 46.97,
+    "lon": 10.18,
+    "elev": 1584,
+    "distanceKm": 0.47,
+    "dzM": 3,
+    "match": "id"
+   },
+   "demM": 1565
+  },
+  {
+   "id": "11314",
+   "name": "REUTTE",
+   "lat": 47.49444444444445,
+   "lon": 10.715277777777777,
+   "elev": 842,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11314",
+   "truth": {
+    "poi": false,
+    "tawes": "11314",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11314",
+    "name": "REUTTE AUTOM.",
+    "lat": 47.5,
+    "lon": 10.72,
+    "elev": 842,
+    "distanceKm": 0.71,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 841
+  },
+  {
+   "id": "11322",
+   "name": "MAYRHOFEN",
+   "lat": 47.1625,
+   "lon": 11.851666666666667,
+   "elev": 640,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11330",
+   "truth": {
+    "poi": false,
+    "tawes": "11330",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11322",
+    "name": "MAYRHOFEN",
+    "lat": 47.17,
+    "lon": 11.85,
+    "elev": 647,
+    "distanceKm": 0.84,
+    "dzM": -7,
+    "match": "colocated"
+   },
+   "demM": 630
+  },
+  {
+   "id": "11340",
+   "name": "SCHMITTENHOEHE",
+   "lat": 47.328611111111115,
+   "lon": 12.738055555555555,
+   "elev": 1956,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11340",
+   "truth": {
+    "poi": false,
+    "tawes": "11340",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11340",
+    "name": "SCHMITTENHOEHE",
+    "lat": 47.33,
+    "lon": 12.73,
+    "elev": 1956,
+    "distanceKm": 0.63,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 1932
+  },
+  {
+   "id": "11350",
+   "name": "SALZBURG-FREISAAL",
+   "lat": 47.79111111111111,
+   "lon": 13.054166666666667,
+   "elev": 419,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11350",
+   "truth": {
+    "poi": false,
+    "tawes": "11350",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11350",
+    "name": "SALZBURG",
+    "lat": 47.78,
+    "lon": 13.05,
+    "elev": 423,
+    "distanceKm": 1.27,
+    "dzM": -4,
+    "match": "id"
+   },
+   "demM": 428
+  },
+  {
+   "id": "11355",
+   "name": "WINDISCHGARSTEN",
+   "lat": 47.72027777777778,
+   "lon": 14.32611111111111,
+   "elev": 600,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11355",
+   "truth": {
+    "poi": false,
+    "tawes": "11355",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11355",
+    "name": "WINDISCHGARSTEN",
+    "lat": 47.73,
+    "lon": 14.33,
+    "elev": 596,
+    "distanceKm": 1.12,
+    "dzM": 4,
+    "match": "id"
+   },
+   "demM": 584
   },
   {
    "id": "11357",
-   "name": "ST. WOLFGANG",
-   "lat": 47.73,
-   "lon": 13.45,
-   "elev": 537,
+   "name": "ST.WOLFGANG",
+   "lat": 47.74027777777778,
+   "lon": 13.441944444444445,
+   "elev": 544,
    "country": "AT",
+   "profile": "AT",
    "wmo": "11357",
    "truth": {
     "poi": true,
     "tawes": "11357",
     "smn": null
    },
-   "demM": 538
+   "mosmix": {
+    "id": "11357",
+    "name": "ST. WOLFGANG",
+    "lat": 47.73,
+    "lon": 13.45,
+    "elev": 537,
+    "distanceKm": 1.29,
+    "dzM": 7,
+    "match": "id"
+   },
+   "demM": 556
+  },
+  {
+   "id": "11380",
+   "name": "REICHENAU/RAX",
+   "lat": 47.69972222222222,
+   "lon": 15.836944444444445,
+   "elev": 488,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11380",
+   "truth": {
+    "poi": false,
+    "tawes": "11380",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11380",
+    "name": "REICHENAU/RAX",
+    "lat": 47.7,
+    "lon": 15.83,
+    "elev": 486,
+    "distanceKm": 0.52,
+    "dzM": 2,
+    "match": "id"
+   },
+   "demM": 487
+  },
+  {
+   "id": "11390",
+   "name": "HARTBERG",
+   "lat": 47.28055555555555,
+   "lon": 15.97861111111111,
+   "elev": 330,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11390",
+   "truth": {
+    "poi": false,
+    "tawes": "11390",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "11390",
+    "name": "HARTBERG",
+    "lat": 47.28,
+    "lon": 15.98,
+    "elev": 330,
+    "distanceKm": 0.12,
+    "dzM": 0,
+    "match": "id"
+   },
+   "demM": 328
   },
   {
    "id": "11406",
@@ -3531,7 +8314,8 @@
    "lat": 50.07,
    "lon": 12.38,
    "elev": 483,
-   "country": "AT",
+   "country": "CZ",
+   "profile": "AT",
    "wmo": "11406",
    "truth": {
     "poi": true,
@@ -3546,7 +8330,8 @@
    "lat": 49.67,
    "lon": 12.68,
    "elev": 743,
-   "country": "AT",
+   "country": "CZ",
+   "profile": "AT",
    "wmo": "11423",
    "truth": {
     "poi": true,
@@ -3561,7 +8346,8 @@
    "lat": 49.07,
    "lon": 13.62,
    "elev": 1122,
-   "country": "AT",
+   "country": "CZ",
+   "profile": "AT",
    "wmo": "11457",
    "truth": {
     "poi": true,
@@ -3576,7 +8362,8 @@
    "lat": 49.47,
    "lon": 13.83,
    "elev": 519,
-   "country": "AT",
+   "country": "CZ",
+   "profile": "AT",
    "wmo": "11487",
    "truth": {
     "poi": true,
@@ -3591,7 +8378,8 @@
    "lat": 50.1,
    "lon": 14.25,
    "elev": 380,
-   "country": "AT",
+   "country": "CZ",
+   "profile": "AT",
    "wmo": "11518",
    "truth": {
     "poi": true,
@@ -3606,7 +8394,8 @@
    "lat": 50.77,
    "lon": 15.02,
    "elev": 405,
-   "country": "AT",
+   "country": "CZ",
+   "profile": "AT",
    "wmo": "11603",
    "truth": {
     "poi": true,
@@ -3621,7 +8410,8 @@
    "lat": 49.58,
    "lon": 15.77,
    "elev": 533,
-   "country": "AT",
+   "country": "CZ",
+   "profile": "AT",
    "wmo": "11659",
    "truth": {
     "poi": true,
@@ -3636,7 +8426,8 @@
    "lat": 49.98,
    "lon": 16.42,
    "elev": 402,
-   "country": "AT",
+   "country": "CZ",
+   "profile": "AT",
    "wmo": "11679",
    "truth": {
     "poi": true,
@@ -3651,7 +8442,8 @@
    "lat": 49.15,
    "lon": 16.7,
    "elev": 238,
-   "country": "AT",
+   "country": "CZ",
+   "profile": "AT",
    "wmo": "11723",
    "truth": {
     "poi": true,
@@ -3666,7 +8458,8 @@
    "lat": 48.17,
    "lon": 17.2,
    "elev": 132,
-   "country": "AT",
+   "country": "SK",
+   "profile": "AT",
    "wmo": "11816",
    "truth": {
     "poi": true,
@@ -3674,7 +8467,33 @@
     "smn": null
    },
    "demM": 132
+  },
+  {
+   "id": "P0060",
+   "name": "PATSCHERKOFEL",
+   "lat": 47.20888888888889,
+   "lon": 11.462222222222222,
+   "elev": 2251,
+   "country": "AT",
+   "profile": "AT",
+   "wmo": "11126",
+   "truth": {
+    "poi": false,
+    "tawes": "11126",
+    "smn": null
+   },
+   "mosmix": {
+    "id": "P0060",
+    "name": "PATSCHERKOFEL",
+    "lat": 47.22,
+    "lon": 11.48,
+    "elev": 2248,
+    "distanceKm": 1.82,
+    "dzM": 3,
+    "match": "colocated"
+   },
+   "demM": 2182
   }
  ],
- "ms": 30039
+ "ms": 37371
 }

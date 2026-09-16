@@ -392,5 +392,284 @@ Live-Pfad je Land (p50, kalt): Desktop DE 0,72 s · AT 1,07 s · CH 0,98 s; Mobi
 
 **Belegt am lebenden Datum (12:52–12:56 UTC):** `npm run point:read -- 46.0207 7.7491 --step=6 --no-nowcast --json` ⇒ t1 49 · **t2 24 · t3 36** Schritte, alle `manifestFrom: pinned`, 13 Dateien, 1,69 MiB (vorher: t2/t3 `null`, 11 Dateien). Im Browser (`verify:pv-latency --places=wien,zermatt --only=reader`, `latency/2026-09-16T12-55-07-378Z.json`): Wien und Zermatt je t1 49 / t2 24 / t3 36, `skips: []`, 1,2–1,4 MB je Ort (vorher 0,7–0,9 MB — die fehlenden Stufen sind jetzt dabei).
 
-**Was noch nicht behoben ist:** die `@main`-Kopie bleibt am CDN veraltet (Publisher-Purge = E-F-1, AP12a); wer den Leser ohne Index-Commit oder mit fremder Basis benutzt, bekommt weiter `@main`, jetzt aber mit Grund. Der Sammler-Lauf um 23:10 UTC ist erst geschützt, wenn `buscosun-web/main` diesen Stand trägt (der Workflow klont `main`).
+**Was noch nicht behoben ist:** die `@main`-Kopie bleibt am CDN veraltet (Publisher-Purge = E-F-1, AP12a); wer den Leser ohne Index-Commit oder mit fremder Basis benutzt, bekommt weiter `@main`, jetzt aber mit Grund. Der Sammler-Lauf um 23:10 UTC ist erst geschützt, wenn `buscosun-web/main` diesen Stand trägt (der Workflow klont `main`). *(Jan hat den Stand am 16.09. nachmittags committet und gepusht.)*
+
+### 9.2 AP1 — Lesepfad schlank und parallel (2026-09-16, 13:10–15:30 UTC)
+
+**Auftrag (§4, AP1):** `index.json` mit `no-cache`; Chunk-Adresse aus `index.json`; alle Abrufe parallel; `wanted`; Worker-Dekodierung mit Hauptthread-Rückfall; IndexedDB-Cache; Frist je Abruf; Nowcast-Sonden parallel; `store.stats.ms`; dazu aus §9.0.4: Zwei-Skalen-DEM z8 + z11, Nowcast-Frames nur auf den Ausgabeschritten. **Abnahme:** `verify:point-client` wertgleich zum seriellen Leser (mit Negativkontrolle); Lesephase ≤ 400 ms Desktop warm, ≤ 1,0 s Mobil-4G warm, gemessen mit `verify:pv-latency`.
+
+**Umgesetzt — nur `src/point/client`, Skripte und Verifier. Kein Modul der Fusion-Engine berührt, kein Byte im App-Bundle** (Build 241/241, `npm run budget`: eagerJs 107,9 · largestChunk 301,2/302 · totalJs 1 366,1/1 372 — unverändert; Textsonde des Verifiers: `readPointBundle`, `cachedStore`, `decodeChunkPooled`, `loadTerrainAtPoint` in null von 83 Chunks).
+
+| Datei | Was |
+|---|---|
+| `store.ts` | `FetchOpts.cache` (der Index geht mit `no-cache`, R9); `stats.ms/slow/retries` (weiche Frist 4 s, harte 8 s im Browser-Leser, 20 s bleibt Voreinstellung für den Sammler); Wiederholung **nur bei 5xx/Netzfehler**, nie bei 403/404/Frist (V-FI-5); `memoStore` (jeder Pfad einmal je Instanz, Absagen werden **nicht** gemerkt) |
+| `cache.ts` **neu** | Byte-Cache VOR dem Store mit **Regel je Pfad**: Chunks, Stationsbündel, Radar-Slots und alles unter `@<sha>` unveränderlich; Katalog/`sources`/`calib` 24 h; `point/static/*` 12 h; `index.json` und `run.json@main` nie. Backends IndexedDB (Browser) und Speicher (Selbsttest); Sweep nach 48 h; ein 404 wird nicht gemerkt; jeder Backend-Fehler fällt aufs Netz zurück und wird gezählt |
+| `decodePool.ts` + `decodeWorker.ts` **neu** | Pool von ≤ 3 Web-Workern (Muster `src/sources/decompress.ts`): Chunk als Kopie hinein, Ebenen als Transfer zurück; dieselbe `decodeCubeChunk`; Hauptthread-Rückfall bei fehlendem `Worker` (Node), Worker-Fehler oder 15 s ohne Antwort; `configureDecodePool({ workers: 0 })` erzwingt den Hauptthread für die Vorher/Nachher-Messung; `decodePoolInfo()` sagt, welcher Weg gefahren wurde |
+| `terrain.ts` **neu** | Zwei-Skalen-DEM (E-F-6): z11 im Radius 2,5 km (Höhe, TPI 500/2000, Neigung, Nahfeld der Horizontstrahlen), z8 im Radius 20,5 km (Fernfeld bis 20 km); `tilesForRadius` holt nur die Kacheln, die der Radius schneidet; Rechnung über die bestehenden reinen Funktionen aus `terrainPoint.ts`; Ergebnis je Ort (4 Nachkommastellen ≈ 11 m) und Kachel-Bytes im selben Cache; RGBA-Dekoder injiziert (`browserPng.ts` im Browser, `png.mjs` in Node) |
+| `browserPng.ts` **neu** | `createImageBitmap` + (Offscreen-)Canvas → RGBA für Terrarium, Rotkanal → ein Kanal für die Werte-PNGs des Spiegels (9.0.3) |
+| `cubePoint.ts` | in drei reine Stücke zerlegt: `cubeAddress` (Index → Zelle/Chunk/Pfad, **ohne Manifest**), `planesForChunkHeader` (Schema 5 mit 57 Ebenen ⇒ `CUBE_PLANES`, sonst Manifest nötig), `cubeSeriesFrom` (entpackter Chunk → Reihe; ohne Stufe im Manifest bleiben die Werte und `provenanceNote` benennt die Lücke); `readCubePoint` setzt sie seriell zusammen — **Vertrag für Sammler und Verifier unverändert** (`null` bei fehlender Stufe, `onSkip` mit Grund) |
+| `staticPoint.ts` | `readStaticProductPoint` (Manifest ‖ Chunk parallel, eine Form für `hmodel` und `urban`), `readUrbanPoint` (U-7 aus dem Plan), `readHmodelPoint` unverändert als Aufruf davon |
+| `nowcastPoint.ts` | `atMs` = Ausgabezeiten ⇒ je Zeit der nächste Frame (≤ 30 min), doppelte weg; Frames **parallel**; Slot-Sonden in Vierergruppen; eine Sonde oder ein Frame mit Transportfehler reißt die anderen nicht (V-FI-2, V-FI-5); `framesInSlot/framesFetched/framesFailed` |
+| `resolve.ts` | `judgeStation` — die Stationsregel EINMAL, für Plan und Bündel; ein Sondenfehler reißt den Plan nicht |
+| `readPoint.ts` **neu** | `readPointBundle`: Index (no-cache) → alles parallel (je Stufe Chunk ‖ `run.json@commit`, Dekodierung sobald der Chunk da ist; Katalog ‖ Stationsmanifest ‖ **optimistisches Bündel** des eigenen Chunks; Radarsonden → Frames auf Ausgabezeiten; `hmodel`/`urban`; Gelände ab dem ersten Takt); `timing.doneAt` je Produkt, `firstMs`, `coreMs`, `readMs`; `skips`/`notes`/`errors` getrennt; die Auswahlregel am Ende über den Memo-Store (kein weiterer Abruf) |
+| `read-point.mjs` | fährt das Bündel (Node: Hauptthread, kein IndexedDB, `png.mjs`); neue Zeilen „Gelände", „Stadt-Raster", „Zeit (AP1, parallel)" mit kritischem Pfad; `--no-terrain` |
+| `lab.ts` / `verify-pv-latency.mjs` | `bundle()` (IndexedDB, Worker, Zwei-Skalen-DEM, Long-Task-Beobachter), `terrain2()`, `prime()`; Szenarien `cube-read-cold/-warm/-main/-nocache`, `terrain-z8`, `terrain-2scale`; `--gate` prüft die AP1-Abnahme auf `coreMs`; Startzeit je Abruf im Mitschnitt |
+| `verify-point-client.mjs` | **107/107** (war 70): Block (10) mit 37 Prüfungen — s. unten |
+
+**Drei Begriffe, die beim Bauen entstanden sind — und warum:**
+
+1. **„Erste Darstellung" = Stufe am Fensteranfang + Gelände.** Der Nowcast gehört nicht dazu: seine Dateien sind alle fünf Minuten neu und deshalb am Edge fast immer `MISS` (gemessen 0,8–1,6 s je Sonde und je Frame, s. u.). Er kommt nach, wie er kommt (progressiv, E-F-3); ein Verbraucher zeichnet ihn nach. Das ist die Zahl, die ein Nutzer als Antwortzeit erlebt.
+2. **„Lesephase" (`coreMs`) = Cube-Stufen + Station + Gelände** — alles, was buscosun Fusion für die Ausgabe braucht. Statische Produkte (`hmodel`, `urban`) und Nowcast stehen in `doneAt`, aber nicht im Gate: die Modellhöhe je Quelle braucht v1 nicht (PAP 4 rechnet mit `hModEff` aus dem Cube; E-E-5), `urban` erst mit den Amplituden aus AP10, und beide kamen in der Messung als Letzte an (V-FI-6).
+3. **Statische Produkte über `@main` mit 12-h-Cache, nicht `@<commit>`.** §9.1 hatte sie gepinnt (in place veränderlich). Im Lab gemessen: die gepinnte Fassung ist für **jeden Nutzer nach jedem Publish** ein Edge-MISS — 1,2–2,1 KB Dateien mit 0,9–2,1 s TTFB, achtmal täglich neu, und damit der kritische Pfad des ganzen Bündels (Wien: `static` fertig bei 5,9 s, alles andere bei 2,5 s). `@main` ist nach dem ersten Nutzer je Edge 12 h warm; die Ebenenzahl prüft der Decoder laut, eine Umordnung der Spalten bei gleicher Zahl bliebe still (seit PD-E dieselben Spalten). `staticPinned: true` schaltet zurück. **V-FI-6.**
+
+**V-FI-5 — jsDelivr antwortet mit 403 statt 200 oder 404, nach Sekunden, vorübergehend.** In vier Lab-Läufen: `radar/img/v1/inca/…/meta.json` (403 nach 4,0 s), `point/static/urban/v1/t1/03_13.bin` (403 nach 5,8 s, gepinnt UND `@main`), `radar/img/v1/rv/2609161415/f120.png` (403 nach 1,4 s), `point/static/hmodel/v1/t2/00_01.bin` (403 nach 1,5 s), `radar/img/v1/rzc/20260916T1420/meta.json` (403 nach 5,7 s — ein Slot, den es noch **nicht** gab, also statt 404). Dieselben URLs per `curl` Minuten später: **200, `x-cache MISS`**. Es ist der Origin-Abruf des CDN, der scheitert (das Repo hat 307 MiB, R10 — ob das die Ursache ist, lässt sich von außen nicht belegen). Folgen im Leser: ein 403 wird **nicht wiederholt** (er kommt nach Sekunden und blieb im Lab über vier Läufe), eine Sonde mit 403 gilt als „nicht da" und die Suche geht weiter, ein Frame mit 403 fehlt in der Reihe, ein Produkt mit 403 fehlt im Bündel — **mit Fehlertext**, nie still. Der 403 auf eine Datei, die es nicht gibt, ist der Grund, warum die Slot-Suche weiterprobieren muss statt abzubrechen. **Für E-F-1 heißt das:** das Warm-up im Publisher muss den 403 als Fehlschlag zählen und wiederholen, nicht als „gewärmt".
+
+Die volle Matrix hat den Befund dann verschärft: der t1-Chunk von **Genf** (`point/2026091609/t1/00_00.bin`, 616 KB) kam in **drei Profilen und zwölf Läufen über 15 Minuten** mit 403, auch warm (er war nie im Cache angekommen); `urban/v1/t1/02_07.bin` (Innsbruck) fünfmal 403 und dreimal **über der harten Frist von 8 s**. Per `curl` danach: `@main` **200, `x-cache MISS`** (also nie zuvor am Edge), `raw.githubusercontent.com` 200 mit **229 ms** TTFB und `Access-Control-Allow-Origin: *`. Ein einzelner Chunk, der am Edge nicht ankommt, macht 0–48 h für alle Nutzer dieses Edge unlesbar — Warm-up (E-F-1) hilft dagegen nur, wenn es selbst nicht 403 bekommt. Deshalb **Ausweichweg im Leser** (`fallbackStore`/`withRawFallback` in `store.ts`): 403, Fristablauf, 5xx (nach Wiederholung) oder Netzfehler am jsDelivr-`@main`-Store ⇒ derselbe Pfad von `raw.githubusercontent.com`, gezählt (`stats.fallbacks`) und im Bündel benannt (`notes`: „cdn: … über raw.githubusercontent nachgeholt"). Ein 404 nimmt den Ausweichweg nicht. Der Ausweichweg hat keinen Edge-Cache und bleibt die Ausnahme; der IndexedDB-Cache hält, was er liefert, wie alles andere.
+
+**Prüfungen (Block 10, alle netzfrei, echte Datenformen):** Bündel == serieller Leser (Stufe und Station wertgleich, Spalte gleich; Negativkontrolle verschobene Zelle); Auswahlregel im Bündel und `judgeStation` einheitlich; veraltetes Manifest ⇒ Werte bleiben + `provenanceNote` (und der serielle Leser gibt weiter `null`); ohne Manifest ⇒ `manifestFrom: none`; `tiersForWindow` an sechs Fenstern inkl. Naht 49 h ⇒ t1 **und** t2; `nowcastTimes`; Frames auf drei Ausgabezeiten = 3 von 25, Werte gleich dem Fensterweg, Toleranz 30 min, 403 auf die jüngste Sonde ⇒ dritter Stempel gefunden mit vier Sonden auf einmal, „kein Slot und Transportfehler" wird geworfen; Station im **Nachbarchunk** ⇒ zweites Bündel, Spalte 0; Cache-Regel an acht Pfaden, Treffer/Umgehung/Ablauf/404-nicht-gemerkt/Sweep; Memo einmal je Pfad, Absage nicht gemerkt; Dekodier-Pool in Node = Hauptthread, Ebene für Ebene gleich, `wanted` kommt an; Index mit `no-cache`; Dauer/weiche Frist/5xx-Wiederholung/403 sofort/404 nie; Gelände an **synthetischen Terrarium-Kacheln**: Ebene ⇒ 700 m/TPI 0/Horizont 0/SVF 1, Gipfel ⇒ TPI **wie analytisch** (11,4 m auf 500 m, 156 m auf 2 km — die erste Fassung der Prüfung erwartete > 20 und war falsch, die Rechnung nicht), 2 km östlich ⇒ Horizont West 8–14°, Ost 0°, SVF < 1; Ergebnis-Cache und Kachel-Cache getrennt belegt.
+
+**Gemessen — volle Matrix (16.09. 14:33–14:42 UTC, `latency/2026-09-16T14-33-41-921Z.json`, 4 Profile × 10 Orte × 4 Szenarien = 160 Läufe; Gelände `…T14-42-16-240Z.json`, 100 Läufe).** Je Profil ein Aufwärm-Kontext davor (`prime`: DNS/TLS des Browser-Prozesses — der erste Abruf eines Prozesses kostete sonst 2,4 s auf `index.json` und 2,8 s je S3-Kachel; das ist Maschine, nicht Leseweg). Szenario „kalt-neu" = frischer Browser-Kontext (IndexedDB leer, CDN so, wie es war). Alle Zeiten Wandzeit in der Seite, p50 (p95).
+
+| Profil | kalt-neu: **Kern** · erste Darstellung · alles | warm (IndexedDB): **Kern** | warm, Hauptthread statt Worker: Kern | warm ohne IndexedDB (Browser-HTTP-Cache): Kern |
+|---|---|---|---|---|
+| desktop-none | **1 458** (2 871) · 1 316 · 1 673 ms | **189** (343) | 230 | 232 |
+| desktop-4g | 2 224 (2 466) · 2 224 · 2 233 | 384 (729) | 406 | 399 |
+| mobile-4g (CPU 4×) | **2 236** (2 708) · 2 236 · 2 236 | **367** (407) | 820 | 502 |
+| fast-3g (berichtet) | 8 693 (8 713) · 8 693 · 8 693 | 4 413 (7 210) ⚠ | 1 271 | 852 |
+
+Kalt-neu je Ort: 1,87 MB p50 auf dem Draht, 29 Abrufe (t1-Chunk 545–634 KB, t2 ≈ 210, t3 ≈ 250, Stationsbündel ≈ 100, Katalog 59, Gelände 320–640, Radar-Frames 3 × 85, Manifeste/Static ≈ 40). Desktop kalt: 225 HIT / 37 MISS über alle Läufe — die 37 MISS sind die 8-s-Fälle (Genf, Innsbruck; unten). **Gate AP1: GRÜN** — Kern warm p50 Desktop **189 ms** (Grenze 400), Mobil-4G **367 ms** (Grenze 1 000).
+
+Was die Matrix außerdem gezeigt hat, und was daraufhin noch am selben Nachmittag geändert wurde:
+
+1. **Der 403 kostet bis zur harten Frist.** Genf: t1-Chunk 403 in zwölf Läufen, jedes Mal erst nach ≈ 8 s (die p95-Werte 8 062–8 116 ms in der Desktop-Zeile sind genau das). Auf einen Fehler zu warten kostet die Zeit, die ein Ausweichweg sparen soll ⇒ **Hedge**: nach 2,5 s (p95 der MISS-TTFB) startet `raw.githubusercontent` zusätzlich, die schnellere Antwort gewinnt, der Verlierer wird abgebrochen (`fallbackStore({ hedgeMs })`, `FetchOpts.signal`).
+2. **Fast 3G warm 4,4 s war ein Lab-Artefakt:** `configureDecodePool` baute den Pool bei jedem Aufruf neu, und der Lab-Server lieferte das Worker-Skript (17 KB) mit `no-store` — drei Worker × 17 KB über 1,6 Mbit und 560 ms RTT. Der Pool bleibt jetzt stehen, wenn sich nichts ändert; das Skript ist cachebar (in der App ist es ein gehashter Chunk). Der Hauptthread-Wert derselben Zeile (1 271 ms) zeigt, was der Leser auf 3G warm wirklich kostet.
+3. **Auf 4G begrenzen die Bytes, nicht die RTTs** (1,87 MB ≈ 1,6 s reine Übertragung bei 9 Mbit). Alles feuert gleichzeitig, also teilen sich t2/t3 (460 KB) die Leitung mit der Stufe, die die erste Darstellung braucht ⇒ **Fetch-Prioritäten** (`FetchOpts.priority`): Stufe am Fensteranfang, Gelände, Katalog, Stationsbündel `high`; übrige Stufen, statische Produkte, Radar `low`.
+4. **Worker gegen Hauptthread:** Desktop warm 189 gegen 230 ms — kaum Unterschied (drei Chunks à ≈ 50 ms). Mobil-4G (CPU 4×) **367 gegen 820 ms** — dort ist der Pool der Unterschied zwischen unter und über einer halben Sekunde. ⚠ Der Long-Task-Beobachter (`PerformanceObserver('longtask')`) hat in **allen** Läufen 0 gemeldet, auch im Hauptthread-Modus mit nachweislich 3 × 50 ms Dekodierung am Stück: `chrome-headless-shell` liefert diese Einträge nicht. „Kein Long Task > 200 ms" ist mit diesem Harnisch **nicht belegbar** und bleibt für AP11 (Real-Device, DevTools-Trace) offen.
+5. **Zwei-Skalen-DEM gegen die z9-Box des Live-Pfads:** `terrain-2scale` 720 ms p50 Desktop (p95 1 615) / 921 ms Mobil gegen `dem-live-z9` 715 / 861 ms — **gleich teuer**, nicht billiger: die Zeit sitzt in der S3-Latenz je Kachel (TTFB 380–460 ms, unabhängig von der Größe), nicht in den Bytes (322–639 KB gegen 291–623 KB). Was die zwei Skalen bringen, ist die Auflösung (76 m/px im Nahfeld statt 305 m/px — TPI 500 m ist mit z9 gar nicht rechenbar) bei gleichem Preis; und der Ergebnis-Cache macht jeden weiteren Besuch desselben Orts gratis (warm: Gelände fertig nach 3–7 ms). Die §0.2-Vermutung „2–8 Kacheln parallel zu den Chunks, nicht auf dem kritischen Pfad" hält auf dem Desktop (Gelände 731 ms, t1-Chunk warm am Edge ≈ 300–560 ms ⇒ das Gelände IST der kritische Pfad der ersten Darstellung) — die Kur wäre ein Vorabruf beim Tippen des Orts oder ein statisches Produkt (E-F-6 bleibt „nein", das Repo hat keinen Platz).
+6. **Radar und statische Produkte kommen als Letzte** (kalt: Nowcast fertig bei 1,5–1,6 s auf 4G, 6,8 s auf 3G; Static beim ersten Nutzer je Edge 0,5–1,1 s): beide sind vom Kern getrennt (oben, Begriffe 1 und 2). Die Radar-Dateien sind alle fünf Minuten neu und damit am Edge fast immer MISS — E-F-8 (`latest.json`) spart Sonden, aber keinen MISS; ein Warm-up im Spiegel-Workflow wäre die Kur (S&F Radar-Linie, benannt als **V-FI-7**).
+
+**Nachmessung nach den vier Änderungen (14:53 UTC, `latency/2026-09-16T14-53-27-456Z.json`, Genf/München/Zermatt/Innsbruck, Desktop + Mobil-4G):**
+
+| Profil | kalt-neu Kern p50 (p95) · erste Darstellung | warm Kern p50 (p95) | Hauptthread | ohne IndexedDB |
+|---|---|---|---|---|
+| desktop-none | **841** (1 206) · 795 ms | **168** (174) | 239 | 235 |
+| mobile-4g | **2 320** (2 678) · 2 319 ms | **325** (337) | 970 | 487 |
+
+**0 Fehler in 32 Läufen, 5 Ausweichwege** (Genf: der t1-Chunk 403 ⇒ `raw` nach dem Hedge; die rzc-Sonden 403 ⇒ `raw`), Genf kalt jetzt 2,3 s statt 8 s. Gate AP1 erneut **GRÜN** (168 / 325 ms). Die 4G-Kaltzeit blieb bei ≈ 2,3 s — die Prioritäten ändern die Reihenfolge, nicht die Menge: **1,9–2,5 MB bei 9 Mbit sind ≥ 1,7 s**, das ist die Grenze dieses Formats und der Hebel von AP12 (Ebenen-Ranges: die ≈ 20 Kernebenen von 57 zuerst, E-F-3).
+
+**Am lebenden Datum, Node (`npm run point:read -- 46.0207 7.7491 --at=2026-09-17T12:00Z --no-nowcast`, 14:55 UTC):** Zermatt ⇒ Gelände **1 608 m**, TPI 500 m **−35**, TPI 2 km **−359** (Talboden — das Vorzeichen stimmt), Neigung 2,7°, SVF 0,864, Horizont 12–31° (4 Kacheln, 469 KB, 861 ms); Station ZERMATT 1,0 km, **+30 m — vertritt den Punkt** (das Höhenkriterium ist zum ersten Mal ohne `--elev` geprüft, aus dem Gelände); `urban` 2 % / d0 0,5 m; 11 Dateien, 1,19 MiB, erste Darstellung 867 ms, Lesephase 892 ms; ein rzc-403 über `raw` nachgeholt und im Protokoll benannt.
+
+**Gegen die AP0-Basislinie (derselbe Harnisch, derselbe Tag):** heutiger Leser kalt 3,0 s Desktop / 13,6 s Mobil-4G / 38,9 s 3G ⇒ Bündel kalt Kern **0,84–1,46 s / 2,2–2,3 s / 8,7 s**, erste Darstellung 0,8–1,3 s Desktop; warm 0,72 / 2,0 s ⇒ **0,17–0,19 / 0,33–0,37 s**. Fast 3G bleibt übertragungsgebunden (1,2–1,6 MB) und außerhalb der 5-s-Grenze — wie in §9.0.4 vorhergesagt, AP12 ist dort Pflicht.
+
+**AP1-Abnahme:** fachlich ✓ (`verify:point-client` **112/112**, Bündel wertgleich zum seriellen Leser mit Negativkontrolle) · Laufzeit ✓ (Gate zweimal grün, 14:33 und 14:53 UTC) · `typecheck` 0 · `verify:point-data` 947/947 · `verify:punktarchiv` 56/56 · `verify:pv-fusion` Exit 0 (Engine unberührt) · Build 241/241 · Budget unverändert (eagerJs 107,9 · totalJs 1 366,1) · Textsonde 0 von 83 Chunks. Was AP1 **nicht** liefert: `wanted` ist gebaut und geprüft, aber ungenutzt — die Ebenenliste, die buscosun Fusion wirklich braucht, legt AP2 fest; Long Tasks sind nicht messbar (oben, 4).
+
+**Neu benannt:** **V-FI-5** (jsDelivr 403 nach 1–8 s, vorübergehend, auch statt 404; Leser-Kur: kein Retry, Sonde = nicht da, Hedge + raw-Ausweichweg; für E-F-1: Warm-up muss 403 als Fehlschlag zählen) · **V-FI-6** (statische Produkte gepinnt = MISS für jeden Nutzer nach jedem Publish ⇒ `@main` + 12 h) · **V-FI-7** (Radar-Slots am Edge immer MISS — Warm-up gehört in den Spiegel-Workflow, S&F) · **V-FI-8** (`urban.bldgH` zeigt `0.7000000000000001` — `dequantize` 7 × 0,1; kosmetisch, Rundung auf die Skala gehört in die Ausgabe v2) · **V-FI-9** (`planPointSources` probt die Radar-Slots auch, wenn der Aufrufer den Nowcast abgeschaltet hat — nur CLI-relevant).
+
+**Nächste Etappe: AP12a** (E-F-1: Warm-up + `run.json`-Purge in `publish-point.mjs` und der Vorlage `workflow-point.yml`, Kopie ins Daten-Repo = Jans Push; das Warm-up zählt 403 als Fehlschlag und wiederholt), dann **AP-PA2** (AT/CH-Punkte über TAWES/SMN in `scripts/punktarchiv/points.mjs`), dann **AP2** (`cubeSource.ts` + `pointSource: 'cube'`, S&F: erste Berührung der Engine).
+
+### 9.3 AP-PA2 — AT- und CH-Punkte im Archiv (E-F-9, 2026-09-16, ab 17:20 UTC)
+
+**Reihenfolge getauscht:** PA2 vor AP12a, weil nur PA2 eine Uhr hat — der Archiv-Cron klont `buscosun-web/main` um 23:10 UTC, jeder Tag ohne PA2 fehlt dem Backtest (AP9) für AT/CH.
+
+#### 9.3.1 Diagnose (gemessen 17:20–17:50 UTC, vor dem Code)
+
+Quellen: `point/stations/catalog.json` (Remote, 3 071 Stationen), POI-Verzeichnis (974 Dateien), TAWES-Metadaten (`station/current/tawes-v1-10min/metadata`, 86,8 KB, 0,75 s), SMN-Metadaten (`ogd-smn_meta_stations.csv`, 151,8 KB, 0,25 s), `scripts/punktarchiv/points.json` (Stand 14.09.).
+
+**(1) Die heutige Liste ist in AT und CH nicht nur dünn, sondern falsch etikettiert.** Die Regel „WMO-Block 11 = AT, 06 = CH" trifft ganze Blöcke, nicht Länder: Block 11 ist AT 11000–11399, **CZ 11400–11799, SK 11800–11999**; Block 06 ist DK 060–061xx, NL 062–063xx, BE 064xx, LU 065xx, **CH nur 066–067xx**, LI 069xx. Ausgezählt an den 243 Punkten: „AT 23" = **13 AT** + 9 CZ + 1 SK (Bratislava); „CH 12" = **5 CH** + 1 LI (Vaduz, MeteoSchweiz-Station VAD) + 1 DK + 4 NL + 1 LU. DE 208 ist sauber (Block 10 ist nur Deutschland). Wahrheit TAWES 11, SMN 6 (inkl. Vaduz).
+
+**(2) Die POI-Pflicht ist der Engpass, nicht die Netze.** POI führt 11 TAWES- und 6 SMN-Stationen. Die Netze selbst: **TAWES 288 Stationen, 286 aktiv, alle in der Cube-Box** (269 mit 11xxx-Kennung = Synop-Kennung, `id_type: "Synop"`; 19 mit 8989xxx = Partner-/Teststationen, u. a. „WEIZ - TESTSTATION", sechs Innsbrucker Stadtstationen); **SMN 158 Stationen, alle „Automatic weather stations", alle in der Box** (156 mit WIGOS `0-20000-0-<WMO>`, 2 national `0-756-0`; 13 gemeinsam mit dem SLF; Kanton FL = Vaduz).
+
+**(3) Wie der Sammler heute einen Punkt dem Stationsprodukt zuordnet:** `collectStations` nimmt `nearestStations(catalog, p.lat, p.lon)[0]` und liest das Bündel nur, wenn diese Station **der Punkt selbst** ist (`c.id === p.id`), sonst Vermerk „nächste Katalogstation ist nicht der Punkt selbst" und `planes: null`. Das trägt, weil PA1-Punkte Katalogstationen mit Katalogkoordinaten sind. **Ein Punkt mit TAWES- oder SMN-Kennung und eigener Position hätte kein MOSMIX-Produkt** (B2 im Backtest fiele weg) — die Kennung im Archiv muss die Katalogkennung bleiben, die Zuordnung muss über die Kennung laufen statt über die Nähe.
+
+**(4) Katalog und Netze decken sich — gemessen, nicht angenommen.** Für jede Katalogstation die nächste TAWES/SMN-Station (Haversine), Abstand und Δz (Netzhöhe − Katalogeintrag):
+
+| Paar | Anzahl | Abstand | Δz |
+|---|---|---|---|
+| gleiche Kennung (TAWES-Kennung = Katalog, SMN-WIGOS-WMO = Katalog) | **171** (TAWES 69, SMN 102) | 0,24–2,93 km, **95 % ≤ 2 km**; Ausreißer Zell am See 4,56 km | alle **\|Δz\| ≤ 42 m** (91 % ≤ 11 m) |
+| andere Kennung, ≤ 2 km, \|Δz\| ≤ 50 m | 21 (fast alle AT) | 0,15–2,00 km | −34…+15 m |
+| andere Kennung, verworfen | u. a. Murau↔Stolzalpe +477 m, Kitzbühel↔Hahnenkamm +924 m, Dachstein −295 m, Mühleberg −295 m, Andermatt −65 m, Tannheim +60 m; oberhalb 2 km wechseln die Ortsnamen (Gmunden↔Altmünster 2,37 km, Nilling↔Ostermiething 2,71 km) | | |
+
+Warum Paare gleicher Kennung bis 2–3 km auseinanderliegen: der Katalog trägt Koordinaten auf **zwei Dezimalen** (≈ 0,7 km) und in einem Teil der Fälle einen älteren Referenzpunkt; die Netzkoordinaten sind die Messstelle (vier bis sechs Dezimalen). Bei Bergstationen ist das nicht kosmetisch: 1 km neben dem Säntisgipfel liegt das Gelände Hunderte Meter tiefer — PAP 4 (`h_true`) braucht die **Messstelle**. Die Paare anderer Kennung sind die bekannten Doppelführungen: `11120 INNSBRUCK FL.` ↔ TAWES `11121 INNSBRUCK-FLUGHAFEN (AUTOMAT)` 1,22 km/−3 m, `11231 KLAGENFURT FL.` ↔ `11331` 0,91 km/+2 m, `11146 SONNBLICK` ↔ `11343 SONNBLICK - AUTOM.` 0,73 km/+3 m, `P0060 PATSCHERKOFEL` ↔ `11126` 1,82 km/+3 m. **Heute tragen `11120` und `11231` gar keine TAWES-Wahrheit** (PA1 prüft nur Kennungsgleichheit).
+
+**(5) Wahrheit lesbar — Stichprobe an den Endpunkten:** `station/historical/tawes-v1-10min` mit allen 11 TAWES-Kennungen, 26 h, `RR`: 200, 13,6 KB, 0,49 s (ein Aufruf für alle Stationen); `ogd-smn_<abbr>_t_now.csv` für PAY/KLO/SAE/GVE/SIO/VAD je 200, ≈ 15 KB, 0,13 s. **Grenze der SMN-Datei:** sie trägt nur den **laufenden UTC-Tag** (PAY um 17:36 UTC: erste Zeile 16.09. 00:00, 106 Zeilen) ⇒ im 23:10-Slot fehlt die Stunde 23:00 des Vortags; `_t_recent.csv` (5,2 MB je Station, täglich ≈ 11:20 UTC) ist der Nachholweg. TAWES-Historie reicht drei Monate zurück (`start_time 2026-06-16T00:10`).
+
+**(6) Die `rr1`-Falle — und warum sie mit PA2 von einem Vorbehalt zu einem Datenfehler wird.** PA1 schreibt für TAWES/SMN `rr1` = **10-min-Wert zur vollen Stunde × 6** (`hourMapSeries`, `src/sources/*History`) und benennt es in `truth.caveats`; POI trägt die Stundensumme. Solange jeder AT/CH-Punkt auch POI hatte, war das ein Vorbehalt. Für PA2-Punkte ist TAWES/SMN die **einzige** Wahrheit. Gemessen an den 17 Stationen mit beiden (letzte 24 h, 280 Stunden mit vollständigen 10-min-Werten, 14 nasse POI-Stunden):
+
+| Verfahren | nasse Stunden | Summe | Σ\|Fehler\| gegen POI | Übereinstimmung nass/trocken |
+|---|---|---|---|---|
+| POI `rr1` (Referenz) | 14 | 16,4 mm | — | — |
+| **10-min × 6 zur vollen Stunde (heute)** | **5** | **4,2 mm (−74 %)** | **15,4 mm** | — |
+| Summe der sechs 10-min-Werte mit Stempel h−50…h (Stempel = Intervallende) | 15 | 16,9 mm | 0,7 mm | 279/280 |
+| Summe mit Stempel h−60…h−10 (Stempel = Intervallbeginn) | 14 | 16,4 mm | 0,8 mm | 280/280 |
+
+**SMN:** die Intervallende-Summe trifft POI an allen sechs Stationen **auf die Stelle** (Säntis 3,0 · 0,1 · 0,2 · 0,1 · 0,2 · 1,2 · 0,7 mm; Vaduz 7,8 mm, Intervallbeginn 7,6) — POI für Schweizer Stationen *ist* die SMN-Stundensumme, und `reference_timestamp` ist das **Intervallende**. **TAWES:** POI entscheidet es nicht (Feldkirch 16 h: POI 1,0, Ende 1,5, Beginn 1,3 — ein anderer Messer im Synop), aber das API sagt es: `RR` = „Niederschlag der **letzten** 10 Minuten", und die Historie beginnt bei 00:10 ⇒ ebenfalls **Intervallende**. Folge: die 10-min-Momentaufnahme verfehlt zwei Drittel der nassen Stunden — für die Brier-/P(nass)-Prüfung in AT/CH wäre die Wahrheit unbrauchbar. **Kur (im Sammler, nicht im Wahrheitsleser der App):** zusätzliche Spalte `rr1h` = Summe der sechs 10-min-Werte h−50…h, nur wenn alle sechs vorliegen (sonst Sentinel); `rr1` bleibt unverändert (Rückwärtsgleichheit der Slots). Aus demselben einen Abruf je Netz kommen `td` (TAWES `TP`, SMN `tde200s0`) und `p` (reduziert: TAWES `PRED`, SMN `pp0qffs0`) — heute für TAWES/SMN `null`, obwohl gemessen. `src/sources/geosphereTawes.ts` und `meteoSwissSmn.ts` bleiben unberührt (sie tragen den Stationsanker der App).
+
+**(7) Was die Wahrheit ohne POI nicht hat:** Bedeckung `n` (weder TAWES noch SMN messen sie) ⇒ `clct` bleibt in AT/CH auf die POI-Punkte beschränkt. Benannt, nicht ersetzt.
+
+**Regel für PA2 (daraus abgeleitet, Konstanten mit Herkunft):**
+- **DE unverändert:** Katalog ∩ POI ∩ WMO 10000–10999 ∩ Box, Position aus dem Katalog.
+- **AT/CH/LI:** Katalogstation mit einer TAWES- (AT) bzw. SMN-Station (CH; Kanton FL ⇒ LI) — **gleiche Kennung** bei ≤ 5 km (Wächter gegen Kennungswiederverwendung; gemessen max. 4,56 km) **oder** andere Kennung bei **≤ 2 km** (= 95 % der gemessenen Positionsabweichung identischer Stationen), beides mit **\|Δz\| ≤ 50 m** (gemessen: identische Paare ≤ 42 m, die ersten nicht identischen bei 60/65/112 m). Kennungsgleiche Paare zuerst, dann nach Abstand; jede Netzstation und jede Katalogstation höchstens einmal. **Kennung = Katalogkennung** (das Stationsprodukt hängt daran), **Position und Höhe = Messstelle**, die Katalogposition bleibt als `mosmix` am Punkt. POI bleibt zusätzliche Wahrheit, wo vorhanden; ohne Netzpaar bleibt ein AT/CH-Punkt mit POI wie bisher (Rückfall, damit ein Metadaten-Ausfall die PA1-Punkte nicht löscht).
+- **Nachbarn (CZ, SK, DK, NL, BE, LU):** nicht gestrichen (zwei Slots liegen schon, die Punkte tragen POI und MOSMIX), aber **richtig etikettiert** (`country` = Land) und getrennt gezählt; `profile` = das Länderprofil, mit dem der Live-Pfad sie bisher gerechnet hat (AT bzw. CH) — unverändert, damit ihre Live-Reihe nicht bricht.
+- Box, DEM endlich, eindeutig nach Kennung und Position (3 Dezimalen) — wie PA1. Wahrheit beim Bau geprüft: TAWES-Station ohne einen Wert `TL` in 24 h bzw. SMN-Datei nicht lesbar ⇒ Netzpaar verworfen (gezählt).
+
+#### 9.3.2 Umgesetzt (nur `scripts/`, kein `src/`-Modul, keine Abhängigkeit)
+
+| Datei | Was |
+|---|---|
+| `scripts/punktarchiv/points.mjs` | `WMO_RANGES` (statt Blöcken), `PROFILE_OF`, `NETWORK_OF`, `COLOCATE {idMaxKm 5, maxKm 2, maxDzM 50}` mit Herkunft; reine `matchNetworks` (kennungsgleich zuerst, dann nach Abstand, jede Station einmal) und `selectPoints` (Regel oben, Rückfall auf POI ohne Netzmetadaten, Gründe gezählt: `noTruth`, `colocateDz`, `colocateTooFar`); `readableNetworkStations` prüft die Wahrheit beim Bau (TAWES `TL` in ≤ 100 Kennungen je Abruf, SMN-Tagesdatei je Station); SMN-Metadaten als **Windows-1252** gelesen (sonst `S�ntis`, am ersten Bau gesehen). Selbsttest **11/11** (war 5) |
+| `scripts/punktarchiv/lib/truth.mjs` | `parseTawesStations`, `parseSmnStations`, `parseSmnNowRows`, `parseTawes10min`, `parseSmn10min`, `hourSum10` (sechs Werte h−50…h, sonst `null`), `tenMinColumns`. Selbsttest **13/13** (war 7) |
+| `scripts/punktarchiv/lib/rawFallback.mjs` **neu** | `withRawSameRef` — s. 9.3.4 (V-FI-5 im Sammler) |
+| `scripts/punktarchiv/collect.mjs` | Stationsprodukt über die **Katalogkennung** (`p.mosmix?.id ?? p.id`) statt über die Nähe — für DE-Punkte dieselbe Station, Abstand 0; POI nur für Punkte mit POI-Datei; `rr1h`/`td`/`p` aus einem TAWES-Abruf bzw. der SMN-Tagesdatei (App-Leser `src/sources/*` unverändert); Live-Pfad mit `profile`; `slot.points` trägt `profile` und `mosmix`; `stats.net.fallbacks`; zwei neue Vorbehalte in `truth.caveats` |
+| `scripts/punktarchiv/lib/punktarchiv.mjs` | `TRUTH_SCALES.rr1h` (additiv, Schema bleibt 1) |
+| `scripts/punktarchiv/points.json` | neu gebaut, 410 Punkte (s. 9.3.3) |
+| `scripts/verify-punktarchiv.mjs` | **87/87** (war 56): (4) Land aus WMO-Bereich bzw. Netz, ≥ 1 Wahrheit, DE unverändert, Nachbarn im PA1-Profil, **GPA2 ≥ 60 AT / ≥ 40 CH**, Paar-Grenzen, keine Netzstation doppelt; Gegenprobe (ein echter PA2-Punkt wird aus Katalog + TAWES wieder ausgewählt) und fünf Negativkontrollen an der reinen Regel (ohne Wahrheit, Δz 60 m, andere Kennung 3,3 km, außerhalb der Box, doppelte Position); (5) Stationsprodukt über die Kennung, POI nur mit Datei, `rr1h`; (7) Ausweichweg mit Negativkontrolle 404 |
+
+#### 9.3.3 Ergebnis: die Punktliste (gebaut 17:40 UTC)
+
+| Land | Punkte | Wahrheit | Paar gleiche Kennung / anderer Kennung | Dichte | Ziel |
+|---|---|---|---|---|---|
+| DE | **208** (unverändert: 208/208 mit gleicher Position, Höhe, DEM, Wahrheit) | POI | — | 1 je 1 717 km² | — |
+| AT | **84** (PA1: 13 echte) | TAWES 84, davon 13 auch POI | 67 / 17 | 1 je 999 km² | ≥ 50 (DE-Dichte) ✓ · ≥ 60 (GPA2) ✓ |
+| CH | **101** (PA1: 5 echte) | SMN 101, davon 5 auch POI | 101 / 0 | 1 je 409 km² | ≥ 25 ✓ · ≥ 40 ✓ |
+| LI | 1 (Vaduz) | SMN VAD + POI | 1 / 0 | — | — |
+| Nachbarn | 16 (CZ 9, NL 4, DK 1, LU 1, SK 1) | POI | — | getrennt gezählt | — |
+
+Beim Bau geprüft: TAWES **280/286** lesbar (ohne einen `TL`-Wert in 24 h: 11267 Dachstein-Hunerkogel, 11290 Graz Universität, 8989044 Hahnenkamm/Sonnenrast, 11194 Neusiedl am See, 11316 Pitztaler Gletscher, 8989104 Graz Lendplatz/Feuerwehrturm — die Katalogstationen `11290` und `11194` bekommen dafür die Nachbarstation am selben Ort, 11291 bzw. 11072), SMN **158/158** (158 Abrufe, 1,9 MB, 1,3 s). Verworfen wegen Δz: 3; wegen Abstand: 0. Bauzeit 37 s.
+
+**Warum mehr als das Ziel und nicht ausgedünnt:** jede Ausdünnung bräuchte eine gesetzte Regel ohne Messung (welche Station fällt?), und die zusätzlichen Punkte sind genau die, die dem Archiv fehlen: Messstellen AT/CH/LI **p10 273 · p50 596 · p90 1 971 m, 34 über 1 500 m (DE: 1)**. Das Gate von AP4 fragt nach Punkten mit \|h_true − hModEff\| > 300 m. Der Preis steht in 9.3.4 und ist Jans zu tragen oder zu kappen (E-U-13).
+
+**Was an den PA1-Punkten anders wird:** die 13 AT- und 6 CH/LI-Punkte liegen jetzt an der Messstelle (0,15–4,56 km von der Katalogposition); am Säntis steigt die DEM-Höhe dadurch von **1 925 auf 2 370 m** (Station 2 501 m), in Innsbruck fällt sie von 689 auf 576 m (Station 578 m) — die alte Position lag am Hang. `11120 INNSBRUCK FL.` und `11231 KLAGENFURT FL.` tragen erstmals TAWES-Wahrheit (11121/11331). Die 16 Nachbarn behalten Position und Live-Profil, nur `country` stimmt jetzt.
+
+#### 9.3.4 Ergebnis: lokaler Slot (nicht gepusht, `scratchpad/archiv/2026-09-16/1746.json.gz`)
+
+**Lauf 1 (17:46 UTC, Index `ac95eb7`, t1 `2026091615` · t2 `2026091612` · t3 `2026091600` · Stationen `2026091615`):** 410 Punkte, **18 352 560 B gzip (17,50 MiB)**, 126,1 MiB roh, **648 s** (cube t1 124 · t2 39 · t3 9 · Stationen 102 · hmodel 138 · Plan 4 · Nowcast 137 · Wahrheit 4 · Live 91 s), 528 Abrufe, 80,5 MiB.
+
+| Punktklasse | n | je Punkt, einzeln gepackt | Anteil `live` | Abdeckung cube t1/t2/t3 · Stationen · Nowcast · Wahrheit |
+|---|---|---|---|---|
+| DE | 208 | 46,7 KB | 75 % | 204/194/208 · 208 · 202 · 208 |
+| AT nur TAWES | 71 | 51,1 KB | 76 % | 71/70/71 · 71 · 71 · 71 |
+| AT TAWES + POI | 13 | 51,5 KB | 75 % | 13/13/13 · 13 · 13 · 13 |
+| CH nur SMN | 96 | 51,0 KB | 76 % | 96/96/96 · 96 · 96 · 96 |
+| CH/LI SMN + POI | 6 | 51,7 KB | 76 % | alle 6 |
+| Nachbarn | 16 | 48,0 KB | 77 % | 16/12/16 · 13 · 12 · 16 |
+
+- **Bytes je Punkt im Slot: 43,7 KB** gegen 42,5 KB im PA1-Slot vom 14.09. (243 Punkte, 10 579 767 B) — **+3 %**, der Slot wächst mit der Punktzahl, nicht pro Punkt. **Hochrechnung: 18,35 MB × 365 = 6,70 GB/Jahr** (PA1: ≈ 3,9 GB). GitHubs Empfehlung < 1 GB je Repo ist damit nach ≈ 55 statt ≈ 95 Tagen erreicht, die harte Empfehlung < 5 GB nach ≈ 9 statt ≈ 15 Monaten ⇒ **E-U-13 (Archivwachstum) wird dringender**; der Hebel ist `live` mit 75–77 % der Bytes, nicht die Punktzahl.
+- Stationsprodukt für **186/186** PA2-Paare gelesen (über die Katalogkennung; Messstelle ↔ Katalog Median 0,75 km).
+- Wahrheit: SMN 102/102, TAWES 84/84, 10-min-Spalten für alle 186. `rr1h` findet in 24 h **184 nasse Stunden an den 96 CH-Netzpunkten, die Momentaufnahme `rr1` 99** (AT: 26 gegen 14) — die Falle aus 9.3.1 (6) in der Fläche. `td` belegt (CH 1 674, AT 1 633 Stunden), `p` fehlt an Bergstationen ohne QFF (Säntis: Sentinel).
+- Laufzeit am Runner, gerechnet: der Cron-Slot vom 15.09. brauchte für 243 Punkte 13 min (lokal 8,5) ⇒ Faktor 1,5 ⇒ **≈ 16–17 min für 410**, `timeout-minutes: 60` hält.
+- ⚠ **38 Fehler, alle `HTTP 403` von jsDelivr (V-FI-5) — und sie trafen nicht nur PA2:** ein t1-Chunk (4 DE-Punkte), vier t2-Chunks (19 Punkte: 14 DE, 4 Nachbarn, 1 AT), zwei Stationsbündel (3 Nachbarn), fünf `hmodel`-Chunks (12 Lesungen). Der Sammler hatte keinen Ausweichweg; ein Slot ist nicht nachholbar (die Läufe fallen nach 9/24 h aus dem Repo) ⇒ **verlorene Archivzeit**. PA2 macht das wahrscheinlicher, weil der Sammler für die neuen Alpenchunks oft der erste Abrufer am Edge ist. **Kur (`lib/rawFallback.mjs`):** derselbe Ausweichweg wie im Browser-Leser (AP1, `fallbackStore`) — raw.githubusercontent bei 403/Frist/5xx/Netzfehler, **aber eine gepinnte Basis fällt auf raw AM SELBEN COMMIT zurück** (sonst könnten `hmodel`-Manifest und -Chunks aus zwei Ständen kommen); kein Hedge. Belegt im Verifier (7) mit Negativkontrolle 404.
+- **Lauf 2 (18:09 UTC, mit Ausweichweg):** s. 9.3.5. Ehrlich dazu: der Edge war vom ersten Lauf warm (t1 24 s statt 124 s), ein 403 war deshalb unwahrscheinlich — Lauf 2 belegt „kein Verlust", nicht „Ausweichweg geheilt"; die Heilung belegt der Verifier.
+
+**So sieht ein PA2-Punkt im Slot aus** (`points[]`, gekürzt):
+
+```json
+{"id":"06680","name":"Säntis","lat":47.249447,"lon":9.343469,"elev":2501,"demM":2370,"country":"CH","profile":"CH","wmo":"06680",
+ "truth":{"poi":true,"tawes":null,"smn":"SAE"},
+ "mosmix":{"id":"06680","name":"SAENTIS","lat":47.25,"lon":9.33,"elev":2502,"distanceKm":1.02,"dzM":-1,"match":"id"}}
+```
+
+`truth.byPoint["06680"].smn` trägt `obsAtMs, t, td, rh, ff, dd, fx, rr1, rr1h, p, n` (letzte sechs Stunden `rr1h` 0,2 · 0,1 · 0,2 · 1,2 · 0,7 · 0,2 mm, `rr1` 0 · 0 · 0,6 · 0 · 0 · 0 mm/h); `cube.t1.byPoint` die Zelle 47,25/9,35 (0,5 km), `stations.byPoint` die Station 06680 (1,02 km).
+
+#### 9.3.5 Lauf 2 (18:09 UTC, derselbe Index, mit Ausweichweg)
+
+410 Punkte, **18 379 658 B (17,53 MiB), 0 Fehler, 0 Ausweichwege**, 556 s (cube t1 24 · t2 14 · t3 11 · Stationen 18 · Nowcast 163 · Wahrheit 3 · Live 295 s — der Live-Pfad schwankt zwischen den Läufen um den Faktor 3, der Cube-Teil ist am warmen Edge fünfmal schneller). Abdeckung jetzt auch in DE 410/410 in t1, t2 und Stationen. Slot-Größe gegen Lauf 1 +0,15 % (die 23 Punkte, die in Lauf 1 fehlten). **Was Lauf 2 belegt und was nicht:** kein Verlust bei warmem Edge; dass der Ausweichweg einen 403 heilt, belegt der Verifier (7), nicht dieser Lauf.
+
+**Nebenbefund V-FI-10 (PA1, nicht behoben):** in jedem Wahrheitsdatensatz überschreibt die Bedeckungsspalte `n` (aus `TRUTH_SCALES`) die Zählung `n: obsAtMs.length` — der Slot trägt unter `n` die Bedeckung (bei TAWES/SMN nur Sentinels). Kein Datenverlust (die Zahl ist `obsAtMs.length`), aber ein Name mit zwei Bedeutungen; eine Umbenennung bräche die zwei vorhandenen Slots ⇒ im Bewerter (AP9) als bekannt behandeln.
+
+#### 9.3.6 Gate AP-PA2 und was Jan tun muss
+
+**Gates:** `points.mjs --self-test` 11/11 · `truthSelfTest` 13/13 · **`verify:punktarchiv` 87/87** (war 56) · `verify:point-client` 112/112 unverändert · `typecheck` 0 · lokaler Slot 410 Punkte, 0 Fehler (Lauf 2). GPA2 (≥ 60 AT, ≥ 40 CH mit Netzwahrheit) **grün: 84 / 101**. Nichts committet, nichts gepusht, das Archiv-Repo nicht angefasst (Slots nur im Scratchpad).
+
+**Jan (`MANUELLE-SCHRITTE.md` §15):** `buscosun-web/main` **vor 23:10 UTC** pushen — und zwar AP1 + PA2 + AP12a in einem Push, weil der Sammler `fallbackStore` aus AP1 braucht. Dann trägt der heutige Slot (≈ 23:10–23:30 UTC) die 410 Punkte; **AT/CH-Fälle 0–24 h sind ab dem Slot vom 17.09. bewertbar**, 48 h ab dem 18.09., 336 h ab dem 30.09. (Regel §1.2). Ohne Push bleibt der heutige Slot bei 243 Punkten mit falschen Ländern und ohne Stundensummen, und die 403-Verluste können wieder auftreten.
+
+**Bewusst offen:** Ausdünnung auf die Zielzahl (nicht ohne gemessene Regel; Preis steht in 9.3.4, E-U-13); Bedeckung `n` hat in AT/CH keine Wahrheit (9.3.1 (7)); V-FI-10; SMN-Vortagsstunde im 23:10-Slot (Nachholweg `_t_recent.csv` im Bewerter).
+
+### 9.4 AP12a — Purge jeder geänderten Datei und CDN-Warm-up im Punkt-Publisher (E-F-1, 2026-09-16, ab 18:00 UTC)
+
+#### 9.4.1 Diagnose (Code gelesen, Zahlen gemessen, vor dem Code)
+
+**(1) Was der Publisher heute tut.** Nach der Landeprüfung (`landed`) genau EIN Abruf `purge.jsdelivr.net/…@main/point/index.json`, Status ins Log — **ohne Nachprüfung** (`purgeIndexUntilFresh` benutzt nur der Karten-Publisher), kein Purge eines `run.json`, kein Warm-up. Folge V-FI-1: das gemergte `run.json` stand am CDN bis 12 h ohne die neue Stufe.
+
+**(2) Was die Helfer in `scripts/lib/repackManifest.mjs` können** (LZ1-Muster): `warmCdnFiles` — Chromes `Accept-Encoding` (jsDelivr hält je Kodierung einen Eintrag, V-LZ-10), 8 parallel, Body gelesen, 404 unter `@main` ⇒ Purge + 8 s + ein Versuch; **403 und Fristablauf landen ununterschieden in `failed`, ohne Wiederholung, und es gibt keine Wandzeit-Grenze**. `purgeUrlOf` (cdn → purge). `purgeIndexUntilFresh` — Purge, GET, `commit` vergleichen, 8 s + bis 3 × 20 s; es prüft nur Dateien mit `commit`-Feld. Für E-F-1 fehlten also: 403/Frist als eigene Zählung mit Wiederholung (V-FI-5), ein Budget, ein Trockenlauf, der auch den 404-Purge unterlässt, und eine Frischeprüfung für `run.json` (kein `commit`-Feld ⇒ Byte-Vergleich mit dem Repo).
+
+**(3) Welche Dateien ein Stufen-Job anfasst** (Pfadform `cubeFormat.ts`, Mechanik §26/`prune.mjs`/PD-E):
+
+| Klasse | Pfad | Status im Job | Der Leser holt sie | Purge | Warm-up |
+|---|---|---|---|---|---|
+| Chunks der Stufe | `point/<lauf>/tX/*.bin` | A (neuer Lauf, oder Stufe in bestehendes Verzeichnis gemergt); M nur beim Neubau desselben Laufs | `@main` | bei M | ja |
+| `run.json` des Publikationslaufs | `point/<lauf>/run.json` | A (neuer Lauf) oder **M (zweite Stufe gemergt, §26)** | `@<index.commit>` (§9.1), Rückfall `@main` | bei M | gepinnt; bei M zusätzlich `@main` |
+| `run.json` älterer Läufe | `point/<alt>/run.json` | **M (Aufbewahrung strich eine Stufe)** / D (letzte Stufe weg ⇒ Verzeichnis weg) | wie oben | bei M | bei M |
+| Index | `point/index.json` | M (jeder Publish) | `@main`, `no-cache` | ja, zuletzt, mit Commit-Prüfung | — (die Prüfung liest ihn) |
+| statische Produkte | `point/static/hmodel/v1/{static.json, tX/*.bin}` | M bei jedem ECMWF-Laufwechsel (V-PD-62; gemessen 124 Chunks je t1-Job); `urban` nie | `@main`, 12 h (V-FI-6) | `static.json` bei M; Chunks mit M **nicht** (9.4.3) | `static.json` bei A/M; Chunks nur bei A |
+| Stationsprodukt (nur t2-Job) | `point/stations/<lauf>/{stations.json, *.bin}`, `catalog.json` | A; Katalog M, wenn geändert | `@main` | Katalog bei M | ja |
+| Register | `point/sources.json`, `point/calib.json` | selten M | `@main`, 24 h | bei M | bei M |
+| gelöschte Läufe | alles darunter | D | — (kein Index nennt sie) | **nein** — ein Purge machte aus einer noch gültigen Kopie für einen Leser mit altem Index eine 404 | nein |
+
+**Regel:** M ⇒ purgen; A oder M ⇒ wärmen (in der Form des Lesers); D ⇒ nichts — mit einer am echten Job nachgemessenen Ausnahme für in place geänderte statische Chunks (9.4.3). **Quelle der Liste je Job:** `git diff --cached --name-status --no-renames -- point` direkt nach `git add` (im Nur-Push-Pfad `origin/main HEAD`) — die exakte Menge, keine Liste im Kopf. ⚠ Aus der Vergangenheit nachzählen ging nicht: die Kartenlinie hat die Historie um 17:32 UTC per Force-Push ersetzt, die Punkt-Commits des Tages existieren am Remote nicht mehr (GitHub-API `commits?path=point` ⇒ nur der Wurzel-Commit). Deshalb vorher/nachher an einem echten Job gemessen (9.4.3).
+
+**(4) Reihenfolge, und warum:** (a) geänderte Dateien purgen, `run.json` zuerst; (b) `index.json` purgen und prüfen, dass `@main` den neuen Daten-Commit trägt (bis 2:39 min nach dem Push löst jsDelivr `main` noch auf den alten Commit auf, BW-9 §28.4); (c) jedes geänderte `run.json` gegen die Bytes im Repo prüfen, sonst noch einmal purgen; (d) **`@main` erst wärmen, wenn der Index frisch ist** — ein zu früher Abruf eines neuen Chunks bekäme eine 404, und die hinge am Edge fest (§28.9); gepinnte Formen immer.
+
+**(5) Budget — gemessen, nicht gesetzt.** Job-Dauern aus der GitHub-API (`actions/runs/<id>/jobs`, Läufe 56–71, 15./16.09., 16 Läufe): **t1 9,7–14,2 min** (Bau 8,2–11,4, Publish 0,5–1,9), **t2 7,5–10,7** (Bau 5,5–7,9, Stationen 0,6–0,9, Publish 0,4–1,7), **t3 5,3–5,4** (Bau 3,9–4,2). Gegen `JOB_MAX_MIN_BY_TIER` {20, 15, 10} bleibt mit 1 min Reserve: t1 4,8 min, t2 3,3, t3 3,6 ⇒ **Budget t1 240 s, t2 180 s, t3 180 s**; ohne Angabe 180 s (hält in jedem Job). Der ganze Schritt (Purges, Wartezeiten, Warm-up) läuft gegen dieses Budget; was bis dahin nicht begonnen ist, zählt als `skipped`.
+
+#### 9.4.2 Umgesetzt (nur `scripts/`, kein `src/`-Modul, keine Abhängigkeit)
+
+| Datei | Was |
+|---|---|
+| `scripts/lib/repackManifest.mjs` | `warmCdnFiles` **additiv**: `retries`, `backoffMs` (×2 je Versuch), `deadlineMs`, `purgeOn404`, `sleepImpl`; Zählung `forbidden`, `timeout` (beide Teil von `failed`, nie `ok`), `retried`, `recovered`, `skipped`; wiederholt werden 403, Frist, 5xx, Netzfehler — ohne die neuen Optionen verhält es sich wie bisher. `purgeUntilFresh({ url, check })` als die Schleife hinter `purgeIndexUntilFresh` (das ist jetzt ein Aufruf davon, Meldungen wortgleich), mit `dryRun` (kein Purge, nur Lesen) |
+| `scripts/point/cdnSync.mjs` **neu** | `parseNameStatus`, `classifyPointPath`, `planCdnSync` (Regel aus 9.4.1), `missingManifestPurges` und `cdnContractViolations` (für die Negativkontrollen), `syncCdn` (Ausführung mit Budget, Bericht), `CDN_BUDGET_S_BY_TIER`, `JOB_MEASURED_MAX_MIN`; CLI-Trockenlauf gegen einen veröffentlichten Lauf (GET only) |
+| `scripts/point/publish-point.mjs` | `touched` aus `git diff --cached --name-status` (Nur-Push-Pfad: `origin/main HEAD`); nach `landed`: `syncCdn` im Budget `POINT_CDN_BUDGET_S`; **Schalter** `POINT_CDN_SYNC=0` (= der alte Einzel-Purge), `POINT_CDN_DRY=1` (kein Purge), `POINT_CDN_BASE` (lokaler Nachbau); nie fatal, Exit-Code unverändert |
+| `scripts/repack-repo/workflow-point.yml` | `POINT_CDN_BUDGET_S` je Publish-Schritt (240/180/180) + Herleitung — Kopie = Jans Gate (`MANUELLE-SCHRITTE.md` §15) |
+| `scripts/verify-point-data.mjs` | **969/969** (war 947): **Regel F** je Job (gemessenes Maximum + Budget + 1 ≤ `JOB_MAX_MIN`, Vorlage = Modul; Negativkontrolle 400 s in t1); **AP12a** — Vertrag des Publishers (+ Negativkontrollen: ohne `syncCdn`, `syncCdn` vor Push/Landeprüfung), `parseNameStatus`, Plan an der echten Pfadform eines t2-Jobs (Merge, Beschnitt, Löschung, `hmodel` in place, Stationsprodukt), jede geänderte `run.json` im Purge (Negativkontrolle: Plan ohne Purges verfehlt genau zwei), Warm-up **403 = Fehlschlag**, 403 → 200 geheilt, Frist = `timeout`, Trockenlauf ohne 404-Purge, Budget erschöpft ⇒ `skipped`, `syncCdn` gegen ein nachgebautes CDN: Trockenlauf **null** Abrufe an `purge.jsdelivr.net`, echter Lauf purgt genau die M-Dateien, nicht frischer Index ⇒ kein `@main`-Warm-up |
+
+`verify:repack` **348/348** unverändert (die Kartenlinie benutzt dieselben Helfer). typecheck 0. **Kein Purge von dieser Maschine gegen das echte CDN** — der Trockenlauf (9.4.3) schickt nur GETs; das ist im Verifier und im CLI geprüft.
+
+**Ende-zu-Ende-Nachbau des echten Publishers (18:40 UTC)** — weil dieser Code nach Jans Push im nächsten Cron-Job läuft und der Verifier nur Module prüft: `publish-point.mjs` unverändert gestartet gegen einen lokalen Bare-Origin (Anfangsstand: echter t3-Lauf `2026091512` mit 12 Chunks) und ein lokales Nachbau-CDN (`POINT_CDN_BASE=http://127.0.0.1:8787/gh/…`, liefert den Arbeitsbaum, protokolliert jeden Abruf), Bauausgabe = echter t3-Lauf `2026091600` (12 Chunks) + ein geändertes `2026091512/run.json` (wie ein Merge), `POINT_PUSH=1`, `POINT_CDN_DRY=1`, Budget 60 s. Ergebnis: Datencommit → Push → Manifest-Commit → „steht auf origin/main" → **CDN: 16 neu · 1 geändert · 0 gelöscht ⇒ 1 Purge (trocken), 17 zu wärmen** · Index frisch im ersten Versuch (8 s Wartezeit) · `run.json` Byte-gleich · **Warm-up 17/17** · **0 Abrufe mit `purge`**, alle 17 Warm-up-Abrufe mit `gzip, deflate, br, zstd`, `run.json` gepinnt an den Daten-Commit · Exit 0 · 11,2 s gesamt.
+
+**Ein Fehler, den erst der Nachbau zeigte:** der erste Versuch hing — mein Harnisch blockierte mit `spawnSync` sein eigenes Nachbau-CDN, und der Publisher wartete **ohne Ende**, weil weder `purgeIndexUntilFresh` noch die Purge-Schleife eine Frist je Abruf hatten. Am echten CDN hieße ein hängender Abruf: der Publish-Schritt hält bis zum Job-Timeout (45/60/40 min) und schiebt den Job in das Fenster der Kartenlinie. Kur: `purgeUntilFresh({ timeoutMs })` (opt-in, die Kartenlinie bleibt ohne Frist wie bisher), 15 s je Purge-/Prüfabruf im Punkt-Publisher, der 404-Purge im Warm-up mit Frist, Budgetprüfung vor jedem Schritt, und eine **harte Obergrenze** (Budget + 15 s) um den ganzen Schritt. Verifier: hängt jeder Abruf, endet `syncCdn` an der Obergrenze, und jeder Purge-/Prüfabruf trägt ein `signal` ⇒ **968/968**.
+
+#### 9.4.3 Gemessen (a): was ein echter Job anfasst, und was das Warm-up kostet
+
+**Der t1-Job von 19:40 UTC** (Lauf `2026091618`, Index 19:52:39 UTC, Daten-Commit `b3e6fec`), zweifach gemessen: GitHub-API-Dateiliste des Commits (vor dem nächsten Force-Push der Kartenlinie gelesen) und Schnappschuss aller veränderlichen Manifeste über `raw.githubusercontent` um 18:15 und 19:58 UTC (`scratchpad/snapshot.mjs`, `snapdiff.mjs`) — beide stimmen überein:
+
+| Status | Dateien | Was |
+|---|---|---|
+| A | 209 | `point/2026091618/run.json` + 208 t1-Chunks (Git meldet das `run.json` als Umbenennung von `2026091609/run.json` — mit `--no-renames` korrekt D + A) |
+| M | 126 | `point/index.json`, `point/static/hmodel/v1/static.json` und **124 `hmodel`-t1-Chunks** (abgeleitete ECMWF-Höhe, V-PD-62) |
+| D | 266 | Läufe `2026091609` (t1, 208 Chunks) und `2026091518` (t2, 56 Chunks) samt `run.json` — Aufbewahrung |
+
+In diesem Job war **kein** `run.json` geändert (beide Altläufe fielen ganz). M-Manifeste entstehen, wenn ein Job in ein bestehendes Laufverzeichnis merged (t2 in das t1-Verzeichnis, heute `2026091612[t1+t2]`) oder die Aufbewahrung aus einem Mehrstufen-Verzeichnis eine Stufe streicht — nach der Regel `RETENTION_HOURS_BY_TIER.t1 = 9` im 22:40-Job zu erwarten (t1 in `2026091612` ist dann 10,9 h alt).
+
+**Nachgemessene Entscheidung:** die 124 in place geänderten `hmodel`-Chunks hätte die Regel aus 9.4.1 alle gepurgt — achtmal am Tag, für Höhen, die sich um 1–2 m verschieben. Wärmen ohne Purge liefert die alte Kopie. Deshalb: **statische Chunks mit M werden weder gepurgt noch gewärmt** (gezählt als `staticChunksLeft`), `static.json` schon (eine neue Spaltenliste muss ankommen; eine Umordnung bei gleicher Zahl bliebe still, wie in V-FI-6 schon benannt); neue statische Chunks (A) werden gewärmt. Plan für genau diesen Job, mit der echten Dateiliste nachgerechnet: **1 Purge (`static.json`) + Index mit Frischeprüfung, 210 Dateien wärmen** (208 Chunks, `run.json` gepinnt, `static.json`), 124 statische Chunks ausgelassen, 266 gelöschte nicht angefasst. Verifier-Fixture nachgezogen ⇒ **969/969**.
+
+**Trockenlauf gegen genau diesen Lauf** (`node … scripts/point/cdnSync.mjs --tier=t1 --json`, von dieser Maschine, 19:58:01–19:58:31 UTC = 5 min 22 s nach dem Index; GET only, kein Purge):
+
+| Größe | Wert |
+|---|---|
+| Dateien | 210 (208 Chunks + `run.json` gepinnt + `run.json` `@main` — das CLI behandelt `run.json` als M) |
+| Ergebnis | **210/210 ok · 0 HIT / 210 MISS** (niemand hatte den Lauf in 5 min abgerufen — ohne Warm-up trifft JEDER erste Nutzer einen kalten Edge) · **403: 0 · Frist: 0 · 404: 0 · wiederholt: 0** |
+| Volumen / Dauer | **86,0 MiB in 27,9 s** (8 parallel ⇒ Ø 1,06 s je Datei inkl. 410 KB Übertragung); Schritt gesamt 28,8 s |
+| Frische | Index `@main` im ersten Versuch auf `b3e6fec` (der alte Publisher hatte gepurgt), `run.json` `@main` byte-gleich zum Repo |
+| Budget | t1 240 s ⇒ **8,3-fache Reserve**; Job gemessen max. 14,2 min + 0,5 min ⇒ 14,7 ≤ 19 (Regel F) |
+
+Ehrlich dazu: (1) ein Lauf ohne 403 ist kein Beleg gegen V-FI-5 — die Wiederholung ist im Verifier belegt, nicht hier. (2) Diese GETs haben den Origin und den Europa-Edge dieser Maschine für Lauf `2026091618` gewärmt — für die Abnahme (b) taugt dieser Lauf deshalb nicht. (3) Kosten: ≈ 86 MiB je t1-Job, achtmal am Tag ≈ 690 MiB/Tag Abruf von jsDelivr (die Kartenlinie wärmt ≈ 26 MB je Publish); kein Byte über Netlify.
+
+#### 9.4.4 Abnahme (b) — offen, braucht Jans Push
+
+Nicht in dieser Sitzung möglich: der Publisher läuft im Cron erst mit dem gepushten `main`. Sobald ein Punkt-Job mit dem neuen Publisher gelaufen ist (im Publish-Log: `CDN-Warm-up: …/… ok … · 403 … · Frist …`) und **ohne diesen Lauf vorher von hier abzurufen**:
+
+```
+npm run verify:pv-latency -- --only=bundle --profiles=desktop-none
+```
+
+Vergleich gegen `latency/2026-09-16T14-33-41-921Z.json` (kalt-neu Kern p50 **1 458 ms**, 37 MISS über 10 Orte). ⚠ Lesehinweis vorab: der Runner steht in den USA — er wärmt den **Origin** und seinen Edge. Von Europa aus kann `x-cache` weiter `MISS` melden (Edge kalt), während der TTFB auf das Origin-warm-Niveau fällt (LZ1 M1: 0,17 s p50 statt 0,60 s). Verglichen wird deshalb **TTFB je Chunk und Kern-p50**, die HIT/MISS-Zählung nur als zweite Zahl. Gate: kalt-neu Kern p50 < 1 458 ms und kein 403-Fall über der harten Frist.
+
+#### 9.4.5 Gate AP12a und was Jan tun muss
+
+**Gates:** `verify:point-data` **969/969** (war 947) · `verify:repack` **348/348** · `verify:punktarchiv` 87/87 · `verify:point-client` 112/112 · `typecheck` 0 · Ende-zu-Ende-Nachbau des Publishers Exit 0 · Trockenlauf gegen den echten Lauf 210/210. Budget/Bundle unberührt (kein Byte in `src/`, `public/`, Vite-Konfiguration). Kein Purge gegen das echte CDN, keine Workflow-Kopie, nichts committet.
+
+**Jan (`MANUELLE-SCHRITTE.md` §15):** (1) Push von `buscosun-web/main` — aktiviert den neuen Publisher im nächsten Punkt-Job mit Standard-Budget 180 s; (2) optional die Vorlage ins Daten-Repo kopieren (+11 Zeilen, t1 bekommt 240 s); (3) nach dem ersten Job mit neuem Publisher die Abnahme (b).
+
+**Bewusst offen:** in place geänderte `hmodel`-Chunks bleiben am CDN bis 12 h alt (Entscheidung oben); gelöschte Läufe werden nicht gepurgt; Warm-up des Radar-Spiegels (V-FI-7, S&F Radar-Linie); ob jsDelivr einen Purge je geänderter Datei auf Dauer ohne Drosselung annimmt, ist ungemessen (heute ≤ 3 je Job nach der hmodel-Entscheidung — im Publish-Log sichtbar).
+
+
 

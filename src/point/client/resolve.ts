@@ -160,6 +160,34 @@ function tierOf(p: ProductId): TierId | null {
 }
 
 /**
+ * Vertritt die nächste Station den Punkt? Die Regel EINMAL — `planPointSources` und der
+ * parallele Bündel-Leser (`readPoint.ts`) fragen beide hier, damit die Schwellen aus
+ * `SELECTION` nicht an zwei Stellen stehen.
+ */
+export function judgeStation(
+  catalogPresent: boolean, best: StationCandidate | null, elevationM: number | null,
+): { accepted: boolean; reason: string } {
+  if (!catalogPresent) return { accepted: false, reason: 'Stationskatalog nicht im Repo erreichbar.' };
+  if (!best) return { accepted: false, reason: 'Keine Station im Katalog.' };
+  if (best.distanceKm > SELECTION.stationMaxKm) {
+    return { accepted: false, reason: `Nächste Station ${best.name} liegt ${best.distanceKm.toFixed(1)} km entfernt `
+      + `(Schwelle ${SELECTION.stationMaxKm} km) — sie vertritt diesen Punkt nicht.` };
+  }
+  if (elevationM == null) {
+    return { accepted: true, reason: `${best.name}, ${best.distanceKm.toFixed(1)} km. ⚠ Höhenkriterium NICHT geprüft: `
+      + 'die Geländehöhe des Punktes wurde nicht übergeben. Station steht auf '
+      + `${best.elev} m.` };
+  }
+  if (Math.abs(best.dElevM ?? 0) > SELECTION.stationMaxDElevM) {
+    return { accepted: false, reason: `${best.name} liegt ${best.distanceKm.toFixed(1)} km entfernt, aber `
+      + `${(best.dElevM ?? 0) > 0 ? '+' : ''}${Math.round(best.dElevM ?? 0)} m höher `
+      + `(Schwelle ±${SELECTION.stationMaxDElevM} m) — die Bias-Korrektur gälte für den falschen Ort.` };
+  }
+  return { accepted: true, reason: `${best.name}, ${best.distanceKm.toFixed(1)} km, `
+    + `${(best.dElevM ?? 0) >= 0 ? '+' : ''}${Math.round(best.dElevM ?? 0)} m — vertritt den Punkt.` };
+}
+
+/**
  * Der Plan: welche Quelle wann. Kostet **keinen einzigen Chunk** — nur Index,
  * Stationskatalog und -manifest sowie eine Slot-Sonde je Radarquelle. Das ist der
  * billige Teil, und er beantwortet die Frage „welche Quelle" schon vollständig.
@@ -188,29 +216,9 @@ export async function planPointSources(store: PointStore, input: PlanInput): Pro
   const catalog = await loadStationCatalog(store);
   const nearby = catalog ? nearestStations(catalog, lat, lon, { elevationM, limit: 5 }) : [];
   const best = nearby[0] ?? null;
-  let stationAccepted = false;
-  let stationReason: string;
-  if (!catalog) {
-    stationReason = 'Stationskatalog nicht im Repo erreichbar.';
-  } else if (!best) {
-    stationReason = 'Keine Station im Katalog.';
-  } else if (best.distanceKm > SELECTION.stationMaxKm) {
-    stationReason = `Nächste Station ${best.name} liegt ${best.distanceKm.toFixed(1)} km entfernt `
-      + `(Schwelle ${SELECTION.stationMaxKm} km) — sie vertritt diesen Punkt nicht.`;
-  } else if (elevationM == null) {
-    stationAccepted = true;
-    stationReason = `${best.name}, ${best.distanceKm.toFixed(1)} km. ⚠ Höhenkriterium NICHT geprüft: `
-      + 'die Geländehöhe des Punktes wurde nicht übergeben. Station steht auf '
-      + `${best.elev} m.`;
-  } else if (Math.abs(best.dElevM ?? 0) > SELECTION.stationMaxDElevM) {
-    stationReason = `${best.name} liegt ${best.distanceKm.toFixed(1)} km entfernt, aber `
-      + `${(best.dElevM ?? 0) > 0 ? '+' : ''}${Math.round(best.dElevM ?? 0)} m höher `
-      + `(Schwelle ±${SELECTION.stationMaxDElevM} m) — die Bias-Korrektur gälte für den falschen Ort.`;
-  } else {
-    stationAccepted = true;
-    stationReason = `${best.name}, ${best.distanceKm.toFixed(1)} km, `
-      + `${(best.dElevM ?? 0) >= 0 ? '+' : ''}${Math.round(best.dElevM ?? 0)} m — vertritt den Punkt.`;
-  }
+  const judged = judgeStation(!!catalog, best, elevationM);
+  const stationAccepted = judged.accepted;
+  const stationReason = judged.reason;
 
   const stationRun = index.stations?.runs?.[0] ?? null;
   const stationManifest = stationAccepted && stationRun
@@ -221,7 +229,10 @@ export async function planPointSources(store: PointStore, input: PlanInput): Pro
   const covering = nowcastSourcesFor(lat, lon);
   const slots: NowcastSlot[] = [];
   for (const id of covering) {
-    const s = await findLatestSlot(store, id, nowMs);
+    // Ein Transportfehler bei EINER Radarquelle darf den Plan nicht reißen — die Quelle
+    // fehlt dann im Plan, und der Cube-Rückfall für 0–3 h greift (AP1, V-FI-5).
+    let s: NowcastSlot | null = null;
+    try { s = await findLatestSlot(store, id, nowMs); } catch { s = null; }
     if (s) slots.push(s);
   }
 

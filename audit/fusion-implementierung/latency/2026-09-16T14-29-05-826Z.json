@@ -1,0 +1,3846 @@
+{
+ "schema": 2,
+ "startedAt": "2026-09-16T14:29:05.826Z",
+ "finishedAt": "2026-09-16T14:29:19.640Z",
+ "host": {
+  "platform": "win32",
+  "node": "v22.17.0",
+  "chrome": "C:\\Users\\User\\AppData\\Local\\ms-playwright\\chromium_headless_shell-1223\\chrome-headless-shell-win64\\chrome-headless-shell.exe"
+ },
+ "args": {
+  "profileIds": [
+   "desktop-none"
+  ],
+  "placeIds": [
+   "muenchen",
+   "wien",
+   "zermatt"
+  ],
+  "only": [
+   "bundle"
+  ],
+  "repeats": 1
+ },
+ "chunkEdgePlaces": [
+  "graz"
+ ],
+ "summary": [
+  {
+   "profile": "desktop-none",
+   "scenario": "cube-read-cold",
+   "n": 3,
+   "p50": 795.5,
+   "p95": 4713.399999976158,
+   "max": 4713.399999976158,
+   "coreP50": 739,
+   "coreP95": 783,
+   "readP50": 783,
+   "readP95": 4700,
+   "firstP50": 706,
+   "firstP95": 753
+  },
+  {
+   "profile": "desktop-none",
+   "scenario": "cube-read-warm",
+   "n": 3,
+   "p50": 212.30000001192093,
+   "p95": 316.80000001192093,
+   "max": 316.80000001192093,
+   "coreP50": 205,
+   "coreP95": 308,
+   "readP50": 205,
+   "readP95": 308,
+   "firstP50": 204,
+   "firstP95": 307
+  },
+  {
+   "profile": "desktop-none",
+   "scenario": "cube-read-main",
+   "n": 3,
+   "p50": 195.0999999642372,
+   "p95": 242,
+   "max": 242,
+   "coreP50": 188,
+   "coreP95": 234,
+   "readP50": 188,
+   "readP95": 234,
+   "firstP50": 184,
+   "firstP95": 229
+  },
+  {
+   "profile": "desktop-none",
+   "scenario": "cube-read-nocache",
+   "n": 3,
+   "p50": 236.0999999642372,
+   "p95": 265,
+   "max": 265,
+   "coreP50": 226,
+   "coreP95": 252,
+   "readP50": 226,
+   "readP95": 252,
+   "firstP50": 218,
+   "firstP95": 252
+  }
+ ],
+ "gate": null,
+ "runs": [
+  {
+   "profile": "desktop-none",
+   "place": "muenchen",
+   "lat": 48.1372,
+   "lon": 11.5755,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "cube-read-cold",
+   "rep": 0,
+   "wallMs": 4717,
+   "totalMs": 4713.399999976158,
+   "coreMs": 681,
+   "readMs": 4700,
+   "firstMs": 635,
+   "result": {
+    "total": 4713.399999976158,
+    "timing": {
+     "indexMs": 52,
+     "firstMs": 635,
+     "coreMs": 681,
+     "readMs": 4700,
+     "totalMs": 4711,
+     "doneAt": {
+      "index": 52,
+      "cube.t2": 231,
+      "cube.t3": 246,
+      "cube.t1": 267,
+      "terrain": 632,
+      "first": 635,
+      "station": 681,
+      "core": 681,
+      "static": 681,
+      "nowcast": 4700,
+      "read": 4700,
+      "plan": 4711
+     },
+     "phases": {
+      "fetch.t2": 80,
+      "fetch.t3": 133,
+      "fetch.t1": 143,
+      "decode.t2": 94,
+      "decode.t3": 57,
+      "decode.t1": 69
+     }
+    },
+    "progress": {
+     "index": 52,
+     "cube.t2": 231,
+     "cube.t3": 246,
+     "cube.t1": 267,
+     "terrain": 632,
+     "first": 635,
+     "station": 681,
+     "static": 681,
+     "nowcast": 4700,
+     "read": 4700,
+     "done": 4711
+    },
+    "stats": {
+     "files": 34,
+     "bytes": 2172516,
+     "misses": 1,
+     "ms": 12950.699999809265,
+     "slow": 0,
+     "retries": 0
+    },
+    "cache": {
+     "hits": 0,
+     "misses": 34,
+     "stored": 32,
+     "errors": 0,
+     "bypass": 2,
+     "bytesServed": 0
+    },
+    "decode": {
+     "mode": "worker",
+     "workers": 3,
+     "decoded": 8,
+     "viaWorker": 8,
+     "viaMain": 0,
+     "fallbacks": 0,
+     "errors": []
+    },
+    "tiers": [
+     "t1",
+     "t2",
+     "t3"
+    ],
+    "cube": {
+     "t1": {
+      "steps": 49,
+      "manifestFrom": "pinned",
+      "bytes": 556991,
+      "filled": 53,
+      "sources": 8,
+      "note": null
+     },
+     "t2": {
+      "steps": 24,
+      "manifestFrom": "pinned",
+      "bytes": 211235,
+      "filled": 45,
+      "sources": 7,
+      "note": null
+     },
+     "t3": {
+      "steps": 36,
+      "manifestFrom": "pinned",
+      "bytes": 247458,
+      "filled": 40,
+      "sources": 6,
+      "note": null
+     }
+    },
+    "station": {
+     "id": "10865",
+     "steps": 247,
+     "bytes": 103067,
+     "path": "point/stations/2026091609/03_07.bin"
+    },
+    "stationChoice": {
+     "accepted": true,
+     "reason": "MUENCHEN STADT, 5.0 km, -10 m — vertritt den Punkt.",
+     "elevationM": 524.8
+    },
+    "nowcast": [
+     {
+      "source": "radvor_rv",
+      "frames": 2,
+      "inSlot": 25,
+      "fetched": 2,
+      "probes": 1,
+      "bytes": 197448,
+      "leads": [
+       5,
+       120
+      ]
+     },
+     {
+      "source": "inca",
+      "frames": 4,
+      "inSlot": 12,
+      "fetched": 4,
+      "probes": 2,
+      "bytes": 139176,
+      "leads": [
+       30,
+       90,
+       150,
+       180
+      ]
+     },
+     {
+      "source": "combiprecip",
+      "frames": 1,
+      "inSlot": 1,
+      "fetched": 1,
+      "probes": 1,
+      "bytes": 199321,
+      "leads": [
+       0
+      ]
+     }
+    ],
+    "hmodel": {
+     "t1": {
+      "icon_d2": 528,
+      "icon_ch1_eps": 518,
+      "icon_eu": 532,
+      "ifs_hres": 486,
+      "aifs_single": 487
+     },
+     "t2": {
+      "icon_eu": 548,
+      "icon_ch2_eps": 540,
+      "icon_global": 557,
+      "ifs_hres": 628,
+      "aifs_single": 589
+     },
+     "t3": {
+      "icon_global": 486,
+      "ifs_hres": 487,
+      "aifs_single": 487
+     }
+    },
+    "urban": {
+     "imperv": 23,
+     "d0": 5.1000000000000005,
+     "bldgH": 7.300000000000001
+    },
+    "terrain": {
+     "elevationM": 524.8,
+     "tpi500M": 1.7,
+     "tpi2000M": 3,
+     "svf": 1,
+     "slopeDeg": 1.5,
+     "tiles": {
+      "near": 2,
+      "far": 2,
+      "failed": 0,
+      "bytes": 369090,
+      "fromCache": 0
+     },
+     "fromCache": false,
+     "timing": {
+      "totalMs": 631,
+      "fetchMs": 2342,
+      "decodeMs": 16,
+      "computeMs": 1
+     }
+    },
+    "plan": {
+     "segments": 95,
+     "gaps": 1,
+     "primary0": "cube-t1"
+    },
+    "skips": [],
+    "notes": [],
+    "errors": []
+   },
+   "net": {
+    "requests": 39,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 1953713,
+    "cdn": 35,
+    "hit": 25,
+    "miss": 10,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/2026091609/t1/03_07.bin",
+     "bytes": 557377,
+     "ttfbMs": 52,
+     "ms": 133,
+     "xCache": "HIT"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 35,
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": [
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/index.json",
+      "bytes": 5314,
+      "ttfbMs": 42,
+      "ms": 46,
+      "xCache": "HIT",
+      "startMs": 0,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@8e111263f75bc33a743854ddba4ce46716164f18/point/2026091609/run.json",
+      "bytes": 10035,
+      "ttfbMs": 29,
+      "ms": 30,
+      "xCache": "HIT",
+      "startMs": 56,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091609/t1/03_07.bin",
+      "bytes": 557377,
+      "ttfbMs": 52,
+      "ms": 133,
+      "xCache": "HIT",
+      "startMs": 56,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@8e111263f75bc33a743854ddba4ce46716164f18/point/2026091606/run.json",
+      "bytes": 12323,
+      "ttfbMs": 27,
+      "ms": 29,
+      "xCache": "HIT",
+      "startMs": 57,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091606/t2/01_03.bin",
+      "bytes": 211457,
+      "ttfbMs": 26,
+      "ms": 70,
+      "xCache": "HIT",
+      "startMs": 57,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@8e111263f75bc33a743854ddba4ce46716164f18/point/2026091600/run.json",
+      "bytes": 9508,
+      "ttfbMs": 28,
+      "ms": 57,
+      "xCache": "HIT",
+      "startMs": 57,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091600/t3/00_01.bin",
+      "bytes": 247704,
+      "ttfbMs": 52,
+      "ms": 122,
+      "xCache": "HIT",
+      "startMs": 58,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/static.json",
+      "bytes": 2052,
+      "ttfbMs": 260,
+      "ms": 262,
+      "xCache": "MISS",
+      "startMs": 58,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/t1/03_07.bin",
+      "bytes": 1265,
+      "ttfbMs": 611,
+      "ms": 612,
+      "xCache": "MISS",
+      "startMs": 58,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/t2/01_03.bin",
+      "bytes": 1839,
+      "ttfbMs": 50,
+      "ms": 73,
+      "xCache": "HIT",
+      "startMs": 59,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/t3/00_01.bin",
+      "bytes": 1478,
+      "ttfbMs": 50,
+      "ms": 73,
+      "xCache": "HIT",
+      "startMs": 59,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/urban/v1/static.json",
+      "bytes": 3499,
+      "ttfbMs": 50,
+      "ms": 55,
+      "xCache": "HIT",
+      "startMs": 59,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/urban/v1/t1/03_07.bin",
+      "bytes": 789,
+      "ttfbMs": 49,
+      "ms": 72,
+      "xCache": "HIT",
+      "startMs": 60,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/catalog.json",
+      "bytes": 59332,
+      "ttfbMs": 50,
+      "ms": 94,
+      "xCache": "HIT",
+      "startMs": 60,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/2026091609/stations.json",
+      "bytes": 14089,
+      "ttfbMs": 50,
+      "ms": 95,
+      "xCache": "HIT",
+      "startMs": 60,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/2026091609/03_07.bin",
+      "bytes": 100827,
+      "ttfbMs": 50,
+      "ms": 125,
+      "xCache": "HIT",
+      "startMs": 61,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161425/meta.json",
+      "bytes": 555,
+      "ttfbMs": 716,
+      "ms": 717,
+      "xCache": "MISS",
+      "startMs": 61,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161420/meta.json",
+      "bytes": 422,
+      "ttfbMs": 2354,
+      "ms": 2355,
+      "xCache": "MISS",
+      "startMs": 61,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161415/meta.json",
+      "bytes": 390,
+      "ttfbMs": 49,
+      "ms": 53,
+      "xCache": "HIT",
+      "startMs": 61,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161410/meta.json",
+      "bytes": 380,
+      "ttfbMs": 49,
+      "ms": 93,
+      "xCache": "HIT",
+      "startMs": 62,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1400/meta.json",
+      "bytes": 547,
+      "ttfbMs": 49,
+      "ms": 53,
+      "xCache": "HIT",
+      "startMs": 62,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1345/meta.json",
+      "bytes": 390,
+      "ttfbMs": 61,
+      "ms": 93,
+      "xCache": "HIT",
+      "startMs": 62,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1330/meta.json",
+      "bytes": 389,
+      "ttfbMs": 48,
+      "ms": 52,
+      "xCache": "HIT",
+      "startMs": 63,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260916T1425/meta.json",
+      "bytes": 301,
+      "ttfbMs": 257,
+      "ms": 258,
+      "xCache": "MISS",
+      "startMs": 63,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260916T1420/meta.json",
+      "bytes": 391,
+      "ttfbMs": 2349,
+      "ms": 2350,
+      "xCache": "MISS",
+      "startMs": 63,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260916T1415/meta.json",
+      "bytes": 505,
+      "ttfbMs": 47,
+      "ms": 52,
+      "xCache": "HIT",
+      "startMs": 63,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260916T1410/meta.json",
+      "bytes": 304,
+      "ttfbMs": 47,
+      "ms": 91,
+      "xCache": "HIT",
+      "startMs": 64,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1400/f030.png",
+      "bytes": 25803,
+      "ttfbMs": 20,
+      "ms": 36,
+      "xCache": "HIT",
+      "startMs": 658,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1400/f090.png",
+      "bytes": 33482,
+      "ttfbMs": 22,
+      "ms": 36,
+      "xCache": "HIT",
+      "startMs": 659,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1400/f150.png",
+      "bytes": 39066,
+      "ttfbMs": 22,
+      "ms": 37,
+      "xCache": "HIT",
+      "startMs": 659,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1400/f180.png",
+      "bytes": 40964,
+      "ttfbMs": 19,
+      "ms": 36,
+      "xCache": "HIT",
+      "startMs": 659,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260916T1425/frame.png",
+      "bytes": 27614,
+      "ttfbMs": 715,
+      "ms": 733,
+      "xCache": "MISS",
+      "startMs": 2415,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161425/f005.png",
+      "bytes": 86830,
+      "ttfbMs": 625,
+      "ms": 633,
+      "xCache": "MISS",
+      "startMs": 2421,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161425/f065.png",
+      "bytes": 453,
+      "ttfbMs": 2270,
+      "ms": 2272,
+      "xCache": "MISS",
+      "startMs": 2422,
+      "status": 403
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609161425/f120.png",
+      "bytes": 83989,
+      "ttfbMs": 310,
+      "ms": 318,
+      "xCache": "MISS",
+      "startMs": 2423,
+      "status": 200
+     }
+    ],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1089/710.png",
+      "bytes": 107115,
+      "ttfbMs": 388,
+      "ms": 615,
+      "startMs": 6,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1090/710.png",
+      "bytes": 103855,
+      "ttfbMs": 378,
+      "ms": 602,
+      "startMs": 6,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/136/88.png",
+      "bytes": 66610,
+      "ttfbMs": 382,
+      "ms": 506,
+      "startMs": 7,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/136/89.png",
+      "bytes": 94470,
+      "ttfbMs": 387,
+      "ms": 613,
+      "startMs": 7,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "muenchen",
+   "lat": 48.1372,
+   "lon": 11.5755,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "cube-read-warm",
+   "rep": 0,
+   "wallMs": 319,
+   "totalMs": 316.80000001192093,
+   "coreMs": 308,
+   "readMs": 308,
+   "firstMs": 307,
+   "result": {
+    "total": 316.80000001192093,
+    "timing": {
+     "indexMs": 24,
+     "firstMs": 307,
+     "coreMs": 308,
+     "readMs": 308,
+     "totalMs": 317,
+     "doneAt": {
+      "terrain": 5,
+      "index": 24,
+      "nowcast": 222,
+      "static": 224,
+      "cube.t3": 270,
+      "cube.t2": 278,
+      "cube.t1": 307,
+      "first": 307,
+      "station": 308,
+      "core": 308,
+      "read": 308,
+      "plan": 317
+     },
+     "phases": {
+      "fetch.t1": 13,
+      "fetch.t3": 15,
+      "fetch.t2": 15,
+      "decode.t3": 230,
+      "decode.t2": 237,
+      "decode.t1": 268
+     }
+    },
+    "progress": {
+     "terrain": 5,
+     "index": 24,
+     "nowcast": 222,
+     "static": 224,
+     "cube.t3": 270,
+     "cube.t2": 278,
+     "cube.t1": 307,
+     "first": 307,
+     "station": 308,
+     "read": 308,
+     "done": 317
+    },
+    "stats": {
+     "files": 2,
+     "bytes": 53692,
+     "misses": 1,
+     "ms": 403.69999998807907,
+     "slow": 0,
+     "retries": 0
+    },
+    "cache": {
+     "hits": 32,
+     "misses": 2,
+     "stored": 0,
+     "errors": 0,
+     "bypass": 2,
+     "bytesServed": 2118824
+    },
+    "decode": {
+     "mode": "worker",
+     "workers": 3,
+     "decoded": 16,
+     "viaWorker": 16,
+     "viaMain": 0,
+     "fallbacks": 0,
+     "errors": []
+    },
+    "tiers": [
+     "t1",
+     "t2",
+     "t3"
+    ],
+    "cube": {
+     "t1": {
+      "steps": 49,
+      "manifestFrom": "pinned",
+      "bytes": 556991,
+      "filled": 53,
+      "sources": 8,
+      "note": null
+     },
+     "t2": {
+      "steps": 24,
+      "manifestFrom": "pinned",
+      "bytes": 211235,
+      "filled": 45,
+      "sources": 7,
+      "note": null
+     },
+     "t3": {
+      "steps": 36,
+      "manifestFrom": "pinned",
+      "bytes": 247458,
+      "filled": 40,
+      "sources": 6,
+      "note": null
+     }
+    },
+    "station": {
+     "id": "10865",
+     "steps": 247,
+     "bytes": 103067,
+     "path": "point/stations/2026091609/03_07.bin"
+    },
+    "stationChoice": {
+     "accepted": true,
+     "reason": "MUENCHEN STADT, 5.0 km, -10 m — vertritt den Punkt.",
+     "elevationM": 524.8
+    },
+    "nowcast": [
+     {
+      "source": "radvor_rv",
+      "frames": 2,
+      "inSlot": 25,
+      "fetched": 2,
+      "probes": 1,
+      "bytes": 27287,
+      "leads": [
+       5,
+       120
+      ]
+     },
+     {
+      "source": "inca",
+      "frames": 4,
+      "inSlot": 12,
+      "fetched": 4,
+      "probes": 2,
+      "bytes": 0,
+      "leads": [
+       30,
+       90,
+       150,
+       180
+      ]
+     },
+     {
+      "source": "combiprecip",
+      "frames": 1,
+      "inSlot": 1,
+      "fetched": 1,
+      "probes": 1,
+      "bytes": 27287,
+      "leads": [
+       0
+      ]
+     }
+    ],
+    "hmodel": {
+     "t1": {
+      "icon_d2": 528,
+      "icon_ch1_eps": 518,
+      "icon_eu": 532,
+      "ifs_hres": 486,
+      "aifs_single": 487
+     },
+     "t2": {
+      "icon_eu": 548,
+      "icon_ch2_eps": 540,
+      "icon_global": 557,
+      "ifs_hres": 628,
+      "aifs_single": 589
+     },
+     "t3": {
+      "icon_global": 486,
+      "ifs_hres": 487,
+      "aifs_single": 487
+     }
+    },
+    "urban": {
+     "imperv": 23,
+     "d0": 5.1000000000000005,
+     "bldgH": 7.300000000000001
+    },
+    "terrain": {
+     "elevationM": 524.8,
+     "tpi500M": 1.7,
+     "tpi2000M": 3,
+     "svf": 1,
+     "slopeDeg": 1.5,
+     "tiles": {
+      "near": 2,
+      "far": 2,
+      "failed": 0,
+      "bytes": 369090,
+      "fromCache": 0
+     },
+     "fromCache": true,
+     "timing": {
+      "totalMs": 5.099999964237213,
+      "fetchMs": 0,
+      "decodeMs": 0,
+      "computeMs": 0
+     }
+    },
+    "plan": {
+     "segments": 95,
+     "gaps": 1,
+     "primary0": "cube-t1"
+    },
+    "skips": [],
+    "notes": [],
+    "errors": []
+   },
+   "net": {
+    "requests": 3,
+    "cached": 2,
+    "failed": 0,
+    "bytes": 205,
+    "cdn": 1,
+    "hit": 1,
+    "miss": 0,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/index.json",
+     "bytes": 205,
+     "ttfbMs": 20,
+     "ms": 22,
+     "xCache": "HIT"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 3
+    },
+    "cdnRequests": [
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/index.json",
+      "bytes": 205,
+      "ttfbMs": 20,
+      "ms": 22,
+      "xCache": "HIT",
+      "startMs": 0,
+      "status": 200
+     }
+    ],
+    "otherRequests": []
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "muenchen",
+   "lat": 48.1372,
+   "lon": 11.5755,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "cube-read-main",
+   "rep": 0,
+   "wallMs": 245,
+   "totalMs": 242,
+   "coreMs": 234,
+   "readMs": 234,
+   "firstMs": 229,
+   "result": {
+    "total": 242,
+    "timing": {
+     "indexMs": 26,
+     "firstMs": 229,
+     "coreMs": 234,
+     "readMs": 234,
+     "totalMs": 242,
+     "doneAt": {
+      "terrain": 4,
+      "index": 26,
+      "nowcast": 131,
+      "static": 138,
+      "cube.t1": 229,
+      "first": 229,
+      "cube.t2": 230,
+      "cube.t3": 231,
+      "station": 234,
+      "core": 234,
+      "read": 234,
+      "plan": 242
+     },
+     "phases": {
+      "fetch.t1": 20,
+      "fetch.t2": 36,
+      "fetch.t3": 40,
+      "decode.t1": 181,
+      "decode.t2": 167,
+      "decode.t3": 164
+     }
+    },
+    "progress": {
+     "terrain": 4,
+     "index": 26,
+     "nowcast": 131,
+     "static": 138,
+     "cube.t1": 229,
+     "first": 229,
+     "cube.t2": 230,
+     "cube.t3": 231,
+     "station": 234,
+     "read": 234,
+     "done": 242
+    },
+    "stats": {
+     "files": 2,
+     "bytes": 53692,
+     "misses": 1,
+     "ms": 100.60000002384186,
+     "slow": 0,
+     "retries": 0
+    },
+    "cache": {
+     "hits": 32,
+     "misses": 2,
+     "stored": 0,
+     "errors": 0,
+     "bypass": 2,
+     "bytesServed": 2118824
+    },
+    "decode": {
+     "mode": "main",
+     "workers": 0,
+     "decoded": 24,
+     "viaWorker": 16,
+     "viaMain": 8,
+     "fallbacks": 0,
+     "errors": []
+    },
+    "tiers": [
+     "t1",
+     "t2",
+     "t3"
+    ],
+    "cube": {
+     "t1": {
+      "steps": 49,
+      "manifestFrom": "pinned",
+      "bytes": 556991,
+      "filled": 53,
+      "sources": 8,
+      "note": null
+     },
+     "t2": {
+      "steps": 24,
+      "manifestFrom": "pinned",
+      "bytes": 211235,
+      "filled": 45,
+      "sources": 7,
+      "note": null
+     },
+     "t3": {
+      "steps": 36,
+      "manifestFrom": "pinned",
+      "bytes": 247458,
+      "filled": 40,
+      "sources": 6,
+      "note": null
+     }
+    },
+    "station": {
+     "id": "10865",
+     "steps": 247,
+     "bytes": 103067,
+     "path": "point/stations/2026091609/03_07.bin"
+    },
+    "stationChoice": {
+     "accepted": true,
+     "reason": "MUENCHEN STADT, 5.0 km, -10 m — vertritt den Punkt.",
+     "elevationM": 524.8
+    },
+    "nowcast": [
+     {
+      "source": "radvor_rv",
+      "frames": 2,
+      "inSlot": 25,
+      "fetched": 2,
+      "probes": 1,
+      "bytes": 27287,
+      "leads": [
+       5,
+       120
+      ]
+     },
+     {
+      "source": "inca",
+      "frames": 4,
+      "inSlot": 12,
+      "fetched": 4,
+      "probes": 2,
+      "bytes": 27287,
+      "leads": [
+       30,
+       90,
+       150,
+       180
+      ]
+     },
+     {
+      "source": "combiprecip",
+      "frames": 1,
+      "inSlot": 1,
+      "fetched": 1,
+      "probes": 1,
+      "bytes": 27287,
+      "leads": [
+       0
+      ]
+     }
+    ],
+    "hmodel": {
+     "t1": {
+      "icon_d2": 528,
+      "icon_ch1_eps": 518,
+      "icon_eu": 532,
+      "ifs_hres": 486,
+      "aifs_single": 487
+     },
+     "t2": {
+      "icon_eu": 548,
+      "icon_ch2_eps": 540,
+      "icon_global": 557,
+      "ifs_hres": 628,
+      "aifs_single": 589
+     },
+     "t3": {
+      "icon_global": 486,
+      "ifs_hres": 487,
+      "aifs_single": 487
+     }
+    },
+    "urban": {
+     "imperv": 23,
+     "d0": 5.1000000000000005,
+     "bldgH": 7.300000000000001
+    },
+    "terrain": {
+     "elevationM": 524.8,
+     "tpi500M": 1.7,
+     "tpi2000M": 3,
+     "svf": 1,
+     "slopeDeg": 1.5,
+     "tiles": {
+      "near": 2,
+      "far": 2,
+      "failed": 0,
+      "bytes": 369090,
+      "fromCache": 0
+     },
+     "fromCache": true,
+     "timing": {
+      "totalMs": 3.899999976158142,
+      "fetchMs": 0,
+      "decodeMs": 0,
+      "computeMs": 0
+     }
+    },
+    "plan": {
+     "segments": 95,
+     "gaps": 1,
+     "primary0": "cube-t1"
+    },
+    "skips": [],
+    "notes": [],
+    "errors": []
+   },
+   "net": {
+    "requests": 3,
+    "cached": 2,
+    "failed": 0,
+    "bytes": 205,
+    "cdn": 1,
+    "hit": 1,
+    "miss": 0,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/index.json",
+     "bytes": 205,
+     "ttfbMs": 20,
+     "ms": 24,
+     "xCache": "HIT"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 3
+    },
+    "cdnRequests": [
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/index.json",
+      "bytes": 205,
+      "ttfbMs": 20,
+      "ms": 24,
+      "xCache": "HIT",
+      "startMs": 0,
+      "status": 200
+     }
+    ],
+    "otherRequests": []
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "muenchen",
+   "lat": 48.1372,
+   "lon": 11.5755,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "cube-read-nocache",
+   "rep": 0,
+   "wallMs": 275,
+   "totalMs": 265,
+   "coreMs": 252,
+   "readMs": 252,
+   "firstMs": 252,
+   "result": {
+    "total": 265,
+    "timing": {
+     "indexMs": 40,
+     "firstMs": 252,
+     "coreMs": 252,
+     "readMs": 252,
+     "totalMs": 265,
+     "doneAt": {
+      "terrain": 31,
+      "index": 40,
+      "nowcast": 145,
+      "static": 169,
+      "cube.t3": 188,
+      "station": 216,
+      "cube.t2": 250,
+      "cube.t1": 252,
+      "first": 252,
+      "core": 252,
+      "read": 252,
+      "plan": 265
+     },
+     "phases": {
+      "fetch.t2": 45,
+      "fetch.t3": 45,
+      "fetch.t1": 51,
+      "decode.t3": 100,
+      "decode.t2": 162,
+      "decode.t1": 159
+     }
+    },
+    "progress": {
+     "terrain": 31,
+     "index": 40,
+     "nowcast": 145,
+     "static": 169,
+     "cube.t3": 188,
+     "station": 216,
+     "cube.t2": 250,
+     "cube.t1": 252,
+     "first": 252,
+     "read": 252,
+     "done": 265
+    },
+    "stats": {
+     "files": 34,
+     "bytes": 2172516,
+     "misses": 1,
+     "ms": 1180.5999997258186,
+     "slow": 0,
+     "retries": 0
+    },
+    "cache": {
+     "hits": 0,
+     "misses": 0,
+     "stored": 0,
+     "errors": 0,
+     "bypass": 0,
+     "bytesServed": 0
+    },
+    "decode": {
+     "mode": "worker",
+     "workers": 3,
+     "decoded": 32,
+     "viaWorker": 24,
+     "viaMain": 8,
+     "fallbacks": 0,
+     "errors": []
+    },
+    "tiers": [
+     "t1",
+     "t2",
+     "t3"
+    ],
+    "cube": {
+     "t1": {
+      "steps": 49,
+      "manifestFrom": "pinned",
+      "bytes": 556991,
+      "filled": 53,
+      "sources": 8,
+      "note": null
+     },
+     "t2": {
+      "steps": 24,
+      "manifestFrom": "pinned",
+      "bytes": 211235,
+      "filled": 45,
+      "sources": 7,
+      "note": null
+     },
+     "t3": {
+      "steps": 36,
+      "manifestFrom": "pinned",
+      "bytes": 247458,
+      "filled": 40,
+      "sources": 6,
+      "note": null
+     }
+    },
+    "station": {
+     "id": "10865",
+     "steps": 247,
+     "bytes": 103067,
+     "path": "point/stations/2026091609/03_07.bin"
+    },
+    "stationChoice": {
+     "accepted": true,
+     "reason": "MUENCHEN STADT, 5.0 km, -10 m — vertritt den Punkt.",
+     "elevationM": 524.8
+    },
+    "nowcast": [
+     {
+      "source": "radvor_rv",
+      "frames": 2,
+      "inSlot": 25,
+      "fetched": 2,
+      "probes": 1,
+      "bytes": 339264,
+      "leads": [
+       5,
+       120
+      ]
+     },
+     {
+      "source": "inca",
+      "frames": 4,
+      "inSlot": 12,
+      "fetched": 4,
+      "probes": 2,
+      "bytes": 335438,
+      "leads": [
+       30,
+       90,
+       150,
+       180
+      ]
+     },
+     {
+      "source": "combiprecip",
+      "frames": 1,
+      "inSlot": 1,
+      "fetched": 1,
+      "probes": 1,
+      "bytes": 335438,
+      "leads": [
+       0
+      ]
+     }
+    ],
+    "hmodel": {
+     "t1": {
+      "icon_d2": 528,
+      "icon_ch1_eps": 518,
+      "icon_eu": 532,
+      "ifs_hres": 486,
+      "aifs_single": 487
+     },
+     "t2": {
+      "icon_eu": 548,
+      "icon_ch2_eps": 540,
+      "icon_global": 557,
+      "ifs_hres": 628,
+      "aifs_single": 589
+     },
+     "t3": {
+      "icon_global": 486,
+      "ifs_hres": 487,
+      "aifs_single": 487
+     }
+    },
+    "urban": {
+     "imperv": 23,
+     "d0": 5.1000000000000005,
+     "bldgH": 7.300000000000001
+    },
+    "terrain": {
+     "elevationM": 524.8,
+     "tpi500M": 1.7,
+     "tpi2000M": 3,
+     "svf": 1,
+     "slopeDeg": 1.5,
+     "tiles": {
+      "near": 2,
+      "far": 2,
+      "failed": 0,
+      "bytes": 369090,
+      "fromCache": 0
+     },
+     "fromCache": false,
+     "timing": {
+      "totalMs": 31,
+      "fetchMs": 68,
+      "decodeMs": 38,
+      "computeMs": 1
+     }
+    },
+    "plan": {
+     "segments": 95,
+     "gaps": 1,
+     "primary0": "cube-t1"
+    },
+    "skips": [],
+    "notes": [],
+    "errors": []
+   },
+   "net": {
+    "requests": 39,
+    "cached": 38,
+    "failed": 0,
+    "bytes": 205,
+    "cdn": 1,
+    "hit": 1,
+    "miss": 0,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/index.json",
+     "bytes": 205,
+     "ttfbMs": 29,
+     "ms": 34,
+     "xCache": "HIT"
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4,
+     "cdn.jsdelivr.net": 35
+    },
+    "cdnRequests": [
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/index.json",
+      "bytes": 205,
+      "ttfbMs": 29,
+      "ms": 34,
+      "xCache": "HIT",
+      "startMs": 2,
+      "status": 200
+     }
+    ],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1089/710.png",
+      "bytes": 0,
+      "ttfbMs": 0,
+      "ms": 5,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": true
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1090/710.png",
+      "bytes": 0,
+      "ttfbMs": 1,
+      "ms": 7,
+      "startMs": 1,
+      "status": 200,
+      "fromCache": true
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/136/88.png",
+      "bytes": 0,
+      "ttfbMs": 2,
+      "ms": 7,
+      "startMs": 1,
+      "status": 200,
+      "fromCache": true
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/136/89.png",
+      "bytes": 0,
+      "ttfbMs": 2,
+      "ms": 7,
+      "startMs": 2,
+      "status": 200,
+      "fromCache": true
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "wien",
+   "lat": 48.2082,
+   "lon": 16.3738,
+   "country": "AT",
+   "chunkEdge": false,
+   "scenario": "cube-read-cold",
+   "rep": 0,
+   "wallMs": 756,
+   "totalMs": 753.3000000119209,
+   "coreMs": 739,
+   "readMs": 739,
+   "firstMs": 706,
+   "result": {
+    "total": 753.3000000119209,
+    "timing": {
+     "indexMs": 74,
+     "firstMs": 706,
+     "coreMs": 739,
+     "readMs": 739,
+     "totalMs": 751,
+     "doneAt": {
+      "index": 74,
+      "nowcast": 263,
+      "cube.t2": 281,
+      "cube.t3": 303,
+      "cube.t1": 313,
+      "static": 418,
+      "terrain": 701,
+      "first": 706,
+      "station": 739,
+      "core": 739,
+      "read": 739,
+      "plan": 751
+     },
+     "phases": {
+      "fetch.t2": 98,
+      "fetch.t3": 144,
+      "fetch.t1": 156,
+      "decode.t2": 105,
+      "decode.t3": 82,
+      "decode.t1": 80
+     }
+    },
+    "progress": {
+     "index": 74,
+     "nowcast": 263,
+     "cube.t2": 281,
+     "cube.t3": 303,
+     "cube.t1": 313,
+     "static": 418,
+     "terrain": 701,
+     "first": 706,
+     "station": 739,
+     "read": 739,
+     "done": 751
+    },
+    "stats": {
+     "files": 23,
+     "bytes": 1921811,
+     "misses": 1,
+     "ms": 2096.5000000596046,
+     "slow": 0,
+     "retries": 0
+    },
+    "cache": {
+     "hits": 0,
+     "misses": 23,
+     "stored": 22,
+     "errors": 0,
+     "bypass": 1,
+     "bytesServed": 0
+    },
+    "decode": {
+     "mode": "worker",
+     "workers": 3,
+     "decoded": 8,
+     "viaWorker": 8,
+     "viaMain": 0,
+     "fallbacks": 0,
+     "errors": []
+    },
+    "tiers": [
+     "t1",
+     "t2",
+     "t3"
+    ],
+    "cube": {
+     "t1": {
+      "steps": 49,
+      "manifestFrom": "pinned",
+      "bytes": 589049,
+      "filled": 53,
+      "sources": 8,
+      "note": null
+     },
+     "t2": {
+      "steps": 24,
+      "manifestFrom": "pinned",
+      "bytes": 216179,
+      "filled": 45,
+      "sources": 7,
+      "note": null
+     },
+     "t3": {
+      "steps": 36,
+      "manifestFrom": "pinned",
+      "bytes": 247665,
+      "filled": 40,
+      "sources": 6,
+      "note": null
+     }
+    },
+    "station": {
+     "id": "11034",
+     "steps": 247,
+     "bytes": 21351,
+     "path": "point/stations/2026091609/03_13.bin"
+    },
+    "stationChoice": {
+     "accepted": true,
+     "reason": "WIEN/CITY, 1.0 km, -1 m — vertritt den Punkt.",
+     "elevationM": 172
+    },
+    "nowcast": [
+     {
+      "source": "inca",
+      "frames": 4,
+      "inSlot": 12,
+      "fetched": 4,
+      "probes": 2,
+      "bytes": 1454159,
+      "leads": [
+       30,
+       90,
+       150,
+       180
+      ]
+     }
+    ],
+    "hmodel": {
+     "t1": {
+      "icon_d2": 202,
+      "icon_ch1_eps": 212,
+      "icon_eu": 228,
+      "ifs_hres": 296,
+      "aifs_single": 237
+     },
+     "t2": {
+      "icon_eu": 178,
+      "icon_ch2_eps": 167,
+      "icon_global": 192,
+      "ifs_hres": 297,
+      "aifs_single": 237
+     },
+     "t3": {
+      "icon_global": 302,
+      "ifs_hres": 297,
+      "aifs_single": 237
+     }
+    },
+    "urban": {
+     "imperv": 38,
+     "d0": 11.600000000000001,
+     "bldgH": 16.6
+    },
+    "terrain": {
+     "elevationM": 172,
+     "tpi500M": 1.2,
+     "tpi2000M": 0.7,
+     "svf": 1,
+     "slopeDeg": 0.2,
+     "tiles": {
+      "near": 4,
+      "far": 1,
+      "failed": 0,
+      "bytes": 535203,
+      "fromCache": 0
+     },
+     "fromCache": false,
+     "timing": {
+      "totalMs": 700,
+      "fetchMs": 3161,
+      "decodeMs": 43,
+      "computeMs": 2
+     }
+    },
+    "plan": {
+     "segments": 95,
+     "gaps": 1,
+     "primary0": "cube-t1"
+    },
+    "skips": [],
+    "notes": [],
+    "errors": []
+   },
+   "net": {
+    "requests": 28,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 1875743,
+    "cdn": 23,
+    "hit": 22,
+    "miss": 1,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/2026091609/t1/03_13.bin",
+     "bytes": 589448,
+     "ttfbMs": 50,
+     "ms": 145,
+     "xCache": "HIT"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 23,
+     "s3.amazonaws.com": 5
+    },
+    "cdnRequests": [
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/index.json",
+      "bytes": 5314,
+      "ttfbMs": 61,
+      "ms": 65,
+      "xCache": "HIT",
+      "startMs": 0,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@8e111263f75bc33a743854ddba4ce46716164f18/point/2026091609/run.json",
+      "bytes": 10116,
+      "ttfbMs": 33,
+      "ms": 35,
+      "xCache": "HIT",
+      "startMs": 77,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091609/t1/03_13.bin",
+      "bytes": 589448,
+      "ttfbMs": 50,
+      "ms": 145,
+      "xCache": "HIT",
+      "startMs": 78,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@8e111263f75bc33a743854ddba4ce46716164f18/point/2026091606/run.json",
+      "bytes": 12246,
+      "ttfbMs": 49,
+      "ms": 67,
+      "xCache": "HIT",
+      "startMs": 79,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091606/t2/01_06.bin",
+      "bytes": 216401,
+      "ttfbMs": 32,
+      "ms": 77,
+      "xCache": "HIT",
+      "startMs": 79,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@8e111263f75bc33a743854ddba4ce46716164f18/point/2026091600/run.json",
+      "bytes": 9546,
+      "ttfbMs": 48,
+      "ms": 63,
+      "xCache": "HIT",
+      "startMs": 80,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091600/t3/00_02.bin",
+      "bytes": 247914,
+      "ttfbMs": 47,
+      "ms": 132,
+      "xCache": "HIT",
+      "startMs": 80,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/static.json",
+      "bytes": 2041,
+      "ttfbMs": 47,
+      "ms": 62,
+      "xCache": "HIT",
+      "startMs": 81,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/t1/03_13.bin",
+      "bytes": 1355,
+      "ttfbMs": 318,
+      "ms": 320,
+      "xCache": "MISS",
+      "startMs": 81,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/t2/01_06.bin",
+      "bytes": 1954,
+      "ttfbMs": 47,
+      "ms": 61,
+      "xCache": "HIT",
+      "startMs": 82,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/t3/00_02.bin",
+      "bytes": 1427,
+      "ttfbMs": 46,
+      "ms": 66,
+      "xCache": "HIT",
+      "startMs": 83,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/urban/v1/static.json",
+      "bytes": 3357,
+      "ttfbMs": 45,
+      "ms": 90,
+      "xCache": "HIT",
+      "startMs": 83,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/urban/v1/t1/03_13.bin",
+      "bytes": 793,
+      "ttfbMs": 45,
+      "ms": 60,
+      "xCache": "HIT",
+      "startMs": 84,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/catalog.json",
+      "bytes": 59341,
+      "ttfbMs": 46,
+      "ms": 105,
+      "xCache": "HIT",
+      "startMs": 84,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/2026091609/stations.json",
+      "bytes": 14422,
+      "ttfbMs": 63,
+      "ms": 121,
+      "xCache": "HIT",
+      "startMs": 84,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/2026091609/03_13.bin",
+      "bytes": 20139,
+      "ttfbMs": 62,
+      "ms": 120,
+      "xCache": "HIT",
+      "startMs": 85,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1400/meta.json",
+      "bytes": 393,
+      "ttfbMs": 45,
+      "ms": 104,
+      "xCache": "HIT",
+      "startMs": 85,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1345/meta.json",
+      "bytes": 668,
+      "ttfbMs": 46,
+      "ms": 48,
+      "xCache": "HIT",
+      "startMs": 86,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1330/meta.json",
+      "bytes": 662,
+      "ttfbMs": 56,
+      "ms": 59,
+      "xCache": "HIT",
+      "startMs": 86,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1400/f030.png",
+      "bytes": 25803,
+      "ttfbMs": 23,
+      "ms": 29,
+      "xCache": "HIT",
+      "startMs": 198,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1400/f090.png",
+      "bytes": 33482,
+      "ttfbMs": 28,
+      "ms": 40,
+      "xCache": "HIT",
+      "startMs": 198,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1400/f150.png",
+      "bytes": 39066,
+      "ttfbMs": 27,
+      "ms": 39,
+      "xCache": "HIT",
+      "startMs": 199,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T1400/f180.png",
+      "bytes": 40964,
+      "ttfbMs": 23,
+      "ms": 39,
+      "xCache": "HIT",
+      "startMs": 199,
+      "status": 200
+     }
+    ],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1116/709.png",
+      "bytes": 131948,
+      "ttfbMs": 384,
+      "ms": 611,
+      "startMs": 8,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1117/709.png",
+      "bytes": 104912,
+      "ttfbMs": 377,
+      "ms": 682,
+      "startMs": 8,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1116/710.png",
+      "bytes": 124149,
+      "ttfbMs": 380,
+      "ms": 604,
+      "startMs": 9,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1117/710.png",
+      "bytes": 105625,
+      "ttfbMs": 383,
+      "ms": 613,
+      "startMs": 9,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/139/88.png",
+      "bytes": 72257,
+      "ttfbMs": 391,
+      "ms": 639,
+      "startMs": 10,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "wien",
+   "lat": 48.2082,
+   "lon": 16.3738,
+   "country": "AT",
+   "chunkEdge": false,
+   "scenario": "cube-read-warm",
+   "rep": 0,
+   "wallMs": 235,
+   "totalMs": 212.30000001192093,
+   "coreMs": 205,
+   "readMs": 205,
+   "firstMs": 204,
+   "result": {
+    "total": 212.30000001192093,
+    "timing": {
+     "indexMs": 64,
+     "firstMs": 204,
+     "coreMs": 205,
+     "readMs": 205,
+     "totalMs": 212,
+     "doneAt": {
+      "terrain": 8,
+      "index": 64,
+      "nowcast": 118,
+      "static": 128,
+      "cube.t2": 180,
+      "cube.t3": 183,
+      "cube.t1": 204,
+      "first": 204,
+      "station": 205,
+      "core": 205,
+      "read": 205,
+      "plan": 212
+     },
+     "phases": {
+      "fetch.t1": 18,
+      "fetch.t2": 19,
+      "fetch.t3": 20,
+      "decode.t2": 96,
+      "decode.t3": 99,
+      "decode.t1": 121
+     }
+    },
+    "progress": {
+     "terrain": 8,
+     "index": 64,
+     "nowcast": 118,
+     "static": 128,
+     "cube.t2": 180,
+     "cube.t3": 183,
+     "cube.t1": 204,
+     "first": 204,
+     "station": 205,
+     "read": 205,
+     "done": 212
+    },
+    "stats": {
+     "files": 1,
+     "bytes": 26405,
+     "misses": 1,
+     "ms": 86.20000004768372,
+     "slow": 0,
+     "retries": 0
+    },
+    "cache": {
+     "hits": 22,
+     "misses": 1,
+     "stored": 0,
+     "errors": 0,
+     "bypass": 1,
+     "bytesServed": 1895406
+    },
+    "decode": {
+     "mode": "worker",
+     "workers": 3,
+     "decoded": 16,
+     "viaWorker": 16,
+     "viaMain": 0,
+     "fallbacks": 0,
+     "errors": []
+    },
+    "tiers": [
+     "t1",
+     "t2",
+     "t3"
+    ],
+    "cube": {
+     "t1": {
+      "steps": 49,
+      "manifestFrom": "pinned",
+      "bytes": 589049,
+      "filled": 53,
+      "sources": 8,
+      "note": null
+     },
+     "t2": {
+      "steps": 24,
+      "manifestFrom": "pinned",
+      "bytes": 216179,
+      "filled": 45,
+      "sources": 7,
+      "note": null
+     },
+     "t3": {
+      "steps": 36,
+      "manifestFrom": "pinned",
+      "bytes": 247665,
+      "filled": 40,
+      "sources": 6,
+      "note": null
+     }
+    },
+    "station": {
+     "id": "11034",
+     "steps": 247,
+     "bytes": 21351,
+     "path": "point/stations/2026091609/03_13.bin"
+    },
+    "stationChoice": {
+     "accepted": true,
+     "reason": "WIEN/CITY, 1.0 km, -1 m — vertritt den Punkt.",
+     "elevationM": 172
+    },
+    "nowcast": [
+     {
+      "source": "inca",
+      "frames": 4,
+      "inSlot": 12,
+      "fetched": 4,
+      "probes": 2,
+      "bytes": 0,
+      "leads": [
+       30,
+       90,
+       150,
+       180
+      ]
+     }
+    ],
+    "hmodel": {
+     "t1": {
+      "icon_d2": 202,
+      "icon_ch1_eps": 212,
+      "icon_eu": 228,
+      "ifs_hres": 296,
+      "aifs_single": 237
+     },
+     "t2": {
+      "icon_eu": 178,
+      "icon_ch2_eps": 167,
+      "icon_global": 192,
+      "ifs_hres": 297,
+      "aifs_single": 237
+     },
+     "t3": {
+      "icon_global": 302,
+      "ifs_hres": 297,
+      "aifs_single": 237
+     }
+    },
+    "urban": {
+     "imperv": 38,
+     "d0": 11.600000000000001,
+     "bldgH": 16.6
+    },
+    "terrain": {
+     "elevationM": 172,
+     "tpi500M": 1.2,
+     "tpi2000M": 0.7,
+     "svf": 1,
+     "slopeDeg": 0.2,
+     "tiles": {
+      "near": 4,
+      "far": 1,
+      "failed": 0,
+      "bytes": 535203,
+      "fromCache": 0
+     },
+     "fromCache": true,
+     "timing": {
+      "totalMs": 7.5,
+      "fetchMs": 0,
+      "decodeMs": 0,
+      "computeMs": 0
+     }
+    },
+    "plan": {
+     "segments": 95,
+     "gaps": 1,
+     "primary0": "cube-t1"
+    },
+    "skips": [],
+    "notes": [],
+    "errors": []
+   },
+   "net": {
+    "requests": 1,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 205,
+    "cdn": 1,
+    "hit": 1,
+    "miss": 0,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/index.json",
+     "bytes": 205,
+     "ttfbMs": 57,
+     "ms": 60,
+     "xCache": "HIT"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 1
+    },
+    "cdnRequests": [
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/index.json",
+      "bytes": 205,
+      "ttfbMs": 57,
+      "ms": 60,
+      "xCache": "HIT",
+      "startMs": 0,
+      "status": 200
+     }
+    ],
+    "otherRequests": []
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "wien",
+   "lat": 48.2082,
+   "lon": 16.3738,
+   "country": "AT",
+   "chunkEdge": false,
+   "scenario": "cube-read-main",
+   "rep": 0,
+   "wallMs": 198,
+   "totalMs": 194.30000001192093,
+   "coreMs": 187,
+   "readMs": 187,
+   "firstMs": 183,
+   "result": {
+    "total": 194.30000001192093,
+    "timing": {
+     "indexMs": 20,
+     "firstMs": 183,
+     "coreMs": 187,
+     "readMs": 187,
+     "totalMs": 194,
+     "doneAt": {
+      "terrain": 3,
+      "index": 20,
+      "nowcast": 79,
+      "static": 86,
+      "cube.t1": 183,
+      "first": 183,
+      "cube.t2": 184,
+      "cube.t3": 184,
+      "station": 187,
+      "core": 187,
+      "read": 187,
+      "plan": 194
+     },
+     "phases": {
+      "fetch.t1": 16,
+      "fetch.t2": 28,
+      "fetch.t3": 32,
+      "decode.t1": 146,
+      "decode.t2": 135,
+      "decode.t3": 131
+     }
+    },
+    "progress": {
+     "terrain": 3,
+     "index": 20,
+     "nowcast": 79,
+     "static": 86,
+     "cube.t1": 183,
+     "first": 183,
+     "cube.t2": 184,
+     "cube.t3": 184,
+     "station": 187,
+     "read": 187,
+     "done": 194
+    },
+    "stats": {
+     "files": 1,
+     "bytes": 26405,
+     "misses": 1,
+     "ms": 40.19999998807907,
+     "slow": 0,
+     "retries": 0
+    },
+    "cache": {
+     "hits": 22,
+     "misses": 1,
+     "stored": 0,
+     "errors": 0,
+     "bypass": 1,
+     "bytesServed": 1895406
+    },
+    "decode": {
+     "mode": "main",
+     "workers": 0,
+     "decoded": 24,
+     "viaWorker": 16,
+     "viaMain": 8,
+     "fallbacks": 0,
+     "errors": []
+    },
+    "tiers": [
+     "t1",
+     "t2",
+     "t3"
+    ],
+    "cube": {
+     "t1": {
+      "steps": 49,
+      "manifestFrom": "pinned",
+      "bytes": 589049,
+      "filled": 53,
+      "sources": 8,
+      "note": null
+     },
+     "t2": {
+      "steps": 24,
+      "manifestFrom": "pinned",
+      "bytes": 216179,
+      "filled": 45,
+      "sources": 7,
+      "note": null
+     },
+     "t3": {
+      "steps": 36,
+      "manifestFrom": "pinned",
+      "bytes": 247665,
+      "filled": 40,
+      "sources": 6,
+      "note": null
+     }
+    },
+    "station": {
+     "id": "11034",
+     "steps": 247,
+     "bytes": 21351,
+     "path": "point/stations/2026091609/03_13.bin"
+    },
+    "stationChoice": {
+     "accepted": true,
+     "reason": "WIEN/CITY, 1.0 km, -1 m — vertritt den Punkt.",
+     "elevationM": 172
+    },
+    "nowcast": [
+     {
+      "source": "inca",
+      "frames": 4,
+      "inSlot": 12,
+      "fetched": 4,
+      "probes": 2,
+      "bytes": 0,
+      "leads": [
+       30,
+       90,
+       150,
+       180
+      ]
+     }
+    ],
+    "hmodel": {
+     "t1": {
+      "icon_d2": 202,
+      "icon_ch1_eps": 212,
+      "icon_eu": 228,
+      "ifs_hres": 296,
+      "aifs_single": 237
+     },
+     "t2": {
+      "icon_eu": 178,
+      "icon_ch2_eps": 167,
+      "icon_global": 192,
+      "ifs_hres": 297,
+      "aifs_single": 237
+     },
+     "t3": {
+      "icon_global": 302,
+      "ifs_hres": 297,
+      "aifs_single": 237
+     }
+    },
+    "urban": {
+     "imperv": 38,
+     "d0": 11.600000000000001,
+     "bldgH": 16.6
+    },
+    "terrain": {
+     "elevationM": 172,
+     "tpi500M": 1.2,
+     "tpi2000M": 0.7,
+     "svf": 1,
+     "slopeDeg": 0.2,
+     "tiles": {
+      "near": 4,
+      "far": 1,
+      "failed": 0,
+      "bytes": 535203,
+      "fromCache": 0
+     },
+     "fromCache": true,
+     "timing": {
+      "totalMs": 3.300000011920929,
+      "fetchMs": 0,
+      "decodeMs": 0,
+      "computeMs": 0
+     }
+    },
+    "plan": {
+     "segments": 95,
+     "gaps": 1,
+     "primary0": "cube-t1"
+    },
+    "skips": [],
+    "notes": [],
+    "errors": []
+   },
+   "net": {
+    "requests": 1,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 205,
+    "cdn": 1,
+    "hit": 1,
+    "miss": 0,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/index.json",
+     "bytes": 205,
+     "ttfbMs": 15,
+     "ms": 17,
+     "xCache": "HIT"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 1
+    },
+    "cdnRequests": [
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/index.json",
+      "bytes": 205,
+      "ttfbMs": 15,
+      "ms": 17,
+      "xCache": "HIT",
+      "startMs": 0,
+      "status": 200
+     }
+    ],
+    "otherRequests": []
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "wien",
+   "lat": 48.2082,
+   "lon": 16.3738,
+   "country": "AT",
+   "chunkEdge": false,
+   "scenario": "cube-read-nocache",
+   "rep": 0,
+   "wallMs": 241,
+   "totalMs": 236.0999999642372,
+   "coreMs": 226,
+   "readMs": 226,
+   "firstMs": 218,
+   "result": {
+    "total": 236.0999999642372,
+    "timing": {
+     "indexMs": 66,
+     "firstMs": 218,
+     "coreMs": 226,
+     "readMs": 226,
+     "totalMs": 236,
+     "doneAt": {
+      "terrain": 19,
+      "index": 66,
+      "nowcast": 131,
+      "static": 159,
+      "cube.t3": 200,
+      "cube.t1": 218,
+      "first": 218,
+      "cube.t2": 223,
+      "station": 226,
+      "core": 226,
+      "read": 226,
+      "plan": 236
+     },
+     "phases": {
+      "fetch.t2": 35,
+      "fetch.t3": 35,
+      "fetch.t1": 36,
+      "decode.t3": 97,
+      "decode.t1": 116,
+      "decode.t2": 121
+     }
+    },
+    "progress": {
+     "terrain": 19,
+     "index": 66,
+     "nowcast": 131,
+     "static": 159,
+     "cube.t3": 200,
+     "cube.t1": 218,
+     "first": 218,
+     "cube.t2": 223,
+     "station": 226,
+     "read": 226,
+     "done": 236
+    },
+    "stats": {
+     "files": 23,
+     "bytes": 1921811,
+     "misses": 1,
+     "ms": 690.1999998688698,
+     "slow": 0,
+     "retries": 0
+    },
+    "cache": {
+     "hits": 0,
+     "misses": 0,
+     "stored": 0,
+     "errors": 0,
+     "bypass": 0,
+     "bytesServed": 0
+    },
+    "decode": {
+     "mode": "worker",
+     "workers": 3,
+     "decoded": 32,
+     "viaWorker": 24,
+     "viaMain": 8,
+     "fallbacks": 0,
+     "errors": []
+    },
+    "tiers": [
+     "t1",
+     "t2",
+     "t3"
+    ],
+    "cube": {
+     "t1": {
+      "steps": 49,
+      "manifestFrom": "pinned",
+      "bytes": 589049,
+      "filled": 53,
+      "sources": 8,
+      "note": null
+     },
+     "t2": {
+      "steps": 24,
+      "manifestFrom": "pinned",
+      "bytes": 216179,
+      "filled": 45,
+      "sources": 7,
+      "note": null
+     },
+     "t3": {
+      "steps": 36,
+      "manifestFrom": "pinned",
+      "bytes": 247665,
+      "filled": 40,
+      "sources": 6,
+      "note": null
+     }
+    },
+    "station": {
+     "id": "11034",
+     "steps": 247,
+     "bytes": 21351,
+     "path": "point/stations/2026091609/03_13.bin"
+    },
+    "stationChoice": {
+     "accepted": true,
+     "reason": "WIEN/CITY, 1.0 km, -1 m — vertritt den Punkt.",
+     "elevationM": 172
+    },
+    "nowcast": [
+     {
+      "source": "inca",
+      "frames": 4,
+      "inSlot": 12,
+      "fetched": 4,
+      "probes": 2,
+      "bytes": 137990,
+      "leads": [
+       30,
+       90,
+       150,
+       180
+      ]
+     }
+    ],
+    "hmodel": {
+     "t1": {
+      "icon_d2": 202,
+      "icon_ch1_eps": 212,
+      "icon_eu": 228,
+      "ifs_hres": 296,
+      "aifs_single": 237
+     },
+     "t2": {
+      "icon_eu": 178,
+      "icon_ch2_eps": 167,
+      "icon_global": 192,
+      "ifs_hres": 297,
+      "aifs_single": 237
+     },
+     "t3": {
+      "icon_global": 302,
+      "ifs_hres": 297,
+      "aifs_single": 237
+     }
+    },
+    "urban": {
+     "imperv": 38,
+     "d0": 11.600000000000001,
+     "bldgH": 16.6
+    },
+    "terrain": {
+     "elevationM": 172,
+     "tpi500M": 1.2,
+     "tpi2000M": 0.7,
+     "svf": 1,
+     "slopeDeg": 0.2,
+     "tiles": {
+      "near": 4,
+      "far": 1,
+      "failed": 0,
+      "bytes": 535203,
+      "fromCache": 0
+     },
+     "fromCache": false,
+     "timing": {
+      "totalMs": 19,
+      "fetchMs": 43,
+      "decodeMs": 32,
+      "computeMs": 1
+     }
+    },
+    "plan": {
+     "segments": 95,
+     "gaps": 1,
+     "primary0": "cube-t1"
+    },
+    "skips": [],
+    "notes": [],
+    "errors": []
+   },
+   "net": {
+    "requests": 28,
+    "cached": 27,
+    "failed": 0,
+    "bytes": 205,
+    "cdn": 1,
+    "hit": 1,
+    "miss": 0,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/index.json",
+     "bytes": 205,
+     "ttfbMs": 60,
+     "ms": 62,
+     "xCache": "HIT"
+    },
+    "hosts": {
+     "s3.amazonaws.com": 5,
+     "cdn.jsdelivr.net": 23
+    },
+    "cdnRequests": [
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/index.json",
+      "bytes": 205,
+      "ttfbMs": 60,
+      "ms": 62,
+      "xCache": "HIT",
+      "startMs": 1,
+      "status": 200
+     }
+    ],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1116/709.png",
+      "bytes": 0,
+      "ttfbMs": 0,
+      "ms": 2,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": true
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1117/709.png",
+      "bytes": 0,
+      "ttfbMs": 1,
+      "ms": 3,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": true
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1116/710.png",
+      "bytes": 0,
+      "ttfbMs": 1,
+      "ms": 3,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": true
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1117/710.png",
+      "bytes": 0,
+      "ttfbMs": 1,
+      "ms": 3,
+      "startMs": 1,
+      "status": 200,
+      "fromCache": true
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/139/88.png",
+      "bytes": 0,
+      "ttfbMs": 1,
+      "ms": 3,
+      "startMs": 1,
+      "status": 200,
+      "fromCache": true
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "zermatt",
+   "lat": 46.0207,
+   "lon": 7.7491,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "cube-read-cold",
+   "rep": 0,
+   "wallMs": 799,
+   "totalMs": 795.5,
+   "coreMs": 783,
+   "readMs": 783,
+   "firstMs": 753,
+   "result": {
+    "total": 795.5,
+    "timing": {
+     "indexMs": 69,
+     "firstMs": 753,
+     "coreMs": 783,
+     "readMs": 783,
+     "totalMs": 792,
+     "doneAt": {
+      "index": 69,
+      "nowcast": 235,
+      "cube.t2": 254,
+      "cube.t3": 284,
+      "cube.t1": 289,
+      "static": 516,
+      "terrain": 748,
+      "first": 753,
+      "station": 783,
+      "core": 783,
+      "read": 783,
+      "plan": 792
+     },
+     "phases": {
+      "fetch.t2": 112,
+      "fetch.t1": 150,
+      "fetch.t3": 153,
+      "decode.t2": 69,
+      "decode.t3": 59,
+      "decode.t1": 67
+     }
+    },
+    "progress": {
+     "index": 69,
+     "nowcast": 235,
+     "cube.t2": 254,
+     "cube.t3": 284,
+     "cube.t1": 289,
+     "static": 516,
+     "terrain": 748,
+     "first": 753,
+     "station": 783,
+     "read": 783,
+     "done": 792
+    },
+    "stats": {
+     "files": 21,
+     "bytes": 1881348,
+     "misses": 0,
+     "ms": 2238.6999999284744,
+     "slow": 0,
+     "retries": 0
+    },
+    "cache": {
+     "hits": 0,
+     "misses": 19,
+     "stored": 19,
+     "errors": 0,
+     "bypass": 2,
+     "bytesServed": 0
+    },
+    "decode": {
+     "mode": "worker",
+     "workers": 3,
+     "decoded": 8,
+     "viaWorker": 8,
+     "viaMain": 0,
+     "fallbacks": 0,
+     "errors": []
+    },
+    "tiers": [
+     "t1",
+     "t2",
+     "t3"
+    ],
+    "cube": {
+     "t1": {
+      "steps": 49,
+      "manifestFrom": "pinned",
+      "bytes": 648348,
+      "filled": 53,
+      "sources": 8,
+      "note": null
+     },
+     "t2": {
+      "steps": 24,
+      "manifestFrom": "pinned",
+      "bytes": 223993,
+      "filled": 45,
+      "sources": 7,
+      "note": null
+     },
+     "t3": {
+      "steps": 36,
+      "manifestFrom": "pinned",
+      "bytes": 247123,
+      "filled": 40,
+      "sources": 6,
+      "note": null
+     }
+    },
+    "station": {
+     "id": "06748",
+     "steps": 247,
+     "bytes": 25965,
+     "path": "point/stations/2026091609/00_02.bin"
+    },
+    "stationChoice": {
+     "accepted": true,
+     "reason": "ZERMATT, 1.0 km, +30 m — vertritt den Punkt.",
+     "elevationM": 1608.1
+    },
+    "nowcast": [
+     {
+      "source": "combiprecip",
+      "frames": 1,
+      "inSlot": 1,
+      "fetched": 1,
+      "probes": 1,
+      "bytes": 922758,
+      "leads": [
+       0
+      ]
+     }
+    ],
+    "hmodel": {
+     "t1": {
+      "icon_d2": 2326,
+      "icon_ch1_eps": 2327,
+      "icon_eu": 2488,
+      "ifs_hres": 2996,
+      "aifs_single": 2543
+     },
+     "t2": {
+      "icon_eu": 2818,
+      "icon_ch2_eps": 2460,
+      "icon_global": 2752,
+      "ifs_hres": 2997,
+      "aifs_single": 2545
+     },
+     "t3": {
+      "icon_global": 3020,
+      "ifs_hres": 2997,
+      "aifs_single": 2545
+     }
+    },
+    "urban": {
+     "imperv": 2,
+     "d0": 0.5,
+     "bldgH": 0.7000000000000001
+    },
+    "terrain": {
+     "elevationM": 1608.1,
+     "tpi500M": -35,
+     "tpi2000M": -359.3,
+     "svf": 0.864,
+     "slopeDeg": 2.7,
+     "tiles": {
+      "near": 2,
+      "far": 2,
+      "failed": 0,
+      "bytes": 480442,
+      "fromCache": 0
+     },
+     "fromCache": false,
+     "timing": {
+      "totalMs": 745,
+      "fetchMs": 2824,
+      "decodeMs": 26,
+      "computeMs": 3
+     }
+    },
+    "plan": {
+     "segments": 94,
+     "gaps": 1,
+     "primary0": "cube-t1"
+    },
+    "skips": [],
+    "notes": [],
+    "errors": []
+   },
+   "net": {
+    "requests": 25,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 1782174,
+    "cdn": 21,
+    "hit": 19,
+    "miss": 2,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/2026091609/t1/00_02.bin",
+     "bytes": 648796,
+     "ttfbMs": 38,
+     "ms": 140,
+     "xCache": "HIT"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 21,
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": [
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/index.json",
+      "bytes": 5314,
+      "ttfbMs": 56,
+      "ms": 60,
+      "xCache": "HIT",
+      "startMs": 0,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@8e111263f75bc33a743854ddba4ce46716164f18/point/2026091609/run.json",
+      "bytes": 10035,
+      "ttfbMs": 37,
+      "ms": 39,
+      "xCache": "HIT",
+      "startMs": 71,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091609/t1/00_02.bin",
+      "bytes": 648796,
+      "ttfbMs": 38,
+      "ms": 140,
+      "xCache": "HIT",
+      "startMs": 71,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@8e111263f75bc33a743854ddba4ce46716164f18/point/2026091606/run.json",
+      "bytes": 12323,
+      "ttfbMs": 35,
+      "ms": 40,
+      "xCache": "HIT",
+      "startMs": 72,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091606/t2/00_01.bin",
+      "bytes": 224215,
+      "ttfbMs": 37,
+      "ms": 88,
+      "xCache": "HIT",
+      "startMs": 73,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@8e111263f75bc33a743854ddba4ce46716164f18/point/2026091600/run.json",
+      "bytes": 9504,
+      "ttfbMs": 66,
+      "ms": 73,
+      "xCache": "HIT",
+      "startMs": 73,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091600/t3/00_00.bin",
+      "bytes": 247381,
+      "ttfbMs": 66,
+      "ms": 140,
+      "xCache": "HIT",
+      "startMs": 74,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/static.json",
+      "bytes": 2041,
+      "ttfbMs": 66,
+      "ms": 72,
+      "xCache": "HIT",
+      "startMs": 74,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/t1/00_02.bin",
+      "bytes": 1895,
+      "ttfbMs": 274,
+      "ms": 276,
+      "xCache": "MISS",
+      "startMs": 75,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/t2/00_01.bin",
+      "bytes": 2104,
+      "ttfbMs": 425,
+      "ms": 427,
+      "xCache": "MISS",
+      "startMs": 75,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/t3/00_00.bin",
+      "bytes": 1733,
+      "ttfbMs": 54,
+      "ms": 57,
+      "xCache": "HIT",
+      "startMs": 76,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/urban/v1/static.json",
+      "bytes": 3598,
+      "ttfbMs": 49,
+      "ms": 52,
+      "xCache": "HIT",
+      "startMs": 76,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/urban/v1/t1/00_02.bin",
+      "bytes": 846,
+      "ttfbMs": 56,
+      "ms": 61,
+      "xCache": "HIT",
+      "startMs": 77,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/catalog.json",
+      "bytes": 59580,
+      "ttfbMs": 49,
+      "ms": 79,
+      "xCache": "HIT",
+      "startMs": 77,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/2026091609/stations.json",
+      "bytes": 14362,
+      "ttfbMs": 68,
+      "ms": 78,
+      "xCache": "HIT",
+      "startMs": 78,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/2026091609/00_02.bin",
+      "bytes": 25005,
+      "ttfbMs": 59,
+      "ms": 78,
+      "xCache": "HIT",
+      "startMs": 78,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260916T1425/meta.json",
+      "bytes": 576,
+      "ttfbMs": 64,
+      "ms": 68,
+      "xCache": "HIT",
+      "startMs": 79,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260916T1420/meta.json",
+      "bytes": 576,
+      "ttfbMs": 66,
+      "ms": 70,
+      "xCache": "HIT",
+      "startMs": 79,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260916T1415/meta.json",
+      "bytes": 580,
+      "ttfbMs": 76,
+      "ms": 79,
+      "xCache": "HIT",
+      "startMs": 80,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260916T1410/meta.json",
+      "bytes": 577,
+      "ttfbMs": 71,
+      "ms": 76,
+      "xCache": "HIT",
+      "startMs": 80,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260916T1425/frame.png",
+      "bytes": 27615,
+      "ttfbMs": 33,
+      "ms": 38,
+      "xCache": "HIT",
+      "startMs": 179,
+      "status": 200
+     }
+    ],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1067/728.png",
+      "bytes": 145316,
+      "ttfbMs": 376,
+      "ms": 715,
+      "startMs": 8,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1068/728.png",
+      "bytes": 144050,
+      "ttfbMs": 369,
+      "ms": 703,
+      "startMs": 9,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/133/90.png",
+      "bytes": 100172,
+      "ttfbMs": 388,
+      "ms": 721,
+      "startMs": 9,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/133/91.png",
+      "bytes": 93980,
+      "ttfbMs": 382,
+      "ms": 679,
+      "startMs": 10,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "zermatt",
+   "lat": 46.0207,
+   "lon": 7.7491,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "cube-read-warm",
+   "rep": 0,
+   "wallMs": 184,
+   "totalMs": 182.30000001192093,
+   "coreMs": 176,
+   "readMs": 176,
+   "firstMs": 175,
+   "result": {
+    "total": 182.30000001192093,
+    "timing": {
+     "indexMs": 40,
+     "firstMs": 175,
+     "coreMs": 176,
+     "readMs": 176,
+     "totalMs": 182,
+     "doneAt": {
+      "terrain": 9,
+      "index": 40,
+      "nowcast": 79,
+      "static": 107,
+      "cube.t2": 144,
+      "cube.t3": 151,
+      "cube.t1": 175,
+      "first": 175,
+      "station": 176,
+      "core": 176,
+      "read": 176,
+      "plan": 182
+     },
+     "phases": {
+      "fetch.t1": 19,
+      "fetch.t2": 20,
+      "fetch.t3": 21,
+      "decode.t2": 82,
+      "decode.t3": 89,
+      "decode.t1": 115
+     }
+    },
+    "progress": {
+     "terrain": 9,
+     "index": 40,
+     "nowcast": 79,
+     "static": 107,
+     "cube.t2": 144,
+     "cube.t3": 151,
+     "cube.t1": 175,
+     "first": 175,
+     "station": 176,
+     "read": 176,
+     "done": 182
+    },
+    "stats": {
+     "files": 2,
+     "bytes": 53692,
+     "misses": 0,
+     "ms": 55.09999996423721,
+     "slow": 0,
+     "retries": 0
+    },
+    "cache": {
+     "hits": 19,
+     "misses": 0,
+     "stored": 0,
+     "errors": 0,
+     "bypass": 2,
+     "bytesServed": 1827656
+    },
+    "decode": {
+     "mode": "worker",
+     "workers": 3,
+     "decoded": 16,
+     "viaWorker": 16,
+     "viaMain": 0,
+     "fallbacks": 0,
+     "errors": []
+    },
+    "tiers": [
+     "t1",
+     "t2",
+     "t3"
+    ],
+    "cube": {
+     "t1": {
+      "steps": 49,
+      "manifestFrom": "pinned",
+      "bytes": 648348,
+      "filled": 53,
+      "sources": 8,
+      "note": null
+     },
+     "t2": {
+      "steps": 24,
+      "manifestFrom": "pinned",
+      "bytes": 223993,
+      "filled": 45,
+      "sources": 7,
+      "note": null
+     },
+     "t3": {
+      "steps": 36,
+      "manifestFrom": "pinned",
+      "bytes": 247123,
+      "filled": 40,
+      "sources": 6,
+      "note": null
+     }
+    },
+    "station": {
+     "id": "06748",
+     "steps": 247,
+     "bytes": 25965,
+     "path": "point/stations/2026091609/00_02.bin"
+    },
+    "stationChoice": {
+     "accepted": true,
+     "reason": "ZERMATT, 1.0 km, +30 m — vertritt den Punkt.",
+     "elevationM": 1608.1
+    },
+    "nowcast": [
+     {
+      "source": "combiprecip",
+      "frames": 1,
+      "inSlot": 1,
+      "fetched": 1,
+      "probes": 1,
+      "bytes": 27287,
+      "leads": [
+       0
+      ]
+     }
+    ],
+    "hmodel": {
+     "t1": {
+      "icon_d2": 2326,
+      "icon_ch1_eps": 2327,
+      "icon_eu": 2488,
+      "ifs_hres": 2996,
+      "aifs_single": 2543
+     },
+     "t2": {
+      "icon_eu": 2818,
+      "icon_ch2_eps": 2460,
+      "icon_global": 2752,
+      "ifs_hres": 2997,
+      "aifs_single": 2545
+     },
+     "t3": {
+      "icon_global": 3020,
+      "ifs_hres": 2997,
+      "aifs_single": 2545
+     }
+    },
+    "urban": {
+     "imperv": 2,
+     "d0": 0.5,
+     "bldgH": 0.7000000000000001
+    },
+    "terrain": {
+     "elevationM": 1608.1,
+     "tpi500M": -35,
+     "tpi2000M": -359.3,
+     "svf": 0.864,
+     "slopeDeg": 2.7,
+     "tiles": {
+      "near": 2,
+      "far": 2,
+      "failed": 0,
+      "bytes": 480442,
+      "fromCache": 0
+     },
+     "fromCache": true,
+     "timing": {
+      "totalMs": 8.699999988079071,
+      "fetchMs": 0,
+      "decodeMs": 0,
+      "computeMs": 0
+     }
+    },
+    "plan": {
+     "segments": 94,
+     "gaps": 1,
+     "primary0": "cube-t1"
+    },
+    "skips": [],
+    "notes": [],
+    "errors": []
+   },
+   "net": {
+    "requests": 2,
+    "cached": 1,
+    "failed": 0,
+    "bytes": 205,
+    "cdn": 1,
+    "hit": 1,
+    "miss": 0,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/index.json",
+     "bytes": 205,
+     "ttfbMs": 32,
+     "ms": 37,
+     "xCache": "HIT"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 2
+    },
+    "cdnRequests": [
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/index.json",
+      "bytes": 205,
+      "ttfbMs": 32,
+      "ms": 37,
+      "xCache": "HIT",
+      "startMs": 0,
+      "status": 200
+     }
+    ],
+    "otherRequests": []
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "zermatt",
+   "lat": 46.0207,
+   "lon": 7.7491,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "cube-read-main",
+   "rep": 0,
+   "wallMs": 198,
+   "totalMs": 195.0999999642372,
+   "coreMs": 188,
+   "readMs": 188,
+   "firstMs": 184,
+   "result": {
+    "total": 195.0999999642372,
+    "timing": {
+     "indexMs": 29,
+     "firstMs": 184,
+     "coreMs": 188,
+     "readMs": 188,
+     "totalMs": 195,
+     "doneAt": {
+      "terrain": 6,
+      "index": 29,
+      "nowcast": 87,
+      "static": 92,
+      "cube.t1": 184,
+      "first": 184,
+      "cube.t2": 184,
+      "cube.t3": 185,
+      "station": 188,
+      "core": 188,
+      "read": 188,
+      "plan": 195
+     },
+     "phases": {
+      "fetch.t1": 20,
+      "fetch.t2": 35,
+      "fetch.t3": 38,
+      "decode.t1": 134,
+      "decode.t2": 120,
+      "decode.t3": 117
+     }
+    },
+    "progress": {
+     "terrain": 6,
+     "index": 29,
+     "nowcast": 87,
+     "static": 92,
+     "cube.t1": 184,
+     "first": 184,
+     "cube.t2": 184,
+     "cube.t3": 185,
+     "station": 188,
+     "read": 188,
+     "done": 195
+    },
+    "stats": {
+     "files": 2,
+     "bytes": 53692,
+     "misses": 0,
+     "ms": 57.89999997615814,
+     "slow": 0,
+     "retries": 0
+    },
+    "cache": {
+     "hits": 19,
+     "misses": 0,
+     "stored": 0,
+     "errors": 0,
+     "bypass": 2,
+     "bytesServed": 1827656
+    },
+    "decode": {
+     "mode": "main",
+     "workers": 0,
+     "decoded": 24,
+     "viaWorker": 16,
+     "viaMain": 8,
+     "fallbacks": 0,
+     "errors": []
+    },
+    "tiers": [
+     "t1",
+     "t2",
+     "t3"
+    ],
+    "cube": {
+     "t1": {
+      "steps": 49,
+      "manifestFrom": "pinned",
+      "bytes": 648348,
+      "filled": 53,
+      "sources": 8,
+      "note": null
+     },
+     "t2": {
+      "steps": 24,
+      "manifestFrom": "pinned",
+      "bytes": 223993,
+      "filled": 45,
+      "sources": 7,
+      "note": null
+     },
+     "t3": {
+      "steps": 36,
+      "manifestFrom": "pinned",
+      "bytes": 247123,
+      "filled": 40,
+      "sources": 6,
+      "note": null
+     }
+    },
+    "station": {
+     "id": "06748",
+     "steps": 247,
+     "bytes": 25965,
+     "path": "point/stations/2026091609/00_02.bin"
+    },
+    "stationChoice": {
+     "accepted": true,
+     "reason": "ZERMATT, 1.0 km, +30 m — vertritt den Punkt.",
+     "elevationM": 1608.1
+    },
+    "nowcast": [
+     {
+      "source": "combiprecip",
+      "frames": 1,
+      "inSlot": 1,
+      "fetched": 1,
+      "probes": 1,
+      "bytes": 27287,
+      "leads": [
+       0
+      ]
+     }
+    ],
+    "hmodel": {
+     "t1": {
+      "icon_d2": 2326,
+      "icon_ch1_eps": 2327,
+      "icon_eu": 2488,
+      "ifs_hres": 2996,
+      "aifs_single": 2543
+     },
+     "t2": {
+      "icon_eu": 2818,
+      "icon_ch2_eps": 2460,
+      "icon_global": 2752,
+      "ifs_hres": 2997,
+      "aifs_single": 2545
+     },
+     "t3": {
+      "icon_global": 3020,
+      "ifs_hres": 2997,
+      "aifs_single": 2545
+     }
+    },
+    "urban": {
+     "imperv": 2,
+     "d0": 0.5,
+     "bldgH": 0.7000000000000001
+    },
+    "terrain": {
+     "elevationM": 1608.1,
+     "tpi500M": -35,
+     "tpi2000M": -359.3,
+     "svf": 0.864,
+     "slopeDeg": 2.7,
+     "tiles": {
+      "near": 2,
+      "far": 2,
+      "failed": 0,
+      "bytes": 480442,
+      "fromCache": 0
+     },
+     "fromCache": true,
+     "timing": {
+      "totalMs": 5.5,
+      "fetchMs": 0,
+      "decodeMs": 0,
+      "computeMs": 0
+     }
+    },
+    "plan": {
+     "segments": 94,
+     "gaps": 1,
+     "primary0": "cube-t1"
+    },
+    "skips": [],
+    "notes": [],
+    "errors": []
+   },
+   "net": {
+    "requests": 2,
+    "cached": 1,
+    "failed": 0,
+    "bytes": 205,
+    "cdn": 1,
+    "hit": 1,
+    "miss": 0,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/index.json",
+     "bytes": 205,
+     "ttfbMs": 23,
+     "ms": 25,
+     "xCache": "HIT"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 2
+    },
+    "cdnRequests": [
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/index.json",
+      "bytes": 205,
+      "ttfbMs": 23,
+      "ms": 25,
+      "xCache": "HIT",
+      "startMs": 0,
+      "status": 200
+     }
+    ],
+    "otherRequests": []
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "zermatt",
+   "lat": 46.0207,
+   "lon": 7.7491,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "cube-read-nocache",
+   "rep": 0,
+   "wallMs": 200,
+   "totalMs": 197.89999997615814,
+   "coreMs": 189,
+   "readMs": 189,
+   "firstMs": 173,
+   "result": {
+    "total": 197.89999997615814,
+    "timing": {
+     "indexMs": 27,
+     "firstMs": 173,
+     "coreMs": 189,
+     "readMs": 189,
+     "totalMs": 198,
+     "doneAt": {
+      "index": 27,
+      "terrain": 37,
+      "nowcast": 91,
+      "static": 117,
+      "cube.t1": 173,
+      "first": 173,
+      "cube.t3": 179,
+      "cube.t2": 188,
+      "station": 189,
+      "core": 189,
+      "read": 189,
+      "plan": 198
+     },
+     "phases": {
+      "fetch.t2": 34,
+      "fetch.t3": 34,
+      "fetch.t1": 36,
+      "decode.t1": 108,
+      "decode.t3": 115,
+      "decode.t2": 126
+     }
+    },
+    "progress": {
+     "index": 27,
+     "terrain": 37,
+     "nowcast": 91,
+     "static": 117,
+     "cube.t1": 173,
+     "first": 173,
+     "cube.t3": 179,
+     "cube.t2": 188,
+     "station": 189,
+     "read": 189,
+     "done": 198
+    },
+    "stats": {
+     "files": 21,
+     "bytes": 1881348,
+     "misses": 0,
+     "ms": 612.0999999046326,
+     "slow": 0,
+     "retries": 0
+    },
+    "cache": {
+     "hits": 0,
+     "misses": 0,
+     "stored": 0,
+     "errors": 0,
+     "bypass": 0,
+     "bytesServed": 0
+    },
+    "decode": {
+     "mode": "worker",
+     "workers": 3,
+     "decoded": 32,
+     "viaWorker": 24,
+     "viaMain": 8,
+     "fallbacks": 0,
+     "errors": []
+    },
+    "tiers": [
+     "t1",
+     "t2",
+     "t3"
+    ],
+    "cube": {
+     "t1": {
+      "steps": 49,
+      "manifestFrom": "pinned",
+      "bytes": 648348,
+      "filled": 53,
+      "sources": 8,
+      "note": null
+     },
+     "t2": {
+      "steps": 24,
+      "manifestFrom": "pinned",
+      "bytes": 223993,
+      "filled": 45,
+      "sources": 7,
+      "note": null
+     },
+     "t3": {
+      "steps": 36,
+      "manifestFrom": "pinned",
+      "bytes": 247123,
+      "filled": 40,
+      "sources": 6,
+      "note": null
+     }
+    },
+    "station": {
+     "id": "06748",
+     "steps": 247,
+     "bytes": 25965,
+     "path": "point/stations/2026091609/00_02.bin"
+    },
+    "stationChoice": {
+     "accepted": true,
+     "reason": "ZERMATT, 1.0 km, +30 m — vertritt den Punkt.",
+     "elevationM": 1608.1
+    },
+    "nowcast": [
+     {
+      "source": "combiprecip",
+      "frames": 1,
+      "inSlot": 1,
+      "fetched": 1,
+      "probes": 1,
+      "bytes": 27287,
+      "leads": [
+       0
+      ]
+     }
+    ],
+    "hmodel": {
+     "t1": {
+      "icon_d2": 2326,
+      "icon_ch1_eps": 2327,
+      "icon_eu": 2488,
+      "ifs_hres": 2996,
+      "aifs_single": 2543
+     },
+     "t2": {
+      "icon_eu": 2818,
+      "icon_ch2_eps": 2460,
+      "icon_global": 2752,
+      "ifs_hres": 2997,
+      "aifs_single": 2545
+     },
+     "t3": {
+      "icon_global": 3020,
+      "ifs_hres": 2997,
+      "aifs_single": 2545
+     }
+    },
+    "urban": {
+     "imperv": 2,
+     "d0": 0.5,
+     "bldgH": 0.7000000000000001
+    },
+    "terrain": {
+     "elevationM": 1608.1,
+     "tpi500M": -35,
+     "tpi2000M": -359.3,
+     "svf": 0.864,
+     "slopeDeg": 2.7,
+     "tiles": {
+      "near": 2,
+      "far": 2,
+      "failed": 0,
+      "bytes": 480442,
+      "fromCache": 0
+     },
+     "fromCache": false,
+     "timing": {
+      "totalMs": 37,
+      "fetchMs": 56,
+      "decodeMs": 47,
+      "computeMs": 1
+     }
+    },
+    "plan": {
+     "segments": 94,
+     "gaps": 1,
+     "primary0": "cube-t1"
+    },
+    "skips": [],
+    "notes": [],
+    "errors": []
+   },
+   "net": {
+    "requests": 25,
+    "cached": 24,
+    "failed": 0,
+    "bytes": 205,
+    "cdn": 1,
+    "hit": 1,
+    "miss": 0,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/index.json",
+     "bytes": 205,
+     "ttfbMs": 17,
+     "ms": 21,
+     "xCache": "HIT"
+    },
+    "hosts": {
+     "s3.amazonaws.com": 4,
+     "cdn.jsdelivr.net": 21
+    },
+    "cdnRequests": [
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/index.json",
+      "bytes": 205,
+      "ttfbMs": 17,
+      "ms": 21,
+      "xCache": "HIT",
+      "startMs": 2,
+      "status": 200
+     }
+    ],
+    "otherRequests": [
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1067/728.png",
+      "bytes": 0,
+      "ttfbMs": 0,
+      "ms": 4,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": true
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1068/728.png",
+      "bytes": 0,
+      "ttfbMs": 1,
+      "ms": 6,
+      "startMs": 0,
+      "status": 200,
+      "fromCache": true
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/133/90.png",
+      "bytes": 0,
+      "ttfbMs": 2,
+      "ms": 6,
+      "startMs": 1,
+      "status": 200,
+      "fromCache": true
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/133/91.png",
+      "bytes": 0,
+      "ttfbMs": 3,
+      "ms": 6,
+      "startMs": 1,
+      "status": 200,
+      "fromCache": true
+     }
+    ]
+   }
+  }
+ ]
+}

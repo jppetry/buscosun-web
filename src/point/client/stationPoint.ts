@@ -12,8 +12,9 @@
  */
 
 import { decodeCubeChunk, dequantize, planeOffset, MISSING, STATION_CATALOG_PATH } from '../cubeFormat';
-import type { PointStore } from './store';
+import type { FetchOpts, PointStore } from './store';
 import { distanceKm } from './cubePoint';
+import type { ChunkDecoder } from './decodePool';
 
 export interface StationCatalogEntry {
   id: string;
@@ -57,8 +58,8 @@ export interface StationCandidate extends StationCatalogEntry {
   dElevM: number | null;
 }
 
-export async function loadStationCatalog(store: PointStore): Promise<StationCatalog | null> {
-  return store.json<StationCatalog>(STATION_CATALOG_PATH);
+export async function loadStationCatalog(store: PointStore, fo?: FetchOpts): Promise<StationCatalog | null> {
+  return store.json<StationCatalog>(STATION_CATALOG_PATH, fo);
 }
 
 /**
@@ -116,14 +117,17 @@ export async function readStationPoint(
   store: PointStore,
   manifest: StationRunManifest,
   station: StationCandidate,
+  opts: { decodeChunk?: ChunkDecoder; priority?: FetchOpts['priority'] } = {},
 ): Promise<StationPointSeries | null> {
   const ch = manifest.chunks.find((c) => c.stations.includes(station.id));
   if (!ch) return null;
   const column = ch.stations.indexOf(station.id);
-  const bytes = await store.bytes(ch.file);
+  const bytes = await store.bytes(ch.file, opts.priority ? { priority: opts.priority } : undefined);
   if (!bytes) return null;
 
-  const chunk = await decodeCubeChunk(bytes, { planes: manifest.planes });
+  const chunk = opts.decodeChunk
+    ? await opts.decodeChunk(bytes, { planes: manifest.planes })
+    : await decodeCubeChunk(bytes, { planes: manifest.planes });
   if (chunk.ny !== 1) {
     throw new Error(`stationPoint: ${ch.file} hat ny=${chunk.ny}, erwartet 1 — Stationsbündel ist eine Zeile`);
   }

@@ -268,3 +268,65 @@ liegt als `.github/workflows/point.yml`, das Stadt-Raster liegt unter `point/sta
 (208 Chunks + `static.json`, am Remote mit `decodeCubeChunk` zurückgelesen). Der Push von
 `buscosun-web/main` (`f13661c`) bringt Retention-Korrektur, `declined` und hmodel-Diff ab dem
 nächsten Cron-Lauf. **Noch offen im Archiv-Repo: die Workflow-Datei** (zweiter Punkt oben).
+
+## 15. Fusion-Implementierung: AP1 + AP-PA2 + AP12a freigeben (FI, 2026-09-16) — **Frist 23:10 UTC**
+
+Belege: `audit/fusion-implementierung.md` §9.2 (AP1), §9.3 (PA2), §9.4 (AP12a). Alles liegt
+uncommitted in `buscosun-web`; nichts ist committet, nichts gepusht, kein Daten- oder Archiv-Repo
+angefasst.
+
+- [ ] **`buscosun-web/main` pushen — vor 23:10 UTC.** Der Archiv-Cron (`punktarchiv.yml`,
+      `10 23 * * *`) klont `main`; nur dann trägt der heutige Slot die 410 Punkte (AT 84, CH 101,
+      LI 1 statt 13/5) und die Stundensummen `rr1h`. Jeder Tag später fehlt AT/CH im Backtest
+      (Vorhersagen sind nicht nachholbar). **AP1, PA2 und AP12a gehören in DENSELBEN Push:** der
+      Sammler braucht `fallbackStore` aus AP1 (`src/point/client/store.ts`, am Remote noch nicht da).
+      Vorher prüfen, dann committen und pushen:
+
+      ```
+      npm run typecheck
+      npm run verify:punktarchiv        # 87/87
+      npm run verify:point-data         # 969/969
+      npm run verify:point-client       # 112/112
+      git add audit CLAUDE.md MANUELLE-SCHRITTE.md scripts src/point tsconfig.app.tsbuildinfo
+      git status                        # prompt.md bleibt draußen
+      git commit -m "feat(point): parallel reader (AP1), AT/CH archive points (PA2), CDN warm-up after publish (AP12a)"
+      git push origin main
+      ```
+
+      Wirkung **ohne** weitere Kopie: der nächste Punkt-Job (t1 22:40 UTC, wenn vor 22:40 gepusht)
+      fährt schon den neuen Publisher — Purge jeder geänderten Datei, Frischeprüfung, Warm-up, im
+      Standard-Budget 180 s. Rückweg ohne Code: im Daten-Repo `POINT_CDN_SYNC: '0'` in die drei
+      Publish-Schritte. Erster Slot mit AT/CH: heute ≈ 23:10–23:30 UTC; 0–24 h für AT/CH bewertbar
+      ab dem Slot vom 17.09., 336 h ab dem 30.09.
+
+- [ ] **Danach ansehen (2 min):** im Actions-Log des Archiv-Laufs die Zeilen
+      `[collect] truth: POI 243/243 · TAWES 84/84 … · SMN 102/102 …` und `Slot-Größe ≈ 17–18 MiB`,
+      `0 Fehler` (vorher 38 × jsDelivr-403 im lokalen Probelauf, jetzt mit Ausweichweg). Laufzeit
+      erwartet ≈ 16–17 min (gestern 13 min für 243 Punkte).
+
+- [ ] **`workflow-point.yml` ins Daten-Repo kopieren (AP12a, nicht eilig).** Die Änderung sind nur
+      drei Zeilen `POINT_CDN_BUDGET_S` (t1 240 · t2 180 · t3 180 s) plus Kommentar — ohne Kopie gilt
+      180 s in allen Jobs, das hält überall (Regel F). Mit der Kopie bekommt t1 vier Minuten.
+      Nicht in ein Fenster der Kartenlinie legen (`:20` der Stunden 0/3/6/…, `:30` der Stunden
+      2/5/8/…) und nicht während eines Punkt-Jobs:
+
+      ```
+      cd C:\dev\buscosun-data
+      git pull --rebase origin main
+      Copy-Item -Force ..\buscosun-web\scripts\repack-repo\workflow-point.yml .github\workflows\point.yml
+      git diff --stat                   # genau 11 Zeilen dazu, nichts weg (Remote = committete Vorlage, 16.09. geprüft)
+      git add .github/workflows/point.yml
+      git commit -m "ci(point): CDN warm-up budget per job (AP12a)"
+      git push origin main
+      ```
+
+- [ ] **Abnahme AP12a messen, sobald ein Cron-Job mit dem neuen Publisher gelaufen ist** (im Log
+      des Publish-Schritts: `CDN-Warm-up: …/… ok … · 403 … · Frist …`). Dann in `buscosun-web`,
+      ohne vorher einen Chunk dieses Laufs selbst abzurufen:
+
+      ```
+      npm run verify:pv-latency -- --only=bundle --profiles=desktop-none
+      ```
+
+      und die kalt-neu-Zahlen (HIT/MISS, Kern p50) gegen `audit/fusion-implementierung/latency/2026-09-16T14-33-41-921Z.json`
+      (Kern p50 1 458 ms, 37 MISS) in §9.4 eintragen.

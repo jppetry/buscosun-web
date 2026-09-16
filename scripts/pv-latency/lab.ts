@@ -1,5 +1,5 @@
 /**
- * lab.ts — der In-Page-Teil des Laufzeit-Harnischs (Phase FI, AP0).
+ * lab.ts — der In-Page-Teil des Laufzeit-Harnischs (Phase FI, AP0/AP1).
  *
  * Wird von `scripts/verify-pv-latency.mjs` mit esbuild zu EINEM ESM-Bündel gebaut und in
  * eine leere Seite unter `http://127.0.0.1:<port>/` geladen. Das Bündel enthält die echten
@@ -14,6 +14,11 @@
  * Jede Messfunktion gibt Wandzeiten je Phase (performance.now) zurück; die Bytes und
  * `x-cache` je Abruf liest der Harnisch über CDP mit (Network.*), nicht die Seite.
  *
+ * AP1: `bundle()` ist der parallele Leseweg (`readPointBundle`) mit IndexedDB-Cache,
+ * Worker-Dekodierung und Zwei-Skalen-DEM — das, was der Cube-Pfad von buscosun Fusion ab
+ * AP2 als Eingabe bekommt. Der Worker liegt unter `/decodeWorker.ts` (der Harnisch bündelt
+ * und bedient ihn; `new URL('./decodeWorker.ts', import.meta.url)` löst dorthin auf).
+ *
  * Nicht Teil von `npm run typecheck` (tsconfig.app.json: include = src) — esbuild streift
  * die Typen; die Typen hier sind Lesehilfe, keine Prüfung.
  */
@@ -21,6 +26,9 @@
 import {
   httpStore, planPointSources, readCubePoint, loadHmodelManifest, readHmodelPoint,
   readStationPoint, readNowcastPoint,
+  readPointBundle, cachedStore, idbBackend, memoryBackend, newCacheStats,
+  decodeGrayPngBrowser, decodeRgbaPngBrowser, configureDecodePool, decodePoolInfo,
+  loadTerrainAtPoint, TERRAIN_SCALES,
 } from '../../src/point/client';
 import type { DecodedGrayPng } from '../../src/point/nowcastSample';
 import { getPointForecast } from '../../src/pointForecast/pointForecast';
@@ -32,19 +40,7 @@ const now = () => performance.now();
 
 /** PNG → Pixel über den Browser-Decoder (das, was ein Client wirklich täte). */
 async function decodePngBrowser(bytes: Uint8Array): Promise<DecodedGrayPng> {
-  const bmp = await createImageBitmap(new Blob([bytes], { type: 'image/png' }));
-  const c = new OffscreenCanvas(bmp.width, bmp.height);
-  const ctx = c.getContext('2d', { willReadFrequently: true })!;
-  ctx.drawImage(bmp, 0, 0);
-  const img = ctx.getImageData(0, 0, bmp.width, bmp.height);
-  bmp.close();
-  // `sampleNowcastFrame` verlangt EINEN Kanal (der Node-Decoder liefert Graustufen nativ);
-  // der Browser gibt immer RGBA — der Rotkanal IST der Grauwert. Befund für AP1: der
-  // Client-Leser braucht genau diese Umsetzung, sonst wirft der erste INCA-Frame.
-  const rgba = img.data;
-  const gray = new Uint8Array(img.width * img.height);
-  for (let i = 0, j = 0; i < gray.length; i++, j += 4) gray[i] = rgba[j];
-  return { data: gray, width: img.width, height: img.height, channels: 1 };
+  return decodeGrayPngBrowser(bytes);
 }
 
 interface PhaseTimes { [phase: string]: number }
@@ -52,7 +48,7 @@ interface PhaseTimes { [phase: string]: number }
 /**
  * Der PD-D-Leser, genau in der Reihenfolge von `scripts/point/read-point.mjs` (seriell).
  * `parallel: true` zieht die Produkte nach dem Plan nebeneinander — die AP1-Frage, ohne
- * eine Zeile in `src/` zu ändern.
+ * eine Zeile in `src/` zu ändern. Bleibt als BASISLINIE im Harnisch.
  */
 async function reader(lat: number, lon: number, opts: { parallel?: boolean; hours?: number; nowcast?: boolean } = {}) {
   const t: PhaseTimes = {};
@@ -135,6 +131,68 @@ async function reader(lat: number, lon: number, opts: { parallel?: boolean; hour
   };
 }
 
+// ── AP1: der parallele Leseweg ────────────────────────────────────────────
+// EIN Cache-Backend je Seite (= je Browser-Kontext im Harnisch): der erste Aufruf in
+// einem Kontext ist „kalt-neu", der zweite „warm" (IndexedDB), ohne dass die Seite
+// etwas dafür tun muss.
+const cacheBackend = idbBackend() ?? memoryBackend();
+const poolDefault = () => Math.max(1, Math.min(navigator.hardwareConcurrency || 2, 3));
+
+async function bundle(lat: number, lon: number, opts: {
+  hours?: number; cache?: boolean; decode?: 'worker' | 'main'; terrain?: boolean; nowcast?: boolean; timeoutMs?: number;
+} = {}) {
+  const T0 = now();
+  const cacheStats = newCacheStats();
+  const inner = httpStore({ timeoutMs: opts.timeoutMs ?? 8_000 });
+  const store = opts.cache === false ? inner : cachedStore(inner, cacheBackend, { stats: cacheStats });
+  configureDecodePool({ workers: opts.decode === 'main' ? 0 : poolDefault() });
+  const nowMs = Date.now();
+  const progress: Record<string, number> = {};
+  // §6: kein Long Task > 200 ms im Hauptthread — hier mitgeschrieben, nicht behauptet.
+  const longTasks: number[] = [];
+  let po: PerformanceObserver | null = null;
+  try {
+    po = new PerformanceObserver((list) => { for (const e of list.getEntries()) longTasks.push(Math.round(e.duration)); });
+    po.observe({ type: 'longtask', buffered: false });
+  } catch { po = null; }
+  const b = await readPointBundle(
+    { lat, lon, nowMs, fromMs: nowMs, toMs: nowMs + (opts.hours ?? 336) * H, stepH: 1 },
+    {
+      store,
+      decodePng: decodeGrayPngBrowser,
+      nowcast: opts.nowcast !== false,
+      terrain: opts.terrain === false ? false : {
+        decodeRgba: decodeRgbaPngBrowser,
+        cache: opts.cache === false ? null : cacheBackend,
+        noResultCache: opts.cache === false,
+      },
+      onProgress: (e) => { progress[e.stage] = e.ms; },
+    },
+  );
+  const total = now() - T0;
+  await new Promise((r) => setTimeout(r, 0));
+  po?.disconnect();
+  const cube = Object.fromEntries(Object.entries(b.cube).map(([t, s]) => [t, s
+    ? { steps: s.steps.length, manifestFrom: s.manifestFrom, bytes: s.chunk.bytes, filled: s.filledPlanes.length, sources: s.sources.length, note: s.provenanceNote ?? null }
+    : null]));
+  return {
+    total, timing: b.timing, progress, stats: b.stats, cache: cacheStats, decode: decodePoolInfo(),
+    longTasks, longTaskMax: longTasks.length ? Math.max(...longTasks) : 0,
+    tiers: b.tiers, cube,
+    station: b.station ? { id: b.station.station.id, steps: b.station.steps.length, bytes: b.station.bundle.bytes, path: b.station.bundle.path } : null,
+    stationChoice: b.stationChoice ? { accepted: b.stationChoice.accepted, reason: b.stationChoice.reason, elevationM: b.stationChoice.elevationM } : null,
+    nowcast: b.nowcast.map((n) => ({ source: n.sourceId, frames: n.frames.length, inSlot: n.framesInSlot, fetched: n.framesFetched, probes: n.probes, bytes: n.bytes, leads: n.frames.map((f) => f.lead) })),
+    hmodel: Object.fromEntries(Object.entries(b.hmodel).map(([t, h]) => [t, h ? h.byColumn : null])),
+    urban: b.urban ? b.urban.byColumn : null,
+    terrain: b.terrain ? {
+      elevationM: b.terrain.elevationM, tpi500M: b.terrain.tpi500M, tpi2000M: b.terrain.tpi2000M, svf: b.terrain.svf,
+      slopeDeg: b.terrain.slopeDeg, tiles: b.terrain.tiles, fromCache: b.terrain.fromCache, timing: b.terrain.timing,
+    } : null,
+    plan: b.plan ? { segments: b.plan.segments.length, gaps: b.plan.gaps.length, primary0: b.plan.decisions[0]?.primary?.product ?? null } : null,
+    skips: b.skips, notes: b.notes, errors: b.errors,
+  };
+}
+
 /** Der Live-Pfad von heute (das Produkt), wie ihn das Archiv mitschreibt. */
 async function live(lat: number, lng: number, country: Country, hours = 240) {
   const T0 = now();
@@ -180,6 +238,31 @@ async function terrain(lat: number, lon: number, z: number, radiusM: number) {
   return { z, radiusM, tiles: list.length, bytes, total: now() - T0, decodeMs, failed };
 }
 
+/** AP1: das Zwei-Skalen-DEM (z11 Nahfeld + z8 Fernfeld) samt Rechnung, ohne Cache. */
+async function terrain2(lat: number, lon: number) {
+  const T0 = now();
+  const r = await loadTerrainAtPoint(lat, lon, { decodeRgba: decodeRgbaPngBrowser, cache: null });
+  return {
+    total: now() - T0, scales: TERRAIN_SCALES, elevationM: r.elevationM, tpi500M: r.tpi500M, tpi2000M: r.tpi2000M,
+    svf: r.svf, slopeDeg: r.slopeDeg, horizonDeg: r.horizonDeg, tiles: r.tiles, timing: r.timing,
+  };
+}
+
+/**
+ * Verbindungen wärmen, ohne eine Messdatei zu berühren: DNS + TLS zu jsDelivr und S3 kosten
+ * beim ERSTEN Abruf eines Browser-Prozesses 1–2,5 s (München-Lauf 16.09.: index.json HIT mit
+ * 2,4 s TTFB, S3-Kacheln 2,8 s). Das ist Maschine, nicht Leseweg — der Harnisch ruft es einmal
+ * je Profil in einem eigenen Kontext auf, bevor er misst.
+ */
+async function prime() {
+  const T0 = now();
+  await Promise.allSettled([
+    fetch('https://cdn.jsdelivr.net/gh/jppetry/buscosun-data@main/point/sources.json', { cache: 'no-store' }),
+    fetch('https://s3.amazonaws.com/elevation-tiles-prod/terrarium/4/8/5.png', { cache: 'no-store' }),
+  ]);
+  return { total: now() - T0 };
+}
+
 /** Der DEM-Sampler des Live-Pfads (±0,2°-Box bei z9), allein gemessen. */
 async function demLive(lat: number, lng: number) {
   const T0 = now();
@@ -188,4 +271,4 @@ async function demLive(lat: number, lng: number) {
   return { total: now() - T0, elevation: Number.isFinite(h) ? Math.round(h) : null };
 }
 
-(window as unknown as { pfLab: unknown }).pfLab = { reader, live, terrain, demLive, ready: true };
+(window as unknown as { pfLab: unknown }).pfLab = { reader, bundle, live, terrain, terrain2, demLive, prime, ready: true };

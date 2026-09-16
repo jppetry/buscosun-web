@@ -16,7 +16,7 @@ import { fileURLToPath } from 'node:url';
 import { punktarchivSelfTest, tierForLead, LIVE_SCALES, TRUTH_SCALES, SENTINEL, encodeValue, ARCHIVE_SCHEMA } from './punktarchiv/lib/punktarchiv.mjs';
 import { truthSelfTest } from './punktarchiv/lib/truth.mjs';
 import { nodeShimsSelfTest } from './punktarchiv/lib/nodeShims.mjs';
-import { pointsSelfTest, selectPoints, countryOfWmo, inCubeBox } from './punktarchiv/points.mjs';
+import { pointsSelfTest, selectPoints, countryOfWmo, inCubeBox, COLOCATE, DACH, PROFILE_OF } from './punktarchiv/points.mjs';
 import { TIERS, CUBE_STEP_COUNT } from '../src/point/cubeFormat.ts';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -64,20 +64,59 @@ const suite = (label, r) => { for (const c of r.checks) add(`(${label}) ${c.name
   if (existsSync(p)) {
     const doc = JSON.parse(readFileSync(p, 'utf8'));
     const ids = doc.points.map((x) => x.id);
-    add('(4) points.json: Schema 1, gebaut mit Datum, Zählwerte je Land', doc.schema === 1 && doc.kind === 'punktarchiv/points' && !!doc.builtAt && doc.counts.byCountry.DE + doc.counts.byCountry.AT + doc.counts.byCountry.CH === doc.points.length, `${doc.points.length} Punkte (DE ${doc.counts.byCountry.DE} · AT ${doc.counts.byCountry.AT} · CH ${doc.counts.byCountry.CH})`);
+    const cnt = (k) => doc.points.filter((x) => x.country === k).length;
+    add('(4) points.json: Schema 1, gebaut mit Datum, Zählwerte je Land summieren sich zur Punktzahl', doc.schema === 1 && doc.kind === 'punktarchiv/points' && !!doc.builtAt
+      && Object.values(doc.counts.byCountry).reduce((a, b) => a + b, 0) === doc.points.length && Object.entries(doc.counts.byCountry).every(([k, v]) => cnt(k) === v),
+      `${doc.points.length} Punkte (${Object.entries(doc.counts.byCountry).map(([k, v]) => `${k} ${v}`).join(' · ')})`);
     add('(4) points.json: Kennungen eindeutig', new Set(ids).size === ids.length);
     add('(4) points.json: Positionen eindeutig (3 Dezimalen)', new Set(doc.points.map((x) => `${x.lat.toFixed(3)}/${x.lon.toFixed(3)}`)).size === ids.length);
-    add('(4) points.json: jeder Punkt liegt in der Cube-Box und in DE/AT/CH', doc.points.every((x) => inCubeBox(x.lat, x.lon) && countryOfWmo(x.id) === x.country));
+    // Land: ohne Netzpaar aus dem WMO-BEREICH der Kennung (nicht dem Block — PA1 nannte Prag „AT"); mit Netzpaar aus dem Netz (TAWES ⇒ AT, SMN ⇒ CH/LI).
+    add('(4) points.json: jeder Punkt liegt in der Cube-Box; Land aus dem WMO-Bereich bzw. aus dem Netz der Messstelle', doc.points.every((x) => inCubeBox(x.lat, x.lon)
+      && (x.mosmix ? (x.truth.tawes ? x.country === 'AT' : x.truth.smn ? ['CH', 'LI'].includes(x.country) : false) : countryOfWmo(x.id) === x.country)));
     add('(4) points.json: jeder Punkt hat eine endliche DEM-Höhe', doc.points.every((x) => Number.isFinite(x.demM)));
-    add('(4) points.json: jeder Punkt hat POI-Wahrheit; TAWES nur in AT, SMN nur in CH', doc.points.every((x) => x.truth.poi === true && (!x.truth.tawes || x.country === 'AT') && (!x.truth.smn || x.country === 'CH')),
-      `TAWES ${doc.counts.withTawes} · SMN ${doc.counts.withSmn}`);
-    add('(4) points.json: DEM und Katalog-Höhe weichen im Median < 100 m ab (Verortung)', (() => {
+    add('(4) points.json: jeder Punkt hat mindestens eine Wahrheit; TAWES nur in AT, SMN nur in CH/LI; Punkte ohne POI tragen ein Katalog-Paar (mosmix)',
+      doc.points.every((x) => (x.truth.poi === true || x.truth.tawes || x.truth.smn) && (!x.truth.tawes || x.country === 'AT') && (!x.truth.smn || ['CH', 'LI'].includes(x.country)) && (x.truth.poi === true || !!x.mosmix)),
+      `POI ${doc.counts.withPoi} · TAWES ${doc.counts.withTawes} · SMN ${doc.counts.withSmn} · nur Netz ${doc.counts.networkOnly}`);
+    add('(4) points.json: DEM und Punkthöhe weichen im Median < 100 m ab (Verortung)', (() => {
       const d = doc.points.map((x) => Math.abs(x.demM - x.elev)).sort((a, b) => a - b);
       return d.length ? d[Math.floor(d.length / 2)] < 100 : false;
     })());
-    // Negativkontrolle an der reinen Auswahl: ein Duplikat und ein Punkt außerhalb fallen.
+    // PA2 (§9.3): DE unverändert, Nachbarn getrennt, AT/CH-Dichte, Paar-Grenzen.
+    const de = doc.points.filter((x) => x.country === 'DE');
+    add('(4) PA2: DE unverändert — nur POI, Katalogposition (kein mosmix-Feld), Profil DE, WMO 10000–10999', de.length > 0 && de.every((x) => x.truth.poi === true && !x.truth.tawes && !x.truth.smn && !x.mosmix && x.profile === 'DE' && countryOfWmo(x.id) === 'DE'), `${de.length} Punkte`);
+    const nb = doc.points.filter((x) => !DACH.includes(x.country));
+    add('(4) PA2: Nachbarn (CZ/SK/DK/NL/BE/LU) nur mit POI, ohne Netz, im Länderprofil von PA1 (Block 11 ⇒ AT, Block 06 ⇒ CH)',
+      nb.every((x) => x.truth.poi === true && !x.truth.tawes && !x.truth.smn && x.profile === PROFILE_OF[x.country] && x.profile === (x.id.startsWith('11') ? 'AT' : 'CH')), `${nb.length} Punkte`);
+    add('(4) PA2 (GPA2/E-F-9): ≥ 60 AT-Punkte mit TAWES und ≥ 40 CH-Punkte mit SMN — mindestens die DE-Dichte (208 Punkte auf 357 000 km² ⇒ AT 49, CH 24)',
+      doc.points.filter((x) => x.country === 'AT' && x.truth.tawes).length >= 60 && doc.points.filter((x) => x.country === 'CH' && x.truth.smn).length >= 40,
+      `AT ${doc.points.filter((x) => x.country === 'AT' && x.truth.tawes).length} · CH ${doc.points.filter((x) => x.country === 'CH' && x.truth.smn).length}`);
+    const pairs = doc.points.filter((x) => x.mosmix);
+    add(`(4) PA2: jedes Katalog-Paar hält die gemessenen Grenzen (gleiche Kennung ≤ ${COLOCATE.idMaxKm} km, sonst ≤ ${COLOCATE.maxKm} km, |Δz| ≤ ${COLOCATE.maxDzM} m) und nennt die Katalogstation mit ihrer Kennung`,
+      pairs.length > 0 && pairs.every((x) => x.mosmix.id === x.id && Math.abs(x.mosmix.dzM) <= COLOCATE.maxDzM && x.mosmix.distanceKm <= (x.mosmix.match === 'id' ? COLOCATE.idMaxKm : COLOCATE.maxKm)),
+      `${pairs.length} Paare (id ${pairs.filter((x) => x.mosmix.match === 'id').length} · Ort ${pairs.filter((x) => x.mosmix.match === 'colocated').length})`);
+    const netIds = doc.points.flatMap((x) => [x.truth.tawes && `tawes:${x.truth.tawes}`, x.truth.smn && `smn:${x.truth.smn}`].filter(Boolean));
+    add('(4) PA2: keine TAWES- oder SMN-Station trägt zwei Punkte', new Set(netIds).size === netIds.length, `${netIds.length} Netzstationen`);
+
+    // Negativkontrollen an der reinen Auswahl.
     const sel = selectPoints([...doc.points.slice(0, 3), doc.points[0], { id: '10001', name: 'ROM', lat: 41.9, lon: 12.5, elev: 20 }], new Set([...ids, '10001']));
     add('(4) Negativkontrolle: Duplikat und Punkt außerhalb der Box fallen aus der Auswahl', sel.points.length === 3 && sel.dropped.dupId === 1 && sel.dropped.outsideBox === 1);
+    const pa2 = doc.points.find((x) => x.mosmix && !x.truth.poi && x.truth.tawes);
+    if (pa2) {
+      const cat = { id: pa2.mosmix.id, name: pa2.mosmix.name, lat: pa2.mosmix.lat, lon: pa2.mosmix.lon, elev: pa2.mosmix.elev };
+      const netSt = { net: 'tawes', id: pa2.truth.tawes, wmo: pa2.wmo, name: pa2.name, country: 'AT', lat: pa2.lat, lon: pa2.lon, h: pa2.elev };
+      const ok = selectPoints([cat], new Set(), { networkStations: [netSt] });
+      add(`(4) Gegenprobe: ${pa2.id} ${pa2.mosmix.name} wird aus Katalogstation + TAWES ${pa2.truth.tawes} ohne POI wieder ausgewählt, an der Messstelle`, ok.points.length === 1 && ok.points[0].lat === pa2.lat && ok.points[0].truth.tawes === pa2.truth.tawes);
+      const noTruth = selectPoints([cat], new Set(), {});
+      add('(4) Negativkontrolle: dieselbe Station ohne Netzstation und ohne POI ⇒ keine Wahrheit ⇒ verworfen', noTruth.points.length === 0 && noTruth.dropped.noTruth === 1);
+      const high = selectPoints([cat], new Set(), { networkStations: [{ ...netSt, h: pa2.mosmix.elev + COLOCATE.maxDzM + 10 }] });
+      add(`(4) Negativkontrolle: Netzstation ${COLOCATE.maxDzM + 10} m über der Katalogstation ⇒ kein Paar ⇒ verworfen (Murau/Stolzalpe-Fall)`, high.points.length === 0 && high.dropped.colocateDz === 1);
+      const far = selectPoints([cat], new Set(), { networkStations: [{ ...netSt, wmo: null, lat: pa2.mosmix.lat + 0.03 }] });
+      add(`(4) Negativkontrolle: andere Kennung ${(0.03 * 111.2).toFixed(1)} km neben der Katalogstation (> ${COLOCATE.maxKm} km) ⇒ kein Paar ⇒ verworfen`, far.points.length === 0);
+      const outside = selectPoints([{ ...cat, lat: 44.9 }], new Set(), { networkStations: [{ ...netSt, lat: 44.9 }] });
+      add('(4) Negativkontrolle: dasselbe Paar außerhalb der Cube-Box ⇒ verworfen', outside.points.length === 0 && outside.dropped.outsideBox === 1);
+      const dupPos = selectPoints([cat, { id: '10002', name: 'GLEICHE MESSSTELLE', lat: pa2.lat, lon: pa2.lon, elev: pa2.elev }], new Set(['10002']), { networkStations: [netSt] });
+      add('(4) Negativkontrolle: eine zweite Station an derselben Position (3 Dezimalen) ⇒ verworfen', dupPos.points.length === 1 && dupPos.dropped.dupPos === 1);
+    } else add('(4) PA2: points.json enthält einen AT-Punkt nur mit TAWES (für die Gegenprobe)', false);
   } else {
     console.log('  ⚠ scripts/punktarchiv/points.json nicht gebaut — Punktlisten-Prüfungen uebersprungen (npm run punktarchiv:points)');
   }
@@ -91,6 +130,9 @@ const suite = (label, r) => { for (const c of r.checks) add(`(${label}) ${c.name
   add('(5) collect.mjs installiert den Node-Shim VOR dem Import des Live-Pfads', src.indexOf('installNodeShims()') < src.indexOf("from '../../src/pointForecast/pointForecast.ts'"));
   add('(5) collect.mjs benennt die Grenzen des Live-Pfads (Radar, DEM-Shim, UV-Umschreibung, GFS-Schwanz) als caveats', /KEIN Radar-Nowcast/.test(src) && /nodeShims/.test(src) && /_dwd_opendata/.test(src) && /GFS-Schwanz/.test(src));
   add('(5) collect.mjs serialisiert über serialiseSlot (As-of-Wächter) und schreibt über mergeSlot (append-only)', /serialiseSlot\(slot\)/.test(src) && /mergeSlot\(outRoot/.test(src));
+  add('(5) PA2: das Stationsprodukt kommt über die Katalogkennung (mosmix.id), nicht über die Nähe', /p\.mosmix\?\.id \?\? p\.id/.test(src) && !/nearestStations\(/.test(src));
+  add('(5) PA2: POI wird nur für Punkte mit POI-Datei abgefragt; der Live-Pfad bekommt das Länderprofil', /truth\?\.poi !== false/.test(src) && /country: p\.profile \?\? p\.country/.test(src));
+  add('(5) PA2: TAWES/SMN tragen rr1h aus den 10-min-Werten (tenMinColumns) und benennen es als die mit POI vergleichbare Größe', /tenMinColumns\(/.test(src) && /rr1h \(PA2\)/.test(src) && TRUTH_SCALES.rr1h?.unit === 'mm');
 }
 
 // (6) Workflow-Vorlage: Slot NACH dem letzten t1-Bau des Tages und vor Mitternacht, eigene Gruppe, kein Force-Push.
@@ -119,6 +161,31 @@ const suite = (label, r) => { for (const c of r.checks) add(`(${label}) ${c.name
   } else {
     add('(6) Workflow-Vorlage scripts/punktarchiv-repo/workflow-punktarchiv.yml vorhanden', false);
   }
+}
+
+// (7) V-FI-5 im Sammler (§9.3.2): ein 403 von jsDelivr ist verlorene Archivzeit — Ausweichweg raw, am SELBEN Ref.
+{
+  const { withRawSameRef, rawRefOf } = await import('./punktarchiv/lib/rawFallback.mjs');
+  const { httpStore } = await import('../src/point/client/store.ts');
+  const text = (b) => (b ? new TextDecoder().decode(b) : null);
+  const echo = (status) => async (url) => (status(url) === 200
+    ? { ok: true, status: 200, arrayBuffer: async () => new TextEncoder().encode(url).buffer }
+    : { ok: false, status: status(url), arrayBuffer: async () => new ArrayBuffer(0) });
+  const cdn403 = echo((u) => (u.startsWith('https://cdn.jsdelivr.net/') ? 403 : 200));
+  const s = withRawSameRef(httpStore({ fetchImpl: cdn403, retries: 0 }));
+  const b = text(await s.bytes('point/2026091615/t1/07_06.bin'));
+  add('(7) @main antwortet 403 ⇒ derselbe Pfad von raw.githubusercontent/main, als Ausweichweg gezählt',
+    b === 'https://raw.githubusercontent.com/jppetry/buscosun-data/main/point/2026091615/t1/07_06.bin' && s.stats.fallbacks === 1, b);
+  const pinned = s.withBase('https://cdn.jsdelivr.net/gh/jppetry/buscosun-data@abc1234');
+  const b2 = text(await pinned.bytes('point/static/hmodel/v1/static.json'));
+  add('(7) gepinnt (@abc1234) antwortet 403 ⇒ raw AM SELBEN COMMIT, nicht main (Manifest und Chunks aus EINEM Stand)',
+    b2 === 'https://raw.githubusercontent.com/jppetry/buscosun-data/abc1234/point/static/hmodel/v1/static.json', b2);
+  const seen = [];
+  const s404 = withRawSameRef(httpStore({ fetchImpl: async (u) => { seen.push(u); return { ok: false, status: 404, arrayBuffer: async () => new ArrayBuffer(0) }; }, retries: 0 }));
+  add('(7) Negativkontrolle: 404 ist eine Antwort ⇒ null, kein Ausweichweg', (await s404.bytes('point/x.bin')) === null && seen.length === 1 && s404.stats.fallbacks === 0);
+  add('(7) rawRefOf: nur jsDelivr-gh-Basen, sonst null', rawRefOf('https://cdn.jsdelivr.net/gh/o/r@main') === 'https://raw.githubusercontent.com/o/r/main' && rawRefOf('https://raw.githubusercontent.com/o/r/main') === null);
+  const csrc = readFileSync(join(ROOT, 'scripts/punktarchiv/collect.mjs'), 'utf8');
+  add('(7) collect.mjs liest über den Ausweichweg (außer mit --raw) und schreibt die Zahl der Ausweichwege in den Slot', /withRawSameRef\(httpStore\(\{\}\)\)/.test(csrc) && /fallbacks: store\.stats\.fallbacks/.test(csrc));
 }
 
 console.log(`\n${passed}/${total} Prüfungen bestanden.`);

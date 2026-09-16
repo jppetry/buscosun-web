@@ -441,7 +441,9 @@ let stationManifest;
       const t = readFileSync(join(dist, f), 'utf8');
       // PD-E hat zwei Signaturen dazugelegt: den Hoehen-Leser und die Druckflaechen.
       for (const needle of ['planPointSources', 'readCubePoint', 'nowcastSlotStamps', 'stationMaxDElevM',
-        'readHmodelPoint', 'belowGroundHPa', 'derived-gh-sp']) {
+        'readHmodelPoint', 'belowGroundHPa', 'derived-gh-sp',
+        // AP1: der parallele Leser, der Cache und der Dekodier-Pool duerfen ebenso wenig im App-Bundle stehen.
+        'readPointBundle', 'cachedStore', 'decodeChunkPooled', 'loadTerrainAtPoint']) {
         if (t.includes(needle)) hits.push(`${f}:${needle}`);
       }
     }
@@ -607,6 +609,315 @@ let stationManifest;
     add('(9) fehlt das Produkt, gibt der Leser `null` statt zu werfen',
       (await loadHmodelManifest(memoryStore(new Map()))) === null);
     } finally { rmSync(tmp, { recursive: true, force: true }); }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// (10) Phase FI, AP1: der parallele Leseweg, Cache, Dekodier-Pool, Nowcast auf
+//      Ausgabezeiten, Zwei-Skalen-Gelaende — netzfrei, gegen dieselben Fixtures
+// ---------------------------------------------------------------------------
+{
+  const { readPointBundle, tiersForWindow, nowcastTimes } = await import('../src/point/client/readPoint.ts');
+  const { memoStore } = await import('../src/point/client/store.ts');
+  const { cachedStore, memoryBackend, defaultCachePolicy, newCacheStats } = await import('../src/point/client/cache.ts');
+  const { decodeChunkPooled, decodeChunkMain, decodePoolInfo } = await import('../src/point/client/decodePool.ts');
+  const { loadTerrainAtPoint, tilesForRadius, TERRAIN_SCALES } = await import('../src/point/client/terrain.ts');
+  const { findLatestSlot, readNowcastPoint } = await import('../src/point/client/nowcastPoint.ts');
+  const { judgeStation } = await import('../src/point/client/resolve.ts');
+  const { loadPointIndex } = await import('../src/point/client/cubePoint.ts');
+  const { stationBundlePath } = await import('../src/point/cubeFormat.ts');
+  const H = 3_600_000;
+  const t1 = TIER_BY_ID.t1;
+  const at = (h) => Date.parse(RUN_AT) + h * H;
+  const manifest = JSON.parse(new TextDecoder().decode(cubeFiles.get(`point/${RUN}/run.json`)));
+  const chunkP = [...cubeFiles.keys()].find((k) => k.endsWith('.bin'));
+  const idx = { ...cubeIndex, stations: { dir: 'point/stations', catalog: 'point/stations/catalog.json', source: 'mosmix_l',
+    runs: [{ run: RUN, runAt: RUN_AT, ageH: 1.4, path: `point/stations/${RUN}`, manifest: `point/stations/${RUN}/stations.json`, stationCount: 2, leadHours: 60, bytes: 1 }] } };
+  const all = new Map([...cubeFiles, ...stationFiles]);
+  all.set('point/index.json', enc(idx));
+  const NOW = Date.parse(RUN_AT);
+
+  // ── (10a) Buendel == serielle Leser ───────────────────────────────────────
+  const b = await readPointBundle({ lat: LAT, lon: LON, atMs: at(4), elevationM: 519, nowMs: NOW }, { store: memoryStore(all), terrain: false, nowcast: false, decodeChunk: decodeChunkMain });
+  const serial = await readCubePoint(memoryStore(all), idx, 't1', LAT, LON);
+  const serialSt = await readStationPoint(memoryStore(all), stationManifest, nearestStations(STATION_CATALOG, LAT, LON, { elevationM: 519 })[0]);
+  add('(10) AP1: das Buendel liefert die Stufe t1 wertgleich zum seriellen Leser',
+    !!b.cube.t1 && JSON.stringify(b.cube.t1.steps) === JSON.stringify(serial.steps) && b.tiers.join() === 't1', `tiers ${b.tiers.join()}, errors ${b.errors.join('; ')}`);
+  add('(10) AP1: … und die Station wertgleich, in derselben Spalte',
+    !!b.station && JSON.stringify(b.station.steps) === JSON.stringify(serialSt.steps) && b.station.bundle.column === serialSt.bundle.column, b.skips.join('; '));
+  add('(10) AP1: die Auswahlregel laeuft am Ende mit und sieht dasselbe (cube-t1 primaer, Station daneben)',
+    b.plan?.decisions[0].primary?.product === 'cube-t1' && b.plan?.decisions[0].alternative?.product === 'stations');
+  add('(10) AP1: Stationsurteil aus EINER Regel — Buendel und Plan nennen denselben Grund',
+    !!b.stationChoice && b.stationChoice.reason === b.plan?.station.reason && judgeStation(true, b.stationChoice.candidate, 519).reason === b.stationChoice.reason);
+  add('(10) AP1: Negativkontrolle — eine um eine Zelle verschobene Anfrage liefert andere Werte',
+    (await readPointBundle({ lat: LAT + t1.deg, lon: LON, atMs: at(4), nowMs: NOW }, { store: memoryStore(all), terrain: false, nowcast: false })).cube.t1?.steps[0].values.t2m !== b.cube.t1.steps[0].values.t2m);
+  add('(10) AP1: Zeiten je Produkt (doneAt/phases), erste Darstellung und Lesephase stehen im Ergebnis',
+    typeof b.timing.readMs === 'number' && b.timing.doneAt['cube.t1'] != null && b.timing.phases['decode.t1'] != null && b.timing.firstMs != null && b.timing.indexMs != null);
+
+  // ── (10b) Veraltetes / fehlendes Manifest: Werte bleiben, Provenienz wird benannt ─
+  {
+    // Wie am CDN (V-FI-1): das veraltete Manifest kennt weder die Stufe noch ihre Quellen.
+    const stale = new Map(all); stale.set(`point/${RUN}/run.json`, enc({ ...manifest, tiers: [], sources: [] }));
+    const bs = await readPointBundle({ lat: LAT, lon: LON, atMs: at(4), nowMs: NOW }, { store: memoryStore(stale), terrain: false, nowcast: false });
+    add('(10) V-FI-1/V-FI-3: kennt das Manifest die Stufe nicht, kommen die Werte trotzdem aus dem Chunk — mit benannter Provenienzluecke',
+      !!bs.cube.t1 && JSON.stringify(bs.cube.t1.steps) === JSON.stringify(serial.steps) && /kennt die Stufe nicht/.test(bs.cube.t1.provenanceNote ?? '')
+      && bs.notes.some((n) => /kennt die Stufe nicht/.test(n)) && bs.cube.t1.sources.length === 0, bs.cube.t1?.provenanceNote);
+    add('(10) Gegenprobe: der SERIELLE Leser gibt dort weiter `null` (Sammler-Vertrag unveraendert)',
+      (await readCubePoint(memoryStore(stale), idx, 't1', LAT, LON)) === null);
+    const none = new Map(all); none.delete(`point/${RUN}/run.json`);
+    const bn = await readPointBundle({ lat: LAT, lon: LON, atMs: at(4), nowMs: NOW }, { store: memoryStore(none), terrain: false, nowcast: false });
+    add('(10) ohne jedes Manifest: Werte da, `manifestFrom: none`, Hinweis „nicht lesbar"',
+      bn.cube.t1?.manifestFrom === 'none' && /nicht lesbar/.test(bn.cube.t1?.provenanceNote ?? '') && bn.cube.t1?.steps.length === t1.leadHours.length);
+  }
+
+  // ── (10c) Stufenwahl aus dem Fenster, Nowcast-Zeiten ──────────────────────
+  {
+    const idx3 = JSON.parse(JSON.stringify(idx));
+    const mk = (run) => ({ run, runAt: RUN_AT, path: `point/${run}`, manifest: `point/${run}/run.json`, sourceRun: run, sourceRunAt: RUN_AT, ageH: 0, files: 1, bytes: 1 });
+    idx3.latestByTier.t2 = mk(RUN); idx3.latestByTier.t3 = mk(RUN);
+    add('(10) tiersForWindow: +4 h ⇒ t1 · +60 h ⇒ t2 · +200 h ⇒ t3 · 0…336 h ⇒ alle · +400 h ⇒ keine · Naht +49 h ⇒ t1 UND t2 (Rand 3 h)',
+      tiersForWindow(idx3, at(4), at(4)).join() === 't1' && tiersForWindow(idx3, at(60), at(60)).join() === 't2' && tiersForWindow(idx3, at(200), at(200)).join() === 't3'
+      && tiersForWindow(idx3, at(0), at(336)).join() === 't1,t2,t3' && tiersForWindow(idx3, at(400), at(400)).length === 0 && tiersForWindow(idx3, at(49), at(49)).join() === 't1,t2');
+    add('(10) nowcastTimes: stuendliches Raster ab jetzt ⇒ 0/1/2/3 h im Radar-Horizont, +5 h nicht, ein Zeitpunkt ⇒ genau er',
+      nowcastTimes(at(0), at(336), 1, at(0)).length === 4 && nowcastTimes(at(5), at(5), 1, at(0)).length === 0 && nowcastTimes(at(1), at(1), 1, at(0)).length === 1);
+  }
+
+  // ── (10d) Nowcast nur auf den Ausgabezeiten, parallel; Sonden im Buendel (V-FI-2, V-FI-5) ─
+  {
+    const slotMs = Date.UTC(2026, 8, 12, 20, 40); const stamp = '2609122040';
+    const frames = []; for (let l = 0; l <= 120; l += 5) frames.push({ file: `f${String(l).padStart(3, '0')}.png`, lead: l, validAtMs: slotMs });
+    const meta = { stamp, vMax: NOWCAST_VMAX, width: 3, height: 3, runAtMs: slotMs, frames };
+    const files = new Map([[`radar/img/v1/rv/${stamp}/meta.json`, enc(meta)]]);
+    for (const f of frames) files.set(`radar/img/v1/rv/${stamp}/${f.file}`, new Uint8Array([f.lead]));   // „PNG" = ein Byte = lead
+    const fakePng = (bytes) => ({ data: new Uint8Array(9).fill(bytes[0] + 1), width: 3, height: 3, channels: 1 });
+    const nowMs = slotMs + 3 * 60_000;
+    const st = memoryStore(files);
+    const r = await readNowcastPoint(st, 'radvor_rv', LAT, LON, { nowMs, decodePng: fakePng, atMs: [slotMs, slotMs + H, slotMs + 2 * H], probeBatch: 4 });
+    add('(10) V-FI-2: drei Ausgabezeiten ⇒ drei Frames (0/60/120) von 25 im Slot, Bytes nur fuer drei',
+      !!r && r.frames.map((f) => f.lead).join() === '0,60,120' && r.framesInSlot === 25 && r.framesFetched === 3 && st.stats.files === 4, r ? `leads ${r.frames.map((f) => f.lead).join()} files ${st.stats.files}` : 'null');
+    const full = await readNowcastPoint(memoryStore(files), 'radvor_rv', LAT, LON, { nowMs, decodePng: fakePng, fromMs: slotMs, untilMs: slotMs + 2 * H });
+    add('(10) V-FI-2: dieselben Werte wie im Fensterweg (25 Frames), nur weniger davon',
+      full.frames.length === 25 && [0, 60, 120].every((l) => full.frames.find((f) => f.lead === l).mmh === r.frames.find((f) => f.lead === l).mmh));
+    add('(10) V-FI-2: 7 min neben einem Frame ⇒ der naechste (lead 5); 45 min daneben ⇒ keiner',
+      (await readNowcastPoint(memoryStore(files), 'radvor_rv', LAT, LON, { nowMs, decodePng: fakePng, atMs: [slotMs + 7 * 60_000] })).frames[0].lead === 5
+      && (await readNowcastPoint(memoryStore(files), 'radvor_rv', LAT, LON, { nowMs, decodePng: fakePng, atMs: [slotMs + 165 * 60_000] })) === null);
+    // Sonden: nur der DRITTE Stempel existiert, die juengste Sonde endet mit 403.
+    const later = nowMs + 10 * 60_000;
+    const stamps = nowcastSlotStamps('radvor_rv', later, 60);
+    const third = stamps[2];
+    const inner = memoryStore(new Map([[`radar/img/v1/rv/${third}/meta.json`, enc({ ...meta, stamp: third })]]));
+    let calls = 0;
+    const flaky = { ...inner, bytes: async (p) => { calls++; if (p.includes(stamps[0])) throw new Error(`${p}: HTTP 403`); return inner.bytes(p); } };
+    flaky.json = async (p) => { const bb = await flaky.bytes(p); return bb ? JSON.parse(new TextDecoder().decode(bb)) : null; };
+    const slot = await findLatestSlot(flaky, 'radvor_rv', later, 60, { probeBatch: 4 });
+    add('(10) V-FI-5: ein 403 auf die juengste Sonde reisst die Slot-Suche nicht — der dritte Stempel wird gefunden, vier Sonden auf einmal',
+      slot?.stamp === third && slot?.probes === 3 && calls === 4, `stamp ${slot?.stamp} probes ${slot?.probes} calls ${calls}`);
+    const dead = { ...inner, bytes: async (p) => { throw new Error(`${p}: HTTP 403`); } };
+    dead.json = async (p) => { const bb = await dead.bytes(p); return bb ? JSON.parse(new TextDecoder().decode(bb)) : null; };
+    let threw = false; try { await findLatestSlot(dead, 'radvor_rv', later, 10, { probeBatch: 4 }); } catch { threw = true; }
+    add('(10) V-FI-5: bleibt am Ende KEIN Slot und es gab einen Transportfehler, wird er geworfen (nicht als „nicht da" getarnt)', threw);
+  }
+
+  // ── (10e) Station im NACHBAR-Chunk: optimistisches Buendel + zweiter Abruf ──
+  {
+    const cellA = cellOf(t1, LAT, LON); const chA = chunkOf(cellA.iy, cellA.ix);
+    const ixB = (chA.cx + 1) * 16; const lonB = t1.lon0 + ixB * t1.deg;
+    const lonP = lonB - 0.03, lonS = lonB + 0.02;
+    const cellS = cellOf(t1, LAT, lonS); const chB = chunkOf(cellS.iy, cellS.ix);
+    const cat = { ...STATION_CATALOG, stations: [{ id: 'NB', name: 'NACHBAR', lat: LAT, lon: lonS, elev: 500 }, ...STATION_CATALOG.stations] };
+    const man2 = { ...stationManifest, chunks: [
+      { cy: chA.cy, cx: chA.cx, file: stationBundlePath(RUN, chA.cy, chA.cx), bytes: 1, stations: ['10865', 'P659'] },
+      { cy: chB.cy, cx: chB.cx, file: stationBundlePath(RUN, chB.cy, chB.cx), bytes: 1, stations: ['NB', 'X'] },
+    ] };
+    const bundleBytes = stationFiles.get(`point/stations/${RUN}/03_07.bin`);
+    const f = new Map(all);
+    f.set('point/stations/catalog.json', enc(cat)); f.set(`point/stations/${RUN}/stations.json`, enc(man2));
+    f.set(man2.chunks[0].file, bundleBytes); f.set(man2.chunks[1].file, bundleBytes);
+    const st = memoryStore(f);
+    const bb = await readPointBundle({ lat: LAT, lon: lonP, atMs: at(4), elevationM: 500, nowMs: NOW }, { store: st, terrain: false, nowcast: false });
+    add('(10) AP1: liegt die naechste Station im Nachbarchunk, wird ihr Buendel nachgeholt — Spalte 0 des Nachbarn, zwei Buendel geholt',
+      bb.station?.station.id === 'NB' && bb.station?.bundle.path === man2.chunks[1].file && bb.station?.bundle.column === 0 && chA.cx !== chB.cx
+      && [...f.keys()].filter((k) => k.startsWith(`point/stations/${RUN}/`) && k.endsWith('.bin')).length === 2 && st.stats.files >= 5,
+      `station ${bb.station?.station.id} path ${bb.station?.bundle.path} files ${st.stats.files}`);
+  }
+
+  // ── (10f) Cache-Regel und cachedStore ─────────────────────────────────────
+  {
+    const sha = `${POINT_CDN_BASE.replace('@main', '')}@${'a'.repeat(40)}`;
+    add('(10) Cache-Regel: Chunks, Stationsbuendel, Radar-Slots und ALLES unter @<sha> unveraenderlich; index.json nie; run.json@main nie; static 12 h; Katalog 24 h',
+      defaultCachePolicy('point/2026091609/t1/03_07.bin', POINT_CDN_BASE) === Infinity && defaultCachePolicy('point/stations/2026091609/03_07.bin', POINT_CDN_BASE) === Infinity
+      && defaultCachePolicy('radar/img/v1/rv/2609161405/f065.png', POINT_CDN_BASE) === Infinity && defaultCachePolicy('point/2026091609/run.json', sha) === Infinity
+      && defaultCachePolicy('point/index.json', POINT_CDN_BASE) === null && defaultCachePolicy('point/2026091609/run.json', POINT_CDN_BASE) === null
+      && defaultCachePolicy('point/static/hmodel/v1/t1/03_07.bin', POINT_CDN_BASE) === 12 * H && defaultCachePolicy('point/stations/catalog.json', POINT_CDN_BASE) === 24 * H);
+    let clock = 0; const backend = memoryBackend(); const cstats = newCacheStats();
+    const inner = memoryStore(all);
+    const cs = cachedStore(inner, backend, { stats: cstats, nowMs: () => clock });
+    await cs.bytes(chunkP); await cs.bytes(chunkP);
+    await cs.bytes('point/index.json'); await cs.bytes('point/index.json');
+    add('(10) cachedStore: ein Chunk wird einmal geholt und dann aus dem Cache bedient; der Index geht immer am Cache vorbei',
+      inner.stats.files === 3 && cstats.hits === 1 && cstats.bypass === 2 && cstats.stored === 1, JSON.stringify(cstats));
+    await cs.bytes('point/stations/catalog.json'); clock = 25 * H; await cs.bytes('point/stations/catalog.json');
+    add('(10) cachedStore: befristete Eintraege laufen ab (Katalog nach 25 h erneut geholt)', inner.stats.files === 5 && cstats.misses === 3);
+    add('(10) cachedStore: `withBase` behaelt den Cache, und ein 404 wird NICHT gemerkt',
+      (await cs.withBase('x').bytes('point/2026091609/t1/00_00.bin')) === null && (await cs.bytes('point/2026091609/t1/00_00.bin')) === null && backend.size() === 2);
+    add('(10) cachedStore: der Sweep raeumt, was aelter als die Frist ist', (await backend.sweep(clock + 1)) === 2 && backend.size() === 0);
+  }
+
+  // ── (10g) memoStore ───────────────────────────────────────────────────────
+  {
+    const inner = memoryStore(all); const ms = memoStore(inner);
+    await Promise.all([ms.bytes(chunkP), ms.bytes(chunkP), ms.bytes('point/nope.bin'), ms.bytes('point/nope.bin')]);
+    add('(10) memoStore: derselbe Pfad wird je Instanz EINMAL geholt — auch ein 404', inner.stats.files === 1 && inner.stats.misses === 1);
+    let n = 0; const failing = { ...inner, bytes: async () => { n++; throw new Error('HTTP 403'); } };
+    const mf = memoStore(failing); await mf.bytes('a').catch(() => {}); await mf.bytes('a').catch(() => {});
+    add('(10) memoStore: eine Absage wird NICHT gemerkt (der zweite Versuch geht wieder hinaus)', n === 2);
+  }
+
+  // ── (10h) Dekodier-Pool in Node = Hauptthread, wertgleich ─────────────────
+  {
+    const bytes = cubeFiles.get(chunkP);
+    const a = await decodeChunkPooled(bytes, { planes: manifest.planes });
+    const b2 = await decodeCubeChunk(bytes, { planes: manifest.planes });
+    add('(10) Dekodier-Pool: ohne `Worker` (Node) rechnet der Hauptthread — Ebene fuer Ebene gleich',
+      decodePoolInfo().mode === 'main' && a.planes.length === b2.planes.length
+      && a.planes.every((p, i) => p.length === b2.planes[i].length && p.every((v, k) => v === b2.planes[i][k])));
+    const w = await decodeChunkPooled(bytes, { planes: manifest.planes, wanted: ['t2m'] });
+    add('(10) Dekodier-Pool: `wanted` kommt an (nur t2m entpackt)', w.planes.filter((p) => p.length > 0).length === 1);
+  }
+
+  // ── (10i) Store: Index mit no-cache; Dauer, weiche Frist, Wiederholung (V-FI-5) ─
+  {
+    const seen = [];
+    const fetchImpl = async (url, init) => {
+      seen.push({ url: String(url), cache: init?.cache ?? null });
+      const p = String(url).replace(/^.*@main\//, '');
+      const bb = all.get(p);
+      return bb ? new Response(bb, { status: 200 }) : new Response('', { status: 404 });
+    };
+    const hs = httpStore({ base: POINT_CDN_BASE, fetchImpl, slowMs: 0 });
+    await loadPointIndex(hs); await hs.bytes(chunkP);
+    add('(10) R9: der Index wird mit `cache: no-cache` geholt, ein Chunk ohne Cache-Vorgabe', seen[0].cache === 'no-cache' && seen[1].cache === null);
+    add('(10) Store zaehlt Dauer und langsame Abrufe (weiche Frist 0 ⇒ jeder Abruf gilt als langsam)', hs.stats.ms > 0 && hs.stats.slow === 2 && hs.stats.retries === 0);
+    let k = 0;
+    const flaky = httpStore({ base: POINT_CDN_BASE, retryDelayMs: 1, fetchImpl: async () => { k++; return k === 1 ? new Response('', { status: 502 }) : new Response(all.get('point/index.json'), { status: 200 }); } });
+    const idx2 = await flaky.json('point/index.json');
+    add('(10) V-FI-5: ein 5xx wird EINMAL wiederholt und zaehlt als retry', idx2?.schema === CUBE_SCHEMA && flaky.stats.retries === 1 && k === 2);
+    let k2 = 0;
+    const dead = httpStore({ base: POINT_CDN_BASE, retryDelayMs: 1, fetchImpl: async () => { k2++; return new Response('', { status: 500 }); } });
+    let threw = false; try { await dead.bytes('x'); } catch { threw = true; }
+    add('(10) V-FI-5: nach der Wiederholung wird der Fehler geworfen (nicht als 404 getarnt); ein 404 wird nie wiederholt',
+      threw && k2 === 2 && dead.stats.misses === 0
+      && (await httpStore({ base: POINT_CDN_BASE, fetchImpl: async () => new Response('', { status: 404 }) }).bytes('y')) === null);
+    let k3 = 0;
+    const forbidden = httpStore({ base: POINT_CDN_BASE, retryDelayMs: 1, fetchImpl: async () => { k3++; return new Response('', { status: 403 }); } });
+    let threw403 = false; try { await forbidden.bytes('z'); } catch (e) { threw403 = /HTTP 403/.test(String(e.message)); }
+    add('(10) V-FI-5: ein 403 wird NICHT wiederholt (er kommt nach Sekunden und bleibt) — sofort geworfen, kein retry',
+      threw403 && k3 === 1 && forbidden.stats.retries === 0);
+    // Ausweichweg: das CDN sagt 403 fuer den Chunk, der Ausweichweg hat ihn — byte-gleich, gezaehlt.
+    const { fallbackStore, withRawFallback, rawBaseOf, POINT_RAW_BASE: RAW } = await import('../src/point/client/store.ts');
+    const prim = httpStore({ base: POINT_CDN_BASE, retryDelayMs: 1, fetchImpl: async (url) => {
+      const p = String(url).replace(/^.*@main\//, '');
+      if (p === chunkP) return new Response('', { status: 403 });
+      const bb = all.get(p);
+      return bb ? new Response(bb, { status: 200 }) : new Response('', { status: 404 });
+    } });
+    const fbNotes = [];
+    const fb = fallbackStore(prim, memoryStore(all), { onFallback: (p) => fbNotes.push(p) });
+    const got = await fb.bytes(chunkP);
+    add('(10) V-FI-5: ein 403 am CDN wird ueber den Ausweichweg nachgeholt (byte-gleich, gezaehlt, benannt); ein 404 bleibt 404 ohne Ausweichweg',
+      !!got && got.length === cubeFiles.get(chunkP).length && got.every((v, i) => v === cubeFiles.get(chunkP)[i]) && prim.stats.fallbacks === 1 && fbNotes[0] === chunkP
+      && (await fb.bytes('point/2026091609/t1/00_00.bin')) === null && prim.stats.fallbacks === 1);
+    add('(10) V-FI-5: `withRawFallback` gilt nur fuer eine jsDelivr-@main-Basis (raw.githubusercontent), jede andere bleibt, wie sie ist',
+      rawBaseOf(POINT_CDN_BASE) === RAW && rawBaseOf('https://example.org/x') === null && rawBaseOf(`${POINT_CDN_BASE.replace('@main', '')}@${'b'.repeat(40)}`) === null
+      && withRawFallback(memoryStore(all)) !== null && withRawFallback(prim).base === POINT_CDN_BASE);
+    // Hedge: das CDN antwortet erst nach 300 ms — nach 50 ms startet der Ausweichweg und gewinnt; der Verlierer wird abgebrochen.
+    const mkSlow = (delayMs) => {
+      let aborted = 0;
+      const st = httpStore({ base: POINT_CDN_BASE, retryDelayMs: 1, fetchImpl: (url, init) => new Promise((res, rej) => {
+        const t = setTimeout(() => res(new Response(all.get(String(url).replace(/^.*@main\//, '')) ?? '', { status: all.has(String(url).replace(/^.*@main\//, '')) ? 200 : 404 })), delayMs);
+        init?.signal?.addEventListener('abort', () => { clearTimeout(t); aborted++; rej(Object.assign(new Error('aborted'), { name: 'AbortError' })); });
+      }) });
+      return { st, aborted: () => aborted };
+    };
+    const slow = mkSlow(300);
+    const hedged = fallbackStore(slow.st, memoryStore(all), { hedgeMs: 50 });
+    const t0 = Date.now();
+    const hb = await hedged.bytes(chunkP);
+    const dt = Date.now() - t0;
+    add('(10) V-FI-5 Hedge: antwortet das CDN nicht binnen der Frist, gewinnt der Ausweichweg (byte-gleich, < 300 ms), der CDN-Abruf wird abgebrochen',
+      !!hb && hb.length === cubeFiles.get(chunkP).length && dt < 250 && slow.st.stats.fallbacks === 1 && slow.aborted() === 1, `${dt} ms, aborted ${slow.aborted()}`);
+    const fast = mkSlow(5);
+    const hedged2 = fallbackStore(fast.st, memoryStore(all), { hedgeMs: 200 });
+    const hb2 = await hedged2.bytes(chunkP);
+    add('(10) V-FI-5 Hedge: antwortet das CDN vor der Frist, startet kein Ausweichweg; ein 404 gewinnt sofort',
+      !!hb2 && fast.st.stats.fallbacks === 0 && (await hedged2.bytes('point/2026091609/t1/00_00.bin')) === null && fast.st.stats.fallbacks === 0);
+    // Prioritaet und Abbruch von aussen werden durchgereicht.
+    const seenInit = [];
+    const pr = httpStore({ base: POINT_CDN_BASE, fetchImpl: async (url, init) => {
+      seenInit.push({ priority: init?.priority ?? null, aborted: !!init?.signal?.aborted });
+      if (init?.signal?.aborted) throw Object.assign(new Error('aborted'), { name: 'AbortError' });   // wie echtes fetch
+      return new Response(all.get(String(url).replace(/^.*@main\//, '')) ?? '', { status: 200 });
+    } });
+    await pr.bytes(chunkP, { priority: 'low' });
+    const ac = new AbortController(); ac.abort(new Error('abgebrochen: test'));
+    let abortThrew = false; try { await pr.bytes(chunkP, { signal: ac.signal }); } catch { abortThrew = true; }
+    add('(10) Store: `priority` geht an fetch, ein schon abgebrochenes `signal` bricht ab und wird nie wiederholt',
+      seenInit[0]?.priority === 'low' && abortThrew && pr.stats.retries === 0);
+  }
+
+  // ── (10j) Gelaende aus zwei Skalen — synthetische Terrarium-Kacheln ───────
+  {
+    const PEAK = { lat: 47.27, lon: 11.40 };
+    const hAt = (lat, lon, peak) => 700 + (peak ? 800 * Math.exp(-((distanceKm(lat, lon, PEAK.lat, PEAK.lon) / 3) ** 2)) : 0);
+    const mkOpts = (peak, cache) => {
+      let fetches = 0;
+      const fetchImpl = async (url) => { fetches++; const m = String(url).match(/\/(\d+)\/(\d+)\/(\d+)\.png$/); return new Response(new TextEncoder().encode(JSON.stringify({ z: +m[1], x: +m[2], y: +m[3] })), { status: 200 }); };
+      const decodeRgba = (bytes) => {
+        const { z, x, y } = JSON.parse(new TextDecoder().decode(bytes));
+        const n = 2 ** z; const data = new Uint8ClampedArray(256 * 256 * 4);
+        for (let j = 0; j < 256; j++) {
+          const lat = Math.atan(Math.sinh(Math.PI * (1 - 2 * (y + j / 256) / n))) * 180 / Math.PI;
+          for (let i = 0; i < 256; i++) {
+            const lon = (x + i / 256) / n * 360 - 180;
+            const v = hAt(lat, lon, peak) + 32768;
+            const k = (j * 256 + i) * 4;
+            data[k] = Math.floor(v / 256); data[k + 1] = Math.floor(v) % 256; data[k + 2] = Math.min(255, Math.round((v - Math.floor(v)) * 256)); data[k + 3] = 255;
+          }
+        }
+        return { data, width: 256, height: 256 };
+      };
+      return { opts: { fetchImpl, decodeRgba, cache }, count: () => fetches };
+    };
+    const flat = mkOpts(false, null);
+    const rf = await loadTerrainAtPoint(PEAK.lat, PEAK.lon, flat.opts);
+    const nNear = tilesForRadius(PEAK.lat, PEAK.lon, TERRAIN_SCALES.near.z, TERRAIN_SCALES.near.radiusM).length;
+    const nFar = tilesForRadius(PEAK.lat, PEAK.lon, TERRAIN_SCALES.far.z, TERRAIN_SCALES.far.radiusM).length;
+    add('(10) Gelaende: flache Ebene ⇒ Hoehe 700 m, TPI 0, Neigung 0, Horizont 0 in allen acht Oktanten, SVF 1',
+      Math.abs(rf.elevationM - 700) < 0.2 && rf.tpi500M === 0 && rf.tpi2000M === 0 && rf.slopeDeg === 0 && rf.horizonDeg.every((h) => h === 0) && rf.svf === 1,
+      `h ${rf.elevationM} tpi ${rf.tpi500M}/${rf.tpi2000M} svf ${rf.svf}`);
+    add('(10) Gelaende: geholt werden genau die Kacheln, die die Radien schneiden (z11 Nahfeld + z8 Fernfeld, je 1–4)',
+      rf.tiles.near === nNear && rf.tiles.far === nFar && flat.count() === nNear + nFar && nNear >= 1 && nNear <= 4 && nFar >= 1 && nFar <= 4, `near ${nNear} far ${nFar}`);
+    const peak = mkOpts(true, memoryBackend());
+    const rp = await loadTerrainAtPoint(PEAK.lat, PEAK.lon, peak.opts);
+    // Analytisch: TPI = Gipfelhoehe − Ringmittel; Ringe 167/333/500 m ⇒ 800·(1−e^{−(d/3 km)²}) gemittelt = 11,4 m,
+    // Ringe 667/1333/2000 m ⇒ 156 m. Ein Wert daneben hiesse: falscher Radius oder falsche Skala.
+    add('(10) Gelaende: auf dem Gipfel ⇒ ~1500 m, TPI wie analytisch (500 m: 11,4 m · 2 km: 156 m), Horizont frei, SVF 1',
+      Math.abs(rp.elevationM - 1500) < 15 && Math.abs(rp.tpi500M - 11.4) < 3 && Math.abs(rp.tpi2000M - 156) < 8
+      && rp.horizonDeg.every((h) => h < 0.5) && rp.svf > 0.999 && rp.slopeDeg < 1.5,
+      `h ${rp.elevationM} tpi ${rp.tpi500M}/${rp.tpi2000M} slope ${rp.slopeDeg}`);
+    const lonE = PEAK.lon + 2 / (111.32 * Math.cos(PEAK.lat * Math.PI / 180));
+    const flank = mkOpts(true, null);
+    const re = await loadTerrainAtPoint(PEAK.lat, lonE, flank.opts);
+    add('(10) Gelaende: 2 km oestlich des Gipfels ⇒ Horizont nach WESTEN 8–14°, nach Osten 0°, SVF < 1, Hoehe ~1213 m',
+      re.horizonDeg[6] > 8 && re.horizonDeg[6] < 14 && re.horizonDeg[2] === 0 && re.svf < 0.995 && Math.abs(re.elevationM - 1213) < 15,
+      `W ${re.horizonDeg?.[6]} E ${re.horizonDeg?.[2]} svf ${re.svf} h ${re.elevationM}`);
+    const before = peak.count();
+    const rp2 = await loadTerrainAtPoint(PEAK.lat, PEAK.lon, peak.opts);
+    add('(10) Gelaende: derselbe Ort ein zweites Mal ⇒ fertig aus dem Cache, keine Kachel geholt',
+      rp2.fromCache === true && peak.count() === before && rp2.elevationM === rp.elevationM);
+    const rp3 = await loadTerrainAtPoint(PEAK.lat, PEAK.lon, { ...peak.opts, noResultCache: true });
+    add('(10) Gelaende: ohne Ergebnis-Cache kommen die KACHELN aus dem Cache (0 Abrufe), das Ergebnis ist dasselbe',
+      rp3.fromCache === false && peak.count() === before && rp3.tiles.fromCache === nNear + nFar && rp3.elevationM === rp.elevationM);
   }
 }
 
