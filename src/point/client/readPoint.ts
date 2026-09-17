@@ -68,6 +68,9 @@ export interface ReadPointInput {
 
 export type ProgressStage = 'index' | `cube.${TierId}` | 'station' | 'nowcast' | 'static' | 'terrain' | 'first' | 'read' | 'done';
 
+/** AP7: ein Kern, der spät kommt, soll den Nowcast, der gleich danach kommt, nicht verlieren (set). */
+export const LATE_GRACE_MS = 250;
+
 export interface ReadPointOptions {
   store: PointStore;
   /** PNG-Dekoder für die Radar-Frames. Ohne ihn wird der Nowcast übersprungen — und gesagt. */
@@ -76,6 +79,8 @@ export interface ReadPointOptions {
   decodeChunk?: ChunkDecoder;
   /** Nur diese Ebenen entpacken (Rechenzeit, keine Bytes). */
   wanted?: readonly string[];
+  /** AP3: die Nachbarzellen jeder Stufe mitlesen (aus demselben Chunk, 0 zusätzliche Abrufe). */
+  neighbours?: boolean;
   nowcast?: boolean;
   /** Gelände-Optionen — oder `false`, um es auszulassen. */
   terrain?: TerrainOptions | false;
@@ -83,6 +88,17 @@ export interface ReadPointOptions {
   plan?: boolean;
   /** Statische Produkte an den Index-Commit gepinnt lesen statt `@main` (s. Kommentar im Leser, V-FI-6). */
   staticPinned?: boolean;
+  /**
+   * AP7 (V-FI-16): Frist AB DEM START des Lesens, bis zu der auf die progressiven Produkte (Nowcast,
+   * statische Produkte) gewartet wird — nie früher als `lateGraceMs` nach dem Kern. Radar-Slots sind
+   * am Edge immer kalt (V-FI-7) — im Lab kam der Nowcast 1,4–2,1 s nach dem Kern und machte aus 0,7 s
+   * Antwort 2,8 s. Läuft die Frist ab, fehlt das Produkt im Bündel MIT Hinweis (`skips`), die Abrufe
+   * laufen weiter und füllen den Cache für den nächsten Aufruf. Ohne Angabe wird gewartet wie bisher
+   * (Sammler, CLI).
+   */
+  lateDeadlineMs?: number;
+  /** Mindestwartezeit nach dem Kern, wenn `lateDeadlineMs` gesetzt ist (Voreinstellung `LATE_GRACE_MS`). */
+  lateGraceMs?: number;
   onProgress?: (e: { stage: ProgressStage; ms: number }) => void;
 }
 
@@ -257,7 +273,7 @@ export async function readPointBundle(input: ReadPointInput, opts: ReadPointOpti
       chunk = await decode(bytes, { planes: man.planes, wanted: opts.wanted });
       planes = man.planes;
     }
-    const series = cubeSeriesFrom(chunk, addr, planes, { bytes: bytes.length, manifest: man, manifestFrom: from, wanted: opts.wanted, lat, lon });
+    const series = cubeSeriesFrom(chunk, addr, planes, { bytes: bytes.length, manifest: man, manifestFrom: from, wanted: opts.wanted, lat, lon, neighbours: opts.neighbours });
     if (series.provenanceNote) notes.push(`${tierId}: ${series.provenanceNote}`);
     return series;
   };
@@ -279,7 +295,6 @@ export async function readPointBundle(input: ReadPointInput, opts: ReadPointOpti
     hmodelPs.set(t, guard(`hmodel.${t}`, readStaticProductPoint(staticStore, HMODEL_PRODUCT, HMODEL_VERSION, t, lat, lon, { decodeChunk: decode, priority: 'low' })));
   }
   const urbanP = guard('urban', readUrbanPoint(staticStore, lat, lon, { decodeChunk: decode, priority: 'low' }));
-  const staticDone = Promise.all([...hmodelPs.values(), urbanP]).then(() => { mark('static'); progress('static'); });
 
   // ── Station: Katalog ‖ Manifest ‖ Bündel des eigenen Chunks (optimistisch) ─
   const readStation = async (): Promise<{ series: StationPointSeries | null; choice: StationChoice }> => {
@@ -339,13 +354,35 @@ export async function readPointBundle(input: ReadPointInput, opts: ReadPointOpti
   // ── Kern einsammeln (Stufen, Station, Gelände), dann den Rest ────────────
   let coreMs = 0;
   const coreP = Promise.all([stationP, terrainP, ...tierPs.values()]).then(() => { coreMs = Math.round(now() - T0); mark('core'); });
-  const [station, nowcast, terrain] = await Promise.all([stationP, nowcastP, terrainP, staticDone, firstP, coreP, ...tierPs.values()]);
+  // AP7: die progressiven Produkte bekommen eine Frist (V-FI-16): `lateDeadlineMs` ab dem START des
+  // Lesens, aber nie früher als `lateGraceMs` nach dem Kern (ein langsamer Kern soll den Nowcast, der
+  // gleich danach kommt, nicht verlieren). Gemessen 16.09. 22:33: mit einer Frist AB DEM KERN antwortete
+  // München bei 2 256 ms (Kern 742 + 1 500), also über dem 2-s-Ziel — der Radar-Slot ist am Edge immer
+  // MISS (V-FI-7). Der Verlierer der Frist läuft weiter (Cache), das Bündel sagt, dass er fehlte.
+  const LATE = Symbol('late');
+  const graceMs = opts.lateGraceMs ?? LATE_GRACE_MS;
+  const withDeadline = <T>(p: Promise<T>): Promise<T | typeof LATE> => (opts.lateDeadlineMs == null
+    ? p
+    : Promise.race([p, coreP.then(() => new Promise<typeof LATE>((r) => setTimeout(() => r(LATE), Math.max(graceMs, (opts.lateDeadlineMs as number) - (now() - T0)))))]));
+  const staticAll = Promise.all([...hmodelPs.values(), urbanP]).then((arr) => { mark('static'); progress('static'); return arr; });
+  const [station, nowcastR, terrain, staticR] = await Promise.all([stationP, withDeadline(nowcastP), terrainP, withDeadline(staticAll), firstP, coreP, ...tierPs.values()]);
   for (const [t, p] of tierPs) base.cube[t] = await p;
-  for (const [t, p] of hmodelPs) base.hmodel[t] = await p;
-  base.urban = await urbanP;
+  if (staticR === LATE) {
+    for (const t of hmodelPs.keys()) base.hmodel[t] = null;
+    skips.push(`static: hmodel/urban nach der Frist (${opts.lateDeadlineMs} ms ab Start, mindestens ${graceMs} ms nach dem Kern) nicht da — Abruf läuft weiter (V-FI-16)`);
+  } else {
+    const tiersList = [...hmodelPs.keys()];
+    tiersList.forEach((t, i) => { base.hmodel[t] = staticR[i] ?? null; });
+    base.urban = staticR[tiersList.length] ?? null;
+  }
   base.station = station?.series ?? null;
   base.stationChoice = station?.choice ?? null;
-  base.nowcast = nowcast;
+  if (nowcastR === LATE) {
+    base.nowcast = [];
+    skips.push(`nowcast: Radar nach der Frist (${opts.lateDeadlineMs} ms ab Start, mindestens ${graceMs} ms nach dem Kern) nicht da — Modell statt Radar für 0–3 h, Abruf läuft weiter (V-FI-16)`);
+  } else {
+    base.nowcast = nowcastR;
+  }
   base.terrain = terrain;
   const readMs = Math.round(now() - T0);
   mark('read'); progress('read');

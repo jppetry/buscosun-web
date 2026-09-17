@@ -292,6 +292,12 @@ export const FOOTPRINT_M: Readonly<Record<string, number>> = Object.freeze({
   gfs: 28_000,
   ecmwf_ifs: 28_000,
   radolan: 1_000, rzc: 1_000,
+  // Phase FI, AP2 — der Punkt-Cube (`src/point/cubeFormat.ts`): das gemittelte Feld gilt
+  // für die ZELLE, also ist die Zellweite der Footprint — t1 0,05° ≈ 5,5 km N–S, t2 0,10°,
+  // t3 0,25°. `set`: die Modelle dahinter sind feiner (ICON-D2 2,2 km), aber der Cube
+  // liefert ihr Mittel je Zelle, nicht die Zelle eines Modells. Additiv: der Live-Pfad
+  // emittiert diese Tags nie.
+  'cube-t1': 5_000, 'cube-t2': 10_000, 'cube-t3': 25_000,
 });
 
 export const FOOTPRINT_FALLBACK_M: Readonly<Record<SourceFamily, number>> = Object.freeze({

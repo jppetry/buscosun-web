@@ -673,3 +673,380 @@ Vergleich gegen `latency/2026-09-16T14-33-41-921Z.json` (kalt-neu Kern p50 **1 4
 
 
 
+
+### 9.5 AP2 — Cube-Adapter und Flag `pointSource: 'cube'` (2026-09-16, ab 21:00 UTC)
+
+**Auftrag (§4, AP2):** das Bündel aus AP1 auf den Sample-Vertrag von buscosun Fusion abbilden — auf der **Cube-Achse** (109 native Schritte), Familien t1 → `highres`, t2/t3 → `global`, Station → `mosmix`, Radar → `nowcast`; `PointSourceSample` **additiv** um `sigmaDiv, sigmaEns, q10, q90, srcCount, ensCount, hModEff, profile` erweitern; `pointSource: 'live' | 'cube'` in `PointForecastOptions` und im Cache-Schlüssel; Live-Pfad ohne Flag byte-gleich. Abnahme: Zehn-Orte-Vergleich Cube ↔ Live (T 0,5 K · Wind 1 m/s · RR 0,2 mm/h · clct 10 %; Größeres = Befund), Laufzeit Ende-zu-Ende ≤ 2 s p50 Desktop-warm.
+
+#### 9.5.1 Diagnose — was das Bündel an den zehn Orten trägt (Node, 16.09. 21:12 UTC, `npm run point:read`-Weg, Radar an)
+
+Läufe im Index: t1 `2026091618` (49 Schritte), t2 `2026091612` (24), t3 `2026091600` (36), Stationen `2026091615` (247 Schritte, 12 Größen); alle Manifeste **gepinnt** gelesen (V-FI-1 wirkt). Index `usableToH` **318** ab dem t1-Lauf (die t3-Naht ist beweglich, V-PD-55).
+
+| Ort | h_true (z11) | hModEff t1/t2/t3 | Δh = hModEff − h_true (t1) | srcCount t1 · t3(126 h → 231 h) | Profil t1 (Inversionsstunden von 49) | q10/q90 t1 | unter Grund | Station | Radar |
+|---|---|---|---|---|---|---|---|---|---|
+| Hamburg | 12 | 15/16/12 | +3 | 4 · 4→2 | ja (15) | **nein** | — | Innenstadt 0,9 km, −4 m ✓ | RV (3 Frames, alle `validAtSuspect`) |
+| Berlin | 44 | 45/42/48 | +1 | 4 · 4→2 | ja (20) | **nein** | — | Alex. 1,0 km, −7 m ✓ | RV |
+| München | 525 | 510/568/487 | −15 | 6 · 4→2 | ja (14) | ja | — | Stadt 5,0 km, −10 m ✓ | RV + INCA + CombiPrecip (RV 0,16/0,47/0,16 gegen INCA 1,41/0,55/0,24 mm/h) |
+| Wien | 172 | 235/208/278 | **+63** | 6 · 4→2 | ja (14) | ja | — | City 1,0 km, −1 m ✓ | INCA (10,1 → 1,3 → 0,3 mm/h) |
+| Graz | 350 | 408/466/436 | +58 | 6 · 4→2 | ja (22) | ja | — | Universität 1,3 km, +17 m ✓ | INCA |
+| Innsbruck | 576 | 1093/1222/1469 | **+517** | 6 · 4→2 | ja (0) | ja | 925 | Flughafen 4,1 km, +5 m ✓ | RV + INCA + CombiPrecip |
+| Zürich | 406 | 483/486/483 | +77 | 6 · 4→2 | ja (18) | ja | — | **abgelehnt** (06660 +150 m) | RV + INCA + CombiPrecip |
+| Genf | 379 | 473/536/525 | +94 | 6 · 4→2 | ja (20) | ja | — | Genf 5,2 km, +42 m ✓ | CombiPrecip (nur Analyse) |
+| Zermatt | 1608 | 2537/2757/2854 | **+929** | 6 · 4→2 | ja (5) | ja | 925, 850 | Zermatt 1,0 km, +30 m ✓ | CombiPrecip |
+| Zugspitze | 2906 | 1690/1730/1277 | **−1216** | 6 · 4→2 | ja (0) | ja | 925, 850 (t3: 925) | Zugspitze 0,5 km, +54 m ✓ | RV + INCA + CombiPrecip |
+
+Was daran für den Adapter zählt:
+
+1. **Die Zeitachse ist nicht stündlich und nicht durchgehend.** 49 + 24 + 36 = 109 native Schritte; in Gültigzeit überlappen t1 (18z + 48 h = 17.09. 18 UTC) und t2 (12z + 51…120 h = 17.09. 15 UTC …), t2 und t3 (12z + 120 h = 21.09. 12 UTC gegen 00z + 126 h = 21.09. 06 UTC). Wo zwei Stufen dieselbe Gültigzeit tragen, nimmt der Adapter die **feinere** und markiert den Wechsel (`seam`, R7: sichtbar, nie geglättet). Die Achsenlücken 49–50 h und 121–125 h fallen in Gültigzeit heute in die Überlappung — sie werden nicht als leere Stunden ausgegeben, sondern die Achse nennt, was sie trägt (AP7 füllt mit der Station oder interpoliert markiert).
+2. **Profilfelder nur in t1** (R6): t2/t3 bekommen in AP4 den Rückfall `standardLapse` mit Flag. In t1 ist der Inversionsanteil heute 0–22 von 49 Stunden (Innsbruck und Zugspitze 0 — dort liegt die Zelle so weit über bzw. unter dem Punkt, dass PAP 4 den Fall C bzw. A trifft).
+3. **σ_div überall, σ_ens nur auf dem groben Raster** (t1 6-stündlich, t2 12-stündlich, t3 24-stündlich — `ensCount` in der Stundenmitte `null`), **Quantile nur südlich 51,5 °N** in t1 (C-LAEF-EPS endet dort; Hamburg und Berlin ohne). Der Adapter trägt sie durch; AP6 entscheidet je Größe und Stunde den PAP-6-Zweig.
+4. **Die Modellhöhe ist an fünf von zehn Orten um mehr als 50 m falsch**, an drei um mehr als 500 m. Bis AP4 gilt die lineare Standard-Lapse des bestehenden Motors (`sourceElevation = hModEff`, 6,5 K/km) — das ist genau die Basislinie B1 aus §5.2. Zermatt: Zelle 929 m über dem Punkt ⇒ der Punkt ist wärmer; Zugspitze: Zelle 1 216 m darunter ⇒ kälter.
+5. **Der Radar-Nowcast ist an fünf Orten `validAtSuspect`** (RV: der Spiegel schreibt die Laufzeit in jeden Frame, V-PD-56) — der Leser rechnet Slot + `lead`; der Adapter trägt das Flag weiter (AP7). In München und Innsbruck widersprechen sich RV und INCA um den Faktor 2–9 auf dem ersten Frame — zwei Beobachtungen desselben Punkts, die der Motor als korrelierte `nowcast`-Member (0,80) mit ihrer Distanz-Repräsentativität mischt, nicht als zwei Meinungen.
+6. **V-FI-5 traf auch diesen Lauf**: RV-`meta.json` dreimal (Hamburg), einmal (Berlin), INCA-`meta.json` einmal (München) erst über den `raw`-Ausweichweg nach dem 2,5-s-Hedge — Hamburg brauchte deshalb 7,5 s statt 0,3–0,7 s. Der Nowcast liegt nicht im Kern (§9.2, Begriff 1), der Algorithmus wartet nicht auf ihn.
+
+#### 9.5.2 Was der bestehende Motor schon kann, und was der Adapter deshalb NICHT baut
+
+`fuseHour(samples, leadH, ctx)` nimmt je Stunde eine Liste `PointSourceSample` und rechnet Geometrie (Lapse über `sourceElevation`, Wind-Shelter über `windTerrainFactor`), Fehler (σ_skill aus der ACC-Kurve je **Familie**, σ_rep aus der Geländestreuung je **Footprint** des `source`-Tags), Kombination mit Fehlerkorrelation (`combine.ts`), Schrumpfung gegen die Klimatologie (`ClimaField`, stündlich über `hourlyClimaTemp`), Familien (`dist.ts`), Regime-Aufweitung (`meteo.ts`, Kaltluftsee/Föhn/Phase). Nichts davon wird neu geschrieben. Der Adapter liefert **Samples, Kontext und Achse**:
+
+| Cube-Ebene | Sample-Feld | Bemerkung |
+|---|---|---|
+| `t2m` | `temperature`, `sourceElevation = hModEff` | Motor korrigiert linear auf `ctx.elevationM` (= h_true aus dem Gelände); AP4 ersetzt das durch PAP 4 |
+| `td2m` | `dewPoint` | Motor fusioniert den Taupunkt, RH ist abgeleitet; Taupunkt-Lapse 1,8 K/km (Prior des Motors) |
+| `u10`/`v10`/`gust` | `u`/`v`/`gust` | Rice-Familie, Shelter/Speed-up aus TPI |
+| `precip` | `precipitation` | Hurdle (K-2); `0` = zensiert |
+| `clct` | **`cloudTotal` (neu, additiv)** | der Motor summierte bisher die drei Schichten; `clct := max(...)`-Konsistenz kommt in AP6 |
+| `clcl/clcm/clch` | `cloudLow/Mid/High` | für die strahlungswirksame Bewölkung des Regimes |
+| `snowlmt` | `snowLine` | der Motor fusioniert sie nicht; wird als Zellwert durchgereicht |
+| `ps` | `pressure` (neu, additiv) | keine Familie im Motor; hydrostatisch auf h_true in AP4 |
+| `<v>_sd`, `<v>_sd_ens`, `<v>_q10/_q90`, `srcCount`, `ensCount`, `hModEff`, Profil | `sigmaDiv`, `sigmaEns`, `q10`, `q90`, `srcCount`, `ensCount`, `hModEff`, `profile` (alle neu, additiv) | in AP2 nur getragen; AP4 liest `profile`/`hModEff`, AP6 die Streuungen |
+
+Familien und Footprints: `cube-t1` → `highres` (ACC-Kurve von ICON-D2/AROME, Horizont 60 h), `cube-t2`/`cube-t3` → `global` (Horizont 384 h), Station → `mosmix` (Tag `mosmix`, Footprint 0 — dieselbe Behandlung wie BrightSky-MOSMIX auf dem Live-Pfad, damit der Vergleich denselben Prior sieht), Radar → `nowcast` (Tags `radolan`/`inca`/`rzc`, wie die Live-Sampler). Neu in `FOOTPRINT_M` (additiv): `cube-t1` 5 000, `cube-t2` 10 000, `cube-t3` 25 000 m — die Zellweite der Stufe, **`set`** (der Live-Pfad emittiert diese Tags nie).
+
+**Der Vorlauf für die ACC-Kurve ist die Stunde ab JETZT**, nicht ab dem Quell-Lauf — dieselbe Regel wie auf dem Live-Pfad (dort ist `leadH` der Stundenindex ab jetzt, obwohl jede Quelle aus einem älteren Lauf stammt). Für t3 (Lauf 00z, beim Abruf 21 h alt) überschätzt das ρ leicht; das Laufalter steht in der Provenienz (`ageH`), und AP9 misst, ob die Kurve nach dem Modell-Vorlauf gehört (**V-FI-10**, offen).
+
+**Was der Adapter NICHT tut (bewusst, je AP):** keine Mikroklima-Verschiebung des Mittels (`ctx.terrainDeltaC = 0` — PAP 5 mit A = null ist inaktiv, AP5; der Live-Pfad addiert bis zu −3,5 K Kaltluftsee — das wird im Zehn-Orte-Vergleich als Befund sichtbar, nicht versteckt), keine PAP-4-Fälle (AP4), keine Nachbargewichtung (AP3, `cellOf` = nächste Zelle), kein σ aus dem Cube (AP6), kein Anker, keine Interpolation, kein Klimatologie-Schwanz (AP7), keine v2-Ausgabe (AP8).
+
+#### 9.5.3 Was sich ändert (Dateien)
+
+| Datei | Änderung |
+|---|---|
+| `src/pointForecast/types.ts` | `PointSourceSample` additiv: `cloudTotal`, `pressure`, `sigmaDiv`, `sigmaEns`, `q10`, `q90`, `srcCount`, `ensCount`, `hModEff`, `profile`; `PointForecast` additiv: `cube?` (Achse, Provenienz, Flags, Zeiten) |
+| `src/pointForecast/pointForecast.ts` | `PointForecastOptions.pointSource?: 'live' \| 'cube'`; `pfCacheKey` bekommt `:c`; **Registrierung statt Import**: `registerPointSource('cube', fn)` — ein statisches `await import('./cubeSource')` in dieser Datei ließe Rollup einen Chunk mit allen Punkt-Modulen bauen (Textsonde rot, totalJs wächst), deshalb registriert sich der Cube-Pfad, wenn ein Verbraucher `cubeSource.ts` lädt; ohne Registrierung wirft `pointSource: 'cube'` einen benannten Fehler statt still auf `live` zu fallen |
+| `src/pointForecast/fusion/fuse.ts` | additiv: `cloudTotal` im Bewölkungs-Extraktor (`s.cloudTotal ?? Summe der Schichten`) — ohne das Feld byte-gleich |
+| `src/pointForecast/fusion/priors.ts` | additiv: `FOOTPRINT_M['cube-t1'\|'cube-t2'\|'cube-t3']` |
+| `src/pointForecast/fusion/attach.ts` | `getClimaField` exportiert (dieselbe Klimatologie, derselbe Cache) |
+| `src/point/client/terrain.ts` | `TerrainPointResult.scales` (die sechs Ringradien des Motors, `terrainScales` aus `terrainScale.ts` auf derselben Höhenfunktion) + `sinkDepthM`; Ergebnis-Cache-Schlüssel `terrain/v2` |
+| `src/pointForecast/cubeSource.ts` **neu** | `fuseCubePoint(input, opts)` — **pur**: (Bündeldaten, Klimatologie, Kalibrierung, nowMs, Optionen) → Schritte mit `FusedPoint`, Flags, Members; `cubeInputFromBundle`; `getPointForecastFromCube(opts, io)` — Lesen (AP1-Leser) + `fuseCubePoint` + Abbildung auf `PointForecast`; `registerCubePointSource()` |
+| `scripts/verify-pv-cube.mjs` **neu** | netzfrei, echte Datenformen: Rundweg Fixture → `fuseCubePoint` → Werte; Live-Pfad-Gleichheit ohne Flag; Achse/Naht/Familien; wächst je AP |
+| `scripts/pv-latency/lab.ts`, `scripts/verify-pv-latency.mjs` | Szenario `cube-cold`/`cube-warm` (`getPointForecast({ pointSource: 'cube' })` im Browser), `cube-vs-live` für den Zehn-Orte-Vergleich; `--gate` prüft §6 |
+
+#### 9.5.4 Ergebnis AP2 (16.09., 21:30–21:50 UTC)
+
+**Gebaut wie in 9.5.3.** Dazu `scripts/lib/pvCubeFixtures.mjs` (Fixture in echter Form: drei Stufen mit den Läufen 18z/12z/00z, Stationsprodukt 15z, Index über `buildPointIndex` — Signatur je Zelle, Schritt und Ebene) und `npm run verify:pv-cube` (**36/36** in der AP2-Fassung, netzfrei; die späteren Blöcke wachsen an). Beim Zählen der Achse hat die Fixture einen Rechenfehler der Diagnose korrigiert: 12z + 51 h ist der **18.09. 15:00**, nicht der 17.09. — die Überlappung t1/t2 beträgt heute 3 h (zwei t2-Schritte), t2/t3 6 h (zwei t3-Schritte) ⇒ **102** native Schritte im Fenster ab 21:00 (t1 46 · t2 22 · t3 34), zwei Nähte (18.09. 21:00 t1→t2, 21.09. 18:00 t2→t3), keine Gültigzeit doppelt.
+
+**Gates:** `typecheck` 0 · `verify:pv-fusion` **222/222** (Live-Pfad byte-gleich — dazu im neuen Verifier: `fuseHour` ohne die additiven Felder ≡ mit `cloudTotal` = Schichtsumme, Negativkontrolle mit anderem `cloudTotal` weicht ab; die übrigen additiven Felder ändern nichts; `pfCacheKey` ohne Flag unverändert) · `verify:point-client` **112/112** · `verify:pv-cube` 36/36 · Rechnung allein **34 ms** für 102 Schritte (Node, < 100 ms).
+
+**Laufzeit (Browser-Lab, `latency/2026-09-16T21-30-22-612Z.json`, desktop-none, 10 Orte, kalt-neu = frischer Kontext, CDN so wie es war; Stand des Bündels: AP2 ohne PAP 4):**
+
+| Szenario | total p50 (p95) | Lesephase p50 | Algorithmus p50 (max) | Draht | Gate §6 |
+|---|---|---|---|---|---|
+| `cube-cold` (Ende-zu-Ende, 336 h, mit Radar) | **1 154 ms** (1 596) | 1 111 ms | 30 ms (36,5) | 1,2–2,3 MB, 25–38 Abrufe, 0 Ausweichwege | **GRÜN** (p50 < 2 s, p95 < 5 s) |
+| `cube-warm` (Ergebnis-Cache geleert, IndexedDB warm) | **153 ms** (171) | 138 ms | 12 ms | 0–1 KB (nur `index.json`) | — |
+
+Die Rechnung kostet 3 % der kalten und 8 % der warmen Antwort; der Rest ist AP1. Mobil-4G: s. 9.6.4 (mit AP4 im Bündel gemessen).
+
+**Zehn-Orte-Vergleich Cube ↔ Live** (`cmp-cube`/`cmp-live` im selben Kontext, Live mit `distribution: true`, Radar, 336 h; Δ = Cube − Live an 10 Vorläufen 0…96 h — jenseits 96 h endet der Live-Pfad bei MOSMIX allein und der Vergleich sagt nichts Neues). Anteil der (Ort, Vorlauf)-Paare innerhalb der Toleranz:
+
+| Größe | Toleranz | innerhalb | Wo es reißt |
+|---|---|---|---|
+| T | 0,5 K | **57 / 100** | Hamburg 10/10, Berlin 10/10, München 9/10 — **Zugspitze 0/10, Zermatt 2/10, Graz 3/10, Genf 4/10** |
+| Wind | 1 m/s | **51 / 100** | Berlin 10/10, Hamburg/Wien 9/10 — Zermatt/Zugspitze 0/10, Zürich 2/10, Innsbruck 3/10; **der Cube ist fast überall windiger** (+0,3 bis +5 m/s) |
+| Niederschlag | 0,2 mm/h | **90 / 100** | die Fehler liegen bei 0–6 h (Radar) und an der Zugspitze |
+| clct | 10 % | **63 / 100** | Alpen und Genfersee 3–5/10; Flachland 8–9/10 |
+
+Was die Tabelle sagt — Befund für Befund, nicht versteckt:
+
+1. **Im Flachland stimmen die Pfade** (Hamburg/Berlin/München: T innerhalb 0,45 K an 29 von 30 Paaren; die Ausnahme ist München +0 h mit +1,04 K, wo der Live-Pfad die Stationsmessung 5 km entfernt als Wert nimmt und der Cube ICON-Mittel + MOSMIX fusioniert).
+2. **V-FI-11 — der Live-Pfad meldet an der Zugspitze bei +0 h 12,67 °C** (Cube 2,11 °C, drei Stunden später beide bei 0,6/2,8 °C). Das ist der Stationsblend des Altpfads (`dwd_obs`, sechs Stationen mit Regressions-Lapse), nicht der Cube — ein Befund der Live-Linie, hier nur benannt.
+3. **V-FI-12 — Wind:** der Cube-Pfad meldet den **Median der Rice-Verteilung**, der Live-Pfad den Betrag des geblendeten Vektors. Bei kleinem Mittelvektor und großer Komponentenstreuung (Repräsentativität im Gebirge: Zugspitze +3…+5 m/s, Zermatt +2,4…+4) liegt der Rice-Median weit über |μ| — dieselbe Plus-Verzerrung, die V-A₁ an der Fusion gemessen hat (§11 (3) in `implementierung-pv3.md`). In AP6 kommt σ des Cube-Members aus σ_div/σ_ens statt aus dem Streuungs-Prior des Motors; dann neu messen.
+4. **V-FI-13 — im Gebirge trägt in t1 nur die Station:** Zermatt, Innsbruck, Zugspitze haben in den ersten 48 h `contributors = mosmix` — der Cube-Member hat dort **< 5 % Gewicht**. Ursache: die Repräsentativität des Motors für eine 5-km-Zelle mit 500–800 m Höhenstreuung plus `0,0035 K/m · |Δh|` (Δh 517–1 216 m) ergibt σ_rep ≈ 3–5 K gegen die Station 0,5–4 km daneben. Das ist konsistent, hat aber eine Folge für AP4/AP6: **die PAP-4-Korrektur wird an genau den Orten, für die sie gebaut ist, im fusionierten Wert unsichtbar, solange eine Station ≤ 15 km/100 m existiert** — und sie existiert an 9 von 10 Orten. AP6 muss σ des Cube-Members aus PAP 6 (σ_div/σ_ens/σ_sys + Restfehler der Korrektur) setzen, nicht aus dem Geländestreuungs-Prior; erst dann entscheidet der Backtest (AP9), wer im Tal recht hat.
+5. **V-FI-14 — Niederschlag 0–6 h:** München +0 h Cube 0,06 gegen Live 0,77 mm/h, Zugspitze 1,18 gegen 1,86. Der Cube-Pfad hat drei Radarquellen als `nowcast`-Member (RV 0,16 · INCA 1,41 · CombiPrecip 0,00 in München, Slot 20:45/20:15), der Live-Pfad RV allein aus einem jüngeren Slot. Drei sich widersprechende Beobachtungen plus zwei trockene Modelle ⇒ das Auftreten bleibt unsicher, das Hurdle-Mittel klein. AP7 gehört das Nowcast-Member (Quellenwahl, Alter, `validAtSuspect`, Sättigung).
+6. **Graz +3 h: −4,3 K** (Cube 14,1 gegen Live 18,4 °C um 00 UTC; bei +0 h Cube 15,7 gegen TAWES 17,4) und **Genf/Wien/Zürich bei 48/51 h −1…−2 K** (cube-t2 gegen AROME+MOSMIX): wer recht hat, sagt erst der Backtest. Ohne Wahrheit ist das eine Abweichung, kein Fehler.
+7. `belowGround925` trägt an Innsbruck, Zermatt und Zugspitze auf 88 von 102 Schritten (t1/t2 alle, t3 für 925) — die Druckflächen-Information dort ist Extrapolation (PD-E §4.3).
+
+**AP2-Abnahme:** fachlich ✓ (Vergleich liegt vor, Abweichungen benannt) · Laufzeit ✓ (Desktop-Gate grün) · Live-Pfad byte-gleich ✓ · Budget/Bundle: s. 9.6.4 (einmal nach AP4 gebaut). Offen aus AP2: V-FI-10…14; UV fehlt auf dem Cube-Pfad (bleibt Live-Abruf, §1.1 — AP7/AP8 tragen ihn nicht, ein Verbraucher holt ihn wie heute).
+
+### 9.6 AP4 — PAP 4, die vertikale Korrektur (2026-09-16, ab 21:35 UTC)
+
+**Auftrag (§4, AP4):** `fusion/vertical.ts` mit den Fällen A/B/C aus `gammaEff/zBase/zInv/dTInv` (nur t1), φ linear (`set`), Δh-Protokoll, Flag `extrapolatedBelowModel`, Taupunkt-Lapse; Rückfall Standard-Lapse mit Flag `stdLapseFallback` ohne Profil (t2/t3); `hModEff` aus dem Cube (E-E-5: keine abgeleiteten Höhen je Quelle) und `terrain.elevationM` als h_true. Abnahme: Vorzeichen Zermatt (Zelle über dem Punkt ⇒ wärmer) und Zugspitze (Zelle darunter ⇒ kälter), Nacht/Tag-Anteil des Inversionsfalls am lebenden Cube, Negativkontrolle ohne Profil = lineare Lapse, ≤ 5 ms je Punkt.
+
+#### 9.6.1 Diagnose am lebenden Cube (Node, 16.09. 21:42 UTC, t1-Lauf 18z, alle 49 Schritte an den zehn Orten = 490 Zellstunden)
+
+| Größe | Gemessen |
+|---|---|
+| Inversion in der Zelle (`zInv > zBase`, `dTInv > 0`) | **128 von 490** Zellstunden — **nachts 93 von 240 (39 %), tags 35 von 250 (14 %)**: der Nacht/Tag-Anteil kommt aus dem Profil, nirgends aus dem Code |
+| PAP-4-Fall an diesen 128 | **Fall B: 0 · Fall C: 128.** Fall B verlangt h_true ≥ z_base; an allen zehn Orten liegt der Punkt unter der Basis — die Basis sitzt im Median **10 m über der Modelloberfläche** (p10 −33 m, p90 +182 m, max +815 m), und der Punkt liegt an 8 von 10 Orten unter der Zelle (Δh = h_true − hModEff: Hamburg −3, Berlin −1, München +15, Wien −63, Graz −58, Innsbruck −517, Zürich −77, Genf −94, Zermatt −929, Zugspitze +1 216 m) |
+| davon aufsitzend (`zBase ≤ hModEff + 50 m`) / abgehoben | 85 / 43 — nur die 85 aufsitzenden extrapolieren (Flag) |
+| Γ_eff in Fall A (K/km) | p10 4,8 · p50 6,5 · p90 10,1 — die Standard-Lapse ist der Median des Profils, die Ränder liegen ±40 % daneben |
+| Korrektur ΔT (K), Spanne über 49 Schritte | Hamburg 0…0,04 · Berlin 0…0,01 · München −0,16…+0,33 · Wien −1,04…+0,65 · Graz **−2,25**…+0,55 · Innsbruck +0,82…**+5,26** · Zürich −0,78…+0,83 · Genf −1,32…+1,04 · Zermatt **−9,99…+7,51** · Zugspitze **−11,04…−3,47** |
+| Vorzeichenprobe (22:00) | Zermatt T̄ 6,41 → **11,62 °C (+5,21 K, Fall A)**, Zugspitze T̄ 6,79 → **0,37 °C (−6,42 K)**, Innsbruck 14,30 → 15,98 (+1,68); Graz 16,67 → 16,07 (**Fall C**, −0,60 K: Bodeninversion 2,7 K über 100 m, Punkt 58 m unter der Zelle) |
+| Druck (hydrostatisch mitgeführt) | Zermatt 763,6 → 841,2 hPa, Zugspitze 810,9 → 717,5, Innsbruck 920,6 → 951,1 |
+
+**V-FI-15 — Fall C wörtlich ist an tiefen Orten nicht haltbar.** Zermatt trägt an 5 von 49 Schritten eine Bodeninversion; PAP 4 wörtlich (`T := T̄ − Γ_inv · (z_base − h_true)`) extrapoliert dann 3 K/300 m über **929 m** ⇒ **−9,99 K**, während dieselbe Zelle eine Stunde vorher (Fall A) **+7,51 K** ergibt — ein Sprung von 17 K je nachdem, ob das Modell an SEINER Oberfläche eine Inversion sieht. Eine Modellinversion von dT_inv sagt nichts über eine Mulde, die tiefer ist als die Inversion mächtig. Kur als **Strukturregel** (`calib: poolDepth:set`): das Gefälle wird höchstens über die eigene Mächtigkeit `zInv − zBase` fortgesetzt, darunter gilt wieder Γ_eff; die genutzte Tiefe steht als `poolDepthM` im Ergebnis. Zermatt damit **+1,25 K** statt −9,99. Ob die Regel richtig ist, sagt AP9 (Fall C ist laut PAP 4 „der unsichere Zweig" und bekommt in AP6 das breitere Band).
+
+**Zwei Abweichungen von der Skizze, benannt:** (1) PAP 4 schreibt die Formeln, als läge die Modelloberfläche an der Inversionsbasis. Gemessen liegt sie das im Median (10 m), aber nicht immer (p90 182 m: **abgehobene** Inversionen). Deshalb rechnet `vertical.ts` die Korrektur als Differenz eines stückweisen Profils P(z) zwischen h_true und h_mod_eff — mit Modelloberfläche an der Basis exakt die PAP-4-Formeln, sonst Γ_eff in der aufgelösten Schicht darunter (Setzung `dzSurface: 50 m`). (2) Der Taupunkt bleibt dem Motor überlassen (1,8 K/km über `sourceElevation`), der Cube-Member wird für die Temperatur so **vorkorrigiert**, dass die lineare Lapse des Motors PAP 4 vollendet (`applyVertical`: T_sample = T_PAP4 − γ_Motor · (h_mod_eff − h_true)) — damit der Repräsentativitätsterm `0,0035 K/m · |Δh|` des Motors als Restfehler der Korrektur erhalten bleibt (AP6 baut darauf auf). Ohne Profil ist T_sample = T̄ ⇒ byte-gleich zu AP2 — das ist die Negativkontrolle.
+
+#### 9.6.2 Was sich ändert
+
+| Datei | Änderung |
+|---|---|
+| `src/pointForecast/fusion/vertical.ts` **neu** | `verticalCorrection()` (pur), `phiLinear`, `pressureAt` (hydrostatisch), `DZ_SURFACE_M`, `GAMMA_ABS_MAX_PER_M` (±20 K/km, darüber Standard-Lapse mit Flag `gammaImplausible`), `verifyVertical()` 17 Prüfungen mit Negativkontrollen |
+| `src/pointForecast/cubeSource.ts` | `applyVertical()` je Schritt auf das Cube-Sample, `CubeStep.vertical`, Flags `inversionBody`/`extrapolatedBelowModel`/`stdLapseFallback`, `FuseCubeOptions.vertical` (Negativkontrolle), `calib`: `phi:set`, `dzSurface:set`, `standardLapse:literature` |
+| `scripts/verify-pv-cube.mjs` | Block (8): `verifyVertical` + Adapter (Fixture-Inversion 520…820 m, Fall B; t2/t3 `std`; 96 von 102 Schritten byte-gleich zu AP2, genau die 6 Inversionsschritte weichen ab; Druck; Vorkorrektur + Motor-Lapse = PAP-4-Wert; Zermatt/Zugspitze-Vorzeichen) |
+
+#### 9.6.3 Gates AP4
+
+`verify:pv-cube` **64/64** · `verify:pv-fusion` 222/222 · `verify:point-client` 112/112 · `typecheck` 0. Kosten: die Korrektur auf 102 Schritten ist in der Gesamtlaufzeit nicht messbar (Differenz mit/ohne −8,6 ms = Rauschen; die reine Funktion braucht < 0,05 ms je Aufruf, 490 Aufrufe der Diagnose in < 20 ms). Negativkontrolle ✓ (ohne Profil byte-gleich zur linearen Lapse). Vorzeichen ✓ (oben). Nacht/Tag ✓ (39 % gegen 14 %) — für den **Inversionsfall**, nicht für Fall B, den es an den zehn Orten nicht gibt.
+
+**Was AP4 bewusst NICHT tut:** PAP 4 wirkt nur auf das **Cube-Member**; ob es im fusionierten Wert ankommt, entscheidet dessen Gewicht — und das ist im Gebirge heute < 5 % (V-FI-13). Die Station 1 km neben Zermatt trägt den fusionierten Wert; die Korrektur des Cube-Members ist dort im Ergebnis unsichtbar, bis AP6 σ des Cube-Members aus PAP 6 setzt. Das ist die richtige Reihenfolge (erst der Wert, dann sein Fehler), aber es heißt: **die Zermatt-Zahl der Abnahme (+5,2 K am Member) ist kein Produktwert.**
+
+#### 9.6.4 Laufzeit und Bundle nach AP2 + AP4
+
+**Mobil-4G (Lab, `latency/2026-09-16T21-40-09-989Z.json`, CPU 4×, 9 Mbit/170 ms, München/Wien/Zermatt/Genf, Bündel mit AP4):**
+
+| Szenario | total p50 (p95) | Lesephase p50 | Algorithmus p50 (max) | Gate §6 |
+|---|---|---|---|---|
+| `cube-cold` | **2 252 ms** (2 511) | 2 184 ms | 86 ms (122) | **ROT** — p50 < 2 000 verfehlt um 252 ms |
+| `cube-warm` | 555 ms (704) | 504 ms | 76 ms | — |
+
+**Ursache, nicht Ausrede:** die Lesephase allein liegt bei 2,18 s — dieselbe Zahl wie in AP1 (kalt-neu Kern 2 236 ms, §9.2: „1,9–2,5 MB bei 9 Mbit sind ≥ 1,7 s, das ist die Grenze dieses Formats"). Der Algorithmus kostet auf CPU 4× 86 ms (4 %). Das Gate bleibt, wie es ist; der Hebel ist **AP12 (progressives Laden, E-F-3: die ≈ 20 Kernebenen von 57 zuerst)** und das Warm-up aus AP12a, das erst mit Jans Push wirkt. Desktop-kalt ist grün (9.5.4).
+
+**Bundle (`npm run build` 241/241, `npm run budget`):** eagerJs **107,9 unverändert** · eagerCss 2,4 · largestChunk 301,2 · totalJs 1 366,1 → **1 366,4 KB (+0,3 KB)** — der Zuwachs liegt im LAZY `pointForecast`-Chunk (Registrierung + Cache-Schlüssel des Flags), nicht im Start-Chunk; kein Punkt-Modul und kein Fusionsmodul kommt neu ins Bundle (Textsonde in `verify:point-client` (8): 0 Treffer über alle Chunks, 112/112). Der Cube-Pfad selbst (`cubeSource.ts`, `vertical.ts`) steht in **keinem** Chunk — er wird erst gebaut, wenn ein Verbraucher ihn lädt (AP11).
+
+### 9.7 AP3 — PAP 3, Gitter → Punkt (2026-09-16, ab 22:00 UTC)
+
+#### 9.7.1 Diagnose
+
+**Was das Bündel trägt:** `cubeSeriesFrom` liest EINE Zelle (`cellOf` = die nächste, `round`), aber der entpackte Chunk hält alle 16×16 Zellen der Stufe — die Nachbarn kosten **0 Bytes** und ein paar Indexzugriffe. Die vier Zellen, die den Punkt umschließen (2×2-Block: die nächste Zelle plus je eine in Richtung des Punkts in y und x), liegen im selben Chunk, außer die Zelle sitzt am Chunk-Rand. Ausgezählt an den zehn Orten (`cellOf`/`chunkExtent`, ohne Netz): **4 von 30 (Ort, Stufe)-Paaren verlieren zwei der vier Zellen** — Berlin t2 (Zeile 6, Spalte 15) und t3 (Zeile 12, Spalte 0), Graz t1 (Zeile 15) und t2 (Zeile 0). Das sind 13 %, der Plan (§3.3) hatte 12 % gerechnet. Halo ist E-F-2 „nein" ⇒ Flag `chunkBorderTruncated` und N < 4.
+
+**Was der Motor schon tut:** nichts davon — ein Sample hat `distanceMeters: 0`, die Repräsentativität kommt aus dem Footprint. **Was sich ändert:** additiv am Leser (`CubePointSeries.neighbours`, nur auf Wunsch `neighbours: true`, aus DEMSELBEN entpackten Chunk — 0 zusätzliche Abrufe) und ein reines Modul `fusion/grid.ts`: `w_g = exp(−(d_g/L_d)²) · exp(−(Δh_g/L_h)²) · κ_g`, κ = 1 (markiert: keine Landnutzung je Zelle im Repo), **L_d = Zellweite der Stufe** (5,5/11/28 km N–S), **L_h = 200 m** (Präzedenz `spatialWeight` H_REF) — beide `set`. Gemittelt werden Mittel, σ, Quantile und `hModEff` (PAP 3 O5); **nicht** die Profilfelder (PD-B5: das Mittel zweier Inversionsobergrenzen ist keine), nicht `srcCount`/`ensCount` (Zählwerte der nächsten Zelle). Bei N = 1 ist das Ergebnis exakt die Zelle (Negativkontrolle). Die Modellhöhe je Nachbar ist die Ebene `hModEff` dieser Zelle im selben Schritt — genau das, was PAP 3 mit h_mod(g) meint.
+
+#### 9.7.2 Was sich ändert
+
+| Datei | Änderung |
+|---|---|
+| `src/point/client/cubePoint.ts` | additiv `CubeNeighbourCell` und `CubePointSeries.neighbours` (3×3 um die Hauptzelle, am Chunk-Rand beschnitten, je Nachbar Mittelpunkt, Abstand, `hModEff` und die Werte aller gelesenen Ebenen je Schritt — aus DEMSELBEN entpackten Chunk); `cubeSeriesFrom(…, { neighbours })` |
+| `src/point/client/readPoint.ts` | `ReadPointOptions.neighbours` durchgereicht (Voreinstellung aus: Sammler und CLI lesen wie zuvor) |
+| `src/pointForecast/fusion/grid.ts` **neu** | `gridToPoint()` (pur), `blockOffsets()` (welche vier Zellen den Punkt umschließen), `GRID_SET` (L_h 200 m, κ 1, m/°), `GRID_NEAREST_ONLY` (Profil, Zählwerte), `verifyGrid()` 12 Prüfungen — darunter die bilineare Falle als Negativkontrolle (ohne Höhenterm zieht der 600 m höhere Nachbar das Mittel um > 3 K nach oben, mit ihm wiegt er < 0,1 %) |
+| `src/pointForecast/cubeSource.ts` | `gridStep()` je Schritt VOR PAP 4 (das Cube-Sample ist danach das gewichtete Mittel des Blocks, `hModEff` das gewichtete Mittel der Zellhöhen — PAP 4 rechnet damit); `CubeStep.grid` (N, Gewichte, `truncated`), Flag `chunkBorderTruncated`; `FuseCubeOptions.grid` (Negativkontrolle N = 1); `calib`: `Ld:set`, `Lh:set`, `kappa:set`; der Einstieg liest mit `neighbours: true` |
+| `scripts/lib/pvCubeFixtures.mjs` | `buildCubeFixture({ lat, lon })` — die Graz-Fixture für den Chunk-Rand (Zeile 15) |
+| `scripts/verify-pv-cube.mjs` | Block (9): `verifyGrid` + Leser (8 Nachbarn, 0 Dateien mehr, Nachbar trägt die Signatur SEINER Zelle) + Adapter (N = 4, Gewichte, unabhängig gerechnetes Mittel innerhalb Δ/2, `grid: false` byte-gleich zu AP4, Graz-Rand N = 2 mit Flag) |
+
+#### 9.7.3 Gates AP3
+
+`verify:pv-cube` **86/86** · `typecheck` 0 · `verify:point-client` 112/112 · `verify:pv-fusion` 222/222. Negativkontrolle N = 1 ✓ (byte-gleich zu AP4). Kosten: PAP 3 auf 102 Schritten **3,9 ms** (Minimum aus drei Läufen, 13,8 gegen 9,9 ms) — innerhalb der 5 ms. **0 zusätzliche Chunks** (Dateizahl mit und ohne Nachbarn gleich; im Lab: dieselben 25–38 Abrufe je Ort, s. 9.7.4).
+
+**Eine Folge, die dastehen muss:** im Gebirge liegen oft ALLE vier Zellen Hunderte Meter über oder unter dem Punkt (Zermatt: 2 537 m gegen 1 608 m). Dann sind alle Gewichte ≈ e^(−20) und nur ihr Verhältnis trägt Information — `gridToPoint` normiert und wählt die niedrigste (nächstliegende in der Höhe) Zelle am stärksten; bei numerischem Unterlauf fällt es auf die nächste Zelle zurück, ohne NaN. Die Höhendifferenz geht danach als Repräsentativität in σ (Motor heute, AP6 morgen) — PAP 3 verkleinert sie, es beseitigt sie nicht.
+
+#### 9.7.4 Laufzeit nach AP3 (Lab, desktop-none, München/Wien/Zermatt/Genf/Graz, `latency/2026-09-16T21-50-55-174Z.json`)
+
+| Szenario | total p50 (p95) | Lesephase p50 | Algorithmus p50 (max) | Abrufe je Ort |
+|---|---|---|---|---|
+| `cube-cold` | 787 ms (**4 722**) | 740 ms | 42 ms (58) | 25–38 — **unverändert gegen AP2** (0 zusätzliche Chunks) |
+| `cube-warm` | 183 ms (213) | 152 ms | 22 ms (30) | 1–2 |
+
+Der Algorithmus kostet mit PAP 3 + PAP 4 warm **22 ms** statt 12 (AP2) — die Nachbarn sind 4× so viele Werte je Schritt. Gate §6 Desktop **GRÜN** (p50). **Der p95 von 4,7 s ist München und ein neuer Befund, V-FI-16:** Kern und erste Darstellung waren nach 1,3 s da, der Nowcast erst nach **4,67 s** — acht Radar-Dateien (drei `meta.json`-Sonden, fünf Frames) je 2,0–2,3 s, alle `x-cache MISS` (V-FI-7: Radar-Slots sind am Edge immer kalt). `getPointForecastFromCube` wartet heute auf das ganze Bündel, also auch auf den Nowcast — obwohl §9.2 ihn ausdrücklich aus dem Kern genommen hat („er kommt nach, wie er kommt"). Für einen einzelnen Aufruf gibt es kein „nach": **AP7 gibt dem Nowcast eine Frist** (wie dem Anker), jenseits derer die Stunden 0–3 mit dem Modell und dem Flag `nowcastFallbackModel` ausgegeben werden; die Radar-Abrufe laufen weiter und füllen den Cache für den nächsten Aufruf.
+
+`chunkBorderTruncated` am lebenden Datum: Graz trägt es auf allen 68 t1/t2-Schritten (Zeile 15 bzw. 0 des Blocks), die anderen vier Orte nirgends — wie in 9.7.1 ausgezählt.
+
+### 9.8 AP6 — PAP 6, Unsicherheit, Familien, Konfidenz (2026-09-16, ab 22:10 UTC)
+
+**Auftrag (§4, AP6):** `fusion/uncertainty.ts` — Konsistenz-Ops inkl. `clct := max(...)`; σ je Größe: `c·σ_ens` (c = 1 `set`), sonst `σ_div² + σ_sys²` (σ_sys aus V-A₁ `set`), plus `σ_quant² = Δ²/12`, plus Fall-C-Aufweitung; der Cube als Member in `combine.ts` **mit dieser σ**; Familien über `dist.ts`; Quantile nur auf nativen Schritten; Konfidenz-Score §2.2; `calib[]`. Abnahme: PAP-6-Bedingungen in 100 % der Ausgaben, PIT/Spread-Skill auf dem Archiv nur BERICHTET (Gate mit AP10), +≤ 30 ms.
+
+#### 9.8.1 Diagnose (Node, 16.09. 21:52 UTC, zehn Orte, je Stufe drei bis vier Schritte)
+
+**Was der Cube an Streuung trägt** (Temperatur, wenn nicht anders gesagt):
+
+| Größe | Gemessen |
+|---|---|
+| σ_div (`t2m_sd`) | 100 Proben: p10 **0,5** · p50 **1,7** · p90 **2,9 K**. Flachland t1 0,3–1,1 K, Gebirge t1 2,0–2,8 K, t3 1,2–4,5 K. Deckung: t1 im Süden **49/49** Schritte, im Norden (Hamburg/Berlin, ohne C-LAEF/CH1) **35/49** — 14 Stunden mit `srcCount` 1 ⇒ dort gibt es KEIN σ_div, PAP 6 verlangt den Sockel allein |
+| σ_ens (`t2m_sd_ens`) | nur auf dem groben Raster: t1 **8/49** (6-stündlich, `ensCount` 20), t2 **6/24** (`ensCount` 40), t3 **6/36** (`ensCount` 50); Werte p50 **2,8 K**, p90 3,1 K — und **σ_ens ist auf denselben Stunden fast immer GRÖSSER als σ_div** (z. B. Zugspitze +315 h: σ_div **0,06** gegen σ_ens **2,96** — zwei Quellen, die sich zufällig einig sind, gegen 50 Member, die es nicht sind). PAP 6 nimmt das Ensemble, wenn es da ist; die Diagnose zeigt, warum: σ_div misst Uneinigkeit, nicht Unsicherheit |
+| Quantile (`t2m_q10/q90`) | t1 südlich 51,5 °N 49/49 (C-LAEF-EPS), nördlich 0; t2/t3 je 6 (Member-Quantile alle 48 h). **Zermatt +315 h: q10/q90 = −5,1/+0,4 °C bei T̄ 2,9** — das Mittel liegt außerhalb des Bandes (V-PD-54): Quantile sind EINE Quelle, das Mittel ein anderes. Sie werden getragen und im Konfidenz-Score nicht verwendet |
+| `srcCount` | min 2, p50 4 (t3 jenseits 180 h überall 2: IFS + AIFS) |
+| σ_div Wind (u10) / Niederschlag / clct | u p50 0,58, p90 1,24 m/s · Niederschlag p50 **0** (trocken), p90 0,13 mm/h · clct p50 **21 %**, p90 41 % — die Modelle sind sich bei der Bewölkung so uneinig, dass σ_div allein die klimatologische Streuung (34 %) erreicht |
+| Repräsentativität des Motors für das Cube-Member (heute) | p10 **0,02** · p50 0,33 · p90 **4,3 K**: im Flachland praktisch null (Footprint 5 km × Höhenstreuung 10 m), im Gebirge 1,8–6 K (Zugspitze 4,3: fast ganz `0,0035 K/m · 1 216 m`) — s. V-FI-13 |
+| Skill-Term des Motors (σ_c·√(1−ρ²), σ_c = 5 K) | 1,1 K bei +0 h · 1,4 K bei +21 h · 1,9 K bei +45 h · 3,1 K bei +111 h · 4,7 K bei +315 h (Familie `global`, ρ 0,32) |
+| V-A₁-Scorecard (Fusion, 111 DE-Stationen, 1–24 h, `implementierung-pv3.md` §11) | T MAE 0,91–1,00 K ⇒ RMSE ≈ 1,2 K · Td 0,74–0,83 ⇒ ≈ 1,0 · Wind 0,69–0,85 ⇒ ≈ 1,0 m/s · Böe 0,96–1,00 ⇒ ≈ 1,3 m/s; Bewölkung und Niederschlagsmenge NICHT gemessen |
+
+**Was das für die Konstruktion heißt:**
+
+1. **σ des Cube-Members kommt aus PAP 6, nicht aus dem Streuungs-Prior des Motors** (V-FI-13): `σ² = (c·σ_ens)²` wo ein Ensemble die Stunde trägt, sonst `σ_div² + σ_sys²`, ohne σ_div (eine Quelle) nur `σ_sys²`; dazu `σ_quant² = Δ²/12` (Ebenenskala: T 0,01 K, clct 0,1 %, Schneefallgrenze 1 m — bei T 0,003 K, also nur ehrlich, nicht spürbar), der Restfehler der Höhenkorrektur `0,0035 K/m · |Δh|` (derselbe Wert wie `REP.lapseResidualPerM` — er ersetzt den Motorterm, der mit der expliziten σ entfällt) und die Aufweitung in Fall C (`|ΔT_C|` als 1 σ: eine Extrapolation, die das Modell nicht prüfen kann, ist um ihre eigene Größe unsicher) bzw. Fall B (`dT_inv/4`: φ ist linear gesetzt, die Form unbekannt).
+2. **σ_sys(v, τ) als Startwert:** V-A₁ liefert einen Boden für 1–24 h (T 1,2 K, Td 1,0, Wind 1,0 m/s, Böe 1,3). Jenseits 24 h und für Größen ohne Messung (Bewölkung) wächst er mit dem Skill-Prior des Motors, `σ_c · √(1 − ρ_Familie(τ)²)` — keine neue Zahl, dieselbe Kurve, die der Motor heute für JEDES Modell-Member benutzt: `σ_sys = max(σ_A₁, σ_c·√(1−ρ²))`. Alles `set`; AP10 misst σ_sys(v, τ) aus dem Archiv und ersetzt beides.
+3. **Der Member ist dann eine UNVERZERRTE Schätzung** (Steigung 1, kein ρα-Faktor auf der Anomalie): PAP 6 versteht σ als Fehler des fusionierten Werts, nicht als Rest nach einer Regression. Die Klimatologie bleibt Prior (β = σ_c²/(σ_c² + σ²)) — bei +315 h mit σ ≈ 4,7 K und σ_c = 5 K trägt sie die Hälfte, wie beim Motor heute.
+4. **Niederschlag bleibt beim Motor** (K-2: Auftreten im Probit-Raum, Menge lognormal): `precip_sd` in mm/h ist in keinem der beiden Räume eine σ, und V-A₁ hat die Menge nicht gemessen. `sigmaKind: 'set'` (Prior des Motors); AP10 kann `precip_sd` in den Mengenraum übersetzen.
+5. **Konfidenz-Score** (§2.2): `spread = 1 − min(1, σ_ges/σ_clima)`, `agree = σ_ens²/(σ_ens²+σ_div²)` bzw. `1 − σ_div²/σ_ges²`, gewichtet `min(1, srcCount/3)`, `lage = ∏` Abschläge (`set`: Fall C 0,7 · |Δh| > 300 m 0,8 · Chunk-Rand 0,9 · Interpolation 0,9 · Modell statt Nowcast 0,9). Ein Index 0…1, ausdrücklich keine Wahrscheinlichkeit; im Backtest gegen CRPS-Dezile geprüft (AP9).
+6. **Konsistenz:** Td ≤ T und Böe ≥ Wind erledigt der Motor je Verteilung; `clct := max(clct, clcl, clcm, clch)` wirkt auf das Cube-Sample VOR dem Motor; RH ist abgeleitet und geklemmt; Schneegrenze bleibt der Zellwert (`meltOffset` = null, benannt).
+
+#### 9.8.2 Was sich ändert
+
+| Datei | Änderung |
+|---|---|
+| `src/pointForecast/fusion/uncertainty.ts` **neu** | `memberSigma()` (die PAP-6-Verzweigung je Größe: `ensemble` / `divergence` / `sys-only`, ⊕ Δ²/12 ⊕ Restfehler der Höhe ⊕ Fall-B/C-Aufweitung), `sigmaSysAt()` (V-A₁-Boden, darüber σ_c·√(1−ρ²)), `consistentCloudTotal()` (`clct := max`), `confidenceOf()` (§2.2), `SIGMA_SYS_FLOOR_A1`, `C_SPREAD`, `CONF_DISCOUNT`, `verifyUncertainty()` 20 Prüfungen (mit der Negativkontrolle „σ_div wird nie zu σ_ens addiert") |
+| `src/pointForecast/types.ts` | additiv `PointSourceSample.errorSigma` (explizite Fehler-σ je Fusionsgröße) |
+| `src/pointForecast/fusion/fuse.ts` | additiv in `fuseScalar`: ein Sample mit `errorSigma` geht als **unverzerrte Schätzung** mit genau dieser σ in `combine` (kein ρα, kein Taper, keine Repräsentativität des Motors; Klimatologie bleibt Prior); ohne das Feld byte-gleich (`verify:pv-fusion` 222/222) |
+| `src/pointForecast/cubeSource.ts` | je Schritt σ des Cube-Members und — **bewusste Erweiterung** — des MOSMIX-Members (`sys-only`: eine Quelle, V-A₁-Boden statt des Motor-Priors ρ₀ = 0,985, den V-A₁ als zu hoch gemessen hat); `clct := max` auf beiden; `CubeStep.uncertainty` je Größe (`sigmaKind`, σ_member mit Teilen, σ_post, σ_clima, Konfidenz); `CubeMemberInfo.sigma`; `PointForecast.confidence` = Score; `FuseCubeOptions.uncertainty` (Negativkontrolle); `calib`: `cSpread`, `sigmaSys`, `sigmaQuant:physical`, `sigmaVert`, `confidence`, `precipSigma`, `meltOffset:null`, `stationSigma` |
+| `scripts/lib/pvCubeFixtures.mjs` | Streuungen wachsen mit dem Vorlauf (σ_div 0,8 + 0,006·h, σ_ens 0,4 + 0,012·h); jeder achte t1-Schritt mit EINER Quelle (kein σ_div, `srcCount` 1); jeder achte mit `clcl` 95 % über `clct` (Konsistenz-Op) |
+| `scripts/verify-pv-cube.mjs` | Block (10): `verifyUncertainty` + Motor-Haken (errorSigma 0,05 K bei +100 h ⇒ unverzerrt; ohne Feld ⇒ ρ-Schrumpfung, Negativkontrolle; Live-Sample byte-gleich) + Adapter (`sigmaKind` je Schritt aus den Daten, sys-only-Schritt, Ensemble-Schritt ohne σ_div-Addition, PAP-6-Bedingungen 102/102, `clct := max` wirkt, Konfidenz 0…1 und fallend, `uncertainty: false` byte-gleich zu AP3, Kosten, `calib`, Score im `PointForecast`) |
+
+**Warum das MOSMIX-Member mit dazugehört (Abweichung vom Wortlaut „der Cube als Member mit dieser σ"):** mit dem V-A₁-Boden (1,2 K) am Cube-Member und dem Motor-Prior am Stationsmember (σ_skill 0,87 K bei +0 h) trüge die Station bei kurzem Vorlauf 70 % — nicht weil sie besser ist (V-A₁: MOSMIX MAE 0,89 K, RMSE ≈ 1,15 K, also derselbe Boden), sondern weil ihr Prior optimistischer ist als die Messung. PAP 6 sagt, σ_sys ist für jedes Member zwingend; die Station im Cube-Pfad ist ein Member der Repo-Daten. Beide bekommen denselben Boden, die Klimatologie bleibt Prior. Am Live-Pfad ändert das nichts (der liest `errorSigma` nie).
+
+#### 9.8.3 Gates AP6
+
+`verify:pv-cube` **119/119** · `verify:pv-fusion` 222/222 (Motor byte-gleich ohne das Feld) · `typecheck` 0. PAP-6-Bedingungen in **102 von 102** Schritten (Td ≤ T, Böe ≥ Wind, clct/RH 0…100, Niederschlag/Wind ≥ 0). Kosten **4,9 ms** auf 102 Schritten (Grenze 30). Negativkontrolle `uncertainty: false` ✓ byte-gleich zu AP3. Der Konfidenz-Score fällt mit dem Vorlauf (Fixture: 0,73 bei +0 h → 0,17 bei +336 h) und trägt die Abschläge. **PIT/Spread-Skill auf dem Archiv sind NICHT gemessen** — das ist AP9/AP10 (das Archiv hat zwei Slots); nichts hier ist eine Genauigkeitsaussage.
+
+**Was am lebenden Datum sichtbar wird (Fixture München, +0 h):** Cube-Member σ 1,45 K (divergence: 0,8 ⊕ 1,2 ⊕ 0,05), Station σ 1,2 K (sys-only) ⇒ fusioniert 12,90 °C zwischen Zelle 14,27 und Station 12,50 mit σ_post 1,36 K; in AP2–AP5 lag der Wert bei 12,57 (Station 96 %). Das Cube-Member trägt jetzt — s. 9.8.4 für die zehn Orte.
+
+### 9.9 AP5 — PAP 5, die Terrain-Terme (2026-09-16/17, ab 22:40 UTC)
+
+**Auftrag (§4, AP5):** `fusion/terrainTerms.ts` — `f_rad` (a, v_ref, ε `set`, aus den Gates 65 %/2,5 m/s), ΔT_cap = −A·g(TPI, SVF, Tiefe)·f_rad·f_saison·(1−foehn), ΔT_uhi = A_uhi(imperv, SVF)·f_rad·f_saison, Wind zweistufig (z0 aus WorldCover, d0 aus `urban`, Blending-Höhe), `f_saison` = Nachtlängen-Jahresgang (E-F-4), Föhn durchgereicht; **A, A_uhi = null ⇒ Terme inaktiv**, Geometrie gerechnet und benannt. Abnahme: Negativkontrolle „A = A_uhi = null ⇒ byte-gleich zu AP6", synthetische Fälle (Mulde/Kamm, Stadt/Land, Wasser ohne +135 % Wind), +≤ 5 ms.
+
+#### 9.9.1 Diagnose
+
+**Was das Bündel trägt (zehn Orte, 16.09., §9.5.1):** `urban/v1` an allen zehn — `imperv` 0 % (Zugspitze) … 38 % (Wien), `d0` 0,1 … 11,6 m, `bldgH` 0,1 … 16,6 m; Gelände `tpi500`/`tpi2000`/`svf`/`sinkDepthM` (AP2: Innsbruck TPI 2 km −31 m, Zermatt −359 m, Zugspitze +659 m; SVF 0,86 Zermatt … 1,0 Flachland); Bedeckung und Wind des Schritts aus dem Cube; Föhn aus `detectFoehn` über die Zellwerte (bereits Kontext des Motors). **Was es NICHT trägt:** z0 am Punkt (WorldCover: der Leser `src/fire/detail/worldCover.ts` liest 3°-COG-Kacheln über den Planetary Computer bzw. den Spiegel — Kopf 16–64 KB plus eine 1024²-Kachel je Ort, zwei Abrufe auf dem kritischen Pfad; nicht im AP1-Bündel), z0 des MODELLS (ein GRIB-Feld, das der Producer nicht ingestiert), `tpiSigma` (regionale TPI-Streuung für das Gate „TPI < −1σ", `calib: null`), und die Amplituden A/A_uhi (`calib: null` — laut Ablaufplan gelernt, nicht gesetzt).
+
+**Was der Motor schon tut:** der Kaltluftsee ist dort ein REGIME (Varianz-Aufweitung über `assessRegime`, Gates Nacht/Senke/Wind < 2,5/Bedeckung < 65 %/SVF), und `windTerrainFactor` verschiebt den Wind nach TPI. Beides bleibt. PAP 5 kommt als **Verschiebung des Mittels** dazu — heute mit Amplitude null.
+
+**Was sich ändert:** die Geometrie wird je Schritt gerechnet und im Ergebnis benannt (`CubeStep.terrain`: f_rad, f_saison, g, Muldengate, UHI-Geometrie, Föhn-Faktor, die Terme als `null`), die zweistufige Windkorrektur ist als reine Funktion gebaut und geprüft, zur Laufzeit ohne z0 inaktiv (Flag). **V-FI-17:** ein WorldCover-Punktleser fürs Bündel (2 Abrufe, ≈ 150 KB je neuem Ort, cachebar) ist eine AP12-Maßnahme — erst, wenn AP10 eine Amplitude liefert, die ihn braucht. Die Setzungen: a = 1, v_ref = 2,5 m/s, ε = 0,35·e⁻¹ (so, dass f_rad an den beiden bestehenden Produkt-Gates genau ε ist), z_b = 60 m, g wie die Gates des Motors (Tiefe/250 m, 0,7 + 0,3·SVF), f_saison = (Nachtlänge − kürzeste)/(längste − kürzeste) am Ort.
+
+#### 9.8.4 AP6 am lebenden Datum (Lab, desktop-none, München/Innsbruck/Zermatt/Zugspitze, `latency/2026-09-16T22-03-43-530Z.json`, 22:03 UTC)
+
+| Ort | vorher (AP2, 9.5.4) | mit PAP 6 |
+|---|---|---|
+| München T (0…36 h) | 9/10 innerhalb 0,5 K | 5 von 6 (nur +0 h +0,81) — **Wind Δ −0,3…+0,7 m/s statt +0,5…+1,2**: die σ des Cube-Members ist kleiner als der Streuungs-Prior, die Rice-Verteilung enger (V-FI-12 kleiner, nicht weg) |
+| Innsbruck | `contributors = mosmix` auf allen t1-Schritten (V-FI-13) | **cube-t1 trägt** bei +0/+3/+24/+36 h (σ_member ≈ 2,5 ⊕ 1,2 ⊕ 1,8 = 3,3 K gegen Station 1,2 K ⇒ ≈ 12 %), bei +6/+12 h noch nicht |
+| Zermatt / Zugspitze | Station allein | **weiter Station allein** — der Restfehler der Höhenkorrektur 0,0035 K/m · 929 bzw. 1 216 m = 3,3 / 4,3 K ist der größte Term; der Cube-Member wiegt < 5 %. Das ist der Prior des Motors (`REP.lapseResidualPerM`), unverändert übernommen; ob er zu groß ist, misst AP10 |
+| Zugspitze +0 h | −10,6 K (V-FI-11) | −11,5 K — der Live-Pfad (12,6 °C bei 2 962 m), nicht der Cube |
+
+**Laufzeit:** Algorithmus warm **22 ms** p50 (max 40, Zermatt), kalt 40 ms — PAP 6 kostet im Browser < 5 ms. **Gate §6 in diesem Lauf ROT (p50 2 219 ms)** — aus demselben Grund wie V-FI-16: München Kern 729 ms, erste Darstellung 699 ms, **Nowcast fertig bei 2 171 ms**; Innsbruck Kern 770, Nowcast **2 778 ms** (zwei Radar-403 über `raw` nachgeholt), Zermatt Kern 672, statische Produkte erst bei **1 089 ms**. Der Algorithmus ist unbeteiligt; AP7 setzt die Frist (unten).
+
+#### 9.9.2 Was sich ändert (AP5)
+
+| Datei | Änderung |
+|---|---|
+| `src/pointForecast/fusion/terrainTerms.ts` **neu** | `terrainTerms()` (f_rad, f_saison, g, Muldengate, UHI-Geometrie, Föhn-Faktor, Terme `null` ohne Amplitude), `windBlendingFactor()` (zweistufig, `null` ohne z0), `dayLengthH`/`fSaisonOf` (E-F-4), `TERRAIN_SET`, `verifyTerrainTerms()` 18 Prüfungen (Mulde/Kamm, Stadt/Land, Föhn, durchmischt, Sommer/Winter, Wasser +12 % statt +86 % einstufig, fehlendes z0 ⇒ null) |
+| `src/pointForecast/cubeSource.ts` | je Schritt `CubeStep.terrain` (Geometrie + `windFactor`), Amplituden und z0 aus `FuseCubeOptions.terrainCalib` (Voreinstellung: `calib.json` heute = alles null), Flags `terrainTermsInactive`/`windBlendingInactive`/`tpiSigmaUnknown`; `calib`: `A:null`, `Auhi:null`, `fRad:set`, `fSaison:set`, `tpiSigma:null`, `z0:null` |
+| `scripts/verify-pv-cube.mjs` | Block (11): `verifyTerrainTerms` + Adapter: **A = A_uhi = null ⇒ byte-gleich zu AP6** (Negativkontrolle der Abnahme), Geometrie je Schritt (f_rad aus der Zelle, f_saison 16.09. ≈ 0,5, g der Mulde, UHI 23 %), f_rad < ε beim `clcl`-95-Schritt, mit A = 3 K (nur Test) Mulde kälter/Stadt wärmer, mit z0 (nur Test) Wind-Faktor < 1, Kosten, `calib` |
+
+#### 9.9.3 Gates AP5
+
+`verify:pv-cube` **144/144** · `typecheck` 0. Negativkontrolle ✓ (byte-gleich). Kosten **3,6 ms** auf 102 Schritten (Grenze 5). Synthetische Fälle ✓ (Mulde/Kamm, Stadt/Land, Wasser: +12 % statt +86 %/+135 %). Im Produkt ändert AP5 heute **keinen Wert** — es benennt, was fehlt: A, A_uhi, tpiSigma (`calib: null`, AP10) und z0 (V-FI-17, Bündel/AP12).
+
+### 9.10 AP7 — Nowcast, Anker, Klimatologie-Schwanz, stündliche Achse
+
+#### 9.10.1 Diagnose vor dem Code (gemessen 16.09. 22:03 UTC, `latency/2026-09-16T22-03-43-530Z.json`, und an der Fixture)
+
+**Was der Cube-Pfad nach AP6 NICHT konnte — vier Lücken, alle am lebenden Datum sichtbar:**
+
+1. **Die Zeitachse hatte Löcher, und das Produkt hat sie verschwiegen.** `PointForecast.hours` ist stündlich definiert (der Live-Pfad liefert 0…336 h stündlich); der Cube-Pfad lieferte **101 Stunden** (t1 45 · t2 22 · t3 34, München/Wien/Zermatt; Zugspitze 103) auf der nativen Achse — von 337 Stunden im Fenster fehlten **236**. Wo genau, aus den Rastern gerechnet (t0 = 22:00): die zwei Stunden der t1/t2-Übergabe (18.09. 19:00/20:00 — lauf-relativ 49–50 h, E-10), die fünf der t2/t3-Übergabe (21.09. 13:00–17:00 — 121–125 h), dazu **2 von 3 Stunden** im 3-h-Band und **5 von 6** im 6-h-Band. Ein Verbraucher, der `hours[i]` als Stunde i liest, läge ab Stunde 46 daneben.
+2. **Die Station kann 153 dieser 236 Stunden tragen, und der Pfad hat sie nicht gefragt.** MOSMIX-L (Lauf 2026091615) ist stündlich bis +247 h (= 26.09. 22:00); im Fenster liegen 241 Stunden davon, 88 davon native ⇒ **153 Stunden, in denen die Station den Punkt vertritt** und der Cube keinen Schritt hat. Jenseits 26.09. 22:00 bleiben 96 Stunden mit 13 nativen t3-Schritten ⇒ **80 Stunden ohne jede Quelle** zwischen zwei Schritten, und **3 Stunden nach dem letzten t3-Schritt** (30.09. 00:00 … 22:00), für die es keine Modellvorhersage gibt (`usableToMs`).
+3. **Radar deckt, trägt aber nicht immer — und das Produkt sagte es nicht.** Am 22:03-Lauf deckten RV (Slot 4 min alt, 3 Frames), INCA (34 min, 4) und CombiPrecip (4 min, 1) München; Zermatt nur CombiPrecip (`extrapolationH: 0`, also **kein** Frame jenseits des Slots). Wo der Nowcast fehlte — Frist, Sonde, Frame —, rechnete der Motor stumm mit dem Modell für 0–3 h. Und V-FI-16: der Nowcast war das Ende des Lesens (**2 171 / 2 778 ms** München/Innsbruck gegen Kern 729/770; Zermatt statische Produkte erst bei **1 089 ms** gegen Kern 672) ⇒ §6-Gate rot mit p50 2 219 ms, obwohl alles, was der Algorithmus braucht, nach 0,7 s da war.
+4. **Kein Anker.** Der Live-Pfad trägt seit V-PV-19 die Innovations-Persistenz (Messung − Modell, τ_T 4 h; gemessen T 1–6 h 2,18 → 0,92 K); der Cube-Pfad hatte keine Messung. Am 22:03-Vergleich lag München +0 h um 0,81 K vom Live-Pfad weg (9.8.4) — wie viel davon der fehlende Anker ist, lässt sich ohne Wahrheit nicht trennen (AP9).
+
+**Was das Fixture-Bündel dazu misst (dieselbe Rasterstruktur, t0 21:00):** 337 Stunden = 102 native + 153 Station + 79 interpoliert + 3 Klimatologie; die stündliche Rechnung kostet in Node **82 ms gegen 28 ms** nativ (153 zusätzliche `fuseHour`-Aufrufe mit einem Sample, 79 Interpolationen, 3 Klimatologie-Schritte) — im Browser unten nachgemessen.
+
+**Setzungen, vor dem Code benannt (alle `set` in `calib[]`):**
+
+| Setzung | Wert | Grund |
+|---|---|---|
+| Obs-Frist | 1 500 ms hart (`AbortSignal.timeout`), **Gnadenfrist 250 ms nach dem Bündel** | Plan §3.1 (1,5 s); die Gnadenfrist macht den Anker nie zum kritischen Pfad — das Bündel braucht ≥ 0,7 s, die Messung hat also ≈ 1 s Vorsprung |
+| Frist der progressiven Produkte | 1 500 ms **ab dem Kern** | V-FI-16: Nowcast und statische Produkte laufen weiter (Cache), das Bündel benennt den Verlierer |
+| `stale` | Radar-Slot > 60 min | RV alle 5 min, INCA alle 15 min: ein Slot älter als eine Stunde ist ein hängender Spiegel |
+| Radar-Horizont | 3 h | INCA-Extrapolation 3 h, RV 2 h — jenseits davon gibt es kein Radar, also auch kein Fallback-Flag |
+| Anker | `anchor.ts` unverändert: τ_T 4 h, τ_Wind 2 h, Deckel 8 K / 6 m/s, `spatialWeight` 20 km / 200 m | V-PV-19, dieselben Werte wie im Live-Pfad; **ein Paar je Station** (die Messung zur Stunde des Cube-Schritts), keine 6-h-Historie — die kommt mit dem Archiv (AP9) |
+| Interpolation | linear in p10/p50/p90/Mittel zwischen den nächsten Schritten mit Verteilung; Konfidenz × 0,9 (`CONF_DISCOUNT.interpolated`) | E-F-2: markiert, nicht gerechnet — `fused: null`, der Schritt trägt nur Quantile |
+| Schwanz | 6-h-Schritte (t3-Raster) aus dem Prior, `climatologyOnly` | keine Extrapolation der Modelle jenseits `usableToMs` |
+
+#### 9.10.2 Was sich ändert (AP7)
+
+| Datei | Änderung |
+|---|---|
+| `src/point/client/readPoint.ts` | `ReadPointOptions.lateDeadlineMs`: Nowcast und statische Produkte laufen gegen eine Frist **ab dem Kern** (`Promise.race`); der Verlierer bleibt unterwegs (füllt den Cache), das Bündel trägt `nowcast: []` bzw. `hmodel: null` **und eine Skip-Notiz** (V-FI-16). Ohne Option unverändert (112/112) |
+| `src/pointForecast/cubeSource.ts` | `fuseCubePoint` in **drei Durchgängen** (Vorbereitung des Cube-Members je Schritt: PAP 3/4/5 · Anker aus `input.obs` gegen den PAP-4-Wert am Punkt · Fertigrechnen mit PAP 6, Station, Radar, Motor); `CubeFusionInput.obs` (reine Daten) + `nowcastCovering` (Geometrie); Flags `nowcastFallbackModel` (Radar deckt, trägt aber diese Stunde nicht, 0–3 h), `stale`, `anchored`, `stationOnly`, `interpolated`, `climatologyOnly`; `CubeStep.tier` = `t1|t2|t3|station|clima`, `CubeStep.interp` (Quantile) für interpolierte Schritte, Member `anchor`/`climatology`; `FuseCubeOptions.anchor|tail|hourly` (Voreinstellung der reinen Funktion: native Achse; `getPointForecastFromCube` verlangt `hourly + tail`); IO: `CubeIo.obs` (Browser: `fetchNearestStationObs`, harte Frist + Gnadenfrist, nie blockierend), `lateDeadlineMs`; `toPointForecast` gibt interpolierte Stunden mit `fusion: null` aus der `interp`-Quantile aus |
+| `scripts/verify-pv-cube.mjs` | Block (7) auf die stündliche Achse (337 Stunden, Klassen aus den Stunden selbst; `hours: 48` ⇒ 46 t1 + 2 Station + 1 t2); **Block (12)**: Deckung aus der Geometrie, Fallback-Flag genau auf 0–3 h, Punkt ohne Radar (byte-gleich, Konfidenz × 0,9), `stale` 75 min gegen 12 min, Anker (Versatz 2,00 K · Repräsentativität 0,978 · Zuschlag 1,956 K, Median +0 h +0,58 K, +40 h wieder auf der Basis, drei Negativkontrollen, Messung ohne Paar), Schwanz (3 Schritte, byte-gleiche native), stündlich (337 = 102 + 153 + 79 + 3, Nähte ungeglättet, Punkt ohne Station ⇒ 232 interpoliert, ohne Klimatologie kein Schwanz), Ende-zu-Ende (Messung nach 2,5 s ⇒ Antwort nach 389 ms ohne Anker mit Notiz; sofort ⇒ Anker im Produkt; Abruf scheitert ⇒ kein Fehler), Leser-Frist (statisch 600 ms langsam, Frist 100 ⇒ Bündel nach 177 ms mit Notiz; ohne Frist 615 ms) |
+
+#### 9.10.3 Gates und Messungen AP7
+
+**Netzfrei:** `verify:pv-cube` **169/169** nach Block (12) (vor AP7 144), `verify:point-client` **112/112** (der Leser ohne `lateDeadlineMs` unverändert), `verify:pv-fusion` **222/222**, typecheck 0, Build 241/241, Budget **unverändert** (eagerJs 107,9 · totalJs 1 366,4), Textsonde: `fuseCubePoint`/`nowcastFallbackModel`/`OBS_GRACE_MS`/`cubeSeriesFrom` in **0** von 83 Chunks (die zwei Treffer `registerCubePointSource` und `climatologyOnly` sind der Fehlertext im lazy `pointForecast`-Chunk und das Motor-Feld im lazy `attach`-Chunk — beide seit AP2 da).
+
+**Am lebenden Datum, zweimal (Lab, `--gate`, München/Wien/Zermatt/Genf):**
+
+| Lauf | Frist-Regel | Desktop kalt p50 / p95 | München kalt (Kern → Antwort) | Desktop warm p50 | Mobil-4G kalt p50 | §6 |
+|---|---|---|---|---|---|---|
+| 22:33 (`…T22-33-18-132Z.json`) | 1 500 ms **ab dem Kern** | **1 173 / 2 329 ms** | 742 → **2 256 ms** (Nowcast nie da, Frist bindend) | 431 ms (München 1 761: Radar kam bei 1 724) | 2 894 ms | Desktop grün, Mobil rot |
+| 22:40 (`…T22-40-27-388Z.json`) | 1 800 ms **ab Start**, ≥ 250 ms nach dem Kern | **1 025 / 1 874 ms** | 732 → **1 803 ms** (ohne Radar, Flag `nowcastFallbackModel`, Skip-Notiz) | 435 ms (München 1 143: Radar kam bei 1 103) | 2 500 ms | Desktop grün, Mobil rot |
+
+Was die zwei Läufe zeigen: (1) Die Frist wirkt — vor AP7 antwortete München bei 2 219–2 778 ms (9.8.4), jetzt bei ≤ 1 803 ms; Wien/Zermatt/Genf liegen bei 0,90–1,03 s, weil dort der Nowcast VOR dem Kern fertig ist (191–375 ms). (2) Die Frist ab dem Kern (erster Entwurf, Setzung aus 9.10.1) war falsch bemessen: sie deckelt die Wartezeit, nicht die Antwort — mit Kern 742 ms landete München bei 2 256 ms, über dem Ziel. Die Frist ab Start (1 800 = 2 000 − 200 ms Rechnung/Ausgabe, Algorithmus stündlich p95 116 ms Desktop) hält das Ziel und behält das Radar, wenn es rechtzeitig kommt (warm 1 103 ms ⇒ Member `radolan/inca/rzc` da). (3) **Mobil-4G bleibt rot, und AP7 kann daran nichts ändern:** der KERN allein braucht 2,1–2,4 s (1,8–2,3 MB, bytes-gebunden, AP12/E-F-3), die Frist greift erst danach. (4) **Der Anker läuft:** im 22:33-Lauf lieferte der Abruf **0 Messungen** — die Abbildung las `point.time`, das Feld heißt `timestamp` (V-FI-19, behoben, Notiz für jeden Nicht-Anker-Fall ergänzt); im 22:40-Lauf **6 Paare je Ort**: München `dwd_obs` Versatz **−1,12 K** (Repräsentativität 0,19 — die nächste DWD-Messstelle ist weit), Wien `tawes` **−0,55 K** (0,67), Zermatt `smn` **−1,53 K** (0,49), Genf `smn` **−0,30 K** (0,38). Der Cube läuft an allen vier Orten wärmer als die Messung — mit den Vorzeichen der V-A₁-Befunde verträglich, aber ohne Wahrheit keine Aussage (AP9). (5) **Die Messung kostet die Antwort nichts Messbares auf dem Desktop:** Abruf fertig bei 825–953 ms kalt (Bündel 753–804), 394 ms warm (Wien; Bündel 127 ⇒ +267 ms Antwortzeit, unter der Gnadenfrist 500); auf Mobil-4G kalt kommt sie nach dem Bündel (2 135–2 417 ms) und wird dreimal von der Frist geschnitten — dort ohne Anker, mit Notiz. Die Gnadenfrist nach dem Bündel wurde dabei von 250 auf **500 ms** gesetzt: im 22:33-Lauf lag Zermatts Messung 252 ms hinter dem Bündel (1 048 gegen 796 ms) — mit 250 ms wäre der Anker um 2 ms verloren gegangen. (6) **Stündlich kostet:** Algorithmus 57–68 ms kalt / 29–39 ms warm auf dem Desktop (vor AP7 40/22), **150–253 ms** auf Mobil-4G (CPU 4×) — 337 Schritte statt 101, davon 153 Stations-`fuseHour` (V-FI-20).
+
+**Die Achse am lebenden Datum (22:40, alle vier Orte):** 337 Stunden, davon 101 native (Zugspitze 103), 153 Station, 80 interpoliert, 3 Klimatologie — genau die Rechnung aus 9.10.1.
+
+#### 9.10.4 Befunde AP7
+
+- **V-FI-16 (Nowcast/statische Produkte am Ende des Lesens) — behoben mit Frist**, Zahlen oben. Offen bleibt die Ursache: Radar-Slots sind am Edge immer MISS (V-FI-7, Warm-up im Spiegel-Workflow = S&F, Radar-Linie). Bis dahin trägt München in 0–3 h kalt das Modell, benannt.
+- **V-FI-18 — interpolierte Schritte tragen die Stufe des vorangehenden Schritts** (`tier: 't3'` + `interpolated: true`), der Verbraucher muss beides lesen; in der `flags`-Liste des `cube`-Blocks stehen nur Schritte MIT Flags (313–330 von 337 — fast alle, weil `stationOnly`/`interpolated` Flags sind).
+- **V-FI-19 — der Obs-Abruf des Live-Pfads trägt den Messzeitpunkt als `timestamp`**, nicht als `time`; mein erster Adapter verlor jede Messung stumm (kein Anker, keine Notiz). Kur: Feld korrigiert **und** jeder Nicht-Anker-Fall hat jetzt eine Notiz (Frist, gescheitert, keine Station, kein Paar) — eine stille Abwesenheit war das eigentliche Problem.
+- **V-FI-20 — die stündliche Achse kostet 153 zusätzliche Motor-Aufrufe** (je Stationsstunde ein `fuseHour` mit einem Sample): +30 ms Desktop, +100–200 ms Mobil. Tragbar; wenn AP11 es braucht, ließe sich die Stationsstunde ohne Kombination (ein Member ⇒ Verteilung direkt) rechnen.
+- **Anker mit einem Paar je Station** (die Messung der letzten Stunde), nicht mit der 6-h-Historie des Live-Pfads — die Historie kommt aus dem Archiv (AP9), nicht aus einem zweiten Abruf.
+- **Repräsentativität 0,19 in München** (`dwd_obs`): der Live-Pfad nimmt die sechs nächsten Messstellen über alle Netze; für München ist das offenbar keine nahe DWD-Station. Ob der Anker mit 19 % Gewicht noch nützt oder schadet, misst AP9.
+
+### 9.11 AP8 — Ausgabe `PointForecastV2`, Verifier vollständig, CI
+
+#### 9.11.1 Diagnose vor dem Code
+
+**Was nach AP7 fehlte:** Das Produkt des Cube-Pfads war `PointForecast` (die Form des Live-Pfads: ein Median je Größe und Stunde, `fusion` als Motor-Objekt daneben) plus ein `cube`-Block mit Provenienz und Flags. Was Plan §2 verlangt und ein Verbraucher (AP11) oder der Backtest (AP9) braucht, stand darin nur verstreut oder gar nicht: **Quantile** (p10/p50/p90/Mittel/σ je Größe), die **σ-Art** (PAP 6: ensemble/divergence/sys-only), der **Konfidenz-Score** mit seinen drei Faktoren, **„Quelle + Gewicht"** je Größe und Schritt, die **Setzungen je Größe**, eine **Achse** mit nativen und interpolierten Zeiten — und alles **rein serialisierbar** (das `fusion`-Objekt trägt Verteilungen als Union-Typen, die Zeitstempel sind `Date`).
+
+**Drei Dinge waren zu messen, bevor gebaut wurde:**
+
+1. **Die Gewichte kennt nur der Motor, und er gibt sie nicht heraus.** `fuseScalar` normiert `c.weights` und behält davon nur die Tags über 5 % (`contributors`). Ein zweites Rechnen der Gewichte außerhalb wäre eine Kopie des Motors; ein neues Feld auf `FusedVariable` änderte die Bytes des Live-Produkts (jede `hours[i].fusion` trüge es). Der schmalste Weg: ein **lesender Hook** auf dem Kontext (`FusionContext.onWeights`), den nur der Cube-Pfad setzt — der Live-Pfad bleibt byte-gleich (Block 13 belegt: `fuseHour` mit und ohne Hook identisch; der Hook meldet je Größe Gewichte mit Σ = 1 und β).
+2. **Wie groß wird das?** 337 Schritte × 14 Größen. Der erste Entwurf (Member mit Details und Setzungen im Klartext je Größe und Schritt) kam auf **3 039 KB JSON** — Stationsname, Lauf und Begründungssätze 4 700-mal wiederholt. Nach Normalisierung (Member-Details **einmal je Schritt**, je Größe nur `{tag, weight, value}`; Setzungen als **Schlüssel** mit Klartext **einmal** in `provenance.calib`/`calibLegend`; stundenunabhängige Schlüssel je Größe einmal in `calibByVar`; Einheiten einmal in `units`) **1 140 KB** — der Rest ist die Sache selbst: je Größe eine Verteilung, fünf Kennzahlen, drei Konfidenzfaktoren, zwei bis vier Gewichte. Im Speicher des Browsers unproblematisch; als Transport (Archiv, Massenaufrufer) braucht es eine kompakte Kodierung (**V-FI-21**, AP9/AP11).
+3. **V-FI-8 (Fließkommareste aus `dequantize`)** gehört an genau diese Stelle: die Kennzahlen werden auf die **Skala der Cube-Ebene** gerundet (t2m/td2m/Wind/Böe/Niederschlag 0,01; clct/Schichten/rh/ps 0,1; Schneefallgrenze 1 m; Gewichte und Konfidenz 0,001), die Verteilungsparameter bleiben roh — sie SIND die Antwort, die Zahlen daneben sind ihre Lesart. Rundweg belegt: der Cube-Member-Wert von t2m ohne PAP 3/4 = Signatur der Zelle ± Δ/2 (14,37 gegen 14,3700).
+
+**Abweichungen von der Form in Plan §2, mit Grund:** `VarV2.members` trägt `{tag, weight, value}` und verweist auf `StepV2.members` (Details) — Größe, s. o.; `VarV2.calib` sind Schlüssel, nicht Sätze; `sigma` ist **(q84 − q16)/2** der Verteilung (bei Normalverteilung exakt σ, bei Rice/Hurdle eine verteilungsfreie Lesart); der Prior ist ein **Member** mit Gewicht **1 − β** (K-3: wie viel der Antwort Klimatologie ist, steht jetzt da — gemessen im Motor, nicht gesetzt); `windDir` trägt nur p50 (Konzentrations-Gate, kein Quantil); Wolkenschichten, `ps` und Schneefallgrenze kommen **ohne Motor-Verteilung** vom tragenden Member (Schichten: keine σ-Ebene ⇒ `sigmaKind: none`; ps hydrostatisch aus PAP 4 mit σ_div/σ_ens aus dem Cube, ohne σ_sys ⇒ `sigmaCubeOnly`); `timing.decodeMs` ist `null`, weil der Leser Abruf und Dekodierung nicht trennt (ehrlich statt geschätzt).
+
+#### 9.11.2 Was sich ändert (AP8)
+
+| Datei | Änderung |
+|---|---|
+| `src/pointForecast/fusion/fuse.ts` | **Ein lesender Hook:** `FusionContext.onWeights?({ variable, weights, beta })`, aufgerufen in `fuseScalar` nach der Normierung. Nichts im Ergebnis hängt davon ab; der Live-Pfad setzt ihn nie (byte-gleich, Block 13; `verify:pv-fusion` 222/222) |
+| `src/pointForecast/fusion/output.ts` **neu** | `PointForecastV2` (`schema: 2`; `point` mit Gelände-Kennzahlen; `axis` mit `steps`, `native`, `interpolated`, `seams`, `gaps`, `usableToMs`; `provenance` mit Läufen (ISO, `ageH`), Station, Radar, `calib`, `calibLegend`, `calibByVar`, `units`, `fetched`; `timing`), `StepV2` (`members` mit Details, `vars` × 14, `flags`), `VarV2` (p10/p50/p90/mean/σ, `dist`, `sigmaKind`, `confidence {score, spread, agree, lage}`, `members {tag, weight, value}`, `calib`-Schlüssel), `roundTo` (V-FI-8), `toPointForecastV2()` rein, `verifyOutput()` |
+| `src/pointForecast/cubeSource.ts` | `CubeStep.weights` (aus dem Hook, Wind u/v gemittelt) und `CubeStep.samples` (die exakte Eingabe der Kombination — Replay, AP9); `CubePathSummary.v2` + `timing.outputMs`; `getPointForecastFromCube` hängt `v2` an `fc.cube` |
+| `scripts/verify-pv-cube.mjs` | **Block (13)**: `verifyOutput`, Form (337/102/79/14/2), Schritt 0 (Quantile geordnet, σ-Art divergence, Konfidenz, Gewichte cube 0,31 + mosmix 0,69 = 1, Prior 0,051), Rundung auf die Ebenenskala über alle Schritte, **Rundweg Δ/2**, interpolierter/Stations-/Klimatologie-Schritt, Schichten/ps/Richtung/pSnow, Provenienz, JSON-Rundweg byte-gleich, Ende-zu-Ende `fc.cube.v2`, **Live-Gleichheit mit dem Hook**, **eine Negativkontrolle je Flag** (14 Flags: seam, interpolated, stationOnly, climatologyOnly, nowcastFallbackModel, stale, nowcastSaturated, anchored, inversionBody, stdLapseFallback, extrapolatedBelowModel, belowGround925, noTerrain, chunkBorderTruncated — je ein Fall, der es setzt, und einer, der es nicht setzt), **Laufzeit gedruckt** (nativ/stündlich/Ausgabe/JSON). Kosten-Prüfungen der Blöcke 8–11 auf Minimum aus **7** Läufen (bei 3 war die PAP-5-Differenz zwischen 1,3 und 8,6 ms — Rauschen, kein Kostenanstieg) |
+| `.github/workflows/ci.yml` | Schritt „Verifier — Punkt-Cube-Pfad (buscosun Fusion, FI)" = `npm run verify:pv-cube` hinter `verify:pv-fusion` (netzfrei: Fixture im Speicher, injizierte Uhr, injiziertes Gelände) |
+
+#### 9.11.3 Gates und Messungen AP8 — und der Stand der Phase nach AP2–AP8
+
+**Netzfrei:** `verify:pv-cube` **201/201** (AP2 76 → AP4 106 → AP3 124 → AP6 144 → AP5 144 → AP7 169 → AP8 201; Block 13 = 33 Prüfungen), `verify:pv-fusion` **222/222** (Live-Pfad, mit dem Hook in der Datei), `verify:point-client` 112/112, typecheck 0, Build 241/241, Budget: eagerJs **107,9 unverändert**, totalJs 1 366,4 → **1 366,5** (+0,1 KB: der Hook-Aufruf in `fuse.ts`, im lazy `attach`-Chunk), Textsonde: `fuseCubePoint`/`toPointForecastV2`/`calibLegend`/`nowcastFallbackModel`/`OBS_GRACE_MS`/`cubeSeriesFrom` in **0** von 83 Chunks; `onWeights` 1 Treffer = der Motor selbst (lazy). Laufzeit in Node (Fixture, min aus 7): nativ 9,5 ms · stündlich 21,6 ms · Ausgabe v2 19,7 ms · `JSON.stringify` 9,9 ms (1 140 KB).
+
+**Am lebenden Datum (Lab 22:59 UTC, `latency/2026-09-16T22-59-53-758Z.json`, `--gate`, München/Wien/Zermatt/Genf, Stand nach AP8):**
+
+| Profil | kalt p50 / p95 | warm p50 / p95 | Kern kalt p50 | Algorithmus kalt | Ausgabe v2 | §6 |
+|---|---|---|---|---|---|---|
+| Desktop | **1 017 / 1 088 ms** (München 810 · Wien 907 · Genf 1 016 · Zermatt 1 087) | **359 / 622 ms** | 697 ms | 51–89 ms | 15–30 ms | **grün** |
+| Mobil-4G (9 Mbit, 170 ms RTT, CPU 4×) | **2 631 / 2 781 ms** | 967 / 1 437 ms | **2 274 ms** | 244–247 ms | 75–98 ms | **rot** |
+
+Der Anker trug auf **allen acht Desktop-Läufen** (6 Paare je Ort: München `dwd_obs` −0,97 K · Wien `tawes` −0,32 K · Zermatt `smn` −1,55 K · Genf `smn` −1,69 K); auf Mobil-4G kalt an einem von vier Orten (die Messung kommt dort erst nach 2,2–2,4 s, die Frist 1,5 s schneidet sie — mit Notiz). Der Nowcast kam in diesem Lauf an allen Orten vor der Frist (München 728 ms — der RV-Slot war diesmal warm), an Zermatt war er der letzte Posten (980 ms). Alle drei Läufe des Abends (22:33, 22:40, 22:59) sagen dasselbe: **Desktop kalt ≈ 1,0 s p50, warm 0,4 s; Mobil-4G kalt 2,5–2,9 s, davon 2,1–2,4 s Kern** (1,8–2,3 MB — bytes-gebunden; das ist AP12, nicht der Algorithmus, der auf Mobil 0,25 + 0,1 s kostet).
+
+**Die 10-Orte-Tabelle (Cube-Pfad gegen Live-Pfad, Desktop, 22:03 UTC, §9.5.4/§9.8.4) gilt unverändert** — AP7/AP8 ändern an den nativen Schritten nichts (byte-gleich, Block 12/13), nur der Anker verschiebt +0…+12 h um `Versatz · Repräsentativität · e^(−h/4)` (München: −0,97 · 0,19 = −0,18 K bei +0 h). Das ist ein **Vergleich zweier Vorhersagen, keine Genauigkeit** — die kommt mit AP9.
+
+**Befunde AP8:** **V-FI-21** (v2 ist 1,1 MB JSON je Punkt und 337 Stunden — im Speicher unproblematisch, für Archiv/Massenaufrufer kompakt kodieren: Verteilungen als Zahlentupel, Member-Tags als Index); **V-FI-8 behoben** (Rundung auf die Ebenenskala); der Hook `onWeights` macht sichtbar, dass an einem Flachland-Schritt +0 h die Station **69 %** und der Cube **31 %** trägt und der Prior 5 % (β = 0,95) — mit dem PAP-6-Sockel für die Station (`stationSigma:set`, §9.8.2); ob das Verhältnis stimmt, entscheidet allein der Backtest.
+
+**Was Jan entscheiden muss:** nichts außerhalb von §4 — alle Setzungen tragen `set` mit Grund in `calib[]`, der Motor ist nur additiv angefasst (`errorSigma`, `cloudTotal`-Extraktor, lesender Hook), das App-Bundle ist unverändert, nichts committet.
+
+**Nächste Etappe: AP9** — der Archiv-Sammler nimmt den Cube-Pfad mit (`getPointForecast({ pointSource: 'cube' })` in Node über `CubeIo` mit `store`/`clima`/`nowMs`, wie Block 7/12/13 es tut), `verify:pv-score --archive` bewertet beide Pfade gegen POI/TAWES/SMN; erst daraus kommen σ_sys, c(p,f) und die Antwort, ob der Cube-Member auf Bergorten zu Recht unter 5 % liegt (V-FI-13). Parallel AP12 für Mobil (Ebenen-Ranges, progressives Laden, E-F-3).
+
+#### 9.11.4 Gegenprüfung AP2–AP8 (17.09., 05:40–05:55 UTC, andere Session)
+
+**Gates neu gelaufen:** `typecheck` 0 · `verify:pv-fusion` 222/222 · `verify:pv-cube` **201/201** (Rechnung allein 49,8 ms je Punkt) · `verify:point-client` 112/112 · `verify:point-data` 969/969 · `verify:punktarchiv` 87/87 · Build 241/241 · Budget grün (eagerJs 107,9 · totalJs 1 366,5). Am Live-Motor wurden drei Zeilen ersetzt (`getClimaField` exportiert, die Gewichtsschleife um den lesenden Hook `onWeights` erweitert), alles andere ist additiv; `fuseCubePoint` ist synchron und ohne Abruf (der einzige `import()` liegt in der IO-Schicht `fetchCubeObs`). `verify:pv-cube` liest weder Archiv noch Netz und darf in CI. Der Cube-Pfad ist nicht importiert, sondern registriert (`registerPointSource`), ohne Registrierung wirft `getPointForecast` benannt.
+
+**Lab (`latency/2026-09-17T05-49-21-318Z.json`, desktop-none, München/Wien/Zermatt/Genf, `--gate`):** `cube-cold` **p50 1 903 ms, p95 1 914 ms — Gate §6 grün, mit 100 ms Luft**; Kern 716–1 031 ms, erste Darstellung 683–748 ms, Rechnung + Ausgabe unverändert. Warum am Morgen 1,9 s statt der 1,0 s vom Vorabend: `static` (hmodel/urban unter `@main`) war nach Ablauf der 12 h am Edge MISS und kam bei 1 417–1 649 ms an, und der Radar-Slot war MISS (V-FI-7); `getPointForecastFromCube` wartet bis zur Frist von 1 800 ms auf das vollständige Bündel, dann die Gnadenfrist für den Anker. Der Anker trug an allen vier Orten (Versatz München −0,74 K, Zermatt +3,09 K, Genf +3,30 K — Repräsentativität 0,19–0,67). **V-FI-22:** die statischen Produkte liegen auf dem kritischen Pfad der Antwort, obwohl v1 sie nicht benutzt (PAP 4 rechnet mit `hModEff` aus dem Cube, die PAP-5-Amplituden sind null) — der Cube-Pfad sollte auf `core` + Radar-Frist warten, nicht auf `read`; das ist ein AP12-Posten neben V-FI-7. Solange das CDN diese Dateien kalt hat, liegt Desktop kalt-neu bei ≈ 1,8–1,9 s, nicht bei 1,0 s.
+
+**Verdikt:** AP2–AP8 sind abgenommen, wie in 9.11.3 beschrieben; Mobil-4G bleibt rot (AP12). Nächste Etappe AP9 (Kickoff in `prompt.md`).

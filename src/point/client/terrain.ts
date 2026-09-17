@@ -31,6 +31,7 @@ import {
   tpiAt, horizonAngles, skyViewFactor, slopeAspect, TPI_RADII_M, SX_RADIUS_M, M_PER_DEG_LAT, mPerDegLon,
   type ElevationAt,
 } from '../terrainPoint';
+import { terrainScales, type TerrainScales } from '../../pointForecast/fusion/terrainScale';
 import type { CacheBackend } from './cache';
 import type { DecodedRgba } from './browserPng';
 
@@ -73,6 +74,18 @@ export interface TerrainPointResult {
   /** Acht Oktanten ab Nord im Uhrzeigersinn, Grad über dem Horizont. */
   horizonDeg: number[] | null;
   svf: number | null;
+  /**
+   * Phase FI, AP2: die sechs Ringradien (0,5–12 km) der Repräsentativitäts-Geometrie von
+   * buscosun Fusion (`terrainScale.ts`: Höhenstreuung je Footprint, TPI je Skala, Horizont
+   * je Oktant) — aus DERSELBEN Höhenfunktion wie die Größen darüber, damit der Cube-Pfad
+   * keinen zweiten DEM-Abruf braucht. `null`, wenn die Höhe am Punkt fehlt.
+   */
+  scales: TerrainScales | null;
+  /**
+   * Senkentiefe in m (≥ 0): Ringmittel in 2 km Radius minus Punkthöhe, wie
+   * `terrainPhysics.terrainContext` sie für das Kaltluftsee-Regime führt. `null` ohne Höhe.
+   */
+  sinkDepthM: number | null;
   /** Woher die Zahlen stammen — z11 für das Nahfeld, z8 für die Ferne. */
   source: string;
   tiles: { near: number; far: number; failed: number; bytes: number; fromCache: number };
@@ -131,7 +144,9 @@ function sampleTileSet(set: TileSet, lat: number, lon: number): number | null {
 }
 
 function resultKey(lat: number, lon: number, near: TerrainScale, far: TerrainScale): string {
-  return `terrain/v1/z${near.z}r${near.radiusM}+z${far.z}r${far.radiusM}/${lat.toFixed(4)},${lon.toFixed(4)}`;
+  // v2 seit AP2: das Ergebnis trägt zusätzlich `scales` und `sinkDepthM` — ein v1-Eintrag
+  // im Cache hätte beides nicht und sähe aus wie ein Ort ohne Gelände.
+  return `terrain/v2/z${near.z}r${near.radiusM}+z${far.z}r${far.radiusM}/${lat.toFixed(4)},${lon.toFixed(4)}`;
 }
 
 /**
@@ -225,6 +240,9 @@ export async function loadTerrainAtPoint(lat: number, lon: number, opts: Terrain
   const h = elev(lat, lon);
   const hor = horizonAngles(lat, lon, elev, { radiusM: SX_RADIUS_M });
   const sa = slopeAspect(lat, lon, elev, 90);
+  // AP2: die Ringgeometrie des Motors — Sampler in (lng, lat)-Ordnung, NaN statt null.
+  const scales = h == null ? null : terrainScales((lo, la) => { const v = elev(la, lo); return v == null ? NaN : v; }, lon, lat);
+  const ring2km = scales ? scales.ringMeanM[2] : null;   // RADII_M[2] = 2 000 m
   const result: TerrainPointResult = {
     lat, lon,
     elevationM: h == null ? null : Math.round(h * 10) / 10,
@@ -234,6 +252,8 @@ export async function loadTerrainAtPoint(lat: number, lon: number, opts: Terrain
     aspectDeg: round1(sa?.aspectDeg ?? null),
     horizonDeg: hor ? hor.map((x) => Math.round(x * 100) / 100) : null,
     svf: hor ? Math.round(skyViewFactor(hor) * 1000) / 1000 : null,
+    scales: scales && scales.sampledCount > 0 ? scales : null,
+    sinkDepthM: h == null || ring2km == null ? null : Math.max(0, Math.min(400, Math.round((ring2km - h) * 10) / 10)),
     source: `terrarium z${near.z} (≤ ${near.radiusM} m) + z${far.z} (≤ ${far.radiusM} m)`,
     tiles: stats,
     fromCache: false,

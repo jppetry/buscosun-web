@@ -1,0 +1,2580 @@
+{
+ "schema": 2,
+ "startedAt": "2026-09-16T21:40:09.989Z",
+ "finishedAt": "2026-09-16T21:40:29.567Z",
+ "host": {
+  "platform": "win32",
+  "node": "v22.17.0",
+  "chrome": "C:\\Users\\User\\AppData\\Local\\ms-playwright\\chromium_headless_shell-1223\\chrome-headless-shell-win64\\chrome-headless-shell.exe"
+ },
+ "args": {
+  "profileIds": [
+   "mobile-4g"
+  ],
+  "placeIds": [
+   "muenchen",
+   "wien",
+   "zermatt",
+   "genf"
+  ],
+  "only": [
+   "cube"
+  ],
+  "repeats": 1
+ },
+ "chunkEdgePlaces": [
+  "graz"
+ ],
+ "summary": [
+  {
+   "profile": "mobile-4g",
+   "scenario": "cube-cold",
+   "n": 4,
+   "p50": 2251.599999964237,
+   "p95": 2510.7999999523163,
+   "max": 2510.7999999523163,
+   "coreP50": 2124,
+   "coreP95": 2184,
+   "readP50": 2184,
+   "readP95": 2379,
+   "firstP50": 2123,
+   "firstP95": 2184
+  },
+  {
+   "profile": "mobile-4g",
+   "scenario": "cube-warm",
+   "n": 4,
+   "p50": 555.2000000476837,
+   "p95": 704.3999999761581,
+   "max": 704.3999999761581,
+   "coreP50": 339,
+   "coreP95": 389,
+   "readP50": 504,
+   "readP95": 603,
+   "firstP50": 332,
+   "firstP95": 385
+  }
+ ],
+ "gate": {
+  "ok": false,
+  "checks": [
+   {
+    "gate": "§6 end-to-end cold",
+    "profile": "mobile-4g",
+    "p50": 2251.599999964237,
+    "p95": 2510.7999999523163,
+    "ok": false
+   }
+  ]
+ },
+ "compare": null,
+ "runs": [
+  {
+   "profile": "mobile-4g",
+   "place": "muenchen",
+   "lat": 48.1372,
+   "lon": 11.5755,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "cube-cold",
+   "rep": 0,
+   "wallMs": 2514,
+   "totalMs": 2510.7999999523163,
+   "coreMs": 2043,
+   "readMs": 2379,
+   "firstMs": 2043,
+   "result": {
+    "total": 2510.7999999523163,
+    "hours": 102,
+    "sourcesAvailable": [
+     "cube-t1",
+     "cube-t2",
+     "cube-t3",
+     "mosmix",
+     "radolan",
+     "inca",
+     "rzc"
+    ],
+    "elevation": 524.8,
+    "timing": {
+     "readMs": 2379,
+     "coreMs": 2043,
+     "firstMs": 2043,
+     "algoMs": 122.3,
+     "totalMs": 2506,
+     "doneAt": {
+      "index": 262,
+      "static": 616,
+      "terrain": 1307,
+      "station": 1456,
+      "cube.t2": 1666,
+      "cube.t3": 1749,
+      "cube.t1": 2042,
+      "first": 2043,
+      "core": 2043,
+      "nowcast": 2379,
+      "read": 2379
+     }
+    },
+    "provenance": {
+     "indexCommit": "b3e6fec0d21ca6473b04532eee873d7d27eee850",
+     "runs": {
+      "t1": {
+       "run": "2026091618",
+       "sourceRun": "2026091618",
+       "sourceRunAtMs": 1789581600000,
+       "models": [
+        "icon_d2",
+        "icon_d2_eps",
+        "icon_ch1_eps",
+        "claef",
+        "claef_eps",
+        "icon_eu",
+        "ifs_hres",
+        "aifs_single"
+       ],
+       "manifestFrom": "pinned"
+      },
+      "t2": {
+       "run": "2026091612",
+       "sourceRun": "2026091612",
+       "sourceRunAtMs": 1789560000000,
+       "models": [
+        "icon_eu",
+        "icon_eu_eps",
+        "icon_ch2_eps",
+        "icon_global",
+        "aicon",
+        "ifs_hres",
+        "aifs_single"
+       ],
+       "manifestFrom": "pinned"
+      },
+      "t3": {
+       "run": "2026091600",
+       "sourceRun": "2026091600",
+       "sourceRunAtMs": 1789516800000,
+       "models": [
+        "icon_global",
+        "icon_eps_global",
+        "aicon",
+        "ifs_hres",
+        "ifs_ens",
+        "aifs_single"
+       ],
+       "manifestFrom": "pinned"
+      }
+     },
+     "station": {
+      "run": "2026091615",
+      "runAtMs": 1789570800000,
+      "ageH": 1.74,
+      "id": "10865",
+      "name": "MUENCHEN STADT",
+      "distKm": 4.969364387802765,
+      "dElevM": -9.799999999999955,
+      "elevM": 515
+     },
+     "stationReason": "MUENCHEN STADT, 5.0 km, -10 m — vertritt den Punkt.",
+     "nowcast": [
+      {
+       "source": "radvor_rv",
+       "stamp": "2609162135",
+       "ageMin": 5,
+       "frames": 3,
+       "extrapolationH": 2
+      },
+      {
+       "source": "inca",
+       "stamp": "20260916T2115",
+       "ageMin": 25,
+       "frames": 3,
+       "extrapolationH": 3
+      },
+      {
+       "source": "combiprecip",
+       "stamp": "20260916T2135",
+       "ageMin": 5,
+       "frames": 1,
+       "extrapolationH": 0
+      }
+     ],
+     "clima": "grid"
+    },
+    "axis": {
+     "native": 102,
+     "seams": [
+      1789765200000,
+      1790013600000
+     ],
+     "perTier": {
+      "t1": 46,
+      "t2": 22,
+      "t3": 34
+     }
+    },
+    "flags": 78,
+    "notes": [],
+    "skips": [],
+    "errors": [],
+    "stats": {
+     "files": 31,
+     "bytes": 2085529,
+     "misses": 4,
+     "ms": 21608.49999976158,
+     "slow": 0,
+     "retries": 0,
+     "fallbacks": 0
+    },
+    "decode": {
+     "mode": "worker",
+     "workers": 3,
+     "decoded": 8,
+     "viaWorker": 8,
+     "viaMain": 0,
+     "fallbacks": 0,
+     "errors": []
+    }
+   },
+   "net": {
+    "requests": 36,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 1944527,
+    "cdn": 31,
+    "hit": 21,
+    "miss": 10,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/2026091618/t1/03_07.bin",
+     "bytes": 539125,
+     "ttfbMs": 214,
+     "ms": 1694,
+     "xCache": "HIT"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 31,
+     "127.0.0.1:6871": 1,
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": [
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/index.json",
+      "bytes": 5308,
+      "ttfbMs": 234,
+      "ms": 253,
+      "xCache": "HIT",
+      "startMs": 0,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@b3e6fec0d21ca6473b04532eee873d7d27eee850/point/2026091618/run.json",
+      "bytes": 10306,
+      "ttfbMs": 200,
+      "ms": 265,
+      "xCache": "HIT",
+      "startMs": 267,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091618/t1/03_07.bin",
+      "bytes": 539125,
+      "ttfbMs": 214,
+      "ms": 1694,
+      "xCache": "HIT",
+      "startMs": 268,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@b3e6fec0d21ca6473b04532eee873d7d27eee850/point/2026091612/run.json",
+      "bytes": 12298,
+      "ttfbMs": 213,
+      "ms": 311,
+      "xCache": "HIT",
+      "startMs": 268,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091612/t2/01_03.bin",
+      "bytes": 211248,
+      "ttfbMs": 213,
+      "ms": 1325,
+      "xCache": "HIT",
+      "startMs": 268,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@b3e6fec0d21ca6473b04532eee873d7d27eee850/point/2026091600/run.json",
+      "bytes": 9816,
+      "ttfbMs": 214,
+      "ms": 310,
+      "xCache": "HIT",
+      "startMs": 269,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091600/t3/00_01.bin",
+      "bytes": 247826,
+      "ttfbMs": 244,
+      "ms": 1389,
+      "xCache": "HIT",
+      "startMs": 270,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/static.json",
+      "bytes": 2317,
+      "ttfbMs": 243,
+      "ms": 246,
+      "xCache": "HIT",
+      "startMs": 270,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/t1/03_07.bin",
+      "bytes": 1520,
+      "ttfbMs": 213,
+      "ms": 229,
+      "xCache": "HIT",
+      "startMs": 270,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/t2/01_03.bin",
+      "bytes": 1949,
+      "ttfbMs": 244,
+      "ms": 258,
+      "xCache": "HIT",
+      "startMs": 271,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/t3/00_01.bin",
+      "bytes": 1733,
+      "ttfbMs": 246,
+      "ms": 260,
+      "xCache": "HIT",
+      "startMs": 271,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/urban/v1/static.json",
+      "bytes": 3599,
+      "ttfbMs": 246,
+      "ms": 270,
+      "xCache": "HIT",
+      "startMs": 271,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/urban/v1/t1/03_07.bin",
+      "bytes": 1052,
+      "ttfbMs": 324,
+      "ms": 326,
+      "xCache": "HIT",
+      "startMs": 272,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/catalog.json",
+      "bytes": 59581,
+      "ttfbMs": 261,
+      "ms": 738,
+      "xCache": "HIT",
+      "startMs": 272,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/2026091615/stations.json",
+      "bytes": 14330,
+      "ttfbMs": 273,
+      "ms": 401,
+      "xCache": "HIT",
+      "startMs": 272,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/2026091615/03_07.bin",
+      "bytes": 102062,
+      "ttfbMs": 261,
+      "ms": 993,
+      "xCache": "HIT",
+      "startMs": 272,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609162135/meta.json",
+      "bytes": 668,
+      "ttfbMs": 1201,
+      "ms": 1202,
+      "xCache": "MISS",
+      "startMs": 273,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609162130/meta.json",
+      "bytes": 668,
+      "ttfbMs": 285,
+      "ms": 286,
+      "xCache": "HIT",
+      "startMs": 273,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609162125/meta.json",
+      "bytes": 666,
+      "ttfbMs": 284,
+      "ms": 285,
+      "xCache": "HIT",
+      "startMs": 273,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T2115/meta.json",
+      "bytes": 658,
+      "ttfbMs": 357,
+      "ms": 358,
+      "xCache": "MISS",
+      "startMs": 274,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T2100/meta.json",
+      "bytes": 667,
+      "ttfbMs": 301,
+      "ms": 304,
+      "xCache": "HIT",
+      "startMs": 274,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260916T2135/meta.json",
+      "bytes": 575,
+      "ttfbMs": 983,
+      "ms": 985,
+      "xCache": "MISS",
+      "startMs": 275,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260916T2130/meta.json",
+      "bytes": 580,
+      "ttfbMs": 300,
+      "ms": 303,
+      "xCache": "HIT",
+      "startMs": 275,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260916T2125/meta.json",
+      "bytes": 578,
+      "ttfbMs": 300,
+      "ms": 303,
+      "xCache": "HIT",
+      "startMs": 275,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T2115/f045.png",
+      "bytes": 51901,
+      "ttfbMs": 601,
+      "ms": 775,
+      "xCache": "MISS",
+      "startMs": 781,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T2115/f105.png",
+      "bytes": 50705,
+      "ttfbMs": 286,
+      "ms": 540,
+      "xCache": "MISS",
+      "startMs": 782,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T2115/f165.png",
+      "bytes": 44079,
+      "ttfbMs": 1110,
+      "ms": 1181,
+      "xCache": "MISS",
+      "startMs": 782,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260916T2135/frame.png",
+      "bytes": 17784,
+      "ttfbMs": 562,
+      "ms": 592,
+      "xCache": "MISS",
+      "startMs": 1263,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609162135/f025.png",
+      "bytes": 36473,
+      "ttfbMs": 661,
+      "ms": 724,
+      "xCache": "MISS",
+      "startMs": 1484,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609162135/f085.png",
+      "bytes": 35247,
+      "ttfbMs": 737,
+      "ms": 770,
+      "xCache": "MISS",
+      "startMs": 1484,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609162135/f120.png",
+      "bytes": 34395,
+      "ttfbMs": 669,
+      "ms": 732,
+      "xCache": "MISS",
+      "startMs": 1485,
+      "status": 200
+     }
+    ],
+    "otherRequests": [
+     {
+      "url": "127.0.0.1:6871/climaGrid.json",
+      "bytes": 72683,
+      "ttfbMs": 187,
+      "ms": 250,
+      "startMs": 2,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1089/710.png",
+      "bytes": 107135,
+      "ttfbMs": 425,
+      "ms": 1187,
+      "startMs": 10,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1090/710.png",
+      "bytes": 103875,
+      "ttfbMs": 428,
+      "ms": 1269,
+      "startMs": 10,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/136/88.png",
+      "bytes": 66630,
+      "ttfbMs": 425,
+      "ms": 937,
+      "startMs": 10,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/136/89.png",
+      "bytes": 94490,
+      "ttfbMs": 427,
+      "ms": 1111,
+      "startMs": 11,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "muenchen",
+   "lat": 48.1372,
+   "lon": 11.5755,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "cube-warm",
+   "rep": 0,
+   "wallMs": 707,
+   "totalMs": 704.3999999761581,
+   "coreMs": 339,
+   "readMs": 603,
+   "firstMs": 332,
+   "result": {
+    "total": 704.3999999761581,
+    "hours": 102,
+    "sourcesAvailable": [
+     "cube-t1",
+     "cube-t2",
+     "cube-t3",
+     "mosmix",
+     "radolan",
+     "inca",
+     "rzc"
+    ],
+    "elevation": 524.8,
+    "timing": {
+     "readMs": 603,
+     "coreMs": 339,
+     "firstMs": 332,
+     "algoMs": 96.6,
+     "totalMs": 700,
+     "doneAt": {
+      "terrain": 4,
+      "index": 204,
+      "static": 257,
+      "cube.t2": 299,
+      "cube.t3": 308,
+      "cube.t1": 332,
+      "first": 332,
+      "station": 339,
+      "core": 339,
+      "nowcast": 603,
+      "read": 603
+     }
+    },
+    "provenance": {
+     "indexCommit": "b3e6fec0d21ca6473b04532eee873d7d27eee850",
+     "runs": {
+      "t1": {
+       "run": "2026091618",
+       "sourceRun": "2026091618",
+       "sourceRunAtMs": 1789581600000,
+       "models": [
+        "icon_d2",
+        "icon_d2_eps",
+        "icon_ch1_eps",
+        "claef",
+        "claef_eps",
+        "icon_eu",
+        "ifs_hres",
+        "aifs_single"
+       ],
+       "manifestFrom": "pinned"
+      },
+      "t2": {
+       "run": "2026091612",
+       "sourceRun": "2026091612",
+       "sourceRunAtMs": 1789560000000,
+       "models": [
+        "icon_eu",
+        "icon_eu_eps",
+        "icon_ch2_eps",
+        "icon_global",
+        "aicon",
+        "ifs_hres",
+        "aifs_single"
+       ],
+       "manifestFrom": "pinned"
+      },
+      "t3": {
+       "run": "2026091600",
+       "sourceRun": "2026091600",
+       "sourceRunAtMs": 1789516800000,
+       "models": [
+        "icon_global",
+        "icon_eps_global",
+        "aicon",
+        "ifs_hres",
+        "ifs_ens",
+        "aifs_single"
+       ],
+       "manifestFrom": "pinned"
+      }
+     },
+     "station": {
+      "run": "2026091615",
+      "runAtMs": 1789570800000,
+      "ageH": 1.74,
+      "id": "10865",
+      "name": "MUENCHEN STADT",
+      "distKm": 4.969364387802765,
+      "dElevM": -9.799999999999955,
+      "elevM": 515
+     },
+     "stationReason": "MUENCHEN STADT, 5.0 km, -10 m — vertritt den Punkt.",
+     "nowcast": [
+      {
+       "source": "radvor_rv",
+       "stamp": "2609162135",
+       "ageMin": 5,
+       "frames": 3,
+       "extrapolationH": 2
+      },
+      {
+       "source": "inca",
+       "stamp": "20260916T2115",
+       "ageMin": 25,
+       "frames": 3,
+       "extrapolationH": 3
+      },
+      {
+       "source": "combiprecip",
+       "stamp": "20260916T2135",
+       "ageMin": 5,
+       "frames": 1,
+       "extrapolationH": 0
+      }
+     ],
+     "clima": "grid"
+    },
+    "axis": {
+     "native": 102,
+     "seams": [
+      1789765200000,
+      1790013600000
+     ],
+     "perTier": {
+      "t1": 46,
+      "t2": 22,
+      "t3": 34
+     }
+    },
+    "flags": 78,
+    "notes": [],
+    "skips": [],
+    "errors": [],
+    "stats": {
+     "files": 33,
+     "bytes": 2129339,
+     "misses": 8,
+     "ms": 22696.39999973774,
+     "slow": 0,
+     "retries": 0,
+     "fallbacks": 0
+    },
+    "decode": {
+     "mode": "worker",
+     "workers": 3,
+     "decoded": 16,
+     "viaWorker": 16,
+     "viaMain": 0,
+     "fallbacks": 0,
+     "errors": []
+    }
+   },
+   "net": {
+    "requests": 2,
+    "cached": 1,
+    "failed": 0,
+    "bytes": 199,
+    "cdn": 1,
+    "hit": 1,
+    "miss": 0,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/index.json",
+     "bytes": 199,
+     "ttfbMs": 196,
+     "ms": 197,
+     "xCache": "HIT"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 2
+    },
+    "cdnRequests": [
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/index.json",
+      "bytes": 199,
+      "ttfbMs": 196,
+      "ms": 197,
+      "xCache": "HIT",
+      "startMs": 0,
+      "status": 200
+     }
+    ],
+    "otherRequests": []
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "wien",
+   "lat": 48.2082,
+   "lon": 16.3738,
+   "country": "AT",
+   "chunkEdge": false,
+   "scenario": "cube-cold",
+   "rep": 0,
+   "wallMs": 2269,
+   "totalMs": 2251.599999964237,
+   "coreMs": 2184,
+   "readMs": 2184,
+   "firstMs": 2184,
+   "result": {
+    "total": 2251.599999964237,
+    "hours": 102,
+    "sourcesAvailable": [
+     "cube-t1",
+     "cube-t2",
+     "cube-t3",
+     "mosmix",
+     "inca"
+    ],
+    "elevation": 172,
+    "timing": {
+     "readMs": 2184,
+     "coreMs": 2184,
+     "firstMs": 2184,
+     "algoMs": 56.2,
+     "totalMs": 2242,
+     "doneAt": {
+      "index": 248,
+      "static": 579,
+      "nowcast": 1252,
+      "terrain": 1507,
+      "station": 1568,
+      "cube.t2": 1784,
+      "cube.t3": 1847,
+      "cube.t1": 2184,
+      "first": 2184,
+      "core": 2184,
+      "read": 2184
+     }
+    },
+    "provenance": {
+     "indexCommit": "b3e6fec0d21ca6473b04532eee873d7d27eee850",
+     "runs": {
+      "t1": {
+       "run": "2026091618",
+       "sourceRun": "2026091618",
+       "sourceRunAtMs": 1789581600000,
+       "models": [
+        "icon_d2",
+        "icon_d2_eps",
+        "icon_ch1_eps",
+        "claef",
+        "claef_eps",
+        "icon_eu",
+        "ifs_hres",
+        "aifs_single"
+       ],
+       "manifestFrom": "pinned"
+      },
+      "t2": {
+       "run": "2026091612",
+       "sourceRun": "2026091612",
+       "sourceRunAtMs": 1789560000000,
+       "models": [
+        "icon_eu",
+        "icon_eu_eps",
+        "icon_ch2_eps",
+        "icon_global",
+        "aicon",
+        "ifs_hres",
+        "aifs_single"
+       ],
+       "manifestFrom": "pinned"
+      },
+      "t3": {
+       "run": "2026091600",
+       "sourceRun": "2026091600",
+       "sourceRunAtMs": 1789516800000,
+       "models": [
+        "icon_global",
+        "icon_eps_global",
+        "aicon",
+        "ifs_hres",
+        "ifs_ens",
+        "aifs_single"
+       ],
+       "manifestFrom": "pinned"
+      }
+     },
+     "station": {
+      "run": "2026091615",
+      "runAtMs": 1789570800000,
+      "ageH": 1.74,
+      "id": "11034",
+      "name": "WIEN/CITY",
+      "distKm": 0.9542971678537615,
+      "dElevM": -1,
+      "elevM": 171
+     },
+     "stationReason": "WIEN/CITY, 1.0 km, -1 m — vertritt den Punkt.",
+     "nowcast": [
+      {
+       "source": "inca",
+       "stamp": "20260916T2115",
+       "ageMin": 25,
+       "frames": 3,
+       "extrapolationH": 3
+      }
+     ],
+     "clima": "grid"
+    },
+    "axis": {
+     "native": 102,
+     "seams": [
+      1789765200000,
+      1790013600000
+     ],
+     "perTier": {
+      "t1": 46,
+      "t2": 22,
+      "t3": 34
+     }
+    },
+    "flags": 77,
+    "notes": [],
+    "skips": [],
+    "errors": [],
+    "stats": {
+     "files": 21,
+     "bytes": 1917843,
+     "misses": 2,
+     "ms": 12329.399999976158,
+     "slow": 0,
+     "retries": 0,
+     "fallbacks": 0
+    },
+    "decode": {
+     "mode": "worker",
+     "workers": 3,
+     "decoded": 8,
+     "viaWorker": 8,
+     "viaMain": 0,
+     "fallbacks": 0,
+     "errors": []
+    }
+   },
+   "net": {
+    "requests": 27,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 1951713,
+    "cdn": 21,
+    "hit": 9,
+    "miss": 14,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/2026091618/t1/03_13.bin",
+     "bytes": 579770,
+     "ttfbMs": 204,
+     "ms": 1810,
+     "xCache": "MISS, MISS"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 21,
+     "127.0.0.1:6871": 1,
+     "s3.amazonaws.com": 5
+    },
+    "cdnRequests": [
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/index.json",
+      "bytes": 5636,
+      "ttfbMs": 227,
+      "ms": 241,
+      "xCache": "MISS, MISS",
+      "startMs": 0,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@b3e6fec0d21ca6473b04532eee873d7d27eee850/point/2026091618/run.json",
+      "bytes": 10505,
+      "ttfbMs": 201,
+      "ms": 322,
+      "xCache": "MISS",
+      "startMs": 256,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091618/t1/03_13.bin",
+      "bytes": 579770,
+      "ttfbMs": 204,
+      "ms": 1810,
+      "xCache": "MISS, MISS",
+      "startMs": 257,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@b3e6fec0d21ca6473b04532eee873d7d27eee850/point/2026091612/run.json",
+      "bytes": 12662,
+      "ttfbMs": 199,
+      "ms": 352,
+      "xCache": "MISS",
+      "startMs": 257,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091612/t2/01_06.bin",
+      "bytes": 215391,
+      "ttfbMs": 204,
+      "ms": 1453,
+      "xCache": "MISS",
+      "startMs": 257,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@b3e6fec0d21ca6473b04532eee873d7d27eee850/point/2026091600/run.json",
+      "bytes": 9860,
+      "ttfbMs": 228,
+      "ms": 343,
+      "xCache": "MISS",
+      "startMs": 258,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091600/t3/00_02.bin",
+      "bytes": 248619,
+      "ttfbMs": 212,
+      "ms": 1513,
+      "xCache": "HIT",
+      "startMs": 258,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/static.json",
+      "bytes": 2302,
+      "ttfbMs": 212,
+      "ms": 245,
+      "xCache": "HIT",
+      "startMs": 259,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/t1/03_13.bin",
+      "bytes": 1625,
+      "ttfbMs": 226,
+      "ms": 255,
+      "xCache": "HIT",
+      "startMs": 259,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/t2/01_06.bin",
+      "bytes": 1975,
+      "ttfbMs": 227,
+      "ms": 255,
+      "xCache": "MISS, MISS",
+      "startMs": 260,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/t3/00_02.bin",
+      "bytes": 1716,
+      "ttfbMs": 225,
+      "ms": 254,
+      "xCache": "MISS, MISS",
+      "startMs": 260,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/urban/v1/static.json",
+      "bytes": 3613,
+      "ttfbMs": 226,
+      "ms": 275,
+      "xCache": "MISS",
+      "startMs": 260,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/urban/v1/t1/03_13.bin",
+      "bytes": 1370,
+      "ttfbMs": 225,
+      "ms": 228,
+      "xCache": "MISS",
+      "startMs": 261,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/catalog.json",
+      "bytes": 59954,
+      "ttfbMs": 225,
+      "ms": 842,
+      "xCache": "HIT",
+      "startMs": 261,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/2026091615/stations.json",
+      "bytes": 14655,
+      "ttfbMs": 225,
+      "ms": 393,
+      "xCache": "HIT",
+      "startMs": 261,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/2026091615/03_13.bin",
+      "bytes": 20864,
+      "ttfbMs": 239,
+      "ms": 455,
+      "xCache": "MISS",
+      "startMs": 262,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T2115/meta.json",
+      "bytes": 987,
+      "ttfbMs": 240,
+      "ms": 241,
+      "xCache": "HIT",
+      "startMs": 263,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T2100/meta.json",
+      "bytes": 996,
+      "ttfbMs": 239,
+      "ms": 241,
+      "xCache": "MISS",
+      "startMs": 263,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T2115/f045.png",
+      "bytes": 52237,
+      "ttfbMs": 187,
+      "ms": 700,
+      "xCache": "HIT",
+      "startMs": 513,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T2115/f105.png",
+      "bytes": 51059,
+      "ttfbMs": 201,
+      "ms": 699,
+      "xCache": "HIT, MISS",
+      "startMs": 514,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260916T2115/f165.png",
+      "bytes": 44443,
+      "ttfbMs": 200,
+      "ms": 636,
+      "xCache": "HIT, MISS",
+      "startMs": 514,
+      "status": 200
+     }
+    ],
+    "otherRequests": [
+     {
+      "url": "127.0.0.1:6871/climaGrid.json",
+      "bytes": 72683,
+      "ttfbMs": 192,
+      "ms": 255,
+      "startMs": 2,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1116/709.png",
+      "bytes": 131928,
+      "ttfbMs": 449,
+      "ms": 1487,
+      "startMs": 7,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1117/709.png",
+      "bytes": 104892,
+      "ttfbMs": 449,
+      "ms": 1361,
+      "startMs": 7,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1116/710.png",
+      "bytes": 124129,
+      "ttfbMs": 448,
+      "ms": 1456,
+      "startMs": 7,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1117/710.png",
+      "bytes": 105605,
+      "ttfbMs": 448,
+      "ms": 1376,
+      "startMs": 8,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/139/88.png",
+      "bytes": 72237,
+      "ttfbMs": 448,
+      "ms": 1167,
+      "startMs": 8,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "wien",
+   "lat": 48.2082,
+   "lon": 16.3738,
+   "country": "AT",
+   "chunkEdge": false,
+   "scenario": "cube-warm",
+   "rep": 0,
+   "wallMs": 554,
+   "totalMs": 540.6999999880791,
+   "coreMs": 389,
+   "readMs": 504,
+   "firstMs": 385,
+   "result": {
+    "total": 540.6999999880791,
+    "hours": 102,
+    "sourcesAvailable": [
+     "cube-t1",
+     "cube-t2",
+     "cube-t3",
+     "mosmix",
+     "inca"
+    ],
+    "elevation": 172,
+    "timing": {
+     "readMs": 504,
+     "coreMs": 389,
+     "firstMs": 385,
+     "algoMs": 35.1,
+     "totalMs": 539,
+     "doneAt": {
+      "terrain": 2,
+      "index": 212,
+      "static": 279,
+      "cube.t3": 312,
+      "cube.t2": 313,
+      "cube.t1": 385,
+      "first": 385,
+      "station": 389,
+      "core": 389,
+      "nowcast": 504,
+      "read": 504
+     }
+    },
+    "provenance": {
+     "indexCommit": "b3e6fec0d21ca6473b04532eee873d7d27eee850",
+     "runs": {
+      "t1": {
+       "run": "2026091618",
+       "sourceRun": "2026091618",
+       "sourceRunAtMs": 1789581600000,
+       "models": [
+        "icon_d2",
+        "icon_d2_eps",
+        "icon_ch1_eps",
+        "claef",
+        "claef_eps",
+        "icon_eu",
+        "ifs_hres",
+        "aifs_single"
+       ],
+       "manifestFrom": "pinned"
+      },
+      "t2": {
+       "run": "2026091612",
+       "sourceRun": "2026091612",
+       "sourceRunAtMs": 1789560000000,
+       "models": [
+        "icon_eu",
+        "icon_eu_eps",
+        "icon_ch2_eps",
+        "icon_global",
+        "aicon",
+        "ifs_hres",
+        "aifs_single"
+       ],
+       "manifestFrom": "pinned"
+      },
+      "t3": {
+       "run": "2026091600",
+       "sourceRun": "2026091600",
+       "sourceRunAtMs": 1789516800000,
+       "models": [
+        "icon_global",
+        "icon_eps_global",
+        "aicon",
+        "ifs_hres",
+        "ifs_ens",
+        "aifs_single"
+       ],
+       "manifestFrom": "pinned"
+      }
+     },
+     "station": {
+      "run": "2026091615",
+      "runAtMs": 1789570800000,
+      "ageH": 1.74,
+      "id": "11034",
+      "name": "WIEN/CITY",
+      "distKm": 0.9542971678537615,
+      "dElevM": -1,
+      "elevM": 171
+     },
+     "stationReason": "WIEN/CITY, 1.0 km, -1 m — vertritt den Punkt.",
+     "nowcast": [
+      {
+       "source": "inca",
+       "stamp": "20260916T2115",
+       "ageMin": 25,
+       "frames": 3,
+       "extrapolationH": 3
+      }
+     ],
+     "clima": "grid"
+    },
+    "axis": {
+     "native": 102,
+     "seams": [
+      1789765200000,
+      1790013600000
+     ],
+     "perTier": {
+      "t1": 46,
+      "t2": 22,
+      "t3": 34
+     }
+    },
+    "flags": 77,
+    "notes": [],
+    "skips": [],
+    "errors": [],
+    "stats": {
+     "files": 22,
+     "bytes": 1944197,
+     "misses": 4,
+     "ms": 13042.599999964237,
+     "slow": 0,
+     "retries": 0,
+     "fallbacks": 0
+    },
+    "decode": {
+     "mode": "worker",
+     "workers": 3,
+     "decoded": 16,
+     "viaWorker": 16,
+     "viaMain": 0,
+     "fallbacks": 0,
+     "errors": []
+    }
+   },
+   "net": {
+    "requests": 1,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 672,
+    "cdn": 1,
+    "hit": 0,
+    "miss": 1,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/index.json",
+     "bytes": 672,
+     "ttfbMs": 204,
+     "ms": 205,
+     "xCache": "MISS, MISS"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 1
+    },
+    "cdnRequests": [
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/index.json",
+      "bytes": 672,
+      "ttfbMs": 204,
+      "ms": 205,
+      "xCache": "MISS, MISS",
+      "startMs": 0,
+      "status": 200
+     }
+    ],
+    "otherRequests": []
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "zermatt",
+   "lat": 46.0207,
+   "lon": 7.7491,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "cube-cold",
+   "rep": 0,
+   "wallMs": 2150,
+   "totalMs": 2146.899999976158,
+   "coreMs": 2044,
+   "readMs": 2044,
+   "firstMs": 2044,
+   "result": {
+    "total": 2146.899999976158,
+    "hours": 102,
+    "sourcesAvailable": [
+     "cube-t1",
+     "cube-t2",
+     "cube-t3",
+     "mosmix",
+     "rzc"
+    ],
+    "elevation": 1608.1,
+    "timing": {
+     "readMs": 2044,
+     "coreMs": 2044,
+     "firstMs": 2044,
+     "algoMs": 86.5,
+     "totalMs": 2135,
+     "doneAt": {
+      "index": 284,
+      "static": 617,
+      "nowcast": 968,
+      "terrain": 1380,
+      "station": 1443,
+      "cube.t2": 1675,
+      "cube.t3": 1733,
+      "cube.t1": 2043,
+      "first": 2044,
+      "core": 2044,
+      "read": 2044
+     }
+    },
+    "provenance": {
+     "indexCommit": "b3e6fec0d21ca6473b04532eee873d7d27eee850",
+     "runs": {
+      "t1": {
+       "run": "2026091618",
+       "sourceRun": "2026091618",
+       "sourceRunAtMs": 1789581600000,
+       "models": [
+        "icon_d2",
+        "icon_d2_eps",
+        "icon_ch1_eps",
+        "claef",
+        "claef_eps",
+        "icon_eu",
+        "ifs_hres",
+        "aifs_single"
+       ],
+       "manifestFrom": "pinned"
+      },
+      "t2": {
+       "run": "2026091612",
+       "sourceRun": "2026091612",
+       "sourceRunAtMs": 1789560000000,
+       "models": [
+        "icon_eu",
+        "icon_eu_eps",
+        "icon_ch2_eps",
+        "icon_global",
+        "aicon",
+        "ifs_hres",
+        "aifs_single"
+       ],
+       "manifestFrom": "pinned"
+      },
+      "t3": {
+       "run": "2026091600",
+       "sourceRun": "2026091600",
+       "sourceRunAtMs": 1789516800000,
+       "models": [
+        "icon_global",
+        "icon_eps_global",
+        "aicon",
+        "ifs_hres",
+        "ifs_ens",
+        "aifs_single"
+       ],
+       "manifestFrom": "pinned"
+      }
+     },
+     "station": {
+      "run": "2026091615",
+      "runAtMs": 1789570800000,
+      "ageH": 1.74,
+      "id": "06748",
+      "name": "ZERMATT",
+      "distKm": 1.036444729333525,
+      "dElevM": 29.90000000000009,
+      "elevM": 1638
+     },
+     "stationReason": "ZERMATT, 1.0 km, +30 m — vertritt den Punkt.",
+     "nowcast": [
+      {
+       "source": "combiprecip",
+       "stamp": "20260916T2135",
+       "ageMin": 5,
+       "frames": 1,
+       "extrapolationH": 0
+      }
+     ],
+     "clima": "grid"
+    },
+    "axis": {
+     "native": 102,
+     "seams": [
+      1789765200000,
+      1790013600000
+     ],
+     "perTier": {
+      "t1": 46,
+      "t2": 22,
+      "t3": 34
+     }
+    },
+    "flags": 95,
+    "notes": [],
+    "skips": [],
+    "errors": [],
+    "stats": {
+     "files": 20,
+     "bytes": 1853152,
+     "misses": 1,
+     "ms": 10126.800000011921,
+     "slow": 0,
+     "retries": 0,
+     "fallbacks": 0
+    },
+    "decode": {
+     "mode": "worker",
+     "workers": 3,
+     "decoded": 8,
+     "viaWorker": 8,
+     "viaMain": 0,
+     "fallbacks": 0,
+     "errors": []
+    }
+   },
+   "net": {
+    "requests": 25,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 1824730,
+    "cdn": 20,
+    "hit": 20,
+    "miss": 0,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/2026091618/t1/00_02.bin",
+     "bytes": 629140,
+     "ttfbMs": 209,
+     "ms": 1680,
+     "xCache": "HIT"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 20,
+     "127.0.0.1:6871": 1,
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": [
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/index.json",
+      "bytes": 5308,
+      "ttfbMs": 264,
+      "ms": 269,
+      "xCache": "HIT",
+      "startMs": 0,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@b3e6fec0d21ca6473b04532eee873d7d27eee850/point/2026091618/run.json",
+      "bytes": 10302,
+      "ttfbMs": 193,
+      "ms": 301,
+      "xCache": "HIT",
+      "startMs": 290,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091618/t1/00_02.bin",
+      "bytes": 629140,
+      "ttfbMs": 209,
+      "ms": 1680,
+      "xCache": "HIT",
+      "startMs": 291,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@b3e6fec0d21ca6473b04532eee873d7d27eee850/point/2026091612/run.json",
+      "bytes": 12298,
+      "ttfbMs": 208,
+      "ms": 337,
+      "xCache": "HIT",
+      "startMs": 292,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091612/t2/00_01.bin",
+      "bytes": 225055,
+      "ttfbMs": 207,
+      "ms": 1306,
+      "xCache": "HIT",
+      "startMs": 292,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@b3e6fec0d21ca6473b04532eee873d7d27eee850/point/2026091600/run.json",
+      "bytes": 9504,
+      "ttfbMs": 208,
+      "ms": 317,
+      "xCache": "HIT",
+      "startMs": 293,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091600/t3/00_00.bin",
+      "bytes": 247373,
+      "ttfbMs": 210,
+      "ms": 1352,
+      "xCache": "HIT",
+      "startMs": 293,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/static.json",
+      "bytes": 2376,
+      "ttfbMs": 209,
+      "ms": 236,
+      "xCache": "HIT",
+      "startMs": 294,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/t1/00_02.bin",
+      "bytes": 1588,
+      "ttfbMs": 207,
+      "ms": 235,
+      "xCache": "HIT",
+      "startMs": 294,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/t2/00_01.bin",
+      "bytes": 1853,
+      "ttfbMs": 220,
+      "ms": 248,
+      "xCache": "HIT",
+      "startMs": 295,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/t3/00_00.bin",
+      "bytes": 1462,
+      "ttfbMs": 220,
+      "ms": 222,
+      "xCache": "HIT",
+      "startMs": 295,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/urban/v1/static.json",
+      "bytes": 3335,
+      "ttfbMs": 220,
+      "ms": 260,
+      "xCache": "HIT",
+      "startMs": 295,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/urban/v1/t1/00_02.bin",
+      "bytes": 580,
+      "ttfbMs": 219,
+      "ms": 221,
+      "xCache": "HIT",
+      "startMs": 296,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/catalog.json",
+      "bytes": 59581,
+      "ttfbMs": 232,
+      "ms": 713,
+      "xCache": "HIT",
+      "startMs": 296,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/2026091615/stations.json",
+      "bytes": 14330,
+      "ttfbMs": 232,
+      "ms": 386,
+      "xCache": "HIT",
+      "startMs": 296,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/2026091615/00_02.bin",
+      "bytes": 25006,
+      "ttfbMs": 232,
+      "ms": 465,
+      "xCache": "HIT",
+      "startMs": 297,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260916T2135/meta.json",
+      "bytes": 576,
+      "ttfbMs": 244,
+      "ms": 246,
+      "xCache": "HIT",
+      "startMs": 297,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260916T2130/meta.json",
+      "bytes": 580,
+      "ttfbMs": 246,
+      "ms": 248,
+      "xCache": "HIT",
+      "startMs": 298,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260916T2125/meta.json",
+      "bytes": 578,
+      "ttfbMs": 244,
+      "ms": 246,
+      "xCache": "HIT",
+      "startMs": 298,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260916T2135/frame.png",
+      "bytes": 17784,
+      "ttfbMs": 213,
+      "ms": 353,
+      "xCache": "HIT",
+      "startMs": 595,
+      "status": 200
+     }
+    ],
+    "otherRequests": [
+     {
+      "url": "127.0.0.1:6871/climaGrid.json",
+      "bytes": 72683,
+      "ttfbMs": 201,
+      "ms": 264,
+      "startMs": 3,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1067/728.png",
+      "bytes": 145296,
+      "ttfbMs": 444,
+      "ms": 1359,
+      "startMs": 8,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1068/728.png",
+      "bytes": 144030,
+      "ttfbMs": 444,
+      "ms": 1344,
+      "startMs": 8,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/133/90.png",
+      "bytes": 100152,
+      "ttfbMs": 490,
+      "ms": 1218,
+      "startMs": 9,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/133/91.png",
+      "bytes": 93960,
+      "ttfbMs": 444,
+      "ms": 1110,
+      "startMs": 9,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "zermatt",
+   "lat": 46.0207,
+   "lon": 7.7491,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "cube-warm",
+   "rep": 0,
+   "wallMs": 559,
+   "totalMs": 555.2000000476837,
+   "coreMs": 324,
+   "readMs": 487,
+   "firstMs": 321,
+   "result": {
+    "total": 555.2000000476837,
+    "hours": 102,
+    "sourcesAvailable": [
+     "cube-t1",
+     "cube-t2",
+     "cube-t3",
+     "mosmix",
+     "rzc"
+    ],
+    "elevation": 1608.1,
+    "timing": {
+     "readMs": 487,
+     "coreMs": 324,
+     "firstMs": 321,
+     "algoMs": 65.9,
+     "totalMs": 554,
+     "doneAt": {
+      "terrain": 4,
+      "index": 204,
+      "static": 234,
+      "cube.t2": 280,
+      "cube.t3": 292,
+      "cube.t1": 321,
+      "first": 321,
+      "station": 324,
+      "core": 324,
+      "nowcast": 487,
+      "read": 487
+     }
+    },
+    "provenance": {
+     "indexCommit": "b3e6fec0d21ca6473b04532eee873d7d27eee850",
+     "runs": {
+      "t1": {
+       "run": "2026091618",
+       "sourceRun": "2026091618",
+       "sourceRunAtMs": 1789581600000,
+       "models": [
+        "icon_d2",
+        "icon_d2_eps",
+        "icon_ch1_eps",
+        "claef",
+        "claef_eps",
+        "icon_eu",
+        "ifs_hres",
+        "aifs_single"
+       ],
+       "manifestFrom": "pinned"
+      },
+      "t2": {
+       "run": "2026091612",
+       "sourceRun": "2026091612",
+       "sourceRunAtMs": 1789560000000,
+       "models": [
+        "icon_eu",
+        "icon_eu_eps",
+        "icon_ch2_eps",
+        "icon_global",
+        "aicon",
+        "ifs_hres",
+        "aifs_single"
+       ],
+       "manifestFrom": "pinned"
+      },
+      "t3": {
+       "run": "2026091600",
+       "sourceRun": "2026091600",
+       "sourceRunAtMs": 1789516800000,
+       "models": [
+        "icon_global",
+        "icon_eps_global",
+        "aicon",
+        "ifs_hres",
+        "ifs_ens",
+        "aifs_single"
+       ],
+       "manifestFrom": "pinned"
+      }
+     },
+     "station": {
+      "run": "2026091615",
+      "runAtMs": 1789570800000,
+      "ageH": 1.74,
+      "id": "06748",
+      "name": "ZERMATT",
+      "distKm": 1.036444729333525,
+      "dElevM": 29.90000000000009,
+      "elevM": 1638
+     },
+     "stationReason": "ZERMATT, 1.0 km, +30 m — vertritt den Punkt.",
+     "nowcast": [
+      {
+       "source": "combiprecip",
+       "stamp": "20260916T2135",
+       "ageMin": 5,
+       "frames": 1,
+       "extrapolationH": 0
+      }
+     ],
+     "clima": "grid"
+    },
+    "axis": {
+     "native": 102,
+     "seams": [
+      1789765200000,
+      1790013600000
+     ],
+     "perTier": {
+      "t1": 46,
+      "t2": 22,
+      "t3": 34
+     }
+    },
+    "flags": 95,
+    "notes": [],
+    "skips": [],
+    "errors": [],
+    "stats": {
+     "files": 22,
+     "bytes": 1896962,
+     "misses": 2,
+     "ms": 10580.500000059605,
+     "slow": 0,
+     "retries": 0,
+     "fallbacks": 0
+    },
+    "decode": {
+     "mode": "worker",
+     "workers": 3,
+     "decoded": 16,
+     "viaWorker": 16,
+     "viaMain": 0,
+     "fallbacks": 0,
+     "errors": []
+    }
+   },
+   "net": {
+    "requests": 2,
+    "cached": 1,
+    "failed": 0,
+    "bytes": 204,
+    "cdn": 1,
+    "hit": 1,
+    "miss": 0,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/index.json",
+     "bytes": 204,
+     "ttfbMs": 197,
+     "ms": 199,
+     "xCache": "HIT"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 2
+    },
+    "cdnRequests": [
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/index.json",
+      "bytes": 204,
+      "ttfbMs": 197,
+      "ms": 199,
+      "xCache": "HIT",
+      "startMs": 0,
+      "status": 200
+     }
+    ],
+    "otherRequests": []
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "genf",
+   "lat": 46.2044,
+   "lon": 6.1432,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "cube-cold",
+   "rep": 0,
+   "wallMs": 2253,
+   "totalMs": 2227.899999976158,
+   "coreMs": 2124,
+   "readMs": 2124,
+   "firstMs": 2123,
+   "result": {
+    "total": 2227.899999976158,
+    "hours": 102,
+    "sourcesAvailable": [
+     "cube-t1",
+     "cube-t2",
+     "cube-t3",
+     "mosmix",
+     "rzc"
+    ],
+    "elevation": 378.5,
+    "timing": {
+     "readMs": 2124,
+     "coreMs": 2124,
+     "firstMs": 2123,
+     "algoMs": 84.5,
+     "totalMs": 2214,
+     "doneAt": {
+      "index": 246,
+      "static": 569,
+      "nowcast": 909,
+      "terrain": 1511,
+      "station": 1566,
+      "cube.t2": 1768,
+      "cube.t3": 1818,
+      "cube.t1": 2123,
+      "first": 2123,
+      "core": 2124,
+      "read": 2124
+     }
+    },
+    "provenance": {
+     "indexCommit": "b3e6fec0d21ca6473b04532eee873d7d27eee850",
+     "runs": {
+      "t1": {
+       "run": "2026091618",
+       "sourceRun": "2026091618",
+       "sourceRunAtMs": 1789581600000,
+       "models": [
+        "icon_d2",
+        "icon_d2_eps",
+        "icon_ch1_eps",
+        "claef",
+        "claef_eps",
+        "icon_eu",
+        "ifs_hres",
+        "aifs_single"
+       ],
+       "manifestFrom": "pinned"
+      },
+      "t2": {
+       "run": "2026091612",
+       "sourceRun": "2026091612",
+       "sourceRunAtMs": 1789560000000,
+       "models": [
+        "icon_eu",
+        "icon_eu_eps",
+        "icon_ch2_eps",
+        "icon_global",
+        "aicon",
+        "ifs_hres",
+        "aifs_single"
+       ],
+       "manifestFrom": "pinned"
+      },
+      "t3": {
+       "run": "2026091600",
+       "sourceRun": "2026091600",
+       "sourceRunAtMs": 1789516800000,
+       "models": [
+        "icon_global",
+        "icon_eps_global",
+        "aicon",
+        "ifs_hres",
+        "ifs_ens",
+        "aifs_single"
+       ],
+       "manifestFrom": "pinned"
+      }
+     },
+     "station": {
+      "run": "2026091615",
+      "runAtMs": 1789570800000,
+      "ageH": 1.74,
+      "id": "06700",
+      "name": "GENF",
+      "distKm": 5.171160838188145,
+      "dElevM": 41.5,
+      "elevM": 420
+     },
+     "stationReason": "GENF, 5.2 km, +42 m — vertritt den Punkt.",
+     "nowcast": [
+      {
+       "source": "combiprecip",
+       "stamp": "20260916T2135",
+       "ageMin": 5,
+       "frames": 1,
+       "extrapolationH": 0
+      }
+     ],
+     "clima": "grid"
+    },
+    "axis": {
+     "native": 102,
+     "seams": [
+      1789765200000,
+      1790013600000
+     ],
+     "perTier": {
+      "t1": 46,
+      "t2": 22,
+      "t3": 34
+     }
+    },
+    "flags": 85,
+    "notes": [],
+    "skips": [],
+    "errors": [],
+    "stats": {
+     "files": 20,
+     "bytes": 1794509,
+     "misses": 1,
+     "ms": 10161,
+     "slow": 0,
+     "retries": 0,
+     "fallbacks": 0
+    },
+    "decode": {
+     "mode": "worker",
+     "workers": 3,
+     "decoded": 8,
+     "viaWorker": 8,
+     "viaMain": 0,
+     "fallbacks": 0,
+     "errors": []
+    }
+   },
+   "net": {
+    "requests": 27,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 1935560,
+    "cdn": 20,
+    "hit": 20,
+    "miss": 0,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/2026091618/t1/00_00.bin",
+     "bytes": 594921,
+     "ttfbMs": 210,
+     "ms": 1800,
+     "xCache": "HIT"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 20,
+     "127.0.0.1:6871": 1,
+     "s3.amazonaws.com": 6
+    },
+    "cdnRequests": [
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/index.json",
+      "bytes": 5308,
+      "ttfbMs": 206,
+      "ms": 226,
+      "xCache": "HIT",
+      "startMs": 0,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@b3e6fec0d21ca6473b04532eee873d7d27eee850/point/2026091618/run.json",
+      "bytes": 10306,
+      "ttfbMs": 196,
+      "ms": 321,
+      "xCache": "HIT",
+      "startMs": 243,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091618/t1/00_00.bin",
+      "bytes": 594921,
+      "ttfbMs": 210,
+      "ms": 1800,
+      "xCache": "HIT",
+      "startMs": 243,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@b3e6fec0d21ca6473b04532eee873d7d27eee850/point/2026091612/run.json",
+      "bytes": 12298,
+      "ttfbMs": 197,
+      "ms": 353,
+      "xCache": "HIT",
+      "startMs": 244,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091612/t2/00_00.bin",
+      "bytes": 216979,
+      "ttfbMs": 197,
+      "ms": 1442,
+      "xCache": "HIT",
+      "startMs": 244,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@b3e6fec0d21ca6473b04532eee873d7d27eee850/point/2026091600/run.json",
+      "bytes": 9504,
+      "ttfbMs": 198,
+      "ms": 334,
+      "xCache": "HIT",
+      "startMs": 245,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091600/t3/00_00.bin",
+      "bytes": 247364,
+      "ttfbMs": 209,
+      "ms": 1488,
+      "xCache": "HIT",
+      "startMs": 245,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/static.json",
+      "bytes": 2376,
+      "ttfbMs": 209,
+      "ms": 234,
+      "xCache": "HIT",
+      "startMs": 246,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/t1/00_00.bin",
+      "bytes": 1505,
+      "ttfbMs": 208,
+      "ms": 212,
+      "xCache": "HIT",
+      "startMs": 247,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/t2/00_00.bin",
+      "bytes": 1727,
+      "ttfbMs": 209,
+      "ms": 236,
+      "xCache": "HIT",
+      "startMs": 247,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/t3/00_00.bin",
+      "bytes": 1484,
+      "ttfbMs": 209,
+      "ms": 211,
+      "xCache": "HIT",
+      "startMs": 248,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/urban/v1/static.json",
+      "bytes": 3326,
+      "ttfbMs": 223,
+      "ms": 254,
+      "xCache": "HIT",
+      "startMs": 248,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/urban/v1/t1/00_00.bin",
+      "bytes": 784,
+      "ttfbMs": 209,
+      "ms": 211,
+      "xCache": "HIT",
+      "startMs": 248,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/catalog.json",
+      "bytes": 59689,
+      "ttfbMs": 222,
+      "ms": 769,
+      "xCache": "HIT",
+      "startMs": 249,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/2026091615/stations.json",
+      "bytes": 14057,
+      "ttfbMs": 223,
+      "ms": 377,
+      "xCache": "HIT",
+      "startMs": 249,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/2026091615/00_00.bin",
+      "bytes": 8717,
+      "ttfbMs": 208,
+      "ms": 312,
+      "xCache": "HIT",
+      "startMs": 250,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260916T2135/meta.json",
+      "bytes": 301,
+      "ttfbMs": 221,
+      "ms": 223,
+      "xCache": "HIT",
+      "startMs": 250,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260916T2130/meta.json",
+      "bytes": 307,
+      "ttfbMs": 221,
+      "ms": 223,
+      "xCache": "HIT",
+      "startMs": 251,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260916T2125/meta.json",
+      "bytes": 301,
+      "ttfbMs": 221,
+      "ms": 223,
+      "xCache": "HIT",
+      "startMs": 251,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260916T2135/frame.png",
+      "bytes": 17785,
+      "ttfbMs": 225,
+      "ms": 382,
+      "xCache": "HIT",
+      "startMs": 479,
+      "status": 200
+     }
+    ],
+    "otherRequests": [
+     {
+      "url": "127.0.0.1:6871/climaGrid.json",
+      "bytes": 72683,
+      "ttfbMs": 187,
+      "ms": 245,
+      "startMs": 6,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1058/726.png",
+      "bytes": 121226,
+      "ttfbMs": 429,
+      "ms": 1395,
+      "startMs": 12,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1059/726.png",
+      "bytes": 95814,
+      "ttfbMs": 429,
+      "ms": 1293,
+      "startMs": 13,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1058/727.png",
+      "bytes": 123037,
+      "ttfbMs": 428,
+      "ms": 1409,
+      "startMs": 13,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1059/727.png",
+      "bytes": 129061,
+      "ttfbMs": 427,
+      "ms": 1455,
+      "startMs": 14,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/132/90.png",
+      "bytes": 84825,
+      "ttfbMs": 426,
+      "ms": 1188,
+      "startMs": 14,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/132/91.png",
+      "bytes": 99875,
+      "ttfbMs": 427,
+      "ms": 1282,
+      "startMs": 15,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "mobile-4g",
+   "place": "genf",
+   "lat": 46.2044,
+   "lon": 6.1432,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "cube-warm",
+   "rep": 0,
+   "wallMs": 544,
+   "totalMs": 540.7000000476837,
+   "coreMs": 333,
+   "readMs": 460,
+   "firstMs": 330,
+   "result": {
+    "total": 540.7000000476837,
+    "hours": 102,
+    "sourcesAvailable": [
+     "cube-t1",
+     "cube-t2",
+     "cube-t3",
+     "mosmix",
+     "rzc"
+    ],
+    "elevation": 378.5,
+    "timing": {
+     "readMs": 460,
+     "coreMs": 333,
+     "firstMs": 330,
+     "algoMs": 75.6,
+     "totalMs": 537,
+     "doneAt": {
+      "terrain": 4,
+      "index": 203,
+      "static": 252,
+      "cube.t2": 296,
+      "cube.t3": 303,
+      "cube.t1": 330,
+      "first": 330,
+      "station": 333,
+      "core": 333,
+      "nowcast": 460,
+      "read": 460
+     }
+    },
+    "provenance": {
+     "indexCommit": "b3e6fec0d21ca6473b04532eee873d7d27eee850",
+     "runs": {
+      "t1": {
+       "run": "2026091618",
+       "sourceRun": "2026091618",
+       "sourceRunAtMs": 1789581600000,
+       "models": [
+        "icon_d2",
+        "icon_d2_eps",
+        "icon_ch1_eps",
+        "claef",
+        "claef_eps",
+        "icon_eu",
+        "ifs_hres",
+        "aifs_single"
+       ],
+       "manifestFrom": "pinned"
+      },
+      "t2": {
+       "run": "2026091612",
+       "sourceRun": "2026091612",
+       "sourceRunAtMs": 1789560000000,
+       "models": [
+        "icon_eu",
+        "icon_eu_eps",
+        "icon_ch2_eps",
+        "icon_global",
+        "aicon",
+        "ifs_hres",
+        "aifs_single"
+       ],
+       "manifestFrom": "pinned"
+      },
+      "t3": {
+       "run": "2026091600",
+       "sourceRun": "2026091600",
+       "sourceRunAtMs": 1789516800000,
+       "models": [
+        "icon_global",
+        "icon_eps_global",
+        "aicon",
+        "ifs_hres",
+        "ifs_ens",
+        "aifs_single"
+       ],
+       "manifestFrom": "pinned"
+      }
+     },
+     "station": {
+      "run": "2026091615",
+      "runAtMs": 1789570800000,
+      "ageH": 1.74,
+      "id": "06700",
+      "name": "GENF",
+      "distKm": 5.171160838188145,
+      "dElevM": 41.5,
+      "elevM": 420
+     },
+     "stationReason": "GENF, 5.2 km, +42 m — vertritt den Punkt.",
+     "nowcast": [
+      {
+       "source": "combiprecip",
+       "stamp": "20260916T2135",
+       "ageMin": 5,
+       "frames": 1,
+       "extrapolationH": 0
+      }
+     ],
+     "clima": "grid"
+    },
+    "axis": {
+     "native": 102,
+     "seams": [
+      1789765200000,
+      1790013600000
+     ],
+     "perTier": {
+      "t1": 46,
+      "t2": 22,
+      "t3": 34
+     }
+    },
+    "flags": 85,
+    "notes": [],
+    "skips": [],
+    "errors": [],
+    "stats": {
+     "files": 22,
+     "bytes": 1838319,
+     "misses": 2,
+     "ms": 10576.900000035763,
+     "slow": 0,
+     "retries": 0,
+     "fallbacks": 0
+    },
+    "decode": {
+     "mode": "worker",
+     "workers": 3,
+     "decoded": 16,
+     "viaWorker": 16,
+     "viaMain": 0,
+     "fallbacks": 0,
+     "errors": []
+    }
+   },
+   "net": {
+    "requests": 2,
+    "cached": 1,
+    "failed": 0,
+    "bytes": 204,
+    "cdn": 1,
+    "hit": 1,
+    "miss": 0,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/index.json",
+     "bytes": 204,
+     "ttfbMs": 197,
+     "ms": 198,
+     "xCache": "HIT"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 2
+    },
+    "cdnRequests": [
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/index.json",
+      "bytes": 204,
+      "ttfbMs": 197,
+      "ms": 198,
+      "xCache": "HIT",
+      "startMs": 0,
+      "status": 200
+     }
+    ],
+    "otherRequests": []
+   }
+  }
+ ]
+}

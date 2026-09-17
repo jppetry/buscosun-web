@@ -1,115 +1,95 @@
-# Kickoff-Prompt — Phase FI, Etappen AP-PA2 und AP12a
+# Kickoff-Prompt — Phase FI, Etappe AP9 (Backtest gegen das Archiv)
 
-> Für eine neue Claude-Code-Session in `C:\dev\buscosun-web`. Geschrieben am 2026-09-16 nach AP1 (§9.2).
-> Prompts an Claude Code auf Englisch (CLAUDE.md, Sprache & Konventionen).
+> Für eine neue Claude-Code-Session in `C:\dev\buscosun-web`. Geschrieben am 2026-09-17 nach der Gegenprüfung von AP2–AP8 (§9.11.4).
+> Prompts an Claude Code auf Englisch (CLAUDE.md, Sprache & Konventionen). Der vorige Kickoff (AP2–AP8) ist erledigt.
 
 ```
 You are continuing phase FI ("buscosun Fusion on the point cube, 0–336 h, answer < 2 s") in
-C:\dev\buscosun-web. Read first, in this order: the status block at the top of CLAUDE.md,
-then `audit/fusion-implementierung.md` §4 (work packages), §7.4 (decisions E-F-1…10), §9.0–§9.2
-(AP0/AP1 protocol — especially V-FI-1, V-FI-5, V-FI-6, V-FI-7), then
-`audit/punktdaten-umsetzungsplan.md` (the archive PA1). Check `git status`: AP1 may still be
-uncommitted — that is expected. Do not commit or push anything in this session.
+C:\dev\buscosun-web. This session builds AP9, THE BACKTEST: the first honest accuracy statement
+about the cube path — scored against station observations from the archive, with baselines,
+as-of discipline and a leak guard. AP11 (consumer), AP12 (mobile hardening) and AP10
+(calibration fit) are NOT in scope; AP10 needs ≥ 30 days of archive and comes later.
 
-This session has TWO packages, in this order. Both are small, both touch things that need
-Jan's push at the end, and both start a clock — that is why they come before AP2.
-
-────────────────────────────────────────────────────────────────────────────
-Package 1 — AP-PA2: fill the archive with AT and CH points (decision E-F-9)
-────────────────────────────────────────────────────────────────────────────
-Why: `scripts/punktarchiv/points.mjs` selects MOSMIX catalog ∩ DWD-POI ids ∩ WMO blocks
-10/11/06 ∩ cube box ⇒ 243 points: DE 208, AT 23, "CH" 12 — and block 06 includes NL/DK/LU,
-only 6 are real SMN stations. The POI requirement is a DE filter that starves AT and CH.
-The truth collectors for TAWES (GeoSphere) and SMN (MeteoSwiss) already exist in
-`scripts/punktarchiv/collect.mjs`. Every day without PA2 is a day of missing AT/CH cases for
-the backtest (AP9) — the archive cron runs once a day at 23:10 UTC and clones
-`buscosun-web/main`, so the change is only live after Jan pushes `main`.
-
-Do:
-1. Diagnosis first (write it as §9.3 in `audit/fusion-implementierung.md` before code):
-   which TAWES and SMN stations have hourly truth the collector can read, which lie in the
-   cube box (45.5–55.5 °N / 5.5–17.5 °E), how the collector maps a point to the MOSMIX
-   station product today (nearest catalog station = the point itself, otherwise a note) and
-   what that means for points whose id is a TAWES/SMN id. Measure, do not assume: count the
-   candidates, check the truth endpoints for a handful of ids, note the rr1 trap
-   (TAWES/SMN rr1 = 10-min rate × 6 vs POI hourly sums — see plan §1.2) and how PA1 handles it.
-2. Extend the selection rule in `points.mjs` (pure function + self-test, as now): keep DE
-   unchanged; add AT points whose truth is TAWES and CH points whose truth is SMN, without
-   the POI requirement; unique by id and by rounded position; DEM finite; inside the box.
-   Target density: at least what DE has (208 points on 357 000 km² ⇒ AT ≥ 50, CH ≥ 25) —
-   report the actual counts per country and per truth source; if a country has fewer
-   usable stations, say so with the reason, do not pad.
-3. Regenerate `points.json`, run the collector ONCE locally into a scratch directory or the
-   local clone `C:\dev\buscosun-archiv` WITHOUT pushing, and report: slot size before/after
-   (today ≈ 10 MiB gz for 243 points), per-point coverage (cube t1/t2/t3, station product,
-   nowcast, truth), errors. The slot must stay proportionate — give the measured bytes per
-   point and the projected size per year.
-4. Verifier: extend `npm run verify:punktarchiv` (today 56/56) with checks for the new rule,
-   including negative controls (a point outside the box, a point without a truth source, a
-   duplicate position ⇒ rejected). `npm run typecheck` 0.
-5. Document in §9.3: counts, sizes, what a PA2 point looks like in the slot, what Jan has to
-   do (push `buscosun-web/main` before 23:10 UTC so tonight's slot already carries the
-   points) and from which slot on the AT/CH cases start.
+Read first, in this order:
+1. The status block at the top of CLAUDE.md.
+2. `audit/fusion-implementierung.md`: §5 (verification strategy — data basis, baselines B0–B6,
+   metrics, lead bins, stratification, gates, abort rules), §1.2 (what the archive holds per
+   point and slot, when a lead is scorable), §2 (`PointForecastV2`), §9.5.4 (the 10-place
+   comparison and V-FI-11…14 — the questions the backtest must answer), §9.8 (σ rules), §9.10
+   (anchor, nowcast, hourly axis), §9.11 (`fuseCubePoint`, output, V-FI-21 size, §9.11.4 findings).
+3. `audit/punktvorhersage-14tage/verifikation.md` (metrics, gates §7.0, abort rules §7.2/7.3) and
+   the existing scorer `scripts/verify-pv-score.mjs` (V-A₁: MAE/Bias/RMSE, CRPS, PIT, spread/skill,
+   Brier, Diebold-Mariano with HAC, block bootstrap, FDR, leak guard with negative control) — REUSE
+   its metric code, do not write a second implementation.
+4. The archive: `audit/punktdaten-umsetzungsplan.md` (PA1 data model v1), §9.3 (PA2: 410 points,
+   `rr1h`), `scripts/punktarchiv/{collect.mjs,points.mjs,lib/punktarchiv.mjs,lib/truth.mjs}`,
+   the local clone `C:\dev\buscosun-archiv` (run `git pull` there first — it is behind; slots since
+   2026-09-14, one per day at 23:10 UTC; the remote is Jan's, never push).
+5. The cube path: `src/pointForecast/cubeSource.ts` (`fuseCubePoint(input, opts)` is a PURE
+   function of the bundle data, calib, nowMs and options; `cubeInputFromBundle`; `CubeIo` for
+   Node), `src/point/client/readPoint.ts` (bundle shape), `scripts/lib/pvCubeFixtures.mjs`.
+Check `git status`: the tree may carry Jan's uncommitted work — do not revert, do not commit.
 
 ────────────────────────────────────────────────────────────────────────────
-Package 2 — AP12a: CDN warm-up and manifest purge in the point publisher (decision E-F-1)
+Ground rules
 ────────────────────────────────────────────────────────────────────────────
-Why: `scripts/point/publish-point.mjs` purges only `point/index.json` after the push
-(around line 439, `purgeIndexUntilFresh`). `point/<run>/run.json` is merged per tier and
-pruned, so the `@main` copy at the CDN is stale for up to 12 h (V-FI-1 — the client now
-reads it pinned, the purge is still owed). The chunks of a fresh run are an edge MISS for the
-first user: TTFB p50 0.64 s / p90 2.6 s (§9.0.1), 0.9–2.3 s in the AP1 matrix, and jsDelivr
-sometimes answers 403 after 1–8 s instead of 200 or 404 (V-FI-5). Warm-up after the push is
-the only cure for the cold case; the reader's hedge/raw fallback only limits the damage.
-
-Do:
-1. Diagnosis first (§9.4): read `warmCdnFiles`, `purgeUrlOf`, `purgeIndexUntilFresh` in
-   `scripts/lib/repackManifest.mjs` (the LZ1 pattern: browser-like `Accept-Encoding`, because
-   the CDN caches one variant per encoding — `Vary: Accept-Encoding`) and the publish flow in
-   `publish-point.mjs`; list exactly which files a tier job touches (chunks of the tier,
-   `run.json` of that run AND of every run dir the merge/prune touched, stations bundles and
-   `stations.json` when the stations step ran, changed static products, `index.json`).
-   Measure the warm-up cost against the LIVE run files (GET only — that is harmless and is
-   the goal): bytes, duration with the existing concurrency, count of 200 / 403 / timeouts.
-2. Implement, reusing the helpers (no second copy — if `warmCdnFiles` needs something,
-   change it additively):
-   • purge every `run.json` the job touched, then `index.json` (existing), then verify
-     freshness the way `purgeIndexUntilFresh` does;
-   • warm all files of the published tier with the browser encoding header; treat 403 and
-     timeouts as FAILURES (V-FI-5): retry with backoff, count them, and print ok/403/timeout
-     and the duration in the job log. No new artifact in the data repo (R10: 307 MiB, no
-     room; the log is the record).
-   • keep it inside the job budget: `JOB_MAX_MIN_BY_TIER` {20, 15, 10}, measured t1 build max
-     11.1 min — the warm-up must fit in the remaining margin; measure and state it.
-   • a kill switch (env, like the other `POINT_*` switches) and a dry-run flag.
-3. Template `workflow-point.yml` (the copy into the data repo is Jan's push — prepare the
-   exact diff and the copy command in MANUELLE-SCHRITTE.md style, do not copy yourself).
-   `npm run verify:point-data` (today 947/947) reads the template and the publisher: add
-   checks that the publisher purges every touched run.json and warms after a successful
-   push, with negative controls (a publisher without the purge fails; 403 counted as
-   failure). `npm run typecheck` 0. NEVER run a purge against the live CDN from this
-   machine — purging is a production action and is Jan's gate; GET warm-ups are fine.
-4. Acceptance is a measurement, not a claim: (a) locally, the dry warm-up report against the
-   live run; (b) after Jan's push and the first cron run with the new publisher, run
-   `npm run verify:pv-latency -- --only=bundle --profiles=desktop-none` and compare the
-   cold-new HIT/MISS counts and the core p50 with the AP1 matrix
-   (`audit/fusion-implementierung/latency/2026-09-16T14-33-41-921Z.json`: cold core p50
-   1 458 ms, 37 MISS in 10 places). Write §9.4 with before/after; if (b) cannot happen in
-   this session, say so and leave the exact command for the next one.
+• Diagnosis first (§9.12 in the phase document before code): which slots exist, which points
+  have truth (POI hourly; TAWES/SMN `rr1h` since PA2), which leads are scorable today (slot N
+  + ⌈h/24⌉ days), how many (point, lead) cases that gives per bin — and whether the archived
+  cube planes + station + nowcast + hmodel are enough to rebuild the bundle `fuseCubePoint`
+  needs (terrain is timeless: decide, with a measurement, whether to compute it per point once
+  and keep it in the archive repo's point list or recompute; no new artifact in `buscosun-data`).
+• Wahrheit = Stationsmessung, nie Modellanalyse. As-of t₀: the replay may only see what the
+  slot at t₀ saw (its cube runs, its station run, its nowcast slot, obs up to t₀). Leak guard:
+  a shifted-time negative control that MUST fail. Truth from LATER slots only.
+• No accuracy claim without a scorecard; every number in §9.12 comes from the scorer output.
+  Report what is not yet scorable (t2/t3 bins) as "not yet", never extrapolate.
+• Engine and reader stay as they are; if a defect surfaces, name it as V-FI-n and fix only if
+  it is in the scorer/collector. Anything touching `src/pointForecast/fusion/*` behaviour ⇒
+  stop and ask.
+• No commits, no pushes, nothing into the data or archive repo (a `git pull` of the archive
+  clone is fine). Verifiers run without asking; PowerShell never with `2>&1`; Bash truncates at
+  ≈ 8 KB — large files via the Write tool.
 
 ────────────────────────────────────────────────────────────────────────────
-Rules for the whole session
+Deliverables
 ────────────────────────────────────────────────────────────────────────────
-• Diagnosis → plan → implement → verify → gate. Every number in the phase document is
-  measured or marked as set. No constants without justification, no accuracy claims.
-• STOPP & FRAGEN stays: do not touch `src/pointForecast/fusion/*`, no dependency changes,
-  no purge/dispatch against production, no commits, no pushes. Jan's gates: push of
-  `buscosun-web/main`, copy of the workflow template into `buscosun-data`, archive pushes.
-• Run typecheck and the verifiers yourself, without asking. PowerShell: never start a
-  verifier with `2>&1`. The Bash tool truncates commands at ≈ 8 KB — write large files with
-  the Write tool.
-• End with a report that stands on its own: what was measured, what changed (files), the
-  gate results with numbers, what is Jan's to do (with the exact commands and the 23:10 UTC
-  deadline for the archive), and what is deliberately left open. Then update the status
-  block in CLAUDE.md (keep it a status, not a chronicle).
+1. Collector, part (a): `scripts/punktarchiv/collect.mjs` records the CUBE-PATH forecast per
+   point per slot — `getPointForecast({ pointSource: 'cube' })` in Node through `CubeIo`
+   (store/clima/nowMs as `verify:pv-cube` does), so future truth scores exactly what a user
+   would have seen. Store it COMPACT (V-FI-21: v2 is 1.1 MB JSON per point — encode per hour
+   and variable as integer tuples on the plane scale, members as index, flags as bitmask);
+   measure the slot growth (today ≈ 17.5 MiB gz for 410 points; E-U-13) and keep it
+   proportionate — say the number. Keep `live` as it is (B5 baseline). Kill switch, no
+   behaviour change without the flag. `verify:punktarchiv` (87/87) grows with negative controls.
+2. Scorer, part (b): `npm run verify:pv-score -- --archive` (new mode in the existing script,
+   or a sibling `scripts/punktarchiv/score-archive.mjs` that imports the metric functions —
+   one implementation): replay `fuseCubePoint` from the archived cube planes for every slot
+   and point, as-of the slot time, and score against truth from the following slots. Baselines
+   per bin (§5.2): B0 nearest cube cell raw, B1 B0 + standard lapse to h_true, B2 MOSMIX-L
+   station as-of, B3 (anomaly) persistence, B4 climatology, B5 live path (`live.fields`),
+   B6 old fusion (`live.fusion` q10/q50/q90 — CRPS as 3-quantile approximation, same for all,
+   labelled). Metrics per §5.3; lead bins 0–6 · 7–24 · 25–48 · 51–120 · 126–240 · 246–336 h;
+   stratification by height band, TPI class, day/night, inversion (zInv > zBase), country.
+   Output: `audit/fusion-implementierung/scorecards/<date>.json` + a table in §9.12. Replay
+   ≤ 10 min per slot locally (measure it).
+3. First scorecard: 0–48 h from the slots available today (14./15./16.09. → truth from
+   15./16./17.09.). DE is the core; AT/CH only from slots after Jan's push (PA2). Answer, with
+   numbers and significance: does the cube path beat B5 (the live path) and B2 (MOSMIX) in the
+   0–6, 7–24, 25–48 h bins for T, wind, precipitation (Brier at 0.1/1/5 mm/h), clouds? Is the
+   spread/skill of the cube path closer to 1 than the live path's 0.5–0.6 (V-A₁)? What does the
+   score say about V-FI-13 (cube member < 5 % at mountain sites — right or wrong?), V-FI-12
+   (Rice median wind bias) and the anchor (with vs without, `anchorMode`)?
+4. Verifier for the scorer itself: netzfrei against a synthetic archive (two slots, known
+   truth, one baseline deliberately better) — the metrics must recover the known ordering,
+   the leak guard must fail on shifted time, the as-of rule must exclude later runs.
+5. §9.12 with diagnosis, what changed (files), the scorecard table, findings V-FI-n, what is
+   deliberately left open (t2/t3 bins until 30.09./end of October; AP10 fit needs ≥ 30 days),
+   and the CLAUDE.md status block updated (status, not chronicle). End with a report that
+   stands on its own: numbers first, then what Jan has to do (push of `main` so the collector
+   starts recording the cube path — every day without it is a day without cube-path cases).
+
+Not in this session, but note it in the report if you see it: V-FI-22 (static products on the
+end-to-end critical path though unused by v1 — AP12), V-FI-7 (radar slots MISS at the edge),
+Mobil-4G red (AP12: plane ranges / progressive loading).
 ```

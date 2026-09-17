@@ -32,8 +32,12 @@ import {
 } from '../../src/point/client';
 import type { DecodedGrayPng } from '../../src/point/nowcastSample';
 import { getPointForecast } from '../../src/pointForecast/pointForecast';
+// AP2: der Cube-Pfad registriert sich beim Laden — das Lab ist der Verbraucher, der ihn lädt.
+import { clearCubeForecastCache } from '../../src/pointForecast/cubeSource';
+import { quantileOf } from '../../src/pointForecast/fusion/dist';
 import { loadElevationLookup } from '../../src/fusion/elevation';
 import type { Country } from '../../src/types';
+import type { PointForecast } from '../../src/pointForecast/types';
 
 const H = 3_600_000;
 const now = () => performance.now();
@@ -193,14 +197,50 @@ async function bundle(lat: number, lon: number, opts: {
   };
 }
 
+/** Die Zeitreihe einer Vorhersage, kompakt — für den Vergleich Cube ↔ Live im Harnisch (AP2). */
+function seriesOf(fc: PointForecast) {
+  const r2 = (v: number | null | undefined) => (v == null || !Number.isFinite(v) ? null : Math.round(v * 100) / 100);
+  return fc.hours.map((h) => ({
+    t: h.timestamp.getTime(), T: r2(h.temperature), ws: r2(h.windSpeed), gust: r2(h.gustSpeed), rr: r2(h.precipitation),
+    clct: r2(h.cloudCoverTotal), rh: r2(h.relativeHumidity), src: h.contributingSources,
+    // Verteilung, wo vorhanden: q10/q90 der Temperatur.
+    Tq10: h.fusion?.temperature ? r2(quantileOf(h.fusion.temperature.dist, 0.1)) : null,
+    Tq90: h.fusion?.temperature ? r2(quantileOf(h.fusion.temperature.dist, 0.9)) : null,
+  }));
+}
+
 /** Der Live-Pfad von heute (das Produkt), wie ihn das Archiv mitschreibt. */
-async function live(lat: number, lng: number, country: Country, hours = 240) {
+async function live(lat: number, lng: number, country: Country, hours = 240, opts: { series?: boolean; radar?: boolean } = {}) {
   const T0 = now();
   try {
-    const fc = await getPointForecast({ lat, lng, country, hours, includeRadarNowcast: false, distribution: true, anchorMode: 'offset', signal: AbortSignal.timeout(90_000) });
+    const fc = await getPointForecast({ lat, lng, country, hours, includeRadarNowcast: !!opts.radar, distribution: true, anchorMode: 'offset', signal: AbortSignal.timeout(90_000) });
     return {
       total: now() - T0, hours: fc.hours?.length ?? null, sourcesAvailable: fc.sourcesAvailable, nearestStations: fc.nearestStations?.length ?? null,
       elevation: fc.query?.elevation ?? null, withFusion: fc.hours?.some((h: { fusion?: unknown }) => h.fusion) ?? false,
+      series: opts.series ? seriesOf(fc) : undefined,
+    };
+  } catch (e) {
+    return { total: now() - T0, error: String((e as Error)?.message ?? e) };
+  }
+}
+
+/**
+ * AP2: der Cube-Pfad Ende-zu-Ende — `getPointForecast({ pointSource: 'cube' })`, also Lesen
+ * (AP1-Leser mit IndexedDB, Worker, Zwei-Skalen-DEM), Klimatologie, buscosun Fusion auf der
+ * Cube-Achse und Abbildung auf `PointForecast`. `fresh: true` leert vorher den Ergebnis-Cache
+ * des Pfads (der zweite Aufruf misst dann IndexedDB + Rechnung, nicht ein gemerktes Objekt).
+ */
+async function cube(lat: number, lng: number, country: Country, opts: { hours?: number; nowcast?: boolean; fresh?: boolean; series?: boolean } = {}) {
+  if (opts.fresh) clearCubeForecastCache();
+  const T0 = now();
+  try {
+    const fc = await getPointForecast({ lat, lng, country, hours: opts.hours ?? 336, pointSource: 'cube', includeRadarNowcast: opts.nowcast !== false });
+    const c = fc.cube as { timing?: Record<string, unknown>; provenance?: Record<string, unknown>; flags?: unknown[]; notes?: string[]; skips?: string[]; errors?: string[]; stats?: unknown; axis?: { native?: number[]; seams?: number[]; perTier?: unknown } } | undefined;
+    return {
+      total: now() - T0, hours: fc.hours.length, sourcesAvailable: fc.sourcesAvailable, elevation: fc.query.elevation,
+      timing: c?.timing ?? null, provenance: c?.provenance ?? null, axis: c?.axis ? { native: c.axis.native?.length, seams: c.axis.seams, perTier: c.axis.perTier } : null,
+      flags: c?.flags?.length ?? 0, notes: c?.notes ?? [], skips: c?.skips ?? [], errors: c?.errors ?? [], stats: c?.stats ?? null, decode: decodePoolInfo(),
+      series: opts.series ? seriesOf(fc) : undefined,
     };
   } catch (e) {
     return { total: now() - T0, error: String((e as Error)?.message ?? e) };
@@ -271,4 +311,4 @@ async function demLive(lat: number, lng: number) {
   return { total: now() - T0, elevation: Number.isFinite(h) ? Math.round(h) : null };
 }
 
-(window as unknown as { pfLab: unknown }).pfLab = { reader, bundle, live, terrain, terrain2, demLive, prime, ready: true };
+(window as unknown as { pfLab: unknown }).pfLab = { reader, bundle, live, cube, terrain, terrain2, demLive, prime, ready: true };

@@ -139,6 +139,26 @@ export interface CubePointStep {
   belowGroundHPa: number[] | null;
 }
 
+/**
+ * AP3 (Phase FI): eine Nachbarzelle im selben Chunk — für PAP 3 (Gitter → Punkt). Kommt aus
+ * DEMSELBEN entpackten Chunk, kostet also keinen Abruf; nur auf Wunsch (`neighbours`).
+ */
+export interface CubeNeighbourCell {
+  /** Versatz in Zellen gegen die Hauptzelle (Zeile nach Norden, Spalte nach Osten). */
+  dy: number;
+  dx: number;
+  iy: number;
+  ix: number;
+  lat: number;
+  lon: number;
+  /** Abstand des Zellmittelpunkts zum angefragten Punkt. */
+  distKm: number;
+  /** Ebene `hModEff` dieser Zelle (erster belegter Schritt) — h_mod(g) aus PAP 3. */
+  hModEffM: number | null;
+  /** Je Schritt die Werte der gelesenen Ebenen (gleiche Reihenfolge wie `steps`). */
+  values: Array<Record<string, number | null>>;
+}
+
 export interface CubePointSeries {
   product: 'cube';
   tier: TierId;
@@ -168,6 +188,12 @@ export interface CubePointSeries {
   };
   /** Woher das Manifest kam: gepinnt an den Index-Commit, `@main` (Rueckfall, moeglicherweise veraltet) oder vom Aufrufer uebergeben. */
   manifestFrom?: ManifestOrigin | 'caller';
+  /**
+   * AP3: die bis zu acht Nachbarzellen im selben Chunk (3×3 um die Hauptzelle, am Chunk-Rand
+   * beschnitten). Nur gesetzt, wenn `neighbours` verlangt war; PAP 3 wählt daraus die vier,
+   * die den Punkt umschließen.
+   */
+  neighbours?: CubeNeighbourCell[];
   /**
    * AP1: die Werte sind da, die Provenienz nicht — das Manifest war nicht lesbar oder
    * kennt die Stufe nicht (V-FI-1 am `@main`-Rückfall). Der Chunk selbst ist
@@ -239,6 +265,8 @@ export function cubeSeriesFrom(
     wanted?: readonly string[];
     lat: number;
     lon: number;
+    /** AP3: die Nachbarzellen mitlesen (0 zusätzliche Bytes, ein paar Indexzugriffe). */
+    neighbours?: boolean;
   },
 ): CubePointSeries {
   const { tier, tierId, pointer, cell, path } = addr;
@@ -292,6 +320,35 @@ export function cubeSeriesFrom(
   const hMod = steps.find((s) => s.values.hModEff != null)?.values.hModEff ?? null;
   const considered = planes.filter((p) => !want || want.has(p.id)).map((p) => p.id);
 
+  // AP3: die Nachbarn aus demselben Chunk — dieselbe Dequantisierung, dieselbe Ebenenliste.
+  let neighbours: CubeNeighbourCell[] | undefined;
+  if (ctx.neighbours) {
+    neighbours = [];
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        if (dy === 0 && dx === 0) continue;
+        const ny = ry + dy, nx = rx + dx;
+        if (ny < 0 || nx < 0 || ny >= chunk.ny || nx >= chunk.nx) continue;
+        const values: Array<Record<string, number | null>> = [];
+        let hModN: number | null = null;
+        for (let it = 0; it < chunk.nt; it++) {
+          const v: Record<string, number | null> = {};
+          for (let pi = 0; pi < planes.length; pi++) {
+            const plane = planes[pi];
+            if (want && !want.has(plane.id)) continue;
+            const raw = chunk.planes[pi];
+            if (raw.length === 0) continue;
+            v[plane.id] = dequantize(raw[planeOffset(chunk, it, ny, nx)], plane);
+          }
+          if (hModN == null && v.hModEff != null) hModN = v.hModEff;
+          values.push(v);
+        }
+        const c = cellCenter(tier, cell.iy + dy, cell.ix + dx);
+        neighbours.push({ dy, dx, iy: cell.iy + dy, ix: cell.ix + dx, lat: c.lat, lon: c.lon, distKm: distanceKm(ctx.lat, ctx.lon, c.lat, c.lon), hModEffM: hModN, values });
+      }
+    }
+  }
+
   let provenanceNote: string | undefined;
   if (!ctx.manifest) provenanceNote = `Manifest ${pointer.manifest} nicht lesbar — Werte aus dem Chunk, Quellen und Provenienz unbekannt`;
   else if (!tm) {
@@ -321,6 +378,7 @@ export function cubeSeriesFrom(
     provenance: { quantiles: tm?.quantiles ?? null, ensemble: tm?.ensemble ?? null, profile: tm?.profile ?? null },
     manifestFrom: ctx.manifestFrom,
     ...(provenanceNote ? { provenanceNote } : {}),
+    ...(neighbours ? { neighbours } : {}),
   };
 }
 

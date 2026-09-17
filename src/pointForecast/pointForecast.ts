@@ -171,6 +171,33 @@ export interface PointForecastOptions {
    * eigenen Anker als Anomaliepersistenz (K-1).
    */
   anchorMode?: AnchorMode;
+  /**
+   * Phase FI (AP2): woher die Vorhersage kommt.
+   *  - `'live'` (Default, und bei fehlendem Feld) → dieser Pfad, unverändert: BrightSky,
+   *    GeoSphere, GFS, Stationen — byte-gleich zu vorher (`verify:pv-fusion`).
+   *  - `'cube'` → buscosun Fusion auf dem Punkt-Cube aus `buscosun-data`
+   *    (`cubeSource.ts`: AP1-Leser → PAP 3–6 → Ausgabe). Der Pfad ist NICHT statisch
+   *    importiert (ein `import()` hier ließe Rollup einen Chunk mit allen Punkt-Modulen
+   *    bauen, R8) — ein Verbraucher lädt `cubeSource.ts` selbst; das Modul registriert
+   *    sich über `registerPointSource`. Ohne Registrierung wirft der Aufruf einen
+   *    benannten Fehler, statt still auf `'live'` zu fallen. Default-Umstellung erst
+   *    nach dem AP9-Gate (AP11).
+   */
+  pointSource?: 'live' | 'cube';
+}
+
+/**
+ * Registrierung eines alternativen Vorhersagepfads (Phase FI, AP2). `cubeSource.ts`
+ * ruft `registerPointSource('cube', getPointForecastFromCube)` beim Laden; der
+ * Start-Chunk bleibt frei von Punkt-Modulen, solange kein Verbraucher es lädt.
+ */
+type PointSourceImpl = (opts: PointForecastOptions) => Promise<PointForecast>;
+const POINT_SOURCES = new Map<string, PointSourceImpl>();
+export function registerPointSource(id: 'cube', impl: PointSourceImpl): void {
+  POINT_SOURCES.set(id, impl);
+}
+export function hasPointSource(id: 'cube'): boolean {
+  return POINT_SOURCES.has(id);
 }
 
 // Modulweiter Cache des positions-unabhängigen Radar-Samplers (ein Stack je Land
@@ -196,7 +223,7 @@ interface PfCacheEntry { hours: number; forecast: PointForecast; ts: number }
 const PF_CACHE = new Map<string, PfCacheEntry>();
 const PF_CACHE_TTL_MS = 180_000;     // 3 min
 const PF_CACHE_MAX = 64;
-function pfCacheKey(lat: number, lng: number, country: Country, radar: boolean, native: boolean, dist: boolean, anchorValue = false): string {
+export function pfCacheKey(lat: number, lng: number, country: Country, radar: boolean, native: boolean, dist: boolean, anchorValue = false, cube = false): string {
   // Das Radar-Flag MUSS in den Key: sonst könnte ein Nicht-Radar-Aufrufer
   // (Route/3D) den Cache füllen und ein Radar-Aufrufer (Event/Panel) bekäme das
   // radarlose Ergebnis (fehlender Nowcast-Niederschlag). Ebenso der Native-Modus:
@@ -204,13 +231,24 @@ function pfCacheKey(lat: number, lng: number, country: Country, radar: boolean, 
   // Ebenso das Verteilungs-Flag: sonst bekäme ein Aufrufer, der Verteilungen
   // braucht, den Treffer eines Aufrufers ohne sie — und sähe `fusion` als
   // `undefined`, ohne dass etwas fehlgeschlagen wäre.
-  return `${country}:${lat.toFixed(3)}:${lng.toFixed(3)}${radar ? ':r' : ''}${native ? ':n' : ''}${dist ? ':d' : ''}${anchorValue ? ':av' : ''}`;
+  // Ebenso der Cube-Pfad (Phase FI, AP2): sonst bekäme ein Live-Aufrufer die
+  // Cube-Achse (109 Schritte statt Stunden) — oder umgekehrt.
+  return `${country}:${lat.toFixed(3)}:${lng.toFixed(3)}${radar ? ':r' : ''}${native ? ':n' : ''}${dist ? ':d' : ''}${anchorValue ? ':av' : ''}${cube ? ':c' : ''}`;
 }
 
 /**
  * Compute the point forecast for the given query.
  */
 export async function getPointForecast(opts: PointForecastOptions): Promise<PointForecast> {
+  // Phase FI (AP2): der Cube-Pfad — nur, wenn ausdrücklich verlangt UND registriert.
+  // Alles darunter ist der Live-Pfad, unverändert.
+  if (opts.pointSource === 'cube') {
+    const impl = POINT_SOURCES.get('cube');
+    if (!impl) {
+      throw new Error('getPointForecast: pointSource "cube" ist nicht registriert — der Aufrufer muss `src/pointForecast/cubeSource.ts` laden (registerCubePointSource), damit der Start-Chunk frei von Punkt-Modulen bleibt.');
+    }
+    return impl(opts);
+  }
   const { lat, lng, country, signal } = opts;
   const profile = COUNTRY_PROFILES[country];
   const hours = opts.hours ?? profile.forecastHours;

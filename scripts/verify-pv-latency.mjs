@@ -12,7 +12,10 @@
  *   bundle    AP1: der parallele Leseweg `readPointBundle` — cube-read-cold (frischer Kontext), cube-read-warm
  *             (IndexedDB), cube-read-main (warm, Dekodierung im Hauptthread), cube-read-nocache (warm, ohne IndexedDB)
  *   live      der Live-Pfad von heute (`getPointForecast`, distribution: true, 240 h), kalt
- *   cube      (ab AP2) der Cube-Pfad von buscosun Fusion — noch nicht vorhanden, wird übersprungen und gesagt
+ *   cube      AP2: der Cube-Pfad Ende-zu-Ende (`getPointForecast({ pointSource: 'cube' })`) — cube-cold (frischer
+ *             Kontext), cube-warm (IndexedDB + Rechnung, Ergebnis-Cache geleert); `--gate` prüft §6 daran
+ *   compare   AP2-Abnahme: cube-vs-live — beide Pfade im selben Kontext, Zeitreihen im Ergebnis, Tabelle der
+ *             Abweichungen an festen Vorläufen (T 0,5 K · Wind 1 m/s · RR 0,2 mm/h · clct 10 %; Größeres = Befund)
  *
  * Netzmitschnitt je Lauf über CDP: Anzahl Abrufe, Draht-Bytes, x-cache HIT/MISS getrennt (Chunks sind
  * nicht purgebar — ein kalter Edge ist Zufall, deshalb beide Populationen). Ergebnis als JSON unter
@@ -71,8 +74,12 @@ export const AP1_READ_GATE_MS = { 'desktop-none': 400, 'mobile-4g': 1000 };
 const quick = !!args.quick;
 const profileIds = list(args.profiles) ?? (quick ? ['desktop-none'] : Object.keys(PROFILES));
 const placeIds = list(args.places) ?? (quick ? ['muenchen', 'wien', 'zermatt'] : PLACES.map((p) => p.id));
-const only = new Set(list(args.only) ?? ['terrain', 'reader', 'bundle', 'live']);
+const only = new Set(list(args.only) ?? ['terrain', 'reader', 'bundle', 'live', 'cube']);
 const repeats = Number(args.repeats ?? 1);
+
+/** AP2-Abnahme: Toleranzen des Zehn-Orte-Vergleichs (Plan §4) und die Vorläufe, an denen verglichen wird. */
+export const COMPARE_TOL = { T: 0.5, ws: 1.0, rr: 0.2, clct: 10 };
+export const COMPARE_LEADS_H = [0, 3, 6, 12, 24, 36, 48, 51, 72, 96, 120, 126, 168, 240];
 
 // ── Bündel + Laborseite ───────────────────────────────────────────────────
 const DEFINE = { 'import.meta.env.BASE_URL': '"/"', 'import.meta.env.DEV': 'false', 'import.meta.env.PROD': 'true', 'import.meta.env.MODE': '"production"' };
@@ -154,6 +161,7 @@ async function main() {
   const browser = await openBrowser(chrome, { timeoutMs: 120_000 });
   const startedAt = new Date().toISOString();
   const runs = [];
+  const compareRuns = [];
   console.log(`[pv-latency] Lab ${url} · Bündel ${(labJs.length / 1024).toFixed(0)} KB + Worker ${(workerJs.length / 1024).toFixed(0)} KB · Profile ${profileIds.join(',')} · Orte ${placeIds.join(',')} · Szenarien ${[...only].join(',')}`);
 
   const withContext = async (prof, fn) => {
@@ -228,6 +236,21 @@ async function main() {
             await record(ctx, { ...base, scenario: 'live-cold', rep }, `pfLab.live(${pl.lat}, ${pl.lon}, '${pl.country}', 240)`);
           });
         }
+        if (only.has('cube')) {
+          await withContext(profile, async (ctx) => {
+            await record(ctx, { ...base, scenario: 'cube-cold', rep }, `pfLab.cube(${pl.lat}, ${pl.lon}, '${pl.country}')`);
+            await record(ctx, { ...base, scenario: 'cube-warm', rep }, `pfLab.cube(${pl.lat}, ${pl.lon}, '${pl.country}', { fresh: true })`);
+          });
+        }
+        if (only.has('compare') && profile !== 'fast-3g') {
+          // Beide Pfade im SELBEN Kontext, nacheinander: erst der Cube (kalt), dann der Live-Pfad (kalt) —
+          // die Zeitreihen kommen mit, die Tabelle rechnet der Harnisch unten.
+          await withContext(profile, async (ctx) => {
+            const c = await record(ctx, { ...base, scenario: 'cmp-cube', rep }, `pfLab.cube(${pl.lat}, ${pl.lon}, '${pl.country}', { series: true })`);
+            const l = await record(ctx, { ...base, scenario: 'cmp-live', rep }, `pfLab.live(${pl.lat}, ${pl.lon}, '${pl.country}', 336, { series: true, radar: true })`);
+            compareRuns.push({ place: pl.id, profile, cube: c.result, live: l.result });
+          });
+        }
       }
     }
   }
@@ -255,6 +278,38 @@ async function main() {
   for (const t of table) {
     console.log(`  ${t.profile.padEnd(12)} ${t.scenario.padEnd(18)} n=${String(t.n).padStart(2)}  ${ms(t.p50).padStart(9)} / ${ms(t.p95).padStart(9)} / ${ms(t.max).padStart(9)}`
       + (t.coreP50 != null ? `   core ${ms(t.coreP50).padStart(8)} (p95 ${ms(t.coreP95)})  first ${ms(t.firstP50).padStart(8)}  all ${ms(t.readP50).padStart(8)}` : ''));
+  }
+
+  // ── AP2-Abnahme: Cube ↔ Live an festen Vorläufen ────────────────────────
+  let compare = null;
+  if (compareRuns.length) {
+    compare = [];
+    console.log(`\n[pv-latency] Vergleich Cube ↔ Live je Ort und Vorlauf (Δ = Cube − Live; Toleranz T ${COMPARE_TOL.T} K · Wind ${COMPARE_TOL.ws} m/s · RR ${COMPARE_TOL.rr} mm/h · clct ${COMPARE_TOL.clct} %; ⚠ = Befund):`);
+    for (const cr of compareRuns) {
+      const cs = cr.cube?.series ?? null, ls = cr.live?.series ?? null;
+      if (!cs || !ls) { console.log(`  ${cr.place.padEnd(10)} — kein Vergleich: ${cr.cube?.error ?? cr.live?.error ?? 'keine Zeitreihe'}`); compare.push({ place: cr.place, profile: cr.profile, error: cr.cube?.error ?? cr.live?.error ?? 'keine Zeitreihe' }); continue; }
+      const t0 = Math.min(cs[0]?.t ?? Infinity, ls[0]?.t ?? Infinity);
+      const rows = [];
+      for (const h of COMPARE_LEADS_H) {
+        const t = t0 + h * 3_600_000;
+        const a = cs.find((x) => x.t === t), b = ls.find((x) => x.t === t);
+        if (!a || !b) continue;
+        const d = (k) => (a[k] == null || b[k] == null ? null : Math.round((a[k] - b[k]) * 100) / 100);
+        const row = { leadH: h, cube: { T: a.T, ws: a.ws, rr: a.rr, clct: a.clct, src: a.src, Tq10: a.Tq10, Tq90: a.Tq90 }, live: { T: b.T, ws: b.ws, rr: b.rr, clct: b.clct, src: b.src, Tq10: b.Tq10, Tq90: b.Tq90 },
+          dT: d('T'), dWs: d('ws'), dRr: d('rr'), dClct: d('clct') };
+        row.over = [row.dT != null && Math.abs(row.dT) > COMPARE_TOL.T ? 'T' : null, row.dWs != null && Math.abs(row.dWs) > COMPARE_TOL.ws ? 'ws' : null,
+          row.dRr != null && Math.abs(row.dRr) > COMPARE_TOL.rr ? 'rr' : null, row.dClct != null && Math.abs(row.dClct) > COMPARE_TOL.clct ? 'clct' : null].filter(Boolean);
+        rows.push(row);
+      }
+      const f = (v, w = 6) => (v == null ? '—'.padStart(w) : (v >= 0 ? '+' : '') + v.toFixed(2)).padStart(w);
+      console.log(`  ${cr.place} (${cr.profile}) — Cube ${cr.cube.hours} Schritte in ${Math.round(cr.cube.total)} ms, Live ${cr.live.hours} h in ${Math.round(cr.live.total)} ms, Höhe Cube ${cr.cube.elevation} / Live ${cr.live.elevation} m`);
+      console.log('     +h   ΔT      Δws     ΔRR     Δclct   Cube T/ws/rr/clct           Live T/ws/rr/clct           Quellen Cube | Live');
+      for (const r of rows) {
+        console.log(`    ${String(r.leadH).padStart(3)}  ${f(r.dT)}  ${f(r.dWs)}  ${f(r.dRr)}  ${f(r.dClct)}   ${[r.cube.T, r.cube.ws, r.cube.rr, r.cube.clct].map((v) => (v == null ? '—' : v)).join('/').padEnd(27)} ${[r.live.T, r.live.ws, r.live.rr, r.live.clct].map((v) => (v == null ? '—' : v)).join('/').padEnd(27)} ${(r.cube.src ?? []).join('+')} | ${(r.live.src ?? []).join('+')}${r.over.length ? '  ⚠ ' + r.over.join(',') : ''}`);
+      }
+      compare.push({ place: cr.place, profile: cr.profile, cubeMs: cr.cube.total, liveMs: cr.live.total, cubeHours: cr.cube.hours, liveHours: cr.live.hours,
+        cubeElevation: cr.cube.elevation, liveElevation: cr.live.elevation, cubeNotes: cr.cube.notes, cubeSkips: cr.cube.skips, cubeErrors: cr.cube.errors, rows });
+    }
   }
 
   // ── Gates ───────────────────────────────────────────────────────────────
@@ -288,7 +343,7 @@ async function main() {
   const file = join(OUT_DIR, `${startedAt.replace(/[:.]/g, '-')}.json`);
   writeFileSync(file, JSON.stringify({
     schema: 2, startedAt, finishedAt: new Date().toISOString(), host: { platform: process.platform, node: process.version, chrome },
-    args: { profileIds, placeIds, only: [...only], repeats }, chunkEdgePlaces: CHUNK_EDGE_PLACES, summary: table, gate, runs,
+    args: { profileIds, placeIds, only: [...only], repeats }, chunkEdgePlaces: CHUNK_EDGE_PLACES, summary: table, gate, compare, runs,
   }, null, 1));
   console.log(`\n[pv-latency] geschrieben: ${file}`);
   if (gate && !gate.ok) process.exitCode = 1;

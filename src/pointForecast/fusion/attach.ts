@@ -33,7 +33,8 @@ import { skyViewFactor, terrainScales } from './terrainScale';
  * fallback for the rest of the session, silently.
  */
 let climaPromise: Promise<ClimaField | null> | null = null;
-function getClimaField(): Promise<ClimaField | null> {
+/** Exportiert seit Phase FI (AP2): der Cube-Pfad (`cubeSource.ts`) nimmt DIESELBE Klimatologie aus demselben Cache. */
+export function getClimaField(): Promise<ClimaField | null> {
   if (!climaPromise) {
     climaPromise = ClimaField.load().catch(() => { climaPromise = null; return null; });
   }

@@ -60,6 +60,46 @@ export interface PointSourceSample {
    * Fehlt das Feld, gilt der Wert für die Zielstunde. Der Altpfad liest es nicht.
    */
   validAtMs?: number;
+
+  // ── Phase FI, AP2 (Cube-Pfad) — ADDITIV. Kein bestehender Adapter schreibt diese
+  //    Felder, der Live-Pfad liest sie nicht; fehlen sie, rechnet buscosun Fusion wie
+  //    zuvor (byte-gleich, `verify:pv-fusion`). Sie tragen, was der Punkt-Cube je Zelle
+  //    und Stunde mehr weiß als eine Einzelquelle (`src/point/cubeFormat.ts`).
+  /**
+   * Gesamtbedeckung in %, wenn die Quelle sie direkt führt (`clct`). Der Motor bildet
+   * die Bewölkung sonst als Summe der drei Schichten — für den Cube ist `clct` das
+   * gemittelte Feld selbst, die Schichten sind nur Kontext (PAP 6: `clct := max(...)`).
+   */
+  cloudTotal?: number | null;
+  /** Bodendruck in hPa (Ebene `ps`), an der Bezugshöhe `sourceElevation`. */
+  pressure?: number | null;
+  /** σ_div je Cube-Größe (Streuung ZWISCHEN den Quellen), Schlüssel = Ebenen-ID (`t2m`, `u10`, …). */
+  sigmaDiv?: Readonly<Record<string, number | null>>;
+  /** σ_ens je Cube-Größe (Streuung zwischen den Membern EINER Quelle). Nicht mit σ_div addieren. */
+  sigmaEns?: Readonly<Record<string, number | null>>;
+  /** Gemessene Quantile EINER Quelle je Cube-Größe — nicht mit σ verrechenbar (PD-B7). */
+  q10?: Readonly<Record<string, number | null>>;
+  q90?: Readonly<Record<string, number | null>>;
+  /** Wie viele Quellen die Zelle und Stunde getragen haben (σ_div braucht ≥ 2). */
+  srcCount?: number | null;
+  /** Wie viele Member in σ_ens eingegangen sind; `null` = kein Ensemble an dieser Stunde. */
+  ensCount?: number | null;
+  /** Effektive Modellorographie der Zelle in m ü. NN (Ebene `hModEff`). */
+  hModEff?: number | null;
+  /**
+   * Profilfelder aus PAP 2 (nur Stufe t1): `gammaEff` in K/km mit Γ = −∂T/∂z, `zBase`/`zInv`
+   * absolut in m ü. NN (`zInv === zBase` heißt: keine Inversion), `dTInv` in K, positiv.
+   * `null` je Feld = MISSING; das ganze Objekt `null` = die Stufe führt kein Profil (t2/t3).
+   */
+  profile?: { gammaEff: number | null; zBase: number | null; zInv: number | null; dTInv: number | null } | null;
+  /**
+   * Phase FI, AP6 (additiv): eine EXPLIZITE Fehlerstreuung je Fusionsgröße in der Einheit
+   * der Größe (K, m/s je Komponente, %). Ist sie gesetzt, geht das Sample als unverzerrte
+   * Schätzung mit genau dieser σ in die Kombination — statt über ρ(τ), Amplitude und
+   * Repräsentativität des Motors (PAP 6: σ = c·σ_ens bzw. σ_div² + σ_sys²). Fehlt sie,
+   * rechnet der Motor wie bisher (byte-gleich). Niederschlag hat sie nie (K-2).
+   */
+  errorSigma?: Readonly<Partial<Record<'temperature' | 'dewpoint' | 'humidity' | 'clouds' | 'precipitation' | 'precipOcc' | 'wind' | 'gust', number>>>;
 }
 
 export interface PointHourSamples {
@@ -218,4 +258,13 @@ export interface PointForecast {
   }>;
   /** Sources that responded successfully (regardless of weight). */
   sourcesAvailable: string[];
+  /**
+   * Phase FI (AP2): nur gesetzt, wenn die Vorhersage über den Cube-Pfad
+   * (`pointSource: 'cube'`) gerechnet wurde — Achse, Provenienz, Flags und Zeiten des
+   * Bündels. ADDITIV: der Live-Pfad schreibt das Feld nie. Die Form ist die von
+   * `CubePathSummary` in `cubeSource.ts`; hier nur als offener Datensatz deklariert,
+   * damit `types.ts` das Modul des Cube-Pfads nicht importiert (es hinge sonst an
+   * jedem Verbraucher dieses Typs — und damit am Start-Chunk).
+   */
+  cube?: Record<string, unknown>;
 }

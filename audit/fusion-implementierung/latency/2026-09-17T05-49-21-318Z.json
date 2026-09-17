@@ -1,0 +1,4500 @@
+{
+ "schema": 2,
+ "startedAt": "2026-09-17T05:49:21.318Z",
+ "finishedAt": "2026-09-17T05:49:38.423Z",
+ "host": {
+  "platform": "win32",
+  "node": "v22.17.0",
+  "chrome": "C:\\Users\\User\\AppData\\Local\\ms-playwright\\chromium_headless_shell-1223\\chrome-headless-shell-win64\\chrome-headless-shell.exe"
+ },
+ "args": {
+  "profileIds": [
+   "desktop-none"
+  ],
+  "placeIds": [
+   "muenchen",
+   "wien",
+   "zermatt",
+   "genf"
+  ],
+  "only": [
+   "cube"
+  ],
+  "repeats": 1
+ },
+ "chunkEdgePlaces": [
+  "graz"
+ ],
+ "summary": [
+  {
+   "profile": "desktop-none",
+   "scenario": "cube-cold",
+   "n": 4,
+   "p50": 1902.6000000238419,
+   "p95": 1913.9000000357628,
+   "max": 1913.9000000357628,
+   "coreP50": 944,
+   "coreP95": 1031,
+   "readP50": 1804,
+   "readP95": 1813,
+   "firstP50": 728,
+   "firstP95": 748
+  },
+  {
+   "profile": "desktop-none",
+   "scenario": "cube-warm",
+   "n": 4,
+   "p50": 1138.5,
+   "p95": 1880.4000000357628,
+   "max": 1880.4000000357628,
+   "coreP50": 174,
+   "coreP95": 184,
+   "readP50": 1088,
+   "readP95": 1821,
+   "firstP50": 171,
+   "firstP95": 182
+  }
+ ],
+ "gate": {
+  "ok": true,
+  "checks": [
+   {
+    "gate": "§6 end-to-end cold",
+    "profile": "desktop-none",
+    "p50": 1902.6000000238419,
+    "p95": 1913.9000000357628,
+    "ok": true
+   }
+  ]
+ },
+ "compare": null,
+ "runs": [
+  {
+   "profile": "desktop-none",
+   "place": "muenchen",
+   "lat": 48.1372,
+   "lon": 11.5755,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "cube-cold",
+   "rep": 0,
+   "wallMs": 1917,
+   "totalMs": 1913.9000000357628,
+   "coreMs": 944,
+   "readMs": 1804,
+   "firstMs": 728,
+   "result": {
+    "total": 1913.9000000357628,
+    "hours": 337,
+    "sourcesAvailable": [
+     "cube-t1",
+     "cube-t2",
+     "cube-t3",
+     "mosmix",
+     "dwd_obs"
+    ],
+    "elevation": 524.8,
+    "timing": {
+     "readMs": 1804,
+     "coreMs": 944,
+     "firstMs": 728,
+     "algoMs": 63.9,
+     "outputMs": 24.9,
+     "totalMs": 1902,
+     "doneAt": {
+      "index": 56,
+      "cube.t1": 380,
+      "terrain": 725,
+      "first": 728,
+      "cube.t3": 756,
+      "station": 793,
+      "cube.t2": 944,
+      "core": 944,
+      "static": 1417,
+      "read": 1804,
+      "obs": 1810
+     }
+    },
+    "provenance": {
+     "indexCommit": "3f7bdef6f6a0bbbb49dae87aaccf87c82601484c",
+     "runs": {
+      "t1": {
+       "run": "2026091703",
+       "sourceRun": "2026091703",
+       "sourceRunAtMs": 1789614000000,
+       "models": [
+        "icon_d2",
+        "icon_d2_eps",
+        "icon_ch1_eps",
+        "claef",
+        "claef_eps",
+        "icon_eu",
+        "ifs_hres",
+        "aifs_single"
+       ],
+       "manifestFrom": "pinned"
+      },
+      "t2": {
+       "run": "2026091700",
+       "sourceRun": "2026091700",
+       "sourceRunAtMs": 1789603200000,
+       "models": [
+        "icon_eu",
+        "icon_eu_eps",
+        "icon_ch2_eps",
+        "icon_global",
+        "aicon",
+        "ifs_hres",
+        "aifs_single"
+       ],
+       "manifestFrom": "pinned"
+      },
+      "t3": {
+       "run": "2026091612",
+       "sourceRun": "2026091612",
+       "sourceRunAtMs": 1789560000000,
+       "models": [
+        "icon_global",
+        "icon_eps_global",
+        "aicon",
+        "ifs_hres",
+        "ifs_ens",
+        "aifs_single"
+       ],
+       "manifestFrom": "pinned"
+      }
+     },
+     "station": {
+      "run": "2026091703",
+      "runAtMs": 1789614000000,
+      "ageH": 1.79,
+      "id": "10865",
+      "name": "MUENCHEN STADT",
+      "distKm": 4.969364387802765,
+      "dElevM": -9.799999999999955,
+      "elevM": 515
+     },
+     "stationReason": "MUENCHEN STADT, 5.0 km, -10 m — vertritt den Punkt.",
+     "nowcast": [],
+     "clima": "grid"
+    },
+    "axis": {
+     "native": 104,
+     "seams": [
+      1789797600000,
+      1790056800000
+     ],
+     "perTier": {
+      "t1": 47,
+      "t2": 23,
+      "t3": 34
+     }
+    },
+    "flags": 316,
+    "notes": [
+     "anchor: 6 Paar(e) aus dwd_obs, Versatz T -0.74 K, Repräsentativität 0.19"
+    ],
+    "skips": [
+     "nowcast: Radar nach der Frist (1800 ms ab Start, mindestens 250 ms nach dem Kern) nicht da — Modell statt Radar für 0–3 h, Abruf läuft weiter (V-FI-16)"
+    ],
+    "errors": [],
+    "stats": {
+     "files": 29,
+     "bytes": 1863178,
+     "misses": 0,
+     "ms": 15698.199999988079,
+     "slow": 0,
+     "retries": 0,
+     "fallbacks": 0
+    },
+    "decode": {
+     "mode": "worker",
+     "workers": 3,
+     "decoded": 8,
+     "viaWorker": 8,
+     "viaMain": 0,
+     "fallbacks": 0,
+     "errors": []
+    }
+   },
+   "net": {
+    "requests": 55,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 1744802,
+    "cdn": 30,
+    "hit": 11,
+    "miss": 19,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/2026091703/t1/03_07.bin",
+     "bytes": 543419,
+     "ttfbMs": 57,
+     "ms": 143,
+     "xCache": "HIT"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 30,
+     "127.0.0.1:2182": 1,
+     "api.brightsky.dev": 20,
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": [
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/index.json",
+      "bytes": 5389,
+      "ttfbMs": 41,
+      "ms": 43,
+      "xCache": "HIT",
+      "startMs": 0,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@3f7bdef6f6a0bbbb49dae87aaccf87c82601484c/point/2026091703/run.json",
+      "bytes": 10091,
+      "ttfbMs": 59,
+      "ms": 60,
+      "xCache": "HIT",
+      "startMs": 59,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091703/t1/03_07.bin",
+      "bytes": 543419,
+      "ttfbMs": 57,
+      "ms": 143,
+      "xCache": "HIT",
+      "startMs": 60,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@3f7bdef6f6a0bbbb49dae87aaccf87c82601484c/point/2026091700/run.json",
+      "bytes": 12342,
+      "ttfbMs": 870,
+      "ms": 871,
+      "xCache": "MISS",
+      "startMs": 60,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091700/t2/01_03.bin",
+      "bytes": 209550,
+      "ttfbMs": 73,
+      "ms": 150,
+      "xCache": "HIT",
+      "startMs": 61,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@3f7bdef6f6a0bbbb49dae87aaccf87c82601484c/point/2026091612/run.json",
+      "bytes": 9790,
+      "ttfbMs": 675,
+      "ms": 678,
+      "xCache": "MISS",
+      "startMs": 61,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091612/t3/00_01.bin",
+      "bytes": 249206,
+      "ttfbMs": 56,
+      "ms": 139,
+      "xCache": "HIT",
+      "startMs": 61,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/static.json",
+      "bytes": 2103,
+      "ttfbMs": 64,
+      "ms": 72,
+      "xCache": "HIT",
+      "startMs": 62,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/t1/03_07.bin",
+      "bytes": 1266,
+      "ttfbMs": 1136,
+      "ms": 1137,
+      "xCache": "MISS",
+      "startMs": 62,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/t2/01_03.bin",
+      "bytes": 1835,
+      "ttfbMs": 1337,
+      "ms": 1338,
+      "xCache": "MISS",
+      "startMs": 63,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/t3/00_01.bin",
+      "bytes": 1460,
+      "ttfbMs": 503,
+      "ms": 504,
+      "xCache": "MISS",
+      "startMs": 63,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/urban/v1/static.json",
+      "bytes": 3331,
+      "ttfbMs": 1218,
+      "ms": 1220,
+      "xCache": "HIT",
+      "startMs": 64,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/urban/v1/t1/03_07.bin",
+      "bytes": 790,
+      "ttfbMs": 53,
+      "ms": 55,
+      "xCache": "HIT",
+      "startMs": 64,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/catalog.json",
+      "bytes": 59483,
+      "ttfbMs": 70,
+      "ms": 88,
+      "xCache": "HIT",
+      "startMs": 64,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/2026091703/stations.json",
+      "bytes": 14101,
+      "ttfbMs": 70,
+      "ms": 78,
+      "xCache": "HIT",
+      "startMs": 64,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/2026091703/03_07.bin",
+      "bytes": 100571,
+      "ttfbMs": 70,
+      "ms": 105,
+      "xCache": "HIT",
+      "startMs": 65,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609170545/meta.json",
+      "bytes": 385,
+      "ttfbMs": 602,
+      "ms": 604,
+      "xCache": "MISS",
+      "startMs": 65,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609170540/meta.json",
+      "bytes": 418,
+      "ttfbMs": 1041,
+      "ms": 1043,
+      "xCache": "MISS",
+      "startMs": 65,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609170535/meta.json",
+      "bytes": 400,
+      "ttfbMs": 472,
+      "ms": 473,
+      "xCache": "MISS",
+      "startMs": 65,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609170530/meta.json",
+      "bytes": 383,
+      "ttfbMs": 516,
+      "ms": 517,
+      "xCache": "MISS",
+      "startMs": 66,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260917T0530/meta.json",
+      "bytes": 384,
+      "ttfbMs": 1182,
+      "ms": 1183,
+      "xCache": "MISS",
+      "startMs": 66,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260917T0515/meta.json",
+      "bytes": 392,
+      "ttfbMs": 614,
+      "ms": 615,
+      "xCache": "MISS",
+      "startMs": 66,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260917T0500/meta.json",
+      "bytes": 406,
+      "ttfbMs": 880,
+      "ms": 881,
+      "xCache": "MISS",
+      "startMs": 67,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260917T0545/meta.json",
+      "bytes": 301,
+      "ttfbMs": 555,
+      "ms": 556,
+      "xCache": "MISS",
+      "startMs": 67,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260917T0540/meta.json",
+      "bytes": 459,
+      "ttfbMs": 619,
+      "ms": 620,
+      "xCache": "MISS",
+      "startMs": 68,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260917T0535/meta.json",
+      "bytes": 410,
+      "ttfbMs": 755,
+      "ms": 756,
+      "xCache": "MISS",
+      "startMs": 68,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260917T0530/meta.json",
+      "bytes": 301,
+      "ttfbMs": 956,
+      "ms": 957,
+      "xCache": "MISS",
+      "startMs": 68,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260917T0545/frame.png",
+      "bytes": 18005,
+      "ttfbMs": 994,
+      "ms": 997,
+      "xCache": "MISS",
+      "startMs": 1030,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609170545/f075.png",
+      "bytes": 19128,
+      "ttfbMs": 351,
+      "ms": 356,
+      "xCache": "MISS",
+      "startMs": 1112,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609170545/f120.png",
+      "bytes": 19068,
+      "ttfbMs": 366,
+      "ms": 369,
+      "xCache": "MISS",
+      "startMs": 1113,
+      "status": 200
+     }
+    ],
+    "otherRequests": [
+     {
+      "url": "127.0.0.1:2182/climaGrid.json",
+      "bytes": 72683,
+      "ttfbMs": 2,
+      "ms": 5,
+      "startMs": 1,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=47.200&lon=10.376",
+      "bytes": 1033,
+      "ttfbMs": 68,
+      "ms": 70,
+      "startMs": 4,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=47.200&lon=10.976",
+      "bytes": 579,
+      "ttfbMs": 156,
+      "ms": 158,
+      "startMs": 4,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=47.200&lon=11.575",
+      "bytes": 641,
+      "ttfbMs": 95,
+      "ms": 98,
+      "startMs": 4,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1089/710.png",
+      "bytes": 107135,
+      "ttfbMs": 384,
+      "ms": 602,
+      "startMs": 33,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1090/710.png",
+      "bytes": 103875,
+      "ttfbMs": 387,
+      "ms": 603,
+      "startMs": 34,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/136/88.png",
+      "bytes": 66630,
+      "ttfbMs": 388,
+      "ms": 502,
+      "startMs": 34,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/136/89.png",
+      "bytes": 94490,
+      "ttfbMs": 382,
+      "ms": 669,
+      "startMs": 34,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=47.200&lon=12.175",
+      "bytes": 998,
+      "ttfbMs": 24,
+      "ms": 25,
+      "startMs": 104,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=47.200&lon=12.775",
+      "bytes": 622,
+      "ttfbMs": 26,
+      "ms": 27,
+      "startMs": 105,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=47.846&lon=10.376",
+      "bytes": 690,
+      "ttfbMs": 49,
+      "ms": 50,
+      "startMs": 131,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=47.846&lon=10.976",
+      "bytes": 549,
+      "ttfbMs": 39,
+      "ms": 40,
+      "startMs": 134,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=47.846&lon=11.575",
+      "bytes": 718,
+      "ttfbMs": 35,
+      "ms": 37,
+      "startMs": 164,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=47.846&lon=12.175",
+      "bytes": 698,
+      "ttfbMs": 36,
+      "ms": 37,
+      "startMs": 174,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=47.846&lon=12.775",
+      "bytes": 769,
+      "ttfbMs": 30,
+      "ms": 30,
+      "startMs": 182,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=48.491&lon=10.376",
+      "bytes": 575,
+      "ttfbMs": 22,
+      "ms": 23,
+      "startMs": 222,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=48.491&lon=10.976",
+      "bytes": 977,
+      "ttfbMs": 25,
+      "ms": 25,
+      "startMs": 230,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=48.491&lon=11.575",
+      "bytes": 738,
+      "ttfbMs": 59,
+      "ms": 60,
+      "startMs": 230,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=48.491&lon=12.175",
+      "bytes": 758,
+      "ttfbMs": 25,
+      "ms": 25,
+      "startMs": 246,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=48.491&lon=12.775",
+      "bytes": 719,
+      "ttfbMs": 23,
+      "ms": 24,
+      "startMs": 256,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=49.137&lon=10.376",
+      "bytes": 987,
+      "ttfbMs": 63,
+      "ms": 64,
+      "startMs": 308,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=49.137&lon=10.976",
+      "bytes": 684,
+      "ttfbMs": 31,
+      "ms": 40,
+      "startMs": 308,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=49.137&lon=11.575",
+      "bytes": 673,
+      "ttfbMs": 57,
+      "ms": 66,
+      "startMs": 309,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=49.137&lon=12.175",
+      "bytes": 721,
+      "ttfbMs": 28,
+      "ms": 29,
+      "startMs": 349,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=49.137&lon=12.775",
+      "bytes": 693,
+      "ttfbMs": 25,
+      "ms": 26,
+      "startMs": 373,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "muenchen",
+   "lat": 48.1372,
+   "lon": 11.5755,
+   "country": "DE",
+   "chunkEdge": false,
+   "scenario": "cube-warm",
+   "rep": 0,
+   "wallMs": 1883,
+   "totalMs": 1880.4000000357628,
+   "coreMs": 174,
+   "readMs": 1821,
+   "firstMs": 171,
+   "result": {
+    "total": 1880.4000000357628,
+    "hours": 337,
+    "sourcesAvailable": [
+     "cube-t1",
+     "cube-t2",
+     "cube-t3",
+     "mosmix",
+     "dwd_obs"
+    ],
+    "elevation": 524.8,
+    "timing": {
+     "readMs": 1821,
+     "coreMs": 174,
+     "firstMs": 171,
+     "algoMs": 34.9,
+     "outputMs": 21.9,
+     "totalMs": 1879,
+     "doneAt": {
+      "terrain": 3,
+      "index": 16,
+      "static": 40,
+      "cube.t3": 152,
+      "cube.t2": 155,
+      "cube.t1": 171,
+      "first": 171,
+      "station": 174,
+      "core": 174,
+      "read": 1821,
+      "obs": 1821
+     }
+    },
+    "provenance": {
+     "indexCommit": "3f7bdef6f6a0bbbb49dae87aaccf87c82601484c",
+     "runs": {
+      "t1": {
+       "run": "2026091703",
+       "sourceRun": "2026091703",
+       "sourceRunAtMs": 1789614000000,
+       "models": [
+        "icon_d2",
+        "icon_d2_eps",
+        "icon_ch1_eps",
+        "claef",
+        "claef_eps",
+        "icon_eu",
+        "ifs_hres",
+        "aifs_single"
+       ],
+       "manifestFrom": "pinned"
+      },
+      "t2": {
+       "run": "2026091700",
+       "sourceRun": "2026091700",
+       "sourceRunAtMs": 1789603200000,
+       "models": [
+        "icon_eu",
+        "icon_eu_eps",
+        "icon_ch2_eps",
+        "icon_global",
+        "aicon",
+        "ifs_hres",
+        "aifs_single"
+       ],
+       "manifestFrom": "pinned"
+      },
+      "t3": {
+       "run": "2026091612",
+       "sourceRun": "2026091612",
+       "sourceRunAtMs": 1789560000000,
+       "models": [
+        "icon_global",
+        "icon_eps_global",
+        "aicon",
+        "ifs_hres",
+        "ifs_ens",
+        "aifs_single"
+       ],
+       "manifestFrom": "pinned"
+      }
+     },
+     "station": {
+      "run": "2026091703",
+      "runAtMs": 1789614000000,
+      "ageH": 1.79,
+      "id": "10865",
+      "name": "MUENCHEN STADT",
+      "distKm": 4.969364387802765,
+      "dElevM": -9.799999999999955,
+      "elevM": 515
+     },
+     "stationReason": "MUENCHEN STADT, 5.0 km, -10 m — vertritt den Punkt.",
+     "nowcast": [],
+     "clima": "grid"
+    },
+    "axis": {
+     "native": 104,
+     "seams": [
+      1789797600000,
+      1790056800000
+     ],
+     "perTier": {
+      "t1": 47,
+      "t2": 23,
+      "t3": 34
+     }
+    },
+    "flags": 316,
+    "notes": [
+     "anchor: 6 Paar(e) aus dwd_obs, Versatz T -0.74 K, Repräsentativität 0.19"
+    ],
+    "skips": [
+     "nowcast: Radar nach der Frist (1800 ms ab Start, mindestens 250 ms nach dem Kern) nicht da — Modell statt Radar für 0–3 h, Abruf läuft weiter (V-FI-16)"
+    ],
+    "errors": [],
+    "stats": {
+     "files": 40,
+     "bytes": 2160241,
+     "misses": 2,
+     "ms": 22846.19999998808,
+     "slow": 0,
+     "retries": 0,
+     "fallbacks": 0
+    },
+    "decode": {
+     "mode": "worker",
+     "workers": 3,
+     "decoded": 16,
+     "viaWorker": 16,
+     "viaMain": 0,
+     "fallbacks": 0,
+     "errors": []
+    }
+   },
+   "net": {
+    "requests": 26,
+    "cached": 1,
+    "failed": 0,
+    "bytes": 14939,
+    "cdn": 5,
+    "hit": 1,
+    "miss": 4,
+    "largest": {
+     "url": "current_weather?lat=47.200&lon=12.175",
+     "bytes": 994,
+     "ttfbMs": 53,
+     "ms": 57,
+     "xCache": null
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 6,
+     "api.brightsky.dev": 20
+    },
+    "cdnRequests": [
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/index.json",
+      "bytes": 205,
+      "ttfbMs": 13,
+      "ms": 14,
+      "xCache": "HIT",
+      "startMs": 0,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rv/2609170545/f015.png",
+      "bytes": 0,
+      "ttfbMs": 79,
+      "ms": 84,
+      "xCache": "MISS",
+      "startMs": 25,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260917T0530/f030.png",
+      "bytes": 0,
+      "ttfbMs": 469,
+      "ms": 473,
+      "xCache": "MISS",
+      "startMs": 101,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260917T0530/f150.png",
+      "bytes": 0,
+      "ttfbMs": 387,
+      "ms": 390,
+      "xCache": "MISS",
+      "startMs": 102,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260917T0530/f180.png",
+      "bytes": 0,
+      "ttfbMs": 338,
+      "ms": 340,
+      "xCache": "MISS",
+      "startMs": 103,
+      "status": 200
+     }
+    ],
+    "otherRequests": [
+     {
+      "url": "api.brightsky.dev/current_weather?lat=47.200&lon=10.376",
+      "bytes": 971,
+      "ttfbMs": 26,
+      "ms": 27,
+      "startMs": 1,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=47.200&lon=10.976",
+      "bytes": 575,
+      "ttfbMs": 26,
+      "ms": 27,
+      "startMs": 1,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=47.200&lon=11.575",
+      "bytes": 657,
+      "ttfbMs": 25,
+      "ms": 26,
+      "startMs": 1,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=47.200&lon=12.175",
+      "bytes": 994,
+      "ttfbMs": 53,
+      "ms": 57,
+      "startMs": 39,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=47.200&lon=12.775",
+      "bytes": 618,
+      "ttfbMs": 53,
+      "ms": 57,
+      "startMs": 39,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=47.846&lon=10.376",
+      "bytes": 686,
+      "ttfbMs": 53,
+      "ms": 58,
+      "startMs": 39,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=47.846&lon=10.976",
+      "bytes": 546,
+      "ttfbMs": 76,
+      "ms": 77,
+      "startMs": 104,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=47.846&lon=11.575",
+      "bytes": 753,
+      "ttfbMs": 61,
+      "ms": 62,
+      "startMs": 104,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=47.846&lon=12.175",
+      "bytes": 694,
+      "ttfbMs": 67,
+      "ms": 68,
+      "startMs": 104,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=47.846&lon=12.775",
+      "bytes": 733,
+      "ttfbMs": 24,
+      "ms": 25,
+      "startMs": 167,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=48.491&lon=10.376",
+      "bytes": 578,
+      "ttfbMs": 27,
+      "ms": 28,
+      "startMs": 175,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=48.491&lon=10.976",
+      "bytes": 973,
+      "ttfbMs": 26,
+      "ms": 27,
+      "startMs": 182,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=48.491&lon=11.575",
+      "bytes": 729,
+      "ttfbMs": 27,
+      "ms": 28,
+      "startMs": 194,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=48.491&lon=12.175",
+      "bytes": 757,
+      "ttfbMs": 27,
+      "ms": 28,
+      "startMs": 203,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=48.491&lon=12.775",
+      "bytes": 708,
+      "ttfbMs": 25,
+      "ms": 26,
+      "startMs": 210,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=49.137&lon=10.376",
+      "bytes": 983,
+      "ttfbMs": 29,
+      "ms": 30,
+      "startMs": 223,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=49.137&lon=10.976",
+      "bytes": 699,
+      "ttfbMs": 23,
+      "ms": 24,
+      "startMs": 232,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=49.137&lon=11.575",
+      "bytes": 668,
+      "ttfbMs": 22,
+      "ms": 23,
+      "startMs": 237,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=49.137&lon=12.175",
+      "bytes": 717,
+      "ttfbMs": 23,
+      "ms": 24,
+      "startMs": 254,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "api.brightsky.dev/current_weather?lat=49.137&lon=12.775",
+      "bytes": 695,
+      "ttfbMs": 24,
+      "ms": 25,
+      "startMs": 258,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "wien",
+   "lat": 48.2082,
+   "lon": 16.3738,
+   "country": "AT",
+   "chunkEdge": false,
+   "scenario": "cube-cold",
+   "rep": 0,
+   "wallMs": 1698,
+   "totalMs": 1696.199999988079,
+   "coreMs": 1031,
+   "readMs": 1611,
+   "firstMs": 691,
+   "result": {
+    "total": 1696.199999988079,
+    "hours": 337,
+    "sourcesAvailable": [
+     "cube-t1",
+     "cube-t2",
+     "cube-t3",
+     "mosmix",
+     "inca",
+     "tawes"
+    ],
+    "elevation": 172,
+    "timing": {
+     "readMs": 1611,
+     "coreMs": 1031,
+     "firstMs": 691,
+     "algoMs": 53.1,
+     "outputMs": 21.9,
+     "totalMs": 1690,
+     "doneAt": {
+      "index": 48,
+      "cube.t2": 339,
+      "cube.t3": 351,
+      "cube.t1": 389,
+      "terrain": 685,
+      "first": 691,
+      "station": 1031,
+      "core": 1031,
+      "nowcast": 1569,
+      "static": 1611,
+      "read": 1611,
+      "obs": 1613
+     }
+    },
+    "provenance": {
+     "indexCommit": "3f7bdef6f6a0bbbb49dae87aaccf87c82601484c",
+     "runs": {
+      "t1": {
+       "run": "2026091703",
+       "sourceRun": "2026091703",
+       "sourceRunAtMs": 1789614000000,
+       "models": [
+        "icon_d2",
+        "icon_d2_eps",
+        "icon_ch1_eps",
+        "claef",
+        "claef_eps",
+        "icon_eu",
+        "ifs_hres",
+        "aifs_single"
+       ],
+       "manifestFrom": "pinned"
+      },
+      "t2": {
+       "run": "2026091700",
+       "sourceRun": "2026091700",
+       "sourceRunAtMs": 1789603200000,
+       "models": [
+        "icon_eu",
+        "icon_eu_eps",
+        "icon_ch2_eps",
+        "icon_global",
+        "aicon",
+        "ifs_hres",
+        "aifs_single"
+       ],
+       "manifestFrom": "pinned"
+      },
+      "t3": {
+       "run": "2026091612",
+       "sourceRun": "2026091612",
+       "sourceRunAtMs": 1789560000000,
+       "models": [
+        "icon_global",
+        "icon_eps_global",
+        "aicon",
+        "ifs_hres",
+        "ifs_ens",
+        "aifs_single"
+       ],
+       "manifestFrom": "pinned"
+      }
+     },
+     "station": {
+      "run": "2026091703",
+      "runAtMs": 1789614000000,
+      "ageH": 1.79,
+      "id": "11034",
+      "name": "WIEN/CITY",
+      "distKm": 0.9542971678537615,
+      "dElevM": -1,
+      "elevM": 171
+     },
+     "stationReason": "WIEN/CITY, 1.0 km, -1 m — vertritt den Punkt.",
+     "nowcast": [
+      {
+       "source": "inca",
+       "stamp": "20260917T0530",
+       "ageMin": 19,
+       "frames": 4,
+       "extrapolationH": 3
+      }
+     ],
+     "clima": "grid"
+    },
+    "axis": {
+     "native": 104,
+     "seams": [
+      1789797600000,
+      1790056800000
+     ],
+     "perTier": {
+      "t1": 47,
+      "t2": 23,
+      "t3": 34
+     }
+    },
+    "flags": 313,
+    "notes": [
+     "anchor: 6 Paar(e) aus tawes, Versatz T -0.06 K, Repräsentativität 0.67"
+    ],
+    "skips": [],
+    "errors": [],
+    "stats": {
+     "files": 23,
+     "bytes": 1909831,
+     "misses": 1,
+     "ms": 6711.900000154972,
+     "slow": 0,
+     "retries": 0,
+     "fallbacks": 0
+    },
+    "decode": {
+     "mode": "worker",
+     "workers": 3,
+     "decoded": 8,
+     "viaWorker": 8,
+     "viaMain": 0,
+     "fallbacks": 0,
+     "errors": []
+    }
+   },
+   "net": {
+    "requests": 31,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 2135425,
+    "cdn": 23,
+    "hit": 19,
+    "miss": 4,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/2026091703/t1/03_13.bin",
+     "bytes": 575167,
+     "ttfbMs": 24,
+     "ms": 114,
+     "xCache": "HIT"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 23,
+     "127.0.0.1:2182": 1,
+     "dataset.api.hub.geosphere.at": 2,
+     "s3.amazonaws.com": 5
+    },
+    "cdnRequests": [
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/index.json",
+      "bytes": 5389,
+      "ttfbMs": 36,
+      "ms": 39,
+      "xCache": "HIT",
+      "startMs": 0,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@3f7bdef6f6a0bbbb49dae87aaccf87c82601484c/point/2026091703/run.json",
+      "bytes": 10014,
+      "ttfbMs": 20,
+      "ms": 23,
+      "xCache": "HIT",
+      "startMs": 47,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091703/t1/03_13.bin",
+      "bytes": 575167,
+      "ttfbMs": 24,
+      "ms": 114,
+      "xCache": "HIT",
+      "startMs": 47,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@3f7bdef6f6a0bbbb49dae87aaccf87c82601484c/point/2026091700/run.json",
+      "bytes": 12421,
+      "ttfbMs": 18,
+      "ms": 23,
+      "xCache": "HIT",
+      "startMs": 48,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091700/t2/01_06.bin",
+      "bytes": 214247,
+      "ttfbMs": 23,
+      "ms": 117,
+      "xCache": "HIT",
+      "startMs": 48,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@3f7bdef6f6a0bbbb49dae87aaccf87c82601484c/point/2026091612/run.json",
+      "bytes": 9660,
+      "ttfbMs": 22,
+      "ms": 32,
+      "xCache": "HIT",
+      "startMs": 48,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091612/t3/00_02.bin",
+      "bytes": 253069,
+      "ttfbMs": 22,
+      "ms": 100,
+      "xCache": "HIT",
+      "startMs": 49,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/static.json",
+      "bytes": 2435,
+      "ttfbMs": 45,
+      "ms": 89,
+      "xCache": "HIT",
+      "startMs": 49,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/t1/03_13.bin",
+      "bytes": 1568,
+      "ttfbMs": 646,
+      "ms": 648,
+      "xCache": "MISS",
+      "startMs": 49,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/t2/01_06.bin",
+      "bytes": 1713,
+      "ttfbMs": 281,
+      "ms": 282,
+      "xCache": "MISS",
+      "startMs": 50,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/t3/00_02.bin",
+      "bytes": 1556,
+      "ttfbMs": 786,
+      "ms": 788,
+      "xCache": "MISS",
+      "startMs": 50,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/urban/v1/static.json",
+      "bytes": 3321,
+      "ttfbMs": 44,
+      "ms": 88,
+      "xCache": "HIT",
+      "startMs": 50,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/urban/v1/t1/03_13.bin",
+      "bytes": 799,
+      "ttfbMs": 1547,
+      "ms": 1548,
+      "xCache": "HIT",
+      "startMs": 51,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/catalog.json",
+      "bytes": 59332,
+      "ttfbMs": 43,
+      "ms": 62,
+      "xCache": "HIT",
+      "startMs": 51,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/2026091703/stations.json",
+      "bytes": 14105,
+      "ttfbMs": 43,
+      "ms": 50,
+      "xCache": "HIT",
+      "startMs": 51,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/2026091703/03_13.bin",
+      "bytes": 19652,
+      "ttfbMs": 933,
+      "ms": 935,
+      "xCache": "MISS",
+      "startMs": 52,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260917T0530/meta.json",
+      "bytes": 386,
+      "ttfbMs": 43,
+      "ms": 87,
+      "xCache": "HIT",
+      "startMs": 52,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260917T0515/meta.json",
+      "bytes": 668,
+      "ttfbMs": 26,
+      "ms": 27,
+      "xCache": "HIT",
+      "startMs": 52,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260917T0500/meta.json",
+      "bytes": 659,
+      "ttfbMs": 28,
+      "ms": 28,
+      "xCache": "HIT",
+      "startMs": 52,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260917T0530/f030.png",
+      "bytes": 37145,
+      "ttfbMs": 22,
+      "ms": 30,
+      "xCache": "HIT",
+      "startMs": 144,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260917T0530/f090.png",
+      "bytes": 36014,
+      "ttfbMs": 1409,
+      "ms": 1412,
+      "xCache": "HIT",
+      "startMs": 144,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260917T0530/f150.png",
+      "bytes": 32943,
+      "ttfbMs": 27,
+      "ms": 48,
+      "xCache": "HIT",
+      "startMs": 145,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/inca/20260917T0530/f180.png",
+      "bytes": 29549,
+      "ttfbMs": 26,
+      "ms": 46,
+      "xCache": "HIT",
+      "startMs": 145,
+      "status": 200
+     }
+    ],
+    "otherRequests": [
+     {
+      "url": "127.0.0.1:2182/climaGrid.json",
+      "bytes": 72683,
+      "ttfbMs": 2,
+      "ms": 3,
+      "startMs": 2,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "dataset.api.hub.geosphere.at/v1/station/current/tawes-v1-10min/metadata",
+      "bytes": 87267,
+      "ttfbMs": 187,
+      "ms": 226,
+      "startMs": 3,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1116/709.png",
+      "bytes": 131928,
+      "ttfbMs": 374,
+      "ms": 587,
+      "startMs": 9,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1117/709.png",
+      "bytes": 104892,
+      "ttfbMs": 378,
+      "ms": 656,
+      "startMs": 10,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1116/710.png",
+      "bytes": 124129,
+      "ttfbMs": 374,
+      "ms": 593,
+      "startMs": 10,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1117/710.png",
+      "bytes": 105605,
+      "ttfbMs": 375,
+      "ms": 596,
+      "startMs": 10,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/139/88.png",
+      "bytes": 72237,
+      "ttfbMs": 372,
+      "ms": 482,
+      "startMs": 10,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "dataset.api.hub.geosphere.at/v1/station/current/tawes-v1-10min?parameters=DD,FF,FFX,RF,RR,",
+      "bytes": 114872,
+      "ttfbMs": 427,
+      "ms": 468,
+      "startMs": 240,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "wien",
+   "lat": 48.2082,
+   "lon": 16.3738,
+   "country": "AT",
+   "chunkEdge": false,
+   "scenario": "cube-warm",
+   "rep": 0,
+   "wallMs": 597,
+   "totalMs": 594.6999999880791,
+   "coreMs": 184,
+   "readMs": 184,
+   "firstMs": 182,
+   "result": {
+    "total": 594.6999999880791,
+    "hours": 337,
+    "sourcesAvailable": [
+     "cube-t1",
+     "cube-t2",
+     "cube-t3",
+     "mosmix",
+     "inca",
+     "tawes"
+    ],
+    "elevation": 172,
+    "timing": {
+     "readMs": 184,
+     "coreMs": 184,
+     "firstMs": 182,
+     "algoMs": 35,
+     "outputMs": 17.9,
+     "totalMs": 593,
+     "doneAt": {
+      "terrain": 43,
+      "index": 79,
+      "static": 114,
+      "nowcast": 131,
+      "cube.t2": 158,
+      "cube.t3": 161,
+      "cube.t1": 182,
+      "first": 182,
+      "station": 184,
+      "core": 184,
+      "read": 184,
+      "obs": 540
+     }
+    },
+    "provenance": {
+     "indexCommit": "3f7bdef6f6a0bbbb49dae87aaccf87c82601484c",
+     "runs": {
+      "t1": {
+       "run": "2026091703",
+       "sourceRun": "2026091703",
+       "sourceRunAtMs": 1789614000000,
+       "models": [
+        "icon_d2",
+        "icon_d2_eps",
+        "icon_ch1_eps",
+        "claef",
+        "claef_eps",
+        "icon_eu",
+        "ifs_hres",
+        "aifs_single"
+       ],
+       "manifestFrom": "pinned"
+      },
+      "t2": {
+       "run": "2026091700",
+       "sourceRun": "2026091700",
+       "sourceRunAtMs": 1789603200000,
+       "models": [
+        "icon_eu",
+        "icon_eu_eps",
+        "icon_ch2_eps",
+        "icon_global",
+        "aicon",
+        "ifs_hres",
+        "aifs_single"
+       ],
+       "manifestFrom": "pinned"
+      },
+      "t3": {
+       "run": "2026091612",
+       "sourceRun": "2026091612",
+       "sourceRunAtMs": 1789560000000,
+       "models": [
+        "icon_global",
+        "icon_eps_global",
+        "aicon",
+        "ifs_hres",
+        "ifs_ens",
+        "aifs_single"
+       ],
+       "manifestFrom": "pinned"
+      }
+     },
+     "station": {
+      "run": "2026091703",
+      "runAtMs": 1789614000000,
+      "ageH": 1.79,
+      "id": "11034",
+      "name": "WIEN/CITY",
+      "distKm": 0.9542971678537615,
+      "dElevM": -1,
+      "elevM": 171
+     },
+     "stationReason": "WIEN/CITY, 1.0 km, -1 m — vertritt den Punkt.",
+     "nowcast": [
+      {
+       "source": "inca",
+       "stamp": "20260917T0530",
+       "ageMin": 20,
+       "frames": 4,
+       "extrapolationH": 3
+      }
+     ],
+     "clima": "grid"
+    },
+    "axis": {
+     "native": 104,
+     "seams": [
+      1789797600000,
+      1790056800000
+     ],
+     "perTier": {
+      "t1": 47,
+      "t2": 23,
+      "t3": 34
+     }
+    },
+    "flags": 313,
+    "notes": [
+     "anchor: 6 Paar(e) aus tawes, Versatz T -0.06 K, Repräsentativität 0.67"
+    ],
+    "skips": [],
+    "errors": [],
+    "stats": {
+     "files": 24,
+     "bytes": 1936704,
+     "misses": 2,
+     "ms": 6817.600000202656,
+     "slow": 0,
+     "retries": 0,
+     "fallbacks": 0
+    },
+    "decode": {
+     "mode": "worker",
+     "workers": 3,
+     "decoded": 16,
+     "viaWorker": 16,
+     "viaMain": 0,
+     "fallbacks": 0,
+     "errors": []
+    }
+   },
+   "net": {
+    "requests": 2,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 115076,
+    "cdn": 1,
+    "hit": 1,
+    "miss": 0,
+    "largest": {
+     "url": "v1/station/current/tawes-v1-10min?parameters=DD,FF,FFX,RF,RR,TL&station_ids=11266,11125,11330,11369,11375,11157,11301,11019,11254,11018,11275,11062,11188,11356,11218,11046,11234,11372,11244,11256,11361,11358,11264,11057,11367,11079,11197,11141,11099,11051,11101,11129,11175,11394,11077,11318,11066,11108,11267,11268,11285,11206,11118,11190,11002,11150,11135,11298,11105,11227,11235,11155,11173,11222,11104,11068,11249,11246,11048,11312,11110,11064,11247,11350,11273,11371,11290,11232,11240,11238,11359,11037,11198,11378,11309,11167,11390,11259,8989044,11339,11385,11315,11115,11297,11320,11360,11176,11024,11200,11362,11216,11349,11086,11327,11279,11255,8989078,11131,11073,11007,11344,11373,11012,8989042,11136,11130,11335,11112,11307,11075,11292,11296,11083,11274,11204,11078,11060,11010,11021,11140,11217,11170,11393,11337,11260,11348,11171,11189,11049,11152,11054,11215,11332,11187,11185,11153,11199,11177,11280,11113,11258,11220,11194,11324,11072,11376,11149,11262,11377,11127,11061,11126,11316,11084,11278,11381,11032,11161,11382,11047,11208,11351,11346,11180,11050,11380,11004,11022,11314,11053,11123,11299,11063,11138,11366,11082,11055,11326,11340,11241,11334,11303,11306,11166,11119,11383,11201,11069,11343,11272,11229,11311,11300,11364,11317,11148,11389,11242,11345,11237",
+     "bytes": 114871,
+     "ttfbMs": 451,
+     "ms": 532,
+     "xCache": null
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 1,
+     "dataset.api.hub.geosphere.at": 1
+    },
+    "cdnRequests": [
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/index.json",
+      "bytes": 205,
+      "ttfbMs": 35,
+      "ms": 77,
+      "xCache": "HIT",
+      "startMs": 0,
+      "status": 200
+     }
+    ],
+    "otherRequests": [
+     {
+      "url": "dataset.api.hub.geosphere.at/v1/station/current/tawes-v1-10min?parameters=DD,FF,FFX,RF,RR,",
+      "bytes": 114871,
+      "ttfbMs": 451,
+      "ms": 532,
+      "startMs": 1,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "zermatt",
+   "lat": 46.0207,
+   "lon": 7.7491,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "cube-cold",
+   "rep": 0,
+   "wallMs": 1905,
+   "totalMs": 1902.6000000238419,
+   "coreMs": 783,
+   "readMs": 1813,
+   "firstMs": 748,
+   "result": {
+    "total": 1902.6000000238419,
+    "hours": 337,
+    "sourcesAvailable": [
+     "cube-t1",
+     "cube-t2",
+     "cube-t3",
+     "mosmix",
+     "rzc",
+     "smn"
+    ],
+    "elevation": 1608.1,
+    "timing": {
+     "readMs": 1813,
+     "coreMs": 783,
+     "firstMs": 748,
+     "algoMs": 57.2,
+     "outputMs": 19.9,
+     "totalMs": 1896,
+     "doneAt": {
+      "index": 51,
+      "nowcast": 181,
+      "cube.t1": 286,
+      "cube.t2": 292,
+      "cube.t3": 295,
+      "terrain": 744,
+      "first": 748,
+      "station": 783,
+      "core": 783,
+      "read": 1813,
+      "obs": 1816
+     }
+    },
+    "provenance": {
+     "indexCommit": "3f7bdef6f6a0bbbb49dae87aaccf87c82601484c",
+     "runs": {
+      "t1": {
+       "run": "2026091703",
+       "sourceRun": "2026091703",
+       "sourceRunAtMs": 1789614000000,
+       "models": [
+        "icon_d2",
+        "icon_d2_eps",
+        "icon_ch1_eps",
+        "claef",
+        "claef_eps",
+        "icon_eu",
+        "ifs_hres",
+        "aifs_single"
+       ],
+       "manifestFrom": "pinned"
+      },
+      "t2": {
+       "run": "2026091700",
+       "sourceRun": "2026091700",
+       "sourceRunAtMs": 1789603200000,
+       "models": [
+        "icon_eu",
+        "icon_eu_eps",
+        "icon_ch2_eps",
+        "icon_global",
+        "aicon",
+        "ifs_hres",
+        "aifs_single"
+       ],
+       "manifestFrom": "pinned"
+      },
+      "t3": {
+       "run": "2026091612",
+       "sourceRun": "2026091612",
+       "sourceRunAtMs": 1789560000000,
+       "models": [
+        "icon_global",
+        "icon_eps_global",
+        "aicon",
+        "ifs_hres",
+        "ifs_ens",
+        "aifs_single"
+       ],
+       "manifestFrom": "pinned"
+      }
+     },
+     "station": {
+      "run": "2026091703",
+      "runAtMs": 1789614000000,
+      "ageH": 1.79,
+      "id": "06748",
+      "name": "ZERMATT",
+      "distKm": 1.036444729333525,
+      "dElevM": 29.90000000000009,
+      "elevM": 1638
+     },
+     "stationReason": "ZERMATT, 1.0 km, +30 m — vertritt den Punkt.",
+     "nowcast": [
+      {
+       "source": "combiprecip",
+       "stamp": "20260917T0545",
+       "ageMin": 5,
+       "frames": 1,
+       "extrapolationH": 0
+      }
+     ],
+     "clima": "grid"
+    },
+    "axis": {
+     "native": 104,
+     "seams": [
+      1789797600000,
+      1790056800000
+     ],
+     "perTier": {
+      "t1": 47,
+      "t2": 23,
+      "t3": 34
+     }
+    },
+    "flags": 337,
+    "notes": [
+     "anchor: 6 Paar(e) aus smn, Versatz T 3.09 K, Repräsentativität 0.49"
+    ],
+    "skips": [
+     "static: hmodel/urban nach der Frist (1800 ms ab Start, mindestens 250 ms nach dem Kern) nicht da — Abruf läuft weiter (V-FI-16)"
+    ],
+    "errors": [],
+    "stats": {
+     "files": 20,
+     "bytes": 1850198,
+     "misses": 0,
+     "ms": 4125.299999892712,
+     "slow": 0,
+     "retries": 0,
+     "fallbacks": 0
+    },
+    "decode": {
+     "mode": "worker",
+     "workers": 3,
+     "decoded": 7,
+     "viaWorker": 7,
+     "viaMain": 0,
+     "fallbacks": 0,
+     "errors": []
+    }
+   },
+   "net": {
+    "requests": 106,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 1970827,
+    "cdn": 20,
+    "hit": 18,
+    "miss": 2,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/2026091703/t1/00_02.bin",
+     "bytes": 629049,
+     "ttfbMs": 22,
+     "ms": 123,
+     "xCache": "HIT"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 20,
+     "127.0.0.1:2182": 1,
+     "data.geo.admin.ch": 81,
+     "s3.amazonaws.com": 4
+    },
+    "cdnRequests": [
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/index.json",
+      "bytes": 5389,
+      "ttfbMs": 39,
+      "ms": 42,
+      "xCache": "HIT",
+      "startMs": 0,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@3f7bdef6f6a0bbbb49dae87aaccf87c82601484c/point/2026091703/run.json",
+      "bytes": 10014,
+      "ttfbMs": 34,
+      "ms": 47,
+      "xCache": "HIT",
+      "startMs": 50,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091703/t1/00_02.bin",
+      "bytes": 629049,
+      "ttfbMs": 22,
+      "ms": 123,
+      "xCache": "HIT",
+      "startMs": 50,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@3f7bdef6f6a0bbbb49dae87aaccf87c82601484c/point/2026091700/run.json",
+      "bytes": 12445,
+      "ttfbMs": 19,
+      "ms": 22,
+      "xCache": "HIT",
+      "startMs": 51,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091700/t2/00_01.bin",
+      "bytes": 219874,
+      "ttfbMs": 33,
+      "ms": 120,
+      "xCache": "HIT",
+      "startMs": 51,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@3f7bdef6f6a0bbbb49dae87aaccf87c82601484c/point/2026091612/run.json",
+      "bytes": 9658,
+      "ttfbMs": 32,
+      "ms": 50,
+      "xCache": "HIT",
+      "startMs": 51,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091612/t3/00_00.bin",
+      "bytes": 248284,
+      "ttfbMs": 32,
+      "ms": 135,
+      "xCache": "HIT",
+      "startMs": 52,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/static.json",
+      "bytes": 2304,
+      "ttfbMs": 32,
+      "ms": 40,
+      "xCache": "HIT",
+      "startMs": 52,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/t2/00_01.bin",
+      "bytes": 2007,
+      "ttfbMs": 878,
+      "ms": 880,
+      "xCache": "MISS",
+      "startMs": 52,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/t3/00_00.bin",
+      "bytes": 1531,
+      "ttfbMs": 1544,
+      "ms": 1546,
+      "xCache": "MISS",
+      "startMs": 53,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/urban/v1/static.json",
+      "bytes": 3321,
+      "ttfbMs": 32,
+      "ms": 40,
+      "xCache": "HIT",
+      "startMs": 53,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/urban/v1/t1/00_02.bin",
+      "bytes": 594,
+      "ttfbMs": 577,
+      "ms": 578,
+      "xCache": "HIT",
+      "startMs": 53,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/catalog.json",
+      "bytes": 59440,
+      "ttfbMs": 31,
+      "ms": 50,
+      "xCache": "HIT",
+      "startMs": 54,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/2026091703/stations.json",
+      "bytes": 14125,
+      "ttfbMs": 32,
+      "ms": 56,
+      "xCache": "HIT",
+      "startMs": 54,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/2026091703/00_02.bin",
+      "bytes": 24451,
+      "ttfbMs": 31,
+      "ms": 55,
+      "xCache": "HIT",
+      "startMs": 54,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260917T0545/meta.json",
+      "bytes": 303,
+      "ttfbMs": 31,
+      "ms": 65,
+      "xCache": "HIT",
+      "startMs": 54,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260917T0540/meta.json",
+      "bytes": 301,
+      "ttfbMs": 38,
+      "ms": 65,
+      "xCache": "HIT",
+      "startMs": 55,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260917T0535/meta.json",
+      "bytes": 300,
+      "ttfbMs": 31,
+      "ms": 38,
+      "xCache": "HIT",
+      "startMs": 55,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260917T0530/meta.json",
+      "bytes": 303,
+      "ttfbMs": 30,
+      "ms": 38,
+      "xCache": "HIT",
+      "startMs": 55,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260917T0545/frame.png",
+      "bytes": 18007,
+      "ttfbMs": 36,
+      "ms": 37,
+      "xCache": "HIT",
+      "startMs": 123,
+      "status": 200
+     }
+    ],
+    "otherRequests": [
+     {
+      "url": "127.0.0.1:2182/climaGrid.json",
+      "bytes": 72683,
+      "ttfbMs": 1,
+      "ms": 2,
+      "startMs": 2,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/ogd-smn_meta_stations.csv",
+      "bytes": 13266,
+      "ttfbMs": 83,
+      "ms": 91,
+      "startMs": 3,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1067/728.png",
+      "bytes": 145316,
+      "ttfbMs": 371,
+      "ms": 698,
+      "startMs": 8,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1068/728.png",
+      "bytes": 144050,
+      "ttfbMs": 394,
+      "ms": 716,
+      "startMs": 9,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/133/90.png",
+      "bytes": 100172,
+      "ttfbMs": 395,
+      "ms": 722,
+      "startMs": 9,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/133/91.png",
+      "bytes": 93980,
+      "ttfbMs": 398,
+      "ms": 617,
+      "startMs": 9,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/abo/ogd-smn_abo_t_now.csv",
+      "bytes": 1785,
+      "ttfbMs": 69,
+      "ms": 70,
+      "startMs": 102,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/aeg/ogd-smn_aeg_t_now.csv",
+      "bytes": 1292,
+      "ttfbMs": 55,
+      "ms": 56,
+      "startMs": 102,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/alt/ogd-smn_alt_t_now.csv",
+      "bytes": 1815,
+      "ttfbMs": 62,
+      "ms": 63,
+      "startMs": 102,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/ant/ogd-smn_ant_t_now.csv",
+      "bytes": 1888,
+      "ttfbMs": 55,
+      "ms": 56,
+      "startMs": 102,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/aro/ogd-smn_aro_t_now.csv",
+      "bytes": 1829,
+      "ttfbMs": 81,
+      "ms": 82,
+      "startMs": 102,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/ban/ogd-smn_ban_t_now.csv",
+      "bytes": 932,
+      "ttfbMs": 80,
+      "ms": 81,
+      "startMs": 103,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/beh/ogd-smn_beh_t_now.csv",
+      "bytes": 1884,
+      "ttfbMs": 51,
+      "ms": 51,
+      "startMs": 161,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/bez/ogd-smn_bez_t_now.csv",
+      "bytes": 1800,
+      "ttfbMs": 47,
+      "ms": 48,
+      "startMs": 163,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/bie/ogd-smn_bie_t_now.csv",
+      "bytes": 1802,
+      "ttfbMs": 44,
+      "ms": 79,
+      "startMs": 167,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/biv/ogd-smn_biv_t_now.csv",
+      "bytes": 1637,
+      "ttfbMs": 50,
+      "ms": 51,
+      "startMs": 185,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/bla/ogd-smn_bla_t_now.csv",
+      "bytes": 1696,
+      "ttfbMs": 80,
+      "ms": 81,
+      "startMs": 199,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/bou/ogd-smn_bou_t_now.csv",
+      "bytes": 1724,
+      "ttfbMs": 72,
+      "ms": 73,
+      "startMs": 200,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/brz/ogd-smn_brz_t_now.csv",
+      "bytes": 1425,
+      "ttfbMs": 74,
+      "ms": 76,
+      "startMs": 214,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/bus/ogd-smn_bus_t_now.csv",
+      "bytes": 1607,
+      "ttfbMs": 57,
+      "ms": 58,
+      "startMs": 215,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/cdm/ogd-smn_cdm_t_now.csv",
+      "bytes": 1588,
+      "ttfbMs": 46,
+      "ms": 47,
+      "startMs": 237,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/cgi/ogd-smn_cgi_t_now.csv",
+      "bytes": 1939,
+      "ttfbMs": 51,
+      "ms": 52,
+      "startMs": 247,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/chb/ogd-smn_chb_t_now.csv",
+      "bytes": 1701,
+      "ttfbMs": 55,
+      "ms": 56,
+      "startMs": 291,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/chm/ogd-smn_chm_t_now.csv",
+      "bytes": 1905,
+      "ttfbMs": 68,
+      "ms": 70,
+      "startMs": 291,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/chz/ogd-smn_chz_t_now.csv",
+      "bytes": 1771,
+      "ttfbMs": 60,
+      "ms": 61,
+      "startMs": 292,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/cma/ogd-smn_cma_t_now.csv",
+      "bytes": 1890,
+      "ttfbMs": 64,
+      "ms": 65,
+      "startMs": 293,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/cov/ogd-smn_cov_t_now.csv",
+      "bytes": 1939,
+      "ttfbMs": 62,
+      "ms": 63,
+      "startMs": 294,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/crm/ogd-smn_crm_t_now.csv",
+      "bytes": 1634,
+      "ttfbMs": 35,
+      "ms": 36,
+      "startMs": 300,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/dem/ogd-smn_dem_t_now.csv",
+      "bytes": 1749,
+      "ttfbMs": 57,
+      "ms": 59,
+      "startMs": 338,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/dis/ogd-smn_dis_t_now.csv",
+      "bytes": 1802,
+      "ttfbMs": 54,
+      "ms": 55,
+      "startMs": 349,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/ebk/ogd-smn_ebk_t_now.csv",
+      "bytes": 1564,
+      "ttfbMs": 46,
+      "ms": 47,
+      "startMs": 355,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/ego/ogd-smn_ego_t_now.csv",
+      "bytes": 1622,
+      "ttfbMs": 50,
+      "ms": 52,
+      "startMs": 361,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/elm/ogd-smn_elm_t_now.csv",
+      "bytes": 1799,
+      "ttfbMs": 57,
+      "ms": 58,
+      "startMs": 362,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/evi/ogd-smn_evi_t_now.csv",
+      "bytes": 1747,
+      "ttfbMs": 41,
+      "ms": 42,
+      "startMs": 364,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/fah/ogd-smn_fah_t_now.csv",
+      "bytes": 1877,
+      "ttfbMs": 37,
+      "ms": 38,
+      "startMs": 399,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/fre/ogd-smn_fre_t_now.csv",
+      "bytes": 1802,
+      "ttfbMs": 51,
+      "ms": 52,
+      "startMs": 406,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/gen/ogd-smn_gen_t_now.csv",
+      "bytes": 1797,
+      "ttfbMs": 59,
+      "ms": 60,
+      "startMs": 408,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/gih/ogd-smn_gih_t_now.csv",
+      "bytes": 1590,
+      "ttfbMs": 69,
+      "ms": 70,
+      "startMs": 410,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/goe/ogd-smn_goe_t_now.csv",
+      "bytes": 1764,
+      "ttfbMs": 62,
+      "ms": 63,
+      "startMs": 414,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/gos/ogd-smn_gos_t_now.csv",
+      "bytes": 1620,
+      "ttfbMs": 58,
+      "ms": 58,
+      "startMs": 421,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/grc/ogd-smn_grc_t_now.csv",
+      "bytes": 1265,
+      "ttfbMs": 40,
+      "ms": 40,
+      "startMs": 439,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/grh/ogd-smn_grh_t_now.csv",
+      "bytes": 1823,
+      "ttfbMs": 37,
+      "ms": 38,
+      "startMs": 459,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/gsb/ogd-smn_gsb_t_now.csv",
+      "bytes": 1756,
+      "ttfbMs": 37,
+      "ms": 38,
+      "startMs": 469,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/gut/ogd-smn_gut_t_now.csv",
+      "bytes": 1883,
+      "ttfbMs": 37,
+      "ms": 38,
+      "startMs": 478,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/hai/ogd-smn_hai_t_now.csv",
+      "bytes": 1601,
+      "ttfbMs": 41,
+      "ms": 43,
+      "startMs": 481,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/hoe/ogd-smn_hoe_t_now.csv",
+      "bytes": 1795,
+      "ttfbMs": 39,
+      "ms": 41,
+      "startMs": 482,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/int/ogd-smn_int_t_now.csv",
+      "bytes": 1766,
+      "ttfbMs": 58,
+      "ms": 60,
+      "startMs": 482,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/jun/ogd-smn_jun_t_now.csv",
+      "bytes": 1970,
+      "ttfbMs": 53,
+      "ms": 54,
+      "startMs": 498,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/kop/ogd-smn_kop_t_now.csv",
+      "bytes": 1981,
+      "ttfbMs": 54,
+      "ms": 55,
+      "startMs": 508,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/lae/ogd-smn_lae_t_now.csv",
+      "bytes": 1576,
+      "ttfbMs": 57,
+      "ms": 58,
+      "startMs": 517,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/lat/ogd-smn_lat_t_now.csv",
+      "bytes": 1541,
+      "ttfbMs": 60,
+      "ms": 61,
+      "startMs": 524,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/lug/ogd-smn_lug_t_now.csv",
+      "bytes": 2005,
+      "ttfbMs": 40,
+      "ms": 41,
+      "startMs": 526,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/mag/ogd-smn_mag_t_now.csv",
+      "bytes": 2095,
+      "ttfbMs": 57,
+      "ms": 58,
+      "startMs": 544,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/mar/ogd-smn_mar_t_now.csv",
+      "bytes": 1411,
+      "ttfbMs": 36,
+      "ms": 37,
+      "startMs": 554,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/mer/ogd-smn_mer_t_now.csv",
+      "bytes": 1745,
+      "ttfbMs": 37,
+      "ms": 39,
+      "startMs": 566,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/moa/ogd-smn_moa_t_now.csv",
+      "bytes": 1607,
+      "ttfbMs": 60,
+      "ms": 61,
+      "startMs": 569,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/moe/ogd-smn_moe_t_now.csv",
+      "bytes": 1562,
+      "ttfbMs": 35,
+      "ms": 36,
+      "startMs": 577,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/mtr/ogd-smn_mtr_t_now.csv",
+      "bytes": 1845,
+      "ttfbMs": 36,
+      "ms": 38,
+      "startMs": 588,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/mve/ogd-smn_mve_t_now.csv",
+      "bytes": 1823,
+      "ttfbMs": 58,
+      "ms": 59,
+      "startMs": 593,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/nas/ogd-smn_nas_t_now.csv",
+      "bytes": 1778,
+      "ttfbMs": 54,
+      "ms": 56,
+      "startMs": 605,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/obr/ogd-smn_obr_t_now.csv",
+      "bytes": 1649,
+      "ttfbMs": 54,
+      "ms": 56,
+      "startMs": 607,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/otl/ogd-smn_otl_t_now.csv",
+      "bytes": 2031,
+      "ttfbMs": 39,
+      "ms": 40,
+      "startMs": 615,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/pfa/ogd-smn_pfa_t_now.csv",
+      "bytes": 1730,
+      "ttfbMs": 55,
+      "ms": 57,
+      "startMs": 627,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/pio/ogd-smn_pio_t_now.csv",
+      "bytes": 1995,
+      "ttfbMs": 36,
+      "ms": 37,
+      "startMs": 631,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/pma/ogd-smn_pma_t_now.csv",
+      "bytes": 1691,
+      "ttfbMs": 35,
+      "ms": 37,
+      "startMs": 654,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/psi/ogd-smn_psi_t_now.csv",
+      "bytes": 1302,
+      "ttfbMs": 32,
+      "ms": 33,
+      "startMs": 657,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/qui/ogd-smn_qui_t_now.csv",
+      "bytes": 1396,
+      "ttfbMs": 47,
+      "ms": 49,
+      "startMs": 662,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/reh/ogd-smn_reh_t_now.csv",
+      "bytes": 1899,
+      "ttfbMs": 43,
+      "ms": 44,
+      "startMs": 664,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/roe/ogd-smn_roe_t_now.csv",
+      "bytes": 1907,
+      "ttfbMs": 53,
+      "ms": 54,
+      "startMs": 669,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/sae/ogd-smn_sae_t_now.csv",
+      "bytes": 1764,
+      "ttfbMs": 47,
+      "ms": 79,
+      "startMs": 685,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/sam/ogd-smn_sam_t_now.csv",
+      "bytes": 2067,
+      "ttfbMs": 38,
+      "ms": 40,
+      "startMs": 694,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/sbo/ogd-smn_sbo_t_now.csv",
+      "bytes": 1874,
+      "ttfbMs": 53,
+      "ms": 54,
+      "startMs": 695,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/scu/ogd-smn_scu_t_now.csv",
+      "bytes": 1864,
+      "ttfbMs": 41,
+      "ms": 41,
+      "startMs": 712,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/sia/ogd-smn_sia_t_now.csv",
+      "bytes": 1972,
+      "ttfbMs": 39,
+      "ms": 39,
+      "startMs": 713,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/sio/ogd-smn_sio_t_now.csv",
+      "bytes": 1974,
+      "ttfbMs": 41,
+      "ms": 42,
+      "startMs": 725,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/smm/ogd-smn_smm_t_now.csv",
+      "bytes": 1803,
+      "ttfbMs": 37,
+      "ms": 38,
+      "startMs": 742,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/srs/ogd-smn_srs_t_now.csv",
+      "bytes": 1436,
+      "ttfbMs": 50,
+      "ms": 51,
+      "startMs": 750,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/stg/ogd-smn_stg_t_now.csv",
+      "bytes": 1825,
+      "ttfbMs": 38,
+      "ms": 39,
+      "startMs": 754,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/tae/ogd-smn_tae_t_now.csv",
+      "bytes": 1986,
+      "ttfbMs": 60,
+      "ms": 61,
+      "startMs": 755,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/tit/ogd-smn_tit_t_now.csv",
+      "bytes": 1823,
+      "ttfbMs": 38,
+      "ms": 40,
+      "startMs": 765,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/ulr/ogd-smn_ulr_t_now.csv",
+      "bytes": 1882,
+      "ttfbMs": 36,
+      "ms": 37,
+      "startMs": 768,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/vad/ogd-smn_vad_t_now.csv",
+      "bytes": 1813,
+      "ttfbMs": 35,
+      "ms": 36,
+      "startMs": 781,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/vio/ogd-smn_vio_t_now.csv",
+      "bytes": 1839,
+      "ttfbMs": 37,
+      "ms": 38,
+      "startMs": 793,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/vit/ogd-smn_vit_t_now.csv",
+      "bytes": 1508,
+      "ttfbMs": 35,
+      "ms": 36,
+      "startMs": 803,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/wae/ogd-smn_wae_t_now.csv",
+      "bytes": 1879,
+      "ttfbMs": 51,
+      "ms": 52,
+      "startMs": 806,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/wyn/ogd-smn_wyn_t_now.csv",
+      "bytes": 1707,
+      "ttfbMs": 39,
+      "ms": 41,
+      "startMs": 807,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "zermatt",
+   "lat": 46.0207,
+   "lon": 7.7491,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "cube-warm",
+   "rep": 0,
+   "wallMs": 1140,
+   "totalMs": 1138.5,
+   "coreMs": 117,
+   "readMs": 1088,
+   "firstMs": 116,
+   "result": {
+    "total": 1138.5,
+    "hours": 337,
+    "sourcesAvailable": [
+     "cube-t1",
+     "cube-t2",
+     "cube-t3",
+     "mosmix",
+     "rzc",
+     "smn"
+    ],
+    "elevation": 1608.1,
+    "timing": {
+     "readMs": 1088,
+     "coreMs": 117,
+     "firstMs": 116,
+     "algoMs": 33.1,
+     "outputMs": 15.5,
+     "totalMs": 1137,
+     "doneAt": {
+      "terrain": 4,
+      "index": 18,
+      "nowcast": 45,
+      "cube.t3": 90,
+      "cube.t2": 92,
+      "cube.t1": 116,
+      "first": 116,
+      "station": 117,
+      "core": 117,
+      "static": 1088,
+      "read": 1088,
+      "obs": 1088
+     }
+    },
+    "provenance": {
+     "indexCommit": "3f7bdef6f6a0bbbb49dae87aaccf87c82601484c",
+     "runs": {
+      "t1": {
+       "run": "2026091703",
+       "sourceRun": "2026091703",
+       "sourceRunAtMs": 1789614000000,
+       "models": [
+        "icon_d2",
+        "icon_d2_eps",
+        "icon_ch1_eps",
+        "claef",
+        "claef_eps",
+        "icon_eu",
+        "ifs_hres",
+        "aifs_single"
+       ],
+       "manifestFrom": "pinned"
+      },
+      "t2": {
+       "run": "2026091700",
+       "sourceRun": "2026091700",
+       "sourceRunAtMs": 1789603200000,
+       "models": [
+        "icon_eu",
+        "icon_eu_eps",
+        "icon_ch2_eps",
+        "icon_global",
+        "aicon",
+        "ifs_hres",
+        "aifs_single"
+       ],
+       "manifestFrom": "pinned"
+      },
+      "t3": {
+       "run": "2026091612",
+       "sourceRun": "2026091612",
+       "sourceRunAtMs": 1789560000000,
+       "models": [
+        "icon_global",
+        "icon_eps_global",
+        "aicon",
+        "ifs_hres",
+        "ifs_ens",
+        "aifs_single"
+       ],
+       "manifestFrom": "pinned"
+      }
+     },
+     "station": {
+      "run": "2026091703",
+      "runAtMs": 1789614000000,
+      "ageH": 1.79,
+      "id": "06748",
+      "name": "ZERMATT",
+      "distKm": 1.036444729333525,
+      "dElevM": 29.90000000000009,
+      "elevM": 1638
+     },
+     "stationReason": "ZERMATT, 1.0 km, +30 m — vertritt den Punkt.",
+     "nowcast": [
+      {
+       "source": "combiprecip",
+       "stamp": "20260917T0545",
+       "ageMin": 5,
+       "frames": 1,
+       "extrapolationH": 0
+      }
+     ],
+     "clima": "grid"
+    },
+    "axis": {
+     "native": 104,
+     "seams": [
+      1789797600000,
+      1790056800000
+     ],
+     "perTier": {
+      "t1": 47,
+      "t2": 23,
+      "t3": 34
+     }
+    },
+    "flags": 337,
+    "notes": [
+     "anchor: 6 Paar(e) aus smn, Versatz T 3.09 K, Repräsentativität 0.49"
+    ],
+    "skips": [],
+    "errors": [],
+    "stats": {
+     "files": 24,
+     "bytes": 1897794,
+     "misses": 0,
+     "ms": 8185.599999845028,
+     "slow": 0,
+     "retries": 0,
+     "fallbacks": 1
+    },
+    "decode": {
+     "mode": "worker",
+     "workers": 3,
+     "decoded": 16,
+     "viaWorker": 16,
+     "viaMain": 0,
+     "fallbacks": 0,
+     "errors": []
+    }
+   },
+   "net": {
+    "requests": 4,
+    "cached": 1,
+    "failed": 0,
+    "bytes": 4154,
+    "cdn": 2,
+    "hit": 2,
+    "miss": 0,
+    "largest": {
+     "url": "jppetry/buscosun-data/main/point/static/hmodel/v1/t1/00_02.bin",
+     "bytes": 2099,
+     "ttfbMs": 220,
+     "ms": 222,
+     "xCache": "MISS"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 3,
+     "raw.githubusercontent.com": 1
+    },
+    "cdnRequests": [
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/index.json",
+      "bytes": 206,
+      "ttfbMs": 14,
+      "ms": 15,
+      "xCache": "HIT",
+      "startMs": 0,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/t1/00_02.bin",
+      "bytes": 1849,
+      "ttfbMs": 1059,
+      "ms": 1060,
+      "xCache": "HIT",
+      "startMs": 24,
+      "status": 200
+     }
+    ],
+    "otherRequests": [
+     {
+      "url": "raw.githubusercontent.com/jppetry/buscosun-data/main/point/static/hmodel/v1/t1/00_02.bin",
+      "bytes": 2099,
+      "ttfbMs": 220,
+      "ms": 222,
+      "startMs": 502,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "genf",
+   "lat": 46.2044,
+   "lon": 6.1432,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "cube-cold",
+   "rep": 0,
+   "wallMs": 1732,
+   "totalMs": 1730.300000011921,
+   "coreMs": 716,
+   "readMs": 1649,
+   "firstMs": 683,
+   "result": {
+    "total": 1730.300000011921,
+    "hours": 337,
+    "sourcesAvailable": [
+     "cube-t1",
+     "cube-t2",
+     "cube-t3",
+     "mosmix",
+     "rzc",
+     "smn"
+    ],
+    "elevation": 378.5,
+    "timing": {
+     "readMs": 1649,
+     "coreMs": 716,
+     "firstMs": 683,
+     "algoMs": 52.8,
+     "outputMs": 19.4,
+     "totalMs": 1724,
+     "doneAt": {
+      "index": 52,
+      "nowcast": 202,
+      "cube.t3": 254,
+      "cube.t2": 270,
+      "cube.t1": 289,
+      "terrain": 678,
+      "first": 683,
+      "station": 716,
+      "core": 716,
+      "static": 1649,
+      "read": 1649,
+      "obs": 1650
+     }
+    },
+    "provenance": {
+     "indexCommit": "3f7bdef6f6a0bbbb49dae87aaccf87c82601484c",
+     "runs": {
+      "t1": {
+       "run": "2026091703",
+       "sourceRun": "2026091703",
+       "sourceRunAtMs": 1789614000000,
+       "models": [
+        "icon_d2",
+        "icon_d2_eps",
+        "icon_ch1_eps",
+        "claef",
+        "claef_eps",
+        "icon_eu",
+        "ifs_hres",
+        "aifs_single"
+       ],
+       "manifestFrom": "pinned"
+      },
+      "t2": {
+       "run": "2026091700",
+       "sourceRun": "2026091700",
+       "sourceRunAtMs": 1789603200000,
+       "models": [
+        "icon_eu",
+        "icon_eu_eps",
+        "icon_ch2_eps",
+        "icon_global",
+        "aicon",
+        "ifs_hres",
+        "aifs_single"
+       ],
+       "manifestFrom": "pinned"
+      },
+      "t3": {
+       "run": "2026091612",
+       "sourceRun": "2026091612",
+       "sourceRunAtMs": 1789560000000,
+       "models": [
+        "icon_global",
+        "icon_eps_global",
+        "aicon",
+        "ifs_hres",
+        "ifs_ens",
+        "aifs_single"
+       ],
+       "manifestFrom": "pinned"
+      }
+     },
+     "station": {
+      "run": "2026091703",
+      "runAtMs": 1789614000000,
+      "ageH": 1.79,
+      "id": "06700",
+      "name": "GENF",
+      "distKm": 5.171160838188145,
+      "dElevM": 41.5,
+      "elevM": 420
+     },
+     "stationReason": "GENF, 5.2 km, +42 m — vertritt den Punkt.",
+     "nowcast": [
+      {
+       "source": "combiprecip",
+       "stamp": "20260917T0545",
+       "ageMin": 5,
+       "frames": 1,
+       "extrapolationH": 0
+      }
+     ],
+     "clima": "grid"
+    },
+    "axis": {
+     "native": 104,
+     "seams": [
+      1789797600000,
+      1790056800000
+     ],
+     "perTier": {
+      "t1": 47,
+      "t2": 23,
+      "t3": 34
+     }
+    },
+    "flags": 321,
+    "notes": [
+     "anchor: 6 Paar(e) aus smn, Versatz T 3.30 K, Repräsentativität 0.38"
+    ],
+    "skips": [],
+    "errors": [],
+    "stats": {
+     "files": 21,
+     "bytes": 1800061,
+     "misses": 0,
+     "ms": 5236.699999988079,
+     "slow": 0,
+     "retries": 0,
+     "fallbacks": 0
+    },
+    "decode": {
+     "mode": "worker",
+     "workers": 3,
+     "decoded": 8,
+     "viaWorker": 8,
+     "viaMain": 0,
+     "fallbacks": 0,
+     "errors": []
+    }
+   },
+   "net": {
+    "requests": 109,
+    "cached": 0,
+    "failed": 0,
+    "bytes": 2091401,
+    "cdn": 21,
+    "hit": 19,
+    "miss": 2,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/2026091703/t1/00_00.bin",
+     "bytes": 602077,
+     "ttfbMs": 34,
+     "ms": 127,
+     "xCache": "HIT"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 21,
+     "127.0.0.1:2182": 1,
+     "data.geo.admin.ch": 81,
+     "s3.amazonaws.com": 6
+    },
+    "cdnRequests": [
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/index.json",
+      "bytes": 5390,
+      "ttfbMs": 40,
+      "ms": 44,
+      "xCache": "HIT",
+      "startMs": 0,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@3f7bdef6f6a0bbbb49dae87aaccf87c82601484c/point/2026091703/run.json",
+      "bytes": 10018,
+      "ttfbMs": 34,
+      "ms": 35,
+      "xCache": "HIT",
+      "startMs": 51,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091703/t1/00_00.bin",
+      "bytes": 602077,
+      "ttfbMs": 34,
+      "ms": 127,
+      "xCache": "HIT",
+      "startMs": 52,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@3f7bdef6f6a0bbbb49dae87aaccf87c82601484c/point/2026091700/run.json",
+      "bytes": 12422,
+      "ttfbMs": 19,
+      "ms": 21,
+      "xCache": "HIT",
+      "startMs": 52,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091700/t2/00_00.bin",
+      "bytes": 211203,
+      "ttfbMs": 20,
+      "ms": 78,
+      "xCache": "HIT",
+      "startMs": 53,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@3f7bdef6f6a0bbbb49dae87aaccf87c82601484c/point/2026091612/run.json",
+      "bytes": 9658,
+      "ttfbMs": 43,
+      "ms": 49,
+      "xCache": "HIT",
+      "startMs": 53,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/2026091612/t3/00_00.bin",
+      "bytes": 248293,
+      "ttfbMs": 44,
+      "ms": 119,
+      "xCache": "HIT",
+      "startMs": 53,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/static.json",
+      "bytes": 2103,
+      "ttfbMs": 42,
+      "ms": 68,
+      "xCache": "HIT",
+      "startMs": 54,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/t1/00_00.bin",
+      "bytes": 1694,
+      "ttfbMs": 873,
+      "ms": 874,
+      "xCache": "MISS",
+      "startMs": 54,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/t2/00_00.bin",
+      "bytes": 1753,
+      "ttfbMs": 1578,
+      "ms": 1579,
+      "xCache": "MISS",
+      "startMs": 54,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/hmodel/v1/t3/00_00.bin",
+      "bytes": 1465,
+      "ttfbMs": 42,
+      "ms": 80,
+      "xCache": "HIT",
+      "startMs": 54,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/urban/v1/static.json",
+      "bytes": 3656,
+      "ttfbMs": 41,
+      "ms": 80,
+      "xCache": "HIT",
+      "startMs": 55,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/static/urban/v1/t1/00_00.bin",
+      "bytes": 936,
+      "ttfbMs": 1448,
+      "ms": 1449,
+      "xCache": "HIT",
+      "startMs": 55,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/catalog.json",
+      "bytes": 59332,
+      "ttfbMs": 41,
+      "ms": 60,
+      "xCache": "HIT",
+      "startMs": 55,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/2026091703/stations.json",
+      "bytes": 14101,
+      "ttfbMs": 41,
+      "ms": 55,
+      "xCache": "HIT",
+      "startMs": 55,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/stations/2026091703/00_00.bin",
+      "bytes": 8657,
+      "ttfbMs": 41,
+      "ms": 65,
+      "xCache": "HIT",
+      "startMs": 56,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260917T0545/meta.json",
+      "bytes": 304,
+      "ttfbMs": 41,
+      "ms": 79,
+      "xCache": "HIT",
+      "startMs": 56,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260917T0540/meta.json",
+      "bytes": 301,
+      "ttfbMs": 41,
+      "ms": 79,
+      "xCache": "HIT",
+      "startMs": 56,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260917T0535/meta.json",
+      "bytes": 300,
+      "ttfbMs": 41,
+      "ms": 79,
+      "xCache": "HIT",
+      "startMs": 56,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260917T0530/meta.json",
+      "bytes": 301,
+      "ttfbMs": 41,
+      "ms": 79,
+      "xCache": "HIT",
+      "startMs": 56,
+      "status": 200
+     },
+     {
+      "path": "gh/jppetry/buscosun-data@main/radar/img/v1/rzc/20260917T0545/frame.png",
+      "bytes": 18007,
+      "ttfbMs": 28,
+      "ms": 29,
+      "xCache": "HIT",
+      "startMs": 152,
+      "status": 200
+     }
+    ],
+    "otherRequests": [
+     {
+      "url": "127.0.0.1:2182/climaGrid.json",
+      "bytes": 72683,
+      "ttfbMs": 1,
+      "ms": 2,
+      "startMs": 2,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/ogd-smn_meta_stations.csv",
+      "bytes": 13259,
+      "ttfbMs": 65,
+      "ms": 70,
+      "startMs": 4,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1058/726.png",
+      "bytes": 121226,
+      "ttfbMs": 383,
+      "ms": 627,
+      "startMs": 8,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1059/726.png",
+      "bytes": 95814,
+      "ttfbMs": 392,
+      "ms": 626,
+      "startMs": 9,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1058/727.png",
+      "bytes": 123037,
+      "ttfbMs": 437,
+      "ms": 655,
+      "startMs": 9,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/11/1059/727.png",
+      "bytes": 129061,
+      "ttfbMs": 388,
+      "ms": 629,
+      "startMs": 9,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/132/90.png",
+      "bytes": 84825,
+      "ttfbMs": 382,
+      "ms": 626,
+      "startMs": 10,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "s3.amazonaws.com/elevation-tiles-prod/terrarium/8/132/91.png",
+      "bytes": 99875,
+      "ttfbMs": 385,
+      "ms": 626,
+      "startMs": 10,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/abo/ogd-smn_abo_t_now.csv",
+      "bytes": 1785,
+      "ttfbMs": 57,
+      "ms": 58,
+      "startMs": 79,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/aeg/ogd-smn_aeg_t_now.csv",
+      "bytes": 1291,
+      "ttfbMs": 45,
+      "ms": 46,
+      "startMs": 80,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/alt/ogd-smn_alt_t_now.csv",
+      "bytes": 1815,
+      "ttfbMs": 49,
+      "ms": 50,
+      "startMs": 80,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/ant/ogd-smn_ant_t_now.csv",
+      "bytes": 1888,
+      "ttfbMs": 53,
+      "ms": 54,
+      "startMs": 80,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/aro/ogd-smn_aro_t_now.csv",
+      "bytes": 1827,
+      "ttfbMs": 50,
+      "ms": 51,
+      "startMs": 80,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/ban/ogd-smn_ban_t_now.csv",
+      "bytes": 932,
+      "ttfbMs": 52,
+      "ms": 53,
+      "startMs": 80,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/beh/ogd-smn_beh_t_now.csv",
+      "bytes": 1885,
+      "ttfbMs": 44,
+      "ms": 45,
+      "startMs": 127,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/bez/ogd-smn_bez_t_now.csv",
+      "bytes": 1800,
+      "ttfbMs": 59,
+      "ms": 61,
+      "startMs": 136,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/bie/ogd-smn_bie_t_now.csv",
+      "bytes": 1802,
+      "ttfbMs": 44,
+      "ms": 80,
+      "startMs": 137,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/biv/ogd-smn_biv_t_now.csv",
+      "bytes": 1637,
+      "ttfbMs": 42,
+      "ms": 45,
+      "startMs": 139,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/bla/ogd-smn_bla_t_now.csv",
+      "bytes": 1698,
+      "ttfbMs": 51,
+      "ms": 52,
+      "startMs": 152,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/bou/ogd-smn_bou_t_now.csv",
+      "bytes": 1725,
+      "ttfbMs": 43,
+      "ms": 44,
+      "startMs": 153,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/brz/ogd-smn_brz_t_now.csv",
+      "bytes": 1425,
+      "ttfbMs": 43,
+      "ms": 44,
+      "startMs": 173,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/bus/ogd-smn_bus_t_now.csv",
+      "bytes": 1609,
+      "ttfbMs": 62,
+      "ms": 63,
+      "startMs": 186,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/cdm/ogd-smn_cdm_t_now.csv",
+      "bytes": 1589,
+      "ttfbMs": 46,
+      "ms": 47,
+      "startMs": 199,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/cgi/ogd-smn_cgi_t_now.csv",
+      "bytes": 1940,
+      "ttfbMs": 52,
+      "ms": 55,
+      "startMs": 200,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/chb/ogd-smn_chb_t_now.csv",
+      "bytes": 1702,
+      "ttfbMs": 50,
+      "ms": 51,
+      "startMs": 205,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/chm/ogd-smn_chm_t_now.csv",
+      "bytes": 1896,
+      "ttfbMs": 43,
+      "ms": 45,
+      "startMs": 219,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/chz/ogd-smn_chz_t_now.csv",
+      "bytes": 1772,
+      "ttfbMs": 36,
+      "ms": 36,
+      "startMs": 220,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/cma/ogd-smn_cma_t_now.csv",
+      "bytes": 1890,
+      "ttfbMs": 42,
+      "ms": 42,
+      "startMs": 248,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/cov/ogd-smn_cov_t_now.csv",
+      "bytes": 1940,
+      "ttfbMs": 41,
+      "ms": 42,
+      "startMs": 252,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/crm/ogd-smn_crm_t_now.csv",
+      "bytes": 1635,
+      "ttfbMs": 45,
+      "ms": 46,
+      "startMs": 258,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/dem/ogd-smn_dem_t_now.csv",
+      "bytes": 1748,
+      "ttfbMs": 60,
+      "ms": 61,
+      "startMs": 259,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/dis/ogd-smn_dis_t_now.csv",
+      "bytes": 1801,
+      "ttfbMs": 65,
+      "ms": 66,
+      "startMs": 264,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/ebk/ogd-smn_ebk_t_now.csv",
+      "bytes": 1563,
+      "ttfbMs": 51,
+      "ms": 51,
+      "startMs": 265,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/ego/ogd-smn_ego_t_now.csv",
+      "bytes": 1621,
+      "ttfbMs": 40,
+      "ms": 40,
+      "startMs": 292,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/elm/ogd-smn_elm_t_now.csv",
+      "bytes": 1799,
+      "ttfbMs": 35,
+      "ms": 35,
+      "startMs": 296,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/evi/ogd-smn_evi_t_now.csv",
+      "bytes": 1747,
+      "ttfbMs": 55,
+      "ms": 56,
+      "startMs": 305,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/fah/ogd-smn_fah_t_now.csv",
+      "bytes": 1875,
+      "ttfbMs": 57,
+      "ms": 58,
+      "startMs": 318,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/fre/ogd-smn_fre_t_now.csv",
+      "bytes": 1802,
+      "ttfbMs": 78,
+      "ms": 79,
+      "startMs": 322,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/gen/ogd-smn_gen_t_now.csv",
+      "bytes": 1797,
+      "ttfbMs": 35,
+      "ms": 36,
+      "startMs": 333,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/gih/ogd-smn_gih_t_now.csv",
+      "bytes": 1590,
+      "ttfbMs": 37,
+      "ms": 38,
+      "startMs": 336,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/goe/ogd-smn_goe_t_now.csv",
+      "bytes": 1763,
+      "ttfbMs": 43,
+      "ms": 45,
+      "startMs": 337,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/gos/ogd-smn_gos_t_now.csv",
+      "bytes": 1620,
+      "ttfbMs": 39,
+      "ms": 40,
+      "startMs": 363,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/grc/ogd-smn_grc_t_now.csv",
+      "bytes": 1263,
+      "ttfbMs": 35,
+      "ms": 36,
+      "startMs": 372,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/grh/ogd-smn_grh_t_now.csv",
+      "bytes": 1821,
+      "ttfbMs": 44,
+      "ms": 46,
+      "startMs": 376,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/gsb/ogd-smn_gsb_t_now.csv",
+      "bytes": 1757,
+      "ttfbMs": 46,
+      "ms": 48,
+      "startMs": 379,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/gut/ogd-smn_gut_t_now.csv",
+      "bytes": 1883,
+      "ttfbMs": 42,
+      "ms": 43,
+      "startMs": 384,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/hai/ogd-smn_hai_t_now.csv",
+      "bytes": 1600,
+      "ttfbMs": 38,
+      "ms": 39,
+      "startMs": 404,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/hoe/ogd-smn_hoe_t_now.csv",
+      "bytes": 1796,
+      "ttfbMs": 39,
+      "ms": 40,
+      "startMs": 406,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/int/ogd-smn_int_t_now.csv",
+      "bytes": 1767,
+      "ttfbMs": 40,
+      "ms": 40,
+      "startMs": 410,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/jun/ogd-smn_jun_t_now.csv",
+      "bytes": 1970,
+      "ttfbMs": 44,
+      "ms": 45,
+      "startMs": 423,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/kop/ogd-smn_kop_t_now.csv",
+      "bytes": 1981,
+      "ttfbMs": 42,
+      "ms": 42,
+      "startMs": 428,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/lae/ogd-smn_lae_t_now.csv",
+      "bytes": 1577,
+      "ttfbMs": 56,
+      "ms": 57,
+      "startMs": 429,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/lat/ogd-smn_lat_t_now.csv",
+      "bytes": 1539,
+      "ttfbMs": 39,
+      "ms": 40,
+      "startMs": 444,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/lug/ogd-smn_lug_t_now.csv",
+      "bytes": 2003,
+      "ttfbMs": 73,
+      "ms": 74,
+      "startMs": 447,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/mag/ogd-smn_mag_t_now.csv",
+      "bytes": 2096,
+      "ttfbMs": 37,
+      "ms": 38,
+      "startMs": 452,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/mar/ogd-smn_mar_t_now.csv",
+      "bytes": 1412,
+      "ttfbMs": 51,
+      "ms": 52,
+      "startMs": 470,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/mer/ogd-smn_mer_t_now.csv",
+      "bytes": 1744,
+      "ttfbMs": 49,
+      "ms": 50,
+      "startMs": 472,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/moa/ogd-smn_moa_t_now.csv",
+      "bytes": 1606,
+      "ttfbMs": 37,
+      "ms": 38,
+      "startMs": 485,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/moe/ogd-smn_moe_t_now.csv",
+      "bytes": 1561,
+      "ttfbMs": 54,
+      "ms": 54,
+      "startMs": 487,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/mtr/ogd-smn_mtr_t_now.csv",
+      "bytes": 1844,
+      "ttfbMs": 35,
+      "ms": 36,
+      "startMs": 491,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/mve/ogd-smn_mve_t_now.csv",
+      "bytes": 1824,
+      "ttfbMs": 55,
+      "ms": 56,
+      "startMs": 524,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/nas/ogd-smn_nas_t_now.csv",
+      "bytes": 1778,
+      "ttfbMs": 41,
+      "ms": 42,
+      "startMs": 527,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/obr/ogd-smn_obr_t_now.csv",
+      "bytes": 1651,
+      "ttfbMs": 41,
+      "ms": 43,
+      "startMs": 527,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/otl/ogd-smn_otl_t_now.csv",
+      "bytes": 2032,
+      "ttfbMs": 44,
+      "ms": 45,
+      "startMs": 527,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/pfa/ogd-smn_pfa_t_now.csv",
+      "bytes": 1731,
+      "ttfbMs": 41,
+      "ms": 42,
+      "startMs": 529,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/pio/ogd-smn_pio_t_now.csv",
+      "bytes": 1996,
+      "ttfbMs": 39,
+      "ms": 40,
+      "startMs": 543,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/pma/ogd-smn_pma_t_now.csv",
+      "bytes": 1692,
+      "ttfbMs": 44,
+      "ms": 45,
+      "startMs": 573,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/psi/ogd-smn_psi_t_now.csv",
+      "bytes": 1303,
+      "ttfbMs": 37,
+      "ms": 39,
+      "startMs": 574,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/qui/ogd-smn_qui_t_now.csv",
+      "bytes": 1394,
+      "ttfbMs": 36,
+      "ms": 38,
+      "startMs": 577,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/reh/ogd-smn_reh_t_now.csv",
+      "bytes": 1899,
+      "ttfbMs": 41,
+      "ms": 42,
+      "startMs": 578,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/roe/ogd-smn_roe_t_now.csv",
+      "bytes": 1909,
+      "ttfbMs": 36,
+      "ms": 37,
+      "startMs": 582,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/sae/ogd-smn_sae_t_now.csv",
+      "bytes": 1763,
+      "ttfbMs": 36,
+      "ms": 37,
+      "startMs": 585,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/sam/ogd-smn_sam_t_now.csv",
+      "bytes": 2068,
+      "ttfbMs": 66,
+      "ms": 67,
+      "startMs": 616,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/sbo/ogd-smn_sbo_t_now.csv",
+      "bytes": 1873,
+      "ttfbMs": 46,
+      "ms": 49,
+      "startMs": 618,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/scu/ogd-smn_scu_t_now.csv",
+      "bytes": 1864,
+      "ttfbMs": 43,
+      "ms": 44,
+      "startMs": 625,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/sia/ogd-smn_sia_t_now.csv",
+      "bytes": 1972,
+      "ttfbMs": 46,
+      "ms": 47,
+      "startMs": 628,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/sio/ogd-smn_sio_t_now.csv",
+      "bytes": 1971,
+      "ttfbMs": 44,
+      "ms": 46,
+      "startMs": 629,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/smm/ogd-smn_smm_t_now.csv",
+      "bytes": 1805,
+      "ttfbMs": 59,
+      "ms": 60,
+      "startMs": 630,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/srs/ogd-smn_srs_t_now.csv",
+      "bytes": 1436,
+      "ttfbMs": 41,
+      "ms": 42,
+      "startMs": 680,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/stg/ogd-smn_stg_t_now.csv",
+      "bytes": 1824,
+      "ttfbMs": 36,
+      "ms": 37,
+      "startMs": 680,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/tae/ogd-smn_tae_t_now.csv",
+      "bytes": 1985,
+      "ttfbMs": 64,
+      "ms": 65,
+      "startMs": 680,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/tit/ogd-smn_tit_t_now.csv",
+      "bytes": 1825,
+      "ttfbMs": 39,
+      "ms": 40,
+      "startMs": 681,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/ulr/ogd-smn_ulr_t_now.csv",
+      "bytes": 1882,
+      "ttfbMs": 39,
+      "ms": 40,
+      "startMs": 684,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/vad/ogd-smn_vad_t_now.csv",
+      "bytes": 1815,
+      "ttfbMs": 38,
+      "ms": 39,
+      "startMs": 691,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/vio/ogd-smn_vio_t_now.csv",
+      "bytes": 1837,
+      "ttfbMs": 35,
+      "ms": 36,
+      "startMs": 718,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/vit/ogd-smn_vit_t_now.csv",
+      "bytes": 1508,
+      "ttfbMs": 69,
+      "ms": 70,
+      "startMs": 723,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/wae/ogd-smn_wae_t_now.csv",
+      "bytes": 1877,
+      "ttfbMs": 35,
+      "ms": 36,
+      "startMs": 723,
+      "status": 200,
+      "fromCache": false
+     },
+     {
+      "url": "data.geo.admin.ch/ch.meteoschweiz.ogd-smn/wyn/ogd-smn_wyn_t_now.csv",
+      "bytes": 1707,
+      "ttfbMs": 37,
+      "ms": 38,
+      "startMs": 725,
+      "status": 200,
+      "fromCache": false
+     }
+    ]
+   }
+  },
+  {
+   "profile": "desktop-none",
+   "place": "genf",
+   "lat": 46.2044,
+   "lon": 6.1432,
+   "country": "CH",
+   "chunkEdge": false,
+   "scenario": "cube-warm",
+   "rep": 0,
+   "wallMs": 187,
+   "totalMs": 184.5,
+   "coreMs": 127,
+   "readMs": 127,
+   "firstMs": 125,
+   "result": {
+    "total": 184.5,
+    "hours": 337,
+    "sourcesAvailable": [
+     "cube-t1",
+     "cube-t2",
+     "cube-t3",
+     "mosmix",
+     "rzc",
+     "smn"
+    ],
+    "elevation": 378.5,
+    "timing": {
+     "readMs": 127,
+     "coreMs": 127,
+     "firstMs": 125,
+     "algoMs": 39.5,
+     "outputMs": 15,
+     "totalMs": 182,
+     "doneAt": {
+      "terrain": 4,
+      "index": 17,
+      "nowcast": 45,
+      "static": 47,
+      "cube.t3": 90,
+      "cube.t2": 93,
+      "cube.t1": 125,
+      "first": 125,
+      "station": 127,
+      "core": 127,
+      "read": 127,
+      "obs": 127
+     }
+    },
+    "provenance": {
+     "indexCommit": "3f7bdef6f6a0bbbb49dae87aaccf87c82601484c",
+     "runs": {
+      "t1": {
+       "run": "2026091703",
+       "sourceRun": "2026091703",
+       "sourceRunAtMs": 1789614000000,
+       "models": [
+        "icon_d2",
+        "icon_d2_eps",
+        "icon_ch1_eps",
+        "claef",
+        "claef_eps",
+        "icon_eu",
+        "ifs_hres",
+        "aifs_single"
+       ],
+       "manifestFrom": "pinned"
+      },
+      "t2": {
+       "run": "2026091700",
+       "sourceRun": "2026091700",
+       "sourceRunAtMs": 1789603200000,
+       "models": [
+        "icon_eu",
+        "icon_eu_eps",
+        "icon_ch2_eps",
+        "icon_global",
+        "aicon",
+        "ifs_hres",
+        "aifs_single"
+       ],
+       "manifestFrom": "pinned"
+      },
+      "t3": {
+       "run": "2026091612",
+       "sourceRun": "2026091612",
+       "sourceRunAtMs": 1789560000000,
+       "models": [
+        "icon_global",
+        "icon_eps_global",
+        "aicon",
+        "ifs_hres",
+        "ifs_ens",
+        "aifs_single"
+       ],
+       "manifestFrom": "pinned"
+      }
+     },
+     "station": {
+      "run": "2026091703",
+      "runAtMs": 1789614000000,
+      "ageH": 1.79,
+      "id": "06700",
+      "name": "GENF",
+      "distKm": 5.171160838188145,
+      "dElevM": 41.5,
+      "elevM": 420
+     },
+     "stationReason": "GENF, 5.2 km, +42 m — vertritt den Punkt.",
+     "nowcast": [
+      {
+       "source": "combiprecip",
+       "stamp": "20260917T0545",
+       "ageMin": 5,
+       "frames": 1,
+       "extrapolationH": 0
+      }
+     ],
+     "clima": "grid"
+    },
+    "axis": {
+     "native": 104,
+     "seams": [
+      1789797600000,
+      1790056800000
+     ],
+     "perTier": {
+      "t1": 47,
+      "t2": 23,
+      "t3": 34
+     }
+    },
+    "flags": 321,
+    "notes": [
+     "anchor: 6 Paar(e) aus smn, Versatz T 3.30 K, Repräsentativität 0.38"
+    ],
+    "skips": [],
+    "errors": [],
+    "stats": {
+     "files": 23,
+     "bytes": 1844611,
+     "misses": 0,
+     "ms": 5263.199999928474,
+     "slow": 0,
+     "retries": 0,
+     "fallbacks": 0
+    },
+    "decode": {
+     "mode": "worker",
+     "workers": 3,
+     "decoded": 16,
+     "viaWorker": 16,
+     "viaMain": 0,
+     "fallbacks": 0,
+     "errors": []
+    }
+   },
+   "net": {
+    "requests": 2,
+    "cached": 1,
+    "failed": 0,
+    "bytes": 206,
+    "cdn": 1,
+    "hit": 1,
+    "miss": 0,
+    "largest": {
+     "url": "gh/jppetry/buscosun-data@main/point/index.json",
+     "bytes": 206,
+     "ttfbMs": 12,
+     "ms": 14,
+     "xCache": "HIT"
+    },
+    "hosts": {
+     "cdn.jsdelivr.net": 2
+    },
+    "cdnRequests": [
+     {
+      "path": "gh/jppetry/buscosun-data@main/point/index.json",
+      "bytes": 206,
+      "ttfbMs": 12,
+      "ms": 14,
+      "xCache": "HIT",
+      "startMs": 0,
+      "status": 200
+     }
+    ],
+    "otherRequests": []
+   }
+  }
+ ]
+}

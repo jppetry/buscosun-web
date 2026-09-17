@@ -92,6 +92,12 @@ export interface FusionContext {
    * which is exact only when the climatology does not vary with the hour.
    */
   climaAt?: (ms: number) => ClimaRef | null;
+  /**
+   * AP8 (read-only): reports the normalised member weights and the shrinkage share β of every scalar
+   * combination. Diagnostics only — nothing in the result depends on it, and the live path never sets
+   * it, so its output stays byte-identical (verified in `verify:pv-cube` block 13).
+   */
+  onWeights?: (info: { variable: FusionVariable; weights: ReadonlyArray<{ tag: string; w: number }>; beta: number }) => void;
   /** Micro-climate temperature offset at an arbitrary time (K) — same reasoning. */
   terrainDeltaAt?: (ms: number) => number;
 }
@@ -346,6 +352,23 @@ export function fuseScalar(
   for (const s of samples) {
     const raw = opt.value(s);
     if (raw == null || !Number.isFinite(raw)) continue;
+
+    // ── Phase FI, AP6 (additiv): eine explizite Fehlerstreuung macht das Sample zur
+    // UNVERZERRTEN Schätzung der Anomalie mit genau dieser σ — PAP 6 versteht σ als Fehler
+    // des fusionierten Werts, nicht als Rest nach einer Regression. Kein ρα-Faktor, keine
+    // Repräsentativität des Motors, kein Taper; die Klimatologie bleibt der Prior. Ohne das
+    // Feld (jeder heutige Adapter) läuft der Weg darunter unverändert.
+    const es = s.errorSigma?.[variable];
+    if (es != null && Number.isFinite(es) && es > 0 && !(opt.dryCensor && raw === 0)) {
+      const atMsE = s.validAtMs;
+      const timedE = atMsE != null && Number.isFinite(atMsE);
+      const baseMeanE = timedE && opt.climaMeanAt ? opt.climaMeanAt(atMsE) : opt.climaMean;
+      const microE = timedE && opt.microDeltaAt ? opt.microDeltaAt(atMsE) : (opt.microDelta ?? 0);
+      const resolvedE = microE ? microE * microResolution(s, ctx) : 0;
+      members.push({ mu: raw - (baseMeanE + resolvedE), sigma: es, tag: s.source, src: s });
+      continue;
+    }
+
     const curve = curves[s.family as SourceFamily];
     if (!curve) continue;
     // Skill and fade-out are two different things. ρ is the source's anomaly
@@ -479,13 +502,13 @@ export function fuseScalar(
   const total = c.weights.reduce((a, w) => a + Math.abs(w), 0) || 1;
   const seen = new Set<string>();
   const contributors: string[] = [];
-  for (const x of members
-    .map((m, i) => ({ tag: m.tag, w: Math.abs(c.weights[i]) / total }))
-    .sort((a, b) => b.w - a.w)) {
+  const normalised = members.map((m, i) => ({ tag: m.tag, w: Math.abs(c.weights[i]) / total }));
+  for (const x of [...normalised].sort((a, b) => b.w - a.w)) {
     if (x.w <= 0.05 || seen.has(x.tag)) continue;
     seen.add(x.tag);
     contributors.push(x.tag);
   }
+  ctx.onWeights?.({ variable, weights: normalised, beta });
 
   return {
     dist: { kind: 'normal', mu, sigma },
@@ -547,6 +570,10 @@ export function fuseHour(
   // --- clouds first: the regime assessment needs them, and they need nothing.
   const cloudsRaw = fuseScalar(samples, 'clouds', leadH, ctx, {
     value: (s) => {
+      // Phase FI, AP2 (additiv): trägt die Quelle die Gesamtbedeckung selbst (`clct` des
+      // Punkt-Cubes), gilt sie — die Schichten sind dann nur Kontext für das Regime.
+      // Ohne das Feld bleibt es bei der Summe der Schichten (byte-gleich).
+      if (s.cloudTotal != null && Number.isFinite(s.cloudTotal)) return Math.max(0, Math.min(100, s.cloudTotal));
       const parts = [s.cloudLow, s.cloudMid, s.cloudHigh].filter((v): v is number => v != null && Number.isFinite(v));
       return parts.length ? Math.min(100, parts.reduce((a, b) => a + b, 0)) : null;
     },

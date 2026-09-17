@@ -89,6 +89,10 @@ jobs:
         run: npm run verify:model-source
       - name: Verifier — Punkt-Fusion (buscosun Fusion)
         run: npm run verify:pv-fusion
+      # FI: buscosun Fusion auf dem Punkt-Cube (AP2–AP8) — netzfrei gegen eine Fixture in
+      # echter Container-Form; prueft auch, dass der Live-Pfad ohne Flag unveraendert bleibt.
+      - name: Verifier — Punkt-Cube-Pfad (buscosun Fusion, FI)
+        run: npm run verify:pv-cube
       # SH: „Auswahl teilen" — Query-Schema, Ort-Slugs, Kanaele, Vorschaubilder
       # UND der Abgleich des Edge-Buendels gegen src/share/* (SH6).
       - name: Verifier — Teilen (Share/OG)
